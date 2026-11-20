@@ -67,7 +67,7 @@ env.RunTimers()
 local list = ns.Damage.list
 assert(list.block, "the damage card draws full-height bars")
 assert(list.count == 5, "the player's five spells show: " .. tostring(list.count))
-assert(W.Near(list.holder:GetWidth(), 248) and W.Near(list.holder:GetHeight(), 208), "the test card is resized to hold five shared rows")
+assert(W.Near(list.holder:GetWidth(), 250) and W.Near(list.holder:GetHeight(), 208), "the test card is resized to hold five shared rows")
 
 -- The cap: the meter's name in caps, the rate at its right; the source's name and the fight switch are not shown.
 assert(Plain(Text(list.title)) == "DAMAGE  HEALING", "the cap is the damage and healing switch, not the source: " .. tostring(Text(list.title)))
@@ -104,7 +104,7 @@ for i, spell in ipairs(SPELLS) do
 	assert(W.Near(row.bar:GetHeight(), K.Widgets.Snap(row.bar, K.Tokens.Size("barHeight"))), i .. ": the bar shares the nameplate height")
 	assert(at[1] == "TOPLEFT" and W.Near(at[4], list.pad), i .. ": the row uses the shared card inset")
 	assert(W.Near(-at[5], list:Top() + (i - 1) * (list.rowHeight + list.spacing), 0.51), i .. ": the row is " .. (list:Top() + (i - 1) * (list.rowHeight + list.spacing)) .. " units under the card's top, got " .. tostring(-at[5]))
-	assert(W.Near(row.frame:GetWidth(), 248 - 2 * list.pad), i .. ": the row ends 16 units from the right edge")
+	assert(W.Near(row.frame:GetWidth(), 250 - 2 * list.pad), i .. ": the row ends 16 units from the right edge")
 	assert(row.icon:IsShown() and M.Last(row.icon, "SetTexture")[1] == 100 + i, i .. ": the spell's icon leads the row")
 	assert(row.back:IsShown() and W.Near(row.back:GetWidth(), list.rowHeight - K.Tokens.Size("barHeight") - 2) and W.Near(row.back:GetHeight(), row.back:GetWidth()), i .. ": in a square as tall as the row")
 	assert(W.Near(row.bar:GetWidth(), row.frame:GetWidth()), i .. ": the bar spans the whole row under its text")

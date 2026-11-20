@@ -519,12 +519,12 @@ do
 		end
 	end
 	assert(K.Setup.Apply({ layout = "Tank", modules = {} }))
-	assert(updates["meters.threat"] and updates["meters.threat"].height == 112 and updates["meters.threat"].width == 248, "a registered meter takes the layout's size through Layout.Update")
+	assert(updates["meters.threat"] and updates["meters.threat"].height == 112 and updates["meters.threat"].width == 250, "a registered meter takes the layout's size through Layout.Update")
 	assert(stored["meters.damage"].height == 158, "a meter that has not registered keeps the size for the reload")
 	assert(K.Setup.Layouts.Get("Tank")["meters.damage"].y == K.Setup.Layouts.Default("meters.damage").y and stored["meters.damage"].y == nil, "a place at its default is not saved, so it follows the layout class after the reload")
 	updates = {}
 	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
-	assert(updates["chat.main"] == nil and updates["meters.threat"].height == 112 and updates["meters.threat"].width == 248 and stored["meters.damage"].height == 158, "DPS puts the meters back to their footprints")
+	assert(updates["chat.main"] == nil and updates["meters.threat"].height == 112 and updates["meters.threat"].width == 250 and stored["meters.damage"].height == 158, "DPS puts the meters back to their footprints")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

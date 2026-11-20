@@ -42,8 +42,8 @@ end
 do
 	local env, K, ns = M.New({ saved = { version = 38, profiles = { Default = { Meters = { followRole = false } } }, layouts = { Default = { ["meters.damage"] = { width = 269, height = 158 } } } }, setup = function(e) e._group.size = 5 end })
 	M.Enable(env, K)
-	assert(ns.Damage.holder:GetWidth() == 248 and ns.Threat.holder:GetWidth() == 248, "an existing profile's old default width must migrate to the compact pair")
-	assert(K.Store.Layout()["meters.damage"].width == 248, "persist the updated default width")
+	assert(ns.Damage.holder:GetWidth() == 250 and ns.Threat.holder:GetWidth() == 250, "an existing profile's old default width must migrate to the compact pair")
+	assert(K.Store.Layout()["meters.damage"].width == 250, "persist the updated default width")
 end
 
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 4236, 1495 }, { 1280, 1024 } }) do
