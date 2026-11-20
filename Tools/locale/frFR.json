@@ -1930,6 +1930,7 @@
 	"Shows the Damage Meter in KstyleUI's style when role-based meters are off, or overrides Details.": "Affiche les statistiques de dégâts dans le style de KstyleUI lorsque les statistiques par rôle sont désactivées, ou prend la priorité sur Details.",
 	"Shows the best carried item of this kind.": "Affiche le meilleur objet de ce type dans vos sacs.",
 	"Shows the bind location and Hearthstone cooldown.": "Affiche le lieu de rappel et la recharge de la pierre de foyer.",
+	"Shows the bound key. Below 30 units, it shows only when Count text is off.": "Affiche la touche assignée. Sous 30 unités, seulement si Texte du compteur est désactivé.",
 	"Shows the damage and healing you take.": "Affiche les dégâts et les soins que vous recevez.",
 	"Shows the damage you take.": "Affiche les dégâts que vous subissez.",
 	"Shows the faction badge while the unit is flagged for PvP.": "Affiche l'emblème de faction quand l'unité est marquée JcJ.",

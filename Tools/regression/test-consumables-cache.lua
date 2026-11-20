@@ -19,6 +19,7 @@ C.Scan = function(...) scans = scans + 1; return scan(...) end
 for _, event in ipairs({ "ScaleChanged", "ThemeChanged", "HudStyleChanged" }) do K.Callbacks.Fire(event) end
 K.Callbacks.Fire("ModuleChanged", "UnitFrames")
 assert(scans == 0, "visual changes reuse inventory instead of rescanning bags")
+K.Options.Write("ActionBars", "consumables.hotkey", true)
 local binding = env.GetBindingKey
 env.GetBindingKey = function(...) bindings = bindings + 1; return binding(...) end
 local countWrites = 0

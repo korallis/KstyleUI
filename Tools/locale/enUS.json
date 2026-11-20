@@ -1930,6 +1930,7 @@
 	"Shows the Damage Meter in KstyleUI's style when role-based meters are off, or overrides Details.",
 	"Shows the best carried item of this kind.",
 	"Shows the bind location and Hearthstone cooldown.",
+	"Shows the bound key. Below 30 units, it shows only when Count text is off.",
 	"Shows the damage and healing you take.",
 	"Shows the damage you take.",
 	"Shows the faction badge while the unit is flagged for PvP.",

@@ -467,12 +467,13 @@ function ns.StyleTextsFor(b, barKey)
 		local fs = TextFor(b, spec.key)
 		local style = text[spec.key]
 		if fs and style then
-			Widgets.Fitted(fs, barKey == "consumables" or b.opts.readableCountdown and b.opts.size < 30 and (spec.key == "cooldown" or spec.key == "count"))
+			Widgets.Fitted(fs, b.opts.size < 30 and (barKey == "consumables" or b.opts.readableCountdown and (spec.key == "cooldown" or spec.key == "count")))
 			local rolePath, roleSize = Tokens.Font(spec.role)
 			local path = style.font ~= "" and style.font or rolePath
 			local size = ns.Slab.TextSize(barKey, cfg, (type(style.size) == "number" and style.size or roleSize) * scale, spec.key)
-			if barKey == "consumables" then size = math.max(8 * scale, size * b.opts.size / ns.defaults.bar3.size) end
-			local flags = ns.Slab.TextFlags(spec.key, ns.FontFlags(style.outline))
+			local compact = barKey == "consumables" and b.opts.size < 30
+			if compact then size = math.max(9 * K.Scale.Pixel(1) / Widgets.ScaleFactor(fs), size * b.opts.size / ns.defaults.bar3.size) end
+			local flags = compact and "OUTLINE" or ns.Slab.TextFlags(spec.key, ns.FontFlags(style.outline))
 			if not Widgets.ApplyFont(fs, path, size, flags) and path ~= rolePath then
 				Widgets.ApplyFont(fs, rolePath, size, flags)
 				LogOnce("font:" .. tostring(path), "the font " .. tostring(path) .. " did not load; the action bars use the interface font")
@@ -489,7 +490,7 @@ function ns.StyleTextsFor(b, barKey)
 		b.autocast:ClearAllPoints()
 		b.autocast:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", markInset, markInset)
 	end
-	ns.Slab.Keybind(b, cfg.hotkey == true)
+	ns.Slab.Keybind(b, cfg.hotkey == true and (barKey ~= "consumables" or b.opts.size >= 30 or cfg.count == false))
 	b.count:SetShown(cfg.count ~= false)
 	b.macroText:SetShown(cfg.macro == true)
 	b.cooldown:SetHideCountdownNumbers(cfg.cooldown ~= true)
@@ -528,6 +529,10 @@ local function ShowTooltip(b)
 		tip:SetAction(b.slot)
 	elseif b.kind == "consumable" then
 		if type(tip.SetItemByID) == "function" then tip:SetItemByID(b.itemID) end
+		if b.key and type(tip.AddLine) == "function" then
+			local key = type(GetBindingText) == "function" and GetBindingText(b.key) or b.key
+			if not ns.IsSecret(key) and type(key) == "string" then tip:AddLine(key); tip:Show() end
+		end
 	elseif b.kind == "pet" then
 		tip:SetPetAction(b.index)
 	else

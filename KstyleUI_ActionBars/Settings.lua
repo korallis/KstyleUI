@@ -99,7 +99,7 @@ for _, def in ipairs(ns.BARS) do
 	defaults[def.key] = BarDefaults(def)
 	if def.key == "bar3" then defaults[def.key].finished = true end
 end
-defaults.consumables = { enabled = true, attached = true, buttons = 12, visibility = "", rows = 2, size = 19, orientation = "HORIZONTAL", growth = "LEFTUP", spacing = -1, fade = false, fadeAlpha = 0, count = true, hotkey = true, cooldown = true, combat = true, idle = true, hideEmpty = true, other = true, backing = true }
+defaults.consumables = { enabled = true, attached = true, buttons = 12, visibility = "", rows = 2, size = 19, orientation = "HORIZONTAL", growth = "LEFTUP", spacing = -1, fade = false, fadeAlpha = 0, count = true, hotkey = false, cooldown = true, combat = true, idle = true, hideEmpty = true, other = true, backing = true }
 for _, kind in ipairs(ns.Consumables.kinds) do defaults.consumables[kind.key] = true end
 ns.defaults = defaults
 
@@ -261,7 +261,7 @@ local function BarRows(schema, def)
 			return settings.editBar == key and settings[key].fade
 		end,
 	})
-	add({ type = "toggle", key = key .. ".hotkey", label = L["Keybind text"], help = L["Shows the key bound to each button."] })
+	add({ type = "toggle", key = key .. ".hotkey", label = L["Keybind text"], help = def.kind == "consumable" and L["Shows the bound key. Below 30 units, it shows only when Count text is off."] or L["Shows the key bound to each button."] })
 	if def.kind == "action" or def.kind == "consumable" then
 		add({ type = "toggle", key = key .. ".count", label = L["Count text"], help = L["Shows item counts and spell charges."] })
 		if def.kind == "action" then add({ type = "toggle", key = key .. ".macro", label = L["Macro names"], help = L["Shows the name of each macro."] }) end

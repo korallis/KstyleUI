@@ -1937,6 +1937,7 @@ ns.Locale.Add({
 	["Shows the Damage Meter in KstyleUI's style when role-based meters are off, or overrides Details."] = "Zeigt die Schadensanzeige im Stil von KstyleUI, wenn rollenbasierte Anzeigen aus sind, oder hat Vorrang vor Details.",
 	["Shows the best carried item of this kind."] = "Zeigt den besten mitgef\195\188hrten Gegenstand dieser Art.",
 	["Shows the bind location and Hearthstone cooldown."] = "Zeigt den Heimatort und die Abklingzeit des Ruhesteins.",
+	["Shows the bound key. Below 30 units, it shows only when Count text is off."] = "Zeigt die belegte Taste. Unter 30 Einheiten nur sichtbar, wenn Anzahltext ausgeschaltet ist.",
 	["Shows the damage and healing you take."] = "Zeigt den Schaden und die Heilung, die Ihr erhaltet.",
 	["Shows the damage you take."] = "Zeigt den Schaden, den Ihr erleidet.",
 	["Shows the faction badge while the unit is flagged for PvP."] = "Zeigt das Fraktionsabzeichen, solange die Einheit f\195\188r PvP markiert ist.",

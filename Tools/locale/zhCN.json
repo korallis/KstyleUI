@@ -1930,6 +1930,7 @@
 	"Shows the Damage Meter in KstyleUI's style when role-based meters are off, or overrides Details.": "关闭职责统计时以 KstyleUI 风格显示伤害统计，或者取代 Details。",
 	"Shows the best carried item of this kind.": "显示背包中此类最佳物品。",
 	"Shows the bind location and Hearthstone cooldown.": "显示炉石绑定地点和冷却时间。",
+	"Shows the bound key. Below 30 units, it shows only when Count text is off.": "显示绑定按键。按钮小于30单位时，仅在关闭数量文字后显示。",
 	"Shows the damage and healing you take.": "显示你受到的伤害和治疗。",
 	"Shows the damage you take.": "显示你受到的伤害。",
 	"Shows the faction badge while the unit is flagged for PvP.": "单位开启 PvP 时显示阵营徽章。",

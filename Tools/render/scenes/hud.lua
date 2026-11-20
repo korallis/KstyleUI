@@ -649,6 +649,8 @@ function modules.actionbars(opts)
 		for i = 1, 12 do env._game.bindings["CLICK KstyleUI_Consumable" .. i .. ":LeftButton"] = { "SHIFT-" .. ((i - 1) % 9 + 1) } end
 		env.C_Item = { GetItemCooldown = function(id) return id == 13446 and 5 or 0, id == 13446 and 120 or 0, 1 end }
 		K.Options.Write("ActionBars", "consumables.rows", rows)
+		K.Options.Write("ActionBars", "consumables.hotkey", os.getenv("RENDER_CONSUMABLE_KEYS") == "1")
+		K.Options.Write("ActionBars", "consumables.count", os.getenv("RENDER_CONSUMABLE_COUNTS") ~= "0")
 		ns.Consumables.Refresh()
 		for i, b in ipairs(ns.Consumables.buttons) do b.cooldown:GetScript(i == 1 and "OnShow" or "OnHide")(b.cooldown) end
 	end
