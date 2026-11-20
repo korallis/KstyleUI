@@ -44,7 +44,7 @@ local function Line(slot, y)
 	if not line then
 		line = CreateFrame("Frame", nil, holder)
 		line.text = Widgets.FontString(line, "OVERLAY")
-		line.text:SetPoint("CENTER")
+		Widgets.Point(line.text, "CENTER", line, "CENTER", 0, 0)
 		line:Hide()
 		lines[slot] = line
 	end

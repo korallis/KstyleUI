@@ -22,29 +22,32 @@ function ns.Preview(parent)
 			{ ns.NoticeText("talent"), talent, ns.NoticeColor("talent") },
 			{ string.format(L["Low durability: %d%%"], ns.Get("durabilityPercent") - 1), durability, Tokens.Color("neutral") },
 		}
-		local width, y = 0, 0
+		local width, height = 0, -GAP
 		for i, sample in ipairs(samples) do
 			local text = self.lines[i]
 			ns.PaintNotice(text, sample[1], sample[3], sample[4], sample[5])
 			text:SetAlpha(sample[2] and 1 or OFF)
-			width = math.max(width, Widgets.TextWidth(text, 0))
-		end
-		for _, text in ipairs(self.lines) do
-			text:ClearAllPoints()
-			text:SetPoint("TOP", self, "TOPLEFT", width / 2, -y)
-			y = y + Widgets.TextHeight(text, Widgets.LineHeight(text)) + GAP
+			width, height = math.max(width, Widgets.TextWidth(text, 0)), height + Widgets.TextHeight(text, Widgets.LineHeight(text)) + GAP
 		end
 		ns.PaintCrosshair(self.cross)
 		self.cross:SetAlpha(ns.Get("crosshair") ~= "none" and 1 or OFF)
 		ns.PaintRing(self.ring, not ns.Get("cursorRing") and OFF or nil)
 		local cw, ch = self.cross:GetSize()
 		local rw = self.ring:GetWidth()
+		Widgets.Size(self, width + 4 * GAP + cw + rw, math.max(height, ch, rw))
+		local y = 0
+		for _, text in ipairs(self.lines) do
+			text:ClearAllPoints()
+			Widgets.Point(text, "TOP", self, "TOPLEFT", width / 2, -y)
+			y = y + Widgets.TextHeight(text, Widgets.LineHeight(text)) + GAP
+		end
 		self.cross:ClearAllPoints()
-		self.cross:SetPoint("LEFT", self, "TOPLEFT", width + 2 * GAP, -y / 2)
+		Widgets.Point(self.cross, "LEFT", self, "LEFT", width + 2 * GAP, 0)
 		self.ring:ClearAllPoints()
-		self.ring:SetPoint("LEFT", self.cross, "RIGHT", 2 * GAP, 0)
-		Widgets.Size(self, width + 4 * GAP + cw + rw, math.max(y - GAP, ch, rw))
+		Widgets.Point(self.ring, "LEFT", self.cross, "RIGHT", 2 * GAP, 0)
 	end
+	frame.Restyle = frame.Refresh
+	Widgets.Track(frame)
 	frame:Refresh()
 	return frame
 end

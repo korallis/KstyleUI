@@ -16,16 +16,10 @@ local function Shown(mode)
 	return mode == "always" or mode == "combat" and fighting or mode == "instances" and instanced or mode == "instancesCombat" and fighting and instanced
 end
 
-local function Bar(frame, layer)
-	local bar = frame:CreateTexture(nil, layer)
-	bar:SetPoint("CENTER")
-	return bar
-end
-
 function ns.BuildCrosshair(parent)
 	local frame = CreateFrame("Frame", nil, parent)
-	frame.hb, frame.vb = Bar(frame, "BACKGROUND"), Bar(frame, "BACKGROUND")
-	frame.h, frame.v = Bar(frame, "ARTWORK"), Bar(frame, "ARTWORK")
+	frame.hb, frame.vb = frame:CreateTexture(nil, "BACKGROUND"), frame:CreateTexture(nil, "BACKGROUND")
+	frame.h, frame.v = frame:CreateTexture(nil, "ARTWORK"), frame:CreateTexture(nil, "ARTWORK")
 	return frame
 end
 
@@ -46,6 +40,7 @@ function ns.PaintCrosshair(frame)
 	frame.hb:SetShown(edge > 0)
 	frame.vb:SetShown(edge > 0)
 	Widgets.Size(frame, math.max(hl, vw) + 2 * edge, math.max(vl, hw) + 2 * edge)
+	for _, bar in ipairs({ frame.hb, frame.vb, frame.h, frame.v }) do Widgets.Point(bar, "CENTER", frame, "CENTER", 0, 0) end
 end
 
 function ns.PaintRing(texture, dim)
