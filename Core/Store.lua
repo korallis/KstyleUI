@@ -1313,7 +1313,6 @@ local function load()
 	db = data
 	account = data.account
 	fill(account, ns.Features.account)
-	if type(account.databarGold) ~= "table" then account.databarGold = {} end
 	charKey = resolveCharacter()
 	local name = charKey and validName(db.characters[charKey]) or DEFAULT_PROFILE
 	activate(name)

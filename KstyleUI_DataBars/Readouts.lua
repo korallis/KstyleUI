@@ -103,8 +103,10 @@ local function Currencies(tip)
 end
 
 function Readouts.SaveGold()
+	local account = K.Store.Account()
+	if type(account.databarGold) ~= "table" then account.databarGold = {} end
 	local money, key = Number(GetMoney), K.Store.CharacterKey()
-	if money and key then K.Store.Account().databarGold[key] = money end
+	if money and key then account.databarGold[key] = money end
 end
 
 local function XP()

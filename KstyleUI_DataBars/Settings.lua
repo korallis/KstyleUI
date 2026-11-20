@@ -225,22 +225,6 @@ function ns.Schema()
 	for i, def in ipairs(MODULES) do
 		moduleOptions[i] = { value = def[1], label = def[2], rows = def[4] and { { type = "note", label = def[4] } } or {} }
 	end
-	moduleOptions[4].rows = {
-		{ type = "dropdown", key = "strip.timeSource", label = L["Clock"], help = L["Your computer's time or the realm's time."], options = TIME_SOURCES },
-		{ type = "toggle", key = "strip.clock24", label = L["24-hour clock"], help = L["Shows 14:32 instead of 2:32 PM."] },
-	}
-	moduleOptions[10].rows = {
-		{ type = "dropdown", key = "strip.latency", label = L["Latency shown"], help = L["Home latency for chat and logins, or world latency for combat."], options = LATENCIES },
-	}
-	moduleOptions[11].rows = {
-		{ type = "dropdown", key = "strip.money", label = L["Gold format"], help = L["How the strip writes your money."], options = MONEY_STYLES },
-	}
-	local sharedRows = {}
-	for _, index in ipairs({ 4, 10, 11 }) do
-		sharedRows[#sharedRows + 1] = { type = "header", label = MODULES[index][2] }
-		for _, row in ipairs(moduleOptions[index].rows) do sharedRows[#sharedRows + 1] = row end
-		moduleOptions[index].rows = {}
-	end
 	local stripRows = {
 		{ type = "header", label = L["Data bar"] },
 		{ type = "toggle", key = "strip.enabled", label = L["Show the data bar"], help = L["Show the data bar and its readouts."] },
@@ -279,7 +263,15 @@ function ns.Schema()
 		stripRows[#stripRows + 1] = row
 	end
 	ns.AddRows(stripRows)
-	ns.AddRows(sharedRows)
+	ns.AddRows({
+		{ type = "header", label = L["Clock"] },
+		{ type = "dropdown", key = "strip.timeSource", label = L["Clock"], help = L["Your computer's time or the realm's time."], options = TIME_SOURCES },
+		{ type = "toggle", key = "strip.clock24", label = L["24-hour clock"], help = L["Shows 14:32 instead of 2:32 PM."] },
+		{ type = "header", label = L["Latency"] },
+		{ type = "dropdown", key = "strip.latency", label = L["Latency shown"], help = L["Home latency for chat and logins, or world latency for combat."], options = LATENCIES },
+		{ type = "header", label = L["Gold"] },
+		{ type = "dropdown", key = "strip.money", label = L["Gold format"], help = L["How the strip writes your money."], options = MONEY_STYLES },
+	})
 
 	local TINTS = {
 		{ value = "none", label = L["Blizzard's colours"] },

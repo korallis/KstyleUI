@@ -129,7 +129,9 @@ env.C_SpecializationInfo.SetActiveSpecGroup = nil
 eq(ns.Click.Target("spec"), env.TalentMicroButton)
 
 local account, key = K.Store.Account(), K.Store.CharacterKey()
-assert(account.databarGold[key] == nil, "account gold waits for its tooltip or a money event")
+assert(account.databarGold == nil, "account gold waits for its tooltip or a money event")
+tooltip(ns, K, "gold")
+eq(account.databarGold[key], env._game.money)
 account.databarGold["Alt-OtherRealm"] = 1000000
 assert(tooltip(ns, K, "gold"):find("Alt-OtherRealm=100g", 1, true))
 env._game.money = 2000000
