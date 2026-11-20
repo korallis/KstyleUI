@@ -289,6 +289,17 @@ function C.Install(env, opts)
 	env._messageFilters = {}
 	env._nameFilters = {}
 	env.date = os.date
+	-- GetTime and C_Timer.After share one clock: a timer that runs moves env._now to its due time.
+	env._now = 0
+	env.GetTime = function() return env._now end
+	local after = env.C_Timer.After
+	env.C_Timer.After = function(delay, fn)
+		local due = env._now + (tonumber(delay) or 0)
+		after(delay, function()
+			env._now = math.max(env._now, due)
+			fn()
+		end)
+	end
 	env.CHAT_FRAMES = {}
 	env._cvars = { showTimestamps = "none" }
 	env._cvarWrites = {}

@@ -340,4 +340,237 @@ do
 	clean(env, K)
 end
 
+-- The review of PR 591, built from its probes: each block below failed before its fix.
+local G = dofile("Tools/regression/geometry.lua")
+local SIZES = { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
+
+local function sized(w, h)
+	local env, K, ns = C.New({ width = w, height = h, setup = function(e) e._size, e._fitScale = "auto", true end })
+	C.Enable(env, K)
+	return env, K, ns, function(f) return assert(G.ScaledRect(f, env.UIParent, K.Scale.Root())) end
+end
+
+local function overlap(a, b)
+	return math.min(a.right, b.right) - math.max(a.left, b.left) > 0.01 and math.min(a.top, b.top) - math.max(a.bottom, b.bottom) > 0.01
+end
+
+-- Every chat button keeps its own slot on either side, at every screen size, and the smallest room still holds them.
+for _, size in ipairs(SIZES) do
+	local env, K, _, rect = sized(size[1], size[2])
+	local buttons = { env.QuickJoinToastButton, env.ChatFrameChannelButton, env.ChatFrameToggleVoiceDeafenButton, env.ChatFrameToggleVoiceMuteButton, env.ChatFrameMenuButton }
+	write(env, K, "buttons", true)
+	write(env, K, "sideWidth", K.Options.Row("Chat", "sideWidth").min)
+	for _, right in ipairs({ false, true }) do
+		write(env, K, "sideRight", right)
+		local chat = rect(env.ChatFrame1)
+		for i, a in ipairs(buttons) do
+			local r = rect(a)
+			assert(right and r.left >= chat.right - 0.01 or not right and r.right <= chat.left + 0.01,
+				size[1] .. "x" .. size[2] .. ": " .. a:GetName() .. " reaches into the messages at the smallest room")
+			for j = i + 1, #buttons do
+				assert(not overlap(r, rect(buttons[j])), size[1] .. "x" .. size[2] .. ": " .. a:GetName() .. " overlaps " .. buttons[j]:GetName())
+			end
+		end
+	end
+	clean(env, K)
+end
+
+-- Idle fade fades the buttons the game parents to UIParent too, composed with the game's own alpha.
+for _, size in ipairs(SIZES) do
+	local env, K = sized(size[1], size[2])
+	local free = { env.QuickJoinToastButton, env.ChatFrameToggleVoiceDeafenButton, env.ChatFrameToggleVoiceMuteButton, env.ChatAlertFrame }
+	write(env, K, "buttons", true)
+	write(env, K, "idleStrength", 1)
+	write(env, K, "idleFade", true)
+	assert(env.ChatFrame1:GetEffectiveAlpha() == 0, "the faded chat hides")
+	for _, frame in ipairs(free) do
+		assert(frame:GetEffectiveAlpha() == 0, size[1] .. "x" .. size[2] .. ": " .. frame:GetName() .. " stays shown on a hidden chat")
+	end
+	write(env, K, "idleStrength", 0.4)
+	env.QuickJoinToastButton:SetAlpha(0.5)
+	env.FireEvent("CHAT_MSG_GUILD", "hi", "Thargor")
+	env.RunTimers()
+	assert(near(env.QuickJoinToastButton:GetAlpha(), 0.3), "the game's own alpha is kept under the fade: " .. env.QuickJoinToastButton:GetAlpha())
+	write(env, K, "idleFade", false)
+	assert(env.QuickJoinToastButton:GetAlpha() == 0.5 and env.ChatAlertFrame:GetAlpha() == 1, "off gives the game's alpha back")
+	clean(env, K)
+end
+
+-- Hover-only restores the alpha the game set last, not the one saved when the buttons first hid.
+do
+	local env, K = boot({ enabled = true, buttons = true })
+	local column = env.ChatFrame1.buttonFrame
+	column:SetAlpha(0.35)
+	write(env, K, "sideHover", true)
+	column:SetAlpha(1)
+	env.FCF_DockFrame(env.ChatFrame1)
+	env.RunTimers()
+	assert(column:GetAlpha() == 0, "still out of sight")
+	write(env, K, "sideHover", false)
+	assert(column:GetAlpha() == 1, "the game's newer alpha comes back: " .. column:GetAlpha())
+	clean(env, K)
+end
+
+-- One pending idle timer however much chat arrives; outgoing whispers wake it; a default repaint leaves the buttons alone.
+do
+	local env, K, ns = boot()
+	write(env, K, "idleFade", true)
+	local timers, after = 0, env.C_Timer.After
+	env.C_Timer.After = function(delay, fn)
+		if delay > 0 then timers = timers + 1 end
+		return after(delay, fn)
+	end
+	for _ = 1, 200 do env.FireEvent("CHAT_MSG_GUILD", "hi", "Thargor") end
+	assert(timers <= 1, "200 lines queued " .. timers .. " idle timers")
+	env.RunTimers()
+	for _, event in ipairs({ "CHAT_MSG_WHISPER_INFORM", "CHAT_MSG_BN_WHISPER_INFORM" }) do
+		assert(near(env.ChatFrame1:GetAlpha(), 0.6), "faded before " .. event)
+		env.FireEvent(event, "hi", "Thargor")
+		assert(env.ChatFrame1:GetAlpha() == 1, event .. " wakes the chat")
+		env.RunTimers()
+	end
+	env.C_Timer.After = after
+	write(env, K, "idleFade", false)
+	local reads = 0
+	for _, frame in ipairs({ env.ChatFrame1.buttonFrame, env.QuickJoinToastButton, env.ChatAlertFrame }) do
+		local get = frame.GetAlpha
+		frame.GetAlpha = function(self) reads = reads + 1 return get(self) end
+	end
+	for _ = 1, 50 do ns.Panel.Rest() end
+	assert(reads == 0, "a default hover repaint read the hidden buttons " .. reads .. " times")
+	clean(env, K)
+end
+
+-- Every wake group switches on and off on its own, and the fade waits exactly the chosen delay from the last wake.
+do
+	local env, K = boot({ enabled = true, buttons = true })
+	write(env, K, "idleFade", true)
+	local wake = { emotes = "CHAT_MSG_EMOTE", skills = "CHAT_MSG_SKILL", reputation = "CHAT_MSG_COMBAT_FACTION_CHANGE", loot = "CHAT_MSG_LOOT",
+		system = "CHAT_MSG_SYSTEM", achievements = "CHAT_MSG_ACHIEVEMENT", npc = "CHAT_MSG_MONSTER_SAY" }
+	for group, event in pairs(wake) do
+		write(env, K, "idleWake." .. group, true)
+		env.FireEvent(event)
+		assert(env.ChatFrame1:GetAlpha() == 1, group .. " on wakes the chat")
+		env.RunTimers()
+		write(env, K, "idleWake." .. group, false)
+		env.FireEvent(event)
+		assert(near(env.ChatFrame1:GetAlpha(), 0.6), group .. " off leaves it faded")
+	end
+	for _, seconds in ipairs({ 5, 60, 15 }) do
+		write(env, K, "idleDelay", seconds)
+		local start = env.GetTime()
+		env.FireEvent("CHAT_MSG_PARTY", "hi", "Thargor")
+		env._now = start + seconds / 2
+		env.FireEvent("CHAT_MSG_PARTY", "hi", "Thargor")
+		env.RunTimers()
+		assert(near(env.ChatFrame1:GetAlpha(), 0.6) and near(env.GetTime() - start, seconds * 1.5), seconds .. " s after the last line it fades: " .. env.GetTime() - start)
+	end
+	write(env, K, "sideIcons.channels", false)
+	assert(K.Safe.IsHidden(env.ChatFrameChannelButton), "the channels button hides")
+	write(env, K, "sideIcons.channels", true)
+	assert(not K.Safe.IsHidden(env.ChatFrameChannelButton), "and comes back")
+	clean(env, K)
+end
+
+-- Link tooltips never hide a tooltip whose owner is unknown, and refuse a partial tooltip or registry.
+do
+	local env, K = boot()
+	local hidden = false
+	env.GameTooltip = { SetOwner = function() end, SetHyperlink = function() end, Show = function() end, Hide = function() hidden = true end, IsOwned = function() return env.Secret(false) end }
+	write(env, K, "linkTooltips", true)
+	local registry = env.EventRegistry
+	registry:TriggerEvent("ChatFrame.OnHyperlinkEnter", env.ChatFrame1, "item:1234")
+	registry:TriggerEvent("ChatFrame.OnHyperlinkLeave", env.ChatFrame1)
+	assert(not hidden, "a secret owner may be another tooltip's: leave it")
+	env.GameTooltip = { SetHyperlink = function() end }
+	registry:TriggerEvent("ChatFrame.OnHyperlinkEnter", env.ChatFrame1, "item:1234")
+	clean(env, K)
+	write(env, K, "linkTooltips", false)
+	local unregister = registry.UnregisterCallback
+	registry.UnregisterCallback = nil
+	write(env, K, "linkTooltips", true)
+	write(env, K, "linkTooltips", false)
+	registry.UnregisterCallback = unregister
+	clean(env, K)
+end
+
+-- Tile opacity covers the selected wash, and the preview follows padding, the chat buttons' room and the shown edit box.
+do
+	local env, K = boot({ enabled = true, tabStyle = "filled" })
+	local parts = K.Skin.Parts(env.ChatFrame1Tab)
+	write(env, K, "tabOpacity", 0)
+	assert(not parts.wash:IsShown() or select(4, parts.wash:GetVertexColor()) == 0, "a clear tile has no wash")
+	write(env, K, "tabOpacity", 0.5)
+	assert(near(select(4, parts.wash:GetVertexColor()), K.Skin.TAB_WASH_ALPHA * 0.5), "the wash follows the tile's opacity")
+	write(env, K, "tabOpacity", 1)
+	assert(near(select(4, parts.wash:GetVertexColor()), K.Skin.TAB_WASH_ALPHA), "and comes back")
+	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
+	parent:SetSize(320, 240)
+	local preview = K.Options.Preview("Chat")(parent)
+	write(env, K, "tabPadding", 0)
+	preview:Refresh()
+	assert(select(4, preview.fill:GetPoint(1)) <= 0, "the preview tile never starts inside its name")
+	local function shot()
+		local p = {}
+		for _, f in ipairs({ preview.divider, preview.lines[1], preview.tabs[1] }) do
+			for i = 1, f:GetNumPoints() do
+				for _, v in ipairs({ f:GetPoint(i) }) do p[#p + 1] = tostring(v) end
+			end
+		end
+		return table.concat(p, ":")
+	end
+	local old = shot()
+	write(env, K, "buttons", true)
+	write(env, K, "sideRight", true)
+	write(env, K, "sideWidth", 60)
+	preview:Refresh()
+	assert(shot() ~= old, "the preview keeps the chat buttons' room")
+	write(env, K, "editBox", "always")
+	write(env, K, "editHeight", 30)
+	preview:Refresh()
+	assert(preview.edit and preview.edit:IsShown() and near(preview.edit:GetHeight(), 30), "the preview draws the always-shown edit box at its height")
+	write(env, K, "editBox", "typing")
+	preview:Refresh()
+	assert(not preview.edit:IsShown(), "and hides it with the box")
+	clean(env, K)
+end
+
+-- Names in messages: full-width punctuation ends a name, and names that become readable again colour without a roster change.
+do
+	local env, K, ns = boot()
+	local names = { thargor = "ff123456" }
+	assert(ns.Format.Mentions("Thargor" .. string.char(239, 188, 140) .. "hello", names):find("|cff123456Thargor|r", 1, true), "a full-width comma ends a name")
+	assert(ns.Format.Mentions(string.char(228, 189, 160, 239, 188, 140) .. "Thargor", names):find("|cff123456Thargor|r", 1, true), "and one starts after it")
+	local restricted = true
+	env.UnitName = function(unit)
+		if unit == "player" then return "Tester" end
+		if unit == "party1" then return restricted and env.Secret("Lunara") or "Lunara" end
+	end
+	env.UnitClass = function() return "Mage", "MAGE" end
+	env.GetNumGroupMembers = function() return 2 end
+	env.IsInRaid = function() return false end
+	write(env, K, "classMentions", true)
+	for _, event in ipairs({ "PLAYER_REGEN_ENABLED", "ADDON_RESTRICTION_STATE_CHANGED" }) do
+		restricted = true
+		env.FireEvent("GROUP_ROSTER_UPDATE")
+		restricted = false
+		env.FireEvent(event)
+		C.Say(env, env.ChatFrame1, "CHAT_MSG_PARTY", "Lunara pull")
+		assert(C.Last(env.ChatFrame1):find("Lunara|r pull", 1, true), event .. " rebuilds the names: " .. C.Last(env.ChatFrame1))
+	end
+	clean(env, K)
+end
+
+-- Off at startup registers nothing, so nothing needs removing.
+do
+	local removals = 0
+	local env, K = C.New({ setup = function(e)
+		local remove = e.ChatFrameUtil.RemoveMessageEventFilter
+		e.ChatFrameUtil.RemoveMessageEventFilter = function(event, fn) removals = removals + 1 return remove(event, fn) end
+	end })
+	C.Enable(env, K)
+	assert(removals == 0, "a default load removed " .. removals .. " filters it never added")
+	clean(env, K)
+end
+
 print("chat parity ok: tabs, tiles, edit box, lock, idle fade, names in messages, link tooltips and chat buttons apply and restore")
