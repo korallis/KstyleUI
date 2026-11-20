@@ -9,6 +9,10 @@ local STATES = {
 	rep = { xp = 0, rested = 0, level = 60 },
 	cap = { xp = 0, rested = 0, level = 60, faction = false },
 	hover = { xp = 16000, rested = 0, level = 38 },
+	accuracy = { xp = 12345, rested = 57300, level = 38 },
+	paragon = { xp = 12345, rested = 57300, level = 38,
+		faction = { factionID = 72, name = "Stormwind", reaction = 8, currentStanding = 42000, currentReactionThreshold = 42000, nextReactionThreshold = 42000 },
+		paragon = { [72] = { value = 12500, threshold = 10000, rewardPending = true } } },
 }
 
 return Common.Run(function()
