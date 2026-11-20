@@ -41,7 +41,8 @@ local DEBUFFS = {
 local PARITY = os.getenv("RENDER_AURAS_PARITY") == "1"
 -- RENDER_AURAS_PARITY=2 switches on round two's options: the extra buff and debuff rows (filled with two important buffs
 -- and one crowd control debuff) under the debuff rows, the glow on the debuff rows, the timer in the tile's top right
--- corner with the stack count stepped under it, and the type icon on the debuffs' bottom edge.
+-- corner with the stack count stepped under it, and the type icon on the debuffs' bottom edge (in the extra debuff row's
+-- top right corner, with the timer in the lane under it).
 local ROUND2 = os.getenv("RENDER_AURAS_PARITY") == "2"
 local SECONDS = { buffs = { 1680, 24, 17, 12, 9, 480, 180, 3600, 2.4 }, debuffs = { 18, 9, 4, 60, 26 } }
 local REFRESHABLE = { buffs = 9, debuffs = 3 }
@@ -119,7 +120,7 @@ return Common.Run(function()
 	if ROUND2 then
 		for key, value in pairs({
 			["extraBuffs.enabled"] = true, ["extraDebuffs.enabled"] = true, ["debuffs.glow"] = true, ["extraDebuffs.glow"] = true,
-			["timer.position"] = "TOPRIGHT", ["debuffs.typeIcon"] = "BOTTOM", ["extraDebuffs.typeIcon"] = "BOTTOM",
+			["timer.position"] = "TOPRIGHT", ["debuffs.typeIcon"] = "BOTTOM", ["extraDebuffs.typeIcon"] = "TOPRIGHT",
 		}) do
 			K.Options.Write("Auras", key, value)
 		end
