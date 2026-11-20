@@ -57,6 +57,17 @@ class PruningTests(unittest.TestCase):
 
 
 class SharingTests(unittest.TestCase):
+    def test_identical_simplified_walks_keep_only_the_shortest(self):
+        nodes = [node('a', 0), node('b', 20)]
+        roads = [edge('a', 'b', 21, pts=[(0, 0, 0), (10, 2, 0), (20, 0, 0)]),
+                 edge('a', 'b', 21, pts=[(0, 0, 0), (10, -1, 0), (20, 0, 0)])]
+        for routes in (roads, roads[::-1]):
+            with self.subTest(routes=routes):
+                _, edges = shared_graph(nodes, routes)
+                self.assertEqual(len(edges), 1, 'deduplicate simplified walking polylines, keeping the shortest')
+                self.assertEqual(edges[0]['pts'], [(0, 0, 0), (20, 0, 0)])
+                self.assertAlmostEqual(edges[0]['len'], 2 * math.sqrt(101))
+
     def test_shared_trunk_is_one_edge_and_has_a_junction(self):
         nodes = [node('a', 0), node('b', 20, 10), node('c', 20, -10)]
         roads = [edge('a', 'b', 25, pts=[(0, 0, 0), (10, 0, 0), (20, 10, 0)]),
