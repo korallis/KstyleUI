@@ -1253,8 +1253,8 @@ function modules.auras(opts)
 		Hud.PlaceAuras(debuffs, harmful, fillAuras(env, A, debuffs, "debuffs", harmful, entries), ns.Model.Group(settings, "debuffs").columns)
 	end
 	for _, row in ipairs(extra and { { "HELPFUL|IMPORTANT", "extraBuffs", { buffRow[1], buffRow[2] } }, { "HARMFUL|CROWD_CONTROL", "extraDebuffs", { DEBUFF_ROW[2] } } } or {}) do
-		local container, group = A.Container(env, row[1])
-		Hud.PlaceAuras(container, group, fillAuras(env, A, container, row[2], group, row[3]), ns.Model.Group(settings, row[2]).columns)
+		local container, extraGroup = A.Container(env, row[1])
+		Hud.PlaceAuras(container, extraGroup, fillAuras(env, A, container, row[2], extraGroup, row[3]), ns.Model.Group(settings, row[2]).columns)
 	end
 	-- The rows' "+N" cells are counted by the engine's layout; the stub plays that pass for the counts laid out.
 	A.Counters(ns, { #buffRow, 0, #entries })
