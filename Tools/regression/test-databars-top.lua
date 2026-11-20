@@ -168,6 +168,7 @@ do
 			for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 				for _, preset in ipairs(Layouts.Names()) do
 					local on = Layouts.Enabled(preset)
+					on["consumables.bar"] = false
 					on["meters.damage"], on["meters.threat"] = preset ~= "Tank", preset == "Tank"
 					local cap, fits = Layouts.ScaleLimit(width, height, preset, on, style)
 					local scale = Scale.Auto(height, cap, fits)
