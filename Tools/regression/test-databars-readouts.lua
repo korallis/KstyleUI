@@ -200,6 +200,13 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 	assert(clock:IsShown())
 	kit.Options.Write("DataBars", "strip.enabled", true)
 	assert(not clock:IsShown())
+	kit.Options.Write("HudStyle", "style", "medallions")
+	local dock = bar.Settings().strip.dockModules
+	for _, entry in ipairs(dock) do if entry.id == "time" then entry.shown = false end end
+	kit.Options.Write("DataBars", "strip.dockModules", dock)
+	assert(clock:IsShown(), "the minimap clock returns when the independent dock clock is off")
+	kit.Options.Write("HudStyle", "style", "frames")
+	assert(not clock:IsShown(), "the top bar retains its own enabled clock")
 	assert(#e._errors == 0 and kit.ErrorCount() == 0, tostring(e._errors[1]))
 end
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
