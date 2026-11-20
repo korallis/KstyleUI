@@ -157,7 +157,7 @@ local function Colors(f)
 	elseif healthSource == "class" then
 		f.health:SetBarColor(cr, cg, cb)
 	elseif healthSource == "reaction" then
-		f.health:SetBarColor(Theme.ReactionColor(UnitReaction and UnitReaction(unit, "player")))
+		f.health:SetBarColor(K.ColorVision.ReactionColor(UnitReaction and UnitReaction(unit, "player")))
 	else
 		local c = health.color
 		f.health:SetBarColor(c.r, c.g, c.b)

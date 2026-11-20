@@ -61,6 +61,7 @@ local SOURCE_KEYS = { enemy = "enemy.colorSource", friendly = "friendly.colorSou
 local COLOR_KEYS = { enemy = "enemy.color", friendly = "friendly.color" }
 local TYPES = { "quest", "boss", "rare", "miniBoss", "elite", "caster", "neutral", "minor", "normal" }
 local TYPE_KEYS, TYPE_COLOR_KEYS = {}, {}
+local TYPE_VISION = { boss = 2, normal = 2, neutral = 3 }
 for _, name in ipairs(TYPES) do
 	TYPE_KEYS[name], TYPE_COLOR_KEYS[name] = "types." .. name, "types." .. name .. "Color"
 end
@@ -753,6 +754,7 @@ function Plate:UpdateColor()
 		r, g, b = Rgb(Settings.Get("types.castingColor"))
 	elseif typeKey then
 		r, g, b = Rgb(Settings.Get(typeKey))
+		if TYPE_VISION[self.unitType] then r, g, b = K.ColorVision.Color(TYPE_VISION[self.unitType], r, g, b) end
 	elseif source == "tapped" then
 		r, g, b = Tokens.Color("textDisabled")
 	elseif source == "custom" then
