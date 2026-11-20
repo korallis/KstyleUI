@@ -57,6 +57,7 @@ return Common.Run(function()
 	parent:SetSize(element.width + 40, element.height + 40)
 	parent:SetPoint("TOPLEFT", K.Scale.Root(), "TOPLEFT", 80, -80)
 	local preview = K.Options.Preview("Minimap")(parent)
+	preview:SetPoint("CENTER", parent, "CENTER")
 	preview:Refresh()
 	M.Settle(env)
 
