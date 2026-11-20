@@ -99,7 +99,7 @@ end
 function Style.Build(f, kind)
 	f.kind = kind
 	f.chrome = Widgets.Chrome(f, { shape = "tile", fill = "surface", shadow = kind == "party" })
-	f.health = Widgets.UnitBar(f, { lowHealth = true })
+	f.health = Widgets.UnitBar(f, { lowHealth = true, spark = false })
 	f.power = Widgets.UnitBar(f, { loss = false, spark = false })
 	f.portrait = f:CreateTexture(nil, "ARTWORK")
 	f.portraitMask = f:CreateMaskTexture()

@@ -1,9 +1,9 @@
--- test-groupframes-rows.lua: KSTY-57's party and raid rows on the owner's screens (1280x720, 1920x1080, 3440x1440 and 5120x1440) at the automatic interface size, as the KSTY-44 party and KSTY-47 raid mock-ups draw them: the role pip before the name, the name and the percent on one line over a full-width bar no thinner than the mock-up's, a thin power line under it, the three default indicators in a legible lane at the name line's end and off the bar, the raid marker never on the percent, the party bare and the raid seated in its card.
+-- test-groupframes-rows.lua: KSTY-57's party and raid rows from 1280x720 through 3840x2160, including 2560x1440 and 5120x1440, at the automatic interface size: the role pip before the name, the name and percent above a full-width spark-free bar, a thin power line below, indicators off the bar, the raid marker clear of the percent, the party bare and the raid seated in its card.
 local G = dofile("Tools/regression/group_env.lua")
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
-local SCREENS = { { 1280, 720 }, { 1920, 1080 }, { 3440, 1440 }, { 5120, 1440 } }
+local SCREENS = { { 1280, 720 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
 local CASES = {
 	{ kind = "party", members = 4, bar = 12, power = 3, percent = true },
 	{ kind = "raid", members = 10, bar = 12, power = 3, percent = true },
@@ -81,6 +81,7 @@ for _, screen in ipairs(SCREENS) do
 		eq(#shown, case.kind == "party" and case.members + 1 or case.members, what .. ": every member has a row")
 		local scene = Scene.Build(env)
 		local f = shown[1]
+		assert(not f.health.sparkFrame, what .. ": disable the group health spark to match tooltip and tracked bars")
 		for _, row in ipairs(shown) do
 			if row.unit == (case.kind == "party" and "party1" or "raid1") then
 				f = row

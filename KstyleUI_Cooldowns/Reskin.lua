@@ -10,7 +10,7 @@ ns.Reskin = Reskin
 
 local ICON_CROP = 0.07
 local ICON_OUTSET = 0
-local BAR_ICON_OUTSET = 2
+local BAR_ICON_OUTSET = 0
 local CVAR = "cooldownViewerEnabled"
 
 local active = {}
@@ -118,8 +118,11 @@ end
 local function SkinBar(item)
 	local cfg, current = Settings.current.bars, Settings.current
 	local scale = ItemScale(item)
+	local height = Widgets.Snap(item, cfg.height / Widgets.ScaleFactor(item))
+	item:SetHeight(height)
 	local bar = item.Bar
 	if type(bar) == "table" and type(bar.GetStatusBarTexture) == "function" then
+		bar:SetHeight(math.max(1, height - 2 * Widgets.Border(bar)))
 		local keep = Keep(bar:GetStatusBarTexture())
 		for region in pairs(Widgets.BarEdge(bar).regions) do
 			keep[region] = true
@@ -132,6 +135,8 @@ local function SkinBar(item)
 	end
 	local frame = item.Icon
 	if type(frame) == "table" and IsTexture(frame.Icon) then
+		frame:SetWidth(height)
+		frame:SetHeight(height)
 		Skin.Strip(frame, { keep = Keep(frame.Icon) })
 		Crop(frame.Icon)
 		Outset(Skin.Backdrop(frame, { shape = "tile", fill = "buttonFill", inset = -BAR_ICON_OUTSET / scale }), BAR_ICON_OUTSET / scale)

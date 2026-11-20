@@ -163,18 +163,21 @@ end
 local function barViewer(env, viewer, spec)
 	local count = #viewer._items
 	place(viewer, env.UIParent, spec.x, spec.y, spec.width, count * spec.height + (count - 1) * spec.gap)
+	local top = 0
 	for i, item in ipairs(viewer._items) do
-		place(item, viewer, 0, (i - 1) * (spec.height + spec.gap), spec.width, spec.height)
+		place(item, viewer, 0, top, spec.width, spec.height)
 		local icon = item.Icon
-		place(icon, item, 0, 0, spec.height, spec.height)
+		icon:ClearAllPoints()
+		icon:SetSize(spec.height, spec.height)
+		icon:SetPoint("LEFT", item, "LEFT", 0, 0)
 		icon.Icon:SetAllPoints(icon)
 		icon.Icon:SetTexture(spec.icons[i])
 		icon.Overlay:SetAllPoints(icon)
 		local bar = item.Bar
 		bar:ClearAllPoints()
 		bar:SetSize(spec.width - spec.height - ICON_GAP, spec.height)
-		bar:SetPoint("TOPLEFT", icon, "TOPRIGHT", ICON_GAP, 0)
-		bar:SetPoint("BOTTOMRIGHT", item, "BOTTOMRIGHT", 0, 0)
+		bar:SetPoint("LEFT", icon, "RIGHT", ICON_GAP, 0)
+		bar:SetPoint("RIGHT", item, "RIGHT", 0, 0)
 		bar.BarBG:SetAllPoints(bar)
 		bar.Pip:SetAllPoints(bar)
 		bar.Name:ClearAllPoints()
@@ -187,7 +190,10 @@ local function barViewer(env, viewer, spec)
 		bar.Duration:SetText(spec.times[i])
 		bar:SetMinMaxValues(0, spec.values[i][1])
 		bar:SetValue(spec.values[i][2])
+		viewer:OnAcquireItemFrame(item)
+		top = top + item:GetHeight() + spec.gap
 	end
+	viewer:SetHeight(top - spec.gap)
 end
 
 -- Reskin() -> scene, env, K: Blizzard's viewers restyled in place, in their own environment.

@@ -188,7 +188,7 @@ each("raid", function(f)
 	eq(f.name:GetText(), K.Locale.Upper(f.name:GetText()), f.unit .. ": the fitted name stays in caps")
 	local percentPath = f.healthText:GetFont()
 	eq(percentPath, (K.Tokens.Font("number")), f.unit .. ": the percent follows the number role")
-	eq(f.health.sparkLine:GetAlpha(), 0, f.unit .. ": no end cap under the percent")
+	assert(not f.health.sparkFrame, f.unit .. ": keep Medallions group bars spark-free like tooltip and tracked bars")
 	for _, line in ipairs(f.targetRing) do
 		for _, piece in ipairs(line) do
 			local v = piece._state.VertexColor
@@ -213,7 +213,7 @@ each("raid", function(f)
 	local _, class = env.UnitClass(f.unit)
 	local gr, gg, gb = K.Theme.ClassColor(class)
 	assert(near(color[1], gr) and near(color[2], gg) and near(color[3], gb), f.unit .. ": the bar keeps its class colour")
-	eq(f.health.sparkLine:GetAlpha(), 1, f.unit .. ": the end cap returns")
+	assert(not f.health.sparkFrame, f.unit .. ": keep group bars spark-free when returning to Frames")
 	assert(not f.medSlab[5]:IsShown(), f.unit .. ": the slab material goes with the style")
 	assert(f.name:GetFont() ~= K.Tokens.FontPath("InterSemiBold"), f.unit .. ": the name leaves the Medallions label face")
 	eq(f.name:GetText(), f.rawName, f.unit .. ": in its own case")

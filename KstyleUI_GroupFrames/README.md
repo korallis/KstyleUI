@@ -15,7 +15,7 @@ Folio preserves the theme-name sentinel and the explicit Alegreya Sans Regular f
 
 These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-design.md). The roadmap's Global Constraints and [AGENTS.md](../AGENTS.md) apply too.
 
-- Group frames use `SecureGroupHeaderTemplate` headers of `SecureUnitButtonTemplate` buttons. Health goes straight to the bar with `SetMinMaxValues(0, UnitHealthMax(unit))` and `SetValue(UnitHealth(unit))`. Health text comes from `UnitHealthPercent` or `AbbreviateNumbers`, never from Lua arithmetic. Incoming heals come from `CreateUnitHealPredictionCalculator`. Range fade uses `SetAlphaFromBoolean`, because `UnitInRange` is always secret.
+- Group frames use `SecureGroupHeaderTemplate` headers of `SecureUnitButtonTemplate` buttons. Health goes straight to the bar with `SetMinMaxValues(0, UnitHealthMax(unit))` and `SetValue(UnitHealth(unit))`. Group, tooltip and tracked bars share a spark-free fill end. Health text comes from `UnitHealthPercent` or `AbbreviateNumbers`, never from Lua arithmetic. Incoming heals come from `CreateUnitHealPredictionCalculator`. Range fade uses `SetAlphaFromBoolean`, because `UnitInRange` is always secret.
 - Auras use the AuraContainer engine (`CustomAuraContainerTemplate`, aura groups and filter strings). Never scan auras by index while `C_Secrets.ShouldAurasBeSecret()` returns true. Aura data turns secret during a boss pull before `InCombatLockdown()` returns true.
 - Blizzard frames this module replaces are hidden only through `KstyleUI.Safe.HideBlizzard`.
 - At load the module only registers itself with `KstyleUI.Modules.Register`. It creates no frames, registers no events and installs no hooks until `Enable` runs. `test-modules-load.lua` checks the frames.

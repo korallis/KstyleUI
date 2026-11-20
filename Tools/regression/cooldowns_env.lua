@@ -609,6 +609,13 @@ function C.Native(env, name, entry, items, format)
 			viewer:OnAcquireItemFrame(item)
 		end
 	end
+	if bars then
+		h = viewer._items[1]:GetHeight()
+		viewer._height = n * h * scale + (n - 1) * pad
+		for i, item in ipairs(viewer._items) do
+			item._points[1][5] = -(i - 1) * (h + pad / scale)
+		end
+	end
 	viewer:Layout()
 	return viewer
 end
