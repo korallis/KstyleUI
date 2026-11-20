@@ -12,10 +12,11 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			local _, by, _, bh = Scene.Rect(env, view.frame)
 			local text
 			for _, item in ipairs(Scene.Build(env).items) do
-				if item.object == view.items.time.value then text = item.rect end
+				if item.object == view.items.time.value then text = item end
 			end
 			assert(text, "the regression must measure the visible clock text")
-			local tx, ty, tw, th = unpack(text)
+			local tx, ty, tw, th = unpack(text.rect)
+			local em = th / (text.lineEm or 1.2)
 			local border = K.Widgets.Border(view.frame) * bh / view.frame:GetHeight()
 			local case = style .. " " .. screen[1] .. "x" .. screen[2] .. " height " .. height
 			for i = 1, 2 do
@@ -23,8 +24,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 				assert(tx + tw <= gx or gx + gw <= tx or ty + th <= gy or gy + gh <= ty,
 					case .. ": hang the centre gem below the bar so the clock text clears it")
 			end
-			assert(ty > by + border and ty + th < by + bh - border,
-				case .. ": fit the clock text between the top and bottom trim with clear space")
+			assert(ty + (th - em) / 2 > by + border and ty + (th + em) / 2 < by + bh - border,
+				case .. ": fit the clock glyphs (one em; the page's line box adds leading that draws nothing) between the top and bottom trim with clear space")
 			assert(math.abs((ty + th / 2) - (by + bh / 2)) <= 1080 / screen[2],
 				case .. ": keep the clock vertically centred in the bar")
 			for id, item in pairs(view.items) do

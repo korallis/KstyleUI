@@ -686,9 +686,6 @@ function Strip.Paint(view, s, values)
 			local size = view.topBar and min(s.fontSize, (view.frame:GetHeight() - 4 * Widgets.Border(view.frame)) / (1.2 * K.Theme.FontScale())) or f.fontSize
 			local fontSize = size * K.Theme.FontScale()
 			if item.font ~= f.font or item.fontSize ~= fontSize or item.outline ~= f.outline or item.lineMode ~= view.lineMode or item.slab ~= view.slab or item.instrument ~= f.instrumentText then
-				Widgets.Fitted(item.label, view.topBar)
-				Widgets.Fitted(item.value, view.topBar)
-				Widgets.Fitted(item.dot, view.topBar)
 				if view.slab then
 					Font.Caption(item.label, caption, caption.medal)
 					Font.Caption(item.value, caption, caption.medal)
