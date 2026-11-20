@@ -17,6 +17,7 @@ local VIEWER_SIZE_MIN, VIEWER_SIZE_STEP, VIEWER_SIZE_MAX = 50, 10, 200
 local BAR_WIDTH_MIN, BAR_WIDTH_MAX = 50, 200
 local VIEWER_CLEAR, VIEWER_MIN_ITEMS, FOCUS_CLEAR, SLIDES = 2, 2, 16, 6
 local WARNING_WIDTH, WARNING_HEIGHT, WARNING_TOP, WARNING_SIDE = 800, 100, 0.15, 4
+local DURABILITY_TOP = 80
 local DENSE_GAPS = { 4, 2 }
 local VIEWERS = {
 	buffs = { key = "cooldowns.buffs", index = "BuffIcon", width = 40, height = 40, offset = 4, fallback = 6, cap = 27.6, floor = 24 },
@@ -531,7 +532,7 @@ local function Places(name, story, notes)
 	local rw, rh = Setup.RootSize()
 	local map = enum.EditModeSystem.DurabilityFrame and Box(name, "minimap.main", rw, rh)
 	if map then
-		places[#places + 1] = { label = "the durability doll", system = enum.EditModeSystem.DurabilityFrame, stamp = "durability", point = "TOPRIGHT", x = (map.l - Layouts.GAP) * k, y = (map.t - 80) * k, settings = {} }
+		places[#places + 1] = { label = "the durability doll", system = enum.EditModeSystem.DurabilityFrame, stamp = "durability", point = "TOPRIGHT", x = (map.l - Layouts.GAP) * k, y = (map.t - DURABILITY_TOP) * k, settings = {} }
 	end
 	local rows = Rows(name, k, rw, rh, notes)
 	for _, place in ipairs(rows) do
@@ -840,7 +841,7 @@ function EditMode.Write(name, story, replace)
 	local placed, notes, rows = {}, {}, {}
 	local viewer = Enum.EditModeSystem.CooldownViewer
 	for _, place in ipairs(Places(name, story, notes)) do
-		if place.row then
+		if place.row or place.stamp == "durability" then
 			if PlaceRow(all[index], place) then
 				placed[#placed + 1] = place.label
 				rows[#rows + 1] = place
@@ -996,3 +997,17 @@ function EditMode.PlaceRows()
 		Write()
 	end
 end
+
+ns.Events.Register("Setup.Durability", "PLAYER_LOGIN", function()
+	ns.Events.Unregister("Setup.Durability", "PLAYER_LOGIN")
+	C_Timer.After(0, function()
+		ns.Combat.Queue(function()
+			local all, _, active = Read()
+			local name = all and Own(all, active)
+			local doll = name and Enum.EditModeSystem.DurabilityFrame and FindSystem(all[active], Enum.EditModeSystem.DurabilityFrame)
+			if doll and doll.isInDefaultPosition == true then
+				EditMode.Restyle(name, Setup.Story(name, Setup.GuideLoaded()))
+			end
+		end)
+	end)
+end)

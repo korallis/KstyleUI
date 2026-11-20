@@ -514,4 +514,4 @@ Every piece a skin draws lands on whole pixels through the kit's helpers (\`Widg
 
 A `Skins.Add` definition may set `yields` to the name of another addon that owns its window. The registry skips arming and applying that skin while the addon is loaded, including a load between arming and first show or a queued combat apply. Friends declares `yields = "BetterFriendlist"`; its saved skin switch and window position remain as chosen. Other windows keep their skins.
 
-The folded RestedXP step list hides its gutter with the list; it leaves no one-pixel tick beside the active steps. `test-video-cards-options.lua` checks independent guide height, step shrinkage and the hidden gutter at all four owner screens.
+The folded RestedXP step list hides its gutter with the list; it leaves no one-pixel tick beside the active steps. **Fit guide to its steps** (`restedXP.fit`, on by default) gives the guide an independent content height with a 28-unit minimum; Off restores the shared quest-card height while keeping story alignment. `test-video-cards-options.lua` checks both choices, step shrinkage and the hidden gutter at all four owner screens.

@@ -757,14 +757,14 @@ local function Layout(row, item, width)
 		control:ClearAllPoints()
 		Widgets.Point(control, "TOPLEFT", row, "TOPLEFT", Gap(row), 0)
 		Widgets.SetText(row.help, item.help or "")
-		Widgets.TextColor(row.help, "muted")
 		row.help:SetWordWrap(true)
 		local room = max(1, width - 2 * Gap(row))
 		local height = Widgets.WrappedHeight(row.help, room)
 		Widgets.Size(row.help, room, height)
-		Widgets.Point(row.help, "TOPLEFT", control, "BOTTOMLEFT", 0, -Gap(row, "gapSmall"))
+		local tiny = Snap(row, Widgets.Readability("sectionHeadings") and 2 or Tokens.Size("gapTiny"))
+		Widgets.Point(row.help, "TOPLEFT", control, "BOTTOMLEFT", 0, -tiny)
 		row.help:Show()
-		return Snap(row, TASK_HEIGHT + height + Gap(row, "gapSmall") + Gap(row)), control
+		return Snap(row, TASK_HEIGHT + height + tiny + Gap(row)), control
 	end
 	local control = Control(row, kind)
 	if kind == "segmented" then
@@ -813,12 +813,12 @@ function Rows.Update(row, item, _, list)
 		if not keep or not numeric then slider.edit:Hide() end
 	end
 	row.changed:SetShown(K.Store.Module("OptionControls").changedSettings and item.key ~= nil and item.module ~= nil and K.Options.IsChanged(item.module, item.key))
+	local disabled = Model.IsDisabled(item)
+	Widgets.TextColor(row.help, disabled and "textDisabled" or Widgets.Readability("sectionHeadings") and "muted" or "text")
 	if kind == "task" then
 		control:Show()
 	elseif kind ~= "header" and kind ~= "note" then
-		local disabled = Model.IsDisabled(item)
 		Widgets.TextColor(row.label, disabled and "textDisabled" or "textEmphasis")
-		Widgets.TextColor(row.help, disabled and "textDisabled" or Widgets.Readability("sectionHeadings") and "muted" or "text")
 		row.label:Show()
 		row.help:Show()
 		if control then

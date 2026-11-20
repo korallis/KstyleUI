@@ -8,7 +8,7 @@ local Model = ns.Model
 local Preview = {}
 ns.Preview = Preview
 
-local SAMPLE_WIDTH = 220
+local SAMPLE_WIDTH = 160
 local SNUG_MARGIN = 4
 local SCALE_SAME = 0.0001
 Preview.MAX_SCALE = 1.6
@@ -34,15 +34,16 @@ function Preview.Sample(parent)
 	Widgets.SetText(samples[4], L["Accent, font, size and motion changes show here at once."])
 	frame.body = samples[4]
 	frame.Refresh = function(self)
-		local width = Widgets.Snap(self, math.max(1, math.min(SAMPLE_WIDTH, parent:GetWidth() - 2 * Tokens.Size("gapLarge"))))
-		local previous = self
-		self.selfFits = parent:GetWidth() .. "x" .. parent:GetHeight()
-		for _, text in ipairs(samples) do
+		local width, gap = Widgets.Snap(self, SAMPLE_WIDTH), Tokens.Size("gapMedium")
+		local height = -gap
+		Widgets.Point(samples[1], "TOPLEFT", self, "TOPLEFT", Tokens.Size("gapLarge"), 0, true)
+		for i, text in ipairs(samples) do
 			local row = Widgets.Snap(text, Widgets.WrappedHeight(text, width))
 			Widgets.Size(text, width, row)
-			Widgets.Point(text, "TOPLEFT", previous, previous == self and "TOPLEFT" or "BOTTOMLEFT", previous == self and Tokens.Size("gapLarge") or 0, -Tokens.Size("gapMedium"), true)
-			previous = text
+			if i > 1 then Widgets.Point(text, "TOPLEFT", samples[i - 1], "BOTTOMLEFT", 0, -gap, true) end
+			height = height + row + gap
 		end
+		Widgets.Size(self, width + 2 * Tokens.Size("gapLarge"), height)
 	end
 	frame.Restyle = frame.Refresh
 	Widgets.Track(frame)

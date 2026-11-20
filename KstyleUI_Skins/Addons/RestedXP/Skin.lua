@@ -10,9 +10,10 @@ ns.Skins.Add({
 	label = L["RestedXP"],
 	help = L["Gives RestedXP Guides the KstyleUI theme and restyles its windows."],
 	addon = "RXPGuides",
-	defaults = { rail = true, boxes = true, compose = true },
+	defaults = { rail = true, boxes = true, compose = true, fit = true },
 	rows = {
-		{ type = "toggle", key = "compose", label = L["Align story cards"], help = L["Align the story cards and fit the guide to its steps. Off restores their previous spacing."] },
+		{ type = "toggle", key = "compose", label = L["Align story cards"], help = L["Align the story cards. Off restores their previous spacing."] },
+		{ type = "toggle", key = "fit", label = L["Fit guide to its steps"], help = L["Size the guide card to its active steps. Off keeps it as tall as the quest card."] },
 		{
 			type = "toggle", key = "rail", label = L["Story rail"],
 			help = L["Puts the guide in its own card on the story rail. Drag the guide away to keep your spot."],
@@ -43,7 +44,7 @@ ns.Skins.Add({
 	OnSetting = function(_, field)
 		if field == nil or field == "rail" then
 			RestedXP.Rail.Switch(ns.Skins.Setting("restedXP", "rail") == true)
-		elseif field == "compose" then
+		elseif field == "compose" or field == "fit" then
 			K.Combat.Queue(function()
 				local rxp = RestedXP.Addon()
 				if rxp then RestedXP.Chrome.Refit(rxp.RXPFrame) end
