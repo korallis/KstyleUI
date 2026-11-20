@@ -145,7 +145,8 @@ local VALUES = {
 	end,
 	latency = function(s)
 		local home, world = Latencies()
-		local ms = s.latency == "world" and world or home
+		local ms = home
+		if s.latency == "world" then ms = world end
 		if not ms then
 			return nil
 		end

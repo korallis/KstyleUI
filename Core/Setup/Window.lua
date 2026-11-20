@@ -786,10 +786,24 @@ local function BuildModules(page, width)
 	local body = CreateFrame("Frame", nil, scroll)
 	Widgets.Size(body, width, 1)
 	scroll:SetScrollChild(body)
+	local bar = CreateFrame("Frame", nil, page)
+	Widgets.Point(bar, "TOPLEFT", scroll, "TOPRIGHT", gap("gapTiny"), 0)
+	bar:SetFrameLevel(scroll:GetFrameLevel() + 10)
+	local thumb = bar:CreateTexture(nil, "OVERLAY")
+	function bar.Place()
+		local height, view = body:GetHeight(), scroll:GetHeight()
+		thumb:SetColorTexture(Widgets.Rgba("accent", 0.6))
+		Widgets.Size(bar, 2, view)
+		thumb:ClearAllPoints()
+		Widgets.Point(thumb, "TOPLEFT", bar, "TOPLEFT", 0, -(scroll:GetVerticalScroll() or 0) * view / height)
+		Widgets.Size(thumb, 2, view * view / height)
+		bar:SetShown(height > view)
+	end
 	scroll:SetScript("OnMouseWheel", function(_, delta)
 		scroll:SetVerticalScroll(max(0, min(max(0, body:GetHeight() - scroll:GetHeight()), (scroll:GetVerticalScroll() or 0) - delta * ROW_HEIGHT)))
+		bar.Place()
 	end)
-	panel.moduleScroll, panel.moduleBody = scroll, body
+	panel.moduleScroll, panel.moduleBody, panel.moduleBar = scroll, body, bar
 	panel.toggles = {}
 	for _, entry in ipairs(Setup.PICKER) do
 		local name = entry.name
@@ -814,22 +828,28 @@ PlaceModules = function()
 	local column = panel.moduleBody:GetWidth() / 2
 	local top = ns.Store.Module("Setup").readableNotes and max(HEADER_HEIGHT, Widgets.WrappedHeight(panel.moduleNote, panel.moduleNote:GetWidth())) or HEADER_HEIGHT
 	Widgets.Fill(panel.moduleScroll, panel.pages[4], 0, top + gap("gapMedium"), 0, 0)
-	local heights = { 0, 0 }
-	for i, entry in ipairs(Setup.PICKER) do
-		local col = i <= ROWS_PER_COLUMN and 1 or 2
-		local toggle = panel.toggles[entry.name]
-		Setup.NoteStyle(toggle.note)
-		local indent = toggle.trackBox:GetWidth() + gap("gapMedium")
-		toggle:ClearAllPoints()
-		Widgets.Point(toggle, "TOPLEFT", panel.moduleBody, "TOPLEFT", (col - 1) * column, -heights[col])
-		toggle.note:ClearAllPoints()
-		Widgets.Point(toggle.note, "TOPLEFT", toggle, "BOTTOMLEFT", indent, -gap("gapTiny"))
-		toggle.note:SetWidth(column - indent - gap("gapLarge"))
-		local height = ns.Store.Module("Setup").readableNotes and max(ROW_HEIGHT, toggle:GetHeight() + gap("gapTiny") + Widgets.WrappedHeight(toggle.note, toggle.note:GetWidth()) + gap("gapSmall")) or ROW_HEIGHT
-		heights[col] = heights[col] + Widgets.Snap(panel.moduleBody, height)
+	local function Place(least)
+		local heights = { 0, 0 }
+		for i, entry in ipairs(Setup.PICKER) do
+			local col = i <= ROWS_PER_COLUMN and 1 or 2
+			local toggle = panel.toggles[entry.name]
+			Setup.NoteStyle(toggle.note)
+			local indent = toggle.trackBox:GetWidth() + gap("gapMedium")
+			toggle:ClearAllPoints()
+			Widgets.Point(toggle, "TOPLEFT", panel.moduleBody, "TOPLEFT", (col - 1) * column, -heights[col])
+			toggle.note:ClearAllPoints()
+			Widgets.Point(toggle.note, "TOPLEFT", toggle, "BOTTOMLEFT", indent, -gap("gapTiny"))
+			toggle.note:SetWidth(column - indent - gap("gapLarge"))
+			local height = ns.Store.Module("Setup").readableNotes and max(least, toggle:GetHeight() + gap("gapTiny") + Widgets.WrappedHeight(toggle.note, toggle.note:GetWidth()) + gap("gapSmall")) or ROW_HEIGHT
+			heights[col] = heights[col] + Widgets.Snap(panel.moduleBody, height)
+		end
+		return max(heights[1], heights[2])
 	end
-	panel.moduleBody:SetHeight(max(heights[1], heights[2]))
+	local height = Place(ROW_HEIGHT)
+	if height > panel.moduleScroll:GetHeight() then height = Place(0) end
+	panel.moduleBody:SetHeight(height)
 	panel.moduleScroll:SetVerticalScroll(max(0, min(panel.moduleScroll:GetVerticalScroll() or 0, panel.moduleBody:GetHeight() - panel.moduleScroll:GetHeight())))
+	panel.moduleBar.Place()
 end
 
 local function BuildStyles(page, width)

@@ -84,10 +84,6 @@ local OWN_MIN_ALPHA = 0.25
 local SIZE_MIN = 8
 local ROOT_WIDTH, ROOT_HEIGHT = 1920, 1080
 
-local function Percent(value)
-	return floor(value * 100 + 0.5) .. "%"
-end
-
 local function Whole(value)
 	return tostring(floor(value + 0.5))
 end
@@ -324,19 +320,19 @@ function Pages.ElementItems(element, page, level)
 		add({
 			kind = "slider", label = L["Scale"], help = own and L["Scales the entire settings window, including its text; release to apply."] or L["Makes the element larger or smaller."],
 			min = Limit("SCALE_MIN", SCALE_MIN), max = Limit("SCALE_MAX", SCALE_MAX), step = Limit("SCALE_STEP", SCALE_STEP),
-			format = Percent, get = get("scale", FALLBACK.scale), set = set("scale"),
+			percent = true, get = get("scale", FALLBACK.scale), set = set("scale"),
 		})
 	end
 	if has("alphaCombat") then
 		add({
 			kind = "slider", label = L["Opacity in combat"], help = own and L["Settings window opacity during combat, with a 25 percent minimum."] or L["How solid the element is while you fight."],
-			min = minAlpha, max = 1, step = ALPHA_STEP, format = Percent, get = get("alphaCombat", FALLBACK.alphaCombat), set = set("alphaCombat"),
+			min = minAlpha, max = 1, step = ALPHA_STEP, percent = true, get = get("alphaCombat", FALLBACK.alphaCombat), set = set("alphaCombat"),
 		})
 	end
 	if has("alphaIdle") then
 		add({
 			kind = "slider", label = L["Opacity out of combat"], help = own and L["Settings window opacity outside combat, with a 25 percent minimum."] or L["How solid the element is the rest of the time."],
-			min = minAlpha, max = 1, step = ALPHA_STEP, format = Percent, get = get("alphaIdle", FALLBACK.alphaIdle), set = set("alphaIdle"),
+			min = minAlpha, max = 1, step = ALPHA_STEP, percent = true, get = get("alphaIdle", FALLBACK.alphaIdle), set = set("alphaIdle"),
 		})
 	end
 	if has("strata") then

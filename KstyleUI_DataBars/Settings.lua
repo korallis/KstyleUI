@@ -14,7 +14,7 @@ local XP_RESTED_ALPHA = 0.55
 local MAX_SEGMENTS = 20
 local PREVIEW_BAR = 8
 local PREVIEW_GAP = 22
-local PREVIEW_TOP = 26
+local PREVIEW_TOP = 32
 local PREVIEW_STRIP = 36
 local PREVIEW_STRIP_PAD = 12
 local STRIP_FONT_SIZE = 12
@@ -386,7 +386,6 @@ function ns.Preview(...)
 		local y = PREVIEW_TOP
 		for _, def in ipairs(Bars.DEFS) do
 			local caption = Widgets.Text(frame, "caption", "text")
-			Widgets.Point(caption, "TOPLEFT", frame, "TOPLEFT", 0, -(y - PREVIEW_TOP))
 			Widgets.SetText(caption, def.title)
 			local view = Bars.NewView(frame, def)
 			Widgets.Point(view.holder, "TOPLEFT", frame, "TOPLEFT", 0, -y)
@@ -405,6 +404,8 @@ function ns.Preview(...)
 			local settings = ns.Settings()
 			for id, view in pairs(self.bars) do
 				Bars.Paint(view, PreviewSettings(settings[id]), SAMPLES[id], true)
+				self.captions[id]:ClearAllPoints()
+				Widgets.Point(self.captions[id], "BOTTOMLEFT", view.holder, "TOPLEFT", 0, (view.text:IsShown() and Widgets.LineHeight(view.text) or 0) + Tokens.Size("gapSmall"))
 			end
 			local s = setmetatable({ orientation = "HORIZONTAL" }, { __index = settings.strip })
 			local sample, samples = self.strip, StripSamples(s)

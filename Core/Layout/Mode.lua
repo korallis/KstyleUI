@@ -565,12 +565,21 @@ local function PlateDoubleClick(plate, button)
 	local settings = bar and ns.Store.Module("ActionBars")
 	local el = Layout.Element(plate.key)
 	local actionBar = settings and settings[bar]
+	local target = { page = el.module or "Elements", labelTarget = el.label }
 	if actionBar then
 		if not actionBar.moverOptions then return end
 		ns.Options.Write("ActionBars", "editBar", bar)
+		target = { page = "ActionBars", module = "ActionBars", key = "editBar" }
 	elseif ns.Store.Account().moverOptions == false then return end
+	local picker, kind = el.module and ns.Options.Row(el.module, "edit"), plate.key:match("([^.]+)$")
+	for _, option in ipairs(picker and type(picker.options) == "table" and picker.options or {}) do
+		if option.value == kind then
+			ns.Options.Write(el.module, "edit", kind)
+			target = { page = el.module, module = el.module, key = "edit" }
+		end
+	end
 	Layout.Exit()
-	ns.Options.Open(actionBar and "ActionBars" or el.module or "Elements")
+	ns.Options.Open(target)
 end
 
 local function PlateWheel(plate, delta)
@@ -911,16 +920,23 @@ local function BuildToolbar()
 		end
 		return #out > 0 and out or { { value = "", label = L["No matches"] } }
 	end
-	panel.elements = Widgets.Dropdown(content, { width = 200, options = Elements, placeholder = L["Choose an element"], onChange = function(key)
+	local function Pick(key)
 		if key ~= "" then
 			Mode.hidden[key] = nil
 			Mode.Refresh()
 			Mode.Select(key)
 			panel:Arrange()
 		end
-	end })
+	end
+	panel.elements = Widgets.Dropdown(content, { width = 200, options = Elements, placeholder = L["Choose an element"], onChange = Pick })
 	panel.search = Widgets.EditBox(content, { width = 160, placeholder = L["Find an element"], onChange = function()
 		panel.elements:SetOptions(Elements)
+	end, onEnter = function()
+		local only = Elements()
+		if #only == 1 and only[1].value ~= "" then
+			panel.elements:SetValue(only[1].value, true)
+			Pick(only[1].value)
+		end
 	end })
 	function panel:Arrange()
 		panel.restore:SetShown(Mode.hidden and next(Mode.hidden) ~= nil)

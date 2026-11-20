@@ -105,6 +105,9 @@ local function Render(keepOffset, reselect, pageChanged)
 	picker.item = pinned and table.remove(items, pinned) or nil
 	picker:SetShown(pinned and true or false)
 	if pinned or wasPinned then Relayout(true) end
+	local page = CurrentPage()
+	win.pageCap:SetText(state.query and L["Search results"] or page and page.label or "")
+	resetButton:SetEnabled(not state.query and page ~= nil and page.reset ~= nil)
 	state.items = items
 	state.sections = state.query and {} or Model.Sections(items)
 	local calm = CalmLists()
@@ -163,7 +166,6 @@ local function Select(id)
 		search:SetText("")
 		clear:Hide()
 	end
-	resetButton:SetEnabled(page.reset ~= nil)
 	Preview.Show(preview, page)
 	Relayout()
 	Render(false, true, changed)
@@ -171,11 +173,11 @@ end
 
 function Window.Jump(target)
 	Select(target.page)
-	if picker:IsShown() and picker.item.module == target.module and picker.item.key == target.key then return end
+	if picker:IsShown() and picker.item.module == target.module and picker.item.key == target.key then return true end
 	for i, item in ipairs(state.items) do
 		if target.key and item.module == target.module and item.key == target.key or target.labelTarget and item.label == target.labelTarget then
 			content:ScrollToIndex(i, true, "TOP")
-			return
+			return true
 		end
 	end
 end
@@ -279,7 +281,6 @@ function Relayout(keepPreview)
 	win.categoryCap:SetWrapWidth(RAIL_WIDTH)
 	win.pageCap:ClearAllPoints()
 	Widgets.Point(win.pageCap, "TOPLEFT", win, "TOPLEFT", pad + RAIL_WIDTH + gap + Tokens.Size("gapMedium"), -capTop)
-	win.pageCap:SetText(CurrentPage() and CurrentPage().label or "")
 	win.pageCap:SetWrapWidth(max(1, contentWidth - 2 * Tokens.Size("gapMedium")))
 	win.logo:ClearAllPoints()
 	win.logo:SetPoint("TOPLEFT", win, "TOPLEFT", Snap(pad), -Snap(pad))
@@ -482,6 +483,14 @@ local function Build()
 end
 
 function Window.Show(page)
+	if type(page) == "table" then
+		Window.Show(page.page)
+		if not Window.Jump(page) then
+			page.page = "Elements"
+			Window.Jump(page)
+		end
+		return
+	end
 	if not win then
 		Build()
 	end

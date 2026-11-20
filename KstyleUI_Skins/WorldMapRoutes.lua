@@ -135,9 +135,9 @@ function Routes.Search(query)
 		end
 	end
 	local found = {}
-	query = query:lower()
+	query = K.Locale.Lower(query)
 	for _, row in ipairs(list) do
-		if row.name:lower():find(query, 1, true) then found[#found + 1] = row end
+		if K.Locale.Lower(row.name):find(query, 1, true) then found[#found + 1] = row end
 	end
 	table.sort(found, function(a, b) return a.name < b.name end)
 	return found

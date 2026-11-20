@@ -86,10 +86,16 @@ function Preview.Build(...)
 		self.edit:SetHeight(Widgets.Snap(self.edit, tall))
 		self.edit:SetShown(always)
 		local x = left
+		local right = glass:GetWidth() > 0 and glass:GetWidth() - inset - band or math.huge
+		local spare = right - x
 		for i, tab in ipairs(self.tabs) do
 			ns.Frames.ApplyFont(tab, tabPath, tabSize, flags)
 			local label = TABS[i]
 			tab:SetText(settings.tabCase == "upper" and label:upper() or label)
+			spare = spare - Widgets.TextWidth(tab, TAB_WIDTH)
+		end
+		gap = math.max(math.min(gap, Tokens.Size("gapSmall")), math.min(gap, spare / (#self.tabs - 1)))
+		for i, tab in ipairs(self.tabs) do
 			tab:ClearAllPoints()
 			Widgets.Point(tab, "LEFT", glass, "TOPLEFT", x, -top)
 			local width = Widgets.TextWidth(tab, TAB_WIDTH)

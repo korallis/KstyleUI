@@ -5,7 +5,8 @@ local Data = {}
 ns.Data = Data
 
 local floor, ceil, max, min = math.floor, math.ceil, math.max, math.min
-local lower, find, match = string.lower, string.find, string.match
+local find, match = string.find, string.match
+local lower = KstyleUI.Locale.Lower
 
 local NONE = {}
 local FALLBACK_BAG_SLOTS = 4
