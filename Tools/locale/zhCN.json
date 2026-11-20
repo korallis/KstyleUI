@@ -554,7 +554,7 @@
 	"Colours each player's name in chat with their class colour.": "在聊天中用职业颜色显示每个玩家的名字。",
 	"Colours each roll's item border by its quality.": "按品质为每次掷骰的物品边框着色。",
 	"Colours elites above your level.": "为高于你等级的精英着色。",
-	"Colours enemies while they cast. Threat shown on the health bar still wins.": "敌人施法时为其着色。生命条上显示的仇恨仍然优先。",
+	"Colours enemies while they cast. Threat on the bar wins unless Threat beats unit types is off.": "敌人施法时为其着色。除非关闭“仇恨优先于单位类型”，否则生命条上的仇恨优先。",
 	"Colours links and the chat's highlights with your class colour or a colour you pick.": "用你的职业颜色或你选择的颜色显示链接和聊天中的高亮。",
 	"Colours mobs that leave you alone until you attack them.": "为你攻击前不会主动攻击你的怪物着色。",
 	"Colours names in the text colour, by class or in one colour.": "名字使用文字颜色、职业颜色或一种颜色。",

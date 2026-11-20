@@ -554,7 +554,7 @@
 	"Colours each player's name in chat with their class colour.",
 	"Colours each roll's item border by its quality.",
 	"Colours elites above your level.",
-	"Colours enemies while they cast. Threat shown on the health bar still wins.",
+	"Colours enemies while they cast. Threat on the bar wins unless Threat beats unit types is off.",
 	"Colours links and the chat's highlights with your class colour or a colour you pick.",
 	"Colours mobs that leave you alone until you attack them.",
 	"Colours names in the text colour, by class or in one colour.",

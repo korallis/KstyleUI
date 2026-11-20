@@ -561,7 +561,7 @@ ns.Locale.Add({
 	["Colours each player's name in chat with their class colour."] = "F\195\164rbt den Namen jedes Spielers im Chat in seiner Klassenfarbe.",
 	["Colours each roll's item border by its quality."] = "F\195\164rbt den Gegenstandsrahmen jedes Wurfs nach seiner Qualit\195\164t.",
 	["Colours elites above your level."] = "F\195\164rbt Elitegegner \195\188ber Eurer Stufe.",
-	["Colours enemies while they cast. Threat shown on the health bar still wins."] = "F\195\164rbt Feinde, w\195\164hrend sie zaubern. Bedrohung auf der Gesundheitsleiste hat weiter Vorrang.",
+	["Colours enemies while they cast. Threat on the bar wins unless Threat beats unit types is off."] = "F\195\164rbt Feinde, w\195\164hrend sie zaubern. Bedrohung auf der Gesundheitsleiste hat Vorrang, au\195\159er Bedrohung vor Einheitenarten ist aus.",
 	["Colours links and the chat's highlights with your class colour or a colour you pick."] = "F\195\164rbt Links und die Hervorhebungen des Chats in Eurer Klassenfarbe oder einer Farbe Eurer Wahl.",
 	["Colours mobs that leave you alone until you attack them."] = "F\195\164rbt Gegner, die Euch erst angreifen, wenn Ihr sie angreift.",
 	["Colours names in the text colour, by class or in one colour."] = "F\195\164rbt Namen in der Textfarbe, nach Klasse oder in einer Farbe.",

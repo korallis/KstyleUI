@@ -293,6 +293,9 @@ local function Dispatch(event, unit, ...)
 	if IsSecret(unit) or type(unit) ~= "string" then
 		return
 	end
+	if unit == "player" and event == "UNIT_FACTION" then
+		for _, each in pairs(byUnit) do each:UpdatePvp() end
+	end
 	local plate = byUnit[unit]
 	if plate then
 		local list = unitHandlers[event]
@@ -321,7 +324,7 @@ local UNIT_EVENTS = {
 	UNIT_MAXHEALTH = Method("UpdateHealth"),
 	UNIT_NAME_UPDATE = Method("UpdateName"),
 	UNIT_LEVEL = function(plate) plate:UpdateLevel(); plate:RefreshType(); plate:UpdateTags("Level") end,
-	PLAYER_FLAGS_CHANGED = Method("UpdateName"),
+	PLAYER_FLAGS_CHANGED = function(plate) if plate.statusTags then plate:UpdateName() end end,
 	UNIT_CLASSIFICATION_CHANGED = function(plate)
 		plate:UpdateMarker()
 		plate:RefreshType()

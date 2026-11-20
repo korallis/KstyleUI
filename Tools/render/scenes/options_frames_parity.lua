@@ -15,6 +15,10 @@ return Common.Run(function()
 		end }
 	end }))
 	if module == "UnitFrames" then K.Options.Write(module, "edit", "player") end
+	for item in (os.getenv("RENDER_OPTIONS_ON") or ""):gmatch("[^,]+") do
+		local key, value = item:match("^([^=]+)=?(.*)$")
+		K.Options.Write(module, key, value == "" or value)
+	end
 	if module == "UnitFrames" and os.getenv("RENDER_PARITY_ENABLED") == "1" then
 		K.Options.Write(module, "player.castbarSmooth", true)
 		K.Options.Write(module, "player.castbarChannelOverride", true)

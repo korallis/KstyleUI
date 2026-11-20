@@ -243,53 +243,13 @@ function Settings.Schema()
 			help = L["Friendly plates show just the name, without a health bar."],
 		},
 		{ type = "header", label = L["Unit types"] },
-		{
-			type = "toggle", key = "types.quest", label = L["Quest mobs"],
-			help = L["Colours the plates of mobs one of your quests needs. Wins over the other types."],
-		},
-		{
-			type = "color", key = "types.questColor", label = L["Quest colour"],
-			help = L["The bar colour of quest mobs."],
-			disableWhen = Off("types.quest"),
-		},
-		{
-			type = "toggle", key = "types.rare", label = L["Rares"],
-			help = L["Colours the plates of rare and rare elite mobs."],
-		},
-		{
-			type = "color", key = "types.rareColor", label = L["Rare colour"],
-			help = L["The bar colour of rares."],
-			disableWhen = Off("types.rare"),
-		},
-		{
-			type = "toggle", key = "types.elite", label = L["Elites"],
-			help = L["Colours the plates of elites and bosses. Off, the gold diamond alone marks them."],
-		},
-		{
-			type = "color", key = "types.eliteColor", label = L["Elite colour"],
-			help = L["The bar colour of elites."],
-			disableWhen = Off("types.elite"),
-		},
-		{
-			type = "toggle", key = "types.caster", label = L["Casters"],
-			help = L["Colours the plates of mobs that have mana: the ones that cast and can be interrupted."],
-		},
-		{
-			type = "color", key = "types.casterColor", label = L["Caster colour"],
-			help = L["The bar colour of casters."],
-			disableWhen = Off("types.caster"),
-		},
-		{
-			type = "toggle", key = "types.casting", label = L["Casting enemies"],
-			help = L["Colours enemies while they cast. Threat shown on the health bar still wins."],
-		},
-		{
-			type = "color", key = "types.castingColor", label = L["Casting colour"],
-			help = L["The bar colour of enemies while they cast."],
-			disableWhen = Off("types.casting"),
-		},
 	})
 	for _, t in ipairs({
+		{ "quest", L["Quest mobs"], L["Quest colour"], L["Colours the plates of mobs one of your quests needs. Wins over the other types."], L["The bar colour of quest mobs."] },
+		{ "rare", L["Rares"], L["Rare colour"], L["Colours the plates of rare and rare elite mobs."], L["The bar colour of rares."] },
+		{ "elite", L["Elites"], L["Elite colour"], L["Colours the plates of elites and bosses. Off, the gold diamond alone marks them."], L["The bar colour of elites."] },
+		{ "caster", L["Casters"], L["Caster colour"], L["Colours the plates of mobs that have mana: the ones that cast and can be interrupted."], L["The bar colour of casters."] },
+		{ "casting", L["Casting enemies"], L["Casting colour"], L["Colours enemies while they cast. Threat on the bar wins unless Threat beats unit types is off."], L["The bar colour of enemies while they cast."] },
 		{ "boss", L["Bosses"], L["Boss colour"], L["Colours world bosses and skull-level mobs. Wins over rares and elites."] },
 		{ "miniBoss", L["Mini-bosses"], L["Mini-boss colour"], L["Colours elites above your level."] },
 		{ "neutral", L["Neutral mobs"], L["Neutral colour"], L["Colours mobs that leave you alone until you attack them."] },
@@ -297,7 +257,7 @@ function Settings.Schema()
 		{ "normal", L["Normal mobs"], L["Normal colour"], L["Colours ordinary and trivial mobs. The other types win."] },
 	}) do
 		schema[#schema + 1] = { type = "toggle", key = "types." .. t[1], label = t[2], help = t[4] }
-		schema[#schema + 1] = { type = "color", key = "types." .. t[1] .. "Color", label = t[3], help = L["The bar colour of this unit type."], disableWhen = Off("types." .. t[1]) }
+		schema[#schema + 1] = { type = "color", key = "types." .. t[1] .. "Color", label = t[3], help = t[5] or L["The bar colour of this unit type."], disableWhen = Off("types." .. t[1]) }
 	end
 
 	SharedTextRows(schema, "name", L["Name"])

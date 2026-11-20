@@ -343,7 +343,11 @@ local function Overlays(plate)
 		local place = Settings.Get("threat.percentPlace")
 		text:ClearAllPoints()
 		text:SetJustifyH(place)
-		Place(text, place, health, place, INSIDE_X[place] * TEXT_INSET, 0, nil, nil, barW, barH)
+		if place == "RIGHT" and plate.healthTextEnabled then
+			Widgets.Point(text, "RIGHT", plate.healthText, "LEFT", -TEXT_INSET, 0)
+		else
+			Place(text, place, health, place, INSIDE_X[place] * TEXT_INSET, 0, nil, nil, barW, barH)
+		end
 	end
 	if Settings.Get("markers.nameRaid") then
 		local icon = plate.nameRaid or plate:CreateTexture(nil, "OVERLAY")
@@ -718,7 +722,7 @@ function Plate:TypeColor(isPlayer, tapped)
 	end
 	if typeEnabled.boss or typeEnabled.miniBoss then
 		typeInfo.level = self:Is("level", UnitEffectiveLevel or UnitLevel, self.unit)
-		typeInfo.playerLevel = UnitValue(UnitEffectiveLevel or UnitLevel, "player")
+		typeInfo.playerLevel = typeEnabled.miniBoss and UnitValue(UnitEffectiveLevel or UnitLevel, "player")
 	end
 	if typeEnabled.neutral then
 		typeInfo.reaction = self:Is("reaction", UnitReaction, self.unit, "player")
@@ -732,31 +736,36 @@ function Plate:UpdateColor()
 	local r, g, b
 	local state = self.threatState
 	local kind = self.kind
-	local tapped = kind == "enemy" and IsTrue(self:Is("tapped", UnitIsTapDenied, self.unit))
-	local isPlayer = IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit))
-	local source = Logic.ColorKind(Settings.Get(SOURCE_KEYS[kind]), isPlayer and not (kind == "enemy" and Settings.Get("enemy.playersUseEnemy")), tapped)
-	local typeKey = source ~= "tapped" and source ~= "class" and self:TypeColor(isPlayer, tapped)
-	if state and Settings.Get("threat.display") == "health" and (not typeKey or Settings.Get("threat.overTypes")) then
-		r, g, b = K.ColorVision.Color(state == "danger" and 2 or state == "warning" and 3 or 1, Rgb(Settings.Get(THREAT_KEYS[state])))
-	elseif self.kind == "enemy" and Settings.Get("types.casting") and (self.sample and self.sample.cast or self.unit and (type((UnitCastingInfo(self.unit))) ~= "nil" or type((UnitChannelInfo(self.unit))) ~= "nil")) then
+	local threat = state and Settings.Get("threat.display") == "health"
+	local casting, source, typeKey
+	if not (threat and Settings.Get("threat.overTypes")) then
+		casting = kind == "enemy" and Settings.Get("types.casting") and (self.sample and self.sample.cast or self.unit and (type((UnitCastingInfo(self.unit))) ~= "nil" or type((UnitChannelInfo(self.unit))) ~= "nil"))
+		if not casting then
+			local tapped = kind == "enemy" and IsTrue(self:Is("tapped", UnitIsTapDenied, self.unit))
+			local isPlayer = IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit))
+			source = Logic.ColorKind(Settings.Get(SOURCE_KEYS[kind]), isPlayer and not (kind == "enemy" and Settings.Get("enemy.playersUseEnemy")), tapped)
+			typeKey = source ~= "tapped" and source ~= "class" and self:TypeColor(isPlayer, tapped)
+		end
+	end
+	if threat and not (casting or typeKey) then
+		r, g, b = ThreatColor(state)
+	elseif casting then
 		r, g, b = Rgb(Settings.Get("types.castingColor"))
+	elseif typeKey then
+		r, g, b = Rgb(Settings.Get(typeKey))
+	elseif source == "tapped" then
+		r, g, b = Tokens.Color("textDisabled")
+	elseif source == "custom" then
+		r, g, b = Rgb(Settings.Get(COLOR_KEYS[kind]))
+	elseif source == "class" then
+		local class = self.sample and self.sample.class or select(2, UnitValue(UnitClass, self.unit))
+		r, g, b = Theme.ClassColorForWidget(class)
 	else
-		if typeKey then
-			r, g, b = Rgb(Settings.Get(typeKey))
-		elseif source == "tapped" then
-			r, g, b = Tokens.Color("textDisabled")
-		elseif source == "custom" then
-			r, g, b = Rgb(Settings.Get(COLOR_KEYS[kind]))
-		elseif source == "class" then
-			local class = self.sample and self.sample.class or select(2, UnitValue(UnitClass, self.unit))
-			r, g, b = Theme.ClassColorForWidget(class)
+		local reaction = self.sample and self.sample.reaction or UnitValue(UnitReaction, self.unit, "player")
+		if self.kind == "enemy" and not IsSecret(reaction) and type(reaction) == "number" and reaction < 4 then
+			r, g, b = Tokens.Color("plateHostile")
 		else
-			local reaction = self.sample and self.sample.reaction or UnitValue(UnitReaction, self.unit, "player")
-			if self.kind == "enemy" and not IsSecret(reaction) and type(reaction) == "number" and reaction < 4 then
-				r, g, b = Tokens.Color("plateHostile")
-			else
-				r, g, b = Theme.ReactionColor(reaction)
-			end
+			r, g, b = Theme.ReactionColor(reaction)
 		end
 	end
 	local last = self.colorKey
@@ -866,7 +875,9 @@ function Plate:PaintTags(key)
 	if sample then
 		sample = { name = sample.name, health = sample.health * 100, healthMax = 100, level = sample.level, reaction = sample.reaction, own = sample.isPlayer }
 	end
-	Widgets.TagText(self[key], Settings.Get(key .. ".textFormat"), self.unit, sample)
+	local format = Settings.Get(key .. ".textFormat")
+	local tag = key == "name" and self.statusTags and self:StatusTag()
+	Widgets.TagText(self[key], tag and format .. " <" .. tag .. ">" or format, self.unit, sample)
 end
 
 function Plate:UpdateTags(event)
@@ -895,9 +906,8 @@ function Plate:UpdateNameColor(force)
 		name:SetTextColor(ThreatColor(self.threatState))
 		return
 	end
-	local isPlayer = IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit))
-	local barHasClass = not self.nameOnly and Settings.Get(SOURCE_KEYS[self.kind]) == "class"
-	if isPlayer and Settings.Get("name.classColor") and not barHasClass then
+	if IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit)) and Settings.Get("name.classColor") and (self.nameOnly
+		or Settings.Get(SOURCE_KEYS[self.kind]) ~= "class" or self.kind == "enemy" and Settings.Get("enemy.playersUseEnemy")) then
 		local class = self.sample and self.sample.class or select(2, UnitValue(UnitClass, self.unit))
 		name:SetTextColor(Theme.ClassTextColorForWidget(class))
 	else
@@ -1045,11 +1055,13 @@ function Plate:UpdateThreatText()
 			pct, state = self.sample.threatPct, self.sample.threat
 		else
 			pct = select(3, UnitValue(UnitDetailedThreatSituation, "player", self.unit))
-			state = Logic.ThreatState(UnitValue(UnitThreatSituation, "player", self.unit), ns.state.isTank, Settings.Get("threat.calm"))
+			if type(pct) ~= "nil" and Settings.Get("threat.percentColor") then
+				state = Logic.ThreatState(UnitValue(UnitThreatSituation, "player", self.unit), ns.state.isTank, Settings.Get("threat.calm"))
+			end
 		end
 	end
 	if type(pct) == "nil" then
-		text:Hide()
+		if text:IsShown() then text:Hide() end
 		return
 	end
 	text:SetFormattedText("%.0f%%", pct)

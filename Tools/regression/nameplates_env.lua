@@ -39,12 +39,10 @@ N.UNIT = {
 	powerType = 0,
 	powerMax = 0,
 	quest = false,
-	threatPct = nil,
 	afk = false,
 	dnd = false,
 	pvp = false,
 	faction = "Horde",
-	spellTarget = nil,
 }
 
 -- Blizzard's class colours for the classes the tests use.

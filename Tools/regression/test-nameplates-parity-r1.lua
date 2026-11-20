@@ -537,6 +537,13 @@ do
 	on("markers.pvp", true, "pvpBadge")
 	on("name.afk", true, "name", "<AFK>")
 	on("name.dnd", true, "name", "<DND>")
+	for _, key in ipairs({ "enemy.playersUseEnemy", "threat.name", "threat.percentColor" }) do
+		set(key, true)
+		preview.Refresh()
+		local sample = preview.plates[preview.chosen].sample
+		assert(sample.isPlayer and sample.enemy and sample.threat, key .. " draws the enemy player under threat")
+		set(key, NEW[key])
+	end
 	preview.Refresh()
 	assert(preview.chosen == 1, "and returns to it")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))

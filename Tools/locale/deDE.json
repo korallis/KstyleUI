@@ -554,7 +554,7 @@
 	"Colours each player's name in chat with their class colour.": "Färbt den Namen jedes Spielers im Chat in seiner Klassenfarbe.",
 	"Colours each roll's item border by its quality.": "Färbt den Gegenstandsrahmen jedes Wurfs nach seiner Qualität.",
 	"Colours elites above your level.": "Färbt Elitegegner über Eurer Stufe.",
-	"Colours enemies while they cast. Threat shown on the health bar still wins.": "Färbt Feinde, während sie zaubern. Bedrohung auf der Gesundheitsleiste hat weiter Vorrang.",
+	"Colours enemies while they cast. Threat on the bar wins unless Threat beats unit types is off.": "Färbt Feinde, während sie zaubern. Bedrohung auf der Gesundheitsleiste hat Vorrang, außer Bedrohung vor Einheitenarten ist aus.",
 	"Colours links and the chat's highlights with your class colour or a colour you pick.": "Färbt Links und die Hervorhebungen des Chats in Eurer Klassenfarbe oder einer Farbe Eurer Wahl.",
 	"Colours mobs that leave you alone until you attack them.": "Färbt Gegner, die Euch erst angreifen, wenn Ihr sie angreift.",
 	"Colours names in the text colour, by class or in one colour.": "Färbt Namen in der Textfarbe, nach Klasse oder in einer Farbe.",

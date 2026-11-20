@@ -520,7 +520,8 @@ function Component.Restyle(plate)
 	if aligned then plate.castName:SetJustifyH(align) end
 	if Settings.Get("cast.nameBelow") then
 		ns.Plate.Place(plate.castName, "TOPLEFT", bar, "BOTTOMLEFT", 0, -GAP, state.width, Settings.Get("cast.textSize"))
-		if aligned then plate.castName:SetWidth(align == "LEFT" and 0 or Widgets.Snap(plate, opts.width)) end
+		if align ~= "LEFT" or plate.castWide then plate.castName:SetWidth(align == "LEFT" and 0 or Widgets.Snap(plate, opts.width)) end
+		plate.castWide = align ~= "LEFT"
 	else
 		ns.Plate.Place(plate.castName, "LEFT", bar, "LEFT", TEXT_INSET, 0, nil, nil, nil, Widgets.Snap(plate, h))
 		plate.castName:SetPoint("RIGHT", plate.castTime, "LEFT", -Widgets.Snap(plate, GAP), 0)
