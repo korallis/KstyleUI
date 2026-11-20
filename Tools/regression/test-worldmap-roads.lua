@@ -9,13 +9,13 @@ Fixture.Install(env, state, graph)
 assert(not state.loads, "installing the client APIs does not load graph data")
 
 local road = Roads.Solve(graph, 300, 700, 720, 360, false)
-assert(road.yards == 1400 and road.seconds == 200 and #road.legs == 2, "follow the pass edges; never invent the straight mountain shortcut")
-assert(road.legs[1].pts[3] == 200 and road.legs[2].to == "Crossroads", "preserve road polyline bends and junctions")
+assert(road.yards == 1400 and road.seconds == 200 and #road.legs == 3, "follow the pass edges; never invent the straight mountain shortcut")
+assert(road.legs[2].pts[3] == 200 and road.legs[3].to == "Crossroads", "preserve road polyline bends and junctions")
 local mounted = Roads.Solve(graph, 300, 700, 720, 360, true)
 assert(mounted.seconds == 100, "mounted roads use 14 yards per second")
 local flights = { [1] = true, [3] = true }
 local flight = Roads.Solve(graph, 300, 700, 720, 360, false, flights)
-assert(#flight.legs == 1 and flight.legs[1].kind == "flight" and flight.seconds == 40 and flight.saved == 2, "choose a faster discovered flight and show whole-minute savings")
+assert(#flight.legs == 2 and flight.legs[2].kind == "flight" and flight.seconds == 40 and flight.saved == 2, "choose a faster discovered flight and show whole-minute savings")
 assert(Roads.Solve(graph, 300, 700, 720, 360, true, flights).saved == 1, "a flight saving exactly one minute qualifies")
 graph.edges[3].seconds = 41
 graph.adj = nil
@@ -24,7 +24,7 @@ graph.edges[3].seconds = 40
 graph.adj = nil
 local reverse = Roads.Solve(graph, 720, 360, 300, 700, false, flights)
 assert(reverse.seconds == 200 and reverse.legs[1].kind == "walk", "flights remain directed while road polylines reverse")
-assert(reverse.legs[1].pts[1] == 720 and reverse.legs[1].pts[3] == 500)
+assert(reverse.legs[2].pts[1] == 720 and reverse.legs[2].pts[3] == 500)
 local snapped = Roads.Solve(graph, 240, 700, 720, 360, false)
 assert(not snapped.dashed and not snapped.legs[1].dashed, "a connector of 60 yards snaps solidly")
 snapped = Roads.Solve(graph, 239, 700, 800, 360, false)
@@ -38,30 +38,80 @@ assert(Roads.Solve(swim, 300, 700, 720, 360, false).seconds == 85, "boat costs i
 swim.edges[1].kind, swim.edges[1].seconds, swim.edges[1].pts = "lift", 35, { 300, 700, 0, 720, 360, 100 }
 swim.adj = nil
 local lift = Roads.Solve(swim, 300, 700, 720, 360, false)
-assert(lift.seconds == 35 and #lift.legs[1].pts == 4 and lift.legs[1].pts[3] == 720, "lift height is not a map coordinate")
+assert(lift.seconds == 35 and #lift.legs[2].pts == 4 and lift.legs[2].pts[3] == 720, "lift height is not a map coordinate")
 
+local solves, projections = 0, 0
+local solve, project = Roads.Solve, env.C_Map.GetMapPosFromWorldPos
+Roads.Solve = function(...) solves = solves + 1; return solve(...) end
+env.C_Map.GetMapPosFromWorldPos = function(...) projections = projections + 1; return project(...) end
 R.Pick({ mapID = 1, name = "Crossroads", x = 0.72, y = 0.36 })
 assert(state.loads == 1 and state.constructs == 1 and R.road, "the first route loads and constructs its continent once")
 assert(R.road.seconds == 200 and R.steps[1]:GetText():find("Road to Crossroads", 1, true), "road steps combine bends into a readable destination")
 local diamond
 for _, region in ipairs({ map:GetCanvas():GetRegions() }) do
-	if region:IsShown() and region:GetWidth() == 5 then diamond = region end
+	if region:IsShown() and region:GetRotation() == math.pi / 4 then diamond = region end
 end
 assert(diamond, "draw diamond junction markers")
 local oldX = select(4, diamond:GetPoint(1))
 map:SetWidth(1000)
 R.panel:GetScript("OnUpdate")(R.panel, 0.25)
 assert(select(4, diamond:GetPoint(1)) ~= oldX, "maximizing or resizing redraws a stationary route at the new canvas size")
+assert(solves == 1, "resizing must reproject the cached road without rerunning Dijkstra")
+local calls = #diamond._calls
+projections = 0
 state.playerX = 0.2
 R.panel:GetScript("OnUpdate")(R.panel, 0.25)
 assert(state.loads == 1 and state.constructs == 1 and R.note:GetText() == "The ground may block this.", "moving off-road reuses the graph and labels the dashed connector")
+assert(solves == 1 and projections == 2 and #diamond._calls == calls, "while the nearest node stays the same, re-snap and redraw only the start connector")
+local fresh = solve(graph, 200, 700, 720, 360, false)
+assert(R.road.yards == fresh.yards and R.road.seconds == fresh.seconds, "cached connector totals must match a fresh solve")
+state.playerX, state.playerY = 0.72, 0.36
+R.panel:GetScript("OnUpdate")(R.panel, 0.25)
+assert(solves == 2, "crossing into another nearest node must rerun Dijkstra")
+state.playerX, state.playerY = 0.2, 0.7
+R.panel:GetScript("OnUpdate")(R.panel, 0.25)
+local scroll = R.steps[1]:GetParent():GetParent()
+assert(select(3, scroll:GetPoint(1)) == -118, "an empty flight chip must leave no reserved row")
+local font, size = R.note:GetFont()
+local stepFont, stepSize = R.steps[1]:GetFont()
+assert(font == stepFont and size == stepSize and R.note:GetTextColor() == R.steps[1]:GetTextColor(), "step names must match the note's body role, size and text colour")
+local amountStyle
+for _, region in ipairs({ R.steps[1]:GetParent():GetRegions() }) do
+	if region:GetObjectType() == "FontString" and region:GetText():find(" yd - ", 1, true) then
+		local f, n = region:GetFont()
+		local df, dn = R.distance:GetFont()
+		amountStyle = f == df and n == dn and region:GetTextColor() == R.distance:GetTextColor()
+	end
+end
+assert(amountStyle, "step distances must match the total's number role, size and colour")
+for _, zoom in ipairs({ 0.5, 1, 2, 4 }) do
+	map:GetCanvas():SetScale(zoom)
+	R.panel:GetScript("OnUpdate")(R.panel, 0.25)
+	local bright, outline
+	for _, region in ipairs({ map:GetCanvas():GetRegions() }) do
+		if region:IsShown() and region:GetRotation() == 0 and region:GetObjectType() == "Texture" then
+			local layer, sublevel = region:GetDrawLayer()
+			assert(layer == "ARTWORK", "route textures must draw below OVERLAY zone and level labels")
+			local width = region:GetWidth() * K.Widgets.ScaleFactor(map:GetCanvas())
+			bright = bright or sublevel == -1 and math.abs(width - 3) < 0.001
+			outline = outline or sublevel == -2 and math.abs(width - 5) < 0.001
+		end
+	end
+	assert(bright and outline, "keep a three-unit bright route with a five-unit dark outline at every canvas zoom")
+end
+map:GetCanvas():SetScale(1)
 K.Options.Write("Skins", "worldMap.followRoads", false)
 assert(not R.road and R.note:GetText():find("Straight line", 1, true), "toggle off restores batch two's direct route")
 assert(R.card:GetWidth() == 280 and R.card:GetHeight() == 142, "Follow roads off must restore batch two's exact 280x142 card")
+assert(R.note:GetWidth() == 250 and R.note:GetHeight() == 18 and R.distance:GetWidth() == 250, "restore the original card rows too")
 K.Options.Write("Skins", "worldMap.followRoads", true)
 assert(R.road and state.loads == 1)
 state.playerX = 0.3
-env.C_TaxiMap.GetTaxiNodesForMap = function()
+env.C_Map.GetMapInfo = function(id)
+	return id == 9001 and { mapType = env.Enum.UIMapType.Continent } or { mapType = env.Enum.UIMapType.Zone, parentMapID = 9001 }
+end
+env.C_TaxiMap.GetTaxiNodesForMap = function(id)
+	assert(id == 9001, "discover the taxi continent from the map parent chain instead of hard-coded uiMapIDs")
 	return {
 		{ name = "Razor Hill", isUndiscovered = false, faction = 1 },
 		{ name = "Crossroads", isUndiscovered = false, faction = 1 },
@@ -70,6 +120,7 @@ end
 R.Clear()
 R.Pick({ mapID = 1, name = "Crossroads", x = 0.72, y = 0.36 })
 assert(R.road.seconds == 40 and R.chip:GetText() == "Flight path saves 2 min", "only discovered compatible flights appear in the card")
+assert(select(3, scroll:GetPoint(1)) == -144, "reserve chip space only when flight savings are shown")
 env.C_TaxiMap.GetTaxiNodesForMap = function()
 	return { { name = "Localized start", position = M.Vector(0.3, 0.7), isUndiscovered = false, faction = 1 },
 		{ name = "Localized goal", position = M.Vector(0.72, 0.36), isUndiscovered = false, faction = 1 } }
@@ -78,7 +129,7 @@ R.Clear(); R.Pick({ mapID = 1, name = "Crossroads", x = 0.72, y = 0.36 })
 assert(R.road.seconds == 40, "localized taxi names match the graph by world position")
 map:SetMapID(3)
 local visible
-for _, region in ipairs({ map:GetCanvas():GetRegions() }) do if region:IsShown() and region:GetWidth() == 5 then visible = true end end
+for _, region in ipairs({ map:GetCanvas():GetRegions() }) do if region:IsShown() and region:GetRotation() == math.pi / 4 then visible = true end end
 assert(R.road and visible, "project the route onto the current map even when it is not the destination map")
 map:SetMapID(1)
 env.C_TaxiMap.GetTaxiNodesForMap = function() return { { name = "Razor Hill", isUndiscovered = false, faction = 1 }, { name = "Crossroads", isUndiscovered = true, faction = 1 } } end

@@ -44,6 +44,7 @@ local function Index(graph)
 		if a and b and (not a.map or a.map == graph.map) and (not b.map or b.map == graph.map) then
 			local foot = edge.kind == "walk" and edge.len / 7 or edge.kind == "swim" and edge.len / 4.7 or edge.seconds
 			local mounted = edge.kind == "walk" and foot / 2 or foot
+			edge.cost, edge.mounted = foot, mounted
 			local list = graph.adj[a.id]
 			local n = #list
 			list[n + 1], list[n + 2], list[n + 3], list[n + 4] = b.id, foot, mounted, edge
@@ -54,12 +55,6 @@ local function Index(graph)
 			end
 		end
 	end
-end
-
-local function Seconds(edge, speed)
-	if edge.kind == "walk" then return edge.len / speed end
-	if edge.kind == "swim" then return edge.len / 4.7 end
-	return edge.seconds or math.huge
 end
 
 local function Push(heap, id, cost)
@@ -132,9 +127,9 @@ function Roads.Solve(graph, x, y, tx, ty, mounted, flights)
 		flight = flight or edges[id].kind == "flight"
 		id = previous[id]
 	end
-	local route = { legs = {}, yards = first + last, seconds = seconds + (first + last) / speed, dashed = first > 60 or last > 60 }
+	local route = { graph = graph, start = start, last = last, legs = {}, yards = first + last, seconds = seconds + (first + last) / speed, dashed = first > 60 or last > 60 }
 	local function Connector(ax, ay, bx, by, len, name)
-		if len > 0 then route.legs[#route.legs + 1] = { kind = "walk", to = name, len = len, seconds = len / speed, dashed = len > 60, pts = { ax, ay, bx, by } } end
+		if len > 0 or #route.legs == 0 then route.legs[#route.legs + 1] = { kind = "walk", to = name, len = len, seconds = len / speed, dashed = len > 60, pts = { ax, ay, bx, by } } end
 	end
 	Connector(x, y, start.x, start.y, first, start.name)
 	for i = #path, 1, -1 do
@@ -144,7 +139,7 @@ function Roads.Solve(graph, x, y, tx, ty, mounted, flights)
 		local a, b, step = 1, #edge.pts, stride
 		if hop.from ~= edge.a then a, b, step = #edge.pts - stride + 1, 1, -stride end
 		for p = a, b, step do points[#points + 1] = edge.pts[p]; points[#points + 1] = edge.pts[p + 1] end
-		route.legs[#route.legs + 1] = { kind = edge.kind, len = edge.len, seconds = Seconds(edge, speed), pts = points,
+		route.legs[#route.legs + 1] = { kind = edge.kind, len = edge.len, seconds = mounted and edge.mounted or edge.cost, pts = points,
 			from = graph.byID[hop.from].name, to = graph.byID[hop.to].name, turn = true,
 			stop = graph.byID[hop.to].kind ~= "junction" and graph.byID[hop.to].kind ~= "crossing" }
 		route.yards = route.yards + edge.len
@@ -155,4 +150,16 @@ function Roads.Solve(graph, x, y, tx, ty, mounted, flights)
 		if walking and walking - seconds >= 60 then route.saved = math.floor((walking - seconds) / 60) end
 	end
 	return route
+end
+
+function Roads.MoveStart(route, x, y, mounted)
+	local start, yards = Roads.Snap(route.graph, x, y)
+	if start ~= route.start then return false end
+	local leg = route.legs[1]
+	local seconds = yards / (mounted and 14 or 7)
+	route.yards, route.seconds = route.yards + yards - leg.len, route.seconds + seconds - leg.seconds
+	leg.len, leg.seconds, leg.dashed = yards, seconds, yards > 60
+	leg.pts[1], leg.pts[2] = x, y
+	route.dashed = leg.dashed or route.last > 60
+	return true
 end

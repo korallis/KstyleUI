@@ -13,9 +13,9 @@ local active, previousCVar, previousWaypoint, previousTrack, ownsWaypoint
 local target, canvas, elapsed = nil, nil, 0
 local routeX, routeY, routeMap, routeTarget, routeMounted, routeRoads
 local routePlayerMap, routePlayerX, routePlayerY
-local routeWidth, routeHeight
+local routeWidth, routeHeight, routeScale, routeContinent
 local steps, stepChild, chip
-local results, dots, zones, stepRows = {}, {}, {}, {}
+local results, dots, startDots, zones, stepRows, stepAmounts = {}, {}, {}, {}, {}, {}
 local hooked = setmetatable({}, { __mode = "k" })
 local CVAR = "showDungeonEntrancesOnMap"
 
@@ -155,41 +155,51 @@ local function Hide(list)
 	for _, region in ipairs(list) do region:Hide() end
 end
 
-local function DrawRoute(x, y, tx, ty, road, continent)
-	Hide(dots)
+local function DrawRoute(x, y, tx, ty, road, continent, moving)
+	Hide(startDots)
+	if not moving then Hide(dots) end
 	if not canvas or (not x and not road) then return end
 	local width, height = Number(canvas:GetWidth()), Number(canvas:GetHeight())
 	if not width or not height or width <= 0 or height <= 0 then return end
-	local count = 0
+	local count, pool = 0, dots
+	local unit = Lumen.Size(canvas, 1)
 	local function Dot(px, py, kind, turn)
 		if px < 0 or px > 1 or py < 0 or py > 1 or count >= 1800 then return end
 		count = count + 1
-		local dot = dots[count]
+		local outline, dot = pool[count * 2 - 1], pool[count * 2]
 		if not dot then
-			dot = canvas:CreateTexture(nil, "OVERLAY")
-			dots[count] = dot
+			outline = canvas:CreateTexture(nil, "ARTWORK", nil, -2)
+			dot = canvas:CreateTexture(nil, "ARTWORK", nil, -1)
+			pool[count * 2 - 1], pool[count * 2] = outline, dot
 		end
-		if kind == "walk" then dot:SetColorTexture(K.Theme.Accent())
-		else dot:SetColorTexture(Lumen.Color(kind == "swim" and "questDisc" or kind == "flight" and "questGold" or "gilt")) end
-		local size = turn and 5 or kind == "flight" and 3 or 2
-		dot:SetSize(size, size)
-		dot:SetRotation(turn and math.pi / 4 or 0)
-		dot:ClearAllPoints()
-		dot:SetPoint("CENTER", canvas, "TOPLEFT", px * width, -py * height)
-		dot:Show()
+		dot:SetColorTexture(Lumen.Color(kind == "walk" and "textEmphasis" or kind == "swim" and "questDisc" or kind == "flight" and "questGold" or "gilt"))
+		outline:SetColorTexture(Lumen.Color("edgeOuter"))
+		local size = (turn and 7 or 3) * unit
+		for i = 1, 2 do
+			local region = i == 1 and outline or dot
+			region:SetSize(region == dot and size or size + 2 * unit, region == dot and size or size + 2 * unit)
+			region:SetRotation(turn and math.pi / 4 or 0)
+			region:ClearAllPoints()
+			region:SetPoint("CENTER", canvas, "TOPLEFT", px * width, -py * height)
+			region:Show()
+		end
 	end
 	local function Segment(ax, ay, bx, by, kind, dashed)
 		local dx, dy, low, high = bx - ax, by - ay, 0, 1
-		for _, axis in ipairs({ { ax, dx }, { ay, dy } }) do
-			if axis[2] == 0 then
-				if axis[1] < 0 or axis[1] > 1 then return end
-			else
-				local a, b = -axis[1] / axis[2], (1 - axis[1]) / axis[2]
-				low, high = math.max(low, math.min(a, b)), math.min(high, math.max(a, b))
-			end
+		if dx == 0 then
+			if ax < 0 or ax > 1 then return end
+		else
+			local a, b = -ax / dx, (1 - ax) / dx
+			low, high = math.max(low, math.min(a, b)), math.min(high, math.max(a, b))
+		end
+		if dy == 0 then
+			if ay < 0 or ay > 1 then return end
+		else
+			local a, b = -ay / dy, (1 - ay) / dy
+			low, high = math.max(low, math.min(a, b)), math.min(high, math.max(a, b))
 		end
 		if low > high then return end
-		local n = math.min(640, math.max(1, math.ceil(math.sqrt((dx * width) ^ 2 + (dy * height) ^ 2) * (high - low) / 2)))
+		local n = math.min(640, math.max(1, math.ceil(math.sqrt((dx * width) ^ 2 + (dy * height) ^ 2) * (high - low) / (2 * unit))))
 		for i = 0, n do
 			if not dashed or i % 4 < 2 then
 				local t = low + (high - low) * i / n
@@ -198,7 +208,9 @@ local function DrawRoute(x, y, tx, ty, road, continent)
 		end
 	end
 	if not road then Segment(x, y, tx, ty, "walk", true); return end
-	for _, leg in ipairs(road.legs) do
+	for index, leg in ipairs(road.legs) do
+		if moving and index > 1 then break end
+		pool, count = index == 1 and startDots or dots, index <= 2 and 0 or count
 		local px, py
 		for i = 1, #leg.pts, 2 do
 			local mapID, point = Call(C_Map, "GetMapPosFromWorldPos", continent, CreateVector2D(leg.pts[i], leg.pts[i + 1]), MapID())
@@ -224,11 +236,10 @@ local function World(id, x, y)
 	end
 end
 
-local function RoadRoute(mounted)
-	local playerMap = Number(Call(C_Map, "GetBestMapForUnit", "player")) or target.mapID
-	local x, y = XY(Call(C_Map, "GetPlayerMapPosition", playerMap, "player"))
+local function RoadRoute(mounted, playerMap, x, y, moving)
 	if not x then return nil, L["Player position unavailable."] end
 	local continent, wx, wy = World(playerMap, x, y)
+	if moving and continent and continent == routeContinent and Roads.MoveStart(Routes.road, wx, wy, mounted) then return Routes.road, nil, continent, true end
 	local targetContinent, tx, ty = World(target.mapID, target.x, target.y)
 	if not continent or not targetContinent then return nil, L["Road coordinates unavailable."] end
 	if continent ~= targetContinent then return nil, L["Destination is on another continent."] end
@@ -240,8 +251,16 @@ local function RoadRoute(mounted)
 	end
 	local flights, faction = {}, type(UnitFactionGroup) == "function" and Plain(UnitFactionGroup("player"), "string")
 	local factions = type(Enum) == "table" and Plain(Enum.FlightPathFaction, "table")
-	local continentMap = continent == 1 and 1414 or 1415
-	for _, info in ipairs(Plain(Call(C_TaxiMap, "GetTaxiNodesForMap", continentMap), "table") or {}) do
+	local continentMap = playerMap
+	local continentType = type(Enum) == "table" and Field(Enum.UIMapType, "Continent", "number")
+	if not continentType then continentMap = nil end
+	while continentMap do
+		local info = Call(C_Map, "GetMapInfo", continentMap)
+		if Field(info, "mapType", "number") == continentType then break end
+		local parent = Field(info, "parentMapID", "number")
+		continentMap = Number(parent) and parent > 0 and parent ~= continentMap and parent or nil
+	end
+	for _, info in ipairs(continentMap and Plain(Call(C_TaxiMap, "GetTaxiNodesForMap", continentMap), "table") or {}) do
 		local side = Field(info, "faction", "number")
 		if factions and side and Field(info, "isUndiscovered", "boolean") == false and
 			(side == factions.Neutral or side == factions.Horde and faction == "Horde" or side == factions.Alliance and faction == "Alliance") then
@@ -279,21 +298,29 @@ RefreshRoute = function()
 	local x, y
 	local id = MapID()
 	local width, height = canvas and Number(canvas:GetWidth()), canvas and Number(canvas:GetHeight())
-	if id == target.mapID then x, y = XY(Call(C_Map, "GetPlayerMapPosition", target.mapID, "player")) end
-	if x ~= routeX or y ~= routeY or id ~= routeMap or target ~= routeTarget or mounted ~= routeMounted or On("followRoads") ~= routeRoads or
-		playerMap ~= routePlayerMap or playerX ~= routePlayerX or playerY ~= routePlayerY or width ~= routeWidth or height ~= routeHeight then
-		local road, reason, continent
-		if On("followRoads") then road, reason, continent = RoadRoute(mounted) end
+	local scale = canvas and Widgets.ScaleFactor(canvas)
+	if id == target.mapID then
+		if playerMap == target.mapID then x, y = playerX, playerY
+		else x, y = XY(Call(C_Map, "GetPlayerMapPosition", target.mapID, "player")) end
+	end
+	local reusable = target == routeTarget and mounted == routeMounted and On("followRoads") == routeRoads and playerMap == routePlayerMap
+	local moving = reusable and id == routeMap and width == routeWidth and height == routeHeight and scale == routeScale
+	if not moving or playerX ~= routePlayerX or playerY ~= routePlayerY or x ~= routeX or y ~= routeY then
+		local road, reason, continent, startOnly
+		if On("followRoads") then road, reason, continent, startOnly = RoadRoute(mounted, playerMap, playerX, playerY, reusable and Routes.road ~= nil) end
 		Routes.road = road
-		DrawRoute(x, y, target.x, target.y, road, continent)
-		Hide(stepRows)
+		DrawRoute(x, y, target.x, target.y, road, continent, startOnly and moving)
 		steps:SetShown(road ~= nil)
 		chip:SetText(road and road.saved and string.format(L["Flight path saves %d min"], road.saved) or "")
 		note:SetText(reason or (road and (road.dashed and L["The ground may block this."] or L["Follow the marked roads and travel stops."])) or L["Straight line - terrain may block the way."])
-		if road then Routes.ShowSteps(road) else card:SetHeight(176) end
+		if road then Routes.ShowSteps(road) else
+			Hide(stepRows); Hide(stepAmounts)
+			card:SetSize(280, 142)
+			title:SetWidth(250); distance:SetWidth(250); note:SetSize(250, 18)
+		end
 		routeX, routeY, routeMap, routeTarget, routeMounted, routeRoads = x, y, id, target, mounted, On("followRoads")
 		routePlayerMap, routePlayerX, routePlayerY = playerMap, playerX, playerY
-		routeWidth, routeHeight = width, height
+		routeWidth, routeHeight, routeScale, routeContinent = width, height, scale, continent
 	end
 	if Routes.road then
 		distance:SetText(string.format(L["%d yd - about %d min"], math.floor(Routes.road.yards + 0.5), math.max(1, math.ceil(Routes.road.seconds / 60))))
@@ -350,16 +377,21 @@ end
 function Routes.ShowSteps(road)
 	local rows = {}
 	for _, leg in ipairs(road.legs) do
-		local last = rows[#rows]
-		if last and not last.stop and last.kind == leg.kind and (leg.kind == "walk" or leg.kind == "swim") and not leg.dashed and not last.dashed then
-			last.to, last.len, last.seconds = leg.to or last.to, last.len + leg.len, last.seconds + leg.seconds
-			last.stop = leg.stop
-		else rows[#rows + 1] = { kind = leg.kind, from = leg.from, to = leg.to, len = leg.len, seconds = leg.seconds, dashed = leg.dashed, stop = leg.stop } end
+		if leg.len > 0 then
+			local last = rows[#rows]
+			if last and not last.stop and last.kind == leg.kind and (leg.kind == "walk" or leg.kind == "swim") and not leg.dashed and not last.dashed then
+				last.to, last.len, last.seconds = leg.to or last.to, last.len + leg.len, last.seconds + leg.seconds
+				last.stop = leg.stop
+			else rows[#rows + 1] = { kind = leg.kind, from = leg.from, to = leg.to, len = leg.len, seconds = leg.seconds, dashed = leg.dashed, stop = leg.stop } end
+		end
 	end
 	local top = 0
 	for i, leg in ipairs(rows) do
-		local text = stepRows[i] or Text(stepChild, "body", 11)
+		local text = stepRows[i] or Text(stepChild, "body", 11, "text")
+		if not stepRows[i] then Style.MetricText(text) end
 		stepRows[i] = text
+		local amount = stepAmounts[i] or Text(stepChild, "number", 13)
+		stepAmounts[i] = amount
 		local label
 		if leg.kind == "flight" then label = string.format(L["Flight from %s to %s"], leg.from, leg.to)
 		elseif leg.kind == "boat" then label = string.format(L["Boat to %s"], leg.to)
@@ -369,15 +401,27 @@ function Routes.ShowSteps(road)
 		text:ClearAllPoints()
 		text:SetPoint("TOPLEFT", 0, -top)
 		text:SetWidth(274)
-		text:SetText(i .. ". " .. label .. "\n" .. string.format(L["%d yd - about %d min"], math.floor(leg.len + 0.5), math.max(1, math.ceil(leg.seconds / 60))))
-		local height = math.max(36, (Number(text:GetStringHeight()) or 28) + 8)
+		text:SetText(i .. ". " .. label)
+		local height = math.max(16, Number(text:GetStringHeight()) or 16)
 		text:SetHeight(height)
+		amount:ClearAllPoints()
+		amount:SetPoint("TOPLEFT", 0, -top - height)
+		amount:SetSize(274, 18)
+		amount:SetText(string.format(L["%d yd - about %d min"], math.floor(leg.len + 0.5), math.max(1, math.ceil(leg.seconds / 60))))
+		amount:Show()
+		height = height + 26
 		text:Show()
 		top = top + height
 	end
+	for i = #rows + 1, #stepRows do stepRows[i]:Hide(); stepAmounts[i]:Hide() end
+	card:SetWidth(310)
+	title:SetWidth(282); distance:SetWidth(282); note:SetSize(282, 32)
+	local offset = road.saved and 144 or 118
+	steps:ClearAllPoints()
+	steps:SetPoint("TOPLEFT", 14, -offset)
 	stepChild:SetHeight(math.max(1, top))
 	steps:SetHeight(math.min(158, math.max(36, top)))
-	card:SetHeight(190 + steps:GetHeight())
+	card:SetHeight(offset + 46 + steps:GetHeight())
 	steps:SetVerticalScroll(math.min(steps:GetVerticalScroll(), math.max(0, top - steps:GetHeight())))
 end
 
@@ -423,7 +467,7 @@ local function Build()
 	search:SetPoint("TOPLEFT", map.ScrollContainer or map, "TOPLEFT", 12, -12)
 	card = CreateFrame("Frame", nil, map)
 	card:SetFrameLevel(map:GetFrameLevel() + 25)
-	card:SetSize(310, 176)
+	card:SetSize(280, 142)
 	card:SetPoint("BOTTOMRIGHT", map.ScrollContainer or map, "BOTTOMRIGHT", -12, 12)
 	card.chrome = Widgets.Chrome(card, { shape = "window", fill = "surface" })
 	local cap = Text(card, "caps", 12, "gilt")
@@ -431,13 +475,13 @@ local function Build()
 	cap:SetText(L["Route"])
 	title = Text(card, "body", 13, "questGold")
 	title:SetPoint("TOPLEFT", 14, -36)
-	title:SetSize(282, 18)
+	title:SetSize(250, 18)
 	distance = Text(card, "number", 13)
 	distance:SetPoint("TOPLEFT", 14, -61)
-	distance:SetSize(282, 18)
+	distance:SetSize(250, 18)
 	note = Text(card, "body", 11, "text")
 	note:SetPoint("TOPLEFT", 14, -85)
-	note:SetSize(282, 32)
+	note:SetSize(250, 18)
 	note:SetText(L["Straight line - terrain may block the way."])
 	chip = Text(card, "body", 11, "questGold")
 	chip:SetPoint("TOPLEFT", 14, -118)
