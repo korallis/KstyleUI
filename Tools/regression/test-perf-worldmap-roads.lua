@@ -1,5 +1,6 @@
--- test-perf-worldmap-roads.lua: real continent queries stay below five milliseconds in the Lua 5.1 interpreter.
+-- test-perf-worldmap-roads.lua: real continent queries and the moving tick stay within addon instruction budgets; timings are printed only.
 local Fixture = dofile("Tools/regression/worldmap_roads_env.lua")
+local Budget = dofile("Tools/regression/path_budget.lua")
 local env, _, _, state = Fixture.M.New()
 Fixture.Install(env, state)
 local Roads = env._addons.KstyleUI_Skins.WorldMapRoads
@@ -12,8 +13,9 @@ for continent = 0, 1 do
 		queries[i] = { a.x, a.y, b.x, b.y }
 		Roads.Solve(graph, a.x, a.y, b.x, b.y, false, flights)
 	end
-	local total, worst = 0, 0
+	local total, worst, instructions = 0, 0, 0
 	for _, q in ipairs(queries) do
+		instructions = math.max(instructions, Budget.Count(env, function() Roads.Solve(graph, q[1], q[2], q[3], q[4], false, flights) end).instructions)
 		local best = math.huge
 		for _ = 1, 3 do
 			collectgarbage("collect")
@@ -23,8 +25,8 @@ for continent = 0, 1 do
 		end
 		total, worst = total + best, math.max(worst, best)
 	end
-	assert(worst < 0.005, string.format("cache graph adjacency and use the heap: continent %d costs %.3f ms per query, budget 5 ms", continent, worst * 1000))
-	print(string.format("road queries: continent %d, %d nodes/%d edges, %.3f ms mean/%.3f ms worst query (including snaps, polylines and flight comparison)", continent, #graph.nodes, #graph.edges, total * 1000 / #queries, worst * 1000))
+	assert(instructions <= 950000, string.format("cache graph adjacency and use the heap: continent %d costs %d addon instructions per query, budget 950000", continent, instructions))
+	print(string.format("road queries: continent %d, %d nodes/%d edges, %d instructions worst query, %.3f ms mean/%.3f ms worst (including snaps, polylines and flight comparison; timings are information only)", continent, #graph.nodes, #graph.edges, instructions, total * 1000 / #queries, worst * 1000))
 end
 
 local R
@@ -48,15 +50,15 @@ local x, y = Project(to.x, to.y)
 R.Pick({ mapID = 1, name = to.name, x = x, y = y })
 assert(R.road, "benchmark the visible real road, not the direct fallback")
 local tick = R.panel:GetScript("OnUpdate")
-local best = math.huge
+local best, instructions = math.huge, 0
 for _ = 1, 3 do
 	state.playerX, state.playerY = Project(from.x, from.y)
 	tick(R.panel, 0.25)
 	collectgarbage("collect")
 	local start = os.clock()
-	for _ = 1, 100 do state.playerX = state.playerX + 0.000001; tick(R.panel, 0.25) end
+	instructions = Budget.Count(env, function() for _ = 1, 100 do state.playerX = state.playerX + 0.000001; tick(R.panel, 0.25) end end).instructions / 100
 	best = math.min(best, (os.clock() - start) / 100)
 end
-assert(best < 0.0015, string.format("re-snap only the player connector and keep unchanged road geometry: moving tick %.3f ms exceeds 1.5 ms (five times the old 0.3 ms tick)", best * 1000))
-print(string.format("moving road tick: %.3f ms (PUC Lua 5.1; Windows os.clock measures wall time)", best * 1000))
+assert(instructions <= 37500, string.format("re-snap only the player connector and keep unchanged road geometry: moving tick costs %d addon instructions, budget 37500", instructions))
+print(string.format("moving road tick: %d instructions, %.3f ms (information only; Windows os.clock measures wall time)", instructions, best * 1000))
 assert(#env._errors == 0)
