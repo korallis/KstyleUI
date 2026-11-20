@@ -81,7 +81,7 @@ jobs:
     needs: check
     if: github.event_name == 'push'
     runs-on: [self-hosted, mac-ci, KstyleUI]
-    timeout-minutes: 35
+    timeout-minutes: 15
     permissions:
       contents: read
     strategy:
