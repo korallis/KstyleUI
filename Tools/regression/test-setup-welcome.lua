@@ -119,6 +119,21 @@ for _, locale in ipairs({ "deDE", "frFR", "esES", "zhCN" }) do
 	collectgarbage("collect")
 end
 
+for _, locale in ipairs({ "enUS", "deDE", "frFR", "esES", "zhCN" }) do
+	for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+		local env, K, page = boot(screen, "Frames", locale, "default")
+		K.Layout.Set("setup.window", "scale", 0.9)
+		W.Settle(env)
+		clean(env)
+		local _, noteY, _, noteHeight = Scene.Rect(env, K.Setup.window.welcomeNote)
+		local _, viewY, _, viewHeight = Scene.Rect(env, page.scroll)
+		assert(page.branded:GetHeight() <= page.scroll:GetHeight() + 1 and noteY >= viewY and noteY + noteHeight <= viewY + viewHeight + 1,
+			string.format("%s at %dx%d, the pre-Auto size and a 0.9 window: grow the window so the close note shows without scrolling (content %.1f, view %.1f)",
+				locale, screen[1], screen[2], page.branded:GetHeight(), page.scroll:GetHeight()))
+		collectgarbage("collect")
+	end
+end
+
 local f = assert(io.open("Media/Logo/Logo256.tga", "rb"))
 local header = f:read(18)
 f:close()
