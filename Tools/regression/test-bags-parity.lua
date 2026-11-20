@@ -217,7 +217,7 @@ end
 
 -- The window: maximum height, nearest corner, bag slots, currencies and the gold list.
 do
-	local env, K, ns, win = new({ enabled = true, columns = 4 }, {
+	local env, K, _, win = new({ enabled = true, columns = 4 }, {
 		bags = { [0] = { size = 80, items = {} } },
 		equippedBags = { [1] = { icon = 133633, quality = 1 } },
 		currencies = { { name = "Honor", quantity = 120, iconFileID = 1455894, currencyTypesID = 1 } },
@@ -316,7 +316,7 @@ end
 
 -- Warband gold.
 do
-	local env, K, ns = new({ enabled = true, warbandGold = true, warbandGoldAmount = "100", warbandGoldChat = true }, { money = 1234567, warbandMoney = 50000 })
+	local env, K = new({ enabled = true, warbandGold = true, warbandGoldAmount = "100", warbandGoldChat = true }, { money = 1234567, warbandMoney = 50000 })
 	env.SetBank(true)
 	env.RunTimers()
 	local call = B.Calls(env, "DepositMoney")[1]

@@ -469,8 +469,8 @@ function B.Game(env, opts)
 		end,
 	}
 	env.C_CurrencyInfo = {
-		GetBackpackCurrencyInfo = function(index)
-			return (opts.currencies or {})[index]
+		GetBackpackCurrencyInfo = function(i)
+			return (opts.currencies or {})[i]
 		end,
 	}
 	env.C_Container.ContainerIDToInventoryID = function(bag)
