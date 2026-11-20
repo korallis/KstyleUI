@@ -102,7 +102,7 @@ function Setup.NewChoice(current)
 				modules[row.module] = current and ns.Modules.IsEnabled(row.module) or row.recommended
 			else
 				local value = ns.Options.Read(row.module, row.key)
-				if not current and (row.module == "DataBars" or row.module == "Meters") then value = row.recommended end
+				if not current and (row.module == "DataBars" or row.module == "Meters" or row.module == "Integrations") then value = row.recommended end
 				settings[row.module .. "." .. row.key] = value
 			end
 		end

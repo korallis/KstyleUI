@@ -86,7 +86,7 @@ local function Refresh()
 		frame:HookScript("OnSizeChanged", Refresh)
 	end
 	local on = enabled and K.Modules.IsEnabled("Skins") and ns.Skins.IsOn("questie")
-	on = on and K.Setup.Integrations.QuestTracker() == "questie"
+	on = on and K.Setup.Integrations.QuestTracker() ~= "kstyleui"
 	panel:SetShown(on)
 	if active ~= on then
 		active = on

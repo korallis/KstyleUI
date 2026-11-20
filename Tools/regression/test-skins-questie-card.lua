@@ -127,4 +127,23 @@ Check("initially off and late frame", function()
 	assert(other.art:GetAlpha() == 0.7, "Do not strip a late-created Questie frame while the shared card is off")
 end)
 assert(#failures == 0, table.concat(failures, "\n"))
+
+do
+	local Addons = dofile("Tools/regression/addons_fake.lua")
+	local R = Boot({ width = 1920, height = 1080 }, nil, nil, true, Install)
+	local K, other = R.K, R.questie
+	Addons.Install(R.env, { { name = "Questie", loaded = true, enabled = 2 } })
+	for _, enabled in ipairs({ false, true }) do
+		K.Setup.Open()
+		local group = K.Setup.window.addons.groups.Questie
+		group.items["Skins.questie.enabled"].control:SetValue(enabled)
+		group.items["Integrations.questTracker"].control:SetValue("both")
+		assert(K.Setup.Apply(K.Setup.Choice()))
+		R.settle()
+		assert(other.frame:IsVisible() and R.ns.Quests.Card():IsVisible(), "Both keeps the two trackers visible through setup Apply")
+		assert(other.art:GetAlpha() == (enabled and 0 or 0.7), "setup's Skin it restores and reapplies Questie's native art")
+		assert(not K.Widgets.DialogHost():IsShown(), "the reversible Questie Skin it choice needs no reload prompt")
+	end
+	assert(#R.env._errors == 0 and K.ErrorCount() == 0, tostring(R.env._errors[1]))
+end
 print("test-skins-questie-card: ok")

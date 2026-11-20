@@ -43,6 +43,7 @@ for _, screen in ipairs({ {1920, 1080}, {2560, 1440}, {5120, 1440}, {3840, 2160}
 	assert(K.Setup.Go(5))
 	W.Settle(env)
 	assert(Item(panel, "RXPGuides", "Skins.restedXP.enabled"):GetValue(), "Skin it starts ticked")
+	assert(Item(panel, "Questie", "Skins.questie.enabled"):GetValue(), "new registry addon skins appear automatically and start ticked")
 	assert(not Item(panel, "Bartender4", "ActionBars.enabled"):GetValue(), "prefer the installed bars")
 	assert(not Item(panel, "Bartender4", "DataBars.micro.enabled"):GetValue() and not Item(panel, "Bartender4", "DataBars.bags.enabled"):GetValue(), "yield menus only")
 	assert(not Item(panel, "Details", "Meters.damage.shown"):GetValue() and K.Setup.Choice().modules.Meters, "yield damage only")
@@ -50,7 +51,7 @@ for _, screen in ipairs({ {1920, 1080}, {2560, 1440}, {5120, 1440}, {3840, 2160}
 	local tracker = Item(panel, "Questie", "Integrations.questTracker")
 	assert(tracker:GetValue() == "kstyleui", "recommend KstyleUI's quest card")
 	local options = K.Options.Row("Integrations", "questTracker").options
-	assert(tracker.options == options and #options == 3 and options[3].value == "both", "setup and Options share all three tracker choices")
+	assert(tracker.options == options and #options == 4 and options[4].value == "both", "setup and Options share tracker choices, including the existing Automatic choice")
 	for _, group in ipairs(panel.addons.active) do
 		for _, item in ipairs(group.active) do
 			assert(item.row.key == "enabled" or K.Options.Row(item.row.module, item.row.key), "each choice uses its existing Options setting")
@@ -62,6 +63,7 @@ for _, screen in ipairs({ {1920, 1080}, {2560, 1440}, {5120, 1440}, {3840, 2160}
 	local before, writes = K.Store.Export(), 0
 	K.Callbacks.Register("SettingChanged", "test", function() writes = writes + 1 end)
 	Item(panel, "RXPGuides", "Skins.restedXP.enabled"):SetValue(false)
+	Item(panel, "Questie", "Skins.questie.enabled"):SetValue(false)
 	Item(panel, "Bartender4", "ActionBars.enabled"):SetValue(true)
 	Item(panel, "Bartender4", "DataBars.micro.enabled"):SetValue(true)
 	Item(panel, "Details", "Meters.damage.shown"):SetValue(true)
@@ -70,12 +72,13 @@ for _, screen in ipairs({ {1920, 1080}, {2560, 1440}, {5120, 1440}, {3840, 2160}
 	assert(K.Store.Export() == before and writes == 0, "editing setup only changes its pending choices")
 	assert(panel.toggles.ActionBars:GetValue(), "same-job edits also update Modules")
 	assert(K.Setup.Go(7) and K.Setup.Apply(K.Setup.Choice()))
-	assert(not K.Options.Read("Skins", "restedXP.enabled") and not K.Options.Read("Skins", "restyleAddons"), "apply both skin choices")
+	assert(not K.Options.Read("Skins", "restedXP.enabled") and not K.Options.Read("Skins", "questie.enabled") and not K.Options.Read("Skins", "restyleAddons"), "apply every skin choice")
 	assert(K.Options.Read("ActionBars", "enabled") and K.Options.Read("DataBars", "micro.enabled") and not K.Options.Read("DataBars", "bags.enabled"), "apply bars and each menu independently")
 	assert(K.Options.Read("Meters", "damage.shown") and K.Options.Read("Integrations", "questTracker") == "both", "addon choices win over the layout preset")
 	assert(K.Setup.Open())
 	W.Settle(env)
 	assert(not Item(panel, "RXPGuides", "Skins.restedXP.enabled"):GetValue() and Item(panel, "Bartender4", "ActionBars.enabled"):GetValue(), "rerunning setup keeps skin and module choices")
+	assert(not Item(panel, "Questie", "Skins.questie.enabled"):GetValue(), "rerunning setup keeps the reversible Questie skin choice")
 	assert(Item(panel, "Bartender4", "DataBars.micro.enabled"):GetValue() and Item(panel, "Details", "Meters.damage.shown"):GetValue() and tracker:GetValue() == "both", "rerunning keeps partial and tracker choices")
 	before, writes = K.Store.Export(), 0
 	Item(panel, "RXPGuides", "Skins.restedXP.enabled"):SetValue(true)
