@@ -101,7 +101,6 @@ end
 
 function Socket.Place(b)
 	Countdown(b)
-
 end
 
 function Socket.Tint(b, key)

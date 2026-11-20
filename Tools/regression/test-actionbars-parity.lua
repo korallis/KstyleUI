@@ -28,7 +28,7 @@ for _, def in ipairs(ns.BARS) do choices[#choices + 1] = def end
 choices[#choices + 1] = ns.Consumables.def
 for _, def in ipairs(choices) do
 	local key = def.key
-	if key == "consumables" then Write("consumables.size", 38) end
+	if key == "consumables" then Write("consumables.size", 38); Write("consumables.hotkey", true) end
 	Write(key .. ".enabled", true)
 	local cfg = K.Store.Module("ActionBars")[key]
 	local live = def.kind == "consumable" and ns.Consumables or ns.bars[key]
@@ -65,10 +65,13 @@ end
 Write("consumables.size", 26)
 for _, field in ipairs({ "hotkey", "count", "cooldown" }) do Write("consumables.placement." .. field .. ".anchor", "CENTER") end
 local compact = ns.Consumables.buttons[1]
-assert(compact.count._points[1][1] == "BOTTOMRIGHT" and compact.countdown._points[1][1] == "TOP", "compact count wins over placement choices")
+assert(compact.count._points[1][1] == "BOTTOMRIGHT" and compact.countdown._points[1][1] == "CENTER", "compact count wins over placement choices")
+assert(not compact.hotkey:IsShown(), "compact count wins over an enabled keybind")
+Write("consumables.count", false)
+assert(compact.hotkey:IsShown(), "without a count the compact keybind can show")
 compact:SetCooldown(10, 20)
 compact.cooldown:GetScript("OnShow")(compact.cooldown)
-assert(compact.hotkey:GetAlpha() == 0, "compact countdown temporarily replaces the keybind")
+assert(compact.count:GetAlpha() == 0 and compact.hotkey:GetAlpha() == 0, "compact countdown temporarily replaces the keybind")
 Write("consumables.cooldown", false)
 assert(compact.hotkey:GetAlpha() > 0, "hiding countdown numbers restores the compact keybind")
 local b = ns.bars.bar1.buttons[1]
