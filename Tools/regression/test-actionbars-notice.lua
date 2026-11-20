@@ -13,6 +13,7 @@ local function Setup(env)
 	env.C_AddOns.IsAddOnLoaded = function(name) return loaded[name] == true end
 end
 local env, K = AB.New({ setup = Setup })
+assert(Notices(env) == 0, "the bindings notice must stay silent while ActionBars is off")
 K.Options.Write("Integrations", "notices", false)
 AB.Enable(env, K)
 assert(Notices(env) == 0, "Other-addon notices off must neither print nor consume a bindings notice")
@@ -22,7 +23,6 @@ env.RunTimers()
 assert(Notices(env) == 1, "Other-addon notices on must permit the first bindings notice")
 AB.CoreEnv.Logout(env)
 local again, K2 = AB.New({ saved = env.KstyleUIDB, setup = Setup })
-env = nil
 again.RunTimers()
 assert(Notices(again) == 0, "save bindings notices per account and addon so the next login does not repeat them")
 loaded.Dominos = true
@@ -46,4 +46,8 @@ assert(Notices(again) == 2, "turning notices back on must permit the unseen addo
 again.FireEvent("UPDATE_BINDINGS")
 again.RunTimers()
 assert(Notices(again) == 2 and #again._errors == 0, "bindings notices must print once per detected addon without errors")
+AB.CoreEnv.Logout(again)
+local third = AB.New({ saved = again.KstyleUIDB, setup = Setup })
+third.RunTimers()
+assert(Notices(third) == 0 and #third._errors == 0, "all detected addons must stay seen after another logout and login")
 print("actionbars account notices ok")

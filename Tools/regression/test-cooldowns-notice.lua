@@ -8,13 +8,14 @@ local function Notices(env)
 	return count
 end
 
-local on = true
+local on = false
 local function Setup(env)
 	C.Viewers(env)
 	env.C_CVar = { GetCVarBool = function() return on end }
 end
 local env, K = C.New({ setup = Setup })
 assert(Notices(env) == 0, "the Cooldown Manager tip must stay silent while Cooldowns is off")
+on = true
 C.Enable(env, K)
 assert(Notices(env) == 0, "the Cooldown Manager tip must stay silent while its CVar is on")
 K.Modules.Disable("Cooldowns")

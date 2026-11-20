@@ -128,6 +128,7 @@ local function Hush(texture)
 	texture:SetAlpha(0)
 	hooksecurefunc(texture, "SetAlpha", Rehush)
 	hooksecurefunc(texture, "SetVertexColor", Rehush)
+	hooksecurefunc(texture, "SetColorTexture", Rehush)
 	return true
 end
 
