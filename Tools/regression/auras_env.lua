@@ -183,6 +183,19 @@ local function newButton(env, container)
 		guard("ClearDispelTypeTextures")
 		aura.dispel = {}
 	end
+	function button.SetMouseMotionEnabled(_, enabled)
+		guard("SetMouseMotionEnabled")
+		aura.motion = enabled
+	end
+	function button.RemoveDispelTypeTexture(_, texture)
+		guard("RemoveDispelTypeTexture")
+		for i, entry in ipairs(aura.dispel) do
+			if entry.texture == texture then
+				table.remove(aura.dispel, i)
+				return
+			end
+		end
+	end
 	function button.SetCancelAuraButtons(_, buttons)
 		guard("SetCancelAuraButtons")
 		assert(buttons == nil or type(buttons) == "string", "cancelAuraButtons must be a string or nil.")

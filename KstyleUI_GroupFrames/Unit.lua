@@ -145,24 +145,86 @@ function Unit.ColorSources()
 	return current.health.colorSource, current.text.nameColorSource
 end
 
+function Unit.StatusColor(status)
+	local health = Settings.current.health
+	if not health.statusColors then
+		return Tokens.Color("textDisabled")
+	end
+	local c = status == "offline" and health.offlineColor or health.deadColor
+	return c.r, c.g, c.b
+end
+
+function Unit.GradientStops()
+	local h = Settings.current.health
+	local stops = { { 0, h.gradientLow } }
+	if h.gradientLowAt > 0 then stops[#stops + 1] = { h.gradientLowAt / 100, h.gradientLow } end
+	stops[#stops + 1] = { 0.5, h.gradientMid }
+	if h.gradientHighAt < 100 then stops[#stops + 1] = { h.gradientHighAt / 100, h.gradientHigh } end
+	stops[#stops + 1] = { 1, h.gradientHigh }
+	return stops
+end
+
+local gradient = {}
+local function GradientCurves()
+	local h = Settings.current.health
+	if gradient.low == h.gradientLow and gradient.mid == h.gradientMid and gradient.high == h.gradientHigh
+		and gradient.lowAt == h.gradientLowAt and gradient.highAt == h.gradientHighAt then
+		return gradient.curves
+	end
+	gradient.low, gradient.mid, gradient.high, gradient.lowAt, gradient.highAt = h.gradientLow, h.gradientMid, h.gradientHigh, h.gradientLowAt, h.gradientHighAt
+	gradient.curves = nil
+	local util = C_CurveUtil
+	if not (util and util.CreateCurve and UnitHealthPercent) then
+		Style.LogOnce("noGradient", "C_CurveUtil or UnitHealthPercent is missing; the by-health colour keeps the full health colour")
+		return nil
+	end
+	local curves = {}
+	for i, channel in ipairs({ "r", "g", "b" }) do
+		curves[i] = util.CreateCurve()
+		for _, stop in ipairs(Unit.GradientStops()) do
+			curves[i]:AddPoint(stop[1], stop[2][channel])
+		end
+	end
+	gradient.curves = curves
+	return curves
+end
+
+local function GradientColor(f)
+	local alpha = Settings.current.health.alpha
+	local curves = GradientCurves()
+	if not curves then
+		local c = Settings.current.health.gradientHigh
+		f.health:SetBarColor(c.r, c.g, c.b, alpha)
+		return
+	end
+	local unit = f.unit
+	f.health:SetBarColor(UnitHealthPercent(unit, true, curves[1]), UnitHealthPercent(unit, true, curves[2]), UnitHealthPercent(unit, true, curves[3]), alpha)
+end
+
 local function Colors(f)
 	local unit = f.unit
 	local _, class = UnitClass(unit)
 	local cr, cg, cb = Unit.ClassColor(class)
 	local health = Settings.current.health
+	local alpha = health.alpha
 	local healthSource, nameSource = Unit.ColorSources(f)
 	f.health:SetHealthUnit(nil)
+	f.gradient = not f.status and healthSource == "gradient"
 	if f.status then
-		f.health:SetBarColor(Tokens.Color("textDisabled"))
+		local r, g, b = Unit.StatusColor(f.status)
+		f.health:SetBarColor(r, g, b, alpha)
 	elseif healthSource == "class" then
-		f.health:SetBarColor(cr, cg, cb)
+		f.health:SetBarColor(cr, cg, cb, alpha)
 	elseif healthSource == "reaction" then
-		f.health:SetBarColor(K.ColorVision.ReactionColor(UnitReaction and UnitReaction(unit, "player")))
+		local r, g, b = K.ColorVision.ReactionColor(UnitReaction and UnitReaction(unit, "player"))
+		f.health:SetBarColor(r, g, b, alpha)
+	elseif f.gradient then
+		GradientColor(f)
 	else
 		local c = health.color
-		f.health:SetBarColor(c.r, c.g, c.b)
+		f.health:SetBarColor(c.r, c.g, c.b, alpha)
 	end
-	if not f.status then
+	if not f.status and not f.gradient then
 		f.health:SetHealthUnit(unit)
 	end
 	local text = Settings.current.text
@@ -253,6 +315,9 @@ end
 local function Health(f)
 	local unit = f.unit
 	f.health:SetHealth(UnitHealth(unit), f.fresh)
+	if f.gradient then
+		GradientColor(f)
+	end
 	HealthText(f)
 end
 
@@ -264,6 +329,8 @@ function Unit.SetPortrait(f)
 	if SetPortraitTexture then
 		SetPortraitTexture(f.portrait, f.unit)
 	end
+	local zoom = Settings.current[f.kind].portraitZoom or 0
+	f.portrait:SetTexCoord(zoom, 1 - zoom, zoom, 1 - zoom)
 end
 
 local function Portrait(f)
@@ -312,6 +379,10 @@ end
 Unit.Range = Range
 
 local function Target(f)
+	if not Settings.current.accent.target then
+		f.target:SetAlpha(0)
+		return
+	end
 	local isTarget = UnitIsUnit(f.unit, "target")
 	if f.target.SetAlphaFromBoolean then
 		f.target:SetAlphaFromBoolean(isTarget, 1, 0)
@@ -387,10 +458,18 @@ function Unit.OnEvent(f, event)
 	if f.unit and (f.extra1 or f.extra2) then Unit.TextSlots(f, field) end
 end
 
+local function PowerRole(f)
+	if f.powerShown ~= nil and Style.PowerShown(f) ~= f.powerShown then
+		Style.Apply(f)
+		return true
+	end
+end
+
 function Unit.Refresh(f)
 	if not f.unit then
 		return
 	end
+	PowerRole(f)
 	Status(f)
 	Name(f)
 	f.health:SetBarRange(0, UnitHealthMax(f.unit))
@@ -568,6 +647,10 @@ function Unit.RolesChanged()
 		local f = frames[i]
 		if f.unit then
 			RoleLetter(f)
+			if PowerRole(f) then
+				PowerColor(f)
+				Power(f)
+			end
 		end
 	end
 end

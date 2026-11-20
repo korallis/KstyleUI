@@ -1,7 +1,8 @@
 -- group_lanes.lua: the party and raid frames as the KSTY-44 and KSTY-47 mock-ups draw them, on the owner's screen:
 -- RENDER_GROUP is party (the player and four members, bare on the world) or 10, 20, 25 or 40 (a raid of that size in
 -- groups of five, seated in its card); RENDER_HUD_STYLE picks the HUD style and RENDER_SCREEN the screen. The
--- members, health and roles are the mock-ups' own, and the frames sit where the mock-ups put them.
+-- members, health and roles are the mock-ups' own, and the frames sit where the mock-ups put them. RENDER_PARITY_R1=1
+-- switches on the EllesmereUI parity round 1 options that show without extra state.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
@@ -107,6 +108,12 @@ return Common.Run(function()
 		K.Options.Write("GroupFrames", "presets.raid", "Healer")
 	end
 	if os.getenv("RENDER_TEXT_PRESET") == "Readable" and K.Profiles then K.Profiles.Readable("Readable") end
+	if os.getenv("RENDER_PARITY_R1") == "1" then
+		for key, value in pairs({ ["health.colorSource"] = "gradient", ["health.alpha"] = 0.85, ["icons.roleDamager"] = false,
+			["power.damagers"] = false, ["groups.show2"] = false, ["auras.dispelAlpha"] = 0.3, ["auras.dispelLines"] = 1 }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+	end
 	place(K, "groupframes." .. kind, AT[kind][1], AT[kind][2])
 	env.RunTimers()
 	Hud.Tick(env, 1)

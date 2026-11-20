@@ -10,7 +10,6 @@ ns.Prediction = Prediction
 
 local HEALER = "player"
 local LEVEL_ABOVE_HEALTH = 1
-local SHIELD_LINES = 2
 local SHIELD_ALPHA = 1
 
 local function Build(f)
@@ -97,7 +96,7 @@ local function Layout(f, parts)
 		eaten:SetValue(0)
 	end
 	local shield = f.shield
-	local line = Widgets.Border(f) * SHIELD_LINES
+	local line = Widgets.Border(f) * cfg.prediction.shieldLines
 	shield:SetOrientation("HORIZONTAL")
 	shield:SetBarTexture(cfg.health.texture)
 	shield.opts.width, shield.opts.height = rect.width, line

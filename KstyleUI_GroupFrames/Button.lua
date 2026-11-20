@@ -63,6 +63,23 @@ local function ClickHint(tooltip)
 	tooltip:AddLine(L["Bind spells to clicks on these frames in %s."]:format(path), r, g, b, true)
 end
 
+local function Plain(fn, ...)
+	local value = type(fn) == "function" and fn(...)
+	return not issecretvalue(value) and value == true
+end
+
+local function TooltipAllowed()
+	local mode = Settings.current.tooltip.mode
+	if mode == "NEVER" then
+		return false
+	elseif mode == "COMBAT" then
+		return not Plain(UnitAffectingCombat, "player")
+	elseif mode == "BOSS" then
+		return not Plain(C_InstanceEncounter and C_InstanceEncounter.IsEncounterInProgress)
+	end
+	return true
+end
+
 local function OnEnter(button)
 	local f = contents[button]
 	if not f then
@@ -70,7 +87,7 @@ local function OnEnter(button)
 	end
 	Style.SetHovered(f, true)
 	local tooltip = GameTooltip
-	if f.unit and tooltip and GameTooltip_SetDefaultAnchor and tooltip.SetUnit then
+	if f.unit and tooltip and GameTooltip_SetDefaultAnchor and tooltip.SetUnit and TooltipAllowed() then
 		GameTooltip_SetDefaultAnchor(tooltip, button)
 		tooltip:SetUnit(f.unit)
 		ClickHint(tooltip)

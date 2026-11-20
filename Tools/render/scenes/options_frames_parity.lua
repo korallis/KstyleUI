@@ -35,6 +35,12 @@ return Common.Run(function()
 	if module == "GroupFrames" then
 		K.Options.Write(module, "party.width", 350)
 		K.Options.Write(module, "party.healthTextPlace", "BAR")
+		if os.getenv("RENDER_PARITY_R1") == "1" then
+			K.Options.Write(module, "health.colorSource", "gradient")
+			K.Options.Write(module, "health.statusColors", true)
+			K.Options.Write(module, "icons.roleDamager", false)
+			K.Options.Write(module, "power.damagers", false)
+		end
 	end
 	assert(K.Options.Open(module))
 	K.Layout.Set("Options.Window", "width", 1100)
