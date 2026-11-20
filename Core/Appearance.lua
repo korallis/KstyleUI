@@ -47,8 +47,8 @@ end
 local CLASSES = { WARRIOR = { 0.78, 0.61, 0.43 }, PALADIN = { 0.96, 0.55, 0.73 }, HUNTER = { 0.67, 0.83, 0.45 }, ROGUE = { 1, 0.96, 0.41 },
 	PRIEST = { 1, 1, 1 }, SHAMAN = { 0, 0.44, 0.87 }, MAGE = { 0.25, 0.78, 0.92 }, WARLOCK = { 0.53, 0.53, 0.93 }, DRUID = { 1, 0.49, 0.04 } }
 local POWERS = { MANA = { 0, 0, 1 }, RAGE = { 1, 0, 0 }, ENERGY = { 1, 1, 0 }, FOCUS = { 1, 0.5, 0.25 } }
-Appearance.CLASS_ORDER = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
-Appearance.POWER_ORDER = { "MANA", "RAGE", "ENERGY", "FOCUS" }
+local CLASS_ORDER = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
+local POWER_ORDER = { "MANA", "RAGE", "ENERGY", "FOCUS" }
 local function Native(list, source)
 	local out = {}
 	for key, rgb in pairs(list) do
@@ -62,7 +62,7 @@ Appearance.defaults.classColors = Native(CLASSES, rawget(_G, "RAID_CLASS_COLORS"
 Appearance.defaults.powerColors = Native(POWERS, rawget(_G, "PowerBarColor"))
 Appearance.defaults.paletteDarken = 0
 Appearance.defaults.outline = ""
-Appearance.PALETTE = { "classColors", "powerColors", "paletteDarken" }
+local PALETTE = { "classColors", "powerColors", "paletteDarken" }
 
 local function Log(message)
 	ns.DevTest.Log(SECTION, message)
@@ -182,7 +182,7 @@ function Appearance.CopyPalette(from, to)
 		if name ~= from and type(profiles[name]) == "table" then
 			local live = name == Store.ProfileName()
 			profiles[name][SECTION] = type(profiles[name][SECTION]) == "table" and profiles[name][SECTION] or {}
-			for _, key in ipairs(Appearance.PALETTE) do
+			for _, key in ipairs(PALETTE) do
 				local value = source[key]
 				if value == nil and live then value = Appearance.defaults[key] end
 				profiles[name][SECTION][key] = ns.Options.Copy(value)
@@ -455,10 +455,10 @@ function Appearance.Schema()
 		schema[#schema + 1] = { type = "color", key = group .. "." .. key, label = type(label) == "string" and label or key:sub(1, 1) .. key:sub(2):lower(), help = help }
 	end
 	Appearance.schema[#Appearance.schema + 1] = { type = "header", label = L["Class and power colours"] }
-	for _, file in ipairs(Appearance.CLASS_ORDER) do
+	for _, file in ipairs(CLASS_ORDER) do
 		Colour("classColors", file, type(classNames) == "table" and classNames[file], L["Wherever KstyleUI shows this class colour; the accent keeps its own setting."])
 	end
-	for _, token in ipairs(Appearance.POWER_ORDER) do
+	for _, token in ipairs(POWER_ORDER) do
 		Colour("powerColors", token, rawget(_G, token), L["Unit and group frame bars that show this power use this colour."])
 	end
 	Appearance.schema[#Appearance.schema + 1] = { type = "slider", key = "paletteDarken", label = L["Darken class and power colours"], min = 0, max = 0.6, step = 0.05,
