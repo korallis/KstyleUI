@@ -20,7 +20,7 @@ for _, screen in ipairs(... or { { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 } 
 			end
 		end,
 	}))
-	if screen[3] == "frFR" then assert(K.L["Frost Howler"] == "Hurleur du givre", "the French preview fixture is loaded") end
+	if screen[3] == "frFR" then assert(K.L["Frost Howler"] == "Hurlegivre", "the French preview fixture is loaded") end
 	K.Options.Write("UnitFrames", "edit", "target")
 	K.Options.Open("UnitFrames")
 	local ns = env._addons.KstyleUI_Options
