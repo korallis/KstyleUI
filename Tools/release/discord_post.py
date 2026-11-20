@@ -104,26 +104,27 @@ def roadmap_payload(roadmap, date):
             raise ValueError("Unexpected roadmap section: " + text.strip().split("\n", 1)[0])
         return match.groups()
 
-    long = [line for line in re.findall(r"^- (.+)$", roadmap, re.M) if characters(line) > 120 or "…" in line]
+    long = [line for line in re.findall(r"^- (.+)$", roadmap, re.M) if characters(line) > 120 or "…" in line or "..." in line]
     if long:
         raise ValueError("Shorten this roadmap highlight to 120 characters or fewer, without an ellipsis: " + long[0])
-    bullets = r"((?:- .+\n?)+)"
+    bullets = r"((?:- .+\n)*- .+)"
     head, *sections = re.split(r"^## ", roadmap, flags=re.M)
     heading, intro = parse(r"# (.+)\n\n(.+)", head)
-    later, closing = parse(r"Later\n\n" + bullets + r"\n(.+)", sections.pop() if sections else "")
+    later, closing = parse(r"Later\n\n" + bullets + r"\n\n(?!- )(.+)", sections.pop() if sections else "")
     embeds = []
     for section in sections:
         title, estimated, summary, items = parse(
-            r"(v[\d.]+ — .+)\n\nEstimated: (.+)\n\n(.+)\n\nHighlights:\n\n" + bullets, section)
+            r"(v\d+\.\d+\.\d+ — .+)\n\nEstimated: (.+)\n\n(.+)\n\nHighlights:\n\n" + bullets, section)
         embeds.append({"title": "KstyleUI " + title, **brand(heading, "main"),
-                       "description": f"**Estimated:** {estimated}\n\n{summary}\n\n**Highlights**\n{items.strip()}"})
-    embeds.append({"title": "Later", **brand(heading, "main"), "description": later.strip() + "\n\n" + closing,
+                       "description": f"**Estimated:** {estimated}\n\n{summary}\n\n**Highlights**\n{items}"})
+    embeds.append({"title": "Later", **brand(heading, "main"), "description": later + "\n\n" + closing,
                    "image": {"url": f"{RAW}/main/docs/media/marketing/banner.jpg"},
                    "footer": {"text": "KstyleUI for WoW Forever · Roadmap · " + date}})
     embeds[0]["description"] = intro + "\n\n" + embeds[0]["description"]
     payload = {"embeds": embeds, "flags": 4096, "allowed_mentions": {"parse": []}}
     if len(embeds) > 10 or character_totals(payload)["total"] > 6000 or any(
-            characters(e["title"]) > 256 or characters(e["description"]) > 4096 for e in embeds):
+            characters(e["title"]) > 256 or characters(e["description"]) > 4096 or characters(e["author"]["name"]) > 256
+            for e in embeds):
         raise ValueError("Roadmap exceeds Discord message limits")
     return payload
 
@@ -146,7 +147,7 @@ def send(webhook, payload, message_ids=""):
     base = urllib.parse.urlsplit(webhook)
     headers = {"Content-Type": "application/json", "User-Agent": "KstyleUI-release"}
     endpoint = urllib.parse.urlunsplit(base._replace(path=base.path.rstrip("/") + "/messages/" + ids[0])) if ids else webhook
-    request = urllib.request.Request(endpoint, data=json.dumps(dict(payload, content="", flags=0) if ids else payload).encode(),
+    request = urllib.request.Request(endpoint, data=json.dumps(payload).encode(),
                                      method="PATCH" if ids else "POST",
                                      headers=headers)
     with urllib.request.urlopen(request, timeout=30):
@@ -160,16 +161,16 @@ def send(webhook, payload, message_ids=""):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--edit", action="store_true", help="edit the first message and delete the remaining IDs")
-    parser.add_argument("--roadmap", action="store_true", help="post docs/ROADMAP.md; the only positional is then message_ids")
+    parser.add_argument("--roadmap", action="store_true", help="post docs/ROADMAP.md; the only positional is then one message ID")
     parser.add_argument("tag", nargs="?", default="")
     parser.add_argument("message_ids", nargs="?", default="")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--notes", action="store_true", help="print the GitHub release text instead")
     args = parser.parse_args()
     if args.roadmap:
-        if args.message_ids or args.notes:
-            parser.error("--roadmap takes only message_ids")
-        args.tag, args.message_ids = "", args.tag
+        if args.message_ids or args.notes or "," in args.tag:
+            parser.error("--roadmap takes only one message ID")
+        args.message_ids = args.tag
     elif not args.tag:
         parser.error("tag is required without --roadmap")
     if args.edit != bool(args.message_ids):
@@ -187,6 +188,8 @@ def main():
         payload = release_payload((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), args.tag,
                                   (ROOT / "docs/RELEASE_NOTES.md").read_text(encoding="utf-8"),
                                   subprocess.check_output(["git", "show", args.tag + ":README.md"], cwd=ROOT).decode("utf-8"))
+    if args.message_ids:
+        payload = dict(payload, content="", flags=0)
     if args.dry_run:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         print("Character totals: " + json.dumps(character_totals(payload)))

@@ -213,7 +213,7 @@ class DiscordPostTests(unittest.TestCase):
         self.assertEqual([r.full_url for r in requests],
                          [f'https://discord.com/api/webhooks/1/token/messages/{mid}?thread_id=9'
                           for mid in ('123', '456', '789')])
-        self.assertEqual(json.loads(requests[0].data), dict(payload, content="", flags=0))
+        self.assertEqual(json.loads(requests[0].data), payload)
 
     @patch('Tools.release.discord_post.urllib.request.urlopen')
     def test_failed_edit_never_deletes_and_bad_ids_never_send(self, opener):
