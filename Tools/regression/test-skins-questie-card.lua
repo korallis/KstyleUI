@@ -66,6 +66,7 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 2560, heigh
 			elseif choice == "tracker" then K.Options.Write("Integrations", "questTracker", "kstyleui")
 			else K.Modules.Disable("Skins") end
 			R.settle()
+			if choice == "skin" then assert(not K.Widgets.DialogHost():IsShown(), "A reversible Questie card switch needs no reload prompt") end
 			assert(other.art:GetAlpha() == 0.7 and icon:GetAlpha() == 0.6, "Restore Questie's native art when either card setting or tracker choice is off")
 			other.art:SetAlpha(0.8)
 			assert(other.art:GetAlpha() == 0.8, "Let Questie update its native art while its skin is off")

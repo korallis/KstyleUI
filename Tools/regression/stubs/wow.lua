@@ -831,6 +831,8 @@ end
 -- The frames and regions made on a frame, in creation order.
 function Object:GetChildren() return unpack(self._kids) end
 function Object:GetRegions() return unpack(self._regions) end
+function Object:GetNumChildren() return #self._kids end
+function Object:GetNumRegions() return #self._regions end
 
 -- Buttons and other controls are enabled until Disable. A change runs OnEnable or OnDisable.
 local function setEnabled(self, enabled)
