@@ -18,7 +18,6 @@ local ICON_FILL = 0.72
 local HOVER_GRACE = 0.5
 local DRAG_BUTTON = "LeftButton"
 local OWN_PREFIX = "^KstyleUI"
-local LABEL_SIZE = 12
 
 local hooked = setmetatable({}, { __mode = "k" })
 local Watch, OnIconCreated
@@ -243,8 +242,13 @@ function Drawer:Place(button)
 	end
 	local size = self:Size()
 	local spacing = Widgets.Snap(self.panel, Settings.Get("drawer.spacing"))
-	local direction = Settings.Get("drawer.list") and "down" or Format.Direction(Settings.Get("drawer.direction"), Settings.Get("column.side"))
-	local point, x, y = Format.Grid(state.slot, self.columns or Settings.Get("drawer.columns"), size, spacing, direction, Widgets.Snap(self.panel, PAD))
+	local pad, index = Widgets.Snap(self.panel, PAD), state.slot - 1
+	local point, x, y
+	if self.rows then
+		point, x, y = "TOPLEFT", pad + math.floor(index / self.rows) * self.cell, -(pad + index % self.rows * (size + spacing))
+	else
+		point, x, y = Format.Grid(state.slot, self.columns or Settings.Get("drawer.columns"), size, spacing, Format.Direction(Settings.Get("drawer.direction"), Settings.Get("column.side")), pad)
+	end
 	local compact = Settings.Get("compactIcons")
 	local scale = compact and 1 or button:GetScale()
 	if not Format.IsNumber(scale) or scale <= 0 then return end
@@ -285,11 +289,11 @@ function Drawer:Layout()
 		columns = math.max(1, math.min(columns, math.floor((area:GetWidth() - reserve - 2 * pad + spacing) / (size + spacing))))
 	end
 	local list = Settings.Get("drawer.list")
-	self.columns = list and 1 or columns
+	self.columns, self.rows = list and 1 or columns, nil
 	local width, height = Format.GridSize(slot, self.columns, size, spacing, pad)
 	local gap = Widgets.Snap(panel, GAP)
 	local labelWidth = 0
-	for _, button in ipairs(self.order) do
+	for _, button in ipairs((list or self.listed) and self.order or {}) do
 		local state, label = self.adopted[button], self.labels[button]
 		if list and state.slot and not label then
 			label = Widgets.FontString(panel, "OVERLAY")
@@ -300,19 +304,17 @@ function Drawer:Layout()
 		if label then
 			label:SetShown(list and state.slot ~= nil)
 			if list and state.slot then
-				Widgets.ApplyFont(label, (Tokens.Font("body")), LABEL_SIZE * K.Theme.FontScale(), "")
-				label:SetTextColor(Tokens.Color("text"))
+				Widgets.StyleText(label, "body")
+				Widgets.TextColor(label, "text")
 				label:SetText((tostring(state.name):gsub("^LibDBIcon10_", "")))
 				label:ClearAllPoints()
-				label:SetPoint("LEFT", panel, "TOPLEFT", pad + size + gap, -(pad + (state.slot - 1) * (size + spacing) + size / 2))
+				label:SetPoint("LEFT", button, "RIGHT", gap, 0)
 				local w = label:GetStringWidth()
 				labelWidth = math.max(labelWidth, Format.IsNumber(w) and w or 0)
 			end
 		end
 	end
-	if list and slot > 0 then
-		width = width + gap + labelWidth
-	end
+	self.listed = list
 	Widgets.Size(panel, math.max(width, Widgets.Border(panel)), math.max(height, Widgets.Border(panel)))
 	local point, relative, xs, ys = Format.DrawerAnchor(direction)
 	panel:ClearAllPoints()
@@ -323,6 +325,14 @@ function Drawer:Layout()
 		local x = point:find("RIGHT") and not left and -reserve or point:find("LEFT") and left and reserve or 0
 		local y = point:find("TOP") and -Widgets.Snap(panel, Format.NORTH) or 0
 		panel:SetPoint(point, area, point, x, y)
+	end
+	if list and slot > 0 then
+		local _, _, top, bottom = Widgets.Edges(panel)
+		local screen = UIParent:GetHeight() * UIParent:GetEffectiveScale() / panel:GetEffectiveScale()
+		local room = point:find("TOP") and top or Format.IsNumber(bottom) and screen - bottom
+		self.rows = math.min(slot, Format.IsNumber(room) and math.max(1, math.floor((room - 2 * pad + spacing) / (size + spacing))) or slot)
+		self.cell = size + gap + labelWidth + spacing
+		Widgets.Size(panel, 2 * pad + math.ceil(slot / self.rows) * self.cell - spacing, 2 * pad + self.rows * (size + spacing) - spacing)
 	end
 	for _, button in ipairs(self.order) do
 		self:Place(button)

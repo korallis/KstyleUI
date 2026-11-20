@@ -21,7 +21,6 @@ local HOVER_GRACE = 0.3
 local PIECE_COUNT = 5
 local BLOB_METHODS = { "SetArchBlobRingScalar", "SetQuestBlobRingScalar", "SetTaskBlobRingScalar" }
 local ZONE_EVENTS = { "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA" }
-local DIFFICULTY_EVENTS = { "PLAYER_DIFFICULTY_CHANGED", "UPDATE_INSTANCE_INFO" }
 local COLUMN_EVENTS = { "UPDATE_PENDING_MAIL", "CALENDAR_UPDATE_PENDING_INVITES" }
 local QUEUE_CALLBACK = "QueueStatusUpdate.QueuesUpdated"
 local MOVE_START = { "PLAYER_STARTED_MOVING", "PLAYER_CONTROL_LOST" }
@@ -43,7 +42,6 @@ local hoverHooked = false
 local graceLeft = 0
 local openMenu
 local perfTicker, perfEvery
-local rotated
 
 local function Log(message)
 	K.DevTest.Log(MODULE, message)
@@ -97,7 +95,9 @@ local function UpdateCoords()
 end
 
 local function UpdateDifficulty()
-	Map.face:SetDifficulty(Settings.Get("difficulty.shown") and Data.Difficulty() or nil)
+	if Settings.Get("difficulty.shown") then
+		Map.face:SetDifficulty(Data.Difficulty())
+	end
 end
 
 local function Hex(r, g, b)
@@ -139,14 +139,26 @@ local function SyncPerf()
 end
 
 local function SyncRotate()
-	local want = running and Settings.Get("rotate")
-	if want == rotated or (not want and rotated == nil) then
+	local want, account, key = running and Settings.Get("rotate"), K.Store.Account(), K.Store.CharacterKey()
+	local memory = account.minimapRotate or {}
+	local own = memory[key]
+	local current = (want or own ~= nil) and type(key) == "string" and K.CVars.Get("rotateMinimap")
+	if not current then
 		return
 	end
-	if K.CVars.Set("rotateMinimap", want and "1" or "0") then
-		rotated = want
-	else
-		Log("the game refused rotateMinimap; the map keeps its rotation")
+	if want then
+		if own == nil and current ~= "1" then
+			if K.CVars.Set("rotateMinimap", "1") then
+				memory[key], account.minimapRotate = current, memory
+			else
+				Log("the game refused rotateMinimap; the map keeps its rotation")
+			end
+		end
+	elseif own ~= nil then
+		if current == "1" then
+			K.CVars.Set("rotateMinimap", own)
+		end
+		memory[key] = nil
 	end
 end
 
@@ -224,6 +236,9 @@ end
 
 local function EnterCombat()
 	fighting = true
+	for _, button in pairs(Map.column.buttons) do
+		Column.Drag(button, false, true)
+	end
 	SecureClick.Detach()
 	SyncCoords()
 end
@@ -327,8 +342,8 @@ local function ZoneTooltip(tip, frame)
 	end
 end
 
-local function Lockouts(tip)
-	if type(RequestRaidInfo) == "function" then
+local function Lockouts(tip, redraw)
+	if not redraw and type(RequestRaidInfo) == "function" then
 		RequestRaidInfo()
 	end
 	local list = Data.Lockouts()
@@ -340,7 +355,7 @@ local function Lockouts(tip)
 	end
 end
 
-local function ClockTooltip(tip, frame)
+local function ClockTooltip(tip, frame, redraw)
 	tip:SetOwner(frame, "ANCHOR_LEFT")
 	tip:AddTitle(L["Time"])
 	local hours = Data.Uses24(Settings.Get("clock.mode")) and "24" or "12"
@@ -348,14 +363,24 @@ local function ClockTooltip(tip, frame)
 	tip:AddDoubleLine(L["Realm time"], Data.Clock("realm" .. hours) or "")
 	if Settings.Get("clock.hover") == "lockouts" then
 		tip:AddCaption(L["Instance lockouts"])
-		Lockouts(tip)
+		Lockouts(tip, redraw)
 	end
 end
 
-local function PerfTooltip(tip, frame)
-	tip:SetOwner(frame, "ANCHOR_LEFT")
+local function PerfTooltip(tip, _, redraw)
 	tip:AddTitle(L["Instance lockouts"])
-	Lockouts(tip)
+	Lockouts(tip, redraw)
+end
+
+local function RedrawLockouts()
+	local tip, face = Widgets.Tooltip(), Map.face
+	local frame = tip:IsOwned(face.clockHit) and face.clockHit or tip:IsOwned(face.perfHit) and face.perfHit
+	if frame then
+		local content = frame == face.clockHit and ClockTooltip or PerfTooltip
+		tip:SetOwner(frame, "ANCHOR_LEFT")
+		content(tip, frame, true)
+		tip:Show()
+	end
 end
 
 local function KeepQueueFaded(queue, alpha)
@@ -518,7 +543,7 @@ local function Build()
 	face.wheel:SetScript("OnMouseWheel", OnWheel)
 	Widgets.AttachTooltip(face.zoneHit, ZoneTooltip)
 	Widgets.AttachTooltip(face.clockHit, ClockTooltip)
-	Widgets.AttachTooltip(face.perfHit, PerfTooltip)
+	Widgets.AttachTooltip(face.perfHit, PerfTooltip, "ANCHOR_LEFT")
 	SecureClick.Bind(face.zoneHit, function()
 		local cluster = MinimapCluster
 		return cluster and cluster.ZoneTextButton
@@ -757,9 +782,11 @@ local function RegisterEvents()
 		UpdateCoords()
 		UpdateDifficulty()
 	end
-	for _, event in ipairs(DIFFICULTY_EVENTS) do
-		Events.Register(MODULE, event, UpdateDifficulty)
-	end
+	Events.Register(MODULE, "PLAYER_DIFFICULTY_CHANGED", UpdateDifficulty)
+	Events.Register(MODULE, "UPDATE_INSTANCE_INFO", function()
+		UpdateDifficulty()
+		RedrawLockouts()
+	end)
 	for _, event in ipairs(ZONE_EVENTS) do
 		Events.Register(MODULE, event, onZone)
 	end

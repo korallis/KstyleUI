@@ -4,6 +4,7 @@ local _, ns = ...
 local K = KstyleUI
 local L, Tokens, Widgets = K.L, K.Tokens, K.Widgets
 local Settings, Style, Data, SecureClick = ns.Settings, ns.Style, ns.Data, ns.SecureClick
+local Plain = ns.Face.Plain
 
 local Column = {}
 Column.__index = Column
@@ -36,14 +37,7 @@ function Column.Cell(name)
 end
 
 local function Anchor(button)
-	local direction = TOOLTIP_ANCHORS[Settings.Get("column.tooltip")]
-	if direction then
-		return direction
-	end
-	if Settings.Get("column.side") == "right" then
-		return "ANCHOR_RIGHT"
-	end
-	return "ANCHOR_LEFT"
+	return TOOLTIP_ANCHORS[Settings.Get("column.tooltip")] or (Settings.Get("column.side") == "right" and "ANCHOR_RIGHT" or "ANCHOR_LEFT")
 end
 
 local TOOLTIPS = {}
@@ -140,16 +134,9 @@ local RESOLVE = {
 	end,
 }
 
-local function Plain(value)
-	return type(value) == "number" and not Widgets.IsSecret(value)
-end
-
-function Column.Drag(button, start)
-	if not (button.minimapName and Settings.Get("column.free")) then
-		return
-	end
+function Column.Drag(button, start, cancel)
 	if start then
-		if IsShiftKeyDown() and not InCombatLockdown() then
+		if button.minimapName and Settings.Get("column.free") and not InCombatLockdown() and type(IsShiftKeyDown) == "function" and IsShiftKeyDown() then
 			button.moving = true
 			button:SetMovable(true)
 			button:StartMoving()
@@ -162,6 +149,9 @@ function Column.Drag(button, start)
 	button.moving = nil
 	button:StopMovingOrSizing()
 	local area = button.column.face.mapArea
+	if cancel or Widgets.Restricted(button) or Widgets.Restricted(area) then
+		return button.column:Layout()
+	end
 	local bx, by = button:GetCenter()
 	local ax, ay = area:GetCenter()
 	local bs, as = button:GetEffectiveScale(), area:GetEffectiveScale()
@@ -329,6 +319,10 @@ function Column:Layout()
 		if not self.preview and button.dragging ~= free then
 			button.dragging = free
 			if free then button:RegisterForDrag("LeftButton") else button:RegisterForDrag() end
+		end
+		if button.moving and not free then
+			button.moving = nil
+			button:StopMovingOrSizing()
 		end
 		if wanted and type(spot) == "table" and Plain(spot.x) and Plain(spot.y) then
 			Put(button, size, inset, "CENTER", area, Widgets.Snap(holder, spot.x), Widgets.Snap(holder, spot.y))

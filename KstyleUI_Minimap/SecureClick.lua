@@ -80,12 +80,6 @@ local function DragStart()
 	end
 end
 
-local function DragStop()
-	if dragged then
-		SecureClick.Detach()
-	end
-end
-
 local function OverlayDown()
 	Press(Visual(), true)
 end
@@ -111,7 +105,7 @@ local function EnsureOverlay()
 	overlay:HookScript("OnMouseDown", OverlayDown)
 	overlay:HookScript("OnMouseUp", OverlayUp)
 	overlay:HookScript("OnDragStart", DragStart)
-	overlay:HookScript("OnDragStop", DragStop)
+	overlay:HookScript("OnDragStop", function() if dragged then SecureClick.Detach() end end)
 	overlay:Hide()
 	SecureClick.overlay = overlay
 	K.DevTest.Log("Minimap", "the secure click overlay is ready")

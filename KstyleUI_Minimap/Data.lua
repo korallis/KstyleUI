@@ -134,14 +134,14 @@ function Data.Difficulty()
 	if not Plain(kind, id, size) or (kind ~= "party" and kind ~= "raid") or type(size) ~= "number" or size < 1 then
 		return nil
 	end
-	local heroic, mythic
-	if type(GetDifficultyInfo) == "function" and type(id) == "number" then
-		local _, _, isHeroic, _, displayHeroic, displayMythic = GetDifficultyInfo(id)
-		if Plain(isHeroic, displayHeroic, displayMythic) then
-			heroic, mythic = isHeroic == true or displayHeroic == true, displayMythic == true
-		end
+	if type(GetDifficultyInfo) ~= "function" or type(id) ~= "number" then
+		return nil
 	end
-	return (mythic and L["%dM"] or heroic and L["%dH"] or L["%dN"]):format(size)
+	local _, _, isHeroic, _, displayHeroic, displayMythic = GetDifficultyInfo(id)
+	if not Plain(isHeroic, displayHeroic, displayMythic) then
+		return nil
+	end
+	return (displayMythic == true and L["%dM"] or (isHeroic == true or displayHeroic == true) and L["%dH"] or L["%dN"]):format(size)
 end
 
 function Data.Perf(latency)

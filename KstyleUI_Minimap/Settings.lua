@@ -137,10 +137,7 @@ function Settings.Schema()
 	}
 	local CAPTION_POINTS = { { value = "", label = L["Usual place"] } }
 	for _, point in ipairs(POINTS) do CAPTION_POINTS[#CAPTION_POINTS + 1] = point end
-	local MAIL_POINTS = { { value = "column", label = L["In the button column"] } }
-	for _, point in ipairs(POINTS) do
-		if point.value:find("TOP.+") or point.value:find("BOTTOM.+") then MAIL_POINTS[#MAIL_POINTS + 1] = point end
-	end
+	local MAIL_POINTS = { { value = "column", label = L["In the button column"] }, POINTS[1], POINTS[3], POINTS[6], POINTS[8] }
 	local TOOLTIP_OPTIONS = {
 		{ value = "auto", label = L["Away from the map"] }, { value = "up", label = L["Up"] }, { value = "down", label = L["Down"] },
 		{ value = "left", label = L["Left"] }, { value = "right", label = L["Right"] },

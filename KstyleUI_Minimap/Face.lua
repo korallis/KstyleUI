@@ -153,9 +153,10 @@ local function PaintVignette(edges)
 	Fade(edges.right, "HORIZONTAL", false)
 end
 
-local function Plain(value)
+function Face.Plain(value)
 	return type(value) == "number" and not Widgets.IsSecret(value)
 end
+local Plain = Face.Plain
 
 local function ShareAtCursor(zoom)
 	local track = zoom.track
@@ -410,7 +411,7 @@ function Face:PlaceClock()
 	meridiem:ClearAllPoints()
 	meridiem:SetPoint("BOTTOMLEFT", clock, "BOTTOMRIGHT", gap, 0)
 	if Face.Moved("clock") then
-		return self:PlaceInside()
+		return
 	end
 	clock:ClearAllPoints()
 	local x = (floor(-(self.clockInset + width + gap) / pixel + self.clockRight + 0.5) - self.clockRight) * pixel
@@ -424,6 +425,7 @@ function Face:SetClock(text)
 	if self.meridiem:GetText() ~= suffix then
 		self.meridiem:SetText(suffix)
 		self:PlaceClock()
+		if Face.Moved("clock") then self:PlaceInside() end
 	end
 end
 
@@ -438,22 +440,29 @@ function Face:SyncPlaques()
 end
 
 function Face:SetCoords(text)
+	local placed = (text == nil) ~= (self.coordsText == nil)
 	self.coordsText = text
 	self.coords:SetText(text or "")
 	self.coords:SetShown(text ~= nil and Settings.Get("coords.shown") and (not Settings.Get("coords.hover") or self.revealed))
 	self:SyncPlaques()
+	if placed then self:PlaceInside() end
 end
 
 function Face:SetDifficulty(text)
+	local placed = (text == nil) ~= (self.difficultyText == nil)
 	self.difficultyText = text
 	self.difficulty:SetText(text or "")
 	self.difficulty:SetShown(text ~= nil and Settings.Get("difficulty.shown"))
+	if placed then self:PlaceInside() end
 end
 
 function Face:SetPerf(text)
+	local placed = (text == nil) ~= (self.perfText == nil)
 	self.perfText = text
 	self.perf:SetText(text or "")
 	self.perf:SetShown(text ~= nil and Settings.Get("perf.shown"))
+	self.perfHit:SetShown(self.perf:IsShown() and Settings.Get("perf.hover") ~= "none")
+	if placed then self:PlaceInside() end
 end
 
 function Face.Moved(name)
@@ -491,7 +500,7 @@ function Face:PlaceInside()
 			if name == "zone" then
 				text:SetWidth(max(0, side - 2 * edge - reserve))
 			end
-			if Settings.Get(name .. ".shown") then
+			if Settings.Get(name .. ".shown") and (name == "clock" or self[name .. "Text"] ~= nil) then
 				used[point] = (used[point] or 0) + Extent(text) + gap
 			end
 		end
@@ -726,7 +735,6 @@ function Face:Paint()
 	self.difficulty:SetTextColor(Style.Color(Settings.Get("difficulty.accent") and "accent" or "textEmphasis"))
 	self.perf:SetTextColor(Style.Color("text"))
 	self.north:SetShown(not ns.Data.Rotated())
-	self.perfHit:SetShown(Settings.Get("perf.shown") and Settings.Get("perf.hover") ~= "none")
 
 	local zoneShown, clockShown = Settings.Get("zone.shown"), Settings.Get("clock.shown")
 	self.zone:SetShown(zoneShown)
