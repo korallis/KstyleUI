@@ -1,5 +1,63 @@
 # KstyleUI changelog
 
+## v0.2.8 (2026-11-20)
+
+The map and bars release: a world map that zooms smoothly, searches and draws you a route, a setup step for your own addons, and action bars you can tune bar by bar, plus the fixes from a long gameplay video.
+
+Highlights:
+
+- The world map zooms smoothly with the wheel and remembers each map's zoom, searches flight masters, dungeons and quests, and draws a straight-line route card with distance and time. Routes are straight lines in this build and the card says so; road-following routes are coming.
+- Setup gains a "Your addons" step: choose which of your addons KstyleUI skins, with every skin on by default.
+- Action Bars options open on tabs, one per bar, with new per-bar controls: where each bit of text sits, how cooldowns look, item quality borders, a show/hide builder, toggle keys, click-through and reversed button order.
+- The consumables bar starts at half size with a backdrop.
+- Gameplay-video fixes: the RestedXP guide card fits its steps, Layout Mode labels never overlap, and no stray power percent or bogus frame rate after a loading screen.
+
+### Added
+
+- The world map zooms smoothly with the mouse wheel and remembers your zoom and pan for each map, even after a reload. Wheel out again at the smallest zoom to open the parent map, or in again over a zone to open it; in combat the wheel only zooms the current map. Smooth zoom, Remember zoom and Wheel between maps are each on by default under Window Skins > World map.
+- Search the world map for flight masters, dungeon and raid entrances and your quests, then pick a result to set a waypoint and track it. Clicking a native entrance, flight or map-link pin keeps the game's own tracking: the first click draws the route and the second clears it.
+- A route card beside the map's quest list shows the yards to your destination and roughly how long it will take, on foot and mounted, with a dotted straight line drawn to it. The line is a straight line in this build and the card says so; road-following routes are coming.
+- Dungeon and zone level ranges on the map. Search and routes, Dungeon level ranges, Zone level ranges and Dungeon entrances are each on by default under Window Skins > World map; turning one off removes its additions and gives back the game's own settings.
+- A "Your addons" step in the first-run setup lists the supported addons you have installed and lets you choose which ones KstyleUI skins, and which parts step aside for an addon that does the same job. Reopening `/kstyle setup` shows your current choices, and Keep my UI leaves them alone.
+- Bar tabs at the top of Action Bars options for Bar 1-6, Pet, Stance and Consumables, so every bar's settings, including its number of buttons, are one click away. The picker stays pinned while you scroll, and you can double-click a bar's mover in Layout Mode to jump to its settings.
+- Per-bar text placement: put each bar's keybind, count, macro and cooldown text in a corner, on an edge or in the centre, with horizontal and vertical offsets. Current style with no offsets keeps the positions you know.
+- Per-bar cooldown look: fade an icon's colour while it is on a real cooldown (the global cooldown stays coloured) and set how dark the cooldown swipe is.
+- Item quality borders on action buttons, on by default per bar: an uncommon or better item, including an item macro, wears its quality colour. Poor and common items keep their normal rim.
+- A per-bar show/hide builder: tick the times a bar shows or hides (in combat, out of combat, with a target, mounted, in a group or raid, or while Shift, Control or Alt is held) and KstyleUI writes the visibility rule for you. Writing your own macro condition still works; clear it to get the builder back.
+- Toggle keys for every bar under Key Bindings > KstyleUI: bind Toggle Action Bar 1-6, pet, stance or consumables to show or hide that bar, even in combat. The hidden state is saved per character.
+- Per-bar Click through, so clicks pass through the bar to the world while its keys still work, and Reverse button order, which swaps where the buttons stand without changing their slots, pages or keybinds. Both are off by default; the connected Medallions slab keeps its fixed order.
+- A button-count limit for the consumables bar, which keeps your highest-priority kinds when you lower it.
+- Paragon reputation progress, with an optional compact reward marker in the reputation caption.
+- An optional KstyleUI card and header for Questie's own tracker, on by default; switch it off and Questie's own art returns at once.
+
+### Changed
+
+- Every skin is on by default. Skins you switched off yourself stay off, a master switch you turned off stays off, and Questie no longer turns the whole Skins module off.
+- The consumables bar starts at half the size of the action buttons, with a backdrop behind it and gaps that shrink to match. Under 30 units its text is outlined so counts stay readable, the cooldown timer replaces the count while an item cools down, and keybind text (now off by default) shows only when counts are off; the full binding is in the item's tooltip. Your saved size, backing and keybind choices are kept.
+
+### Fixed
+
+- The frame-rate readout no longer shows a bogus figure such as 240000 FPS just after a loading screen; it shows -- until the first real sample, tooltip included.
+- The Medallions player power value sits inside its card and its Layout Mode box, with no second percentage floating underneath.
+- RestedXP's guide card fits its active steps (28 units at its shortest), guide and quest cards shrink with shorter content, RestedXP headers keep one height, and the folded guide list no longer leaves a stray gutter tick. **Fit guide to its steps** is on by default; off gives back the shared quest-card height.
+- Layout Mode mover labels and readouts clear neighbouring movers, the clock and chat tabs, the toolbar clears Boss Announcements, turning See-through movers off restores the centred solid labels, and thin movers keep their grab area and size and scale details. Dragging and selecting movers no longer repeats the label placement work.
+- The durability doll moves to a clear spot beside the minimap at login when you never moved it yourself; a position and size you saved in Edit Mode are kept.
+- Options Tasks has destination help and a live preview, and General > Text previews its typography; the help text follows the same colour and spacing as every other row.
+- Restoring extra action bars saved by v0.2.7 no longer errors.
+- Percentages round the way Blizzard rounds them, including at exact halves.
+- KstyleUI steps aside for the Leatrix Plus features you have on and for BetterFriendlist's friends window.
+- Finding Questie for the first time keeps its current tracker setting, and the Speedrun Guide and context-menu headers match the rest of KstyleUI.
+- Party and raid health bars end without the spark other bars already skipped, and restyled tracked bars use your shared bar height (12 units by default), icon tile and black edge included.
+- The Cooldown Manager tip shows once instead of at every login, action-bar overlap notices show once per account for each addon found, and stripped textures stay hidden after a recolour.
+
+### Upgrading
+
+- Skins are on by default now: if you never touched them, your supported addons start skinned. Switch any off in Options or in the setup's "Your addons" step; skins you switched off stay off.
+- The consumables bar shrinks to half size with a backdrop unless you set its size or backing yourself; both are under Options > Action Bars > Consumables.
+- Your extra action bars from v0.2.7 restore cleanly again.
+
+The optional icon pack still applies: download `KstyleUI-Icons-<version>.zip` from this project's GitHub releases page, quit the game, copy its Interface folder into your Forever folder so the files land in Interface/Icons, then start the game again.
+
 ## v0.2.7 (2026-11-20)
 
 The big customisation release: a data bar you fill with the readouts you want, a consumables bar that fills itself, a reworked Medallions centre with crest clicks and a crest minimap, and layout tools that keep everything apart at every screen size.
