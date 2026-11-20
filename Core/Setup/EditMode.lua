@@ -187,7 +187,8 @@ local function Shape(spot, length, thick)
 	if spot.across then
 		w, h = length, thick
 	end
-	return { l = l, b = spot.y, r = l + w, t = spot.y + h }
+	local bottom = spot.top and spot.top - h or spot.y
+	return { l = l, b = bottom, r = l + w, t = bottom + h }
 end
 
 local function Spots(group, boxes, icons)
@@ -201,7 +202,7 @@ local function Spots(group, boxes, icons)
 			list[1] = { x = edge - Layouts.GAP, y = essential.b, right = true, across = true, gaps = { 3 } }
 		end
 		list[#list + 1] = { x = slot.r, y = slot.b + 14, right = true, across = true, gaps = { 3 } }
-		if ns.HudStyle.Current() == "medallions" then table.insert(list, 1, { x = (slot.l + slot.r) / 2, y = slot.b + 14, center = true, across = true, gaps = { 3 } }) end
+		if ns.HudStyle.Current() == "medallions" then table.insert(list, 1, { x = (slot.l + slot.r) / 2, top = slot.t, center = true, across = true, gaps = { 3 } }) end
 		local low = boxes["chat.main"] and boxes["chat.main"].b or slot.b
 		local edges, rail = {}, boxes["meters.damage"]
 		edges[#edges + 1] = focus and focus.l
@@ -343,7 +344,7 @@ local function Viewer(group, k, rw, rh, boxes, others, notes, chosen)
 	end
 	local label = bars and "Blizzard's tracked buff bars" or "Blizzard's tracked buff icons"
 	local x = rect and (spot.right and rect.r or rect.l) or spot.x
-	return { label = label, system = enum.EditModeSystem.CooldownViewer, index = indices[view.index], point = spot.right and "BOTTOMRIGHT" or "BOTTOMLEFT", x = x * k, y = spot.y * k, settings = settings }
+	return { label = label, system = enum.EditModeSystem.CooldownViewer, index = indices[view.index], point = spot.right and "BOTTOMRIGHT" or "BOTTOMLEFT", x = x * k, y = rect.b * k, settings = settings }
 end
 
 local function RowRect(point, slot, n, lines, item, pad)

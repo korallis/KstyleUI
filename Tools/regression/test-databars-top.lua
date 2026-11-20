@@ -156,7 +156,7 @@ do
 	assert(K.Store.Module("DataBars").strip.placement == "top")
 	assert(env.KstyleUIDB.version == K.Store.DB_VERSION)
 	local data = { profiles = { Default = {} }, layouts = { Default = { ["databars.strip"] = { anchor = "BOTTOM", x = 37, y = 80, width = 500, height = 22 } } } }
-	K.Store.migrations[K.Store.DB_VERSION](data)
+	K.Store.migrations[41](data)
 	assert(data.layouts.Default["databars.strip"] == nil, "migration resets the old rail geometry to the top bar")
 	assert(data.layouts.Default["medallions:databars.strip"].x == 37, "the Medallions rail keeps its saved position")
 end

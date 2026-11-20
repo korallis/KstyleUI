@@ -1297,7 +1297,7 @@ function Layouts.Attached(style, name, key, class)
 		y = player.y + player.height + Layouts.MEDALLIONS_UNITS.stack + Layouts.MEDALLIONS_UNITS.mini[2] + 24
 		y = y + 76
 		if key ~= "cooldowns.utility" then y = y + 96 end
-		if key == "cooldowns.buffs" or key == "cooldowns.bars" then y = y + 96 end
+		if key == "cooldowns.buffs" then y = y + 96 end
 		if key == "cooldowns.bars" then x, y = 300, player.y + player.height + Layouts.MEDALLIONS_UNITS.stack + Layouts.MEDALLIONS_UNITS.mini[2] + 24 + 2 * (CENTRE_BUTTON + CENTRE_GAP) + 8 end
 		if swing then
 			y = player.y + player.height + Layouts.MEDALLIONS_UNITS.stack + Layouts.MEDALLIONS_UNITS.mini[2] + 28

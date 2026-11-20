@@ -1,4 +1,4 @@
--- test-combattext-safe-lane.lua: Medallions player text starts above the cast stack and target text stays above the 60-unit debuff lane, including its fall and pop.
+-- test-combattext-safe-lane.lua: Medallions player text starts above the cooldown block and target text stays above the 60-unit debuff lane, including its fall and pop.
 local CT = dofile("Tools/regression/combattext_env.lua")
 local env, K, ns = CT.New()
 K.Options.Write("HudStyle", "style", "medallions")
@@ -12,8 +12,8 @@ CT.Enable(env, K)
 local class = K.Scale.AspectClass(1920, 1080)
 local layouts = K.Setup.Layouts
 local field = layouts.Aspect(class, "medallions", "DPS", "combattext.player") or layouts.Style("medallions", "DPS", "combattext.player")
-local cast = layouts.Aspect(class, "medallions", "DPS", "unitframes.castbar.target") or layouts.Style("medallions", "DPS", "unitframes.castbar.target")
-assert(field and field.y == cast.y + cast.height + layouts.MEDALLIONS_UNITS.medal + 2 * layouts.MEDALLIONS_UNITS.castStack, "H10: the player lane starts the medal reach and two cast gaps above the cast stack to clear all seven crest timers")
+local buffs = layouts.Aspect(class, "medallions", "DPS", "cooldowns.buffs") or layouts.Style("medallions", "DPS", "cooldowns.buffs")
+assert(field and field.y >= buffs.y + select(2, layouts.Footprint("DPS", "cooldowns.buffs", "medallions", class)) + 4, "H10: the player lane clears the centred buff row and its timers")
 assert(field.x == 0 and field.height == 80, "the default field clears the 16:9 pet stack and keeps room for the full 40-unit rise")
 for _, style in ipairs({ "rise", "arc", "pop" }) do
 	K.Options.Write("CombatText", "style", style)

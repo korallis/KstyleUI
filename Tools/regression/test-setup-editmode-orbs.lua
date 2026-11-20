@@ -86,6 +86,8 @@ icons.anchorInfo.offsetY = icons.anchorInfo.offsetY + 40
 local mine = Copy(icons.anchorInfo)
 Style("frames")
 assert(Same(Anchor(state, "KstyleUI Healer", VIEWER, BUFF_ICON), mine), "the viewer the player moved stays")
+Style("medallions")
+assert(Same(Anchor(state, "KstyleUI Healer", VIEWER, BUFF_ICON), mine), "Medallions preserves the viewer the player moved")
 
 -- A switch while another layout than KstyleUI's own is active writes nothing.
 state.active = 1
