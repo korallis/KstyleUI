@@ -8,10 +8,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-try:
-    from Tools.release import proof
-except ImportError:
-    from Tools.hooks import ci_scope as proof
+from Tools.release import proof
 from Tools.tests.test_workflows import WORKFLOWS, jobs_of
 
 
@@ -30,15 +27,22 @@ class ReleaseProofTest(unittest.TestCase):
         clock = mock.Mock()
         clock.monotonic.side_effect = lambda: elapsed
         clock.sleep.side_effect = sleep
+
+        def api(path):
+            self.assertIn("head_sha=" + "a" * 40, path)
+            self.assertIn("event=push", path)
+            if error:
+                raise error
+            return {"workflow_runs": runs(run) if runs else [run]}
+
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "out"
             log = io.StringIO()
             with mock.patch.dict(os.environ, GITHUB_REPOSITORY="korallis/KstyleUI", GITHUB_SHA="a" * 40,
                                  GITHUB_OUTPUT=str(output)), \
-                    mock.patch.object(proof, "github_json", side_effect=error,
-                                      return_value={"workflow_runs": runs(run) if runs else [run]}), \
+                    mock.patch.object(proof, "github_json", side_effect=api), \
                     mock.patch.object(proof, "time", clock), contextlib.redirect_stdout(log):
-                result = proof.main(["proven-sha"]) if proof.__name__.endswith("ci_scope") else proof.main()
+                result = proof.main()
             return result, output.read_text() if output.exists() else "", log.getvalue()
 
     def test_latest_red_refuses_even_after_an_older_green(self):
@@ -71,6 +75,20 @@ class ReleaseProofTest(unittest.TestCase):
 
     def test_rerun_failure_is_not_hidden_by_its_old_success(self):
         self.assertEqual(self.run_proof(lambda run: [dict(run, run_attempt=2, conclusion="failure")])[0], 1)
+
+    def test_waits_for_pending_proof_and_uses_its_final_result(self):
+        for conclusion, expected in (("failure", (1, "")), ("success", (0, "run=false\n"))):
+            with self.subTest(conclusion=conclusion):
+                statuses = iter(("queued", "in_progress", "completed"))
+                self.assertEqual(self.run_proof(lambda run: [dict(run, status=next(statuses), conclusion=conclusion)])[:2], expected)
+
+    def test_completed_unsuccessful_proof_never_counts_as_missing(self):
+        for conclusion in ("cancelled", "timed_out", "startup_failure", "action_required", None):
+            with self.subTest(conclusion=conclusion):
+                self.assertEqual(self.run_proof(lambda run: [dict(run, conclusion=conclusion)])[0], 1)
+
+    def test_malformed_or_incomplete_api_response_runs_checks(self):
+        self.assertEqual(self.run_proof(lambda run: [{}])[:2], (0, "run=true\n"))
 
     def test_workflow_runs_missing_gates_and_requires_the_proof_before_upload(self):
         jobs = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))
