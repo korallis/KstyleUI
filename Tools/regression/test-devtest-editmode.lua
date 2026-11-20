@@ -3,7 +3,7 @@ local C = dofile("Tools/regression/core_env.lua")
 
 local function New()
 	local env, K = C.New()
-	K.Modules.Register(C.Module("Skins", { defaults = { enabled = false, quests = { enabled = true, shown = 3 } } }))
+	K.Modules.Register(C.Module("Skins", { defaults = { quests = { enabled = true, shown = 3 } } }))
 	C.Boot(env)
 	local function Region(name, state)
 		local methods = {

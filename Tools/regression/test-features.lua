@@ -14,7 +14,7 @@ local Features = Load(core, Stubs.NewEnv()).KstyleUI.Features
 assert(type(Features) == "table", "KstyleUI.Features is missing")
 assert(type(Features.Get) == "function", "KstyleUI.Features.Get is missing")
 
--- Every store is a table of booleans, all off: code defaults leave everything off. Functions such as
+-- Every store is a table of booleans; only Skins defaults on. Functions such as
 -- Get are the service's API, not stores.
 local stores = 0
 for store, switches in pairs(Features) do

@@ -94,7 +94,7 @@ do
 end
 
 do
-	local env, K = CoreEnv.New()
+	local env, K = CoreEnv.New({ saved = { version = 42, profiles = { Default = { Skins = { enabled = false } } } } })
 	CoreEnv.Boot(env)
 	local passed, failed = K.DevTest.Run()
 	assert(failed == 0, "a clean session with no modules passes, failed " .. failed)

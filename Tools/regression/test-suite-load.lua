@@ -207,7 +207,7 @@ local env, K = Start(nil)
 Clean(env, K, "first login")
 CheckRegistered(K)
 local on = Running(K)
-assert(#on == 0, "code defaults leave every module off, but these run on first login: " .. table.concat(on, ", "))
+assert(#on == 1 and on[1] == "Skins", "only Skins defaults on at first login: " .. table.concat(on, ", "))
 assert(K.Setup.IsShown(), "the first-run setup opens on an account's first login")
 
 local choice = K.Setup.NewChoice()
@@ -295,13 +295,13 @@ end
 assert(finished, "/kstyle test wrote no result to the devlog")
 assert(#broken == 0, "/kstyle test: " .. finished .. "\n" .. table.concat(broken, "\n"))
 
--- A new profile starts with every module off, and switching back starts them again.
+-- A new profile starts with only Skins on, and switching back starts the other modules again.
 local profile = K.Store.ProfileName()
 assert(K.Store.SetProfile("Suite"), "could not create and switch to a new profile")
 env.RunTimers()
 Clean(env, K, "switch to a new profile")
 on = Running(K)
-assert(#on == 0, "a new profile has every module off, but these still run: " .. table.concat(on, ", "))
+assert(#on == 1 and on[1] == "Skins", "only Skins defaults on in a new profile: " .. table.concat(on, ", "))
 assert(K.Store.SetProfile(profile), "could not switch back to " .. tostring(profile))
 env.RunTimers()
 AllRunning(env, K, "switch back to the first profile")
