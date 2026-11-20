@@ -433,7 +433,7 @@ local function GeneralItems()
 	end
 	add({ kind = "header", level = 1, label = L["Game text"] })
 	add({ label = L["Use your font for game text"], help = L["Blizzard windows and quest text use your font; names in the world follow after relogging."] }, "gameFont", false, true)
-	add({ kind = "slider", label = L["Game text size"], min = 0.8, max = 1.5, step = 0.05, format = Percent, defer = true,
+	add({ kind = "slider", label = L["Game text size"], min = 0.8, max = 1.5, step = 0.05, percent = true, defer = true,
 		help = L["Makes Blizzard's own text larger or smaller; 100 percent keeps the game's sizes."] }, "gameTextScale", 1, true)
 	add({ label = L["Use your number font for combat text"], help = L["Damage and healing numbers in the world use your number font after relogging."] }, "combatFont", false, true)
 	add({ kind = "header", level = 1, label = L["Window conveniences"] })
