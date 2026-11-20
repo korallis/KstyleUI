@@ -151,7 +151,7 @@ local function Count(list, text)
 end
 
 local function Visible()
-	if not ns.MeterShown("threat") then
+	if not ns.MeterShown("threat") or ns.windowsHidden then
 		return false
 	end
 	if ns.Get("threat.group") then
@@ -230,6 +230,7 @@ local function Update()
 		local row = Threat.rows[Threat.order[i]]
 		list:SetRow(i, row.name, row.class, "friendly", row.scaled, PERCENT_MAX, Logic.ThreatText(row.threat), PercentText(row))
 		if ns.Get("nameplateRows") then ns.SetClassIcon(list, i, row.class) end
+		list:SetMarker(i, row.isPlayer)
 	end
 	list:Finish(shown, count == 0 and L["No threat"] or nil)
 	local watched = Logic.ThreatWatch(Threat.rows, count)

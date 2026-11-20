@@ -10,6 +10,8 @@
 	<Script file="DamageSkin.lua"/>
 	<Script file="DamageCVar.lua"/>
 	<Script file="Damage.lua"/>
+	<Script file="Timer.lua"/>
+	<Script file="History.lua"/>
 	<Script file="Preview.lua"/>
 	<Script file="Meters.lua"/>
 </Ui>

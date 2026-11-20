@@ -95,6 +95,7 @@ function Preview.Build(...)
 			list:SetRow(i, Name(sample.class), sample.class, "friendly", sample.threat, PERCENT_MAX,
 				Logic.ThreatText(sample.raw), Logic.FormatPercent(sample.threat))
 			if ns.Get("nameplateRows") then ns.SetClassIcon(list, i, sample.class) end
+			list:SetMarker(i, sample.player)
 			rows[i] = { isPlayer = sample.player == true, tanking = i == 1, scaled = sample.threat }
 		end
 		list:Finish(count)
@@ -108,6 +109,70 @@ function Preview.Build(...)
 		list:SetWarning(level)
 	end
 
+	local function FillHistory(list)
+		local count = math.min(#SPELLS, ns.Get("history.barCount"), list.capacity or 0)
+		for i = 1, count do
+			local id = SPELLS[#SPELLS + 1 - i][1]
+			list:SetRow(i, SpellLabel(id), Theme.Class(), "friendly", 1, 1, "", "")
+			list:SetRowIcon(i, SpellIcon(id))
+		end
+		list:Finish(count)
+	end
+
+	local function Lists(frame)
+		local lists = { frame.damage, frame.threat }
+		local on = ns.Get("history.bars")
+		if on and not frame.history then
+			frame.history = ns.BarList.New(frame, "history", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, block = true,
+				columns = function() return { value = false, percent = false } end, icons = function() return true end })
+			frame.history:SetTitle(L["Spell history"])
+		end
+		if frame.history then frame.history.holder:SetShown(on) end
+		if on then lists[3] = frame.history end
+		return lists
+	end
+
+	local function Band(frame, width)
+		local icons, timer = ns.Get("history.icons"), ns.Get("timer.shown")
+		local size, gap = ns.Get("history.size"), ns.Get("history.gap")
+		local count = icons and math.min(ns.Get("history.count"), math.floor((width - 80 + gap) / (size + gap))) or 0
+		frame.icons = frame.icons or {}
+		for i = 1, math.max(count, #frame.icons) do
+			local icon = frame.icons[i]
+			if i <= count and not icon then
+				icon = frame:CreateTexture(nil, "ARTWORK")
+				frame.icons[i] = icon
+			end
+			if icon then
+				local id = SPELLS[(i - 1) % #SPELLS + 1][1]
+				local slot = ns.Get("history.grow") == "LEFT" and count - i or i - 1
+				icon:SetTexture(SpellIcon(id))
+				icon:SetShown(i <= count)
+				icon:ClearAllPoints()
+				Widgets.Size(icon, size, size)
+				Widgets.Point(icon, "BOTTOMLEFT", frame, "BOTTOMLEFT", slot * (size + gap), SWING_HEIGHT + Tokens.Size("gapMedium"))
+			end
+		end
+		if timer and not frame.timer then frame.timer = Widgets.FontString(frame, "OVERLAY") end
+		local text = frame.timer
+		local height = icons and size or 0
+		if text then
+			text:SetShown(timer)
+			ns.ApplyFont(text, "timer", nil, "timer")
+			text:SetJustifyH(ns.Get("timer.align"))
+			text:SetText(ns.Timer.Format(84.3, ns.Get("timer.decimal")))
+			local c = ns.Get("timer.color")
+			local grey = ns.Get("timer.ooc") and ns.Get("timer.desat") and c.r * 0.3 + c.g * 0.59 + c.b * 0.11
+			text:SetTextColor(grey or c.r, grey or c.g, grey or c.b)
+			local tall = ns.Get("timer.fontSize") * Theme.FontScale() + 4
+			text:ClearAllPoints()
+			Widgets.Size(text, 80, tall)
+			Widgets.Point(text, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, SWING_HEIGHT + Tokens.Size("gapMedium"))
+			if timer then height = math.max(height, tall) end
+		end
+		return height
+	end
+
 	local function Arrange(frame)
 		local parent = frame:GetParent()
 		local width = Logic.Plain(parent:GetWidth()) or 0
@@ -119,23 +184,27 @@ function Preview.Build(...)
 			height = FALLBACK_HEIGHT
 		end
 		local gap = Widgets.Snap(frame, Tokens.Size("gapMedium"))
-		local stacked = math.floor((width - gap) / 2) < STACK_BELOW
-		local listWidth = stacked and width or math.floor((width - gap) / 2)
-		local listHeight = height - SWING_HEIGHT - gap
+		local lists, band = Lists(frame), Band(frame, width)
+		local n = #lists
+		local stacked = math.floor((width - gap * (n - 1)) / n) < STACK_BELOW
+		local listWidth = stacked and width or math.floor((width - gap * (n - 1)) / n)
+		local listHeight = height - SWING_HEIGHT - gap - (band > 0 and band + gap or 0)
 		if stacked then
-			listHeight = math.floor((listHeight - gap) / 2)
+			listHeight = math.floor((listHeight - gap * (n - 1)) / n)
 		end
-		for _, list in ipairs({ frame.damage, frame.threat }) do
+		for i, list in ipairs(lists) do
 			list.width, list.height = listWidth, listHeight
 			Widgets.Size(list.holder, listWidth, listHeight)
-		end
-		frame.damage.holder:ClearAllPoints()
-		Widgets.Point(frame.damage.holder, "TOPLEFT", frame, "TOPLEFT")
-		frame.threat.holder:ClearAllPoints()
-		if stacked then
-			Widgets.Point(frame.threat.holder, "TOPLEFT", frame.damage.holder, "BOTTOMLEFT", 0, -gap)
-		else
-			Widgets.Point(frame.threat.holder, "TOPRIGHT", frame, "TOPRIGHT")
+			list.holder:ClearAllPoints()
+			if i == 1 then
+				Widgets.Point(list.holder, "TOPLEFT", frame, "TOPLEFT")
+			elseif stacked then
+				Widgets.Point(list.holder, "TOPLEFT", lists[i - 1].holder, "BOTTOMLEFT", 0, -gap)
+			elseif i == n then
+				Widgets.Point(list.holder, "TOPRIGHT", frame, "TOPRIGHT")
+			else
+				Widgets.Point(list.holder, "TOPLEFT", lists[i - 1].holder, "TOPRIGHT", gap, 0)
+			end
 		end
 		local swing = frame.swing
 		swing.opts.width, swing.opts.height = width, SWING_HEIGHT
@@ -159,13 +228,17 @@ function Preview.Build(...)
 		frame.threat.holder:SetShown(ns.MeterShown("threat"))
 		FillDamage(frame.damage)
 		FillThreat(frame.threat)
+		if frame.history and frame.history.holder:IsShown() then
+			frame.history:Restyle()
+			FillHistory(frame.history)
+		end
 		StyleSwing(frame.swing)
 	end
 
 	build = function(parent)
 		local frame = CreateFrame("Frame", nil, parent)
 		Widgets.Fill(frame, parent, 0, 0, 0, 0)
-		frame.damage = ns.BarList.New(frame, "damage", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("damage"), block = true, icons = Icons })
+		frame.damage = ns.BarList.New(frame, "damage", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("damage"), block = true, icons = Icons, onReset = function() end })
 		frame.threat = ns.BarList.New(frame, "threat", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("threat"), icons = Icons })
 		frame.swing = Widgets.StatusBar(frame, {
 			texture = ns.Get("swing.texture"), background = "track", border = true, min = 0, max = 1, value = SWING_FILL,

@@ -16,6 +16,10 @@ local SHARED_ROWS = {}
 for _, key in ipairs({ "texture", "fill", "colorSource", "color", "font", "fontSize", "outline", "rowHeight", "spacing", "title", "titleSize" }) do
 	SHARED_ROWS["threat." .. key] = "damage." .. key
 end
+local HISTORY_ROWS = {}
+for _, key in ipairs({ "texture", "fill", "font", "fontSize", "outline", "rowHeight", "spacing", "titleSize" }) do
+	HISTORY_ROWS["history." .. key] = "damage." .. key
+end
 
 local function Rgb(name)
 	local r, g, b = Tokens.Color(name)
@@ -77,6 +81,17 @@ ns.defaults = {
 		hideRank = false,
 		iconZoom = 0.08,
 		spellTooltips = false,
+		panelAlpha = 1,
+		capAlpha = 1,
+		headerHeight = 0,
+		titleX = 0,
+		titleY = 0,
+		resetButton = false,
+		resetHover = false,
+		resetSize = 12,
+		nameScale = 1,
+		valueScale = 1,
+		playerMarker = false,
 	}),
 	threat = Merge(Bars("left"), Text(12), {
 		followGuide = true,
@@ -105,6 +120,12 @@ ns.defaults = {
 		spacing = 1,
 		time = true,
 	}),
+	timer = Merge(Text(16), { shown = false, color = Rgb("textEmphasis"), align = "CENTER", decimal = false, ooc = false, desat = false, toggle = false }),
+	history = {
+		icons = false, size = 28, count = 5, gap = 2, grow = "LEFT", anim = "slide", fade = 0, toggle = false,
+		hideDungeon = false, hideRaid = false, hideDelve = false, hidePvP = false, hideWorld = false,
+		bars = false, barCount = 5, title = true, colorSource = "class", color = Rgb("accentDefault"),
+	},
 }
 
 ns.METER_TYPES = {
@@ -182,10 +203,8 @@ function ns.Schema()
 
 	local function Off(section)
 		return function(settings)
-			if section ~= "swing" then
-				if section == "damage" then return not ns.MeterShown("damage") and not ns.MeterShown("threat") end
-				return not ns.MeterShown(section)
-			end
+			if section == "damage" then return not ns.MeterShown("damage") and not ns.MeterShown("threat") end
+			if section == "threat" then return not ns.MeterShown(section) end
 			return type(settings[section]) == "table" and settings[section].shown == false
 		end
 	end
@@ -331,6 +350,27 @@ function ns.Schema()
 		help = L["Use short or full numbers for damage and healing amounts."], options = {
 		{ value = "short", label = L["Short, such as 12.3K"] }, { value = "full", label = L["Full, such as 12,345"] },
 	} }
+	local cards = Off("damage")
+	local function Slider(key, label, help, low, high, step, extra)
+		local row = { type = "slider", key = key, label = label, help = help, min = low, max = high, step = step, disableWhen = cards }
+		for k, v in pairs(extra or {}) do row[k] = v end
+		schema[#schema + 1] = row
+	end
+	Slider("damage.panelAlpha", L["Background opacity"], L["How solid the meter cards' background is."], 0, 1, 0.05)
+	Slider("damage.capAlpha", L["Title opacity"], L["How solid the meter cards' title is."], 0, 1, 0.05)
+	Slider("damage.headerHeight", L["Header height"], L["Adds or removes room between the title and the rows."], -8, 16, 1)
+	Slider("damage.titleX", L["Title X offset"], L["Moves the title to the right."], 0, 20, 1)
+	Slider("damage.titleY", L["Title Y offset"], L["Moves the title and rows up or down."], -4, 8, 1)
+	Slider("damage.nameScale", L["Name size"], L["Scales the names on meter rows."], 0.5, 2, 0.05)
+	Slider("damage.valueScale", L["Number size"], L["Scales the numbers on meter rows."], 0.5, 2, 0.05)
+	schema[#schema + 1] = { type = "toggle", key = "damage.playerMarker", label = L["Mark your bar"], disableWhen = cards,
+		help = L["Draws a white stripe on your own meter bar."] }
+	local noReset = function(settings) return Off("damage")(settings) or not settings.damage.resetButton end
+	schema[#schema + 1] = { type = "toggle", key = "damage.resetButton", label = L["Reset button"], disableWhen = Off("damage"), showWhen = WindowStyle,
+		help = L["Shows a button on the damage meter's title that clears every fight, after combat."] }
+	schema[#schema + 1] = { type = "toggle", key = "damage.resetHover", label = L["Reset button on mouseover"], disableWhen = noReset, showWhen = WindowStyle,
+		help = L["Shows the reset button only while you point at the meter."] }
+	Slider("damage.resetSize", L["Reset button size"], L["How large the reset button is."], 8, 20, 1, { disableWhen = noReset, showWhen = WindowStyle })
 
 	schema[#schema + 1] = { type = "header", label = L["Threat meter"] }
 	schema[#schema + 1] = { type = "toggle", key = "threat.followGuide", label = L["Follow the guide card"], help = L["Place threat below the guide and its controls. Off keeps the threat card's own position."] }
@@ -403,6 +443,52 @@ function ns.Schema()
 	}
 	TextRows("swing", schema)
 
+	local timerOff = Off("timer")
+	schema[#schema + 1] = { type = "header", label = L["Combat timer"] }
+	schema[#schema + 1] = { type = "toggle", key = "timer.shown", label = L["Show the combat timer"], help = L["Shows how long you have been in combat. Move it in Layout Mode."] }
+	schema[#schema + 1] = { type = "color", key = "timer.color", label = L["Timer colour"], disableWhen = timerOff, help = L["The colour of the combat timer."] }
+	schema[#schema + 1] = { type = "dropdown", key = "timer.align", label = L["Alignment"], disableWhen = timerOff, help = L["Where the time sits in its frame."],
+		options = { { value = "LEFT", label = L["Left"] }, { value = "CENTER", label = L["Centre"] }, { value = "RIGHT", label = L["Right"] } } }
+	schema[#schema + 1] = { type = "toggle", key = "timer.decimal", label = L["Show tenths"], disableWhen = timerOff, help = L["Shows tenths of a second."] }
+	schema[#schema + 1] = { type = "toggle", key = "timer.ooc", label = L["Show out of combat"], disableWhen = timerOff, help = L["Keeps the last fight's time on screen after combat."] }
+	schema[#schema + 1] = { type = "toggle", key = "timer.desat", label = L["Grey out of combat"], help = L["Greys the time while you are out of combat."],
+		disableWhen = function(settings) return timerOff(settings) or not settings.timer.ooc end }
+	TextRows("timer", schema)
+	schema[#schema + 1] = { type = "toggle", key = "timer.toggle", label = L["Meters key hides the timer"], disableWhen = timerOff,
+		help = L["The Show or hide meters key in Key Bindings also hides the combat timer."] }
+
+	local iconsOff = function(settings) return not settings.history.icons end
+	local barsOff = function(settings) return not settings.history.bars end
+	local noHistory = function(settings) return iconsOff(settings) and barsOff(settings) end
+	local function History(row)
+		row.key = "history." .. row.key
+		if row.disableWhen == nil then row.disableWhen = iconsOff elseif row.disableWhen == false then row.disableWhen = nil end
+		schema[#schema + 1] = row
+	end
+	schema[#schema + 1] = { type = "header", label = L["Spell history"] }
+	History({ type = "toggle", key = "icons", label = L["Spell history icons"], disableWhen = false,
+		help = L["Shows a strip of the spells you cast last. Move it in Layout Mode."] })
+	History({ type = "dropdown", key = "grow", label = L["Grow direction"], help = L["The side new spells push the strip towards."], options = {
+		{ value = "LEFT", label = L["Left"] }, { value = "RIGHT", label = L["Right"] }, { value = "UP", label = L["Up"] }, { value = "DOWN", label = L["Down"] } } })
+	History({ type = "slider", key = "size", label = L["Icon size"], help = L["How large each spell icon is."], min = 16, max = 48, step = 1 })
+	History({ type = "slider", key = "count", label = L["Most icons"], help = L["How many spells the strip keeps."], min = 1, max = 10, step = 1 })
+	History({ type = "slider", key = "gap", label = L["Icon spacing"], help = L["The gap between spell icons."], min = 0, max = 10, step = 1 })
+	History({ type = "dropdown", key = "anim", label = L["Animation"], help = L["How a new spell enters the strip."], options = {
+		{ value = "none", label = L["None"] }, { value = "slide", label = L["Slide in"] }, { value = "fly", label = L["Fly in"] } } })
+	History({ type = "slider", key = "fade", label = L["Fade after"], help = L["Seconds out of combat before the strip fades. 0 keeps it."], min = 0, max = 60, step = 1 })
+	History({ type = "toggle", key = "bars", label = L["Spell history bars"], disableWhen = false,
+		help = L["Shows a card of the spells you cast last, like the damage meter. Move it in Layout Mode."] })
+	History({ type = "slider", key = "barCount", label = L["Most bars"], help = L["How many spells the card lists."], min = 1, max = 10, step = 1, disableWhen = barsOff })
+	History({ type = "toggle", key = "title", label = L["Show the title"], help = L["Shows the card's title above the bars."], disableWhen = barsOff })
+	History({ type = "dropdown", key = "colorSource", label = L["Bar colour"], help = L["Your class colour or one you pick."], disableWhen = barsOff,
+		options = { { value = "class", label = L["Class colour"] }, { value = "custom", label = L["Custom colour"] } } })
+	History({ type = "color", key = "color", label = L["Custom colour"], help = L["The bar colour when it is custom."], disableWhen = barsOff, showWhen = Is("history.colorSource", "custom") })
+	for _, place in ipairs({ { "hideDungeon", L["Hide in dungeons"] }, { "hideRaid", L["Hide in raids"] }, { "hideDelve", L["Hide in delves"] }, { "hidePvP", L["Hide in battlegrounds and arenas"] }, { "hideWorld", L["Hide outside instances"] } }) do
+		History({ type = "toggle", key = place[1], label = place[2], help = L["Applies to the spell history icons and bars."], disableWhen = noHistory })
+	end
+	History({ type = "toggle", key = "toggle", label = L["Meters key hides spell history"], disableWhen = noHistory,
+		help = L["The Show or hide meters key in Key Bindings also hides spell history."] })
+
 	table.insert(schema, { type = "toggle", key = "swing.attached", label = K.L["Swing timer matches the HUD"], help = K.L["Use the HUD's bar finish and placement. Turn off for the previous swing timer."] })
 	ns.schema = schema
 
@@ -471,6 +557,7 @@ function ns.Get(key)
 	local settings = K.Store.IsLoaded() and K.Store.Module(ns.MODULE)
 	local styled = not settings or settings.nameplateRows ~= false
 	if styled then key = SHARED_ROWS[key] or key end
+	key = HISTORY_ROWS[key] or key
 	local default = defaultsByKey[key]
 	if default == nil then default = Lookup(ns.defaults, key); defaultsByKey[key] = default end
 	if default == nil then
@@ -549,9 +636,9 @@ function ns.FontPath(section, role)
 	return font
 end
 
-function ns.ApplyFont(text, section, sizeKey, role)
+function ns.ApplyFont(text, section, sizeKey, role, scale)
 	local path = ns.FontPath(section, role)
-	local size = ns.Get(section .. "." .. (sizeKey or "fontSize")) * Theme.FontScale()
+	local size = ns.Get(section .. "." .. (sizeKey or "fontSize")) * Theme.FontScale() * (scale or 1)
 	local flags = ns.Get(section .. ".outline")
 	if not K.Widgets.ApplyFont(text, path, size, flags) then
 		local fallback, _, fallbackFlags = Tokens.Font("body")

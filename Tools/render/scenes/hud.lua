@@ -1618,6 +1618,18 @@ function modules.meters(opts)
 		env.SetTime(now + 1.1)
 	end
 	M.Tick(env)
+	-- opts.meterCasts ({ spellID, name, icon }, newest last): the player cast these 84.3 seconds into a fight, for the
+	-- combat timer and spell history.
+	if opts.meterCasts then
+		local now = env.GetTime()
+		env.SetCombat(true)
+		for _, s in ipairs(opts.meterCasts) do
+			env._spells[s[1]] = { name = s[2], icon = s[3] }
+			env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-" .. s[1], s[1])
+		end
+		env.SetTime(now + 84.3)
+		env.RunTickers()
+	end
 	-- opts.meterHover ({ spellID, name, icon, amount }, highest first): the pointer rests on the player's row, so its
 	-- split opens under the row, inside the card, with the player's top three spells of the fight, as the game reads them out of combat.
 	if opts.meterHover and rows[1] then

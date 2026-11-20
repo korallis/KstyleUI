@@ -149,6 +149,7 @@ local function NewRow(list, index, parent, passive)
 	wash:SetColorTexture(Widgets.Rgba("white", Tokens.Share("rowHover")))
 	wash:Hide()
 	local row = {
+		ink = ink,
 		wash = wash,
 		index = index,
 		frame = frame,
@@ -395,7 +396,15 @@ function HideSplit(list)
 	end
 end
 
+local function Hover(list)
+	local button = list.resetButton
+	if button and list.resetHover then
+		button:SetShown(list.panel:IsMouseOver() == true)
+	end
+end
+
 function RowEnter(list, row)
+	Hover(list)
 	if list.plate then row.wash:Show() end
 	local frame = row.frame
 	local splits = list.rowSplits ~= nil and list.rowSplits(list, row.index) == true
@@ -431,6 +440,7 @@ function BarList.Unown(frame)
 end
 
 function RowLeave(list, row)
+	Hover(list)
 	row.wash:Hide()
 	if row.more then
 		row.more:Hide()
@@ -444,12 +454,13 @@ function RowLeave(list, row)
 end
 
 local function NameSize(section)
-	return Tokens.Size(Widgets.Medallions() and "medallionsPlateNameSize" or "plateNameSize") * ns.Get(section .. ".fontSize") / Tokens.Size("number")
+	return Tokens.Size(Widgets.Medallions() and "medallionsPlateNameSize" or "plateNameSize") * ns.Get(section .. ".fontSize") / Tokens.Size("number") * ns.Get("damage.nameScale")
 end
 
 local function RowUnits(list)
 	local section = list.section
-	local em = ns.Get(section .. ".fontSize") * K.Theme.FontScale()
+	local em = ns.Get(section .. ".fontSize") * K.Theme.FontScale() * max(1, ns.Get("damage.valueScale"))
+	if not list.plate then em = max(em, ns.Get(section .. ".fontSize") * K.Theme.FontScale() * ns.Get("damage.nameScale")) end
 	local text = em + TEXT_AIR
 	if list.plate then text = max(27, max(NameSize(section), em) + TEXT_AIR + Tokens.Size("barHeight"))
 	elseif not list.block then text = text + PILL_GAP + PILL_HEIGHT end
@@ -481,8 +492,9 @@ function List:Top(pad)
 	if not ns.Get(self.section .. ".title") then
 		return pad
 	end
-	if self.block and not self.plate then return BLOCK_TOP end
-	return pad + Widgets.SECTION_CAP_HEIGHT + Tokens.Size(CAP_GAP)
+	local extra = self.headerExtra or 0
+	if self.block and not self.plate then return BLOCK_TOP + extra end
+	return pad + Widgets.SECTION_CAP_HEIGHT + Tokens.Size(CAP_GAP) + extra
 end
 
 local function Recolor(list, row)
@@ -510,9 +522,9 @@ function StyleRow(list, row)
 	if list.plate then
 		BarList.StyleName(row.name, section)
 	else
-		ns.ApplyFont(row.name, section, nil, Widgets.Medallions() and "unit" or nil)
+		ns.ApplyFont(row.name, section, nil, Widgets.Medallions() and "unit" or nil, list.nameScale)
 		if Widgets.Medallions() and ns.Get("instrumentNames") then
-			Widgets.ApplyFont(row.name, K.Theme.FollowsKit(ns.Get(section .. ".font")) and Tokens.FontPath("BarlowSemiBold") or ns.FontPath(section), 11 * K.Theme.FontScale(), select(3, row.name:GetFont()))
+			Widgets.ApplyFont(row.name, K.Theme.FollowsKit(ns.Get(section .. ".font")) and Tokens.FontPath("BarlowSemiBold") or ns.FontPath(section), 11 * K.Theme.FontScale() * list.nameScale, select(3, row.name:GetFont()))
 		end
 	end
 	row.bar.barEdge = row.bar.barEdge or Widgets.BarEdge(row.bar)
@@ -523,10 +535,18 @@ function StyleRow(list, row)
 	row.back:SetShown(false)
 	row.dot:SetShown(false)
 	row.wash:Hide()
-	ns.ApplyFont(row.value, section, nil, figures)
-	ns.ApplyFont(row.percent, section, nil, figures)
+	ns.ApplyFont(row.value, section, nil, figures, list.valueScale)
+	ns.ApplyFont(row.percent, section, nil, figures, list.valueScale)
 	if row.dot then
-		ns.ApplyFont(row.dot, section, nil, figures)
+		ns.ApplyFont(row.dot, section, nil, figures, list.valueScale)
+	end
+	if row.marker then
+		local right = ns.Get(section .. ".fill") == "right"
+		row.marker:ClearAllPoints()
+		row.marker:SetPoint(right and "TOPRIGHT" or "TOPLEFT", row.bar, right and "TOPRIGHT" or "TOPLEFT")
+		row.marker:SetPoint(right and "BOTTOMRIGHT" or "BOTTOMLEFT", row.bar, right and "BOTTOMRIGHT" or "BOTTOMLEFT")
+		row.marker:SetWidth(2 * K.Scale.Pixel(1) / Widgets.ScaleFactor(list.panel))
+		row.marker:SetShown(list.marker == true and row.own == true)
 	end
 	for _, text in ipairs(Widgets.Readability("readableBars") and { row.name, row.value, row.percent } or {}) do
 		local r, g, b = Tokens.Color("textShadow")
@@ -757,7 +777,7 @@ local function Fits(list)
 	if not aside then
 		return true
 	end
-	local room = (list.barWidth or 0) - (list.stripReserve or 0)
+	local room = (list.barWidth or 0) - (list.capInset or 0) - (list.stripReserve or 0)
 	if ns.Get(list.section .. ".title") then
 		local title = TextWidth(list.title)
 		return not title or title + aside <= room - CapReserve(list)
@@ -784,7 +804,7 @@ local function HoldTitle(list)
 		end
 	end
 	local aside = TextWidth(list.column) or 0
-	local room = (list.barWidth or 0) - CapReserve(list) - aside - (list.stripReserve or 0)
+	local room = (list.barWidth or 0) - (list.capInset or 0) - CapReserve(list) - aside - (list.stripReserve or 0)
 	if room > 0 then
 		title:SetWidth(room)
 	else
@@ -799,9 +819,55 @@ function List:ReserveTitle(width)
 	end
 end
 
+local function ResetButton(list, size)
+	local button = list.resetButton
+	if not button then
+		button = CreateFrame("Button", nil, list.panel)
+		button:SetFrameLevel(list.panel:GetFrameLevel() + 2)
+		local glyph = button:CreateTexture(nil, "OVERLAY")
+		glyph:SetAllPoints(button)
+		glyph:SetTexture((Tokens.Texture("glyphClose")))
+		button.glyph = glyph
+		button:SetScript("OnClick", function() list.onReset() end)
+		button:SetScript("OnEnter", function(self)
+			Widgets.Tint(self.glyph, "textHover")
+			local tip = Widgets.Tooltip()
+			tip:SetOwner(self, BarList.Inward(self))
+			tip:AddLine(K.L["Reset every fight"])
+			tip:Show()
+		end)
+		button:SetScript("OnLeave", function(self)
+			Widgets.Tint(self.glyph, "muted")
+			Widgets.Tooltip():Hide()
+			Hover(list)
+		end)
+		list.resetButton = button
+	end
+	Widgets.Tint(button.glyph, "muted")
+	button:ClearAllPoints()
+	Widgets.Size(button, size, size)
+	Widgets.Point(button, "LEFT", list.cap.frame, "RIGHT", list.gap, 0)
+	return button
+end
+
+local function PaintFill(list)
+	local fill, chrome = ns.Get("damage.panelAlpha"), list.panel.chrome
+	if fill < 1 then
+		local r, g, b = Tokens.Color("surface")
+		chrome:SetFillRGBA(r, g, b, Widgets.Setting("panelOpacity") * fill)
+		list.ownFill = true
+	elseif list.ownFill then
+		list.ownFill = nil
+		chrome:SetFill(chrome.fillName)
+	end
+end
+
 function List:Restyle()
 	self.textLayout = (self.textLayout or 0) + 1
 	local section = self.section
+	self.nameScale, self.valueScale, self.marker = ns.Get("damage.nameScale"), ns.Get("damage.valueScale"), ns.Get("damage.playerMarker")
+	self.headerExtra = ns.Get("damage.headerHeight") + ns.Get("damage.titleY")
+	PaintFill(self)
 	self.plate = ns.Get("nameplateRows")
 	self.block = self.plate or self.originalBlock
 	self.pad = Widgets.Snap(self.panel, not self.plate and self.block and BLOCK_PAD or self.panel.chrome:InsetUnits())
@@ -811,18 +877,33 @@ function List:Restyle()
 	local columns = self.columns()
 	self.blockIcons = self.block and self.iconsOn ~= nil and self.iconsOn() == true
 	self.crop = ns.Get("damage.iconZoom")
-	self.valueWidth = columns.value and Widgets.Snap(self.panel, em * VALUE_EMS) or 0
-	self.percentWidth = columns.percent and Widgets.Snap(self.panel, em * PERCENT_EMS) or 0
+	self.valueWidth = columns.value and Widgets.Snap(self.panel, em * self.valueScale * VALUE_EMS) or 0
+	self.percentWidth = columns.percent and Widgets.Snap(self.panel, em * self.valueScale * PERCENT_EMS) or 0
 	self.barWidth = Widgets.Snap(self.panel, width - 2 * self.pad)
 
 	local titled = ns.Get(section .. ".title")
 	local cap = self.cap
 	cap.frame:SetShown(titled)
 	cap.frame:ClearAllPoints()
-	local capLeft = not self.plate and self.block and Widgets.Snap(self.panel, BLOCK_CAP_LEFT) or self.pad
-	local capTop = not self.plate and self.block and Widgets.Snap(self.panel, BLOCK_CAP_TOP) or self.pad
+	local x, y = Widgets.Snap(self.panel, ns.Get("damage.titleX")), Widgets.Snap(self.panel, ns.Get("damage.titleY"))
+	local resetOn = self.onReset ~= nil and ns.Get("damage.resetButton") and titled
+	local resetSize = resetOn and Widgets.Snap(self.panel, ns.Get("damage.resetSize")) or 0
+	self.capInset = x + (resetOn and resetSize + self.gap or 0)
+	local capLeft = (not self.plate and self.block and Widgets.Snap(self.panel, BLOCK_CAP_LEFT) or self.pad) + x
+	local capTop = (not self.plate and self.block and Widgets.Snap(self.panel, BLOCK_CAP_TOP) or self.pad) + y
 	cap.frame:SetPoint("TOPLEFT", self.panel, "TOPLEFT", capLeft, -capTop)
-	cap.frame:SetPoint("TOPRIGHT", self.panel, "TOPRIGHT", -self.pad, -capTop)
+	cap.frame:SetPoint("TOPRIGHT", self.panel, "TOPRIGHT", -self.pad - self.capInset + x, -capTop)
+	local capAlpha = ns.Get("damage.capAlpha")
+	if self.capAlpha ~= capAlpha then
+		self.capAlpha = capAlpha
+		cap.frame:SetAlpha(capAlpha)
+	end
+	self.resetHover = resetOn and ns.Get("damage.resetHover")
+	if resetOn then
+		ResetButton(self, resetSize):SetShown(not self.resetHover or self.panel:IsMouseOver() == true)
+	elseif self.resetButton then
+		self.resetButton:Hide()
+	end
 	cap:Restyle()
 	if self.block then
 		Widgets.TextColor(self.title, section == "threat" and ns.Threat.alarm and "hostile" or "capsGold")
@@ -968,6 +1049,18 @@ function SetIcon(list, row, texture, atlas, left, right, top, bottom)
 	row.iconAtlas = atlas
 	row.iconSet = set
 	icon:SetShown(set and list.blockIcons == true)
+end
+
+function List:SetMarker(i, own)
+	local row = self.rows[i]
+	local on = self.marker and own == true
+	row.own = own == true
+	if on and not row.marker then
+		row.marker = row.ink:CreateTexture(nil, "OVERLAY")
+		row.marker:SetColorTexture(Tokens.Color("white"))
+		StyleRow(self, row)
+	end
+	if row.marker then row.marker:SetShown(on) end
 end
 
 function List:SetRowIcon(i, texture, atlas, left, right, top, bottom)
@@ -1148,6 +1241,8 @@ function BarList.New(parent, section, opts)
 	list.plate = ns.Get("nameplateRows")
 	list.block = list.plate or list.originalBlock
 	list.iconsOn = opts.icons
+	list.onReset = opts.onReset
+	list.capAlpha = 1
 	list.key = opts.key
 	list.icons = false
 	list.rows = {}
@@ -1176,6 +1271,10 @@ function BarList.New(parent, section, opts)
 	if opts.tooltip then
 		Widgets.AttachTooltip(panel, opts.tooltip, BarList.Inward)
 	end
+	if opts.onReset then
+		panel:HookScript("OnEnter", function() Hover(list) end)
+		panel:HookScript("OnLeave", function() Hover(list) end)
+	end
 	if opts.onTitle then
 		local hit = CreateFrame("Frame", nil, panel)
 		hit:SetFrameLevel(panel:GetFrameLevel() + 2)
@@ -1184,6 +1283,7 @@ function BarList.New(parent, section, opts)
 		hit:SetScript("OnMouseUp", function(_, button)
 			opts.onTitle(list, button)
 		end)
+		hit:HookScript("OnLeave", function() Hover(list) end)
 		if opts.titleTooltip then
 			Widgets.AttachTooltip(hit, opts.titleTooltip, BarList.Inward)
 		end
@@ -1213,6 +1313,7 @@ function BarList.New(parent, section, opts)
 			switch:HookScript("OnLeave", function()
 				list.hot = false
 				list:ShowSwitch()
+				Hover(list)
 			end)
 		else
 			switch:SetAllPoints(list.column)

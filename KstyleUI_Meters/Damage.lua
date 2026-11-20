@@ -114,7 +114,7 @@ local function Alone()
 end
 
 local function Visible()
-	return ns.MeterShown("damage") and Damage.Mode() == "window" and not Alone()
+	return ns.MeterShown("damage") and Damage.Mode() == "window" and not Alone() and not ns.windowsHidden
 end
 
 local function DeathText(source)
@@ -385,6 +385,7 @@ local function SourceRow(list, i, source, info, maxAmount, total, percent, enemy
 		list:SetRow(i, name, source.classFilename, reaction, amount, maxAmount, NumberText(Amount(source, info), format), percentText)
 	end
 	ns.SetClassIcon(list, i, source.classFilename)
+	list:SetMarker(i, source.isLocalPlayer)
 	SpellRow(list, i)
 end
 
@@ -436,6 +437,7 @@ local function SpellCall(api, spellID)
 	end
 	return nil
 end
+ns.SpellCall = SpellCall
 
 local function SpellName(spell, sourceName)
 	local name = SpellCall("GetSpellName", spell.spellID)
@@ -586,6 +588,7 @@ local function FillSpells(list, info, meterType, sessionType, sessionID, who)
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(spell.totalAmount, total)) or ""
 		list:SetRow(i, SpellName(spell, who.name), who.class, who.reaction, amount, maxAmount, NumberText(Amount(spell, info), format), percentText, nil, Logic.SchoolToken(spell.spellID))
 		list:SetRowIcon(i, SpellCall("GetSpellTexture", spell.spellID))
+		list:SetMarker(i)
 		SpellRow(list, i, Logic.Plain(spell.spellID))
 	end
 	Damage.filled = Damage.view
@@ -654,6 +657,15 @@ local function Refresh()
 		return
 	end
 	FillSources(list, info, session)
+end
+
+function ns.ResetMeters()
+	local meter = C_DamageMeter
+	if type(meter) ~= "table" or type(meter.ResetAllCombatSessions) ~= "function" then
+		ns.LogOnce("noReset", "C_DamageMeter.ResetAllCombatSessions is missing; nothing is reset")
+		return
+	end
+	K.Combat.Queue(function() K.Call(meter.ResetAllCombatSessions) end)
 end
 
 local function Schedule()
@@ -806,7 +818,7 @@ local function Build()
 		key = KEY, width = width or 269, height = height or 158, columns = Columns, onClick = OnClick, block = true,
 		onRowClick = OnRowClick, tooltip = Tooltip, onSwitch = OnSwitch, switchTooltip = SwitchTooltip,
 		rowTooltip = RowTooltip, rowSplits = RowSplits, rowSplit = RowSplit,
-		onTitle = OnTitle, titleTooltip = TitleTooltip, onWheel = OnWheel, icons = Icons,
+		onTitle = OnTitle, titleTooltip = TitleTooltip, onWheel = OnWheel, icons = Icons, onReset = ns.ResetMeters,
 	})
 	Damage.holder = Damage.list.holder
 	ns.Place(Damage.holder, KEY, LIMITS)

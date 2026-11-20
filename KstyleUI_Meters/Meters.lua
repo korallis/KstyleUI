@@ -4,7 +4,7 @@ local _, ns = ...
 local K = KstyleUI
 local MODULE = ns.MODULE
 
-local parts = { ns.Damage, ns.Threat, ns.Swing }
+local parts = { ns.Damage, ns.Threat, ns.Swing, ns.Timer, ns.History }
 local watchers = {}
 local running = false
 
@@ -125,9 +125,27 @@ local function OnLayout(_, key)
 	if key == "meters.damage" then ns.Threat:Resized() end
 end
 
+_G["BINDING_NAME_CLICK KstyleUI_MetersReset:LeftButton"] = K.L["Reset meter data"]
+_G["BINDING_NAME_CLICK KstyleUI_MetersToggle:LeftButton"] = K.L["Show or hide meters"]
+
+local keys
+local function Keys()
+	if keys then return end
+	keys = true
+	CreateFrame("Button", "KstyleUI_MetersReset"):SetScript("OnClick", function()
+		if running then ns.ResetMeters() end
+	end)
+	CreateFrame("Button", "KstyleUI_MetersToggle"):SetScript("OnClick", function()
+		if not running then return end
+		ns.windowsHidden = not ns.windowsHidden
+		ApplyAll()
+	end)
+end
+
 local function Enable()
 	YieldDamage()
 	running = true
+	Keys()
 	for _, part in ipairs(parts) do
 		K.Call(part.Start, part)
 	end
@@ -145,6 +163,7 @@ local function Disable()
 		ns.UnwatchAll(part)
 	end
 	running = false
+	ns.windowsHidden = nil
 	for event in pairs(watchers) do
 		watchers[event] = nil
 	end
