@@ -946,7 +946,7 @@ end
 local function Latency(cb, channel, startMs, endMs)
 	if cb.latency then cb.latency:Hide() end
 	if cb.kind ~= "player" or not Settings.Value(cb.kind, "castbarLatency") or not GetNetStats then return end
-	if issecretvalue(startMs) or issecretvalue(endMs) or type(startMs) ~= "number" or type(endMs) ~= "number" or not (endMs > startMs) then return end
+	if issecretvalue(startMs) or issecretvalue(endMs) or type(startMs) ~= "number" or type(endMs) ~= "number" or startMs ~= startMs or endMs ~= endMs or endMs <= startMs then return end
 	local _, _, _, ms = GetNetStats()
 	if issecretvalue(ms) or type(ms) ~= "number" or ms ~= ms or ms <= 0 then return end
 	local w, h = cb.bar:GetSize()
