@@ -528,6 +528,14 @@ do
 			assert(shown(s.bind) and shown(s.level) and not shown(s.set), where .. "an unbound copy is not the set's own item, since equipping binds it")
 			assert(apart(box(s.bind, s.button), box(s.level, s.button)), where .. "BoE and the item level overlap")
 			assert(shown(h.set) and shown(h.level) and not shown(h.bind) and apart(box(h.set, h.button), box(h.level, h.button)), where .. "the set name and the item level overlap")
+			if separate and dim[1] == 1920 then
+				write(env, K, "bindText", false)
+				assert(not shown(s.set) and shown(h.set), "an unbound copy shows no set name with Bind labels off either")
+				write(env, K, "compactBags", true)
+				write(env, K, "splitSets", true)
+				local groups = ns.Inventory.window.sections[1].groups
+				assert(groups["set:Tank"].total == 1 and groups["equipment|"] == nil and groups.equipment.total == 1, "and it is not filed under the set")
+			end
 			clean(env, K)
 		end
 	end
