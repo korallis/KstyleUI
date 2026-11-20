@@ -1,4 +1,4 @@
--- Grid.lua: pure maths that places icons and bars in a holder by cell size, spacing, columns, rows, growth and wrap.
+-- Grid.lua: pure maths that places icons and bars in a holder by cell size, spacing, columns, rows, growth, wrap and, for a vertical grid, columns filled top to bottom.
 local _, ns = ...
 
 local Grid = {}
@@ -30,11 +30,13 @@ end
 
 function Grid.Size(cfg)
 	local columns, rows, spacing, cw, ch = Dims(cfg)
+	if cfg.vertical then
+		return rows * cw + (rows - 1) * spacing, columns * ch + (columns - 1) * spacing
+	end
 	return columns * cw + (columns - 1) * spacing, rows * ch + (rows - 1) * spacing
 end
 
-function Grid.Offset(index, count, cfg)
-	local columns, rows, spacing, cw, ch = Dims(cfg)
+local function Line(index, count, cfg, columns, rows, spacing, along, across)
 	local capacity = columns * rows
 	if index < 1 or index > capacity then
 		return nil
@@ -48,23 +50,32 @@ function Grid.Offset(index, count, cfg)
 	if inRow > columns then
 		inRow = columns
 	end
-	local width = columns * cw + (columns - 1) * spacing
-	local used = inRow * cw + (inRow - 1) * spacing
+	local width = columns * along + (columns - 1) * spacing
+	local used = inRow * along + (inRow - 1) * spacing
 	local x
 	if cfg.growth == "left" then
-		x = width - cw - column * (cw + spacing)
+		x = width - along - column * (along + spacing)
 	elseif cfg.growth == "rightAligned" then
-		x = width - used + column * (cw + spacing)
+		x = width - used + column * (along + spacing)
 	elseif cfg.growth == "right" then
-		x = column * (cw + spacing)
+		x = column * (along + spacing)
 	else
-		x = (width - used) / 2 + column * (cw + spacing)
+		x = (width - used) / 2 + column * (along + spacing)
 	end
 	local y
 	if cfg.wrap == "up" then
-		y = (rows - 1 - row) * (ch + spacing)
+		y = (rows - 1 - row) * (across + spacing)
 	else
-		y = row * (ch + spacing)
+		y = row * (across + spacing)
 	end
 	return x, y
+end
+
+function Grid.Offset(index, count, cfg)
+	local columns, rows, spacing, cw, ch = Dims(cfg)
+	if cfg.vertical then
+		local y, x = Line(index, count, cfg, columns, rows, spacing, ch, cw)
+		return x, y
+	end
+	return Line(index, count, cfg, columns, rows, spacing, cw, ch)
 end

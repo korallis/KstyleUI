@@ -48,8 +48,9 @@ function Preview.Build(...)
 			end
 			icon.onCooldown = cooldownGroup and sample and true or false
 			icon:SetCount(SAMPLE_CHARGES[group] and SAMPLE_CHARGES[group][i])
-			Style.SetProc(icon, cfg.procGlow and SAMPLE_PROC[group] and SAMPLE_PROC[group][i])
-			Style.SetReady(icon, cooldownGroup and cfg.readyGlow and not sample)
+			local glows = not Settings.current.glowsInCombat or InCombatLockdown()
+			Style.SetProc(icon, glows and cfg.procGlow and SAMPLE_PROC[group] and SAMPLE_PROC[group][i])
+			Style.SetReady(icon, glows and cooldownGroup and cfg.readyGlow and not sample)
 			if not cooldownGroup then
 				icon:SetUsable(sample and true or false)
 			end
@@ -74,7 +75,7 @@ function Preview.Build(...)
 
 	local function Fitted(frame, cfg)
 		local width = frame.pane:GetWidth()
-		if issecretvalue(width) or type(width) ~= "number" or width <= 0 then
+		if cfg.vertical or issecretvalue(width) or type(width) ~= "number" or width <= 0 then
 			return cfg
 		end
 		local columns = math.max(1, math.min(cfg.columns, math.floor((width + cfg.spacing) / (cfg.size + cfg.spacing))))

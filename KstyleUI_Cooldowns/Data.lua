@@ -68,6 +68,7 @@ local function Entry(id, info)
 	entry.overrideSpellID = Number(info.overrideSpellID)
 	entry.tooltipSpellID = Number(info.overrideTooltipSpellID)
 	entry.spell = entry.overrideSpellID or base
+	entry.ruleStamp = nil
 	entry.iconSpell = entry.tooltipSpellID or base
 	entry.charges = info.charges == true
 	entry.selfAura = info.selfAura == true
@@ -204,5 +205,6 @@ function Data.SetOverride(baseSpellID, overrideSpellID)
 	end
 	entry.overrideSpellID = Number(overrideSpellID)
 	entry.spell = entry.overrideSpellID or base
+	entry.ruleStamp = nil
 	return entry
 end

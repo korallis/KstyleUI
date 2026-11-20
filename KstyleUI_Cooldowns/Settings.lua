@@ -33,7 +33,12 @@ local ICON_RANGE = {
 	rows = { 1, 4, 1 },
 	timerSize = { 6, 32, 1 },
 	countSize = { 6, 24, 1 },
+	timerX = { -50, 50, 1 },
+	timerY = { -50, 50, 1 },
+	countX = { -50, 50, 1 },
+	countY = { -50, 50, 1 },
 }
+local FADE_RANGE = { 0, 1, 0.05 }
 local ESSENTIAL_TIMER_RANGE = { 6, 32, 0.5 }
 local BAR_RANGE = {
 	width = { 80, 400, 1 },
@@ -46,7 +51,13 @@ local BAR_RANGE = {
 	countSize = { 6, 24, 1 },
 	fillOpacity = { 0, 1, 0.05 },
 }
-local ICON_FLAGS = { "timer", "gcd", "desaturate", "usable", "readyGlow", "procGlow", "inactive", "showCount", "swipe", "edge" }
+local ICON_FLAGS = { "timer", "gcd", "desaturate", "usable", "readyGlow", "procGlow", "inactive", "showCount", "swipe", "edge", "vertical", "hideZero", "countOnly", "overflow" }
+local RULES = { "hideCooling", "hideReady", "hideUnusable", "spent", "fade", "grey", "colour", "reverse", "noSwipe", "tint", "noGcd", "noCount", "noEdge", "noCost", "glow", "range" }
+Settings.RULES = RULES
+local POSITION = { [""] = true, CENTER = true, TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true, RIGHT = true, BOTTOMLEFT = true, BOTTOM = true, BOTTOMRIGHT = true }
+local INACTIVE = { [""] = true, grey = true, colour = true }
+local SOURCE = { class = true, custom = true }
+local MAX_RULE = 240
 local BAR_FLAGS = { "reverse", "icon", "name", "timer", "inactive", "showCount" }
 
 local PATH = { auto = true, mirror = true, reskin = true }
@@ -60,6 +71,7 @@ local ORIENTATION = { HORIZONTAL = true, VERTICAL = true }
 local MAX_PATH = 260
 
 local accentR, accentG, accentB = Tokens.Color("accentDefault")
+local rangeR, rangeG, rangeB = Tokens.Color("hostile")
 local DEFAULT_BAR_TEXTURE = Tokens.MediaList("statusbar")[1].path
 
 local function IconDefaults(size, timerSize, countSize, cooldown, spacing, columns)
@@ -76,14 +88,24 @@ local function IconDefaults(size, timerSize, countSize, cooldown, spacing, colum
 		swipe = true,
 		timerSize = timerSize,
 		countSize = countSize,
+		timerPosition = "",
+		timerX = 0,
+		timerY = 0,
+		countX = 0,
+		countY = 0,
+		vertical = false,
 	}
 	if cooldown then
 		out.gcd, out.desaturate, out.usable, out.readyGlow, out.procGlow, out.edge = false, false, true, false, true, true
+		out.hideZero, out.countOnly, out.overflow = false, false, false
 	else
-		out.inactive = false
+		out.inactive, out.inactiveShade = false, ""
 	end
 	return out
 end
+
+local noRules = {}
+for _, key in ipairs(RULES) do noRules[key] = "" end
 
 local essential = IconDefaults(36.7, ESSENTIAL_TIMER, ESSENTIAL_COUNT, true, 4.6)
 local buffs = IconDefaults(27.6, 9, 9, false, 3.4)
@@ -104,6 +126,15 @@ Settings.defaults = {
 	countOutline = "none",
 	nameFont = "kit",
 	nameOutline = "none",
+	glowsInCombat = false,
+	closeGaps = false,
+	fadeAlpha = 0.5,
+	tintSource = "class",
+	tintColor = { r = accentR, g = accentG, b = accentB },
+	glowSource = "class",
+	glowColor = { r = accentR, g = accentG, b = accentB },
+	rangeColor = { r = rangeR, g = rangeG, b = rangeB },
+	rules = noRules,
 	essential = essential,
 	utility = IconDefaults(BUTTON, UTILITY_TIMER, UTILITY_COUNT, true, GAP, UTILITY_COLUMNS),
 	buffs = buffs,
@@ -185,6 +216,23 @@ function Settings.Schema()
 		{ value = "VERTICAL", label = L["Vertical"] },
 	}
 
+	local POSITION_OPTIONS = {
+		{ value = "", label = L["Current style"] }, { value = "CENTER", label = L["Centre"] },
+		{ value = "TOPLEFT", label = L["Top left"] }, { value = "TOP", label = L["Top"] }, { value = "TOPRIGHT", label = L["Top right"] },
+		{ value = "LEFT", label = L["Left"] }, { value = "RIGHT", label = L["Right"] },
+		{ value = "BOTTOMLEFT", label = L["Bottom left"] }, { value = "BOTTOM", label = L["Bottom"] }, { value = "BOTTOMRIGHT", label = L["Bottom right"] },
+	}
+	local SOURCE_OPTIONS = { { value = "class", label = L["Class colour"] }, { value = "custom", label = L["Custom colour"] } }
+	local INACTIVE_OPTIONS = { { value = "", label = L["Current style"] }, { value = "grey", label = L["Grey"] }, { value = "colour", label = L["Full colour"] } }
+
+	local function Mirrored(group)
+		return function(settings) return not ns.Path.Restyles(group, settings.path) end
+	end
+
+	local function Custom(key)
+		return function(settings) return settings[key] == "custom" end
+	end
+
 	local function IsCustomAccent(settings)
 		return settings.accent == "custom"
 	end
@@ -206,7 +254,12 @@ function Settings.Schema()
 		return { type = "toggle", key = group .. "." .. key, label = label, help = help }
 	end
 
-	local function Add(schema, row)
+	local function Add(schema, row, mirrorOnly)
+		if mirrorOnly then
+			local shown = row.showWhen
+			local mirrored = Mirrored(mirrorOnly)
+			row.showWhen = function(settings) return mirrored(settings) and (not shown or shown(settings)) end
+		end
 		schema[#schema + 1] = row
 	end
 
@@ -225,7 +278,16 @@ function Settings.Schema()
 		Add(schema, Toggle(group, "showCount", L["Show charges and stacks"], L["Show charge or application counts on this group."]))
 		Add(schema, Slider(group, "timerSize", L["Timer size"], L["The size of the countdown numbers."], ICON_RANGE))
 		Add(schema, Slider(group, "countSize", L["Count size"], L["The size of the charge or stack count."], ICON_RANGE))
+		Add(schema, { type = "dropdown", key = group .. ".timerPosition", label = L["Timer position"], help = L["Where the countdown sits on each icon."], options = POSITION_OPTIONS })
+		Add(schema, Slider(group, "timerX", L["Timer horizontal offset"], L["Moves the countdown left or right."], ICON_RANGE))
+		Add(schema, Slider(group, "timerY", L["Timer vertical offset"], L["Moves the countdown down or up."], ICON_RANGE))
+		Add(schema, Slider(group, "countX", L["Count horizontal offset"], L["Moves the charge or stack count left or right."], ICON_RANGE))
+		Add(schema, Slider(group, "countY", L["Count vertical offset"], L["Moves the charge or stack count down or up."], ICON_RANGE))
+		Add(schema, Toggle(group, "vertical", L["Vertical"], L["Fill each column top to bottom instead of each row."]), group)
 		if COOLDOWN_GROUPS[group] then
+			Add(schema, Toggle(group, "hideZero", L["Hide 0 charges"], L["Hide the charge count while no charge is left."]), group)
+			Add(schema, Toggle(group, "countOnly", L["Counts only"], L["Show only the charge or stack count, in an empty socket."]), group)
+			Add(schema, Toggle(group, "overflow", L["Overflow to the other row"], L["Cooldowns past this row's grid join the other cooldown row."]), group)
 			Add(schema, Toggle(group, "gcd", L["Global cooldown"], L["Sweep every icon during the global cooldown."]))
 			Add(schema, Toggle(group, "edge", L["Cooldown edge"], L["Show the bright line that sweeps around a cooling icon."]))
 			Add(schema, Toggle(group, "desaturate", L["Grey while cooling"], L["Show an icon in grey while its spell is on cooldown."]))
@@ -234,7 +296,39 @@ function Settings.Schema()
 			Add(schema, Toggle(group, "procGlow", L["Proc glow"], L["Pulse an icon while the game highlights its spell."]))
 		else
 			Add(schema, Toggle(group, "inactive", L["Show inactive"], L["Keep a dimmed icon while the buff is off you. Active buffs come first."]))
+			Add(schema, { type = "dropdown", key = group .. ".inactiveShade", label = L["Inactive buffs"], help = L["Grey an inactive buff, keep it in colour, or keep the current style."], options = INACTIVE_OPTIONS })
 		end
+	end
+
+	local function RuleRows(schema)
+		local function Rule(key, label, help, mirrorOnly)
+			Add(schema, { type = "text", key = "rules." .. key, label = label, help = help, maxLetters = MAX_RULE }, mirrorOnly and "essential")
+		end
+		Add(schema, { type = "header", label = L["Spell rules"] })
+		Add(schema, { type = "note", label = L["List spell names or IDs, separated by commas. Cooldown rules act on KstyleUI icons."] })
+		Rule("hideCooling", L["Hide while cooling"], L["Hide these while they are on cooldown."], true)
+		Rule("hideReady", L["Hide while ready"], L["Hide these while ready; a charge spell shows once a charge is spent."], true)
+		Rule("spent", L["Hide until all charges are spent"], L["With Hide while ready, these stay hidden while any charge is left."], true)
+		Rule("hideUnusable", L["Hide until usable"], L["Show these only while ready and usable. Low resources do not hide them."], true)
+		Add(schema, { type = "toggle", key = "closeGaps", label = L["Close gaps"], help = L["Icons after a hidden one move up to fill its place."] }, "essential")
+		Rule("fade", L["Fade while cooling"], L["Lower these icons' opacity while they are on cooldown."], true)
+		Add(schema, { type = "slider", key = "fadeAlpha", label = L["Fade opacity"], help = L["How solid a faded icon stays."], min = FADE_RANGE[1], max = FADE_RANGE[2], step = FADE_RANGE[3] }, "essential")
+		Rule("grey", L["Grey these"], L["Grey these cooldowns while cooling and these buffs while off you."])
+		Rule("colour", L["Keep these in colour"], L["Keep these cooldowns in colour while cooling and these buffs while off you."])
+		Rule("noCount", L["Hide counts"], L["Hide the charge or stack count of these spells."])
+		Rule("noCost", L["Ignore resource cost"], L["Keep these in full colour while you lack the resource."], true)
+		Rule("noGcd", L["Ignore the global cooldown"], L["Never sweep these for the global cooldown."], true)
+		Rule("reverse", L["Reverse swipe"], L["Run the cooldown sweep of these spells the other way."], true)
+		Rule("noSwipe", L["Hide swipe"], L["Hide the shaded cooldown sweep of these spells."], true)
+		Rule("noEdge", L["Hide recharge edge"], L["Hide the bright line that sweeps while these spells recharge."], true)
+		Rule("tint", L["Tint swipe"], L["Colour the cooldown sweep of these spells."], true)
+		Add(schema, { type = "dropdown", key = "tintSource", label = L["Swipe tint"], help = L["Where the swipe tint comes from."], options = SOURCE_OPTIONS }, "essential")
+		Add(schema, { type = "color", key = "tintColor", label = L["Custom swipe tint"], help = L["The swipe tint when it is custom."], showWhen = Custom("tintSource") }, "essential")
+		Rule("glow", L["Glow colour"], L["Colour the ready glow of these spells."], true)
+		Add(schema, { type = "dropdown", key = "glowSource", label = L["Glow tint"], help = L["Where the glow colour comes from."], options = SOURCE_OPTIONS }, "essential")
+		Add(schema, { type = "color", key = "glowColor", label = L["Custom glow colour"], help = L["The glow colour when it is custom."], showWhen = Custom("glowSource") }, "essential")
+		Rule("range", L["Out of range tint"], L["Tint these while your target is out of their range."], true)
+		Add(schema, { type = "color", key = "rangeColor", label = L["Out of range"], help = L["The tint of a spell whose target is out of range."] }, "essential")
 	end
 
 	local function BarRows(schema)
@@ -276,6 +370,7 @@ function Settings.Schema()
 		},
 		{ type = "color", key = "accentColor", label = L["Custom accent"], help = L["The colour of glows and hairlines when the accent is custom."], showWhen = IsCustomAccent },
 		{ type = "toggle", key = "tooltips", label = L["Tooltips"], help = L["Show a spell's tooltip when the pointer is over its icon."] },
+		{ type = "toggle", key = "glowsInCombat", label = L["Glows only in combat"], help = L["Hide the ready and proc glows of cooldown icons out of combat."], showWhen = Mirrored("essential") },
 		{ type = "header", label = L["Text"] },
 		{ type = "dropdown", key = "timerFont", label = L["Timer font"], help = L["The font of the countdown numbers."], options = FontOptions },
 		{ type = "dropdown", key = "timerOutline", label = L["Timer outline"], help = L["A soft shadow, or an outline for busy backgrounds."], options = OUTLINE_OPTIONS },
@@ -288,6 +383,7 @@ function Settings.Schema()
 	IconRows(schema, "utility", L["Utility cooldowns"])
 	IconRows(schema, "buffs", L["Tracked buff icons"])
 	BarRows(schema)
+	RuleRows(schema)
 	table.insert(schema, 1, { type = "toggle", key = "attached", label = L["Attach cooldowns to the HUD"], help = L["Keep rows by the HUD. Turn off for the previous placement. Custom positions are kept."] })
 	schema.preview = ns.Preview.Build
 	Settings.schema = schema
@@ -372,6 +468,8 @@ local function ReadIcons(out, saved, defaults, group)
 	out.growth = Choice(saved.growth, GROWTH, defaults.growth)
 	if group == "buffs" and out.growth == defaults.growth and K.HudStyle.Current() == "medallions" then out.growth = "center" end
 	out.wrap = Choice(saved.wrap, WRAP, defaults.wrap)
+	out.timerPosition = Choice(saved.timerPosition, POSITION, "")
+	out.inactiveShade = Choice(saved.inactiveShade, INACTIVE, "")
 	for _, key in ipairs(ICON_FLAGS) do
 		out[key] = Bool(saved[key], defaults[key] == true)
 	end
@@ -407,6 +505,17 @@ function Settings.Read()
 	current.accent = Choice(saved.accent, ACCENT, defaults.accent)
 	Color(current, "accent", saved.accentColor, defaults.accentColor)
 	current.tooltips = Bool(saved.tooltips, defaults.tooltips)
+	current.glowsInCombat, current.closeGaps = saved.glowsInCombat == true, saved.closeGaps == true
+	current.fadeAlpha = Number(saved.fadeAlpha, FADE_RANGE, defaults.fadeAlpha)
+	current.tintSource = Choice(saved.tintSource, SOURCE, "class")
+	current.glowSource = Choice(saved.glowSource, SOURCE, "class")
+	for _, key in ipairs({ "tint", "glow", "range" }) do Color(current, key, saved[key .. "Color"], defaults[key .. "Color"]) end
+	local rules, savedRules = current.rules or {}, type(saved.rules) == "table" and saved.rules or {}
+	for _, key in ipairs(RULES) do
+		local text = savedRules[key]
+		rules[key] = type(text) == "string" and not ns.IsSecret(text) and #text <= MAX_RULE and text or ""
+	end
+	current.rules = rules
 	for _, kind in ipairs({ "timer", "count", "name" }) do
 		current[kind .. "Font"] = Font(saved[kind .. "Font"])
 		current[kind .. "Outline"] = Choice(saved[kind .. "Outline"], OUTLINE, defaults[kind .. "Outline"])
@@ -420,7 +529,17 @@ function Settings.Read()
 		end
 	end
 	ReadBars(current.bars, saved.bars, defaults.bars)
+	ns.Rules.Reset()
 	return current
+end
+
+function Settings.SourceColor(key)
+	if current[key .. "Source"] == "custom" then
+		return current[key .. "R"], current[key .. "G"], current[key .. "B"]
+	end
+	local class = K.Theme.Class()
+	if class then return K.Theme.ClassColor(class) end
+	return K.Theme.Accent()
 end
 
 function Settings.Accent()

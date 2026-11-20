@@ -148,15 +148,24 @@ local function Custom()
 	return current.accent == "custom" and current.accentR ~= nil
 end
 
-function Style.Accent(icon)
-	if Custom() then
-		local r, g, b = ns.Settings.Accent()
-		icon:SetAccent(r, g, b)
-		icon.readyGlow:SetColorRGB(r, g, b)
+function Style.GlowColor(icon)
+	local tint = icon.glowTint
+	if tint then
+		icon.readyGlow:SetColorRGB(tint[1], tint[2], tint[3])
+	elseif Custom() then
+		icon.readyGlow:SetColorRGB(ns.Settings.Accent())
 	else
-		icon:SetAccent()
 		icon.readyGlow:SetColorRGB()
 	end
+end
+
+function Style.Accent(icon)
+	if Custom() then
+		icon:SetAccent(ns.Settings.Accent())
+	else
+		icon:SetAccent()
+	end
+	Style.GlowColor(icon)
 end
 
 local function AfterPaint(icon)
@@ -166,6 +175,9 @@ local function AfterPaint(icon)
 		local tint = icon.tint
 		local brightness = icon.opts.quietCooldown and 0.65 or 1
 		Widgets.ShadeIcon(icon.icon, brightness * tint[1], brightness * tint[2], brightness * tint[3], icon.greyWhileCooling)
+	end
+	if not icon.usable and icon.inactiveShade == "colour" then
+		icon.icon:SetDesaturated(false)
 	end
 	if ns.Settings.current.accent == "quiet" then
 		icon.chrome:SetRim(Widgets.Rgba("slotRim"))
@@ -205,6 +217,17 @@ function Style.PlaceEssential(countdown, icon, scale)
 	countdown:SetJustifyH("CENTER")
 end
 
+function Style.MoveText(text, owner, position, x, y)
+	if position ~= "" then
+		text:ClearAllPoints()
+		Widgets.Point(text, position, owner, position, x, y)
+		text:SetJustifyH(position:find("LEFT") and "LEFT" or position:find("RIGHT") and "RIGHT" or "CENTER")
+	elseif x ~= 0 or y ~= 0 then
+		local point, relative, relativePoint, px, py = text:GetPoint(1)
+		if point then text:SetPoint(point, relative, relativePoint, px + Widgets.Snap(owner, x), py + Widgets.Snap(owner, y)) end
+	end
+end
+
 function Style.PlaceText(icon, group)
 	local countdown = icon.countdown
 	if not countdown or not Widgets.MayMove(icon) then
@@ -212,9 +235,7 @@ function Style.PlaceText(icon, group)
 	end
 	if group == "utility" then
 		Centre(icon)
-		return
-	end
-	if group == "buffs" then
+	elseif group == "buffs" then
 		countdown:ClearAllPoints()
 		Widgets.Point(countdown, "TOP", icon, "BOTTOM", 0, -2)
 		countdown:SetJustifyH("CENTER")
@@ -223,6 +244,14 @@ function Style.PlaceText(icon, group)
 		local inset = K.Scale.Pixel(1) / Widgets.ScaleFactor(icon)
 		icon.count:ClearAllPoints()
 		icon.count:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", -inset, inset)
+		icon.countBase = nil
+	end
+	local cfg = ns.Settings.current[group]
+	Style.MoveText(countdown, icon, cfg.timerPosition, cfg.timerX, cfg.timerY)
+	icon.countBase = icon.countBase or { icon.count:GetPoint(1) }
+	local base = icon.countBase
+	if base[1] then
+		icon.count:SetPoint(base[1], base[2], base[3], base[4] + Widgets.Snap(icon, cfg.countX), base[5] + Widgets.Snap(icon, cfg.countY))
 	end
 end
 
@@ -338,6 +367,7 @@ function Style.Decorate(icon, group)
 		local restyle = icon.Restyle
 		icon.Restyle = function(self)
 			restyle(self)
+			self.countBase = nil
 			Style.Dress(self)
 			Style.PlaceText(self, group)
 		end

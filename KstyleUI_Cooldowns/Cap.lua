@@ -1,4 +1,4 @@
--- Cap.lua: Blizzard's restyled tracked buff icon row stopped at the module's grid: its sockets go to the first active buffs in Blizzard's order (shown by Blizzard and IsActive true, or shown while the viewer hides inactive items when IsActive is secret; each read only when not secret), an inactive slot taking none; items past the last of them fade to alpha 0 and stop taking the mouse, and a "+N" chip in the next slot counts and lists the active ones it hides. A secret shown state, or a shown item whose activity nothing readable tells, leaves the whole row uncapped.
+-- Cap.lua: Blizzard's restyled tracked buff icon row stopped at the module's grid: its sockets go to the first active buffs in Blizzard's order (shown by Blizzard and IsActive true, or shown while the viewer hides inactive items when IsActive is secret; each read only when not secret), an inactive slot taking none; items past the last of them fade to alpha 0 and stop taking the mouse, and a "+N" chip in the next slot counts and lists the active ones it hides. A secret shown state, or a shown item whose activity nothing readable tells, leaves the whole row uncapped. Each refresh also reapplies the per-buff spell rules.
 local _, ns = ...
 
 local K = KstyleUI
@@ -189,6 +189,9 @@ function Cap.Refresh()
 		return
 	end
 	local items = Items(viewer)
+	for _, item in ipairs(items) do
+		ns.Reskin.Buff(item)
+	end
 	local size = Cap.Size()
 	local hides = Hides(viewer)
 	local capped, live, seen, last, edge = active, {}, 0, 0, nil
