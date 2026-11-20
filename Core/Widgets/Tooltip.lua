@@ -92,10 +92,18 @@ end
 
 function Tip:SetOwner(owner, anchor, x, y)
 	self:ClearLines()
+	self:SetFactor(1)
 	self.owner = owner
 	local key = type(anchor) == "string" and anchor:gsub("^ANCHOR_", "") or "RIGHT"
 	self.anchor = ANCHORS[key] and key or "RIGHT"
 	self.offsetX, self.offsetY = x or 0, y or 0
+end
+
+function Tip:SetFactor(factor)
+	if self.factor ~= factor then
+		self.factor = factor
+		self:SetScale(Widgets.Setting("tooltipScale") * factor)
+	end
 end
 
 function Tip:IsOwned(frame)
@@ -284,7 +292,7 @@ local function Position(self)
 end
 
 function Tip:Restyle()
-	self:SetScale(Widgets.Setting("tooltipScale"))
+	self:SetScale(Widgets.Setting("tooltipScale") * (self.factor or 1))
 	self.chrome:Restyle()
 	if self:IsShown() then
 		self:Layout()

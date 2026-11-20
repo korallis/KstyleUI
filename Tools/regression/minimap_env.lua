@@ -353,6 +353,9 @@ function M.FakeTooltip()
 	function tip.SetOwner(_, owner)
 		tip.owner = owner
 	end
+	function tip.SetFactor(_, factor)
+		tip.factor = factor
+	end
 	function tip.Has(_, text)
 		for _, line in ipairs(tip.lines) do
 			if line:find(text, 1, true) then

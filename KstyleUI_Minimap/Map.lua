@@ -240,6 +240,7 @@ local function EnterCombat()
 		Column.Drag(button, false, true)
 	end
 	SecureClick.Detach()
+	ns.Micro.Close()
 	SyncCoords()
 end
 
@@ -328,6 +329,7 @@ end
 
 local function ZoneTooltip(tip, frame)
 	tip:SetOwner(frame, "ANCHOR_LEFT")
+	tip:SetFactor(Settings.Get("tooltipScale"))
 	local zone = GetZoneText and GetZoneText()
 	tip:AddTitle(zone or L["Zone"])
 	local sub = GetSubZoneText and GetSubZoneText()
@@ -357,6 +359,7 @@ end
 
 local function ClockTooltip(tip, frame, redraw)
 	tip:SetOwner(frame, "ANCHOR_LEFT")
+	tip:SetFactor(Settings.Get("tooltipScale"))
 	tip:AddTitle(L["Time"])
 	local hours = Data.Uses24(Settings.Get("clock.mode")) and "24" or "12"
 	tip:AddDoubleLine(L["Local time"], Data.Clock("local" .. hours) or "")
@@ -368,6 +371,7 @@ local function ClockTooltip(tip, frame, redraw)
 end
 
 local function PerfTooltip(tip, _, redraw)
+	tip:SetFactor(Settings.Get("tooltipScale"))
 	tip:AddTitle(L["Instance lockouts"])
 	Lockouts(tip, redraw)
 end
@@ -481,6 +485,12 @@ local function HookHover(frame)
 	frame:HookScript("OnLeave", Map.CheckHover)
 end
 
+local function OnMapClick(_, button)
+	if running and button == "MiddleButton" and Settings.Get("microMenu") then
+		ns.Micro.Toggle(Map.holder)
+	end
+end
+
 local function CollectButtons()
 	if running and Map.drawer then
 		Map.drawer:Collect()
@@ -551,14 +561,11 @@ local function Build()
 	SecureClick.Bind(face.clockHit, function()
 		return TimeManagerClockButton, GameTimeFrame
 	end, ClockTooltip)
-	Map.column = Column.New(face)
+	Map.column = Column.New(face, { hook = HookHover })
 	Map.drawer = Drawer.New(Map.column)
 	Map.column.drawer = Map.drawer
 	for _, frame in ipairs({ face.zoneHit, face.clockHit, face.perfHit, face.zoom }) do
 		HookHover(frame)
-	end
-	for _, button in pairs(Map.column.buttons) do
-		HookHover(button)
 	end
 	holder:HookScript("OnSizeChanged", Relayout)
 	hooksecurefunc(holder, "SetPoint", function(_, point, _, _, x, y)
@@ -694,6 +701,7 @@ function Adopt()
 	if not hoverHooked and type(minimap.HookScript) == "function" then
 		hoverHooked = true
 		HookHover(minimap)
+		minimap:HookScript("OnMouseUp", OnMapClick)
 	end
 	Log("Minimap moved into KstyleUI's square frame with the square mask")
 end
@@ -837,8 +845,9 @@ local function RegisterCallbacks()
 	Callbacks.Register("LayoutChanged", MODULE, function(_, key)
 		if key == "databars.strip" then ClockChanged() end
 	end)
-	Callbacks.Register("SettingChanged", MODULE, function(_, module)
+	Callbacks.Register("SettingChanged", MODULE, function(_, module, key, value)
 		if module == MODULE then
+			Settings.Mirror(key, value)
 			Map.Refresh()
 		elseif module == "DataBars" then
 			ClockChanged()
@@ -887,6 +896,7 @@ function Map.Disable()
 	SyncPerf()
 	SyncRotate()
 	SecureClick.SetActive(false)
+	ns.Micro.Close()
 	if Map.drawer then
 		Map.drawer:Sync(false)
 	end

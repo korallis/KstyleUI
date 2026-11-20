@@ -25,14 +25,18 @@ local followups = batch == "4" and {
 	QoL = { { "coinIcons", true }, { "skipCinematics", true }, { "skipDelay", 5 } },
 }
 if unitTip and os.getenv("RENDER_BUFF_SIDE") then table.insert(followups.Tooltips, { "buffs.position", os.getenv("RENDER_BUFF_SIDE") }) end
--- RENDER_MINIMAP_R1 (a or b) switches on the minimap's first EllesmereUI parity round: a moves and adds caption readouts, b restyles the column and drawer.
+-- RENDER_MINIMAP_R1 switches on a minimap EllesmereUI parity round: a moves and adds caption readouts, b restyles the column and drawer,
+-- c (round 2) adds the compartment button, an addon button in the column and the micro menu; d shows the same with a larger tooltip.
 local r1 = os.getenv("RENDER_MINIMAP_R1")
 local rounds = {
 	a = { { "column.hover", false }, { "difficulty.shown", true }, { "perf.shown", true }, { "clock.mode", "local12" }, { "clock.accent", true },
 		{ "mail.position", "TOPLEFT" }, { "coords.position", "BOTTOMRIGHT" }, { "perf.hover", "lockouts" } },
 	b = { { "column.hover", false }, { "column.backgrounds", false }, { "column.offset", 4 }, { "drawer.list", true }, { "drawer.behaviour", "open" },
 		{ "rotate", true }, { "zone.position", "BOTTOM" }, { "column.tooltip", "up" } },
+	c = { { "column.hover", false }, { "compartment.shown", true }, { "compartment.position", "BOTTOMLEFT" }, { "compartment.scale", 1.2 },
+		{ "drawer.button", "Details" }, { "drawer.place", "column" }, { "microMenu", true }, { "tooltipScale", 1.25 }, { "column.tooltip", "left" } },
 }
+rounds.d = rounds.c
 local driver = assert(loaders[module], "RENDER_SHELL_MODULE must name a shell module")
 local D = dofile("Tools/regression/" .. driver .. "_env.lua")
 
@@ -60,6 +64,11 @@ return Common.Run(function()
 				local lib = D.FakeLibDBIcon(env)
 				lib:Add("BugSack").icon:SetTexture(Hud.ICONS.sunderArmor)
 				lib:Add("Details").icon:SetTexture(Hud.ICONS.whirlwind)
+				env.AddonCompartmentFrame.registeredAddons = { { text = "BugSack", func = function() end }, { text = "Details", func = function() end } }
+				for _, name in ipairs({ "CharacterMicroButton", "SpellbookMicroButton", "TalentMicroButton", "QuestLogMicroButton", "GuildMicroButton",
+					"LFDMicroButton", "CollectionsMicroButton", "MainMenuMicroButton" }) do
+					env.CreateFrame("Button", name, env.UIParent)
+				end
 			end
 			if unitTip then
 				local buffs = { 136076, 132212, 132328, 135987, 135906 }
@@ -166,6 +175,15 @@ return Common.Run(function()
 		env.RunTimers()
 		O.W.Settle(env)
 		env._r1Note = note
+		if r1 == "c" and not defaults then
+			ns.Micro.Toggle(ns.Map.holder)
+			ns.Micro.panel._mouseOver = true
+		elseif r1 == "d" and not defaults then
+			local tip = K.Widgets.Tooltip()
+			ns.Column.Tooltip("calendar", tip, ns.Map.column.buttons.calendar)
+			tip:Show()
+		end
+		for _ = 1, (r1 == "c" or r1 == "d") and 30 or 0 do O.W.Tick(env, 0.016) end
 	end
 	local scene = Gallery.Build(env)
 	local errors = Common.Errors(env, K)

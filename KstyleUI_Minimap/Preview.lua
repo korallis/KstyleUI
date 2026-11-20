@@ -26,6 +26,7 @@ function Preview.Build(...)
 		else
 			drawer:Close(true)
 		end
+		drawer:Layout()
 		face:Refresh()
 		local zone, pvpType = Data.Zone()
 		if type(zone) ~= "string" or zone == "" then
@@ -72,6 +73,10 @@ function Preview.Build(...)
 		Widgets.Size(player, PLAYER_SIZE, PLAYER_SIZE)
 		Widgets.Point(player, "CENTER", area, "CENTER")
 		frame.player = player
+		area:EnableMouse(true)
+		area:SetScript("OnMouseUp", function(_, button)
+			if button == "MiddleButton" and Settings.Get("microMenu") and ns.Map.IsRunning() then ns.Micro.Toggle(frame) end
+		end)
 		frame.column = Column.New(face, { preview = true })
 		local drawer = ns.Drawer.New(frame.column, { preview = true })
 		drawer.panel:SetFrameStrata("DIALOG")
