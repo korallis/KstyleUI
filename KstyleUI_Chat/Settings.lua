@@ -65,6 +65,7 @@ local defaults = {
 	},
 	classNames = true,
 	urls = true,
+	whisperSound = false,
 }
 ns.defaults = defaults
 
@@ -297,6 +298,7 @@ function ns.Schema()
 	end
 	local tail = {
 		{ type = "header", label = L["Names and links"] },
+		{ type = "toggle", key = "whisperSound", label = L["Whisper sound"], help = L["Play a sound for incoming character and Battle.net whispers."] },
 		{
 			type = "toggle", key = "classNames", label = L["Class-coloured names"],
 			help = L["Colours each player's name in chat with their class colour."],

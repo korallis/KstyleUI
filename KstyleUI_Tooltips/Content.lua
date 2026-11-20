@@ -76,6 +76,10 @@ local function Item(tooltip, data)
 	if Settings.Get("itemID") then
 		AddID(tooltip, L["Item ID"], id)
 	end
+	if Settings.Get("maxStack") then
+		local stack = Call(C_Item, "GetItemMaxStackSizeByID", id)
+		if Logic.IsNumber(stack) and stack > 1 then AddID(tooltip, L["Maximum stack"], stack) end
+	end
 	if Settings.Get("iconID") then
 		AddID(tooltip, L["Icon ID"], icon)
 	end

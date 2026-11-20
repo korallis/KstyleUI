@@ -93,14 +93,16 @@ local MODULES = {
 	{ "gold", L["Gold"], "right" },
 	{ "currencies", L["Currencies"], "right", L["Shows up to three currencies tracked in your backpack."] },
 	{ "xp", L["Experience and reputation"], "right", L["Shows experience, or watched reputation at the level cap."] },
+	{ "location", L["Location"], "left", L["Shows your current zone."] },
+	{ "itemLevel", L["Item level"], "right", L["Shows the average item level of equipped gear."] },
 }
 defaults.strip.modules = {}
 for i, def in ipairs(MODULES) do
-	defaults.strip.modules[i] = { id = def[1], shown = def[1] ~= "xp", zone = def[3] }
+	defaults.strip.modules[i] = { id = def[1], shown = i <= 12, zone = def[3] }
 end
 
 defaults.strip.dockModules = {}
-for i, id in ipairs({ "fps", "latency", "gold", "durability", "time", "micro", "spec", "hearth", "guild", "friends", "bags", "currencies", "xp" }) do
+for i, id in ipairs({ "fps", "latency", "gold", "durability", "time", "micro", "spec", "hearth", "guild", "friends", "bags", "currencies", "xp", "location", "itemLevel" }) do
 	defaults.strip.dockModules[#defaults.strip.dockModules + 1] = { id = id, shown = i <= 6, zone = id == "time" and "centre" or (id == "spec" or id == "hearth" or id == "micro") and "left" or "right" }
 end
 
@@ -365,6 +367,7 @@ function ns.Preview(...)
 			durability = { SAMPLE_DURABILITY .. "%", "good" },
 			time = { Format.Clock(SAMPLE_HOUR, SAMPLE_MINUTE, s.clock24) },
 			spec = { L["Specialization"] }, hearth = { L["ready"] .. " " .. L["Stormwind"] }, bags = { "22" },
+			location = { L["Stormwind"] }, itemLevel = { "58" },
 			guild = { "17" }, friends = { "7" }, currencies = { "1250" }, xp = { "32%" },
 		}
 	end

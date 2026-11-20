@@ -63,6 +63,11 @@ end
 
 ns.AddPart({
 	name = "alerts",
+	events = { CINEMATIC_START = function(_, cancellable)
+		if not ns.Get("skipCinematics") or not ns.True(cancellable) or type(StopCinematic) ~= "function" or type(IsShiftKeyDown) ~= "function" then return end
+		local held = IsShiftKeyDown()
+		if not ns.IsSecret(held) and held == false then StopCinematic() end
+	end },
 	Start = Sync,
 	Stop = Sync,
 	Setting = function(key)

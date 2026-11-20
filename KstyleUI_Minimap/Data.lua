@@ -40,7 +40,7 @@ local function CVarOn(name)
 end
 
 function Data.Zone()
-	local text = Call(GetMinimapZoneText)
+	local text = Call(ns.Settings.Get("zone.subzone") and GetMinimapZoneText or GetZoneText)
 	local pvpType
 	local pvp = C_PvP
 	if pvp then

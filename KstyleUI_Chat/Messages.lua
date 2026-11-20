@@ -259,6 +259,12 @@ function Messages.Refresh(settings)
 	end
 end
 
+local function Whisper()
+	if not state.active or state.settings.whisperSound ~= true then return end
+	local sound = SOUNDKIT and SOUNDKIT.TELL_MESSAGE
+	if not Format.IsSecret(sound) and type(sound) == "number" and type(PlaySound) == "function" then PlaySound(sound) end
+end
+
 local function Probe()
 	if not Util("AddMessageEventFilter", "RemoveMessageEventFilter") then
 		LogOnce("filters", "ChatFrameUtil.AddMessageEventFilter is missing; web addresses stay plain text")
@@ -280,6 +286,8 @@ function Messages.Start(settings)
 		LogOnce("registry", "EventRegistry is missing; links cannot be clicked, so web addresses stay plain text")
 	end
 	Messages.Refresh(settings)
+	K.Events.Register("Chat.Whisper", "CHAT_MSG_WHISPER", Whisper)
+	K.Events.Register("Chat.Whisper", "CHAT_MSG_BN_WHISPER", Whisper)
 	if not state.watching then
 		state.watching = true
 		Windows.Watch(HookFrame)
@@ -288,6 +296,7 @@ end
 
 function Messages.Stop()
 	state.active = false
+	K.Events.UnregisterAll("Chat.Whisper")
 	SetURLs(false)
 	SetNames(false)
 	local registry = EventRegistry

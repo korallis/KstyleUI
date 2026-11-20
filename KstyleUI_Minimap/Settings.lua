@@ -28,7 +28,7 @@ Settings.defaults = {
 	column = { side = "right", size = 19.5, spacing = 5.5, growth = "down", hover = true, tracking = true, mail = true, calendar = true, queue = true, drawer = true },
 	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = false, edgePins = false },
 	zoom = { wheel = true, slider = true, reset = false, delay = 10 },
-	zone = { shown = true, color = "plain", font = "", size = 12, outline = "world" },
+	zone = { shown = true, subzone = true, color = "plain", font = "", size = 12, outline = "world" },
 	clock = { shown = true, mode = "game", font = "", size = 12.5, outline = "world" },
 	coords = { shown = true, precision = 1, font = "", size = 11.5, outline = "world" },
 }
@@ -261,6 +261,9 @@ function Settings.Schema()
 		{
 			type = "toggle", key = "zone.shown", label = L["Zone name"],
 			help = L["Shows the zone name under the map's left edge."],
+		},
+		{
+			type = "toggle", key = "zone.subzone", label = L["Display subzone"], help = L["Use the minimap's local area name. Off shows the whole zone."],
 		},
 		{
 			type = "dropdown", key = "zone.color", label = L["Zone colour"], options = ZONE_COLOR_OPTIONS,

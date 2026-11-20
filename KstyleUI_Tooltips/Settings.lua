@@ -57,6 +57,7 @@ Settings.defaults = {
 		size = BAR_SIZE,
 	},
 	itemID = false,
+	maxStack = false,
 	spellID = false,
 	iconID = false,
 	icon = true,
@@ -258,6 +259,7 @@ function Settings.Schema()
 			min = BAR_MIN, max = BAR_MAX, step = BAR_STEP, showWhen = BarShown,
 		},
 		{ type = "header", label = L["Extra lines"] },
+		{ type = "toggle", key = "maxStack", label = L["Maximum stack"], help = L["Adds the maximum stack size to stackable item tooltips."] },
 		{
 			type = "toggle", key = "itemID", label = L["Item ID"],
 			help = L["Adds the item's ID to item tooltips."],
