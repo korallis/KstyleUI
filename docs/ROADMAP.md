@@ -52,4 +52,4 @@ Highlights:
 - A cursor ring, item levels on equipment slots, and a gamepad-friendly layout.
 - More languages polished by native speakers.
 
-Questions or ideas? Post them in #feature-requests.
+Questions or ideas? Post them in <#1572983339663499408>.
