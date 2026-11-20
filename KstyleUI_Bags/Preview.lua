@@ -92,8 +92,12 @@ function Preview.Build(...)
 		local currencies = Settings.Get("currencies")
 		if currencies and not frame.currency then
 			frame.currency = Widgets.Text(frame, "body", "text")
+			frame.currency:SetJustifyH("LEFT")
+			frame.currency:SetWordWrap(false)
 			frame.currency:SetText(CURRENCIES)
 			frame.currency:SetPoint("TOPLEFT", frame.grid, "BOTTOMLEFT", 0, -Tokens.Size("gapMedium"))
+			frame.currency:SetPoint("TOPRIGHT", frame.grid, "BOTTOMRIGHT", 0, -Tokens.Size("gapMedium"))
+			frame.currency:SetHeight(Tokens.Size("rowHeight"))
 		end
 		if frame.currency then
 			frame.currency:SetShown(currencies)
