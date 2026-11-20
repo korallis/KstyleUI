@@ -110,7 +110,6 @@ local MODULES = {
 	{ "prof2", L["Profession 2"], "left" },
 	{ "broker", L["DataBroker"], "right", L["Shows a LibDataBroker plugin from another addon."] },
 	{ "spacer", L["Spacer"], "right", L["Adds room between readouts."] },
-	{ "vault", L["Great Vault"], "right", L["Shows unlocked Great Vault rewards while the game reports them."] },
 }
 defaults.strip.modules = {}
 for i, def in ipairs(MODULES) do
@@ -119,7 +118,7 @@ end
 
 defaults.strip.dockModules = {}
 for i, id in ipairs({ "fps", "latency", "gold", "durability", "time", "micro", "spec", "hearth", "guild", "friends", "bags", "currencies", "xp", "location", "itemLevel",
-	"coords", "combat", "played", "audio", "prof1", "prof2", "broker", "spacer", "vault" }) do
+	"coords", "combat", "played", "audio", "prof1", "prof2", "broker", "spacer" }) do
 	defaults.strip.dockModules[#defaults.strip.dockModules + 1] = { id = id, shown = i <= 6, zone = id == "time" and "centre" or (id == "spec" or id == "hearth" or id == "micro") and "left" or "right" }
 end
 
@@ -133,9 +132,18 @@ function ns.FillModules(s)
 		local list, seen = s[key], {}
 		for _, entry in ipairs(list) do seen[entry.id] = true end
 		for _, entry in ipairs(defaults.strip[key]) do
-			if not seen[entry.id] then list[#list + 1] = { id = entry.id, shown = entry.shown, zone = entry.zone } end
+			if not seen[entry.id] then list[#list + 1] = { id = entry.id, shown = entry.id == "micro", zone = entry.zone } end
 		end
 	end
+end
+
+local function Cells(settings)
+	return not Strip.OneLine(settings.strip)
+end
+
+local function Docked()
+	local view = Strip.view
+	return view ~= nil and (view.slab or view.docked) ~= nil
 end
 
 function ns.Schema()
@@ -287,9 +295,9 @@ function ns.Schema()
 		{ type = "toggle", key = "strip.line", label = L["One line"], help = L["Items run together on one line at the right, joined by middle dots. Off, each sits in its own cell."] },
 		{ type = "dropdown", key = "strip.labels", label = L["Labels"], help = L["Full labels, short ones like the dungeon mockup, or values alone."], options = STRIP_LABELS },
 		{ type = "dropdown", key = "strip.valueColor", label = L["Value colour"], help = L["Frame rate in the accent and warnings in theirs, every value by grade, all in the accent, or plain."], options = VALUE_COLORS },
-		{ type = "color", key = "strip.valueCustom", label = L["Custom value colour"], help = L["The colour of every value when the value colour is custom."], showWhen = function(settings) return settings.strip.valueColor == "custom" end },
-		{ type = "toggle", key = "strip.labelCustom", label = L["Custom label colour"], help = L["Draws every label and unit in your own colour."] },
-		{ type = "color", key = "strip.labelColor", label = L["Label colour"], help = L["The colour of the labels and units."], showWhen = function(settings) return settings.strip.labelCustom == true end },
+		{ type = "color", key = "strip.valueCustom", label = L["Custom value colour"], help = L["The colour of every value when the value colour is custom."], showWhen = function(settings) return settings.strip.valueColor == "custom" end, disableWhen = Docked },
+		{ type = "toggle", key = "strip.labelCustom", label = L["Custom label colour"], help = L["Draws every label and unit in your own colour."], disableWhen = Docked },
+		{ type = "color", key = "strip.labelColor", label = L["Label colour"], help = L["The colour of the labels and units."], showWhen = function(settings) return settings.strip.labelCustom == true end, disableWhen = Docked },
 		{ type = "toggle", key = "strip.hover", label = L["Hover highlight"], help = L["Brightens a readout's label under the pointer."] },
 		{ type = "toggle", key = "strip.menus", label = L["Menu and bag buttons in the card"], help = L["Docks the micro menu and the bag bar under the readout, in the same card, when they are shown."] },
 		{ type = "toggle", key = "strip.accentEdge", label = L["Accent edge"], help = L["Draws the strip's inner edge in the accent colour."] },
@@ -298,7 +306,7 @@ function ns.Schema()
 		{ type = "slider", key = "strip.spacing", label = L["Spacing"], help = L["The room inside each cell, split between its sides."], min = 0, max = MAX_SPACING, step = 1 },
 		{ type = "dropdown", key = "strip.align", label = L["Text align"], help = L["Where each value sits in its cell. One line sizes each readout to its text."], options = {
 			{ value = "LEFT", label = L["Left"] }, { value = "CENTER", label = L["Centre"] }, { value = "RIGHT", label = L["Right"] },
-		}, disableWhen = function(settings) return Strip.LineMode(settings.strip) or settings.strip.placement == "top" end },
+		}, disableWhen = function(settings) return Strip.OneLine(settings.strip) or settings.strip.orientation == "VERTICAL" end },
 		{ type = "slider", key = "strip.padding", label = L["Readout padding"], help = L["Extra room on each side of the dots between readouts."], min = 0, max = 16, step = 1 },
 		{ type = "dropdown", key = "strip.orientation", label = L["Direction"], help = L["Items in a row, or stacked in a column."], options = {
 			{ value = "HORIZONTAL", label = L["In a row"] }, { value = "VERTICAL", label = L["In a column"] },
@@ -334,8 +342,8 @@ function ns.Schema()
 		{ type = "header", label = L["Location"] },
 		{ type = "dropdown", key = "strip.locationWidth", label = L["Width"], help = L["Automatic follows the zone name. Fixed holds the width and clips longer names."], options = {
 			{ value = "auto", label = L["Automatic"] }, { value = "manual", label = L["Fixed"] },
-		} },
-		{ type = "slider", key = "strip.locationMaxWidth", label = L["Fixed width"], help = L["The width the location keeps when it is fixed."], min = 60, max = 400, step = 5, disableWhen = function(settings) return settings.strip.locationWidth ~= "manual" end },
+		}, disableWhen = Cells },
+		{ type = "slider", key = "strip.locationMaxWidth", label = L["Fixed width"], help = L["The width the location keeps when it is fixed."], min = 60, max = 400, step = 5, disableWhen = function(settings) return settings.strip.locationWidth ~= "manual" or Cells(settings) end },
 		{ type = "header", label = L["Bag space"] },
 		{ type = "dropdown", key = "strip.bagsDisplay", label = L["Bag count"], help = L["Which slot count the bag readout shows."], options = {
 			{ value = "free", label = L["Free"] }, { value = "used", label = L["Used"] }, { value = "freeTotal", label = L["Free / total"] }, { value = "usedTotal", label = L["Used / total"] },
@@ -375,7 +383,7 @@ function ns.Schema()
 		} },
 		{ type = "header", label = L["DataBroker"] },
 		{ type = "text", key = "strip.brokerPlugin", label = L["Plugin"], help = L["The LibDataBroker plugin's name, as its addon registers it."], maxLetters = 64 },
-		{ type = "slider", key = "strip.brokerWidth", label = L["Fixed width"], help = L["Holds the plugin at this width and clips longer text. 0 follows the text."], min = 0, max = 400, step = 5 },
+		{ type = "slider", key = "strip.brokerWidth", label = L["Fixed width"], help = L["Holds the plugin at this width and clips longer text. 0 follows the text."], min = 0, max = 400, step = 5, disableWhen = Cells },
 		{ type = "toggle", key = "strip.brokerLabel", label = L["Show label"], help = L["Writes the plugin's label before its text."] },
 	})
 
@@ -464,12 +472,12 @@ function ns.Preview(...)
 			gold = { Format.Money(SAMPLE_MONEY, s.money) },
 			durability = { SAMPLE_DURABILITY .. "%", "good" },
 			time = { R.ClockText(s, Format.Clock(SAMPLE_HOUR, SAMPLE_MINUTE, s.clock24), true, true) },
-			spec = { R.SpecText(s, L["Specialization"], 1, L["Loadout name"]) }, hearth = { L["ready"] .. " " .. L["Stormwind"] }, bags = { R.BagText(s, 22, 80) },
+			spec = { R.SpecText(s, L["Specialization"], 1, L["Loadout name"]) }, hearth = { L["ready"] .. " " .. L["Stormwind"] }, bags = { R.BagText(s, s.bagsReagent and 30 or 22, s.bagsReagent and 116 or 80) },
 			location = { L["Stormwind"] }, itemLevel = { R.ItemLevelText(s, 58.3) },
-			guild = { "17" }, friends = { "7" }, currencies = { "1250" }, xp = { R.XPText(s, { current = 16000, max = 50000, label = L["Level 38"] }) },
+			guild = { "17" }, friends = { "7" }, currencies = { "1250" }, xp = { R.XPText(s, s.xpMode == "rep" and { current = 4200, max = 6000, label = L["Stormwind"] } or { current = 16000, max = 50000, label = L["Level 38"] }) },
 			coords = { R.CoordsText(s, 0.4532, 0.6218) }, combat = { "1:24" }, played = { R.Played(s.playedTotal and 900000 or 5000) },
-			audio = { R.AudioText(false, 0.8) }, prof1 = { R.ProfessionText(s, L["Profession 1"], 225, 300) }, prof2 = { R.ProfessionText(s, L["Profession 2"], 150, 300) },
-			broker = { R.BrokerText(s, L["DataBroker"], "42") }, spacer = { "" }, vault = { "3/9" },
+			audio = { R.AudioText(false, ({ SFX = 0.7, Music = 0.35, Ambience = 0.6, Dialog = 1 })[s.audioChannel] or 0.8) }, prof1 = { R.ProfessionText(s, L["Profession 1"], 225, 300) }, prof2 = { R.ProfessionText(s, L["Profession 2"], 150, 300) },
+			broker = { R.BrokerText(s, s.brokerPlugin, "42") }, spacer = { "" },
 		}
 	end
 

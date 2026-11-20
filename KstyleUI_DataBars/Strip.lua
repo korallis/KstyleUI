@@ -78,6 +78,10 @@ local function LineMode(s)
 end
 Strip.LineMode = LineMode
 
+function Strip.OneLine(s)
+	return s.placement ~= "rail" or LineMode(s)
+end
+
 local running = false
 local fpsReady = true
 local ticker, ticking
@@ -217,12 +221,12 @@ end
 
 local function ValueColor(item, s, grade)
 	local mode = s.valueColor
-	if item.view.slab then
+	if grade == "low" then
+		Widgets.TextColor(item.value, "hostile")
+	elseif item.view.slab then
 		Widgets.TextColor(item.value, "medTextMuted")
 	elseif item.view.docked then
 		Widgets.TextColor(item.value, "labelMuted")
-	elseif grade == "low" then
-		Widgets.TextColor(item.value, "hostile")
 	elseif mode == "custom" and type(s.valueCustom) == "table" then
 		item.value:SetTextColor(s.valueCustom.r, s.valueCustom.g, s.valueCustom.b)
 	elseif mode == "accent" then
@@ -374,15 +378,11 @@ local function Labels(id, s)
 	return type(labels) == "function" and labels(s) or labels
 end
 
-local function InlineForms(id, s)
-	local labels = Labels(id, s)
-	return { labels.inline, labels.short, "" }
-end
-
 local function FitCaption(item, s, valueWidth, unitGap)
 	local label = item.label
 	local room = (item.cell or item.inner or 1) - 2 * MIN_GAP
-	for _, form in ipairs(InlineForms(item.id, s)) do
+	local labels = Labels(item.id, s)
+	for _, form in ipairs({ labels.inline, labels.short, "" }) do
 		if form == "" then
 			return form, 0
 		end
@@ -475,9 +475,15 @@ local function PlaceLine(view, s)
 	elseif view.rail then
 		limits.right = max(0, frame:GetWidth() - 2 * edge - EDGE_BORDERS)
 	end
-	local signature = { tostring(view.slab), tostring(view.topBar), tostring(view.docked), frame:GetWidth(), h, edge, unitGap, lift, dotGap, step, limits.left or 0, limits.right or 0 }
+	local signature = { tostring(view.slab), tostring(view.topBar), tostring(view.docked), frame:GetWidth(), h, edge, unitGap, lift, dotGap, step, limits.left or 0, limits.right or 0, view.leftInset or 0 }
 	for _, entry in ipairs(Strip.Modules(s) or {}) do zones[entry.id] = widths[entry.zone] and entry.zone or "right" end
-	for _, id in ipairs(order) do
+	local fit, sequence = view.topBar and view == Strip.view, order
+	if fit then
+		sequence = {}
+		for _, id in ipairs(order) do if zones[id] == "centre" then sequence[#sequence + 1] = id end end
+		for _, id in ipairs(order) do if zones[id] ~= "centre" then sequence[#sequence + 1] = id end end
+	end
+	for _, id in ipairs(sequence) do
 		local item = view.items[id]
 		local label = item.caption ~= "" and TextWidth(item.label, s.fontSize) or 0
 		local value = WIDTH[id] and WIDTH[id](s) or TextWidth(item.value, s.fontSize)
@@ -486,7 +492,8 @@ local function PlaceLine(view, s)
 		if view.rail then zone = "right" end
 		if view.slab and zone == "centre" then zone = "left" end
 		local gap = widths[zone] > 0 and id ~= "spacer" and last[zone] ~= "spacer" and Widgets.Snap(frame, TextWidth(item.dot, s.fontSize) + 2 * dotGap) or 0
-		local overflow = (view.slab or view.rail) and (#hidden[zone] > 0 or widths[zone] + gap + width + 2 > limits[zone])
+		if fit and zone ~= "centre" then limits[zone] = (frame:GetWidth() - widths.centre) / 2 - edge - LABEL_GAP - (zone == "left" and view.leftInset or 0) end
+		local overflow = (view.slab or view.rail or fit and zone ~= "centre") and (#hidden[zone] > 0 or widths[zone] + gap + width + 2 > limits[zone])
 		positions[id] = { zone, widths[zone] + gap, width, gap > 0, value, label, overflow }
 		if overflow then
 			hidden[zone][#hidden[zone] + 1] = id
@@ -538,7 +545,7 @@ local function PlaceLine(view, s)
 		item.label:SetJustifyH("LEFT")
 		item.separator:Hide()
 		if not item.overflow then x = x + width end
-		local captionDot = view.slab and position[1] == "right" and not position[4] and view.slab.text:IsVisible()
+		local captionDot = view.slab and position[1] == "right" and position[2] == 0 and view.slab.text:IsVisible()
 		local dot = not item.overflow and (captionDot or (view.topBar or view.slab) and position[4] or not view.topBar and not view.slab and i > 1 and order[i] ~= "spacer" and order[i - 1] ~= "spacer")
 		item.dot:SetShown(dot)
 		if dot then
@@ -632,10 +639,10 @@ local function PlaceItems(view, s)
 	end
 end
 
-local function SetValues(view, s, values, timedOnly, force)
+local function SetValues(view, s, values, only, force)
 	local place = false
 	for _, id in ipairs(view.order) do
-		if not timedOnly or TIMED[id] then
+		if not only or only == id or only == true and TIMED[id] then
 			local item, value = view.items[id], values[id]
 			local text, grade = value and value[1], value and value[2]
 			text = text or L["--"]
@@ -744,7 +751,7 @@ function Strip.Paint(view, s, values)
 	local force = view.paintColor ~= s.valueColor or view.paintDock ~= view.docked or view.paintLine ~= view.lineMode
 	SetValues(view, s, values, nil, force)
 	view.paintColor, view.paintDock, view.paintLine = s.valueColor, view.docked, view.lineMode
-	Strip.DockMenus(view, s)
+	if not view.combat then Strip.DockMenus(view, s) end
 	PlaceItems(view, s)
 	for _, item in pairs(view.items) do
 		Widgets.TextScrim(item.label, view.bare and item.button:IsShown() and item.label:IsShown())
@@ -839,6 +846,7 @@ end
 function Strip.DockMenus(view, s)
 	local Menus = ns.Menus
 	local frame, card = view.frame, view.card
+	view.leftInset = nil
 	if view.topBar and s.enabled ~= false and s.menus == true and Menus and view == Strip.view then
 		view.microDock = view.microDock or function(content, width, height)
 			content:ClearAllPoints()
@@ -848,8 +856,9 @@ function Strip.DockMenus(view, s)
 		Menus.SetDock("micro", view.microDock, frame, min(15, frame:GetHeight()), 1, true)
 		Menus.SetDock("bags", nil)
 		local micro = Menus.Content("micro")
+		view.leftInset = Tokens.Size("screenMargin") + (micro and Menus.Visible("micro") and micro:GetWidth() + MENU_GAP or 0)
 		view.zones.left:ClearAllPoints()
-		Widgets.Point(view.zones.left, "TOPLEFT", frame, "TOPLEFT", Tokens.Size("screenMargin") + (micro and Menus.Visible("micro") and micro:GetWidth() + MENU_GAP or 0), 0)
+		Widgets.Point(view.zones.left, "TOPLEFT", frame, "TOPLEFT", view.leftInset, 0)
 		Widgets.Point(view.zones.left, "BOTTOMRIGHT", frame, "BOTTOMRIGHT")
 		view.line, view.lineTop, view.wrapMenus = nil, nil, nil
 		card:ClearAllPoints()
@@ -903,10 +912,10 @@ function Strip.DockMenus(view, s)
 	end
 end
 
-local function Read(view, s, timedOnly)
+local function Read(view, s, only)
 	local values = view.values
 	for _, id in ipairs(view.order) do
-		if not timedOnly or TIMED[id] then
+		if not only or only == id or only == true and TIMED[id] then
 			local slot = values[id] or {}
 			values[id] = slot
 			local text, grade = VALUES[id](s)
@@ -1053,15 +1062,14 @@ local function OnClick(button, mouse)
 	end
 end
 
-function Strip.Update(timedOnly)
+function Strip.Update(only)
 	local view = Strip.view
 	if not view or not running or view.visible == false then
 		return
 	end
 	local s = ns.Settings().strip
 	if s.enabled == false then return end
-	timedOnly = timedOnly == true
-	SetValues(view, s, Read(view, s, timedOnly), timedOnly)
+	SetValues(view, s, Read(view, s, only), only)
 end
 
 function Strip.Tick()
@@ -1101,7 +1109,7 @@ local function DockInk(view)
 	if view.docked then
 		for _, item in pairs(view.items) do
 			Widgets.TextColor(item.label, "labelMuted")
-			Widgets.TextColor(item.value, "labelMuted")
+			Widgets.TextColor(item.value, item.grade == "low" and "hostile" or "labelMuted")
 			Widgets.TextColor(item.dot, "labelMuted")
 		end
 	end
@@ -1142,6 +1150,15 @@ function Strip.Refresh()
 	Strip.Paint(view, s, Read(view, s))
 	DockInk(view)
 	ns.Readouts.Sync(true)
+end
+
+function Strip.Reorder()
+	local view, s = Strip.view, ns.Settings().strip
+	if not InCombatLockdown() or not view or not running or not view.visible or s.enabled == false then return Strip.Refresh() end
+	view.order, view.combat = Order(s), true
+	Strip.Paint(view, s, Read(view, s))
+	view.combat = nil
+	DockInk(view)
 end
 
 function Strip.Dock()
@@ -1297,7 +1314,7 @@ function Strip.Setting(key)
 		MatchLine(s)
 	end
 	Strip.Refresh()
-	if field == "modules" or field == "dockModules" or field == "railModules" or field == "enabled" then
+	if field == "modules" or field == "dockModules" or field == "railModules" or field == "enabled" or field == "placement" then
 		StartTicker()
 	end
 end

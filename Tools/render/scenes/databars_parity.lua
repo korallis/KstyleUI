@@ -7,7 +7,7 @@ local O = dofile("Tools/regression/options_env.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 
 local SHOWN = { micro = "left", spec = "left", coords = "left", prof1 = "left", time = "centre", combat = "right", played = "right", audio = "right",
-	broker = "right", spacer = "right", vault = "right", bags = "right", itemLevel = "right", fps = "right", latency = "right", gold = "right" }
+	broker = "right", spacer = "right", bags = "right", itemLevel = "right", fps = "right", latency = "right", gold = "right" }
 local PREVIEW = { spec = "left", time = "centre", bags = "right", itemLevel = "right" }
 local OPTIONS = {
 	{ "strip.specUpper", true }, { "strip.specLoadout", true }, { "strip.clockMail", true }, { "strip.clockRest", true },
@@ -27,7 +27,6 @@ return Common.Run(function()
 			e.GetProfessions = function() return 1 end
 			e.GetProfessionInfo = function() return "Mining", 136240, 225, 300 end
 			e.HasNewMail, e.IsResting = function() return true end, function() return true end
-			e.C_WeeklyRewards = { GetActivities = function() return { { progress = 1, threshold = 1 }, { progress = 2, threshold = 3 }, { progress = 4, threshold = 4 } } end }
 			e.C_ClassTalents = { GetLastSelectedSavedConfigID = function() return 7 end }
 			e.C_Traits = { GetConfigInfo = function() return { name = "Raid" } end }
 			e.GetAverageItemLevel = function() return 62.8, 58.3 end
@@ -43,7 +42,6 @@ return Common.Run(function()
 			end
 		end,
 	}))
-	if not K.Modules.IsRunning("DataBars") then assert(K.Modules.Enable("DataBars")) end
 	env.RunTimers()
 	local key = os.getenv("RENDER_DATABARS_OPTIONS")
 	local shown = key and PREVIEW or SHOWN

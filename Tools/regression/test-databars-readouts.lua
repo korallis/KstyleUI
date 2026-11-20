@@ -176,7 +176,7 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 	for _, item in ipairs(model.Visible(items)) do if item.entry then entries[item.entry] = item end end
 	for _, entry in ipairs(bar.Settings().strip.modules) do
 		assert(entries[entry.id], entry.id .. " is in the real ordered list")
-		eq(entry.shown, not ({ xp = 1, location = 1, itemLevel = 1, coords = 1, combat = 1, played = 1, audio = 1, prof1 = 1, prof2 = 1, broker = 1, spacer = 1, vault = 1 })[entry.id])
+		eq(entry.shown, not ({ xp = 1, location = 1, itemLevel = 1, coords = 1, combat = 1, played = 1, audio = 1, prof1 = 1, prof2 = 1, broker = 1, spacer = 1 })[entry.id])
 	end
 	entries.micro.set({ shown = false })
 	assert(not bar.Menus.Visible("micro"))
