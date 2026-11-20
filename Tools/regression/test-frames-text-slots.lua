@@ -33,6 +33,19 @@ local function slots(env, K, module, prefix, frame, source, event, combat)
 				"plate text overlays the health fill")
 		end
 		assert(text:IsShown() and content(text):find(tostring(source.health), 1, true), "slot paints its unit")
+		if module == "GroupFrames" then
+			local paint, calls = K.Widgets.TagText, 0
+			K.Widgets.TagText = function(region, ...)
+				if region == text then calls = calls + 1 end
+				return paint(region, ...)
+			end
+			for _, name in ipairs({ "UNIT_ABSORB_AMOUNT_CHANGED", "UNIT_TARGET", "UNIT_HEAL_PREDICTION",
+				"UNIT_THREAT_SITUATION_UPDATE", "UNIT_IN_RANGE_UPDATE", "UNIT_PORTRAIT_UPDATE" }) do
+				env.FireEvent(name, frame.unit)
+			end
+			K.Widgets.TagText = paint
+			assert(calls == 0, "extra text must only repaint for events used by its tags")
+		end
 		write(env, K, module, key .. "size", 15)
 		local _, size = text:GetFont()
 		assert(size == 15 * K.Theme.FontScale(), "slot size applies")
@@ -88,6 +101,15 @@ end
 collectgarbage()
 do
 	local env, K, ns = G.New({ saved = saved("GroupFrames") })
+	assert(ns.Settings.Get("party.extra1.x") == 0, "lazy slot rows must be indexed for direct settings reads")
+	K.Options.Get("GroupFrames")
+	local indices = {}
+	for i, row in ipairs(ns.Settings.schema) do if row.key then indices[row.key] = i end end
+	for _, kind in ipairs({ "party", "raid" }) do
+		assert(indices[kind .. ".healthTextPlace"] < indices[kind .. ".extra1.font"]
+			and indices[kind .. ".extra2.y"] < indices[kind .. ".iconSize"],
+			"extra text controls belong after the kind's existing text controls")
+	end
 	G.SetRoster(env, "party", { { name = "Tank", class = "WARRIOR", health = 3000, maxHealth = 4000 } })
 	assert(K.Modules.Enable("GroupFrames")); env.RunTimers()
 	local frame
