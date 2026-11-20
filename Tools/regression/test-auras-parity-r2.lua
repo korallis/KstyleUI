@@ -125,5 +125,63 @@ local settings = K.Store.Module("Auras")
 assert(rowsByKey["extraBuffs.enabled"] and not rowsByKey["extraBuffs.enchants"] and rowsByKey["extraDebuffs.typeIcon"], "the extra sections hold the row switch and their kind's rows")
 assert(rowsByKey["extraBuffs.iconSize"].disableWhen(settings) and rowsByKey["extraBuffs.onlyMine"].disableWhen(settings), "their rows wait for the switch")
 assert(not rowsByKey["buffs.glow"].disableWhen and not rowsByKey["buffs.onlyMine"].disableWhen, "the main rows need no switch")
+
+-- verify-608 review probes, each with the option on.
+-- A timer sharing the type icon's anchor takes the lane under (or over) it, inside its own tile: a 22-unit "4:05" never
+-- paints into the neighbouring tile or on the symbol, at any of the nine anchors.
+local G = dofile("Tools/regression/geometry.lua")
+local function apart(r, s) return r.right <= s.left or s.right <= r.left or r.top <= s.bottom or s.top <= r.bottom end
+debuff.timer:SetSize(22, 11)
+for _, pair in ipairs({ { "top", "TOP" }, { "inside", "BOTTOM" }, { "center", "CENTER" }, { "TOPLEFT" }, { "TOPRIGHT" }, { "LEFT" }, { "RIGHT" }, { "BOTTOMLEFT" }, { "BOTTOMRIGHT" } }) do
+	write("timer.position", pair[1]); write("debuffs.typeIcon", pair[2] or pair[1])
+	local t, i, tile = G.Rect(debuff.timer, debuff.skin), G.Rect(debuff.typeIcon, debuff.skin), debuff.skin:GetWidth()
+	assert(t.left >= 0 and t.right <= tile and apart(t, i), pair[1] .. ": the timer stays in its tile, clear of the type icon (" .. t.left .. " to " .. t.right .. " of " .. tile .. ")")
+end
+-- Without the engine's Icon style the symbol is never drawn, so neither text moves for it.
+local styles = env.Enum.CustomAuraButtonDispelTypeTextureStyle
+local iconStyle = styles.Icon
+styles.Icon = nil
+write("timer.position", "LEFT"); write("count.position", "LEFT"); write("debuffs.typeIcon", "LEFT")
+assert(debuff.timer._points[1][2] ~= debuff.typeIcon and debuff.count._points[1][2] ~= debuff.typeIcon, "an unbound symbol moves no text")
+styles.Icon = iconStyle
+write("timer.position", "below"); write("count.position", "TOPRIGHT"); write("debuffs.typeIcon", "none")
+
+-- The glow repaints when its tile's size changes, not on an unrelated setting.
+write("debuffs.glow", true)
+local painted = calls(debuff.glow.slice[1], "SetPoint")
+write("extraDebuffs.refresh", true)
+assert(calls(debuff.glow.slice[1], "SetPoint") == painted, "an unrelated setting repaints no glow")
+write("debuffs.iconSize", 30)
+assert(calls(debuff.glow.slice[1], "SetPoint") > painted, "a new icon size does")
+write("debuffs.glow", false); write("debuffs.iconSize", 27.6); write("extraDebuffs.refresh", false)
+
+-- One tracked-layout change reads the Cooldown Manager's tracked buffs once for both buff rows.
+write("extraBuffs.enabled", true)
+local reads, readSet = 0, ns.Tracked.Set
+ns.Tracked.Set = function(...) reads = reads + 1; return readSet(...) end
+env.FireEvent("SPELLS_CHANGED")
+ns.Tracked.Set = readSet
+assert(reads == 1, "both buff rows share one read of the tracked buffs, not " .. reads)
+
+-- The preview follows the row's filter and order: Dispellable by you drops the crowd control sample, Reverse order reverses.
+write("extraDebuffs.enabled", true); write("extraDebuffs.show", "all")
+preview:Refresh()
+local samples = preview.extraDebuffs
+assert(shown(samples) == 3, "every sample shows")
+write("extraDebuffs.dispellable", true); preview:Refresh()
+assert(shown(samples) == 2 and not samples[3].button:IsShown(), "Dispellable by you leaves out the crowd control sample, as the live filter does")
+write("extraDebuffs.dispellable", false); write("extraDebuffs.reverse", true); preview:Refresh()
+assert(samples[3].button._points[1][4] < samples[1].button._points[1][4], "Reverse order reverses the preview")
+write("extraDebuffs.reverse", false); write("extraDebuffs.show", "crowdControl")
+
+-- A preset writes the extra rows off, as its preview shows them.
+assert(extra.host:IsShown() and K.Setup.Apply({ layout = "Tank", modules = { Auras = true } }))
+env.RunTimers()
+local stored = K.Store.Module("Auras")
+assert(stored.extraBuffs.enabled == false and stored.extraDebuffs.enabled == false and not extra.host:IsShown(), "applying a preset switches the extra rows off")
+
+-- A future aura element under the minimap crest falls back like any other key instead of raising.
+K.Store.Profile().Minimap = { enabled = true, frame = "ring" }
+assert(Layouts.MinimapCrest() and pcall(Layouts.Aspect, "wide", "medallions", "DPS", "auras.future"), "an aura key the presets do not place raises no error")
 assert(#env._errors == 0 and K.ErrorCount() == 0, "the new options raise no errors: " .. tostring(env._errors[1]))
 print("auras parity round 2 ok")

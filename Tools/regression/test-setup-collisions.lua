@@ -601,21 +601,20 @@ do
 end
 
 -- The extra aura rows are off in every preset; a player who switches them on finds them beside the map, clear of every
--- element the preset shows, in each HUD style at the four test screens (wherever the preset itself fits).
+-- element the preset shows, in each HUD style at the four test screens, with the shipped attached overlays.
+K.Store.Module("Cooldowns").attached, K.Store.Module("Meters").swing = nil, nil
 local extraFits = 0
 for _, name in ipairs(Layouts.Names()) do
 	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 			local width, enabled = K.Scale.CanvasWidth(size[1], size[2]), Layouts.Enabled(name)
 			assert(enabled["auras.extraBuffs"] == false and enabled["auras.extraDebuffs"] == false, name .. ": the extra aura rows start off")
-			if Layouts.Fits(name, width, size[2], K.Scale.DEFAULT_USER_SCALE, enabled, nil, style) then
-				enabled["auras.extraBuffs"], enabled["auras.extraDebuffs"] = true, true
-				assert(Layouts.Fits(name, width, size[2], K.Scale.DEFAULT_USER_SCALE, enabled, nil, style), string.format("%s %s at %dx%d: the extra aura rows fit", name, style, size[1], size[2]))
-				extraFits = extraFits + 1
-			end
+			assert(Layouts.Fits(name, width, size[2], K.Scale.DEFAULT_USER_SCALE, enabled, nil, style), string.format("%s %s at %dx%d: the preset fits", name, style, size[1], size[2]))
+			enabled["auras.extraBuffs"], enabled["auras.extraDebuffs"] = true, true
+			assert(Layouts.Fits(name, width, size[2], K.Scale.DEFAULT_USER_SCALE, enabled, nil, style), string.format("%s %s at %dx%d: the extra aura rows fit", name, style, size[1], size[2]))
+			extraFits = extraFits + 1
 		end
 	end
 end
-assert(extraFits >= 12, "the extra aura rows were checked on " .. extraFits .. " fitting screens")
 
 print("setup collisions ok: " .. capped .. " capped screen/preset/request cases; " .. bars .. " action bar rects clear of the play field; " .. #Layouts.Names() .. " presets x " .. #ASPECTS .. " aspects, " .. checked .. " screens, " .. #Layouts.ELEMENTS .. " elements each, " .. blessings .. " aura row states, " .. extraFits .. " extra aura row fits")
