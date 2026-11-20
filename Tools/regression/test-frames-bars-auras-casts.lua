@@ -205,6 +205,8 @@ do
 	local clipPoint, _, _, _, clipY = f.auraClip:GetPoint()
 	assert(f.auraClip:GetHeight() >= size + timerSize and clipPoint:find("^TOP"),
 		"the debuff clip grows down to hold the time left: " .. f.auraClip:GetHeight() .. " for a " .. size .. " tile at " .. tostring(clipY))
+	local buffs = f.buffs and f.buffs._groups.buffs.frames[1]
+	assert(buffs and f.buffClip:GetHeight() >= buffs:GetHeight() + timerSize, "so does the heal row's clip")
 	local cPoint, cTo, cToPoint = aura.count:GetPoint()
 	assert(cPoint == "BOTTOMRIGHT" and cTo == p.skin and cToPoint == "BOTTOMRIGHT", "the stack count stays inside the tile")
 	for _, entry in ipairs(aura.dispel) do
