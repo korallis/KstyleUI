@@ -30,7 +30,7 @@ Settings.defaults = {
 	zoom = { wheel = true, slider = true, reset = false, delay = 10 },
 	zone = { shown = true, subzone = true, color = "plain", font = "", size = 12, outline = "world" },
 	clock = { shown = true, mode = "game", font = "", size = 12.5, outline = "world" },
-	coords = { shown = true, precision = 1, font = "", size = 11.5, outline = "world" },
+	coords = { shown = true, hover = false, precision = 1, font = "", size = 11.5, outline = "world" },
 }
 
 local rows
@@ -287,6 +287,7 @@ function Settings.Schema()
 		schema[#schema + 1] = row
 	end
 	schema[#schema + 1] = { type = "header", label = L["Coordinates"] }
+	schema[#schema + 1] = { type = "toggle", key = "coords.hover", label = L["Coordinates only on hover"], help = L["Show coordinates only while the pointer is over the map."], showWhen = function(v) return v.coords.shown end }
 	schema[#schema + 1] = {
 		type = "toggle", key = "coords.shown", label = L["Coordinates"],
 		help = L["Shows your position on the zone map, under the zone name."],

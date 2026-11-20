@@ -43,6 +43,7 @@ Settings.defaults = {
 	accentSource = "class",
 	accentColor = { r = accentR, g = accentG, b = accentB },
 	classNames = true,
+	playerTitles = true,
 	guildLine = true,
 	guildRank = false,
 	targetLine = true,
@@ -196,6 +197,7 @@ function Settings.Schema()
 
 	local MORE = {
 		{ type = "header", label = L["Units"] },
+		{ type = "toggle", key = "playerTitles", label = L["Player titles"], help = L["Keep titles in player names. Off shows the character name alone."] },
 		{
 			type = "toggle", key = "classNames", label = L["Class colours"],
 			help = L["Colours player names by class and other names by reaction."],

@@ -140,9 +140,14 @@ Strip.VALUES.guild = Guild
 Strip.VALUES.friends = Friends
 Strip.VALUES.currencies = function() return Currencies() end
 Strip.VALUES.location = function() return Plain(Call(GetZoneText), "string") or L["--"] end
-Strip.VALUES.itemLevel = function()
-	local _, equipped = Call(GetAverageItemLevel)
-	return IsNumber(equipped) and equipped >= 0 and tostring(math.floor(equipped)) or L["--"]
+Strip.VALUES.itemLevel = function(s)
+	s = s or ns.Settings().strip
+	local overall, equipped = Call(GetAverageItemLevel)
+	local value = equipped
+	if s.itemLevelSource == "overall" then value = overall end
+	if not IsNumber(value) or value < 0 then return L["--"] end
+	local decimals = IsNumber(s.itemLevelDecimals) and math.max(0, math.min(2, math.floor(s.itemLevelDecimals))) or 0
+	return decimals == 0 and tostring(math.floor(value)) or string.format("%." .. decimals .. "f", value)
 end
 for _, id in ipairs({ "location", "itemLevel" }) do
 	Strip.TOOLTIPS[id] = function(_, tip) tip:AddDoubleLine(titles[id], Strip.VALUES[id]()) end

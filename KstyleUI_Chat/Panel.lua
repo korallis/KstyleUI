@@ -114,12 +114,13 @@ function Panel.Geometry(chat)
 	local snap = Scale.Snap
 	local pad = snap(Pad())
 	local foot = pad
-	if EditAlways() then
+	if EditAlways() and not state.settings.inputOnTop then
 		local tile = max(0, (EDIT_HEIGHT * k - EDIT_TILE) / 2)
 		foot = snap(pad + (EDIT_DROP + EDIT_HEIGHT) * k - tile)
 	end
 	local divider = snap(max(TAB_ROW, TAB_TEXT_RISE * k + BUTTON_SIZE / 2))
 	local top = divider + (Widgets.Readability("chatTabs") and snap(12) or 0)
+	if state.settings and state.settings.inputOnTop then top = top + snap((EDIT_HEIGHT + EDIT_DROP) * k) end
 	local _, size = chat:GetFont()
 	local height = state.holder and state.holder:GetHeight()
 	local spacing
@@ -417,6 +418,12 @@ end
 local function PlaceEdit(frame, k, over, own)
 	local box, bar = frame.editBox, frame.ScrollBar
 	if type(box) ~= "table" or type(box.SetPoint) ~= "function" or type(bar) ~= "table" then
+		return
+	end
+	if state.active and state.settings.inputOnTop and own then
+		box:ClearAllPoints()
+		box:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", -EDIT_LEFT, EDIT_DROP)
+		box:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", EDIT_PAST_SCROLLBAR, EDIT_DROP)
 		return
 	end
 	local y = -EDIT_DROP
@@ -862,7 +869,7 @@ function Panel.Refresh(settings, key)
 		return
 	end
 	Paint(settings)
-	if key == nil or key == "scale" or key == "theme" or key == "copyButton" or key == "editBox" or key == "fontSize" or key == "lineSpacing" or key == "framing" or key == "buttons" then
+	if key == nil or key == "scale" or key == "theme" or key == "copyButton" or key == "editBox" or key == "fontSize" or key == "lineSpacing" or key == "framing" or key == "buttons" or key == "inputOnTop" then
 		Schedule()
 	end
 	if key == nil or key == "editBox" then

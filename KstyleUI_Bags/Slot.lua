@@ -13,7 +13,6 @@ Slot.TEMPLATE = "ContainerFrameItemButtonTemplate"
 
 local ICON_INSET_LINES = 2
 local TEXT_INSET = 2
-local ICON_CROP = 0.07
 local DIM_ALPHA = 0.25
 local EMPTY_FILL_ALPHA = 0.55
 local JUNK_SIZE = 8
@@ -99,6 +98,8 @@ local function ApplyFont(text)
 end
 
 function Slot.Style(slot)
+	local crop = Settings.Get("iconZoom") / 100
+	slot.icon:SetTexCoord(crop, 1 - crop, crop, 1 - crop)
 	ApplyFont(slot.count)
 	ApplyFont(slot.level)
 	if slot.glow then
@@ -185,7 +186,9 @@ function Slot.Layout(slot, size, force)
 	slot.count:ClearAllPoints()
 	slot.count:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -inset, inset)
 	slot.level:ClearAllPoints()
-	slot.level:SetPoint(Settings.Get("separateFigures") and "TOPLEFT" or "BOTTOMLEFT", button, Settings.Get("separateFigures") and "TOPLEFT" or "BOTTOMLEFT", inset, Settings.Get("separateFigures") and -inset or inset)
+	local separate = Settings.Get("separateFigures")
+	local corner = separate and "TOPLEFT" or "BOTTOMLEFT"
+	slot.level:SetPoint(corner, button, corner, inset, separate and -inset or inset)
 	local junkSize = Widgets.Snap(button, JUNK_SIZE)
 	slot.junk:SetSize(junkSize, junkSize)
 	slot.junk:ClearAllPoints()
@@ -350,7 +353,6 @@ function Slot.New(parent, id, opts)
 	slot.chrome = Widgets.IconChrome(button)
 	local maskPath = Tokens.Texture("iconMask")
 	local icon = button:CreateTexture(nil, "ARTWORK")
-	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
 	local mask = button:CreateMaskTexture()
 	mask:SetTexture(maskPath, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 	mask:SetAllPoints(icon)

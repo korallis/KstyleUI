@@ -26,11 +26,15 @@ Settings.LIMITS = {
 	spacing = { SPACING_MIN, SPACING_MAX },
 	rows = { 0, ROWS_MAX },
 	fontSize = { FONT_MIN, FONT_MAX },
+	iconZoom = { 0, 20 },
 }
 
 Settings.defaults = {
 	enabled = false,
 	compactBags = false,
+	frameStrata = "MEDIUM",
+	slotCount = "freeTotal",
+	iconZoom = 7,
 	layout = "categories",
 	emptySlots = "packed",
 	columns = 10,
@@ -113,6 +117,8 @@ local function Choices(list)
 end
 
 local CHOICES = {
+	frameStrata = { LOW = true, MEDIUM = true, HIGH = true, DIALOG = true },
+	slotCount = { freeTotal = true, usedTotal = true, free = true },
 	layout = Choices(LAYOUT_OPTIONS),
 	emptySlots = Choices(EMPTY_OPTIONS),
 	growth = Choices(GROWTH_OPTIONS),
@@ -142,6 +148,15 @@ function Settings.Schema()
 	Settings.schema = {
 		{ type = "header", label = L["Bags"] },
 		{ type = "toggle", key = "enabled", label = L["KstyleUI bags"], help = L["Replace Blizzard's bags with one KstyleUI bag window."] },
+		{ type = "dropdown", key = "frameStrata", label = L["Window layer"], help = L["How bags and bank overlap other windows."], options = {
+			{ value = "LOW", label = L["Low"] }, { value = "MEDIUM", label = L["Medium"] },
+			{ value = "HIGH", label = L["High"] }, { value = "DIALOG", label = L["Dialog"] },
+		}, disableWhen = isOff },
+		{ type = "dropdown", key = "slotCount", label = L["Slot count format"], help = L["Show free slots, used slots or free slots alone in the footer."], options = {
+			{ value = "freeTotal", label = L["Free / total"] }, { value = "usedTotal", label = L["Used / total"] },
+			{ value = "free", label = L["Free slots only"] },
+		}, disableWhen = isOff },
+		{ type = "slider", key = "iconZoom", label = L["Icon zoom"], help = L["Crop item icon edges by this percentage on each side."], min = 0, max = 20, step = 1, disableWhen = isOff },
 		{ type = "header", label = L["Slots"] },
 		{ type = "toggle", key = "compactBags", label = L["Compact bags"], help = L["Group items and pack empty slots. Off keeps bags and bank in a fixed grid with every slot shown."], disableWhen = isOff },
 		{

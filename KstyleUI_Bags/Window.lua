@@ -17,7 +17,6 @@ local REFRESH_DELAY = 0.2
 local FOOTER_HEIGHT = 20
 local SCREEN_MARGIN = 48
 local COPPER_PER_SILVER, SILVER_PER_GOLD = 100, 100
-local STRATA = "MEDIUM"
 local windows = {}
 local ANCHOR_FRACTIONS = {
 	TOPLEFT = { 0, 1 }, TOP = { 0.5, 1 }, TOPRIGHT = { 1, 1 },
@@ -83,7 +82,7 @@ function Window.New(spec)
 		escape = true,
 		hidden = true,
 		movable = true,
-		strata = STRATA,
+		strata = Settings.Get("frameStrata"),
 		onMoved = function()
 			win:SavePosition()
 		end,
@@ -427,6 +426,7 @@ function Window:Layout(force)
 	if not Widgets.MayMove(panel) then
 		return
 	end
+	panel:SetFrameStrata(Settings.Get("frameStrata"))
 	if Settings.Get("readableHeaders") then
 		local path, _, flags = Tokens.Font("caps")
 		Widgets.ApplyFont(panel.titleText, path, 14 * K.Theme.FontScale(), flags)
@@ -725,11 +725,18 @@ function Window:UpdateCooldowns()
 	end
 end
 
+local function SlotCount(free, total)
+	local mode = Settings.Get("slotCount")
+	if mode == "usedTotal" then return string.format(L["%d/%d used"], total - free, total) end
+	if mode == "free" then return string.format(L["%d free"], free) end
+	return string.format(L["%d/%d free"], free, total)
+end
+
 function Window:UpdateFooter()
 	local remote = self.remoteData
 	if remote then
 		if remote.free and remote.total then
-			Widgets.SetText(self.free, string.format(L["%d/%d free"], remote.free, remote.total))
+			Widgets.SetText(self.free, SlotCount(remote.free, remote.total))
 		else
 			Widgets.SetText(self.free, remote.name)
 		end
@@ -747,7 +754,7 @@ function Window:UpdateFooter()
 			end
 		end
 	end
-	Widgets.SetText(self.free, string.format(L["%d/%d free"], free, total))
+	Widgets.SetText(self.free, SlotCount(free, total))
 	self:UpdateMoney()
 end
 

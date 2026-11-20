@@ -9,6 +9,7 @@ ns.defaults = {
 	enabled = false,
 	fastLoot = true,
 	lootFeed = true,
+	coinIcons = false,
 	autoRepair = true,
 	guildRepair = false,
 	autoQuests = false,
@@ -16,6 +17,7 @@ ns.defaults = {
 	ignoreTrivial = true,
 	questInstances = true,
 	skipCinematics = false,
+	skipDelay = 0,
 	questModifier = "SHIFT",
 	maxCamera = true,
 	quietErrors = false,
@@ -27,6 +29,7 @@ function ns.Get(key)
 	if type(value) ~= type(default) then
 		return default
 	end
+	if key == "skipDelay" and (ns.IsSecret(value) or value ~= value or value < 0 or value > 30) then return default end
 	if key == "questModifier" and not ns.PAUSE_KEYS[value] then
 		return default
 	end
@@ -58,6 +61,7 @@ function ns.Schema()
 		{ type = "header", label = L["Loot"] },
 		{ type = "toggle", key = "fastLoot", label = L["Faster auto loot"], help = L["When the game auto loots, take every item the moment the window opens."], disableWhen = isOff },
 		{ type = "toggle", key = "lootFeed", label = L["Loot feed"], help = L["Short lines above the chat for what you loot, with icons, quality colours and coin colours."], disableWhen = isOff },
+		{ type = "toggle", key = "coinIcons", label = L["Coin icons"], help = L["Show coin icons instead of gold, silver and copper letters in the loot feed."], disableWhen = function(s) return not (s.enabled and s.lootFeed) end },
 		{ type = "header", label = L["Merchants"] },
 		{ type = "toggle", key = "autoRepair", label = L["Repair by itself"], help = L["Repair your gear at merchants and print the cost."], disableWhen = isOff },
 		{ type = "toggle", key = "guildRepair", label = L["Guild funds first"], help = L["Pay from the guild bank when your rank allows it."], disableWhen = repairOff },
@@ -73,6 +77,7 @@ function ns.Schema()
 		},
 		{ type = "header", label = L["Camera"] },
 		{ type = "toggle", key = "skipCinematics", label = L["Skip cinematics"], help = L["Skip cancellable cinematics. Hold Shift to watch them."], disableWhen = isOff },
+		{ type = "slider", key = "skipDelay", label = L["Skip after"], help = L["Seconds before skipping a cancellable cinematic; zero skips now. Hold Shift to watch."], min = 0, max = 30, step = 1, disableWhen = function(s) return not (s.enabled and s.skipCinematics) end },
 		{ type = "toggle", key = "maxCamera", label = L["Max camera distance"], help = L["Let the camera zoom out as far as the game allows."], disableWhen = isOff },
 		{ type = "header", label = L["Alerts"] },
 		{ type = "toggle", key = "quietErrors", label = L["Quiet error text"], help = L["Hide the red cooldown, range and resource errors that flood the screen in combat."], disableWhen = isOff },

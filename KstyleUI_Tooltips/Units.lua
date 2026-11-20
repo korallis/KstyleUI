@@ -143,6 +143,10 @@ function Units.Decorate(tooltip, data)
 		Settings.LogOnce("unit", "a unit tooltip had no readable unit; it keeps Blizzard's lines")
 		return
 	end
+	if not Settings.Get("playerTitles") and Yes(UnitIsPlayer, unit) and type(UnitName) == "function" then
+		local name, line = UnitName(unit), Style.Line(tooltip, "left", 1)
+		if line and Text(name) then line:SetText(name) end
+	end
 	local r, g, b = Units.NameColor(unit)
 	if Settings.Get("qualityColors") and type(UnitReaction) == "function" then
 		local reaction = UnitReaction(unit, "player")

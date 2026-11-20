@@ -6,6 +6,15 @@ local Load = dofile("Tools/regression/load_files.lua")
 local module = os.getenv("RENDER_SHELL_MODULE") or "Minimap"
 local loaders = { Minimap = "minimap", DataBars = "databars", Chat = "chat", Bags = "bags", Tooltips = "tooltips", QoL = "qol" }
 local keys = { Minimap = "zone.subzone", DataBars = "strip.modules", Bags = "desaturateJunk", Tooltips = "maxStack", QoL = "autoGossip" }
+local followup = os.getenv("RENDER_SHELL_FOLLOWUP") == "1"
+local followups = {
+	Minimap = { { "coords.hover", true } },
+	DataBars = { { "strip.itemLevelSource", "overall" }, { "strip.itemLevelDecimals", 2 } },
+	Chat = { { "inputOnTop", true }, { "editBox", "always" } },
+	Bags = { { "frameStrata", "HIGH" }, { "slotCount", "usedTotal" }, { "iconZoom", 12 } },
+	Tooltips = { { "playerTitles", false } },
+	QoL = { { "coinIcons", true }, { "skipCinematics", true }, { "skipDelay", 5 } },
+}
 local driver = assert(loaders[module], "RENDER_SHELL_MODULE must name a shell module")
 local D = dofile("Tools/regression/" .. driver .. "_env.lua")
 
@@ -36,12 +45,21 @@ return Common.Run(function()
 		if module == "DataBars" then
 			local s = K.Store.Module(module).strip
 			for _, key in ipairs({ "modules", "dockModules", "railModules" }) do
-				for _, entry in ipairs(s[key]) do if entry.id == "location" or entry.id == "itemLevel" then entry.shown = true end end
+				for _, entry in ipairs(s[key]) do
+					if followup then entry.shown = entry.id == "itemLevel"
+					elseif entry.id == "location" or entry.id == "itemLevel" then entry.shown = true end
+				end
 				assert(K.Options.Write(module, "strip." .. key, s[key]) ~= false)
 			end
 		elseif module == "QoL" then
 			assert(K.Options.Write(module, "skipCinematics", true) ~= false)
 		end
+	end
+	if followup and not defaults then
+		for _, entry in ipairs(followups[module]) do assert(K.Options.Write(module, entry[1], entry[2]) ~= false) end
+	end
+	if module == "QoL" and os.getenv("RENDER_SHELL_OPTIONS") == "0" then
+		env.FireEvent("CHAT_MSG_MONEY", "You loot 1 Gold, 4 Silver, 14 Copper")
 	end
 	if module == "Bags" then env.ToggleAllBags() end
 	if module == "Tooltips" then
@@ -71,8 +89,9 @@ return Common.Run(function()
 		assert(K.Layout.Set("Options.Window", "x", 28))
 		assert(K.Layout.Set("Options.Window", "y", -28))
 		local options = env._addons.KstyleUI_Options
-		options.Window.Jump({ page = module, module = module, key = module ~= "DataBars" and keys[module] or nil,
-			labelTarget = module == "DataBars" and K.L["Location"] or nil })
+		options.Window.Jump({ page = module, module = module,
+			key = os.getenv("RENDER_SHELL_KEY") or (followup and followups[module][1][1]) or (module ~= "DataBars" and keys[module] or nil),
+			labelTarget = not followup and module == "DataBars" and K.L["Location"] or nil })
 		env.RunTimers()
 		O.W.Settle(env)
 	end

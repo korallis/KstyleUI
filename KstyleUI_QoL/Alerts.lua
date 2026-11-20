@@ -61,16 +61,31 @@ local function Sync()
 	end
 end
 
+local cinematicToken = 0
+
+local function SkipCinematic(_, cancellable)
+	cinematicToken = cinematicToken + 1
+	if not ns.Get("skipCinematics") or not ns.True(cancellable) or type(StopCinematic) ~= "function" or type(IsShiftKeyDown) ~= "function" then return end
+	local held = IsShiftKeyDown()
+	if ns.IsSecret(held) or held ~= false then return end
+	local delay, token = ns.Get("skipDelay"), cinematicToken
+	if delay == 0 then StopCinematic(); return end
+	if not C_Timer or type(C_Timer.After) ~= "function" or type(InCinematic) ~= "function" then return end
+	C_Timer.After(delay, function()
+		if ns.running and token == cinematicToken and ns.Get("skipCinematics") and ns.True(InCinematic()) then
+			local shift = IsShiftKeyDown()
+			if not ns.IsSecret(shift) and shift == false then StopCinematic() end
+		end
+	end)
+end
+
 ns.AddPart({
 	name = "alerts",
-	events = { CINEMATIC_START = function(_, cancellable)
-		if not ns.Get("skipCinematics") or not ns.True(cancellable) or type(StopCinematic) ~= "function" or type(IsShiftKeyDown) ~= "function" then return end
-		local held = IsShiftKeyDown()
-		if not ns.IsSecret(held) and held == false then StopCinematic() end
-	end },
+	events = { CINEMATIC_START = SkipCinematic },
 	Start = Sync,
-	Stop = Sync,
+	Stop = function() cinematicToken = cinematicToken + 1; Sync() end,
 	Setting = function(key)
+		if key == nil or key == "skipCinematics" or key == "skipDelay" then cinematicToken = cinematicToken + 1 end
 		if key == nil or key == "quietErrors" then
 			Sync()
 		end

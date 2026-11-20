@@ -36,9 +36,11 @@ function Preview.Build(...)
 	build = function(parent)
 		local element = K.Setup.Layouts.Element(KEY)
 		local frame = CreateFrame("Frame", nil, parent)
-		Widgets.Size(frame, element.width, element.height)
-		Widgets.Point(frame, "CENTER", parent, "CENTER", 0, Widgets.Snap(frame, (Format.CAPTION - Format.HEADING) / 2))
-		local face = Face.New(frame)
+		Widgets.Size(frame, element.width + 2 * Format.FRAME, element.width + Format.HEADING + Format.CAPTION + 2 * Format.FRAME)
+		local map = CreateFrame("Frame", nil, frame)
+		Widgets.Size(map, element.width, element.width)
+		Widgets.Point(map, "CENTER", frame, "CENTER", 0, Widgets.Snap(map, (Format.CAPTION - Format.HEADING) / 2))
+		local face = Face.New(map)
 		frame.face = face
 
 		local area = face.mapArea

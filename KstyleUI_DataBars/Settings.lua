@@ -73,6 +73,7 @@ defaults.strip = {
 	line = true, labels = "inline", menus = true, valueColor = "plain", accentEdge = false, backdrop = false, separators = false,
 	spacing = STRIP_SPACING, orientation = "HORIZONTAL",
 	font = Font.DEFAULT, fontSize = STRIP_FONT_SIZE, outline = Font.WORLD,
+	itemLevelSource = "equipped", itemLevelDecimals = 0,
 	money = "full", latency = "home", timeSource = "local", clock24 = true,
 }
 defaults.micro = { enabled = true, shown = true, size = MICRO_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, tint = "none", shape = "round", set = "compact" }
@@ -278,6 +279,11 @@ function ns.Schema()
 		{ type = "toggle", key = "strip.clock24", label = L["24-hour clock"], help = L["Shows 14:32 instead of 2:32 PM."] },
 		{ type = "header", label = L["Latency"] },
 		{ type = "dropdown", key = "strip.latency", label = L["Latency shown"], help = L["Home latency for chat and logins, or world latency for combat."], options = LATENCIES },
+		{ type = "header", label = L["Item level"] },
+		{ type = "dropdown", key = "strip.itemLevelSource", label = L["Item level shown"], help = L["Use equipped gear or your best owned gear for the item level readout."], options = {
+			{ value = "equipped", label = L["Equipped gear"] }, { value = "overall", label = L["All owned gear"] },
+		} },
+		{ type = "slider", key = "strip.itemLevelDecimals", label = L["Item level decimals"], help = L["How many decimal places the item level readout shows."], min = 0, max = 2, step = 1 },
 		{ type = "header", label = L["Gold"] },
 		{ type = "dropdown", key = "strip.money", label = L["Gold format"], help = L["How the strip writes your money."], options = MONEY_STYLES },
 	})
@@ -367,7 +373,7 @@ function ns.Preview(...)
 			durability = { SAMPLE_DURABILITY .. "%", "good" },
 			time = { Format.Clock(SAMPLE_HOUR, SAMPLE_MINUTE, s.clock24) },
 			spec = { L["Specialization"] }, hearth = { L["ready"] .. " " .. L["Stormwind"] }, bags = { "22" },
-			location = { L["Stormwind"] }, itemLevel = { "58" },
+			location = { L["Stormwind"] }, itemLevel = { Strip.VALUES.itemLevel(s) },
 			guild = { "17" }, friends = { "7" }, currencies = { "1250" }, xp = { "32%" },
 		}
 	end

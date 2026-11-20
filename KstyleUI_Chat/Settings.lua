@@ -35,6 +35,7 @@ local defaults = {
 	buttons = false,
 	copyButton = true,
 	editBox = "typing",
+	inputOnTop = false,
 	font = "",
 	fontSize = FOLLOW,
 	lineSpacing = FOLLOW,
@@ -189,6 +190,7 @@ function ns.Schema()
 			type = "toggle", key = "buttons", label = L["Chat buttons"],
 			help = L["Shows the game's chat menu, channel buttons and friends button beside the chat."],
 		},
+		{ type = "toggle", key = "inputOnTop", label = L["Input on top"], help = L["Place the typing box above chat messages, below the tabs."] },
 		{ type = "header", label = L["Text"] },
 		{
 			type = "font", key = "font", label = L["Font"],
