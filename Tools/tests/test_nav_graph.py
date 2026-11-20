@@ -134,6 +134,7 @@ class DiscoveryTests(unittest.TestCase):
     def test_exclusions_carry_reasons(self):
         self.assertIn('Teldrassil', build_graph.exclusion(1, 'p38', (9952, 2254, 1336)))
         self.assertIn('island', build_graph.exclusion(1, 'a368', (-1117, -5383, 9)))
+        self.assertEqual(build_graph.exclusion(1, 'a2322', (9717, -104, 0)), build_graph.SEA)
         self.assertIsNone(build_graph.exclusion(1, 'p33', (1382, -4371, 26)))
         self.assertIsNone(build_graph.exclusion(1, 'z148_493', (8247, -1935, 505)))
 

@@ -50,9 +50,11 @@ EXCLUDED = {continent: {key: reason for reason, keys in groups for key in keys.s
 
 def exclusion(continent, key, point):
     """Why a sampled place is outside the mainland walking target, or None."""
+    if key in EXCLUDED[continent]:
+        return EXCLUDED[continent][key]
     if continent == 1 and point[0] > 8400 and point[1] > -1000:
         return 'Teldrassil: island; boat from Auberdine, portal to Darnassus'
-    return EXCLUDED[continent].get(key)
+    return None
 
 
 def tables(client):
