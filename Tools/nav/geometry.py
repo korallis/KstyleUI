@@ -112,6 +112,26 @@ def placements(data):
             yield kind, uid, source, pose, scale or 1
 
 
+def water_surface(data, water_types):
+    """MH2O water/ocean surfaces for explicit swim queries; never magma or slime."""
+    top = list(chunks(data))
+    liquids = liquid_cells(dict(top).get('MH2O'))
+    vertices, triangles = [], []
+    for name, body in top:
+        if name != 'MCNK':
+            continue
+        _, ix, iy = struct.unpack_from('<III', body)
+        x, y, _ = struct.unpack_from('<3f', body, 0x68)
+        for (r, c), (kind, heights) in liquids.get(iy * 16 + ix, {}).items():
+            if kind not in water_types:
+                continue
+            offset = len(vertices)
+            vertices.extend((x - rr * UNIT, y - cc * UNIT, z) for (rr, cc), z in zip(
+                ((r, c), (r, c + 1), (r + 1, c + 1), (r + 1, c)), heights))
+            triangles.extend(((offset, offset + 1, offset + 2), (offset, offset + 2, offset + 3)))
+    return vertices, triangles
+
+
 def transform(verts, pose, scale):
     px, py, pz, rx, ry, rz = pose
     angles = [(math.cos(math.radians(a)), math.sin(math.radians(a))) for a in (ry - 90, -rx, rz)]
