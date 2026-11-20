@@ -161,6 +161,10 @@ function Frames.Edge(view, sample)
 	edge:Show()
 end
 
+local function Edge(view)
+	Frames.Edge(view)
+end
+
 local function Refresh(view, instant)
 	if Active(view) then
 		Unit.All(view, view.unit, instant)
@@ -955,7 +959,7 @@ local function RegisterEvents()
 		TargetChange(frames.target and frames.target.views[1])
 		RefreshKind("targettarget", true)
 		Frames.MarkTargets()
-		EachShown(function(view) Frames.Edge(view) end)
+		EachShown(Edge)
 	end)
 	Events.Register(MODULE, "PLAYER_FOCUS_CHANGED", function()
 		RefreshKind("focus", true)
