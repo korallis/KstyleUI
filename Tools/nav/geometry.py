@@ -109,7 +109,40 @@ def placements(data):
                 start = struct.unpack_from("<I", blocks[offsets], entry * 4)[0]
                 source = blocks[names][start:].split(b"\0", 1)[0].decode("ascii").replace("\\", "/").lower()
             scale = struct.unpack_from("<H", body, off + (62 if kind == "MODF" else 32))[0] / 1024
-            yield kind, uid, source, pose, scale or 1
+            doodad_set = struct.unpack_from("<H", body, off + 58)[0] if kind == "MODF" else 0
+            yield kind, uid, source, pose, scale or 1, doodad_set
+
+
+def wmo_doodads(blocks, doodad_set):
+    """(source, position, quaternion xyzw, scale) of the default and placed MODS doodad sets."""
+    sets, defs, ids = blocks.get("MODS", b""), blocks.get("MODD", b""), blocks.get("MODI")
+    for index in sorted({0, doodad_set}):
+        if index * 32 + 32 > len(sets):
+            continue
+        start, count = struct.unpack_from("<2I", sets, index * 32 + 20)
+        for i in range(start, start + count):
+            word, *pose = struct.unpack_from("<I8f", defs, i * 40)
+            name = word & 0xffffff
+            if ids:
+                source = str(struct.unpack_from("<I", ids, name * 4)[0])
+            else:
+                source = blocks["MODN"][name:].split(b"\0", 1)[0].decode("ascii").replace("\\", "/").lower()
+                source = source[:-4] + ".m2" if source.endswith((".mdx", ".mdl")) else source
+            if source != "0":
+                yield source, pose[:3], pose[3:7], pose[7]
+
+
+def place(verts, position, rotation, scale):
+    """Doodad vertices in their WMO's local frame: position + rotation * (scale * v)."""
+    qx, qy, qz, qw = rotation
+    result = []
+    for vx, vy, vz in verts:
+        x, y, z = vx * scale, vy * scale, vz * scale
+        tx, ty, tz = 2 * (qy * z - qz * y), 2 * (qz * x - qx * z), 2 * (qx * y - qy * x)
+        result.append((position[0] + x + qw * tx + qy * tz - qz * ty,
+                       position[1] + y + qw * ty + qz * tx - qx * tz,
+                       position[2] + z + qw * tz + qx * ty - qy * tx))
+    return result
 
 
 def water_surface(data, water_types):
@@ -157,7 +190,8 @@ def wmo_group(data):
     stride = 2 if "MOPY" in blocks else 4
     if materials is None or len(materials) != len(indices) * stride:
         raise ValueError("WMO collision flags do not match triangles")
-    tris = [tri for i, tri in enumerate(indices) if materials[i * stride] & 4 or (materials[i * stride] & 0x20 and not materials[i * stride] & 2)]
+    # MOPY: 0x08 marks collision faces (all 0xff-material hulls carry it); 0x20 render faces collide unless 0x04 detail.
+    tris = [tri for i, tri in enumerate(indices) if materials[i * stride] & 8 or materials[i * stride] & 0x24 == 0x20]
     return verts, tris
 
 

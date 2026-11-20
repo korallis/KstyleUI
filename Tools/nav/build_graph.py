@@ -18,12 +18,41 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_routes as base
-from geometry import MID, TILE, chunks, m2_collision, placements, simplify, terrain, transform, water_surface, wmo_group
+from geometry import MID, TILE, chunks, m2_collision, place, placements, simplify, terrain, transform, water_surface, wmo_doodads, wmo_group
 from graph import distances, length, lua_graph, prune, shared_graph
 
 TABLES = ('Map', 'AreaTable', 'UiMap', 'UiMapAssignment', 'TaxiNodes', 'AreaPOI', 'TaxiPath', 'TaxiPathNode', 'LiquidType')
 CAP = 3500
 K = 6
+# Sampled places walking cannot reach, each with its reason; summary.json lists them.
+ISLAND, SEA = 'island; boat or swim only', 'open sea area'
+RIDGE = 'zone border without a walkable crossing (ridge, wall or sea); none of its six lowest border points joins the walking mesh'
+HYJAL = 'Mount Hyjal: no walkable approach in client collision; its Darkwhisper Gorge edge is a 12-yard drop near (4480, -4509); flight points serve it'
+EXCLUDED = {continent: {key: reason for reason, keys in groups for key in keys.split()} for continent, groups in {
+    0: [(ISLAND, 'a172 a232 a297 a896 a162 a163 p1031 p1588'),
+        (SEA, 'a2338 a2339 a2400'),
+        (RIDGE, 'z4_41 z139_47 z12_46 z3_46 z11_3 z33_41 z130_17066 z1519_40'),
+        ('Programmer Isle: developer island outside the continent map', 't3'),
+        ('Caer Darrow: island in Darrowmere Lake; instanced dungeon', 'p710'),
+        ('sunken temple in the Pool of Tears: swim only; instanced dungeon', 'a74 p1013'),
+        ('Blackrock Mountain: underground instance hub inside the mountain', 'a254'),
+        ('Gilneas: behind the closed Greymane Wall gate in client collision', 'a16757 a16758 z16756_17065 z17065_17066'),
+        ('AreaPOI pin 30 yards under the bay water; Booty Bay flight master t18 stands for the town', 'p40')],
+    1: [(ISLAND, 'a368 a1120 a1121 a2079 a2406 p796 p1067 p1169 p1187 t41 b303_1'),
+        (SEA, 'a1227 a2318 a2322'),
+        (HYJAL, 't559 t3242 a2256 a16848 a16866 a16867 a16868 a17050 a17144 a17145 z361_616 z616_618'),
+        ('Thunder Bluff mesa: lift only; joined by lift edges', 't22 p29 a1640 l179656_0 l179660_0'),
+        ('lift car floor, a moving transport; joined by a lift edge', 'l179656_1 l179660_1 l283429_1 l399190_1'),
+        ('Ragefire Chasm: instanced dungeon inside the Cleft of Shadow', 'd389'),
+        ('AreaPOI pin under water with no surface within its 30-yard radius', 'p1092 p1228')],
+}.items()}
+
+
+def exclusion(continent, key, point):
+    """Why a sampled place is outside the mainland walking target, or None."""
+    if continent == 1 and point[0] > 8400 and point[1] > -1000:
+        return 'Teldrassil: island; boat from Auberdine, portal to Darnassus'
+    return EXCLUDED[continent].get(key)
 
 
 def tables(client):
@@ -43,10 +72,18 @@ def mesh_tiles(client, continent, directory, areas):
     tiles = [struct.unpack_from('<8I', maid, i * 32)[:2] for i in range(4096)]
     tiles = [(str(a), str(b)) for a, b in tiles if a]
     client.fetch(v for tile in tiles for v in tile if v != '0')
-    wanted = set()
-    for _, obj in tiles:
-        if obj != '0':
-            wanted.update(p[2] for p in placements(client.path(obj).read_bytes()))
+    placed = {obj: list(placements(client.path(obj).read_bytes())) for _, obj in tiles if obj != '0'}
+    wmos = {(p[2], p[5]) for entries in placed.values() for p in entries if p[0] == 'MODF'}
+    client.fetch(source for source, _ in wmos)
+    groups, doodads = {}, {}
+    for source, doodad_set in wmos:
+        blocks = dict(chunks(client.path(source).read_bytes()))
+        count = struct.unpack_from('<I', blocks['MOHD'], 4)[0]
+        groups[source] = ([str(v[0]) for v in struct.iter_unpack('<I', blocks['GFID'])][:count]
+                          if 'GFID' in blocks else [source[:-4] + f'_{i:03d}.wmo' for i in range(count)])
+        doodads[source, doodad_set] = list(wmo_doodads(blocks, doodad_set))
+    wanted = {p[2] for entries in placed.values() for p in entries if p[0] == 'MDDF'}
+    wanted.update(d[0] for values in doodads.values() for d in values)
     names = {}
     with (client.cache / 'listfile.csv').open(encoding='utf-8') as handle:
         for line in handle:
@@ -55,32 +92,34 @@ def mesh_tiles(client, continent, directory, areas):
                 names[key] = name.lower()
     foliage = ('bush', 'grass', 'tree', 'flower', 'fern', 'shrub', 'kelp', 'coral', 'vine', 'cactus', 'mushroom')
 
-    def entries(obj):
-        return [p for p in placements(client.path(obj).read_bytes())
-                if p[0] == 'MODF' or not any(w in names.get(p[2], p[2]) for w in foliage)] if obj != '0' else []
+    def solid(source):
+        return not any(w in names.get(source, source) for w in foliage)
 
-    wanted = {p[2] for _, obj in tiles for p in entries(obj)}
-    client.fetch(wanted)
-    groups = {}
-    for _, obj in tiles:
-        for kind, _, source, *_ in entries(obj):
-            if kind == 'MODF' and source not in groups:
-                blocks = dict(chunks(client.path(source).read_bytes()))
-                count = struct.unpack_from('<I', blocks['MOHD'], 4)[0]
-                groups[source] = ([str(v[0]) for v in struct.iter_unpack('<I', blocks['GFID'])][:count]
-                                  if 'GFID' in blocks else [source[:-4] + f'_{i:03d}.wmo' for i in range(count)])
+    def entries(obj):
+        return [p for p in placed.get(obj, []) if p[0] == 'MODF' or solid(p[2])]
+
+    client.fetch(v for v in wanted if solid(v))
     client.fetch(v for files in groups.values() for v in files if v != '0')
 
     @lru_cache(maxsize=32)
-    def model(source):
+    def model(source, doodad_set):
         if source not in groups:
             return m2_collision(client.path(source).read_bytes())
         v, t = [], []
+
+        def add(gv, gt):
+            t.extend(tuple(i + len(v) for i in tri) for tri in gt)
+            v.extend(gv)
+
         for group in groups[source]:
             if group != '0':
-                gv, gt = wmo_group(client.path(group).read_bytes())
-                t.extend(tuple(i + len(v) for i in tri) for tri in gt)
-                v.extend(gv)
+                add(*wmo_group(client.path(group).read_bytes()))
+        collision = {}
+        for m2, position, rotation, scale in doodads[source, doodad_set]:
+            if solid(m2):
+                if m2 not in collision:
+                    collision[m2] = m2_collision(client.path(m2).read_bytes())
+                add(place(collision[m2][0], position, rotation, scale), collision[m2][1])
         return v, t
 
     out = client.cache / 'graph' / directory
@@ -124,14 +163,13 @@ def mesh_tiles(client, continent, directory, areas):
                 if other and a != other[0] and a in areas and other[0] in areas:
                     pair = tuple(sorted((a, other[0])))
                     crossing = tuple((v + w) / 2 for v, w in zip(p, other[1]))
-                    if pair not in crossings or abs(p[2] - other[1][2]) < crossings[pair][0]:
-                        crossings[pair] = (abs(p[2] - other[1][2]), crossing)
+                    crossings.setdefault(pair, []).append(((abs(p[2] - other[1][2]) > 4, max(p[2], other[1][2])), crossing))
         seen = set()
-        for kind, uid, source, pose, scale in entries(obj):
+        for kind, uid, source, pose, scale, doodad_set in entries(obj):
             if (kind, uid) in seen:
                 continue
             seen.add((kind, uid))
-            v, t = model(source)
+            v, t = model(source, doodad_set)
             if t:
                 append(transform(v, pose, scale), [(c, b, a) for a, b, c in t])
                 stats[kind] += 1
@@ -150,9 +188,18 @@ def mesh_tiles(client, continent, directory, areas):
     manifest = out / 'continent.tiles'
     manifest.write_text(''.join(f'{p}\n' for p in paths), encoding='utf-8', newline='\n')
     fingerprint = hashlib.sha256(Path(__file__).with_name('geometry.py').read_bytes() + inspect.getsource(mesh_tiles).encode('utf-8')).hexdigest()
-    metadata = dict(seeds=seeds, crossings=[(a, b, p) for (a, b), (_, p) in sorted(crossings.items())], stats=dict(stats), fingerprint=fingerprint)
+    metadata = dict(seeds=seeds, crossings=[(a, b, passes(v)) for (a, b), v in sorted(crossings.items())], stats=dict(stats), fingerprint=fingerprint)
     (out / 'terrain.json').write_text(json.dumps(metadata), encoding='utf-8', newline='\n')
     return manifest, metadata
+
+
+def passes(cells, count=6, spacing=250):
+    """Lowest level border cells first, at most `count`, each `spacing` yards from the others."""
+    chosen = []
+    for _, point in sorted(cells):
+        if len(chosen) < count and all(math.dist(point[:2], other[:2]) >= spacing for other in chosen):
+            chosen.append(point)
+    return chosen
 
 
 def discover(db, continent, metadata):
@@ -161,7 +208,7 @@ def discover(db, continent, metadata):
     for table, prefix, kind in (('TaxiNodes', 't', 'flight'), ('AreaPOI', 'p', 'hub')):
         for row in db[table]:
             name = ' '.join(row['Name_lang'].split())
-            if int(row['ContinentID']) != continent or not name or name.startswith('Transport,'):
+            if int(row['ContinentID']) != continent or not name or name.startswith(('Transport,', 'Generic,', 'Quest Path', 'zzOLD')):
                 continue
             if table == 'AreaPOI' and (int(row['WorldStateID']) or name in ('Under Attack', 'Sandworm!')):
                 continue
@@ -184,8 +231,8 @@ def discover(db, continent, metadata):
         kind = 'dungeon' if name in dungeon_names else 'inn' if re.search(r'\binn\b', name, re.I) else 'area'
         nodes.append(dict(id='a' + row['ID'], name=name, point=point, kind=kind, map=continent, radius=120))
     names = {r['ID']: r['AreaName_lang'] for r in db['AreaTable']}
-    for a, b, point in metadata['crossings']:
-        nodes.append(dict(id=f'z{a}_{b}', name=f'{names[a]} / {names[b]}', point=point, kind='crossing', map=continent, radius=80))
+    for a, b, points in metadata['crossings']:
+        nodes.append(dict(id=f'z{a}_{b}', name=f'{names[a]} / {names[b]}', point=points[0], candidates=points, kind='crossing', map=continent, radius=80))
     return nodes
 
 
@@ -255,7 +302,7 @@ def landmarks(client, directory, metadata, areas):
                 if p[0] == 'MODF' and p[2] in wanted:
                     placed[p[1]] = p
     nodes, pairs = [], []
-    for _, uid, source, pose, scale in placed.values():
+    for _, uid, source, pose, scale, _ in placed.values():
         blocks = dict(chunks(client.path(source).read_bytes()))
         names = blocks.get('MOGN', b'')
         landings = {}
@@ -305,7 +352,7 @@ def landmarks(client, directory, metadata, areas):
 def query(client, exe, manifest, nodes, pairs, label):
     root = manifest.parent
     points, requested, output = (root / f'{label}.{ext}' for ext in ('points', 'pairs', 'paths'))
-    points.write_text(''.join(f'{n["id"]} {" ".join(map(str, n["point"]))} {n["radius"]} {-1 if n["kind"] in ("area", "crossing", "inn") else 0}\n' for n in nodes), encoding='ascii', newline='\n')
+    points.write_text(''.join(f'{n["id"]} {" ".join(map(str, n["point"]))} {n["radius"]} {0 if n["kind"] == "lift" else -1}\n' for n in nodes), encoding='ascii', newline='\n')
     requested.write_text(''.join(f'{a} {b}\n' for a, b in sorted(pairs)), encoding='ascii', newline='\n')
     signature = hashlib.sha256(exe.read_bytes() + manifest.read_bytes())
     for line in manifest.read_text(encoding='utf-8').splitlines():
@@ -434,6 +481,14 @@ def build(client, exe, db, continent, directory, transport_nodes, transport_edge
         manifest, metadata = mesh_tiles(client, continent, directory, areas)
     lift_nodes, lift_pairs = landmarks(client, directory, metadata, areas)
     nodes = discover(db, continent, metadata) + [n for n in transport_nodes if n['map'] == continent] + lift_nodes
+    # A border's low level cells are pass candidates; keep the first one on the main walking component.
+    trial = [dict(n, id=f'{n["id"]}#{i}', point=p) for n in nodes for i, p in enumerate(n.get('candidates', ()))]
+    _, probe = query(client, exe, manifest, nodes + trial, set(), 'crossings')
+    main = Counter(v['component'] for v in probe.values() if v['component'] >= 0).most_common(1)[0][0]
+    for n in nodes:
+        options = n.pop('candidates', None)
+        if options:
+            n['point'] = next((p for i, p in enumerate(options) if probe[f'{n["id"]}#{i}']['component'] == main), options[0])
     seeds = {n['id']: tuple(n['point']) for n in nodes}
     candidates = set(lift_pairs)
     for n in nodes:
@@ -501,16 +556,22 @@ def build(client, exe, db, continent, directory, transport_nodes, transport_edge
                               len=distance, seconds=60 + distance / 20))
     cached_distances = {}
     connected, detours, direct_count, walk_connected = 0, [], 0, 0
+    excluded = {key: reason for n in nodes if (key := n['id']) in seeds and (reason := exclusion(continent, key, seeds[key]))}
+    mainland = Counter()
     for a, b in sorted(sample):
         if a not in cached_distances:
             cached_distances[a] = distances(nodes, edges, a)
         connected += b in cached_distances[a]
+        inland = a not in excluded and b not in excluded
+        mainland['pairs'] += inland
         direct = complete.get((a, b))
         if direct and length(direct):
             direct_count += 1
+            mainland['navmesh_direct'] += inland
             road = distances(nodes, edges, a, {'walk'}).get(b)
             if road is not None:
                 walk_connected += 1
+                mainland['walk_connected'] += inland
                 detours.append(road / length(direct) - 1)
     text = lua_graph(nodes, edges)
     out = base.CACHE / 'out/graph'
@@ -519,6 +580,7 @@ def build(client, exe, db, continent, directory, transport_nodes, transport_edge
     output.write_text(text, encoding='ascii', newline='\n')
     report = dict(continent=directory, nodes=len(nodes), edges=dict(Counter(e['kind'] for e in edges)), bytes=len(text),
                   sample_pairs=len(sample), connected=connected, navmesh_direct_pairs=direct_count, walk_connected=walk_connected,
+                  mainland=dict(mainland), excluded={key: dict(name=by_id[key]['name'], reason=reason) for key, reason in sorted(excluded.items())},
                   median_detour=statistics.median(detours) if detours else None,
                   unresolved=unresolved, geometry=metadata['stats'], output=str(output),
                   swimming=swim_stats,

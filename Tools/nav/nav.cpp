@@ -258,8 +258,9 @@ int main(int argc, char** argv) {
             fprintf(stderr, "rasterize failed\n");
             return 1;
         }
+        // No rcFilterLedgeSpans: at 1-yard cells it rejects slopes above about 35 degrees, cutting bridge
+        // ramps and passes; climb-limited span links still reject cliffs.
         rcFilterLowHangingWalkableObstacles(&ctx, cfg.walkableClimb, *solid);
-        rcFilterLedgeSpans(&ctx, cfg.walkableHeight, cfg.walkableClimb, *solid);
         rcFilterWalkableLowHeightSpans(&ctx, cfg.walkableHeight, *solid);
 
         rcCompactHeightfield* chf = rcAllocCompactHeightfield();

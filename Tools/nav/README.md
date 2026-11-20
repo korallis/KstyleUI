@@ -48,10 +48,14 @@ a time; after an interruption, verify its PID has exited before removing it.
   map art, using the 1002x668 map viewport rather than padded tile dimensions.
 
 Terrain includes holes and shallow water up to 1.5 yards; deep water blocks
-walking. MODF supplies WMO group collision (MOPY/MPY2), MDDF supplies M2 collision,
-and filename filtering omits foliage. Recast uses 1-yard cells, 0.2-yard vertical
-cells, 1.4-yard climb, 50-degree slope, 2-yard clearance and a radius rounded to one
-cell. Its 256-yard tiles share an aligned grid and four cells of border context.
+walking. MODF supplies WMO group collision (MOPY/MPY2 faces flagged 0x08, or 0x20
+without 0x04 detail), MDDF supplies M2 collision, and filename filtering omits
+foliage. The continent graph also places each WMO's default and placed MODS doodad
+sets. Recast uses 1-yard cells, 0.2-yard vertical cells, 1.4-yard climb, 50-degree
+slope, 2-yard clearance and a radius rounded to one cell. There is no ledge
+filter: at 1-yard cells it cut slopes above about 35 degrees, including bridge
+ramps; climb-limited span links still reject cliffs. Its 256-yard tiles share an
+aligned grid and four cells of border context.
 ADT heights alternate rows of 9/8 vertices; treating them as separate arrays was
 the spike's seam bug. Model winding also changes with Recast's handedness.
 
@@ -80,8 +84,11 @@ python -I Tools/nav/build_graph.py --install 'C:/Program Files (x86)/World of Wa
 This uses the same cache, tools and exclusive build lock. It processes Eastern
 Kingdoms and Kalimdor sequentially. `Map`, `AreaTable`, `UiMap` and
 `UiMapAssignment` supply continent assignments and map bounds; `AreaPOI` and
-`TaxiNodes` supply named destinations. ADT area samples supply other named areas,
-including inns, and adjacent zones supply crossing nodes. These are client-named
+`TaxiNodes` supply named destinations; `Generic`, `Quest Path` and `zzOLD` taxi
+helpers are not places. ADT area samples supply other named areas, including inns.
+Adjacent zones supply crossing nodes: the six lowest level border cells at least
+250 yards apart are snapped first, and the first on the main walking component
+becomes the crossing. These are client-named
 areas, not a directory of NPCs or quest givers. The named Orgrimmar
 `DungeonEntrance` group supplies Ragefire's entrance area.
 
@@ -105,9 +112,10 @@ once, and degree-two bends collapse to a 5-yard Douglas-Peucker polyline.
 Overpasses at different heights stay separate.
 
 Precise POI/taxi seeds project within 30 yards, dock seeds within 120, lift
-landings within 25 and area/crossing seeds within 120/80 yards. Area/crossing
-projections prefer the largest nearby component to avoid isolated props;
-precise pins choose the nearest surface. Unresolved places remain in the
+landings within 25 and area/crossing seeds within 120/80 yards. Except for
+lift floors, which take the nearest surface, every seed takes the largest
+walkable component within its radius: pins otherwise landed on roofs, tower tops
+and props beside the street. Unresolved places remain in the
 500-pair sample and in the endpoint report, rather than disappearing from its
 denominator.
 
@@ -149,13 +157,18 @@ Outputs under `~/.cache/kstyleui-navmesh/`:
   Each continent's `summary.json` also retains projected endpoint coordinates,
   component ids and unresolved endpoints. Detour's random-pair walking success
   and the graph's walking success are reported separately from travel routes.
+  `mainland` repeats them without the sampled places in `EXCLUDED`
+  (`build_graph.py`): islands, open sea, lift-only mesas and lift cars, instances,
+  Gilneas behind its closed gate, Mount Hyjal, Teldrassil and borders with no
+  walkable crossing. `excluded` lists each with its reason.
 - `graph/Azeroth.png` and `graph/Kalimdor.png` below that build directory:
   graphs over the client's own Forever `_c60` continent art and DB2 map bounds.
   Cross-continent transport lines are omitted from the single-map pictures.
 
 This is a static walking/travel graph, not a guarantee of an in-game journey.
-WMO-contained doodads and WMO liquid surfaces still need verification; terrain
-MH2O, WMO group collision and ADT M2 collision are included. Moving transports,
+WMO liquid surfaces are not added: they would add swim surfaces, not walking
+floors. Terrain MH2O, WMO group collision, WMO doodad sets and ADT M2 collision are
+included. Moving transports,
 instance triggers, faction restrictions and actual wait times need in-game
 checks. No addon data, client art or meshes are written to the repository.
 

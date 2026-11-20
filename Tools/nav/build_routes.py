@@ -165,7 +165,7 @@ def geometry(client):
             append(v, t)
     stats = {"tiles": len(tiles), "terrain_triangles": len(tris), "wmo_instances": 0, "m2_instances": 0}
     models, landmarks = {}, {}
-    for kind, _, source, pose, scale in placed:
+    for kind, _, source, pose, scale, _ in placed:
         if source not in models:
             if kind == "MODF":
                 v, t = [], []

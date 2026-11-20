@@ -127,6 +127,16 @@ class DiscoveryTests(unittest.TestCase):
         nodes = build_graph.discover(db, 1, dict(seeds={'2': (1, 2, 3), '3': (4, 5, 6)}, crossings=[]))
         self.assertEqual([(n['id'], n['kind']) for n in nodes], [('a2', 'inn')])
 
+    def test_crossing_candidates_are_low_level_and_spaced(self):
+        cells = [((False, 50), (0, 0, 50)), ((False, 60), (100, 0, 60)), ((True, 10), (900, 0, 10)), ((False, 70), (400, 0, 70))]
+        self.assertEqual(build_graph.passes(cells), [(0, 0, 50), (400, 0, 70), (900, 0, 10)])
+
+    def test_exclusions_carry_reasons(self):
+        self.assertIn('Teldrassil', build_graph.exclusion(1, 'p38', (9952, 2254, 1336)))
+        self.assertIn('island', build_graph.exclusion(1, 'a368', (-1117, -5383, 9)))
+        self.assertIsNone(build_graph.exclusion(1, 'p33', (1382, -4371, 26)))
+        self.assertIsNone(build_graph.exclusion(1, 'z148_493', (8247, -1935, 505)))
+
     def test_transport_stops_use_spline_map_not_zero_taxi_position(self):
         db = dict(TaxiNodes=[dict(ID='1', Name_lang='Transport, Test', ContinentID='0'),
                              dict(ID='2', Name_lang='End', ContinentID='1')],
