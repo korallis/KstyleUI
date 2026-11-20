@@ -470,6 +470,10 @@ function Face.Moved(name)
 	return point ~= "" and point or nil
 end
 
+function Face.ClockInRow()
+	return Settings.Get("clock.shown") == true and not Face.Moved("clock")
+end
+
 function Face:PlaceInside()
 	local area, side = self.mapArea, self.mapSize
 	if not side then
@@ -630,7 +634,7 @@ function Face:PlaceRound(round)
 	local rowWidth = width
 	if seated then
 		local coords = Face.Moved("coords") and 0 or self.coords:GetStringWidth() or 0
-		local clock = Face.Moved("clock") and 0 or (self.clock:GetStringWidth() or 0) + (self.meridiem:GetStringWidth() or 0)
+		local clock = not Face.ClockInRow() and 0 or (self.clock:GetStringWidth() or 0) + (self.meridiem:GetStringWidth() or 0)
 		rowWidth = Snap(card, min(width, max(side * 0.6, coords + clock + 2 * PLAQUE_PAD + 12)))
 	end
 	row:SetWidth(rowWidth)
@@ -810,7 +814,15 @@ function Face:Layout()
 	self:PlaceRound(round)
 	local seated = self.clockAnchor ~= nil
 	coords:ClearAllPoints()
-	Widgets.Point(coords, "LEFT", self.clockAnchor or card, seated and "LEFT" or "BOTTOMLEFT", x + Snap(card, Settings.Get("coords.x")), (seated and 0 or -rowY) + Snap(card, Settings.Get("coords.y")))
+	local alone = round and not Face.ClockInRow()
+	coords:SetJustifyH(alone and "CENTER" or "LEFT")
+	if alone then
+		local row, pad, dx, dy = self.plaques[2], Snap(card, PLAQUE_PAD), Snap(card, Settings.Get("coords.x")), Snap(card, Settings.Get("coords.y"))
+		Widgets.Point(coords, "LEFT", row, "LEFT", pad + dx, dy)
+		Widgets.Point(coords, "RIGHT", row, "RIGHT", dx - pad, dy)
+	else
+		Widgets.Point(coords, "LEFT", self.clockAnchor or card, seated and "LEFT" or "BOTTOMLEFT", x + Snap(card, Settings.Get("coords.x")), (seated and 0 or -rowY) + Snap(card, Settings.Get("coords.y")))
+	end
 	local w, h = (self.clockAnchor or card):GetSize()
 	self.clockPixel = pixel
 	self.clockRight = Plain(w) and w / pixel or 0
