@@ -110,6 +110,7 @@ function Unit.HealthColor(view, unit)
 	end
 	ns.Style.HealthTint(view, r, g, b)
 	ns.Slab.Colors(view, unit)
+	if s.levelDifficulty then Unit.Level(view, unit) end
 end
 
 local function PowerTypeColor(unit, column)
@@ -154,13 +155,17 @@ end
 
 function Unit.Prediction(view, unit)
 	local eaten = view.healAbsorb
-	if eaten and not (view.s.healPrediction and view.s.healAbsorbs) then eaten:Hide() end
+	local wanted = view.s.healPrediction and view.s.healAbsorbs
+	if view.healAbsorbShown and not wanted then
+		eaten:Hide()
+		view.healAbsorbShown = false
+	end
 	if not view.s.healPrediction then
 		view.incoming:Hide()
 		view.absorb:Hide()
 		return
 	end
-	if view.s.healAbsorbs and not eaten then
+	if wanted and not eaten then
 		eaten, view.predictionRange = ns.Style.HealAbsorb(view), false
 	end
 	if not view.predictionRange then
@@ -173,6 +178,8 @@ function Unit.Prediction(view, unit)
 	local calc = view.calculator
 	if calc == nil and CreateUnitHealPredictionCalculator and UnitGetDetailedHealPrediction then
 		calc = CreateUnitHealPredictionCalculator()
+		local modes = Enum and Enum.UnitHealAbsorbClampMode
+		if modes and modes.CurrentHealth and calc.SetHealAbsorbClampMode then calc:SetHealAbsorbClampMode(modes.CurrentHealth) end
 		view.calculator = calc
 		LogOnce("prediction", "heal prediction: CreateUnitHealPredictionCalculator")
 	end
@@ -181,11 +188,12 @@ function Unit.Prediction(view, unit)
 		view.incoming:SetBarValue((calc:GetIncomingHeals()))
 		view.absorb:SetBarValue((calc:GetDamageAbsorbs()))
 		view.absorb:SetShown(view.s.absorbs ~= false)
-		if view.s.healAbsorbs and calc.GetHealAbsorbs then
-			local modes = Enum and Enum.UnitHealAbsorbClampMode
-			if modes and calc.SetHealAbsorbClampMode then calc:SetHealAbsorbClampMode(modes.CurrentHealth) end
+		if wanted and calc.GetHealAbsorbs then
 			eaten:SetBarValue((calc:GetHealAbsorbs()))
-			eaten:Show()
+			if not view.healAbsorbShown then
+				eaten:Show()
+				view.healAbsorbShown = true
+			end
 		end
 	elseif UnitGetIncomingHeals then
 		LogOnce("prediction", "heal prediction: UnitGetIncomingHeals, no absorbs")
@@ -483,24 +491,19 @@ function Unit.SetName(view, name)
 	ns.Style.Baseline(view)
 end
 
-local function DifficultyColor(unit)
-	if GetCreatureDifficultyColor and UnitCanAttack and UnitCanAttack("player", unit) then
-		local level = UnitLevel(unit)
-		if not IsSecret(level) and type(level) == "number" and level > 0 then
-			local c = GetCreatureDifficultyColor(level)
-			if type(c) == "table" and type(c.r) == "number" then
-				return Theme.Brighten(c.r, c.g, c.b)
-			end
+local function LevelColor(unit, fallback, level)
+	if unit and UnitCanAttack and UnitCanAttack("player", unit) then
+		level = UnitLevel(unit)
+	end
+	if GetCreatureDifficultyColor and not IsSecret(level) and type(level) == "number" and level > 0 then
+		local c = GetCreatureDifficultyColor(level)
+		if type(c) == "table" and type(c.r) == "number" then
+			return Theme.Brighten(c.r, c.g, c.b)
 		end
 	end
+	if fallback ~= false then return Tokens.Color(fallback or "textEmphasis") end
 end
-Unit.DifficultyColor = DifficultyColor
-
-local function LevelColor(unit)
-	local r, g, b = DifficultyColor(unit)
-	if r then return r, g, b end
-	return Tokens.Color("textEmphasis")
-end
+Unit.LevelColor = LevelColor
 
 local function Plain(value)
 	return not IsSecret(value)
@@ -539,7 +542,7 @@ local function Shows(value)
 	return IsSecret(value) or (type(value) == "string" and value ~= "")
 end
 
-local function LevelText(text, level, classification, creature, short)
+local function LevelText(text, level, classification, creature, short, unit, hostile)
 	local fmt, args = {}, {}
 	local plainClass = Plain(classification) and classification
 	if short and plainClass and CAP_WORDS[plainClass] then
@@ -550,7 +553,8 @@ local function LevelText(text, level, classification, creature, short)
 		fmt[1] = L["Boss"]
 	else
 		fmt[1] = L["Level %s"]
-		args[1] = level
+		local r, g, b = LevelColor(unit, false, hostile and level)
+		args[1] = r and string.format("|cff%02x%02x%02x%d|r", math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5), level) or level
 	end
 	if not short and plainClass and CLASS_WORDS[plainClass] and fmt[1] ~= L["Boss"] then
 		fmt[#fmt + 1] = " %s"
@@ -565,12 +569,12 @@ end
 
 Unit.LevelText = LevelText
 
-local function LevelLine(text, unit, short)
+local function LevelLine(text, unit, short, tint)
 	local creature
 	if not short and UnitCreatureType then
 		creature = UnitCreatureType(unit)
 	end
-	LevelText(text, UnitLevel(unit), UnitClassification and UnitClassification(unit), creature, short)
+	LevelText(text, UnitLevel(unit), UnitClassification and UnitClassification(unit), creature, short, tint and unit)
 end
 
 function Unit.Caption(view, unit)
@@ -614,9 +618,9 @@ function Unit.Caption(view, unit)
 		ns.Slab.SetCaption(view, label)
 		Unit.Refit(view)
 	elseif form == "sigil" then
-		LevelLine(text, unit, false)
+		LevelLine(text, unit, false, view.s.levelDifficulty)
 	elseif form == "card" then
-		LevelLine(text, unit, true)
+		LevelLine(text, unit, true, view.s.levelDifficulty)
 		view.capLabel:SetText(ns.Settings.CAP_LABELS[view.kind] or "")
 	end
 end
@@ -653,7 +657,7 @@ function Unit.Level(view, unit)
 		Unit.Caption(view, unit)
 		if (view.form == "vitals" or view.form == "column" or view.form == "bar") and view.s.level then
 			text:SetText(UnitLevel(unit))
-			if view.s.levelDifficulty then text:SetTextColor(LevelColor(unit)) else text:SetTextColor(Tokens.Color("textEmphasis")) end
+			text:SetTextColor(LevelColor(view.s.levelDifficulty and unit))
 		end
 		return
 	end

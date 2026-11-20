@@ -648,7 +648,7 @@ function Plate:UpdateColor()
 	local state = self.threatState
 	if state and Settings.Get("threat.display") == "health" then
 		r, g, b = K.ColorVision.Color(state == "danger" and 2 or state == "warning" and 3 or 1, Rgb(Settings.Get(THREAT_KEYS[state])))
-	elseif self.kind == "enemy" and (self.casting or self.sample and self.sample.cast) and Settings.Get("types.casting") then
+	elseif self.kind == "enemy" and Settings.Get("types.casting") and (self.sample and self.sample.cast or self.unit and (type((UnitCastingInfo(self.unit))) ~= "nil" or type((UnitChannelInfo(self.unit))) ~= "nil")) then
 		r, g, b = Rgb(Settings.Get("types.castingColor"))
 	else
 		local kind = self.kind

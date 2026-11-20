@@ -55,6 +55,10 @@ local function SampleColor(s, sample, source, custom)
 	return ns.Unit.ReactionColor(sample.reaction)
 end
 
+local function Hostile(s, sample)
+	return s.levelDifficulty and sample.reaction < 5
+end
+
 local function GlowAlpha(share)
 	local points = ns.Unit.GLOW_POINTS
 	for i = 2, #points do
@@ -102,10 +106,10 @@ local function PaintLumen(view, kind, sample)
 		view.levelText:SetText(sample.level)
 	elseif form == "card" then
 		Format.Sample(view.healthText, Format.Main(s.healthText), sample.health, sample.healthMax)
-		ns.Unit.LevelText(view.caption, sample.level, sample.classification, nil, true)
+		ns.Unit.LevelText(view.caption, sample.level, sample.classification, nil, true, nil, Hostile(s, sample))
 		view.capLabel:SetText(Settings.CAP_LABELS[kind] or "")
 	elseif form == "sigil" then
-		ns.Unit.LevelText(view.caption, sample.level, sample.classification, sample.creature, false)
+		ns.Unit.LevelText(view.caption, sample.level, sample.classification, sample.creature, false, nil, Hostile(s, sample))
 	else
 		Format.Sample(view.healthText, s.healthText, sample.health, sample.healthMax)
 	end
@@ -144,7 +148,7 @@ local function Paint(view, kind)
 	end
 	ns.Unit.SetName(view, sample.name)
 	view.levelText:SetText(sample.level > 0 and sample.level or "??")
-	view.levelText:SetTextColor(Tokens.Color("textEmphasis"))
+	view.levelText:SetTextColor(ns.Unit.LevelColor(nil, nil, Hostile(s, sample) and sample.level))
 	if view.form ~= "plate" then
 		PaintLumen(view, kind, sample)
 	end

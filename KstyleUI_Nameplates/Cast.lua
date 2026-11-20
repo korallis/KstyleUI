@@ -235,7 +235,7 @@ end
 
 function Cast.Start(plate, channel, update)
 	if not Shows(plate) then
-		return
+		return Recolor(plate)
 	end
 	local name, text, texture, startMs, endMs, flag, castID = Info(plate.unit, channel)
 	if type(name) == "nil" then
@@ -267,17 +267,17 @@ end
 local function RestoreName(plate)
 	plate.name:SetAlpha(1)
 	if Settings.Get("cast.fullOpacity") then plate:UpdateHighlight() end
+	Recolor(plate)
 end
 
 function Cast.Stop(plate, interrupted, failed)
 	if not plate.casting then
-		return
+		return Recolor(plate)
 	end
 	local bar, cast = plate.castBar, plate.cast
 	bar:SetScript("OnUpdate", nil)
 	plate.casting, plate.castDuration, plate.castFallback = false, nil, false
 	RestoreName(plate)
-	Recolor(plate)
 	if interrupted then
 		plate.castInterrupted = true
 		bar:SetMinMaxValues(0, 1)
@@ -307,11 +307,10 @@ end
 
 function Cast.Hide(plate)
 	StopFade(plate)
-	plate.casting, plate.castDuration, plate.castFallback, plate.castInterrupted = false, nil, false, false
+	plate.casting, plate.castChannel, plate.castDuration, plate.castFallback, plate.castInterrupted = false, nil, nil, false, false
 	plate.castBar:SetScript("OnUpdate", nil)
 	plate.cast:Hide()
 	RestoreName(plate)
-	Recolor(plate)
 end
 
 function Cast.SetInterruptible(plate, interruptible)
@@ -570,7 +569,7 @@ Component.events.UNIT_SPELLCAST_FAILED = function(plate, _, castGUID)
 	end
 end
 Component.events.UNIT_SPELLCAST_CHANNEL_STOP = function(plate, _, _, _, interruptedBy)
-	if plate.castChannel then
+	if plate.castChannel or not plate.casting then
 		Cast.Stop(plate, type(interruptedBy) ~= "nil")
 	end
 end

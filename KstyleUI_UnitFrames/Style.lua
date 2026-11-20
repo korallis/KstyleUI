@@ -277,28 +277,21 @@ local function PlaceText(view, text, rect)
 	text:Show()
 end
 
-local function PlacePrediction(view, bar, after)
+local function PlacePrediction(view, bar, after, backwards)
 	local health = view.health
 	local o = ORIENTATION[view.orientation or "RIGHT"]
-	local w, h = health.opts.width, health.opts.height
-	bar.opts.width, bar.opts.height = w, h
+	bar.opts.width, bar.opts.height = health.opts.width, health.opts.height
 	bar:SetOrientation(o[1])
-	bar:SetReverseFill(o[2])
+	bar:SetReverseFill(o[2] ~= (backwards == true))
 	bar:ClearAllPoints()
-	bar:SetPoint(o[3], after, o[4])
+	bar:SetPoint(o[backwards and 4 or 3], after, o[4])
 	bar:Restyle()
 end
 
 local function PlaceHealAbsorb(view)
 	local bar = view.healAbsorb
 	if not bar then return end
-	local o = ORIENTATION[view.orientation or "RIGHT"]
-	bar.opts.width, bar.opts.height = view.health.opts.width, view.health.opts.height
-	bar:SetOrientation(o[1])
-	bar:SetReverseFill(not o[2])
-	bar:ClearAllPoints()
-	bar:SetPoint(o[4], view.health:GetStatusBarTexture(), o[4])
-	bar:Restyle()
+	PlacePrediction(view, bar, view.health:GetStatusBarTexture(), true)
 	bar:SetBarTexture(Settings.Value(view.kind, "healthTexture"))
 	bar:SetBarColor(Widgets.Rgba("hostile", HEAL_ABSORB_ALPHA))
 end

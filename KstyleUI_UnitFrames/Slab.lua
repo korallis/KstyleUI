@@ -349,9 +349,11 @@ function Slab.Level(view, unit)
 	if Active(view) then view.medallion:SetLevel(level) end
 	if not IsSecret(level) then level = tostring(level) end
 	view.slabLevel:SetText(level)
-	if view.s.levelDifficulty then
-		local r, g, b = ns.Unit.DifficultyColor(unit)
-		if r then view.slabLevel:SetTextColor(r, g, b) else view.slabLevel:SetTextColor(Tokens.Color("labelMuted")) end
+	if view.s.levelDifficulty or view.levelTinted then
+		local tint = view.s.levelDifficulty and unit
+		view.levelTinted = tint
+		view.slabLevel:SetTextColor(ns.Unit.LevelColor(tint, "labelMuted"))
+		view.medallion.levelText:SetTextColor(ns.Unit.LevelColor(tint, "steelLit"))
 	end
 end
 

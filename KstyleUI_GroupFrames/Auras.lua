@@ -254,6 +254,15 @@ local function NewTile(holder)
 	return { skin = skin, chrome = chrome, icon = icon, mask = mask }
 end
 
+local function PlaceTimer(timer, skin, below)
+	timer:ClearAllPoints()
+	if below then
+		timer:SetPoint("TOP", skin, "BOTTOM", 0, -Widgets.Border(skin))
+	else
+		timer:SetPoint("CENTER", skin, "CENTER")
+	end
+end
+
 local function PlaceIcon(tile)
 	local skin, icon = tile.skin, tile.icon
 	local inset = Widgets.Border(skin) * ICON_INSET_LINES
@@ -346,16 +355,16 @@ local function StyleIcon(button)
 	local textSize = math.max(6, math.floor(size * COUNT_SHARE + 0.5))
 	Style.SetFont(p.count, text.healthFont, textSize, "OUTLINE")
 	p.count:SetAlpha(a.stacks and 1 or 0)
-	if a.timers and not p.timer and type(button.SetDurationText) == "function" then
-		p.timerFrame = CreateFrame("Frame", nil, p.textFrame)
-		p.timerFrame:SetAllPoints(p.skin)
-		p.timer = Widgets.Fitted(Widgets.FontString(p.timerFrame, "OVERLAY"))
-		p.timer:SetPoint("CENTER", p.skin, "CENTER")
-		button:SetDurationText(p.timer)
-	end
-	if p.timer then
-		Style.SetFont(p.timer, text.healthFont, textSize, "OUTLINE")
-		p.timerFrame:SetShown(a.timers)
+	if a.timers and type(button.SetDurationText) == "function" then
+		local timer = p.timer or Widgets.Fitted(Widgets.FontString(p.textFrame, "OVERLAY"))
+		Style.SetFont(timer, text.healthFont, textSize, "OUTLINE")
+		PlaceTimer(timer, p.skin, p.buff or p.size or Block(f, k).rows <= 1)
+		if not (p.timer and p.styledTimers) then button:SetDurationText(timer) end
+		p.timer = timer
+		timer:Show()
+	elseif p.timer and p.styledTimers then
+		button:ClearDurationText()
+		p.timer:Hide()
 	end
 	p.cooldown:SetDrawSwipe(Settings.current.auras.swipe)
 	if p.mark and not p.size then
@@ -568,7 +577,8 @@ local function BuildIcon(button, key)
 	if not p.buff and types and types.CustomAsset ~= nil and K.ColorVision and type(button.AddDispelTypeTexture) == "function" then
 		p.dispelLetter = textFrame:CreateTexture(nil, "OVERLAY")
 		p.dispelLetter:SetPoint("TOPRIGHT", p.skin, "TOPRIGHT")
-		Widgets.Size(p.dispelLetter, 14, 14)
+		local letter = math.min(14, p.styledSize or 14)
+		Widgets.Size(p.dispelLetter, letter, letter)
 		p.dispelLetter:Hide()
 		p.dispelLetter:SetAlpha(Settings.current.auras.typeLetters and 1 or 0)
 		button:AddDispelTypeTexture(p.dispelLetter, { style = types.CustomAsset, showWhenHarmful = true, customDispelAssetMap = K.ColorVision.DispelAssets() })
@@ -1295,6 +1305,20 @@ local function BuildSamples(f)
 end
 Button.built[#Button.built + 1] = BuildSamples
 
+local function SampleLabel(icon, key, on, text, size)
+	local label = icon[key]
+	if on and not label then
+		label = Widgets.Fitted(Widgets.FontString(icon.tile.skin, "OVERLAY"))
+		label:SetText(text)
+		icon[key] = label
+	end
+	if label then
+		Style.SetFont(label, Settings.current.text.healthFont, size, "OUTLINE")
+		label:SetShown(on)
+	end
+	return label
+end
+
 local function LayoutSamples(f, k)
 	local holder = f.sampleAuraHolder
 	local block = Block(f, k)
@@ -1317,6 +1341,16 @@ local function LayoutSamples(f, k)
 		icon.tile.chrome:SetRimAccent(Style.Accent())
 		PlaceIcon(icon.tile)
 	end
+	local first, a = f.sampleAuras[1], Settings.current.auras
+	local textSize = math.max(6, math.floor(size * COUNT_SHARE + 0.5))
+	local count = SampleLabel(first, "count", a.stacks, "3", textSize)
+	if count then
+		local inset = PlaceIcon(first.tile)
+		count:ClearAllPoints()
+		count:SetPoint("BOTTOMRIGHT", first.tile.skin, "BOTTOMRIGHT", -inset, inset)
+	end
+	local timer = SampleLabel(first, "timer", a.timers, "12s", textSize)
+	if timer then PlaceTimer(timer, first.tile.skin, block.rows <= 1) end
 	local chip = f.sampleChip
 	local last = f.sampleAuras[math.max(1, block.cells)]
 	chip:ClearAllPoints()

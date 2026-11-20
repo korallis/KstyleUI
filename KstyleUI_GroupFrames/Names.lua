@@ -167,6 +167,7 @@ function Names.Party(f)
 	local requested, minimum = first.size, first.min
 	local unknown = false
 	for _, other in ipairs(group) do
+		other.fitName = Limited(other)
 		requested = math.min(requested, other.nameFit.size)
 		minimum = math.max(minimum, other.nameFit.min)
 		unknown = unknown or other.nameFloor == true or other.rawName == nil
@@ -178,7 +179,7 @@ function Names.Party(f)
 			fit.set(other.name, minimum, path)
 			local _, size = other.name:GetFont()
 			if not width or PARTY_NAME_EM * size > width + fit.slack
-				or (other.rawName and Width(other.name, Limited(other), size) > width + fit.slack) then
+				or (other.rawName and Width(other.name, other.fitName, size) > width + fit.slack) then
 				path = ns.Settings.COMPACT_NAME_FONT
 				break
 			end
@@ -191,7 +192,7 @@ function Names.Party(f)
 			for _, other in ipairs(group) do
 				local fit, width = other.nameFit, other.nameWidth
 				fit.set(other.name, step, path)
-				if width and other.rawName and Width(other.name, Limited(other), step) > width + fit.slack then
+				if width and other.rawName and Width(other.name, other.fitName, step) > width + fit.slack then
 					fits = false
 					break
 				end
@@ -203,7 +204,7 @@ function Names.Party(f)
 		end
 	end
 	for _, other in ipairs(group) do
-		local fit, text, name, width = other.nameFit, other.name, Limited(other), other.nameWidth
+		local fit, text, name, width = other.nameFit, other.name, other.fitName, other.nameWidth
 		fit.set(text, chosen, path)
 		other.nativeName = fit.native and path == fit.path
 		if name then
