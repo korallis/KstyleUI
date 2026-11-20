@@ -8,7 +8,8 @@ local LogOnce = ns.LogOnce
 local CVars = {}
 ns.CVars = CVars
 
-local KEYS = { "maxDistance", "verticalDistance", "stacking", "selectedScale", "minScale", "clickSize" }
+local KEYS = { "maxDistance", "verticalDistance", "stacking", "selectedScale", "minScale", "clickSize",
+	"showEnemies", "showFriends", "enemyMinions", "friendlyMinions", "friendlyNpcs", "friendlyNameOnly" }
 local queued = false
 
 CVars.Exists = K.CVars.Exists
@@ -51,6 +52,21 @@ local function Set(name, value, index)
 	return true
 end
 
+local function Back(records, name)
+	local record = records[name]
+	local valid = type(record) == "table" and type(record.original) == "string" and type(record.written) == "string"
+	local current = valid and K.CVars.Get(name)
+	if valid and ns.Stacking.Holds(name) then
+		ns.Stacking.HandBack(name, record.original)
+		records[name] = nil
+	elseif valid and (current == nil or (current == record.written
+		and (not K.CVars.Set(name, record.original) or K.CVars.Get(name) ~= record.original))) then
+		LogOnce("cvar-back:" .. name, "the game refused " .. name .. " back; KstyleUI tries again later")
+	else
+		records[name] = nil
+	end
+end
+
 local function Apply()
 	local values = {}
 	for _, key in ipairs(KEYS) do
@@ -58,7 +74,10 @@ local function Apply()
 	end
 	for _, entry in ipairs(Logic.CVarPlan(values)) do
 		local name = entry.name
-		if ns.Stacking.Holds(name) then
+		if entry.value == nil then
+			local records = Records()
+			if records and records[name] then Back(records, name) end
+		elseif ns.Stacking.Holds(name) then
 			LogOnce("cvar-held:" .. name, name .. " stays at 1 while plates ignore the game's plate scale; turn on Shrink distant plates to use this setting")
 		elseif not K.CVars.Exists(name) then
 			if name ~= Logic.STACKING_CVAR then
@@ -73,19 +92,9 @@ end
 
 local function Restore()
 	local records = Records() or {}
-	for name, record in pairs(records) do
+	for name in pairs(records) do
 		if name ~= "nameplateShowSelf" or not ns.Plates.running then
-			local valid = type(record) == "table" and type(record.original) == "string" and type(record.written) == "string"
-			local current = valid and K.CVars.Get(name)
-			if valid and ns.Stacking.Holds(name) then
-				ns.Stacking.HandBack(name, record.original)
-				records[name] = nil
-			elseif valid and (current == nil or (current == record.written
-				and (not K.CVars.Set(name, record.original) or K.CVars.Get(name) ~= record.original))) then
-				LogOnce("cvar-back:" .. name, "the game refused " .. name .. " back; KstyleUI tries again later")
-			else
-				records[name] = nil
-			end
+			Back(records, name)
 		end
 	end
 	K.DevTest.Log(Settings.MODULE, "returned the nameplate CVars to the player's values")

@@ -32,7 +32,23 @@ return Common.Run(function()
 		K.Options.Write(module, "cast.hideUnitName", true)
 		K.Options.Write(module, "cast.fullOpacity", true)
 		K.Options.Write(module, "focus.fullOpacity", true)
-		dofile("Tools/regression/nameplates_env.lua").Focus(env, "nameplate2")
+		local N = dofile("Tools/regression/nameplates_env.lua")
+		if os.getenv("RENDER_PARITY_ROUND") == "1" then
+			-- Round 1 switched on: threat percent and name colour, the health line and name marker on the target, the
+			-- focus letter, a PvP badge, the spell target and a level difficulty colour.
+			env.GetCreatureDifficultyColor = function(level) return level > 40 and { r = 1, g = 0.5, b = 0.25 } or { r = 1, g = 0.82, b = 0 } end
+			local target, add = env._units.nameplate1, env._units.nameplate2
+			target.threat, target.threatPct, target.raid = 1, 72, 8
+			add.pvp, add.faction, add.spellTarget = true, "Horde", "Thaldren"
+			for key, value in pairs({ ["threat.groupOnly"] = false, ["threat.name"] = true, ["threat.percent"] = true, ["threat.percentColor"] = true,
+				["target.hashLine"] = true, ["markers.nameRaid"] = true, ["focus.letter"] = "RIGHT", ["markers.pvp"] = true,
+				["markers.pvpPlayersOnly"] = false, ["cast.showTarget"] = true, ["cast.hideUnitName"] = false, ["level.colorMode"] = "difficulty" }) do
+				K.Options.Write(module, key, value)
+			end
+			N.Cast(env, "nameplate2", { name = "Mirefin Hex", text = "Mirefin Hex", texture = 136071, notInterruptible = false })
+			Hud.FillCast(ns.Plates.Get("nameplate2"), 0.4)
+		end
+		N.Focus(env, "nameplate2")
 	end
 	env.RunTimers(); Gallery.Ticks(dofile("Tools/regression/widget_env.lua"), env, 40)
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))

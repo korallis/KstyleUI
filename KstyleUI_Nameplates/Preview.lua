@@ -19,12 +19,12 @@ Preview.SAMPLES = {
 	},
 	{
 		name = L["Elunara"], level = 60, classification = "normal", health = 0.81,
-		enemy = true, reaction = 2, isPlayer = true, class = "PRIEST", threat = "warning",
-		cast = { text = L["Greater Heal"], texture = 135913, time = "1.2", progress = 0.7, notInterruptible = true },
+		enemy = true, reaction = 2, isPlayer = true, class = "PRIEST", threat = "warning", threatPct = 87, pvp = true, faction = "Horde",
+		cast = { text = L["Greater Heal"], texture = 135913, time = "1.2", progress = 0.7, notInterruptible = true, target = L["Thaldrin"] },
 	},
 	{
 		name = L["Thaldrin"], level = 60, classification = "normal", health = 0.92,
-		enemy = false, reaction = 5, isPlayer = true, class = "PALADIN", focus = true,
+		enemy = false, reaction = 5, isPlayer = true, class = "PALADIN", focus = true, afk = true,
 	},
 }
 

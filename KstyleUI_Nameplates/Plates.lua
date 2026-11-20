@@ -320,7 +320,8 @@ local UNIT_EVENTS = {
 	UNIT_HEALTH = Method("UpdateHealth"),
 	UNIT_MAXHEALTH = Method("UpdateHealth"),
 	UNIT_NAME_UPDATE = Method("UpdateName"),
-	UNIT_LEVEL = function(plate) plate:UpdateLevel(); plate:UpdateTags("Level") end,
+	UNIT_LEVEL = function(plate) plate:UpdateLevel(); plate:RefreshType(); plate:UpdateTags("Level") end,
+	PLAYER_FLAGS_CHANGED = Method("UpdateName"),
 	UNIT_CLASSIFICATION_CHANGED = function(plate)
 		plate:UpdateMarker()
 		plate:RefreshType()
@@ -394,6 +395,12 @@ local GLOBAL_EVENTS = {
 	RAID_TARGET_UPDATE = ForAll("UpdateRaid"),
 	QUEST_LOG_UPDATE = ForAll("RefreshType"),
 	UNIT_QUEST_LOG_CHANGED = ForAll("RefreshType"),
+	PLAYER_LEVEL_UP = function()
+		for _, plate in pairs(byUnit) do
+			plate:UpdateLevel()
+			plate:RefreshType()
+		end
+	end,
 	PLAYER_TARGET_CHANGED = OnHighlight,
 	PLAYER_FOCUS_CHANGED = OnHighlight,
 	PLAYER_ROLES_ASSIGNED = OnRole,
