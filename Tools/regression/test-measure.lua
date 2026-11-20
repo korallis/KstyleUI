@@ -162,15 +162,16 @@ do
 	assert(problems[1]:find("Fake Table", 1, true) and problems[1]:find("KstyleUI_Fake/Hot.lua:5", 1, true), problems[1])
 end
 
--- Check fails a path over its time budget and says the time and the budget in microseconds.
+-- Per-call timing fails on Mac CI and is informational elsewhere.
 do
-	local spin = function()
-		local start = os.clock()
-		while os.clock() - start < 0.0002 do
-		end
+	local real = Measure.Run
+	Measure.Run = function() return { time = 0.0002, addonKb = 0 } end
+	local problems = Measure.Check({ name = "Fake Spin", budget = 50, run = addon.Nothing })
+	Measure.Run = real
+	assert(#problems == (Measure.TimeEnforced and 1 or 0), "only Mac CI fails a time budget")
+	if Measure.TimeEnforced then
+		assert(problems[1]:find("Fake Spin", 1, true) and problems[1]:find("budget 50", 1, true), problems[1])
 	end
-	local problems = Measure.Check({ name = "Fake Spin", budget = 50, run = spin, calls = 20 })
-	assert(#problems == 1 and problems[1]:find("Fake Spin", 1, true) and problems[1]:find("budget 50", 1, true), tostring(problems[1]))
 end
 
 print("test-measure: ok")

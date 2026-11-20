@@ -98,7 +98,7 @@ class SelectTest(unittest.TestCase):
         guards = ["Tools/regression/" + name + ".lua" for name in affected.GUARDS]
         tests = self.tests + guards
         cache = self.cache()
-        cache.update({test: record() for test in guards})
+        cache.update({test: record(sha=affected.fingerprint(test)) for test in guards})
         chosen, _ = affected.select(tests, {"Tools/regression/b_env.lua": "M"}, cache)
         self.assertEqual(set(chosen), {self.tests[1], *guards})
         self.assertNotIn(self.tests[2], chosen, "an unrelated module must stay excluded")

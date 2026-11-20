@@ -33,6 +33,7 @@ if jit and jit.off then
 end
 
 local Measure = {}
+Measure.TimeEnforced = os.getenv("CI") == "true" and os.getenv("RUNNER_OS") == "macOS"
 
 local DEFAULT_CALLS = 1000
 local WARMUP_CALLS = 10
@@ -174,7 +175,12 @@ function Measure.Check(entry)
 	local r = Measure.Run(entry.run, { calls = entry.calls, rounds = entry.rounds })
 	local us = r.time * 1e6
 	if us > entry.budget then
-		problems[#problems + 1] = string.format("%s: %.1f us per call, over its budget %g us", entry.name, us, entry.budget)
+		local message = string.format("%s: %.1f us per call, over its budget %g us", entry.name, us, entry.budget)
+		if Measure.TimeEnforced then
+			problems[#problems + 1] = message
+		else
+			print("WARN " .. message .. " (timing is informational outside Mac CI)")
+		end
 	end
 	if r.addonKb > 0 then
 		local shown = {}

@@ -43,7 +43,6 @@ SHARED_PATHS = (
     "Tools/regression/trace.lua",
     "Tools/regression/fs.lua",
     "Tools/regression/stubs/*",
-    "Tools/regression/*_env.lua",
     "Tools/regression/load_files.lua",
     "Tools/regression/toc_files.lua",
     ".luacheckrc",
@@ -227,6 +226,10 @@ def select(tests, changes, cache, guards=GUARDS):
     for path in sorted(changes):
         if any(fnmatch.fnmatchcase(path, pattern) for pattern in SHARED_PATHS):
             return everything(tests, path + " is shared by the whole suite, so every test file runs")
+    if any(fnmatch.fnmatchcase(path, "Tools/regression/*_env.lua") for path in changes):
+        for test in tests:
+            if test not in cache or cache[test].get("sha") != fingerprint(test):
+                return everything(tests, "missing or stale dependency record for " + test + "; every test file runs")
     known = [test for test in tests if test in cache]
     lists, generic = {}, {}
     for path, status in changes.items():

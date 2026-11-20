@@ -6,6 +6,8 @@
 bash Tools/regression/run-all.sh                            # every file, as CI's lua shards together run them
 bash Tools/regression/run-all.sh --affected origin/staging  # only the files a change can reach
 bash Tools/regression/run-all.sh --shard 2/4                # slice 2 of 4, how CI splits the files across jobs
+bash Tools/regression/run-all.sh --affected origin/staging --list # preview without running tests
+bash Tools/regression/run-all.sh test-layout-tag-budget.lua     # explicit files, still using shared slots
 ```
 
 To see a failing test's full output, run that test alone, for example `lua5.1 Tools/regression/test-taint-scan.lua`.
@@ -16,17 +18,20 @@ To see a failing test's full output, run that test alone, for example `lua5.1 To
 
 ## Modes
 
-CI runs the whole suite on hosted `ubuntu-latest` for pull requests as eight `--shard I/8` jobs, and on self-hosted Macs for staging pushes and manual runs as two `--shard I/2` jobs. Staging always runs Lua, even with green PR markers, to check Mac CPU limits and cumulative instruction budgets. Hosted per-file CPU overruns and per-path CPU headroom warn; functional tests, instruction budgets, memory limits and hang guards still fail. A developer's pre-push run is `--affected`. The full run with no argument is for reproducing a CI failure.
+CI runs the whole suite on hosted `ubuntu-latest` for pull requests as eight `--shard I/8` jobs, and on self-hosted Macs for staging pushes and manual runs as two `--shard I/2` jobs. Staging always runs Lua, even with green PR markers, to check Mac CPU limits and cumulative instruction budgets. Hosted per-file CPU warnings use a 2.5 factor; per-call timing is informational and CPU headroom is skipped there. Functional tests, instruction budgets, memory limits and hang guards still fail. A developer's pre-push run is `--affected`. The full run with no argument is for reproducing a CI failure.
 
 | Option | What it runs | Last line |
 | --- | --- | --- |
 | none | Every `test-*.lua` | `passed N, failed M` |
-| `--shard I/N` | Slice I of N of the files. The first line after the budget says `shard I/N: X of Y test files`. | `passed N, failed M` for the slice |
+| `--shard I/N` | Slice I of N of the files; prints `shard I/N: X of Y test files`. | `passed N, failed M` for the slice |
 | `--affected [BASE]` | The files that load something changed against BASE (default `origin/staging`) | `passed N, failed M (affected mode: X of Y test files ran; the other Z did not, and CI runs them all)` |
 | `--margins` | The files one at a time, then the files within 20% of a budget | `passed N, failed M` |
 | `--write-weights` | Every file, then writes `weights.json` | `passed N, failed M` |
+| `--list` | Prints selected paths without needing Lua, taking slots, checking locales or writing records | `N test files selected; no tests run` |
+| explicit filenames or `Tools/regression/test-*.lua` paths | Only those tests, with normal slots and budgets | `passed N, failed M` |
 
 `--shard`, `--affected` and `--margins` can be combined with each other, but none of them with `--write-weights`. A shard exits 0 only when its own files pass; CI requires every Lua shard job and the parallel `lint, python and package` job to pass.
+Explicit files cannot be combined with `--shard`, `--affected` or `--write-weights`. `--list` previews any selection but cannot write weights.
 
 ### Shards and weights
 
@@ -49,7 +54,8 @@ Each record carries a hash of its test file, so a record made from another versi
 The choice is conservative in these cases:
 
 - A test file with no record runs.
-- Every file runs when a changed file is one of `SHARED_PATHS` in `affected.py` (the runner, `trace.lua`, `fs.lua`, `stubs/`, the `*_env.lua` helpers, `load_files.lua`, `toc_files.lua`, `.luacheckrc`), or when 10 or more test files, and at least half of them, load the changed file. In practice a change under `Core/` runs everything.
+- Environment helpers (`*_env.lua`) use the per-test read records. If any selected test's record is missing or stale, an environment change falls back to every file. With complete records, the audit's `worldmap_roads_env.lua` change selects 17 of 834 tests instead of 834, including all 14 mandatory source guards.
+- Every file runs when a changed file is one of `SHARED_PATHS` in `affected.py` (the runner, `trace.lua`, `fs.lua`, `stubs/`, `load_files.lua`, `toc_files.lua`, `.luacheckrc`), or when 10 or more test files, and at least half of them, load the changed file. Stub changes stay conservative: read records cannot attribute individual stub functions. In practice a change under `Core/` runs everything.
 - The source guards in `GUARDS` (the scanners and loaders that read the whole tree) run on every affected run, even when nothing they read changed.
 - A module's own TOC or XML only lists that module's files, so a change to `KstyleUI_<Module>/*.toc` or `*.xml` selects the tests that load that module's Lua files, not every test that walks the TOCs.
 
@@ -60,6 +66,8 @@ It uses `JOBS` files at a time, a third of the CPUs by default (6 on the 18-CPU 
 ## Worker slots
 
 Every run takes a **worker slot** per test file, so all local runs together use at most a third of the CPUs by default (6 on the 18-CPU Mac, leaving room for the game). `KSTYLEUI_SLOTS` sets the count; `KSTYLEUI_SLOTS=0` disables it. A run waits and polls when every slot is held; waiting does not consume a test's CPU budget.
+
+The **Beast speed rule** refuses a local selection of more than 150 files when another run holds a shared slot. Preview with `--list`, pass explicit files to keep work focused, or set `KSTYLEUI_FULL=1` to force the selection. Explicit files still take shared slots. CI bypasses admission, including self-hosted CI.
 
 Each slot is a lock file, `~/.cache/kstyleui/worker-slot-N.lock` (`KSTYLEUI_SLOT_DIR` moves the folder), held with nonblocking `flock` on POSIX or `msvcrt.locking` on Windows. The OS releases a crashed or killed runner's locks. A hung runner keeps its slots until it exits or is killed; stop only a runner you started, by its PID. The runner never kills a process it did not start, and nobody needs a `pkill` or a full-suite `lockf`. On a GitHub-hosted runner `CI=true` turns the limit off, because that runner has no other runs. CI's self-hosted Mac runners set `RUNNER_ENVIRONMENT=self-hosted`, so there CI takes slots like any other run on the Mac.
 
@@ -136,7 +144,7 @@ CPU limits fail only on macOS with `CI=true`; other platforms and local runs use
 
 The wall-clock hang guard is **max(120 seconds, five times the file CPU limit)**, including its allowance and platform factor. The 120-second floor applies when a run is not budgeted. POSIX kills the owned process group; Windows kills and waits for the direct test process. Tests must limit shell children to short commands. CPU diagnostics and memory failures name the fix: make the file cheaper, use less memory, or split it. Never raise a budget without measured calibration evidence.
 
-The perf tests retain their existing per-call clock measurements and allocation checks. On POSIX, `os.clock` measures CPU time: budgets must be at least **five times** the measured PUC Lua 5.1 time, including in CI. Windows MSVC `os.clock` measures wall time, so `HeadroomProblem` prints a skip note there; per-call time and allocation checks still run. LuaJIT also skips the PUC headroom check rather than estimating PUC speed.
+The perf tests retain per-call clock measurements and allocation checks. Timing budgets and the fivefold PUC Lua 5.1 CPU headroom check fail on **Mac CI only** (`CI=true`, `RUNNER_OS=macOS`); timing overruns are informational elsewhere. Windows MSVC `os.clock` measures wall time, so `HeadroomProblem` prints a skip note there; hosted CI and LuaJIT also skip headroom. Allocation checks fail everywhere. Layout selection has a 1,100,000-addon-instruction budget for 200 selections (measured 866,944); nameplate construction has a sampled 180,000-instruction budget per plate over all 40 cold builds (measured 142,443), alongside its existing frame and region caps. The instruction helper counts exactly by default; these 40 builds sample every 100 instructions, as `path_budget.lua` already does, to keep the measurement itself within the file CPU limit.
 
 ### Per-path noise calibration (2026-11-17)
 
@@ -267,7 +275,7 @@ Windows evidence: Beast, LuaBinaries PUC 5.1.5, 21 serial files (the final slowe
 | `test-hud-material-tank.lua` | — | 21.13 | 20.27 | 46.58 | 27 |
 | `test-pixel-grid-11.lua` | 20.75 | — | 21.08 | 37.30 | 27 |
 
-The Windows factor is **2.21**, the largest ratio in the 21-file serial Windows calibration of Windows CPU / worst Mac CPU rounded up to 0.01: `test-hud-material-tank.lua` = 46.578125 / 21.126243 = 2.204752. It scales Windows CPU warning thresholds and the budget-derived hang guard, including every allowance; it does not make Windows CPU time authoritative. The 4096 MB memory limit is unchanged. POSIX uses factor 1. The initial LEE-5827 allowances are `ceil(worst observed Mac CPU × 1.25)` for every measured file at or above 16 CPU seconds; files omitted from the list retain 20 seconds.
+The Windows factor is **2.21**, the largest ratio in the 21-file serial Windows calibration of Windows CPU / worst Mac CPU rounded up to 0.01: `test-hud-material-tank.lua` = 46.578125 / 21.126243 = 2.204752. It scales Windows CPU warning thresholds and the budget-derived hang guard, including every allowance; it does not make Windows CPU time authoritative. Hosted Linux (`CI=true`, `RUNNER_ENVIRONMENT=github-hosted`) uses **2.5** for CPU warning thresholds only: the CI audit found 149 noise warnings at factor 1 and none at 2.5. Other POSIX runs use factor 1; hosted Linux keeps its existing hang guard. The 4096 MB memory limit is unchanged. The initial LEE-5827 allowances are `ceil(worst observed Mac CPU × 1.25)` for every measured file at or above 16 CPU seconds; files omitted from the list retain 20 seconds.
 
 The original same-logical-core time-slicing probe changed from 2.343750 CPU / 2.994216 wall seconds to 2.421875 CPU / 24.619557 wall seconds. That did not test sibling-hyperthread contention. Verification subsequently measured identical Windows work at 43.609375 CPU seconds alone and 64.000000 CPU seconds under load, and a sibling-core probe rose about 1.7 times. CPU accounting therefore does not make Windows verdicts independent of load: Windows CPU overruns are advisory, and Mac CI decides the CPU verdict. The memory and hang limits remain fatal.
 
@@ -467,7 +475,7 @@ The lint follows locals within a file. It does not follow values through functio
 
 `test-perf.lua`, `test-perf-frames.lua`, `test-perf-skins.lua` and `test-perf-hud.lua` measure every combat path registered in `perf/`. A path fails when:
 
-- Its average time per call is over its budget.
+- Its average time per call is over its budget on Mac CI.
 - It allocates memory on an addon line. The spec allows no allocation in a combat path.
 - It reports an error while it runs.
 
@@ -475,7 +483,7 @@ The lint follows locals within a file. It does not follow values through functio
 
 The paths run as four test files to bound each file's work; their CPU limits, including `test-perf.lua`'s measured allowance, are recorded in `cpu_allowances.tsv`: `test-perf.lua` measures the core, action bar, combat text, cooldown, group frame and meter files, `test-perf-frames.lua` the nameplate and unit frame files, `test-perf-skins.lua` the quest card's, and `test-perf-hud.lua` the data bars' and the minimap's. `perf_runner.lua` holds the lists (`GROUPS`) and fails every file when a `perf/` file sits in no group, or in two. A slow path can lower `calls` (the quest card's use 100) so its allocation trace, about fifty times a plain call, stays inside the file's time.
 
-A path that fails on time alone (over budget, or under the headroom rule below) is measured again, up to 3 attempts in all, and its fastest attempt counts; the printed line then says `(fastest of N attempts)`. Hosted CI does not retry solely for advisory headroom; actual per-call timing failures still get all three attempts. An allocation never clears on another attempt. When a failure stands, the report ends with the machine's load average (`KSTYLEUI_LOAD`, which the runner sets; without it the load is unknown and not printed), so a run that failed under five parallel test runs can be told from a real regression (round 3 to 5 of the ranking loop saw `test-perf` fail a different untouched path on each loaded run).
+A path that fails on time alone on Mac CI (over budget, or under the headroom rule below) is measured again, up to 3 attempts in all, and its fastest attempt counts; the printed line then says `(fastest of N attempts)`. Informational timing elsewhere does not trigger retries. An allocation never clears on another attempt. When a failure stands, the report ends with the machine's load average (`KSTYLEUI_LOAD`, which the runner sets; without it the load is unknown and not printed), so a run that failed under five parallel test runs can be told from a real regression (round 3 to 5 of the ranking loop saw `test-perf` fail a different untouched path on each loaded run).
 
 Before it measures, the test enters combat with `env.SetCombat(true)` and switches the stubs to quiet mode with `env.SetQuiet(true)`. In quiet mode:
 
@@ -527,7 +535,7 @@ Fix the line: reuse a table that the object owns, or pass values as arguments. A
 
 ### Calibrate a budget
 
-A per-call budget must be **at least five times the measured PUC Lua 5.1 CPU time on a Mac**, including CI. Hosted CI prints a warning for this machine-dependent headroom check; per-call budget overruns, allocations and errors still fail there. The test reports the minimum when a budget is too tight:
+A per-call budget must be **at least five times the measured PUC Lua 5.1 CPU time on Mac CI**. Hosted CI skips this machine-dependent headroom check and reports per-call overruns as informational; allocations and errors still fail there. The test reports the minimum when a budget is too tight:
 
 ```text
 Nameplates interrupt readiness flipping under three casts: budget 40 us is 2.8 times the 14.2 us Lua 5.1 CPU time; set it to at least 71 us (5 times)
@@ -543,7 +551,7 @@ Run [43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741)
 | GroupFrames UNIT_FLAGS | 8.58 | 45 |
 | Meters raid-of-twenty damage refresh | 413 | 2100 |
 
-LEE-5831 tracks the Skins quest-update slowdown since #418. The historical slower-runner multiplier is gone. Windows prints a headroom skip note because MSVC `os.clock` measures wall time; LuaJIT also skips this PUC CPU-headroom check. Per-call timing, allocation and error checks continue to run.
+LEE-5831 tracks the Skins quest-update slowdown since #418. The historical slower-runner multiplier is gone. Windows prints a headroom skip note because MSVC `os.clock` measures wall time; hosted CI and LuaJIT also skip this PUC CPU-headroom check. Per-call timing stays informational outside Mac CI; allocation and error checks remain fatal everywhere.
 
 ## Cold HUD scale search
 

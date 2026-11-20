@@ -259,6 +259,8 @@ def hang_limit(seconds):
 
 
 def cpu_factor(windows=runner_platform.WINDOWS):
+    if sys.platform == "linux" and os.environ.get("CI") == "true" and os.environ.get("RUNNER_ENVIRONMENT") == "github-hosted":
+        return 2.5
     return WINDOWS_CPU_FACTOR if windows else 1.0
 
 
@@ -329,7 +331,13 @@ def parse_args(argv):
                         help="run the files one at a time and list those within 20%% of the time or memory budget")
     parser.add_argument("--write-weights", action="store_true",
                         help="run every file and write Tools/regression/weights.json, the times --shard balances by")
+    parser.add_argument("--list", action="store_true", help="print the selected files without running anything")
+    parser.add_argument("files", nargs="*", help="explicit test filenames or Tools/regression/test-*.lua paths")
     args = parser.parse_args(argv)
+    if args.files and (args.shard or args.affected or args.write_weights):
+        parser.error("explicit files cannot be combined with --shard, --affected or --write-weights")
+    if args.list and args.write_weights:
+        parser.error("--list cannot write weights")
     args.slice = None
     if args.shard:
         try:
@@ -398,14 +406,37 @@ def jobs_for(args):
 
 def main(argv):
     args = parse_args(argv)
-    command, label = interpreter()
-    if command is None:
-        print(label)
-        return 2
     every = sorted(path.as_posix() for path in Path("Tools/regression").glob("test-*.lua"))
     if not every:
         print("no tests found in Tools/regression")
         return 1
+    tests, weights, changes = every, load_weights(), None
+    if args.files:
+        files = [Path(path).as_posix() for path in args.files]
+        tests = sorted(set(path if "/" in path else "Tools/regression/" + path for path in files))
+        if any(path not in every for path in tests):
+            print("explicit files must name existing Tools/regression/test-*.lua files")
+            return 2
+    if args.slice:
+        tests = shard(tests, *args.slice, weights)
+        print("shard {0}/{1}: {2} of {3} test files".format(*args.slice, len(tests), len(every)))
+    if args.affected:
+        tests, lines, changes = plan_affected(tests, args.affected)
+        print("\n".join(lines), flush=True)
+    if args.list:
+        print("\n".join(tests))
+        print("{0} test files selected; no tests run".format(len(tests)))
+        return 0
+    slots, off = make_slots()
+    if (len(tests) > 150 and not args.files and os.environ.get("CI") != "true" and
+            os.environ.get("KSTYLEUI_FULL") != "1" and slots and slots.others()):
+        print("Beast speed rule: refusing {0} test files while other runs hold shared slots; "
+              "set KSTYLEUI_FULL=1 to force, or pass explicit files. Preview with --list.".format(len(tests)))
+        return 2
+    command, label = interpreter()
+    if command is None:
+        print(label)
+        return 2
     seconds, megabytes = budgets()
     measured = budgeted(command)
     strict_cpu = measured and cpu_enforced()
@@ -418,7 +449,6 @@ def main(argv):
     seconds *= factor
     allowances = {name: limit * factor for name, limit in allowances.items()}
     jobs = jobs_for(args)
-    slots, off = make_slots()
     if slots:
         jobs = min(jobs, slots.count)
     print(label)
@@ -433,14 +463,8 @@ def main(argv):
     print("machine load {0} on {1} CPUs; {2}".format(fmt(start_load), os.cpu_count() or 0, off or (
         "worker slots: {0} for every run on this machine, {1} held by other runs".format(slots.count, slots.others()))), flush=True)
 
-    tests, weights = every, load_weights()
-    if args.slice:
-        tests = shard(tests, *args.slice, weights)
-        print("shard {0}/{1}: {2} of {3} test files".format(*args.slice, len(tests), len(every)))
     locale_lines, locale_ok = [], True
     if args.affected:
-        tests, lines, changes = plan_affected(tests, args.affected)
-        print("\n".join(lines), flush=True)
         locale_lines, locale_ok = locale_check(changes)
     expected = weigh(tests, weights)
     order = sorted(tests, key=lambda test: -expected[test])
@@ -455,8 +479,10 @@ def main(argv):
             nonlocal completed
             stem = Path(path).stem
             trace = os.path.join(logs, stem + ".trace") if args.affected else None
+            limit = allowances.get(Path(path).name, seconds)
+            hang_seconds = limit / factor if limit is not None and sys.platform == "linux" else limit
             result = run_one(command, path, os.path.join(logs, stem + ".out"),
-                             hang_limit(allowances.get(Path(path).name, seconds)), trace, slots)
+                             hang_limit(hang_seconds), trace, slots)
             with progress_lock:
                 completed += 1
                 print("progress: {0}/{1} test files done".format(completed, len(tests)), flush=True)
