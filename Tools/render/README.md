@@ -317,4 +317,8 @@ Saved data for a scene turns a module on and marks the first-run setup seen: `{ 
 
 `actionbars_parity` drives four real action bars through Options and Layout, then collects each state into a matrix: keybind, count, macro and cooldown text at all nine anchors. Item fixtures use rare and epic items, and the cooldown fixture receives the native cooldown event and show callback. `RENDER_PARITY=before` uses style anchors, ordinary item borders and coloured cooling icons. Use `RENDER_SIZE=1` for this component matrix, `RENDER_SCREEN=1920x1080` with `--ppu 1` or `RENDER_SCREEN=5120x1440` with `--ppu 1.3333333333`, and `--backdrop --strict`. `RENDER_HUD_STYLE=Medallions RENDER_CLASS=WARLOCK` shows the owner's socket finish.
 
+### Data bar parity
+
+`databars_parity` switches on the data bar's parity readouts and options through `Options.Write` on fixture data and draws the top bar. `RENDER_DATABARS_DEFAULTS=1` leaves every setting at its default for base-against-branch pixel diffs, and `RENDER_DATABARS_OPTIONS=<key>` opens the Data Bars page at that setting with a short readout list, so the live preview stays legible. Use the four owner screens with `--strict`.
+
 `options_actionbars` accepts `RENDER_OPTIONS_KEY=bar2.desaturateCooldown` (or another real option key) to scroll its settings while retaining the pinned bar picker. Concurrent renders of the same scene need separate `RENDER_OUTDIR` directories.

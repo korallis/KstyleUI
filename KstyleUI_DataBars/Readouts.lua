@@ -1,8 +1,9 @@
--- Readouts.lua: the data bar's guarded travel, social and account readouts in the strip's shared registries.
+-- Readouts.lua: the data bar's guarded travel, social, account, map, combat, audio, profession and plugin readouts in the strip's shared registries.
 local _, ns = ...
 
 local K, L, Strip = ns.K, ns.L, ns.Strip
 local Call, IsNumber = ns.Sources.Call, ns.IsNumber
+local floor, format = math.floor, string.format
 local Readouts = {}
 ns.Readouts = Readouts
 
@@ -19,14 +20,12 @@ local function Count(value)
 	return IsNumber(value) and tostring(value) or L["--"]
 end
 
-local function Spec()
-	local api = C_SpecializationInfo
-	local index = api and Number(api.GetSpecialization)
-	if index then
-		local _, name = Call(api.GetSpecializationInfo, index)
-		return Plain(name, "string") or L["--"]
-	end
-	return L["--"]
+local function Settings(s)
+	return s or ns.Settings().strip
+end
+
+local function Clamp(value, low, high, fallback)
+	return IsNumber(value) and math.max(low, math.min(high, floor(value))) or fallback
 end
 
 function Readouts.CanSwitch()
@@ -36,10 +35,45 @@ function Readouts.CanSwitch()
 	return api and type(api.SetActiveSpecGroup) == "function" and groups and groups > 1 and group and (group == 1 or group == 2), group
 end
 
+local function Loadout(specID)
+	local talents, traits = C_ClassTalents, C_Traits
+	local id = talents and specID and Number(talents.GetLastSelectedSavedConfigID, specID)
+	local info = id and traits and Call(traits.GetConfigInfo, id)
+	return not ns.IsSecret(info) and type(info) == "table" and Plain(info.name, "string") or nil
+end
+
+function Readouts.SpecText(s, name, group, loadout)
+	local custom = group == 1 and s.spec1Text or group == 2 and s.spec2Text or ""
+	local text = custom ~= "" and custom or name
+	if s.specLoadout and loadout then text = text .. " / " .. loadout end
+	return s.specUpper and text:upper() or text
+end
+
+local function Spec(s)
+	s = Settings(s)
+	local api = C_SpecializationInfo
+	local index = api and Number(api.GetSpecialization)
+	local specID, name
+	if index then specID, name = Call(api.GetSpecializationInfo, index) end
+	name = Plain(name, "string")
+	if not name then return L["--"] end
+	local group = (s.spec1Text ~= "" or s.spec2Text ~= "") and select(2, Readouts.CanSwitch()) or nil
+	return Readouts.SpecText(s, name, group, s.specLoadout and Loadout(Plain(specID, "number")) or nil)
+end
+
 local function Hearth()
 	local travel = K.Safe.Side(K).travelData
 	if travel then return travel.Hearth() end
 	return L["--"], L["--"]
+end
+
+function Readouts.SaveHearth()
+	if not Settings().hearthOthers then return end
+	local bind, key = Plain(Call(GetBindLocation), "string"), K.Store.CharacterKey()
+	if not (bind and key) then return end
+	local account = K.Store.Account()
+	if type(account.databarHearth) ~= "table" then account.databarHearth = {} end
+	account.databarHearth[key] = bind
 end
 
 local function Bags()
@@ -59,6 +93,31 @@ local function Bags()
 		total = total + free
 	end
 	return total
+end
+
+local function Slots(reagent)
+	local api = C_Container
+	if not api or type(api.GetContainerNumFreeSlots) ~= "function" or type(api.GetContainerNumSlots) ~= "function" then return end
+	local inventory = Constants and Constants.InventoryConstants
+	local last = inventory and Plain(inventory.NumBagSlots, "number") or 4
+	if reagent then last = last + (inventory and Plain(inventory.NumReagentBagSlots, "number") or 0) end
+	local free, total = 0, 0
+	for bag = 0, last do
+		local open, size = Number(api.GetContainerNumFreeSlots, bag), Number(api.GetContainerNumSlots, bag)
+		if not open or not size then return end
+		free, total = free + open, total + size
+	end
+	return free, total
+end
+
+function Readouts.BagText(s, free, total)
+	if not IsNumber(free) then return L["--"] end
+	local low = (s.bagsLow or 0) > 0 and free < s.bagsLow and "low" or nil
+	local display, used = s.bagsDisplay, IsNumber(total) and total - free or nil
+	if used and display == "used" then return tostring(used), low end
+	if used and display == "freeTotal" then return free .. "/" .. total, low end
+	if used and display == "usedTotal" then return used .. "/" .. total, low end
+	return tostring(free), low
 end
 
 local lastRoster
@@ -102,35 +161,185 @@ local function Currencies(tip)
 	return table.concat(parts, " \194\183 ")
 end
 
+local function Days(history)
+	local days = {}
+	for day, total in pairs(history) do
+		if Plain(day, "string") and IsNumber(total) then days[#days + 1] = day end
+	end
+	table.sort(days)
+	return days
+end
+
 function Readouts.SaveGold()
 	local account = K.Store.Account()
 	if type(account.databarGold) ~= "table" then account.databarGold = {} end
 	local money, key = Number(GetMoney), K.Store.CharacterKey()
 	if money and key then account.databarGold[key] = money end
+	local today = Settings().goldHistory and Plain(Call(date, "%Y-%m-%d"), "string")
+	if not today then return end
+	local total = 0
+	for _, gold in pairs(account.databarGold) do
+		if IsNumber(gold) then total = total + gold end
+	end
+	if type(account.databarGoldHistory) ~= "table" then account.databarGoldHistory = {} end
+	local history = account.databarGoldHistory
+	history[today] = total
+	local days = Days(history)
+	for i = 1, #days - 7 do history[days[i]] = nil end
 end
 
-local function XP()
-	local info = ns.Sources.XP() or ns.Sources.Reputation()
-	if info and IsNumber(info.current) and IsNumber(info.max) and info.max > 0 then
-		return ns.Format.Percent(info.current, info.max, info.kind == "paragon") .. "%"
+function Readouts.XPText(s, info)
+	if not (info and IsNumber(info.current) and IsNumber(info.max) and info.max > 0) then return L["--"] end
+	local Format = ns.Format
+	local text = s.xpText == "values" and Format.Number(info.current) .. " / " .. Format.Number(info.max) or Format.Percent(info.current, info.max, info.kind == "paragon") .. "%"
+	local label = s.xpFormat == "context" and Plain(info.label, "string")
+	return label and label .. " " .. text or text
+end
+
+local function XP(s)
+	s = Settings(s)
+	local info = s.xpMode ~= "rep" and ns.Sources.XP() or nil
+	if not info and s.xpMode ~= "xp" then info = ns.Sources.Reputation() end
+	return Readouts.XPText(s, info)
+end
+
+function Readouts.ItemLevelText(s, value)
+	if not IsNumber(value) or value < 0 then return L["--"] end
+	local decimals = Clamp(s.itemLevelDecimals, 0, 2, 0)
+	local text = decimals == 0 and tostring(floor(value)) or format("%." .. decimals .. "f", value)
+	local prefix = s.itemLevelPrefix == "short" and L["ilvl"] or s.itemLevelPrefix == "long" and L["Item level"]
+	return prefix and prefix .. " " .. text or text
+end
+
+function Readouts.ClockText(s, text, mail, rest)
+	if s.clockMail and mail then text = text .. " " .. L["mail"] end
+	if s.clockRest and rest then text = text .. " " .. L["resting"] end
+	return text
+end
+
+function Readouts.CoordsText(s, x, y)
+	local f = "%." .. Clamp(s.coordsDecimals, 0, 2, 1) .. "f"
+	return format(f .. ", " .. f, x * 100, y * 100)
+end
+
+local function Coords(s)
+	local map = C_Map and Number(C_Map.GetBestMapForUnit, "player")
+	local position = map and Call(C_Map.GetPlayerMapPosition, map, "player")
+	if ns.IsSecret(position) or type(position) ~= "table" then return L["--"] end
+	local x, y = Call(position.GetXY, position)
+	if not (IsNumber(x) and IsNumber(y)) then return L["--"] end
+	return Readouts.CoordsText(Settings(s), x, y)
+end
+
+local fight = { last = 0 }
+function Readouts.Duration(seconds)
+	return format("%d:%02d", floor(seconds / 60), floor(seconds % 60))
+end
+
+local function Combat()
+	local now = Number(GetTime)
+	return Readouts.Duration(fight.start and now and math.max(0, now - fight.start) or fight.last)
+end
+
+local played
+function Readouts.Played(seconds)
+	local days, hours, minutes = floor(seconds / 86400), floor(seconds % 86400 / 3600), floor(seconds % 3600 / 60)
+	if days > 0 then return format(L["%dd %dh"], days, hours) end
+	if hours > 0 then return format(L["%dh %dm"], hours, minutes) end
+	return format(L["%dm"], minutes)
+end
+
+local function Played(total)
+	local now = Number(GetTime)
+	if not played or not now then return L["--"] end
+	return Readouts.Played((total and played.total or played.level) + now - played.at)
+end
+
+local CHANNELS = { Master = true, SFX = true, Music = true, Ambience = true, Dialog = true }
+local function CVar(name)
+	local api = C_CVar
+	return api and Plain(Call(api.GetCVar, name), "string")
+end
+
+function Readouts.AudioText(muted, volume)
+	if muted then return L["muted"] end
+	return IsNumber(volume) and floor(volume * 100 + 0.5) .. "%" or L["--"]
+end
+
+local function Audio(s)
+	local channel = Settings(s).audioChannel
+	return Readouts.AudioText(CVar("Sound_EnableAllSound") == "0", tonumber(CVar("Sound_" .. (CHANNELS[channel] and channel or "Master") .. "Volume") or ""))
+end
+
+local PROFESSION = { prof1 = 1, prof2 = 2 }
+local function Profession(slot)
+	local index = Plain((select(slot, Call(GetProfessions))), "number")
+	if not index then return end
+	local name, _, rank, maxRank = Call(GetProfessionInfo, index)
+	return Plain(name, "string"), Plain(rank, "number"), Plain(maxRank, "number")
+end
+
+function Readouts.ProfessionText(s, name, rank, maxRank)
+	if not name then return L["--"] end
+	if s.professionText == "values" and IsNumber(rank) and IsNumber(maxRank) then return name .. " " .. rank .. "/" .. maxRank end
+	return name
+end
+
+local function Broker(s)
+	local stub, name = rawget(_G, "LibStub"), Settings(s).brokerPlugin
+	if name == "" or type(stub) ~= "table" or type(stub.GetLibrary) ~= "function" then return end
+	local ldb = Call(stub.GetLibrary, stub, "LibDataBroker-1.1", true)
+	local object = type(ldb) == "table" and Call(ldb.GetDataObjectByName, ldb, name)
+	return type(object) == "table" and object or nil
+end
+
+function Readouts.BrokerText(s, label, text)
+	return s.brokerLabel and label and label .. " " .. text or text
+end
+
+local function BrokerValue(s)
+	s = Settings(s)
+	local object = Broker(s)
+	if not object then return L["--"] end
+	local text = Plain(object.text, "string") or IsNumber(object.value) and object.value .. (Plain(object.suffix, "string") or "") or Plain(object.value, "string") or L["--"]
+	return Readouts.BrokerText(s, Plain(object.label, "string") or s.brokerPlugin, text)
+end
+
+local function Vault()
+	local api = C_WeeklyRewards
+	local list = api and Call(api.GetActivities)
+	if ns.IsSecret(list) or type(list) ~= "table" or #list == 0 then return end
+	local done = 0
+	for _, activity in ipairs(list) do
+		if type(activity) == "table" and IsNumber(activity.progress) and IsNumber(activity.threshold) and activity.threshold > 0 and activity.progress >= activity.threshold then
+			done = done + 1
+		end
 	end
-	return L["--"]
+	return done, #list
 end
 
 local titles = {
 	xp = L["Experience and reputation"],
 	bags = L["Bag space"], spec = L["Specialization"], hearth = L["Hearthstone"],
 	guild = L["Guild"], friends = L["Friends"], currencies = L["Currencies"],
-	location = L["Location"], itemLevel = L["Item level"],
+	location = L["Location"], itemLevel = L["Item level"], coords = L["Coordinates"], combat = L["Combat"],
+	played = L["Time played"], audio = L["Audio"], prof1 = L["Profession 1"], prof2 = L["Profession 2"],
+	broker = L["DataBroker"], spacer = L["Spacer"], vault = L["Great Vault"],
 }
 for id, title in pairs(titles) do
 	Strip.LABELS[id] = { full = title, short = title, inline = id == "bags" and L["free"] or id == "guild" and L["guild"] or id == "friends" and L["friends"] or "" }
 	Strip.TITLES[id] = title
 end
-Strip.TIMED.hearth = true
+local FREE, USED = Strip.LABELS.bags, { full = titles.bags, short = titles.bags, inline = L["used"] }
+Strip.LABELS.bags = function(s) return (s.bagsDisplay == "used" or s.bagsDisplay == "usedTotal") and USED or FREE end
+for _, id in ipairs({ "hearth", "coords", "combat", "played", "broker" }) do Strip.TIMED[id] = true end
 Strip.VALUES.xp = XP
 Strip.TOOLTIPS.xp = function(_, tip) tip:AddDoubleLine(L["Experience and reputation"], XP()) end
-Strip.VALUES.bags = function() return Count(Bags()) end
+Strip.VALUES.bags = function(s)
+	s = Settings(s)
+	if s.bagsDisplay == "free" and not s.bagsReagent then return Readouts.BagText(s, Bags()) end
+	return Readouts.BagText(s, Slots(s.bagsReagent))
+end
 Strip.VALUES.spec = Spec
 Strip.VALUES.hearth = function()
 	local bind, cooldown = Hearth()
@@ -141,15 +350,38 @@ Strip.VALUES.friends = Friends
 Strip.VALUES.currencies = function() return Currencies() end
 Strip.VALUES.location = function() return Plain(Call(GetZoneText), "string") or L["--"] end
 Strip.VALUES.itemLevel = function(s)
-	s = s or ns.Settings().strip
+	s = Settings(s)
 	local overall, equipped = Call(GetAverageItemLevel)
-	local value = equipped
-	if s.itemLevelSource == "overall" then value = overall end
-	if not IsNumber(value) or value < 0 then return L["--"] end
-	local decimals = IsNumber(s.itemLevelDecimals) and math.max(0, math.min(2, math.floor(s.itemLevelDecimals))) or 0
-	return decimals == 0 and tostring(math.floor(value)) or string.format("%." .. decimals .. "f", value)
+	return Readouts.ItemLevelText(s, s.itemLevelSource == "overall" and overall or equipped)
 end
-for _, id in ipairs({ "location", "itemLevel" }) do
+local clock = Strip.VALUES.time
+Strip.VALUES.time = function(s)
+	s = Settings(s)
+	local text = clock(s)
+	if not text then return nil end
+	return Readouts.ClockText(s, text, s.clockMail and Plain(Call(HasNewMail), "boolean"), s.clockRest and Plain(Call(IsResting), "boolean"))
+end
+Strip.VALUES.coords = Coords
+Strip.VALUES.combat = Combat
+Strip.VALUES.played = function(s) return Played(Settings(s).playedTotal) end
+Strip.VALUES.audio = Audio
+Strip.VALUES.broker = BrokerValue
+Strip.VALUES.spacer = function() return "" end
+Strip.VALUES.vault = function()
+	local done, total = Vault()
+	return done and done .. "/" .. total or L["--"]
+end
+Strip.WIDTH.location = function(s) return s.locationWidth == "manual" and s.locationMaxWidth or nil end
+Strip.WIDTH.broker = function(s) return (s.brokerWidth or 0) > 0 and s.brokerWidth or nil end
+Strip.WIDTH.spacer = function(s) return s.fontSize end
+for id, slot in pairs(PROFESSION) do
+	Strip.VALUES[id] = function(s) return Readouts.ProfessionText(Settings(s), Profession(slot)) end
+	Strip.TOOLTIPS[id] = function(_, tip)
+		local name, rank, maxRank = Profession(slot)
+		tip:AddDoubleLine(name or L["--"], rank and maxRank and rank .. " / " .. maxRank or L["--"])
+	end
+end
+for _, id in ipairs({ "location", "itemLevel", "coords", "vault" }) do
 	Strip.TOOLTIPS[id] = function(_, tip) tip:AddDoubleLine(titles[id], Strip.VALUES[id]()) end
 end
 
@@ -157,6 +389,10 @@ function Readouts.Visible(id)
 	if id == "guild" then return Plain(Call(IsInGuild), "boolean") == true end
 	if id == "spec" then local groups = Number(GetNumSpecGroups); return groups and groups > 1 end
 	if id == "currencies" then return C_CurrencyInfo and type(C_CurrencyInfo.GetBackpackCurrencyInfo) == "function" and Currencies() ~= "" end
+	if id == "combat" then return not Settings().combatOnly or fight.start ~= nil or InCombatLockdown() end
+	if PROFESSION[id] then return Profession(PROFESSION[id]) ~= nil end
+	if id == "broker" then return Settings().brokerPlugin ~= "" end
+	if id == "vault" then return Vault() ~= nil end
 	return true
 end
 
@@ -177,6 +413,16 @@ Strip.TOOLTIPS.hearth = function(_, tip)
 	local bind, cooldown = Hearth()
 	tip:AddDoubleLine(L["Home"], bind)
 	tip:AddDoubleLine(L["Cooldown"], cooldown)
+	if Settings().hearthOthers then
+		Readouts.SaveHearth()
+		local homes, me, keys = K.Store.Account().databarHearth, K.Store.CharacterKey(), {}
+		for key in pairs(type(homes) == "table" and homes or {}) do
+			if Plain(key, "string") and key ~= me then keys[#keys + 1] = key end
+		end
+		table.sort(keys)
+		if #keys > 0 then tip:AddDivider() end
+		for _, key in ipairs(keys) do tip:AddDoubleLine(key, Plain(homes[key], "string") or L["--"]) end
+	end
 	ProtectedNote(tip, L["Click: use your Hearthstone."])
 end
 Strip.TOOLTIPS.guild = function(_, tip)
@@ -192,20 +438,58 @@ Strip.TOOLTIPS.currencies = function(_, tip)
 	local text = Currencies(tip)
 	if text == "" or text == L["--"] then tip:AddLine(L["--"], "textDisabled") end
 end
+Strip.TOOLTIPS.combat = function(_, tip)
+	tip:AddDoubleLine(fight.start and L["This fight"] or L["Last fight"], Combat())
+end
+Strip.TOOLTIPS.played = function(_, tip)
+	tip:AddDoubleLine(L["Total"], Played(true))
+	tip:AddDoubleLine(L["This level"], Played(false))
+	tip:AddDivider()
+	tip:AddLine(L["Click: ask the server for your time played."], "text")
+end
+Strip.TOOLTIPS.audio = function(_, tip)
+	tip:AddDoubleLine(L["Volume"], Audio())
+	ProtectedNote(tip, L["Click: mute or unmute all sound."])
+end
+Strip.TOOLTIPS.broker = function(_, tip)
+	local object = Broker()
+	tip:AddDoubleLine(object and Plain(object.label, "string") or Settings().brokerPlugin, BrokerValue())
+	if object and type(object.OnClick) == "function" then
+		tip:AddDivider()
+		tip:AddLine(L["Click: open the plugin."], "text")
+	end
+end
 Strip.TOOLTIP_EXTRA.time = function(_, tip)
 	tip:AddDoubleLine(L["Pending invites"], Count(C_Calendar and Number(C_Calendar.GetNumPendingInvites)))
 end
+
+local function Signed(copper)
+	return (copper > 0 and "+" or "") .. ns.Format.Money(copper, "full")
+end
+
 Strip.TOOLTIP_EXTRA.gold = function(_, tip)
+	local s = Settings()
 	Readouts.SaveGold()
-	local keys, gold = {}, K.Store.Account().databarGold
-	for key in pairs(gold) do
-		if Plain(key, "string") then keys[#keys + 1] = key end
+	local account = K.Store.Account()
+	if s.goldCharacters then
+		local keys, gold = {}, account.databarGold
+		for key in pairs(gold) do
+			if Plain(key, "string") then keys[#keys + 1] = key end
+		end
+		table.sort(keys)
+		if #keys > 0 then tip:AddDivider() end
+		for _, key in ipairs(keys) do
+			local money = gold[key]
+			tip:AddDoubleLine(key, IsNumber(money) and ns.Format.Money(money, "full") or L["--"])
+		end
 	end
-	table.sort(keys)
-	if #keys > 0 then tip:AddDivider() end
-	for _, key in ipairs(keys) do
-		local money = gold[key]
-		tip:AddDoubleLine(key, IsNumber(money) and ns.Format.Money(money, "full") or L["--"])
+	local history = s.goldHistory and account.databarGoldHistory
+	local days = type(history) == "table" and Days(history) or {}
+	if #days > 1 then
+		local now = history[days[#days]]
+		tip:AddDivider()
+		tip:AddDoubleLine(format(L["Since %s"], days[#days - 1]), Signed(now - history[days[#days - 1]]))
+		if #days > 2 then tip:AddDoubleLine(format(L["Since %s"], days[1]), Signed(now - history[days[1]])) end
 	end
 end
 
@@ -214,30 +498,62 @@ Strip.ACTIONS.spec = function(_, mouse)
 	local can, group = Readouts.CanSwitch()
 	if can then C_SpecializationInfo.SetActiveSpecGroup(3 - group) end
 end
+Strip.ACTIONS.played = function(_, mouse)
+	if mouse ~= "RightButton" then Call(RequestTimePlayed) end
+end
+Strip.ACTIONS.audio = function(_, mouse)
+	local api = C_CVar
+	if mouse == "RightButton" or InCombatLockdown() or not api or type(api.SetCVar) ~= "function" then return end
+	Call(api.SetCVar, "Sound_EnableAllSound", CVar("Sound_EnableAllSound") == "0" and "1" or "0")
+end
+Strip.ACTIONS.broker = function(item, mouse)
+	local object = Broker()
+	if object and type(object.OnClick) == "function" then K.Call(object.OnClick, item.button, mouse) end
+end
 
 local EVENTS = {
-	xp = { "PLAYER_XP_UPDATE", "UPDATE_FACTION" },
+	xp = { "PLAYER_XP_UPDATE", "UPDATE_FACTION", "PLAYER_LEVEL_UP" },
 	bags = { "BAG_UPDATE_DELAYED" },
-	time = { "CALENDAR_UPDATE_PENDING_INVITES" },
+	time = { "CALENDAR_UPDATE_PENDING_INVITES", "UPDATE_PENDING_MAIL", "PLAYER_UPDATE_RESTING" },
 	guild = { "GUILD_ROSTER_UPDATE", "PLAYER_GUILD_UPDATE" },
 	friends = { "FRIENDLIST_UPDATE", "BN_FRIEND_INFO_CHANGED", "BN_FRIEND_LIST_SIZE_CHANGED", "BN_CONNECTED", "BN_DISCONNECTED" },
 	hearth = { "HEARTHSTONE_BOUND" },
-	spec = { "PLAYER_SPECIALIZATION_CHANGED", "ACTIVE_TALENT_GROUP_CHANGED" },
+	spec = { "PLAYER_SPECIALIZATION_CHANGED", "ACTIVE_TALENT_GROUP_CHANGED", "TRAIT_CONFIG_UPDATED", "ACTIVE_COMBAT_CONFIG_CHANGED" },
 	currencies = { "CURRENCY_DISPLAY_UPDATE" },
 	gold = { "PLAYER_MONEY" },
 	durability = { "UPDATE_INVENTORY_DURABILITY", "PLAYER_EQUIPMENT_CHANGED" },
 	location = { "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA" },
 	itemLevel = { "PLAYER_EQUIPMENT_CHANGED", "PLAYER_AVG_ITEM_LEVEL_UPDATE" },
+	combat = { "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED" },
+	played = { "TIME_PLAYED_MSG" },
+	audio = { "CVAR_UPDATE" },
+	prof1 = { "SKILL_LINES_CHANGED" },
+	prof2 = { "SKILL_LINES_CHANGED" },
+	vault = { "WEEKLY_REWARDS_UPDATE" },
 }
+local REFRESH = { PLAYER_GUILD_UPDATE = true, PLAYER_SPECIALIZATION_CHANGED = true, ACTIVE_TALENT_GROUP_CHANGED = true, SKILL_LINES_CHANGED = true, WEEKLY_REWARDS_UPDATE = true }
 local active = {}
-local function Changed(event)
-	if event == "PLAYER_GUILD_UPDATE" or event == "PLAYER_SPECIALIZATION_CHANGED" or event == "ACTIVE_TALENT_GROUP_CHANGED" then
+local function Changed(event, ...)
+	if event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" then
+		local now = Number(GetTime) or 0
+		if event == "PLAYER_REGEN_DISABLED" then
+			fight.start = now
+		elseif fight.start then
+			fight.last, fight.start = math.max(0, now - fight.start), nil
+		end
+		if Settings().combatOnly then Strip.Refresh() else Strip.Update() end
+	elseif event == "TIME_PLAYED_MSG" then
+		local total, level = ...
+		if IsNumber(total) and IsNumber(level) then played = { total = total, level = level, at = Number(GetTime) or 0 } end
+		Strip.Update()
+	elseif REFRESH[event] then
 		Strip.Refresh()
 	elseif event == "CURRENCY_DISPLAY_UPDATE" then
 		local item = Strip.view and Strip.view.items.currencies
 		if Readouts.Visible("currencies") ~= (item and (item.overflow or item.button:IsShown()) or false) then Strip.Refresh() else Strip.Update() end
 	else
 		if event == "PLAYER_MONEY" then Readouts.SaveGold() end
+		if event == "HEARTHSTONE_BOUND" then Readouts.SaveHearth() end
 		Strip.Update()
 	end
 end
@@ -256,6 +572,7 @@ function Readouts.Sync(shown)
 			active[id] = on
 			if on then
 				for _, event in ipairs(events) do K.Events.Register(owner, event, Changed) end
+				if id == "hearth" then Readouts.SaveHearth() end
 			else
 				K.Events.UnregisterAll(owner)
 			end

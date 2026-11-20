@@ -75,6 +75,12 @@ defaults.strip = {
 	font = Font.DEFAULT, fontSize = STRIP_FONT_SIZE, outline = Font.WORLD,
 	itemLevelSource = "equipped", itemLevelDecimals = 0,
 	money = "full", latency = "home", timeSource = "local", clock24 = true,
+	hover = true, align = "CENTER", padding = 0, valueCustom = Rgb("text"), labelCustom = false, labelColor = Rgb("text"),
+	goldSession = true, goldCharacters = true, goldHistory = false, itemLevelPrefix = "none",
+	specUpper = false, specLoadout = false, spec1Text = "", spec2Text = "", hearthOthers = false, clockMail = false, clockRest = false,
+	locationWidth = "auto", locationMaxWidth = 160, bagsDisplay = "free", bagsReagent = false, bagsLow = 0,
+	xpMode = "auto", xpText = "percent", xpFormat = "plain", coordsDecimals = 1, combatOnly = false, playedTotal = false,
+	audioChannel = "Master", professionText = "name", brokerPlugin = "", brokerWidth = 0, brokerLabel = true,
 }
 defaults.micro = { enabled = true, shown = true, size = MICRO_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, tint = "none", shape = "round", set = "compact" }
 defaults.bags = { enabled = true, shown = true, size = BAG_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, freeSlots = true, shape = "round" }
@@ -96,6 +102,15 @@ local MODULES = {
 	{ "xp", L["Experience and reputation"], "right", L["Shows experience, or watched reputation at the level cap."] },
 	{ "location", L["Location"], "left", L["Shows your current zone."] },
 	{ "itemLevel", L["Item level"], "right", L["Shows the average item level of equipped gear."] },
+	{ "coords", L["Coordinates"], "left", L["Shows your map coordinates."] },
+	{ "combat", L["Combat"], "right", L["Shows how long the current or last fight lasted."] },
+	{ "played", L["Time played"], "right", L["Click: ask the server for your time played. Blizzard also prints it in chat."] },
+	{ "audio", L["Audio"], "right", L["Shows the volume. Click: mute or unmute all sound."] },
+	{ "prof1", L["Profession 1"], "left" },
+	{ "prof2", L["Profession 2"], "left" },
+	{ "broker", L["DataBroker"], "right", L["Shows a LibDataBroker plugin from another addon."] },
+	{ "spacer", L["Spacer"], "right", L["Adds room between readouts."] },
+	{ "vault", L["Great Vault"], "right", L["Shows unlocked Great Vault rewards while the game reports them."] },
 }
 defaults.strip.modules = {}
 for i, def in ipairs(MODULES) do
@@ -103,7 +118,8 @@ for i, def in ipairs(MODULES) do
 end
 
 defaults.strip.dockModules = {}
-for i, id in ipairs({ "fps", "latency", "gold", "durability", "time", "micro", "spec", "hearth", "guild", "friends", "bags", "currencies", "xp", "location", "itemLevel" }) do
+for i, id in ipairs({ "fps", "latency", "gold", "durability", "time", "micro", "spec", "hearth", "guild", "friends", "bags", "currencies", "xp", "location", "itemLevel",
+	"coords", "combat", "played", "audio", "prof1", "prof2", "broker", "spacer", "vault" }) do
 	defaults.strip.dockModules[#defaults.strip.dockModules + 1] = { id = id, shown = i <= 6, zone = id == "time" and "centre" or (id == "spec" or id == "hearth" or id == "micro") and "left" or "right" }
 end
 
@@ -112,8 +128,19 @@ for i, entry in ipairs(defaults.strip.dockModules) do
 	defaults.strip.railModules[i] = { id = entry.id, shown = i <= 3 or entry.id == "micro", zone = "right" }
 end
 
+function ns.FillModules(s)
+	for _, key in ipairs({ "modules", "dockModules", "railModules" }) do
+		local list, seen = s[key], {}
+		for _, entry in ipairs(list) do seen[entry.id] = true end
+		for _, entry in ipairs(defaults.strip[key]) do
+			if not seen[entry.id] then list[#list + 1] = { id = entry.id, shown = entry.shown, zone = entry.zone } end
+		end
+	end
+end
+
 function ns.Schema()
 	ns.schema = {}
+	ns.FillModules(ns.Settings().strip)
 	local SOURCES_PLAIN = {
 		{ value = "class", label = L["Class colour"] },
 		{ value = "custom", label = L["Custom colour"] },
@@ -216,6 +243,7 @@ function ns.Schema()
 		{ value = "threshold", label = L["Good, fair or poor"] },
 		{ value = "accent", label = L["Accent colour"] },
 		{ value = "plain", label = L["Plain"] },
+		{ value = "custom", label = L["Custom colour"] },
 	}
 	local MONEY_STYLES = {
 		{ value = "full", label = L["Gold, silver and copper"] },
@@ -259,11 +287,19 @@ function ns.Schema()
 		{ type = "toggle", key = "strip.line", label = L["One line"], help = L["Items run together on one line at the right, joined by middle dots. Off, each sits in its own cell."] },
 		{ type = "dropdown", key = "strip.labels", label = L["Labels"], help = L["Full labels, short ones like the dungeon mockup, or values alone."], options = STRIP_LABELS },
 		{ type = "dropdown", key = "strip.valueColor", label = L["Value colour"], help = L["Frame rate in the accent and warnings in theirs, every value by grade, all in the accent, or plain."], options = VALUE_COLORS },
+		{ type = "color", key = "strip.valueCustom", label = L["Custom value colour"], help = L["The colour of every value when the value colour is custom."], showWhen = function(settings) return settings.strip.valueColor == "custom" end },
+		{ type = "toggle", key = "strip.labelCustom", label = L["Custom label colour"], help = L["Draws every label and unit in your own colour."] },
+		{ type = "color", key = "strip.labelColor", label = L["Label colour"], help = L["The colour of the labels and units."], showWhen = function(settings) return settings.strip.labelCustom == true end },
+		{ type = "toggle", key = "strip.hover", label = L["Hover highlight"], help = L["Brightens a readout's label under the pointer."] },
 		{ type = "toggle", key = "strip.menus", label = L["Menu and bag buttons in the card"], help = L["Docks the micro menu and the bag bar under the readout, in the same card, when they are shown."] },
 		{ type = "toggle", key = "strip.accentEdge", label = L["Accent edge"], help = L["Draws the strip's inner edge in the accent colour."] },
 		{ type = "toggle", key = "strip.backdrop", label = L["Glass"], help = L["Draws the strip on smoked glass."] },
 		{ type = "toggle", key = "strip.separators", label = L["Separators"], help = L["Draws a thin line between the cells."] },
 		{ type = "slider", key = "strip.spacing", label = L["Spacing"], help = L["The room inside each cell, split between its sides."], min = 0, max = MAX_SPACING, step = 1 },
+		{ type = "dropdown", key = "strip.align", label = L["Text align"], help = L["Where each value sits in its cell. One line sizes each readout to its text."], options = {
+			{ value = "LEFT", label = L["Left"] }, { value = "CENTER", label = L["Centre"] }, { value = "RIGHT", label = L["Right"] },
+		}, disableWhen = function(settings) return Strip.LineMode(settings.strip) or settings.strip.placement == "top" end },
+		{ type = "slider", key = "strip.padding", label = L["Readout padding"], help = L["Extra room on each side of the dots between readouts."], min = 0, max = 16, step = 1 },
 		{ type = "dropdown", key = "strip.orientation", label = L["Direction"], help = L["Items in a row, or stacked in a column."], options = {
 			{ value = "HORIZONTAL", label = L["In a row"] }, { value = "VERTICAL", label = L["In a column"] },
 		} },
@@ -278,6 +314,8 @@ function ns.Schema()
 		{ type = "header", label = L["Clock"] },
 		{ type = "dropdown", key = "strip.timeSource", label = L["Clock"], help = L["Your computer's time or the realm's time."], options = TIME_SOURCES },
 		{ type = "toggle", key = "strip.clock24", label = L["24-hour clock"], help = L["Shows 14:32 instead of 2:32 PM."] },
+		{ type = "toggle", key = "strip.clockMail", label = L["Mail alert"], help = L["Adds \"mail\" after the time while mail waits for you."] },
+		{ type = "toggle", key = "strip.clockRest", label = L["Resting alert"], help = L["Adds \"resting\" after the time while you rest in an inn or city."] },
 		{ type = "header", label = L["Latency"] },
 		{ type = "dropdown", key = "strip.latency", label = L["Latency shown"], help = L["Home latency for chat and logins, or world latency for combat."], options = LATENCIES },
 		{ type = "header", label = L["Item level"] },
@@ -285,8 +323,60 @@ function ns.Schema()
 			{ value = "equipped", label = L["Equipped gear"] }, { value = "overall", label = L["All owned gear"] },
 		} },
 		{ type = "slider", key = "strip.itemLevelDecimals", label = L["Item level decimals"], help = L["How many decimal places the item level readout shows."], min = 0, max = 2, step = 1 },
+		{ type = "dropdown", key = "strip.itemLevelPrefix", label = L["Prefix"], help = L["Writes a label before the item level."], options = {
+			{ value = "none", label = L["None"] }, { value = "short", label = L["ilvl"] }, { value = "long", label = L["Item level"] },
+		} },
 		{ type = "header", label = L["Gold"] },
 		{ type = "dropdown", key = "strip.money", label = L["Gold format"], help = L["How the strip writes your money."], options = MONEY_STYLES },
+		{ type = "toggle", key = "strip.goldSession", label = L["Session in the tooltip"], help = L["Shows the money earned or spent this session in the gold tooltip."] },
+		{ type = "toggle", key = "strip.goldCharacters", label = L["Characters in the tooltip"], help = L["Lists your characters' gold in the gold tooltip."] },
+		{ type = "toggle", key = "strip.goldHistory", label = L["Gold history"], help = L["Keeps your account's gold for the last seven days you played and shows the change in the tooltip."] },
+		{ type = "header", label = L["Location"] },
+		{ type = "dropdown", key = "strip.locationWidth", label = L["Width"], help = L["Automatic follows the zone name. Fixed holds the width and clips longer names."], options = {
+			{ value = "auto", label = L["Automatic"] }, { value = "manual", label = L["Fixed"] },
+		} },
+		{ type = "slider", key = "strip.locationMaxWidth", label = L["Fixed width"], help = L["The width the location keeps when it is fixed."], min = 60, max = 400, step = 5, disableWhen = function(settings) return settings.strip.locationWidth ~= "manual" end },
+		{ type = "header", label = L["Bag space"] },
+		{ type = "dropdown", key = "strip.bagsDisplay", label = L["Bag count"], help = L["Which slot count the bag readout shows."], options = {
+			{ value = "free", label = L["Free"] }, { value = "used", label = L["Used"] }, { value = "freeTotal", label = L["Free / total"] }, { value = "usedTotal", label = L["Used / total"] },
+		} },
+		{ type = "toggle", key = "strip.bagsReagent", label = L["Include the reagent bag"], help = L["Counts the reagent bag's slots with your other bags."] },
+		{ type = "slider", key = "strip.bagsLow", label = L["Low space warning"], help = L["Colours the count red below this many free slots. 0 turns it off."], min = 0, max = 50, step = 1 },
+		{ type = "header", label = L["Specialization"] },
+		{ type = "toggle", key = "strip.specUpper", label = L["Uppercase"], help = L["Writes the specialization in capitals."] },
+		{ type = "toggle", key = "strip.specLoadout", label = L["Loadout name"], help = L["Adds the active talent loadout's name."] },
+		{ type = "text", key = "strip.spec1Text", label = L["Group 1 text"], help = L["Shown in place of the specialization name. Empty uses the name."], maxLetters = 24 },
+		{ type = "text", key = "strip.spec2Text", label = L["Group 2 text"], help = L["Shown in place of the specialization name. Empty uses the name."], maxLetters = 24 },
+		{ type = "header", label = L["Hearthstone"] },
+		{ type = "toggle", key = "strip.hearthOthers", label = L["Other characters"], help = L["Lists your other characters' homes in the Hearthstone tooltip."] },
+		{ type = "header", label = L["Experience and reputation"] },
+		{ type = "dropdown", key = "strip.xpMode", label = L["Mode"], help = L["Automatic shows experience while levelling and reputation at the level cap."], options = {
+			{ value = "auto", label = L["Automatic"] }, { value = "xp", label = L["Experience"] }, { value = "rep", label = L["Reputation"] },
+		} },
+		{ type = "dropdown", key = "strip.xpText", label = L["Text display"], help = L["A percentage, or the value and the total."], options = {
+			{ value = "percent", label = L["Percent"] }, { value = "values", label = L["Value"] },
+		} },
+		{ type = "dropdown", key = "strip.xpFormat", label = L["Text format"], help = L["The value alone, or with your level or the faction."], options = {
+			{ value = "plain", label = L["Value only"] }, { value = "context", label = L["With level or faction"] },
+		} },
+		{ type = "header", label = L["Coordinates"] },
+		{ type = "slider", key = "strip.coordsDecimals", label = L["Decimals"], help = L["How precise the coordinates read."], min = 0, max = 2, step = 1 },
+		{ type = "header", label = L["Combat"] },
+		{ type = "toggle", key = "strip.combatOnly", label = L["Only in combat"], help = L["Shows the combat timer only while you fight."] },
+		{ type = "header", label = L["Time played"] },
+		{ type = "toggle", key = "strip.playedTotal", label = L["Always show total"], help = L["Shows your total time played instead of the time at this level."] },
+		{ type = "header", label = L["Audio"] },
+		{ type = "dropdown", key = "strip.audioChannel", label = L["Audio channel"], help = L["Which volume the audio readout shows."], options = {
+			{ value = "Master", label = L["Master"] }, { value = "SFX", label = L["Effects"] }, { value = "Music", label = L["Music"] }, { value = "Ambience", label = L["Ambience"] }, { value = "Dialog", label = L["Dialog"] },
+		} },
+		{ type = "header", label = L["Professions"] },
+		{ type = "dropdown", key = "strip.professionText", label = L["Profession text"], help = L["The profession's name, or its name and skill."], options = {
+			{ value = "name", label = L["Name"] }, { value = "values", label = L["Name and skill"] },
+		} },
+		{ type = "header", label = L["DataBroker"] },
+		{ type = "text", key = "strip.brokerPlugin", label = L["Plugin"], help = L["The LibDataBroker plugin's name, as its addon registers it."], maxLetters = 64 },
+		{ type = "slider", key = "strip.brokerWidth", label = L["Fixed width"], help = L["Holds the plugin at this width and clips longer text. 0 follows the text."], min = 0, max = 400, step = 5 },
+		{ type = "toggle", key = "strip.brokerLabel", label = L["Show label"], help = L["Writes the plugin's label before its text."] },
 	})
 
 	local TINTS = {
@@ -367,15 +457,19 @@ function ns.Preview(...)
 	end
 
 	local function StripSamples(s)
+		local R = ns.Readouts
 		return {
 			fps = { tostring(SAMPLE_FPS), "good" },
 			latency = { (s.labels == "short" or s.labels == "inline" or (s.labels ~= "none" and Strip.LineMode(s))) and tostring(SAMPLE_MS) or string.format(L["%d ms"], SAMPLE_MS), "good" },
 			gold = { Format.Money(SAMPLE_MONEY, s.money) },
 			durability = { SAMPLE_DURABILITY .. "%", "good" },
-			time = { Format.Clock(SAMPLE_HOUR, SAMPLE_MINUTE, s.clock24) },
-			spec = { L["Specialization"] }, hearth = { L["ready"] .. " " .. L["Stormwind"] }, bags = { "22" },
-			location = { L["Stormwind"] }, itemLevel = { s.itemLevelDecimals == 0 and "58" or string.format("%." .. s.itemLevelDecimals .. "f", 58.3) },
-			guild = { "17" }, friends = { "7" }, currencies = { "1250" }, xp = { "32%" },
+			time = { R.ClockText(s, Format.Clock(SAMPLE_HOUR, SAMPLE_MINUTE, s.clock24), true, true) },
+			spec = { R.SpecText(s, L["Specialization"], 1, L["Loadout name"]) }, hearth = { L["ready"] .. " " .. L["Stormwind"] }, bags = { R.BagText(s, 22, 80) },
+			location = { L["Stormwind"] }, itemLevel = { R.ItemLevelText(s, 58.3) },
+			guild = { "17" }, friends = { "7" }, currencies = { "1250" }, xp = { R.XPText(s, { current = 16000, max = 50000, label = L["Level 38"] }) },
+			coords = { R.CoordsText(s, 0.4532, 0.6218) }, combat = { "1:24" }, played = { R.Played(s.playedTotal and 900000 or 5000) },
+			audio = { R.AudioText(false, 0.8) }, prof1 = { R.ProfessionText(s, L["Profession 1"], 225, 300) }, prof2 = { R.ProfessionText(s, L["Profession 2"], 150, 300) },
+			broker = { R.BrokerText(s, L["DataBroker"], "42") }, spacer = { "" }, vault = { "3/9" },
 		}
 	end
 
@@ -410,6 +504,7 @@ function ns.Preview(...)
 			local sample, samples = self.strip, StripSamples(s)
 			local height = s.placement == "top" and not Widgets.Medallions() and s.height or PREVIEW_STRIP
 			local available = Width(self) or Width(parent) or PREVIEW_FALLBACK_WIDTH
+			sample.paintColor = nil
 			sample.frame:SetScale(1)
 			sample.frame:SetSize(available, height)
 			Strip.Paint(sample, s, samples)

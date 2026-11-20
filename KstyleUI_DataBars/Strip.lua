@@ -70,6 +70,8 @@ local DURABILITY_SLOTS = {
 
 local TIMED = { fps = true, latency = true, time = true }
 Strip.TIMED = TIMED
+local WIDTH = {}
+Strip.WIDTH = WIDTH
 
 local function LineMode(s)
 	return s.line ~= false and s.orientation ~= "VERTICAL"
@@ -201,7 +203,16 @@ end
 Strip.Order = Order
 
 local function PaintItem(item)
-	item.label:SetTextColor(Widgets.MixTokens(item.view.slab and "medTextMuted" or (item.view.docked or Widgets.Readability("worldText")) and "labelMuted" or "text", 1, "textHover", 1, item.button.hoverT or 0))
+	local view = item.view
+	local s, t = view.s or {}, item.button.hoverT or 0
+	if s.hover == false then t = 0 end
+	local c = s.labelCustom and not view.slab and not view.docked and s.labelColor
+	if type(c) == "table" then
+		local r, g, b = Widgets.Rgba("textHover", 1)
+		item.label:SetTextColor(Widgets.Mix(c.r, c.g, c.b, 1, r, g, b, 1, t))
+		return
+	end
+	item.label:SetTextColor(Widgets.MixTokens(view.slab and "medTextMuted" or (view.docked or Widgets.Readability("worldText")) and "labelMuted" or "text", 1, "textHover", 1, t))
 end
 
 local function ValueColor(item, s, grade)
@@ -210,6 +221,10 @@ local function ValueColor(item, s, grade)
 		Widgets.TextColor(item.value, "medTextMuted")
 	elseif item.view.docked then
 		Widgets.TextColor(item.value, "labelMuted")
+	elseif grade == "low" then
+		Widgets.TextColor(item.value, "hostile")
+	elseif mode == "custom" and type(s.valueCustom) == "table" then
+		item.value:SetTextColor(s.valueCustom.r, s.valueCustom.g, s.valueCustom.b)
 	elseif mode == "accent" then
 		item.value:SetTextColor(ns.Accent())
 	elseif mode == "threshold" and grade then
@@ -234,6 +249,7 @@ local function NewItem(view, id)
 	item.dot:SetText(DOT)
 	item.separator = view.frame:CreateTexture(nil, "ARTWORK")
 	item.separator:SetColorTexture(Tokens.Color("white"))
+	if id == "spacer" then button:EnableMouse(false) end
 	button.Paint = function()
 		PaintItem(item)
 	end
@@ -353,15 +369,20 @@ local function Captioned(view, s, h, cells, gap)
 	return true
 end
 
-local function InlineForms(id)
+local function Labels(id, s)
 	local labels = LABELS[id]
+	return type(labels) == "function" and labels(s) or labels
+end
+
+local function InlineForms(id, s)
+	local labels = Labels(id, s)
 	return { labels.inline, labels.short, "" }
 end
 
 local function FitCaption(item, s, valueWidth, unitGap)
 	local label = item.label
 	local room = (item.cell or item.inner or 1) - 2 * MIN_GAP
-	for _, form in ipairs(InlineForms(item.id)) do
+	for _, form in ipairs(InlineForms(item.id, s)) do
 		if form == "" then
 			return form, 0
 		end
@@ -386,7 +407,14 @@ local function PlaceInline(item, s)
 		labelWidth, unitGap = 0, 0
 	end
 	item.value:ClearAllPoints()
-	Widgets.Point(item.value, "CENTER", button, "CENTER", Widgets.Snap(item.value, -(labelWidth + unitGap) / 2), 0)
+	local side = ((item.cell or 0) - (item.inner or 0)) / 2
+	if s.align == "LEFT" then
+		Widgets.Point(item.value, "LEFT", button, "LEFT", Widgets.Snap(item.value, side), 0)
+	elseif s.align == "RIGHT" then
+		Widgets.Point(item.value, "RIGHT", button, "RIGHT", -Widgets.Snap(item.value, side + labelWidth + unitGap), 0)
+	else
+		Widgets.Point(item.value, "CENTER", button, "CENTER", Widgets.Snap(item.value, -(labelWidth + unitGap) / 2), 0)
+	end
 	item.value:SetWidth(Widgets.Snap(item.value, max(1, valueWidth + 2)))
 	item.value:SetJustifyH("RIGHT")
 	item.label:ClearAllPoints()
@@ -431,7 +459,7 @@ local function PlaceLine(view, s)
 			dotSize = size
 		end
 	end
-	local dotGap = Widgets.DotGap(dotSize, step, DOT_GAP_EM)
+	local dotGap = Widgets.DotGap(dotSize, step, DOT_GAP_EM) + Widgets.Snap(frame, IsNumber(s.padding) and s.padding or 0)
 	local x = edge + (view.rail and Widgets.Snap(frame, EDGE_BORDERS) or 0)
 	local positions, widths, zones = {}, { left = 0, centre = 0, right = 0 }, {}
 	local limits, hidden, last = {}, { left = {}, right = {} }, {}
@@ -452,12 +480,12 @@ local function PlaceLine(view, s)
 	for _, id in ipairs(order) do
 		local item = view.items[id]
 		local label = item.caption ~= "" and TextWidth(item.label, s.fontSize) or 0
-		local value = TextWidth(item.value, s.fontSize)
+		local value = WIDTH[id] and WIDTH[id](s) or TextWidth(item.value, s.fontSize)
 		local width = Widgets.Snap(frame, value + (label > 0 and unitGap + label or 0))
 		local zone = zones[id] or "right"
 		if view.rail then zone = "right" end
 		if view.slab and zone == "centre" then zone = "left" end
-		local gap = widths[zone] > 0 and Widgets.Snap(frame, TextWidth(item.dot, s.fontSize) + 2 * dotGap) or 0
+		local gap = widths[zone] > 0 and id ~= "spacer" and last[zone] ~= "spacer" and Widgets.Snap(frame, TextWidth(item.dot, s.fontSize) + 2 * dotGap) or 0
 		local overflow = (view.slab or view.rail) and (#hidden[zone] > 0 or widths[zone] + gap + width + 2 > limits[zone])
 		positions[id] = { zone, widths[zone] + gap, width, gap > 0, value, label, overflow }
 		if overflow then
@@ -511,7 +539,7 @@ local function PlaceLine(view, s)
 		item.separator:Hide()
 		if not item.overflow then x = x + width end
 		local captionDot = view.slab and position[1] == "right" and not position[4] and view.slab.text:IsVisible()
-		local dot = not item.overflow and (captionDot or (view.topBar or view.slab) and position[4] or not view.topBar and not view.slab and i > 1)
+		local dot = not item.overflow and (captionDot or (view.topBar or view.slab) and position[4] or not view.topBar and not view.slab and i > 1 and order[i] ~= "spacer" and order[i - 1] ~= "spacer")
 		item.dot:SetShown(dot)
 		if dot then
 			local dotWidth = TextWidth(item.dot, s.fontSize)
@@ -522,7 +550,7 @@ local function PlaceLine(view, s)
 			x = x + Widgets.Snap(frame, dotWidth + 2 * dotGap)
 		end
 	end
-	view.contentWidth = Widgets.Snap(frame, x - edge)
+	view.contentWidth = Widgets.Snap(frame, view.topBar and 2 * (max(widths.left, widths.right) + edge + LABEL_GAP) + widths.centre or x - edge)
 	if view.docked then
 		if view.dockWidth ~= view.contentWidth then
 			frame:SetWidth(view.contentWidth)
@@ -574,7 +602,7 @@ local function PlaceItems(view, s)
 		Widgets.Point(button, "TOPLEFT", frame, "TOPLEFT", lefts[i], 0)
 		button:SetSize(cells[i], max(1, h))
 		local inner = max(1, cells[i] - gap)
-		local inline = s.labels == "inline" and LABELS[id].inline ~= ""
+		local inline = s.labels == "inline" and Labels(id, s).inline ~= ""
 		item.label:SetShown((captioned or inline) and item.caption ~= "")
 		item.label:ClearAllPoints()
 		item.value:ClearAllPoints()
@@ -587,14 +615,14 @@ local function PlaceItems(view, s)
 			item.inner = nil
 			Widgets.Point(item.label, "BOTTOM", button, "CENTER", 0, stack)
 			item.label:SetWidth(inner)
-			item.label:SetJustifyH("CENTER")
+			item.label:SetJustifyH(s.align or "CENTER")
 			if captioned then
 				Widgets.Point(item.value, "TOP", button, "CENTER", 0, -stack)
 			else
 				Widgets.Point(item.value, "CENTER", button, "CENTER")
 			end
 			item.value:SetWidth(Widgets.Snap(item.value, max(inner, TextWidth(item.value, s.fontSize) + 2)))
-			item.value:SetJustifyH("CENTER")
+			item.value:SetJustifyH(s.align or "CENTER")
 		end
 		separator:ClearAllPoints()
 		Widgets.Point(separator, "LEFT", button, "LEFT")
@@ -619,7 +647,7 @@ local function SetValues(view, s, values, timedOnly, force)
 				item.text = text
 				item.value:SetText(text)
 				CompactGold(item, s)
-				local width = TextWidth(item.value, s.fontSize)
+				local width = WIDTH[id] and WIDTH[id](s) or TextWidth(item.value, s.fontSize)
 				if force or item.valueWidth ~= width then
 					item.valueWidth = width
 					if view.lineMode then
@@ -641,7 +669,7 @@ end
 
 function Strip.Paint(view, s, values)
 	local order = Order(s)
-	view.order = order
+	view.order, view.s = order, s
 	view.topBar = s.placement == "top" and not Widgets.Medallions()
 	view.rail = s.placement == "rail" and not view.docked
 	view.chrome.materialOn = not (view.topBar and s.artwork == "plain")
@@ -705,7 +733,7 @@ function Strip.Paint(view, s, values)
 			end
 			Widgets.TextColor(item.dot, view.slab and "medTextMuted" or view.lineMode and "text" or "textEmphasis")
 			item.dot:SetWordWrap(false)
-			local label = s.labels ~= "none" and LABELS[id][view.lineMode and "inline" or s.labels] or ""
+			local label = s.labels ~= "none" and Labels(id, s)[view.lineMode and "inline" or s.labels] or ""
 			item.caption = label
 			item.label:SetText(label)
 			item.label:SetWordWrap(false)
@@ -912,7 +940,7 @@ local function Tooltip(item, tip)
 	elseif id == "gold" then
 		local money = Money()
 		tip:AddDoubleLine(L["Gold"], money and Format.Money(money, "full") or L["--"])
-		if money and sessionStart then
+		if money and sessionStart and s.goldSession ~= false then
 			tip:AddDoubleLine(L["This session"], Format.Money(money - sessionStart, "full"))
 		end
 		if ns.Click.Target("gold") then
@@ -1125,8 +1153,8 @@ end
 
 local function NeedsTicker(s)
 	if s.enabled == false then return false end
-	for _, id in ipairs(Order(s)) do
-		if TIMED[id] then
+	for _, entry in ipairs(Strip.Modules(s)) do
+		if entry.shown and TIMED[entry.id] then
 			return true
 		end
 	end
@@ -1221,6 +1249,7 @@ end
 
 function Strip.Enable()
 	running = true
+	ns.FillModules(ns.Settings().strip)
 	local view = Strip.view or Build()
 	view.frame:Show()
 	local s = ns.Settings().strip
@@ -1257,7 +1286,7 @@ function Strip.Setting(key)
 		return
 	end
 	local s = ns.Settings().strip
-	if not field and Strip.view then Strip.view.paintColor = nil end
+	if (not field or field == "valueCustom") and Strip.view then Strip.view.paintColor = nil end
 	if field == "placement" and s.placement == "rail" then
 		K.Options.Write(ns.MODULE, "strip.menus", false)
 		MatchLine(s)
@@ -1298,6 +1327,7 @@ ns.AddPart({
 	Disable = Strip.Disable,
 	Setting = Strip.Setting,
 	Refresh = function()
+		ns.FillModules(ns.Settings().strip)
 		if Strip.view then
 			Strip.view.paintColor = nil
 			for _, item in pairs(Strip.view.items) do item.font = nil end

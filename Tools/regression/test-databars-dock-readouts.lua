@@ -96,7 +96,7 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 	K.Options.Write("DataBars", "strip.dockModules", s.dockModules)
 	check()
 	K.Options.Write("HudStyle", "style", "frames")
-	for _, entry in ipairs(s.modules) do assert(entry.shown == (entry.id ~= "xp" and entry.id ~= "location" and entry.id ~= "itemLevel"), "the top bar retains its independent defaults; optional XP, location and item level stay off") end
+	for i, entry in ipairs(s.modules) do assert(entry.shown == (i <= 12), "the top bar retains its independent defaults; XP and the optional readouts after it stay off") end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 print("databar dock readouts ok: defaults, whole-item suffix overflow, tooltip and wing bounds on four screens")
