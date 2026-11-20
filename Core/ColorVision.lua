@@ -48,6 +48,12 @@ function K.Theme.ThreatColor(status)
 	return Vision.Color(status == 3 and 2 or status == 2 and 3 or 1, threat(status))
 end
 
+local reaction = K.Theme.ReactionColor
+function K.Theme.ReactionColor(value)
+	if type(value) ~= "number" or issecretvalue and issecretvalue(value) then return reaction(value) end
+	return Vision.Color(value <= 3 and 2 or value == 4 and 3 or 1, reaction(value))
+end
+
 local function Changed() K.Callbacks.Fire("ThemeChanged") end
 K.Callbacks.Register("SettingChanged", "ColorVision", function(_, module) if module == "ColorVision" then Changed() end end)
 K.Events.Register("ColorVision", "CVAR_UPDATE", function(_, name) if name == "colorblindSimulator" or name == "colorblindMode" then Changed() end end)
