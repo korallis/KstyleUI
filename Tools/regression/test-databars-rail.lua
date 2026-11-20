@@ -21,6 +21,8 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 			local left, bottom = K.Layout.Rect("databars.strip")
 			assert(math.abs(left - (rw - 17 - p.width)) <= pixel and math.abs(bottom - 181) <= pixel,
 				"Right rail must restore the v0.2.6 readout rectangle")
+			assert(math.abs(p.width - 278) <= pixel and math.abs(p.height - 12) <= pixel,
+				"Right rail must restore the v0.2.6 readout size after Setup: " .. p.width .. "x" .. p.height)
 			assert(x and y and w > 0 and h > 0 and rh > 0)
 		end
 		rail()

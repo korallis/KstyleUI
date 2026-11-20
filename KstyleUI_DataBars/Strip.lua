@@ -418,7 +418,7 @@ local function PlaceLine(view, s)
 		h = view.line
 	end
 	local edge = view.slab and 0 or view.topBar and Tokens.Size("screenMargin") or (view.bare and 0 or Pad(frame))
-	local unitGap, lift = Widgets.Snap(frame, UNIT_GAP), Widgets.Snap(frame, LINE_LIFT)
+	local unitGap, lift = Widgets.Snap(frame, UNIT_GAP), view.topBar and 0 or Widgets.Snap(frame, LINE_LIFT)
 	local order = view.order
 	local step = K.Scale.Pixel(1) / Widgets.ScaleFactor(frame)
 	local dotSize = s.fontSize * K.Theme.FontScale()
@@ -670,16 +670,20 @@ function Strip.Paint(view, s, values)
 			item.dot:Hide()
 		else
 			local f = caption or s
-			local fontSize = f.fontSize * K.Theme.FontScale()
+			local size = view.topBar and min(s.fontSize, (view.frame:GetHeight() - 2 * Widgets.Border(view.frame)) / (1.2 * K.Theme.FontScale())) or f.fontSize
+			local fontSize = size * K.Theme.FontScale()
 			if item.font ~= f.font or item.fontSize ~= fontSize or item.outline ~= f.outline or item.lineMode ~= view.lineMode or item.slab ~= view.slab or item.instrument ~= f.instrumentText then
+				Widgets.Fitted(item.label, view.topBar)
+				Widgets.Fitted(item.value, view.topBar)
+				Widgets.Fitted(item.dot, view.topBar)
 				if view.slab then
 					Font.Caption(item.label, caption, caption.medal)
 					Font.Caption(item.value, caption, caption.medal)
 					Font.Caption(item.dot, caption, caption.medal)
 				else
-					Font.Apply(item.label, s.font, view.lineMode and s.fontSize or CaptionSize(s), s.outline)
-					Font.Apply(item.value, s.font, s.fontSize, s.outline)
-					Font.Apply(item.dot, s.font, s.fontSize, s.outline)
+					Font.Apply(item.label, s.font, view.lineMode and size or CaptionSize(s), s.outline)
+					Font.Apply(item.value, s.font, size, s.outline)
+					Font.Apply(item.dot, s.font, size, s.outline)
 				end
 				item.font, item.fontSize, item.outline, item.lineMode = f.font, fontSize, f.outline, view.lineMode
 				item.slab, item.instrument = view.slab, f.instrumentText
@@ -798,7 +802,7 @@ function Strip.DockMenus(view, s)
 			Widgets.Point(content, "LEFT", frame, "LEFT", Tokens.Size("screenMargin"), 0)
 			Widgets.Size(content, width, height)
 		end
-		Menus.SetDock("micro", view.microDock, frame, 15, 1, true)
+		Menus.SetDock("micro", view.microDock, frame, min(15, frame:GetHeight()), 1, true)
 		Menus.SetDock("bags", nil)
 		local micro = Menus.Content("micro")
 		view.zones.left:ClearAllPoints()
@@ -1241,6 +1245,10 @@ function Strip.Setting(key)
 	end
 	local s = ns.Settings().strip
 	if not field and Strip.view then Strip.view.paintColor = nil end
+	if field == "placement" and s.placement == "rail" then
+		K.Options.Write(ns.MODULE, "strip.menus", false)
+		MatchLine(s)
+	end
 	if field == "orientation" then
 		MatchOrientation(s, true)
 	elseif field == "line" then

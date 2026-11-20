@@ -172,7 +172,7 @@ local DPS = {
 	["auras.debuffs"] = { anchor = "TOPRIGHT", x = -AURAS_X, y = -DEBUFFS_Y },
 	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
 	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -263, y = 217.5 + LIFT + 102.5 + GAP },
-	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -(EDGE + 4), y = READOUT_Y },
+	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = READOUT_Y },
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y + MICRO_H },
 	["databars.xp"] = { anchor = "BOTTOM", x = 0, y = TRAY_BOTTOM - TRAY_STRIP_GAP - XP_H + 9 },
@@ -1546,7 +1546,7 @@ function Layouts.DataBarHeight(style)
 	local strip = bars.strip or {}
 	if strip.placement == "rail" or strip.placement == "dock" then return nil end
 	local height = strip.height
-	if type(height) ~= "number" or height ~= height then height = 20 end
+	if type(height) ~= "number" or height ~= height then height = 14 end
 	return math.max(12, math.min(32, height))
 end
 
@@ -1570,7 +1570,8 @@ function Layouts.TopInset(style, enabled, position)
 	end
 	position = position or Layouts.DataBarPosition(style)
 	if position.anchor ~= "TOP" or math.abs(position.x) >= 1e-6 or math.abs(position.y) >= 1e-6 or position.shown == "never" then return 0 end
-	return math.max(0, (position.height or height) + 6 - 16)
+	height = position.height or height
+	return height <= 14 and 0 or math.max(0, height + 6 - 16)
 end
 
 function Layouts.Rect(element, position, rootWidth, rootHeight, style)
@@ -1785,6 +1786,9 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 			if h < 1 then h = 1 end
 			local left = floor(physicalWidth * point[1] + position.x * pixelScale - w * point[1] + 0.5) + (offsetX or 0) * pixelScale
 			local bottom = floor(physicalHeight * point[2] + position.y * pixelScale - h * point[2] + 0.5) + (offsetY or 0) * pixelScale
+			if state.stripHeight and key ~= "databars.strip" and bottom + h <= physicalHeight then
+				bottom = min(bottom, floor(physicalHeight - EDGE * pixelScale) - h)
+			end
 			local box = boxes[1]
 			box[1], box[2], box[3], box[4] = left, bottom, left + w, bottom + h
 			local medal = medals and medals[key]

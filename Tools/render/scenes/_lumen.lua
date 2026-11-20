@@ -220,7 +220,6 @@ function Lumen.Build(state, opts)
 			local _, kit = D.New({ enable = false })
 			base.dataBar = D.CoreEnv.DeepCopy(kit.Store.Defaults("DataBars"))
 			base.dataBar.enabled = true
-			base.dataBar.strip.enabled, base.dataBar.strip.placement, base.dataBar.strip.height = true, "top", 20
 		end
 	end
 	local built, at = {}, {}

@@ -283,7 +283,7 @@ for _, name in ipairs(names) do
 		end
 		for key, wantWidth in pairs(RIGHT_EDGE) do
 			local r = rect(key)
-			local inset = key == "minimap.main" and EDGE + Layouts.MAP_FRAME + 4 or key == "databars.strip" and EDGE + 4 or EDGE
+			local inset = key == "minimap.main" and EDGE + Layouts.MAP_FRAME + 4 or EDGE
 			assert(math.abs(r.right - (width - inset)) < 1e-6 and math.abs(r.w - wantWidth) < 1e-6, label .. ": " .. key .. " sits on its right inset, " .. wantWidth .. " wide")
 		end
 		local map, auraBuffs, auraDebuffs = rect("minimap.main"), rect(AURA_ROWS[1]), rect(AURA_ROWS[2])

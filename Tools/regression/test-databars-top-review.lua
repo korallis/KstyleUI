@@ -16,7 +16,7 @@ check("moved readout goes to the top once", function()
   } })
   local position = K.Layout.Get("databars.strip")
   assert(position.anchor == "TOP" and position.x == 0 and position.y == 0, "reset the migrated readout to the default top placement")
-  assert(position.width == K.Layout.RootSize() and position.height == 20)
+  assert(position.width == K.Layout.RootSize() and position.height == 14)
   local layout = env.KstyleUIDB.layouts.Default
   assert(layout["medallions:databars.strip"].y == 300, "retain the Medallions rail")
   assert(not layout["orbs:databars.strip"], "reset the moved Orbs rail too")

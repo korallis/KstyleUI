@@ -26,8 +26,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	settle()
 	assert(micro:GetParent() == view.frame)
 	for _, button in ipairs(Menus.Shown("micro")) do
-		near(button:GetWidth(), K.Widgets.Snap(button, 15))
-		near(button:GetHeight(), K.Widgets.Snap(button, 15))
+		near(button:GetWidth(), K.Widgets.Snap(button, math.min(15, view.frame:GetHeight())))
+		near(button:GetHeight(), K.Widgets.Snap(button, math.min(15, view.frame:GetHeight())))
 		local target = button:GetAttribute("clickbutton")
 		assert(target and env[target:GetName()] == target, "the secure proxy still targets Blizzard's button")
 		if target ~= env.MainMenuMicroButton then assert(button:GetAttribute("type") == "click") end

@@ -112,6 +112,8 @@ end
 local function writeLayout(name)
 	local positions = Layouts.Positions(name, "frames", ns.Scale.Aspect(), ns.Scale.Band())
 	local defaults = Layouts.Positions("DPS", "frames", ns.Scale.Aspect(), ns.Scale.Band())
+	positions["databars.strip"] = Layouts.Default("databars.strip")
+	defaults["databars.strip"] = Layouts.Default("databars.strip")
 	for key, size in pairs(Layouts.Sizes(name)) do
 		local position = positions[key]
 		position.width, position.height = size.width, size.height
