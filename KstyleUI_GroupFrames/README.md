@@ -247,11 +247,11 @@ The API proof remains the source at `9dc84f0`: `Blizzard_APIDocumentationGenerat
 
 ### F2 batch 3: aura text and name letters (2026-11-20)
 
-**Stacks** (Debuffs, on by default as before) shows or hides the stack count on debuff and heal icons. **Time left** (off by default) binds a duration text to each aura button through `SetDurationText`; its font string and holder frame are made the first time the option is on, so a default profile builds nothing new. It shares the stack count's font and size, centred on the icon. **Name letters** (Party and Raid frames, 0 = whole name) cuts a plain name to that many letters before the existing name fitting; secret names pass through untouched. Other F2 aura filters and bar styles stay follow-ups.
+**Stacks** (Debuffs, on by default as before) shows or hides the stack count on debuff and heal icons. **Time left** (off by default) binds a duration text to each aura button through `SetDurationText`; its font string is made on the icon's text frame the first time the option is on, so a default profile builds nothing new, and turning it off releases the binding with `ClearDurationText`. It shares the stack count's font and size. When the debuffs fit one row (the raid tiles by default) it sits just below each icon, clear of the dispel letter and the stack count; a grid of several rows has no lane between its rows, so there it stays centred on the icon. The settings preview shows a sample stack count and time left. **Name letters** (Party and Raid frames, 0 = whole name) cuts a plain name to that many letters before the existing name fitting; secret names pass through untouched. Other F2 aura filters and bar styles stay follow-ups.
 
 `test-frames-bars-auras-casts` loads v0.2.8-shaped profiles, checks every default and that no new region exists until an option needs it, then writes and applies each option. `test-perf-path-budgets` keeps the 13.0M ceiling with the same reload widget calls and regions as staging. Evidence: `~/.cache/kstyleui-evidence/parity-frames-3/`.
 
-API proof at `9dc84f0`: `Blizzard_AuraContainer/Blizzard_CustomAuraButton.lua` (`SetDurationText`, `SetApplicationCount`).
+API proof at `9dc84f0`: `Blizzard_AuraContainer/Blizzard_CustomAuraButton.lua` (`SetDurationText`, `ClearDurationText`, `SetApplicationCount`).
 
 
 ## EllesmereUI parity audit (2026-11-20)

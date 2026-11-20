@@ -323,7 +323,7 @@ The API proof remains the source at `9dc84f0`: `Blizzard_APIDocumentationGenerat
 
 ### F2 batch 3: casting enemies (2026-11-20)
 
-**Casting enemies** (Unit types, off by default) colours an enemy plate's health bar with **Casting colour** (the cast bar's gilt by default) from cast or channel start until it stops, fails, is interrupted or the plate clears. Threat shown as health colour still wins. It runs on the existing `UNIT_SPELLCAST_*` handlers and the plate's cached colour path, with no polling. Important-cast tints, threat percent and the other F2 cast and aura rows stay follow-ups: the important flag and threat values can be secret in combat, so they need their own design.
+**Casting enemies** (Unit types, off by default) colours an enemy plate's health bar with **Casting colour** (the cast bar's gilt by default) from cast or channel start until it stops, fails, is interrupted or the plate clears. Threat shown as health colour still wins. It runs on the existing `UNIT_SPELLCAST_*` handlers and the plate's cached colour path, with no polling, and does not need cast bars: while it is on, the colour reads `UnitCastingInfo` and `UnitChannelInfo`, so hiding the cast bars keeps it. Important-cast tints, threat percent and the other F2 cast and aura rows stay follow-ups: the important flag and threat values can be secret in combat, so they need their own design.
 
 `test-frames-bars-auras-casts` loads v0.2.8-shaped profiles, checks every default and that no new region exists until an option needs it, then writes and applies each option. `test-perf-path-budgets` keeps the 13.0M ceiling with the same reload widget calls and regions as staging. Evidence: `~/.cache/kstyleui-evidence/parity-frames-3/`.
 
