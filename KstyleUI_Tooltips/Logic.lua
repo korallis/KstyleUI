@@ -1,4 +1,4 @@
--- Logic.lua: the module's pure rules: the fixed anchor's corner and how far the tooltip lifts over the cards in its column, font flags, quality edges, softened line colours, an item's stat and footer lines, its title and caption text, the tooltip scale and whether a game call answers a plain true.
+-- Logic.lua: the module's pure rules: the fixed anchor's corner and how far the tooltip lifts over the cards in its column, font flags, quality edges, softened line colours, an item's stat and footer lines, its title and caption text, the tooltip scale, whether a game call answers a plain true or a modifier key is held, the growth corner and the unit level line.
 local _, ns = ...
 
 local Logic = {}
@@ -33,6 +33,39 @@ function Logic.Yes(fn, ...)
 	if type(fn) ~= "function" then return false end
 	local v = fn(...)
 	return not IsSecret(v) and v == true
+end
+
+local KEYS = { SHIFT = "IsShiftKeyDown", CTRL = "IsControlKeyDown", ALT = "IsAltKeyDown" }
+
+function Logic.Held(key)
+	return KEYS[key] ~= nil and Logic.Yes(_G[KEYS[key]])
+end
+
+function Logic.Grow(corner, growth)
+	if growth ~= "up" and growth ~= "down" then return corner end
+	return (growth == "up" and "BOTTOM" or "TOP") .. (corner:find("LEFT$") and "LEFT" or "RIGHT")
+end
+
+local function Hex(c, text)
+	return format("|cff%02x%02x%02x%s|r", floor(c.r * 255 + 0.5), floor(c.g * 255 + 0.5), floor(c.b * 255 + 0.5), text)
+end
+
+function Logic.LevelPrefix(template)
+	local prefix = type(template) == "string" and template:match("^(.-)%%[sd]")
+	return prefix ~= "" and prefix or nil
+end
+
+function Logic.LevelLine(text, prefix, compact, suffix, levelColor, className, classColor)
+	if IsSecret(text) or type(text) ~= "string" or text:find("|", 1, true) or not prefix or text:sub(1, #prefix) ~= prefix then
+		return nil
+	end
+	local level, rest = text:sub(#prefix + 1):match("^(%S+)(.*)$")
+	if not level then return nil end
+	local s, e
+	if classColor and type(className) == "string" and className ~= "" then s, e = rest:find(className, 1, true) end
+	if s then rest = rest:sub(1, s - 1) .. Hex(classColor, className) .. rest:sub(e + 1) end
+	if compact and type(suffix) == "string" and suffix ~= "" and rest:sub(-#suffix) == suffix then rest = rest:sub(1, -#suffix - 1) end
+	return (compact and "" or prefix) .. (levelColor and Hex(levelColor, level) or level) .. rest
 end
 
 function Logic.Corner(left, bottom, width, height, rootWidth, rootHeight)

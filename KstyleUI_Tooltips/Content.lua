@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Tokens, L = K.Tokens, K.L
+local L = K.L
 local Logic, Settings, Style, Units, Health = ns.Logic, ns.Settings, ns.Style, ns.Units, ns.Health
 
 local Content = {}
@@ -43,12 +43,12 @@ local function ItemQuality(data)
 end
 
 local function AddID(tooltip, label, id)
-	local text = Logic.IDText(id)
-	if text then
-		local lr, lg, lb = Tokens.Color("text")
-		local rr, rg, rb = Tokens.Color("textEmphasis")
-		tooltip:AddDoubleLine(label, text, lr, lg, lb, rr, rg, rb)
-	end
+	Units.Pair(tooltip, label, Logic.IDText(id))
+end
+
+local function Extra(key)
+	local hold = Settings.Get(key) and Settings.Get("extraKey")
+	return hold == "none" or Logic.Held(hold)
 end
 
 local function ItemLevel(data)
@@ -73,14 +73,14 @@ local function Item(tooltip, data)
 		return
 	end
 	local icon = Call(C_Item, "GetItemIconByID", id)
-	if Settings.Get("itemID") then
+	if Extra("itemID") then
 		AddID(tooltip, L["Item ID"], id)
 	end
-	if Settings.Get("maxStack") then
+	if Extra("maxStack") then
 		local stack = Call(C_Item, "GetItemMaxStackSizeByID", id)
 		if Logic.IsNumber(stack) and stack > 1 then AddID(tooltip, L["Maximum stack"], stack) end
 	end
-	if Settings.Get("iconID") then
+	if Extra("iconID") then
 		AddID(tooltip, L["Icon ID"], icon)
 	end
 	Style.Icon(tooltip, icon, quality)
@@ -93,10 +93,10 @@ local function Spell(tooltip, data)
 		return
 	end
 	local icon = Call(C_Spell, "GetSpellTexture", id)
-	if Settings.Get("spellID") then
+	if Extra("spellID") then
 		AddID(tooltip, L["Spell ID"], id)
 	end
-	if Settings.Get("iconID") then
+	if Extra("iconID") then
 		AddID(tooltip, L["Icon ID"], icon)
 	end
 	Style.Icon(tooltip, icon, nil, true)

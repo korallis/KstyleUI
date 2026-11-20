@@ -1,4 +1,4 @@
--- shell_parity.lua: one shell module's real Options page or affected frames, with parity switches applied through Options.Write.
+-- shell_parity.lua: one shell module's real Options page or affected frames, with parity switches applied through Options.Write; batch 4 shows a unit tooltip.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -7,8 +7,11 @@ local module = os.getenv("RENDER_SHELL_MODULE") or "Minimap"
 local loaders = { Minimap = "minimap", DataBars = "databars", Chat = "chat", Bags = "bags", Tooltips = "tooltips", QoL = "qol" }
 local keys = { Minimap = "zone.subzone", DataBars = "strip.modules", Bags = "desaturateJunk", Tooltips = "maxStack", QoL = "autoGossip" }
 local batch = os.getenv("RENDER_SHELL_FOLLOWUP")
-local followup = batch == "1" or batch == "3"
-local followups = batch == "3" and {
+local followup = batch == "1" or batch == "3" or batch == "4"
+local unitTip = module == "Tooltips" and batch == "4"
+local followups = batch == "4" and {
+	Tooltips = { { "buffs.shown", true }, { "itemLevel", true }, { "levelColor", true }, { "classLine", true }, { "compactLevel", true }, { "factionColor", true } },
+} or batch == "3" and {
 	DataBars = { { "strip.money", "short" } },
 	Bags = { { "characterBags", true } },
 	Tooltips = { { "show", "outOfCombat" }, { "awayTag", true }, { "mountLine", true } },
@@ -57,6 +60,23 @@ return Common.Run(function()
 				lib:Add("BugSack").icon:SetTexture(Hud.ICONS.sunderArmor)
 				lib:Add("Details").icon:SetTexture(Hud.ICONS.whirlwind)
 			end
+			if unitTip then
+				local buffs = { 136076, 132212, 132328, 135987, 135906 }
+				local hunter = dofile("Tools/render/scenes/_classes.lua").HUNTER.colour
+				env.RAID_CLASS_COLORS.HUNTER = { r = hunter[1], g = hunter[2], b = hunter[3] }
+				env.UnitTokenFromGUID = function() return "mouseover" end
+				env.UnitIsPlayer = function(unit) return unit == "mouseover" end
+				env.UnitIsUnit = function(a, b) return a == b or (a == "mouseover" and b == "player") end
+				env.UnitClass = function() return "Hunter", "HUNTER", 3 end
+				env.UnitLevel = function() return 60 end
+				env.UnitReaction = function() return 5 end
+				env.UnitFactionGroup = function() return "Horde", "Horde" end
+				env.GetFactionColor = function() return { GetRGB = function() return 0.9, 0.05, 0.07 end } end
+				env.GetCreatureDifficultyColor = function() return { r = 1, g = 0.82, b = 0 } end
+				env.TOOLTIP_UNIT_LEVEL, env.PLAYER = "Level %s", "Player"
+				env.C_Secrets = { ShouldAurasBeSecret = function() return false end }
+				env.C_UnitAuras = { GetAuraDataByIndex = function(_, i) return buffs[i] and { icon = buffs[i] } or nil end }
+			end
 			env.C_AddOns = env.C_AddOns or {}
 			env.C_AddOns.LoadAddOn = function(name)
 				if name == "KstyleUI_Options" and not env._addons.KstyleUI_Options then Load(O.Files(), env) end
@@ -95,7 +115,18 @@ return Common.Run(function()
 		env.FireEvent("CHAT_MSG_MONEY", "You loot 1 Gold, 4 Silver, 14 Copper")
 	end
 	if module == "Bags" then env.ToggleAllBags() end
-	if module == "Tooltips" then
+	if unitTip then
+		local tip = env.GameTooltip
+		tip:SetOwner(env.UIParent, "ANCHOR_NONE")
+		for _, text in ipairs({ "Valerin", "<Kstyle>", "Level 60 Hunter (Player)", "Horde" }) do tip:AddLine(text, 1, 1, 1) end
+		D.BlizzardShow(tip, true)
+		D.PostCall(env, tip, { type = env.Enum.TooltipDataType.Unit, guid = "Player-1-0001" })
+		D.BlizzardShow(tip.StatusBar, true)
+		tip.StatusBar:SetValue(0.72)
+		dofile("Tools/render/scenes/tooltip.lua").Layout(env, tip)
+		tip:ClearAllPoints()
+		tip:SetPoint("TOPRIGHT", K.Scale.Root(), "TOPRIGHT", -80, -180)
+	elseif module == "Tooltips" then
 		local tip = env.GameTooltip
 		env._items[2447] = { quality = 1, icon = 133939 }
 		tip:SetOwner(env.UIParent, "ANCHOR_NONE")

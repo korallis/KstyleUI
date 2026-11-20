@@ -448,7 +448,7 @@ do
 	frame:Refresh()
 	assert(guild:GetText() == "<Kstyle> Officer", "the rank shows in the sample")
 	assert(not frame.bar:IsShown() and not frame.icon:IsShown(), "the switches hide the bar and the icon")
-	assert(not frame.unit.rows[4].left:IsShown(), "and the target line")
+	assert(not frame.unit.rows[5].left:IsShown(), "and the target line")
 	K.Options.Write("Tooltips", "healthBar", true)
 	K.Options.Write("Tooltips", "bar.color", "custom")
 	K.Options.Write("Tooltips", "bar.custom", { r = 0.3, g = 0.6, b = 0.9 })

@@ -1,4 +1,4 @@
--- Style.lua: the quest card on each restyled tooltip (its material, edge, the heading's diamond and its one rule, the compare caption as a card heading), the fade in, the tooltip fonts, the item caption, line spacing and the tooltip scale; GILT_FALLBACK is the one switch to S1's gilt token.
+-- Style.lua: the quest card on each restyled tooltip (its material, edge, the heading's diamond and its one rule, the compare caption as a card heading), the fade in, the tooltip fonts, the item caption, the unit buff icons' places, line spacing and the tooltip scale; GILT_FALLBACK is the one switch to S1's gilt token.
 local _, ns = ...
 
 local K = KstyleUI
@@ -497,11 +497,15 @@ function Style.IconTile(parent)
 	return icon
 end
 
-function Style.PlaceIcon(icon, panel, size)
+function Style.PlaceIcon(icon, panel, size, point, relative, x, y)
 	Widgets.Size(icon, size, size)
 	icon:ClearAllPoints()
 	local inset = Widgets.Snap(icon, ICON_INSET)
-	icon:SetPoint("TOPLEFT", panel, "TOPLEFT", inset, -inset)
+	if point then
+		icon:SetPoint(point, panel, relative, Widgets.Snap(icon, x), Widgets.Snap(icon, y))
+	else
+		icon:SetPoint("TOPLEFT", panel, "TOPLEFT", inset, -inset)
+	end
 	local border = Widgets.Border(icon) * BORDER_LINES
 	icon.texture:ClearAllPoints()
 	icon.texture:SetPoint("TOPLEFT", icon, "TOPLEFT", border, -border)
@@ -513,6 +517,22 @@ function Style.PlaceIcon(icon, panel, size)
 	end
 	icon.chrome:Restyle()
 	icon.glow:Restyle()
+end
+
+local BUFF_SIDES = {
+	BOTTOM = { "TOPLEFT", "BOTTOMLEFT", 1, -1, 0, -1 },
+	TOP = { "BOTTOMLEFT", "TOPLEFT", 1, 1, 0, 1 },
+	LEFT = { "TOPRIGHT", "TOPLEFT", -1, -1, -1, 0 },
+	RIGHT = { "TOPLEFT", "TOPRIGHT", 1, -1, 1, 0 },
+}
+
+function Style.PlaceBuff(icon, panel, index)
+	local side = BUFF_SIDES[Settings.Get("buffs.position")]
+	local size, perRow, gap = Settings.Get("buffs.size"), Settings.Get("buffs.perRow"), Tokens.Size("gapSmall")
+	local col, row = (index - 1) % perRow, math.floor((index - 1) / perRow)
+	Style.PlaceIcon(icon, panel, size, side[1], side[2],
+		side[5] * gap + side[3] * col * (size + gap) + Settings.Get("buffs.x"),
+		side[6] * gap + side[4] * row * (size + gap) + Settings.Get("buffs.y"))
 end
 
 function Style.PaintIcon(icon, quality, spell)

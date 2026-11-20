@@ -157,13 +157,13 @@ local function Place(tooltip, parent)
 		end
 	end
 	if cursor then
-		tooltip:SetOwner(parent or UIParent, "ANCHOR_CURSOR_RIGHT", Settings.Get("cursorX"), Settings.Get("cursorY"))
+		tooltip:SetOwner(parent or UIParent, Settings.Get("cursorSide"), Settings.Get("cursorX"), Settings.Get("cursorY"))
 		return
 	end
 	if not holder then
 		return
 	end
-	local corner = Anchor.Corner()
+	local corner = Logic.Grow(Anchor.Corner(), Settings.Get("growth"))
 	local lift = Anchor.Lift(corner)
 	local root, own = K.Scale.Root():GetEffectiveScale(), tooltip:GetEffectiveScale()
 	tooltip:ClearAllPoints()
@@ -174,13 +174,11 @@ local function Place(tooltip, parent)
 	end
 end
 
-local PEEK = { SHIFT = "IsShiftKeyDown", CTRL = "IsControlKeyDown", ALT = "IsAltKeyDown" }
 local STARTS = { outOfCombat = "PLAYER_REGEN_DISABLED", outOfBoss = "ENCOUNTER_START" }
 local mode = "always"
 
 local function Hidden(starting)
-	local peek = PEEK[Settings.Get("peekKey")]
-	if peek and Logic.Yes(_G[peek]) then return false end
+	if Logic.Held(Settings.Get("peekKey")) then return false end
 	if mode == "outOfCombat" then return starting or Logic.Yes(InCombatLockdown) end
 	if mode == "outOfBoss" then return starting or Logic.Yes(C_InstanceEncounter and C_InstanceEncounter.IsEncounterInProgress) end
 	return true
