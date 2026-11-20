@@ -37,10 +37,11 @@ class DiscordPostTests(unittest.TestCase):
                 url = f'{discord.GITHUB}/releases/tag/{tag}'
                 self.assertEqual(embed['url'], url)
                 self.assertIn(counts, embed['description'])
+                self.assertNotRegex(embed['description'], r'\b0 (added|changed|fixed)\b')
                 self.assertEqual(embed['color'], int('d3b574', 16))
                 logo = f'{discord.RAW}/{tag}/Media/Logo/Logo256.png'
                 self.assertEqual(embed['author'], {'name': 'KstyleUI', 'url': discord.GITHUB, 'icon_url': logo})
-                self.assertEqual(embed['thumbnail']['url'], logo)
+                self.assertNotIn('thumbnail', embed)
                 self.assertEqual(embed['image']['url'], f'{discord.RAW}/{tag}/docs/media/marketing/banner.jpg')
                 fields = {f['name']: f['value'] for f in embed['fields']}
                 self.assertEqual(fields['Download'], '[CurseForge](https://www.curseforge.com/wow/addons/kstyleui) · '
@@ -100,6 +101,7 @@ class DiscordPostTests(unittest.TestCase):
         discord.send('https://discord.com/api/webhooks/1/token', payload)
         request = opener.call_args.args[0]
         self.assertEqual(request.method, 'POST')
+        self.assertEqual(request.get_header('User-agent'), 'KstyleUI-release')
         self.assertEqual(json.loads(request.data), payload)
         self.assertEqual(opener.call_count, 1)
         self.assertEqual(json.loads(request.data)['flags'], 4096)
@@ -110,6 +112,8 @@ class DiscordPostTests(unittest.TestCase):
         discord.send('https://discord.com/api/webhooks/1/token?thread_id=9', payload, '123,456,789')
         requests = [call.args[0] for call in opener.call_args_list]
         self.assertEqual([r.method for r in requests], ['PATCH', 'DELETE', 'DELETE'])
+        for request in requests:
+            self.assertEqual(request.get_header('User-agent'), 'KstyleUI-release', request.method)
         self.assertEqual([r.full_url for r in requests],
                          [f'https://discord.com/api/webhooks/1/token/messages/{mid}?thread_id=9'
                           for mid in ('123', '456', '789')])
