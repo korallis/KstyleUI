@@ -20,6 +20,7 @@ local TOOLBAR_KEY = "Layout.Toolbar"
 local TOOLBAR_POSITION = { anchor = "TOP", x = 0, y = -2 }
 local OVERLAY_STRATA = "FULLSCREEN"
 local TOOLBAR_STRATA = "FULLSCREEN_DIALOG"
+local TOOLBAR_REST = 0.25
 local GRID_STRATA = "BACKGROUND"
 local PLATE_MIN = 16
 local HANDLE_SIZE = 8
@@ -83,7 +84,10 @@ local function Describe(key, short)
 		return text
 	end
 	if s.attachTo ~= "" then
-		local side = ({ above = L["Above"], below = L["Below"], left = L["Left"], right = L["Right"] })[s.side]
+		local side
+		for _, option in ipairs(Layout.SideOptions()) do
+			if option.value == s.side then side = option.label end
+		end
 		local target = Layout.Element(s.attachTo)
 		text = format("%s: %s / %d", side, target and target.label or s.attachTo, floor(s.offset + 0.5))
 		if s.matchWidth then text = text .. " / " .. L["Match width"] end
@@ -461,7 +465,18 @@ local function Nudge(dx, dy)
 	Layout.Update(key, Layout.Movement(key, l, b, w, h), "nudge:" .. key)
 end
 
+local function RevealToolbar()
+	if toolbar and ns.Store.Account().layoutToolbarHover then
+		toolbar:SetAlpha(KeyDown(IsShiftKeyDown) and 0 or toolbar:IsMouseOver() and 1 or TOOLBAR_REST)
+	end
+end
+
+local function ShiftChanged(_, key)
+	if key == "LSHIFT" or key == "RSHIFT" then RevealToolbar() end
+end
+
 local function OnKeyDown(self, key)
+	ShiftChanged(self, key)
 	if InCombatLockdown() then
 		return
 	end
@@ -904,6 +919,7 @@ local function BuildToolbar()
 		panel.elements:SetOptions(Elements)
 	end })
 	function panel:Arrange()
+		panel:EnableMouse(ns.Store.Account().layoutToolbarHover == true)
 		panel.restore:SetShown(Mode.hidden and next(Mode.hidden) ~= nil)
 		local search = ns.Store.Module("LayoutControls").search
 		panel.search:SetShown(search)
@@ -926,6 +942,10 @@ local function BuildToolbar()
 		panel:Restyle()
 	end
 	panel:Arrange()
+	for _, part in ipairs({ panel, panel.titleBar, panel.gridToggle, panel.snapToggle, panel.undo, panel.redo, panel.reset, panel.bind, panel.restore, panel.search, panel.elements, panel.done }) do
+		part:HookScript("OnEnter", RevealToolbar)
+		part:HookScript("OnLeave", RevealToolbar)
+	end
 	local bar = panel.titleBar
 	bar:EnableMouse(true)
 	bar:RegisterForDrag("LeftButton")
@@ -947,6 +967,7 @@ local function Build()
 	overlay:SetFrameStrata(OVERLAY_STRATA)
 	overlay:Hide()
 	overlay:SetScript("OnKeyDown", OnKeyDown)
+	overlay:SetScript("OnKeyUp", ShiftChanged)
 	guideX = overlay:CreateTexture(nil, "OVERLAY")
 	guideX:SetColorTexture(Tokens.Color("white"))
 	guideX:Hide()
@@ -989,6 +1010,7 @@ function Mode.Show()
 	PlaceSlot()
 	Mode.HistoryChanged()
 	toolbar:Open()
+	RevealToolbar()
 	PlaceTags()
 end
 

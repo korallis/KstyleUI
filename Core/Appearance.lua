@@ -185,12 +185,46 @@ local function ApplyKey(key)
 	APPLY[key](Appearance.Get(key))
 end
 
+local native
+
+function Appearance.GameText()
+	local account = Store.Account()
+	local scale = account.gameTextScale
+	scale = not (issecretvalue and issecretvalue(scale)) and type(scale) == "number" and scale == scale and math.min(1.5, math.max(0.8, scale)) or 1
+	return account.gameFont == true, scale, account.combatFont == true
+end
+
+function Appearance.ApplyGameText()
+	local on, scale, combat = Appearance.GameText()
+	if combat then rawset(_G, "DAMAGE_TEXT_FONT", (Tokens.Font("number"))) end
+	if not (native or on or scale ~= 1) or type(GetFonts) ~= "function" then return end
+	local path = Tokens.Font("body")
+	if on then
+		rawset(_G, "STANDARD_TEXT_FONT", path)
+		rawset(_G, "UNIT_NAME_FONT", (Tokens.Font("names")))
+	end
+	native = native or {}
+	local ok, names = pcall(GetFonts)
+	for _, name in ipairs(ok and type(names) == "table" and names or {}) do
+		local font = type(name) == "string" and not name:find("^KstyleUI") and rawget(_G, name)
+		if font and not native[name] and type(font) == "table" and type(font.GetFont) == "function" then
+			local got, file, height, flags = pcall(font.GetFont, font)
+			if got and not (issecretvalue and (issecretvalue(file) or issecretvalue(height) or issecretvalue(flags))) and type(file) == "string" and type(height) == "number" then
+				native[name] = { font, file, height, flags or "" }
+			end
+		end
+		local saved = native[name]
+		if saved then pcall(saved[1].SetFont, saved[1], on and path or saved[2], saved[3] * scale, saved[4]) end
+	end
+end
+
 function Appearance.Apply()
 	for _, key in ipairs(ORDER) do
 		ApplyKey(key)
 	end
 	ApplyRoleFonts()
 	ApplyReadability()
+	Appearance.ApplyGameText()
 end
 
 local function PathKey(path)
@@ -396,6 +430,7 @@ end
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
 	if module == SECTION and APPLY[key] then
 		ApplyKey(key)
+		if native then Appearance.ApplyGameText() end
 	end
 end)
 ns.Callbacks.Register("ProfileChanged", SECTION, Appearance.Apply)

@@ -110,10 +110,11 @@ local function Render(keepOffset, reselect, pageChanged)
 	local calm = CalmLists()
 	content.revealLimit = calm and 0.45 or nil
 	content:SetData(items, keepOffset, not calm or pageChanged == true)
+	local sections = K.Store.Account().optionsRailSections ~= false and state.sections or {}
 	if reselect then
-		rail:Select(state.query and "" or state.page, state.sections)
+		rail:Select(state.query and "" or state.page, sections)
 	else
-		rail:SetPages(state.pages, state.sections, true)
+		rail:SetPages(state.pages, sections, true)
 	end
 	TrackSection()
 end

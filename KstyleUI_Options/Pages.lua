@@ -269,10 +269,8 @@ function Pages.ElementItems(element, page, level)
 				return choices
 			end, get = get("attachTo", ""), set = set("attachTo"),
 		})
-		add({ kind = "dropdown", label = L["Side"], help = L["Which side of the other element this one sits on."], options = {
-			{ value = "above", label = L["Above"] }, { value = "below", label = L["Below"] },
-			{ value = "left", label = L["Left"] }, { value = "right", label = L["Right"] },
-		}, get = get("side", "above"), set = set("side") })
+		add({ kind = "dropdown", label = L["Side"], help = L["Which side of the other element this one sits on."],
+			options = LayoutFn("SideOptions"), get = get("side", "above"), set = set("side") })
 		add({ kind = "slider", label = L["Offset"], help = L["The gap from the attached element, in interface units."],
 			min = -height, max = height, step = 1, format = Whole, get = get("offset", 0), set = set("offset") })
 		if opts.resizable then
@@ -421,10 +419,30 @@ local function GeneralItems()
 			item.defer = true
 		end
 	end
-	items[#items + 1] = { kind = "header", level = 1, page = "General", label = L["Window conveniences"] }
-	items[#items + 1] = { kind = "toggle", page = "General", label = L["Search current page only"], help = L["Searches this page only. Off searches every settings page."],
-		get = function() return K.Store.Account().optionsSearchPage == true end,
-		set = function(value) K.Store.Account().optionsSearchPage = value; ns.Changed() end }
+	local function account(key, default, apply)
+		return function()
+			local value = K.Store.Account()[key]
+			if value == nil then return default end
+			return value
+		end, function(value)
+			K.Store.Account()[key] = value
+			if apply then K.Appearance.ApplyGameText() end
+			ns.Changed()
+		end
+	end
+	local function add(item, key, default, apply)
+		item.kind, item.page = item.kind or "toggle", "General"
+		if key then item.get, item.set = account(key, default, apply) end
+		items[#items + 1] = item
+	end
+	add({ kind = "header", level = 1, label = L["Game text"] })
+	add({ label = L["Use your font for game text"], help = L["Blizzard windows and quest text use your font; names in the world follow after relogging."] }, "gameFont", false, true)
+	add({ kind = "slider", label = L["Game text size"], min = 0.8, max = 1.5, step = 0.05, format = Percent, defer = true,
+		help = L["Makes Blizzard's own text larger or smaller; 100 percent keeps the game's sizes."] }, "gameTextScale", 1, true)
+	add({ label = L["Use your number font for combat text"], help = L["Damage and healing numbers in the world use your number font after relogging."] }, "combatFont", false, true)
+	add({ kind = "header", level = 1, label = L["Window conveniences"] })
+	add({ label = L["Search current page only"], help = L["Searches this page only. Off searches every settings page."] }, "optionsSearchPage", false)
+	add({ label = L["List page sections in the rail"], help = L["Shows the open page's sections under it. Off lists the pages only."] }, "optionsRailSections", true)
 	for _, element in ipairs(Pages.Elements(true)) do
 		if element.key == Pages.WINDOW_KEY then
 			element.label = L["Window size and opacity"]
@@ -445,7 +463,9 @@ local function GeneralItems()
 end
 
 local function ResetGeneral()
-	K.Store.Account().optionsSearchPage = nil
+	local account = K.Store.Account()
+	account.optionsSearchPage, account.optionsRailSections, account.gameFont, account.gameTextScale, account.combatFont = nil, nil, nil, nil, nil
+	K.Appearance.ApplyGameText()
 	for _, section in ipairs(Pages.GENERAL_SECTIONS) do
 		Model.ResetSchema(section, K.Options.Get(section))
 	end
@@ -463,6 +483,10 @@ local function ElementsItems()
 		help = L["Opens element settings on double-click. Action bars keep their own shortcut setting."],
 		get = function() return K.Store.Account().moverOptions ~= false end,
 		set = function(value) K.Store.Account().moverOptions = value; ns.Changed() end }
+	items[#items + 1] = { kind = "toggle", page = "Elements", label = L["Fade the toolbar until pointed at"],
+		help = L["The Layout Mode toolbar rests at 25 percent until pointed at; hold Shift to hide it."],
+		get = function() return K.Store.Account().layoutToolbarHover == true end,
+		set = function(value) K.Store.Account().layoutToolbarHover = value; ns.Changed() end }
 	NoLayoutNote(items, "Elements")
 	local byModule, order = {}, {}
 	for _, element in ipairs(Pages.Elements()) do
@@ -964,6 +988,13 @@ local function AboutItems()
 				end
 			end,
 		} },
+	})
+	add({
+		kind = "button", label = L["What's new"], help = L["Shows the link to every version's release notes, ready to copy."],
+		buttons = { { label = L["Show"], onClick = function()
+			K.Widgets.Popup({ title = L["What's new"], text = L["Press Ctrl+C to copy this link, then open it in your browser."],
+				editBox = { text = "https://github.com/korallis/KstyleUI/releases" }, buttons = { { label = L["Close"], primary = true } } })
+		end } },
 	})
 	add({ kind = "header", level = 1, label = L["Credits"] })
 	add({ kind = "note", label = L["Fonts: Source Sans 3 and Inter, under the SIL Open Font Licence."] })

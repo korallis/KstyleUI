@@ -373,7 +373,7 @@ local CHECK = {
 		return nil, L["an element without a circular link"]
 	end,
 	side = function(_, v)
-		if not IsSecret(v) and (v == "above" or v == "below" or v == "left" or v == "right") then return v end
+		if not IsSecret(v) and type(v) == "string" and Layout.Side(v) then return v end
 		return nil, L["above, below, left or right"]
 	end,
 	offset = CheckOffset,
@@ -491,16 +491,40 @@ local function LinkTarget(el)
 	end
 end
 
+function Layout.Side(v)
+	local side, edge = v:match("^(%l+)(%a*)$")
+	local along = edge == "" and 0.5 or nil
+	if side == "above" or side == "below" then
+		along = along or edge == "Left" and 0 or edge == "Right" and 1 or nil
+	elseif side == "left" or side == "right" then
+		along = along or edge == "Bottom" and 0 or edge == "Top" and 1 or nil
+	else
+		return
+	end
+	if along then return side, along end
+end
+
+function Layout.SideOptions()
+	return {
+		{ value = "above", label = L["Above"] }, { value = "aboveLeft", label = L["Above, left edges lined up"] },
+		{ value = "aboveRight", label = L["Above, right edges lined up"] }, { value = "below", label = L["Below"] },
+		{ value = "belowLeft", label = L["Below, left edges lined up"] }, { value = "belowRight", label = L["Below, right edges lined up"] },
+		{ value = "left", label = L["Left"] }, { value = "leftTop", label = L["Left, top edges lined up"] },
+		{ value = "leftBottom", label = L["Left, bottom edges lined up"] }, { value = "right", label = L["Right"] },
+		{ value = "rightTop", label = L["Right, top edges lined up"] }, { value = "rightBottom", label = L["Right, bottom edges lined up"] },
+	}
+end
+
 local function LinkedRect(el, w, h, offset)
 	local target = LinkTarget(el)
 	if not target then return end
 	local l, b, tw, th = Layout.Rect(target.key)
-	local side = el.settings.side
+	local side, along = Layout.Side(el.settings.side)
 	offset = offset or el.settings.offset
-	if side == "above" then return l + (tw - w) / 2, b + th + offset end
-	if side == "below" then return l + (tw - w) / 2, b - h - offset end
-	if side == "left" then return l - w - offset, b + (th - h) / 2 end
-	return l + tw + offset, b + (th - h) / 2
+	if side == "above" then return l + (tw - w) * along, b + th + offset end
+	if side == "below" then return l + (tw - w) * along, b - h - offset end
+	if side == "left" then return l - w - offset, b + (th - h) * along end
+	return l + tw + offset, b + (th - h) * along
 end
 
 local function Style()
@@ -1564,7 +1588,7 @@ function Layout.Movement(key, left, bottom, w, h)
 	local el = elements[key]
 	local l, b = LinkedRect(el, w, h, 0)
 	if l then
-		local side = el.settings.side
+		local side = Layout.Side(el.settings.side)
 		local offset = side == "above" and bottom - b or side == "below" and b - bottom or side == "left" and l - left or left - l
 		return { offset = offset }
 	end
