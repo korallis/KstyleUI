@@ -11,7 +11,7 @@ local W = S.W
 
 -- Methods part B hooks with hooksecurefunc, which puts a wrapper on the object it hooks.
 local HOOKED = {
-	SetAlpha = true, SetVertexColor = true, Show = true, Hide = true, SetShown = true, SetChecked = true,
+	SetAlpha = true, SetVertexColor = true, SetColorTexture = true, Show = true, Hide = true, SetShown = true, SetChecked = true,
 	SetNormalTexture = true, SetStatusBarColor = true, SetTabSelected = true, Update = true, InitButtons = true,
 }
 

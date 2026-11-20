@@ -2,7 +2,7 @@
 local C = dofile("Tools/regression/chat_env.lua")
 local W = C.W
 
-local HOOKED = { AddMessage = true, SetPoint = true, SetAlpha = true, SetVertexColor = true,
+local HOOKED = { AddMessage = true, SetPoint = true, SetAlpha = true, SetVertexColor = true, SetColorTexture = true,
 	SetText = true, SetFormattedText = true, SetFont = true, SetFontObject = true, SetWidth = true }
 
 local function near(a, b)

@@ -81,14 +81,10 @@ local function Apply()
 				local account, unseen = K.Store.Account(), {}
 				account.bindingNotices = account.bindingNotices or {}
 				for _, addon in ipairs(K.Setup.Integrations.Detected("ActionBars")) do
-					if not account.bindingNotices[addon] then
-						unseen[#unseen + 1] = addon
-						account.bindingNotices[addon] = true
-					end
+					if not account.bindingNotices[addon] then unseen[#unseen + 1] = addon; account.bindingNotices[addon] = true end
 				end
-				if #unseen > 0 then
-					K.Print(string.format(K.L["KstyleUI action bar bindings are off while %s is loaded. Turn Action bars off and on in settings to use KstyleUI's bindings."], table.concat(unseen, ", ")))
-				end
+				if #unseen == 0 then return end
+				K.Print(string.format(K.L["KstyleUI action bar bindings are off while %s is loaded. Turn Action bars off and on in settings to use KstyleUI's bindings."], table.concat(unseen, ", ")))
 			end)
 		end
 		ns.UpdateHotkeys()
