@@ -303,6 +303,7 @@ Scene.ATLAS = {
 }
 local glyph = f:CreateTexture(nil, "ARTWORK")
 glyph:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+glyph:SetTexture("Media/Textures/Dot.png")
 glyph:SetAtlas("UI-Test-Glyph", true)
 local sized = f:CreateTexture(nil, "ARTWORK")
 sized:SetSize(30, 30)
@@ -324,6 +325,7 @@ scene = Scene.Build(env)
 local glyphItem = find(scene, glyph)
 assert(glyphItem.file == "Media/Textures/Dot.png", "a known atlas draws its sheet, got " .. tostring(glyphItem.file))
 assert(glyphItem.atlas == "UI-Test-Glyph", "the item still names the atlas")
+assert(glyphItem.path == nil, "SetAtlas must replace the previous file texture so the scene carries only atlas art")
 local tc = glyphItem.texCoord
 assert(tc, "the member's coordinates become the texture coordinates")
 near(tc[1], 0.25, "atlas left")
