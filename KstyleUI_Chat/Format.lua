@@ -253,6 +253,35 @@ function Format.Strip(text)
 	return Rewrite(text, Same, StripCode)
 end
 
+local mentions, tinted
+
+local function MentionWord(word)
+	local hex = mentions[lower(word)]
+	return hex and ("|c" .. hex .. word .. "|r") or word
+end
+
+local function MentionPlain(run)
+	return tinted and run or (gsub(run, "[%w\128-\255]+", MentionWord))
+end
+
+local function MentionCode(code)
+	local kind = sub(code, 2, 2)
+	if kind == "c" then
+		tinted = true
+	elseif kind == "r" then
+		tinted = false
+	end
+	return code
+end
+
+function Format.Mentions(text, names)
+	if not IsText(text) or type(names) ~= "table" or next(names) == nil then
+		return text
+	end
+	mentions, tinted = names, false
+	return Rewrite(text, MentionPlain, MentionCode)
+end
+
 function Format.ColorName(name, r, g, b)
 	if not IsText(name) or find(name, "|c", 1, true) then
 		return nil

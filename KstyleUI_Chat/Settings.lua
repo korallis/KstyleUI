@@ -33,9 +33,19 @@ local defaults = {
 	panelOpacity = SURFACE_ALPHA,
 	shadow = true,
 	buttons = false,
+	sideHover = false,
+	sideRight = false,
+	sideWidth = 35,
+	sideIcons = { menu = true, channels = true, voice = true, friends = true },
 	copyButton = true,
 	editBox = "typing",
 	inputOnTop = false,
+	lockSize = false,
+	editHeight = 22,
+	idleFade = false,
+	idleDelay = 15,
+	idleStrength = 0.4,
+	idleWake = { emotes = false, skills = false, reputation = false, loot = false, system = false, achievements = false, npc = false },
 	font = "",
 	fontSize = FOLLOW,
 	lineSpacing = FOLLOW,
@@ -47,6 +57,12 @@ local defaults = {
 	tabStyle = "underline",
 	tabCase = "upper",
 	tabFontSize = 12,
+	tabFont = "",
+	tabHeight = 34,
+	tabSpacing = 13.5,
+	tabPadding = 6,
+	tabOpacity = 1,
+	tabEdge = "accent",
 	accentSource = "class",
 	accentColor = Rgb("accentDefault"),
 	timestamp = "none",
@@ -65,8 +81,11 @@ local defaults = {
 		instanceLeader = L["IL"],
 	},
 	classNames = true,
+	classMentions = false,
 	urls = true,
+	linkTooltips = false,
 }
+ns.IDLE_WAKE = { "emotes", "skills", "reputation", "loot", "system", "achievements", "npc" }
 ns.defaults = defaults
 
 function ns.Settings()
@@ -152,6 +171,43 @@ local function IsCustom(s)
 	return s.accentSource == "custom"
 end
 
+local function Idles(s)
+	return s.idleFade == true
+end
+
+local function Filled(s)
+	return s.tabStyle == "filled"
+end
+
+local function Sided(s)
+	return s.buttons == true
+end
+
+ns.SIDE_ICONS = { "menu", "channels", "voice", "friends" }
+local ICON_LABELS = { menu = L["Chat menu button"], channels = L["Channels button"], voice = L["Voice buttons"], friends = L["Friends button"] }
+
+local WAKE_LABELS = {
+	emotes = L["Wake on emotes"],
+	skills = L["Wake on skill-ups and experience"],
+	reputation = L["Wake on reputation and honour"],
+	loot = L["Wake on loot and money"],
+	system = L["Wake on system messages"],
+	achievements = L["Wake on achievements"],
+	npc = L["Wake on NPC speech"],
+}
+
+local function Append(schema, rows)
+	for _, row in ipairs(rows) do
+		schema[#schema + 1] = row
+	end
+end
+
+local function TabFonts()
+	local list = K.Widgets.MediaOptions("font")
+	table.insert(list, 1, { value = "", label = L["Caps face"] })
+	return list
+end
+
 function ns.Schema()
 	local timestamps = {}
 	for i, choice in ipairs(Format.TIMESTAMPS) do
@@ -190,7 +246,27 @@ function ns.Schema()
 			type = "toggle", key = "buttons", label = L["Chat buttons"],
 			help = L["Shows the game's chat menu, channel buttons and friends button beside the chat."],
 		},
+		{ type = "toggle", key = "sideHover", label = L["Chat buttons on hover"], help = L["Shows the chat buttons only while the pointer is over the chat."], showWhen = Sided },
+		{ type = "toggle", key = "sideRight", label = L["Chat buttons on the right"], help = L["Puts the chat buttons on the right side of the card."], showWhen = Sided },
+		{ type = "slider", key = "sideWidth", label = L["Chat button room"], help = L["The room the card keeps for the chat buttons, in units."], min = 24, max = 60, step = 1, showWhen = Sided },
+	}
+	for _, key in ipairs(ns.SIDE_ICONS) do
+		schema[#schema + 1] = { type = "toggle", key = "sideIcons." .. key, label = ICON_LABELS[key], help = L["Shows this button among the chat buttons."], showWhen = Sided }
+	end
+	local panel = {
 		{ type = "toggle", key = "inputOnTop", label = L["Input on top"], help = L["Place the typing box above chat messages, below the tabs."] },
+		{ type = "slider", key = "editHeight", label = L["Edit box height"], help = L["The height of the box you type in, in units."], min = 16, max = 30, step = 1 },
+		{ type = "toggle", key = "lockSize", label = L["Lock chat size"], help = L["Hides the size grip on docked chat windows, so the chat resizes only in Layout Mode."] },
+		{ type = "header", label = L["Idle fade"] },
+		{ type = "toggle", key = "idleFade", label = L["Fade when idle"], help = L["The whole chat fades after a quiet spell. Hovering, typing or new player chat brings it back."] },
+		{ type = "slider", key = "idleDelay", label = L["Idle after"], help = L["Seconds without new chat, hovering or typing before the chat fades."], min = 5, max = 60, step = 1, showWhen = Idles },
+		{ type = "slider", key = "idleStrength", label = L["Idle fade strength"], help = L["How far the idle chat fades. 1 hides it until it wakes."], min = 0.05, max = 1, step = 0.05, showWhen = Idles },
+	}
+	Append(schema, panel)
+	for _, key in ipairs(ns.IDLE_WAKE) do
+		schema[#schema + 1] = { type = "toggle", key = "idleWake." .. key, label = WAKE_LABELS[key], help = L["Player chat and whispers always wake the chat; these lines wake it too."], showWhen = Idles }
+	end
+	local text = {
 		{ type = "header", label = L["Text"] },
 		{
 			type = "font", key = "font", label = L["Font"],
@@ -255,6 +331,16 @@ function ns.Schema()
 			help = L["The size of the tab names. The default is the caps size."],
 			min = TAB_FONT_MIN, max = TAB_FONT_MAX, step = 1,
 		},
+		{ type = "font", key = "tabFont", label = L["Tab font"], options = TabFonts, help = L["The font of the tab names. The default is the caps face."] },
+		{ type = "slider", key = "tabHeight", label = L["Tab row height"], help = L["The height of the tab row above the messages, in units."], min = 24, max = 48, step = 1 },
+		{ type = "slider", key = "tabSpacing", label = L["Tab spacing"], help = L["The space after each tab name, in units."], min = 4, max = 30, step = 0.5 },
+		{ type = "slider", key = "tabPadding", label = L["Tile padding"], help = L["How far the selected tab's tile reaches past its name, up to half the tab spacing."], min = 0, max = 12, step = 0.5, showWhen = Filled },
+		{ type = "slider", key = "tabOpacity", label = L["Tile opacity"], help = L["How solid the selected tab's tile looks."], min = 0, max = 1, step = 0.05, showWhen = Filled },
+		{
+			type = "dropdown", key = "tabEdge", label = L["Tile edge"], showWhen = Filled,
+			help = L["The selected tab's tile edge in the accent colour, or matching the chat card's edge."],
+			options = { { value = "accent", label = L["Accent colour"] }, { value = "panel", label = L["Card edge"] } },
+		},
 		{ type = "header", label = L["Accent"] },
 		{
 			type = "dropdown", key = "accentSource", label = L["Accent colour"],
@@ -290,6 +376,7 @@ function ns.Schema()
 			showWhen = IsShort,
 		},
 	}
+	Append(schema, text)
 	for _, key in ipairs(Format.CHANNEL_KEYS) do
 		schema[#schema + 1] = {
 			type = "text", key = "abbr." .. key, label = ABBREVIATION_LABELS[key],
@@ -303,14 +390,14 @@ function ns.Schema()
 			type = "toggle", key = "classNames", label = L["Class-coloured names"],
 			help = L["Colours each player's name in chat with their class colour."],
 		},
+		{ type = "toggle", key = "classMentions", label = L["Class-coloured names in messages"], help = L["Colours your group's names inside say, yell, party, raid and instance messages."] },
 		{
 			type = "toggle", key = "urls", label = L["Clickable links"],
 			help = L["Turns web addresses into links. Click one to copy it."],
 		},
+		{ type = "toggle", key = "linkTooltips", label = L["Link tooltips on hover"], help = L["Shows an item, spell or quest tooltip while the pointer is over its link in chat."] },
 	}
-	for _, row in ipairs(tail) do
-		schema[#schema + 1] = row
-	end
+	Append(schema, tail)
 	schema.preview = function(parent)
 		return ns.Preview.Build(parent)
 	end

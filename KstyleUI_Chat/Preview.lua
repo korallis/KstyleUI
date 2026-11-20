@@ -19,7 +19,7 @@ function Preview.Build(...)
 	local SAMPLES = {
 		{ event = "CHAT_MSG_GUILD", channel = "|Hchannel:GUILD|h[" .. L["Guild"] .. "]|h ", name = "Thargor", class = "WARRIOR", text = L["LFM tank for Razorfen Kraul"] },
 		{ event = "CHAT_MSG_CHANNEL", channel = "|Hchannel:channel:1|h[1. " .. L["General"] .. " - " .. L["Riverglades"] .. "]|h ", name = "Lunara", class = "MAGE", text = L["Anyone for the croc hunt?"] },
-		{ event = "CHAT_MSG_PARTY", channel = "|Hchannel:PARTY|h[" .. L["Party"] .. "]|h ", name = "Valerin", class = "PRIEST", text = L["Route guide:"] .. " www.wowhead.com/forever" },
+		{ event = "CHAT_MSG_PARTY", channel = "|Hchannel:PARTY|h[" .. L["Party"] .. "]|h ", name = "Valerin", class = "PRIEST", text = L["Route guide:"] .. " www.wowhead.com/forever", mention = L["Thargor, the route guide:"] .. " www.wowhead.com/forever" },
 		{ text = L["You receive loot: [Rugged Hide]."] },
 	}
 	local TABS = { L["General"], L["Combat Log"], L["Loot"] }
@@ -31,6 +31,9 @@ function Preview.Build(...)
 			if settings.classNames == true then
 				local r, g, b = K.Theme.Brighten(K.Theme.ClassColor(sample.class))
 				name = Format.ColorName(name, r, g, b) or name
+			end
+			if settings.classMentions == true and sample.mention then
+				text = Format.Mentions(sample.mention, { thargor = Format.Hex(K.Theme.Brighten(K.Theme.ClassColor("WARRIOR"))) })
 			end
 			if settings.urls == true then
 				text = Format.Linkify(text, ns.Accent(settings))
@@ -57,18 +60,30 @@ function Preview.Build(...)
 		local ar, ag, ab = ns.Accent(settings)
 		local style = settings.tabStyle
 		local x = Tokens.Size("gapMedium")
-		local gap = Tokens.Size("gapLarge")
+		local gap = Tokens.Size("gapLarge") + ns.Frames.TabGap(settings) - ns.defaults.tabSpacing
+		local pad = Tokens.Size("gapSmall") + ns.Frames.TilePad(settings) - ns.defaults.tabPadding
+		local top = ((tonumber(settings.tabHeight) or ns.defaults.tabHeight) - 2) / 2
+		if settings.idleFade == true or self.faded then
+			self.faded = settings.idleFade == true
+			glass:SetAlpha(self.faded and 1 - math.min(1, tonumber(settings.idleStrength) or 0) or 1)
+		end
+		self.divider:ClearAllPoints()
+		Widgets.Point(self.divider, "TOPLEFT", glass, "TOPLEFT", x, -(top * 2))
+		Widgets.Point(self.divider, "TOPRIGHT", glass, "TOPRIGHT", -x, -(top * 2))
+		self.lines[1]:ClearAllPoints()
+		Widgets.Point(self.lines[1], "TOPLEFT", glass, "TOPLEFT", x, -(top * 2 + x))
+		Widgets.Point(self.lines[1], "RIGHT", glass, "RIGHT", -x, 0)
 		for i, tab in ipairs(self.tabs) do
 			ns.Frames.ApplyFont(tab, tabPath, tabSize, flags)
 			local label = TABS[i]
 			tab:SetText(settings.tabCase == "upper" and label:upper() or label)
 			tab:ClearAllPoints()
-			Widgets.Point(tab, "LEFT", glass, "TOPLEFT", x, -TAB_TOP)
+			Widgets.Point(tab, "LEFT", glass, "TOPLEFT", x, -top)
 			local width = Widgets.TextWidth(tab, TAB_WIDTH)
 			if i == 1 then
 				self.fill:ClearAllPoints()
-				Widgets.Point(self.fill, "LEFT", tab, "LEFT", -Tokens.Size("gapSmall"), 0)
-				Widgets.Size(self.fill, width + Tokens.Size("gapMedium"), TAB_TOP * 2 - UNDERLINE)
+				Widgets.Point(self.fill, "LEFT", tab, "LEFT", -pad, 0)
+				Widgets.Size(self.fill, width + 2 * pad, top * 2 - UNDERLINE)
 				self.underline:ClearAllPoints()
 				Widgets.Point(self.underline, "TOPLEFT", tab, "BOTTOMLEFT", 0, -2)
 				Widgets.Size(self.underline, width, UNDERLINE)
@@ -80,7 +95,12 @@ function Preview.Build(...)
 		local _, underlined, filled = ns.Frames.TabLook(style, true)
 		ns.Frames.PaintUnderline(self.underline, self.glow, underlined)
 		self.fill:SetShown(filled)
-		self.fill.chrome:SetEdgeRGBA(ar, ag, ab, 1)
+		self.fill.chrome:SetFill("buttonFill", settings.tabOpacity ~= 1 and settings.tabOpacity or nil)
+		if settings.tabEdge == "panel" then
+			self.fill.chrome:SetEdge("edgeInner")
+		else
+			self.fill.chrome:SetEdgeRGBA(ar, ag, ab, 1)
+		end
 		for i, line in ipairs(self.lines) do
 			Widgets.TextColor(line, "textEmphasis")
 			ns.Frames.ApplyFont(line, path, size, flags)
@@ -117,8 +137,6 @@ function Preview.Build(...)
 		ns.Frames.PlaceGlow(frame.glow, frame.underline)
 		frame.divider = glass:CreateTexture(nil, "ARTWORK")
 		frame.divider:SetTexture((Tokens.Texture("divider")))
-		Widgets.Point(frame.divider, "TOPLEFT", glass, "TOPLEFT", pad, -(TAB_TOP * 2))
-		Widgets.Point(frame.divider, "TOPRIGHT", glass, "TOPRIGHT", -pad, -(TAB_TOP * 2))
 		frame.divider:SetHeight(K.Scale.Border())
 		ns.Panel.PaintRule(frame.divider)
 		frame.lines = {}
@@ -129,8 +147,6 @@ function Preview.Build(...)
 			line:SetWordWrap(true)
 			if previous then
 				Widgets.Point(line, "TOPLEFT", previous, "BOTTOMLEFT", 0, -LINE_GAP)
-			else
-				Widgets.Point(line, "TOPLEFT", glass, "TOPLEFT", pad, -(TAB_TOP * 2 + pad))
 			end
 			Widgets.Point(line, "RIGHT", glass, "RIGHT", -pad, 0)
 			frame.lines[i] = line

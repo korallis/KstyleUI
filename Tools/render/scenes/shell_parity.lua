@@ -90,6 +90,7 @@ return Common.Run(function()
 		for _, entry in ipairs(followups[module]) do assert(K.Options.Write(module, entry[1], entry[2]) ~= false) end
 	end
 	for _, entry in ipairs(r1 and not defaults and rounds[r1] or {}) do assert(K.Options.Write(module, entry[1], entry[2]) ~= false) end
+	if module == "Chat" then Common.ChatSettings(env, K) end
 	if module == "QoL" and os.getenv("RENDER_SHELL_OPTIONS") == "0" then
 		env.FireEvent("CHAT_MSG_MONEY", "You loot 1 Gold, 4 Silver, 14 Copper")
 	end

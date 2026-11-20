@@ -250,6 +250,16 @@ function Common.ForceScreen(env, completePreset)
 end
 
 -- Errors(env, K) -> the first error the stubs or KstyleUI caught, or nil.
+-- ChatSettings(env, K): RENDER_CHAT_SETTINGS ("key=value;key=value") writes chat options the way the settings window
+-- does, so a render shows options switched on. Values are true, false, numbers or text; nested keys use dots.
+function Common.ChatSettings(env, K)
+	for key, value in (os.getenv("RENDER_CHAT_SETTINGS") or ""):gmatch("([%w%.]+)=([^;]+)") do
+		local parsed = value == "true" or (value ~= "false" and (tonumber(value) or value))
+		assert(K.Options.Write("Chat", key, parsed) ~= false, "RENDER_CHAT_SETTINGS: Chat." .. key .. " did not write")
+		env.RunTimers()
+	end
+end
+
 function Common.Errors(env, K)
 	if env._errors and env._errors[1] then
 		return tostring(env._errors[1])

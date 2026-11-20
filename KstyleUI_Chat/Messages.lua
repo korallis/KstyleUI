@@ -15,6 +15,14 @@ local URL_EVENTS = {
 	"CHAT_MSG_INSTANCE_CHAT", "CHAT_MSG_INSTANCE_CHAT_LEADER", "CHAT_MSG_CHANNEL", "CHAT_MSG_COMMUNITIES_CHANNEL",
 }
 local LINK_EVENT = "SetItemRef"
+local MENTION_EVENTS = {
+	"CHAT_MSG_SAY", "CHAT_MSG_YELL", "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER", "CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER",
+	"CHAT_MSG_RAID_WARNING", "CHAT_MSG_INSTANCE_CHAT", "CHAT_MSG_INSTANCE_CHAT_LEADER",
+}
+local ROSTER_OWNER = "ChatNames"
+local ROSTER_EVENTS = { "GROUP_ROSTER_UPDATE", "PLAYER_ENTERING_WORLD", "UNIT_NAME_UPDATE" }
+local TIP_ENTER, TIP_LEAVE = "ChatFrame.OnHyperlinkEnter", "ChatFrame.OnHyperlinkLeave"
+local TIP_TYPES = { item = true, spell = true, achievement = true, quest = true, currency = true, enchant = true, talent = true, instancelock = true, glyph = true }
 
 local IsSecret = Format.IsSecret
 
@@ -37,6 +45,7 @@ local state = {
 }
 local hooked = setmetatable({}, { __mode = "k" })
 local logged = {}
+local roster = {}
 
 local function Log(message)
 	K.DevTest.Log(ns.NAME, message)
@@ -205,6 +214,106 @@ local function SetNames(on)
 	state.namesRegistered = on
 end
 
+local function AddMember(unit)
+	local name = UnitName(unit)
+	local _, class = UnitClass(unit)
+	if IsText(name) and name ~= "" and IsText(class) then
+		roster[name:lower()] = Format.Hex(K.Theme.Brighten(K.Theme.ClassColor(class)))
+	end
+end
+
+local function Roster(event, unit)
+	if event == "UNIT_NAME_UPDATE" and not (IsText(unit) and (unit == "player" or unit:find("^party") or unit:find("^raid"))) then
+		return
+	end
+	for name in pairs(roster) do
+		roster[name] = nil
+	end
+	if not state.mentionsRegistered or type(UnitName) ~= "function" or type(UnitClass) ~= "function" then
+		return
+	end
+	AddMember("player")
+	local count = type(GetNumGroupMembers) == "function" and GetNumGroupMembers() or 0
+	if IsSecret(count) or type(count) ~= "number" then
+		return
+	end
+	local raid = type(IsInRaid) == "function" and IsInRaid()
+	local prefix, last = "party", count - 1
+	if not IsSecret(raid) and raid == true then
+		prefix, last = "raid", count
+	end
+	for i = 1, last do
+		AddMember(prefix .. i)
+	end
+end
+
+local function MentionFilter(_, _, message, ...)
+	if not state.active or not state.mentions or not IsText(message) then
+		return false
+	end
+	local out = Format.Mentions(message, roster)
+	if out == message then
+		return false
+	end
+	return false, out, ...
+end
+
+local function SetMentions(on)
+	if on == state.mentionsRegistered then
+		return
+	end
+	local util = Util("AddMessageEventFilter", "RemoveMessageEventFilter")
+	if not util then
+		return
+	end
+	for _, event in ipairs(MENTION_EVENTS) do
+		if on then util.AddMessageEventFilter(event, MentionFilter) else util.RemoveMessageEventFilter(event, MentionFilter) end
+	end
+	for _, event in ipairs(ROSTER_EVENTS) do
+		if on then K.Events.Register(ROSTER_OWNER, event, Roster) else K.Events.Unregister(ROSTER_OWNER, event) end
+	end
+	state.mentionsRegistered = on
+	Roster()
+end
+
+local function OnLinkEnter(_, frame, link)
+	local tip = GameTooltip
+	if not state.tips or not IsText(link) or type(tip) ~= "table" or type(tip.SetHyperlink) ~= "function" then
+		return
+	end
+	if TIP_TYPES[link:match("^([^:]+)")] then
+		tip:SetOwner(frame, "ANCHOR_CURSOR")
+		tip:SetHyperlink(link)
+		tip:Show()
+		state.tipOwner = frame
+	end
+end
+
+local function OnLinkLeave()
+	local owner = state.tipOwner
+	state.tipOwner = nil
+	local owned = owner and type(GameTooltip.IsOwned) == "function" and GameTooltip:IsOwned(owner)
+	if IsSecret(owned) or owned == true then
+		GameTooltip:Hide()
+	end
+end
+
+local function SetTips(on)
+	local registry = EventRegistry
+	if on == state.tipsRegistered or type(registry) ~= "table" or type(registry.RegisterCallback) ~= "function" then
+		return
+	end
+	if on then
+		registry:RegisterCallback(TIP_ENTER, OnLinkEnter, Messages)
+		registry:RegisterCallback(TIP_LEAVE, OnLinkLeave, Messages)
+	else
+		registry:UnregisterCallback(TIP_ENTER, Messages)
+		registry:UnregisterCallback(TIP_LEAVE, Messages)
+		OnLinkLeave()
+	end
+	state.tipsRegistered = on
+end
+
 local function OnLink(_, link)
 	local url = Format.URL(link)
 	if url then
@@ -253,9 +362,13 @@ function Messages.Refresh(settings)
 	state.linkR, state.linkG, state.linkB = ns.Accent(settings)
 	state.urls = settings.urls == true and state.linkable
 	state.names = settings.classNames == true
+	state.mentions = settings.classMentions == true
+	state.tips = settings.linkTooltips == true
 	if state.active then
 		SetURLs(state.urls)
 		SetNames(state.names)
+		SetMentions(state.mentions)
+		SetTips(state.tips)
 	end
 end
 
@@ -290,6 +403,8 @@ function Messages.Stop()
 	state.active = false
 	SetURLs(false)
 	SetNames(false)
+	SetMentions(false)
+	SetTips(false)
 	local registry = EventRegistry
 	if state.linkable and type(registry) == "table" and type(registry.UnregisterCallback) == "function" then
 		registry:UnregisterCallback(LINK_EVENT, Messages)

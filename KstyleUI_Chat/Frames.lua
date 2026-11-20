@@ -29,9 +29,8 @@ local state = {
 	watching = false,
 	hooked = false,
 	probe = nil,
-	checked = nil,
-	path = nil,
 }
+local loads = {}
 local styled = setmetatable({}, { __mode = "k" })
 local logged = {}
 local Lead
@@ -80,31 +79,35 @@ local function Verify(path)
 	return ok and loaded ~= false
 end
 
-local function FontPath(settings)
-	local path = settings.font
+local function FontPath(path, role)
 	if K.Theme.FollowsKit(path) then
-		return (Tokens.Font("body"))
+		return (Tokens.Font(role))
 	end
-	if path ~= state.checked then
-		state.checked = path
-		if Verify(path) then
-			state.path = path
-		else
-			state.path = nil
-			LogOnce("font:" .. tostring(path), "the chat font " .. tostring(path) .. " did not load; chat uses KstyleUI's body font")
+	if loads[path] == nil then
+		loads[path] = Verify(path)
+		if not loads[path] then
+			LogOnce("font:" .. tostring(path), "the chat font " .. tostring(path) .. " did not load; chat uses KstyleUI's " .. role .. " font")
 		end
 	end
-	return state.path or (Tokens.Font("body"))
+	return loads[path] and path or (Tokens.Font(role))
 end
 
 function Frames.Fonts(settings)
 	local s = settings or state.settings
-	local path = FontPath(s)
+	local path = FontPath(s.font, "body")
 	local flags = OUTLINES[s.fontOutline] or ""
 	local size = Whole(ns.TextSize(s), ns.FONT_MIN, ns.FONT_MAX, Tokens.TypeDefault("chatSize"))
 	local tabSize = Whole(s.tabFontSize, ns.FONT_MIN, ns.FONT_MAX, ns.defaults.tabFontSize)
-	local tabPath = Tokens.Font("caps")
+	local tabPath = FontPath(s.tabFont, "caps")
 	return path, size, flags, tabSize, tabPath
+end
+
+function Frames.TabGap(settings)
+	return Halves(settings.tabSpacing, 0, 60, TAB_GAP)
+end
+
+function Frames.TilePad(settings)
+	return min(Halves(settings.tabPadding, 0, 30, TAB_FILL_PAD), Frames.TabGap(settings) / 2)
 end
 
 function Frames.ApplyFont(object, path, size, flags)
@@ -202,10 +205,15 @@ local function PaintTab(parts)
 		fill = Skin.Backdrop(parts.frame, { shape = "tile", fill = "buttonFill", shadow = false, inset = {} })
 	end
 	if fill and style == "filled" then
-		local inset = fill.inset
-		inset.left, inset.right = Lead(parts.chatFrame) - TAB_FILL_PAD, TAB_GAP - TAB_FILL_PAD
+		local inset, pad = fill.inset, Frames.TilePad(settings)
+		inset.left, inset.right = Lead(parts.chatFrame) - pad, Frames.TabGap(settings) - pad
 		inset.top, inset.bottom = TAB_FILL_TOP, TAB_FILL_BOTTOM
 		fill:Restyle()
+		local opacity = settings.tabOpacity ~= 1 and settings.tabOpacity or nil
+		if fill.chrome and parts.chatOpacity ~= opacity then
+			parts.chatOpacity = opacity
+			fill.chrome:SetFill("buttonFill", opacity)
+		end
 	end
 	if parts.wash then
 		parts.wash:SetShown(filled)
@@ -217,7 +225,9 @@ local function PaintTab(parts)
 	end
 	if fill then
 		fill:SetShown(filled)
-		if fill.chrome then
+		if fill.chrome and settings.tabEdge == "panel" then
+			fill.chrome:SetEdge("edgeInner")
+		elseif fill.chrome then
 			fill.chrome:SetEdgeRGBA(Accent())
 		end
 	end
@@ -379,6 +389,18 @@ local function Backdrop(frame)
 	backdrop.chrome:SetShadow(s.shadow == true)
 end
 
+local function Grip(frame)
+	local grip = frame.ResizeButton
+	if type(grip) ~= "table" then
+		return
+	end
+	if state.active and state.settings.lockSize == true and frame.isDocked then
+		Safe.HideBlizzard(grip)
+	else
+		Safe.RestoreBlizzard(grip)
+	end
+end
+
 local function HudSize()
 	local Scale = K.Scale
 	local size = Scale and type(Scale.UserScale) == "function" and Scale.UserScale()
@@ -454,6 +476,7 @@ local function ApplyFrame(frame)
 			parts:Paint()
 		end
 	end
+	Grip(frame)
 	Backdrop(frame)
 end
 
@@ -498,18 +521,19 @@ local function Buttons()
 	if type(column) ~= "table" then
 		return
 	end
-	local frames = { column }
-	for _, frame in ipairs({ ChatAlertFrame, QuickJoinToastButton }) do
-		if type(frame) == "table" then
-			frames[#frames + 1] = frame
-		end
-	end
-	local hide = state.active and state.settings.buttons ~= true
-	for _, frame in ipairs(frames) do
-		if hide then
-			Safe.HideBlizzard(frame)
-		else
-			Safe.RestoreBlizzard(frame)
+	local s = state.settings
+	local icons = s and type(s.sideIcons) == "table" and s.sideIcons or {}
+	local hide = state.active and s.buttons ~= true
+	local frames = {
+		{ column, hide }, { ChatAlertFrame, hide }, { QuickJoinToastButton, hide or (state.active and icons.friends == false) },
+		{ ChatFrameMenuButton, state.active and icons.menu == false }, { ChatFrameChannelButton, state.active and icons.channels == false },
+		{ ChatFrameToggleVoiceDeafenButton, state.active and icons.voice == false }, { ChatFrameToggleVoiceMuteButton, state.active and icons.voice == false },
+	}
+	for _, entry in ipairs(frames) do
+		if type(entry[1]) == "table" and entry[2] then
+			Safe.HideBlizzard(entry[1])
+		elseif type(entry[1]) == "table" then
+			Safe.RestoreBlizzard(entry[1])
 		end
 	end
 end
@@ -563,7 +587,7 @@ function Frames.FitTabs(dock)
 				local width = type(measure) == "function" and measure(text) or nil
 				if not IsSecret(width) and type(width) == "number" and width > 0 then
 					text:SetWidth(width)
-					tab:SetWidth(width + Widgets.Snap(tab, TAB_GAP))
+					tab:SetWidth(width + Widgets.Snap(tab, Frames.TabGap(state.settings or ns.defaults)))
 				end
 			end
 			local parts = Skin.Parts(tab)
@@ -679,4 +703,7 @@ end
 function Frames.Stop()
 	state.active = false
 	Buttons()
+	for _, frame in ipairs(Windows.List()) do
+		Grip(frame)
+	end
 end

@@ -944,6 +944,7 @@ function modules.chat(opts)
 		C.Enable(env, K)
 	end
 	applyPreset(env, opts)
+	Common.ChatSettings(env, K)
 	local chat = env.ChatFrame1
 	local stamp = env._cvars.showTimestamps
 	local function stamped(text)
