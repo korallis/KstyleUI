@@ -262,6 +262,11 @@ local function NewTile(holder)
 	return { skin = skin, chrome = chrome, icon = icon, mask = mask }
 end
 
+local function TimerRoom(f, size)
+	if not Settings.current.auras.timers then return 0 end
+	return math.ceil(math.max(6, math.floor(size * COUNT_SHARE + 0.5)) * TIMER_LINE) + Widgets.Border(f)
+end
+
 local function PlaceTimer(timer, skin)
 	timer:ClearAllPoints()
 	timer:SetPoint("TOP", skin, "BOTTOM", 0, -Widgets.Border(skin))
@@ -1076,7 +1081,7 @@ local function ConfigureBuffs(f)
 	else
 		clip:SetPoint(corner, f, corner, 0, 0)
 	end
-	clip:SetSize(math.max(1, Geometry.Line(count, size, spacing)), size)
+	clip:SetSize(math.max(1, Geometry.Line(count, size, spacing)), size + TimerRoom(f, size))
 	container:ClearAllPoints()
 	container:SetPoint(corner, clip, corner, 0, 0)
 	local axis = AnchorUtil and AnchorUtil.FlowLayoutAxis
@@ -1099,7 +1104,7 @@ local function Configure(f)
 	local size, spacing = Sizes(f, k)
 	local block = Block(f, k)
 	local point, x, y = Anchor(f, block, k)
-	local room = a.timers and math.ceil(math.max(6, math.floor(block.size * COUNT_SHARE + 0.5)) * TIMER_LINE) + Widgets.Border(f) or 0
+	local room = TimerRoom(f, block.size)
 	local lift = point:find("^BOTTOM") and room or 0
 	local clip = f.auraClip
 	clip:ClearAllPoints()
