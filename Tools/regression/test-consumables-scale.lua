@@ -2,6 +2,7 @@
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 local env, K = CoreEnv.New({ fit = true })
 CoreEnv.Boot(env)
+K.Store.Module("DataBars").strip = { placement = "rail" }
 local L = K.Setup.Layouts
 local staging = { 15 / 16, 63 / 64, 63 / 64, 31 / 32 }
 local tank = { medallions = { 14 / 16, 57 / 64, 15 / 16, 29 / 32 }, orbs = { 14 / 16, 27 / 32, 63 / 64, 14 / 16 } }
