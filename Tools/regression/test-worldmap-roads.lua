@@ -18,8 +18,10 @@ local flight = Roads.Solve(graph, 300, 700, 720, 360, false, flights)
 assert(#flight.legs == 1 and flight.legs[1].kind == "flight" and flight.seconds == 40 and flight.saved == 2, "choose a faster discovered flight and show whole-minute savings")
 assert(Roads.Solve(graph, 300, 700, 720, 360, true, flights).saved == 1, "a flight saving exactly one minute qualifies")
 graph.edges[3].seconds = 41
+graph.adj = nil
 assert(not Roads.Solve(graph, 300, 700, 720, 360, true, flights).saved, "a flight saving less than one minute has no savings chip")
 graph.edges[3].seconds = 40
+graph.adj = nil
 local reverse = Roads.Solve(graph, 720, 360, 300, 700, false, flights)
 assert(reverse.seconds == 200 and reverse.legs[1].kind == "walk", "flights remain directed while road polylines reverse")
 assert(reverse.legs[1].pts[1] == 720 and reverse.legs[1].pts[3] == 500)
@@ -31,8 +33,10 @@ local swim = Fixture.Graph()
 swim.edges = { { a = 1, b = 3, kind = "swim", len = 470, pts = { 300, 700, 720, 360 } } }
 assert(Roads.Solve(swim, 300, 700, 720, 360, true).seconds == 100, "swimming always uses 4.7 yards per second")
 swim.edges[1].kind, swim.edges[1].seconds = "boat", 85
+swim.adj = nil
 assert(Roads.Solve(swim, 300, 700, 720, 360, false).seconds == 85, "boat costs include the shipped travel/wait estimate")
 swim.edges[1].kind, swim.edges[1].seconds, swim.edges[1].pts = "lift", 35, { 300, 700, 0, 720, 360, 100 }
+swim.adj = nil
 local lift = Roads.Solve(swim, 300, 700, 720, 360, false)
 assert(lift.seconds == 35 and #lift.legs[1].pts == 4 and lift.legs[1].pts[3] == 720, "lift height is not a map coordinate")
 

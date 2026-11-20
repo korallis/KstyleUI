@@ -3,6 +3,7 @@ local _, ns = ...
 local Roads = {}
 ns.WorldMapRoads = Roads
 local graphs = {}
+local floor = math.floor
 
 function Roads.Graph(continent)
 	if continent ~= 0 and continent ~= 1 then return end
@@ -41,11 +42,15 @@ local function Index(graph)
 	for _, edge in ipairs(graph.edges) do
 		local a, b = graph.byID[edge.a], graph.byID[edge.b]
 		if a and b and (not a.map or a.map == graph.map) and (not b.map or b.map == graph.map) then
+			local foot = edge.kind == "walk" and edge.len / 7 or edge.kind == "swim" and edge.len / 4.7 or edge.seconds
+			local mounted = edge.kind == "walk" and foot / 2 or foot
 			local list = graph.adj[a.id]
-			list[#list + 1] = { edge, b.id }
+			local n = #list
+			list[n + 1], list[n + 2], list[n + 3], list[n + 4] = b.id, foot, mounted, edge
 			if edge.kind ~= "flight" and not edge.directed then
 				list = graph.adj[b.id]
-				list[#list + 1] = { edge, a.id }
+				n = #list
+				list[n + 1], list[n + 2], list[n + 3], list[n + 4] = a.id, foot, mounted, edge
 			end
 		end
 	end
@@ -58,43 +63,53 @@ local function Seconds(edge, speed)
 end
 
 local function Push(heap, id, cost)
-	local i = #heap + 1
+	local ids, times = heap.ids, heap.times
+	local i = heap.n + 1
+	heap.n = i
 	while i > 1 do
-		local parent = math.floor(i / 2)
-		if heap[parent][2] <= cost then break end
-		heap[i], i = heap[parent], parent
+		local parent = floor(i / 2)
+		if times[parent] <= cost then break end
+		ids[i], times[i], i = ids[parent], times[parent], parent
 	end
-	heap[i] = { id, cost }
+	ids[i], times[i] = id, cost
 end
 
 local function Pop(heap)
-	local first, last = heap[1], table.remove(heap)
-	if #heap > 0 then
+	local ids, times, n = heap.ids, heap.times, heap.n
+	local first, time, last, cost = ids[1], times[1], ids[n], times[n]
+	ids[n], times[n], n = nil, nil, n - 1
+	heap.n = n
+	if n > 0 then
 		local i = 1
-		while i * 2 <= #heap do
+		while i * 2 <= n do
 			local child = i * 2
-			if child < #heap and heap[child + 1][2] < heap[child][2] then child = child + 1 end
-			if last[2] <= heap[child][2] then break end
-			heap[i], i = heap[child], child
+			if child < n and times[child + 1] < times[child] then child = child + 1 end
+			if cost <= times[child] then break end
+			ids[i], times[i], i = ids[child], times[child], child
 		end
-		heap[i] = last
+		ids[i], times[i] = last, cost
 	end
-	return first[1], first[2]
+	return first, time
 end
 
-local function Find(graph, start, goal, speed, flights)
-	local costs, previous, heap = { [start] = 0 }, {}, {}
+local function Find(graph, start, goal, speed, flights, timeOnly)
+	local costs, previous, edges = { [start] = 0 }, {}, {}
+	local adjacency = graph.adj
+	local heap = { ids = {}, times = {}, n = 0 }
+	local weight = speed == 14 and 2 or 1
 	Push(heap, start, 0)
-	while #heap > 0 do
+	while heap.n > 0 do
 		local id, cost = Pop(heap)
-		if id == goal then return cost, previous end
+		if id == goal then return cost, previous, edges end
 		if cost == costs[id] then
-			for _, link in ipairs(graph.adj[id]) do
-				local edge, nextID = link[1], link[2]
+			local links = adjacency[id]
+			for i = 1, #links, 4 do
+				local nextID, edge = links[i], links[i + 3]
 				if edge.kind ~= "flight" or (flights and flights[id] and flights[nextID]) then
-					local nextCost = cost + Seconds(edge, speed)
-					if nextCost < (costs[nextID] or math.huge) then
-						costs[nextID], previous[nextID] = nextCost, { id, edge }
+					local nextCost = cost + links[i + weight]
+					if not costs[nextID] or nextCost < costs[nextID] then
+						costs[nextID] = nextCost
+						if not timeOnly then previous[nextID], edges[nextID] = id, edge end
 						Push(heap, nextID, nextCost)
 					end
 				end
@@ -109,14 +124,13 @@ function Roads.Solve(graph, x, y, tx, ty, mounted, flights)
 	local goal, last = Roads.Snap(graph, tx, ty)
 	if not start or not goal then return end
 	local speed = mounted and 14 or 7
-	local seconds, previous = Find(graph, start.id, goal.id, speed, flights)
+	local seconds, previous, edges = Find(graph, start.id, goal.id, speed, flights)
 	if not seconds then return end
 	local path, id, flight = {}, goal.id, false
 	while id ~= start.id do
-		local back = previous[id]
-		path[#path + 1] = { edge = back[2], from = back[1], to = id }
-		flight = flight or back[2].kind == "flight"
-		id = back[1]
+		path[#path + 1] = { edge = edges[id], from = previous[id], to = id }
+		flight = flight or edges[id].kind == "flight"
+		id = previous[id]
 	end
 	local route = { legs = {}, yards = first + last, seconds = seconds + (first + last) / speed, dashed = first > 60 or last > 60 }
 	local function Connector(ax, ay, bx, by, len, name)
@@ -137,7 +151,7 @@ function Roads.Solve(graph, x, y, tx, ty, mounted, flights)
 	end
 	Connector(goal.x, goal.y, tx, ty, last)
 	if flight then
-		local walking = Find(graph, start.id, goal.id, speed)
+		local walking = Find(graph, start.id, goal.id, speed, nil, true)
 		if walking and walking - seconds >= 60 then route.saved = math.floor((walking - seconds) / 60) end
 	end
 	return route
