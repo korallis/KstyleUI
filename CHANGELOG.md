@@ -1,5 +1,77 @@
 # KstyleUI changelog
 
+## v0.2.8.2 (2026-11-20)
+
+The options release: the player bug fixes first, then a large batch of new settings across every module, each starting off or at today's value, and world map routes that follow real roads.
+
+Highlights:
+
+- RestedXP's guide card shows every line of the current step again, so you can tick it and skip it.
+- Ten small fixes, from typing 50 into a percent setting to accented bag and map search and the setup's Modules page.
+- Welcome text, the French and German Options footer, the 1080p data bar and colour-vision health bars read right.
+- New options for frames, nameplates, cooldowns, auras, chat, minimap, tooltips and Layout Mode, keeping today's look.
+- World map routes follow roads, passes, flights and boats, with travel steps and time.
+- KstyleUI loads faster after a reload.
+
+### Fixed
+
+- RestedXP steps can be skipped again: the guide card shows every line of the current step with tick boxes you can click, and folds only later steps under "N more".
+- In combat a longer RestedXP step never covers the quest card or RestedXP's item and target boxes.
+- The first-run welcome page no longer cuts its closing sentence in half at smaller interface sizes, in every language.
+- In French and German, the settings window's Layout Mode and Reset buttons no longer cover the last line of help text.
+- The top data bar's readouts are readable at 1920x1080, and the bar stays its slim 14 units.
+- The red-green and blue-yellow colour-vision modes recolour health bars on nameplates and unit frames, for hostile, neutral and friendly units.
+- In French, the settings preview's sample creature name is no longer cut off at 1920x1080.
+- Typing 50 or 50% into a percent setting saves 50%.
+- The data bar shows "--" for World latency when the game has no World reading, instead of the Home number.
+- Bag and map search find names with accented capitals, such as "épée" for "Épée".
+- Double-clicking a mover opens that element's own settings; Target of Target no longer opens Player's.
+- Pressing Enter in the Layout Mode finder selects the one element that matches.
+- Settings search shows "Search results" and no longer offers to reset the page you searched from.
+- The Medallions leave-vehicle button no longer covers the clock; it sits beyond the right action bar.
+- The setup's Modules page fits its rows, and shows a scroll bar when they still need scrolling.
+- The chat and Data Bars previews no longer spill or overlap in German and French, and chat font and tab-size help is translated.
+- Layout Mode mover tooltips name the real overlap shortcut, and resetting the settings window's size and opacity keeps its position.
+- Restyled cooldowns respect Edit Mode timers and the game's charge swipes, and a swipe you turned off stays off.
+
+### Added
+
+- World map routes follow roads, passes, flights and boats, with travel steps and time. Follow roads is on by default under Window Skins > World map; off draws the straight line again.
+- The route card offers a flight when one saves at least a minute, and says why a journey, such as one between continents, falls back to a straight line.
+- Unit frames: two extra text slots with your own text, font, colour and placement, heal absorbs on the health bar, absorb shield choices, aura filters and sorting, and level colour by difficulty.
+- Party and raid frames: extra health, power, level and absorb text, debuff time left, optional stack counts, names cut to a set number of letters, and separate AFK, resurrection and summon marks.
+- Cast bars: spark and uninterruptible colours, a latency zone on your cast bar, smooth progress, a separate channel colour, the icon on the right, and the total time, such as 0.4 / 2.0.
+- Nameplates: colours for bosses, mini-bosses, neutral, minor and normal mobs and casting enemies, threat percent and name colour, level colours, extra text, and AFK, DND, PvP and raid-marker tags.
+- Nameplates: cast bar icon side, gap, layer and target, an execute-range mark on your target, an F on your focus, and switches for the game's own enemy, friendly, pet and NPC plates.
+- Cooldowns: per-spell rules to hide or fade a spell while it cools, is ready or is unusable, and per-spell sweep, colour, glow, count and out-of-range tint.
+- Cooldowns: place and nudge the countdown and count, fill columns first, icon zoom and swipes per group, glows that wait for combat, and a switch for the cooldown edge.
+- Tracked buffs can grey or keep their colour while inactive, per buff or for the whole row, hide one buff's stack count, and set the buff-bar fill opacity.
+- Auras: show only one of Blizzard's aura categories or auras with a duration, list spell IDs to show or hide, add debuff type symbols, and mark an aura you can refresh without losing time.
+- Aura timers and stacks: place, colour and format them (such as 4:05, or no "s"), crop icons, choose swipes and tooltips, hide stack numbers, and keep hidden rows faintly visible.
+- Combat text can scroll downward, choose its shadow, show coloured enter and leave combat messages, show your power gains as "+25", and set how far it travels above you.
+- Damage meter: pin your row, spell breakdowns and tooltips on hover, short or full numbers, the refresh rate, how many spells show on hover, and icon zoom.
+- Chat can fade when it has been quiet, with your own delay, depth and wake-up lines; hovering, typing, player chat and whispers always wake it.
+- Chat tabs, buttons and edit box gain size, spacing and placement options; lock the chat size, colour group names by class, show link tooltips on hover, and put the input above messages.
+- Minimap: zone, clock and coordinates inside the map with offsets, coordinates only on hover, zone or subzone, instance difficulty, frame rate and latency, and map rotation.
+- Minimap buttons move in or out, drop their backgrounds and Shift-drag anywhere; the mail envelope takes any corner, the addon drawer can be a named list, and the clock tooltip lists saved instances.
+- Data bar location and item-level readouts, a short gold format such as 12.3Kg, bag slot-count format and icon zoom, and bags that open with the character window.
+- Tooltips: grey junk icons, maximum stack sizes, no player titles, away and busy tags, the mount a player rides, and hiding in combat or boss fights with a key to peek.
+- Quality of life: skip single-choice NPC dialogue and cinematics (with a delay), type the delete word for you, accept resurrections out of combat, and coin icons in the loot feed.
+- Layout Mode: attach at a corner, match an attached frame's height, adjust its width and height, grid brightness, Shift-arrow distance, and how scrolling picks overlapping movers.
+- Layout Mode: double-click any mover to open its settings (on by default), middle-click to hide a mover until Restore movers, and a toolbar that fades or hides while you hold Shift.
+- Profiles: share several modules and appearance settings together, name an imported profile before applying it, and review interface size changes on import.
+- Appearance: the game's default, chat or system font, your font for the game's own text and names, your number font for damage numbers, and Game text size for Blizzard's text.
+- Options: window size, scale and opacity in General, search only the current page, hide the section list, and the release notes under About > What's new.
+
+### Changed
+
+- KstyleUI loads faster after a reload, with nothing on screen changed.
+
+### Upgrading
+
+- New options start off or at today's value, so your interface looks the same until you change one.
+- World map routes follow roads at once; turn off Follow roads under Window Skins > World map for straight lines.
+
 ## v0.2.8.1 (2026-11-20)
 
 A small fix release.

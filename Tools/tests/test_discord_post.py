@@ -147,7 +147,7 @@ class DiscordPostTests(unittest.TestCase):
                 self.assertEqual('Upgrading' in fields, tag == 'v0.2.8')
         self.assertEqual(self.payload('v0.2.8')['embeds'][0]['title'],
                          'KstyleUI v0.2.8 — the map and bars release')
-        self.assertEqual(self.payload('v0.2.8.1')['embeds'][0]['title'], 'KstyleUI v0.2.8.1')
+        self.assertEqual(self.payload('v0.2.8.1')['embeds'][0]['title'], 'KstyleUI v0.2.8.1 — fixes')
         self.assertIn('Options pages switch', self.payload('v0.2.8.1')['embeds'][0]['description'])
 
     def test_only_requested_section_and_fallback_highlights(self):
