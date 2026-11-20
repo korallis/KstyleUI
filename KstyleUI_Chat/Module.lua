@@ -26,6 +26,7 @@ local function Check()
 end
 
 function def.Enable()
+	K.Setup.Integrations.Leatrix()
 	local settings = ns.Settings()
 	for _, part in ipairs(parts) do
 		part.Start(settings)

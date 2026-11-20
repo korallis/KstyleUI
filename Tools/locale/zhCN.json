@@ -30,6 +30,7 @@
 	"%s is not a setting KstyleUI knows.": "%s 不是 KstyleUI 认识的设置。",
 	"%s is not available on this client.": "%s 在此客户端上不可用。",
 	"%s is not one of its choices.": "%s 不在其可选项中。",
+	"%s is off while Leatrix Plus handles it. Turn it back on in settings to use KstyleUI.": "Leatrix Plus 正在处理此功能，%s 已关闭。要使用 KstyleUI，请在设置中重新开启。",
 	"%s is out of range (%s to %s).": "%s 超出范围（%s 至 %s）。",
 	"%s keeps its KstyleUI look until you reload.": "%s 在重新加载前保持 KstyleUI 外观。",
 	"%s keeps its changes to Blizzard's frames until you reload. Type /reload to finish turning it off.": "%s 对暴雪框体的改动在重新加载前保持不变。输入 /reload 以完成关闭。",

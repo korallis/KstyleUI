@@ -9,6 +9,7 @@ K.Modules.Register({
 	defaults = Settings.defaults,
 	reskin = true,
 	Enable = function()
+		K.Setup.Integrations.Leatrix()
 		ns.Map.Enable()
 	end,
 	Disable = function()

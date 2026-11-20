@@ -37,6 +37,7 @@ ns.Locale.Add({
 	["%s is not a setting KstyleUI knows."] = "%s ist keine Einstellung, die KstyleUI kennt.",
 	["%s is not available on this client."] = "%s ist auf diesem Client nicht verf\195\188gbar.",
 	["%s is not one of its choices."] = "%s ist keine seiner Auswahlm\195\182glichkeiten.",
+	["%s is off while Leatrix Plus handles it. Turn it back on in settings to use KstyleUI."] = "%s ist deaktiviert, solange Leatrix Plus diese Aufgabe \195\188bernimmt. Aktiviert die Option in den Einstellungen wieder, um KstyleUI zu verwenden.",
 	["%s is out of range (%s to %s)."] = "%s liegt au\195\159erhalb des Bereichs (%s bis %s).",
 	["%s keeps its KstyleUI look until you reload."] = "%s beh\195\164lt sein KstyleUI-Aussehen bis zum Neuladen.",
 	["%s keeps its changes to Blizzard's frames until you reload. Type /reload to finish turning it off."] = "%s beh\195\164lt seine \195\132nderungen an Blizzards Fenstern bis zum Neuladen. Gebt /reload ein, um es ganz abzuschalten.",

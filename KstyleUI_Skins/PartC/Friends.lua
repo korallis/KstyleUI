@@ -213,6 +213,7 @@ Skins.Add({
 	label = L["Friends list"],
 	help = L["Restyles the friends, ignore, raid and quick join tabs."],
 	addon = "Blizzard_FriendsFrame",
+	yields = "BetterFriendlist",
 	frame = "FriendsFrame",
 	metrics = true,
 	Apply = Apply,

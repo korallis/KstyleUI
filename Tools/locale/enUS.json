@@ -30,6 +30,7 @@
 	"%s is not a setting KstyleUI knows.",
 	"%s is not available on this client.",
 	"%s is not one of its choices.",
+	"%s is off while Leatrix Plus handles it. Turn it back on in settings to use KstyleUI.",
 	"%s is out of range (%s to %s).",
 	"%s keeps its KstyleUI look until you reload.",
 	"%s keeps its changes to Blizzard's frames until you reload. Type /reload to finish turning it off.",

@@ -15,13 +15,49 @@ local OVERLAPS = {
 	Chat = { "Prat-3.0", "Chatter", "Chattynator", "ElvUI" },
 	Skins = { "Questie" },
 }
-function Integration.Detected(module)
-	local out, api = {}, C_AddOns
-	if api and type(api.IsAddOnLoaded) == "function" then
-		for _, name in ipairs(OVERLAPS[module] or {}) do
-			local ok, loaded = pcall(api.IsAddOnLoaded, name)
-			if ok and not Widgets.IsSecret(loaded) and loaded == true then out[#out + 1] = name end
+function Integration.Loaded(name)
+	local api = C_AddOns
+	if not api or type(api.IsAddOnLoaded) ~= "function" then return false end
+	local ok, loaded = pcall(api.IsAddOnLoaded, name)
+	return ok and not Widgets.IsSecret(loaded) and loaded == true
+end
+
+local LEATRIX = {
+	{ "RestoreChatMessages", "Chat", "history", L["Keep chat across sessions"] },
+	{ "CombineAddonButtons", "Minimap", "column.drawer", L["Addon drawer button"] },
+	{ "FasterLooting", "QoL", "fastLoot", L["Faster auto loot"] },
+	{ "AutoRepairGear", "QoL", "autoRepair", L["Repair by itself"] },
+	{ "AutoSellJunk", "Bags", "autoSellJunk", L["Sell junk by itself"] },
+	{ "AutomateQuests", "QoL", "autoQuests", L["Accept and turn in quests"] },
+	{ "MaxCameraZoom", "QoL", "maxCamera", L["Max camera distance"] },
+}
+function Integration.Leatrix()
+	local saved = rawget(_G, "LeaPlusDB")
+	if Widgets.IsSecret(saved) or type(saved) ~= "table" or not Store.IsLoaded() or not Integration.Loaded("Leatrix_Plus") then return end
+	local config = Store.Module("Integrations")
+	for _, feature in ipairs(LEATRIX) do
+		local toggle, module, key, label = unpack(feature)
+		local value = saved[toggle]
+		local minimap = saved.MinimapModder
+		local on = not Widgets.IsSecret(value) and value == "On"
+		if toggle == "CombineAddonButtons" then on = on and not Widgets.IsSecret(minimap) and minimap == "On" end
+		if on and not config.leatrix[toggle] and Store.Defaults(module) then
+			config.leatrix[toggle] = true
+			K.Options.Write(module, key, false)
+			if config.notices then
+				K.Print(string.format(L["%s is off while Leatrix Plus handles it. Turn it back on in settings to use KstyleUI."], label))
+			end
 		end
+	end
+end
+K.Events.Register("Leatrix", "ADDON_LOADED", Integration.Leatrix)
+K.Events.Register("Leatrix", "PLAYER_LOGIN", Integration.Leatrix)
+K.Callbacks.Register("ProfileChanged", "Leatrix", Integration.Leatrix)
+
+function Integration.Detected(module)
+	local out = {}
+	for _, name in ipairs(OVERLAPS[module] or {}) do
+		if Integration.Loaded(name) then out[#out + 1] = name end
 	end
 	return out
 end
@@ -39,7 +75,7 @@ local LANES = {
 	{ key = "weakAuras", label = L["WeakAuras anchor 1"], name = "KstyleUI_WeakAuras1", width = 180, height = 48, x = -300, y = 180 },
 	{ key = "weakAuras", label = L["WeakAuras anchor 2"], name = "KstyleUI_WeakAuras2", width = 180, height = 48, x = 300, y = 180 },
 }
-Store.RegisterDefaults("Integrations", { notices = true, timerLane = true, announcementLane = true, weakAuras = true, questTracker = "kstyleui" })
+Store.RegisterDefaults("Integrations", { notices = true, leatrix = {}, timerLane = true, announcementLane = true, weakAuras = true, questTracker = "kstyleui" })
 K.Options.Register("Integrations", function() return {
 	{ type = "header", label = L["Existing addons"] },
 	{ type = "toggle", key = "notices", label = L["Other-addon notices"], help = L["Names overlapping addons in setup and explains boss-addon support. Off hides these notices."] },

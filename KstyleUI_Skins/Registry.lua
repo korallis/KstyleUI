@@ -52,6 +52,9 @@ function Skins.Add(def)
 	if def.addon ~= nil and (type(def.addon) ~= "string" or def.addon == "") then
 		Fail(key .. ": addon must be the name of the Blizzard addon that makes the window")
 	end
+	if def.yields ~= nil and (type(def.yields) ~= "string" or def.yields == "") then
+		Fail(key .. ": yields must name the addon that owns this window")
+	end
 	if def.frame ~= nil and (type(def.frame) ~= "string" or def.frame == "") then
 		Fail(key .. ": frame must be the global name of the window")
 	end
@@ -152,8 +155,12 @@ local function Sweep(def)
 	Log(def.key .. ": " .. count .. " Blizzard texts swept into the skin face")
 end
 
+local function Yields(def)
+	return def.yields ~= nil and K.Setup.Integrations.Loaded(def.yields)
+end
+
 local function Run(def)
-	if applied[def.key] or not running or not Skins.IsOn(def.key) then
+	if applied[def.key] or not running or not Skins.IsOn(def.key) or Yields(def) then
 		return
 	end
 	applied[def.key] = true
@@ -247,7 +254,7 @@ local function IsLoaded(def)
 end
 
 local function Arm(def)
-	if applied[def.key] or not running or not Skins.IsOn(def.key) then
+	if applied[def.key] or not running or not Skins.IsOn(def.key) or Yields(def) then
 		return
 	end
 	if IsLoaded(def) then
@@ -263,7 +270,7 @@ local function OnAddonLoaded(_, name)
 	for _, def in ipairs(order) do
 		if waiting[def.key] and def.addon == name then
 			waiting[def.key] = nil
-			Watch(def)
+			Arm(def)
 		end
 	end
 end

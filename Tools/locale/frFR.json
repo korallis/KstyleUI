@@ -30,6 +30,7 @@
 	"%s is not a setting KstyleUI knows.": "%s n'est pas un réglage connu de KstyleUI.",
 	"%s is not available on this client.": "%s n'est pas disponible sur ce client.",
 	"%s is not one of its choices.": "%s ne fait pas partie de ses choix.",
+	"%s is off while Leatrix Plus handles it. Turn it back on in settings to use KstyleUI.": "%s est désactivé tant que Leatrix Plus s’en charge. Réactivez cette option dans les paramètres pour utiliser KstyleUI.",
 	"%s is out of range (%s to %s).": "%s est hors limites (de %s à %s).",
 	"%s keeps its KstyleUI look until you reload.": "%s garde son apparence KstyleUI jusqu'au rechargement.",
 	"%s keeps its changes to Blizzard's frames until you reload. Type /reload to finish turning it off.": "%s garde ses modifications des fenêtres de Blizzard jusqu'au rechargement. Tapez /reload pour finir de le désactiver.",

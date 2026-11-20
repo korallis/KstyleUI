@@ -14,6 +14,7 @@ local function Each(hook, ...)
 end
 
 local function Enable()
+	K.Setup.Integrations.Leatrix()
 	ns.running = true
 	for _, part in ipairs(ns.parts) do
 		for event, fn in pairs(part.events or {}) do

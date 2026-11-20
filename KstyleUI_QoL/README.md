@@ -76,3 +76,9 @@ Selling junk is one feature, in Bags: **Sell junk by itself** on the Bags page, 
 ## Tests
 
 `test-qol.lua` (settings, setup, settings window, migration 5), `test-qol-loot.lua`, `test-qol-feed.lua`, `test-qol-repair.lua`, `test-qol-quests.lua`, `test-qol-camera.lua` and `test-qol-alerts.lua`, on the stand-ins in `Tools/regression/qol_env.lua`.
+
+## Leatrix Plus
+
+When `Leatrix_Plus` is loaded, Existing addons reads `LeaPlusDB` and turns off only the matching KstyleUI helper once per profile. `FasterLooting`, `AutoRepairGear`, `AutomateQuests` and `MaxCameraZoom` must equal `"On"`; junk selling uses `AutoSellJunk` and the Bags page's existing switch. The loot feed, guild-funds preference, pause key and error settings stay as chosen. Turn any helper back on in its settings to use KstyleUI; that choice survives reloads. Other-addon notices controls the one-line explanation. No Leatrix setting or saved position is changed.
+
+The saved-variable names and `"On"` encoding come from the [public Leatrix Plus source](https://github.com/Sattva-108/Leatrix_Plus/blob/cfa45770ac1364591b161e98bb509cc2c1467220/Leatrix_Plus.lua), including its saved-option loader and logout writes. Its minimap button bag requires both `MinimapModder` and `CombineAddonButtons` on; chat restore is `RestoreChatMessages`. Only these public setting names and behaviour were used; no code was copied. `test-leatrix.lua` and `test-leatrix-helpers.lua` pin the independent choices and runtime behaviour.

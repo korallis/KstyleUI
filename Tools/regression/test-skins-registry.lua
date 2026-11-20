@@ -49,6 +49,20 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- BetterFriendlist owns FriendsFrame, including when it loads after the registry arms the window.
+for _, late in ipairs({ false, true }) do
+	local env, K, ns = S.New({ loaded = { Blizzard_FriendsFrame = true, BetterFriendlist = not late }, before = function(env)
+		S.Blizzard(env).frame("Frame", nil, "FriendsFrame"):Hide()
+	end })
+	assert(ns.Skins.Get("friends").yields == "BetterFriendlist", "Friends must declare yields = BetterFriendlist in Skins.Add")
+	K.Modules.Enable("Skins")
+	if late then S.LoadAddOn(env, "BetterFriendlist") end
+	S.Show(env.FriendsFrame)
+	assert(not ns.Skins.IsApplied("friends"), "Registry.Arm and delayed Apply must yield the Friends skin while BetterFriendlist is loaded")
+	assert(ns.Skins.IsOn("friends"), "yielding must leave the player's Friends switch intact")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- Nothing runs for a window whose Blizzard addon never loads ----------------------------------------
 
 do
@@ -387,6 +401,8 @@ do
 		noApply.Apply = nil
 		Raises(function() ns.Skins.Add(noApply) end, "Apply", "a skin without Apply")
 		Raises(function() ns.Skins.Add(Fake("addon", { addon = 5 })) end, "addon", "an addon that is not a name")
+		Raises(function() ns.Skins.Add(Fake("badYield", { yields = {} })) end, "yields", "yields must be one addon name")
+		Raises(function() ns.Skins.Add(Fake("emptyYield", { yields = "" })) end, "yields", "an empty yield name")
 		Raises(function() ns.Skins.Add(Fake("own", { defaults = { enabled = false } })) end, "switch", "a skin that sets its own switch")
 		Raises(function() ns.Skins.Add(Fake("norows", { rows = { {} } })) end, "defaults", "rows without defaults")
 		ns.Skins.Add(Fake("twice"))
