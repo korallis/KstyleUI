@@ -28,13 +28,8 @@ local function BuildSchema()
 		return function(settings) return a(settings) or b(settings) end
 	end
 
-	local function rowOff(name)
-		if Model.KIND[name] == name then return nil end
-		return function(settings) local group = settings[name]; return type(group) ~= "table" or group.enabled ~= true end
-	end
-
 	local function groupRows(schema, name)
-		local off = rowOff(name)
+		local off = Model.KIND[name] ~= name and function(settings) local group = settings[name]; return type(group) ~= "table" or group.enabled ~= true end or nil
 		local rows = {
 			{ type = "dropdown", key = name .. ".show", label = L["Show"], options = Model.SHOW_OPTIONS[Model.KIND[name]], help = L["Every aura, or only one of Blizzard's aura categories."] },
 			{ type = "toggle", key = name .. ".timed", label = L["Only ones with a duration"], help = L["Hides auras that never run out, such as stances and passives."] },
@@ -68,41 +63,36 @@ local function BuildSchema()
 			schema[#schema + 1] = { type = "toggle", key = name .. ".enabled", label = L["Show this row"], help = L["A second row with its own filter, icon size and place. Move it in Layout Mode."] }
 		end
 		K.Options.AuraFilterRows(schema, name, { sort = false, disableWhen = off })
-		for _, row in ipairs(rows) do
-			row.disableWhen = either(off, row.disableWhen)
-			schema[#schema + 1] = row
-		end
-		local extra = {}
 		if Model.KIND[name] == "buffs" then
-			extra[#extra + 1] = {
+			rows[#rows + 1] = {
 				type = "dropdown", key = name .. ".tracked", label = L["Buffs the Cooldown Manager tracks"], options = Model.TRACKED_OPTIONS,
 				help = L["A buff the Cooldown Manager already tracks is left out of this row, so it shows in one place."],
 			}
 			if not off then
-				extra[#extra + 1] = {
+				rows[#rows + 1] = {
 					type = "toggle", key = name .. ".enchants", label = L["Weapon enchantments"],
 					help = L["Shows temporary weapon enchantments, such as poisons and oils, before your buffs."],
 				}
 			end
-			extra[#extra + 1] = { type = "toggle", key = name .. ".cancel", label = L["Right-click to cancel"], help = L["Right-clicking a buff or weapon enchantment removes it."] }
-			extra[#extra + 1] = {
+			rows[#rows + 1] = { type = "toggle", key = name .. ".cancel", label = L["Right-click to cancel"], help = L["Right-clicking a buff or weapon enchantment removes it."] }
+			rows[#rows + 1] = {
 				type = "text", key = name .. ".allowSpells", label = L["Only these spells"], maxLetters = 240,
 				help = L["Spell IDs of buffs to show, separated by commas or spaces. Blank shows every buff."],
 			}
-			extra[#extra + 1] = {
+			rows[#rows + 1] = {
 				type = "text", key = name .. ".blockSpells", label = L["Hide these spells"], maxLetters = 240,
 				help = L["Spell IDs of buffs to hide, separated by commas or spaces. Hiding wins."],
 			}
 		else
-			extra[1] = { type = "toggle", key = name .. ".dispel", label = L["Colour by debuff type"], help = L["Borders each debuff in its type's colour: magic, curse, disease, poison or none."] }
-			extra[2] = {
+			rows[#rows + 1] = { type = "toggle", key = name .. ".dispel", label = L["Colour by debuff type"], help = L["Borders each debuff in its type's colour: magic, curse, disease, poison or none."] }
+			rows[#rows + 1] = {
 				type = "dropdown", key = name .. ".typeIcon", label = L["Type icon"], options = Model.TYPE_ICON_OPTIONS,
-				help = L["Shows the magic, curse, disease, poison or bleed symbol in a corner of each debuff."],
+				help = L["Shows each debuff's type symbol, such as magic or poison, in a corner, on an edge or in the centre."],
 			}
-			extra[3] = slider(name .. ".typeIconSize", L["Type icon size"], L["How large the type symbol is."], LIMITS.typeIconSize,
+			rows[#rows + 1] = slider(name .. ".typeIconSize", L["Type icon size"], L["How large the type symbol is."], LIMITS.typeIconSize,
 				function(settings) local group = settings[name]; return type(group) ~= "table" or group.typeIcon == "none" end)
 		end
-		for _, row in ipairs(extra) do
+		for _, row in ipairs(rows) do
 			row.disableWhen = either(off, row.disableWhen)
 			schema[#schema + 1] = row
 		end
@@ -165,7 +155,7 @@ local function BuildSchema()
 		},
 		{
 			type = "dropdown", key = "timer.position", label = L["Timer position"], options = Model.TIMER_POSITIONS,
-			help = L["Puts the timer under the icon, or on its lower edge, top edge or centre."], disableWhen = timerHidden,
+			help = L["Puts the timer under the icon, or on it: in a corner, on an edge or in the centre."], disableWhen = timerHidden,
 		},
 		slider("timer.x", L["Horizontal offset"], L["Move this text left or right."], LIMITS.offset, timerHidden),
 		slider("timer.y", L["Vertical offset"], L["Move this text up or down."], LIMITS.offset, timerHidden),
@@ -189,7 +179,7 @@ local function BuildSchema()
 		},
 		slider("count.x", L["Horizontal offset"], L["Move this text left or right."], LIMITS.offset, countHidden),
 		slider("count.y", L["Vertical offset"], L["Move this text up or down."], LIMITS.offset, countHidden),
-		{ type = "dropdown", key = "count.position", label = L["Stack position"], options = Model.CORNERS, help = L["Which corner of the icon the stack count sits in."], disableWhen = countHidden },
+		{ type = "dropdown", key = "count.position", label = L["Stack position"], options = Model.CORNERS, help = L["Where on the icon the stack count sits: in a corner, on an edge or in the centre."], disableWhen = countHidden },
 		countToggle, countColor,
 		{ type = "header", label = L["Accent"] },
 		{

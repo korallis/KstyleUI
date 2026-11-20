@@ -100,7 +100,8 @@ check(b.position.anchor == "TOPRIGHT" and near(b.position.x, -(margin + Layouts.
 check(d.position.anchor == "TOPRIGHT" and d.position.x == b.position.x and near(d.position.y, -(margin + 1.4 + 41.6 + 12)), "the debuffs hang 12 under the buffs, got " .. tostring(d.position.y))
 for _, name in ipairs(Layouts.Names()) do
 	for _, entry in ipairs(Layouts.Settings(name)) do
-		check(entry.module ~= "Auras", name .. " writes no Auras setting: the rows are the same in every layout")
+		local switch = entry.module == "Auras" and entry.key:match("^extra%a+%.enabled$") and entry.value == false
+		check(entry.module ~= "Auras" or switch, name .. " writes no Auras setting but the extra rows' off switch: the rows are the same in every layout")
 	end
 end
 -- The container hangs from the host's top right corner, so the row ends at the element's right edge whatever it holds,

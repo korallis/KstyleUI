@@ -252,6 +252,8 @@ local SWITCHES = {
 	{ key = "actionbars.stance", module = "ActionBars", setting = "stance.enabled" },
 	{ key = "consumables.bar", module = "ActionBars", setting = "consumables.enabled" },
 	{ key = "meters.threat", module = "Meters", setting = "threat.shown" },
+	{ key = "auras.extraBuffs", module = "Auras", setting = "extraBuffs.enabled" },
+	{ key = "auras.extraDebuffs", module = "Auras", setting = "extraDebuffs.enabled" },
 }
 
 local BARS_OFF = {
@@ -1236,8 +1238,8 @@ function Layouts.Aspect(class, style, name, key)
 	if (key == "minimap.main" or key:match("^auras%."))
 		and (style == "medallions" or style == "frames" and ns.HudStyle and ns.HudStyle.Current() == "medallions") and Layouts.MinimapCrest() then
 		if style == "medallions" and key == "minimap.main" then return Layouts.Style(style, name, key) end
-		if key:match("^auras%.") then
-			local base = layouts[name][key]
+		local base = key:match("^auras%.") and layouts[name][key]
+		if base then
 			return { anchor = base.anchor, x = base.x - math.ceil(Layouts.CREST_GROW - AURA_MAP_GAP), y = base.y }
 		end
 	end

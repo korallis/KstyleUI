@@ -13,12 +13,12 @@ local build
 function Preview.Build(...)
 	if build then return build(...) end
 	local BUFFS = {
-		{ icon = 135987, seconds = 24, spell = 1243, cancelable = true },
+		{ icon = 135987, seconds = 24, spell = 1243, cancelable = true, dispellable = true },
 		{ icon = 136078, seconds = 17, stacks = "3", spell = 1126, cancelable = true, important = true },
 		{ icon = 135932, seconds = 12, spell = 1459, cancelable = true, bigDefensive = true },
 		{ icon = 135906, seconds = 480, spell = 19740, cancelable = true, important = true },
 		{ icon = 132333, seconds = 180, spell = 6673, cancelable = true },
-		{ icon = 135953, seconds = 2.4, refresh = true, spell = 139, cancelable = true },
+		{ icon = 135953, seconds = 2.4, refresh = true, spell = 139, cancelable = true, dispellable = true },
 		{ icon = 135893, spell = 465 },
 	}
 	local DEBUFFS = {
@@ -101,7 +101,7 @@ function Preview.Build(...)
 	end
 
 	local function Passes(spec, group, lists)
-		if (group.show ~= "all" and not spec[group.show]) or (group.timed and not spec.seconds) then
+		if (group.show ~= "all" and not spec[group.show]) or (group.timed and not spec.seconds) or (group.dispellable and not spec.dispellable) then
 			return false
 		end
 		local include, exclude = lists and lists.includeSpellIDs, lists and lists.excludeSpellIDs
@@ -111,7 +111,8 @@ function Preview.Build(...)
 	local function PlaceGroup(box, entries, group, ctx, lists)
 		local w, h = ctx.width, ctx.height
 		local visible = {}
-		for _, entry in ipairs(entries) do
+		for i = 1, #entries do
+			local entry = entries[group.reverse and #entries + 1 - i or i]
 			local pass = #visible < group.rows * group.columns and Passes(entry.spec, group, lists)
 			if pass then
 				visible[#visible + 1] = entry

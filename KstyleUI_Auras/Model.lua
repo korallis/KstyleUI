@@ -10,7 +10,6 @@ ns.Model = Model
 
 Model.MODULE = "Auras"
 Model.GROUPS = { "buffs", "debuffs", "extraBuffs", "extraDebuffs" }
-Model.MAIN = { "buffs", "debuffs" }
 Model.KIND = { buffs = "buffs", debuffs = "debuffs", extraBuffs = "buffs", extraDebuffs = "debuffs" }
 Model.KEYS = { buffs = "auras.buffs", debuffs = "auras.debuffs", extraBuffs = "auras.extraBuffs", extraDebuffs = "auras.extraDebuffs" }
 Model.FILTERS = { buffs = "HELPFUL", debuffs = "HARMFUL", extraBuffs = "HELPFUL", extraDebuffs = "HARMFUL" }
@@ -116,7 +115,6 @@ Model.TIMER_POSITIONS = {
 	{ value = "BOTTOMLEFT", label = L["Bottom left"] },
 	{ value = "BOTTOMRIGHT", label = L["Bottom right"] },
 }
-local TIMER_ANCHORS = { inside = "BOTTOM", top = "TOP", center = "CENTER" }
 Model.SHOW_OPTIONS = {
 	buffs = {
 		{ value = "all", label = L["All buffs"] },
@@ -240,6 +238,7 @@ function Model.Group(settings, name)
 		swipe = boolean(s.swipe, base.swipe),
 		show = choice(s.show, SHOW_SETS[Model.KIND[name]], base.show),
 		timed = s.timed == true,
+		dispellable = s.dispellable == true,
 		tooltips = choice(s.tooltips, TOOLTIP_SET, base.tooltips),
 		swipeReverse = boolean(s.swipeReverse, base.swipeReverse),
 		refresh = s.refresh == true,
@@ -383,10 +382,6 @@ function Model.TimerArea(timer)
 		return math.max(timer.size, least) + Model.TIMER_GAP
 	end
 	return 0
-end
-
-function Model.TimerAnchor(position)
-	return TIMER_ANCHORS[position] or (Model.CORNER_SIGNS[position] and position)
 end
 
 local function same(units)

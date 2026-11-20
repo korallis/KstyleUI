@@ -20,6 +20,8 @@ local BESIDE_ICON = {
 	TOPRIGHT = { "TOPRIGHT", "TOPLEFT", -1 }, TOPLEFT = { "TOPLEFT", "TOPRIGHT", 1 }, BOTTOMRIGHT = { "BOTTOMRIGHT", "BOTTOMLEFT", -1 }, BOTTOMLEFT = { "BOTTOMLEFT", "BOTTOMRIGHT", 1 },
 	CENTER = { "RIGHT", "LEFT", -1 }, TOP = { "TOPRIGHT", "TOPLEFT", -1 }, BOTTOM = { "BOTTOMRIGHT", "BOTTOMLEFT", -1 }, LEFT = { "LEFT", "RIGHT", 1 }, RIGHT = { "RIGHT", "LEFT", -1 },
 }
+local LANE = { TOPLEFT = "BOTTOMLEFT", TOP = "BOTTOM", TOPRIGHT = "BOTTOMRIGHT", LEFT = "BOTTOMLEFT", CENTER = "BOTTOM", RIGHT = "BOTTOMRIGHT", BOTTOMLEFT = "TOPLEFT", BOTTOM = "TOP", BOTTOMRIGHT = "TOPRIGHT" }
+local TIMER_ANCHORS = { inside = "BOTTOM", top = "TOP", center = "CENTER" }
 
 local logged = {}
 
@@ -92,12 +94,6 @@ function Button.Create(button, hasDispel)
 	return entry
 end
 
-local function Beside(text, icon, anchor, inset, x, y)
-	local beside = BESIDE_ICON[anchor]
-	text:ClearAllPoints()
-	text:SetPoint(beside[1], icon, beside[2], beside[3] * inset + x, y)
-end
-
 local function PlaceTexts(entry, ctx, inset, iconCorner)
 	local skin, timer, count, badge = entry.skin, entry.timer, entry.count, entry.badge
 	Button.StyleText(timer, ctx.timer, "timerText", "timer")
@@ -106,9 +102,11 @@ local function PlaceTexts(entry, ctx, inset, iconCorner)
 	count:ClearAllPoints()
 	local edge = inset + Widgets.Snap(skin, TEXT_INSET)
 	local SIGNS = ns.Model.CORNER_SIGNS
-	local anchor = ns.Model.TimerAnchor(ctx.timer.position)
+	local position = ctx.timer.position
+	local anchor = position ~= "below" and (TIMER_ANCHORS[position] or position)
 	if anchor and anchor == iconCorner then
-		Beside(timer, entry.typeIcon, anchor, inset, ctx.timer.x, ctx.timer.y)
+		local lane = LANE[anchor]
+		Widgets.Point(timer, LANE[lane], entry.typeIcon, lane, ctx.timer.x, SIGNS[LANE[lane]][2] * inset + ctx.timer.y)
 	elseif anchor then
 		Widgets.Point(timer, anchor, skin, anchor, SIGNS[anchor][1] * edge + ctx.timer.x, SIGNS[anchor][2] * edge + ctx.timer.y)
 	else
@@ -119,13 +117,14 @@ local function PlaceTexts(entry, ctx, inset, iconCorner)
 	count:SetShadowOffset(shadow, -shadow)
 	local corner = ctx.count.position
 	local signs = SIGNS[corner]
-	local step = 0
-	if corner == anchor and ctx.timer.format ~= "none" then
-		step = signs[2] == 0 and (ctx.timer.size + ctx.count.size) / 2 + TEXT_INSET or signs[2] * (ctx.timer.size + TEXT_INSET)
-	end
 	if ctx.count.shown and corner == iconCorner then
-		Beside(count, entry.typeIcon, corner, inset, ctx.count.x, ctx.count.y + step)
+		local beside = BESIDE_ICON[corner]
+		count:SetPoint(beside[1], entry.typeIcon, beside[2], beside[3] * inset + ctx.count.x, ctx.count.y)
 	else
+		local step = 0
+		if corner == anchor and ctx.timer.format ~= "none" then
+			step = signs[2] == 0 and (ctx.timer.size + ctx.count.size) / 2 + TEXT_INSET or signs[2] * (ctx.timer.size + TEXT_INSET)
+		end
 		Widgets.Point(count, corner, skin, corner, signs[1] * edge + ctx.count.x, signs[2] * edge + ctx.count.y + step)
 	end
 	count:SetAlpha(ctx.count.shown and 1 or 0)
@@ -208,17 +207,6 @@ function Button.Bind(entry, ctx)
 	end
 end
 
-local function NewGlow(entry, ctx)
-	local hostile = ns.Model.KIND[ctx.group.name] == "debuffs"
-	local glow = Widgets.Glow(entry.skin, { kind = "selection", color = hostile and "hostile" or "accent" })
-	local restyle = glow.Restyle
-	glow.Restyle = function(self)
-		if ns.Panel.Open() then restyle(self) else ns.Panel.Wait() end
-	end
-	entry.glowRestyle = restyle
-	return glow
-end
-
 local function Extras(entry, ctx, inset)
 	local skin, group = entry.skin, ctx.group
 	local corner = entry.dispel and group.typeIcon ~= "none" and group.typeIcon
@@ -238,17 +226,26 @@ local function Extras(entry, ctx, inset)
 		cue:Hide()
 		entry.cue = cue
 	end
+	local scale = group.glow and Widgets.ScaleFactor(skin)
 	if group.glow and not entry.glow then
-		entry.glow = NewGlow(entry, ctx)
+		local glow = Widgets.Glow(skin, { kind = "selection", color = ns.Model.KIND[group.name] == "debuffs" and "hostile" or "accent" })
+		local restyle = glow.Restyle
+		glow.Restyle = function(self)
+			if ns.Panel.Open() then restyle(self) else entry.glowSize = nil; ns.Panel.Wait() end
+		end
+		entry.glow, entry.glowRestyle, entry.glowSize, entry.glowScale = glow, restyle, ctx.icon, scale
 	end
 	if entry.glow then
-		if group.glow then entry.glowRestyle(entry.glow) end
+		if group.glow and (entry.glowSize ~= ctx.icon or entry.glowScale ~= scale) then
+			entry.glowRestyle(entry.glow)
+			entry.glowSize, entry.glowScale = ctx.icon, scale
+		end
 		if entry.glowOn ~= group.glow then
 			entry.glow:SetIntensity(group.glow and 1 or 0)
 			entry.glowOn = group.glow
 		end
 	end
-	return corner
+	return (ctx.typeIconOptions or not Engine(entry.button)) and corner
 end
 
 function Button.Style(entry, ctx)

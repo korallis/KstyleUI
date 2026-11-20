@@ -321,11 +321,14 @@ local function Filter(desc)
 end
 
 local TIMED = 2147483647
+local shared
 
 local function Candidates(desc)
 	local group, base = desc.ctx.group, nil
 	if group.tracked == "cdm" then
-		local set, why = Tracked.Set()
+		local read = shared or { Tracked.Set() }
+		if shared == false then shared = read end
+		local set, why = read[1], read[2]
 		if set then
 			base = { excludeSpellIDs = set }
 		else
@@ -643,7 +646,8 @@ end
 
 local function Blizzard()
 	local hide = running and not gamepad and K.Store.Module(MODULE).hideBlizzard ~= false
-	for _, name in ipairs(Model.MAIN) do
+	for i = 1, 2 do
+		local name = Model.GROUPS[i]
 		local desc = groups[name]
 		local frame = BlizzardFrame(name)
 		if hide and desc and not desc.failed then
@@ -712,11 +716,13 @@ local function OnEnchant()
 end
 
 local function OnTracked()
+	shared = false
 	for name, desc in pairs(groups) do
 		if running and KIND[name] == "buffs" and not desc.failed and not desc.off then
 			K.Call(ApplyGroup, desc)
 		end
 	end
+	shared = nil
 end
 
 local function Refresh()
@@ -738,18 +744,13 @@ local function Active(name)
 	return KIND[name] == name or (type(s) == "table" and s.enabled == true)
 end
 
-local function Ensure(name)
+local function SetRow(name)
+	local on = running and Active(name)
 	local desc = groups[name]
-	if not desc then
+	if on and not desc then
 		desc = Build(name)
 		groups[name] = desc
 	end
-	return desc
-end
-
-local function SetRow(name)
-	local on = running and Active(name)
-	local desc = on and Ensure(name) or groups[name]
 	if not desc or desc.failed then
 		return desc
 	end

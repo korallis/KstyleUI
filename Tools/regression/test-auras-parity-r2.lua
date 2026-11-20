@@ -94,13 +94,13 @@ write("count.position", "BOTTOM")
 cp = buff.count._points[1]
 assert(cp[1] == "BOTTOM" and cp[4] == 0 and cp[5] > 0 and A.W.LastCall(buff.count, "SetJustifyH")[1] == "CENTER", "the count on the bottom edge")
 
--- Type icons on edge midpoints, and a timer that shares the type icon's anchor sits beside it like the count.
+-- Type icons on edge midpoints: a count that shares the type icon's anchor sits beside it, a timer in the lane over it.
 write("debuffs.typeIcon", "BOTTOM"); write("timer.position", "BOTTOMLEFT")
 local icon = debuff.typeIcon
 assert(icon._points[1][1] == "BOTTOM" and icon:IsShown() ~= nil, "the type icon on the bottom edge")
 assert(debuff.count._points[1][2] == icon and debuff.count._points[1][1] == "BOTTOMRIGHT", "the count beside it")
 write("debuffs.typeIcon", "BOTTOMLEFT")
-assert(debuff.timer._points[1][2] == icon and debuff.timer._points[1][1] == "BOTTOMLEFT" and debuff.timer._points[1][3] == "BOTTOMRIGHT", "a timer in the type icon's corner sits beside it")
+assert(debuff.timer._points[1][2] == icon and debuff.timer._points[1][1] == "BOTTOMLEFT" and debuff.timer._points[1][3] == "TOPLEFT", "a timer in the type icon's corner sits over it")
 write("timer.format", "none")
 assert(debuff.count._points[1][2] ~= icon and debuff.count._points[1][1] == "BOTTOM", "a hidden timer moves nothing")
 write("timer.format", "short"); write("timer.position", "below"); write("count.position", "TOPRIGHT"); write("debuffs.typeIcon", "none")
