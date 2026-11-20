@@ -321,7 +321,8 @@ function Relayout(keepPreview)
 		Rows.Update(picker, picker.item, nil, content)
 	end
 	content:SetPoint("TOPLEFT", rail, "TOPRIGHT", Snap(gap), -pickerHeight)
-	Widgets.Size(content, contentWidth, max(1, bodyHeight - capHeight - pickerHeight - (shown and 0 or footer + gap)))
+	local beside = shown and resetButton:GetWidth() + gap + layoutButton:GetWidth() <= PREVIEW_WIDTH
+	Widgets.Size(content, contentWidth, max(1, bodyHeight - capHeight - pickerHeight - (beside and 0 or footer + gap)))
 	preview:ClearAllPoints()
 	preview:SetPoint("TOPRIGHT", win, "TOPRIGHT", -Snap(pad), -Snap(top))
 	if keepPreview ~= true then preview:SetRoom(PREVIEW_WIDTH, max(1, bodyHeight - footer - gap)) end
