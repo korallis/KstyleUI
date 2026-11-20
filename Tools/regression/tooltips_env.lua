@@ -6,7 +6,7 @@
 --   T.PostCall(env, env.GameTooltip, { type = env.Enum.TooltipDataType.Item, id = 19019 })
 --
 -- The stand-ins answer the GameTooltip methods Blizzard's code calls (AddLine, AddDoubleLine, NumLines,
--- ClearLines, SetOwner, GetOwner, GetLeftLine, GetRightLine) as plain fields the test sets before it
+-- ClearLines, SetOwner, GetOwner, GetLeftLine, GetRightLine, RefreshData) as plain fields the test sets before it
 -- takes a snapshot, so T.Check can fail on any field the module writes onto a Blizzard object.
 local W = dofile("Tools/regression/widget_env.lua")
 local TocFiles = dofile("Tools/regression/toc_files.lua")
@@ -111,7 +111,7 @@ function T.Tooltip(env, name, opts)
 			self._right[i]:SetText(nil)
 			self._right[i]:Hide()
 		end
-		self._count = 0
+		self._count, self._info = 0, nil
 		local cleared = self:GetScript("OnTooltipCleared")
 		if cleared then
 			cleared(self)
@@ -120,6 +120,23 @@ function T.Tooltip(env, name, opts)
 	tip.SetOwner = function(self, owner, anchor, x, y)
 		self._owner, self._anchor = owner, { anchor, x, y }
 		self:ClearLines()
+	end
+	-- RefreshData rebuilds the tooltip from its last data, as GameTooltipDataMixin:RefreshData does: Blizzard's lines, then the post-calls.
+	tip.RefreshData = function(self)
+		local info = self._info
+		if not info then
+			return
+		end
+		self:ClearLines()
+		for _, l in ipairs(info.lines) do
+			local lc, rc = l[3], l[4]
+			if l[2] then
+				self:AddDoubleLine(l[1], l[2], lc[1], lc[2], lc[3], rc[1], rc[2], rc[3])
+			else
+				self:AddLine(l[1], lc[1], lc[2], lc[3])
+			end
+		end
+		T.PostCall(self._env, self, info.data)
 	end
 	tip.GetOwner = function(self)
 		return self._owner
@@ -334,8 +351,17 @@ function T.BlizzardShow(object, shown)
 	end
 end
 
--- PostCall(env, tooltip, data) runs the registered post-calls for data.type, as TooltipDataProcessor does.
+-- PostCall(env, tooltip, data) runs the registered post-calls for data.type, as TooltipDataProcessor does, and keeps the data and
+-- Blizzard's lines for RefreshData.
 function T.PostCall(env, tooltip, data)
+	if tooltip._left then
+		local lines = {}
+		for i = 1, tooltip:NumLines() do
+			local l, r = tooltip._left[i], tooltip._right[i]
+			lines[i] = { l:GetText(), r:IsShown() and r:GetText() or nil, { l:GetTextColor() }, { r:GetTextColor() } }
+		end
+		tooltip._info = { data = data, lines = lines }
+	end
 	for _, kind in ipairs({ "ALL", data.type }) do
 		for _, fn in ipairs(env._postCalls[kind] or {}) do
 			fn(tooltip, data)
