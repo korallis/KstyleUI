@@ -182,7 +182,7 @@ local function Yes(fn)
 	return not Logic.IsSecret(v) and v == true
 end
 
-function Anchor.Hidden()
+local function Hidden()
 	local mode, peek = Settings.Get("show"), PEEK[Settings.Get("peekKey")]
 	if mode == "always" or peek and Yes(_G[peek]) then return false end
 	if mode == "outOfCombat" then return Yes(InCombatLockdown) end
@@ -191,7 +191,7 @@ function Anchor.Hidden()
 end
 
 local function Suppress(tooltip)
-	if not (ns.active and Anchor.Hidden()) then return end
+	if not (ns.active and Hidden()) then return end
 	tooltip:Hide()
 	for _, shop in ipairs(type(tooltip.shoppingTooltips) == "table" and tooltip.shoppingTooltips or {}) do shop:Hide() end
 end
