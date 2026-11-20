@@ -235,11 +235,7 @@ function CT.Text(env, number)
 		if call.method == "SetText" then
 			return reveal(call.args[1])
 		elseif call.method == "SetFormattedText" then
-			local args = {}
-			for j = 2, call.args.n do
-				args[j - 1] = reveal(call.args[j])
-			end
-			return string.format(call.args[1], unpack(args, 1, call.args.n - 1))
+			return string.format(call.args[1], reveal(call.args[2]))
 		end
 	end
 end
