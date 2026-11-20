@@ -117,7 +117,7 @@ local function Choices(list)
 end
 
 local CHOICES = {
-	frameStrata = { LOW = true, MEDIUM = true, HIGH = true, DIALOG = true },
+	frameStrata = { LOW = true, MEDIUM = true, HIGH = true, BACKGROUND = true },
 	slotCount = { freeTotal = true, usedTotal = true, free = true },
 	layout = Choices(LAYOUT_OPTIONS),
 	emptySlots = Choices(EMPTY_OPTIONS),
@@ -150,7 +150,7 @@ function Settings.Schema()
 		{ type = "toggle", key = "enabled", label = L["KstyleUI bags"], help = L["Replace Blizzard's bags with one KstyleUI bag window."] },
 		{ type = "dropdown", key = "frameStrata", label = L["Window layer"], help = L["How bags and bank overlap other windows."], options = {
 			{ value = "LOW", label = L["Low"] }, { value = "MEDIUM", label = L["Medium"] },
-			{ value = "HIGH", label = L["High"] }, { value = "DIALOG", label = L["Dialog"] },
+			{ value = "HIGH", label = L["High"] }, { value = "BACKGROUND", label = L["Background"] },
 		}, disableWhen = isOff },
 		{ type = "dropdown", key = "slotCount", label = L["Slot count format"], help = L["Show free slots, used slots or free slots alone in the footer."], options = {
 			{ value = "freeTotal", label = L["Free / total"] }, { value = "usedTotal", label = L["Used / total"] },

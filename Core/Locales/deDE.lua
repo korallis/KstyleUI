@@ -674,7 +674,6 @@ ns.Locale.Add({
 	["Desaturate junk"] = "Plunder ents\195\164ttigen",
 	["Desaturate on cooldown"] = "Bei Abklingzeit ents\195\164ttigen",
 	["Destination is on another continent."] = "Das Ziel liegt auf einem anderen Kontinent.",
-	["Dialog"] = "Dialog",
 	["Dialogs"] = "Dialoge",
 	["Dim an icon while you cannot cast its spell."] = "Dunkelt ein Symbol ab, solange Ihr seinen Zauber nicht wirken k\195\182nnt.",
 	["Dim out of range"] = "Au\195\159er Reichweite abdunkeln",

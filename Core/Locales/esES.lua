@@ -674,7 +674,6 @@ ns.Locale.Add({
 	["Desaturate junk"] = "Desaturar la chatarra",
 	["Desaturate on cooldown"] = "Desaturar en reutilizaci\195\179n",
 	["Destination is on another continent."] = "El destino est\195\161 en otro continente.",
-	["Dialog"] = "Di\195\161logo",
 	["Dialogs"] = "Di\195\161logos",
 	["Dim an icon while you cannot cast its spell."] = "Oscurece un icono mientras no puedes lanzar su hechizo.",
 	["Dim out of range"] = "Oscurecer fuera de alcance",

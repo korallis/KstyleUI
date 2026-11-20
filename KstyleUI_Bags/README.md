@@ -311,6 +311,6 @@ Forever proof at `9dc84f0`: `Texture:SetDesaturated`: `Blizzard_APIDocumentation
 
 ### Next parity batch (2026-11-20)
 
-Window layer, slot-count format and icon zoom apply to the existing bag/bank builders. Defaults remain Medium, free/total and 7 percent. Follow-up B still covers category/list features, item labels, bank automation and the remaining toolbar controls.
+Window layer uses Layout for both windows, preserving later per-window layer choices on refresh. Slot-count format and icon zoom apply to the existing bag/bank builders. Defaults remain Medium, free/total and 7 percent. Follow-up B still covers category/list features, item labels, bank automation and the remaining toolbar controls.
 
 `test-shell-parity-followup.lua` covers writes, application, reversal and v0.2.8 profiles; `test-perf-path-budgets.lua` covers reload cost. Strict default pixel comparisons and Options captures live in `C:/Users/leeba/.cache/kstyleui-evidence/parity-shell-2/`. No row was skipped because of reload cost; remaining rows are separate feature work.

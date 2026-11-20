@@ -426,7 +426,6 @@ function Window:Layout(force)
 	if not Widgets.MayMove(panel) then
 		return
 	end
-	panel:SetFrameStrata(Settings.Get("frameStrata"))
 	if Settings.Get("readableHeaders") then
 		local path, _, flags = Tokens.Font("caps")
 		Widgets.ApplyFont(panel.titleText, path, 14 * K.Theme.FontScale(), flags)

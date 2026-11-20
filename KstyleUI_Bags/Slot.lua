@@ -88,8 +88,7 @@ function Slot.Paint(slot)
 	PlaceIcon(slot)
 end
 
-local function ApplyFont(text)
-	local path, size, flags = Settings.Font()
+local function ApplyFont(text, path, size, flags)
 	if not Widgets.ApplyFont(text, path, size, flags) then
 		text:SetFontObject(FALLBACK_FONT)
 		Widgets.TextShadow(text, flags)
@@ -100,8 +99,9 @@ end
 function Slot.Style(slot)
 	local crop = Settings.Get("iconZoom") / 100
 	slot.icon:SetTexCoord(crop, 1 - crop, crop, 1 - crop)
-	ApplyFont(slot.count)
-	ApplyFont(slot.level)
+	local path, size, flags = Settings.Font()
+	ApplyFont(slot.count, path, size, flags)
+	ApplyFont(slot.level, path, size, flags)
 	if slot.glow then
 		slot.glow:Restyle()
 	end

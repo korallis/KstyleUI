@@ -674,7 +674,6 @@ ns.Locale.Add({
 	["Desaturate junk"] = "D\195\169saturer les objets de rebut",
 	["Desaturate on cooldown"] = "D\195\169saturer en recharge",
 	["Destination is on another continent."] = "La destination est sur un autre continent.",
-	["Dialog"] = "Dialogue",
 	["Dialogs"] = "Dialogues",
 	["Dim an icon while you cannot cast its spell."] = "Assombrit une ic\195\180ne tant que vous ne pouvez pas lancer son sort.",
 	["Dim out of range"] = "Assombrir hors de port\195\169e",
