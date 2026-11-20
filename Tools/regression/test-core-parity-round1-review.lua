@@ -99,9 +99,17 @@ local still = tints
 env._cursor = { 704, 650 }
 update(Mode.Overlay(), 0.016)
 K.Widgets.Tint = tint
+K.Widgets.RestyleAll()
+update(Mode.Overlay(), 0.016)
+local relit = 0
+for region in pairs(lines) do
+	local r, _, _, a = region:GetVertexColor()
+	if region:IsShown() and r == 1 and a > Layout.Setting("gridAlpha") + 0.05 then relit = relit + 1 end
+end
 plate:GetScript("OnDragStop")(plate)
 Layout.Exit(true)
 assert(still == 0 and tints > 0 and tints <= 10, "a still pointer tints nothing and a move tints each lit line once: " .. still .. " then " .. tints)
+assert(relit > 0, "a grid redraw during a drag keeps the light around a still pointer")
 
 -- Mutual size matches settle at their own sizes.
 Layout.Set("Parity.Base", "link", { width = "Parity.Side" })
