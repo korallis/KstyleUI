@@ -200,7 +200,7 @@ class PortableRunnerTest(unittest.TestCase):
         self.assertEqual(self.runner.hang_limit(60), 300)
 
     def test_platform_factor_scales_cpu_only(self):
-        with mock.patch.object(self.runner, "WINDOWS_CPU_FACTOR", 2):
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(self.runner, "WINDOWS_CPU_FACTOR", 2):
             self.assertEqual(self.runner.cpu_factor(windows=True), 2)
             self.assertEqual(self.runner.cpu_factor(windows=False), 1)
             self.assertEqual(self.runner.hang_limit(30 * self.runner.cpu_factor(windows=True)), 300)
