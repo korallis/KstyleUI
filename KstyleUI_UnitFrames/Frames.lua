@@ -141,28 +141,32 @@ function Frames.Edge(view, sample)
 	local target = s and s.targetBorder and view.kind ~= "target"
 	local on = false
 	if s and (s.hoverBorder or target) then
-		local same = target and view.unit and UnitExists(view.unit) and UnitIsUnit(view.unit, "target")
-		on = sample or s.hoverBorder and view.hovered or not issecretvalue(same) and same == true
+		local same = target and view.unit and UnitExists(view.unit) and UnitIsUnit and UnitIsUnit(view.unit, "target")
+		on = sample == true or s.hoverBorder and view.hovered or not issecretvalue(same) and same == true
 	end
 	if not on then
 		if edge and edge:IsShown() then edge:Hide() end
 		return
 	end
 	if not edge then
-		edge = CreateFrame("Frame", nil, view.parent)
-		edge:SetFrameLevel(view.top:GetFrameLevel() - 1)
-		edge:SetAllPoints(view.button or view.parent)
+		edge = CreateFrame("Frame", nil, view.chip and view.button or view.parent)
 		edge.line = K.Widgets.NineSlice(edge, "lumenOutline", "OVERLAY")
+		edge.line.cacheColor = true
 		view.edge = edge
+	end
+	local chip = view.targeted and view.chip
+	local host = chip or view.panel
+	if edge.host ~= host then
+		edge.host = host
+		local level = (chip or view.top):GetFrameLevel()
+		if not issecretvalue(level) then edge:SetFrameLevel(level + (chip and 1 or -1)) end
+		edge:ClearAllPoints()
+		edge:SetAllPoints(host)
 	end
 	K.Widgets.LayoutSlice(edge.line, edge, K.Tokens.Size("radiusTile"), 0)
 	local r, g, b = Settings.Accent()
 	K.Widgets.ColorSlice(edge.line, r, g, b, 1)
-	edge:Show()
-end
-
-local function Edge(view)
-	Frames.Edge(view)
+	if not edge:IsShown() then edge:Show() end
 end
 
 local function Refresh(view, instant)
@@ -225,11 +229,20 @@ local function RefreshKind(kind, instant)
 	ns.CastBars.Refresh(kind)
 end
 
-local function OnEnter(button)
+local hovered
+local function Tooltip(button, combat)
 	local mode = Settings.Module().unitTooltip
-	if UnitFrame_OnEnter and mode ~= "never" and not (mode == "noCombat" and InCombatLockdown()) then
-		UnitFrame_OnEnter(button)
+	local show = mode == "always" or mode == "noCombat" and not combat
+	if show ~= button.tip then
+		button.tip = show
+		local fn = show and UnitFrame_OnEnter or UnitFrame_OnLeave
+		if fn then fn(button) end
 	end
+end
+
+local function OnEnter(button)
+	hovered, button.tip = button, false
+	Tooltip(button, InCombatLockdown())
 	button.view.hovered = true
 	Frames.Edge(button.view)
 end
@@ -238,6 +251,7 @@ local function OnLeave(button)
 	if UnitFrame_OnLeave then
 		UnitFrame_OnLeave(button)
 	end
+	hovered, button.tip = nil, nil
 	button.view.hovered = false
 	Frames.Edge(button.view)
 end
@@ -457,6 +471,8 @@ local function MarkTarget(view)
 			part:SetAlphaFromBoolean(same, 0, 1)
 		end
 		Hit(view, false)
+		view.targeted = false
+		Frames.Edge(view)
 		return
 	end
 	same = same == true
@@ -467,6 +483,8 @@ local function MarkTarget(view)
 		part:SetAlpha(same and 0 or 1)
 	end
 	Hit(view, same)
+	view.targeted = same
+	Frames.Edge(view)
 end
 
 local function OpenHits()
@@ -871,8 +889,12 @@ local function OnSettingChanged(_, module, key)
 		end)
 	elseif key == "hideBlizzard" then
 		ns.Blizzard.Apply(running)
-	elseif key == "orbCastRoom" or key == "castbarRaise" then
+	elseif key == "orbCastRoom" then
 		ns.CastBars.Apply()
+	elseif key == "castbarRaise" then
+		K.Combat.Queue(ns.CastBars.Apply)
+	elseif key == "unitTooltip" then
+		if hovered then Tooltip(hovered, InCombatLockdown()) end
 	elseif key == "cleanLowRing" then
 		ForEach(function(each)
 			if each.active then
@@ -959,7 +981,7 @@ local function RegisterEvents()
 		TargetChange(frames.target and frames.target.views[1])
 		RefreshKind("targettarget", true)
 		Frames.MarkTargets()
-		EachShown(Edge)
+		EachShown(Frames.Edge)
 	end)
 	Events.Register(MODULE, "PLAYER_FOCUS_CHANGED", function()
 		RefreshKind("focus", true)
@@ -1001,10 +1023,12 @@ local function RegisterEvents()
 	Events.Register(MODULE, "PLAYER_REGEN_DISABLED", function()
 		OnPlayer(Indicators.Combat)
 		OpenHits()
+		if hovered then Tooltip(hovered, true) end
 	end)
 	Events.Register(MODULE, "PLAYER_REGEN_ENABLED", function()
 		OnPlayer(Indicators.Combat)
 		Frames.MarkTargets()
+		if hovered then Tooltip(hovered, false) end
 	end)
 	Events.Register(MODULE, "PLAYER_UPDATE_RESTING", function()
 		OnPlayer(Indicators.Resting)

@@ -26,7 +26,7 @@ local THREAT_TANKING = 3
 
 local SAMPLES = {
 	player = { name = L["Valerin"], level = 60, health = 3120, healthMax = 3980, power = 3120, powerMax = 3980, reaction = 5, own = true, leader = true, resting = true, caption = L["Battle Stance"], class = L["Warrior"] },
-	target = { name = L["Frost Howler"], level = 61, classification = "elite", creature = L["Beast"], health = 2240, healthMax = 4020, power = 40, powerMax = 100, reaction = 2, marker = true, threat = true },
+	target = { name = L["Frost Howler"], level = 61, classification = "elite", creature = L["Beast"], health = 2240, healthMax = 4020, power = 40, powerMax = 100, reaction = 2, marker = true, threat = true, faction = "Horde" },
 	targettarget = { name = L["Valerin"], level = 60, health = 3120, healthMax = 3980, power = 3120, powerMax = 3980, reaction = 5, own = true },
 	focus = { name = L["Elunara"], level = 60, health = 2530, healthMax = 4010, power = 2900, powerMax = 4400, reaction = 2 },
 	focustarget = { name = L["Krazhk"], level = 60, health = 3300, healthMax = 4000, power = 1800, powerMax = 3600, reaction = 2 },
@@ -123,11 +123,7 @@ local function Paint(view, kind)
 	view.health:SetBarRange(0, sample.healthMax)
 	view.health:SetHealth(sample.health, true)
 	local r, g, b = SampleColor(s, sample, s.healthColor, s.healthCustom)
-	if s.healthAlpha < 1 then
-		view.health:SetBarColor(r, g, b, s.healthAlpha)
-	else
-		view.health:SetBarColor(r, g, b)
-	end
+	ns.Unit.SetColor(view.health, r, g, b, s.healthAlpha)
 	Style.HealthTint(view, r, g, b)
 	local split = view.geometry and view.geometry.healthSub
 	if view.form == "plate" then
@@ -145,7 +141,9 @@ local function Paint(view, kind)
 	else
 		view.incoming:Hide()
 	end
-	view.absorb:Hide()
+	view.absorb:SetBarRange(0, sample.healthMax)
+	view.absorb:SetValue(sample.healthMax * INCOMING_SHARE)
+	view.absorb:SetShown(s.healPrediction == true and s.absorbs ~= false)
 	if s.healPrediction and s.healAbsorbs then
 		local eaten = view.healAbsorb or ns.Style.HealAbsorb(view)
 		eaten:SetBarRange(0, sample.healthMax)
@@ -180,6 +178,10 @@ local function PaintIndicators(view, s, sample)
 		icons[key]:SetAlpha(1)
 		icons[key]:SetShown(s[key] == true and sample[key] == true)
 	end
+	local own = UnitFactionGroup and UnitFactionGroup("player")
+	local pvp = s.pvp and sample.faction and not s.pvpPlayersOnly and not (s.pvpEnemyOnly and (issecretvalue and issecretvalue(own) or own == sample.faction))
+	icons.pvp:SetShown(pvp == true)
+	if pvp then icons.pvp:SetAtlas(ns.Indicators.ATLAS[sample.faction]) end
 	ns.Indicators.Extra(view, nil, view.kind == "pet" and 3 or sample.classification or "normal")
 	ns.Frames.Edge(view, true)
 	if s.raidMarker and sample.marker then

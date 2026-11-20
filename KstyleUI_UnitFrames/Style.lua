@@ -751,7 +751,7 @@ end
 
 function Style.Gradient(view)
 	local s, bar = view.s, view.health
-	local direction, r, g, b = s and s.healthGradient or "", view.healthR, view.healthG, view.healthB
+	local direction, r, g, b = s and s.healthColor ~= "health" and s.healthGradient or "", view.healthR, view.healthG, view.healthB
 	local texture = bar:GetStatusBarTexture()
 	if direction ~= "" and r and texture and texture.SetGradient and CreateColor then
 		local a = s.healthAlpha

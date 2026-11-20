@@ -36,7 +36,6 @@ local POSITION = {
 	SIDE = { "TOPLEFT", "TOPRIGHT", 1, 0, false, below = true },
 }
 local GAP = 2
-local ICON_CROP = 0.07
 local ICON_INSET_LINES = 2
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local COUNT_INSET = 1
@@ -158,7 +157,6 @@ function Auras.NewTile(parent, chrome)
 	local skin = CreateFrame("Frame", nil, parent)
 	chrome = chrome or Widgets.IconChrome(skin)
 	local icon = skin:CreateTexture(nil, "ARTWORK")
-	icon:SetTexCoord(ICON_CROP, 1 - ICON_CROP, ICON_CROP, 1 - ICON_CROP)
 	local mask = skin:CreateMaskTexture()
 	mask:SetTexture((Tokens.Texture("iconMask")), MASK_WRAP, MASK_WRAP)
 	mask:SetAllPoints(icon)

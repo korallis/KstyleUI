@@ -26,6 +26,7 @@ local ATLAS = {
 	ffa = "UI-HUD-UnitFrame-Player-PVP-FFAIcon",
 }
 
+Indicators.ATLAS = ATLAS
 local SLOTS = { "leader", "role", "pvp", "combat", "resting" }
 Indicators.SLOTS = SLOTS
 local RANK = {
@@ -33,7 +34,6 @@ local RANK = {
 	rareelite = "nameplates-icon-elite-silver", rare = "UI-HUD-UnitFrame-Target-PortraitOn-Boss-Rare-Star",
 }
 local MOOD = { "UI-PetMad", "UI-PetNeutral", "UI-PetHappiness" }
-local PlaceExtra
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -114,6 +114,18 @@ function Indicators.Fit(view)
 		x = math.max(spot.x, lane.x + (lane.w - math.min(width, lane.w)) / 2 - Geometry.MARKER_GAP - spot.w)
 	end
 	PlaceMarker(view, x)
+end
+
+local function PlaceExtra(view)
+	local icon = view.extraIcon
+	icon:ClearAllPoints()
+	if view.form == "row" then
+		local size = Snap(view, view.s.iconSize)
+		icon:SetSize(size, size)
+		icon:SetPoint("BOTTOMRIGHT", view.parent, "TOPRIGHT", 0, Snap(view, ICON_GAP))
+	else
+		icon:SetAllPoints(view.icons.resting)
+	end
 end
 
 function Indicators.Layout(view, g, s)
@@ -205,8 +217,16 @@ function Indicators.PvP(view, unit)
 		return
 	end
 	if view.s.pvpPlayersOnly then
-		local player = UnitIsPlayer(unit)
+		local player = UnitIsPlayer and UnitIsPlayer(unit)
 		if issecretvalue(player) or player ~= true then
+			icon:Hide()
+			return
+		end
+	end
+	local faction = UnitFactionGroup and UnitFactionGroup(unit)
+	if view.s.pvpEnemyOnly then
+		local own = UnitFactionGroup and UnitFactionGroup("player")
+		if issecretvalue(faction) or issecretvalue(own) or faction == own then
 			icon:Hide()
 			return
 		end
@@ -218,12 +238,7 @@ function Indicators.PvP(view, unit)
 		return
 	end
 	local flagged = UnitIsPVP and UnitIsPVP(unit)
-	local faction = UnitFactionGroup and UnitFactionGroup(unit)
 	local atlas = not issecretvalue(faction) and type(faction) == "string" and ATLAS[faction]
-	if atlas and view.s.pvpEnemyOnly then
-		local own = UnitFactionGroup("player")
-		atlas = not issecretvalue(own) and own ~= faction and atlas
-	end
 	if issecretvalue(flagged) or flagged ~= true or not atlas then
 		icon:Hide()
 		return
@@ -295,7 +310,7 @@ local function ExtraAtlas(view, unit, sample)
 			return nil
 		end
 		local hunter = HasPetUI and select(2, HasPetUI())
-		local mood = sample or not issecretvalue(hunter) and hunter ~= false and info.GetPetHappiness()
+		local mood = sample or not issecretvalue(hunter) and hunter and info.GetPetHappiness()
 		return not issecretvalue(mood) and MOOD[mood] or nil
 	end
 	if not s.elite or view.kind == "player" then
@@ -303,18 +318,6 @@ local function ExtraAtlas(view, unit, sample)
 	end
 	local rank = sample or UnitClassification and UnitClassification(unit)
 	return not issecretvalue(rank) and RANK[rank] or nil
-end
-
-PlaceExtra = function(view)
-	local icon = view.extraIcon
-	icon:ClearAllPoints()
-	if view.form == "row" then
-		local size = Snap(view, view.s.iconSize)
-		icon:SetSize(size, size)
-		icon:SetPoint("BOTTOMRIGHT", view.parent, "TOPRIGHT", 0, Snap(view, ICON_GAP))
-	else
-		icon:SetAllPoints(view.icons.resting)
-	end
 end
 
 function Indicators.Extra(view, unit, sample)
@@ -330,8 +333,11 @@ function Indicators.Extra(view, unit, sample)
 		view.extraIcon = icon
 		PlaceExtra(view)
 	end
-	icon:SetAtlas(atlas)
-	icon:Show()
+	if icon.mark ~= atlas then
+		icon.mark = atlas
+		icon:SetAtlas(atlas)
+	end
+	if not icon:IsShown() then icon:Show() end
 end
 
 function Indicators.Status(view, unit)

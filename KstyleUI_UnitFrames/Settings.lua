@@ -716,7 +716,10 @@ CastRows = function(schema, kind)
 		options = CHOICES.orientation,
 	}, on)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarIconRight", label = L["Icon on the right"],
-		help = L["Put the spell icon at the right end of the cast bar."] }, function(s) return on(s) and Settings.Value(kind, "castbarIcon") end)
+		help = L["Put the spell icon at the right end of the cast bar."] }, function(s)
+			local form = Settings.Form(kind)
+			return on(s) and Settings.Value(kind, "castbarIcon") and K.HudStyle.Current() ~= "medallions" and (form == "plate" or form == "column")
+		end)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "castbarAlpha", label = L["Fill opacity"],
 		help = L["How solid the cast fill is. Lower lets the track show through."], min = ALPHA_MIN, max = 1, step = ALPHA_STEP }, on)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarSpark", label = L["Cast spark"], help = L["Shows the current style's bright cast progress edge."] }, on)
@@ -934,7 +937,7 @@ local function KindRows(schema, kind)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "healthAlpha", label = L["Fill opacity"],
 		help = L["How solid the health fill is. Lower lets the track show through."], min = ALPHA_MIN, max = 1, step = ALPHA_STEP })
 	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "healthGradient", label = L["Fill gradient"],
-		help = L["Shades the health fill from darker to its colour."], options = CHOICES.gradient })
+		help = L["Shades the health fill from darker to its colour."], options = CHOICES.gradient }, function(s) return s.healthColor ~= "health" end)
 	if kind == "target" then
 		schema[#schema + 1] = Row(kind, {
 			type = "toggle", key = "transitions", label = L["Gentle target changes"],

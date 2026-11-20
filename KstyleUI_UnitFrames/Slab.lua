@@ -352,9 +352,8 @@ function Slab.Level(view, unit)
 	if view.s.levelDifficulty or view.levelTinted then
 		local tint = view.s.levelDifficulty and unit
 		view.levelTinted = tint
-		local friendly = ns.Unit.Friendly(view)
-		view.slabLevel:SetTextColor(ns.Unit.LevelColor(tint, "labelMuted", nil, friendly))
-		view.medallion.levelText:SetTextColor(ns.Unit.LevelColor(tint, "steelLit", nil, friendly))
+		view.slabLevel:SetTextColor(ns.Unit.LevelColor(tint, "labelMuted", nil, view.s.levelFriendly))
+		view.medallion.levelText:SetTextColor(ns.Unit.LevelColor(tint, "steelLit", nil, view.s.levelFriendly))
 	end
 end
 

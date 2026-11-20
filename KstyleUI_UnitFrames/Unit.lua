@@ -53,17 +53,15 @@ local function SetColor(bar, r, g, b, a)
 		bar:SetBarColor(r, g, b)
 	end
 end
+Unit.SetColor = SetColor
 
 function Unit.ShareColor(share)
-	for i = 2, #HEALTH_STOPS do
-		local low, high = HEALTH_STOPS[i - 1], HEALTH_STOPS[i]
-		if share <= high[1] or i == #HEALTH_STOPS then
-			local t = math.max(0, math.min(1, (share - low[1]) / (high[1] - low[1])))
-			local r1, g1, b1 = Tokens.Color(low[2])
-			local r2, g2, b2 = Tokens.Color(high[2])
-			return r1 + (r2 - r1) * t, g1 + (g2 - g1) * t, b1 + (b2 - b1) * t
-		end
-	end
+	local low, high = HEALTH_STOPS[1], HEALTH_STOPS[2]
+	if share > high[1] then low, high = high, HEALTH_STOPS[3] end
+	local t = math.max(0, math.min(1, (share - low[1]) / (high[1] - low[1])))
+	local r1, g1, b1 = Tokens.Color(low[2])
+	local r2, g2, b2 = Tokens.Color(high[2])
+	return r1 + (r2 - r1) * t, g1 + (g2 - g1) * t, b1 + (b2 - b1) * t
 end
 
 local shareCurves, sharesTried
@@ -87,7 +85,6 @@ end
 
 local function ShareColor(unit)
 	local curves = ShareCurves()
-	if not curves then return nil end
 	return UnitHealthPercent(unit, true, curves[1]), UnitHealthPercent(unit, true, curves[2]), UnitHealthPercent(unit, true, curves[3])
 end
 
@@ -142,17 +139,15 @@ function Unit.HealthColor(view, unit)
 	elseif s.healthColor == "custom" then
 		local c = s.healthCustom
 		r, g, b = c.r, c.g, c.b
-	elseif s.healthColor == "health" then
-		r, g, b = ShareColor(unit)
-		view.healthByShare = r ~= nil
-		if not r then r, g, b = UnitColor(unit, "class") end
+	elseif s.healthColor == "health" and ShareCurves() then
+		view.healthByShare = true
 	else
-		r, g, b = UnitColor(unit, view.form == "slab" and s.healthColor == "hud" and unit == "player" and "class" or s.healthColor)
+		r, g, b = UnitColor(unit, (s.healthColor == "health" or view.form == "slab" and s.healthColor == "hud" and unit == "player") and "class" or s.healthColor)
 	end
-	SetColor(view.health, r, g, b, s.healthAlpha)
+	if not view.healthByShare then SetColor(view.health, r, g, b, s.healthAlpha) end
 	local reaction = UnitReaction and UnitReaction(unit, "player")
 	local hostile = not IsSecret(reaction) and type(reaction) == "number" and reaction <= HOSTILE_MAX
-	if not (grey or hostile) then
+	if not (grey or hostile or view.healthByShare or s.healthAlpha < 1) then
 		view.health:SetHealthUnit(unit)
 	end
 	ns.Style.HealthTint(view, r, g, b)
@@ -620,17 +615,12 @@ end
 
 Unit.LevelText = LevelText
 
-local function Friendly(view)
-	return view.s.levelDifficulty and view.s.levelFriendly
-end
-Unit.Friendly = Friendly
-
 local function LevelLine(text, unit, short, view)
 	local creature
 	if not short and UnitCreatureType then
 		creature = UnitCreatureType(unit)
 	end
-	LevelText(text, UnitLevel(unit), UnitClassification and UnitClassification(unit), creature, short, view.s.levelDifficulty and unit, nil, Friendly(view))
+	LevelText(text, UnitLevel(unit), UnitClassification and UnitClassification(unit), creature, short, view.s.levelDifficulty and unit, nil, view.s.levelFriendly)
 end
 
 function Unit.Caption(view, unit)
@@ -713,7 +703,7 @@ function Unit.Level(view, unit)
 		Unit.Caption(view, unit)
 		if (view.form == "vitals" or view.form == "column" or view.form == "bar") and view.s.level then
 			text:SetText(UnitLevel(unit))
-			text:SetTextColor(LevelColor(view.s.levelDifficulty and unit, nil, nil, Friendly(view)))
+			text:SetTextColor(LevelColor(view.s.levelDifficulty and unit, nil, nil, view.s.levelFriendly))
 		end
 		return
 	end
@@ -733,7 +723,7 @@ function Unit.Level(view, unit)
 	else
 		text:SetText(level)
 	end
-	text:SetTextColor(LevelColor(unit, nil, nil, Friendly(view)))
+	text:SetTextColor(LevelColor(unit, nil, nil, view.s.levelDifficulty and view.s.levelFriendly))
 end
 
 function Unit.Crop(texture, s, l, r, t, b)
@@ -754,7 +744,7 @@ function Unit.ClassArt(texture, file, s)
 		texture:SetTexCoord(0, 1, 0, 1)
 		local atlas = GetClassAtlas(file)
 		texture:SetAtlas(atlas)
-		local info = not IsSecret(atlas) and type(atlas) == "string" and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas)
+		local info = (s.portraitMirror or s.portraitZoom > 0) and not IsSecret(atlas) and type(atlas) == "string" and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas)
 		if info then
 			Unit.Crop(texture, s, info.leftTexCoord, info.rightTexCoord, info.topTexCoord, info.bottomTexCoord)
 		end

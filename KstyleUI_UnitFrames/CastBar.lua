@@ -757,10 +757,8 @@ local function BarColor(cb)
 end
 
 local function Paint(cb, r, g, b, a)
-	if a == nil then
-		a = Settings.Value(cb.kind, "castbarAlpha")
-		if a >= 1 then a = nil end
-	end
+	local alpha = Settings.Value(cb.kind, "castbarAlpha")
+	if alpha < 1 then a = alpha end
 	local changed = cb.pr ~= r or cb.pg ~= g or cb.pb ~= b or cb.pa ~= a
 	if (cb.medal or cb.mode == "inside") and Widgets.Readability("readableBars") and (changed or cb.inkPaint ~= cb.inkEmpty) then
 		cb.inkPaint = cb.inkEmpty
