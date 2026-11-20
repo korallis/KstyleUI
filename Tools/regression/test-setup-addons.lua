@@ -13,6 +13,12 @@ local function Item(panel, name, path)
 end
 
 do
+	local _, K = Boot({1920, 1080}, { { name = "FishingBuddy", loaded = true, enabled = 2 } })
+	assert(K.Setup.Open(true))
+	assert(#K.Setup.window.steps.items == 6, "skip Your addons when only an unsupported addon is installed")
+end
+
+do
 	local env, K = W.New({ saved = { version = 42, profiles = {
 		Default = {}, Untouched = { Skins = { character = { enabled = false } } },
 		Off = { Skins = { enabled = false, restedXP = { enabled = false } } }, On = { Skins = { enabled = true } },
@@ -55,6 +61,9 @@ for _, screen in ipairs({ {1920, 1080}, {2560, 1440}, {5120, 1440}, {3840, 2160}
 	for _, group in ipairs(panel.addons.active) do
 		for _, item in ipairs(group.active) do
 			assert(item.row.key == "enabled" or K.Options.Row(item.row.module, item.row.key), "each choice uses its existing Options setting")
+			assert(item.note.Restyle == panel.toggles.Skins.note.Restyle, "addon notes must share the Modules NoteStyle")
+			local _, size = item.note:GetFont()
+			assert(size == 11 * K.Theme.FontScale(), "readable addon notes must use the setup's 11-unit note size")
 			local rect = assert(Geometry.Rect(item.control, panel.addons.body))
 			local page = assert(Geometry.Rect(panel.addons.body, panel.addons.body))
 			assert(rect.left >= page.left - 1 and rect.right <= page.right + 1, "addon controls stay inside their page at every screen")
