@@ -73,13 +73,23 @@ local function New(saved, missing)
 		end
 		function scroll:OnHide() self.currentScale, self.currentScrollX, self.currentScrollY = nil, nil, nil end
 		function scroll:OnMouseUp(button)
+			e._secure = true
 			if button == "LeftButton" and e._hover then map:SetMapID(e._hover)
 			elseif button == "RightButton" then map:NavigateToParentMap() end
+			e._secure = false
+		end
+		local pin = e.CreateFrame("Button", nil, scroll)
+		e._pinAcquires = 0
+		function map:AcquirePin()
+			e._pinAcquires = e._pinAcquires + 1
+			pin:SetPassThroughButtons()
+			pin:SetPassThroughButtons("RightButton")
 		end
 		function map:SetMapID(id)
 			if self.mapID == id then return end
 			self.mapID, scroll.mapID = id, id
 			scroll:ResetZoom()
+			self:AcquirePin()
 		end
 		function map:NavigateToParentMap()
 			local info = e.C_Map.GetMapInfo(self.mapID)
@@ -143,13 +153,31 @@ scroll:OnMouseWheel(1)
 scroll:OnMouseWheel(1)
 assert(#env._preloads == 1 and env._preloads[1] == 3, "preload only the map under the cursor, once")
 scroll:InstantPanAndZoom(4, .5, .5, true)
-env.FireEvent("PLAYER_REGEN_DISABLED")
+env.SetCombat(true)
+local acquired = env._pinAcquires
+for _, smooth in ipairs({ true, false }) do
+	K.Options.Write("Skins", "worldMap.smoothZoom", smooth)
+	scroll:InstantPanAndZoom(4, .5, .5, true)
+	scroll:OnMouseWheel(1)
+	assert(map.mapID == 2, "combat wheel at max must stay on the current map")
+	scroll:InstantPanAndZoom(1, .5, .5, true)
+	scroll:OnMouseWheel(-1)
+	assert(map.mapID == 2 and env._pinAcquires == acquired, "combat wheel must never acquire pins or call protected SetPassThroughButtons")
+	scroll:OnMouseWheel(1)
+	assert(scroll.targetScale > 1, "combat wheel still zooms within the current map")
+end
+scroll:OnMouseUp("LeftButton")
+assert(map.mapID == 3, "Blizzard's secure left click still navigates in combat")
+scroll:OnMouseUp("RightButton")
+assert(map.mapID == 2 and env._pinAcquires == acquired + 2, "Blizzard's secure right click still acquires pins in combat")
+env.SetCombat(false)
+K.Options.Write("Skins", "worldMap.smoothZoom", true)
+scroll:InstantPanAndZoom(4, .5, .5, true)
 scroll:OnMouseWheel(1)
-assert(map.mapID == 3, "wheel in at max navigates to the child in combat")
+assert(map.mapID == 3, "wheel in at max navigates outside combat")
 scroll:InstantPanAndZoom(1, .5, .5, true)
 scroll:OnMouseWheel(-1)
-assert(map.mapID == 2, "wheel out works in combat")
-env.FireEvent("PLAYER_REGEN_ENABLED")
+assert(map.mapID == 2, "wheel out navigates outside combat")
 
 K.Options.Write("Skins", "worldMap.wheelMaps", false)
 scroll:InstantPanAndZoom(1, .5, .5, true)
@@ -164,10 +192,13 @@ scroll:OnMouseUp("RightButton")
 assert(map.mapID == 2, "right click still navigates to parent")
 
 scroll:InstantPanAndZoom(2.5, .35, .6, true)
+scroll:OnMouseUp("MiddleButton")
+local beforeUpdate = K.Store.Module("Skins").worldMap.zooms[2]
 scroll:OnUpdate()
+assert(K.Store.Module("Skins").worldMap.zooms[2] == beforeUpdate, "OnUpdate must not save or allocate zoom state; save on wheel, drag end, map change or hide")
 map:SetMapID(3)
 scroll:InstantPanAndZoom(3, .7, .25, true)
-scroll:OnUpdate()
+scroll:OnMouseUp("MiddleButton")
 map:SetMapID(2)
 Near(scroll.currentScale, 2.5)
 Near(scroll.currentScrollX, .35)
@@ -229,6 +260,8 @@ s:ResetZoom()
 Near(s.currentScale, 1)
 k.Store.Module("Skins").worldMap.zooms[1] = false
 s:OnUpdate()
+assert(k.Store.Module("Skins").worldMap.zooms[1] == false, "OnUpdate must not write saved zoom; save on wheel, drag end, map change or hide")
+s:OnHide()
 assert(type(k.Store.Module("Skins").worldMap.zooms[1]) == "table", "invalid saved entries recover on the next save")
 Clean(e, k)
 print("world map navigation ok: smooth/full, parent/child, preload, combat, clicks, saved reload, toggles and missing APIs")

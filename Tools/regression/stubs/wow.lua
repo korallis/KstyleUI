@@ -822,6 +822,11 @@ end
 function Object:SetAttribute(key, value) self._attributes[key] = value end
 function Object:GetAttribute(key) return self._attributes[key] end
 
+function Object:SetPassThroughButtons(...)
+	assert(not self._env.InCombatLockdown() or self._env._secure, "ADDON_ACTION_BLOCKED: Button:SetPassThroughButtons()")
+	self._state.PassThroughButtons = pack(...)
+end
+
 -- A frame starts one level above its parent, as in the game.
 function Object:SetFrameLevel(level) self._level = level end
 function Object:GetFrameLevel()
