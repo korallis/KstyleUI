@@ -77,6 +77,7 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 2560, heigh
 		local cap
 		for _, child in ipairs({ header:GetChildren() }) do if child.label and child.gem and child.rule then cap = child end end
 		assert(cap and cap:IsShown(), "Use the shared SectionCap for Questie's own header")
+		assert(cap.count:GetText() == "8/40", "Place Questie's tracker count in the shared header's number column")
 	end)
 end
 

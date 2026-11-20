@@ -41,7 +41,10 @@ local function Refresh()
 	end
 	if label then
 		label:SetAlpha(on and 0 or 1)
-		cap:SetText(ns.Lumen.Plain(label:GetText()))
+		local value = ns.Lumen.Plain(label:GetText())
+		local title, count = value:match("^(.-):%s*(%d+/%d+)$")
+		cap:SetText(title or value)
+		cap:SetCount(count)
 		cap:SetShown(on)
 	end
 	if on then ns.Style.Sweep(frame, { skip = { [panel] = true, [cap or panel] = true } }) end
