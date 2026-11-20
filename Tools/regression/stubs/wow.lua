@@ -530,6 +530,9 @@ end
 for _, field in ipairs({ "VertexColor", "ColorTexture" }) do
 	Object["Set" .. field] = function(self, ...)
 		local a = select(4, ...)
+		if field == "ColorTexture" then
+			self._state.Atlas = nil
+		end
 		self._state[field] = pack(...)
 		self._alpha = a == nil and 1 or a
 	end
@@ -1015,6 +1018,11 @@ function Object:GetNumMaskTextures() return self._masks and #self._masks or 0 en
 function Object:GetMaskTexture(i) return self._masks and self._masks[i] end
 
 -- An atlas replaces the file asset; the render harness resolves its sheet through the atlas cache.
+function Object:SetTexture(...)
+	self._state.Atlas = nil
+	self._state.Texture = pack(...)
+end
+
 function Object:SetAtlas(...)
 	self._state.Texture = nil
 	self._state.Atlas = pack(...)
@@ -1117,6 +1125,12 @@ end
 
 local Quiet = {}
 
+local setTexture = quietSetter("Texture")
+function Quiet:SetTexture(...)
+	self._state.Atlas = nil
+	setTexture(self, ...)
+end
+
 local setAtlas = quietSetter("Atlas")
 function Quiet:SetAtlas(...)
 	self._state.Texture = nil
@@ -1127,6 +1141,9 @@ local setAlpha, setBooleanAlpha = quietSetter("Alpha"), quietSetter("AlphaFromBo
 for _, field in ipairs({ "VertexColor", "ColorTexture" }) do
 	local set = quietSetter(field)
 	Quiet["Set" .. field] = function(self, ...)
+		if field == "ColorTexture" then
+			self._state.Atlas = nil
+		end
 		set(self, ...)
 		local a = select(4, ...)
 		self._alpha = a == nil and 1 or a
