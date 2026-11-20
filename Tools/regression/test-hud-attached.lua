@@ -11,7 +11,7 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 	for _, count in ipairs({1,3,6,12}) do
 		local p = L.Place("DPS", style, K.Scale.Aspect(), "cooldowns.essential")
 		local cast = L.Place("DPS", style, K.Scale.Aspect(), "unitframes.castbar.player")
-		assert(math.abs(p.y - cast.y) < 100, style .. ": attach essential cooldowns to the cast area")
+		assert(style == "medallions" and p.x == 0 and p.y > cast.y + 49 or style ~= "medallions" and math.abs(p.y - cast.y) < 100, style .. ": centre Medallions above the casts; keep other styles by the cast area")
 		local cfg = ns.Settings.current.essential
 		assert(ns.Grid.Capacity(cfg) >= count, "default essential grid must accommodate twelve icons")
 		local x1 = ns.Grid.Offset(1, count, cfg)
@@ -27,7 +27,9 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 			local l,b,rr,t = L.Rect(castSize, cast, K.Scale.Root():GetWidth(), K.Scale.Root():GetHeight())
 			assert(r.right <= l or r.left >= rr or r.top <= b or r.bottom >= t, "cooldowns leave casts clear")
 			if style == "medallions" then
-				assert(r.right < K.Scale.Root():GetWidth()/2 - 126, "leave the crest fan's 252-unit central lane clear")
+				local bar = L.Style(style, "DPS", "actionbars.bar1")
+				local _, _, _, height = L.MedallionsGroup(K.Scale.Aspect())
+				assert(r.bottom > bar.y + height + 263, "centre cooldowns above the original crest fan reservation")
 			end
 		end
 		local utility = ns.Mirror.Row("utility")
