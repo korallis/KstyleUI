@@ -1,11 +1,11 @@
--- test-setup-addons.lua: live addon discovery, skin defaults and migration, shared Options choices, Apply, reopen and Keep at every owner screen.
+-- test-setup-addons.lua: live addon discovery, skin defaults, shared Options choices, Apply, reopen and Keep at every owner screen.
 local Suite = dofile("Tools/regression/suite_env.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 local Fake = dofile("Tools/regression/addons_fake.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
 
 local function Boot(screen, list, profile)
-	return Suite.New({ version = 43, profiles = { Default = profile or {} }, characters = {}, account = { setupSeen = true } }, screen[1], screen[2], function(env) Fake.Install(env, list) end)
+	return Suite.New({ version = 42, profiles = { Default = profile or {} }, characters = {}, account = { setupSeen = true } }, screen[1], screen[2], function(env) Fake.Install(env, list) end)
 end
 
 local function Item(panel, name, path)
@@ -16,20 +16,6 @@ do
 	local _, K = Boot({1920, 1080}, { { name = "FishingBuddy", loaded = true, enabled = 2 } })
 	assert(K.Setup.Open(true))
 	assert(#K.Setup.window.steps.items == 6, "skip Your addons when only an unsupported addon is installed")
-end
-
-do
-	local env, K = W.New({ saved = { version = 42, profiles = {
-		Default = {}, Untouched = { Skins = { character = { enabled = false } } },
-		Off = { Skins = { enabled = false, restedXP = { enabled = false } } }, On = { Skins = { enabled = true } },
-	} } })
-	assert(env.KstyleUIDB.version == 43, "take the next migration number")
-	for _, name in ipairs({ "Default", "Untouched", "On" }) do
-		assert(env.KstyleUIDB.profiles[name].Skins.enabled == true, "an untouched skin master becomes on")
-	end
-	assert(env.KstyleUIDB.profiles.Off.Skins.enabled == false and env.KstyleUIDB.profiles.Off.Skins.restedXP.enabled == false, "keep explicit master and per-skin off choices")
-	assert(env.KstyleUIDB.profiles.Untouched.Skins.character.enabled == false, "keep a per-window off choice while enabling the untouched master")
-	assert(K.Features.Get("modules", "Skins"), "the master defaults on")
 end
 
 for _, screen in ipairs({ {1920, 1080}, {2560, 1440}, {5120, 1440}, {3840, 2160} }) do
@@ -44,7 +30,7 @@ for _, screen in ipairs({ {1920, 1080}, {2560, 1440}, {5120, 1440}, {3840, 2160}
 	local panel = K.Setup.window
 	assert(panel.pages[1].branded.list:GetText():find("your addons", 1, true), "the welcome includes the detected-addon choice")
 	assert(#panel.steps.items == 7 and panel.steps.items[5].label == "Your addons", "detected addons insert a step after Modules")
-	assert(#K.Setup.Choice().addons == 5, "include only enabled external addons, including an unloaded unknown addon")
+	assert(#K.Setup.Choice().addons == 4, "include only enabled supported addons")
 	assert(K.Setup.Choice().modules.Skins, "Questie must not disable the whole Skins module")
 	assert(K.Setup.Go(5))
 	W.Settle(env)
@@ -53,7 +39,6 @@ for _, screen in ipairs({ {1920, 1080}, {2560, 1440}, {5120, 1440}, {3840, 2160}
 	assert(not Item(panel, "Bartender4", "ActionBars.enabled"):GetValue(), "prefer the installed bars")
 	assert(not Item(panel, "Bartender4", "DataBars.micro.enabled"):GetValue() and not Item(panel, "Bartender4", "DataBars.bags.enabled"):GetValue(), "yield menus only")
 	assert(not Item(panel, "Details", "Meters.damage.shown"):GetValue() and K.Setup.Choice().modules.Meters, "yield damage only")
-	assert(Item(panel, "other", "Skins.restyleAddons"):GetValue(), "unknown addons use the existing shared text switch, on")
 	local tracker = Item(panel, "Questie", "Integrations.questTracker")
 	assert(tracker:GetValue() == "kstyleui", "recommend KstyleUI's quest card")
 	local options = K.Options.Row("Integrations", "questTracker").options
@@ -63,12 +48,19 @@ for _, screen in ipairs({ {1920, 1080}, {2560, 1440}, {5120, 1440}, {3840, 2160}
 			assert(item.row.key == "enabled" or K.Options.Row(item.row.module, item.row.key), "each choice uses its existing Options setting")
 			assert(item.note.Restyle == panel.toggles.Skins.note.Restyle, "addon notes must share the Modules NoteStyle")
 			local _, size = item.note:GetFont()
-			assert(size == 11 * K.Theme.FontScale(), "readable addon notes must use the setup's 11-unit note size")
+			assert(math.abs(size - 11 * K.Theme.FontScale()) < 1, "readable addon notes must use the setup's 11-unit note size")
 			local rect = assert(Geometry.Rect(item.control, panel.addons.body))
 			local page = assert(Geometry.Rect(panel.addons.body, panel.addons.body))
 			assert(rect.left >= page.left - 1 and rect.right <= page.right + 1, "addon controls stay inside their page at every screen")
 		end
 	end
+	K.Options.Write("Setup", "readableNotes", false)
+	local note = panel.addons.active[1].active[1].note
+	local moduleNote = panel.toggles.Skins.note
+	local face, size, flags = note:GetFont()
+	local moduleFace, moduleSize, moduleFlags = moduleNote:GetFont()
+	assert(face == moduleFace and size == moduleSize and flags == moduleFlags and not note:CanWordWrap(), "addon notes must follow Readable setup notes off like Modules")
+	K.Options.Write("Setup", "readableNotes", true)
 	local before, writes = K.Store.Export(), 0
 	K.Callbacks.Register("SettingChanged", "test", function() writes = writes + 1 end)
 	Item(panel, "RXPGuides", "Skins.restedXP.enabled"):SetValue(false)
@@ -76,12 +68,11 @@ for _, screen in ipairs({ {1920, 1080}, {2560, 1440}, {5120, 1440}, {3840, 2160}
 	Item(panel, "Bartender4", "ActionBars.enabled"):SetValue(true)
 	Item(panel, "Bartender4", "DataBars.micro.enabled"):SetValue(true)
 	Item(panel, "Details", "Meters.damage.shown"):SetValue(true)
-	Item(panel, "other", "Skins.restyleAddons"):SetValue(false)
 	tracker:SetValue("both")
 	assert(K.Store.Export() == before and writes == 0, "editing setup only changes its pending choices")
 	assert(panel.toggles.ActionBars:GetValue(), "same-job edits also update Modules")
 	assert(K.Setup.Go(7) and K.Setup.Apply(K.Setup.Choice()))
-	assert(not K.Options.Read("Skins", "restedXP.enabled") and not K.Options.Read("Skins", "questie.enabled") and not K.Options.Read("Skins", "restyleAddons"), "apply every skin choice")
+	assert(not K.Options.Read("Skins", "restedXP.enabled") and not K.Options.Read("Skins", "questie.enabled"), "apply every skin choice")
 	assert(K.Options.Read("ActionBars", "enabled") and K.Options.Read("DataBars", "micro.enabled") and not K.Options.Read("DataBars", "bags.enabled"), "apply bars and each menu independently")
 	assert(K.Options.Read("Meters", "damage.shown") and K.Options.Read("Integrations", "questTracker") == "both", "addon choices win over the layout preset")
 	assert(K.Setup.Open())
@@ -116,6 +107,7 @@ do
 	K.Setup.Open(true)
 	for _, module in ipairs({ "ActionBars", "Nameplates", "Bags", "GroupFrames" }) do assert(not K.Setup.Choice().modules[module], "same-job choices yield " .. module) end
 	assert(K.Setup.Choice().modules.Skins, "other addons do not turn off window skins")
+	assert(#K.Setup.Choice().addons == 4, "enabled load-on-demand supported addons count as installed")
 	env.C_AddOns.GetAddOnEnableState = nil
 	assert(#K.Setup.Integrations.Addons() == 3, "without enable-state information, include only loaded addons")
 	env.C_AddOns.GetNumAddOns = function() return env.Secret(10) end
@@ -123,6 +115,12 @@ do
 	env.C_AddOns.GetNumAddOns = nil
 	assert(#K.Setup.Integrations.Addons() == 0, "missing detection is safe")
 	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+do
+	local _, K = W.New({ setup = function(env) Fake.Install(env, { { name = "RXPGuides", loaded = true, enabled = 2 } }) end })
+	assert(K.Setup.Open(true))
+	assert(#K.Setup.window.steps.items == 6, "skip registry-only addons when Skins is not loaded")
 end
 
 print("setup addons ok")

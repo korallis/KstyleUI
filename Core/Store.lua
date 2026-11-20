@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor = string.format, string.sub, math.floor
 
-Store.DB_VERSION = 43
+Store.DB_VERSION = 42
 Store.migrations = {}
 
 Store.migrations[38] = function(data)
@@ -1016,15 +1016,6 @@ Store.migrations[42] = function(data)
 		if type(profile) == "table" and type(moved) == "table" and (moved.x ~= nil or moved.y ~= nil or moved.anchor ~= nil) then
 			profile.UnitFrames = type(profile.UnitFrames) == "table" and profile.UnitFrames or {}
 			if profile.UnitFrames.auraLayout == nil then profile.UnitFrames.auraLayout = "fan" end
-		end
-	end
-end
-
-Store.migrations[43] = function(data)
-	for _, profile in pairs(data.profiles) do
-		if type(profile) == "table" then
-			profile.Skins = type(profile.Skins) == "table" and profile.Skins or {}
-			if profile.Skins.enabled == nil then profile.Skins.enabled = true end
 		end
 	end
 end

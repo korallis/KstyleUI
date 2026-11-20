@@ -88,25 +88,26 @@ function Setup.Available(name)
 end
 
 function Setup.NewChoice(current)
-	local modules = {}
+	local modules, overlapping = {}, {}
+	local addons, settings = Setup.Integrations.Addons(), {}
+	for _, addon in ipairs(addons) do
+		for _, row in ipairs(addon.rows) do
+			if row.key == "enabled" then overlapping[row.module] = true end
+		end
+	end
 	for _, entry in ipairs(PICKER) do
-		local overlaps = #Setup.Integrations.Detected(entry.name) > 0
+		local overlaps = overlapping[entry.name] == true or #Setup.Integrations.Detected(entry.name) > 0
 		modules[entry.name] = Setup.Available(entry.name) and (entry.name == "Skins" or entry.name == "DataBars" or entry.name == "Meters" or not overlaps)
 		if current and (overlaps or entry.name == "Skins") and Setup.Available(entry.name) then modules[entry.name] = ns.Modules.IsEnabled(entry.name) end
 	end
-	local addons, settings = Setup.Integrations.Addons(), {}
 	for _, addon in ipairs(addons) do
-		addon.rows = Setup.Integrations.AddonRows(addon.name)
 		for _, row in ipairs(addon.rows) do
-			if row.key == "enabled" then
-				modules[row.module] = current and ns.Modules.IsEnabled(row.module) or row.recommended
-			else
+			if row.key ~= "enabled" then
 				local value = ns.Options.Read(row.module, row.key)
 				if not current and (row.module == "DataBars" or row.module == "Meters" or row.module == "Integrations") then value = row.recommended end
 				settings[row.module .. "." .. row.key] = value
 			end
 		end
-		if #addon.rows == 0 and ns.Store.Defaults("Skins") then settings["Skins.restyleAddons"] = ns.Options.Read("Skins", "restyleAddons") end
 	end
 	return { hudStyle = ns.HudStyle.Saved(), layout = DEFAULT_LAYOUT, modules = modules, ornaments = DEFAULT_ORNAMENTS, addons = addons, addonSettings = settings }
 end

@@ -1,4 +1,4 @@
--- setup_addons.lua: the real setup with a client-list fixture: RestedXP, Questie, Details, Bartender and an unknown addon.
+-- setup_addons.lua: the real setup with a client-list fixture: RestedXP, Questie, Details, Bartender; the unsupported addon is omitted.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local W = dofile("Tools/regression/widget_env.lua")

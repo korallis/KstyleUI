@@ -13,7 +13,7 @@
 
 Tests: `Tools/regression/test-setup.lua`, `test-setup-addons.lua`, `test-setup-editmode.lua` and `test-setup-layouts.lua`.
 
-**Your addons** follows Modules when the client reports enabled external addons. It offers registry skins, the existing same-job Options settings, and one shared fonts-and-colours switch for other addons. Reopening reads current addon choices; Apply writes them after the layout preset, and Keep my UI discards pending changes.
+**Your addons** follows Modules when the client reports enabled supported addons. It offers registry skins and the existing same-job Options settings. Unsupported addons are omitted; if Skins is not loaded, only available same-job choices count. Reopening reads current addon choices; Apply writes them after the layout preset, and Keep my UI discards pending changes.
 
 ## When it opens
 
@@ -27,7 +27,7 @@ Tests: `Tools/regression/test-setup.lua`, `test-setup-addons.lua`, `test-setup-e
 
 General > Layout pictures in setup defaults on: DPS, Tank and Healer cards show 512x256 HUD renders at 180x90, following the selected HUD style. Off restores the footprint diagram and hover legend. General > Readable setup notes defaults on: 11-unit body notes wrap and respect the reading floor; the module list scrolls when it needs more room. Off restores the previous small single-line module notes. `test-setup-polish` checks both choices, the 0.65 window scale and picture placement after a text-size change.
 
-The window is a titled `Widgets.Panel` (760 by 540 units, `DIALOG` strata, Escape closes it) that opens with the panel motion. It registers with Layout as `setup.window`, scalable, 40 units above the centre. A `Widgets.Tabs` strip shows six steps, or seven with enabled external addons. A step the player has not reached is disabled, and each page fades in over `fade`.
+The window is a titled `Widgets.Panel` (760 by 540 units, `DIALOG` strata, Escape closes it) that opens with the panel motion. It registers with Layout as `setup.window`, scalable, 40 units above the centre. A `Widgets.Tabs` strip shows six steps, or seven with enabled supported addons. A step the player has not reached is disabled, and each page fades in over `fade`.
 
 1. **Welcome.** The logo, a short welcome, the five or six steps ahead, on the first run the note that closing applies the DPS layout with every module on and Full ornaments, **Keep my UI** and **Next**.
 2. **HUD style.** Three cards side by side on the layout cards' button body, **Frames**, **Orbs** and **Medallions**, each with its one-line note and its picture (`HudStyleFrames`, `HudStyleOrbs`, `HudStyleMedallions`, the same pictures the settings window shows), with the same `accent` hairline and selection glow. The profile's saved style is picked first, Frames for a new one. A hint under them says the style changes later at the top of the settings window's General page, and that a change made in combat waits for combat to end. Apply writes the pick to the `HudStyle` section (`Core/HudStyle.lua`), which switches it.

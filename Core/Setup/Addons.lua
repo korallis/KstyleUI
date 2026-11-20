@@ -1,6 +1,6 @@
 -- Addons.lua: the setup's detected-addon choices, using the same toggles, notes and dropdowns as the other steps.
 local _, K = ...
-local Setup, Widgets, L = K.Setup, K.Widgets, K.L
+local Setup, Widgets = K.Setup, K.Widgets
 
 local function Value(row)
 	local choice = Setup.Choice()
@@ -50,7 +50,7 @@ function Setup.AddonsPage(page, width, changed)
 				Widgets.Point(control, "TOPLEFT", group.frame, "TOPLEFT", 0, -y)
 				if row.type == "toggle" then control.label:SetWidth(column - indent) end
 				y = y + control:GetHeight() + tiny
-				Widgets.StyleText(item.note)
+				item.note:Restyle()
 				item.note:SetWidth(column - indent)
 				Widgets.Point(item.note, "TOPLEFT", group.frame, "TOPLEFT", indent, -y)
 				y = y + Widgets.WrappedHeight(item.note, column - indent) + K.Tokens.Size("gapSmall")
@@ -98,7 +98,10 @@ function Setup.AddonsPage(page, width, changed)
 						item.control = Widgets.Toggle(item.frame, { label = row.label, onChange = Pick })
 						item.control.label:SetJustifyH("LEFT")
 					end
-					item.note = Widgets.Text(item.frame, "body", "text")
+					item.note = Widgets.FontString(item.frame)
+					item.note.Restyle = Setup.NoteStyle
+					Widgets.Track(item.note)
+					Widgets.TextColor(item.note, "text")
 					item.note:SetJustifyH("LEFT")
 					item.note:SetWordWrap(true)
 					group.items[key] = item
@@ -109,12 +112,8 @@ function Setup.AddonsPage(page, width, changed)
 			end
 			self.active[#self.active + 1] = group
 		end
-		local others = {}
 		for _, addon in ipairs(Setup.Choice().addons) do
-			if #addon.rows > 0 then Group(addon.name, addon.label, addon.rows) else others[#others + 1] = addon.label end
-		end
-		if #others > 0 and K.Store.Defaults("Skins") then
-			Group("other", L["Other addons"], { { module = "Skins", key = "restyleAddons", type = "toggle", label = L["Match KstyleUI fonts and colours"], help = table.concat(others, ", ") .. "\n" .. K.Options.Row("Skins", "restyleAddons").help } })
+			Group(addon.name, addon.label, addon.rows)
 		end
 		self:Sync()
 		self:Restyle()

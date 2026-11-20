@@ -245,7 +245,7 @@ function Setup.Step()
 	return step
 end
 
-local function NoteStyle(text)
+function Setup.NoteStyle(text)
 	local readable = ns.Store.Module("Setup").readableNotes
 	Widgets.Fitted(text, not readable and not text.bodyNote)
 	text:SetWordWrap(readable or text.bodyNote == true)
@@ -263,9 +263,9 @@ local function Paragraph(parent, role, color, width, small)
 	local text = small and Widgets.FontString(parent) or Widgets.Text(parent, role, color)
 	if small then
 		text.bodyNote = small == "body"
-		text.Restyle = NoteStyle
+		text.Restyle = Setup.NoteStyle
 		Widgets.Track(text)
-		NoteStyle(text)
+		Setup.NoteStyle(text)
 		Widgets.TextColor(text, color)
 	end
 	text:SetJustifyH("LEFT")
@@ -796,9 +796,9 @@ local function BuildModules(page, width)
 			end,
 		})
 		local note = Widgets.FontString(body)
-		note.Restyle = NoteStyle
+		note.Restyle = Setup.NoteStyle
 		Widgets.Track(note)
-		NoteStyle(note)
+		Setup.NoteStyle(note)
 		note:SetJustifyH("LEFT")
 		toggle.note = note
 		panel.toggles[name] = toggle
@@ -813,7 +813,7 @@ PlaceModules = function()
 	for i, entry in ipairs(Setup.PICKER) do
 		local col = i <= ROWS_PER_COLUMN and 1 or 2
 		local toggle = panel.toggles[entry.name]
-		NoteStyle(toggle.note)
+		Setup.NoteStyle(toggle.note)
 		local indent = toggle.trackBox:GetWidth() + gap("gapMedium")
 		toggle:ClearAllPoints()
 		Widgets.Point(toggle, "TOPLEFT", panel.moduleBody, "TOPLEFT", (col - 1) * column, -heights[col])

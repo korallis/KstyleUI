@@ -41,7 +41,10 @@ function Integration.Addons()
 				local read, state = pcall(api.GetAddOnEnableState, name, character)
 				if read and not Widgets.IsSecret(state) and type(state) == "number" then enabled = state > 0 end
 			end
-			if enabled then out[#out + 1] = { name = name, label = not Widgets.IsSecret(title) and type(title) == "string" and title ~= "" and title or name } end
+			if enabled then
+				local rows = Integration.AddonRows(name)
+				if #rows > 0 then out[#out + 1] = { name = name, label = not Widgets.IsSecret(title) and type(title) == "string" and title ~= "" and title or name, rows = rows } end
+			end
 		end
 	end
 	table.sort(out, function(a, b) return a.name:lower() < b.name:lower() end)
@@ -66,12 +69,12 @@ function Integration.AddonRows(addon)
 				if entry.name == "Skins" then
 					Add("Integrations", "questTracker", "kstyleui")
 				elseif entry.name == "DataBars" then
-					Add("DataBars", "micro.enabled", false, L["Use KstyleUI's micro menu"], L["Off keeps your other addon's micro menu (recommended)."])
-					Add("DataBars", "bags.enabled", false, L["Use KstyleUI's bag bar"], L["Off keeps your other addon's bag bar (recommended)."])
+					Add("DataBars", "micro.enabled", false, string.format(L["Enable %s"], L["Micro menu"]), L["Off keeps your other addon's micro menu (recommended)."])
+					Add("DataBars", "bags.enabled", false, string.format(L["Enable %s"], L["Bag bar"]), L["Off keeps your other addon's bag bar (recommended)."])
 				elseif entry.name == "Meters" then
 					Add("Meters", "damage.shown", false, nil, L["Off keeps Details for damage; threat and swing stay available (recommended)."])
 				else
-					Add(entry.name, "enabled", false, entry.label, L["Off keeps your other addon for this feature (recommended)."])
+					Add(entry.name, "enabled", false, string.format(L["Enable %s"], entry.label), L["Off keeps your other addon for this feature (recommended)."])
 				end
 			end
 		end
