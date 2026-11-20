@@ -1,4 +1,4 @@
--- qol_parity.lua: the full HUD with the QoL parity round 1 options on (the leaving-combat and talent alerts, the durability warning, the crosshair and the cursor ring), or with RENDER_QOL_OPTIONS=1 the QoL page and its live preview.
+-- qol_parity.lua: the full HUD with every QoL parity round 1 option on, most away from its default (a larger alert size, class colours, a lower crosshair with set lengths and thicknesses, a larger class-coloured ring, a higher durability warning), after a combat round trip and then a party member's death, so the flash line shows the death alert over the talent line; or with RENDER_QOL_OPTIONS=1 the QoL page and its live preview.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Reference = dofile("Tools/render/scenes/_reference.lua")
@@ -6,7 +6,13 @@ local O = dofile("Tools/regression/options_env.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 local Q = dofile("Tools/regression/qol_env.lua")
 
-local ON = { combatAlert = true, talentAlert = true, durabilityAlert = true, deathAlert = true, crosshair = "normal", crosshairBorder = 1, cursorRing = true }
+local ON = {
+	alertSize = 40, combatAlert = true, combatLeaveClass = true, talentAlert = true, talentClass = true, deathAlert = true, deathSound = "ready",
+	durabilityAlert = true, durabilityPercent = 50, durabilityY = 290, durabilityThrown = false,
+	crosshair = "normal", crosshairHLength = 60, crosshairVLength = 60, crosshairHWidth = 3, crosshairVWidth = 3, crosshairBorder = 1, crosshairY = -24,
+	cursorRing = true, cursorScale = 125, cursorOpacity = 90, cursorClass = true,
+	hideScreenshot = true, announceReset = true, autoLog = true, autoLogWhere = "all", skipCinematics = true, skipMode = "both",
+}
 
 return Common.Run(function()
 	local options = os.getenv("RENDER_QOL_OPTIONS") == "1"
@@ -28,6 +34,8 @@ return Common.Run(function()
 	env.FireEvent("UPDATE_INVENTORY_DURABILITY")
 	env.SetCombat(true)
 	env.SetCombat(false)
+	env._group, env._names.party1, env._dead.party1 = true, "Valerin", true
+	env.FireEvent("UNIT_HEALTH", "party1")
 	local root = K.Scale.Root()
 	env._cursor = { root:GetWidth() * (options and 0.85 or 0.35) * root:GetEffectiveScale(), root:GetHeight() * 0.68 * root:GetEffectiveScale() }
 	local _, ring = ns.AidFrames()
