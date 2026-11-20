@@ -199,17 +199,50 @@ Strip.ACTIONS.spec = function(_, mouse)
 	if can then C_SpecializationInfo.SetActiveSpecGroup(3 - group) end
 end
 
-for _, event in ipairs({ "PLAYER_XP_UPDATE", "UPDATE_FACTION", "BAG_UPDATE_DELAYED", "CALENDAR_UPDATE_PENDING_INVITES", "GUILD_ROSTER_UPDATE", "FRIENDLIST_UPDATE", "BN_FRIEND_INFO_CHANGED", "BN_FRIEND_LIST_SIZE_CHANGED", "BN_CONNECTED", "BN_DISCONNECTED", "HEARTHSTONE_BOUND" }) do
-	ns.Listen(event, Strip.Update)
+local EVENTS = {
+	xp = { "PLAYER_XP_UPDATE", "UPDATE_FACTION" },
+	bags = { "BAG_UPDATE_DELAYED" },
+	time = { "CALENDAR_UPDATE_PENDING_INVITES" },
+	guild = { "GUILD_ROSTER_UPDATE", "PLAYER_GUILD_UPDATE" },
+	friends = { "FRIENDLIST_UPDATE", "BN_FRIEND_INFO_CHANGED", "BN_FRIEND_LIST_SIZE_CHANGED", "BN_CONNECTED", "BN_DISCONNECTED" },
+	hearth = { "HEARTHSTONE_BOUND", "SPELL_UPDATE_COOLDOWN" },
+	spec = { "PLAYER_SPECIALIZATION_CHANGED", "ACTIVE_TALENT_GROUP_CHANGED" },
+	currencies = { "CURRENCY_DISPLAY_UPDATE" },
+	gold = { "PLAYER_MONEY" },
+	durability = { "UPDATE_INVENTORY_DURABILITY", "PLAYER_EQUIPMENT_CHANGED" },
+}
+local active = {}
+local function Changed(event)
+	if event == "PLAYER_GUILD_UPDATE" or event == "PLAYER_SPECIALIZATION_CHANGED" or event == "ACTIVE_TALENT_GROUP_CHANGED" then
+		Strip.Refresh()
+	elseif event == "CURRENCY_DISPLAY_UPDATE" then
+		local item = Strip.view and Strip.view.items.currencies
+		if Readouts.Visible("currencies") ~= (item and item.button:IsShown() or false) then Strip.Refresh() else Strip.Update() end
+	else
+		if event == "PLAYER_MONEY" then Readouts.SaveGold() end
+		Strip.Update()
+	end
 end
-for _, event in ipairs({ "PLAYER_SPECIALIZATION_CHANGED", "ACTIVE_TALENT_GROUP_CHANGED" }) do
-	ns.Listen(event, Strip.Refresh)
+
+function Readouts.Sync(shown)
+	local wanted = {}
+	if shown then
+		for _, entry in ipairs(ns.Settings().strip.modules) do
+			if entry.shown then wanted[entry.id] = true end
+		end
+	end
+	for id, events in pairs(EVENTS) do
+		local on = wanted[id] == true
+		if on ~= (active[id] == true) then
+			local owner = "DataBars.Readouts." .. id
+			active[id] = on
+			if on then
+				for _, event in ipairs(events) do K.Events.Register(owner, event, Changed) end
+			else
+				K.Events.UnregisterAll(owner)
+			end
+		end
+	end
 end
-ns.Listen("CURRENCY_DISPLAY_UPDATE", function()
-	local item = Strip.view and Strip.view.items.currencies
-	if Readouts.Visible("currencies") ~= (item and item.button:IsShown() or false) then Strip.Refresh() else Strip.Update() end
-end)
-ns.Listen("PLAYER_GUILD_UPDATE", function() Readouts.RequestRoster(); Strip.Refresh() end)
-ns.Listen("PLAYER_MONEY", Readouts.SaveGold)
-ns.Listen("PLAYER_ENTERING_WORLD", Readouts.RequestRoster)
-ns.AddPart({ Enable = function() Readouts.SaveGold(); Readouts.RequestRoster() end })
+
+ns.AddPart({ Disable = function() Readouts.Sync(false) end })
