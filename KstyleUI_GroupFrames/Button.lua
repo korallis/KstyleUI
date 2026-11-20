@@ -81,12 +81,18 @@ local function TooltipAllowed()
 	return mode ~= "NEVER"
 end
 
+local function HideOwned(button)
+	local tooltip = GameTooltip
+	if tooltip and tooltip.IsOwned and tooltip:IsOwned(button) then
+		tooltip:Hide()
+	end
+end
+
 local held
 local STARTS = { PLAYER_REGEN_DISABLED = "COMBAT", ENCOUNTER_START = "BOSS" }
 function Button.Starting(event)
-	local tooltip = GameTooltip
-	if held and STARTS[event] == Settings.current.tooltip.mode and tooltip and tooltip.IsOwned and tooltip:IsOwned(held) then
-		tooltip:Hide()
+	if held and STARTS[event] == Settings.current.tooltip.mode then
+		HideOwned(held)
 	end
 end
 
@@ -112,10 +118,7 @@ local function OnLeave(button)
 		return
 	end
 	Style.SetHovered(f, false)
-	local tooltip = GameTooltip
-	if tooltip and tooltip.IsOwned and tooltip:IsOwned(button) then
-		tooltip:Hide()
-	end
+	HideOwned(button)
 end
 
 local function Clicks(button)
