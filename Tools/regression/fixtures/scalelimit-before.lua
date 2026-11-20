@@ -617,7 +617,7 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown)
 		local top = math.max(1, (column - GAP) / 2, column - GAP - slot.height)
 		return { quests = Card(STORY_KEYS.quests, quests.x, top, quests), guide = Card(STORY_KEYS.guide, below.x, math.max(1, column - top - GAP), below), stacked = true }
 	end
-	if not guide then
+	if not guide and style ~= "medallions" then
 		return { quests = Card(STORY_KEYS.quests, slot.x, slot.height) }
 	end
 	local x, foot = slot.x - slot.width - GAP, CLUSTER_TOP
@@ -630,10 +630,10 @@ function Layouts.Story(name, rootHeight, guide, style, rootWidth, guideShown)
 		end
 	end
 	local column = math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - foot - GAP - inset)
-	if guideShown then
+	if guideShown and style ~= "medallions" then
 		return { guide = Card(STORY_KEYS.guide, x, column), quests = Card(STORY_KEYS.quests, slot.x, slot.height) }
 	end
-	return { guide = Card(STORY_KEYS.guide, slot.x, slot.height), quests = Card(STORY_KEYS.quests, x, column) }
+	return { guide = guide and Card(STORY_KEYS.guide, slot.x, slot.height) or nil, quests = Card(STORY_KEYS.quests, x, column) }
 end
 
 local LIFTED = {
