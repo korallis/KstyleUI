@@ -6,7 +6,9 @@
 -- with the first member in combat, shielded past the missing health and the fourth carrying a heal absorb.
 -- RENDER_PARITY_R3C=1 switches on round 3c's striped shields, shield glow, lost maximum health, threat edge and merged
 -- raid groups (party frames with portraits, so the threat edge has a tile), with the first member shielded and on aggro and the second missing a fifth of their maximum health;
--- RENDER_PARITY_R3C=missing also fills the bars with missing health.
+-- RENDER_PARITY_R3C=missing also fills the bars with missing health; =layout (RENDER_GROUP=10) gives the larger frames a custom size
+-- and offset with icons that scale and two hover lines on the hovered first frame; =solo (RENDER_GROUP=party) shows you alone, centred;
+-- =small (RENDER_GROUP=10) keeps six players, group 1 shown as party frames.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
@@ -112,8 +114,9 @@ return Common.Run(function()
 	local r3c = os.getenv("RENDER_PARITY_R3C")
 	if r3c then
 		members[1].absorb, members[1].threat, members[2].maxLoss, members[4].healAbsorb = 70, 3, 0.2, 15
+		if r3c == "small" then for i = #members, 7, -1 do members[i] = nil end end
 	end
-	G.SetRoster(env, kind, members, PLAYER)
+	G.SetRoster(env, r3c ~= "solo" and kind or nil, r3c ~= "solo" and members or {}, PLAYER)
 	if not K.Modules.IsRunning("GroupFrames") then
 		assert(K.Modules.Enable("GroupFrames"))
 	end
@@ -140,9 +143,19 @@ return Common.Run(function()
 			["prediction.maxLoss"] = "STRIPES", ["threat.edge"] = true, ["party.portrait"] = true, ["raid.merge"] = true, ["health.missing"] = r3c == "missing" }) do
 			K.Options.Write("GroupFrames", key, value)
 		end
+		for key, value in pairs(({ solo = { ["party.showSolo"] = true, ["party.centerSolo"] = true }, small = { ["party.smallRaid"] = true },
+			layout = { ["auto.smallWidth"] = 150, ["auto.smallHeight"] = 48, ["auto.smallX"] = 40, ["auto.smallY"] = -30, ["auto.icons"] = true,
+				["auto.heals"] = true, ["accent.hoverLines"] = 2 } })[r3c] or {}) do
+			K.Options.Write("GroupFrames", key, value)
+		end
 	end
 	place(K, "groupframes." .. kind, AT[kind][1], AT[kind][2])
+	if r3c == "small" then place(K, "groupframes.party", AT.party[1], AT.party[2]) end
 	env.RunTimers()
+	if r3c == "layout" then
+		local button = ns.Headers.raid[1]:GetAttribute("child1")
+		button:GetScript("OnEnter")(button)
+	end
 	Hud.Tick(env, 1)
 	env.RunTimers()
 	if os.getenv("RENDER_GROUP_STATUS") == "1" then
