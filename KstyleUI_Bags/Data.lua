@@ -661,11 +661,6 @@ local function Currency(id)
 	return type(entry) == "table" and not IsSecret(entry) and entry or nil
 end
 
-function Data.CurrencyName(id)
-	local entry = Currency(id)
-	return entry and Plain(entry.name, "string")
-end
-
 function Data.CurrencyText()
 	local parts, picked = {}, false
 	local function add(entry)

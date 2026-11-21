@@ -255,13 +255,6 @@ function Settings.Schema()
 				list[#list + 1] = { value = id, label = ns.Data.Plain(entry.name, "string") or tostring(id) }
 			end
 		end
-		for _, key in ipairs(Settings.CURRENCIES) do
-			local id = Settings.Get(key)
-			if not seen[id] then
-				seen[id] = true
-				list[#list + 1] = { value = id, label = ns.Data.CurrencyName(id) or tostring(id) }
-			end
-		end
 		return list
 	end
 	local function currency(key, label)

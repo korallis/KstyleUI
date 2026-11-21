@@ -168,7 +168,6 @@ do
 	assert(preview.currency:GetText() == "|T133784:0|t 7", "the preview shows the chosen currency")
 	write(env, K, "currency2", 4242)
 	assert(win.currency:GetText() == "|T133784:0|t 7", "an unknown currency shows nothing")
-	assert(K.Options.Row("Bags", "currency2").options()[4].value == 4242, "and stays choosable")
 	env.C_CurrencyInfo.GetCurrencyInfo = function() return env.Secret({}) end
 	env.FireEvent("CURRENCY_DISPLAY_UPDATE")
 	assert(win.currency:GetText():find("backpack", 1, true), "a secret answer shows no number")
