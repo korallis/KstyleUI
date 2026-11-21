@@ -183,9 +183,9 @@ function Preview.Build(...)
 		end
 	end
 
-	local function Order(frames, byClass, per)
-		local rank = {}
-		for i = #Settings.CLASSES, 1, -1 do rank[Settings.current.sort["class" .. i]] = i end
+	local function Order(frames, byClass, per, kind)
+		local rank, list = {}, Settings.ClassList(kind)
+		for i = #Settings.CLASSES, 1, -1 do rank[Settings.current.sort[list .. i]] = i end
 		local function Key(f)
 			return (per and math.ceil(f.order / per) or 0) * 100 + (byClass and rank[f.sample.class] or 0)
 		end
@@ -219,8 +219,8 @@ function Preview.Build(...)
 		local memberSpacing = Geometry.IsVertical(party.growth) and party.spacing or (party.spacing + partyGeo.lane)
 		local x0 = partyGeo.laneSide == "LEFT" and partyGeo.lane or 0
 		local separate = raid.sortBy == "GROUP" and not raid.merge
-		Order(preview.partyFrames, cfg.sort.classFirst and party.sortBy ~= "ROLE")
-		Order(preview.raidFrames, raid.sortBy == "CLASS" or separate and cfg.sort.classFirst, separate and GROUP_SIZE)
+		Order(preview.partyFrames, Settings.ClassFirst("party") and party.sortBy ~= "ROLE", nil, "party")
+		Order(preview.raidFrames, raid.sortBy == "CLASS" or separate and Settings.ClassFirst("raid"), separate and GROUP_SIZE, "raid")
 		PlaceRun(preview.partyFrames, preview.party, party, party.growth, count, x0, 0, partyGeo.corner, partyGeo.memberWidth, memberSpacing)
 		local total = GROUP_SIZE * RAID_GROUPS_SHOWN
 		local size = raid.sortBy == "GROUP" and raid.merge and math.min(raid.unitsPerColumn, total) or GROUP_SIZE

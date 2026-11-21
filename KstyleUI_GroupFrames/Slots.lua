@@ -393,9 +393,9 @@ local function Place(f)
 	for i = 1, COUNT do
 		local button = container:GetAuraSlotFrame(Key(i))
 		if button then
-			local place = placements[i]
+			local place, slot = placements[i], Settings.current[Key(i)]
 			button:ClearAllPoints()
-			button:SetPoint(place.point, f, place.point, place.x, place.y)
+			button:SetPoint(place.point, f, place.point, place.x + Widgets.Snap(f, slot.x), place.y + Widgets.Snap(f, slot.y))
 			button:SetFrameLevel(base + COUNT - i)
 			Auras.StyleIcon(button)
 			Widgets.Size(button, place.size, place.size)
@@ -551,9 +551,9 @@ Button.built[#Button.built + 1] = BuildSamples
 function Slots.LayoutSamples(f)
 	local placements = Slots.Placements(f)
 	for i, icon in ipairs(f.sampleSlots or {}) do
-		local place = placements[i]
+		local place, slot = placements[i], Settings.current[Key(i)]
 		icon:ClearAllPoints()
-		icon:SetPoint(place.point, f, place.point, place.x, place.y)
+		icon:SetPoint(place.point, f, place.point, place.x + Widgets.Snap(f, slot.x), place.y + Widgets.Snap(f, slot.y))
 		icon:SetSize(place.size, place.size)
 		icon.tile.chrome:Restyle()
 		icon.tile.chrome:SetRimAccent(Style.Accent())

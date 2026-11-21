@@ -17,7 +17,7 @@ local function HasAtlas(name)
 	return info ~= nil
 end
 
-local function Stripes(bar, atlas, color, striped)
+local function Stripes(bar, atlas, color, striped, own)
 	if striped and not bar.stripes and HasAtlas(atlas) then
 		bar.stripes = bar:CreateTexture(nil, "ARTWORK", nil, 1)
 		bar.stripes:SetAtlas(atlas, false, nil, nil, "REPEAT", "REPEAT")
@@ -33,7 +33,8 @@ local function Stripes(bar, atlas, color, striped)
 		local alpha = color.a or 1
 		stripes:SetAllPoints(bar:GetStatusBarTexture())
 		stripes:SetVertexColor(Widgets.Rgba("white", alpha))
-		bar:SetBarColor(color.r, color.g, color.b, alpha * Settings.current.prediction.backing)
+		local p = Settings.current.prediction
+		bar:SetBarColor(color.r, color.g, color.b, alpha * (own and p.backingOwn and p[own] or p.backing))
 	end
 end
 
@@ -110,7 +111,7 @@ local function MaxLoss(f, rect)
 	bar:SetBarRange(0, 1)
 	local c = p.maxLossColor
 	bar:SetBarColor(c.r, c.g, c.b, c.a or 1)
-	Stripes(bar, STRIPES.maxLoss, c, p.maxLoss == "STRIPES")
+	Stripes(bar, STRIPES.maxLoss, c, p.maxLoss == "STRIPES", "maxLossBacking")
 end
 
 local function Layout(f, parts)
@@ -122,7 +123,7 @@ local function Layout(f, parts)
 	if f.overshield then
 		Stripes(f.overshield, STRIPES.absorbs, p.absorbColor, p.absorbStyle == "STRIPES")
 	end
-	Stripes(f.healAbsorbs, STRIPES.healAbsorbs, p.healAbsorbColor, p.healAbsorbStyle == "STRIPES")
+	Stripes(f.healAbsorbs, STRIPES.healAbsorbs, p.healAbsorbColor, p.healAbsorbStyle == "STRIPES", "healAbsorbBacking")
 	Glow(f, vertical)
 	MaxLoss(f, parts.health)
 end

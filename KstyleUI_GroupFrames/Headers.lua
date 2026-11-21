@@ -72,17 +72,19 @@ local function NewCard(parent, holder, shape, title)
 	return { frame = card, chrome = K.Widgets.Chrome(card, shape), cap = K.Widgets.RailCap(card, { title = title }) }
 end
 
-local classOrder, classGeneration
-local function ClassOrder()
-	if classOrder and classGeneration == ns.Settings.generation then return classOrder end
+local classOrder, classGeneration = {}, nil
+local function ClassOrder(kind)
+	local list = ns.Settings.ClassList(kind)
+	if classGeneration ~= ns.Settings.generation then classOrder, classGeneration = {}, ns.Settings.generation end
+	if classOrder[list] then return classOrder[list] end
 	local sort, seen, out = ns.Settings.current.sort, {}, {}
 	local function Add(class)
 		if type(class) == "string" and not seen[class] then seen[class], out[#out + 1] = true, class end
 	end
-	for i = 1, #ns.Settings.CLASSES do Add(sort["class" .. i]) end
+	for i = 1, #ns.Settings.CLASSES do Add(sort[list .. i]) end
 	for _, class in ipairs(ns.Settings.CLASSES) do Add(class) end
-	classOrder, classGeneration = table.concat(out, ","), ns.Settings.generation
-	return classOrder
+	classOrder[list] = table.concat(out, ",")
+	return classOrder[list]
 end
 
 function Headers.Build()
@@ -161,7 +163,7 @@ local function Precreate(header, count)
 	header:SetAttribute("showSolo", solo)
 end
 
-local function Sort(header, sortBy, groups)
+local function Sort(header, sortBy, groups, kind)
 	header:SetAttribute("groupBy", nil)
 	header:SetAttribute("groupingOrder", nil)
 	header:SetAttribute("sortMethod", sortBy == "NAME" and "NAME" or "INDEX")
@@ -171,9 +173,9 @@ local function Sort(header, sortBy, groups)
 	elseif sortBy == "GROUP" then
 		header:SetAttribute("groupBy", "GROUP")
 		header:SetAttribute("groupingOrder", groups)
-	elseif sortBy == "CLASS" or ns.Settings.current.sort.classFirst then
+	elseif sortBy == "CLASS" or ns.Settings.ClassFirst(kind) then
 		header:SetAttribute("groupBy", "CLASS")
-		header:SetAttribute("groupingOrder", ClassOrder())
+		header:SetAttribute("groupingOrder", ClassOrder(kind))
 	end
 end
 
@@ -243,7 +245,7 @@ function Headers.ApplyParty(s)
 	header:SetAttribute("showPlayer", s.showPlayer)
 	header:SetAttribute("showSolo", s.showSolo)
 	header:SetAttribute("groupFilter", small and "1" or nil)
-	Sort(header, s.sortBy)
+	Sort(header, s.sortBy, nil, "party")
 	Columns(header, nil, nil, nil, nil)
 	Grow(header, geo, "party")
 	header:ClearAllPoints()
@@ -367,8 +369,12 @@ function Headers.Numbers()
 		local label = header.kstyleNumber
 		if on and not label then
 			label = K.Widgets.FontString(header, "OVERLAY")
-			label:SetPoint("BOTTOM", header, "TOP", 0, Px("raid", 1))
 			header.kstyleNumber = label
+		end
+		if label and (label.kstyleX ~= cfg.x or label.kstyleY ~= cfg.y) then
+			label.kstyleX, label.kstyleY = cfg.x, cfg.y
+			label:ClearAllPoints()
+			label:SetPoint("BOTTOM", header, "TOP", Px("raid", cfg.x), Px("raid", 1 + cfg.y))
 		end
 		if label then
 			label:SetShown(on)
@@ -433,7 +439,7 @@ function Headers.ApplyRaid(s)
 		for g, header in ipairs(Headers.raid) do
 			RaidHeader(header, holder, s)
 			header:SetAttribute("groupFilter", tostring(shown[g] or g))
-			Sort(header, "INDEX")
+			Sort(header, "INDEX", nil, "raid")
 			Columns(header, nil, nil, nil, nil)
 			Grow(header, geo, "raid")
 			local slot, row = geo.slots[g], rows[math.ceil(g / s.groupsPerRow)] or 0
@@ -450,7 +456,7 @@ function Headers.ApplyRaid(s)
 		if g == 1 then
 			local joined = table.concat(shown, ",")
 			header:SetAttribute("groupFilter", joined)
-			Sort(header, s.sortBy, joined)
+			Sort(header, s.sortBy, joined, "raid")
 			Columns(header, geo.unitsPerColumn, geo.maxColumns, geo.columnAnchorPoint, geo.columnSpacing)
 			Grow(header, geo, "raid")
 			Precreate(header, RAID_BUTTONS)

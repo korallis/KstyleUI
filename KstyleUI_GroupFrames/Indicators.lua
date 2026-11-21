@@ -95,10 +95,10 @@ Button.built[#Button.built + 1] = Build
 
 local Pin = Style.Pin
 
-local function PlaceIcon(f, icon, rect, size)
+local function PlaceIcon(f, icon, rect, size, x, y)
 	icon:ClearAllPoints()
 	icon:SetSize(size, size)
-	icon:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top))
+	icon:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, rect.left + (x or 0)), -Widgets.Snap(f, rect.top - (y or 0)))
 end
 
 local function Layout(f, parts, k)
@@ -113,8 +113,8 @@ local function Layout(f, parts, k)
 	f.pipped = icons.pip == true
 	local roleSize = f.pipped and Widgets.Snap(f, icons.role.width) or size
 	if roleRect then
-		PlaceIcon(f, f.role, roleRect, roleSize)
-		PlaceIcon(f, f.pipEdge, roleRect, roleSize)
+		PlaceIcon(f, f.role, roleRect, roleSize, cfg.roleX, cfg.roleY)
+		PlaceIcon(f, f.pipEdge, roleRect, roleSize, cfg.roleX, cfg.roleY)
 	else
 		roleSize = Widgets.Snap(f, math.min(roleSize, health.height))
 		Pin(f, f.role, cfg.rolePlace, roleSize, cfg.roleX, cfg.roleY)
@@ -128,7 +128,7 @@ local function Layout(f, parts, k)
 		f.pipEdge:Hide()
 		f.pipFill:Hide()
 	end
-	PlaceIcon(f, f.leader, icons.leader, icons.badge and Widgets.Snap(f, icons.leader.width) or size)
+	PlaceIcon(f, f.leader, icons.leader, icons.badge and Widgets.Snap(f, icons.leader.width) or size, cfg.leaderX, cfg.leaderY)
 	local markerSize = f.pipped and Widgets.Snap(f, icons.marker.width) or size
 	PlaceIcon(f, f.marker, icons.marker, markerSize)
 	f.assist:ClearAllPoints()
@@ -154,7 +154,7 @@ local function Layout(f, parts, k)
 		PlaceIcon(f, f.marker, rect, markerSize)
 		if not portrait then
 			rect.left = left + 2 * (laneSize + 4)
-			PlaceIcon(f, f.leader, rect, Widgets.Snap(f, laneSize))
+			PlaceIcon(f, f.leader, rect, Widgets.Snap(f, laneSize), cfg.leaderX, cfg.leaderY)
 		end
 	end
 	for _, icon in pairs(f.statusIcons) do
@@ -176,7 +176,7 @@ local function Layout(f, parts, k)
 	if f.roleLetter then
 		f.roleLetter:ClearAllPoints()
 		if roleRect then
-			f.roleLetter:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, roleRect.left + roleRect.width / 2), -Widgets.Snap(f, roleRect.top + roleRect.height / 2))
+			f.roleLetter:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, roleRect.left + roleRect.width / 2 + cfg.roleX), -Widgets.Snap(f, roleRect.top + roleRect.height / 2 - cfg.roleY))
 		else
 			f.roleLetter:SetPoint("CENTER", f.role, "CENTER", 0, 0)
 		end

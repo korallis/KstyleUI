@@ -311,8 +311,9 @@ local function TimerRoom(f, size)
 end
 
 local function PlaceTimer(timer, skin)
+	local a = Settings.current.auras
 	timer:ClearAllPoints()
-	timer:SetPoint("TOP", skin, "BOTTOM", 0, -Widgets.Border(skin))
+	timer:SetPoint("TOP", skin, "BOTTOM", Widgets.Snap(skin, a.timerX), Widgets.Snap(skin, a.timerY) - Widgets.Border(skin))
 end
 
 local function PlaceIcon(tile)
@@ -472,6 +473,12 @@ local function Zoom(icon, zoom)
 	icon:SetTexCoord(zoom, 1 - zoom, zoom, 1 - zoom)
 end
 
+local function IconZoom(kind)
+	local a = Settings.current.auras
+	if not a.zoomEach then return a.zoom end
+	return kind == "buff" and Settings.current.buffs.zoom or kind == BOSS_SLOT and a.bossZoom or a.zoom
+end
+
 local function Tips(p)
 	return Settings.current[p.buff and "buffs" or "auras"].tooltips
 end
@@ -495,18 +502,23 @@ local function StyleIcon(button)
 	local rows = block and (block.rows or block.height)
 	local side = p.buff and block and block.side
 	local tips = Tips(p)
-	if p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and p.styledStacks == a.stacks and p.styledTimers == a.timers and p.styledTimerSize == a.timerSize and p.styledZoom == a.zoom and p.styledTips == tips and p.styledTipCombat == a.tipCombat and p.styledOutline == a.textOutline and (not mark or p.styledPriority == MarkLift(p.group)) then
+	local zoom = IconZoom(p.buff and "buff" or p.group)
+	if p.styledCursor == a.tipCursor and p.styledCountX == a.countX and p.styledCountY == a.countY and p.styledTimerX == a.timerX and p.styledTimerY == a.timerY
+		and p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and p.styledStacks == a.stacks and p.styledTimers == a.timers and p.styledTimerSize == a.timerSize and p.styledZoom == zoom and p.styledTips == tips and p.styledTipCombat == a.tipCombat and p.styledOutline == a.textOutline and (not mark or p.styledPriority == MarkLift(p.group)) then
 		return
 	end
+	local moved = p.styledSize ~= size or p.styledBorder ~= border or p.styledCountX ~= a.countX or p.styledCountY ~= a.countY
 	if p.styledSize ~= size or p.styledBorder ~= border then
 		Widgets.Size(button, size, size)
 		p.restyleChrome(p.chrome)
-		local inset = PlaceIcon(p)
+		p.inset = PlaceIcon(p)
 		Widgets.LayoutSlice(p.dispel, p.skin, p.chrome:Chamfer(), 0)
 		if p.dispelLetter then Widgets.Size(p.dispelLetter, math.min(14, size), math.min(14, size)) end
-		p.count:ClearAllPoints()
-		p.count:SetPoint("BOTTOMRIGHT", p.skin, "BOTTOMRIGHT", -inset, inset)
 		p.styledSize, p.styledBorder = size, border
+	end
+	if moved then
+		p.count:ClearAllPoints()
+		p.count:SetPoint("BOTTOMRIGHT", p.skin, "BOTTOMRIGHT", Widgets.Snap(p.skin, a.countX) - p.inset, p.inset + Widgets.Snap(p.skin, a.countY))
 	end
 	p.chrome:SetRimAccent(ar, ag, ab)
 	local textSize = math.max(6, math.floor(size * COUNT_SHARE + 0.5))
@@ -524,7 +536,10 @@ local function StyleIcon(button)
 		p.timer:Hide()
 	end
 	p.cooldown:SetDrawSwipe(Settings.current.auras.swipe)
-	if a.zoom ~= (p.styledZoom or ICON_CROP) then Zoom(p.icon, a.zoom) end
+	if zoom ~= (p.styledZoom or ICON_CROP) then Zoom(p.icon, zoom) end
+	if a.tipCursor ~= (p.styledCursor or false) and type(button.SetTooltipAnchorPoint) == "function" then
+		pcall(button.SetTooltipAnchorPoint, button, a.tipCursor and "ANCHOR_CURSOR" or "ANCHOR_BOTTOMLEFT")
+	end
 	if tips ~= (p.styledTips ~= false) and button.SetMouseMotionEnabled then
 		pcall(button.SetMouseMotionEnabled, button, tips)
 	end
@@ -541,7 +556,8 @@ local function StyleIcon(button)
 		end
 	end
 	p.styledFont, p.styledSwipe, p.styledStacks, p.styledTimers, p.styledTimerSize = text.healthFont, a.swipe, a.stacks, a.timers, a.timerSize
-	p.styledZoom, p.styledTips, p.styledTipCombat, p.styledOutline = a.zoom, tips, a.tipCombat, a.textOutline
+	p.styledZoom, p.styledTips, p.styledTipCombat, p.styledOutline = zoom, tips, a.tipCombat, a.textOutline
+	p.styledCursor, p.styledCountX, p.styledCountY, p.styledTimerX, p.styledTimerY = a.tipCursor, a.countX, a.countY, a.timerX, a.timerY
 	p.styledR, p.styledG, p.styledB = ar, ag, ab
 	p.styledMark, p.styledColumns, p.styledRows, p.styledSide = mark, columns, rows, side
 	p.styledGrowth, p.styledWrap, p.styledSpacing, p.styledBuffCount = k.auraGrowth, k.auraWrap, k.auraSpacing, k.buffCount
@@ -585,7 +601,8 @@ local function StyleGroup(container, key)
 	local row = f.parts and f.parts.healRow
 	local ar, ag, ab = Style.Accent()
 	local count = container:GetAuraGroupFrameCount(key)
-	local inputs = { styleGeneration, size, spacing, block.columns, block.rows, k.auraGrowth, k.auraWrap, k.buffCount, cfg.text.healthFont, cfg.auras.swipe, Widgets.Border(f), ar, ag, ab, MarkLift(key), f.debuffChip ~= nil, k.buffSize, row and row.width, row and row.height, row and row.side, cfg.auras.typeLetters, cfg.auras.stacks, cfg.auras.timers, cfg.auras.timerSize, cfg.auras.zoom, cfg.auras.tooltips, cfg.buffs.tooltips, cfg.auras.tipCombat, cfg.auras.textOutline, IconKey() }
+	local inputs = { styleGeneration, size, spacing, block.columns, block.rows, k.auraGrowth, k.auraWrap, k.buffCount, cfg.text.healthFont, cfg.auras.swipe, Widgets.Border(f), ar, ag, ab, MarkLift(key), f.debuffChip ~= nil, k.buffSize, row and row.width, row and row.height, row and row.side, cfg.auras.typeLetters, cfg.auras.stacks, cfg.auras.timers, cfg.auras.timerSize, cfg.auras.zoom, cfg.auras.tooltips, cfg.buffs.tooltips, cfg.auras.tipCombat, cfg.auras.textOutline, IconKey(),
+		cfg.auras.zoomEach, cfg.auras.bossZoom, cfg.buffs.zoom, cfg.auras.tipCursor, cfg.auras.countX, cfg.auras.countY, cfg.auras.timerX, cfg.auras.timerY }
 	local groups = styledGroups[container]
 	local old = groups and groups[key]
 	local changed = f.auraInputsDirty or not old or old.count ~= count
@@ -1551,7 +1568,7 @@ local function LayoutSamples(f, k)
 		icon.tile.chrome:Restyle()
 		icon.tile.chrome:SetRimAccent(Style.Accent())
 		PlaceIcon(icon.tile)
-		Zoom(icon.art, Settings.current.auras.zoom)
+		Zoom(icon.art, IconZoom())
 	end
 	local first, a = f.sampleAuras[1], Settings.current.auras
 	local textSize = math.max(6, math.floor(size * COUNT_SHARE + 0.5))
@@ -1559,7 +1576,7 @@ local function LayoutSamples(f, k)
 	if count then
 		local inset = PlaceIcon(first.tile)
 		count:ClearAllPoints()
-		count:SetPoint("BOTTOMRIGHT", first.tile.skin, "BOTTOMRIGHT", -inset, inset)
+		count:SetPoint("BOTTOMRIGHT", first.tile.skin, "BOTTOMRIGHT", Widgets.Snap(first.tile.skin, a.countX) - inset, inset + Widgets.Snap(first.tile.skin, a.countY))
 	end
 	local timer = SampleLabel(first, "timer", a.timers, "12s", TimerSize(size))
 	if timer then PlaceTimer(timer, first.tile.skin) end
@@ -1588,7 +1605,7 @@ local function LayoutSamples(f, k)
 		icon.tile.chrome:Restyle()
 		icon.tile.chrome:SetRimAccent(Style.Accent())
 		PlaceIcon(icon.tile)
-		Zoom(icon.art, Settings.current.auras.zoom)
+		Zoom(icon.art, IconZoom("buff"))
 	end
 	local rect, boss = f.parts and f.parts.boss, f.sampleBoss
 	if rect then
@@ -1598,7 +1615,7 @@ local function LayoutSamples(f, k)
 		boss.tile.chrome:Restyle()
 		boss.tile.chrome:SetRimAccent(Style.Accent())
 		PlaceIcon(boss.tile)
-		Zoom(boss.tile.icon, Settings.current.auras.zoom)
+		Zoom(boss.tile.icon, IconZoom(BOSS_SLOT))
 	end
 	LayoutDispel(f.sampleDispelWash, f.sampleDispelRing, f.sampleDispel, f.chrome:Chamfer())
 end

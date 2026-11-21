@@ -67,7 +67,7 @@ Settings.defaults = {
 	text = {
 		nameFont = THEME_FONT, nameOutline = "NONE", nameColorSource = "class", nameColor = Rgb("textEmphasis"),
 		healthFont = THEME_FONT, healthOutline = "NONE",
-		above = false,
+		above = false, aboveName = true, aboveHealth = true, aboveExtra = true,
 	},
 	range = { fade = true, alpha = 0.4 },
 	icons = {
@@ -75,6 +75,7 @@ Settings.defaults = {
 		roleTank = true, roleHealer = true, roleDamager = true, roleInCombat = true, leaderInCombat = true,
 		roleText = false, readyPlace = "AUTO", readySize = 0, markerPlace = "AUTO", combat = false, combatPlace = "LEFT", combatSize = 14, combatClass = false,
 		rolePlace = "AUTO", roleX = 0, roleY = 0, markerX = 0, markerY = 0, readyX = 0, readyY = 0, combatX = 0, combatY = 0,
+	leaderX = 0, leaderY = 0,
 	},
 	threat = { enabled = true, shapes = true, edge = false },
 	tooltip = { mode = "ALWAYS" },
@@ -83,10 +84,11 @@ Settings.defaults = {
 		enabled = true, onlyMine = false, sort = "", typeLetters = true, stacks = true, timers = false, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER",
 		magic = true, curse = true, poison = true, disease = true, bleed = true, lasting = true, dispelAlpha = 0.16, dispelLines = 2,
 		zoom = 0.07, tooltips = true, typeMode = "HIDE", source = "ANY", canApply = false, timerSize = 0,
+		zoomEach = false, bossZoom = 0.07, tipCursor = false, countX = 0, countY = 0, timerX = 0, timerY = 0,
 		priority1 = "DISPEL", priority2 = "BOSS", priority3 = "IMPORTANT", priority4 = "OTHER", glow = true,
 		tipCombat = true, textOutline = "OUTLINE",
 	},
-	buffs = { enabled = true, tooltips = true },
+	buffs = { enabled = true, tooltips = true, zoom = 0.07 },
 	clickCast = { hint = true },
 	presets = { raid = "Compact" },
 	targets = { enabled = false, self = false, width = 96, height = 24, x = 0, y = 0, nameColor = "text", color = Rgb("textEmphasis") },
@@ -94,6 +96,7 @@ Settings.defaults = {
 		heals = true, absorbs = true, shield = true, shieldLines = 2, healAbsorbs = true,
 		shieldPlace = "BOTTOM", shieldGrow = "UP", absorbPlace = "FILL", overshield = false, healAbsorbLine = false, healAbsorbLines = 0,
 		absorbStyle = "SOLID", healAbsorbStyle = "SOLID", backing = 1, glow = false, maxLoss = "OFF", maxLossColor = Rgb("black", 0.6),
+		backingOwn = false, healAbsorbBacking = 1, maxLossBacking = 1,
 		healColor = Rgb("friendly", HEAL_ALPHA), absorbColor = Rgb("white", ABSORB_ALPHA), healAbsorbColor = Rgb("hostile", HEAL_ABSORB_ALPHA),
 	},
 	auto = { size = true, role = true, smallMost = 10, largeLeast = 26, shownOnly = false, icons = false, heals = false,
@@ -108,7 +111,7 @@ local INDICATOR_DEFAULTS = {
 }
 for i = 1, INDICATOR_SLOTS do
 	local preset = INDICATOR_DEFAULTS[i] or {}
-	Settings.defaults["indicator" .. i] = { category = preset.category or "OFF", position = preset.position or "TOPLEFT", spells = "", mine = false, size = 14, show = "BOTH" }
+	Settings.defaults["indicator" .. i] = { category = preset.category or "OFF", position = preset.position or "TOPLEFT", spells = "", mine = false, size = 14, show = "BOTH", x = 0, y = 0 }
 end
 
 local function Plain(r, g, b)
@@ -119,12 +122,12 @@ defaults.reminders = { place = "NONE", size = 14, fortitude = true, wild = true,
 defaults.status = { place = "AUTO", size = 0, x = 0, y = 0 }
 defaults.dispel = { icon = "NONE", iconSize = 14, iconBorder = true, custom = false, x = 0, y = 0,
 	magic = Plain(0.2, 0.6, 1), curse = Plain(0.6, 0, 1), poison = Plain(0, 0.6, 0), disease = Plain(0.6, 0.4, 0), bleed = Plain(0.8, 0.1, 0.1) }
-defaults.names = { align = "AUTO", divider = false, dividerAccent = false, height = 0 }
-defaults.numbers = { show = false, size = 8 }
+defaults.names = { align = "AUTO", divider = false, dividerAccent = false, height = 0, x = 0, y = 0 }
+defaults.numbers = { show = false, size = 8, x = 0, y = 0 }
 defaults.mana = { mode = "NONE", size = 12, spacing = 2, align = "LEFT", growth = "DOWN", names = true, colorSource = "power", color = Rgb("rare") }
 Settings.CLASSES = type(CLASS_SORT_ORDER) == "table" and #CLASS_SORT_ORDER > 0 and CLASS_SORT_ORDER or { "WARRIOR", "PALADIN", "PRIEST", "SHAMAN", "DRUID", "ROGUE", "MAGE", "WARLOCK", "HUNTER" }
-defaults.sort = { classFirst = false }
-for i, class in ipairs(Settings.CLASSES) do defaults.sort["class" .. i] = class end
+defaults.sort = { classFirst = false, classFirstIn = "BOTH", partyOwn = false }
+for i, class in ipairs(Settings.CLASSES) do defaults.sort["class" .. i], defaults.sort["partyClass" .. i] = class, class end
 defaults.label = { enabled = false, format = "FULL", size = 14, padding = 4, color = Rgb("textEmphasis") }
 
 local rows
@@ -380,7 +383,7 @@ function Settings.Schema(includeText)
 			add(Slider(key .. "x", across, L["Moves it left or right from its place."], -50, 50, 1, showWhen))
 			add(Slider(key .. "y", up, L["Moves it up or down from its place."], -50, 50, 1, showWhen))
 		end
-		local placed = function(settings) return settings.icons.role and settings.icons.rolePlace ~= "AUTO" end
+		local placed = Is("icons.role", true)
 		After(schema, "icons.roleText", { Dropdown("icons.rolePlace", L["Role icon place"], L["Where on the health bar the role icon sits; Automatic keeps today's place."], ICON_PLACE, { showWhen = Is("icons.role", true) }),
 			Slider("icons.roleX", L["Role icon offset across"], L["Moves it left or right from its place."], -50, 50, 1, placed),
 			Slider("icons.roleY", L["Role icon offset up"], L["Moves it up or down from its place."], -50, 50, 1, placed) })
@@ -390,12 +393,39 @@ function Settings.Schema(includeText)
 		local readied = function(settings) return (settings.icons.readyCheck or settings.icons.statuses) and settings.icons.readyPlace ~= "AUTO" end
 		After(schema, "icons.readySize", { Slider("icons.readyX", L["Ready check offset across"], L["Moves it left or right from its place."], -50, 50, 1, readied),
 			Slider("icons.readyY", L["Ready check offset up"], L["Moves it up or down from its place."], -50, 50, 1, readied) })
+		After(schema, "icons.leaderInCombat", { Slider("icons.leaderX", L["Leader icon offset across"], L["Moves it left or right from its place."], -50, 50, 1, Is("icons.leader", true)),
+			Slider("icons.leaderY", L["Leader icon offset up"], L["Moves it up or down from its place."], -50, 50, 1, Is("icons.leader", true)) })
 		local combat = function(settings) return settings.icons.combat end
 		After(schema, "icons.combatSize", { Slider("icons.combatX", L["Combat icon offset across"], L["Moves it left or right from its place."], -50, 50, 1, combat),
 			Slider("icons.combatY", L["Combat icon offset up"], L["Moves it up or down from its place."], -50, 50, 1, combat) })
 		for _, kind in ipairs({ "party", "raid" }) do
 			After(schema, kind .. ".buffCount", { Slider(kind .. ".buffX", L["Heal icon offset across"], L["Moves your heal icons left or right from their place."], -100, 100, 1),
 				Slider(kind .. ".buffY", L["Heal icon offset up"], L["Moves your heal icons up or down from their place."], -100, 100, 1) })
+		end
+		local above = Is("text.above", true)
+		After(schema, "text.above", { Toggle("text.aboveName", L["Names above icons"], L["Draws names over the icons while Text above icons is on."], { showWhen = above }),
+			Toggle("text.aboveHealth", L["Health text above icons"], L["Draws the health text over the icons while Text above icons is on."], { showWhen = above }),
+			Toggle("text.aboveExtra", L["Extra texts above icons"], L["Draws extra texts 1 and 2 over the icons while Text above icons is on."], { showWhen = above }) })
+		local striped = function(settings) return settings.prediction.healAbsorbStyle == "STRIPES" or settings.prediction.maxLoss == "STRIPES" end
+		After(schema, "prediction.backing", { Toggle("prediction.backingOwn", L["Own backings"], L["Gives heal absorbs and lost maximum health a backing opacity each."], { showWhen = striped }),
+			Slider("prediction.healAbsorbBacking", L["Heal absorb backing"], L["How solid the fill under patterned heal absorbs is."], 0, 1, 0.05,
+				function(settings) return settings.prediction.backingOwn and settings.prediction.healAbsorbStyle == "STRIPES" end),
+			Slider("prediction.maxLossBacking", L["Lost maximum health backing"], L["How solid the fill under patterned lost maximum health is."], 0, 1, 0.05,
+				function(settings) return settings.prediction.backingOwn and settings.prediction.maxLoss == "STRIPES" end) })
+		local each = Is("auras.zoomEach", true)
+		After(schema, "auras.zoom", { Toggle("auras.zoomEach", L["Zoom for each kind"], L["Gives boss debuff and heal icons a zoom of their own."]),
+			Slider("auras.bossZoom", L["Boss debuff zoom"], L["How far into its artwork the boss debuff icon crops."], 0, 0.2, 0.01, each),
+			Slider("buffs.zoom", L["Heal icon zoom"], L["How far into its artwork each heal icon crops."], 0, 0.2, 0.01, each) })
+		After(schema, "auras.tipCombat", { Toggle("auras.tipCursor", L["Aura tooltips at the cursor"], L["Shows debuff, heal and indicator tooltips at the mouse pointer."]) })
+		local stacked, timed = Is("auras.stacks", true), Is("auras.timers", true)
+		After(schema, "auras.stacks", { Slider("auras.countX", L["Stack offset across"], L["Moves it left or right from its place."], -20, 20, 1, stacked),
+			Slider("auras.countY", L["Stack offset up"], L["Moves it up or down from its place."], -20, 20, 1, stacked) })
+		After(schema, "auras.timerSize", { Slider("auras.timerX", L["Time left offset across"], L["Moves it left or right from its place."], -20, 20, 1, timed),
+			Slider("auras.timerY", L["Time left offset up"], L["Moves it up or down from its place."], -20, 20, 1, timed) })
+		for i = 1, INDICATOR_SLOTS do
+			local p, on = "indicator" .. i .. ".", IsNot("indicator" .. i .. ".category", "OFF")
+			After(schema, p .. "mine", { Slider(p .. "x", L["Offset across"], L["Moves it left or right from its place."], -50, 50, 1, on),
+				Slider(p .. "y", L["Offset up"], L["Moves it up or down from its place."], -50, 50, 1, on) })
 		end
 		After(schema, "raid.groupsPerRow", { Toggle("raid.center", L["Centre groups"], L["Centres the raid groups with members along their row, out of combat."], { showWhen = Separate }) })
 		local reminding = IsNot("reminders.place", "NONE")
@@ -428,9 +458,11 @@ function Settings.Schema(includeText)
 		add(Toggle("names.divider", L["Name divider"], L["A thin line between the name and the health bar."]))
 		add(Toggle("names.dividerAccent", L["Divider in the highlight colour"], L["Draws the divider in the hover and target highlight colour."], { showWhen = Is("names.divider", true) }))
 		add(Slider("names.height", L["Name line height"], L["The height of the name line above the bar; 0 sizes it to the name."], 0, 40, 1))
+		Nudge("names.", L["Name offset across"], L["Name offset up"])
 		add({ type = "header", label = L["Group numbers"] })
 		add(Toggle("numbers.show", L["Group numbers"], L["Numbers each raid group above its frames while raid frames sit in groups."]))
 		add(Slider("numbers.size", L["Group number size"], L["The size of the group numbers."], 6, 30, 1, Is("numbers.show", true)))
+		Nudge("numbers.", L["Group number offset across"], L["Group number offset up"], Is("numbers.show", true))
 		local mana = IsNot("mana.mode", "NONE")
 		add({ type = "header", label = L["Healer mana"] })
 		add(Dropdown("mana.mode", L["Healer mana"], L["A movable list of your group's healers and their mana. Place it in Layout Mode."],
@@ -455,9 +487,16 @@ function Settings.Schema(includeText)
 		add(Toggle("sort.classFirst", L["Sort by class first"], L["Sorts each group's members by the class order below; role order still comes first."]))
 		local classes, names = {}, type(LOCALIZED_CLASS_NAMES_MALE) == "table" and LOCALIZED_CLASS_NAMES_MALE or {}
 		for i, class in ipairs(Settings.CLASSES) do classes[i] = { value = class, label = names[class] or class } end
+		add(Dropdown("sort.classFirstIn", L["Sort by class first in"], L["Sorts party frames, raid frames or both by class first."], SHOW_ON, { showWhen = Is("sort.classFirst", true) }))
 		local ordered = function(settings) return settings.sort.classFirst or settings.raid.sortBy == "CLASS" end
 		for i = 1, #classes do
 			add(Dropdown("sort.class" .. i, L["Class %d"]:format(i), L["Which class takes this place; a repeat's place goes to the class the list leaves out."], classes, { showWhen = ordered }))
+		end
+		local partyFirst = function(settings) return settings.sort.classFirst and settings.sort.classFirstIn ~= "RAID" end
+		add(Toggle("sort.partyOwn", L["Own party class order"], L["Party frames follow a class order of their own; off, they follow the list above."], { showWhen = partyFirst }))
+		for i = 1, #classes do
+			add(Dropdown("sort.partyClass" .. i, L["Party class %d"]:format(i), L["The class in this place on party frames; a repeat's place goes to the one left out."], classes,
+				{ showWhen = function(settings) return partyFirst(settings) and settings.sort.partyOwn end }))
 		end
 	end
 
@@ -834,16 +873,27 @@ function Settings.Refresh()
 	return current
 end
 
+function Settings.ClassFirst(kind)
+	local sort = current.sort
+	return sort.classFirst and (sort.classFirstIn == "BOTH" or sort.classFirstIn == kind:upper())
+end
+
+function Settings.ClassList(kind)
+	return kind == "party" and current.sort.partyOwn and "partyClass" or "class"
+end
+
 K.Callbacks.Register("SettingChanged", MODULE .. ":classOrder", function(_, module, key, value)
-	local at = module == MODULE and type(key) == "string" and tonumber(key:match("^sort%.class(%d+)$"))
+	local list, at = nil, nil
+	if module == MODULE and type(key) == "string" then list, at = key:match("^sort%.(%a+)(%d+)$") end
+	at = (list == "class" or list == "partyClass") and tonumber(at)
 	if not at then return end
 	local free = {}
 	for _, class in ipairs(Settings.CLASSES) do free[class] = true end
-	for i = 1, #Settings.CLASSES do free[Settings.Get("sort.class" .. i)] = nil end
+	for i = 1, #Settings.CLASSES do free[Settings.Get("sort." .. list .. i)] = nil end
 	for i = 1, #Settings.CLASSES do
-		if i ~= at and Settings.Get("sort.class" .. i) == value then
+		if i ~= at and Settings.Get("sort." .. list .. i) == value then
 			for _, class in ipairs(Settings.CLASSES) do
-				if free[class] then return K.Options.Write(MODULE, "sort.class" .. i, class) end
+				if free[class] then return K.Options.Write(MODULE, "sort." .. list .. i, class) end
 			end
 		end
 	end

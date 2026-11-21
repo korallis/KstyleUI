@@ -10,7 +10,12 @@ ns.Style = Style
 
 local TEXT_LEVEL = 4
 local TEXT_OVER_ICONS = 40
-local ABOVE_ICONS = { "name", "healthText", "extra1", "extra2" }
+local ABOVE_ICONS = { name = "aboveName", healthText = "aboveHealth", extra1 = "aboveExtra", extra2 = "aboveExtra" }
+
+local function TextParent(f, key)
+	local text = Settings.current.text
+	return text.above and text[ABOVE_ICONS[key]] and f.textTop or f.text
+end
 local NAME_LINE_EXTRA = 2
 local ON_FILL_OUTLINE = "THICKOUTLINE"
 local ON_BAR_OUTLINE = "OUTLINE"
@@ -408,9 +413,10 @@ local function PlaceOverlay(f, k, parts)
 			overflow = math.max(0, Widgets.Snap(f, width) - Widgets.Snap(f, lane + free))
 		end
 	end
+	local nudge = Settings.current.names
 	name:ClearAllPoints()
 	name:SetJustifyH("LEFT")
-	name:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top))
+	name:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, rect.left + nudge.x), -Widgets.Snap(f, rect.top - nudge.y))
 	f.nameWidth = math.max(1, Widgets.Snap(f, rect.width) - overflow)
 	name:SetWidth(f.nameWidth)
 	ApplyName(f)
@@ -436,6 +442,8 @@ local function PlaceRow(f)
 	local k = Settings.current[f.kind]
 	local spot, rect = parts.healthText, parts.name
 	local right = f.marked and spot.markedRight or spot.right
+	local nudge = Settings.current.names
+	local nx, ny = Widgets.Snap(f, nudge.x), Widgets.Snap(f, nudge.y)
 	local left, top = Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top)
 	local gap = Widgets.Snap(f, Tokens.Size("gapSmall"))
 	local shown = k.healthText ~= "NONE"
@@ -473,11 +481,11 @@ local function PlaceRow(f)
 		end
 	end
 	name:ClearAllPoints()
-	name:SetPoint("TOPLEFT", f, "TOPLEFT", left, top)
+	name:SetPoint("TOPLEFT", f, "TOPLEFT", left + nx, top + ny)
 	f.nameWidth = nil
 	if captioned then
 		name:SetWidth(0)
-		name:SetPoint("RIGHT", classLine, "LEFT", -gap, 0)
+		name:SetPoint("RIGHT", classLine, "LEFT", -gap + nx, ny)
 		f.nameFloor = inRow and not reserve
 		local captionWidth = ns.Names and ns.Names.Width(classLine, f.classCaption or "", Tokens.Size("caption"))
 		if captionWidth and (not inRow or reserve) then
@@ -485,7 +493,7 @@ local function PlaceRow(f)
 		end
 	elseif inRow and not reserve then
 		name:SetWidth(0)
-		name:SetPoint("RIGHT", healthText, "LEFT", -gap, 0)
+		name:SetPoint("RIGHT", healthText, "LEFT", -gap + nx, ny)
 	else
 		f.nameWidth = math.max(1, Widgets.Snap(f, right - rect.left - (reserve and reserve + gap or 0)))
 		name:SetWidth(f.nameWidth)
@@ -536,7 +544,7 @@ end
 local function ExtraTexts(f, k)
 	for i = 1, 2 do
 		local key = "extra" .. i
-		f[key] = Widgets.PlaceText(f[key], k[key], f.textAbove and f.textTop or f.text, f, f.width)
+		f[key] = Widgets.PlaceText(f[key], k[key], TextParent(f, key), f, f.width)
 	end
 end
 
@@ -650,15 +658,17 @@ function Style.Apply(f, width, height)
 	end
 	f.chrome:SetShadow(f.kind == "party" and not f.tileless)
 	f.chrome:Restyle()
-	if (f.textAbove or false) ~= cfg.text.above then
-		f.textAbove = cfg.text.above
+	local text = cfg.text
+	local above = text.above and ((text.aboveName and "n" or "") .. (text.aboveHealth and "h" or "") .. (text.aboveExtra and "e" or ""))
+	if (f.textAbove or false) ~= above then
+		f.textAbove = above
 		if not f.textTop then
 			f.textTop = CreateFrame("Frame", nil, f)
 			f.textTop:SetAllPoints(f)
 			f.textTop:SetFrameLevel(f:GetFrameLevel() + TEXT_OVER_ICONS)
 		end
-		for _, key in ipairs(ABOVE_ICONS) do
-			if f[key] then f[key]:SetParent(f.textAbove and f.textTop or f.text) end
+		for key in pairs(ABOVE_ICONS) do
+			if f[key] then f[key]:SetParent(TextParent(f, key)) end
 		end
 	end
 	for i = 1, #Style.appliers do
