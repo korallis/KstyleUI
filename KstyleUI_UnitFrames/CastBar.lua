@@ -1059,7 +1059,7 @@ end
 
 local function WatchRange(cb, spellID)
 	StopRange(cb)
-	if not (cb.kind == "player" and Settings.Value("player", "castbarRangeGrey") and C_Timer and C_Timer.NewTicker)
+	if not (cb.kind == "player" and Settings.Value("player", "castbarRangeGrey") and C_Timer and C_Timer.NewTicker and C_Spell and C_Spell.IsSpellInRange)
 		or issecretvalue(spellID) or type(spellID) ~= "number" then
 		return
 	end

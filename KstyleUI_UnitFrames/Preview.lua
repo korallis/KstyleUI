@@ -287,6 +287,7 @@ local function PaintCast(frame, view, kind, height)
 	cb.frame:SetPoint("TOPLEFT", frame.holders[kind], "TOPLEFT", x, -y)
 	cb.frame:SetSize(w, castH)
 	cb.sampleReaction = SAMPLES[kind].reaction
+	cb.outOfRange = kind == "player" and Settings.Value(kind, "castbarRangeGrey") or nil
 	ns.CastBars.Restyle(cb)
 	ns.CastBars.Layout(cb, w, castH)
 	cb.bar:SetMinMaxValues(0, 1)

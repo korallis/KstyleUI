@@ -9,6 +9,7 @@ local Dispel = {}
 ns.Dispel = Dispel
 
 local SLOT = "dispel"
+local issecretvalue = issecretvalue or function() return false end
 local FILTERS = { PLAYER = "HARMFUL|RAID", GROUP = "HARMFUL|RAID_PLAYER_DISPELLABLE" }
 local TYPES = { { "Magic", "dispelMagic" }, { "Curse", "dispelCurse" }, { "Poison", "dispelPoison" }, { "Disease", "dispelDisease" }, { "Bleed", "dispelBleed" } }
 
@@ -80,9 +81,9 @@ end
 
 local function Layout(p, view)
 	local overlay, place = Settings.Value("player", "dispelOverlay"), Settings.Value("player", "dispelIcon")
-	local alpha, level = Settings.Value("player", "dispelAlpha"), view.top:GetFrameLevel() - 1
+	local alpha, level = Settings.Value("player", "dispelAlpha"), view.top:GetFrameLevel()
 	for _, frame in ipairs({ p.health, p.card, p.edge, p.mark }) do
-		frame:SetFrameLevel(level)
+		if not issecretvalue(level) then frame:SetFrameLevel(level - 1) end
 	end
 	p.health:SetAllPoints(view.health)
 	p.health:SetAlpha(alpha)

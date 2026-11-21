@@ -46,6 +46,10 @@ end
 local function Slot(button, i)
 	local have, _, start, duration, icon = GetTotemInfo(i)
 	if issecretvalue(have) then
+		if not button.SetAlphaFromBoolean then
+			button:Hide()
+			return
+		end
 		button:SetAlphaFromBoolean(have, 1, 0)
 		button:Show()
 	else
