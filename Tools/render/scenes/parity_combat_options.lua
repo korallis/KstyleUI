@@ -44,7 +44,7 @@ return Common.Run(function()
     ["damage.valueScale"] = 1.1, ["damage.playerMarker"] = true, ["timer.shown"] = true, ["timer.decimal"] = true, ["history.icons"] = true, ["history.bars"] = true },
    Cooldowns3 = { path = "mirror", ["rules.threshold"] = "x", thresholdBelow = 30, ["rules.chargeSwipe"] = "x", ["rules.chargeTimer"] = "x", ["rules.swing"] = "x",
     ["rules.swingGlow"] = "x", textAboveGlow = true, ["essential.rows"] = 2, ["essential.baseCount"] = 3, ["essential.secondSize"] = -6,
-    ["utility.quality"] = true, ["utility.trinkets"] = true, focusSpell = "1766" },
+    ["utility.hideMissing"] = true, ["utility.trinkets"] = true, focusSpell = "1766" },
    Meters3 = { ["damage2.shown"] = true, ["damage.report"] = true, ["damage.englishUnits"] = false },
   }
   for key, value in pairs(values[enabled == "1" and module or module .. enabled]) do K.Options.Write(module, key, value) end

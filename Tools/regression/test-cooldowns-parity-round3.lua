@@ -1,4 +1,4 @@
--- test-cooldowns-parity-round3.lua: EllesmereUI parity round 3 for Cooldowns: every new option keeps today's defaults on a v0.2.8 profile, applies when switched on (recharge swipe and countdown, threshold colour, forms, swing sweep and late glow, ready sound, numbers above glows, two-row sizes, item counts, missing items, quality, all trinkets, the focus interrupt, its cast sound and reminders), follows the events that change it, restores when switched off, and reaches the preview.
+-- test-cooldowns-parity-round3.lua: EllesmereUI parity round 3 for Cooldowns: every new option keeps today's defaults on a v0.2.8 profile, applies when switched on (recharge swipe and countdown, threshold colour, forms, swing sweep and late glow, ready sound, numbers above glows, two-row sizes, item counts, missing items, all trinkets, the focus interrupt, its cast sound and reminders), follows the events that change it, restores when switched off, and reaches the preview.
 local C = dofile("Tools/regression/cooldowns_env.lua")
 local W = C.W
 
@@ -6,7 +6,7 @@ local game
 
 local function Setup(e)
 	C.Game(e)
-	game = { sounds = {}, forms = {}, plates = {}, units = { player = "self" }, power = {}, equipped = {}, quality = {}, counts = { [7001] = 3 } }
+	game = { sounds = {}, forms = {}, plates = {}, units = { player = "self" }, power = {}, equipped = {}, counts = { [7001] = 3 } }
 	local U = C.CATEGORY.Utility
 	e._cdm.cooldowns[204] = { category = U, spellCategoryID = 30 }
 	e._cdm.charges[1002] = { current = 1, max = 2 }
@@ -18,7 +18,7 @@ local function Setup(e)
 	e.C_Spell.IsCurrentSpell = function(spell) return game.queued == spell end
 	e.C_Spell.GetSpellIDForSpellIdentifier = function(name) return name == "Kick" and 1766 or nil end
 	e.C_Spell.GetSpellCastCount = function(spell) return game.counts[spell] or 0 end
-	e.C_Spell.GetLastCategoryCooldownSource = function() return game.item == "secret" and e.Secret(7001) or 7001, game.item == "secret" and e.Secret(8001) or 8001 end
+	e.C_Spell.GetLastCategoryCooldownSource = function() return 7001, 8001 end
 	e.C_Spell.GetItemCooldown = function() return { startTime = 0, duration = 0, modRate = 1, isEnabled = true, isActive = false, isOnGCD = false } end
 	e.C_NamePlate = { GetNamePlateForUnit = function(unit) return game.plates[unit] end }
 	e.UnitExists = function(unit) return game.units[unit] ~= nil end
@@ -29,7 +29,6 @@ local function Setup(e)
 	e.GetInventoryItemID = function(_, slot) return game.equipped[slot] end
 	e.GetInventoryItemCooldown = function() return 0, 0, 1, false end
 	e.GetInventoryItemTexture = function(_, slot) return 600000 + slot end
-	e.C_TradeSkillUI = { GetItemReagentQualityInfo = function(item) return game.quality[item] end }
 end
 
 local function New(path)
@@ -63,12 +62,12 @@ do
 	assert(current.focusSpell == "" and current.focusSide == "LEFT" and not current.focusTarget and current.focusSound == "" and not current.focusReminder, "the focus interrupt defaults off")
 	for _, group in ipairs({ "essential", "utility" }) do
 		local cfg = current[group]
-		assert(cfg.baseCount == 0 and cfg.baseSize == 0 and cfg.secondSize == 0 and cfg.itemCount and not cfg.hideMissing and not cfg.quality and not cfg.trinkets, group .. " keeps its grid and items")
+		assert(cfg.baseCount == 0 and cfg.baseSize == 0 and cfg.secondSize == 0 and cfg.itemCount and not cfg.hideMissing and not cfg.trinkets, group .. " keeps its grid and items")
 	end
 	local a, b, potion = IconOf(ns, "essential", 1001), IconOf(ns, "essential", 1002), IconOf(ns, "utility", 30)
 	assert(Last(a.cooldown, "SetCountdownFormatter").breakpoints[1].format == "%d", "countdowns keep their plain numbers")
 	assert(b.chargeCooldown and Last(b.chargeCooldown, "SetDrawSwipe") == false and Last(b.chargeCooldown, "SetHideCountdownNumbers") == true, "a recharge still draws only its edge")
-	assert(potion and tostring(potion.count:GetText()) == "3" and not potion.qualityPip and potion:GetAlpha() == 1, "a potion shows its count as before")
+	assert(potion and tostring(potion.count:GetText()) == "3" and potion:GetAlpha() == 1, "a potion shows its count as before")
 	assert(not a.swingSweep and not a.lateGlow and #game.sounds == 0, "no sweep, glow or sound")
 	assert(not Registered(env, "NAME_PLATE_UNIT_ADDED") and not Registered(env, "UNIT_SPELLCAST_START") and not ns.Focus.icon, "the focus interrupt listens to nothing")
 	assert(ns.Mirror.Row("utility").count == 3, "no trinket is added")
@@ -249,7 +248,7 @@ do
 	Clean(env, K, "two rows")
 end
 
--- Items: counts, missing items, quality and every trinket on KstyleUI icons, through their events, then off.
+-- Items: counts, missing items and every trinket on KstyleUI icons, through their events, then off.
 do
 	local env, K, ns, Write = New("mirror")
 	local potion = IconOf(ns, "utility", 30)
@@ -266,15 +265,6 @@ do
 	game.counts[7001] = 2; Fire(env, "BAG_UPDATE_COOLDOWN")
 	assert(potion:GetAlpha() == 1, "and returns when you have one again")
 	Write("utility.hideMissing", false)
-
-	game.quality[8001] = { iconSmall = "Professions-Icon-Quality-Tier2-Small" }
-	Write("utility.quality", true)
-	assert(potion.qualityPip:IsShown() and Last(potion.qualityPip, "SetAtlas") == "Professions-Icon-Quality-Tier2-Small", "Item quality shows the crafted rank")
-	game.item = "secret"; Fire(env, "BAG_UPDATE_COOLDOWN")
-	assert(potion.qualityPip:IsShown(), "a secret item keeps the last rank")
-	game.item = nil; game.quality[8001] = nil; Fire(env, "BAG_UPDATE_COOLDOWN")
-	assert(not potion.qualityPip:IsShown(), "an item with no rank shows none")
-	Write("utility.quality", false)
 
 	game.equipped[13] = 9001
 	Write("utility.trinkets", true)
@@ -375,14 +365,14 @@ do
 	local frame = ns.Preview.Build(parent)
 	assert(not frame.focus and frame.rows.utility.count == 4, "the default preview adds no samples")
 	Write("rules.threshold", "x"); Write("rules.chargeSwipe", "x"); Write("rules.chargeTimer", "x"); Write("rules.swing", "x"); Write("rules.swingGlow", "x")
-	Write("utility.quality", true); Write("utility.trinkets", true); Write("focusSpell", "Kick")
+	Write("utility.trinkets", true); Write("focusSpell", "Kick")
 	frame:Refresh()
 	local essential, utility = frame.rows.essential, frame.rows.utility
 	local first, charged = essential.icons[1], essential.icons[2]
 	assert(Last(first.cooldown, "SetCountdownFormatter").breakpoints[1].format:find("|cff"), "the preview colours countdowns below the threshold")
 	assert(Last(charged.chargeCooldown, "SetDrawSwipe") == true and Last(charged.chargeCooldown, "SetHideCountdownNumbers") == false, "the preview recharges a charge sample with its swipe and countdown")
 	assert(first.swingSweep and first.lateGlow.playing, "the preview sweeps and glows for the swing")
-	assert(utility.count == 6 and utility.icons[5].qualityPip:IsShown(), "the preview adds a potion with its rank and a trinket")
+	assert(utility.count == 6, "the preview adds a potion and a trinket")
 	assert(frame.focus and frame.focus:IsShown() and Last(frame.focus.icon, "SetTexture") == 501766, "the preview shows the focus interrupt")
 	Write("utility.hideMissing", true); frame:Refresh()
 	assert(utility.icons[5]:GetAlpha() == 0, "the preview hides a missing potion")

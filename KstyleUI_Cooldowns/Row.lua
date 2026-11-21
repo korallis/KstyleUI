@@ -132,18 +132,6 @@ function Row:Look(icon)
 	end
 end
 
-function Row:Quality(icon, atlas)
-	local pip = icon.qualityPip
-	if atlas and not pip then
-		pip = icon.overlay:CreateTexture(nil, "OVERLAY")
-		pip:SetPoint("TOPLEFT", icon.icon, "TOPLEFT")
-		icon.qualityPip = pip
-	end
-	if atlas and icon.qualityAtlas ~= atlas then pip:SetAtlas(atlas, true) end
-	icon.qualityAtlas = atlas
-	if pip then pip:SetShown(atlas ~= nil) end
-end
-
 function Row:Swing(icon, start, duration)
 	local sweep = icon.swingSweep
 	if start and not sweep then

@@ -57,7 +57,7 @@ local BAR_RANGE = {
 	fillOpacity = { 0, 1, 0.05 },
 	decimalBelow = TENTHS_RANGE,
 }
-local ICON_FLAGS = { "timer", "gcd", "desaturate", "usable", "readyGlow", "procGlow", "inactive", "showCount", "swipe", "edge", "vertical", "hideZero", "countOnly", "overflow", "numbersOnly", "keepPlace", "itemCount", "hideMissing", "quality", "trinkets" }
+local ICON_FLAGS = { "timer", "gcd", "desaturate", "usable", "readyGlow", "procGlow", "inactive", "showCount", "swipe", "edge", "vertical", "hideZero", "countOnly", "overflow", "numbersOnly", "keepPlace", "itemCount", "hideMissing", "trinkets" }
 local RULES = { "hideCooling", "hideReady", "hideUnusable", "spent", "fade", "grey", "colour", "reverse", "noSwipe", "tint", "noGcd", "noCount", "noEdge", "noCost", "glow", "range", "hide", "shift", "missing", "count", "timerColour", "activeGlow", "decimals", "names", "chargeSwipe", "chargeTimer", "threshold", "form", "swing", "swingGlow", "sound" }
 Settings.RULES = RULES
 local POSITION = { [""] = true, CENTER = true, TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true, RIGHT = true, BOTTOMLEFT = true, BOTTOM = true, BOTTOMRIGHT = true }
@@ -112,7 +112,7 @@ local function IconDefaults(size, timerSize, countSize, cooldown, spacing, colum
 	if cooldown then
 		out.gcd, out.desaturate, out.usable, out.readyGlow, out.procGlow, out.edge = false, false, true, false, true, true
 		out.hideZero, out.countOnly, out.overflow = false, false, false
-		out.itemCount, out.hideMissing, out.quality, out.trinkets = true, false, false, false
+		out.itemCount, out.hideMissing, out.trinkets = true, false, false
 	else
 		out.inactive, out.inactiveShade, out.keepPlace = false, "", false
 	end
@@ -330,7 +330,6 @@ function Settings.Schema()
 			Add(schema, Toggle(group, "overflow", L["Overflow to the other row"], L["Cooldowns past this row's grid join the other cooldown row."]), group)
 			Add(schema, Toggle(group, "itemCount", L["Item counts"], L["Show how many potions or healthstones you carry."]), group)
 			Add(schema, Toggle(group, "hideMissing", L["Hide missing items"], L["Hide a potion or healthstone while you carry none."]), group)
-			Add(schema, Toggle(group, "quality", L["Item quality"], L["Show the crafted quality of potions and trinkets."]), group)
 			Add(schema, Toggle(group, "trinkets", L["All trinkets"], L["Also show equipped trinkets that have no use effect."]), group)
 			Add(schema, Toggle(group, "gcd", L["Global cooldown"], L["Sweep every icon during the global cooldown."]))
 			Add(schema, Toggle(group, "edge", L["Cooldown edge"], L["Show the bright line that sweeps around a cooling icon."]))

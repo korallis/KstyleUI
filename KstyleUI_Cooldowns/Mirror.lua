@@ -422,30 +422,8 @@ local function Proc(row, icon)
 	Style.SetProc(icon, on)
 end
 
-local function Quality(row, icon)
-	if not (row.cfg.quality or icon.qualityPip) then return end
-	local entry, atlas = icon.entry, nil
-	local get = C_TradeSkillUI and C_TradeSkillUI.GetItemReagentQualityInfo
-	if row.cfg.quality and entry and (entry.categoryID or entry.equipSlot) and type(get) == "function" then
-		local ok, item
-		if entry.equipSlot then
-			ok, item = pcall(GetInventoryItemID, "player", entry.equipSlot)
-		else
-			local _
-			_, item, ok = CategorySpell(entry)
-		end
-		if ns.IsSecret(item) then return end
-		if ok and Finite(item) then
-			local found, info = pcall(get, item)
-			atlas = found and type(info) == "table" and not ns.IsSecret(info) and type(info.iconSmall) == "string" and info.iconSmall or nil
-		end
-	end
-	row:Quality(icon, atlas)
-end
-
 local function RefreshCooldownIcon(row, icon)
 	Texture(icon.icon, icon.entry)
-	Quality(row, icon)
 	Usable(row, icon)
 	Charges(icon)
 	Proc(row, icon)

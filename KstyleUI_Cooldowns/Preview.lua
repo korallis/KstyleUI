@@ -24,7 +24,7 @@ function Preview.Build(...)
 		items = { false, false },
 	}
 	local SAMPLE_CHARGES = { essential = { [2] = 2 }, utility = { [2] = 0 }, buffs = { [1] = 3 }, items = { [1] = 3 } }
-	local SAMPLE_SWING, SAMPLE_QUALITY = 2.6, "Professions-Icon-Quality-Tier3-Small"
+	local SAMPLE_SWING = 2.6
 	local focusStyle = setmetatable({ group = "utility" }, Row)
 	local OTHER = { essential = "utility", utility = "essential" }
 	local SAMPLE_PROC = { essential = { [4] = true } }
@@ -42,7 +42,7 @@ function Preview.Build(...)
 			for i = Grid.Capacity(cfg) + 1, #SAMPLE_ICONS[other] do list[#list + 1] = { other, i } end
 		end
 		local own = frame.rows[group].cfg
-		if other and (own.quality or own.trinkets or own.hideMissing or not own.itemCount) then list[#list + 1] = { "items", 1 } end
+		if other and (own.trinkets or own.hideMissing or not own.itemCount) then list[#list + 1] = { "items", 1 } end
 		if other and own.trinkets then list[#list + 1] = { "items", 2 } end
 		return list
 	end
@@ -66,9 +66,7 @@ function Preview.Build(...)
 			end
 			icon.onCooldown = cooldownGroup and sample and true or false
 			local charges = SAMPLE_CHARGES[from] and SAMPLE_CHARGES[from][n]
-			local potion = from == "items" and n == 1
-			icon.missing = potion and cfg.hideMissing or nil
-			row:Quality(icon, potion and cfg.quality and SAMPLE_QUALITY or nil)
+			icon.missing = from == "items" and n == 1 and cfg.hideMissing or nil
 			if from == "items" and not cfg.itemCount then charges = nil end
 			icon:SetCount(not (charges == 0 and cfg.hideZero) and charges or nil)
 			local glows = not current.glowsInCombat or InCombatLockdown()
