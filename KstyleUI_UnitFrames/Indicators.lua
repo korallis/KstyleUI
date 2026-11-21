@@ -392,7 +392,7 @@ function Indicators.PvPTimer(view, sample)
 		if side then
 			text:SetPoint(side[1], view.icons.pvp, side[2], Snap(view, side[3] * ICON_GAP + s.pvpTimerX), Snap(view, side[4] * ICON_GAP + s.pvpTimerY))
 		else
-			text:SetPoint(right and "RIGHT" or "LEFT", view.icons.resting, right and "LEFT" or "RIGHT", Snap(view, (right and -ICON_GAP or ICON_GAP) + s.pvpTimerX), Snap(view, s.pvpTimerY))
+			text:SetPoint(right and "RIGHT" or "LEFT", view.icons.resting, "CENTER", Snap(view, (right and -ICON_GAP or ICON_GAP) + s.pvpTimerX) + (right and -0.5 or 0.5) * view.spots.resting.size, Snap(view, s.pvpTimerY))
 		end
 	end
 	text:SetFormattedText("%d:%02d", math.floor(left / 60), left % 60)

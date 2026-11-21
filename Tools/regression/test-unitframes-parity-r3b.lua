@@ -254,7 +254,7 @@ write("player.pvpTimer", true)
 local timer = assert(player.pvpTimer, "the timer shows while the flag counts down")
 assert(timer:IsShown() and U.Shown(env, timer) == "4:32", "it reads minutes and seconds: " .. U.Shown(env, timer))
 local spot = W.LastCall(timer, "SetPoint")
-assert(spot[1] == "RIGHT" and spot[2] == player.icons.resting and spot[3] == "LEFT", "it sits after the last status icon, clear of the others and the frame above")
+assert(spot[1] == "RIGHT" and spot[2] == player.icons.resting and spot[3] == "CENTER", "it sits after the last status icon, clear of the others and the frame above")
 assert(player.pvpTicker and env.LiveTickers() >= 1, "one ticker counts it down")
 env._pvpMs = 61000
 env.RunTickers()
