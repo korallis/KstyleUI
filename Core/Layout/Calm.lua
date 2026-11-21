@@ -208,13 +208,21 @@ local function Count(_, elapsed)
 	end
 end
 
+local countScript = Count
+
+function Calm.SetProfiling(on)
+	countScript = on and ns.DevTest.Timed("Calm wait", Count) or Count
+	if driver and driver:GetScript("OnUpdate") then
+		driver:SetScript("OnUpdate", countScript)
+	end
+end
+
 local function StartWait()
 	if not driver then
 		driver = CreateFrame("Frame")
 	end
 	wait = Calm.DELAY
-	local DevTest = ns.DevTest
-	driver:SetScript("OnUpdate", DevTest and DevTest.Timed and DevTest.Timed("Calm wait", Count) or Count)
+	driver:SetScript("OnUpdate", countScript)
 end
 
 local function Fall()

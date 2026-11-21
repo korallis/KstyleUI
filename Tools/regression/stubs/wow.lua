@@ -1550,7 +1550,7 @@ function Stubs.NewEnv(opts)
 	function env.time()
 		return env._now
 	end
-	-- debugprofilestop is a monotonic millisecond clock: the stubs run it from the same fake clock.
+	-- debugprofilestop counts milliseconds since the last debugprofilestart; the stubs run it from the same fake clock.
 	function env.debugprofilestop()
 		return env._now * 1000
 	end
