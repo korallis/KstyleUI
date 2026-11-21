@@ -465,6 +465,45 @@ function Text(frame)
 	end
 end
 
+local LINE_ALPHA = 0.3
+local hookedSteps = setmetatable({}, { __mode = "k" })
+
+local function QuietStep(step)
+	if state.saved and type(step.SetBackdropColor) == "function" then
+		step:SetBackdropColor(0, 0, 0, 0)
+		step:SetBackdropBorderColor(0, 0, 0, 0)
+	end
+end
+
+local function QuietLine(line, r, g, b, a)
+	local center = IsTable(line.back) and line.back.Center
+	if state.saved and IsTable(center) and type(center.SetColorTexture) == "function" and Plain(a) then
+		center:SetColorTexture(r, g, b, a * LINE_ALPHA)
+	end
+end
+
+local function Steps(frame)
+	local steps = IsTable(frame) and frame.stepframes
+	if not IsTable(steps) then
+		return
+	end
+	for _, step in ipairs(steps) do
+		if not hookedSteps[step] and type(step.SetBackgroundForStep) == "function" then
+			hookedSteps[step] = true
+			hooksecurefunc(step, "SetBackgroundForStep", QuietStep)
+			for _, line in ipairs(IsTable(step.lines) and step.lines or {}) do
+				if type(line.SetBackColor) == "function" then
+					hooksecurefunc(line, "SetBackColor", QuietLine)
+					if IsTable(line.back) and type(line.back.GetBackdropColor) == "function" then
+						QuietLine(line, line.back:GetBackdropColor())
+					end
+				end
+			end
+		end
+		QuietStep(step)
+	end
+end
+
 local function Paint(z)
 	local style = z.CurrentSkinStyle
 	if not IsTable(style) then
@@ -515,6 +554,11 @@ local function Paint(z)
 		panel:Show()
 	end
 	Text(z.Frame)
+	Steps(z.Frame)
+	if not state.steps and IsTable(z.Frame) and type(z.Frame.AddStep) == "function" then
+		state.steps = true
+		hooksecurefunc(z.Frame, "AddStep", Steps)
+	end
 end
 
 local function Unpaint(z)

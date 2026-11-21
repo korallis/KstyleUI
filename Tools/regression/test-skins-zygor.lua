@@ -91,6 +91,13 @@ do
 	assert(zygor.style.WindowBackdropColor[4] == 0, "Zygor's own window fill steps aside for the KstyleUI card")
 	local card = K.Skin.Parts(zygor.frame.Border).backdrop
 	assert(card and card:IsShown(), "the window wears KstyleUI's window card, forged by default, as RestedXP's does")
+	-- Zygor's step and line fills come from its own opacity and goal-colour settings, so they are quieted after it paints, never by writing those settings.
+	local step = zygor.step
+	zygor.frame:AddStep()
+	assert(step.backdrop[4] == 0, "a repainted step lets the card show through")
+	step.lines[1]:SetBackColor(0.5, 0, 0, 1)
+	local _, _, _, lineAlpha = step.lines[1].back.Center:GetVertexColor()
+	assert(lineAlpha and lineAlpha < 0.5, "a goal colour stays as a faint tint, not a solid bar: " .. tostring(lineAlpha))
 	assert(zygor.applied >= 1, "Zygors skin is applied after the rail's colours go in")
 	assert(zygor.profile.fullheight == nil, "the window's own height save is not written while the rail holds it")
 	-- Every step change brings the window back to the card, whatever Zygor's resize did to it.

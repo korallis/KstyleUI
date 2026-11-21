@@ -30,10 +30,21 @@ function Fake.Install(env, opts)
 	end
 	step.lines = { { label = label } }
 	frame.Controls = { StepContainer = container }
+	-- A step paints its own background from Zygor's opacity setting and each line from its goal colours (Skins/Default/ViewerFrame.lua:602, :713, :2397).
+	step.SetBackdropColor = function(self, r, g, b, a) self.backdrop = { r, g, b, a } end
+	step.SetBackdropBorderColor = function() end
+	step.SetBackgroundForStep = function(self) self:SetBackdropColor(0.13, 0.13, 0.13, 1) end
+	local back = env.CreateFrame("Frame", nil, step)
+	back.Center = back:CreateTexture(nil, "BACKGROUND")
+	back.GetBackdropColor = function() return 0.5, 0, 0, 1 end
+	step.lines[1].back = back
+	step.lines[1].SetBackColor = function(self, r, g, b, a) back.Center:SetColorTexture(r, g, b, a) end
+	frame.stepframes = { step }
+	function frame:AddStep() step:SetBackgroundForStep() end
 	local profile = { resizeup = opts.resizeup == true, fixedheight = false, showcountsteps = opts.allsteps and 0 or 1, framescale = 1, frame_anchor = { "CENTER", "CENTER", 0, 0 } }
 	local handlers = {}
 	local style = { WindowBackdropColor = { 1, 0, 0, 1 }, StepFontSizeMod = 1 }
-	local fake = { master = master, frame = frame, profile = profile, style = style, natural = opts.natural or 240, applied = 0, saves = 0, sets = 0, label = label, writes = writes }
+	local fake = { master = master, frame = frame, profile = profile, style = style, natural = opts.natural or 240, applied = 0, saves = 0, sets = 0, label = label, writes = writes, step = step }
 	local z = {
 		Frame = not opts.late and frame or nil,
 		db = { profile = profile },
