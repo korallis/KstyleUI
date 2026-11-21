@@ -235,15 +235,25 @@ function IconButton:StyleCooldown(real)
 end
 
 local countdownFormatters = {}
-function Widgets.CountdownFormat(cooldown, tenths)
+function Widgets.CountdownFormat(cooldown, tenths, colour, below)
 	if type(cooldown.SetCountdownFormatter) ~= "function" then return end
 	local util, rounding = C_StringUtil, Enum and Enum.NumericRuleFormatRounding
-	local key = tenths or 0
+	local key = (tenths or 0) .. (colour and ":" .. colour .. ":" .. below or "")
 	if countdownFormatters[key] == nil and util and type(util.CreateNumericRuleFormatter) == "function" and rounding then
 		local ok, formatter = pcall(function()
 			local made = util.CreateNumericRuleFormatter()
-			if tenths then made:AddBreakpoint({ threshold = 0, step = 0.1, rounding = rounding.Up, format = "%.1f" }) end
-			made:AddBreakpoint({ threshold = tenths or 0, step = 1, rounding = rounding.Up, min = 1, format = "%d" })
+			local cuts = { 0 }
+			if tenths then cuts[#cuts + 1] = tenths end
+			if colour and below < 60 then cuts[#cuts + 1] = below end
+			table.sort(cuts)
+			for i, from in ipairs(cuts) do
+				if from ~= cuts[i - 1] then
+					local fine = tenths and from < tenths
+					local format = fine and "%.1f" or "%d"
+					if colour and from < below then format = "|cff" .. colour .. format .. "|r" end
+					made:AddBreakpoint({ threshold = from, step = fine and 0.1 or 1, rounding = rounding.Up, min = not fine and 1 or nil, format = format })
+				end
+			end
 			made:AddBreakpoint({ threshold = 60, format = "%dm", components = { { div = 60, step = 1, rounding = rounding.Up } } })
 			made:AddBreakpoint({ threshold = 3600, max = 32400, format = "%dh", components = { { div = 3600, step = 1, rounding = rounding.Up } } })
 			return made
@@ -323,7 +333,7 @@ function IconButton:ClearCooldown()
 	SetRealCooldown(self, false)
 end
 
-function IconButton:SetChargeCooldownFromDuration(durationObject)
+function IconButton:ChargeCooldown()
 	local charge = self.chargeCooldown
 	if not charge then
 		charge = CreateFrame("Cooldown", nil, self, "CooldownFrameTemplate")
@@ -336,6 +346,11 @@ function IconButton:SetChargeCooldownFromDuration(durationObject)
 		self.chargeCooldown = charge
 		self:StyleCooldown()
 	end
+	return charge
+end
+
+function IconButton:SetChargeCooldownFromDuration(durationObject)
+	local charge = self:ChargeCooldown()
 	if type(charge.SetCooldownFromDurationObject) ~= "function" then
 		Widgets.LogOnce("charge-object", "Cooldown:SetCooldownFromDurationObject is missing; charge recharges are not shown")
 		return false

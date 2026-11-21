@@ -1,4 +1,4 @@
--- Preview.lua: the settings window's live preview: sample essential, utility and buff rows and buff bars drawn with the current settings, cooldown samples passed to the other row past its grid, and every sample treated as listed in each spell rule that is not empty, with the list's first colour, name or threshold.
+-- Preview.lua: the settings window's live preview: sample essential, utility and buff rows and buff bars drawn with the current settings (with a sample potion and trinket while an item option is changed, and the focus interrupt while one is named), cooldown samples passed to the other row past its grid, and every sample treated as listed in each spell rule that is not empty, with the list's first colour, name or threshold.
 local _, ns = ...
 
 local K = KstyleUI
@@ -15,13 +15,17 @@ function Preview.Build(...)
 		essential = { 132176, 132153, 132111, 132157, 132169, 132172 },
 		utility = { 132164, 132179, 132188, 132159 },
 		buffs = { 132159, 132160, 132188 },
+		items = { 134834, 133283 },
 	}
 	local SAMPLE_COOLDOWNS = {
 		essential = { { 12, 6 }, false, { 30, 26 }, false, { 20, 18 }, { 8, 6 } },
 		utility = { false, { 60, 48 }, false, false },
 		buffs = { { 30, 12 }, { 600, 420 }, false },
+		items = { false, false },
 	}
-	local SAMPLE_CHARGES = { essential = { [2] = 2 }, utility = { [2] = 0 }, buffs = { [1] = 3 } }
+	local SAMPLE_CHARGES = { essential = { [2] = 2 }, utility = { [2] = 0 }, buffs = { [1] = 3 }, items = { [1] = 3 } }
+	local SAMPLE_SWING, SAMPLE_QUALITY = 2.6, "Professions-Icon-Quality-Tier3-Small"
+	local focusStyle = setmetatable({ group = "utility" }, Row)
 	local OTHER = { essential = "utility", utility = "essential" }
 	local SAMPLE_PROC = { essential = { [4] = true } }
 	local SAMPLE_BARS = {
@@ -37,6 +41,9 @@ function Preview.Build(...)
 		if cfg and cfg.overflow then
 			for i = Grid.Capacity(cfg) + 1, #SAMPLE_ICONS[other] do list[#list + 1] = { other, i } end
 		end
+		local own = frame.rows[group].cfg
+		if other and (own.quality or own.trinkets or own.hideMissing or not own.itemCount) then list[#list + 1] = { "items", 1 } end
+		if other and own.trinkets then list[#list + 1] = { "items", 2 } end
 		return list
 	end
 
@@ -59,6 +66,10 @@ function Preview.Build(...)
 			end
 			icon.onCooldown = cooldownGroup and sample and true or false
 			local charges = SAMPLE_CHARGES[from] and SAMPLE_CHARGES[from][n]
+			local potion = from == "items" and n == 1
+			icon.missing = potion and cfg.hideMissing or nil
+			row:Quality(icon, potion and cfg.quality and SAMPLE_QUALITY or nil)
+			if from == "items" and not cfg.itemCount then charges = nil end
 			icon:SetCount(not (charges == 0 and cfg.hideZero) and charges or nil)
 			local glows = not current.glowsInCombat or InCombatLockdown()
 			Style.SetProc(icon, glows and cfg.procGlow and SAMPLE_PROC[from] and SAMPLE_PROC[from][n])
@@ -75,9 +86,39 @@ function Preview.Build(...)
 				if rule.range then icon:SetTint(current.rangeR, current.rangeG, current.rangeB) else icon:SetTint(1) end
 			end
 			icon:Paint()
-			if cooldownGroup then row:Visible(icon) end
+			if cooldownGroup then
+				Style.Glow(icon, icon, "lateGlow", rule.swingGlow ~= nil, Rules.Colour(rule.swingGlow, "glow"))
+				row:Swing(icon, rule.swing and now - 1, SAMPLE_SWING)
+				if charges and charges > 0 and (rule.chargeSwipe or rule.chargeTimer) then
+					icon:ChargeCooldown():SetCooldown(now - 4, 10)
+					row:Recharge(icon)
+				elseif icon.chargeCooldown then
+					icon.chargeCooldown:Clear()
+				end
+				row:Visible(icon)
+			end
 		end
 		row:Settle()
+	end
+
+	local function FocusSample(frame)
+		local spell, icon = Settings.current.focusSpell, frame.focus
+		if spell == "" then
+			if icon then icon:Hide() end
+			return
+		end
+		if not icon then
+			icon = Style.Decorate(Widgets.Slot(frame, { size = Settings.current.utility.size }), "utility")
+			frame.focus = icon
+		end
+		focusStyle.cfg = Settings.current.utility
+		focusStyle:StyleIcon(icon)
+		local id = ns.Focus.Spell(spell)
+		local ok, texture = pcall(C_Spell.GetSpellTexture, id)
+		icon:SetIcon(id and ok and not issecretvalue(texture) and texture or ns.Data.UNKNOWN_ICON)
+		icon:ClearAllPoints()
+		Widgets.Point(icon, "TOP", frame.rows.bars.holder, "BOTTOM", 0, -Tokens.Size("gapMedium"))
+		icon:Show()
 	end
 
 	local function FillBars(row, rule)
@@ -140,6 +181,7 @@ function Preview.Build(...)
 				Fill(frame.rows[group], group, Samples(frame, group), rule)
 			end
 		end
+		FocusSample(frame)
 	end
 
 	build = function(parent)

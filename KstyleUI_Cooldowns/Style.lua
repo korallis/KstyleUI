@@ -1,4 +1,4 @@
--- Style.lua: the fonts, accent tints, glows, tooltips and the "+N" overflow chip (one socket beyond a full row, on the side away from the combat cluster, listing the hidden buffs on hover) the Cooldowns icons and bars share.
+-- Style.lua: the fonts, accent tints, glows (the proc glow lowered under the numbers on request), countdown formats (coloured below a threshold), tooltips and the "+N" overflow chip (one socket beyond a full row, on the side away from the combat cluster, listing the hidden buffs on hover) the Cooldowns icons and bars share.
 local _, ns = ...
 
 local K = KstyleUI
@@ -126,12 +126,16 @@ local function Formatter(tenths)
 	return formatters[key] or nil
 end
 
-function Style.Countdown(cooldown, native, bar, tenths)
+function Style.Hex(r, g, b)
+	return string.format("%02x%02x%02x", math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
+end
+
+function Style.Countdown(cooldown, native, bar, tenths, colour, below)
 	if type(cooldown) ~= "table" or type(cooldown.SetCountdownFormatter) ~= "function" then
 		return false
 	end
-	if not bar and ns.Settings.current.readableCountdown then
-		return pcall(Widgets.CountdownFormat, cooldown, tenths)
+	if not bar and (ns.Settings.current.readableCountdown or colour) then
+		return pcall(Widgets.CountdownFormat, cooldown, tenths, colour, below)
 	end
 	if native and not tenths then return pcall(cooldown.SetCountdownFormatter, cooldown, nil) end
 	local f = Formatter(tenths)
@@ -403,6 +407,14 @@ end
 function Style.Tooltips(frame)
 	frame:HookScript("OnEnter", ShowTooltip)
 	frame:HookScript("OnLeave", HideTooltip)
+end
+
+function Style.Lift(icon)
+	local glow, on = icon.lumenGlow, ns.Settings.current.textAboveGlow
+	if not (glow and (on or icon.procLevel)) then return end
+	icon.procLevel = icon.procLevel or glow:GetFrameLevel()
+	local level = on and icon:GetFrameLevel() or icon.procLevel
+	if glow:GetFrameLevel() ~= level then glow:SetFrameLevel(level) end
 end
 
 function Style.SetProc(icon, on)

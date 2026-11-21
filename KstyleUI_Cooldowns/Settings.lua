@@ -37,9 +37,13 @@ local ICON_RANGE = {
 	timerY = { -50, 50, 1 },
 	countX = { -50, 50, 1 },
 	countY = { -50, 50, 1 },
+	baseCount = { 0, 12, 1 },
+	baseSize = { -20, 20, 1 },
+	secondSize = { -20, 20, 1 },
 }
 local FADE_RANGE = { 0, 1, 0.05 }
 local TENTHS_RANGE = { 1, 60, 1 }
+local SWING_RANGE = { 0.1, 2, 0.1 }
 local ESSENTIAL_TIMER_RANGE = { 6, 32, 0.5 }
 local BAR_RANGE = {
 	width = { 80, 400, 1 },
@@ -53,12 +57,15 @@ local BAR_RANGE = {
 	fillOpacity = { 0, 1, 0.05 },
 	decimalBelow = TENTHS_RANGE,
 }
-local ICON_FLAGS = { "timer", "gcd", "desaturate", "usable", "readyGlow", "procGlow", "inactive", "showCount", "swipe", "edge", "vertical", "hideZero", "countOnly", "overflow", "numbersOnly", "keepPlace" }
-local RULES = { "hideCooling", "hideReady", "hideUnusable", "spent", "fade", "grey", "colour", "reverse", "noSwipe", "tint", "noGcd", "noCount", "noEdge", "noCost", "glow", "range", "hide", "shift", "missing", "count", "timerColour", "activeGlow", "decimals", "names" }
+local ICON_FLAGS = { "timer", "gcd", "desaturate", "usable", "readyGlow", "procGlow", "inactive", "showCount", "swipe", "edge", "vertical", "hideZero", "countOnly", "overflow", "numbersOnly", "keepPlace", "itemCount", "hideMissing", "quality", "trinkets" }
+local RULES = { "hideCooling", "hideReady", "hideUnusable", "spent", "fade", "grey", "colour", "reverse", "noSwipe", "tint", "noGcd", "noCount", "noEdge", "noCost", "glow", "range", "hide", "shift", "missing", "count", "timerColour", "activeGlow", "decimals", "names", "chargeSwipe", "chargeTimer", "threshold", "form", "swing", "swingGlow", "sound" }
 Settings.RULES = RULES
 local POSITION = { [""] = true, CENTER = true, TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true, RIGHT = true, BOTTOMLEFT = true, BOTTOM = true, BOTTOMRIGHT = true }
 local INACTIVE = { [""] = true, grey = true, colour = true }
 local SOURCE = { class = true, custom = true }
+local SOUND = { [""] = true, warning = true, ready = true }
+local SIDE = { LEFT = true, RIGHT = true, TOP = true, BOTTOM = true }
+Settings.SOUNDS = { warning = "RAID_WARNING", ready = "READY_CHECK" }
 local MAX_RULE = 240
 local BAR_FLAGS = { "reverse", "icon", "name", "timer", "inactive", "showCount", "fillUp", "smooth", "spark", "nameWrap", "decimals" }
 
@@ -98,10 +105,14 @@ local function IconDefaults(size, timerSize, countSize, cooldown, spacing, colum
 		countY = 0,
 		vertical = false,
 		numbersOnly = false,
+		baseCount = 0,
+		baseSize = 0,
+		secondSize = 0,
 	}
 	if cooldown then
 		out.gcd, out.desaturate, out.usable, out.readyGlow, out.procGlow, out.edge = false, false, true, false, true, true
 		out.hideZero, out.countOnly, out.overflow = false, false, false
+		out.itemCount, out.hideMissing, out.quality, out.trinkets = true, false, false, false
 	else
 		out.inactive, out.inactiveShade, out.keepPlace = false, "", false
 	end
@@ -141,6 +152,16 @@ Settings.defaults = {
 	timerSource = "class",
 	timerColor = { r = textR, g = textG, b = textB },
 	decimalBelow = 3,
+	thresholdBelow = 5,
+	thresholdColor = { r = rangeR, g = rangeG, b = rangeB },
+	swingWindow = 0.5,
+	readySound = "",
+	textAboveGlow = false,
+	focusSpell = "",
+	focusSide = "LEFT",
+	focusTarget = false,
+	focusSound = "",
+	focusReminder = false,
 	rules = noRules,
 	essential = essential,
 	utility = IconDefaults(BUTTON, UTILITY_TIMER, UTILITY_COUNT, true, GAP, UTILITY_COLUMNS),
@@ -236,6 +257,8 @@ function Settings.Schema()
 		{ value = "BOTTOMLEFT", label = L["Bottom left"] }, { value = "BOTTOM", label = L["Bottom"] }, { value = "BOTTOMRIGHT", label = L["Bottom right"] },
 	}
 	local SOURCE_OPTIONS = { { value = "class", label = L["Class colour"] }, { value = "custom", label = L["Custom colour"] } }
+	local SOUND_OPTIONS = { { value = "", label = L["None"] }, { value = "warning", label = L["Raid warning"] }, { value = "ready", label = L["Ready check"] } }
+	local SIDE_OPTIONS = { { value = "LEFT", label = L["Left"] }, { value = "RIGHT", label = L["Right"] }, { value = "TOP", label = L["Top"] }, { value = "BOTTOM", label = L["Bottom"] } }
 	local INACTIVE_OPTIONS = { { value = "", label = L["Current style"] }, { value = "grey", label = L["Grey"] }, { value = "colour", label = L["Full colour"] } }
 
 	local function Mirrors(group, settings)
@@ -298,10 +321,17 @@ function Settings.Schema()
 		Add(schema, Slider(group, "countY", L["Count vertical offset"], L["Moves the charge or stack count down or up."], ICON_RANGE))
 		Add(schema, Toggle(group, "vertical", L["Vertical"], L["Fill each column first. Attached rows keep their size; a detached or moved row stands upright."]), group)
 		Add(schema, Toggle(group, "numbersOnly", L["Numbers only"], L["Show only the countdown, in an empty socket."]), group)
+		Add(schema, Slider(group, "baseCount", L["Base row icons"], L["With two rows, how many icons the first row holds; 0 keeps Icons per row."], ICON_RANGE), group)
+		Add(schema, Slider(group, "baseSize", L["Base row size"], L["With two rows, makes the first row's icons this much larger or smaller."], ICON_RANGE), group)
+		Add(schema, Slider(group, "secondSize", L["Second row size"], L["With two rows, makes the second row's icons this much larger or smaller."], ICON_RANGE), group)
 		if COOLDOWN_GROUPS[group] then
 			Add(schema, Toggle(group, "hideZero", L["Hide 0 charges"], L["Hide the charge count while no charge is left."]), group)
 			Add(schema, Toggle(group, "countOnly", L["Counts only"], L["Show only the charge or stack count, in an empty socket."]), group)
 			Add(schema, Toggle(group, "overflow", L["Overflow to the other row"], L["Cooldowns past this row's grid join the other cooldown row."]), group)
+			Add(schema, Toggle(group, "itemCount", L["Item counts"], L["Show how many potions or healthstones you carry."]), group)
+			Add(schema, Toggle(group, "hideMissing", L["Hide missing items"], L["Hide a potion or healthstone while you carry none."]), group)
+			Add(schema, Toggle(group, "quality", L["Item quality"], L["Show the crafted quality of potions and trinkets."]), group)
+			Add(schema, Toggle(group, "trinkets", L["All trinkets"], L["Also show equipped trinkets that have no use effect."]), group)
 			Add(schema, Toggle(group, "gcd", L["Global cooldown"], L["Sweep every icon during the global cooldown."]))
 			Add(schema, Toggle(group, "edge", L["Cooldown edge"], L["Show the bright line that sweeps around a cooling icon."]))
 			Add(schema, Toggle(group, "desaturate", L["Grey while cooling"], L["Show an icon in grey while its spell is on cooldown."]))
@@ -353,6 +383,17 @@ function Settings.Schema()
 		Rule("range", L["Out of range tint"], L["Tint these while your target is out of their range."], true)
 		Add(schema, { type = "color", key = "rangeColor", label = L["Out of range"], help = L["The tint of a spell whose target is out of range."] }, "essential")
 		Rule("names", L["Bar names"], L["Rename tracked buff bars, such as Rapid Fire=Haste."], "bars")
+		Rule("chargeSwipe", L["Recharge swipe"], L["Shade these icons while a charge recharges."], true)
+		Rule("chargeTimer", L["Recharge countdown"], L["Show the recharge countdown on these icons while charges remain."], true)
+		Rule("threshold", L["Colour below threshold"], L["Colour the countdown of these spells below the threshold seconds."], true)
+		Add(schema, { type = "slider", key = "thresholdBelow", label = L["Threshold seconds"], help = L["Below this many seconds, listed countdowns change colour."], min = TENTHS_RANGE[1], max = TENTHS_RANGE[2], step = TENTHS_RANGE[3] }, "essential")
+		Add(schema, { type = "color", key = "thresholdColor", label = L["Threshold colour"], help = L["The countdown colour below the threshold."] }, "essential")
+		Rule("form", L["Hide outside form"], L["Show these only in a form or stance, named after the spell: Shred=Cat Form."], true)
+		Rule("swing", L["Swing timer"], L["Sweep these icons with your main hand swing, for attacks on your next swing."], true)
+		Rule("swingGlow", L["Glow late in swing"], L["Glow these in the glow tint late in your main hand swing, unless already queued."], true)
+		Add(schema, { type = "slider", key = "swingWindow", label = L["Seconds before swing"], help = L["How long before the swing the glow starts."], min = SWING_RANGE[1], max = SWING_RANGE[2], step = SWING_RANGE[3] }, "essential")
+		Rule("sound", L["Sound when ready"], L["Play a sound when these spells come off cooldown."], true)
+		Add(schema, { type = "dropdown", key = "readySound", label = L["Ready sound"], help = L["The sound listed spells play when ready."], options = SOUND_OPTIONS }, "essential")
 	end
 
 	local function BarRows(schema)
@@ -401,6 +442,7 @@ function Settings.Schema()
 		{ type = "color", key = "accentColor", label = L["Custom accent"], help = L["The colour of glows and hairlines when the accent is custom."], showWhen = Custom("accent") },
 		{ type = "toggle", key = "tooltips", label = L["Tooltips"], help = L["Show a spell's tooltip when the pointer is over its icon."] },
 		{ type = "toggle", key = "glowsInCombat", label = L["Glows only in combat"], help = L["Hide the ready and proc glows of cooldown icons out of combat."], showWhen = function(settings) return Mirrors("essential", settings) end },
+		{ type = "toggle", key = "textAboveGlow", label = L["Numbers above glows"], help = L["Draw countdowns and counts over the proc glow."], showWhen = function(settings) return Mirrors("essential", settings) end },
 		{ type = "header", label = L["Text"] },
 		{ type = "dropdown", key = "timerFont", label = L["Timer font"], help = L["The font of the countdown numbers."], options = FontOptions },
 		{ type = "dropdown", key = "timerOutline", label = L["Timer outline"], help = L["A soft shadow, or an outline for busy backgrounds."], options = OUTLINE_OPTIONS },
@@ -414,6 +456,12 @@ function Settings.Schema()
 	IconRows(schema, "buffs", L["Tracked buff icons"])
 	BarRows(schema)
 	RuleRows(schema)
+	Add(schema, { type = "header", label = L["Focus interrupt"] })
+	Add(schema, { type = "text", key = "focusSpell", label = L["Interrupt spell"], help = L["Your interrupt, by name or ID. Its icon shows on your focus's nameplate."], maxLetters = MAX_RULE })
+	Add(schema, { type = "dropdown", key = "focusSide", label = L["Nameplate side"], help = L["Which side of the nameplate the icon sits on."], options = SIDE_OPTIONS })
+	Add(schema, { type = "toggle", key = "focusTarget", label = L["Show on target"], help = L["Use your target's nameplate instead of your focus's."] })
+	Add(schema, { type = "dropdown", key = "focusSound", label = L["Focus cast sound"], help = L["Plays when your focus starts a cast while your interrupt is ready, or on any cast without one."], options = SOUND_OPTIONS })
+	Add(schema, { type = "toggle", key = "focusReminder", label = L["Focus reminder"], help = L["In dungeons, mark enemy casters while you have no focus."] })
 	table.insert(schema, 1, { type = "toggle", key = "attached", label = L["Attach cooldowns to the HUD"], help = L["Keep rows by the HUD. Turn off for the previous placement. Custom positions are kept."] })
 	schema.preview = ns.Preview.Build
 	Settings.schema = schema
@@ -539,7 +587,14 @@ function Settings.Read()
 	current.fadeAlpha = Number(saved.fadeAlpha, FADE_RANGE, defaults.fadeAlpha)
 	for _, key in ipairs({ "tint", "glow", "timer" }) do current[key .. "Source"] = Choice(saved[key .. "Source"], SOURCE, "class") end
 	current.decimalBelow = Number(saved.decimalBelow, TENTHS_RANGE, defaults.decimalBelow)
-	for _, key in ipairs({ "tint", "glow", "range", "timer" }) do Color(current, key, saved[key .. "Color"], defaults[key .. "Color"]) end
+	current.thresholdBelow = Number(saved.thresholdBelow, TENTHS_RANGE, defaults.thresholdBelow)
+	current.swingWindow = Number(saved.swingWindow, SWING_RANGE, defaults.swingWindow)
+	current.readySound, current.focusSound = Choice(saved.readySound, SOUND, ""), Choice(saved.focusSound, SOUND, "")
+	current.focusSide = Choice(saved.focusSide, SIDE, "LEFT")
+	current.textAboveGlow, current.focusTarget, current.focusReminder = saved.textAboveGlow == true, saved.focusTarget == true, saved.focusReminder == true
+	local spell = saved.focusSpell
+	current.focusSpell = type(spell) == "string" and not ns.IsSecret(spell) and #spell <= MAX_RULE and spell or ""
+	for _, key in ipairs({ "tint", "glow", "range", "timer", "threshold" }) do Color(current, key, saved[key .. "Color"], defaults[key .. "Color"]) end
 	local rules, savedRules = current.rules or {}, type(saved.rules) == "table" and saved.rules or {}
 	for _, key in ipairs(RULES) do
 		local text = savedRules[key]
@@ -570,7 +625,7 @@ function Settings.Free(group)
 end
 
 function Settings.SourceColor(key)
-	if current[key .. "Source"] == "custom" then
+	if current[key .. "Source"] ~= "class" then
 		return current[key .. "R"], current[key .. "G"], current[key .. "B"]
 	end
 	local class = K.Theme.Class()

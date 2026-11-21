@@ -255,7 +255,7 @@ end
 do
 	local env, K, ns, Write = New("mirror")
 	local cdm, row = env._cdm, ns.Mirror.Row("buffs")
-	for _, option in ipairs(ns.Settings.Schema()) do assert(option.key ~= "assist" and option.key ~= "rules.form", "Forever has no Assisted Highlight (HasAssistedCombat is false) and no API names a spell's form, so neither is offered") end
+	for _, option in ipairs(ns.Settings.Schema()) do assert(option.key ~= "assist", "Forever has no Assisted Highlight (HasAssistedCombat is false), so it is not offered") end
 	assert(not next(cdm.callbacks["AssistedCombatManager.OnAssistedHighlightSpellChange"] or {}), "and nothing listens for it")
 
 	Write("buffs.keepPlace", true)

@@ -1,4 +1,4 @@
--- Row.lua: a holder of KstyleUI icon buttons placed on the grid, shared by the cooldown rows and the preview, each icon dressed by its spell rules and hidden or faded by them (Close gaps re-places the rest); past the grid, a "+N" chip one socket left of the tracked buffs' full row, away from the combat cluster, lists the rest on hover.
+-- Row.lua: a holder of KstyleUI icon buttons placed on the grid (two rows may differ in count and icon size), shared by the cooldown rows and the preview, each icon dressed by its spell rules (recharge swipe and countdown included) and hidden or faded by them, by its form or by a missing item (Close gaps re-places the rest); past the grid, a "+N" chip one socket left of the tracked buffs' full row, away from the combat cluster, lists the rest on hover.
 local _, ns = ...
 
 local K = KstyleUI
@@ -12,6 +12,7 @@ ns.Row = Row
 local OVERFLOW = { buffs = true }
 local COOLDOWN_GROUPS = ns.Settings.COOLDOWN_GROUPS
 local EMPTY = ns.Rules.EMPTY
+local SWIPE_ALPHA = 0.65
 local styleCooldown
 
 local function StyleCooldown(icon, real)
@@ -54,7 +55,36 @@ function Row:StyleIcon(icon)
 	Style.Mouse(icon, current.tooltips and not icon.ruleHidden and not icon.blank)
 	Style.Accent(icon)
 	Style.Dress(icon)
+	Style.Lift(icon)
 	self:Look(icon)
+end
+
+function Row:Recharge(icon)
+	local charge, rule, cfg = icon.chargeCooldown, icon.rule or EMPTY, self.cfg
+	if not charge then return end
+	local idle = not icon.onCooldown
+	local swipe, numbers = rule.chargeSwipe ~= nil and idle, rule.chargeTimer ~= nil and idle and cfg.timer and not cfg.countOnly
+	if (icon.rechargeSwipe or false) ~= swipe then
+		icon.rechargeSwipe = swipe
+		charge:SetDrawSwipe(swipe)
+		if swipe then
+			charge:SetSwipeTexture((K.Tokens.Texture("iconMask")))
+			charge:SetSwipeColor(Widgets.Rgba("black", SWIPE_ALPHA))
+		end
+	end
+	if (icon.rechargeNumbers or false) == numbers and not numbers then return end
+	icon.rechargeNumbers = numbers
+	charge:SetHideCountdownNumbers(not numbers)
+	local text = numbers and charge:GetCountdownFontString()
+	if text then
+		local current = ns.Settings.current
+		Style.Font(text, current.timerFont, cfg.timerSize, current.timerOutline, self.group ~= "essential" and "timer" or nil)
+		Widgets.TextColor(text, "slotNumber")
+		Style.TextColour(text, rule.timerColour, "slotNumber")
+		text:ClearAllPoints()
+		text:SetPoint("CENTER", icon.countdown, "CENTER")
+		Style.Countdown(charge, self.group == "essential")
+	end
 end
 
 function Row:Look(icon)
@@ -71,8 +101,9 @@ function Row:Look(icon)
 		icon.countOnly = bare
 		icon.icon:SetAlpha(bare and 0 or 1)
 	end
-	local tenths = rule.decimals and (tonumber(rule.decimals) or ns.Settings.current.decimalBelow) or nil
-	Style.Countdown(cooldown, group == "essential", false, tenths)
+	local current = ns.Settings.current
+	local tenths = rule.decimals and (tonumber(rule.decimals) or current.decimalBelow) or nil
+	Style.Countdown(cooldown, group == "essential", false, tenths, rule.threshold and Style.Hex(Rules.Colour(rule.threshold, "threshold")), current.thresholdBelow)
 	Style.TextColour(icon.countdown, rule.timerColour, "slotNumber")
 	local grey = (cfg.desaturate or rule.grey) and not rule.colour and true or false
 	local repaint = (icon.greyWhileCooling or false) ~= grey
@@ -92,6 +123,7 @@ function Row:Look(icon)
 		Style.GlowColor(icon)
 	end
 	icon:StyleCooldown()
+	self:Recharge(icon)
 	if not cooldowns then
 		icon.inactiveShade = rule.grey and "grey" or rule.colour and "colour" or cfg.inactiveShade
 		icon:Paint()
@@ -100,11 +132,49 @@ function Row:Look(icon)
 	end
 end
 
+function Row:Quality(icon, atlas)
+	local pip = icon.qualityPip
+	if atlas and not pip then
+		pip = icon.overlay:CreateTexture(nil, "OVERLAY")
+		pip:SetPoint("TOPLEFT", icon.icon, "TOPLEFT")
+		icon.qualityPip = pip
+	end
+	if atlas and icon.qualityAtlas ~= atlas then pip:SetAtlas(atlas, true) end
+	icon.qualityAtlas = atlas
+	if pip then pip:SetShown(atlas ~= nil) end
+end
+
+function Row:Swing(icon, start, duration)
+	local sweep = icon.swingSweep
+	if start and not sweep then
+		sweep = CreateFrame("Cooldown", nil, icon, "CooldownFrameTemplate")
+		sweep:SetAllPoints(icon.icon)
+		sweep:SetSwipeTexture((K.Tokens.Texture("iconMask")))
+		sweep:SetSwipeColor(Widgets.Rgba("black", SWIPE_ALPHA))
+		sweep:SetDrawEdge(false)
+		sweep:SetDrawBling(false)
+		sweep:SetHideCountdownNumbers(true)
+		icon.swingSweep = sweep
+	end
+	if start then
+		sweep:SetCooldown(start, duration)
+	elseif sweep then
+		sweep:Clear()
+	end
+end
+
+local function Outside(form)
+	local now = ns.form
+	if now == nil then return false end
+	if form == true or not now then return not now end
+	return not (strcmputf8i and strcmputf8i(now, form) == 0 or now:lower() == form:lower())
+end
+
 function Row:Visible(icon)
 	local rule, current = icon.rule or EMPTY, ns.Settings.current
 	local cooling = icon.onCooldown == true
 	local ready = not cooling and not (icon.recharging and not rule.spent)
-	local hidden = (rule.hide or rule.hideCooling and cooling or rule.hideReady and ready or rule.hideUnusable and (cooling or icon.castable == false)) and true or false
+	local hidden = (rule.hide or rule.form and Outside(rule.form) or icon.missing and self.cfg.hideMissing or rule.hideCooling and cooling or rule.hideReady and ready or rule.hideUnusable and (cooling or icon.castable == false)) and true or false
 	local alpha = hidden and 0 or rule.fade and cooling and current.fadeAlpha or 1
 	if (icon.ruleAlpha or 1) ~= alpha then
 		icon.ruleAlpha = alpha
@@ -148,6 +218,11 @@ function Row:Place()
 		if not (gaps and icon.ruleGap) then
 			slot = slot + 1
 			local x, y = Grid.Offset(slot, shown, cfg)
+			local size = Grid.Cell(slot, cfg)
+			if icon.opts.size ~= size then
+				icon.opts.size = size
+				icon:Restyle()
+			end
 			icon:ClearAllPoints()
 			icon:SetPoint("TOPLEFT", self.content, "TOPLEFT", Widgets.Snap(self.holder, x), -Widgets.Snap(self.holder, y))
 		end

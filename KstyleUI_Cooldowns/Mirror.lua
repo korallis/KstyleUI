@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Settings, Data, Path, Row, BarRow, Style, Viewers, Auras, Reskin, Rules, Grid = ns.Settings, ns.Data, ns.Path, ns.Row, ns.BarRow, ns.Style, ns.Viewers, ns.Auras, ns.Reskin, ns.Rules, ns.Grid
+local Settings, Data, Path, Row, BarRow, Style, Viewers, Auras, Reskin, Rules, Grid, Focus = ns.Settings, ns.Data, ns.Path, ns.Row, ns.BarRow, ns.Style, ns.Viewers, ns.Auras, ns.Reskin, ns.Rules, ns.Grid, ns.Focus
 
 local Mirror = {}
 ns.Mirror = Mirror
@@ -27,6 +27,8 @@ local auraUnits
 local trackedSpells, foundAuras = {}, { player = {}, target = {} }
 local merged = { essential = {}, utility = {} }
 local fighting = false
+local trinkets = { { equipSlot = 13 }, { equipSlot = 14 } }
+local swingStart, swingDuration, swingLate, swingStamp = nil, 0, false, 0
 
 local pcall = pcall
 
@@ -143,12 +145,15 @@ local function Cooling(row, icon, cooling, trusted)
 	if icon.onCooldown ~= cooling then
 		if not cooling and icon.onCooldown and icon.coolingTrusted and icon.coolingEntry == icon.entry and icon.FlashReady then
 			icon:FlashReady()
+			local kit = (icon.rule or EMPTY).sound and SOUNDKIT and SOUNDKIT[Settings.SOUNDS[Settings.current.readySound]]
+			if kit and type(PlaySound) == "function" then pcall(PlaySound, kit, "Master") end
 		end
 		if not cooling then
 			icon.coolingEntry, icon.coolingTrusted = nil, false
 		end
 		icon.onCooldown = cooling
 		icon:Paint()
+		row:Recharge(icon)
 		row:Visible(icon)
 	end
 	Ready(row, icon)
@@ -333,6 +338,7 @@ local function Charges(icon)
 					local okDuration, duration = pcall(getter, spell)
 					if okDuration and Present(duration) then
 						pcall(icon.SetChargeCooldownFromDuration, icon, duration)
+						icon.cooldownsRow:Recharge(icon)
 					else
 						icon:ClearChargeCooldown()
 					end
@@ -348,6 +354,8 @@ local function Charges(icon)
 		icon:SetCount(nil)
 		return
 	end
+	local row = icon.cooldownsRow
+	local shows = not (entry and (entry.categoryID or entry.equipSlot)) or row.cfg.itemCount
 	if Present(countSpell) and api and type(api.GetSpellCastCount) == "function" then
 		local ok, count = pcall(api.GetSpellCastCount, countSpell)
 		if ok and ns.IsSecret(count) then
@@ -355,15 +363,21 @@ local function Charges(icon)
 			if type(format) == "function" then
 				local formatted, text = pcall(format, count)
 				if formatted and (ns.IsSecret(text) or type(text) == "string") then
-					icon:SetCount(text)
+					icon:SetCount(shows and text or nil)
 					return
 				end
 			end
-			Fail(icon.cooldownsRow.group, "secret cast count cannot be formatted")
+			Fail(row.group, "secret cast count cannot be formatted")
 			return
-		elseif ok and Finite(count) and count > 0 then
-			icon:SetCount(count)
-			return
+		elseif ok and Finite(count) then
+			if entry.categoryID and (icon.missing or false) ~= (count <= 0) then
+				icon.missing = count <= 0
+				row:Visible(icon)
+			end
+			if count > 0 then
+				icon:SetCount(shows and count or nil)
+				return
+			end
 		end
 	end
 	icon:SetCount(nil)
@@ -408,8 +422,30 @@ local function Proc(row, icon)
 	Style.SetProc(icon, on)
 end
 
+local function Quality(row, icon)
+	if not (row.cfg.quality or icon.qualityPip) then return end
+	local entry, atlas = icon.entry, nil
+	local get = C_TradeSkillUI and C_TradeSkillUI.GetItemReagentQualityInfo
+	if row.cfg.quality and entry and (entry.categoryID or entry.equipSlot) and type(get) == "function" then
+		local ok, item
+		if entry.equipSlot then
+			ok, item = pcall(GetInventoryItemID, "player", entry.equipSlot)
+		else
+			local _
+			_, item, ok = CategorySpell(entry)
+		end
+		if ns.IsSecret(item) then return end
+		if ok and Finite(item) then
+			local found, info = pcall(get, item)
+			atlas = found and type(info) == "table" and not ns.IsSecret(info) and type(info.iconSmall) == "string" and info.iconSmall or nil
+		end
+	end
+	row:Quality(icon, atlas)
+end
+
 local function RefreshCooldownIcon(row, icon)
 	Texture(icon.icon, icon.entry)
+	Quality(row, icon)
 	Usable(row, icon)
 	Charges(icon)
 	Proc(row, icon)
@@ -450,6 +486,26 @@ local function Range(icon)
 	Tint(icon, out, true)
 end
 
+local function Queued(entry)
+	local api = C_Spell
+	if not (entry and entry.spell and api and type(api.IsCurrentSpell) == "function") then return false end
+	local ok, on = pcall(api.IsCurrentSpell, entry.spell)
+	return ok and not ns.IsSecret(on) and on == true
+end
+
+local function SwingGlow(_, icon)
+	local glow = (icon.rule or EMPTY).swingGlow
+	if glow and swingLate and not Queued(icon.entry) then
+		Style.Glow(icon, icon, "lateGlow", true, Rules.Colour(glow, "glow"))
+	elseif icon.lateGlow then
+		icon.lateGlow:Stop()
+	end
+end
+
+local function Sweep(row, icon)
+	row:Swing(icon, (icon.rule or EMPTY).swing and swingStart, swingDuration)
+end
+
 local function Rule(row, icon, entry)
 	local rule = Rules.For(entry)
 	if icon.rule ~= rule then
@@ -462,6 +518,8 @@ local function Match(row, icon)
 	Rule(row, icon, icon.entry)
 	RefreshCooldownIcon(row, icon)
 	Range(icon)
+	if icon.rule.swing or icon.swingSweep then Sweep(row, icon) end
+	if icon.rule.swingGlow or icon.lateGlow then SwingGlow(row, icon) end
 	row:Visible(icon)
 end
 
@@ -473,7 +531,7 @@ local function AssignCooldowns(row, list)
 			icon.cooldownsRow = row
 			icon.cooldown:HookScript("OnCooldownDone", OnCooldownDone)
 		end
-		icon.entry = list[i]
+		icon.entry, icon.missing = list[i], nil
 		Match(row, icon)
 	end
 	row:Settle()
@@ -832,6 +890,15 @@ local function Rebuild(group)
 		return true
 	end
 	scratch[group], lists[group] = lists[group], list
+	if COOLDOWN_GROUPS[group] and Settings.current[group].trinkets and type(GetInventoryItemID) == "function" then
+		for _, trinket in ipairs(trinkets) do
+			local ok, item = pcall(GetInventoryItemID, "player", trinket.equipSlot)
+			local listed = not (ok and Finite(item))
+			for _, entry in ipairs(list) do listed = listed or entry.equipSlot == trinket.equipSlot end
+			for _, entry in ipairs(lists[OTHER[group]] or EMPTY) do listed = listed or entry.equipSlot == trinket.equipSlot end
+			if not listed then list[#list + 1] = trinket end
+		end
+	end
 	if sources[group] ~= source then
 		sources[group] = source
 		ns.Log(group .. ": " .. #list .. " entries from the " .. source)
@@ -897,6 +964,7 @@ local function ApplySettings()
 	end
 	Index()
 	Reskin.Refresh()
+	Focus.Apply()
 end
 Mirror.ApplySettings = ApplySettings
 
@@ -1006,12 +1074,59 @@ local function RetextureAll()
 	RequestAuras()
 end
 
+local function VisibleIcon(row, icon)
+	row:Visible(icon)
+end
+
+local function ReadForm()
+	local count = type(GetNumShapeshiftForms) == "function" and GetNumShapeshiftForms()
+	if not Finite(count) or type(GetShapeshiftFormInfo) ~= "function" then
+		ns.form = nil
+		return
+	end
+	local form = false
+	for i = 1, count do
+		local ok, _, active, _, spell = pcall(GetShapeshiftFormInfo, i)
+		if not ok or ns.IsSecret(active) or ns.IsSecret(spell) then return end
+		if active then
+			local got, name = pcall(C_Spell.GetSpellName, spell)
+			form = got and type(name) == "string" and not ns.IsSecret(name) and name or nil
+			break
+		end
+	end
+	ns.form = form
+end
+
+local function OnForm()
+	ReadForm()
+	if Settings.current.rules.form ~= "" then EachCooldownIcon(VisibleIcon) end
+end
+
+local function Late(on)
+	swingLate = on
+	EachCooldownIcon(SwingGlow)
+end
+
+local function OnSwing(_, duration, kind)
+	local rules, kinds = Settings.current.rules, Enum and Enum.PlayerSwingType
+	if rules.swing == "" and rules.swingGlow == "" or not Finite(duration) or duration <= 0 or ns.IsSecret(kind) or kind ~= (kinds and kinds.MainHand or 0) then return end
+	swingStart, swingDuration = GetTime(), duration
+	EachCooldownIcon(Sweep)
+	swingStamp = swingStamp + 1
+	if rules.swingGlow == "" then return end
+	local stamp = swingStamp
+	Late(false)
+	C_Timer.After(math.max(0, duration - Settings.current.swingWindow), function() if stamp == swingStamp then Late(true) end end)
+	C_Timer.After(duration, function() if stamp == swingStamp then Late(false) end end)
+end
+
 local EVENTS = {
 	BAG_UPDATE_COOLDOWN = function()
 		EachCooldownIcon(ItemIcon)
 	end,
 	PLAYER_EQUIPMENT_CHANGED = function()
 		EachCooldownIcon(ItemIcon)
+		if Settings.current.essential.trinkets or Settings.current.utility.trinkets then Mirror.Schedule() end
 	end,
 	SPELL_UPDATE_USES = function()
 		EachCooldownIcon(UsesIcon)
@@ -1055,6 +1170,12 @@ local EVENTS = {
 	end,
 	PLAYER_REGEN_DISABLED = OnCombat,
 	PLAYER_REGEN_ENABLED = OnCombat,
+	UPDATE_SHAPESHIFT_FORM = OnForm,
+	UPDATE_SHAPESHIFT_FORMS = OnForm,
+	PLAYER_SWING = OnSwing,
+	CURRENT_SPELL_CAST_CHANGED = function()
+		if swingLate and Settings.current.rules.swingGlow ~= "" then EachCooldownIcon(SwingGlow) end
+	end,
 	SPELLS_CHANGED = Mirror.Schedule,
 	PLAYER_ENTERING_WORLD = Mirror.Schedule,
 	COOLDOWN_VIEWER_DATA_LOADED = Mirror.Schedule,
@@ -1070,6 +1191,7 @@ local function OnSetting(_, module, key)
 		Mirror.Start()
 	else
 		ApplySettings()
+		if type(key) == "string" and key:find("trinkets$") then Mirror.Schedule() end
 	end
 end
 
@@ -1108,6 +1230,7 @@ end
 
 function Mirror.Start()
 	Settings.Read()
+	ReadForm()
 	running = true
 	retries = 0
 	fighting = InCombatLockdown and InCombatLockdown() == true or false
@@ -1147,12 +1270,14 @@ function Mirror.Start()
 	K.Callbacks.Register("ScaleChanged", MODULE, OnScale)
 	K.Callbacks.Register("LayoutChanged", MODULE, OnLayout)
 	RebuildAll()
+	Focus.Apply()
 	return true
 end
 
 function Mirror.Stop()
 	running = false
 	pending = false
+	swingStart, swingLate, swingStamp = nil, false, swingStamp + 1
 	auraUnits = nil
 	K.Events.UnregisterAll(MODULE)
 	if EventRegistry and EventRegistry.UnregisterCallback then
@@ -1168,6 +1293,7 @@ function Mirror.Stop()
 		sources[group] = nil
 	end
 	Reskin.Stop()
+	Focus.Stop()
 	Path.Reset()
 end
 
