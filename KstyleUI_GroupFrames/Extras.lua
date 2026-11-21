@@ -173,7 +173,12 @@ local function LayBosses(g)
 end
 
 local function Hush(name, g)
-	if g.header then Headers.Quiet(g.header) else Watch(g, false) end
+	if g.header then
+		Headers.Quiet(g.header)
+		Headers.Children(g.header, function(button) button:SetAttribute("unit", nil) end)
+	else
+		Watch(g, false)
+	end
 	Live(name, g, false)
 end
 

@@ -136,6 +136,7 @@ local function Children(header, fn)
 		child = header:GetAttribute("child" .. i)
 	end
 end
+Headers.Children = Children
 
 local function Resize(header, width, height)
 	header:SetAttribute("kstyle-width", width)
