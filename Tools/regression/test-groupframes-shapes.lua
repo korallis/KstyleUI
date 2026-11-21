@@ -167,7 +167,7 @@ for _, entry in ipairs(slot._aura.dispel) do
 end
 counts, lines, runs = kitOnly(K, registered, { "chamferTile", "lumenOutline" }, slot, "the dispel highlight")
 eq(counts.chamferTile, 9, "the wash is the rounded tile shape")
-eq(counts.lumenOutline, 10, "the border is two rounded outlines: four corners and a centre each from the texture")
+eq(counts.lumenOutline, 8, "the border is two rounded outlines: four corners each from the texture, their transparent centres kept away from the engine")
 eq(runs, 8, "and their straight runs, solid lines one border thick")
 eq(lines, 0, "with no straight pieces")
 for _, texture in ipairs(registered) do
