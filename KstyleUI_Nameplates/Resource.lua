@@ -130,13 +130,14 @@ function Resource.Update(_, _, token)
 	if not ((token == nil or token == "ENERGY") and Settings.Get("resource.energy") and type(UnitPower) == "function" and type(UnitPowerMax) == "function") then return end
 	local kind = PowerType("Energy", 3)
 	local value, max = UnitPower("player", kind), UnitPowerMax("player", kind)
-	local full = Settings.Get("resource.energyHideFull") and not ns.state.inCombat and type(issecretvalue) == "function" and not IsSecret(value) and not IsSecret(max)
+	local secrets = type(issecretvalue) == "function"
+	local full = Settings.Get("resource.energyHideFull") and not ns.state.inCombat and secrets and not issecretvalue(value) and not issecretvalue(max)
 		and type(value) == "number" and type(max) == "number" and value >= max
 	if full ~= frame.full then
 		frame.full = full
 		frame.energy:SetShown(not full)
 	end
-	if IsSecret(max) or max ~= frame.max then
+	if not secrets or issecretvalue(max) or max ~= frame.max then
 		frame.max = max
 		frame.energy:SetBarRange(0, max)
 	end
