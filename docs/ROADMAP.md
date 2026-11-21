@@ -1,24 +1,23 @@
 # KstyleUI roadmap
 
-What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.2.8.2 is out now with road-following map routes, player fixes and the first wave of new options.
+What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.2.9 is out now with resource jewels on the Medallions crest and a big wave of new options across every module. New releases now land about once a day.
 
-## v0.2.9 — the customisation release
+## v0.2.10 — the finishing touches
 
-Estimated: within 2–3 days.
+Estimated: within a day or two.
 
-The rest of the customisation work, finishing every part of KstyleUI bar by bar and frame by frame, while keeping one forged look.
+The last of the customisation work and more fixes from your reports.
 
 Highlights:
 
-- More options for frames, nameplates, cooldowns, auras, the meter, chat, minimap and bags, with live previews.
-- Your class resource as jewels on the Medallions crest: combo points, holy power and soul shards.
-- Quality-of-life helpers: alerts, a cursor ring, a crosshair, durability warnings and quicker cinematics.
-- A forged Medallions data dock, chat buttons and tabs you can arrange, and minimap buttons you can place.
-- More fixes from your reports.
+- The remaining party and raid frame options, including bar indicators and more placement choices.
+- A consumable count and low-mana text on the aura reminders.
+- Movable Blizzard windows and a Time Spiral alert, once they are checked in game.
+- More fixes from your reports, released as soon as they are ready.
 
 ## v0.3.0 — the polish release
 
-Estimated: about a week after v0.2.9.
+Estimated: about a week after v0.2.10.
 
 A full polish pass over everything you see and touch, so KstyleUI feels premium from the first minute.
 
