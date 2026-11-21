@@ -23,7 +23,7 @@ function Preview.Build(...)
 	local SAMPLES = {
 		{
 			name = "Thaldren", follower = "Thaldren Ironvow", class = "WARRIOR", health = 0.72, power = 0.35, role = "TANK", leader = true, threat = 3, absorb = 0.05, shield = 0.3,
-			healAbsorb = 0.18, debuffs = 2, hots = 2, boss = true, indicators = { EXTERNAL = true }, combat = true, overshield = 0.4, targetName = "Gorvak",
+			healAbsorb = 0.18, debuffs = 2, hots = 2, boss = true, indicators = { EXTERNAL = true }, combat = true, overshield = 0.4, targetName = "Gorvak", you = true,
 		},
 		{ name = "Sylaen", class = "DRUID", health = 0.87, power = 0.8, far = true, role = "HEALER", dispel = "Magic", debuffs = 1, hots = 1, indicators = { CROWD_CONTROL = true }, targetName = "Thaldren", targetClass = "WARRIOR" },
 		{ name = "Kragar", class = "SHAMAN", health = 0.76, power = 0.6, target = true, role = "DAMAGER", marker = 1, incoming = 0.12, healAbsorb = 0.1, maxLoss = 0.15, targetName = "Gorvak" },

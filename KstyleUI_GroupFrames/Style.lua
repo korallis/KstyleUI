@@ -10,6 +10,7 @@ ns.Style = Style
 
 local TEXT_LEVEL = 4
 local TEXT_OVER_ICONS = 40
+local ABOVE_ICONS = { "name", "healthText", "extra1", "extra2" }
 local NAME_LINE_EXTRA = 2
 local ON_FILL_OUTLINE = "THICKOUTLINE"
 local ON_BAR_OUTLINE = "OUTLINE"
@@ -488,7 +489,7 @@ end
 local function ExtraTexts(f, k)
 	for i = 1, 2 do
 		local key = "extra" .. i
-		f[key] = Widgets.PlaceText(f[key], k[key], f.text, f, f.width)
+		f[key] = Widgets.PlaceText(f[key], k[key], f.textAbove and f.textTop or f.text, f, f.width)
 	end
 end
 
@@ -603,7 +604,14 @@ function Style.Apply(f, width, height)
 	f.chrome:Restyle()
 	if (f.textAbove or false) ~= cfg.text.above then
 		f.textAbove = cfg.text.above
-		f.text:SetFrameLevel(f:GetFrameLevel() + (f.textAbove and TEXT_OVER_ICONS or TEXT_LEVEL))
+		if not f.textTop then
+			f.textTop = CreateFrame("Frame", nil, f)
+			f.textTop:SetAllPoints(f)
+			f.textTop:SetFrameLevel(f:GetFrameLevel() + TEXT_OVER_ICONS)
+		end
+		for _, key in ipairs(ABOVE_ICONS) do
+			if f[key] then f[key]:SetParent(f.textAbove and f.textTop or f.text) end
+		end
 	end
 	for i = 1, #Style.appliers do
 		Style.appliers[i](f, parts, k)

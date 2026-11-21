@@ -166,30 +166,22 @@ local function Block(f, k)
 		end
 		return OneRow({
 			position = b.position, columns = b.columns, rows = b.rows, cells = b.cells, size = b.size, width = b.width, height = b.height,
-			left = b.left, top = b.top, spacing = spacing, inset = inset, gap = gap,
+			left = b.left + k.auraX, top = b.top - k.auraY, spacing = spacing, inset = inset, gap = gap,
 		})
 	end
 	local block = OneRow(Geometry.AuraBlock(k, w, h, size, spacing, inset, lane - gap))
 	block.spacing, block.inset, block.gap = spacing, inset, gap
-	block.left = place == "OUTSIDE_LEFT" and -gap - block.width or w + gap
-	block.top = k.auraWrap == "UP" and h - block.height or 0
+	block.left = (place == "OUTSIDE_LEFT" and -gap - block.width or w + gap) + k.auraX
+	block.top = (k.auraWrap == "UP" and h - block.height or 0) - k.auraY
 	return block
 end
 Auras.Block = Block
-
-local function Shift(f, k)
-	if k.auraX == 0 and k.auraY == 0 then
-		return 0, 0
-	end
-	return Widgets.Snap(f, k.auraX), Widgets.Snap(f, k.auraY)
-end
 
 local function Anchor(f, block, k)
 	local point = Geometry.AuraAnchor(block.position, k.auraGrowth, k.auraWrap, block.inset, block.gap)
 	local px = point:find("RIGHT$") and block.left + block.width or block.left
 	local py = point:find("^BOTTOM") and block.top + block.height or block.top
-	local dx, dy = Shift(f, k)
-	return point, Widgets.Snap(f, px) + dx, dy - Widgets.Snap(f, py)
+	return point, Widgets.Snap(f, px), -Widgets.Snap(f, py)
 end
 
 local function GroupCount(f, k, key)
@@ -227,7 +219,9 @@ local function Narrow(candidates)
 	end
 	if a.canApply then candidates.canApplyAura = true end
 	candidates.isFromPlayerOrPlayerPet = SOURCES[a.source]
-	for k, v in pairs(PICKS[a.filter] or {}) do candidates[k] = v end
+	for k, v in pairs(PICKS[a.filter] or {}) do
+		if candidates[k] == nil or candidates[k] == v then candidates[k] = v else candidates.includeDispelTypes = {} end
+	end
 	return candidates
 end
 
@@ -990,11 +984,10 @@ local function ConfigureChip(f, k, a, block, filter)
 	end
 	local on = a.enabled and block.cells > 0
 	local x, y = LastCell(f, k, block)
-	local dx, dy = Shift(f, k)
 	local spec = ChipSpec(k, filter, math.max(1, block.cells))
 	Widgets.Overflow.Apply(chip, {
 		enabled = on, groups = { spec }, cap = spec.cap, cell = block.size, width = block.size,
-		point = "TOPLEFT", rel = f, relPoint = "TOPLEFT", x = Widgets.Snap(f, x) + dx, y = dy - Widgets.Snap(f, y),
+		point = "TOPLEFT", rel = f, relPoint = "TOPLEFT", x = Widgets.Snap(f, x), y = -Widgets.Snap(f, y),
 		level = f.auras:GetFrameLevel() + CHIP_LEVEL, textSize = math.max(CHIP_TEXT_MIN, math.floor(math.min(block.size * CHIP_TEXT_SHARE, block.size / CHIP_TEXT_WIDE))),
 	})
 end

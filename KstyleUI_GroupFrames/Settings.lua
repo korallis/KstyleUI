@@ -362,7 +362,7 @@ function Settings.Schema(includeText)
 		add(Slider("targets.y", L["Target offset up"], L["Moves the target frames up or down from their place."], -100, 100, 1))
 		for i = #schema - 3, #schema do schema[i].showWhen = targets end
 		add(Dropdown("targets.nameColor", L["Target name colour"], L["Colours target names in the text colour, by class for players or in one colour."], NAME_COLOR, { showWhen = targets }))
-		add({ type = "color", key = "targets.color", label = L["Custom target name colour"], help = L["The target names' colour when they use a custom colour."], showWhen = function(s) return targets(s) and Is("targets.nameColor", "custom")(s) end })
+		add({ type = "color", key = "targets.color", label = L["Custom target name colour"], help = L["The target names' colour when they use a custom colour."], showWhen = function(s) return targets(s) and s.targets.nameColor == "custom" end })
 		KindRows(schema, "raid", L["Raid frames"])
 		add({ type = "header", label = L["Health bar"] })
 		K.Widgets.BarRows(schema, "health", { options = HEALTH_COLOR, custom = Is("health.colorSource", "custom"),

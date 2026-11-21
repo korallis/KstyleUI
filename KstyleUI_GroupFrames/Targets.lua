@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens = K.Widgets, K.Tokens
-local Settings, Style, Unit, Geometry = ns.Settings, ns.Style, ns.Unit, ns.Geometry
+local Settings, Style, Unit, Geometry, Auras = ns.Settings, ns.Style, ns.Unit, ns.Geometry, ns.Auras
 
 local Targets = {}
 ns.Targets = Targets
@@ -27,7 +27,6 @@ local issecretvalue = issecretvalue or function()
 end
 
 local built = {}
-local waiting = setmetatable({}, { __mode = "k" })
 local ticker, listening
 
 local function Look(t)
@@ -41,13 +40,13 @@ local function Look(t)
 	t.name:SetJustifyH("CENTER")
 end
 
-local function Room(k)
-	local cfg, gap = Settings.current.targets, Tokens.Size("gapSmall")
+local function Room(f, k)
+	local cfg, gap, block = Settings.current.targets, Tokens.Size("gapSmall"), Auras.Block(f, k)
 	if Geometry.IsVertical(k.growth) then
 		local geo = Geometry.Party(k)
-		return geo.memberWidth + (geo.laneSide == "RIGHT" and geo.lane or 0) + gap + cfg.x, cfg.y
+		return math.max(geo.memberWidth + (geo.laneSide == "RIGHT" and geo.lane or 0), block.left + block.width) + gap + cfg.x, cfg.y
 	end
-	return cfg.x, cfg.y - k.height - gap
+	return cfg.x, cfg.y - math.max(k.height, block.top + block.height) - gap
 end
 
 function Targets.Room(k)
@@ -64,7 +63,7 @@ end
 
 local function Layout(t, anchor)
 	local f, cfg, k = t.content, Settings.current.targets, Settings.current.party
-	local x, y = Room(k)
+	local x, y = Room(f, k)
 	t:ClearAllPoints()
 	t:SetPoint("TOPLEFT", anchor, "TOPLEFT", Widgets.Snap(f, x), Widgets.Snap(f, y))
 	t:SetSize(Widgets.Snap(f, cfg.width), Widgets.Snap(f, cfg.height))
@@ -72,6 +71,7 @@ local function Layout(t, anchor)
 	local pad = Tokens.Size("gapSmall")
 	local rect = { left = pad, top = pad, width = math.max(1, cfg.width - 2 * pad), height = math.max(1, cfg.height - 2 * pad) }
 	t.health:SetBarTexture(Settings.current.health.texture)
+	t.health:SetOrientation(Settings.current.health.orientation)
 	Style.PlaceBar(t, t.health, rect)
 	local text = Settings.current.text
 	Style.SetFont(t.name, text.nameFont, math.max(6, math.min(k.nameSize, rect.height)), text.nameOutline == "NONE" and "OUTLINE" or text.nameOutline, "names")
@@ -80,8 +80,15 @@ local function Layout(t, anchor)
 	t.name:SetWidth(Widgets.Snap(f, math.max(1, rect.width - 2 * Tokens.Size("gapTiny"))))
 end
 
-local function NameColor(t, player, class)
-	local cfg = Settings.current.targets
+local function Fill(t, name, player, class, reaction)
+	local cfg, r, g, b = Settings.current.targets
+	if player then
+		r, g, b = Unit.ClassColor(class)
+	else
+		r, g, b = K.ColorVision.ReactionColor(reaction)
+	end
+	t.health:SetBarColor(r, g, b, Settings.current.health.alpha)
+	t.name:SetText(name)
 	if cfg.nameColor == "custom" then
 		t.name:SetTextColor(cfg.color.r, cfg.color.g, cfg.color.b)
 	elseif cfg.nameColor == "class" and player then
@@ -92,8 +99,8 @@ local function NameColor(t, player, class)
 end
 
 local function Health(t, unit)
-	t.health:SetBarRange(0, UnitHealthMax(unit))
-	t.health:SetHealth(UnitHealth(unit), true)
+	t.health:SetMinMaxValues(0, UnitHealthMax(unit))
+	t.health:SetValue(UnitHealth(unit))
 end
 
 local function Paint(t)
@@ -103,19 +110,12 @@ local function Paint(t)
 	end
 	local unit = owner .. SUFFIX
 	local player = UnitIsPlayer and UnitIsPlayer(unit)
-	player = not issecretvalue(player) and player == true
 	local _, class = UnitClass(unit)
 	local reaction = UnitReaction and UnitReaction(unit, "player")
+	local name = UnitName(unit)
 	t.reaction = not issecretvalue(reaction) and reaction or nil
-	local r, g, b
-	if player then
-		r, g, b = Unit.ClassColor(class)
-	else
-		r, g, b = K.ColorVision.ReactionColor(reaction)
-	end
-	t.health:SetBarColor(r, g, b, Settings.current.health.alpha)
-	t.name:SetText(UnitName(unit))
-	NameColor(t, player, class)
+	t.shown = not issecretvalue(name) and name or nil
+	Fill(t, name, not issecretvalue(player) and player == true, class, reaction)
 	Health(t, unit)
 end
 
@@ -127,9 +127,11 @@ local function Tick()
 			any = true
 			local unit = owner .. SUFFIX
 			local reaction = UnitReaction and UnitReaction(unit, "player")
-			if not issecretvalue(reaction) and reaction ~= t.reaction then
+			local name = UnitName(unit)
+			if not issecretvalue(reaction) and reaction ~= t.reaction or not issecretvalue(name) and name ~= t.shown then
 				Paint(t)
 			else
+				if issecretvalue(name) then t.name:SetText(name) end
 				Health(t, unit)
 			end
 		end
@@ -177,7 +179,6 @@ local function Build(f)
 	local owner = f.owner
 	local t = CreateFrame("Button", nil, owner, "SecureUnitButtonTemplate")
 	t.content = f
-	t:SetAttribute("useparent-unit", true)
 	t:SetAttribute("unitsuffix", SUFFIX)
 	t:SetAttribute("*type1", "target")
 	t:SetAttribute("*type2", "togglemenu")
@@ -191,32 +192,30 @@ local function Build(f)
 	return t
 end
 
-local function Usable()
-	return type(RegisterUnitWatch) == "function" and type(SecureHandlerWrapScript) == "function" and type(SecureHandlerSetFrameRef) == "function"
-end
-
 local function Sync(f)
 	local cfg, t = Settings.current.targets, f.partyTarget
-	if not (t or cfg.enabled) or not f.owner or not Usable() then
+	local on = cfg.enabled and Unit.running == true
+	if not (on or t and t.watched) or not f.owner or type(RegisterUnitWatch) ~= "function" or type(UnregisterUnitWatch) ~= "function"
+		or type(SecureHandlerWrapScript) ~= "function" or type(SecureHandlerUnwrapScript) ~= "function" or type(SecureHandlerSetFrameRef) ~= "function" then
 		return
 	end
 	if InCombatLockdown() then
-		if not waiting[f] then
-			waiting[f] = true
+		if not f.targetQueued then
+			f.targetQueued = true
 			K.Combat.Queue(function()
-				waiting[f] = nil
+				f.targetQueued = nil
 				Sync(f)
 			end)
 		end
 		return
 	end
 	t = t or Build(f)
-	if cfg.enabled then Layout(t, f.owner) end
+	if on then Layout(t, f.owner) end
 	t:SetAttribute("kstyle-self", cfg.self)
 	t:SetAttribute("useparent-unit", f.owner:GetAttribute("unit") ~= "player" or cfg.self)
-	if cfg.enabled ~= (t.watched or false) then
-		t.watched = cfg.enabled
-		if cfg.enabled then
+	if on ~= (t.watched or false) then
+		t.watched = on
+		if on then
 			SecureHandlerWrapScript(f.owner, "OnAttributeChanged", f.owner, WRAP)
 			RegisterUnitWatch(t)
 		else
@@ -225,7 +224,7 @@ local function Sync(f)
 			t:Hide()
 		end
 	end
-	Listen(cfg.enabled)
+	Listen(on)
 	Paint(t)
 end
 
@@ -250,32 +249,28 @@ end
 Style.appliers[#Style.appliers + 1] = Applied
 
 local function PaintSample(f, sample)
-	local on = f.kind == "party" and Settings.current.targets.enabled and sample.targetName ~= nil and f:IsShown()
+	local cfg = Settings.current.targets
+	local on = f.kind == "party" and cfg.enabled and sample.targetName ~= nil and (cfg.self or not sample.you) and f:IsShown()
 	if not on then
 		if f.sampleTarget then f.sampleTarget:Hide() end
 		return
 	end
 	local t = SampleTarget(f)
 	t:Show()
-	local player = sample.targetClass ~= nil
-	local r, g, b
-	if player then
-		r, g, b = Unit.ClassColor(sample.targetClass)
-	else
-		r, g, b = K.ColorVision.ReactionColor(HOSTILE)
-	end
-	t.health:SetBarColor(r, g, b, Settings.current.health.alpha)
-	t.health:SetBarRange(0, 1)
-	t.health:SetHealth(SAMPLE_HEALTH, true)
-	t.name:SetText(sample.targetName)
-	NameColor(t, player, sample.targetClass)
+	Fill(t, sample.targetName, sample.targetClass ~= nil, sample.targetClass, HOSTILE)
+	t.health:SetMinMaxValues(0, 1)
+	t.health:SetValue(SAMPLE_HEALTH)
 end
 Style.painters[#Style.painters + 1] = PaintSample
 
-local function Changed(f)
+Unit.changed[#Unit.changed + 1] = function(f)
+	local t = f.partyTarget
+	if f.kind == "party" and (t and t.watched or false) ~= (Settings.current.targets.enabled and Unit.running == true) then
+		Sync(f)
+	end
+end
+Unit.extra[#Unit.extra + 1] = function(f)
 	if f.partyTarget then
 		Paint(f.partyTarget)
 	end
 end
-Unit.changed[#Unit.changed + 1] = Changed
-Unit.extra[#Unit.extra + 1] = Changed
