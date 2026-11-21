@@ -284,8 +284,8 @@ end
 
 local function ApplyAccount()
 	for i in pairs(Store.Account().profileKeys or {}) do HotkeyButton(i) end
-	if K.Appearance and K.Appearance.ApplyGameText then K.Appearance.ApplyGameText() end
-	if K.OptionsEntry and K.OptionsEntry.GameMenu then K.OptionsEntry.GameMenu() end
+	K.Appearance.ApplyGameText()
+	K.OptionsEntry.GameMenu()
 	K.Specialization.Check()
 end
 
