@@ -90,11 +90,11 @@ Dark gunmetal with rounded, bevelled edges, like a piece of forged hardware. You
 
 Your first two action bars sit in recessed sockets on one dark slab: twelve buttons each side of a crest painted for your race and class, in a ring of runes in your class colour. Your pet and stance bars get small slabs beside it, and your experience runs along the slab's lower edge.
 
-Rogues, cat-form druids, paladins and warlocks see their class resource on the crest itself: combo points, holy power or soul shards light up as jewels round the top of the ring (**Options, Action Bars, Crest resource jewels**).
+Rogues and cat-form druids see their combo points on the crest itself, as cut jewels round the top of the ring (**Options, Action Bars, Crest resource jewels**). A jewel flares when you gain a point and drains when you spend one, and at the maximum the whole ring glows (**Glow at max**). Hunters with Summon Hawk get hawk perches on the ring, each hawk with a green timer for its time left (**Hawk perches**).
 
-![KstyleUI test render over an in-game screenshot of the Medallions crest: a warlock's three soul shards lit as purple jewels on the ring, two still dark](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_crest.jpg)
+![KstyleUI test render over an in-game screenshot of the Medallions crest: three resource jewels lit on the ring, two still dark](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_crest.jpg)
 
-*KstyleUI test render over an in-game screenshot: three of five soul shards lit on the crest. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
+*KstyleUI test render over an in-game screenshot: three of five jewels lit on the crest. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
 Under the slab, your data bar docks on forged plates: the clock on one side; frame rate, latency, gold and experience on the other, each in its own segment with an icon and gilt dividers.
 
@@ -220,7 +220,7 @@ One class-coloured bar per player. Switch between this fight, the last fight and
 
 *KstyleUI test render over an in-game screenshot: the right rail - map card, quest card and guide card. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
-Your buffs sit above a map card with the zone, your coordinates and the clock. The quest card keeps your quests in view and scrolls for the rest; in the picture the taller guide card beside it takes more of the rail, so it shows one quest and counts the others below. With a RestedXP guide open, the guide takes the tall column beside it, and RestedXP's target and item boxes dock underneath. The minimap's drawer collects every addon button cluttering the map.
+Your buffs sit above a map card with the zone, your coordinates and the clock. The quest card keeps your quests in view and scrolls for the rest; in the picture the taller guide card beside it takes more of the rail, so it shows one quest and counts the others below. With a RestedXP or Zygor Guides Viewer guide open, the guide takes the tall column beside it in the same forged card, and RestedXP's target and item boxes dock underneath. The minimap's drawer collects every addon button cluttering the map.
 
 ### A world map that plans the trip
 
@@ -238,7 +238,7 @@ Search the map for a flight master, a dungeon or raid entrance or a quest, and K
 
 - **Bags:** combined bags and bank with search, sorting, categories, quality borders and junk selling.
 - **Tooltips:** on the same dark card, with quality and class colours and a health bar.
-- **Window skins:** the character sheet, spellbook, talents, world map and quest log, mail, merchant, professions, loot, group finder, social windows and the game menu - and the RestedXP windows - all in KstyleUI's style.
+- **Window skins:** the character sheet, spellbook, talents, world map and quest log, mail, merchant, professions, loot, group finder, social windows and the game menu - and the RestedXP and Zygor windows - all in KstyleUI's style.
 - **And the rest:** unit frames, group frames to 40, action bars, cooldowns, auras, combat text, chat, data bars, a threat meter and swing timer, and quality-of-life touches such as fast auto loot and auto repair. Each is its own module, and a module you switch off costs nothing.
 
 ![KstyleUI section: Make it yours - deep settings for every part, each with a live preview](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-make-it-yours.jpg)
@@ -279,6 +279,9 @@ World of Warcraft: Forever. It is built and tested for that client only.
 
 **Does it work with RestedXP?**
 Yes. The guide gets its own tall card beside your quest card, RestedXP's Active Targets and Active Items boxes dock underneath it, and the RestedXP windows are skinned to match.
+
+**Does it work with Zygor Guides Viewer?**
+Yes. The guide sits on the right rail like RestedXP's, in KstyleUI's forged card with themed controls, progress bar and waypoint arrow. Switch it under **Options, Window Skins, Zygor**.
 
 **Does it work with Questie?** Yes. KstyleUI keeps Questie's map pins and uses its own quest card by default; choose your tracker under **Options, General, Existing addons**.
 
@@ -325,4 +328,5 @@ Post in #bug-reports on the [KstyleUI Discord](https://discord.gg/A5qqGZEXyN). S
 
 - Fonts, all under the SIL Open Font License 1.1, with their licence files in the addon's `Media/Fonts` folder: Cinzel, Alegreya Sans, Barlow Semi Condensed, Source Sans 3, Inter, PT Serif, EB Garamond and IM Fell (the last three in KstyleUI's Folio faces). Some are adapted for the game's renderer and renamed, as the licence allows.
 - KstyleUI's painted portraits, crests and textures are original addon art: some were made with AI image tools; the rest is drawn by KstyleUI's own code. No game assets are extracted or traced. Every scenery backdrop is cropped from an owner-captured World of Warcraft: Forever screenshot; none is AI-generated. The pictures on this page are in-game screenshots and KstyleUI test renders over those screenshot crops, captioned as such. Painted portrait and model stand-ins in renders are addon art, not live game models.
+- Zygor Guides Viewer support and the hawk perches idea: Baine.
 - By the KstyleUI authors. All rights reserved.
