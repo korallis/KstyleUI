@@ -141,8 +141,6 @@ local COLORS = {
 	jewelShard = { "a46bff", 1 },
 	jewelShardRim = { "4a2380", 1 },
 	jewelShardCore = { "e6d4ff", 1 },
-	pipRogueGlow = { "ff3d26", 1 },
-	pipRogueCore = { "ffd2a0", 1 },
 	pipDruidGlow = { "ffa62e", 1 },
 	pipDruidCore = { "fff0b8", 1 },
 	jewelSetting = { "7a5a2b", 1 },
@@ -379,29 +377,6 @@ local TEXTURES = {
 	barGlass = { file = "Textures\\BarGlass.png" },
 	minimapMask = { file = "Textures\\MinimapMask.png" },
 	dot = { file = "Textures\\Dot.png" },
-	pipBlade130 = { file = "Textures\\Pips\\PipBlade130.png" },
-	pipBlade110 = { file = "Textures\\Pips\\PipBlade110.png" },
-	pipBlade90 = { file = "Textures\\Pips\\PipBlade90.png" },
-	pipBlade70 = { file = "Textures\\Pips\\PipBlade70.png" },
-	pipBlade50 = { file = "Textures\\Pips\\PipBlade50.png" },
-	pipBladeSteel130 = { file = "Textures\\Pips\\PipBladeSteel130.png" },
-	pipBladeSteel110 = { file = "Textures\\Pips\\PipBladeSteel110.png" },
-	pipBladeSteel90 = { file = "Textures\\Pips\\PipBladeSteel90.png" },
-	pipBladeSteel70 = { file = "Textures\\Pips\\PipBladeSteel70.png" },
-	pipBladeSteel50 = { file = "Textures\\Pips\\PipBladeSteel50.png" },
-	pipBladeShape130 = { file = "Textures\\Pips\\PipBladeShape130.png" },
-	pipBladeShape110 = { file = "Textures\\Pips\\PipBladeShape110.png" },
-	pipBladeShape90 = { file = "Textures\\Pips\\PipBladeShape90.png" },
-	pipBladeShape70 = { file = "Textures\\Pips\\PipBladeShape70.png" },
-	pipBladeShape50 = { file = "Textures\\Pips\\PipBladeShape50.png" },
-	pipBladeGlow130 = { file = "Textures\\Pips\\PipBladeGlow130.png" },
-	pipBladeGlow110 = { file = "Textures\\Pips\\PipBladeGlow110.png" },
-	pipBladeGlow90 = { file = "Textures\\Pips\\PipBladeGlow90.png" },
-	pipBladeGlow70 = { file = "Textures\\Pips\\PipBladeGlow70.png" },
-	pipBladeGlow50 = { file = "Textures\\Pips\\PipBladeGlow50.png" },
-	pipDruid = { file = "Textures\\Pips\\PipDruid.png" },
-	pipDruidSocket = { file = "Textures\\Pips\\PipDruidSocket.png" },
-	pipDruidShape = { file = "Textures\\Pips\\PipDruidShape.png" },
 	pill = { file = "Textures\\Pill.png" },
 	glyphChevron = { file = "Textures\\GlyphChevron.png" },
 	glyphClose = { file = "Textures\\GlyphClose.png" },
@@ -506,6 +481,13 @@ local TEXTURES = {
 	logo = { file = "Logo\\Logo64.png" },
 	logoLarge = { file = "Logo\\Logo256.tga" },
 }
+for _, set in ipairs({ "Blade", "Claw", "Spear", "Shard" }) do
+	for _, kind in ipairs({ "", "Steel", "Shape", "Glow" }) do
+		for _, angle in ipairs({ 130, 110, 90, 70, 50 }) do
+			TEXTURES["pip" .. set .. kind .. angle] = { file = "Textures\\Pips\\Pip" .. set .. kind .. angle .. ".png" }
+		end
+	end
+end
 
 local RGBA = {}
 for name, spec in pairs(COLORS) do

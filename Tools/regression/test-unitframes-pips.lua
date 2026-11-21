@@ -1,4 +1,4 @@
--- test-unitframes-pips.lua: the class-themed combo point row (on by default) draws Widgets.ClassPip daggers for a rogue and claw marks for a cat-form druid over the plain pips' places; every lit layer is a one-point status bar fed the raw count now, before, or at the maximum; a power event plays the gain, spend and maximum fades only when motion allows, a target change and Off show the end states, transient layers are hidden rather than alpha 0, nothing runs OnUpdate, the idle glint and breath run only at a known maximum under Medallions at Full, a rogue's row gives way to the crest's crown under Medallions, and switching the pips off restores the plain ones.
+-- test-unitframes-pips.lua: the class-themed pip row (on by default) draws Widgets.ClassPip daggers for a rogue, claws for a cat-form druid, sun-spears for a paladin's holy power and soul shards for a warlock over the plain pips' places, as many as UnitPowerMax gives (none at 0); every lit layer is a one-point status bar fed the raw count now, before, or at the maximum; a power event plays the gain, spend and maximum fades only when motion allows, a target change and Off show the end states, transient layers are hidden rather than alpha 0, nothing runs OnUpdate or loops, under Medallions the row gives way to the crest's crown (a cat-form druid's mana too), and switching the pips off restores the plain ones (and nothing for a paladin or warlock, as before).
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -47,7 +47,7 @@ local function Loops(state)
 		local group = bar.anim
 		if group and group:IsPlaying() and (group:GetLooping() or "NONE") ~= "NONE" then n = n + 1 end
 	end
-	return n + (state.row.breath:IsPlaying() and 1 or 0)
+	return n
 end
 
 local function Moving(state)
@@ -75,10 +75,10 @@ for i, pip in ipairs(R.pips) do
 	end
 	assert(File(p.halo, "SetStatusBarTexture"):find("PipBladeGlow90.png", 1, true), "the halo hugs the dagger")
 end
-local gr, gg, gb = K.Tokens.Color("pipRogueGlow")
+local gr, gg, gb = K.Tokens.Color("jewelCombo")
 local glow = W.LastCall(P.pips[1].halo, "SetStatusBarColor")
-assert(glow[1] == gr and glow[2] == gg and glow[3] == gb, "the rogue's glow is pipRogueGlow")
-assert(W.LastCall(P.pips[1].flare, "SetStatusBarColor")[1] == K.Tokens.Color("pipRogueCore"), "the flare is pipRogueCore")
+assert(glow[1] == gr and glow[2] == gg and glow[3] == gb, "the rogue's glow is the combo jewels' jewelCombo")
+assert(W.LastCall(P.pips[1].flare, "SetStatusBarColor")[1] == K.Tokens.Color("jewelComboCore"), "the flare is jewelComboCore")
 
 -- The art centres on whole pixels: its overhang past the plain pip is a whole number of pixels on each side.
 for _, p in ipairs(P.pips) do
@@ -164,39 +164,63 @@ K.Options.Write("UnitFrames", "resource.classPips", true)
 assert(R.themed and P.pips[1].frame:IsShown() and not R.pips[1]:IsShown(), "on again: the daggers")
 noErrors(env, K, "switch")
 
--- A druid: claw marks in cat form, nothing in caster form; under Medallions the row stays, and at a known maximum at Full
--- its glow breathes and each glint repeats, while below it or at a secret count nothing loops.
+-- A druid: claws in cat form, nothing in caster form; under Medallions the crest's crown takes the claws and the cat-form mana,
+-- and bear form keeps its mana bar here.
 local denv, DK, dns = U.New({ setup = function(e)
 	e._units.player.class = "DRUID"
 	e._units.player.powerType, e._units.player.powerToken = 3, "ENERGY"
+	e._units.player.powers, e._units.player.powerMaxes = { [0] = 1500 }, { [0] = 3000 }
 end })
 local DP, DR = dns.Pips.state, dns.Resource.state
-assert(DR.themed and DP.pips[1].frame:IsShown(), "a cat-form druid's combo points are themed")
-assert(File(DP.pips[1].blade, "SetStatusBarTexture"):find("PipDruid.png", 1, true), "as claw marks")
-assert(File(DP.pips[1].steel, "SetTexture"):find("PipDruidSocket.png", 1, true), "in claw sockets")
+assert(DR.themed and DR.showMana and DP.pips[1].frame:IsShown(), "a cat-form druid's combo points are themed, beside its mana")
+assert(File(DP.pips[1].blade, "SetStatusBarTexture"):find("PipClaw90.png", 1, true), "as claws")
+assert(File(DP.pips[1].steel, "SetTexture"):find("PipClawSteel90.png", 1, true), "dormant when empty")
 assert(W.LastCall(DP.pips[1].halo, "SetStatusBarColor")[1] == DK.Tokens.Color("pipDruidGlow"), "glowing pipDruidGlow")
+Points(denv, 5)
+assert(Loops(DP) == 0, "the row loops nothing, even at the maximum")
 DK.Options.Write("HudStyle", "style", "medallions")
-Points(denv, 5, "PLAYER_TARGET_CHANGED")
-assert(DR.themed and DP.row.breath:IsPlaying() and Loops(DP) == 5 + 1, "at the maximum under Medallions the row breathes and each glint repeats")
-Points(denv, 5)
-assert(DP.pips[2].shine.anim:GetLooping() == "NONE", "a change at the maximum runs one glint first")
-DP.pips[2].shine.anim._scripts.OnFinished(DP.pips[2].shine.anim)
-assert(DP.pips[2].shine.anim:GetLooping() == "REPEAT" and DP.pips[2].shine:IsShown(), "after the glint that reaches the maximum, it repeats")
-Points(denv, 4)
-assert(Loops(DP) == 0 and not DP.row.breath:IsPlaying(), "below the maximum nothing loops")
-DP.pips[2].shine.anim._scripts.OnFinished(DP.pips[2].shine.anim)
-assert(not DP.pips[2].shine:IsShown(), "below the maximum the glint hides when it ends")
-DK.Options.Write("Medallions", "motion", "calm")
-Points(denv, 5)
-assert(Loops(DP) == 0, "Calm does not breathe")
-DK.Options.Write("Medallions", "motion", "full")
-denv._restricted = true
-Points(denv, 5)
-assert(Loops(DP) == 0, "a secret count never starts the idle loops")
-denv._restricted = false
+assert(not DR.showCombo and not DR.showMana and not DR.content:IsShown(), "under Medallions the crown takes the claws and the cat-form mana")
+denv._units.player.powerType, denv._units.player.powerToken = 1, "RAGE"
+denv.FireEvent("UPDATE_SHAPESHIFT_FORM")
+assert(DR.showMana and not DR.showCombo, "bear form keeps its mana bar under Medallions")
 denv._units.player.powerType, denv._units.player.powerToken = 0, "MANA"
 denv.FireEvent("UPDATE_SHAPESHIFT_FORM")
 assert(not DR.themed and not DP.pips[1].frame:IsShown(), "caster form: no pips")
 noErrors(denv, DK, "druid")
+
+-- A paladin's holy power and a warlock's soul shards: as many pieces as UnitPowerMax gives, fed that power, none at 0,
+-- and nothing at all with the pips off, as before.
+for _, case in ipairs({ { "PALADIN", 9, "HOLY_POWER", "PipSpear90.png", "jewelHoly" }, { "WARLOCK", 7, "SOUL_SHARDS", "PipShard90.png", "jewelShard" } }) do
+	local class, power, token, art, colour = case[1], case[2], case[3], case[4], case[5]
+	local cenv, CK, cns = U.New({ setup = function(e)
+		e._units.player.class = class
+		e._units.player.powerType, e._units.player.powerToken = 0, "MANA"
+		e._units.player.powers, e._units.player.powerMaxes = { [power] = 1 }, { [power] = 3 }
+	end })
+	local CP, CR = cns.Pips.state, cns.Resource.state
+	assert(CR.showCombo and CR.themed and #CP.pips == 3, class .. ": three pieces for a maximum of three")
+	assert(File(CP.pips[1].blade, "SetStatusBarTexture"):find(art, 1, true), class .. ": its own art")
+	assert(W.LastCall(CP.pips[1].halo, "SetStatusBarColor")[1] == CK.Tokens.Color(colour), class .. ": its jewels' colour")
+	assert(select(2, U.Bar(cenv, CP.pips[1].shine)) == 2, class .. ": the glint lights at its maximum of three")
+	assert(not CR.pips[4]:IsShown() and not CR.pips[1]:IsShown(), class .. ": no plain pips under the theme")
+	cenv._units.player.powers[power] = 3
+	cenv._restricted = true
+
+	cenv.FireEvent("UNIT_POWER_FREQUENT", "player", token)
+	local value = W.LastCall(CP.pips[3].blade, "SetValue")[1]
+	assert(cenv.issecretvalue(value) and Reveal(value) == 3, class .. ": the pieces get the secret power itself")
+	cenv._restricted = false
+	CK.Options.Write("UnitFrames", "resource.classPips", false)
+	assert(not CR.showCombo and not CR.content:IsShown(), class .. ": off shows nothing, as before")
+	CK.Options.Write("UnitFrames", "resource.classPips", true)
+	cenv._units.player.powerMaxes[power] = 0
+	cenv.FireEvent("UNIT_DISPLAYPOWER", "player")
+	assert(not CR.showCombo, class .. ": a client without the power draws nothing")
+	cenv._units.player.powerMaxes[power] = 3
+	cenv.FireEvent("UNIT_DISPLAYPOWER", "player")
+	CK.Options.Write("HudStyle", "style", "medallions")
+	assert(not CR.showCombo, class .. ": under Medallions the crest's crown shows it")
+	noErrors(cenv, CK, class)
+end
 
 print("unitframes pips ok")

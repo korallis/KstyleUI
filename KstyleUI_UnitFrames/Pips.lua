@@ -1,29 +1,29 @@
--- Pips.lua: the class-themed combo point row over the plain pips' places, Widgets.ClassPip daggers for a rogue and claw marks for a cat-form druid, with a glow under the full row that breathes under Medallions at Full; under Medallions a rogue's points are the crest's crown of blades instead.
+-- Pips.lua: the class-themed pip row over the plain pips' places for Frames and Orbs, Widgets.ClassPip daggers, claws, sun-spears or soul shards by class, with a glow under the full row; under Medallions the crest's crown shows them instead.
 local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens, Effects = K.Widgets, K.Tokens, K.Effects
-local issecretvalue = issecretvalue or function() return false end
 
 local Pips = {}
 ns.Pips = Pips
 
-local ART, ROW = 1.6, 0.35
-local LOW, BREATH, FADE = 0.55, 1.1, 0.2
-local SETS = {
-	ROGUE = { lit = "pipBlade90", steel = "pipBladeSteel90", shape = "pipBladeShape90", glow = "pipBladeGlow90", glowColor = "pipRogueGlow", coreColor = "pipRogueCore", axis = 90 },
-	DRUID = { lit = "pipDruid", steel = "pipDruidSocket", shape = "pipDruidShape", glow = "glow", glowColor = "pipDruidGlow", coreColor = "pipDruidCore", axis = 232 },
-}
+local ART, ROW, FADE = 1.6, 0.35, 0.2
 
 local state = { pips = {}, count = 0 }
 Pips.state = state
 
-local function Glow(row, from, to)
+function Pips.Has(class)
+	return Widgets.ClassPipSet(class, 90) ~= nil
+end
+
+local function Glow(row, set, count, from, to)
 	local bar = CreateFrame("StatusBar", nil, row)
 	bar:SetFrameLevel(row:GetFrameLevel())
 	bar:SetAllPoints(row)
 	bar:SetStatusBarTexture((Tokens.Texture("glow")))
 	bar:GetStatusBarTexture():SetBlendMode("ADD")
+	bar:SetStatusBarColor(Tokens.Color(set.glowColor))
+	bar:SetMinMaxValues(count - 1, count)
 	bar.anim = bar:CreateAnimationGroup()
 	local a = bar.anim:CreateAnimation("Alpha")
 	a:SetDuration(FADE)
@@ -35,40 +35,37 @@ end
 local function BuildRow(set, count)
 	local row = CreateFrame("Frame", nil, state.parent)
 	row:SetFrameLevel(state.parent:GetFrameLevel() + 1)
-	row.now, row.was = Glow(row, 0, 1), Glow(row, 1, 0)
-	for _, bar in ipairs({ row.now, row.was }) do
-		bar:SetStatusBarColor(Tokens.Color(set.glowColor))
-		bar:SetMinMaxValues(count - 1, count)
-	end
+	row.now, row.was = Glow(row, set, count, 0, 1), Glow(row, set, count, 1, 0)
 	row.was:Hide()
 	row.was.anim:SetScript("OnFinished", function() row.was:Hide() end)
-	row.breath = row:CreateAnimationGroup()
-	row.breath:SetLooping("BOUNCE")
-	local a = row.breath:CreateAnimation("Alpha")
-	a:SetFromAlpha(1)
-	a:SetToAlpha(LOW)
-	a:SetDuration(BREATH)
-	a:SetSmoothing("IN_OUT")
 	return row
 end
 
+local function Hide()
+	for _, p in ipairs(state.pips) do
+		p.frame:Hide()
+	end
+	if state.row then
+		state.row:Hide()
+	end
+end
+
 function Pips.Apply(class, parent, count)
-	local set = class and SETS[class]
+	local set = class and Widgets.ClassPipSet(class, 90)
 	state.theme = set
 	if not set then
-		for _, p in ipairs(state.pips) do
-			p.frame:Hide()
-		end
-		if state.row then
-			state.row:Hide()
-		end
+		Hide()
 		return false
 	end
 	state.parent, state.count = parent, count
-	for i = #state.pips + 1, count do
-		state.pips[i] = Widgets.ClassPip(parent, set, i, count)
+	if state.built ~= class .. count then
+		Hide()
+		state.pips, state.built = {}, class .. count
+		for i = 1, count do
+			state.pips[i] = Widgets.ClassPip(parent, set, i, count)
+		end
+		state.row = BuildRow(set, count)
 	end
-	state.row = state.row or BuildRow(set, count)
 	for _, p in ipairs(state.pips) do
 		p.frame:Show()
 	end
@@ -99,9 +96,8 @@ function Pips.Set(points, animate)
 	local was = state.seen and state.points or points
 	state.points, state.seen = points, true
 	local moving = animate and Effects.Allows("flare")
-	local idle = Effects.Active() and Effects.Allows("pulse") and not issecretvalue(points) and type(points) == "number" and points >= state.count
 	for _, p in ipairs(state.pips) do
-		p:Set(points, was, moving, idle)
+		p:Set(points, was, moving, false)
 	end
 	local row = state.row
 	row.now.anim:Stop()
@@ -113,12 +109,5 @@ function Pips.Set(points, animate)
 		row.was:Show()
 		row.now.anim:Play()
 		row.was.anim:Play()
-	end
-	if idle then
-		if not row.breath:IsPlaying() then
-			row.breath:Play()
-		end
-	else
-		row.breath:Stop()
 	end
 end

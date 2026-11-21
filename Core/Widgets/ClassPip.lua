@@ -20,6 +20,13 @@ local LAYERS = {
 	{ key = "shine", feed = "max", art = "spot", tint = "coreColor", add = true, transient = true },
 }
 
+local CLASSES = {
+	ROGUE = { art = "pipBlade", glowColor = "jewelCombo", coreColor = "jewelComboCore" },
+	DRUID = { art = "pipClaw", glowColor = "pipDruidGlow", coreColor = "pipDruidCore" },
+	PALADIN = { art = "pipSpear", glowColor = "jewelHoly", coreColor = "jewelHolyCore" },
+	WARLOCK = { art = "pipShard", glowColor = "jewelShard", coreColor = "jewelShardCore" },
+}
+
 local Pip = {}
 
 local function Create(bar, kind, order, duration, smoothing)
@@ -87,6 +94,14 @@ function Pip:Set(now, was, moving, idle)
 	elseif idle then
 		self:Idle()
 	end
+end
+
+function Widgets.ClassPipSet(class, angle)
+	local c = CLASSES[class]
+	return c and {
+		lit = c.art .. angle, steel = c.art .. "Steel" .. angle, shape = c.art .. "Shape" .. angle, glow = c.art .. "Glow" .. angle,
+		glowColor = c.glowColor, coreColor = c.coreColor, axis = angle,
+	}
 end
 
 function Widgets.ClassPip(parent, set, i, count)

@@ -110,7 +110,8 @@ local function Case(layout, class, form, screen)
 	end
 	roots[U.Resource.state.content] = "resource"
 	local resource = U.Resource.state
-	assert(resource.showCombo == (class == "ROGUE" or class == "DRUID" and form == "cat"), label .. ": combo visibility")
+	-- The paladin's holy power draws as class-themed pips (on by default), sun-spears where a rogue has daggers.
+	assert(resource.showCombo == (class == "ROGUE" or class == "PALADIN" or class == "DRUID" and form == "cat"), label .. ": pip visibility")
 	assert(resource.showMana == (class == "DRUID"), label .. ": shifted mana visibility")
 	if resource.showCombo then
 		for i, pip in ipairs(resource.pips) do
@@ -145,7 +146,7 @@ local function Case(layout, class, form, screen)
 	}) do
 		assert(groups[key] and #groups[key] > 0, label .. ": draws " .. key)
 	end
-	assert((groups.resource ~= nil) == (class ~= "PALADIN"), label .. ": secondary resource is drawn only where supported")
+	assert(groups.resource ~= nil, label .. ": the secondary resource is drawn")
 	return groups, scale * screen[2] / 1080, label, screen
 end
 

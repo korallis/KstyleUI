@@ -1,4 +1,4 @@
--- Resource.lua: the class resource element under the player frame: combo points as one-point status bars, or the class-themed pips over them (a rogue's are the Medallions crest's crown of blades), and the druid's mana bar.
+-- Resource.lua: the class resource element under the player frame: combo points as one-point status bars, or the class-themed pips over them for combo points, holy power and soul shards (under Medallions the crest's crown shows them, and a cat-form druid's mana), and the druid's mana bar.
 local _, ns = ...
 
 local K = KstyleUI
@@ -15,19 +15,38 @@ local MANA_SHARE = 0.35
 local MANA_MIN, MANA_MAX = 3, 6
 local GAP = 2
 local LIMITS = { minWidth = 40, minHeight = 4, maxWidth = 400, maxHeight = 48 }
-local POWER_MANA, POWER_ENERGY, POWER_COMBO = 0, 3, 4
+local POWER_MANA, POWER_ENERGY = 0, 3
 local TRACK = "buttonFill"
+local PIP_POWERS = { ROGUE = "ComboPoints", DRUID = "ComboPoints", PALADIN = "HolyPower", WARLOCK = "SoulShards" }
+local PIP_IDS = { ComboPoints = 4, SoulShards = 7, HolyPower = 9 }
+local PIP_TOKENS = { ComboPoints = "COMBO_POINTS", HolyPower = "HOLY_POWER", SoulShards = "SOUL_SHARDS" }
 
-local state = { built = false, running = false, showCombo = false, showMana = false }
+local state = { built = false, running = false, showCombo = false, showMana = false, count = PIPS }
 Resource.state = state
 Resource.KEY, Resource.MANA_MAX = KEY, MANA_MAX
 
 local function PowerTypes()
 	local types = Enum and Enum.PowerType
 	if types then
-		return types.Mana or POWER_MANA, types.Energy or POWER_ENERGY, types.ComboPoints or POWER_COMBO
+		return types.Mana or POWER_MANA, types.Energy or POWER_ENERGY
 	end
-	return POWER_MANA, POWER_ENERGY, POWER_COMBO
+	return POWER_MANA, POWER_ENERGY
+end
+
+local function PipType(name)
+	local types = Enum and Enum.PowerType
+	return types and types[name] or PIP_IDS[name]
+end
+
+local function PipCount(name)
+	if name == "ComboPoints" then
+		return PIPS
+	end
+	local most = UnitPowerMax and UnitPowerMax("player", PipType(name))
+	if (issecretvalue and issecretvalue(most)) or type(most) ~= "number" then
+		return PIPS
+	end
+	return math.max(0, math.min(PIPS, math.floor(most)))
 end
 
 local function PlayerClass()
@@ -110,13 +129,14 @@ function Resource.Layout()
 	local pipRow = state.showCombo and (state.showMana and max(0, h - manaH - GAP) or h) or 0
 	local x, span
 	if state.showCombo then
-		local spacing = min(Settings.Resource("spacing"), max(0, (w - PIPS) / (PIPS - 1)))
-		local size = max(0, min(pipRow, (w - spacing * (PIPS - 1)) / PIPS))
-		span = size * PIPS + spacing * (PIPS - 1)
+		local n = state.count
+		local spacing = min(Settings.Resource("spacing"), max(0, (w - n) / max(1, n - 1)))
+		local size = max(0, min(pipRow, (w - spacing * (n - 1)) / n))
+		span = size * n + spacing * (n - 1)
 		x = (w - span) / 2
 		for i, pip in ipairs(state.pips) do
 			Place(pip, x + (i - 1) * (size + spacing), (pipRow - size) / 2, size, size)
-			pip:SetShown(not state.themed)
+			pip:SetShown(i <= n and not state.themed)
 		end
 		ns.Pips.Layout(state.pips, size)
 	else
@@ -214,12 +234,11 @@ function Resource.Points(event)
 	if not state.showCombo then
 		return
 	end
-	local _, _, combo = PowerTypes()
 	local points
-	if GetComboPoints then
+	if state.pipPower == "ComboPoints" and GetComboPoints then
 		points = GetComboPoints("player", "target")
 	else
-		points = UnitPower("player", combo)
+		points = UnitPower("player", PipType(state.pipPower))
 	end
 	if state.themed then
 		ns.Pips.Set(points, event ~= nil and event ~= "PLAYER_TARGET_CHANGED")
@@ -248,17 +267,21 @@ function Resource.Visibility()
 		current = nil
 	end
 	local on = state.running and Settings.Resource("enabled")
-	local crowned = class == "ROGUE" and Settings.Resource("classPips") and K.HudStyle.Current() == "medallions"
-	state.showCombo = on and Settings.Resource("comboPoints") and (class == "ROGUE" and not crowned or class == "DRUID" and current == energy) or false
-	state.showMana = on and Settings.Resource("druidMana") and class == "DRUID" and current ~= nil and current ~= mana or false
+	local power, themed = PIP_POWERS[class], Settings.Resource("classPips")
+	local pipClass = power and (power == "ComboPoints" or themed and ns.Pips.Has(class))
+	local crowned = themed and ns.Pips.Has(class) and K.HudStyle.Current() == "medallions"
+	local pips = pipClass and (class ~= "DRUID" or current == energy)
+	state.pipPower, state.count = power, pips and PipCount(power) or 0
+	state.showCombo = on and Settings.Resource("comboPoints") and pips and not crowned and state.count > 0 or false
+	state.showMana = on and Settings.Resource("druidMana") and class == "DRUID" and current ~= nil and current ~= mana and not (crowned and current == energy) or false
 	state.flipped = state.showMana and Settings.Value("player", "powerMana") and current or nil
-	state.themed = ns.Pips.Apply(state.showCombo and Settings.Resource("classPips") and class or nil, state.content, PIPS)
+	state.themed = ns.Pips.Apply(state.showCombo and themed and class or nil, state.content, state.count)
 	if state.showMana then Resource.StyleBar(state.mana, state.flipped) end
 	state.content:SetShown(state.showCombo or state.showMana)
 	local Layout = K.Layout
 	if Layout and Layout.SetLive then
 		local comboOn, manaOn = Settings.Resource("comboPoints"), Settings.Resource("druidMana")
-		local placeable = on and (class == "ROGUE" and comboOn and not crowned or class == "DRUID" and (comboOn or manaOn)) or false
+		local placeable = on and (pipClass and comboOn and not crowned or class == "DRUID" and manaOn) or false
 		Layout.SetLive(KEY, placeable and true or false)
 	end
 	Resource.ListenToPower(state.running and (state.showCombo or state.showMana))
@@ -268,7 +291,7 @@ function Resource.Visibility()
 end
 
 local function OnPower(event, _, token)
-	if token == "COMBO_POINTS" then
+	if token == PIP_TOKENS[state.pipPower] then
 		Resource.Points(event)
 	elseif token == "MANA" or state.flipped then
 		Resource.Mana()

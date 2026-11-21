@@ -1,20 +1,23 @@
--- test-actionbars-medallions-crown.lua: the Medallions crest's crown of blades: five ClassPip daggers fanned out of the top of the rune ring for a rogue, on by default and with Unit Frames not loaded, off when the unit frames' Class-themed pips setting is off; each blade's art is drawn at its own angle, every lit layer is a one-point status bar fed the raw combo points now, before or at the maximum, a power event plays the fades only when motion allows, a target change and Off show the end states, the glint repeats only at a known maximum at Full, nothing runs OnUpdate, and it listens only while it shows.
+-- test-actionbars-medallions-crown.lua: the Medallions crest's crown: five ClassPip daggers fanned out of the top of the rune ring for a rogue, claws for a cat-form druid with its mana as a thin line above them, sun-spears for a paladin and soul shards for a warlock, as many as UnitPowerMax gives (none at 0), on by default and with Unit Frames not loaded, off when the unit frames' Class-themed pips setting is off; each piece's art is drawn at its own angle, every lit layer is a one-point status bar fed the raw combo points now, before or at the maximum, a power event plays the fades only when motion allows, a target change and Off show the end states, the glint repeats only at a known maximum at Full, nothing runs OnUpdate, and it listens only while it shows.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local ANGLES = { 130, 110, 90, 70, 50 }
 local SIZES = { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
 local TRANSIENT = { "haloWas", "rise", "flare", "ember", "slash", "shine" }
 
-local function New(class, size)
+local function New(class, size, setup)
 	size = size or SIZES[1]
 	local env, K, ns = AB.New({
 		class = class,
 		width = size[1],
 		height = size[2],
 		setup = function(e)
-			e._points = 0
+			e._points, e._max, e._powerType = 0, 5, 3
 			e.GetComboPoints = function() return e._restricted and e.Secret(e._points) or e._points end
-			e.UnitPowerType = function() return 3, "ENERGY" end
+			e.UnitPowerType = function() return e._powerType end
+			e.UnitPower = function(_, kind) return kind == 0 and 1500 or e._points end
+			e.UnitPowerMax = function(_, kind) return kind == 0 and 3000 or e._max end
+			if setup then setup(e) end
 		end,
 	})
 	AB.Enable(env, K)
@@ -138,11 +141,52 @@ K.Options.Write("HudStyle", "style", "frames")
 assert(not C.shown and not C.pips[1].frame:IsShown(), "Frames has no crown")
 assert(#env._errors == 0 and K.ErrorCount() == 0, "rogue: " .. tostring(env._errors[1]))
 
--- Other classes wear no crown and do not listen for it.
-for _, class in ipairs({ "WARLOCK", "DRUID", "WARRIOR" }) do
-	local oenv, OK, ons = New(class)
-	assert(not ons.SlabCrown.state.shown and #ons.SlabCrown.state.pips == 0, class .. " has no crown")
-	assert(#oenv._errors == 0 and OK.ErrorCount() == 0, class .. ": " .. tostring(oenv._errors[1]))
+-- A paladin's holy power and a warlock's soul shards: as many pieces as UnitPowerMax gives, in a fan centred on the top,
+-- fed that power; none at 0.
+for _, case in ipairs({ { "PALADIN", "HOLY_POWER", "PipSpear" }, { "WARLOCK", "SOUL_SHARDS", "PipShard" } }) do
+	local class, token, art = case[1], case[2], case[3]
+	local cenv, CK, cns = New(class, nil, function(e) e._max, e._powerType = 3, 0 end)
+	local state = cns.SlabCrown.state
+	assert(state.shown and #state.pips == 3, class .. ": three pieces for a maximum of three")
+	for i, angle in ipairs({ 110, 90, 70 }) do
+		assert(tostring(Last(state.pips[i].blade, "SetStatusBarTexture")[1]):find(art .. angle .. ".png", 1, true), class .. ": piece " .. i .. " at " .. angle .. " degrees")
+	end
+	local low, high = state.pips[1].shine:GetMinMaxValues()
+	assert(low == 2 and high == 3, class .. ": the glint lights at its maximum of three")
+	cenv._points = 2
+	cenv.FireEvent("UNIT_POWER_FREQUENT", "player", token)
+	assert(Last(state.pips[2].blade, "SetValue")[1] == 2 and select(2, Moving(state)) == 6 * 3, class .. ": its power event lights and moves the crown")
+	cenv._max = 0
+	cenv.FireEvent("UNIT_MAXPOWER", "player", token)
+	assert(not state.shown and not state.pips[1].frame:IsShown(), class .. ": a client without the power draws nothing")
+	assert(#cenv._errors == 0 and CK.ErrorCount() == 0, class .. ": " .. tostring(cenv._errors[1]))
+end
+
+-- A druid: claws in cat form with its mana as a thin line above them (off with the unit frames' Druid mana), nothing in
+-- caster form.
+do
+	local denv, DK, dns = New("DRUID")
+	local state = dns.SlabCrown.state
+	assert(state.shown and #state.pips == 5 and tostring(Last(state.pips[3].blade, "SetStatusBarTexture")[1]):find("PipClaw90.png", 1, true), "a cat-form druid wears a crown of claws")
+	local line = state.mana
+	assert(line and line:IsShown(), "with its mana as a line above them")
+	local _, _, _, _, y = line:GetPoint(1)
+	assert(y > 76 + 44, "the mana line sits above the claws' tips")
+	assert(Last(line, "SetValue")[1] == 1500 and select(2, line:GetMinMaxValues()) == 3000, "fed the druid's mana")
+	DK.Store.Profile().UnitFrames = DK.Store.Profile().UnitFrames or {}
+	DK.Store.Profile().UnitFrames.resource = { druidMana = false }
+	DK.Callbacks.Fire("SettingChanged", "UnitFrames", "resource.druidMana", false)
+	assert(state.shown and not line:IsShown(), "Druid mana off hides the line and keeps the claws")
+	denv._powerType = 0
+	denv.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	assert(not state.shown and not state.pips[1].frame:IsShown(), "caster form: no crown")
+	assert(#denv._errors == 0 and DK.ErrorCount() == 0, "druid: " .. tostring(denv._errors[1]))
+end
+
+do
+	local wenv, WK, wns = New("WARRIOR")
+	assert(not wns.SlabCrown.state.shown and #wns.SlabCrown.state.pips == 0, "a warrior has no crown")
+	assert(#wenv._errors == 0 and WK.ErrorCount() == 0, "warrior: " .. tostring(wenv._errors[1]))
 end
 
 -- The blades are whole pixels at every owner screen.
