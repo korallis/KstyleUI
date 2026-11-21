@@ -249,6 +249,7 @@ Settings.defaults = {
 	resource = {
 		enabled = true,
 		comboPoints = true,
+		classPips = true,
 		druidMana = true,
 		comboColor = "class",
 		comboCustom = Color("neutral"),
@@ -1235,6 +1236,10 @@ ResourceRows = function(schema)
 	schema[#schema + 1] = {
 		type = "toggle", key = "resource.comboPoints", label = L["Combo points"], showWhen = shows(on),
 		help = L["Shows rogue and cat form combo points as pips."],
+	}
+	schema[#schema + 1] = {
+		type = "toggle", key = "resource.classPips", label = L["Class-themed pips"], showWhen = shows(on),
+		help = L["Animated daggers for a rogue and claw marks for a druid. Off restores the plain pips."],
 	}
 	schema[#schema + 1] = {
 		type = "dropdown", key = "resource.comboColor", label = L["Combo point colour"], showWhen = shows(on),
