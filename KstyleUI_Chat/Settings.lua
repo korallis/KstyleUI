@@ -56,6 +56,8 @@ local defaults = {
 	idleWake = { emotes = false, skills = false, reputation = false, loot = false, system = false, achievements = false, npc = false },
 	font = "",
 	fontSize = FOLLOW,
+	editFont = "messages",
+	editFontSize = FOLLOW,
 	lineSpacing = FOLLOW,
 	fontOutline = "none",
 	fade = true,
@@ -119,6 +121,10 @@ end
 
 local function ShownSize(value)
 	return value == FOLLOW and Tokens.TypeDefault("chatSize") or value
+end
+
+local function ShownEditSize(value)
+	return value == FOLLOW and ns.TextSize(ns.Settings()) or value
 end
 
 local function ShownSpacing(value)
@@ -217,6 +223,12 @@ local function Append(schema, rows)
 	end
 end
 
+local function EditFonts()
+	local list = K.Widgets.InheritedFontOptions()
+	table.insert(list, 1, { value = "messages", label = L["Message font"] })
+	return list
+end
+
 local function TabFonts()
 	local list = K.Widgets.MediaOptions("font")
 	table.insert(list, 1, { value = "", label = L["Caps face"] })
@@ -308,6 +320,12 @@ function ns.Schema()
 			type = "slider", key = "fontSize", label = L["Text size"],
 			help = L["The size of chat messages and the edit box."],
 			min = FONT_MIN, max = FONT_MAX, step = 1, shown = ShownSize,
+		},
+		{ type = "font", key = "editFont", label = L["Edit box font"], options = EditFonts, help = L["The font of the text you type. The default is the message font."] },
+		{
+			type = "slider", key = "editFontSize", label = L["Edit box text size"],
+			help = L["The size of the text you type. The default is the message size."],
+			min = FONT_MIN, max = FONT_MAX, step = 1, shown = ShownEditSize,
 		},
 		{
 			type = "slider", key = "lineSpacing", label = L["Line spacing"],

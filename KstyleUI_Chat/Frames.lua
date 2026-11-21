@@ -102,6 +102,18 @@ function Frames.Fonts(settings)
 	return path, size, flags, tabSize, tabPath
 end
 
+function Frames.EditFont(settings)
+	local s = settings or state.settings
+	local path, size = Frames.Fonts(s)
+	if s.editFont ~= "messages" then
+		path = FontPath(s.editFont, "body")
+	end
+	if s.editFontSize ~= ns.FOLLOW then
+		size = Whole(s.editFontSize, ns.FONT_MIN, ns.FONT_MAX, size)
+	end
+	return path, size
+end
+
 function Frames.TabGap(settings)
 	return Halves(settings.tabSpacing, 0, 60, TAB_GAP)
 end
@@ -451,11 +463,13 @@ local function ApplyFrame(frame)
 	end
 	local box = frame.editBox
 	if type(box) == "table" then
-		Frames.ApplyFont(box, path, size, flags)
+		local editPath, editSize = Frames.EditFont(s)
+		editSize = editSize * hud
+		Frames.ApplyFont(box, editPath, editSize, flags)
 		for _, key in ipairs(EDIT_TEXTS) do
 			local text = box[key]
 			if type(text) == "table" and type(text.GetObjectType) == "function" and text:GetObjectType() == "FontString" then
-				Frames.ApplyFont(text, path, size, flags)
+				Frames.ApplyFont(text, editPath, editSize, flags)
 			end
 		end
 		local parts = Skin.Parts(box)

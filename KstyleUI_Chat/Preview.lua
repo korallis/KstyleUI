@@ -137,7 +137,8 @@ function Preview.Build(...)
 		local right = settings.sideRight == true
 		room = beside and 0 or room
 		local band = right and room + apart or 0
-		local left, always = inset + (right and 0 or room + apart), settings.editBox == "always"
+		local separate = settings.editFont ~= "messages" or settings.editFontSize ~= ns.FOLLOW
+		local left, always = inset + (right and 0 or room + apart), settings.editBox == "always" or separate
 		local tall = tonumber(settings.editHeight) or ns.defaults.editHeight
 		local lift = always and settings.inputOnTop == true and tall + inset or 0
 		local above = settings.tabsAbove == true and top * 2 or 0
@@ -173,6 +174,12 @@ function Preview.Build(...)
 		Widgets.Point(self.edit, "RIGHT", glass, "RIGHT", -(inset + band), 0)
 		self.edit:SetHeight(Widgets.Snap(self.edit, tall))
 		self.edit:SetShown(always)
+		self.edit.text:SetShown(separate)
+		if separate then
+			local editPath, editSize = ns.Frames.EditFont(settings)
+			ns.Frames.ApplyFont(self.edit.text, editPath, editSize, flags)
+			self.edit.text:SetText((type(CHAT_SAY_SEND) == "string" and CHAT_SAY_SEND or "") .. L["Anyone for the croc hunt?"])
+		end
 		local x = left
 		local limit = glass:GetWidth() > 0 and glass:GetWidth() - edge or math.huge
 		local spare = limit - x
@@ -244,7 +251,11 @@ function Preview.Build(...)
 		frame.fill.wash:SetAllPoints(frame.fill)
 		frame.fill.wash:SetColorTexture(Tokens.Color("white"))
 		frame.edit = CreateFrame("Frame", nil, glass)
-		frame.edit.chrome = Widgets.Chrome(frame.edit, { shape = "tile", fill = "buttonFill", shadow = false })
+		frame.edit.chrome = Widgets.Chrome(frame.edit, { shape = "tile", fill = "buttonFill", shadow = false })		frame.edit.text = Widgets.FontString(frame.edit, "OVERLAY")
+		Widgets.Point(frame.edit.text, "LEFT", frame.edit, "LEFT", Tokens.Size("gapSmall"), 0)
+		Widgets.Point(frame.edit.text, "RIGHT", frame.edit, "RIGHT", -Tokens.Size("gapSmall"), 0)
+		frame.edit.text:SetJustifyH("LEFT")
+		frame.edit.text:Hide()
 		local top = CreateFrame("Frame", nil, glass)
 		top:SetAllPoints(glass)
 		top:SetFrameLevel(frame.fill:GetFrameLevel() + 1)
