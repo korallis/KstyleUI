@@ -886,6 +886,28 @@ function modules.cooldowns(opts)
 			K.Options.Write("Cooldowns", key, value)
 		end
 	end
+	-- RENDER_COOLDOWN_PARITY=3: round 3 switched on over KstyleUI rows: the first cooling essential countdown red below
+	-- 30 seconds, the last essential spell swept by a main hand swing and glowing late in it, numbers over the proc
+	-- glow, a two-row essential grid with a smaller second row, and an equipped trinket with no use effect.
+	local swing
+	if os.getenv("RENDER_COOLDOWN_PARITY") == "3" then
+		local cooling, last = nil, nil
+		for _, entry in ipairs(entries) do
+			if entry.group == "essential" then
+				last = entry.name
+				if type(entry.state) == "table" then cooling = cooling or entry.name end
+			end
+		end
+		swing = last
+		env.GetInventoryItemID = function(_, slot) return slot == 13 and 1 or nil end
+		env.GetInventoryItemTexture = function() return 133283 end
+		env.GetInventoryItemCooldown = function() return 0, 0, 1, false end
+		for key, value in pairs({ path = "mirror", ["rules.threshold"] = cooling or "", thresholdBelow = 30, ["rules.swing"] = last or "",
+			["rules.swingGlow"] = last or "", textAboveGlow = true, ["essential.rows"] = 2, ["essential.baseCount"] = 4,
+			["essential.secondSize"] = -6, ["utility.trinkets"] = true }) do
+			K.Options.Write("Cooldowns", key, value)
+		end
+	end
 	local cdm = env._cdm
 	local now = 10
 	env._time = now
@@ -924,6 +946,16 @@ function modules.cooldowns(opts)
 		env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", spell)
 	end
 	env.RunTimers()
+	if swing then
+		local after, late = env.C_Timer.After, nil
+		env.C_Timer.After = function(delay, fn) if delay > 0 then late = late or fn else after(delay, fn) end end
+		env._time = now - 2
+		env.FireEvent("PLAYER_SWING", 2.6, 0)
+		env._time = now
+		env.C_Timer.After = after
+		late()
+		env.RunTimers()
+	end
 	C.W.Settle(env)
 	local scene = build(env, opts, { time = env._time })
 	scene.log[#scene.log + 1] = "cooldowns: " .. ns.Mirror.Report() .. "; Blizzard's tracked buff viewers at Apply's Edit Mode anchors" .. (#told > 0 and (", and Apply said: " .. table.concat(told, " ")) or "")
