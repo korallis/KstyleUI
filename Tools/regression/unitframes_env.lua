@@ -365,7 +365,7 @@ function U.Install(env)
 			return env.Secret(self.incoming), env.Secret(0), env.Secret(0), false
 		end
 		function calc:GetDamageAbsorbs()
-			return env.Secret(self.absorb), false
+			return env.Secret(self.absorb), self.over or false
 		end
 		function calc:SetIncomingHealClampMode(mode)
 			self.clamp = mode
@@ -382,6 +382,7 @@ function U.Install(env)
 		local u = unitOf(token)
 		calc.incoming = u and u.incoming or 0
 		calc.absorb = u and u.absorb or 0
+		calc.over = u and u.overshield
 		local clamp = u and (calc.healAbsorbClamp == 0 and u.health or calc.healAbsorbClamp == 1 and u.healthMax)
 		calc.healAbsorb = u and math.min(u.healAbsorb or 0, clamp or math.huge) or 0
 	end

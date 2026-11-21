@@ -36,6 +36,8 @@ local RULE_ALPHA = 0.55
 local VALUE_GAP = 2
 local SCRIM_SUBLEVEL = -8
 local SCRIM_PAD = { sigil = { 36, 22, 0.5 }, row = { 30, 18, 0.75 }, card = { 30, 3, 0.75 }, slab = { 18, 14, 0.55 } }
+local GLOW_LINE, SPARK_W, FIVE_SECONDS, COST_ALPHA, ABSORB_BAR_ALPHA = 6, 6, 5, 0.6, 0.9
+local NUDGE = { name = "name", healthText = "health", healthSub = "health", powerText = "power", levelText = "level", caption = "level" }
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -275,29 +277,136 @@ local function PlaceText(view, text, rect)
 	text:Show()
 end
 
-local function PlacePrediction(view, bar, after, backwards)
-	local health = view.health
-	local o = ORIENTATION[view.orientation or "RIGHT"]
-	bar.opts.width, bar.opts.height = health.opts.width, health.opts.height
+local function PlacePrediction(view, bar, after, backwards, placement, base, direction)
+	base = base or view.health
+	local o = ORIENTATION[direction or view.orientation or "RIGHT"] or ORIENTATION.RIGHT
+	if placement == "END" or placement == "START" then
+		after, backwards = base, placement == "END"
+	end
+	bar.opts.width, bar.opts.height = base.opts.width, base.opts.height
 	bar:SetOrientation(o[1])
 	bar:SetReverseFill(o[2] ~= (backwards == true))
 	bar:ClearAllPoints()
-	bar:SetPoint(o[backwards and 4 or 3], after, o[4])
+	bar:SetPoint(o[backwards and 4 or 3], after, o[(after == base and not backwards) and 3 or 4])
 	bar:Restyle()
+end
+
+local function Texture(kind, key)
+	local own = Settings.Value(kind, key)
+	return own ~= "" and own or Settings.Value(kind, "healthTexture")
 end
 
 local function PlaceHealAbsorb(view)
 	local bar = view.healAbsorb
 	if not bar then return end
-	PlacePrediction(view, bar, view.health:GetStatusBarTexture(), true)
-	bar:SetBarTexture(Settings.Value(view.kind, "healthTexture"))
+	PlacePrediction(view, bar, view.health:GetStatusBarTexture(), true, Settings.Value(view.kind, "healAbsorbPlacement"))
+	bar:SetBarTexture(Texture(view.kind, "healAbsorbTexture"))
 	bar:SetBarColor(Widgets.Rgba("hostile", Settings.Value(view.kind, "healAbsorbAlpha")))
+end
+
+function Style.ShieldGlow(view)
+	local glow = view.shieldGlow
+	if not glow then
+		glow = view.top:CreateTexture(nil, "BACKGROUND")
+		glow:SetTexture((Tokens.Texture("glow")))
+		glow:SetBlendMode("ADD")
+		glow:SetVertexColor(Tokens.Color("white"))
+		glow:Hide()
+		view.shieldGlow = glow
+	end
+	local o, health = ORIENTATION[view.orientation or "RIGHT"], view.health
+	glow:ClearAllPoints()
+	glow:SetPoint(o[4], health, o[4])
+	local across = o[1] == "HORIZONTAL"
+	glow:SetSize(Snap(view, across and GLOW_LINE or health.opts.width), Snap(view, across and health.opts.height or GLOW_LINE))
+	return glow
+end
+
+function Style.AbsorbBar(view)
+	local bar, where = view.absorbBar, Settings.Value(view.kind, "absorbBar")
+	if where == "" then
+		if bar then bar:Hide() end
+		return nil
+	end
+	if not bar then
+		bar = Prediction(view.health, "white")
+		view.absorbBar = bar
+	end
+	bar.opts.width, bar.opts.height = view.health.opts.width, Settings.Value(view.kind, "absorbBarHeight")
+	bar:SetOrientation("HORIZONTAL")
+	bar:SetReverseFill(view.orientation == "LEFT")
+	bar:ClearAllPoints()
+	bar:SetPoint(where .. "LEFT", view.health, where .. "LEFT")
+	bar:Restyle()
+	bar:SetBarTexture(Texture(view.kind, "absorbTexture"))
+	bar:SetBarColor(Widgets.Rgba("white", ABSORB_BAR_ALPHA))
+	return bar
+end
+
+function Style.LossBar(view)
+	local bar = view.lossBar
+	if not bar then
+		bar = Prediction(view.health, "hostile")
+		view.lossBar = bar
+	end
+	PlacePrediction(view, bar, view.health, true)
+	bar:SetBarRange(0, 1)
+	bar:SetBarTexture(Settings.Value(view.kind, "healthTexture"))
+	bar:SetBarColor(Widgets.Rgba("hostile", Settings.Value(view.kind, "maxHealthAlpha")))
+	return bar
+end
+
+function Style.CostBar(view)
+	local bar = view.costBar
+	if not bar then
+		bar = Prediction(view.power, "white")
+		view.costBar = bar
+	end
+	PlacePrediction(view, bar, view.power:GetStatusBarTexture(), true, nil, view.power, Settings.Value(view.kind, "powerOrientation"))
+	bar:SetBarTexture(Settings.Value(view.kind, "powerTexture"))
+	local c = Settings.Value(view.kind, "powerCostColor")
+	bar:SetBarColor(c.r, c.g, c.b, COST_ALPHA)
+	return bar
+end
+
+local SPARK_PATH = { RIGHT = { "LEFT", 1, 0 }, LEFT = { "RIGHT", -1, 0 }, UP = { "BOTTOM", 0, 1 }, DOWN = { "TOP", 0, -1 } }
+function Style.Spark(view)
+	local spark = view.manaSpark
+	if not spark then
+		spark = view.power:CreateTexture(nil, "OVERLAY")
+		spark:SetTexture((Tokens.Texture("glow")))
+		spark:SetBlendMode("ADD")
+		spark:Hide()
+		spark.group = spark:CreateAnimationGroup()
+		spark.move = spark.group:CreateAnimation("Translation")
+		spark.move:SetDuration(FIVE_SECONDS)
+		spark.group:SetScript("OnFinished", function() spark:Hide() end)
+		view.manaSpark = spark
+	end
+	local path = SPARK_PATH[Settings.Value(view.kind, "powerOrientation")] or SPARK_PATH.RIGHT
+	local w, h = view.power.opts.width, view.power.opts.height
+	spark:ClearAllPoints()
+	spark:SetPoint("CENTER", view.power, path[1])
+	spark:SetSize(Snap(view, path[2] ~= 0 and SPARK_W or w), Snap(view, path[2] ~= 0 and h or SPARK_W))
+	spark.move:SetOffset(Snap(view, path[2] * w), Snap(view, path[3] * h))
+	return spark
 end
 
 function Style.HealAbsorb(view)
 	view.healAbsorb = Prediction(view.health, "hostile")
 	PlaceHealAbsorb(view)
 	return view.healAbsorb
+end
+
+local function Overlays(view, s)
+	PlacePrediction(view, view.incoming, view.health:GetStatusBarTexture())
+	PlacePrediction(view, view.absorb, view.incoming:GetStatusBarTexture(), nil, s.absorbPlacement)
+	PlaceHealAbsorb(view)
+	if view.shieldGlow then Style.ShieldGlow(view) end
+	if view.absorbBar then Style.AbsorbBar(view) end
+	if view.lossBar then Style.LossBar(view) end
+	if view.costBar then Style.CostBar(view) end
+	if view.manaSpark then Style.Spark(view) end
 end
 
 local function PlaceGem(view, gem, rect)
@@ -510,9 +619,7 @@ local function LayoutLumen(view, g, s)
 	PlaceBar(view, view.health, g.health)
 	PlaceBar(view, view.power, g.power)
 	view.trackLine:Hide()
-	PlacePrediction(view, view.incoming, view.health:GetStatusBarTexture())
-	PlacePrediction(view, view.absorb, view.incoming:GetStatusBarTexture())
-	PlaceHealAbsorb(view)
+	Overlays(view, s)
 	view.badge:Hide()
 	if g.portrait then
 		local p = g.portrait
@@ -588,6 +695,12 @@ local function ExtraTexts(view, s)
 		local key = "extra" .. i
 		view[key] = Widgets.PlaceText(view[key], s[key], view.top, view.parent)
 	end
+	local align = s.powerTextAlign
+	if align ~= "" or view.powerAligned then
+		view.powerAligned = align ~= ""
+		view.powerText:SetJustifyH(align ~= "" and align or view.form == "plate" and TEXTS.powerText.justify or "RIGHT")
+		view.powerFillText:SetJustifyH(align ~= "" and align or "RIGHT")
+	end
 end
 
 function Style.Layout(view, s, width, height)
@@ -620,9 +733,7 @@ function Style.Layout(view, s, width, height)
 	if g.trackLine then
 		view.trackLine:SetHeight(Widgets.Border(view.parent))
 	end
-	PlacePrediction(view, view.incoming, view.health:GetStatusBarTexture())
-	PlacePrediction(view, view.absorb, view.incoming:GetStatusBarTexture())
-	PlaceHealAbsorb(view)
+	Overlays(view, s)
 	if g.portrait then
 		Place(view, view.portraitFrame, g.portrait)
 		view.portraitChrome:SetChamfer(PORTRAIT_CHAMFER * g.portrait.w)
@@ -660,6 +771,33 @@ function Style.Layout(view, s, width, height)
 	ExtraTexts(view, s)
 	Style.Gradient(view)
 	return g
+end
+
+local function Nudge(view)
+	local fonts = view.s and view.s.fonts
+	if not fonts then return end
+	if not view.nudged then
+		local any = false
+		for _, element in ipairs(Settings.TEXTS) do
+			any = any or fonts[element].x ~= 0 or fonts[element].y ~= 0
+		end
+		if not any then return end
+		view.nudged = true
+		for key in pairs(NUDGE) do
+			local text = view[key]
+			local set = text.SetPoint
+			text.nudge = { 0, 0 }
+			text.SetPoint = function(self, point, rel, ...)
+				if type(rel) ~= "table" or rel.nudge then return set(self, point, rel, ...) end
+				local relPoint, x, y = ...
+				return set(self, point, rel, relPoint or point, (x or 0) + Snap(view, self.nudge[1]), (y or 0) + Snap(view, self.nudge[2]))
+			end
+		end
+	end
+	for key, element in pairs(NUDGE) do
+		local nudge = view[key].nudge
+		nudge[1], nudge[2] = fonts[element].x, fonts[element].y
+	end
 end
 
 local function ApplyFont(text, path, size, flags)
@@ -709,8 +847,9 @@ function Style.Restyle(view, kind)
 	Style.Shape(view, form == "vitals" or Settings.Value(kind, "portraitShape") == "round")
 	view.health:SetBarTexture(Settings.Value(kind, "healthTexture"))
 	view.power:SetBarTexture(Settings.Value(kind, "powerTexture"))
-	view.incoming:SetBarTexture(Settings.Value(kind, "healthTexture"))
-	view.absorb:SetBarTexture(Settings.Value(kind, "healthTexture"))
+	view.incoming:SetBarTexture(Texture(kind, "incomingTexture"))
+	view.absorb:SetBarTexture(Texture(kind, "absorbTexture"))
+	Nudge(view)
 	view.orientation = Settings.Value(kind, "healthOrientation")
 	Orient(view.health, view.orientation)
 	Orient(view.power, Settings.Value(kind, "powerOrientation"))
@@ -789,6 +928,7 @@ end
 
 function Style.PowerTint(view, r, g, b)
 	view.powerR, view.powerG, view.powerB = nil, nil, nil
+	local tr, tg, tb = r, g, b
 	local separate = false
 	if Plain(r, g, b) then
 		view.powerR, view.powerG, view.powerB = r, g, b
@@ -815,6 +955,18 @@ function Style.PowerTint(view, r, g, b)
 		Widgets.ApplyFont(view.powerFillText, path, size)
 		Widgets.InkText(view.powerFillText, r, g, b)
 	end
+	Style.PowerText(view, tr, tg, tb)
+end
+
+function Style.PowerText(view, r, g, b)
+	local mode = view.s and view.s.powerTextColor
+	if mode ~= "power" and mode ~= "custom" then return end
+	if mode == "custom" then
+		local c = view.s.powerTextCustom
+		r, g, b = c.r, c.g, c.b
+	end
+	view.powerText:SetTextColor(r, g, b)
+	view.powerFillText:SetTextColor(r, g, b)
 end
 
 function Style.Accent(view)

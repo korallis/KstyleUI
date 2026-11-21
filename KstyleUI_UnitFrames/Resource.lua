@@ -168,6 +168,22 @@ function Resource.Restyle()
 	end
 	state.mana:SetBarTexture(Settings.Resource("manaTexture"))
 	state.mana:SetBarColor(ManaColor())
+	local format, text = Settings.Resource("manaText"), state.text
+	state.format = format
+	if format ~= "none" and not text then
+		text = Widgets.FontString(state.mana, "OVERLAY")
+		text:SetWordWrap(false)
+		text:SetAllPoints(state.mana)
+		state.text = text
+	end
+	if text then
+		local path, size, flags = Settings.Font("player", "power")
+		Widgets.ApplyFont(text, path, size, flags)
+		text:SetTextColor(Tokens.Color("textEmphasis"))
+		local align = Settings.Resource("manaTextAlign")
+		text:SetJustifyH(align ~= "" and align or "CENTER")
+		text:SetShown(format ~= "none")
+	end
 	local o = Style.ORIENTATION[Settings.Resource("manaOrientation")] or Style.ORIENTATION.RIGHT
 	state.mana:SetOrientation(o[1])
 	state.mana:SetReverseFill(o[2])
@@ -194,9 +210,10 @@ function Resource.Mana()
 	if not state.showMana then
 		return
 	end
-	local mana = PowerTypes()
-	state.mana:SetBarRange(0, UnitPowerMax("player", mana))
-	state.mana:SetBarValue(UnitPower("player", mana))
+	local shown = state.flipped or PowerTypes()
+	state.mana:SetBarRange(0, UnitPowerMax("player", shown))
+	state.mana:SetBarValue(UnitPower("player", shown))
+	if state.text and state.format ~= "none" then ns.Format.Power(state.text, "player", state.format, shown) end
 end
 
 function Resource.Visibility()
@@ -209,6 +226,10 @@ function Resource.Visibility()
 	local on = state.running and Settings.Resource("enabled")
 	state.showCombo = on and Settings.Resource("comboPoints") and (class == "ROGUE" or class == "DRUID" and current == energy) or false
 	state.showMana = on and Settings.Resource("druidMana") and class == "DRUID" and current ~= nil and current ~= mana or false
+	state.flipped = state.showMana and Settings.Value("player", "powerMana") and current or nil
+	if state.showMana then
+		state.mana:SetBarColor(state.flipped and ns.Unit.PowerTypeColor("player") or ManaColor())
+	end
 	state.content:SetShown(state.showCombo or state.showMana)
 	local Layout = K.Layout
 	if Layout and Layout.SetLive then
@@ -225,7 +246,7 @@ end
 local function OnPower(_, _, token)
 	if token == "COMBO_POINTS" then
 		Resource.Points()
-	elseif token == "MANA" then
+	elseif token == "MANA" or state.flipped then
 		Resource.Mana()
 	end
 end

@@ -155,12 +155,25 @@ function Unit.HealthColor(view, unit)
 	if s.levelDifficulty then Unit.Level(view, unit) end
 end
 
-local function PowerTypeColor(unit, column)
-	local token = "MANA"
-	if unit then
+local function ManaType()
+	local types = Enum and Enum.PowerType
+	return types and types.Mana or 0
+end
+
+local function ShownPower(view, unit)
+	if not view.s.powerMana then return nil end
+	local mana = ManaType()
+	local max = UnitPowerMax(unit, mana)
+	if IsSecret(max) or type(max) ~= "number" or max <= 0 then return nil end
+	return mana
+end
+
+local function PowerTypeColor(unit, column, token)
+	if unit and not token then
 		local _, own = UnitPowerType(unit)
 		token = own
 	end
+	token = token or "MANA"
 	local colors = PowerBarColor
 	if column and not IsSecret(token) and token == "MANA" and not Theme.Palette(token) then
 		return Tokens.Color("hudMana")
@@ -181,7 +194,7 @@ function Unit.PowerColor(view, unit)
 		local c = s.powerCustom
 		ns.Style.PowerTint(view, c.r, c.g, c.b)
 	elseif source == "power" then
-		ns.Style.PowerTint(view, PowerTypeColor(unit, s.form == "column"))
+		ns.Style.PowerTint(view, PowerTypeColor(unit, s.form == "column", ShownPower(view, unit) and "MANA"))
 	else
 		ns.Style.PowerTint(view, UnitColor(unit, source))
 	end
@@ -195,26 +208,38 @@ local function SetValue(bar, value, instant)
 	end
 end
 
+local function Hide(region)
+	if region and region:IsShown() then region:Hide() end
+end
+
 function Unit.Prediction(view, unit)
-	local eaten = view.healAbsorb
-	local wanted = view.s.healPrediction and view.s.healAbsorbs
+	local s, eaten = view.s, view.healAbsorb
+	local wanted = s.healPrediction and s.healAbsorbs
 	if view.healAbsorbShown and not wanted then
 		eaten:Hide()
 		view.healAbsorbShown = false
 	end
-	if not view.s.healPrediction then
+	local glow = s.absorbGlow and (view.shieldGlow or ns.Style.ShieldGlow(view))
+	local strip = s.absorbBar ~= "" and view.absorbBar
+	if s.absorbBar ~= "" and not strip then
+		strip, view.predictionRange = ns.Style.AbsorbBar(view), false
+	end
+	if not glow then Hide(view.shieldGlow) end
+	if not strip then Hide(view.absorbBar) end
+	if not s.healPrediction then
 		view.incoming:Hide()
 		view.absorb:Hide()
-		return
+		if not (glow or strip) then return end
 	end
 	if wanted and not eaten then
 		eaten, view.predictionRange = ns.Style.HealAbsorb(view), false
 	end
 	if not view.predictionRange then
-		local max = UnitHealthMax(unit)
+		local max = view.rangeMax or UnitHealthMax(unit)
 		view.incoming:SetBarRange(0, max)
 		view.absorb:SetBarRange(0, max)
 		if eaten then eaten:SetBarRange(0, max) end
+		if strip then strip:SetBarRange(0, max) end
 		view.predictionRange = true
 	end
 	local calc = view.calculator
@@ -227,9 +252,28 @@ function Unit.Prediction(view, unit)
 	end
 	if calc then
 		UnitGetDetailedHealPrediction(unit, "player", calc)
-		view.incoming:SetBarValue((calc:GetIncomingHeals()))
-		view.absorb:SetBarValue((calc:GetDamageAbsorbs()))
-		view.absorb:SetShown(view.s.absorbs ~= false)
+		local absorbs, over = calc:GetDamageAbsorbs()
+		local total = absorbs
+		if (s.absorbPlacement ~= "" or strip) and UnitGetTotalAbsorbs then total = UnitGetTotalAbsorbs(unit) end
+		if s.healPrediction then
+			view.incoming:SetBarValue((calc:GetIncomingHeals()))
+			view.absorb:SetBarValue(s.absorbPlacement ~= "" and total or absorbs)
+			view.absorb:SetShown(s.absorbs ~= false)
+		end
+		if glow then
+			if IsSecret(over) then
+				glow:SetAlphaFromBoolean(over, 1, 0)
+				glow.lit = nil
+			elseif glow.lit ~= (over == true) then
+				glow.lit = over == true
+				glow:SetAlpha(glow.lit and 1 or 0)
+			end
+			if not glow:IsShown() then glow:Show() end
+		end
+		if strip then
+			strip:SetBarValue(total)
+			if not strip:IsShown() then strip:Show() end
+		end
 		if wanted and calc.GetHealAbsorbs then
 			eaten:SetBarValue((calc:GetHealAbsorbs()))
 			if not view.healAbsorbShown then
@@ -237,6 +281,8 @@ function Unit.Prediction(view, unit)
 				view.healAbsorbShown = true
 			end
 		end
+	elseif not s.healPrediction then
+		return
 	elseif UnitGetIncomingHeals then
 		LogOnce("prediction", "heal prediction: UnitGetIncomingHeals, no absorbs")
 		local heals = UnitGetIncomingHeals(unit)
@@ -252,7 +298,7 @@ function Unit.Prediction(view, unit)
 		view.absorb:Hide()
 		return
 	end
-	view.incoming:Show()
+	if s.healPrediction then view.incoming:Show() end
 end
 
 local glowCurve, glowTried
@@ -338,8 +384,30 @@ local function LumenHealth(view, unit, form, format)
 	end
 end
 
+local function LostShare(view, unit)
+	if not (view.s and view.s.maxHealthLoss) or type(GetUnitTotalModifiedMaxHealthPercent) ~= "function" then return nil end
+	local share = GetUnitTotalModifiedMaxHealthPercent(unit)
+	if IsSecret(share) or type(share) ~= "number" or share ~= share then return 0 end
+	return math.max(0, math.min(share, 0.9))
+end
+
 function Unit.HealthRange(view, unit)
-	view.health:SetBarRange(0, UnitHealthMax(unit))
+	local max, lost = UnitHealthMax(unit), LostShare(view, unit)
+	view.rangeMax = nil
+	if lost and lost > 0 and not IsSecret(max) and type(max) == "number" and max > 0 then
+		max = max / (1 - lost)
+		view.rangeMax = max
+	else
+		lost = lost and 0
+	end
+	view.health:SetBarRange(0, max)
+	if lost and lost > 0 then
+		local bar = view.lossBar or ns.Style.LossBar(view)
+		bar:SetValue(lost)
+		if not bar:IsShown() then bar:Show() end
+	else
+		Hide(view.lossBar)
+	end
 	view.healthRangeUnit, view.predictionRange = unit, false
 end
 
@@ -382,7 +450,8 @@ function Unit.Power(view, unit, instant)
 		view.powerText:SetText("")
 		return
 	end
-	local max = UnitPowerMax(unit)
+	local shown = ShownPower(view, unit)
+	local max = UnitPowerMax(unit, shown)
 	local empty = false
 	if issecretvalue ~= nil and not issecretvalue(max) then
 		empty = type(max) == "number" and max <= 0
@@ -393,8 +462,48 @@ function Unit.Power(view, unit, instant)
 		return
 	end
 	bar:SetBarRange(0, max)
-	SetValue(bar, UnitPower(unit), instant)
-	Format.Power(view.powerText, unit, view.s.powerText)
+	SetValue(bar, UnitPower(unit, shown), instant)
+	Format.Power(view.powerText, unit, view.s.powerText, shown)
+end
+
+local function Costs(spellID)
+	if spellID == nil or IsSecret(spellID) or not (C_Spell and C_Spell.GetSpellPowerCost) then return nil end
+	local costs = C_Spell.GetSpellPowerCost(spellID)
+	return type(costs) == "table" and costs or nil
+end
+
+local function CostOf(costs, powerType)
+	for _, info in ipairs(costs or {}) do
+		if type(info) == "table" and not IsSecret(info.type) and info.type == powerType then return info.cost end
+	end
+	return nil
+end
+
+local function BarPower(view)
+	local shown = ShownPower(view, "player") or UnitPowerType("player")
+	return not IsSecret(shown) and shown or nil
+end
+
+function Unit.Cost(view, spellID)
+	local cost = view.s.powerCost and view.s.power and CostOf(Costs(spellID), BarPower(view))
+	if cost == nil or not IsSecret(cost) and (type(cost) ~= "number" or cost <= 0) then
+		Hide(view.costBar)
+		return
+	end
+	local bar = view.costBar or ns.Style.CostBar(view)
+	bar:SetBarRange(0, UnitPowerMax("player", ShownPower(view, "player")))
+	bar:SetValue(cost)
+	if not bar:IsShown() then bar:Show() end
+end
+
+function Unit.Spark(view, spellID)
+	if not (view.s.manaSpark and view.s.power) or BarPower(view) ~= ManaType() then return end
+	local cost = CostOf(Costs(spellID), ManaType())
+	if IsSecret(cost) or type(cost) ~= "number" or cost <= 0 then return end
+	local spark = view.manaSpark or ns.Style.Spark(view)
+	spark.group:Stop()
+	spark:Show()
+	spark.group:Play()
 end
 
 function Unit.Name(view, unit)

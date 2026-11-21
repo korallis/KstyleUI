@@ -28,8 +28,8 @@ function W.TextRows(schema, key, opts)
 	add({ type = "color", key = "color", label = L["Custom text colour"],
 		help = L["The text colour when its colour mode is custom."], showWhen = opts.custom })
 	add({ type = "text", key = "textFormat", label = L["Text format"], maxLetters = 160,
-		help = opts.placement and L["Blank hides this slot. Tags: [name], [hp:pct], [pp:abr], [level], [absorb], [target], [group]."]
-			or L["Blank uses the preset. Tags: [name], [hp], [hp:pct], [hp:abr], [pp], [level], [absorb]."] })
+		help = opts.placement and L["Blank hides it. Tags: [name] [hp:pct] [pp:abr] [level] [absorb] [target] [group] [c:ff8800]x[/c]."]
+			or L["Blank uses the preset. Tags: [name] [hp] [hp:pct] [hp:abr] [pp] [level] [absorb] [c:ff8800]x[/c]."] })
 	if opts.placement then
 		placementPoints = placementPoints or {
 			{ value = "CENTER", label = L["Centre"] },
@@ -40,6 +40,9 @@ function W.TextRows(schema, key, opts)
 		add({ type = "dropdown", key = "position", label = L["Place"], help = L["Where this text sits on the frame."], options = placementPoints })
 		add({ type = "slider", key = "x", label = L["Horizontal offset"], help = L["Moves this text left or right."], min = -200, max = 200, step = 1 })
 		add({ type = "slider", key = "y", label = L["Vertical offset"], help = L["Moves this text up or down."], min = -200, max = 200, step = 1 })
+	end
+	if opts.width then
+		add({ type = "slider", key = "width", label = L["Text width"], help = L["How much of the frame's width this text may use, in percent."], min = 20, max = 100, step = 5 })
 	end
 end
 
@@ -63,7 +66,9 @@ function W.PlaceText(text, cfg, parent, anchor, width)
 		text:SetTextColor(ns.Tokens.Color("textEmphasis"))
 		text:ClearAllPoints()
 		text:SetPoint(position, anchor, position, W.Snap(anchor, Offset(cfg.x)), W.Snap(anchor, Offset(cfg.y)))
-		text:SetWidth(W.Snap(anchor, width or anchor:GetWidth()))
+		width = width or anchor:GetWidth()
+		if type(cfg.width) == "number" and cfg.width >= 20 and cfg.width < 100 then width = width * cfg.width / 100 end
+		text:SetWidth(W.Snap(anchor, width))
 		text:SetJustifyH(position:find("LEFT") and "LEFT" or position:find("RIGHT") and "RIGHT" or "CENTER")
 	end
 	if text then text:SetShown(on) end
@@ -113,8 +118,8 @@ function W.ParseText(format)
 	local pos = 1
 	for first, tag, last in format:gmatch("()%[([^%]]+)%]()") do
 		if first > pos then plan[#plan + 1] = format:sub(pos, first - 1) end
-		local spec = TAGS[tag]
-		plan[#plan + 1] = spec or format:sub(first, last - 1)
+		local spec, hex = TAGS[tag], tag:match("^c:(%x%x%x%x%x%x)$")
+		plan[#plan + 1] = spec or hex and "|cff" .. hex or tag == "/c" and "|r" or format:sub(first, last - 1)
 		if spec then plan.events[spec[2]] = true end
 		pos = last
 	end

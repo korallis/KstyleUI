@@ -23,6 +23,7 @@ local NUDGE = 50
 local BOSS_GAP_MAX = 20
 local MARKER_MAX, CAST_WIDTH_MIN, CAST_WIDTH_MAX = 48, 2 * CAST_HEIGHT_MAX, 400
 local PRECISE_MAX, SPELL_LIST_LETTERS = 90, 240
+local HEALTH_HEIGHT_MAX, ABSORB_BAR_MAX, OFFSET_MAX = 40, 10, 100
 
 Settings.MODULE = MODULE
 Settings.THEME_FONT = THEME_FONT
@@ -78,14 +79,14 @@ end
 local BAR_TEXTURE = Tokens.MediaList("statusbar")[1].path
 
 local function TextStyle(size)
-	return { font = THEME_FONT, size = size, outline = "INHERIT" }
+	return { font = THEME_FONT, size = size, outline = "INHERIT", x = 0, y = 0 }
 end
 
 local COMPACT_TEXT = { 12, 12, 9, 10 }
 
 local function ExtraText()
 	return { font = "", size = 12, outline = "OUTLINE", colorMode = "", color = Color("textEmphasis"),
-		textFormat = "", position = "CENTER", x = 0, y = 0 }
+		textFormat = "", position = "CENTER", x = 0, y = 0, width = 100 }
 end
 
 local function Kind(full, overrides, castHeight, castFont, aura, text)
@@ -118,6 +119,10 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		absorbAlpha = 0.35,
 		healAbsorbAlpha = 0.7,
 		levelDifficulty = false,
+		healthHeight = 0, incomingTexture = "", absorbTexture = "", healAbsorbTexture = "",
+		absorbPlacement = "", healAbsorbPlacement = "", absorbGlow = false, absorbBar = "", absorbBarHeight = 3,
+		maxHealthLoss = false, maxHealthAlpha = 0.5,
+		powerAbove = false, powerTextAlign = "", powerTextColor = "", powerTextCustom = Color("textEmphasis"),
 		power = full,
 		powerHeight = full and 7 or 3,
 		powerTexture = BAR_TEXTURE,
@@ -184,7 +189,7 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		fonts = {
 			name = TextStyle(text[1]),
 			health = TextStyle(text[2]),
-			power = { font = THEME_FONT, size = full and 12 or text[3], outline = "OUTLINE" },
+			power = { font = THEME_FONT, size = full and 12 or text[3], outline = "OUTLINE", x = 0, y = 0 },
 			level = TextStyle(text[4]),
 			cast = TextStyle(castFont or 10),
 			aura = { font = THEME_FONT, size = 8, outline = "OUTLINE" },
@@ -220,6 +225,7 @@ Settings.defaults = {
 	player = Kind(true, {
 		medallionsAuras = true, medallionsAuraFilter = "buffs",
 		castbarSmooth = false, castbarChannelOverride = false, castbarChannelColor = Color("rare"), castbarTotal = false,
+		powerCost = false, powerCostColor = Color("white"), manaSpark = false, powerMana = false,
 		powerText = "auto",
 		style = "column", combat = true, resting = true, castbarIcon = true, castbarCaps = true, castbarColor = "gold", castbarInside = true,
 		healthColor = "hud",
@@ -244,6 +250,8 @@ Settings.defaults = {
 		manaCustom = Color("rare"),
 		manaTexture = BAR_TEXTURE,
 		manaOrientation = "RIGHT",
+		manaText = "none",
+		manaTextAlign = "",
 		spacing = 3,
 	},
 }
@@ -309,6 +317,10 @@ Settings.CHOICES = {
 	auraCopy = Options({ { "", L["Own settings"] }, { "player", L["Player"] }, { "target", L["Target"] }, { "focus", L["Focus"] }, { "pet", L["Pet"] }, { "boss", L["Boss"] } }),
 	auraSimple = Options({ { "", L["Off"] }, { "LEFT", L["Left of the frame"] }, { "RIGHT", L["Right of the frame"] } }),
 	happinessPosition = Options({ { "", L["Standard"] }, { "TOPLEFT", L["Above the left end"] }, { "TOPRIGHT", L["Above the right end"] }, { "LEFT", L["Left of the frame"] }, { "RIGHT", L["Right of the frame"] } }),
+	placement = Options({ { "", L["Current style"] }, { "END", L["From the bar's end"] }, { "START", L["From the bar's start"] } }),
+	absorbBar = Options({ { "", L["None"] }, { "TOP", L["Top"] }, { "BOTTOM", L["Bottom"] } }),
+	align = Options({ { "", L["Current style"] }, { "LEFT", L["Left"] }, { "CENTER", L["Centre"] }, { "RIGHT", L["Right"] } }),
+	powerTextColor = Options({ { "", L["Current style"] }, { "power", L["Power type"] }, { "custom", L["Custom colour"] } }),
 }
 local CHOICES = Settings.CHOICES
 
@@ -336,6 +348,8 @@ local CHOICE_OF = {
 	auraCopy = "auraCopy",
 	auraSimple = "auraSimple",
 	happinessPosition = "happinessPosition",
+	absorbPlacement = "placement", healAbsorbPlacement = "placement", absorbBar = "absorbBar",
+	powerTextAlign = "align", powerTextColor = "powerTextColor",
 }
 
 local function Allowed(list, value)
@@ -356,6 +370,14 @@ local function FontOptions()
 	return out
 end
 Settings.FontOptions = FontOptions
+
+local function TextureOptions()
+	local out = { { value = "", label = L["Same as the health bar"] } }
+	for _, option in ipairs(K.Widgets.MediaOptions("statusbar")) do
+		out[#out + 1] = option
+	end
+	return out
+end
 
 local function Log(message)
 	K.DevTest.Log(MODULE, message)
@@ -412,6 +434,9 @@ local RANGES = {
 	auraBuffZoom = { -1, ZOOM_MAX },
 	markerSize = { 0, MARKER_MAX },
 	castbarWidth = { 0, CAST_WIDTH_MAX },
+	healthHeight = { 0, HEALTH_HEIGHT_MAX },
+	absorbBarHeight = { 1, ABSORB_BAR_MAX },
+	maxHealthAlpha = { ALPHA_MIN, 1 },
 }
 for _, key in ipairs({ "auraX", "auraY", "auraTimerX", "auraTimerY", "auraCountX", "auraCountY",
 	"castbarIconX", "castbarIconY", "castbarTextX", "castbarTextY", "castbarTimerX", "castbarTimerY" }) do
@@ -519,7 +544,7 @@ end
 K.Callbacks.Register("SettingChanged", MODULE .. ":link", function(_, module, key) if module == MODULE and (key:find("aura[CS]") or not key:find(".", 1, true)) and Saved() then Link() end end)
 K.Callbacks.Register("ProfileChanged", MODULE .. ":link", function() if Saved() then Link() end end)
 
-local RESOURCE_CHOICES = { comboColor = "accent", manaColor = "manaColor", manaOrientation = "orientation" }
+local RESOURCE_CHOICES = { comboColor = "accent", manaColor = "manaColor", manaOrientation = "orientation", manaText = "text", manaTextAlign = "align" }
 
 function Settings.Resource(key)
 	local d = Settings.defaults.resource
@@ -645,7 +670,9 @@ function Settings.Snapshot(kind)
 		local style = type(own.fonts) == "table" and type(own.fonts[element]) == "table" and own.fonts[element] or d.fonts[element]
 		fonts[element] = { size = Settings.FontSize(kind, element) / K.Theme.FontScale(),
 			colorMode = style.colorMode or "", color = style.color or d.fonts[element].color,
-			textFormat = type(style.textFormat) == "string" and style.textFormat or "" }
+			textFormat = type(style.textFormat) == "string" and style.textFormat or "",
+			x = IsNumber(style.x) and math.max(-OFFSET_MAX, math.min(OFFSET_MAX, style.x)) or 0,
+			y = IsNumber(style.y) and math.max(-OFFSET_MAX, math.min(OFFSET_MAX, style.y)) or 0 }
 	end
 	fonts.cast = { size = Settings.FontSize(kind, "cast") / K.Theme.FontScale() }
 	local form = Settings.Form(kind)
@@ -747,6 +774,11 @@ local function TextRows(schema, kind, element)
 			end or nil)
 		end,
 	})
+	if element == "cast" or element == "aura" then return end
+	for _, axis in ipairs({ { "x", L["Horizontal offset"], L["Moves this text left or right."] }, { "y", L["Vertical offset"], L["Moves this text up or down."] } }) do
+		schema[#schema + 1] = Row(kind, { type = "slider", key = prefix .. "." .. axis[1], label = TEXT_LABELS[element] .. ": " .. axis[2],
+			help = axis[3], min = -OFFSET_MAX, max = OFFSET_MAX, step = 1 })
+	end
 end
 
 local ICON_ROWS = {
@@ -1072,6 +1104,10 @@ ResourceRows = function(schema)
 		type = "dropdown", key = "resource.manaOrientation", label = L["Fill direction"], showWhen = shows(on),
 		help = L["Which way the druid mana bar fills."], options = CHOICES.orientation,
 	}
+	schema[#schema + 1] = { type = "dropdown", key = "resource.manaText", label = L["Druid bar text"], showWhen = shows(on),
+		help = L["Writes the druid bar's value on it."], options = CHOICES.text }
+	schema[#schema + 1] = { type = "dropdown", key = "resource.manaTextAlign", label = L["Text position"], options = CHOICES.align,
+		help = L["Where the text sits on the bar: left, centre or right."], showWhen = shows(function(r) return on(r) and r.manaText ~= "none" end) }
 	for i = first, #schema do
 		schema[i].scope = Scope("player")
 	end
@@ -1155,6 +1191,11 @@ local function KindRows(schema, kind)
 		help = L["How solid the health fill is. Lower lets the track show through."], min = ALPHA_MIN, max = 1, step = ALPHA_STEP })
 	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "healthGradient", label = L["Fill gradient"],
 		help = L["Shades the health fill from darker to its colour."], options = CHOICES.gradient }, function(s) return s.healthColor ~= "health" end)
+	schema[#schema + 1] = Row(kind, { type = "slider", key = "healthHeight", label = L["Health bar height"], min = 0, max = HEALTH_HEIGHT_MAX, step = 1,
+		help = L["The health bar's height in units. 0 keeps the style's own."] }, function()
+			local form = Settings.Form(kind)
+			return form ~= "plate" and form ~= "slab"
+		end)
 	if kind == "target" then
 		schema[#schema + 1] = Row(kind, {
 			type = "toggle", key = "transitions", label = L["Gentle target changes"],
@@ -1181,6 +1222,26 @@ local function KindRows(schema, kind)
 		schema[#schema + 1] = Row(kind, { type = "slider", key = spec[1], label = spec[2], help = spec[3], min = ALPHA_MIN, max = 1, step = ALPHA_STEP },
 			function(s) return s.healPrediction ~= false and spec[4](s) end)
 	end
+	local function shields(s) return s.healPrediction ~= false and s.absorbs ~= false end
+	local function eaten(s) return s.healPrediction ~= false and s.healAbsorbs == true end
+	for _, spec in ipairs({
+		{ "dropdown", "incomingTexture", L["Incoming heal texture"], function(s) return s.healPrediction ~= false end },
+		{ "dropdown", "absorbPlacement", L["Absorb placement"], shields, L["After the health fill, or from the bar's end or start, so a shield on full health shows."], CHOICES.placement },
+		{ "dropdown", "absorbTexture", L["Absorb texture"], shields },
+		{ "toggle", "absorbGlow", L["Overshield glow"], nil, L["Lights the bar's end while shields are larger than the missing health."] },
+		{ "dropdown", "absorbBar", L["Absorb bar"], nil, L["A thin bar along the health bar's top or bottom that fills with the unit's shields."], CHOICES.absorbBar },
+		{ "slider", "absorbBarHeight", L["Absorb bar height"], function(s) return s.absorbBar ~= "" end, L["The absorb bar's height in units."] },
+		{ "dropdown", "healAbsorbPlacement", L["Heal absorb placement"], eaten, L["Back from the health fill's end, or from the bar's end or start."], CHOICES.placement },
+		{ "dropdown", "healAbsorbTexture", L["Heal absorb texture"], eaten },
+		{ "toggle", "maxHealthLoss", L["Lost maximum health"], nil, L["Shortens the health fill by the maximum health lost to effects and marks the lost part."] },
+		{ "slider", "maxHealthAlpha", L["Lost maximum health opacity"], function(s) return s.maxHealthLoss == true end, L["How solid the lost maximum health mark looks."] },
+	}) do
+		local row = { type = spec[1], key = spec[2], label = spec[3], help = spec[5] or L["The texture this part is drawn with; Same as the health bar follows it."], options = spec[6] }
+		if spec[2]:find("Texture$") then row.options = TextureOptions end
+		if spec[2] == "absorbBarHeight" then row.min, row.max, row.step = 1, ABSORB_BAR_MAX, 1 end
+		if spec[2] == "maxHealthAlpha" then row.min, row.max, row.step = ALPHA_MIN, 1, ALPHA_STEP end
+		schema[#schema + 1] = Row(kind, row, spec[4])
+	end
 	schema[#schema + 1] = Header(kind, L["power bar"])
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "power", label = L["Power bar"],
@@ -1195,6 +1256,21 @@ local function KindRows(schema, kind)
 		help = L["How solid the power fill is. Lower lets the track show through."], min = ALPHA_MIN, max = 1, step = ALPHA_STEP }, function(s) return s.power ~= false end)
 	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "powerGradient", label = L["Fill gradient"],
 		help = L["Shades the power fill from darker to its colour."], options = CHOICES.gradient }, function(s) return s.power ~= false end)
+	local function powerOn(s) return s.power ~= false end
+	for _, spec in ipairs({
+		{ "toggle", "powerAbove", L["Above the health bar"], function(s) return powerOn(s) and Settings.Form(kind) ~= "slab" end, L["Puts the power bar above the health bar, keeping the gap between them."] },
+		{ "dropdown", "powerTextAlign", L["Text position"], powerOn, L["Where the text sits on the bar: left, centre or right."], CHOICES.align },
+		{ "dropdown", "powerTextColor", L["Text colour"], powerOn, L["Keep the current style, or colour the power text by its power type or a custom colour."], CHOICES.powerTextColor },
+		{ "color", "powerTextCustom", L["Custom text colour"], function(s) return powerOn(s) and s.powerTextColor == "custom" end, L["The text colour when its colour mode is custom."] },
+		kind == "player" and { "toggle", "powerCost", L["Spell cost"], powerOn, L["While you cast, marks the power the spell will cost at the end of the fill."] } or false,
+		kind == "player" and { "color", "powerCostColor", L["Spell cost colour"], function(s) return powerOn(s) and s.powerCost == true end, L["The colour of the spell cost mark."] } or false,
+		kind == "player" and { "toggle", "manaSpark", L["Five-second rule"], powerOn, L["After you spend mana, a spark crosses the bar for the five seconds before regeneration resumes."] } or false,
+		kind == "player" and { "toggle", "powerMana", L["Mana in forms"], function(s) return powerOn(s) and K.Theme.Class() == "DRUID" end, L["Druids: shows mana in bear and cat form; the class resource bar shows the form's power."] } or false,
+	}) do
+		if spec then
+			schema[#schema + 1] = Row(kind, { type = spec[1], key = spec[2], label = spec[3], help = spec[5], options = spec[6] }, spec[4])
+		end
+	end
 	schema[#schema + 1] = Header(kind, L["text"])
 	for _, element in ipairs(Settings.TEXTS) do
 		TextRows(schema, kind, element)
@@ -1202,7 +1278,7 @@ local function KindRows(schema, kind)
 	for i = 1, 2 do
 		local key = "extra" .. i
 		schema[#schema + 1] = Header(kind, L["Extra text"] .. " " .. i)
-		K.Widgets.TextRows(schema, key, { outlines = CHOICES.outline, tags = true, placement = true,
+		K.Widgets.TextRows(schema, key, { outlines = CHOICES.outline, tags = true, placement = true, width = true,
 			row = function(row) return Row(kind, row) end })
 	end
 	IconRows(schema, kind)

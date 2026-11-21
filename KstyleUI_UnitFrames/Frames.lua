@@ -20,6 +20,9 @@ local SMALL_LIMITS = { minWidth = 60, minHeight = 14, maxWidth = 400, maxHeight 
 local BOSS_LIMITS = { minWidth = 120, minHeight = 100, maxWidth = 640, maxHeight = 800 }
 
 local POLLED = { targettarget = true, focustarget = true }
+local LOSS_EVENT = "UNIT_MAX_HEALTH_MODIFIERS_CHANGED"
+local CAST_OWNER = MODULE .. ":cost"
+local CAST_EVENTS = { "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_STOP", "UNIT_SPELLCAST_FAILED", "UNIT_SPELLCAST_INTERRUPTED", "UNIT_SPELLCAST_SUCCEEDED" }
 
 local UNIT_EVENTS = {
 	UNIT_HEALTH = "Health",
@@ -781,12 +784,52 @@ local function TargetChange(view)
 	if exists then ns.Slab.FlipIn(view) end
 end
 
+local castsHeard = false
+local function OnCast(event, _, _, spellID)
+	local uf = frames.player
+	if not (running and uf and uf.active) then return end
+	local view = uf.views[1]
+	Unit.Cost(view, event == "UNIT_SPELLCAST_START" and spellID or nil)
+	if event == "UNIT_SPELLCAST_SUCCEEDED" then Unit.Spark(view, spellID) end
+end
+
+local function HearCasts()
+	local uf = frames.player
+	local on = running and uf and uf.active and uf.s and (uf.s.powerCost or uf.s.manaSpark) and true or false
+	if on == castsHeard then return end
+	castsHeard = on
+	for _, event in ipairs(CAST_EVENTS) do
+		if on then
+			K.Events.RegisterUnit(CAST_OWNER, event, OnCast, "player")
+		else
+			K.Events.Unregister(CAST_OWNER, event)
+		end
+	end
+end
+
+local function HearLoss(view)
+	local on = view.s.maxHealthLoss and view.handler and not POLLED[view.uf.kind] and Active(view) and true or false
+	if on ~= (view.hearsLoss == true) then
+		view.hearsLoss = on
+		if on then
+			K.Events.RegisterUnit(Owner(view.unit), LOSS_EVENT, view.handler, view.unit)
+		else
+			K.Events.Unregister(Owner(view.unit), LOSS_EVENT)
+		end
+	end
+end
+
 function Frames.Restyle(uf)
 	uf.s = Settings.Snapshot(uf.kind)
 	if uf.kind == "pet" and uf.s.castbar and not uf.views[1].castbar then ns.CastBars.Attach(uf.views[1]) end
 	for _, view in ipairs(uf.views) do
 		view.s = uf.s
 		Style.Restyle(view, uf.kind)
+		if view.hearsLoss or uf.s.maxHealthLoss then HearLoss(view) end
+	end
+	if uf.kind == "player" then
+		HearCasts()
+		if not uf.s.powerCost then Unit.Cost(uf.views[1]) end
 	end
 	local applied = Frames.Relayout(uf) and (uf.s.auraSimple or "") ~= ""
 	for _, view in ipairs(uf.views) do
@@ -804,7 +847,7 @@ local function RegisterUnitEvents(view)
 	local handler = view.handler
 	if not handler then
 		handler = function(event)
-			local name = UNIT_EVENTS[event]
+			local name = event == LOSS_EVENT and "MaxHealth" or UNIT_EVENTS[event]
 			if name and Active(view) then
 				HANDLERS[name](view, view.unit)
 				Unit.TextTags(view, view.unit, name)
@@ -842,6 +885,7 @@ function Frames.Apply(uf)
 			button:Hide()
 			TargetLoss(view)
 			K.Events.UnregisterAll(Owner(view.unit))
+			view.hearsLoss = false
 		end
 	end
 	if want then
@@ -851,6 +895,7 @@ function Frames.Apply(uf)
 		StartPolling(uf)
 	elseif not want then
 		StopPolling(uf)
+		if uf.kind == "player" then HearCasts() end
 		for _, view in ipairs(uf.views) do
 			ns.Auras.Apply(view)
 		end
@@ -886,6 +931,7 @@ local function OnSettingChanged(_, module, key)
 		if kind == "target" then
 			Frames.MarkTargets()
 		end
+		if rest == "powerMana" then ns.Resource.Restyle() end
 		if rest == "style" or rest:find("^castbar") or rest:find("^fonts%.cast") then
 			ns.CastBars.Apply()
 			ns.Blizzard.Apply(running)
