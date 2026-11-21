@@ -72,11 +72,6 @@ assert(not visible(player.icons.combat), "and hides after it")
 env._resting = true
 env.FireEvent("PLAYER_UPDATE_RESTING")
 assert(visible(player.icons.resting) and player.icons.resting:GetText() == "Zz", "resting shows Zz")
--- Baine, 2026-11-21: in the icon's square "Zz" is wider than its box, so the game cut it to two dots.
-env._textWidth = function(text, _, size) return #text * size * 0.6 end
-local _, zzSize = player.icons.resting:GetFont()
-assert(not player.icons.resting:IsTruncated() and zzSize == player.icons.combat:GetHeight(), "the Zz is whole, as tall as the combat icon: " .. player.icons.resting:GetWidth() .. " wide, size " .. zzSize)
-env._textWidth = nil
 env._resting = false
 env.FireEvent("PLAYER_UPDATE_RESTING")
 assert(not visible(player.icons.resting), "not resting: no Zz")
@@ -158,5 +153,28 @@ K.Options.Write("UnitFrames", "player.iconSize", 20)
 local _, h = player.icons.leader:GetSize()
 assert(math.abs(h - 20) < 1, "the icon size follows its setting")
 noErrors("settings")
+
+-- Baine, 2026-11-21: in the icon's square "Zz" is wider than its box, so the game cut it to two dots.
+-- The Zz fits its text in the kit's glyphs at each test screen; the PvP countdown keeps the square's edge.
+local scene = dofile("Tools/render/scene.lua")
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local e, k, n = U.New({ width = screen[1], height = screen[2], size = "auto", setup = function(e)
+		e.IsPVPTimerRunning = function() return true end
+		e.GetPVPTimer = function() return 61000 end
+	end })
+	local p, at = n.Frames.Get("player").views[1], screen[1] .. "x" .. screen[2] .. ": "
+	local z, side = p.icons.resting, p.spots.resting.size
+	e._textWidth = function(text, path, size) return scene.TextWidth(text, size, path) end
+	e._units.player.pvp, e._units.player.faction = true, "Horde"
+	k.Options.Write("UnitFrames", "player.pvpTimer", true)
+	e.FireEvent("PLAYER_FLAGS_CHANGED", "player")
+	local x = scene.Rect(e, p.pvpTimer)
+	e._resting = true
+	e.FireEvent("PLAYER_UPDATE_RESTING")
+	local _, zzSize = z:GetFont()
+	assert(z:IsShown() and not z:IsTruncated() and zzSize == p.icons.combat:GetHeight(), at .. "the Zz is whole, as tall as the combat icon: " .. z:GetWidth() .. " wide, size " .. zzSize)
+	z:SetSize(side, side)
+	assert(scene.Rect(e, p.pvpTimer) == x, at .. "the PvP countdown sits at the Zz square's edge: " .. x .. " against " .. scene.Rect(e, p.pvpTimer))
+end
 
 print("unitframes indicators ok")
