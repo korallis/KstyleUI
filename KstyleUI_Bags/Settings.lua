@@ -176,6 +176,7 @@ local SORT_OPTIONS = {
 	{ value = "LEFT", label = L["Left to right"] },
 	{ value = "RIGHT", label = L["Right to left"] },
 }
+Settings.VIEWS = { { value = "all", label = L["All items"] }, { value = "grid", label = L["One grid"] }, { value = "bags", label = L["Bag by bag"] } }
 
 local function Choices(list)
 	local set = {}
@@ -195,7 +196,7 @@ local CHOICES = {
 	accentSource = Choices(ACCENT_OPTIONS),
 	sortDirection = Choices(SORT_OPTIONS),
 	goldCoins = { gold = true, silver = true, copper = true },
-	openTo = { all = true, grid = true, bags = true },
+	openTo = Choices(Settings.VIEWS),
 }
 for _, key in pairs(Settings.AUTO) do
 	CHOICES[key] = { both = true, open = true, none = true }
@@ -249,7 +250,7 @@ function Settings.Schema()
 		local size = info and type(info.GetCurrencyListSize) == "function" and type(info.GetCurrencyListInfo) == "function" and ns.Data.Plain(info.GetCurrencyListSize(), "number") or 0
 		for i = 1, size do
 			local entry = info.GetCurrencyListInfo(i)
-			local id = type(entry) == "table" and not ns.Data.IsSecret(entry) and not entry.isHeader and ns.Data.Plain(entry.currencyID, "number")
+			local id = type(entry) == "table" and not ns.Data.IsSecret(entry) and not ns.Data.IsSecret(entry.isHeader) and not entry.isHeader and ns.Data.Plain(entry.currencyID, "number")
 			if id and id > 0 and not seen[id] then
 				seen[id] = true
 				list[#list + 1] = { value = id, label = ns.Data.Plain(entry.name, "string") or tostring(id) }
@@ -328,9 +329,7 @@ function Settings.Schema()
 		{ type = "toggle", key = "compactGroups", label = L["Small sections side by side"], help = L["Place small sections two to a row."], disableWhen = isOff, showWhen = sectionsOn },
 		{ type = "toggle", key = "categorizeReagents", label = L["Reagent bag in sections"], help = L["File the reagent bag's items under their sections. Off gives the reagent bag a section of its own."], disableWhen = isOff, showWhen = sectionsOn },
 		{ type = "header", label = L["Category list"] },
-		{ type = "dropdown", key = "openTo", label = L["Opens to"], help = L["What the bag window shows each time it opens."], options = {
-			{ value = "all", label = L["All items"] }, { value = "grid", label = L["One grid"] }, { value = "bags", label = L["Bag by bag"] },
-		}, disableWhen = isOff },
+		{ type = "dropdown", key = "openTo", label = L["Opens to"], help = L["What the bag window shows each time it opens."], options = Settings.VIEWS, disableWhen = isOff },
 		{ type = "toggle", key = "sidebar", label = L["Category list"], help = L["List the window's sections down its side. Click one to show only it."], disableWhen = isOff },
 		{ type = "toggle", key = "sidebarEmpty", label = L["Empty categories"], help = L["Also list categories that hold no items."], disableWhen = isOff, showWhen = sidebarOn },
 		{ type = "toggle", key = "sidebarAdd", label = L["Add category entry"], help = L["End the list with an entry that opens these settings at your custom categories."], disableWhen = isOff, showWhen = sidebarOn },

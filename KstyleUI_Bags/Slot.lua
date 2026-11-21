@@ -528,7 +528,7 @@ function Slot.New(parent, id, opts)
 	button:HookScript("OnMouseUp", OnMouseUp)
 	if opts.pin then
 		button:HookScript("OnClick", function(_, mouse)
-			if mouse == "LeftButton" and type(IsAltKeyDown) == "function" and IsAltKeyDown() then
+			if mouse == "LeftButton" and type(IsAltKeyDown) == "function" and ns.Data.Plain(IsAltKeyDown(), "boolean") then
 				opts.pin(slot)
 			end
 		end)

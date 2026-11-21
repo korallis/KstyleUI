@@ -61,7 +61,7 @@ local function y(s)
 end
 
 local function entry(win, label)
-	for _, e in ipairs(win.list.entries) do
+	for _, e in ipairs(win.list.scroll.rows) do
 		if e:IsShown() and e.item.label == label then return e end
 	end
 end
@@ -79,10 +79,10 @@ do
 		assert(S.Get(key) == value, key .. " keeps its default")
 	end
 	assert(K.Store.Module("Bags").columns == 7, "the old columns survive")
-	assert(not win.list and #win.sections[4].order == 0 and win.view == "all", "no list, no Pinned section, all items")
+	assert(not win.list and not win.pinSection and win.view == "all", "no list, no Pinned section, all items")
 	assert(win.sections[1].order[1] == slot(ns, 0, 1) and y(slot(ns, 0, 1)) == 0, "the grid keeps bag order")
 	altClick(env, slot(ns, 0, 3))
-	assert(K.Store.Account().bagPins == nil and #win.sections[4].order == 0, "Alt-click pins nothing while pins are off")
+	assert(K.Store.Account().bagPins == nil and not win.pinSection, "Alt-click pins nothing while pins are off")
 	clean(env, K)
 end
 
@@ -180,7 +180,7 @@ end
 -- Pinned items: Alt-click pins, Pinned sits first, Only in Pinned, grids, dimming, per character and combat.
 do
 	local env, K, ns, win = new({ enabled = true, compactBags = true, pins = true }, { bags = { [0] = { size = 6, items = { Item("sword"), Item("potion"), Item("cloth") } } } })
-	local pins, groups = win.sections[4], win.sections[1].groups
+	local pins, groups = win.pinSection, win.sections[1].groups
 	altClick(env, slot(ns, 0, 2))
 	local copy = pins.order[1]
 	assert(#pins.order == 1 and copy.pinned and shown(copy.button) and copy.icon:GetTexture() == 134829, "Alt-click pins the potion into Pinned")
@@ -266,7 +266,8 @@ do
 	K.Options.Open = function(page) opened[#opened + 1] = page return true end
 	local list, groups, panel = win.list, win.sections[1].groups, win.panel
 	assert(shown(list.frame) and entry(win, K.L["All items"]).item.selected and entry(win, K.L["Consumables"]).item.count == 1, "the list shows the views and each section with its count")
-	local last = list.entries[#list.entries]
+	local rows = list.scroll.rows
+	local last = rows[#list.scroll:GetData()]
 	assert(list.frame:GetLeft() >= panel:GetLeft() and list.frame:GetRight() < win.search:GetLeft() and last:GetBottom() > panel:GetBottom(), "the list sits in the window's left column, clear of the content")
 	assert(not entry(win, K.L["Quest"]), "empty categories stay off the list")
 	click(env, entry(win, K.L["Consumables"]))
@@ -287,12 +288,12 @@ do
 	write(env, K, "sidebarEmpty", true)
 	assert(entry(win, K.L["Quest"]) and entry(win, K.L["Quest"]).item.count == 0, "Empty categories lists them")
 	click(env, entry(win, K.L["Add category"]))
-	assert(opened[1] == "Bags", "the add entry opens the bag settings")
+	assert(opened[1].page == "Bags" and opened[1].key == "custom1.name", "the add entry opens the custom categories")
 	write(env, K, "sidebarAdd", false)
 	assert(not entry(win, K.L["Add category"]), "and can be removed")
 	local wide, panelWide = list.frame:GetWidth(), panel:GetWidth()
 	click(env, list.fold)
-	assert(list.frame:GetWidth() < wide and not shown(list.entries[1].label) and shown(list.entries[1].mark), "folding leaves the marks")
+	assert(list.frame:GetWidth() < wide and not shown(rows[1].label) and shown(rows[1].mark), "folding leaves the marks")
 	assert(W.Near(panelWide - panel:GetWidth(), wide - list.frame:GetWidth()), "and narrows the window by as much")
 	write(env, K, "sidebarHide", true)
 	assert(not shown(list.frame) and shown(list.expand), "a hidden folded list leaves the arrow by the title")
@@ -300,7 +301,7 @@ do
 	local close = panel.closeButton
 	assert(list.expand:GetRight() <= close:GetLeft(), "the arrow keeps clear of the close button")
 	click(env, list.expand)
-	assert(shown(list.frame) and not shown(list.expand) and shown(list.entries[1].label), "the arrow unfolds the list")
+	assert(shown(list.frame) and not shown(list.expand) and shown(rows[1].label), "the arrow unfolds the list")
 	write(env, K, "sidebar", false)
 	assert(not shown(list.frame) and not shown(list.expand), "off removes the list")
 	assert(W.Near(win.search:GetLeft() - panel:GetLeft(), K.Widgets.WindowInset(panel)), "and the content returns to the edge")

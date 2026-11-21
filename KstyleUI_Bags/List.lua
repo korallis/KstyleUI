@@ -4,12 +4,13 @@ local _, ns = ...
 local K = KstyleUI
 local Widgets, Tokens = K.Widgets, K.Tokens
 local Data, Settings, L = ns.Data, ns.Settings, ns.L
+local max, min = math.max, math.min
 
 local List = {}
 ns.List = List
 
-local WIDTH, FOLDED, GAP, COUNT_ROOM = 150, 34, 6, 30
-local VIEWS = { { "all", L["All items"] }, { "grid", L["One grid"] }, { "bags", L["Bag by bag"] } }
+local WIDTH, FOLDED, GAP, COUNT_ROOM, ROW = 150, 34, 6, 30, 26
+List.WIDTH, List.ROW = WIDTH, ROW
 
 function List.ByRank(a, b)
 	if a.rank ~= b.rank then
@@ -19,13 +20,13 @@ function List.ByRank(a, b)
 end
 
 local function Items(win)
-	local items, only = {}, win.only
+	local items, only, used = {}, win.only, {}
 	local function add(kind, value, label, count, selected)
 		items[#items + 1] = { kind = kind, value = value, label = label, count = count, selected = selected }
 	end
 	if win.spec.views then
-		for _, view in ipairs(VIEWS) do
-			add("view", view[1], view[2], nil, not only and (win.view or "all") == view[1])
+		for _, view in ipairs(Settings.VIEWS) do
+			add("view", view.value, view.label, nil, not only and (win.view or "all") == view.value)
 		end
 	end
 	if win.spec.listTabs and Settings.Get("sidebarTabs") then
@@ -37,6 +38,7 @@ local function Items(win)
 	local groups, categories = {}, false
 	for _, group in pairs(win.listed or {}) do
 		groups[#groups + 1] = group
+		used[group.category or group.key] = true
 	end
 	table.sort(groups, List.ByRank)
 	for _, section in ipairs(win.placed) do
@@ -51,7 +53,7 @@ local function Items(win)
 	end
 	if categories and Settings.Get("sidebarEmpty") then
 		for _, category in ipairs(Data.Categories()) do
-			if not (win.listed or {})[category.key] then
+			if not used[category.key] then
 				add("only", category.key, category.label, 0, only == category.key)
 			end
 		end
@@ -64,7 +66,7 @@ end
 
 function List.Pick(win, item)
 	if item.kind == "add" then
-		K.Options.Open("Bags")
+		K.Options.Open({ page = "Bags", module = Settings.MODULE, key = Settings.CUSTOM[1] .. ".name" })
 		return
 	elseif item.kind == "view" then
 		win.view, win.only = item.value, nil
@@ -91,38 +93,99 @@ local function Chevron(parent, onClick)
 	return button
 end
 
-local function Entry(win, i)
-	local list = win.list
-	local entry = list.entries[i]
-	if not entry then
-		entry = CreateFrame("Button", nil, list.frame)
-		entry.mark = entry:CreateTexture(nil, "ARTWORK")
-		entry.mark:SetTexture((Tokens.Texture("diamond")))
-		entry.label = Widgets.Text(entry, "body", "text")
-		entry.label:SetJustifyH("LEFT")
-		entry.label:SetWordWrap(false)
-		entry.count = Widgets.Text(entry, "caption", "muted")
-		entry:SetScript("OnClick", function(self)
-			List.Pick(win, self.item)
-		end)
-		Widgets.AttachTooltip(entry, function(tip, self)
-			tip:AddLine(self.item and self.item.label or "")
-		end)
-		list.entries[i] = entry
+local function Paint(row)
+	local item, hover = row.item, row.hoverT or 0
+	if not item then
+		return
 	end
-	return entry
+	row.hover:SetVertexColor(Widgets.Rgba("white", Tokens.Share("rowHover") * hover))
+	if item.selected then
+		row.mark:SetVertexColor(Settings.Accent())
+		Widgets.TextColor(row.label, "textEmphasis")
+	else
+		Widgets.Tint(row.mark, "muted")
+		row.label:SetTextColor(Widgets.MixTokens("text", 1, "textHover", 1, hover))
+	end
 end
 
-function List.Update(win, left, top)
+local function NewRow(scroll)
+	local row = CreateFrame("Button", nil, scroll.view)
+	row.hover = row:CreateTexture(nil, "BACKGROUND")
+	row.hover:SetColorTexture(Tokens.Color("white"))
+	row.hover:SetAllPoints(row)
+	row.mark = row:CreateTexture(nil, "ARTWORK")
+	row.label = Widgets.Text(row, "body", "text")
+	row.label:SetJustifyH("LEFT")
+	row.label:SetWordWrap(false)
+	row.count = Widgets.Text(row, "caption", "muted")
+	row.Paint = Paint
+	row.onClick = function(self)
+		if scroll.win then
+			List.Pick(scroll.win, self.item)
+		end
+	end
+	Widgets.HookPointer(row)
+	Widgets.AttachTooltip(row, function(tip, self)
+		tip:AddLine(self.item and self.item.label or "")
+	end)
+	return row
+end
+
+local function UpdateRow(row, item, _, scroll)
+	local folded, gap = scroll.folded, Tokens.Size("gapSmall")
+	row.item = item
+	row.label:SetShown(not folded)
+	row.count:SetShown(not folded)
+	Widgets.SetText(row.label, item.label)
+	row.count:SetText(item.count and tostring(item.count) or "")
+	row.label:ClearAllPoints()
+	Widgets.Point(row.label, "LEFT", row, "LEFT", Tokens.Size("gapLarge"), 0)
+	Widgets.Point(row.label, "RIGHT", row, "RIGHT", item.count and -COUNT_ROOM or 0, 0)
+	Widgets.Point(row.count, "RIGHT", row, "RIGHT", -gap, 0)
+	row.mark:ClearAllPoints()
+	if folded then
+		row.mark:SetTexture((Tokens.Texture("diamond")))
+		Widgets.Size(row.mark, 8, 8)
+		Widgets.Point(row.mark, "CENTER", row, "CENTER")
+	else
+		row.mark:SetColorTexture(Tokens.Color("white"))
+		Widgets.Size(row.mark, 2, 10)
+		Widgets.Point(row.mark, "RIGHT", row.label, "LEFT", -gap, 0)
+	end
+	row.mark:SetShown(folded or item.selected == true)
+	Paint(row)
+end
+
+function List.New(parent, win)
+	local scroll = Widgets.ScrollList(parent, { rowHeight = ROW, createRow = NewRow, updateRow = UpdateRow, stagger = false })
+	scroll.win = win
+	return scroll
+end
+
+function List.Show(scroll, items, folded)
+	local old = scroll:GetData()
+	local same = scroll.folded == folded and #old == #items
+	for i = 1, same and #items or 0 do
+		local a, b = old[i], items[i]
+		same = same and a.kind == b.kind and a.value == b.value and a.label == b.label and a.count == b.count and a.selected == b.selected
+	end
+	if not same then
+		scroll.folded = folded
+		scroll:SetData(items, true)
+	end
+end
+
+function List.Update(win, left, top, tallest)
 	local list, panel = win.list, win.panel
 	local on = Settings.Get("sidebar") and win.remoteData == nil
 	if not on and not list then
 		return 0, 0
 	end
 	if not list then
-		list = { frame = CreateFrame("Frame", nil, panel), entries = {} }
+		list = { frame = CreateFrame("Frame", nil, panel) }
 		list.fold = Chevron(list.frame, function() Fold(win) end)
 		list.expand = Chevron(panel, function() Fold(win) end)
+		list.scroll = List.New(list.frame, win)
 		win.list = list
 	end
 	local folded = win.folded == true
@@ -138,40 +201,18 @@ function List.Update(win, left, top)
 		return 0, 0
 	end
 	list.fold.glyph:SetRotation(folded and math.pi / 2 or -math.pi / 2)
-	local width = folded and FOLDED or WIDTH
-	local row = Tokens.Size("rowHeight")
-	Widgets.Point(list.fold, "TOPLEFT", list.frame, "TOPLEFT")
-	local items, y = Items(win), row + GAP
-	for i, item in ipairs(items) do
-		local entry = Entry(win, i)
-		entry.item = item
-		entry:Show()
-		entry:ClearAllPoints()
-		Widgets.Point(entry, "TOPLEFT", list.frame, "TOPLEFT", 0, -y)
-		Widgets.Size(entry, width, row)
-		Widgets.Size(entry.mark, 8, 8)
-		Widgets.Point(entry.mark, "LEFT", entry, "LEFT", folded and (width - 8) / 2 or 0, 0)
-		if item.selected then
-			entry.mark:SetVertexColor(Settings.Accent())
-		else
-			Widgets.Tint(entry.mark, "muted")
-		end
-		entry.label:SetShown(not folded)
-		entry.count:SetShown(not folded)
-		Widgets.SetText(entry.label, item.label)
-		Widgets.TextColor(entry.label, item.selected and "textEmphasis" or "text")
-		entry.count:SetText(item.count and tostring(item.count) or "")
-		Widgets.Point(entry.count, "RIGHT", entry, "RIGHT")
-		Widgets.Point(entry.label, "LEFT", entry.mark, "RIGHT", GAP, 0)
-		Widgets.Point(entry.label, "RIGHT", entry, "RIGHT", item.count and -COUNT_ROOM or 0, 0)
-		y = y + row
-	end
-	for i = #items + 1, #list.entries do
-		list.entries[i]:Hide()
+	local width, head, items = folded and FOLDED or WIDTH, Tokens.Size("rowHeight") + GAP, Items(win)
+	local height = #items * ROW
+	if tallest then
+		height = max(ROW, min(height, tallest - head))
 	end
 	local frame = list.frame
 	frame:ClearAllPoints()
 	frame:SetPoint("TOPLEFT", panel, "TOPLEFT", left, -top)
-	Widgets.Size(frame, width, y)
-	return Widgets.Snap(panel, width + Tokens.Size("gapMedium")), Widgets.Snap(panel, y)
+	Widgets.Size(frame, width, head + height)
+	Widgets.Point(list.fold, "TOPLEFT", frame, "TOPLEFT")
+	Widgets.Point(list.scroll, "TOPLEFT", frame, "TOPLEFT", 0, -head)
+	Widgets.Size(list.scroll, width, height)
+	List.Show(list.scroll, items, folded)
+	return Widgets.Snap(panel, width + Tokens.Size("gapMedium")), Widgets.Snap(panel, head + height)
 end

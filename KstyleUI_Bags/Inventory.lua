@@ -17,7 +17,7 @@ local PICKER_WIDTH = 132
 local open, opened = false, false
 local owner
 local heldBags
-local keyringBags, mainBags, reagentBags = {}, {}, {}
+local keyringBags, mainBags, reagentBags, allBags = {}, {}, {}, {}
 
 local function HeldBags()
 	heldBags = heldBags or Data.HeldBags()
@@ -34,11 +34,6 @@ local function HeldBags()
 		end
 	end
 	return mainBags
-end
-
-local function AllBags()
-	heldBags = heldBags or Data.HeldBags()
-	return heldBags
 end
 
 local function ReagentBags()
@@ -122,6 +117,22 @@ local function KeyringBags()
 	return NONE
 end
 
+local function AllBags()
+	heldBags = heldBags or Data.HeldBags()
+	for i, bag in ipairs(heldBags) do
+		allBags[i] = bag
+	end
+	allBags[#heldBags + 1] = KeyringBags()[1]
+	return allBags
+end
+
+local function Direction()
+	local container = C_Container
+	if container and type(container.SetSortBagsRightToLeft) == "function" then
+		container.SetSortBagsRightToLeft((Settings.Get("sortDirection") == "RIGHT") ~= Settings.Get("sortBottom"))
+	end
+end
+
 function Inventory.Sort()
 	if InCombatLockdown() then
 		K.Print(L["Sorting waits until combat ends."])
@@ -132,9 +143,7 @@ function Inventory.Sort()
 			ns.Log("C_Container.SortBags is missing; Sort does nothing")
 			return
 		end
-		if type(container.SetSortBagsRightToLeft) == "function" then
-			container.SetSortBagsRightToLeft(Settings.Get("sortDirection") == "RIGHT")
-		end
+		Direction()
 		container.SortBags()
 	end)
 end
@@ -200,7 +209,6 @@ function Inventory.Build()
 			{ bags = AllBags, caption = L["Pinned"], lazy = true, pins = true },
 		},
 		recent = true,
-		pins = true,
 		views = true,
 		currencies = true,
 		below = BagStrip,
@@ -469,6 +477,8 @@ function Inventory.SettingsChanged(key)
 		window:HoldCorner()
 	elseif key == "openTo" then
 		window.view, window.only = Settings.Get("openTo"), nil
+	elseif key == "sortBottom" then
+		Direction()
 	end
 	if open then
 		window:Refresh(true)

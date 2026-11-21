@@ -59,7 +59,7 @@ local function y(s)
 end
 
 local function rows(list)
-	return list.scroll and list.scroll.rows or list.rows or list.entries
+	return list.scroll and list.scroll.rows or list.rows
 end
 
 local function entry(list, label)
