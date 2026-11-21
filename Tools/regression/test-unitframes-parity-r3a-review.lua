@@ -161,5 +161,18 @@ env.FireEvent("UNIT_PET", "player")
 env.UnitCastingInfo, env.UnitChannelInfo = casting, channel
 assert(#env._errors == errors and K.ErrorCount() == kerrors, "missing cast APIs raise nothing: " .. tostring(env._errors[#env._errors]))
 assert(not cb.active, "and show no cast")
+
+-- The copy and simple redirects cost nothing until a frame uses them, and follow profile switches.
+local plain = Settings.Value
+write("boss.auraCopy", "target")
+assert(Settings.Value ~= plain and Settings.Value("boss", "auraColumns") == Settings.Value("target", "auraColumns"), "copying switches the redirect on")
+assert(K.Store.CreateProfile("Plain") and K.Store.SetProfile("Plain"))
+env.RunTimers()
+assert(Settings.Value == plain, "a profile where no frame copies reads settings plainly")
+assert(K.Store.SetProfile("Default"))
+env.RunTimers()
+assert(Settings.Value ~= plain and Settings.Value("boss", "auraColumns") == Settings.Value("target", "auraColumns"), "switching back copies again")
+write("boss.auraCopy", "")
+assert(Settings.Value == plain, "no copy, no redirect")
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("test-unitframes-parity-r3a-review: ok")
