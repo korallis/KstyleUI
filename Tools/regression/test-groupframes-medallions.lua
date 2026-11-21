@@ -149,9 +149,10 @@ local wr, wg, wb = ns.Unit.ClassColor("WARLOCK")
 assert(near(ring[1], wr) and near(ring[2], wg) and near(ring[3], wb), "the enamel ring is warlock violet")
 
 -- The raid: class-coloured tiles, white names on the fill, no medallion, a steel target ring.
-G.SetRoster(env, "raid", G.Members(10, function(i, m)
+local raid = G.Members(10, function(i, m)
 	m.health, m.maxHealth = 50 + i, 100
-end))
+end)
+G.SetRoster(env, "raid", raid)
 env.RunTimers()
 eq(#env._errors, 0, "the raid raised no error: " .. tostring(env._errors[1]))
 each("raid", function(f)
@@ -202,6 +203,16 @@ eq(Settings.current.raid.buffCount, 0, "the style drops the raid's own heals row
 K.Options.Write("GroupFrames", "raid.buffCount", 2)
 env.RunTimers()
 eq(Settings.current.raid.buffCount, 2, "a heals count the player chose wins")
+
+-- Party names on the bar under Medallions lay out without an error: that layout has no health text spot to widen.
+G.SetRoster(env, "party", party)
+K.Options.Write("GroupFrames", "party.textLayout", "INSIDE")
+env.RunTimers()
+eq(#env._errors, 0, "party names on the bar raise no error: " .. tostring(env._errors[1]))
+each("party", function(f) assert(f.name:IsShown(), f.unit .. ": the name shows on the bar") end)
+K.Options.Write("GroupFrames", "party.textLayout", "ABOVE")
+G.SetRoster(env, "raid", raid)
+env.RunTimers()
 
 -- Back to Frames: every look returns.
 K.Options.Write("HudStyle", "style", "frames")
