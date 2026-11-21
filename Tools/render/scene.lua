@@ -576,32 +576,13 @@ local function textOf(env, region)
 	if region._renderText ~= nil then
 		return region._renderText
 	end
-	-- The stubs log every call, so the scan resumes where the last one stopped instead of rereading the log.
-	local calls = region._calls or {}
-	local scan = region._textScan
-	if not scan or scan.calls ~= calls or scan.n > #calls then
-		scan = { calls = calls, n = 0 }
-		region._textScan = scan
-	end
-	for i = #calls, scan.n + 1, -1 do
-		local method = calls[i].method
-		if method == "SetText" or method == "SetFormattedText" then
-			scan.call = calls[i]
-			break
-		end
-	end
-	scan.n = #calls
-	local call = scan.call
-	if call then
-		call.args.format = call.method == "SetFormattedText" or nil
-		return formatText(env, call.args)
-	end
+	-- The stubs keep the last setter's arguments (_lastText); a fixture may set _state alone.
 	local formatted = region._state.FormattedText
-	if formatted then
-		formatted.format = true
-		return formatText(env, formatted)
+	local stored = region._lastText or formatted or region._state.Text
+	if stored then
+		stored.format = stored == formatted or nil
 	end
-	return formatText(env, region._state.Text) or ""
+	return formatText(env, stored) or ""
 end
 
 -- fontSpec(env, object, log, depth) -> { path, size, flags, color } from a Font object, a font string
@@ -759,12 +740,11 @@ function Solver:solve(object)
 	if object == env.UIParent then
 		return self.screen
 	end
-	if self.natural and object._type == "FontString" and not ((num(env, object._width) or 0) > 0 and (num(env, object._height) or 0) > 0) then
+	local width, height = num(env, object._width), num(env, object._height)
+	if self.natural and object._type == "FontString" and not ((width or 0) > 0 and (height or 0) > 0) then
 		natural(env, object, self.log)
 	end
 	local scale = effectiveScale(object)
-	local width = num(env, object._width)
-	local height = num(env, object._height)
 	if object._atlasSize then
 		width, height = object._atlasSize[1], object._atlasSize[2]
 	end

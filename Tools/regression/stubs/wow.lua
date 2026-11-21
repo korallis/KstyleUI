@@ -982,6 +982,7 @@ for _, method in ipairs({ "SetText", "SetFormattedText" }) do
 			end
 		end
 		self._state[field] = pack(...)
+		self._lastText = self._state[field]
 	end
 end
 -- SetFontObject hands the object's font to the string, over a font SetFont gave it before; SetFont gives it a font of
@@ -1203,7 +1204,8 @@ function Quiet:ClearAllPoints()
 end
 
 for _, method in ipairs({ "SetText", "SetFormattedText" }) do
-	local set = quietSetter(method:sub(4))
+	local field = method:sub(4)
+	local set = quietSetter(field)
 	Quiet[method] = function(self, ...)
 		needFont(self, method)
 		for i = 1, select("#", ...) do
@@ -1212,6 +1214,7 @@ for _, method in ipairs({ "SetText", "SetFormattedText" }) do
 			end
 		end
 		set(self, ...)
+		self._lastText = self._state[field]
 	end
 end
 for _, method in ipairs({ "SetFont", "SetFontObject" }) do
