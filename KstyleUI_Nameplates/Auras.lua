@@ -576,8 +576,8 @@ local function SideReach(plate, sign, bare)
 	end
 	local icon = ns.Cast.FullIcon(plate, sign)
 	if not icon then return reach end
-	reach = math.max(reach, sign < 0 and ns.Cast.BadgeReach(plate) or 0) + GAP
-	return bare and reach or reach + icon
+	reach = math.max(reach, sign < 0 and Settings.Get("cast.shieldBadge") and math.max(11, ns.Cast.Height(plate)) + GAP or 0) + GAP
+	return bare and reach or reach + icon + math.max(0, sign * Settings.Get("cast.iconX"))
 end
 
 Auras.SideReach = SideReach

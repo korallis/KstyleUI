@@ -583,10 +583,6 @@ function Cast.FullIcon(plate, sign)
 	return math.max(Cast.Height(plate), Widgets.Snap(plate, ns.state.height) + Cast.Gap(plate) + Widgets.Snap(plate, Settings.Get("cast.offsetY")) + Widgets.Snap(plate, Cast.Height(plate)))
 end
 
-function Cast.BadgeReach(plate)
-	return Settings.Get("cast.shieldBadge") and math.max(11, Cast.Height(plate)) + GAP or 0
-end
-
 function Cast.Gap(plate)
 	return Widgets.Border(plate.health) + Widgets.Snap(plate, ns.Plate.FRAME_GAP) + Widgets.Border(plate.castBar)
 end

@@ -143,9 +143,10 @@ function Stacking.Extent(plate)
 			right = math.max(right, extra)
 		end
 	end
-	if ns.Cast.FullIcon(plate, -1) then left = math.max(left, ns.Auras.SideReach(plate, -1)) end
-	if ns.Cast.FullIcon(plate, 1) then right = math.max(right, ns.Auras.SideReach(plate, 1)) end
-	local reach = math.max(ns.Auras.Reach(plate))
+	local sign, Snap = Settings.Get("cast.iconRight") and 1 or -1, K.Widgets.Snap
+	local icon = ns.Cast.FullIcon(plate, sign)
+	icon = icon and sign * Snap(plate, sign * ns.Auras.SideReach(plate, sign, true) + Settings.Get("cast.iconX")) + Snap(plate, icon) + (Snap(plate, state.width) - state.width) / 2
+	local reach = math.max(icon or 0, ns.Auras.Reach(plate))
 	left, right = math.max(left, reach), math.max(right, reach)
 	local width = state.width + left + right
 	if Settings.Get("name.show") then

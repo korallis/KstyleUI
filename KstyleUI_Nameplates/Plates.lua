@@ -482,6 +482,7 @@ local function OnWorld()
 	for _, plate in pairs(byUnit) do
 		plate:UpdateLevel()
 		plate:RefreshType()
+		plate:UpdateQuest()
 	end
 end
 
@@ -573,10 +574,12 @@ function Plates.SyncOptions()
 	end
 end
 
-local refreshTypes = ForAll("RefreshType")
-local function QuestChanged(...)
+local function QuestChanged()
 	Plate.QuestChanged()
-	refreshTypes(...)
+	for _, plate in pairs(byUnit) do
+		plate:RefreshType()
+		plate:UpdateQuest()
+	end
 end
 
 local GLOBAL_EVENTS = {

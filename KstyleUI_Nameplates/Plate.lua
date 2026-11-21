@@ -711,6 +711,7 @@ function Plate:ClearUnit()
 	if self.alphaTween then Motion.Stop(self.alphaTween); self.alphaTween = nil end
 	self.alphaGoal, self.hovered, self.outOfRange, self.fillWhich = nil, nil, nil, false
 	if self.executePulse then self.executePulse:Stop(); self.executeShown = nil end
+	if self.questText then self.questText.count, self.questIcon.atlas = nil, nil; self.questText:Hide(); self.questIcon:Hide() end
 	self:SetAlpha(1)
 	Each("Clear", self)
 	self:Hide()
@@ -727,6 +728,7 @@ function Plate:Refresh(immediate)
 	self:UpdateLevel()
 	self:UpdateRaid()
 	self:UpdatePvp()
+	self:UpdateQuest()
 	self:UpdateThreat()
 	self:UpdateHighlight()
 	Each("Refresh", self, immediate)
@@ -829,15 +831,14 @@ function Plate:UpdateType()
 	if sample then
 		self.caster = sample.caster
 		self.quest = sample.quest
-	else
-		local unit = self.unit
-		local caster = Logic.IsCaster((UnitValue(UnitPowerType, unit)), (UnitValue(UnitPowerMax, unit)), ManaType())
-		if caster ~= nil then
-			self.caster = caster
-		end
-		self.quest = IsTrue(QuestUnit(unit))
+		return
 	end
-	self:UpdateQuest()
+	local unit = self.unit
+	local caster = Logic.IsCaster((UnitValue(UnitPowerType, unit)), (UnitValue(UnitPowerMax, unit)), ManaType())
+	if caster ~= nil then
+		self.caster = caster
+	end
+	self.quest = IsTrue(QuestUnit(unit))
 end
 
 function Plate:RefreshType()
@@ -1170,9 +1171,10 @@ local function QuestProgress(unit, typed)
 end
 
 function Plate.QuestRise(plate)
-	if not Settings.Get("markers.questText") then return 0 end
+	local text = plate.questText
+	if not (text and text:IsShown()) then return 0 end
 	local size = Settings.Get("markers.questSize")
-	local tall = Settings.Get("markers.questIcon") and size * math.max(1, Settings.Get("markers.questIconScale")) or size
+	local tall = plate.questIcon:IsShown() and size * math.max(1, Settings.Get("markers.questIconScale")) or size
 	return math.max(0, tall - (plate.whoSize or Settings.Get("name.size")))
 end
 
@@ -1185,16 +1187,16 @@ function Plate:UpdateQuest()
 	elseif on and self.quest and self.unit then
 		count, kind = QuestProgress(self.unit, typed)
 	end
-	if count == false then return end
-	local text = self.questText
+	local text, rise = self.questText, Plate.QuestRise(self)
+	if count == false then count, kind = text and text.count, text and text.kind end
 	if count and not text then
 		text = NewText(self, "LEFT")
 		text:SetTextColor(Tokens.Color("quest"))
 		self.questText, self.questIcon = text, self:CreateTexture(nil, "OVERLAY")
-		self:LayoutQuest()
 		self:SetNameAlpha(self.name:GetAlpha())
 	end
 	if not text then return end
+	text.kind = kind
 	if count ~= text.count then
 		text.count = count
 		if count then text:SetText(count) end
@@ -1206,8 +1208,10 @@ function Plate:UpdateQuest()
 		local api = C_Texture and C_Texture.GetAtlasInfo
 		local known = atlas and type(api) == "function" and api(atlas) ~= nil
 		if known then self.questIcon:SetAtlas(atlas) elseif atlas then LogOnce("quest-atlas", "the client lacks " .. atlas .. "; quest progress shows no icon") end
-		self.questIcon:SetShown(known and true or false)
+		self.questIcon:SetShown(known)
+		self:LayoutQuest()
 	end
+	if Plate.QuestRise(self) ~= rise then self:Reflow() end
 end
 
 function Plate:LayoutQuest()
@@ -1217,7 +1221,7 @@ function Plate:LayoutQuest()
 	local side = size * Settings.Get("markers.questIconScale")
 	Widgets.Size(icon, side, side)
 	local after = self.pvpBadge and self.pvpBadge:IsShown() and self.pvpBadge or self.name
-	local typed = Settings.Get("markers.questIcon")
+	local typed = icon:IsShown()
 	icon:ClearAllPoints()
 	text:ClearAllPoints()
 	Widgets.Point(icon, "BOTTOMLEFT", after, "BOTTOMRIGHT", BADGE_GAP, 0)

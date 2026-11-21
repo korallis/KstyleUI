@@ -733,7 +733,7 @@ function Settings.Schema()
 		{ type = "toggle", key = "markers.questText", label = L["Quest progress"], help = L["Writes your quest progress, such as 3/8, after the names of mobs your quests need."], disableWhen = Off("name.show") },
 		{ type = "slider", key = "markers.questSize", label = L["Text size"], help = L["The size of this text, in interface units."], min = TEXT_MIN, max = TEXT_MAX, step = 1, disableWhen = Either(Off("name.show"), Off("markers.questText")) },
 		{ type = "toggle", key = "markers.questIcon", label = L["Objective type icon"], help = L["Adds a sword for kill objectives, a bag for item objectives and the quest icon for the rest."], disableWhen = Either(Off("name.show"), Off("markers.questText")) },
-		{ type = "slider", key = "markers.questIconScale", label = L["Icon scale"], help = L["Scales the objective icon against the text."], min = 0.5, max = 2, step = 0.05, disableWhen = Either(Off("name.show"), Off("markers.questIcon")) },
+		{ type = "slider", key = "markers.questIconScale", label = L["Icon scale"], help = L["Scales the objective icon against the text."], min = 0.5, max = 2, step = 0.05, disableWhen = Either(Off("name.show"), Either(Off("markers.questText"), Off("markers.questIcon"))) },
 		{ type = "header", label = L["Stacking"] },
 		{
 			type = "dropdown", key = "stacking.footprint", label = L["Plate size for the game"],
