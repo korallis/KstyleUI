@@ -147,7 +147,7 @@ write("strip.hearthRightText", "smart")
 eq(text("hearth"), "ready Stormwind \194\183 15m", "the right click's cooldown while it runs")
 spells[556].isOnGCD = true
 ns.Strip.Tick()
-eq(text("hearth"), "ready Stormwind \194\183 Astral Recall", "a global cooldown reads as ready")
+eq(text("hearth"), "ready Stormwind \194\183 15m", "Forever trusts isOnGCD only inside SPELL_UPDATE_COOLDOWN, so a stale flag never reads ready")
 spells[556] = env.Secret({})
 ns.Strip.Tick()
 eq(text("hearth"), "ready Stormwind \194\183 --", "a secret cooldown reads --, never ready")
