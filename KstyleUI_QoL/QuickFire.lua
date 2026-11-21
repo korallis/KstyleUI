@@ -1,4 +1,4 @@
--- QuickFire.lua: three secure buttons that the Place, Undo and Clear world marker key bindings click, built once Quick fire is on: Place puts the next world marker in Blizzard's star-to-skull order at the pointer through the game's own /wm [@cursor] command, Undo takes away the last one placed and Clear takes them all. A restricted snippet keeps the count, so the keys work in combat; out of combat the count is set from the markers the game says are up before each Place and again as combat ends. Attributes change only out of combat, through the combat queue; off clears the order, so every key does nothing.
+-- QuickFire.lua: three secure buttons that the Place, Undo and Clear world marker key bindings click, built once Quick fire is on: Place puts the next world marker in Blizzard's star-to-skull order at the pointer through the game's own /wm [@cursor] command, Undo takes away the last one it placed and Clear takes them all. Restricted snippets keep the next marker and the list of markers Place put down, so the keys work in combat and Undo touches only its own; out of combat, before each Place and again as combat ends, the next marker becomes the first one the game says is free and markers the game says are gone leave the list, while an unknown answer changes nothing. Attributes change only out of combat, through the combat queue; off clears the order, so every key does nothing.
 local _, ns = ...
 
 local K, L = ns.K, ns.L
@@ -8,21 +8,25 @@ local SNIPPETS = {
 	Place = [[
 		local order = self:GetAttribute("order")
 		if not order then return false end
-		local n = (self:GetAttribute("placed") or 0) % #order + 1
-		self:SetAttribute("placed", n)
+		local n = self:GetAttribute("next") or 1
+		self:SetAttribute("next", n % #order + 1)
+		self:SetAttribute("placed", gsub(self:GetAttribute("placed") or "", n, "") .. n)
 		self:SetAttribute("macrotext", self:GetAttribute("wm") .. " [@cursor] " .. strsub(order, n, n))
 	]],
 	Undo = [[
 		local place = self:GetFrameRef("place")
-		local order, n = place:GetAttribute("order"), place:GetAttribute("placed") or 0
-		if not order or n < 1 then return false end
-		place:SetAttribute("placed", n - 1)
+		local order, placed = place:GetAttribute("order"), place:GetAttribute("placed") or ""
+		if not order or placed == "" then return false end
+		local n = tonumber(strsub(placed, -1))
+		place:SetAttribute("placed", strsub(placed, 1, -2))
+		place:SetAttribute("next", n)
 		self:SetAttribute("macrotext", self:GetAttribute("wm") .. " " .. strsub(order, n, n))
 	]],
 	Clear = [[
 		local place = self:GetFrameRef("place")
 		if not place:GetAttribute("order") then return false end
-		place:SetAttribute("placed", 0)
+		place:SetAttribute("placed", "")
+		place:SetAttribute("next", 1)
 	]],
 }
 
@@ -38,17 +42,18 @@ local function Order()
 	return table.concat(list)
 end
 
-local function Placed(order)
-	for i = 1, #order do
-		if ns.Ask(IsRaidMarkerActive, tonumber(order:sub(i, i))) ~= true then return i - 1 end
-	end
-	return #order
-end
-
 local function Count()
 	local place = buttons and buttons.Place
 	local order = place and ns.Ask(InCombatLockdown) == false and place:GetAttribute("order")
-	if order then place:SetAttribute("placed", Placed(order)) end
+	if not order then return end
+	local placed = place:GetAttribute("placed") or ""
+	for i = #order, 1, -1 do
+		if ns.Ask(IsRaidMarkerActive, tonumber(order:sub(i, i))) == false then
+			place:SetAttribute("next", i)
+			placed = placed:gsub(i, "")
+		end
+	end
+	place:SetAttribute("placed", placed)
 end
 
 local function Build()

@@ -1,4 +1,4 @@
--- Aids.lua: the crosshair at the screen centre, and the ring around the mouse pointer with its centre dot, trail, the cast circle that fills as the player casts and the global cooldown circle that fills over the global cooldown (the cooldown of spell 29515, which has none of its own; see the README), each shown by its rule and redrawn only when a setting or that state changes. The pointer frame's OnUpdate, a reviewed exception to the no-per-frame rule, exists only while the ring, or a cast or global cooldown circle on the pointer, shows: one pointer read a frame, a move only when the pointer moved, and trail moves only until the trail settles.
+-- Aids.lua: the crosshair at the screen centre, and the ring around the mouse pointer with its centre dot, trail, the cast circle that fills as the player casts and the global cooldown circle that fills over the global cooldown (the cooldown of spell 29515, which has none of its own; see the README; a cooldown event about a spell with no start recovery category cannot touch it and is skipped), each shown by its rule and redrawn only when a setting or that state changes. The pointer frame's OnUpdate, a reviewed exception to the no-per-frame rule, exists only while the ring, or a cast or global cooldown circle on the pointer, shows: one pointer read a frame, a move only when the pointer moved, and trail moves only until the trail settles.
 local _, ns = ...
 
 local K = ns.K
@@ -199,7 +199,8 @@ local function Paint()
 	end
 end
 
-local function Gcd()
+local function Gcd(_, id, _, _, recovery)
+	if not (ns.IsSecret(id) or ns.IsSecret(recovery)) and id ~= nil and recovery == nil then return end
 	local spell, was = C_Spell, cooling
 	local info = type(spell) == "table" and ns.Ask(spell.GetSpellCooldown, GCD_SPELL)
 	local duration = type(info) == "table" and info.isActive == true and ns.Ask(spell.GetSpellCooldownDuration, GCD_SPELL) or nil

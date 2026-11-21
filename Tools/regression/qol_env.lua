@@ -65,6 +65,7 @@ local function Recorder(env, name, result)
 		return result
 	end
 end
+Q.Recorder = Recorder
 
 function Q.Game(env)
 	env._calls = {}

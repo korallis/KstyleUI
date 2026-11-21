@@ -43,24 +43,22 @@ function ns.RaidToolsWanted()
 	return raid == false and mode == "group" and ns.Ask(IsInGroup) == true
 end
 
-local function Arrange(panel, all, from, to, layout)
+local function Arrange(panel, buttons, from, to, layout)
 	local gap, pad = Tokens.Size("gapSmall"), panel.chrome:Inset("gapMedium")
-	local widest, buttons = 0, {}
-	for i, button in ipairs(all) do
-		button:SetShown(i >= from and i <= to)
-		if i >= from and i <= to then buttons[#buttons + 1] = button end
-	end
-	for _, button in ipairs(buttons) do
+	local widest, size = 0, nil
+	for i = from, to do
+		local button = buttons[i]
 		if not button.SetIcon then
 			button.opts.width = nil
 			button:Restyle()
-			widest = math.max(widest, button:GetWidth())
+			widest, size = math.max(widest, button:GetWidth()), size or button:GetHeight()
 		end
 	end
-	local size = buttons[1]:GetHeight()
 	local x, y, w, h = 0, 0, 0, 0
-	for _, button in ipairs(buttons) do
+	for i = from, to do
+		local button = buttons[i]
 		if button.SetIcon then button.opts.size = size elseif layout == "column" then button.opts.width = widest end
+		button:SetParent(panel.content)
 		button:Restyle()
 		button:ClearAllPoints()
 		Widgets.Point(button, "TOPLEFT", panel.content, "TOPLEFT", x, -y)
@@ -74,12 +72,12 @@ end
 function ns.ArrangeRaidTools(owner, layout)
 	local show = ns.Get("raidToolsShow")
 	local span = SHOW[show]
+	for i, button in ipairs(owner.buttons) do button:SetShown(show == "two" or i >= span[1] and i <= span[2]) end
 	Arrange(owner.panel, owner.buttons, span[1], span[2], layout)
-	if show == "two" and not owner.panel2 then
-		owner.panel2 = Widgets.Panel(owner.panel:GetParent(), {})
-		owner.buttons2 = ns.RaidToolButtons(owner.panel2.content)
+	if show == "two" then
+		owner.panel2 = owner.panel2 or Widgets.Panel(owner.panel:GetParent(), {})
+		Arrange(owner.panel2, owner.buttons, SHOW.markers[1], SHOW.markers[2], layout)
 	end
-	if show == "two" then Arrange(owner.panel2, owner.buttons2, SHOW.markers[1], SHOW.markers[2], layout) end
 end
 
 function ns.RaidToolsExtent(owner, layout)
@@ -132,10 +130,8 @@ local function Paint(event)
 	local state = (marks and 1 or 0) + (lead and 2 or 0) + (poll and 4 or 0)
 	if state ~= holder.state then
 		holder.state = state
-		for _, list in ipairs({ holder.buttons, holder.buttons2 or {} }) do
-			for i, button in ipairs(list) do
-				if i == 2 then button:SetEnabled(poll) elseif i <= #ACTIONS then button:SetEnabled(lead) else button:SetEnabled(marks) end
-			end
+		for i, button in ipairs(holder.buttons) do
+			if i == 2 then button:SetEnabled(poll) elseif i <= #ACTIONS then button:SetEnabled(lead) else button:SetEnabled(marks) end
 		end
 	end
 	holder.panel:SetShown(open)

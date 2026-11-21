@@ -3,28 +3,15 @@ local Q = dofile("Tools/regression/qol_env.lua")
 
 local GCD = 29515
 
-local function record(env, name, result)
-	return function(...)
-		env._calls[name] = env._calls[name] or {}
-		table.insert(env._calls[name], { ... })
-		if type(result) == "function" then return result(...) end
-		return result
-	end
-end
-
 local function stand(env)
 	env._gcd, env._markers = nil, {}
 	env.C_Spell = {
-		GetSpellCooldown = record(env, "GetSpellCooldown", function(id)
+		GetSpellCooldown = Q.Recorder(env, "GetSpellCooldown", function(id)
 			if id == GCD and env._gcd then return { isActive = env._gcd ~= "done", isOnGCD = true, startTime = 1, duration = 1.5 } end
 			return { isActive = false, startTime = 0, duration = 0 }
 		end),
 		GetSpellCooldownDuration = function(id) if id == GCD and env._gcd then return env._gcd == "secret" and env.Secret({}) or { gcd = true } end end,
 	}
-	env.C_PartyInfo = { DoReadyCheck = record(env, "DoReadyCheck"), DoCountdown = record(env, "DoCountdown") }
-	env.InitiateRolePoll = record(env, "InitiateRolePoll")
-	env.SetRaidTarget = record(env, "SetRaidTarget")
-	env.GetRaidTargetIndex = function() return nil end
 	env.UnitIsGroupLeader = function() return env._leader == true end
 	env.UnitIsGroupAssistant = function() return false end
 	env.HasLFGRestrictions = function() return false end
@@ -173,16 +160,15 @@ do
 	Q.Write(env, K, "raidToolsShow", "two")
 	local second = holder.panel2
 	assert(second and second:IsShown() and holder.panel:IsShown(), "two panels")
-	for i, button in ipairs(holder.buttons) do assert(button:IsShown() == (i <= 3), "the first holds the group tools: " .. i) end
-	for i, button in ipairs(holder.buttons2) do assert(button:IsShown() == (i > 3), "the second holds the markers: " .. i) end
-	assert(holder.buttons2[4]:IsEnabled() and holder.buttons2[12]:IsEnabled(), "its markers work")
+	for i, button in ipairs(holder.buttons) do assert(button:IsShown() and (button:GetParent() == second.content) == (i > 3), "the second holds the markers: " .. i) end
+	assert(holder.buttons[4]:IsEnabled() and holder.buttons[12]:IsEnabled(), "its markers work")
 	local point, anchor, relative = second:GetPoint(1)
 	assert(point == "TOPLEFT" and anchor == holder.panel and relative == "BOTTOMLEFT", "a row: the markers under the group tools")
 	Q.Write(env, K, "raidToolsLayout", "column")
 	point, anchor, relative = second:GetPoint(1)
 	assert(point == "TOPLEFT" and anchor == holder.panel and relative == "TOPRIGHT", "a column: the markers beside the group tools")
 	env.SetCombat(true)
-	assert(not holder.buttons2[4]:IsEnabled(), "dim in combat")
+	assert(not holder.buttons[4]:IsEnabled(), "dim in combat")
 	env.SetCombat(false)
 	holder:GetScript("OnClick")(holder, "LeftButton")
 	assert(not holder.panel:IsShown() and not second:IsShown(), "the button closes both")
@@ -207,7 +193,7 @@ do
 	end
 	Q.Write(env, K, "raidToolsShow", "all")
 	assert(not second:IsShown(), "back to one panel, the second hides")
-	for _, button in ipairs(holder.buttons) do assert(button:IsShown(), "every tool shows again") end
+	for _, button in ipairs(holder.buttons) do assert(button:IsShown() and button:GetParent() == holder.panel.content, "every tool shows again in the first panel") end
 	clean(env, K)
 end
 
@@ -231,13 +217,13 @@ do
 	assert(fire(env, place) and place:GetAttribute("macrotext") == "/wm [@cursor] 7", "in combat the count goes on")
 	assert(fire(env, undo) and undo:GetAttribute("macrotext") == "/cwm 7", "Undo takes the last one away")
 	assert(fire(env, undo) and undo:GetAttribute("macrotext") == "/cwm 1", "and the one before")
-	assert(fire(env, clear) and place:GetAttribute("placed") == 0, "Clear resets the count")
+	assert(fire(env, clear) and place:GetAttribute("placed") == "" and place:GetAttribute("next") == 1, "Clear empties the list and starts again at the star")
 	assert(not fire(env, undo), "nothing left to undo")
 	for _ = 1, 9 do fire(env, place) end
 	assert(place:GetAttribute("macrotext") == "/wm [@cursor] 8", "past the skull it starts again at the star")
 	env._markers = {}
 	env.SetCombat(false)
-	assert(place:GetAttribute("placed") == 0, "combat's end reads the markers that are up")
+	assert(place:GetAttribute("placed") == "" and place:GetAttribute("next") == 1, "combat's end reads the markers that are up")
 	local file = assert(io.open("KstyleUI_QoL/Bindings.xml", "rb"))
 	local xml = file:read("*a")
 	file:close()
@@ -383,7 +369,7 @@ do
 	assert(to == preview and gx == cx and gy == cy, "concentric with the cast circle")
 	local raid = preview.raid
 	assert(raid.panel2 and raid.panel2:IsShown(), "two panels in the preview")
-	for _, button in ipairs(raid.buttons2) do assert(not button:IsMouseEnabled(), "a preview marker cannot be clicked") end
+	for _, button in ipairs(raid.buttons) do assert(not button:IsMouseEnabled(), "a preview tool cannot be clicked") end
 	local before = raid:GetHeight()
 	Q.Write(env, K, "raidToolsShow", "markers")
 	preview:Refresh()

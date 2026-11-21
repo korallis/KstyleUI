@@ -9,4 +9,10 @@ return {
 			["AlertFrame:RegisterEvent"] = 1,
 		},
 	},
+	["KstyleUI_QoL/RaidTools.lua"] = {
+		why = "Two panels moves the raid tools' own buttons, plain KstyleUI frames built by RaidToolButtons, between the content frames of its own two panels. No Blizzard frame is reparented.",
+		calls = {
+			["buttons[?]:SetParent"] = 1,
+		},
+	},
 }

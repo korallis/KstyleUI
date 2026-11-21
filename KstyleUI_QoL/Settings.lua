@@ -281,7 +281,7 @@ function ns.Schema()
 		{ type = "toggle", key = "cursorDot", label = L["Centre dot"], help = L["A small dot at the centre of the ring."], disableWhen = ringOff },
 		{ type = "toggle", key = "cursorTrail", label = L["Cursor trail"], help = L["Dots that follow the ring as the pointer moves."], disableWhen = ringOff },
 		{ type = "toggle", key = "castRing", label = L["Cast circle"], help = L["A ring that fills as you cast, in the ring's colour."], disableWhen = isOff },
-		{ type = "toggle", key = "castSpark", label = L["Cast spark"], help = L["A bright edge on the filling cast circle."], disableWhen = castOff },
+		{ type = "toggle", key = "castSpark", label = L["Cast spark"], help = L["A bright edge on the filling cast and global cooldown circles."], disableWhen = circlesOff },
 		{ type = "toggle", key = "gcdRing", label = L["Global cooldown circle"], help = L["A ring that fills over the global cooldown, between the cursor ring and the cast circle."], disableWhen = isOff },
 		{ type = "toggle", key = "castAttach", label = L["Cast circle on the pointer"], help = L["Off puts the cast and global cooldown circles at the screen centre."], disableWhen = circlesOff },
 		{ type = "dropdown", key = "cursorTexture", label = L["Ring style"], help = L["The look of the cursor ring and its circles."], options = {
@@ -337,7 +337,7 @@ function ns.Schema()
 		{ type = "toggle", key = "ahCurrent", label = L["Current expansion at the auction house"], help = L["Tick the auction house's Current Expansion Only filter when it opens, if the game offers it."], disableWhen = isOff },
 		{ type = "toggle", key = "guildCover", label = L["Guild chat privacy cover"], help = L["Cover guild chat in the guild and communities window until you click it."], disableWhen = isOff },
 		{ type = "header", label = L["Raid tools"] },
-		{ type = "dropdown", key = "raidTools", label = L["Show raid tools"], help = L["Ready check, role check, pull timer and markers. In a raid, only for the leader or assistants."], options = {
+		{ type = "dropdown", key = "raidTools", label = L["Show raid tools"], help = L["Ready check, role check, pull timer and markers. Raids: leader and assistants only, unless Always."], options = {
 			{ value = "never", label = L["Never"] }, { value = "raid", label = L["In a raid"] }, { value = "group", label = L["In a party or raid"] }, { value = "always", label = L["Always"] },
 		}, disableWhen = isOff },
 		{ type = "dropdown", key = "raidToolsShow", label = L["Raid tools show"], help = L["Every tool in one panel, the group tools and the markers in two panels, or only one of them."], options = {

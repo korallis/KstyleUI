@@ -131,7 +131,6 @@ function ns.Preview(parent)
 		local raid = self.raid
 		local layout, two = ns.Get("raidToolsLayout"), ns.Get("raidToolsShow") == "two"
 		ns.ArrangeRaidTools(raid, layout)
-		for _, button in ipairs(raid.buttons2 or {}) do button:EnableMouse(false) end
 		local corner = ns.AnchorRaidTools(raid, ns.Get("raidToolsGrow"), raid.star, layout)
 		raid.star:ClearAllPoints()
 		Widgets.Point(raid.star, corner, raid.inner, corner)
