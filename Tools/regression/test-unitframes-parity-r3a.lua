@@ -48,9 +48,9 @@ assert(schema["pet.castbarHideIdle"] and schema["boss.castbarHideIdle"] and not 
 assert(schema["pet.happinessPosition"] and not schema["target.happinessPosition"], "only the pet places a happiness badge")
 assert(schema["boss.auraSimple"] and not schema["target.auraSimple"], "only boss frames have the simple display")
 assert(schema["target.markerSize"] and schema["target.auraBuffZoom"] and schema["boss.auraCopy"], "marker size, buff zoom and copy rows exist")
-for _, option in ipairs(schema["boss.auraCopy"].options) do
-	assert(option.value ~= "boss" and option.value ~= "pet", "a frame copies only other frames that have auras")
-end
+local copies = {}
+for _, option in ipairs(schema["boss.auraCopy"].options) do copies[option.value] = true end
+assert(not copies.boss and copies.pet and schema["pet.auraCopy"], "a frame copies only other frames that have auras, the pet's included")
 assert(near(schema["target.auraBuffZoom"].shown(-1), 0.07), "an unset buff zoom paints the aura zoom it follows")
 
 -- Raid marker size: replaces icon size + 4, the name lane follows, 0 restores it.
