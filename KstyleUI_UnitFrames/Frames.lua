@@ -979,6 +979,9 @@ local function OnSettingChanged(_, module, key)
 		ns.Blizzard.Apply(running)
 	elseif key == "orbCastRoom" then
 		ns.CastBars.Apply()
+	elseif key == "castbarOnFrame" then
+		ForEach(function(each) if each.active then Frames.Restyle(each) end end)
+		ns.CastBars.Apply()
 	elseif key == "castbarRaise" then
 		K.Combat.Queue(ns.CastBars.Apply)
 	elseif key == "unitTooltip" then
@@ -1036,8 +1039,13 @@ local function OnLayoutChanged(_, key, reason)
 		ns.Resource.Layout()
 	end
 	for kind, castKey in pairs(Settings.CAST_ELEMENTS) do
+		local uf = key == castKey and frames[kind]
 		if key == castKey then
 			ns.CastBars.LayoutElement(kind)
+		end
+		if uf and uf.active and uf.s and uf.s.form == "slab" and uf.s.inlineCast ~= Settings.CastOnFrame(kind) then
+			Frames.Restyle(uf)
+			ns.CastBars.Apply()
 		end
 	end
 	ForEach(function(uf)
@@ -1155,6 +1163,7 @@ function Frames.Enable()
 		Log("built " .. #order .. " unit frames")
 	end
 	RegisterEvents()
+	ns.CastBars.Build()
 	ns.Auras.Enable()
 	ns.Orbs.Enable()
 	ForEach(Frames.Apply)

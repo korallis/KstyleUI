@@ -226,6 +226,7 @@ Settings.defaults = {
 	orbGlass = true,
 	orbLedge = true,
 	orbCastRoom = true,
+	castbarOnFrame = true,
 	edit = "player",
 	player = Kind(true, {
 		medallionsAuras = true, medallionsAuraFilter = "buffs",
@@ -737,6 +738,14 @@ function Settings.Form(kind)
 	return Settings.FORMS[kind]
 end
 
+function Settings.CastOnFrame(kind)
+	local key = Settings.CAST_ELEMENTS[kind]
+	if not (key and K.HudStyle.Current() == "medallions" and Settings.Module().castbarOnFrame ~= false) then return false end
+	local el = K.Layout.Element(key)
+	local s, d = el and el.settings, el and el.default
+	return not (s and d and (s.anchor ~= d.anchor or s.x ~= d.x or s.y ~= d.y or s.attachTo ~= d.attachTo or s.link ~= nil))
+end
+
 function Settings.Snapshot(kind)
 	local fonts = {}
 	local own, d = Kinds(kind)
@@ -749,7 +758,7 @@ function Settings.Snapshot(kind)
 	end
 	fonts.cast = { size = Settings.FontSize(kind, "cast") / K.Theme.FontScale() }
 	local form = Settings.Form(kind)
-	local s = { fonts = fonts, form = form, kind = kind, rowsAbove = Settings.AuraRows(kind), inlineCast = form == "column" and kind ~= "player" }
+	local s = { fonts = fonts, form = form, kind = kind, rowsAbove = Settings.AuraRows(kind), inlineCast = form == "column" and kind ~= "player" or form == "slab" and Settings.CastOnFrame(kind) }
 	local m = Settings.Module()
 	s.healthDecimal = kind == "boss" and m.healthDecimalBoss == true and 2 or m.healthDecimal == true
 	if s.healthDecimal and m.healthDecimalTrim == true then s.healthDecimal = s.healthDecimal == 2 and -2 or -1 end
@@ -1511,6 +1520,9 @@ function Settings.Schema()
 		{ type = "header", label = L["Unit frames"] },
 		{ type = "dropdown", key = "auraLayout", label = L["Aura layout"], help = L["Place auras above their frames or restore the crest fan."],
 			options = Options({ { "rows", L["Rows above frames"] }, { "fan", L["Crest fan"] } }),
+			showWhen = function() return K.HudStyle.Current() == "medallions" end },
+		{ type = "toggle", key = "castbarOnFrame", label = L["Cast bars on unit frames"],
+			help = L["Puts each cast bar on its frame. Off restores both bars above the crest."],
 			showWhen = function() return K.HudStyle.Current() == "medallions" end },
 		{ type = "toggle", key = "castOutcomes", label = L["Readable cast outcomes"],
 			help = L["Keeps failed casts readable and acknowledges channels. Off restores the original cast effects."] },

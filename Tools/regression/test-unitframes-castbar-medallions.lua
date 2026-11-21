@@ -37,6 +37,7 @@ assert(element.icon:GetNumMaskTextures() == 1, "Frames masks the icon")
 assert(bar.innerEdgeToken == "castEdge", "Frames draws the near-black cast edge")
 local framesTexture, framesText = bar.texturePath, element.text:GetFont()
 
+K.Options.Write("UnitFrames", "castbarOnFrame", false)
 K.Options.Write("HudStyle", "style", "medallions")
 assert(K.HudStyle.Current() == "medallions", "the style switched")
 W.Tick(env, 0.1)

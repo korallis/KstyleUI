@@ -50,7 +50,7 @@ for _, level in ipairs({ "full", "calm", "off" }) do
 	local env, K, ns = U.New()
 	K.Options.Write("HudStyle", "style", "medallions")
 	K.Options.Write("Medallions", "motion", level)
-	local cb = ns.CastBars.Get("player")[1]
+	local cb = ns.CastBars.Inline("player")[1]
 	env._units.player.cast = { name = "Fear", texture = 136183, start = 1000, finish = 4000, spellID = 5782 }
 	env.FireEvent("UNIT_SPELLCAST_START", "player")
 	local seconds

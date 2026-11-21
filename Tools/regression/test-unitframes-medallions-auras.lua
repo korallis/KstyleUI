@@ -21,7 +21,7 @@ local view = ns.Frames.Get("target").views[1]
 local g = view.geometry
 local line = 6 * 22 + 5 * 2
 assert(g.aura and math.abs(g.aura.x + line - (g.health.x + g.health.w)) < 1e-6, "the debuff row ends at the bar's medallion end")
-assert(g.aura.y == -38, "the 22-unit row stands 16 units over the slab; restore its -38 y")
+assert(g.cast and g.aura.y == -38 - 24, "the 22-unit row stands 16 units over the 20-unit cast bar on the slab; restore its -62 y")
 
 local c = view.auras.container
 local button = c._groups.debuffs.buttons[1]
