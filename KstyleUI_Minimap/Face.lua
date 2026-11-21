@@ -446,6 +446,7 @@ function Face:SetCoords(text)
 	self.coords:SetShown(text ~= nil and Settings.Get("coords.shown") and (not Settings.Get("coords.hover") or self.revealed))
 	self:SyncPlaques()
 	if placed then self:PlaceInside() end
+	if self.clockAnchor and (self.coords:GetStringWidth() or 0) > self.coordsFit then self:PlaceRound(true) end
 end
 
 function Face:SetDifficulty(text)
@@ -468,10 +469,6 @@ end
 function Face.Moved(name)
 	local point = Settings.Get(name .. ".position")
 	return point ~= "" and point or nil
-end
-
-function Face.ClockInRow()
-	return Settings.Get("clock.shown") == true and not Face.Moved("clock")
 end
 
 function Face:PlaceInside()
@@ -634,8 +631,9 @@ function Face:PlaceRound(round)
 	local rowWidth = width
 	if seated then
 		local coords = Face.Moved("coords") and 0 or self.coords:GetStringWidth() or 0
-		local clock = not Face.ClockInRow() and 0 or (self.clock:GetStringWidth() or 0) + (self.meridiem:GetStringWidth() or 0)
+		local clock = self.coordsAlone and 0 or (self.clock:GetStringWidth() or 0) + (self.meridiem:GetStringWidth() or 0)
 		rowWidth = Snap(card, min(width, max(side * 0.6, coords + clock + 2 * PLAQUE_PAD + 12)))
+		self.coordsFit = (Face.Moved("coords") or rowWidth >= width) and math.huge or max(coords, rowWidth - clock - 2 * PLAQUE_PAD - 12)
 	end
 	row:SetWidth(rowWidth)
 	if seated then
@@ -811,17 +809,15 @@ function Face:Layout()
 		self.plate:ClearAllPoints()
 		Widgets.Point(self.plate, "CENTER", area, "TOP", 0, frame + self.zoneY - Snap(card, PlaqueHeight(self) / 2 + BADGE / 2 + 2))
 	end
+	self.coordsAlone = round and (Settings.Get("clock.shown") ~= true or Face.Moved("clock"))
 	self:PlaceRound(round)
 	local seated = self.clockAnchor ~= nil
+	local dx, dy = Snap(card, Settings.Get("coords.x")), Snap(card, Settings.Get("coords.y"))
 	coords:ClearAllPoints()
-	local alone = round and not Face.ClockInRow()
-	coords:SetJustifyH(alone and "CENTER" or "LEFT")
-	if alone then
-		local row, pad, dx, dy = self.plaques[2], Snap(card, PLAQUE_PAD), Snap(card, Settings.Get("coords.x")), Snap(card, Settings.Get("coords.y"))
-		Widgets.Point(coords, "LEFT", row, "LEFT", pad + dx, dy)
-		Widgets.Point(coords, "RIGHT", row, "RIGHT", dx - pad, dy)
+	if self.coordsAlone then
+		Widgets.Point(coords, "CENTER", self.plaques[2], "CENTER", dx, dy)
 	else
-		Widgets.Point(coords, "LEFT", self.clockAnchor or card, seated and "LEFT" or "BOTTOMLEFT", x + Snap(card, Settings.Get("coords.x")), (seated and 0 or -rowY) + Snap(card, Settings.Get("coords.y")))
+		Widgets.Point(coords, "LEFT", self.clockAnchor or card, seated and "LEFT" or "BOTTOMLEFT", x + dx, (seated and 0 or -rowY) + dy)
 	end
 	local w, h = (self.clockAnchor or card):GetSize()
 	self.clockPixel = pixel
