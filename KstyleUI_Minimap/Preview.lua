@@ -89,7 +89,8 @@ function Preview.Build(...)
 		end
 		drawer.active, frame.column.drawer = true, drawer
 
-		frame.Refresh = Refresh
+		frame.Refresh, frame.Restyle = Refresh, Refresh
+		Widgets.Track(frame)
 		frame:Refresh()
 		return frame
 	end
