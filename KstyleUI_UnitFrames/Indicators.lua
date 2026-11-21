@@ -343,7 +343,7 @@ function Indicators.Tint(icon, file)
 	if (icon.tint or false) == key then return end
 	icon.tint = key
 	icon:SetDesaturated(key ~= false)
-	if key then icon:SetVertexColor(K.Theme.ClassColorForWidget(key)) else icon:SetVertexColor(1, 1, 1) end
+	if key then icon:SetVertexColor(K.Theme.ClassColorForWidget(key)) else icon:SetVertexColor(Tokens.Color("white")) end
 end
 
 function Indicators.Combat(view, unit)
