@@ -36,6 +36,11 @@ local function HeldBags()
 	return mainBags
 end
 
+local function AllBags()
+	heldBags = heldBags or Data.HeldBags()
+	return heldBags
+end
+
 local function ReagentBags()
 	if not Settings.ReagentApart() then
 		return NONE
@@ -192,8 +197,11 @@ function Inventory.Build()
 			{ bags = HeldBags, free = true, categories = true },
 			{ bags = KeyringBags, caption = L["Keyring"] },
 			{ bags = ReagentBags, free = true, caption = L["Reagent bag"], lazy = true },
+			{ bags = AllBags, caption = L["Pinned"], lazy = true, pins = true },
 		},
 		recent = true,
+		pins = true,
+		views = true,
 		currencies = true,
 		below = BagStrip,
 		sort = Inventory.Sort,
@@ -459,6 +467,8 @@ function Inventory.SettingsChanged(key)
 	end
 	if key == "nearestCorner" then
 		window:HoldCorner()
+	elseif key == "openTo" then
+		window.view, window.only = Settings.Get("openTo"), nil
 	end
 	if open then
 		window:Refresh(true)

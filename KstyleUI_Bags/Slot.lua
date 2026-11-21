@@ -526,6 +526,13 @@ function Slot.New(parent, id, opts)
 	button:HookScript("OnLeave", OnLeave)
 	button:HookScript("OnMouseDown", OnMouseDown)
 	button:HookScript("OnMouseUp", OnMouseUp)
+	if opts.pin then
+		button:HookScript("OnClick", function(_, mouse)
+			if mouse == "LeftButton" and type(IsAltKeyDown) == "function" and IsAltKeyDown() then
+				opts.pin(slot)
+			end
+		end)
+	end
 	Slot.Style(slot)
 	return slot
 end

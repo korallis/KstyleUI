@@ -129,11 +129,20 @@ function Bank.IsAtBank()
 	return atBank
 end
 
+local single = {}
+
 local function SelectedBags()
 	if not bankType then
 		return NONE
 	end
-	return TabBags(bankType)
+	local tabs, only = TabBags(bankType), Bank.window and Bank.window.onlyBag
+	for _, bag in ipairs(only and tabs or NONE) do
+		if bag == only then
+			single[1] = bag
+			return single
+		end
+	end
+	return tabs
 end
 
 local function FirstType()
@@ -264,9 +273,9 @@ local function Refreshed(win)
 	UpdateBankBags(win)
 end
 
-local function Closed()
+local function Closed(win)
 	local wasOpen = open
-	open = false
+	open, win.onlyBag = false, nil
 	if wasOpen and atBank then
 		Call("CloseBankFrame")
 	end
@@ -278,6 +287,9 @@ function Bank.SelectType(kind)
 	end
 	bankType = kind
 	local window = Bank.window
+	if window then
+		window.onlyBag = nil
+	end
 	if window and open then
 		window:Refresh(true)
 	end
@@ -297,6 +309,9 @@ function Bank.Build()
 		nest = "bankNestExpansion",
 		canDrop = Bank.IsAtBank,
 		sections = { { bags = SelectedBags, free = true, categories = true } },
+		listTabs = function()
+			return bankType and TabBags(bankType) or NONE
+		end,
 		sort = Bank.Sort,
 		onClosed = Closed,
 		above = Above,

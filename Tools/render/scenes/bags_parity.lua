@@ -1,6 +1,7 @@
 -- bags_parity.lua: the bag window with the parity options on: labels, sections, merged stacks, the reagent marker, the
 -- bag strip and tracked currencies; RENDER_BAGS_LIST=1 shows the list view at a banker, RENDER_BAGS_DEFAULTS=1 no options
--- (with RENDER_BAGS_COMPACT=1, only Compact bags); RENDER_BAGS_OPTIONS=<key> opens the Options page at that row.
+-- (with RENDER_BAGS_COMPACT=1, only Compact bags); RENDER_BAGS_OPTIONS=<key> opens the Options page at that row;
+-- RENDER_BAGS_ROUND2=1 shows the category list, Pinned and a chosen currency with the bank, =grid the steady grid sorted to the bottom.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local B = dofile("Tools/regression/bags_env.lua")
@@ -18,7 +19,13 @@ local LIST = {
 	listLeft = 4, listRight = 4, reagentMark = true, bankNestExpansion = true,
 }
 
+local ROUND2 = {
+	["1"] = { compactBags = true, pins = true, sidebar = true, currencies = true, currency1 = 390, bagSlots = true },
+	grid = { pins = true, pinsDim = true, sortBottom = true, sidebar = true, sidebarEmpty = true, currencies = true },
+}
+
 return Common.Run(function()
+	local round2 = ROUND2[os.getenv("RENDER_BAGS_ROUND2") or ""]
 	local list = os.getenv("RENDER_BAGS_LIST") == "1"
 	local defaults = os.getenv("RENDER_BAGS_DEFAULTS") == "1"
 	local bags = {
@@ -48,6 +55,10 @@ return Common.Run(function()
 			env.GetMoneyString = nil
 			env.INVTYPE_HEAD, env.INVTYPE_WEAPON, env.INVTYPE_FINGER = "Head", "One-Hand", "Finger"
 			env.EXPANSION_NAME0, env.EXPANSION_NAME1 = "Classic", "Burning Crusade"
+			env.C_Container.GetBagName = function(bag) return ({ [0] = "Backpack", [1] = "Traveler's Pack" })[bag] end
+			env.C_CurrencyInfo.GetCurrencyListSize = function() return 1 end
+			env.C_CurrencyInfo.GetCurrencyListInfo = function() return { name = "Arena Points", currencyID = 390, quantity = 80, iconFileID = 133784 } end
+			env.C_CurrencyInfo.GetCurrencyInfo = env.C_CurrencyInfo.GetCurrencyListInfo
 			env.C_AddOns = env.C_AddOns or {}
 			env.C_AddOns.LoadAddOn = function(name)
 				if name == "KstyleUI_Options" and not env._addons.KstyleUI_Options then Load(O.Files(), env) end
@@ -59,18 +70,22 @@ return Common.Run(function()
 		assert(K.Options.Write("Bags", "compactBags", true) ~= false)
 	end
 	if not defaults then
-		for key, value in pairs(list and LIST or TILES) do
+		for key, value in pairs(round2 or list and LIST or TILES) do
 			assert(K.Options.Write("Bags", key, value) ~= false, key .. " must write")
 		end
 	end
 	env._new["0:1"] = true
-	if list or defaults then
+	if round2 then
+		ns.Data.TogglePin(118)
+		ns.Data.TogglePin(1002)
+		env.SetBank(true)
+	elseif list or defaults then
 		env.SetBank(true)
 	else
 		env.ToggleAllBags()
 	end
 	env.RunTimers()
-	assert(ns.Inventory.IsOpen() and ns.Bank.IsOpen() == (list or defaults), "the bags open, with the bank for the list view and defaults")
+	assert(ns.Inventory.IsOpen() and ns.Bank.IsOpen() == (round2 ~= nil or list or defaults), "the bags open, with the bank for round 2, the list view and defaults")
 	local key = os.getenv("RENDER_BAGS_OPTIONS")
 	if key then
 		assert(K.Options.Open("Bags"))
@@ -86,6 +101,6 @@ return Common.Run(function()
 	local scene = Gallery.Build(env)
 	local errors = Common.Errors(env, K)
 	assert(not errors, errors)
-	scene.log[#scene.log + 1] = "bags parity: " .. (defaults and "defaults" or list and "list view" or "tiles")
+	scene.log[#scene.log + 1] = "bags parity: " .. (round2 and ("round 2 " .. os.getenv("RENDER_BAGS_ROUND2")) or defaults and "defaults" or list and "list view" or "tiles")
 	return scene
 end)

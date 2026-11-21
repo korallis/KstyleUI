@@ -94,14 +94,16 @@ function Preview.Build(...)
 			frame.currency = Widgets.Text(frame, "body", "text")
 			frame.currency:SetJustifyH("LEFT")
 			frame.currency:SetWordWrap(false)
-			frame.currency:SetText(CURRENCIES)
 			frame.currency:SetPoint("TOPLEFT", frame.grid, "BOTTOMLEFT", 0, -Tokens.Size("gapMedium"))
 			frame.currency:SetPoint("TOPRIGHT", frame.grid, "BOTTOMRIGHT", 0, -Tokens.Size("gapMedium"))
 			frame.currency:SetHeight(Tokens.Size("rowHeight"))
 		end
 		if frame.currency then
 			frame.currency:SetShown(currencies)
+			local picked = Settings.Get("currency1") + Settings.Get("currency2") + Settings.Get("currency3") > 0
+			frame.currency:SetText(picked and Data.CurrencyText() or CURRENCIES)
 		end
+		local bottom = Settings.Get("sortBottom")
 		for i, slot in ipairs(frame.slots) do
 			local shown = i <= count
 			slot.button:SetShown(shown)
@@ -112,7 +114,7 @@ function Preview.Build(...)
 				Slot.Style(slot)
 				Slot.Layout(slot, cellWidth, true, list and rowHeight or nil)
 				Slot.SetStripe(slot, list and Settings.Get("listStripes") and i % 2 == 0)
-				local sample = SAMPLES[i]
+				local sample = SAMPLES[bottom and (i == 1 and #SAMPLES or i - 1) or i]
 				extra.bind = sample.bind and Settings.Get("bindText") and L["BoE"] or nil
 				extra.set = sample.set and Settings.Get("setNames") and sample.set or nil
 				extra.mark = sample.reagent and Settings.Get("reagentMark") and not Settings.ReagentApart()

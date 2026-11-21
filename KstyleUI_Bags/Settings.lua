@@ -116,7 +116,25 @@ Settings.defaults = {
 	warbandGold = false,
 	warbandGoldAmount = "",
 	warbandGoldChat = false,
+	shrink = true,
+	sortBottom = false,
+	currency1 = 0,
+	currency2 = 0,
+	currency3 = 0,
+	pins = false,
+	pinsOnly = false,
+	pinsInGrid = true,
+	pinsDim = false,
+	pinsPerCharacter = true,
+	openTo = "all",
+	sidebar = false,
+	sidebarEmpty = false,
+	sidebarAdd = true,
+	sidebarHide = false,
+	sidebarTabs = true,
 }
+
+Settings.CURRENCIES = { "currency1", "currency2", "currency3" }
 
 Settings.AUTO = { merchant = "autoMerchant", mail = "autoMail", auction = "autoAuction", trade = "autoTrade", loot = "autoLoot", quest = "autoQuest" }
 
@@ -177,6 +195,7 @@ local CHOICES = {
 	accentSource = Choices(ACCENT_OPTIONS),
 	sortDirection = Choices(SORT_OPTIONS),
 	goldCoins = { gold = true, silver = true, copper = true },
+	openTo = { all = true, grid = true, bags = true },
 }
 for _, key in pairs(Settings.AUTO) do
 	CHOICES[key] = { both = true, open = true, none = true }
@@ -219,7 +238,35 @@ function Settings.Schema()
 	local function markOn(settings) return settings.reagentMark == true end
 	local function goldOn(settings) return settings.goldTooltip == true end
 	local function warbandOn(settings) return settings.warbandGold == true end
+	local function currenciesOn(settings) return settings.currencies == true end
+	local function pinsOn(settings) return settings.pins == true end
+	local function pinsGrid(settings) return settings.pins == true and settings.pinsInGrid == true end
+	local function sidebarOn(settings) return settings.sidebar == true end
 	local AUTO_OPTIONS = { { value = "both", label = L["Open and close bags"] }, { value = "open", label = L["Open bags"] }, { value = "none", label = L["Leave bags alone"] } }
+	local function currencies()
+		local list, seen = { { value = 0, label = L["Tracked on the backpack"] } }, { [0] = true }
+		local info = C_CurrencyInfo
+		local size = info and type(info.GetCurrencyListSize) == "function" and type(info.GetCurrencyListInfo) == "function" and ns.Data.Plain(info.GetCurrencyListSize(), "number") or 0
+		for i = 1, size do
+			local entry = info.GetCurrencyListInfo(i)
+			local id = type(entry) == "table" and not ns.Data.IsSecret(entry) and not entry.isHeader and ns.Data.Plain(entry.currencyID, "number")
+			if id and id > 0 and not seen[id] then
+				seen[id] = true
+				list[#list + 1] = { value = id, label = ns.Data.Plain(entry.name, "string") or tostring(id) }
+			end
+		end
+		for _, key in ipairs(Settings.CURRENCIES) do
+			local id = Settings.Get(key)
+			if not seen[id] then
+				seen[id] = true
+				list[#list + 1] = { value = id, label = ns.Data.CurrencyName(id) or tostring(id) }
+			end
+		end
+		return list
+	end
+	local function currency(key, label)
+		return { type = "dropdown", key = key, label = label, options = currencies, help = L["A currency for the footer, in place of the backpack's. Open its group in the currency tab first."], disableWhen = isOff, showWhen = currenciesOn }
+	end
 	local function auto(key, label)
 		return { type = "dropdown", key = key, label = label, options = AUTO_OPTIONS, disableWhen = isOff, help = L["What your bags do when this window opens and closes. Closing only closes bags it opened."] }
 	end
@@ -263,6 +310,7 @@ function Settings.Schema()
 			options = GROWTH_OPTIONS, disableWhen = isOff,
 		},
 		{ type = "slider", key = "maxHeight", label = L["Maximum height"], help = L["The tallest the bag and bank windows grow, as a percentage of the screen's height."], min = 30, max = 100, step = 5, disableWhen = isOff },
+		{ type = "toggle", key = "shrink", label = L["Shrink while open"], help = L["The window shrinks as soon as it needs less room. Off keeps its size until you close it."], disableWhen = isOff },
 		{ type = "toggle", key = "nearestCorner", label = L["Hold the nearest corner"], help = L["A moved window holds the screen corner nearest it, so it grows and shrinks toward that corner."], disableWhen = isOff },
 		{ type = "toggle", key = "bagSlots", label = L["Bag slots"], help = L["Show your equipped bags in a row under the search box, to swap them."], disableWhen = isOff },
 		{ type = "toggle", key = "listView", label = L["List view"], help = L["Show items as rows with their names instead of tiles."], disableWhen = isOff },
@@ -286,6 +334,21 @@ function Settings.Schema()
 		{ type = "toggle", key = "bankNestExpansion", label = L["Split the bank by expansion"], help = L["Split each bank section by the expansion its items come from, newest first."], disableWhen = isOff, showWhen = sectionsOn },
 		{ type = "toggle", key = "compactGroups", label = L["Small sections side by side"], help = L["Place small sections two to a row."], disableWhen = isOff, showWhen = sectionsOn },
 		{ type = "toggle", key = "categorizeReagents", label = L["Reagent bag in sections"], help = L["File the reagent bag's items under their sections. Off gives the reagent bag a section of its own."], disableWhen = isOff, showWhen = sectionsOn },
+		{ type = "header", label = L["Category list"] },
+		{ type = "dropdown", key = "openTo", label = L["Opens to"], help = L["What the bag window shows each time it opens."], options = {
+			{ value = "all", label = L["All items"] }, { value = "grid", label = L["One grid"] }, { value = "bags", label = L["Bag by bag"] },
+		}, disableWhen = isOff },
+		{ type = "toggle", key = "sidebar", label = L["Category list"], help = L["List the window's sections down its side. Click one to show only it."], disableWhen = isOff },
+		{ type = "toggle", key = "sidebarEmpty", label = L["Empty categories"], help = L["Also list categories that hold no items."], disableWhen = isOff, showWhen = sidebarOn },
+		{ type = "toggle", key = "sidebarAdd", label = L["Add category entry"], help = L["End the list with an entry that opens these settings at your custom categories."], disableWhen = isOff, showWhen = sidebarOn },
+		{ type = "toggle", key = "sidebarHide", label = L["Hide the folded list"], help = L["A folded list hides completely; the arrow beside the window's title unfolds it."], disableWhen = isOff, showWhen = sidebarOn },
+		{ type = "toggle", key = "sidebarTabs", label = L["Bank tabs in the list"], help = L["List each bank tab, to show one tab at a time."], disableWhen = isOff, showWhen = sidebarOn },
+		{ type = "header", label = L["Pinned items"] },
+		{ type = "toggle", key = "pins", label = L["Pinned items"], help = L["Alt-click an item to pin it. Pinned items also show in a Pinned section at the top."], disableWhen = isOff },
+		{ type = "toggle", key = "pinsOnly", label = L["Only in Pinned"], help = L["In sections, pinned items leave their own section and Recent items."], disableWhen = isOff, showWhen = pinsOn },
+		{ type = "toggle", key = "pinsInGrid", label = L["Pinned in grids"], help = L["Show the Pinned section above one grid and bag by bag too."], disableWhen = isOff, showWhen = pinsOn },
+		{ type = "toggle", key = "pinsDim", label = L["Dim pinned in grids"], help = L["Dim pinned items in their bag slots, since they also show in Pinned."], disableWhen = isOff, showWhen = pinsGrid },
+		{ type = "toggle", key = "pinsPerCharacter", label = L["Pins per character"], help = L["Each character keeps its own pins, starting from the shared ones."], disableWhen = isOff, showWhen = pinsOn },
 		{ type = "header", label = L["Custom categories"] },
 		{ type = "header", label = L["Slot text"] },
 		{ type = "toggle", key = "separateFigures", label = L["Separate item figures"], help = L["Put item levels above stack counts. Off keeps item levels at the lower left."] },
@@ -334,6 +397,7 @@ function Settings.Schema()
 			{ value = "gold", label = L["Gold only"] }, { value = "silver", label = L["Gold and silver"] }, { value = "copper", label = L["Gold, silver and copper"] },
 		}, disableWhen = isOff, showWhen = goldOn },
 		{ type = "toggle", key = "currencies", label = L["Tracked currencies"], help = L["Show the currencies you track on the backpack under the footer."], disableWhen = isOff },
+		currency("currency1", L["Currency 1"]), currency("currency2", L["Currency 2"]), currency("currency3", L["Currency 3"]),
 		{ type = "header", label = L["Accent"] },
 		{
 			type = "dropdown", key = "accentSource", label = L["Accent colour"], help = L["The colour of the window's hairlines and the new item glow."],
@@ -365,6 +429,7 @@ function Settings.Schema()
 			type = "dropdown", key = "sortDirection", label = L["Sort direction"], help = L["The way Sort packs items across your bags."],
 			options = SORT_OPTIONS, disableWhen = isOff,
 		},
+		{ type = "toggle", key = "sortBottom", label = L["Sort to bottom"], help = L["Grids show empty slots first, so your items sit at the bottom in their order."], disableWhen = isOff },
 	}
 
 	do
