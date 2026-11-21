@@ -40,7 +40,8 @@ function Engine.Refresh(env)
 			local layout = group.layout
 			local w, h, gap = layout.elementWidth, layout.elementHeight, layout.elementSpacing or 0
 			local dx, dy = unpack(container._growth or { 1, -1 })
-			local columns = math.max(1, math.floor(((container._line or math.huge) + gap) / (w + gap)))
+			local line, columns, run = container._line or math.huge, 1, w
+			while columns < count and run + gap + w <= line do columns, run = columns + 1, run + gap + w end
 			for i, button in ipairs(group.buttons) do
 				button:SetShown(i <= count)
 				if i <= count then

@@ -859,7 +859,10 @@ function Auras.Footprint(kind, frame)
 	local filter = FILTERS[Settings.Value(kind, "auraFilter")] or FILTERS.mine
 	local groups = filter.debuffs and filter.buffs and 2 or 1
 	local rows = Settings.Value(kind, "auraRows") * groups
-	local line = columns * size + (columns - 1) * across
+	local line = size
+	for _ = 2, columns do
+		line = line + across + size
+	end
 	local growth = GROWTH[Settings.Value(kind, "auraGrowth")] or GROWTH.RIGHT_DOWN
 	local timerRoom, gap = TimerRoom(kind), rows > 1 and Settings.Value(kind, "auraRowGap") or 0
 	if frame then
