@@ -190,10 +190,14 @@ return Common.Run(function()
 			return true, "Totem", env._time - slot * 5, 60, totems[slot], 1, slot
 		end
 		env.C_Spell.IsSpellInRange = function() return false end
-		env._units.player.auras = { { id = 9, icon = 136207, left = 12, harmful = true, mine = false, dispel = "Magic" } }
+		env._units.player.auras = { { id = 9, icon = 136207, left = 12, harmful = true, mine = false, dispel = "Curse" } }
+		env.C_DurationUtil = { CreateDuration = function() return { SetTimeSpan = function(d, start, finish) d.start, d.finish = start, finish end } end }
+		env.Enum.StatusBarTimerDirection = env.Enum.StatusBarTimerDirection or { ElapsedTime = 0, RemainingTime = 1 }
+		env._units.target.cast = nil
+		env.FireEvent("UNIT_SPELLCAST_STOP", "target", "Cast-1", 0, 1)
 		K.Options.Get(module)
 		for _, pair in ipairs({ { "player.dispelOverlay", "health" }, { "player.dispelEdge", true }, { "player.dispelIcon", "TOPRIGHT" }, { "player.dispelIconSize", 16 },
-			{ "player.totems", true }, { "player.castbarRangeGrey", true }, { "player.castbarIconSize", 14 }, { "target.castbarHideIdle", false } }) do
+			{ "player.totems", true }, { "player.totemPosition", os.getenv("RENDER_TOTEMS") or "RIGHT" }, { "player.castbarRangeGrey", true }, { "player.castbarIconSize", 14 }, { "target.castbarHideIdle", false } }) do
 			K.Options.Write(module, pair[1], pair[2])
 		end
 		dofile("Tools/regression/aura_fixture_engine.lua").Install(env)

@@ -11,6 +11,8 @@ local env, K, ns = U.New({
 			return e._inRange
 		end
 		e._recasts = 2
+		e.C_DurationUtil = { CreateDuration = function() return { SetTimeSpan = function(d, start, finish) d.start, d.finish = start, finish end } end }
+		e.Enum.StatusBarTimerDirection = e.Enum.StatusBarTimerDirection or { ElapsedTime = 0, RemainingTime = 1 }
 		e.C_TradeSkillUI = { GetRemainingRecasts = function() return e._recasts end }
 		local casting = e.UnitCastingInfo
 		e.UnitCastingInfo = function(token)
@@ -53,7 +55,7 @@ end
 
 -- A v0.2.8-shaped profile keeps today's settings and makes no dispel container or totem row.
 local PLAYER = { castbarRangeGrey = false, dispelOverlay = "", dispelFilter = "PLAYER", dispelAlpha = 0.3, dispelEdge = false, dispelIcon = "", dispelIconSize = 14,
-	totems = false, totemPosition = "ABOVE", totemSize = 24 }
+	totems = false, totemPosition = "RIGHT", totemSize = 24 }
 for key, value in pairs(PLAYER) do
 	assert(Settings.Value("player", key) == value, "player." .. key .. " keeps its default")
 end
@@ -90,6 +92,8 @@ assert(pcb.active and U.Shown(env, pcb.text) ~= "", "a cast fills the idle track
 stop("player")
 for _ = 1, 3 do env.RunTimers() end
 assert(pcb.frame:IsShown() and not pcb.active, "after the cast the track stays")
+local ended = W.LastCall(pcb.bar, "SetTimerDuration")
+assert(ended and ended[1] == pcb.ended and ended[3] == env.Enum.StatusBarTimerDirection.RemainingTime, "the landed cast's full timer is emptied for the idle track")
 write("player.castbarHideIdle", true)
 assert(not pcb.idle and not pcb.frame:IsShown(), "on hides the idle player bar again")
 local tcb = ns.CastBars.Get("target")[1]
@@ -313,7 +317,7 @@ assert(totems.buttons[2]:IsShown() and not totems.buttons[1]:IsShown(), "only a 
 assert(W.LastCall(totems.buttons[2].icon, "SetTexture")[1] == 135824, "the totem's icon")
 assert(W.LastCall(totems.buttons[2].cooldown, "SetCooldownFromDurationObject")[1].totem == 2, "the countdown runs from the totem's duration")
 local anchor = W.LastCall(totems, "SetPoint")
-assert(anchor[1] == "BOTTOMLEFT" and anchor[2] == holder and anchor[3] == "TOPLEFT", "above the player frame by default")
+assert(anchor[1] == "LEFT" and anchor[2] == holder and anchor[3] == "RIGHT", "right of the player frame by default")
 env._totems[2].have = env.Secret(true)
 env.FireEvent("PLAYER_TOTEM_UPDATE", 2)
 assert(totems.buttons[2]:IsShown() and W.LastCall(totems.buttons[2], "SetAlphaFromBoolean"), "a secret slot shows through the engine's alpha")
@@ -332,7 +336,7 @@ env._totems[1] = { have = true, name = "Stoneskin Totem", start = 1, duration = 
 env.FireEvent("PLAYER_TOTEM_UPDATE", 1)
 assert(not totems.buttons[1]:IsShown(), "off stops listening")
 env._totems[1] = nil
-write("player.totemPosition", "ABOVE")
+write("player.totemPosition", "RIGHT")
 write("player.totemSize", 24)
 clean("totems")
 

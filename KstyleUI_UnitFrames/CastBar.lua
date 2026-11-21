@@ -294,6 +294,7 @@ local function Hide(cb, instant)
 	cb.duration = nil
 	if cb.idle then
 		StopFlash(cb)
+		if cb.ended then pcall(cb.bar.SetTimerDuration, cb.bar, cb.ended, Interpolation(), Direction(true)) end
 		cb.bar:SetMinMaxValues(0, 1)
 		cb.bar:SetValue(0)
 		CastBars.SetName(cb, "")

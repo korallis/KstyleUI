@@ -28,7 +28,7 @@ function Totems.Row(parent)
 end
 
 function Totems.Place(row, holder)
-	local side = SIDES[Settings.Value("player", "totemPosition")] or SIDES.ABOVE
+	local side = SIDES[Settings.Value("player", "totemPosition")] or SIDES.RIGHT
 	local size, gap, count = Settings.Value("player", "totemSize"), Widgets.Snap(holder, GAP), #row.buttons
 	size = Widgets.Snap(holder, size)
 	row:ClearAllPoints()

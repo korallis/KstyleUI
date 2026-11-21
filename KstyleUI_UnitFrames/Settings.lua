@@ -292,7 +292,7 @@ for _, kind in ipairs(KINDS) do
 		auraTimed = false, auraHideLockout = false, auraTrackedOnly = false, auraRowGap = 0, auraPrecise = 0, castbarFit = false, castbarIconSize = 0, auraLists = "" })
 end
 Live(Settings.defaults.player, { castbarRank = false, castbarLagText = false, castbarCraft = false, castbarCraftBar = false, castbarRangeGrey = false, dispelOverlay = "", dispelFilter = "PLAYER",
-	dispelAlpha = 0.3, dispelEdge = false, dispelIcon = "", dispelIconSize = 14, totems = false, totemPosition = "ABOVE", totemSize = 24 })
+	dispelAlpha = 0.3, dispelEdge = false, dispelIcon = "", dispelIconSize = 14, totems = false, totemPosition = "RIGHT", totemSize = 24 })
 
 local function Options(list)
 	local out = {}

@@ -1,5 +1,6 @@
 -- aura_fixture_engine.lua: native aura filtering, sorting, binding (a timer formats with its textFormatter), dispel edges (aura.dispel, aura.stealable) and flow layout (a group starts its new line groupLineSpacing below the last, 0 unless set, as the engine's defaults) at the test boundary; fixtures stay outside addon Lua.
 local Engine = {}
+local GAME = { Magic = { 0.2, 0.6, 1 }, Curse = { 0.6, 0, 1 }, Disease = { 0.6, 0.4, 0 }, Poison = { 0, 0.6, 0 }, Bleed = { 0.8, 0.1, 0.1 } }
 
 local function Matches(aura, filter)
 	for part in filter:gmatch("[^| ]+") do
@@ -90,7 +91,8 @@ function Engine.Refresh(env)
 				local c = o.customDispelColorMap and o.customDispelColorMap[aura.dispel]
 				if o.customDispelAssetMap then texture:SetTexture(o.customDispelAssetMap[aura.dispel].asset) end
 				texture:SetShown(true)
-				texture:SetVertexColor(c and c.r or 0.2, c and c.g or 0.6, c and c.b or 1)
+				local game = GAME[aura.dispel] or GAME.Magic
+				texture:SetVertexColor(c and c.r or game[1], c and c.g or game[2], c and c.b or game[3])
 			end
 		end
 	end
