@@ -398,14 +398,21 @@ local function Clear()
 	return { 0, 0, 0, 0 }
 end
 
+local function Face(text)
+	if not (IsTable(text) and type(text.GetFont) == "function") then
+		return
+	end
+	local path = ns.Style.Font("body")
+	local current, size, flags = text:GetFont()
+	if type(path) == "string" and current ~= path and Plain(size) then
+		text:SetFont(path, size, flags)
+	end
+end
+
 function Text(frame)
 	local controls = frame and frame.Controls
 	local container = IsTable(controls) and controls.StepContainer
 	if not (container and type(container.GetChildren) == "function") then
-		return
-	end
-	local path, size, flags = ns.Style.Font("body")
-	if type(path) ~= "string" then
 		return
 	end
 	local children = { container:GetChildren() }
@@ -413,13 +420,7 @@ function Text(frame)
 		local lines = children[i].lines
 		if IsTable(lines) then
 			for j = 1, #lines do
-				local label = lines[j].label
-				if IsTable(label) and type(label.GetText) == "function" then
-					local current, height = label:GetFont()
-					if current ~= path or not Plain(height) or math.abs(height - size) > 0.5 then
-						Widgets.ApplyFont(label, path, size, flags)
-					end
-				end
+				Face(lines[j].label)
 			end
 		end
 	end
@@ -508,17 +509,11 @@ local function Fonts(z)
 	if not state.saved then
 		return
 	end
-	local Style = ns.Style
 	local controls = IsTable(z.Frame) and z.Frame.Controls
-	local num = IsTable(controls) and IsTable(controls.StepNum) and controls.StepNum.Step
-	if IsTable(num) and type(num.SetFont) == "function" then
-		Style.ApplyFont(num, "body")
-	end
+	Face(IsTable(controls) and IsTable(controls.StepNum) and controls.StepNum.Step)
 	local pool = IsTable(z.Tabs) and z.Tabs.Pool
 	for _, tab in pairs(IsTable(pool) and pool or {}) do
-		if IsTable(tab) and IsTable(tab.Text) and type(tab.Text.SetFont) == "function" then
-			Style.ApplyFont(tab.Text, "body")
-		end
+		Face(IsTable(tab) and tab.Text)
 	end
 end
 
@@ -570,15 +565,11 @@ local function ArrowText(arrow)
 	if not (state.saved and IsTable(arrow)) then
 		return
 	end
-	local path = ns.Style.Font("body")
 	local offset = Tokens.Size("textShadowOffset")
 	for _, key in ipairs({ "title", "desc" }) do
 		local text = arrow[key]
 		if IsTable(text) and type(text.GetFont) == "function" then
-			local _, size, flags = text:GetFont()
-			if type(path) == "string" and Plain(size) then
-				Widgets.ApplyFont(text, path, size, flags)
-			end
+			Face(text)
 			text:SetTextColor(Tokens.Color("textEmphasis"))
 			text:SetShadowColor(Tokens.Color("textShadow"))
 			text:SetShadowOffset(offset, -offset)

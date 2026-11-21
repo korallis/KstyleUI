@@ -133,14 +133,14 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
--- The step text is in KstyleUI's face at KstyleUI's size; Zygor's own name colours stay, as RestedXP's do.
+-- The step text is in KstyleUI's face at Zygor's own size, so neither fights the other on Zygor's redraws; name colours stay, as RestedXP's do.
 do
 	local env, K, ns, zygor = Boot({})
 	local label = zygor.label
-	local path, size = ns.Style.Font("body")
+	local path = ns.Style.Font("body")
 	local font, height = label:GetFont()
 	assert(font == path, string.format("the step text takes KstyleUI's face, %s", tostring(font)))
-	assert(math.abs(height - size) <= 0.5, string.format("the step text takes KstyleUI's size, %s instead of %s", tostring(height), tostring(size)))
+	assert(math.abs(height - 16) <= 0.5, string.format("the step text keeps Zygor's size, %s", tostring(height)))
 	-- A repaint sets nothing already set: Zygor applies its skin whenever it resizes.
 	local fonts, texts = zygor.writes.font, zygor.writes.text
 	for _ = 1, 3 do
@@ -149,6 +149,15 @@ do
 	env.RunTimers()
 	assert(zygor.writes.font == fonts, string.format("a repaint sets no font again, %d new", zygor.writes.font - fonts))
 	assert(zygor.writes.text == texts, string.format("a repaint rewrites no text, %d new", zygor.writes.text - texts))
+	-- Zygor re-anchors its tabs on a 0.01 s timer (Tabs.lua:19): a hundred passes write no font.
+	local tab = env.ZygorGuidesViewer.Tabs.Pool[1].Text
+	local tabFont = tab:GetFont()
+	assert(tabFont == path, "a guide tab takes KstyleUI's face")
+	local before = tab._fontWrites
+	for _ = 1, 100 do
+		env.ZygorGuidesViewer.Tabs:ReanchorTabs()
+	end
+	assert(tab._fontWrites == before, string.format("Zygor's tab timer causes no font writes, %d new", tab._fontWrites - before))
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 

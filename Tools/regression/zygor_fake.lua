@@ -77,6 +77,16 @@ function Fake.Install(env, opts)
 		F = {},
 	}
 	env.ZygorGuidesViewer = z
+	-- Zygor's guide tabs, re-anchored every 0.01 s by Tabs.ResizeTimer (Tabs.lua:19); each tab's text is made with Zygor's own font (:518).
+	local tabText = frame:CreateFontString(nil, "OVERLAY")
+	tabText:SetFont("Fonts\\FRIZQT__.TTF", 12)
+	tabText._fontWrites = 0
+	local tabSetFont = tabText.SetFont
+	tabText.SetFont = function(self, ...)
+		self._fontWrites = self._fontWrites + 1
+		return tabSetFont(self, ...)
+	end
+	z.Tabs = { Pool = { { Text = tabText } }, ReanchorTabs = function() end }
 	-- Zygor's waypoint arrow recolours its sprite every frame in ShowTraveling and sets its text font in Pointer:SetFontSize (Arrows/ArrowSkin.lua:43, Pointer.lua:1565).
 	local arrowFrame = env.CreateFrame("Frame", nil, env.UIParent)
 	arrowFrame.arrow = env.CreateFrame("Frame", nil, arrowFrame)
