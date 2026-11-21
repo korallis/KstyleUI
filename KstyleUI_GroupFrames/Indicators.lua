@@ -147,7 +147,8 @@ local function Layout(f, parts, k)
 		f.pipFill:Hide()
 	end
 	PlaceIcon(f, f.leader, icons.leader, icons.badge and Widgets.Snap(f, icons.leader.width) or size)
-	PlaceIcon(f, f.marker, icons.marker, f.pipped and Widgets.Snap(f, icons.marker.width) or size)
+	local markerSize = f.pipped and Widgets.Snap(f, icons.marker.width) or size
+	PlaceIcon(f, f.marker, icons.marker, markerSize)
 	f.assist:ClearAllPoints()
 	f.assist:SetSize(size, size)
 	f.assist:SetPoint("CENTER", f.leader, "CENTER", 0, 0)
@@ -166,7 +167,8 @@ local function Layout(f, parts, k)
 		local rect = { left = left, top = top }
 		PlaceIcon(f, f.ready, rect, Widgets.Snap(f, laneSize))
 		rect.left = left + laneSize + 4
-		PlaceIcon(f, f.marker, rect, Widgets.Snap(f, laneSize))
+		markerSize = Widgets.Snap(f, laneSize)
+		PlaceIcon(f, f.marker, rect, markerSize)
 		if not portrait then
 			rect.left = left + 2 * (laneSize + 4)
 			PlaceIcon(f, f.leader, rect, Widgets.Snap(f, laneSize))
@@ -185,7 +187,7 @@ local function Layout(f, parts, k)
 		for _, icon in pairs(f.statusIcons) do Pin(f, icon, place, own) end
 	end
 	if cfg.markerPlace ~= "AUTO" then
-		Pin(f, f.marker, cfg.markerPlace, f.marker:GetWidth())
+		Pin(f, f.marker, cfg.markerPlace, markerSize)
 	end
 	f.roleRect = icons.role
 	if f.roleLetter then Letter(f) end
@@ -428,8 +430,10 @@ local function Combat(f)
 	end
 	if f.sample then
 		icon:SetAlpha(f.sample.combat and 1 or 0)
+	elseif UnitAffectingCombat then
+		FromBoolean(icon, UnitAffectingCombat(f.unit))
 	else
-		FromBoolean(icon, UnitAffectingCombat and UnitAffectingCombat(f.unit))
+		icon:SetAlpha(0)
 	end
 end
 
