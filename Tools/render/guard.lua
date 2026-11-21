@@ -294,7 +294,7 @@ function Guard.Owner(cards, item, rect, at)
 				if not tree or d > treeDepth then
 					tree, treeDepth = card, d
 				end
-			elseif item.kind == "text" and not onto and not (at and card.at > at) and onGlass(x, y, card.glass) then
+			elseif item.kind == "text" and not onto and card.at < at and onGlass(x, y, card.glass) then
 				onto = card
 			end
 		end
