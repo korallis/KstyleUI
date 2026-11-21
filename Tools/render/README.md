@@ -176,7 +176,7 @@ Every `shoot.sh` run checks what it drew, so a shipped render never clips or spi
 
 A texture is named by where it hangs (`CharacterFrame.ModeTabs.?.Icon 136224.png`: the fields that hold each frame from the nearest named one, `?` where no field names it), a text by its plain words.
 
-`Tools/render/guard_allow.tsv` lists the findings that pass, one per line, tab-separated: the owner (the round's fix scope that owns the defect, `R1` to `R7`, or `design` for a deliberate straddle such as a tab set on a card's edge), a scene glob, the kind, the subject's start (or `=` and the whole subject) and the reason. The PR that fixes a defect deletes its line.
+`Tools/render/guard_allow.tsv` lists the findings that pass, one per line, tab-separated: the owner (the round's fix scope that owns the defect, `R1` to `R7`, `design` for a deliberate straddle such as a tab set on a card's edge, or `stub` for a finding the stubs make and the game does not), a scene glob, the kind, the subject's start (or `=` and the whole subject) and the reason. The PR that fixes a defect deletes its line.
 
 ```bash
 Tools/render/shoot.sh gallery_skins_character --backdrop             # fails (exit 3, after the PNG) on a finding the allowlist does not cover
