@@ -1523,7 +1523,7 @@ local function PaintSample(f, sample)
 		Widgets.SetText(f.sampleChip.text, MARK .. (debuffs - shown))
 	end
 	f.sampleChip:SetShown(more)
-	f.sampleBoss:SetShown(a.enabled and enemy and sample.boss == true and f.parts ~= nil and f.parts.boss ~= nil)
+	f.sampleBoss:SetShown(a.enabled and enemy and a.typeMode ~= "ONLY" and sample.boss == true and f.parts ~= nil and f.parts.boss ~= nil)
 	local hots = Settings.current.buffs.enabled and math.min(sample.hots or 0, f.sampleBuffFit or k.buffCount) or 0
 	for i, icon in ipairs(f.sampleBuffs) do
 		icon:SetShown(i <= hots)

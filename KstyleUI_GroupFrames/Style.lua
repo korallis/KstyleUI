@@ -539,7 +539,7 @@ function Style.Apply(f, width, height)
 		pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(f),
 	})
 	local bar, powerRect = parts.health, parts.power
-	local behind = cfg.power.behind and f.powerShown and powerRect ~= nil
+	local behind = cfg.power.behind and powerRect ~= nil
 	if behind then
 		parts.health = { left = bar.left, top = bar.top, width = bar.width, height = powerRect.top + powerRect.height - bar.top }
 	end
@@ -555,10 +555,11 @@ function Style.Apply(f, width, height)
 		f.power:SetBarTexture(health.texture)
 		PlaceBar(f, f.power, parts.power)
 	end
-	f.behind = behind
-	if behind or f.powerLevel then
+	f.behind = behind and f.showPower
+	if f.behind or f.powerLevel then
 		f.powerLevel = f.powerLevel or f.power:GetFrameLevel()
-		f.power:SetFrameLevel(behind and f.health:GetFrameLevel() + 2 or f.powerLevel)
+		f.power:SetFrameLevel(f.behind and f.health:GetFrameLevel() + 2 or f.powerLevel)
+		if not f.behind then f.powerLevel = nil end
 	end
 	LayoutPortrait(f, parts, k)
 	LayoutTexts(f, k, parts)

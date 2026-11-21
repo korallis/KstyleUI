@@ -590,6 +590,7 @@ local function PartyCount(deferGroups)
 			groups = Unit.GroupSizes(count)
 		end
 		Headers.SetRaidCount(count, groups)
+		return groups
 	end
 end
 
@@ -621,10 +622,10 @@ end
 
 local rosterPending = false
 
-local function FlushRoster()
+function Unit.FlushRoster()
 	rosterPending = false
 	if Unit.running then
-		PartyCount()
+		return PartyCount()
 	end
 end
 
@@ -632,17 +633,16 @@ function Unit.RosterChanged()
 	for _, f in ipairs(frames) do
 		if f.unit and (f.extra1 or f.extra2) then Unit.TextSlots(f, "Group") end
 	end
-	if not Unit.running then
-		return
-	end
 	if not (C_Timer and C_Timer.After) then
-		PartyCount()
+		Unit.FlushRoster()
 		return
 	end
-	PartyCount(true)
+	if Unit.running then
+		PartyCount(true)
+	end
 	if not rosterPending then
 		rosterPending = true
-		C_Timer.After(0, FlushRoster)
+		C_Timer.After(0, Unit.FlushRoster)
 	end
 end
 

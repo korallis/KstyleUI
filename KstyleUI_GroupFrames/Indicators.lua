@@ -96,29 +96,9 @@ Button.built[#Button.built + 1] = Build
 local function Pin(f, icon, place, size)
 	local inset = Widgets.Snap(f, Tokens.Size("gapTiny"))
 	icon:ClearAllPoints()
-	icon:SetSize(size, size)
+	if size then icon:SetSize(size, size) end
 	icon:SetPoint(place, f.health, place, place:find("LEFT") and inset or place:find("RIGHT") and -inset or 0,
 		place:find("TOP") and -inset or place:find("BOTTOM") and inset or 0)
-end
-
-local function Letter(f, role)
-	local letter = f.roleLetter
-	if not letter then
-		letter = Widgets.FontString(f.text, "OVERLAY")
-		letter:SetJustifyH("CENTER")
-		f.roleLetter = letter
-	end
-	local rect = f.roleRect
-	if rect then
-		letter:ClearAllPoints()
-		letter:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, rect.left + rect.width / 2), -Widgets.Snap(f, rect.top + rect.height / 2))
-		Style.SetFont(letter, Settings.current.text.healthFont, math.max(6, rect.height), "OUTLINE")
-	end
-	if role then
-		letter:SetText(Style.ROLE_LETTERS[role] or "")
-		letter:SetTextColor(Tokens.Color(PIP_COLORS[role] or "textEmphasis"))
-	end
-	return letter
 end
 
 local function PlaceIcon(f, icon, rect, size)
@@ -153,20 +133,23 @@ local function Layout(f, parts, k)
 	f.assist:SetSize(size, size)
 	f.assist:SetPoint("CENTER", f.leader, "CENTER", 0, 0)
 	local health = parts.health
-	local ready = Widgets.Snap(f, math.min(health.height, k.iconSize * READY_SHARE))
+	local cfg = Settings.current.icons
+	local own = cfg.readySize > 0 and Widgets.Snap(f, math.min(cfg.readySize, health.height)) or nil
+	local ready, status = own or Widgets.Snap(f, math.min(health.height, k.iconSize * READY_SHARE)), own or 14
 	f.ready:ClearAllPoints()
 	f.ready:SetSize(ready, ready)
 	f.ready:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, health.left + health.width / 2), -Widgets.Snap(f, health.top + health.height / 2))
-	local statusLeft, statusTop = health.left + health.width / 2 - 7, health.top + health.height / 2 - 7
+	local statusLeft, statusTop = health.left + health.width / 2 - status / 2, health.top + health.height / 2 - status / 2
 	if parts.tidyLanes then
 		local laneSize = f.kind == "party" and 14 or 10
 		local portrait = parts.portrait
 		local left = portrait and portrait.left or health.left
 		local top = portrait and portrait.top + portrait.height - laneSize or health.top + health.height - laneSize
-		statusLeft, statusTop = left + (laneSize - 14) / 2, top + (laneSize - 14) / 2
-		local rect = { left = left, top = top }
-		PlaceIcon(f, f.ready, rect, Widgets.Snap(f, laneSize))
-		rect.left = left + laneSize + 4
+		local lane = own or laneSize
+		local rect = { left = left, top = top + laneSize - lane }
+		statusLeft, statusTop = left + (lane - status) / 2, rect.top + (lane - status) / 2
+		PlaceIcon(f, f.ready, rect, Widgets.Snap(f, lane))
+		rect = { left = left + laneSize + 4, top = top }
 		markerSize = Widgets.Snap(f, laneSize)
 		PlaceIcon(f, f.marker, rect, markerSize)
 		if not portrait then
@@ -175,25 +158,30 @@ local function Layout(f, parts, k)
 		end
 	end
 	for _, icon in pairs(f.statusIcons) do
-		Widgets.Size(icon, 14, 14)
+		Widgets.Size(icon, status, status)
 		icon:ClearAllPoints()
 		Widgets.Point(icon, "TOPLEFT", f, "TOPLEFT", statusLeft, -statusTop)
+		if cfg.readyPlace ~= "AUTO" then Pin(f, icon, cfg.readyPlace) end
 	end
-	local cfg = Settings.current.icons
-	if cfg.readyPlace ~= "AUTO" or cfg.readySize > 0 then
-		local place = cfg.readyPlace == "AUTO" and "CENTER" or cfg.readyPlace
-		local own = cfg.readySize > 0 and Widgets.Snap(f, cfg.readySize) or ready
-		Pin(f, f.ready, place, own)
-		for _, icon in pairs(f.statusIcons) do Pin(f, icon, place, own) end
+	if cfg.readyPlace ~= "AUTO" then
+		Pin(f, f.ready, cfg.readyPlace)
 	end
 	if cfg.markerPlace ~= "AUTO" then
 		Pin(f, f.marker, cfg.markerPlace, markerSize)
 	end
-	f.roleRect = icons.role
-	if f.roleLetter then Letter(f) end
+	if cfg.roleText and not f.roleLetter then
+		f.roleLetter = Widgets.FontString(f.text, "OVERLAY")
+		f.roleLetter:SetJustifyH("CENTER")
+	end
+	if f.roleLetter then
+		local rect = icons.role
+		f.roleLetter:ClearAllPoints()
+		f.roleLetter:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, rect.left + rect.width / 2), -Widgets.Snap(f, rect.top + rect.height / 2))
+		Style.SetFont(f.roleLetter, Settings.current.text.healthFont, math.max(6, rect.height), "OUTLINE")
+	end
 	if f.combatIcon or cfg.combat then
 		f.combatIcon = f.combatIcon or f.text:CreateTexture(nil, "OVERLAY")
-		Pin(f, f.combatIcon, cfg.combatPlace, Widgets.Snap(f, cfg.combatSize))
+		Pin(f, f.combatIcon, cfg.combatPlace, Widgets.Snap(f, math.min(cfg.combatSize, health.height)))
 	end
 end
 Style.appliers[#Style.appliers + 1] = Layout
@@ -246,32 +234,33 @@ local function RoleHidden(f)
 end
 
 local function Lettered(f, role)
-	if not Settings.current.icons.roleText or issecretvalue(role) or not PIP_COLORS[role] then
+	local letter = f.roleLetter
+	if not (letter and Settings.current.icons.roleText) or issecretvalue(role) or not PIP_COLORS[role] then
 		return false
 	end
-	ShowPip(f, nil)
 	f.role:Hide()
-	Letter(f, role):Show()
+	letter:SetText(Style.ROLE_LETTERS[role])
+	letter:SetTextColor(Tokens.Color(PIP_COLORS[role]))
+	letter:Show()
 	return true
 end
 
 local function Role(f)
 	ShowPip(f, nil)
 	if f.roleLetter then f.roleLetter:Hide() end
-	if not Settings.current.icons.role or f.roleInRing or RoleHidden(f) then
+	local icons = Settings.current.icons
+	if not icons.role or f.showRoleRing or RoleHidden(f) then
 		f.role:Hide()
 		return
 	end
-	if Lettered(f, UnitGroupRolesAssigned and UnitGroupRolesAssigned(f.unit)) then
+	local role = (f.pipped or icons.roleText) and UnitGroupRolesAssigned and UnitGroupRolesAssigned(f.unit)
+	if Lettered(f, role) or f.roleInRing then
 		return
 	end
-	if f.pipped then
-		local role = UnitGroupRolesAssigned and UnitGroupRolesAssigned(f.unit)
-		if not issecretvalue(role) then
-			f.role:Hide()
-			ShowPip(f, role)
-			return
-		end
+	if f.pipped and not issecretvalue(role) then
+		f.role:Hide()
+		ShowPip(f, role)
+		return
 	end
 	local util = UnitFrameUtil
 	if util and type(util.UpdateUnitFrameRoleIcon) == "function" then
@@ -455,9 +444,9 @@ local function DressCombat(f)
 	if not cfg.combat then
 		return
 	end
-	local class = f.sample and f.sample.class
-	if not f.sample then class = select(2, UnitClass(f.unit)) end
 	if cfg.combatClass then
+		local class = f.sample and f.sample.class
+		if not f.sample then class = select(2, UnitClass(f.unit)) end
 		icon:SetVertexColor(Unit.ClassColor(class))
 	else
 		icon:SetVertexColor(Tokens.Color("white"))
@@ -515,13 +504,13 @@ local function PaintSample(f, sample)
 	local icons = Settings.current.icons
 	local role = icons.role and not RoleHidden(f) and sample.role or nil
 	local atlas = not f.roleInRing and role and GetMicroIconForRole and GetMicroIconForRole(role)
+	ShowPip(f, nil)
 	if f.roleLetter then f.roleLetter:Hide() end
-	local lettered = not f.roleInRing and Lettered(f, role)
+	local lettered = not f.showRoleRing and Lettered(f, role)
 	if f.pipped and not lettered then
 		f.role:Hide()
 		ShowPip(f, role)
 	elseif not lettered then
-		ShowPip(f, nil)
 		if type(atlas) == "string" then f.role:SetAtlas(atlas) end
 		f.role:SetShown(type(atlas) == "string")
 	end
@@ -536,7 +525,9 @@ local function PaintSample(f, sample)
 		f.marker:Hide()
 		Style.SetMarked(f, false)
 	end
-	f.ready:Hide()
+	local ready = icons.readyCheck and (icons.readyPlace ~= "AUTO" or icons.readySize > 0) and READY_ATLAS.ready()
+	if type(ready) == "string" then f.ready:SetAtlas(ready) end
+	f.ready:SetShown(type(ready) == "string")
 	DressCombat(f)
 	local threat = Settings.current.threat.enabled and sample.threat
 	local r, g, b

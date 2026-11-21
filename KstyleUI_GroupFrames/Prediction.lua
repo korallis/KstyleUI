@@ -80,6 +80,12 @@ local function Layout(f, parts)
 	local vertical = cfg.health.orientation == "VERTICAL"
 	local fill = f.health:GetStatusBarTexture()
 	f.predict:SetFrameLevel(f.health:GetFrameLevel() + LEVEL_ABOVE_HEALTH)
+	if f.behind or f.predictBehind then
+		f.predict:ClearAllPoints()
+		f.predict:SetPoint("TOPRIGHT", f.health, "TOPRIGHT", 0, 0)
+		f.predict:SetPoint("BOTTOMLEFT", f.behind and f.power or f.health, f.behind and "TOPLEFT" or "BOTTOMLEFT", 0, 0)
+		f.predictBehind = f.behind
+	end
 	for _, bar in ipairs({ f.heals, f.absorbs }) do
 		bar:SetOrientation(cfg.health.orientation)
 		bar:SetBarTexture(cfg.health.texture)
@@ -135,19 +141,16 @@ local function Layout(f, parts)
 		f.overClip = CreateFrame("Frame", nil, f.predict)
 		f.overClip:SetClipsChildren(true)
 		f.overshield = Widgets.StatusBar(f.overClip, { background = false, smooth = true, reverse = true })
+		f.overshield:SetPoint("TOPRIGHT", f.health, "TOPRIGHT", 0, 0)
 	end
 	if f.overClip then
 		local over = f.overshield
 		f.overClip:ClearAllPoints()
-		f.overClip:SetPoint(vertical and "BOTTOMLEFT" or "TOPLEFT", f.health, vertical and "BOTTOMLEFT" or "TOPLEFT", 0, 0)
-		f.overClip:SetPoint(vertical and "TOPRIGHT" or "BOTTOMRIGHT", fill, vertical and "TOPRIGHT" or "BOTTOMRIGHT", 0, 0)
+		f.overClip:SetAllPoints(fill)
 		over:SetOrientation(cfg.health.orientation)
-		over:SetReverseFill(true)
 		over:SetBarTexture(cfg.health.texture)
 		over.opts.width, over.opts.height = rect.width, rect.height
 		over:Restyle()
-		over:ClearAllPoints()
-		over:SetPoint("TOPRIGHT", f.health, "TOPRIGHT", 0, 0)
 		Paint(over, c)
 		f.overClip:SetShown(p.overshield)
 	end

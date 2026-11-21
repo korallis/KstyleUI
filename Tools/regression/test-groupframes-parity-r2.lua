@@ -267,10 +267,11 @@ do
 	assert(anchor(dps.marker) == "TOPLEFT", "Automatic restores it")
 	write(env, K, "icons.readyPlace", "BOTTOMLEFT")
 	write(env, K, "icons.readySize", 20)
-	assert(anchor(tank.ready) == "BOTTOMLEFT" and near(W.LastCall(tank.ready, "SetSize")[1], 20) and anchor(tank.statusIcons.afk) == "BOTTOMLEFT", "ready check and status icons move together")
+	local most = tank.parts.health.height
+	assert(anchor(tank.ready) == "BOTTOMLEFT" and near(W.LastCall(tank.ready, "SetSize")[1], math.min(20, most)) and anchor(tank.statusIcons.afk) == "BOTTOMLEFT", "ready check and status icons move together")
 	write(env, K, "icons.readyPlace", "AUTO")
 	point, relative = anchor(tank.ready)
-	assert(point == "CENTER" and relative == tank.health and near(W.LastCall(tank.ready, "SetSize")[1], 20), "Automatic with a size centres them on the bar")
+	assert(point == "CENTER" and relative == tank and near(W.LastCall(tank.ready, "SetSize")[1], math.min(20, most)), "Automatic with a size keeps today's place")
 	write(env, K, "icons.readySize", 0)
 	assert(select(3, anchor(tank.ready)) == "TOPLEFT", "0 restores today's place")
 
@@ -293,7 +294,7 @@ do
 	assert(near(plain(r), plain(cr)) and near(plain(g), plain(cg)) and near(plain(b), plain(cb)), "class colour tints it")
 	write(env, K, "icons.combatSize", 24)
 	write(env, K, "icons.combatPlace", "TOP")
-	assert(anchor(tank.combatIcon) == "TOP" and near(W.LastCall(tank.combatIcon, "SetSize")[1], 24), "place and size apply")
+	assert(anchor(tank.combatIcon) == "TOP" and near(W.LastCall(tank.combatIcon, "SetSize")[1], math.min(24, tank.parts.health.height)), "place and size apply, within the bar")
 	write(env, K, "icons.combat", false)
 	assert(not tank.combatIcon:IsShown(), "off hides it")
 	noErrors(env, K)

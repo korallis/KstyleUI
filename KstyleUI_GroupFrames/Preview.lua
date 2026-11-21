@@ -129,14 +129,15 @@ function Preview.Build(...)
 		elseif cfg.text.nameColorSource == "class" then
 			f.name:SetTextColor(Unit.NameColor(sample.class))
 		end
-		if f.showPortrait then
+		if f.showPortrait or f.showRoleRing then
 			f.ring:SetVertexColor(cr, cg, cb, cfg[f.kind].portraitRingAlpha or 1)
+		end
+		if f.showPortrait then
 			f.portrait:SetTexture((Tokens.Texture("logo")))
 			local zoom = not ns.Medallions.Active() and cfg[f.kind].portraitZoom or 0
 			f.portrait:SetTexCoord(zoom, 1 - zoom, zoom, 1 - zoom)
 			f.level:SetText(SAMPLE_LEVEL)
 		elseif f.showRoleRing then
-			f.ring:SetVertexColor(cr, cg, cb, cfg[f.kind].portraitRingAlpha or 1)
 			f.roleText:SetText(Style.ROLE_LETTERS[sample.role] or "")
 		end
 		HealthText(f, sample)
