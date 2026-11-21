@@ -1,4 +1,4 @@
--- test-unitframes-castbar-on-frame.lua: Medallions hangs the player and target cast bars under their frames; the setting off, a moved bar or Frames and Orbs keep the bars above the crest.
+-- test-unitframes-castbar-on-frame.lua: Medallions hangs the player and target cast bars under their frames; the setting off, a moved or hidden bar, or Frames and Orbs keep the bars above the crest.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -41,16 +41,28 @@ W.Tick(env, 0.1)
 
 for _, kind in ipairs({ "player", "target" }) do
 	local view = ns.Frames.Get(kind).views[1]
-	local g, cb = view.geometry, CastBars.Inline(kind)[1]
+	local cb = CastBars.Inline(kind)[1]
 	assert(not CastBars.ElementLive(kind) and not K.Layout.Live("unitframes.castbar." .. kind), kind .. ": the bar above the crest gives way, and Layout Mode drops its mover")
 	assert(not CastBars.Get(kind)[1].frame:IsShown(), kind .. ": nothing is left in the lane above the crest")
 	assert(view.s.inlineCast == true, kind .. ": the frame carries the cast")
 	assert(cb.frame:IsShown() and cb.active and cb.medal and cb.geometry.medal, kind .. ": the frame's own bar shows the cast in the Medallions look")
-	assert(cb.slab and cb.slab[5]:IsShown() and not cb.iconFrame:IsShown(), kind .. ": the unit slab material, no spell icon, like the bars it replaces")
+	assert(cb.slab and cb.slab[5]:IsShown(), kind .. ": the unit slab material")
+	assert(cb.iconFrame:IsShown() == Settings.Value(kind, "castbarIcon"), kind .. ": Spell icon decides the icon (player on, target off by default)")
 	local fw, fh = cb.frame:GetSize()
-	assert(near(fw, g.health.w) and near(fh, 20), kind .. ": the bar's frame is the health bar's width, got " .. tostring(fw))
-	assert(near(view.button:GetBottom() - cb.frame:GetTop(), K.Widgets.Snap(cb.frame, 2)) and near(cb.frame:GetLeft() - view.button:GetLeft(), g.health.x), kind .. ": the bar hangs under the frame, below its health bar")
+	assert(near(fw, view.button:GetWidth()) and near(fh, 20), kind .. ": the bar's frame is the frame's width, like the focus and boss bars, got " .. tostring(fw))
+	assert(near(view.button:GetBottom() - cb.frame:GetTop(), K.Widgets.Snap(cb.frame, 2)) and near(cb.frame:GetLeft(), view.button:GetLeft()), kind .. ": the bar hangs under the frame, flush with its slab")
 end
+write("target.castbarIcon", true)
+for _, kind in ipairs({ "player", "target" }) do
+	local view, cb = ns.Frames.Get(kind).views[1], CastBars.Inline(kind)[1]
+	local medal, left = view.geometry.medal, view.button:GetLeft()
+	assert(cb.iconFrame:IsShown() and (cb.iconFrame:GetLeft() >= left + medal.x + medal.w or cb.iconFrame:GetRight() <= left + medal.x), kind .. ": Spell icon on shows the icon clear of the medallion")
+	assert(cb.iconFrame:GetBottom() >= cb.frame:GetBottom() and cb.iconFrame:GetTop() <= cb.frame:GetTop(), kind .. ": the icon sits inside the bar's slab")
+end
+write("player.castbarIcon", false)
+assert(not CastBars.Inline("player")[1].iconFrame:IsShown(), "Spell icon off hides it")
+write("player.castbarIcon", true)
+write("target.castbarIcon", false)
 local pcb, tcb = CastBars.Inline("player")[1], CastBars.Inline("target")[1]
 assert(U.Shown(env, pcb.text) == "LIGHTNING BOLT" and U.Shown(env, tcb.text) == "HOWL", "both spell names show")
 assert(pcb.bar.fillCursor and pcb.bar.fillCursor:IsShown(), "the spark rides the fill")
@@ -118,4 +130,47 @@ K2.Layout.Reset("unitframes.castbar.player")
 env2.RunTimers()
 assert(not ns2.CastBars.ElementLive("player") and ns2.Frames.Get("player").views[1].s.inlineCast, "resetting the moved bar puts it on the frame")
 assert(#env2._errors == 0 and K2.ErrorCount() == 0, "saved positions: " .. tostring(env2._errors[1]))
+
+local env3, K3, ns3 = new()
+local inl, sep = ns3.CastBars.Inline("player")[1], ns3.CastBars.Get("player")[1]
+local function cast(id)
+	env3._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1000, finish = 100000, spellID = 116 }
+	env3.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-" .. id, 116)
+end
+local function shows(where, onFrame, above)
+	assert(inl.frame:IsVisible() == onFrame and sep.frame:IsVisible() == above, where .. ": on the frame " .. tostring(inl.frame:IsVisible()) .. ", above the crest " .. tostring(sep.frame:IsVisible()))
+end
+cast(1)
+shows("a cast", true, false)
+local function interruptible() inl.handler("UNIT_SPELLCAST_INTERRUPTIBLE", "player") end
+interruptible()
+dofile("Tools/regression/instruction_budget.lua")(interruptible, 420, "a cast event costs no more than staging's 414: it reads the placement CastBars.Apply chose; resolve the layout only when switching listeners")
+K3.Options.Write("UnitFrames", "castbarOnFrame", false)
+cast(2)
+shows("off", false, true)
+env3.SetCombat(true)
+K3.Options.Write("UnitFrames", "castbarOnFrame", true)
+cast(3)
+shows("turned on in combat, the bar above the crest keeps the cast until combat ends", false, true)
+env3.SetCombat(false)
+env3.RunTimers()
+cast(4)
+shows("after combat", true, false)
+assert(K3.Layout.Set("unitframes.castbar.player", "shown", "never"))
+env3.RunTimers()
+cast(5)
+shows("a cast bar the player set to Never stays hidden", false, false)
+assert(K3.Layout.Get("unitframes.castbar.player").shown == "never" and ns3.CastBars.ElementLive("player"), "and keeps its own element and rule")
+assert(K3.Layout.Set("unitframes.castbar.player", "shown", "always"))
+env3.RunTimers()
+cast(6)
+shows("Always again", true, false)
+K3.Options.Write("UnitFrames", "player.style", "plate")
+env3.RunTimers()
+cast(7)
+shows("Plate under Medallions", true, false)
+local plate = ns3.Frames.Get("player").views[1]
+local button, panel = plate.button, plate.geometry.panel
+assert(near(button:GetBottom() - inl.frame:GetTop(), K3.Widgets.Snap(inl.frame, 2)) and near(inl.frame:GetLeft() - button:GetLeft(), panel.x) and near(inl.frame:GetWidth(), panel.w), "the Plate frame carries its cast under its plate, at the plate's width")
+assert(#env3._errors == 0 and K3.ErrorCount() == 0, "combat, rule and Plate: " .. tostring(env3._errors[1]))
 print("unitframes castbar on frame ok")
