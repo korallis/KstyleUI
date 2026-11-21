@@ -20,7 +20,7 @@ Effects.SECTION = SECTION
 Effects.PRIORITY = {
 	lowHealth = 1, proc = 2, levelUp = 1.5, burst = 2, ready = 3, cast = 3, cap = 4, target = 4, combat = 5, rest = 6, ambient = 9,
 }
-Effects.defaults = { motion = "full" }
+Effects.defaults = { motion = "full", vignette = true, ambient = true }
 
 local function IsSecret(value)
 	return issecretvalue ~= nil and issecretvalue(value) == true
@@ -221,6 +221,14 @@ function Effects.Schema()
 				{ value = "calm", label = L["Calm"] },
 				{ value = "off", label = L["Off"] },
 			},
+		},
+		{
+			type = "toggle", key = "vignette", label = L["Low-health vignette"],
+			help = L["A red screen edge at low health. Off hides it; your own danger ring stays."],
+		},
+		{
+			type = "toggle", key = "ambient", label = L["Ambient hub effects"],
+			help = L["The hub's turning runes, breathing glow and sparks. Off stills them; flashes stay."],
 		},
 	}
 	return Effects.schema

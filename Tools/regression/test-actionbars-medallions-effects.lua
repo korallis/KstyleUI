@@ -1,4 +1,4 @@
--- test-actionbars-medallions-effects.lua: the Medallions slab's motion: a proc draws a class-colour border inside its socket and runs a loop clipped to the socket's opening, and pulses the hub's crest and glyphs, and its hide stops all of it; entering combat fires the shockwave, crest flash and slab sweep and speeds the rune ring, and leaving settles it; a level-up paints the plaque gold, writes the caption and plays the burst; motion off places everything with no animation, and the effects layer's Calm keeps the idle loops and one-shot flares but holds the slot loop and particles; the crest comes from KstyleUI.Medallions.Crest when it answers, which reads KstyleUI.MedallionAssets by the player's race and class, else a placeholder; slots wear the recessed socket, with the keybind only on a slot that holds an action; and none of it runs under Frames.
+-- test-actionbars-medallions-effects.lua: the Medallions slab's motion: a proc draws a class-colour border inside its socket and runs a loop clipped to the socket's opening, and pulses the hub's crest and glyphs, and its hide stops all of it; entering combat fires the shockwave, crest flash and slab sweep and speeds the rune ring, and leaving settles it; a level-up paints the plaque gold, writes the caption and plays the burst; motion off places everything with no animation, the Ambient hub effects switch off stills and hides the hub's loops while flashes still fire, and the effects layer's Calm keeps the idle loops and one-shot flares but holds the slot loop and particles; the crest comes from KstyleUI.Medallions.Crest when it answers, which reads KstyleUI.MedallionAssets by the player's race and class, else a placeholder; slots wear the recessed socket, with the keybind only on a slot that holds an action; and none of it runs under Frames.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local function New(opts)
@@ -131,6 +131,41 @@ do
 	ns.Slab.Refresh()
 	assert(hub.crestPath ~= "x", "a secret answer falls back to the placeholder")
 	K.Medallions = nil
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+do
+	local env, K, ns = New()
+	Medallions(K, env)
+	local hub = ns.Slab.hub
+	local function Ambient()
+		local n = 0
+		for _, g in ipairs({ hub.glow.breath, hub.bloom.breath, hub.runes.turn, hub.sheen.run }) do
+			n = n + (g:IsPlaying() and 1 or 0)
+		end
+		for _, p in ipairs(hub.particles) do
+			n = n + (p.anim:IsPlaying() and 1 or 0)
+		end
+		return n
+	end
+	local on = Ambient()
+	assert(K.Store.Module("Medallions").ambient == true and on > 4, "the ambient hub effects are on by default")
+	K.Options.Write("Medallions", "ambient", false)
+	assert(Ambient() == 0 and not hub.sheen:IsShown(), "the switch off stops every ambient loop and hides the sheen")
+	for _, p in ipairs(hub.particles) do
+		assert(not p:IsShown(), "the switch off hides the particles")
+	end
+	assert(hub.ring:IsShown() and hub.runes:IsShown() and hub.glow:GetAlpha() > 0, "the static hub art stays")
+	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
+	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
+	env.SetCombat(true)
+	assert(Ambient() == 0, "combat starts no ambient loop with the switch off")
+	assert(hub.crest.pulse:IsPlaying() and hub.shock.anim:IsPlaying() and hub.flash.anim:IsPlaying(), "proc and combat flashes still fire")
+	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
+	env.SetCombat(false)
+	env.RunTimers()
+	K.Options.Write("Medallions", "ambient", true)
+	assert(Ambient() == on and hub.sheen:IsShown(), "the switch on restores every loop")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

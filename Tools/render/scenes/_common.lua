@@ -22,6 +22,12 @@ function Common.FinishSettings(profile)
 		profile.ColorVision = profile.ColorVision or {}
 		profile.ColorVision.mode = "standard"
 	end
+	for key, name in pairs({ vignette = "RENDER_VIGNETTE", ambient = "RENDER_AMBIENT" }) do
+		if os.getenv(name) == "off" then
+			profile.Medallions = profile.Medallions or {}
+			profile.Medallions[key] = false
+		end
+	end
 	if os.getenv("RENDER_SNAP_EDGES") == "0" then
 		profile.Appearance = profile.Appearance or {}
 		profile.Appearance.snapEdges = false

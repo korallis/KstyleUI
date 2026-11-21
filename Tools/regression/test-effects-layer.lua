@@ -1,4 +1,4 @@
--- test-effects-layer.lua: the Medallions effects layer: the motion level is the lower of the Medallions setting and the Appearance motion setting and says what each kind of motion may do; EffectsLevelChanged fires once per change; the arbiter gives each place to the higher priority, lets an equal one replace, refuses a lower one and suspends ambient motion while any effect holds the place; the 3D pool never holds more than three live models, evicts only an equal or lower priority, plays the 2D twin when it refuses, when a file is refused or never loads, and below Full; the low-health vignette follows a health curve under Medallions only; and secondary frames rest three seconds after combat.
+-- test-effects-layer.lua: the Medallions effects layer: the motion level is the lower of the Medallions setting and the Appearance motion setting and says what each kind of motion may do; EffectsLevelChanged fires once per change; the arbiter gives each place to the higher priority, lets an equal one replace, refuses a lower one and suspends ambient motion while any effect holds the place; the 3D pool never holds more than three live models, evicts only an equal or lower priority, plays the 2D twin when it refuses, when a file is refused or never loads, and below Full; the low-health vignette follows a health curve under Medallions only and its switch hides it and stops its breath; and secondary frames rest three seconds after combat.
 local W = dofile("Tools/regression/widget_env.lua")
 
 local FX = dofile("Tools/regression/effects_env.lua")
@@ -180,6 +180,15 @@ do
 	assert(V.frame.breath:IsPlaying(), "it breathes at Full")
 	K.Options.Write("Medallions", "motion", "calm")
 	assert(V.frame:IsShown() and not V.frame.breath:IsPlaying(), "it holds still at Calm")
+	K.Options.Write("Medallions", "motion", "full")
+	assert(K.Store.Module("Medallions").vignette == true and V.frame.breath:IsPlaying(), "the low-health vignette's switch is on by default")
+	K.Options.Write("Medallions", "vignette", false)
+	assert(not V.frame:IsShown() and not V.frame.breath:IsPlaying(), "the switch off hides the vignette and stops its breath")
+	env.FireEvent("UNIT_HEALTH", "player")
+	env.FireEvent("PLAYER_ENTERING_WORLD")
+	assert(not V.frame:IsShown(), "health and a reload keep it hidden")
+	K.Options.Write("Medallions", "vignette", true)
+	assert(V.frame:IsShown() and V.frame.breath:IsPlaying(), "the switch on brings it back breathing")
 	env._dead = true
 	env.FireEvent("PLAYER_DEAD")
 	assert(not V.frame:IsShown(), "no vignette while dead")

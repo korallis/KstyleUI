@@ -146,6 +146,11 @@ end
 player.health = player.healthMax * 0.1
 env.FireEvent("UNIT_HEALTH", "player")
 assert(m.lowFrame:IsShown() and m.dangerPulse and K.Effects.Vignette.frame.breath:IsPlaying(), "low health shows the ring on the shared danger breath")
+K.Options.Write("Medallions", "vignette", false)
+env.FireEvent("UNIT_HEALTH", "player")
+assert(m.lowFrame:IsShown() and not K.Effects.Vignette.frame:IsShown(), "the low-health vignette's switch off keeps the ring, held still as at Calm")
+K.Options.Write("Medallions", "vignette", true)
+assert(K.Effects.Vignette.frame.breath:IsPlaying(), "the switch on breathes the ring with the vignette again")
 local alpha = U.W.LastCall(m.low, "SetAlpha")
 assert(alpha and env.issecretvalue(alpha[1]) and near(env.Reveal(alpha[1]), 0.7), "the ring's alpha is the curve's secret, 0.7 below 15 percent")
 player.health = 3900

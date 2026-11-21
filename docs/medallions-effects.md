@@ -28,6 +28,11 @@ General > Medallions > Medallions motion is Full (the default), Calm or Off, sav
 
 At Off an effect's end state is applied at once (the secondary frames dim), and a state such as the low-health ring, the vignette or the cap ring still shows, still.
 
+Two switches on the same page, both on by default, let a player drop an effect's drawing cost without touching the rest (`Medallions.vignette`, `Medallions.ambient`):
+
+- **Low-health vignette** off hides the vignette frame, so its 16 edge slices leave the draw (health is secret, so Lua cannot hide them by health), and stops its breath. The portrait's low-health ring still shows and holds still, as at Calm, because it breathes on the vignette's group.
+- **Ambient hub effects** off stills the hub as Calm does: the rune turn, glow and bloom breaths, sheen and particles stop, and the sheen and particles are hidden. The static hub art stays, and flares (combat, proc, level-up, ready and cast flashes) still play by the motion level.
+
 | Function | Behaviour |
 | --- | --- |
 | `Effects.Level() -> "full" \| "calm" \| "off"` | The level in force |

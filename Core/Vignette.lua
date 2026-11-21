@@ -1,4 +1,4 @@
--- Vignette.lua: the Medallions screen-edge low-health vignette: a crimson frame around the screen, under the whole interface, whose alpha is the player's health through a curve (no threshold in Lua), breathing at the Full motion level and still at Calm, shown only under the Medallions style and never while dead.
+-- Vignette.lua: the Medallions screen-edge low-health vignette: a crimson frame around the screen, under the whole interface, whose alpha is the player's health through a curve (no threshold in Lua), breathing at the Full motion level and still at Calm, shown only under the Medallions style with its switch on and never while dead.
 local _, ns = ...
 
 local Effects = ns.Effects
@@ -179,7 +179,8 @@ local function Dead()
 end
 
 function Vignette.Update()
-	local c = Effects.Active() and Curve()
+	local on = not ns.Store.IsLoaded() or ns.Store.Module("Medallions").vignette ~= false
+	local c = on and Effects.Active() and Curve()
 	if not c or Dead() then
 		if frame then
 			frame.breath:Stop()
@@ -243,5 +244,5 @@ ns.Callbacks.Register("ProfileChanged", OWNER, Listen)
 ns.Callbacks.Register("EffectsLevelChanged", OWNER, Vignette.Update)
 ns.Callbacks.Register("ScaleChanged", OWNER, Layout)
 ns.Callbacks.Register("SettingChanged", OWNER, function(_, module, key)
-	if module == "UnitFrames" and key == "dangerEdge" then Vignette.Update() end
+	if (module == "UnitFrames" and key == "dangerEdge") or (module == "Medallions" and key == "vignette") then Vignette.Update() end
 end)
