@@ -2,7 +2,6 @@
 -- down over the bar the pointer is on: the data bar readouts and micro menu in every HUD style at four screen
 -- sizes, and an owner flush against each screen edge. The render solver clamps to the screen as the client does.
 local D = dofile("Tools/regression/databars_env.lua")
-local W = dofile("Tools/regression/widget_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
 local function rect(env, frame)
@@ -29,26 +28,25 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		local env, K, ns = D.New({ width = screen[1], height = screen[2], size = "auto", setup = function(e) D.Menus(e) end })
 		K.Options.Write("HudStyle", "style", style)
-		K.Options.Write("DataBars", "micro.shown", true)
 		local view, tip = ns.Strip.view, K.Widgets.Tooltip()
 		local where = style .. " " .. screen[1] .. "x" .. screen[2]
 		assert(view.topBar == (style ~= "medallions"), where .. ": Frames and Orbs put the data bar along the top")
 		for _, id in ipairs(ns.Strip.order) do
 			local button = view.items[id].button
-			W.Enter(button)
+			D.W.Enter(button)
 			assert(tip:IsOwned(button), where .. ": the " .. id .. " readout shows the kit tooltip")
 			clear(env, tip, button, { view.frame }, where .. " " .. id)
-			W.Leave(button)
+			D.W.Leave(button)
 		end
 		local micro = ns.Menus.Shown("micro")
 		assert(#micro > 0, where .. ": the micro menu has buttons")
 		local rows = { ns.Menus.Content("micro") }
 		if view.topBar then rows[2] = view.frame end
 		for _, button in ipairs(micro) do
-			W.Enter(button)
+			D.W.Enter(button)
 			assert(tip:IsOwned(button), where .. ": a micro button shows the kit tooltip")
 			clear(env, tip, button, rows, where .. " micro")
-			W.Leave(button)
+			D.W.Leave(button)
 		end
 		assert(#env._errors == 0, tostring(env._errors[1]))
 	end
@@ -78,4 +76,50 @@ do
 	end
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
-print("tooltip clear ok: data bar readouts and micro menu in every style at four sizes, and owners on every edge")
+-- A two-row menu along the bottom edge: a lower-row button's tooltip clears the whole bar, not only the button.
+do
+	local env, K, ns = D.New({ width = 1920, height = 1080, size = "auto", setup = function(e) D.Menus(e) end })
+	K.Options.Write("DataBars", "strip.menus", false)
+	K.Options.Write("DataBars", "micro.rows", 2)
+	local holder = ns.Menus.Holder("micro")
+	holder:ClearAllPoints()
+	holder:SetPoint("BOTTOM", env.UIParent, "BOTTOM")
+	for _, button in ipairs(ns.Menus.Shown("micro")) do
+		D.W.Enter(button)
+		clear(env, K.Widgets.Tooltip(), button, { ns.Menus.Content("micro") }, "two-row bottom menu")
+		D.W.Leave(button)
+	end
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- A tooltip too tall for above or below opens beside its owner; an offset away from the owner flips with the
+-- tooltip; a restricted owner and an owner whose measurements turn secret show the tooltip without an error.
+do
+	local env, K = D.New({ width = 1920, height = 1080, size = "auto" })
+	local tip = K.Widgets.Tooltip()
+	local function Owner(point, lines, x, y)
+		local owner = env.CreateFrame("StatusBar", nil, K.Scale.Root())
+		owner:SetSize(40, 14)
+		owner:SetPoint(point, env.UIParent, point)
+		tip:SetOwner(owner, "ANCHOR_TOP", x, y)
+		for _ = 1, lines do tip:AddLine("test") end
+		return owner
+	end
+	local tall = Owner("CENTER", 49)
+	tip:Show()
+	assert(not overlaps(rect(env, tip), rect(env, tall)), "a tooltip too tall for above or below covers its owner")
+	local offset = Owner("TOP", 1, 0, 12)
+	tip:Show()
+	assert(not overlaps(rect(env, tip), rect(env, offset)), "a flipped tooltip keeps its offset toward the owner")
+	env.RestrictAnchoring(Owner("TOP", 1))
+	tip:Show()
+	assert(tip:IsShown(), "a restricted owner shows the tooltip")
+	local secret = Owner("TOP", 1)
+	secret:SetValue(env.Secret(10))
+	tip:Show()
+	tip:SetOwner(secret, "ANCHOR_TOP")
+	tip:AddLine("test")
+	tip:Show()
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+print("tooltip clear ok: data bar readouts and micro menu in every style at four sizes, owners on every edge, a two-row bottom menu, restricted, secret, tall and offset owners")
