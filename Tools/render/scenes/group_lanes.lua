@@ -20,9 +20,9 @@
 -- friendly boss frames. RENDER_EXTRAS=1 switches on only pet, tank and friendly boss frames, at their defaults. RENDER_PLACES=default
 -- leaves every group frame holder at its default place instead of the mock-ups'.
 -- RENDER_PARITY_R6=1 switches on round 6's: the shield edge on the first member's shield, role icons under the highlights,
--- indicator 1 as a bar on the health bar's foot and indicator 2 as a square (both shown on the first member), party frames that
--- take the raid's text, status icon size and power bar, an own raid size from 16 players and tank frames that leave you out (you
--- are the first member).
+-- indicator 1 as a bar on the health bar's foot, filling the other way and over the debuff icons, and indicator 2 as a square (both
+-- shown on the first member), party frames that take the raid's text, debuffs, heal icons, status icon size and power bar, an own
+-- raid size from 16 players and tank frames that leave you out (you are the first member).
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
@@ -245,8 +245,8 @@ return Common.Run(function()
 	end
 	if R6 then
 		for key, value in pairs({ ["prediction.edge"] = true, ["icons.roleBehind"] = true, ["indicator1.style"] = "BAR", ["indicator1.position"] = "BOTTOM",
-			["indicator1.color"] = { r = 0.35, g = 0.85, b = 0.55 }, ["indicator2.style"] = "SQUARE", ["indicator2.color"] = { r = 0.95, g = 0.7, b = 0.2 },
-			["follow.text"] = true, ["follow.icons"] = true, ["follow.power"] = true, ["auto.customLeast"] = 16, ["auto.customWidth"] = 130,
+			["indicator1.color"] = { r = 0.35, g = 0.85, b = 0.55 }, ["indicator1.reverse"] = true, ["indicator1.over"] = true, ["indicator2.style"] = "SQUARE", ["indicator2.color"] = { r = 0.95, g = 0.7, b = 0.2 },
+			["follow.text"] = true, ["follow.auras"] = true, ["follow.heals"] = true, ["follow.icons"] = true, ["follow.power"] = true, ["auto.customLeast"] = 16, ["auto.customWidth"] = 130,
 			["auto.customHeight"] = 40, ["tanks.enabled"] = true, ["tanks.excludeSelf"] = true }) do
 			K.Options.Write("GroupFrames", key, value)
 		end
