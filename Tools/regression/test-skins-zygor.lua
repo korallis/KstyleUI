@@ -14,7 +14,7 @@ local function Boot(opts)
 		characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {},
 	}
 	local env, K, ns = S.New({
-		width = 1920, height = 1080, saved = saved,
+		width = opts.width or 1920, height = opts.height or 1080, size = opts.size, saved = saved,
 		setup = function(e)
 			e._textWidth = Measure.TextWidth
 			Quests.Install(e, Quests.List(8))
@@ -167,6 +167,24 @@ do
 	local card = K.Skin.Parts(zygor.frame.Border).backdrop
 	assert(card and card:IsShown(), "a window Zygor makes late still wears the KstyleUI card")
 	assert(zygor.style.WindowBackdropColor[4] == 0, "a window Zygor makes late is still painted")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+
+-- The rail settles: placing the guide does not queue another placement. Before, the holder took its unsnapped size on
+-- every Place, Layout snapped it and queued a scoped restyle, whose tracked Restyle scheduled Place again, forever
+-- (904 placements in 30 s in game, 38 ms of Lua a second). At 1600x900 and size 0.53 the stub's timer guard caught it.
+do
+	local env, K, ns, zygor = Boot({ width = 1600, height = 900, size = 0.53 })
+	local z, resized = env.ZygorGuidesViewer, 0
+	local resize = z.ResizeFrame
+	z.ResizeFrame = function(...)
+		resized = resized + 1
+		return resize(...)
+	end
+	for _ = 1, 30 do
+		env.RunTimers()
+	end
+	assert(resized == 0, string.format("an idle rail re-places the guide: %d Zygor resizes in 30 timer passes", resized))
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
