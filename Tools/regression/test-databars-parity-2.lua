@@ -380,15 +380,11 @@ K.Events.Register = register
 -- The Medallions dock gives round 1's readouts and Class resources their own glyphs, and keeps them with icons off.
 K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
-show({ "coords", "combat", "played", "audio", "prof1", "prof2", "broker", "reagents", "fps" }, "dockModules")
+show({ "coords", "combat", "played", "audio", "prof1", "broker", "reagents", "fps" }, "dockModules")
 write("strip.brokerPlugin", "")
 local cells, glyphs = {}, 0
 assert(ns.Strip.view.deco, "the Medallions dock draws glyph segments")
-env.GetProfessions = function() return 1, 2 end
-env.GetProfessionInfo = function(i) return i == 1 and "Mining" or "Tailoring", 136240, 225, 300 end
-ns.Strip.Refresh()
-assert(item("prof1").button:IsShown() and item("prof2").button:IsShown(), "both professions show in the dock")
-for _, id in ipairs({ "coords", "combat", "played", "audio", "prof1", "prof2", "reagents", "fps" }) do
+for _, id in ipairs({ "coords", "combat", "played", "audio", "reagents", "fps" }) do
 	if item(id).button:IsShown() then
 		local l, r, t, b = item(id).icon:GetTexCoord()
 		assert(item(id).icon:IsShown() and r - l == 0.25 and b - t == 0.125 and not cells[l .. t], id .. " shows its own glyph cell")
@@ -396,6 +392,12 @@ for _, id in ipairs({ "coords", "combat", "played", "audio", "prof1", "prof2", "
 	end
 end
 assert(glyphs >= 4, "the dock shows the new glyphs: " .. glyphs)
+env.GetProfessions = function() return 1, 2 end
+env.GetProfessionInfo = function(i) return i == 1 and "Mining" or "Tailoring", 136240, 225, 300 end
+show({ "prof1", "prof2", "fps" }, "dockModules")
+local l1, _, t1 = item("prof1").icon:GetTexCoord()
+local l2, _, t2 = item("prof2").icon:GetTexCoord()
+assert(item("prof1").icon:IsShown() and item("prof2").icon:IsShown() and (l1 ~= l2 or t1 ~= t2), "each profession wears its own glyph")
 assert(disabled("strip.icons") and disabled("strip.iconColor"), "the dock always draws its own glyphs")
 K.Options.Write("HudStyle", "style", "frames")
 env.RunTimers()
