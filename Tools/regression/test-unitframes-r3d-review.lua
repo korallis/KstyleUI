@@ -185,5 +185,13 @@ pane:Refresh()
 local shown = U.Shown(env, pane.casts.player.timer)
 assert(shown:find(" / ", 1, true) and shown:find("(42ms)", 1, true), "the preview timer matches the live one: " .. shown)
 
+-- Copy auras from (round 3a) carries the row spacing and precise timers with the other look settings.
+write("target.auraRowGap", 6)
+write("target.auraPrecise", 5)
+write("focus.auraCopy", "target")
+assert(ns.Settings.Value("focus", "auraRowGap") == 6 and ns.Settings.Value("focus", "auraPrecise") == 5, "a copying frame takes the row spacing and precise timers")
+write("focus.auraCopy", "")
+assert(ns.Settings.Value("focus", "auraRowGap") == 0, "its own settings return")
+
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("test-unitframes-r3d-review: ok")
