@@ -1,4 +1,4 @@
--- Bar.lua: one bar: a Layout holder, a secure state header that pages and shows it, its buttons in a grid, and its mouseover fade; a stance bar folded into rows keeps a full row's width, so a few forms sit in one row on the bar's baseline.
+-- Bar.lua: one bar: a Layout holder, a secure state header that pages and shows it, its buttons in a grid, and its mouseover fade; a stance bar folded into rows keeps a full row's width, so a few forms sit in one row on the bar's baseline, and its backing hugs the shown forms.
 local _, ns = ...
 
 local K = KstyleUI
@@ -258,10 +258,13 @@ function Bar:Layout()
 		end
 	end
 	self.holder:SetSize(width, height)
+	local spare = cols and count > 0 and (cols - (orientation == "VERTICAL" and ceil(count / used) or min(cols, count))) * pitch or 0
+	self.insetLeft = (growth == "LEFTUP" or growth == "LEFTDOWN") and spare or 0
+	self.insetRight = spare - self.insetLeft
 	local margin = Widgets.Snap(header, BACKING_MARGIN)
 	self.backing:ClearAllPoints()
-	self.backing:SetPoint("TOPLEFT", header, "TOPLEFT", -margin, margin)
-	self.backing:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", margin, -margin)
+	self.backing:SetPoint("TOPLEFT", header, "TOPLEFT", self.insetLeft - margin, margin)
+	self.backing:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", margin - self.insetRight, -margin)
 	self.backing:SetShown(not grouped and cfg.backing == true)
 	for i, b in ipairs(self.buttons) do
 		b.opts.size = cell

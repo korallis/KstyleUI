@@ -125,6 +125,14 @@ for _, screen in ipairs(SCREENS) do
 	if K.Scale.Aspect() ~= Layouts.ASPECTS[1] then
 		assert(math.abs((petRect[2] - slabRect[2]) / unit + 8) < 2 * px, what .. ": the pet slab sits eight units below the action slab's lower edge")
 	end
+	-- One form (a rogue's Stealth): the stance slab hugs its one slot, not the two rows of five it keeps room for.
+	env._game.forms = { env._game.forms[1] }
+	env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
+	env.RunTimers()
+	local one, slot = Rect(Slab.sides.stance), Rect(ns.bars.stance.buttons[1])
+	local pad = Layouts.MEDALLIONS_SIDE.pad * unit
+	assert(math.abs(one[1] - (slot[1] - pad)) < 2 * px * unit and math.abs(one[3] - (slot[3] + pad)) < 2 * px * unit,
+		what .. ": one form: the stance slab is its slot plus the pad, got " .. (one[3] - one[1]) / unit .. " units wide")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 	checked = checked + 1
 end

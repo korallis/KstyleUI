@@ -182,7 +182,7 @@ Tests: `Tools/regression/test-actionbars-data.lua` (the pure parts and the page 
 | Action bar 5 | `actionbars.bar5` | 4 (left) | `MULTIACTIONBAR4BUTTON1` to `12` | Yes, in the right rail (the owner's picture, LEE-20) |
 | Action bar 6 | `actionbars.bar6` | 13 (Blizzard's bar 6) | `MULTIACTIONBAR5BUTTON1` to `12` | No |
 | Pet bar | `actionbars.pet` | pet actions 1 to 10 | `BONUSACTIONBUTTON1` to `10` | Yes, shown while a pet exists |
-| Stance bar | `actionbars.stance` | shapeshift forms 1 to 10 | `SHAPESHIFTBUTTON1` to `10` | Yes, shown when the class has forms. Folded into rows (the layouts write three rows of four), it keeps a full row's width and fills from its bottom left, so up to four forms make one row on the bar's foot, beside the tray card and on its bottom edge, and a fifth starts the row above |
+| Stance bar | `actionbars.stance` | shapeshift forms 1 to 10 | `SHAPESHIFTBUTTON1` to `10` | Yes, shown when the class has forms. Folded into rows (the layouts write three rows of four), it keeps a full row's width and fills from its bottom left, so up to four forms make one row on the bar's foot, beside the tray card and on its bottom edge, and a fifth starts the row above. Its backing strip and Medallions plate hug the shown forms, not the full row |
 
 A bar is built the first time it is switched on, so a bar that stays off costs nothing. Each bar is a plain holder frame registered with `KstyleUI.Layout.Register` as a scalable element, with the label and default position from `Setup.Layouts`. The holder's child is a `SecureHandlerStateTemplate` header, and the buttons are the header's children, so Layout owns the holder's position, scale, opacity and shown rule while the module owns the header's visibility, paging and fade.
 

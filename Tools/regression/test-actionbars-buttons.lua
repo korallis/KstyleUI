@@ -409,12 +409,39 @@ do
 		local _, _, _, x, y = bar.buttons[i]:GetPoint(1)
 		assert(near(x, (i - 1) * 33) and near(y, 0), "form " .. i .. " sits in the one row, left to right, got " .. x .. ", " .. y)
 	end
+	-- The backing strip hugs the shown forms, never the full row the bar keeps for its place.
+	local function Strip(l, t, r, b, what)
+		local p, q = bar.backing._points[1], bar.backing._points[2]
+		assert(p[1] == "TOPLEFT" and p[2] == bar.header and q[1] == "BOTTOMRIGHT" and q[2] == bar.header)
+		assert(near(p[4], l) and near(p[5], t) and near(q[4], r) and near(q[5], b), what .. ", got " .. table.concat({ p[4], p[5], q[4], q[5] }, ", "))
+	end
+	SK.Options.Write("ActionBars", "stance.backing", true)
+	env.RunTimers()
+	assert(bar.backing:IsShown(), "the stance bar's strip shows")
+	Strip(-3, 3, 3 - 2 * 33, -3, "three forms of five: the strip ends 3 units past the third")
+	local three = env._game.forms
+	env._game.forms = { three[1] }
+	env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
+	Strip(-3, 3, 3 - 4 * 33, -3, "one form: the strip shrinks to the one button")
+	env.SetCombat(true)
+	env._game.forms = three
+	env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
+	assert(#env._blocked == 0, "a new form in combat leaves the strip alone: " .. table.concat(env._blocked, ", "))
+	Strip(-3, 3, 3 - 4 * 33, -3, "in combat the strip keeps its width")
+	env.SetCombat(false)
+	Strip(-3, 3, 3 - 2 * 33, -3, "and the strip widens when combat ends")
+	SK.Options.Write("ActionBars", "stance.growth", "LEFTDOWN")
+	env.RunTimers()
+	Strip(2 * 33 - 3, 3, 3, -3, "growing left, the strip hugs the right end")
+	SK.Options.Write("ActionBars", "stance.growth", "RIGHTUP")
+	env.RunTimers()
 	for i = 4, 6 do
 		env._game.forms[i] = { texture = 132275, spellID = 3000 + i }
 	end
 	env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
 	w, h = bar.holder:GetSize()
 	assert(near(w, 5 * 30 + 4 * 3) and near(h, 2 * 30 + 3), "six forms take a second row: " .. w .. " x " .. h)
+	Strip(-3, 3, 3, -3, "a full row: the strip spans the whole bar")
 	local _, _, _, x1, y1 = bar.buttons[1]:GetPoint(1)
 	local _, _, _, x6, y6 = bar.buttons[6]:GetPoint(1)
 	assert(near(x1, 0) and near(y1, -33) and near(x6, 0) and near(y6, 0), "growing up, the first five stay on the foot, the sixth starts the row above")
@@ -430,6 +457,30 @@ do
 	local _, _, _, ax, ay = bar.buttons[1]:GetPoint(1)
 	local _, _, _, bx, by = bar.buttons[2]:GetPoint(1)
 	assert(near(ax, 0) and near(ay, 0) and near(bx, 0) and near(by, -33), "filling columns first, forms 1 and 2 share the first column")
+	-- Every fill order, growth and form count: the strip wraps exactly the shown forms, 3 units out.
+	local six = env._game.forms
+	for _, o in ipairs({ "HORIZONTAL", "VERTICAL" }) do
+		SK.Options.Write("ActionBars", "stance.orientation", o)
+		for _, g in ipairs({ "RIGHTDOWN", "RIGHTUP", "LEFTDOWN", "LEFTUP" }) do
+			SK.Options.Write("ActionBars", "stance.growth", g)
+			for _, rev in ipairs({ false, true }) do
+				SK.Options.Write("ActionBars", "stance.reverse", rev)
+				for _, n in ipairs({ 1, 3, 6 }) do
+					env._game.forms = { unpack(six, 1, n) }
+					env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
+					local l, b, r, t = math.huge, math.huge, -math.huge, -math.huge
+					for i = 1, n do
+						local s = bar.buttons[i]
+						l, b, r, t = math.min(l, s:GetLeft()), math.min(b, s:GetBottom()), math.max(r, s:GetRight()), math.max(t, s:GetTop())
+					end
+					local k = bar.backing
+					assert(near(k:GetLeft(), l - 3) and near(k:GetBottom(), b - 3) and near(k:GetRight(), r + 3) and near(k:GetTop(), t + 3),
+						table.concat({ o, g, tostring(rev), n, "forms: the strip wraps the shown forms" }, " "))
+				end
+			end
+		end
+	end
+	SK.Options.Write("ActionBars", "stance.reverse", false)
 	SK.Options.Write("ActionBars", "stance.orientation", "HORIZONTAL")
 	SK.Options.Write("ActionBars", "stance.rows", 1)
 	env.RunTimers()
