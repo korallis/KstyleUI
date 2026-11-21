@@ -692,7 +692,8 @@ end
 
 local function Assist(view)
 	local ok = type(UnitCanAssist) == "function" and UnitCanAssist("player", view.unit, true, true)
-	return not issecretvalue(ok) and ok == true
+	if type(UnitCanAssist) ~= "function" or issecretvalue(ok) then return "unknown" end
+	return ok == true
 end
 
 local tracking = false
@@ -707,7 +708,7 @@ local function Retrack()
 		local a = view.auras
 		if a and a.assist ~= nil then
 			any = true
-			if Wanted(view) and a.assist ~= Assist(view) then K.Call(Auras.Apply, view) end
+			if Active(view) and a.assist ~= Assist(view) then K.Call(Auras.Apply, view) end
 		end
 	end
 	if not any then Untrack() end
@@ -737,7 +738,7 @@ function Auras.Candidates(view, key)
 		c = c or {}
 		c.isStealable = steal == "only"
 	end
-	local tracked = (buffs and Value(view, "auraTrackedOnly") or not buffs and view.s.auraTrackedDebuffs) and Value(view, "auraTracked") or ""
+	local tracked = Value(view, buffs and "auraTrackedOnly" or "auraTrackedDebuffs") and Value(view, "auraTracked") or ""
 	if tracked ~= "" and FIXED_UNIT[view.kind] then
 		if not buffs then tracked = "" end
 	elseif tracked ~= "" then

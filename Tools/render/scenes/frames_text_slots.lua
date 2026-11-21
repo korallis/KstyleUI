@@ -212,6 +212,9 @@ return Common.Run(function()
 	if os.getenv("RENDER_PARITY_R4A") == "1" and module == "UnitFrames" then
 		local U, target = dofile("Tools/regression/unitframes_env.lua"), env._units.target
 		target.class = "MAGE"
+		target.auras = { { id = 1, icon = 135813, left = 9, harmful = true, mine = true }, { id = 2, icon = 136026, left = 3, harmful = true, mine = true } }
+		env.UnitCanAssist = function(_, token) return env._units[token] ~= nil and (env._units[token].reaction or 0) >= 5 end
+		dofile("Tools/regression/aura_fixture_engine.lua").Install(env)
 		U.SetUnit(env, "focus", target)
 		local now = env.GetTime() * 1000
 		U.SetUnit(env, "boss1", { name = "Magmatus", level = -1, classification = "worldboss", health = 41200, healthMax = 100000, reaction = 2, canAttack = true,
@@ -223,7 +226,7 @@ return Common.Run(function()
 			{ "player.textBar", true }, { "player.textBarIcon", "LEFT" }, { "player.textBarLeft.textFormat", "[name]" }, { "player.textBarRight.textFormat", "[hp:pct]" },
 			{ "target.textBar", true }, { "target.textBarPlace", "TOP" }, { "target.textBarCenter.textFormat", "[level] [c:ff8800]>[/c] [target]" },
 			{ "focus.textBar", true }, { "focus.textBarPlace", "BELOW" }, { "focus.textBarWidth", 170 }, { "focus.textBarIcon", "RIGHT" },
-			{ "focus.textBarLeft.textFormat", "[name]" }, { "focus.textBarRight.textFormat", "[pp:abr]" },
+			{ "focus.textBarLeft.textFormat", "[name]" }, { "focus.textBarRight.textFormat", "[pp:abr]" }, { "target.auraTracked", "1" }, { "target.auraTrackedDebuffs", true },
 		}) do
 			K.Options.Write(module, pair[1], pair[2])
 		end

@@ -30,25 +30,33 @@ local function Log(message)
 	K.DevTest.Log("UnitFrames", message)
 end
 
+local function Linear(low, high)
+	local util = C_CurveUtil
+	if not (util and type(util.CreateCurve) == "function") then
+		return nil
+	end
+	local ok, made = pcall(util.CreateCurve)
+	if not (ok and made) then
+		return nil
+	end
+	local kinds = Enum and Enum.LuaCurveType
+	if kinds and kinds.Linear and made.SetType then
+		made:SetType(kinds.Linear)
+	end
+	made:AddPoint(0, low)
+	made:AddPoint(1, high)
+	return made
+end
+
 local function Curve()
 	if curveTried then
 		return curve
 	end
 	curveTried = true
-	local util = C_CurveUtil
-	if util and type(util.CreateCurve) == "function" then
-		local ok, made = pcall(util.CreateCurve)
-		if ok and made then
-			local kinds = Enum and Enum.LuaCurveType
-			if kinds and kinds.Linear and made.SetType then
-				made:SetType(kinds.Linear)
-			end
-			made:AddPoint(0, 0)
-			made:AddPoint(1, 100)
-			curve = made
-			Log("percent text: C_CurveUtil curve scaled to 100")
-			return curve
-		end
+	curve = Linear(0, 100)
+	if curve then
+		Log("percent text: C_CurveUtil curve scaled to 100")
+		return curve
 	end
 	local constants = CurveConstants
 	if constants and constants.ScaleTo100 then
@@ -67,25 +75,26 @@ end
 local trims = {}
 local TRIM_PROBES = { { { 415.5, "41.5" }, { 410.5, "41" }, { 0.5, "0" } }, { { 4127.5, "41.27" }, { 4120.5, "41.2" }, { 4100.5, "41" } } }
 local function Trim(places)
-	if trims[places] ~= nil then return trims[places] or nil end
+	if trims[places] ~= nil then return trims[places] end
 	trims[places] = false
-	local scale, util = 10 ^ places, C_CurveUtil
-	if type(AbbreviateNumbers) ~= "function" or not (util and type(util.CreateCurve) == "function") then
-		Log("trailing zeros: AbbreviateNumbers or C_CurveUtil is missing; decimals keep their zeros")
+	local scale = 10 ^ places
+	if type(AbbreviateNumbers) ~= "function" then
+		Log("trailing zeros: AbbreviateNumbers is missing; decimals keep their zeros")
 		return nil
 	end
 	local options = { breakpointData = { { breakpoint = 0, abbreviation = "", significandDivisor = 1, fractionDivisor = scale, abbreviationIsGlobal = false } } }
 	for _, probe in ipairs(TRIM_PROBES[places]) do
 		local ok, text = pcall(AbbreviateNumbers, probe[1], options)
-		if not ok or K.Widgets.IsSecret(text) or text ~= probe[2] then
+		if not ok or K.Widgets.IsSecret(text) or type(text) ~= "string" or text:gsub(",", ".") ~= probe[2] then
 			Log("trailing zeros: AbbreviateNumbers writes " .. tostring(text) .. "; decimals keep their zeros")
 			return nil
 		end
 	end
-	local made = util.CreateCurve()
-	if made.SetType and Enum and Enum.LuaCurveType and Enum.LuaCurveType.Linear then made:SetType(Enum.LuaCurveType.Linear) end
-	made:AddPoint(0, 0.5)
-	made:AddPoint(1, 100 * scale + 0.5)
+	local made = Linear(0.5, 100 * scale + 0.5)
+	if not made then
+		Log("trailing zeros: C_CurveUtil.CreateCurve failed; decimals keep their zeros")
+		return nil
+	end
 	trims[places] = { curve = made, options = options, scale = scale }
 	return trims[places]
 end

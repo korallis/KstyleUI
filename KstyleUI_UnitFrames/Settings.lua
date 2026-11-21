@@ -244,7 +244,7 @@ Settings.defaults = {
 	focus = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false }, 16, 12, { on = true, size = 20, position = "ABOVE" }, { 16, 14, 9, 12 }),
 	focustarget = Kind(false),
 	pet = Kind(false, { happiness = false, auraPosition = "ABOVE", auraColumns = 5, auraFilter = "debuffs", happinessPosition = "", castbarHeight = 12, castbarWidth = 0 }),
-	boss = Kind(true, { power = false, castbarColor = "gold", castbarCaps = true, auraGrowth = "LEFT_DOWN", growth = "DOWN", gap = 6, auraSimple = "" }, 10, 12, { on = true, size = 22, columns = 4, rows = 1, position = "LEFT" }, { 13, 13, 9, 12 }),
+	boss = Kind(true, { power = false, castbarColor = "gold", castbarCaps = true, auraGrowth = "LEFT_DOWN", growth = "DOWN", gap = 6, auraSimple = "", castbarWidth = 0 }, 10, 12, { on = true, size = 22, columns = 4, rows = 1, position = "LEFT" }, { 13, 13, 9, 12 }),
 	resource = {
 		enabled = true,
 		comboPoints = true,
@@ -274,8 +274,6 @@ AddDefaults({ "player" }, { threatNonTank = false, pvpTimer = false, pvpTimerSiz
 AddDefaults({ "target", "focus" }, { threatPercent = false, threatPercentPosition = "RIGHT", slabThreatPercentPosition = "OUTLEFT", threatPercentColor = true })
 Settings.defaults.focus.threatPercentPosition = "OUTRIGHT"
 AddDefaults({ "target", "targettarget", "focus", "focustarget", "boss" }, { eliteSize = 0, eliteX = 0, eliteY = 0, eliteInstances = true })
-AddDefaults({ "boss" }, { castbarWidth = 0 })
-AddDefaults({ "target", "targettarget", "focus", "focustarget", "boss" }, { auraTrackedDebuffs = false })
 Settings.TEXT_BAR = { player = true, target = true, focus = true }
 for kind in pairs(Settings.TEXT_BAR) do
 	local d = Settings.defaults[kind]
@@ -299,6 +297,7 @@ for _, kind in ipairs(KINDS) do
 	Live(Settings.defaults[kind], { buffStealable = "", buffDefensive = "", buffDispellable = "", auraHidden = "", auraTracked = "",
 		auraTimed = false, auraHideLockout = false, auraTrackedOnly = false, auraRowGap = 0, auraPrecise = 0, castbarFit = false, castbarIconSize = 0, auraLists = "" })
 end
+for kind in pairs(Settings.AURAS) do Live(Settings.defaults[kind], { auraTrackedDebuffs = false }) end
 Live(Settings.defaults.player, { castbarRank = false, castbarLagText = false, castbarCraft = false, castbarCraftBar = false, castbarRangeGrey = false, dispelOverlay = "", dispelFilter = "PLAYER",
 	dispelAlpha = 0.3, dispelEdge = false, dispelIcon = "", dispelIconSize = 14, totems = false, totemPosition = "RIGHT", totemSize = 24 })
 
@@ -498,15 +497,14 @@ RANGES.auraRowGap, RANGES.auraPrecise = { 0, AURA_SPACING_MAX }, { 0, PRECISE_MA
 CHOICES.lane = Options({ { "", L["Show all"] }, { "only", L["Only these"] }, { "hide", L["Hide these"] } })
 CHOICE_OF.buffStealable, CHOICE_OF.buffDefensive, CHOICE_OF.buffDispellable = "lane", "lane", "lane"
 
-local FORM_DEFAULTS = { target = { auraSize = 22, auraSpacing = 2, auraColumns = 6, auraGrowth = "LEFT_DOWN" }, boss = { castbarHeight = CARD_CAST } }
-local DEFAULT_FORM = { target = "slab", boss = "card" }
+local SLAB_DEFAULTS = { target = { auraSize = 22, auraSpacing = 2, auraColumns = 6, auraGrowth = "LEFT_DOWN" } }
 local ROW_DEFAULTS = {
 	player = { auraPosition = "ABOVE", auraGrowth = "RIGHT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
 	target = { auraPosition = "ABOVE", auraGrowth = "LEFT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
 }
 
 local DERIVED = { auras = true, auraFilter = true, threatPercentPosition = true }
-for _, list in pairs({ FORM_DEFAULTS, ROW_DEFAULTS }) do
+for _, list in pairs({ SLAB_DEFAULTS, ROW_DEFAULTS }) do
 	for _, keys in pairs(list) do
 		for key in pairs(keys) do DERIVED[key] = true end
 	end
@@ -519,7 +517,7 @@ end
 local AURA_LOOK = { auraSize = "simple", auraPosition = false, auraSpacing = true, auraRows = "simple", auraColumns = true,
 	auraGrowth = true, auraTimer = true, auraZoom = true, auraBuffZoom = true, auraTooltipCombat = true, auraRowGap = true, auraPrecise = true }
 Settings.AURA_LOOK = AURA_LOOK
-local LISTS = { auraHidden = true, auraTracked = true, auraTrackedOnly = true }
+local LISTS = { auraHidden = true, auraTracked = true, auraTrackedOnly = true, auraTrackedDebuffs = true }
 Settings.LISTS = LISTS
 
 local function SimpleSize()
@@ -542,9 +540,9 @@ local function Value(kind, key)
 	local value = own[key]
 	local rows = ROW_DEFAULTS[kind]
 	if rows and rows[key] ~= nil and (value == nil or value == default) and Settings.AuraRows(kind) then return rows[key] end
-	local form = FORM_DEFAULTS[kind] and FORM_DEFAULTS[kind][key]
-	if form ~= nil and (value == nil or value == default) and Settings.Form(kind) == DEFAULT_FORM[kind] then
-		return form
+	local slab = SLAB_DEFAULTS[kind] and SLAB_DEFAULTS[kind][key]
+	if slab ~= nil and (value == nil or value == default) and Settings.Form(kind) == "slab" then
+		return slab
 	end
 	if value == default or type(value) ~= type(default) then
 		return default
@@ -751,6 +749,7 @@ function Settings.Snapshot(kind)
 		end
 	end
 	if (s.castbarWidth or 0) > 0 then s.castbarWidth = math.max(s.castbarWidth, CAST_WIDTH_MIN) end
+	if kind == "boss" then s.cardCast = s.castbarHeight + CARD_CAST - d.castbarHeight end
 	return s
 end
 
@@ -763,7 +762,7 @@ local function Shows(kind, extra)
 	end
 end
 
-local IconRows, ResourceRows, CastRows, AuraRows, TextBarRows
+local IconRows, ResourceRows, CastRows, AuraRows
 
 local function Scope(kind)
 	return { key = "edit", value = kind }
@@ -961,7 +960,7 @@ CastRows = function(schema, kind)
 		height = not Settings.CAST_ELEMENTS[kind] and { CAST_HEIGHT_MIN, CAST_HEIGHT_MAX, 1, key = "castbarHeight" } or nil,
 		row = function(row)
 			if kind == "boss" and row.type == "slider" then
-				row.shown = function(value) return value == Settings.defaults.boss.castbarHeight and Settings.Form(kind) == "card" and CARD_CAST or value end
+				row.shown = function(value) return Settings.Form(kind) == "card" and value + CARD_CAST - Settings.defaults.boss.castbarHeight or value end
 			end
 			return Row(kind, row, row.type == "color" and function(s) return on(s) and s.castbarColor == "custom" end or on)
 		end,
@@ -1232,7 +1231,7 @@ ResourceRows = function(schema)
 	end
 end
 
-TextBarRows = function(schema, kind)
+local function TextBarRows(schema, kind)
 	local function on(s) return s.textBar == true end
 	schema[#schema + 1] = Header(kind, L["text bar"])
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "textBar", label = L["Text bar"],

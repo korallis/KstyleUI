@@ -932,8 +932,9 @@ local TAGGED = { "extra1", "extra2", "textBarLeft", "textBarCenter", "textBarRig
 function Unit.BarIcon(view, unit, sample)
 	local bar = view.textBar
 	if not (bar and bar:IsShown() and view.s.textBarIcon ~= "") then return end
-	local file = sample and (sample.own and K.Theme.Class() or sample.classFile) or ClassFile(unit)
-	bar.icon:SetShown(HasClass(file) and Unit.ClassArt(bar.icon, file, view.s) and true or false)
+	local file = sample and (sample.own and K.Theme.Class() or sample.classFile)
+	if not sample then file = ClassFile(unit) end
+	bar.icon:SetShown(HasClass(file) and Unit.ClassArt(bar.icon, file, view.s))
 end
 
 function Unit.TextTags(view, unit, event, sample)
@@ -946,7 +947,7 @@ function Unit.TextTags(view, unit, event, sample)
 		if text and text:IsShown() then
 			local format = cfg.textFormat
 			if not event or Widgets.ParseText(format).events[event] then Widgets.TagText(text, format, unit, sample) end
-			Widgets.TextTint(text, cfg.colorMode, cfg.color, unit, sample)
+			if not event or event == "Colors" then Widgets.TextTint(text, cfg.colorMode, cfg.color, unit, sample) end
 		end
 	end
 	if not view.s.textOptions then return end

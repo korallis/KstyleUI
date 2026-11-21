@@ -277,7 +277,7 @@ local function PaintCast(frame, view, kind, height)
 	local x, y, w, extra = g.panel.x, height + CAST_GAP, g.panel.w, castH + CAST_GAP
 	if kind == "pet" then
 		w, y = view.s.castbarWidth > 0 and view.s.castbarWidth or w, math.max(height, g.medal and g.medal.y + g.medal.h or 0) + CAST_GAP
-	elseif g.form == "plate" then
+	elseif g.form == "plate" or g.form == "slab" and not Settings.CAST_ELEMENTS[kind] then
 		w = (view.s.castbarWidth or 0) > 0 and math.min(view.s.castbarWidth, w) or w
 	else
 		if not g.cast then
@@ -382,11 +382,12 @@ local function Samples(kind)
 	local friend = SAMPLES[kind].reaction >= 5
 	local ids = K.Options.AuraCandidates({ blockSpells = Settings.Value(kind, "auraHidden"),
 		allowSpells = friend and Settings.Value(kind, "auraTrackedOnly") and Settings.Value(kind, "auraTracked") or "" }) or {}
-	local foes = not friend and Settings.Value(kind, "auraTrackedDebuffs") and K.Options.AuraCandidates({ allowSpells = Settings.Value(kind, "auraTracked") })
+	local filter = Settings.Value(kind, "auraFilter")
+	local foes = not friend and filter ~= "buffs" and Settings.Value(kind, "auraTrackedDebuffs") and K.Options.AuraCandidates({ allowSpells = Settings.Value(kind, "auraTracked") })
 	local kept = {}
 	for p, t in ipairs(AURA_TRAITS) do
 		local keep = not (t.id and Settings.Value(kind, "auraHideLockout") or ids.excludeSpellIDs and ids.excludeSpellIDs[t.id])
-		if not t.buff and foes and foes.includeSpellIDs then
+		if (not t.buff or filter == "debuffs") and foes and foes.includeSpellIDs then
 			keep = keep and foes.includeSpellIDs[t.id] == true
 		elseif t.buff then
 			keep = keep and not (ids.includeSpellIDs and not ids.includeSpellIDs[t.id])
@@ -602,7 +603,7 @@ local function Refresh(frame)
 	local view = frame.views[kind]
 	view.s = Settings.Snapshot(kind)
 	local width, height = Size(frame, kind, view.s)
-	if Settings.CASTBAR[kind] and not Settings.CAST_ELEMENTS[kind] and kind ~= "pet" and view.s.castbar and view.s.form == "plate" then
+	if Settings.CASTBAR[kind] and not Settings.CAST_ELEMENTS[kind] and kind ~= "pet" and view.s.castbar and (view.s.form == "plate" or view.s.form == "slab") then
 		height = math.max(0, height - view.s.castbarHeight - CAST_GAP)
 	end
 	holder:SetSize(width, height)
@@ -617,6 +618,7 @@ local function Refresh(frame)
 	frame.auraCount = PaintAuras(frame, view, kind)
 	Fit(frame, holder, kind, width, height)
 	Style.Layout(view, view.s, width, height)
+	ns.Unit.TextTags(view, nil, nil, SAMPLES[kind])
 	ns.Dispel.Sample(view, holder, kind)
 	PaintCast(frame, view, kind, height)
 	Fit(frame, holder, kind, width, height)

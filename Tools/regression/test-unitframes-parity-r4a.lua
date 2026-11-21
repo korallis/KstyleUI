@@ -30,7 +30,7 @@ for kind in pairs(Settings.TEXT_BAR) do
 	assert(ns.Frames.Get(kind).views[1].textBar == nil and ns.Frames.Get(kind).views[1].barRect == nil, kind .. " makes no strip by default")
 end
 assert(not Settings.defaults.pet.textBar and not Settings.defaults.boss.textBar, "only the main frames carry a text bar")
-assert(Settings.Value("boss", "castbarWidth") == 0 and Settings.Snapshot("boss").castbarHeight == 16 and Settings.Snapshot("focus").castbarHeight == 16, "the cards keep their 16-unit cast line")
+assert(Settings.Value("boss", "castbarWidth") == 0 and Settings.Snapshot("boss").cardCast == 16 and Settings.Snapshot("focus").castbarHeight == 16, "the cards keep their 16-unit cast line")
 assert(Settings.Module().healthDecimalTrim == false and Settings.Value("target", "auraTrackedDebuffs") == false, "trailing zeros and tracked debuffs start off")
 local rows = {}
 for _, row in ipairs(Settings.Schema()) do

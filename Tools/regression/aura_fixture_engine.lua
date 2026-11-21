@@ -25,8 +25,9 @@ function Engine.Refresh(env)
 		for _, key in ipairs(container._order) do
 			local group, matches = container._groups[key], {}
 			if unit and container._enabled ~= false and group.enabled then
+				local include = group.candidates and group.candidates.includeSpellIDs
 				for _, aura in ipairs(unit.auras or {}) do
-					if Matches(aura, group.filter) then matches[#matches + 1] = aura end
+					if Matches(aura, group.filter) and not (include and not include[aura.id]) then matches[#matches + 1] = aura end
 				end
 			end
 			local method = group.sort and group.sort[1] or group.options.sortMethod

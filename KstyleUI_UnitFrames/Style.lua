@@ -690,7 +690,7 @@ function Style.PlaceName(view, rect)
 	end
 end
 
-local BAR_GAP, BAR_PAD, BAR_MIN_BODY = 4, 4, 20
+local BAR_GAP, BAR_PAD, BAR_MIN_BODY, BAR_MIN = 4, 4, 20, 8
 local BAR_SLOTS = { "textBarLeft", "textBarCenter", "textBarRight" }
 
 local function BarRoom(s, height)
@@ -700,13 +700,23 @@ local function BarRoom(s, height)
 	return h, gap, s.textBarPlace == "TOP" or s.textBarPlace == "ABOVE"
 end
 
+local function Reach(view, g, x0, x1, top, bodyH)
+	local reach = 0
+	for key, r in pairs(g) do
+		if type(r) == "table" and r.w and key ~= "marker" and key ~= "medal" and (key ~= "aura" or r.centred) and r.x < x1 and r.x + r.w >= x0 then
+			local h = key == "aura" and select(2, ns.Auras.Footprint(view.kind)) or r.h
+			reach = math.max(reach, top and -r.y or r.y + h - bodyH)
+		end
+	end
+	return reach
+end
+
 local function TextBar(view, s)
 	local rect, bar = view.barRect, view.textBar
+	if not (rect or bar:IsShown()) then return end
 	if not rect then
-		if bar and bar:IsShown() then
-			bar:Hide()
-			for _, key in ipairs(BAR_SLOTS) do if view[key] then view[key]:Hide() end end
-		end
+		bar:Hide()
+		for _, key in ipairs(BAR_SLOTS) do if view[key] then view[key]:Hide() end end
 		return
 	end
 	if not bar then
@@ -724,8 +734,8 @@ local function TextBar(view, s)
 	local icon, pad, size = s.textBarIcon, Snap(view, BAR_PAD), Snap(view, rect.h)
 	bar.icon:ClearAllPoints()
 	bar.icon:SetSize(size, size)
-	bar.icon:SetPoint(icon == "RIGHT" and "RIGHT" or "LEFT", bar, icon == "RIGHT" and "RIGHT" or "LEFT")
-	bar.icon:SetShown(icon ~= "")
+	bar.icon:SetPoint(icon == "RIGHT" and "RIGHT" or "LEFT", bar)
+	if icon == "" then bar.icon:Hide() end
 	bar.inner:ClearAllPoints()
 	bar.inner:SetPoint("TOPLEFT", bar, "TOPLEFT", pad + (icon == "LEFT" and size or 0), 0)
 	bar.inner:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", -pad - (icon == "RIGHT" and size or 0), 0)
@@ -742,7 +752,7 @@ local function ExtraTexts(view, s)
 		view[key] = Widgets.PlaceText(view[key], s[key], view.top, view.parent)
 	end
 	if view.barRect or view.textBar then TextBar(view, s) end
-	view.tagged = view.extra1 or view.extra2 or view.textBar
+	view.tagged = view.extra1 or view.extra2 or view.barRect
 	local align = s.powerTextAlign
 	if align ~= "" or view.powerAligned then
 		view.powerAligned = align ~= ""
@@ -754,13 +764,24 @@ end
 function Style.Layout(view, s, width, height)
 	local barH, gap, top = 0, 0, false
 	if s.textBar then barH, gap, top = BarRoom(s, height) end
-	local g = Geometry.Frame(s, width, height - barH - gap, K.Theme.FontScale())
-	if view.barRect then view.barRect = nil end
+	local bodyH = height - barH - gap
+	local g = Geometry.Frame(s, width, bodyH, K.Theme.FontScale())
+	view.barRect = nil
 	if barH > 0 then
 		local w = gap > 0 and s.textBarWidth > 0 and math.min(s.textBarWidth, width) or width
-		view.barRect = { x = (width - w) / 2, y = top and 0 or height - barH, w = w, h = barH }
-		for _, r in pairs(g) do
-			if top and type(r) == "table" and type(r.y) == "number" then r.y = r.y + barH + gap end
+		local x0, x1, m = (width - w) / 2, (width + w) / 2, g.medal
+		if m and m.x + m.w / 2 < width / 2 then x0 = math.max(x0, m.x + m.w) elseif m then x1 = math.min(x1, m.x) end
+		local h, need = barH - math.max(0, Reach(view, g, x0, x1, top, bodyH) - gap), BAR_MIN
+		for _, key in ipairs(BAR_SLOTS) do
+			if s[key].textFormat ~= "" then need = math.max(need, tonumber(s[key].size) or 0) end
+		end
+		if h >= math.min(barH, need) and x1 > x0 then
+			view.barRect = { x = x0, y = top and 0 or height - h, w = x1 - x0, h = h }
+			for key, r in pairs(g) do
+				if top and type(r) == "table" and type(r.y) == "number" and (key ~= "aura" or r.centred) then r.y = r.y + barH + gap end
+			end
+		else
+			g = Geometry.Frame(s, width, height, K.Theme.FontScale())
 		end
 	end
 	view.geometry = g
