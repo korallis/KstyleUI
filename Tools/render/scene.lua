@@ -576,15 +576,25 @@ local function textOf(env, region)
 	if region._renderText ~= nil then
 		return region._renderText
 	end
+	-- The stubs log every call, so the scan resumes where the last one stopped instead of rereading the log.
 	local calls = region._calls or {}
-	for i = #calls, 1, -1 do
-		local call = calls[i]
-		if call.method == "SetText" then
-			return formatText(env, call.args)
-		elseif call.method == "SetFormattedText" then
-			call.args.format = true
-			return formatText(env, call.args)
+	local scan = region._textScan
+	if not scan or scan.calls ~= calls or scan.n > #calls then
+		scan = { calls = calls, n = 0 }
+		region._textScan = scan
+	end
+	for i = #calls, scan.n + 1, -1 do
+		local method = calls[i].method
+		if method == "SetText" or method == "SetFormattedText" then
+			scan.call = calls[i]
+			break
 		end
+	end
+	scan.n = #calls
+	local call = scan.call
+	if call then
+		call.args.format = call.method == "SetFormattedText" or nil
+		return formatText(env, call.args)
 	end
 	local formatted = region._state.FormattedText
 	if formatted then
@@ -749,7 +759,7 @@ function Solver:solve(object)
 	if object == env.UIParent then
 		return self.screen
 	end
-	if self.natural and object._type == "FontString" then
+	if self.natural and object._type == "FontString" and not ((num(env, object._width) or 0) > 0 and (num(env, object._height) or 0) > 0) then
 		natural(env, object, self.log)
 	end
 	local scale = effectiveScale(object)
