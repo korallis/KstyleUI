@@ -519,7 +519,7 @@ local function Refresh(frame)
 end
 
 function Preview.Build(parent)
-	local frame = CreateFrame("Frame", nil, parent)
+	local frame = Widgets.MarkPreview(CreateFrame("Frame", nil, parent))
 	frame:SetAllPoints(parent)
 	frame.holders, frame.views, frame.casts, frame.auraIcons, frame.auraTiles, frame.auraHosts, frame.auraChips = {}, {}, {}, {}, {}, {}, {}
 	frame.Refresh = Refresh
