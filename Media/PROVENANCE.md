@@ -938,15 +938,18 @@ The Medallions HUD style's portraits and crests. Each is original art generated 
 
 ## Class-themed pips (2026-11-21)
 
-Original KstyleUI art in the crest's forged look (gilt and steel lit from the upper left, a thin dark outline), one piece for each class with a pip resource on Forever (a rogue and a cat-form druid), each baked to 128x128 at the five angles the Medallions crest's crown fans them at (130, 110, 90, 70 and 50 degrees; 90 is upright and is the unit frames' row). Each piece has four textures per angle that share one silhouette, so the lit piece covers the dormant one exactly and the shape masks only the piece.
+Original KstyleUI art in the crest's forged look (gilt and steel lit from the upper left, a thin dark outline), one piece for each class with a pip resource on Forever (a rogue and a cat-form druid), each baked to 128x128 at the five angles the Medallions crest's crown fans them at (130, 110, 90, 70 and 50 degrees, in that order below; 90 is upright and is the unit frames' row). Each piece has four textures per angle that share one silhouette, so the lit piece covers the dormant one exactly and the shape masks only the piece.
 
-| File | Size | What it is |
+| Files | Size | What it is |
 | --- | --- | --- |
-| `Media/Textures/Pips/PipBlade<angle>.png` | 128x128 | A rogue's combo point: a dagger with a polished steel blade and a glowing crimson ember channel, a gilt crossguard with curled quillons, a dark wrapped grip and a gilt pommel set with a red gem. |
-| `Media/Textures/Pips/PipClaw<angle>.png` | 128x128 | A cat-form druid's combo point: a curved ivory talon with a glowing amber channel along its inner curve, in a gilt cuff with green leaf filigree. |
-| `Media/Textures/Pips/Pip<piece>Steel<angle>.png` | 128x128 | The same piece dormant: its luminance as cool ghost steel at 80% opacity. |
-| `Media/Textures/Pips/Pip<piece>Shape<angle>.png` | 128x128 | The piece's silhouette, white: the mask for the slide-in and slash, and the flare, tinted the class's core colour. |
-| `Media/Textures/Pips/Pip<piece>Glow<angle>.png` | 128x128 | The silhouette blurred, white: the halo that hugs a lit piece, ADD, tinted the class's glow colour. |
+| `Media/Textures/Pips/PipBlade130.png`, `Media/Textures/Pips/PipBlade110.png`, `Media/Textures/Pips/PipBlade90.png`, `Media/Textures/Pips/PipBlade70.png`, `Media/Textures/Pips/PipBlade50.png` | 128x128 | A rogue's combo point: a dagger with a polished steel blade and a glowing crimson ember channel, a gilt crossguard with curled quillons, a dark wrapped grip and a gilt pommel set with a red gem. |
+| `Media/Textures/Pips/PipClaw130.png`, `Media/Textures/Pips/PipClaw110.png`, `Media/Textures/Pips/PipClaw90.png`, `Media/Textures/Pips/PipClaw70.png`, `Media/Textures/Pips/PipClaw50.png` | 128x128 | A cat-form druid's combo point: a curved ivory talon with a glowing amber channel along its inner curve, in a gilt cuff with green leaf filigree. |
+| `Media/Textures/Pips/PipBladeSteel130.png`, `Media/Textures/Pips/PipBladeSteel110.png`, `Media/Textures/Pips/PipBladeSteel90.png`, `Media/Textures/Pips/PipBladeSteel70.png`, `Media/Textures/Pips/PipBladeSteel50.png` | 128x128 | The dagger dormant: its luminance as cool ghost steel at 80% opacity. |
+| `Media/Textures/Pips/PipClawSteel130.png`, `Media/Textures/Pips/PipClawSteel110.png`, `Media/Textures/Pips/PipClawSteel90.png`, `Media/Textures/Pips/PipClawSteel70.png`, `Media/Textures/Pips/PipClawSteel50.png` | 128x128 | The talon dormant, likewise. |
+| `Media/Textures/Pips/PipBladeShape130.png`, `Media/Textures/Pips/PipBladeShape110.png`, `Media/Textures/Pips/PipBladeShape90.png`, `Media/Textures/Pips/PipBladeShape70.png`, `Media/Textures/Pips/PipBladeShape50.png` | 128x128 | The dagger's silhouette, white: the mask for the slide-in and slash, and the flare, tinted `jewelComboCore`. |
+| `Media/Textures/Pips/PipClawShape130.png`, `Media/Textures/Pips/PipClawShape110.png`, `Media/Textures/Pips/PipClawShape90.png`, `Media/Textures/Pips/PipClawShape70.png`, `Media/Textures/Pips/PipClawShape50.png` | 128x128 | The talon's silhouette, white; mask and flare as for the dagger, tinted `pipDruidCore`. |
+| `Media/Textures/Pips/PipBladeGlow130.png`, `Media/Textures/Pips/PipBladeGlow110.png`, `Media/Textures/Pips/PipBladeGlow90.png`, `Media/Textures/Pips/PipBladeGlow70.png`, `Media/Textures/Pips/PipBladeGlow50.png` | 128x128 | The dagger's silhouette blurred, white: the halo that hugs a lit dagger, ADD, tinted `jewelCombo`. |
+| `Media/Textures/Pips/PipClawGlow130.png`, `Media/Textures/Pips/PipClawGlow110.png`, `Media/Textures/Pips/PipClawGlow90.png`, `Media/Textures/Pips/PipClawGlow70.png`, `Media/Textures/Pips/PipClawGlow50.png` | 128x128 | The talon's silhouette blurred, white: its halo, ADD, tinted `pipDruidGlow`. |
 
 ## Danger edge and portrait rings (E1/E2, 2026-11-18)
 
