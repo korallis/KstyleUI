@@ -240,7 +240,8 @@ function Motion.Tween(obj, setter, from, to, duration, easing, onDone)
 		driver = CreateFrame("Frame")
 	end
 	if not driver:GetScript("OnUpdate") then
-		driver:SetScript("OnUpdate", Step)
+		local DevTest = ns.DevTest
+		driver:SetScript("OnUpdate", DevTest and DevTest.Timed and DevTest.Timed("Motion step", Step) or Step)
 	end
 	return handle
 end

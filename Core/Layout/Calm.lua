@@ -213,7 +213,8 @@ local function StartWait()
 		driver = CreateFrame("Frame")
 	end
 	wait = Calm.DELAY
-	driver:SetScript("OnUpdate", Count)
+	local DevTest = ns.DevTest
+	driver:SetScript("OnUpdate", DevTest and DevTest.Timed and DevTest.Timed("Calm wait", Count) or Count)
 end
 
 local function Fall()

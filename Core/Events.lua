@@ -24,7 +24,12 @@ local function slot(owner)
 		frame:SetScript("OnEvent", function(_, event, ...)
 			local fn = handlers[event]
 			if fn then
-				ns.Call(fn, event, ...)
+				local DevTest = ns.DevTest
+				if DevTest and DevTest.Profiling and DevTest.Profiling() then
+					DevTest.Time(owner .. " " .. event, ns.Call, fn, event, ...)
+				else
+					ns.Call(fn, event, ...)
+				end
 			end
 		end)
 		entry = { frame = frame, handlers = handlers }

@@ -23,6 +23,7 @@ The layout and render tests draw the HUD on 1280x720, 1366x768, 1920x1080, 2560x
 | --- | --- |
 | `/kstyle test` | Runs the smoke checks and writes the results to the devlog. Type `/reload` afterwards to save them. |
 | `/kstyle devlog on`, `/kstyle devlog off` | Arms or stops the [Edit Mode geometry recorder](EDIT_MODE_RECORDER.md) for this session; it is off after every reload. |
+| `/kstyle perf`, `/kstyle perf <seconds>` | Records the frame rate and the Lua time this addon spends into the devlog for 20 seconds or the number given; run it again to stop early, then `/reload` to save. [PROFILING.md](PROFILING.md) explains how to read the report. |
 
 ## Repository
 

@@ -12,6 +12,7 @@ local USAGE = {
 	"/kstyle bind - " .. L["hover a button and press a key to bind it (Blizzard's Quick Keybind mode)"],
 	"/kstyle test - " .. L["run the smoke checks and write the devlog"],
 	"/kstyle devlog on|off - Edit Mode geometry recorder (developer diagnostics)",
+	"/kstyle perf [seconds] - record the frame rate and this addon's Lua time into the devlog",
 	"/kstyle profile - " .. L["list the profiles"],
 	"/kstyle profile use <name> - " .. L["switch this character to a profile, creating it if needed"],
 	"/kstyle profile new <name> - " .. L["create a profile with the default settings"],
@@ -132,6 +133,9 @@ local COMMANDS = {
 	end,
 	test = function()
 		ns.DevTest.Run()
+	end,
+	perf = function(rest)
+		ns.DevTest.Profile(tonumber(rest))
 	end,
 	devlog = function(rest)
 		local value = rest:lower()
