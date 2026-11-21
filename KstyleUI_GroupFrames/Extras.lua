@@ -9,9 +9,9 @@ local Extras = { groups = {} }
 ns.Extras = Extras
 
 local AT = {
-	pets = { key = "groupframes.pets", label = L["Pet frames"], title = L["Pets"], at = { anchor = "TOP", x = 112, y = -324 }, count = 40, per = 10 },
+	pets = { key = "groupframes.pets", label = L["Pet frames"], title = L["Pets"], at = { anchor = "TOP", x = 176, y = -324 }, count = 40, per = 10 },
 	tanks = { key = "groupframes.tanks", label = L["Tank frames"], title = L["Tanks"], at = { anchor = "TOPRIGHT", x = -264, y = -116 }, count = 8, per = 8 },
-	boss = { key = "groupframes.boss", label = L["Friendly boss frames"], title = L["Bosses"], at = { anchor = "RIGHT", x = -408, y = -244 }, count = 5 },
+	boss = { key = "groupframes.boss", label = L["Friendly boss frames"], title = L["Bosses"], at = { anchor = "LEFT", x = 640, y = -28 }, count = 5 },
 }
 local ORDER = { "pets", "tanks", "boss" }
 local DRIVER = "[group] show; hide"
