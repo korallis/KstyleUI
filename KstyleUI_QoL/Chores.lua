@@ -8,10 +8,9 @@ local OWNER = "QoL.chores"
 local SHOT = "SCREENSHOT_SUCCEEDED"
 local UNDRESS = "QoL.transforms"
 local GATES = { "PLAYER_REGEN_ENABLED", "ADDON_RESTRICTION_STATE_CHANGED", "PLAYER_ENTERING_WORLD" }
-local TRANSFORMS = { [24708] = true, [24709] = true, [24710] = true, [24711] = true, [24712] = true, [24713] = true, [24723] = true, [24732] = true, [24735] = true,
-	[24736] = true, [24740] = true, [470868] = true, [8213] = true, [8219] = true, [8220] = true, [8221] = true, [8222] = true, [1252576] = true, [25688] = true,
-	[30167] = true, [435986] = true, [446098] = true, [446104] = true, [1213145] = true, [1214179] = true, [1214281] = true, [1214284] = true, [1220560] = true,
-	[1220561] = true, [1220562] = true, [1220563] = true, [1220564] = true }
+local TRANSFORMS = { [24708] = true, [24709] = true, [24710] = true, [24711] = true, [24712] = true, [24713] = true, [24723] = true, [24735] = true, [24736] = true,
+	[8213] = true, [8219] = true, [8220] = true, [8221] = true, [8222] = true, [1252576] = true, [30167] = true, [435986] = true, [446098] = true, [446104] = true,
+	[1213145] = true, [1214179] = true, [1214281] = true, [1214284] = true, [1220560] = true, [1220561] = true, [1220562] = true, [1220563] = true, [1220564] = true }
 
 local TOASTS = { loot = { "SHOW_LOOT_TOAST", "SHOW_LOOT_TOAST_UPGRADE", "SHOW_LOOT_TOAST_LEGENDARY_LOOTED", "LOOT_ITEM_ROLL_WON" }, achievements = { "ACHIEVEMENT_EARNED", "CRITERIA_EARNED" } }
 local HOLD = { "MerchantFrame", "MailFrame", "BankFrame", "TradeFrame", "AuctionHouseFrame", "GuildBankFrame", "LootFrame" }
@@ -190,10 +189,10 @@ end
 local function Landed(info)
 	if ns.IsSecret(info) or type(info) ~= "table" or ns.IsSecret(info.isFullUpdate) or info.isFullUpdate then return true end
 	local added = info.addedAuras
-	if type(added) ~= "table" then return false end
+	if ns.IsSecret(added) then return true elseif type(added) ~= "table" then return false end
 	for i = 1, #added do
-		local id = type(added[i]) == "table" and added[i].spellId
-		if ns.IsSecret(id) or TRANSFORMS[id] then return true end
+		local aura = added[i]
+		if ns.IsSecret(aura) or type(aura) == "table" and (ns.IsSecret(aura.spellId) or TRANSFORMS[aura.spellId]) then return true end
 	end
 	return false
 end
@@ -205,22 +204,27 @@ local function Untransform(event, _, info)
 	if ns.Ask(InCombatLockdown) ~= false or type(CancelUnitBuff) ~= "function" or type(auras) ~= "table" or type(auras.GetBuffDataByIndex) ~= "function"
 		or type(secrets) ~= "table" or select(2, pcall(ns.Ask, secrets.ShouldAurasBeSecret)) ~= false then return end
 	pending = false
-	for i = 40, 1, -1 do
+	local found, i = {}, 0
+	repeat
+		i = i + 1
 		local aura = auras.GetBuffDataByIndex("player", i)
-		if type(aura) == "table" and TRANSFORMS[ns.Number(aura.spellId)] then CancelUnitBuff("player", i, "HELPFUL") end
-	end
+		if ns.IsSecret(aura) or type(aura) == "table" and ns.IsSecret(aura.spellId) then pending = true
+		elseif type(aura) == "table" and TRANSFORMS[aura.spellId] then found[#found + 1] = i end
+	until not ns.IsSecret(aura) and aura == nil
+	for n = #found, 1, -1 do CancelUnitBuff("player", found[n], "HELPFUL") end
 end
 
 local function Transforms()
 	local on = ns.running and ns.Get("hideTransforms") or false
 	if on ~= listening then
 		listening = on
-		for _, event in ipairs(GATES) do
-			if on then K.Events.Register(UNDRESS, event, Untransform) else K.Events.Unregister(UNDRESS, event) end
+		if on then
+			for _, event in ipairs(GATES) do K.Events.Register(UNDRESS, event, Untransform) end
+			K.Events.RegisterUnit(UNDRESS, "UNIT_AURA", Untransform, "player")
+		else
+			K.Events.UnregisterAll(UNDRESS)
 		end
-		if on then K.Events.RegisterUnit(UNDRESS, "UNIT_AURA", Untransform, "player") else K.Events.Unregister(UNDRESS, "UNIT_AURA") end
 	end
-	pending = false
 	if on then Untransform() end
 end
 
