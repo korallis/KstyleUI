@@ -193,6 +193,19 @@ function Preview.Build(...)
 				widest = max(widest, w)
 			end
 		end
+		local reminder = settings.reminder.enabled == true
+		if reminder and not frame.reminder then
+			frame.reminder = ns.Reminder.Card(frame.canvas)
+		end
+		if frame.reminder then
+			frame.reminder:SetShown(reminder)
+			if reminder then
+				local w, h = ns.Reminder.Paint(frame.reminder, ns.Reminder.Sample())
+				frame.reminder:ClearAllPoints()
+				Widgets.Point(frame.reminder, "TOPRIGHT", frame.canvas, "TOPRIGHT", 0, -top)
+				top, widest = top + h + gap, max(widest, w)
+			end
+		end
 		local scale = 1
 		if available and widest > available then
 			scale = available / widest

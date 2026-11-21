@@ -635,6 +635,7 @@ local function ApplyAll(relayout)
 			Apply(desc, relayout)
 		end
 	end
+	ns.Reminder.Sync(running)
 end
 
 local function BlizzardFrame(name)
@@ -803,6 +804,7 @@ end
 
 function Panel.Disable()
 	running = false
+	ns.Reminder.Sync(false)
 	StopWaiting()
 	for _, name in ipairs(Model.GROUPS) do
 		local desc = groups[name]

@@ -117,6 +117,10 @@ local function BuildSchema()
 		return format ~= "short" and format ~= "decimal"
 	end
 
+	local function reminderOff(settings)
+		return settings.reminder.enabled ~= true
+	end
+
 	local function colorRows(section, label, hidden)
 		return {
 			type = "toggle", key = section .. ".customColor", label = L["Custom colour"], help = L["Pick a colour for this text instead of the kit's."], disableWhen = hidden,
@@ -181,6 +185,11 @@ local function BuildSchema()
 		slider("count.y", L["Vertical offset"], L["Move this text up or down."], LIMITS.offset, countHidden),
 		{ type = "dropdown", key = "count.position", label = L["Stack position"], options = Model.CORNERS, help = L["Where on the icon the stack count sits: in a corner, on an edge or in the centre."], disableWhen = countHidden },
 		countToggle, countColor,
+		{ type = "header", label = L["Missing buff reminder"] },
+		{ type = "toggle", key = "reminder.enabled", label = L["Missing buff reminder"], help = L["Out of combat, a card names a class buff of yours that is missing."] },
+		{ type = "font", key = "reminder.font", label = L["Reminder font"], help = L["The typeface of the reminder text."], options = K.Widgets.InheritedFontOptions, disableWhen = reminderOff },
+		slider("reminder.size", L["Reminder text size"], L["The text size of the reminder."], LIMITS.timerSize, reminderOff),
+		{ type = "dropdown", key = "reminder.outline", label = L["Reminder outline"], options = Model.OUTLINES, help = L["A soft shadow, or an outline that reads well over bright scenes."], disableWhen = reminderOff },
 		{ type = "header", label = L["Accent"] },
 		{
 			type = "dropdown", key = "accent.source", label = L["Buff border colour"], options = Model.ACCENT_SOURCES,
