@@ -1,4 +1,4 @@
--- test-meters-both.lua: DPS and manual meter choices share equal-width, separate cards across styles, layouts and screens.
+-- test-meters-both.lua: DPS and manual meter choices pair separate cards, threat at the slot width beside damage, across styles, layouts and screens.
 local M = dofile("Tools/regression/meters_env.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
 
@@ -7,7 +7,7 @@ local function Pair(env, K, ns)
 	local damage = assert(Geometry.Rect(ns.Damage.list.panel, root))
 	local threat = assert(Geometry.Rect(ns.Threat.list.panel, root))
 	assert(ns.Damage.list.panel:IsVisible() and ns.Threat.list.panel:IsVisible(), "Both must show two separate cards")
-	assert(math.abs((damage.right - damage.left) - (threat.right - threat.left)) < 1, "Both cards must share the damage width")
+	assert(math.abs(ns.SLOT_WIDTH - (threat.right - threat.left)) < 1, "Both docks threat at the slot width that clears the HUD")
 	assert(math.abs(damage.left - threat.right - K.Setup.Layouts.GAP) <= K.Scale.Pixel(1), "all styles share the same meter gap")
 	assert(threat.right < damage.left and math.abs(threat.top - damage.top) < 1, "put threat beside damage with their headings level")
 	assert(math.abs((damage.top - damage.bottom) - (threat.top - threat.bottom)) < 1, "Both cards share their live height")
@@ -94,7 +94,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			Pair(env, K, ns)
 			K.Layout.Update("meters.damage", { width = 300 })
 			env.RunTimers()
-			assert(ns.Threat.holder:GetWidth() == ns.Damage.holder:GetWidth(), "resizing damage keeps the paired widths equal")
+			assert(ns.Threat.holder:GetWidth() == ns.SLOT_WIDTH, "resizing damage keeps the docked threat at the slot width")
 			K.Layout.Update("meters.threat", { x = -900 })
 			assert(select(2, ns.Threat.holder:GetPoint(1)) == K.Scale.Root(), "a custom threat position wins")
 		end

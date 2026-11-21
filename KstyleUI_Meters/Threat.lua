@@ -11,6 +11,7 @@ local MAX_RAID = 40
 local MAX_PARTY = 4
 local PERCENT_MAX = 100
 local LIMITS = { minWidth = 120, maxWidth = 600, minHeight = 40, maxHeight = 800 }
+local SLOT_WIDTH = 180
 local EVENTS = {
 	"PLAYER_TARGET_CHANGED", "UNIT_TARGET", "UNIT_THREAT_LIST_UPDATE", "UNIT_THREAT_SITUATION_UPDATE",
 	"GROUP_ROSTER_UPDATE", "UNIT_PET", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD",
@@ -26,7 +27,7 @@ end
 
 local DockGuide
 local Threat = { section = "threat", key = KEY, roster = {}, size = 0, rows = {}, order = {}, count = 0 }
-ns.Threat = Threat
+ns.Threat, ns.SLOT_WIDTH = Threat, SLOT_WIDTH
 
 local function IsSecret(v)
 	return Logic.IsSecret(v)
@@ -279,7 +280,7 @@ function DockGuide()
 		Threat.soloWidth = Threat.soloWidth or holder:GetWidth()
 		Threat.soloHeight = Threat.soloHeight or holder:GetHeight()
 		if holder:GetHeight() ~= damage:GetHeight() then holder:SetHeight(damage:GetHeight()) end
-		if holder:GetWidth() ~= damage:GetWidth() then holder:SetWidth(damage:GetWidth()) end
+		if holder:GetWidth() ~= SLOT_WIDTH then holder:SetWidth(SLOT_WIDTH) end
 		holder:ClearAllPoints()
 		K.Widgets.Point(holder, "TOPRIGHT", damage, "TOPLEFT", -K.Setup.Layouts.GAP / K.Widgets.ScaleFactor(holder), 0, true)
 		ns.Damage.list:Fit()
