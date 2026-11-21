@@ -246,8 +246,6 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 							for _, kind in ipairs({ "player", "target" }) do
 								local a = env._addons.KstyleUI_UnitFrames.Frames.Get(kind).views[1].auras
 								if a then owners[a.host] = "unitframes." .. kind end
-								local units = env._addons.KstyleUI_UnitFrames
-								if units.Settings.CastOnFrame(kind) then owners[units.CastBars.Inline(kind)[1].frame] = "unitframes.castbar." .. kind end
 							end
 							owners[env.BuffIconCooldownViewer]="cooldowns.buffs"
 							owners[env.BuffBarCooldownViewer]="cooldowns.bars"
