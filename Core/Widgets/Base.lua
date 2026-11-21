@@ -300,6 +300,9 @@ local function Under(node, roots)
 		if roots[node] then
 			return true
 		end
+		if type(node.IsForbidden) == "function" and node:IsForbidden() == true then
+			return false
+		end
 		node = node:GetParent()
 	end
 	return false
