@@ -1,6 +1,6 @@
 -- test-auras-reminder.lua: the missing buff reminder: a v0.2.8 profile builds nothing; switched on, the card names your first known class buff you lack, refreshes on aura, combat, death and spell changes, hides while auras are secret, takes its text rows, shows in the preview and goes away when off.
 local A = dofile("Tools/regression/auras_env.lua")
-local NAMES = { [1459] = "Arcane Intellect", [23028] = "Arcane Brilliance", [168] = "Frost Armor", [7302] = "Ice Armor", [6117] = "Mage Armor" }
+local NAMES = { [1459] = "Arcane Intellect", [23028] = "Arcane Brilliance", [168] = "Frost Armor", [7302] = "Ice Armor", [6117] = "Mage Armor", [428741] = "Molten Armor" }
 local saved = { version = 4, profiles = { Default = { Auras = { enabled = true } } }, characters = {} }
 local env, K = A.New({ saved = saved, setup = function(e)
 	e._known, e._mine, e._dead = { [1459] = true, [168] = true }, {}, false

@@ -1317,7 +1317,7 @@ local function fillAuras(env, A, container, key, group, entries)
 end
 
 -- RENDER_AURAS_REMINDER=1 switches on the missing buff reminder (parity round 3): the class knows its reminder buff
--- and lacks it, so the buff is left off the buff row and the card names it.
+-- and lacks it, so the buff is left off the buff row and the card names it. Its other spells get stand-in names, as the reminder reads every one.
 local REMINDER = { MAGE = { 1459, "Arcane Intellect", 135932 }, PRIEST = { 1243, "Power Word: Fortitude", 135987 }, DRUID = { 1126, "Mark of the Wild", 136078 },
 	WARLOCK = { 687, "Demon Skin", 136185 }, SHAMAN = { 324, "Lightning Shield", 136048 }, PALADIN = { 465, "Devotion Aura", 135893 }, HUNTER = { 13165, "Aspect of the Hawk", 136076 } }
 
@@ -1332,7 +1332,7 @@ function modules.auras(opts)
 			if reminder then
 				env.C_SpellBook = { IsSpellKnown = function(id) return id == reminder[1] end }
 				env.C_Spell = env.C_Spell or {}
-				env.C_Spell.GetSpellName = function(id) return id == reminder[1] and reminder[2] or nil end
+				env.C_Spell.GetSpellName = function(id) return id == reminder[1] and reminder[2] or "Spell " .. id end
 				env.C_Spell.GetSpellTexture = function(id) return id == reminder[1] and reminder[3] or nil end
 				env.C_Secrets.ShouldSpellAuraBeSecret = function() return false end
 				env.C_UnitAuras = env.C_UnitAuras or {}
