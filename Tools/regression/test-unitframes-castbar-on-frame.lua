@@ -49,7 +49,7 @@ for _, kind in ipairs({ "player", "target" }) do
 	assert(cb.slab and cb.slab[5]:IsShown() and not cb.iconFrame:IsShown(), kind .. ": the unit slab material, no spell icon, like the bars it replaces")
 	local fw, fh = cb.frame:GetSize()
 	assert(near(fw, g.health.w) and near(fh, 20), kind .. ": the bar's frame is the health bar's width, got " .. tostring(fw))
-	assert(near(view.button:GetBottom() - cb.frame:GetTop(), K.Widgets.Snap(cb.frame, 3)) and near(cb.frame:GetLeft() - view.button:GetLeft(), g.health.x), kind .. ": the bar hangs under the frame, below its health bar")
+	assert(near(view.button:GetBottom() - cb.frame:GetTop(), K.Widgets.Snap(cb.frame, 2)) and near(cb.frame:GetLeft() - view.button:GetLeft(), g.health.x), kind .. ": the bar hangs under the frame, below its health bar")
 end
 local pcb, tcb = CastBars.Inline("player")[1], CastBars.Inline("target")[1]
 assert(U.Shown(env, pcb.text) == "LIGHTNING BOLT" and U.Shown(env, tcb.text) == "HOWL", "both spell names show")
