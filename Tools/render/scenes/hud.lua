@@ -1088,6 +1088,17 @@ function modules.chat(opts)
 	end
 	env.RunTimers()
 	C.W.Settle(env)
+	-- RENDER_CHAT_TYPING="text" types into the general window's edit box, so its font shows. The stub's SetFocus does
+	-- not make HasFocus answer, and the module hides an unfocused box, so the scene answers for the game.
+	local typing = os.getenv("RENDER_CHAT_TYPING")
+	if typing then
+		local box = chat.editBox
+		box:SetText(typing)
+		box.HasFocus = function() return true end
+		box:SetFocus()
+		local gained = box:GetScript("OnEditFocusGained")
+		if gained then gained(box) end
+	end
 	C.Dock(env, Scene.TextWidth)
 	env.RunTimers()
 	C.W.Settle(env)
