@@ -336,7 +336,7 @@ local bhost = pane.buffHosts.focus
 assert(bhost and bhost:IsShown() and W.LastCall(bhost, "SetPoint")[3] == "BOTTOMLEFT", "the preview's buffs sit apart below the frame")
 local inBlock = 0
 for _, tile in ipairs(pane.auraTiles.focus) do
-	if tile.skin:IsShown() and tile.skin:GetParent() == bhost then inBlock = inBlock + 1 end
+	if tile.skin:IsShown() and W.LastCall(tile.skin, "SetPoint")[2] == bhost then inBlock = inBlock + 1 end
 end
 assert(inBlock > 0, "with the sample buffs in it")
 write("focus.auraBuffPlace", "")

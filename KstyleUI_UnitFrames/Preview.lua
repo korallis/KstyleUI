@@ -460,7 +460,6 @@ local function PaintAuras(frame, view, kind)
 			tile.icon:SetTexture(AURA_ICONS[(p - 1) % #AURA_ICONS + 1])
 			local into = apart and AURA_TRAITS[p].buff and 2 or 1
 			slots[into] = slots[into] + 1
-			tile.skin:SetParent(into == 2 and apart or host)
 			PlaceTile(tile.skin, into == 2 and apart or host, kind, apart and slots[into] or i, count, size, across, size + room + spacing + gap, corner, growth)
 			ns.Auras.LayoutTile(tile)
 			ns.Auras.StyleSample(tile, kind, AURA_DISPEL[kept[i]])
