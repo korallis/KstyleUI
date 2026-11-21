@@ -3737,7 +3737,6 @@ ns.Locale.Add({
 	["Tenths below threshold"] = "D\195\169cimas bajo el umbral",
 	["Tenths threshold"] = "Umbral de d\195\169cimas",
 	["Tenths under 3 seconds"] = "D\195\169cimas por debajo de 3 segundos",
-	["Tenths under three seconds"] = "D\195\169cimas por debajo de tres segundos",
 	["Test finished: %d passed, %d failed, %d warnings. Type /reload to save the results to the devlog."] = "Prueba terminada: %d superadas, %d fallidas, %d avisos. Escribe /reload para guardar los resultados en el registro de desarrollo.",
 	["Text"] = "Texto",
 	["Text above icons"] = "Texto sobre los iconos",

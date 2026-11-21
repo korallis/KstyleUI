@@ -174,13 +174,12 @@ end
 
 local function Potions()
 	local bags, info = C_Container, C_Item and C_Item.GetItemInfoInstant
-	if not (bags and type(bags.GetContainerNumSlots) == "function" and type(info) == "function") then return end
+	if potion or not (bags and type(bags.GetContainerNumSlots) == "function" and type(info) == "function") then return end
 	for bag = 0, ns.Number(NUM_BAG_SLOTS) or 4 do
 		for slot = 1, ns.Number(ns.Ask(bags.GetContainerNumSlots, bag)) or 0 do
 			local item = ns.Ask(bags.GetContainerItemInfo, bag, slot)
 			local id = type(item) == "table" and ns.Number(item.itemID)
-			local class, sub = select(6, info(id or 0))
-			if id and class == CONSUMABLE and sub == POTION then
+			if id and select(6, info(id)) == CONSUMABLE and select(7, info(id)) == POTION then
 				potion = id
 				return
 			end
@@ -193,7 +192,8 @@ local function Potion()
 	if not potion or type(api) ~= "function" then return end
 	local start, length, enabled = api(potion)
 	start, length, enabled = ns.Number(start), ns.Number(length), ns.Number(enabled)
-	if not (start and length and enabled ~= 0 and length > GCD and C_Timer and type(C_Timer.After) == "function") then return end
+	if enabled == 0 then potionEnds = nil end
+	if not (start and length and enabled == 1 and length > GCD and C_Timer and type(C_Timer.After) == "function") then return end
 	local ends = start + length
 	if ends == potionEnds then return end
 	potionEnds = ends
@@ -232,7 +232,7 @@ local function Sync()
 	fighting = ns.Ask(InCombatLockdown) ~= false
 	if ns.running and ns.Get("deathAlert") then Roster() end
 	if ns.running and ns.Get("potionAlert") then
-		if not potion then Potions() end
+		Potions()
 		Potion()
 	else
 		potionEnds = nil

@@ -3730,7 +3730,6 @@
 	"Tenths below threshold": "低于阈值显示十分之一秒",
 	"Tenths threshold": "十分之一秒阈值",
 	"Tenths under 3 seconds": "少于 3 秒时显示十分位",
-	"Tenths under three seconds": "三秒内显示小数",
 	"Test finished: %d passed, %d failed, %d warnings. Type /reload to save the results to the devlog.": "测试完成：%d 项通过，%d 项失败，%d 项警告。输入 /reload 将结果保存到开发日志。",
 	"Text": "文字",
 	"Text above icons": "文字位于图标之上",

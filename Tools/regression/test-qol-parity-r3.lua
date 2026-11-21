@@ -36,7 +36,7 @@ local function stand(env)
 		GetSpellTexture = function() return 132307 end,
 		GetSpellCooldown = function(id) return env._cd[id] or { isActive = false, isEnabled = true, startTime = 0, duration = 0 } end,
 		GetSpellCooldownDuration = function(id) return env._cd[id] and { spell = id } or nil end,
-		GetSpellInfo = function(id) return ({ [FIREBALL] = { maxRange = 35 }, [INTELLECT] = { maxRange = 30 } })[id] end,
+		GetSpellInfo = function(id) return ({ [FIREBALL] = { minRange = 0, maxRange = 35 }, [INTELLECT] = { minRange = 0, maxRange = 30 } })[id] end,
 		IsSpellHarmful = function(id) return id == FIREBALL end,
 		IsSpellHelpful = function(id) return id == INTELLECT end,
 		IsSpellInRange = function(id) return env._range[id] end,
@@ -195,7 +195,7 @@ do
 	for _, call in ipairs(s.bar._calls) do if call.method == "SetTimerDuration" then timer = call.args end end
 	assert(timer and timer[1].spell == SPRINT2 and timer[3] == env.Enum.StatusBarTimerDirection.RemainingTime, "the bar empties with the duration")
 	Q.Write(env, K, "moveBarIcon", false)
-	assert(not s.bar.art:IsShown() and near(s.bar:GetWidth(), 220), "no icon: the bar takes the whole width")
+	assert(not s.bar.art:IsShown() and near(s.bar:GetWidth(), s:GetWidth()), "no icon: the bar takes the whole width")
 	Q.Write(env, K, "moveBarText", false)
 	assert(s.binding.SetTextFormatArg == "Sprint", "no time on the bar: the name alone")
 	Q.Write(env, K, "moveTexture", "Smooth")
@@ -259,10 +259,10 @@ end
 
 -- Target distance, switched on: the band from the spellbook, every format and alignment, the poll while a target exists, and secrets as unknown.
 do
-	local env, K, ns = boot()
+	local env, K = boot()
 	Q.Write(env, K, "rangeText", true)
 	assert(watched(env, "PLAYER_TARGET_CHANGED") == 1 and env.LiveTickers() == 0, "no target: no poll")
-	local holder = ns.RangeFrame()
+	local holder = K.Layout.Element("qol.range").frame
 	env._target, env._range[ATTACK], env._range[FIREBALL] = true, false, true
 	env.FireEvent("PLAYER_TARGET_CHANGED")
 	env.RunTimers()
@@ -500,7 +500,7 @@ do
 	clean(env, K)
 end
 
--- Movement alert placement: the bar clears a lowered, longer crosshair on every screen size, and the largest text fits its bar.
+-- Movement alert placement: the bars clear a lowered, longer crosshair on every screen size, and the largest text fits its bar.
 do
 	local scene = dofile("Tools/render/scene.lua")
 	local cross = { crosshair = "normal", crosshairY = -24, crosshairVLength = 60, crosshairBorder = 1, moveAlert = true, moveMode = "bar" }
@@ -510,8 +510,8 @@ do
 		for _, key in ipairs({ "crosshair", "crosshairY", "crosshairVLength", "crosshairBorder", "moveAlert", "moveMode" }) do Q.Write(env, K, key, cross[key]) end
 		cooling(env, SPRINT2)
 		local _, cy, _, ch = scene.Rect(env, ns.AidFrames())
-		local _, sy = scene.Rect(env, slot(ns))
-		assert(cy + ch <= sy, wh[1] .. "x" .. wh[2] .. ": the movement bar clears the crosshair")
+		local _, sy, _, sh = scene.Rect(env, ns.MoveFrame())
+		assert(cy + ch <= sy or sy + sh <= cy, wh[1] .. "x" .. wh[2] .. ": the movement bars clear the crosshair")
 		clean(env, K)
 	end
 	local env, K, ns = boot({ enabled = true })

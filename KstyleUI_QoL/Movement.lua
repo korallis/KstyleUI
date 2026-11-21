@@ -1,11 +1,12 @@
--- Movement.lua: the movement alert, a Layout element that counts down the player's movement spells (Forever's classic-era IDs, highest known rank first) while they cool down, as text, an icon or a bar, one row per spell, and plays a sound or speaks the spell's name when one is ready. Whether a spell cools comes from its cooldown's never-secret isActive and isOnGCD fields on SPELL_UPDATE_COOLDOWN; the time comes from its duration object, which the engine draws, so a cooldown the game makes secret in combat still counts down; while one cools, a POLL-second ticker watches for its end.
+-- Movement.lua: the movement alert, a Layout element that counts down the player's movement spells (Forever's classic-era IDs, highest known rank first) while they cool down, as text, an icon or a bar, one row per spell, and plays a sound or speaks the spell's name when one is ready. Whether a spell cools comes from its cooldown's never-secret isActive and isOnGCD fields on SPELL_UPDATE_COOLDOWN, and when switched on, where isOnGCD is not to be trusted, from a readable duration longer than the global cooldown (a secret one waits for the next event; a spell already known to cool keeps cooling while isActive holds); the time comes from its duration object, which the engine draws, so a cooldown the game makes secret in combat still counts down; while one cools, a POLL-second ticker watches for its end.
 local _, ns = ...
 
 local K, L = ns.K, ns.L
 local Widgets, Tokens = K.Widgets, K.Tokens
 
 local OWNER, KEY = "QoL.movement", "qol.movement"
-local POLL, WIDTH, NONE, CROP = 0.25, 220, -1, 0.08
+local POLL, WIDTH, NONE, CROP, GCD, INIT = 0.25, 220, -1, 0.08, 1.5, "init"
+ns.MOVE_TOP = 104
 local MOVES = {
 	{ "moveCharge", "WARRIOR", 11578, 6178, 100 }, { "moveIntercept", "WARRIOR", 20617, 20616, 20252 },
 	{ "moveSprint", "ROGUE", 11305, 8696, 2983 }, { "moveBlink", "MAGE", 1953 },
@@ -38,11 +39,14 @@ function ns.MoveRows(off)
 end
 
 function ns.MoveSample()
-	local class = select(2, UnitClass("player"))
+	local class, sample = select(2, UnitClass("player")), nil
 	for _, move in ipairs(MOVES) do
-		if move[2] == class then return move[3] end
+		if move[2] == class then
+			if ns.Get(move[1]) then return move[3], true end
+			sample = sample or move[3]
+		end
 	end
-	return MOVES[3][3]
+	return sample or MOVES[3][3], false
 end
 
 function ns.VoiceOptions()
@@ -56,7 +60,7 @@ end
 
 local function Paint(slot)
 	local mode = ns.Get("moveMode")
-	local bar = mode == "bar"
+	local bar, width = mode == "bar", WIDTH * ns.Get("moveSize") / ns.defaults.moveSize
 	if mode == "icon" and not slot.icon then
 		slot.icon = Widgets.IconButton(slot, { size = ns.Get("moveIconSize") })
 		slot.icon:EnableMouse(false)
@@ -91,9 +95,9 @@ local function Paint(slot)
 		Widgets.Point(art, "RIGHT", slot.bar, "LEFT", 0, 0)
 		art:SetShown(icon)
 		Widgets.Point(slot.bar, "TOPRIGHT", slot, "TOPRIGHT", 0, 0)
-		Widgets.Size(slot.bar, WIDTH - (icon and h or 0), h)
+		Widgets.Size(slot.bar, width - (icon and h or 0), h)
 	end
-	Widgets.Size(slot, mode == "icon" and h or WIDTH, h)
+	Widgets.Size(slot, mode == "icon" and h or width, h)
 	slot.mode, slot.height = mode, h
 	return h
 end
@@ -126,10 +130,8 @@ local function Bind(slot, text, format, duration)
 		binding:SetDuration(duration)
 		binding:SetEnabled(true)
 	end)
-	if not ok then
-		ns.LogOnce("move-binding", "C_DurationUtil text bindings are missing or refused the cooldown; the movement alert shows names only")
-		text:SetText((format:gsub(" ?{} ?", "")))
-	end
+	if not ok then ns.LogOnce("move-binding", "C_DurationUtil text bindings are missing or refused the cooldown; the movement alert shows names only") end
+	return ok
 end
 
 local function Fill(slot, id)
@@ -149,7 +151,8 @@ local function Fill(slot, id)
 			bar:SetBarValue(1)
 		end
 	end
-	if duration then Bind(slot, text, ns.MoveFormat(ns.MoveName(id)), duration) else text:SetText(ns.MoveName(id)) end
+	local name = ns.MoveName(id)
+	if not (duration and Bind(slot, text, ns.MoveFormat(name), duration)) then text:SetText(name) end
 end
 
 local function Shown()
@@ -176,7 +179,7 @@ local function Draw()
 		if slots[i].binding then slots[i].binding:SetEnabled(false) end
 		slots[i]:Hide()
 	end
-	if n > 0 then Widgets.Size(holder, ns.Get("moveMode") == "icon" and h or WIDTH, n * (h + gap) - gap) end
+	if n > 0 then Widgets.Size(holder, slots[1]:GetWidth(), n * (h + gap) - gap) end
 end
 
 local function Ready(spell)
@@ -190,12 +193,13 @@ local function Ready(spell)
 end
 
 local function Refresh(event)
-	local any, changed = false, event == true
+	local any, changed = false, event == INIT
 	for _, spell in ipairs(tracked) do
 		local now = spell.cooling
 		if event or now then
 			local info = Spell("GetSpellCooldown", spell.id)
-			now = type(info) == "table" and info.isActive == true and not (event and info.isOnGCD == true)
+			now = type(info) == "table" and info.isActive == true and not (event == true and info.isOnGCD == true)
+				and (event ~= INIT or spell.cooling or (ns.Number(info.duration) or 0) > GCD)
 		end
 		if now ~= spell.cooling then
 			changed, spell.cooling = true, now
@@ -223,7 +227,8 @@ end
 
 local function Track()
 	local class = select(2, UnitClass("player"))
-	local known = C_SpellBook and C_SpellBook.IsSpellKnown
+	local known, was = C_SpellBook and C_SpellBook.IsSpellKnown, {}
+	for _, spell in ipairs(tracked) do was[spell.id] = spell.cooling end
 	tracked = {}
 	for _, move in ipairs(MOVES) do
 		local on = move[2] == class and ns.Get(move[1])
@@ -231,14 +236,19 @@ local function Track()
 			ids[move[i]] = true
 			if on and ns.Ask(known, move[i]) == true then
 				on = false
-				tracked[#tracked + 1] = { id = move[i], cooling = false }
+				tracked[#tracked + 1] = { id = move[i], cooling = was[move[i]] or false }
 			end
 		end
 	end
-	Refresh(true)
+	Refresh(INIT)
 end
 
 local EVENTS = { SPELL_UPDATE_COOLDOWN = Cooldown, SPELLS_CHANGED = Track, PLAYER_REGEN_DISABLED = Fight, PLAYER_REGEN_ENABLED = Fight }
+
+local function Spot()
+	local _, h = K.Layout.RootSize()
+	return { anchor = "TOP", x = 0, y = ns.MOVE_TOP - h / 2 }
+end
 
 local function Sync()
 	local on = ns.running and ns.Get("moveAlert")
@@ -254,14 +264,13 @@ local function Sync()
 		end
 		Widgets.Size(holder, WIDTH, Tokens.Size("lootText"))
 		Widgets.Track(holder)
-		Widgets.Place(holder, KEY, { anchor = "TOP", x = 0, y = -580 }, { label = L["Movement alert"], module = ns.MODULE })
+		Widgets.Place(holder, KEY, Spot(), { label = L["Movement alert"], module = ns.MODULE, scalable = true, defaultPosition = Spot })
 	end
 	if not holder then return end
 	if K.Layout and K.Layout.SetLive then K.Layout.SetLive(KEY, on) end
 	holder:SetShown(on)
 	fighting = ns.Ask(InCombatLockdown) == true
-	tracked = {}
-	if on then Track() else Refresh(false) end
+	if on then Track() else tracked = {}; Refresh(false) end
 	holder:Restyle()
 end
 

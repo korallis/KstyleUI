@@ -3737,7 +3737,6 @@ ns.Locale.Add({
 	["Tenths below threshold"] = "Dixi\195\168mes sous le seuil",
 	["Tenths threshold"] = "Seuil des dixi\195\168mes",
 	["Tenths under 3 seconds"] = "Dixi\195\168mes sous 3 secondes",
-	["Tenths under three seconds"] = "Dixi\195\168mes sous trois secondes",
 	["Test finished: %d passed, %d failed, %d warnings. Type /reload to save the results to the devlog."] = "Test termin\195\169 : %d r\195\169ussis, %d \195\169chou\195\169s, %d avertissements. Tapez /reload pour enregistrer les r\195\169sultats dans le journal de d\195\169veloppement.",
 	["Text"] = "Texte",
 	["Text above icons"] = "Texte au-dessus des ic\195\180nes",

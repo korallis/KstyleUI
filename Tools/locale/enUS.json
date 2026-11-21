@@ -3730,7 +3730,6 @@
 	"Tenths below threshold",
 	"Tenths threshold",
 	"Tenths under 3 seconds",
-	"Tenths under three seconds",
 	"Test finished: %d passed, %d failed, %d warnings. Type /reload to save the results to the devlog.",
 	"Text",
 	"Text above icons",

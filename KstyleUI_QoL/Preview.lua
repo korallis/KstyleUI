@@ -7,7 +7,7 @@ local Widgets, Tokens = K.Widgets, K.Tokens
 local OFF = 0.35
 local GAP = Tokens.Size("gapLarge")
 local TRAIL, CAST_SECONDS, CAST_DONE, FLASH = 3, 10, 6, 4
-local MOVE_TOP, RANGE_X, MOVE_LEFT = -40, -90, 2.4
+local RANGE_X, MOVE_LEFT = -90, 2.4
 
 local function Sample(stat)
 	local n = #stat[1]
@@ -75,7 +75,7 @@ function ns.Preview(parent)
 		end
 		local move, range = self.move, self.range
 		local mh, time = move:Paint(), Widgets.Duration.Format(MOVE_LEFT, ns.Get("moveDecimal") and "decimal" or "short")
-		local id = ns.MoveSample()
+		local id, live = ns.MoveSample()
 		local label, icon = ns.MoveFormat(ns.MoveName(id)):gsub("{}", time), C_Spell and ns.Ask(C_Spell.GetSpellTexture, id)
 		if move.mode == "icon" then
 			move.icon:SetIcon(icon)
@@ -89,9 +89,8 @@ function ns.Preview(parent)
 		else
 			move.text:SetText(label)
 		end
-		move:SetAlpha(ns.Get("moveAlert") and 1 or OFF)
-		local below = math.min(MOVE_TOP, math.min(cy - ch / 2, cy - rw / 2, (attach and cy or 0) - sw / 2) - GAP)
-		items[#items + 1] = { move, 0, below - mh / 2, move:GetWidth(), mh }
+		move:SetAlpha(ns.Get("moveAlert") and live and 1 or OFF)
+		items[#items + 1] = { move, 0, ns.MOVE_TOP - mh / 2, move:GetWidth(), mh }
 		ns.PaintRange(range.text, range)
 		range.text:SetText(ns.RangeText(30, 35))
 		range:SetAlpha(ns.Get("rangeText") and 1 or OFF)

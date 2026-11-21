@@ -161,6 +161,7 @@ function ns.Schema()
 	local combatOff, talentOff, durabilityOff, crossOff, ringOff, logOff = when("combatAlert"), when("talentAlert"), when("durabilityAlert"), when("crosshair"), when("cursorRing"), when("autoLog")
 	local castOff, statsOff, skipOff = when("castRing"), when("stats"), when("skipCinematics")
 	local moveOff, distanceOff = when("moveAlert"), when("rangeText")
+	local sounds = { { value = "none", label = L["None"] }, { value = "warning", label = L["Raid warning"] }, { value = "ready", label = L["Ready check"] } }
 	local function rangeOff(s) return crossOff(s) or not s.crosshairRange end
 	local function barOff(s) return moveOff(s) or s.moveMode ~= "bar" end
 	local function voiceOff(s) return moveOff(s) or s.moveVoice == -1 end
@@ -226,9 +227,7 @@ function ns.Schema()
 		{ type = "color", key = "talentColor", label = L["Talent alert colour"], help = L["The colour of the unspent talents alert."], disableWhen = function(s) return talentOff(s) or s.talentClass end },
 		{ type = "toggle", key = "talentClass", label = L["Talent alert in class colour"], help = L["Use your class colour for the unspent talents alert."], disableWhen = talentOff },
 		{ type = "toggle", key = "deathAlert", label = L["Group death alert"], help = L["Show large text when a party or raid member dies."], disableWhen = isOff },
-		{ type = "dropdown", key = "deathSound", label = L["Death sound"], help = L["The sound that plays with a group death alert."], options = {
-			{ value = "none", label = L["None"] }, { value = "warning", label = L["Raid warning"] }, { value = "ready", label = L["Ready check"] },
-		}, disableWhen = when("deathAlert") },
+		{ type = "dropdown", key = "deathSound", label = L["Death sound"], help = L["The sound that plays with a group death alert."], options = sounds, disableWhen = when("deathAlert") },
 		{ type = "toggle", key = "durabilityAlert", label = L["Low durability warning"], help = L["Warn out of combat when worn gear wears down."], disableWhen = isOff },
 		slider("durabilityPercent", L["Warn below"], L["Warn when any worn item falls below this durability, in percent."], 1, durabilityOff),
 		slider("durabilityY", L["Warning height"], L["Moves the durability warning up or down from the screen centre."], 1, durabilityOff),
@@ -314,15 +313,14 @@ function ns.Schema()
 		}, disableWhen = moveOff },
 		slider("moveSize", L["Movement text size"], L["The size of the movement alert's text."], 1, iconOff),
 		slider("moveIconSize", L["Movement icon size"], L["The size of the movement alert's icon."], 1, function(s) return moveOff(s) or s.moveMode ~= "icon" end),
-		{ type = "toggle", key = "moveDecimal", label = L["Tenths under three seconds"], help = L["Show the last three seconds in tenths."], disableWhen = moveOff },
+		{ type = "toggle", key = "moveDecimal", label = L["Tenths under 3 seconds"], help = L["Show the last three seconds in tenths."], disableWhen = moveOff },
 		bar[1],
 		{ type = "toggle", key = "moveBarIcon", label = L["Icon on the bar"], help = L["Show the spell's icon at the bar's left end."], disableWhen = barOff },
 		{ type = "toggle", key = "moveBarText", label = L["Time on the bar"], help = L["Show the time left after the spell's name on the bar."], disableWhen = barOff },
 		{ type = "toggle", key = "moveClass", label = L["Movement alert in class colour"], help = L["Use your class colour for the movement alert's text or bar."], disableWhen = iconOff },
 		{ type = "color", key = "moveColor", label = L["Movement alert colour"], help = L["The colour of the movement alert's text or bar."], disableWhen = function(s) return iconOff(s) or s.moveClass end },
-		{ type = "dropdown", key = "moveSound", label = L["Ready sound"], help = L["The sound that plays when a movement spell is ready."], options = {
-			{ value = "none", label = L["None"] }, { value = "warning", label = L["Raid warning"] }, { value = "ready", label = L["Ready check"] },
-		}, disableWhen = function(s) return moveOff(s) or s.moveVoice ~= -1 end },
+		{ type = "dropdown", key = "moveSound", label = L["Ready sound"], help = L["The sound that plays when a movement spell is ready."], options = sounds,
+			disableWhen = function(s) return moveOff(s) or s.moveVoice ~= -1 end },
 		{ type = "dropdown", key = "moveVoice", label = L["Speak when ready"], help = L["Say the spell's name in this voice when it is ready, instead of the sound."], options = ns.VoiceOptions(), disableWhen = moveOff },
 		slider("moveVolume", L["Speech volume"], L["How loud the spoken name is, in percent."], 5, voiceOff),
 		{ type = "header", label = L["Target distance"] },

@@ -28,9 +28,10 @@ local round2 = round3 or os.getenv("RENDER_QOL_ROUND") == "2"
 local LEFT = { [11578] = { "Charge", 132337, 9, 15 }, [20617] = { "Intercept", 132307, 21, 30 } }
 local function Round3(e)
 	e.UnitClass = function() return "Warrior", "WARRIOR", 1 end
-	local book = { { spellID = 11578 }, { spellID = 20617 }, { spellID = 2764 } }
+	local book = { { spellID = 11578, itemType = 1 }, { spellID = 20617, itemType = 1 }, { spellID = 2764, itemType = 1 } }
 	e.Enum = e.Enum or {}
 	e.Enum.SpellBookSpellBank = { Player = 0 }
+	e.Enum.SpellBookItemType = { Spell = 1 }
 	e.Enum.DurationTextBindingProperty = { RemainingDuration = 0 }
 	e.Enum.SecondsFormatterAbbreviation = { OneLetter = 2 }
 	e.Enum.SecondsFormatterInterval = { Seconds = 0 }
@@ -47,9 +48,9 @@ local function Round3(e)
 	e.C_Spell = {
 		GetSpellName = function(id) return LEFT[id] and LEFT[id][1] or ({ [100] = "Charge", [20252] = "Intercept" })[id] end,
 		GetSpellTexture = function(id) return LEFT[id] and LEFT[id][2] end,
-		GetSpellCooldown = function(id) return { isActive = LEFT[id] ~= nil, isOnGCD = false } end,
+		GetSpellCooldown = function(id) return { isActive = LEFT[id] ~= nil, isOnGCD = false, duration = LEFT[id] and LEFT[id][4] or 0 } end,
 		GetSpellCooldownDuration = function(id) return LEFT[id] and { id = id } end,
-		GetSpellInfo = function(id) return { maxRange = id == 2764 and 30 or 25 } end,
+		GetSpellInfo = function(id) return { minRange = 0, maxRange = id == 2764 and 30 or 25 } end,
 		IsSpellHarmful = function() return true end,
 		IsSpellHelpful = function() return false end,
 		IsSpellInRange = function(id) return id == 2764 end,
