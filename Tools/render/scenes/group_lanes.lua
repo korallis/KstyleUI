@@ -16,7 +16,8 @@
 -- RENDER_PARITY_R4=1 switches on round 4's: role icons on the bar with an offset, glowing missing buffs, a taller name
 -- line, heal icons nudged, class first and centred raid groups. RENDER_GROUP_LANE=1 gives the first member three of your heals and the three default indicators.
 -- RENDER_PARITY_R5=1 switches on round 5's: party class order of its own, leader, name and group number offsets, the health
--- text left under icons, a heal absorb backing of its own, heal icon zoom, an indicator offset, and pet, tank and friendly boss frames.
+-- text left under icons, a heal absorb backing of its own, three heals with their own zoom, an indicator offset, and pet, tank and
+-- friendly boss frames.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
@@ -229,7 +230,7 @@ return Common.Run(function()
 		env.RunStateDrivers()
 		place(K, "groupframes.pets", AT[kind][1], kind == "party" and AT.party[2] + 290 or 40)
 		place(K, "groupframes.tanks", AT[kind][1] + 520, 40)
-		place(K, "groupframes.boss", AT[kind][1] + 760, 40)
+		place(K, "groupframes.boss", AT[kind][1] + 1000, 40)
 	end
 	place(K, "groupframes." .. kind, AT[kind][1], AT[kind][2])
 	if r3c == "small" then place(K, "groupframes.party", AT.party[1], AT.party[2]) end
@@ -260,7 +261,8 @@ return Common.Run(function()
 			end
 		end)
 	end
-	if os.getenv("RENDER_GROUP_LANE") == "1" then
+	local lane = os.getenv("RENDER_GROUP_LANE") == "1"
+	if lane or R5 then
 		local A = dofile("Tools/regression/auras_env.lua")
 		ns.Unit.ForEach(function(f)
 			if (f.unit == "party1" or f.unit == "raid1") and f.buffs then
@@ -268,7 +270,7 @@ return Common.Run(function()
 				A.Assign(env, f.buffs, "buffs", 3)
 				for i, button in ipairs(heals.active) do button._aura.icon:SetTexture(({ 136081, 135953, 136076 })[i]) end
 				Hud.PlaceAuras(f.buffs, heals, heals.active, 3)
-				for i = 1, 3 do
+				for i = 1, lane and 3 or 0 do
 					local slot = f.indicators and f.indicators._slots["indicator" .. i]
 					if slot and slot.enabled then
 						slot.frame:Show()
