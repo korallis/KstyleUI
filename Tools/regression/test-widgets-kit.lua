@@ -216,9 +216,9 @@ do
 	K.Options.Write("Widgets", "shadows", true)
 	assert(c.shadow[1]:IsShown(), "the setting still turns it on")
 	c:SetShown(false)
-	assert(not c.rim[1]:IsShown() and not c.line[5]:IsShown() and not c.fill[5]:IsShown() and not c.gilt[1]:IsShown(), "SetShown hides every layer")
+	assert(not c.rim[1]:IsShown() and not c.line[1]:IsShown() and not c.fill[5]:IsShown() and not c.gilt[1]:IsShown(), "SetShown hides every layer")
 	c:SetShown(true)
-	assert(c.rim[5]:IsShown() and c.line[5]:IsShown() and c.gilt[1]:IsShown(), "and shows them again")
+	assert(c.rim[1]:IsShown() and c.line[1]:IsShown() and c.gilt[1]:IsShown() and not c.rim[5]:IsShown() and not c.line[5]:IsShown(), "and shows them again, the rings' transparent centres still hidden")
 	local reach = Scale.Snap(Tokens.Size("shadow"))
 	local shadowCorner = c.shadow[1]
 	assert(W.LastCall(shadowCorner, "SetTexture")[1] == Tokens.Texture("lumenShadow"), "the shadow is the card shadow, with the card cut out")

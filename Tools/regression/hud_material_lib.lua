@@ -211,7 +211,7 @@ function Lib.AuditCard(card, material)
 	end
 	local frame, span = card.drawn.materialFrame
 	if spec.frame then
-		assert(frame and #frame == 9 and chrome.frameReady, label .. " draws no " .. material .. " forged frame")
+		assert(frame and #frame == 8 and chrome.frameReady, label .. " draws no " .. material .. " forged frame (its eight edge pieces; the transparent centre stays hidden)")
 		span = union(frame)
 		assert(near(span[1], rect[1], rim) and near(span[2], rect[2], rim) and near(span[3], rect[3], rim) and near(span[4], rect[4], rim) and span[1] <= rect[1] and span[2] <= rect[2] and span[3] >= rect[3] and span[4] >= rect[4], label .. " forged frame does not span the card: frame " .. table.concat(span, " ") .. ", fill " .. table.concat(rect, " "))
 		for _, item in ipairs(frame) do

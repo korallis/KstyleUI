@@ -726,16 +726,16 @@ do
 	local br, bg, bb = K.Tokens.Color("buttonFill")
 	local r, g, b = card.chrome.fill[5]:GetVertexColor()
 	assert(W.Near(r, br) and W.Near(g, bg) and W.Near(b, bb), "the card body is the button grade's tone")
-	assert(card.chrome.shapeName == "tile" and not card.chrome.shadow[5]:IsShown(), "a tile without a shadow")
+	assert(card.chrome.shapeName == "tile" and not card.chrome.shadow[1]:IsShown(), "a tile without a shadow")
 	local preview = panel.preview
 	local sr, sg, sb = K.Tokens.Color("surface")
 	r, g, b = preview.chrome.fill[5]:GetVertexColor()
 	assert(W.Near(r, sr) and W.Near(g, sg) and W.Near(b, sb), "the preview is filled surface")
 	assert(preview.chrome.shapeName == "tile", "at the tile chamfer")
-	assert(preview.chrome.shadowOn and not preview.chrome.shadow[5]:IsShown(), "with the glass panel's drop shadow wanted but off by default: the Widgets shadows setting now defaults to false (the owner's picture, 2026-11-09)")
+	assert(preview.chrome.shadowOn and not preview.chrome.shadow[1]:IsShown(), "with the glass panel's drop shadow wanted but off by default: the Widgets shadows setting now defaults to false (the owner's picture, 2026-11-09)")
 	K.Options.Write("Widgets", "shadows", true)
 	W.Settle(env)
-	assert(preview.chrome.shadow[5]:IsShown(), "and drawn once the shadows setting is on")
+	assert(preview.chrome.shadow[1]:IsShown() and not preview.chrome.shadow[5]:IsShown(), "and drawn once the shadows setting is on, its transparent centre still hidden")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
