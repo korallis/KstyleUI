@@ -89,6 +89,8 @@ do
 	Write("rules.timerColour", "1001 #FF8000, 1002")
 	local colour = W.LastCall(a.countdown, "SetTextColor")
 	assert(Near(colour[1], 1) and Near(colour[2], 128 / 255) and Near(colour[3], 0), "a colour after a spell is its own countdown colour")
+	K.Callbacks.Fire("LayoutChanged", "cooldowns.essential"); env.RunTimers()
+	assert(Near(W.LastCall(a.countdown, "SetTextColor")[2], 128 / 255), "a layout restyle keeps the colour")
 	Write("timerSource", "custom"); Write("timerColor", { r = 0.2, g = 0.4, b = 0.6 })
 	assert(Near(W.LastCall(b.countdown, "SetTextColor")[1], 0.2), "an unmarked spell takes the countdown colour")
 	Write("rules.timerColour", "")

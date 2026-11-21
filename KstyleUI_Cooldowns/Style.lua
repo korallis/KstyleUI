@@ -387,6 +387,7 @@ function Style.Decorate(icon, group)
 			self.countBase = nil
 			Style.Dress(self)
 			Style.PlaceText(self, group)
+			Style.TextColour(self.countdown, self.rule and self.rule.timerColour, "slotNumber")
 		end
 		Style.PlaceText(icon, group)
 	end

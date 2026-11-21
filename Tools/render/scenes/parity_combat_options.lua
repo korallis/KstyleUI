@@ -1,4 +1,4 @@
--- parity_combat_options.lua: the real scoped Options page and its live preview, selected with RENDER_PARITY_MODULE; RENDER_PARITY_ENABLED=1 switches on round one's options, 2 the Auras round two options.
+-- parity_combat_options.lua: the real scoped Options page and its live preview, selected with RENDER_PARITY_MODULE; RENDER_PARITY_ENABLED=1 switches on round one's options, 2 the round two options (Auras, Cooldowns).
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -35,6 +35,8 @@ return Common.Run(function()
     ["timer.position"] = "TOPRIGHT", ["debuffs.typeIcon"] = "BOTTOM" },
    Auras = { ["buffs.swipe"] = true, ["debuffs.swipe"] = true, ["count.shown"] = false, iconZoom = 0.1, ["timer.x"] = 3,
     ["debuffs.typeIcon"] = "TOPLEFT", ["buffs.refresh"] = true, ["timer.seconds"] = false, ["timer.precise"] = 10, ["buffs.show"] = "cancelable" },
+   Cooldowns2 = { path = "mirror", assist = true, ["utility.numbersOnly"] = true, ["buffs.keepPlace"] = true, ["rules.activeGlow"] = "x", ["rules.timerColour"] = "x", timerSource = "custom",
+    timerColor = { r = 1, g = 0.69, b = 0 }, ["rules.decimals"] = "x", decimalBelow = 30, ["bars.fillUp"] = true, ["bars.spark"] = true, ["bars.smooth"] = true, ["bars.nameWrap"] = true, ["bars.decimals"] = true },
    Cooldowns = { ["essential.iconZoom"] = 0.2, ["utility.iconZoom"] = 0.2, ["buffs.iconZoom"] = 0.2, ["bars.iconZoom"] = 0.2, ["essential.edge"] = false, ["utility.edge"] = false, ["essential.vertical"] = true, ["essential.timerPosition"] = "TOP", ["utility.countOnly"] = true, glowsInCombat = true, ["buffs.inactiveShade"] = "colour", ["rules.fade"] = "Earth Shock" },
    CombatText = { direction = "down", shadow = "show", combat = true, power = true, fieldDistance = 24, fieldDistanceMedallions = 24 },
    Meters = { ["damage.refresh"] = 0.2, ["damage.hoverSpells"] = 8, ["damage.hideRank"] = true, ["damage.iconZoom"] = 0.2, ["damage.spellTooltips"] = true,
