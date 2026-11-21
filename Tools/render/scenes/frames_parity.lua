@@ -143,7 +143,7 @@ return Common.Run(function()
 				local group = container._groups[key]
 				A.Assign(env, container, key, #icons)
 				for i, icon in ipairs(icons) do
-					local aura = group.frames[i]._aura
+					local aura = group.active[i]._aura
 					aura.icon:SetTexture(env.Secret(icon[1]))
 					if aura.timer then aura.timer:SetText(icon[2]) end
 					local ring = aura.dispel[1] and aura.dispel[1].texture
