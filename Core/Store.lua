@@ -1054,7 +1054,7 @@ local NOT_LOADED = L["KstyleUI has not loaded its saved settings yet."]
 
 local db, active, activeName, account, charKey
 local registered = {}
-local returned = {}
+local sections = setmetatable({}, { __mode = "k" })
 local implicit = {}
 local logged = {}
 
@@ -1082,10 +1082,7 @@ local function deepCopy(value)
 	end
 	local out = {}
 	for k, v in pairs(value) do
-		if type(v) == "table" then
-			v = deepCopy(v)
-		end
-		out[k] = v
+		out[k] = type(v) == "table" and deepCopy(v) or v
 	end
 	return out
 end
@@ -1127,13 +1124,9 @@ end
 local function fill(dest, defaults)
 	for key, default in pairs(defaults) do
 		local value, kind = dest[key], type(default)
-		if kind ~= "table" then
-			if type(value) ~= kind then
-				dest[key] = default
-			end
-		elseif type(value) ~= "table" then
-			dest[key] = deepCopy(default)
-		elseif not isAtomic(default) then
+		if type(value) ~= kind then
+			dest[key] = kind == "table" and deepCopy(default) or default
+		elseif kind == "table" and not isAtomic(default) then
 			fill(value, default)
 		end
 	end
@@ -1438,13 +1431,12 @@ function Store.Profile()
 end
 
 function Store.Module(name)
-	local values = returned[name]
-	if values and active[name] == values then
+	local values = active and active[name]
+	if sections[values] == name then
 		return values
 	end
-	values = active and active[name]
 	if registered[name] and type(values) == "table" then
-		returned[name] = values
+		sections[values] = name
 		return values
 	end
 	requireLoaded("Module")
