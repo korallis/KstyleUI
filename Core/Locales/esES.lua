@@ -3688,6 +3688,7 @@ ns.Locale.Add({
 	["Swipe opacity"] = "Opacidad del barrido",
 	["Swipe tint"] = "Tinte del barrido",
 	["Switch dual specialization out of combat, or open talents."] = "Cambia la doble especializaci\195\179n fuera de combate o abre talentos.",
+	["Switch modules on and move them up or down."] = "Activa m\195\179dulos y mu\195\169velos arriba o abajo.",
 	["Switch modules on, choose their zones and move them up or down."] = "Activa m\195\179dulos, elige su zona y mu\195\169velos arriba o abajo.",
 	["Switch profiles with your spec after combat; without specs, use your assigned role."] = "Cambia el perfil con tu especializaci\195\179n tras el combate; sin ella, usa el rol asignado.",
 	["Switch stats on and move them up or down."] = "Activa estad\195\173sticas y mu\195\169velas arriba o abajo.",

@@ -172,7 +172,11 @@ local function Plain(settings)
 end
 
 local function NoIcons(settings)
-	return settings.strip.icons == "off" or Plain(settings)
+	if Plain(settings) then return true end
+	for id in pairs(Strip.GLYPH_CELLS) do
+		if Strip.Shows(settings.strip, id) and settings.strip.blocks[id].iconColor == "bar" then return false end
+	end
+	return true
 end
 
 function ns.Schema()
@@ -301,10 +305,11 @@ function ns.Schema()
 		{ value = "realm", label = L["Realm time"] },
 	}
 
-	local moduleOptions, fillOptions = {}, { { value = "none", label = L["None"] } }
+	local moduleOptions, fillOptions, secondOptions = {}, { { value = "none", label = L["None"] } }, { zones = false }
 	for i, def in ipairs(MODULES) do
 		moduleOptions[i] = { value = def[1], label = def[2], rows = def[4] and { { type = "note", label = def[4] } } or {} }
 		fillOptions[i + 1] = { value = def[1], label = def[2] }
+		if def[1] ~= "micro" then secondOptions[#secondOptions + 1] = moduleOptions[i] end
 	end
 	local stripRows = {
 		{ type = "header", label = L["Data bar"] },
@@ -387,14 +392,10 @@ function ns.Schema()
 		end
 	end
 	ns.AddRows(blockRows)
-	local secondOptions = {}
-	for _, option in ipairs(moduleOptions) do
-		if option.value ~= "micro" then secondOptions[#secondOptions + 1] = option end
-	end
 	ns.AddRows({
 		{ type = "header", label = L["Second data bar"] },
 		{ type = "toggle", key = "strip.second", label = L["Show a second data bar"], help = L["A second line of readouts you place in Layout Mode, in this bar's style. It starts as a copy."] },
-		{ type = "order", key = "strip.secondModules", label = L["Modules"], help = L["Switch modules on, choose their zones and move them up or down."], options = secondOptions, showWhen = function(settings)
+		{ type = "order", key = "strip.secondModules", label = L["Modules"], help = L["Switch modules on and move them up or down."], options = secondOptions, showWhen = function(settings)
 			return settings.strip.second == true
 		end },
 	})

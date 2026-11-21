@@ -3688,6 +3688,7 @@ ns.Locale.Add({
 	["Swipe opacity"] = "Deckkraft der Animation",
 	["Swipe tint"] = "Ablauff\195\164rbung",
 	["Switch dual specialization out of combat, or open talents."] = "Wechselt die duale Spezialisierung au\195\159erhalb des Kampfes oder \195\182ffnet die Talente.",
+	["Switch modules on and move them up or down."] = "Schalte Module ein und verschiebe sie nach oben oder unten.",
 	["Switch modules on, choose their zones and move them up or down."] = "Schalte Module ein, w\195\164hle ihren Bereich und verschiebe sie nach oben oder unten.",
 	["Switch profiles with your spec after combat; without specs, use your assigned role."] = "Wechselt nach dem Kampf das Profil mit der Spezialisierung; ohne diese z\195\164hlt die Gruppenrolle.",
 	["Switch stats on and move them up or down."] = "Werte ein- und ausschalten und nach oben oder unten verschieben.",
