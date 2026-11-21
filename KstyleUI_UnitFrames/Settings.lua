@@ -21,7 +21,7 @@ local ALPHA_MIN, ALPHA_STEP = 0.1, 0.05
 local ZOOM_MAX, ZOOM_STEP = 0.3, 0.01
 local NUDGE = 50
 local BOSS_GAP_MAX = 20
-local MARKER_MAX, CAST_WIDTH_MAX = 48, 400
+local MARKER_MAX, CAST_WIDTH_MIN, CAST_WIDTH_MAX = 48, 2 * CAST_HEIGHT_MAX, 400
 
 Settings.MODULE = MODULE
 Settings.THEME_FONT = THEME_FONT
@@ -426,15 +426,15 @@ function Settings.AuraRows(kind)
 	return ROW_DEFAULTS[kind] ~= nil and K.HudStyle.Current() == "medallions" and Settings.Module().auraLayout ~= "fan"
 end
 
-local AURA_LOOK = { auraSize = "simple", auraPosition = false, auraSpacing = true, auraRows = true, auraColumns = true,
+local AURA_LOOK = { auraSize = "simple", auraPosition = false, auraSpacing = true, auraRows = "simple", auraColumns = true,
 	auraGrowth = true, auraTimer = true, auraZoom = true, auraBuffZoom = true, auraTooltipCombat = true }
 
 local function SimpleSize()
 	local G, uf = ns.Geometry, ns.Frames and ns.Frames.Get("boss")
 	local h = uf and uf.holder:GetHeight()
 	if not (IsNumber(h) and h > 0) then h = K.Setup.Layouts.Element(Settings.ELEMENTS.boss).height end
-	local slot = (h - G.BOSS_GAP * (G.BOSS_COUNT - 1)) / G.BOSS_COUNT
-	local n = Settings.Value("boss", "auraRows") * (Settings.Value("boss", "auraFilter") == "both" and 2 or 1)
+	local slot = (h - Settings.Value("boss", "gap") * (G.BOSS_COUNT - 1)) / G.BOSS_COUNT
+	local n = Settings.Value("boss", "auraFilter") == "both" and 2 or 1
 	return math.max(1, (slot - (n - 1) * Settings.Value("boss", "auraSpacing")) / n)
 end
 
@@ -449,7 +449,7 @@ function Settings.Value(kind, key, direct)
 	if look ~= nil then
 		local simple = not direct and kind == "boss" and look ~= true and own.auraSimple
 		if simple == "LEFT" or simple == "RIGHT" then
-			return key == "auraPosition" and simple or SimpleSize()
+			return key == "auraPosition" and simple or key == "auraRows" and 1 or SimpleSize()
 		end
 		local from = look and not direct and own.auraCopy
 		if from and from ~= kind and Settings.AURAS[from] then
@@ -619,6 +619,7 @@ function Settings.Snapshot(kind)
 			s[key] = default
 		end
 	end
+	if (s.castbarWidth or 0) > 0 then s.castbarWidth = math.max(s.castbarWidth, CAST_WIDTH_MIN) end
 	return s
 end
 
@@ -768,7 +769,7 @@ CastRows = function(schema, kind)
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "castbarIcon", label = L["Spell icon"],
 		help = L["Shows the spell's icon beside the cast bar."],
-	}, on)
+	}, kind == "pet" and function(s) return on(s) and Settings.Form(kind) == "plate" and K.HudStyle.Current() ~= "medallions" end or on)
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "castbarText", label = L["Spell name"],
 		help = L["Shows the spell's name on the cast bar."],
@@ -820,7 +821,7 @@ CastRows = function(schema, kind)
 	schema[#schema + 1] = Row(kind, { type = "color", key = "castbarLockedColor", label = L["Uninterruptible colour"], help = L["The colour of casts nothing can interrupt."] }, on)
 	if kind == "pet" then
 		schema[#schema + 1] = Row(kind, { type = "slider", key = "castbarWidth", label = L["Cast bar width"], min = 0, max = CAST_WIDTH_MAX, step = 1,
-			help = L["The cast bar's width under the frame. 0 matches the frame."] }, on)
+			help = L["The cast bar's width under the frame. 0 matches the frame."], shown = function(value) return value > 0 and math.max(value, CAST_WIDTH_MIN) or value end }, on)
 	end
 	if kind == "pet" or kind == "boss" then
 		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarHideIdle", label = L["Hide when idle"],
@@ -883,7 +884,7 @@ AuraRows = function(schema, kind)
 	local function sized(s) return own(s) and not simple(s) end
 	if kind == "boss" then
 		schema[#schema + 1] = Row(kind, { type = "dropdown", key = "auraSimple", label = L["Simple aura display"], options = CHOICES.auraSimple,
-			help = L["One row of large icons beside each boss frame, as tall as the frame."] }, on)
+			help = L["Large icons beside each boss frame, filling its height: one row, or one each for debuffs and buffs."] }, on)
 	end
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "auraPosition", label = L["Aura position"],
@@ -905,7 +906,7 @@ AuraRows = function(schema, kind)
 	schema[#schema + 1] = Row(kind, {
 		type = "slider", key = "auraRows", label = L["Aura rows"],
 		help = L["How many rows of each kind of aura show."], min = 1, max = AURA_ROWS_MAX, step = 1,
-	}, own)
+	}, sized)
 	schema[#schema + 1] = Row(kind, {
 		type = "slider", key = "auraColumns", label = L["Aura columns"],
 		help = L["How many aura icons fit in a row."], min = 1, max = AURA_COLUMNS_MAX, step = 1,
