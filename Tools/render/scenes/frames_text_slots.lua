@@ -103,11 +103,28 @@ return Common.Run(function()
 	if os.getenv("RENDER_PARITY_R3D") == "1" and module == "UnitFrames" then
 		env.GetNetStats = function() return 0, 0, 20, 42 end
 		env.C_Spell.GetSpellSubtext = function() return "Rank 3" end
-		K.Options.Get(module)
-		for _, key in ipairs({ "player.castbarFit", "player.castbarRank", "player.castbarLagText", "target.castbarFit" }) do
-			K.Options.Write(module, key, true)
+		env.C_TradeSkillUI = { GetRemainingRecasts = function() return 4 end }
+		local info = env.UnitCastingInfo
+		env.UnitCastingInfo = function(token)
+			local r = { info(token) }
+			if token == "player" and r[1] then r[6] = true end
+			return unpack(r, 1, 11)
 		end
-		for token, name in pairs({ player = "Arcane Missiles of Storms", target = "Shadow Bolt Volley of the Endless Abyss" }) do
+		dofile("Tools/regression/cooldowns_env.lua").StringUtil(env)
+		env.C_StringUtil.CreateSecondsFormatter = function()
+			return setmetatable({ Format = function(_, s) return s < 60 and string.format("%ds", s) or string.format("%dm %ds", s / 60, s % 60) end }, { __index = function() return function() end end })
+		end
+		env._units.target.auras = { { id = 1, icon = 135813, left = 272, harmful = true, mine = true }, { id = 2, icon = 136207, left = 168, harmful = true, mine = true },
+			{ id = 3, icon = 135846, left = 95, harmful = true, mine = true }, { id = 4, icon = 136096, left = 45, harmful = false }, { id = 5, icon = 136075, left = 230, harmful = false },
+			{ id = 6, icon = 135932, left = 299, harmful = false } }
+		K.Options.Get(module)
+		for _, pair in ipairs({ { "player.castbarFit", true }, { "player.castbarRank", true }, { "player.castbarLagText", true }, { "player.castbarCraft", true },
+			{ "target.castbarFit", true }, { "target.auras", true }, { "target.auraTimer", true }, { "target.auraFilter", "both" }, { "target.auraColumns", 3 },
+			{ "target.auraRows", 2 }, { "target.auraRowGap", 6 }, { "target.auraPrecise", 5 } }) do
+			K.Options.Write(module, pair[1], pair[2])
+		end
+		dofile("Tools/regression/aura_fixture_engine.lua").Install(env)
+		for token, name in pairs({ player = "Silk Bandage", target = "Shadow Bolt Volley of the Endless Abyss" }) do
 			local cast = env._units[token] and env._units[token].cast
 			if cast then
 				cast.name, cast.text = name, name
