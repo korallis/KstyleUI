@@ -725,6 +725,8 @@ function Frames.Relayout(uf)
 		elseif cb and uf.kind == "pet" then
 			cx, cy = g.panel.x, math.max(slot.h, g.medal and g.medal.y + g.medal.h or 0) + PET_CAST_GAP
 			cw, ch = uf.s.castbarWidth > 0 and uf.s.castbarWidth or g.panel.w, uf.s.castbarHeight
+		elseif cb and uf.s.inlineCast and g.form == "slab" then
+			cx, cy, cw, ch = g.health.x, slot.h + Geometry.SLAB_PAD.castGap, g.health.w, Geometry.SLAB_PAD.cast
 		end
 		if cx then
 			cb.frame:ClearAllPoints()

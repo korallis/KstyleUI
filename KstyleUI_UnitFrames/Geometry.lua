@@ -597,7 +597,7 @@ local SLAB = {
 	targettarget = { h = 34, bar = 14 },
 	focustarget = { h = 34, bar = 14 },
 }
-local SLAB_PAD = { top = 5, outer = 9, inner = 6, centre = 2, power = 5, powerGap = 2, nameGap = 2, powerNameGap = 2, auraGap = 16, nameShare = 0.7, levelGap = 6, levelEm = 1.9, valuePad = 7, cast = 20, castGap = 4 }
+local SLAB_PAD = { top = 5, outer = 9, inner = 6, centre = 2, power = 5, powerGap = 2, nameGap = 2, powerNameGap = 2, auraGap = 16, nameShare = 0.7, levelGap = 6, levelEm = 1.9, valuePad = 7, cast = 20, castGap = 3 }
 Geometry.SLAB, Geometry.SLAB_PAD = SLAB, SLAB_PAD
 
 local function SlabFrame(out, s, width, height, scale)
@@ -656,17 +656,11 @@ local function SlabFrame(out, s, width, height, scale)
 	elseif spec.extra == "caption" then
 		out.caption = Rect(extraX, y, extraW, rowH)
 	end
-	local lift = 0
-	if s.inlineCast and s.castbar then
-		local castH = SLAB_PAD.cast * k
-		lift = castH + SLAB_PAD.castGap * k
-		out.cast = Rect(left, -lift, barW, castH)
-	end
 	if s.rowsAbove and s.auraPosition == "ABOVE" then
-		out.aura = { outer = true, x = right and out.medal.x + out.medal.w or out.medal.x, y = min(out.medal.y, -lift) - 8 }
+		out.aura = { outer = true, x = right and out.medal.x + out.medal.w or out.medal.x, y = out.medal.y - 8 }
 	elseif s.auras and s.auraPosition == "SIDE" then
 		local line = s.auraColumns * s.auraSize + (s.auraColumns - 1) * s.auraSpacing
-		out.aura = Rect(right and left + barW - line or left, -(s.auraSize + SLAB_PAD.auraGap) - lift, 0, 0)
+		out.aura = Rect(right and left + barW - line or left, -(s.auraSize + SLAB_PAD.auraGap), 0, 0)
 	end
 end
 

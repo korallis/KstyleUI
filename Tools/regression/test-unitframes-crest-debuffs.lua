@@ -164,7 +164,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 	local crest = units.Frames.Get("target").views[1].auras.fan
 	local regions = {}
 	for _, entry in ipairs(crest.buttons) do regions[entry.icon], regions[entry.timer] = true, true end
-	local casts = { units.CastBars.Get("player")[1].frame, units.CastBars.Get("target")[1].frame }
+	local casts = { units.CastBars.Inline("player")[1].frame, units.CastBars.Inline("target")[1].frame }
 	local castTop = {}
 	for _, item in ipairs(rendered.items) do
 		local object = item.object

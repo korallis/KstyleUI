@@ -1,4 +1,4 @@
--- test-unitframes-castbar-on-frame.lua: Medallions puts the player and target cast bars on their frames; the setting off, a moved bar or Frames and Orbs keep the bars above the crest.
+-- test-unitframes-castbar-on-frame.lua: Medallions hangs the player and target cast bars under their frames; the setting off, a moved bar or Frames and Orbs keep the bars above the crest.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -44,13 +44,12 @@ for _, kind in ipairs({ "player", "target" }) do
 	local g, cb = view.geometry, CastBars.Inline(kind)[1]
 	assert(not CastBars.ElementLive(kind) and not K.Layout.Live("unitframes.castbar." .. kind), kind .. ": the bar above the crest gives way, and Layout Mode drops its mover")
 	assert(not CastBars.Get(kind)[1].frame:IsShown(), kind .. ": nothing is left in the lane above the crest")
-	assert(g.cast and g.cast.x == g.health.x and g.cast.w == g.health.w and g.cast.h == 20 and g.cast.y == -24, kind .. ": a 20-unit bar four units over the slab, as wide as its health bar")
+	assert(view.s.inlineCast == true, kind .. ": the frame carries the cast")
 	assert(cb.frame:IsShown() and cb.active and cb.medal and cb.geometry.medal, kind .. ": the frame's own bar shows the cast in the Medallions look")
 	assert(cb.slab and cb.slab[5]:IsShown() and not cb.iconFrame:IsShown(), kind .. ": the unit slab material, no spell icon, like the bars it replaces")
 	local fw, fh = cb.frame:GetSize()
 	assert(near(fw, g.health.w) and near(fh, 20), kind .. ": the bar's frame is the health bar's width, got " .. tostring(fw))
-	assert(near(cb.frame:GetBottom() - view.button:GetTop(), K.Widgets.Snap(cb.frame, 4)) and near(cb.frame:GetLeft() - view.button:GetLeft(), g.health.x), kind .. ": the bar sits on the frame above its health bar")
-	assert(g.aura == nil or g.aura.y <= g.cast.y - 8, kind .. ": aura rows stand clear above the bar")
+	assert(near(view.button:GetBottom() - cb.frame:GetTop(), K.Widgets.Snap(cb.frame, 3)) and near(cb.frame:GetLeft() - view.button:GetLeft(), g.health.x), kind .. ": the bar hangs under the frame, below its health bar")
 end
 local pcb, tcb = CastBars.Inline("player")[1], CastBars.Inline("target")[1]
 assert(U.Shown(env, pcb.text) == "LIGHTNING BOLT" and U.Shown(env, tcb.text) == "HOWL", "both spell names show")
@@ -94,13 +93,11 @@ W.Tick(env, 0.1)
 for _, kind in ipairs({ "player", "target" }) do
 	local view = ns.Frames.Get(kind).views[1]
 	assert(CastBars.ElementLive(kind) and K.Layout.Live("unitframes.castbar." .. kind), kind .. ": off gives the bar above the crest back")
-	assert(view.geometry.cast == nil and not CastBars.Inline(kind)[1].frame:IsShown(), kind .. ": and the frame carries no bar")
+	assert(not view.s.inlineCast and not CastBars.Inline(kind)[1].frame:IsShown(), kind .. ": and the frame carries no bar")
 end
-local target = ns.Frames.Get("target").views[1].geometry
-assert(target.aura == nil or target.aura.y == target.medal.y - 8, "the target's aura rows return to the medallion")
 assert(CastBars.Get("target")[1].frame:IsShown(), "the target's cast shows above the crest again")
 write("castbarOnFrame", true)
-assert(not CastBars.ElementLive("player") and ns.Frames.Get("player").views[1].geometry.cast, "on again puts it back on the frame")
+assert(not CastBars.ElementLive("player") and ns.Frames.Get("player").views[1].s.inlineCast, "on again puts it back on the frame")
 clean("toggle")
 
 K.Options.Write("HudStyle", "style", "frames")
@@ -115,10 +112,10 @@ local env2, K2, ns2 = new({ ["medallions:unitframes.castbar.player"] = moved })
 local holder = ns2.CastBars.Holder("player")
 local place = K2.Layout.Get("unitframes.castbar.player")
 assert(ns2.CastBars.ElementLive("player") and place.x == 40 and place.y == 600, "a player who moved the cast bar keeps it where they put it")
-assert(holder:IsShown() and ns2.Frames.Get("player").views[1].geometry.cast == nil, "and the player frame stays as it was")
-assert(not ns2.CastBars.ElementLive("target") and ns2.Frames.Get("target").views[1].geometry.cast, "the unmoved target bar still goes on its frame")
+assert(holder:IsShown() and not ns2.Frames.Get("player").views[1].s.inlineCast, "and the player frame stays as it was")
+assert(not ns2.CastBars.ElementLive("target") and ns2.Frames.Get("target").views[1].s.inlineCast, "the unmoved target bar still goes on its frame")
 K2.Layout.Reset("unitframes.castbar.player")
 env2.RunTimers()
-assert(not ns2.CastBars.ElementLive("player") and ns2.Frames.Get("player").views[1].geometry.cast, "resetting the moved bar puts it on the frame")
+assert(not ns2.CastBars.ElementLive("player") and ns2.Frames.Get("player").views[1].s.inlineCast, "resetting the moved bar puts it on the frame")
 assert(#env2._errors == 0 and K2.ErrorCount() == 0, "saved positions: " .. tostring(env2._errors[1]))
 print("unitframes castbar on frame ok")
