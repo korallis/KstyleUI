@@ -714,8 +714,13 @@ local function Changed(id, event, ...)
 	elseif REFRESH[event] then
 		Strip.Refresh()
 	elseif event == "CURRENCY_DISPLAY_UPDATE" then
-		local item = Strip.view and Strip.view.items.currencies
-		if Readouts.Visible("currencies") ~= (item and (item.overflow or item.button:IsShown()) or false) then Strip.Refresh() else Strip.Update(id) end
+		local s, visible, stale = Settings(), Readouts.Visible("currencies") == true, false
+		for i, view in ipairs({ Strip.view, Strip.second }) do
+			local item, listed = view.items.currencies, false
+			for _, entry in ipairs(i == 1 and Strip.Modules(s) or s.secondModules) do listed = listed or entry.id == id and entry.shown end
+			stale = stale or view.visible and (item ~= nil and (item.overflow or item.button:IsShown()) or false) ~= (visible and listed)
+		end
+		if stale then Strip.Refresh() else Strip.Update(id) end
 	else
 		if event == "PLAYER_MONEY" then Readouts.SaveGold() end
 		if event == "HEARTHSTONE_BOUND" then Readouts.SaveHearth() end

@@ -1414,10 +1414,7 @@ local function StopTicker()
 		ticker:Cancel()
 		ticker = nil
 	end
-	if ticking and Strip.view then
-		Strip.view.frame:SetScript("OnUpdate", nil)
-		ticking = false
-	end
+	if ticking then ticking:SetScript("OnUpdate", nil) end
 end
 
 local function StartTicker()
@@ -1431,8 +1428,8 @@ local function StartTicker()
 	end
 	ns.LogOnce("strip-ticker", "C_Timer.NewTicker is missing; the strip counts seconds with OnUpdate")
 	local elapsed = 0
-	ticking = true
-	Strip.view.frame:SetScript("OnUpdate", function(_, dt)
+	ticking = ticking or CreateFrame("Frame", nil, K.Scale.Root())
+	ticking:SetScript("OnUpdate", function(_, dt)
 		elapsed = elapsed + dt
 		if elapsed >= TICK_SECONDS then
 			elapsed = 0
