@@ -238,6 +238,16 @@ assert(listens(), "the second bar's readouts listen for their events")
 env._game.durability[1] = { 40, 100 }
 env.FireEvent("UPDATE_INVENTORY_DURABILITY")
 eq(text("durability", second), "40%", "and follow them")
+local function reads()
+	local before = durabilityReads
+	env.FireEvent("UPDATE_INVENTORY_DURABILITY")
+	return durabilityReads - before
+end
+local one = reads()
+show({ "fps", "gold", "time", "durability" })
+eq(reads(), one, "a readout on both bars reads the game once per event")
+eq(text("durability"), "40%", "and both bars show it")
+show({ "fps", "gold", "time" })
 write("strip.enabled", false)
 assert(second.frame:IsVisible() and listens(), "the second bar does not need the main bar")
 env._game.durability[1] = { 50, 100 }
