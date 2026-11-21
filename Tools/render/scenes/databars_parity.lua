@@ -17,7 +17,7 @@ local OPTIONS = {
 }
 local ROUND2 = { micro = "left", spec = "left", hearth = "left", time = "centre", reagents = "right", currencies = "right", guild = "right", friends = "right",
 	coords = "right", bags = "right", fps = "right", latency = "right", gold = "right" }
-local ROUND2_DOCK = { time = "centre", coords = "left", combat = "left", played = "right", audio = "right", reagents = "right", prof1 = "right", broker = "right" }
+local ROUND2_DOCK = { time = "centre", coords = "left", combat = "left", played = "right", audio = "right", reagents = "right", prof1 = "right", prof2 = "right", broker = "right" }
 local ROUND2_OPTIONS = {
 	{ "strip.icons", "beside" }, { "strip.currencyIcons", true }, { "strip.reagentsLabel", true }, { "strip.hearthText", "smart" },
 	{ "strip.brokerPlugin", "Bagnon" }, { "xp.questXP", true }, { "micro.align", "CENTER" },
@@ -31,8 +31,8 @@ return Common.Run(function()
 			Fixture(e)
 			e.C_Map = { GetBestMapForUnit = function() return 1429 end, GetPlayerMapPosition = function() return { GetXY = function() return 0.4532, 0.6218 end } end }
 			e.C_CVar = { GetCVar = function(name) return ({ Sound_EnableAllSound = "1", Sound_MusicVolume = "0.35" })[name] end }
-			e.GetProfessions = function() return 1 end
-			e.GetProfessionInfo = function() return "Mining", 136240, 225, 300 end
+			e.GetProfessions = function() return 1, 2 end
+			e.GetProfessionInfo = function(i) return i == 2 and "Tailoring" or "Mining", 136240, 225, 300 end
 			e.HasNewMail, e.IsResting = function() return true end, function() return true end
 			e.C_ClassTalents = { GetLastSelectedSavedConfigID = function() return 7 end }
 			e.C_Traits = { GetConfigInfo = function() return { name = "Raid" } end }
