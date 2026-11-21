@@ -761,8 +761,8 @@ local function Detached(s, width, height, scale)
 	local out = Geometry.Frame(s, width, height - h - DETACH_GAP, scale)
 	s.power = true
 	local top, seen = s.powerDetach == "ABOVE", {}
-	for _, r in pairs(top and out or seen) do
-		if type(r) == "table" and type(r.y) == "number" and not seen[r] then
+	for key, r in pairs(top and out or seen) do
+		if type(r) == "table" and type(r.y) == "number" and not seen[r] and (key ~= "aura" or r.centred) then
 			seen[r], r.y = true, r.y + h + DETACH_GAP
 		end
 	end

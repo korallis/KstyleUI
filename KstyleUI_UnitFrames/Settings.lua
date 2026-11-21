@@ -281,7 +281,7 @@ for kind in pairs(Settings.TEXT_BAR) do
 	d.textBarLeft, d.textBarCenter, d.textBarRight = ExtraText(), ExtraText(), ExtraText()
 	d.textBarLeft.position, d.textBarRight.position = "LEFT", "RIGHT"
 end
-AddDefaults(KINDS, { powerDetach = "", powerDetachWidth = 0, powerDetachX = 0, powerDetachY = 0 })
+AddDefaults(KINDS, { powerDetach = "", powerDetachWidth = 0, powerDetachX = 0, powerDetachY = 0, powerDetachStrata = "" })
 
 for _, kind in ipairs({ "targettarget", "focustarget", "pet" }) do
 	local fonts = Settings.defaults[kind].fonts
@@ -396,7 +396,7 @@ local CHOICE_OF = {
 	slabThreatPercentPosition = "threatPlace",
 	dispelOverlay = "dispelOverlay", dispelFilter = "dispelFilter", dispelIcon = "dispelIcon", totemPosition = "totemPosition", auraLists = "auraCopy",
 	textBarPlace = "textBarPlace", textBarIcon = "textBarIcon", textBarStrata = "strata",
-	castbarTargetPlace = "targetPlace", powerDetach = "powerDetach", auraBuffPlace = "buffPlace",
+	castbarTargetPlace = "targetPlace", powerDetach = "powerDetach", auraBuffPlace = "buffPlace", powerDetachStrata = "strata",
 }
 
 local function Allowed(list, value)
@@ -1462,6 +1462,7 @@ local function KindRows(schema, kind)
 		kind == "player" and { "toggle", "powerMana", L["Mana in forms"], function(s) return powerOn(s) and K.Theme.Class() == "DRUID" end, L["Druids: shows mana in bear and cat form; the class resource bar shows the form's power."] },
 		{ "dropdown", "powerDetach", L["Power bar place"], function(s) return powerOn(s) and Settings.Form(kind) ~= "slab" end, L["In the frame, or apart below or above its bars at its own width. The frame keeps its size."], CHOICES.powerDetach },
 		{ "slider", "powerDetachWidth", L["Power bar width"], detached, L["The detached power bar's width. 0 matches the frame."] },
+		{ "dropdown", "powerDetachStrata", L["Power bar strata"], detached, L["Which layer the detached power bar draws in."], CHOICES.strata },
 	}) do
 		if spec then
 			local row = Row(kind, { type = spec[1], key = spec[2], label = spec[3], help = spec[5], options = spec[6] }, spec[4])

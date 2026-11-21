@@ -264,7 +264,15 @@ local function PlaceBar(view, bar, rect)
 	bar:ClearAllPoints()
 	bar:SetPoint("TOPLEFT", view.parent, "TOPLEFT", Snap(view, rect.x), -Snap(view, rect.y))
 	bar:Restyle()
-	if bar == view.power then view.powerTypeLine:SetHeight(Snap(view, 1)) end
+	if bar == view.power then
+		view.powerTypeLine:SetHeight(Snap(view, 1))
+		local own = view.s and view.s.powerDetach ~= "" and view.s.powerDetachStrata or ""
+		if own ~= "" or view.powerStrata then
+			view.powerStrata = own ~= "" or nil
+			local strata = own ~= "" and own or bar:GetParent():GetFrameStrata()
+			if not issecretvalue(strata) then bar:SetFrameStrata(strata) end
+		end
+	end
 	bar:Show()
 end
 

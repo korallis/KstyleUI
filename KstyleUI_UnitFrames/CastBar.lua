@@ -837,8 +837,8 @@ end
 local function PlaceTarget(cb)
 	local place = not cb.line and Settings.Value(cb.kind, "castbarTarget") and Settings.Value(cb.kind, "castbarTargetPlace")
 	local t, text = cb.targetText, cb.text
-	local w = place and place ~= "" and text:GetWidth()
-	local point, rel, relPoint, x, y = text:GetPoint(1)
+	local w, point, rel, relPoint, x, y = place and place ~= "" and text:GetWidth()
+	if w then point, rel, relPoint, x, y = text:GetPoint(1) end
 	cb.targetOn = nil
 	if not (w and not issecretvalue(w) and type(w) == "number" and w > 2 * TEXT_PAD and not issecretvalue(x) and type(x) == "number" and not issecretvalue(y) and type(y) == "number") then
 		if t then t:Hide() end

@@ -1017,6 +1017,7 @@ function Auras.Apply(view)
 		return
 	end
 	a.container:SetEnabled(want and true or false)
+	if a.buff then a.buff.container:SetEnabled(want and true or false) end
 	a.assist, a.formatter = nil, Formatter(Value(view, "auraPrecise"))
 	local fan = ns.Fan.Apply(view, Active(view))
 	if want then

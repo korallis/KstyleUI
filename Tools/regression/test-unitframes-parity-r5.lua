@@ -47,7 +47,7 @@ for _, row in ipairs(Settings.Schema()) do
 	if row.key then schema[row.key] = row end
 end
 for _, key in ipairs({ "target.castbarTargetPlace", "target.castbarTargetSize", "target.castbarTargetColor", "target.castbarTargetX", "player.castbarGcd",
-	"player.powerDetach", "player.powerDetachWidth", "player.powerDetachX", "focus.auraBuffPlace", "focus.auraBuffX" }) do
+	"player.powerDetach", "player.powerDetachWidth", "player.powerDetachStrata", "player.powerDetachX", "focus.auraBuffPlace", "focus.auraBuffX" }) do
 	assert(schema[key], key .. " has a row")
 end
 assert(not schema["target.castbarGcd"], "the global cooldown fill is the player's")
@@ -218,6 +218,8 @@ write("player.powerDetachX", 10)
 write("player.powerDetachY", 5)
 g = player.geometry
 assert(near(g.power.w, 150) and near(g.power.x, g.panel.x + (g.panel.w - 150) / 2 + 10) and near(g.power.y, height - ph - 5), "its own width and offsets")
+write("player.powerDetachStrata", "HIGH")
+assert(W.LastCall(player.power, "SetFrameStrata")[1] == "HIGH", "its own strata")
 write("player.powerDetach", "ABOVE")
 g = player.geometry
 assert(near(g.power.y, -5) and g.health.y >= ph + 4 - 1e-6, "above: on top, the bars below it")
@@ -227,6 +229,12 @@ assert(g.form == "plate" and near(g.power.y, -5) and g.glass.y >= ph + 4 - 1e-6,
 write("player.style", "column")
 for _, key in ipairs({ "powerDetachWidth", "powerDetachX", "powerDetachY" }) do write("player." .. key, 0) end
 write("player.powerDetach", "")
+assert(W.LastCall(player.power, "SetFrameStrata")[1] == player.power:GetParent():GetFrameStrata(), "off returns the bar to the frame's strata")
+local strataCalls = #W.Calls(player.power, "SetFrameStrata")
+write("player.powerHeight", 6)
+assert(#W.Calls(player.power, "SetFrameStrata") == strataCalls, "a frame in place never sets the strata again")
+write("player.powerHeight", 7)
+write("player.powerDetachStrata", "")
 local after = rects(player.geometry)
 for key, r in pairs(before) do
 	for i = 1, 4 do assert(near(after[key][i], r[i]), "off restores the frame's " .. key) end
