@@ -1,4 +1,4 @@
--- Resource.lua: the class resource element under the player frame: combo points as one-point status bars, or the class-themed pips over them (while the Medallions crest's crown shows them the row hides), and the druid's mana bar.
+-- Resource.lua: the class resource element under the player frame: combo points as one-point status bars, or the class-themed pips over them (while the Medallions crest's crown shows them the row hides), and the druid's mana bar, seated above that crown in cat form.
 local _, ns = ...
 
 local K = KstyleUI
@@ -99,6 +99,13 @@ function Resource.Layout()
 	local w, h = Size()
 	if not w then
 		return
+	end
+	state.content:ClearAllPoints()
+	if state.crown then
+		state.content:SetPoint("CENTER", state.crown, "CENTER", 0, 0)
+		state.content:SetSize(w, h)
+	else
+		state.content:SetAllPoints(state.holder)
 	end
 	local max, min = math.max, math.min
 	local manaH = 0
@@ -248,9 +255,10 @@ function Resource.Visibility()
 		current = nil
 	end
 	local on = state.running and Settings.Resource("enabled")
-	local crowned = Settings.Resource("classPips") and Widgets.ClassCrown()
-	state.showCombo = on and Settings.Resource("comboPoints") and not crowned and (class == "ROGUE" or class == "DRUID" and current == energy) or false
+	local crown = Settings.Resource("classPips") and Widgets.ClassCrown() or nil
+	state.showCombo = on and Settings.Resource("comboPoints") and not crown and (class == "ROGUE" or class == "DRUID" and current == energy) or false
 	state.showMana = on and Settings.Resource("druidMana") and class == "DRUID" and current ~= nil and current ~= mana or false
+	state.crown = state.showMana and crown or nil
 	state.flipped = state.showMana and Settings.Value("player", "powerMana") and current or nil
 	state.themed = ns.Pips.Apply(state.showCombo and Settings.Resource("classPips") and class or nil, state.content, PIPS)
 	if state.showMana then Resource.StyleBar(state.mana, state.flipped) end
@@ -258,7 +266,7 @@ function Resource.Visibility()
 	local Layout = K.Layout
 	if Layout and Layout.SetLive then
 		local comboOn, manaOn = Settings.Resource("comboPoints"), Settings.Resource("druidMana")
-		local placeable = on and (comboOn and not crowned and (class == "ROGUE" or class == "DRUID") or class == "DRUID" and manaOn) or false
+		local placeable = on and not state.crown and (comboOn and not crown and (class == "ROGUE" or class == "DRUID") or class == "DRUID" and manaOn) or false
 		Layout.SetLive(KEY, placeable and true or false)
 	end
 	Resource.ListenToPower(state.running and (state.showCombo or state.showMana))

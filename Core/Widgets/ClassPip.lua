@@ -1,4 +1,4 @@
--- ClassPip.lua: one class-themed resource pip, an art set (lit, dormant, shape, glow) seen along an axis; every lit layer is a one-point status bar fed the raw count now, before, or at the maximum, so the engine compares and Lua never reads a secret: a gain slides the art out along its axis under a flare, a spend holds, slashes and cools to the dormant art, and the maximum runs a glint up the axis, staggered along the row and then back on one common period; the crest's crown says through SetClassCrown whether it shows the combo points, so the unit frames hand them over only then.
+-- ClassPip.lua: one class-themed resource pip, an art set (lit, dormant, shape, glow) seen along an axis; every lit layer is a one-point status bar fed the raw count now, before, or at the maximum, so the engine compares and Lua never reads a secret: a gain slides the art out along its axis under a flare, a spend holds, slashes and cools to the dormant art, and the maximum runs a glint up the axis, staggered along the row and then back on one common period; while the crest's crown shows the combo points it hands SetClassCrown a seat just above its tips, so the unit frames hand the points over only then and seat the druid bar there.
 local _, ns = ...
 
 local Widgets, Tokens = ns.Widgets, ns.Tokens
@@ -26,7 +26,7 @@ local CLASSES = {
 }
 
 local Pip = {}
-local crowned, follower = false, nil
+local crown, follower = nil, nil
 
 local function Create(bar, kind, order, duration, smoothing)
 	bar.anim = bar.anim or bar:CreateAnimationGroup()
@@ -94,9 +94,9 @@ function Pip:Set(now, was, moving, idle)
 	end
 end
 
-function Widgets.SetClassCrown(shown)
-	if shown ~= crowned then
-		crowned = shown
+function Widgets.SetClassCrown(seat)
+	if seat ~= crown then
+		crown = seat
 		if follower then
 			follower()
 		end
@@ -105,7 +105,7 @@ end
 
 function Widgets.ClassCrown(follow)
 	follower = follow or follower
-	return crowned
+	return crown
 end
 
 function Widgets.ClassPipSet(class, angle)

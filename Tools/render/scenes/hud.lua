@@ -593,8 +593,19 @@ function modules.unitframes(opts)
 	if select(3, Hud.Pips()) then
 		K.Options.Write("UnitFrames", "resource.classPips", false)
 	end
-	-- The action bars' scene is its own client: under Medallions its crest's crown shows the points, as in the game.
-	K.Widgets.SetClassCrown(K.HudStyle.Current() == "medallions")
+	-- The action bars' scene is its own client: under Medallions its crest's crown shows the points, as in the game,
+	-- and a cat-form druid's bar sits on a stand-in of the crown's seat, placed where that scene puts it.
+	if K.HudStyle.Current() == "medallions" then
+		local seat = env.CreateFrame("Frame", nil, env.UIParent)
+		seat:SetSize(1, 1)
+		seat:SetPoint("CENTER")
+		if class == "DRUID" and Hud.Pips() and ns.Resource.state.showMana then
+			local line = select(2, modules.actionbars(opts)).SlabCrown.state.line
+			local r, scale = Scene.RectSolver(line._env):rect(line), env.UIParent:GetScale()
+			seat:SetPoint("CENTER", env.UIParent, "BOTTOMLEFT", (r[1] + r[3]) / 2 / scale, (r[2] + r[4]) / 2 / scale)
+		end
+		K.Widgets.SetClassCrown(seat)
+	end
 	notes[#notes + 1] = PlayPips(env, K, function(n) env._comboPoints = n end)
 	local scene = build(env, opts, { time = env._time }, function()
 		Fx.Apply(env, "unitframes", ns, notes)

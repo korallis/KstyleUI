@@ -1,4 +1,4 @@
--- SlabCrown.lua: the Medallions crest's crown, one Widgets.ClassPip piece per combo point fanned out of the top of the rune ring (a rogue's daggers, a cat-form druid's claws), dormant until each point ignites one; on while the unit frames' Class resource, Combo points and Class-themed pips settings are on, which they are by default and when Unit Frames is off, and it tells the unit frames whether it shows.
+-- SlabCrown.lua: the Medallions crest's crown, one Widgets.ClassPip piece per combo point fanned out of the top of the rune ring (a rogue's daggers, a cat-form druid's claws), dormant until each point ignites one; on while the unit frames' Class resource, Combo points and Class-themed pips settings are on, which they are by default and when Unit Frames is off, and while it shows it gives the unit frames a seat just above its tips for the druid bar.
 local _, ns = ...
 
 local K = KstyleUI
@@ -11,7 +11,7 @@ ns.SlabCrown = Crown
 
 local OWNER = "ActionBars.SlabCrown"
 local FANS = { { 90 }, { 110, 70 }, { 110, 90, 70 }, { 130, 110, 70, 50 }, { 130, 110, 90, 70, 50 } }
-local BASE, LENGTH, ART = 76, 44, 128 / 120
+local BASE, LENGTH, ART, SEAT = 76, 44, 128 / 120, 8
 local KEYS = { ["resource.enabled"] = true, ["resource.comboPoints"] = true, ["resource.classPips"] = true }
 
 local state = { pips = {}, built = {} }
@@ -110,7 +110,12 @@ function Crown.Update()
 	for _, p in ipairs(state.pips) do
 		p.frame:SetShown(state.shown)
 	end
-	Widgets.SetClassCrown(state.shown)
+	if state.shown and not state.line then
+		state.line = CreateFrame("Frame", nil, ns.Slab.hub.top)
+		state.line:SetSize(1, 1)
+		state.line:SetPoint("CENTER", ns.Slab.hub, "CENTER", 0, Widgets.Snap(ns.Slab.hub, BASE + LENGTH + SEAT))
+	end
+	Widgets.SetClassCrown(state.shown and state.line or nil)
 	Points()
 end
 
