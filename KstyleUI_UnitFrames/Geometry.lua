@@ -40,6 +40,7 @@ end
 local LEVEL_COLUMN = 2.6
 local MIN_HEALTH = 2
 local MAX_COLUMN_SHARE = 0.5
+local VALUES_SHARE = 0.6
 
 Geometry.TEXT_GAP = TEXT_GAP
 Geometry.FULL_MIN_HEIGHT = FULL_MIN_HEIGHT
@@ -56,7 +57,7 @@ local function Size(s, element, scale)
 end
 
 local function Column(s, format, size, room)
-	return min(Format.ColumnWidth(format or "none", size, s.healthDecimal), max(0, floor(room * MAX_COLUMN_SHARE)))
+	return min(Format.ColumnWidth(format or "none", size, s.healthDecimal, s.healthValues), max(0, floor(room * (s.healthValues and VALUES_SHARE or MAX_COLUMN_SHARE))))
 end
 
 local function Portrait(out, s, width, height)
@@ -306,8 +307,8 @@ local function Vitals(out, s, width, height, scale)
 	local main, split = ValueFormats(s.healthText)
 	local valueW = 0
 	if main ~= "none" then
-		local subW = split and Format.ColumnWidth("current", captionSize) or 0
-		local curW = Format.ColumnWidth(main, valueSize, s.healthDecimal)
+		local subW = split and Format.ColumnWidth("current", captionSize, nil, s.healthValues) or 0
+		local curW = Format.ColumnWidth(main, valueSize, s.healthDecimal, s.healthValues)
 		if split then
 			out.healthSub = Above(x0 + colW - subW, subW, rowBottom, captionSize)
 		end
@@ -497,8 +498,8 @@ local function ColumnTexts(out, s, width, scale, right)
 			valueW = pctW + TEXT_GAP
 		end
 	elseif main ~= "none" then
-		local subW = split and Format.ColumnWidth("current", captionSize) or 0
-		local curW = Format.ColumnWidth(main, valueSize, s.healthDecimal)
+		local subW = split and Format.ColumnWidth("current", captionSize, nil, s.healthValues) or 0
+		local curW = Format.ColumnWidth(main, valueSize, s.healthDecimal, s.healthValues)
 		if split then
 			out.healthSub = Above(width - subW, subW, rowBottom, captionSize)
 		end
@@ -700,6 +701,7 @@ Geometry.MARKER_EXTRA, Geometry.MARKER_GAP = MARKER_EXTRA, MARKER_GAP
 local function Overlaps(a, b)
 	return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h
 end
+Geometry.Overlaps = Overlaps
 
 local function Marker(out, s)
 	if not s.raidMarker then

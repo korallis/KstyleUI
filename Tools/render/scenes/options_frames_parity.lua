@@ -1,4 +1,4 @@
--- options_frames_parity.lua: each real frame options page, selected with RENDER_PARITY_MODULE and optionally RENDER_OPTIONS_KEY, RENDER_OPTIONS_ON, RENDER_OPTIONS_EDIT, RENDER_PARITY_R1 and RENDER_PARITY_R2.
+-- options_frames_parity.lua: each real frame options page, selected with RENDER_PARITY_MODULE and optionally RENDER_OPTIONS_KEY, RENDER_OPTIONS_ON (key=value pairs; a bare key is true, =false is false), RENDER_OPTIONS_EDIT, RENDER_PARITY_R1 and RENDER_PARITY_R2.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -19,7 +19,7 @@ return Common.Run(function()
 	if module == "UnitFrames" then K.Options.Write(module, "edit", os.getenv("RENDER_OPTIONS_EDIT") or "player") end
 	for item in (os.getenv("RENDER_OPTIONS_ON") or ""):gmatch("[^,]+") do
 		local key, value = item:match("^([^=]+)=?(.*)$")
-		K.Options.Write(module, key, value == "" or tonumber(value) or value)
+		K.Options.Write(module, key, value == "" or value ~= "false" and (tonumber(value) or value))
 	end
 	if module == "UnitFrames" and os.getenv("RENDER_PARITY_R1") == "1" then
 		local kind = os.getenv("RENDER_OPTIONS_EDIT") or "player"

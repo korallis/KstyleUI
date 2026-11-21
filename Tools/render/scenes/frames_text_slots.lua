@@ -1,4 +1,4 @@
--- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text, unit-frame parity round 1, 2, 3a, 3b, 3c, 3d, 4a, 4b or 5 options through Options (RENDER_TOTEMS and RENDER_PORTRAIT set the totem and portrait sides, RENDER_POWER_DETACH the power bar's place), or (RENDER_AURA_BOTH=1) the target's Debuffs and buffs with timers under the icons, nudged by RENDER_AURA_TIMER_Y, with every row full and the target of target shown under RENDER_AURA_FULL=1.
+-- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text, unit-frame parity round 1, 2, 3a, 3b, 3c, 3d, 4a, 4b, 5 or 6 options through Options (RENDER_TOTEMS and RENDER_PORTRAIT set the totem and portrait sides, RENDER_POWER_DETACH the power bar's place, RENDER_CORNER round 6's crown corner), or (RENDER_AURA_BOTH=1) the target's Debuffs and buffs with timers under the icons, nudged by RENDER_AURA_TIMER_Y, with every row full and the target of target shown under RENDER_AURA_FULL=1.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -256,6 +256,26 @@ return Common.Run(function()
 		env._units.player.cast = nil
 		ns.CastBars.Refresh("player")
 		env.FireEvent("UNIT_SPELLCAST_START", "target", "Cast-1", env._units.target.cast.spellID)
+	end
+	if os.getenv("RENDER_PARITY_R6") == "1" and module == "UnitFrames" then
+		local U, target, player = dofile("Tools/regression/unitframes_env.lua"), env._units.target, env._units.player
+		target.classification, target.combat = "elite", true
+		player.leader, player.role, player.pvp, player.faction, player.combat = true, "TANK", true, "Alliance", true
+		env.IsPVPTimerRunning, env.GetPVPTimer = function() return true end, function() return 272000 end
+		env.GetRaidTargetIndex = function(token) return (token == "target" or token == "focus" or token == "boss1") and 8 or nil end
+		U.SetUnit(env, "focus", target)
+		U.SetUnit(env, "boss1", { name = "Magmatus", level = -1, classification = "worldboss", health = 240550, healthMax = 1250000, reaction = 2, canAttack = true })
+		for _, event in ipairs({ "PLAYER_FOCUS_CHANGED", "INSTANCE_ENCOUNTER_ENGAGE_UNIT" }) do env.FireEvent(event) end
+		K.Options.Get(module)
+		for _, pair in ipairs({
+			{ "player.leaderPlace", os.getenv("RENDER_CORNER") or "TOPLEFT" }, { "player.combatPlace", "BOTTOMRIGHT" }, { "player.pvpTimer", true }, { "player.pvpTimerPlace", "LEFT" },
+			{ "target.elite", true }, { "target.elitePlace", "TOPRIGHT" }, { "target.combat", true }, { "target.combatPlace", "BOTTOMLEFT" }, { "target.markerPlace", "TOPLEFT" },
+			{ "focus.elite", true }, { "focus.elitePlace", "BOTTOMRIGHT" }, { "focus.markerPlace", "TOPRIGHT" },
+			{ "boss.healthText", "currentMax" }, { "healthDecimalBoss", true }, { "healthDecimalPercentOnly", false }, { "boss.markerPlace", "TOPRIGHT" },
+		}) do
+			K.Options.Write(module, pair[1], pair[2])
+		end
+		for _, event in ipairs({ "PVP_TIMER_UPDATE", "RAID_TARGET_UPDATE", "PLAYER_TARGET_CHANGED", "UNIT_FLAGS" }) do env.FireEvent(event, "player") end
 	end
 	env.RunTimers()
 	if os.getenv("RENDER_PARITY_R5") == "1" and module == "UnitFrames" then

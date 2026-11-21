@@ -15,11 +15,14 @@ local CURRENT_MAX = "%s / %s"
 local BOTH = { [0] = "%s / %s  %.0f%%", [true] = "%s / %s  %.1f%%", [2] = "%s / %s  %.2f%%", bare = "%s / %s  %.0f", trim = "%s / %s  %s%%" }
 local MAX = "/ %s"
 
-function Format.ColumnWidth(format, size, decimal)
+local VALUE_EM = { current = 0.9, currentMax = 1.8, both = 1.8 }
+
+function Format.ColumnWidth(format, size, decimal, values)
 	local em = COLUMN[format] or 0
 	if decimal and (format == "percent" or format == "both") then
 		em = em + ((decimal == 2 or decimal == -2) and 1 or 0.4)
 	end
+	if values then em = em + (VALUE_EM[format] or 0) end
 	return ceil(em * size)
 end
 
@@ -101,6 +104,32 @@ end
 
 local Abbreviate = K.Widgets.ShortNumber
 
+local TWO = {}
+for i, point in ipairs({ { 1e9, "B", 1e7 }, { 1e6, "M", 1e4 }, { 1e3, "K", 10 }, { 1, "", 1 } }) do
+	TWO[i] = { breakpoint = point[1], abbreviation = point[2], significandDivisor = point[3], fractionDivisor = point[3] > 1 and 100 or 1, abbreviationIsGlobal = false }
+end
+local twoOptions
+
+local function TwoPlaces(value)
+	if not K.Widgets.IsSecret(value) then
+		if type(value) ~= "number" or value ~= value or value < 1000 or value == math.huge then return Abbreviate(value) end
+		for _, point in ipairs(TWO) do
+			if value >= point.breakpoint then return (math.floor(value / point.significandDivisor) / point.fractionDivisor) .. point.abbreviation end
+		end
+	end
+	if twoOptions == nil then
+		local ok, text = false, nil
+		if type(AbbreviateNumbers) == "function" then ok, text = pcall(AbbreviateNumbers, 240550, { breakpointData = TWO }) end
+		twoOptions = ok and not K.Widgets.IsSecret(text) and text == "240.55K" and { breakpointData = TWO } or false
+		if not twoOptions then Log("boss values: AbbreviateNumbers does not write two decimals; secret values keep one") end
+	end
+	return twoOptions and AbbreviateNumbers(value, twoOptions) or Abbreviate(value)
+end
+
+local function Short(text, value)
+	return text.twoPlaces and TwoPlaces(value) or Abbreviate(value)
+end
+
 local function Gone(unit)
 	if UnitIsConnected and not UnitIsConnected(unit) then
 		return L["Offline"]
@@ -127,13 +156,13 @@ local function Write(text, format, current, max, percent, hasPercent, decimal, b
 	if hasPercent and not decimal then percent = K.Widgets.WholePercent(percent) end
 	local places = bare and "bare" or decimal or 0
 	if format == "current" then
-		text:SetText(Abbreviate(current))
+		text:SetText(Short(text, current))
 	elseif format == "percent" and hasPercent then
 		text:SetFormattedText(PERCENT[places], percent)
 	elseif format == "both" and hasPercent then
-		text:SetFormattedText(BOTH[places], Abbreviate(current), Abbreviate(max), percent)
+		text:SetFormattedText(BOTH[places], Short(text, current), Short(text, max), percent)
 	else
-		text:SetFormattedText(CURRENT_MAX, Abbreviate(current), Abbreviate(max))
+		text:SetFormattedText(CURRENT_MAX, Short(text, current), Short(text, max))
 	end
 end
 
@@ -187,11 +216,11 @@ function Format.Max(text, unit)
 		text:SetText("")
 		return
 	end
-	text:SetFormattedText(MAX, Abbreviate(UnitHealthMax(unit)))
+	text:SetFormattedText(MAX, Short(text, UnitHealthMax(unit)))
 end
 
 function Format.SampleMax(text, max)
-	text:SetFormattedText(MAX, Abbreviate(max))
+	text:SetFormattedText(MAX, Short(text, max))
 end
 
 function Format.PowerMode(unit, format, powerType)

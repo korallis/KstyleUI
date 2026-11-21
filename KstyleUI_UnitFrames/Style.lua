@@ -806,6 +806,7 @@ function Style.Layout(view, s, width, height)
 		end
 	end
 	view.geometry = g
+	view.healthText.twoPlaces, view.healthSub.twoPlaces = s.healthValues, s.healthValues
 	view.portraitOrnament.mirror = g.mirror == true
 	view.form = g.form
 	if g.form ~= "plate" then

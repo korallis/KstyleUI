@@ -215,7 +215,7 @@ Settings.defaults = {
 	castOutcomes = true,
 	healthDecimal = false,
 	unitTooltip = "always",
-	healthDecimalBoss = false, healthDecimalTrim = false, targetSounds = false, reactionColors = false, hostileColor = Color("healthHostile"),
+	healthDecimalBoss = false, healthDecimalTrim = false, healthDecimalPercentOnly = true, targetSounds = false, reactionColors = false, hostileColor = Color("healthHostile"),
 	neutralColor = Color("neutral"), friendlyColor = Color("friendly"), tappedColor = Color("textDisabled"),
 	castbarRaise = false,
 	dispelCustom = false, dispelMagic = Color("magic"), dispelCurse = Color("epic"), dispelPoison = Color("uncommon"), dispelDisease = Color("legendary"), dispelBleed = Color("hostile"),
@@ -269,11 +269,11 @@ local function AddDefaults(kinds, keys)
 	end
 end
 AddDefaults(KINDS, { auraTooltips = true, classZoom = 0, combatClassColor = false, powerPercentSign = true, leaderSize = 0, leaderX = 0, leaderY = 0,
-	pvpSize = 0, pvpX = 0, pvpY = 0, combatSize = 0, combatX = 0, combatY = 0 })
-AddDefaults({ "player" }, { threatNonTank = false, pvpTimer = false, pvpTimerSize = 10, pvpTimerX = 0, pvpTimerY = 0 })
+	pvpSize = 0, pvpX = 0, pvpY = 0, combatSize = 0, combatX = 0, combatY = 0, leaderPlace = "", pvpPlace = "", combatPlace = "", markerPlace = "" })
+AddDefaults({ "player" }, { threatNonTank = false, pvpTimer = false, pvpTimerSize = 10, pvpTimerX = 0, pvpTimerY = 0, pvpTimerPlace = "" })
 AddDefaults({ "target", "focus" }, { threatPercent = false, threatPercentPosition = "RIGHT", slabThreatPercentPosition = "OUTLEFT", threatPercentColor = true })
 Settings.defaults.focus.threatPercentPosition = "OUTRIGHT"
-AddDefaults({ "target", "targettarget", "focus", "focustarget", "boss" }, { eliteSize = 0, eliteX = 0, eliteY = 0, eliteInstances = true })
+AddDefaults({ "target", "targettarget", "focus", "focustarget", "boss" }, { eliteSize = 0, eliteX = 0, eliteY = 0, eliteInstances = true, elitePlace = "" })
 Settings.TEXT_BAR = { player = true, target = true, focus = true }
 for kind in pairs(Settings.TEXT_BAR) do
 	local d = Settings.defaults[kind]
@@ -363,6 +363,8 @@ CHOICES.threatPlace = Options({ { "OUTLEFT", L["Left of the bar"] }, { "OUTRIGHT
 	{ "RIGHT", L["Inside the right edge"] }, { "CENTER", L["Centre"] } })
 CHOICES.textBarPlace = Options({ { "BOTTOM", L["Bottom of the frame"] }, { "TOP", L["Top of the frame"] }, { "BELOW", L["Below the frame, apart"] }, { "ABOVE", L["Above the frame, apart"] } })
 CHOICES.textBarIcon = Options({ { "", L["None"] }, { "LEFT", L["Left"] }, { "RIGHT", L["Right"] } })
+CHOICES.iconPlace = Options({ { "", L["In the status row"] }, { "TOPLEFT", L["Top left"] }, { "TOPRIGHT", L["Top right"] }, { "BOTTOMLEFT", L["Bottom left"] }, { "BOTTOMRIGHT", L["Bottom right"] } })
+CHOICES.timerPlace = Options({ { "", L["After the status icons"] }, { "LEFT", L["Left of the badge"] }, { "RIGHT", L["Right of the badge"] }, { "TOP", L["Above the badge"] }, { "BOTTOM", L["Below the badge"] } })
 CHOICES.strata = { { value = "", label = L["Same as the frame"] } }
 for _, option in ipairs(K.Layout and K.Layout.STRATA_OPTIONS or {}) do CHOICES.strata[#CHOICES.strata + 1] = option end
 
@@ -397,6 +399,7 @@ local CHOICE_OF = {
 	dispelOverlay = "dispelOverlay", dispelFilter = "dispelFilter", dispelIcon = "dispelIcon", totemPosition = "totemPosition", auraLists = "auraCopy",
 	textBarPlace = "textBarPlace", textBarIcon = "textBarIcon", textBarStrata = "strata",
 	castbarTargetPlace = "targetPlace", powerDetach = "powerDetach", auraBuffPlace = "buffPlace", powerDetachStrata = "strata",
+	leaderPlace = "iconPlace", pvpPlace = "iconPlace", combatPlace = "iconPlace", elitePlace = "iconPlace", markerPlace = "iconPlace", pvpTimerPlace = "timerPlace",
 }
 
 local function Allowed(list, value)
@@ -750,6 +753,7 @@ function Settings.Snapshot(kind)
 	local m = Settings.Module()
 	s.healthDecimal = kind == "boss" and m.healthDecimalBoss == true and 2 or m.healthDecimal == true
 	if s.healthDecimal and m.healthDecimalTrim == true then s.healthDecimal = s.healthDecimal == 2 and -2 or -1 end
+	s.healthValues = kind == "boss" and m.healthDecimalBoss == true and m.healthDecimalPercentOnly == false
 	s.textOptions = fonts.name.textFormat ~= "" or fonts.health.textFormat ~= "" or fonts.name.colorMode ~= "" or fonts.health.colorMode ~= ""
 	for key, default in pairs(d) do
 		if key ~= "fonts" and not LIVE[key] then
@@ -890,6 +894,9 @@ IconRows = function(schema, kind)
 	})
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "markerSize", label = L["Raid marker size"], min = 0, max = MARKER_MAX, step = 1,
 		help = L["The raid marker's size in units. 0 follows the icon size."] }, function(s) return s.raidMarker ~= false end)
+	local placeHelp = L["A corner moves it there, outside the frame where it would cross its text."]
+	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "markerPlace", label = L["Raid marker"] .. ": " .. L["Place"], help = placeHelp, options = CHOICES.iconPlace },
+		function(s) return s.raidMarker ~= false end)
 	if kind == "pet" then
 		schema[#schema + 1] = Row(kind, { type = "dropdown", key = "happinessPosition", label = L["Happiness position"],
 			help = L["Where the pet happiness badge sits."], options = CHOICES.happinessPosition }, function(s) return s.happiness == true end)
@@ -906,6 +913,7 @@ IconRows = function(schema, kind)
 			local spec = specs[i]
 			add(icon, { type = "slider", key = (key or icon) .. spec[1], label = label .. ": " .. spec[2], help = spec[3], min = spec[4], max = spec[5], step = 1 }, key)
 		end
+		if not key then add(icon, { type = "dropdown", key = icon .. "Place", label = label .. ": " .. L["Place"], help = placeHelp, options = CHOICES.iconPlace }) end
 	end
 	place("leader", L["Leader icon"])
 	place("pvp", L["PvP icon"])
@@ -918,6 +926,8 @@ IconRows = function(schema, kind)
 	if kind == "player" then
 		add("pvp", { type = "toggle", key = "pvpTimer", label = L["PvP flag timer"], help = L["Shows the time left before your PvP flag drops, after the status icons."] })
 		add("pvp", { type = "slider", key = "pvpTimerSize", label = L["Timer text size"], help = L["The size of the PvP flag timer."], min = FONT_SIZE_MIN, max = FONT_SIZE_MAX, step = 1 }, "pvpTimer")
+		add("pvp", { type = "dropdown", key = "pvpTimerPlace", label = L["PvP flag timer"] .. ": " .. L["Place"], options = CHOICES.timerPlace,
+			help = L["Above and below keep clear of the frame's text, taking the other side if needed."] }, "pvpTimer")
 		place("pvp", L["PvP flag timer"], "pvpTimer")
 		add("threat", { type = "toggle", key = "threatNonTank", label = L["Threat glow only as a non-tank"], help = L["Glows only in dungeons and raids, and only while your role is damage or healer."] })
 	elseif kind == "target" or kind == "focus" then
@@ -1514,6 +1524,8 @@ function Settings.Schema()
 			help = L["Shows boss frame health percentages with two decimal places, such as 41.27%."] },
 		{ type = "toggle", key = "healthDecimalTrim", label = L["Hide trailing zeros"], help = L["Shows 41% rather than 41.0%, and 41.5% rather than 41.50%."],
 			showWhen = function(s) return s.healthDecimal == true or s.healthDecimalBoss == true end },
+		{ type = "toggle", key = "healthDecimalPercentOnly", label = L["Boss decimals on percentages only"], help = L["Off gives boss health values two decimals too, such as 240.55K."],
+			showWhen = function(s) return s.healthDecimalBoss == true end },
 		{ type = "toggle", key = "targetSounds", label = L["Target lost sound"],
 			help = L["Plays the game's sound when you lose your target while KstyleUI hides Blizzard's target frame."] },
 		{ type = "toggle", key = "reactionColors", label = L["Custom reaction colours"],
