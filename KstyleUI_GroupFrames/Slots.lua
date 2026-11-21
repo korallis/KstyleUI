@@ -270,6 +270,32 @@ local function Spots(f)
 	return out
 end
 
+local EDGES = { TOPLEFT = "TOP", TOP = "TOP", TOPRIGHT = "TOP", BOTTOMLEFT = "BOTTOM", BOTTOM = "BOTTOM", BOTTOMRIGHT = "BOTTOM", LEFT = "LEFT", RIGHT = "RIGHT", CENTER = "CENTER" }
+local ACROSS = { BOTTOM = "TOP", TOP = "BOTTOM", LEFT = "RIGHT", RIGHT = "LEFT" }
+
+local function LineOn(f, edge)
+	local p, border = Settings.current.prediction, Widgets.Border(f)
+	if p.shield and p.shieldPlace == edge then return border * p.shieldLines end
+	if p.healAbsorbLine and ACROSS[p.shieldPlace] == edge then return border * (p.healAbsorbLines > 0 and p.healAbsorbLines or p.shieldLines) end
+	return 0
+end
+
+local function Bar(f, slot, i)
+	if slot.style ~= "BAR" or not f.parts then return nil end
+	local button = f.indicators and f.indicators:GetAuraSlotFrame(Key(i))
+	if button and not (type(button.SetDurationBar) == "function" and type(button.ClearDurationBar) == "function") then
+		Style.LogOnce("slotBar", "aura buttons have no duration bar; bar indicators stay squares")
+		return nil
+	end
+	local health, edge = f.parts.health, EDGES[slot.position] or "BOTTOM"
+	local upright, line = edge == "LEFT" or edge == "RIGHT", LineOn(f, edge)
+	local thick = math.min(slot.thick, (upright and health.width or health.height) - line)
+	if Widgets.Snap(f, thick) <= 0 then return false end
+	local left = edge == "RIGHT" and health.left + health.width - line - thick or edge == "LEFT" and health.left + line or health.left
+	local top = edge == "BOTTOM" and health.top + health.height - line - thick or edge == "CENTER" and health.top + (health.height - thick) / 2 or edge == "TOP" and health.top + line or health.top
+	return { edge = edge, left = left, top = top, w = upright and thick or health.width, h = upright and health.height or thick, upright = upright }
+end
+
 local function Key2(f, w, h, field, blocked, spots)
 	local cfg = Settings.current
 	local out = { f.kind, w, h, field.left, field.top, field.right, field.bottom, Widgets.Snap(f, 1) }
@@ -281,7 +307,9 @@ local function Key2(f, w, h, field, blocked, spots)
 	end
 	for i = 1, COUNT do
 		local slot = cfg[Key(i)]
-		out[#out + 1] = (Category(slot, f.kind) and (Slots.Helpful(slot.category) and "h" or "1") or "0") .. slot.position .. slot.size .. (slot.style == "BAR" and "b" or "")
+		local bar = Bar(f, slot, i)
+		out[#out + 1] = (Category(slot, f.kind) and (Slots.Helpful(slot.category) and "h" or "1") or "0") .. slot.position .. slot.size
+			.. (bar and table.concat({ "b", bar.left, bar.top, bar.w, bar.h }, ":") or bar == false and "b" or "")
 	end
 	return table.concat(out, "|")
 end
@@ -345,13 +373,14 @@ function Slots.Placements(f)
 			return a < b
 		end)
 	end
-	local lane, crowded = 1, false
+	local lane, crowded, edges = 1, false, {}
 	for _, i in ipairs(order) do
 		local slot = cfg[Key(i)]
-		local place = { point = slot.position, x = 0, y = 0, size = Widgets.Snap(f, Slots.Size(f, slot.size)), fits = false }
-		if slot.style == "BAR" then
-			place.fits = Category(slot, f.kind) ~= nil
-			place.bar = place.fits
+		local place, bar = { point = slot.position, x = 0, y = 0, size = Widgets.Snap(f, Slots.Size(f, slot.size)), fits = false }, Bar(f, slot, i)
+		if bar ~= nil then
+			place.bar = Category(slot, f.kind) and bar and not edges[bar.edge] and bar or nil
+			place.fits = place.bar ~= nil
+			if place.bar then edges[bar.edge] = true end
 		elseif Category(slot, f.kind) then
 			local spot
 			while heal and spots and spots.lane[lane] and Overlaps(spots.lane[lane], heal) do lane, crowded = lane + 1, true end
@@ -391,37 +420,12 @@ function Slots.Misfit(kind, i)
 	return not Slots.Placements(f)[i].fits
 end
 
-local EDGES = { TOPLEFT = "TOP", TOP = "TOP", TOPRIGHT = "TOP", BOTTOMLEFT = "BOTTOM", BOTTOM = "BOTTOM", BOTTOMRIGHT = "BOTTOM", LEFT = "LEFT", RIGHT = "RIGHT", CENTER = "CENTER" }
-local ACROSS = { BOTTOM = "TOP", TOP = "BOTTOM", LEFT = "RIGHT", RIGHT = "LEFT" }
-
-local function LineOn(f, edge)
-	local p, border = Settings.current.prediction, Widgets.Border(f)
-	if p.shield and p.shieldPlace == edge then return border * p.shieldLines end
-	if p.healAbsorbLine and ACROSS[p.shieldPlace] == edge then return border * (p.healAbsorbLines > 0 and p.healAbsorbLines or p.shieldLines) end
-	return 0
-end
-
-function Slots.Bar(f, slot)
-	local health = f.parts.health
-	local edge = EDGES[slot.position] or "BOTTOM"
-	local upright = edge == "LEFT" or edge == "RIGHT"
-	local line = LineOn(f, edge)
-	local thick = math.min(slot.thick, (upright and health.width or health.height) - line)
-	local left = edge == "RIGHT" and health.left + health.width - line - thick or edge == "LEFT" and health.left + line or health.left
-	local top = edge == "BOTTOM" and health.top + health.height - line - thick or edge == "CENTER" and health.top + (health.height - thick) / 2 or edge == "TOP" and health.top + line or health.top
-	return left, top, upright and thick or health.width, upright and health.height or thick, upright
-end
-
-local function Look(button, slot, upright)
+local function Look(button, slot, bar, upright)
 	local p = Auras.Parts(button)
-	local key = p and slot.style ~= "ICON" and table.concat({ slot.style, slot.color.r, slot.color.g, slot.color.b, tostring(slot.reverse), tostring(upright), Settings.current.health.texture }, ":")
+	local key = p and slot.style ~= "ICON" and table.concat({ slot.style, slot.color.r, slot.color.g, slot.color.b, tostring(slot.reverse), tostring(bar), tostring(upright), Settings.current.health.texture }, ":")
 	if not p or p.look == key then return end
 	p.look = key or nil
-	local c, bar = slot.color, slot.style == "BAR"
-	if bar and type(button.SetDurationBar) ~= "function" then
-		Style.LogOnce("slotBar", "aura buttons have no SetDurationBar; bar indicators stay squares")
-		bar = false
-	end
+	local c = slot.color
 	if not bar and slot.style ~= "ICON" and not p.square then
 		p.square = p.skin:CreateTexture(nil, "ARTWORK", nil, 1)
 		p.square:SetAllPoints(p.icon)
@@ -463,19 +467,19 @@ local function Place(f)
 		if button then
 			local place, slot = placements[i], Settings.current[Key(i)]
 			button:ClearAllPoints()
-			if place.bar then
-				local left, top, w, h, upright = Slots.Bar(f, slot)
-				button:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, left + slot.x), -Widgets.Snap(f, top - slot.y))
+			local bar = place.bar
+			if bar then
+				button:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, bar.left + slot.x), -Widgets.Snap(f, bar.top - slot.y))
 				button:SetFrameLevel(slot.over and base + COUNT - i or f:GetFrameLevel() + Auras.CONTAINER_LEVEL)
 				Auras.StyleIcon(button)
-				Widgets.Size(button, Widgets.Snap(f, w), Widgets.Snap(f, h))
-				Look(button, slot, upright)
+				Widgets.Size(button, Widgets.Snap(f, bar.w), Widgets.Snap(f, bar.h))
+				Look(button, slot, true, bar.upright)
 			else
 				button:SetPoint(place.point, f, place.point, place.x + Widgets.Snap(f, slot.x), place.y + Widgets.Snap(f, slot.y))
 				button:SetFrameLevel(base + COUNT - i)
 				Auras.StyleIcon(button)
 				Widgets.Size(button, place.size, place.size)
-				if slot.style ~= "ICON" or (Auras.Parts(button) or {}).look then Look(button, slot) end
+				if slot.style ~= "ICON" or (Auras.Parts(button) or {}).look then Look(button, slot, false) end
 			end
 		end
 	end
@@ -619,7 +623,6 @@ local function BuildSamples(f)
 	for i = 1, COUNT do
 		local icon = CreateFrame("Frame", nil, holder)
 		icon.tile = Auras.NewTile(icon)
-		icon:SetFrameLevel(holder:GetFrameLevel() + COUNT - i)
 		icon:Hide()
 		f.sampleSlots[i] = icon
 	end
@@ -630,27 +633,29 @@ function Slots.LayoutSamples(f)
 	local placements = Slots.Placements(f)
 	for i, icon in ipairs(f.sampleSlots or {}) do
 		local place, slot = placements[i], Settings.current[Key(i)]
+		local bar = place.bar
 		icon:ClearAllPoints()
-		icon:SetFrameLevel(place.bar and not slot.over and f:GetFrameLevel() + Auras.CONTAINER_LEVEL or icon:GetParent():GetFrameLevel() + COUNT - i)
-		icon.tile.skin:SetAlpha(place.bar and 0 or 1)
-		if place.bar and not icon.bar then
+		icon:SetFrameLevel(bar and not slot.over and f:GetFrameLevel() + Auras.CONTAINER_LEVEL or icon:GetParent():GetFrameLevel() + COUNT - i)
+		icon.tile.skin:SetAlpha(bar and 0 or 1)
+		if bar and not icon.bar then
 			icon.bar, icon.barBack = icon:CreateTexture(nil, "ARTWORK"), icon:CreateTexture(nil, "BACKGROUND")
 			icon.barBack:SetAllPoints(icon)
 			icon.barBack:SetColorTexture(Widgets.Rgba("black", BAR_BACK_ALPHA))
 		end
 		if icon.bar then
-			icon.bar:SetShown(place.bar == true)
-			icon.barBack:SetShown(place.bar == true)
+			icon.bar:SetShown(bar ~= nil)
+			icon.barBack:SetShown(bar ~= nil)
 		end
-		if place.bar then
-			local left, top, w, h, upright = Slots.Bar(f, slot)
-			icon:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, left + slot.x), -Widgets.Snap(f, top - slot.y))
+		if bar then
+			local w, h, upright = bar.w, bar.h, bar.upright
+			icon:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, bar.left + slot.x), -Widgets.Snap(f, bar.top - slot.y))
 			icon:SetSize(Widgets.Snap(f, w), Widgets.Snap(f, h))
 			icon.bar:ClearAllPoints()
 			local from = upright and (slot.reverse and "TOP" or "BOTTOM") or (slot.reverse and "RIGHT" or "LEFT")
 			icon.bar:SetPoint(from, icon, from)
 			icon.bar:SetSize(Widgets.Snap(f, upright and w or w * SAMPLE_FILL), Widgets.Snap(f, upright and h * SAMPLE_FILL or h))
-			icon.bar:SetColorTexture(slot.color.r, slot.color.g, slot.color.b, 1)
+			icon.bar:SetTexture(Settings.current.health.texture)
+			icon.bar:SetVertexColor(slot.color.r, slot.color.g, slot.color.b, 1)
 		else
 			icon:SetPoint(place.point, f, place.point, place.x + Widgets.Snap(f, slot.x), place.y + Widgets.Snap(f, slot.y))
 			icon:SetSize(place.size, place.size)

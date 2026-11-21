@@ -22,10 +22,10 @@ function AutoLayout.Bracket(members)
 		return "MEDIUM"
 	elseif members >= auto.largeLeast then
 		return "LARGE"
-	elseif members > 0 and members <= auto.smallMost then
-		return "SMALL"
 	elseif auto.customLeast > 0 and members >= auto.customLeast then
 		return "CUSTOM"
+	elseif members > 0 and members <= auto.smallMost then
+		return "SMALL"
 	end
 	return "MEDIUM"
 end
@@ -137,7 +137,13 @@ end
 
 local refresh = Settings.Refresh
 function Settings.Refresh()
-	return AutoLayout.Overlay(refresh())
+	local cfg = AutoLayout.Overlay(refresh())
+	for section, keys in pairs(Settings.FOLLOW) do
+		if cfg.follow[section] then
+			for _, key in ipairs(keys) do cfg.party[key] = cfg.raid[key] end
+		end
+	end
+	return cfg
 end
 
 local function Read(sizes)

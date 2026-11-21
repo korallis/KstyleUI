@@ -113,38 +113,43 @@ local function Seat(g, width, height, corner)
 end
 
 local function Others()
-	if type(GetRaidRosterInfo) ~= "function" or type(GetNumGroupMembers) ~= "function" or type(IsInRaid) ~= "function" or IsInRaid() ~= true then return nil end
-	local names, me = {}, UnitName("player")
-	for i = 1, GetNumGroupMembers() do
+	if type(GetRaidRosterInfo) ~= "function" or type(GetNumGroupMembers) ~= "function" or type(IsInRaid) ~= "function" or type(UnitName) ~= "function" then return nil end
+	local raid, count, me, names = IsInRaid(), GetNumGroupMembers(), UnitName("player"), {}
+	if Unit.IsSecret(raid) or raid ~= true or Unit.IsSecret(count) or type(count) ~= "number" or Unit.IsSecret(me) then return nil end
+	for i = 1, count do
 		local name, _, _, _, _, _, _, _, _, raidRole, _, role = GetRaidRosterInfo(i)
-		if Unit.IsSecret(name) or Unit.IsSecret(raidRole) or Unit.IsSecret(role) or Unit.IsSecret(me) then return nil end
+		if Unit.IsSecret(name) or Unit.IsSecret(raidRole) or Unit.IsSecret(role) then return nil end
 		if type(name) == "string" and name ~= me and (raidRole == "MAINTANK" or role == "TANK") then names[#names + 1] = name end
 	end
 	return table.concat(names, ",")
 end
 
-local function Filter(header, name)
-	local names = name == "tanks" and Settings.current.tanks.excludeSelf and Others() or nil
+local function Filter(g, name)
+	local header, exclude = g.header, name == "tanks" and Settings.current.tanks.excludeSelf
+	if not exclude then g.stale = nil elseif g.stale ~= false then g.names, g.stale = Others(), false end
+	local names = exclude and g.names or nil
 	local roles = name == "tanks" and not names and "MAINTANK,TANK" or nil
 	if roles and header:GetAttribute("roleFilter") ~= roles then header:SetAttribute("roleFilter", roles) end
 	if header:GetAttribute("nameList") ~= names then header:SetAttribute("nameList", names) end
 	if not roles and header:GetAttribute("roleFilter") ~= nil then header:SetAttribute("roleFilter", nil) end
 end
 
-function Extras.Roster()
+local function Roster()
 	local g = Extras.groups.tanks
-	if not (g and g.on and g.header and Settings.current.tanks.excludeSelf) then return end
-	if not InCombatLockdown() then return Filter(g.header, "tanks") end
+	if not g then return end
+	g.stale = true
+	if not (g.on and g.header and Settings.current.tanks.excludeSelf) or type(InCombatLockdown) ~= "function" then return end
+	if not InCombatLockdown() then return Filter(g, "tanks") end
 	if not g.queued then
 		g.queued = true
-		K.Combat.Queue(function() g.queued = nil; Extras.Roster() end)
+		K.Combat.Queue(function() g.queued = nil; Roster() end)
 	end
 end
-Frames.events[#Frames.events + 1] = { event = "PLAYER_ROLES_ASSIGNED", fn = Extras.Roster }
+Frames.events[#Frames.events + 1] = { event = "PLAYER_ROLES_ASSIGNED", fn = Roster }
 local flush = Unit.FlushRoster
 function Unit.FlushRoster()
 	flush()
-	Extras.Roster()
+	Roster()
 end
 
 local function LayHeader(name, g)
@@ -158,7 +163,7 @@ local function LayHeader(name, g)
 	header:SetAttribute("showRaid", true)
 	header:SetAttribute("showParty", name == "pets")
 	header:SetAttribute("showPlayer", name == "pets")
-	Filter(header, name)
+	Filter(g, name)
 	local point, x, y = Geometry.Grow(growth, spacing)
 	header:SetAttribute("point", point)
 	header:SetAttribute("xOffset", Widgets.Snap(g.holder, x))

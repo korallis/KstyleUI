@@ -393,7 +393,6 @@ function Settings.Schema(includeText)
 		end
 		local ALIGN = Options({ { "LEFT", L["Left"] }, { "CENTER", L["Centre"] }, { "RIGHT", L["Right"] } })
 		local LOOKS = Options({ { "ICON", L["Icon"] }, { "SQUARE", L["Square"] }, { "BAR", L["Bar"] } })
-		local function Key(i) return "indicator" .. i end
 		local function Nudge(key, across, up, showWhen)
 			add(Slider(key .. "x", across, L["Moves it left or right from its place."], -50, 50, 1, showWhen))
 			add(Slider(key .. "y", up, L["Moves it up or down from its place."], -50, 50, 1, showWhen))
@@ -438,8 +437,8 @@ function Settings.Schema(includeText)
 		After(schema, "auras.timerSize", { Slider("auras.timerX", L["Time left offset across"], L["Moves it left or right from its place."], -20, 20, 1, timed),
 			Slider("auras.timerY", L["Time left offset up"], L["Moves it up or down from its place."], -20, 20, 1, timed) })
 		for i = 1, INDICATOR_SLOTS do
-			local p, on = "indicator" .. i .. ".", IsNot("indicator" .. i .. ".category", "OFF")
-			local styled, barred = function(s) return on(s) and s[Key(i)].style ~= "ICON" end, function(s) return on(s) and s[Key(i)].style == "BAR" end
+			local p, key, on = "indicator" .. i .. ".", "indicator" .. i, IsNot("indicator" .. i .. ".category", "OFF")
+			local styled, barred = function(s) return on(s) and s[key].style ~= "ICON" end, function(s) return on(s) and s[key].style == "BAR" end
 			After(schema, p .. "mine", { Slider(p .. "x", L["Offset across"], L["Moves it left or right from its place."], -50, 50, 1, on),
 				Slider(p .. "y", L["Offset up"], L["Moves it up or down from its place."], -50, 50, 1, on),
 				Dropdown(p .. "style", L["Look"], L["The aura's icon, a square in one colour, or a bar on the health bar's edge that drains as it ends."], LOOKS, { showWhen = on }),
@@ -555,16 +554,15 @@ function Settings.Schema(includeText)
 			Slider("auto.customX", L["Own size: X offset"], L["Moves the raid frames right, or left below 0, at this raid size."], -400, 400, 1, custom),
 			Slider("auto.customY", L["Own size: Y offset"], L["Moves the raid frames up, or down below 0, at this raid size."], -400, 400, 1, custom) })
 		local follows = {}
-		local function Following(section, row)
-			local own = row.showWhen
-			row.showWhen = function(settings) return not (settings.follow and settings.follow[section]) and (not own or own(settings)) end
-		end
 		for section, keys in pairs(Settings.FOLLOW) do
 			for _, key in ipairs(keys) do follows[key] = section end
 		end
 		for _, row in ipairs(schema) do
-			local section = row.key and follows[row.key:match("^party%.(%w+)$") or ""]
-			if section then Following(section, row) end
+			local section = row.key and follows[row.key:match("^party%.(%w+)$")]
+			if section then
+				local own = row.showWhen
+				row.showWhen = function(settings) return not (settings.follow and settings.follow[section]) and (not own or own(settings)) end
+			end
 		end
 		After(schema, "party.showPlayer", { Toggle("follow.text", L["Use the raid's text"], L["Party frames take the raid frames' name and health text settings."]),
 			Toggle("follow.auras", L["Use the raid's debuffs"], L["Party frames take the raid frames' debuff icon settings."]),
@@ -702,7 +700,7 @@ function Settings.Schema(includeText)
 			add(Dropdown(p .. "position", L["Place"], L["Where on the frame the indicator sits."], INDICATOR_POSITION, { showWhen = on }))
 			add(Dropdown(p .. "show", L["Show on"], L["Shows this indicator on party and raid frames, or on one kind only."], SHOW_ON, { showWhen = on }))
 			add(Slider(p .. "size", L["Size"], L["The indicator's icon size."], 6, 32, 1))
-			schema[#schema].showWhen = on
+			schema[#schema].showWhen = function(s) return on(s) and s["indicator" .. i].style ~= "BAR" end
 			add(Toggle(p .. "mine", L["Only yours"], L["Shows only auras you cast."], { showWhen = on }))
 			add({ type = "text", key = p .. "spells", label = L["Spell IDs"], help = L["Buff spell IDs, separated by commas, such as 774, 139."], maxLetters = 120, showWhen = Is(p .. "category", "SPELLS") })
 			for _, misfit in ipairs(MISFITS) do
@@ -941,11 +939,6 @@ function Settings.Refresh()
 			else
 				out[name] = Settings.Get(section .. "." .. name)
 			end
-		end
-	end
-	for section, keys in pairs(Settings.FOLLOW) do
-		if current.follow[section] then
-			for _, key in ipairs(keys) do current.party[key] = current.raid[key] end
 		end
 	end
 	return current

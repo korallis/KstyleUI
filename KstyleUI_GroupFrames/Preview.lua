@@ -37,7 +37,7 @@ function Preview.Build(...)
 	}
 	local EXTRAS = {
 		pets = { { name = "Grawl", class = "HUNTER", health = 0.76, power = 0.5 }, { name = "Imp", class = "WARLOCK", health = 0.58, power = 0.9 } },
-		tanks = { { name = "Thaldren", class = "WARRIOR", role = "TANK", health = 0.72, power = 0.35, you = true }, { name = "Brannoc", class = "PALADIN", role = "TANK", health = 0.64, power = 0.4 } },
+		tanks = { { name = "Thaldren", class = "WARRIOR", role = "TANK", health = 0.72, power = 0.35 }, { name = "Brannoc", class = "PALADIN", role = "TANK", health = 0.64, power = 0.4 } },
 		boss = { { name = "Valithria", class = "DRUID", health = 0.62, power = 0.8 } },
 	}
 
@@ -279,12 +279,8 @@ function Preview.Build(...)
 				local w, h, spacing = ns.Extras.Size(name)
 				local growth = name == "tanks" and s.growth or raid.growth
 				local wrap = Geometry.Perpendicular(growth, name == "tanks" and s.wrap or "RIGHT")
-				local items = {}
-				for _, f in ipairs(list) do
-					local out = name == "tanks" and s.excludeSelf and f.sample.you == true
-					f:SetShown(not out)
-					if not out then items[#items + 1] = f end
-				end
+				local items = name == "tanks" and s.excludeSelf and { list[2] } or list
+				if name == "tanks" then list[1]:SetShown(not s.excludeSelf) end
 				local per = name == "tanks" and s.wrapAfter > 0 and s.wrapAfter or #items
 				local vertical, lines = Geometry.IsVertical(growth), math.ceil(#items / per)
 				local along, across = Geometry.Line(math.min(per, #items), vertical and h or w, spacing), Geometry.Line(lines, vertical and w or h, spacing)
