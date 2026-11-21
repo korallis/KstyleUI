@@ -262,8 +262,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 				mine[name] = assert(Geometry.Rect(holder, r0))
 			end
 			local s, t = mine.second, assert(Geometry.Rect(n.Threat.holder, r0))
-			assert(n.Threat.paired and (s.right <= t.left or t.right <= s.left or s.top <= t.bottom or t.top <= s.bottom),
-				string.format("%dx%d %s %s: the second window overlaps the threat card docked beside the damage meter", screen[1], screen[2], style, layout))
+			assert(n.Threat.list.panel:IsVisible() and (s.right <= t.left or t.right <= s.left or s.top <= t.bottom or t.top <= s.bottom),
+				string.format("%dx%d %s %s: the second window overlaps the threat card shown with the damage meter", screen[1], screen[2], style, layout))
 			for p, lhs in pairs(mine) do
 				for q, second in pairs(mine) do
 					assert(p == q or lhs.right <= second.left or second.right <= lhs.left or lhs.top <= second.bottom or second.top <= lhs.bottom, p .. " overlaps " .. q)
