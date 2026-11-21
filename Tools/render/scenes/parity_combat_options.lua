@@ -47,7 +47,7 @@ return Common.Run(function()
     ["utility.hideMissing"] = true, ["utility.trinkets"] = true, focusSpell = "1766", focusReminder = true },
    Cooldowns4 = { path = "mirror", ["essential.keybind"] = true, ["essential.pressMirror"] = true, ["utility.itemQuality"] = true, ["rules.cdBars"] = "x",
     ["bars.hashLines"] = true, ["bars.chargeShade"] = true, ["bars.lineWidth"] = 2 },
-   Cooldowns5 = { path = "mirror", ["rules.group"] = "x", ["custom.name"] = "Burst", ["custom.count"] = 3 },
+   Cooldowns5 = { path = "mirror", ["rules.group"] = "x", ["custom.name"] = "Burst", ["custom.count"] = 1 },
    Meters3 = { ["damage2.shown"] = true, ["damage.report"] = true, ["damage.englishUnits"] = false },
   }
   for key, value in pairs(values[enabled == "1" and module or module .. enabled]) do K.Options.Write(module, key, value) end
