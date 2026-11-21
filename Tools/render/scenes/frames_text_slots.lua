@@ -161,6 +161,7 @@ return Common.Run(function()
 		env.UnitDetailedThreatSituation = function(_, mob) local u = env._units[mob]; if u and u.detail then return unpack(u.detail) end end
 		env.IsPVPTimerRunning, env.GetPVPTimer = function() return true end, function() return 272000 end
 		dofile("Tools/regression/unitframes_env.lua").SetUnit(env, "focus", target)
+		dofile("Tools/regression/unitframes_env.lua").SetUnit(env, "focustarget", nil)
 		env.FireEvent("PLAYER_FOCUS_CHANGED")
 		K.Options.Get(module)
 		for _, pair in ipairs({
