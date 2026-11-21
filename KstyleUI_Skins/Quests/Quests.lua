@@ -73,16 +73,15 @@ local function Wanted()
 end
 
 local function Rail()
-	local RestedXP = ns.RestedXP
-	local rail = RestedXP and RestedXP.Rail
-	if rail and type(rail.Schedule) == "function" then
-		rail.Schedule()
+	local Guide = ns.Guide
+	if Guide and type(Guide.Schedule) == "function" then
+		Guide.Schedule()
 	end
 end
 
 local function Guide()
-	local Setup = K.Setup
-	return type(Setup.GuideLoaded) == "function" and Setup.GuideLoaded() and Skins.IsOn("restedXP") and Skins.Setting("restedXP", "rail") == true
+	local guide = ns.Guide
+	return guide ~= nil and type(guide.Key) == "function" and guide.Key() ~= nil
 end
 
 local function Preset()
@@ -119,8 +118,7 @@ end
 local function Place()
 	local holder = state.holder
 	local guide = Guide()
-	local RestedXP = ns.RestedXP
-	local shown = guide and RestedXP and RestedXP.Rail and RestedXP.Rail.Shown() or false
+	local shown = guide and ns.Guide and type(ns.Guide.Visible) == "function" and ns.Guide.Visible() or false
 	local spec = Spec(guide, K.HudStyle.Current(), shown)
 	if not holder or not spec then
 		Log("the layout has no story slot; the card keeps its last place")
@@ -321,7 +319,7 @@ local function OnSettingChanged(_, module, key)
 	if type(key) ~= "string" then
 		return
 	end
-	if (module == "Layout" and key == "preset") or (module == "Skins" and key:find("^restedXP%.")) then
+	if (module == "Layout" and key == "preset") or (module == "Skins" and (key:find("^restedXP%.") or key:find("^zygor%."))) then
 		Replace()
 	end
 	if module == "Integrations" and key == "questTracker" then SyncQuestie() end

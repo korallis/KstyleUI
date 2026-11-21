@@ -13,122 +13,6 @@ local DETAIL_BUTTONS = { "AbandonButton", "ShareButton", "TrackButton" }
 
 local WEAK = { __mode = "k" }
 local done = setmetatable({}, WEAK)
-local navigation
-
-local function Number(value)
-	return not (issecretvalue and issecretvalue(value)) and type(value) == "number"
-		and value == value and value > -math.huge and value < math.huge
-end
-
-local function Has(object, ...)
-	if type(object) ~= "table" then return false end
-	for i = 1, select("#", ...) do
-		if type(object[select(i, ...)]) ~= "function" then return false end
-	end
-	return true
-end
-
-local function NavigationOn(field)
-	return navigation and navigation.on and Skins.Setting("worldMap", field) == true
-end
-
-local function ZoomMode()
-	if not navigation then return end
-	local scroll = navigation.scroll
-	local smooth = NavigationOn("smoothZoom")
-	local mode = smooth and MAP_CANVAS_MOUSE_WHEEL_ZOOM_BEHAVIOR_SMOOTH or MAP_CANVAS_MOUSE_WHEEL_ZOOM_BEHAVIOR_FULL
-	if Number(mode) and Has(scroll, "SetMouseWheelZoomMode", "SetShouldZoomInstantly") then
-		scroll:SetMouseWheelZoomMode(mode)
-		scroll:SetShouldZoomInstantly(not smooth)
-	end
-end
-
-local function SaveZoom()
-	if not NavigationOn("rememberZoom") then return end
-	local scroll = navigation.scroll
-	local id = scroll.mapID
-	if not Number(id) or id ~= navigation.mapID then return end
-	local scale, x, y = scroll.targetScale, scroll.targetScrollX, scroll.targetScrollY
-	if not Number(scale) or not Number(x) or not Number(y) then return end
-	local zooms = K.Store.Module("Skins").worldMap.zooms
-	if type(zooms) ~= "table" then return end
-	zooms[id] = { scale, x, y }
-end
-
-local function RestoreZoom(scroll)
-	navigation.mapID = scroll.mapID
-	navigation.preloaded = nil
-	if not NavigationOn("rememberZoom") or not Number(scroll.mapID)
-		or not Has(scroll, "InstantPanAndZoom", "GetScaleForMinZoom", "GetScaleForMaxZoom") then return end
-	local zooms = K.Store.Module("Skins").worldMap.zooms
-	local saved = type(zooms) == "table" and zooms[scroll.mapID]
-	local low, high = scroll:GetScaleForMinZoom(), scroll:GetScaleForMaxZoom()
-	if type(saved) == "table" and Number(saved[1]) and Number(saved[2]) and Number(saved[3])
-		and Number(low) and Number(high) then
-		scroll:InstantPanAndZoom(math.max(low, math.min(high, saved[1])), saved[2], saved[3], true)
-	end
-	SaveZoom()
-end
-
-local function Wheel(scroll, delta)
-	SaveZoom()
-	if not NavigationOn("wheelMaps") or not Number(delta) or delta == 0
-		or (InCombatLockdown and InCombatLockdown()) then return end
-	local map, api = navigation.map, C_Map
-	local id = scroll.mapID
-	if not Number(id) or not Has(api, "GetMapInfoAtPosition")
-		or not Has(scroll, "GetNormalizedCursorPosition") then return end
-	local x, y = scroll:GetNormalizedCursorPosition()
-	local child
-	if Number(x) and Number(y) then child = api.GetMapInfoAtPosition(id, x, y) end
-	local childID = type(child) == "table" and child.mapID
-	if Number(childID) and childID ~= id and childID ~= navigation.preloaded
-		and Has(api, "RequestPreloadMap") then
-		api.RequestPreloadMap(childID)
-		navigation.preloaded = childID
-	end
-	if delta > 0 and navigation.atMax and Number(childID) and childID ~= id
-		and Number(child.parentMapID) and child.parentMapID == id and Has(map, "SetMapID") then
-		map:SetMapID(childID)
-	elseif delta < 0 and navigation.atMin and Has(api, "GetMapInfo") and Has(map, "NavigateToParentMap") then
-		local info = api.GetMapInfo(id)
-		local parent = type(info) == "table" and info.parentMapID
-		if not Number(parent) or parent <= 0 then return end
-		local left, right, top, bottom
-		if Has(api, "GetMapRectOnMap") then left, right, top, bottom = api.GetMapRectOnMap(id, parent) end
-		map:NavigateToParentMap()
-		if scroll.mapID ~= parent or not NavigationOn("smoothZoom")
-			or not Has(scroll, "InstantPanAndZoom", "SetZoomTarget", "SetPanTarget", "GetScaleForMinZoom", "GetScaleForMaxZoom") then return end
-		local low, high = scroll:GetScaleForMinZoom(), scroll:GetScaleForMaxZoom()
-		if Number(left) and Number(right) and Number(top) and Number(bottom)
-			and right > left and bottom > top and Number(low) and Number(high) then
-			local scale = math.min(high, low / math.max(right - left, bottom - top))
-			scroll:InstantPanAndZoom(scale, (left + right) / 2, (top + bottom) / 2, true)
-			scroll:SetZoomTarget(low)
-			scroll:SetPanTarget(.5, .5)
-		end
-	end
-end
-
-local function ApplyNavigation(map)
-	local scroll = map.ScrollContainer
-	if navigation or type(hooksecurefunc) ~= "function" or not Has(scroll, "ResetZoom") then return end
-	navigation = { map = map, scroll = scroll, mapID = scroll.mapID, on = true }
-	hooksecurefunc(scroll, "ResetZoom", RestoreZoom)
-	if Has(scroll, "ShouldAdjustTargetPanOnMouseWheel", "GetCanvasScale", "GetScaleForMinZoom", "GetScaleForMaxZoom", "OnMouseWheel") then
-		hooksecurefunc(scroll, "ShouldAdjustTargetPanOnMouseWheel", function()
-			local scale = scroll:GetCanvasScale()
-			navigation.atMin = Number(scale) and scale == scroll:GetScaleForMinZoom()
-			navigation.atMax = Number(scale) and scale == scroll:GetScaleForMaxZoom()
-		end)
-		hooksecurefunc(scroll, "OnMouseWheel", Wheel)
-	end
-	for _, method in ipairs({ "OnMouseUp", "OnHide" }) do
-		if Has(scroll, method) then hooksecurefunc(scroll, method, SaveZoom) end
-	end
-	ZoomMode()
-	RestoreZoom(scroll)
-end
 
 local function Log(key, message)
 	K.DevTest.Log("Skins", key .. ": " .. message)
@@ -136,7 +20,6 @@ end
 
 local function ApplyMap()
 	local map = _G[FRAME]
-	ApplyNavigation(map)
 	local border = map.BorderFrame
 	Skin.Backdrop(map, { shape = "window", fill = "surface", shadow = true })
 	Skin.OpenMotion(map)
@@ -260,17 +143,6 @@ Skins.Add({
 	frame = FRAME,
 	sweepSkip = { "ScrollContainer", "QuestLog.DetailsFrame" },
 	metrics = true,
-	defaults = { smoothZoom = true, rememberZoom = true, wheelMaps = true, zooms = {} },
-	rows = {
-		{ type = "toggle", key = "smoothZoom", label = L["Smooth zoom"], help = L["Ease mouse wheel zoom and pan. Off restores instant zoom in full steps."] },
-		{ type = "toggle", key = "rememberZoom", label = L["Remember zoom"], help = L["Remember zoom and position for each map, including after a reload."] },
-		{ type = "toggle", key = "wheelMaps", label = L["Wheel between maps"], help = L["Wheel out past a map's edge to its parent, or in over a zone to open it."] },
-	},
-	OnSetting = ZoomMode,
-	OnSwitch = function(_, on)
-		if navigation then navigation.on = on end
-		ZoomMode()
-	end,
 	Apply = ApplyMap,
 })
 

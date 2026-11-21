@@ -597,7 +597,7 @@ function Card.Render()
 		return
 	end
 	Card.SyncButtons()
-	local rail = ns.RestedXP and ns.RestedXP.Rail
+	local rail = ns.Guide
 	if rail and rail.Schedule then
 		rail.Schedule()
 	end

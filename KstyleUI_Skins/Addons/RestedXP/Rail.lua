@@ -28,7 +28,7 @@ local BOX_PAD = 4
 
 local state = { rxp = nil, placed = nil, original = nil, queued = false, hooked = false, tracked = false, holder = nil, cut = setmetatable({}, { __mode = "k" }), hidden = 0, boxes = {} }
 
-local Dock, ReleaseBoxes, Need
+local Dock, ReleaseBoxes, Need, Restore
 
 local function Log(message)
 	K.DevTest.Log(MODULE, "restedXP rail: " .. message)
@@ -590,6 +590,12 @@ function Rail.Place()
 	if not On() then
 		return false
 	end
+	if not ns.Guide.Is(KEY) then
+		if state.placed then
+			Restore()
+		end
+		return false
+	end
 	local f = Frame()
 	Holder()
 	Swap()
@@ -682,7 +688,7 @@ end
 Rail.Schedule = Schedule
 Rail.Need = Need
 
-local function Restore()
+function Restore()
 	ReleaseBoxes(true)
 	if ns.Quests and type(ns.Quests.Give) == "function" then
 		ns.Quests.Give(0)
@@ -910,8 +916,13 @@ local function Hook(f)
 			part:HookScript("OnMouseUp", Check)
 		end
 	end
-	f:HookScript("OnShow", Schedule)
-	f:HookScript("OnHide", Schedule)
+	f:HookScript("OnShow", function()
+		ns.Guide.Touch(KEY)
+		ns.Guide.Schedule()
+	end)
+	f:HookScript("OnHide", function()
+		Schedule()
+	end)
 	if type(f.SetStepFrameAnchor) == "function" then
 		hooksecurefunc(f, "SetStepFrameAnchor", function()
 			KeepAbove(f)

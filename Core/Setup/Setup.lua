@@ -31,7 +31,7 @@ local OWNER = "Setup"
 local OPEN_DELAY = 2
 local DEFAULT_LAYOUT = "DPS"
 local DEFAULT_ORNAMENTS = "Full"
-local GUIDE_ADDON = "RXPGuides"
+local GUIDE_ADDONS = { RXPGuides = true }
 
 local PICKER = {
 	{ name = "UnitFrames", label = L["Unit frames"], note = L["Player, target, focus, pet and boss frames."] },
@@ -218,11 +218,22 @@ local function GuideLoaded()
 	if type(addons) ~= "table" or type(addons.IsAddOnLoaded) ~= "function" then
 		return false
 	end
-	local ok, loaded = pcall(addons.IsAddOnLoaded, GUIDE_ADDON)
-	return ok and loaded == true
+	for addon in pairs(GUIDE_ADDONS) do
+		local ok, loaded = pcall(addons.IsAddOnLoaded, addon)
+		if ok and loaded == true then
+			return true
+		end
+	end
+	return false
 end
 
 Setup.GuideLoaded = GuideLoaded
+
+function Setup.RegisterGuide(addon)
+	if type(addon) == "string" then
+		GUIDE_ADDONS[addon] = true
+	end
+end
 
 function Setup.RootSize()
 	local Layout = ns.Layout

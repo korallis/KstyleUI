@@ -1,5 +1,45 @@
 # KstyleUI changelog
 
+## v0.2.11 (2026-11-21)
+
+The guides and crest release: Zygor Guides Viewer joins RestedXP on the story rail in the KstyleUI theme, the Medallions crest jewels flare, drain and light the whole ring at the maximum, and Summon Hawk's hawks perch on the crest.
+
+Highlights:
+
+- Thanks to Baine, Zygor Guides Viewer sits on the story rail like RestedXP, under Window Skins > Zygor.
+- Zygor takes the KstyleUI theme: the forged window card and a themed header, controls, progress bar and waypoint arrow.
+- Medallions crest jewels are richer cut gems that flare when you gain a point and drain when you spend one.
+- At the maximum the whole crest ring glows in the resource's colour; Glow at max is on by default.
+- Hawk perches show each Summon Hawk hawk and its time left on the Medallions crest, an idea from Baine.
+
+### Added
+
+- Zygor Guides Viewer support, contributed by Baine: its guide window sits on the story rail in KstyleUI's window card, forged by default. Switch it under Window Skins > Zygor, on by default.
+- Zygor's header shows the guide's name, and its controls, progress bar and waypoint arrow take the KstyleUI theme.
+- Zygor: Fit guide to its steps (on) lets the guide keep its steps' height; off fills the story slot. Drag the guide away and KstyleUI leaves it there and turns Story rail off.
+- With RestedXP and Zygor both loaded, the guide shown last owns the story card and the other window goes back where it was. KstyleUI writes none of Zygor's settings.
+- Medallions: Glow at max under Action Bars > Slab and cooldowns, on by default. At the maximum the whole crest ring glows in the resource's colour.
+- Medallions: Hawk perches under Action Bars > Slab and cooldowns, on by default. Each Summon Hawk hawk perches on the crest with a green timer over its 18 seconds. Thanks to Baine for the idea.
+- Hawk perches flash in on a summon and fade when the hawk leaves, and the crest ring glows while both hawks are out.
+
+### Changed
+
+- Medallions crest jewels are richer cut gems that flare when you gain a point and drain when you spend one.
+- World map: Smooth zoom, Remember zoom and Wheel between maps are gone; they caused a blocked-action error in combat.
+
+### Fixed
+
+- `/kstyle perf nan` gets the line asking for a finite number of seconds instead of starting a profile that never finishes under LuaJIT.
+- The player frame's resting Zz shows in full instead of two dots.
+- Layout Mode and interface-size changes no longer raise a forbidden-object error from aura icons on locked nameplates.
+- Closing or using the world map in combat no longer raises a blocked-action error from KstyleUI Skins.
+- The Zygor skin no longer drops frame rate out of combat by re-placing the guide every frame, and its text no longer jitters.
+- Cooldown rows no longer raise a secret-value error when their count or keybind text is restyled.
+
+### Upgrading
+
+- Glow at max and Hawk perches (Action Bars > Slab and cooldowns) and the Zygor skin (Window Skins > Zygor) start on.
+
 ## v0.2.10 (2026-11-21)
 
 The frame-rate release: KstyleUI draws less every frame with no change in look, two new Medallions switches trade effects for frame rate, `/kstyle perf` measures what KstyleUI costs, and party and raid frames gain new options, each starting off.

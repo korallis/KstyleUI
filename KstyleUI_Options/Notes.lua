@@ -2,6 +2,13 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.2.11 (2026-11-21)", {
+		L["Thanks to Baine, Zygor Guides Viewer sits on the story rail like RestedXP, under Window Skins > Zygor."],
+		L["Zygor takes the KstyleUI theme: the forged window card and a themed header, controls, progress bar and waypoint arrow."],
+		L["Medallions crest jewels are richer cut gems that flare when you gain a point and drain when you spend one."],
+		L["At the maximum the whole crest ring glows in the resource's colour; Glow at max is on by default."],
+		L["Hawk perches show each Summon Hawk hawk and its time left on the Medallions crest, an idea from Baine."],
+	} },
 	{ "v0.2.10 (2026-11-21)", {
 		L["KstyleUI draws less every frame, up to a quarter less area, with no change in how it looks."],
 		L["Medallions switches for Low-health vignette and Ambient hub effects trade effects for frame rate, both on by default."],
@@ -11,8 +18,5 @@ ns.NOTES = {
 	} },
 	{ "v0.2.9.2 (2026-11-21)", {
 		L["Tooltips on the top data bar open clear of the bar, so every button stays reachable."],
-	} },
-	{ "v0.2.9.1 (2026-11-21)", {
-		L["Medallions party frames no longer error when their names sit on the bar."],
 	} },
 }

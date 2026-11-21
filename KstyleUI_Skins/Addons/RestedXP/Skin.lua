@@ -5,6 +5,17 @@ local K = KstyleUI
 local L = K.L
 local RestedXP = ns.RestedXP
 
+ns.Guide.Add("restedXP", {
+	addon = "RXPGuides",
+	Enabled = function()
+		return RestedXP.Addon() ~= nil and ns.Skins.IsOn("restedXP") and ns.Skins.Setting("restedXP", "rail") == true
+	end,
+	Visible = function()
+		return RestedXP.Rail.Shown()
+	end,
+	Schedule = RestedXP.Rail.Schedule,
+})
+
 ns.Skins.Add({
 	key = "restedXP",
 	label = L["RestedXP"],

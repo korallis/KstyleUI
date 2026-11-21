@@ -225,6 +225,14 @@ function Object:SetShown(shown)
 end
 function Object:IsShown() return self._shown end
 function Object:IsVisible() return self._shown and (self._parent == nil or self._parent:IsVisible()) end
+-- Clamping is a hint to the game's own mover; the stub keeps the flags so a caller can read them back.
+function Object:SetClampedToScreen(on) self._clamped = on == true end
+function Object:SetClampRectInsets(left, right, top, bottom)
+	self._clampInsets = { left, right, top, bottom }
+end
+function Object:SetResizeBounds(minW, minH, maxW, maxH)
+	self._resizeBounds = { minW, minH, maxW, maxH }
+end
 -- A size change runs OnSizeChanged, as the game does, so chrome that follows its owner's size relays out.
 -- A size no script has seen yet reaches the first OnSizeChanged script when the frame is next measured, as
 -- the game resolves a frame's rect on GetWidth or GetHeight: a hook set after SetSize runs inside that call.
@@ -984,6 +992,11 @@ for _, method in ipairs({ "SetText", "SetFormattedText" }) do
 		self._state[field] = pack(...)
 		self._lastText = self._state[field]
 	end
+end
+-- The text last given, as the game answers it: the first argument, formatting arguments and all.
+function Object:GetText()
+	local stored = self._state.Text
+	return stored and stored[1]
 end
 -- SetFontObject hands the object's font to the string, over a font SetFont gave it before; SetFont gives it a font of
 -- its own, over the object's. GetFont answers the string's own font, else its font object's, as the game does.

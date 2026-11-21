@@ -56,8 +56,17 @@ local function GuidePlaced()
 		return false
 	end
 	local ok, skins = pcall(ns.Store.Module, "Skins")
-	local rxp = ok and type(skins) == "table" and skins.restedXP or nil
-	return type(rxp) ~= "table" or (rxp.enabled ~= false and rxp.rail ~= false)
+	if not ok or type(skins) ~= "table" then
+		return true
+	end
+	local rested, zygor = skins.restedXP, skins.zygor
+	local function On(entry)
+		return type(entry) == "table" and entry.enabled ~= false and entry.rail ~= false
+	end
+	if On(rested) or On(zygor) then
+		return true
+	end
+	return type(rested) ~= "table" and type(zygor) ~= "table"
 end
 
 local function GuideStep()

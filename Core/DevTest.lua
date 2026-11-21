@@ -114,11 +114,12 @@ function DevTest.Profile(seconds)
 		ns.Print(L["This client has no debugprofilestop, so the profiler cannot run."])
 		return
 	end
-	seconds = max(tonumber(seconds) or PERF_SECONDS, 1)
+	seconds = tonumber(seconds) or PERF_SECONDS
 	if seconds ~= seconds or seconds == math.huge then
 		ns.Print(L["The profile needs a finite number of seconds, such as /kstyle perf 30."])
 		return
 	end
+	seconds = max(seconds, 1)
 	perf = { seconds = seconds, elapsed = 0, tick = 0, inner = 0, fps = { GetFramerate and GetFramerate() or 0 }, spent = {}, calls = {} }
 	sampler = sampler or CreateFrame("Frame")
 	sampler:SetScript("OnUpdate", sample)

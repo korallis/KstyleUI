@@ -300,7 +300,11 @@ local function Under(node, roots)
 		if roots[node] then
 			return true
 		end
-		node = node:GetParent()
+		local ok, parent = pcall(node.GetParent, node)
+		if not ok then
+			return false
+		end
+		node = parent
 	end
 	return false
 end

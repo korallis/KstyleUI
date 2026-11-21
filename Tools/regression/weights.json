@@ -836,7 +836,6 @@
  "test-widgets-statusbar.lua": 1.1,
  "test-widgets-textarea.lua": 0.3,
  "test-widgets-unitbar.lua": 0.3,
- "test-worldmap-navigation.lua": 0.7,
  "test-worldmap-pin-size.lua": 0.6,
  "test-worldmap-roads.lua": 0.4,
  "test-worldmap-routes.lua": 0.4

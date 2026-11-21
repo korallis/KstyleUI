@@ -359,8 +359,6 @@ function Routes.Pick(row)
 	if not ownsWaypoint then previousWaypoint, previousTrack = Plain(old, "table"), tracked end
 	ownsWaypoint, target = true, row
 	Call(C_SuperTrack, "SetSuperTrackedUserWaypoint", true)
-	local combat = type(InCombatLockdown) ~= "function" or Plain(InCombatLockdown(), "boolean") ~= false
-	if not combat and type(map.SetMapID) == "function" and MapID() ~= row.mapID then map:SetMapID(row.mapID) end
 	Hide(results)
 	if search then search:ClearFocus() end
 	RefreshRoute()

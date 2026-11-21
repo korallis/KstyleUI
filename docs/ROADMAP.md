@@ -1,23 +1,24 @@
 # KstyleUI roadmap
 
-What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.2.9 is out now with resource jewels on the Medallions crest and a big wave of new options across every module. New releases now land about once a day.
+What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.2.10 is out now: KstyleUI draws less every frame, new Medallions switches trade effects for frame rate, and /kstyle perf measures what it costs. New releases now land about once a day.
 
-## v0.2.10 — the finishing touches
+## v0.2.11 — the crest and finishing touches
 
 Estimated: within a day or two.
 
-The last of the customisation work and more fixes from your reports.
+A polished Medallions crest and the last of the customisation work.
 
 Highlights:
 
-- The remaining party and raid frame options, including bar indicators and more placement choices.
+- Crest jewels that light the whole ring when your resource is full, with gems that flare and drain.
+- The last party and raid frame options, including more indicator places and frame sorting.
 - A consumable count and low-mana text on the aura reminders.
 - Movable Blizzard windows and a Time Spiral alert, once they are checked in game.
 - More fixes from your reports, released as soon as they are ready.
 
 ## v0.3.0 — the polish release
 
-Estimated: about a week after v0.2.10.
+Estimated: about a week after v0.2.11.
 
 A full polish pass over everything you see and touch, so KstyleUI feels premium from the first minute.
 

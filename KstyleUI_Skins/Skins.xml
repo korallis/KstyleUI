@@ -4,6 +4,7 @@
 	<Script file="Parts.lua"/>
 	<Script file="Lumen.lua"/>
 	<Script file="Registry.lua"/>
+	<Script file="Guide.lua"/>
 	<Script file="ContextMenus.lua"/>
 
 	<!-- Part A: the character sheet, spellbook and talents, quest log and objective tracker, and world map. Add part A's skin files below this line. -->
@@ -51,6 +52,7 @@
 	<Script file="Addons\RestedXP\Chrome.lua"/>
 	<Script file="Addons\RestedXP\Rail.lua"/>
 	<Script file="Addons\RestedXP\Skin.lua"/>
+	<Script file="Addons\Zygor.lua"/>
 	<!-- End of other addons. -->
 
 	<Script file="Preview.lua"/>
