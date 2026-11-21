@@ -630,13 +630,18 @@ end
 
 -- Sort(findings, allow, sceneName) -> fresh, allowed, stale: the findings no entry covers, the findings an entry
 -- covers (each with .entry), and the entries naming this scene alone that matched nothing (fixed: delete the line).
--- An entry whose scene is a glob spans scenes, so one scene cannot call it stale.
+-- An entry whose scene is a glob spans scenes, so one scene cannot call it stale. sceneName may end in "@" and the
+-- screen (shoot.sh passes RENDER_SCREEN): an entry whose scene names a screen ("scene@2560x1440") covers that screen
+-- alone, and spans the scene's other settings at that screen, so it is not stale either; any other entry reads the
+-- bare scene name.
 function Guard.Sort(findings, allow, sceneName)
 	local fresh, allowed, used = {}, {}, {}
+	local bare = sceneName:match("^[^@]*")
 	for _, finding in ipairs(findings) do
 		local hit
 		for _, entry in ipairs(allow) do
-			if entry.kind == finding.kind and sceneName:match(entry.pattern) and Guard.Covers(entry.match, finding.subject) then
+			local name = entry.scene:find("@", 1, true) and sceneName or bare
+			if entry.kind == finding.kind and name:match(entry.pattern) and Guard.Covers(entry.match, finding.subject) then
 				hit = entry
 				break
 			end
@@ -651,7 +656,7 @@ function Guard.Sort(findings, allow, sceneName)
 	end
 	local stale = {}
 	for _, entry in ipairs(allow) do
-		if not used[entry] and not entry.scene:find("*", 1, true) and sceneName:match(entry.pattern) then
+		if not used[entry] and not entry.scene:find("[*@]") and bare:match(entry.pattern) then
 			stale[#stale + 1] = entry
 		end
 	end

@@ -1,5 +1,5 @@
 # guard_allow.tsv: findings the render guard (Tools/render/guard.lua) lets pass, one per line, tab-separated:
-# owner scope, scene glob, kind (ellipsis, outside, clipped or overlap), subject (its start, or = and the whole
+# owner scope, scene glob (or scene@WxH for one screen, as shoot.sh's RENDER_SCREEN names it), kind (ellipsis, outside, clipped or overlap), subject (its start, or = and the whole
 # subject), reason. The owner is the fix scope that owns the defect (round 3: rank/FIX_R3_SCOPES.md, R1 to R7;
 # round 4: rank/FIX_R4_SCOPES.md, S1 to S6; the hud_reference picture: the KSTY thread that owns the element); the PR that fixes it
 # deletes its lines. shoot.sh --strict fails on a
@@ -14,3 +14,4 @@ design	gallery_layout	overlap	CHAT & Chat	a glass stand-in's centred label sits 
 design	gallery_layout	overlap	MINIMAP & Minimap	a glass stand-in's centred label sits under the mover plate's title
 design	gallery_layout	overlap	PLAYER & Player	a glass stand-in's centred label sits under the mover plate's title
 design	gallery_layout	overlap	TARGET & Target	a glass stand-in's centred label sits under the mover plate's title
+design	hud_dps_threat@2560x1440	ellipsis	=Brannoc	the threat card docked in Both is 180 units wide in every style, for one look; in Orbs this name is 0.5 units short, the documented 180-unit name limit (KstyleUI_Meters/README.md)
