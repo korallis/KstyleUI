@@ -65,6 +65,9 @@ local SHOWN = {
 	{ value = "noRaid", label = L["Not in a raid"] },
 	{ value = "noSolo", label = L["In a group only"] },
 	{ value = "target", label = L["With a target"] },
+	{ value = "combatTarget", label = L["In combat or with a target"] },
+	{ value = "mounted", label = L["When mounted only"] },
+	{ value = "noMounted", label = L["Not while mounted"] },
 	{ value = "mouseover", label = L["On mouseover"] },
 	{ value = "never", label = L["Never"] },
 }

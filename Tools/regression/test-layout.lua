@@ -247,7 +247,7 @@ end
 
 do
 	local SHOWN = { "always", "combat", "noCombat", "target", "mouseover", "never" }
-	check("twelve rules", #Rules.SHOWN == 12)
+	check("fifteen rules", #Rules.SHOWN == 15)
 	for i, rule in ipairs(SHOWN) do
 		check("rule " .. rule, Rules.SHOWN[i] == rule and Rules.IsRule(rule))
 	end
@@ -273,6 +273,23 @@ do
 			end
 		end
 	end
+
+	-- Mounted and combined rules: the driver and the Lua rule agree, mounted or not, in or out of combat, with or without a target.
+	local mountedNow = false
+	env.Condition = function(part) if part == "mounted" then return mountedNow end end
+	for _, rule in ipairs({ "mounted", "noMounted", "combatTarget" }) do
+		for _, mounted in ipairs({ false, true }) do
+			for _, combat in ipairs({ false, true }) do
+				for _, target in ipairs({ false, true }) do
+					env._combat, env._target, mountedNow = combat, target, mounted
+					check("driver and Lua rule agree for " .. rule, (env.SecureCmdOptionParse(Rules.Driver(rule)) == "show") == Rules.Visible(rule, combat, target, nil, mounted), mounted, combat, target)
+				end
+			end
+		end
+	end
+	check("mounted rules need the mount event only", Rules.NeedsMounted("mounted") and Rules.NeedsMounted("noMounted") and not Rules.NeedsMounted("combatTarget"))
+	check("in combat or with a target needs both events", Rules.NeedsCombat("combatTarget", 1, 1) and Rules.NeedsTarget("combatTarget"))
+	check("not while mounted hides only while mounted", Rules.Visible("noMounted", true, true, nil, false) and not Rules.Visible("noMounted", false, false, nil, true))
 
 	-- Lua frames: visibility.
 	check("always visible", Rules.Visible("always", false, false) and Rules.Visible("always", true, true))

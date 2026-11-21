@@ -50,6 +50,9 @@ Layout.SHOWN_OPTIONS = {
 	{ value = "noRaid", label = L["Not in a raid"] },
 	{ value = "noSolo", label = L["In a group only"] },
 	{ value = "target", label = L["With a target"] },
+	{ value = "combatTarget", label = L["In combat or with a target"] },
+	{ value = "mounted", label = L["When mounted only"] },
+	{ value = "noMounted", label = L["Not while mounted"] },
 	{ value = "mouseover", label = L["On mouseover"] },
 	{ value = "never", label = L["Never"] },
 }
@@ -285,6 +288,11 @@ function Layout.RootSize()
 		return pw * ps / rs, ph * ps / rs
 	end
 	return FALLBACK_ROOT_W, FALLBACK_ROOT_H
+end
+
+local function Mounted()
+	local mounted = type(IsMounted) == "function" and IsMounted()
+	return not IsSecret(mounted) and mounted == true
 end
 
 local function TargetExists()
@@ -854,7 +862,7 @@ local function ApplyVisibility(el)
 		end
 		el.driver = nil
 	end
-	if Rules.Visible(el.settings.shown, state.combat, state.target, state.group) then
+	if Rules.Visible(el.settings.shown, state.combat, state.target, state.group, state.mounted) then
 		ShowHidden(el)
 		return
 	end
@@ -1143,6 +1151,11 @@ local function OnTarget()
 	RefreshDynamic()
 end
 
+local function OnMount()
+	state.mounted = Mounted()
+	RefreshDynamic()
+end
+
 local function OnCombatStart()
 	state.combat = true
 	if state.active then
@@ -1160,15 +1173,27 @@ local function OnCombatEnd()
 end
 
 local function UpdateEvents()
-	local combat, target, hover, group = state.active, false, false, false
+	local combat, target, hover, group, mount = state.active, false, false, false, false
 	for i = 1, #order do
 		local s = elements[order[i]].settings
 		combat = combat or Rules.NeedsCombat(s.shown, s.alphaCombat, s.alphaIdle)
-		target = target or Rules.NeedsTarget(s.shown)
-		hover = hover or s.shown == "mouseover"
-		group = group or (Rules.NeedsGroup(s.shown) and not IsProtectedFrame(elements[order[i]].frame))
+		if s.shown ~= "always" then
+			target = target or Rules.NeedsTarget(s.shown)
+			hover = hover or s.shown == "mouseover"
+			group = group or (Rules.NeedsGroup(s.shown) and not IsProtectedFrame(elements[order[i]].frame))
+			mount = mount or Rules.NeedsMounted(s.shown) and not IsProtectedFrame(elements[order[i]].frame)
+		end
 	end
 	UpdatePoll(hover)
+	if mount ~= state.mountEvents then
+		state.mountEvents = mount
+		if mount then
+			OnMount()
+			ns.Events.Register(SECTION, "PLAYER_MOUNT_DISPLAY_CHANGED", OnMount)
+		else
+			ns.Events.Unregister(SECTION, "PLAYER_MOUNT_DISPLAY_CHANGED")
+		end
+	end
 	if group ~= state.groupEvents then
 		state.groupEvents = group
 		if group then
@@ -1364,7 +1389,7 @@ local function OnShow(frame)
 	if IsProtectedFrame(frame) then
 		return
 	end
-	if not Rules.Visible(el.settings.shown, state.combat, state.target, state.group) then
+	if not Rules.Visible(el.settings.shown, state.combat, state.target, state.group, state.mounted) then
 		el.hidden = true
 		frame:Hide()
 	end

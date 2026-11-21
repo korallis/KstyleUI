@@ -202,6 +202,9 @@ A resizable element's width and height snap so that size times scale is a whole 
 | `noParty` | Shown solo or in a raid | `"[group:raid] show; [group:party] hide; show"` |
 | `noRaid` | Shown solo or in a party | `"[group:raid] hide; show"` |
 | `noSolo` | Shown in a party or raid | `"[group] show; hide"` |
+| `mounted` | Shown only while `IsMounted()`, read on `PLAYER_MOUNT_DISPLAY_CHANGED` | `"[mounted] show; hide"` |
+| `noMounted` | The reverse: hidden while mounted | `"[mounted] hide; show"` |
+| `combatTarget` | Shown in combat or with a target (both events) | `"[combat] show; [@target,exists] show; hide"` |
 
 - A frame counts as protected when `IsProtected()` is true or secret. Its state driver changes only out of combat; in combat the change waits for `Combat.Queue`. The secure state driver manager shows and hides the frame in combat, so no KstyleUI code makes a protected call there. Each driver is logged to the devlog with what `SecureCmdOptionParse` reads for it.
 - Without `RegisterStateDriver`, a protected element keeps its own visibility and the devlog says so.
@@ -212,7 +215,7 @@ A resizable element's width and height snap so that size times scale is a whole 
   - A poll: while any element uses the rule, one `C_Timer.NewTicker` reads `IsMouseOver` on each such frame, and on each hooked child under the pointer, every 0.1 s. It finds content that keeps the mouse focus from Layout's hooks: a child made since the last hook pass, or a frame mirrored over the element from outside its tree, such as the Auras host, whose aura buttons Layout never touches. It skips an element whose module is off, and it stops when no element uses the rule.
 - A frame that denies access, as an aura button does while auras are secret (`CanBeAccessedInContext` is false), is never hooked or read; it counts as not under the pointer. A secret `IsMouseOver` counts as under it, so the element stays visible rather than invisible and clickable. Each fallback is logged once.
 - Ordinary frames using a group rule listen for `GROUP_ROSTER_UPDATE` and read the same macro conditions through `SecureCmdOptionParse`. Protected frames use only the installed driver; roster changes in combat make no addon Show/Hide calls. An absent `shown` stays `always`, and resetting it removes the saved key.
-- Layout listens for `PLAYER_REGEN_DISABLED` and `PLAYER_REGEN_ENABLED` only while Layout Mode is open or an element needs them, and for `PLAYER_TARGET_CHANGED` only while an element uses the target rule.
+- Layout listens for `PLAYER_REGEN_DISABLED` and `PLAYER_REGEN_ENABLED` only while Layout Mode is open or an element needs them, for `PLAYER_TARGET_CHANGED` only while an element uses a target rule, and for `PLAYER_MOUNT_DISPLAY_CHANGED` only while a Lua frame uses a mounted rule. A secret or missing `IsMounted` counts as not mounted. Forever proof (`9dc84f0`): `PlayerScriptDocumentation.lua` (`IsMounted`) and `UnitDocumentation.lua` (`PLAYER_MOUNT_DISPLAY_CHANGED`); the `[mounted]` macro condition is the one the action bars' Custom visibility already uses.
 
 ## Forever API evidence
 

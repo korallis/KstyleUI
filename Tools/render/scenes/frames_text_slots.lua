@@ -1,4 +1,4 @@
--- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text, unit-frame parity round 1, 2, 3a, 3b, 3c, 3d, 4a or 4b options through Options (RENDER_TOTEMS and RENDER_PORTRAIT set the totem and portrait sides), or (RENDER_AURA_BOTH=1) the target's Debuffs and buffs with timers under the icons, nudged by RENDER_AURA_TIMER_Y, with every row full and the target of target shown under RENDER_AURA_FULL=1.
+-- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text, unit-frame parity round 1, 2, 3a, 3b, 3c, 3d, 4a, 4b or 5 options through Options (RENDER_TOTEMS and RENDER_PORTRAIT set the totem and portrait sides, RENDER_POWER_DETACH the power bar's place), or (RENDER_AURA_BOTH=1) the target's Debuffs and buffs with timers under the icons, nudged by RENDER_AURA_TIMER_Y, with every row full and the target of target shown under RENDER_AURA_FULL=1.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -238,7 +238,31 @@ return Common.Run(function()
 		env.FireEvent("UNIT_AURA", "target")
 		env.FireEvent("UNIT_SPELLCAST_START", "boss1", "Cast-1", 1)
 	end
-	env.RunTimers(); Gallery.Ticks(dofile("Tools/regression/widget_env.lua"), env, 40)
+	if os.getenv("RENDER_PARITY_R5") == "1" and module == "UnitFrames" then
+		env.UnitShouldDisplaySpellTargetName = function(token) return token == "target" end
+		env.UnitSpellTargetName = function() return "Valerin" end
+		env.C_Spell.GetSpellCooldown = function() return { isOnGCD = true } end
+		env.C_Spell.GetSpellCooldownDuration = function() return { start = env._time - 0.9, finish = env._time + 0.6, GetRemainingDuration = function() return 0.6 end } end
+		dofile("Tools/regression/unitframes_env.lua").SetUnit(env, "focus", { name = "Elunara", level = 60, health = 2530, healthMax = 4010, reaction = 2, auras = {
+			{ id = 1, icon = 135813, left = 9, harmful = true, mine = true }, { id = 2, icon = 136026, left = 14, harmful = true, mine = true },
+			{ id = 3, icon = 136207, left = 30, harmful = false }, { id = 4, icon = 136118, left = 12, harmful = false } } })
+		env.FireEvent("PLAYER_FOCUS_CHANGED")
+		K.Options.Get(module)
+		for _, pair in ipairs({ { "target.castbarTarget", true }, { "target.castbarTargetPlace", "RIGHT" }, { "player.castbarGcd", true },
+			{ "player.powerDetach", os.getenv("RENDER_POWER_DETACH") or "BELOW" }, { "player.powerDetachWidth", 300 }, { "focus.auraFilter", "both" }, { "focus.auraBuffPlace", "BELOW" } }) do
+			K.Options.Write(module, pair[1], pair[2])
+		end
+		dofile("Tools/regression/aura_fixture_engine.lua").Install(env)
+		env._units.player.cast = nil
+		ns.CastBars.Refresh("player")
+		env.FireEvent("UNIT_SPELLCAST_START", "target", "Cast-1", env._units.target.cast.spellID)
+	end
+	env.RunTimers()
+	if os.getenv("RENDER_PARITY_R5") == "1" and module == "UnitFrames" then
+		env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-2", 116)
+		env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	end
+	Gallery.Ticks(dofile("Tools/regression/widget_env.lua"), env, 40)
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))
 	if os.getenv("RENDER_PARITY_R3A") == "1" and module == "UnitFrames" then
 		local W, zoomed = dofile("Tools/regression/widget_env.lua"), false

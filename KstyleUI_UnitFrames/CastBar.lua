@@ -56,6 +56,7 @@ local MEDAL_INSET, MEDAL_TEXT_PAD = 3, 5
 local SPARK = { 227 / 255, 232 / 255, 238 / 255, 1 }
 local RANGE_STEP = 0.2
 local BATCH_GAP = 2
+local GCD_MAX = 1.5
 
 local EVENTS = {
 	UNIT_SPELLCAST_START = "Cast",
@@ -282,7 +283,7 @@ local function Notify(cb)
 end
 
 local function Hide(cb, instant)
-	cb.active, cb.landed = false, false
+	cb.active, cb.landed, cb.gcd = false, false, nil
 	Notify(cb)
 	cb.token = (cb.token or 0) + 1
 	if cb.timed then
@@ -704,7 +705,7 @@ local function LayoutMedal(cb, width, height, column)
 	cb.timer:SetShown(timerOn)
 end
 
-function CastBars.Layout(cb, width, height)
+local function LayoutParts(cb, width, height)
 	Form(cb)
 	local column = (cb.showTotal and CAPTION_TIMER_EM.elapsed or TIMER_COLUMN) + (cb.lagText and LAG_EM or 0)
 	if cb.medal then
@@ -825,6 +826,53 @@ local function StyleText(text, path, size, flags)
 	end
 end
 
+local function StyleTarget(cb)
+	local t, path, size, flags = cb.targetText, Settings.Font(cb.kind, "cast")
+	local own = Settings.Value(cb.kind, "castbarTargetSize")
+	StyleText(t, cb.textPath or path, own > 0 and own * K.Theme.FontScale() or size, cb.mode == "inside" and flags == "" and "OUTLINE" or flags)
+	local c = Settings.Value(cb.kind, "castbarTargetColor")
+	t:SetTextColor(c.r, c.g, c.b)
+end
+
+local function PlaceTarget(cb)
+	local place = not cb.line and Settings.Value(cb.kind, "castbarTarget") and Settings.Value(cb.kind, "castbarTargetPlace")
+	local t, text = cb.targetText, cb.text
+	local w = place and place ~= "" and text:GetWidth()
+	local point, rel, relPoint, x, y = text:GetPoint(1)
+	cb.targetOn = nil
+	if not (w and not issecretvalue(w) and type(w) == "number" and w > 2 * TEXT_PAD and not issecretvalue(x) and type(x) == "number" and not issecretvalue(y) and type(y) == "number") then
+		if t then t:Hide() end
+		return
+	end
+	if not t then
+		t = NewText(text:GetParent(), place)
+		cb.targetText = t
+		cb.ornament.texts[#cb.ornament.texts + 1] = t
+		StyleTarget(cb)
+	end
+	cb.targetOn = place
+	local pad = Snap(cb, TEXT_PAD)
+	local half = Snap(cb, (w - TEXT_PAD) / 2)
+	local tx, ty = Nudge(cb, "castbarTarget")
+	text:SetWidth(half)
+	t:ClearAllPoints()
+	t:SetSize(half, text:GetHeight())
+	t:SetJustifyV(text:GetJustifyV())
+	t:SetJustifyH(place)
+	if place == "RIGHT" then
+		t:SetPoint("LEFT", text, "RIGHT", pad + tx, ty)
+	else
+		text:SetPoint(point, rel, relPoint, x + half + pad, y)
+		t:SetPoint("RIGHT", text, "LEFT", tx - pad, ty)
+	end
+	t:SetShown(text:IsShown())
+end
+
+function CastBars.Layout(cb, width, height)
+	LayoutParts(cb, width, height)
+	PlaceTarget(cb)
+end
+
 local function NameFont(cb, size)
 	local style = cb.nameStyle
 	StyleText(cb.text, style.path, size, style.flags)
@@ -861,6 +909,10 @@ local function Fit(cb)
 end
 
 function CastBars.SetName(cb, text, target)
+	if cb.targetOn then
+		if issecretvalue(target) or target ~= nil then cb.targetText:SetText(target) else cb.targetText:SetText("") end
+		target = nil
+	end
 	local shown, secret = text, issecretvalue(text)
 	if not (secret or type(text) ~= "string" or not Settings.Value(cb.kind, "castbarCaps")) then
 		shown = ns.Unit.Tracked(text, cb.textPath or (Settings.Font(cb.kind, "cast")))
@@ -982,6 +1034,7 @@ function CastBars.Restyle(cb)
 	Spark(cb)
 	Raise(cb)
 	StyleImportant(cb)
+	if cb.targetText then StyleTarget(cb) end
 	cb.styled = true
 	cb.pr = nil
 	Paint(cb, BarColor(cb))
@@ -1223,7 +1276,7 @@ local function Start(cb, channel, update)
 		Hide(cb, true)
 		return
 	end
-	cb.active, cb.landed, cb.channel, cb.error = true, false, channel, false
+	cb.active, cb.landed, cb.channel, cb.error, cb.gcd = true, false, channel, false, nil
 	cb.inkEmpty = false
 	StopFlash(cb)
 	cb.castBarID, cb.spellID = nil, nil
@@ -1297,6 +1350,47 @@ local function Land(cb)
 	EndTimer(cb, 1)
 	Flash(cb, "giltLit", LANDED_ALPHA)
 	HoldThen(cb, Outcomes() and 0.35 or Tokens.Duration("pressIn") + Tokens.Duration("readyFlash"))
+end
+
+local function GcdEnd(cb, token)
+	if cb.gcd == token then Hide(cb, true) end
+end
+
+local function ShowGcd(cb, duration)
+	local token = (cb.gcdToken or 0) + 1
+	cb.gcdToken, cb.gcd, cb.timed = token, token, true
+	StopFlash(cb)
+	CastBars.SetName(cb, "")
+	cb.timer:SetText("")
+	cb.icon:SetTexture(nil)
+	cb.label:Hide()
+	cb.lock:Hide()
+	Paint(cb, BarColor(cb))
+	cb.frame:SetAlpha(1)
+	cb.frame:Show()
+	local ok, left = pcall(duration.GetRemainingDuration, duration)
+	if not ok or issecretvalue(left) or type(left) ~= "number" or left ~= left or left <= 0 then left = GCD_MAX end
+	C_Timer.After(left, function() GcdEnd(cb, token) end)
+end
+
+local function Gcd(cb, spellID)
+	if cb.gcd or cb.active or cb.landed or cb.holds > 0 or cb.noRoom then return end
+	local api = C_Spell
+	for i = 1, 3 do
+		local id = select(i, spellID, cb.gcdCast, cb.gcdProbe)
+		if not issecretvalue(id) and type(id) == "number" then
+			local ok, info = pcall(api.GetSpellCooldown, id)
+			local on = ok and type(info) == "table" and info.isOnGCD
+			if not issecretvalue(on) and on == true then
+				local got, duration = pcall(api.GetSpellCooldownDuration, id)
+				if got and type(duration) ~= "nil" and pcall(cb.bar.SetTimerDuration, cb.bar, duration, Interpolation(cb), Direction(false)) then
+					cb.gcdProbe = id
+					ShowGcd(cb, duration)
+					return
+				end
+			end
+		end
+	end
 end
 
 local function Casting(unit)
@@ -1422,6 +1516,12 @@ function CastBars.Refresh(kind)
 	Each(kind, RefreshOne)
 end
 
+function CastBars.Lined(kind)
+	local lined = false
+	Each(kind, function(cb) lined = lined or cb.line == true and Enabled(cb) end)
+	return lined
+end
+
 local function Listen(cb)
 	local owner = Owner(cb)
 	K.Events.UnregisterAll(owner)
@@ -1441,6 +1541,14 @@ local function Listen(cb)
 	end
 	for event in pairs(EVENTS) do
 		K.Events.RegisterUnit(owner, event, cb.handler, cb.unit)
+	end
+	if cb.kind == "player" and Settings.Value("player", "castbarGcd") and C_Spell and C_Spell.GetSpellCooldown and C_Spell.GetSpellCooldownDuration and C_Timer then
+		cb.onGcd = cb.onGcd or function(_, spellID) Gcd(cb, spellID) end
+		cb.onCast = cb.onCast or function(_, _, _, spellID)
+			if not issecretvalue(spellID) and type(spellID) == "number" then cb.gcdCast = spellID end
+		end
+		K.Events.Register(owner, "SPELL_UPDATE_COOLDOWN", cb.onGcd)
+		K.Events.RegisterUnit(owner, "UNIT_SPELLCAST_SUCCEEDED", cb.onCast, cb.unit)
 	end
 	if cb.kind == "player" and Settings.Value("player", "castbarRank") then
 		cb.onText = cb.onText or function(_, spellID)

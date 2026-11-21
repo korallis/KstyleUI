@@ -356,6 +356,67 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- Mounted and combined rules: a Lua frame follows IsMounted on PLAYER_MOUNT_DISPLAY_CHANGED, a secure frame gets the driver ------
+
+do
+	local env, K = New()
+	local Layout = K.Layout
+	local mounted, reads = false, 0
+	env.IsMounted = function() reads = reads + 1 return mounted end
+	env.Condition = function(part) if part == "mounted" then return mounted end end
+	local function mount(on)
+		mounted = on
+		env.FireEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
+	end
+	local frame = Element(K, "Test.Mount", { label = "Mount" })
+	mount(true)
+	assert(reads == 0 and frame:IsShown(), "no element on a mounted rule: the mount state is never read")
+	mount(false)
+	assert(Layout.Set("Test.Mount", "shown", "noMounted"))
+	assert(frame:IsShown() == true, "not while mounted: shown on foot")
+	mount(true)
+	assert(frame:IsShown() == false, "hidden on a mount")
+	mount(false)
+	assert(frame:IsShown() == true, "shown again on dismount")
+	assert(Layout.Set("Test.Mount", "shown", "mounted"))
+	assert(frame:IsShown() == false, "when mounted only: hidden on foot")
+	mount(true)
+	assert(frame:IsShown() == true, "shown on a mount")
+	env.IsMounted = function() return env.Secret(true) end
+	env.FireEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
+	assert(frame:IsShown() == false, "a secret mount state counts as on foot")
+	env.IsMounted = function() reads = reads + 1 return mounted end
+	assert(Layout.Set("Test.Mount", "shown", "combatTarget"))
+	assert(frame:IsShown() == false, "in combat or with a target: hidden with neither")
+	env.SetTarget(true)
+	assert(frame:IsShown() == true, "shown with a target")
+	env.SetCombat(true)
+	env.SetTarget(false)
+	assert(frame:IsShown() == true, "shown in combat without a target")
+	env.SetCombat(false)
+	assert(frame:IsShown() == false, "hidden again with neither")
+	assert(Layout.Set("Test.Mount", "shown", "always"))
+	assert(frame:IsShown() == true, "always shows it again")
+	reads = 0
+	mount(true)
+	assert(reads == 0 and frame:IsShown(), "leaving the mounted rules stops reading the mount state")
+
+	local secure = Protect(env, CreateFrameFor(K))
+	secure:SetSize(100, 40)
+	Layout.Register(secure, "Test.MountSecure", { anchor = "CENTER" }, { label = "Secure" })
+	assert(Layout.Set("Test.MountSecure", "shown", "noMounted"))
+	assert(env.Driver(secure, "visibility") == "[mounted] hide; show", "a secure frame hides on a mount through its driver")
+	assert(secure:IsShown() == false, "the driver hides it while mounted")
+	mounted = false
+	env.RunStateDrivers()
+	assert(secure:IsShown() == true, "and shows it on foot")
+	assert(Layout.Set("Test.MountSecure", "shown", "combatTarget"))
+	assert(env.Driver(secure, "visibility") == "[combat] show; [@target,exists] show; hide", "the combined rule's driver")
+	assert(Layout.Set("Test.MountSecure", "shown", "always"))
+	assert(env.Driver(secure, "visibility") == nil and secure:IsShown(), "always removes the driver")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- Mouseover: hidden until the pointer is over the frame or one of its children --------------------------------------
 
 do
@@ -709,7 +770,7 @@ do
 	assert(settings.grid == false and settings.snap == true and settings.gridSize == 16 and settings.snapDistance == 8, "Layout Mode's settings and defaults")
 	local schema = K.Options.Get("Layout")
 	assert(type(schema) == "table" and K.Options.Row("Layout", "gridSize").type == "slider", "the settings page is registered")
-	assert(type(K.Layout.SHOWN_OPTIONS) == "table" and #K.Layout.SHOWN_OPTIONS == 12, "the shown rule options for the settings window")
+	assert(type(K.Layout.SHOWN_OPTIONS) == "table" and #K.Layout.SHOWN_OPTIONS == 15, "the shown rule options for the settings window")
 	assert(type(K.Layout.STRATA_OPTIONS) == "table" and #K.Layout.STRATA_OPTIONS == 4)
 	assert(type(K.Layout.ANCHOR_OPTIONS) == "table" and #K.Layout.ANCHOR_OPTIONS == 9)
 end

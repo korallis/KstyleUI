@@ -52,6 +52,7 @@ local SORT = "Expiration"
 local LANES = { { "buffDefensive", "BIG_DEFENSIVE" }, { "buffDispellable", "DISPELLABLE" } }
 local LOCKOUTS = { [57723] = true, [57724] = true, [80354] = true, [95809] = true, [160455] = true, [264689] = true, [390435] = true }
 local TRACK = OWNER .. ":track"
+local SIDE_OF = { CENTER = "BELOW", SIDE = "RIGHT" }
 local FIXED_UNIT = { player = true, pet = true }
 
 local issecretvalue = issecretvalue or function()
@@ -424,7 +425,7 @@ local function Flush()
 	local work = pending
 	pending = {}
 	for view, needsStyle in pairs(work) do
-		if not view.auras or view.auras.style ~= PoolStyle(view) or ns.Fan.Wanted(view) and not view.auras.fan then
+		if not view.auras or view.auras.buffWait or view.auras.style ~= PoolStyle(view) or ns.Fan.Wanted(view) and not view.auras.fan then
 			K.Call(Auras.Apply, view)
 		else
 			view.auraStyle = nil
@@ -530,6 +531,13 @@ local function EngineReady()
 	end
 end
 
+function Auras.Apart(kind)
+	local place = Settings.Value(kind, "auraBuffPlace")
+	if place == "" or Settings.Value(kind, "auraFilter") ~= "both" or kind == "boss" and Settings.Value(kind, "auraSimple") ~= "" then return false end
+	local debuffs = Settings.Value(kind, "auraPosition")
+	return (SIDE_OF[debuffs] or debuffs) ~= place
+end
+
 local function GroupLayout(view, key)
 	local size, spacing = Snap(view, Value(view, "auraSize")), Snap(view, Value(view, "auraSpacing"))
 	local room = Snap(view, TimerRoom(view.kind))
@@ -540,7 +548,7 @@ local function GroupLayout(view, key)
 		elementSpacing = Snap(view, Auras.Spacing(view.kind)),
 		lineSpacing = line,
 		groupLineSpacing = room > 0 and line or 0,
-		forceNewLine = key == "buffs" and Value(view, "auraFilter") == "both",
+		forceNewLine = key == "buffs" and Value(view, "auraFilter") == "both" and not Auras.Apart(view.kind),
 	}
 end
 
@@ -586,6 +594,11 @@ end
 
 local function BuildStyle(view)
 	local a, style = view.auras, PoolStyle(view)
+	if a.buff then
+		a.buff.container:SetEnabled(false)
+		a.buff.host:Hide()
+		a.buff = nil
+	end
 	if a.container then
 		for _, key in ipairs(GROUPS) do
 			a.container:SetAuraGroupEnabled(key, false)
@@ -669,6 +682,7 @@ function Auras.Sync(view)
 		return
 	end
 	a.host:SetShown(Wanted(view) and Visible(view.button))
+	if a.buff then a.buff.host:SetShown(a.host:IsShown()) end
 	ns.Fan.Sync(view, Active(view) and Visible(view.button))
 end
 
@@ -790,13 +804,66 @@ local function ApplyOverflow(view, filter, want)
 		local chip = a.overflow[key]
 		if chip then
 			local on = want and filter[key] ~= nil
-			local point, x, y, cell = Auras.LastCell(view.kind, a.host, key == "debuffs" or not filter.debuffs, after)
+			local apart = key == "buffs" and a.buff
+			local point, x, y, cell = Auras.LastCell(view.kind, a.host, key == "debuffs" or not filter.debuffs or apart, after)
 			Overflow.Apply(chip, {
-				enabled = on, groups = { { filter = filter[key], candidates = a.candidates[key] } }, cap = capacity, cell = cell, after = after,
-				rel = a.container, relPoint = point, x = x, y = y, level = level, accent = Settings.Accent,
+				enabled = on, groups = { { filter = filter[key], candidates = a.candidates[apart and "buffApart" or key] } }, cap = capacity, cell = cell, after = after,
+				rel = apart and a.buff.container or a.container, relPoint = point, x = x, y = y, level = level, accent = Settings.Accent,
 			})
 		end
 	end
+end
+
+local function Group(view, container, key, filter, slot, on, method, direction)
+	container:SetAuraGroupEnabled(key, on)
+	if on then
+		container:SetAuraGroupFilterString(key, filter)
+	end
+	Auras.SetCandidates(view.auras.candidates, slot, container, key, on and Auras.Candidates(view, key) or nil)
+	container:SetAuraGroupLayout(key, GroupLayout(view, key))
+	container:SetAuraGroupMaxFrameCount(key, Capacity(view))
+	if method ~= nil and type(container.SetAuraGroupSortMethod) == "function" then
+		container:SetAuraGroupSortMethod(key, method, direction)
+	end
+end
+
+local function Flow(container, host, kind)
+	local width, height, corner, line, growth = Auras.Footprint(kind, host)
+	local directions = AnchorUtil and AnchorUtil.FlowDirection
+	container:SetFlowLayoutAnchorPoint(corner)
+	if directions then
+		container:SetFlowLayoutGrowthDirection(directions[growth[2]], directions[growth[3]])
+	end
+	container:SetFlowLayoutMaximumLineSize(line)
+	host:SetSize(width, height)
+	container:ClearAllPoints()
+	if Centred(kind) then
+		container:SetPoint("TOP", host, "TOP", 0, 0)
+	else
+		container:SetPoint(corner, host, corner, 0, 0)
+	end
+end
+
+local function BuffBlock(view)
+	local a = view.auras
+	local cached = a.styles[a.style]
+	cached.buff = false
+	local host = CreateFrame("Frame", nil, K.Scale.Root())
+	host:Hide()
+	local ok, container = pcall(CreateFrame, "AuraContainer", nil, host, TEMPLATE)
+	local method, direction = Sort()
+	local buttons = a.buttons
+	if not (ok and type(container) == "table" and type(container.AddAuraGroup) == "function" and pcall(container.AddAuraGroup, container, "buffs", START_FILTER.buffs, {
+		maxFrameCount = Capacity(view), sortMethod = method, sortDirection = direction, layout = GroupLayout(view, "buffs"),
+		initializeFrame = function(button) K.Call(Dress, view, "buffs", button, buttons) end,
+	})) then
+		LogOnce("buffBlock", "frame auras: the buff block's container was refused; buffs stay with the debuffs")
+		return nil
+	end
+	container:SetUnit(view.unit)
+	MirrorHolder(view, host)
+	cached.buff = { host = host, container = container }
+	return cached.buff
 end
 
 local function ApplyContainer(view, fan)
@@ -812,34 +879,26 @@ local function ApplyContainer(view, fan)
 	if fan then
 		filter.debuffs = not settings.onlyMine and base.debuffs == "HARMFUL" and filter.debuffs .. "|!PLAYER" or nil
 	end
+	local wanted, cached = filter.debuffs and filter.buffs and Auras.Apart(view.kind), a.styles[a.style]
+	if wanted and cached.buff == nil then
+		if Auras.Open() then BuffBlock(view) else Wait(view) end
+	end
+	a.buffWait = wanted and cached.buff == nil or nil
+	local block = wanted and cached.buff or nil
+	if a.buff and a.buff ~= block then
+		a.buff.container:SetEnabled(false)
+		a.buff.host:Hide()
+	end
+	a.buff = block
 	local method, direction = Sort(view)
-	local capacity = Capacity(view)
 	for _, key in ipairs(GROUPS) do
-		local on = filter[key] ~= nil
-		container:SetAuraGroupEnabled(key, on)
-		if on then
-			container:SetAuraGroupFilterString(key, filter[key])
-		end
-		Auras.SetCandidates(a.candidates, key, container, key, on and Auras.Candidates(view, key) or nil)
-		container:SetAuraGroupLayout(key, GroupLayout(view, key))
-		container:SetAuraGroupMaxFrameCount(key, capacity)
-		if method ~= nil and type(container.SetAuraGroupSortMethod) == "function" then
-			container:SetAuraGroupSortMethod(key, method, direction)
-		end
+		Group(view, container, key, filter[key], key, filter[key] ~= nil and not (block and key == "buffs"), method, direction)
 	end
-	local width, height, corner, line, growth = Auras.Footprint(view.kind, a.host)
-	local directions = AnchorUtil and AnchorUtil.FlowDirection
-	container:SetFlowLayoutAnchorPoint(corner)
-	if directions then
-		container:SetFlowLayoutGrowthDirection(directions[growth[2]], directions[growth[3]])
-	end
-	container:SetFlowLayoutMaximumLineSize(line)
-	a.host:SetSize(width, height)
-	container:ClearAllPoints()
-	if Centred(view.kind) then
-		container:SetPoint("TOP", a.host, "TOP", 0, 0)
-	else
-		container:SetPoint(corner, a.host, corner, 0, 0)
+	Flow(container, a.host, view.kind)
+	if block then
+		block.container:SetEnabled(true)
+		Group(view, block.container, "buffs", filter.buffs, "buffApart", true, method, direction)
+		Flow(block.container, block.host, view.kind)
 	end
 	ApplyOverflow(view, filter, true)
 	Auras.Place(view)
@@ -856,6 +915,7 @@ function Auras.Parts(view)
 		parts[i] = nil
 	end
 	parts[1] = a.container
+	if a.buff then parts[#parts + 1] = a.buff.container end
 	for _, key in ipairs(GROUPS) do
 		local chip = a.overflow and a.overflow[key]
 		if chip then
@@ -881,7 +941,7 @@ function Auras.Footprint(kind, frame)
 		size, spacing, across = Widgets.Snap(frame, size), Widgets.Snap(frame, spacing), Widgets.Snap(frame, across)
 	end
 	local columns = Settings.Value(kind, "auraColumns")
-	local rows = Settings.Value(kind, "auraRows") * (Settings.Value(kind, "auraFilter") == "both" and 2 or 1)
+	local rows = Settings.Value(kind, "auraRows") * (Settings.Value(kind, "auraFilter") == "both" and not Auras.Apart(kind) and 2 or 1)
 	local line = size
 	for _ = 2, columns do
 		line = line + across + size
@@ -898,9 +958,10 @@ function Auras.Footprint(kind, frame)
 	return math.max(1, line), math.max(1, height), growth[1], line, growth
 end
 
-function Auras.Anchor(host, frame, kind, panelX, spot)
-	local position = POSITION[Settings.Value(kind, "auraPosition")] or POSITION.BELOW
-	local dx, dy = Off(host, Settings.Value(kind, "auraX")), Off(host, Settings.Value(kind, "auraY"))
+function Auras.Anchor(host, frame, kind, panelX, spot, buff)
+	local position = POSITION[Settings.Value(kind, buff and "auraBuffPlace" or "auraPosition")] or POSITION.BELOW
+	local dx, dy = Off(host, Settings.Value(kind, buff and "auraBuffX" or "auraX")), Off(host, Settings.Value(kind, buff and "auraBuffY" or "auraY"))
+	spot = not buff and spot or nil
 	host:ClearAllPoints()
 	if spot and spot.outer and Settings.AuraRows(kind) and Settings.Value(kind, "auraPosition") == "ABOVE" then
 		local side = kind == "target" and "RIGHT" or "LEFT"
@@ -923,7 +984,9 @@ end
 function Auras.Place(view)
 	local a = view.auras
 	if a and a.container then
-		Auras.Anchor(a.host, view.button, view.kind, view.geometry and view.geometry.panel.x or 0, view.geometry and view.geometry.aura)
+		local x = view.geometry and view.geometry.panel.x or 0
+		Auras.Anchor(a.host, view.button, view.kind, x, view.geometry and view.geometry.aura)
+		if a.buff then Auras.Anchor(a.buff.host, view.button, view.kind, x, nil, true) end
 	end
 end
 
@@ -979,6 +1042,10 @@ function Auras.Disable()
 			a.container:SetEnabled(false)
 			EnableOverflow(view, false)
 			a.host:Hide()
+			if a.buff then
+				a.buff.container:SetEnabled(false)
+				a.buff.host:Hide()
+			end
 		end
 	end
 	pending = {}

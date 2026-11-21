@@ -753,8 +753,33 @@ local function PowerAbove(out, s)
 	h.y, p.y = h.y + down, p.y - up
 end
 
+local DETACH_GAP, DETACH_BODY = 4, 12
+
+local function Detached(s, width, height, scale)
+	local h = max(0, min(s.powerHeight or 0, height - DETACH_GAP - DETACH_BODY))
+	s.power = false
+	local out = Geometry.Frame(s, width, height - h - DETACH_GAP, scale)
+	s.power = true
+	local top, seen = s.powerDetach == "ABOVE", {}
+	for _, r in pairs(top and out or seen) do
+		if type(r) == "table" and type(r.y) == "number" and not seen[r] then
+			seen[r], r.y = true, r.y + h + DETACH_GAP
+		end
+	end
+	local panel = out.panel
+	local w = s.powerDetachWidth > 0 and s.powerDetachWidth or panel.w
+	if h > 0 then
+		out.power = Rect(panel.x + (panel.w - w) / 2 + s.powerDetachX, (top and 0 or height - h) - s.powerDetachY, w, h)
+		PowerLane(out, s)
+	end
+	return out
+end
+
 function Geometry.Frame(s, width, height, fontScale)
 	local scale = fontScale or 1
+	if s.power and (s.powerDetach or "") ~= "" and s.form ~= "slab" then
+		return Detached(s, width, height, scale)
+	end
 	local lumen = LUMEN[s.form]
 	if lumen then
 		local out = { form = s.form, compact = s.form == "row", chrome = false }

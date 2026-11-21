@@ -23,7 +23,7 @@ local NUDGE = 50
 local BOSS_GAP_MAX = 20
 local MARKER_MAX, CAST_WIDTH_MIN, CAST_WIDTH_MAX, CARD_CAST = 48, 2 * CAST_HEIGHT_MAX, 400, 16
 local PRECISE_MAX, SPELL_LIST_LETTERS = 90, 240
-local HEALTH_HEIGHT_MAX, ABSORB_BAR_MAX, OFFSET_MAX = 40, 10, 100
+local HEALTH_HEIGHT_MAX, ABSORB_BAR_MAX, OFFSET_MAX, DETACH_WIDTH_MAX = 40, 10, 100, 600
 local NO_ABOVE = { slab = true, bar = true, sigil = true }
 Settings.OFFSET_MAX = OFFSET_MAX
 
@@ -281,6 +281,7 @@ for kind in pairs(Settings.TEXT_BAR) do
 	d.textBarLeft, d.textBarCenter, d.textBarRight = ExtraText(), ExtraText(), ExtraText()
 	d.textBarLeft.position, d.textBarRight.position = "LEFT", "RIGHT"
 end
+AddDefaults(KINDS, { powerDetach = "", powerDetachWidth = 0, powerDetachX = 0, powerDetachY = 0 })
 
 for _, kind in ipairs({ "targettarget", "focustarget", "pet" }) do
 	local fonts = Settings.defaults[kind].fonts
@@ -295,11 +296,12 @@ local function Live(d, values)
 end
 for _, kind in ipairs(KINDS) do
 	Live(Settings.defaults[kind], { buffStealable = "", buffDefensive = "", buffDispellable = "", auraHidden = "", auraTracked = "",
-		auraTimed = false, auraHideLockout = false, auraTrackedOnly = false, auraRowGap = 0, auraPrecise = 0, castbarFit = false, castbarIconSize = 0, auraLists = "" })
+		auraTimed = false, auraHideLockout = false, auraTrackedOnly = false, auraRowGap = 0, auraPrecise = 0, castbarFit = false, castbarIconSize = 0, auraLists = "",
+		castbarTargetPlace = "", castbarTargetSize = 0, castbarTargetX = 0, castbarTargetY = 0, castbarTargetColor = Color("textEmphasis"), auraBuffPlace = "", auraBuffX = 0, auraBuffY = 0 })
 end
 for kind in pairs(Settings.AURAS) do Live(Settings.defaults[kind], { auraTrackedDebuffs = false }) end
 Live(Settings.defaults.player, { castbarRank = false, castbarLagText = false, castbarCraft = false, castbarCraftBar = false, castbarRangeGrey = false, dispelOverlay = "", dispelFilter = "PLAYER",
-	dispelAlpha = 0.3, dispelEdge = false, dispelIcon = "", dispelIconSize = 14, totems = false, totemPosition = "RIGHT", totemSize = 24 })
+	dispelAlpha = 0.3, dispelEdge = false, dispelIcon = "", dispelIconSize = 14, totems = false, totemPosition = "RIGHT", totemSize = 24, castbarGcd = false })
 
 local function Options(list)
 	local out = {}
@@ -352,6 +354,9 @@ Settings.CHOICES = {
 	dispelIcon = Options({ { "", L["Off"] }, { "TOPLEFT", L["Top left"] }, { "TOP", L["Top"] }, { "TOPRIGHT", L["Top right"] }, { "LEFT", L["Left"] }, { "CENTER", L["Centre"] },
 		{ "RIGHT", L["Right"] }, { "BOTTOMLEFT", L["Bottom left"] }, { "BOTTOM", L["Bottom"] }, { "BOTTOMRIGHT", L["Bottom right"] } }),
 	totemPosition = Options({ { "ABOVE", L["Above the frame"] }, { "BELOW", L["Below the frame"] }, { "LEFT", L["Left of the frame"] }, { "RIGHT", L["Right of the frame"] } }),
+	targetPlace = Options({ { "", L["With the spell name"] }, { "LEFT", L["On its own, left"] }, { "RIGHT", L["On its own, right"] } }),
+	powerDetach = Options({ { "", L["In the frame"] }, { "BELOW", L["Below the frame, apart"] }, { "ABOVE", L["Above the frame, apart"] } }),
+	buffPlace = Options({ { "", L["With the debuffs"] }, { "BELOW", L["Below the frame"] }, { "ABOVE", L["Above the frame"] }, { "RIGHT", L["Right of the frame"] }, { "LEFT", L["Left of the frame"] } }),
 }
 local CHOICES = Settings.CHOICES
 CHOICES.threatPlace = Options({ { "OUTLEFT", L["Left of the bar"] }, { "OUTRIGHT", L["Right of the bar"] }, { "LEFT", L["Inside the left edge"] },
@@ -391,6 +396,7 @@ local CHOICE_OF = {
 	slabThreatPercentPosition = "threatPlace",
 	dispelOverlay = "dispelOverlay", dispelFilter = "dispelFilter", dispelIcon = "dispelIcon", totemPosition = "totemPosition", auraLists = "auraCopy",
 	textBarPlace = "textBarPlace", textBarIcon = "textBarIcon", textBarStrata = "strata",
+	castbarTargetPlace = "targetPlace", powerDetach = "powerDetach", auraBuffPlace = "buffPlace",
 }
 
 local function Allowed(list, value)
@@ -482,10 +488,12 @@ local RANGES = {
 	pvpTimerSize = { FONT_SIZE_MIN, FONT_SIZE_MAX },
 	castbarIconSize = { 0, 64 }, dispelAlpha = { 0.05, 1 }, dispelIconSize = { 8, 40 }, totemSize = { 16, 48 },
 	textBarHeight = { 8, CAST_HEIGHT_MAX }, textBarWidth = { 0, CAST_WIDTH_MAX },
+	castbarTargetSize = { 0, FONT_SIZE_MAX }, powerDetachWidth = { 0, DETACH_WIDTH_MAX },
 }
 for _, key in ipairs({ "auraX", "auraY", "auraTimerX", "auraTimerY", "auraCountX", "auraCountY",
 	"castbarIconX", "castbarIconY", "castbarTextX", "castbarTextY", "castbarTimerX", "castbarTimerY",
-	"leaderX", "leaderY", "pvpX", "pvpY", "combatX", "combatY", "eliteX", "eliteY", "pvpTimerX", "pvpTimerY" }) do
+	"leaderX", "leaderY", "pvpX", "pvpY", "combatX", "combatY", "eliteX", "eliteY", "pvpTimerX", "pvpTimerY", "castbarTargetX", "castbarTargetY",
+	"powerDetachX", "powerDetachY", "auraBuffX", "auraBuffY" }) do
 	RANGES[key] = { -NUDGE, NUDGE }
 end
 
@@ -794,7 +802,7 @@ local function BarRows(schema, kind, bar)
 		height = bar == "power" and { POWER_HEIGHT_MIN, POWER_HEIGHT_MAX, 1, key = "powerHeight" } or nil,
 		row = function(row)
 			local show = row.type == "color" and custom or on
-			if row.type == "slider" then show = function(s) return on(s) and s.style ~= "column" end end
+			if row.type == "slider" then show = function(s) return on(s) and (s.style ~= "column" or bar == "power" and (s.powerDetach or "") ~= "") end end
 			return Row(kind, row, show)
 		end,
 	})
@@ -986,6 +994,15 @@ CastRows = function(schema, kind)
 	end
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarTarget", label = L["Spell target"],
 		help = L["Adds who the spell is cast on after its name, when the game shows it."] }, named)
+	local function targeted(s) return named(s) and s.castbarTarget == true and not ns.CastBars.Lined(kind) end
+	local function apart(s) return targeted(s) and (s.castbarTargetPlace or "") ~= "" end
+	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "castbarTargetPlace", label = L["Spell target place"], options = CHOICES.targetPlace,
+		help = L["After the spell name, or its own text on one half of the name's line."] }, targeted)
+	schema[#schema + 1] = Row(kind, { type = "slider", key = "castbarTargetSize", label = L["Spell target size"], min = 0, max = FONT_SIZE_MAX, step = 1,
+		help = L["The spell target's text size. 0 matches the spell name."],
+		shown = function(value) return value == 0 and math.floor(Settings.FontSize(kind, "cast") / K.Theme.FontScale() + 0.5) or value end }, apart)
+	schema[#schema + 1] = Row(kind, { type = "color", key = "castbarTargetColor", label = L["Spell target colour"], help = L["The spell target's text colour."] }, apart)
+	Nudges(schema, kind, "castbarTarget", L["Spell target"], apart)
 	if kind ~= "player" then
 		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarImportant", label = L["Important cast outline"],
 			help = L["Outlines the cast bar while the unit casts a spell the game marks as important."] }, on)
@@ -1010,6 +1027,8 @@ CastRows = function(schema, kind)
 			help = L["Use a separate fill colour while you channel a spell."] }, on)
 		schema[#schema + 1] = Row(kind, { type = "color", key = "castbarChannelColor", label = L["Channel colour"],
 			help = L["The fill colour for channels. Uninterruptible colour still takes priority."] }, function(s) return on(s) and s.castbarChannelOverride == true end)
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarGcd", label = L["Global cooldown"],
+			help = L["Between casts, the cast bar fills over the global cooldown after an instant spell."] }, on)
 		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarRangeGrey", label = L["Grey when out of range"],
 			help = L["Greys the fill while your target is out of range of the spell you are casting."] }, on)
 		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarLatency", label = L["Latency zone"],
@@ -1120,6 +1139,10 @@ AuraRows = function(schema, kind)
 		help = L["Which side of the frame the auras sit on."], options = CHOICES.auraPosition,
 	}, placed)
 	Nudges(schema, kind, "aura", L["Auras"], on)
+	local function both(s) return placed(s) and Settings.Value(kind, "auraFilter") == "both" end
+	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "auraBuffPlace", label = L["Buff position"], options = CHOICES.buffPlace,
+		help = L["With the debuffs, or in their own block on another side of the frame."] }, both)
+	Nudges(schema, kind, "auraBuff", L["Buffs"], function(s) return both(s) and (s.auraBuffPlace or "") ~= "" end)
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "auraGrowth", label = L["Aura growth"],
 		help = L["Which way new aura icons are added."], options = CHOICES.auraGrowth,
@@ -1427,8 +1450,9 @@ local function KindRows(schema, kind)
 	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "powerGradient", label = L["Fill gradient"],
 		help = L["Shades the power fill from darker to its colour."], options = CHOICES.gradient }, function(s) return s.power ~= false end)
 	local function powerOn(s) return s.power ~= false end
+	local function detached(s) return powerOn(s) and (s.powerDetach or "") ~= "" and Settings.Form(kind) ~= "slab" end
 	for _, spec in ipairs({
-		{ "toggle", "powerAbove", L["Above the health bar"], function(s) return powerOn(s) and not NO_ABOVE[Settings.Form(kind)] end, L["Puts the power bar above the health bar, keeping the gap between them."] },
+		{ "toggle", "powerAbove", L["Above the health bar"], function(s) return powerOn(s) and (s.powerDetach or "") == "" and not NO_ABOVE[Settings.Form(kind)] end, L["Puts the power bar above the health bar, keeping the gap between them."] },
 		{ "dropdown", "powerTextAlign", L["Text position"], powerOn, L["Where the text sits on the bar: left, centre or right."], CHOICES.align },
 		{ "dropdown", "powerTextColor", L["Text colour"], powerOn, L["Keep the current style, or colour the power text by its power type or a custom colour."], CHOICES.powerTextColor },
 		{ "color", "powerTextCustom", L["Custom text colour"], function(s) return powerOn(s) and s.powerTextColor == "custom" end, L["The text colour when its colour mode is custom."] },
@@ -1436,11 +1460,16 @@ local function KindRows(schema, kind)
 		kind == "player" and { "color", "powerCostColor", L["Spell cost colour"], function(s) return powerOn(s) and s.powerCost == true end, L["The colour of the spell cost mark."] },
 		kind == "player" and { "toggle", "manaSpark", L["Five-second rule"], powerOn, L["After you spend mana, a spark crosses the bar for the five seconds before regeneration resumes."] },
 		kind == "player" and { "toggle", "powerMana", L["Mana in forms"], function(s) return powerOn(s) and K.Theme.Class() == "DRUID" end, L["Druids: shows mana in bear and cat form; the class resource bar shows the form's power."] },
+		{ "dropdown", "powerDetach", L["Power bar place"], function(s) return powerOn(s) and Settings.Form(kind) ~= "slab" end, L["In the frame, or apart below or above its bars at its own width. The frame keeps its size."], CHOICES.powerDetach },
+		{ "slider", "powerDetachWidth", L["Power bar width"], detached, L["The detached power bar's width. 0 matches the frame."] },
 	}) do
 		if spec then
-			schema[#schema + 1] = Row(kind, { type = spec[1], key = spec[2], label = spec[3], help = spec[5], options = spec[6] }, spec[4])
+			local row = Row(kind, { type = spec[1], key = spec[2], label = spec[3], help = spec[5], options = spec[6] }, spec[4])
+			if spec[2] == "powerDetachWidth" then row.min, row.max, row.step = 0, DETACH_WIDTH_MAX, 1 end
+			schema[#schema + 1] = row
 		end
 	end
+	Nudges(schema, kind, "powerDetach", L["Power bar"], detached)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "powerPercentSign", label = L["Percent sign"],
 		help = L["Writes % after the power percentage. Off shows the number alone."] }, function(s) return s.power ~= false and (s.powerText == "percent" or s.powerText == "both" or s.powerText == "auto") end)
 	schema[#schema + 1] = Header(kind, L["text"])

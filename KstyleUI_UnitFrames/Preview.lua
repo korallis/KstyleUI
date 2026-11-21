@@ -26,7 +26,7 @@ local AURA_STACKS = { [2] = "3", [5] = "2" }
 local AURA_DISPEL = { "debuff", "steal", "buff" }
 local AURA_TRAITS = { {}, { buff = "buffStealable" }, { buff = "buffDispellable" }, { buff = "buffDefensive" }, { id = 57723 }, { buff = "" }, {}, { buff = "" } }
 local LANES = { "buffStealable", "buffDispellable", "buffDefensive" }
-local AURA_MORE = 3
+local AURA_MORE, GCD_SHARE = 3, 0.6
 local CHIP_SHARE, CHIP_MIN, CHIP_LEVEL = 0.42, 8, 4
 local THREAT_TANKING = 3
 local PREVIEW_THREAT, PREVIEW_PVP = 87, 272
@@ -309,7 +309,13 @@ local function PaintCast(frame, view, kind, height)
 		cb.timer:SetFormattedText("%.1fs", CAST_LEFT)
 	end
 	cb.icon:SetTexture(CAST_ICON)
-	if not Settings.Value(kind, "castbarHideIdle") then
+	if player and Settings.Value(kind, "castbarGcd") then
+		cb.bar:SetValue(GCD_SHARE)
+		ns.CastBars.SetName(cb, "")
+		ns.CastBars.Important(cb)
+		cb.timer:SetText("")
+		cb.icon:SetTexture(nil)
+	elseif not Settings.Value(kind, "castbarHideIdle") then
 		cb.bar:SetValue(0)
 		ns.CastBars.SetName(cb, "")
 		ns.CastBars.Important(cb)
@@ -401,6 +407,11 @@ local function Samples(kind)
 	return kept
 end
 
+local function BuffHost(frame, kind, holder)
+	frame.buffHosts[kind] = frame.buffHosts[kind] or CreateFrame("Frame", nil, holder)
+	return frame.buffHosts[kind]
+end
+
 local function PaintAuras(frame, view, kind)
 	local tiles = frame.auraTiles[kind]
 	if not tiles then
@@ -432,6 +443,12 @@ local function PaintAuras(frame, view, kind)
 		host:SetSize(width, math.min(height, rows * (size + room) + (rows - 1) * (spacing + gap)))
 		ns.Auras.Anchor(host, holder, kind, view.geometry.panel.x, view.geometry.aura)
 		host:Show()
+		local apart, slots = ns.Auras.Apart(kind) and BuffHost(frame, kind, holder), { 0, 0 }
+		if apart then
+			apart:SetSize(host:GetSize())
+			ns.Auras.Anchor(apart, holder, kind, view.geometry.panel.x, nil, true)
+			apart:Show()
+		end
 		for i = 1, count do
 			local tile = tiles[i]
 			if not tile then
@@ -441,7 +458,10 @@ local function PaintAuras(frame, view, kind)
 			local p = kept[i] or (i - 1) % #AURA_TRAITS + 1
 			tile.buff = filter == "buffs" or filter == "both" and (AURA_DISPEL[kept[i]] == "steal" or AURA_DISPEL[kept[i]] == "buff")
 			tile.icon:SetTexture(AURA_ICONS[(p - 1) % #AURA_ICONS + 1])
-			PlaceTile(tile.skin, host, kind, i, count, size, across, size + room + spacing + gap, corner, growth)
+			local into = apart and AURA_TRAITS[p].buff and 2 or 1
+			slots[into] = slots[into] + 1
+			tile.skin:SetParent(into == 2 and apart or host)
+			PlaceTile(tile.skin, into == 2 and apart or host, kind, apart and slots[into] or i, count, size, across, size + room + spacing + gap, corner, growth)
 			ns.Auras.LayoutTile(tile)
 			ns.Auras.StyleSample(tile, kind, AURA_DISPEL[kept[i]])
 			local exact = AURA_PRECISE[p]
@@ -466,6 +486,7 @@ local function PaintAuras(frame, view, kind)
 			chip:Hide()
 		end
 	end
+	if frame.buffHosts[kind] and not (count > 0 and ns.Auras.Apart(kind)) then frame.buffHosts[kind]:Hide() end
 	for i = count + 1, #icons do
 		icons[i]:Hide()
 	end
@@ -567,8 +588,8 @@ end
 
 local function Fit(frame, holder, kind, width, height)
 	local l, t, r, b = 0, 0, width, height
-	local regions = { frame.auraHosts[kind], frame.casts[kind] and frame.casts[kind].frame, frame.views[kind].portraitFrame, frame.resource, kind == "player" and frame.totems or nil }
-	for i = 1, 5 do
+	local regions = { frame.auraHosts[kind], frame.casts[kind] and frame.casts[kind].frame, frame.views[kind].portraitFrame, frame.resource, kind == "player" and frame.totems or nil, frame.buffHosts[kind] }
+	for i = 1, 6 do
 		local rl, rt, rr, rb = Box(regions[i], holder, width, height)
 		if rl then
 			l, t, r, b = math.min(l, rl), math.min(t, rt), math.max(r, rr), math.max(b, rb)
@@ -628,7 +649,7 @@ end
 function Preview.Build(parent)
 	local frame = Widgets.MarkPreview(CreateFrame("Frame", nil, parent))
 	frame:SetAllPoints(parent)
-	frame.holders, frame.views, frame.casts, frame.auraIcons, frame.auraTiles, frame.auraHosts, frame.auraChips = {}, {}, {}, {}, {}, {}, {}
+	frame.holders, frame.views, frame.casts, frame.auraIcons, frame.auraTiles, frame.auraHosts, frame.auraChips, frame.buffHosts = {}, {}, {}, {}, {}, {}, {}, {}
 	frame.Refresh = Refresh
 	function frame.Reserve(self, left, right, top, bottom)
 		local reserve = self.reserve or { 0, 0, 0, 0 }
