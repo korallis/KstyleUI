@@ -25,6 +25,7 @@ local function Setup(e)
 	e.UnitIsUnit = function(a, b) return a == b end
 	e.UnitCanAttack = function(_, unit) return game.units[unit] == "enemy" end
 	e.UnitPowerType = function(unit) return game.power[unit] or 1 end
+	e.UnitPowerMax = function() return 100 end
 	e.IsInInstance = function() return game.instance ~= nil, game.instance or "none" end
 	e.GetInventoryItemID = function(_, slot) return game.equipped[slot] end
 	e.GetInventoryItemCooldown = function() return 0, 0, 1, false end
@@ -383,6 +384,119 @@ do
 	Write("focusSpell", ""); Write("rules.swingGlow", ""); frame:Refresh()
 	assert(not frame.focus:IsShown() and not first.lateGlow.playing, "and clears them again")
 	Clean(env, K, "preview")
+end
+
+-- Review probes (81b6b590), switched on: each failed before its fix.
+do
+	local file = assert(io.open("KstyleUI_Cooldowns/Mirror.lua", "rb"))
+	local source = file:read("*a")
+	file:close()
+	assert(not source:find("and text or", 1, true), "a secret count goes to SetCount untested: the client refuses a boolean test on it; branch on the public option only")
+
+	local env, K, ns, Write = New("mirror")
+	local potion = IconOf(ns, "utility", 30)
+	env.C_StringUtil.TruncateWhenZero = function() return env.Secret("2") end
+	game.counts[7001] = 0
+	Write("utility.hideMissing", true)
+	game.counts[7001] = env.Secret(2); Fire(env, "SPELL_UPDATE_USES")
+	Write("swingWindow", 1)
+	assert(potion:GetAlpha() == 0, "a secret count keeps a missing item hidden through an unrelated setting")
+	env.IsInInstance = nil; Write("focusReminder", true)
+	Clean(env, K, "a missing IsInInstance")
+
+	for key, value in pairs({ ["essential.rows"] = 2, ["essential.size"] = 16, ["essential.baseSize"] = -20, ["essential.secondSize"] = -20 }) do Write(key, value) end
+	local cfg = ns.Mirror.Row("essential").cfg
+	local _, height = ns.Grid.Size(cfg)
+	assert(ns.Grid.Cell(1, cfg) == 16 and ns.Grid.Cell(cfg.columns + 1, cfg) == 16 and height == 32 + cfg.spacing, "two rows never shrink an icon below the smallest Icon size")
+	local pane = env.CreateFrame("Frame", nil, env.UIParent)
+	pane:SetSize(280, 300)
+	local frame = ns.Preview.Build(pane)
+	Write("essential.size", 40); Write("essential.columns", 6); Write("essential.baseSize", 20); frame:Refresh()
+	assert(ns.Grid.Size(frame.rows.essential.cfg) <= 280, "the preview fits a two-row grid by its wider row")
+
+	game.equipped[13] = 9001; Write("essential.trinkets", true)
+	env._cdm.cooldowns[205] = { category = C.CATEGORY.Utility, equipSlot = 13 }
+	Fire(env, "PLAYER_EQUIPMENT_CHANGED", 13, false)
+	assert(IconOf(ns, "utility", 13) and not IconOf(ns, "essential", 13), "a trinket Blizzard lists on one row is not added to the other")
+	Clean(env, K, "items and grids")
+end
+
+do
+	local env, K, ns, Write = New("mirror")
+	game.units.focus, game.plates.focus = "enemy", env.CreateFrame("Frame")
+	Write("focusSpell", "Kick"); Write("focusSound", "ready")
+	game.units.focus = "friend"; Fire(env, "UNIT_FACTION", "focus")
+	assert(not ns.Focus.icon:IsShown(), "a focus turning friendly drops the icon")
+	local attack = env.UnitCanAttack
+	env.UnitCanAttack = nil; Fire(env, "PLAYER_FOCUS_CHANGED")
+	assert(not ns.Focus.icon:IsShown(), "without UnitCanAttack no unit counts as an enemy")
+	env.UnitCanAttack, game.units.focus = attack, "enemy"
+	env.C_Spell.GetSpellCooldown = function() return nil end
+	Fire(env, "UNIT_SPELLCAST_START", "focus")
+	Write("focusSpell", "NotAnInterrupt"); Fire(env, "UNIT_SPELLCAST_START", "focus")
+	assert(#game.sounds == 0, "an unreadable cooldown or an unknown interrupt name plays nothing")
+
+	Write("focusSpell", ""); Write("focusSound", "")
+	game.units.focus, game.units.nameplate1, game.power.nameplate1, game.plates.nameplate1, game.instance = nil, "enemy", 0, env.CreateFrame("Frame"), "party"
+	local most = 0
+	env.UnitPowerMax = function() return most end
+	Write("focusReminder", true)
+	assert(not (ns.Focus.notes.nameplate1 and ns.Focus.notes.nameplate1:IsShown()), "an enemy with no mana is no caster, as on the nameplates")
+	most = 100; Fire(env, "UNIT_MAXPOWER", "nameplate1")
+	local note = ns.Focus.notes.nameplate1
+	assert(note and note:IsShown(), "a mana user is marked")
+	game.power.nameplate1 = 1; Fire(env, "UNIT_DISPLAYPOWER", "nameplate1")
+	assert(not note:IsShown(), "a unit leaving mana drops the mark")
+	env.SetCombat(true)
+	local calls, plate = 0, env.C_NamePlate.GetNamePlateForUnit
+	env.C_NamePlate.GetNamePlateForUnit = function(unit) calls = calls + 1; return plate(unit) end
+	Write("swingWindow", 1)
+	assert(calls == 0, "an unrelated setting in combat leaves the plates alone")
+	env.SetCombat(false)
+	Clean(env, K, "focus probes")
+end
+
+do
+	local env, K, ns, Write = New("mirror")
+	local a, b = IconOf(ns, "essential", 1001), IconOf(ns, "essential", 1002)
+	Write("rules.form", "1001")
+	assert(a:GetAlpha() == 0, "outside every form the icon hides")
+	env.GetNumShapeshiftForms = function() return 1 end
+	env.GetShapeshiftFormInfo = function() error("unavailable") end
+	Fire(env, "UPDATE_SHAPESHIFT_FORM")
+	assert(a:GetAlpha() == 1, "an unreadable form hides nothing")
+	Write("rules.form", "")
+	local calls = 0
+	env.GetShapeshiftFormInfo = function() calls = calls + 1; return 1, true, true, 768 end
+	Fire(env, "UPDATE_SHAPESHIFT_FORM")
+	assert(calls == 0 and not Registered(env, "UPDATE_SHAPESHIFT_FORM") and not Registered(env, "PLAYER_SWING"), "with the lists empty no form is read and no form or swing event is heard")
+	Write("rules.form", "1001 #ff0000")
+	assert(a:GetAlpha() == 1, "a coloured entry in the form list shows in any form")
+	Clean(env, K, "form rules")
+
+	Write("rules.form", ""); Write("rules.chargeTimer", "1002")
+	local charge = b.chargeCooldown
+	local text = charge:GetCountdownFontString()
+	local hides, points = #W.Calls(charge, "SetHideCountdownNumbers"), #W.Calls(text, "SetPoint")
+	Fire(env, "SPELL_UPDATE_CHARGES")
+	assert(#W.Calls(charge, "SetHideCountdownNumbers") == hides and #W.Calls(text, "SetPoint") == points, "an unchanged charge event rewrites nothing")
+	Write("rules.threshold", "1002")
+	assert(Last(charge, "SetCountdownFormatter").breakpoints[1].format:find("|cff", 1, true), "the recharge countdown takes the threshold colour too")
+
+	local pane = env.CreateFrame("Frame", nil, env.UIParent)
+	pane:SetSize(280, 300)
+	local frame = ns.Preview.Build(pane)
+	Write("focusSpell", "Kick"); frame:Refresh()
+	local left = W.LastCall(frame.focus, "SetPoint")
+	Write("focusSide", "RIGHT"); frame:Refresh()
+	local right = W.LastCall(frame.focus, "SetPoint")
+	assert(left[1] == "RIGHT" and right[1] == "LEFT" and left[2] == right[2], "the preview puts the interrupt on the chosen side of a sample plate")
+	Write("focusReminder", true); frame:Refresh()
+	assert(frame.plate.note:IsShown(), "the preview marks the sample plate for the reminder")
+	Write("rules.swing", "x"); Write("swingWindow", 0.8); frame:Refresh()
+	local sweep = W.LastCall(frame.rows.essential.icons[1].swingSweep, "SetCooldown")
+	assert(math.abs(sweep[1] + sweep[2] - env.GetTime() - 0.8) < 1e-6, "the preview's swing sweep shows the chosen window")
+	Clean(env, K, "form, recharge and preview probes")
 end
 
 print("cooldowns parity round 3 ok")
