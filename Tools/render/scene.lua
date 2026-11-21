@@ -645,6 +645,41 @@ end
 
 -- Anchors -----------------------------------------------------------------------------------------
 
+-- natural(env, region, log): a font string with no width or height of its own takes its natural size from its text,
+-- approximately, as the game sizes it.
+local function natural(env, region, log)
+	region._naturalW, region._naturalH, region._naturalSideW, region._naturalSideH = nil, nil, nil, nil
+	region._wrapSpec, region._wrapped = nil, nil
+	local text = textOf(env, region)
+	if text ~= "" then
+		local fontPath, size = fontOf(env, region, log)
+		local xs, ys = {}, {}
+		for _, pack in ipairs(region._points or {}) do
+			local point = POINTS[(pack[1])]
+			if point then
+				xs[point[1]] = true
+				ys[point[2]] = true
+			end
+		end
+		local hasW = type(region._width) == "number" and region._width > 0
+		local hasH = type(region._height) == "number" and region._height > 0
+		if not hasW and not (xs[0] and xs[1]) then
+			-- The natural width is the drawn words', without colour codes, links and textures, as the game sizes it.
+			region._naturalW = textWidthEm(plainText(text), fontPath) * size
+			region._naturalSideW = xs[1] and "right" or xs[0.5] and "center" or "left"
+		end
+		if not hasH and not (ys[0] and ys[1]) then
+			local _, breaks = text:gsub("\n", "")
+			local spacing = spacingOf(region)
+			region._naturalH = size * lineEm(region) * (breaks + 1) + spacing * breaks
+			region._naturalSideH = ys[1] and "top" or ys[0.5] and "middle" or "bottom"
+			if state(region, "WordWrap") ~= false then
+				region._wrapSpec = { text = text, size = size, fontPath = fontPath, spacing = spacing, em = lineEm(region) }
+			end
+		end
+	end
+end
+
 local Solver = {}
 Solver.__index = Solver
 
@@ -713,6 +748,9 @@ function Solver:solve(object)
 	local env = self.env
 	if object == env.UIParent then
 		return self.screen
+	end
+	if self.natural and object._type == "FontString" then
+		natural(env, object, self.log)
 	end
 	local scale = effectiveScale(object)
 	local width = num(env, object._width)
@@ -1542,36 +1580,7 @@ function Scene.Build(env, opts)
 					region._atlasSize = { info.width, info.height }
 				end
 			elseif region._type == "FontString" then
-				region._naturalW, region._naturalH, region._naturalSideW, region._naturalSideH = nil, nil, nil, nil
-				region._wrapSpec, region._wrapped = nil, nil
-				local text = textOf(env, region)
-				if text ~= "" then
-					local fontPath, size = fontOf(env, region, logLine)
-					local xs, ys = {}, {}
-					for _, pack in ipairs(region._points or {}) do
-						local point = POINTS[(pack[1])]
-						if point then
-							xs[point[1]] = true
-							ys[point[2]] = true
-						end
-					end
-					local hasW = type(region._width) == "number" and region._width > 0
-					local hasH = type(region._height) == "number" and region._height > 0
-					if not hasW and not (xs[0] and xs[1]) then
-						-- The natural width is the drawn words', without colour codes, links and textures, as the game sizes it.
-						region._naturalW = textWidthEm(plainText(text), fontPath) * size
-						region._naturalSideW = xs[1] and "right" or xs[0.5] and "center" or "left"
-					end
-					if not hasH and not (ys[0] and ys[1]) then
-						local _, breaks = text:gsub("\n", "")
-						local spacing = spacingOf(region)
-						region._naturalH = size * lineEm(region) * (breaks + 1) + spacing * breaks
-						region._naturalSideH = ys[1] and "top" or ys[0.5] and "middle" or "bottom"
-						if state(region, "WordWrap") ~= false then
-							region._wrapSpec = { text = text, size = size, fontPath = fontPath, spacing = spacing, em = lineEm(region) }
-						end
-					end
-				end
+				natural(env, region, logLine)
 			end
 		end
 	end
@@ -1628,6 +1637,7 @@ end
 -- friends) makes one and keeps it until an anchor, size, scale or text changes.
 function Scene.RectSolver(env)
 	local solver = newSolver(env, {}, function() end)
+	solver.natural = true
 	local width, height = env.GetPhysicalScreenSize()
 	local uiParent = env.UIParent
 	local parentScale = type(uiParent._scale) == "number" and uiParent._scale or 1

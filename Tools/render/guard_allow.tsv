@@ -5,8 +5,7 @@
 # deletes its lines. shoot.sh --strict fails on a
 # line naming one scene that no longer matches, and a full gallery or class run fails on a glob line that matched
 # nothing in any of its scenes. "design" marks a deliberate straddle the guard cannot tell from a spill (a tab or
-# a coin set on a card's edge, a stand-in label under a mover plate); it is not a defect. "stub" marks a finding the
-# stubs make and the game does not; the PR that fixes the stub deletes its line.
+# a coin set on a card's edge, a stand-in label under a mover plate); it is not a defect.
 design	gallery_chat	outside	ChatFrame4EditBox.	Blizzard anchors an undocked window's edit box under the window
 design	gallery_chat	outside	=/s Anyone for the croc hunt?	the edit box text, on the edit box under the undocked window
 design	gallery_meters	outside	DamageMeterSessionWindow1.MinimizeContainer.	Blizzard opens the spell breakdown window beside the session window
@@ -16,6 +15,4 @@ design	gallery_layout	overlap	MINIMAP & Minimap	a glass stand-in's centred label
 design	gallery_layout	overlap	PLAYER & Player	a glass stand-in's centred label sits under the mover plate's title
 design	gallery_layout	overlap	TARGET & Target	a glass stand-in's centred label sits under the mover plate's title
 design	shell_parity*	outside	GameTooltip.?.buffs.	player buff icons sit beside the tooltip card on purpose, as the Position option places them; they hang under it so they fade and scale with it
-stub	shell_parity@2560x1440	clipped	=BAGS	the stub leaves the live preview's natural-size caps label unplaced while Options aligns the pane (its GetTop is nil), so the pane aligns the gem and the label's text box overhangs the clip; the game places the label; the follow-up PR makes the stub resolve natural text sizes and deletes this line
-stub	shell_parity@5120x1440	clipped	=BAGS	the stub leaves the live preview's natural-size caps label unplaced while Options aligns the pane (its GetTop is nil), so the pane aligns the gem and the label's text box overhangs the clip; the game places the label; the follow-up PR makes the stub resolve natural text sizes and deletes this line
 design	hud_dps_threat@2560x1440	ellipsis	=Brannoc	the threat card docked in Both is 180 units wide in every style, the second damage window's slot, for one look across siblings; in Orbs this name is 0.5 units short, the documented 180-unit name limit (KstyleUI_Meters/README.md)
