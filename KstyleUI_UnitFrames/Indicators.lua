@@ -174,77 +174,81 @@ local LANES = { "name", "healthText", "healthSub", "powerText", "levelText", "ca
 local BODY = { "health", "power", "name", "healthText", "healthSub", "powerText", "levelText", "caption" }
 local TIMER_EM = 2.2
 
-local function Crossed(view, g, r, down)
+local function Crossed(view, g, r, down, row)
 	local edge
-	for i = 1, #LANES + 1 do
-		local lane = i > #LANES and view.barRect or g[LANES[i]]
+	for i = 0, #LANES + 1 do
+		local lane = i == 0 and row or i > #LANES and view.barRect or g[LANES[i]]
 		if lane and lane.w > 0 and lane.h > 0 and Geometry.Overlaps(r, lane) then edge = down and math.max(edge or lane.y, lane.y + lane.h) or math.min(edge or lane.y, lane.y) end
 	end
 	return edge
 end
 
-local function TimerSize(view, s)
+local function TimerSize(s)
 	local size = s.pvpTimerSize * K.Theme.FontScale()
 	return TIMER_EM * size, size
 end
 
-local function Put(view, s, g, spots, key, x, dir, y)
-	local own = key == "marker" and g.marker.w or (s[key .. "Size"] or 0) > 0 and s[key .. "Size"] or s.iconSize
-	local w, gap = Snap(view, own), Snap(view, ICON_GAP)
-	local left, right = 0, 0
+local function Put(view, s, g, spots, key, x, dir, size, gap)
+	local own = key == "marker" and g.marker.w or s[key .. "Size"] or 0
+	local w, left, right = own > 0 and Snap(view, own) or size, 0, 0
 	local place = key == "pvp" and view.kind == "player" and s.pvpTimer and s.pvpTimerPlace
 	if place == "LEFT" or place == "RIGHT" then
-		local room = Snap(view, (TimerSize(view, s))) + gap
+		local room = Snap(view, TimerSize(s)) + gap
 		if place == "LEFT" then left = room else right = room end
 	end
 	x = x + dir * (dir > 0 and left or right)
-	spots[key] = { x = x + dir * w / 2, y = y, size = w }
+	spots[key] = { x = x + dir * w / 2, y = g.glass.y, size = w }
 	return x + dir * (w + gap + (dir > 0 and right or left))
 end
 
-local function Corners(view, g, s, spots)
+local function Corners(view, g, s, spots, dir, rowStart, size, gap)
 	local panel, glass, m = g.panel, g.glass, g.medal
 	local lo, hi = panel.x, panel.x + panel.w
 	if m and m.x + m.w / 2 < (lo + hi) / 2 then lo = math.max(lo, m.x + m.w) elseif m then hi = math.min(hi, m.x) end
-	local stops, high, low, bar = {}, glass.y, glass.y, view.barRect
+	local high, low, bar, row = glass.y, glass.y, view.barRect, nil
 	for _, key in ipairs(BODY) do
 		local r = g[key]
 		if r and r.w > 0 and r.h > 0 then low = math.max(low, r.y + r.h) end
 	end
 	if bar then high, low = math.min(high, bar.y), math.max(low, bar.y > glass.y and bar.y + bar.h or low) end
-	for _, corner in ipairs(CORNERS) do
-		local name, dir, top = corner[1], corner[2], corner[3]
-		local start = dir > 0 and lo + ICON_INSET or hi - ICON_INSET
-		local x, edge, most = start, top and high or low, 0
+	for i = 1, #CORNERS do
+		local name, side, top = unpack(CORNERS[dir < 0 and i < 3 and 3 - i or i])
+		local start = side > 0 and lo + ICON_INSET or hi - ICON_INSET
+		local x, edge, most, run = start, top and high or low, 0, {}
 		for _, key in ipairs(PLACED) do
-			if s[key .. "Place"] == name and (key ~= "marker" or g.marker) then
-				x = Put(view, s, g, spots, key, x, dir, edge)
-				most = math.max(most, spots[key].size)
+			if s[key .. "Place"] == name and (key == "marker" and g.marker or s[key] == true) then
+				x = Put(view, s, g, spots, key, x, side, size, gap)
+				run[#run + 1], most = spots[key], math.max(most, spots[key].size)
 			end
 		end
-		if x ~= start then
-			stops[name] = x
-			local a, b = math.min(start, x), math.max(start, x)
-			local run, gap = { x = a, y = edge - most / 2, w = b - a, h = most }, Snap(view, ICON_GAP)
-			for _ = 0, #LANES do
-				local hit = Crossed(view, g, run, not top)
+		if run[1] then
+			local box = { x = math.min(start, x), y = edge - most / 2, w = math.abs(x - start), h = most }
+			for _ = 0, #LANES + 1 do
+				local hit = Crossed(view, g, box, not top, row)
 				if not hit then break end
-				run.y = top and hit - gap - most or hit + gap
+				box.y = top and hit - gap - most or hit + gap
 			end
-			for _, key in ipairs(PLACED) do
-				local p = s[key .. "Place"] == name and spots[key]
-				if p then p.y = run.y + most / 2 end
+			for _, p in ipairs(run) do p.y = box.y + most / 2 end
+		end
+		if i == 1 then
+			local from, h = run[1] and x or rowStart, 0
+			x = from
+			for _, key in ipairs(SLOTS) do
+				if (s[key .. "Place"] or "") == "" or s[key] ~= true then
+					x = Put(view, s, g, spots, key, x, dir, size, gap)
+					h = math.max(h, spots[key].size)
+				end
 			end
+			row = { x = math.min(from, x), y = glass.y - h / 2, w = math.abs(x - from), h = h }
 		end
 	end
-	return stops
 end
 
 local function TimerSide(view, g, s, spots)
 	local place = view.kind == "player" and s.pvpTimer and s.pvpTimerPlace or ""
 	local p = spots.pvp
 	if (place ~= "TOP" and place ~= "BOTTOM") or not p then return place end
-	local w, h = TimerSize(view, s)
+	local w, h = TimerSize(s)
 	local function At(up)
 		return { x = p.x - w / 2, y = up and p.y - p.size / 2 - ICON_GAP - h or p.y + p.size / 2 + ICON_GAP, w = w, h = h }
 	end
@@ -257,13 +261,12 @@ function Indicators.Layout(view, g, s)
 	local size = Snap(view, s.iconSize)
 	local panel = g.panel
 	local fromRight = s.portrait and s.portraitSide ~= "RIGHT" or not s.portrait
-	local dir = fromRight and -1 or 1
+	local gap, dir = Snap(view, ICON_GAP), fromRight and -1 or 1
 	view.iconsFromRight = fromRight
-	local spots = {}
-	local stops = Corners(view, g, s, spots)
-	local x = stops[fromRight and "TOPRIGHT" or "TOPLEFT"] or fromRight and (panel.x + panel.w - ICON_INSET) or (panel.x + ICON_INSET)
+	local spots, x = {}, fromRight and (panel.x + panel.w - ICON_INSET) or (panel.x + ICON_INSET)
+	if s.leaderPlace ~= "" or s.pvpPlace ~= "" or s.combatPlace ~= "" or s.markerPlace ~= "" or (s.elitePlace or "") ~= "" then Corners(view, g, s, spots, dir, x, size, gap) end
 	for _, key in ipairs(SLOTS) do
-		if not spots[key] then x = Put(view, s, g, spots, key, x, dir, g.glass.y) end
+		if not spots[key] then x = Put(view, s, g, spots, key, x, dir, size, gap) end
 		local icon, p = view.icons[key], spots[key]
 		icon:ClearAllPoints()
 		icon:SetPoint("CENTER", view.parent, "TOPLEFT", Snap(view, p.x + (s[key .. "X"] or 0)), -Snap(view, p.y - (s[key .. "Y"] or 0)))

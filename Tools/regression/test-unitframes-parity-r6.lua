@@ -101,12 +101,15 @@ write("player.combatPlace", "")
 write("player.textBarPlace", "BOTTOM")
 write("player.textBar", false)
 
--- 3. Every corner on every frame and HUD style, and at the four test screens: placed icons never cross the frame's text
--- and no two icons overlap, with the PvP timer's room beside the badge.
+-- 3. Every corner on every frame and HUD style, and at the four test screens, with every icon switched on: placed icons never
+-- cross the frame's text and no two icons overlap, with the PvP timer's room beside the badge.
 local function sweep(e, k, n, label)
 	local W2 = function(key, value) k.Options.Write("UnitFrames", key, value) end
 	for _, view in ipairs(views(n)) do
 		n.Indicators.Extra(view, nil, view.kind == "pet" and 3 or "elite")
+		for _, key in ipairs({ "leader", "pvp", "combat", "elite" }) do
+			if n.Settings.defaults[view.kind][key .. "Place"] ~= nil then W2(view.kind .. "." .. key, true) end
+		end
 		for _, corner in ipairs(CORNERS) do
 			for _, key in ipairs(PLACED) do
 				if n.Settings.defaults[view.kind][key .. "Place"] ~= nil then W2(view.kind .. "." .. key .. "Place", corner) end
@@ -139,8 +142,7 @@ local function sweep(e, k, n, label)
 	e.RunTimers()
 	clean(e, k)
 end
-sweep(env, K, ns, "frames")
-for _, style in ipairs({ "medallions", "orbs" }) do
+for _, style in ipairs({ "frames", "medallions", "orbs" }) do
 	local e, k, n = boot(style)
 	sweep(e, k, n, style)
 end

@@ -123,11 +123,8 @@ local function TwoPlaces(value)
 		twoOptions = ok and not K.Widgets.IsSecret(text) and text == "240.55K" and { breakpointData = TWO } or false
 		if not twoOptions then Log("boss values: AbbreviateNumbers does not write two decimals; secret values keep one") end
 	end
-	return twoOptions and AbbreviateNumbers(value, twoOptions) or Abbreviate(value)
-end
-
-local function Short(text, value)
-	return text.twoPlaces and TwoPlaces(value) or Abbreviate(value)
+	if twoOptions then return AbbreviateNumbers(value, twoOptions) end
+	return Abbreviate(value)
 end
 
 local function Gone(unit)
@@ -154,15 +151,15 @@ end
 
 local function Write(text, format, current, max, percent, hasPercent, decimal, bare)
 	if hasPercent and not decimal then percent = K.Widgets.WholePercent(percent) end
-	local places = bare and "bare" or decimal or 0
+	local places, short = bare and "bare" or decimal or 0, text.twoPlaces and TwoPlaces or Abbreviate
 	if format == "current" then
-		text:SetText(Short(text, current))
+		text:SetText(short(current))
 	elseif format == "percent" and hasPercent then
 		text:SetFormattedText(PERCENT[places], percent)
 	elseif format == "both" and hasPercent then
-		text:SetFormattedText(BOTH[places], Short(text, current), Short(text, max), percent)
+		text:SetFormattedText(BOTH[places], short(current), short(max), percent)
 	else
-		text:SetFormattedText(CURRENT_MAX, Short(text, current), Short(text, max))
+		text:SetFormattedText(CURRENT_MAX, short(current), short(max))
 	end
 end
 
@@ -216,11 +213,11 @@ function Format.Max(text, unit)
 		text:SetText("")
 		return
 	end
-	text:SetFormattedText(MAX, Short(text, UnitHealthMax(unit)))
+	text:SetFormattedText(MAX, (text.twoPlaces and TwoPlaces or Abbreviate)(UnitHealthMax(unit)))
 end
 
 function Format.SampleMax(text, max)
-	text:SetFormattedText(MAX, Short(text, max))
+	text:SetFormattedText(MAX, (text.twoPlaces and TwoPlaces or Abbreviate)(max))
 end
 
 function Format.PowerMode(unit, format, powerType)

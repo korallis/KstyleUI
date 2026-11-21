@@ -698,10 +698,9 @@ local LUMEN = { vitals = Vitals, sigil = Sigil, card = Card, row = PillRow, colu
 local MARKER_EXTRA, MARKER_GAP = 4, 4
 Geometry.MARKER_EXTRA, Geometry.MARKER_GAP = MARKER_EXTRA, MARKER_GAP
 
-local function Overlaps(a, b)
+function Geometry.Overlaps(a, b)
 	return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h
 end
-Geometry.Overlaps = Overlaps
 
 local function Marker(out, s)
 	if not s.raidMarker then
@@ -718,7 +717,7 @@ local function Marker(out, s)
 	local spot = Rect(anchor.x + anchor.w / 2 - size / 2, -size / 2, size, size)
 	local name = out.name
 	out.marker = spot
-	if not (name and name.w > 0 and Overlaps(spot, name)) then
+	if not (name and name.w > 0 and Geometry.Overlaps(spot, name)) then
 		return
 	end
 	local cut = size + MARKER_GAP

@@ -38,8 +38,9 @@ local SAMPLES = {
 	focus = { name = L["Elunara"], level = 60, health = 2530, healthMax = 4010, power = 2900, powerMax = 4400, reaction = 2, classFile = "MAGE" },
 	focustarget = { name = L["Krazhk"], level = 60, health = 3300, healthMax = 4000, power = 1800, powerMax = 3600, reaction = 2 },
 	pet = { name = L["Wolf"], level = 58, health = 1460, healthMax = 2000, power = 80, powerMax = 100, reaction = 5 },
-	boss = { name = L["Magmatus"], level = -1, classification = "worldboss", health = 72432, healthMax = 100600, power = 0, powerMax = 100, reaction = 2, marker = true, threat = true },
+	boss = { name = L["Magmatus"], level = -1, classification = "worldboss", health = 72000, healthMax = 100000, power = 0, powerMax = 100, reaction = 2, marker = true, threat = true },
 }
+local VALUES = setmetatable({ health = 72432, healthMax = 100600 }, { __index = SAMPLES.boss })
 
 local function EditKind()
 	local kind = Settings.Module().edit
@@ -126,7 +127,7 @@ local function PaintLumen(view, kind, sample)
 end
 
 local function Paint(view, kind)
-	local s, sample = view.s, SAMPLES[kind]
+	local s, sample = view.s, view.s.healthValues and VALUES or SAMPLES[kind]
 	view.health:SetBarRange(0, sample.healthMax / (s.maxHealthLoss and 1 - LOST_SHARE or 1))
 	view.health:SetHealth(sample.health, true)
 	local r, g, b = SampleColor(s, sample, s.healthColor, s.healthCustom)
