@@ -1,4 +1,4 @@
--- Rules.lua: the per-spell rules the settings' spell lists name (spell IDs, or names in any case, separated by commas; a spell may carry its own colour, "Fireball #FF8000", or its own bar name, "Fireball=Fire"), matched once per entry or spell and kept until the settings change.
+-- Rules.lua: the per-spell rules the settings' spell lists name (spell IDs, or names in any case, separated by commas; a spell may carry its own colour, "Fireball #FF8000", its own bar name, "Fireball=Fire", or its own tenths threshold, "Fireball=5"), matched once per entry or spell and kept until the settings change; the preview takes each list's first colour, name or threshold.
 local _, ns = ...
 
 local Rules = {}
@@ -6,7 +6,7 @@ ns.Rules = Rules
 
 local EMPTY = {}
 Rules.EMPTY = EMPTY
-local parsed, bySpell = {}, {}
+local parsed, samples, bySpell = {}, {}, {}
 local stamp = 0
 
 local function Hex(hex, from)
@@ -14,7 +14,7 @@ local function Hex(hex, from)
 end
 
 local function Parse(text)
-	local set = {}
+	local set, first = {}, nil
 	for token in text:gmatch("[^,]+") do
 		local value = true
 		local spell, label = token:match("^(.-)=%s*(.-)%s*$")
@@ -30,8 +30,9 @@ local function Parse(text)
 		elseif token ~= "" then
 			set[token] = value
 		end
+		first = first or value ~= true and value or nil
 	end
-	return set
+	return set, first
 end
 
 local function Name(spell)
@@ -72,7 +73,10 @@ function Rules.Reset()
 	stamp = stamp + 1
 	bySpell = {}
 	local rules = ns.Settings.current.rules
-	for _, key in ipairs(ns.Settings.RULES) do parsed[key] = rules[key] ~= "" and Parse(rules[key]) or nil end
+	for _, key in ipairs(ns.Settings.RULES) do
+		parsed[key], samples[key] = nil, nil
+		if rules[key] ~= "" then parsed[key], samples[key] = Parse(rules[key]) end
+	end
 end
 
 function Rules.For(entry)
@@ -87,6 +91,10 @@ function Rules.ForSpell(spell)
 	if ns.IsSecret(spell) or type(spell) ~= "number" then return EMPTY end
 	if not bySpell[spell] then bySpell[spell] = Build(spell) end
 	return bySpell[spell]
+end
+
+function Rules.Sample(key)
+	return parsed[key] and (samples[key] or true) or nil
 end
 
 function Rules.Colour(value, key)

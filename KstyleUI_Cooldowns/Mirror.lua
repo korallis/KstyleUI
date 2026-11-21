@@ -11,7 +11,6 @@ local MODULE = ns.MODULE
 local GROUPS = Settings.GROUPS
 local COOLDOWN_GROUPS = Settings.COOLDOWN_GROUPS
 local DATA_EVENT = "CooldownViewerSettings.OnDataChanged"
-local ASSIST_EVENTS = { "AssistedCombatManager.OnAssistedHighlightSpellChange", "AssistedCombatManager.OnSetUseAssistedHighlight" }
 local RETRY_SECONDS = 1
 local MAX_RETRIES = 10
 local KEYS = { essential = "cooldowns.essential", utility = "cooldowns.utility", buffs = "cooldowns.buffs", bars = "cooldowns.bars" }
@@ -374,7 +373,7 @@ local function Usable(row, icon)
 	local entry, rule = icon.entry, icon.rule or EMPTY
 	local usable, castable = true, true
 	local api = C_Spell
-	if (row.cfg.usable or rule.hideUnusable or rule.form) and entry and entry.spell and api and api.IsSpellUsable then
+	if (row.cfg.usable or rule.hideUnusable) and entry and entry.spell and api and api.IsSpellUsable then
 		local ok, isUsable, noMana = pcall(api.IsSpellUsable, entry.spell)
 		if ok and not ns.IsSecret(isUsable) then
 			local short = not ns.IsSecret(noMana) and noMana == true
@@ -459,22 +458,10 @@ local function Rule(row, icon, entry)
 	end
 end
 
-local function NextSpell()
-	local manager = AssistedCombatManager
-	local spell = type(manager) == "table" and manager.lastNextCastSpellID or nil
-	return not ns.IsSecret(spell) and type(spell) == "number" and spell or nil
-end
-
-local function Assist(_, icon)
-	local entry, spell = icon.entry, Settings.current.assist and NextSpell()
-	Style.Glow(icon, icon, "assistGlow", spell and entry ~= nil and (entry.spell == spell or entry.spellID == spell), Settings.SourceColor("assist"))
-end
-
 local function Match(row, icon)
 	Rule(row, icon, icon.entry)
 	RefreshCooldownIcon(row, icon)
 	Range(icon)
-	Assist(row, icon)
 	row:Visible(icon)
 end
 
@@ -492,15 +479,19 @@ local function AssignCooldowns(row, list)
 	row:Settle()
 end
 
+local function Empty(set)
+	for key in pairs(set) do
+		set[key] = nil
+	end
+end
+
 local function Merged(group)
 	local list, other = lists[group], OTHER[group]
 	local extra, cfg = lists[other], Settings.current[other]
 	local cap = Grid.Capacity(cfg)
 	if not (cfg.overflow and extra and #extra > cap and Live(other)) then return list end
 	local out = merged[group]
-	for i = #out, 1, -1 do
-		out[i] = nil
-	end
+	Empty(out)
 	for i = 1, #list do
 		out[i] = list[i]
 	end
@@ -561,7 +552,7 @@ local function ShowBar(row, bar, entry)
 	Texture(bar.icon, entry)
 	local rule, cfg = Rules.For(entry), row.cfg
 	K.Widgets.SetText(bar.name, type(rule.names) == "string" and rule.names or SpellName(entry))
-	bar.count:SetAlpha((cfg.showCount or rule.count) and not rule.noCount and 1 or 0)
+	row:ShowCount(bar, rule)
 	local status, timer = bar.status, bar.timer
 	local id = entry.auraID
 	local duration, err
@@ -598,26 +589,18 @@ local function ShowBar(row, bar, entry)
 	bar:SetAlpha(id and 1 or ns.INACTIVE_ALPHA)
 end
 
-local function Empty(set)
-	for key in pairs(set) do
-		set[key] = nil
-	end
-end
-
 local function Shows(cfg, entry)
 	local rule, active = Rules.For(entry), entry.auraID ~= nil
 	if rule.hide then return false, not rule.shift end
-	if rule.missing then return not active, false end
+	if rule.missing then return not active, not rule.shift end
 	return active or cfg.inactive, true
 end
 
 local function AssignAuras(row, list)
 	local out, blank, cfg = shown[row.group], row.blank, row.cfg
-	for i = #out, 1, -1 do
-		out[i] = nil
-	end
+	Empty(out)
 	Empty(blank)
-	for pass = 1, cfg.keepPlace and 1 or 2 do
+	for pass = 1, (cfg.keepPlace or not (cfg.inactive or Settings.current.rules.missing ~= "")) and 1 or 2 do
 		for _, entry in ipairs(list) do
 			local show, slot = Shows(cfg, entry)
 			if cfg.keepPlace and (show or slot) then
@@ -627,7 +610,7 @@ local function AssignAuras(row, list)
 			end
 		end
 	end
-	while blank[out[#out]] do
+	while blank[out[#out]] and #out > Grid.Capacity(cfg) do
 		blank[out[#out]], out[#out] = nil, nil
 	end
 	row.entries = out
@@ -928,8 +911,7 @@ local function Build(group)
 		row = Row.New(K.Scale.Root(), group, Settings.current[group])
 	end
 	rows[group] = row
-	row.blank = {}
-	lists[group], scratch[group], shown[group] = {}, {}, {}
+	lists[group], scratch[group], shown[group], row.blank = {}, {}, {}, {}
 	local key = KEYS[group]
 	local element = K.Setup.Layouts.Element(key)
 	K.Layout.Register(row.holder, key, K.Setup.Layouts.Default(key), {
@@ -1012,10 +994,6 @@ local function GlowIcon(row, icon)
 	Proc(row, icon)
 end
 
-local function OnAssist()
-	if Settings.current.assist then EachCooldownIcon(Assist) end
-end
-
 local function OnCombat(event)
 	fighting = event == "PLAYER_REGEN_DISABLED"
 	if Settings.current.glowsInCombat then
@@ -1046,9 +1024,6 @@ local EVENTS = {
 	end,
 	SPELL_UPDATE_USABLE = function()
 		EachCooldownIcon(Usable)
-	end,
-	UPDATE_SHAPESHIFT_FORM = function()
-		if Settings.current.rules.form ~= "" then EachCooldownIcon(Usable) end
 	end,
 	SPELL_UPDATE_ICON = RetextureAll,
 	SPELL_ACTIVATION_OVERLAY_GLOW_SHOW = function(_, spell)
@@ -1158,7 +1133,6 @@ function Mirror.Start()
 		end
 		if EventRegistry and EventRegistry.RegisterCallback then
 			EventRegistry:RegisterCallback(DATA_EVENT, OnDataChanged, Mirror)
-			for _, event in ipairs(ASSIST_EVENTS) do EventRegistry:RegisterCallback(event, OnAssist, Mirror) end
 		end
 	end
 	if aurasMirrored then
@@ -1183,7 +1157,6 @@ function Mirror.Stop()
 	K.Events.UnregisterAll(MODULE)
 	if EventRegistry and EventRegistry.UnregisterCallback then
 		EventRegistry:UnregisterCallback(DATA_EVENT, Mirror)
-		for _, event in ipairs(ASSIST_EVENTS) do EventRegistry:UnregisterCallback(event, Mirror) end
 	end
 	for _, group in ipairs(GROUPS) do
 		local row = rows[group]

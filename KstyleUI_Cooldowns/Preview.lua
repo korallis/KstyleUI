@@ -1,9 +1,9 @@
--- Preview.lua: the settings window's live preview: sample essential, utility and buff rows and buff bars drawn with the current settings, cooldown samples passed to the other row past its grid, and every sample treated as listed in each spell rule that is not empty.
+-- Preview.lua: the settings window's live preview: sample essential, utility and buff rows and buff bars drawn with the current settings, cooldown samples passed to the other row past its grid, and every sample treated as listed in each spell rule that is not empty, with the list's first colour, name or threshold.
 local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens, L = K.Widgets, K.Tokens, K.L
-local Settings, Row, BarRow, Style, Grid = ns.Settings, ns.Row, ns.BarRow, ns.Style, ns.Grid
+local Settings, Row, BarRow, Style, Grid, Rules = ns.Settings, ns.Row, ns.BarRow, ns.Style, ns.Grid, ns.Rules
 
 local Preview = {}
 ns.Preview = Preview
@@ -24,9 +24,8 @@ function Preview.Build(...)
 	local SAMPLE_CHARGES = { essential = { [2] = 2 }, utility = { [2] = 0 }, buffs = { [1] = 3 } }
 	local OTHER = { essential = "utility", utility = "essential" }
 	local SAMPLE_PROC = { essential = { [4] = true } }
-	local SAMPLE_ASSIST = { essential = { [2] = true } }
 	local SAMPLE_BARS = {
-		{ icon = 132208, name = L["Rapid Fire"], duration = 15, left = 9 },
+		{ icon = 132208, name = L["Rapid Fire"], duration = 15, left = 9, count = 3 },
 		{ icon = 136076, name = L["Aspect of the Hawk"], duration = 1800, left = 1260 },
 	}
 	local SAMPLE_BAR_FILL = 0.6
@@ -66,10 +65,9 @@ function Preview.Build(...)
 			Style.SetReady(icon, glows and cooldownGroup and cfg.readyGlow and not sample)
 			if not cooldownGroup then
 				icon:SetUsable(sample and true or false)
-				icon:SetAlpha((rule.hide or rule.missing and sample) and 0 or 1)
+				icon:SetAlpha((rule.hide or rule.missing and sample or cfg.keepPlace and not cfg.inactive and not sample) and 0 or 1)
 				Style.SetReady(icon, sample and rule.activeGlow)
 			end
-			Style.Glow(icon, icon, "assistGlow", current.assist and SAMPLE_ASSIST[from] and SAMPLE_ASSIST[from][n], Settings.SourceColor("assist"))
 			icon.rule = rule
 			row:Look(icon)
 			if rule.range or icon.outOfRange then
@@ -82,18 +80,19 @@ function Preview.Build(...)
 		row:Settle()
 	end
 
-	local function FillBars(row)
+	local function FillBars(row, rule)
 		local count = row:SetCount(#SAMPLE_BARS)
 		local now = GetTime and GetTime() or 0
 		for i = 1, count do
 			local bar, sample = row.bars[i], SAMPLE_BARS[i]
 			bar.icon:SetTexture(sample.icon)
-			Widgets.SetText(bar.name, sample.name)
+			Widgets.SetText(bar.name, type(rule.names) == "string" and rule.names or sample.name)
 			bar.status:SetMinMaxValues(0, 1)
 			bar.status:SetValue(row.cfg.fillUp and 1 - SAMPLE_BAR_FILL or SAMPLE_BAR_FILL)
 			bar.timer:SetCooldown(now - (sample.duration - sample.left), sample.duration)
-			Widgets.SetText(bar.count, nil)
-			bar:SetAlpha(1)
+			Widgets.SetText(bar.count, rule.count and sample.count or nil)
+			row:ShowCount(bar, rule)
+			bar:SetAlpha((rule.hide or rule.missing) and 0 or 1)
 		end
 	end
 
@@ -122,7 +121,7 @@ function Preview.Build(...)
 		Settings.Read()
 		local gap = Tokens.Size("gapMedium")
 		local previous, rule = nil, {}
-		for _, key in ipairs(Settings.RULES) do rule[key] = Settings.current.rules[key] ~= "" or nil end
+		for _, key in ipairs(Settings.RULES) do rule[key] = Rules.Sample(key) end
 		for _, group in ipairs(Settings.GROUPS) do
 			local row = frame.rows[group]
 			row:Apply(group == "bars" and Settings.current.bars or Fitted(frame, Settings.current[group], group))
@@ -136,7 +135,7 @@ function Preview.Build(...)
 		end
 		for _, group in ipairs(Settings.GROUPS) do
 			if group == "bars" then
-				FillBars(frame.rows.bars)
+				FillBars(frame.rows.bars, rule)
 			else
 				Fill(frame.rows[group], group, Samples(frame, group), rule)
 			end

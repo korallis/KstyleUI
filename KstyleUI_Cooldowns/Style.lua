@@ -414,12 +414,15 @@ function Style.SetProc(icon, on)
 end
 
 function Style.Glow(store, frame, key, on, r, g, b)
+	local glow = store[key]
 	if on then
-		store[key] = store[key] or Widgets.Glow(frame, { kind = "selection" })
-		store[key]:SetColorRGB(r, g, b)
-		store[key]:Start()
-	elseif store[key] then
-		store[key]:Stop()
+		glow = glow or Widgets.Glow(frame, { kind = "selection" })
+		store[key] = glow
+		local rgb = glow.colorRGB
+		if not (rgb and rgb[1] == r and rgb[2] == g and rgb[3] == b) then glow:SetColorRGB(r, g, b) end
+		glow:Start()
+	elseif glow then
+		glow:Stop()
 	end
 end
 

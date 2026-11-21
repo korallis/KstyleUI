@@ -866,21 +866,20 @@ function modules.cooldowns(opts)
 			K.Options.Write("Cooldowns", key, value)
 		end
 	end
-	-- RENDER_COOLDOWN_PARITY=2: round 2 switched on over KstyleUI rows: the rotation helper on the first ready essential spell,
-	-- tenths and an own countdown colour on the first cooling one, an own swipe colour on the second, the last hidden with its
-	-- gap closed, utility numbers only, the first tracked buff glowing, and the bars renamed, filling up with a spark.
+	-- RENDER_COOLDOWN_PARITY=2: round 2 switched on over KstyleUI rows: tenths below its own 30 seconds and an own countdown
+	-- colour on the first cooling essential spell, an own swipe colour on the second, the last hidden with its gap closed,
+	-- utility numbers only, the first tracked buff glowing, and the bars renamed, filling up with a spark.
 	if os.getenv("RENDER_COOLDOWN_PARITY") == "2" then
-		local ready, cooling, last, buff, bar = nil, {}, nil, nil, nil
+		local cooling, last, buff, bar = {}, nil, nil, nil
 		for _, entry in ipairs(entries) do
 			if entry.group == "essential" then
 				last = entry.name
-				if type(entry.state) == "table" then cooling[#cooling + 1] = entry.name elseif not ready then ready = entry.spell end
+				if type(entry.state) == "table" then cooling[#cooling + 1] = entry.name end
 			end
 			buff = buff or entry.group == "buffs" and entry.name or nil
 			bar = bar or entry.group == "bars" and entry.name or nil
 		end
-		env.AssistedCombatManager = { lastNextCastSpellID = ready }
-		for key, value in pairs({ path = "mirror", assist = true, ["rules.decimals"] = cooling[1] or "", decimalBelow = 30,
+		for key, value in pairs({ path = "mirror", ["rules.decimals"] = cooling[1] and cooling[1] .. "=30" or "",
 			["rules.timerColour"] = (cooling[1] or "") .. " #FFB000", ["rules.tint"] = (cooling[2] or "") .. " #3070FF", ["rules.hide"] = last or "", ["rules.shift"] = last or "",
 			["utility.numbersOnly"] = true, ["rules.activeGlow"] = buff or "", ["rules.names"] = bar and bar .. "=Shield" or "",
 			["bars.fillUp"] = true, ["bars.spark"] = true, ["bars.smooth"] = true }) do

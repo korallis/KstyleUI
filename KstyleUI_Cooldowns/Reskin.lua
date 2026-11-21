@@ -98,7 +98,8 @@ function Reskin.Buff(item)
 	local icon, side, grey = item.Icon, K.Safe.Side(item), false
 	if not IsTexture(icon) then return end
 	local shade = rule.grey and "grey" or rule.colour and "colour" or cfg.inactiveShade
-	if shade == "grey" or rule.activeGlow or side.glow then
+	if not rule.activeGlow then Style.Glow(side, item, "glow", false) end
+	if shade == "grey" or rule.activeGlow then
 		local ok, on = false, nil
 		if type(item.IsActive) == "function" then ok, on = pcall(item.IsActive, item) end
 		if not ok or ns.IsSecret(on) then return end
@@ -223,7 +224,7 @@ local function SkinIcon(group, item)
 end
 
 local function SkinBar(item)
-	local cfg, current = Settings.current.bars, Settings.current
+	local cfg, current, rule = Settings.current.bars, Settings.current, Rules.ForSpell(Spell(item))
 	local scale = ItemScale(item)
 	if not nativeBars[item] then
 		nativeBars[item] = { item:GetHeight(), item.Bar:GetHeight(), item.Icon:GetWidth(), item.Icon:GetHeight() }
@@ -250,22 +251,24 @@ local function SkinBar(item)
 		Skin.Strip(frame, { keep = Keep(frame.Icon) })
 		Crop(frame.Icon, cfg.iconZoom)
 		Outset(Skin.Backdrop(frame, { shape = "tile", fill = "buttonFill", inset = -ICON_OUTSET / scale }), ICON_OUTSET / scale)
-		Text(frame.Applications, current.countFont, cfg.countSize / scale, current.countOutline, nil, cfg.showCount)
+		Text(frame.Applications, current.countFont, cfg.countSize / scale, current.countOutline, nil, ((cfg.showCount or rule.count) and not rule.noCount) == true)
 	end
+end
+
+local function Reskinned(frame)
+	Reskin.Item(watchedItems[frame], frame)
 end
 
 function Reskin.Item(group, item)
 	if not active[group] or type(item) ~= "table" then
 		return
 	end
-	if not watchedItems[item] and type(item.SetScale) == "function" then
-		watchedItems[item] = group
-		hooksecurefunc(item, "SetScale", function(frame)
-			Reskin.Item(watchedItems[frame], frame)
-		end)
-	else
-		watchedItems[item] = group
+	if not watchedItems[item] then
+		for _, method in ipairs({ "SetScale", "OnCooldownIDSet" }) do
+			if type(item[method]) == "function" then hooksecurefunc(item, method, Reskinned) end
+		end
 	end
+	watchedItems[item] = group
 	if group == "bars" then
 		SkinBar(item)
 	else
@@ -337,7 +340,9 @@ local function Restore(_, item)
 	if counted and counted.alpha == 0 then applications:SetAlpha(1) end
 	if counted then counted.alpha = nil end
 	local cooldown = item.Cooldown
-	Native(type(cooldown) == "table" and type(cooldown.GetCountdownFontString) == "function" and cooldown:GetCountdownFontString(), item, false, 0, 0)
+	local countdown = type(cooldown) == "table" and type(cooldown.GetCountdownFontString) == "function" and cooldown:GetCountdownFontString()
+	Style.TextColour(countdown, nil, "textEmphasis")
+	Native(countdown, item, false, 0, 0)
 	Native(type(item.ChargeCount) == "table" and item.ChargeCount.Current, item, false, 0, 0)
 	Native(applications, item, false, 0, 0)
 	local state = type(cooldown) == "table" and K.Safe.Side(cooldown).SetDrawEdge

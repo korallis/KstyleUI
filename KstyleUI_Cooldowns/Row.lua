@@ -66,12 +66,12 @@ function Row:Look(icon)
 	cooldown:SetHideCountdownNumbers(not cfg.timer or only)
 	if type(cooldown.SetDrawSwipe) == "function" then cooldown:SetDrawSwipe(cfg.swipe and not rule.noSwipe and not bare) end
 	cooldown:SetReverse(group == "buffs" or rule.reverse and true or false)
-	icon.count:SetAlpha((cfg.showCount or rule.count) and not rule.noCount and 1 or 0)
+	icon.count:SetAlpha((cfg.showCount or rule.count) and not rule.noCount and not cfg.numbersOnly and 1 or 0)
 	if (icon.countOnly or false) ~= bare then
 		icon.countOnly = bare
 		icon.icon:SetAlpha(bare and 0 or 1)
 	end
-	local tenths = rule.decimals and ns.Settings.current.decimalBelow or nil
+	local tenths = rule.decimals and (tonumber(rule.decimals) or ns.Settings.current.decimalBelow) or nil
 	Style.Countdown(cooldown, group == "essential", false, tenths)
 	Style.TextColour(icon.countdown, rule.timerColour, "slotNumber")
 	local grey = (cfg.desaturate or rule.grey) and not rule.colour and true or false
@@ -104,7 +104,7 @@ function Row:Visible(icon)
 	local rule, current = icon.rule or EMPTY, ns.Settings.current
 	local cooling = icon.onCooldown == true
 	local ready = not cooling and not (icon.recharging and not rule.spent)
-	local hidden = (rule.hide or rule.hideCooling and cooling or rule.hideReady and ready or rule.hideUnusable and (cooling or icon.castable == false) or rule.form and icon.castable == false) and true or false
+	local hidden = (rule.hide or rule.hideCooling and cooling or rule.hideReady and ready or rule.hideUnusable and (cooling or icon.castable == false)) and true or false
 	local alpha = hidden and 0 or rule.fade and cooling and current.fadeAlpha or 1
 	if (icon.ruleAlpha or 1) ~= alpha then
 		icon.ruleAlpha = alpha

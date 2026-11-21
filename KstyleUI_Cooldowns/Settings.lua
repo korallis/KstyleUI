@@ -54,7 +54,7 @@ local BAR_RANGE = {
 	decimalBelow = TENTHS_RANGE,
 }
 local ICON_FLAGS = { "timer", "gcd", "desaturate", "usable", "readyGlow", "procGlow", "inactive", "showCount", "swipe", "edge", "vertical", "hideZero", "countOnly", "overflow", "numbersOnly", "keepPlace" }
-local RULES = { "hideCooling", "hideReady", "hideUnusable", "spent", "fade", "grey", "colour", "reverse", "noSwipe", "tint", "noGcd", "noCount", "noEdge", "noCost", "glow", "range", "hide", "shift", "form", "missing", "count", "timerColour", "activeGlow", "decimals", "names" }
+local RULES = { "hideCooling", "hideReady", "hideUnusable", "spent", "fade", "grey", "colour", "reverse", "noSwipe", "tint", "noGcd", "noCount", "noEdge", "noCost", "glow", "range", "hide", "shift", "missing", "count", "timerColour", "activeGlow", "decimals", "names" }
 Settings.RULES = RULES
 local POSITION = { [""] = true, CENTER = true, TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true, RIGHT = true, BOTTOMLEFT = true, BOTTOM = true, BOTTOMRIGHT = true }
 local INACTIVE = { [""] = true, grey = true, colour = true }
@@ -141,9 +141,6 @@ Settings.defaults = {
 	timerSource = "class",
 	timerColor = { r = textR, g = textG, b = textB },
 	decimalBelow = 3,
-	assist = false,
-	assistSource = "class",
-	assistColor = { r = accentR, g = accentG, b = accentB },
 	rules = noRules,
 	essential = essential,
 	utility = IconDefaults(BUTTON, UTILITY_TIMER, UTILITY_COUNT, true, GAP, UTILITY_COLUMNS),
@@ -327,12 +324,11 @@ function Settings.Schema()
 		Add(schema, { type = "note", label = L["A colour after a spell gives it its own, such as Fireball #FF8000."] })
 		Rule("hide", L["Hide these"], L["Never show these icons or bars."], "essential")
 		Rule("shift", L["Close gaps for these"], L["When these hide, the icons after them move up, even with Close gaps off."], true)
-		Rule("form", L["Hide outside their form"], L["Hide these while you are not in the form or stance they need. They still show while cooling."], true)
 		Rule("missing", L["Show only while missing"], L["Show these tracked buffs only while they are off you, as a reminder."], "buffs")
 		Rule("count", L["Show counts"], L["Show the charge or stack count of these spells, even with the group's counts off."])
 		Rule("timerColour", L["Colour countdown"], L["Colour the countdown numbers of these spells."])
 		Source(schema, "timer", L["Countdown colour"], L["Where the countdown colour comes from."], L["Custom countdown colour"], L["The countdown colour when it is custom."])
-		Rule("decimals", L["Tenths below threshold"], L["Show tenths of a second on these countdowns below the threshold."], true)
+		Rule("decimals", L["Tenths below threshold"], L["Show tenths of a second below the threshold, or below a spell's own: Fireball=5."], true)
 		Add(schema, { type = "slider", key = "decimalBelow", label = L["Tenths threshold"], help = L["Below this many seconds, listed countdowns show tenths."], min = TENTHS_RANGE[1], max = TENTHS_RANGE[2], step = TENTHS_RANGE[3] }, "essential")
 		Rule("activeGlow", L["Glow while active"], L["Glow these tracked buffs while they are on you, in the glow tint."])
 		Rule("hideCooling", L["Hide while cooling"], L["Hide these while they are on cooldown."], true)
@@ -351,10 +347,9 @@ function Settings.Schema()
 		Rule("noSwipe", L["Hide swipe"], L["Hide the shaded cooldown sweep of these spells."], true)
 		Rule("noEdge", L["Hide recharge edge"], L["Hide the bright line that sweeps while these spells recharge."], true)
 		Rule("tint", L["Tint swipe"], L["Colour the cooldown sweep of these spells."], true)
-		Add(schema, { type = "dropdown", key = "tintSource", label = L["Swipe tint"], help = L["Where the swipe tint comes from."], options = SOURCE_OPTIONS }, "essential")
-		Add(schema, { type = "color", key = "tintColor", label = L["Custom swipe tint"], help = L["The swipe tint when it is custom."], showWhen = Custom("tintSource") }, "essential")
+		Source(schema, "tint", L["Swipe tint"], L["Where the swipe tint comes from."], L["Custom swipe tint"], L["The swipe tint when it is custom."], "essential")
 		Rule("glow", L["Glow colour"], L["Colour the ready glow of these spells."], true)
-		Source(schema, "glow", L["Glow tint"], L["Where the glow colour comes from."], L["Custom glow colour"], L["The glow colour when it is custom."], "essential")
+		Source(schema, "glow", L["Glow tint"], L["Where the glow colour comes from."], L["Custom glow colour"], L["The glow colour when it is custom."])
 		Rule("range", L["Out of range tint"], L["Tint these while your target is out of their range."], true)
 		Add(schema, { type = "color", key = "rangeColor", label = L["Out of range"], help = L["The tint of a spell whose target is out of range."] }, "essential")
 		Rule("names", L["Bar names"], L["Rename tracked buff bars, such as Rapid Fire=Haste."], "bars")
@@ -406,7 +401,6 @@ function Settings.Schema()
 		{ type = "color", key = "accentColor", label = L["Custom accent"], help = L["The colour of glows and hairlines when the accent is custom."], showWhen = Custom("accent") },
 		{ type = "toggle", key = "tooltips", label = L["Tooltips"], help = L["Show a spell's tooltip when the pointer is over its icon."] },
 		{ type = "toggle", key = "glowsInCombat", label = L["Glows only in combat"], help = L["Hide the ready and proc glows of cooldown icons out of combat."], showWhen = function(settings) return Mirrors("essential", settings) end },
-		{ type = "toggle", key = "assist", label = L["Highlight the next spell"], help = L["Glow the spell Assisted Highlight recommends. Turn it on in the game's options."], showWhen = function(settings) return Mirrors("essential", settings) end },
 		{ type = "header", label = L["Text"] },
 		{ type = "dropdown", key = "timerFont", label = L["Timer font"], help = L["The font of the countdown numbers."], options = FontOptions },
 		{ type = "dropdown", key = "timerOutline", label = L["Timer outline"], help = L["A soft shadow, or an outline for busy backgrounds."], options = OUTLINE_OPTIONS },
@@ -415,7 +409,6 @@ function Settings.Schema()
 		{ type = "dropdown", key = "nameFont", label = L["Name font"], help = L["The font of the names on buff bars."], options = FontOptions },
 		{ type = "dropdown", key = "nameOutline", label = L["Name outline"], help = L["A soft shadow, or an outline for busy backgrounds."], options = OUTLINE_OPTIONS },
 	}
-	Source(schema, "assist", L["Highlight colour"], L["Where the highlight colour comes from."], L["Custom highlight colour"], L["The highlight colour when it is custom."], "essential")
 	IconRows(schema, "essential", L["Essential cooldowns"])
 	IconRows(schema, "utility", L["Utility cooldowns"])
 	IconRows(schema, "buffs", L["Tracked buff icons"])
@@ -544,13 +537,9 @@ function Settings.Read()
 	current.tooltips = Bool(saved.tooltips, defaults.tooltips)
 	current.glowsInCombat, current.closeGaps = saved.glowsInCombat == true, saved.closeGaps == true
 	current.fadeAlpha = Number(saved.fadeAlpha, FADE_RANGE, defaults.fadeAlpha)
-	current.tintSource = Choice(saved.tintSource, SOURCE, "class")
-	current.glowSource = Choice(saved.glowSource, SOURCE, "class")
-	current.timerSource = Choice(saved.timerSource, SOURCE, "class")
-	current.assistSource = Choice(saved.assistSource, SOURCE, "class")
-	current.assist = saved.assist == true
+	for _, key in ipairs({ "tint", "glow", "timer" }) do current[key .. "Source"] = Choice(saved[key .. "Source"], SOURCE, "class") end
 	current.decimalBelow = Number(saved.decimalBelow, TENTHS_RANGE, defaults.decimalBelow)
-	for _, key in ipairs({ "tint", "glow", "range", "timer", "assist" }) do Color(current, key, saved[key .. "Color"], defaults[key .. "Color"]) end
+	for _, key in ipairs({ "tint", "glow", "range", "timer" }) do Color(current, key, saved[key .. "Color"], defaults[key .. "Color"]) end
 	local rules, savedRules = current.rules or {}, type(saved.rules) == "table" and saved.rules or {}
 	for _, key in ipairs(RULES) do
 		local text = savedRules[key]

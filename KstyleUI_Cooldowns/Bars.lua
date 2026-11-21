@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens = K.Widgets, K.Tokens
-local Grid, Style = ns.Grid, ns.Style
+local Grid, Style, Rules = ns.Grid, ns.Style, ns.Rules
 
 local BarRow = {}
 BarRow.__index = BarRow
@@ -31,6 +31,15 @@ end
 
 local function Color(bar)
 	bar.status:SetBarColor(ns.Settings.BarColor())
+end
+
+function BarRow:ShowCount(bar, rule)
+	rule = rule or Rules.For(bar.entry)
+	local alpha = (self.cfg.showCount or rule.count) and not rule.noCount and 1 or 0
+	if bar.countAlpha ~= alpha then
+		bar.countAlpha = alpha
+		bar.count:SetAlpha(alpha)
+	end
 end
 
 function BarRow:StyleBar(bar)
@@ -61,6 +70,7 @@ function BarRow:StyleBar(bar)
 	status:SetBarTexture(cfg.texture)
 	status.vertical = cfg.orientation == "VERTICAL"
 	status:Restyle()
+	if status.vertical then Widgets.Size(status.spark, status.opts.width, status.spark:GetHeight()) end
 	status.spark:ClearAllPoints()
 	status.spark:SetPoint("CENTER", status:GetStatusBarTexture(), SPARK_EDGE[cfg.orientation][cfg.reverse and 2 or 1])
 	status:SetSparkShown(cfg.spark)
@@ -88,15 +98,14 @@ function BarRow:StyleBar(bar)
 	bar.name:SetShown(cfg.name)
 	if cfg.nameWrap or bar.nameWrap then
 		bar.nameWrap = cfg.nameWrap
-		bar.name:SetWordWrap(cfg.nameWrap)
-		bar.name:SetMaxLines(cfg.nameWrap and math.max(1, math.floor(status.opts.height / cfg.nameSize)) or 0)
+		bar.name:SetMaxLines(cfg.nameWrap and math.min(2, math.max(1, math.floor(status.opts.height / cfg.nameSize))) or 0)
 	end
 	Style.Font(bar.name, current.nameFont, cfg.nameSize, current.nameOutline, "body")
 	Style.Font(bar.count, current.countFont, cfg.countSize, current.countOutline)
 	bar.count:ClearAllPoints()
 	bar.count:SetPoint("BOTTOMRIGHT", bar.icon, "BOTTOMRIGHT", 0, 0)
 	bar.count:SetShown(cfg.icon)
-	bar.count:SetAlpha(cfg.showCount and 1 or 0)
+	self:ShowCount(bar)
 	Style.Mouse(bar, current.tooltips)
 end
 
