@@ -48,7 +48,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		end
 		assert(math.abs(widths.hidden - widths.moved) <= pixel, frame .. size .. ": a hidden clock adds no width to the plate")
 		assert(frame ~= "medallion" or widths.row > widths.moved, frame .. size .. ": the seated plate makes room for the clock in its row")
-		Set("clock.position", "")
 	end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
