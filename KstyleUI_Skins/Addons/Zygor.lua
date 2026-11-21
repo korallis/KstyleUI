@@ -533,7 +533,12 @@ local function Caption(z, panel)
 			Parts.Hush(frame.Controls.Logo)
 		end
 		caption = Widgets.FontString(bar, "OVERLAY")
-		caption:SetPoint("LEFT", bar, "LEFT", Tokens.Size("gapXLarge") * 2, 0)
+		local search = IsTable(frame.Controls) and frame.Controls.SearchButton
+		if IsTable(search) and type(search.GetRight) == "function" then
+			caption:SetPoint("LEFT", search, "RIGHT", Tokens.Size("gapXLarge") * 2, 0)
+		else
+			caption:SetPoint("LEFT", bar, "LEFT", Tokens.Size("gapXLarge") * 2, 0)
+		end
 		caption:SetPoint("RIGHT", bar, "RIGHT", -Tokens.Size("gapXLarge") * 2, 0)
 		caption:SetJustifyH("LEFT")
 		caption:SetWordWrap(false)
@@ -546,6 +551,24 @@ local function Caption(z, panel)
 	local title = IsTable(guide) and (guide.title_short or guide.title)
 	caption:SetText(type(title) == "string" and title:upper() or L["Zygor"])
 	caption:Show()
+end
+
+local function Fonts(z)
+	if not state.saved then
+		return
+	end
+	local Style = ns.Style
+	local controls = IsTable(z.Frame) and z.Frame.Controls
+	local num = IsTable(controls) and IsTable(controls.StepNum) and controls.StepNum.Step
+	if IsTable(num) and type(num.SetFont) == "function" then
+		Style.ApplyFont(num, "body")
+	end
+	local pool = IsTable(z.Tabs) and z.Tabs.Pool
+	for _, tab in pairs(IsTable(pool) and pool or {}) do
+		if IsTable(tab) and IsTable(tab.Text) and type(tab.Text.SetFont) == "function" then
+			Style.ApplyFont(tab.Text, "body")
+		end
+	end
 end
 
 local function Paint(z)
@@ -600,9 +623,16 @@ local function Paint(z)
 	end
 	Text(z.Frame)
 	Steps(z.Frame)
+	Fonts(z)
 	if not state.steps and IsTable(z.Frame) and type(z.Frame.AddStep) == "function" then
 		state.steps = true
 		hooksecurefunc(z.Frame, "AddStep", Steps)
+		if type(z.Frame.ApplySkin) == "function" then
+			hooksecurefunc(z.Frame, "ApplySkin", function() Fonts(z) end)
+		end
+		if IsTable(z.Tabs) and type(z.Tabs.ReanchorTabs) == "function" then
+			hooksecurefunc(z.Tabs, "ReanchorTabs", function() Fonts(z) end)
+		end
 		local bar = z.ProgressBar
 		if IsTable(bar) and type(bar.SetColor) == "function" then
 			hooksecurefunc(bar, "SetColor", AccentBar)

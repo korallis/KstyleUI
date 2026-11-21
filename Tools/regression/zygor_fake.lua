@@ -33,7 +33,9 @@ function Fake.Install(env, opts)
 		return setText(self, ...)
 	end
 	step.lines = { { label = label } }
-	frame.Controls = { StepContainer = container, Logo = frame.Border.TitleBar:CreateTexture(nil, "ARTWORK") }
+	local stepNum = { Step = frame.Border.TitleBar:CreateFontString(nil, "OVERLAY") }
+	stepNum.Step:SetFont("Fonts\\FRIZQT__.TTF", 12)
+	frame.Controls = { StepContainer = container, Logo = frame.Border.TitleBar:CreateTexture(nil, "ARTWORK"), StepNum = stepNum }
 	-- A step paints its own background from Zygor's opacity setting and each line from its goal colours (Skins/Default/ViewerFrame.lua:602, :713, :2397).
 	step.SetBackdropColor = function(self, r, g, b, a) self.backdrop = { r, g, b, a } end
 	step.SetBackdropBorderColor = function() end

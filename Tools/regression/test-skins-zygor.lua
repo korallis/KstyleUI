@@ -98,6 +98,7 @@ do
 	end
 	assert(caption and caption:IsShown(), "the title bar carries the guide's name as a caps caption, as RestedXP's card does")
 	assert(not zygor.frame.Controls.Logo:IsShown() or zygor.frame.Controls.Logo:GetAlpha() == 0, "Zygor's logo steps aside for the caption")
+	assert(zygor.frame.Controls.StepNum.Step:GetFont() == ns.Style.Font("body"), "the step number takes the theme's body face")
 	-- Zygor's step and line fills come from its own opacity and goal-colour settings, so they are quieted after it paints, never by writing those settings.
 	local step = zygor.step
 	zygor.frame:AddStep()
