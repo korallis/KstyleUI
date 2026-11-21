@@ -269,6 +269,7 @@ local findings = Guard.Check(scene)
 local by = {}
 for _, f in ipairs(findings) do
 	by[f.kind .. "|" .. f.subject] = f
+	assert(not f.subject:find("Unspent talent points", 1, true), "a HUD line under a window on a higher strata is not the window's content: " .. f.kind .. " " .. f.subject)
 end
 
 local cutText = by["clipped|Casting Frostbolt"]
@@ -298,9 +299,6 @@ for _, f in ipairs(findings) do
 end
 assert(not textOverTexture, "a text drawn over a texture, on its own frame or a frame below, is the design")
 assert(not by["overlap|Hello & Visible"], "a label clipped out of view does not slide into view to cross a visible one")
-for _, f in ipairs(findings) do
-	assert(not f.subject:find("Unspent talent points", 1, true), "a HUD line under a window on a higher strata is not the window's content: " .. f.kind .. " " .. f.subject)
-end
 assert(by["overlap|GuardShelf.icon.? inv_misc_questionmark & Page 1"] or by["overlap|GuardShelf.icon.? inv_misc_questionmark.png & Page 1"], "an icon file over another frame's label is a cover: " .. table.concat((function()
 	local subjects = {}
 	for _, f in ipairs(findings) do
