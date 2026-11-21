@@ -320,6 +320,6 @@ Saved data for a scene turns a module on and marks the first-run setup seen: `{ 
 
 ### Data bar parity
 
-`databars_parity` switches on the data bar's parity readouts and options through `Options.Write` on fixture data and draws the top bar. `RENDER_DATABARS_DEFAULTS=1` leaves every setting at its default for base-against-branch pixel diffs, and `RENDER_DATABARS_OPTIONS=<key>` opens the Data Bars page at that setting with a short readout list, so the live preview stays legible. Use the four owner screens with `--strict`.
+`databars_parity` switches on the data bar's parity readouts and options through `Options.Write` on fixture data and draws the top bar. `RENDER_DATABARS_ROUND=2` applies round 2's readouts and options instead (the Medallions dock list under `RENDER_HUD_STYLE=Medallions`), `RENDER_DATABARS_DEFAULTS=1` leaves every setting at its default for base-against-branch pixel diffs, and `RENDER_DATABARS_OPTIONS=<key>` opens the Data Bars page at that setting with a short readout list, so the live preview stays legible. Use the four owner screens with `--strict`.
 
 `options_actionbars` accepts `RENDER_OPTIONS_KEY=bar2.desaturateCooldown` (or another real option key) to scroll its settings while retaining the pinned bar picker. Concurrent renders of the same scene need separate `RENDER_OUTDIR` directories.

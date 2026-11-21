@@ -125,6 +125,20 @@ function Sources.XP()
 	return info
 end
 
+function Sources.QuestXP()
+	local log, total = C_QuestLog, 0
+	if not log or type(log.GetInfo) ~= "function" or type(log.ReadyForTurnIn) ~= "function" then return total end
+	local count = Call(log.GetNumQuestLogEntries)
+	for i = 1, IsNumber(count) and count or 0 do
+		local info = Call(log.GetInfo, i)
+		local quest = not IsSecret(info) and type(info) == "table" and not IsSecret(info.isHeader) and info.isHeader == false and info.questID
+		local ready = IsNumber(quest) and Call(log.ReadyForTurnIn, quest)
+		local xp = not IsSecret(ready) and ready == true and Call(GetQuestLogRewardXP, quest)
+		if IsNumber(xp) and xp > 0 then total = total + xp end
+	end
+	return total
+end
+
 local function StandingName(reaction)
 	if type(GetText) == "function" and IsNumber(reaction) then
 		local text = Call(GetText, "FACTION_STANDING_LABEL" .. reaction, Call(UnitSex, "player"))

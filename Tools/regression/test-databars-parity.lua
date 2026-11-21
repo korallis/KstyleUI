@@ -472,7 +472,7 @@ assert(not disabled("strip.labelCustom"), "the top bar takes custom colours")
 -- The top bar keeps every side readout clear of the centre clock at fixed and automatic widths; what does not fit waits in a tooltip.
 local Scene = dofile("Tools/render/scene.lua")
 write("strip.brokerPlugin", "Bagnon")
-for _, entry in ipairs(s.modules) do entry.shown = true; entry.zone = entry.id == "time" and "centre" or (entry.id == "spec" or entry.id == "location") and "left" or "right" end
+for _, entry in ipairs(s.modules) do entry.shown = entry.id ~= "reagents"; entry.zone = entry.id == "time" and "centre" or (entry.id == "spec" or entry.id == "location") and "left" or "right" end
 write("strip.modules", s.modules)
 for _, width in ipairs({ 400, 0 }) do
 	write("strip.locationWidth", width > 0 and "manual" or "auto")

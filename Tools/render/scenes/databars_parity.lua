@@ -1,4 +1,4 @@
--- databars_parity.lua: the top data bar with the parity round's readouts and options switched on, through Options.Write, on fixture data.
+-- databars_parity.lua: the top data bar with a parity round's readouts and options switched on, through Options.Write, on fixture data.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local D = dofile("Tools/regression/databars_env.lua")
@@ -14,6 +14,13 @@ local OPTIONS = {
 	{ "strip.coordsDecimals", 2 }, { "strip.professionText", "values" }, { "strip.bagsDisplay", "usedTotal" }, { "strip.bagsLow", 30 },
 	{ "strip.itemLevelPrefix", "short" }, { "strip.brokerPlugin", "Bagnon" }, { "strip.audioChannel", "Music" }, { "strip.padding", 3 },
 	{ "strip.labelCustom", true }, { "strip.labelColor", { r = 0.85, g = 0.72, b = 0.45, a = 1 } }, { "strip.playedTotal", true },
+}
+local ROUND2 = { micro = "left", spec = "left", hearth = "left", time = "centre", reagents = "right", currencies = "right", guild = "right", friends = "right",
+	coords = "right", bags = "right", fps = "right", latency = "right", gold = "right" }
+local ROUND2_DOCK = { time = "centre", coords = "left", combat = "left", played = "right", audio = "right", reagents = "right", prof1 = "right", broker = "right" }
+local ROUND2_OPTIONS = {
+	{ "strip.icons", "beside" }, { "strip.currencyIcons", true }, { "strip.reagentsLabel", true }, { "strip.hearthText", "smart" },
+	{ "strip.brokerPlugin", "Bagnon" }, { "xp.questXP", true }, { "micro.align", "CENTER" },
 }
 
 return Common.Run(function()
@@ -33,6 +40,11 @@ return Common.Run(function()
 			e.C_Container = e.C_Container or {}
 			e.C_Container.GetContainerNumFreeSlots = function(bag) return bag == 0 and 2 or 3 end
 			e.C_Container.GetContainerNumSlots = function() return 16 end
+			e.C_Container.GetContainerItemInfo = function(bag, slot) if bag == 0 and slot == 1 then return { itemID = 17020, stackCount = 20, itemName = "Arcane Powder", iconFileID = 133848 } end end
+			e.C_Item.GetItemInfoInstant = function(id) return id, "", "", "", 0, 5, 0 end
+			e.C_QuestLog = { GetNumQuestLogEntries = function() return 1, 1 end, GetInfo = function() return { questID = 7, isHeader = false } end, ReadyForTurnIn = function() return true end }
+			e.GetQuestLogRewardXP = function() return 6000 end
+			e.GetProfessions = function() return 1 end
 			local ldb = { GetDataObjectByName = function() return { text = "42 items", label = "Bags" } end }
 			e.LibStub = { GetLibrary = function() return ldb end }
 			e.C_AddOns = e.C_AddOns or {}
@@ -44,15 +56,17 @@ return Common.Run(function()
 	}))
 	env.RunTimers()
 	local key = os.getenv("RENDER_DATABARS_OPTIONS")
-	local shown = key and PREVIEW or SHOWN
+	local round2 = os.getenv("RENDER_DATABARS_ROUND") == "2"
+	local dock = round2 and K.Widgets.Medallions()
+	local shown = key and PREVIEW or dock and ROUND2_DOCK or round2 and ROUND2 or SHOWN
 	if os.getenv("RENDER_DATABARS_DEFAULTS") ~= "1" then
-		local list = K.Store.Module("DataBars").strip.modules
+		local list = K.Store.Module("DataBars").strip[dock and "dockModules" or "modules"]
 		for _, entry in ipairs(list) do
 			entry.shown = shown[entry.id] ~= nil
 			entry.zone = shown[entry.id] or entry.zone
 		end
-		assert(K.Options.Write("DataBars", "strip.modules", list) ~= false)
-		for _, option in ipairs(OPTIONS) do assert(K.Options.Write("DataBars", option[1], option[2]) ~= false) end
+		assert(K.Options.Write("DataBars", dock and "strip.dockModules" or "strip.modules", list) ~= false)
+		for _, option in ipairs(round2 and ROUND2_OPTIONS or OPTIONS) do assert(K.Options.Write("DataBars", option[1], option[2]) ~= false) end
 		env.FireEvent("TIME_PLAYED_MSG", 1987200, 5400)
 		env.RunTimers()
 	end
@@ -71,6 +85,6 @@ return Common.Run(function()
 	local scene = Gallery.Build(env)
 	local errors = Common.Errors(env, K)
 	assert(not errors, errors)
-	scene.log[#scene.log + 1] = "databars parity: round 1 readouts and options applied"
+	scene.log[#scene.log + 1] = "databars parity: round " .. (round2 and 2 or 1) .. " readouts and options applied"
 	return scene
 end)

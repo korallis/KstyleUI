@@ -4,11 +4,15 @@ local W = D.W
 local Scene = dofile("Tools/render/scene.lua")
 local atlas = assert(io.open("Tools/media/make_databar_glyphs.py", "rb"))
 local CELLS, cell = {}, 0
-for name in atlas:read("*a"):match("NAMES = (%b[])"):gmatch('"(%w+)"') do CELLS[name], cell = cell, cell + 1 end
+local source = atlas:read("*a")
 atlas:close()
+for name in source:match("NAMES = (%b[])"):gmatch('"(%w+)"') do CELLS[name], cell = cell, cell + 1 end
+CELLS.prof1, CELLS.prof2 = CELLS.profession, CELLS.profession
+local COLUMNS, ROWS = source:match("COLUMNS, ROWS = (%d+), (%d+)")
+COLUMNS, ROWS = tonumber(COLUMNS), tonumber(ROWS)
 local function hasCell(texture, id)
-	local col, row, l, r, t, b = CELLS[id] % 4, math.floor(CELLS[id] / 4), texture:GetTexCoord()
-	return texture:GetTexture() == "Interface\\AddOns\\KstyleUI_DataBars\\Media\\Glyphs.png" and l == col / 4 and r == (col + 1) / 4 and t == row / 4 and b == (row + 1) / 4
+	local col, row, l, r, t, b = CELLS[id] % COLUMNS, math.floor(CELLS[id] / COLUMNS), texture:GetTexCoord()
+	return texture:GetTexture() == "Interface\\AddOns\\KstyleUI_DataBars\\Media\\Glyphs.png" and l == col / COLUMNS and r == (col + 1) / COLUMNS and t == row / ROWS and b == (row + 1) / ROWS
 end
 
 local function near(a, b, what)

@@ -63,6 +63,8 @@ defaults.xp.fontSize = XP_FONT_SIZE
 defaults.xp.instrumentText = true
 defaults.xp.rested = true
 defaults.xp.restedColor = Rgb(Bars.TOKENS.cool, XP_RESTED_ALPHA)
+defaults.xp.questXP = false
+defaults.xp.questColor = Rgb("friendly", XP_RESTED_ALPHA)
 defaults.rep = BarDefaults("reaction", "friendly", "labelPercent")
 defaults.rep.rewardMarker = true
 defaults.honor = BarDefaults("custom", "epic", "labelPercent")
@@ -81,9 +83,11 @@ defaults.strip = {
 	locationWidth = "auto", locationMaxWidth = 160, bagsDisplay = "free", bagsReagent = false, bagsLow = 0,
 	xpMode = "auto", xpText = "percent", xpFormat = "plain", coordsDecimals = 1, combatOnly = false, playedTotal = false,
 	audioChannel = "Master", professionText = "name", brokerPlugin = "", brokerWidth = 0, brokerLabel = true,
+	icons = "off", iconColor = "label", iconCustom = Rgb("text"), fill = "none", currencyIcons = false, reagentsShown = "all", reagentsLabel = false,
+	socialList = 0, guildNotes = false, friendNotes = false, hearthText = "both", hearthLeft = "", hearthRight = "", hearthMiddle = "",
 }
-defaults.micro = { enabled = true, shown = true, size = MICRO_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, tint = "none", shape = "round", set = "compact" }
-defaults.bags = { enabled = true, shown = true, size = BAG_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, freeSlots = true, shape = "round" }
+defaults.micro = { enabled = true, shown = true, size = MICRO_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, tint = "none", shape = "round", set = "compact", align = "LEFT" }
+defaults.bags = { enabled = true, shown = true, size = BAG_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, freeSlots = true, shape = "round", align = "LEFT" }
 defaults.menus = { always = false }
 
 local MODULES = {
@@ -110,6 +114,7 @@ local MODULES = {
 	{ "prof2", L["Profession 2"], "left" },
 	{ "broker", L["DataBroker"], "right", L["Shows a LibDataBroker plugin from another addon."] },
 	{ "spacer", L["Spacer"], "right", L["Adds room between readouts."] },
+	{ "reagents", L["Class resources"], "right", L["Shows the class reagents and ammunition you carry."] },
 }
 defaults.strip.modules = {}
 for i, def in ipairs(MODULES) do
@@ -118,7 +123,7 @@ end
 
 defaults.strip.dockModules = {}
 for i, id in ipairs({ "fps", "latency", "gold", "durability", "time", "micro", "spec", "hearth", "guild", "friends", "bags", "currencies", "xp", "location", "itemLevel",
-	"coords", "combat", "played", "audio", "prof1", "prof2", "broker", "spacer" }) do
+	"coords", "combat", "played", "audio", "prof1", "prof2", "broker", "spacer", "reagents" }) do
 	defaults.strip.dockModules[#defaults.strip.dockModules + 1] = { id = id, shown = i <= 6, zone = id == "time" and "centre" or (id == "spec" or id == "hearth" or id == "micro") and "left" or "right" }
 end
 
@@ -200,6 +205,10 @@ function ns.Schema()
 			rows[#rows + 1] = { type = "color", key = "xp.restedColor", label = L["Rested colour"], help = L["The colour of the rested overlay."], hasAlpha = true, showWhen = function(settings)
 				return Get(settings, "xp").rested == true
 			end }
+			rows[#rows + 1] = { type = "toggle", key = "xp.questXP", label = L["Quest experience"], help = L["Marks the experience your finished quests give when you hand them in."] }
+			rows[#rows + 1] = { type = "color", key = "xp.questColor", label = L["Quest colour"], help = L["The colour of the quest experience mark."], hasAlpha = true, showWhen = function(settings)
+				return Get(settings, "xp").questXP == true
+			end }
 		elseif id == "rep" then
 			rows[#rows + 1] = { type = "toggle", key = "rep.rewardMarker", label = L["Paragon reward marker"], help = L["Marks a waiting paragon reward with an asterisk in the caption."] }
 		elseif id == "honor" then
@@ -268,9 +277,10 @@ function ns.Schema()
 		{ value = "realm", label = L["Realm time"] },
 	}
 
-	local moduleOptions = {}
+	local moduleOptions, fillOptions = {}, { { value = "none", label = L["None"] } }
 	for i, def in ipairs(MODULES) do
 		moduleOptions[i] = { value = def[1], label = def[2], rows = def[4] and { { type = "note", label = def[4] } } or {} }
+		fillOptions[i + 1] = { value = def[1], label = def[2] }
 	end
 	local stripRows = {
 		{ type = "header", label = L["Data bar"] },
@@ -299,6 +309,14 @@ function ns.Schema()
 		{ type = "toggle", key = "strip.labelCustom", label = L["Custom label colour"], help = L["Draws every label and unit in your own colour."], disableWhen = Docked },
 		{ type = "color", key = "strip.labelColor", label = L["Label colour"], help = L["The colour of the labels and units."], showWhen = function(settings) return settings.strip.labelCustom == true end, disableWhen = Docked },
 		{ type = "toggle", key = "strip.hover", label = L["Hover highlight"], help = L["Brightens a readout's label under the pointer."] },
+		{ type = "dropdown", key = "strip.icons", label = L["Icons"], help = L["A glyph before each value, or the glyph alone with the value in its tooltip. On one line."], options = {
+			{ value = "off", label = L["Off"] }, { value = "beside", label = L["Beside the value"] }, { value = "only", label = L["Icons only"] },
+		}, disableWhen = function(settings) return Cells(settings) or Strip.view ~= nil and Strip.view.deco == true end },
+		{ type = "dropdown", key = "strip.iconColor", label = L["Icon colour"], help = L["Icons in the label colour, the accent colour or your own."], options = {
+			{ value = "label", label = L["Label colour"] }, { value = "accent", label = L["Accent colour"] }, { value = "custom", label = L["Custom colour"] },
+		}, disableWhen = function(settings) return settings.strip.icons == "off" or Docked() end },
+		{ type = "color", key = "strip.iconCustom", label = L["Custom icon colour"], help = L["The colour of every icon when the icon colour is custom."], showWhen = function(settings) return settings.strip.iconColor == "custom" end,
+			disableWhen = function(settings) return settings.strip.icons == "off" or Docked() end },
 		{ type = "toggle", key = "strip.menus", label = L["Menu and bag buttons in the card"], help = L["Docks the micro menu and the bag bar under the readout, in the same card, when they are shown."] },
 		{ type = "toggle", key = "strip.accentEdge", label = L["Accent edge"], help = L["Draws the strip's inner edge in the accent colour."] },
 		{ type = "toggle", key = "strip.backdrop", label = L["Glass"], help = L["Draws the strip on smoked glass."] },
@@ -307,6 +325,8 @@ function ns.Schema()
 		{ type = "dropdown", key = "strip.align", label = L["Text align"], help = L["Where each value sits in its cell. One line sizes each readout to its text."], options = {
 			{ value = "LEFT", label = L["Left"] }, { value = "CENTER", label = L["Centre"] }, { value = "RIGHT", label = L["Right"] },
 		}, disableWhen = function(settings) return Strip.OneLine(settings.strip) or settings.strip.orientation == "VERTICAL" end },
+		{ type = "dropdown", key = "strip.fill", label = L["Fill the rest"], help = L["One readout's cell takes the room the others leave; the others keep their own width."], options = fillOptions,
+			disableWhen = function(settings) return Strip.OneLine(settings.strip) or settings.strip.orientation == "VERTICAL" end },
 		{ type = "slider", key = "strip.padding", label = L["Readout padding"], help = L["Extra room on each side of the dots between readouts."], min = 0, max = 16, step = 1 },
 		{ type = "dropdown", key = "strip.orientation", label = L["Direction"], help = L["Items in a row, or stacked in a column."], options = {
 			{ value = "HORIZONTAL", label = L["In a row"] }, { value = "VERTICAL", label = L["In a column"] },
@@ -357,6 +377,23 @@ function ns.Schema()
 		{ type = "text", key = "strip.spec2Text", label = L["Group 2 text"], help = L["Shown in place of the specialization name. Empty uses the name."], maxLetters = 24 },
 		{ type = "header", label = L["Hearthstone"] },
 		{ type = "toggle", key = "strip.hearthOthers", label = L["Other characters"], help = L["Lists your other characters' homes in the Hearthstone tooltip."] },
+		{ type = "dropdown", key = "strip.hearthText", label = L["Text"], help = L["What the Hearthstone readout shows."], options = {
+			{ value = "both", label = L["Cooldown and home"] }, { value = "location", label = L["Home"] }, { value = "cooldown", label = L["Cooldown"] }, { value = "smart", label = L["Cooldown, or home when ready"] },
+		} },
+		{ type = "dropdown", key = "strip.hearthLeft", label = L["Left click"], help = L["The travel spell or item a left click uses, out of combat."], options = function() return ns.Readouts.TravelChoices("hearthLeft") end },
+		{ type = "dropdown", key = "strip.hearthRight", label = L["Right click"], help = L["The travel spell or item a right click uses, out of combat."], options = function() return ns.Readouts.TravelChoices("hearthRight") end },
+		{ type = "dropdown", key = "strip.hearthMiddle", label = L["Middle click"], help = L["The travel spell or item a middle click uses, out of combat."], options = function() return ns.Readouts.TravelChoices("hearthMiddle") end },
+		{ type = "header", label = L["Guild and friends"] },
+		{ type = "slider", key = "strip.socialList", label = L["Names in the tooltip"], help = L["Lists up to this many online guild members and friends in their tooltips. 0 shows the counts alone."], min = 0, max = 40, step = 1 },
+		{ type = "toggle", key = "strip.guildNotes", label = L["Guild notes"], help = L["Writes each listed guild member's note under the name."], disableWhen = function(settings) return settings.strip.socialList == 0 end },
+		{ type = "toggle", key = "strip.friendNotes", label = L["Friend notes"], help = L["Writes each listed friend's note under the name."], disableWhen = function(settings) return settings.strip.socialList == 0 end },
+		{ type = "header", label = L["Currencies"] },
+		{ type = "toggle", key = "strip.currencyIcons", label = L["Currency icons"], help = L["Shows each currency's icon in place of its name."] },
+		{ type = "header", label = L["Class resources"] },
+		{ type = "dropdown", key = "strip.reagentsShown", label = L["Items shown"], help = L["Class reagents, your equipped ammunition, or both."], options = {
+			{ value = "all", label = L["Reagents and ammunition"] }, { value = "reagents", label = L["Reagents"] }, { value = "ammo", label = L["Ammunition"] },
+		} },
+		{ type = "toggle", key = "strip.reagentsLabel", label = L["Show names"], help = L["Writes each item's name after its count."] },
 		{ type = "header", label = L["Experience and reputation"] },
 		{ type = "dropdown", key = "strip.xpMode", label = L["Mode"], help = L["Automatic shows experience while levelling and reputation at the level cap."], options = {
 			{ value = "auto", label = L["Automatic"] }, { value = "xp", label = L["Experience"] }, { value = "rep", label = L["Reputation"] },
@@ -417,6 +454,9 @@ function ns.Schema()
 			{ type = "slider", key = id .. ".rows", label = L["Rows"], help = L["How many rows the buttons fill; the columns follow."], min = 1, max = count, step = 1, disableWhen = off },
 			{ type = "dropdown", key = id .. ".shape", label = L["Button shape"], help = L["Round crystal discs, or the chamfered tiles the action buttons wear."], options = SHAPES, disableWhen = off },
 			{ type = "toggle", key = id .. ".backdrop", label = L["Glass"], help = L["Draws smoked glass behind the buttons."], disableWhen = off },
+			{ type = "dropdown", key = id .. ".align", label = L["Align"], help = L["Where a shorter last row of buttons sits."], options = {
+				{ value = "LEFT", label = L["Left"] }, { value = "CENTER", label = L["Centre"] }, { value = "RIGHT", label = L["Right"] },
+			}, disableWhen = off },
 		}
 		if id == "micro" then
 			rows[#rows + 1] = { type = "dropdown", key = "micro.set", label = L["Buttons"], help = L["Eight buttons: character, professions, spells, talents, quests, guild, finder, menu. Or all."], options = SETS, disableWhen = off }
@@ -442,7 +482,7 @@ local build
 function ns.Preview(...)
 	if build then return build(...) end
 	local SAMPLES = {
-		xp = { current = 12345, max = 50000, rested = 8000, level = 38, label = L["Level 38"], kind = "xp" },
+		xp = { current = 12345, max = 50000, rested = 8000, level = 38, label = L["Level 38"], kind = "xp", quest = 6000 },
 		rep = { current = 3600, max = 6000, reaction = 5, kind = "faction", name = L["Stormwind"], label = L["Stormwind"], standing = L["Friendly"] },
 		honor = { current = 400, max = 1000, level = 3, kind = "rank", label = L["Rank 3"] },
 	}
@@ -472,12 +512,13 @@ function ns.Preview(...)
 			gold = { Format.Money(SAMPLE_MONEY, s.money) },
 			durability = { SAMPLE_DURABILITY .. "%", "good" },
 			time = { R.ClockText(s, Format.Clock(SAMPLE_HOUR, SAMPLE_MINUTE, s.clock24), true, true) },
-			spec = { R.SpecText(s, L["Specialization"], 1, L["Loadout name"]) }, hearth = { L["ready"] .. " " .. L["Stormwind"] }, bags = { R.BagText(s, s.bagsReagent and 30 or 22, s.bagsReagent and 116 or 80) },
+			spec = { R.SpecText(s, L["Specialization"], 1, L["Loadout name"]) }, hearth = { R.HearthText(s, L["Stormwind"], L["ready"]) }, bags = { R.BagText(s, s.bagsReagent and 30 or 22, s.bagsReagent and 116 or 80) },
 			location = { L["Stormwind"] }, itemLevel = { R.ItemLevelText(s, 58.3) },
-			guild = { "17" }, friends = { "7" }, currencies = { "1250" }, xp = { R.XPText(s, s.xpMode == "rep" and { current = 4200, max = 6000, label = L["Stormwind"] } or { current = 16000, max = 50000, label = L["Level 38"] }) },
+			guild = { "17" }, friends = { "7" }, currencies = { s.currencyIcons and "1250 |TInterface\\Icons\\INV_Misc_Coin_02:0|t" or "1250" }, xp = { R.XPText(s, s.xpMode == "rep" and { current = 4200, max = 6000, label = L["Stormwind"] } or { current = 16000, max = 50000, label = L["Level 38"] }) },
 			coords = { R.CoordsText(s, 0.4532, 0.6218) }, combat = { "1:24" }, played = { R.Played(s.playedTotal and 900000 or 5000) },
 			audio = { R.AudioText(false, ({ SFX = 0.7, Music = 0.35, Ambience = 0.6, Dialog = 1 })[s.audioChannel] or 0.8) }, prof1 = { R.ProfessionText(s, L["Profession 1"], 225, 300) }, prof2 = { R.ProfessionText(s, L["Profession 2"], 150, 300) },
 			broker = { R.BrokerText(s, s.brokerPlugin, "42") }, spacer = { "" },
+			reagents = { R.SupplyText(s, { { ammo = true, name = L["Ammunition"], count = 200 }, { name = L["Reagents"], count = 12 } }) },
 		}
 	end
 

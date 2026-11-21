@@ -48,8 +48,9 @@ local LINE_LIFT = 1
 local DOT = "\194\183"
 local MENU_PAD = 3
 local GLYPHS = "Interface\\AddOns\\KstyleUI_DataBars\\Media\\Glyphs.png"
-local GLYPH_COLUMNS, GLYPH_ROWS = 4, 4
-local GLYPH_CELLS = { fps = 0, latency = 1, gold = 2, durability = 3, time = 4, spec = 5, hearth = 6, guild = 7, friends = 8, bags = 9, currencies = 10, xp = 11, location = 12, itemLevel = 13 }
+local GLYPH_COLUMNS, GLYPH_ROWS = 4, 8
+local GLYPH_CELLS = { fps = 0, latency = 1, gold = 2, durability = 3, time = 4, spec = 5, hearth = 6, guild = 7, friends = 8, bags = 9, currencies = 10, xp = 11, location = 12, itemLevel = 13,
+	coords = 14, combat = 15, played = 16, audio = 17, prof1 = 18, prof2 = 18, broker = 19, reagents = 20 }
 local SEGMENT_PAD, GLYPH_GAP, GLYPH_SHARE = 4, 3, 1.1
 local PLATE_RISE, PLATE_DROP, RULE_SHARE, RULE_ALPHA, HOVER_ALPHA = 2, 4, 0.7, 0.45, 0.14
 Strip.UNIT_GAP = UNIT_GAP
@@ -229,12 +230,23 @@ local function PaintItem(item)
 		item.hover:SetAlpha(t * HOVER_ALPHA)
 	end
 	local c = s.labelCustom and not view.slab and not view.docked and s.labelColor
+	local r, g, b, a
 	if type(c) == "table" then
-		local r, g, b = Widgets.Rgba("textHover", 1)
-		item.label:SetTextColor(Widgets.Mix(c.r, c.g, c.b, 1, r, g, b, 1, t))
-		return
+		local hr, hg, hb = Widgets.Rgba("textHover", 1)
+		r, g, b, a = Widgets.Mix(c.r, c.g, c.b, 1, hr, hg, hb, 1, t)
+	else
+		r, g, b, a = Widgets.MixTokens(view.slab and "medTextMuted" or (view.docked or Widgets.Readability("worldText")) and "labelMuted" or "text", 1, "textHover", 1, t)
 	end
-	item.label:SetTextColor(Widgets.MixTokens(view.slab and "medTextMuted" or (view.docked or Widgets.Readability("worldText")) and "labelMuted" or "text", 1, "textHover", 1, t))
+	item.label:SetTextColor(r, g, b, a)
+	if item.iconOn and not view.deco then
+		local mode, custom = not view.docked and s.iconColor, s.iconCustom
+		if mode == "accent" then
+			r, g, b = ns.Accent()
+		elseif mode == "custom" and type(custom) == "table" then
+			r, g, b = custom.r, custom.g, custom.b
+		end
+		item.icon:SetVertexColor(r, g, b)
+	end
 end
 
 local function ValueColor(item, s, grade)
@@ -467,21 +479,26 @@ local function Rule(texture, anchor, relative, point, h)
 	texture:Show()
 end
 
-local function Segment(view, item, rule, glyph, glyphGap, h)
+local function Segment(view, item, rule, glyph, glyphGap, h, icons)
 	local button = item.button
 	item.separator:Hide()
-	if view.deco and not item.icon then
+	local on, was = icons and GLYPH_CELLS[item.id] ~= nil or false, item.iconOn
+	item.iconOn = on
+	if icons and not item.icon then
 		item.icon, item.hover = Glyph(button, item.id), button:CreateTexture(nil, "BACKGROUND")
 		item.hover:SetColorTexture(Tokens.Color("giltLit"))
 		PaintItem(item)
+	elseif on and not was and item.icon then
+		PaintItem(item)
 	end
 	if not item.icon then return end
-	item.icon:SetShown(view.deco and GLYPH_CELLS[item.id] ~= nil)
+	item.icon:SetShown(on)
 	item.hover:SetShown(view.deco)
-	if not view.deco then return end
+	if not icons then return end
 	item.icon:ClearAllPoints()
 	Widgets.Point(item.icon, "RIGHT", item.value, "LEFT", -glyphGap, 0)
 	Widgets.Size(item.icon, glyph, glyph)
+	if not view.deco then return end
 	item.hover:ClearAllPoints()
 	local border = Widgets.Border(button)
 	Widgets.Point(item.hover, "TOPLEFT", button, "TOPLEFT", 0, Widgets.Snap(button, PLATE_RISE) - border)
@@ -528,10 +545,12 @@ local function PlaceLine(view, s)
 	local padding = Widgets.Snap(frame, IsNumber(s.padding) and s.padding or 0)
 	local dotGap = Widgets.DotGap(dotSize, step, DOT_GAP_EM) + padding
 	local seg = view.deco
+	local icons = seg or s.icons == "beside" or s.icons == "only"
+	local only = not seg and s.icons == "only"
 	local pad = seg and Widgets.Snap(frame, SEGMENT_PAD) + padding or 0
 	local glyph = Widgets.Snap(frame, dotSize * GLYPH_SHARE)
 	local glyphGap = Widgets.Snap(frame, GLYPH_GAP)
-	local glyphRun = seg and glyph + glyphGap or 0
+	local glyphRun = icons and glyph + glyphGap or 0
 	local x = edge + (view.rail and Widgets.Snap(frame, EDGE_BORDERS) or 0)
 	local positions, widths, zones = {}, { left = 0, centre = 0, right = 0 }, {}
 	local limits, hidden, last = {}, { left = {}, right = {} }, {}
@@ -548,7 +567,7 @@ local function PlaceLine(view, s)
 	elseif view.rail then
 		limits.right = max(0, frame:GetWidth() - 2 * edge - EDGE_BORDERS)
 	end
-	local signature = { tostring(view.slab), tostring(view.deco), tostring(view.topBar), tostring(view.docked), frame:GetWidth(), h, edge, unitGap, lift, dotGap, step, limits.left or 0, limits.right or 0, view.leftInset or 0 }
+	local signature = { tostring(view.slab), tostring(view.deco), tostring(view.topBar), tostring(view.docked), frame:GetWidth(), h, edge, unitGap, lift, dotGap, step, limits.left or 0, limits.right or 0, view.leftInset or 0, tostring(icons), tostring(only) }
 	for _, entry in ipairs(Strip.Modules(s) or {}) do zones[entry.id] = widths[entry.zone] and entry.zone or "right" end
 	local fit, sequence = view.topBar and view == Strip.view, order
 	if fit then
@@ -558,9 +577,14 @@ local function PlaceLine(view, s)
 	end
 	for _, id in ipairs(sequence) do
 		local item = view.items[id]
-		local label = item.caption ~= "" and TextWidth(item.label, s.fontSize) or 0
-		local value = WIDTH[id] and WIDTH[id](s) or TextWidth(item.value, s.fontSize)
-		local width = Widgets.Snap(frame, value + (label > 0 and unitGap + label or 0)) + (GLYPH_CELLS[id] and glyphRun or 0) + 2 * pad
+		local bare = only and GLYPH_CELLS[id] ~= nil
+		local label = not bare and item.caption ~= "" and TextWidth(item.label, s.fontSize) or 0
+		local value = bare and 0 or WIDTH[id] and WIDTH[id](s) or TextWidth(item.value, s.fontSize)
+		local width = Widgets.Snap(frame, value + (label > 0 and unitGap + label or 0)) + (GLYPH_CELLS[id] and (bare and glyph or glyphRun) or 0) + 2 * pad
+		if item.bare ~= bare then
+			item.bare = bare
+			item.value:SetShown(not bare)
+		end
 		local zone = zones[id] or "right"
 		if view.rail then zone = "right" end
 		if view.slab and zone == "centre" then zone = "left" end
@@ -619,7 +643,7 @@ local function PlaceLine(view, s)
 		item.label:SetWidth(Widgets.Snap(item.label, max(1, labelWidth + 2)))
 		item.label:SetJustifyH("LEFT")
 		local follows = (view.topBar or view.slab) and position[4] or not view.topBar and not view.slab and i > 1 and order[i] ~= "spacer" and order[i - 1] ~= "spacer"
-		Segment(view, item, seg and not item.overflow and follows, glyph, glyphGap, h)
+		Segment(view, item, seg and not item.overflow and follows, glyph, glyphGap, h, icons)
 		if not item.overflow then x = x + width end
 		local captionDot = not seg and view.slab and position[1] == "right" and position[2] == 0 and view.slab.text:IsVisible()
 		local dot = not seg and not item.overflow and (captionDot or follows)
@@ -660,6 +684,10 @@ local function PlaceItems(view, s)
 	for _, item in pairs(view.items) do
 		item.dot:Hide()
 		Segment(view, item)
+		if item.bare then
+			item.bare = nil
+			item.value:Show()
+		end
 	end
 	CaptionSegment(view, false)
 	local total = Weight(order)
@@ -674,10 +702,15 @@ local function PlaceItems(view, s)
 	local unit = total > 0 and max(0, w - 2 * pad) / total or 0
 	local gap = Widgets.Snap(frame, max(MIN_GAP, s.spacing))
 	local lefts, cells, used = {}, {}, 0
+	local natural, rest = CELL_EMS * s.fontSize, nil
+	for _, id in ipairs(order) do
+		if id == s.fill then rest = max(0, w - 2 * pad) - (total - (CELL_WEIGHT[id] or 1)) * natural end
+	end
+	if rest and rest <= (CELL_WEIGHT[s.fill] or 1) * natural then rest = nil end
 	for i, id in ipairs(order) do
-		local x = Widgets.Snap(frame, pad + used * unit)
-		used = used + (CELL_WEIGHT[id] or 1)
-		lefts[i], cells[i] = x, max(1, Widgets.Snap(frame, pad + used * unit) - x)
+		local x = Widgets.Snap(frame, pad + (rest and used or used * unit))
+		used = used + (rest and (id == s.fill and rest or (CELL_WEIGHT[id] or 1) * natural) or CELL_WEIGHT[id] or 1)
+		lefts[i], cells[i] = x, max(1, Widgets.Snap(frame, pad + (rest and used or used * unit)) - x)
 	end
 	local captioned = Captioned(view, s, h, cells, gap)
 	local stack = Widgets.Snap(frame, STACK_GAP)
@@ -862,7 +895,7 @@ function Strip.Paint(view, s, values)
 	end
 	for _, item in pairs(view.items) do
 		Widgets.TextScrim(item.label, view.bare and item.button:IsShown() and item.label:IsShown())
-		Widgets.TextScrim(item.value, view.bare and item.button:IsShown())
+		Widgets.TextScrim(item.value, view.bare and item.button:IsShown() and not item.bare)
 	end
 end
 

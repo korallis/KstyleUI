@@ -124,7 +124,7 @@ do
 	end
 	set("DataBars", "strip.dockModules", list)
 	local items = view.items
-	assert(items.fps.icon:IsShown() and not items.coords.icon:IsShown(), "a readout with no glyph cell shows its value alone, never another readout's glyph")
+	assert(items.fps.icon:IsShown() and items.coords.icon:IsShown() and not items.spacer.icon:IsShown(), "every readout shows its own glyph; the spacer shows none")
 	assert(not items.spacer.separator:IsShown() and not items.latency.separator:IsShown() and items.coords.separator:IsShown(), "no gilt rule beside a spacer")
 	local width = items.latency.button:GetWidth()
 	set("DataBars", "strip.padding", 6)

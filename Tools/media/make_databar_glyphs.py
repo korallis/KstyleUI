@@ -2,7 +2,7 @@
 
 Each glyph is a white line icon on a 32-texel cell, drawn with the minimap sheet's shapes and sampled 4x4
 times per pixel with make_media.py's sampler, so the in-game tint colours it. The strokes are heavier than
-the minimap's because the glyphs sit at caption size. The sheet is 128x128: four cells across, four down.
+the minimap's because the glyphs sit at caption size. The sheet is 128x256: four cells across, eight down.
 The Lua table in KstyleUI_DataBars/Strip.lua (GLYPH_CELLS) names each cell. Run it from the repository root:
 
     python3 Tools/media/make_databar_glyphs.py          # write the sheet
@@ -16,13 +16,14 @@ import make_minimap_glyphs as mg
 from make_minimap_glyphs import CELL, arc, disc, ring, segment
 
 PATH = "KstyleUI_DataBars/Media/Glyphs.png"
-COLUMNS, ROWS = 4, 4
+COLUMNS, ROWS = 4, 8
 WIDTH, HEIGHT = CELL * COLUMNS, CELL * ROWS
 STROKE = 3.4
 
-# Cell order matches GLYPH_CELLS in Strip.lua; the last two cells stay empty.
+# Cell order matches GLYPH_CELLS in Strip.lua; both professions share one cell, and the cells after the last stay empty.
 NAMES = ["fps", "latency", "gold", "durability", "time", "spec", "hearth", "guild",
-         "friends", "bags", "currencies", "xp", "location", "itemLevel"]
+         "friends", "bags", "currencies", "xp", "location", "itemLevel", "coords", "combat",
+         "played", "audio", "profession", "broker", "reagents"]
 
 
 def poly(*points):
@@ -90,8 +91,37 @@ def glyph_item_level():
     return [segment(9, 23, 24, 8), segment(24, 8, 26, 6), segment(6, 18, 14, 26), segment(10, 22, 6, 26)]
 
 
+def glyph_coords():
+    return [ring(16, 16, 7.5), segment(16, 4, 16, 10), segment(16, 22, 16, 28), segment(4, 16, 10, 16), segment(22, 16, 28, 16)]
+
+
+def glyph_combat():
+    return [segment(7, 5, 25, 23), segment(25, 5, 7, 23), segment(19, 25, 25, 19), segment(7, 19, 13, 25)]
+
+
+def glyph_played():
+    return [segment(9, 5, 23, 5), segment(9, 27, 23, 27), segment(10, 6, 22, 26), segment(22, 6, 10, 26)]
+
+
+def glyph_audio():
+    return poly((5, 12), (10, 12), (16, 6), (16, 26), (10, 20), (5, 20), (5, 12)) + [arc(17, 16, 5, 310, 50), arc(17, 16, 10, 310, 50)]
+
+
+def glyph_profession():
+    return [segment(7, 25, 18, 14)] + poly((13, 11), (16, 8), (24, 16), (21, 19), (13, 11))
+
+
+def glyph_broker():
+    return [segment(12, 5, 12, 10), segment(20, 5, 20, 10), segment(16, 20, 16, 27)] + poly((8, 10), (24, 10), (24, 16), (20, 20), (12, 20), (8, 16), (8, 10))
+
+
+def glyph_reagents():
+    return poly((13, 6), (13, 13), (7, 25), (25, 25), (19, 13), (19, 6)) + [segment(11, 6, 21, 6), segment(10, 20, 22, 20)]
+
+
 GLYPHS = [glyph_fps, glyph_latency, glyph_gold, glyph_durability, glyph_time, glyph_spec, glyph_hearth,
-          glyph_guild, glyph_friends, glyph_bags, glyph_currencies, glyph_xp, glyph_location, glyph_item_level]
+          glyph_guild, glyph_friends, glyph_bags, glyph_currencies, glyph_xp, glyph_location, glyph_item_level,
+          glyph_coords, glyph_combat, glyph_played, glyph_audio, glyph_profession, glyph_broker, glyph_reagents]
 
 
 def main(argv):

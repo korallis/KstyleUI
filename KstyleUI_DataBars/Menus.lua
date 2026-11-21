@@ -342,7 +342,9 @@ function Arrange(bar)
 	local gap = Widgets.Snap(holder, s.spacing)
 	local pad = bar.inline and 0 or Widgets.Snap(holder, PAD)
 	local cols, rows = Menus.Grid(#wanted > 0 and #wanted or #bar.entries, bar.dockRows or s.rows)
-	local parts = { width, height, gap, pad, cols }
+	local parts = { width, height, gap, pad, cols, s.align }
+	local lastRow = floor((#list - 1) / cols)
+	local shift = Widgets.Snap(holder, (cols - (#list - lastRow * cols)) * (width + gap) * (s.align == "CENTER" and 0.5 or s.align == "RIGHT" and 1 or 0))
 	for _, entry in ipairs(list) do
 		parts[#parts + 1] = entry.index
 	end
@@ -364,7 +366,7 @@ function Arrange(bar)
 			button.kWidth, button.kHeight = width, height
 			button.opts.size = height
 			button:ClearAllPoints()
-			button:SetPoint("TOPLEFT", content, "TOPLEFT", pad + col * (width + gap), -(pad + row * (height + gap)))
+			button:SetPoint("TOPLEFT", content, "TOPLEFT", pad + col * (width + gap) + (row == lastRow and shift or 0), -(pad + row * (height + gap)))
 			button:Restyle()
 		end
 		button:SetShown(i ~= nil)
