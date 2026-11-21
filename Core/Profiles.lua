@@ -129,15 +129,15 @@ local function SpecCooldowns()
 	for key, name in pairs(type(config) == "table" and type(config.profiles) == "table" and config.profiles or {}) do
 		local payload = type(key) == "string" and Store.Decode((Store.Export(name)))
 		if payload then
-			payload.settings, payload.layout, payload.namedLayouts = { Cooldowns = payload.settings.Cooldowns }, {}, nil
+			payload.settings, payload.layout, payload.namedLayouts = { Cooldowns = { rules = (payload.settings.Cooldowns or {}).rules } }, {}, nil
 			out[key] = Encode(payload)
 		end
 	end
 	return next(out) and out or nil
 end
 
-local function Envelope(scope, payload, includeLayout, cooldowns)
-	return "KSS1:" .. Codec.EncodeBase64(Codec.Serialize({ scope = scope, profile = Encode(payload), includeLayout = includeLayout, cooldowns = cooldowns }))
+local function Envelope(scope, profile, includeLayout, cooldowns)
+	return "KSS1:" .. Codec.EncodeBase64(Codec.Serialize({ scope = scope, profile = profile, includeLayout = includeLayout, cooldowns = cooldowns }))
 end
 
 function Profiles.Export(scope, includeLayout, extras)
@@ -153,7 +153,7 @@ function Profiles.Export(scope, includeLayout, extras)
 	if extras.editMode and not payload.editMode then return nil, L["Edit Mode's active layout could not be read."] end
 	local cooldowns = extras.cooldowns and SpecCooldowns() or nil
 	if extras.cooldowns and not cooldowns then return nil, L["No specialization has a profile assigned yet."] end
-	if scope == "everything" and includeLayout ~= false then return cooldowns and Envelope("everything", payload, nil, cooldowns) or Encode(payload) end
+	if scope == "everything" and includeLayout ~= false then return cooldowns and Envelope("everything", Encode(payload), nil, cooldowns) or Encode(payload) end
 	if scope == "everything" then scope = "settings" end
 	local selected = Selection(scope)
 	if type(scope) == "table" then
@@ -172,7 +172,7 @@ function Profiles.Export(scope, includeLayout, extras)
 	else
 		return nil, L["Choose a module to share."]
 	end
-	return Envelope(scope, payload, scope == "modules" and includeLayout ~= false or nil, cooldowns)
+	return Envelope(scope, Encode(payload), scope == "modules" and includeLayout ~= false or nil, cooldowns)
 end
 
 local function Decode(text)
@@ -261,7 +261,7 @@ function Profiles.Preview(text, scope, includeLayout, extras)
 	local current, future = Store.Module("Appearance"), settings.Appearance
 	local scaleChanged = Store.Module("ProfileTools").scaleWarning and future
 		and (future.uiScaleAuto ~= current.uiScaleAuto or future.uiScaleAuto == false and future.uiScale ~= current.uiScale)
-	return { text = cooldowns and Envelope("everything", payload, nil, cooldowns) or encoded, changes = changes, summary = #changes > 0 and table.concat(changes, ", ") or L["No changes"],
+	return { text = cooldowns and Envelope("everything", encoded, nil, cooldowns) or encoded, changes = changes, summary = #changes > 0 and table.concat(changes, ", ") or L["No changes"],
 		warning = scaleChanged and L["This import changes your interface size. Review Size in General after applying."] or nil }
 end
 
@@ -285,17 +285,25 @@ local function ImportEditMode(chunks, name)
 end
 
 local function ImportCooldowns(cooldowns, payload, target)
-	local names, defaults = K.API:GetProfileKeys(), Store.Defaults("Cooldowns")
+	local names, defaults = K.API:GetProfileKeys(), (Store.Defaults("Cooldowns") or {}).rules
+	local own = Merge(defaults, (payload.settings.Cooldowns or {}).rules)
 	for _, choice in ipairs(K.Specialization.Choices()) do
 		local shared = cooldowns[choice.key] and Store.Decode(cooldowns[choice.key])
-		local rules = shared and shared.settings.Cooldowns
-		local name, i = format("%s (%s)", target, choice.label):sub(1, 48), 1
-		while names[name] do i = i + 1; name = format("%s (%s %d)", target, choice.label, i):sub(1, 48) end
-		if type(rules) == "table" and Equal(Merge(defaults, rules), Merge(defaults, payload.settings.Cooldowns)) then
+		local rules = shared and (shared.settings.Cooldowns or {}).rules or {}
+		if shared and Equal(Merge(defaults, rules), own) then
 			K.Specialization.Assign(choice.key, target)
-		elseif type(rules) == "table" and Store.CopyProfile(target, name) then
-			Store.Data().profiles[name].Cooldowns, names[name] = rules, true
-			K.Specialization.Assign(choice.key, name)
+		elseif shared then
+			local name, i
+			repeat
+				local suffix = format(i and " (%s %d)" or " (%s)", choice.label, i)
+				name, i = target:sub(1, 48 - #suffix) .. suffix, (i or 1) + 1
+			until not names[name]
+			if Store.CopyProfile(target, name) then
+				local copy = Store.Data().profiles[name]
+				copy.Cooldowns = copy.Cooldowns or {}
+				copy.Cooldowns.rules, names[name] = rules, true
+				K.Specialization.Assign(choice.key, name)
+			end
 		end
 	end
 end
