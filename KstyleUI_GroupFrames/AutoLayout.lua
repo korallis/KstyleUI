@@ -24,6 +24,8 @@ function AutoLayout.Bracket(members)
 		return "LARGE"
 	elseif members > 0 and members <= auto.smallMost then
 		return "SMALL"
+	elseif auto.customLeast > 0 and members >= auto.customLeast then
+		return "CUSTOM"
 	end
 	return "MEDIUM"
 end
@@ -127,6 +129,8 @@ function AutoLayout.Overlay(cfg, state)
 	elseif auto.size and bracket == "LARGE" then
 		Large(cfg.raid)
 		Custom(cfg, "large", base)
+	elseif auto.size and bracket == "CUSTOM" then
+		Custom(cfg, "custom", base)
 	end
 	return cfg
 end

@@ -171,6 +171,17 @@ local function newButton(env, container)
 		guard("ClearApplicationBar")
 		aura.bar, aura.barOptions = nil, nil
 	end
+	-- Blizzard_CustomAuraButton.lua: SetDurationBar takes a StatusBar under the button and a nil or table of options.
+	function button.SetDurationBar(_, bar, options)
+		guard("SetDurationBar")
+		element(bar, "StatusBar")
+		assert(options == nil or type(options) == "table", "options must be a table or nil.")
+		aura.durationBar, aura.durationBarOptions = bar, options or {}
+	end
+	function button.ClearDurationBar()
+		guard("ClearDurationBar")
+		aura.durationBar, aura.durationBarOptions = nil, nil
+	end
 	function button.AddDispelTypeTexture(_, texture, options)
 		guard("AddDispelTypeTexture")
 		element(texture, "Texture")

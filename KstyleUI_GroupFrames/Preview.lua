@@ -37,7 +37,7 @@ function Preview.Build(...)
 	}
 	local EXTRAS = {
 		pets = { { name = "Grawl", class = "HUNTER", health = 0.76, power = 0.5 }, { name = "Imp", class = "WARLOCK", health = 0.58, power = 0.9 } },
-		tanks = { { name = "Thaldren", class = "WARRIOR", role = "TANK", health = 0.72, power = 0.35 }, { name = "Brannoc", class = "PALADIN", role = "TANK", health = 0.64, power = 0.4 } },
+		tanks = { { name = "Thaldren", class = "WARRIOR", role = "TANK", health = 0.72, power = 0.35, you = true }, { name = "Brannoc", class = "PALADIN", role = "TANK", health = 0.64, power = 0.4 } },
 		boss = { { name = "Valithria", class = "DRUID", health = 0.62, power = 0.8 } },
 	}
 
@@ -279,20 +279,26 @@ function Preview.Build(...)
 				local w, h, spacing = ns.Extras.Size(name)
 				local growth = name == "tanks" and s.growth or raid.growth
 				local wrap = Geometry.Perpendicular(growth, name == "tanks" and s.wrap or "RIGHT")
-				local per = name == "tanks" and s.wrapAfter > 0 and s.wrapAfter or #list
-				local vertical, lines = Geometry.IsVertical(growth), math.ceil(#list / per)
-				local along, across = Geometry.Line(math.min(per, #list), vertical and h or w, spacing), Geometry.Line(lines, vertical and w or h, spacing)
+				local items = {}
+				for _, f in ipairs(list) do
+					local out = name == "tanks" and s.excludeSelf and f.sample.you == true
+					f:SetShown(not out)
+					if not out then items[#items + 1] = f end
+				end
+				local per = name == "tanks" and s.wrapAfter > 0 and s.wrapAfter or #items
+				local vertical, lines = Geometry.IsVertical(growth), math.ceil(#items / per)
+				local along, across = Geometry.Line(math.min(per, #items), vertical and h or w, spacing), Geometry.Line(lines, vertical and w or h, spacing)
 				local bw, bh = vertical and across or along, vertical and along or across
 				list.holder:SetSize(bw, bh)
 				list.holder:ClearAllPoints()
 				list.holder:SetPoint("TOPLEFT", preview.raid, "TOPLEFT", ex, -(rh + groupSpacing))
 				for line = 1, lines do
 					local run = {}
-					for m = 1, per do run[m] = list[(line - 1) * per + m] end
+					for m = 1, per do run[m] = items[(line - 1) * per + m] end
 					local ox, oy = Geometry.Offset(wrap, (line - 1) * ((vertical and w or h) + spacing))
 					PlaceRun(run, list.holder, { height = h }, growth, #run, ox, oy, Geometry.Corner(growth, wrap), w, spacing)
 				end
-				for _, f in ipairs(list) do
+				for _, f in ipairs(items) do
 					Style.Apply(f, w, h)
 					Paint(f, f.sample)
 				end

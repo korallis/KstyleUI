@@ -438,6 +438,7 @@ local function installCurves(env)
 	env.Enum = env.Enum or {}
 	env.Enum.LuaCurveType = env.Enum.LuaCurveType or { Linear = "Linear", Step = "Step" }
 	env.Enum.StatusBarInterpolation = env.Enum.StatusBarInterpolation or { Immediate = 0, ExponentialEaseOut = 1 }
+	env.Enum.StatusBarTimerDirection = env.Enum.StatusBarTimerDirection or { ElapsedTime = 0, RemainingTime = 1 }
 end
 
 -- The secure group header: a frame whose Show, SetAttribute and GROUP_ROSTER_UPDATE place the
@@ -446,7 +447,8 @@ end
 -- on: showRaid, showParty, showPlayer and showSolo, groupFilter with numbers or classes, groupBy with
 -- groupingOrder, sortMethod INDEX or NAME, unitsPerColumn, maxColumns, startingIndex, child creation
 -- from the template with initialConfigFunction's size read from the header's attributes, and the
--- unit, child<n> and statehidden attributes; roleFilter against a member's role or raidRole; the pet header's
+-- unit, child<n> and statehidden attributes; roleFilter against a member's role or raidRole; nameList, used only
+-- without groupFilter and roleFilter, in roster order; the pet header's
 -- pet units (pet, partypet<n>, raidpet<n>) for members whose pet exists.
 local HEADER_TEMPLATES = {
 	SecureGroupHeaderTemplate = true, SecurePartyHeaderTemplate = true, SecureRaidGroupHeaderTemplate = true,
@@ -499,11 +501,15 @@ local function headerUnits(env, header)
 	for i, token in ipairs(split(a.groupFilter or "1,2,3,4,5,6,7,8")) do
 		filter[token] = i
 	end
+	local names = a.nameList and not a.groupFilter and not roles and {}
+	for _, token in ipairs(names and split(a.nameList) or {}) do names[token] = true end
 	local kept = {}
 	for _, e in ipairs(entries) do
 		local m = e.m or {}
 		local group = kind == "raid" and (m.group or 1) or 1
-		if (filter[group] or filter[m.class or ""]) and (not roles or roles[m.role or ""] or roles[m.raidRole or ""]) then
+		if names then
+			if names[m.name] then kept[#kept + 1] = e end
+		elseif (filter[group] or filter[m.class or ""]) and (not roles or roles[m.role or ""] or roles[m.raidRole or ""]) then
 			kept[#kept + 1] = e
 		end
 	end

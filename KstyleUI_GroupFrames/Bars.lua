@@ -1,4 +1,4 @@
--- Bars.lua: optional health bar looks: the bar filling with missing health, patterned shields and heal absorbs, the shield glow and lost maximum health.
+-- Bars.lua: optional health bar looks: the bar filling with missing health, patterned shields and heal absorbs, the shield glow and edge and lost maximum health.
 local _, ns = ...
 
 local K = KstyleUI
@@ -88,6 +88,32 @@ local function Glow(f, vertical)
 	glow:SetAlpha(0)
 end
 
+local function Edge(f, vertical)
+	local p = Settings.current.prediction
+	local on = p.edge and p.absorbs
+	if on and not f.shieldEdge then
+		f.shieldEdge = CreateFrame("Frame", nil, f.absorbs)
+		f.shieldEdge:SetClipsChildren(true)
+		f.shieldEdge.line = f.shieldEdge:CreateTexture(nil, "OVERLAY")
+		f.shieldEdge.line:SetBlendMode("ADD")
+	end
+	local edge = f.shieldEdge
+	if not edge then
+		return
+	end
+	edge:SetShown(on)
+	if not on then
+		return
+	end
+	local fill, line, width = f.absorbs:GetStatusBarTexture(), edge.line, Widgets.Border(f) * 2
+	edge:SetAllPoints(fill)
+	line:SetColorTexture(Widgets.Rgba("white", p.absorbColor.a or 1))
+	line:ClearAllPoints()
+	line:SetPoint("BOTTOMLEFT", fill)
+	line:SetPoint(vertical and "BOTTOMRIGHT" or "TOPLEFT", fill)
+	if vertical then line:SetHeight(width) else line:SetWidth(width) end
+end
+
 local function MaxLoss(f, rect)
 	local p = Settings.current.prediction
 	local on = p.maxLoss ~= "OFF"
@@ -125,6 +151,7 @@ local function Layout(f, parts)
 	end
 	Stripes(f.healAbsorbs, STRIPES.healAbsorbs, p.healAbsorbColor, p.healAbsorbStyle == "STRIPES", "healAbsorbBacking")
 	Glow(f, vertical)
+	Edge(f, vertical)
 	MaxLoss(f, parts.health)
 end
 Style.appliers[#Style.appliers + 1] = Layout

@@ -25,6 +25,7 @@ local issecretvalue = issecretvalue or function()
 end
 
 local BADGE_SUBLEVEL = 2
+local BEHIND_SUBLEVEL = 5
 
 local function Plain(v)
 	return not issecretvalue(v) and type(v) == "number"
@@ -172,6 +173,19 @@ local function Layout(f, parts, k)
 	if cfg.roleText and not f.roleLetter then
 		f.roleLetter = Widgets.FontString(f.text, "OVERLAY")
 		f.roleLetter:SetJustifyH("CENTER")
+		f.roleLetter.behind = false
+	end
+	if (f.roleBehind or false) ~= cfg.roleBehind or f.roleLetter and f.roleLetter.behind ~= cfg.roleBehind then
+		local behind = cfg.roleBehind
+		f.roleBehind = behind
+		local layer, base = behind and "ARTWORK" or "OVERLAY", behind and BEHIND_SUBLEVEL or 0
+		f.role:SetDrawLayer(layer, base)
+		f.pipEdge:SetDrawLayer(layer, base)
+		f.pipFill:SetDrawLayer(layer, base + 1)
+		if f.roleLetter then
+			f.roleLetter:SetDrawLayer(layer, behind and base + 1 or 0)
+			f.roleLetter.behind = behind
+		end
 	end
 	if f.roleLetter then
 		f.roleLetter:ClearAllPoints()
