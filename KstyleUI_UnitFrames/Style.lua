@@ -773,6 +773,11 @@ function Style.Layout(view, s, width, height)
 	return g
 end
 
+local function Offset(value)
+	local most = Settings.OFFSET_MAX
+	return type(value) == "number" and value == value and math.max(-most, math.min(most, value)) or 0
+end
+
 local function Nudge(view)
 	local fonts = view.s and view.s.fonts
 	if not fonts then return end
@@ -796,7 +801,7 @@ local function Nudge(view)
 	end
 	for key, element in pairs(NUDGE) do
 		local nudge = view[key].nudge
-		nudge[1], nudge[2] = fonts[element].x, fonts[element].y
+		nudge[1], nudge[2] = Offset(fonts[element].x), Offset(fonts[element].y)
 	end
 end
 

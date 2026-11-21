@@ -24,6 +24,7 @@ local BOSS_GAP_MAX = 20
 local MARKER_MAX, CAST_WIDTH_MIN, CAST_WIDTH_MAX = 48, 2 * CAST_HEIGHT_MAX, 400
 local PRECISE_MAX, SPELL_LIST_LETTERS = 90, 240
 local HEALTH_HEIGHT_MAX, ABSORB_BAR_MAX, OFFSET_MAX = 40, 10, 100
+Settings.OFFSET_MAX = OFFSET_MAX
 
 Settings.MODULE = MODULE
 Settings.THEME_FONT = THEME_FONT
@@ -671,8 +672,7 @@ function Settings.Snapshot(kind)
 		fonts[element] = { size = Settings.FontSize(kind, element) / K.Theme.FontScale(),
 			colorMode = style.colorMode or "", color = style.color or d.fonts[element].color,
 			textFormat = type(style.textFormat) == "string" and style.textFormat or "",
-			x = IsNumber(style.x) and math.max(-OFFSET_MAX, math.min(OFFSET_MAX, style.x)) or 0,
-			y = IsNumber(style.y) and math.max(-OFFSET_MAX, math.min(OFFSET_MAX, style.y)) or 0 }
+			x = style.x, y = style.y }
 	end
 	fonts.cast = { size = Settings.FontSize(kind, "cast") / K.Theme.FontScale() }
 	local form = Settings.Form(kind)
