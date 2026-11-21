@@ -36,16 +36,11 @@ local function BindingText(key)
 	return type(text) == "string" and text or key
 end
 
-local function Bound(command)
-	local key = Ask(GetBindingKey, command)
-	return key ~= "" and key or nil
-end
-
 local function Key(slot, main)
 	local key = K.Widgets.ActionKey(slot)
 	if key == nil then
 		local page, index = math.floor((slot - 1) / PER_PAGE) + 1, (slot - 1) % PER_PAGE + 1
-		key = page == main and Bound("ACTIONBUTTON" .. index) or BARS[page] and Bound(BARS[page] .. index)
+		key = page == main and Ask(GetBindingKey, "ACTIONBUTTON" .. index) or BARS[page] and Ask(GetBindingKey, BARS[page] .. index)
 	end
 	if type(key) == "string" then return K.Widgets.ShortKey(key, BindingText) end
 end
