@@ -1,7 +1,8 @@
--- Keys.lua: the key a cooldown's spell is bound to, read from the first action slot that holds it and Blizzard's binding name for that slot's bar (the main bar's only while its page shows), and the spell an action slot holds, for mirrored presses.
+-- Keys.lua: the key a cooldown's spell is bound to, read from the first action slot that holds it: the key of the KstyleUI action button that shows the slot while Action Bars runs, else Blizzard's binding for that slot's bar (the main bar's while its page shows it); and the spell an action slot holds, for mirrored presses.
 local _, ns = ...
 
 local K = KstyleUI
+local Plain = ns.Plain
 
 local Keys = {}
 ns.Keys = Keys
@@ -10,14 +11,10 @@ local PER_PAGE = 12
 local BARS = { [3] = "MULTIACTIONBAR3BUTTON", [4] = "MULTIACTIONBAR4BUTTON", [5] = "MULTIACTIONBAR2BUTTON", [6] = "MULTIACTIONBAR1BUTTON", [13] = "MULTIACTIONBAR5BUTTON", [14] = "MULTIACTIONBAR6BUTTON", [15] = "MULTIACTIONBAR7BUTTON" }
 local found = {}
 
-local function Plain(value)
-	return value ~= nil and not ns.IsSecret(value)
-end
-
 local function Ask(fn, ...)
 	if type(fn) ~= "function" then return nil end
 	local ok, a, b = pcall(fn, ...)
-	if ok and Plain(a) then return a, b end
+	if ok and Plain(a) ~= nil then return a, b end
 end
 
 local function MainPage()
@@ -28,7 +25,9 @@ local function MainPage()
 		if on ~= false then return on and Ask(bar["Get" .. kind .. "BarIndex"]) or nil end
 	end
 	local page = Ask(bar.GetActionBarPage)
-	if page == 1 and Ask(bar.HasBonusActionBar) then return Ask(bar.GetBonusBarIndex) end
+	if page ~= 1 then return page end
+	local bonus = Ask(bar.HasBonusActionBar)
+	if bonus ~= false then return bonus and Ask(bar.GetBonusBarIndex) or nil end
 	return page
 end
 
@@ -37,15 +36,22 @@ local function BindingText(key)
 	return type(text) == "string" and text or key
 end
 
+local function Bound(command)
+	local key = Ask(GetBindingKey, command)
+	return key ~= "" and key or nil
+end
+
 local function Key(slot, main)
-	local page, index = math.floor((slot - 1) / PER_PAGE) + 1, (slot - 1) % PER_PAGE + 1
-	local command = BARS[page] or page == main and "ACTIONBUTTON"
-	local key = command and Ask(GetBindingKey, command .. index)
-	if type(key) == "string" and key ~= "" then return K.Widgets.ShortKey(key, BindingText) end
+	local key = K.Widgets.ActionKey(slot)
+	if key == nil then
+		local page, index = math.floor((slot - 1) / PER_PAGE) + 1, (slot - 1) % PER_PAGE + 1
+		key = page == main and Bound("ACTIONBUTTON" .. index) or BARS[page] and Bound(BARS[page] .. index)
+	end
+	if type(key) == "string" then return K.Widgets.ShortKey(key, BindingText) end
 end
 
 function Keys.For(spell)
-	if not Plain(spell) or type(spell) ~= "number" then return nil end
+	if type(Plain(spell)) ~= "number" then return nil end
 	local key = found[spell]
 	if key == nil then
 		key = false
@@ -53,7 +59,7 @@ function Keys.For(spell)
 		if type(slots) == "table" then
 			local main = MainPage()
 			for _, slot in ipairs(slots) do
-				key = Plain(slot) and type(slot) == "number" and Key(slot, main) or false
+				key = type(Plain(slot)) == "number" and Key(slot, main) or false
 				if key then break end
 			end
 		end
@@ -67,7 +73,7 @@ function Keys.Reset()
 end
 
 function Keys.Spell(slot)
-	if not Plain(slot) or type(slot) ~= "number" then return nil end
+	if type(Plain(slot)) ~= "number" then return nil end
 	local kind, id = Ask(GetActionInfo, slot)
-	if kind == "spell" and Plain(id) then return id end
+	if kind == "spell" and Plain(id) ~= nil then return id end
 end

@@ -110,8 +110,6 @@ function BarRow:StyleBar(bar)
 	self:Hash(bar, bar.sections)
 end
 
-local FILL_END = { HORIZONTAL = { "LEFT", "RIGHT" }, VERTICAL = { "BOTTOM", "TOP" } }
-
 function BarRow:Hash(bar, sections)
 	bar.sections = sections
 	local lines = bar.hashes
@@ -155,9 +153,9 @@ function BarRow:StyleRecharge(bar)
 	local r, g, b, a = ns.Settings.BarColor()
 	local shade = cfg.chargeShade and 1 - cfg.shadeAlpha or 1
 	charge:SetBarColor(r * shade, g * shade, b * shade, a)
-	local edge = FILL_END[cfg.orientation]
+	local edge = SPARK_EDGE[cfg.orientation]
 	charge:ClearAllPoints()
-	charge:SetPoint(edge[cfg.reverse and 2 or 1], status:GetStatusBarTexture(), edge[cfg.reverse and 1 or 2])
+	charge:SetPoint(edge[cfg.reverse and 1 or 2], status:GetStatusBarTexture(), edge[cfg.reverse and 2 or 1])
 end
 
 function BarRow:Recharge(bar, duration, smooth, elapsed)

@@ -54,6 +54,7 @@ function ns.UpdateHotkeys()
 			end
 		end
 	end
+	K.Widgets.SetActionKeys(ns.Button.KeyFor)
 end
 
 local function Apply()

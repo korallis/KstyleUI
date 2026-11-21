@@ -440,10 +440,7 @@ local function Quality(row, icon)
 			rank = ok and Finite(quality) and quality > 0 and math.min(quality, 5) or nil
 		end
 	end
-	if icon.rank ~= rank then
-		icon.rank = rank
-		Style.Rank(icon, rank)
-	end
+	if icon.rank ~= rank then Style.Rank(icon, rank) end
 end
 
 local function Hotkey(row, icon)
@@ -676,8 +673,9 @@ local function CooldownTiming(row, bar, cooldownEvent)
 	local spell = entry.spell
 	local smooth = Enum and Enum.StatusBarInterpolation and Enum.StatusBarInterpolation[cfg.cdSmooth and "ExponentialEaseOut" or "Immediate"] or 0
 	local elapsed = Enum and Enum.StatusBarTimerDirection and Enum.StatusBarTimerDirection.ElapsedTime or 0
-	local sections, info = Charge(spell)
-	sections = cfg.hashLines and entry.charges and sections and sections > 1 and sections or nil
+	local sections, info
+	if cfg.hashLines and entry.charges then sections, info = Charge(spell) end
+	sections = sections and sections > 1 and sections or nil
 	if bar.sections ~= sections then
 		row:Hash(bar, sections)
 		row:Recharge(bar, nil)
@@ -727,26 +725,30 @@ end
 
 local function AssignAuras(row, list)
 	local out, blank, cfg = shown[row.group], row.blank, row.cfg
-	Empty(out)
-	Empty(blank)
-	for pass = 1, (cfg.keepPlace or not (cfg.inactive or Settings.current.rules.missing ~= "")) and 1 or 2 do
-		for _, entry in ipairs(list) do
-			local show, slot = Shows(cfg, entry)
-			if cfg.keepPlace and (show or slot) then
-				out[#out + 1], blank[entry] = entry, not show or nil
-			elseif show and (entry.auraID ~= nil) == (pass == 1) then
-				out[#out + 1] = entry
+	if list then
+		Empty(out)
+		Empty(blank)
+		for pass = 1, (cfg.keepPlace or not (cfg.inactive or Settings.current.rules.missing ~= "")) and 1 or 2 do
+			for _, entry in ipairs(list) do
+				local show, slot = Shows(cfg, entry)
+				if cfg.keepPlace and (show or slot) then
+					out[#out + 1], blank[entry] = entry, not show or nil
+				elseif show and (entry.auraID ~= nil) == (pass == 1) then
+					out[#out + 1] = entry
+				end
 			end
 		end
-	end
-	while blank[out[#out]] and #out > Grid.Capacity(cfg) do
-		blank[out[#out]], out[#out] = nil, nil
+		while blank[out[#out]] and #out > Grid.Capacity(cfg) do
+			blank[out[#out]], out[#out] = nil, nil
+		end
 	end
 	if row.group == "bars" then
+		while cooldownBars[out[#out]] do out[#out] = nil end
 		Empty(cooldownBars)
 		for _, group in ipairs(Settings.current.rules.cdBars ~= "" and { "essential", "utility" } or EMPTY) do
 			for _, entry in ipairs(Live(group) and lists[group] or EMPTY) do
-				if entry.spell and Rules.For(entry).cdBars then out[#out + 1], cooldownBars[entry] = entry, true end
+				local rule = Rules.For(entry)
+				if entry.spell and rule.cdBars and not rule.hide and not (type(rule.talent) == "string" and not Rules.Known(rule.talent)) then out[#out + 1], cooldownBars[entry] = entry, true end
 			end
 		end
 	end
@@ -759,10 +761,10 @@ local function AssignAuras(row, list)
 		local bar = row.bars and row.bars[i]
 		if cooldownBars[out[i]] then
 			if bar.entry ~= out[i] or bar.cdStamp ~= barStamp then CooldownBar(row, bar, out[i]) end
-		elseif bar then
-			ShowBar(row, bar, out[i])
-		else
+		elseif not bar then
 			ShowAuraIcon(row, row.icons[i], out[i])
+		elseif list then
+			ShowBar(row, bar, out[i])
 		end
 	end
 end
@@ -953,6 +955,7 @@ local function Assign(group)
 		AssignCooldowns(rows[group], Merged(group))
 	elseif Auras.Secret() then
 		Owe()
+		if group == "bars" then AssignAuras(rows.bars) end
 	else
 		FindAuras(lists[group])
 		AssignAuras(rows[group], lists[group])
@@ -1226,18 +1229,31 @@ end
 
 local function RunKeys()
 	keysQueued = false
+	Keys.Reset()
 	if running then EachCooldownIcon(Hotkey) end
 end
 
 local function OnKeys()
-	Keys.Reset()
 	if not keysQueued then
 		keysQueued = true
 		C_Timer.After(0, RunKeys)
 	end
 end
 
+local function Release(slot)
+	for group in pairs(COOLDOWN_GROUPS) do
+		for _, icon in ipairs(rows[group] and rows[group].icons or EMPTY) do
+			if icon.pressSlot and (slot == nil or icon.pressSlot == slot) then
+				icon.pressSlot = nil
+				icon:AnimatePress(false)
+			end
+		end
+	end
+end
+
 local function OnPress(slot, down)
+	if type(ns.Plain(slot)) ~= "number" then return end
+	if not down then return Release(slot) end
 	local spell = running and Keys.Spell(slot)
 	if not spell then return end
 	for group in pairs(COOLDOWN_GROUPS) do
@@ -1246,7 +1262,10 @@ local function OnPress(slot, down)
 			for i = 1, row.count do
 				local icon = row.icons[i]
 				local entry = icon.entry
-				if entry and (entry.spellID == spell or entry.spell == spell) and icon.AnimatePress then icon:AnimatePress(down) end
+				if entry and (entry.spellID == spell or entry.spell == spell) and icon.AnimatePress then
+					icon.pressSlot = slot
+					icon:AnimatePress(true)
+				end
 			end
 		end
 	end
@@ -1271,7 +1290,10 @@ function ListenRules()
 	Listen("PLAYER_SWING", OnSwing, glow or mirrored and rules.swing ~= "")
 	Listen("CURRENT_SPELL_CAST_CHANGED", OnQueue, glow)
 	for _, event in ipairs(KEY_EVENTS) do Listen(event, OnKeys, keys) end
-	K.Widgets.OnActionPress(Uses("pressMirror") and OnPress or nil)
+	K.Widgets.OnActionKeys(keys and OnKeys or nil)
+	local press = Uses("pressMirror")
+	K.Widgets.OnActionPress(press and OnPress or nil)
+	if not press then Release() end
 	if form then ReadForm() end
 end
 
@@ -1385,6 +1407,7 @@ end
 
 function Mirror.Start()
 	Settings.Read()
+	Keys.Reset()
 	running = true
 	retries = 0
 	fighting = InCombatLockdown and InCombatLockdown() == true or false
@@ -1435,6 +1458,8 @@ function Mirror.Stop()
 	swingStart, swingLate, swingStamp = nil, false, swingStamp + 1
 	auraUnits = nil
 	K.Widgets.OnActionPress(nil)
+	K.Widgets.OnActionKeys(nil)
+	Release()
 	K.Events.UnregisterAll(MODULE)
 	if EventRegistry and EventRegistry.UnregisterCallback then
 		EventRegistry:UnregisterCallback(DATA_EVENT, Mirror)

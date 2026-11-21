@@ -285,17 +285,20 @@ local RANK_DOT, RANK_GAP, RANK_INSET = 4, 1, 2
 
 function Style.Rank(icon, rank)
 	local dots = icon.rankDots or {}
-	icon.rankDots = dots
+	icon.rankDots, icon.rank = dots, rank
+	local fit = math.min(1, icon:GetWidth() / (5 * RANK_DOT + 4 * RANK_GAP + 2 * RANK_INSET))
+	local px = K.Scale.Pixel(1) / Widgets.ScaleFactor(icon)
+	local size, step, inset = math.max(px, math.floor(RANK_DOT * fit / px) * px), RANK_GAP * fit, RANK_INSET * fit
 	for i = 1, rank or 0 do
 		local dot = dots[i]
 		if not dot then
 			dot = icon.overlay:CreateTexture(nil, "OVERLAY")
 			dot:SetTexture((Tokens.Texture("dot")))
 			Widgets.Tint(dot, "textEmphasis")
-			Widgets.Size(dot, RANK_DOT, RANK_DOT)
-			Widgets.Point(dot, "TOPRIGHT", icon, "TOPRIGHT", -RANK_INSET - (i - 1) * (RANK_DOT + RANK_GAP), -RANK_INSET)
 			dots[i] = dot
 		end
+		Widgets.Size(dot, size, size)
+		Widgets.Point(dot, "TOPRIGHT", icon, "TOPRIGHT", -inset - (i - 1) * (size + step), -inset)
 		dot:Show()
 	end
 	for i = (rank or 0) + 1, #dots do dots[i]:Hide() end
@@ -416,6 +419,7 @@ function Style.Decorate(icon, group)
 			self.countBase, self.keyBase = nil, nil
 			Style.Dress(self)
 			Style.PlaceText(self, group)
+			if self.rankDots then Style.Rank(self, self.rank) end
 			Style.TextColour(self.countdown, self.rule and self.rule.timerColour, "slotNumber")
 		end
 		Style.PlaceText(icon, group)

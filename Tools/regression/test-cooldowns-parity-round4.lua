@@ -240,8 +240,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	for _, size in ipairs({ 16, 64, 16 }) do
 		Write("utility.size", size)
 		local dot = potion.rankDots[5]
-		local left = potion:GetWidth() + select(4, dot:GetPoint(1)) - dot:GetWidth()
-		assert(dot:IsShown() and left >= 0, "the fifth pip stays inside a " .. size .. " icon at " .. screen[1] .. "x" .. screen[2] .. " (" .. left .. ")")
+		local left, inset = potion:GetWidth() + select(4, dot:GetPoint(1)) - dot:GetWidth(), -select(4, potion.rankDots[1]:GetPoint(1))
+		assert(dot:IsShown() and inset > 0 and left >= inset, "the five pips fit inside a " .. size .. " icon at " .. screen[1] .. "x" .. screen[2] .. ", inset " .. inset .. " on the right and " .. left .. " on the left")
 	end
 	Clean(env, K, "pip bounds")
 end

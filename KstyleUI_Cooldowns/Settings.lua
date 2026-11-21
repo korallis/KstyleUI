@@ -441,10 +441,14 @@ function Settings.Schema()
 		Add(schema, Slider(group, "decimalBelow", L["Tenths threshold"], L["Below this many seconds, the timer shows tenths."], BAR_RANGE), group)
 		Add(schema, Toggle(group, "cdSmooth", L["Smooth cooldown bars"], L["Ease cooldown bars to a new value instead of snapping."]), group)
 		Add(schema, Toggle(group, "hashLines", L["Charge hash lines"], L["Split a cooldown bar into one section per charge; the timer shows the next charge."]), group)
-		Add(schema, Slider(group, "lineWidth", L["Line width"], L["The width of the charge lines, in pixels."], BAR_RANGE), group)
-		Add(schema, { type = "color", key = "bars.lineColor", label = L["Line colour"], help = L["The colour of the charge lines."] }, group)
-		Add(schema, Toggle(group, "chargeShade", L["Partial charge shade"], L["Darken the section still recharging the next charge."]), group)
-		Add(schema, Slider(group, "shadeAlpha", L["Shade darkness"], L["How dark the recharging section is."], BAR_RANGE), group)
+		local function Hashed(row, shade)
+			row.showWhen = function(settings) return type(settings.bars) == "table" and settings.bars.hashLines and (not shade or settings.bars.chargeShade) end
+			return row
+		end
+		Add(schema, Hashed(Slider(group, "lineWidth", L["Line width"], L["The width of the charge lines, in pixels."], BAR_RANGE)), group)
+		Add(schema, Hashed({ type = "color", key = "bars.lineColor", label = L["Line colour"], help = L["The colour of the charge lines."] }), group)
+		Add(schema, Hashed(Toggle(group, "chargeShade", L["Partial charge shade"], L["Darken the section still recharging the next charge."])), group)
+		Add(schema, Hashed(Slider(group, "shadeAlpha", L["Shade darkness"], L["How dark the recharging section is."], BAR_RANGE), true), group)
 	end
 
 	local schema = {

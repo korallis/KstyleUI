@@ -1,4 +1,4 @@
--- Preview.lua: the settings window's live preview: sample essential, utility and buff rows and buff bars drawn with the current settings (with sample keybinds and a press on the first cooldown, a sample potion and trinket while an item option is changed, a sample cooldown bar with its charge sections, a swing sweep at the start of the late-swing window, and a sample enemy plate with the focus interrupt on its chosen side and the reminder under it while either is on), cooldown samples passed to the other row past its grid, and every sample treated as listed in each spell rule that is not empty, with the list's first colour, name or threshold.
+-- Preview.lua: the settings window's live preview: sample essential, utility and buff rows and buff bars drawn with the current settings (with sample keybinds and a press on the first cooldown, a sample potion and trinket while an item option is changed, a sample cooldown bar with its charge sections, eased in while it is smoothed, a swing sweep at the start of the late-swing window, and a sample enemy plate with the focus interrupt on its chosen side and the reminder under it while either is on), cooldown samples passed to the other row past its grid, and every sample treated as listed in each spell rule that is not empty, with the list's first colour, name or threshold.
 local _, ns = ...
 
 local K = KstyleUI
@@ -158,6 +158,12 @@ function Preview.Build(...)
 				bar.status:SetValue(1)
 				bar.recharge:SetMinMaxValues(0, 1)
 				bar.recharge:SetValue(SAMPLE_BAR_FILL)
+			end
+			if sample.charges and row.cfg.cdSmooth and Enum.StatusBarInterpolation then
+				local fill = sections and bar.recharge or bar.status
+				local value = fill:GetValue()
+				fill:SetValue(0)
+				fill:SetValue(value, Enum.StatusBarInterpolation.ExponentialEaseOut)
 			end
 		end
 	end
