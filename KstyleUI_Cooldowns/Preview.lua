@@ -24,6 +24,7 @@ function Preview.Build(...)
 	local SAMPLE_CHARGES = { essential = { [2] = 2 }, utility = { [2] = 0 }, buffs = { [1] = 3 } }
 	local OTHER = { essential = "utility", utility = "essential" }
 	local SAMPLE_PROC = { essential = { [4] = true } }
+	local SAMPLE_ASSIST = { essential = { [2] = true } }
 	local SAMPLE_BARS = {
 		{ icon = 132208, name = L["Rapid Fire"], duration = 15, left = 9 },
 		{ icon = 136076, name = L["Aspect of the Hawk"], duration = 1800, left = 1260 },
@@ -65,7 +66,10 @@ function Preview.Build(...)
 			Style.SetReady(icon, glows and cooldownGroup and cfg.readyGlow and not sample)
 			if not cooldownGroup then
 				icon:SetUsable(sample and true or false)
+				icon:SetAlpha((rule.hide or rule.missing and sample) and 0 or 1)
+				Style.SetReady(icon, sample and rule.activeGlow)
 			end
+			Style.SetAssist(icon, current.assist and SAMPLE_ASSIST[from] and SAMPLE_ASSIST[from][n])
 			icon.rule = rule
 			row:Look(icon)
 			if rule.range or icon.outOfRange then
@@ -86,7 +90,7 @@ function Preview.Build(...)
 			bar.icon:SetTexture(sample.icon)
 			Widgets.SetText(bar.name, sample.name)
 			bar.status:SetMinMaxValues(0, 1)
-			bar.status:SetValue(SAMPLE_BAR_FILL)
+			bar.status:SetValue(row.cfg.fillUp and 1 - SAMPLE_BAR_FILL or SAMPLE_BAR_FILL)
 			bar.timer:SetCooldown(now - (sample.duration - sample.left), sample.duration)
 			Widgets.SetText(bar.count, nil)
 			bar:SetAlpha(1)

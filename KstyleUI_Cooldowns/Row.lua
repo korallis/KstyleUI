@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local Widgets = K.Widgets
-local Grid, Style = ns.Grid, ns.Style
+local Grid, Style, Rules = ns.Grid, ns.Style, ns.Rules
 
 local Row = {}
 Row.__index = Row
@@ -48,11 +48,10 @@ function Row:StyleIcon(icon)
 		icon.opts.size = cfg.size
 		icon:Restyle()
 	end
-	Style.Countdown(icon.cooldown, self.group == "essential")
 	Style.Font(icon.cooldown:GetCountdownFontString(), current.timerFont, cfg.timerSize, current.timerOutline, self.group ~= "essential" and "timer" or nil)
 	Style.Font(icon.count, current.countFont, cfg.countSize, current.countOutline)
 	Style.PlaceText(icon, self.group)
-	Style.Mouse(icon, current.tooltips and not icon.ruleHidden)
+	Style.Mouse(icon, current.tooltips and not icon.ruleHidden and not icon.blank)
 	Style.Accent(icon)
 	Style.Dress(icon)
 	self:Look(icon)
@@ -62,45 +61,50 @@ function Row:Look(icon)
 	local cfg, group, rule = self.cfg, self.group, icon.rule or EMPTY
 	local cooldowns = COOLDOWN_GROUPS[group]
 	local only = cooldowns and cfg.countOnly or false
+	local bare = only or cfg.numbersOnly
 	local cooldown = icon.cooldown
 	cooldown:SetHideCountdownNumbers(not cfg.timer or only)
-	if type(cooldown.SetDrawSwipe) == "function" then cooldown:SetDrawSwipe(cfg.swipe and not rule.noSwipe and not only) end
-	cooldown:SetReverse(group == "buffs" or rule.reverse == true)
-	icon.count:SetAlpha(cfg.showCount and not rule.noCount and 1 or 0)
-	if (icon.countOnly or false) ~= only then
-		icon.countOnly = only
-		icon.icon:SetAlpha(only and 0 or 1)
+	if type(cooldown.SetDrawSwipe) == "function" then cooldown:SetDrawSwipe(cfg.swipe and not rule.noSwipe and not bare) end
+	cooldown:SetReverse(group == "buffs" or rule.reverse and true or false)
+	icon.count:SetAlpha((cfg.showCount or rule.count) and not rule.noCount and 1 or 0)
+	if (icon.countOnly or false) ~= bare then
+		icon.countOnly = bare
+		icon.icon:SetAlpha(bare and 0 or 1)
 	end
-	local grey = (cfg.desaturate or rule.grey == true) and not rule.colour
+	local tenths = rule.decimals and ns.Settings.current.decimalBelow or nil
+	Style.Countdown(cooldown, group == "essential", false, tenths)
+	Style.TextColour(icon.countdown, rule.timerColour, "slotNumber")
+	local grey = (cfg.desaturate or rule.grey) and not rule.colour and true or false
 	local repaint = (icon.greyWhileCooling or false) ~= grey
 	icon.greyWhileCooling = grey
-	if not cooldowns then
-		icon.inactiveShade = rule.grey and "grey" or rule.colour and "colour" or cfg.inactiveShade
-		icon:Paint()
-		return
-	end
-	local hide = not cfg.edge or only or nil
-	local hideCharge = hide or rule.noEdge or nil
-	local tint = rule.tint and { ns.Settings.SourceColor("tint") } or nil
+	local hide = cooldowns and (not cfg.edge or bare) or nil
+	local hideCharge = hide or cooldowns and rule.noEdge or nil
+	local tint = rule.tint and { Rules.Colour(rule.tint, "tint") } or nil
 	if icon.hideEdge ~= hide or icon.hideChargeEdge ~= hideCharge or tint or icon.swipeTint then
 		styleCooldown = styleCooldown or icon.StyleCooldown
 		icon.StyleCooldown, icon.hideEdge, icon.hideChargeEdge, icon.swipeTint, icon.cooldownStyleKey = StyleCooldown, hide, hideCharge, tint, nil
 		if icon.chargeCooldown then icon.chargeCooldown:SetDrawEdge(not hideCharge) end
 	end
-	local glow = rule.glow and { ns.Settings.SourceColor("glow") } or nil
+	local glow = cooldowns and rule.glow or not cooldowns and rule.activeGlow
+	glow = glow and { Rules.Colour(glow, "glow") } or nil
 	if glow or icon.glowTint then
 		icon.glowTint = glow
 		Style.GlowColor(icon)
 	end
 	icon:StyleCooldown()
-	if repaint then icon:Paint() end
+	if not cooldowns then
+		icon.inactiveShade = rule.grey and "grey" or rule.colour and "colour" or cfg.inactiveShade
+		icon:Paint()
+	elseif repaint then
+		icon:Paint()
+	end
 end
 
 function Row:Visible(icon)
 	local rule, current = icon.rule or EMPTY, ns.Settings.current
 	local cooling = icon.onCooldown == true
 	local ready = not cooling and not (icon.recharging and not rule.spent)
-	local hidden = rule.hideCooling and cooling or rule.hideReady and ready or rule.hideUnusable and (cooling or icon.castable == false) or false
+	local hidden = (rule.hide or rule.hideCooling and cooling or rule.hideReady and ready or rule.hideUnusable and (cooling or icon.castable == false) or rule.form and icon.castable == false) and true or false
 	local alpha = hidden and 0 or rule.fade and cooling and current.fadeAlpha or 1
 	if (icon.ruleAlpha or 1) ~= alpha then
 		icon.ruleAlpha = alpha
@@ -109,7 +113,11 @@ function Row:Visible(icon)
 	if icon.ruleHidden ~= hidden then
 		icon.ruleHidden = hidden
 		Style.Mouse(icon, current.tooltips and not hidden)
-		self.placeOwed = current.closeGaps or nil
+	end
+	local gap = hidden and (current.closeGaps or rule.shift) and true or false
+	if (icon.ruleGap or false) ~= gap then
+		icon.ruleGap = gap
+		self.placeOwed = true
 	end
 end
 
@@ -130,16 +138,14 @@ end
 function Row:Place()
 	local cfg, count = self.cfg, self.count
 	self.placeOwed = nil
-	local gaps = ns.Settings.current.closeGaps and COOLDOWN_GROUPS[self.group]
+	local gaps = COOLDOWN_GROUPS[self.group]
 	local shown, slot = count, 0
-	if gaps then
-		for i = 1, count do
-			if self.icons[i].ruleHidden then shown = shown - 1 end
-		end
+	for i = 1, count do
+		if gaps and self.icons[i].ruleGap then shown = shown - 1 end
 	end
 	for i = 1, count do
 		local icon = self.icons[i]
-		if not (gaps and icon.ruleHidden) then
+		if not (gaps and icon.ruleGap) then
 			slot = slot + 1
 			local x, y = Grid.Offset(slot, shown, cfg)
 			icon:ClearAllPoints()

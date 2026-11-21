@@ -234,21 +234,23 @@ function IconButton:StyleCooldown(real)
 	end
 end
 
-local countdownFormatter
-function Widgets.CountdownFormat(cooldown)
+local countdownFormatters = {}
+function Widgets.CountdownFormat(cooldown, tenths)
 	if type(cooldown.SetCountdownFormatter) ~= "function" then return end
 	local util, rounding = C_StringUtil, Enum and Enum.NumericRuleFormatRounding
-	if countdownFormatter == nil and util and type(util.CreateNumericRuleFormatter) == "function" and rounding then
+	local key = tenths or 0
+	if countdownFormatters[key] == nil and util and type(util.CreateNumericRuleFormatter) == "function" and rounding then
 		local ok, formatter = pcall(function()
 			local made = util.CreateNumericRuleFormatter()
-			made:AddBreakpoint({ threshold = 0, step = 1, rounding = rounding.Up, min = 1, format = "%d" })
+			if tenths then made:AddBreakpoint({ threshold = 0, step = 0.1, rounding = rounding.Up, format = "%.1f" }) end
+			made:AddBreakpoint({ threshold = tenths or 0, step = 1, rounding = rounding.Up, min = 1, format = "%d" })
 			made:AddBreakpoint({ threshold = 60, format = "%dm", components = { { div = 60, step = 1, rounding = rounding.Up } } })
 			made:AddBreakpoint({ threshold = 3600, max = 32400, format = "%dh", components = { { div = 3600, step = 1, rounding = rounding.Up } } })
 			return made
 		end)
-		countdownFormatter = ok and formatter or false
+		countdownFormatters[key] = ok and formatter or false
 	end
-	cooldown:SetCountdownFormatter(countdownFormatter or nil)
+	cooldown:SetCountdownFormatter(countdownFormatters[key] or nil)
 end
 
 function Widgets.MedallionsFrame(button, on, overlay)

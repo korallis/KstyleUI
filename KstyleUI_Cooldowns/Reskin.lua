@@ -84,12 +84,23 @@ local function Spell(item)
 	return ok and spell or nil
 end
 
+local function Glow(item, side, on, colour)
+	if on then
+		side.glow = side.glow or Widgets.Glow(item, { kind = "selection" })
+		side.glow:SetColorRGB(Rules.Colour(colour, "glow"))
+	end
+	if side.glow and (side.glowing or false) ~= on then
+		side.glowing = on
+		if on then side.glow:Start() else side.glow:Stop() end
+	end
+end
+
 function Reskin.Buff(item)
 	if not active.buffs then return end
 	local cfg, rule = Settings.current.buffs, Rules.ForSpell(Spell(item))
 	local applications = type(item.Applications) == "table" and item.Applications.Applications
 	if type(applications) == "table" and type(applications.SetAlpha) == "function" then
-		local alpha, counted = cfg.showCount and not rule.noCount and 1 or 0, K.Safe.Side(applications)
+		local alpha, counted = (cfg.showCount or rule.count) and not rule.noCount and 1 or 0, K.Safe.Side(applications)
 		if counted.alpha ~= alpha then
 			counted.alpha = alpha
 			applications:SetAlpha(alpha)
@@ -97,11 +108,13 @@ function Reskin.Buff(item)
 	end
 	local icon, side, grey = item.Icon, K.Safe.Side(item), false
 	if not IsTexture(icon) then return end
-	if (rule.grey and "grey" or rule.colour and "colour" or cfg.inactiveShade) == "grey" then
+	local shade = rule.grey and "grey" or rule.colour and "colour" or cfg.inactiveShade
+	if shade == "grey" or rule.activeGlow or side.glowing then
 		local ok, on = false, nil
 		if type(item.IsActive) == "function" then ok, on = pcall(item.IsActive, item) end
 		if not ok or ns.IsSecret(on) then return end
-		grey = on ~= true
+		grey = shade == "grey" and on ~= true
+		Glow(item, side, rule.activeGlow and on == true or false, rule.activeGlow)
 	end
 	if grey ~= (side.greyed or false) then
 		side.greyed = grey or nil
@@ -160,7 +173,7 @@ local function Toggle(cooldown, group, method, key, off, native)
 end
 
 local function SkinIcon(group, item)
-	local cfg, current = Settings.current[group], Settings.current
+	local cfg, current, rule = Settings.current[group], Settings.current, Rules.ForSpell(Spell(item))
 	local scale = ItemScale(item)
 	local icon = item.Icon
 	if IsTexture(icon) then
@@ -193,6 +206,7 @@ local function SkinIcon(group, item)
 		if group ~= "buffs" then Toggle(cooldown, group, "SetDrawEdge", "edge", false, item.cooldownShowDrawEdge) end
 		local text = cooldown:GetCountdownFontString()
 		Text(text, current.timerFont, cfg.timerSize / scale, current.timerOutline, group ~= "essential" and "timer" or nil)
+		if text and rule.timerColour then Style.TextColour(text, rule.timerColour, "textEmphasis") end
 		Style.Countdown(cooldown, group == "essential")
 		if text and (group == "essential" or group == "buffs") then
 			if group == "buffs" then
@@ -209,7 +223,7 @@ local function SkinIcon(group, item)
 		end
 	end
 	local charges = type(item.ChargeCount) == "table" and item.ChargeCount.Current
-	local x, y, shown = cfg.countX / scale, cfg.countY / scale, cfg.showCount
+	local x, y, shown = cfg.countX / scale, cfg.countY / scale, ((cfg.showCount or rule.count) and not rule.noCount) == true
 	Text(charges, current.countFont, cfg.countSize / scale, current.countOutline, nil, shown)
 	Native(charges, item, x ~= 0 or y ~= 0, x, y)
 	local applications = type(item.Applications) == "table" and item.Applications.Applications
@@ -324,6 +338,7 @@ end
 
 local function Restore(_, item)
 	local side = K.Safe.Side(item)
+	Glow(item, side, false)
 	if side.greyed and IsTexture(item.Icon) then
 		side.greyed = nil
 		item.Icon:SetDesaturated(false)
