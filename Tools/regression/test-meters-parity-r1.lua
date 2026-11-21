@@ -249,7 +249,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		for _, layout in ipairs({ "DPS", "Tank", "Healer" }) do
 			local e, k, n = M.New({ width = screen[1], height = screen[2], followRole = true,
 				saved = { version = 42, account = { setupSeen = true }, profiles = { Default = { HudStyle = { style = style },
-					Meters = { timer = { shown = true }, history = { icons = true, bars = true } } } } },
+					Meters = { timer = { shown = true }, history = { icons = true, bars = true }, damage2 = { shown = true } } } } },
 				setup = function(x) x._fitScale, x._size = true, "auto" end })
 			assert(k.Setup.Apply({ layout = layout, modules = { Meters = true } }))
 			e.RunTimers()
@@ -257,7 +257,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			local preset = k.Store.Module("Layout").preset
 			local places, enabled = layouts.Positions(preset, style, k.Scale.Aspect()), layouts.Enabled(preset)
 			local mine = {}
-			for name, holder in pairs({ timer = n.Timer.holder, icons = n.History.holder, bars = n.History.list.holder }) do
+			for name, holder in pairs({ timer = n.Timer.holder, icons = n.History.holder, bars = n.History.list.holder, second = n.Damage2.holder }) do
 				mine[name] = assert(Geometry.Rect(holder, r0))
 			end
 			for p, lhs in pairs(mine) do

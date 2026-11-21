@@ -1,4 +1,4 @@
--- parity_combat_options.lua: the real scoped Options page and its live preview, selected with RENDER_PARITY_MODULE; RENDER_PARITY_ENABLED=1 switches on round one's options, 2 the round two options (Auras, Cooldowns).
+-- parity_combat_options.lua: the real scoped Options page and its live preview, selected with RENDER_PARITY_MODULE; RENDER_PARITY_ENABLED=1 switches on round one's options, 2 the round two options (Auras, Cooldowns) and 3 the Meters round two options.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -29,7 +29,7 @@ return Common.Run(function()
  if not K.Modules.IsRunning(module) then K.Modules.Enable(module) end
  env.RunTimers()
  local enabled = os.getenv("RENDER_PARITY_ENABLED")
- if enabled == "1" or enabled == "2" then
+ if enabled == "1" or enabled == "2" or enabled == "3" then
   local values = {
    Auras2 = { ["extraBuffs.enabled"] = true, ["extraDebuffs.enabled"] = true, ["buffs.glow"] = true, ["debuffs.glow"] = true,
     ["timer.position"] = "TOPRIGHT", ["debuffs.typeIcon"] = "BOTTOM" },
@@ -42,8 +42,9 @@ return Common.Run(function()
    Meters = { ["damage.refresh"] = 0.2, ["damage.hoverSpells"] = 8, ["damage.hideRank"] = true, ["damage.iconZoom"] = 0.2, ["damage.spellTooltips"] = true,
     ["damage.panelAlpha"] = 0.6, ["damage.capAlpha"] = 0.8, ["damage.headerHeight"] = 4, ["damage.titleX"] = 6, ["damage.resetButton"] = true, ["damage.nameScale"] = 0.9,
     ["damage.valueScale"] = 1.1, ["damage.playerMarker"] = true, ["timer.shown"] = true, ["timer.decimal"] = true, ["history.icons"] = true, ["history.bars"] = true },
+   Meters3 = { ["damage2.shown"] = true, ["damage.report"] = true, ["damage.resetButton"] = true, ["damage.englishUnits"] = false },
   }
-  for key, value in pairs(values[enabled == "2" and module .. "2" or module]) do K.Options.Write(module, key, value) end
+  for key, value in pairs(values[enabled == "1" and module or module .. enabled]) do K.Options.Write(module, key, value) end
  end
  assert(K.Options.Open(module))
  settle()

@@ -4,7 +4,7 @@ local _, ns = ...
 local K = KstyleUI
 local MODULE = ns.MODULE
 
-local parts = { ns.Damage, ns.Threat, ns.Swing, ns.Timer, ns.History }
+local parts = { ns.Damage, ns.Damage2, ns.Threat, ns.Swing, ns.Timer, ns.History }
 local watchers = {}
 local running = false
 
