@@ -14,8 +14,10 @@ return Common.Run(function()
 	if os.getenv("RENDER_PARITY_R3C") == "1" and module == "UnitFrames" then
 		local target, me = env._units.target, env._units.player
 		target.absorb, target.overshield, me.absorb = math.floor(target.healthMax * 0.3), true, math.floor(me.healthMax * 0.1)
+		me.class, me.powerType, me.powerToken, me.power, me.powerMax = "DRUID", 3, "ENERGY", 60, 100
+		me.powers, me.powerMaxes, env._comboPoints = { [0] = 3800, [3] = 60 }, { [0] = 5000, [3] = 100 }, 3
 		env.GetUnitTotalModifiedMaxHealthPercent = function(unit) return unit == "player" and 0.15 or 0 end
-		env.C_Spell.GetSpellPowerCost = function() return { { type = me.powerType or 0, cost = math.floor((me.powerMax or 100) * 0.25) } } end
+		env.C_Spell.GetSpellPowerCost = function() return { { type = 0, cost = 1250 } } end
 		K.Options.Get(module)
 		for _, pair in ipairs({
 			{ "player.powerAbove", true }, { "player.powerTextAlign", "CENTER" }, { "player.powerTextColor", "power" },
@@ -23,9 +25,12 @@ return Common.Run(function()
 			{ "target.healthHeight", 28 }, { "target.absorbPlacement", "END" }, { "target.absorbGlow", true }, { "target.absorbBar", "TOP" },
 			{ "target.fonts.name.x", 6 }, { "player.extra1.textFormat", "[c:ffb347][level][/c] [name]" }, { "player.extra1.position", "BOTTOMLEFT" },
 			{ "player.extra1.y", -16 }, { "player.extra1.width", 60 }, { "pet.healthHeight", 9 },
+			{ "player.powerMana", true }, { "player.manaSpark", true }, { "resource.manaText", "percent" },
 		}) do
 			K.Options.Write(module, pair[1], pair[2])
 		end
+		env.FireEvent("UNIT_DISPLAYPOWER", "player")
+		env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-0", 116)
 		env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116)
 	end
 	if os.getenv("RENDER_EXTRA_TEXT") == "1" then
