@@ -649,7 +649,7 @@ function ns.Preview(...)
 			if not second then return end
 			second.frame:SetShown(s.second == true)
 			if not s.second then return end
-			local rail = setmetatable({ placement = "rail", menus = false, railModules = s.secondModules }, { __index = s })
+			local rail = Strip.SecondSettings(s)
 			second.paintColor = nil
 			second.frame:SetScale(scale)
 			second.frame:SetSize(available / scale, Strip.LINE)

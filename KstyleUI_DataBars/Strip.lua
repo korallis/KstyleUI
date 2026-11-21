@@ -1227,6 +1227,7 @@ local function SecondSettings(s)
 	secondSettings.railModules = s.secondModules
 	return secondSettings
 end
+Strip.SecondSettings = SecondSettings
 
 function Strip.Update(only)
 	if not running then return end
