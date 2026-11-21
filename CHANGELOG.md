@@ -34,6 +34,7 @@ Highlights:
 - Layout Mode and interface-size changes no longer raise a forbidden-object error from aura icons on locked nameplates.
 - Closing or using the world map in combat no longer raises a blocked-action error from KstyleUI Skins.
 - The Zygor skin no longer drops frame rate out of combat by re-placing the guide every frame, and its text no longer jitters.
+- Cooldown rows no longer raise a secret-value error when their count or keybind text is restyled.
 
 ### Upgrading
 
