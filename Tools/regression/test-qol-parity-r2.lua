@@ -45,15 +45,29 @@ local function stand(env)
 	env.InCinematic = function() return true end
 	env.MovieFrame.CloseDialog = frame(nil, env.MovieFrame)
 	env.MovieFrame.CloseDialog:Hide()
-	frame("ClassTrainerFrame")
-	frame("ClassTrainerTrainButton", env.ClassTrainerFrame)
+	-- As Blizzard_FrameXML/MovieFrame.lua: Escape (the game menu binding), Space and Enter all open the movie's prompt.
+	env.GetBindingFromClick = function(key) return key == "ESCAPE" and "TOGGLEGAMEMENU" or nil end
+	env.MovieFrame:SetScript("OnKeyUp", function(self, key)
+		if key == "SPACE" or key == "ENTER" or env.GetBindingFromClick(key) == "TOGGLEGAMEMENU" then self.CloseDialog:Show() end
+	end)
+	-- Blizzard_TrainerUI.xml: a 338 by 424 ButtonFrameTemplate whose 80-wide Train button sits at its bottom right.
+	frame("ClassTrainerFrame"):SetSize(338, 424)
+	env.ClassTrainerFrame:SetPoint("CENTER")
+	frame("ClassTrainerTrainButton", env.ClassTrainerFrame):SetSize(80, 22)
+	env.ClassTrainerTrainButton:SetPoint("BOTTOMRIGHT")
+	env.Enum = env.Enum or {}
+	env.Enum.TrainerType = { General = 0, TalentsObsolete = 1, Tradeskills = 2, Pet = 3 }
+	env._trainer = 0
+	env.C_Trainer = { GetTrainerType = function() return env._trainer end }
 	env._services = { { "available", 100 }, { "unavailable", 10 }, { "available", 99999 }, { "used", 0 }, { "available", 50 } }
 	env.GetNumTrainerServices = function() return #env._services end
 	env.GetTrainerServiceInfo = function(i) return "Skill " .. i, env._services[i][1] end
 	env.GetTrainerServiceCost = function(i) return env._services[i][2] end
 	env.BuyTrainerService = record(env, "BuyTrainerService")
 	env.NUM_BAG_SLOTS = 4
-	env._bags = { [0] = { { itemID = 5, hasLoot = false, stackCount = 1 }, { itemID = 7, hasLoot = true, stackCount = 2 } }, [1] = { { itemID = 9, hasLoot = true, stackCount = 1 } } }
+	env._bags = { [0] = { { itemID = 5, hasLoot = false, stackCount = 1, isLocked = false }, { itemID = 7, hasLoot = true, stackCount = 2, isLocked = false } },
+		[1] = { { itemID = 9, hasLoot = true, stackCount = 1, isLocked = false } } }
+	env.C_Item.IsItemBindToAccount = function() return false end
 	env.C_Container = {
 		GetContainerNumSlots = function() return 4 end,
 		GetContainerItemInfo = function(bag, slot) return env._bags[bag] and env._bags[bag][slot] end,
@@ -65,17 +79,19 @@ local function stand(env)
 	env.C_GossipInfo.GetOptions = function() return env._options or {} end
 	local gossip = frame("GossipFrame")
 	gossip.SelectGossipOption = record(env, "SelectGossipOption")
+	gossip:Hide()
 	local popup = frame("StaticPopup1")
 	popup.button = env.CreateFrame("Button", nil, popup)
 	popup.GetButton1 = function() return popup.button end
 	popup.button.Click = record(env, "PopupClick")
 	popup:Hide()
 	env.StaticPopup_Show = function() popup:Show() end
+	env.StaticPopup_OnHide = function() end
 end
 
-local function boot(settings)
+local function boot(settings, size)
 	local saved = { version = 42, profiles = { Default = { QoL = settings or { enabled = true } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
-	local env, K, ns = Q.New({ saved = saved, setup = stand })
+	local env, K, ns = Q.New({ saved = saved, setup = stand, width = size and size[1], height = size and size[2] })
 	if not K.Modules.IsRunning("QoL") then Q.Enable(env, K) end
 	env.RunTimers()
 	return env, K, ns
@@ -354,8 +370,12 @@ do
 	assert(#Q.Calls(env, "FinishMovie") == 0, "movies follow Skip which")
 	Q.Write(env, K, "skipMode", "both")
 	env.MovieFrame:Show()
-	env.MovieFrame.CloseDialog:Show()
-	assert(#Q.Calls(env, "FinishMovie") == 1, "a movie's prompt is answered")
+	local key = env.MovieFrame:GetScript("OnKeyUp")
+	key(env.MovieFrame, "SPACE")
+	assert(env.MovieFrame.CloseDialog:IsShown() and #Q.Calls(env, "FinishMovie") == 0, "Space and Enter leave the movie's prompt to the player")
+	env.MovieFrame.CloseDialog:Hide()
+	key(env.MovieFrame, "ESCAPE")
+	assert(#Q.Calls(env, "FinishMovie") == 1, "Escape's movie prompt is answered")
 	Q.Write(env, K, "skipAuto", true)
 	env.CinematicFrame.closeDialog:Hide()
 	env.CinematicFrame.closeDialog:Show()
@@ -455,7 +475,7 @@ do
 	assert(select(4, preview.dot:GetVertexColor()) < 0.7 * 0.5, "the dot is dimmed while off")
 	for key, value in pairs({ rollsClose = 3, skipAuto = false, cursorTexture = "ringBevel", cursorDot = true, cursorHidden = true, cursorTrail = true, castRing = true, castSpark = false,
 		castAttach = false, autoLogDelay = true, stats = true, statsValue = "both", statsColored = true, statsShort = true, statsScale = 120, dialogKeys = true, numberKeys = true,
-		confirmPopups = true, hideToasts = "both", trainAll = true, autoOpen = true, openSkipWarbound = false, autoUnwrap = true }) do
+		confirmPopups = true, hideToasts = "both", trainAll = true, autoOpen = true, openSkipWarbound = false, autoUnwrap = true, crosshairX = 120, crosshairY = 90 }) do
 		assert(K.Options.Row("QoL", key), key .. " has a row")
 		Q.Write(env, K, key, value)
 	end
@@ -464,7 +484,8 @@ do
 	assert(preview.stats:GetAlpha() == 1 and shows(preview.stats.lines[1]):find("Crit|r", 1, true), "the preview follows the stats settings")
 	assert(preview.ring:GetTexture():find("RingBevel", 1, true) and last(preview.cast, "SetSwipeTexture")[1]:find("RingBevel", 1, true), "both rings take the style")
 	assert(last(preview.cast, "SetDrawEdge")[1] == false and preview.trail[1]:IsShown(), "spark and trail follow")
-	assert(select(4, preview.cast:GetPoint(1)) == select(4, preview.cross:GetPoint(1)), "off the pointer, the cast circle sits on the crosshair")
+	local dx, dy = select(4, preview.cast:GetPoint(1)) - select(4, preview.cross:GetPoint(1)), select(5, preview.cast:GetPoint(1)) - select(5, preview.cross:GetPoint(1))
+	assert(math.abs(dx + 120) < 1 and math.abs(dy + 90) < 1, "off the pointer, the cast circle sits at the screen centre, not on a moved crosshair: " .. dx .. ", " .. dy)
 	Q.Write(env, K, "castAttach", true)
 	preview:Refresh()
 	assert(select(4, preview.cast:GetPoint(1)) == select(4, preview.ring:GetPoint(1)), "on the pointer, it rings the ring")
@@ -476,6 +497,185 @@ do
 	for _, region in ipairs({ preview.cross, preview.ring, preview.cast }) do
 		assert(right <= (span(region)) + 1e-6, "the stats sample sits left of the cursor aids")
 	end
+	clean(env, K)
+end
+
+-- Review of 8a31bbed: the game's own confirmations and combat rules stay, unknown answers refuse, keys and timers follow their windows, and stats read as the character sheet does.
+do
+	local env, K, ns = boot()
+	Q.Write(env, K, "dialogKeys", true)
+	Q.Write(env, K, "numberKeys", true)
+	env._quest.money = 10000
+	env.FireEvent("QUEST_COMPLETE")
+	assert(press(env, ns, "SPACE") == true and press(env, ns, "1") == true and #Q.Calls(env, "GetQuestReward") == 0, "a quest that takes money is left to the game's confirmation")
+	clean(env, K)
+end
+
+do
+	local env, K = boot()
+	env._repair.money = 1000
+	env._services = { { "available", 100 } }
+	env.GetTrainerServiceCost = function() return 100, true end
+	Q.Write(env, K, "trainAll", true)
+	env.FireEvent("TRAINER_SHOW")
+	env.RunTimers()
+	local button = select(2, env.ClassTrainerFrame:GetChildren())
+	Q.W.Click(button)
+	assert(#Q.Calls(env, "BuyTrainerService") == 0, "a new profession is left to the trainer's confirmation")
+	env.GetTrainerServiceCost = function() return 100 end
+	env._trainer = env.Enum.TrainerType.Pet
+	env.FireEvent("TRAINER_SHOW")
+	env.RunTimers()
+	Q.W.Click(button)
+	assert(not button:IsShown() and #Q.Calls(env, "BuyTrainerService") == 0, "pet training, priced in training points, is left to the trainer")
+	env.C_Trainer = nil
+	env.FireEvent("TRAINER_SHOW")
+	env.RunTimers()
+	Q.W.Click(button)
+	assert(not button:IsShown() and #Q.Calls(env, "BuyTrainerService") == 0, "an unknown trainer trains nothing")
+	clean(env, K)
+end
+
+-- Train all fits between the money and the Train button at every screen size (money frame right edge: Blizzard_TrainerUI.xml, MoneyBg 5 + 148, then 8).
+for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local env, K = boot({ enabled = true, trainAll = true }, size)
+	env.FireEvent("TRAINER_SHOW")
+	env.RunTimers()
+	local frame, button = env.ClassTrainerFrame, select(2, env.ClassTrainerFrame:GetChildren())
+	local left, right = button:GetLeft() - frame:GetLeft(), button:GetRight() - frame:GetLeft()
+	assert(button:IsShown() and left >= 161 and right <= frame:GetWidth() - 80, size[1] .. "x" .. size[2] .. ": Train all spans " .. left .. " to " .. right)
+	clean(env, K)
+end
+
+do
+	local env, K, ns = boot()
+	env.SetCombat(true)
+	Q.Write(env, K, "dialogKeys", true)
+	assert(last(ns.KeyCatcher(), "EnableKeyboard") == nil, "a catcher made in combat makes no protected call")
+	env.SetCombat(false)
+	clean(env, K)
+end
+
+do
+	local env, K, ns = boot()
+	Q.Write(env, K, "confirmPopups", true)
+	local catcher, popup = ns.KeyCatcher(), env.StaticPopup1
+	env.StaticPopup_Show("CONFIRM")
+	popup:Hide()
+	env.StaticPopup_OnHide(popup)
+	assert(not keyboard(catcher), "a popup closed with the mouse gives the keyboard back")
+	popup.button:Disable()
+	env.StaticPopup_Show("CONFIRM")
+	popup.button:Enable()
+	assert(keyboard(catcher) and press(env, ns, "SPACE") == false and #Q.Calls(env, "PopupClick") == 1, "a popup whose button enables later still takes Space")
+	popup.button.Click = function() popup:Hide(); env.StaticPopup_OnHide(popup) end
+	env.StaticPopup_Show("CONFIRM")
+	assert(press(env, ns, "SPACE") == false and not keyboard(catcher), "the Space that closes a popup is used up")
+	Q.Write(env, K, "confirmPopups", false)
+	env.QuestFrameDetailPanel = env.CreateFrame("Frame", "QuestFrameDetailPanel", env.UIParent)
+	env.FireEvent("QUEST_DETAIL")
+	Q.Write(env, K, "dialogKeys", true)
+	assert(keyboard(catcher) and press(env, ns, "SPACE") == false and #Q.Calls(env, "AcceptQuest") == 1, "a quest window open before the switch turns on takes Space")
+	clean(env, K)
+end
+
+do
+	local env, K = boot()
+	env.C_Item.IsItemBindToAccount = nil
+	Q.Write(env, K, "autoOpen", true)
+	assert(#Q.Calls(env, "UseContainerItem") == 0, "with no way to tell warbound containers, Leave warbound containers opens nothing")
+	env.C_Item.IsItemBindToAccount = function() return env.Secret(false) end
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	assert(#Q.Calls(env, "UseContainerItem") == 0, "nor with a secret answer")
+	env.C_Item.IsItemBindToAccount = function() return false end
+	env._bags[0][2].isLocked = env.Secret(false)
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	local used = Q.Calls(env, "UseContainerItem")
+	assert(#used == 1 and used[1][1] == 1, "a container whose lock is unknown is passed over")
+	clean(env, K)
+end
+
+do
+	local env, K = boot()
+	env.GuildBankFrame = env.CreateFrame("Frame", nil, env.UIParent)
+	Q.Write(env, K, "autoOpen", true)
+	assert(#Q.Calls(env, "UseContainerItem") == 0, "nothing opens at the guild bank")
+	env.GuildBankFrame:Hide()
+	env.FireEvent("GUILDBANKFRAME_CLOSED")
+	assert(#Q.Calls(env, "UseContainerItem") == 1, "closing the guild bank opens the next container")
+	clean(env, K)
+end
+
+do
+	local env, K = boot()
+	Q.Write(env, K, "autoLog", true)
+	Q.Write(env, K, "autoLogWhere", "party")
+	Q.Write(env, K, "autoLogDelay", true)
+	env._instance = { true, "party" }
+	env.FireEvent("PLAYER_ENTERING_WORLD")
+	env._instance = { false, "none" }
+	env.FireEvent("ZONE_CHANGED_NEW_AREA")
+	local deadline = env._held[#env._held]
+	env.FireEvent("ZONE_CHANGED_NEW_AREA")
+	Q.Write(env, K, "autoUnwrap", true)
+	deadline()
+	assert(env._logging == false, "another zone change or setting keeps the first 30-second deadline")
+	Q.Write(env, K, "rollsClose", 5)
+	env.GroupLootHistoryFrame:Show()
+	Q.Write(env, K, "rollsClose", 10)
+	env.Release()
+	assert(not env.GroupLootHistoryFrame:IsShown(), "a new delay restarts the wait for an open loot rolls window")
+	env.C_MountJournal = nil
+	env.FireEvent("NEW_MOUNT_ADDED", 55)
+	assert(#Q.Calls(env, "ToyFanfare") == 0, "a mount id never reaches the toy box")
+	clean(env, K)
+end
+
+do
+	local env, K, ns = boot()
+	env.GetSpellBonusDamage = function(school) return school == 2 and 500 or 125 end
+	local reads = 0
+	env.GetCombatRating = function(i) reads = reads + 1; return i * 10 end
+	Q.Write(env, K, "stats", true)
+	local line = ns.StatsFrame().lines[4]
+	assert(shows(line):find("125|r", 1, true), "spell power is the lowest school, as the character sheet shows it: " .. shows(line))
+	reads = 0
+	env.FireEvent("UNIT_AURA", "player")
+	assert(reads == 0, "percent mode reads no ratings")
+	env.GetSpellBonusDamage = function(school) return school == 3 and env.Secret(1) or 125 end
+	env.FireEvent("UNIT_AURA", "player")
+	assert(shows(line) == "", "a restricted school leaves spell power blank rather than wrong")
+	clean(env, K)
+end
+
+do
+	local env, K, ns = boot({ enabled = true, cursorRing = true, castRing = true })
+	local _, ring = ns.AidFrames()
+	local dot = ring.trail[1]
+	local function visibility(from)
+		local n = 0
+		for i = from + 1, #dot._calls do
+			local method = dot._calls[i].method
+			if method == "Hide" or method == "Show" or method == "SetShown" then n = n + 1 end
+		end
+		return n
+	end
+	local before = #dot._calls
+	env.FireEvent("UNIT_SPELLCAST_DELAYED", "player")
+	env.FireEvent("UNIT_SPELLCAST_DELAYED", "player")
+	assert(visibility(before) == 0, "a cast event leaves the hidden trail alone")
+	Q.Write(env, K, "cursorTrail", true)
+	local follow = ring:GetScript("OnUpdate")
+	env._cursor = { 100, 100 }
+	follow(ring, 0)
+	env._cursor = { 160, 130 }
+	follow(ring, 0)
+	before = #dot._calls
+	env._cursor = { 220, 160 }
+	follow(ring, 0)
+	assert(dot:IsShown() and visibility(before) == 0, "a shown trail dot is not shown again on each move")
+	env.FireEvent("UNIT_SPELLCAST_DELAYED", "player")
+	assert(dot:IsShown(), "a cast event keeps the trail")
 	clean(env, K)
 end
 
