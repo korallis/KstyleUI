@@ -1,4 +1,4 @@
--- aura_fixture_engine.lua: native aura filtering, sorting, binding and flow layout at the test boundary; fixtures stay outside addon Lua.
+-- aura_fixture_engine.lua: native aura filtering, sorting, binding, dispel edges (aura.dispel, aura.stealable) and flow layout at the test boundary; fixtures stay outside addon Lua.
 local Engine = {}
 
 local function Matches(aura, filter)
@@ -56,6 +56,16 @@ function Engine.Refresh(env)
 					if bindings.SetApplicationCount then bindings.SetApplicationCount[1]:SetText(env.Secret(aura.count or "")) end
 					if bindings.SetDurationCooldown then bindings.SetDurationCooldown[1]:SetCooldown(env._time - 4, aura.left + 4) end
 					if bindings.AddPandemicRegion then bindings.AddPandemicRegion[1]:SetShown(aura.pandemic == true) end
+					local o = bindings.dispelOptions
+					if o and (aura.dispel or bindings.dispelShown) then
+						local show = aura.dispel ~= nil and (aura.harmful and o.showWhenHarmful or not aura.harmful and o.showWhenHelpful)
+							and (o.stealableFilter == nil or aura.stealable) and true or false
+						for _, texture in ipairs(bindings.dispel) do
+							texture:SetShown(show)
+							if show then texture:SetVertexColor(0.2, 0.6, 1) end
+						end
+						bindings.dispelShown = show
+					end
 				end
 			end
 			if count > 0 then
