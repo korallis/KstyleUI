@@ -1,4 +1,4 @@
--- Auras.lua: frame auras on the AuraContainer engine, sorted by the engine (yours, then priority, then time left), capped at rows by columns with a "+N" overflow chip one tile tall (over the last tile, or after it where timers sit under the tiles, so no aura's timer sits under the count), each timer under its tile or in a corner badge (a centred block of debuffs and buffs is two rows, so its timers take badges), with aura buttons touched only while C_Secrets.ShouldAurasBeSecret says aura data is readable.
+-- Auras.lua: frame auras on the AuraContainer engine, sorted by the engine (yours, then priority, then time left), capped at rows by columns with a "+N" overflow chip one tile tall (over the last tile, or after it where timers sit under the tiles, so no aura's timer sits under the count), each timer under its tile or in a corner badge (the target's centred block of debuffs and buffs is two rows, so its timers take badges), with aura buttons touched only while C_Secrets.ShouldAurasBeSecret says aura data is readable.
 local _, ns = ...
 
 local K = KstyleUI
@@ -242,17 +242,13 @@ local function Centred(kind)
 	return position ~= nil and position.centred == true
 end
 
-local function Groups(kind)
-	local filter = FILTERS[Settings.Value(kind, "auraFilter")] or FILTERS.mine
-	return filter.debuffs and filter.buffs and 2 or 1
-end
-
 local function TimerBelow(kind)
 	if Settings.AuraRows(kind) then return Settings.Value(kind, "auraTimer") == true end
 	local position = POSITION[Settings.Value(kind, "auraPosition")]
 	local centred = Centred(kind)
 	local below = centred or position ~= nil and position.below == true
-	return below and Settings.Value(kind, "auraTimer") == true and Settings.Value(kind, "auraRows") * (centred and Groups(kind) or 1) == 1
+	return below and Settings.Value(kind, "auraTimer") == true and Settings.Value(kind, "auraRows") == 1
+		and not (centred and kind == "target" and Settings.Value(kind, "auraFilter") == "both")
 end
 
 local function TimerRoom(kind)
@@ -885,7 +881,7 @@ function Auras.Footprint(kind, frame)
 		size, spacing, across = Widgets.Snap(frame, size), Widgets.Snap(frame, spacing), Widgets.Snap(frame, across)
 	end
 	local columns = Settings.Value(kind, "auraColumns")
-	local rows = Settings.Value(kind, "auraRows") * Groups(kind)
+	local rows = Settings.Value(kind, "auraRows") * (Settings.Value(kind, "auraFilter") == "both" and 2 or 1)
 	local line = size
 	for _ = 2, columns do
 		line = line + across + size

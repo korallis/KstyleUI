@@ -26,7 +26,6 @@ Reach.Populate = function(env)
 			button:ClearAllPoints()
 			button:SetSize(w, h)
 			button:SetPoint(corner, c, corner, dx * col * (w + gap), dy * (offset + row * (h + line)))
-			button:Show()
 			button._aura.icon:SetTexture(env.Secret(key == "buffs" and 136207 or 135813))
 			button._aura.timer:SetText("30s")
 		end
