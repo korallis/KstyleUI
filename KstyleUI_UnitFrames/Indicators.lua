@@ -176,12 +176,10 @@ local TIMER_EM = 2.2
 
 local function Crossed(view, g, r, down)
 	local edge
-	for _, key in ipairs(LANES) do
-		local lane = g[key]
+	for i = 1, #LANES + 1 do
+		local lane = i > #LANES and view.barRect or g[LANES[i]]
 		if lane and lane.w > 0 and lane.h > 0 and Geometry.Overlaps(r, lane) then edge = down and math.max(edge or lane.y, lane.y + lane.h) or math.min(edge or lane.y, lane.y) end
 	end
-	local bar = view.barRect
-	if bar and Geometry.Overlaps(r, bar) then edge = down and math.max(edge or bar.y, bar.y + bar.h) or math.min(edge or bar.y, bar.y) end
 	return edge
 end
 

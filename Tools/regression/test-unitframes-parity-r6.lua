@@ -90,6 +90,17 @@ for key, call in pairs(before.player) do
 	assert(now[4] == call[4] and now[5] == call[5], key .. " returns to its exact place")
 end
 
+-- 2b. The text bar counts as the frame's text: a corner on its edge steps past it.
+for _, place in ipairs({ "BOTTOM", "TOP" }) do
+	write("player.textBar", true)
+	write("player.textBarPlace", place)
+	write("player.combatPlace", place .. "LEFT")
+	assert(player.barRect and not overlaps(rect(player.icons.combat), player.barRect), place .. ": the swords keep off the text bar")
+end
+write("player.combatPlace", "")
+write("player.textBarPlace", "BOTTOM")
+write("player.textBar", false)
+
 -- 3. Every corner on every frame and HUD style, and at the four test screens: placed icons never cross the frame's text
 -- and no two icons overlap, with the PvP timer's room beside the badge.
 local function sweep(e, k, n, label)
