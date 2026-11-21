@@ -185,6 +185,12 @@ do
 		env.RunTimers()
 	end
 	assert(resized == 0, string.format("an idle rail re-places the guide: %d Zygor resizes in 30 timer passes", resized))
+	-- Another module's scoped restyles reach the rail's region-less tracked Restyle; with nothing moved, none resizes Zygor.
+	for _ = 1, 30 do
+		K.Widgets.RestyleUnder({ [K.Scale.Root()] = true })
+		env.RunTimers()
+	end
+	assert(resized == 0, string.format("other modules' restyles re-place the guide: %d Zygor resizes", resized))
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 

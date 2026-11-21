@@ -220,6 +220,12 @@ local function Strayed(master, frame)
 	return Plain(width) and math.abs(width - placed.width) > MOVED
 end
 
+local vias = {}
+local function Via(name)
+	vias[name] = vias[name] or T("Schedule via " .. name, function() Schedule() end)
+	return vias[name]
+end
+
 function Schedule()
 	if state.queued or not On() then
 		return
@@ -284,13 +290,19 @@ function Place()
 		return false
 	end
 	state.why = nil
+	local scale = Widgets.ScaleFactor(master)
+	local resizeup = IsTable(z.db) and IsTable(z.db.profile) and z.db.profile.resizeup
+	local key = table.concat({ band.left, band.top, band.bottom, band.right, scale, tostring(resizeup), spec.key }, " ")
+	if state.placed and state.key == key and state.frame == frame then
+		Follow()
+		return true
+	end
+	state.key = key
 	Remember(master, frame)
 	Hold(true)
 	state.z, state.frame, state.master = z, frame, master
 	Holder(spec)
 	Register(spec)
-	local scale = Widgets.ScaleFactor(master)
-	local resizeup = IsTable(z.db) and IsTable(z.db.profile) and z.db.profile.resizeup
 	state.placed = {
 		left = band.left / scale + Origin(master),
 		top = band.top / scale,
@@ -315,7 +327,7 @@ end
 Place = T("Place", Place)
 
 function Restore()
-	state.placed = nil
+	state.placed, state.key = nil, nil
 	local z, master, frame, original = state.z, state.master, state.frame, state.original
 	Hold(false)
 	if not (z and master and frame) then
@@ -386,7 +398,7 @@ local function Patch(z)
 	end
 	if type(z.SetFrameScale) == "function" then
 		hooksecurefunc(z, "SetFrameScale", T("SetFrameScale", function()
-			Schedule()
+			Via("SetFrameScale")()
 		end))
 	end
 	if type(z.ApplySkin) == "function" then
@@ -732,30 +744,30 @@ local function Hook(z)
 			local live = Zygor()
 			local panel = live and state.saved and IsTable(live.Frame.Border) and K.Skin.Parts(live.Frame.Border).backdrop
 			if panel then Caption(live, panel) end
-			Schedule()
+			Via("ZGV_GUIDE_LOADED")()
 		end)
 		z:AddMessageHandler("ZGV_STEP_CHANGED", function()
 			local live = Zygor()
 			if live then Arrow(live) end
-			Schedule()
+			Via("ZGV_STEP_CHANGED")()
 		end)
 		z:AddMessageHandler("SKIN_UPDATED", function()
 			K.Combat.Queue(function()
 				local live = Zygor()
 				if live then Paint(live) end
-				Schedule()
+				Via("SKIN_UPDATED")()
 			end)
 		end)
 	end
-	K.Events.Register(OWNER, "PLAYER_ENTERING_WORLD", Schedule)
-	K.Callbacks.Register("LayoutChanged", OWNER, Schedule)
+	K.Events.Register(OWNER, "PLAYER_ENTERING_WORLD", Via("PLAYER_ENTERING_WORLD"))
+	K.Callbacks.Register("LayoutChanged", OWNER, Via("LayoutChanged"))
 	K.Callbacks.Register("SettingChanged", OWNER, function(_, module, key)
 		if module == "Layout" and key == "preset" then
-			Schedule()
+			Via("preset")()
 		end
 	end)
 	if not state.tracked then
-		state.tracked = { Restyle = Schedule }
+		state.tracked = { Restyle = Via("Restyle") }
 		Widgets.Track(state.tracked)
 	end
 end
@@ -774,7 +786,7 @@ ns.Guide.Add(KEY, {
 	Visible = function()
 		return Shown()
 	end,
-	Schedule = Schedule,
+	Schedule = function() Via("Guide")() end,
 })
 
 ns.Skins.Add({
