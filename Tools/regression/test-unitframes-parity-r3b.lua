@@ -171,6 +171,7 @@ assert(W.LastCall(leader, "SetSize")[1] == base and W.LastCall(pvp, "SetSize")[1
 write("player.combatSize", 22)
 assert(W.LastCall(player.icons.combat, "SetSize")[1] > base, "the swords take their own size")
 write("player.combatSize", 0)
+slot = W.LastCall(leader, "SetPoint")
 local x0, y0 = slot[4], slot[5]
 write("player.leaderX", 10)
 write("player.leaderY", -6)
@@ -265,8 +266,8 @@ env._pvpMs = nil
 env.RunTickers()
 assert(not timer:IsShown() and ticker.cancelled and player.pvpTicker == nil, "the timer hides and stops when the flag stays")
 env._pvpMs = 30000
-env.FireEvent("PLAYER_FLAGS_CHANGED", "player")
-assert(timer:IsShown(), "PLAYER_FLAGS_CHANGED starts it again")
+env.FireEvent("PVP_TIMER_UPDATE", "player")
+assert(timer:IsShown(), "PVP_TIMER_UPDATE starts it again")
 write("player.pvpTimer", false)
 assert(not timer:IsShown() and player.pvpTicker == nil, "off hides it and stops the ticker")
 env._pvpMs = nil
