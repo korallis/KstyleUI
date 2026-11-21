@@ -72,6 +72,11 @@ assert(not visible(player.icons.combat), "and hides after it")
 env._resting = true
 env.FireEvent("PLAYER_UPDATE_RESTING")
 assert(visible(player.icons.resting) and player.icons.resting:GetText() == "Zz", "resting shows Zz")
+-- Baine, 2026-11-21: in the icon's square "Zz" is wider than its box, so the game cut it to two dots.
+env._textWidth = function(text, _, size) return #text * size * 0.6 end
+local _, zzSize = player.icons.resting:GetFont()
+assert(not player.icons.resting:IsTruncated() and zzSize == player.icons.combat:GetHeight(), "the Zz is whole, as tall as the combat icon: " .. player.icons.resting:GetWidth() .. " wide, size " .. zzSize)
+env._textWidth = nil
 env._resting = false
 env.FireEvent("PLAYER_UPDATE_RESTING")
 assert(not visible(player.icons.resting), "not resting: no Zz")
