@@ -44,9 +44,9 @@ local function blizzardStack(env, gap, scale)
 	local p, rel, relp, x, y = point(env.ChatFrameChannelButton)
 	assert(p == "TOP" and rel == column and relp == "TOP" and x == 0 and y == 0, "channels at the column's top")
 	p, rel, relp, x, y = point(env.ChatFrameToggleVoiceDeafenButton)
-	assert(p == "TOP" and rel == env.ChatFrameChannelButton and relp == "BOTTOM" and near(y, -gap / scale), "deafen under channels, got " .. tostring(y))
+	assert(p == "TOP" and rel == env.ChatFrameChannelButton and relp == "BOTTOM" and x == 0 and near(y, -gap / scale), "deafen under channels, got " .. tostring(y))
 	p, rel, relp, x, y = point(env.ChatFrameToggleVoiceMuteButton)
-	assert(p == "TOP" and rel == env.ChatFrameToggleVoiceDeafenButton and near(y, -gap / scale), "mute under deafen")
+	assert(p == "TOP" and rel == env.ChatFrameToggleVoiceDeafenButton and relp == "BOTTOM" and x == 0 and near(y, -gap / scale), "mute under deafen")
 	p, rel, relp, x, y = point(env.ChatFrameMenuButton)
 	assert(p == "BOTTOM" and rel == column and relp == "BOTTOM" and x == 0 and y == 0, "the menu at the column's foot")
 end
@@ -141,9 +141,10 @@ do
 end
 
 -- Order, size, spacing and the column width: on stacks the buttons in the chosen order with the last at the foot,
--- off gives back the game's stack exactly.
+-- off gives back the game's stack exactly. The card is made tall enough for all five buttons at 1.5, as Layout Mode can.
 do
-	local env, K = boot()
+	local env, K, ns = boot()
+	ns.Panel.Holder():SetHeight(500)
 	local column = env.ChatFrame1.buttonFrame
 	write(env, K, "sideOrder", "menu,channels,voice")
 	local p, rel, relp = point(env.ChatFrameMenuButton)
@@ -222,7 +223,8 @@ end
 -- Free move: shift-drag out of combat saves a spot that follows the column; combat, a missing shift or the switch off
 -- refuse; off returns every button to the column and stops taking drags.
 do
-	local env, K = boot()
+	local env, K, ns = boot()
+	ns.Panel.Holder():SetHeight(500)
 	local column, menu = env.ChatFrame1.buttonFrame, env.ChatFrameMenuButton
 	assert(W.LastCall(menu, "RegisterForDrag") == nil, "no drag until free move is on")
 	write(env, K, "sideFree", true)
@@ -248,7 +250,8 @@ do
 	assert(p == "CENTER" and rel == column and relp == "TOPLEFT" and near(x, 40) and near(y, -25), "and the button stays there")
 	write(env, K, "sideScale", 2)
 	x, y = select(4, point(menu))
-	assert(near(x, 20) and near(y, -12.5), "a bigger button keeps the same spot on screen")
+	local grown = menu:GetScale()
+	assert(grown > 1 and near(x * grown, 40) and near(y * grown, -25), "a bigger button keeps the same spot on screen")
 	write(env, K, "sideScale", 1)
 	write(env, K, "sideFree", false)
 	blizzardStack(env, 2, 1)
@@ -397,7 +400,8 @@ end
 -- Finding 3: a restricted scale is left to the game instead of breaking the layout, and a drag without the combat
 -- check is refused.
 do
-	local env, K = boot({ enabled = true })
+	local env, K, ns = boot({ enabled = true })
+	ns.Panel.Holder():SetHeight(500)
 	local menu = env.ChatFrameMenuButton
 	menu.GetScale = function() return env.Secret(1) end
 	write(env, K, "buttons", true)

@@ -76,6 +76,7 @@ local HookHover, SideAlpha
 local mirrored = setmetatable({}, { __mode = "k" })
 local edits = setmetatable({}, { __mode = "k" })
 local busy = false
+local kept, dragged, held = {}, {}, {}
 
 local function Log(message)
 	K.DevTest.Log(ns.NAME, message)
@@ -133,6 +134,52 @@ local function Tile()
 	return Number(state.settings and state.settings.editHeight, EDIT_TILE)
 end
 
+local function Free(spots, name)
+	local spot = spots[name]
+	return type(spot) == "table" and type(spot.x) == "number" and type(spot.y) == "number" and spot or nil
+end
+
+local function Picks(s)
+	local spots = s.sideFree == true and type(s.sidePositions) == "table" and s.sidePositions or {}
+	local icons, ids, top, bottom, free = type(s.sideIcons) == "table" and s.sideIcons or {}, {}, {}, {}, {}
+	for id in tostring(s.sideOrder):gmatch("%a+") do
+		if ICONS[id] then ids[#ids + 1] = id end
+	end
+	for i, id in ipairs(ids) do
+		for _, name in ipairs(icons[id] ~= false and ICONS[id] or {}) do
+			local icon = _G[name]
+			if type(icon) == "table" and type(icon.SetScale) == "function" and icon:IsShown() then
+				local list = Free(spots, name) and free or i == #ids and bottom or top
+				list[#list + 1] = icon
+			end
+		end
+	end
+	return top, bottom, free, spots
+end
+
+local function Tall(frame)
+	local saved = kept[frame]
+	return Number(frame:GetHeight(), 0) * Ratio(frame, state.holder) * (saved and saved.scale / saved.set or 1)
+end
+
+local function Fit(s, chat, k, height, top, foot, cap)
+	local want = Number(s.sideScale, 1)
+	if want <= 1 then
+		return want
+	end
+	local above, below = Picks(s)
+	local tall, n, friends = 0, #above + #below, QuickJoinToastButton
+	for _, list in ipairs({ above, below }) do
+		for _, icon in ipairs(list) do tall = tall + Tall(icon) end
+	end
+	if s.sideScroll == true and type(chat.ScrollToBottomButton) == "table" then
+		tall, n = tall + Tall(chat.ScrollToBottomButton), n + 1
+	end
+	local lead = type(friends) == "table" and not (type(s.sideIcons) == "table" and s.sideIcons.friends == false) and Tall(friends) or 0
+	local room = height - foot - n * max(0, tonumber(s.sideSpacing) or 2) * k
+	return tall > 0 and max(1, min(want, (room - top) / tall, (room - cap) / (tall + lead))) or want
+end
+
 function Panel.Geometry(chat)
 	local k = Ratio(chat, state.holder)
 	local snap = Scale.Snap
@@ -170,7 +217,9 @@ function Panel.Geometry(chat)
 		spacing = fit / k
 	end
 	local s = state.settings
-	local side = s and s.buttons and max(SIDE_MIN, Number(s.sideWidth, SIDE_ROOM)) * k or 0
+	local scale = s and s.buttons and Fit(s, chat, k, Number(height, 0), top, foot, (s.tabsAbove and divider or 0) + pad) or 1
+	local room = s and max(SIDE_MIN * max(1, scale), Number(s.sideWidth, SIDE_ROOM)) or SIDE_ROOM
+	local side = s and s.buttons and room * k or 0
 	local right = s and s.sideRight and side > 0
 	local strip, apart = 0, 0
 	if side > 0 and (s.sideStyle == "glass" or s.sideStyle == "bare") then
@@ -189,6 +238,8 @@ function Panel.Geometry(chat)
 		near = right and 0 or apart,
 		far = right and apart or 0,
 		strip = strip,
+		room = room,
+		scale = scale,
 		bottom = foot,
 		divider = divider,
 		spacing = spacing,
@@ -564,7 +615,6 @@ local function PlaceEdit(frame, k, over, own)
 end
 
 local sideBase, sideSet = setmetatable({}, { __mode = "k" }), setmetatable({}, { __mode = "k" })
-local kept, dragged = {}, {}
 
 local function SideFrames()
 	local list = {}
@@ -573,40 +623,76 @@ local function SideFrames()
 			list[#list + 1] = frame
 		end
 	end
+	for _, window in ipairs(Windows.List()) do
+		if kept[window.ScrollToBottomButton] then list[#list + 1] = window.ScrollToBottomButton end
+	end
 	return list
 end
 
-function SideAlpha()
+local function SideRule()
 	local s = state.settings
 	local on = state.active and s ~= nil and s.buttons == true
-	local hide, factor = on and s.sideHover == true and not state.hover, on and IdleFactor() or 1
+	return on and s.sideHover == true and not state.hover, on and IdleFactor() or 1
+end
+
+local function SideSet(frame, hide, factor, column)
+	local alpha = frame:GetAlpha()
+	if not IsSecret(alpha) and alpha ~= sideSet[frame] then
+		sideBase[frame] = alpha
+	end
+	local scale = hide and 0 or (frame == column or frame:GetParent() == column) and 1 or factor
+	busy = true
+	if scale ~= 1 then
+		sideSet[frame] = (sideBase[frame] or 1) * scale
+		frame:SetAlpha(sideSet[frame])
+	elseif sideSet[frame] ~= nil then
+		frame:SetAlpha(sideBase[frame] or 1)
+		sideSet[frame] = nil
+	end
+	busy = false
+end
+
+function SideAlpha()
+	local hide, factor = SideRule()
 	if not hide and factor == 1 and next(sideSet) == nil then
 		return
 	end
 	local column = state.chat and state.chat.buttonFrame
 	for _, frame in ipairs(SideFrames()) do
-		local alpha = frame:GetAlpha()
-		if not IsSecret(alpha) and alpha ~= sideSet[frame] then
-			sideBase[frame] = alpha
-		end
-		local scale = hide and 0 or (frame == column or frame:GetParent() == column) and 1 or factor
-		if scale ~= 1 then
-			sideSet[frame] = (sideBase[frame] or 1) * scale
-			frame:SetAlpha(sideSet[frame])
-		elseif sideSet[frame] ~= nil then
-			frame:SetAlpha(sideBase[frame] or 1)
-			sideSet[frame] = nil
-		end
+		SideSet(frame, hide, factor, column)
+	end
+end
+
+local function Hold(button)
+	if not busy and kept[button] and sideSet[button] ~= nil then
+		SideSet(button, SideRule())
 	end
 end
 
 local function Keep(frame, width)
 	if not kept[frame] then
 		local saved = { scale = frame:GetScale(), width = width and frame:GetWidth() }
-		for i = 1, frame:GetNumPoints() do saved[i] = { frame:GetPoint(i) } end
+		local secret = IsSecret(saved.scale) or IsSecret(saved.width)
+		for i = 1, frame:GetNumPoints() do
+			saved[i] = { frame:GetPoint(i) }
+			for j = 1, 5 do secret = secret or IsSecret(saved[i][j]) end
+		end
+		if secret then
+			return nil
+		end
+		saved.set = saved.scale
 		kept[frame] = saved
 	end
 	return kept[frame]
+end
+
+local function Resize(frame, scale)
+	local saved = Keep(frame)
+	if saved and saved.set ~= saved.scale * scale then
+		saved.set = saved.scale * scale
+		frame:SetScale(saved.set)
+	end
+	return saved
 end
 
 local function Return(frame)
@@ -616,78 +702,76 @@ local function Return(frame)
 	for _, point in ipairs(saved) do frame:SetPoint(unpack(point)) end
 	frame:SetScale(saved.scale)
 	if saved.width then frame:SetWidth(saved.width) end
-	local window = frame:GetParent()
-	if type(window) == "table" and window.ScrollToBottomButton == frame and type(FCF_UpdateScrollbarAnchors) == "function" then
-		FCF_UpdateScrollbarAnchors(window)
+	if saved.bar then saved.bar[1]:SetPoint(unpack(saved.bar, 2)) end
+	if sideSet[frame] ~= nil then
+		frame:SetAlpha(sideBase[frame] or 1)
+		sideSet[frame] = nil
 	end
 end
 
-local function Release()
-	for frame in pairs(kept) do Return(frame) end
-	for icon in pairs(dragged) do icon:RegisterForDrag() end
-end
-
-local function Spot(icon, column, spots)
-	local spot = spots[icon:GetName()]
-	if type(spot) ~= "table" or type(spot.x) ~= "number" or type(spot.y) ~= "number" then
-		return false
-	end
+local function Spot(icon, column, spot)
 	local f = Number(column:GetEffectiveScale(), 1) / Number(icon:GetEffectiveScale(), 1)
 	icon:ClearAllPoints()
 	icon:SetPoint("CENTER", column, "TOPLEFT", spot.x * f, spot.y * f)
-	return true
+end
+
+local function Unpin(frame)
+	local bar, button = frame.ScrollBar, frame.ScrollToBottomButton
+	for i = 1, type(bar) == "table" and bar:GetNumPoints() or 0 do
+		local p, rel, relp, x, y = bar:GetPoint(i)
+		if not IsSecret(rel) and rel == button then
+			kept[button].bar = { bar, p, rel, relp, x, y }
+			bar:SetPoint(p, frame, "BOTTOMRIGHT", 0, 0)
+		end
+	end
 end
 
 local function Scrolls(column, on, scale)
 	for _, frame in ipairs(Windows.List()) do
 		local button = frame.ScrollToBottomButton
-		if type(button) == "table" and on and frame.isDocked then
-			button:SetScale(Keep(button).scale * scale)
+		if type(button) == "table" and on and frame.isDocked and Resize(button, scale) then
 			button:ClearAllPoints()
 			button:SetPoint("BOTTOM", column, "BOTTOM", 0, 0)
-			if type(frame.ScrollBar) == "table" then frame.ScrollBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMRIGHT", 0, 0) end
+			Unpin(frame)
+			if not held[button] then
+				held[button] = true
+				hooksecurefunc(button, "SetAlpha", Hold)
+			end
 		elseif kept[button] then
 			Return(button)
 		end
 	end
-	return on and state.chat.ScrollToBottomButton or nil
+	return on and kept[state.chat.ScrollToBottomButton] and state.chat.ScrollToBottomButton or nil
 end
 
-local function Stack(column, s, spots, scale)
+local function Stack(column, s, scale)
 	local gap = max(0, tonumber(s.sideSpacing) or 2) / scale
-	local icons, ids, top, bottom = type(s.sideIcons) == "table" and s.sideIcons or {}, {}, {}, {}
-	for id in tostring(s.sideOrder):gmatch("%a+") do
-		if ICONS[id] then ids[#ids + 1] = id end
-	end
-	for i, id in ipairs(ids) do
-		for _, name in ipairs(icons[id] ~= false and ICONS[id] or {}) do
-			local icon = _G[name]
-			if type(icon) == "table" and type(icon.SetScale) == "function" then
-				icon:SetScale(Keep(icon).scale * scale)
-				if not Spot(icon, column, spots) then
-					local list = i == #ids and bottom or top
-					list[#list + 1] = icon
-				end
-			end
-		end
+	local top, bottom, free, spots = Picks(s)
+	for _, icon in ipairs(free) do
+		if Resize(icon, scale) then Spot(icon, column, spots[icon:GetName()]) end
 	end
 	local above = column
 	for _, icon in ipairs(top) do
-		icon:ClearAllPoints()
-		icon:SetPoint("TOP", above, above == column and "TOP" or "BOTTOM", 0, above == column and 0 or -gap)
-		above = icon
+		if Resize(icon, scale) then
+			icon:ClearAllPoints()
+			icon:SetPoint("TOP", above, above == column and "TOP" or "BOTTOM", 0, above == column and 0 or -gap)
+			above = icon
+		end
 	end
 	local below = Scrolls(column, s.sideScroll == true, scale) or column
 	for i = #bottom, 1, -1 do
-		bottom[i]:ClearAllPoints()
-		bottom[i]:SetPoint("BOTTOM", below, below == column and "BOTTOM" or "TOP", 0, below == column and 0 or gap)
-		below = bottom[i]
+		local icon = bottom[i]
+		if Resize(icon, scale) then
+			icon:ClearAllPoints()
+			icon:SetPoint("BOTTOM", below, below == column and "BOTTOM" or "TOP", 0, below == column and 0 or gap)
+			below = icon
+		end
 	end
 end
 
 local function DragStart(icon)
 	local s = state.settings
-	if not state.active or not s or s.sideFree ~= true or InCombatLockdown() or type(IsShiftKeyDown) ~= "function" or not IsShiftKeyDown() then
+	if not state.active or not s or s.sideFree ~= true or type(InCombatLockdown) ~= "function" or InCombatLockdown() or type(IsShiftKeyDown) ~= "function" or not IsShiftKeyDown() then
 		return
 	end
 	state.moving = icon
@@ -721,15 +805,20 @@ end
 local function Draggable(on)
 	for _, name in ipairs({ "QuickJoinToastButton", "ChatFrameChannelButton", "ChatFrameToggleVoiceDeafenButton", "ChatFrameToggleVoiceMuteButton", "ChatFrameMenuButton" }) do
 		local icon = _G[name]
-		if type(icon) == "table" and type(icon.RegisterForDrag) == "function" and (on or dragged[icon]) then
-			if not dragged[icon] then
-				dragged[icon] = true
+		if type(icon) == "table" and type(icon.RegisterForDrag) == "function" and (dragged[icon] or false) ~= on then
+			if dragged[icon] == nil then
 				icon:HookScript("OnDragStart", DragStart)
 				icon:HookScript("OnDragStop", DragStop)
 			end
+			dragged[icon] = on
 			if on then icon:RegisterForDrag("LeftButton") else icon:RegisterForDrag() end
 		end
 	end
+end
+
+local function Release()
+	for frame in pairs(kept) do Return(frame) end
+	Draggable(false)
 end
 
 function Panel.Place()
@@ -767,28 +856,26 @@ function Panel.Place()
 	state.placing = false
 	state.waiting = false
 	local s = state.settings
-	if s.buttons and type(chat.buttonFrame) == "table" then
+	if s.buttons and type(chat.buttonFrame) == "table" and Keep(chat.buttonFrame, true) then
 		local column, friends, icons = chat.buttonFrame, QuickJoinToastButton, s.sideIcons
 		local side, x = s.sideRight and "RIGHT" or "LEFT", Scale.Snap(Pad()) / g.k
-		local scale, spots = Number(s.sideScale, 1), s.sideFree == true and type(s.sidePositions) == "table" and s.sidePositions or {}
 		local shown = type(friends) == "table" and not (type(icons) == "table" and icons.friends == false)
-		if type(friends) == "table" then friends:SetScale(Keep(friends).scale * scale) end
+		if type(friends) == "table" then Resize(friends, g.scale) end
 		local top = max(g.top / g.k, (s.tabsAbove and g.divider / g.k or 0) + x + (shown and Number(friends:GetHeight(), 0) * Ratio(friends, holder) / g.k or 0))
 		x = side == "RIGHT" and -x or x
-		Keep(column, true)
 		column:ClearAllPoints()
-		column:SetWidth(max(SIDE_MIN, Number(s.sideWidth, SIDE_ROOM)) - SIDE_ROOM + COLUMN_WIDTH)
+		column:SetWidth(g.room - SIDE_ROOM + COLUMN_WIDTH)
 		column:SetPoint("TOP" .. side, holder, "TOP" .. side, x, -top)
 		column:SetPoint("BOTTOM" .. side, holder, "BOTTOM" .. side, x, g.bottom / g.k)
 		for _, frame in ipairs({ ChatAlertFrame, friends }) do
-			if type(frame) == "table" then
-				Keep(frame)
+			if type(frame) == "table" and Keep(frame) then
 				frame:ClearAllPoints()
 				frame:SetPoint("BOTTOM", column, "TOP", 0, 0)
 			end
 		end
-		if type(friends) == "table" then Spot(friends, column, spots) end
-		Stack(column, s, spots, scale)
+		local spot = kept[friends] and s.sideFree == true and type(s.sidePositions) == "table" and Free(s.sidePositions, "QuickJoinToastButton")
+		if spot then Spot(friends, column, spot) end
+		Stack(column, s, g.scale)
 		Draggable(s.sideFree == true)
 		for _, frame in ipairs(SideFrames()) do
 			HookHover(frame)
@@ -1120,6 +1207,12 @@ local function Build()
 	return holder
 end
 
+local function Reflow()
+	if state.settings and state.settings.buttons then
+		Schedule()
+	end
+end
+
 local function Watch(chat)
 	if state.hooked or type(chat.SetPoint) ~= "function" then
 		return
@@ -1133,10 +1226,28 @@ local function Watch(chat)
 	end
 	if type(FCF_UpdateScrollbarAnchors) == "function" then
 		hooksecurefunc("FCF_UpdateScrollbarAnchors", function(frame)
-			if state.active and type(frame) == "table" and kept[frame.ScrollToBottomButton] and type(frame.ScrollBar) == "table" then
-				frame.ScrollBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMRIGHT", 0, 0)
+			local saved = type(frame) == "table" and kept[frame.ScrollToBottomButton]
+			if saved then
+				saved.bar = nil
+				Unpin(frame)
 			end
 		end)
+	end
+	if type(ChatAlertFrame) == "table" and type(ChatAlertFrame.UpdateAnchors) == "function" then
+		hooksecurefunc(ChatAlertFrame, "UpdateAnchors", function()
+			local s = state.settings
+			local spot = kept[QuickJoinToastButton] and s.sideFree == true and type(s.sidePositions) == "table" and Free(s.sidePositions, "QuickJoinToastButton")
+			if spot then Spot(QuickJoinToastButton, state.chat.buttonFrame, spot) end
+		end)
+	end
+	for _, names in pairs(ICONS) do
+		for _, name in ipairs(names) do
+			local icon = _G[name]
+			if type(icon) == "table" and type(icon.HookScript) == "function" then
+				icon:HookScript("OnShow", Reflow)
+				icon:HookScript("OnHide", Reflow)
+			end
+		end
 	end
 	if type(FCF_SavePositionAndDimensions) == "function" then
 		hooksecurefunc("FCF_SavePositionAndDimensions", function(frame)

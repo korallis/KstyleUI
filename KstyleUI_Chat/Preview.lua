@@ -16,6 +16,8 @@ function Preview.Build(...)
 	local CHEVRON = 8
 	local LINE_GAP = 3
 	local SLOT, TILE, GLYPH, SPARE = 32, 20, 8, 6
+	local MENU, FRIENDS = "ChatFrameMenuButton", "QuickJoinToastButton"
+	local NAMES = { channels = { "ChatFrameChannelButton" }, voice = { "ChatFrameToggleVoiceDeafenButton", "ChatFrameToggleVoiceMuteButton" }, menu = { MENU } }
 
 	local SAMPLES = {
 		{ event = "CHAT_MSG_GUILD", channel = "|Hchannel:GUILD|h[" .. L["Guild"] .. "]|h ", name = "Thargor", class = "WARRIOR", text = L["LFM tank for Razorfen Kraul"] },
@@ -62,9 +64,9 @@ function Preview.Build(...)
 			Widgets.Tint(tile.glyph, "text")
 			self.icons[n] = tile
 		end
-		tile.glyph:SetShown(kind == "menu" or kind == "scroll")
-		tile.glyph:SetTexture((Tokens.Texture(kind == "menu" and "glyphClose" or "glyphChevron")))
-		tile.glyph:SetRotation(kind == "menu" and math.pi / 4 or 0)
+		tile.glyph:SetShown(kind == MENU or kind == "scroll")
+		tile.glyph:SetTexture((Tokens.Texture(kind == MENU and "glyphClose" or "glyphChevron")))
+		tile.glyph:SetRotation(kind == MENU and math.pi / 4 or 0)
 		Widgets.Size(tile.glyph, GLYPH * scale, GLYPH * scale)
 		Widgets.Size(tile, TILE * scale, TILE * scale)
 		tile:SetAlpha(self.glass:GetAlpha())
@@ -77,12 +79,17 @@ function Preview.Build(...)
 		local pitch, edge = SLOT * scale + (tonumber(settings.sideSpacing) or 0), right and "RIGHT" or "LEFT"
 		local x = right and -cx or cx
 		if settings.buttons == true then
-			local icons, ids, top, bottom = settings.sideIcons or {}, {}, {}, {}
+			local icons, ids, top, bottom, free = settings.sideIcons or {}, {}, {}, {}, {}
+			local spots = settings.sideFree == true and type(settings.sidePositions) == "table" and settings.sidePositions or {}
+			local function Add(list, name)
+				local spot = spots[name]
+				list = type(spot) == "table" and type(spot.x) == "number" and type(spot.y) == "number" and free or list
+				list[#list + 1] = name
+			end
 			for id in tostring(settings.sideOrder):gmatch("%a+") do ids[#ids + 1] = id end
-			if icons.friends ~= false then top[1] = "friends" end
+			if icons.friends ~= false then Add(top, FRIENDS) end
 			for i, id in ipairs(ids) do
-				local list = i == #ids and bottom or top
-				for _ = 1, icons[id] ~= false and (id == "voice" and 2 or 1) or 0 do list[#list + 1] = id end
+				for _, name in ipairs(icons[id] ~= false and NAMES[id] or {}) do Add(i == #ids and bottom or top, name) end
 			end
 			if settings.sideScroll == true then table.insert(bottom, "scroll") end
 			for side, list in ipairs({ top, bottom }) do
@@ -92,6 +99,17 @@ function Preview.Build(...)
 					tile:ClearAllPoints()
 					Widgets.Point(tile, "CENTER", self.glass, (side == 1 and "TOP" or "BOTTOM") .. edge, x, side == 1 and -(from + (i - 0.5) * pitch) or foot + (#list - i + 0.5) * pitch)
 				end
+			end
+			local w, h = self.glass:GetWidth(), self.glass:GetHeight()
+			local left = (right and w - cx or cx) - ((tonumber(settings.sideWidth) or ns.defaults.sideWidth) - SPARE) / 2
+			local below = from + (top[1] == FRIENDS and pitch or 0)
+			for _, name in ipairs(free) do
+				n = n + 1
+				local tile = Tile(self, n, name, scale)
+				local px, py = left + spots[name].x, spots[name].y - below
+				if w > 0 and h > 0 then px, py = math.min(w, math.max(0, px)), math.max(-h, math.min(0, py)) end
+				tile:ClearAllPoints()
+				Widgets.Point(tile, "CENTER", self.glass, "TOPLEFT", px, py)
 			end
 		end
 		for i = n + 1, #self.icons do self.icons[i]:Hide() end
@@ -138,7 +156,7 @@ function Preview.Build(...)
 		Widgets.Point(self.strip, right and "TOPRIGHT" or "TOPLEFT", glass, right and "TOPRIGHT" or "TOPLEFT", 0, -above)
 		Widgets.Point(self.strip, right and "BOTTOMRIGHT" or "BOTTOMLEFT", glass, right and "BOTTOMRIGHT" or "BOTTOMLEFT", 0, 0)
 		self.strip:SetWidth(math.max(1, strip))
-		self.strip:SetShown(beside and settings.sideStyle == "glass")
+		self.strip:SetShown(beside and settings.sideStyle == "glass" and not ns.Panel.Bare(settings))
 		Buttons(self, settings, beside and strip / 2 or inset + (room - SPARE) / 2, right, top * 2 + inset, inset)
 		self.divider:SetShown(above == 0)
 		self.divider:ClearAllPoints()
