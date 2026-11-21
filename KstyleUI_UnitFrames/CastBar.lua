@@ -1178,7 +1178,7 @@ local function Start(cb, channel, update)
 	cb.batch, cb.rankID = nil, nil
 	if cb.kind == "player" then
 		if Settings.Value("player", "castbarRank") then text, cb.rankID = Ranked(text, spellID), not issecretvalue(spellID) and spellID or nil end
-		if isTradeSkill and Settings.Value("player", "castbarCraft") then text = Batch(cb, text, startMs, endMs) end
+		if not issecretvalue(isTradeSkill) and isTradeSkill == true and Settings.Value("player", "castbarCraft") then text = Batch(cb, text, startMs, endMs) end
 	end
 	cb.token = (cb.token or 0) + 1
 	cb.duration = nil
