@@ -10,7 +10,7 @@ local floor, ceil, max, min, abs, format = math.floor, math.ceil, math.max, math
 local Strip = {}
 ns.Strip = Strip
 
-local KEY = "databars.strip"
+local KEY, KEY2 = "databars.strip", "databars.strip2"
 local TICK_SECONDS = 1
 local LABEL_GAP = 6
 local ROW_SHARE = 1.8
@@ -57,6 +57,7 @@ Strip.UNIT_GAP = UNIT_GAP
 Strip.DOT_GAP_EM = DOT_GAP_EM
 Strip.LINE = LINE
 Strip.COMPACT = LINE
+Strip.GLYPH_CELLS = GLYPH_CELLS
 
 local CELL_WEIGHT = { fps = 0.8, latency = 0.9, gold = 1.4, durability = 1.25, time = 0.85 }
 
@@ -203,7 +204,7 @@ local function Order(s)
 	local out, seen = {}, {}
 	for _, entry in ipairs(Strip.Modules(s)) do
 		local id = entry.id
-		if entry.shown and VALUES[id] and not seen[id] and (not ns.Readouts or ns.Readouts.Visible(id)) then
+		if entry.shown and VALUES[id] and not seen[id] and (not ns.Readouts or ns.Readouts.Visible(id, s)) then
 			seen[id] = true
 			out[#out + 1] = id
 		end
@@ -211,6 +212,21 @@ local function Order(s)
 	return out
 end
 Strip.Order = Order
+
+local function Block(s, id)
+	local block = GLYPH_CELLS[id] and type(s.blocks) == "table" and s.blocks[id]
+	return type(block) == "table" and block or nil
+end
+
+local function Shows(s, id)
+	local mode = Block(s, id)
+	mode = mode and mode.show or "bar"
+	if not GLYPH_CELLS[id] then return false, false end
+	if mode == "bar" then return s.icons == "beside" or s.icons == "only", s.icons == "only" end
+	return mode ~= "value", mode == "icon"
+end
+
+Strip.Shows = Shows
 
 local function Glyph(parent, id)
 	local icon = parent:CreateTexture(nil, "OVERLAY")
@@ -239,7 +255,9 @@ local function PaintItem(item)
 	end
 	item.label:SetTextColor(r, g, b, a)
 	if item.iconOn and not view.deco then
-		local mode, custom = not view.docked and s.iconColor, s.iconCustom
+		local block = Block(s, item.id)
+		local own = block and block.iconColor ~= "bar" and block.iconColor
+		local mode, custom = not view.docked and (own or s.iconColor), own and block.iconCustom or s.iconCustom
 		if mode == "accent" then
 			r, g, b = ns.Accent()
 		elseif mode == "custom" and type(custom) == "table" then
@@ -333,7 +351,7 @@ function Strip.NewView(parent)
 	view.chrome = Widgets.Chrome(card, { shape = "panel", fill = "surface" })
 	frame:HookScript("OnHide", function()
 		view.visible = false
-		if ns.Readouts and view == Strip.view then ns.Readouts.Sync(false) end
+		if ns.Readouts and view == Strip.view then ns.Readouts.Sync(false) elseif ns.Readouts and view == Strip.second then ns.Readouts.Sync() end
 		for _, item in pairs(view.items) do
 			ns.Click.Release(item)
 		end
@@ -482,7 +500,7 @@ end
 local function Segment(view, item, rule, glyph, glyphGap, h, icons)
 	local button = item.button
 	item.separator:Hide()
-	local on, was = icons and GLYPH_CELLS[item.id] ~= nil or false, item.iconOn
+	local on, was = icons == true, item.iconOn
 	item.iconOn = on
 	if icons and not item.icon then
 		item.icon, item.hover = Glyph(button, item.id), button:CreateTexture(nil, "BACKGROUND")
@@ -545,12 +563,10 @@ local function PlaceLine(view, s)
 	local padding = Widgets.Snap(frame, IsNumber(s.padding) and s.padding or 0)
 	local dotGap = Widgets.DotGap(dotSize, step, DOT_GAP_EM) + padding
 	local seg = view.deco
-	local icons = seg or s.icons == "beside" or s.icons == "only"
-	local only = not seg and s.icons == "only"
 	local pad = seg and Widgets.Snap(frame, SEGMENT_PAD) + padding or 0
 	local glyph = Widgets.Snap(frame, dotSize * GLYPH_SHARE)
 	local glyphGap = Widgets.Snap(frame, GLYPH_GAP)
-	local glyphRun = icons and glyph + glyphGap or 0
+	local glyphRun = glyph + glyphGap
 	local x = edge + (view.rail and Widgets.Snap(frame, EDGE_BORDERS) or 0)
 	local positions, widths, zones = {}, { left = 0, centre = 0, right = 0 }, {}
 	local limits, hidden, last = {}, { left = {}, right = {} }, {}
@@ -567,7 +583,7 @@ local function PlaceLine(view, s)
 	elseif view.rail then
 		limits.right = max(0, frame:GetWidth() - 2 * edge - EDGE_BORDERS)
 	end
-	local signature = { tostring(view.slab), tostring(view.deco), tostring(view.topBar), tostring(view.docked), frame:GetWidth(), h, edge, unitGap, lift, dotGap, step, limits.left or 0, limits.right or 0, view.leftInset or 0, tostring(icons), tostring(only) }
+	local signature = { tostring(view.slab), tostring(view.deco), tostring(view.topBar), tostring(view.docked), frame:GetWidth(), h, edge, unitGap, lift, dotGap, step, limits.left or 0, limits.right or 0, view.leftInset or 0 }
 	for _, entry in ipairs(Strip.Modules(s) or {}) do zones[entry.id] = widths[entry.zone] and entry.zone or "right" end
 	local fit, sequence = view.topBar and view == Strip.view, order
 	if fit then
@@ -577,10 +593,11 @@ local function PlaceLine(view, s)
 	end
 	for _, id in ipairs(sequence) do
 		local item = view.items[id]
-		local bare = only and GLYPH_CELLS[id] ~= nil
+		local icon, bare = GLYPH_CELLS[id] ~= nil, false
+		if not seg then icon, bare = Shows(s, id) end
 		local label = not bare and item.caption ~= "" and TextWidth(item.label, s.fontSize) or 0
 		local value = bare and 0 or WIDTH[id] and WIDTH[id](s) or TextWidth(item.value, s.fontSize)
-		local width = Widgets.Snap(frame, value + (label > 0 and unitGap + label or 0)) + (GLYPH_CELLS[id] and (bare and glyph or glyphRun) or 0) + 2 * pad
+		local width = Widgets.Snap(frame, value + (label > 0 and unitGap + label or 0)) + (icon and (bare and glyph or glyphRun) or 0) + 2 * pad
 		if item.bare ~= bare then
 			item.bare = bare
 			item.value:SetShown(not bare)
@@ -592,14 +609,14 @@ local function PlaceLine(view, s)
 		local gap = joined and not seg and Widgets.Snap(frame, TextWidth(item.dot, s.fontSize) + 2 * dotGap) or 0
 		if fit and zone ~= "centre" then limits[zone] = (frame:GetWidth() - widths.centre) / 2 - edge - LABEL_GAP - (zone == "left" and view.leftInset or 0) end
 		local overflow = (view.slab or view.rail or fit and zone ~= "centre") and (#hidden[zone] > 0 or widths[zone] + gap + width + 2 > limits[zone])
-		positions[id] = { zone, widths[zone] + gap, width, joined, value, label, overflow }
+		positions[id] = { zone, widths[zone] + gap, width, joined, value, label, overflow, icon }
 		if overflow then
 			hidden[zone][#hidden[zone] + 1] = id
 		else
 			widths[zone] = widths[zone] + gap + width
 			last[zone] = id
 		end
-		signature[#signature + 1] = id .. ":" .. zone .. ":" .. value .. ":" .. label
+		signature[#signature + 1] = id .. ":" .. zone .. ":" .. value .. ":" .. label .. (icon and ":i" or "") .. (bare and "b" or "")
 	end
 	signature = table.concat(signature, "|")
 	if view.lineLayout == signature then return end
@@ -618,7 +635,7 @@ local function PlaceLine(view, s)
 		local button = item.button
 		local position = positions[item.id]
 		local valueWidth, labelWidth, width = position[5], position[6], position[3]
-		local run = pad + (GLYPH_CELLS[item.id] and glyphRun or 0)
+		local run = pad + (position[8] and glyphRun or 0)
 		item.valueWidth = valueWidth
 		item.overflow = position[7]
 		button:SetShown(not item.overflow)
@@ -643,7 +660,7 @@ local function PlaceLine(view, s)
 		item.label:SetWidth(Widgets.Snap(item.label, max(1, labelWidth + 2)))
 		item.label:SetJustifyH("LEFT")
 		local follows = (view.topBar or view.slab) and position[4] or not view.topBar and not view.slab and i > 1 and order[i] ~= "spacer" and order[i - 1] ~= "spacer"
-		Segment(view, item, seg and not item.overflow and follows, glyph, glyphGap, h, icons)
+		Segment(view, item, seg and not item.overflow and follows, glyph, glyphGap, h, position[8])
 		if not item.overflow then x = x + width end
 		local captionDot = not seg and view.slab and position[1] == "right" and position[2] == 0 and view.slab.text:IsVisible()
 		local dot = not seg and not item.overflow and (captionDot or follows)
@@ -1202,14 +1219,26 @@ local function OnClick(button, mouse)
 	end
 end
 
-function Strip.Update(only)
-	local view = Strip.view
-	if not view or not running or view.visible == false then
-		return
+local secondBase, secondSettings
+local function SecondSettings(s)
+	if secondBase ~= s then
+		secondBase, secondSettings = s, setmetatable({ placement = "rail", menus = false }, { __index = s })
 	end
-	local s = ns.Settings().strip
-	if s.enabled == false then return end
-	SetValues(view, s, Read(view, s, only), only)
+	secondSettings.railModules = s.secondModules
+	return secondSettings
+end
+
+function Strip.Update(only)
+	if not running then return end
+	local view, s = Strip.view, ns.Settings().strip
+	if view and view.visible ~= false and s.enabled ~= false then
+		SetValues(view, s, Read(view, s, only), only)
+	end
+	view = Strip.second
+	if view and view.visible then
+		local second = SecondSettings(s)
+		SetValues(view, second, Read(view, second, only), only)
+	end
 end
 
 function Strip.Tick()
@@ -1255,12 +1284,57 @@ local function DockInk(view)
 	end
 end
 
-function Strip.Refresh()
-	local view = Strip.view
-	if not view or not running then
-		return
+local function PaintSecond(s)
+	local view = Strip.second
+	if not (view and view.visible) then return end
+	local second = SecondSettings(s)
+	view.order = Order(second)
+	Strip.Paint(view, second, Read(view, second))
+end
+
+local function Footprint(key)
+	local layouts = K.Setup and K.Setup.Layouts
+	local element = layouts and layouts.Element(key)
+	if element then
+		return element.width, element.height, element.label, layouts.Default(key)
 	end
-	if InCombatLockdown() then DockAfterCombat() return end
+	ns.LogOnce("footprint:" .. key, key .. " has no footprint in Setup.Layouts; using the fallback size and position")
+	return 278, LINE, key, { anchor = "BOTTOMRIGHT", x = -17, y = 180 }
+end
+
+local function Register(frame, key)
+	local width, height, label, position = Footprint(key)
+	frame:SetSize(width, height)
+	K.Layout.Register(frame, key, position, {
+		label = label, module = ns.MODULE, resizable = true,
+		minWidth = MIN_WIDTH, minHeight = MIN_HEIGHT, maxWidth = max(MAX_WIDTH, K.Layout.RootSize()), maxHeight = MAX_HEIGHT,
+	})
+end
+
+local function RefreshSecond()
+	local s = ns.Settings().strip
+	local on = running and s.second == true
+	local view = Strip.second
+	if on and not view then
+		local holder = CreateFrame("Frame", nil, K.Scale.Root())
+		view = Strip.NewView(holder)
+		view.frame:SetAllPoints(holder)
+		view.bind, view.holder = Strip.view.bind, holder
+		Register(holder, KEY2)
+		Strip.second = view
+		holder:HookScript("OnShow", RefreshSecond)
+		holder:HookScript("OnHide", RefreshSecond)
+	end
+	if not view then return end
+	K.Layout.SetLive(KEY2, on)
+	view.frame:SetShown(on)
+	view.visible = on and view.frame:IsVisible()
+	PaintSecond(s)
+	ns.Readouts.Sync()
+end
+
+local function RefreshMain()
+	local view = Strip.view
 	local s = ns.Settings().strip
 	if s.enabled == false then
 		K.Layout.SetLive(KEY, false)
@@ -1293,13 +1367,27 @@ function Strip.Refresh()
 	ns.Readouts.Sync(true)
 end
 
+function Strip.Refresh()
+	if not Strip.view or not running then
+		return
+	end
+	if InCombatLockdown() then DockAfterCombat() return end
+	RefreshMain()
+	RefreshSecond()
+end
+
 function Strip.Reorder()
 	local view, s = Strip.view, ns.Settings().strip
-	if not InCombatLockdown() or not view or not running or not view.visible or s.enabled == false then return Strip.Refresh() end
-	view.order, view.combat = Order(s), true
-	Strip.Paint(view, s, Read(view, s))
-	view.combat = nil
-	DockInk(view)
+	if not InCombatLockdown() then return Strip.Refresh() end
+	if view and running and view.visible and s.enabled ~= false then
+		view.order, view.combat = Order(s), true
+		Strip.Paint(view, s, Read(view, s))
+		view.combat = nil
+		DockInk(view)
+	else
+		DockAfterCombat()
+	end
+	PaintSecond(s)
 end
 
 function Strip.Dock()
@@ -1310,10 +1398,11 @@ function Strip.Dock()
 end
 
 local function NeedsTicker(s)
-	if s.enabled == false then return false end
-	for _, entry in ipairs(Strip.Modules(s)) do
-		if entry.shown and TIMED[entry.id] then
-			return true
+	for _, list in ipairs({ s.enabled ~= false and Strip.Modules(s) or {}, s.second and s.secondModules or {} }) do
+		for _, entry in ipairs(list) do
+			if entry.shown and TIMED[entry.id] then
+				return true
+			end
 		end
 	end
 	return false
@@ -1351,30 +1440,15 @@ local function StartTicker()
 	end)
 end
 
-local function Footprint()
-	local layouts = K.Setup and K.Setup.Layouts
-	local element = layouts and layouts.Element(KEY)
-	if element then
-		return element.width, element.height, element.label, layouts.Default(KEY)
-	end
-	ns.LogOnce("footprint:" .. KEY, KEY .. " has no footprint in Setup.Layouts; using the fallback size and position")
-	return 278, LINE, KEY, { anchor = "BOTTOMRIGHT", x = -17, y = 180 }
-end
-
 local function Build()
 	local view = Strip.NewView(K.Scale.Root())
 	local frame = view.frame
-	local width, height, label, position = Footprint()
-	frame:SetSize(width, height)
 	view.bind = function(item)
 		item.button:HookScript("OnEnter", OnEnter)
 		item.button:HookScript("OnLeave", OnLeave)
 		item.button.onClick = OnClick
 	end
-	K.Layout.Register(frame, KEY, position, {
-		label = label, module = ns.MODULE, resizable = true,
-		minWidth = MIN_WIDTH, minHeight = MIN_HEIGHT, maxWidth = max(MAX_WIDTH, K.Layout.RootSize()), maxHeight = MAX_HEIGHT,
-	})
+	Register(frame, KEY)
 	Strip.view = view
 	frame:HookScript("OnShow", Strip.Refresh)
 	K.Safe.Side(K.Scale.Root()).dockDataStrip = Strip.Dock
@@ -1391,7 +1465,7 @@ local function MatchOrientation(s, changed)
 		local rows = max(1, #Order(s))
 		K.Layout.Update(KEY, { width = VERTICAL_WIDTH, height = Widgets.Snap(Strip.view.frame, rows * s.fontSize * ROW_SHARE + 2 * Pad(Strip.view.frame)) })
 	elseif not vertical and (changed or layout.height > layout.width) then
-		local width, height = Footprint()
+		local width, height = Footprint(KEY)
 		K.Layout.Update(KEY, { width = width, height = LineMode(s) and height or max(height, CELLS_HEIGHT) })
 	end
 end
@@ -1401,7 +1475,7 @@ local function MatchLine(s)
 	if not layout or s.orientation == "VERTICAL" or s.placement == "top" and not Widgets.Medallions() then
 		return
 	end
-	local _, height = Footprint()
+	local _, height = Footprint(KEY)
 	K.Layout.Update(KEY, { width = layout.width, height = LineMode(s) and height or max(layout.height, CELLS_HEIGHT) })
 end
 
@@ -1435,6 +1509,7 @@ function Strip.Disable()
 		end
 		Strip.view.frame:Hide()
 	end
+	if Strip.second then Strip.second.frame:Hide() end
 end
 
 function Strip.Setting(key)
@@ -1444,7 +1519,17 @@ function Strip.Setting(key)
 		return
 	end
 	local s = ns.Settings().strip
-	if (not field or field == "valueCustom") and Strip.view then Strip.view.paintColor = nil end
+	if not field or field == "valueCustom" then
+		for _, view in ipairs({ Strip.view, Strip.second }) do view.paintColor = nil end
+	end
+	if field == "second" and s.second then
+		local any, copy = false, {}
+		for _, entry in ipairs(s.secondModules) do any = any or entry.shown end
+		for _, entry in ipairs(Strip.Modules(s)) do
+			if entry.id ~= "micro" then copy[#copy + 1] = { id = entry.id, shown = entry.shown, zone = entry.zone } end
+		end
+		if not any then K.Options.Write(ns.MODULE, "strip.secondModules", copy) end
+	end
 	if field == "placement" and s.placement == "rail" then
 		K.Options.Write(ns.MODULE, "strip.menus", false)
 		MatchLine(s)
@@ -1456,7 +1541,7 @@ function Strip.Setting(key)
 	end
 	Strip.Refresh()
 	if field and field:find("^hearth") then ns.Click.Refresh() end
-	if field == "modules" or field == "dockModules" or field == "railModules" or field == "enabled" or field == "placement" then
+	if field == "modules" or field == "dockModules" or field == "railModules" or field == "secondModules" or field == "second" or field == "enabled" or field == "placement" then
 		StartTicker()
 	end
 end
@@ -1468,7 +1553,7 @@ ns.Listen("PLAYER_ENTERING_WORLD", function()
 end)
 
 ns.Subscribe("LayoutChanged", function(key)
-	if (key == KEY or key == "meters.damage" or key == "databars.xp") and running then
+	if (key == KEY or key == KEY2 or key == "meters.damage" or key == "databars.xp") and running then
 		Strip.Refresh()
 	end
 end)
@@ -1487,9 +1572,9 @@ ns.AddPart({
 	Setting = Strip.Setting,
 	Refresh = function()
 		ns.FillModules(ns.Settings().strip)
-		if Strip.view then
-			Strip.view.paintColor = nil
-			for _, item in pairs(Strip.view.items) do item.font = nil end
+		for _, view in ipairs({ Strip.view, Strip.second }) do
+			view.paintColor = nil
+			for _, item in pairs(view.items) do item.font = nil end
 		end
 		Strip.Refresh()
 		StartTicker()

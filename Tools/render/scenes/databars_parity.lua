@@ -22,6 +22,13 @@ local ROUND2_OPTIONS = {
 	{ "strip.icons", "beside" }, { "strip.currencyIcons", true }, { "strip.reagentsLabel", true }, { "strip.hearthText", "smart" },
 	{ "strip.brokerPlugin", "Bagnon" }, { "xp.questXP", true }, { "micro.align", "CENTER" },
 }
+local ROUND3 = { micro = "left", spec = "left", hearth = "left", time = "centre", durability = "right", bags = "right", fps = "right", latency = "right", gold = "right" }
+local ROUND3_SECOND = { coords = "right", location = "right", itemLevel = "right", guild = "right", friends = "right" }
+local ROUND3_OPTIONS = {
+	{ "strip.blocks.latency.show", "both" }, { "strip.blocks.gold.show", "both" }, { "strip.blocks.durability.show", "icon" },
+	{ "strip.blocks.latency.iconColor", "accent" }, { "strip.blocks.gold.iconColor", "custom" }, { "strip.blocks.gold.iconCustom", { r = 0.85, g = 0.72, b = 0.45, a = 1 } },
+	{ "strip.hearthRight", "spell:556" }, { "strip.hearthRightText", "location" }, { "strip.second", true },
+}
 
 return Common.Run(function()
 	local env, K = D.New(Common.ScreenOpts({
@@ -37,6 +44,8 @@ return Common.Run(function()
 			e.C_ClassTalents = { GetLastSelectedSavedConfigID = function() return 7 end }
 			e.C_Traits = { GetConfigInfo = function() return { name = "Raid" } end }
 			e.GetAverageItemLevel = function() return 62.8, 58.3 end
+			e.GetZoneText = function() return "Elwynn Forest" end
+			e.C_Spell = { GetSpellInfo = function(id) return id == 556 and { name = "Astral Recall" } or nil end, GetSpellCooldown = function() return { startTime = 0, duration = 0 } end }
 			e.C_Container = e.C_Container or {}
 			e.C_Container.GetContainerNumFreeSlots = function(bag) return bag == 0 and 2 or 3 end
 			e.C_Container.GetContainerNumSlots = function() return 16 end
@@ -54,10 +63,12 @@ return Common.Run(function()
 		end,
 	}))
 	env.RunTimers()
+	K.Safe.Side(K).travelData = K.Safe.Side(K).travelData or { Hearth = function() return "Stormwind", "ready" end, Read = function() return { {}, {}, {} } end }
 	local key = os.getenv("RENDER_DATABARS_OPTIONS")
-	local round2 = os.getenv("RENDER_DATABARS_ROUND") == "2"
-	local dock = round2 and K.Widgets.Medallions()
-	local shown = key and PREVIEW or dock and ROUND2_DOCK or round2 and ROUND2 or SHOWN
+	local round = os.getenv("RENDER_DATABARS_ROUND")
+	local round2, round3 = round == "2", round == "3"
+	local dock = (round2 or round3) and K.Widgets.Medallions()
+	local shown = key and not round3 and PREVIEW or dock and ROUND2_DOCK or round2 and ROUND2 or round3 and ROUND3 or SHOWN
 	if os.getenv("RENDER_DATABARS_DEFAULTS") ~= "1" then
 		local list = K.Store.Module("DataBars").strip[dock and "dockModules" or "modules"]
 		for _, entry in ipairs(list) do
@@ -65,7 +76,12 @@ return Common.Run(function()
 			entry.zone = shown[entry.id] or entry.zone
 		end
 		assert(K.Options.Write("DataBars", dock and "strip.dockModules" or "strip.modules", list) ~= false)
-		for _, option in ipairs(round2 and ROUND2_OPTIONS or OPTIONS) do assert(K.Options.Write("DataBars", option[1], option[2]) ~= false) end
+		for _, option in ipairs(round2 and ROUND2_OPTIONS or round3 and ROUND3_OPTIONS or OPTIONS) do assert(K.Options.Write("DataBars", option[1], option[2]) ~= false) end
+		if round3 then
+			local second = K.Store.Module("DataBars").strip.secondModules
+			for _, entry in ipairs(second) do entry.shown = ROUND3_SECOND[entry.id] ~= nil end
+			assert(K.Options.Write("DataBars", "strip.secondModules", second) ~= false)
+		end
 		env.FireEvent("TIME_PLAYED_MSG", 1987200, 5400)
 		env.RunTimers()
 	end
@@ -84,6 +100,6 @@ return Common.Run(function()
 	local scene = Gallery.Build(env)
 	local errors = Common.Errors(env, K)
 	assert(not errors, errors)
-	scene.log[#scene.log + 1] = "databars parity: round " .. (round2 and 2 or 1) .. " readouts and options applied"
+	scene.log[#scene.log + 1] = "databars parity: round " .. (round or 1) .. " readouts and options applied"
 	return scene
 end)

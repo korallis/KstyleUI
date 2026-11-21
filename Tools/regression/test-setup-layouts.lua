@@ -19,7 +19,7 @@ local KEYS = {
 	"actionbars.bar2", "actionbars.bar3", "actionbars.bar4", "actionbars.bar5", "actionbars.bar6", "actionbars.pet",
 	"actionbars.stance", "consumables.bar", "actionbars.possess", "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars",
 	"auras.buffs", "auras.debuffs", "auras.extraBuffs", "auras.extraDebuffs", "minimap.main", "chat.main", "databars.xp", "databars.rep", "databars.honor",
-	"databars.strip", "databars.micro", "databars.bags", "meters.damage", "meters.threat", "meters.swing",
+	"databars.strip", "databars.strip2", "databars.micro", "databars.bags", "meters.damage", "meters.threat", "meters.swing",
 	"combattext.player",
 	"qol.lootfeed",
 	"tooltips.anchor",

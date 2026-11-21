@@ -4,7 +4,7 @@ local _, ns = ...
 local K, L = ns.K, ns.L
 local Tokens, Widgets = K.Tokens, K.Widgets
 local Format, Font, Bars, Strip = ns.Format, ns.Font, ns.Bars, ns.Strip
-local max = math.max
+local max, format = math.max, string.format
 
 local FONT_SIZE = Tokens.Size("caption")
 local XP_FONT_SIZE = 12
@@ -85,7 +85,10 @@ defaults.strip = {
 	audioChannel = "Master", professionText = "name", brokerPlugin = "", brokerWidth = 0, brokerLabel = true,
 	icons = "off", iconColor = "label", iconCustom = Rgb("text"), fill = "none", currencyIcons = false, reagentsShown = "all", reagentsLabel = false,
 	socialList = 0, guildNotes = false, friendNotes = false, hearthText = "both", hearthLeft = "", hearthRight = "", hearthMiddle = "",
+	hearthRightText = "none", hearthMiddleText = "none", second = false, blocks = {},
 }
+local TEXT = Rgb("text")
+for id in pairs(Strip.GLYPH_CELLS) do defaults.strip.blocks[id] = { show = "bar", iconColor = "bar", iconCustom = TEXT } end
 defaults.micro = { enabled = true, shown = true, size = MICRO_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, tint = "none", shape = "round", set = "compact", align = "LEFT" }
 defaults.bags = { enabled = true, shown = true, size = BAG_SIZE, spacing = MENU_SPACING, rows = 1, backdrop = true, freeSlots = true, shape = "round", align = "LEFT" }
 defaults.menus = { always = false }
@@ -132,8 +135,13 @@ for i, entry in ipairs(defaults.strip.dockModules) do
 	defaults.strip.railModules[i] = { id = entry.id, shown = i <= 3 or entry.id == "micro", zone = "right" }
 end
 
+defaults.strip.secondModules = {}
+for _, def in ipairs(MODULES) do
+	if def[1] ~= "micro" then defaults.strip.secondModules[#defaults.strip.secondModules + 1] = { id = def[1], shown = false, zone = "right" } end
+end
+
 function ns.FillModules(s)
-	for _, key in ipairs({ "modules", "dockModules", "railModules" }) do
+	for _, key in ipairs({ "modules", "dockModules", "railModules", "secondModules" }) do
 		local list, seen = s[key], {}
 		for _, entry in ipairs(list) do seen[entry.id] = true end
 		for _, entry in ipairs(defaults.strip[key]) do
@@ -151,8 +159,20 @@ local function Docked()
 	return view ~= nil and (view.slab or view.docked) ~= nil
 end
 
+local function SecondLine(settings)
+	return settings.strip.second == true and Strip.LineMode(settings.strip)
+end
+
+local function NoLine(settings)
+	return (Cells(settings) or Strip.view ~= nil and Strip.view.deco == true) and not SecondLine(settings)
+end
+
+local function Plain(settings)
+	return (Cells(settings) or Docked()) and not SecondLine(settings)
+end
+
 local function NoIcons(settings)
-	return settings.strip.icons == "off" or Cells(settings) or Docked()
+	return settings.strip.icons == "off" or Plain(settings)
 end
 
 function ns.Schema()
@@ -315,7 +335,7 @@ function ns.Schema()
 		{ type = "toggle", key = "strip.hover", label = L["Hover highlight"], help = L["Brightens a readout's label under the pointer."] },
 		{ type = "dropdown", key = "strip.icons", label = L["Icons"], help = L["A glyph before each value, or the glyph alone with the value in its tooltip. On one line."], options = {
 			{ value = "off", label = L["Off"] }, { value = "beside", label = L["Beside the value"] }, { value = "only", label = L["Icons only"] },
-		}, disableWhen = function(settings) return Cells(settings) or Strip.view ~= nil and Strip.view.deco == true end },
+		}, disableWhen = NoLine },
 		{ type = "dropdown", key = "strip.iconColor", label = L["Icon colour"], help = L["Icons in the label colour, the accent colour or your own."], options = {
 			{ value = "label", label = L["Label colour"] }, { value = "accent", label = L["Accent colour"] }, { value = "custom", label = L["Custom colour"] },
 		}, disableWhen = NoIcons },
@@ -341,6 +361,48 @@ function ns.Schema()
 		stripRows[#stripRows + 1] = row
 	end
 	ns.AddRows(stripRows)
+	local SHOWS = {
+		{ value = "bar", label = L["Data bar's choice"] }, { value = "both", label = L["Icon and value"] }, { value = "value", label = L["Value only"] }, { value = "icon", label = L["Icon only"] },
+	}
+	local BLOCK_COLORS = {
+		{ value = "bar", label = L["Data bar's colour"] }, { value = "label", label = L["Label colour"] }, { value = "accent", label = L["Accent colour"] }, { value = "custom", label = L["Custom colour"] },
+	}
+	local blockRows = { { type = "header", label = L["Readout text and icons"] } }
+	for _, def in ipairs(MODULES) do
+		local id, key = def[1], "strip.blocks." .. def[1] .. "."
+		if Strip.GLYPH_CELLS[id] then
+			local function listed(settings)
+				local strip = settings.strip
+				for _, list in ipairs({ Strip.Modules(strip), strip.second and strip.secondModules or {} }) do
+					for _, entry in ipairs(list) do if entry.id == id and entry.shown then return true end end
+				end
+				return false
+			end
+			local function noIcon(settings) return Plain(settings) or not Strip.Shows(settings.strip, id) end
+			blockRows[#blockRows + 1] = { type = "dropdown", key = key .. "show", label = def[2], help = L["What this readout shows on one line. Data bar's choice follows Icons."], options = SHOWS, showWhen = listed, disableWhen = NoLine }
+			blockRows[#blockRows + 1] = { type = "dropdown", key = key .. "iconColor", label = format(L["%s icon colour"], def[2]), help = L["This readout's icon colour. Data bar's colour follows Icon colour."], options = BLOCK_COLORS, showWhen = listed, disableWhen = noIcon }
+			blockRows[#blockRows + 1] = { type = "color", key = key .. "iconCustom", label = format(L["%s custom icon colour"], def[2]), help = L["The colour of this readout's icon when its colour is custom."], showWhen = function(settings)
+				return listed(settings) and settings.strip.blocks[id].iconColor == "custom"
+			end, disableWhen = noIcon }
+		end
+	end
+	ns.AddRows(blockRows)
+	local secondOptions = {}
+	for _, option in ipairs(moduleOptions) do
+		if option.value ~= "micro" then secondOptions[#secondOptions + 1] = option end
+	end
+	ns.AddRows({
+		{ type = "header", label = L["Second data bar"] },
+		{ type = "toggle", key = "strip.second", label = L["Show a second data bar"], help = L["A second line of readouts you place in Layout Mode, in this bar's style. It starts as a copy."] },
+		{ type = "order", key = "strip.secondModules", label = L["Modules"], help = L["Switch modules on, choose their zones and move them up or down."], options = secondOptions, showWhen = function(settings)
+			return settings.strip.second == true
+		end },
+	})
+	local TRAVEL_TEXT = {
+		{ value = "both", label = L["Cooldown and destination"] }, { value = "location", label = L["Destination"] }, { value = "cooldown", label = L["Cooldown"] }, { value = "smart", label = L["Cooldown, or destination when ready"] },
+	}
+	local TRAVEL_EXTRA = { { value = "none", label = L["None"] } }
+	for i, option in ipairs(TRAVEL_TEXT) do TRAVEL_EXTRA[i + 1] = option end
 	ns.AddRows({
 		{ type = "header", label = L["Clock"] },
 		{ type = "dropdown", key = "strip.timeSource", label = L["Clock"], help = L["Your computer's time or the realm's time."], options = TIME_SOURCES },
@@ -380,12 +442,14 @@ function ns.Schema()
 		{ type = "text", key = "strip.spec2Text", label = L["Group 2 text"], help = L["Shown in place of the specialization name. Empty uses the name."], maxLetters = 24 },
 		{ type = "header", label = L["Hearthstone"] },
 		{ type = "toggle", key = "strip.hearthOthers", label = L["Other characters"], help = L["Lists your other characters' homes in the Hearthstone tooltip."] },
-		{ type = "dropdown", key = "strip.hearthText", label = L["Text"], help = L["What the Hearthstone readout shows."], options = {
-			{ value = "both", label = L["Cooldown and home"] }, { value = "location", label = L["Home"] }, { value = "cooldown", label = L["Cooldown"] }, { value = "smart", label = L["Cooldown, or home when ready"] },
-		} },
 		{ type = "dropdown", key = "strip.hearthLeft", label = L["Left click"], help = L["The travel spell or item a left click uses, out of combat."], options = function() return ns.Readouts.TravelChoices("hearthLeft") end },
+		{ type = "dropdown", key = "strip.hearthText", label = L["Left click text"], help = L["What the readout shows for the left click: the destination, its cooldown or both."], options = TRAVEL_TEXT },
 		{ type = "dropdown", key = "strip.hearthRight", label = L["Right click"], help = L["The travel spell or item a right click uses, out of combat."], options = function() return ns.Readouts.TravelChoices("hearthRight") end },
+		{ type = "dropdown", key = "strip.hearthRightText", label = L["Right click text"], help = L["What the readout adds for the right click. Needs a right click other than None."], options = TRAVEL_EXTRA,
+			disableWhen = function(settings) return settings.strip.hearthRight == "" end },
 		{ type = "dropdown", key = "strip.hearthMiddle", label = L["Middle click"], help = L["The travel spell or item a middle click uses, out of combat."], options = function() return ns.Readouts.TravelChoices("hearthMiddle") end },
+		{ type = "dropdown", key = "strip.hearthMiddleText", label = L["Middle click text"], help = L["What the readout adds for the middle click. Needs a middle click other than None."], options = TRAVEL_EXTRA,
+			disableWhen = function(settings) return settings.strip.hearthMiddle == "" end },
 		{ type = "header", label = L["Guild and friends"] },
 		{ type = "slider", key = "strip.socialList", label = L["Names in the tooltip"], help = L["Lists up to this many online guild members and friends in their tooltips. 0 shows the counts alone."], min = 0, max = 40, step = 1 },
 		{ type = "toggle", key = "strip.guildNotes", label = L["Guild notes"], help = L["Writes each listed guild member's note under the name."], disableWhen = function(settings) return settings.strip.socialList == 0 end },
@@ -507,6 +571,11 @@ function ns.Preview(...)
 		return nil
 	end
 
+	local function Travel(value)
+		if value == "" or value == "item:6948" then return L["Stormwind"], L["ready"] end
+		return ns.Readouts.Travel(value)
+	end
+
 	local function StripSamples(s)
 		local R = ns.Readouts
 		return {
@@ -515,7 +584,7 @@ function ns.Preview(...)
 			gold = { Format.Money(SAMPLE_MONEY, s.money) },
 			durability = { SAMPLE_DURABILITY .. "%", "good" },
 			time = { R.ClockText(s, Format.Clock(SAMPLE_HOUR, SAMPLE_MINUTE, s.clock24), true, true) },
-			spec = { R.SpecText(s, L["Specialization"], 1, L["Loadout name"]) }, hearth = { R.HearthText(s, L["Stormwind"], L["ready"]) }, bags = { R.BagText(s, s.bagsReagent and 30 or 22, s.bagsReagent and 116 or 80) },
+			spec = { R.SpecText(s, L["Specialization"], 1, L["Loadout name"]) }, hearth = { R.HearthValue(s, Travel) }, bags = { R.BagText(s, s.bagsReagent and 30 or 22, s.bagsReagent and 116 or 80) },
 			location = { L["Stormwind"] }, itemLevel = { R.ItemLevelText(s, 58.3) },
 			guild = { "17" }, friends = { "7" }, currencies = { s.currencyIcons and "1250 |TInterface\\Icons\\INV_Misc_Coin_02:0|t" or "1250" }, xp = { R.XPText(s, s.xpMode == "rep" and { current = 4200, max = 6000, label = L["Stormwind"] } or { current = 16000, max = 50000, label = L["Level 38"] }) },
 			coords = { R.CoordsText(s, 0.4532, 0.6218) }, combat = { "1:24" }, played = { R.Played(s.playedTotal and 900000 or 5000) },
@@ -572,6 +641,21 @@ function ns.Preview(...)
 			sample.frame:ClearAllPoints()
 			Widgets.Point(sample.frame, "TOPLEFT", self, "TOPLEFT", 0, -sample.top / scale)
 			Strip.Paint(sample, s, samples)
+			local second = self.second
+			if s.second and not second then
+				second = Strip.NewView(self)
+				second.bind, self.second = sample.bind, second
+			end
+			if not second then return end
+			second.frame:SetShown(s.second == true)
+			if not s.second then return end
+			local rail = setmetatable({ placement = "rail", menus = false, railModules = s.secondModules }, { __index = s })
+			second.paintColor = nil
+			second.frame:SetScale(scale)
+			second.frame:SetSize(available / scale, PREVIEW_STRIP)
+			second.frame:ClearAllPoints()
+			Widgets.Point(second.frame, "TOPLEFT", self, "TOPLEFT", 0, -(sample.top + height + PREVIEW_STRIP_PAD) / scale)
+			Strip.Paint(second, rail, StripSamples(rail))
 		end
 		frame:Refresh()
 		return frame

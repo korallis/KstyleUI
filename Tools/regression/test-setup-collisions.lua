@@ -608,10 +608,10 @@ for _, name in ipairs(Layouts.Names()) do
 	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 			local width, enabled = K.Scale.CanvasWidth(size[1], size[2]), Layouts.Enabled(name)
-			assert(enabled["auras.extraBuffs"] == false and enabled["auras.extraDebuffs"] == false, name .. ": the extra aura rows start off")
+			assert(enabled["auras.extraBuffs"] == false and enabled["auras.extraDebuffs"] == false and enabled["databars.strip2"] == false, name .. ": the extra aura rows and the second data bar start off")
 			assert(Layouts.Fits(name, width, size[2], K.Scale.DEFAULT_USER_SCALE, enabled, nil, style), string.format("%s %s at %dx%d: the preset fits", name, style, size[1], size[2]))
-			enabled["auras.extraBuffs"], enabled["auras.extraDebuffs"] = true, true
-			assert(Layouts.Fits(name, width, size[2], K.Scale.DEFAULT_USER_SCALE, enabled, nil, style), string.format("%s %s at %dx%d: the extra aura rows fit", name, style, size[1], size[2]))
+			enabled["auras.extraBuffs"], enabled["auras.extraDebuffs"], enabled["databars.strip2"] = true, true, true
+			assert(Layouts.Fits(name, width, size[2], K.Scale.DEFAULT_USER_SCALE, enabled, nil, style), string.format("%s %s at %dx%d: the extra aura rows and the second data bar fit", name, style, size[1], size[2]))
 			extraFits = extraFits + 1
 		end
 	end

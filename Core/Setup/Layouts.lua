@@ -99,6 +99,7 @@ local ELEMENTS = {
 	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 162, height = 5, insets = { 0, 0, 24, 0 } },
 	{ key = "databars.honor", module = "DataBars", label = L["Honour bar"], width = 162, height = 5, insets = { 0, 0, 24, 0 } },
 	{ key = "databars.strip", module = "DataBars", label = L["Data strip"], short = L["Readout"], width = STORY_W, height = READOUT_H },
+	{ key = "databars.strip2", module = "DataBars", label = L["Second data bar"], width = STORY_W, height = READOUT_H },
 	{ key = "databars.micro", module = "DataBars", label = L["Micro menu"], width = 318, height = 44 },
 	{ key = "databars.bags", module = "DataBars", label = L["Bag bar"], width = 212, height = 32 },
 	{ key = "meters.damage", module = "Meters", label = L["Damage meter"], short = L["Damage"], width = DAMAGE_W, height = DAMAGE_H },
@@ -177,6 +178,7 @@ local DPS = {
 	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
 	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -263, y = 217.5 + LIFT + 102.5 + GAP },
 	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = READOUT_Y },
+	["databars.strip2"] = { anchor = "TOP", x = 0, y = -16 },
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y + MICRO_H },
 	["databars.xp"] = { anchor = "BOTTOM", x = 0, y = TRAY_BOTTOM - TRAY_STRIP_GAP - XP_H + 9 },
@@ -254,11 +256,12 @@ local SWITCHES = {
 	{ key = "meters.threat", module = "Meters", setting = "threat.shown" },
 	{ key = "auras.extraBuffs", module = "Auras", setting = "extraBuffs.enabled" },
 	{ key = "auras.extraDebuffs", module = "Auras", setting = "extraDebuffs.enabled" },
+	{ key = "databars.strip2", module = "DataBars", setting = "strip.second" },
 }
 
 local BARS_OFF = {
 	"actionbars.bar3", "actionbars.bar6",
-	"unitframes.castbar.target", "auras.extraBuffs", "auras.extraDebuffs",
+	"unitframes.castbar.target", "auras.extraBuffs", "auras.extraDebuffs", "databars.strip2",
 }
 local OFF = {
 	DPS = { "meters.threat" },

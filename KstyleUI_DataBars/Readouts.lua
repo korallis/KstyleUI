@@ -67,21 +67,65 @@ local function Hearth()
 	return L["--"], L["--"]
 end
 
-function Readouts.HearthText(s, bind, cooldown)
-	local mode = s.hearthText
+function Readouts.HearthText(s, bind, cooldown, mode)
+	mode = mode or s.hearthText
 	if mode == "location" or mode == "smart" and cooldown == L["ready"] then return bind end
 	if mode == "cooldown" or mode == "smart" then return cooldown end
 	return cooldown .. " " .. bind
 end
 
+local names = {}
 local function ChoiceName(value)
+	if names[value] then return names[value] end
 	local kind, id = value:match("^(%a+):(%d+)$")
 	id = tonumber(id)
+	local name
 	if kind == "spell" and C_Spell then
 		local info = Call(C_Spell.GetSpellInfo, id)
-		return not ns.IsSecret(info) and type(info) == "table" and Plain(info.name, "string") or nil
+		name = not ns.IsSecret(info) and type(info) == "table" and Plain(info.name, "string") or nil
+	else
+		name = kind == "item" and C_Item and Plain(Call(C_Item.GetItemNameByID, id), "string") or nil
 	end
-	return kind == "item" and C_Item and Plain(Call(C_Item.GetItemNameByID, id), "string") or nil
+	names[value] = name
+	return name
+end
+
+local function Remaining(start, duration)
+	local now = Number(GetTime)
+	start, duration = Plain(start, "number"), Plain(duration, "number")
+	if not (start and duration and now) then return L["--"] end
+	local left = math.max(0, start + duration - now)
+	return left == 0 and L["ready"] or K.Widgets.Duration.Format(left)
+end
+
+function Readouts.Travel(value)
+	if value == "" or value == "item:6948" then return Hearth() end
+	local kind, id = value:match("^(%a+):(%d+)$")
+	id = tonumber(id)
+	local cooldown = L["--"]
+	if kind == "spell" and C_Spell and type(C_Spell.GetSpellCooldown) == "function" then
+		local info = Call(C_Spell.GetSpellCooldown, id)
+		if not ns.IsSecret(info) and type(info) == "table" then
+			cooldown = info.isOnGCD == true and L["ready"] or Remaining(info.startTime, info.duration)
+		end
+	elseif kind == "item" and C_Item and type(C_Item.GetItemCooldown) == "function" then
+		cooldown = Remaining(Call(C_Item.GetItemCooldown, id))
+	end
+	return ChoiceName(value) or L["--"], cooldown
+end
+
+local CLICKS = { { "hearthRight", "hearthRightText" }, { "hearthMiddle", "hearthMiddleText" } }
+function Readouts.HearthValue(s, travel)
+	local place, cooldown = travel(s.hearthLeft)
+	local text = Readouts.HearthText(s, place, cooldown)
+	for _, click in ipairs(CLICKS) do
+		local mode = s[click[2]]
+		if mode ~= "none" and s[click[1]] ~= "" then
+			place, cooldown = travel(s[click[1]])
+			text = text .. " \194\183 " .. Readouts.HearthText(s, place, cooldown, mode)
+		end
+	end
+	return text
 end
 
 local travelGroups, travelFresh
@@ -449,7 +493,7 @@ Strip.VALUES.bags = function(s)
 end
 Strip.VALUES.spec = Spec
 Strip.VALUES.hearth = function(s)
-	return Readouts.HearthText(Settings(s), Hearth())
+	return Readouts.HearthValue(Settings(s), Readouts.Travel)
 end
 Strip.VALUES.guild = Guild
 Strip.VALUES.friends = Friends
@@ -486,14 +530,14 @@ for _, id in ipairs({ "location", "itemLevel", "coords" }) do
 	Strip.TOOLTIPS[id] = function(_, tip) tip:AddDoubleLine(titles[id], Strip.VALUES[id]()) end
 end
 
-function Readouts.Visible(id)
+function Readouts.Visible(id, s)
 	if id == "guild" then return Plain(Call(IsInGuild), "boolean") == true end
 	if id == "spec" then local groups = Number(GetNumSpecGroups); return groups and groups > 1 end
 	if id == "currencies" then return C_CurrencyInfo and type(C_CurrencyInfo.GetBackpackCurrencyInfo) == "function" and Currencies() ~= "" end
 	if id == "combat" then return not Settings().combatOnly or fight.start ~= nil or InCombatLockdown() end
 	if PROFESSION[id] then return Profession(PROFESSION[id]) ~= nil end
 	if id == "broker" then return Settings().brokerPlugin ~= "" end
-	if id == "spacer" then return Strip.OneLine(Settings()) end
+	if id == "spacer" then return Strip.OneLine(Settings(s)) end
 	return true
 end
 
@@ -648,7 +692,7 @@ local EVENTS = {
 }
 local READOUT = { mail = "time", rest = "time", loadout = "spec" }
 local REFRESH = { PLAYER_GUILD_UPDATE = true, PLAYER_SPECIALIZATION_CHANGED = true, ACTIVE_TALENT_GROUP_CHANGED = true, SKILL_LINES_CHANGED = true }
-local active = {}
+local active, mainShown = {}, false
 local function Changed(id, event, ...)
 	if id == "combat" then
 		local now = Number(GetTime) or 0
@@ -685,14 +729,16 @@ local function Changed(id, event, ...)
 end
 
 function Readouts.Sync(shown)
-	local wanted, s = {}, ns.Settings().strip
-	if shown then
-		for _, entry in ipairs(Strip.Modules(s)) do
+	if shown == nil then shown = mainShown end
+	mainShown = shown
+	local wanted, s, second = {}, ns.Settings().strip, Strip.second
+	for _, list in ipairs({ shown and Strip.Modules(s) or {}, second and second.visible and s.secondModules or {} }) do
+		for _, entry in ipairs(list) do
 			if entry.shown then wanted[entry.id] = true end
 		end
-		wanted.mail, wanted.rest, wanted.loadout = wanted.time and s.clockMail, wanted.time and s.clockRest, wanted.spec and s.specLoadout
-		wanted.prof = wanted.prof1 or wanted.prof2
 	end
+	wanted.mail, wanted.rest, wanted.loadout = wanted.time and s.clockMail, wanted.time and s.clockRest, wanted.spec and s.specLoadout
+	wanted.prof = wanted.prof1 or wanted.prof2
 	for id, events in pairs(EVENTS) do
 		local on = wanted[id] == true
 		if on ~= (active[id] == true) then
@@ -711,4 +757,7 @@ function Readouts.Sync(shown)
 	end
 end
 
-ns.AddPart({ Disable = function() Readouts.Sync(false) end })
+ns.AddPart({ Disable = function()
+	if Strip.second then Strip.second.visible = false end
+	Readouts.Sync(false)
+end })
