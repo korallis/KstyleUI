@@ -1,5 +1,17 @@
 # KstyleUI changelog
 
+## v0.2.9.1 (2026-11-21)
+
+A small fix release.
+
+Highlights:
+
+- Medallions party frames no longer error when their names sit on the bar.
+
+### Fixed
+
+- Under Medallions, choosing names on the bar for party frames no longer raises a Lua error, and the names show on the bar.
+
 ## v0.2.9 (2026-11-21)
 
 The customisation release: resource jewels on the Medallions crest, then a big wave of new options across every module, each starting off or at today's value, plus faster loading and a few fixes.
