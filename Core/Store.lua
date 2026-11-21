@@ -1441,19 +1441,15 @@ function Store.Profile()
 end
 
 function Store.Module(name)
-	local values = db and registered[name] and active[name]
-	if type(values) == "table" then
+	local values = active and active[name]
+	if registered[name] and type(values) == "table" then
 		return values
 	end
 	requireLoaded("Module")
 	if not sectionDefaults(name) then
 		error("KstyleUI.Store.Module: unknown settings section " .. tostring(name), 2)
 	end
-	values = active[name]
-	if type(values) ~= "table" then
-		values = fillSection(active, name)
-	end
-	return values
+	return type(values) == "table" and values or fillSection(active, name)
 end
 
 function Store.Account()
