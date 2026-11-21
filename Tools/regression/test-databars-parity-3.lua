@@ -9,12 +9,12 @@ local OLD = { "gold", "latency", "fps", "durability", "time", "spec", "guild", "
 local old = {}
 for i, id in ipairs(OLD) do old[i] = { id = id, shown = i <= 10, zone = id == "time" and "centre" or "right" } end
 
-local spells = {}
+local spells, readouts = {}, nil
 local env, K, ns = D.New({
 	saved = { version = 42, profiles = { Default = { DataBars = { enabled = true, strip = { modules = old } } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
 	setup = function(e)
 		D.Menus(e)
-		Fixture(e)
+		readouts = Fixture(e)
 		e.C_Spell = {
 			GetSpellInfo = function(id) return ({ [556] = { name = "Astral Recall" }, [3561] = { name = "Teleport: Stormwind" } })[id] end,
 			GetSpellCooldown = function(id) return spells[id] end,
@@ -201,6 +201,36 @@ for _, id in ipairs(second.order) do
 end
 write("strip.orientation", "HORIZONTAL")
 write("strip.placement", "top")
+show({ "currencies" }, "secondModules")
+local refresh, refreshes = ns.Strip.Refresh, 0
+ns.Strip.Refresh = function(...) refreshes = refreshes + 1 return refresh(...) end
+env.FireEvent("CURRENCY_DISPLAY_UPDATE")
+eq(refreshes, 0, "a currency event that changes no readout rebuilds neither bar")
+local tracked = readouts.currencies
+readouts.currencies = {}
+env.FireEvent("CURRENCY_DISPLAY_UPDATE")
+ns.Strip.Refresh = refresh
+assert(not item("currencies", second).button:IsShown(), "untracking the last currency hides the second bar's readout")
+readouts.currencies = tracked
+show({ "fps" }, "secondModules")
+write("strip.enabled", false)
+local newTicker, scripts, ticked = env.C_Timer.NewTicker, {}, false
+for _, child in ipairs({ K.Scale.Root():GetChildren() }) do scripts[child] = child:GetScript("OnUpdate") end
+env.C_Timer.NewTicker = nil
+write("strip.second", false)
+write("strip.second", true)
+for _, child in ipairs({ K.Scale.Root():GetChildren() }) do
+	local script = child:GetScript("OnUpdate")
+	if script and script ~= scripts[child] and child:IsVisible() then
+		env._game.fps = 61
+		script(child, 1)
+		ticked = ticked or text("fps", second) == "61"
+	end
+end
+assert(ticked, "without C_Timer.NewTicker a visible frame counts the seconds for the second bar while the main bar is off")
+env.C_Timer.NewTicker = newTicker
+write("strip.enabled", true)
+show({ "coords", "latency", "durability" }, "secondModules")
 assert(listens(), "the second bar's readouts listen for their events")
 env._game.durability[1] = { 40, 100 }
 env.FireEvent("UPDATE_INVENTORY_DURABILITY")
