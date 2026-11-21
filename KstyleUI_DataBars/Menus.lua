@@ -757,7 +757,7 @@ local function OnEnter(button)
 	end
 	HoverIn(entry.bar)
 	local tip = Widgets.Tooltip()
-	tip:SetOwner(button, "ANCHOR_TOP")
+	tip:SetOwner(button, "ANCHOR_TOP", 0, 0, nil, entry.bar.content)
 	K.Call(entry.bar.id == "micro" and MicroTooltip or BagTooltip, entry, tip)
 	tip:Show()
 end

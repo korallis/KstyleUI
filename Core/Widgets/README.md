@@ -504,7 +504,7 @@ Fields: `holder`, `slice`, for proc glows `pulse`, `sparkPulse`, `top`, `spark`,
 
 | Method | Behaviour |
 | --- | --- |
-| `SetOwner(owner, anchor, x, y)` | Clears the lines and anchors to `owner`: `"ANCHOR_RIGHT"` (default), `"ANCHOR_LEFT"`, `"ANCHOR_TOP"` or `"ANCHOR_BOTTOM"`, 6 units away, plus `x` and `y`. |
+| `SetOwner(owner, anchor, x, y, factor, bar)` | Clears the lines and anchors to `owner`: `"ANCHOR_RIGHT"` (default), `"ANCHOR_LEFT"`, `"ANCHOR_TOP"` or `"ANCHOR_BOTTOM"`, 6 units away, plus `x` and `y`. With a `bar`, it opens 6 units clear of the whole bar instead, still lined up with `owner` (a micro button on a two-row menu clears both rows). When the screen has too little room on that side, it opens on the opposite side, then on either side beside it (right then left, or top then bottom), so the screen clamp never pulls it back over its owner (a readout on the top data bar opens below the bar). The opposite side mirrors `x` and `y`; a side beside drops them. Where no side fits, it takes the one with most room. When nothing can be measured (a restricted owner or bar, nil or secret edges), it keeps the side asked for. |
 | `IsOwned(frame) -> boolean` | |
 | `SetIcon(texture, color)` | The design's item icon: a 50-unit rounded `buttonFill` tile 9.5 units inside the top left corner, the icon cropped and masked by `iconMask`; the lines move into a column 11 units right of it. With a `color`, the tile's hairline takes it and a `selection` glow lights in it, as a rarity-lit item; without one the hairline stays `edgeInner` and nothing glows. |
 | `AddTitle(text, color)` | The design's title: `body` text in capitals, tracked with a thin space between the letters, `textEmphasis` by default. |

@@ -837,6 +837,14 @@ function Solver:solve(object)
 		left, right = cx + (left - cx) * sx, cx + (right - cx) * sx
 		bottom, top = cy + (bottom - cy) * sy, cy + (top - cy) * sy
 	end
+	-- The client shifts a frame clamped to the screen back inside it (a tooltip asked to open past the top edge
+	-- comes down over its owner), and its children follow.
+	local screen = self.screen
+	if screen and state(object, "ClampedToScreen") == true then
+		local dx = left < screen[1] and screen[1] - left or right > screen[3] and screen[3] - right or 0
+		local dy = bottom < screen[2] and screen[2] - bottom or top > screen[4] and screen[4] - top or 0
+		left, right, bottom, top = left + dx, right + dx, bottom + dy, top + dy
+	end
 	return { left, bottom, right, top }
 end
 
