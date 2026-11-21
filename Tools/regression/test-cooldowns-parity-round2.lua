@@ -42,7 +42,7 @@ do
 	local bars = current.bars
 	assert(not bars.fillUp and not bars.smooth and not bars.spark and not bars.nameWrap and not bars.decimals and bars.decimalBelow == 3, "bar options default off")
 	local a = IconOf(ns, "essential", 1001)
-	assert(not a.assist and not a.assistGlow and a.icon:GetAlpha() == 1 and Near(W.LastCall(a.countdown, "SetTextColor")[1], K.Widgets.Rgba("slotNumber")), "icons stay as before")
+	assert(not a.assistGlow and a.icon:GetAlpha() == 1 and Near(W.LastCall(a.countdown, "SetTextColor")[1], K.Widgets.Rgba("slotNumber")), "icons stay as before")
 	local bar = ns.Mirror.Row("bars").bars[1]
 	assert(not bar.status.spark:IsShown() and #W.Calls(bar.name, "SetMaxLines") == 0, "no spark and no wrap")
 	local timer = W.LastCall(bar.status, "SetTimerDuration")
@@ -140,26 +140,26 @@ do
 	local manager = env.AssistedCombatManager
 	manager.lastNextCastSpellID = 1001
 	C.Trigger(env, "AssistedCombatManager.OnAssistedHighlightSpellChange")
-	assert(not a.assist, "the helper is off by default")
+	assert(not a.assistGlow, "the helper is off by default")
 	Write("assist", true)
-	assert(a.assist and a.assistGlow.playing and not b.assist, "switched on, the recommended spell glows")
+	assert(a.assistGlow.playing and not b.assistGlow, "switched on, the recommended spell glows")
 	manager.lastNextCastSpellID = 1002
 	C.Trigger(env, "AssistedCombatManager.OnAssistedHighlightSpellChange")
-	assert(not a.assist and b.assist, "the glow follows the next recommendation")
+	assert(not a.assistGlow.playing and b.assistGlow.playing, "the glow follows the next recommendation")
 	Write("assistSource", "custom"); Write("assistColor", { r = 0.1, g = 0.9, b = 0.3 })
 	assert(b.assistGlow.colorRGB[2] == 0.9, "the custom highlight colour applies at once")
 	manager.lastNextCastSpellID = env.Secret(1002)
 	C.Trigger(env, "AssistedCombatManager.OnAssistedHighlightSpellChange")
-	assert(not b.assist, "a secret recommendation lights nothing")
+	assert(not b.assistGlow.playing, "a secret recommendation lights nothing")
 	manager.lastNextCastSpellID = 1002
 	C.Trigger(env, "AssistedCombatManager.OnAssistedHighlightSpellChange")
 	manager.lastNextCastSpellID = nil
 	C.Trigger(env, "AssistedCombatManager.OnSetUseAssistedHighlight", false)
-	assert(not b.assist, "turning off Assisted Highlight clears it")
+	assert(not b.assistGlow.playing, "turning off Assisted Highlight clears it")
 	manager.lastNextCastSpellID = 1001
 	C.Trigger(env, "AssistedCombatManager.OnAssistedHighlightSpellChange")
 	Write("assist", false)
-	assert(not a.assist and not a.assistGlow.playing, "switching the helper off stops the glow")
+	assert(not a.assistGlow.playing, "switching the helper off stops the glow")
 	ns.definition.Disable()
 	assert(not next(env._cdm.callbacks["AssistedCombatManager.OnAssistedHighlightSpellChange"]), "stopping the module stops listening")
 	Clean(env, K, "rotation helper")
@@ -286,7 +286,7 @@ do
 	Write("assist", true); Write("essential.numbersOnly", true); Write("rules.activeGlow", "x"); Write("bars.fillUp", true); Write("bars.spark", true)
 	frame:Refresh()
 	local essential, buffs, bar = frame.rows.essential, frame.rows.buffs, frame.rows.bars.bars[1]
-	assert(essential.icons[2].assist and not essential.icons[1].assist, "the preview shows the helper on one sample")
+	assert(essential.icons[2].assistGlow.playing and not essential.icons[1].assistGlow, "the preview shows the helper on one sample")
 	assert(essential.icons[1].icon:GetAlpha() == 0, "the preview shows numbers only")
 	assert(buffs.icons[1].ready and not buffs.icons[3].ready, "the preview glows the active buff samples")
 	assert(math.abs(W.LastCall(bar.status, "SetValue")[1] - 0.4) < 0.01 and bar.status.spark:IsShown(), "the preview bars fill up with a spark")

@@ -69,7 +69,7 @@ function Preview.Build(...)
 				icon:SetAlpha((rule.hide or rule.missing and sample) and 0 or 1)
 				Style.SetReady(icon, sample and rule.activeGlow)
 			end
-			Style.SetAssist(icon, current.assist and SAMPLE_ASSIST[from] and SAMPLE_ASSIST[from][n])
+			Style.Glow(icon, icon, "assistGlow", current.assist and SAMPLE_ASSIST[from] and SAMPLE_ASSIST[from][n], Settings.SourceColor("assist"))
 			icon.rule = rule
 			row:Look(icon)
 			if rule.range or icon.outOfRange then

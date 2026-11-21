@@ -467,7 +467,7 @@ end
 
 local function Assist(_, icon)
 	local entry, spell = icon.entry, Settings.current.assist and NextSpell()
-	Style.SetAssist(icon, spell and entry ~= nil and (entry.spell == spell or entry.spellID == spell))
+	Style.Glow(icon, icon, "assistGlow", spell and entry ~= nil and (entry.spell == spell or entry.spellID == spell), Settings.SourceColor("assist"))
 end
 
 local function Match(row, icon)

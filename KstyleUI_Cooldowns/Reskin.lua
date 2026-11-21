@@ -84,17 +84,6 @@ local function Spell(item)
 	return ok and spell or nil
 end
 
-local function Glow(item, side, on, colour)
-	if on then
-		side.glow = side.glow or Widgets.Glow(item, { kind = "selection" })
-		side.glow:SetColorRGB(Rules.Colour(colour, "glow"))
-	end
-	if side.glow and (side.glowing or false) ~= on then
-		side.glowing = on
-		if on then side.glow:Start() else side.glow:Stop() end
-	end
-end
-
 function Reskin.Buff(item)
 	if not active.buffs then return end
 	local cfg, rule = Settings.current.buffs, Rules.ForSpell(Spell(item))
@@ -109,12 +98,12 @@ function Reskin.Buff(item)
 	local icon, side, grey = item.Icon, K.Safe.Side(item), false
 	if not IsTexture(icon) then return end
 	local shade = rule.grey and "grey" or rule.colour and "colour" or cfg.inactiveShade
-	if shade == "grey" or rule.activeGlow or side.glowing then
+	if shade == "grey" or rule.activeGlow or side.glow then
 		local ok, on = false, nil
 		if type(item.IsActive) == "function" then ok, on = pcall(item.IsActive, item) end
 		if not ok or ns.IsSecret(on) then return end
 		grey = shade == "grey" and on ~= true
-		Glow(item, side, rule.activeGlow and on == true or false, rule.activeGlow)
+		Style.Glow(side, item, "glow", rule.activeGlow and on == true, Rules.Colour(rule.activeGlow, "glow"))
 	end
 	if grey ~= (side.greyed or false) then
 		side.greyed = grey or nil
@@ -338,7 +327,7 @@ end
 
 local function Restore(_, item)
 	local side = K.Safe.Side(item)
-	Glow(item, side, false)
+	Style.Glow(side, item, "glow", false)
 	if side.greyed and IsTexture(item.Icon) then
 		side.greyed = nil
 		item.Icon:SetDesaturated(false)

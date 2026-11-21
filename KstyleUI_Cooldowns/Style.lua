@@ -413,15 +413,13 @@ function Style.SetProc(icon, on)
 	icon:SetProc(on)
 end
 
-function Style.SetAssist(icon, on)
-	on = on and true or false
+function Style.Glow(store, frame, key, on, r, g, b)
 	if on then
-		icon.assistGlow = icon.assistGlow or Widgets.Glow(icon, { kind = "selection" })
-		icon.assistGlow:SetColorRGB(ns.Settings.SourceColor("assist"))
-	end
-	if (icon.assist or false) ~= on then
-		icon.assist = on
-		if on then icon.assistGlow:Start() else icon.assistGlow:Stop() end
+		store[key] = store[key] or Widgets.Glow(frame, { kind = "selection" })
+		store[key]:SetColorRGB(r, g, b)
+		store[key]:Start()
+	elseif store[key] then
+		store[key]:Stop()
 	end
 end
 

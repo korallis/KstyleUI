@@ -51,7 +51,7 @@ local BAR_RANGE = {
 	timerSize = { 6, 24, 1 },
 	countSize = { 6, 24, 1 },
 	fillOpacity = { 0, 1, 0.05 },
-	decimalBelow = { 1, 60, 1 },
+	decimalBelow = TENTHS_RANGE,
 }
 local ICON_FLAGS = { "timer", "gcd", "desaturate", "usable", "readyGlow", "procGlow", "inactive", "showCount", "swipe", "edge", "vertical", "hideZero", "countOnly", "overflow", "numbersOnly", "keepPlace" }
 local RULES = { "hideCooling", "hideReady", "hideUnusable", "spent", "fade", "grey", "colour", "reverse", "noSwipe", "tint", "noGcd", "noCount", "noEdge", "noCost", "glow", "range", "hide", "shift", "form", "missing", "count", "timerColour", "activeGlow", "decimals", "names" }
