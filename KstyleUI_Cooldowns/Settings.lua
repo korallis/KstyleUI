@@ -62,7 +62,7 @@ local BAR_RANGE = {
 	shadeAlpha = { 0.05, 0.95, 0.05 },
 }
 local ICON_FLAGS = { "timer", "gcd", "desaturate", "usable", "readyGlow", "procGlow", "inactive", "showCount", "swipe", "edge", "vertical", "hideZero", "countOnly", "overflow", "numbersOnly", "keepPlace", "itemCount", "hideMissing", "trinkets", "keybind", "pressMirror", "itemQuality" }
-local RULES = { "hideCooling", "hideReady", "hideUnusable", "spent", "fade", "grey", "colour", "reverse", "noSwipe", "tint", "noGcd", "noCount", "noEdge", "noCost", "glow", "range", "hide", "shift", "missing", "count", "timerColour", "activeGlow", "decimals", "names", "chargeSwipe", "chargeTimer", "threshold", "form", "swing", "swingGlow", "sound", "talent", "cdBars" }
+local RULES = { "hideCooling", "hideReady", "hideUnusable", "spent", "fade", "grey", "colour", "reverse", "noSwipe", "tint", "noGcd", "noCount", "noEdge", "noCost", "glow", "range", "hide", "shift", "missing", "count", "timerColour", "activeGlow", "decimals", "names", "chargeSwipe", "chargeTimer", "threshold", "form", "swing", "swingGlow", "sound", "talent", "cdBars", "group" }
 Settings.RULES = RULES
 local POSITION = { [""] = true, CENTER = true, TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true, RIGHT = true, BOTTOMLEFT = true, BOTTOM = true, BOTTOMRIGHT = true }
 local INACTIVE = { [""] = true, grey = true, colour = true }
@@ -70,6 +70,9 @@ local SOURCE = { class = true, custom = true }
 local SIDE = { LEFT = true, RIGHT = true, TOP = true, BOTTOM = true }
 Settings.SOUNDS = { warning = "RAID_WARNING", ready = "READY_CHECK" }
 local MAX_RULE = 240
+local CUSTOM_RANGE = { count = { 1, 12, 1 }, shiftY = { -50, 50, 1 } }
+local SHIFT = { [""] = true, up = true, down = true }
+local MAX_NAME = 40
 local BAR_FLAGS = { "reverse", "icon", "name", "timer", "inactive", "showCount", "fillUp", "smooth", "spark", "nameWrap", "decimals", "cdSmooth", "hashLines", "chargeShade" }
 
 local PATH = { auto = true, mirror = true, reskin = true }
@@ -205,6 +208,7 @@ Settings.defaults = {
 		chargeShade = false,
 		shadeAlpha = 0.5,
 	},
+	custom = { name = "", count = 2, autoAdd = false, shift = "", shiftY = 0 },
 }
 
 function Settings.Schema()
@@ -360,6 +364,18 @@ function Settings.Schema()
 		end
 	end
 
+	local function CustomRows(schema)
+		local function Shifted(settings) return type(settings.custom) == "table" and SHIFT[settings.custom.shift] and settings.custom.shift ~= "" end
+		Add(schema, { type = "header", label = L["Custom bar group"] })
+		Add(schema, { type = "text", key = "rules.group", label = L["Spells in this group"], help = L["Tracked bars or cooldowns to show here as bars, in this order, by name or ID."], maxLetters = MAX_RULE }, "bars")
+		Add(schema, { type = "text", key = "custom.name", label = L["Group name"], help = L["The name Layout Mode and the Elements page show for this group."], maxLetters = MAX_NAME }, "bars")
+		Add(schema, Slider("custom", "count", L["Bars"], L["How many bars show. Point at the +N more bar above them to list the rest."], CUSTOM_RANGE), "bars")
+		Add(schema, Toggle("custom", "autoAdd", L["Add new tracked bars"], L["Every tracked bar the game shows joins this group, after the listed spells."]), "bars")
+		local SHIFT_OPTIONS = { { value = "", label = L["None"] }, { value = "up", label = L["Upward"] }, { value = "down", label = L["Downward"] } }
+		Add(schema, { type = "dropdown", key = "custom.shift", label = L["Shift attached elements"], help = L["While no spell of this group is in your Cooldown Manager, move what is attached to it by one bar."], options = SHIFT_OPTIONS }, "bars")
+		Add(schema, { type = "slider", key = "custom.shiftY", label = L["Extra shift"], help = L["Adds to that one-bar move."], min = CUSTOM_RANGE.shiftY[1], max = CUSTOM_RANGE.shiftY[2], step = CUSTOM_RANGE.shiftY[3], showWhen = Shifted }, "bars")
+	end
+
 	local function RuleRows(schema)
 		local function Rule(key, label, help, mirrorOnly)
 			Add(schema, { type = "text", key = "rules." .. key, label = label, help = help, maxLetters = MAX_RULE }, mirrorOnly == true and "essential" or mirrorOnly)
@@ -482,6 +498,7 @@ function Settings.Schema()
 	IconRows(schema, "utility", L["Utility cooldowns"])
 	IconRows(schema, "buffs", L["Tracked buff icons"])
 	BarRows(schema)
+	CustomRows(schema)
 	RuleRows(schema)
 	Add(schema, { type = "header", label = L["Focus interrupt"] })
 	Add(schema, { type = "text", key = "focusSpell", label = L["Interrupt spell"], help = L["Your interrupt, by name or ID. Its icon shows on your focus's nameplate."], maxLetters = MAX_RULE })
@@ -557,7 +574,7 @@ local function Color(out, prefix, value, fallback)
 	end
 end
 
-local current = { essential = {}, utility = {}, buffs = {}, bars = { grid = {} } }
+local current = { essential = {}, utility = {}, buffs = {}, bars = { grid = {} }, custom = { grid = {} } }
 Settings.current = current
 
 local function ReadIcons(out, saved, defaults, group)
@@ -642,6 +659,14 @@ function Settings.Read()
 		end
 	end
 	ReadBars(current.bars, saved.bars, defaults.bars)
+	local custom, own = current.custom, type(saved.custom) == "table" and saved.custom or defaults.custom
+	ReadBars(custom, saved.bars, defaults.bars)
+	custom.count = Number(own.count, CUSTOM_RANGE.count, defaults.custom.count)
+	custom.grid.rows = custom.count
+	custom.shiftY = Number(own.shiftY, CUSTOM_RANGE.shiftY, 0)
+	custom.shift, custom.autoAdd = Choice(own.shift, SHIFT, ""), own.autoAdd == true
+	local name = own.name
+	custom.name = type(name) == "string" and not ns.IsSecret(name) and #name:gsub("[\128-\191]", "") <= MAX_NAME and not name:find("[%c|]") and name or ""
 	ns.Rules.Reset()
 	return current
 end

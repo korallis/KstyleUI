@@ -1,4 +1,4 @@
--- Preview.lua: the settings window's live preview: sample essential, utility and buff rows and buff bars drawn with the current settings (with sample keybinds and a press on the first cooldown, a sample potion and trinket while an item option is changed, a sample cooldown bar with its charge sections, eased in while it is smoothed, a swing sweep at the start of the late-swing window, and a sample enemy plate with the focus interrupt on its chosen side and the reminder under it while either is on), cooldown samples passed to the other row past its grid, and every sample treated as listed in each spell rule that is not empty, with the list's first colour, name or threshold.
+-- Preview.lua: the settings window's live preview: sample essential, utility and buff rows and buff bars drawn with the current settings (with sample keybinds and a press on the first cooldown, a sample potion and trinket while an item option is changed, a sample cooldown bar with its charge sections, eased in while it is smoothed, the custom bar group under its name with the samples it takes (or, with a shift, empty and covered by the bars below it), a swing sweep at the start of the late-swing window, and a sample enemy plate with the focus interrupt on its chosen side and the reminder under it while either is on), cooldown samples passed to the other row past its grid, and every sample treated as listed in each spell rule that is not empty, with the list's first colour, name or threshold.
 local _, ns = ...
 
 local K = KstyleUI
@@ -37,6 +37,7 @@ function Preview.Build(...)
 	local SAMPLE_KEYS = { "1", "2", "3", "Q", "E", "R" }
 	local SAMPLE_RANK = 3
 	local SAMPLE_COOLDOWN_BAR = { icon = 132111, name = L["Multi-Shot"], duration = 10, left = 4, charges = 2 }
+	local ORDER = { "essential", "utility", "buffs", "custom", "bars" }
 
 	local function Samples(frame, group)
 		local list, other = {}, OTHER[group]
@@ -136,8 +137,7 @@ function Preview.Build(...)
 		Widgets.Point(icon, side[1], plate, side[2], side[3] * gap, side[4] * gap)
 	end
 
-	local function FillBars(row, rule)
-		local samples = rule.cdBars and { SAMPLE_BARS[1], SAMPLE_COOLDOWN_BAR } or SAMPLE_BARS
+	local function FillBars(row, rule, samples)
 		local count = row:SetCount(#samples)
 		local now = GetTime and GetTime() or 0
 		for i = 1, count do
@@ -187,27 +187,42 @@ function Preview.Build(...)
 
 	local function Refresh(frame)
 		Settings.Read()
-		local gap = Tokens.Size("gapMedium")
+		local gap, current = Tokens.Size("gapMedium"), Settings.current
+		local cfg, caption = current.custom, frame.caption
 		local previous, rule = nil, {}
 		for _, key in ipairs(Settings.RULES) do rule[key] = Rules.Sample(key) end
-		for _, group in ipairs(Settings.GROUPS) do
+		local using = current.rules.group ~= "" or cfg.autoAdd
+		local listed, samples, main, mine = using and cfg.shift == "", rule.cdBars and { SAMPLE_BARS[1], SAMPLE_COOLDOWN_BAR } or SAMPLE_BARS, {}, {}
+		for _, sample in ipairs(samples) do
+			local into = listed and (rule.group or cfg.autoAdd and not sample.charges) and mine or main
+			into[#into + 1] = sample
+		end
+		Widgets.SetText(caption, cfg.name ~= "" and cfg.name or L["Custom bars"])
+		caption:SetShown(using)
+		frame.rows.custom.holder:SetShown(using)
+		for _, group in ipairs(ORDER) do
 			local row = frame.rows[group]
-			row:Apply(group == "bars" and Settings.current.bars or Fitted(frame, Settings.current[group], group))
+			row:Apply(group == "bars" and current.bars or group == "custom" and cfg or Fitted(frame, current[group], group))
 			row.holder:ClearAllPoints()
-			if previous then
-				Widgets.Point(row.holder, "TOP", previous.holder, "BOTTOM", 0, -gap)
+			if group == "custom" and not using then
+				row:SetCount(0)
+			elseif previous then
+				local y = -gap
+				if group == "custom" then y = y - Widgets.LineHeight(caption) - gap end
+				if group == "bars" and using and not listed then y = y + (cfg.shift == "up" and 1 or -1) * (cfg.height + cfg.spacing + cfg.shiftY) end
+				Widgets.Point(row.holder, "TOP", previous.holder, "BOTTOM", 0, y)
+				previous = row
 			else
 				Widgets.Point(row.holder, "TOP", frame, "TOP", 0, -Tokens.Size("gapHuge"))
+				previous = row
 			end
-			previous = row
 		end
+		Widgets.Point(caption, "BOTTOMLEFT", frame.rows.custom.holder, "TOPLEFT", 0, gap)
 		for _, group in ipairs(Settings.GROUPS) do
-			if group == "bars" then
-				FillBars(frame.rows.bars, rule)
-			else
-				Fill(frame.rows[group], group, Samples(frame, group), rule)
-			end
+			if group ~= "bars" then Fill(frame.rows[group], group, Samples(frame, group), rule) end
 		end
+		FillBars(frame.rows.bars, rule, main)
+		if using then FillBars(frame.rows.custom, rule, mine) end
 		FocusSample(frame)
 	end
 
@@ -217,13 +232,14 @@ function Preview.Build(...)
 		frame:SetAllPoints(parent)
 		frame.pane = parent
 		frame.rows = {}
-		for _, group in ipairs(Settings.GROUPS) do
-			if group == "bars" then
-				frame.rows[group] = BarRow.New(frame, Settings.current.bars)
+		for _, group in ipairs(ORDER) do
+			if group == "bars" or group == "custom" then
+				frame.rows[group] = BarRow.New(frame, Settings.current[group])
 			else
 				frame.rows[group] = Row.New(frame, group, Settings.current[group])
 			end
 		end
+		frame.caption = Widgets.Text(frame, "caps", "text")
 		frame.Refresh = Refresh
 		Refresh(frame)
 		return frame

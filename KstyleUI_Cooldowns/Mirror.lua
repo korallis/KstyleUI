@@ -1,4 +1,4 @@
--- Mirror.lua: runs each group on its path: KstyleUI rows driven by duration objects and the spell rules (with keybinds, mirrored presses, crafted-quality pips and cooldown bars beside the tracked buff bars), or Blizzard's viewer restyled in place when the mirror cannot work, with Setup asked to place Blizzard's essential and utility viewers on KstyleUI's rows.
+-- Mirror.lua: runs each group on its path: KstyleUI rows driven by duration objects and the spell rules (with keybinds, mirrored presses, crafted-quality pips, cooldown bars beside the tracked buff bars and a custom bar group in its own Layout element, which shifts what is attached to it while none of its spells is in the Cooldown Manager), or Blizzard's viewer restyled in place when the mirror cannot work, with Setup asked to place Blizzard's essential and utility viewers on KstyleUI's rows.
 local _, ns = ...
 
 local K = KstyleUI
@@ -13,7 +13,8 @@ local COOLDOWN_GROUPS = Settings.COOLDOWN_GROUPS
 local DATA_EVENT = "CooldownViewerSettings.OnDataChanged"
 local RETRY_SECONDS = 1
 local MAX_RETRIES = 10
-local KEYS = { essential = "cooldowns.essential", utility = "cooldowns.utility", buffs = "cooldowns.buffs", bars = "cooldowns.bars" }
+local KEYS = { essential = "cooldowns.essential", utility = "cooldowns.utility", buffs = "cooldowns.buffs", bars = "cooldowns.bars", custom = "cooldowns.custom" }
+local COOLDOWN_LIST = { "essential", "utility" }
 local OTHER = { essential = "utility", utility = "essential" }
 local EMPTY = Rules.EMPTY
 
@@ -30,6 +31,7 @@ local fighting = false
 local trinkets = { { equipSlot = 13 }, { equipSlot = 14 } }
 local swingStart, swingDuration, swingLate, swingStamp = nil, 0, false, 0
 local keysQueued, cooldownBars, chargeMax, barStamp = false, {}, {}, 0
+local held, layoutHooked = {}, false
 
 local pcall = pcall
 
@@ -59,6 +61,7 @@ local function Fail(group, why)
 		if Path.Get(group) == "reskin" then
 			Native(group)
 		end
+		if group == "bars" then Mirror.Custom() end
 	end
 end
 
@@ -723,6 +726,38 @@ local function Shows(cfg, entry)
 	return active or cfg.inactive, true
 end
 
+local function Draw(row, out, list)
+	row.entries = out
+	local count = row:SetCount(#out)
+	for i = 1, count do
+		if not Live(row.group) then
+			return
+		end
+		local bar = row.bars and row.bars[i]
+		if cooldownBars[out[i]] then
+			if bar.entry ~= out[i] or bar.cdStamp ~= barStamp then CooldownBar(row, bar, out[i]) end
+		elseif not bar then
+			ShowAuraIcon(row, row.icons[i], out[i])
+		elseif list then
+			ShowBar(row, bar, out[i])
+		end
+	end
+end
+
+local function Rank(entry)
+	local rank = Rules.For(entry).group
+	return type(rank) == "number" and rank or math.huge
+end
+
+local function Reshift()
+	local row = rows.custom
+	local empty = row ~= nil and row.live and row.assigned == 0
+	if row and row.empty ~= empty then
+		row.empty = empty
+		K.Layout.Restore(KEYS.custom)
+	end
+end
+
 local function AssignAuras(row, list)
 	local out, blank, cfg = shown[row.group], row.blank, row.cfg
 	if list then
@@ -743,30 +778,51 @@ local function AssignAuras(row, list)
 		end
 	end
 	if row.group == "bars" then
+		local custom, rules, auto, assigned = rows.custom and rows.custom.live and shown.custom, Settings.current.rules, Settings.current.custom.autoAdd, 0
+		Empty(held)
+		if custom and list then
+			Empty(custom)
+			local kept = 0
+			for _, entry in ipairs(out) do
+				if auto or Rules.For(entry).group then custom[#custom + 1] = entry else kept = kept + 1; out[kept] = entry end
+			end
+			for i = #out, kept + 1, -1 do out[i] = nil end
+			for _, entry in ipairs(list) do
+				local rule = Rules.For(entry)
+				if (auto or rule.group) and not rule.hide then assigned = assigned + 1 end
+			end
+		elseif custom then
+			for _, entry in ipairs(custom) do held[entry] = cooldownBars[entry] end
+		end
 		while cooldownBars[out[#out]] do out[#out] = nil end
 		Empty(cooldownBars)
-		for _, group in ipairs(Settings.current.rules.cdBars ~= "" and { "essential", "utility" } or EMPTY) do
+		for entry in pairs(held) do cooldownBars[entry] = true end
+		for _, group in ipairs((rules.cdBars ~= "" or rules.group ~= "") and COOLDOWN_LIST or EMPTY) do
 			for _, entry in ipairs(Live(group) and lists[group] or EMPTY) do
 				local rule = Rules.For(entry)
-				if entry.spell and rule.cdBars and not rule.hide and not (type(rule.talent) == "string" and not Rules.Known(rule.talent)) then out[#out + 1], cooldownBars[entry] = entry, true end
+				if entry.spell and (rule.cdBars or rule.group) and not rule.hide and not (type(rule.talent) == "string" and not Rules.Known(rule.talent)) then
+					if not (custom and rule.group) then
+						if rule.cdBars then out[#out + 1], cooldownBars[entry] = entry, true end
+					elseif list then
+						custom[#custom + 1], cooldownBars[entry], assigned = entry, true, assigned + 1
+					end
+				end
 			end
 		end
-	end
-	row.entries = out
-	local count = row:SetCount(#out)
-	for i = 1, count do
-		if not Live(row.group) then
-			return
-		end
-		local bar = row.bars and row.bars[i]
-		if cooldownBars[out[i]] then
-			if bar.entry ~= out[i] or bar.cdStamp ~= barStamp then CooldownBar(row, bar, out[i]) end
-		elseif not bar then
-			ShowAuraIcon(row, row.icons[i], out[i])
-		elseif list then
-			ShowBar(row, bar, out[i])
+		if custom then
+			if list then
+				for i = 2, #custom do
+					local entry, j = custom[i], i - 1
+					while j > 0 and Rank(custom[j]) > Rank(entry) do custom[j + 1], j = custom[j], j - 1 end
+					custom[j + 1] = entry
+				end
+				rows.custom.assigned = assigned
+			end
+			Draw(rows.custom, custom, list)
+			Reshift()
 		end
 	end
+	Draw(row, out, list)
 end
 
 local function FindAuras(list)
@@ -1050,6 +1106,7 @@ local function ApplySettings(key)
 	Keys.Reset()
 	barStamp = barStamp + 1
 	ListenRules()
+	Mirror.Custom(true)
 	for _, group in ipairs(GROUPS) do
 		local row = rows[group]
 		if row then
@@ -1088,6 +1145,50 @@ local function Build(group)
 		scalable = true,
 	})
 	return row
+end
+
+local function Shift(left, bottom, _, h)
+	local row, cfg = rows.custom, Settings.current.custom
+	local _, height = Grid.Size(cfg.grid)
+	if not (row and row.empty and cfg.shift ~= "" and height > 0) or K.Layout.IsActive() then return end
+	return left, bottom + (cfg.shift == "up" and 1 or -1) * ((cfg.height + cfg.spacing) * h / height + cfg.shiftY)
+end
+
+local function OnLayoutMode()
+	if rows.custom and rows.custom.empty then K.Layout.Restore(KEYS.custom) end
+end
+
+function Mirror.Custom(restyle)
+	local cfg, rules = Settings.current.custom, Settings.current.rules
+	local use, row = Live("bars") and (rules.group ~= "" or cfg.autoAdd), rows.custom
+	if use and not row then
+		row = BarRow.New(K.Scale.Root(), cfg)
+		rows.custom, shown.custom, row.blank, row.assigned = row, {}, {}, 0
+		if not layoutHooked and type(hooksecurefunc) == "function" then
+			layoutHooked = true
+			hooksecurefunc(K.Layout, "Enter", OnLayoutMode)
+			hooksecurefunc(K.Layout, "Exit", OnLayoutMode)
+		end
+	end
+	if not row then return end
+	local label = cfg.name ~= "" and cfg.name or K.L["Custom bars"]
+	if row.label ~= label then
+		local left, bottom, _, h = K.Layout.Rect(KEYS.bars)
+		row.place = row.place or { anchor = "BOTTOMLEFT", x = left or 0, y = (bottom or 0) + (h or 0) + Settings.current.bars.spacing }
+		row.label = label
+		K.Layout.Register(row.holder, KEYS.custom, row.place, { label = label, module = MODULE, scalable = true, clamp = Shift })
+	end
+	if not use then row:SetCount(0) end
+	if row.live ~= use then
+		row.live = use
+		row.holder:SetShown(use)
+		K.Layout.SetLive(KEYS.custom, use)
+	end
+	if restyle then
+		row:Apply(cfg)
+		K.Layout.Restore(KEYS.custom)
+	end
+	Reshift()
 end
 
 local eventSpell, eventShow, eventEntry
@@ -1218,13 +1319,17 @@ local function OnQueue()
 	if swingLate then EachCooldownIcon(SwingGlow) end
 end
 
-local function RefreshCooldownBars(cooldownEvent)
-	local row = rows.bars
-	if not (next(cooldownBars) and Live("bars")) then return end
+local function CooldownTimings(row, cooldownEvent)
 	for i = 1, row.count do
 		local bar = row.bars[i]
 		if cooldownBars[bar.entry] then CooldownTiming(row, bar, cooldownEvent) end
 	end
+end
+
+local function RefreshCooldownBars(cooldownEvent)
+	if not (next(cooldownBars) and Live("bars")) then return end
+	CooldownTimings(rows.bars, cooldownEvent)
+	if rows.custom and rows.custom.live then CooldownTimings(rows.custom, cooldownEvent) end
 end
 
 local function RunKeys()
@@ -1380,10 +1485,7 @@ end
 
 local function OnScale()
 	if running then
-		for _, group in ipairs(GROUPS) do
-			local row = rows[group]
-			if row then row:Apply() end
-		end
+		for _, row in pairs(rows) do row:Apply() end
 		Reskin.Refresh()
 	end
 end
@@ -1396,9 +1498,8 @@ local function OnProfile()
 end
 
 local function OnLayout(_, key)
-	for _, group in ipairs(GROUPS) do
-		local row = rows[group]
-		if row and KEYS[group] == key then
+	for group, row in pairs(rows) do
+		if KEYS[group] == key then
 			if row.cfg.vertical then row:Resize() end
 			row:Restyle()
 		end
@@ -1447,6 +1548,7 @@ function Mirror.Start()
 	K.Callbacks.Register("ScaleChanged", MODULE, OnScale)
 	K.Callbacks.Register("LayoutChanged", MODULE, OnLayout)
 	ListenRules()
+	Mirror.Custom(true)
 	RebuildAll()
 	Focus.Apply()
 	return true
@@ -1473,6 +1575,7 @@ function Mirror.Stop()
 		Viewers.Unfade(group)
 		sources[group] = nil
 	end
+	Mirror.Custom()
 	Reskin.Stop()
 	Focus.Stop()
 	Path.Reset()

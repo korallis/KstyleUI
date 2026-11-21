@@ -1,4 +1,4 @@
--- Rules.lua: the per-spell rules the settings' spell lists name (spell IDs, or names in any case, separated by commas; a spell may carry its own colour, "Fireball #FF8000", its own bar name, "Fireball=Fire", its own tenths threshold, "Fireball=5", or its talent, "Shred=Feral Instinct"), matched once per entry or spell and kept until the settings change, and whether a named talent is known, kept until the spells change; the preview takes each list's first colour, name or threshold.
+-- Rules.lua: the per-spell rules the settings' spell lists name (spell IDs, or names in any case, separated by commas; a spell may carry its own colour, "Fireball #FF8000", its own bar name, "Fireball=Fire", its own tenths threshold, "Fireball=5", or its talent, "Shred=Feral Instinct"; the custom group's list keeps each spell's place in it), matched once per entry or spell and kept until the settings change, and whether a named talent is known, kept until the spells change; the preview takes each list's first colour, name or threshold.
 local _, ns = ...
 
 local Rules = {}
@@ -13,13 +13,16 @@ local function Hex(hex, from)
 	return tonumber(hex:sub(from, from + 1), 16) / 255
 end
 
-local function Parse(text)
-	local set, first = {}, nil
+local function Parse(text, ranked)
+	local set, first, rank = {}, nil, 0
 	for token in text:gmatch("[^,]+") do
+		rank = rank + 1
 		local value = true
 		local spell, label = token:match("^(.-)=%s*(.-)%s*$")
 		local named, hex = token:match("^(.-)#(%x%x%x%x%x%x)%s*$")
-		if spell and label ~= "" then
+		if ranked then
+			value = rank
+		elseif spell and label ~= "" then
 			token, value = spell, label
 		elseif named then
 			token, value = named, { Hex(hex, 1), Hex(hex, 3), Hex(hex, 5) }
@@ -75,7 +78,7 @@ function Rules.Reset()
 	local rules = ns.Settings.current.rules
 	for _, key in ipairs(ns.Settings.RULES) do
 		parsed[key], samples[key] = nil, nil
-		if rules[key] ~= "" then parsed[key], samples[key] = Parse(rules[key]) end
+		if rules[key] ~= "" then parsed[key], samples[key] = Parse(rules[key], key == "group") end
 	end
 end
 

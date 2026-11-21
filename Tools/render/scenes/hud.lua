@@ -941,6 +941,17 @@ function modules.cooldowns(opts)
 			K.Options.Write("Cooldowns", key, value)
 		end
 	end
+	-- RENDER_COOLDOWN_PARITY=5: round 5 switched on over KstyleUI rows: a custom bar group named Burst with the first
+	-- cooling essential spell, above the tracked bars, which keep the second as a cooldown bar.
+	if os.getenv("RENDER_COOLDOWN_PARITY") == "5" then
+		local cooling = {}
+		for _, entry in ipairs(entries) do
+			if entry.group == "essential" and type(entry.state) == "table" then cooling[#cooling + 1] = entry.name end
+		end
+		for key, value in pairs({ path = "mirror", ["rules.group"] = cooling[1] or "", ["rules.cdBars"] = cooling[2] or "", ["custom.name"] = "Burst" }) do
+			K.Options.Write("Cooldowns", key, value)
+		end
+	end
 	local cdm = env._cdm
 	local now = 10
 	env._time = now
