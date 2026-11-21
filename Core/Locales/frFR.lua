@@ -3322,7 +3322,7 @@ ns.Locale.Add({
 	["The most of your heals over time and shields each frame shows."] = "Le nombre maximal de vos soins sur la dur\195\169e et boucliers par cadre.",
 	["The name only"] = "Le nom seulement",
 	["The names' colour when they use a custom colour."] = "La couleur des noms quand ils utilisent une couleur personnalis\195\169e.",
-	["The opacity of the top data bar's background."] = "L\226\128\153opacit\195\169 du fond de la barre de donn\195\169es sup\195\169rieure.",
+	["The opacity of the top bar's background and the Medallions dock's plates."] = "L\226\128\153opacit\195\169 du fond de la barre sup\195\169rieure et des plaques du dock M\195\169daillons.",
 	["The order of the buttons down the column. The last one sits at the foot."] = "L'ordre des boutons dans la colonne. Le dernier est en bas.",
 	["The order of the party frames."] = "L'ordre des cadres de groupe.",
 	["The order the icons are shown in."] = "L'ordre d'affichage des ic\195\180nes.",

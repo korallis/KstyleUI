@@ -279,10 +279,10 @@ function ns.Schema()
 			{ value = "top", label = L["Top"] }, { value = "dock", label = L["Docked under the action bars"] }, { value = "rail", label = L["Right rail"] },
 		} },
 		{ type = "slider", key = "strip.height", label = L["Height"], help = L["The height of the top data bar."], min = 12, max = 32, step = 1 },
-		{ type = "dropdown", key = "strip.artwork", label = L["Data bar artwork"], help = L["Forged trim and a crest gem, or a plain glass plate."], showWhen = function() return not K.Setup.Layouts.DataBarDock() end, options = {
+		{ type = "dropdown", key = "strip.artwork", label = L["Data bar artwork"], help = L["Forged trim and a crest gem, or a plain glass plate."], showWhen = function(settings) return settings.strip.placement == "top" or settings.strip.placement == "dock" and Widgets.Medallions() end, options = {
 			{ value = "forged", label = L["Forged"] }, { value = "plain", label = L["Plain"] },
 		} },
-		{ type = "slider", key = "strip.background", label = L["Background"], help = L["The opacity of the top data bar's background."], min = 0, max = 100, step = 1 },
+		{ type = "slider", key = "strip.background", label = L["Background"], help = L["The opacity of the top bar's background and the Medallions dock's plates."], min = 0, max = 100, step = 1 },
 	}
 	stripRows[#stripRows + 1] = { type = "toggle", key = "strip.dockMeter", label = L["Dock readouts to the meter"], help = L["Place the data strip beside the damage meter title. Off returns it to its own position."] }
 	for _, key in ipairs({ "modules", "dockModules", "railModules" }) do
@@ -515,6 +515,7 @@ function ns.Preview(...)
 			sample.paintColor = nil
 			sample.frame:SetScale(1)
 			sample.frame:SetSize(available, height)
+			sample.deco = Widgets.Medallions() and K.Setup.Layouts.DataBarDock() ~= nil
 			Strip.Paint(sample, s, samples)
 			local needed = Widgets.Snap(sample.frame, (sample.contentWidth or 0) + 2 * PREVIEW_STRIP_PAD)
 			local scale = needed > available and available / needed or 1

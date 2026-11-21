@@ -1,7 +1,15 @@
--- test-databars-dock.lua: the inline secure menu, queued dock transitions, slab caption anchors and the dock-only hub exemption.
+-- test-databars-dock.lua: the inline secure menu, queued dock transitions, slab caption anchors, the docked bar's forged plate and glyph segments, and the dock-only hub exemption.
 local D = dofile("Tools/regression/databars_env.lua")
 local W = D.W
 local Scene = dofile("Tools/render/scene.lua")
+local atlas = assert(io.open("Tools/media/make_databar_glyphs.py", "rb"))
+local CELLS, cell = {}, 0
+for name in atlas:read("*a"):match("NAMES = (%b[])"):gmatch('"(%w+)"') do CELLS[name], cell = cell, cell + 1 end
+atlas:close()
+local function hasCell(texture, id)
+	local col, row, l, r, t, b = CELLS[id] % 4, math.floor(CELLS[id] / 4), texture:GetTexCoord()
+	return texture:GetTexture() == "Interface\\AddOns\\KstyleUI_DataBars\\Media\\Glyphs.png" and l == col / 4 and r == (col + 1) / 4 and t == row / 4 and b == (row + 1) / 4
+end
 
 local function near(a, b, what)
 	assert(math.abs(a - b) < 0.01, (what or "dock geometry") .. ": " .. tostring(a) .. " differs from " .. tostring(b))
@@ -71,8 +79,37 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	K.Options.Write("HudStyle", "style", "medallions")
 	settle()
 	local xp = ns.Bars.views.xp
-	assert(not artwork.showWhen(ns.Settings()), "artwork is hidden while docked")
-	assert(view.slab == xp and not view.topBar and not view.chrome.visible)
+	assert(artwork.showWhen(ns.Settings()), "artwork applies to the docked plate")
+	assert(view.slab == xp and not view.topBar and view.chrome.visible and view.chrome.materialOn, "the dock wears the forged plate")
+	assert(view.frame:GetFrameStrata() == xp.holder:GetFrameStrata() and view.card:GetFrameLevel() < xp.holder:GetFrameLevel(), "the plate sits under the XP caption and the hub")
+	Scene.Build(env)
+	local plateLeft, _, plateWidth = Scene.Rect(env, view.card)
+	local wingLeft, _, wingWidth = Scene.Rect(env, view.wingCard)
+	local frameLeft, _, frameWidth = Scene.Rect(env, view.frame)
+	assert(view.wing.visible and plateLeft < frameLeft, "each slab wing has a plate; the left one reaches past the XP strip's left end")
+	near(wingLeft + wingWidth - (frameLeft + frameWidth), frameLeft - plateLeft, "the right plate overhangs the strip's right end as far")
+	assert(plateLeft + plateWidth < wingLeft, "the plates part under the crest hub")
+	local zoneShown = {}
+	for _, id in ipairs(view.order) do
+		local item = view.items[id]
+		if item.button:IsShown() then
+			assert(item.icon:IsShown() and hasCell(item.icon, id), id .. " shows its own cell in the atlas order of Tools/media/make_databar_glyphs.py")
+			assert(not item.dot:IsShown(), id .. ": segments replace the dots")
+			local zone = select(2, item.button:GetPoint())
+			assert(item.separator:IsShown() == (zoneShown[zone] == true), id .. ": a gilt rule divides each segment from the one before it")
+			zoneShown[zone] = true
+			assert(item.hover:IsShown() and item.hover:GetAlpha() == 0, id .. " rests without its highlight")
+			item.button.hoverT = 1
+			item.button.Paint()
+			assert(item.hover:GetAlpha() > 0 and item.hover:GetAlpha() < 0.5, id .. " lights a faint highlight under the pointer: texture alpha is one value, so scale SetAlpha by the highlight's opacity")
+			item.button.hoverT = 0
+			item.button.Paint()
+		end
+	end
+	assert(view.xpGlyph:IsShown() == xp.text:IsVisible() and view.xpRule:IsShown() == xp.text:IsVisible() and hasCell(view.xpGlyph, "xp"), "the XP caption is the last segment")
+	K.Options.Write("DataBars", "strip.artwork", "plain")
+	assert(view.chrome.visible and not view.chrome.materialOn, "plain artwork turns the docked plate to glass")
+	K.Options.Write("DataBars", "strip.artwork", "forged")
 	assert(micro:GetParent() == Menus.Holder("micro") and micro:GetAlpha() == 0)
 	assert(bags:GetParent() == Menus.Holder("bags"))
 	assert(select(2, view.frame:GetPoint()) == xp.holder)
@@ -119,8 +156,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	K.Options.Write("DataBars", "xp.instrumentText", true)
 	K.Options.Write("DataBars", "strip.menus", false)
 	changeInCombat("rail", Menus.Holder("micro"))
-	assert(artwork.showWhen(ns.Settings()), "artwork returns outside the dock")
-	assert(not view.slab and not view.topBar)
+	assert(not artwork.showWhen(ns.Settings()), "the rail has no plate to dress")
+	assert(not view.slab and not view.topBar and not view.wing.visible and not view.items.fps.icon:IsShown() and not view.items.fps.hover:IsShown())
 	local rail = K.Setup.Layouts.Positions("DPS", "medallions", K.Scale.Aspect())
 	for _, key in ipairs({ "databars.rep", "databars.honor" }) do
 		near(docked[key].y, rail[key].y - 15)
@@ -128,7 +165,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		assert(math.abs(bottom - dockBottom[key] - 15) <= K.Scale.Pixel(1), "the edge clamp must preserve the dock's fifteen-unit caption band")
 	end
 	changeInCombat("dock", Menus.Holder("micro"))
-	assert(not artwork.showWhen(ns.Settings()), "explicit dock also hides artwork")
+	assert(artwork.showWhen(ns.Settings()), "explicit dock offers the artwork too")
 	assert(view.slab == xp)
 	K.Layout.Update("databars.xp", { shown = "never" })
 	ns.Strip.Refresh()

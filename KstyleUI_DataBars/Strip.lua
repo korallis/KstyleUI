@@ -47,6 +47,11 @@ local DOT_GAP_EM = 1 / 3
 local LINE_LIFT = 1
 local DOT = "\194\183"
 local MENU_PAD = 3
+local GLYPHS = "Interface\\AddOns\\KstyleUI_DataBars\\Media\\Glyphs.png"
+local GLYPH_COLUMNS, GLYPH_ROWS = 4, 4
+local GLYPH_CELLS = { fps = 0, latency = 1, gold = 2, durability = 3, time = 4, spec = 5, hearth = 6, guild = 7, friends = 8, bags = 9, currencies = 10, xp = 11, location = 12, itemLevel = 13 }
+local SEGMENT_PAD, GLYPH_GAP, GLYPH_SHARE = 4, 3, 1.1
+local PLATE_RISE, PLATE_DROP, RULE_SHARE, RULE_ALPHA, HOVER_ALPHA = 2, 4, 0.7, 0.45, 0.14
 Strip.UNIT_GAP = UNIT_GAP
 Strip.DOT_GAP_EM = DOT_GAP_EM
 Strip.LINE = LINE
@@ -206,10 +211,23 @@ local function Order(s)
 end
 Strip.Order = Order
 
+local function Glyph(parent, id)
+	local icon = parent:CreateTexture(nil, "OVERLAY")
+	local index = GLYPH_CELLS[id] or 0
+	local col, row = index % GLYPH_COLUMNS, floor(index / GLYPH_COLUMNS)
+	icon:SetTexture(GLYPHS)
+	icon:SetTexCoord(col / GLYPH_COLUMNS, (col + 1) / GLYPH_COLUMNS, row / GLYPH_ROWS, (row + 1) / GLYPH_ROWS)
+	return icon
+end
+
 local function PaintItem(item)
 	local view = item.view
 	local s, t = view.s or {}, item.button.hoverT or 0
 	if s.hover == false then t = 0 end
+	if item.icon and view.deco then
+		item.icon:SetVertexColor(Widgets.MixTokens("medTextMuted", 1, "giltLit", 1, t))
+		item.hover:SetAlpha(t * HOVER_ALPHA)
+	end
 	local c = s.labelCustom and not view.slab and not view.docked and s.labelColor
 	if type(c) == "table" then
 		local r, g, b = Widgets.Rgba("textHover", 1)
@@ -441,6 +459,54 @@ local function CompactGold(item, s)
 	end
 end
 
+local function Rule(texture, anchor, relative, point, h)
+	texture:ClearAllPoints()
+	Widgets.Point(texture, "CENTER", anchor, point, 0, Widgets.Snap(texture, (PLATE_RISE - PLATE_DROP) / 2) - relative)
+	Widgets.Size(texture, Widgets.Border(texture), Widgets.Snap(texture, (h + PLATE_RISE + PLATE_DROP) * RULE_SHARE))
+	texture:SetVertexColor(Widgets.Rgba("gilt", RULE_ALPHA))
+	texture:Show()
+end
+
+local function Segment(view, item, rule, glyph, glyphGap, h)
+	local button = item.button
+	item.separator:Hide()
+	if view.deco and not item.icon then
+		item.icon, item.hover = Glyph(button, item.id), button:CreateTexture(nil, "BACKGROUND")
+		item.hover:SetColorTexture(Tokens.Color("giltLit"))
+		PaintItem(item)
+	end
+	if not item.icon then return end
+	item.icon:SetShown(view.deco and GLYPH_CELLS[item.id] ~= nil)
+	item.hover:SetShown(view.deco)
+	if not view.deco then return end
+	item.icon:ClearAllPoints()
+	Widgets.Point(item.icon, "RIGHT", item.value, "LEFT", -glyphGap, 0)
+	Widgets.Size(item.icon, glyph, glyph)
+	item.hover:ClearAllPoints()
+	local border = Widgets.Border(button)
+	Widgets.Point(item.hover, "TOPLEFT", button, "TOPLEFT", 0, Widgets.Snap(button, PLATE_RISE) - border)
+	Widgets.Point(item.hover, "BOTTOMRIGHT", button, "BOTTOMRIGHT", 0, border - Widgets.Snap(button, PLATE_DROP))
+	if rule then Rule(item.separator, button, 0, "LEFT", h) end
+end
+
+local function CaptionSegment(view, on, rule, glyph, glyphGap, h)
+	if not view.xpGlyph then
+		if not on then return end
+		view.xpGlyph = Glyph(view.frame, "xp")
+		view.xpRule = view.frame:CreateTexture(nil, "ARTWORK")
+		view.xpRule:SetColorTexture(Tokens.Color("white"))
+	end
+	view.xpGlyph:SetShown(on)
+	view.xpRule:Hide()
+	if not on then return end
+	local text = view.slab.text
+	view.xpGlyph:ClearAllPoints()
+	Widgets.Point(view.xpGlyph, "RIGHT", text, "LEFT", -glyphGap, 0)
+	Widgets.Size(view.xpGlyph, glyph, glyph)
+	Widgets.Tint(view.xpGlyph, "medTextMuted")
+	if rule then Rule(view.xpRule, view.zones.right, Widgets.Snap(view.frame, h / 2), "TOPRIGHT", h) end
+end
+
 local function PlaceLine(view, s)
 	local frame = view.frame
 	local _, h = Size(frame)
@@ -459,7 +525,13 @@ local function PlaceLine(view, s)
 			dotSize = size
 		end
 	end
-	local dotGap = Widgets.DotGap(dotSize, step, DOT_GAP_EM) + Widgets.Snap(frame, IsNumber(s.padding) and s.padding or 0)
+	local padding = Widgets.Snap(frame, IsNumber(s.padding) and s.padding or 0)
+	local dotGap = Widgets.DotGap(dotSize, step, DOT_GAP_EM) + padding
+	local seg = view.deco
+	local pad = seg and Widgets.Snap(frame, SEGMENT_PAD) + padding or 0
+	local glyph = Widgets.Snap(frame, dotSize * GLYPH_SHARE)
+	local glyphGap = Widgets.Snap(frame, GLYPH_GAP)
+	local glyphRun = seg and glyph + glyphGap or 0
 	local x = edge + (view.rail and Widgets.Snap(frame, EDGE_BORDERS) or 0)
 	local positions, widths, zones = {}, { left = 0, centre = 0, right = 0 }, {}
 	local limits, hidden, last = {}, { left = {}, right = {} }, {}
@@ -469,13 +541,14 @@ local function PlaceLine(view, s)
 		local left = layouts.ActionBarFootprint("medallions", K.Scale.Aspect(), "actionbars.bar1")
 		local right = layouts.ActionBarFootprint("medallions", K.Scale.Aspect(), "actionbars.bar2")
 		local ratio = frame:GetWidth() / (left + right + layouts.MEDALLIONS_HUB_GAP)
-		limits.left = max(0, left * ratio - LABEL_GAP)
-		captionGap = sample and TextWidth(sample.dot, dotSize) + 2 * dotGap or LABEL_GAP
-		limits.right = max(0, right * ratio - LABEL_GAP - (view.slab.text:IsVisible() and TextWidth(view.slab.text, dotSize) + captionGap or 0))
+		view.wingLeft, view.wingRight = left * ratio, right * ratio
+		limits.left = max(0, view.wingLeft - LABEL_GAP)
+		captionGap = seg and glyphRun + pad or sample and TextWidth(sample.dot, dotSize) + 2 * dotGap or LABEL_GAP
+		limits.right = max(0, view.wingRight - LABEL_GAP - (view.slab.text:IsVisible() and TextWidth(view.slab.text, dotSize) + captionGap or 0))
 	elseif view.rail then
 		limits.right = max(0, frame:GetWidth() - 2 * edge - EDGE_BORDERS)
 	end
-	local signature = { tostring(view.slab), tostring(view.topBar), tostring(view.docked), frame:GetWidth(), h, edge, unitGap, lift, dotGap, step, limits.left or 0, limits.right or 0, view.leftInset or 0 }
+	local signature = { tostring(view.slab), tostring(view.deco), tostring(view.topBar), tostring(view.docked), frame:GetWidth(), h, edge, unitGap, lift, dotGap, step, limits.left or 0, limits.right or 0, view.leftInset or 0 }
 	for _, entry in ipairs(Strip.Modules(s) or {}) do zones[entry.id] = widths[entry.zone] and entry.zone or "right" end
 	local fit, sequence = view.topBar and view == Strip.view, order
 	if fit then
@@ -487,14 +560,15 @@ local function PlaceLine(view, s)
 		local item = view.items[id]
 		local label = item.caption ~= "" and TextWidth(item.label, s.fontSize) or 0
 		local value = WIDTH[id] and WIDTH[id](s) or TextWidth(item.value, s.fontSize)
-		local width = Widgets.Snap(frame, value + (label > 0 and unitGap + label or 0))
+		local width = Widgets.Snap(frame, value + (label > 0 and unitGap + label or 0)) + (GLYPH_CELLS[id] and glyphRun or 0) + 2 * pad
 		local zone = zones[id] or "right"
 		if view.rail then zone = "right" end
 		if view.slab and zone == "centre" then zone = "left" end
-		local gap = widths[zone] > 0 and id ~= "spacer" and last[zone] ~= "spacer" and Widgets.Snap(frame, TextWidth(item.dot, s.fontSize) + 2 * dotGap) or 0
+		local joined = widths[zone] > 0 and id ~= "spacer" and last[zone] ~= "spacer"
+		local gap = joined and not seg and Widgets.Snap(frame, TextWidth(item.dot, s.fontSize) + 2 * dotGap) or 0
 		if fit and zone ~= "centre" then limits[zone] = (frame:GetWidth() - widths.centre) / 2 - edge - LABEL_GAP - (zone == "left" and view.leftInset or 0) end
 		local overflow = (view.slab or view.rail or fit and zone ~= "centre") and (#hidden[zone] > 0 or widths[zone] + gap + width + 2 > limits[zone])
-		positions[id] = { zone, widths[zone] + gap, width, gap > 0, value, label, overflow }
+		positions[id] = { zone, widths[zone] + gap, width, joined, value, label, overflow }
 		if overflow then
 			hidden[zone][#hidden[zone] + 1] = id
 		else
@@ -520,6 +594,7 @@ local function PlaceLine(view, s)
 		local button = item.button
 		local position = positions[item.id]
 		local valueWidth, labelWidth, width = position[5], position[6], position[3]
+		local run = pad + (GLYPH_CELLS[item.id] and glyphRun or 0)
 		item.valueWidth = valueWidth
 		item.overflow = position[7]
 		button:SetShown(not item.overflow)
@@ -528,25 +603,26 @@ local function PlaceLine(view, s)
 		if view.topBar or view.slab then
 			local zone, offset = position[1], position[2]
 			local anchor = zone == "centre" and "TOP" or zone == "left" and "TOPLEFT" or "TOPRIGHT"
-			local start = zone == "centre" and -widths[zone] / 2 or zone == "left" and edge or -edge - widths[zone] - (view.slab and 2 or 0)
+			local start = zone == "centre" and -widths[zone] / 2 or zone == "left" and edge - (seg and pad - padding or 0) or -edge - widths[zone] - (view.slab and 2 or 0)
 			Widgets.Point(button, "TOPLEFT", view.zones[zone], anchor, Widgets.Snap(frame, start + offset), 0)
 		else
 			Widgets.Point(button, "TOPRIGHT", frame, "TOPRIGHT", -Widgets.Snap(frame, x), 0)
 		end
 		Widgets.Size(button, max(1, width), max(1, h))
 		item.value:ClearAllPoints()
-		Widgets.Point(item.value, view.slab and "TOPLEFT" or "LEFT", button, view.slab and "TOPLEFT" or "LEFT", 0, view.slab and 0 or lift)
+		Widgets.Point(item.value, view.slab and "TOPLEFT" or "LEFT", button, view.slab and "TOPLEFT" or "LEFT", run, view.slab and 0 or lift)
 		item.value:SetWidth(Widgets.Snap(item.value, max(1, valueWidth + 2)))
 		item.value:SetJustifyH("LEFT")
 		item.label:SetShown(labelWidth > 0)
 		item.label:ClearAllPoints()
-		Widgets.Point(item.label, view.slab and "TOPLEFT" or "LEFT", button, view.slab and "TOPLEFT" or "LEFT", Widgets.Snap(button, valueWidth + unitGap), view.slab and 0 or lift)
+		Widgets.Point(item.label, view.slab and "TOPLEFT" or "LEFT", button, view.slab and "TOPLEFT" or "LEFT", run + Widgets.Snap(button, valueWidth + unitGap), view.slab and 0 or lift)
 		item.label:SetWidth(Widgets.Snap(item.label, max(1, labelWidth + 2)))
 		item.label:SetJustifyH("LEFT")
-		item.separator:Hide()
+		local follows = (view.topBar or view.slab) and position[4] or not view.topBar and not view.slab and i > 1 and order[i] ~= "spacer" and order[i - 1] ~= "spacer"
+		Segment(view, item, seg and not item.overflow and follows, glyph, glyphGap, h)
 		if not item.overflow then x = x + width end
-		local captionDot = view.slab and position[1] == "right" and position[2] == 0 and view.slab.text:IsVisible()
-		local dot = not item.overflow and (captionDot or (view.topBar or view.slab) and position[4] or not view.topBar and not view.slab and i > 1 and order[i] ~= "spacer" and order[i - 1] ~= "spacer")
+		local captionDot = not seg and view.slab and position[1] == "right" and position[2] == 0 and view.slab.text:IsVisible()
+		local dot = not seg and not item.overflow and (captionDot or follows)
 		item.dot:SetShown(dot)
 		if dot then
 			local dotWidth = TextWidth(item.dot, s.fontSize)
@@ -558,6 +634,7 @@ local function PlaceLine(view, s)
 		end
 	end
 	view.contentWidth = Widgets.Snap(frame, view.topBar and 2 * (max(widths.left, widths.right) + edge + LABEL_GAP) + widths.centre or x - edge)
+	CaptionSegment(view, seg and view.slab ~= nil and view.slab.text:IsVisible(), widths.right > 0, glyph, glyphGap, h)
 	if view.docked then
 		if view.dockWidth ~= view.contentWidth then
 			frame:SetWidth(view.contentWidth)
@@ -582,7 +659,9 @@ local function PlaceItems(view, s)
 	view.lineLayout = nil
 	for _, item in pairs(view.items) do
 		item.dot:Hide()
+		Segment(view, item)
 	end
+	CaptionSegment(view, false)
 	local total = Weight(order)
 	view.contentWidth = Widgets.Snap(frame, total * CELL_EMS * s.fontSize)
 	if s.orientation == "VERTICAL" then
@@ -674,15 +753,23 @@ local function SetValues(view, s, values, only, force)
 	end
 end
 
+local function Layer(view, strata, level)
+	view.frame:SetFrameStrata(strata)
+	for _, frame in ipairs({ view.frame, view.card, view.wingCard }) do frame:SetFrameLevel(level) end
+end
+
 function Strip.Paint(view, s, values)
 	local order = Order(s)
 	view.order, view.s = order, s
 	view.topBar = s.placement == "top" and not Widgets.Medallions()
 	view.rail = s.placement == "rail" and not view.docked
-	view.chrome.materialOn = not (view.topBar and s.artwork == "plain")
-	view.chrome.shadowOn = not view.topBar
+	local plate, wings = view.topBar or view.deco, view.deco and view.slab ~= nil
+	if wings and not view.wing then
+		view.wingCard = CreateFrame("Frame", nil, view.frame)
+		view.wing = Widgets.Chrome(view.wingCard, { shape = "panel", fill = "surface" })
+	end
 	if view.topBar then TopBar(view) end
-	view.lineMode = view.topBar or view.slab ~= nil or LineMode(s)
+	view.lineMode = plate or view.slab ~= nil or LineMode(s)
 	view.bare = view.slab ~= nil or not view.topBar and view.lineMode and s.backdrop == false
 	local inOrder = {}
 	for _, id in ipairs(order) do
@@ -692,21 +779,24 @@ function Strip.Paint(view, s, values)
 			if view.bind then view.bind(view.items[id]) end
 		end
 	end
-	local forged = view.topBar and s.artwork ~= "plain"
-	view.chrome:SetShown(not view.slab and (view.topBar or s.backdrop ~= false))
 	if view.art then
-		for _, texture in ipairs(view.art) do texture:SetShown(forged) end
+		for _, texture in ipairs(view.art) do texture:SetShown(view.topBar and s.artwork ~= "plain") end
 	end
-	if view.topBar then
-		local r, g, b = Tokens.Color("surface")
-		view.chrome:SetFillRGBA(r, g, b, (s.background or 85) / 100)
-	else
-		view.chrome:SetFill("surface")
-	end
-	if s.accentEdge then
-		view.chrome:SetEdgeRGBA(ns.Accent())
-	else
-		view.chrome:SetEdge("edgeInner")
+	for _, chrome in ipairs({ view.chrome, view.wing }) do
+		chrome.materialOn = not (plate and s.artwork == "plain")
+		chrome.shadowOn = not plate
+		chrome:SetShown(chrome == view.wing and wings or chrome == view.chrome and (plate or not view.slab and s.backdrop ~= false))
+		if plate then
+			local r, g, b = Tokens.Color("surface")
+			chrome:SetFillRGBA(r, g, b, (s.background or 85) / 100)
+		else
+			chrome:SetFill("surface")
+		end
+		if s.accentEdge then
+			chrome:SetEdgeRGBA(ns.Accent())
+		else
+			chrome:SetEdge("edgeInner")
+		end
 	end
 	local caption = view.slab and ns.Bars.Settings(view.slab)
 	local f = caption or s
@@ -753,6 +843,23 @@ function Strip.Paint(view, s, values)
 	view.paintColor, view.paintDock, view.paintLine = s.valueColor, view.docked, view.lineMode
 	if not view.combat then Strip.DockMenus(view, s) end
 	PlaceItems(view, s)
+	if wings then
+		local frame, holder, pad = view.frame, view.slab.holder, Widgets.Snap(view.frame, SEGMENT_PAD)
+		local strata, level = holder:GetFrameStrata(), holder:GetFrameLevel()
+		if not ns.IsSecret(strata) and not ns.IsSecret(level) then
+			view.layer = view.layer or { frame:GetFrameStrata(), frame:GetFrameLevel() }
+			Layer(view, strata, max(0, level - 2))
+		end
+		view.card:ClearAllPoints()
+		Widgets.Point(view.card, "TOPLEFT", frame, "TOPLEFT", -pad, PLATE_RISE)
+		Widgets.Point(view.card, "BOTTOMRIGHT", frame, "BOTTOMLEFT", Widgets.Snap(frame, view.wingLeft), -PLATE_DROP)
+		view.wingCard:ClearAllPoints()
+		Widgets.Point(view.wingCard, "TOPRIGHT", frame, "TOPRIGHT", pad, PLATE_RISE)
+		Widgets.Point(view.wingCard, "BOTTOMLEFT", frame, "BOTTOMRIGHT", -Widgets.Snap(frame, view.wingRight), -PLATE_DROP)
+	elseif view.layer then
+		Layer(view, view.layer[1], view.layer[2])
+		view.layer = nil
+	end
 	for _, item in pairs(view.items) do
 		Widgets.TextScrim(item.label, view.bare and item.button:IsShown() and item.label:IsShown())
 		Widgets.TextScrim(item.value, view.bare and item.button:IsShown())
@@ -1135,6 +1242,7 @@ function Strip.Refresh()
 	local dock = K.Setup.Layouts.DataBarDock()
 	K.Layout.SetLive(KEY, s.enabled ~= false and not dock)
 	view.slab = dock and xp or nil
+	view.deco = view.slab ~= nil and Widgets.Medallions()
 	if view.slab then
 		TopBar(view)
 		view.frame:ClearAllPoints()

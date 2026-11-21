@@ -1,4 +1,4 @@
-"""Tests for Tools/media/make_minimap_glyphs.py, which draws the minimap button glyph sheet."""
+"""Tests for the glyph sheet scripts in Tools/media: the minimap buttons' and the data bar readouts'."""
 
 import contextlib
 import importlib.util
@@ -9,21 +9,23 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "Tools" / "media" / "make_minimap_glyphs.py"
+MEDIA = ROOT / "Tools" / "media"
 
 
-def load_module():
-    sys.path.insert(0, str(SCRIPT.parent))
-    spec = importlib.util.spec_from_file_location("make_minimap_glyphs", SCRIPT)
+def load_module(name):
+    sys.path.insert(0, str(MEDIA))
+    spec = importlib.util.spec_from_file_location(name, MEDIA / f"{name}.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
 class GlyphSheetTest(unittest.TestCase):
+    SCRIPT = "make_minimap_glyphs"
+
     @classmethod
     def setUpClass(cls):
-        cls.mg = load_module()
+        cls.mg = load_module(cls.SCRIPT)
 
     def test_sheet_is_power_of_two(self):
         for n in (self.mg.WIDTH, self.mg.HEIGHT):
@@ -31,7 +33,7 @@ class GlyphSheetTest(unittest.TestCase):
 
     def test_shipped_sheet_matches_the_script(self):
         with contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(self.mg.main(["--check"]), 0, "run python3 Tools/media/make_minimap_glyphs.py")
+            self.assertEqual(self.mg.main(["--check"]), 0, f"run python3 Tools/media/{self.SCRIPT}.py")
 
     def test_check_fails_on_a_changed_sheet(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -42,7 +44,7 @@ class GlyphSheetTest(unittest.TestCase):
                 self.assertEqual(self.mg.main(["--root", tmp, "--check"]), 1)
 
     def test_each_named_cell_has_a_glyph_and_the_rest_are_empty(self):
-        mm = self.mg.mm
+        mm = importlib.import_module("make_media")
         width, height, pixels = mm.decode_png((ROOT / self.mg.PATH).read_bytes())
         cell = self.mg.CELL
 
@@ -62,6 +64,10 @@ class GlyphSheetTest(unittest.TestCase):
     def test_provenance_lists_the_sheet(self):
         text = (ROOT / "Media" / "PROVENANCE.md").read_text(encoding="utf-8")
         self.assertIn(f"`{self.mg.PATH}`", text, "add a Media/PROVENANCE.md row for the glyph sheet")
+
+
+class DataBarGlyphSheetTest(GlyphSheetTest):
+    SCRIPT = "make_databar_glyphs"
 
 
 if __name__ == "__main__":

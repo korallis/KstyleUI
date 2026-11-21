@@ -16,17 +16,17 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 		for _, entry in ipairs(s.dockModules) do
 			local item = view.items[entry.id]
 			if entry.zone == "right" and item and item.button:IsShown() then
-				assert(item.dot:IsShown() == view.slab.text:IsVisible(), "join the dock readouts to the visible XP caption with one middle dot")
-				if item.dot:IsShown() then
-					local _, size = item.dot:GetFont()
+				local on = view.slab.text:IsVisible()
+				assert(not item.dot:IsShown() and view.xpRule:IsShown() == on and view.xpGlyph:IsShown() == on, "a gilt rule and the XP glyph join the dock readouts to the visible XP caption")
+				if on then
 					local step = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(view.frame)
-					local gap = K.Widgets.DotGap(size, step, ns.Strip.DOT_GAP_EM)
-					local dx, _, dw = Scene.Rect(env, item.dot)
+					local gx, _, gw = Scene.Rect(env, view.xpGlyph)
+					local rx = Scene.Rect(env, view.xpRule)
 					local cx = Scene.Rect(env, view.slab.text)
+					local bx, _, bw = Scene.Rect(env, view.zones.right)
 					local _, _, width = Scene.Rect(env, view.frame)
 					local scale = width / view.frame:GetWidth()
-					local expected = cx - (K.Widgets.TextWidth(item.dot) / 2 + gap) * scale
-					assert(math.abs(dx + dw / 2 - expected) <= step * scale, "the XP separator must use the same DotGap as the other readouts")
+					assert(gx + gw < cx and rx < gx and math.abs(rx - (bx + bw)) <= 2 * step * scale, "the XP segment sits between the right zone's closing rule and the caption")
 				end
 				return
 			end
@@ -64,6 +64,7 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 					end
 				end
 			else
+				assert(not item.separator:IsShown(), id .. " overflows: hide its rule with its button")
 				dropped[zone] = dropped[zone] or {}
 				dropped[zone][#dropped[zone] + 1] = id
 				hiddenCount = hiddenCount + 1
@@ -95,8 +96,62 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 	for _, entry in ipairs(s.dockModules) do entry.zone = "left" end
 	K.Options.Write("DataBars", "strip.dockModules", s.dockModules)
 	check()
+	assert(not view.xpRule:IsShown() and view.xpGlyph:IsShown() == view.slab.text:IsVisible(), "a caption with no readout before it keeps its glyph but no rule")
 	K.Options.Write("HudStyle", "style", "frames")
 	for i, entry in ipairs(s.modules) do assert(entry.shown == (i <= 12), "the top bar retains its independent defaults; XP and the optional readouts after it stay off") end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+do
+	local env, K, ns = D.New({ width = 1920, height = 1080, size = "auto", setup = D.Menus })
+	local view = ns.Strip.view
+	local function set(group, key, value) K.Options.Write(group, key, value) env.RunTimers() D.W.Settle(env) end
+	local function layers() return tostring(view.frame:GetFrameStrata()) .. view.frame:GetFrameLevel() .. view.card:GetFrameLevel() end
+	local top = layers()
+	set("HudStyle", "style", "orbs")
+	set("DataBars", "strip.placement", "dock")
+	assert(view.slab and not view.chrome.visible and not (view.wing and view.wing.visible) and not (view.xpGlyph and view.xpGlyph:IsShown()) and layers() == top, "only the Medallions dock wears plates, glyph segments and the XP strip's layer")
+	set("DataBars", "strip.placement", "top")
+	set("HudStyle", "style", "medallions")
+	local docked, holder = layers(), view.slab.holder
+	holder.GetFrameLevel = function() return env.Secret(2) end
+	ns.Strip.Refresh()
+	holder.GetFrameLevel = nil
+	assert(layers() == docked, "a restricted XP strip level keeps the dock's last safe layering")
+	local list, wanted = {}, { fps = 1, spacer = 2, latency = 3, coords = 4 }
+	for id, i in pairs(wanted) do list[i] = { id = id, shown = true, zone = "left" } end
+	for _, entry in ipairs(ns.Settings().strip.dockModules) do
+		if not wanted[entry.id] then list[#list + 1] = { id = entry.id, shown = false, zone = entry.zone } end
+	end
+	set("DataBars", "strip.dockModules", list)
+	local items = view.items
+	assert(items.fps.icon:IsShown() and not items.coords.icon:IsShown(), "a readout with no glyph cell shows its value alone, never another readout's glyph")
+	assert(not items.spacer.separator:IsShown() and not items.latency.separator:IsShown() and items.coords.separator:IsShown(), "no gilt rule beside a spacer")
+	local width = items.latency.button:GetWidth()
+	set("DataBars", "strip.padding", 6)
+	assert(math.abs(items.latency.button:GetWidth() - width - 12) < 0.5, "Readout padding widens each dock segment on both sides")
+	set("DataBars", "strip.padding", 0)
+	set("DataBars", "strip.hover", false)
+	items.fps.button.hoverT = 1
+	items.fps.button.Paint()
+	assert(items.fps.hover:GetAlpha() == 0, "Hover highlight off keeps the dock segment unlit")
+	set("DataBars", "strip.hover", true)
+	local pane = env.CreateFrame("Frame", nil, env.UIParent)
+	pane:SetSize(360, 250)
+	local preview = ns.Preview(pane)
+	for _, artwork in ipairs({ "plain", "forged" }) do
+		set("DataBars", "strip.artwork", artwork)
+		preview:Refresh()
+		local sample = preview.strip
+		assert(sample.chrome.visible and sample.chrome.materialOn == (artwork == "forged") and sample.items.fps.icon:IsVisible() and not sample.items.latency.dot:IsShown(), "the settings preview shows the dock's " .. artwork .. " plate and glyph segments")
+	end
+	set("DataBars", "strip.line", false)
+	set("DataBars", "strip.placement", "rail")
+	local fps = view.items.fps
+	assert(not fps.icon:IsShown() and not fps.hover:IsShown() and not view.xpGlyph:IsShown() and not view.xpRule:IsShown(), "rail cells drop the dock's glyphs, highlight and rules")
+	set("DataBars", "strip.line", true)
+	set("DataBars", "strip.placement", "top")
+	set("HudStyle", "style", "frames")
+	assert(layers() == top, "leaving the dock restores the strip's strata and frame levels")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 print("databar dock readouts ok: defaults, whole-item suffix overflow, tooltip and wing bounds on four screens")
