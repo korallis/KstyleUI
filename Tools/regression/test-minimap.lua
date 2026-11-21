@@ -615,37 +615,45 @@ do
 	NoErrors(penv, "preview")
 end
 
--- The settings window lays the preview out, then rescales it and restyles what is under it without a Refresh.
--- Down and back up must draw what a fresh preview draws at that scale.
+-- The settings window lays the preview out, fits it to the room by its width, then restyles what is under it.
+-- Any path of fits, Interface sizes and displays must draw what a fresh preview draws at the end.
 do
-	local function Shapes(scales)
-		local penv, PK = M.New()
-		local frame = PK.Options.Preview("Minimap")(penv.CreateFrame("Frame", nil, penv.UIParent))
-		for _, scale in ipairs(scales) do
+	local Tree = dofile("Tools/regression/geometry.lua").Tree
+	local function Shapes(opts, steps)
+		local penv, PK = M.New(opts)
+		local frame = PK.Options.Preview("Minimap")(PK.Widgets.MarkPreview(penv.CreateFrame("Frame", nil, PK.Scale.Root())))
+		for _, step in ipairs(steps) do
+			if step.size then
+				PK.Scale.SetUserScale(step.size)
+			elseif step.width then
+				penv.GetPhysicalScreenSize = function() return step.width, step.height end
+				penv.UIParent._width, penv.UIParent._height = 768 * step.width / step.height / penv.UIParent._scale, 768 / penv.UIParent._scale
+				penv.FireEvent("DISPLAY_SIZE_CHANGED")
+			end
+			M.Settle(penv)
 			frame:Refresh()
-			frame:SetScale(scale)
+			frame:SetScale(step.scale or 250 / frame:GetWidth())
 			PK.Widgets.RestyleUnder({ [frame] = true })
 		end
-		local shapes = {}
-		local function walk(object)
-			for _, region in ipairs({ object:GetRegions() }) do
-				local font = region.GetFont and select(2, region:GetFont())
-				shapes[#shapes + 1] = ("%.4f x %.4f font %.4f"):format(region:GetWidth() or 0, region:GetHeight() or 0, font or 0)
-			end
-			for _, child in ipairs({ object:GetChildren() }) do
-				shapes[#shapes + 1] = ("%.4f x %.4f"):format(child:GetWidth() or 0, child:GetHeight() or 0)
-				walk(child)
-			end
+		local shapes = { ("scale %.6f"):format(frame:GetScale()) }
+		for _, part in ipairs(Tree(frame)) do
+			local font = part.GetText and part:GetText() and select(2, part:GetFont())
+			local _, _, _, x, y = part:GetPoint(1)
+			shapes[#shapes + 1] = part:IsVisible() and ("%.4f x %.4f at %.4f, %.4f font %.4f"):format(part:GetWidth() or 0, part:GetHeight() or 0, x or 0, y or 0, font or 0):gsub("%-(0%.0000)", "%1") or "hidden"
 		end
-		walk(frame)
 		NoErrors(penv, "preview rescale")
 		return shapes
 	end
-	local fresh, path = Shapes({ 1.1556 }), Shapes({ 1.1556, 1.0427, 1.1556 })
-	assert(#path == #fresh, "the rescaled preview has the fresh one's pieces")
-	for i, shape in ipairs(fresh) do
-		assert(path[i] == shape, "the preview scaled down and back up draws as a fresh one: piece " .. i .. " is " .. path[i] .. ", fresh " .. shape)
+	local function Same(fresh, path, what)
+		assert(#path == #fresh, "the preview " .. what .. " has the fresh one's pieces")
+		for i, shape in ipairs(fresh) do
+			assert(path[i] == shape, "the preview " .. what .. " draws as a fresh one: piece " .. i .. " is " .. path[i] .. ", fresh " .. shape)
+		end
 	end
+	local HD = { width = 1920, height = 1080, size = 1 }
+	Same(Shapes(HD, { { scale = 1.1556 } }), Shapes(HD, { { scale = 1.1556 }, { scale = 1.0427 }, { scale = 1.1556 } }), "scaled down and back up")
+	Same(Shapes(HD, { {} }), Shapes({ width = 1920, height = 1080, size = 0.7 }, { {}, { size = 1 } }), "built at Interface size 70% and set to 100%")
+	Same(Shapes(HD, { {} }), Shapes({ width = 2560, height = 1440, size = 1 }, { {}, { width = 1920, height = 1080 } }), "built at 2560x1440 and moved to 1920x1080")
 end
 
 print("minimap ok")
