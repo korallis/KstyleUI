@@ -11,6 +11,7 @@ local MODULE = Settings.MODULE
 local BOSS_COUNT, BOSS_GAP = Geometry.BOSS_COUNT, Geometry.BOSS_GAP
 local CAST_GAP = { focus = 4, boss = 2 }
 local PET_CAST_GAP = 4
+local SLAB_CAST_GAP, SLAB_CAST_H = 2, 20
 local MIN_FRAME_HEIGHT = 20
 local POLL_INTERVAL = 0.2
 local CHIP_LEVEL, CHIP_GAP, CHIP_HEIGHT, CHIP_PAD, CHIP_EM = 9, 6, 20, 10, 0.62
@@ -726,7 +727,7 @@ function Frames.Relayout(uf)
 			cx, cy = g.panel.x, math.max(slot.h, g.medal and g.medal.y + g.medal.h or 0) + PET_CAST_GAP
 			cw, ch = uf.s.castbarWidth > 0 and uf.s.castbarWidth or g.panel.w, uf.s.castbarHeight
 		elseif cb and uf.s.inlineCast and g.form == "slab" then
-			cx, cy, cw, ch = g.health.x, slot.h + Geometry.SLAB_PAD.castGap, g.health.w, Geometry.SLAB_PAD.cast
+			cx, cy, cw, ch = g.health.x, slot.h + SLAB_CAST_GAP, g.health.w, SLAB_CAST_H
 		end
 		if cx then
 			cb.frame:ClearAllPoints()
@@ -1041,13 +1042,13 @@ local function OnLayoutChanged(_, key, reason)
 		ns.Resource.Layout()
 	end
 	for kind, castKey in pairs(Settings.CAST_ELEMENTS) do
-		local uf = key == castKey and frames[kind]
 		if key == castKey then
 			ns.CastBars.LayoutElement(kind)
-		end
-		if uf and uf.active and uf.s and uf.s.form == "slab" and uf.s.inlineCast ~= Settings.CastOnFrame(kind) then
-			Frames.Restyle(uf)
-			ns.CastBars.Apply()
+			local uf = frames[kind]
+			if uf and uf.active and uf.s and uf.s.form == "slab" and uf.s.inlineCast ~= Settings.CastOnFrame(kind) then
+				Frames.Restyle(uf)
+				ns.CastBars.Apply()
+			end
 		end
 	end
 	ForEach(function(uf)

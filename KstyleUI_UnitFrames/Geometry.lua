@@ -597,7 +597,7 @@ local SLAB = {
 	targettarget = { h = 34, bar = 14 },
 	focustarget = { h = 34, bar = 14 },
 }
-local SLAB_PAD = { top = 5, outer = 9, inner = 6, centre = 2, power = 5, powerGap = 2, nameGap = 2, powerNameGap = 2, auraGap = 16, nameShare = 0.7, levelGap = 6, levelEm = 1.9, valuePad = 7, cast = 20, castGap = 2 }
+local SLAB_PAD = { top = 5, outer = 9, inner = 6, centre = 2, power = 5, powerGap = 2, nameGap = 2, powerNameGap = 2, auraGap = 16, nameShare = 0.7, levelGap = 6, levelEm = 1.9, valuePad = 7 }
 Geometry.SLAB, Geometry.SLAB_PAD = SLAB, SLAB_PAD
 
 local function SlabFrame(out, s, width, height, scale)
