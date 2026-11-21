@@ -189,7 +189,12 @@ do
 	local hx, hy, hw, hh = env.Look(header:GetRect())
 	local bottom = hy + hh + oy
 	local mx, my, mw, mh = env.Look(frame(ns, "raid5"):GetRect())
+	local first = ns.Headers.raid[1].kstyleNumber
+	local _, top, _, _, ty = first:GetPoint(1)
+	local _, fy, _, fh = env.Look(top:GetRect())
+	local _, cap = env.Look(ns.Headers.cards.raid.cap.frame:GetRect())
 	env._resolveRects = nil
+	assert(fy + fh + ty + font(first) <= cap, "group 1's number sits under the card's cap, overlap " .. fy + fh + ty + font(first) - cap)
 	local across = math.min(hx + hw / 2 + 0.5, mx + mw) - math.max(hx + hw / 2 - 0.5, mx)
 	local up = math.min(bottom + font(label), my + mh) - math.max(bottom, my)
 	assert(across <= 0 or up <= 0, "group 2's number sits clear of group 1, overlap " .. up)
