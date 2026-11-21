@@ -75,6 +75,8 @@ local WHO_FORMAT = { player = "friendly.playerFormat", npc = "friendly.npcFormat
 local WHO_COLOR = { player = { "friendly.nameMode", "friendly.nameColor" }, npc = { "friendly.npcNameMode", "friendly.npcColor" } }
 local WHO_SIZE = { npc = "friendly.npcSize", pet = "friendly.petSize" }
 local SUB_GAP = 1
+local SUB_COLOR = { player = { "friendly.guildMatch", "friendly.guildColor" }, pet = { "friendly.ownerMatch", "friendly.ownerColor" },
+	npc = { "friendly.npcTitleMatch", "friendly.npcTitleColor" } }
 local ABSORB = { after = { "LEFT", true, "RIGHT", false }, back = { "RIGHT", true, "RIGHT", true },
 	far = { "RIGHT", false, "RIGHT", true }, near = { "LEFT", false, "LEFT", false } }
 local FLIP, UPRIGHT = { LEFT = "RIGHT", RIGHT = "LEFT" }, { LEFT = "BOTTOM", RIGHT = "TOP" }
@@ -343,6 +345,7 @@ local function ExtraTexts(plate)
 end
 
 local letterCfg = { textFormat = "", font = "", outline = "OUTLINE" }
+local distanceCfg = { textFormat = "", font = "", outline = "OUTLINE", position = "CENTER" }
 local OVERLAY_KEYS = { hashLine = "target.hashLine", threatText = "threat.percent", nameRaid = "markers.nameRaid", pvpBadge = "markers.pvp" }
 
 local function Overlays(plate)
@@ -353,6 +356,14 @@ local function Overlays(plate)
 		letterCfg.size, letterCfg.x, letterCfg.y = Settings.Get("focus.letterSize"), Settings.Get("focus.letterX"), Settings.Get("focus.letterY")
 		plate.focusLetter = Widgets.PlaceText(plate.focusLetter, letterCfg, letter ~= "" and Host(plate) or plate.extraHost, health, barW)
 		if letter ~= "" then plate.focusLetter:SetText(L["F"]) end
+	end
+	local distance = Settings.Get("target.distance")
+	if distance or plate.distanceText then
+		distanceCfg.textFormat = distance and "-" or ""
+		distanceCfg.size, distanceCfg.x, distanceCfg.y = Settings.Get("target.distanceSize"), Settings.Get("target.distanceX"), Settings.Get("target.distanceY")
+		plate.distanceText = Widgets.PlaceText(plate.distanceText, distanceCfg, distance and Host(plate) or plate.extraHost, health, barW)
+		plate.distanceValue = nil
+		if distance and plate.sample then plate.distanceText:SetText("8-20") end
 	end
 	if Settings.Get("target.hashLine") then
 		local line = plate.hashLine or Host(plate):CreateTexture(nil, "OVERLAY")
@@ -448,7 +459,7 @@ function Plate:Restyle()
 	local formats = Settings.Get("friendly.playerFormat") ~= "" or Settings.Get("friendly.npcFormat") ~= ""
 	self.textOptions = self.nameFormat ~= "" or self.healthFormat ~= "" or formats
 		or Settings.Get("name.colorMode") ~= "" or Settings.Get("healthText.colorMode") ~= ""
-	self.subtitled = Settings.Get("friendly.guild") ~= "" or Settings.Get("friendly.owner")
+	self.subtitled = Settings.Get("friendly.guild") ~= "" or Settings.Get("friendly.owner") or Settings.Get("friendly.npcTitle")
 	self.friendlyNames = formats or self.subtitled or Settings.Get("friendly.title") or Settings.Get("friendly.nameMode") ~= ""
 		or Settings.Get("friendly.npcNameMode") ~= "" or Settings.Get("friendly.npcSize") ~= 0 or Settings.Get("friendly.petSize") ~= 0
 	self.who, self.whoSize = nil, nil
@@ -1093,6 +1104,20 @@ function Plate:UpdateName(refreshing)
 	if self.subtitled or self.subtitle then self:UpdateSubtitle() end
 end
 
+local function NpcTitle(unit)
+	local api, kinds = C_TooltipInfo, Enum and Enum.TooltipDataLineType
+	if not (api and type(api.GetUnit) == "function" and kinds) then
+		LogOnce("npc-title", "C_TooltipInfo.GetUnit is missing; friendly NPCs show no title")
+		return nil
+	end
+	local ok, data = pcall(api.GetUnit, unit)
+	local lines = ok and not IsSecret(data) and type(data) == "table" and not IsSecret(data.lines) and data.lines
+	local line = type(lines) == "table" and lines[2]
+	if type(line) == "table" and not IsSecret(line.type) and line.type == kinds.None then
+		return line.leftText
+	end
+end
+
 function Plate:UpdateSubtitle()
 	local text, size, brackets
 	if self.nameEnabled and self.who == "player" and Settings.Get("friendly.guild") ~= "" then
@@ -1102,6 +1127,8 @@ function Plate:UpdateSubtitle()
 		text = self.sample and self.sample.owner
 		if type(guid) ~= "nil" then text = select(6, UnitValue(GetPlayerInfoByGUID, guid)) end
 		size = Settings.Get("friendly.ownerOwnSize") and Settings.Get("friendly.ownerSize") or self.whoSize or Settings.Get("name.size")
+	elseif self.nameEnabled and self.who == "npc" and Settings.Get("friendly.npcTitle") then
+		text, size = self.sample and self.sample.title or self.unit and NpcTitle(self.unit), Settings.Get("friendly.npcTitleSize")
 	end
 	local has = IsSecret(text) or type(text) == "string" and text ~= ""
 	local sub, fresh = self.subtitle, false
@@ -1137,11 +1164,11 @@ end
 function Plate:MatchSubtitle()
 	local sub = self.subtitle
 	if not sub then return end
-	local pet = self.who == "pet"
-	if Settings.Get(pet and "friendly.ownerMatch" or "friendly.guildMatch") then
+	local keys = SUB_COLOR[self.who] or SUB_COLOR.player
+	if Settings.Get(keys[1]) then
 		sub:SetTextColor(self.name:GetTextColor())
 	else
-		sub:SetTextColor(Rgb(Settings.Get(pet and "friendly.ownerColor" or "friendly.guildColor")))
+		sub:SetTextColor(Rgb(Settings.Get(keys[2])))
 	end
 end
 
@@ -1406,6 +1433,7 @@ function Plate:UpdateHighlight(sigilCasts)
 	local framed = targeted and Settings.Get("target.highlight") or false
 	if self.hashLine and Settings.Get("target.hashLine") then self.hashLine:SetShown(isTarget and not self.nameOnly or false) end
 	if self.focusLetter and Settings.Get("focus.letter") ~= "" then self.focusLetter:SetShown(isFocus and not self.nameOnly or false) end
+	if self.distanceText and Settings.Get("target.distance") then self.distanceText:SetShown(isTarget and not self.nameOnly or false) end
 	local glow = Settings.Get("target.glow") and targeted or false
 	if self.targetGlow and self.glowShown ~= glow then
 		self.glowShown = glow

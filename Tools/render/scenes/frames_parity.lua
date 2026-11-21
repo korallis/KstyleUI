@@ -103,6 +103,62 @@ return Common.Run(function()
 			env.RunTickers()
 			env._mouseUnit = "nameplate3"
 			env.FireEvent("UPDATE_MOUSEOVER_UNIT")
+		elseif os.getenv("RENDER_PARITY_ROUND") == "4" then
+			-- Round 4 switched on: enemy buffs right of the bar with a dispel glow, crowd control on the left, a warrior's view of
+			-- another warrior's Sunder Armor, the target's cast glowing because it targets you, the distance to the target, the
+			-- add's spell target on its own at the right of its cast bar, and a friendly NPC with its title.
+			local k = 768 / 1080
+			local base = N.Add(env, "nameplate4", { name = "Innkeeper Hale", title = "Innkeeper", canAttack = false, reaction = 5, level = 30, health = 900, maxHealth = 900 })
+			base:ClearAllPoints()
+			base:SetPoint("CENTER", env.WorldFrame, "BOTTOMLEFT", 1180 * k, (1080 - 300) * k)
+			env.Enum.TooltipDataLineType = { None = 0, UnitLevel = 47 }
+			env.C_TooltipInfo = { GetUnit = function(unit)
+				local u = N.ResolveUnit(unit)
+				return { lines = { { type = 2, leftText = u and u.name }, { type = u and u.title and 0 or 47, leftText = u and u.title } } }
+			end }
+			env.PlayerIsSpellTarget = function(unit) return env.Secret(unit == "nameplate1") end
+			local unitClass = env.UnitClass
+			env.UnitClass = function(unit)
+				if unit == "player" then return "Warrior", "WARRIOR", 1 end
+				return unitClass(unit)
+			end
+			local spells = { { 101, 5 }, { 102, 20 }, { 103, 30 } }
+			env.C_SpellBook.GetNumSpellBookSkillLines = function() return 1 end
+			env.C_SpellBook.GetSpellBookSkillLineInfo = function() return { itemIndexOffset = 0, numSpellBookItems = #spells } end
+			env.C_SpellBook.GetSpellBookItemInfo = function(slot) return { spellID = spells[slot][1], isPassive = false } end
+			env.C_Spell.GetSpellInfo = function(id) return { spellID = id, maxRange = spells[id - 100][2] } end
+			env.C_Spell.IsSpellInRange = function(id) return spells[id - 100][2] >= 20 end
+			env._units.nameplate2.spellTarget = "Thaldren"
+			for key, value in pairs({ ["buffs.enabled"] = true, ["buffs.dispelGlow"] = true, ["buffs.count"] = 2, ["ccs.enabled"] = true,
+				["debuffs.sunder"] = true, ["cast.targetGlow"] = true, ["cast.showTarget"] = true, ["cast.targetPlace"] = "RIGHT",
+				["target.distance"] = true, ["friendly.npcTitle"] = true, ["cast.hideUnitName"] = false }) do
+				K.Options.Write(module, key, value)
+			end
+			N.Cast(env, "nameplate1", { name = "Snap", text = "Snap", texture = 132200, notInterruptible = false })
+			Hud.FillCast(ns.Plates.Get("nameplate1"), 0.55)
+			N.Cast(env, "nameplate2", { name = "Mirefin Hex", text = "Mirefin Hex", texture = 136071, notInterruptible = false })
+			Hud.FillCast(ns.Plates.Get("nameplate2"), 0.4)
+			local A = dofile("Tools/regression/auras_env.lua")
+			local function fill(container, key, icons)
+				local group = container._groups[key]
+				A.Assign(env, container, key, #icons)
+				local buttons = {}
+				for i, icon in ipairs(icons) do
+					local aura = group.frames[i]._aura
+					aura.icon:SetTexture(env.Secret(icon[1]))
+					if aura.timer then aura.timer:SetText(icon[2]) end
+					if icon[3] then A.Dispel(group.frames[i], icon[3]); aura.dispel[1].texture:SetVertexColor(0.2, 0.6, 1); aura.dispel[1].texture:Show() end
+					buttons[i] = group.frames[i]
+				end
+				Hud.PlaceAuras(container, group, buttons, #icons)
+			end
+			for _, token in ipairs({ "nameplate1", "nameplate2" }) do
+				local plate = ns.Plates.Get(token)
+				fill(plate.kinds.buffs, "buffs", { { 135940, "24", "Magic" }, { 135932, "9m" } })
+				fill(plate.kinds.ccs, "ccs", { { 135963, "4" } })
+			end
+			fill(ns.Plates.Get("nameplate1").auras, "sunder", { { 132363, "27" } })
+			env.RunTickers()
 		end
 		N.Focus(env, "nameplate2")
 	end

@@ -15,7 +15,7 @@ Preview.SAMPLES = {
 	{
 		name = L["Dark Iron Summoner"], level = 51, classification = "elite", health = 0.64, absorb = 0.2,
 		enemy = true, reaction = 2, isPlayer = false, target = true, focus = true, raid = 8, caster = true, threatPct = 87,
-		cast = { text = L["Molten Pulse"], texture = 135812, time = "2.8", progress = 0.45, notInterruptible = false, target = L["Thaldrin"], important = true },
+		cast = { text = L["Molten Pulse"], texture = 135812, time = "2.8", progress = 0.45, notInterruptible = false, target = L["Thaldrin"], important = true, atMe = true },
 	},
 	{
 		name = L["Elunara"], level = 60, classification = "normal", health = 0.81, afk = true, dnd = true,
@@ -26,12 +26,12 @@ Preview.SAMPLES = {
 		name = L["Thaldrin"], level = 60, classification = "normal", health = 0.92,
 		enemy = false, reaction = 5, isPlayer = true, class = "PALADIN", focus = true, pvpName = L["Sergeant Thaldrin"], guild = L["Ashen Vanguard"],
 	},
-	{ name = L["Innkeeper Hale"], level = 30, classification = "normal", health = 1, enemy = false, reaction = 5, isPlayer = false },
+	{ name = L["Innkeeper Hale"], level = 30, classification = "normal", health = 1, enemy = false, reaction = 5, isPlayer = false, title = L["Innkeeper"] },
 	{ name = L["Ember"], level = 60, classification = "normal", health = 1, enemy = false, reaction = 5, isPlayer = false, pet = true, owner = L["Thaldrin"] },
 }
 local PLAYER_ROWS = { "name.afk", "name.dnd", "markers.pvp", "enemy.playersUseEnemy", "threat.name", "threat.percentColor", "target.hover", "range.fade" }
 local FRIENDLY_ROWS = { { 3, "friendly.nameMode", "friendly.playerFormat", "friendly.title", "friendly.guild" },
-	{ 4, "friendly.npcFormat", "friendly.npcSize", "friendly.npcNameMode" }, { 5, "friendly.petSize", "friendly.owner" } }
+	{ 4, "friendly.npcFormat", "friendly.npcSize", "friendly.npcNameMode", "friendly.npcTitle" }, { 5, "friendly.petSize", "friendly.owner" } }
 local THREAT_SAMPLE = { healthEdge = true, name = true }
 
 local function Span(plate)

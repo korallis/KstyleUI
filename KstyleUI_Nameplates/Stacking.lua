@@ -102,7 +102,7 @@ function Stacking.Bound(plate, rise)
 		below = math.max(below, rise)
 		frame:ClearAllPoints()
 		frame:SetPoint("BOTTOM", plate, "BOTTOM", 0, -below * k)
-		frame:SetSize(width * k, (above + height + below) * k)
+		frame:SetSize(width * k, (above + height + below) * k * Settings.Get("stacking.spacing"))
 		Register(plate)
 	elseif plate.boundTo then
 		frame:ClearAllPoints()
@@ -145,6 +145,8 @@ function Stacking.Extent(plate)
 			right = math.max(right, extra)
 		end
 	end
+	local reachLeft, reachRight = ns.Auras.Reach(plate)
+	left, right = math.max(left, reachLeft), math.max(right, reachRight)
 	local width = state.width + left + right
 	if Settings.Get("name.show") then
 		width = math.max(width, K.Widgets.Snap(plate, state.width + ns.Plate.NAME_OVERHANG * 2))
@@ -158,7 +160,41 @@ local function Footprint()
 		return nil
 	end
 	local scale = Logic.PlateScale(K.Scale.Root():GetEffectiveScale(), UIParent:GetEffectiveScale())
-	return Logic.Footprint(width, height, above, below, scale)
+	local w, h = Logic.Footprint(width, height, above, below, scale)
+	return w, h and h * Settings.Get("stacking.spacing")
+end
+
+local hit = { written = {}, original = {} }
+
+local function HitInsets()
+	local api, types = C_NamePlateManager, Enum and Enum.NamePlateType
+	if not (api and types and type(api.SetNamePlateHitTestInsets) == "function" and type(api.GetNamePlateHitTestInsets) == "function") then
+		LogOnce("hit-insets", "C_NamePlateManager.SetNamePlateHitTestInsets is missing; plates keep the game's click area")
+		return
+	end
+	local get = Api("GetNamePlateSize")
+	local ok, w, h = false, nil, nil
+	if get then ok, w, h = pcall(get) end
+	w, h = ok and Plain(w), ok and Plain(h)
+	local running = ns.Plates.running
+	local want = {
+		[types.Enemy] = running and w and h and (Settings.Get("stacking.clickWidth") ~= 1 or Settings.Get("stacking.clickHeight") ~= 1)
+			and { w * (1 - Settings.Get("stacking.clickWidth")) / 2, h * (1 - Settings.Get("stacking.clickHeight")) / 2 } or nil,
+		[types.Friendly] = running and w and h and not Settings.Get("stacking.friendlyClicks") and { w / 2, h / 2 } or nil,
+	}
+	for _, kind in pairs(types) do
+		local insets, last = want[kind], hit.written[kind]
+		if insets and not (last and last[1] == insets[1] and last[2] == insets[2]) then
+			if not hit.original[kind] then
+				local read, l, r, t, b = pcall(api.GetNamePlateHitTestInsets, kind)
+				hit.original[kind] = read and Plain(l) and Plain(r) and Plain(t) and Plain(b) and { l, r, t, b } or { 0, 0, 0, 0 }
+			end
+			if pcall(api.SetNamePlateHitTestInsets, kind, insets[1], insets[1], insets[2], insets[2]) then hit.written[kind] = insets end
+		elseif not insets and last then
+			local o = hit.original[kind]
+			if pcall(api.SetNamePlateHitTestInsets, kind, o[1], o[2], o[3], o[4]) then hit.written[kind], hit.original[kind] = nil, nil end
+		end
+	end
 end
 
 local function Settle(plate)
@@ -369,6 +405,9 @@ function Stacking.Sync()
 	end
 	if bounded or was then
 		ns.Plates.Each(Settle)
+	end
+	if next(hit.written) or Settings.Get("stacking.clickWidth") ~= 1 or Settings.Get("stacking.clickHeight") ~= 1 or not Settings.Get("stacking.friendlyClicks") then
+		HitInsets()
 	end
 end
 

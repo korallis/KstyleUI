@@ -356,6 +356,63 @@ local function AddComponentEvents()
 	componentsAdded = #components
 end
 
+local distanceTicker, ranges
+
+local function Plain(value)
+	return not IsSecret(value) and type(value) == "number" and value or nil
+end
+
+local function Ranges()
+	local book, spell, bank = C_SpellBook, C_Spell, Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Player
+	local list, seen = {}, {}
+	if not (book and spell and bank and type(book.GetNumSpellBookSkillLines) == "function" and type(book.GetSpellBookSkillLineInfo) == "function"
+		and type(book.GetSpellBookItemInfo) == "function" and type(spell.GetSpellInfo) == "function") then
+		LogOnce("distance", "the spellbook API or C_Spell.GetSpellInfo is missing; plates show no distance")
+		return list
+	end
+	for line = 1, book.GetNumSpellBookSkillLines() do
+		local info = book.GetSpellBookSkillLineInfo(line)
+		for slot = info.itemIndexOffset + 1, info.itemIndexOffset + info.numSpellBookItems do
+			local item = book.GetSpellBookItemInfo(slot, bank)
+			local data = item and not item.isPassive and Plain(item.spellID) and spell.GetSpellInfo(item.spellID)
+			local range = data and Plain(data.maxRange)
+			if range and range > 0 and not seen[range] then
+				seen[range] = true
+				list[#list + 1] = { range, item.spellID }
+			end
+		end
+	end
+	table.sort(list, function(a, b) return a[1] < b[1] end)
+	return list
+end
+
+local function CheckDistance()
+	local plate = highlighted.target
+	local api = C_Spell and C_Spell.IsSpellInRange
+	if not (plate and plate.distanceText and type(api) == "function") then return end
+	ranges = ranges or Ranges()
+	local text, beyond = "", 0
+	for _, entry in ipairs(ranges) do
+		local ok, inRange = pcall(api, entry[2], "target")
+		if not ok or IsSecret(inRange) then inRange = nil end
+		if inRange == true then
+			text = string.format("%d-%d", beyond, entry[1])
+			break
+		elseif inRange == false then
+			beyond = entry[1]
+		end
+	end
+	if text == "" and beyond > 0 then text = string.format("%d+", beyond) end
+	if text ~= plate.distanceValue then
+		plate.distanceValue = text
+		plate.distanceText:SetText(text)
+	end
+end
+
+local function OnSpells()
+	ranges = nil
+end
+
 local function FindHighlight(which)
 	local base = plateFor[which]
 	if base then return byBase[base] end
@@ -381,6 +438,7 @@ local function OnHighlight(event)
 		end
 	end
 	highlighted.target, highlighted.focus = target, focus
+	if distanceTicker then CheckDistance() end
 end
 
 local function OnRole()
@@ -452,6 +510,16 @@ local function CheckRange()
 end
 
 function Plates.SyncOptions()
+	local distance = Plates.running and Settings.Get("target.distance") or false
+	if distance and not distanceTicker and C_Timer and type(C_Timer.NewTicker) == "function" then
+		ranges = nil
+		K.Events.Register("NameplatesDistance", "SPELLS_CHANGED", OnSpells)
+		distanceTicker = C_Timer.NewTicker(RANGE_STEP, CheckDistance)
+	elseif not distance and distanceTicker then
+		distanceTicker:Cancel()
+		distanceTicker = nil
+		K.Events.Unregister("NameplatesDistance", "SPELLS_CHANGED")
+	end
 	local world = Plates.running and not Settings.Get("markers.instances") or false
 	if world ~= (worldOn == true) then
 		worldOn = world
