@@ -1,5 +1,6 @@
 -- test-qol-parity-r3b.lua: the EllesmereUI parity round 3b QoL options: a v0.2.8 profile keeps today's behaviour and claims no command, each option works switched on and follows the events that change it, nothing depends on a switch it does not name, turning an option off puts back exactly what it changed, and missing or secret game answers take the safe path.
 local Q = dofile("Tools/regression/qol_env.lua")
+local carried, locale -- Blizzard's saved auction filters and the client locale for the next boot
 
 local function record(env, name, result)
 	return function(...)
@@ -33,7 +34,7 @@ local function stand(env)
 			return out
 		end,
 		CanSetUserWaypointOnMap = function() return env._canPin ~= false end,
-		SetUserWaypoint = record(env, "SetUserWaypoint", function(p) env._waypoint = p; env.FireEvent("USER_WAYPOINT_UPDATED") end),
+		SetUserWaypoint = record(env, "SetUserWaypoint", function(p) env._waypoint = p; env.FireEvent("USER_WAYPOINT_UPDATED"); return true end),
 		GetUserWaypoint = function() return env._waypoint end,
 		ClearUserWaypoint = record(env, "ClearUserWaypoint", function() env._waypoint = nil; env.FireEvent("USER_WAYPOINT_UPDATED") end),
 		GetUserWaypointHyperlink = function() return "[Map Pin]" end,
@@ -44,15 +45,15 @@ local function stand(env)
 	env.Constants = env.Constants or {}
 	env.Constants.MacroConsts = { MAX_ACCOUNT_MACROS = 3 }
 	env._macros = {}
-	env.GetMacroInfo = function(i) return env._macros[i] end
+	env.GetMacroInfo = function(i) local m = env._macros[i]; if type(m) == "table" then return m[1], m[2], m[3] end return m end
 	env.GetNumMacros = function() return #env._macros, 0 end
-	env.CreateMacro = record(env, "CreateMacro", function(name) env._macros[#env._macros + 1] = name; return #env._macros end)
+	env.CreateMacro = record(env, "CreateMacro", function(name, icon, body) env._macros[#env._macros + 1] = { name, icon, body }; return #env._macros end)
 	env.PickupMacro = record(env, "PickupMacro")
 	env.CooldownViewerSettings = { TogglePanel = record(env, "TogglePanel") }
 	env.Enum = env.Enum or {}
 	env.Enum.AuctionHouseFilter = { CurrentExpansionOnly = 3 }
 	env.Enum.ClubType = { BattleNet = 0, Character = 1, Guild = 2, Other = 3 }
-	env._offered, env._filters = true, { [3] = false }
+	env._offered, env._filters = true, carried or { [3] = false }
 	env.C_AuctionHouse = { GetFilterGroups = function() return { { category = 0, filters = env._offered and { 1, 3 } or { 1 } } } end }
 	local filter = { GetFilters = function() return env._filters end, ToggleFilter = record(env, "ToggleFilter", function(_, id) env._filters[id] = not env._filters[id] end) }
 	env.AuctionHouseFrame = frame("AuctionHouseFrame")
@@ -75,10 +76,13 @@ local function stand(env)
 	env.GetRaidTargetIndex = function() return env._mark end
 	env.UnitIsGroupLeader = function() return env._leader == true end
 	env.UnitIsGroupAssistant = function() return false end
+	env.HasLFGRestrictions = function() return env._lfg == true end
+	env.UnitInBattleground = function() return nil end
+	if locale then env.GetLocale = function() return locale end end
 end
 
-local function boot(settings)
-	local saved = { version = 42, profiles = { Default = { QoL = settings or { enabled = true } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+local function boot(settings, saved)
+	saved = saved or { version = 42, profiles = { Default = { QoL = settings or { enabled = true } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
 	local env, K, ns = Q.New({ saved = saved, setup = stand })
 	if not K.Modules.IsRunning("QoL") then Q.Enable(env, K) end
 	env.RunTimers()
@@ -121,7 +125,7 @@ do
 		assert(ns.Get(key) == value, key .. " keeps today's behaviour by default")
 	end
 	assert(env.SLASH_KSTYLEQOLWAY1 == nil and env.SLASH_KSTYLEQOLPASTE1 == nil and env.SLASH_KSTYLEQOLCD1 == nil, "no command is claimed")
-	assert(not ns.RaidToolsFrame() and not ns.PasteWindow() and not env.KstyleUI_RaidTools, "no raid tools or paste window")
+	assert(not ns.PasteWindow() and not env.KstyleUI_RaidTools, "no raid tools or paste window")
 	local stats = ns.StatsFrame()
 	for i = 1, stats.count do assert(not stats.lines[i].stat.fmt, "frame rate and latency are off by default") end
 	env.FireEvent("AUCTION_HOUSE_SHOW")
@@ -222,11 +226,11 @@ do
 	ns.PasteWays("/way 30 30 Third\n/way 40 40 Fourth")
 	env._pos = { x = 0.3, y = 0.3 }
 	env.RunTickers()
-	assert(not said(env, "Arrived at Third.") and env._waypoint.position.x == 0.3, "Arrival message off: no message and no advance")
+	assert(not said(env, "Arrived at Third.") and env._waypoint.position.x == 0.4, "Arrival message off: no message, and the next pin still follows")
 	Q.Write(env, K, "wayArrival", true)
-	env.FireEvent("USER_WAYPOINT_UPDATED")
+	env._pos = { x = 0.4, y = 0.4 }
 	env.C_Map.ClearUserWaypoint()
-	assert(said(env, "Arrived at Third.") and env._waypoint.position.x == 0.4, "a pin the game clears beside you counts as arrival")
+	assert(said(env, "Arrived at Fourth.") and env._waypoint == nil, "a pin the game clears beside you counts as arrival")
 	env._pos = { x = 0.9, y = 0.9 }
 	env.C_Map.ClearUserWaypoint()
 	ns.PasteWays("/way 50 50 Fifth")
@@ -260,16 +264,17 @@ do
 	Q.Write(env, K, "wayManual", true)
 	env.RunTickers()
 	env.RunTickers()
-	env.FireEvent("USER_WAYPOINT_UPDATED")
-	env.RunTickers()
-	local count = 0
-	for _, line in ipairs(env._printed) do if line:find("Arrived at your map pin.", 1, true) then count = count + 1 end end
-	assert(count == 1, "announced once, not every second: " .. count)
-	assert(env.LiveTickers() == 0, "nothing left to watch stops the ticker")
+	local function count()
+		local n = 0
+		for _, line in ipairs(env._printed) do if line:find("Arrived at your map pin.", 1, true) then n = n + 1 end end
+		return n
+	end
+	assert(count() == 1, "announced once, not every second: " .. count())
+	assert(env.LiveTickers() == 0, "nothing left to watch stops the ticker as the pin is announced")
 	env._pos = nil
 	env.C_Map.SetUserWaypoint(env.UiMapPoint.CreateFromCoordinates(1429, 0.7, 0.7))
 	env.RunTickers()
-	assert(count == 1, "no position (an instance) announces nothing")
+	assert(count() == 1, "no position (an instance) announces nothing")
 	clean(env, K)
 end
 
@@ -365,8 +370,8 @@ end
 do
 	local env, K, ns = boot()
 	Q.Write(env, K, "raidTools", "group")
-	local holder = ns.RaidToolsFrame()
-	assert(holder == env.KstyleUI_RaidTools and not holder:IsShown(), "built and named for the binding, hidden alone")
+	local holder = env.KstyleUI_RaidTools
+	assert(holder and not holder:IsShown(), "built and named for the binding, hidden alone")
 	env._group = true
 	env.FireEvent("GROUP_ROSTER_UPDATE")
 	assert(holder:IsShown() and holder.panel:IsShown(), "shown open in a party")
@@ -396,13 +401,13 @@ do
 	local marks = Q.Calls(env, "SetRaidTarget")
 	assert(marks[1][2] == 3 and marks[2][2] == 0 and marks[3][2] == 0, "a marker, the same marker clears, Clear clears")
 	env.SetCombat(true)
-	assert(not holder.buttons[1]:IsEnabled(), "dim in combat, even as combat starts")
+	assert(not holder.buttons[4]:IsEnabled(), "dim in combat, even as combat starts")
 	click(holder.buttons[1])
 	assert(#Q.Calls(env, "DoReadyCheck") == 1, "refused in combat")
 	click(holder)
 	assert(not holder.panel:IsShown(), "it still opens and closes in combat")
 	env.SetCombat(false)
-	assert(holder.buttons[1]:IsEnabled(), "usable again after combat")
+	assert(holder.buttons[4]:IsEnabled(), "usable again after combat")
 	env._group, env._raid = false, true
 	env.FireEvent("GROUP_ROSTER_UPDATE")
 	assert(not holder:IsShown(), "in a raid, hidden from a plain member")
@@ -452,6 +457,238 @@ do
 	assert(preview.raid.panel:GetAlpha() < 1 and preview.raid.star:GetPoint(1) == "BOTTOMLEFT" and preview.raid.panel:GetPoint(1) == "BOTTOMLEFT", "collapsed dims the panel, which opens up and right from its button")
 	assert(preview.stats.count == 2 and shows(preview.stats.lines[1]):find("60", 1, true) and shows(preview.stats.lines[2]) == "|cff" .. shows(preview.stats.lines[2]):sub(5, 10) .. "42 ms|r", "samples, and latency without its label")
 	clean(env, K)
+end
+
+-- Review of #638, raid tools on screen: from the default spot and from a spot dragged to the far corner, every layout and opening direction keeps the open panel inside the screen at every size, opening the other way only where the chosen way would leave it.
+for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local env, K = Q.New({ width = size[1], height = size[2], size = "auto", setup = stand })
+	Q.Enable(env, K)
+	env._group = true
+	Q.Write(env, K, "raidTools", "group")
+	local holder, root = env.KstyleUI_RaidTools, K.Scale.Root()
+	local function inside(what)
+		local p, k = holder.panel, holder.panel:GetEffectiveScale() / root:GetEffectiveScale()
+		assert(p:GetLeft() * k >= root:GetLeft() - 0.5 and p:GetRight() * k <= root:GetRight() + 0.5 and p:GetBottom() * k >= root:GetBottom() - 0.5 and p:GetTop() * k <= root:GetTop() + 0.5,
+			string.format("%dx%d %s: the open panel spans %.0f..%.0f x %.0f..%.0f", size[1], size[2], what, p:GetLeft() * k, p:GetRight() * k, p:GetBottom() * k, p:GetTop() * k))
+	end
+	for _, spot in ipairs({ {}, { anchor = "BOTTOMRIGHT", x = -16, y = 16 } }) do
+		if spot.anchor then
+			for field, value in pairs(spot) do assert(K.Layout.Set("qol.raidtools", field, value)) end
+			env.RunTimers()
+		end
+		for _, layout in ipairs({ "row", "column" }) do
+			for _, grow in ipairs({ "downright", "downleft", "upright", "upleft" }) do
+				Q.Write(env, K, "raidToolsLayout", layout)
+				Q.Write(env, K, "raidToolsGrow", grow)
+				inside((spot.anchor or "default") .. " " .. layout .. " " .. grow)
+			end
+		end
+	end
+	local point = holder.panel:GetPoint(1)
+	assert(point == "BOTTOMRIGHT", "in the bottom right corner, Up and left still opens up and left: " .. tostring(point))
+	clean(env, K)
+end
+
+-- Review of #638, guild chat cover: turned off and on again it covers again even after a click lifted it, a club with no type or a secret selected ID is covered as private, and a secret ID never reaches the game.
+do
+	local env, K = boot()
+	local comm, messages = env.CommunitiesFrame, env.CommunitiesFrame.Chat.MessageFrame
+	Q.Write(env, K, "guildCover", true)
+	local cover = select(2, comm.Chat:GetChildren())
+	click(cover)
+	Q.Write(env, K, "guildCover", false)
+	Q.Write(env, K, "guildCover", true)
+	assert(cover:IsShown() and messages:GetAlpha() == 0, "turned off and on again, guild chat is covered")
+	env.C_Club.GetClubInfo = function() return {} end
+	comm:OnClubSelected(9)
+	assert(cover:IsShown() and messages:GetAlpha() == 0, "a club with no type is covered")
+	local asked = 0
+	env.C_Club.GetClubInfo = function() asked = asked + 1; return { clubType = 1 } end
+	comm:OnClubSelected(env.Secret(9))
+	assert(cover:IsShown() and asked == 0, "a secret club ID is covered without asking the game")
+	clean(env, K)
+end
+
+-- Review of #638, waypoint switches: turning /kpaste off ends its list even while /way stays on, Arrival message off still follows the list silently, and a command switched off or the module off gives its name back.
+do
+	local env, K, ns = boot()
+	Q.Write(env, K, "wayPaste", true)
+	Q.Write(env, K, "wayCommand", true)
+	ns.PasteWays("/way 10 10 First\n/way 20 20 Second")
+	Q.Write(env, K, "wayPaste", false)
+	env._pos = { x = 0.1, y = 0.1 }
+	env.RunTickers()
+	assert(env._waypoint.position.x == 0.1 and env.LiveTickers() == 0, "turning /kpaste off ends its list")
+	Q.Write(env, K, "wayCommand", false)
+	assert(env.SLASH_KSTYLEQOLWAY1 == nil and env.SlashCmdList.KSTYLEQOLWAY == nil, "turning /way off gives the name back")
+	Q.Write(env, K, "wayCommand", true)
+	assert(env.SLASH_KSTYLEQOLWAY1 == "/way" and type(env.SlashCmdList.KSTYLEQOLWAY) == "function", "on again claims it again")
+	Q.Disable(env, K)
+	assert(env.SLASH_KSTYLEQOLWAY1 == nil and env.SlashCmdList.KSTYLEQOLWAY == nil, "the module off gives it back too")
+	clean(env, K)
+	local env2, K2, ns2 = boot()
+	Q.Write(env2, K2, "wayPaste", true)
+	Q.Write(env2, K2, "wayArrival", false)
+	ns2.PasteWays("/way 10 10 First\n/way 20 20 Second")
+	env2._pos = { x = 0.1, y = 0.1 }
+	env2.RunTickers()
+	assert(env2._waypoint.position.x == 0.2 and not said(env2, "Arrived") and env2.LiveTickers() == 1, "Arrival message off still pins the next, silently")
+	clean(env2, K2)
+end
+
+-- Review of #638, waypoint state: a new pin where you already arrived is watched again, your own pin's ticker stops as it is announced, and a pin the game refuses is never tracked, announced or counted.
+do
+	local env, K, ns = boot()
+	Q.Write(env, K, "wayCommand", true)
+	Q.Write(env, K, "wayPaste", true)
+	env._pos = { x = 0.1, y = 0.1 }
+	env.SlashCmdList.KSTYLEQOLWAY("10 10")
+	env.RunTickers()
+	env.SlashCmdList.KSTYLEQOLWAY("10 10")
+	assert(env._waypoint and env.LiveTickers() == 1, "a new pin where you arrived is watched")
+	env.RunTickers()
+	assert(env._waypoint == nil and env.LiveTickers() == 0, "and cleared as you arrive again")
+	Q.Write(env, K, "wayManual", true)
+	env.C_Map.SetUserWaypoint(env.UiMapPoint.CreateFromCoordinates(1429, 0.1, 0.1))
+	env.RunTickers()
+	assert(said(env, "Arrived at your map pin.") and env.LiveTickers() == 0, "your own pin's ticker stops as it is announced")
+	env.C_Map.ClearUserWaypoint()
+	Q.Reset(env)
+	env.C_Map.SetUserWaypoint = record(env, "SetUserWaypoint", function() return false end)
+	assert(ns.PasteWays("/way 30 30 Bad\n/way 40 40 Bad") == 0 and not said(env, "Pinned 2") and #Q.Calls(env, "SuperTrack") == 0, "a refused pin is not counted, announced or tracked")
+	env.SlashCmdList.KSTYLEQOLPASTE("")
+	local window = ns.PasteWindow()
+	env._canPin = false
+	window.area:SetText("/way 10 10 Bad\n/way 20 20 Bad")
+	click(window.run)
+	assert(window:IsShown() and #Q.Calls(env, "SetUserWaypoint") == 1, "the window stays open while nothing was pinned")
+	clean(env, K)
+end
+
+-- Review of #638, map calls: a missing call refuses instead of erroring, a map with no size never counts as arrival, and a zone name is not searched in combat.
+do
+	local env, K, ns = boot()
+	Q.Write(env, K, "wayCommand", true)
+	Q.Write(env, K, "wayPaste", true)
+	local info, create, map = env.C_Map.GetMapInfo, env.UiMapPoint.CreateFromCoordinates, env.C_Map
+	env.C_Map.GetMapInfo = nil
+	env.SlashCmdList.KSTYLEQOLWAY("Westfall 20 20")
+	env.C_Map.GetMapInfo, env.UiMapPoint.CreateFromCoordinates = info, nil
+	env.SlashCmdList.KSTYLEQOLWAY("10 10")
+	env.UiMapPoint.CreateFromCoordinates, env.C_Map = create, nil
+	assert(ns.PasteWays("/way 10 10") == 0, "no map calls pin nothing")
+	env.C_Map = map
+	env.C_Map.GetMapWorldSize = function() return 0, 0 end
+	env._pos = { x = 0.35, y = 0.43 }
+	env.SlashCmdList.KSTYLEQOLWAY("90 90")
+	env.RunTickers()
+	assert(not said(env, "Arrived") and env._waypoint ~= nil, "a map with no size never counts as arrival")
+	local scans = 0
+	env.C_Map.GetMapChildrenInfo = function() scans = scans + 1; return {} end
+	env.SetCombat(true)
+	env.SlashCmdList.KSTYLEQOLWAY("Westfall 10 10")
+	assert(scans == 0 and said(env, "out of combat"), "a zone name is not searched in combat")
+	env.SetCombat(false)
+	clean(env, K)
+end
+
+-- Review of #638, frame rate and latency: they follow only their interval, not the stat events, and one tick reads the frame rate and both latencies with one call each, and no other stat.
+do
+	local env, K = boot({ enabled = true, stats = true })
+	local fps, crit, net = 0, 0, 0
+	env.GetCritChance = function() crit = crit + 1; return 25 end
+	env.GetFramerate = function() fps = fps + 1; return 60 end
+	env.GetNetStats = function() net = net + 1; return 0, 0, 25, 30 end
+	only(env, K, { fps = true, crit = true, home = true, world = true })
+	Q.Write(env, K, "statsInterval", 5)
+	fps, crit, net = 0, 0, 0
+	for _ = 1, 10 do env.FireEvent("UNIT_AURA", "player") end
+	assert(fps == 0 and net == 0 and crit == 10, string.format("ten aura events read fps %d, latency %d, crit %d", fps, net, crit))
+	fps, crit, net = 0, 0, 0
+	env.RunTickers()
+	assert(fps == 1 and net == 1 and crit == 0, string.format("one tick reads fps %d, latency %d, crit %d", fps, net, crit))
+	clean(env, K)
+end
+
+-- Review of #638, raid tool permissions: a plain party member keeps the markers but not ready check, role check or pull timer; the leader gets them; a finder group refuses the role check as Blizzard's raid manager does; an unchanged roster repaints nothing; an unknown raid answer hides the tools.
+do
+	local env, K = boot()
+	env._group = true
+	Q.Write(env, K, "raidTools", "group")
+	local holder = env.KstyleUI_RaidTools
+	assert(holder:IsShown(), "shown in a party")
+	for i = 1, 3 do assert(not holder.buttons[i]:IsEnabled(), "a plain member cannot use action " .. i) end
+	assert(holder.buttons[4]:IsEnabled() and holder.buttons[12]:IsEnabled(), "a plain member marks")
+	env._leader = true
+	env.FireEvent("PARTY_LEADER_CHANGED")
+	for i = 1, 3 do assert(holder.buttons[i]:IsEnabled(), "the leader uses action " .. i) end
+	env._lfg = true
+	env.FireEvent("GROUP_ROSTER_UPDATE")
+	assert(not holder.buttons[2]:IsEnabled() and holder.buttons[1]:IsEnabled(), "a finder group refuses the role check")
+	local writes = 0
+	for _, button in ipairs(holder.buttons) do
+		local set = button.SetEnabled
+		button.SetEnabled = function(...) writes = writes + 1; return set(...) end
+	end
+	for _ = 1, 10 do env.FireEvent("GROUP_ROSTER_UPDATE") end
+	assert(writes == 0, "an unchanged roster repaints nothing: " .. writes)
+	env._leader = nil
+	env.IsInRaid = nil
+	env.FireEvent("GROUP_ROSTER_UPDATE")
+	assert(not holder:IsShown(), "an unknown raid answer hides the tools")
+	clean(env, K)
+end
+
+-- Review of #638, restoring: the map sidebars go back to the alpha and mouse they had, and a filter KstyleUI ticked is unticked after a reload, from Blizzard's saved filters, while the player's own tick stays.
+do
+	local env, K = boot()
+	local blackout = env.WorldMapFrame.BlackoutFrame
+	blackout:EnableMouse(false)
+	blackout.Blackout:SetAlpha(0.6)
+	Q.Write(env, K, "mapSidebars", true)
+	Q.Write(env, K, "mapSidebars", false)
+	assert(blackout.Blackout:GetAlpha() == 0.6 and not blackout:IsMouseEnabled(), "off puts back the sidebars as they were")
+	clean(env, K)
+	local saved = { version = 42, profiles = { Default = { QoL = { enabled = true } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+	local env1, K1 = boot(nil, saved)
+	Q.Write(env1, K1, "ahCurrent", true)
+	assert(env1._filters[3] == true, "ticked")
+	carried = env1._filters
+	local env2, K2 = boot(nil, saved)
+	carried = nil
+	Q.Write(env2, K2, "ahCurrent", false)
+	assert(env2._filters[3] == false, "after a reload, off unticks the tick KstyleUI made")
+	carried = { [3] = true }
+	local env3, K3 = boot(nil, saved)
+	carried = nil
+	Q.Write(env3, K3, "ahCurrent", true)
+	Q.Write(env3, K3, "ahCurrent", false)
+	assert(env3._filters[3] == true, "the player's own tick still survives")
+	clean(env1, K1)
+	clean(env2, K2)
+	clean(env3, K3)
+end
+
+-- Review of #638, the macro, the latency text and the key binding: a macro of the same name with another body is not picked up, latency reads in the client's language, and the binding sits under the shared KstyleUI heading.
+do
+	local env, K = boot()
+	Q.Write(env, K, "wayPaste", true)
+	env.GetMacroInfo = function(i) if i == 1 then return "KstyleUI Waypoints", 1, "/say unrelated" end end
+	env.SlashCmdList.KSTYLEQOLPASTE("macro")
+	assert(#Q.Calls(env, "PickupMacro") == 0 and #Q.Calls(env, "CreateMacro") == 0 and said(env, "KstyleUI Waypoints"), "another macro with the name is reported, not picked up")
+	env._group = true
+	Q.Write(env, K, "raidTools", "group")
+	local file = assert(io.open("KstyleUI_QoL/Bindings.xml", "rb"))
+	local xml = file:read("*a")
+	file:close()
+	assert(xml:find('category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"', 1, true) and env.BINDING_HEADER_KSTYLEUI_QOL == nil, "the binding sits under the shared KstyleUI heading")
+	clean(env, K)
+	locale = "zhCN"
+	local env2, K2, ns2 = boot({ enabled = true, stats = true })
+	locale = nil
+	only(env2, K2, { home = true })
+	assert(shows(ns2.StatsFrame().lines[1]):find("\230\175\171\231\167\146", 1, true), "latency in the client's language: " .. shows(ns2.StatsFrame().lines[1]))
+	clean(env2, K2)
 end
 
 print("qol parity round 3b ok")
