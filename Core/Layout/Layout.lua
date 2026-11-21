@@ -1181,7 +1181,7 @@ local function UpdateEvents()
 			target = target or Rules.NeedsTarget(s.shown)
 			hover = hover or s.shown == "mouseover"
 			group = group or (Rules.NeedsGroup(s.shown) and not IsProtectedFrame(elements[order[i]].frame))
-			mount = mount or Rules.NeedsMounted(s.shown) and not IsProtectedFrame(elements[order[i]].frame)
+			mount = mount or (s.shown == "mounted" or s.shown == "noMounted") and not IsProtectedFrame(elements[order[i]].frame)
 		end
 	end
 	UpdatePoll(hover)

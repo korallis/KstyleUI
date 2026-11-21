@@ -287,7 +287,6 @@ do
 			end
 		end
 	end
-	check("mounted rules need the mount event only", Rules.NeedsMounted("mounted") and Rules.NeedsMounted("noMounted") and not Rules.NeedsMounted("combatTarget"))
 	check("in combat or with a target needs both events", Rules.NeedsCombat("combatTarget", 1, 1) and Rules.NeedsTarget("combatTarget"))
 	check("not while mounted hides only while mounted", Rules.Visible("noMounted", true, true, nil, false) and not Rules.Visible("noMounted", false, false, nil, true))
 

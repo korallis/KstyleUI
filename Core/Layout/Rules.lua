@@ -81,7 +81,3 @@ end
 function Rules.NeedsTarget(rule)
 	return rule == "target" or rule == "combatTarget"
 end
-
-function Rules.NeedsMounted(rule)
-	return rule == "mounted" or rule == "noMounted"
-end
