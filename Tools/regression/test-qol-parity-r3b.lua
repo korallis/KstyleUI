@@ -190,10 +190,11 @@ do
 	env.SlashCmdList.KSTYLEQOLWAY("10 10")
 	assert(said(env, "cannot hold a pin") and env._waypoint.position.x == 0.3, "a map that refuses pins keeps the old pin")
 	env._canPin = nil
+	local hashed = env.SlashCmdList.KSTYLEQOLWAY
 	Q.Write(env, K, "wayCommand", false)
 	local before = #Q.Calls(env, "SetUserWaypoint")
-	env.SlashCmdList.KSTYLEQOLWAY("10 10")
-	assert(#Q.Calls(env, "SetUserWaypoint") == before and said(env, "Turn /way on"), "off, /way only says where to turn it on")
+	hashed("10 10")
+	assert(#Q.Calls(env, "SetUserWaypoint") == before and said(env, "Turn /way on"), "off, the handler the chat code kept only says where to turn it on")
 	clean(env, K)
 	local env2, K2 = boot()
 	env2.SLASH_TOMTOM_WAY1 = "/way"
@@ -368,7 +369,7 @@ end
 
 -- Raid tools: the show rule and its events, collapsed start, layout, opening direction, ready check, the binding's button, combat refusal and the actions.
 do
-	local env, K, ns = boot()
+	local env, K = boot()
 	Q.Write(env, K, "raidTools", "group")
 	local holder = env.KstyleUI_RaidTools
 	assert(holder and not holder:IsShown(), "built and named for the binding, hidden alone")
@@ -382,7 +383,7 @@ do
 	assert(point == "TOPLEFT" and anchor == holder and relative == "BOTTOMLEFT", "opens down and right")
 	Q.Write(env, K, "raidToolsGrow", "upleft")
 	point, anchor, relative = holder.panel:GetPoint(1)
-	assert(point == "BOTTOMRIGHT" and anchor == holder and relative == "TOPRIGHT", "opens up and left")
+	assert(point == "TOPLEFT" and anchor == holder and relative == "BOTTOMLEFT", "a column at the top left opens down and right where up and left would leave the screen")
 	click(holder)
 	assert(not holder.panel:IsShown(), "the button collapses it")
 	env.FireEvent("READY_CHECK")

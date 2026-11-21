@@ -1,4 +1,4 @@
--- Commands.lua: the /way, /kpaste and /cd commands, the waypoint paste window and its macro, and the arrival message: each command is claimed the first time its switch is on, only when no other addon owns its name, and while its switch is off it only says where to turn it on; pins follow one another as you arrive, and arrival is watched by a one-second ticker only while a pin it announces is set.
+-- Commands.lua: the /way, /kpaste and /cd commands, the waypoint paste window and its macro, and the arrival message: each command is claimed while its switch is on, only when no other addon owns its name, and given back when it goes off (a name typed since the last reload stays with the chat code until a reload and only says where to turn it on); a pin counts only when the game says it was set, a list belongs to the command that pinned it and ends when that goes off, pins follow one another as you arrive whether or not the arrival is announced, and arrival is watched by a one-second ticker only while a pin it acts on is set.
 local _, ns = ...
 
 local K, L = ns.K, ns.L
@@ -38,17 +38,17 @@ local function Yards(p)
 	local w, h
 	if map and type(C_Map.GetMapWorldSize) == "function" then w, h = C_Map.GetMapWorldSize(map) end
 	local px, py = type(pos) == "table" and ns.Number(pos.x), type(pos) == "table" and ns.Number(pos.y)
-	if not (px and py and ns.Number(w) and ns.Number(h)) then return nil end
+	if not (px and py and ns.Number(w) and ns.Number(h) and w > 0 and h > 0) then return nil end
 	return math.sqrt(((px - x) * w) ^ 2 + ((py - y) * h) ^ 2)
 end
 
 local function Set(p)
 	local map, x, y = Point(p)
-	if not (map and type(UiMapPoint) == "table" and type(C_Map.SetUserWaypoint) == "function") or ns.Ask(C_Map.CanSetUserWaypointOnMap, map) ~= true then
+	local make = type(UiMapPoint) == "table" and UiMapPoint.CreateFromCoordinates
+	if not (map and type(make) == "function" and ns.Ask(C_Map.CanSetUserWaypointOnMap, map) == true and ns.Ask(C_Map.SetUserWaypoint, make(map, x, y)) == true) then
 		K.Print(L["That map cannot hold a pin."])
 		return false
 	end
-	C_Map.SetUserWaypoint(UiMapPoint.CreateFromCoordinates(map, x, y))
 	if type(C_SuperTrack) == "table" and type(C_SuperTrack.SetSuperTrackedUserWaypoint) == "function" then C_SuperTrack.SetSuperTrackedUserWaypoint(true) end
 	local link = ns.Ask(C_Map.GetUserWaypointHyperlink)
 	if type(link) == "string" then K.Print(link .. (p.name and " " .. p.name or "")) end
@@ -60,10 +60,11 @@ local Watch
 local function Arrived(p)
 	watched, done = nil, p
 	local mine = queue[1] and Same(p, queue[1])
-	K.Print(mine and queue[1].name and string.format(L["Arrived at %s."], queue[1].name) or L["Arrived at your map pin."])
-	if not mine then return end
-	table.remove(queue, 1)
-	if queue[1] then Set(queue[1]) elseif type(C_Map.ClearUserWaypoint) == "function" then C_Map.ClearUserWaypoint() end
+	if not mine or ns.Get("wayArrival") then K.Print(mine and queue[1].name and string.format(L["Arrived at %s."], queue[1].name) or L["Arrived at your map pin."]) end
+	if mine then
+		table.remove(queue, 1)
+		if queue[1] then Set(queue[1]) elseif type(C_Map.ClearUserWaypoint) == "function" then C_Map.ClearUserWaypoint() end
+	end
 	Watch()
 end
 
@@ -81,7 +82,7 @@ function Watch()
 	end
 	local mine = p and queue[1] and Same(p, queue[1])
 	if queue[1] and not mine then queue = {} end
-	local want = ns.running and p and (mine and ns.Get("wayArrival") or not mine and ns.Get("wayManual"))
+	local want = ns.running and p and (mine or ns.Get("wayManual"))
 	watched = want and not Same(p, done) and p or nil
 	if watched and not ticker and C_Timer and type(C_Timer.NewTicker) == "function" then ticker = C_Timer.NewTicker(1, Check)
 	elseif not watched and ticker then ticker:Cancel(); ticker = nil end
@@ -89,11 +90,11 @@ end
 
 local function FindMap(name)
 	local map = ns.Ask(C_Map.GetBestMapForUnit, "player")
-	local info = ns.Number(map) and C_Map.GetMapInfo(map)
+	local info = ns.Number(map) and ns.Ask(C_Map.GetMapInfo, map)
 	while type(info) == "table" and ns.Number(info.parentMapID) and info.parentMapID > 0 do
-		map, info = info.parentMapID, C_Map.GetMapInfo(info.parentMapID)
+		map, info = info.parentMapID, ns.Ask(C_Map.GetMapInfo, info.parentMapID)
 	end
-	local list = ns.Number(map) and type(C_Map.GetMapChildrenInfo) == "function" and C_Map.GetMapChildrenInfo(map, nil, true)
+	local list = ns.Number(map) and ns.Ask(C_Map.GetMapChildrenInfo, map, nil, true)
 	local prefix
 	for _, child in ipairs(type(list) == "table" and list or {}) do
 		local title = type(child.name) == "string" and not ns.IsSecret(child.name) and child.name:lower()
@@ -104,13 +105,16 @@ local function FindMap(name)
 end
 
 function ns.ParseWay(msg)
+	if type(C_Map) ~= "table" then return nil, L["That map cannot hold a pin."] end
 	local words = {}
 	for word in tostring(msg):gsub(",", " "):gmatch("%S+") do words[#words + 1] = word end
 	for i = 1, #words - 1 do
 		local x, y = tonumber(words[i]), tonumber(words[i + 1])
 		if x and y and x >= 0 and x <= 100 and y >= 0 and y <= 100 then
 			local zone, name = table.concat(words, " ", 1, i - 1), table.concat(words, " ", i + 2)
-			local map = zone == "" and ns.Ask(C_Map.GetBestMapForUnit, "player") or zone:match("^#(%d+)$") and tonumber(zone:sub(2)) or FindMap(zone:lower())
+			local id = zone:match("^#(%d+)$")
+			if zone ~= "" and not id and ns.Ask(InCombatLockdown) ~= false then return nil, L["Try again out of combat."] end
+			local map = zone == "" and ns.Ask(C_Map.GetBestMapForUnit, "player") or id and tonumber(id) or FindMap(zone:lower())
 			if not ns.Number(map) then return nil, zone == "" and L["That map cannot hold a pin."] or string.format(L["No map for %s."], zone) end
 			return { uiMapID = map, position = { x = x / 100, y = y / 100 }, name = name ~= "" and name or nil }
 		end
@@ -118,15 +122,16 @@ function ns.ParseWay(msg)
 	return nil, L["Use /way x y, or /way zone x y."]
 end
 
-local function Pin(list)
-	queue = list
-	if list[1] and Set(list[1]) then Watch() end
+local function Pin(list, owner)
+	if not (list[1] and Set(list[1])) then return false end
+	queue, done, list.owner = list, nil, owner
+	Watch()
+	return true
 end
 
 local function Way(msg)
-	if type(C_Map) ~= "table" then return end
 	local p, problem = ns.ParseWay(msg)
-	if p then Pin({ p }) else K.Print(problem) end
+	if p then Pin({ p }, "wayCommand") else K.Print(problem) end
 end
 
 function ns.PasteWays(text)
@@ -136,8 +141,8 @@ function ns.PasteWays(text)
 		local p = rest and ns.ParseWay(rest)
 		if p then list[#list + 1] = p end
 	end
+	if not Pin(list, "wayPaste") then return 0 end
 	if #list > 1 then K.Print(string.format(L["Pinned %d waypoints; each follows the last as you arrive."], #list)) end
-	Pin(list)
 	return #list
 end
 
@@ -167,7 +172,9 @@ function ns.CreateMacro()
 	if ns.Ask(InCombatLockdown) ~= false or not max or type(CreateMacro) ~= "function" or type(PickupMacro) ~= "function" or type(GetMacroInfo) ~= "function" then return end
 	local index
 	for i = 1, max do
-		if GetMacroInfo(i) == MACRO then index = i break end
+		local name, _, body = GetMacroInfo(i)
+		if name == MACRO and not (type(body) == "string" and body:find("^%s*/kpaste%s*$")) then return K.Print(string.format(L["Another macro is already named %s."], MACRO)) end
+		if name == MACRO then index = i break end
 	end
 	if not index and (ns.Number(ns.Ask(GetNumMacros)) or max) < max then index = CreateMacro(MACRO, "INV_MISC_QUESTIONMARK", "/kpaste") end
 	if ns.Number(index) then PickupMacro(index) else K.Print(L["Your account macros are full."]) end
@@ -189,22 +196,26 @@ local function Run(command, msg)
 	if ns.running and ns.Get(command[1]) then command[3](msg) else K.Print(string.format(L["Turn %s on in KstyleUI, Quality of life."], command[2])) end
 end
 
+local function Name(i, alias, run)
+	if i == 1 then SLASH_KSTYLEQOLWAY1, SlashCmdList.KSTYLEQOLWAY = alias, run
+	elseif i == 2 then SLASH_KSTYLEQOLPASTE1, SlashCmdList.KSTYLEQOLPASTE = alias, run
+	else SLASH_KSTYLEQOLCD1, SlashCmdList.KSTYLEQOLCD = alias, run end
+end
+
 local function Claim()
+	if type(SlashCmdList) ~= "table" then return end
 	for i, command in ipairs(COMMANDS) do
-		if ns.running and ns.Get(command[1]) and not claimed[i] and type(SlashCmdList) == "table" then
+		local on = ns.running and ns.Get(command[1])
+		if on and not claimed[i] then
 			claimed[i] = true
 			if Owned(command[2]) then
 				K.Print(string.format(L["Another addon owns %s."], command[2]))
-			elseif i == 1 then
-				SLASH_KSTYLEQOLWAY1 = command[2]
-				SlashCmdList.KSTYLEQOLWAY = function(msg) Run(command, msg) end
-			elseif i == 2 then
-				SLASH_KSTYLEQOLPASTE1 = command[2]
-				SlashCmdList.KSTYLEQOLPASTE = function(msg) Run(command, msg) end
 			else
-				SLASH_KSTYLEQOLCD1 = command[2]
-				SlashCmdList.KSTYLEQOLCD = function(msg) Run(command, msg) end
+				Name(i, command[2], function(msg) Run(command, msg) end)
 			end
+		elseif not on and claimed[i] then
+			claimed[i] = nil
+			Name(i, nil, nil)
 		end
 	end
 end
@@ -215,7 +226,7 @@ local function Sync()
 	for _, event in ipairs({ "USER_WAYPOINT_UPDATED", "PLAYER_ENTERING_WORLD" }) do
 		if on then K.Events.Register(OWNER, event, Watch) else K.Events.Unregister(OWNER, event) end
 	end
-	if not on then queue = {} end
+	if not (ns.running and queue.owner and ns.Get(queue.owner)) then queue = {} end
 	if window and not (ns.running and ns.Get("wayPaste")) then window:Hide() end
 	Watch()
 end

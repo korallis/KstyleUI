@@ -122,7 +122,8 @@ function ns.Preview(parent)
 		items[#items + 1] = { self.stats, left - 2 * GAP - tw / 2, top - th / 2, tw, th }
 		left, bottom = left - 2 * GAP - tw, math.min(bottom, top - th)
 		local raid = self.raid
-		local corner = ns.ArrangeRaidTools(raid.panel, raid.buttons, ns.Get("raidToolsLayout"), ns.Get("raidToolsGrow"), raid.star)
+		ns.ArrangeRaidTools(raid.panel, raid.buttons, ns.Get("raidToolsLayout"))
+		local corner = ns.AnchorRaidTools(raid.panel, ns.Get("raidToolsGrow"), raid.star)
 		raid.star:ClearAllPoints()
 		Widgets.Point(raid.star, corner, raid.inner, corner)
 		raid.panel:SetAlpha(ns.Get("raidToolsCollapsed") and OFF or 1)

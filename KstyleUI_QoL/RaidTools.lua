@@ -1,4 +1,4 @@
--- RaidTools.lua: the raid tools, a Layout element: a star marker button that opens a glass panel of ready check, role check, a ten-second pull timer and the eight target markers with Clear, in a row or a column, opening down or up and right or left from the button. It shows by the Show raid tools rule (in a raid only for the leader or an assistant, the only players its buttons work for), starts collapsed when asked, opens on a ready check when asked, and the Toggle raid tools binding clicks it. The actions are the calls Blizzard's own raid manager makes and are refused in combat, where the game restricts them; the frame is not secure, so it shows and hides in combat too.
+-- RaidTools.lua: the raid tools, a Layout element: a star marker button that opens a glass panel of ready check, role check, a ten-second pull timer and the eight target markers with Clear, in a row or a column, opening down or up and right or left from the button, the other way on an axis where the chosen way would leave the screen. It shows by the Show raid tools rule (in a raid only for the leader or an assistant, the only players its buttons work for; an unknown raid answer hides it), starts collapsed when asked, opens on a ready check when asked, and the Toggle raid tools binding clicks it. The actions are the calls Blizzard's own raid manager makes, enabled as it enables them (ready check, role check and pull timer for the leader or an assistant in a group, the role check not in a finder group or a battleground, the markers for anyone the tools show to), repainted only when that or combat changes, and refused in combat, where the game restricts them; the frame is not secure, so it shows and hides in combat too.
 local _, ns = ...
 
 local K, L = ns.K, ns.L
@@ -9,7 +9,6 @@ local MARKS, COUNT, PULL = "Interface\\TargetingFrame\\UI-RaidTargetingIcons", 8
 local GROW = { downright = { "TOPLEFT", "BOTTOMLEFT", -1 }, downleft = { "TOPRIGHT", "BOTTOMRIGHT", -1 }, upright = { "BOTTOMLEFT", "TOPLEFT", 1 }, upleft = { "BOTTOMRIGHT", "TOPRIGHT", 1 } }
 local EVENTS = { "GROUP_ROSTER_UPDATE", "PARTY_LEADER_CHANGED", "PLAYER_ENTERING_WORLD", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "READY_CHECK" }
 
-BINDING_HEADER_KSTYLEUI_QOL = L["KstyleUI quality of life"]
 _G["BINDING_NAME_CLICK KstyleUI_RaidTools:LeftButton"] = L["Toggle raid tools"]
 
 local holder
@@ -36,11 +35,12 @@ end
 function ns.RaidToolsWanted()
 	local mode = ns.running and ns.Get("raidTools") or "never"
 	if mode == "never" then return false end
-	if ns.Ask(IsInRaid) == true then return ns.Ask(UnitIsGroupLeader, "player") == true or ns.Ask(UnitIsGroupAssistant, "player") == true end
-	return mode == "group" and ns.Ask(IsInGroup) == true
+	local raid = ns.Ask(IsInRaid)
+	if raid == true then return ns.Ask(UnitIsGroupLeader, "player") == true or ns.Ask(UnitIsGroupAssistant, "player") == true end
+	return raid == false and mode == "group" and ns.Ask(IsInGroup) == true
 end
 
-function ns.ArrangeRaidTools(panel, buttons, layout, grow, anchor)
+function ns.ArrangeRaidTools(panel, buttons, layout)
 	local gap, pad = Tokens.Size("gapSmall"), panel.chrome:Inset("gapMedium")
 	local widest = 0
 	for _, button in ipairs(buttons) do
@@ -62,17 +62,17 @@ function ns.ArrangeRaidTools(panel, buttons, layout, grow, anchor)
 		if layout == "row" then x = x + bw + gap else y = y + bh + gap end
 	end
 	Widgets.Size(panel, w + 2 * pad, h + 2 * pad)
+end
+
+function ns.AnchorRaidTools(panel, grow, anchor)
 	local spot = GROW[grow]
-	if anchor then
-		panel:ClearAllPoints()
-		Widgets.Point(panel, spot[1], anchor, spot[2], 0, spot[3] * gap)
-	end
+	panel:ClearAllPoints()
+	Widgets.Point(panel, spot[1], anchor, spot[2], 0, spot[3] * Tokens.Size("gapSmall"))
 	return spot[1]
 end
 
 function ns.RaidToolsStar(parent, name, onClick)
-	local star = Widgets.IconButton(parent, { name = name, crop = false, tooltip = L["Raid tools"], onClick = onClick })
-	star:SetIcon(MARKS)
+	local star = Widgets.IconButton(parent, { name = name, crop = false, icon = MARKS, tooltip = L["Raid tools"], onClick = onClick })
 	star.icon:SetSpriteSheetCell(1, 4, 4)
 	return star
 end
@@ -81,8 +81,7 @@ function ns.RaidToolButtons(parent)
 	local buttons = {}
 	for _, action in ipairs(ACTIONS) do buttons[#buttons + 1] = Widgets.Button(parent, { text = action[1], onClick = action[2] }) end
 	for i = 1, COUNT do
-		local button = Widgets.IconButton(parent, { crop = false, onClick = function() Mark(i) end })
-		button:SetIcon(MARKS)
+		local button = Widgets.IconButton(parent, { crop = false, icon = MARKS, onClick = function() Mark(i) end })
 		button.icon:SetSpriteSheetCell(i, 4, 4)
 		buttons[#buttons + 1] = button
 	end
@@ -92,8 +91,33 @@ end
 
 local function Paint(event)
 	local free = event ~= "PLAYER_REGEN_DISABLED" and ns.Ask(InCombatLockdown) == false
-	for _, button in ipairs(holder.buttons) do button:SetEnabled(free) end
+	local lead = free and ns.Ask(IsInGroup) == true and (ns.Ask(UnitIsGroupLeader, "player") == true or ns.Ask(UnitIsGroupAssistant, "player") == true)
+	local poll = lead and ns.Ask(HasLFGRestrictions) == false and ns.Ask(UnitInBattleground, "player") == nil
+	local state = (free and 1 or 0) + (lead and 2 or 0) + (poll and 4 or 0)
+	if state ~= holder.state then
+		holder.state = state
+		for i, button in ipairs(holder.buttons) do
+			if i == 2 then button:SetEnabled(poll) elseif i <= 3 then button:SetEnabled(lead) else button:SetEnabled(free) end
+		end
+	end
 	holder.panel:SetShown(open)
+end
+
+local function Aim()
+	local grow, root, panel, gap = ns.Get("raidToolsGrow"), K.Scale.Root(), holder.panel, Tokens.Size("gapSmall")
+	local k, left, bottom, right, top = holder:GetEffectiveScale() / root:GetEffectiveScale(), holder:GetLeft(), holder:GetBottom(), holder:GetRight(), holder:GetTop()
+	if left and bottom and right and top then
+		local w, h = panel:GetWidth(), panel:GetHeight()
+		if grow:find("^down") and (bottom - gap - h) * k < root:GetBottom() then grow = "up" .. grow:sub(5)
+		elseif grow:find("^up") and (top + gap + h) * k > root:GetTop() then grow = "down" .. grow:sub(3) end
+		if grow:find("left$") and (right - w) * k < root:GetLeft() then grow = grow:sub(1, -5) .. "right"
+		elseif grow:find("right$") and (left + w) * k > root:GetRight() then grow = grow:sub(1, -6) .. "left" end
+	end
+	ns.AnchorRaidTools(panel, grow, holder)
+end
+
+local function Moved(_, key)
+	if key == KEY and holder then Aim() end
 end
 
 function ns.ToggleRaidTools()
@@ -109,7 +133,8 @@ local function Build()
 	local restyle = holder.Restyle
 	holder.Restyle = function(self)
 		restyle(self)
-		ns.ArrangeRaidTools(self.panel, self.buttons, ns.Get("raidToolsLayout"), ns.Get("raidToolsGrow"), self)
+		ns.ArrangeRaidTools(self.panel, self.buttons, ns.Get("raidToolsLayout"))
+		Aim()
 	end
 	holder:Hide()
 	Widgets.Place(holder, KEY, { anchor = "TOPLEFT", x = 16, y = -320 }, { label = L["Raid tools"], module = ns.MODULE, scalable = true })
@@ -130,14 +155,13 @@ local function Sync()
 	for _, event in ipairs(EVENTS) do
 		if on then K.Events.Register(OWNER, event, Refresh) else K.Events.Unregister(OWNER, event) end
 	end
+	if on then K.Callbacks.Register("LayoutChanged", OWNER, Moved) else K.Callbacks.Unregister("LayoutChanged", OWNER) end
 	if on and not holder then Build() end
 	if holder then
 		holder:Restyle()
 		Refresh()
 	end
 end
-
-function ns.RaidToolsFrame() return holder end
 
 ns.AddPart({
 	name = "raidtools",

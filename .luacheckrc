@@ -105,7 +105,7 @@ module_globals("KstyleUI_Meters", {})
 
 module_globals("KstyleUI_Skins", { "KstyleUI_QuestCard" })
 
-module_globals("KstyleUI_QoL", { "SlashCmdList", "SLASH_KSTYLEQOLWAY1", "SLASH_KSTYLEQOLPASTE1", "SLASH_KSTYLEQOLCD1", "BINDING_HEADER_KSTYLEUI_QOL", "KstyleUI_RaidTools" })
+module_globals("KstyleUI_QoL", { "SlashCmdList", "SLASH_KSTYLEQOLWAY1", "SLASH_KSTYLEQOLPASTE1", "SLASH_KSTYLEQOLCD1", "KstyleUI_RaidTools" })
 
 
 module_globals("KstyleUI_Routes", { "KstyleUI_RouteData" })
