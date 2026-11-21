@@ -73,10 +73,8 @@ do
 	for _, item in ipairs(ns.Model.Search({ about }, K.L["CPU readout"])) do
 		Check(not item.label:find("v0.", 1, true), "CPU readout stays under Tools, not " .. item.label)
 	end
-	KstyleUI = { L = setmetatable({}, { __index = function(_, key) return key end }) }
-	local english = {}
-	assert(loadfile("KstyleUI_Options/Notes.lua"))("KstyleUI_Options", english)
-	KstyleUI = nil
+	local english, notes = {}, assert(loadfile("KstyleUI_Options/Notes.lua"))
+	setfenv(notes, { KstyleUI = { L = setmetatable({}, { __index = function(_, key) return key end }) } })("KstyleUI_Options", english)
 	Check(not O.Find(about.Items(), function(item) return item.label == english.NOTES[1][2][1] end), "About shows the highlights in the player's language")
 end
 
