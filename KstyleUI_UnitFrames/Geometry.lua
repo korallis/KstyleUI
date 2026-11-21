@@ -430,7 +430,7 @@ end
 
 local function PillRow(out, s, width, height, scale)
 	local powerH = s.power and min(s.powerHeight or 0, ROW.power) or 0
-	local pill = min(HealthH(s, ROW.pill), (s.healthHeight or 0) > 0 and height or floor(height / 3))
+	local pill = HealthH(s, min(ROW.pill, floor(height / 3)))
 	local bottom = height
 	if powerH > 0 then
 		out.power = Rect(0, height - powerH, width, powerH)

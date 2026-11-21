@@ -486,7 +486,7 @@ end
 
 function Unit.Cost(view, spellID)
 	local cost = view.s.powerCost and view.s.power and CostOf(Costs(spellID), BarPower(view))
-	if cost == nil or not IsSecret(cost) and (type(cost) ~= "number" or cost <= 0) then
+	if not IsSecret(cost) and (type(cost) ~= "number" or cost <= 0) then
 		Hide(view.costBar)
 		return
 	end
