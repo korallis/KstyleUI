@@ -1226,14 +1226,14 @@ local function KindRows(schema, kind)
 	local function shields(s) return s.healPrediction ~= false and s.absorbs ~= false end
 	local function eaten(s) return s.healPrediction ~= false and s.healAbsorbs == true end
 	for _, spec in ipairs({
-		{ "dropdown", "incomingTexture", L["Incoming heal texture"], function(s) return s.healPrediction ~= false end },
+		{ "texture", "incomingTexture", L["Incoming heal texture"], function(s) return s.healPrediction ~= false end },
 		{ "dropdown", "absorbPlacement", L["Absorb placement"], shields, L["After the health fill, or from the bar's end or start, so a shield on full health shows."], CHOICES.placement },
-		{ "dropdown", "absorbTexture", L["Absorb texture"], shields },
+		{ "texture", "absorbTexture", L["Absorb texture"], shields },
 		{ "toggle", "absorbGlow", L["Overshield glow"], nil, L["Lights the bar's end while shields are larger than the missing health."] },
 		{ "dropdown", "absorbBar", L["Absorb bar"], nil, L["A thin bar along the health bar's top or bottom that fills with the unit's shields."], CHOICES.absorbBar },
 		{ "slider", "absorbBarHeight", L["Absorb bar height"], function(s) return s.absorbBar ~= "" end, L["The absorb bar's height in units."] },
 		{ "dropdown", "healAbsorbPlacement", L["Heal absorb placement"], eaten, L["Back from the health fill's end, or from the bar's end or start."], CHOICES.placement },
-		{ "dropdown", "healAbsorbTexture", L["Heal absorb texture"], eaten },
+		{ "texture", "healAbsorbTexture", L["Heal absorb texture"], eaten },
 		{ "toggle", "maxHealthLoss", L["Lost maximum health"], nil, L["Shortens the health fill by the maximum health lost to effects and marks the lost part."] },
 		{ "slider", "maxHealthAlpha", L["Lost maximum health opacity"], function(s) return s.maxHealthLoss == true end, L["How solid the lost maximum health mark looks."] },
 	}) do
