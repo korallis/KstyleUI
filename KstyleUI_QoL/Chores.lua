@@ -1,4 +1,4 @@
--- Chores.lua: small switches: no screenshot notice, telling the group about an instance reset, the combat log inside chosen instances, skipping movies, hiding loot or achievement toasts, closing the loot rolls window after a delay, a Train all button, opening containers and unwrapping new mounts and toys; each touches the game only while its switch is on and undoes only what it did. A hook on LoggingCombat hands the log back to the player once anyone else starts or stops it; a movie skip waits only while Shift was up at its start and no skip setting changed.
+-- Chores.lua: small switches: no screenshot notice, telling the group about an instance reset, the combat log inside chosen instances, skipping movies, hiding loot or achievement toasts, closing the loot rolls window after a delay, a Train all button, opening containers and unwrapping new mounts and toys; each touches the game only while its switch is on and undoes only what it did. A hook on LoggingCombat hands the log back to the player once anyone else starts or stops it, and the log's grace keeps its first deadline; a movie skip waits only while Shift was up at its start and no skip setting changed, and without Skip at once only Escape answers the movie's prompt. Train all leaves new professions and pet training to the trainer, and containers open only when the game says they are unlocked and, while warbound ones are left, not warbound.
 local _, ns = ...
 
 local K, L = ns.K, ns.L
@@ -11,7 +11,7 @@ local TOASTS = { loot = { "SHOW_LOOT_TOAST", "SHOW_LOOT_TOAST_UPGRADE", "SHOW_LO
 local HOLD = { "MerchantFrame", "MailFrame", "BankFrame", "TradeFrame", "AuctionHouseFrame", "GuildBankFrame", "LootFrame" }
 
 local muted, logging, hooked = false, false, false
-local movieToken, rollsToken, logToken = 0, 0, 0
+local movieToken, rollsToken, logToken, waiting = 0, 0, 0
 local LOG_GRACE = 30
 local toasted, stuck, hooks = {}, {}, {}
 local trainButton, opened
@@ -51,20 +51,19 @@ local function Check(now)
 		logging = true
 		if ns.Get("autoLogNotice") then K.Print(L["Combat log started."]) end
 	elseif not want and logging then
-		logToken = logToken + 1
-		if not now and ns.running and ns.Get("autoLog") and ns.Get("autoLogDelay") and C_Timer and type(C_Timer.After) == "function" then
-			local token = logToken
-			C_Timer.After(LOG_GRACE, function() if token == logToken then Check(true) end end)
+		if now ~= true and ns.running and ns.Get("autoLog") and ns.Get("autoLogDelay") and C_Timer and type(C_Timer.After) == "function" then
+			if waiting ~= logToken then
+				waiting = logToken
+				local token = logToken
+				C_Timer.After(LOG_GRACE, function() if token == logToken then Check(true) end end)
+			end
 			return
 		end
+		logToken = logToken + 1
 		LoggingCombat(false)
 		logging = false
 		if ns.Get("autoLogNotice") then K.Print(L["Combat log stopped."]) end
 	end
-end
-
-local function Log()
-	Check(false)
 end
 
 local function Toasts()
@@ -93,10 +92,10 @@ local function Rolls(frame)
 	end)
 end
 
-local function Hook(name, frame, fn)
+local function Hook(name, frame, fn, script)
 	if not hooks[name] and type(frame) == "table" and type(frame.HookScript) == "function" then
 		hooks[name] = true
-		frame:HookScript("OnShow", fn)
+		frame:HookScript(script or "OnShow", fn)
 	end
 end
 
@@ -106,13 +105,19 @@ local function Confirm(movie)
 	elseif not movie and type(CinematicFrame_CancelCinematic) == "function" then CinematicFrame_CancelCinematic() end
 end
 
+local function Trains()
+	local kinds = type(Enum) == "table" and Enum.TrainerType
+	local kind = type(C_Trainer) == "table" and type(kinds) == "table" and ns.Ask(C_Trainer.GetTrainerType)
+	return type(kind) == "number" and kind ~= kinds.Pet
+end
+
 local function Train()
-	if ns.Ask(InCombatLockdown) ~= false or type(GetTrainerServiceInfo) ~= "function" or type(BuyTrainerService) ~= "function" then return end
+	if not Trains() or ns.Ask(InCombatLockdown) ~= false or type(GetTrainerServiceInfo) ~= "function" or type(GetTrainerServiceCost) ~= "function" or type(BuyTrainerService) ~= "function" then return end
 	local money = ns.Number(ns.Ask(GetMoney)) or 0
 	for i = ns.Number(ns.Ask(GetNumTrainerServices)) or 0, 1, -1 do
 		local _, kind = GetTrainerServiceInfo(i)
-		local cost = ns.Number(ns.Ask(GetTrainerServiceCost, i))
-		if not ns.IsSecret(kind) and kind == "available" and cost and cost <= money then
+		local cost, profession = GetTrainerServiceCost(i)
+		if not ns.IsSecret(kind) and kind == "available" and ns.Number(cost) and cost <= money and not (ns.IsSecret(profession) or profession) then
 			BuyTrainerService(i)
 			money = money - cost
 		end
@@ -125,12 +130,11 @@ local function Trainer()
 		trainButton = Widgets.Button(parent, { text = L["Train all"], onClick = Train })
 		Widgets.Point(trainButton, "RIGHT", anchor, "LEFT", -Tokens.Size("gapSmall"), 0)
 	end
-	if trainButton then trainButton:SetShown(on) end
+	if trainButton then trainButton:SetShown(on and Trains()) end
 end
 
 local function Warbound(id)
-	local items = C_Item
-	return ns.Get("openSkipWarbound") and type(items) == "table" and type(items.IsItemBindToAccount) == "function" and ns.True(items.IsItemBindToAccount(id))
+	return ns.Get("openSkipWarbound") and (type(C_Item) ~= "table" or ns.Ask(C_Item.IsItemBindToAccount, id) ~= false)
 end
 
 local function Open()
@@ -150,7 +154,7 @@ local function Open()
 		for slot = 1, ns.Number(bags.GetContainerNumSlots(bag)) or 0 do
 			local info = bags.GetContainerItemInfo(bag, slot)
 			local id = type(info) == "table" and ns.Number(info.itemID)
-			if id and not stuck[id] and ns.True(info.hasLoot) and not ns.True(info.isLocked) and not Warbound(id) then
+			if id and not stuck[id] and ns.True(info.hasLoot) and not ns.IsSecret(info.isLocked) and info.isLocked == false and not Warbound(id) then
 				opened = { bag, slot, id, ns.Number(info.stackCount) }
 				bags.UseContainerItem(bag, slot)
 				return
@@ -160,7 +164,7 @@ local function Open()
 end
 
 local function Unwrap(event, id)
-	local api = event == "NEW_MOUNT_ADDED" and C_MountJournal or C_ToyBoxInfo
+	local api = _G[event == "NEW_MOUNT_ADDED" and "C_MountJournal" or "C_ToyBoxInfo"]
 	id = ns.Number(id)
 	if id and type(api) == "table" and type(api.ClearFanfare) == "function" then api.ClearFanfare(id) end
 end
@@ -178,11 +182,11 @@ end
 
 local EVENTS = {
 	{ "announceReset", { CHAT_MSG_SYSTEM = Reset } },
-	{ "autoLog", { PLAYER_ENTERING_WORLD = Log, ZONE_CHANGED_NEW_AREA = Log } },
+	{ "autoLog", { PLAYER_ENTERING_WORLD = Check, ZONE_CHANGED_NEW_AREA = Check } },
 	{ "skipCinematics", { PLAY_MOVIE = Movie } },
 	{ "trainAll", { TRAINER_SHOW = function() if C_Timer and type(C_Timer.After) == "function" then C_Timer.After(0, Trainer) else Trainer() end end } },
 	{ "autoOpen", { BAG_UPDATE_DELAYED = Open, LOOT_CLOSED = Open, MAIL_CLOSED = Open, MERCHANT_CLOSED = Open, BANKFRAME_CLOSED = Open, TRADE_CLOSED = Open,
-		AUCTION_HOUSE_CLOSED = Open, PLAYER_REGEN_ENABLED = Open } },
+		AUCTION_HOUSE_CLOSED = Open, GUILDBANKFRAME_CLOSED = Open, PLAYER_REGEN_ENABLED = Open } },
 	{ "autoUnwrap", { NEW_MOUNT_ADDED = Unwrap, NEW_TOY_ADDED = Unwrap } },
 }
 
@@ -194,12 +198,12 @@ local function Sync()
 		end
 	end
 	if muted or ns.Get("hideScreenshot") then Screenshot() end
-	if logging or ns.Get("autoLog") then Log() end
+	if logging or ns.Get("autoLog") then Check() end
 	Toasts()
 	if ns.running and ns.Get("rollsClose") > 0 then Hook("rolls", GroupLootHistoryFrame, Rolls) end
 	if ns.running and ns.Get("skipCinematics") and not ns.Get("skipAuto") then
 		Hook("cinematic", type(CinematicFrame) == "table" and CinematicFrame.closeDialog, function() Confirm(false) end)
-		Hook("movie", type(MovieFrame) == "table" and MovieFrame.CloseDialog, function() Confirm(true) end)
+		Hook("movie", MovieFrame, function(_, key) if ns.Ask(GetBindingFromClick, key) == "TOGGLEGAMEMENU" then Confirm(true) end end, "OnKeyUp")
 	end
 	Trainer()
 	if not (ns.running and ns.Get("autoOpen")) then stuck, opened = {}, nil else Open() end
@@ -214,7 +218,10 @@ ns.AddPart({
 	Stop = function() movieToken, rollsToken = movieToken + 1, rollsToken + 1; Sync() end,
 	Setting = function(key)
 		if key == nil or key == "skipCinematics" or key == "skipMode" or key == "skipDelay" or key == "skipAuto" then movieToken = movieToken + 1 end
-		if key == nil or key == "rollsClose" then rollsToken = rollsToken + 1 end
 		if key == nil or KEYS[key] then Sync() end
+		if key == nil or key == "rollsClose" then
+			local frame = GroupLootHistoryFrame
+			if hooks.rolls and ns.True(frame:IsShown()) then Rolls(frame) else rollsToken = rollsToken + 1 end
+		end
 	end,
 })

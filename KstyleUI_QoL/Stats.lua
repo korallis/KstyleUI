@@ -1,14 +1,24 @@
--- Stats.lua: character stats as text at the top left, a Layout element: the stats the player picks in their order, ratings as a percentage, the rating or both. Each value comes from one game call and goes straight to the font string, never compared, so a value the game makes secret in combat still shows; fonts and formats change on settings, values on the events that change stats.
+-- Stats.lua: character stats as text at the top left, a Layout element: the stats the player picks in their order, ratings as a percentage, the rating or both. Each value comes from one game call and goes straight to the font string, never compared, so a value the game makes secret in combat still shows, except spell power: the lowest of the magic schools, as the character sheet shows it, blank while any school is secret; ratings are read only when shown; fonts and formats change on settings, values on the events that change stats.
 local _, ns = ...
 
 local K, L = ns.K, ns.L
 local Widgets, Tokens = K.Widgets, K.Tokens
 
 local OWNER, KEY = "QoL.stats", "qol.stats"
-local WIDTH, GAP, SPELL_SCHOOL = 170, 2, 2
+local WIDTH, GAP = 170, 2
 local SHOWN = { crit = true, spellCrit = true, haste = true, spellPower = true, armour = true }
 local EVENTS = { "COMBAT_RATING_UPDATE", "SPELL_POWER_CHANGED", "PLAYER_DAMAGE_DONE_MODS", "PLAYER_EQUIPMENT_CHANGED", "PLAYER_ENTERING_WORLD" }
 local UNIT_EVENTS = { "UNIT_STATS", "UNIT_RESISTANCES", "UNIT_ATTACK_SPEED", "UNIT_AURA" }
+
+local function SpellPower()
+	local low
+	for school = 2, ns.Number(MAX_SPELL_SCHOOLS) or 7 do
+		local value = ns.Number(GetSpellBonusDamage(school))
+		if not value then return nil end
+		low = math.min(low or value, value)
+	end
+	return low
+end
 
 local STATS = {
 	{ "strength", L["Strength"], L["Str"], "UnitStat", { "player", 1 }, 2 },
@@ -19,7 +29,7 @@ local STATS = {
 	{ "crit", L["Critical strike"], L["Crit"], "GetCritChance", {}, 1, "CR_CRIT_MELEE" },
 	{ "spellCrit", L["Spell critical strike"], L["Spell crit"], "GetSpellCritChance", {}, 1, "CR_CRIT_SPELL" },
 	{ "haste", L["Haste"], L["Haste"], "GetMeleeHaste", {}, 1, "CR_HASTE_MELEE" },
-	{ "spellPower", L["Spell power"], L["SP"], "GetSpellBonusDamage", { SPELL_SCHOOL }, 1 },
+	{ "spellPower", L["Spell power"], L["SP"], "GetSpellBonusDamage", {}, 1, read = SpellPower },
 	{ "healing", L["Healing"], L["Heal"], "GetSpellBonusHealing", {}, 1 },
 	{ "dodge", L["Dodge"], L["Dodge"], "GetDodgeChance", {}, 1, "CR_DODGE" },
 	{ "parry", L["Parry"], L["Parry"], "GetParryChance", {}, 1, "CR_PARRY" },
@@ -56,11 +66,10 @@ function ns.StatList()
 	return out
 end
 
-function ns.ReadStat(stat)
-	local fn, rating = _G[stat[4]], stat[7] and _G[stat[7]]
+function ns.ReadStat(stat, which)
+	local fn = stat.read or _G[stat[4]]
 	if type(fn) ~= "function" then return nil end
-	local value = select(stat[6], fn(unpack(stat[5])))
-	return value, type(rating) == "number" and type(GetCombatRating) == "function" and GetCombatRating(rating) or nil
+	return select(stat[6], fn(unpack(stat[5]))), which ~= "percent" and stat[7] and GetCombatRating(_G[stat[7]])
 end
 
 local function Hex(name)
@@ -100,7 +109,7 @@ end
 function ns.FillStats(frame)
 	for i = 1, frame.count or 0 do
 		local text = frame.lines[i]
-		local amount, rating = frame.read(text.stat)
+		local amount, rating = frame.read(text.stat, text.which)
 		if text.which == "rating" then amount = rating end
 		if not ns.IsSecret(amount) and amount == nil or text.which == "both" and not ns.IsSecret(rating) and rating == nil then
 			text:SetText("")
@@ -140,9 +149,7 @@ local function Sync()
 	if on then holder:Restyle() end
 end
 
-function ns.StatsFrame()
-	return holder
-end
+function ns.StatsFrame() return holder end
 
 ns.AddPart({
 	name = "stats",

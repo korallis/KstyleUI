@@ -87,7 +87,10 @@ local function Trail(self, x, y)
 	for i, dot in ipairs(self.trail) do
 		local away = xs[i + 1] ~= x or ys[i + 1] ~= y
 		settled = settled and not away
-		dot:SetShown(away)
+		if away ~= dot.away then
+			dot.away = away
+			dot:SetShown(away)
+		end
 		if away then
 			dot:ClearAllPoints()
 			dot:SetPoint("CENTER", UIParent, "BOTTOMLEFT", xs[i + 1], ys[i + 1])
@@ -110,23 +113,21 @@ local function Follow(self)
 	if self.trailOn then Trail(self, x / scale, y / scale) end
 end
 
-local function Looking()
-	return next(looking) ~= nil
-end
-
 local function Visible()
 	if cross then cross:SetShown(ns.running and ns.Get("crosshair") ~= "none" and Shown(ns.Get("crosshairShow"))) end
 	if cast then cast:SetShown(ns.running and ns.Get("castRing") and casting) end
 	if ring then
-		local shown = ns.running and ns.Get("cursorRing") and Shown(ns.Get("cursorShow")) and (not ns.Get("cursorHidden") or Looking())
+		local shown = ns.running and ns.Get("cursorRing") and Shown(ns.Get("cursorShow")) and (not ns.Get("cursorHidden") or next(looking) ~= nil)
 		local follow = shown or cast ~= nil and cast:IsShown() and ns.Get("castAttach")
+		local trail = (shown and ns.Get("cursorTrail")) == true
 		ring.texture:SetShown(shown)
 		ring.dot:SetShown(shown and ns.Get("cursorDot"))
-		ring.trailOn = shown and ns.Get("cursorTrail")
-		ring.x, ring.settling = nil, false
-		for i, dot in ipairs(ring.trail) do
-			dot:Hide()
-			ring.xs[i], ring.ys[i] = nil, nil
+		if trail ~= ring.trailOn or not follow then
+			ring.trailOn, ring.x, ring.settling = trail, nil, false
+			for i, dot in ipairs(ring.trail) do
+				if dot.away then dot:Hide() end
+				dot.away, ring.xs[i], ring.ys[i] = false, nil, nil
+			end
 		end
 		ring:SetShown(follow)
 		ring:SetScript("OnUpdate", follow and Follow or nil)
@@ -225,7 +226,7 @@ local function Sync()
 	for event in pairs(LOOK_EVENTS) do
 		if look then K.Events.Register(OWNER, event, Look) else K.Events.Unregister(OWNER, event) end
 	end
-	if not look then looking = {} end
+	if not look then looking.look, looking.turn = nil, nil end
 	local casts = ns.running and ns.Get("castRing")
 	for _, event in ipairs(CAST_EVENTS) do
 		if casts then K.Events.RegisterUnit(OWNER, event, Cast, "player") else K.Events.Unregister(OWNER, event) end

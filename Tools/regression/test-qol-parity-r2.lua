@@ -407,20 +407,20 @@ do
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(#Q.Calls(env, "UseContainerItem") == 2, "nothing opens at a merchant")
 	env.MerchantFrame:Hide()
-	env._bags[0][2] = { itemID = 8, hasLoot = true, stackCount = 1 }
+	env._bags[0][2] = { itemID = 8, hasLoot = true, stackCount = 1, isLocked = false }
 	env.SetCombat(true)
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(#Q.Calls(env, "UseContainerItem") == 2, "nothing opens in combat")
 	env.SetCombat(false)
 	assert(#Q.Calls(env, "UseContainerItem") == 3, "leaving combat opens it")
 	env.C_Item.IsItemBindToAccount = function(id) return id == 11 end
-	env._bags[0][2] = { itemID = 11, hasLoot = true, stackCount = 1 }
+	env._bags[0][2] = { itemID = 11, hasLoot = true, stackCount = 1, isLocked = false }
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(#Q.Calls(env, "UseContainerItem") == 3, "a warbound container is left for alts")
 	Q.Write(env, K, "openSkipWarbound", false)
 	assert(#Q.Calls(env, "UseContainerItem") == 4, "off opens it too")
 	Q.Write(env, K, "autoOpen", false)
-	env._bags[0][3] = { itemID = 10, hasLoot = true, stackCount = 1 }
+	env._bags[0][3] = { itemID = 10, hasLoot = true, stackCount = 1, isLocked = false }
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(#Q.Calls(env, "UseContainerItem") == 4, "off opens nothing")
 

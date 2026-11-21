@@ -1,4 +1,4 @@
--- Preview.lua: the QoL page's live preview, a miniature of the screen centre: the alert lines, the crosshair and the cursor ring where the screen puts them (the entering, leaving and group death samples, of which the screen shows one at a time, stack down from the flash line's spot and everything under that line moves down with them, and the ring sits beside the crosshair with its dot and a trail, the cast circle part filled around the ring, or on the crosshair when it is off the pointer), and the character stats with sample values at the left, painted by the same functions the screen uses and dimmed while their switch is off.
+-- Preview.lua: the QoL page's live preview, a miniature of the screen centre: the alert lines, the crosshair and the cursor ring where the screen puts them (the entering, leaving and group death samples, of which the screen shows one at a time, stack down from the flash line's spot and everything under that line moves down with them, and the ring sits beside the crosshair with its dot and a trail, the cast circle part filled around the ring, or at the screen centre when it is off the pointer), and the character stats with sample values at the left, painted by the same functions the screen uses and dimmed while their switch is off.
 local _, ns = ...
 
 local K, L = ns.K, ns.L
@@ -61,7 +61,8 @@ function ns.Preview(parent)
 		local rx = cx + cw / 2 + 2 * GAP + sw / 2
 		items[6] = { self.cross, cx, cy, cw, ch }
 		items[7] = { self.ring, rx, cy, rw, rw }
-		items[8] = { self.cast, ns.Get("castAttach") and rx or cx, cy, sw, sw }
+		local attach = ns.Get("castAttach")
+		items[8] = { self.cast, attach and rx or 0, attach and cy or 0, sw, sw }
 		items[9] = { self.dot, rx, cy, self.dot:GetWidth(), self.dot:GetHeight() }
 		for i, dot in ipairs(self.trail) do
 			ns.PaintDot(dot, (1 - i / (TRAIL + 1)) * (Dim(ring and ns.Get("cursorTrail")) or 1))
@@ -73,19 +74,16 @@ function ns.Preview(parent)
 			item[3] = item[3] - (i <= 3 and i - 1 or item[3] < flash - h and 2 or 0) * step
 		end
 		local left, right, top, bottom = math.huge, -math.huge, -math.huge, math.huge
-		local function bounds()
-			for _, item in ipairs(items) do
-				left, right = math.min(left, item[2] - item[4] / 2), math.max(right, item[2] + item[4] / 2)
-				bottom, top = math.min(bottom, item[3] - item[5] / 2), math.max(top, item[3] + item[5] / 2)
-			end
+		for _, item in ipairs(items) do
+			left, right = math.min(left, item[2] - item[4] / 2), math.max(right, item[2] + item[4] / 2)
+			bottom, top = math.min(bottom, item[3] - item[5] / 2), math.max(top, item[3] + item[5] / 2)
 		end
-		bounds()
 		ns.StyleStats(self.stats, Sample)
 		ns.FillStats(self.stats)
 		self.stats:SetAlpha(ns.Get("stats") and 1 or OFF)
 		local tw, th = self.stats:GetSize()
 		items[#items + 1] = { self.stats, left - 2 * GAP - tw / 2, top - th / 2, tw, th }
-		bounds()
+		left, bottom = left - 2 * GAP - tw, math.min(bottom, top - th)
 		Widgets.Size(self, right - left + 2 * GAP, top - bottom)
 		for _, item in ipairs(items) do
 			item[1]:ClearAllPoints()

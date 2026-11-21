@@ -178,7 +178,7 @@ function ns.Schema()
 			{ value = "cinematics", label = L["Cinematics"] }, { value = "movies", label = L["Movies"] }, { value = "both", label = L["Both"] },
 		}, disableWhen = skipOff },
 		{ type = "toggle", key = "skipAuto", label = L["Skip at once"], help = L["Skip as it starts. Off, Escape skips without asking."], disableWhen = skipOff },
-		{ type = "slider", key = "skipDelay", label = L["Skip after"], help = L["Seconds before skipping a cancellable cinematic; zero skips now. Hold Shift to watch."], min = 0, max = 30, step = 1, disableWhen = function(s) return not (s.enabled and s.skipCinematics) end },
+		{ type = "slider", key = "skipDelay", label = L["Skip after"], help = L["Seconds before skipping a cancellable cinematic; zero skips now. Hold Shift to watch."], min = 0, max = 30, step = 1, disableWhen = skipOff },
 		{ type = "toggle", key = "maxCamera", label = L["Max camera distance"], help = L["Let the camera zoom out as far as the game allows."], disableWhen = isOff },
 		{ type = "header", label = L["On-screen alerts"] },
 		slider("alertSize", L["Alert text size"], L["The size of the combat, talent, death and durability alerts."], 1, isOff),
