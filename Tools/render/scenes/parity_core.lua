@@ -52,7 +52,7 @@ return Common.Run(function()
 			plate:GetScript("OnClick")(plate, "MiddleButton")
 		end
 	else
-		local pages = { layout = "Elements", links = "Elements", profiles = "Profiles", import = "Profiles", sharing = "Profiles", appearance = "General", window = "General", search = "General", movers = "Elements", gametext = "General", about = "About",
+		local pages = { layout = "Elements", links = "Elements", profiles = "Profiles", import = "Profiles", sharing = "Profiles", appearance = "General", window = "General", search = "General", movers = "Elements", gametext = "General", about = "About", notes = "About",
 			colours = "General", points = "Elements", extras = "Profiles", hotkeys = "Profiles", cpu = "About", conveniences = "General" }
 		assert(K.Options.Open(assert(pages[view], "unknown core page")))
 		assert(layout.Update("Options.Window", { width = 1240, height = 860, scale = 1 }))
@@ -83,7 +83,7 @@ return Common.Run(function()
 		env.RunTimers()
 		Gallery.Ticks(O.W, env, 30)
 		env.RunTimers()
-		local label = os.getenv("RENDER_CORE_KEY") or ({ profiles = "Active profile", sharing = "Share scope", appearance = "Text", window = "Window size and opacity", search = "Window conveniences", movers = "Mover controls", links = "Target frame", gametext = "Game text", about = "Tools",
+		local label = os.getenv("RENDER_CORE_KEY") or ({ profiles = "Active profile", sharing = "Share scope", appearance = "Text", window = "Window size and opacity", search = "Window conveniences", movers = "Mover controls", links = "Target frame", gametext = "Game text", about = "Tools", notes = "What's new",
 			colours = "Class and power colours", points = "Point on this element", extras = "Include specialization assignments", hotkeys = "Profile hotkeys", cpu = "CPU readout", conveniences = "Remember search picks" })[view]
 		if label then
 			local found

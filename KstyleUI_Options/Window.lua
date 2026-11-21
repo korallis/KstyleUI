@@ -553,6 +553,10 @@ local function Build()
 end
 
 function Window.Show(page)
+	if page == false then
+		if win and win:IsShown() then win:Close() end
+		return
+	end
 	if type(page) == "table" then
 		Window.Show(page.page)
 		if not Window.Jump(page) then

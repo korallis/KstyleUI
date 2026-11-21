@@ -1151,6 +1151,10 @@ local function AboutItems()
 				editBox = { text = "https://github.com/korallis/KstyleUI/releases" }, buttons = { { label = L["Close"], primary = true } } }))
 		end } },
 	})
+	for _, note in ipairs(ns.NOTES) do
+		add({ kind = "header", level = 2, label = note[1] })
+		for _, line in ipairs(note[2]) do add({ kind = "note", label = line }) end
+	end
 	local metrics = { { value = "", label = L["Off"] }, { value = 0, label = L["Session average"] }, { value = 1, label = L["Recent average"] },
 		{ value = 2, label = L["Encounter average"] }, { value = 3, label = L["Last frame"] } }
 	add({ kind = "dropdown", label = L["CPU readout"], help = L["Shows how long KstyleUI takes each frame, refreshed while this page is open."], options = metrics,

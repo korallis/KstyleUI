@@ -1,4 +1,4 @@
--- Profiles.lua: scoped sharing, import previews, named recovery profiles before destructive profile operations, account sharing, presets and profile hotkeys.
+-- Profiles.lua: scoped sharing, import previews, named recovery profiles before destructive profile operations, account sharing with account choices, presets, profile hotkeys and KstyleUI.API, the profile calls WagoUI's LibAddonProfiles makes.
 local _, K = ...
 local Store, Codec, L = K.Store, K.Codec, K.L
 local format = string.format
@@ -13,6 +13,7 @@ K.Options.Register("ProfileTools", function() return {
 } end)
 
 local Copy, Equal = K.Options.Copy, K.Options.Equal
+local SetAccount, HotkeyButton
 
 local function Selection(scope)
 	if type(scope) ~= "table" then return end
@@ -47,6 +48,7 @@ function Profiles.Restore()
 	local backup, characters = Store.Account().editModeBackup, Store.Account().restoreCharacters
 	if ok and characters and characters.profile == name then
 		for key, profile in pairs(characters.characters) do Store.Data().characters[key] = profile or nil end
+		if characters.account then SetAccount(Copy(characters.account)) end
 	end
 	if ok and backup and backup.profile == name then
 		local saved = Copy(backup)
@@ -270,14 +272,68 @@ function Store.Import(text, name, extras)
 	return ok, target
 end
 
+local PREFS = { gameFont = "boolean", gameTextScale = { 0.8, 1.5 }, combatFont = "boolean", nameFont = "boolean", combatTextScale = { 0.8, 1.5 },
+	optionsSearchPage = "boolean", optionsRailSections = "boolean", optionsSearchMemory = "boolean", optionsFold = "boolean", gameMenuOptions = "boolean",
+	gameMenuLayout = "boolean", moverOptions = "boolean", layoutGridLight = "boolean", layoutToolbarHover = "boolean", optionsCpuMetric = { 0, 3 } }
+
+local function AccountChoices()
+	local account, prefs = Store.Account(), {}
+	for key in pairs(PREFS) do prefs[key] = account[key] end
+	return { prefs = prefs, keys = Copy(account.profileKeys or {}), specs = Copy(account.specializationProfiles or {}) }
+end
+
+local function ApplyAccount()
+	for i in pairs(Store.Account().profileKeys or {}) do HotkeyButton(i) end
+	if K.Appearance and K.Appearance.ApplyGameText then K.Appearance.ApplyGameText() end
+	if K.OptionsEntry and K.OptionsEntry.GameMenu then K.OptionsEntry.GameMenu() end
+	K.Specialization.Check()
+end
+
+function SetAccount(choices)
+	local account = Store.Account()
+	for key in pairs(PREFS) do account[key] = choices.prefs[key] end
+	account.profileKeys = next(choices.keys) and choices.keys or nil
+	account.specializationProfiles = next(choices.specs) and choices.specs or nil
+	ApplyAccount()
+end
+
 function Profiles.ExportAccount()
-	local out = { profiles = {}, characters = Store.Characters() }
+	local out = AccountChoices()
+	out.profiles, out.characters = {}, Store.Characters()
 	for _, name in ipairs(Store.ListProfiles()) do
 		local text, why = Store.Export(name)
 		if not text then return nil, why end
 		out.profiles[name] = text
 	end
 	return "KSA1:" .. Codec.EncodeBase64(Codec.Serialize(out))
+end
+
+local function ValidKey(key)
+	return type(key) == "string" and #key <= 64 and not key:find("[%c|]")
+end
+
+local function ImportedChoices(data, names)
+	if type(data.prefs) ~= "table" or type(data.keys) ~= "table" or type(data.specs) ~= "table" then return end
+	local out = { prefs = {}, keys = {}, specs = {} }
+	for key, kind in pairs(PREFS) do
+		local value = data.prefs[key]
+		if type(kind) == "table" and type(value) == "number" and value >= kind[1] and value <= kind[2] or type(value) == kind then out.prefs[key] = value end
+	end
+	for i = 1, Profiles.HOTKEYS do out.keys[i] = names[data.keys[i] or ""] end
+	for character, config in pairs(data.specs) do
+		if ValidKey(character) and type(config) == "table" then
+			local mapped = { profiles = {}, layouts = {} }
+			if config.enabled == false then mapped.enabled = false end
+			for spec, name in pairs(type(config.profiles) == "table" and config.profiles or {}) do
+				if ValidKey(spec) then mapped.profiles[spec] = names[name] end
+			end
+			for spec, name in pairs(type(config.layouts) == "table" and config.layouts or {}) do
+				if ValidKey(spec) and Profiles.Layouts()[name] then mapped.layouts[spec] = name end
+			end
+			out.specs[character] = mapped
+		end
+	end
+	return out
 end
 
 function Profiles.ImportAccount(text)
@@ -295,7 +351,7 @@ function Profiles.ImportAccount(text)
 	if Store.Module("ProfileTools").backups then
 		local ok, backup = Profiles.Backup(L["Before import"])
 		if not ok then return false, backup end
-		Store.Account().restoreCharacters = { profile = backup, characters = before }
+		Store.Account().restoreCharacters = { profile = backup, characters = before, account = AccountChoices() }
 	end
 	local names, count = {}, 0
 	for name, payload in pairs(payloads) do
@@ -303,13 +359,20 @@ function Profiles.ImportAccount(text)
 	end
 	local characters, me = Store.Data().characters, Store.CharacterKey()
 	for key, name in pairs(data.characters or {}) do
-		if type(key) == "string" and #key <= 64 and not key:find("[%c|]") and names[name] then
+		if ValidKey(key) and names[name] then
 			if key ~= me then before[key] = characters[key] or false end
 			characters[key] = names[name]
 		end
 	end
 	local mine = names[(data.characters or {})[Store.CharacterKey() or ""] or ""]
 	if mine then Store.SetProfile(mine) end
+	local choices = ImportedChoices(data, names)
+	if choices then
+		local current = AccountChoices()
+		for character, config in pairs(choices.specs) do current.specs[character] = config end
+		choices.specs = current.specs
+		SetAccount(choices)
+	end
 	return true, count
 end
 
@@ -345,7 +408,7 @@ _G["BINDING_NAME_CLICK KstyleUI_Profile3:LeftButton"] = format(L["Switch to prof
 _G["BINDING_NAME_CLICK KstyleUI_Profile4:LeftButton"] = format(L["Switch to profile hotkey %d"], 4)
 _G["BINDING_NAME_CLICK KstyleUI_Profile5:LeftButton"] = format(L["Switch to profile hotkey %d"], 5)
 
-local function HotkeyButton(i)
+function HotkeyButton(i)
 	local name = "KstyleUI_Profile" .. i
 	if _G[name] or type(CreateFrame) ~= "function" then return end
 	CreateFrame("Button", name, UIParent):SetScript("OnClick", function()
@@ -370,6 +433,27 @@ end
 K.Events.Register("ProfileKeys", "PLAYER_LOGIN", function()
 	for i in pairs(Store.IsLoaded() and Store.Account().profileKeys or {}) do HotkeyButton(i) end
 end)
+
+local API = {}
+K.API = API
+function API:ExportProfile(key) return (Store.Export(key)) end
+function API:ImportProfile(text, key) return Store.Import(text, key) end
+function API:DecodeProfileString(text) return (Store.Decode(text)) end
+function API:GetProfileAssignments() return Store.Characters() end
+function API:GetCurrentProfileKey() return Store.ProfileName() end
+function API:OpenConfig() K.Options.Open("Profiles") end
+function API:CloseConfig()
+	local ok, _, loaded = pcall(C_AddOns and C_AddOns.IsAddOnLoaded, "KstyleUI_Options")
+	if ok and loaded == true then K.Options.Open(false) end
+end
+function API:GetProfileKeys()
+	local out = {}
+	for _, name in ipairs(Store.ListProfiles()) do out[name] = true end
+	return out
+end
+function API:SetProfile(key)
+	K.Combat.Queue(function() if Store.IsLoaded() and Store.Data().profiles[key] then Store.SetProfile(key) end end)
+end
 
 function Store.ResetProfile(name)
 	if not Store.IsLoaded() or not Store.Module("ProfileTools").backups then return reset(name) end
