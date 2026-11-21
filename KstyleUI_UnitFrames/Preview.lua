@@ -311,7 +311,8 @@ local function PaintAuras(frame, view, kind)
 		frame.auraHosts[kind] = host
 	end
 	local on = Settings.AURAS[kind] and Settings.Value(kind, "auras")
-	local count = on and Settings.Value(kind, "auraColumns") * Settings.Value(kind, "auraRows") or 0
+	local rows = Settings.Value(kind, "auraRows") * (Settings.Value(kind, "auraFilter") == "both" and 2 or 1)
+	local count = on and Settings.Value(kind, "auraColumns") * rows or 0
 	local chip = frame.auraChips[kind]
 	if count > 0 then
 		local width, height, corner, _, growth = ns.Auras.Footprint(kind, host)
@@ -319,7 +320,6 @@ local function PaintAuras(frame, view, kind)
 		local spacing = Widgets.Snap(host, Settings.Value(kind, "auraSpacing"))
 		local room = Widgets.Snap(host, ns.Auras.TimerRoom(kind))
 		local timers = Settings.Value(kind, "auraTimer") == true
-		local rows = Settings.Value(kind, "auraRows")
 		host:SetSize(width, math.min(height, rows * (size + room) + (rows - 1) * spacing))
 		ns.Auras.Anchor(host, holder, kind, view.geometry.panel.x, view.geometry.aura)
 		host:Show()

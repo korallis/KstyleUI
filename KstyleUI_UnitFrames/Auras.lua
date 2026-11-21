@@ -1,4 +1,4 @@
--- Auras.lua: frame auras on the AuraContainer engine, sorted by the engine (yours, then priority, then time left), capped at rows by columns with a "+N" overflow chip one tile tall (over the last tile, or after it where timers sit under the tiles, so no aura's timer sits under the count), each timer under its tile or in a corner badge, with aura buttons touched only while C_Secrets.ShouldAurasBeSecret says aura data is readable.
+-- Auras.lua: frame auras on the AuraContainer engine, sorted by the engine (yours, then priority, then time left), capped at rows by columns with a "+N" overflow chip one tile tall (over the last tile, or after it where timers sit under the tiles, so no aura's timer sits under the count), each timer under its tile or in a corner badge (the target's centred block of debuffs and buffs is two rows, so its timers take badges), with aura buttons touched only while C_Secrets.ShouldAurasBeSecret says aura data is readable.
 local _, ns = ...
 
 local K = KstyleUI
@@ -191,8 +191,10 @@ end
 local function TimerBelow(kind)
 	if Settings.AuraRows(kind) then return Settings.Value(kind, "auraTimer") == true end
 	local position = POSITION[Settings.Value(kind, "auraPosition")]
-	local below = Centred(kind) or position ~= nil and position.below == true
+	local centred = Centred(kind)
+	local below = centred or position ~= nil and position.below == true
 	return below and Settings.Value(kind, "auraTimer") == true and Settings.Value(kind, "auraRows") == 1
+		and not (centred and kind == "target" and Settings.Value(kind, "auraFilter") == "both")
 end
 
 local function TimerRoom(kind)

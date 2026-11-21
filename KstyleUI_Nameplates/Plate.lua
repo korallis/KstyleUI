@@ -1040,8 +1040,10 @@ function Plate:UpdateThreat()
 		local r, g, b = ThreatColor(state)
 		Widgets.ColorSlice(glow, r, g, b, THREAT_GLOW_ALPHA)
 		Widgets.ShowSlice(glow, true)
-	else
+		glow.on = true
+	elseif glow.on then
 		Widgets.ShowSlice(glow, false)
+		glow.on = false
 	end
 	if changed then
 		self:UpdateColor()

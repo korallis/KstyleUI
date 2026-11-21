@@ -1,4 +1,4 @@
--- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text through Options.
+-- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text through Options, or (RENDER_AURA_BOTH=1) the target's Debuffs and buffs, with every row full and the target of target shown under RENDER_AURA_FULL=1.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -28,6 +28,17 @@ return Common.Run(function()
 			K.Options.Write(module, "extra1.position", "TOP")
 			K.Options.Write(module, "extra1.y", 32)
 		end
+	end
+	if os.getenv("RENDER_AURA_BOTH") == "1" and module == "UnitFrames" then
+		K.Options.Write(module, "target.auraFilter", "both")
+		env._units.target.auras = { { id = 1, icon = 135813, left = 9, harmful = true, mine = true }, { id = 2, icon = 136026, left = 3, harmful = true, mine = true },
+			{ id = 3, icon = 136207, left = 30, harmful = false }, { id = 4, icon = 136118, left = 12, harmful = false } }
+		if os.getenv("RENDER_AURA_FULL") == "1" then
+			for i = 5, 32 do env._units.target.auras[i] = { id = i, icon = i % 2 == 0 and 135813 or 136207, left = 30 + i, harmful = i % 2 == 0, mine = i % 2 == 0 } end
+			dofile("Tools/regression/unitframes_env.lua").SetUnit(env, "targettarget", env._units.player)
+			env.FireEvent("UNIT_TARGET", "target")
+		end
+		dofile("Tools/regression/aura_fixture_engine.lua").Install(env)
 	end
 	env.RunTimers(); Gallery.Ticks(dofile("Tools/regression/widget_env.lua"), env, 40)
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))
