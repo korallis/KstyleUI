@@ -2,7 +2,8 @@
 -- RENDER_GROUP is party (the player and four members, bare on the world) or 10, 20, 25 or 40 (a raid of that size in
 -- groups of five, seated in its card); RENDER_HUD_STYLE picks the HUD style and RENDER_SCREEN the screen. The
 -- members, health and roles are the mock-ups' own, and the frames sit where the mock-ups put them. RENDER_PARITY_R1=1
--- switches on the EllesmereUI parity round 1 options that show without extra state.
+-- switches on the EllesmereUI parity round 1 options that show without extra state; RENDER_PARITY_R2=1 switches on round 2's,
+-- with the first member in combat, shielded past the missing health and the fourth carrying a heal absorb.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
@@ -76,6 +77,9 @@ return Common.Run(function()
 				local id = identity(unit)
 				return id and id[2] or 2
 			end
+			if os.getenv("RENDER_PARITY_R2") == "1" then
+				env.UnitAffectingCombat = function(unit) return unit == "party1" or unit == "raid1" or unit == "raid7" end
+			end
 			env.C_Secrets = env.C_Secrets or {}
 			env.C_Secrets.ShouldUnitIdentityBeSecret = function()
 				return false
@@ -99,6 +103,9 @@ return Common.Run(function()
 			m.role = ROLES[(i - 1) % 5 + 1]
 		end)
 	end
+	if os.getenv("RENDER_PARITY_R2") == "1" then
+		members[1].absorb, members[4].healAbsorb, members[3].marker = 30, 15, 2
+	end
 	G.SetRoster(env, kind, members, PLAYER)
 	if not K.Modules.IsRunning("GroupFrames") then
 		assert(K.Modules.Enable("GroupFrames"))
@@ -111,6 +118,13 @@ return Common.Run(function()
 	if os.getenv("RENDER_PARITY_R1") == "1" then
 		for key, value in pairs({ ["health.colorSource"] = "gradient", ["health.alpha"] = 0.85, ["icons.roleDamager"] = false,
 			["power.damagers"] = false, ["groups.show2"] = false, ["auras.dispelAlpha"] = 0.3, ["auras.dispelLines"] = 1 }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+	end
+	if os.getenv("RENDER_PARITY_R2") == "1" then
+		for key, value in pairs({ ["icons.roleText"] = true, ["icons.combat"] = true, ["icons.combatClass"] = true, ["icons.markerPlace"] = "TOPRIGHT",
+			["prediction.overshield"] = true, ["prediction.absorbPlace"] = "END", ["prediction.healAbsorbLine"] = true, ["prediction.shieldPlace"] = "TOP",
+			["accent.targetLines"] = 1, ["power.behind"] = true }) do
 			K.Options.Write("GroupFrames", key, value)
 		end
 	end

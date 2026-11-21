@@ -37,7 +37,7 @@ Settings.defaults = {
 		extra1 = ExtraText(), extra2 = ExtraText(),
 		width = 259, height = 39, spacing = 13, growth = "DOWN", card = false,
 		showPlayer = true, showSolo = false, sortBy = "INDEX",
-		portrait = false, portraitZoom = 0, roleRing = false, classLine = false, power = true, powerHeight = 3,
+		portrait = false, portraitZoom = 0, portraitRingAlpha = 1, roleRing = false, classLine = false, power = true, powerHeight = 3,
 		textLayout = "ABOVE", nameSize = 13, nameChars = 0, healthText = "PERCENT", healthTextSize = 11, healthTextPlace = "ROW",
 		iconSize = 14,
 		auraSize = 18, auraCount = 6, auraDispelCount = 1, auraColumns = 3, auraRows = 2, auraSpacing = 2,
@@ -61,7 +61,7 @@ Settings.defaults = {
 		gradientHigh = Rgb("friendly"), gradientMid = Rgb("neutral"), gradientLow = Rgb("hostile"), gradientLowAt = 0, gradientHighAt = 100,
 		statusGrey = true, deadColor = Rgb("textDisabled"), offlineColor = Rgb("textDisabled"),
 	},
-	power = { colorSource = "power", color = Rgb("rare"), tanks = true, healers = true, damagers = true },
+	power = { colorSource = "power", color = Rgb("rare"), tanks = true, healers = true, damagers = true, behind = false, keepRoom = false },
 	text = {
 		nameFont = THEME_FONT, nameOutline = "NONE", nameColorSource = "class", nameColor = Rgb("textEmphasis"),
 		healthFont = THEME_FONT, healthOutline = "NONE",
@@ -70,14 +70,15 @@ Settings.defaults = {
 	icons = {
 		role = true, roleShapes = true, statuses = true, afk = true, resurrection = true, summon = true, leader = true, marker = true, readyCheck = true,
 		roleTank = true, roleHealer = true, roleDamager = true, roleInCombat = true, leaderInCombat = true,
+		roleText = false, readyPlace = "AUTO", readySize = 0, markerPlace = "AUTO", combat = false, combatPlace = "LEFT", combatSize = 14, combatClass = false,
 	},
 	threat = { enabled = true, shapes = true },
 	tooltip = { mode = "ALWAYS" },
-	groups = { show1 = true, show2 = true, show3 = true, show4 = true, show5 = true, show6 = true, show7 = true, show8 = true, mythicBench = true },
+	groups = { show1 = true, show2 = true, show3 = true, show4 = true, show5 = true, show6 = true, show7 = true, show8 = true, mythicBench = true, hideEmpty = false },
 	auras = {
 		enabled = true, onlyMine = false, sort = "", typeLetters = true, stacks = true, timers = false, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER",
 		magic = true, curse = true, poison = true, disease = true, bleed = true, lasting = true, dispelAlpha = 0.16, dispelLines = 2,
-		zoom = 0.07, tooltips = true,
+		zoom = 0.07, tooltips = true, typeMode = "HIDE", source = "ANY", canApply = false, timerSize = 0,
 		priority1 = "DISPEL", priority2 = "BOSS", priority3 = "IMPORTANT", priority4 = "OTHER", glow = true,
 	},
 	buffs = { enabled = true, tooltips = true },
@@ -85,10 +86,11 @@ Settings.defaults = {
 	presets = { raid = "Compact" },
 	prediction = {
 		heals = true, absorbs = true, shield = true, shieldLines = 2, healAbsorbs = true,
+		shieldPlace = "BOTTOM", shieldGrow = "UP", absorbPlace = "FILL", overshield = false, healAbsorbLine = false,
 		healColor = Rgb("friendly", HEAL_ALPHA), absorbColor = Rgb("white", ABSORB_ALPHA), healAbsorbColor = Rgb("hostile", HEAL_ABSORB_ALPHA),
 	},
-	auto = { size = true, role = true },
-	accent = { source = "class", color = Rgb("accentDefault"), hover = true, target = true },
+	auto = { size = true, role = true, smallMost = 10, largeLeast = 26, shownOnly = false },
+	accent = { source = "class", color = Rgb("accentDefault"), hover = true, target = true, targetLines = 2 },
 }
 
 local INDICATOR_DEFAULTS = {
@@ -165,7 +167,12 @@ function Settings.Schema(includeText)
 	local AURA_WRAP = Options({ { "DOWN", L["Down"] }, { "UP", L["Up"] } })
 	local AURA_FILTER = Options({
 		{ "ALL", L["All debuffs"] }, { "RAID", L["Debuffs Blizzard's raid frames show"] }, { "DISPELLABLE", L["Debuffs you can dispel"] },
+		{ "BOSS", L["Boss debuffs"] }, { "ROLE", L["Role debuffs"] }, { "CROWD_CONTROL", L["Crowd control"] },
 	})
+	local TYPE_MODE = Options({ { "HIDE", L["Leave out the types switched off"] }, { "ONLY", L["Only the types switched on"] } })
+	local SOURCE = Options({ { "ANY", L["Anyone"] }, { "NPC", L["Enemies, not players"] }, { "PLAYERS", L["Players and their pets"] } })
+	local SHIELD_PLACE = Options({ { "BOTTOM", L["Bottom"] }, { "TOP", L["Top"] }, { "LEFT", L["Left"] }, { "RIGHT", L["Right"] } })
+	local ABSORB_PLACE = Options({ { "FILL", L["After the health"] }, { "END", L["Back from the bar's end"] } })
 	local DISPEL_FILTER = Options({ { "PLAYER", L["Debuffs you can dispel"] }, { "GROUP", L["Debuffs anyone in the group can dispel"] } })
 	local PRIORITY = Options({
 		{ "BOSS", L["Boss debuffs"] }, { "IMPORTANT", L["Important debuffs"] }, { "DISPEL", L["Debuffs you can dispel"] }, { "OTHER", L["Other debuffs"] },
@@ -180,6 +187,8 @@ function Settings.Schema(includeText)
 		{ "LEFT", L["Left"] }, { "CENTER", L["Centre"] }, { "RIGHT", L["Right"] },
 		{ "BOTTOMLEFT", L["Bottom left"] }, { "BOTTOM", L["Bottom"] }, { "BOTTOMRIGHT", L["Bottom right"] },
 	})
+	local ICON_PLACE = { { value = "AUTO", label = L["Automatic"] } }
+	for _, option in ipairs(INDICATOR_POSITION) do ICON_PLACE[#ICON_PLACE + 1] = option end
 
 	Settings.OPTIONS = {
 		growth = GROWTH, partySort = PARTY_SORT, raidSort = RAID_SORT, textLayout = TEXT_LAYOUT, healthText = HEALTH_TEXT,
@@ -252,6 +261,8 @@ function Settings.Schema(includeText)
 			add(Toggle(p .. "portrait", L["Portraits"], L["Shows each member's portrait beside the bar."]))
 			add(Slider(p .. "portraitZoom", L["Portrait zoom"], L["Crops into each portrait so the face fills more of it."], 0, 0.3, 0.05))
 			schema[#schema].showWhen = Is(p .. "portrait", true)
+			add(Slider(p .. "portraitRingAlpha", L["Ring opacity"], L["How solid the class ring round each portrait or role ring is."], 0, 1, 0.05))
+			schema[#schema].showWhen = function(settings) return Is(p .. "portrait", true)(settings) or Is(p .. "roleRing", true)(settings) end
 		else
 			add(Dropdown(p .. "sortBy", L["Sort by"], L["Groups side by side, or everyone in role or class order."], RAID_SORT))
 			add(Dropdown(p .. "groupGrowth", L["Group growth"], L["Which way the next group or column goes."], GROWTH))
@@ -264,6 +275,7 @@ function Settings.Schema(includeText)
 				add(Toggle("groups.show" .. g, L["Show group %d"]:format(g), L["Shows this raid group's members. The groups shown close up, in order."]))
 			end
 			add(Toggle("groups.mythicBench", L["Groups 5 to 8 in Mythic raids"], L["Off hides groups 5 to 8 in a Mythic raid, where only groups 1 to 4 fight."]))
+			add(Toggle("groups.hideEmpty", L["Close up empty groups"], L["Moves empty raid groups to the end, so the groups with members sit side by side."], { showWhen = Is(p .. "sortBy", "GROUP") }))
 		end
 		add(Toggle(p .. "power", L["Power bar"], L["Shows a thin mana, rage or energy bar under the health bar."]))
 		add(Slider(p .. "powerHeight", L["Power bar height"], L["The height of the power bar in interface units."], 1, 12, 1))
@@ -341,6 +353,8 @@ function Settings.Schema(includeText)
 		add(Toggle("power.tanks", L["Power bar for tanks"], L["Shows the power bar on tanks' frames; off gives their health bar the room."]))
 		add(Toggle("power.healers", L["Power bar for healers"], L["Shows the power bar on healers' frames; off gives their health bar the room."]))
 		add(Toggle("power.damagers", L["Power bar for damage dealers"], L["Shows the power bar on damage dealers' frames; off gives their health bar the room."]))
+		add(Toggle("power.keepRoom", L["Keep the power bar's room"], L["Frames without a power bar keep its room, so every frame's bar, icons and text line up."]))
+		add(Toggle("power.behind", L["Health bar behind the power bar"], L["The health bar runs the frame's full height and the power bar lies over its foot."]))
 		add({ type = "header", label = L["Text"] })
 		add({ type = "font", key = "text.nameFont", label = L["Name font"], help = L["The font of the names."], options = FontOptions })
 		add(Dropdown("text.nameOutline", L["Name outline"], L["A soft shadow, or an outline for busy backgrounds."], OUTLINE))
@@ -357,14 +371,26 @@ function Settings.Schema(includeText)
 		add(Toggle("icons.roleHealer", L["Healer role icons"], L["Shows the role icon on healers."], { showWhen = roles }))
 		add(Toggle("icons.roleDamager", L["Damage role icons"], L["Shows the role icon on damage dealers."], { showWhen = roles }))
 		add(Toggle("icons.roleInCombat", L["Role icons in combat"], L["Off hides role icons while you are in combat."], { showWhen = roles }))
+		add(Toggle("icons.roleText", L["Role letters"], L["Shows T, H or D in the role's colour instead of the role icon."], { showWhen = roles }))
 		add(Toggle("icons.leader", L["Leader icons"], L["Marks the group leader and raid assistants."]))
 		add(Toggle("icons.leaderInCombat", L["Leader icons in combat"], L["Off hides leader and assistant icons while you are in combat."], { showWhen = Is("icons.leader", true) }))
 		add(Toggle("icons.marker", L["Raid markers"], L["Shows the raid marker, such as a skull, set on a member."]))
+		add(Dropdown("icons.markerPlace", L["Raid marker place"], L["Where on the health bar the raid marker sits; Automatic keeps today's place."], ICON_PLACE, { showWhen = Is("icons.marker", true) }))
 		add(Toggle("icons.readyCheck", L["Ready checks"], L["Shows each member's answer during a ready check."]))
 		add(Toggle("icons.statuses", L["Resurrection, summon and AFK"], L["Shows these states in the ready-check space. Off leaves only ready checks."]))
 		add(Toggle("icons.afk", L["AFK indicator"], L["Marks members who are away from their keyboard."], { showWhen = Is("icons.statuses", true) }))
 		add(Toggle("icons.resurrection", L["Incoming resurrection"], L["Marks members with a resurrection on the way."], { showWhen = Is("icons.statuses", true) }))
 		add(Toggle("icons.summon", L["Incoming summon"], L["Marks members with a summon on the way."], { showWhen = Is("icons.statuses", true) }))
+		local readySpace = function(settings) return Is("icons.readyCheck", true)(settings) or Is("icons.statuses", true)(settings) end
+		add(Dropdown("icons.readyPlace", L["Ready check place"], L["Where on the health bar the ready check, resurrection, summon and AFK icons sit."], ICON_PLACE, { showWhen = readySpace }))
+		add(Slider("icons.readySize", L["Ready check size"], L["The size of those icons; 0 sizes them to the bar."], 0, 40, 1))
+		schema[#schema].showWhen = readySpace
+		add(Toggle("icons.combat", L["Combat icon"], L["Shows crossed swords on members who are in combat."]))
+		local combat = Is("icons.combat", true)
+		add(Dropdown("icons.combatPlace", L["Combat icon place"], L["Where on the health bar the combat icon sits."], INDICATOR_POSITION, { showWhen = combat }))
+		add(Slider("icons.combatSize", L["Combat icon size"], L["The size of the combat icon."], 8, 40, 1))
+		schema[#schema].showWhen = combat
+		add(Toggle("icons.combatClass", L["Class-coloured combat icon"], L["Tints the combat icon in the member's class colour."], { showWhen = combat }))
 		add(Toggle("threat.enabled", L["Threat border"], L["Draws a border in the threat colour around members with aggro."]))
 		add(Toggle("threat.shapes", L["Threat shapes"], L["Adds a tick, triangle or square beside the threat border. Off keeps the border alone."]))
 		add({ type = "header", label = L["Debuffs"] })
@@ -372,11 +398,16 @@ function Settings.Schema(includeText)
 		add(Toggle("auras.typeLetters", L["Debuff type letters"], L["Adds M, C, D, P or E when the game knows the debuff type. Off keeps the usual border."]))
 		add(Toggle("auras.stacks", L["Stacks"], L["Shows how many times a debuff has stacked."]))
 		add(Toggle("auras.timers", L["Time left"], L["Shows the time left on each aura."]))
-		add(Dropdown("auras.filter", L["Which debuffs"], L["All debuffs, the ones raid frames show, or the ones you can dispel."], AURA_FILTER))
+		add(Slider("auras.timerSize", L["Time left size"], L["The size of the time left; 0 sizes it to the icon."], 0, 24, 1))
+		schema[#schema].showWhen = Is("auras.timers", true)
+		add(Dropdown("auras.filter", L["Which debuffs"], L["All debuffs, the ones raid frames show, the ones you can dispel, or one kind."], AURA_FILTER))
 		K.Options.AuraFilterRows(schema, "auras", { dispellable = false, disableWhen = Is("auras.enabled", false) })
+		add(Dropdown("auras.source", L["Debuffs from"], L["Debuffs from anyone, only from enemies, or only from players and their pets."], SOURCE, { disableWhen = Is("auras.enabled", false) }))
+		add(Toggle("auras.canApply", L["Only debuffs you can apply"], L["Shows only debuffs your class can put on a target."], { disableWhen = Is("auras.enabled", false) }))
 		for _, kind in ipairs({ { "magic", L["Magic debuffs"] }, { "curse", L["Curse debuffs"] }, { "poison", L["Poison debuffs"] }, { "disease", L["Disease debuffs"] }, { "bleed", L["Bleed debuffs"] } }) do
 			add(Toggle("auras." .. kind[1], kind[2], L["Shows debuffs of this type; off leaves them out of every debuff row."], { disableWhen = Is("auras.enabled", false) }))
 		end
+		add(Dropdown("auras.typeMode", L["Debuff types"], L["Leaves out the types switched off, or shows only debuffs of the types switched on."], TYPE_MODE, { disableWhen = Is("auras.enabled", false) }))
 		add(Toggle("auras.lasting", L["Debuffs that last until removed"], L["Shows debuffs that never expire; off leaves them out of every debuff row."], { disableWhen = Is("auras.enabled", false) }))
 		add(Toggle("auras.swipe", L["Duration swipe"], L["Darkens each debuff icon as it runs out."]))
 		add(Slider("auras.zoom", L["Icon zoom"], L["How far into its artwork each debuff and heal icon crops."], 0, 0.2, 0.01))
@@ -415,6 +446,12 @@ function Settings.Schema(includeText)
 		add(Toggle("buffs.tooltips", L["Heal icon tooltips"], L["Shows a heal's tooltip when you point at its icon."], { showWhen = Is("buffs.enabled", true) }))
 		add({ type = "header", label = L["Automatic layout"] })
 		add(Toggle("auto.size", L["Size by raid size"], L["Larger raid frames up to 10 players; over 25, shorter ones without power bars or health text."]))
+		local sized = Is("auto.size", true)
+		add(Slider("auto.smallMost", L["Larger frames up to"], L["The most players a raid may have and still get the larger frames."], 5, 14, 1))
+		schema[#schema].showWhen = sized
+		add(Slider("auto.largeLeast", L["Compact frames from"], L["The fewest players a raid needs for the compact frames."], 21, 40, 1))
+		schema[#schema].showWhen = sized
+		add(Toggle("auto.shownOnly", L["Count only shown groups"], L["Sizes the raid by the members in the groups you show, not by everyone."], { showWhen = sized }))
 		add(Toggle("auto.role", L["Healer frames when you heal"], L["As a healer: two dispellable debuffs first and three of your heals, on wider raid frames."]))
 		add({ type = "header", label = L["Click casting"] })
 		add(Toggle("clickCast.hint", L["Click casting reminder"], L["Points the tooltip to the game's Click Casting, which these frames use, until you bind a spell."]))
@@ -424,11 +461,18 @@ function Settings.Schema(includeText)
 		add({ type = "color", key = "prediction.healColor", label = L["Incoming heal colour"], help = L["The colour of incoming heals on the health bar."], hasAlpha = true, showWhen = Is("prediction.heals", true) })
 		add(Toggle("prediction.absorbs", L["Absorbs"], L["Shows shields, such as Power Word: Shield, after the health."]))
 		add({ type = "color", key = "prediction.absorbColor", label = L["Absorb colour"], help = L["The colour of shields on the health bar."], hasAlpha = true, showWhen = Is("prediction.absorbs", true) })
+		add(Dropdown("prediction.absorbPlace", L["Absorb place"], L["Draws shields after the health, or back from the bar's end."], ABSORB_PLACE, { showWhen = Is("prediction.absorbs", true) }))
+		add(Toggle("prediction.overshield", L["Overshield"], L["Draws the part of a shield larger than the missing health back over the health, from the bar's end."]))
 		add(Toggle("prediction.shield", L["Shield line"], L["A thin line under the health bar for the whole shield, seen even at full health."]))
+		local line = Is("prediction.shield", true)
 		add(Slider("prediction.shieldLines", L["Shield line thickness"], L["How many pixels thick the shield line is."], 1, 6, 1))
-		schema[#schema].showWhen = Is("prediction.shield", true)
+		schema[#schema].showWhen = line
+		add(Dropdown("prediction.shieldPlace", L["Shield line place"], L["Which edge of the health bar the shield line runs along."], SHIELD_PLACE, { showWhen = line }))
+		add(Dropdown("prediction.shieldGrow", L["Shield line growth"], L["Which way a shield line on the left or right edge grows."], Options({ { "UP", L["Up"] }, { "DOWN", L["Down"] } })))
+		schema[#schema].showWhen = function(settings) return line(settings) and not Is("prediction.shieldPlace", "BOTTOM")(settings) and not Is("prediction.shieldPlace", "TOP")(settings) end
 		add(Toggle("prediction.healAbsorbs", L["Heal absorbs"], L["Marks the health that heal-absorbing debuffs will eat, from the fill's end."]))
 		add({ type = "color", key = "prediction.healAbsorbColor", label = L["Heal absorb colour"], help = L["The colour of heal absorbs on the health bar."], hasAlpha = true, showWhen = Is("prediction.healAbsorbs", true) })
+		add(Toggle("prediction.healAbsorbLine", L["Heal absorb line"], L["A thin line for the whole heal absorb on the edge across from the shield line."]))
 		add({ type = "header", label = L["Range and highlight"] })
 		add(Toggle("range.fade", L["Fade out of range"], L["Fades members who are too far away to heal."]))
 		add(Slider("range.alpha", L["Out of range opacity"], L["How faint a member out of range looks."], 0.1, 1, 0.05))
@@ -437,6 +481,8 @@ function Settings.Schema(includeText)
 		add({ type = "color", key = "accent.color", label = L["Custom highlight colour"], help = L["The highlight colour when it uses a custom colour."], showWhen = Is("accent.source", "custom") })
 		add(Toggle("accent.hover", L["Hover highlight"], L["Lights the frame's edge under the mouse."]))
 		add(Toggle("accent.target", L["Highlight the target"], L["Rings the frame of the member you target."]))
+		add(Slider("accent.targetLines", L["Target ring lines"], L["The target ring's thickness: two lines or one."], 1, 2, 1))
+		schema[#schema].showWhen = Is("accent.target", true)
 		schema.preview = function(parent)
 			return ns.Preview.Build(parent)
 		end

@@ -295,23 +295,27 @@ function Headers.SetPartyCount(count)
 end
 
 local function ShownGroups()
-	local cfg, out = ns.Settings.current.groups, {}
+	local cfg, out, empty = ns.Settings.current.groups, {}, {}
+	local filled = cfg.hideEmpty and ns.AutoLayout and ns.AutoLayout.state.filled
 	for g = 1, RAID_GROUPS do
-		if cfg["show" .. g] then out[#out + 1] = g end
+		if cfg["show" .. g] then
+			local list = filled and not filled:find(g, 1, true) and empty or out
+			list[#list + 1] = g
+		end
 	end
+	for _, g in ipairs(empty) do out[#out + 1] = g end
 	return out
 end
 
 local function RaidShown(s, members, sizes)
-	local cfg, groups, slot = ns.Settings.current.groups, nil, 0
+	local cfg, groups = ns.Settings.current.groups, nil
 	for g = 1, sizes and RAID_GROUPS or 0 do
-		local size = sizes[g] or 0
-		if cfg["show" .. g] then
-			slot = slot + 1
-			groups = size > 0 and slot or groups
-		elseif members then
-			members = math.max(0, members - size)
+		if not cfg["show" .. g] and members then
+			members = math.max(0, members - (sizes[g] or 0))
 		end
+	end
+	for slot, g in ipairs(sizes and ShownGroups() or {}) do
+		groups = (sizes[g] or 0) > 0 and slot or groups
 	end
 	if s.sortBy == "GROUP" then
 		return Geometry.RaidGroups(s, groups or (members and math.ceil(members / GROUP_BUTTONS)))

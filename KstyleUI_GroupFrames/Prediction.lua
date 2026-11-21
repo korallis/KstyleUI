@@ -28,6 +28,25 @@ local function Paint(bar, color)
 	bar:SetBarColor(color.r, color.g, color.b, color.a or 1)
 end
 
+local ACROSS = { BOTTOM = "TOP", TOP = "BOTTOM", LEFT = "RIGHT", RIGHT = "LEFT" }
+local CORNER = { BOTTOM = "BOTTOMLEFT", TOP = "TOPLEFT", LEFT = "TOPLEFT", RIGHT = "TOPRIGHT" }
+
+local function Line(f, bar, rect, thickness, place, color)
+	local upright = place == "LEFT" or place == "RIGHT"
+	bar:SetOrientation(upright and "VERTICAL" or "HORIZONTAL")
+	if upright or bar.reversed then
+		bar.reversed = upright and Settings.current.prediction.shieldGrow == "DOWN"
+		bar:SetReverseFill(bar.reversed)
+	end
+	bar:SetBarTexture(Settings.current.health.texture)
+	bar.opts.width, bar.opts.height = upright and thickness or rect.width, upright and rect.height or thickness
+	bar:Restyle()
+	bar:ClearAllPoints()
+	local above = place == "BOTTOM" and f.behind
+	bar:SetPoint(CORNER[place], above and f.power or f.health, above and "TOPLEFT" or CORNER[place], 0, 0)
+	bar:SetBarColor(color.r, color.g, color.b, SHIELD_ALPHA)
+end
+
 local function Configure(calc)
 	local enum = Enum
 	if enum and enum.UnitIncomingHealClampMode and calc.SetIncomingHealClampMode then
@@ -69,12 +88,17 @@ local function Layout(f, parts)
 		bar:ClearAllPoints()
 	end
 	local healFill = f.heals:GetStatusBarTexture()
+	local fromEnd = cfg.prediction.absorbPlace == "END"
+	if fromEnd or f.absorbsFromEnd then
+		f.absorbs:SetReverseFill(fromEnd)
+		f.absorbsFromEnd = fromEnd
+	end
 	if vertical then
 		f.heals:SetPoint("BOTTOMLEFT", fill, "TOPLEFT", 0, 0)
-		f.absorbs:SetPoint("BOTTOMLEFT", healFill, "TOPLEFT", 0, 0)
+		f.absorbs:SetPoint(fromEnd and "TOPLEFT" or "BOTTOMLEFT", fromEnd and f.health or healFill, "TOPLEFT", 0, 0)
 	else
 		f.heals:SetPoint("TOPLEFT", fill, "TOPRIGHT", 0, 0)
-		f.absorbs:SetPoint("TOPLEFT", healFill, "TOPRIGHT", 0, 0)
+		f.absorbs:SetPoint(fromEnd and "TOPRIGHT" or "TOPLEFT", fromEnd and f.health or healFill, "TOPRIGHT", 0, 0)
 	end
 	Paint(f.heals, cfg.prediction.healColor)
 	Paint(f.absorbs, cfg.prediction.absorbColor)
@@ -95,17 +119,38 @@ local function Layout(f, parts)
 	if not cfg.prediction.healAbsorbs then
 		eaten:SetValue(0)
 	end
-	local shield = f.shield
-	local line = Widgets.Border(f) * cfg.prediction.shieldLines
-	shield:SetOrientation("HORIZONTAL")
-	shield:SetBarTexture(cfg.health.texture)
-	shield.opts.width, shield.opts.height = rect.width, line
-	shield:Restyle()
-	shield:ClearAllPoints()
-	shield:SetPoint("BOTTOMLEFT", f.health, "BOTTOMLEFT", 0, 0)
-	local c = cfg.prediction.absorbColor
-	shield:SetBarColor(c.r, c.g, c.b, SHIELD_ALPHA)
-	shield:SetShown(cfg.prediction.shield)
+	local p = cfg.prediction
+	local line = Widgets.Border(f) * p.shieldLines
+	local c = p.absorbColor
+	Line(f, f.shield, rect, line, p.shieldPlace, c)
+	f.shield:SetShown(p.shield)
+	if p.healAbsorbLine and not f.healAbsorbLine then
+		f.healAbsorbLine = Widgets.StatusBar(f.predict, { background = false, smooth = true })
+	end
+	if f.healAbsorbLine then
+		Line(f, f.healAbsorbLine, rect, line, ACROSS[p.shieldPlace], p.healAbsorbColor)
+		f.healAbsorbLine:SetShown(p.healAbsorbLine)
+	end
+	if p.overshield and not f.overClip then
+		f.overClip = CreateFrame("Frame", nil, f.predict)
+		f.overClip:SetClipsChildren(true)
+		f.overshield = Widgets.StatusBar(f.overClip, { background = false, smooth = true, reverse = true })
+	end
+	if f.overClip then
+		local over = f.overshield
+		f.overClip:ClearAllPoints()
+		f.overClip:SetPoint(vertical and "BOTTOMLEFT" or "TOPLEFT", f.health, vertical and "BOTTOMLEFT" or "TOPLEFT", 0, 0)
+		f.overClip:SetPoint(vertical and "TOPRIGHT" or "BOTTOMRIGHT", fill, vertical and "TOPRIGHT" or "BOTTOMRIGHT", 0, 0)
+		over:SetOrientation(cfg.health.orientation)
+		over:SetReverseFill(true)
+		over:SetBarTexture(cfg.health.texture)
+		over.opts.width, over.opts.height = rect.width, rect.height
+		over:Restyle()
+		over:ClearAllPoints()
+		over:SetPoint("TOPRIGHT", f.health, "TOPRIGHT", 0, 0)
+		Paint(over, c)
+		f.overClip:SetShown(p.overshield)
+	end
 	f.heals:SetShown(cfg.prediction.heals)
 	f.absorbs:SetShown(cfg.prediction.absorbs)
 	if not cfg.prediction.heals then
@@ -153,16 +198,22 @@ local function Values(f)
 end
 
 local function Shield(f)
-	if not Settings.current.prediction.shield then
+	local cfg = Settings.current.prediction
+	local unit = f.unit
+	if cfg.healAbsorbLine and f.healAbsorbLine then
+		f.healAbsorbLine:SetBarValue(TotalHealAbsorbs(unit))
+	end
+	if not cfg.shield and not cfg.overshield then
 		return
 	end
-	local unit = f.unit
+	local total = 0
 	if type(UnitGetTotalAbsorbs) == "function" then
-		f.shield:SetBarValue(UnitGetTotalAbsorbs(unit))
+		total = UnitGetTotalAbsorbs(unit)
 	else
 		Style.LogOnce("noTotalAbsorbs", "UnitGetTotalAbsorbs is missing; the shield line stays empty")
-		f.shield:SetBarValue(0)
 	end
+	if cfg.shield then f.shield:SetBarValue(total) end
+	if cfg.overshield and f.overshield then f.overshield:SetBarValue(total) end
 end
 
 local function Ranges(f)
@@ -170,6 +221,12 @@ local function Ranges(f)
 	local maximum = UnitHealthMax(f.unit)
 	if cfg.shield then
 		f.shield:SetBarRange(0, maximum)
+	end
+	if cfg.overshield and f.overshield then
+		f.overshield:SetBarRange(0, maximum)
+	end
+	if cfg.healAbsorbLine and f.healAbsorbLine then
+		f.healAbsorbLine:SetBarRange(0, maximum)
 	end
 	if cfg.healAbsorbs then
 		f.healAbsorbs:SetBarRange(0, maximum)
@@ -232,6 +289,14 @@ local function PaintSample(f, sample)
 	f.shield:SetBarValue(cfg.shield and (sample.shield or sample.absorb) or 0)
 	f.healAbsorbs:SetBarRange(0, 1)
 	f.healAbsorbs:SetBarValue(cfg.healAbsorbs and sample.healAbsorb or 0)
+	if f.overshield then
+		f.overshield:SetBarRange(0, 1)
+		f.overshield:SetBarValue(cfg.overshield and sample.overshield or 0)
+	end
+	if f.healAbsorbLine then
+		f.healAbsorbLine:SetBarRange(0, 1)
+		f.healAbsorbLine:SetBarValue(cfg.healAbsorbLine and sample.healAbsorb or 0)
+	end
 end
 Style.painters[#Style.painters + 1] = PaintSample
 

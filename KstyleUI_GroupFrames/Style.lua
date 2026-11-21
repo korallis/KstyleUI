@@ -128,6 +128,7 @@ function Style.Build(f, kind)
 	f.target:SetAllPoints(f)
 	f.targetRing = Style.Ring(f.target, "OVERLAY")
 	f.target:SetAlpha(0)
+	f.targetLines = RING_LINES
 	return f
 end
 
@@ -511,7 +512,7 @@ function Style.Apply(f, width, height)
 	f.powerShown = Style.PowerShown(f)
 	local parts = Geometry.Button(width, height, {
 		portrait = f.kind == "party" and k.portrait,
-		power = f.powerShown,
+		power = f.powerShown or (k.power and cfg.power.keepRoom),
 		powerHeight = k.powerHeight,
 		nameAbove = k.textLayout == "ABOVE",
 		nameHeight = k.nameSize + NAME_LINE_EXTRA,
@@ -537,6 +538,12 @@ function Style.Apply(f, width, height)
 		healthLine = k.healthTextSize + NAME_LINE_EXTRA,
 		pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(f),
 	})
+	local bar, powerRect = parts.health, parts.power
+	local behind = cfg.power.behind and f.powerShown and powerRect ~= nil
+	if behind then
+		parts.health = { left = bar.left, top = bar.top, width = bar.width, height = powerRect.top + powerRect.height - bar.top }
+	end
+	if not f.powerShown then parts.power = nil end
 	f.parts = parts
 	local health = cfg.health
 	f.health:SetBarTexture(health.texture)
@@ -547,6 +554,11 @@ function Style.Apply(f, width, height)
 	if parts.power then
 		f.power:SetBarTexture(health.texture)
 		PlaceBar(f, f.power, parts.power)
+	end
+	f.behind = behind
+	if behind or f.powerLevel then
+		f.powerLevel = f.powerLevel or f.power:GetFrameLevel()
+		f.power:SetFrameLevel(behind and f.health:GetFrameLevel() + 2 or f.powerLevel)
 	end
 	LayoutPortrait(f, parts, k)
 	LayoutTexts(f, k, parts)
@@ -563,6 +575,10 @@ function Style.Apply(f, width, height)
 	ExtraTexts(f, k)
 	if f.extra1 or f.extra2 then ns.Unit.Listen(f) end
 	Style.LayoutRing(f.targetRing, f.target, f.chrome:Chamfer())
+	if f.targetLines ~= cfg.accent.targetLines then
+		f.targetLines = cfg.accent.targetLines
+		for i, line in ipairs(f.targetRing) do Widgets.ShowSlice(line, i <= f.targetLines) end
+	end
 	f.tileless = parts.overlay == true or (f.kind == "party" and k.roleRing == true)
 	if not f.chromeHooked then
 		f.chromeHooked = true

@@ -23,7 +23,7 @@ function Preview.Build(...)
 	local SAMPLES = {
 		{
 			name = "Thaldren", class = "WARRIOR", health = 0.72, power = 0.35, role = "TANK", leader = true, threat = 3, absorb = 0.05, shield = 0.3,
-			healAbsorb = 0.18, debuffs = 2, hots = 2, boss = true, indicators = { EXTERNAL = true },
+			healAbsorb = 0.18, debuffs = 2, hots = 2, boss = true, indicators = { EXTERNAL = true }, combat = true, overshield = 0.4,
 		},
 		{ name = "Sylaen", class = "DRUID", health = 0.87, power = 0.8, far = true, role = "HEALER", dispel = "Magic", debuffs = 1, hots = 1, indicators = { CROWD_CONTROL = true } },
 		{ name = "Kragar", class = "SHAMAN", health = 0.76, power = 0.6, target = true, role = "DAMAGER", marker = 1, incoming = 0.12, healAbsorb = 0.1 },
@@ -130,13 +130,13 @@ function Preview.Build(...)
 			f.name:SetTextColor(Unit.NameColor(sample.class))
 		end
 		if f.showPortrait then
-			f.ring:SetVertexColor(cr, cg, cb)
+			f.ring:SetVertexColor(cr, cg, cb, cfg[f.kind].portraitRingAlpha or 1)
 			f.portrait:SetTexture((Tokens.Texture("logo")))
 			local zoom = not ns.Medallions.Active() and cfg[f.kind].portraitZoom or 0
 			f.portrait:SetTexCoord(zoom, 1 - zoom, zoom, 1 - zoom)
 			f.level:SetText(SAMPLE_LEVEL)
 		elseif f.showRoleRing then
-			f.ring:SetVertexColor(cr, cg, cb)
+			f.ring:SetVertexColor(cr, cg, cb, cfg[f.kind].portraitRingAlpha or 1)
 			f.roleText:SetText(Style.ROLE_LETTERS[sample.role] or "")
 		end
 		HealthText(f, sample)

@@ -30,7 +30,9 @@ local BOSS_SLOT = "boss"
 local BOSS_CANDIDATES = { isBossAura = true }
 local TEMPLATE = "CustomAuraContainerTemplate"
 local NONE = "none"
-local FILTERS = { ALL = "HARMFUL", RAID = "HARMFUL|RAID_IN_COMBAT", DISPELLABLE = "HARMFUL|RAID" }
+local FILTERS = { ALL = "HARMFUL", RAID = "HARMFUL|RAID_IN_COMBAT", DISPELLABLE = "HARMFUL|RAID", CROWD_CONTROL = "HARMFUL|CROWD_CONTROL" }
+local PICKS = { BOSS = { isBossOrRoleAura = true, isRoleAura = false }, ROLE = { isRoleAura = true } }
+local SOURCES = { NPC = false, PLAYERS = true }
 local DISPEL_FILTERS = { PLAYER = "HARMFUL|RAID", GROUP = "HARMFUL|RAID_PLAYER_DISPELLABLE" }
 local ICON_CROP = 0.07
 local SWIPE_ALPHA = 0.65
@@ -194,7 +196,8 @@ local DISPEL_TYPES = { magic = "Magic", curse = "Curse", poison = "Poison", dise
 
 local function Narrowed()
 	local a = Settings.current.auras
-	return not (a.magic and a.curse and a.poison and a.disease and a.bleed and a.lasting)
+	return not (a.magic and a.curse and a.poison and a.disease and a.bleed and a.lasting) or a.typeMode == "ONLY" or a.canApply
+		or SOURCES[a.source] ~= nil or PICKS[a.filter] ~= nil
 end
 
 local function Narrow(candidates)
@@ -202,15 +205,21 @@ local function Narrow(candidates)
 		return candidates
 	end
 	local a = Settings.current.auras
+	local only = a.typeMode == "ONLY"
+	local field = only and "includeDispelTypes" or "excludeDispelTypes"
+	if only then candidates[field] = {} end
 	for key, name in pairs(DISPEL_TYPES) do
-		if not a[key] then
-			candidates.excludeDispelTypes = candidates.excludeDispelTypes or {}
-			candidates.excludeDispelTypes[name] = true
+		if a[key] == only then
+			candidates[field] = candidates[field] or {}
+			candidates[field][name] = true
 		end
 	end
 	if not a.lasting then
 		candidates.maxDuration = math.huge
 	end
+	if a.canApply then candidates.canApplyAura = true end
+	candidates.isFromPlayerOrPlayerPet = SOURCES[a.source]
+	for k, v in pairs(PICKS[a.filter] or {}) do candidates[k] = v end
 	return candidates
 end
 
@@ -288,9 +297,14 @@ local function NewTile(holder)
 	return { skin = skin, chrome = chrome, icon = icon, mask = mask }
 end
 
+local function TimerSize(size)
+	local own = Settings.current.auras.timerSize
+	return own > 0 and own or math.max(6, math.floor(size * COUNT_SHARE + 0.5))
+end
+
 local function TimerRoom(f, size)
 	if not Settings.current.auras.timers then return 0 end
-	return math.ceil(math.max(6, math.floor(size * COUNT_SHARE + 0.5)) * TIMER_LINE) + Widgets.Border(f)
+	return math.ceil(TimerSize(size) * TIMER_LINE) + Widgets.Border(f)
 end
 
 local function PlaceTimer(timer, skin)
@@ -413,7 +427,7 @@ local function StyleIcon(button)
 	local rows = block and (block.rows or block.height)
 	local side = p.buff and block and block.side
 	local tips = Tips(p)
-	if p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and p.styledStacks == a.stacks and p.styledTimers == a.timers and p.styledZoom == a.zoom and p.styledTips == tips and (not mark or p.styledPriority == MarkLift(p.group)) then
+	if p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and p.styledStacks == a.stacks and p.styledTimers == a.timers and p.styledTimerSize == a.timerSize and p.styledZoom == a.zoom and p.styledTips == tips and (not mark or p.styledPriority == MarkLift(p.group)) then
 		return
 	end
 	if p.styledSize ~= size or p.styledBorder ~= border then
@@ -432,7 +446,7 @@ local function StyleIcon(button)
 	p.count:SetAlpha(a.stacks and 1 or 0)
 	if a.timers and type(button.SetDurationText) == "function" then
 		local timer = p.timer or Widgets.Fitted(Widgets.FontString(p.textFrame, "OVERLAY"))
-		Style.SetFont(timer, text.healthFont, textSize, "OUTLINE")
+		Style.SetFont(timer, text.healthFont, TimerSize(size), "OUTLINE")
 		PlaceTimer(timer, p.skin)
 		if not (p.timer and p.styledTimers) then button:SetDurationText(timer) end
 		p.timer = timer
@@ -455,7 +469,7 @@ local function StyleIcon(button)
 			p.markBack:Hide()
 		end
 	end
-	p.styledFont, p.styledSwipe, p.styledStacks, p.styledTimers = text.healthFont, a.swipe, a.stacks, a.timers
+	p.styledFont, p.styledSwipe, p.styledStacks, p.styledTimers, p.styledTimerSize = text.healthFont, a.swipe, a.stacks, a.timers, a.timerSize
 	p.styledZoom, p.styledTips = a.zoom, tips
 	p.styledR, p.styledG, p.styledB = ar, ag, ab
 	p.styledMark, p.styledColumns, p.styledRows, p.styledSide = mark, columns, rows, side
@@ -500,7 +514,7 @@ local function StyleGroup(container, key)
 	local row = f.parts and f.parts.healRow
 	local ar, ag, ab = Style.Accent()
 	local count = container:GetAuraGroupFrameCount(key)
-	local inputs = { styleGeneration, size, spacing, block.columns, block.rows, k.auraGrowth, k.auraWrap, k.buffCount, cfg.text.healthFont, cfg.auras.swipe, Widgets.Border(f), ar, ag, ab, MarkLift(key), f.debuffChip ~= nil, k.buffSize, row and row.width, row and row.height, row and row.side, cfg.auras.typeLetters, cfg.auras.stacks, cfg.auras.timers, cfg.auras.zoom, cfg.auras.tooltips, cfg.buffs.tooltips }
+	local inputs = { styleGeneration, size, spacing, block.columns, block.rows, k.auraGrowth, k.auraWrap, k.buffCount, cfg.text.healthFont, cfg.auras.swipe, Widgets.Border(f), ar, ag, ab, MarkLift(key), f.debuffChip ~= nil, k.buffSize, row and row.width, row and row.height, row and row.side, cfg.auras.typeLetters, cfg.auras.stacks, cfg.auras.timers, cfg.auras.timerSize, cfg.auras.zoom, cfg.auras.tooltips, cfg.buffs.tooltips }
 	local groups = styledGroups[container]
 	local old = groups and groups[key]
 	local changed = f.auraInputsDirty or not old or old.count ~= count
@@ -1436,7 +1450,7 @@ local function LayoutSamples(f, k)
 		count:ClearAllPoints()
 		count:SetPoint("BOTTOMRIGHT", first.tile.skin, "BOTTOMRIGHT", -inset, inset)
 	end
-	local timer = SampleLabel(first, "timer", a.timers, "12s", textSize)
+	local timer = SampleLabel(first, "timer", a.timers, "12s", TimerSize(size))
 	if timer then PlaceTimer(timer, first.tile.skin) end
 	local chip = f.sampleChip
 	local last = f.sampleAuras[math.max(1, block.cells)]
@@ -1491,9 +1505,10 @@ local function PaintSample(f, sample)
 	local k, a = Settings.current[f.kind], Settings.current.auras
 	local cells = math.min(f.sampleCells or Count(k), #f.sampleAuras)
 	local kept = {}
-	for i = 1, a.enabled and (sample.debuffs or 0) or 0 do
+	local enemy = not (a.canApply or a.source == "PLAYERS" or a.filter == "ROLE" or a.filter == "CROWD_CONTROL")
+	for i = 1, a.enabled and enemy and a.filter ~= "BOSS" and (sample.debuffs or 0) or 0 do
 		local kind = SAMPLE_TYPES[i]
-		if (not kind or a[kind]) and (i ~= SAMPLE_LASTING or a.lasting) then
+		if (kind and a[kind] or not kind and a.typeMode ~= "ONLY") and (i ~= SAMPLE_LASTING or a.lasting) then
 			kept[#kept + 1] = i
 		end
 	end
@@ -1508,7 +1523,7 @@ local function PaintSample(f, sample)
 		Widgets.SetText(f.sampleChip.text, MARK .. (debuffs - shown))
 	end
 	f.sampleChip:SetShown(more)
-	f.sampleBoss:SetShown(a.enabled and sample.boss == true and f.parts ~= nil and f.parts.boss ~= nil)
+	f.sampleBoss:SetShown(a.enabled and enemy and sample.boss == true and f.parts ~= nil and f.parts.boss ~= nil)
 	local hots = Settings.current.buffs.enabled and math.min(sample.hots or 0, f.sampleBuffFit or k.buffCount) or 0
 	for i, icon in ipairs(f.sampleBuffs) do
 		icon:SetShown(i <= hots)

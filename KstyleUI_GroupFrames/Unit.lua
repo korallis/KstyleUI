@@ -244,7 +244,7 @@ local function Colors(f)
 	end
 	Unit.NameColored(f, class)
 	if f.showPortrait or f.showRoleRing then
-		f.ring:SetVertexColor(cr, cg, cb)
+		f.ring:SetVertexColor(cr, cg, cb, Settings.current[f.kind].portraitRingAlpha or 1)
 	end
 end
 
