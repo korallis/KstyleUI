@@ -15,6 +15,8 @@
 -- with a divider, group numbers, healer mana and your group label.
 -- RENDER_PARITY_R4=1 switches on round 4's: role icons on the bar with an offset, glowing missing buffs, a taller name
 -- line, heal icons nudged, class first and centred raid groups. RENDER_GROUP_LANE=1 gives the first member three of your heals and the three default indicators.
+-- RENDER_PARITY_R5=1 switches on round 5's: party class order of its own, leader, name and group number offsets, the health
+-- text left under icons, a heal absorb backing of its own, heal icon zoom, an indicator offset, and pet, tank and friendly boss frames.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
@@ -49,6 +51,7 @@ end
 local AT = { party = { 24, 392 }, raid = { 14, 330 } }
 local R3A = os.getenv("RENDER_PARITY_R3A") == "1"
 local R4 = os.getenv("RENDER_PARITY_R4") == "1"
+local R5 = os.getenv("RENDER_PARITY_R5") == "1"
 local SPELLS = { [1243] = { "Power Word: Fortitude", 135987 }, [1459] = { "Arcane Intellect", 135932 }, [467] = { "Thorns", 136104 } }
 local GROUP_SPELLS = { [21562] = "Prayer of Fortitude", [23028] = "Arcane Brilliance" }
 local IDENTITY = {
@@ -114,6 +117,14 @@ return Common.Run(function()
 			env.C_Secrets.ShouldUnitIdentityBeSecret = function()
 				return false
 			end
+			if R5 then
+				G.Secure(env)
+				env._units = env._units or {}
+				env._units.pet = { name = "Grawl", class = "HUNTER", health = 76, maxHealth = 100 }
+				env._units.partypet2 = { name = "Imp", class = "WARLOCK", health = 58, maxHealth = 100 }
+				env._units.boss1 = { name = "Valithria", class = "DRUID", health = 41, maxHealth = 100 }
+				env.UnitCanAssist = function(_, unit) return unit == "boss1" end
+			end
 			if os.getenv("RENDER_PARITY_R3B") == "1" then
 				G.Secure(env)
 				env._units = env._units or {}
@@ -153,6 +164,7 @@ return Common.Run(function()
 		members[1].absorb, members[1].threat, members[2].maxLoss, members[4].healAbsorb = 70, 3, 0.2, 15
 		if r3c == "small" then for i = #members, 7, -1 do members[i] = nil end end
 	end
+	if R5 then members[1].healAbsorb = 20 end
 	G.SetRoster(env, r3c ~= "solo" and kind or nil, r3c ~= "solo" and members or {}, PLAYER)
 	if not K.Modules.IsRunning("GroupFrames") then
 		assert(K.Modules.Enable("GroupFrames"))
@@ -204,6 +216,20 @@ return Common.Run(function()
 		end
 		env.RunTimers()
 		env.RunStateDrivers()
+	end
+	if R5 then
+		for key, value in pairs({ ["sort.classFirst"] = true, ["sort.classFirstIn"] = "PARTY", ["sort.partyOwn"] = true, ["sort.partyClass1"] = "PRIEST",
+			["icons.leaderX"] = 3, ["names.x"] = 2, ["numbers.show"] = true, ["numbers.y"] = 2, ["text.above"] = true, ["text.aboveHealth"] = false,
+			["prediction.healAbsorbStyle"] = "STRIPES", ["prediction.backingOwn"] = true, ["prediction.healAbsorbBacking"] = 0.3,
+			["auras.zoomEach"] = true, ["buffs.zoom"] = 0.15, ["indicator1.x"] = -1, ["pets.enabled"] = true, ["tanks.enabled"] = true,
+			["tanks.growth"] = "RIGHT", ["boss.display"] = "ALWAYS", ["boss.dungeons"] = true }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+		env.RunTimers()
+		env.RunStateDrivers()
+		place(K, "groupframes.pets", AT[kind][1], kind == "party" and AT.party[2] + 290 or 40)
+		place(K, "groupframes.tanks", AT[kind][1] + 520, 40)
+		place(K, "groupframes.boss", AT[kind][1] + 760, 40)
 	end
 	place(K, "groupframes." .. kind, AT[kind][1], AT[kind][2])
 	if r3c == "small" then place(K, "groupframes.party", AT.party[1], AT.party[2]) end

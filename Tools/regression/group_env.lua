@@ -446,9 +446,11 @@ end
 -- on: showRaid, showParty, showPlayer and showSolo, groupFilter with numbers or classes, groupBy with
 -- groupingOrder, sortMethod INDEX or NAME, unitsPerColumn, maxColumns, startingIndex, child creation
 -- from the template with initialConfigFunction's size read from the header's attributes, and the
--- unit, child<n> and statehidden attributes.
+-- unit, child<n> and statehidden attributes; roleFilter against a member's role or raidRole; the pet header's
+-- pet units (pet, partypet<n>, raidpet<n>) for members whose pet exists.
 local HEADER_TEMPLATES = {
 	SecureGroupHeaderTemplate = true, SecurePartyHeaderTemplate = true, SecureRaidGroupHeaderTemplate = true,
+	SecureGroupPetHeaderTemplate = true,
 }
 
 local function split(text)
@@ -491,6 +493,8 @@ local function headerUnits(env, header)
 			end
 		end
 	end
+	local roles = a.roleFilter and {}
+	for _, token in ipairs(a.roleFilter and split(a.roleFilter) or {}) do roles[token] = true end
 	local filter = {}
 	for i, token in ipairs(split(a.groupFilter or "1,2,3,4,5,6,7,8")) do
 		filter[token] = i
@@ -499,7 +503,7 @@ local function headerUnits(env, header)
 	for _, e in ipairs(entries) do
 		local m = e.m or {}
 		local group = kind == "raid" and (m.group or 1) or 1
-		if filter[group] or filter[m.class or ""] then
+		if (filter[group] or filter[m.class or ""]) and (not roles or roles[m.role or ""] or roles[m.raidRole or ""]) then
 			kept[#kept + 1] = e
 		end
 	end
@@ -532,7 +536,9 @@ local function headerUnits(env, header)
 		return x.index < y.index
 	end)
 	for _, e in ipairs(kept) do
-		list[#list + 1] = e.unit
+		local unit = e.unit
+		if header._pets then unit = unit == "player" and "pet" or unit:gsub("^(%a+)(%d+)$", "%1pet%2") end
+		if not header._pets or env.UnitExists(unit) then list[#list + 1] = unit end
 	end
 	return list
 end
@@ -744,6 +750,7 @@ local function installHeaders(env)
 	env.CreateFrame = function(frameType, name, parent, template)
 		local frame = create(frameType, name, parent, template)
 		if template and HEADER_TEMPLATES[template] then
+			frame._pets = template == "SecureGroupPetHeaderTemplate"
 			makeHeader(env, frame)
 			protect(env, frame, true)
 			protectAncestors(env, frame)
@@ -873,12 +880,15 @@ function G.Secure(env)
 	env.SecureButton_GetUnit = unitOf
 	local function watch(frame)
 		local unit, was = unitOf(frame), env._secure
+		local exists = unit ~= nil and env.UnitExists(unit) == true
 		env._secure = true
-		if unit and env.UnitExists(unit) then frame:Show() else frame:Hide() end
+		if env._watched[frame] == "state" then
+			if frame._attributes["state-unitexists"] ~= exists then frame:SetAttribute("state-unitexists", exists) end
+		elseif exists then frame:Show() else frame:Hide() end
 		env._secure = was
 	end
-	function env.RegisterUnitWatch(frame)
-		env._watched[frame] = true
+	function env.RegisterUnitWatch(frame, asState)
+		env._watched[frame] = asState and "state" or true
 		watch(frame)
 	end
 	function env.UnregisterUnitWatch(frame)
@@ -900,6 +910,7 @@ function G.Secure(env)
 	function env.SecureHandlerWrapScript(frame, script, _, body)
 		assert(script == "OnAttributeChanged", "the stub wraps OnAttributeChanged only")
 		local chunk = assert(loadstring("local self, name, value = ... " .. body))
+		setfenv(chunk, setmetatable({ PlayerCanAssist = function(unit) return env.UnitCanAssist ~= nil and env.UnitCanAssist("player", unit) == true end }, { __index = _G }))
 		local handle = setmetatable({ GetFrameRef = function(_, label) return frame._attributes["frameref-" .. label] end }, {
 			__index = function(_, key)
 				local v = frame[key]

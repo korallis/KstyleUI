@@ -19,6 +19,7 @@
 	<Script file="Targets.lua"/>
 	<Script file="Medallions.lua"/>
 	<Script file="AutoLayout.lua"/>
+	<Script file="Extras.lua"/>
 	<Script file="ClickCast.lua"/>
 	<Script file="Preview.lua"/>
 	<Script file="Module.lua"/>

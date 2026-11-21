@@ -252,4 +252,131 @@ do
 end
 collectgarbage()
 
+local function bootSecure()
+	return boot(function(env)
+		H.setup(env)
+		G.Secure(env)
+		env._units = env._units or {}
+		env.UnitCanAssist = function(_, unit) local m = env._member(unit) return m ~= nil and m.friend == true end
+	end)
+end
+
+local function shownUnits(header)
+	local out, i = {}, 1
+	while header:GetAttribute("child" .. i) do
+		local child = header:GetAttribute("child" .. i)
+		if child:IsShown() and child:GetAttribute("unit") then out[#out + 1] = child:GetAttribute("unit") end
+		i = i + 1
+	end
+	return table.concat(out, ",")
+end
+
+-- Pet, tank and friendly boss frames: nothing is made until switched on; on, each follows its units, in and out of combat; off hides it.
+do
+	local env, K, ns = bootSecure()
+	assert(next(ns.Extras.groups) == nil, "no extra group is made by default")
+	env._units.pet = { name = "Wolf", class = "HUNTER", health = 40, maxHealth = 50 }
+	env._units.partypet1 = { name = "Imp", class = "WARLOCK", health = 30, maxHealth = 30 }
+	env.UpdateHeaders()
+	write(env, K, "pets.enabled", true)
+	local pets = ns.Extras.groups.pets
+	env.RunStateDrivers()
+	assert(pets.holder:IsShown() and shownUnits(pets.header) == "pet,partypet1", "your pet and the party's pets: " .. shownUnits(pets.header))
+	local imp = ns.Button.Content(pets.header:GetAttribute("child2"))
+	assert(imp.extra == "pets" and imp.unit == "partypet1", "a pet frame follows its pet")
+	local r, g, b = imp.name:GetTextColor()
+	write(env, K, "pets.nameColor", "custom")
+	write(env, K, "pets.color", { r = 1, g = 0, b = 0 })
+	assert(select(1, imp.name:GetTextColor()) == 1 and select(2, imp.name:GetTextColor()) == 0, "a custom pet name colour")
+	write(env, K, "pets.nameColor", "raid")
+	local r2, g2, b2 = imp.name:GetTextColor()
+	assert(r2 == r and g2 == g and b2 == b, "like the raid frames restores the colour")
+	local width = imp:GetWidth()
+	write(env, K, "pets.width", 20)
+	assert(math.abs(imp:GetWidth() - width - 20) < 1, "extra width widens the pet frames")
+	env.SetCombat(true)
+	write(env, K, "pets.enabled", false)
+	assert(pets.holder:IsShown() and #env._blocked == 0, "combat waits")
+	env.SetCombat(false)
+	env.RunTimers()
+	env.RunStateDrivers()
+	assert(not pets.holder:IsShown() and not pets.header:IsShown(), "off hides the pets")
+	noErrors(env, K)
+end
+collectgarbage()
+
+do
+	local env, K, ns = bootSecure()
+	G.SetRoster(env, "raid", G.Members(10, function(i, m) m.role = (i == 3 or i == 7) and "TANK" or m.role end))
+	env.RunTimers()
+	write(env, K, "tanks.enabled", true)
+	env.RunStateDrivers()
+	local tanks = ns.Extras.groups.tanks
+	assert(shownUnits(tanks.header) == "raid3,raid7", "the raid's tanks again: " .. shownUnits(tanks.header))
+	assert(tanks.header:GetAttribute("roleFilter") == "MAINTANK,TANK", "through the header's role filter")
+	write(env, K, "tanks.growth", "RIGHT")
+	assert(tanks.header:GetAttribute("point") == "LEFT", "grow right")
+	write(env, K, "tanks.wrapAfter", 1)
+	write(env, K, "tanks.wrap", "DOWN")
+	assert(tanks.header:GetAttribute("unitsPerColumn") == 1 and tanks.header:GetAttribute("columnAnchorPoint") == "TOP", "wrap after one, downward")
+	G.SetRoster(env, "party", { { name = "Thaldren", class = "WARRIOR", role = "TANK", health = 50, maxHealth = 100 } })
+	env.RunTimers()
+	env.RunStateDrivers()
+	assert(shownUnits(tanks.header) == "", "a party shows no tank frames")
+	write(env, K, "tanks.enabled", false)
+	env.RunStateDrivers()
+	assert(not tanks.holder:IsShown(), "off hides them")
+	noErrors(env, K)
+end
+collectgarbage()
+
+do
+	local env, K, ns = bootSecure()
+	G.SetRoster(env, "raid", G.Members(10))
+	env.RunTimers()
+	write(env, K, "boss.display", "ALWAYS")
+	local boss = ns.Extras.groups.boss
+	local b1, b2 = boss.buttons[1], boss.buttons[2]
+	env._units.boss1 = { name = "Valithria", class = "DRUID", health = 50, maxHealth = 100, friend = true }
+	env._units.boss2 = { name = "Lich", class = "MAGE", health = 90, maxHealth = 100 }
+	env.SetCombat(true)
+	env.RunStateDrivers()
+	assert(b1:IsShown() and not b2:IsShown() and #env._blocked == 0, "a friendly boss shows in combat, a hostile one does not")
+	env._units.boss1 = nil
+	env.RunStateDrivers()
+	assert(not b1:IsShown(), "and hides when it leaves")
+	env.SetCombat(false)
+	env._units.boss1 = { name = "Valithria", class = "DRUID", health = 50, maxHealth = 100, friend = true }
+	G.SetRoster(env, "party", { { name = "Thaldren", class = "WARRIOR", role = "TANK", health = 50, maxHealth = 100 } })
+	env.RunTimers()
+	env.RunStateDrivers()
+	assert(not b1:IsShown(), "raids only by default")
+	write(env, K, "boss.dungeons", true)
+	env.RunStateDrivers()
+	assert(b1:IsShown(), "Show in dungeons shows it in a party")
+	local f = ns.Button.Content(b1)
+	assert(f.extra == "boss" and f.unit == "boss1", "the frame follows boss1")
+	write(env, K, "boss.colorSource", "raid")
+	assert(select(1, ns.Unit.ColorSources(f)) == ns.Settings.current.health.colorSource, "like the raid frames")
+	write(env, K, "boss.colorSource", "reaction")
+	assert(select(1, ns.Unit.ColorSources(f)) == "reaction", "the friendly colour by default")
+	write(env, K, "boss.display", "HEALERS")
+	env.RunStateDrivers()
+	assert(not b1:IsShown(), "while you heal: hidden while you do not")
+	G.SetRoster(env, "party", { { name = "Thaldren", class = "WARRIOR", role = "TANK", health = 50, maxHealth = 100 } }, { name = "Tester", class = "PRIEST", role = "HEALER" })
+	env.RunTimers()
+	env.RunStateDrivers()
+	assert(b1:IsShown(), "and shown once you heal")
+	ns.Headers.Stop()
+	assert(not b1:IsShown() and not boss.holder:IsShown(), "the stand-down hides them")
+	ns.Frames.Apply()
+	env.RunStateDrivers()
+	assert(b1:IsShown(), "and they return")
+	write(env, K, "boss.display", "NEVER")
+	env.RunStateDrivers()
+	assert(not b1:IsShown() and not boss.holder:IsShown(), "never hides them")
+	noErrors(env, K)
+end
+collectgarbage()
+
 print("groupframes parity round 5 ok: the Medallions heal lane, class order per kind, offsets, texts above icons, backings, zooms, tooltips and indicator offsets")

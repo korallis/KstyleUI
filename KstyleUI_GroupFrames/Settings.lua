@@ -129,6 +129,9 @@ Settings.CLASSES = type(CLASS_SORT_ORDER) == "table" and #CLASS_SORT_ORDER > 0 a
 defaults.sort = { classFirst = false, classFirstIn = "BOTH", partyOwn = false }
 for i, class in ipairs(Settings.CLASSES) do defaults.sort["class" .. i], defaults.sort["partyClass" .. i] = class, class end
 defaults.label = { enabled = false, format = "FULL", size = 14, padding = 4, color = Rgb("textEmphasis") }
+defaults.pets = { enabled = false, nameColor = "raid", color = Rgb("textEmphasis"), width = 0, height = 0 }
+defaults.tanks = { enabled = false, growth = "DOWN", wrap = "RIGHT", wrapAfter = 0, width = 0, height = 0 }
+defaults.boss = { display = "NEVER", dungeons = false, colorSource = "reaction", width = 0, height = 0 }
 
 local rows
 
@@ -483,6 +486,32 @@ function Settings.Schema(includeText)
 		add(Slider("label.size", L["Label text size"], L["The size of the label's text."], 6, 40, 1, label))
 		add(Slider("label.padding", L["Label padding"], L["The room between the label's text and its plate."], 0, 20, 1, label))
 		add({ type = "color", key = "label.color", label = L["Label text colour"], help = L["The colour of the label's text."], showWhen = label })
+		local function Extra(p, on)
+			add(Slider(p .. "width", L["Extra width"], L["Widens these frames from the raid frames' width, or narrows them below 0."], -50, 100, 1, on))
+			add(Slider(p .. "height", L["Extra height"], L["Makes these frames taller than the raid frames, or shorter below 0."], -20, 100, 1, on))
+		end
+		local pets = Is("pets.enabled", true)
+		add({ type = "header", label = L["Pet frames"] })
+		add(Toggle("pets.enabled", L["Pet frames"], L["Your group's pets in frames of their own. Place them in Layout Mode, or attach them to a side."]))
+		add(Dropdown("pets.nameColor", L["Pet name colour"], L["Colours pet names like the raid frames' names, in the text colour or in one colour."],
+			Options({ { "raid", L["Like the raid frames"] }, { "text", L["Text colour"] }, { "custom", L["Custom colour"] } }), { showWhen = pets }))
+		add({ type = "color", key = "pets.color", label = L["Custom pet name colour"], help = L["The pet names' colour when they use a custom colour."], showWhen = function(s) return pets(s) and s.pets.nameColor == "custom" end })
+		Extra("pets.", pets)
+		local tanks = Is("tanks.enabled", true)
+		add({ type = "header", label = L["Tank frames"] })
+		add(Toggle("tanks.enabled", L["Tank frames"], L["The raid's tanks again in frames of their own, in a raid. Place them in Layout Mode."]))
+		add(Dropdown("tanks.growth", L["Growth"], L["Which way the next frame goes."], GROWTH, { showWhen = tanks }))
+		add(Dropdown("tanks.wrap", L["Wrap direction"], L["Which way a new column or row goes once Wrap after is set."], GROWTH, { showWhen = tanks }))
+		add(Slider("tanks.wrapAfter", L["Wrap after"], L["How many frames fill a line before the next; 0 keeps them in one line."], 0, 8, 1, tanks))
+		Extra("tanks.", tanks)
+		local boss = IsNot("boss.display", "NEVER")
+		add({ type = "header", label = L["Friendly boss frames"] })
+		add(Dropdown("boss.display", L["Friendly boss frames"], L["Frames for bosses you can help, such as one to heal, in a raid. Place them in Layout Mode."],
+			Options({ { "NEVER", L["Never"] }, { "HEALERS", L["While you heal"] }, { "ALWAYS", L["Always"] } })))
+		add(Toggle("boss.dungeons", L["Show in dungeons"], L["Also shows friendly bosses in a party, not only in a raid."], { showWhen = boss }))
+		add(Dropdown("boss.colorSource", L["Boss bar colour"], L["Colours the bars in the friendly colour, or like the raid frames' bars."],
+			Options({ { "reaction", L["Friendly colour"] }, { "raid", L["Like the raid frames"] } }), { showWhen = boss }))
+		Extra("boss.", boss)
 		add({ type = "header", label = L["Class order"] })
 		add(Toggle("sort.classFirst", L["Sort by class first"], L["Sorts each group's members by the class order below; role order still comes first."]))
 		local classes, names = {}, type(LOCALIZED_CLASS_NAMES_MALE) == "table" and LOCALIZED_CLASS_NAMES_MALE or {}

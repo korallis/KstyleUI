@@ -54,8 +54,8 @@ local function OnHeaderAttribute(header, name, value)
 	end
 end
 
-local function NewHeader(holder, kind)
-	local header = CreateFrame("Frame", nil, holder, TEMPLATE)
+local function NewHeader(holder, kind, template)
+	local header = CreateFrame("Frame", nil, holder, template or TEMPLATE)
 	kinds[header] = kind
 	header:HookScript("OnAttributeChanged", OnHeaderAttribute)
 	header:SetAttribute("template", BUTTON_TEMPLATE)
@@ -63,6 +63,7 @@ local function NewHeader(holder, kind)
 	header:SetAttribute("initialConfigFunction", CONFIG)
 	return header
 end
+Headers.New = NewHeader
 
 local function NewCard(parent, holder, shape, title)
 	local card = CreateFrame("Frame", nil, parent)
@@ -123,6 +124,7 @@ local function Quiet(header)
 	end
 	header:Hide()
 end
+Headers.Driver, Headers.Quiet = Driver, Quiet
 
 local function Children(header, fn)
 	local i = 1
@@ -145,6 +147,7 @@ local function Resize(header, width, height)
 		end
 	end)
 end
+Headers.Resize = Resize
 
 local function Precreate(header, count)
 	if header:GetAttribute("child" .. count) then
@@ -162,6 +165,7 @@ local function Precreate(header, count)
 	header:SetAttribute("showParty", party)
 	header:SetAttribute("showSolo", solo)
 end
+Headers.Precreate = Precreate
 
 local function Sort(header, sortBy, groups, kind)
 	header:SetAttribute("groupBy", nil)
