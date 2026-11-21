@@ -216,9 +216,10 @@ function Preview.Build(...)
 			gw, gh = Geometry.Line(size, raid.width, raid.spacing), raid.height
 		end
 		local groupsWide = not Geometry.IsVertical(Geometry.Perpendicular(raid.growth, raid.groupGrowth))
-		local groupSpacing = raid.groupSpacing + (cfg.numbers.show and raid.sortBy == "GROUP" and not raid.merge and cfg.numbers.size + 2 or 0)
+		local numberRoom = cfg.numbers.show and raid.sortBy == "GROUP" and not raid.merge and cfg.numbers.size + 2 or 0
+		local groupSpacing = raid.groupSpacing + numberRoom
 		local rw = groupsWide and Geometry.Line(shownGroups, gw, groupSpacing) or gw
-		local rh = groupsWide and gh or Geometry.Line(shownGroups, gh, groupSpacing)
+		local rh = (groupsWide and gh or Geometry.Line(shownGroups, gh, groupSpacing)) + numberRoom
 		preview.raid:SetSize(rw, rh)
 		preview.raid:ClearAllPoints()
 		preview.raid:SetPoint("TOPLEFT", preview.raidCanvas, "TOPLEFT", 0, 0)
@@ -229,7 +230,7 @@ function Preview.Build(...)
 				frames[m] = preview.raidFrames[(g - 1) * size + m]
 			end
 			local ox, oy = Geometry.Offset(Geometry.Perpendicular(raid.growth, raid.groupGrowth), (g - 1) * ((groupsWide and gw or gh) + groupSpacing))
-			PlaceRun(frames, preview.raid, raid, raid.growth, #frames, ox, oy, corner)
+			PlaceRun(frames, preview.raid, raid, raid.growth, #frames, ox, oy - (corner:find("TOP", 1, true) and numberRoom or 0), corner)
 			local number = preview.numbers[g]
 			if cfg.numbers.show and not number then
 				number = K.Widgets.FontString(preview.raid, "OVERLAY")
