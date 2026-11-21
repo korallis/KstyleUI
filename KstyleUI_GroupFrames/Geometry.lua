@@ -427,6 +427,7 @@ function Geometry.Button(w, h, o)
 	local nameHeight = o.nameHeight or 0
 	local areaTop, areaHeight = top, rest
 	if o.nameAbove and rest - nameHeight - gap >= MIN_PART * 2 then
+		nameHeight = o.nameLine and min(o.nameLine, rest - gap - MIN_PART * 2) or nameHeight
 		out.nameInside = false
 		out.name = Rect(left, top, width, nameHeight)
 		areaTop, areaHeight = top + nameHeight + gap, rest - nameHeight - gap
@@ -501,7 +502,7 @@ end
 function Overlay(w, h, o)
 	local gap = Tokens.Size("gapTiny")
 	local out = { nameInside = false, overlay = true }
-	local nameHeight = max(MIN_PART, min(o.nameHeight or 0, h - EDGE - NAME_GAP - MIN_BAR))
+	local nameHeight = max(MIN_PART, min(o.nameLine or o.nameHeight or 0, h - EDGE - NAME_GAP - MIN_BAR))
 	local iconSize = Whole(max(MIN_PART, min(o.iconSize or 0, nameHeight)), o.pixel)
 	local icons = { size = iconSize, badge = true, pip = true }
 	out.icons = icons
