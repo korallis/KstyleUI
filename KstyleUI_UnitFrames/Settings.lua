@@ -642,6 +642,13 @@ local function BarRows(schema, kind, bar)
 	}, on)
 end
 
+local function Nudges(schema, kind, prefix, label, show)
+	for _, axis in ipairs({ { "X", L["Horizontal offset"], L["Moves it left or right."] }, { "Y", L["Vertical offset"], L["Moves it up or down."] } }) do
+		schema[#schema + 1] = Row(kind, { type = "slider", key = prefix .. axis[1], label = label .. ": " .. axis[2], help = axis[3],
+			min = -NUDGE, max = NUDGE, step = 1 }, show)
+	end
+end
+
 local TEXT_LABELS = {
 	name = L["Name text"],
 	health = L["Health text"],
@@ -756,10 +763,7 @@ CastRows = function(schema, kind)
 		help = L["Put the spell icon at the right end of the cast bar."] }, iconShown)
 	for _, spec in ipairs({ { "castbarIcon", L["Spell icon"] }, { "castbarText", L["Spell name"] }, { "castbarTimer", L["Timer"] } }) do
 		local part = spec[1]
-		for _, axis in ipairs({ { "X", L["Horizontal offset"], L["Moves it left or right."] }, { "Y", L["Vertical offset"], L["Moves it up or down."] } }) do
-			schema[#schema + 1] = Row(kind, { type = "slider", key = part .. axis[1], label = spec[2] .. ": " .. axis[2], help = axis[3],
-				min = -NUDGE, max = NUDGE, step = 1 }, part == "castbarIcon" and iconShown or function(s) return on(s) and s[part] ~= false end)
-		end
+		Nudges(schema, kind, part, spec[2], part == "castbarIcon" and iconShown or function(s) return on(s) and s[part] ~= false end)
 	end
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarTarget", label = L["Spell target"],
 		help = L["Adds who the spell is cast on after its name, when the game shows it."] }, function(s) return on(s) and s.castbarText ~= false end)
@@ -822,13 +826,7 @@ AuraRows = function(schema, kind)
 		type = "dropdown", key = "auraPosition", label = L["Aura position"],
 		help = L["Which side of the frame the auras sit on."], options = CHOICES.auraPosition,
 	}, on)
-	local function Nudges(prefix, label, extra)
-		for _, axis in ipairs({ { "X", L["Horizontal offset"], L["Moves it left or right."] }, { "Y", L["Vertical offset"], L["Moves it up or down."] } }) do
-			schema[#schema + 1] = Row(kind, { type = "slider", key = prefix .. axis[1], label = label .. ": " .. axis[2], help = axis[3],
-				min = -NUDGE, max = NUDGE, step = 1 }, function(s) return on() and (extra == nil or extra(s)) end)
-		end
-	end
-	Nudges("aura", L["Auras"])
+	Nudges(schema, kind, "aura", L["Auras"], on)
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "auraGrowth", label = L["Aura growth"],
 		help = L["Which way new aura icons are added."], options = CHOICES.auraGrowth,
@@ -853,12 +851,12 @@ AuraRows = function(schema, kind)
 		type = "toggle", key = "auraTimer", label = L["Aura timers"],
 		help = L["Shows the time left on each aura."],
 	}, on)
-	Nudges("auraTimer", L["Aura timers"], function(s) return s.auraTimer ~= false end)
+	Nudges(schema, kind, "auraTimer", L["Aura timers"], function(s) return on() and s.auraTimer ~= false end)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraCountSize", label = L["Stack text size"],
 		help = L["The size of aura stack counts. 0 matches the aura text size."], min = 0, max = FONT_SIZE_MAX, step = 1 }, on)
 	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "auraCountPoint", label = L["Stack position"],
 		help = L["Which corner of each aura icon shows its stack count."], options = CHOICES.countPoint }, on)
-	Nudges("auraCount", L["Stack position"])
+	Nudges(schema, kind, "auraCount", L["Stack position"], on)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraDispel", label = L["Debuff dispel colours"],
 		help = L["Edges debuffs in their dispel type's colour."] }, on)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraBuffDispel", label = L["Buff dispel colours"],
