@@ -30,7 +30,7 @@ local function Style(entry, style)
 	end
 end
 
-local function Dress(button, fan, chrome)
+local function Dress(view, button, fan, chrome)
 	button:SetSize(SIZE, SIZE)
 	local entry = ns.Auras.NewTile(button, chrome)
 	entry.button = button
@@ -62,7 +62,8 @@ local function Dress(button, fan, chrome)
 	Style(entry, fan.textStyle)
 	button:SetIcon(entry.icon)
 	button:SetDurationCooldown(cooldown)
-	button:SetDurationText(entry.timer)
+	entry.precise = false
+	ns.Auras.Precise(view, entry)
 	button:SetApplicationCount(entry.count)
 	entry.cooldown, entry.pandemic = cooldown, cue
 	fan.buttons[#fan.buttons + 1] = entry
@@ -94,7 +95,7 @@ local function Build(view)
 	local content = CreateFrame("Frame", nil, holder)
 	content:Hide()
 	content:SetAllPoints(holder)
-	local fan = { holder = holder, content = content, windows = {}, containers = {}, buttons = {}, chromes = {} }
+	local fan = { holder = holder, content = content, windows = {}, containers = {}, buttons = {}, chromes = {}, candidates = {} }
 	view.auras.fan = fan
 	fan.textStyle = TextStyle(fan)
 	for rank, degrees in ipairs(ANGLES) do
@@ -115,7 +116,7 @@ local function Build(view)
 			sortMethod = AuraContainerSortMethod.ExpirationOnly,
 			sortDirection = AuraContainerSortDirection.Normal,
 			layout = { elementWidth = SIZE, elementHeight = SIZE, elementSpacing = PITCH - SIZE, lineSpacing = 0 },
-			initializeFrame = function(button) Dress(button, fan, chrome) end,
+			initializeFrame = function(button) Dress(view, button, fan, chrome) end,
 		})
 		container:SetFlowLayoutAnchorPoint("TOPLEFT")
 		container:SetFlowLayoutGrowthDirection(AnchorUtil.FlowDirection.Right, AnchorUtil.FlowDirection.Down)
@@ -129,7 +130,7 @@ local function Build(view)
 	if chip then
 		fan.overflow = chip
 		fan.overflowOptions = {
-			enabled = true, filter = FILTER, cap = Fan.MAX, cell = SIZE, after = true,
+			enabled = true, groups = { { filter = FILTER } }, cap = Fan.MAX, cell = SIZE, after = true,
 			point = "TOP", rel = content, relPoint = "TOP", x = 0, y = -46, level = content:GetFrameLevel() + 8,
 		}
 		ns.Overflow.Apply(chip, fan.overflowOptions)
@@ -149,6 +150,7 @@ function Fan.Restyle(view)
 		end
 		for _, entry in ipairs(fan.buttons) do
 			Style(entry, fan.textStyle)
+			ns.Auras.Precise(view, entry)
 		end
 		if fan.overflow then ns.Overflow.Apply(fan.overflow, fan.overflowOptions) end
 	end
@@ -172,18 +174,23 @@ function Fan.Apply(view, enabled)
 		fan.enabled = on and true or false
 		local settings = Settings.Value("target", "auraFilters")
 		local filter = K.Options.AuraFilterString({ dispellable = settings.dispellable }, FILTER)
+		local candidates = on and ns.Auras.Candidates(view, "debuffs") or nil
 		local method, direction
 		if on and AuraContainerSortMethod and AuraContainerSortDirection then
 			method, direction = K.Options.AuraSort(settings.sort, AuraContainerSortMethod.ExpirationOnly, AuraContainerSortDirection.Normal)
 		end
-		for _, container in ipairs(fan.containers) do
+		for rank, container in ipairs(fan.containers) do
+			ns.Auras.SetCandidates(fan.candidates, rank, container, "debuffs", candidates)
 			if on then
 				container:SetAuraGroupFilterString("debuffs", filter)
 				if method and container.SetAuraGroupSortMethod then container:SetAuraGroupSortMethod("debuffs", method, direction) end
 			end
 			container:SetEnabled(on and true or false)
 		end
-		if fan.overflow then fan.overflowOptions.filter = filter; ns.Overflow.Enable(fan.overflow, on) end
+		if fan.overflow then
+			fan.overflowOptions.groups[1].filter, fan.overflowOptions.groups[1].candidates = filter, candidates
+			ns.Overflow.Enable(fan.overflow, on)
+		end
 		if not on then fan.content:Hide() end
 		K.Layout.SetLive(Fan.KEY, on)
 	end

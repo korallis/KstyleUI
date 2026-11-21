@@ -1,4 +1,4 @@
--- Preview.lua: the settings window's live preview: the frame being customised, drawn with sample values at its current size and scaled to fill the pane, its sample auras a full grid with times, stacks and the +N chip the live row shows.
+-- Preview.lua: the settings window's live preview: the frame being customised, drawn with sample values at its current size and scaled to fill the pane, its sample auras a full grid with times, stacks and the +N chip the live row shows, or only the samples its aura filters keep.
 local _, ns = ...
 
 local K = KstyleUI
@@ -23,6 +23,8 @@ local AURA_TIMES = { "12s", "4s", "1m", "25s", "8s", "3m", "40s", "2m" }
 local AURA_PRECISE = { [6] = { 168, "2m 48s" }, [8] = { 112, "1m 52s" } }
 local AURA_STACKS = { [2] = "3", [5] = "2" }
 local AURA_DISPEL = { "debuff", "steal", "buff" }
+local AURA_TRAITS = { {}, { buff = "buffStealable" }, { buff = "buffDispellable" }, { buff = "buffDefensive" }, { id = 57723 }, { buff = "" }, {}, { buff = "" } }
+local LANES = { "buffStealable", "buffDispellable", "buffDefensive" }
 local AURA_MORE = 3
 local CHIP_SHARE, CHIP_MIN, CHIP_LEVEL = 0.42, 8, 4
 local THREAT_TANKING = 3
@@ -250,15 +252,16 @@ local function PaintCast(frame, view, kind, height)
 	ns.CastBars.Layout(cb, w, castH)
 	cb.bar:SetMinMaxValues(0, 1)
 	cb.bar:SetValue(CAST_SHARE)
-	local name, left = L["Frostbolt"], CAST_LEFT
-	if kind == "player" and Settings.Value(kind, "castbarRank") then name = name .. " (" .. string.format(L["Rank %d"], CAST_RANK) .. ")" end
-	if kind == "player" and Settings.Value(kind, "castbarCraft") then name, left = name .. " (" .. CAST_CRAFTS .. ")", CAST_LEFT + (CAST_CRAFTS - 1) * CAST_TIME end
+	local name, player = L["Frostbolt"], kind == "player"
+	cb.lag, cb.batch = player and Settings.Value(kind, "castbarLagText") and CAST_LAG or nil, nil
+	if player and Settings.Value(kind, "castbarRank") then name = name .. " (" .. string.format(L["Rank %d"], CAST_RANK) .. ")" end
+	if player and Settings.Value(kind, "castbarCraft") then name, cb.batch = name .. " (" .. CAST_CRAFTS .. ")", GetTime() + CAST_LEFT + (CAST_CRAFTS - 1) * CAST_TIME end
 	ns.CastBars.SetName(cb, name, Settings.Value(kind, "castbarTarget") and SAMPLES.player.name or nil)
 	ns.CastBars.Important(cb, nil, true)
-	if kind == "player" and Settings.Value(kind, "castbarLagText") then
-		cb.timer:SetFormattedText("%.1fs (%dms)", left, CAST_LAG)
+	if cb.lag or cb.batch then
+		ns.CastBars.WriteTimer(cb, CAST_TIME - CAST_LEFT, CAST_TIME, CAST_LEFT)
 	else
-		cb.timer:SetFormattedText("%.1fs", left)
+		cb.timer:SetFormattedText("%.1fs", CAST_LEFT)
 	end
 	cb.icon:SetTexture(CAST_ICON)
 	cb.frame:SetAlpha(1)
@@ -323,6 +326,25 @@ local function PlaceTile(skin, host, kind, i, count, size, spacing, pitch, corne
 	skin:SetSize(size, size)
 end
 
+local function Samples(kind)
+	local friend = SAMPLES[kind].reaction >= 5
+	local ids = K.Options.AuraCandidates({ blockSpells = Settings.Value(kind, "auraHidden"),
+		allowSpells = friend and Settings.Value(kind, "auraTrackedOnly") and Settings.Value(kind, "auraTracked") or "" }) or {}
+	local kept = {}
+	for p, t in ipairs(AURA_TRAITS) do
+		local keep = not (t.id and Settings.Value(kind, "auraHideLockout") or ids.excludeSpellIDs and ids.excludeSpellIDs[t.id])
+		if t.buff then
+			keep = keep and not (ids.includeSpellIDs and not ids.includeSpellIDs[t.id])
+			for _, lane in ipairs(LANES) do
+				local mode = Settings.Value(kind, lane)
+				keep = keep and not (mode == "only" and t.buff ~= lane or mode == "hide" and t.buff == lane)
+			end
+		end
+		if keep then kept[#kept + 1] = p end
+	end
+	return kept
+end
+
 local function PaintAuras(frame, view, kind)
 	local tiles = frame.auraTiles[kind]
 	if not tiles then
@@ -337,13 +359,15 @@ local function PaintAuras(frame, view, kind)
 		frame.auraHosts[kind] = host
 	end
 	local on = Settings.AURAS[kind] and Settings.Value(kind, "auras")
-	local count = on and Settings.Value(kind, "auraColumns") * Settings.Value(kind, "auraRows") or 0
+	local kept = on and Samples(kind) or {}
+	local full, cap = #kept == #AURA_TRAITS, Settings.Value(kind, "auraColumns") * Settings.Value(kind, "auraRows")
+	local count = on and (full and cap or math.min(cap, #kept)) or 0
 	local filter = on and Settings.Value(kind, "auraFilter")
 	local chip = frame.auraChips[kind]
 	if count > 0 then
 		local width, height, corner, _, growth = ns.Auras.Footprint(kind, host)
 		local size = Widgets.Snap(host, Settings.Value(kind, "auraSize"))
-		local spacing = Widgets.Snap(host, Settings.Value(kind, "auraSpacing"))
+		local spacing, across = Widgets.Snap(host, Settings.Value(kind, "auraSpacing")), Widgets.Snap(host, ns.Auras.Spacing(kind))
 		local room = Widgets.Snap(host, ns.Auras.TimerRoom(kind))
 		local gap = Widgets.Snap(host, Settings.Value(kind, "auraRowGap"))
 		local timers = Settings.Value(kind, "auraTimer") == true
@@ -358,15 +382,16 @@ local function PaintAuras(frame, view, kind)
 				tile = ns.Auras.SampleTile(host)
 				tiles[i], icons[i] = tile, tile.skin
 			end
-			tile.buff = filter == "buffs" or filter == "both" and (AURA_DISPEL[i] == "steal" or AURA_DISPEL[i] == "buff")
-			tile.icon:SetTexture(AURA_ICONS[(i - 1) % #AURA_ICONS + 1])
-			PlaceTile(tile.skin, host, kind, i, count, size, spacing, size + room + spacing + gap, corner, growth)
+			local p = kept[i] or (i - 1) % #AURA_TRAITS + 1
+			tile.buff = filter == "buffs" or filter == "both" and (AURA_DISPEL[kept[i]] == "steal" or AURA_DISPEL[kept[i]] == "buff")
+			tile.icon:SetTexture(AURA_ICONS[(p - 1) % #AURA_ICONS + 1])
+			PlaceTile(tile.skin, host, kind, i, count, size, across, size + room + spacing + gap, corner, growth)
 			ns.Auras.LayoutTile(tile)
-			ns.Auras.StyleSample(tile, kind, AURA_DISPEL[i])
-			local exact = AURA_PRECISE[(i - 1) % #AURA_TIMES + 1]
-			tile.timer:SetText(exact and exact[1] < precise and exact[2] or AURA_TIMES[(i - 1) % #AURA_TIMES + 1])
+			ns.Auras.StyleSample(tile, kind, AURA_DISPEL[kept[i]])
+			local exact = AURA_PRECISE[p]
+			tile.timer:SetText(exact and exact[1] < precise and exact[2] or AURA_TIMES[p])
 			tile.timer:SetShown(timers)
-			local stack = AURA_STACKS[i]
+			local stack = AURA_STACKS[kept[i]]
 			tile.count:SetText(stack or "")
 			tile.count:SetShown(stack ~= nil)
 			tile.countBadge:SetShown(stack ~= nil)
@@ -374,7 +399,11 @@ local function PaintAuras(frame, view, kind)
 		end
 		local after = timers and room > 0
 		local centred = Settings.Value(kind, "auraPosition") == "CENTER"
-		PaintChip(frame, kind, host, tiles[count], size, after, (not centred and growth[2] == "Left") and -spacing or spacing)
+		if full then
+			PaintChip(frame, kind, host, tiles[count], size, after, (not centred and growth[2] == "Left") and -across or across)
+		elseif chip then
+			chip:Hide()
+		end
 	else
 		host:Hide()
 		if chip then

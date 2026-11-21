@@ -791,23 +791,11 @@ IconRows = function(schema, kind)
 	end
 end
 
-local function MoreCastRows(schema, kind, on)
-	local function named(s) return on(s) and s.castbarText ~= false end
-	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarFit", label = L["Show full spell name"],
-		help = L["Shrinks long spell names to fit instead of cutting them off."] }, named)
-	if kind ~= "player" then return end
-	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarRank", label = L["Show spell rank"],
-		help = L["Adds the spell's rank after its name, for spells that have one."] }, named)
-	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarLagText", label = L["Show latency"],
-		help = L["Adds your world latency to the timer, such as 1.8 (42ms)."] }, function(s) return on(s) and s.castbarTimer ~= false end)
-	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarCraft", label = L["Whole craft batch"],
-		help = L["Crafting a batch, the timer counts down the whole batch and the name shows how many are left."] }, on)
-end
-
 CastRows = function(schema, kind)
 	local function on(s)
 		return s.castbar ~= false
 	end
+	local function named(s) return on(s) and s.castbarText ~= false end
 	schema[#schema + 1] = Header(kind, L["cast bar"])
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "castbar", label = L["Cast bar"],
@@ -830,9 +818,7 @@ CastRows = function(schema, kind)
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "castbarCaps", label = L["Spell name in capitals"],
 		help = L["Capitals spaced wide, like the frame's name. Off, the name reads as the game writes it."],
-	}, function(settings)
-		return on(settings) and settings.castbarText ~= false
-	end)
+	}, named)
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "castbarTimer", label = L["Timer"],
 		help = L["Shows the seconds left on the cast bar."],
@@ -861,7 +847,7 @@ CastRows = function(schema, kind)
 		Nudges(schema, kind, part, spec[2], part == "castbarIcon" and iconShown or function(s) return on(s) and s[part] ~= false end)
 	end
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarTarget", label = L["Spell target"],
-		help = L["Adds who the spell is cast on after its name, when the game shows it."] }, function(s) return on(s) and s.castbarText ~= false end)
+		help = L["Adds who the spell is cast on after its name, when the game shows it."] }, named)
 	if kind ~= "player" then
 		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarImportant", label = L["Important cast outline"],
 			help = L["Outlines the cast bar while the unit casts a spell the game marks as important."] }, on)
@@ -892,7 +878,16 @@ CastRows = function(schema, kind)
 		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarTotal", label = L["Show total duration"],
 			help = L["Show the time cast so far and the full cast time, such as 0.4 / 2.0."] }, function(s) return on(s) and s.castbarTimer ~= false end)
 	end
-	MoreCastRows(schema, kind, on)
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarFit", label = L["Show full spell name"],
+		help = L["Shrinks long spell names to fit instead of cutting them off."] }, named)
+	if kind == "player" then
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarRank", label = L["Show spell rank"],
+			help = L["Adds the spell's rank after its name, for spells that have one."] }, named)
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarLagText", label = L["Show latency"],
+			help = L["Adds your world latency to the timer, such as 1.8 (42ms)."] }, function(s) return on(s) and s.castbarTimer ~= false end)
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarCraft", label = L["Whole craft batch"],
+			help = L["Crafting a batch, the timer counts down the whole batch and the name shows how many are left."] }, on)
+	end
 	TextRows(schema, kind, "cast")
 end
 
