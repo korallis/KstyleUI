@@ -63,7 +63,7 @@ end
 local function Visible()
 	if cross then cross:SetShown(ns.running and ns.Get("crosshair") ~= "none" and Shown(ns.Get("crosshairShow"))) end
 	if ring then
-		local shown = ns.running and ns.Get("cursorRing") and Shown(ns.Get("cursorShow")) or false
+		local shown = ns.running and ns.Get("cursorRing") and Shown(ns.Get("cursorShow"))
 		ring.x = nil
 		ring:SetShown(shown)
 		ring:SetScript("OnUpdate", shown and Follow or nil)
