@@ -419,11 +419,11 @@ local function PaintAuras(frame, view, kind)
 	local apart = on and ns.Auras.Apart(kind)
 	local rows = Settings.Value(kind, "auraRows") * (Settings.Value(kind, "auraFilter") == "both" and not apart and 2 or 1)
 	local full, cap = #kept == #AURA_TRAITS, Settings.Value(kind, "auraColumns") * rows
-	local picks, slots, i = {}, { 0, 0 }, 0
-	while on and slots[1] + slots[2] < (apart and 2 or 1) * cap and (full or i < #kept) do
-		i = i + 1
-		local into = apart and AURA_TRAITS[kept[i] or (i - 1) % #AURA_TRAITS + 1].buff and 2 or 1
-		if slots[into] < cap then slots[into], picks[#picks + 1] = slots[into] + 1, i end
+	local picks, slots, n = {}, { 0, 0 }, 0
+	while on and slots[1] + slots[2] < (apart and 2 or 1) * cap and (full or n < #kept) do
+		n = n + 1
+		local into = apart and AURA_TRAITS[kept[n] or (n - 1) % #AURA_TRAITS + 1].buff and 2 or 1
+		if slots[into] < cap then slots[into], picks[#picks + 1] = slots[into] + 1, n end
 	end
 	local count = #picks
 	local filter = on and Settings.Value(kind, "auraFilter")
