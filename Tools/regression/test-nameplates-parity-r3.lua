@@ -253,11 +253,11 @@ do
 	assert(player.name:GetText() == K.Locale.Upper("Sergeant Thaldrin"), "titles join the name")
 	assert(enemy.name:GetText() == K.Locale.Upper("Gnoll"), "enemy players keep their bare name")
 	set("friendly.playerFormat", "[name] ([level])")
-	assert(player.name:GetText() == "Thaldrin (10)", "the player format writes the name")
+	assert(player.name:GetText() == "Sergeant Thaldrin (10)", "the player format writes the name, with its title")
 	assert(npc.name:GetText() == K.Locale.Upper("Innkeeper Hale"), "NPCs keep theirs")
 	env._units.nameplate1.level = 11
 	env.FireEvent("UNIT_LEVEL", "nameplate1")
-	assert(player.name:GetText() == "Thaldrin (11)", "the format follows its tag events")
+	assert(player.name:GetText() == "Sergeant Thaldrin (11)", "the format follows its tag events")
 	set("friendly.playerFormat", "")
 
 	set("friendly.guild", "plain")

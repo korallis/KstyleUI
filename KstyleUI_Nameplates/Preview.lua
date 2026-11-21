@@ -43,6 +43,15 @@ local function Span(plate)
 	return ns.state.width + side * 2, above + h + below, side, above
 end
 
+local function Grow(frame, count)
+	for i = #frame.plates + 1, count do
+		local holder = CreateFrame("Frame", nil, frame)
+		holder:SetSize(1, 1)
+		frame.plates[i] = ns.NewPlate(holder, Preview.SAMPLES[i])
+		Plates.AddSample(frame.plates[i])
+	end
+end
+
 local function Stack(frame)
 	local width, height = frame:GetWidth(), frame:GetHeight()
 	local known = type(width) == "number" and width > 0 and type(height) == "number" and height > 0
@@ -62,6 +71,7 @@ local function Stack(frame)
 			if value and value ~= "" and value ~= 0 then first, last = rows[1], rows[1] end
 		end
 	end
+	Grow(frame, last)
 	for i = first, last do
 		local w, h = Span(frame.plates[i])
 		if not known or (w and w <= width and h <= height) then
@@ -102,13 +112,6 @@ end
 function Preview.Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	frame.plates = {}
-	for i, sample in ipairs(Preview.SAMPLES) do
-		local holder = CreateFrame("Frame", nil, frame)
-		holder:SetSize(1, 1)
-		local plate = ns.NewPlate(holder, sample)
-		Plates.AddSample(plate)
-		frame.plates[i] = plate
-	end
 	Stack(frame)
 	frame:SetScript("OnSizeChanged", Stack)
 	function frame.Refresh()

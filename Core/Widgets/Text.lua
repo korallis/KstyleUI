@@ -1,7 +1,13 @@
 -- Text.lua: shared text settings and cached tag painters that pass restricted values straight to text setters.
 local _, ns = ...
 local W, L = ns.Widgets, ns.L
-local placementPoints
+local placementPoints, textColors
+
+function W.TextColors()
+	textColors = textColors or { { value = "", label = L["Current style"] }, { value = "class", label = L["Class colour"] },
+		{ value = "reaction", label = L["Reaction colour"] }, { value = "accent", label = L["Accent"] }, { value = "custom", label = L["Custom colour"] } }
+	return textColors
+end
 
 function W.TextRows(schema, key, opts)
 	opts = opts or {}
@@ -18,11 +24,7 @@ function W.TextRows(schema, key, opts)
 		help = L["A soft shadow, or an outline for text over busy scenes."] })
 	if not opts.tags then return end
 	add({ type = "dropdown", key = "colorMode", label = L["Text colour"],
-		help = L["Keep the current style, or choose class, reaction, accent or a custom colour."], options = {
-		{ value = "", label = L["Current style"] }, { value = "class", label = L["Class colour"] },
-		{ value = "reaction", label = L["Reaction colour"] }, { value = "accent", label = L["Accent"] },
-		{ value = "custom", label = L["Custom colour"] },
-	} })
+		help = L["Keep the current style, or choose class, reaction, accent or a custom colour."], options = W.TextColors() })
 	add({ type = "color", key = "color", label = L["Custom text colour"],
 		help = L["The text colour when its colour mode is custom."], showWhen = opts.custom })
 	add({ type = "text", key = "textFormat", label = L["Text format"], maxLetters = 160,
@@ -93,9 +95,9 @@ end
 
 local parsed = {}
 local SAMPLE_FIELDS = { UnitName = "name", UnitHealth = "health", UnitHealthMax = "healthMax",
-	UnitPower = "power", UnitPowerMax = "powerMax", UnitLevel = "level", UnitGetTotalAbsorbs = "absorb" }
+	UnitPower = "power", UnitPowerMax = "powerMax", UnitLevel = "level", UnitGetTotalAbsorbs = "absorb", UnitPVPName = "pvpName" }
 local TAGS = {
-	name = { "UnitName", "Name" }, hp = { "UnitHealth", "Health" },
+	name = { "UnitName", "Name" }, title = { "UnitPVPName", "Name", nil, "UnitName" }, hp = { "UnitHealth", "Health" },
 	["hp:abr"] = { "UnitHealth", "Health", "short" }, ["hp:max"] = { "UnitHealthMax", "Health" },
 	["hp:pct"] = { "UnitHealthPercent", "Health", "percent" }, pp = { "UnitPower", "Power" },
 	["pp:abr"] = { "UnitPower", "Power", "short" }, ["pp:max"] = { "UnitPowerMax", "Power" },
@@ -169,7 +171,7 @@ function W.TagText(text, format, unit, sample)
 		elseif spec[1] == "group" then
 			value = Group(unit)
 		else
-			local fn = _G[spec[1]]
+			local fn = _G[spec[1]] or spec[4] and _G[spec[4]]
 			value = ""
 			if type(fn) == "function" then value = fn(spec[3] == "target" and unit .. "target" or unit) end
 			if spec[3] == "short" then value = W.ShortNumber(value) end

@@ -231,11 +231,9 @@ function ns.NewPlate(parent, sample)
 	plate.threatShape = plate:CreateTexture(nil, "OVERLAY")
 	plate.threatShape:Hide()
 	function health:SetRimColor(r, g, b, a)
-		self.under.edgeHard:SetColorTexture(r, g, b, a or 1)
-		if plate.healthBare then
-			local br, bg, bb = Tokens.Color("black")
-			self.under.edgeHard:SetShown(not (r == br and g == bg and b == bb))
-		end
+		local edge = self.under.edgeHard
+		if r then edge:SetColorTexture(r, g, b, a or 1) else edge:SetColorTexture(Tokens.Color("black")) end
+		if plate.healthBare then edge:SetShown(r ~= nil) end
 	end
 	plate.healthText = NewText(health, "RIGHT")
 
@@ -437,6 +435,7 @@ end
 
 function Plate:SetNameAlpha(alpha)
 	self.name:SetAlpha(alpha)
+	if self.subtitle then self.subtitle:SetAlpha(alpha) end
 	if self.nameRaid then self.nameRaid:SetAlpha(alpha) end
 	if self.pvpBadge then self.pvpBadge:SetAlpha(alpha) end
 end
@@ -695,7 +694,7 @@ function Plate:ClearUnit()
 	self:UnregisterAllEvents()
 	self.threatState = nil
 	if self.alphaTween then Motion.Stop(self.alphaTween); self.alphaTween = nil end
-	self.alphaGoal, self.hovered, self.outOfRange, self.fillWhich = nil, nil, nil, self.targetFill and false or nil
+	self.alphaGoal, self.hovered, self.outOfRange, self.fillWhich = nil, nil, nil, false
 	if self.executePulse then self.executePulse:Stop(); self.executeShown = nil end
 	self:SetAlpha(1)
 	Each("Clear", self)
@@ -767,6 +766,7 @@ function Plate:UpdateStyle()
 			self.whoSize = size
 			local path, _, flags = self.name:GetFont()
 			Widgets.ApplyFont(self.name, path, size or Settings.Get("name.size"), flags)
+			self:Reflow()
 		end
 		self:RegisterTagEvents()
 	end
@@ -775,8 +775,14 @@ end
 
 function Plate:NameFormat()
 	local key = self.who and WHO_FORMAT[self.who]
-	local own = key and Settings.Get(key)
-	return own and own ~= "" and own or self.nameFormat
+	if not key then return self.nameFormat end
+	local own = Settings.Get(key)
+	local format = own ~= "" and own or self.nameFormat
+	return self:Titled() and format:gsub("%[name%]", "[title]") or format
+end
+
+function Plate:Titled()
+	return self.who == "player" and Settings.Get("friendly.title") and (self.sample ~= nil or type(UnitPVPName) == "function")
 end
 
 function Plate:WhoColor()
@@ -909,14 +915,14 @@ function Plate:UpdateHealth(immediate, refreshing)
 	local sample = self.sample
 	if sample then
 		health:SetBarRange(0, 1)
-		health:SetHealth(sample.health, true)
+		health:SetHealth(self:SampleHealth(), true)
 	else
 		local unit = self.unit
 		health:SetBarRange(0, UnitHealthMax(unit))
 		health:SetHealth(UnitHealth(unit), immediate)
 	end
 	self:UpdateHealthText()
-	if self.absorb then self:UpdateAbsorb() end
+	if self.absorb and refreshing then self:UpdateAbsorb() end
 	if self.executeGate then self:UpdateExecute() end
 	if (self.textOptions or self.extra1 or self.extra2) and not refreshing then self:UpdateTags("Health") end
 end
@@ -981,6 +987,12 @@ local function ExecuteCurve(share)
 	return curve or nil
 end
 
+function Plate:SampleHealth()
+	local sample = self.sample
+	if sample.target and Settings.Get("health.execute") then return math.min(sample.health, (Settings.Get("health.executePercent") - 1) / 100) end
+	return sample.health
+end
+
 function Plate:LayoutExecute()
 	local on = Settings.Get("health.execute")
 	if not (on or self.executeGate) then return end
@@ -991,14 +1003,8 @@ function Plate:LayoutExecute()
 		pulse:SetAllPoints(gate)
 		local glow = Widgets.NineSlice(pulse, "shadow", "BACKGROUND", -3)
 		for _, piece in ipairs(glow) do piece:SetBlendMode("ADD") end
-		local group = pulse:CreateAnimationGroup()
-		group:SetLooping("BOUNCE")
-		local fade = group:CreateAnimation("Alpha")
-		fade:SetFromAlpha(1)
-		fade:SetToAlpha(EXECUTE_LOW)
-		fade:SetDuration(Tokens.Duration("glowBreath"))
-		fade:SetSmoothing(Tokens.Smoothing.loop)
-		self.executeGate, self.executeFrame, self.executeGlow, self.executePulse = gate, pulse, glow, group
+		self.executeGate, self.executeFrame, self.executeGlow = gate, pulse, glow
+		self.executePulse = Widgets.Pulse(pulse, 1, EXECUTE_LOW, Tokens.Duration("glowBreath"))
 	end
 	local level = self.glowFrame:GetFrameLevel()
 	self.executeGate:SetFrameLevel(level)
@@ -1014,17 +1020,20 @@ function Plate:UpdateExecute()
 	local gate = self.executeGate
 	local shown = Settings.Get("health.execute") and self.kind == "enemy" and not self.nameOnly
 	if shown and self.sample then
-		gate:SetAlpha(1)
+		gate:SetAlpha(self:SampleHealth() * 100 <= Settings.Get("health.executePercent") and 1 or 0)
 	elseif shown then
 		local curve = ExecuteCurve(Settings.Get("health.executePercent") / 100)
 		shown = curve ~= nil and self.unit ~= nil
 		if shown then gate:SetAlpha(UnitHealthPercent(self.unit, true, curve)) end
 	end
-	shown = shown or false
-	if shown == self.executeShown then return end
-	self.executeShown = shown
-	gate:SetShown(shown)
-	if shown and Motion.Level() ~= "off" then self.executePulse:Play() else self.executePulse:Stop() end
+	if shown ~= self.executeShown then
+		self.executeShown = shown
+		gate:SetShown(shown)
+	end
+	local play = shown and Motion.Level() ~= "off"
+	if play ~= self.executePulse:IsPlaying() then
+		if play then self.executePulse:Play() else self.executePulse:Stop() end
+	end
 end
 
 function Plate:UpdateHealthText()
@@ -1039,7 +1048,7 @@ function Plate:UpdateHealthText()
 	end
 	local sample = self.sample
 	if sample then
-		text:SetFormattedText("%.0f%%", Widgets.WholePercent(sample.health * 100))
+		text:SetFormattedText("%.0f%%", Widgets.WholePercent(self:SampleHealth() * 100))
 		return
 	end
 	local unit = self.unit
@@ -1059,10 +1068,11 @@ function Plate:UpdateName(refreshing)
 	local show = self.nameEnabled
 	name:SetShown(show)
 	if not show then
+		if self.subtitle then self:UpdateSubtitle() end
 		return
 	end
 	local value
-	if self.who == "player" and Settings.Get("friendly.title") then
+	if self.who == "player" and self:Titled() then
 		value = self:Is("pvpName", UnitPVPName, self.unit)
 	else
 		value = self:Is("name", UnitName, self.unit)
@@ -1088,17 +1098,18 @@ function Plate:UpdateSubtitle()
 	if self.nameEnabled and self.who == "player" and Settings.Get("friendly.guild") ~= "" then
 		text, size, brackets = self:Is("guild", GetGuildInfo, self.unit), Settings.Get("friendly.guildSize"), Settings.Get("friendly.guild") == "brackets"
 	elseif self.nameEnabled and self.who == "pet" and Settings.Get("friendly.owner") then
+		local guid = self.unit and UnitValue(UnitOwnerGUID, self.unit)
 		text = self.sample and self.sample.owner
-		local guid = not self.sample and UnitValue(UnitOwnerGUID, self.unit) or nil
 		if type(guid) ~= "nil" then text = select(6, UnitValue(GetPlayerInfoByGUID, guid)) end
 		size = Settings.Get("friendly.ownerOwnSize") and Settings.Get("friendly.ownerSize") or self.whoSize or Settings.Get("name.size")
 	end
-	if not IsSecret(text) and (text == nil or text == "") then text = nil end
+	local has = IsSecret(text) or type(text) == "string" and text ~= ""
 	local sub, fresh = self.subtitle, false
-	if text ~= nil then
+	if has then
 		if not sub then
 			fresh = true
 			sub = NewText(self, "CENTER")
+			sub:SetAlpha(self.name:GetAlpha())
 			self.subtitle = sub
 		end
 		local path, _, flags = self.name:GetFont()
@@ -1109,13 +1120,18 @@ function Plate:UpdateSubtitle()
 	elseif sub then
 		sub:Hide()
 	end
-	local room = text ~= nil and not self.nameOnly and Widgets.Snap(self, size + SUB_GAP) or 0
+	local room = has and not self.nameOnly and Widgets.Snap(self, size + SUB_GAP) or 0
 	if fresh or room ~= (self.subtitleRoom or 0) then
 		self.subtitleRoom = room
 		self:LayoutName()
-		ns.Auras.Reanchor(self)
-		if self.rise then ns.Stacking.Bound(self, self.rise) end
+		self:Reflow()
 	end
+end
+
+function Plate:Reflow()
+	ns.Auras.Reanchor(self)
+	if self.resource and self.resource:IsShown() then self.resourceStale = true; ns.Resource.Place(self, true) end
+	if self.rise then ns.Stacking.Bound(self, self.rise) end
 end
 
 function Plate:MatchSubtitle()
@@ -1161,7 +1177,7 @@ end
 function Plate:PaintTags(key)
 	local sample = self.sample
 	if sample then
-		sample = { name = sample.name, health = sample.health * 100, healthMax = 100, level = sample.level, reaction = sample.reaction, own = sample.isPlayer }
+		sample = { name = sample.name, pvpName = sample.pvpName or sample.name, health = self:SampleHealth() * 100, healthMax = 100, level = sample.level, reaction = sample.reaction, own = sample.isPlayer }
 	end
 	local format = key == "name" and self:NameFormat() or Settings.Get(key .. ".textFormat")
 	local tag = key == "name" and self.statusTags and self:StatusTag()
@@ -1329,7 +1345,7 @@ function Plate:UpdateThreat()
 		if keyline and state then
 			self.health:SetRimColor(ThreatColor(state))
 		else
-			self.health:SetRimColor(Tokens.Color("black"))
+			self.health:SetRimColor()
 		end
 	end
 	if state and display == "glow" and not keyline then
@@ -1396,7 +1412,7 @@ function Plate:UpdateHighlight(sigilCasts)
 		Widgets.ShowSlice(self.targetGlow, glow)
 	end
 	self.targeted, self.focused = targeted, isFocus and not self.nameOnly
-	if self.targetFill then self:UpdateFill() end
+	self:UpdateFill()
 	local tall = isFocus and Settings.Get("focus.castHeight") ~= 1 or nil
 	if tall ~= self.castFocus then
 		self.castFocus = tall
@@ -1412,7 +1428,7 @@ function Plate:UpdateHighlight(sigilCasts)
 	elseif ThreatEdge() and self.threatState then
 		health:SetRimColor(ThreatColor(self.threatState))
 	else
-		health:SetRimColor(Tokens.Color("black"))
+		health:SetRimColor()
 	end
 	local castScale = self.kind == "enemy" and Settings.Get("cast.scale") or 1
 	local casting = castScale ~= 1 and (self.casting or not ns.Cast.Shows(self) and ns.Cast.Active(self))

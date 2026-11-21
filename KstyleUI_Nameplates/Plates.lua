@@ -325,8 +325,9 @@ end
 
 local UNIT_EVENTS = {
 	UNIT_HEALTH = Method("UpdateHealth"),
-	UNIT_MAXHEALTH = Method("UpdateHealth"),
+	UNIT_MAXHEALTH = function(plate) plate:UpdateHealth(); if plate.absorb then plate:UpdateAbsorb() end end,
 	UNIT_NAME_UPDATE = Method("UpdateName"),
+	PLAYER_GUILD_UPDATE = function(plate) if plate.subtitled or plate.subtitle then plate:UpdateSubtitle() end end,
 	UNIT_LEVEL = function(plate) plate:UpdateLevel(); plate:RefreshType(); plate:UpdateTags("Level") end,
 	PLAYER_FLAGS_CHANGED = function(plate) if plate.statusTags then plate:UpdateName() end end,
 	UNIT_CLASSIFICATION_CHANGED = function(plate)
@@ -415,7 +416,7 @@ local function OnHover()
 	if get then ok, base = pcall(get, "mouseover") end
 	if ok then
 		plate = base and byBase[base]
-	else
+	elseif not ns.state.inCombat then
 		for _, each in pairs(byUnit) do
 			local same = UnitIsUnit and UnitIsUnit(each.unit, "mouseover")
 			if not IsSecret(same) and same == true then plate = each end
@@ -429,11 +430,10 @@ local function OnHover()
 end
 
 local RANGE_STEP = 0.25
-local rangeTicker, hoverOn, worldOn
+local rangeTicker, rangeSpell, hoverOn, worldOn
 
 local function CheckRange()
-	local named = Settings.Get("range.spell")
-	local spell = named ~= "" and ns.Interrupt.NamedSpell(named) or ns.Interrupt.spell
+	local spell = rangeSpell or ns.Interrupt.spell
 	local api = C_Spell and C_Spell.IsSpellInRange
 	if not (spell and type(api) == "function") then
 		LogOnce("range", "no range spell or C_Spell.IsSpellInRange; plates keep their opacity")
@@ -468,12 +468,15 @@ function Plates.SyncOptions()
 		hoverOn = hover
 		if hover then
 			K.Events.Register(MODULE, "UPDATE_MOUSEOVER_UNIT", OnHover)
+			OnHover()
 		else
 			K.Events.Unregister(MODULE, "UPDATE_MOUSEOVER_UNIT")
 			if hovered then hovered.hovered = nil; hovered:UpdateFill(); hovered = nil end
 		end
 	end
 	local range = Plates.running and Settings.Get("range.fade")
+	local named = range and Settings.Get("range.spell") or ""
+	rangeSpell = named ~= "" and ns.Interrupt.NamedSpell(named) or nil
 	if range and not rangeTicker and C_Timer and type(C_Timer.NewTicker) == "function" then
 		rangeTicker = C_Timer.NewTicker(RANGE_STEP, CheckRange)
 	elseif not range and rangeTicker then

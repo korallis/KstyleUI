@@ -194,6 +194,7 @@ local function Pulse(owner, low, high, duration)
 	alpha:SetSmoothing(Tokens.Smoothing.loop)
 	return group, alpha
 end
+Widgets.Pulse = Pulse
 
 function Widgets.ProcMotion(frame, body)
 	local function Fade(from, to, duration, smoothing)

@@ -93,7 +93,7 @@ local function Layout(frame, plate)
 	Widgets.Size(frame, math.max(span, ew), Height(plate))
 	frame:ClearAllPoints()
 	if Settings.Get("resource.place") == "TOP" then
-		local name = Settings.Get("name.show") and not plate.nameOnly and ns.Plate.NAME_GAP + Settings.Get("name.size") + GAP or GAP
+		local name = Settings.Get("name.show") and not plate.nameOnly and ns.Plate.NAME_GAP + (plate.subtitleRoom or 0) + (plate.whoSize or Settings.Get("name.size")) + GAP or GAP
 		frame:SetPoint("BOTTOM", plate.health, "TOP", 0, Widgets.Snap(plate, name))
 	else
 		frame:SetPoint("TOP", plate.health, "BOTTOM", 0, -Widgets.Snap(plate, ns.Cast.Room(plate) + GAP))

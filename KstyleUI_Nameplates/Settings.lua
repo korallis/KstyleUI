@@ -159,10 +159,6 @@ function Settings.Schema()
 		{ value = "difficulty", label = L["Level difficulty colour"] },
 		{ value = "custom", label = L["Custom colour"] },
 	}
-	local NAME_COLORS = {
-		{ value = "", label = L["Current style"] }, { value = "class", label = L["Class colour"] }, { value = "reaction", label = L["Reaction colour"] },
-		{ value = "accent", label = L["Accent"] }, { value = "custom", label = L["Custom colour"] },
-	}
 	local TIME_PLACES = {
 		{ value = "BELOW", label = L["Under the icon"] }, { value = "CENTER", label = L["Centre"] },
 		{ value = "TOP", label = L["Top"] }, { value = "BOTTOM", label = L["Bottom"] },
@@ -297,7 +293,7 @@ function Settings.Schema()
 			type = "toggle", key = "friendly.nameOnly", label = L["Name only"],
 			help = L["Friendly plates show just the name, without a health bar."],
 		},
-		{ type = "dropdown", key = "friendly.nameMode", label = L["Player name colour"], help = L["Colours friendly players' names. The current style keeps the name's own colour."], options = NAME_COLORS },
+		{ type = "dropdown", key = "friendly.nameMode", label = L["Player name colour"], help = L["Colours friendly players' names. The current style keeps the name's own colour."], options = K.Widgets.TextColors() },
 		{ type = "color", key = "friendly.nameColor", label = L["Custom player name colour"], help = L["The name colour when its colour mode is custom."], showWhen = Is("friendly.nameMode", "custom") },
 		{ type = "text", key = "friendly.playerFormat", label = L["Player name format"], help = L["A format for friendly players' names, with the name tags. Blank uses the name's format."], maxLetters = 160 },
 		{ type = "toggle", key = "friendly.title", label = L["Player titles"], help = L["Writes friendly players' names with their title."] },
@@ -308,7 +304,7 @@ function Settings.Schema()
 		{ type = "color", key = "friendly.guildColor", label = L["Guild colour"], help = L["The guild line's colour."], disableWhen = Either(Is("friendly.guild", ""), Is("friendly.guildMatch", true)) },
 		{ type = "text", key = "friendly.npcFormat", label = L["NPC name format"], help = L["A format for friendly NPCs' names, with the name tags. Blank uses the name's format."], maxLetters = 160 },
 		{ type = "slider", key = "friendly.npcSize", label = L["NPC name size"], help = L["The size of friendly NPCs' names. 0 uses the name size."], min = 0, max = TEXT_MAX, step = 1 },
-		{ type = "dropdown", key = "friendly.npcNameMode", label = L["NPC name colour"], help = L["Colours friendly NPCs' names. The current style keeps the name's own colour."], options = NAME_COLORS },
+		{ type = "dropdown", key = "friendly.npcNameMode", label = L["NPC name colour"], help = L["Colours friendly NPCs' names. The current style keeps the name's own colour."], options = K.Widgets.TextColors() },
 		{ type = "color", key = "friendly.npcColor", label = L["Custom NPC name colour"], help = L["The name colour when its colour mode is custom."], showWhen = Is("friendly.npcNameMode", "custom") },
 		{ type = "slider", key = "friendly.petSize", label = L["Pet name size"], help = L["The size of friendly pets' and minions' names. 0 uses the name size."], min = 0, max = TEXT_MAX, step = 1 },
 		{ type = "toggle", key = "friendly.owner", label = L["Owner under pet names"], help = L["Shows whose pet or minion it is on a line under a friendly pet's name."] },
@@ -617,8 +613,8 @@ function Settings.Schema()
 		{ type = "toggle", key = "target.glow", label = L["Target glow"], help = L["Glows around your target's plate in the target colour."] },
 		{ type = "slider", key = "target.glowAlpha", label = L["Glow opacity"], help = L["How strong the target glow is."], min = 0, max = 1, step = 0.05, disableWhen = Off("target.glow") },
 		{ type = "toggle", key = "target.fill", label = L["Target bar highlight"], help = L["Brightens your target's health bar."] },
-		{ type = "color", key = "target.fillColor", label = L["Highlight colour"], help = L["The colour that brightens your target's health bar."], disableWhen = Off("target.fill") },
-		{ type = "slider", key = "target.fillAlpha", label = L["Highlight opacity"], help = L["How strongly your target's health bar is brightened."], min = 0, max = 1, step = 0.05, disableWhen = Off("target.fill") },
+		{ type = "color", key = "target.fillColor", label = L["Highlight colour"], help = L["The colour that brightens your target's health bar."], disableWhen = None(Is("target.fill", true), Is("target.hover", true)) },
+		{ type = "slider", key = "target.fillAlpha", label = L["Highlight opacity"], help = L["How strongly your target's health bar is brightened."], min = 0, max = 1, step = 0.05, disableWhen = None(Is("target.fill", true), Is("target.hover", true)) },
 		{ type = "slider", key = "target.scale", label = L["Target plate size"], help = L["Draws your target's plate larger. 1 keeps its size."], min = 1, max = 1.6, step = 0.05 },
 		{ type = "toggle", key = "target.hover", label = L["Highlight under the mouse"], help = L["Brightens the health bar of the plate under your mouse with the highlight colour."] },
 		{ type = "toggle", key = "target.fillOwn", label = L["Highlight in the bar's colour"], help = L["Highlights take the health bar's own colour instead of their highlight colour."],
