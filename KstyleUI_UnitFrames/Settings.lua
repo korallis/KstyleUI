@@ -218,6 +218,8 @@ Settings.defaults = {
 	healthDecimalBoss = false, targetSounds = false, reactionColors = false, hostileColor = Color("healthHostile"),
 	neutralColor = Color("neutral"), friendlyColor = Color("friendly"), tappedColor = Color("textDisabled"),
 	castbarRaise = false,
+	dispelCustom = false, dispelMagic = { r = 0.2, g = 0.6, b = 1 }, dispelCurse = { r = 0.6, g = 0, b = 1 }, dispelPoison = { r = 0, g = 0.6, b = 0 },
+	dispelDisease = { r = 0.6, g = 0.4, b = 0 }, dispelBleed = { r = 0.8, g = 0.1, b = 0.1 },
 	accent = "class",
 	accentColor = Color("accentDefault"),
 	dangerEdge = true,
@@ -287,9 +289,10 @@ local function Live(d, values)
 end
 for _, kind in ipairs(KINDS) do
 	Live(Settings.defaults[kind], { buffStealable = "", buffDefensive = "", buffDispellable = "", auraHidden = "", auraTracked = "",
-		auraTimed = false, auraHideLockout = false, auraTrackedOnly = false, auraRowGap = 0, auraPrecise = 0, castbarFit = false })
+		auraTimed = false, auraHideLockout = false, auraTrackedOnly = false, auraRowGap = 0, auraPrecise = 0, castbarFit = false, castbarIconSize = 0, auraLists = "" })
 end
-Live(Settings.defaults.player, { castbarRank = false, castbarLagText = false, castbarCraft = false })
+Live(Settings.defaults.player, { castbarRank = false, castbarLagText = false, castbarCraft = false, castbarCraftBar = false, castbarRangeGrey = false, dispelOverlay = "", dispelFilter = "PLAYER",
+	dispelAlpha = 0.3, dispelEdge = false, dispelIcon = "", dispelIconSize = 14, totems = false, totemPosition = "ABOVE", totemSize = 24 })
 
 local function Options(list)
 	local out = {}
@@ -337,6 +340,11 @@ Settings.CHOICES = {
 	absorbBar = Options({ { "", L["None"] }, { "TOP", L["Top"] }, { "BOTTOM", L["Bottom"] } }),
 	align = Options({ { "", L["Current style"] }, { "LEFT", L["Left"] }, { "CENTER", L["Centre"] }, { "RIGHT", L["Right"] } }),
 	powerTextColor = Options({ { "", L["Current style"] }, { "power", L["Power type"] }, { "custom", L["Custom colour"] } }),
+	dispelOverlay = Options({ { "", L["Off"] }, { "health", L["Health bar"] }, { "frame", L["Whole frame"] } }),
+	dispelFilter = Options({ { "PLAYER", L["Debuffs you can dispel"] }, { "GROUP", L["Debuffs anyone in the group can dispel"] } }),
+	dispelIcon = Options({ { "", L["Off"] }, { "TOPLEFT", L["Top left"] }, { "TOP", L["Top"] }, { "TOPRIGHT", L["Top right"] }, { "LEFT", L["Left"] }, { "CENTER", L["Centre"] },
+		{ "RIGHT", L["Right"] }, { "BOTTOMLEFT", L["Bottom left"] }, { "BOTTOM", L["Bottom"] }, { "BOTTOMRIGHT", L["Bottom right"] } }),
+	totemPosition = Options({ { "ABOVE", L["Above the frame"] }, { "BELOW", L["Below the frame"] }, { "LEFT", L["Left of the frame"] }, { "RIGHT", L["Right of the frame"] } }),
 }
 local CHOICES = Settings.CHOICES
 CHOICES.threatPlace = Options({ { "OUTLEFT", L["Left of the bar"] }, { "OUTRIGHT", L["Right of the bar"] }, { "LEFT", L["Inside the left edge"] },
@@ -370,6 +378,7 @@ local CHOICE_OF = {
 	powerTextAlign = "align", powerTextColor = "powerTextColor",
 	threatPercentPosition = "threatPlace",
 	slabThreatPercentPosition = "threatPlace",
+	dispelOverlay = "dispelOverlay", dispelFilter = "dispelFilter", dispelIcon = "dispelIcon", totemPosition = "totemPosition", auraLists = "auraCopy",
 }
 
 local function Allowed(list, value)
@@ -459,6 +468,7 @@ local RANGES = {
 	maxHealthAlpha = { ALPHA_MIN, 1 },
 	classZoom = { 0, ZOOM_MAX }, leaderSize = { 0, ICON_SIZE_MAX }, pvpSize = { 0, ICON_SIZE_MAX }, eliteSize = { 0, ICON_SIZE_MAX }, combatSize = { 0, ICON_SIZE_MAX },
 	pvpTimerSize = { FONT_SIZE_MIN, FONT_SIZE_MAX },
+	castbarIconSize = { 0, 64 }, dispelAlpha = { 0.05, 1 }, dispelIconSize = { 8, 40 }, totemSize = { 16, 48 },
 }
 for _, key in ipairs({ "auraX", "auraY", "auraTimerX", "auraTimerY", "auraCountX", "auraCountY",
 	"castbarIconX", "castbarIconY", "castbarTextX", "castbarTextY", "castbarTimerX", "castbarTimerY",
@@ -494,6 +504,8 @@ end
 local AURA_LOOK = { auraSize = "simple", auraPosition = false, auraSpacing = true, auraRows = "simple", auraColumns = true,
 	auraGrowth = true, auraTimer = true, auraZoom = true, auraBuffZoom = true, auraTooltipCombat = true, auraRowGap = true, auraPrecise = true }
 Settings.AURA_LOOK = AURA_LOOK
+local LISTS = { auraHidden = true, auraTracked = true, auraTrackedOnly = true }
+Settings.LISTS = LISTS
 
 local function SimpleSize()
 	local G, uf = ns.Geometry, ns.Frames and ns.Frames.Get("boss")
@@ -536,6 +548,10 @@ local function Value(kind, key)
 end
 
 local function Linked(kind, key)
+	if LISTS[key] then
+		local from = Kinds(kind).auraLists
+		if from and from ~= kind and Settings.AURAS[from] then return Value(from, key) end
+	end
 	local look = AURA_LOOK[key]
 	if look ~= nil then
 		local own = Kinds(kind)
@@ -555,7 +571,7 @@ local function Link()
 	local linked = false
 	for kind in pairs(Settings.AURAS) do
 		local own = Kinds(kind)
-		linked = linked or (own.auraCopy or "") ~= "" or (own.auraSimple or "") ~= ""
+		linked = linked or (own.auraCopy or "") ~= "" or (own.auraSimple or "") ~= "" or (own.auraLists or "") ~= ""
 	end
 	Settings.Value = linked and Linked or Value
 end
@@ -565,7 +581,7 @@ function Settings.Value(kind, key)
 	Link()
 	return Settings.Value(kind, key)
 end
-K.Callbacks.Register("SettingChanged", MODULE .. ":link", function(_, module, key) if module == MODULE and (key:find("aura[CS]") or not key:find(".", 1, true)) and Saved() then Link() end end)
+K.Callbacks.Register("SettingChanged", MODULE .. ":link", function(_, module, key) if module == MODULE and (key:find("aura[CSL]") or not key:find(".", 1, true)) and Saved() then Link() end end)
 K.Callbacks.Register("ProfileChanged", MODULE .. ":link", function() if Saved() then Link() end end)
 
 local RESOURCE_CHOICES = { comboColor = "accent", manaColor = "manaColor", manaOrientation = "orientation", manaText = "text", manaTextAlign = "align" }
@@ -934,6 +950,8 @@ CastRows = function(schema, kind)
 	end
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarIconRight", label = L["Icon on the right"],
 		help = L["Put the spell icon at the right end of the cast bar."] }, iconShown)
+	schema[#schema + 1] = Row(kind, { type = "slider", key = "castbarIconSize", label = L["Spell icon size"], min = 0, max = 64, step = 1,
+		help = L["The spell icon's size in units, up to the bar's height. 0 matches the bar's height."] }, iconShown)
 	for _, spec in ipairs({ { "castbarIcon", L["Spell icon"] }, { "castbarText", L["Spell name"] }, { "castbarTimer", L["Timer"] } }) do
 		local part = spec[1]
 		Nudges(schema, kind, part, spec[2], part == "castbarIcon" and iconShown or function(s) return on(s) and s[part] ~= false end)
@@ -954,10 +972,8 @@ CastRows = function(schema, kind)
 		schema[#schema + 1] = Row(kind, { type = "slider", key = "castbarWidth", label = L["Cast bar width"], min = 0, max = CAST_WIDTH_MAX, step = 1,
 			help = L["The cast bar's width under the frame. 0 matches the frame."], shown = function(value) return value > 0 and math.max(value, CAST_WIDTH_MIN) or value end }, on)
 	end
-	if kind == "pet" or kind == "boss" then
-		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarHideIdle", label = L["Hide when idle"],
-			help = L["Hides the cast bar between casts. Off keeps its empty track shown."] }, on)
-	end
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarHideIdle", label = L["Hide when idle"],
+		help = L["Hides the cast bar between casts. Off keeps its empty track shown."] }, on)
 	if kind == "player" then
 		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarSmooth", label = L["Smooth cast progress"],
 			help = L["Use the game's smoothing for cast and channel progress."] }, on)
@@ -965,6 +981,8 @@ CastRows = function(schema, kind)
 			help = L["Use a separate fill colour while you channel a spell."] }, on)
 		schema[#schema + 1] = Row(kind, { type = "color", key = "castbarChannelColor", label = L["Channel colour"],
 			help = L["The fill colour for channels. Uninterruptible colour still takes priority."] }, function(s) return on(s) and s.castbarChannelOverride == true end)
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarRangeGrey", label = L["Grey when out of range"],
+			help = L["Greys the fill while your target is out of range of the spell you are casting."] }, on)
 		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarLatency", label = L["Latency zone"],
 			help = L["Marks world latency at the end of your cast when cast times are readable."] }, on)
 		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarTotal", label = L["Show total duration"],
@@ -979,11 +997,14 @@ CastRows = function(schema, kind)
 			help = L["Adds your world latency to the timer, such as 1.8 (42ms)."] }, function(s) return on(s) and s.castbarTimer ~= false end)
 		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarCraft", label = L["Whole craft batch"],
 			help = L["Crafting a batch, the timer counts down the whole batch and the name shows how many are left."] }, on)
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarCraftBar", label = L["Whole batch on the bar"],
+			help = L["Crafting a batch, the bar fills once across every craft, with the batch's timer and count."] }, on)
 	end
 	TextRows(schema, kind, "cast")
 end
 
 local function FilterRows(schema, kind, on, own)
+	local function listed(s) return s.auraLists == nil or s.auraLists == "" or s.auraLists == kind end
 	local function buffs()
 		local filter = Settings.Value(kind, "auraFilter")
 		return on() and (filter == "buffs" or filter == "both")
@@ -1000,11 +1021,11 @@ local function FilterRows(schema, kind, on, own)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraHideLockout", label = L["Hide Bloodlust lockouts"],
 		help = L["Hides Sated, Exhaustion and the other Bloodlust lockout debuffs on friendly units."] }, on)
 	schema[#schema + 1] = Row(kind, { type = "text", key = "auraHidden", label = L["Hidden spell IDs"], maxLetters = SPELL_LIST_LETTERS,
-		help = L["Hides these spell IDs, separated by commas or spaces, on buffs of friends and debuffs of enemies."] }, on)
+		help = L["Hides these spell IDs, separated by commas or spaces, on buffs of friends and debuffs of enemies."] }, function(s) return on() and listed(s) end)
 	schema[#schema + 1] = Row(kind, { type = "text", key = "auraTracked", label = L["Tracked spell IDs"], maxLetters = SPELL_LIST_LETTERS,
-		help = L["The buffs Only tracked buffs keeps, as spell IDs separated by commas or spaces."] }, buffs)
+		help = L["The buffs Only tracked buffs keeps, as spell IDs separated by commas or spaces."] }, function(s) return buffs() and listed(s) end)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraTrackedOnly", label = L["Only tracked buffs"],
-		help = L["On friendly units, shows only the buffs in Tracked spell IDs. Enemy buffs show as usual."] }, buffs)
+		help = L["On friendly units, shows only the buffs in Tracked spell IDs. Enemy buffs show as usual."] }, function(s) return buffs() and listed(s) end)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraRowGap", label = L["Extra row spacing"],
 		help = L["Adds this many units between aura rows, on top of Aura spacing."], min = 0, max = AURA_SPACING_MAX, step = 1 }, own)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraPrecise", label = L["Precise timers below (minutes)"],
@@ -1048,6 +1069,8 @@ AuraRows = function(schema, kind)
 	end
 	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "auraCopy", label = L["Copy auras from"], options = copies,
 		help = L["Use another frame's aura size, spacing, rows, growth, timers and zoom."] }, on)
+	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "auraLists", label = L["Spell ID lists from"], options = copies,
+		help = L["Use another frame's hidden and tracked spell IDs, and its Only tracked buffs switch."] }, on)
 	local function simple(s) return kind == "boss" and (s.auraSimple == "LEFT" or s.auraSimple == "RIGHT") end
 	local function own(s) return on() and (s.auraCopy == nil or s.auraCopy == "" or s.auraCopy == kind) end
 	local function placed(s) return on() and not simple(s) end
@@ -1306,6 +1329,27 @@ local function KindRows(schema, kind)
 		if spec[2] == "maxHealthAlpha" then row.min, row.max, row.step = ALPHA_MIN, 1, ALPHA_STEP end
 		schema[#schema + 1] = Row(kind, row, spec[4])
 	end
+	if kind == "player" then
+		local function flat() return Settings.Form(kind) ~= "slab" end
+		local function any(s) return flat() and ((s.dispelOverlay or "") ~= "" or s.dispelEdge == true or (s.dispelIcon or "") ~= "") end
+		for _, spec in ipairs({
+			{ "dropdown", "dispelOverlay", L["Dispel overlay"], flat, L["Washes the health bar or the whole frame in a debuff's dispel colour."], CHOICES.dispelOverlay },
+			{ "slider", "dispelAlpha", L["Highlight fill opacity"], function(s) return flat() and (s.dispelOverlay or "") ~= "" end, L["How strongly the debuff type's colour tints the frame."] },
+			{ "toggle", "dispelEdge", L["Dispel edge"], flat, L["Outlines the frame in a debuff's dispel colour."] },
+			{ "dropdown", "dispelIcon", L["Dispel type icon"], flat, L["Shows the type icon of a debuff you can dispel on the health bar. Off shows none."], CHOICES.dispelIcon },
+			{ "slider", "dispelIconSize", L["Dispel type icon size"], function(s) return flat() and (s.dispelIcon or "") ~= "" end, L["The dispel type icon's size."] },
+			{ "dropdown", "dispelFilter", L["Highlight debuffs"], any, L["Highlights debuffs you can dispel, or ones anyone in the group can."], CHOICES.dispelFilter },
+		}) do
+			local row = { type = spec[1], key = spec[2], label = spec[3], help = spec[5], options = spec[6] }
+			if spec[1] == "slider" then row.min, row.max, row.step = RANGES[spec[2]][1], RANGES[spec[2]][2], spec[2] == "dispelAlpha" and 0.05 or 1 end
+			schema[#schema + 1] = Row(kind, row, spec[4])
+		end
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "totems", label = L["Totem timers"], help = L["Shows your totems and their time left beside the player frame."] })
+		schema[#schema + 1] = Row(kind, { type = "dropdown", key = "totemPosition", label = L["Totem position"], options = CHOICES.totemPosition,
+			help = L["Which side of the player frame the totems sit on."] }, function(s) return s.totems == true end)
+		schema[#schema + 1] = Row(kind, { type = "slider", key = "totemSize", label = L["Totem size"], min = RANGES.totemSize[1], max = RANGES.totemSize[2], step = 1,
+			help = L["The size of each totem icon in units."] }, function(s) return s.totems == true end)
+	end
 	schema[#schema + 1] = Header(kind, L["power bar"])
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "power", label = L["Power bar"],
@@ -1383,6 +1427,13 @@ function Settings.Schema()
 		{ type = "color", key = "neutralColor", label = L["Neutral colour"], help = L["The bar colour for these units while custom reaction colours are on."], showWhen = function(s) return s.reactionColors == true end },
 		{ type = "color", key = "friendlyColor", label = L["Friendly colour"], help = L["The bar colour for these units while custom reaction colours are on."], showWhen = function(s) return s.reactionColors == true end },
 		{ type = "color", key = "tappedColor", label = L["Tapped colour"], help = L["The bar colour for these units while custom reaction colours are on."], showWhen = function(s) return s.reactionColors == true end },
+		{ type = "toggle", key = "dispelCustom", label = L["Own dispel colours"],
+			help = L["Colours the dispel overlay, edge and type icon and the aura dispel edges in the colours below."] },
+		{ type = "color", key = "dispelMagic", label = L["Magic colour"], help = L["The colour of this debuff type."], showWhen = function(s) return s.dispelCustom == true end },
+		{ type = "color", key = "dispelCurse", label = L["Curse colour"], help = L["The colour of this debuff type."], showWhen = function(s) return s.dispelCustom == true end },
+		{ type = "color", key = "dispelPoison", label = L["Poison colour"], help = L["The colour of this debuff type."], showWhen = function(s) return s.dispelCustom == true end },
+		{ type = "color", key = "dispelDisease", label = L["Disease colour"], help = L["The colour of this debuff type."], showWhen = function(s) return s.dispelCustom == true end },
+		{ type = "color", key = "dispelBleed", label = L["Bleed colour"], help = L["The colour of this debuff type."], showWhen = function(s) return s.dispelCustom == true end },
 		{ type = "toggle", key = "stableSlabNames", label = L["Keep Medallions name face"],
 			help = L["Shorten long names in the same face and capitals. Off allows the original body face."] },
 		{ type = "toggle", key = "singleSlabLevel", label = L["Show each level once"],

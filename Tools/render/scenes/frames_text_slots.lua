@@ -1,4 +1,4 @@
--- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text, unit-frame parity round 1, 2, 3a, 3b, 3c or 3d options through Options, or (RENDER_AURA_BOTH=1) the target's Debuffs and buffs with timers under the icons, nudged by RENDER_AURA_TIMER_Y.
+-- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text, unit-frame parity round 1, 2, 3a, 3b, 3c, 3d or 4b options through Options, or (RENDER_AURA_BOTH=1) the target's Debuffs and buffs with timers under the icons, nudged by RENDER_AURA_TIMER_Y.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -181,6 +181,25 @@ return Common.Run(function()
 		env._units.target.auras = { { id = 1, icon = 135813, left = 9, harmful = true, mine = true }, { id = 2, icon = 136026, left = 3, harmful = true, mine = true },
 			{ id = 3, icon = 136207, left = 30, harmful = false }, { id = 4, icon = 136118, left = 12, harmful = false } }
 		dofile("Tools/regression/aura_fixture_engine.lua").Install(env)
+	end
+	if os.getenv("RENDER_PARITY_R4B") == "1" and module == "UnitFrames" then
+		local totems = { [1] = 136026, [2] = 135813, [4] = 136207 }
+		env.GetNumTotemSlots = function() return 4 end
+		env.GetTotemInfo = function(slot)
+			if not totems[slot] then return false, "", 0, 0, 0, 1, 0 end
+			return true, "Totem", env._time - slot * 5, 60, totems[slot], 1, slot
+		end
+		env.C_Spell.IsSpellInRange = function() return false end
+		env._units.player.auras = { { id = 9, icon = 136207, left = 12, harmful = true, mine = false, dispel = "Magic" } }
+		K.Options.Get(module)
+		for _, pair in ipairs({ { "player.dispelOverlay", "health" }, { "player.dispelEdge", true }, { "player.dispelIcon", "TOPRIGHT" }, { "player.dispelIconSize", 16 },
+			{ "player.totems", true }, { "player.castbarRangeGrey", true }, { "player.castbarIconSize", 14 }, { "target.castbarHideIdle", false } }) do
+			K.Options.Write(module, pair[1], pair[2])
+		end
+		dofile("Tools/regression/aura_fixture_engine.lua").Install(env)
+		env.FireEvent("PLAYER_TOTEM_UPDATE", 1)
+		local cast = env._units.player.cast
+		if cast then env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", cast.spellID) end
 	end
 	env.RunTimers(); Gallery.Ticks(dofile("Tools/regression/widget_env.lua"), env, 40)
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))

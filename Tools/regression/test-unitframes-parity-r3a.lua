@@ -44,7 +44,7 @@ assert(pet.castbar == nil, "no pet cast bar is made until it is turned on")
 
 local schema = keys(Settings.Schema())
 assert(schema["pet.castbarWidth"] and not schema["boss.castbarWidth"], "only the pet has a cast bar width")
-assert(schema["pet.castbarHideIdle"] and schema["boss.castbarHideIdle"] and not schema["player.castbarHideIdle"], "pet and boss can keep an idle bar")
+assert(schema["pet.castbarHideIdle"] and schema["boss.castbarHideIdle"] and schema["player.castbarHideIdle"], "every cast bar can keep an idle bar")
 assert(schema["pet.happinessPosition"] and not schema["target.happinessPosition"], "only the pet places a happiness badge")
 assert(schema["boss.auraSimple"] and not schema["target.auraSimple"], "only boss frames have the simple display")
 assert(schema["target.markerSize"] and schema["target.auraBuffZoom"] and schema["boss.auraCopy"], "marker size, buff zoom and copy rows exist")

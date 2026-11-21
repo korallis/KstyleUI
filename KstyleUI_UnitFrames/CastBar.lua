@@ -54,6 +54,7 @@ local FLASH_LEVEL = 2
 local LIT_ALPHA, SHADE_ALPHA = 0.6, 0.45
 local MEDAL_INSET, MEDAL_TEXT_PAD = 3, 5
 local SPARK = { 227 / 255, 232 / 255, 238 / 255, 1 }
+local RANGE_STEP = 0.2
 
 local EVENTS = {
 	UNIT_SPELLCAST_START = "Cast",
@@ -236,9 +237,12 @@ local function StopTimer(cb)
 	cb.frame:SetScript("OnUpdate", nil)
 end
 
+local StopRange
+
 local function EndTimer(cb, value)
 	cb.inkEmpty = value == 0
 	StopTimer(cb)
+	StopRange(cb)
 	if cb.latency then cb.latency:Hide() end
 	if cb.important then cb.important:Hide() end
 	cb.duration = nil
@@ -284,6 +288,7 @@ local function Hide(cb, instant)
 		EndTimer(cb, 0)
 	end
 	StopTimer(cb)
+	StopRange(cb)
 	if cb.latency then cb.latency:Hide() end
 	if cb.important then cb.important:Hide() end
 	cb.duration = nil
@@ -299,7 +304,8 @@ local function Hide(cb, instant)
 		cb.lock:Hide()
 		cb.empty = true
 		cb.frame:SetAlpha(1)
-		cb.frame:SetShown(not cb.noRoom)
+		local gone = cb.holder and not UnitExists(cb.unit)
+		cb.frame:SetShown(not cb.noRoom and (issecretvalue(gone) or not gone))
 		return
 	end
 	if instant or not cb.frame:IsShown() then
@@ -394,14 +400,16 @@ local function Inline(out, bar, tall, timer, size, em)
 	out.text = TextRect(x, w - (timer and timerW + TEXT_PAD or 0), bar.y, bar.h, size)
 end
 
-function CastBars.Geometry(width, height, icon, timer, size, em, right)
+function CastBars.Geometry(width, height, icon, timer, size, em, right, iconSize)
 	em = em or TIMER_COLUMN
 	local out = { tall = height > width }
 	local thick = out.tall and width or height
 	local offset = 0
 	if icon then
-		out.icon = Rect((right and not out.tall) and width - thick or 0, 0, thick, thick)
-		offset = thick + math.max(GAP_MIN, math.floor(thick * GAP_SHARE + 0.5))
+		local side = (iconSize or 0) > 0 and math.min(iconSize, thick) or thick
+		local across = (thick - side) / 2
+		out.icon = Rect(out.tall and across or right and width - side or 0, out.tall and 0 or across, side, side)
+		offset = side + math.max(GAP_MIN, math.floor(side * GAP_SHARE + 0.5))
 	end
 	local panel
 	if out.tall then
@@ -559,10 +567,11 @@ local function LayoutCaption(cb, width, height)
 	local above, inside = mode == "above", mode == "inside"
 	cb.geometry = { caption = mode }
 	local lead = 0
-	local side = Snap(cb, inside and math.min(CAPTION_BAR.inside, height) or height)
+	local base, own = inside and math.min(CAPTION_BAR.inside, height) or height, Settings.Value(cb.kind, "castbarIconSize")
+	local side = Snap(cb, own > 0 and math.min(own, base) or base)
 	if Settings.Value(cb.kind, "castbarIcon") and side + Snap(cb, CAPTION_ICON_GAP) < width then
 		lead = side + Snap(cb, CAPTION_ICON_GAP)
-		cb.geometry.icon = { x = cb.iconRight and width - side or 0, y = inside and height - side or 0, w = side, h = side }
+		cb.geometry.icon = { x = cb.iconRight and width - side or 0, y = own > 0 and (inside and height - (base + side) / 2 or (base - side) / 2) or inside and height - side or 0, w = side, h = side }
 		Place(cb, cb.iconFrame, cb.geometry.icon, Nudge(cb, "castbarIcon"))
 		cb.iconChrome:Restyle()
 		local inset = Widgets.Border(cb.frame)
@@ -715,7 +724,7 @@ function CastBars.Layout(cb, width, height)
 	cb.chrome:SetShadow(true)
 	cb.chrome:SetShown(true)
 	cb.bar:SetSparkShown(Settings.Value(cb.kind, "castbarSpark"))
-	local g = CastBars.Geometry(width, height, Settings.Value(cb.kind, "castbarIcon"), Settings.Value(cb.kind, "castbarTimer"), Settings.FontSize(cb.kind, "cast"), column, cb.iconRight)
+	local g = CastBars.Geometry(width, height, Settings.Value(cb.kind, "castbarIcon"), Settings.Value(cb.kind, "castbarTimer"), Settings.FontSize(cb.kind, "cast"), column, cb.iconRight, Settings.Value(cb.kind, "castbarIconSize"))
 	cb.geometry = g
 	if g.icon then
 		local inset = Widgets.Border(cb.frame)
@@ -760,6 +769,9 @@ local function Reaction(cb)
 end
 
 local function BarColor(cb)
+	if cb.outOfRange then
+		return Tokens.Color("textDisabled")
+	end
 	if cb.channel and cb.kind == "player" and Settings.Value("player", "castbarChannelOverride") then
 		local c = Settings.Value("player", "castbarChannelColor")
 		return c.r, c.g, c.b
@@ -1023,6 +1035,37 @@ local function Locked(cb, notInterruptible)
 	ShowLock(cb)
 end
 
+local function Range(cb)
+	local api = C_Spell and C_Spell.IsSpellInRange
+	local ok, inRange = false, nil
+	if api and cb.rangeID then ok, inRange = pcall(api, cb.rangeID) end
+	local out = ok and not issecretvalue(inRange) and inRange == false
+	if out ~= cb.outOfRange then
+		cb.outOfRange = out
+		Tint(cb, cb.locked)
+	end
+end
+
+function StopRange(cb)
+	if not cb.rangeTicker then return end
+	cb.rangeTicker:Cancel()
+	cb.rangeTicker, cb.rangeID = nil, nil
+	if cb.outOfRange then
+		cb.outOfRange = false
+		Tint(cb, cb.locked)
+	end
+end
+
+local function WatchRange(cb, spellID)
+	StopRange(cb)
+	if not (cb.kind == "player" and Settings.Value("player", "castbarRangeGrey") and C_Timer and C_Timer.NewTicker)
+		or issecretvalue(spellID) or type(spellID) ~= "number" then
+		return
+	end
+	cb.rangeID, cb.outOfRange = spellID, false
+	cb.rangeTicker = C_Timer.NewTicker(RANGE_STEP, function() Range(cb) end)
+end
+
 local function Icon(cb, texture)
 	cb.icon:SetTexture(texture)
 end
@@ -1085,14 +1128,19 @@ local function Ranked(text, spellID)
 	return text .. " (" .. rank .. ")"
 end
 
-local function Batch(cb, text, startMs, endMs)
+local function Batch(cb, text, startMs, endMs, merge)
 	local api = C_TradeSkillUI and C_TradeSkillUI.GetRemainingRecasts
 	local left = api and api()
-	if issecretvalue(left) or type(left) ~= "number" or left < 1 or issecretvalue(text) or type(text) ~= "string"
+	if issecretvalue(left) or type(left) ~= "number" or left < 0 or issecretvalue(text) or type(text) ~= "string"
 		or issecretvalue(startMs) or issecretvalue(endMs) or type(startMs) ~= "number" or type(endMs) ~= "number" or endMs <= startMs then
 		return text
 	end
-	cb.batch = (endMs + left * (endMs - startMs)) / MS
+	local finish = (endMs + left * (endMs - startMs)) / MS
+	local same = cb.craftEnd and math.abs(finish - cb.craftEnd) < (endMs - startMs) / MS / 2
+	if not same then cb.craftFirst = startMs end
+	cb.craftEnd = finish
+	if left < 1 and not (merge and same) then return text end
+	cb.batch = finish
 	return text .. " (" .. (left + 1) .. ")"
 end
 
@@ -1178,7 +1226,8 @@ local function Start(cb, channel, update)
 	cb.batch, cb.rankID = nil, nil
 	if cb.kind == "player" then
 		if Settings.Value("player", "castbarRank") then text, cb.rankID = Ranked(text, spellID), not issecretvalue(spellID) and spellID or nil end
-		if not issecretvalue(isTradeSkill) and isTradeSkill == true and Settings.Value("player", "castbarCraft") then text = Batch(cb, text, startMs, endMs) end
+		cb.merge = Settings.Value("player", "castbarCraftBar")
+		if not issecretvalue(isTradeSkill) and isTradeSkill == true and (cb.merge or Settings.Value("player", "castbarCraft")) then text = Batch(cb, text, startMs, endMs, cb.merge) end
 	end
 	cb.token = (cb.token or 0) + 1
 	cb.duration = nil
@@ -1194,13 +1243,18 @@ local function Start(cb, channel, update)
 	if not cb.styled then
 		CastBars.Restyle(cb)
 	end
+	WatchRange(cb, spellID)
 	Locked(cb, notInterruptible)
+	if cb.rangeID then Range(cb) end
 	CastBars.Important(cb, spellID)
 	Latency(cb, channel, startMs, endMs)
 	cb.elapsed = TIMER_STEP
 	cb.total = nil
 	local tick
-	if RunDuration(cb, channel) then
+	if cb.batch and cb.merge then
+		tick = RunTimes(cb, false, cb.craftFirst, cb.batch * MS)
+		if tick then cb.bar:SetValue(cb.total - math.max(0, cb.finish - GetTime())) end
+	elseif RunDuration(cb, channel) then
 		tick = cb.duration ~= nil and Settings.Value(cb.kind, "castbarTimer")
 	else
 		tick = RunTimes(cb, channel, startMs, endMs)

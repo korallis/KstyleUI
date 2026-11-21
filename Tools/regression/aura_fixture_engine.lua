@@ -79,6 +79,20 @@ function Engine.Refresh(env)
 			end
 		end
 		container:SetSize(math.max(1, wide), math.max(1, offset))
+		for _, slot in pairs(container._slots or {}) do
+			local aura
+			for _, each in ipairs(unit and container._enabled ~= false and slot.enabled and unit.auras or {}) do
+				if each.dispel and Matches(each, slot.filter) then aura = aura or each end
+			end
+			slot.frame:SetShown(aura ~= nil)
+			for _, texture in ipairs(aura and slot.frame._aura.dispel or {}) do
+				local o = slot.frame._aura.dispelFor[texture]
+				local c = o.customDispelColorMap and o.customDispelColorMap[aura.dispel]
+				if o.customDispelAssetMap then texture:SetTexture(o.customDispelAssetMap[aura.dispel].asset) end
+				texture:SetShown(true)
+				texture:SetVertexColor(c and c.r or 0.2, c and c.g or 0.6, c and c.b or 1)
+			end
+		end
 	end
 	env._restricted = restricted
 	env._refreshingAuraFixtures = false

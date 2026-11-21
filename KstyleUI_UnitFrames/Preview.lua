@@ -294,7 +294,9 @@ local function PaintCast(frame, view, kind, height)
 	local name, player = L["Frostbolt"], kind == "player"
 	cb.lag, cb.batch = player and Settings.Value(kind, "castbarLagText") and CAST_LAG or nil, nil
 	if player and Settings.Value(kind, "castbarRank") then name = name .. " (" .. string.format(L["Rank %d"], CAST_RANK) .. ")" end
-	if player and Settings.Value(kind, "castbarCraft") then name, cb.batch = name .. " (" .. CAST_CRAFTS .. ")", GetTime() + CAST_LEFT + (CAST_CRAFTS - 1) * CAST_TIME end
+	local merge = player and Settings.Value(kind, "castbarCraftBar")
+	if player and (merge or Settings.Value(kind, "castbarCraft")) then name, cb.batch = name .. " (" .. CAST_CRAFTS .. ")", GetTime() + CAST_LEFT + (CAST_CRAFTS - 1) * CAST_TIME end
+	if merge then cb.bar:SetValue((CAST_TIME - CAST_LEFT) / (CAST_CRAFTS * CAST_TIME)) end
 	ns.CastBars.SetName(cb, name, Settings.Value(kind, "castbarTarget") and SAMPLES.player.name or nil)
 	ns.CastBars.Important(cb, nil, true)
 	if cb.lag or cb.batch then
@@ -517,6 +519,22 @@ local function PaintResource(frame, view, kind, sample)
 	box:Show()
 end
 
+local function PaintTotems(frame, kind)
+	local row = frame.totems
+	if kind ~= "player" or not Settings.Value("player", "totems") then
+		if row then row:Hide() end
+		return
+	end
+	row = row or ns.Totems.Row(frame.holders.player)
+	frame.totems = row
+	ns.Totems.Place(row, frame.holders.player)
+	for i, button in ipairs(row.buttons) do
+		button:SetIcon(AURA_ICONS[(i - 1) % #AURA_ICONS + 1])
+		button:SetCooldown(GetTime() - i * 5, 60)
+	end
+	row:Show()
+end
+
 local function Box(region, holder, width, height)
 	if not (region and region:IsShown()) then
 		return nil
@@ -534,8 +552,8 @@ end
 
 local function Fit(frame, holder, kind, width, height)
 	local l, t, r, b = 0, 0, width, height
-	local regions = { frame.auraHosts[kind], frame.casts[kind] and frame.casts[kind].frame, frame.views[kind].portraitFrame, frame.resource }
-	for i = 1, 4 do
+	local regions = { frame.auraHosts[kind], frame.casts[kind] and frame.casts[kind].frame, frame.views[kind].portraitFrame, frame.resource, kind == "player" and frame.totems or nil }
+	for i = 1, 5 do
 		local rl, rt, rr, rb = Box(regions[i], holder, width, height)
 		if rl then
 			l, t, r, b = math.min(l, rl), math.min(t, rt), math.max(r, rr), math.max(b, rb)
@@ -581,9 +599,11 @@ local function Refresh(frame)
 	PaintResource(frame, view, kind, SAMPLES[kind])
 	PaintIndicators(view, view.s, SAMPLES[kind])
 	PaintCast(frame, view, kind, height)
+	PaintTotems(frame, kind)
 	frame.auraCount = PaintAuras(frame, view, kind)
 	Fit(frame, holder, kind, width, height)
 	Style.Layout(view, view.s, width, height)
+	ns.Dispel.Sample(view, holder, kind)
 	PaintCast(frame, view, kind, height)
 	Fit(frame, holder, kind, width, height)
 	frame.kind = kind

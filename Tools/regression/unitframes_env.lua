@@ -583,6 +583,8 @@ function U.Install(env)
 			self._aura.dispel = self._aura.dispel or {}
 			table.insert(self._aura.dispel, texture)
 			self._aura.dispelOptions = options
+			self._aura.dispelFor = self._aura.dispelFor or {}
+			self._aura.dispelFor[texture] = options
 		end
 		button.RemoveDispelTypeTexture = function(self, texture)
 			for i, added in ipairs(self._aura.dispel or {}) do
@@ -655,6 +657,25 @@ function U.Install(env)
 		function c:SetFlowLayoutAnchorPoint(point) self._anchor = point end
 		function c:SetFlowLayoutGrowthDirection(h, v) self._growth = { h, v } end
 		function c:SetFlowLayoutMaximumLineSize(n) self._line = n end
+		-- Aura slots (Blizzard_CustomAuraContainer.lua, AddAuraSlot): one engine button per slot, made and initialised
+		-- at once and hidden until an aura fills it; a test shows it to stand in for a matching debuff.
+		c._slots = {}
+		function c:AddAuraSlot(key, filter, options)
+			assert(type(key) == "string" and key ~= "" and not self._slots[key], "aura slot keys are unique non-empty strings")
+			assert(type(filter) == "string" and (filter:find("HARMFUL", 1, true) or filter:find("HELPFUL", 1, true)), "invalid filter string " .. tostring(filter))
+			local button = auraButton(self)
+			button:Hide()
+			self._slots[key] = { filter = filter, enabled = true, frame = button }
+			self._layoutForbidden = true
+			if options and options.initializeFrame then options.initializeFrame(button) end
+			return button
+		end
+		function c:SetAuraSlotFilterString(key, filter) self._slots[key].filter = filter end
+		function c:SetAuraSlotEnabled(key, on)
+			assert(type(on) == "boolean", "enabled must be a boolean")
+			self._slots[key].enabled = on
+		end
+		function c:GetAuraSlotFrame(key) return self._slots[key] and self._slots[key].frame end
 		return c
 	end
 
