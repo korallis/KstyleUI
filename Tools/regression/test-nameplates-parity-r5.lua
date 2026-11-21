@@ -1,16 +1,6 @@
 -- test-nameplates-parity-r5.lua: EllesmereUI parity round 5 keeps v0.2.8 plates, then switches each new option on (the full-height cast icon, crowd control first, quest progress with its objective icon), checks it on its events and switches it off again.
 local N = dofile("Tools/regression/nameplates_env.lua")
 
-local function saved(own)
-	own = own or {}
-	own.enabled = true
-	return { version = 42, profiles = { Default = { Nameplates = own } }, characters = {}, layouts = {} }
-end
-
-local function near(a, b)
-	return math.abs(a - b) < 1e-6
-end
-
 local function width(env, region)
 	local v = region:GetWidth()
 	return env.issecretvalue(v) and env.Reveal(v) or v
@@ -44,11 +34,9 @@ local function client(env)
 	end
 end
 
-local function boot(units, opts)
-	opts = opts or {}
-	opts.saved = opts.saved or saved()
-	opts.setup = function(env) client(env) end
-	local env, K, ns = N.New(opts)
+local function boot(units, class)
+	local env, K, ns = N.New({ saved = { version = 42, profiles = { Default = { Nameplates = { enabled = true } } }, characters = {}, layouts = {} },
+		setup = client, playerClass = class })
 	for token, data in pairs(units) do
 		N.Add(env, token, data)
 	end
@@ -74,6 +62,10 @@ do
 	for key, value in pairs(NEW) do
 		assert(K.Options.Read("Nameplates", key) == value, "v0.2.8 profiles keep " .. key)
 	end
+	for _, row in ipairs(ns.Settings.Schema()) do
+		assert(row.key ~= "markers.questIconScale" or row.disableWhen({ name = { show = true }, markers = { questText = false, questIcon = true } }),
+			"the icon scale is off while quest progress is off")
+	end
 	assert(plate.questText == nil and plate.questIcon == nil, "no quest progress until its option is on")
 	assert(env._logReads == 0, "the quest log is never read")
 	set("cast.showIcon", true)
@@ -90,28 +82,26 @@ do
 	local plate = ns.Plates.Get("nameplate1")
 	set("cast.showIcon", true)
 	local barW0, room0 = width(env, plate.castBar), ns.Cast.Room(plate)
-	local width0 = ns.Stacking.Extent(plate)
 	set("cast.iconScale", 2)
 	assert(ns.Cast.Room(plate) > room0, "a larger icon needs room under the cast bar")
 	set("cast.iconFull", true)
 	local icon = plate.castIcon
 	local side = plate.barH + ns.Cast.Gap(plate) + ns.Cast.Height(plate)
-	assert(near(width(env, icon), side), "as tall as both bars")
+	assert(N.Same(width(env, icon), side), "as tall as both bars")
 	local p, rel, rp, x, y = icon:GetPoint(1)
 	assert(p == "TOPRIGHT" and rel == plate.health and rp == "TOPLEFT" and y == 0, "flush with the health bar's top")
 	assert(-x > ns.Plate.DiamondReach(plate), "past the level diamond and the target bracket")
 	assert(width(env, plate.castBar) > barW0 and close(width(env, plate.castBar), ns.state.width), "the cast bar takes the whole width")
-	assert(ns.Stacking.Extent(plate) > width0, "the stacking box holds the icon")
-	assert(near(ns.Cast.Room(plate), room0), "the icon scale is set aside and nothing grows under the cast bar")
+	assert(N.Same(ns.Cast.Room(plate), room0), "the icon scale is set aside and nothing grows under the cast bar")
 	set("ccs.enabled", true)
 	local _, _, _, cx = plate.kinds.ccs:GetPoint(1)
 	assert(-cx > -x + side, "crowd control on the left steps past the icon")
 	set("cast.offsetY", 4)
-	assert(near(width(env, icon), side + 4), "a lower cast bar makes it taller")
+	assert(N.Same(width(env, icon), side + 4), "a lower cast bar makes it taller")
 	set("cast.offsetY", 0)
 	set("focus.castHeight", 2)
 	N.Focus(env, "nameplate1")
-	assert(near(width(env, icon), plate.barH + ns.Cast.Gap(plate) + ns.Cast.Height(plate)) and ns.Cast.Height(plate) > 6, "a taller focus cast makes it taller")
+	assert(N.Same(width(env, icon), plate.barH + ns.Cast.Gap(plate) + ns.Cast.Height(plate)) and ns.Cast.Height(plate) > 6, "a taller focus cast makes it taller")
 	N.Focus(env, nil)
 	set("cast.iconRight", true)
 	p, rel, rp, x = icon:GetPoint(1)
@@ -120,8 +110,8 @@ do
 	set("cast.iconScale", 1)
 	set("cast.iconFull", false)
 	_, rel = icon:GetPoint(1)
-	assert(rel == plate.cast and near(width(env, icon), ns.Cast.Height(plate)), "off puts the icon back on the cast bar")
-	assert(near(width(env, plate.castBar), barW0), "and the bar makes room again")
+	assert(rel == plate.cast and N.Same(width(env, icon), ns.Cast.Height(plate)), "off puts the icon back on the cast bar")
+	assert(N.Same(width(env, plate.castBar), barW0), "and the bar makes room again")
 	local _, _, _, cx2 = plate.kinds.ccs:GetPoint(1)
 	assert(cx2 > cx, "crowd control steps back to the diamond")
 	clean(env, K)
@@ -143,6 +133,26 @@ do
 end
 collectgarbage()
 
+-- The full-height icon, also moved out by its offset, sits inside the centred stacking box and clear of crowd control on its side.
+do
+	local env, K, ns, set = boot({ nameplate1 = {} })
+	local plate = ns.Plates.Get("nameplate1")
+	set("cast.showIcon", true)
+	set("cast.iconFull", true)
+	for _, offset in ipairs({ 0, -12 }) do
+		set("cast.iconX", offset)
+		local _, _, _, x = plate.castIcon:GetPoint(1)
+		local left = width(env, plate.castIcon) - x
+		assert((ns.Stacking.Extent(plate) - width(env, plate.health)) / 2 >= left, "the stacking box holds the icon at offset " .. offset)
+		set("ccs.enabled", true)
+		local _, _, _, cx = plate.kinds.ccs:GetPoint(1)
+		assert(-cx >= left, "crowd control clears the icon at offset " .. offset)
+		set("ccs.enabled", false)
+	end
+	clean(env, K)
+end
+collectgarbage()
+
 -- Crowd control first: where both rows share a place, crowd control sits nearest the plate; off puts the buffs first again.
 do
 	local env, K, ns, set = boot({ nameplate1 = {} })
@@ -156,7 +166,7 @@ do
 	set("ccs.first", true)
 	local _, _, _, bx2 = plate.kinds.buffs:GetPoint(1)
 	local _, _, _, cx2 = plate.kinds.ccs:GetPoint(1)
-	assert(near(cx2, bx) and bx2 > cx2, "crowd control first")
+	assert(N.Same(cx2, bx) and bx2 > cx2, "crowd control first")
 	set("ccs.place", "TOP")
 	set("buffs.place", "TOP")
 	local _, _, _, _, by = plate.kinds.buffs:GetPoint(1)
@@ -250,8 +260,11 @@ do
 		nameplate2 = { quest = true, goals = { { "Candles: 2/5" } } },
 		nameplate3 = { quest = true, goals = { { "Ward placed: 0/1" } } },
 		nameplate4 = { quest = true, goals = { { "Escort the Caravan: 50%" } } },
+		nameplate5 = {},
 	})
 	local one, two, three, four = ns.Plates.Get("nameplate1"), ns.Plates.Get("nameplate2"), ns.Plates.Get("nameplate3"), ns.Plates.Get("nameplate4")
+	local plain = ns.Plates.Get("nameplate5")
+	local plainY = select(5, plain.auras:GetPoint(1))
 	set("markers.questText", true)
 	assert(env._logReads == 0, "text alone never reads the quest log")
 	set("markers.questIcon", true)
@@ -274,6 +287,7 @@ do
 	local _, _, _, _, y1 = one.auras:GetPoint(1)
 	local _, above1 = ns.Stacking.Extent(one)
 	assert(close(y1 - y0, 24 - 16) and close(above1 - above0, 8), "debuffs above the name rise over the taller line")
+	assert(select(5, plain.auras:GetPoint(1)) == plainY, "a mob with no quest line keeps its debuffs where they were")
 	set("markers.questIcon", false)
 	assert(not one.questIcon:IsShown(), "off drops the icon")
 	_, rel = one.questText:GetPoint(1)
@@ -294,12 +308,55 @@ do
 	env.C_Texture = nil
 	set("markers.questIcon", true)
 	assert(plate.questText:IsShown() and not plate.questIcon:IsShown(), "text without an icon")
+	assert(select(2, plate.questText:GetPoint(1)) == plate.name, "and no empty slot for it")
+	clean(env, K)
+end
+collectgarbage()
+
+-- Progress reads the tooltip on attach and quest changes only: power changes never rescan it. Switching the icon off during a
+-- secret objective in combat drops it, and a recycled plate forgets the last mob's progress.
+do
+	local env, K, ns, set = boot({ nameplate1 = { quest = true, goals = { { "Kobold Vermin slain: 3/8" } } } })
+	local plate = ns.Plates.Get("nameplate1")
+	set("markers.questText", true)
+	set("markers.questIcon", true)
+	local reads, get = 0, env.C_TooltipInfo.GetUnit
+	env.C_TooltipInfo.GetUnit = function(unit) reads = reads + 1; return get(unit) end
+	for _ = 1, 10 do env.FireEvent("UNIT_DISPLAYPOWER", "nameplate1") end
+	assert(reads == 0, "power changes never rescan the tooltip")
+	env._units.nameplate1.secretGoal = true
+	env.FireEvent("PLAYER_REGEN_DISABLED")
+	set("markers.questIcon", false)
+	assert(not plate.questIcon:IsShown() and plate.questText:GetText() == "3/8" and select(2, plate.questText:GetPoint(1)) == plate.name,
+		"the icon goes off during a secret objective")
+	set("markers.questIcon", true)
+	N.Add(env, "nameplate3", { quest = true, secretGoal = true, goals = { { "Candles: 2/5" } } }, { base = N.Remove(env, "nameplate1") })
+	assert(ns.Plates.Get("nameplate3") == plate and not plate.questText:IsShown() and not plate.questIcon:IsShown(), "a recycled plate forgets the last mob's progress")
+	clean(env, K)
+end
+collectgarbage()
+
+-- On a rogue's target with combo points above the name, a tall quest line lifts the points clear of its icon.
+do
+	local env, K, ns, set = boot({ nameplate1 = { name = "Ox", quest = true, goals = { { "Kobold Vermin slain: 3/8" } } } }, "ROGUE")
+	local plate = ns.Plates.Get("nameplate1")
+	plate.base:SetPoint("CENTER", env.UIParent, "CENTER")
+	N.Target(env, "nameplate1")
+	set("resource.show", true)
+	set("resource.place", "TOP")
+	set("markers.questText", true)
+	set("markers.questIcon", true)
+	set("markers.questSize", 20)
+	set("markers.questIconScale", 2)
+	local Scene = dofile("Tools/render/scene.lua")
+	local x, y, w, h = Scene.Rect(env, plate.questIcon)
+	local rx, ry, rw, rh = Scene.Rect(env, plate.resource)
+	assert(plate.resource:IsShown() and plate.questIcon:IsShown() and (x + w <= rx or x >= rx + rw or y + h <= ry or y >= ry + rh), "the quest icon clears the combo points")
 	clean(env, K)
 end
 collectgarbage()
 
 -- The Options preview draws each new option on the sample it shows.
-
 do
 	local env, K, ns, set = boot({})
 	local frame = ns.Preview.Build(env.UIParent)
