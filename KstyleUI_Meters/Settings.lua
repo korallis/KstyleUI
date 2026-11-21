@@ -194,10 +194,14 @@ function ns.Schema()
 		return ns.ResolveMode("auto") == "window"
 	end
 
-	local function WindowStyle(settings)
+	local function MainWindow(settings)
 		local node = settings.damage
 		local mode = type(node) == "table" and node.mode or nil
-		return ns.ResolveMode(mode) == "window" or (ns.Get("damage2.shown") and Windows())
+		return ns.ResolveMode(mode) == "window"
+	end
+
+	local function WindowStyle(settings)
+		return MainWindow(settings) or (ns.Get("damage2.shown") and Windows())
 	end
 
 	local SESSIONS = {
@@ -207,7 +211,7 @@ function ns.Schema()
 	}
 
 	local function StyleOptions()
-		local auto = ns.ResolveMode("auto") == "window" and L["Automatic: KstyleUI window"] or L["Automatic: Blizzard's, restyled"]
+		local auto = Windows() and L["Automatic: KstyleUI window"] or L["Automatic: Blizzard's, restyled"]
 		return {
 			{ value = "auto", label = auto },
 			{ value = "window", label = L["KstyleUI window"] },
@@ -319,11 +323,11 @@ function ns.Schema()
 			options = StyleOptions,
 		},
 		{
-			type = "dropdown", key = "damage.meter", label = L["Show"], disableWhen = Off("damage"), showWhen = WindowStyle,
+			type = "dropdown", key = "damage.meter", label = L["Show"], disableWhen = Off("damage"), showWhen = MainWindow,
 			help = L["What the window measures. Click its title to switch between damage and healing in game."], options = ns.METER_TYPES,
 		},
 		{
-			type = "dropdown", key = "damage.session", label = L["Fight"], disableWhen = Off("damage"), showWhen = WindowStyle,
+			type = "dropdown", key = "damage.session", label = L["Fight"], disableWhen = Off("damage"), showWhen = MainWindow,
 			help = L["The current fight, the one before it, or every fight. Right-click the meter to switch."], options = SESSIONS,
 		},
 		{ type = "toggle", key = "damage2.shown", label = L["Second damage window"], showWhen = Windows,
