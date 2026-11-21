@@ -33,7 +33,7 @@ local function Stripes(bar, atlas, color, striped)
 	if striped then
 		local alpha = color.a or 1
 		stripes:SetAllPoints(bar:GetStatusBarTexture())
-		stripes:SetVertexColor(1, 1, 1, alpha)
+		stripes:SetVertexColor(Widgets.Rgba("white", alpha))
 		bar:SetBarColor(color.r, color.g, color.b, alpha * Settings.current.prediction.backing)
 	end
 end
