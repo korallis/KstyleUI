@@ -3,20 +3,8 @@ local H = dofile("Tools/regression/groupframes_r3a.lua")
 local MODULE = H.MODULE
 local write, frame, noErrors, boot, near = H.write, H.frame, H.noErrors, H.boot, H.near
 
-local function saved(own)
-	own = own or {}
-	own.enabled = true
-	return { version = 42, profiles = { Default = { [MODULE] = own } }, characters = {}, layouts = {} }
-end
-
 local function tint(region, i)
 	return region._state.ColorTexture[i]
-end
-
-local function preview(env, K)
-	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
-	parent:SetSize(300, 520)
-	return K.Options.Preview(MODULE)(parent)
 end
 
 local function shown(K, key)
@@ -24,7 +12,7 @@ local function shown(K, key)
 	return row.showWhen == nil or row.showWhen(K.Store.Module(MODULE)) == true
 end
 
-local env, K, ns = boot({ saved = saved({ party = { width = 259 }, indicator1 = { category = "EXTERNAL", position = "CENTER" }, auto = { size = true } }) })
+local env, K, ns = boot({ saved = H.saved({ party = { width = 259 }, indicator1 = { category = "EXTERNAL", position = "CENTER" }, auto = { size = true } }) })
 
 -- A v0.2.8-shaped profile keeps every new default and builds nothing new.
 do
@@ -65,7 +53,7 @@ do
 	assert(not edge:IsShown() and not shown(K, "prediction.edge"), "Absorbs off hides it and its row")
 	write(env, K, "prediction.absorbs", true)
 	assert(edge:IsShown(), "and returns with Absorbs")
-	local pv = preview(env, K)
+	local pv = H.preview(env, K)
 	local sample = pv.partyFrames[1]
 	assert(sample.shieldEdge and sample.shieldEdge:IsShown(), "the preview's shielded tank shows it")
 	write(env, K, "prediction.edge", false)
@@ -84,7 +72,7 @@ do
 	assert(select(1, f.pipEdge:GetDrawLayer()) == "ARTWORK" and select(2, f.pipFill:GetDrawLayer()) == 6, "pips too")
 	assert(select(1, f.roleLetter:GetDrawLayer()) == "ARTWORK", "and the letter")
 	assert(f.target:GetParent() == f.text, "the target ring is a child frame above them")
-	local pv = preview(env, K)
+	local pv = H.preview(env, K)
 	assert(select(1, pv.partyFrames[1].role:GetDrawLayer()) == "ARTWORK", "the preview follows")
 	write(env, K, "icons.roleBehind", false)
 	layer, sub = f.role:GetDrawLayer()
@@ -152,7 +140,7 @@ do
 	write(env, K, "indicator1.reverse", true)
 	assert(p.bar:IsShown() and not p.square:IsShown(), "and becomes a bar again with it")
 	assert(not ns.Slots.Misfit("party", 1), "a bar takes no icon spot")
-	local pv = preview(env, K)
+	local pv = H.preview(env, K)
 	local sample = pv.partyFrames[1].sampleSlots[1]
 	assert(sample.bar and sample.bar:IsShown() and sample.tile.skin:GetAlpha() == 0, "the preview shows the bar")
 	assert(sample:GetFrameLevel() == pv.partyFrames[1]:GetFrameLevel() + ns.Auras.CONTAINER_LEVEL, "under the sample debuff icons, as live")
@@ -186,7 +174,7 @@ do
 	assert(current.party.width == 259 and current.party.height == 39, "sizes stay the party's own")
 	assert(select(2, f.name:GetFont()) <= 15 and f.parts.power and near(f.parts.power.height, 5), "the frames follow")
 	assert(not shown(K, "party.nameSize") and not shown(K, "party.auraCount") and not shown(K, "party.powerHeight") and shown(K, "party.width"), "the party's own rows hide")
-	local pv = preview(env, K)
+	local pv = H.preview(env, K)
 	assert(near(pv.partyFrames[1].parts.power.height, 5), "the preview follows")
 	write(env, K, "raid.nameSize", 16)
 	assert(current.party.nameSize == 16, "a raid change reaches the party")

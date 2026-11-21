@@ -1,13 +1,7 @@
 -- test-groupframes-parity-r6-raid.lua: EllesmereUI parity round 6 in a raid: an own raid size switches with the roster out of combat, and tank frames leave you out by a name list that follows roles, the roster and combat, refuses secret names, reaches the preview and switches back.
 local H = dofile("Tools/regression/groupframes_r3a.lua")
-local G, MODULE = H.G, H.MODULE
+local G = H.G
 local write, frame, noErrors, boot, near = H.write, H.frame, H.noErrors, H.boot, H.near
-
-local function saved(own)
-	own = own or {}
-	own.enabled = true
-	return { version = 42, profiles = { Default = { [MODULE] = own } }, characters = {}, layouts = {} }
-end
 
 local function shownUnits(header)
 	local out, i = {}, 1
@@ -19,13 +13,7 @@ local function shownUnits(header)
 	return table.concat(out, ",")
 end
 
-local function preview(env, K)
-	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
-	parent:SetSize(300, 520)
-	return K.Options.Preview(MODULE)(parent)
-end
-
-local env, K, ns = boot({ saved = saved({ auto = { size = true } }) })
+local env, K, ns = boot({ saved = H.saved({ auto = { size = true } }) })
 
 -- An own raid size from a raid size of your choosing, switched with the roster out of combat.
 do
@@ -90,7 +78,7 @@ do
 	env.UnitName = name
 	env.FireEvent("PLAYER_ROLES_ASSIGNED")
 	assert(header:GetAttribute("nameList") ~= nil, "and it returns once names are readable")
-	local pv = preview(env, K)
+	local pv = H.preview(env, K)
 	local tanks = pv.extras.tanks
 	assert(not tanks[1]:IsShown() and tanks[2]:IsShown(), "the preview leaves your sample out")
 	write(env, K, "tanks.excludeSelf", false)

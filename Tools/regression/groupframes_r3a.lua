@@ -35,6 +35,18 @@ function H.setup(env)
 	end
 end
 
+-- saved(own) -> a saved profile with the module on and own as its settings.
+function H.saved(own)
+	own.enabled = true
+	return { version = 42, profiles = { Default = { [H.MODULE] = own } }, characters = {}, layouts = {} }
+end
+
+function H.preview(env, K)
+	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
+	parent:SetSize(300, 520)
+	return K.Options.Preview(H.MODULE)(parent)
+end
+
 function H.write(env, K, key, value)
 	K.Options.Write(H.MODULE, key, value)
 	env.RunTimers()
