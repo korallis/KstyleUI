@@ -254,7 +254,7 @@ local function TimerRoom(kind)
 	end
 	local _, fontSize = Settings.Font(kind, "aura")
 	local gap = Settings.Form(kind) == "column" and COLUMN_TIMER_GAP or TIMER_BELOW_GAP
-	return gap + TextSize(kind, fontSize) + TIMER_ROOM_EXTRA
+	return gap + TextSize(kind, fontSize) + TIMER_ROOM_EXTRA + math.max(0, -Settings.Value(kind, "auraTimerY"))
 end
 
 function Auras.TimerRoom(kind)
