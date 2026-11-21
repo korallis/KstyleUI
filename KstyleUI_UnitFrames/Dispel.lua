@@ -63,7 +63,7 @@ local function NewParts(owner)
 	local p = { health = CreateFrame("Frame", nil, owner), card = CreateFrame("Frame", nil, owner), edge = CreateFrame("Frame", nil, owner), mark = CreateFrame("Frame", nil, owner) }
 	p.fill = p.health:CreateTexture(nil, "ARTWORK")
 	p.fill:SetAllPoints(p.health)
-	p.fill:SetColorTexture(1, 1, 1, 1)
+	p.fill:SetColorTexture(Widgets.Rgba("white", 1))
 	p.wash = Widgets.NineSlice(p.card, "chamferTile", "ARTWORK")
 	p.line = Widgets.NineSlice(p.edge, "lumenOutline", "OVERLAY")
 	p.icon = p.mark:CreateTexture(nil, "OVERLAY")
