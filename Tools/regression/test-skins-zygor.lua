@@ -91,6 +91,13 @@ do
 	assert(zygor.style.WindowBackdropColor[4] == 0, "Zygor's own window fill steps aside for the KstyleUI card")
 	local card = K.Skin.Parts(zygor.frame.Border).backdrop
 	assert(card and card:IsShown(), "the window wears KstyleUI's window card, forged by default, as RestedXP's does")
+	assert(ns.Skins and K.Skin.Parts(zygor.frame.Border).backdrop, "card present")
+	local caption
+	for _, region in ipairs({ zygor.frame.Border.TitleBar:GetRegions() }) do
+		if region.GetText and region:GetText() == "SKYBORNE STARTER (1-13)" then caption = region end
+	end
+	assert(caption and caption:IsShown(), "the title bar carries the guide's name as a caps caption, as RestedXP's card does")
+	assert(not zygor.frame.Controls.Logo:IsShown() or zygor.frame.Controls.Logo:GetAlpha() == 0, "Zygor's logo steps aside for the caption")
 	-- Zygor's step and line fills come from its own opacity and goal-colour settings, so they are quieted after it paints, never by writing those settings.
 	local step = zygor.step
 	zygor.frame:AddStep()

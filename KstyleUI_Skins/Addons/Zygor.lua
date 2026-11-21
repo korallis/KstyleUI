@@ -240,14 +240,22 @@ local function Register(spec)
 	end
 end
 
+local function Skip(why)
+	if state.why ~= why then
+		state.why = why
+		Log("rail skipped: " .. why)
+	end
+	return false
+end
+
 function Place()
 	state.queued = false
 	if not On() then
-		return false
+		return Skip("rail off")
 	end
 	if not ns.Guide.Is(KEY) then
 		Restore()
-		return false
+		return Skip("another guide owns the card")
 	end
 	local z = Zygor()
 	local frame = z and z.Frame
@@ -256,7 +264,7 @@ function Place()
 	local story = K.Setup.Story(Preset(), true, Shown())
 	local band = story and story.guide
 	if not (master and spec and band) then
-		return false
+		return Skip("no " .. (not master and "window" or not spec and "slot" or "story band") .. " (shown=" .. tostring(Shown()) .. ")")
 	end
 	if state.placed and Strayed(master, frame) then
 		state.placed = nil
@@ -266,6 +274,7 @@ function Place()
 		K.Print(L["KstyleUI leaves the Zygor guide where you put it. Turn Story rail back on in the Zygor skin's settings."])
 		return false
 	end
+	state.why = nil
 	Remember(master, frame)
 	Hold(true)
 	state.z, state.frame, state.master = z, frame, master
@@ -465,7 +474,7 @@ function Text(frame)
 	end
 end
 
-local LINE_ALPHA = 0.3
+local LINE_ALPHA = 0
 local hookedSteps = setmetatable({}, { __mode = "k" })
 
 local function QuietStep(step)
@@ -509,6 +518,34 @@ local function Steps(frame)
 		end
 		QuietStep(step)
 	end
+end
+
+local function Caption(z, panel)
+	local frame = z.Frame
+	local bar = IsTable(frame.Border) and frame.Border.TitleBar
+	if not (panel and IsTable(bar)) then
+		return
+	end
+	local caption = state.caption
+	if not caption then
+		local Parts, Style, Lumen = ns.Parts, ns.Style, ns.Lumen
+		if IsTable(frame.Controls) then
+			Parts.Hush(frame.Controls.Logo)
+		end
+		caption = Widgets.FontString(bar, "OVERLAY")
+		caption:SetPoint("LEFT", bar, "LEFT", Tokens.Size("gapXLarge") * 2, 0)
+		caption:SetPoint("RIGHT", bar, "RIGHT", -Tokens.Size("gapXLarge") * 2, 0)
+		caption:SetJustifyH("LEFT")
+		caption:SetWordWrap(false)
+		Style.ApplyFont(caption, "caps", Lumen.Size(bar, Lumen.CAP_SIZE))
+		Widgets.TextColor(caption, "capsGold")
+		state.caption = caption
+		Parts.Heading(panel, caption, { row = bar })
+	end
+	local guide = z.CurrentGuide
+	local title = IsTable(guide) and (guide.title_short or guide.title)
+	caption:SetText(type(title) == "string" and title:upper() or L["Zygor"])
+	caption:Show()
 end
 
 local function Paint(z)
@@ -559,6 +596,7 @@ local function Paint(z)
 	local panel = IsTable(border) and K.Skin.Backdrop(border, { shape = "window", fill = "surface", shadow = true })
 	if panel then
 		panel:Show()
+		Caption(z, panel)
 	end
 	Text(z.Frame)
 	Steps(z.Frame)
@@ -592,6 +630,9 @@ local function Unpaint(z)
 	if panel then
 		panel:Hide()
 	end
+	if state.caption then
+		state.caption:Hide()
+	end
 end
 
 local function Hook(z)
@@ -608,7 +649,12 @@ local function Hook(z)
 			end
 			ns.Guide.Schedule()
 		end)
-		z:AddMessageHandler("ZGV_GUIDE_LOADED", Schedule)
+		z:AddMessageHandler("ZGV_GUIDE_LOADED", function()
+			local live = Zygor()
+			local panel = live and state.saved and IsTable(live.Frame.Border) and K.Skin.Parts(live.Frame.Border).backdrop
+			if panel then Caption(live, panel) end
+			Schedule()
+		end)
 		z:AddMessageHandler("ZGV_STEP_CHANGED", Schedule)
 		z:AddMessageHandler("SKIN_UPDATED", function()
 			K.Combat.Queue(function()

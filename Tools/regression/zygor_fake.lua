@@ -13,6 +13,10 @@ function Fake.Install(env, opts)
 	frame:SetPoint("TOPLEFT", master, "TOPLEFT", 0, 0)
 	frame.Border = env.CreateFrame("Frame", nil, frame)
 	frame.Border:SetAllPoints(frame)
+	frame.Border.TitleBar = env.CreateFrame("Frame", nil, frame.Border)
+	frame.Border.TitleBar:SetPoint("TOPLEFT", frame.Border, "TOPLEFT", 0, 0)
+	frame.Border.TitleBar:SetPoint("TOPRIGHT", frame.Border, "TOPRIGHT", 0, 0)
+	frame.Border.TitleBar:SetHeight(24)
 	local container = env.CreateFrame("Frame", nil, frame)
 	local step = env.CreateFrame("Frame", nil, container)
 	local label = step:CreateFontString(nil, "OVERLAY")
@@ -29,7 +33,7 @@ function Fake.Install(env, opts)
 		return setText(self, ...)
 	end
 	step.lines = { { label = label } }
-	frame.Controls = { StepContainer = container }
+	frame.Controls = { StepContainer = container, Logo = frame.Border.TitleBar:CreateTexture(nil, "ARTWORK") }
 	-- A step paints its own background from Zygor's opacity setting and each line from its goal colours (Skins/Default/ViewerFrame.lua:602, :713, :2397).
 	step.SetBackdropColor = function(self, r, g, b, a) self.backdrop = { r, g, b, a } end
 	step.SetBackdropBorderColor = function() end
@@ -50,6 +54,7 @@ function Fake.Install(env, opts)
 		db = { profile = profile },
 		Font = "Fonts\\FRIZQT__.TTF",
 		CurrentSkinStyle = style,
+		CurrentGuide = { title_short = "Skyborne Starter (1-13)" },
 		F = {},
 	}
 	env.ZygorGuidesViewer = z
