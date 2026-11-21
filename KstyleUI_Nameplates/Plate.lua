@@ -711,7 +711,7 @@ function Plate:ClearUnit()
 	if self.alphaTween then Motion.Stop(self.alphaTween); self.alphaTween = nil end
 	self.alphaGoal, self.hovered, self.outOfRange, self.fillWhich = nil, nil, nil, false
 	if self.executePulse then self.executePulse:Stop(); self.executeShown = nil end
-	if self.questText then self.questText.count, self.questIcon.atlas = nil, nil; self.questText:Hide(); self.questIcon:Hide() end
+	if self.questText then self.questText.count, self.questIcon.atlas = nil, nil; self.questText:Hide() end
 	self:SetAlpha(1)
 	Each("Clear", self)
 	self:Hide()
