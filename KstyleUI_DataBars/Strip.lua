@@ -1069,14 +1069,20 @@ function Strip.DockMenus(view, s)
 	end
 end
 
-local function Read(view, s, only)
+local reads = 0
+local function Read(view, s, only, shared)
 	local values = view.values
 	for _, id in ipairs(view.order) do
 		if not only or only == id or only == true and TIMED[id] then
-			local slot = values[id] or {}
+			local slot, from = values[id] or {}, shared and shared[id]
 			values[id] = slot
-			local text, grade = VALUES[id](s)
-			slot[1], slot[2] = text or false, grade or false
+			if from and from[3] == reads then
+				slot[1], slot[2] = from[1], from[2]
+			else
+				local text, grade = VALUES[id](s)
+				slot[1], slot[2] = text or false, grade or false
+			end
+			slot[3] = reads
 		end
 	end
 	return values
@@ -1231,14 +1237,16 @@ Strip.SecondSettings = SecondSettings
 
 function Strip.Update(only)
 	if not running then return end
-	local view, s = Strip.view, ns.Settings().strip
+	reads = reads + 1
+	local view, s, shared = Strip.view, ns.Settings().strip, nil
 	if view and view.visible ~= false and s.enabled ~= false then
-		SetValues(view, s, Read(view, s, only), only)
+		shared = Read(view, s, only)
+		SetValues(view, s, shared, only)
 	end
 	view = Strip.second
 	if view and view.visible then
 		local second = SecondSettings(s)
-		SetValues(view, second, Read(view, second, only), only)
+		SetValues(view, second, Read(view, second, only, LineMode(s) == LineMode(second) and shared), only)
 	end
 end
 
