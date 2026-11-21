@@ -102,16 +102,9 @@ function Frames.Fonts(settings)
 	return path, size, flags, tabSize, tabPath
 end
 
-function Frames.EditFont(settings)
-	local s = settings or state.settings
-	local path, size = Frames.Fonts(s)
-	if s.editFont ~= "messages" then
-		path = FontPath(s.editFont, "body")
-	end
-	if s.editFontSize ~= ns.FOLLOW then
-		size = Whole(s.editFontSize, ns.FONT_MIN, ns.FONT_MAX, size)
-	end
-	return path, size
+function Frames.EditFont(s, path, size)
+	return s.editFont == "messages" and path or FontPath(s.editFont, "body"),
+		s.editFontSize == ns.FOLLOW and size or Whole(s.editFontSize, ns.FONT_MIN, ns.FONT_MAX, size)
 end
 
 function Frames.TabGap(settings)
@@ -444,8 +437,9 @@ end
 local function ApplyFrame(frame)
 	local s = state.settings
 	local path, size, flags, tabSize, tabPath = Frames.Fonts()
+	local editPath, editSize = Frames.EditFont(s, path, size)
 	local hud = HudSize()
-	size, tabSize = size * hud, tabSize * hud
+	size, tabSize, editSize = size * hud, tabSize * hud, editSize * hud
 	local world = flags == "" and Panel.Bare(s)
 	Frames.ApplyFont(frame, path, size, world and WORLD_FLAGS or flags)
 	if world then
@@ -463,8 +457,6 @@ local function ApplyFrame(frame)
 	end
 	local box = frame.editBox
 	if type(box) == "table" then
-		local editPath, editSize = Frames.EditFont(s)
-		editSize = editSize * hud
 		Frames.ApplyFont(box, editPath, editSize, flags)
 		for _, key in ipairs(EDIT_TEXTS) do
 			local text = box[key]

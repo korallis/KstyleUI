@@ -314,11 +314,11 @@ function ns.Schema()
 		{
 			type = "font", key = "font", label = L["Font"],
 			options = K.Widgets.InheritedFontOptions,
-			help = L["The font of chat messages and the edit box. Tabs use the caps face."],
+			help = L["The font of chat messages, and of the edit box unless it has its own. Tabs use the caps face."],
 		},
 		{
 			type = "slider", key = "fontSize", label = L["Text size"],
-			help = L["The size of chat messages and the edit box."],
+			help = L["The size of chat messages, and of the edit box unless it has its own."],
 			min = FONT_MIN, max = FONT_MAX, step = 1, shown = ShownSize,
 		},
 		{ type = "font", key = "editFont", label = L["Edit box font"], options = EditFonts, help = L["The font of the text you type. The default is the message font."] },
