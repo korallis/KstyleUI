@@ -1071,7 +1071,7 @@ function Plate:UpdateThreat()
 		self:UpdateTags("Threat")
 	end
 	local shape = self.threatShape
-	shape:SetShown(state ~= nil and Settings.Get("threat.shapes"))
+	shape:SetShown(state ~= nil and display ~= "name" and Settings.Get("threat.shapes"))
 	if state then
 		if state == "warning" then shape:SetTexture((Tokens.Texture("diamond"))) else shape:SetColorTexture(Tokens.Color("white")) end
 		shape:SetTexCoord(0, 1, 0, state == "warning" and 0.5 or 1)
@@ -1165,10 +1165,9 @@ function Plate:UpdateHighlight(sigilCasts)
 	else
 		health:SetRimColor(Tokens.Color("black"))
 	end
-	local casting = self.casting
 	local castScale = self.kind == "enemy" and Settings.Get("cast.scale") or 1
-	if not casting and (Settings.Get("cast.fullOpacity") or castScale ~= 1) and not ns.Cast.Shows(self) then casting = ns.Cast.Active(self) end
-	local boost = (isTarget and Settings.Get("target.scale") or 1) * (casting and castScale or 1)
+	local casting = castScale ~= 1 and (self.casting or not ns.Cast.Shows(self) and ns.Cast.Active(self))
+	local boost = (targeted and Settings.Get("target.scale") or 1) * (casting and castScale or 1)
 	if boost ~= (self.boost or 1) then
 		self.boost = boost
 		self:ApplyScale()
@@ -1176,7 +1175,7 @@ function Plate:UpdateHighlight(sigilCasts)
 	end
 	local alpha = 1
 	if not self.sample and state.hasTarget and not isTarget
-		and not (isFocus and Settings.Get("focus.fullOpacity")) and not (casting and Settings.Get("cast.fullOpacity")) then
+		and not (isFocus and Settings.Get("focus.fullOpacity")) and not (self.casting and Settings.Get("cast.fullOpacity")) then
 		alpha = Settings.Get("target.dimOthers")
 	end
 	if self.alphaGoal ~= alpha or not Settings.Get("target.smoothOpacity") then

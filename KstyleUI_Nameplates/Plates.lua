@@ -33,15 +33,12 @@ local refading = false
 local plateFor = { target = nil, focus = nil }
 local plateForWorks = { target = true, focus = true }
 local highlighted = {}
+Plates.highlighted = highlighted
 
 local LogOnce = ns.LogOnce
 
 function Plates.Get(unit)
 	return byUnit[unit]
-end
-
-function Plates.Highlighted(which)
-	return highlighted[which]
 end
 
 function Plates.AddSample(plate)
@@ -395,7 +392,6 @@ end
 
 local function OnCombat(event)
 	ns.state.inCombat = event == "PLAYER_REGEN_DISABLED"
-	ns.CVars.Combat()
 	ns.Resource.Update()
 end
 

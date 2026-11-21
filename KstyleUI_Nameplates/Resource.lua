@@ -32,15 +32,9 @@ local function Height(plate)
 	return h
 end
 
-function Resource.Room(plate)
-	return Applies(plate) and Settings.Get("resource.place") == "BOTTOM" and Height(plate) + GAP or 0
+function Resource.Room(plate, side)
+	return plate.resource and plate.resource:IsShown() and Settings.Get("resource.place") == side and Height(plate) + GAP or 0
 end
-
-function Resource.Above(plate)
-	return Applies(plate) and Settings.Get("resource.place") == "TOP" and Height(plate) + GAP or 0
-end
-
-ns.Components[#ns.Components + 1] = { Room = Resource.Room }
 
 local function FillColor()
 	if Settings.Get("resource.colorSource") == "custom" then
@@ -60,13 +54,11 @@ end
 
 local function Build(parent)
 	local frame = CreateFrame("Frame", nil, parent)
+	frame:Hide()
 	frame.pips = {}
 	local dot = Tokens.Texture("dot")
 	for i = 1, PIPS do
-		local pip = Widgets.StatusBar(frame, { texture = dot, background = TRACK })
-		pip:SetBarRange(i - 1, i)
-		pip:SetBarValue(0)
-		frame.pips[i] = pip
+		frame.pips[i] = Widgets.StatusBar(frame, { texture = dot, background = TRACK, min = i - 1, max = i, value = 0 })
 	end
 	frame.energy = Widgets.UnitBar(frame, { loss = false, spark = false })
 	return frame
@@ -90,6 +82,7 @@ local function Layout(frame, plate)
 	end
 	local bar = frame.energy
 	bar:SetShown(energy)
+	frame.full = nil
 	if energy then
 		bar.opts.width, bar.opts.height = ew, eh
 		bar:ClearAllPoints()
@@ -107,32 +100,46 @@ local function Layout(frame, plate)
 	end
 end
 
-function Resource.Active()
-	local _, class = UnitClass("player")
-	if IsSecret(class) then return false end
-	if class == "ROGUE" then return true end
-	local current = UnitPowerType("player")
-	return class == "DRUID" and not IsSecret(current) and current == PowerType("Energy", 3)
+local function PlayerClass()
+	local class = type(UnitClass) == "function" and select(2, UnitClass("player"))
+	return not IsSecret(class) and class
 end
 
-function Resource.Update()
+function Resource.Active()
+	local class = PlayerClass()
+	if class == "ROGUE" then return true end
+	local current = class == "DRUID" and type(UnitPowerType) == "function" and UnitPowerType("player")
+	return not IsSecret(current) and current == PowerType("Energy", 3)
+end
+
+function Resource.Update(_, _, token)
 	local plate = state.plate
 	local frame = plate and plate.resource
 	if not frame then return end
-	local points
-	if type(GetComboPoints) == "function" then
-		points = GetComboPoints("player", "target")
-	else
-		points = UnitPower("player", PowerType("ComboPoints", 4))
+	if token == nil or token == "COMBO_POINTS" then
+		local points
+		if type(GetComboPoints) == "function" then
+			points = GetComboPoints("player", "target")
+		elseif type(UnitPower) == "function" then
+			points = UnitPower("player", PowerType("ComboPoints", 4))
+		end
+		if type(points) ~= "nil" then
+			for _, pip in ipairs(frame.pips) do pip:SetBarValue(points) end
+		end
 	end
-	for _, pip in ipairs(frame.pips) do pip:SetBarValue(points) end
-	if not Settings.Get("resource.energy") then return end
+	if not ((token == nil or token == "ENERGY") and Settings.Get("resource.energy") and type(UnitPower) == "function" and type(UnitPowerMax) == "function") then return end
 	local kind = PowerType("Energy", 3)
 	local value, max = UnitPower("player", kind), UnitPowerMax("player", kind)
-	local full = Settings.Get("resource.energyHideFull") and not ns.state.inCombat and not issecretvalue(value) and not issecretvalue(max)
+	local full = Settings.Get("resource.energyHideFull") and not ns.state.inCombat and type(issecretvalue) == "function" and not IsSecret(value) and not IsSecret(max)
 		and type(value) == "number" and type(max) == "number" and value >= max
-	frame.energy:SetShown(not full)
-	frame.energy:SetBarRange(0, max)
+	if full ~= frame.full then
+		frame.full = full
+		frame.energy:SetShown(not full)
+	end
+	if IsSecret(max) or max ~= frame.max then
+		frame.max = max
+		frame.energy:SetBarRange(0, max)
+	end
 	frame.energy:SetBarValue(value)
 end
 
@@ -156,18 +163,24 @@ function Resource.Place(plate, isTarget)
 	elseif state.plate == plate then
 		state.plate = nil
 	end
-	if frame and (on or frame:IsShown()) then frame:SetShown(on) end
+	if frame and on ~= frame:IsShown() then
+		frame:SetShown(on)
+		if not plate.sample then ns.Stacking.Bound(plate, plate.rise or 0) end
+		ns.Auras.Reanchor(plate)
+	end
 end
 
+ns.Components[#ns.Components + 1] = { Room = function(plate, anchor) return not anchor and Resource.Room(plate, "BOTTOM") or 0 end, Clear = Resource.Place }
+
 local function Refresh()
-	local plate = ns.Plates.Highlighted("target")
+	local plate = ns.Plates.highlighted.target
 	if state.plate and state.plate ~= plate then Resource.Place(state.plate, false) end
 	if plate then Resource.Place(plate, true) end
 end
 
 function Resource.Sync()
-	local _, class = UnitClass("player")
-	state.classOK = not IsSecret(class) and (class == "ROGUE" or class == "DRUID")
+	local class = PlayerClass()
+	state.classOK = class == "ROGUE" or class == "DRUID"
 	local listen = ns.Plates.running and Settings.Get("resource.show") and state.classOK or false
 	if listen ~= state.listening then
 		state.listening = listen
@@ -177,6 +190,7 @@ function Resource.Sync()
 			Events.RegisterUnit(OWNER, "UNIT_MAXPOWER", Resource.Update, "player")
 			Events.RegisterUnit(OWNER, "UNIT_DISPLAYPOWER", Refresh, "player")
 			Events.Register(OWNER, "UPDATE_SHAPESHIFT_FORM", Refresh)
+			Events.Register(OWNER, "COMBO_TARGET_CHANGED", Resource.Update)
 		else
 			Events.UnregisterAll(OWNER)
 		end

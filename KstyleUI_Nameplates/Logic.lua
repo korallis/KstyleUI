@@ -214,9 +214,6 @@ function Logic.CVarPlan(cvars)
 	plan[#plan + 1] = { name = Logic.STACKING_CVAR, index = STACK_FRIENDLY, value = stacking.friendly }
 	for _, entry in ipairs(SHOW_CVARS) do
 		local choice = cvars[entry.key]
-		if entry.key == "showEnemies" and cvars.enemiesInCombat then
-			choice = cvars.inCombat and "show" or "hide"
-		end
 		plan[#plan + 1] = { name = entry.name, value = choice == "show" and "1" or choice == "hide" and "0" or nil }
 	end
 	return plan

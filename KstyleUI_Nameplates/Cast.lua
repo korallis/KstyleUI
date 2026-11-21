@@ -62,7 +62,7 @@ local function OpenColor()
 	return K.ColorVision.Color(1, CastColor())
 end
 
-local colors = { open = {}, wait = {}, shield = {} }
+local colors = { open = {}, wait = {}, shield = {}, important = {} }
 local function ColorObject(slot, r, g, b)
 	if slot.r ~= r or slot.g ~= g or slot.b ~= b then
 		slot.r, slot.g, slot.b = r, g, b
@@ -152,9 +152,15 @@ local function PaintImportant(plate)
 	if plate.castInterrupted then important = nil end
 	local fill, glow = plate.castImportantFill, plate.castImportantGlow
 	if fill then
-		local interrupt = ns.Interrupt
-		if type(important) ~= "nil" and Settings.Get("cast.important") and not (Settings.Get("cast.importantKick") and interrupt and interrupt.spell and interrupt.ready == true) then
-			fill:SetVertexColor(Rgb(Settings.Get("cast.importantColor")))
+		local interrupt, flag = ns.Interrupt, plate.castFlag
+		local kick = Settings.Get("cast.importantKick") and interrupt and interrupt.spell and interrupt.ready == true
+		if type(important) ~= "nil" and Settings.Get("cast.important") and not (kick and not IsSecret(flag) and flag ~= true) then
+			local r, g, b = Rgb(Settings.Get("cast.importantColor"))
+			if kick and IsSecret(flag) and fill.SetVertexColorFromBoolean and CreateColor then
+				fill:SetVertexColorFromBoolean(flag, ColorObject(colors.important, r, g, b), (ColorObjects()))
+			else
+				fill:SetVertexColor(r, g, b)
+			end
 			FromFlag(fill, important)
 			plate.castFillOn = true
 		elseif plate.castFillOn ~= false then
@@ -164,12 +170,12 @@ local function PaintImportant(plate)
 	end
 	if glow then
 		local on = type(important) ~= "nil" and Settings.Get("cast.importantGlow") or false
-		if on or plate.castGlowOn ~= false then
+		if on ~= plate.castGlowOn then
 			Widgets.ShowSlice(glow, on)
 			plate.castGlowOn = on
-		end
-		if on then
-			for i = 1, #glow do FromFlag(glow[i], important) end
+			if on then
+				for i = 1, #glow do FromFlag(glow[i], important) end
+			end
 		end
 	end
 end
@@ -249,7 +255,6 @@ local function Important(spellID)
 	local ok, important = pcall(api, spellID)
 	if ok then return important end
 	LogOnce("cast-important-refused", "C_Spell.IsSpellImportant refused a spell: " .. tostring(important))
-	return nil
 end
 
 local function DurationFor(unit, channel)
@@ -308,7 +313,7 @@ function Cast.Start(plate, channel, update)
 	end
 	StopFade(plate)
 	plate.casting, plate.castChannel, plate.castInterrupted = true, channel, false
-	plate.castFlag, plate.castID, plate.castImportant = flag, castID, Important(spellID)
+	plate.castFlag, plate.castID, plate.castImportant, plate.castGlowOn = flag, castID, Important(spellID), nil
 	local cast = plate.cast
 	plate.castIcon:SetTexture(texture)
 	local target
@@ -519,7 +524,7 @@ function Component.Room(plate, anchor)
 	local label = not anchor and plate.castNameBelow and Settings.Get("cast.showName") and Settings.Get("cast.nameBelow") and Settings.Get("cast.textSize") + GAP or 0
 	local h = Settings.Get("cast.height")
 	local icon = Settings.Get("cast.showIcon") and math.max(0, (Settings.Get("cast.iconScale") - 1) * h / 2 - Settings.Get("cast.iconY")) or 0
-	return h + Cast.Gap(plate) + Settings.Get("cast.offsetY") + Widgets.Border(plate.castBar) * 2 + label + icon
+	return math.max(0, h + Cast.Gap(plate) + Settings.Get("cast.offsetY") + Widgets.Border(plate.castBar) * 2 + label + icon)
 end
 Cast.Room = Component.Room
 
@@ -539,12 +544,12 @@ function Component.Restyle(plate)
 	local h = Settings.Get("cast.height")
 	local showIcon = Settings.Get("cast.showIcon")
 	local badge = math.max(11, h)
-	local iconRoom = showIcon and h + GAP or 0
 	local cast, bar, icon = plate.cast, plate.castBar, plate.castIcon
 	Widgets.Size(cast, state.width, h)
 	Cast.Place(plate)
 	local side = h * Settings.Get("cast.iconScale")
 	local grow = (side - h) / 2
+	local iconRoom = showIcon and h + grow + GAP or 0
 	Widgets.Size(icon, side, side)
 	local right = Settings.Get("cast.iconRight")
 	local iconSide = right and "TOPRIGHT" or "TOPLEFT"
@@ -651,7 +656,7 @@ function Cast.Sample(plate)
 	plate.castTime:SetShown(Settings.Get("cast.showTime"))
 	plate.castBar:SetBarRange(0, 1)
 	plate.castBar:SetValue(sample.progress)
-	plate.castFlag, plate.castImportant = sample.notInterruptible, sample.important
+	plate.castFlag, plate.castImportant, plate.castGlowOn = sample.notInterruptible, sample.important, nil
 	Paint(plate)
 end
 

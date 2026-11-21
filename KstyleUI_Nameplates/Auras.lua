@@ -163,7 +163,6 @@ local function AddTexts(tile, owner, level)
 	local countHolder = CreateFrame("Frame", nil, textFrame)
 	countHolder:SetAllPoints(textFrame)
 	local count = Widgets.Fitted(Widgets.FontString(countHolder, "OVERLAY"))
-	count:SetPoint("TOPRIGHT", countHolder, "TOPRIGHT", COUNT_OUT_X, COUNT_OUT_Y)
 	count:SetJustifyH("RIGHT")
 	local badge = countHolder:CreateTexture(nil, "BACKGROUND")
 	local pad = Widgets.Snap(countHolder, BADGE_PAD)
@@ -232,7 +231,7 @@ end
 
 local function Cues(button, p)
 	local dispel = Settings.Get("debuffs.dispelColor") and Settings.Get("debuffs.border") and DispelOptions() ~= nil
-	if dispel ~= (p.dispelBound == true) and type(button.RemoveDispelTypeTexture) == "function" then
+	if dispel ~= (p.dispelBound == true) and type(button.AddDispelTypeTexture) == "function" and type(button.RemoveDispelTypeTexture) == "function" then
 		if dispel then
 			button:AddDispelTypeTexture(Dispel(p), DispelOptions())
 		else
@@ -283,9 +282,8 @@ local function BuildButton(button)
 		LogOnce("aura-mouse", "aura buttons refused EnableMouse(false); debuff icons may catch clicks")
 	end
 	local tile = NewTile(button)
-	local icon = tile.icon
 	local cooldown = CreateFrame("Cooldown", nil, tile.skin)
-	cooldown:SetAllPoints(icon)
+	cooldown:SetAllPoints(tile.icon)
 	cooldown:SetSwipeTexture((Tokens.Texture("barFlat")))
 	cooldown:SetDrawEdge(false)
 	cooldown:SetReverse(true)
@@ -295,7 +293,7 @@ local function BuildButton(button)
 	tile.cooldown = cooldown
 	parts[button] = tile
 	StyleButton(button)
-	button:SetIcon(icon)
+	button:SetIcon(tile.icon)
 	button:SetDurationCooldown(cooldown)
 	button:SetApplicationCount(tile.count)
 end
@@ -433,9 +431,9 @@ end
 
 local function RoomAbove(plate)
 	if Settings.Get("name.show") and not plate.nameOnly then
-		return ns.Plate.NAME_GAP + Settings.Get("name.size") + NAME_GAP + ns.Resource.Above(plate)
+		return ns.Plate.NAME_GAP + Settings.Get("name.size") + NAME_GAP + ns.Resource.Room(plate, "TOP")
 	end
-	return GAP + ns.Resource.Above(plate)
+	return GAP + ns.Resource.Room(plate, "TOP")
 end
 
 local function RoomBelow(plate)

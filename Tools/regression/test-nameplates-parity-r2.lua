@@ -62,7 +62,7 @@ local NEW = {
 	["threat.tankOverOthers"] = true, ["target.glow"] = false, ["target.glowAlpha"] = 0.9, ["target.fill"] = false,
 	["target.fillAlpha"] = 0.2, ["target.scale"] = 1, ["resource.show"] = false, ["resource.place"] = "BOTTOM", ["resource.scale"] = 1,
 	["resource.spacing"] = 2, ["resource.energy"] = false, ["resource.energyHeight"] = 3, ["resource.energyPlace"] = "BELOW",
-	["resource.energyWidth"] = 1, ["resource.energyHideFull"] = false, ["cvars.enemiesInCombat"] = false,
+	["resource.energyWidth"] = 1, ["resource.energyHideFull"] = false,
 }
 
 -- v0.2.8 profiles keep every default, build no new region, keep the plate's scale and write no CVar.
@@ -287,12 +287,16 @@ do
 	local lane = ns.Auras.Lane(plate)
 	set("debuffs.timePlace", "CENTER")
 	set("debuffs.timeX", 3)
-	local p, _, _, tx = aura.timer:GetPoint(1)
-	assert(p == "CENTER" and near(tx, K.Widgets.Snap(plate, 3)) and ns.Auras.Lane(plate) == 0 and lane > 0, "a timer on the icon frees its lane")
+	set("debuffs.timeY", 4)
+	local p, _, _, tx, ty = aura.timer:GetPoint(1)
+	assert(p == "CENTER" and near(tx, K.Widgets.Snap(plate, 3)) and near(ty, K.Widgets.Snap(plate, 4)) and ns.Auras.Lane(plate) == 0 and lane > 0,
+		"a timer on the icon frees its lane and takes both offsets")
 	set("debuffs.countPlace", "BOTTOMLEFT")
 	set("debuffs.countY", 2)
-	assert(point(aura.count) == "BOTTOMLEFT", "the stacks move")
-	for _, key in ipairs({ "timePlace", "timeX", "countPlace", "countY" }) do set("debuffs." .. key, NEW["debuffs." .. key]) end
+	local cx = select(4, aura.count:GetPoint(1))
+	set("debuffs.countX", 3)
+	assert(point(aura.count) == "BOTTOMLEFT" and near(select(4, aura.count:GetPoint(1)) - cx, K.Widgets.Snap(plate, 3)), "the stacks move")
+	for _, key in ipairs({ "timePlace", "timeX", "timeY", "countPlace", "countX", "countY" }) do set("debuffs." .. key, NEW["debuffs." .. key]) end
 	assert(point(aura.timer) == "TOP" and point(aura.count) == "TOPRIGHT" and ns.Auras.Lane(plate) == lane, "defaults restore them")
 
 	local w, h = val(env, button:GetWidth()), val(env, button:GetHeight())
@@ -349,7 +353,7 @@ do
 	local p1, p2 = ns.Plates.Get("nameplate1"), ns.Plates.Get("nameplate2")
 	local y0 = select(5, p1:GetPoint(1))
 	set("resource.show", true)
-	assert(select(5, p1:GetPoint(1)) > y0, "plates make room for the points below")
+	assert(math.abs(select(5, p1:GetPoint(1)) - y0) < 0.5, "no plate moves before a target carries the points, beyond pixel alignment")
 	N.Target(env, "nameplate1")
 	local frame = assert(p1.resource, "the target carries the points")
 	assert(frame:IsShown() and frame.pips[3]:GetValue() == 3, "showing the combo points")
@@ -394,27 +398,6 @@ do
 end
 collectgarbage()
 
--- Enemy plates in combat only: written under management as combat starts and ends, and handed back.
-do
-	local env, K, _, set = boot({})
-	local function shown() return env._cvars.nameplateShowEnemies end
-	set("cvars.enemiesInCombat", true)
-	assert(shown() == "1", "nothing changes while management is off")
-	set("cvars.enabled", true)
-	assert(shown() == "0", "out of combat, enemy plates hide")
-	env.FireEvent("PLAYER_REGEN_DISABLED")
-	env._combat = true
-	assert(shown() == "1", "they show as combat starts")
-	env._combat = false
-	env.FireEvent("PLAYER_REGEN_ENABLED")
-	env.RunTimers()
-	assert(shown() == "0", "and hide after it")
-	set("cvars.enemiesInCombat", false)
-	assert(shown() == "1", "off hands the player's value back")
-	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
-end
-collectgarbage()
-
 -- The Options preview, at its own size, shows each option on the sample plate it draws.
 do
 	local env, K, ns, set = boot({})
@@ -454,16 +437,68 @@ do
 end
 collectgarbage()
 
+-- Finding 9: the keys the review found untested change what they name.
+do
+	local env, K, ns, set = boot({ nameplate1 = { classification = "elite", level = 20, threat = 3 }, nameplate2 = { powerType = 0, powerMax = 100, threat = 3 } })
+	local mini, caster = ns.Plates.Get("nameplate1"), ns.Plates.Get("nameplate2")
+	set("threat.groupOnly", false)
+	set("threat.display", "health")
+	set("types.miniBoss", true)
+	set("types.miniBossColor", { r = 0.1, g = 0.2, b = 0.3 })
+	set("types.caster", true)
+	set("types.casterColor", { r = 0.4, g = 0.5, b = 0.6 })
+	local danger = { K.ColorVision.Color(2, K.Tokens.Color("hostile")) }
+	same(bar(mini), danger, "threat beats the mini-boss colour by default")
+	same(bar(caster), danger, "and the caster colour")
+	set("threat.overMiniBoss", false)
+	same(bar(mini), { 0.1, 0.2, 0.3 }, "damage dealers can keep the mini-boss colour")
+	same(bar(caster), danger, "without touching casters")
+	set("threat.overCaster", false)
+	same(bar(caster), { 0.4, 0.5, 0.6 }, "or keep the caster colour")
+	set("threat.role", "tank")
+	local safe = { K.ColorVision.Color(1, K.Tokens.Color("friendly")) }
+	same(bar(mini), safe, "tanks follow their own switch")
+	set("threat.tankOverOthers", false)
+	same(bar(mini), { 0.1, 0.2, 0.3 }, "tanks can keep the mini-boss colour")
+	same(bar(caster), { 0.4, 0.5, 0.6 }, "and the caster colour")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+collectgarbage()
+do
+	local env, K, ns, set = boot({ nameplate1 = {} }, { playerClass = "ROGUE" })
+	env._units.player = { level = 15, power = 40, powerMax = 100 }
+	set("resource.show", true)
+	set("resource.energy", true)
+	N.Target(env, "nameplate1")
+	local frame = ns.Plates.Get("nameplate1").resource
+	local function x(i) return select(4, frame.pips[i]:GetPoint(1)) end
+	local function y(region) return select(5, region:GetPoint(1)) end
+	local gap = x(2) - x(1)
+	set("resource.spacing", 6)
+	assert(near(x(2) - x(1) - gap, 4), "Spacing spreads the points")
+	local h, w = val(env, frame.energy:GetHeight()), val(env, frame.energy:GetWidth())
+	set("resource.energyHeight", 6)
+	assert(val(env, frame.energy:GetHeight()) > h, "Energy bar height grows the bar")
+	set("resource.energyWidth", 2)
+	assert(val(env, frame.energy:GetWidth()) > w * 1.5, "Energy bar width widens it")
+	assert(y(frame.energy) < 0 and y(frame.pips[1]) == 0, "the energy bar sits under the points")
+	set("resource.energyPlace", "ABOVE")
+	assert(y(frame.energy) == 0 and y(frame.pips[1]) < 0, "or above them")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+collectgarbage()
+
 -- Every option on at once raises nothing at four screen sizes, the live preview included.
 local ALL_ON = {
-	["level.x"] = 4, ["cast.showIcon"] = true, ["cast.iconScale"] = 1.5, ["cast.iconX"] = 2, ["cast.offsetY"] = -4, ["cast.border"] = false,
+	["level.x"] = 4, ["cast.showIcon"] = true, ["cast.iconScale"] = 1.5, ["cast.iconX"] = -2, ["cast.offsetY"] = -4, ["cast.border"] = false,
 	["cast.important"] = true, ["cast.importantGlow"] = true, ["cast.importantKick"] = true, ["cast.scale"] = 1.2,
 	["debuffs.timePlace"] = "TOP", ["debuffs.countPlace"] = "CENTER", ["debuffs.border"] = true, ["debuffs.cropped"] = true,
 	["debuffs.raise"] = true, ["debuffs.dispelColor"] = true, ["debuffs.pandemic"] = true, ["debuffs.tooltips"] = true,
 	["threat.overBoss"] = false, ["threat.display"] = "healthEdge", ["target.glow"] = true, ["target.fill"] = true, ["target.scale"] = 1.2,
 	["resource.show"] = true, ["resource.energy"] = true, ["resource.energyHideFull"] = true, ["resource.place"] = "TOP",
-	["cvars.enabled"] = true, ["cvars.enemiesInCombat"] = true,
+	["cvars.enabled"] = true,
 }
+local scene = dofile("Tools/render/scene.lua")
 for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	local own = {}
 	for key, value in pairs(ALL_ON) do
@@ -477,7 +512,13 @@ for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 
 	N.Debuffs(env, "nameplate1", 3)
 	N.Cast(env, "nameplate1", { name = "Fear", text = "Fear", texture = 136183 })
 	ns.Preview.Build(env.UIParent).Refresh()
-	assert(#env._errors == 0 and K.ErrorCount() == 0, size[1] .. "x" .. size[2] .. ": " .. tostring(env._errors[1]))
+	env._bases.nameplate1:SetPoint("CENTER", env.UIParent, "CENTER")
+	local s, plate, at = scene.RectSolver(env), ns.Plates.Get("nameplate1"), size[1] .. "x" .. size[2]
+	local ix, _, iw = scene.RectIn(s, plate.castIcon)
+	assert(ix + iw <= scene.RectIn(s, plate.castBar) + 1e-6, at .. ": the larger cast icon clears the bar")
+	local _, ry, _, rh = scene.RectIn(s, plate.resource)
+	assert(ry + rh < select(2, scene.RectIn(s, plate.health)) - K.Widgets.Snap(plate, ns.Plate.NAME_GAP), at .. ": the points sit above the name")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, at .. ": " .. tostring(env._errors[1]))
 	collectgarbage()
 end
 -- Review of #611: each block reproduces one finding of the review at e9c32164 and must hold after the fixes.
@@ -514,14 +555,14 @@ do
 	env.FireEvent("UNIT_POWER_FREQUENT", "player", "ENERGY")
 	assert(writes() == before, "an energy tick leaves the points alone")
 	set("resource.energy", true)
-	local bar = frame.energy
+	local energy = frame.energy
 	local function setup()
-		return #N.Calls(bar, "SetMinMaxValues") + #N.Calls(bar, "SetShown") + #N.Calls(bar, "Show") + #N.Calls(bar, "Hide")
+		return #N.Calls(energy, "SetMinMaxValues") + #N.Calls(energy, "SetShown") + #N.Calls(energy, "Show") + #N.Calls(energy, "Hide")
 	end
 	before = setup()
 	env._units.player.power = 75
 	env.FireEvent("UNIT_POWER_FREQUENT", "player", "ENERGY")
-	assert(setup() == before and bar:GetValue() == 75, "an energy tick writes only the value")
+	assert(setup() == before and val(env, energy:GetValue()) == 75, "an energy tick writes only the value")
 	N.Remove(env, "nameplate1")
 	before = writes()
 	env.FireEvent("UNIT_POWER_FREQUENT", "player", "COMBO_POINTS")
@@ -553,7 +594,6 @@ collectgarbage()
 do
 	local env, K, ns, set = boot({ nameplate1 = {}, nameplate2 = {} }, { playerClass = "ROGUE" })
 	local p1, p2 = ns.Plates.Get("nameplate1"), ns.Plates.Get("nameplate2")
-	local scene = dofile("Tools/render/scene.lua")
 	env._bases.nameplate1:SetPoint("CENTER", env.UIParent, "CENTER")
 	env._bases.nameplate2:SetPoint("CENTER", env.UIParent, "CENTER", 0, 200)
 	set("cast.showIcon", true)
@@ -561,13 +601,13 @@ do
 	set("cast.height", 20)
 	local s = scene.RectSolver(env)
 	local ix, _, iw = scene.RectIn(s, p1.castIcon)
-	local bx, _, bw = scene.RectIn(s, p1.castBar)
+	local bx = scene.RectIn(s, p1.castBar)
 	assert(ix + iw <= bx + 1e-6, "a larger icon does not cover the bar: " .. (ix + iw - bx))
 	set("cast.iconRight", true)
 	s = scene.RectSolver(env)
 	ix = scene.RectIn(s, p1.castIcon)
-	bx, _, bw = scene.RectIn(s, p1.castBar)
-	assert(bx + bw <= ix + 1e-6, "on the right either")
+	local rx, _, rw = scene.RectIn(s, p1.castBar)
+	assert(rx + rw <= ix + 1e-6, "on the right either")
 	set("cast.iconRight", false)
 	set("cast.iconScale", 1)
 	set("cast.height", 6)
@@ -575,7 +615,7 @@ do
 	local y = select(5, p2:GetPoint(1))
 	set("resource.show", true)
 	N.Target(env, "nameplate1")
-	assert(select(5, p2:GetPoint(1)) == y, "the target's points move no other plate")
+	assert(math.abs(select(5, p2:GetPoint(1)) - y) < 0.5, "the target's points move no other plate, beyond pixel alignment")
 	set("cast.showName", false)
 	set("cast.offsetY", -25)
 	s = scene.RectSolver(env)
@@ -650,7 +690,7 @@ collectgarbage()
 
 -- Finding 8: a missing API refuses its feature instead of raising.
 do
-	local env, K, ns, set = boot({ nameplate1 = {} }, { playerClass = "DRUID" })
+	local env, _, ns, set = boot({ nameplate1 = {} }, { playerClass = "DRUID" })
 	env._units.player = { level = 15, power = 70, powerMax = 100, powerType = 3 }
 	set("resource.show", true)
 	N.Target(env, "nameplate1")
@@ -659,7 +699,7 @@ do
 end
 collectgarbage()
 do
-	local env, K, ns, set = boot({ nameplate1 = {} }, { playerClass = "ROGUE" })
+	local env, _, ns, set = boot({ nameplate1 = {} }, { playerClass = "ROGUE" })
 	env._units.player = { level = 15, power = 100, powerMax = 100 }
 	set("resource.show", true)
 	set("resource.energy", true)
@@ -689,4 +729,4 @@ do
 end
 collectgarbage()
 
-print("nameplates parity round 2 ok: casts, important casts, target effects, threat, level, debuffs, combo points, combat plates and the preview")
+print("nameplates parity round 2 ok: casts, important casts, target effects, threat, level, debuffs, combo points, the preview and the #611 review")

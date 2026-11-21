@@ -50,7 +50,8 @@ local function Stack(frame)
 	for _, key in ipairs(PLAYER_ROWS) do
 		if Settings.Get(key) then first = 2 end
 	end
-	if THREAT_SAMPLE[Settings.Get("threat.display")] then first = 2 end
+	if THREAT_SAMPLE[Settings.Get("threat.display")] and not (Settings.Get("target.glow") or Settings.Get("target.fill")
+		or Settings.Get("resource.show") or Settings.Get("target.scale") ~= 1) then first = 2 end
 	for i = first, #frame.plates do
 		local w, h = Span(frame.plates[i])
 		if not known or (w and w <= width and h <= height) then

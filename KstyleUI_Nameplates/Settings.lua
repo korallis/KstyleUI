@@ -72,7 +72,7 @@ Settings.defaults = {
 	cvars = {
 		enabled = false, maxDistance = 40, verticalDistance = 0, stacking = "enemy",
 		selectedScale = 1.2, minScale = 0.8, clickSize = 2,
-		showEnemies = "game", showFriends = "game", enemyMinions = "game", friendlyMinions = "game", friendlyNpcs = "game", friendlyNameOnly = "game", enemiesInCombat = false,
+		showEnemies = "game", showFriends = "game", enemyMinions = "game", friendlyMinions = "game", friendlyNpcs = "game", friendlyNameOnly = "game",
 	},
 }
 
@@ -175,16 +175,15 @@ function Settings.Schema()
 		end
 	end
 
-	local function Off(key)
-		local on = Is(key, true)
+	local function Off(key, value)
+		local on = Is(key, value == nil or value)
 		return function(s)
 			return not on(s)
 		end
 	end
 
 	local function None(...)
-		local tests = {}
-		for i, key in ipairs({ ... }) do tests[i] = Is(key, true) end
+		local tests = { ... }
 		return function(s)
 			for _, on in ipairs(tests) do
 				if on(s) then return false end
@@ -192,6 +191,7 @@ function Settings.Schema()
 			return true
 		end
 	end
+	local targetTint = None(Is("target.highlight", true), Is("target.glow", true))
 
 	local function HasCVar(name)
 		return function()
@@ -385,7 +385,7 @@ function Settings.Schema()
 		{ type = "toggle", key = "cast.border", label = L["Cast bar border"], help = L["Frames the cast bar with the dark bar edge. Off draws it without one."], disableWhen = Off("cast.enabled") },
 		{ type = "toggle", key = "cast.important", label = L["Important cast colour"], help = L["Colours casts the game marks as important, such as spells that are deadly if not interrupted."], disableWhen = Off("cast.enabled") },
 		{ type = "toggle", key = "cast.importantGlow", label = L["Important cast glow"], help = L["Glows around the cast bar during important casts."], disableWhen = Off("cast.enabled") },
-		{ type = "color", key = "cast.importantColor", label = L["Important colour"], help = L["The colour of important casts and their glow."], disableWhen = None("cast.important", "cast.importantGlow") },
+		{ type = "color", key = "cast.importantColor", label = L["Important colour"], help = L["The colour of important casts and their glow."], disableWhen = None(Is("cast.important", true), Is("cast.importantGlow", true)) },
 		{ type = "toggle", key = "cast.importantKick", label = L["Usual colour while you can interrupt"], help = L["Important casts keep the usual cast colour while your interrupt is ready."], disableWhen = Off("cast.important") },
 		{ type = "slider", key = "cast.scale", label = L["Plate size while casting"], help = L["Draws enemy plates larger while they cast. 1 keeps their size."], min = 1, max = 1.5, step = 0.05 },
 		{
@@ -570,18 +570,18 @@ function Settings.Schema()
 		{ type = "color", key = "target.fillColor", label = L["Highlight colour"], help = L["The colour that brightens your target's health bar."], disableWhen = Off("target.fill") },
 		{ type = "slider", key = "target.fillAlpha", label = L["Highlight opacity"], help = L["How strongly your target's health bar is brightened."], min = 0, max = 1, step = 0.05, disableWhen = Off("target.fill") },
 		{ type = "slider", key = "target.scale", label = L["Target plate size"], help = L["Draws your target's plate larger. 1 keeps its size."], min = 1, max = 1.6, step = 0.05 },
-		{ type = "toggle", key = "target.friendly", label = L["Highlight friendly targets"], help = L["Also highlights your target when it is friendly."], disableWhen = None("target.highlight", "target.glow", "target.fill") },
+		{ type = "toggle", key = "target.friendly", label = L["Highlight friendly targets"], help = L["Also highlights your target when it is friendly."], disableWhen = None(Is("target.highlight", true), Is("target.glow", true), Is("target.fill", true), Off("target.scale", 1)) },
 		{ type = "toggle", key = "target.hashLine", label = L["Health line on the target"], help = L["Marks a health percent, such as an execute range, on your target's health bar."] },
 		{ type = "slider", key = "target.hashPercent", label = L["Health line percent"], help = L["The health percent the line marks."], min = 0, max = 100, step = 1, disableWhen = Off("target.hashLine") },
 		{
 			type = "dropdown", key = "target.colorSource", label = L["Target colour"],
 			help = L["The target highlight follows the accent or uses your own colour."],
-			options = ACCENT_SOURCES, disableWhen = None("target.highlight", "target.glow"),
+			options = ACCENT_SOURCES, disableWhen = targetTint,
 		},
 		{
 			type = "color", key = "target.color", label = L["Custom target colour"],
 			help = L["The colour of the target highlight."],
-			showWhen = Is("target.colorSource", "custom"), disableWhen = None("target.highlight", "target.glow"),
+			showWhen = Is("target.colorSource", "custom"), disableWhen = targetTint,
 		},
 		{
 			type = "slider", key = "target.dimOthers", label = L["Other plates' opacity"],
@@ -686,11 +686,8 @@ function Settings.Schema()
 		{ "friendlyNameOnly", "nameplateShowOnlyNameForFriendlyPlayerUnits", L["Names only for friendly players in instances"] },
 	}) do
 		rest[#rest + 1] = { type = "dropdown", key = "cvars." .. c[1], label = c[3], options = GAME_CHOICES,
-			help = L["Turns these game plates on or off. The game's setting leaves them alone."], showWhen = HasCVar(c[2]),
-			disableWhen = c[1] == "showEnemies" and function(s) return Off("cvars.enabled")(s) or Is("cvars.enemiesInCombat", true)(s) end or Off("cvars.enabled") }
+			help = L["Turns these game plates on or off. The game's setting leaves them alone."], disableWhen = Off("cvars.enabled"), showWhen = HasCVar(c[2]) }
 	end
-	rest[#rest + 1] = { type = "toggle", key = "cvars.enemiesInCombat", label = L["Enemy plates in combat only"],
-		help = L["Hides enemy plates out of combat and shows them as combat starts."], disableWhen = Off("cvars.enabled"), showWhen = HasCVar("nameplateShowEnemies") }
 	for _, row in ipairs(rest) do
 		schema[#schema + 1] = row
 	end
