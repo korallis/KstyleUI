@@ -1,21 +1,20 @@
 # KstyleUI roadmap
 
-What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships.
+What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.2.8.2 is out now with road-following map routes, player fixes and the first wave of new options.
 
 ## v0.2.9 — the customisation release
 
 Estimated: within 2–3 days.
 
-Every part of KstyleUI becomes deeply customisable, bar by bar and frame by frame, while keeping one forged look.
+The rest of the customisation work, finishing every part of KstyleUI bar by bar and frame by frame, while keeping one forged look.
 
 Highlights:
 
-- Hundreds of new options for unit, party and raid frames, nameplates, cooldowns, auras, the meter, chat, bags and more.
-- World map routes follow real roads, passes, flight paths and boats, with turn-by-turn steps and travel time.
-- New text, cast bar, aura and level options on every frame, with live previews in Options.
-- Action bars: text placement, cooldown look, item quality borders, show/hide rules, toggle keys, click-through.
-- Quality-of-life helpers: quicker item deletion, resurrection accept, tooltip peek key and more.
-- Fixes: welcome text, French Options layout, readable 1080p data bar, colour-vision health bars, slider typing and more.
+- More options for frames, nameplates, cooldowns, auras, the meter, chat, minimap and bags, with live previews.
+- Your class resource as jewels on the Medallions crest: combo points, holy power and soul shards.
+- Quality-of-life helpers: alerts, a cursor ring, a crosshair, durability warnings and quicker cinematics.
+- A forged Medallions data dock, chat buttons and tabs you can arrange, and minimap buttons you can place.
+- More fixes from your reports.
 
 ## v0.3.0 — the polish release
 
@@ -29,7 +28,7 @@ Highlights:
 - Readable everywhere: small text over the world sits on a soft backing, and names and timers stay clear in busy fights.
 - A clean screen at rest: panels fade out of combat and come straight back on hover, target or combat.
 - Casts by their caster, a target cast rail in Orbs, and interrupt states you can read at a glance.
-- Medallions finish: slab end caps, jewelled class resources and a calmer resting crest.
+- Medallions finish: slab end caps and a calmer resting crest.
 - A smoother Layout Mode and Options: search that takes you there, live previews and one motion style.
 - A better first run: big HUD pictures, one-click Looks, and Medallions as the default for new profiles.
 - A notice if anything fails to load, plus an About health page.
@@ -49,7 +48,7 @@ Highlights:
 
 ## Later
 
-- A cursor ring, item levels on equipment slots, and a gamepad-friendly layout.
+- Item levels on equipment slots and a gamepad-friendly layout.
 - More languages polished by native speakers.
 
 Questions or ideas? Post them in <#1572983339663499408>.
