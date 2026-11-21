@@ -8,6 +8,7 @@ local Quick = { on = false }
 ns.Quick = Quick
 
 local DISENCHANT, PICK_LOCK = 13262, 1804
+Quick.DISENCHANT = DISENCHANT
 local UNCOMMON, EPIC = 2, 4
 local OWNER = "Bags.quick"
 local OVERLAY_LEVEL = 10
@@ -22,9 +23,10 @@ end
 
 local function Says(bag, slot, text)
 	local ok, data = pcall(C_TooltipInfo.GetBagItem, bag, slot)
-	if type(text) ~= "string" or not ok or Data.IsSecret(data) or type(data) ~= "table" or type(data.lines) ~= "table" then return false end
+	if type(text) ~= "string" or not ok or Data.IsSecret(data) or type(data) ~= "table" or type(data.lines) ~= "table" or not data.lines[1] then return nil end
 	for _, line in ipairs(data.lines) do
-		if Data.Plain(line.leftText, "string") == text then return true end
+		if Data.IsSecret(line.leftText) then return nil end
+		if line.leftText == text then return true end
 	end
 	return false
 end
@@ -35,7 +37,7 @@ function Quick.Spell(bag, slot)
 	local quality = record.quality
 	if not record.itemID or record.locked then return nil end
 	if Data.BuiltinCategory(record) == "equipment" and quality and quality >= UNCOMMON and quality <= EPIC and Known(DISENCHANT)
-		and not Says(bag, slot, ITEM_DISENCHANT_NOT_DISENCHANTABLE) then
+		and Says(bag, slot, ITEM_DISENCHANT_NOT_DISENCHANTABLE) == false then
 		return DISENCHANT
 	end
 	if Known(PICK_LOCK) and Says(bag, slot, LOCKED) then return PICK_LOCK end
@@ -45,13 +47,17 @@ local function Detach()
 	if button and not InCombatLockdown() then button:Hide() end
 end
 
-local function ShowTip(self)
-	local spell = C_Spell and type(C_Spell.GetSpellName) == "function" and Data.Plain(C_Spell.GetSpellName(self.spell), "string")
-	GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-	GameTooltip:SetBagItem(self.bag, self.slot)
+function Quick.Hint(id)
+	local spell = C_Spell and type(C_Spell.GetSpellName) == "function" and Data.Plain(C_Spell.GetSpellName(id), "string")
 	local r, g, b = K.Tokens.Color("accent")
 	GameTooltip:AddLine(string.format(L["Alt-right-click: %s"], spell or ""), r, g, b)
 	GameTooltip:Show()
+end
+
+local function ShowTip(self)
+	GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+	GameTooltip:SetBagItem(self.bag, self.slot)
+	Quick.Hint(self.spell)
 end
 
 local function Build()
@@ -59,7 +65,7 @@ local function Build()
 	Quick.button = button
 	button:RegisterForClicks("AnyUp")
 	button:SetAttribute("useOnKeyDown", false)
-	button:SetAttribute("type2", "spell")
+	button:SetAttribute("alt-type2", "spell")
 	button:HookScript("OnEnter", ShowTip)
 	button:HookScript("OnLeave", function()
 		if type(GameTooltip_Hide) == "function" then GameTooltip_Hide() end
@@ -89,10 +95,9 @@ end
 
 local function Attach()
 	local slot = hovered
-	if not slot or InCombatLockdown() or Data.Plain(IsAltKeyDown(), "boolean") ~= true or not Held(slot.bag) then return end
-	local spell = Quick.Spell(slot.bag, slot.id)
-	if not spell or not K.Widgets.Cover(button or Build(), slot.button) then return end
-	button:SetAttribute("spell2", spell)
+	local spell = slot and not InCombatLockdown() and Data.Plain(IsAltKeyDown(), "boolean") == true and Held(slot.bag) and Quick.Spell(slot.bag, slot.id)
+	if not spell or not K.Widgets.Cover(button or Build(), slot.button) then return Detach() end
+	button:SetAttribute("alt-spell2", spell)
 	button:SetAttribute("target-bag", slot.bag)
 	button:SetAttribute("target-slot", slot.id)
 	button.owner, button.spell, button.bag, button.slot = slot, spell, slot.bag, slot.id
@@ -116,20 +121,16 @@ function Quick.Leave()
 	Detach()
 end
 
-local function OnModifier()
-	if Data.Plain(IsAltKeyDown(), "boolean") == true then Attach() else Detach() end
-end
-
 function Quick.Sync(running)
 	local want = running and Settings.Get("quickActions") == true
 	if want == Quick.on then return end
 	Quick.on = want
 	if want then
-		K.Events.Register(OWNER, "MODIFIER_STATE_CHANGED", OnModifier)
+		K.Events.Register(OWNER, "MODIFIER_STATE_CHANGED", Attach)
+		K.Events.Register(OWNER, "BAG_UPDATE_DELAYED", Attach)
 		K.Events.Register(OWNER, "PLAYER_REGEN_DISABLED", Detach)
 	else
-		K.Events.Unregister(OWNER, "MODIFIER_STATE_CHANGED")
-		K.Events.Unregister(OWNER, "PLAYER_REGEN_DISABLED")
+		K.Events.UnregisterAll(OWNER)
 		hovered = nil
 		Detach()
 	end

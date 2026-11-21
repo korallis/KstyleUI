@@ -189,12 +189,21 @@ function Preview.Build(...)
 				Slot.Layout(slot, cellWidth, true, list and rowHeight or nil)
 				Slot.SetStripe(slot, list and Settings.Get("listStripes") and i % 2 == 0)
 				local sample = SAMPLES[order[i]]
+				slot.button.sample = sample
 				extra.bind = sample.bind and Settings.Get("bindText") and L["BoE"] or nil
 				extra.set = sample.set and Settings.Get("setNames") and sample.set or nil
 				extra.mark = sample.reagent and Settings.Get("reagentMark") and not Settings.ReagentApart()
 				Slot.Update(slot, Record(sample), sample.level, not (dim and order[i] == PINNED), nil, extra)
 			end
 		end
+	end
+
+	local function Hint(button)
+		local sample = button.sample
+		if not (sample and sample.category == "equipment" and Settings.Get("quickActions")) then return end
+		GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
+		GameTooltip:SetText(sample.name)
+		ns.Quick.Hint(ns.Quick.DISENCHANT)
 	end
 
 	build = function(parent)
@@ -204,6 +213,8 @@ function Preview.Build(...)
 		frame.slots = {}
 		for i = 1, PREVIEW_COLUMNS * PREVIEW_ROWS do
 			frame.slots[i] = Slot.New(frame.grid, i)
+			frame.slots[i].button:HookScript("OnEnter", Hint)
+			frame.slots[i].button:HookScript("OnLeave", function() GameTooltip:Hide() end)
 		end
 		frame.Refresh = Refresh
 		Refresh(frame)
