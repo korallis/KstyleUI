@@ -661,6 +661,7 @@ function modules.actionbars(opts)
 			K.Options.Write("ActionBars", entry.key, entry.value)
 		end
 	end
+	if os.getenv("RENDER_STANCE_BACKING") == "1" then K.Options.Write("ActionBars", "stance.backing", true) end
 	env.RunTimers()
 	for i = 1, 12 do
 		if bar1[i] then
