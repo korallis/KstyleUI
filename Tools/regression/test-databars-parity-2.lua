@@ -151,6 +151,7 @@ show({ "fps", "latency", "gold" }, "railModules")
 assert(disabled("strip.icons") and not disabled("strip.fill"), "icons are a one-line option; fill is a cells option")
 write("strip.icons", "only")
 assert(item("fps").value:IsShown(), "cells keep their values even with icons only")
+assert(disabled("strip.iconColor") and disabled("strip.iconCustom"), "icon colour turns off with the icons in cells")
 write("strip.icons", "off")
 local lefts = {}
 for _, id in ipairs({ "fps", "latency", "gold" }) do lefts[id] = select(4, item(id).button:GetPoint()) end
@@ -206,6 +207,12 @@ eq(text("reagents"), "--", "no bag API and no ammunition reads as --")
 assert(tooltip("reagents"):find("You carry no class reagents or ammunition.", 1, true))
 env.C_Container = container
 x.bags[0][1] = { 6265, 12, 15, 1, "Soul Shard" }
+env.FireEvent("BAG_UPDATE_DELAYED")
+show({ "fps" })
+x.bags[0][1][2] = 37
+env.FireEvent("BAG_UPDATE_DELAYED")
+show({ "reagents", "fps" })
+eq(text("reagents"), "|T1065:0|t 37 \194\183 |T1020:0|t 5", "a readout shown again reads the bags it missed while hidden")
 
 -- Guild and friends: counts alone by default; names, capped and sorted, then notes when asked.
 show({ "guild", "friends", "fps" })
@@ -223,6 +230,12 @@ eq(tooltip("guild"), "GUILD=|Online=17|Amy=Durotar|Bea=Barrens|Zed=Orgrimmar", "
 x.secretMembers = true
 eq(tooltip("guild"), "GUILD=|Online=17", "a secret roster lists no one")
 x.secretMembers = nil
+local club, passed = env.C_Club, 0
+env.C_Club = { GetGuildClubId = club.GetGuildClubId, GetClubMembers = function() return { env.Secret(1), 2 } end,
+	GetMemberInfo = function(_, id) if env.issecretvalue(id) then passed = passed + 1 end return x.members[id] end }
+eq(tooltip("guild"), "GUILD=|Online=17|Zed=Orgrimmar", "a secret member is skipped")
+eq(passed, 0, "a secret member ID never reaches GetMemberInfo")
+env.C_Club = club
 eq(tooltip("friends"), "FRIENDS=|World of Warcraft=4|Battle.net=1|Kim=Ashenvale|Lou=Lulu", "online friends from both lists")
 write("strip.friendNotes", true)
 eq(tooltip("friends"), "FRIENDS=|World of Warcraft=4|Battle.net=1|Kim=Ashenvale|tank=|Lou=Lulu|healer=", "friend notes")
@@ -248,6 +261,19 @@ eq(choices[1].label, "None")
 eq(choices[2].value, "item:6948", "the Hearthstone is a choice for other clicks")
 eq(choices[4].value, "spell:3561")
 eq(ns.Readouts.TravelChoices("hearthLeft")[2].value, "spell:556", "the left click lists the Hearthstone as its default only")
+local travel, scans = K.Safe.Side(K).travelData, 0
+local read = travel.Read
+travel.Read = function() scans = scans + 1 return read() end
+local function lists() for _, key in ipairs({ "Left", "Right", "Middle" }) do K.Options.Row("DataBars", "strip.hearth" .. key).options() end end
+env.RunTimers()
+lists()
+eq(scans, 1, "the three click lists share one scan")
+env.RunTimers()
+env.SetCombat(true)
+lists()
+eq(scans, 1, "no travel scan in combat")
+env.SetCombat(false)
+travel.Read = read
 local hearth = item("hearth")
 ns.Click.Attach(hearth)
 local proxy = ns.Click.proxy
@@ -275,6 +301,9 @@ ns.Click.Detach()
 env.SetCombat(true)
 eq(ns.Click.Attach(item("hearth")), false, "travel clicks wait for combat to end")
 env.SetCombat(false)
+ns.Click.Attach(item("hearth"))
+write("strip.hearthRight", "")
+eq(proxy:GetAttribute("type2"), nil, "turning a click off under the pointer disarms it")
 for _, key in ipairs({ "hearthLeft", "hearthRight", "hearthMiddle" }) do write("strip." .. key, "") end
 ns.Click.Attach(item("hearth"))
 eq(proxy:GetAttribute("type1"), "item")
@@ -313,13 +342,18 @@ near(bar.quest:GetWidth(), K.Widgets.Snap(bar.quest, w * 4000 / 50000), "the mar
 eq(select(2, bar.quest:GetPoint()), bar.fill:GetStatusBarTexture(), "it starts where the fill ends")
 local sets, setWidth = 0, bar.quest.SetWidth
 bar.quest.SetWidth = function(...) sets = sets + 1; return setWidth(...) end
+local entries, getInfo = 0, env.C_QuestLog.GetInfo
+env.C_QuestLog.GetInfo = function(i) entries = entries + 1 return getInfo(i) end
 env.FireEvent("PLAYER_XP_UPDATE")
+for _ = 1, 10 do env.FireEvent("UPDATE_EXHAUSTION") end
 eq(sets, 0, "an unchanged mark is not placed again")
 bar.quest.SetWidth = setWidth
 D.W.Enter(bar.holder)
 local lines = {}
 for _, row in ipairs(K.Widgets.Tooltip().used) do if row.left:IsShown() then lines[#lines + 1] = (row.left:GetText() or "") .. "=" .. (row.right:IsShown() and row.right:GetText() or "") end end
 D.W.Leave(bar.holder)
+eq(entries, 0, "experience updates and the tooltip reuse the quest total")
+env.C_QuestLog.GetInfo = getInfo
 assert(table.concat(lines, "|"):gsub("\226\128\137", ""):find("Completed quests=4,000", 1, true), "the tooltip gives the quest experience")
 x.quests[2].ready = true
 env.FireEvent("QUEST_LOG_UPDATE")
@@ -327,6 +361,11 @@ near(bar.quest:GetWidth(), K.Widgets.Snap(bar.quest, w * 4900 / 50000), "a finis
 eq(events, 1, "one quest-log owner while on")
 write("xp.questColor", { r = 0, g = 1, b = 0, a = 0.5 })
 eq(tint(bar.quest), "0.000 1.000 0.000", "quest colour")
+local q = setmetatable({ orientation = "HORIZONTAL" }, { __index = K.Store.Module("DataBars").xp })
+ns.Bars.Quest(bar, q, { current = 200, max = 1000, quest = 300 })
+q.orientation, q.reverse = "VERTICAL", true
+ns.Bars.Quest(bar, q, { current = 200, max = 1000, quest = 300 })
+eq(select(3, bar.quest:GetPoint()), "BOTTOMLEFT", "a reversed column hangs the mark below the fill at the same size")
 x.quests[1].isHeader = env.Secret(false)
 env.FireEvent("QUEST_LOG_UPDATE")
 near(bar.quest:GetWidth(), K.Widgets.Snap(bar.quest, w * 900 / 50000), "a secret entry is skipped")
@@ -341,11 +380,15 @@ K.Events.Register = register
 -- The Medallions dock gives round 1's readouts and Class resources their own glyphs, and keeps them with icons off.
 K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
-show({ "coords", "combat", "played", "audio", "prof1", "broker", "reagents", "fps" }, "dockModules")
+show({ "coords", "combat", "played", "audio", "prof1", "prof2", "broker", "reagents", "fps" }, "dockModules")
 write("strip.brokerPlugin", "")
 local cells, glyphs = {}, 0
 assert(ns.Strip.view.deco, "the Medallions dock draws glyph segments")
-for _, id in ipairs({ "coords", "combat", "played", "audio", "reagents", "fps" }) do
+env.GetProfessions = function() return 1, 2 end
+env.GetProfessionInfo = function(i) return i == 1 and "Mining" or "Tailoring", 136240, 225, 300 end
+ns.Strip.Refresh()
+assert(item("prof1").button:IsShown() and item("prof2").button:IsShown(), "both professions show in the dock")
+for _, id in ipairs({ "coords", "combat", "played", "audio", "prof1", "prof2", "reagents", "fps" }) do
 	if item(id).button:IsShown() then
 		local l, r, t, b = item(id).icon:GetTexCoord()
 		assert(item(id).icon:IsShown() and r - l == 0.25 and b - t == 0.125 and not cells[l .. t], id .. " shows its own glyph cell")
@@ -358,7 +401,8 @@ K.Options.Write("HudStyle", "style", "frames")
 env.RunTimers()
 
 -- The preview reflects each new option.
-show({ "fps", "currencies", "hearth", "reagents" })
+show({ "fps", "currencies", "hearth", "reagents", "guild" })
+write("strip.socialList", 1)
 write("strip.icons", "beside")
 write("strip.currencyIcons", true)
 write("strip.hearthText", "location")
@@ -378,6 +422,12 @@ eq(items.reagents.value:GetText(), "200 Ammunition \194\183 12 Reagents", "previ
 write("strip.icons", "off")
 preview:Refresh()
 assert(not items.fps.icon:IsShown(), "preview icons off")
+D.W.Enter(items.guild.button)
+local tipRows = {}
+for _, row in ipairs(K.Widgets.Tooltip().used) do if row.left:IsShown() then tipRows[#tipRows + 1] = (row.left:GetText() or "") .. "=" .. (row.right:IsShown() and row.right:GetText() or "") end end
+D.W.Leave(items.guild.button)
+assert(table.concat(tipRows, "|"):find("Amy=Durotar|and 2 more", 1, true), "hovering the preview shows the capped names: " .. table.concat(tipRows, "|"))
+write("strip.socialList", 0)
 
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("databars parity 2 ok: icons, fill, currency icons, class resources, social names, travel clicks, menu align and quest experience keep defaults, apply, restore and follow events")
