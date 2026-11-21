@@ -32,6 +32,12 @@ local function Key(i)
 	return "indicator" .. i
 end
 
+local SHOWN_ON = { party = "PARTY", raid = "RAID" }
+local function Category(slot, kind)
+	return (slot.show == "BOTH" or slot.show == SHOWN_ON[kind]) and CATEGORIES[slot.category] or nil
+end
+Slots.Category = Category
+
 function Slots.Spells(text)
 	local set, any = {}, false
 	if type(text) ~= "string" then
@@ -270,7 +276,7 @@ local function Key2(f, w, h, field, blocked, spots)
 	end
 	for i = 1, COUNT do
 		local slot = cfg[Key(i)]
-		out[#out + 1] = (CATEGORIES[slot.category] and (Slots.Helpful(slot.category) and "h" or "1") or "0") .. slot.position .. slot.size
+		out[#out + 1] = (Category(slot, f.kind) and (Slots.Helpful(slot.category) and "h" or "1") or "0") .. slot.position .. slot.size
 	end
 	return table.concat(out, "|")
 end
@@ -338,7 +344,7 @@ function Slots.Placements(f)
 	for _, i in ipairs(order) do
 		local slot = cfg[Key(i)]
 		local place = { point = slot.position, x = 0, y = 0, size = Widgets.Snap(f, Slots.Size(f, slot.size)), fits = false }
-		if CATEGORIES[slot.category] then
+		if Category(slot, f.kind) then
 			local spot
 			if spots and spots.lane[lane] then
 				spot, lane = spots.lane[lane], lane + 1
@@ -370,7 +376,7 @@ end
 function Slots.Misfit(kind, i)
 	local f = seen[kind]
 	local slot = Settings.current[Key(i)]
-	if not f or not f.parts or not CATEGORIES[slot.category] then
+	if not f or not f.parts or not Category(slot, kind) then
 		return false
 	end
 	return not Slots.Placements(f)[i].fits
@@ -557,7 +563,7 @@ local function PaintSample(f, sample)
 	local placements = Slots.Placements(f)
 	for i, icon in ipairs(f.sampleSlots or {}) do
 		local slot = cfg[Key(i)]
-		local category = CATEGORIES[slot.category]
+		local category = Category(slot, f.kind)
 		local on = category ~= nil and shows[slot.category] == true and placements[i].fits
 		if on then
 			icon.tile.icon:SetTexture(category.icon)

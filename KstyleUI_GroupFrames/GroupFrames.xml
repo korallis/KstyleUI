@@ -14,6 +14,7 @@
 	<Script file="Bars.lua"/>
 	<Script file="Auras.lua"/>
 	<Script file="Slots.lua"/>
+	<Script file="Targets.lua"/>
 	<Script file="Medallions.lua"/>
 	<Script file="AutoLayout.lua"/>
 	<Script file="ClickCast.lua"/>

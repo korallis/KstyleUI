@@ -43,6 +43,7 @@ Settings.defaults = {
 		auraSize = 18, auraCount = 6, auraDispelCount = 1, auraColumns = 3, auraRows = 2, auraSpacing = 2,
 		auraPosition = "OUTSIDE_RIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
 		buffSize = 11, buffCount = 3,
+		auraX = 0, auraY = 0,
 	},
 	raid = {
 		extra1 = ExtraText(), extra2 = ExtraText(),
@@ -55,6 +56,7 @@ Settings.defaults = {
 		auraSize = 12, auraCount = 3, auraDispelCount = 1, auraColumns = 3, auraRows = 1, auraSpacing = 1,
 		auraPosition = "BOTTOMRIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
 		buffSize = 10, buffCount = 3,
+		auraX = 0, auraY = 0,
 	},
 	health = {
 		texture = Tokens.MediaList("statusbar")[1].path, colorSource = "class", color = Rgb("friendly"), orientation = "HORIZONTAL", alpha = 1,
@@ -65,6 +67,7 @@ Settings.defaults = {
 	text = {
 		nameFont = THEME_FONT, nameOutline = "NONE", nameColorSource = "class", nameColor = Rgb("textEmphasis"),
 		healthFont = THEME_FONT, healthOutline = "NONE",
+		above = false,
 	},
 	range = { fade = true, alpha = 0.4 },
 	icons = {
@@ -80,10 +83,12 @@ Settings.defaults = {
 		magic = true, curse = true, poison = true, disease = true, bleed = true, lasting = true, dispelAlpha = 0.16, dispelLines = 2,
 		zoom = 0.07, tooltips = true, typeMode = "HIDE", source = "ANY", canApply = false, timerSize = 0,
 		priority1 = "DISPEL", priority2 = "BOSS", priority3 = "IMPORTANT", priority4 = "OTHER", glow = true,
+		tipCombat = true, textOutline = "OUTLINE",
 	},
 	buffs = { enabled = true, tooltips = true },
 	clickCast = { hint = true },
 	presets = { raid = "Compact" },
+	targets = { enabled = false, self = false, width = 96, height = 24, x = 0, y = 0, nameColor = "text", color = Rgb("textEmphasis") },
 	prediction = {
 		heals = true, absorbs = true, shield = true, shieldLines = 2, healAbsorbs = true,
 		shieldPlace = "BOTTOM", shieldGrow = "UP", absorbPlace = "FILL", overshield = false, healAbsorbLine = false, healAbsorbLines = 0,
@@ -102,7 +107,7 @@ local INDICATOR_DEFAULTS = {
 }
 for i = 1, INDICATOR_SLOTS do
 	local preset = INDICATOR_DEFAULTS[i] or {}
-	Settings.defaults["indicator" .. i] = { category = preset.category or "OFF", position = preset.position or "TOPLEFT", spells = "", mine = false, size = 14 }
+	Settings.defaults["indicator" .. i] = { category = preset.category or "OFF", position = preset.position or "TOPLEFT", spells = "", mine = false, size = 14, show = "BOTH" }
 end
 
 local rows
@@ -170,6 +175,7 @@ function Settings.Schema(includeText)
 	local AURA_FILTER = Options({
 		{ "ALL", L["All debuffs"] }, { "RAID", L["Debuffs Blizzard's raid frames show"] }, { "DISPELLABLE", L["Debuffs you can dispel"] },
 		{ "BOSS", L["Boss debuffs"] }, { "ROLE", L["Role debuffs"] }, { "CROWD_CONTROL", L["Crowd control"] },
+		{ "IMPORTANT", L["Important debuffs"] },
 	})
 	local TYPE_MODE = Options({ { "HIDE", L["Leave out the types switched off"] }, { "ONLY", L["Only the types switched on"] } })
 	local SOURCE = Options({ { "ANY", L["Anyone"] }, { "NPC", L["Enemies, not players"] }, { "PLAYERS", L["Players and their pets"] } })
@@ -193,6 +199,7 @@ function Settings.Schema(includeText)
 	local FILL_STYLE = Options({ { "SOLID", L["Solid"] }, { "STRIPES", L["Patterned"] } })
 	local NAME_FORMAT = Options({ { "FULL", L["Whole name"] }, { "FIRST", L["First word"] }, { "LAST", L["Last word"] }, { "ABBR", L["Initials and last word"] } })
 	for _, option in ipairs(INDICATOR_POSITION) do ICON_PLACE[#ICON_PLACE + 1] = option end
+	local SHOW_ON = Options({ { "BOTH", L["Party and raid frames"] }, { "PARTY", L["Party frames"] }, { "RAID", L["Raid frames"] } })
 
 	Settings.OPTIONS = {
 		growth = GROWTH, partySort = PARTY_SORT, raidSort = RAID_SORT, textLayout = TEXT_LAYOUT, healthText = HEALTH_TEXT,
@@ -312,6 +319,8 @@ function Settings.Schema(includeText)
 		add(Dropdown(p .. "auraPosition", L["Debuff position"], L["Where the debuff icons sit on or beside the frame."], AURA_POSITION))
 		add(Dropdown(p .. "auraGrowth", L["Debuff growth"], L["Which way the next debuff icon goes."], AURA_GROWTH))
 		add(Dropdown(p .. "auraWrap", L["Debuff row growth"], L["Which way a new row of debuff icons goes."], AURA_WRAP))
+		add(Slider(p .. "auraX", L["Debuff offset across"], L["Moves the debuff icons left or right from their place."], -60, 60, 1))
+		add(Slider(p .. "auraY", L["Debuff offset up"], L["Moves the debuff icons up or down from their place."], -60, 60, 1))
 		add(Slider(p .. "buffSize", L["Your heal icon size"], L["The size of each of your heals over time and shields on the frame."], 6, 24, 1))
 		add(Slider(p .. "buffCount", L["Your heal icon count"], L["The most of your heals over time and shields each frame shows."], 1, 6, 1))
 	end
@@ -343,6 +352,17 @@ function Settings.Schema(includeText)
 		add(Toggle("blizzard.raid", L["Hide Blizzard raid frames"], L["Hides the game's own raid frames while these are on."]))
 		add(Toggle("blizzard.keepManager", L["Keep raid tools available"], L["Keeps the game's raid controls available. Off restores the previous hidden raid manager."]))
 		KindRows(schema, "party", L["Party frames"])
+		add({ type = "header", label = L["Party targets"] })
+		local targets = Is("targets.enabled", true)
+		add(Toggle("targets.enabled", L["Party targets"], L["A small frame beside each party member for what they target; click it to target that too."]))
+		add(Toggle("targets.self", L["Include your own target"], L["Also shows your own target beside your frame."], { showWhen = targets }))
+		add(Slider("targets.width", L["Target width"], L["How wide each target frame is."], 30, 200, 1))
+		add(Slider("targets.height", L["Target height"], L["How tall each target frame is."], 12, 60, 1))
+		add(Slider("targets.x", L["Target offset across"], L["Moves the target frames left or right from their place."], -100, 100, 1))
+		add(Slider("targets.y", L["Target offset up"], L["Moves the target frames up or down from their place."], -100, 100, 1))
+		for i = #schema - 3, #schema do schema[i].showWhen = targets end
+		add(Dropdown("targets.nameColor", L["Target name colour"], L["Colours target names in the text colour, by class for players or in one colour."], NAME_COLOR, { showWhen = targets }))
+		add({ type = "color", key = "targets.color", label = L["Custom target name colour"], help = L["The target names' colour when they use a custom colour."], showWhen = function(s) return targets(s) and Is("targets.nameColor", "custom")(s) end })
 		KindRows(schema, "raid", L["Raid frames"])
 		add({ type = "header", label = L["Health bar"] })
 		K.Widgets.BarRows(schema, "health", { options = HEALTH_COLOR, custom = Is("health.colorSource", "custom"),
@@ -375,6 +395,7 @@ function Settings.Schema(includeText)
 		add({ type = "color", key = "text.nameColor", label = L["Custom name colour"], help = L["The names' colour when they use a custom colour."], showWhen = Is("text.nameColorSource", "custom") })
 		add({ type = "font", key = "text.healthFont", label = L["Health text font"], help = L["The font of the health text."], options = FontOptions })
 		add(Dropdown("text.healthOutline", L["Health text outline"], L["A soft shadow, or an outline for busy backgrounds."], OUTLINE))
+		add(Toggle("text.above", L["Text above icons"], L["Draws names and health text over the debuff and indicator icons, not under them."]))
 		add({ type = "header", label = L["Status icons"] })
 		add(Toggle("layout.tidyLanes", L["Tidy Medallions lanes"], L["Separates names, indicators and percentages, with metal role pips. Off restores the earlier layout."]))
 		add(Toggle("icons.role", L["Role icons"], L["Shows whether each member is a tank, healer or damage dealer."]))
@@ -426,6 +447,8 @@ function Settings.Schema(includeText)
 		add(Toggle("auras.swipe", L["Duration swipe"], L["Darkens each debuff icon as it runs out."]))
 		add(Slider("auras.zoom", L["Icon zoom"], L["How far into its artwork each debuff and heal icon crops."], 0, 0.2, 0.01))
 		add(Toggle("auras.tooltips", L["Debuff tooltips"], L["Shows a debuff's tooltip when you point at its icon."]))
+		add(Toggle("auras.tipCombat", L["Aura tooltips in combat"], L["Off keeps debuff, heal and indicator tooltips hidden while you are in combat."]))
+		add(Dropdown("auras.textOutline", L["Icon text outline"], L["The outline of the stack count and time left on debuff, heal and indicator icons."], OUTLINE))
 		add(Toggle("auras.dispelHighlight", L["Dispel highlight"], L["Outlines a frame in the debuff type's colour when it can be dispelled."]))
 		add(Dropdown("auras.dispelFilter", L["Highlight debuffs"], L["Highlights debuffs you can dispel, or ones anyone in the group can."], DISPEL_FILTER))
 		schema[#schema].showWhen = Is("auras.dispelHighlight", true)
@@ -444,6 +467,7 @@ function Settings.Schema(includeText)
 			local on = IsNot(p .. "category", "OFF")
 			add(Dropdown(p .. "category", L["Indicator"] .. " " .. i, L["What this indicator shows; slots sharing a place sit side by side."], INDICATOR_CATEGORY))
 			add(Dropdown(p .. "position", L["Place"], L["Where on the frame the indicator sits."], INDICATOR_POSITION, { showWhen = on }))
+			add(Dropdown(p .. "show", L["Show on"], L["Shows this indicator on party and raid frames, or on one kind only."], SHOW_ON, { showWhen = on }))
 			add(Slider(p .. "size", L["Size"], L["The indicator's icon size."], 6, 32, 1))
 			schema[#schema].showWhen = on
 			add(Toggle(p .. "mine", L["Only yours"], L["Shows only auras you cast."], { showWhen = on }))

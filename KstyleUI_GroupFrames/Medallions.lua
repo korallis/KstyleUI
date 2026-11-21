@@ -147,7 +147,7 @@ local function TidyParts(out, kind, o)
 	local size = kind == "party" and 14 or 10
 	local count = 0
 	for i = 1, Settings.INDICATOR_SLOTS do
-		if ns.Slots.CATEGORIES[Settings.current["indicator" .. i].category] then count = count + 1 end
+		if ns.Slots.Category(Settings.current["indicator" .. i], kind) then count = count + 1 end
 	end
 	count = math.min(3, count)
 	local reserve = o.reserve or 0

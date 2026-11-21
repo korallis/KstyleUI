@@ -23,10 +23,10 @@ function Preview.Build(...)
 	local SAMPLES = {
 		{
 			name = "Thaldren", follower = "Thaldren Ironvow", class = "WARRIOR", health = 0.72, power = 0.35, role = "TANK", leader = true, threat = 3, absorb = 0.05, shield = 0.3,
-			healAbsorb = 0.18, debuffs = 2, hots = 2, boss = true, indicators = { EXTERNAL = true }, combat = true, overshield = 0.4,
+			healAbsorb = 0.18, debuffs = 2, hots = 2, boss = true, indicators = { EXTERNAL = true }, combat = true, overshield = 0.4, targetName = "Gorvak",
 		},
-		{ name = "Sylaen", class = "DRUID", health = 0.87, power = 0.8, far = true, role = "HEALER", dispel = "Magic", debuffs = 1, hots = 1, indicators = { CROWD_CONTROL = true } },
-		{ name = "Kragar", class = "SHAMAN", health = 0.76, power = 0.6, target = true, role = "DAMAGER", marker = 1, incoming = 0.12, healAbsorb = 0.1, maxLoss = 0.15 },
+		{ name = "Sylaen", class = "DRUID", health = 0.87, power = 0.8, far = true, role = "HEALER", dispel = "Magic", debuffs = 1, hots = 1, indicators = { CROWD_CONTROL = true }, targetName = "Thaldren", targetClass = "WARRIOR" },
+		{ name = "Kragar", class = "SHAMAN", health = 0.76, power = 0.6, target = true, role = "DAMAGER", marker = 1, incoming = 0.12, healAbsorb = 0.1, maxLoss = 0.15, targetName = "Gorvak" },
 		{ name = "Lunara", class = "MAGE", health = 0, power = 0, dead = true },
 		{ name = "Vexen", class = "PRIEST", health = 0.94, power = 0.9 },
 		{ name = "Orrin", class = "PALADIN", health = 0.55, power = 0.5, debuffs = 9, dispel = "Curse", hots = 3, shield = 0.2, healAbsorb = 0.12, indicators = { BIG_DEFENSIVE = true } },
@@ -198,6 +198,8 @@ function Preview.Build(...)
 		local count = math.min(PARTY_SHOWN, partyGeo.count)
 		local pw = Geometry.IsVertical(party.growth) and party.width or Geometry.Line(count, party.width, party.spacing)
 		local ph = Geometry.IsVertical(party.growth) and Geometry.Line(count, party.height, party.spacing) or party.height
+		local tw, th = ns.Targets.Room(party)
+		pw, ph = pw + tw, ph + th
 		preview.party:SetSize(pw, ph)
 		preview.party:ClearAllPoints()
 		preview.party:SetPoint("TOPLEFT", preview.canvas, "TOPLEFT", 0, 0)

@@ -9,6 +9,7 @@
 -- RENDER_PARITY_R3C=missing also fills the bars with missing health; =layout (RENDER_GROUP=10) gives the larger frames a custom size
 -- and offset with icons that scale and two hover lines on the hovered first frame; =solo (RENDER_GROUP=party) shows you alone, centred;
 -- =small (RENDER_GROUP=10) keeps six players, group 1 shown as party frames.
+-- RENDER_PARITY_R3B=1 switches on round 3b's party targets (an enemy, a player and an enemy) and text above icons.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
@@ -89,6 +90,16 @@ return Common.Run(function()
 			env.C_Secrets.ShouldUnitIdentityBeSecret = function()
 				return false
 			end
+			if os.getenv("RENDER_PARITY_R3B") == "1" then
+				env._units = env._units or {}
+				env._units.party1target = { name = "Gorvak", class = "WARRIOR", reaction = 2, health = 64, maxHealth = 100 }
+				env._units.party2target = { name = "Thessaly", class = "PALADIN", player = true, health = 92, maxHealth = 100 }
+				env._units.party3target = { name = "Gorvak", class = "WARRIOR", reaction = 2, health = 64, maxHealth = 100 }
+				env.UnitIsPlayer = function(unit)
+					local m = env._member(unit)
+					return m ~= nil and m.player == true
+				end
+			end
 		end,
 	}))
 	local kind, members = "party", {}
@@ -148,6 +159,12 @@ return Common.Run(function()
 				["auto.heals"] = true, ["accent.hoverLines"] = 2 } })[r3c] or {}) do
 			K.Options.Write("GroupFrames", key, value)
 		end
+	end
+	if os.getenv("RENDER_PARITY_R3B") == "1" then
+		K.Options.Write("GroupFrames", "targets.enabled", true)
+		K.Options.Write("GroupFrames", "text.above", true)
+		env.RunTimers()
+		env.RunStateDrivers()
 	end
 	place(K, "groupframes." .. kind, AT[kind][1], AT[kind][2])
 	if r3c == "small" then place(K, "groupframes.party", AT.party[1], AT.party[2]) end

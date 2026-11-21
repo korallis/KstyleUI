@@ -31,7 +31,7 @@ local BOSS_CANDIDATES = { isBossAura = true }
 local TEMPLATE = "CustomAuraContainerTemplate"
 local NONE = "none"
 local FILTERS = { ALL = "HARMFUL", RAID = "HARMFUL|RAID_IN_COMBAT", DISPELLABLE = "HARMFUL|RAID", CROWD_CONTROL = "HARMFUL|CROWD_CONTROL" }
-local PICKS = { BOSS = { isBossOrRoleAura = true, isRoleAura = false }, ROLE = { isRoleAura = true } }
+local PICKS = { BOSS = { isBossOrRoleAura = true, isRoleAura = false }, ROLE = { isRoleAura = true }, IMPORTANT = { isPriorityAura = true } }
 local SOURCES = { NPC = false, PLAYERS = true }
 local DISPEL_FILTERS = { PLAYER = "HARMFUL|RAID", GROUP = "HARMFUL|RAID_PLAYER_DISPELLABLE" }
 local ICON_CROP = 0.07
@@ -177,11 +177,19 @@ local function Block(f, k)
 end
 Auras.Block = Block
 
+local function Shift(f, k)
+	if k.auraX == 0 and k.auraY == 0 then
+		return 0, 0
+	end
+	return Widgets.Snap(f, k.auraX), Widgets.Snap(f, k.auraY)
+end
+
 local function Anchor(f, block, k)
 	local point = Geometry.AuraAnchor(block.position, k.auraGrowth, k.auraWrap, block.inset, block.gap)
 	local px = point:find("RIGHT$") and block.left + block.width or block.left
 	local py = point:find("^BOTTOM") and block.top + block.height or block.top
-	return point, Widgets.Snap(f, px), -Widgets.Snap(f, py)
+	local dx, dy = Shift(f, k)
+	return point, Widgets.Snap(f, px) + dx, dy - Widgets.Snap(f, py)
 end
 
 local function GroupCount(f, k, key)
@@ -427,7 +435,7 @@ local function StyleIcon(button)
 	local rows = block and (block.rows or block.height)
 	local side = p.buff and block and block.side
 	local tips = Tips(p)
-	if p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and p.styledStacks == a.stacks and p.styledTimers == a.timers and p.styledTimerSize == a.timerSize and p.styledZoom == a.zoom and p.styledTips == tips and (not mark or p.styledPriority == MarkLift(p.group)) then
+	if p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and p.styledStacks == a.stacks and p.styledTimers == a.timers and p.styledTimerSize == a.timerSize and p.styledZoom == a.zoom and p.styledTips == tips and p.styledTipCombat == a.tipCombat and p.styledOutline == a.textOutline and (not mark or p.styledPriority == MarkLift(p.group)) then
 		return
 	end
 	if p.styledSize ~= size or p.styledBorder ~= border then
@@ -442,11 +450,11 @@ local function StyleIcon(button)
 	end
 	p.chrome:SetRimAccent(ar, ag, ab)
 	local textSize = math.max(6, math.floor(size * COUNT_SHARE + 0.5))
-	Style.SetFont(p.count, text.healthFont, textSize, "OUTLINE")
+	Style.SetFont(p.count, text.healthFont, textSize, a.textOutline)
 	p.count:SetAlpha(a.stacks and 1 or 0)
 	if a.timers and type(button.SetDurationText) == "function" then
 		local timer = p.timer or Widgets.Fitted(Widgets.FontString(p.textFrame, "OVERLAY"))
-		Style.SetFont(timer, text.healthFont, TimerSize(size), "OUTLINE")
+		Style.SetFont(timer, text.healthFont, TimerSize(size), a.textOutline)
 		PlaceTimer(timer, p.skin)
 		if not (p.timer and p.styledTimers) then button:SetDurationText(timer) end
 		p.timer = timer
@@ -460,6 +468,9 @@ local function StyleIcon(button)
 	if tips ~= (p.styledTips ~= false) and button.SetMouseMotionEnabled then
 		pcall(button.SetMouseMotionEnabled, button, tips)
 	end
+	if a.tipCombat ~= (p.styledTipCombat ~= false) and type(button.SetHideTooltipInCombat) == "function" then
+		pcall(button.SetHideTooltipInCombat, button, not a.tipCombat)
+	end
 	if p.mark and not p.size then
 		if p.buff or not f.debuffChip then
 			Auras.PlaceMark(p, button, f, k)
@@ -470,7 +481,7 @@ local function StyleIcon(button)
 		end
 	end
 	p.styledFont, p.styledSwipe, p.styledStacks, p.styledTimers, p.styledTimerSize = text.healthFont, a.swipe, a.stacks, a.timers, a.timerSize
-	p.styledZoom, p.styledTips = a.zoom, tips
+	p.styledZoom, p.styledTips, p.styledTipCombat, p.styledOutline = a.zoom, tips, a.tipCombat, a.textOutline
 	p.styledR, p.styledG, p.styledB = ar, ag, ab
 	p.styledMark, p.styledColumns, p.styledRows, p.styledSide = mark, columns, rows, side
 	p.styledGrowth, p.styledWrap, p.styledSpacing, p.styledBuffCount = k.auraGrowth, k.auraWrap, k.auraSpacing, k.buffCount
@@ -514,7 +525,7 @@ local function StyleGroup(container, key)
 	local row = f.parts and f.parts.healRow
 	local ar, ag, ab = Style.Accent()
 	local count = container:GetAuraGroupFrameCount(key)
-	local inputs = { styleGeneration, size, spacing, block.columns, block.rows, k.auraGrowth, k.auraWrap, k.buffCount, cfg.text.healthFont, cfg.auras.swipe, Widgets.Border(f), ar, ag, ab, MarkLift(key), f.debuffChip ~= nil, k.buffSize, row and row.width, row and row.height, row and row.side, cfg.auras.typeLetters, cfg.auras.stacks, cfg.auras.timers, cfg.auras.timerSize, cfg.auras.zoom, cfg.auras.tooltips, cfg.buffs.tooltips }
+	local inputs = { styleGeneration, size, spacing, block.columns, block.rows, k.auraGrowth, k.auraWrap, k.buffCount, cfg.text.healthFont, cfg.auras.swipe, Widgets.Border(f), ar, ag, ab, MarkLift(key), f.debuffChip ~= nil, k.buffSize, row and row.width, row and row.height, row and row.side, cfg.auras.typeLetters, cfg.auras.stacks, cfg.auras.timers, cfg.auras.timerSize, cfg.auras.zoom, cfg.auras.tooltips, cfg.buffs.tooltips, cfg.auras.tipCombat, cfg.auras.textOutline }
 	local groups = styledGroups[container]
 	local old = groups and groups[key]
 	local changed = f.auraInputsDirty or not old or old.count ~= count
@@ -979,10 +990,11 @@ local function ConfigureChip(f, k, a, block, filter)
 	end
 	local on = a.enabled and block.cells > 0
 	local x, y = LastCell(f, k, block)
+	local dx, dy = Shift(f, k)
 	local spec = ChipSpec(k, filter, math.max(1, block.cells))
 	Widgets.Overflow.Apply(chip, {
 		enabled = on, groups = { spec }, cap = spec.cap, cell = block.size, width = block.size,
-		point = "TOPLEFT", rel = f, relPoint = "TOPLEFT", x = Widgets.Snap(f, x), y = -Widgets.Snap(f, y),
+		point = "TOPLEFT", rel = f, relPoint = "TOPLEFT", x = Widgets.Snap(f, x) + dx, y = dy - Widgets.Snap(f, y),
 		level = f.auras:GetFrameLevel() + CHIP_LEVEL, textSize = math.max(CHIP_TEXT_MIN, math.floor(math.min(block.size * CHIP_TEXT_SHARE, block.size / CHIP_TEXT_WIDE))),
 	})
 end
@@ -1413,7 +1425,7 @@ local function SampleLabel(icon, key, on, text, size)
 		icon[key] = label
 	end
 	if label then
-		Style.SetFont(label, Settings.current.text.healthFont, size, "OUTLINE")
+		Style.SetFont(label, Settings.current.text.healthFont, size, Settings.current.auras.textOutline)
 		label:SetShown(on)
 	end
 	return label
@@ -1506,7 +1518,7 @@ local function PaintSample(f, sample)
 	local cells = math.min(f.sampleCells or Count(k), #f.sampleAuras)
 	local kept = {}
 	local enemy = not (a.canApply or a.source == "PLAYERS" or a.filter == "ROLE" or a.filter == "CROWD_CONTROL")
-	for i = 1, a.enabled and enemy and a.filter ~= "BOSS" and (sample.debuffs or 0) or 0 do
+	for i = 1, a.enabled and enemy and a.filter ~= "BOSS" and a.filter ~= "IMPORTANT" and (sample.debuffs or 0) or 0 do
 		local kind = SAMPLE_TYPES[i]
 		if (kind and a[kind] or not kind and a.typeMode ~= "ONLY") and (i ~= SAMPLE_LASTING or a.lasting) then
 			kept[#kept + 1] = i
@@ -1523,7 +1535,7 @@ local function PaintSample(f, sample)
 		Widgets.SetText(f.sampleChip.text, MARK .. (debuffs - shown))
 	end
 	f.sampleChip:SetShown(more)
-	f.sampleBoss:SetShown(a.enabled and enemy and a.typeMode ~= "ONLY" and sample.boss == true and f.parts ~= nil and f.parts.boss ~= nil)
+	f.sampleBoss:SetShown(a.enabled and enemy and a.typeMode ~= "ONLY" and a.filter ~= "IMPORTANT" and sample.boss == true and f.parts ~= nil and f.parts.boss ~= nil)
 	local hots = Settings.current.buffs.enabled and math.min(sample.hots or 0, f.sampleBuffFit or k.buffCount) or 0
 	for i, icon in ipairs(f.sampleBuffs) do
 		icon:SetShown(i <= hots)

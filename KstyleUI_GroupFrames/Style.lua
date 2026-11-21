@@ -9,6 +9,7 @@ local Style = {}
 ns.Style = Style
 
 local TEXT_LEVEL = 4
+local TEXT_OVER_ICONS = 40
 local NAME_LINE_EXTRA = 2
 local ON_FILL_OUTLINE = "THICKOUTLINE"
 local ON_BAR_OUTLINE = "OUTLINE"
@@ -153,6 +154,7 @@ local function PlaceBar(f, bar, rect)
 	Place(f, bar, rect)
 	bar:Restyle()
 end
+Style.PlaceBar = PlaceBar
 
 function Style.Accent()
 	local accent = Settings.current.accent
@@ -599,6 +601,10 @@ function Style.Apply(f, width, height)
 	end
 	f.chrome:SetShadow(f.kind == "party" and not f.tileless)
 	f.chrome:Restyle()
+	if (f.textAbove or false) ~= cfg.text.above then
+		f.textAbove = cfg.text.above
+		f.text:SetFrameLevel(f:GetFrameLevel() + (f.textAbove and TEXT_OVER_ICONS or TEXT_LEVEL))
+	end
 	for i = 1, #Style.appliers do
 		Style.appliers[i](f, parts, k)
 	end
