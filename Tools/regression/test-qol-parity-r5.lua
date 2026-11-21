@@ -1,7 +1,8 @@
--- test-qol-parity-r5.lua: Hide item transforms: a v0.2.8 profile keeps it off and listens for nothing, on it takes off only the listed costume, food and toy transforms, only out of combat while auras are readable, retries when combat ends or the restriction lifts, does no aura scan for unrelated events, takes the safe path when an answer is secret or an API is missing, and off stops at once.
+-- test-qol-parity-r5.lua: Hide item transforms: a v0.2.8 profile keeps it off and listens for nothing, on it takes off only the listed costume, food and toy transforms and leaves the Narain disguise and the Bat and Wisp costumes that lock casting, past the 40th buff too, only out of combat while auras are readable, retries when combat ends or the restriction lifts, does no aura scan for unrelated events, takes the safe path when an answer, a list or a spell ID is secret or an API is missing and retries once it is readable, and off stops at once.
 local Q = dofile("Tools/regression/qol_env.lua")
 
-local BAT, WISP, DELIGHT, GORDOK, INTELLECT = 24732, 24740, 8213, 22736, 1459
+local SKELETON, PIRATE, DELIGHT, GORDOK, INTELLECT = 24723, 24708, 8213, 22736, 1459
+local NARAIN, BAT, WISP, WISP2 = 25688, 24732, 24740, 470868
 
 local function stand(env)
 	env._buffs, env._secretAuras = {}, false
@@ -16,10 +17,7 @@ end
 
 local function boot(settings)
 	local saved = { version = 42, profiles = { Default = { QoL = settings or { enabled = true } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
-	local env, K, ns = Q.New({ saved = saved, setup = stand })
-	if not K.Modules.IsRunning("QoL") then Q.Enable(env, K) end
-	env.RunTimers()
-	return env, K, ns
+	return Q.New({ saved = saved, setup = stand })
 end
 
 local function clean(env, K)
@@ -46,22 +44,42 @@ end
 do
 	local env, K, ns = boot({ enabled = true, autoOpen = true })
 	assert(ns.Get("hideTransforms") == false, "off by default")
-	wear(env, BAT)
+	wear(env, SKELETON)
 	env.SetCombat(true)
 	env.SetCombat(false)
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
-	assert(#Q.Calls(env, "GetBuffDataByIndex") == 0 and #Q.Calls(env, "CancelUnitBuff") == 0 and ids(env) == tostring(BAT), "nothing read or cancelled while off")
+	assert(#Q.Calls(env, "GetBuffDataByIndex") == 0 and #Q.Calls(env, "CancelUnitBuff") == 0 and ids(env) == tostring(SKELETON), "nothing read or cancelled while off")
 	clean(env, K)
 end
 
 -- On, with every other switch off: turning it on takes off a costume already worn, from the last index down, and leaves other buffs and disguises.
 do
 	local env, K = boot()
-	env._buffs = { { spellId = INTELLECT }, { spellId = BAT }, { spellId = GORDOK }, { spellId = DELIGHT } }
+	env._buffs = { { spellId = INTELLECT }, { spellId = SKELETON }, { spellId = GORDOK }, { spellId = DELIGHT } }
 	Q.Write(env, K, "hideTransforms", true)
 	assert(ids(env) == INTELLECT .. "," .. GORDOK, "the costume and the food go, the buff and the Gordok disguise stay: " .. ids(env))
 	local cancels = Q.Calls(env, "CancelUnitBuff")
 	assert(#cancels == 2 and cancels[1][2] == 4 and cancels[2][2] == 2, "cancelled by index from the end")
+	clean(env, K)
+end
+
+-- Gameplay: the Narain disguise a quest asks for, and the Bat and Wisp costumes that stop casting, stay on.
+do
+	local env, K = boot()
+	Q.Write(env, K, "hideTransforms", true)
+	wear(env, NARAIN, BAT, WISP, WISP2)
+	assert(#env._buffs == 4 and #Q.Calls(env, "CancelUnitBuff") == 0, "disguise and casting locks stay: " .. ids(env))
+	clean(env, K)
+end
+
+-- Every buff: a costume past the 40th buff comes off, and turning on with no buff reads one empty slot.
+do
+	local env, K = boot()
+	Q.Write(env, K, "hideTransforms", true)
+	assert(#Q.Calls(env, "GetBuffDataByIndex") == 1, "one read for no buff, got " .. #Q.Calls(env, "GetBuffDataByIndex"))
+	for i = 1, 40 do env._buffs[i] = { spellId = INTELLECT } end
+	wear(env, SKELETON)
+	assert(#env._buffs == 40 and #Q.Calls(env, "CancelUnitBuff") == 1, "the 41st buff comes off")
 	clean(env, K)
 end
 
@@ -72,15 +90,15 @@ do
 	Q.Reset(env)
 	wear(env, INTELLECT)
 	env.FireEvent("UNIT_AURA", "player", { updatedAuraInstanceIDs = { 1 } })
-	env.FireEvent("UNIT_AURA", "target", { addedAuras = { { spellId = BAT } } })
+	env.FireEvent("UNIT_AURA", "target", { addedAuras = { { spellId = SKELETON } } })
 	env.SetCombat(true)
 	env.SetCombat(false)
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
 	env.FireEvent("PLAYER_ENTERING_WORLD")
 	assert(#Q.Calls(env, "GetBuffDataByIndex") == 0, "no scan for an unrelated aura, another unit or a combat end with nothing waiting")
-	wear(env, WISP)
-	assert(ids(env) == tostring(INTELLECT) and #Q.Calls(env, "CancelUnitBuff") == 1, "the wisp costume comes off as it lands")
-	env._buffs[#env._buffs + 1] = { spellId = BAT }
+	wear(env, PIRATE)
+	assert(ids(env) == tostring(INTELLECT) and #Q.Calls(env, "CancelUnitBuff") == 1, "the pirate costume comes off as it lands")
+	env._buffs[#env._buffs + 1] = { spellId = SKELETON }
 	env.FireEvent("UNIT_AURA", "player", { isFullUpdate = true })
 	assert(ids(env) == tostring(INTELLECT), "a full update sweeps")
 	clean(env, K)
@@ -91,8 +109,8 @@ do
 	local env, K = boot()
 	Q.Write(env, K, "hideTransforms", true)
 	env.SetCombat(true)
-	wear(env, BAT)
-	assert(ids(env) == tostring(BAT) and #Q.Calls(env, "CancelUnitBuff") == 0, "never cancelled in combat")
+	wear(env, SKELETON)
+	assert(ids(env) == tostring(SKELETON) and #Q.Calls(env, "CancelUnitBuff") == 0, "never cancelled in combat")
 	env.SetCombat(false)
 	assert(ids(env) == "", "taken off when combat ends")
 	clean(env, K)
@@ -105,19 +123,30 @@ do
 	Q.Reset(env)
 	for _, state in ipairs({ true, "secret" }) do
 		env._secretAuras = state
-		wear(env, BAT)
-		assert(#Q.Calls(env, "GetBuffDataByIndex") == 0 and ids(env) == tostring(BAT), "no aura read while auras are secret")
+		wear(env, SKELETON)
+		assert(#Q.Calls(env, "GetBuffDataByIndex") == 0 and ids(env) == tostring(SKELETON), "no aura read while auras are secret")
 		env._secretAuras = false
 		env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
 		assert(ids(env) == "", "taken off when the restriction lifts")
 		Q.Reset(env)
 	end
-	env._buffs = { { spellId = BAT } }
-	env.FireEvent("UNIT_AURA", "player", { addedAuras = { { spellId = env.Secret(BAT) } } })
-	assert(ids(env) == "", "a secret spell in the payload counts as a possible costume")
-	env._buffs = { { spellId = env.Secret(BAT) } }
-	env.FireEvent("UNIT_AURA", "player", { isFullUpdate = true })
-	assert(#env._buffs == 1, "a secret spell on the player is never cancelled")
+	for _, payload in ipairs({ { addedAuras = { { spellId = env.Secret(SKELETON) } } }, { addedAuras = env.Secret({ { spellId = SKELETON } }) }, { addedAuras = { env.Secret({ spellId = SKELETON }) } } }) do
+		env._buffs = { { spellId = SKELETON } }
+		env.FireEvent("UNIT_AURA", "player", payload)
+		assert(ids(env) == "", "a secret spell, list or entry in the payload counts as a possible costume")
+	end
+	clean(env, K)
+	Q.Reset(env)
+	for _, secret in ipairs({ "aura", "spell" }) do
+		local aura = { spellId = SKELETON }
+		env._buffs = { secret == "aura" and env.Secret(aura) or { spellId = env.Secret(SKELETON) } }
+		env.FireEvent("UNIT_AURA", "player", { isFullUpdate = true })
+		assert(#env._buffs == 1 and #Q.Calls(env, "CancelUnitBuff") == 0, "a secret " .. secret .. " on the player is never cancelled")
+		env._buffs = { aura }
+		env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
+		assert(ids(env) == "", "a secret " .. secret .. " waits and comes off once readable")
+		Q.Reset(env)
+	end
 	clean(env, K)
 end
 
@@ -127,10 +156,10 @@ do
 		local env, K = boot()
 		env[missing] = nil
 		Q.Write(env, K, "hideTransforms", true)
-		wear(env, BAT)
+		wear(env, SKELETON)
 		env.SetCombat(true)
 		env.SetCombat(false)
-		assert(ids(env) == tostring(BAT), "nothing cancelled without " .. missing)
+		assert(ids(env) == tostring(SKELETON), "nothing cancelled without " .. missing)
 		clean(env, K)
 	end
 end
@@ -140,16 +169,16 @@ do
 	local env, K = boot()
 	Q.Write(env, K, "hideTransforms", true)
 	env.SetCombat(true)
-	wear(env, BAT)
+	wear(env, SKELETON)
 	Q.Write(env, K, "hideTransforms", false)
 	env.SetCombat(false)
-	wear(env, WISP)
-	assert(ids(env) == BAT .. "," .. WISP, "both stay once off")
+	wear(env, PIRATE)
+	assert(ids(env) == SKELETON .. "," .. PIRATE, "both stay once off")
 	Q.Write(env, K, "hideTransforms", true)
 	assert(ids(env) == "", "on again sweeps")
 	Q.Disable(env, K)
-	wear(env, BAT)
-	assert(ids(env) == tostring(BAT), "QoL off cancels nothing")
+	wear(env, SKELETON)
+	assert(ids(env) == tostring(SKELETON), "QoL off cancels nothing")
 	clean(env, K)
 end
 
