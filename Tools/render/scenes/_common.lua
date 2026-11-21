@@ -33,6 +33,7 @@ function Common.FinishSettings(profile)
 		DataBars = { strip = { dockMeter = false } },
 		Minimap = { clearPlaques = false },
 		Bags = { separateFigures = false, readableHeaders = false },
+		ActionBars = { crestJewels = false },
 	}
 	local function merge(target, values)
 		for key, value in pairs(values) do

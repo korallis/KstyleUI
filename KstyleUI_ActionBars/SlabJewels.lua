@@ -4,48 +4,49 @@ local _, ns = ...
 local K = KstyleUI
 local Widgets, Tokens = K.Widgets, K.Tokens
 local cos, sin, rad = math.cos, math.sin, math.rad
+local IsSecret = Widgets.IsSecret
 
 local Jewels = {}
 ns.SlabJewels = Jewels
 
 local OWNER = "ActionBars.SlabJewels"
 local DEFAULT_COUNT, MAX_COUNT = 5, 10
-local RADIUS, STEP = 62, 30
+local RADIUS, STEP, ARC = 62, 30, 120
 local SETTING, LIP, GEM, CORE, HALO = 11, 8, 7, 3, 20
-local HALO_ALPHA, CORE_ALPHA = 0.9, 0.9
+local ALPHA = 0.9
 local KINDS = {
-	combo = { power = "ComboPoints", color = "jewelCombo", core = "jewelComboCore" },
-	holy = { power = "HolyPower", color = "jewelHoly", core = "jewelHolyCore" },
-	shard = { power = "SoulShards", color = "jewelShard", core = "jewelShardCore" },
+	combo = { power = "ComboPoints", token = "COMBO_POINTS", color = "jewelCombo", core = "jewelComboCore" },
+	holy = { power = "HolyPower", token = "HOLY_POWER", color = "jewelHoly", core = "jewelHolyCore" },
+	shard = { power = "SoulShards", token = "SOUL_SHARDS", color = "jewelShard", core = "jewelShardCore" },
 }
 local CLASS_KIND = { ROGUE = "combo", DRUID = "combo", PALADIN = "holy", WARLOCK = "shard" }
 local POWER_IDS = { Energy = 3, ComboPoints = 4, SoulShards = 7, HolyPower = 9 }
 
-local state = { jewels = {}, count = 0, listening = false }
+local state = { jewels = {}, count = 0 }
 Jewels.state = state
-
-local function IsSecret(v)
-	return issecretvalue ~= nil and issecretvalue(v) == true
-end
 
 local function PowerType(name)
 	local types = Enum and Enum.PowerType
 	return types and types[name] or POWER_IDS[name]
 end
 
-function Jewels.Kind()
-	local _, class = UnitClass("player")
-	if IsSecret(class) then
+local function Class()
+	local hub = ns.Slab and ns.Slab.hub
+	if not (state.enabled and hub and hub:IsShown() and ns.Config("crestJewels") ~= false and UnitClass) then
 		return nil
 	end
-	local kind = CLASS_KIND[class]
-	if class == "DRUID" then
-		local current = UnitPowerType and UnitPowerType("player")
-		if IsSecret(current) or current ~= PowerType("Energy") then
-			return nil
-		end
+	local _, class = UnitClass("player")
+	return not IsSecret(class) and CLASS_KIND[class] and class or nil
+end
+
+local function Kind(class)
+	if class ~= "DRUID" then
+		return CLASS_KIND[class]
 	end
-	return kind
+	local current = UnitPowerType and UnitPowerType("player")
+	if not IsSecret(current) and current == PowerType("Energy") then
+		return "combo"
+	end
 end
 
 local function Count(kind)
@@ -53,24 +54,15 @@ local function Count(kind)
 	if IsSecret(most) or type(most) ~= "number" then
 		return DEFAULT_COUNT
 	end
-	if most <= 0 then
-		return 0
-	end
-	return math.min(MAX_COUNT, math.floor(most))
+	return math.max(0, math.min(MAX_COUNT, math.floor(most)))
 end
 
-local function Texture(parent, name, size, layer, sublevel, color, additive)
-	local t = parent:CreateTexture(nil, layer, nil, sublevel)
-	t:SetTexture((Tokens.Texture(name)))
-	if additive then
-		t:SetBlendMode("ADD")
-	end
+local function Texture(parent, size, sublevel, color)
+	local t = parent:CreateTexture(nil, "ARTWORK", nil, sublevel)
+	t:SetTexture((Tokens.Texture("diamond")))
 	t:SetPoint("CENTER", parent, "CENTER", 0, 0)
 	Widgets.Size(t, size, size)
-	if color then
-		t:SetVertexColor(Tokens.Color(color))
-	end
-	return t
+	t:SetVertexColor(Tokens.Color(color))
 end
 
 local function OnePoint(parent, i, size, texture, level, additive)
@@ -94,28 +86,28 @@ local function Build(hub, i)
 	holder:SetFrameLevel(base + 1)
 	local jewel = { holder = holder }
 	jewel.halo = OnePoint(holder, i, HALO, "glow", base, true)
-	jewel.setting = Texture(holder, "diamond", SETTING, "ARTWORK", 0, "gilt")
-	jewel.lip = Texture(holder, "diamond", LIP, "ARTWORK", 1, "jewelSetting")
-	jewel.socket = Texture(holder, "diamond", GEM, "ARTWORK", 2, "jewelSocket")
+	Texture(holder, SETTING, 0, "gilt")
+	Texture(holder, LIP, 1, "jewelSetting")
+	Texture(holder, GEM, 2, "jewelSocket")
 	jewel.gem = OnePoint(holder, i, GEM, "diamond", base + 2)
 	jewel.core = OnePoint(holder, i, CORE, "diamond", base + 3)
-	jewel.core:SetAlpha(CORE_ALPHA)
-	jewel.halo:SetAlpha(HALO_ALPHA)
+	jewel.core:SetAlpha(ALPHA)
+	jewel.halo:SetAlpha(ALPHA)
 	return jewel
 end
 
 local function Place(hub, count)
-	local mid = (count + 1) / 2
+	local mid, step = (count + 1) / 2, count > 5 and ARC / (count - 1) or STEP
 	for i = 1, math.max(count, #state.jewels) do
 		local jewel = state.jewels[i]
 		if i <= count then
 			jewel = jewel or Build(hub, i)
 			state.jewels[i] = jewel
-			local a = rad(90 + (mid - i) * STEP)
+			local a = rad(90 + (mid - i) * step)
 			jewel.holder:ClearAllPoints()
 			jewel.holder:SetPoint("CENTER", hub, "CENTER", Widgets.Snap(hub, RADIUS * cos(a)), Widgets.Snap(hub, RADIUS * sin(a)))
 			jewel.holder:Show()
-		elseif jewel then
+		else
 			jewel.holder:Hide()
 		end
 	end
@@ -133,7 +125,7 @@ local function Paint(kind)
 	end
 end
 
-function Jewels.Points()
+local function Points()
 	local kind = state.kind
 	if not kind or state.count == 0 then
 		return
@@ -154,60 +146,45 @@ function Jewels.Points()
 	end
 end
 
-local function OnPower()
-	Jewels.Points()
+local function OnPower(_, _, token)
+	if token == KINDS[state.kind].token then
+		Points()
+	end
 end
 
-local function Listen(on)
-	if on == state.listening then
+local function Listen(class, kind)
+	if class == state.class and kind == state.kind then
 		return
 	end
-	state.listening = on
+	state.class, state.kind = class, kind
 	local Events = K.Events
-	if on then
-		Events.RegisterUnit(OWNER, "UNIT_POWER_FREQUENT", OnPower, "player")
+	Events.UnregisterAll(OWNER)
+	if class then
 		Events.RegisterUnit(OWNER, "UNIT_MAXPOWER", Jewels.Update, "player")
 		Events.RegisterUnit(OWNER, "UNIT_DISPLAYPOWER", Jewels.Update, "player")
-		Events.Register(OWNER, "PLAYER_TARGET_CHANGED", OnPower)
 		Events.Register(OWNER, "UPDATE_SHAPESHIFT_FORM", Jewels.Update)
-	else
-		Events.UnregisterAll(OWNER)
 	end
-end
-
-local function HideAll()
-	for _, jewel in ipairs(state.jewels) do
-		jewel.holder:Hide()
+	if kind then
+		Events.RegisterUnit(OWNER, "UNIT_POWER_FREQUENT", OnPower, "player")
 	end
-	state.count, state.kind = 0, nil
+	if kind == "combo" then
+		Events.Register(OWNER, "PLAYER_TARGET_CHANGED", Points)
+		Events.Register(OWNER, "COMBO_TARGET_CHANGED", Points)
+	end
 end
 
 function Jewels.Update()
-	local slab = ns.Slab
-	local hub = slab and slab.hub
-	if not (state.enabled and hub and hub:IsShown()) then
-		HideAll()
-		Listen(false)
-		return
+	local class = Class()
+	local kind = class and Kind(class)
+	Listen(class, kind)
+	Place(ns.Slab and ns.Slab.hub, kind and Count(kind) or 0)
+	if kind then
+		Paint(kind)
+		Points()
 	end
-	Listen(true)
-	local kind = Jewels.Kind()
-	if not kind then
-		HideAll()
-		return
-	end
-	state.kind = kind
-	Place(hub, Count(kind))
-	Paint(kind)
-	Jewels.Points()
 end
 
-function Jewels.Enable()
-	state.enabled = true
-	Jewels.Update()
-end
-
-function Jewels.Disable()
-	state.enabled = false
+function Jewels.SetEnabled(on)
+	state.enabled = on
 	Jewels.Update()
 end
