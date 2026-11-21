@@ -22,7 +22,6 @@ local KINDS = {
 }
 local CLASS_KIND = { ROGUE = "combo", DRUID = "combo", PALADIN = "holy", WARLOCK = "shard" }
 local POWER_IDS = { Energy = 3, ComboPoints = 4, SoulShards = 7, HolyPower = 9 }
--- Layers fed the current value; haloWas and ember get the value before it.
 local NOW = { "halo", "rim", "gem", "flare", "core", "glint" }
 
 local state = { jewels = {}, count = 0 }
@@ -60,7 +59,6 @@ local function Count(kind)
 	return math.max(0, math.min(MAX_COUNT, math.floor(most)))
 end
 
--- An even number of physical pixels, so every layer centres exactly on its setting.
 local function Even(region, units)
 	local px = Widgets.Border(region)
 	local side = max(2, 2 * floor(units / px / 2 + 0.5)) * px
@@ -118,7 +116,6 @@ local function Build(hub, i)
 	jewel.setting[3]:SetTexCoord(1, 0, 0, 1)
 	jewel.rim = OnePoint(holder, i, GEM, "diamond", base + 2)
 	jewel.gem = OnePoint(holder, i, BODY, "diamond", base + 3)
-	-- The flare sits under the ember: a jewel lit before and after keeps its ember over the flare until it ends.
 	jewel.flare = OnePoint(holder, i, BODY, "diamond", base + 4, true)
 	jewel.ember = OnePoint(holder, i, BODY, "diamond", base + 5)
 	jewel.core = OnePoint(holder, i, CORE, "diamond", base + 6)
@@ -139,8 +136,6 @@ local function Build(hub, i)
 	return jewel
 end
 
--- The ring's glyphs glow over the rune band; its halo sits a level under the hub, whose ring and socket hide it
--- inside the rim, so it shows only round the ring and never washes over the crest.
 local function BuildRing(hub)
 	local ring = CreateFrame("Frame", nil, hub)
 	ring:SetAllPoints(hub)
