@@ -746,6 +746,10 @@ function Frames.Relayout(uf)
 			MarkTarget(view)
 		end
 	end
+	if uf.kind == "player" then
+		ns.Dispel.Apply(uf.views[1])
+		ns.Totems.Apply(uf)
+	end
 	return true
 end
 
@@ -845,10 +849,6 @@ function Frames.Restyle(uf)
 		Refresh(view, true)
 		if not applied then ns.Auras.Apply(view) end
 	end
-	if uf.kind == "player" then
-		ns.Dispel.Apply(uf.views[1])
-		ns.Totems.Apply(uf)
-	end
 end
 
 local function RegisterUnitEvents(view)
@@ -941,9 +941,9 @@ local function OnSettingChanged(_, module, key)
 			Frames.Restyle(uf)
 			if rest == "rangeFade" then for _, view in ipairs(uf.views) do Frames.Range(view) end end
 		end
-		if Settings.AURA_LOOK[rest] or Settings.LISTS[rest] or rest == "style" then
+		if Settings.AURA_LOOK[rest] or Settings.LISTS[rest] or rest == "style" or rest == "auraLists" then
 			ForEach(function(each)
-				if each ~= uf and each.active and (Settings.Value(each.kind, "auraCopy") == kind or Settings.Value(each.kind, "auraLists") == kind) then Frames.Restyle(each) end
+				if each ~= uf and each.active and (Settings.Value(each.kind, "auraCopy") == kind or Settings.Lists(each.kind) == Settings.Lists(kind)) then Frames.Restyle(each) end
 			end)
 		end
 		if kind == "target" then

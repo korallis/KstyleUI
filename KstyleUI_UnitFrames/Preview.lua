@@ -306,6 +306,13 @@ local function PaintCast(frame, view, kind, height)
 		cb.timer:SetFormattedText("%.1fs", CAST_LEFT)
 	end
 	cb.icon:SetTexture(CAST_ICON)
+	if not Settings.Value(kind, "castbarHideIdle") then
+		cb.bar:SetValue(0)
+		ns.CastBars.SetName(cb, "")
+		ns.CastBars.Important(cb)
+		cb.timer:SetText("")
+		cb.icon:SetTexture(nil)
+	end
 	cb.frame:SetAlpha(1)
 	cb.frame:Show()
 	return extra
@@ -528,7 +535,7 @@ local function PaintTotems(frame, kind)
 	end
 	row = row or ns.Totems.Row(frame.holders.player)
 	frame.totems = row
-	ns.Totems.Place(row, frame.holders.player)
+	ns.Totems.Place(row, frame.holders.player, frame.views.player.geometry)
 	for i, button in ipairs(row.buttons) do
 		button:SetIcon(AURA_ICONS[(i - 1) % #AURA_ICONS + 1])
 		button:SetCooldown(GetTime() - i * 5, 60)

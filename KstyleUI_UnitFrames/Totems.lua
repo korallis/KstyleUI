@@ -20,19 +20,20 @@ function Totems.Row(parent)
 	row.buttons = {}
 	local n = GetNumTotemSlots and GetNumTotemSlots()
 	for i = 1, (not issecretvalue(n) and type(n) == "number" and n > 0) and n or SLOTS do
-		local button = Widgets.IconButton(row, { size = Settings.Value("player", "totemSize") })
-		button:EnableMouse(false)
-		row.buttons[i] = button
+		row.buttons[i] = Widgets.IconButton(row, { size = Settings.Value("player", "totemSize") })
+		row.buttons[i]:EnableMouse(false)
 	end
 	return row
 end
 
-function Totems.Place(row, holder)
+function Totems.Place(row, holder, g)
 	local side = SIDES[Settings.Value("player", "totemPosition")] or SIDES.RIGHT
 	local size, gap, count = Settings.Value("player", "totemSize"), Widgets.Snap(holder, GAP), #row.buttons
 	size = Widgets.Snap(holder, size)
+	local p = g and (g.form == "column" and g.portrait or g.form == "slab" and g.medal)
+	local reach = p and math.max(0, side[3] > 0 and p.x + p.w - holder:GetWidth() or side[3] < 0 and -p.x or 0) or 0
 	row:ClearAllPoints()
-	row:SetPoint(side[1], holder, side[2], side[3] * gap, side[4] * gap)
+	row:SetPoint(side[1], holder, side[2], side[3] * (gap + Widgets.Snap(holder, reach)), side[4] * gap)
 	row:SetSize(count * size + (count - 1) * gap, size)
 	for i, button in ipairs(row.buttons) do
 		button.opts.size = size
@@ -67,7 +68,9 @@ local function Slot(button, i)
 	end
 end
 
-local function Update()
+local function Update(_, slot)
+	local one = not issecretvalue(slot) and live.buttons[slot]
+	if one then return Slot(one, slot) end
 	for i, button in ipairs(live.buttons) do
 		Slot(button, i)
 	end
@@ -89,7 +92,7 @@ function Totems.Apply(uf)
 		return
 	end
 	live = live or Totems.Row(uf.holder)
-	Totems.Place(live, uf.holder)
+	Totems.Place(live, uf.holder, uf.views[1].geometry)
 	live:Show()
 	Update()
 end

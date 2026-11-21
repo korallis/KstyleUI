@@ -1,4 +1,4 @@
--- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text, unit-frame parity round 1, 2, 3a, 3b, 3c, 3d or 4b options through Options, or (RENDER_AURA_BOTH=1) the target's Debuffs and buffs with timers under the icons, nudged by RENDER_AURA_TIMER_Y.
+-- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text, unit-frame parity round 1, 2, 3a, 3b, 3c, 3d or 4b options through Options (RENDER_TOTEMS and RENDER_PORTRAIT set the totem and portrait sides), or (RENDER_AURA_BOTH=1) the target's Debuffs and buffs with timers under the icons, nudged by RENDER_AURA_TIMER_Y.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -199,6 +199,10 @@ return Common.Run(function()
 		for _, pair in ipairs({ { "player.dispelOverlay", "health" }, { "player.dispelEdge", true }, { "player.dispelIcon", "TOPRIGHT" }, { "player.dispelIconSize", 16 },
 			{ "player.totems", true }, { "player.totemPosition", os.getenv("RENDER_TOTEMS") or "RIGHT" }, { "player.castbarRangeGrey", true }, { "player.castbarIconSize", 14 }, { "target.castbarHideIdle", false } }) do
 			K.Options.Write(module, pair[1], pair[2])
+		end
+		if os.getenv("RENDER_PORTRAIT") then
+			K.Options.Write(module, "player.portrait", true)
+			K.Options.Write(module, "player.portraitSide", os.getenv("RENDER_PORTRAIT"))
 		end
 		dofile("Tools/regression/aura_fixture_engine.lua").Install(env)
 		env.FireEvent("PLAYER_TOTEM_UPDATE", 1)

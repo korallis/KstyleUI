@@ -55,6 +55,7 @@ local LIT_ALPHA, SHADE_ALPHA = 0.6, 0.45
 local MEDAL_INSET, MEDAL_TEXT_PAD = 3, 5
 local SPARK = { 227 / 255, 232 / 255, 238 / 255, 1 }
 local RANGE_STEP = 0.2
+local BATCH_GAP = 2
 
 local EVENTS = {
 	UNIT_SPELLCAST_START = "Cast",
@@ -1037,9 +1038,7 @@ local function Locked(cb, notInterruptible)
 end
 
 local function Range(cb)
-	local api = C_Spell and C_Spell.IsSpellInRange
-	local ok, inRange = false, nil
-	if api and cb.rangeID then ok, inRange = pcall(api, cb.rangeID) end
+	local ok, inRange = pcall(C_Spell.IsSpellInRange, cb.rangeID)
 	local out = ok and not issecretvalue(inRange) and inRange == false
 	if out ~= cb.outOfRange then
 		cb.outOfRange = out
@@ -1121,6 +1120,16 @@ local function RunTimes(cb, channel, startMs, endMs)
 	return false
 end
 
+local function Span(cb)
+	local util = C_DurationUtil
+	cb.span = cb.span or util and type(util.CreateDuration) == "function" and util.CreateDuration() or nil
+	if not (cb.span and pcall(cb.span.SetTimeSpan, cb.span, cb.craftFirst / MS, cb.batch) and pcall(cb.bar.SetTimerDuration, cb.bar, cb.span, Interpolation(cb), Direction(false))) then
+		return false
+	end
+	cb.timed, cb.duration = true, cb.span
+	return true
+end
+
 local function Ranked(text, spellID)
 	local api = C_Spell and C_Spell.GetSpellSubtext
 	if not api or issecretvalue(text) or type(text) ~= "string" or issecretvalue(spellID) or type(spellID) ~= "number" then return text end
@@ -1141,7 +1150,7 @@ local function Batch(cb, text, startMs, endMs, merge)
 	if not same then cb.craftFirst = startMs end
 	cb.craftEnd = finish
 	if left < 1 and not (merge and same) then return text end
-	cb.batch = finish
+	cb.batch, cb.craftMore = finish, left > 0
 	return text .. " (" .. (left + 1) .. ")"
 end
 
@@ -1252,9 +1261,8 @@ local function Start(cb, channel, update)
 	cb.elapsed = TIMER_STEP
 	cb.total = nil
 	local tick
-	if cb.batch and cb.merge then
-		tick = RunTimes(cb, false, cb.craftFirst, cb.batch * MS)
-		if tick then cb.bar:SetValue(cb.total - math.max(0, cb.finish - GetTime())) end
+	if cb.batch and cb.merge and Span(cb) then
+		tick = Settings.Value(cb.kind, "castbarTimer")
 	elseif RunDuration(cb, channel) then
 		tick = cb.duration ~= nil and Settings.Value(cb.kind, "castbarTimer")
 	else
@@ -1327,7 +1335,11 @@ local HANDLERS = {
 	end,
 	Stop = function(cb, event, ...)
 		if cb.active and Matches(cb, event, ...) then
-			if not cb.channel then
+			if not cb.channel and cb.batch and cb.merge and cb.craftMore then
+				local token = cb.token
+				C_Timer.After(BATCH_GAP, function() if cb.token == token and cb.active then Land(cb) end end)
+				return
+			elseif not cb.channel then
 				Land(cb)
 				return
 			end

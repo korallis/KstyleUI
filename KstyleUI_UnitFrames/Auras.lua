@@ -349,7 +349,7 @@ local function Dispel(entry, style)
 	elseif entry.slab then
 		add = { style = options.style, showWhenHarmful = options.showWhenHarmful, showWithoutDispelType = false }
 	end
-	add = ns.Dispel.Tinted(add)
+	add = ns.Dispel.Tinted(add, style.palette)
 	for _, part in ipairs(parts) do
 		button:AddDispelTypeTexture(part, add)
 	end
@@ -433,6 +433,7 @@ local function Flush()
 			end
 			ns.Fan.Restyle(view)
 		end
+		if view.kind == "player" then K.Call(ns.Dispel.Apply, view) end
 	end
 	return true
 end
@@ -459,6 +460,7 @@ local function Wait(view)
 	pcall(K.Events.Register, OWNER, "ADDON_RESTRICTION_STATE_CHANGED", OnGate)
 	Log("frame auras: aura buttons are restricted now; their restyle waits until aura data is readable")
 end
+Auras.Wait = Wait
 
 local function Dress(view, key, button, buttons)
 	local entry = Auras.NewTile(button)

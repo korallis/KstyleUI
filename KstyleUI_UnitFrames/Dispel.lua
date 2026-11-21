@@ -37,8 +37,7 @@ function Dispel.Key()
 	return table.concat(out, ";")
 end
 
-function Dispel.Tinted(options)
-	local key = Dispel.Key()
+function Dispel.Tinted(options, key)
 	if key == "game" then return options end
 	if mapKey ~= key then
 		map, mapKey = {}, key
@@ -109,8 +108,8 @@ local function Register(d)
 	local key, slot, p = Dispel.Key(), d.slot, d.parts
 	if d.tint == key then return end
 	local styles = Enum.CustomAuraButtonDispelTypeTextureStyle
-	local wash = Dispel.Tinted({ style = styles.PreserveAsset, showWhenHarmful = true })
-	local mark = Dispel.Tinted({ style = styles.CustomAsset, showWhenHarmful = true, customDispelAssetMap = K.ColorVision.DispelAssets() })
+	local wash = Dispel.Tinted({ style = styles.PreserveAsset, showWhenHarmful = true }, key)
+	local mark = Dispel.Tinted({ style = styles.CustomAsset, showWhenHarmful = true, customDispelAssetMap = K.ColorVision.DispelAssets() }, key)
 	for _, texture in ipairs(p.tinted) do
 		if d.tint then slot:RemoveDispelTypeTexture(texture) end
 		slot:AddDispelTypeTexture(texture, wash)
@@ -120,19 +119,25 @@ local function Register(d)
 	d.tint = key
 end
 
+local function Can(object, ...)
+	for i = 1, select("#", ...) do
+		if type(object[select(i, ...)]) ~= "function" then return false end
+	end
+	return true
+end
+
 local function Dress(d, slot, view)
+	if not Can(slot, "AddDispelTypeTexture", "RemoveDispelTypeTexture") then return end
 	pcall(slot.EnableMouse, slot, false)
 	slot:ClearAllPoints()
 	slot:SetAllPoints(view.button)
 	d.slot, d.parts = slot, NewParts(slot)
-	Register(d)
-	Layout(d.parts, view)
 end
 
 local function Build(view)
 	local styles = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
 	local ok, container = pcall(CreateFrame, "AuraContainer", nil, view.button, "CustomAuraContainerTemplate")
-	if not (styles and styles.PreserveAsset and styles.CustomAsset and K.ColorVision) or not ok or type(container) ~= "table" or type(container.AddAuraSlot) ~= "function" then
+	if not (styles and styles.PreserveAsset and styles.CustomAsset and K.ColorVision) or not ok or type(container) ~= "table" or not Can(container, "AddAuraSlot", "SetUnit", "SetAuraSlotFilterString", "SetAuraSlotEnabled") then
 		LogOnce("engine", "dispel overlay: the aura slot engine or its dispel texture styles are missing; the player frame shows no dispel overlay")
 		view.dispel = false
 		return nil
@@ -142,8 +147,9 @@ local function Build(view)
 	local d = { container = container, filter = FILTERS.PLAYER }
 	view.dispel = d
 	local added, err = pcall(container.AddAuraSlot, container, SLOT, d.filter, { initializeFrame = function(slot) K.Call(Dress, d, slot, view) end })
-	if not added then
-		LogOnce("slot", "dispel overlay: the aura slot was refused (" .. tostring(err) .. "); the player frame shows no dispel overlay")
+	if not (added and d.slot) then
+		pcall(container.SetAuraSlotEnabled, container, SLOT, false)
+		LogOnce("slot", "dispel overlay: the aura slot was refused (" .. tostring(err or "no dispel texture methods") .. "); the player frame shows no dispel overlay")
 		view.dispel = false
 		return nil
 	end
@@ -154,16 +160,7 @@ function Dispel.Apply(view)
 	local d = view.dispel
 	local on = ns.Frames.IsRunning() and view.uf.active and Wanted()
 	if d == false or not (on or d) then return end
-	if not ns.Auras.Open() then
-		if not view.dispelQueued then
-			view.dispelQueued = true
-			K.Combat.Queue(function()
-				view.dispelQueued = false
-				Dispel.Apply(view)
-			end)
-		end
-		return
-	end
+	if not ns.Auras.Open() then return ns.Auras.Wait(view) end
 	d = d or Build(view)
 	if not d then return end
 	if on then
@@ -172,11 +169,9 @@ function Dispel.Apply(view)
 			d.container:SetAuraSlotFilterString(SLOT, filter)
 			d.filter = filter
 		end
-		if d.slot then
-			Register(d)
-			Layout(d.parts, view)
-		end
-	elseif d.slot then
+		Register(d)
+		Layout(d.parts, view)
+	else
 		Hide(d.parts)
 	end
 	d.container:SetAuraSlotEnabled(SLOT, on and true or false)
@@ -195,6 +190,6 @@ function Dispel.Sample(view, holder, kind)
 	end
 	local r, g, b = Dispel.Magic()
 	for _, texture in ipairs(p.tinted) do texture:SetVertexColor(r, g, b, 1) end
-	p.icon:SetVertexColor(r, g, b, 1)
+	if Settings.Module().dispelCustom == true then p.icon:SetVertexColor(r, g, b, 1) else p.icon:SetVertexColor(1, 1, 1, 1) end
 	Layout(p, view)
 end

@@ -201,31 +201,31 @@ stop("player")
 env._inRange = true
 clean("range")
 
--- Whole batch on the bar: one fill across every craft of a batch, the last craft included.
+-- Whole batch on the bar: one native span across every craft of a batch, the last craft included.
 local function craft(start, left)
 	env._recasts, env._time = left, start / 1000
 	env._units.player.cast = { name = "Bolt of Linen", texture = 135846, start = start, finish = start + 3000, spellID = 116 }
 	env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116)
+end
+local function spans(start, finish)
+	local span = W.LastCall(pcb.bar, "SetTimerDuration")[1]
+	return span == pcb.span and span.start == start and span.finish == finish
 end
 env._trade = true
 craft(1000, 2)
 assert(not pcb.batch and U.Shown(env, pcb.text):lower() == "bolt of linen", "off keeps each craft on its own")
 write("player.castbarCraftBar", true)
 craft(1000, 2)
-local value, low, high = U.Bar(env, pcb.bar)
-assert(low == 0 and high == 9 and value == 0 and U.Shown(env, pcb.text):find("(3)", 1, true), "the bar spans the batch's three crafts")
+assert(spans(1, 10) and U.Shown(env, pcb.text):find("(3)", 1, true), "the bar spans the batch's three crafts")
 stop("player")
 craft(4000, 1)
-value, low, high = U.Bar(env, pcb.bar)
-assert(low == 0 and high == 9 and value == 3, "the second craft carries on the batch's fill: " .. tostring(value))
+assert(spans(1, 10), "the second craft carries on the batch's span")
 craft(7000, 0)
-value, low, high = U.Bar(env, pcb.bar)
-assert(low == 0 and high == 9 and value == 6 and U.Shown(env, pcb.text):find("(1)", 1, true), "the last craft finishes the same fill")
+assert(spans(1, 10) and U.Shown(env, pcb.text):find("(1)", 1, true), "the last craft finishes the same span")
 craft(20000, 0)
 assert(not pcb.batch and U.Shown(env, pcb.text):lower() == "bolt of linen", "a lone craft later is a plain cast")
 craft(30000, 1)
-value, low, high = U.Bar(env, pcb.bar)
-assert(low == 0 and high == 6 and value == 0, "a new batch starts its own fill")
+assert(spans(30, 36), "a new batch starts its own span")
 assert(not Settings.Value("player", "castbarCraft"), "the bar needs no Whole craft batch switch")
 write("player.castbarCraftBar", false)
 craft(30000, 1)

@@ -546,11 +546,19 @@ local function Value(kind, key)
 	return value
 end
 
-local function Linked(kind, key)
-	if LISTS[key] then
-		local from = Kinds(kind).auraLists
-		if from and from ~= kind and Settings.AURAS[from] then return Value(from, key) end
+function Settings.Lists(kind)
+	local from = kind
+	for _ = 1, #KINDS do
+		local to = Kinds(from).auraLists
+		if to == kind then return kind end
+		if not (to and to ~= from and Settings.AURAS[to]) then return from end
+		from = to
 	end
+	return kind
+end
+
+local function Linked(kind, key)
+	if LISTS[key] then return Value(Settings.Lists(kind), key) end
 	local look = AURA_LOOK[key]
 	if look ~= nil then
 		local own = Kinds(kind)
@@ -1003,7 +1011,7 @@ CastRows = function(schema, kind)
 end
 
 local function FilterRows(schema, kind, on, own)
-	local function listed(s) return s.auraLists == nil or s.auraLists == "" or s.auraLists == kind end
+	local function listed() return Settings.Lists(kind) == kind end
 	local function buffs()
 		local filter = Settings.Value(kind, "auraFilter")
 		return on() and (filter == "buffs" or filter == "both")
@@ -1020,11 +1028,11 @@ local function FilterRows(schema, kind, on, own)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraHideLockout", label = L["Hide Bloodlust lockouts"],
 		help = L["Hides Sated, Exhaustion and the other Bloodlust lockout debuffs on friendly units."] }, on)
 	schema[#schema + 1] = Row(kind, { type = "text", key = "auraHidden", label = L["Hidden spell IDs"], maxLetters = SPELL_LIST_LETTERS,
-		help = L["Hides these spell IDs, separated by commas or spaces, on buffs of friends and debuffs of enemies."] }, function(s) return on() and listed(s) end)
+		help = L["Hides these spell IDs, separated by commas or spaces, on buffs of friends and debuffs of enemies."] }, function() return on() and listed() end)
 	schema[#schema + 1] = Row(kind, { type = "text", key = "auraTracked", label = L["Tracked spell IDs"], maxLetters = SPELL_LIST_LETTERS,
-		help = L["The buffs Only tracked buffs keeps, as spell IDs separated by commas or spaces."] }, function(s) return buffs() and listed(s) end)
+		help = L["The buffs Only tracked buffs keeps, as spell IDs separated by commas or spaces."] }, function() return buffs() and listed() end)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraTrackedOnly", label = L["Only tracked buffs"],
-		help = L["On friendly units, shows only the buffs in Tracked spell IDs. Enemy buffs show as usual."] }, function(s) return buffs() and listed(s) end)
+		help = L["On friendly units, shows only the buffs in Tracked spell IDs. Enemy buffs show as usual."] }, function() return buffs() and listed() end)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraRowGap", label = L["Extra row spacing"],
 		help = L["Adds this many units between aura rows, on top of Aura spacing."], min = 0, max = AURA_SPACING_MAX, step = 1 }, own)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraPrecise", label = L["Precise timers below (minutes)"],
