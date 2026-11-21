@@ -398,44 +398,6 @@ local function Clear()
 	return { 0, 0, 0, 0 }
 end
 
-local TINT = {
-	["|cffffaaaa"] = "nameHostile",
-	["|cffaaeeff"] = "magic",
-	["|cffaaffaa"] = "friend",
-	["|cffffee77"] = "quest",
-}
-
-local function Hex(name, cache)
-	local hex = cache[name]
-	if hex then
-		return hex
-	end
-	local r, g, b = Tokens.Color(name)
-	if not (Plain(r) and Plain(g) and Plain(b)) then
-		return nil
-	end
-	hex = string.format("|cff%02x%02x%02x", r * 255, g * 255, b * 255)
-	cache[name] = hex
-	return hex
-end
-
-local function Tinted(text, cache)
-	if type(text) ~= "string" or (issecretvalue and issecretvalue(text)) or not text:find("|c", 1, true) then
-		return nil
-	end
-	local changed = false
-	local out = text:gsub("|c%x%x%x%x%x%x%x%x", function(code)
-		local name = TINT[code]
-		local hex = name and Hex(name, cache)
-		if not hex then
-			return code
-		end
-		changed = true
-		return hex
-	end)
-	return changed and out or nil
-end
-
 function Text(frame)
 	local controls = frame and frame.Controls
 	local container = IsTable(controls) and controls.StepContainer
@@ -446,7 +408,6 @@ function Text(frame)
 	if type(path) ~= "string" then
 		return
 	end
-	local cache = {}
 	local children = { container:GetChildren() }
 	for i = 1, #children do
 		local lines = children[i].lines
@@ -457,16 +418,6 @@ function Text(frame)
 					local current, height = label:GetFont()
 					if current ~= path or not Plain(height) or math.abs(height - size) > 0.5 then
 						Widgets.ApplyFont(label, path, size, flags)
-					end
-					local text = label:GetText()
-					if type(text) == "string" and not (issecretvalue and issecretvalue(text)) and text ~= label.__kstyleui then
-						local tinted = Tinted(text, cache)
-						if tinted and type(label.SetText) == "function" then
-							label.__kstyleui = tinted
-							label:SetText(tinted)
-						else
-							label.__kstyleui = text
-						end
 					end
 				end
 			end
@@ -479,8 +430,9 @@ local hookedSteps = setmetatable({}, { __mode = "k" })
 
 local function QuietStep(step)
 	if state.saved and type(step.SetBackdropColor) == "function" then
-		step:SetBackdropColor(0, 0, 0, 0)
-		step:SetBackdropBorderColor(0, 0, 0, 0)
+		local r, g, b = Tokens.Color("surface")
+		step:SetBackdropColor(r, g, b, 0)
+		step:SetBackdropBorderColor(r, g, b, 0)
 	end
 end
 
@@ -533,7 +485,7 @@ local function Caption(z, panel)
 			Parts.Hush(frame.Controls.Logo)
 		end
 		caption = Widgets.FontString(bar, "OVERLAY")
-		local search = bar.SearchButton or IsTable(frame.Controls) and frame.Controls.SearchButton
+		local search = IsTable(frame.Controls) and frame.Controls.MenuSettingsButton
 		if IsTable(search) and type(search.GetRight) == "function" then
 			caption:SetPoint("LEFT", search, "RIGHT", Tokens.Size("gapXLarge") * 2, 0)
 		else
@@ -569,6 +521,100 @@ local function Fonts(z)
 			Style.ApplyFont(tab.Text, "body")
 		end
 	end
+end
+
+local ROLES = {
+	MenuSettingsButton = "ink", TabsAddButton = "ink", TabsMoreButton = "ink", GuideShareButton = "ink", ReportStep = "ink", MenuAdditionalButton = "ink",
+	PrevButton = -math.pi / 2, NextButton = math.pi / 2, CloseButton = "close",
+}
+
+local function Ink(button)
+	local role = state.saved and ROLES[button.kstyleKey]
+	if not role then
+		return
+	end
+	local r, g, b = Tokens.Color("muted")
+	for _, getter in ipairs({ "GetNormalTexture", "GetPushedTexture", "GetDisabledTexture" }) do
+		local texture = type(button[getter]) == "function" and button[getter](button)
+		if IsTable(texture) and role == "ink" then
+			texture:SetVertexColor(r, g, b, 1)
+		elseif IsTable(texture) then
+			texture:SetAlpha(0)
+		end
+	end
+end
+
+local function Controls(z)
+	local controls = IsTable(z.Frame) and z.Frame.Controls
+	if not IsTable(controls) or state.controls then
+		return
+	end
+	state.controls = true
+	for key, role in pairs(ROLES) do
+		local button = controls[key]
+		if IsTable(button) then
+			button.kstyleKey = key
+			if role == "close" then
+				K.Skin.CloseButton(button)
+			elseif type(role) == "number" then
+				ns.Parts.Glyph(button, "glyphChevron", { rotation = role })
+			end
+			if type(button.AssignTextures) == "function" then
+				hooksecurefunc(button, "AssignTextures", Ink)
+			end
+			Ink(button)
+		end
+	end
+end
+
+local function ArrowText(arrow)
+	if not (state.saved and IsTable(arrow)) then
+		return
+	end
+	local path = ns.Style.Font("body")
+	local offset = Tokens.Size("textShadowOffset")
+	for _, key in ipairs({ "title", "desc" }) do
+		local text = arrow[key]
+		if IsTable(text) and type(text.GetFont) == "function" then
+			local _, size, flags = text:GetFont()
+			if type(path) == "string" and Plain(size) then
+				Widgets.ApplyFont(text, path, size, flags)
+			end
+			text:SetTextColor(Tokens.Color("textEmphasis"))
+			text:SetShadowColor(Tokens.Color("textShadow"))
+			text:SetShadowOffset(offset, -offset)
+		end
+	end
+end
+
+local function FlatArrow(frame)
+	local arrow = state.saved and IsTable(frame) and frame.arrow
+	if IsTable(arrow) and IsTable(arrow.arr) then
+		arrow.arr:SetVertexColor(Tokens.Color("textEmphasis"))
+	end
+	if IsTable(arrow) and IsTable(arrow.arrspecular) then
+		arrow.arrspecular:SetAlpha(0)
+	end
+end
+
+local function Arrow(z)
+	local pointer = z.Pointer
+	local frame = IsTable(pointer) and pointer.ArrowFrame
+	if not IsTable(frame) then
+		return
+	end
+	if frame ~= state.arrow then
+		state.arrow = frame
+		if type(frame.ShowTraveling) == "function" then
+			hooksecurefunc(frame, "ShowTraveling", FlatArrow)
+		end
+	end
+	if not state.arrowFonts and type(pointer.SetFontSize) == "function" then
+		state.arrowFonts = true
+		hooksecurefunc(pointer, "SetFontSize", function() ArrowText(state.arrow) end)
+	end
+	ArrowText(frame)
+	FlatArrow(frame)
 end
 
 local function Paint(z)
@@ -624,6 +670,8 @@ local function Paint(z)
 	Text(z.Frame)
 	Steps(z.Frame)
 	Fonts(z)
+	Controls(z)
+	Arrow(z)
 	if not state.steps and IsTable(z.Frame) and type(z.Frame.AddStep) == "function" then
 		state.steps = true
 		hooksecurefunc(z.Frame, "AddStep", Steps)
@@ -685,7 +733,11 @@ local function Hook(z)
 			if panel then Caption(live, panel) end
 			Schedule()
 		end)
-		z:AddMessageHandler("ZGV_STEP_CHANGED", Schedule)
+		z:AddMessageHandler("ZGV_STEP_CHANGED", function()
+			local live = Zygor()
+			if live then Arrow(live) end
+			Schedule()
+		end)
 		z:AddMessageHandler("SKIN_UPDATED", function()
 			K.Combat.Queue(function()
 				local live = Zygor()

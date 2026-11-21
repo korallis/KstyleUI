@@ -99,6 +99,20 @@ do
 	assert(caption and caption:IsShown(), "the title bar carries the guide's name as a caps caption, as RestedXP's card does")
 	assert(not zygor.frame.Controls.Logo:IsShown() or zygor.frame.Controls.Logo:GetAlpha() == 0, "Zygor's logo steps aside for the caption")
 	assert(zygor.frame.Controls.StepNum.Step:GetFont() == ns.Style.Font("body"), "the step number takes the theme's body face")
+	local next, report = zygor.frame.Controls.NextButton, zygor.frame.Controls.ReportStep
+	next:AssignTextures()
+	report:AssignTextures()
+	assert(next:GetNormalTexture():GetAlpha() == 0, "Zygor's next arrow gives way to KstyleUI's chevron after every skin pass")
+	local r = report:GetNormalTexture():GetVertexColor()
+	assert(math.abs(r - (K.Tokens.Color("muted"))) < 0.01, "Zygor's other icons take the theme's muted ink after every skin pass")
+	local arrow = zygor.arrow
+	arrow:ShowTraveling()
+	local ar, ag = arrow.arrow.arr:GetVertexColor()
+	assert(math.abs(ar - (K.Tokens.Color("textEmphasis"))) < 0.01 and ag > 0.5, "the waypoint arrow is drawn in the theme's ink, not Zygor's red-to-green")
+	assert(arrow.arrow.arrspecular:GetAlpha() == 0, "Zygor's arrow sheen is off")
+	env.ZygorGuidesViewer.Pointer:SetFontSize(14)
+	local face, height = arrow.title:GetFont()
+	assert(face == ns.Style.Font("body") and math.abs(height - 14) < 0.5, "the arrow's text keeps Zygor's size in the theme's face")
 	-- Zygor's step and line fills come from its own opacity and goal-colour settings, so they are quieted after it paints, never by writing those settings.
 	local step = zygor.step
 	zygor.frame:AddStep()
@@ -117,7 +131,7 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
--- The step text is in KstyleUI's face at KstyleUI's size, and Zygor's own goal colours said in the theme's hues.
+-- The step text is in KstyleUI's face at KstyleUI's size; Zygor's own name colours stay, as RestedXP's do.
 do
 	local env, K, ns, zygor = Boot({})
 	local label = zygor.label
@@ -125,15 +139,6 @@ do
 	local font, height = label:GetFont()
 	assert(font == path, string.format("the step text takes KstyleUI's face, %s", tostring(font)))
 	assert(math.abs(height - size) <= 0.5, string.format("the step text takes KstyleUI's size, %s instead of %s", tostring(height), tostring(size)))
-	local function Hex(name)
-		local r, g, b = K.Tokens.Color(name)
-		return string.format("|cff%02x%02x%02x", r * 255, g * 255, b * 255)
-	end
-	local text = label:GetText()
-	assert(type(text) == "string", "the step text is left readable")
-	assert(text:find(Hex("nameHostile"), 1, true) ~= nil, "the monster in the step is the theme's hostile hue: " .. tostring(text))
-	assert(text:find(Hex("magic"), 1, true) ~= nil, "the item in the step is the theme's magic hue: " .. tostring(text))
-	assert(text:find("|cffffaaaa", 1, true) == nil, "no raw monster colour is left: " .. tostring(text))
 	-- A repaint sets nothing already set: Zygor applies its skin whenever it resizes.
 	local fonts, texts = zygor.writes.font, zygor.writes.text
 	for _ = 1, 3 do

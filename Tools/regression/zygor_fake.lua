@@ -36,6 +36,18 @@ function Fake.Install(env, opts)
 	local stepNum = { Step = frame.Border.TitleBar:CreateFontString(nil, "OVERLAY") }
 	stepNum.Step:SetFont("Fonts\\FRIZQT__.TTF", 12)
 	frame.Controls = { StepContainer = container, Logo = frame.Border.TitleBar:CreateTexture(nil, "ARTWORK"), StepNum = stepNum }
+	-- Zygor's title buttons re-set their icon through AssignTextures on every skin pass (Skins/Default/ViewerFrame.lua ZGV_DefaultSkin_TitleButton_Mixin).
+	for _, key in ipairs({ "NextButton", "ReportStep" }) do
+		local button = env.CreateFrame("Button", nil, frame.Border.TitleBar)
+		button:SetSize(16, 16)
+		local icon = button:CreateTexture(nil, "ARTWORK")
+		button.GetNormalTexture = function() return icon end
+		button.AssignTextures = function()
+			icon:SetAlpha(1)
+			icon:SetVertexColor(1, 1, 1, 1)
+		end
+		frame.Controls[key] = button
+	end
 	-- A step paints its own background from Zygor's opacity setting and each line from its goal colours (Skins/Default/ViewerFrame.lua:602, :713, :2397).
 	step.SetBackdropColor = function(self, r, g, b, a) self.backdrop = { r, g, b, a } end
 	step.SetBackdropBorderColor = function() end
@@ -60,6 +72,19 @@ function Fake.Install(env, opts)
 		F = {},
 	}
 	env.ZygorGuidesViewer = z
+	-- Zygor's waypoint arrow recolours its sprite every frame in ShowTraveling and sets its text font in Pointer:SetFontSize (Arrows/ArrowSkin.lua:43, Pointer.lua:1565).
+	local arrowFrame = env.CreateFrame("Frame", nil, env.UIParent)
+	arrowFrame.arrow = env.CreateFrame("Frame", nil, arrowFrame)
+	arrowFrame.arrow.arr = arrowFrame.arrow:CreateTexture(nil, "ARTWORK")
+	arrowFrame.arrow.arrspecular = arrowFrame.arrow:CreateTexture(nil, "OVERLAY")
+	arrowFrame.title = arrowFrame:CreateFontString(nil, "OVERLAY")
+	arrowFrame.title:SetFont("Fonts\\FRIZQT__.TTF", 11)
+	arrowFrame.ShowTraveling = function(self)
+		self.arrow.arr:SetVertexColor(1, 0, 0)
+		self.arrow.arrspecular:SetAlpha(0.7)
+	end
+	z.Pointer = { ArrowFrame = arrowFrame, SetFontSize = function(self, size) arrowFrame.title:SetFont("Fonts\\FRIZQT__.TTF", size) end }
+	fake.arrow = arrowFrame
 
 	function z.F.SaveFrameAnchor(region, name, context)
 		fake.saves = fake.saves + 1
