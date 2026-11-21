@@ -270,7 +270,8 @@ function Indicators.Layout(view, g, s)
 		local icon, p = view.icons[key], spots[key]
 		icon:ClearAllPoints()
 		icon:SetPoint("CENTER", view.parent, "TOPLEFT", Snap(view, p.x + (s[key .. "X"] or 0)), -Snap(view, p.y - (s[key .. "Y"] or 0)))
-		icon:SetSize(p.size, p.size)
+		local side = (key ~= "resting" or not s.resting) and p.size or 0
+		icon:SetSize(side, side)
 		if key == "resting" then
 			local path = Settings.Font(view.kind, "level")
 			Widgets.ApplyFont(icon, path, size, "OUTLINE")
