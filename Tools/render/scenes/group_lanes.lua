@@ -9,7 +9,8 @@
 -- RENDER_PARITY_R3C=missing also fills the bars with missing health; =layout (RENDER_GROUP=10) gives the larger frames a custom size
 -- and offset with icons that scale and two hover lines on the hovered first frame; =solo (RENDER_GROUP=party) shows you alone, centred;
 -- =small (RENDER_GROUP=10) keeps six players, group 1 shown as party frames.
--- RENDER_PARITY_R3B=1 switches on round 3b's party targets (an enemy, a player and an enemy) and text above icons.
+-- RENDER_PARITY_R3B=1 switches on round 3b's party targets (an enemy, a player and an enemy), text above icons, a party debuff
+-- offset, the thick icon text outline and indicator 1 kept to raid frames.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
@@ -162,8 +163,9 @@ return Common.Run(function()
 		end
 	end
 	if os.getenv("RENDER_PARITY_R3B") == "1" then
-		K.Options.Write("GroupFrames", "targets.enabled", true)
-		K.Options.Write("GroupFrames", "text.above", true)
+		for key, value in pairs({ ["targets.enabled"] = true, ["text.above"] = true, ["party.auraX"] = 12, ["auras.textOutline"] = "THICKOUTLINE", ["indicator1.show"] = "RAID" }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
 		env.RunTimers()
 		env.RunStateDrivers()
 	end
