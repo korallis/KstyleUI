@@ -305,7 +305,6 @@ function Resource.Enable()
 	Events.Register(OWNER, "UPDATE_SHAPESHIFT_FORM", Resource.Visibility)
 	Events.Register(OWNER, "PLAYER_TARGET_CHANGED", Resource.Points)
 	Events.Register(OWNER, "COMBO_TARGET_CHANGED", Resource.Points)
-	K.Callbacks.Register("EffectsLevelChanged", OWNER, function() Resource.Points() end)
 	Resource.Restyle()
 end
 
@@ -313,7 +312,6 @@ function Resource.Disable()
 	state.running = false
 	state.listening = false
 	K.Events.UnregisterAll(OWNER)
-	K.Callbacks.Unregister("EffectsLevelChanged", OWNER)
 	if state.built then
 		state.content:Hide()
 		state.holder:Hide()

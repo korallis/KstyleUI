@@ -41,36 +41,23 @@ local function BuildRow(set, count)
 	return row
 end
 
-local function Hide()
-	for _, p in ipairs(state.pips) do
-		p.frame:Hide()
-	end
-	if state.row then
-		state.row:Hide()
-	end
-end
-
 function Pips.Apply(class, parent, count)
 	local set = class and Widgets.ClassPipSet(class, 90)
 	state.theme = set
-	if not set then
-		Hide()
-		return false
-	end
-	state.parent, state.count = parent, count
-	if state.built ~= class .. count then
-		Hide()
-		state.pips, state.built = {}, class .. count
+	if set and #state.pips == 0 then
+		state.parent, state.count = parent, count
 		for i = 1, count do
 			state.pips[i] = Widgets.ClassPip(parent, set, i, count)
 		end
 		state.row = BuildRow(set, count)
 	end
 	for _, p in ipairs(state.pips) do
-		p.frame:Show()
+		p.frame:SetShown(set ~= nil)
 	end
-	state.row:Show()
-	return true
+	if state.row then
+		state.row:SetShown(set ~= nil)
+	end
+	return set ~= nil
 end
 
 function Pips.Layout(cells, size)

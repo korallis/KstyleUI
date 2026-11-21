@@ -1,4 +1,4 @@
--- SlabCrown.lua: the Medallions crest's crown, one Widgets.ClassPip piece per point of the jewels' resource fanned out of the top of the rune ring (a rogue's daggers, a cat-form druid's claws with its mana as a thin line above them), dormant until each point ignites one; on while the unit frames' Class-themed pips setting is on, which it is by default and when Unit Frames is off.
+-- SlabCrown.lua: the Medallions crest's crown, one Widgets.ClassPip piece per combo point fanned out of the top of the rune ring (a rogue's daggers, a cat-form druid's claws with its mana as a thin line above them), dormant until each point ignites one; on while the unit frames' Class-themed pips setting is on, which it is by default and when Unit Frames is off.
 local _, ns = ...
 
 local K = KstyleUI
@@ -83,16 +83,10 @@ local function Build(hub, class, count)
 end
 
 local function Points(event)
-	local kind = state.shown and ns.SlabJewels.KINDS[state.kind]
-	if not kind then
+	if not state.shown then
 		return
 	end
-	local points
-	if state.kind == "combo" then
-		points = GetComboPoints and GetComboPoints("player", "target")
-	else
-		points = UnitPower and UnitPower("player", ns.SlabJewels.PowerType(kind.power))
-	end
+	local points = GetComboPoints and GetComboPoints("player", "target")
 	local was = state.seen and state.points or points
 	state.points, state.seen = points, true
 	local moving = event ~= nil and event ~= "PLAYER_TARGET_CHANGED" and Effects.Allows("flare")
@@ -103,8 +97,7 @@ local function Points(event)
 end
 
 local function OnPower(event, _, token)
-	local kind = ns.SlabJewels.KINDS[state.kind]
-	if kind and token == kind.token then
+	if token == "COMBO_POINTS" then
 		Points(event)
 	elseif token == "MANA" then
 		Mana()
@@ -125,8 +118,6 @@ local function Listen(class, kind)
 	end
 	if kind then
 		Events.RegisterUnit(OWNER, "UNIT_POWER_FREQUENT", OnPower, "player")
-	end
-	if kind == "combo" then
 		Events.Register(OWNER, "PLAYER_TARGET_CHANGED", Points)
 		Events.Register(OWNER, "COMBO_TARGET_CHANGED", Points)
 	end
