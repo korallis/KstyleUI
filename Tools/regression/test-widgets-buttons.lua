@@ -543,3 +543,20 @@ do
 	assert(W.SameColor(chrome.rim[5], rr, rg, rb, 1), "SetRimAccent(r, g, b) lifts a module's own accent")
 	assert(#env._errors == 0)
 end
+
+-- A paint that raises leaves no state behind: the next valid paint and rim still reach the edge.
+do
+	local _, K = W.New()
+	local c = K.Widgets.IconButton(K.Scale.Root(), {}).chrome
+	assert(not pcall(c.SetFill, c, "missing-test-color"))
+	c:SetFill("buttonFill")
+	c:SetRim(0.1, 0.2, 0.3, 1)
+	assert(W.SameRGB(c.rim[5], 0.1, 0.2, 0.3), "an icon rim repaints after one rejected fill token")
+	local slot = K.Widgets.Slot(K.Scale.Root(), {})
+	slot.usable, slot.opts.fill = true, "missing-test-color"
+	assert(not pcall(slot.Paint, slot))
+	slot.opts.fill = nil
+	slot:Paint()
+	slot.chrome:SetRim(0.1, 0.2, 0.3, 1)
+	assert(W.SameRGB(slot.chrome.rim[5], 0.1, 0.2, 0.3), "a lit slot's rim repaints after one rejected fill token")
+end
