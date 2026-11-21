@@ -269,37 +269,34 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 					assert(p == q or lhs.right <= second.left or second.right <= lhs.left or lhs.top <= second.bottom or second.top <= lhs.bottom, p .. " overlaps " .. q)
 				end
 			end
-			local function Clear(rects)
-				for _, element in ipairs(layouts.ELEMENTS) do
-					local key = element.key
-					if enabled[key] ~= false and places[key] and not (style == "orbs" and key == "unitframes.player") then
-						local w, h2 = layouts.StyleSize(style, k.Scale.Aspect(), key)
-						if not w then w, h2 = layouts.Footprint(preset, key, style, k.Scale.Aspect()) end
-						local styled = layouts.Aspect(k.Scale.Aspect(), style, preset, key) or layouts.Style(style, preset, key)
-						if styled and styled.width then w, h2 = styled.width, styled.height end
-						local left, bottom, right, top2 = layouts.Rect({ width = w, height = h2 }, places[key], r0:GetWidth(), r0:GetHeight())
-						for name, rect in pairs(rects) do
-							assert(rect.right <= left + 1 or right <= rect.left + 1 or rect.top <= bottom + 1 or top2 <= rect.bottom + 1,
-								string.format("%dx%d %s %s: %s overlaps %s; move its default place", screen[1], screen[2], style, layout, name, key))
-						end
+			M.Write(e, k, "damage2.shown", false)
+			assert(n.Threat.paired, "the threat card docks beside the damage card in Both")
+			mine["docked threat"] = assert(Geometry.Rect(n.Threat.holder, r0))
+			for _, element in ipairs(layouts.ELEMENTS) do
+				local key = element.key
+				if enabled[key] ~= false and places[key] and not (style == "orbs" and key == "unitframes.player") then
+					local w, h2 = layouts.StyleSize(style, k.Scale.Aspect(), key)
+					if not w then w, h2 = layouts.Footprint(preset, key, style, k.Scale.Aspect()) end
+					local styled = layouts.Aspect(k.Scale.Aspect(), style, preset, key) or layouts.Style(style, preset, key)
+					if styled and styled.width then w, h2 = styled.width, styled.height end
+					local left, bottom, right, top2 = layouts.Rect({ width = w, height = h2 }, places[key], r0:GetWidth(), r0:GetHeight())
+					for name, rect in pairs(mine) do
+						assert(rect.right <= left + 1 or right <= rect.left + 1 or rect.top <= bottom + 1 or top2 <= rect.bottom + 1,
+							string.format("%dx%d %s %s: %s overlaps %s; move its default place", screen[1], screen[2], style, layout, name, key))
 					end
 				end
-				for _, guide in ipairs({ true, false }) do
-					for _, card in pairs(layouts.Story(preset, r0:GetHeight(), guide, style, r0:GetWidth()) or {}) do
-						if type(card) == "table" and card.anchor and card.width > 0 and card.height > 0 then
-							local left, bottom, right, top2 = layouts.Rect(card, card, r0:GetWidth(), r0:GetHeight())
-							for name, rect in pairs(rects) do
-								assert(rect.right <= left + 1 or right <= rect.left + 1 or rect.top <= bottom + 1 or top2 <= rect.bottom + 1,
-									string.format("%dx%d %s %s: %s overlaps the story rail's %s; move its default place", screen[1], screen[2], style, layout, name, card.key))
-							end
+			end
+			for _, guide in ipairs({ true, false }) do
+				for _, card in pairs(layouts.Story(preset, r0:GetHeight(), guide, style, r0:GetWidth()) or {}) do
+					if type(card) == "table" and card.anchor and card.width > 0 and card.height > 0 then
+						local left, bottom, right, top2 = layouts.Rect(card, card, r0:GetWidth(), r0:GetHeight())
+						for name, rect in pairs(mine) do
+							assert(rect.right <= left + 1 or right <= rect.left + 1 or rect.top <= bottom + 1 or top2 <= rect.bottom + 1,
+								string.format("%dx%d %s %s: %s overlaps the story rail's %s; move its default place", screen[1], screen[2], style, layout, name, card.key))
 						end
 					end
 				end
 			end
-			Clear(mine)
-			M.Write(e, k, "damage2.shown", false)
-			assert(n.Threat.paired, "the threat card docks beside the damage card in Both")
-			Clear({ ["docked threat"] = assert(Geometry.Rect(n.Threat.holder, r0)) })
 			assert(#e._errors == 0 and k.ErrorCount() == 0, tostring(e._errors[1]))
 		end
 	end

@@ -101,7 +101,7 @@ for line in scene.get("log", []):
 PY
 verdict() {
 	local status=0
-	"$lua" Tools/render/guard.lua "$scene" "$raw" "$guard" "$@" || status=$?
+	"$lua" Tools/render/guard.lua "$scene${RENDER_SCREEN:+@$RENDER_SCREEN}" "$raw" "$guard" "$@" || status=$?
 	if [ "$guard" = strict ]; then
 		python3 - "$json" <<'PY' || status=$?
 import json, sys

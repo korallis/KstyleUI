@@ -368,6 +368,17 @@ end
 assert(#allowed == 2 and owners.R4b == "outside" and owners.S3 == "clipped", "the R4b line covers the column and the S3 glob line covers the cut cast label")
 assert(#fresh == 10, "the displaced gem, the ellipsis, the tab card, the sub-panel spill, the big card, the backdrop spill, the clipped wide label and the three overlaps stay fresh (=Spills past is not the whole subject): " .. #fresh)
 assert(#stale == 1 and stale[1].match == "Gone", "a line naming this scene that matched nothing is stale; a glob line is not judged by one scene")
+local _, _, again = Guard.Sort(findings, allow, "gallery_window@2560x1440")
+assert(#again == 1 and again[1].match == "Gone", "a bare scene line reads the scene name without its screen")
+
+-- A line naming a screen covers that screen alone, and is not stale at the scene's other settings.
+handle = assert(io.open(path, "wb"))
+handle:write("R4b\tgallery_window@2560x1440\toutside\tGuardWindow.column\tone screen\n")
+handle:close()
+local sized = Guard.LoadAllow(path)
+local _, at2560, stale2560 = Guard.Sort(findings, sized, "gallery_window@2560x1440")
+local _, at1080, stale1080 = Guard.Sort(findings, sized, "gallery_window@1920x1080")
+assert(#at2560 == 1 and #at1080 == 0 and #stale2560 == 0 and #stale1080 == 0, "a scene@screen line covers its screen only and is never stale")
 
 -- A glob line is judged by the run: stale when it matched a scene of the run and covered nothing in any of them.
 local runs = { { scene = "gallery_window", findings = findings }, { scene = "gallery_other", findings = {} } }
