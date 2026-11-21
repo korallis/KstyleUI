@@ -1,4 +1,4 @@
--- test-actionbars-medallions-fx.lua: the Medallions action effects: a slot's ready flash under Medallions is the effects layer's steel flash, it yields to a proc on that slot and a proc ends it, Calm keeps it and Off drops it, and Frames keeps the old flash; the hub's ring brightens through a UnitPowerPercent curve while the resource is capped, tracks the class's secondary resource for a mana user, breathes only at Full and listens to power events only under Medallions; a proc and a level-up add a 3D model at the hub inside the three-model cap while the 2D burst still plays, and the hub's ambient sheen and particles yield while an effect holds it; no effect sets an OnUpdate.
+-- test-actionbars-medallions-fx.lua: the Medallions action effects: a slot's ready flash under Medallions is the effects layer's steel flash, it yields to a proc on that slot and a proc ends it, Calm keeps it and Off drops it, and Frames keeps the old flash; the hub's ring brightens through a UnitPowerPercent curve while the resource is capped, tracks the class's secondary resource for a mana user unless the crest jewels glow at its maximum, breathes only at Full and listens to power events only under Medallions; a proc and a level-up add a 3D model at the hub inside the three-model cap while the 2D burst still plays, and the hub's ambient sheen and particles yield while an effect holds it; no effect sets an OnUpdate.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local FX = dofile("Tools/regression/effects_env.lua")
@@ -114,10 +114,13 @@ do
 end
 
 do
-	local env, K = New("PALADIN")
+	local env, K, ns = New("PALADIN")
 	env._powerType, env._powerToken = 0, "MANA"
 	Medallions(K, env)
-	assert(env._askedPower == 9, "a paladin's ring follows holy power, not mana")
+	assert(ns.SlabEffects.PowerType() == nil, "a paladin's crest jewels glow at full holy power, so the cap ring leaves it to them")
+	K.Options.Write("ActionBars", "crestJewelGlow", false)
+	env.RunTimers()
+	assert(env._askedPower == 9, "with Glow at max off, a paladin's ring follows holy power, not mana")
 	env._powerType, env._powerToken = 0, "MANA"
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
@@ -160,7 +163,10 @@ do
 	local env, K, ns = New("WARLOCK")
 	env._powerType, env._powerToken = 0, "MANA"
 	Medallions(K, env)
-	assert(env._askedPower == 7, "Lee's warlock: the hub ring follows soul shards, not mana")
+	assert(ns.SlabEffects.PowerType() == nil, "Lee's warlock: the crest jewels glow at full soul shards, so the cap ring leaves them to the jewels")
+	K.Options.Write("ActionBars", "crestJewels", false)
+	env.RunTimers()
+	assert(env._askedPower == 7, "Lee's warlock without the jewels: the hub ring follows soul shards, not mana")
 	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
 	local b = AB.Button(ns, "bar1", 1)
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
