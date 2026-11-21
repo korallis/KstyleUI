@@ -61,7 +61,7 @@ local function fire(env, button)
 	for _, w in ipairs(env._wraps) do if w.frame == button then wrap = w end end
 	local handle = setmetatable({ GetFrameRef = function(_, label) return env._refs[button][label] end }, { __index = function(_, method) return function(_, ...) return button[method](button, ...) end end })
 	local body = assert(loadstring("local self, button, down = ...\n" .. wrap.pre))
-	setfenv(body, { strsub = string.sub, tonumber = tonumber })
+	setfenv(body, { strsub = string.sub, gsub = string.gsub, tonumber = tonumber })
 	local script = button:GetScript("PreClick")
 	if script then script(button, "LeftButton", false) end
 	return body(handle, "LeftButton", false) ~= false
@@ -255,6 +255,98 @@ do
 	Q.Write(env2, K2, "quickFire", true)
 	assert(env2.KstyleUI_QuickFirePlace == nil and ns2.Get("quickFire"), "without the secure wrapper nothing is built")
 	clean(env2, K2)
+end
+
+-- Quick fire owns only what it placed (review of 369e1fee): Undo before any Place leaves another player's markers alone, a full set and an unknown answer go on in order instead of starting again at the star, and in combat Undo walks back every placement after a wrap.
+do
+	local env, K = boot()
+	env._markers[8], env._markers[4] = true, true
+	Q.Write(env, K, "quickFire", true)
+	local place, undo, clear = env.KstyleUI_QuickFirePlace, env.KstyleUI_QuickFireUndo, env.KstyleUI_QuickFireClear
+	assert(not fire(env, undo), "no Place yet, so nothing of ours to undo: " .. tostring(undo:GetAttribute("macrotext")))
+	for i = 1, 8 do env._markers[i] = true end
+	local marks = {}
+	for _ = 1, 2 do
+		fire(env, place)
+		marks[#marks + 1] = place:GetAttribute("macrotext")
+	end
+	env._markers, env.IsRaidMarkerActive = {}, nil
+	for _ = 1, 2 do
+		fire(env, place)
+		marks[#marks + 1] = place:GetAttribute("macrotext")
+	end
+	assert(table.concat(marks, ",") == "/wm [@cursor] 1,/wm [@cursor] 7,/wm [@cursor] 2,/wm [@cursor] 3", "a full set and an unknown answer go on in order: " .. table.concat(marks, ","))
+	fire(env, clear)
+	env.SetCombat(true)
+	for _ = 1, 9 do fire(env, place) end
+	local undone = {}
+	while fire(env, undo) and #undone < 10 do undone[#undone + 1] = undo:GetAttribute("macrotext"):sub(-1) end
+	assert(table.concat(undone) == "85632714", "in combat Undo walks back all eight after a wrap: " .. table.concat(undone))
+	clean(env, K)
+end
+
+-- Marker size (review of 369e1fee): the markers are as tall as the text buttons whatever the panels show, at login and after a switch.
+do
+	local env, K = boot({ enabled = true, raidTools = "always", raidToolsShow = "markers" })
+	local holder = env.KstyleUI_RaidTools
+	local function same(what)
+		local want = holder.buttons[1]:GetHeight()
+		for i = 4, 12 do assert(holder.buttons[i]:GetHeight() == want, string.format("%s: button %d is %s tall, not %s", what, i, holder.buttons[i]:GetHeight(), want)) end
+	end
+	same("markers only at login")
+	for _, show in ipairs({ "all", "two", "markers", "group", "two" }) do
+		Q.Write(env, K, "raidToolsShow", show)
+		same(show)
+	end
+	Q.Write(env, K, "raidToolsLayout", "column")
+	same("two in a column")
+	clean(env, K)
+end
+
+-- The global cooldown circle's hot path (review of 369e1fee): an event about a spell with no start recovery category reads and sets nothing; a start, a restart, a whole update, a secret payload and the end still count.
+do
+	local env, K, ns = boot()
+	Q.Write(env, K, "gcdRing", true)
+	local gcd = select(4, ns.AidFrames())
+	local function sets()
+		local n = 0
+		for _, call in ipairs(gcd._calls) do if call.method == "SetCooldownFromDurationObject" then n = n + 1 end end
+		return n
+	end
+	env._gcd = true
+	env.FireEvent("SPELL_UPDATE_COOLDOWN", 100, nil, nil, 133)
+	assert(gcd:IsShown() and sets() == 1, "a global cooldown starts it")
+	local reads = #Q.Calls(env, "GetSpellCooldown")
+	for _ = 1, 10 do env.FireEvent("SPELL_UPDATE_COOLDOWN", 12345, nil, nil, nil) end
+	assert(#Q.Calls(env, "GetSpellCooldown") == reads and sets() == 1, string.format("ten unrelated events: %d reads, %d sets", #Q.Calls(env, "GetSpellCooldown") - reads, sets() - 1))
+	env.FireEvent("SPELL_UPDATE_COOLDOWN", 100, nil, nil, 133)
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	env.FireEvent("SPELL_UPDATE_COOLDOWN", env.Secret(12345), nil, nil, nil)
+	assert(sets() == 4 and gcd:IsShown(), "a restart, a whole update and a secret payload set it again: " .. sets())
+	env._gcd = "done"
+	env.FireEvent("SPELL_UPDATE_COOLDOWN", 100, nil, nil, 133)
+	assert(not gcd:IsShown(), "the end hides it")
+	clean(env, K)
+end
+
+-- Circle spark and the help texts (review of 369e1fee): with only the global cooldown circle on, the spark row is usable and names both circles; Show raid tools says Always shows them to everyone; the README's size and Shifter claims match the code and the game's source.
+do
+	local env, K, ns = boot()
+	Q.Write(env, K, "gcdRing", true)
+	local gcd = select(4, ns.AidFrames())
+	local rows = {}
+	for _, row in ipairs(ns.Schema()) do if row.key then rows[row.key] = row end end
+	assert(not rows.castSpark.disableWhen(K.Store.Module("QoL")), "the spark row is usable with only the global cooldown circle on")
+	assert(rows.castSpark.help:find("global cooldown", 1, true), "the spark help names both circles: " .. rows.castSpark.help)
+	Q.Write(env, K, "castSpark", false)
+	assert(last(gcd, "SetDrawEdge")[1] == false, "and switches its edge")
+	assert(rows.raidTools.help:find("Always", 1, true), "Show raid tools says Always shows them to everyone: " .. rows.raidTools.help)
+	local file = assert(io.open("KstyleUI_QoL/README.md", "rb"))
+	local readme = file:read("*a")
+	file:close()
+	assert(not readme:find("a quarter smaller than the cast circle", 1, true), "the global cooldown circle is one sixth smaller than the cast circle (40 against 48)")
+	assert(not readme:find("handles only to explicitly protected frames", 1, true), "out of combat a snippet gets a handle to any frame (RestrictedInfrastructure.lua)")
+	clean(env, K)
 end
 
 -- Auto logging in raids and dungeons together: both start the log, a battleground does not.
