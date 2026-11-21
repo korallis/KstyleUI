@@ -21,7 +21,7 @@ local function same(a, b, what)
 end
 
 -- A v0.2.8-shaped profile: the edit box keeps the message font and size, as today.
-local env, K = boot({ enabled = true, fontSize = 14 })
+local env, K, ns = boot({ enabled = true, fontSize = 14 })
 local s, chat = K.Store.Module("Chat"), env.ChatFrame1
 assert(s.editFont == "messages" and s.editFontSize == -1, "the new options default to following the messages")
 same(chat.editBox, chat, "the edit box follows the message font")
@@ -61,5 +61,14 @@ same(chat.editBox, chat, "the edit box follows the messages again")
 same(chat.editBox.header, chat, "the header follows the messages again")
 preview:Refresh()
 assert(not preview.edit:IsShown() and not preview.edit.text:IsShown(), "the preview keeps today's look")
+-- The message font and size rows no longer say they set the edit box outright (PR #657 review).
+local rows = 0
+for _, row in ipairs(ns.Schema()) do
+	if row.key == "font" or row.key == "fontSize" then
+		rows = rows + 1
+		assert(row.help:find("unless it has its own", 1, true), row.key .. "'s help claims the edit box outright: " .. row.help)
+	end
+end
+assert(rows == 2, "both message rows checked")
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("test-chat-parity-r3: ok")

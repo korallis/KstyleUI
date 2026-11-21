@@ -91,5 +91,63 @@ aura()
 assert(not frame:IsShown(), "and an aura change does not bring it back")
 preview:Refresh()
 assert(not preview.reminder:IsShown(), "the preview drops the card")
+
+-- The PR #657 review's probes. Unchanged aura events repaint nothing.
+write("reminder.enabled", true)
+frame = card()
+assert(frame:IsShown() and frame.text:GetText() == "Missing: Arcane Intellect", "on again, the card names Arcane Intellect")
+local setText, writes = frame.text.SetText, 0
+frame.text.SetText = function(self, ...) writes = writes + 1; return setText(self, ...) end
+for _ = 1, 10 do aura() end
+frame.text.SetText = nil
+assert(writes == 0, "ten unchanged aura events repaint nothing, got " .. writes)
+
+-- A restriction change alone hides and restores the card.
+env._aurasSecret = true
+env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED"); env.RunTimers()
+assert(not frame:IsShown(), "a restriction alone hides the card")
+env._aurasSecret = false
+env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED"); env.RunTimers()
+assert(frame:IsShown(), "lifting it brings the card back")
+
+-- Spells unlearned while the reminder is off are not remembered when it comes back on.
+write("reminder.enabled", false)
+env._known = {}
+env.FireEvent("SPELLS_CHANGED"); env.RunTimers()
+write("reminder.enabled", true)
+assert(not frame:IsShown(), "no known buff after switching back on, no reminder")
+env._known = { [1459] = true, [168] = true }
+env.FireEvent("SPELLS_CHANGED"); env.RunTimers()
+assert(frame:IsShown(), "learned again, it shows")
+
+-- An equivalent buff whose name cannot be read never reports the buff missing.
+NAMES[23028] = nil
+env._mine = { ["Arcane Brilliance"] = true, ["Frost Armor"] = true }
+env.FireEvent("SPELLS_CHANGED"); env.RunTimers()
+assert(not frame:IsShown(), "Arcane Brilliance unreadable: Arcane Intellect is not called missing, got " .. tostring(frame.text:GetText()))
+NAMES[23028] = "Arcane Brilliance"
+env._mine = {}
+
+-- Every hunter aspect in the installed client's tables counts, Aspect of the Falcon (469145) included.
+local ASPECTS = { [13165] = "Aspect of the Hawk", [13163] = "Aspect of the Monkey", [5118] = "Aspect of the Cheetah", [13159] = "Aspect of the Pack",
+	[20043] = "Aspect of the Wild", [13161] = "Aspect of the Beast", [415423] = "Aspect of the Viper", [469145] = "Aspect of the Falcon" }
+for id, name in pairs(ASPECTS) do NAMES[id] = name end
+env.UnitClass = function() return "Hunter", "HUNTER" end
+env._known = { [13165] = true, [469145] = true }
+env._mine = { ["Aspect of the Falcon"] = true }
+env.FireEvent("SPELLS_CHANGED"); env.RunTimers()
+assert(not frame:IsShown(), "a hunter in Aspect of the Falcon is not told to cast Hawk")
+env._mine = {}
+aura()
+assert(frame:IsShown() and frame.text:GetText() == "Missing: Aspect of the Hawk", "without an aspect the card names Hawk")
+
+-- The card's icon takes the Medallions socket rim with Match Medallions sockets, as its sibling aura tiles do.
+K.Options.Write("HudStyle", "style", "medallions"); env.RunTimers()
+assert(A.W.SameColor(frame.tile.chrome.rim[5], K.Tokens.Color("medSocketRim")), "Medallions: the dark metal rim")
+K.Options.Write("Auras", "medallionsIcons", false); env.RunTimers()
+assert(A.W.SameColor(frame.tile.chrome.rim[5], K.Tokens.Color("edgeInner")), "the setting off restores the plain rim")
+K.Options.Write("Auras", "medallionsIcons", true)
+K.Options.Write("HudStyle", "style", "frames"); env.RunTimers()
+assert(A.W.SameColor(frame.tile.chrome.rim[5], K.Tokens.Color("edgeInner")), "Frames keeps the plain rim")
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("test-auras-reminder: ok")

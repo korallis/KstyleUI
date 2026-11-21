@@ -12,6 +12,8 @@ local env, K, ns = B.New({ saved = saved, bags = bags, setup = function(e)
 	e.IsAltKeyDown = function() return e._alt end
 	e.LOCKED, e.ITEM_DISENCHANT_NOT_DISENCHANTABLE = "Locked", "Cannot be disenchanted"
 	e.C_SpellBook = { IsSpellKnown = function(id) return e._known[id] == true end }
+	e.C_Spell = e.C_Spell or {}
+	e.C_Spell.GetSpellName = function(id) return ({ [DISENCHANT] = "Disenchant", [PICK_LOCK] = "Pick Lock" })[id] end
 	e.C_TooltipInfo = { GetBagItem = function(bag, slot) return { lines = { { leftText = e._tips[bag .. ":" .. slot] } } } end }
 	rawset(e.GameTooltip, "SetBagItem", function() end)
 end })
@@ -23,7 +25,14 @@ local function slot(id) return ns.Inventory.Slot(0, id) end
 local function enter(id) local s = slot(id); s.button:GetScript("OnEnter")(s.button); return s end
 local function leave(id) local s = slot(id); s.button:GetScript("OnLeave")(s.button) end
 local function alt(down) env._alt = down; env.FireEvent("MODIFIER_STATE_CHANGED", "LALT", down and 1 or 0) end
-local function cast() local b = Quick.button; return b and b:IsShown() and b:GetAttribute("spell2") end
+-- What an Alt-right-click on the button reads: SecureButton_GetModifiedAttribute's "alt-" prefix and "2" suffix lookup (SecureTemplates.lua:6-30, 119-126 at 9dc84f0).
+local function dispatch(name)
+	for _, key in ipairs({ "alt-" .. name .. "2", "*" .. name .. "2", "alt-" .. name .. "*", "*" .. name .. "*", name }) do
+		local value = Quick.button:GetAttribute(key)
+		if value ~= nil then return value end
+	end
+end
+local function cast() local b = Quick.button; return b and b:IsShown() and dispatch("type") == "spell" and dispatch("spell") end
 
 -- A v0.2.8 profile: off, and Alt over a weapon makes no button.
 assert(K.Store.Module("Bags").quickActions == false and not Quick.on, "quick actions start off")
@@ -36,14 +45,14 @@ write("quickActions", true)
 enter(1)
 assert(not cast(), "no Alt, no button")
 alt(true)
-assert(cast() == DISENCHANT and Quick.button:GetAttribute("type2") == "spell", "Alt over a weapon offers Disenchant")
-assert(Quick.button:GetAttribute("target-bag") == 0 and Quick.button:GetAttribute("target-slot") == 1, "aimed at that slot")
+assert(cast() == DISENCHANT, "Alt-right-click over a weapon casts Disenchant")
+assert(dispatch("target-bag") == 0 and dispatch("target-slot") == 1, "aimed at that slot")
 alt(false)
 assert(not cast(), "releasing Alt removes it")
 
 -- A locked box offers Pick Lock; a potion and an item that cannot be disenchanted offer nothing.
 leave(1); alt(true); enter(3)
-assert(cast() == PICK_LOCK and Quick.button:GetAttribute("target-slot") == 3, "a locked box offers Pick Lock")
+assert(cast() == PICK_LOCK and dispatch("target-slot") == 3, "a locked box offers Pick Lock")
 leave(3); enter(2)
 assert(not cast(), "a potion offers nothing")
 leave(2); enter(4)
@@ -92,5 +101,44 @@ write("quickActions", false)
 assert(not cast() and not Quick.on, "off removes the button")
 alt(false); alt(true)
 assert(not cast(), "and Alt brings nothing")
+
+-- The PR #657 review's probes: the item under the button changes while Alt is held, and an unreadable tooltip.
+write("quickActions", true)
+enter(1)
+assert(cast() == DISENCHANT, "back over the weapon with Alt held")
+local function swap(name)
+	bags[0].items[1] = Item(name)
+	env.FireEvent("BAG_UPDATE", 0); env.FireEvent("BAG_UPDATE_DELAYED"); env.RunTimers()
+end
+swap("potion")
+assert(not cast(), "a potion now in the slot under the button offers nothing")
+swap("sword")
+assert(cast() == DISENCHANT, "the weapon back in the slot offers Disenchant again")
+leave(1)
+local tooltip = env.C_TooltipInfo.GetBagItem
+env.C_TooltipInfo.GetBagItem = function() return nil end
+assert(Quick.Spell(0, 1) == nil and Quick.Spell(0, 4) == nil, "an unreadable tooltip offers nothing")
+env.C_TooltipInfo.GetBagItem = function() return { lines = { { leftText = env.Secret("Cannot be disenchanted") } } } end
+assert(Quick.Spell(0, 4) == nil, "a secret tooltip line offers nothing")
+env.C_TooltipInfo.GetBagItem = tooltip
+assert(Quick.Spell(0, 1) == DISENCHANT, "a readable tooltip offers it again")
+
+-- The options preview shows the hint on its sample equipment, with no live cast button.
+alt(false)
+local hints = {}
+rawset(env.GameTooltip, "AddLine", function(_, text) hints[#hints + 1] = text end)
+local preview = K.Options.Preview("Bags")(env.CreateFrame("Frame", nil, K.Scale.Root()))
+local function hover()
+	hints = {}
+	for _, s in ipairs(preview.slots) do
+		if s.button:IsShown() then s.button:GetScript("OnEnter")(s.button); s.button:GetScript("OnLeave")(s.button) end
+	end
+	return hints
+end
+assert(hover()[1] == "Alt-right-click: Disenchant", "the preview's sample equipment shows the hint, got " .. tostring(hints[1]))
+assert(not cast(), "and no cast button")
+write("quickActions", false)
+preview:Refresh()
+assert(not hover()[1], "off, the preview shows no hint")
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("test-bags-quick: ok")
