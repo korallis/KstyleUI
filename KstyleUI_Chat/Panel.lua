@@ -237,10 +237,6 @@ function Panel.Glass()
 	return state.glass
 end
 
-function Panel.Strip()
-	return state.strip
-end
-
 function Panel.CopyButton()
 	return state.glass and state.glass.copy
 end
@@ -533,7 +529,7 @@ local function PlaceGlass(g)
 	glass.plus:SetPoint("CENTER", host, "TOPRIGHT", -Widgets.Snap(glass.plus, BUTTON_INSET + band), Widgets.Snap(glass.plus, y))
 	glass.copy:ClearAllPoints()
 	glass.copy:SetPoint("CENTER", host, "TOPRIGHT", -Widgets.Snap(glass.copy, BUTTON_INSET + BUTTON_SIZE + Tokens.Size("gapTiny") + band), Widgets.Snap(glass.copy, y))
-	local strip = state.strip
+	local strip = Panel.strip
 	if strip then
 		local edge = state.settings.sideRight and "RIGHT" or "LEFT"
 		strip:ClearAllPoints()
@@ -572,7 +568,7 @@ local kept, dragged = {}, {}
 
 local function SideFrames()
 	local list = {}
-	for _, frame in pairs({ state.chat and state.chat.buttonFrame, ChatFrameMenuButton, ChatFrameChannelButton, ChatFrameToggleVoiceDeafenButton, ChatFrameToggleVoiceMuteButton, QuickJoinToastButton, ChatAlertFrame, state.strip }) do
+	for _, frame in pairs({ state.chat and state.chat.buttonFrame, ChatFrameMenuButton, ChatFrameChannelButton, ChatFrameToggleVoiceDeafenButton, ChatFrameToggleVoiceMuteButton, QuickJoinToastButton, ChatAlertFrame, Panel.strip }) do
 		if type(frame) == "table" and type(frame.SetAlpha) == "function" then
 			list[#list + 1] = frame
 		end
@@ -642,8 +638,7 @@ local function Spot(icon, column, spots)
 	return true
 end
 
-local function Scrolls(column, s, scale)
-	local on = s.buttons == true and s.sideScroll == true
+local function Scrolls(column, on, scale)
 	for _, frame in ipairs(Windows.List()) do
 		local button = frame.ScrollToBottomButton
 		if type(button) == "table" and on and frame.isDocked then
@@ -682,7 +677,7 @@ local function Stack(column, s, spots, scale)
 		icon:SetPoint("TOP", above, above == column and "TOP" or "BOTTOM", 0, above == column and 0 or -gap)
 		above = icon
 	end
-	local below = Scrolls(column, s, scale) or column
+	local below = Scrolls(column, s.sideScroll == true, scale) or column
 	for i = #bottom, 1, -1 do
 		bottom[i]:ClearAllPoints()
 		bottom[i]:SetPoint("BOTTOM", below, below == column and "BOTTOM" or "TOP", 0, below == column and 0 or gap)
@@ -908,12 +903,12 @@ local function Paint(settings)
 	glass.chrome:SetFillRGBA(r, g, b, settings.panelOpacity)
 	glass.chrome:SetShadow(settings.shadow == true)
 	glass.chrome:SetShown(not bare)
-	local strip, own = state.strip, settings.buttons == true and settings.sideStyle == "glass"
+	local strip, own = Panel.strip, settings.buttons == true and settings.sideStyle == "glass"
 	if not strip and own then
 		strip = Widgets.Panel(state.holder, { strata = STRATA, shape = "window" })
 		strip:SetFixedFrameStrata(true)
 		strip:EnableMouse(true)
-		state.strip = strip
+		Panel.strip = strip
 	end
 	if strip then
 		strip.chrome:SetSteelFill(CHAT_FILL)

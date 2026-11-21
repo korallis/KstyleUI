@@ -286,8 +286,6 @@ function ns.Schema()
 		{ type = "slider", key = "sideSpacing", label = L["Chat button spacing"], help = L["The gap between stacked chat buttons, in units."], min = 0, max = 30, step = 1, showWhen = Sided },
 		{ type = "toggle", key = "sideFree", label = L["Move chat buttons freely"], help = L["Shift-drag a chat button anywhere, out of combat. Off returns every button to the column."], showWhen = Sided },
 		{ type = "toggle", key = "sideScroll", label = L["Scroll button with the chat buttons"], help = L["Moves the jump-to-bottom button from the card's corner to the foot of the chat buttons."], showWhen = Sided },
-	})
-	Append(schema, {
 		{ type = "toggle", key = "inputOnTop", label = L["Input on top"], help = L["Place the typing box above chat messages, below the tabs."] },
 		{ type = "slider", key = "editHeight", label = L["Edit box tile height"], help = L["The height of the tile drawn behind the text you type, in units."], min = 16, max = 30, step = 1 },
 		{ type = "toggle", key = "lockSize", label = L["Lock chat size"], help = L["Hides the size grip on docked chat windows, so the chat resizes only in Layout Mode."] },

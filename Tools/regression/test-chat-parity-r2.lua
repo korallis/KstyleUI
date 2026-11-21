@@ -43,11 +43,9 @@ local function blizzardStack(env, gap, scale)
 	local column = env.ChatFrame1.buttonFrame
 	local p, rel, relp, x, y = point(env.ChatFrameChannelButton)
 	assert(p == "TOP" and rel == column and relp == "TOP" and x == 0 and y == 0, "channels at the column's top")
-	p, rel, relp = point(env.ChatFrameToggleVoiceDeafenButton)
-	y = select(5, point(env.ChatFrameToggleVoiceDeafenButton))
+	p, rel, relp, x, y = point(env.ChatFrameToggleVoiceDeafenButton)
 	assert(p == "TOP" and rel == env.ChatFrameChannelButton and relp == "BOTTOM" and near(y, -gap / scale), "deafen under channels, got " .. tostring(y))
-	p, rel = point(env.ChatFrameToggleVoiceMuteButton)
-	y = select(5, point(env.ChatFrameToggleVoiceMuteButton))
+	p, rel, relp, x, y = point(env.ChatFrameToggleVoiceMuteButton)
 	assert(p == "TOP" and rel == env.ChatFrameToggleVoiceDeafenButton and near(y, -gap / scale), "mute under deafen")
 	p, rel, relp, x, y = point(env.ChatFrameMenuButton)
 	assert(p == "BOTTOM" and rel == column and relp == "BOTTOM" and x == 0 and y == 0, "the menu at the column's foot")
@@ -84,7 +82,7 @@ for _, size in ipairs(SIZES) do
 		for _, style in ipairs({ "glass", "bare" }) do
 			write(env, K, "sideStyle", style)
 			local where = size[1] .. "x" .. size[2] .. " " .. style .. (right and " right" or " left")
-			local strip = assert(ns.Panel.Strip(), "the strip glass is made on first use")
+			local strip = assert(ns.Panel.strip, "the strip glass is made on first use")
 			assert(strip:IsShown() == (style == "glass"), where .. ": the strip shows only for its own glass")
 			local card, h, msgs, column = rect(glass), rect(holder), rect(chat), rect(chat.buttonFrame)
 			assert(right and card.right < h.right - 8 or not right and card.left > h.left + 8, where .. ": the card leaves room beside it")
@@ -107,16 +105,16 @@ for _, size in ipairs(SIZES) do
 	write(env, K, "sideGap", 20)
 	write(env, K, "sideStyle", "glass")
 	write(env, K, "sideRight", false)
-	local wide = rect(glass).left - rect(ns.Panel.Strip()).right
+	local wide = rect(glass).left - rect(ns.Panel.strip).right
 	write(env, K, "sideGap", 0)
-	assert(near(rect(glass).left, rect(ns.Panel.Strip()).right) and wide > 19, "the gap slider moves the card away from the strip")
+	assert(near(rect(glass).left, rect(ns.Panel.strip).right) and wide > 19, "the gap slider moves the card away from the strip")
 	write(env, K, "sideStyle", "card")
-	assert(not ns.Panel.Strip():IsShown(), "Card hides the strip")
+	assert(not ns.Panel.strip:IsShown(), "Card hides the strip")
 	assert(near(rect(glass).left, rect(holder).left) and near(rect(chat).left, before.left), "the card and the messages come back")
 	write(env, K, "tabsAbove", true)
 	for _, style in ipairs({ "card", "glass" }) do
 		write(env, K, "sideStyle", style)
-		local edge = rect(style == "glass" and ns.Panel.Strip() or glass).top
+		local edge = rect(style == "glass" and ns.Panel.strip or glass).top
 		assert(rect(env.QuickJoinToastButton).top <= edge + 0.01, size[1] .. "x" .. size[2] .. " " .. style .. ": the friends button stays on the glass under the tabs")
 	end
 	write(env, K, "sideStyle", "card")
@@ -128,7 +126,7 @@ end
 do
 	local env, K, ns = boot()
 	write(env, K, "sideStyle", "glass")
-	local strip = ns.Panel.Strip()
+	local strip = ns.Panel.strip
 	write(env, K, "framing", "bare")
 	assert(not strip:IsShown(), "bare text keeps no strip glass")
 	write(env, K, "framing", "card")

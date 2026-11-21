@@ -85,17 +85,13 @@ function Preview.Build(...)
 				for _ = 1, icons[id] ~= false and (id == "voice" and 2 or 1) or 0 do list[#list + 1] = id end
 			end
 			if settings.sideScroll == true then table.insert(bottom, "scroll") end
-			for i, kind in ipairs(top) do
-				n = n + 1
-				local tile = Tile(self, n, kind, scale)
-				tile:ClearAllPoints()
-				Widgets.Point(tile, "CENTER", self.glass, "TOP" .. edge, x, -(from + (i - 0.5) * pitch))
-			end
-			for i, kind in ipairs(bottom) do
-				n = n + 1
-				local tile = Tile(self, n, kind, scale)
-				tile:ClearAllPoints()
-				Widgets.Point(tile, "CENTER", self.glass, "BOTTOM" .. edge, x, foot + (#bottom - i + 0.5) * pitch)
+			for side, list in ipairs({ top, bottom }) do
+				for i, kind in ipairs(list) do
+					n = n + 1
+					local tile = Tile(self, n, kind, scale)
+					tile:ClearAllPoints()
+					Widgets.Point(tile, "CENTER", self.glass, (side == 1 and "TOP" or "BOTTOM") .. edge, x, side == 1 and -(from + (i - 0.5) * pitch) or foot + (#list - i + 0.5) * pitch)
+				end
 			end
 		end
 		for i = n + 1, #self.icons do self.icons[i]:Hide() end
