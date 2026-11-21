@@ -120,16 +120,19 @@ do
 	env.RunTimers()
 	local f = frame(ns, "party1")
 	local level = f.text:GetFrameLevel()
+	local function textLevel() return f.name:GetParent():GetFrameLevel() end
 	write(env, K, "text.above", true)
-	assert(f.text:GetFrameLevel() > f.auras:GetFrameLevel() + 16, "names sit over the debuff icons and their counts")
-	assert(not f.indicators or f.text:GetFrameLevel() > f.indicators:GetFrameLevel() + 16, "and over the indicators")
+	assert(textLevel() > f.auras:GetFrameLevel() + 16, "names sit over the debuff icons and their counts")
+	assert(f.healthText:GetParent() == f.name:GetParent(), "with the health text")
+	assert(not f.indicators or textLevel() > f.indicators:GetFrameLevel() + 16, "and over the indicators")
+	assert(f.role:GetParent():GetFrameLevel() == level and f.badge:GetParent():GetFrameLevel() == level, "role, leader and marker icons and the portrait badge keep their level")
 	write(env, K, "text.above", false)
-	assert(f.text:GetFrameLevel() == level, "off restores the level")
+	assert(textLevel() == level and f.name:GetParent() == f.text, "off restores the level")
 	env.SetCombat(true)
 	write(env, K, "text.above", true)
 	env.SetCombat(false)
 	env.RunTimers()
-	assert(f.text:GetFrameLevel() > level and #env._blocked == 0, "switched on in combat, it applies when combat ends")
+	assert(textLevel() > level and #env._blocked == 0, "switched on in combat, it applies when combat ends")
 	write(env, K, "text.above", false)
 	noErrors(env, K)
 end
@@ -167,9 +170,31 @@ do
 	env.RunTimers()
 	local f = frame(ns, "raid1")
 	write(env, K, "auras.filter", "IMPORTANT")
-	for _, key in ipairs({ "boss", "important", "dispels", "debuffs" }) do
-		assert(f.auras._groups[key].candidateFilters.isPriorityAura == true, key .. " shows only important debuffs")
+	-- Forever's candidate test (Blizzard_AuraContainerUtil.lua:89) for the fields the lanes set; the engine registers
+	-- each enabled group on its own (Blizzard_AuraContainerGroups.lua:124), so overlapping lanes show an aura twice.
+	local function passes(aura, c)
+		if c.includeDispelTypes and not c.includeDispelTypes[aura.dispelName] then return false end
+		for _, key in ipairs({ "processedAuraType", "isBossAura", "isPriorityAura" }) do
+			if c[key] ~= nil and aura[key] ~= c[key] then return false end
+		end
+		return true
 	end
+	local function lanes(groups, aura)
+		local hit = {}
+		for _, key in ipairs({ "boss", "important", "dispels", "debuffs" }) do
+			local g = groups[key]
+			if g and g.enabled ~= false and passes(aura, g.candidateFilters or {}) then hit[#hit + 1] = key end
+		end
+		return table.concat(hit, ",")
+	end
+	local groups = f.auras._groups
+	local priority = { isBossAura = false, isPriorityAura = true, processedAuraType = groups.debuffs.candidateFilters.processedAuraType }
+	assert(lanes(groups, priority) == "important", "one important debuff takes one cell, not " .. lanes(groups, priority))
+	assert(lanes(f.debuffChip.pairs[1].a._groups, priority) == "important", "and the +N chip counts it once")
+	priority.processedAuraType = groups.dispels.candidateFilters.processedAuraType
+	assert(lanes(groups, priority) == "important", "a dispellable one too")
+	assert(lanes(groups, { isBossAura = false, isPriorityAura = false, processedAuraType = priority.processedAuraType }) == "", "an ordinary debuff shows nowhere")
+	assert(lanes(groups, { isBossAura = true, isPriorityAura = true }) == "boss", "an important boss debuff keeps the boss lane")
 	assert(f.highlights._slots.boss.candidateFilters.isPriorityAura == true, "so does the boss slot")
 	write(env, K, "auras.filter", "ALL")
 	assert(f.auras._groups.debuffs.candidateFilters.isPriorityAura == false and f.highlights._slots.boss.candidateFilters.isPriorityAura == nil, "All debuffs restores the lanes")
@@ -322,6 +347,118 @@ do
 end
 collectgarbage()
 
+-- Party targets, review of round 3b: a late name, Fill direction, room past shifted debuffs, no repeated work, and
+-- the module's stop and the gamepad stand-down release the watch, the wrap and the events.
+do
+	local Geometry = dofile("Tools/regression/geometry.lua")
+	local env, K, ns = G.New({
+		setup = function(e)
+			setup(e)
+			e._gamepad = false
+			e.InputUtil = { IsGamepadUIEnabled = function() return e._gamepad end }
+		end,
+	})
+	env._units.party1target = { name = "Old", class = "WARRIOR", reaction = 2, health = 50, maxHealth = 80 }
+	env._units.party2target = { name = "Gorvak", class = "WARRIOR", reaction = 2, health = 30, maxHealth = 60 }
+	party(env)
+	K.Modules.Enable(MODULE)
+	env.RunTimers()
+	local live, register, unregister = {}, K.Events.Register, K.Events.Unregister
+	K.Events.Register = function(owner, event, fn)
+		if owner == "GroupFrames.Targets" then live[event] = true end
+		return register(owner, event, fn)
+	end
+	K.Events.Unregister = function(owner, event)
+		if owner == "GroupFrames.Targets" then live[event] = nil end
+		return unregister(owner, event)
+	end
+	write(env, K, "targets.enabled", true)
+	env.RunStateDrivers()
+	local f = frame(ns, "party1")
+	local t = f.partyTarget
+	assert(t:IsVisible() and t.name:GetText() == "Old" and next(live), "a target shows, with its events")
+
+	env._units.party1target.name = "Resolved"
+	env.FireEvent("UNIT_NAME_UPDATE", "party1target")
+	env.RunTickers()
+	assert(t.name:GetText() == "Resolved", "a name that resolves late or changes reaches the button: " .. tostring(t.name:GetText()))
+
+	write(env, K, "health.orientation", "VERTICAL")
+	assert(t.health:GetOrientation() == "VERTICAL" and f.health:GetOrientation() == "VERTICAL", "the target bar follows Fill direction")
+	write(env, K, "health.orientation", "HORIZONTAL")
+
+	local function rect(region) return assert(Geometry.Rect(region, f.owner)) end
+	local function overlaps(a, b) return a.left < b.right and b.left < a.right and a.bottom < b.top and b.bottom < a.top end
+	for _, shift in ipairs({ { "party.auraX", 24 }, { "party.auraX", 60 }, { "party.auraY", -40 } }) do
+		write(env, K, shift[1], shift[2])
+		local clip, block = rect(f.auraClip), ns.Auras.Block(f, ns.Settings.current.party)
+		local base = rect(f)
+		assert(near(clip.left - base.left, block.left) and near(base.top - clip.top, block.top), "indicators reserve the debuffs where they are drawn")
+		assert(not overlaps(clip, rect(t)), shift[1] .. " " .. shift[2] .. " keeps the debuffs out from under the target button")
+		write(env, K, shift[1], 0)
+	end
+
+	local hides, reads = 0, 0
+	local hide = t.health.flash.Hide
+	t.health.flash.Hide = function(...) hides = hides + 1 return hide(...) end
+	env.RunTickers()
+	env.RunTickers()
+	assert(hides == 0, "the health timer does not re-hide the bar's hidden flash: " .. hides)
+	local health = env.UnitHealth
+	env.UnitHealth = function(unit, ...)
+		if unit == "party2target" then reads = reads + 1 end
+		return health(unit, ...)
+	end
+	ns.Unit.Set(f, "party2")
+	assert(reads == 1, "a new member paints the target once: " .. reads)
+	env.UnitHealth = health
+	ns.Unit.Set(f, "party1")
+
+	write(env, K, "targets.enabled", false)
+	local writes, set = 0, t.SetAttribute
+	t.SetAttribute = function(...) writes = writes + 1 return set(...) end
+	ns.Style.Apply(f)
+	assert(writes == 0, "a restyle leaves a switched-off target button alone: " .. writes)
+	t.SetAttribute = set
+	write(env, K, "targets.enabled", true)
+	env.RunStateDrivers()
+
+	K.Modules.Disable(MODULE)
+	env.RunTimers()
+	assert(not env._watched[t] and f.owner._wrapped == nil and not t:IsShown() and next(live) == nil, "the module's stop releases the watch, the wrap and the events")
+	K.Modules.Enable(MODULE)
+	env.RunTimers()
+	env.RunStateDrivers()
+	assert(env._watched[t] and f.owner._wrapped and t:IsShown() and live.UNIT_TARGET, "and its start takes them back")
+
+	env._gamepad = true
+	env.FireEvent("INPUT_DEVICE_INTERFACE_TRANSITION", 0, 1)
+	env.RunTimers()
+	assert(not env._watched[t] and f.owner._wrapped == nil and not t:IsShown() and next(live) == nil, "the gamepad stand-down releases them too")
+	env._gamepad = false
+	env.FireEvent("INPUT_DEVICE_INTERFACE_TRANSITION", 1, 0)
+	env.RunTimers()
+	env.RunStateDrivers()
+	assert(env._watched[t] and t:IsShown(), "and keyboard and mouse take them back")
+	noErrors(env, K)
+end
+collectgarbage()
+
+-- A client without the unit watch's or the wrap's teardown never builds party targets it could not switch off.
+do
+	local env, K, ns = G.New({ setup = function(e) setup(e) e.UnregisterUnitWatch = nil end })
+	env._units.party1target = { name = "Gorvak", class = "WARRIOR", reaction = 2, health = 30, maxHealth = 60 }
+	party(env)
+	K.Modules.Enable(MODULE)
+	env.RunTimers()
+	write(env, K, "targets.enabled", true)
+	write(env, K, "targets.enabled", false)
+	local f = frame(ns, "party1")
+	assert(f.partyTarget == nil and next(env._watched) == nil and f.owner._wrapped == nil, "nothing is built or watched")
+	noErrors(env, K)
+end
+collectgarbage()
+
 -- The preview follows every new option.
 do
 	local env, K = G.New({ setup = setup })
@@ -341,12 +478,20 @@ do
 	preview:Refresh()
 	assert(not tank.sampleAuras[1]:IsShown() and not tank.sampleBoss:IsShown(), "no sample debuff is important")
 	assert(select(3, tank.sampleAuras[1].count:GetFont()) == "THICKOUTLINE", "the sample count takes the outline")
-	assert(tank.sampleTarget:IsShown() and tank.sampleTarget.name:GetText() == "Gorvak", "a sample target shows beside the tank")
+	assert(not tank.sampleTarget:IsShown(), "the first sample is you, so its target waits for Include your own target")
+	K.Options.Write(MODULE, "targets.self", true)
+	preview:Refresh()
+	assert(tank.sampleTarget:IsShown() and tank.sampleTarget.name:GetText() == "Gorvak", "which shows it beside the tank")
+	K.Options.Write(MODULE, "targets.self", false)
+	K.Options.Write(MODULE, "health.orientation", "VERTICAL")
+	preview:Refresh()
+	assert(preview.partyFrames[2].sampleTarget.health:GetOrientation() == "VERTICAL", "a sample target's bar follows Fill direction")
+	K.Options.Write(MODULE, "health.orientation", "HORIZONTAL")
 	assert(preview.partyFrames[2].sampleTarget.name:GetText() == "Thaldren", "and a player target beside the healer")
 	assert(preview.partyFrames[2].sampleTarget:GetEffectiveAlpha() == 1, "an out-of-range member's target keeps full opacity, as in the game")
 	assert(preview.party:GetWidth() > width, "the party preview makes room for the targets")
 	assert(point(tank.sampleAuraHolder) ~= holder, "the sample debuffs move")
-	assert(tank.text:GetFrameLevel() > tank.sampleAuraHolder:GetFrameLevel() + 16, "sample names rise over the icons")
+	assert(tank.name:GetParent():GetFrameLevel() > tank.sampleAuraHolder:GetFrameLevel() + 16, "sample names rise over the icons")
 	assert(not tank.sampleSlots[1]:IsShown(), "an indicator kept to raid frames leaves the party samples")
 	K.Options.Write(MODULE, "targets.enabled", false)
 	K.Options.Write(MODULE, "party.auraX", 0)
