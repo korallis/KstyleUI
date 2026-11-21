@@ -428,6 +428,7 @@ end
 
 local AURA_LOOK = { auraSize = "simple", auraPosition = false, auraSpacing = true, auraRows = "simple", auraColumns = true,
 	auraGrowth = true, auraTimer = true, auraZoom = true, auraBuffZoom = true, auraTooltipCombat = true }
+Settings.AURA_LOOK = AURA_LOOK
 
 local function SimpleSize()
 	local G, uf = ns.Geometry, ns.Frames and ns.Frames.Get("boss")

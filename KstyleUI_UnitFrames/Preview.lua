@@ -329,7 +329,7 @@ local function PaintAuras(frame, view, kind)
 	end
 	local on = Settings.AURAS[kind] and Settings.Value(kind, "auras")
 	local count = on and Settings.Value(kind, "auraColumns") * Settings.Value(kind, "auraRows") or 0
-	local buffs = on and Settings.Value(kind, "auraFilter") == "buffs"
+	local filter = on and Settings.Value(kind, "auraFilter")
 	local chip = frame.auraChips[kind]
 	if count > 0 then
 		local width, height, corner, _, growth = ns.Auras.Footprint(kind, host)
@@ -347,7 +347,7 @@ local function PaintAuras(frame, view, kind)
 				tile = ns.Auras.SampleTile(host)
 				tiles[i], icons[i] = tile, tile.skin
 			end
-			tile.buff = buffs
+			tile.buff = filter == "buffs" or filter == "both" and (AURA_DISPEL[i] == "steal" or AURA_DISPEL[i] == "buff")
 			tile.icon:SetTexture(AURA_ICONS[(i - 1) % #AURA_ICONS + 1])
 			PlaceTile(tile.skin, host, kind, i, count, size, spacing, size + room + spacing, corner, growth)
 			ns.Auras.LayoutTile(tile)

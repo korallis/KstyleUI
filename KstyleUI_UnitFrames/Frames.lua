@@ -556,13 +556,6 @@ local function FitCard(view)
 	view.panel:SetHeight(K.Widgets.Snap(view.parent, open and g.glass.h or g.rest))
 end
 
-local function AttachCast(view)
-	local cb = ns.CastBars.Attach(view)
-	cb.notify = function()
-		FitCard(view)
-	end
-end
-
 local function NewView(uf, unit)
 	local button = CreateFrame("Button", nil, uf.holder, "SecureUnitButtonTemplate")
 	button:SetAttribute("unit", unit)
@@ -587,7 +580,10 @@ local function NewView(uf, unit)
 		view.chip = NewChip(button, view.chrome.shapeName)
 	end
 	if Settings.CASTBAR[uf.kind] and (uf.kind ~= "pet" or Settings.Value("pet", "castbar")) then
-		AttachCast(view)
+		local cb = ns.CastBars.Attach(view)
+		cb.notify = function()
+			FitCard(view)
+		end
 	end
 	return view
 end
@@ -715,23 +711,20 @@ function Frames.Relayout(uf)
 			Unit.Health(view, view.unit, true)
 		end
 		if (uf.s.auraSimple or "") ~= "" then ns.Auras.Apply(view) else ns.Auras.Place(view) end
-		local cb = view.castbar
+		local cb, x, y, w, h = view.castbar
 		if cb and g.cast then
-			local c = g.cast
-			cb.frame:ClearAllPoints()
-			cb.frame:SetPoint("TOPLEFT", button, "TOPLEFT", K.Widgets.Snap(button, c.x), -K.Widgets.Snap(button, c.y))
-			cb.frame:SetSize(K.Widgets.Snap(button, c.w), K.Widgets.Snap(button, c.h))
-			cb.noRoom = false
-			cb.frame:SetShown(cb.active == true or cb.idle == true)
-			ns.CastBars.Layout(cb, c.w, c.h)
+			x, y, w, h = g.cast.x, g.cast.y, g.cast.w, g.cast.h
 		elseif cb and uf.kind == "pet" then
-			local petW, petH = uf.s.castbarWidth > 0 and uf.s.castbarWidth or g.panel.w, uf.s.castbarHeight
+			x, y = g.panel.x, math.max(slot.h, g.medal and g.medal.y + g.medal.h or 0) + PET_CAST_GAP
+			w, h = uf.s.castbarWidth > 0 and uf.s.castbarWidth or g.panel.w, uf.s.castbarHeight
+		end
+		if x then
 			cb.frame:ClearAllPoints()
-			cb.frame:SetPoint("TOPLEFT", button, "TOPLEFT", K.Widgets.Snap(button, g.panel.x), -K.Widgets.Snap(button, math.max(slot.h, g.medal and g.medal.y + g.medal.h or 0) + PET_CAST_GAP))
-			cb.frame:SetSize(K.Widgets.Snap(button, petW), K.Widgets.Snap(button, petH))
+			cb.frame:SetPoint("TOPLEFT", button, "TOPLEFT", K.Widgets.Snap(button, x), -K.Widgets.Snap(button, y))
+			cb.frame:SetSize(K.Widgets.Snap(button, w), K.Widgets.Snap(button, h))
 			cb.noRoom = false
 			cb.frame:SetShown(cb.active == true or cb.idle == true)
-			ns.CastBars.Layout(cb, petW, petH)
+			ns.CastBars.Layout(cb, w, h)
 		elseif cb and gap and (g.form == "plate" or g.form == "slab") then
 			cb.frame:ClearAllPoints()
 			cb.frame:SetPoint("TOPLEFT", button, "TOPLEFT", g.panel.x, -(frameH + gap))
@@ -749,6 +742,7 @@ function Frames.Relayout(uf)
 			MarkTarget(view)
 		end
 	end
+	return true
 end
 
 local function PrepareTarget(view)
@@ -789,16 +783,16 @@ end
 
 function Frames.Restyle(uf)
 	uf.s = Settings.Snapshot(uf.kind)
-	if uf.kind == "pet" and uf.s.castbar and not uf.views[1].castbar then AttachCast(uf.views[1]) end
+	if uf.kind == "pet" and uf.s.castbar and not uf.views[1].castbar then ns.CastBars.Attach(uf.views[1]) end
 	for _, view in ipairs(uf.views) do
 		view.s = uf.s
 		Style.Restyle(view, uf.kind)
 	end
-	Frames.Relayout(uf)
+	local applied = Frames.Relayout(uf) and (uf.s.auraSimple or "") ~= ""
 	for _, view in ipairs(uf.views) do
 		PrepareTarget(view)
 		Refresh(view, true)
-		ns.Auras.Apply(view)
+		if not applied then ns.Auras.Apply(view) end
 	end
 end
 
@@ -884,9 +878,11 @@ local function OnSettingChanged(_, module, key)
 			Frames.Restyle(uf)
 			if rest == "rangeFade" then for _, view in ipairs(uf.views) do Frames.Range(view) end end
 		end
-		ForEach(function(each)
-			if each ~= uf and each.active and Settings.Value(each.kind, "auraCopy") == kind then Frames.Restyle(each) end
-		end)
+		if Settings.AURA_LOOK[rest] or rest == "style" then
+			ForEach(function(each)
+				if each ~= uf and each.active and Settings.Value(each.kind, "auraCopy") == kind then Frames.Restyle(each) end
+			end)
+		end
 		if kind == "target" then
 			Frames.MarkTargets()
 		end
