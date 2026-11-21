@@ -238,7 +238,7 @@ local countdownFormatters = {}
 function Widgets.CountdownFormat(cooldown, tenths, colour, below)
 	if type(cooldown.SetCountdownFormatter) ~= "function" then return end
 	local util, rounding = C_StringUtil, Enum and Enum.NumericRuleFormatRounding
-	local key = (tenths or 0) .. (colour and ":" .. colour .. ":" .. below or "")
+	local key = colour and (tenths or 0) .. ":" .. colour .. ":" .. below or tenths or 0
 	if countdownFormatters[key] == nil and util and type(util.CreateNumericRuleFormatter) == "function" and rounding then
 		local ok, formatter = pcall(function()
 			local made = util.CreateNumericRuleFormatter()

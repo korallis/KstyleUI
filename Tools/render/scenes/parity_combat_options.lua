@@ -1,4 +1,4 @@
--- parity_combat_options.lua: the real scoped Options page and its live preview, selected with RENDER_PARITY_MODULE; RENDER_PARITY_ENABLED=1 switches on round one's options, 2 the round two options (Auras, Cooldowns) and 3 the Meters round two options.
+-- parity_combat_options.lua: the real scoped Options page and its live preview, selected with RENDER_PARITY_MODULE; RENDER_PARITY_ENABLED=1 switches on round one's options, 2 the round two options (Auras, Cooldowns) and 3 the Meters round two or Cooldowns round three options.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -42,6 +42,9 @@ return Common.Run(function()
    Meters = { ["damage.refresh"] = 0.2, ["damage.hoverSpells"] = 8, ["damage.hideRank"] = true, ["damage.iconZoom"] = 0.2, ["damage.spellTooltips"] = true,
     ["damage.panelAlpha"] = 0.6, ["damage.capAlpha"] = 0.8, ["damage.headerHeight"] = 4, ["damage.titleX"] = 6, ["damage.resetButton"] = true, ["damage.nameScale"] = 0.9,
     ["damage.valueScale"] = 1.1, ["damage.playerMarker"] = true, ["timer.shown"] = true, ["timer.decimal"] = true, ["history.icons"] = true, ["history.bars"] = true },
+   Cooldowns3 = { path = "mirror", ["rules.threshold"] = "x", thresholdBelow = 30, ["rules.chargeSwipe"] = "x", ["rules.chargeTimer"] = "x", ["rules.swing"] = "x",
+    ["rules.swingGlow"] = "x", textAboveGlow = true, ["essential.rows"] = 2, ["essential.baseCount"] = 3, ["essential.secondSize"] = -6,
+    ["utility.quality"] = true, ["utility.trinkets"] = true, focusSpell = "1766" },
    Meters3 = { ["damage2.shown"] = true, ["damage.report"] = true, ["damage.englishUnits"] = false },
   }
   for key, value in pairs(values[enabled == "1" and module or module .. enabled]) do K.Options.Write(module, key, value) end
