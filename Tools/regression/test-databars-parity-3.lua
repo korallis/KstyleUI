@@ -110,8 +110,10 @@ end
 write("strip.blocks.latency.show", "both")
 assert(not disabled("strip.blocks.latency.iconColor") and disabled("strip.blocks.gold.iconColor"), "the colour row follows the readout's own glyph")
 eq(tint(item("latency").icon), rgb(item("latency").label:GetTextColor()), "the bar's colour is the label colour")
+assert(not disabled("strip.iconColor"), "Icon colour stays on while a readout's glyph takes the data bar's colour")
 write("strip.blocks.latency.iconColor", "accent")
 eq(tint(item("latency").icon), rgb(ns.Accent()), "accent glyph")
+assert(disabled("strip.iconColor"), "and turns off when no glyph takes it")
 assert(hidden("strip.blocks.latency.iconCustom"), "the custom colour waits for Custom")
 write("strip.blocks.latency.iconColor", "custom")
 write("strip.blocks.latency.iconCustom", { r = 0, g = 1, b = 0, a = 1 })
@@ -187,6 +189,7 @@ for _, art in ipairs(ns.Strip.view.art) do
 end
 assert(crest > 0, "the forged top bar shows its crest")
 assert(not hidden("strip.secondModules"), "its module list shows")
+eq(row("strip.secondModules").options.zones, false, "the second bar packs right like the rail, so its list offers no zones")
 eq(text("gold", second), text("gold"), "the same values")
 show({ "coords", "latency", "durability" }, "secondModules")
 eq(table.concat(second.order, ","), "coords,latency,durability", "its own list")
