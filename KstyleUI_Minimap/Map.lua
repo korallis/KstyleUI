@@ -28,7 +28,7 @@ local MOVE_STOP = { "PLAYER_STOPPED_MOVING", "PLAYER_CONTROL_GAINED" }
 
 local running = false
 local original
-local configHooked, zoomHooked = false, false
+local configHooked, zoomHooked, compartmentHooked = false, false, false
 local waitingForEditMode = false
 local queueFaded, queueHooked = false, false
 local checkAdded = false
@@ -328,8 +328,7 @@ local function OnSliderZoom(share)
 end
 
 local function ZoneTooltip(tip, frame)
-	tip:SetOwner(frame, "ANCHOR_LEFT")
-	tip:SetFactor(Settings.Get("tooltipScale"))
+	tip:SetOwner(frame, "ANCHOR_LEFT", 0, 0, Settings.Get("tooltipScale"))
 	local zone = GetZoneText and GetZoneText()
 	tip:AddTitle(zone or L["Zone"])
 	local sub = GetSubZoneText and GetSubZoneText()
@@ -358,8 +357,7 @@ local function Lockouts(tip, redraw)
 end
 
 local function ClockTooltip(tip, frame, redraw)
-	tip:SetOwner(frame, "ANCHOR_LEFT")
-	tip:SetFactor(Settings.Get("tooltipScale"))
+	tip:SetOwner(frame, "ANCHOR_LEFT", 0, 0, Settings.Get("tooltipScale"))
 	tip:AddTitle(L["Time"])
 	local hours = Data.Uses24(Settings.Get("clock.mode")) and "24" or "12"
 	tip:AddDoubleLine(L["Local time"], Data.Clock("local" .. hours) or "")
@@ -370,8 +368,8 @@ local function ClockTooltip(tip, frame, redraw)
 	end
 end
 
-local function PerfTooltip(tip, _, redraw)
-	tip:SetFactor(Settings.Get("tooltipScale"))
+local function PerfTooltip(tip, frame, redraw)
+	tip:SetOwner(frame, "ANCHOR_LEFT", 0, 0, Settings.Get("tooltipScale"))
 	tip:AddTitle(L["Instance lockouts"])
 	Lockouts(tip, redraw)
 end
@@ -474,6 +472,7 @@ local function WatchHover(frame, elapsed)
 end
 
 function Map.CheckHover()
+	ns.Micro.CheckHover()
 	if running and Map.face and Map.face.revealed then
 		graceLeft = HOVER_GRACE
 		Map.face.overlay:SetScript("OnUpdate", WatchHover)
@@ -507,6 +506,7 @@ function Map.Refresh()
 		return
 	end
 	SyncRotate()
+	if not Settings.Get("microMenu") then ns.Micro.Close() end
 	face:Paint()
 	if Face.Round() then K.Layout.Restore(KEY) end
 	face:Layout()
@@ -781,6 +781,11 @@ local function HookBlizzard()
 		zoomHooked = true
 		hooksecurefunc(minimap, "SetZoom", OnBlizzardZoom)
 	end
+	local compartment = AddonCompartmentFrame
+	if not compartmentHooked and compartment and type(compartment.UpdateDisplay) == "function" then
+		compartmentHooked = true
+		hooksecurefunc(compartment, "UpdateDisplay", RefreshColumn)
+	end
 end
 
 local function RegisterEvents()
@@ -847,8 +852,7 @@ local function RegisterCallbacks()
 	end)
 	Callbacks.Register("SettingChanged", MODULE, function(_, module, key, value)
 		if module == MODULE then
-			Settings.Mirror(key, value)
-			Map.Refresh()
+			if not Settings.Mirror(key, value) then Map.Refresh() end
 		elseif module == "DataBars" then
 			ClockChanged()
 		end

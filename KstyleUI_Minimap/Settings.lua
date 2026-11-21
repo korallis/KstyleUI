@@ -73,16 +73,23 @@ function Settings.AddonButtons()
 end
 
 function Settings.Mirror(key, value)
-	local places = Settings.Get("drawer.places")
-	if key == "drawer.button" then
+	local places, name = Settings.Get("drawer.places"), Settings.Get("drawer.button")
+	if key == "drawer.button" and value ~= "" then
 		local place = (places[value] == "column" or places[value] == "hidden") and places[value] or "drawer"
-		if Settings.Get("drawer.place") ~= place then K.Options.Write(MODULE, "drawer.place", place) end
-	elseif key == "drawer.place" and Settings.Get("drawer.button") ~= "" then
-		local name, want, copy = Settings.Get("drawer.button"), value ~= "drawer" and value or nil, {}
+		if Settings.Get("drawer.place") == place then return end
+		K.Options.Write(MODULE, "drawer.place", place)
+		return true
+	elseif key == "drawer.place" and name == "" then
+		if next(places) == nil then return end
+		K.Options.Write(MODULE, "drawer.places", {})
+		return true
+	elseif key == "drawer.place" then
+		local want, copy = value ~= "drawer" and value or nil, {}
 		if places[name] == want then return end
 		for k, v in pairs(places) do copy[k] = v end
 		copy[name] = want
 		K.Options.Write(MODULE, "drawer.places", copy)
+		return true
 	end
 end
 

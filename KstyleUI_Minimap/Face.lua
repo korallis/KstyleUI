@@ -479,7 +479,7 @@ function Face:PlaceInside()
 	local column = Settings.Get("column.side") == "left" and 1 or -1
 	local reserve = max(0, Snap(area, Format.EDGE + Settings.Get("column.offset")) + ns.Column.Size(self.holder))
 	local corners = { [Settings.Get("column.mail") and Settings.Get("mail.position") or ""] = reserve }
-	if Settings.Get("compartment.shown") then
+	if self.compartment then
 		local corner = Settings.Get("compartment.position")
 		corners[corner] = max(corners[corner] or 0, reserve + ns.Column.Size(self.holder) * (Settings.Get("compartment.scale") - 1))
 	end

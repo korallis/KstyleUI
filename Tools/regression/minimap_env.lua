@@ -356,11 +356,8 @@ function M.FakeTooltip()
 	function tip.AddDoubleLine(_, left, right)
 		tip.lines[#tip.lines + 1] = tostring(left) .. " | " .. tostring(right)
 	end
-	function tip.SetOwner(_, owner)
-		tip.owner = owner
-	end
-	function tip.SetFactor(_, factor)
-		tip.factor = factor
+	function tip.SetOwner(_, owner, _, _, _, factor)
+		tip.owner, tip.factor = owner, factor
 	end
 	function tip.Has(_, text)
 		for _, line in ipairs(tip.lines) do

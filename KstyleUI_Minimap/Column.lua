@@ -21,7 +21,7 @@ local HOVER_ONLY = { tracking = true, calendar = true, drawer = true, compartmen
 local TOOLTIP_ANCHORS = { up = "ANCHOR_TOP", down = "ANCHOR_BOTTOM", left = "ANCHOR_LEFT", right = "ANCHOR_RIGHT" }
 
 Column.ORDER = { "tracking", "mail", "calendar", "queue", "drawer" }
-Column.GLYPHS, Column.CELLS = GLYPHS, CELLS
+Column.GLYPHS, Column.CELLS, Column.GLYPH_SHARE = GLYPHS, CELLS, GLYPH_SHARE
 
 local TITLES = {
 	tracking = L["Tracking"],
@@ -87,8 +87,7 @@ function TOOLTIPS.compartment(tip)
 end
 
 function Column.Tooltip(name, tip, button)
-	tip:SetOwner(button, Anchor(button))
-	tip:SetFactor(Settings.Get("tooltipScale"))
+	tip:SetOwner(button, Anchor(button), 0, 0, Settings.Get("tooltipScale"))
 	tip:AddTitle(TITLES[name])
 	TOOLTIPS[name](tip)
 end
@@ -272,7 +271,7 @@ function Column:Wanted(name)
 	elseif name == "drawer" then
 		return not Settings.Get("drawer.hideEmpty") or (self.drawer ~= nil and self.drawer:HasContent())
 	elseif name == "compartment" then
-		return #ns.Drawer.CompartmentEntries() > 0
+		return ns.Drawer.CompartmentCount() > 0
 	end
 	return true
 end
@@ -331,7 +330,6 @@ function Column:Layout()
 	local inset = Widgets.Snap(holder, size * (1 - GLYPH_SHARE) / 2)
 	local Format = ns.Format
 	local edge, top = Widgets.Snap(holder, Format.EDGE + Settings.Get("column.offset")), Widgets.Snap(holder, Format.TOP)
-	local perColumn = Format.PerColumn(face.mapSize or area:GetHeight() or 0, size, spacing, top)
 	local shown, used = {}, {}
 	for _, name in ipairs(self.names) do
 		local button = self.buttons[name]
@@ -350,45 +348,52 @@ function Column:Layout()
 			button.moving = nil
 			button:StopMovingOrSizing()
 		end
+		local own = name == "compartment" and Widgets.Snap(holder, size * Settings.Get("compartment.scale")) or size
+		local ownInset = own == size and inset or Widgets.Snap(holder, own * (1 - GLYPH_SHARE) / 2)
 		if wanted and type(spot) == "table" and Plain(spot.x) and Plain(spot.y) then
-			Put(button, size, inset, "CENTER", area, Widgets.Snap(holder, spot.x), Widgets.Snap(holder, spot.y))
+			Put(button, own, ownInset, "CENTER", area, Widgets.Snap(holder, spot.x), Widgets.Snap(holder, spot.y))
 		elseif wanted and (name == "compartment" or name == "mail" and mail ~= "column") then
 			local corner = name == "mail" and mail or Settings.Get("compartment.position")
-			local own = name == "mail" and size or Widgets.Snap(holder, size * Settings.Get("compartment.scale"))
 			local h, v = corner:find("LEFT") and 1 or -1, corner:find("TOP") and -1 or 1
-			Put(button, own, Widgets.Snap(holder, own * (1 - GLYPH_SHARE) / 2), corner, area, h * edge + Widgets.Snap(holder, Settings.Get(name .. ".x")),
+			Put(button, own, ownInset, corner, area, h * edge + Widgets.Snap(holder, Settings.Get(name .. ".x")),
 				v * (top + (used[corner] or 0)) + Widgets.Snap(holder, Settings.Get(name .. ".y")))
 			used[corner] = (used[corner] or 0) + own + spacing
 		elseif wanted then
 			shown[#shown + 1] = button
 		end
 	end
-	local start = Format.Column(1, size, spacing, side, up, edge, top, perColumn)
+	local start = Format.Column(1, size, spacing, side, up, edge, top)
+	local far = (up and "TOP" or "BOTTOM") .. (side == "left" and "LEFT" or "RIGHT")
+	local perColumn = Format.PerColumn((face.mapSize or area:GetHeight() or 0) - (used[far] or 0), size, spacing, top)
 	local skip = used[start] and math.ceil(used[start] / (size + spacing) - 0.001) or 0
 	for slot, button in ipairs(shown) do
 		local point, x, y = Format.Column(slot + skip, size, spacing, side, up, edge, top, perColumn)
 		Put(button, size, inset, point, area, x, y)
 	end
-	for i, button in ipairs(self.drawer and self.drawer:InColumn() or {}) do
-		local point, x, y = Format.Column(#shown + skip + i, size, spacing, side, up, edge, top, perColumn)
-		self.drawer:PutInColumn(button, Home(self, "addon"), point, area, x, y, size)
+	local drawer, slot = self.drawer, #shown + skip
+	for _, button in ipairs(drawer and drawer.order or {}) do
+		if drawer.adopted[button].place == "column" and ns.Drawer.Shown(button) then
+			slot = slot + 1
+			local point, x, y = Format.Column(slot, size, spacing, side, up, edge, top, perColumn)
+			drawer:PutInColumn(button, Home(self, "addon"), point, area, x, y, size)
+		end
 	end
-	self:SizeCount()
-	face:PlaceSlider()
-end
-
-function Column:SizeCount()
 	local button = self.buttons.compartment
-	if not button then
-		return
+	local counted = button ~= nil and button:IsShown() or nil
+	if counted then
+		local path, _, flags = Tokens.Font("number")
+		local count = math.floor(button:GetWidth() * COUNT_SHARE + 0.5)
+		if button.tallyFont ~= path .. count then
+			button.tallyFont = path .. count
+			Widgets.ApplyFont(button.tally, path, count, flags)
+		end
+		button.tally:SetText(self.preview and 3 or ns.Drawer.CompartmentCount())
 	end
-	local path, _, flags = Tokens.Font("number")
-	local size = math.floor(button:GetWidth() * COUNT_SHARE + 0.5)
-	if button.tallyFont ~= path .. size then
-		button.tallyFont = path .. size
-		Widgets.ApplyFont(button.tally, path, size, flags)
+	if face.compartment ~= counted then
+		face.compartment = counted
+		face:PlaceInside()
 	end
-	button.tally:SetText(self.preview and 3 or #ns.Drawer.CompartmentEntries())
+	face:PlaceSlider()
 end
 
 function Column:Paint()
