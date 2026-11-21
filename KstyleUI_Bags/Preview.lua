@@ -131,20 +131,6 @@ function Preview.Build(...)
 		end
 		frame.title:ClearAllPoints()
 		Widgets.Point(frame.title, "TOP", frame, "TOP", 0, -Tokens.Size("gapLarge") - head)
-		local side = Settings.Get("sidebar")
-		if side and not frame.list then
-			frame.list = ns.List.New(frame)
-		end
-		if frame.list then
-			frame.list:SetShown(side)
-		end
-		if side then
-			local items = ListItems(view, categories, pinned, order)
-			frame.list:ClearAllPoints()
-			Widgets.Point(frame.list, "TOPRIGHT", pinned and frame.pinCap or frame.title, "TOPLEFT", -Tokens.Size("gapMedium"), 0)
-			frame.list:SetSize(ns.List.WIDTH, #items * ns.List.ROW)
-			ns.List.Show(frame.list, items, false)
-		end
 		local bags = Settings.Get("bagSlots")
 		local strip = bags and Tokens.Size("rowHeight") + Tokens.Size("gapMedium") or 0
 		frame.grid:ClearAllPoints()
@@ -177,6 +163,20 @@ function Preview.Build(...)
 			frame.currency:SetShown(currencies)
 			local picked = Settings.Get("currency1") + Settings.Get("currency2") + Settings.Get("currency3") > 0
 			frame.currency:SetText(picked and Data.CurrencyText() or CURRENCIES)
+		end
+		local side = Settings.Get("sidebar")
+		if side and not frame.list then
+			frame.list = ns.List.New(frame)
+		end
+		if frame.list then
+			frame.list:SetShown(side)
+		end
+		if side then
+			local items = ListItems(view, categories, pinned, order)
+			frame.list:ClearAllPoints()
+			Widgets.Point(frame.list, "TOPLEFT", currencies and frame.currency or frame.grid, "BOTTOMLEFT", 0, -Tokens.Size("gapLarge"))
+			frame.list:SetSize(ns.List.WIDTH, #items * ns.List.ROW)
+			ns.List.Show(frame.list, items, false)
 		end
 		for i, slot in ipairs(frame.slots) do
 			local shown = i <= count
