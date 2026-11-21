@@ -85,4 +85,29 @@ function H.icon(f)
 	return f.reminder.tile.icon:GetTexture()
 end
 
+function H.point(region)
+	local p, rel, relPoint, x, y = region:GetPoint(1)
+	return table.concat({ tostring(p), tostring(rel), tostring(relPoint), tostring(x), tostring(y) }, " ")
+end
+
+function H.offset(region)
+	local _, _, _, x, y = region:GetPoint(1)
+	return x, y
+end
+
+function H.near(a, b)
+	return math.abs(a - b) < 1e-3
+end
+
+function H.boot(opts)
+	opts = opts or {}
+	opts.setup = H.setup
+	local env, K, ns = H.G.New(opts)
+	env.SetQuiet(true) -- The parity checks read frame state; they do not need the widget call history.
+	H.party(env)
+	K.Modules.Enable(H.MODULE)
+	env.RunTimers()
+	return env, K, ns
+end
+
 return H
