@@ -50,7 +50,7 @@ return Common.Run(function()
 			Hud.FillCast(ns.Plates.Get("nameplate2"), 0.4)
 		elseif os.getenv("RENDER_PARITY_ROUND") == "2" then
 			-- Round 2 switched on: the target's glow, bar highlight and size, a rogue's combo points and energy on the target, an
-			-- important cast with its glow and a larger spell icon on the add, the boss's protected important cast keeping its colour
+			-- important cast with its glow and a larger spell icon on the add, the target's protected important cast keeping its colour
 			-- while the interrupt is ready, and threat as the bar colour and its edge.
 			local unitClass = env.UnitClass
 			env.UnitClass = function(unit)
@@ -69,6 +69,8 @@ return Common.Run(function()
 				K.Options.Write(module, key, value)
 			end
 			ns.Interrupt.spell, ns.Interrupt.ready = 1766, true
+			N.Cast(env, "nameplate1", { name = "Snap", text = "Snap", texture = 132200, notInterruptible = true })
+			Hud.FillCast(ns.Plates.Get("nameplate1"), 0.55)
 			N.Cast(env, "nameplate2", { name = "Mirefin Hex", text = "Mirefin Hex", texture = 136071, notInterruptible = false })
 			Hud.FillCast(ns.Plates.Get("nameplate2"), 0.4)
 		end
