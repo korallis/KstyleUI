@@ -113,7 +113,7 @@ return Common.Run(function()
 			base:SetPoint("CENTER", env.WorldFrame, "BOTTOMLEFT", 1180 * k, (1080 - 300) * k)
 			env.Enum.TooltipDataLineType = { None = 0, UnitLevel = 47 }
 			env.C_TooltipInfo = { GetUnit = function(unit)
-				local u = N.ResolveUnit(unit)
+				local u = env._units[unit]
 				return { lines = { { type = 2, leftText = u and u.name }, { type = u and u.title and 0 or 47, leftText = u and u.title } } }
 			end }
 			env.PlayerIsSpellTarget = function(unit) return env.Secret(unit == "nameplate1") end

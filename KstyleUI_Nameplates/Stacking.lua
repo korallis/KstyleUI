@@ -167,8 +167,8 @@ end
 local hit = { written = {}, original = {} }
 
 local function HitInsets()
-	local api, types = C_NamePlateManager, Enum and Enum.NamePlateType
-	if not (api and types and type(api.SetNamePlateHitTestInsets) == "function" and type(api.GetNamePlateHitTestInsets) == "function") then
+	local manager, types = C_NamePlateManager, Enum and Enum.NamePlateType
+	if not (manager and types and type(manager.SetNamePlateHitTestInsets) == "function" and type(manager.GetNamePlateHitTestInsets) == "function") then
 		LogOnce("hit-insets", "C_NamePlateManager.SetNamePlateHitTestInsets is missing; plates keep the game's click area")
 		return
 	end
@@ -186,13 +186,13 @@ local function HitInsets()
 		local insets, last = want[kind], hit.written[kind]
 		if insets and not (last and last[1] == insets[1] and last[2] == insets[2]) then
 			if not hit.original[kind] then
-				local read, l, r, t, b = pcall(api.GetNamePlateHitTestInsets, kind)
+				local read, l, r, t, b = pcall(manager.GetNamePlateHitTestInsets, kind)
 				hit.original[kind] = read and Plain(l) and Plain(r) and Plain(t) and Plain(b) and { l, r, t, b } or { 0, 0, 0, 0 }
 			end
-			if pcall(api.SetNamePlateHitTestInsets, kind, insets[1], insets[1], insets[2], insets[2]) then hit.written[kind] = insets end
+			if pcall(manager.SetNamePlateHitTestInsets, kind, insets[1], insets[1], insets[2], insets[2]) then hit.written[kind] = insets end
 		elseif not insets and last then
 			local o = hit.original[kind]
-			if pcall(api.SetNamePlateHitTestInsets, kind, o[1], o[2], o[3], o[4]) then hit.written[kind], hit.original[kind] = nil, nil end
+			if pcall(manager.SetNamePlateHitTestInsets, kind, o[1], o[2], o[3], o[4]) then hit.written[kind], hit.original[kind] = nil, nil end
 		end
 	end
 end
@@ -431,7 +431,7 @@ local function Hook()
 				K.DevTest.Log(MODULE, "Blizzard reset the nameplate size in combat to " .. size .. "; the game stacks plates by it until combat ends, then KstyleUI's footprint comes back")
 			end
 			Stacking.Schedule()
-		elseif bounded then
+		elseif bounded or next(hit.written) then
 			original = nil
 			Remember()
 			Stacking.Schedule()

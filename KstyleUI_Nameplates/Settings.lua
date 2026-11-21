@@ -317,7 +317,7 @@ function Settings.Schema()
 		{ type = "slider", key = "friendly.npcSize", label = L["NPC name size"], help = L["The size of friendly NPCs' names. 0 uses the name size."], min = 0, max = TEXT_MAX, step = 1 },
 		{ type = "dropdown", key = "friendly.npcNameMode", label = L["NPC name colour"], help = L["Colours friendly NPCs' names. The current style keeps the name's own colour."], options = K.Widgets.TextColors() },
 		{ type = "color", key = "friendly.npcColor", label = L["Custom NPC name colour"], help = L["The name colour when its colour mode is custom."], showWhen = Is("friendly.npcNameMode", "custom") },
-		{ type = "toggle", key = "friendly.npcTitle", label = L["NPC titles"], help = L["Shows a friendly NPC's title, such as Innkeeper, on a line under its name."] },
+		{ type = "toggle", key = "friendly.npcTitle", label = L["NPC titles"], help = L["Shows a friendly NPC's title, such as Innkeeper, on a line under its name."], disableWhen = Off("name.show") },
 		{ type = "slider", key = "friendly.npcTitleSize", label = L["NPC title size"], help = L["The size of this text, in interface units."], min = TEXT_MIN, max = TEXT_MAX, step = 1, disableWhen = Off("friendly.npcTitle") },
 		{ type = "toggle", key = "friendly.npcTitleMatch", label = L["Title in the NPC name colour"], help = L["Colours the title like the NPC's name. Off uses the title colour."], disableWhen = Off("friendly.npcTitle") },
 		{ type = "color", key = "friendly.npcTitleColor", label = L["NPC title colour"], help = L["The title line's colour."], disableWhen = Either(Off("friendly.npcTitle"), Is("friendly.npcTitleMatch", true)) },

@@ -390,7 +390,11 @@ local function CheckDistance()
 	local plate = highlighted.target
 	local api = C_Spell and C_Spell.IsSpellInRange
 	if not (plate and plate.distanceText and type(api) == "function") then return end
-	ranges = ranges or Ranges()
+	if not ranges then
+		local ok, list = pcall(Ranges)
+		ranges = ok and list or {}
+		if not ok then LogOnce("distance-book", "reading the spellbook failed: " .. tostring(list)) end
+	end
 	local text, beyond = "", 0
 	for _, entry in ipairs(ranges) do
 		local ok, inRange = pcall(api, entry[2], "target")

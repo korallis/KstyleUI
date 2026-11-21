@@ -33,6 +33,7 @@ local PLAYER_ROWS = { "name.afk", "name.dnd", "markers.pvp", "enemy.playersUseEn
 local FRIENDLY_ROWS = { { 3, "friendly.nameMode", "friendly.playerFormat", "friendly.title", "friendly.guild" },
 	{ 4, "friendly.npcFormat", "friendly.npcSize", "friendly.npcNameMode", "friendly.npcTitle" }, { 5, "friendly.petSize", "friendly.owner" } }
 local THREAT_SAMPLE = { healthEdge = true, name = true }
+local ENEMY_ROWS = { "buffs.enabled", "ccs.enabled", "cast.targetGlow", "target.distance" }
 
 local function Span(plate)
 	local w, above, h, below = ns.Stacking.Extent(plate)
@@ -65,6 +66,9 @@ local function Stack(frame)
 	end
 	if THREAT_SAMPLE[Settings.Get("threat.display")] and not (Settings.Get("target.glow") or Settings.Get("target.fill")
 		or Settings.Get("resource.show") or Settings.Get("target.scale") ~= 1) then first = 2 end
+	for _, key in ipairs(ENEMY_ROWS) do
+		if Settings.Get(key) then last = first end
+	end
 	for _, rows in ipairs(FRIENDLY_ROWS) do
 		for i = 2, #rows do
 			local value = Settings.Get(rows[i])

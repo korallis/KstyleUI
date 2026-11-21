@@ -33,7 +33,7 @@ local TIMER_GAP, TIMER_EXTRA = 1, 3
 local SAMPLE_ICONS = { 136118, 135817, 132155 }
 local SAMPLE_TIMES = { "12", "4", "21" }
 local TEXT_KEYS = { "timePlace", "timeX", "timeY", "countPlace", "countX", "countY" }
-local SUNDER_GROUP = "sunder"
+local SUNDER_GROUP, SUNDER_ICON = "sunder", 132363
 local SUNDER = { [7386] = true, [7405] = true, [8380] = true, [11596] = true, [11597] = true }
 local KINDS = {
 	buffs = { ring = "edgeInner", icons = { 135940, 135932 } },
@@ -849,6 +849,11 @@ local function LayoutSamples(plate)
 		icon:SetShown(shown and i <= columns * rows)
 		LayoutTile(icon.tile)
 		if texts then SampleTexts(icon.tile, i, size) end
+	end
+	local last = icons[#icons]
+	if Sunder() or last.sunder then
+		last.sunder = Sunder()
+		last.icon:SetTexture(last.sunder and SUNDER_ICON or SAMPLE_ICONS[#icons])
 	end
 	if texts and (plate.sampleKinds or AnyKind()) then KindSamples(plate) end
 end

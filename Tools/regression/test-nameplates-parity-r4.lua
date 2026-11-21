@@ -177,6 +177,9 @@ do
 	env._units.nameplate1.canAttack = true
 	env.FireEvent("UNIT_FACTION", "nameplate1")
 	assert(buffs._unit == "nameplate1" and buffs:IsShown(), "and hostile again shows them")
+	set("debuffs.enabled", false)
+	assert(buffs._unit == "nameplate1" and buffs:IsShown(), "buffs do not need the debuff row")
+	set("debuffs.enabled", true)
 	set("buffs.enabled", false)
 	assert(buffs._unit == "none" and not buffs:IsShown(), "off hides the row")
 	local _, above3, _, below3 = ns.Stacking.Extent(plate)
@@ -227,6 +230,16 @@ do
 	set2("debuffs.sunder", true)
 	assert(ns2.Plates.Get("nameplate1").sunderGroup == nil, "other classes get no slot")
 	clean(env2, K2)
+	local env3, K3, ns3, set3 = boot({}, { playerClass = "WARRIOR" })
+	local frame = ns3.Preview.Build(env3.UIParent)
+	local icons = frame.plates[1].sampleAuras
+	set3("debuffs.sunder", true)
+	frame.Refresh()
+	assert(N.Last(icons[#icons].icon, "SetTexture")[1] == 132363, "the preview's last debuff turns into Sunder Armor")
+	set3("debuffs.sunder", false)
+	frame.Refresh()
+	assert(N.Last(icons[#icons].icon, "SetTexture")[1] ~= 132363, "and back")
+	clean(env3, K3)
 end
 collectgarbage()
 
@@ -290,6 +303,10 @@ do
 	assert(near(env._insets[1][3], h / 4), "but after it")
 	set("stacking.friendlyClicks", false)
 	assert(near(env._insets[0][1], w / 2) and near(env._insets[0][3], h / 2), "clicks pass through friendly plates")
+	env._driverSize = { 220, 90 }
+	env.NamePlateDriverFrame.UpdateNamePlateSize()
+	env.RunTimers()
+	assert(near(env._insets[1][1], 220 / 4) and near(env._insets[0][1], 110), "a new game plate size moves the insets with it")
 	K.Modules.Disable("Nameplates")
 	env.RunTimers()
 	for kind = 0, 1 do
@@ -365,7 +382,7 @@ do
 	set("buffs.dispelGlow", true)
 	frame.Refresh()
 	local target = plates[1]
-	assert(target.sampleKinds.buffs:IsShown() and target.sampleKinds.ccs:IsShown(), "buffs and crowd control on the target sample")
+	assert(frame.chosen == 1 and target.sampleKinds.buffs:IsShown() and target.sampleKinds.ccs:IsShown(), "buffs and crowd control on the target sample")
 	assert(target.sampleKinds.buffs.icons[1].tile.dispel:IsShown(), "the dispel glow on a buff")
 	set("cast.targetGlow", true)
 	frame.Refresh()
