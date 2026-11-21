@@ -52,8 +52,6 @@ local FLASH_LEVEL = 2
 local LIT_ALPHA, SHADE_ALPHA = 0.6, 0.45
 local MEDAL_INSET, MEDAL_TEXT_PAD = 3, 5
 local SPARK = { 227 / 255, 232 / 255, 238 / 255, 1 }
-local TARGET_FORMAT = "%s - %s"
-local IMPORTANT_LEVEL = 2
 
 local EVENTS = {
 	UNIT_SPELLCAST_START = "Cast",
@@ -117,12 +115,21 @@ function CastBars.SetName(cb, text, target)
 	if not (issecretvalue(text) or type(text) ~= "string" or not Settings.Value(cb.kind, "castbarCaps")) then
 		shown = ns.Unit.Tracked(text, cb.textPath or (Settings.Font(cb.kind, "cast")))
 	end
-	if target ~= nil then
-		cb.text:SetFormattedText(TARGET_FORMAT, shown, target)
+	local named = issecretvalue(target) or target ~= nil
+	if named then
+		cb.text:SetText(shown .. " - " .. target)
 	else
 		cb.text:SetText(shown)
 	end
-	local secret = issecretvalue(text) or target ~= nil
+	if cb.line and cb.nameFree then
+		local width = named and not (issecretvalue(text) or issecretvalue(target)) and cb.text:GetUnboundedStringWidth()
+		local long = named and not (not issecretvalue(width) and type(width) == "number" and width <= cb.nameRoom)
+		if long ~= (cb.longName or false) then
+			cb.longName = long
+			cb.text:SetWidth(long and cb.nameRoom or 0)
+		end
+	end
+	local secret = issecretvalue(text) or named
 	if not cb.ornament.joined and (secret or text ~= cb.ornamentText) then
 		cb.ornamentText = not secret and text or nil
 		cb.ornament:Restyle()
@@ -252,6 +259,7 @@ local function EndTimer(cb, value)
 	cb.inkEmpty = value == 0
 	StopTimer(cb)
 	if cb.latency then cb.latency:Hide() end
+	if cb.important then cb.important:Hide() end
 	cb.duration = nil
 	cb.timer:SetText("")
 	local bar = cb.bar
@@ -512,7 +520,6 @@ local function LayoutLine(cb, width, height, column)
 	local mx, my = Nudge(cb, "castbarTimer")
 	Anchor(cb, cb.text, "LEFT", cb.label, "RIGHT", LINE_LABEL_GAP, tx, ty)
 	cb.text:SetHeight(h)
-	cb.text:SetWidth(0)
 	cb.text:SetJustifyH("LEFT")
 	cb.text:SetShown(Settings.Value(cb.kind, "castbarText"))
 	local size = Settings.FontSize(cb.kind, "cast")
@@ -523,9 +530,8 @@ local function LayoutLine(cb, width, height, column)
 	elseif timerOn then
 		room = room - timerW - LINE_LABEL_GAP
 	end
-	if room < LINE_NAME_EM * size then
-		cb.text:SetWidth(Snap(cb, math.max(0, room)))
-	end
+	cb.nameRoom, cb.nameFree = Snap(cb, math.max(0, room)), room >= LINE_NAME_EM * size
+	cb.text:SetWidth(cb.nameFree and not cb.longName and 0 or cb.nameRoom)
 	Anchor(cb, cb.timer, "RIGHT", frame, "RIGHT", 0, mx, my)
 	cb.timer:SetSize(Snap(cb, timerW), h)
 	cb.timer:SetJustifyH("RIGHT")
@@ -850,7 +856,7 @@ local function StyleImportant(cb)
 	local glow = cb.important
 	if not glow then return end
 	local level = cb.bar:GetFrameLevel()
-	if not issecretvalue(level) then glow:SetFrameLevel(level + IMPORTANT_LEVEL) end
+	if not issecretvalue(level) then glow:SetFrameLevel(level + FLASH_LEVEL) end
 	Widgets.LayoutSlice(glow.line, glow, Tokens.Size("radiusTile"), 0)
 	local c = Settings.Value(cb.kind, "castbarImportantColor")
 	Widgets.ColorSlice(glow.line, c.r, c.g, c.b, 1)
@@ -1040,7 +1046,7 @@ end
 
 function CastBars.Important(cb, spellID, sample)
 	local glow, api = cb.important, C_Spell and C_Spell.IsSpellImportant
-	if not ((sample or spellID ~= nil and api) and Settings.Value(cb.kind, "castbarImportant")) then
+	if not (Settings.Value(cb.kind, "castbarImportant") and (sample or api and (issecretvalue(spellID) or spellID ~= nil))) then
 		if glow and glow:IsShown() then glow:Hide() end
 		return
 	end
@@ -1052,12 +1058,12 @@ function CastBars.Important(cb, spellID, sample)
 		StyleImportant(cb)
 	end
 	local important = sample or api(spellID)
-	if issecretvalue(important) then
+	if issecretvalue(important) and glow.SetAlphaFromBoolean then
 		glow:Show()
 		glow:SetAlphaFromBoolean(important, 1, 0)
 	else
 		glow:SetAlpha(1)
-		glow:SetShown(important == true)
+		glow:SetShown(not issecretvalue(important) and important == true)
 	end
 end
 
@@ -1067,7 +1073,6 @@ local function SpellTarget(cb)
 	if issecretvalue(show) or show ~= true then return nil end
 	local name = UnitSpellTargetName(cb.unit)
 	if issecretvalue(name) or type(name) == "string" and name ~= "" then return name end
-	return nil
 end
 
 local function Start(cb, channel, update)
