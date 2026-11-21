@@ -18,7 +18,7 @@ local OTHER = { essential = "utility", utility = "essential" }
 local EMPTY = Rules.EMPTY
 
 local rows = {}
-local lists, scratch, shown, sources = {}, {}, {}, {}
+local lists, scratch, shown, sources, fresh = {}, {}, {}, {}, {}
 local running = false
 local pending = false
 local retries = 0
@@ -363,7 +363,7 @@ local function Charges(icon)
 			if type(format) == "function" then
 				local formatted, text = pcall(format, count)
 				if formatted and (ns.IsSecret(text) or type(text) == "string") then
-					icon:SetCount(shows and text or nil)
+					if shows then icon:SetCount(text) else icon:SetCount(nil) end
 					return
 				end
 			end
@@ -509,7 +509,7 @@ local function AssignCooldowns(row, list)
 			icon.cooldownsRow = row
 			icon.cooldown:HookScript("OnCooldownDone", OnCooldownDone)
 		end
-		icon.entry, icon.missing = list[i], nil
+		if icon.entry ~= list[i] then icon.entry, icon.missing = list[i], nil end
 		Match(row, icon)
 	end
 	row:Settle()
@@ -868,21 +868,24 @@ local function Rebuild(group)
 		return true
 	end
 	scratch[group], lists[group] = lists[group], list
-	if COOLDOWN_GROUPS[group] and Settings.current[group].trinkets and type(GetInventoryItemID) == "function" then
-		for _, trinket in ipairs(trinkets) do
-			local ok, item = pcall(GetInventoryItemID, "player", trinket.equipSlot)
-			local listed = not (ok and Finite(item))
-			for _, entry in ipairs(list) do listed = listed or entry.equipSlot == trinket.equipSlot end
-			for _, entry in ipairs(lists[OTHER[group]] or EMPTY) do listed = listed or entry.equipSlot == trinket.equipSlot end
-			if not listed then list[#list + 1] = trinket end
-		end
-	end
 	if sources[group] ~= source then
 		sources[group] = source
 		ns.Log(group .. ": " .. #list .. " entries from the " .. source)
 	end
-	Assign(group)
+	fresh[group] = true
 	return source == "dirty"
+end
+
+local function Trinkets(group)
+	if not (COOLDOWN_GROUPS[group] and Settings.current[group].trinkets and type(GetInventoryItemID) == "function") then return end
+	local list = lists[group]
+	for _, trinket in ipairs(trinkets) do
+		local ok, item = pcall(GetInventoryItemID, "player", trinket.equipSlot)
+		local listed = not (ok and Finite(item))
+		for _, entry in ipairs(list) do listed = listed or entry.equipSlot == trinket.equipSlot end
+		for _, entry in ipairs(lists[OTHER[group]] or EMPTY) do listed = listed or entry.equipSlot == trinket.equipSlot end
+		if not listed then list[#list + 1] = trinket end
+	end
 end
 
 local function Refill()
@@ -895,6 +898,13 @@ local function RebuildAll()
 	local dirty = false
 	for _, group in ipairs(GROUPS) do
 		dirty = Rebuild(group) or dirty
+	end
+	for _, group in ipairs(GROUPS) do
+		if fresh[group] then
+			fresh[group] = nil
+			Trinkets(group)
+			Assign(group)
+		end
 	end
 	Refill()
 	if dirty and retries < MAX_RETRIES then
@@ -926,8 +936,11 @@ local function OnDataChanged()
 	Mirror.Schedule()
 end
 
-local function ApplySettings()
+local ListenRules
+
+local function ApplySettings(key)
 	Settings.Read()
+	ListenRules()
 	for _, group in ipairs(GROUPS) do
 		local row = rows[group]
 		if row then
@@ -942,7 +955,7 @@ local function ApplySettings()
 	end
 	Index()
 	Reskin.Refresh()
-	Focus.Apply()
+	Focus.Apply(key)
 end
 Mirror.ApplySettings = ApplySettings
 
@@ -1052,16 +1065,10 @@ local function RetextureAll()
 	RequestAuras()
 end
 
-local function VisibleIcon(row, icon)
-	row:Visible(icon)
-end
-
 local function ReadForm()
+	ns.form = nil
 	local count = type(GetNumShapeshiftForms) == "function" and GetNumShapeshiftForms()
-	if not Finite(count) or type(GetShapeshiftFormInfo) ~= "function" then
-		ns.form = nil
-		return
-	end
+	if not Finite(count) or type(GetShapeshiftFormInfo) ~= "function" then return end
 	local form = false
 	for i = 1, count do
 		local ok, _, active, _, spell = pcall(GetShapeshiftFormInfo, i)
@@ -1077,7 +1084,7 @@ end
 
 local function OnForm()
 	ReadForm()
-	if Settings.current.rules.form ~= "" then EachCooldownIcon(VisibleIcon) end
+	EachCooldownIcon(Row.Visible)
 end
 
 local function Late(on)
@@ -1087,7 +1094,7 @@ end
 
 local function OnSwing(_, duration, kind)
 	local rules, kinds = Settings.current.rules, Enum and Enum.PlayerSwingType
-	if rules.swing == "" and rules.swingGlow == "" or not Finite(duration) or duration <= 0 or ns.IsSecret(kind) or kind ~= (kinds and kinds.MainHand or 0) then return end
+	if not Finite(duration) or duration <= 0 or ns.IsSecret(kind) or kind ~= (kinds and kinds.MainHand or 0) then return end
 	swingStart, swingDuration = GetTime(), duration
 	EachCooldownIcon(Sweep)
 	swingStamp = swingStamp + 1
@@ -1096,6 +1103,24 @@ local function OnSwing(_, duration, kind)
 	Late(false)
 	C_Timer.After(math.max(0, duration - Settings.current.swingWindow), function() if stamp == swingStamp then Late(true) end end)
 	C_Timer.After(duration, function() if stamp == swingStamp then Late(false) end end)
+end
+
+local function OnQueue()
+	if swingLate then EachCooldownIcon(SwingGlow) end
+end
+
+local function Listen(event, fn, on)
+	if on then K.Events.Register(MODULE, event, fn) else K.Events.Unregister(MODULE, event) end
+end
+
+function ListenRules()
+	local rules, mirrored = Settings.current.rules, Live("essential") or Live("utility")
+	local form, glow = mirrored and rules.form ~= "", mirrored and rules.swingGlow ~= ""
+	Listen("UPDATE_SHAPESHIFT_FORM", OnForm, form)
+	Listen("UPDATE_SHAPESHIFT_FORMS", OnForm, form)
+	Listen("PLAYER_SWING", OnSwing, glow or mirrored and rules.swing ~= "")
+	Listen("CURRENT_SPELL_CAST_CHANGED", OnQueue, glow)
+	if form then ReadForm() end
 end
 
 local EVENTS = {
@@ -1148,12 +1173,6 @@ local EVENTS = {
 	end,
 	PLAYER_REGEN_DISABLED = OnCombat,
 	PLAYER_REGEN_ENABLED = OnCombat,
-	UPDATE_SHAPESHIFT_FORM = OnForm,
-	UPDATE_SHAPESHIFT_FORMS = OnForm,
-	PLAYER_SWING = OnSwing,
-	CURRENT_SPELL_CAST_CHANGED = function()
-		if swingLate and Settings.current.rules.swingGlow ~= "" then EachCooldownIcon(SwingGlow) end
-	end,
 	SPELLS_CHANGED = Mirror.Schedule,
 	PLAYER_ENTERING_WORLD = Mirror.Schedule,
 	COOLDOWN_VIEWER_DATA_LOADED = Mirror.Schedule,
@@ -1168,7 +1187,7 @@ local function OnSetting(_, module, key)
 		Mirror.Stop()
 		Mirror.Start()
 	else
-		ApplySettings()
+		ApplySettings(key)
 		if type(key) == "string" and key:find("trinkets$") then Mirror.Schedule() end
 	end
 end
@@ -1208,7 +1227,6 @@ end
 
 function Mirror.Start()
 	Settings.Read()
-	ReadForm()
 	running = true
 	retries = 0
 	fighting = InCombatLockdown and InCombatLockdown() == true or false
@@ -1247,6 +1265,7 @@ function Mirror.Start()
 	K.Callbacks.Register("HudStyleChanged", MODULE, OnTheme)
 	K.Callbacks.Register("ScaleChanged", MODULE, OnScale)
 	K.Callbacks.Register("LayoutChanged", MODULE, OnLayout)
+	ListenRules()
 	RebuildAll()
 	Focus.Apply()
 	return true

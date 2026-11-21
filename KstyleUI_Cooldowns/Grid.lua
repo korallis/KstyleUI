@@ -1,10 +1,11 @@
--- Grid.lua: pure maths that places icons and bars in a holder by cell size, spacing, columns, rows, growth, wrap and, for a vertical grid, columns filled top to bottom: inside the same box, its columns placed by growth, or turned on its side when the row is free of the HUD.
+-- Grid.lua: pure maths that places icons and bars in a holder by cell size, spacing, columns, rows, growth, wrap, two rows of their own count and icon size (never under the smallest icon) and, for a vertical grid, columns filled top to bottom: inside the same box, its columns placed by growth, or turned on its side when the row is free of the HUD.
 local _, ns = ...
 
 local Grid = {}
 ns.Grid = Grid
 
 local floor, max = math.floor, math.max
+local MIN_ICON = 16
 
 local function Whole(value, low)
 	if type(value) ~= "number" or value ~= value then
@@ -28,15 +29,15 @@ local function Two(cfg)
 	if base == 0 and a == 0 and b == 0 or cfg.vertical then return nil end
 	local columns, rows, spacing, cw, ch = Dims(cfg)
 	if rows ~= 2 then return nil end
+	a, b = max(a, MIN_ICON - cw), max(b, MIN_ICON - cw)
 	return base > 0 and math.min(base, columns) or columns, columns, spacing, cw + a, ch + a, cw + b, ch + b
 end
 
 function Grid.Capacity(cfg)
 	local first, columns = Two(cfg)
 	if first then return first + columns end
-	local rows
-	columns, rows = Dims(cfg)
-	return columns * rows
+	local cols, rows = Dims(cfg)
+	return cols * rows
 end
 
 function Grid.Cell(index, cfg)

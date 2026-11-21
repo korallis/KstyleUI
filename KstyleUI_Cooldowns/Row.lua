@@ -25,6 +25,12 @@ local function StyleCooldown(icon, real)
 	if tint then icon.cooldown:SetSwipeColor(tint[1], tint[2], tint[3], icon.cooldownStyleKey == 1 and 0.4 or 0.65) end
 end
 
+local function Countdown(cooldown, group, rule)
+	local current = ns.Settings.current
+	local tenths = rule.decimals and (tonumber(rule.decimals) or current.decimalBelow) or nil
+	Style.Countdown(cooldown, group == "essential", false, tenths, rule.threshold and Style.Hex(Rules.Colour(rule.threshold, "threshold")), current.thresholdBelow)
+end
+
 function Row.New(parent, group, cfg)
 	local holder = CreateFrame("Frame", nil, parent)
 	local content = CreateFrame("Frame", nil, holder)
@@ -59,7 +65,7 @@ function Row:StyleIcon(icon)
 	self:Look(icon)
 end
 
-function Row:Recharge(icon)
+function Row:Recharge(icon, dress)
 	local charge, rule, cfg = icon.chargeCooldown, icon.rule or EMPTY, self.cfg
 	if not charge then return end
 	local idle = not icon.onCooldown
@@ -72,7 +78,7 @@ function Row:Recharge(icon)
 			charge:SetSwipeColor(Widgets.Rgba("black", SWIPE_ALPHA))
 		end
 	end
-	if (icon.rechargeNumbers or false) == numbers and not numbers then return end
+	if (icon.rechargeNumbers or false) == numbers and not (numbers and dress) then return end
 	icon.rechargeNumbers = numbers
 	charge:SetHideCountdownNumbers(not numbers)
 	local text = numbers and charge:GetCountdownFontString()
@@ -83,7 +89,7 @@ function Row:Recharge(icon)
 		Style.TextColour(text, rule.timerColour, "slotNumber")
 		text:ClearAllPoints()
 		text:SetPoint("CENTER", icon.countdown, "CENTER")
-		Style.Countdown(charge, self.group == "essential")
+		Countdown(charge, self.group, rule)
 	end
 end
 
@@ -101,9 +107,7 @@ function Row:Look(icon)
 		icon.countOnly = bare
 		icon.icon:SetAlpha(bare and 0 or 1)
 	end
-	local current = ns.Settings.current
-	local tenths = rule.decimals and (tonumber(rule.decimals) or current.decimalBelow) or nil
-	Style.Countdown(cooldown, group == "essential", false, tenths, rule.threshold and Style.Hex(Rules.Colour(rule.threshold, "threshold")), current.thresholdBelow)
+	Countdown(cooldown, group, rule)
 	Style.TextColour(icon.countdown, rule.timerColour, "slotNumber")
 	local grey = (cfg.desaturate or rule.grey) and not rule.colour and true or false
 	local repaint = (icon.greyWhileCooling or false) ~= grey
@@ -123,7 +127,7 @@ function Row:Look(icon)
 		Style.GlowColor(icon)
 	end
 	icon:StyleCooldown()
-	self:Recharge(icon)
+	self:Recharge(icon, true)
 	if not cooldowns then
 		icon.inactiveShade = rule.grey and "grey" or rule.colour and "colour" or cfg.inactiveShade
 		icon:Paint()
@@ -154,7 +158,7 @@ end
 local function Outside(form)
 	local now = ns.form
 	if now == nil then return false end
-	if form == true or not now then return not now end
+	if type(form) ~= "string" or not now then return not now end
 	return not (strcmputf8i and strcmputf8i(now, form) == 0 or now:lower() == form:lower())
 end
 

@@ -1,4 +1,4 @@
--- Focus.lua: the focus interrupt: your interrupt's icon, styled as a utility cooldown, on a side of your focus's (or target's) enemy nameplate, hidden as soon as that plate is removed; a sound when that unit starts a cast while the interrupt is ready, or on any cast without one; and, in dungeons while you have no focus, a reminder under enemy casters' nameplates. Each part listens to its events only while a setting asks for it.
+-- Focus.lua: the focus interrupt: your interrupt's icon, styled as a utility cooldown, on a side of your focus's (or target's) nameplate while the game says you can attack it, hidden as soon as that plate is removed or the unit turns friendly; a sound when that unit starts a cast while the interrupt is known to be ready, or on any cast when none is named; and, in dungeons while you have no focus, a reminder under the nameplates of enemies with mana. Each part listens to its events only while a setting asks for it.
 local _, ns = ...
 
 local K = KstyleUI
@@ -10,6 +10,7 @@ ns.Focus = Focus
 
 local OWNER = ns.MODULE .. "Focus"
 local SIDES = { LEFT = { "RIGHT", "LEFT", -1, 0 }, RIGHT = { "LEFT", "RIGHT", 1, 0 }, TOP = { "BOTTOM", "TOP", 0, 1 }, BOTTOM = { "TOP", "BOTTOM", 0, -1 } }
+Focus.SIDES = SIDES
 local MANA = 0
 local MAX_PLATES = 40
 local style = setmetatable({ group = "utility" }, ns.Row)
@@ -28,7 +29,7 @@ local function Unit()
 end
 
 local function Enemy(unit)
-	return Ask(UnitExists, unit) == true and Ask(UnitIsUnit, unit, "player") ~= true and Ask(UnitCanAttack, "player", unit) ~= false
+	return Ask(UnitExists, unit) == true and Ask(UnitIsUnit, unit, "player") ~= true and Ask(UnitCanAttack, "player", unit) == true
 end
 
 local function Plate(unit)
@@ -38,7 +39,7 @@ end
 
 local function Ready()
 	local info = Ask(C_Spell and C_Spell.GetSpellCooldown, spell)
-	return not (type(info) == "table" and not ns.IsSecret(info.isActive) and info.isActive == true)
+	return type(info) == "table" and not ns.IsSecret(info.isActive) and info.isActive == false
 end
 
 local function Refresh()
@@ -86,7 +87,7 @@ end
 
 local function Note(unit)
 	local current, text = Settings.current, notes[unit]
-	local plate = current.focusReminder and dungeon and Ask(UnitExists, "focus") ~= true and Enemy(unit) and Ask(UnitPowerType, unit) == MANA and Plate(unit)
+	local plate = current.focusReminder and dungeon and Ask(UnitExists, "focus") ~= true and Enemy(unit) and Ask(UnitPowerType, unit) == MANA and (Ask(UnitPowerMax, unit, MANA) or 0) > 0 and Plate(unit)
 	if not plate then
 		if text then text:Hide() end
 		return
@@ -105,9 +106,6 @@ local function Note(unit)
 end
 
 local function Notes()
-	for unit in pairs(notes) do
-		if not plates[unit] then notes[unit]:Hide() end
-	end
 	for unit in pairs(plates) do Note(unit) end
 end
 
@@ -135,15 +133,21 @@ local function OnUnit()
 	Notes()
 end
 
+local function OnChange(_, unit)
+	if ns.IsSecret(unit) then return end
+	if plates[unit] then Note(unit) end
+	if unit == Unit() then Place() end
+end
+
 local function OnWorld()
-	local _, kind = IsInInstance()
-	dungeon = not ns.IsSecret(kind) and kind == "party"
+	local ok, _, kind = pcall(IsInInstance)
+	dungeon = ok and not ns.IsSecret(kind) and kind == "party"
 	Notes()
 end
 
 local function OnCast(_, unit)
 	local kit = SOUNDKIT and SOUNDKIT[Settings.SOUNDS[Settings.current.focusSound]]
-	if kit and not ns.IsSecret(unit) and unit == Unit() and Enemy(unit) and (not spell or Ready()) and type(PlaySound) == "function" then
+	if kit and not ns.IsSecret(unit) and unit == Unit() and Enemy(unit) and (Settings.current.focusSpell == "" or spell and Ready()) and type(PlaySound) == "function" then
 		pcall(PlaySound, kit, "Master")
 	end
 end
@@ -159,21 +163,23 @@ function Focus.Stop()
 	for _, text in pairs(notes) do text:Hide() end
 end
 
-function Focus.Apply()
-	Focus.Stop()
+function Focus.Apply(key)
 	local current = Settings.current
-	spell = Focus.Spell(current.focusSpell)
 	style.cfg = current.utility
 	if icon then
 		style:StyleIcon(icon)
 		icon:EnableMouse(false)
-		icon.plate, icon.spell = nil, nil
 	end
+	if type(key) == "string" and not key:find("^focus") then return end
+	Focus.Stop()
+	spell = Focus.Spell(current.focusSpell)
+	if icon then icon.plate, icon.spell = nil, nil end
 	local reminder = current.focusReminder
 	if spell or reminder then
 		K.Events.Register(OWNER, "NAME_PLATE_UNIT_ADDED", OnAdded)
 		K.Events.Register(OWNER, "NAME_PLATE_UNIT_REMOVED", OnRemoved)
 		K.Events.Register(OWNER, "PLAYER_FOCUS_CHANGED", OnUnit)
+		K.Events.Register(OWNER, "UNIT_FACTION", OnChange)
 	end
 	if spell then
 		K.Events.Register(OWNER, "SPELL_UPDATE_COOLDOWN", Refresh)
@@ -185,6 +191,8 @@ function Focus.Apply()
 			plates[unit] = Plate(unit) and true or nil
 		end
 		K.Events.Register(OWNER, "PLAYER_ENTERING_WORLD", OnWorld)
+		K.Events.Register(OWNER, "UNIT_DISPLAYPOWER", OnChange)
+		K.Events.Register(OWNER, "UNIT_MAXPOWER", OnChange)
 		OnWorld()
 	end
 	if current.focusSound ~= "" then

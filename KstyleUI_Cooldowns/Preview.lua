@@ -1,4 +1,4 @@
--- Preview.lua: the settings window's live preview: sample essential, utility and buff rows and buff bars drawn with the current settings (with a sample potion and trinket while an item option is changed, and the focus interrupt while one is named), cooldown samples passed to the other row past its grid, and every sample treated as listed in each spell rule that is not empty, with the list's first colour, name or threshold.
+-- Preview.lua: the settings window's live preview: sample essential, utility and buff rows and buff bars drawn with the current settings (with a sample potion and trinket while an item option is changed, a swing sweep at the start of the late-swing window, and a sample enemy plate with the focus interrupt on its chosen side and the reminder under it while either is on), cooldown samples passed to the other row past its grid, and every sample treated as listed in each spell rule that is not empty, with the list's first colour, name or threshold.
 local _, ns = ...
 
 local K = KstyleUI
@@ -25,6 +25,7 @@ function Preview.Build(...)
 	}
 	local SAMPLE_CHARGES = { essential = { [2] = 2 }, utility = { [2] = 0 }, buffs = { [1] = 3 }, items = { [1] = 3 } }
 	local SAMPLE_SWING = 2.6
+	local PLATE_WIDTH, PLATE_FILL = 156.75, 0.7
 	local focusStyle = setmetatable({ group = "utility" }, Row)
 	local OTHER = { essential = "utility", utility = "essential" }
 	local SAMPLE_PROC = { essential = { [4] = true } }
@@ -86,7 +87,7 @@ function Preview.Build(...)
 			icon:Paint()
 			if cooldownGroup then
 				Style.Glow(icon, icon, "lateGlow", rule.swingGlow ~= nil, Rules.Colour(rule.swingGlow, "glow"))
-				row:Swing(icon, rule.swing and now - 1, SAMPLE_SWING)
+				row:Swing(icon, rule.swing and now - SAMPLE_SWING + current.swingWindow, SAMPLE_SWING)
 				if charges and charges > 0 and (rule.chargeSwipe or rule.chargeTimer) then
 					icon:ChargeCooldown():SetCooldown(now - 4, 10)
 					row:Recharge(icon)
@@ -100,23 +101,30 @@ function Preview.Build(...)
 	end
 
 	local function FocusSample(frame)
-		local spell, icon = Settings.current.focusSpell, frame.focus
-		if spell == "" then
-			if icon then icon:Hide() end
-			return
+		local current, plate = Settings.current, frame.plate
+		local spell, note = current.focusSpell ~= "", current.focusReminder
+		if not (plate or spell or note) then return end
+		if not plate then
+			plate = Widgets.StatusBar(frame, { color = "hostile", width = PLATE_WIDTH, height = Tokens.Size("barHeight"), min = 0, max = 1, value = PLATE_FILL })
+			plate.note = Widgets.Text(plate, "caps", "hostile")
+			Widgets.SetText(plate.note, L["Focus"])
+			Widgets.Point(plate.note, "TOP", plate, "BOTTOM", 0, -Tokens.Size("actionGap"))
+			frame.plate, frame.focus = plate, Style.Decorate(Widgets.Slot(plate, { size = current.utility.size }), "utility")
 		end
-		if not icon then
-			icon = Style.Decorate(Widgets.Slot(frame, { size = Settings.current.utility.size }), "utility")
-			frame.focus = icon
-		end
-		focusStyle.cfg = Settings.current.utility
+		local icon, side, gap = frame.focus, ns.Focus.SIDES[current.focusSide], Tokens.Size("actionGap")
+		plate:SetShown(spell or note)
+		plate.note:SetShown(note)
+		icon:SetShown(spell)
+		plate:ClearAllPoints()
+		Widgets.Point(plate, "TOP", frame.rows.bars.holder, "BOTTOM", 0, -Tokens.Size("gapMedium") - current.utility.size)
+		if not spell then return end
+		focusStyle.cfg = current.utility
 		focusStyle:StyleIcon(icon)
-		local id = ns.Focus.Spell(spell)
+		local id = ns.Focus.Spell(current.focusSpell)
 		local ok, texture = pcall(C_Spell.GetSpellTexture, id)
 		icon:SetIcon(id and ok and not issecretvalue(texture) and texture or ns.Data.UNKNOWN_ICON)
 		icon:ClearAllPoints()
-		Widgets.Point(icon, "TOP", frame.rows.bars.holder, "BOTTOM", 0, -Tokens.Size("gapMedium"))
-		icon:Show()
+		Widgets.Point(icon, side[1], plate, side[2], side[3] * gap, side[4] * gap)
 	end
 
 	local function FillBars(row, rule)
@@ -137,23 +145,19 @@ function Preview.Build(...)
 
 	local function Fitted(frame, cfg, group)
 		local width = frame.pane:GetWidth()
-		local columns = #SAMPLE_ICONS[group]
-		if not (cfg.vertical and Settings.Free(group)) then
-			if issecretvalue(width) or type(width) ~= "number" or width <= 0 then
-				return cfg
-			end
-			columns = math.floor((width + cfg.spacing) / (cfg.size + cfg.spacing))
-		end
-		columns = math.max(1, math.min(cfg.columns, columns))
-		if columns == cfg.columns then
+		local free = cfg.vertical and Settings.Free(group)
+		if not free and (issecretvalue(width) or type(width) ~= "number" or width <= 0) then
 			return cfg
 		end
 		local out = {}
 		for key, value in pairs(cfg) do
 			out[key] = value
 		end
-		out.columns = columns
-		return out
+		out.columns = free and math.max(1, math.min(cfg.columns, #SAMPLE_ICONS[group])) or cfg.columns
+		while not free and out.columns > 1 and Grid.Size(out) > width do
+			out.columns = out.columns - 1
+		end
+		return out.columns == cfg.columns and cfg or out
 	end
 
 	local function Refresh(frame)

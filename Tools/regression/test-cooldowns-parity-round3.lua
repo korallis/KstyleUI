@@ -220,17 +220,16 @@ end
 -- Two-row grids: the first row's count and each row's size, placed by wrap and growth, then off.
 do
 	local Grid = select(3, New("mirror")).Grid
-	local cfg = { columns = 3, rows = 2, spacing = 2, cellWidth = 10, cellHeight = 10, growth = "right", wrap = "down", baseCount = 2, baseSize = 4, secondSize = 0 }
+	local cfg = { columns = 3, rows = 2, spacing = 2, cellWidth = 20, cellHeight = 20, growth = "right", wrap = "down", baseCount = 2, baseSize = 4, secondSize = 0 }
 	assert(Grid.Capacity(cfg) == 5, "the first row holds two, the second its full three")
 	local w, h = Grid.Size(cfg)
-	assert(w == 34 and h == 26, "the holder fits the wider row and both heights")
+	assert(w == 64 and h == 46, "the holder fits the wider row and both heights")
 	local x1, y1 = Grid.Offset(1, 5, cfg)
 	local x3, y3 = Grid.Offset(3, 5, cfg)
-	assert(x1 == 0 and y1 == 0 and x3 == 0 and y3 == 16 and Grid.Cell(1, cfg) == 14 and Grid.Cell(3, cfg) == 10, "wrap down puts the first row on top at its own size")
+	assert(x1 == 0 and y1 == 0 and x3 == 0 and y3 == 26 and Grid.Cell(1, cfg) == 24 and Grid.Cell(3, cfg) == 20, "wrap down puts the first row on top at its own size")
 	cfg.wrap, cfg.growth = "up", "center"
-	local _, upper = Grid.Offset(1, 5, cfg)
-	local cx = Grid.Offset(1, 5, cfg)
-	assert(upper == 12 and math.abs(cx - 2) < 1e-6, "wrap up puts it below, centred")
+	local cx, upper = Grid.Offset(1, 5, cfg)
+	assert(upper == 22 and math.abs(cx - 7) < 1e-6, "wrap up puts it below, centred")
 	cfg.vertical = true
 	assert(Grid.Capacity(cfg) == 6, "a vertical grid ignores the row options")
 
@@ -274,7 +273,7 @@ do
 	game.equipped[14] = 9002; Fire(env, "PLAYER_EQUIPMENT_CHANGED", 14, false)
 	assert(IconOf(ns, "utility", 14), "equipping another adds it")
 	Write("essential.trinkets", true)
-	assert(not IconOf(ns, "essential", 13), "a trinket shows on one row only")
+	assert((IconOf(ns, "essential", 13) == nil) ~= (IconOf(ns, "utility", 13) == nil), "a trinket shows on one row only")
 	Write("essential.trinkets", false); Write("utility.trinkets", false)
 	assert(ns.Mirror.Row("utility").count == 3 and not IconOf(ns, "utility", 13), "off, they are gone")
 	Clean(env, K, "items")

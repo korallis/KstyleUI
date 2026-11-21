@@ -63,7 +63,6 @@ Settings.RULES = RULES
 local POSITION = { [""] = true, CENTER = true, TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true, RIGHT = true, BOTTOMLEFT = true, BOTTOM = true, BOTTOMRIGHT = true }
 local INACTIVE = { [""] = true, grey = true, colour = true }
 local SOURCE = { class = true, custom = true }
-local SOUND = { [""] = true, warning = true, ready = true }
 local SIDE = { LEFT = true, RIGHT = true, TOP = true, BOTTOM = true }
 Settings.SOUNDS = { warning = "RAID_WARNING", ready = "READY_CHECK" }
 local MAX_RULE = 240
@@ -588,7 +587,7 @@ function Settings.Read()
 	current.decimalBelow = Number(saved.decimalBelow, TENTHS_RANGE, defaults.decimalBelow)
 	current.thresholdBelow = Number(saved.thresholdBelow, TENTHS_RANGE, defaults.thresholdBelow)
 	current.swingWindow = Number(saved.swingWindow, SWING_RANGE, defaults.swingWindow)
-	current.readySound, current.focusSound = Choice(saved.readySound, SOUND, ""), Choice(saved.focusSound, SOUND, "")
+	current.readySound, current.focusSound = Choice(saved.readySound, Settings.SOUNDS, ""), Choice(saved.focusSound, Settings.SOUNDS, "")
 	current.focusSide = Choice(saved.focusSide, SIDE, "LEFT")
 	current.textAboveGlow, current.focusTarget, current.focusReminder = saved.textAboveGlow == true, saved.focusTarget == true, saved.focusReminder == true
 	local spell = saved.focusSpell
