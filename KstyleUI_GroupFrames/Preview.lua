@@ -29,7 +29,7 @@ function Preview.Build(...)
 		{ name = "Kragar", class = "SHAMAN", health = 0.76, power = 0.6, target = true, role = "DAMAGER", marker = 1, incoming = 0.12, healAbsorb = 0.1, maxLoss = 0.15, targetName = "Gorvak" },
 		{ name = "Lunara", class = "MAGE", health = 0, power = 0, dead = true },
 		{ name = "Vexen", class = "PRIEST", health = 0.94, power = 0.9 },
-		{ name = "Orrin", class = "PALADIN", health = 0.55, power = 0.5, debuffs = 9, dispel = "Curse", hots = 3, shield = 0.2, healAbsorb = 0.12, indicators = { BIG_DEFENSIVE = true } },
+		{ name = "Orrin", class = "PALADIN", health = 0.55, power = 0.5, debuffs = 9, dispel = "Curse", hots = 3, shield = 0.2, healAbsorb = 0.12, indicators = { EXTERNAL = true } },
 		{ name = "Kesh", class = "ROGUE", health = 1, power = 1 },
 		{ name = "Maela", class = "HUNTER", health = 0.68, power = 0.7 },
 		{ name = "Durn", class = "WARLOCK", health = 0.81, power = 0.4, offline = true },
