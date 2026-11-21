@@ -2,6 +2,9 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.2.9.1 (2026-11-21)", {
+		L["Medallions party frames no longer error when their names sit on the bar."],
+	} },
 	{ "v0.2.9 (2026-11-21)", {
 		L["Combo points, holy power and soul shards glow as jewels on the Medallions crest, on by default."],
 		L["New options for unit, party and raid frames, nameplates, cooldowns and auras, each keeping today's look."],
@@ -14,10 +17,5 @@ ns.NOTES = {
 		L["With Debuffs and buffs, the target's aura rows stay clear of the target cast bar and the target of target."],
 		L["On Medallions party frames, your heal icons no longer cover the health percent or the indicator icons."],
 		L["The unit frame preview in the settings window shows the target's debuff and buff rows."],
-	} },
-	{ "v0.2.8.4 (2026-11-21)", {
-		L["With the meter on Both, the threat card no longer covers the stance bar or the Medallions second bar and XP bar."],
-		L["Target debuff timers no longer draw over the target's buffs."],
-		L["The minimap and unit frame previews in the settings window keep their proper sizes."],
 	} },
 }
