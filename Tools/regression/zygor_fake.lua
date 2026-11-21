@@ -35,7 +35,7 @@ function Fake.Install(env, opts)
 	local style = { WindowBackdropColor = { 1, 0, 0, 1 }, StepFontSizeMod = 1 }
 	local fake = { master = master, frame = frame, profile = profile, style = style, natural = opts.natural or 240, applied = 0, saves = 0, sets = 0, label = label, writes = writes }
 	local z = {
-		Frame = frame,
+		Frame = not opts.late and frame or nil,
 		db = { profile = profile },
 		Font = "Fonts\\FRIZQT__.TTF",
 		CurrentSkinStyle = style,
@@ -105,6 +105,11 @@ function Fake.Install(env, opts)
 		frame:ClearAllPoints()
 		frame:SetPoint(profile.resizeup and "BOTTOMLEFT" or "TOPLEFT", master, profile.resizeup and "BOTTOMLEFT" or "TOPLEFT", 0, 0)
 		frame:SetClampRectInsets(0, 0, profile.resizeup and 0 or -68, profile.resizeup and 68 or 0)
+	end
+
+	-- Zygor makes its window in OnInitialize (ZygorGuidesViewer.lua:387 SetSkin, Skins/Default/Skin.lua:23), which can run after KstyleUI's ADDON_LOADED.
+	function z:SetSkin()
+		self.Frame = frame
 	end
 
 	function z:SetFrameScale()

@@ -18,7 +18,7 @@ local function Boot(opts)
 		setup = function(e)
 			e._textWidth = Measure.TextWidth
 			Quests.Install(e, Quests.List(8))
-			zygor = Fake.Install(e, { natural = opts.natural, allsteps = opts.allsteps })
+			zygor = Fake.Install(e, { natural = opts.natural, allsteps = opts.allsteps, late = opts.late })
 		end,
 		before = function(e)
 			Quests.Tracker(e, S.Blizzard(e))
@@ -28,6 +28,9 @@ local function Boot(opts)
 	env.RunTimers()
 	S.LoadAddOn(env, "Blizzard_ObjectiveTracker")
 	env.RunTimers()
+	if opts.late then
+		env.ZygorGuidesViewer:SetSkin()
+	end
 	zygor.Show()
 	env.RunTimers()
 	S.W.Settle(env)
@@ -124,6 +127,15 @@ do
 	env.RunTimers()
 	assert(zygor.writes.font == fonts, string.format("a repaint sets no font again, %d new", zygor.writes.font - fonts))
 	assert(zygor.writes.text == texts, string.format("a repaint rewrites no text, %d new", zygor.writes.text - texts))
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+
+-- Zygor makes its window after KstyleUI saw it load: the skin still starts once Zygor's SetSkin makes it.
+do
+	local env, K, ns, zygor = Boot({ late = true })
+	local card = K.Skin.Parts(zygor.frame.Border).backdrop
+	assert(card and card:IsShown(), "a window Zygor makes late still wears the KstyleUI card")
+	assert(zygor.style.WindowBackdropColor[4] == 0, "a window Zygor makes late is still painted")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 

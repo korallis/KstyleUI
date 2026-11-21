@@ -605,10 +605,20 @@ ns.Skins.Add({
 	},
 	Apply = function()
 		local z = Zygor()
-		if not z then
+		if z then
+			Start(z)
 			return
 		end
-		Start(z)
+		local raw = rawget(_G, "ZygorGuidesViewer")
+		if IsTable(raw) and type(raw.SetSkin) == "function" and not state.waiting then
+			state.waiting = true
+			hooksecurefunc(raw, "SetSkin", function()
+				local live = Zygor()
+				if live and not state.z and ns.Skins.IsOn(KEY) then
+					Start(live)
+				end
+			end)
+		end
 	end,
 	OnSwitch = function(_, on)
 		local z = Zygor()
