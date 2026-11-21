@@ -3,11 +3,6 @@ local Suite = dofile("Tools/regression/suite_env.lua")
 local CEILING = { frames = 2900, orbs = 2810, medallions = 1800 }
 local SETTLE = 600
 
-local function Visible(o)
-	local ok, v = pcall(o.IsVisible, o)
-	return ok and rawequal(v, true)
-end
-
 for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 	local env, K = Suite.Prepare(style, 1920, 1080)()
 	local hollow = {}
@@ -22,7 +17,7 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		env._now = env._now + 1 / 60
 		for _, f in ipairs(env._frames) do
 			local update = f._scripts.OnUpdate
-			if update and Visible(f) then
+			if update and f:IsVisible() then
 				settled = false
 				update(f, 1 / 60)
 			end
@@ -41,7 +36,7 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		end
 	end
 	for _, f in ipairs(env._frames) do
-		local visible = Visible(f)
+		local visible = f:IsVisible()
 		Groups(f, visible, f._type)
 		for _, r in ipairs(f._regions) do
 			Groups(r, visible and r._shown ~= false, r._type)
