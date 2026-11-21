@@ -148,7 +148,7 @@ do
 		end
 		return n
 	end
-	local on = Ambient()
+	local on, bloom = Ambient(), hub.bloom:GetAlpha()
 	assert(K.Store.Module("Medallions").ambient == true and on > 4, "the ambient hub effects are on by default")
 	K.Options.Write("Medallions", "ambient", false)
 	assert(Ambient() == 0 and not hub.sheen:IsShown(), "the switch off stops every ambient loop and hides the sheen")
@@ -166,6 +166,8 @@ do
 	env.RunTimers()
 	K.Options.Write("Medallions", "ambient", true)
 	assert(Ambient() == on and hub.sheen:IsShown(), "the switch on restores every loop")
+	ns.Slab.Refresh()
+	assert(hub.bloom:GetAlpha() == bloom and select(4, hub.bloom:GetVertexColor()) == bloom, "the switch on restores the bloom's alpha and tint")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
