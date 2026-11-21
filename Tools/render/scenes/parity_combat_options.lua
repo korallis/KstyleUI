@@ -42,7 +42,7 @@ return Common.Run(function()
    Meters = { ["damage.refresh"] = 0.2, ["damage.hoverSpells"] = 8, ["damage.hideRank"] = true, ["damage.iconZoom"] = 0.2, ["damage.spellTooltips"] = true,
     ["damage.panelAlpha"] = 0.6, ["damage.capAlpha"] = 0.8, ["damage.headerHeight"] = 4, ["damage.titleX"] = 6, ["damage.resetButton"] = true, ["damage.nameScale"] = 0.9,
     ["damage.valueScale"] = 1.1, ["damage.playerMarker"] = true, ["timer.shown"] = true, ["timer.decimal"] = true, ["history.icons"] = true, ["history.bars"] = true },
-   Meters3 = { ["damage2.shown"] = true, ["damage.report"] = true, ["damage.resetButton"] = true, ["damage.englishUnits"] = false },
+   Meters3 = { ["damage2.shown"] = true, ["damage.report"] = true, ["damage.englishUnits"] = false },
   }
   for key, value in pairs(values[enabled == "1" and module or module .. enabled]) do K.Options.Write(module, key, value) end
  end

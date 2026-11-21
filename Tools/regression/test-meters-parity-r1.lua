@@ -279,6 +279,17 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 					end
 				end
 			end
+			for _, guide in ipairs({ true, false }) do
+				for _, card in pairs(layouts.Story(preset, r0:GetHeight(), guide, style, r0:GetWidth()) or {}) do
+					if type(card) == "table" and card.anchor and card.width > 0 and card.height > 0 then
+						local left, bottom, right, top2 = layouts.Rect(card, card, r0:GetWidth(), r0:GetHeight())
+						for name, rect in pairs(mine) do
+							assert(rect.right <= left + 1 or right <= rect.left + 1 or rect.top <= bottom + 1 or top2 <= rect.bottom + 1,
+								string.format("%dx%d %s %s: %s overlaps the story rail's %s; move its default place", screen[1], screen[2], style, layout, name, card.key))
+						end
+					end
+				end
+			end
 			assert(#e._errors == 0 and k.ErrorCount() == 0, tostring(e._errors[1]))
 		end
 	end

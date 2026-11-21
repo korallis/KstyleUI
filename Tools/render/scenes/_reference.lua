@@ -339,7 +339,7 @@ function Reference.Build(opts)
 				UnitFrames = { player = { castbarIconRight = true, castbarTotal = true, castbarInside = false } },
 				Cooldowns = { essential = { edge = false }, utility = { edge = false } },
 				Meters = os.getenv("RENDER_METERS_PARITY") == "2" and {
-					damage = { report = true, resetButton = true, englishUnits = false }, damage2 = { shown = true },
+					damage = { report = true, englishUnits = false }, damage2 = { shown = true },
 				} or os.getenv("RENDER_METERS_PARITY") == "1" and {
 					damage = { iconZoom = 0.2, panelAlpha = 0.6, capAlpha = 0.8, headerHeight = 4, titleX = 6, titleY = 2, resetButton = true, nameScale = 0.9, valueScale = 1.1, playerMarker = true },
 					timer = { shown = true, decimal = true }, history = { icons = true, bars = true, grow = "RIGHT" },

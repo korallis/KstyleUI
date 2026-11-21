@@ -384,20 +384,20 @@ function ns.Schema()
 	Slider("damage.valueScale", L["Number size"], L["Scales the numbers on meter rows."], 0.5, 2, 0.05)
 	schema[#schema + 1] = { type = "toggle", key = "damage.playerMarker", label = L["Mark your bar"], disableWhen = meters,
 		help = L["Draws a white stripe on your own meter bar."] }
-	local noButtons = function(settings) return meters(settings) or not (settings.damage.resetButton or settings.damage.report) end
+	local noReset = function(settings) return meters(settings) or not settings.damage.resetButton end
 	schema[#schema + 1] = { type = "toggle", key = "damage.resetButton", label = L["Reset button"], disableWhen = meters, showWhen = WindowStyle,
 		help = L["Shows a button on the damage meter's title that clears every fight, after combat."] }
-	schema[#schema + 1] = { type = "toggle", key = "damage.report", label = L["Report button"], disableWhen = meters, showWhen = WindowStyle,
-		help = L["Shows a button on the damage meter's title that sends its rows to chat, out of combat."] }
+	schema[#schema + 1] = { type = "toggle", key = "damage.resetHover", label = L["Reset button on mouseover"], disableWhen = noReset, showWhen = WindowStyle,
+		help = L["Shows the reset button only while you point at the meter."] }
+	Slider("damage.resetSize", L["Reset button size"], L["How large the reset button is."], 8, 20, 1, { disableWhen = noReset, showWhen = WindowStyle })
+	schema[#schema + 1] = { type = "toggle", key = "damage.report", label = L["Report with Shift-click"], disableWhen = meters, showWhen = WindowStyle,
+		help = L["Shift-click a damage meter to send the rows it shows to chat, out of combat."] }
 	schema[#schema + 1] = { type = "dropdown", key = "damage.reportTo", label = L["Report to"], showWhen = WindowStyle,
 		disableWhen = function(settings) return meters(settings) or not settings.damage.report end,
 		help = L["Automatic uses your instance, raid or party chat. Without that chat, only you see the report."], options = {
 		{ value = "auto", label = L["Automatic"] }, { value = "PARTY", label = L["Party"] }, { value = "RAID", label = L["Raid"] },
 		{ value = "INSTANCE_CHAT", label = L["Instance"] }, { value = "GUILD", label = L["Guild"] },
 	} }
-	schema[#schema + 1] = { type = "toggle", key = "damage.resetHover", label = L["Title buttons on mouseover"], disableWhen = noButtons, showWhen = WindowStyle,
-		help = L["Shows the title's buttons only while you point at the meter."] }
-	Slider("damage.resetSize", L["Title button size"], L["How large the title's buttons are."], 8, 20, 1, { disableWhen = noButtons, showWhen = WindowStyle })
 
 	schema[#schema + 1] = { type = "header", label = L["Threat meter"] }
 	schema[#schema + 1] = { type = "toggle", key = "threat.followGuide", label = L["Follow the guide card"], help = L["Place threat below the guide and its controls. Off keeps the threat card's own position."] }

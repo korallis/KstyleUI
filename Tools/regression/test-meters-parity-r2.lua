@@ -107,26 +107,34 @@ local a, b = Rect(ns.Damage.holder), Rect(ns.Damage2.holder)
 assert(a.right <= b.left or b.right <= a.left or a.top <= b.bottom or b.top <= a.bottom, "the second window starts clear of the main one")
 Errors("second window")
 
--- Report button: left of the reset button, out of combat, to the right chat, never with a secret.
+-- Report with Shift-click: anywhere on a window, out of combat, to the right chat, never with a secret; off keeps today's clicks.
 local sent = {}
 env.C_ChatInfo = { SendChatMessage = function(message, chat) sent[#sent + 1] = { message, chat } end, InChatMessagingLockdown = function() return false end }
+env.IsShiftKeyDown = function() return env._shift == true end
 K.Layout.Update("meters.damage", { height = 300 }); env.RunTimers()
 assert(list.count == 5, "the main card shows every row for the report")
-local capRight = Rect(list.cap.frame).right
+local function Shift(frame, script)
+	sent, env._printed, env._shift = {}, {}, true
+	frame._scripts[script or "OnMouseUp"](frame, "LeftButton")
+	env._shift = false
+	env.RunTimers()
+end
+local function Click() Shift(list.panel) end
+Click()
+assert(#sent == 0 and ns.Get("damage.meter") == "Dps", "off by default, a Shift-click is today's click")
+set("damage.meter", "DamageDone")
 set("damage.report", true)
-local report = assert(list.reportButton)
-local r, panel = Rect(report), Rect(list.panel)
-assert(report:IsShown() and r.left >= Rect(list.cap.frame).right - 1e-6 and r.right <= panel.right - list.pad + 1e-6, "the report button sits right of the title, inside the card")
-assert(Rect(list.cap.frame).right < capRight, "the title gives the button room")
-set("damage.resetButton", true)
-local reset = list.resetButton
-r = Rect(report)
-local s = Rect(reset)
-assert(r.right <= s.left + 1e-6 and s.right <= panel.right - list.pad + 1e-6 and math.abs(r.top - r.bottom - (s.top - s.bottom)) < 1e-6, "report then reset, the same size, inside the card")
-report._scripts.OnClick(report); env.RunTimers()
+local tip = { lines = {}, AddLine = function(self, text) self.lines[#self.lines + 1] = text end }
+list.tooltip(tip)
+assert(tip.lines[#tip.lines] == K.L["Shift-click to report these rows to chat."], "the card's tooltip names the Shift-click")
+Click()
+assert(ns.Get("damage.meter") == "DamageDone", "a Shift-click reports instead of changing the meter")
 assert(#sent == 6 and sent[1][1] == "Damage done (Current fight)" and sent[1][2] == "PARTY", "a header to party chat: " .. tostring(sent[1] and sent[1][1]))
 assert(sent[2][1] == "1. Player 1 52.3K (32%)" and sent[6][1] == "5. Player 5 12.3K (8%)", "one line a row: " .. sent[2][1])
-local function Click() sent = {}; env._printed = {}; report._scripts.OnClick(report) end
+Shift(list.rows[2].frame)
+assert(#sent == 6 and not ns.Damage.drill.active, "a Shift-click on a row reports instead of opening it")
+Shift(list.titleHit)
+assert(#sent == 6 and ns.Get("damage.meter") == "DamageDone", "and on the title")
 local function Refused(label) assert(#sent == 0 and env._printed[#env._printed]:find(K.L["The meter can report after combat."], 1, true), label) end
 env.SetCombat(true); Click(); Refused("no report in combat")
 env.SetCombat(false); env.RunTimers()
@@ -151,24 +159,21 @@ assert(#sent == 0 and #env._printed == 6, "without the chat API only you see the
 env.C_ChatInfo.SendChatMessage = function(message, chat) sent[#sent + 1] = { message, chat } end
 list.rows[1].frame._scripts.OnMouseUp(list.rows[1].frame, "LeftButton"); env.RunTimers(); Click()
 assert(sent[1][1] == "Player 1: Damage done (Current fight)" and sent[2][1] == "1. Spell 1 52.3K (32%)", "a spell list reports its spells: " .. sent[1][1])
+assert(ns.Damage.drill.active, "a Shift-click in a spell list keeps it open")
 list.rows[1].frame._scripts.OnMouseUp(list.rows[1].frame, "LeftButton"); env.RunTimers()
-local secondReport = assert(second.reportButton, "the second window has its own report button")
-sent = {}; secondReport._scripts.OnClick(secondReport)
-assert(sent[1][1] == "Healing done (Current fight)", "the second window reports its own meter")
-set("damage.resetHover", true)
-assert(not report:IsShown() and not reset:IsShown(), "on mouseover both title buttons wait")
-list.panel._mouseOver = true; list.panel._scripts.OnEnter(list.panel)
-assert(report:IsShown() and reset:IsShown(), "pointing shows both")
-list.panel._mouseOver = false; list.panel._scripts.OnLeave(list.panel)
-set("damage.resetHover", false); set("damage.resetButton", false)
-assert(report:IsShown() and not reset:IsShown() and Rect(report).left >= Rect(list.cap.frame).right - 1e-6, "the report button stands alone")
-set("damage.report", false)
-assert(not report:IsShown() and math.abs(Rect(list.cap.frame).right - capRight) < 1e-6, "turning it off gives the title its room back")
+Shift(second.panel)
+assert(sent[1][1] == "Healing done (Current fight)" and ns.Get("damage2.meter") == "HealingDone", "the second window reports its own meter")
 env._sources["Player-3"] = env._sources["Player-1"]
 env._group.size = 0; env.FireEvent("GROUP_ROSTER_UPDATE"); env.RunTimers()
-set("damage.report", true); Click()
+Click()
 assert(#sent == 0 and #env._printed == 6 and env._printed[2] == "KstyleUI: 1. Spell 1 52.3K (32%)", "alone, only you see the report of your spells")
-set("damage.report", false); env._group.size = 5; env.FireEvent("GROUP_ROSTER_UPDATE"); env.RunTimers()
+env._group.size = 5; env.FireEvent("GROUP_ROSTER_UPDATE"); env.RunTimers()
+set("damage.report", false)
+tip.lines = {}; list.tooltip(tip)
+assert(tip.lines[#tip.lines] ~= K.L["Shift-click to report these rows to chat."], "off, the tooltip drops the hint")
+Click()
+assert(#sent == 0 and ns.Get("damage.meter") == "Dps", "off, a Shift-click is a click again")
+set("damage.meter", "DamageDone")
 Errors("report")
 
 -- Off restores: the second window hides and stops listening.
@@ -177,14 +182,13 @@ assert(not ns.Damage2.holder:IsShown(), "turning the second window off hides it"
 types = {}; Refresh()
 for _, meter in ipairs(types) do assert(meter ~= M.METER.HealingDone, "a hidden second window does no work") end
 
--- The live preview shows the second window, the report button and the units.
-set("damage2.shown", true); set("damage.report", true); set("damage.englishUnits", false)
+-- The live preview shows the second window and the units.
+set("damage2.shown", true); set("damage.englishUnits", false)
 local parent = env.CreateFrame("Frame", nil, env.UIParent); parent:SetSize(900, 500); parent:SetPoint("CENTER", env.UIParent, "CENTER")
 calls = 0
 env.AbbreviateLargeNumbers = function(value) calls = calls + 1; return game(value) end
 local preview = ns.Preview.Build(parent)
 assert(preview.second and preview.second.holder:IsShown() and preview.second.count > 0, "the preview shows the second window")
-assert(preview.damage.reportButton:IsShown() and preview.second.reportButton:IsShown(), "the preview shows the report buttons")
 assert(calls > 0, "the preview uses the game's units when English units are off")
 local parts = { preview.damage.holder, preview.second.holder, preview.threat.holder }
 for i, part in ipairs(parts) do

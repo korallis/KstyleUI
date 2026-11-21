@@ -151,7 +151,7 @@ function Preview.Build(...)
 	local function Lists(frame)
 		local second = ns.Get("damage2.shown")
 		if second and not frame.second then
-			frame.second = ns.BarList.New(frame, "damage", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("damage"), block = true, icons = Icons, onReset = Nothing, onReport = Nothing })
+			frame.second = ns.BarList.New(frame, "damage", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("damage"), block = true, icons = Icons, onReset = Nothing })
 		end
 		if frame.second then frame.second.holder:SetShown(second) end
 		local lists = second and { frame.damage, frame.second, frame.threat } or { frame.damage, frame.threat }
@@ -279,7 +279,7 @@ function Preview.Build(...)
 	build = function(parent)
 		local frame = CreateFrame("Frame", nil, parent)
 		Widgets.Fill(frame, parent, 0, 0, 0, 0)
-		frame.damage = ns.BarList.New(frame, "damage", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("damage"), block = true, icons = Icons, onReset = Nothing, onReport = Nothing })
+		frame.damage = ns.BarList.New(frame, "damage", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("damage"), block = true, icons = Icons, onReset = Nothing })
 		frame.threat = ns.BarList.New(frame, "threat", { width = FALLBACK_WIDTH / 2, height = FALLBACK_HEIGHT, columns = Columns("threat"), icons = Icons })
 		frame.swing = Widgets.StatusBar(frame, {
 			texture = ns.Get("swing.texture"), background = "track", border = true, min = 0, max = 1, value = SWING_FILL,

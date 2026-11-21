@@ -7,7 +7,7 @@ local Logic = ns.Logic
 
 local KEY, SECOND = "meters.damage", "meters.damage2"
 local LIMITS = { minWidth = 120, maxWidth = 600, minHeight = 40, maxHeight = 800 }
-local SECOND_PLACE, SECOND_WIDTH = { anchor = "RIGHT", x = -105, y = 110 }, 200
+local SECOND_PLACE, SECOND_WIDTH = { anchor = "BOTTOMRIGHT", x = -283, y = 17 }, 180
 local SECONDS_PER_MINUTE = 60
 local EVENTS = {
 	"DAMAGE_METER_COMBAT_SESSION_UPDATED", "DAMAGE_METER_CURRENT_SESSION_UPDATED", "DAMAGE_METER_RESET",
@@ -806,7 +806,18 @@ function Damage:OnEvent(event, meterType, sessionID)
 	OnEvent(self, event, meterType, sessionID)
 end
 
+local function Reporting(W)
+	if ns.Get("damage.report") and Yes(IsShiftKeyDown) then
+		Report(W)
+		return true
+	end
+	return false
+end
+
 local function OnRowClick(W, list, i, button)
+	if Reporting(W) then
+		return
+	end
 	local drill = W.drill
 	if drill.active then
 		Back(W)
@@ -836,6 +847,9 @@ local function NextSession(W)
 end
 
 local function OnClick(W, _, button)
+	if Reporting(W) then
+		return
+	end
 	if W.drill.active then
 		Back(W)
 		Refresh(W)
@@ -853,11 +867,14 @@ end
 local function Tooltip(W, tip)
 	if W.drill.active then
 		tip:AddLine(L["Click to go back to every source."])
-		return
+	else
+		tip:AddLine(L["Click a name for its spells. Click the card for the next meter."])
+		tip:AddLine(L["Scroll for more names."])
+		tip:AddLine(L["Click Now, Last or All for the next fight: this fight, the last fight or every fight."])
 	end
-	tip:AddLine(L["Click a name for its spells. Click the card for the next meter."])
-	tip:AddLine(L["Scroll for more names."])
-	tip:AddLine(L["Click Now, Last or All for the next fight: this fight, the last fight or every fight."])
+	if ns.Get("damage.report") then
+		tip:AddLine(L["Shift-click to report these rows to chat."])
+	end
 end
 
 local function SwitchTooltip(W, tip)
@@ -873,6 +890,9 @@ local function SwitchTooltip(W, tip)
 end
 
 local function OnTitle(W, _, button)
+	if Reporting(W) then
+		return
+	end
 	if W.drill.active then
 		Back(W)
 		Refresh(W)
@@ -907,6 +927,9 @@ local function Icons()
 end
 
 local function OnSwitch(W)
+	if Reporting(W) then
+		return
+	end
 	K.Options.Write(ns.MODULE, W.sessionKey, NextSession(W))
 end
 
@@ -922,7 +945,7 @@ local function Build(W)
 		key = W.key, width = width or 269, height = height or 158, columns = Columns, onClick = Bind(OnClick), block = true,
 		onRowClick = Bind(OnRowClick), tooltip = Bind(Tooltip), onSwitch = Bind(OnSwitch), switchTooltip = Bind(SwitchTooltip),
 		rowTooltip = Bind(RowTooltip), rowSplits = Bind(RowSplits), rowSplit = Bind(RowSplit),
-		onTitle = Bind(OnTitle), titleTooltip = Bind(TitleTooltip), onWheel = Bind(OnWheel), icons = Icons, onReset = ns.ResetMeters, onReport = Bind(Report),
+		onTitle = Bind(OnTitle), titleTooltip = Bind(TitleTooltip), onWheel = Bind(OnWheel), icons = Icons, onReset = ns.ResetMeters,
 	})
 	W.holder = W.list.holder
 	if W == Damage then

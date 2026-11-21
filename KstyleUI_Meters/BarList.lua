@@ -396,9 +396,9 @@ function HideSplit(list)
 end
 
 local function Hover(list)
-	if list.resetHover then
-		local over = list.panel:IsMouseOver() == true
-		for _, button in ipairs(list.capButtons) do button:SetShown(over) end
+	local button = list.resetButton
+	if button and list.resetHover then
+		button:SetShown(list.panel:IsMouseOver() == true)
 	end
 end
 
@@ -819,20 +819,20 @@ function List:ReserveTitle(width)
 	end
 end
 
-local function CapButton(list, field, text, hint, onClick, size)
-	local button = list[field]
+local function ResetButton(list, size)
+	local button = list.resetButton
 	if not button then
 		button = CreateFrame("Button", nil, list.panel)
 		button:SetFrameLevel(list.panel:GetFrameLevel() + 2)
 		button.label = Widgets.FontString(button, "OVERLAY")
 		button.label:SetAllPoints(button)
-		button.label:SetText(text)
-		button:SetScript("OnClick", onClick)
+		button.label:SetText(K.L["Reset"])
+		button:SetScript("OnClick", list.onReset)
 		button:SetScript("OnEnter", function(self)
 			Widgets.TextColor(self.label, "textHover")
 			local tip = Widgets.Tooltip()
 			tip:SetOwner(self, BarList.Inward(self))
-			tip:AddLine(hint)
+			tip:AddLine(K.L["Reset every fight"])
 			tip:Show()
 		end)
 		button:SetScript("OnLeave", function(self)
@@ -840,13 +840,13 @@ local function CapButton(list, field, text, hint, onClick, size)
 			Widgets.Tooltip():Hide()
 			Hover(list)
 		end)
-		list[field] = button
+		list.resetButton = button
 	end
 	Widgets.TextColor(button.label, "muted")
 	ns.ApplyFont(button.label, list.section, "resetSize")
 	button:ClearAllPoints()
 	Widgets.Size(button, Widgets.Snap(list.panel, Widgets.TextWidth(button.label, size * 3)), size)
-	list.capButtons[#list.capButtons + 1] = button
+	Widgets.Point(button, "LEFT", list.cap.frame, "RIGHT", list.gap, 0)
 	return button
 end
 
@@ -884,16 +884,9 @@ function List:Restyle()
 	cap.frame:SetShown(titled)
 	cap.frame:ClearAllPoints()
 	local x, y = Widgets.Snap(self.panel, ns.Get("damage.titleX")), Widgets.Snap(self.panel, ns.Get("damage.titleY"))
-	local size, buttons = Widgets.Snap(self.panel, ns.Get("damage.resetSize")), self.capButtons
-	for i = #buttons, 1, -1 do buttons[i] = nil end
-	local report = self.onReport ~= nil and ns.Get("damage.report") and titled and CapButton(self, "reportButton", K.L["Report"], K.L["Send these rows to chat"], self.onReport, size)
-	local reset = self.onReset ~= nil and ns.Get("damage.resetButton") and titled and CapButton(self, "resetButton", K.L["Reset"], K.L["Reset every fight"], self.onReset, size)
-	local inset, left = 0, self.cap.frame
-	for _, button in ipairs(buttons) do
-		Widgets.Point(button, "LEFT", left, "RIGHT", self.gap, 0)
-		inset, left = inset + button:GetWidth() + self.gap, button
-	end
-	self.capInset = x + inset
+	local resetOn = self.onReset ~= nil and ns.Get("damage.resetButton") and titled
+	local reset = resetOn and ResetButton(self, Widgets.Snap(self.panel, ns.Get("damage.resetSize")))
+	self.capInset = x + (reset and reset:GetWidth() + self.gap or 0)
 	local capLeft = (not self.plate and self.block and Widgets.Snap(self.panel, BLOCK_CAP_LEFT) or self.pad) + x
 	local capTop = (not self.plate and self.block and Widgets.Snap(self.panel, BLOCK_CAP_TOP) or self.pad) + y
 	cap.frame:SetPoint("TOPLEFT", self.panel, "TOPLEFT", capLeft, -capTop)
@@ -903,10 +896,12 @@ function List:Restyle()
 		self.capAlpha = capAlpha
 		cap.frame:SetAlpha(capAlpha)
 	end
-	self.resetHover = #buttons > 0 and ns.Get("damage.resetHover")
-	local over = not self.resetHover or self.panel:IsMouseOver() == true
-	if self.reportButton then self.reportButton:SetShown(report and over or false) end
-	if self.resetButton then self.resetButton:SetShown(reset and over or false) end
+	self.resetHover = resetOn and ns.Get("damage.resetHover")
+	if reset then
+		reset:SetShown(not self.resetHover or self.panel:IsMouseOver() == true)
+	elseif self.resetButton then
+		self.resetButton:Hide()
+	end
 	cap:Restyle()
 	if self.block then
 		Widgets.TextColor(self.title, section == "threat" and ns.Threat.alarm and "hostile" or "capsGold")
@@ -1244,7 +1239,7 @@ function BarList.New(parent, section, opts)
 	list.plate = ns.Get("nameplateRows")
 	list.block = list.plate or list.originalBlock
 	list.iconsOn = opts.icons
-	list.onReset, list.onReport, list.capButtons = opts.onReset, opts.onReport, {}
+	list.onReset = opts.onReset
 	list.capAlpha = 1
 	list.key = opts.key
 	list.icons = false
@@ -1325,7 +1320,7 @@ function BarList.New(parent, section, opts)
 		end
 		list.switch = switch
 	end
-	if opts.onReset or opts.onReport then
+	if opts.onReset then
 		for _, frame in pairs({ panel, list.titleHit, list.switch }) do
 			frame:HookScript("OnEnter", function() Hover(list) end)
 			frame:HookScript("OnLeave", function() Hover(list) end)
