@@ -615,4 +615,37 @@ do
 	NoErrors(penv, "preview")
 end
 
+-- The settings window lays the preview out, then rescales it and restyles what is under it without a Refresh.
+-- Down and back up must draw what a fresh preview draws at that scale.
+do
+	local function Shapes(scales)
+		local penv, PK = M.New()
+		local frame = PK.Options.Preview("Minimap")(penv.CreateFrame("Frame", nil, penv.UIParent))
+		for _, scale in ipairs(scales) do
+			frame:Refresh()
+			frame:SetScale(scale)
+			PK.Widgets.RestyleUnder({ [frame] = true })
+		end
+		local shapes = {}
+		local function walk(object)
+			for _, region in ipairs({ object:GetRegions() }) do
+				local font = region.GetFont and select(2, region:GetFont())
+				shapes[#shapes + 1] = ("%.4f x %.4f font %.4f"):format(region:GetWidth() or 0, region:GetHeight() or 0, font or 0)
+			end
+			for _, child in ipairs({ object:GetChildren() }) do
+				shapes[#shapes + 1] = ("%.4f x %.4f"):format(child:GetWidth() or 0, child:GetHeight() or 0)
+				walk(child)
+			end
+		end
+		walk(frame)
+		NoErrors(penv, "preview rescale")
+		return shapes
+	end
+	local fresh, path = Shapes({ 1.1556 }), Shapes({ 1.1556, 1.0427, 1.1556 })
+	assert(#path == #fresh, "the rescaled preview has the fresh one's pieces")
+	for i, shape in ipairs(fresh) do
+		assert(path[i] == shape, "the preview scaled down and back up draws as a fresh one: piece " .. i .. " is " .. path[i] .. ", fresh " .. shape)
+	end
+end
+
 print("minimap ok")
