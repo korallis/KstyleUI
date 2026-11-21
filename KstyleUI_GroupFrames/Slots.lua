@@ -173,13 +173,16 @@ local function Field(f, w, h)
 			blocked[#blocked + 1] = Box(block.left, block.top, block.width, block.height)
 		end
 	end
+	local heal
 	if Settings.current.buffs.enabled then
-		local _, count, _, _, _, _, row = Auras.HealIcons(f, k)
+		local side, count, size, spacing, _, _, row = Auras.HealIcons(f, k)
 		if count > 0 and row then
 			blocked[#blocked + 1] = FromRect(row)
+			local drawn = Geometry.Line(count, size, spacing)
+			heal = (k.buffX ~= 0 or k.buffY ~= 0) and Box(side == "RIGHT" and row.left + row.width - drawn or row.left, row.top, drawn, row.height) or nil
 		end
 	end
-	return field, blocked, gap, fill
+	return field, blocked, gap, fill, heal
 end
 
 local function Preferred(field, point, size)
@@ -314,7 +317,7 @@ function Slots.Placements(f)
 	local cfg = Settings.current
 	seen[f.kind] = f
 	local w, h = Style.Size(f)
-	local field, blocked, gap, fill = Field(f, w, h)
+	local field, blocked, gap, fill, heal = Field(f, w, h)
 	local spots = Spots(f)
 	local key = Key2(f, w, h, field, blocked, spots) .. (fill and "|fill" or "")
 	if cache[key] then
@@ -340,12 +343,13 @@ function Slots.Placements(f)
 			return a < b
 		end)
 	end
-	local lane = 1
+	local lane, crowded = 1, false
 	for _, i in ipairs(order) do
 		local slot = cfg[Key(i)]
 		local place = { point = slot.position, x = 0, y = 0, size = Widgets.Snap(f, Slots.Size(f, slot.size)), fits = false }
 		if Category(slot, f.kind) then
 			local spot
+			while heal and spots and spots.lane[lane] and Overlaps(spots.lane[lane], heal) do lane, crowded = lane + 1, true end
 			if spots and spots.lane[lane] then
 				spot, lane = spots.lane[lane], lane + 1
 			end
@@ -356,7 +360,7 @@ function Slots.Placements(f)
 					spot = Box(spot.left + full - place.size, spot.top + inset, place.size, place.size)
 				end
 				Put(place, spot, w, h)
-			elseif not (f.parts and f.parts.tidyLanes) then
+			elseif crowded or not (f.parts and f.parts.tidyLanes) then
 				spot = Search(f, field, taken, fill, gap, slot, place)
 				if spot then
 					taken[#taken + 1] = spot

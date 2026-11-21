@@ -1229,6 +1229,9 @@ local function HealIcons(f, k)
 	while count > 0 and Geometry.Line(count, size, spacing) > row.width + LINE_SLACK do
 		count = count - 1
 	end
+	if k.buffX ~= 0 or k.buffY ~= 0 then
+		row = { left = row.left + k.buffX, top = row.top - k.buffY, width = row.width, height = row.height, side = row.side }
+	end
 	return row.side or "LEFT", count, size, spacing, inset, nil, row
 end
 Auras.HealIcons = HealIcons
@@ -1267,7 +1270,7 @@ local function ConfigureBuffs(f)
 	clip:ClearAllPoints()
 	if row then
 		local x = side == "RIGHT" and row.left + row.width or row.left
-		clip:SetPoint(corner, f, "TOPLEFT", Widgets.Snap(f, x + k.buffX), -Widgets.Snap(f, row.top - k.buffY))
+		clip:SetPoint(corner, f, "TOPLEFT", Widgets.Snap(f, x), -Widgets.Snap(f, row.top))
 	else
 		clip:SetPoint(corner, f, corner, Widgets.Snap(f, k.buffX), Widgets.Snap(f, k.buffY))
 	end
@@ -1576,9 +1579,9 @@ local function LayoutSamples(f, k)
 		icon:SetSize(buffSize, buffSize)
 		local along = (i - 1) * (buffSize + buffSpacing)
 		if row and side == "RIGHT" then
-			icon:SetPoint("TOPRIGHT", f, "TOPLEFT", Widgets.Snap(f, row.left + row.width - along + k.buffX), -Widgets.Snap(f, row.top - k.buffY))
+			icon:SetPoint("TOPRIGHT", f, "TOPLEFT", Widgets.Snap(f, row.left + row.width - along), -Widgets.Snap(f, row.top))
 		elseif row then
-			icon:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, row.left + along + k.buffX), -Widgets.Snap(f, row.top - k.buffY))
+			icon:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, row.left + along), -Widgets.Snap(f, row.top))
 		else
 			icon:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
 		end
