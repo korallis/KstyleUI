@@ -11,6 +11,7 @@ ns.Focus = Focus
 local OWNER = ns.MODULE .. "Focus"
 local SIDES = { LEFT = { "RIGHT", "LEFT", -1, 0 }, RIGHT = { "LEFT", "RIGHT", 1, 0 }, TOP = { "BOTTOM", "TOP", 0, 1 }, BOTTOM = { "TOP", "BOTTOM", 0, -1 } }
 local MANA = 0
+local MAX_PLATES = 40
 local style = setmetatable({ group = "utility" }, ns.Row)
 local icon, spell, dungeon
 local plates, notes = {}, {}
@@ -174,6 +175,10 @@ function Focus.Apply()
 		if current.focusTarget then K.Events.Register(OWNER, "PLAYER_TARGET_CHANGED", OnUnit) end
 	end
 	if reminder then
+		for i = 1, MAX_PLATES do
+			local unit = "nameplate" .. i
+			plates[unit] = Plate(unit) and true or nil
+		end
 		K.Events.Register(OWNER, "PLAYER_ENTERING_WORLD", OnWorld)
 		OnWorld()
 	end
