@@ -769,7 +769,7 @@ local function installHeaders(env)
 end
 
 -- Macro options for state drivers, with the group conditions the stub's parser lacks: [group:raid],
--- [group:party], [group] and [nogroup], next to combat, nocombat, exists and noexists with @unit.
+-- [group:party], [group] and [nogroup], next to combat, nocombat, exists, noexists and help with @unit.
 local function installDrivers(env)
 	local function holds(group)
 		local unit, ok = "target", true
@@ -793,6 +793,8 @@ local function installDrivers(env)
 				ok = ok and kind ~= nil
 			elseif part == "nogroup" then
 				ok = ok and kind == nil
+			elseif part == "help" then
+				ok = ok and env.UnitExists(unit) == true and env.UnitCanAssist ~= nil and env.UnitCanAssist("player", unit) == true
 			elseif env.Condition then
 				ok = ok and env.Condition(part)
 			else
