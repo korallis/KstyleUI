@@ -152,6 +152,11 @@ local function TidyParts(out, kind, o)
 	count = math.min(3, count)
 	local reserve = o.reserve or 0
 	local endName = right - reserve - (reserve > 0 and gap or 0)
+	local heal = out.healRow and out.healRow.side == "RIGHT" and out.healRow
+	if heal then
+		heal.left = endName - heal.width
+		endName = heal.left - gap
+	end
 	local width = count > 0 and count * size + (count - 1) * 1 or 0
 	out.indicatorLane = { left = endName - width, top = name.top + math.max(0, (name.height - size) / 2), width = width, height = size, size = size, count = count, step = size + 1, fromRight = true, legible = true }
 	if out.tile then
@@ -159,7 +164,9 @@ local function TidyParts(out, kind, o)
 	else
 		out.healthText.right, out.healthText.markedRight = right, right
 	end
-	out.name = { left = name.left, top = name.top, width = math.max(1, endName - width - (width > 0 and gap or 0) - name.left), height = name.height }
+	local nameRight = endName - width - (width > 0 and gap or 0)
+	if heal then nameRight = math.min(endName, math.max(nameRight, name.left + Geometry.NAME_EM * (o.nameMin or 0))) end
+	out.name = { left = name.left, top = name.top, width = math.max(1, nameRight - name.left), height = name.height }
 	out.tidyLanes = true
 	return out
 end
