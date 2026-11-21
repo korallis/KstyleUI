@@ -295,12 +295,23 @@ local function Region(widget)
 	return nil
 end
 
+local function Reachable(node)
+	local check = node.CanBeAccessedInContext
+	if type(check) == "function" then
+		local ok, allowed = pcall(check, node)
+		if not ok or IsSecret(allowed) or allowed == false then
+			return false
+		end
+	end
+	return not (type(node.IsForbidden) == "function" and node:IsForbidden() == true)
+end
+
 local function Under(node, roots)
 	while node do
 		if roots[node] then
 			return true
 		end
-		if type(node.IsForbidden) == "function" and node:IsForbidden() == true then
+		if not Reachable(node) then
 			return false
 		end
 		node = node:GetParent()
