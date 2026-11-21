@@ -144,7 +144,7 @@ local function Read(sizes)
 	if Unit.IsSecret(members) or type(members) ~= "number" then members = nil end
 	local role = type(UnitGroupRolesAssigned) == "function" and UnitGroupRolesAssigned("player") or nil
 	local healer = not Unit.IsSecret(role) and role == "HEALER"
-	sizes = members and (sizes or (cfg.groups.hideEmpty or cfg.auto.shownOnly) and Unit.GroupSizes(members)) or nil
+	sizes = members and (sizes or (cfg.groups.hideEmpty or cfg.auto.shownOnly or cfg.raid.center) and Unit.GroupSizes(members)) or nil
 	local filled = sizes and ""
 	for g = 1, sizes and 8 or 0 do
 		filled = filled .. ((sizes[g] or 0) > 0 and g or "")
@@ -165,7 +165,7 @@ local function Settle(sizes)
 	local now = Read(sizes)
 	AutoLayout.state = now
 	if now.bracket == AutoLayout.Bracket(Counted(cfg, state)) and now.healer == state.healer and now.mythic == state.mythic
-		and (now.filled == state.filled or not cfg.groups.hideEmpty) and now.solo == state.solo and now.smallRaid == state.smallRaid then
+		and (now.filled == state.filled or not (cfg.groups.hideEmpty or cfg.raid.center)) and now.solo == state.solo and now.smallRaid == state.smallRaid then
 		return
 	end
 	K.DevTest.Log(Settings.MODULE, "automatic layout: " .. now.bracket:lower() .. " raid, " .. (now.healer and "healer" or "not healing"))
@@ -188,7 +188,7 @@ local function Recheck()
 end
 
 local function OnSetting(_, module, key)
-	if module == Settings.MODULE and type(key) == "string" and (key:match("^auto%.") or key:match("^groups%.") or key:match("^party%.")) and Frames.Active() then
+	if module == Settings.MODULE and type(key) == "string" and (key:match("^auto%.") or key:match("^groups%.") or key:match("^party%.") or key == "raid.center") and Frames.Active() then
 		Recheck()
 	end
 end
@@ -200,7 +200,7 @@ function Frames.Enable()
 	K.Callbacks.Register("SettingChanged", "GroupFrames.AutoLayout", OnSetting)
 	K.Callbacks.Register("ProfileChanged", "GroupFrames.AutoLayout", Recheck)
 	local cfg = Settings.current
-	if cfg.groups.hideEmpty or cfg.auto.shownOnly or cfg.party.centerSolo or cfg.party.smallRaid then Recheck() end
+	if cfg.groups.hideEmpty or cfg.auto.shownOnly or cfg.party.centerSolo or cfg.party.smallRaid or cfg.raid.center then Recheck() end
 end
 
 local flush = Unit.FlushRoster

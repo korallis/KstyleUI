@@ -150,12 +150,12 @@ local function Place(f, region, rect)
 	Widgets.Point(region, "TOPLEFT", f, "TOPLEFT", rect.left, -rect.top)
 end
 
-function Style.Pin(f, region, place, size, shift)
+function Style.Pin(f, region, place, size, x, y)
 	local inset = Widgets.Snap(f, Tokens.Size("gapTiny"))
 	region:ClearAllPoints()
 	if size then region:SetSize(size, size) end
-	region:SetPoint(place, f.health, place, (place:find("LEFT") and inset or place:find("RIGHT") and -inset or 0) + (shift or 0),
-		place:find("TOP") and -inset or place:find("BOTTOM") and inset or 0)
+	region:SetPoint(place, f.health, place, (place:find("LEFT") and inset or place:find("RIGHT") and -inset or 0) + Widgets.Snap(f, x or 0),
+		(place:find("TOP") and -inset or place:find("BOTTOM") and inset or 0) + Widgets.Snap(f, y or 0))
 end
 
 local function PlaceBar(f, bar, rect)
@@ -504,7 +504,7 @@ function Style.PinStatus(f)
 		SetFont(f.healthText, text.healthFont, Style.StatusSize(f, Settings.current[f.kind].healthTextSize), OnBar(text.healthOutline))
 		f.healthText:SetWidth(0)
 		f.healthText:SetJustifyH("CENTER")
-		Style.Pin(f, f.healthText, status.place)
+		Style.Pin(f, f.healthText, status.place, nil, status.x, status.y)
 		f.healthText:Show()
 		f.statusPinned = true
 	elseif f.statusPinned then
@@ -565,7 +565,7 @@ function Style.Apply(f, width, height)
 		power = f.powerShown or (k.power and cfg.power.keepRoom),
 		powerHeight = k.powerHeight,
 		nameAbove = k.textLayout == "ABOVE",
-		nameHeight = k.nameSize + NAME_LINE_EXTRA,
+		nameHeight = cfg.names.height > 0 and math.max(cfg.names.height, k.nameSize) or k.nameSize + NAME_LINE_EXTRA,
 		iconSize = k.iconSize,
 		role = cfg.icons.role,
 		roleShapes = cfg.icons.roleShapes,

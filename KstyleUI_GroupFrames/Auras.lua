@@ -817,7 +817,7 @@ local function PlaceType(f)
 	local d, slot = Settings.current.dispel, f.typeFrame
 	if not slot or d.icon == "NONE" then return end
 	slot:SetFrameLevel(f.highlights:GetFrameLevel() + TEXT_ABOVE)
-	Style.Pin(f, f.typeIcon, d.icon, Widgets.Snap(f, math.min(d.iconSize, f.parts.health.height)))
+	Style.Pin(f, f.typeIcon, d.icon, Widgets.Snap(f, math.min(d.iconSize, f.parts.health.height)), d.x, d.y)
 end
 
 local function TypeOptions()
@@ -1267,9 +1267,9 @@ local function ConfigureBuffs(f)
 	clip:ClearAllPoints()
 	if row then
 		local x = side == "RIGHT" and row.left + row.width or row.left
-		clip:SetPoint(corner, f, "TOPLEFT", Widgets.Snap(f, x), -Widgets.Snap(f, row.top))
+		clip:SetPoint(corner, f, "TOPLEFT", Widgets.Snap(f, x + k.buffX), -Widgets.Snap(f, row.top - k.buffY))
 	else
-		clip:SetPoint(corner, f, corner, 0, 0)
+		clip:SetPoint(corner, f, corner, Widgets.Snap(f, k.buffX), Widgets.Snap(f, k.buffY))
 	end
 	clip:SetSize(math.max(1, Geometry.Line(count, size, spacing)), size + TimerRoom(f, size))
 	container:ClearAllPoints()
@@ -1576,9 +1576,9 @@ local function LayoutSamples(f, k)
 		icon:SetSize(buffSize, buffSize)
 		local along = (i - 1) * (buffSize + buffSpacing)
 		if row and side == "RIGHT" then
-			icon:SetPoint("TOPRIGHT", f, "TOPLEFT", Widgets.Snap(f, row.left + row.width - along), -Widgets.Snap(f, row.top))
+			icon:SetPoint("TOPRIGHT", f, "TOPLEFT", Widgets.Snap(f, row.left + row.width - along + k.buffX), -Widgets.Snap(f, row.top - k.buffY))
 		elseif row then
-			icon:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, row.left + along), -Widgets.Snap(f, row.top))
+			icon:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, row.left + along + k.buffX), -Widgets.Snap(f, row.top - k.buffY))
 		else
 			icon:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
 		end
@@ -1651,7 +1651,7 @@ local function PaintSample(f, sample)
 		f.sampleType = f.sampleType or f.text:CreateTexture(nil, "OVERLAY")
 		f.sampleType:SetTexture((Tokens.Texture("dispel" .. sample.dispel:sub(1, 1))))
 		f.sampleType:SetVertexColor(own and own.r or 1, own and own.g or 1, own and own.b or 1)
-		Style.Pin(f, f.sampleType, d.icon, Widgets.Snap(f, math.min(d.iconSize, f.parts.health.height)))
+		Style.Pin(f, f.sampleType, d.icon, Widgets.Snap(f, math.min(d.iconSize, f.parts.health.height)), d.x, d.y)
 	end
 	if f.sampleType then f.sampleType:SetShown(sample.dispel ~= nil and d.icon ~= "NONE") end
 	local dispel = a.dispelHighlight and sample.dispel

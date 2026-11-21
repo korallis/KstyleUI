@@ -13,6 +13,8 @@
 -- offset, the thick icon text outline and indicator 1 kept to raid frames.
 -- RENDER_PARITY_R3A=1 switches on round 3a's: missing buffs, Dead on the bar, the dispel type letter, centred names
 -- with a divider, group numbers, healer mana and your group label.
+-- RENDER_PARITY_R4=1 switches on round 4's: role icons on the bar with an offset, glowing missing buffs, a taller name
+-- line, heal icons nudged, class first and centred raid groups.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
@@ -46,6 +48,7 @@ if os.getenv("RENDER_PLAYER") == "warlock" then
 end
 local AT = { party = { 24, 392 }, raid = { 14, 330 } }
 local R3A = os.getenv("RENDER_PARITY_R3A") == "1"
+local R4 = os.getenv("RENDER_PARITY_R4") == "1"
 local SPELLS = { [1243] = { "Power Word: Fortitude", 135987 }, [1459] = { "Arcane Intellect", 135932 }, [467] = { "Thorns", 136104 } }
 local GROUP_SPELLS = { [21562] = "Prayer of Fortitude", [23028] = "Arcane Brilliance" }
 local IDENTITY = {
@@ -89,7 +92,7 @@ return Common.Run(function()
 				local id = identity(unit)
 				return id and id[2] or 2
 			end
-			if R3A then
+			if R3A or R4 then
 				env.C_SpellBook = { IsSpellKnown = function(id) return SPELLS[id] ~= nil end }
 				env.C_Spell = env.C_Spell or {}
 				env.C_Spell.GetSpellName = function(id) return SPELLS[id] and SPELLS[id][1] or GROUP_SPELLS[id] end
@@ -168,6 +171,12 @@ return Common.Run(function()
 	if R3A then
 		for key, value in pairs({ ["reminders.place"] = "TOPRIGHT", ["status.place"] = "CENTER", ["dispel.icon"] = "LEFT", ["names.align"] = "CENTER",
 			["names.divider"] = true, ["numbers.show"] = true, ["mana.mode"] = "BOTH", ["label.enabled"] = true }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+	end
+	if R4 then
+		for key, value in pairs({ ["icons.rolePlace"] = "LEFT", ["icons.roleX"] = 2, ["reminders.place"] = "TOPRIGHT", ["reminders.glow"] = true,
+			["names.height"] = 18, ["party.buffX"] = -4, ["raid.buffY"] = 2, ["sort.classFirst"] = true, ["raid.center"] = true }) do
 			K.Options.Write("GroupFrames", key, value)
 		end
 	end

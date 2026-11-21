@@ -155,27 +155,37 @@ local function Layout(f, parts, k)
 		Widgets.Size(icon, status, status)
 		icon:ClearAllPoints()
 		Widgets.Point(icon, "TOPLEFT", f, "TOPLEFT", statusLeft, -statusTop)
-		if cfg.readyPlace ~= "AUTO" then Pin(f, icon, cfg.readyPlace) end
+		if cfg.readyPlace ~= "AUTO" then Pin(f, icon, cfg.readyPlace, nil, cfg.readyX, cfg.readyY) end
 	end
 	if cfg.readyPlace ~= "AUTO" then
-		Pin(f, f.ready, cfg.readyPlace)
+		Pin(f, f.ready, cfg.readyPlace, nil, cfg.readyX, cfg.readyY)
 	end
 	if cfg.markerPlace ~= "AUTO" then
-		Pin(f, f.marker, cfg.markerPlace, markerSize)
+		Pin(f, f.marker, cfg.markerPlace, markerSize, cfg.markerX, cfg.markerY)
+	end
+	local rect = icons.role
+	if cfg.rolePlace ~= "AUTO" then
+		roleSize = Widgets.Snap(f, math.min(roleSize, health.height))
+		Pin(f, f.role, cfg.rolePlace, roleSize, cfg.roleX, cfg.roleY)
+		Pin(f, f.pipEdge, cfg.rolePlace, roleSize, cfg.roleX, cfg.roleY)
+		rect = nil
 	end
 	if cfg.roleText and not f.roleLetter then
 		f.roleLetter = Widgets.FontString(f.text, "OVERLAY")
 		f.roleLetter:SetJustifyH("CENTER")
 	end
 	if f.roleLetter then
-		local rect = icons.role
 		f.roleLetter:ClearAllPoints()
-		f.roleLetter:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, rect.left + rect.width / 2), -Widgets.Snap(f, rect.top + rect.height / 2))
-		Style.SetFont(f.roleLetter, Settings.current.text.healthFont, math.max(6, rect.height), "OUTLINE")
+		if rect then
+			f.roleLetter:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, rect.left + rect.width / 2), -Widgets.Snap(f, rect.top + rect.height / 2))
+		else
+			f.roleLetter:SetPoint("CENTER", f.role, "CENTER", 0, 0)
+		end
+		Style.SetFont(f.roleLetter, Settings.current.text.healthFont, math.max(6, rect and rect.height or roleSize), "OUTLINE")
 	end
 	if f.combatIcon or cfg.combat then
 		f.combatIcon = f.combatIcon or f.text:CreateTexture(nil, "OVERLAY")
-		Pin(f, f.combatIcon, cfg.combatPlace, Widgets.Snap(f, math.min(cfg.combatSize, health.height)))
+		Pin(f, f.combatIcon, cfg.combatPlace, Widgets.Snap(f, math.min(cfg.combatSize, health.height)), cfg.combatX, cfg.combatY)
 	end
 end
 Style.appliers[#Style.appliers + 1] = Layout

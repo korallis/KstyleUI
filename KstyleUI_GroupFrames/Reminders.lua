@@ -145,7 +145,9 @@ local function Layout(f, parts)
 			local gap, other = Widgets.Snap(f, Tokens.Size("gapTiny")), Widgets.Snap(f, math.min(d.iconSize, bar))
 			shift = cfg.place:find("RIGHT") and -(other + gap) or cfg.place:find("LEFT") and other + gap or Widgets.Snap(f, (other + size) / 2) + gap
 		end
-		Style.Pin(f, f.reminder, cfg.place, size, shift)
+		Style.Pin(f, f.reminder, cfg.place, size, shift + cfg.x, cfg.y)
+		if cfg.glow and not f.reminder.glow then f.reminder.glow = Widgets.Glow(f.reminder, { kind = "selection", spread = Tokens.Size("gapSmall") }) end
+		if f.reminder.glow then f.reminder.glow:SetIntensity(cfg.glow and 1 or 0) end
 		tile.chrome:Restyle()
 		tile.chrome:SetRimAccent(Style.Accent())
 		Auras.PlaceIcon(tile)

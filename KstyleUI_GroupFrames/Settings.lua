@@ -43,7 +43,7 @@ Settings.defaults = {
 		auraSize = 18, auraCount = 6, auraDispelCount = 1, auraColumns = 3, auraRows = 2, auraSpacing = 2,
 		auraPosition = "OUTSIDE_RIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
 		buffSize = 11, buffCount = 3,
-		auraX = 0, auraY = 0,
+		auraX = 0, auraY = 0, buffX = 0, buffY = 0,
 	},
 	raid = {
 		extra1 = ExtraText(), extra2 = ExtraText(),
@@ -56,7 +56,7 @@ Settings.defaults = {
 		auraSize = 12, auraCount = 3, auraDispelCount = 1, auraColumns = 3, auraRows = 1, auraSpacing = 1,
 		auraPosition = "BOTTOMRIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
 		buffSize = 10, buffCount = 3,
-		auraX = 0, auraY = 0,
+		auraX = 0, auraY = 0, buffX = 0, buffY = 0, center = false,
 	},
 	health = {
 		texture = Tokens.MediaList("statusbar")[1].path, colorSource = "class", color = Rgb("friendly"), orientation = "HORIZONTAL", alpha = 1,
@@ -74,6 +74,7 @@ Settings.defaults = {
 		role = true, roleShapes = true, statuses = true, afk = true, resurrection = true, summon = true, leader = true, marker = true, readyCheck = true,
 		roleTank = true, roleHealer = true, roleDamager = true, roleInCombat = true, leaderInCombat = true,
 		roleText = false, readyPlace = "AUTO", readySize = 0, markerPlace = "AUTO", combat = false, combatPlace = "LEFT", combatSize = 14, combatClass = false,
+		rolePlace = "AUTO", roleX = 0, roleY = 0, markerX = 0, markerY = 0, readyX = 0, readyY = 0, combatX = 0, combatY = 0,
 	},
 	threat = { enabled = true, shapes = true, edge = false },
 	tooltip = { mode = "ALWAYS" },
@@ -114,13 +115,18 @@ local function Plain(r, g, b)
 	return { r = r, g = g, b = b }
 end
 local defaults = Settings.defaults
-defaults.reminders = { place = "NONE", size = 14, fortitude = true, wild = true, intellect = true, spirit = true, thorns = true, salvation = true, thornsTank = false }
-defaults.status = { place = "AUTO", size = 0 }
-defaults.dispel = { icon = "NONE", iconSize = 14, iconBorder = true, custom = false,
+defaults.reminders = { place = "NONE", size = 14, fortitude = true, wild = true, intellect = true, spirit = true, thorns = true, salvation = true, thornsTank = false, glow = false, x = 0, y = 0 }
+defaults.status = { place = "AUTO", size = 0, x = 0, y = 0 }
+defaults.dispel = { icon = "NONE", iconSize = 14, iconBorder = true, custom = false, x = 0, y = 0,
 	magic = Plain(0.2, 0.6, 1), curse = Plain(0.6, 0, 1), poison = Plain(0, 0.6, 0), disease = Plain(0.6, 0.4, 0), bleed = Plain(0.8, 0.1, 0.1) }
-defaults.names = { align = "AUTO", divider = false, dividerAccent = false }
+defaults.names = { align = "AUTO", divider = false, dividerAccent = false, height = 0 }
 defaults.numbers = { show = false, size = 8 }
 defaults.mana = { mode = "NONE", size = 12, spacing = 2, align = "LEFT", growth = "DOWN", names = true, colorSource = "power", color = Rgb("rare") }
+local CLASSES = {}
+for i, class in ipairs(type(CLASS_SORT_ORDER) == "table" and #CLASS_SORT_ORDER > 0 and CLASS_SORT_ORDER or { "WARRIOR", "PALADIN", "PRIEST", "SHAMAN", "DRUID", "ROGUE", "MAGE", "WARLOCK", "HUNTER" }) do CLASSES[i] = class end
+Settings.CLASSES = CLASSES
+defaults.sort = { classFirst = false }
+for i, class in ipairs(CLASSES) do defaults.sort["class" .. i] = class end
 defaults.label = { enabled = false, format = "FULL", size = 14, padding = 4, color = Rgb("textEmphasis") }
 
 local rows
@@ -365,6 +371,39 @@ function Settings.Schema(includeText)
 			PLACES[#PLACES + 1], AUTO_PLACES[#AUTO_PLACES + 1] = option, option
 		end
 		local ALIGN = Options({ { "LEFT", L["Left"] }, { "CENTER", L["Centre"] }, { "RIGHT", L["Right"] } })
+		local function Nudge(key, across, up, showWhen)
+			add(Slider(key .. "x", across, L["Moves it left or right from its place."], -50, 50, 1, showWhen))
+			add(Slider(key .. "y", up, L["Moves it up or down from its place."], -50, 50, 1, showWhen))
+		end
+		local function After(key, list)
+			for i, row in ipairs(schema) do
+				if row.key == key then
+					for j, new in ipairs(list) do
+						table.insert(schema, i + j, new)
+						if rows then rows[new.key] = new end
+					end
+					return
+				end
+			end
+		end
+		local placed = IsNot("icons.rolePlace", "AUTO")
+		After("icons.roleText", { Dropdown("icons.rolePlace", L["Role icon place"], L["Where on the health bar the role icon sits; Automatic keeps today's place."], ICON_PLACE, { showWhen = Is("icons.role", true) }),
+			Slider("icons.roleX", L["Role icon offset across"], L["Moves it left or right from its place."], -50, 50, 1, placed),
+			Slider("icons.roleY", L["Role icon offset up"], L["Moves it up or down from its place."], -50, 50, 1, placed) })
+		local marked = function(settings) return Is("icons.marker", true)(settings) and IsNot("icons.markerPlace", "AUTO")(settings) end
+		After("icons.markerPlace", { Slider("icons.markerX", L["Raid marker offset across"], L["Moves it left or right from its place."], -50, 50, 1, marked),
+			Slider("icons.markerY", L["Raid marker offset up"], L["Moves it up or down from its place."], -50, 50, 1, marked) })
+		local readied = IsNot("icons.readyPlace", "AUTO")
+		After("icons.readySize", { Slider("icons.readyX", L["Ready check offset across"], L["Moves it left or right from its place."], -50, 50, 1, readied),
+			Slider("icons.readyY", L["Ready check offset up"], L["Moves it up or down from its place."], -50, 50, 1, readied) })
+		local combat = Is("icons.combat", true)
+		After("icons.combatSize", { Slider("icons.combatX", L["Combat icon offset across"], L["Moves it left or right from its place."], -50, 50, 1, combat),
+			Slider("icons.combatY", L["Combat icon offset up"], L["Moves it up or down from its place."], -50, 50, 1, combat) })
+		for _, kind in ipairs({ "party", "raid" }) do
+			After(kind .. ".buffCount", { Slider(kind .. ".buffX", L["Heal icon offset across"], L["Moves your heal icons left or right from their place."], -60, 60, 1),
+				Slider(kind .. ".buffY", L["Heal icon offset up"], L["Moves your heal icons up or down from their place."], -60, 60, 1) })
+		end
+		After("raid.groupsPerRow", { Toggle("raid.center", L["Centre groups"], L["Centres the raid groups with members along their row, out of combat."], { showWhen = Separate }) })
 		local reminding = IsNot("reminders.place", "NONE")
 		add({ type = "header", label = L["Missing buffs"] })
 		add(Dropdown("reminders.place", L["Missing buffs"], L["Shows a buff you can cast on members who lack it, except while the game hides auras."], PLACES))
@@ -374,12 +413,16 @@ function Settings.Schema(includeText)
 			add(Toggle("reminders." .. buff[1], buff[2], L["Reminds you of this buff; only buffs you know show."], { showWhen = reminding }))
 		end
 		add(Toggle("reminders.thornsTank", L["Thorns only on tanks"], L["Thorns shows on tanks, or on you when the group has no tank."], { showWhen = reminding }))
+		add(Toggle("reminders.glow", L["Missing buff glow"], L["A soft glow round the missing buff icon, so it catches the eye."], { showWhen = reminding }))
+		Nudge("reminders.", L["Missing buff offset across"], L["Missing buff offset up"], reminding)
 		add({ type = "header", label = L["Status text"] })
 		add(Dropdown("status.place", L["Status text place"], L["Where Dead, Ghost and Offline sit on the health bar."], AUTO_PLACES))
 		add(Slider("status.size", L["Status text size"], L["The size of Dead, Ghost and Offline; 0 uses the health text's size."], 0, 30, 1))
+		Nudge("status.", L["Status text offset across"], L["Status text offset up"], IsNot("status.place", "AUTO"))
 		add({ type = "header", label = L["Dispel type"] })
 		add(Dropdown("dispel.icon", L["Dispel type icon"], L["Shows the type icon of a debuff you can dispel on the health bar. Off shows none."], PLACES))
 		add(Slider("dispel.iconSize", L["Dispel type icon size"], L["The dispel type icon's size."], 8, 40, 1, IsNot("dispel.icon", "NONE")))
+		Nudge("dispel.", L["Dispel type icon offset across"], L["Dispel type icon offset up"], IsNot("dispel.icon", "NONE"))
 		add(Toggle("dispel.iconBorder", L["Debuff type border"], L["Outlines each debuff icon in its type's colour. Off keeps the plain border."]))
 		add(Toggle("dispel.custom", L["Own dispel colours"], L["Colours the highlight, the debuff borders and the type icon in the colours below."]))
 		for _, kind in ipairs({ { "magic", L["Magic colour"] }, { "curse", L["Curse colour"] }, { "poison", L["Poison colour"] }, { "disease", L["Disease colour"] }, { "bleed", L["Bleed colour"] } }) do
@@ -390,6 +433,7 @@ function Settings.Schema(includeText)
 			{ { value = "AUTO", label = L["Automatic"] }, ALIGN[1], ALIGN[2], ALIGN[3] }))
 		add(Toggle("names.divider", L["Name divider"], L["A thin line between the name and the health bar."]))
 		add(Toggle("names.dividerAccent", L["Divider in the highlight colour"], L["Draws the divider in the hover and target highlight colour."], { showWhen = Is("names.divider", true) }))
+		add(Slider("names.height", L["Name line height"], L["The height of the name line above the bar; 0 sizes it to the name."], 0, 40, 1))
 		add({ type = "header", label = L["Group numbers"] })
 		add(Toggle("numbers.show", L["Group numbers"], L["Numbers each raid group above its frames while raid frames sit in groups."]))
 		add(Slider("numbers.size", L["Group number size"], L["The size of the group numbers."], 6, 30, 1, Is("numbers.show", true)))
@@ -413,6 +457,14 @@ function Settings.Schema(includeText)
 		add(Slider("label.size", L["Label text size"], L["The size of the label's text."], 6, 40, 1, label))
 		add(Slider("label.padding", L["Label padding"], L["The room between the label's text and its plate."], 0, 20, 1, label))
 		add({ type = "color", key = "label.color", label = L["Label text colour"], help = L["The colour of the label's text."], showWhen = label })
+		add({ type = "header", label = L["Class order"] })
+		add(Toggle("sort.classFirst", L["Sort by class first"], L["Sorts each group's members by the class order below; role order still comes first."]))
+		local classes, names = {}, type(LOCALIZED_CLASS_NAMES_MALE) == "table" and LOCALIZED_CLASS_NAMES_MALE or {}
+		for i, class in ipairs(Settings.CLASSES) do classes[i] = { value = class, label = names[class] or class } end
+		local ordered = function(settings) return Is("sort.classFirst", true)(settings) or Is("raid.sortBy", "CLASS")(settings) end
+		for i = 1, #classes do
+			add(Dropdown("sort.class" .. i, L["Class %d"]:format(i), L["Which class takes this place; a repeat's place goes to the class the list leaves out."], classes, { showWhen = ordered }))
+		end
 	end
 
 	local function BuildSchema()

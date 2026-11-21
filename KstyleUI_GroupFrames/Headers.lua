@@ -73,11 +73,13 @@ local function NewCard(parent, holder, shape, title)
 end
 
 local function ClassOrder()
-	if type(CLASS_SORT_ORDER) == "table" and #CLASS_SORT_ORDER > 0 then
-		return table.concat(CLASS_SORT_ORDER, ",")
+	local sort, seen, out = ns.Settings.current.sort, {}, {}
+	local function Add(class)
+		if type(class) == "string" and not seen[class] then seen[class], out[#out + 1] = true, class end
 	end
-	Style.LogOnce("noClassOrder", "CLASS_SORT_ORDER is missing; raid frames sorted by class keep group order")
-	return nil
+	for i = 1, #ns.Settings.CLASSES do Add(sort["class" .. i]) end
+	for _, class in ipairs(ns.Settings.CLASSES) do Add(class) end
+	return table.concat(out, ",")
 end
 
 function Headers.Build()
@@ -166,12 +168,9 @@ local function Sort(header, sortBy, groups)
 	elseif sortBy == "GROUP" then
 		header:SetAttribute("groupBy", "GROUP")
 		header:SetAttribute("groupingOrder", groups)
-	elseif sortBy == "CLASS" then
-		local order = ClassOrder()
-		if order then
-			header:SetAttribute("groupBy", "CLASS")
-			header:SetAttribute("groupingOrder", order)
-		end
+	elseif sortBy == "CLASS" or sortBy ~= "GROUP" and ns.Settings.current.sort.classFirst then
+		header:SetAttribute("groupBy", "CLASS")
+		header:SetAttribute("groupingOrder", ClassOrder())
 	end
 end
 
@@ -397,6 +396,17 @@ local function RaidHeader(header, holder, s)
 	return header, holder
 end
 
+local function Centre(s, geo, shown)
+	local filled, per, last = ns.AutoLayout.state.filled, math.min(s.groupsPerRow, #shown), 0
+	if not (s.center and Separate(s) and filled and per > 1) then return 0, 0 end
+	for slot, g in ipairs(shown) do
+		if filled:find(g, 1, true) then last = slot end
+	end
+	if last == 0 or last >= per then return 0, 0 end
+	local a, b = geo.slots[1], geo.slots[2]
+	return (b.x - a.x) * (per - last) / 2, (b.y - a.y) * (per - last) / 2
+end
+
 function Headers.ApplyRaid(s)
 	s = OnGrid("raid", s)
 	local numbers = ns.Settings.current.numbers
@@ -407,12 +417,13 @@ function Headers.ApplyRaid(s)
 	geo.height = geo.height + s.numberRoom
 	local width, height, left, top = Seat(card, s, geo, "raid")
 	holder:SetSize(width, height)
-	card.shiftX, card.shiftY = Px("raid", ns.AutoLayout.shiftX), Px("raid", ns.AutoLayout.shiftY)
+	local shown, hidden = ShownGroups(), ns.AutoLayout.state.smallRaid
+	local cx, cy = Centre(s, geo, shown)
+	card.shiftX, card.shiftY = Px("raid", ns.AutoLayout.shiftX + cx), Px("raid", ns.AutoLayout.shiftY + cy)
 	Headers.FitRaid(card.members, card.groups, true)
 	geo.left, geo.top = left, top
 	local x, y = Offset(geo, card, left, top, nil, "raid")
 	x, y = x + card.shiftX, y + card.shiftY
-	local shown, hidden = ShownGroups(), ns.AutoLayout.state.smallRaid
 	if Separate(s) then
 		for g, header in ipairs(Headers.raid) do
 			RaidHeader(header, holder, s)
