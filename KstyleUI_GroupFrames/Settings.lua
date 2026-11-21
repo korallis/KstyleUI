@@ -122,14 +122,24 @@ defaults.dispel = { icon = "NONE", iconSize = 14, iconBorder = true, custom = fa
 defaults.names = { align = "AUTO", divider = false, dividerAccent = false, height = 0 }
 defaults.numbers = { show = false, size = 8 }
 defaults.mana = { mode = "NONE", size = 12, spacing = 2, align = "LEFT", growth = "DOWN", names = true, colorSource = "power", color = Rgb("rare") }
-local CLASSES = {}
-for i, class in ipairs(type(CLASS_SORT_ORDER) == "table" and #CLASS_SORT_ORDER > 0 and CLASS_SORT_ORDER or { "WARRIOR", "PALADIN", "PRIEST", "SHAMAN", "DRUID", "ROGUE", "MAGE", "WARLOCK", "HUNTER" }) do CLASSES[i] = class end
-Settings.CLASSES = CLASSES
+Settings.CLASSES = type(CLASS_SORT_ORDER) == "table" and #CLASS_SORT_ORDER > 0 and CLASS_SORT_ORDER or { "WARRIOR", "PALADIN", "PRIEST", "SHAMAN", "DRUID", "ROGUE", "MAGE", "WARLOCK", "HUNTER" }
 defaults.sort = { classFirst = false }
-for i, class in ipairs(CLASSES) do defaults.sort["class" .. i] = class end
+for i, class in ipairs(Settings.CLASSES) do defaults.sort["class" .. i] = class end
 defaults.label = { enabled = false, format = "FULL", size = 14, padding = 4, color = Rgb("textEmphasis") }
 
 local rows
+
+local function After(schema, key, additions)
+	for i, row in ipairs(schema) do
+		if row.key == key then
+			for j, new in ipairs(additions) do
+				table.insert(schema, i + j, new)
+				if rows and new.key then rows[new.key] = new end
+			end
+			return
+		end
+	end
+end
 
 local textRows = false
 local moreRows
@@ -147,12 +157,7 @@ local function TextSlotRows(schema)
 			}, tags = true, placement = true })
 		end
 		additions[#additions + 1] = { type = "header", label = label .. ": " .. L["icons"] }
-		local index
-		for i, row in ipairs(schema) do if row.key == kind .. ".healthTextPlace" then index = i; break end end
-		for i, row in ipairs(additions) do
-			table.insert(schema, index + i, row)
-			if rows and row.key then rows[row.key] = row end
-		end
+		After(schema, kind .. ".healthTextPlace", additions)
 	end
 	moreRows(schema)
 end
@@ -375,35 +380,24 @@ function Settings.Schema(includeText)
 			add(Slider(key .. "x", across, L["Moves it left or right from its place."], -50, 50, 1, showWhen))
 			add(Slider(key .. "y", up, L["Moves it up or down from its place."], -50, 50, 1, showWhen))
 		end
-		local function After(key, list)
-			for i, row in ipairs(schema) do
-				if row.key == key then
-					for j, new in ipairs(list) do
-						table.insert(schema, i + j, new)
-						if rows then rows[new.key] = new end
-					end
-					return
-				end
-			end
-		end
-		local placed = IsNot("icons.rolePlace", "AUTO")
-		After("icons.roleText", { Dropdown("icons.rolePlace", L["Role icon place"], L["Where on the health bar the role icon sits; Automatic keeps today's place."], ICON_PLACE, { showWhen = Is("icons.role", true) }),
+		local placed = function(settings) return settings.icons.role and settings.icons.rolePlace ~= "AUTO" end
+		After(schema, "icons.roleText", { Dropdown("icons.rolePlace", L["Role icon place"], L["Where on the health bar the role icon sits; Automatic keeps today's place."], ICON_PLACE, { showWhen = Is("icons.role", true) }),
 			Slider("icons.roleX", L["Role icon offset across"], L["Moves it left or right from its place."], -50, 50, 1, placed),
 			Slider("icons.roleY", L["Role icon offset up"], L["Moves it up or down from its place."], -50, 50, 1, placed) })
-		local marked = function(settings) return Is("icons.marker", true)(settings) and IsNot("icons.markerPlace", "AUTO")(settings) end
-		After("icons.markerPlace", { Slider("icons.markerX", L["Raid marker offset across"], L["Moves it left or right from its place."], -50, 50, 1, marked),
+		local marked = function(settings) return settings.icons.marker and settings.icons.markerPlace ~= "AUTO" end
+		After(schema, "icons.markerPlace", { Slider("icons.markerX", L["Raid marker offset across"], L["Moves it left or right from its place."], -50, 50, 1, marked),
 			Slider("icons.markerY", L["Raid marker offset up"], L["Moves it up or down from its place."], -50, 50, 1, marked) })
-		local readied = IsNot("icons.readyPlace", "AUTO")
-		After("icons.readySize", { Slider("icons.readyX", L["Ready check offset across"], L["Moves it left or right from its place."], -50, 50, 1, readied),
+		local readied = function(settings) return (settings.icons.readyCheck or settings.icons.statuses) and settings.icons.readyPlace ~= "AUTO" end
+		After(schema, "icons.readySize", { Slider("icons.readyX", L["Ready check offset across"], L["Moves it left or right from its place."], -50, 50, 1, readied),
 			Slider("icons.readyY", L["Ready check offset up"], L["Moves it up or down from its place."], -50, 50, 1, readied) })
-		local combat = Is("icons.combat", true)
-		After("icons.combatSize", { Slider("icons.combatX", L["Combat icon offset across"], L["Moves it left or right from its place."], -50, 50, 1, combat),
+		local combat = function(settings) return settings.icons.combat end
+		After(schema, "icons.combatSize", { Slider("icons.combatX", L["Combat icon offset across"], L["Moves it left or right from its place."], -50, 50, 1, combat),
 			Slider("icons.combatY", L["Combat icon offset up"], L["Moves it up or down from its place."], -50, 50, 1, combat) })
 		for _, kind in ipairs({ "party", "raid" }) do
-			After(kind .. ".buffCount", { Slider(kind .. ".buffX", L["Heal icon offset across"], L["Moves your heal icons left or right from their place."], -60, 60, 1),
-				Slider(kind .. ".buffY", L["Heal icon offset up"], L["Moves your heal icons up or down from their place."], -60, 60, 1) })
+			After(schema, kind .. ".buffCount", { Slider(kind .. ".buffX", L["Heal icon offset across"], L["Moves your heal icons left or right from their place."], -100, 100, 1),
+				Slider(kind .. ".buffY", L["Heal icon offset up"], L["Moves your heal icons up or down from their place."], -100, 100, 1) })
 		end
-		After("raid.groupsPerRow", { Toggle("raid.center", L["Centre groups"], L["Centres the raid groups with members along their row, out of combat."], { showWhen = Separate }) })
+		After(schema, "raid.groupsPerRow", { Toggle("raid.center", L["Centre groups"], L["Centres the raid groups with members along their row, out of combat."], { showWhen = Separate }) })
 		local reminding = IsNot("reminders.place", "NONE")
 		add({ type = "header", label = L["Missing buffs"] })
 		add(Dropdown("reminders.place", L["Missing buffs"], L["Shows a buff you can cast on members who lack it, except while the game hides auras."], PLACES))
@@ -461,7 +455,7 @@ function Settings.Schema(includeText)
 		add(Toggle("sort.classFirst", L["Sort by class first"], L["Sorts each group's members by the class order below; role order still comes first."]))
 		local classes, names = {}, type(LOCALIZED_CLASS_NAMES_MALE) == "table" and LOCALIZED_CLASS_NAMES_MALE or {}
 		for i, class in ipairs(Settings.CLASSES) do classes[i] = { value = class, label = names[class] or class } end
-		local ordered = function(settings) return Is("sort.classFirst", true)(settings) or Is("raid.sortBy", "CLASS")(settings) end
+		local ordered = function(settings) return settings.sort.classFirst or settings.raid.sortBy == "CLASS" end
 		for i = 1, #classes do
 			add(Dropdown("sort.class" .. i, L["Class %d"]:format(i), L["Which class takes this place; a repeat's place goes to the class the list leaves out."], classes, { showWhen = ordered }))
 		end
