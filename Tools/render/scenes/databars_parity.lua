@@ -27,7 +27,7 @@ local ROUND3_SECOND = { coords = "right", location = "right", itemLevel = "right
 local ROUND3_OPTIONS = {
 	{ "strip.blocks.latency.show", "both" }, { "strip.blocks.gold.show", "both" }, { "strip.blocks.durability.show", "icon" },
 	{ "strip.blocks.latency.iconColor", "accent" }, { "strip.blocks.gold.iconColor", "custom" }, { "strip.blocks.gold.iconCustom", { r = 0.85, g = 0.72, b = 0.45, a = 1 } },
-	{ "strip.hearthRight", "spell:556" }, { "strip.hearthRightText", "location" }, { "strip.second", true },
+	{ "strip.hearthLeft", "spell:556" }, { "strip.hearthLeftText", "location" }, { "strip.second", true },
 }
 
 return Common.Run(function()
