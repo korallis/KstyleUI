@@ -206,14 +206,15 @@ function Preview.Build(...)
 			row.holder:ClearAllPoints()
 			if group == "custom" and not using then
 				row:SetCount(0)
-			elseif previous then
+			else
 				local y = -gap
 				if group == "custom" then y = y - Widgets.LineHeight(caption) - gap end
 				if group == "bars" and using and not listed then y = y + (cfg.shift == "up" and 1 or -1) * (cfg.height + cfg.spacing + cfg.shiftY) end
-				Widgets.Point(row.holder, "TOP", previous.holder, "BOTTOM", 0, y)
-				previous = row
-			else
-				Widgets.Point(row.holder, "TOP", frame, "TOP", 0, -Tokens.Size("gapHuge"))
+				if previous then
+					Widgets.Point(row.holder, "TOP", previous.holder, "BOTTOM", 0, y)
+				else
+					Widgets.Point(row.holder, "TOP", frame, "TOP", 0, -Tokens.Size("gapHuge"))
+				end
 				previous = row
 			end
 		end

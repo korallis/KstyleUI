@@ -1106,7 +1106,7 @@ local function ApplySettings(key)
 	Keys.Reset()
 	barStamp = barStamp + 1
 	ListenRules()
-	Mirror.Custom(true)
+	Mirror.Custom()
 	for _, group in ipairs(GROUPS) do
 		local row = rows[group]
 		if row then
@@ -1158,12 +1158,12 @@ local function OnLayoutMode()
 	if rows.custom and rows.custom.empty then K.Layout.Restore(KEYS.custom) end
 end
 
-function Mirror.Custom(restyle)
+function Mirror.Custom()
 	local cfg, rules = Settings.current.custom, Settings.current.rules
 	local use, row = Live("bars") and (rules.group ~= "" or cfg.autoAdd), rows.custom
 	if use and not row then
 		row = BarRow.New(K.Scale.Root(), cfg)
-		rows.custom, shown.custom, row.blank, row.assigned = row, {}, {}, 0
+		rows.custom, shown.custom, row.assigned = row, {}, 0
 		if not layoutHooked and type(hooksecurefunc) == "function" then
 			layoutHooked = true
 			hooksecurefunc(K.Layout, "Enter", OnLayoutMode)
@@ -1184,10 +1184,8 @@ function Mirror.Custom(restyle)
 		row.holder:SetShown(use)
 		K.Layout.SetLive(KEYS.custom, use)
 	end
-	if restyle then
-		row:Apply(cfg)
-		K.Layout.Restore(KEYS.custom)
-	end
+	row:Apply(cfg)
+	K.Layout.Restore(KEYS.custom)
 	Reshift()
 end
 
@@ -1548,7 +1546,7 @@ function Mirror.Start()
 	K.Callbacks.Register("ScaleChanged", MODULE, OnScale)
 	K.Callbacks.Register("LayoutChanged", MODULE, OnLayout)
 	ListenRules()
-	Mirror.Custom(true)
+	Mirror.Custom()
 	RebuildAll()
 	Focus.Apply()
 	return true
