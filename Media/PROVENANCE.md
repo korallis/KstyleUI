@@ -936,6 +936,20 @@ The Medallions HUD style's portraits and crests. Each is original art generated 
 
 <!-- medallions:end -->
 
+## Class-themed combo point pips (2026-11-21)
+
+Original procedural art drawn by `Tools/media/make_pips.py` (standard library, `make_media.py`'s 4x4 sampler); no model, prompt or external art. Each class's three textures share one silhouette, so the lit pip covers its socket exactly and the shape masks only the pip. Colours follow the forged look: gilt (`giltLit`, `gilt`, `giltDim`) and steel (`steelLit`, `steel`, `steelDim`) lit from the upper left, with a 2.4-texel `08090b` keyline so each pip reads on bright and dark ground. `python3 Tools/media/make_pips.py --check` compares the files with the script.
+
+| File | Size | What it is |
+| --- | --- | --- |
+| `Media/Textures/Pips/PipRogue.png` | 64x64 | A lit rogue combo point: a dagger pointing up and right, with a gilt pommel and guard, a wrapped grip, a crimson ember blade hottest along its fuller, polished steel edges and a glint on the lit edge. Colours baked in. |
+| `Media/Textures/Pips/PipRogueSocket.png` | 64x64 | The same dagger dormant: gunmetal with a steel lit edge and a dim gilt guard. |
+| `Media/Textures/Pips/PipRogueShape.png` | 64x64 | The dagger's silhouette, white; the mask for the slide-in, slash and shine, and the flare, tinted `pipRogueCore`. |
+| `Media/Textures/Pips/PipDruid.png` | 64x64 | A lit cat-form druid combo point: three claws raked down and left, blunt where they went in and drawn to a point, amber hottest at the centre with green rims. Colours baked in. |
+| `Media/Textures/Pips/PipDruidSocket.png` | 64x64 | The same claws dormant, in dark bark tones. |
+| `Media/Textures/Pips/PipDruidShape.png` | 64x64 | The claws' silhouette, white; mask and flare as for the rogue, tinted `pipDruidCore`. |
+| `Media/Textures/Pips/PipStreak.png` | 64x64 | A soft white stroke along the falling diagonal, fading towards its ends: the spend's slash and the shine at the maximum, ADD. |
+
 ## Danger edge and portrait rings (E1/E2, 2026-11-18)
 
 Original procedural white RGBA masks, drawn with Python/Pillow; no model, prompt, external art or dependency added. Existing vignette and smoke assets remain for the previous-look settings.
