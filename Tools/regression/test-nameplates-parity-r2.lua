@@ -480,4 +480,213 @@ for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 
 	assert(#env._errors == 0 and K.ErrorCount() == 0, size[1] .. "x" .. size[2] .. ": " .. tostring(env._errors[1]))
 	collectgarbage()
 end
+-- Review of #611: each block reproduces one finding of the review at e9c32164 and must hold after the fixes.
+
+-- Finding 1: a lockdown that begins before PLAYER_REGEN_DISABLED could leave enemy plates hidden for the whole fight, so the option is gone and an old profile keeps the player's value.
+do
+	local env, K, ns = boot({}, { saved = saved({ cvars = { enabled = true, enemiesInCombat = true } }) })
+	env._combat = true
+	env.FireEvent("PLAYER_REGEN_DISABLED")
+	assert(env._cvars.nameplateShowEnemies == "1", "enemy plates stay shown when the lockdown comes first")
+	env._combat = false
+	env.FireEvent("PLAYER_REGEN_ENABLED")
+	env.RunTimers()
+	assert(env._cvars.nameplateShowEnemies == "1", "and after combat")
+	assert(ns.Settings.Row("cvars.enemiesInCombat") == nil, "the option is not offered")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+collectgarbage()
+
+-- Findings 2 and 3: a new combo target refreshes the points; other power ticks and a removed target write nothing; an energy tick writes only the value.
+do
+	local env, K, ns, set = boot({ nameplate1 = {} }, { playerClass = "ROGUE" })
+	env._units.player = { level = 15, power = 70, powerMax = 100 }
+	local points = 1
+	env.GetComboPoints = function() return points end
+	set("resource.show", true)
+	N.Target(env, "nameplate1")
+	local frame = ns.Plates.Get("nameplate1").resource
+	points = 3
+	env.FireEvent("COMBO_TARGET_CHANGED")
+	assert(frame.pips[1]:GetValue() == 3, "a new combo target refreshes the points")
+	local function writes() return #N.Calls(frame.pips[1], "SetValue") end
+	local before = writes()
+	env.FireEvent("UNIT_POWER_FREQUENT", "player", "ENERGY")
+	assert(writes() == before, "an energy tick leaves the points alone")
+	set("resource.energy", true)
+	local bar = frame.energy
+	local function setup()
+		return #N.Calls(bar, "SetMinMaxValues") + #N.Calls(bar, "SetShown") + #N.Calls(bar, "Show") + #N.Calls(bar, "Hide")
+	end
+	before = setup()
+	env._units.player.power = 75
+	env.FireEvent("UNIT_POWER_FREQUENT", "player", "ENERGY")
+	assert(setup() == before and bar:GetValue() == 75, "an energy tick writes only the value")
+	N.Remove(env, "nameplate1")
+	before = writes()
+	env.FireEvent("UNIT_POWER_FREQUENT", "player", "COMBO_POINTS")
+	assert(writes() == before, "a removed target's points are let go")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+collectgarbage()
+
+-- Finding 3: a repaint of an unchanged cast leaves its glow alone.
+do
+	local env, K, ns, set = boot({ nameplate1 = {} })
+	local plate = ns.Plates.Get("nameplate1")
+	set("cast.importantGlow", true)
+	env.C_Spell.IsSpellImportant = function() return env.Secret(false) end
+	N.Cast(env, "nameplate1", { name = "Bolt", text = "Bolt", texture = 136183 })
+	local count = 0
+	for _, piece in ipairs(plate.castImportantGlow) do
+		local shown, flag = piece.SetShown, piece.SetAlphaFromBoolean
+		piece.SetShown = function(self, ...) count = count + 1; return shown(self, ...) end
+		piece.SetAlphaFromBoolean = function(self, ...) count = count + 1; return flag(self, ...) end
+	end
+	ns.Cast.RepaintAll()
+	assert(count == 0, "a repaint does not show the glow again: " .. count)
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+collectgarbage()
+
+-- Finding 4: a larger cast icon keeps clear of the bar; the target's points move no other plate; a cast bar moved up keeps them under the health bar.
+do
+	local env, K, ns, set = boot({ nameplate1 = {}, nameplate2 = {} }, { playerClass = "ROGUE" })
+	local p1, p2 = ns.Plates.Get("nameplate1"), ns.Plates.Get("nameplate2")
+	local scene = dofile("Tools/render/scene.lua")
+	env._bases.nameplate1:SetPoint("CENTER", env.UIParent, "CENTER")
+	env._bases.nameplate2:SetPoint("CENTER", env.UIParent, "CENTER", 0, 200)
+	set("cast.showIcon", true)
+	set("cast.iconScale", 2)
+	set("cast.height", 20)
+	local s = scene.RectSolver(env)
+	local ix, _, iw = scene.RectIn(s, p1.castIcon)
+	local bx, _, bw = scene.RectIn(s, p1.castBar)
+	assert(ix + iw <= bx + 1e-6, "a larger icon does not cover the bar: " .. (ix + iw - bx))
+	set("cast.iconRight", true)
+	s = scene.RectSolver(env)
+	ix = scene.RectIn(s, p1.castIcon)
+	bx, _, bw = scene.RectIn(s, p1.castBar)
+	assert(bx + bw <= ix + 1e-6, "on the right either")
+	set("cast.iconRight", false)
+	set("cast.iconScale", 1)
+	set("cast.height", 6)
+	set("cast.showIcon", false)
+	local y = select(5, p2:GetPoint(1))
+	set("resource.show", true)
+	N.Target(env, "nameplate1")
+	assert(select(5, p2:GetPoint(1)) == y, "the target's points move no other plate")
+	set("cast.showName", false)
+	set("cast.offsetY", -25)
+	s = scene.RectSolver(env)
+	local _, hy, _, hh = scene.RectIn(s, p1.health)
+	local _, py = scene.RectIn(s, p1.resource)
+	assert(py >= hy + hh, "points under the plate stay under the health bar")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+collectgarbage()
+
+-- Finding 5: while the interrupt is ready, an important cast it cannot stop keeps the important colour.
+do
+	local env, K, ns, set = boot({ nameplate1 = {} })
+	local plate = ns.Plates.Get("nameplate1")
+	env.C_Spell.IsSpellImportant = function() return true end
+	set("cast.important", true)
+	set("cast.importantKick", true)
+	ns.Interrupt.spell, ns.Interrupt.ready = 1766, true
+	N.Cast(env, "nameplate1", { name = "Ward", text = "Ward", texture = 136183, notInterruptible = true })
+	local fill = plate.castImportantFill
+	assert(alpha(env, fill) == 1, "a protected important cast keeps its tint")
+	same({ fill:GetVertexColor() }, { K.Tokens.Color("legendary") }, "in the important colour")
+	N.Cast(env, "nameplate1", { name = "Bolt", text = "Bolt", texture = 136183, notInterruptible = false })
+	assert(alpha(env, fill) == 0, "an interruptible one keeps the usual colour")
+	N.Cast(env, "nameplate1", { name = "Ward", text = "Ward", texture = 136183, notInterruptible = true, secret = true })
+	local call = N.Last(fill, "SetVertexColorFromBoolean")
+	assert(call and env.issecretvalue(call[1]) and alpha(env, fill) == 1, "a secret flag picks the colour in the engine")
+	same({ call[2].r, call[2].g, call[2].b }, { K.Tokens.Color("legendary") }, "the important colour for a cast the interrupt cannot stop")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+collectgarbage()
+
+-- Finding 6: Highlight friendly targets governs the target size; the preview keeps the target sample for target options; the name alone draws no threat shape.
+do
+	local env, K, ns, set = boot({ nameplate1 = { canAttack = false, reaction = 5 }, nameplate2 = { threat = 3 } })
+	local friend = ns.Plates.Get("nameplate1")
+	local scale = friend:GetScale()
+	set("target.scale", 1.25)
+	set("target.friendly", false)
+	N.Target(env, "nameplate1")
+	assert(near(friend:GetScale(), scale), "a friendly target keeps its size with friendly targets off")
+	assert(not ns.Settings.Row("target.friendly").disableWhen({ target = { highlight = false, glow = false, fill = false, scale = 1.25 } }),
+		"the friendly switch stays open for the size alone")
+	set("threat.groupOnly", false)
+	set("threat.display", "name")
+	assert(not ns.Plates.Get("nameplate2").threatShape:IsShown(), "the name alone draws no threat shape")
+	local preview = ns.Preview.Build(env.UIParent)
+	preview:SetSize(248, 516)
+	set("threat.display", "healthEdge")
+	set("target.glow", true)
+	preview.Refresh()
+	local drawn = preview.plates[preview.chosen]
+	assert(drawn.targetGlow and drawn.targetGlow[1]:IsShown(), "the preview draws the target glow beside a threat display")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+collectgarbage()
+
+-- Finding 7: Full opacity while casting still needs a drawn cast bar, as in v0.2.8.
+do
+	local env, K, ns, set = boot({ nameplate1 = {}, nameplate2 = {} })
+	set("target.smoothOpacity", false)
+	set("target.dimOthers", 0.4)
+	set("cast.enabled", false)
+	set("cast.fullOpacity", true)
+	N.Target(env, "nameplate1")
+	local plate = ns.Plates.Get("nameplate2")
+	N.Cast(env, "nameplate2", { name = "Bolt", text = "Bolt", texture = 136183 })
+	assert(plate.alphaGoal == 0.4, "a cast with cast bars hidden keeps the v0.2.8 dimming")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+collectgarbage()
+
+-- Finding 8: a missing API refuses its feature instead of raising.
+do
+	local env, K, ns, set = boot({ nameplate1 = {} }, { playerClass = "DRUID" })
+	env._units.player = { level = 15, power = 70, powerMax = 100, powerType = 3 }
+	set("resource.show", true)
+	N.Target(env, "nameplate1")
+	env.UnitPowerType = nil
+	assert(pcall(ns.Resource.Place, ns.Plates.Get("nameplate1"), true), "a missing UnitPowerType refuses the points")
+end
+collectgarbage()
+do
+	local env, K, ns, set = boot({ nameplate1 = {} }, { playerClass = "ROGUE" })
+	env._units.player = { level = 15, power = 100, powerMax = 100 }
+	set("resource.show", true)
+	set("resource.energy", true)
+	set("resource.energyHideFull", true)
+	N.Target(env, "nameplate1")
+	local secret = env.issecretvalue
+	env.issecretvalue = nil
+	local ok, err = pcall(ns.Resource.Update)
+	local shown = ns.Plates.Get("nameplate1").resource.energy:IsShown()
+	env.issecretvalue = secret
+	assert(ok, "a missing issecretvalue refuses the full-energy test: " .. tostring(err))
+	assert(shown, "and keeps the bar shown")
+end
+collectgarbage()
+do
+	local env, K, ns, set = boot({ nameplate1 = {} })
+	local plate = ns.Plates.Get("nameplate1")
+	N.Debuffs(env, "nameplate1", 2)
+	local buttons = { plate.auras:GetAuraGroupFrame("debuffs", 1), plate.auras:GetAuraGroupFrame("debuffs", 2) }
+	for _, button in ipairs(buttons) do button.AddDispelTypeTexture = nil end
+	set("debuffs.dispelColor", true)
+	set("debuffs.pandemic", true)
+	for _, button in ipairs(buttons) do
+		assert(#button._aura.dispel == 0 and #button._aura.pandemic == 1, "a missing AddDispelTypeTexture refuses the dispel colour and keeps the other cues")
+	end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+collectgarbage()
+
 print("nameplates parity round 2 ok: casts, important casts, target effects, threat, level, debuffs, combo points, combat plates and the preview")
