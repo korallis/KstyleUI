@@ -48,7 +48,7 @@ end
 
 -- Two guides offered, the one shown last holding the slot.
 do
-	local env, K, ns = Boot()
+	local _, _, ns = Boot()
 	local Guide = ns.Guide
 	local shown = { a = false, b = false }
 	Guide.Add("testA", {
@@ -154,7 +154,7 @@ end
 
 -- Zygor makes its window after KstyleUI saw it load: the skin still starts once Zygor's SetSkin makes it.
 do
-	local env, K, ns, zygor = Boot({ late = true })
+	local env, K, _, zygor = Boot({ late = true })
 	local card = K.Skin.Parts(zygor.frame.Border).backdrop
 	assert(card and card:IsShown(), "a window Zygor makes late still wears the KstyleUI card")
 	assert(zygor.style.WindowBackdropColor[4] == 0, "a window Zygor makes late is still painted")
@@ -163,7 +163,7 @@ end
 
 -- Switching the skin off hides the card and gives Zygor its own window colours back.
 do
-	local env, K, ns, zygor = Boot({})
+	local env, K, _, zygor = Boot({})
 	K.Options.Write("Skins", "zygor.enabled", false)
 	env.RunTimers()
 	assert(not K.Skin.Parts(zygor.frame.Border).backdrop:IsShown(), "the KstyleUI card goes when the skin is switched off")
@@ -173,7 +173,7 @@ end
 
 -- A step taller than the card grows the window below it rather than clipping the step.
 do
-	local env, K, ns, zygor = Boot({ natural = 600 })
+	local env, K, _, zygor = Boot({ natural = 600 })
 	local px = K.Scale.Pixel(1) + 0.01
 	local steps = (600 + 91.5) * K.Widgets.ScaleFactor(zygor.frame)
 	local band = K.Setup.Story("DPS", true).guide
@@ -198,7 +198,7 @@ end
 
 -- In all-steps mode Zygor keeps its own minimum height; the rail only places it, never resizes it.
 do
-	local env, K, ns, zygor = Boot({ natural = 20, allsteps = true })
+	local _, K, _, zygor = Boot({ natural = 20, allsteps = true })
 	local floor = (91.5 + 80) * K.Widgets.ScaleFactor(zygor.frame)
 	local px = K.Scale.Pixel(1) + 0.01
 	local band = K.Setup.Story("DPS", true).guide
@@ -209,7 +209,7 @@ end
 
 -- Fit off stretches the window over the whole slot.
 do
-	local env, K, ns, zygor = Boot({ natural = 120, skins = { zygor = { fit = false } } })
+	local _, K, _, zygor = Boot({ natural = 120, skins = { zygor = { fit = false } } })
 	local px = K.Scale.Pixel(1) + 0.01
 	local band = K.Setup.Story("DPS", true).guide
 	local window = Rect(K, zygor.frame)
@@ -218,7 +218,7 @@ end
 
 -- Dragging the window away turns the rail off for that character and hands Zygor's anchor back.
 do
-	local env, K, ns, zygor = Boot()
+	local env, K, _, zygor = Boot()
 	zygor.master:ClearAllPoints()
 	zygor.master:SetPoint("TOPLEFT", env.UIParent, "BOTTOMLEFT", 20, 900)
 	zygor.Step()
@@ -278,7 +278,7 @@ end
 
 -- Zygor's action bar is Zygor's to place, and it comes back above the window the rail moved.
 do
-	local env, K, ns, zygor = Boot()
+	local env, K, _, zygor = Boot()
 	local z = env.ZygorGuidesViewer
 	zygor.bar:ClearAllPoints()
 	zygor.bar:SetPoint("BOTTOMLEFT", env.UIParent, "BOTTOMLEFT", 30, 40)
