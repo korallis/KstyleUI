@@ -15,6 +15,9 @@
 	<Script file="Range.lua"/>
 	<Script file="Keys.lua"/>
 	<Script file="Chores.lua"/>
+	<Script file="Commands.lua"/>
+	<Script file="Windows.lua"/>
+	<Script file="RaidTools.lua"/>
 	<Script file="Preview.lua"/>
 	<Script file="Module.lua"/>
 </Ui>

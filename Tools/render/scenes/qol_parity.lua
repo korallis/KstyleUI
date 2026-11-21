@@ -1,4 +1,4 @@
--- qol_parity.lua: the full HUD with every QoL parity round 1 option on, most away from its default (a larger alert size, class colours, a lower crosshair with set lengths and thicknesses, a larger class-coloured ring, a higher durability warning), after a combat round trip and then a party member's death, so the flash line shows the death alert over the talent line; RENDER_QOL_ROUND=2 adds round 2: the character stats (percent and rating, coloured, short labels), the bevelled ring with its centre dot and a trail mid-move, and the cast circle 40% into a cast; RENDER_QOL_ROUND=3 adds round 3a over round 2: a warrior's Charge and Intercept counting down as class-coloured bars, the target distance, the crosshair in its out-of-range colour and the potion ready flash; with RENDER_QOL_OPTIONS=1 the QoL page and its live preview.
+-- qol_parity.lua: the full HUD with every QoL parity round 1 option on, most away from its default (a larger alert size, class colours, a lower crosshair with set lengths and thicknesses, a larger class-coloured ring, a higher durability warning), after a combat round trip and then a party member's death, so the flash line shows the death alert over the talent line; RENDER_QOL_ROUND=2 adds round 2: the character stats (percent and rating, coloured, short labels), the bevelled ring with its centre dot and a trail mid-move, and the cast circle 40% into a cast; RENDER_QOL_ROUND=3 adds round 3a over round 2: a warrior's Charge and Intercept counting down as class-coloured bars, the target distance, the crosshair in its out-of-range colour and the potion ready flash; RENDER_QOL_ROUND=3b adds round 3b over round 2 instead: frame rate and latency (latency without labels) in the stats and the raid tools open in a party; with RENDER_QOL_OPTIONS=1 the QoL page and its live preview.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Reference = dofile("Tools/render/scenes/_reference.lua")
@@ -19,8 +19,10 @@ local ROUND2 = {
 local ROUND3 = {
 	moveAlert = true, moveMode = "bar", moveClass = true, rangeText = true, crosshairRange = true, crosshairMelee = true, potionAlert = true,
 }
+local ROUND3B = { statsNetLabels = false, raidTools = "group" }
 local round3 = os.getenv("RENDER_QOL_ROUND") == "3"
-local round2 = round3 or os.getenv("RENDER_QOL_ROUND") == "2"
+local round3b = os.getenv("RENDER_QOL_ROUND") == "3b"
+local round2 = round3 or round3b or os.getenv("RENDER_QOL_ROUND") == "2"
 
 -- Round 3a: a warrior with Charge and Intercept cooling, a target 25 to 30 yards away (out of melee range) and a potion
 -- whose cooldown has just ended. The engine draws a text binding's time and a timer bar's fill; the harness has no engine,
@@ -82,6 +84,7 @@ local function Stats(e)
 	e.GetCombatRating = function(i) return 40 + 13 * i end
 	e.CR_CRIT_MELEE, e.CR_CRIT_SPELL, e.CR_HASTE_MELEE = 9, 11, 18
 	e.UnitCastingInfo = function() return "Lightning Bolt", "Lightning Bolt", 136048, 99000, 101500 end
+	e.GetFramerate, e.GetNetStats = function() return 143.6 end, function() return 1, 1, 38, 52 end
 end
 
 return Common.Run(function()
@@ -103,6 +106,12 @@ return Common.Run(function()
 	for key, value in pairs(ON) do assert(K.Options.Write("QoL", key, value) ~= false, key) end
 	for key, value in pairs(round2 and ROUND2 or {}) do assert(K.Options.Write("QoL", key, value) ~= false, key) end
 	for key, value in pairs(round3 and ROUND3 or {}) do assert(K.Options.Write("QoL", key, value) ~= false, key) end
+	for key, value in pairs(round3b and ROUND3B or {}) do assert(K.Options.Write("QoL", key, value) ~= false, key) end
+	if round3b then
+		local list = {}
+		for _, entry in ipairs(K.Options.Read("QoL", "statsList")) do list[#list + 1] = { id = entry.id, shown = entry.shown or entry.id == "fps" or entry.id == "home" or entry.id == "world", zone = "left" } end
+		assert(K.Options.Write("QoL", "statsList", list) ~= false)
+	end
 	if round2 then env.FireEvent("UNIT_SPELLCAST_START", "player") end
 	env._unspent, env._durability[5] = true, { 21, 100 }
 	env.FireEvent("TRAIT_CONFIG_UPDATED", 1)
@@ -120,6 +129,7 @@ return Common.Run(function()
 			if id then slot.bar:SetBarRange(0, LEFT[id][4]); slot.bar:SetBarValue(LEFT[id][3]) end
 		end
 	end
+	if round3b then env.FireEvent("GROUP_ROSTER_UPDATE") end
 	local root = K.Scale.Root()
 	env._cursor = { root:GetWidth() * (options and 0.85 or 0.35) * root:GetEffectiveScale(), root:GetHeight() * 0.68 * root:GetEffectiveScale() }
 	local _, ring = ns.AidFrames()
@@ -155,6 +165,6 @@ return Common.Run(function()
 	if not options then
 		scene = Common.Scene.Merge({ Reference.Build({ layout = os.getenv("RENDER_LAYOUT") or "DPS" }), scene })
 	end
-	scene.log[#scene.log + 1] = "qol parity: round " .. (round3 and "1, 2 and 3a" or round2 and "1 and 2" or "1") .. " options " .. (options and "page" or "on over the HUD")
+	scene.log[#scene.log + 1] = "qol parity: round " .. (round3 and "1, 2 and 3a" or round3b and "1, 2 and 3b" or round2 and "1 and 2" or "1") .. " options " .. (options and "page" or "on over the HUD")
 	return scene
 end)

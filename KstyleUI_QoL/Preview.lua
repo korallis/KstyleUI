@@ -1,4 +1,4 @@
--- Preview.lua: the QoL page's live preview, a miniature of the screen centre: the alert lines, the crosshair (in its out-of-range colour while that is on), the cursor ring, a movement alert counting down and the target distance where the screen puts them (the entering, leaving, group death and potion samples, of which the screen shows one at a time, stack down from the flash line's spot and everything under that line moves down with them, and the ring sits beside the crosshair with its dot and a trail, the cast circle part filled around the ring, or at the screen centre when it is off the pointer), and the character stats with sample values at the left, painted by the same functions the screen uses and dimmed while their switch is off.
+-- Preview.lua: the QoL page's live preview, a miniature of the screen centre: the alert lines, the crosshair (in its out-of-range colour while that is on), the cursor ring, a movement alert counting down and the target distance where the screen puts them (the entering, leaving, group death and potion samples, of which the screen shows one at a time, stack down from the flash line's spot and everything under that line moves down with them, and the ring sits beside the crosshair with its dot and a trail, the cast circle part filled around the ring, or at the screen centre when it is off the pointer), the character stats with sample values at the left, and the raid tools underneath at half size, the panel in its row or column opening from its button, dimmed while it starts collapsed, painted by the same functions the screen uses and dimmed while their switch is off.
 local _, ns = ...
 
 local K, L = ns.K, ns.L
@@ -6,10 +6,11 @@ local Widgets, Tokens = K.Widgets, K.Tokens
 
 local OFF = 0.35
 local GAP = Tokens.Size("gapLarge")
-local TRAIL, CAST_SECONDS, CAST_DONE, FLASH = 3, 10, 6, 4
+local TRAIL, CAST_SECONDS, CAST_DONE, FLASH, RAID_SCALE = 3, 10, 6, 4, 0.5
 local RANGE_X, MOVE_LEFT = -90, 2.4
 
 local function Sample(stat)
+	if stat.sample then return stat.sample end
 	local n = #stat[1]
 	return stat[7] and 10 + n * 0.75 or 100 * n, 120 + 15 * n
 end
@@ -33,6 +34,15 @@ function ns.Preview(parent)
 	frame.range.text = Widgets.FontString(frame.range, "OVERLAY")
 	frame.stats = CreateFrame("Frame", nil, frame)
 	frame.stats.lines = {}
+	frame.raid = CreateFrame("Frame", nil, frame)
+	frame.raid.inner = CreateFrame("Frame", nil, frame.raid)
+	frame.raid.inner:SetScale(RAID_SCALE)
+	frame.raid.inner:SetPoint("CENTER")
+	frame.raid.star = ns.RaidToolsStar(frame.raid.inner)
+	frame.raid.panel = Widgets.Panel(frame.raid.inner, {})
+	frame.raid.buttons = ns.RaidToolButtons(frame.raid.panel.content)
+	frame.raid.star:EnableMouse(false)
+	for _, button in ipairs(frame.raid.buttons) do button:EnableMouse(false) end
 	frame.Refresh = function(self)
 		local combat, mode = ns.Get("combatAlert"), ns.Get("combatAlertOn")
 		local samples = {
@@ -111,6 +121,19 @@ function ns.Preview(parent)
 		local tw, th = self.stats:GetSize()
 		items[#items + 1] = { self.stats, left - 2 * GAP - tw / 2, top - th / 2, tw, th }
 		left, bottom = left - 2 * GAP - tw, math.min(bottom, top - th)
+		local raid = self.raid
+		local corner = ns.ArrangeRaidTools(raid.panel, raid.buttons, ns.Get("raidToolsLayout"), ns.Get("raidToolsGrow"), raid.star)
+		raid.star:ClearAllPoints()
+		Widgets.Point(raid.star, corner, raid.inner, corner)
+		raid.panel:SetAlpha(ns.Get("raidToolsCollapsed") and OFF or 1)
+		raid:SetAlpha(ns.Get("raidTools") ~= "never" and 1 or OFF)
+		local iw, ih = math.max(raid.star:GetWidth(), raid.panel:GetWidth()), raid.star:GetHeight() + Tokens.Size("gapSmall") + raid.panel:GetHeight()
+		Widgets.Size(raid.inner, iw, ih)
+		local pw, ph = iw * RAID_SCALE, ih * RAID_SCALE
+		Widgets.Size(raid, pw, ph)
+		local mid = (left + right) / 2
+		items[#items + 1] = { raid, mid, bottom - 2 * GAP - ph / 2, pw, ph }
+		bottom, left, right = bottom - 2 * GAP - ph, math.min(left, mid - pw / 2), math.max(right, mid + pw / 2)
 		Widgets.Size(self, right - left + 2 * GAP, top - bottom)
 		for _, item in ipairs(items) do
 			item[1]:ClearAllPoints()

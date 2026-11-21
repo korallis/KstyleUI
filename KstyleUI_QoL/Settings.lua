@@ -19,12 +19,15 @@ local CHOICES = {
 	statsValue = { percent = true, rating = true, both = true }, hideToasts = { none = true, loot = true, achievements = true, both = true },
 	moveMode = { text = true, timeFirst = true, time = true, icon = true, bar = true }, moveSound = { none = true, warning = true, ready = true },
 	rangeFormat = { range = true, plus = true, min = true }, rangeAlign = { LEFT = true, CENTER = true, RIGHT = true },
+	raidTools = { never = true, raid = true, group = true }, raidToolsLayout = { row = true, column = true },
+	raidToolsGrow = { downright = true, downleft = true, upright = true, upleft = true },
 }
 ns.LIMITS = {
 	skipDelay = { 0, 30 }, alertSize = { 14, 64 }, durabilityPercent = { 5, 100 }, durabilityY = { -500, 500 },
 	crosshairHLength = { 1, 500 }, crosshairVLength = { 1, 500 }, crosshairHWidth = { 0, 20 }, crosshairVWidth = { 0, 20 },
 	crosshairBorder = { 0, 5 }, crosshairX = { -200, 200 }, crosshairY = { -200, 200 }, cursorScale = { 50, 200 }, cursorOpacity = { 10, 100 },
 	rollsClose = { 0, 60 }, statsScale = { 50, 200 }, moveSize = { 8, 72 }, moveIconSize = { 16, 128 }, moveVolume = { 0, 100 }, rangeSize = { 10, 48 },
+	statsInterval = { 1, 5 }, mapSidebarsOpacity = { 0, 100 },
 }
 
 ns.defaults = {
@@ -111,6 +114,8 @@ ns.defaults = {
 	statsColored = false,
 	statsShort = false,
 	statsScale = 100,
+	statsInterval = 1,
+	statsNetLabels = true,
 	dialogKeys = false,
 	numberKeys = false,
 	confirmPopups = false,
@@ -130,6 +135,21 @@ ns.defaults = {
 	quietErrors = false,
 	autoDelete = false,
 	autoResurrect = false,
+	wayCommand = false,
+	wayPaste = false,
+	wayArrival = true,
+	wayManual = false,
+	cdCommand = false,
+	ahCurrent = false,
+	mapSidebars = false,
+	mapSidebarsOpacity = 0,
+	mapClickThrough = true,
+	guildCover = false,
+	raidTools = "never",
+	raidToolsCollapsed = false,
+	raidToolsLayout = "row",
+	raidToolsGrow = "downright",
+	raidToolsReady = false,
 }
 
 function ns.Get(key)
@@ -167,6 +187,7 @@ function ns.Schema()
 	local function voiceOff(s) return moveOff(s) or s.moveVoice == -1 end
 	local function iconOff(s) return moveOff(s) or s.moveMode == "icon" end
 	local function aidsOff(s) return ringOff(s) and castOff(s) end
+	local function raidOff(s) return not (s.enabled and s.raidTools ~= "never") end
 	local function slider(key, label, help, step, off)
 		local limit = ns.LIMITS[key]
 		return { type = "slider", key = key, label = label, help = help, min = limit[1], max = limit[2], step = step, disableWhen = off }
@@ -273,6 +294,8 @@ function ns.Schema()
 		{ type = "toggle", key = "statsColored", label = L["Coloured values"], help = L["Draw the values in the accent colour."], disableWhen = statsOff },
 		{ type = "toggle", key = "statsShort", label = L["Short labels"], help = L["Abbreviate the stat names."], disableWhen = statsOff },
 		slider("statsScale", L["Stats size"], L["The size of the stats text, in percent."], 5, statsOff),
+		slider("statsInterval", L["Frame rate and latency every"], L["Seconds between frame rate and latency updates."], 1, statsOff),
+		{ type = "toggle", key = "statsNetLabels", label = L["Latency labels"], help = L["Off shows only the milliseconds for home and world latency."], disableWhen = statsOff },
 		{ type = "header", label = L["Dialog keys"] },
 		{ type = "toggle", key = "dialogKeys", label = L["Space continues dialogs"], help = L["Space accepts, continues or hands in a quest and picks the first choice. Out of combat."], disableWhen = isOff },
 		{ type = "toggle", key = "numberKeys", label = L["Number keys pick choices"], help = L["Keys 1 to 9 pick the matching gossip or quest choice. Out of combat."], disableWhen = isOff },
@@ -294,6 +317,31 @@ function ns.Schema()
 		{ type = "toggle", key = "autoOpen", label = L["Open containers"], help = L["Open boxes and bags in your bags, out of combat and away from merchants, mail, banks and trades."], disableWhen = isOff },
 		{ type = "toggle", key = "openSkipWarbound", label = L["Leave warbound containers"], help = L["Leave containers bound to your account for your other characters."], disableWhen = when("autoOpen") },
 		{ type = "toggle", key = "autoUnwrap", label = L["Unwrap new mounts and toys"], help = L["Clear the gift wrap from new mounts and toys in the collections."], disableWhen = isOff },
+		{ type = "toggle", key = "cdCommand", label = L["/cd opens the cooldown manager"], help = L["Type /cd to open or close the game's cooldown manager settings."], disableWhen = isOff },
+		{ type = "header", label = L["Waypoints"] },
+		{ type = "toggle", key = "wayCommand", label = L["/way command"], help = L["Type /way x y, or /way zone x y, to pin a map waypoint and print its link."], disableWhen = isOff },
+		{ type = "toggle", key = "wayPaste", label = L["/kpaste command"], help = L["Paste /way lines; each pin follows the last as you arrive. /kpaste macro makes a bar macro."], disableWhen = isOff },
+		{ type = "toggle", key = "wayArrival", label = L["Arrival message"], help = L["Say in chat when you reach a /way pin, and pin the next one in the list."], disableWhen = function(s) return not (s.enabled and (s.wayCommand or s.wayPaste)) end },
+		{ type = "toggle", key = "wayManual", label = L["Arrival at your own pins"], help = L["Also say when you reach a pin you placed on the map yourself."], disableWhen = isOff },
+		{ type = "header", label = L["Windows"] },
+		{ type = "toggle", key = "mapSidebars", label = L["Clear world map sidebars"], help = L["Lighten the black bars beside the full-screen world map."], disableWhen = isOff },
+		slider("mapSidebarsOpacity", L["Sidebar opacity"], L["How dark the bars beside the full-screen map stay, in percent."], 5, when("mapSidebars")),
+		{ type = "toggle", key = "mapClickThrough", label = L["Click through sidebars"], help = L["Let clicks and camera turns pass through the bars beside the map."], disableWhen = when("mapSidebars") },
+		{ type = "toggle", key = "ahCurrent", label = L["Current expansion at the auction house"], help = L["Tick the auction house's Current Expansion Only filter when it opens, if the game offers it."], disableWhen = isOff },
+		{ type = "toggle", key = "guildCover", label = L["Guild chat privacy cover"], help = L["Cover guild chat in the guild and communities window until you click it."], disableWhen = isOff },
+		{ type = "header", label = L["Raid tools"] },
+		{ type = "dropdown", key = "raidTools", label = L["Show raid tools"], help = L["Ready check, role check, pull timer and markers. In a raid, only for the leader or assistants."], options = {
+			{ value = "never", label = L["Never"] }, { value = "raid", label = L["In a raid"] }, { value = "group", label = L["In a party or raid"] },
+		}, disableWhen = isOff },
+		{ type = "toggle", key = "raidToolsCollapsed", label = L["Start collapsed"], help = L["Show only the raid tools button until you click it or press its key."], disableWhen = raidOff },
+		{ type = "dropdown", key = "raidToolsLayout", label = L["Raid tools layout"], help = L["The buttons in one row or one column."], options = {
+			{ value = "row", label = L["Row"] }, { value = "column", label = L["Column"] },
+		}, disableWhen = raidOff },
+		{ type = "dropdown", key = "raidToolsGrow", label = L["Raid tools open"], help = L["Which way the tools open from their button."], options = {
+			{ value = "downright", label = L["Down and right"] }, { value = "downleft", label = L["Down and left"] }, { value = "upright", label = L["Up and right"] }, { value = "upleft", label = L["Up and left"] },
+		}, disableWhen = raidOff },
+		{ type = "toggle", key = "raidToolsReady", label = L["Open on ready check"], help = L["Open the raid tools when a ready check starts."], disableWhen = raidOff },
+		{ type = "note", label = L["Bind a key to Toggle raid tools in the game's key bindings, under KstyleUI. Size it in Layout Mode."] },
 		{ type = "header", label = L["Alerts"] },
 		{ type = "toggle", key = "quietErrors", label = L["Quiet error text"], help = L["Hide the red cooldown, range and resource errors that flood the screen in combat."], disableWhen = isOff },
 		{ type = "toggle", key = "autoDelete", label = L["Fill in the delete word"], help = L["Type the confirmation word when you delete a good item. You still click Yes."], disableWhen = isOff },
