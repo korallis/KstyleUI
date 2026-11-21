@@ -19,10 +19,11 @@ local function stand(env)
 		IsSpellKnown = function(id) return env._known[id] == true end,
 		GetNumSpellBookSkillLines = function() return 1 end,
 		GetSpellBookSkillLineInfo = function() return { itemIndexOffset = 0, numSpellBookItems = 3 } end,
-		GetSpellBookItemInfo = function(slot) return ({ { spellID = FIREBALL, isPassive = false }, { spellID = INTELLECT, isPassive = false }, { spellID = 99, isPassive = true } })[slot] end,
+		GetSpellBookItemInfo = function(slot) return ({ { spellID = FIREBALL, itemType = 1, isPassive = false }, { spellID = INTELLECT, itemType = 1, isPassive = false }, { spellID = 99, itemType = 1, isPassive = true } })[slot] end,
 	}
 	env.Enum = env.Enum or {}
 	env.Enum.SpellBookSpellBank = { Player = 0, Pet = 1 }
+	env.Enum.SpellBookItemType = { None = 0, Spell = 1, FutureSpell = 2 }
 	env.Enum.StatusBarTimerDirection = { ElapsedTime = 0, RemainingTime = 1 }
 	env.Enum.DurationTextBindingProperty = { RemainingDuration = 0 }
 	env.Enum.SecondsFormatterAbbreviation = { None = 0, Truncate = 1, OneLetter = 2 }
@@ -380,6 +381,148 @@ do
 	for _, key in ipairs({ "moveTexture", "moveBarIcon", "moveBarText", "moveIconSize", "moveColor", "moveMode", "crosshairRangeColor", "moveSprint" }) do
 		assert(K.Options.Row("QoL", key), key .. " has a row")
 	end
+	clean(env, K)
+end
+
+-- Review of PR #639: each block replays a probe that showed a defect while the option was on.
+-- Range: a spell with a minimum range says nothing about the near side of it, and a spell not yet learned never stands in for a learned one.
+do
+	local env, K, ns = boot({ enabled = true, crosshair = "normal" })
+	env.C_Spell.GetSpellInfo = function(id) if id == FIREBALL then return { minRange = 8, maxRange = 25 } end end
+	env._target, env._range[FIREBALL], env._range[ATTACK] = true, false, false
+	Q.Write(env, K, "rangeText", true)
+	Q.Write(env, K, "crosshairRange", true)
+	local text = K.Layout.Element("qol.range").frame.text
+	assert(text:GetText() == "5+" and not ns.rangeOut, "6 yards, inside a spell's minimum range: beyond melee, not beyond the spell")
+	env.C_Spell.GetSpellInfo = function(id) return ({ [FIREBALL] = { minRange = 8, maxRange = 35 }, [INTELLECT] = { minRange = 0, maxRange = 30 } })[id] end
+	env.C_Spell.IsSpellHarmful = function() return true end
+	env.FireEvent("SPELLS_CHANGED")
+	env._range[INTELLECT] = false
+	env.RunTickers()
+	assert(text:GetText() == "35+" and ns.rangeOut, "beyond a spell with no minimum, a longer spell's false answer means beyond it")
+	clean(env, K)
+end
+do
+	local env, K = boot()
+	env.C_SpellBook.GetSpellBookItemInfo = function(i) return { spellID = i == 1 and 999 or FIREBALL, itemType = i == 1 and 2 or 1, isPassive = false } end
+	env.C_Spell.GetSpellInfo = function() return { minRange = 0, maxRange = 35 } end
+	env.C_Spell.IsSpellHarmful = function() return true end
+	env._target, env._range[FIREBALL], env._range[ATTACK] = true, true, false
+	Q.Write(env, K, "rangeText", true)
+	assert(K.Layout.Element("qol.range").frame.text:GetText() == "5-35", "a spell not yet learned never stands in for a learned one")
+	clean(env, K)
+end
+
+-- Movement alert: switching it on mid global cooldown shows nothing and plays nothing; a readable real cooldown still shows at once.
+do
+	local env, K, ns = boot()
+	env._cd[SPRINT2] = { isActive = true, isEnabled = true, startTime = 100, duration = 1.5 }
+	Q.Write(env, K, "moveAlert", true)
+	Q.Write(env, K, "moveSound", "ready")
+	assert(not (slot(ns) and slot(ns):IsShown()), "switched on mid global cooldown: no row")
+	env._cd[SPRINT2] = nil
+	env.RunTickers()
+	assert(#Q.Calls(env, "PlaySound") == 0, "and no ready sound when it ends")
+	env._cd[SPRINT2] = { isActive = true, isEnabled = true, startTime = 100, duration = 120 }
+	Q.Write(env, K, "moveSize", 20)
+	assert(slot(ns):IsShown(), "a readable real cooldown shows at once")
+	clean(env, K)
+end
+
+-- Movement alert: unchanged cooldown events rebind nothing; with no text binding, Time left shows the spell's name.
+do
+	local env, K, ns = boot()
+	Q.Write(env, K, "moveAlert", true)
+	cooling(env, SPRINT2)
+	local s = slot(ns)
+	local before = #s.binding.calls
+	for _ = 1, 10 do env.FireEvent("SPELL_UPDATE_COOLDOWN") end
+	assert(#s.binding.calls == before, "ten unchanged all-spell events rebind nothing")
+	clean(env, K)
+	env, K, ns = boot()
+	env.C_DurationUtil = nil
+	Q.Write(env, K, "moveAlert", true)
+	Q.Write(env, K, "moveMode", "time")
+	cooling(env, SPRINT2)
+	assert(slot(ns).text:GetText() == "Sprint", "Time left without a binding shows the name")
+	clean(env, K)
+end
+
+-- The preview dims the movement sample when no class spell is switched on, or the class has none.
+do
+	local env, K = boot()
+	Q.Write(env, K, "moveAlert", true)
+	Q.Write(env, K, "moveSprint", false)
+	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
+	parent:SetSize(600, 400)
+	local preview = K.Options.Preview("QoL")(parent)
+	assert(preview.move:GetAlpha() < 1, "its only spell off: the movement sample dims")
+	env._class = "PRIEST"
+	Q.Write(env, K, "moveSprint", true)
+	preview:Refresh()
+	assert(preview.move:GetAlpha() < 1, "a class without movement spells: the sample dims")
+	clean(env, K)
+end
+
+-- Potion ready alert: empty slots and a known potion ask nothing; an unknown or held cooldown never flashes.
+do
+	local env, K, ns = boot()
+	env.C_Container.GetContainerNumSlots = function() return 16 end
+	local n, instant = 0, env.C_Item.GetItemInfoInstant
+	env.C_Item.GetItemInfoInstant = function(id) n = n + 1; return instant(id) end
+	Q.Write(env, K, "potionAlert", true)
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	assert(n == 0, "80 empty slots ask nothing")
+	env._bag = { { itemID = POTION } }
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	n = 0
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	assert(n == 0, "a known potion is not looked for again")
+	env.Release()
+	env._potionCd = { 100, 120, env.Secret(0) }
+	env.FireEvent("BAG_UPDATE_COOLDOWN")
+	assert(#env._held == 0, "an unknown enable waits for nothing")
+	env._potionCd = { 100, 120, 1 }
+	env.FireEvent("BAG_UPDATE_COOLDOWN")
+	env._potionCd = { 100, 120, 0 }
+	env.FireEvent("BAG_UPDATE_COOLDOWN")
+	env.Release()
+	assert(not (ns.noticeLines.flash and ns.noticeLines.flash.wanted), "a cooldown put on hold does not flash")
+	clean(env, K)
+end
+
+-- Layout scales both elements.
+do
+	local env, K = boot()
+	Q.Write(env, K, "rangeText", true)
+	Q.Write(env, K, "moveAlert", true)
+	assert(K.Layout.Set("qol.range", "scale", 1.2) and K.Layout.Set("qol.movement", "scale", 1.2), "both elements take Layout's scale")
+	clean(env, K)
+end
+
+-- Movement alert placement: the bar clears a lowered, longer crosshair on every screen size, and the largest text fits its bar.
+do
+	local scene = dofile("Tools/render/scene.lua")
+	local cross = { crosshair = "normal", crosshairY = -24, crosshairVLength = 60, crosshairBorder = 1, moveAlert = true, moveMode = "bar" }
+	for _, wh in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+		local env, K, ns = Q.New({ width = wh[1], height = wh[2], uiScale = 768 / 1080, size = "auto", setup = stand })
+		Q.Enable(env, K)
+		for _, key in ipairs({ "crosshair", "crosshairY", "crosshairVLength", "crosshairBorder", "moveAlert", "moveMode" }) do Q.Write(env, K, key, cross[key]) end
+		cooling(env, SPRINT2)
+		local _, cy, _, ch = scene.Rect(env, ns.AidFrames())
+		local _, sy = scene.Rect(env, slot(ns))
+		assert(cy + ch <= sy, wh[1] .. "x" .. wh[2] .. ": the movement bar clears the crosshair")
+		clean(env, K)
+	end
+	local env, K, ns = boot({ enabled = true })
+	env._textWidth = function(t, f, z) return scene.TextWidth(t, z, f) end
+	Q.Write(env, K, "moveAlert", true)
+	Q.Write(env, K, "moveMode", "bar")
+	cooling(env, SPRINT2)
+	Q.Write(env, K, "moveSize", 72)
+	local s = slot(ns)
+	s.bar.label:SetText("Feral Charge 28s")
+	assert(s.bar.label:GetStringWidth() <= s.bar:GetWidth(), "the largest name and time fit the bar")
 	clean(env, K)
 end
 
