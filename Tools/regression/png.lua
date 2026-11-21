@@ -70,7 +70,7 @@ local function Inflate(s)
 				code = Huffman(code, 19)
 				local i = 0
 				while i < nlen + ndist do
-					local sym, rep, val = decode(code), 1, nil
+					local sym, rep, val = decode(code), 1
 					if sym < 16 then val = sym
 					elseif sym == 16 then val, rep = lengths[i - 1], 3 + bits(2)
 					else val, rep = 0, sym == 17 and 3 + bits(3) or 11 + bits(7) end
