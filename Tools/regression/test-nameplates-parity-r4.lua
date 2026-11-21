@@ -42,13 +42,13 @@ local function client(env)
 	env.C_SpellBook.GetSpellBookSkillLineInfo = function() return { itemIndexOffset = 0, numSpellBookItems = #env._spells } end
 	env.C_SpellBook.GetSpellBookItemInfo = function(slot) return { spellID = env._spells[slot][1], isPassive = false } end
 	env.C_Spell.GetSpellInfo = function(id)
-		for _, s in ipairs(env._spells) do if s[1] == id then return { spellID = id, maxRange = s[2] } end end
+		for _, s in ipairs(env._spells) do if s[1] == id then return { spellID = id, minRange = s[3] or 0, maxRange = s[2] } end end
 	end
 	env.C_Spell.IsSpellInRange = function(id, token)
 		local u = N.ResolveUnit(token)
 		if not u then return nil end
 		if id < 100 then return not u.outOfRange end
-		for _, s in ipairs(env._spells) do if s[1] == id then return (u.distance or 0) <= s[2] end end
+		for _, s in ipairs(env._spells) do if s[1] == id then return (u.distance or 0) <= s[2] and (u.distance or 0) >= (s[3] or 0) end end
 	end
 end
 
@@ -393,6 +393,205 @@ do
 	set("friendly.npcTitle", true)
 	frame.Refresh()
 	assert(frame.chosen == 4 and shown(env, plates[4].subtitle) == "Innkeeper", "the NPC sample shows its title")
+	clean(env, K)
+end
+collectgarbage()
+
+-- Review of f55b1491, finding 1: a spell with a minimum range, or one invalid for this target, never brackets the distance.
+do
+	local env, K, ns, set = boot({ nameplate1 = { distance = 3 } })
+	local plate = ns.Plates.Get("nameplate1")
+	env._spells = { { 101, 35, 8 } }
+	N.Target(env, "nameplate1")
+	set("target.distance", true)
+	env.RunTickers()
+	assert(plate.distanceText:GetText() == "", "too close for an 8-35 yard spell is not 35+")
+	env._spells = { { 101, 30 }, { 102, 30 } }
+	env.C_Spell.IsSpellInRange = function(id) if id == 102 then return true end end
+	env.FireEvent("SPELLS_CHANGED")
+	env.RunTickers()
+	assert(plate.distanceText:GetText() == "0-30", "a heal invalid on an enemy gives way to an attack of the same range")
+	clean(env, K)
+end
+collectgarbage()
+
+-- Finding 2: the click area keeps the axis it does not change, and is never written when the game's is unreadable.
+do
+	local env, K, ns, set = boot({ nameplate1 = {} })
+	env._insets[1] = { 3, 4, 5, 6 }
+	set("stacking.clickWidth", 0.5)
+	local w = env.C_NamePlate.GetNamePlateSize()
+	local e = env._insets[1]
+	assert(near(e[1], w / 4) and near(e[2], w / 4) and e[3] == 5 and e[4] == 6, "width alone keeps the game's top and bottom")
+	set("stacking.clickWidth", 1)
+	assert(table.concat(env._insets[1], ",") == "3,4,5,6", "and off writes the game's insets back")
+	env.C_NamePlateManager.GetNamePlateHitTestInsets = function() error("unreadable") end
+	local writes = #env._insetWrites
+	set("stacking.clickWidth", 0.5)
+	set("stacking.clickWidth", 1)
+	assert(#env._insetWrites == writes and table.concat(env._insets[1], ",") == "3,4,5,6", "an unreadable click area is left alone")
+	clean(env, K)
+end
+collectgarbage()
+
+-- Finding 3, at each test screen: the stacking box holds a long row on one side, and rows above the name never share a line where they overlap.
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local env, K, ns, set = boot({ nameplate1 = {} }, { stackingBounds = true, width = screen[1], height = screen[2] })
+	local plate, at = ns.Plates.Get("nameplate1"), screen[1] .. "x" .. screen[2] .. ": "
+	set("buffs.enabled", true)
+	set("buffs.count", 8)
+	local _, right = ns.Auras.Reach(plate)
+	local box = plate.stackBounds
+	local half = box:GetWidth() * box:GetEffectiveScale() / plate:GetEffectiveScale() / 2
+	assert(half >= ns.state.width / 2 + right - 1e-6, at .. "the stacking box reaches the eighth buff")
+	set("ccs.enabled", true)
+	set("ccs.place", "TOPLEFT")
+	set("buffs.place", "TOP")
+	set("buffs.count", 3)
+	local size = ns.Auras.Grid(plate)
+	local _, _, _, _, by = plate.kinds.buffs:GetPoint(1)
+	local _, _, _, _, cy = plate.kinds.ccs:GetPoint(1)
+	assert(cy >= by + size, at .. "crowd control at the top left steps over buffs above the name")
+	set("buffs.place", "TOPRIGHT")
+	set("buffs.count", 1)
+	set("ccs.count", 1)
+	_, _, _, _, by = plate.kinds.buffs:GetPoint(1)
+	_, _, _, _, cy = plate.kinds.ccs:GetPoint(1)
+	assert(near(by, cy), at .. "one icon at each top corner shares a line")
+	clean(env, K)
+	collectgarbage()
+end
+
+-- Finding 4: crowd control leaves the debuff row only on plates that have a crowd control row, following faction changes.
+do
+	local env, K, ns, set = boot({ nameplate1 = {}, nameplate2 = { canAttack = false, reaction = 5 } })
+	local enemy, friend = ns.Plates.Get("nameplate1"), ns.Plates.Get("nameplate2")
+	set("debuffs.onlyMine", false)
+	set("ccs.enabled", true)
+	assert(not filters(friend.auras).debuffs:find("CROWD_CONTROL", 1, true), "a friendly plate keeps crowd control among its debuffs")
+	assert(filters(enemy.auras).debuffs:find("|!CROWD_CONTROL", 1, true), "an enemy's moves to its own row")
+	env._units.nameplate2.canAttack, env._units.nameplate2.reaction = true, 2
+	env.FireEvent("UNIT_FACTION", "nameplate2")
+	assert(filters(friend.auras).debuffs:find("|!CROWD_CONTROL", 1, true), "turning hostile moves it")
+	env._units.nameplate2.canAttack, env._units.nameplate2.reaction = false, 5
+	env.FireEvent("UNIT_FACTION", "nameplate2")
+	assert(not filters(friend.auras).debuffs:find("CROWD_CONTROL", 1, true), "and friendly again brings it back")
+	clean(env, K)
+end
+collectgarbage()
+
+-- Finding 5: Sunder Armor fits a one-tile row, and a missing UnitClass hides it without an error.
+do
+	local env, K, ns, set = boot({ nameplate1 = {} }, { playerClass = "WARRIOR" })
+	local groups = ns.Plates.Get("nameplate1").auras._groups
+	set("debuffs.columns", 1)
+	set("debuffs.rows", 1)
+	set("debuffs.sunder", true)
+	assert(groups.debuffs.maxFrameCount + groups.sunder.maxFrameCount == 1, "one tile holds Sunder Armor alone")
+	set("debuffs.sunder", false)
+	env.UnitClass = nil
+	set("debuffs.sunder", true)
+	assert(not ns.Settings.Row("debuffs.sunder").showWhen(), "without UnitClass the switch hides")
+	clean(env, K)
+end
+collectgarbage()
+
+-- Findings 6 and 7: Debuffs in front off drops both rows back; a refused aura group is not rebuilt on every refresh.
+do
+	local env, K, ns, set = boot({ nameplate1 = {} })
+	local plate = ns.Plates.Get("nameplate1")
+	set("buffs.enabled", true)
+	set("ccs.enabled", true)
+	set("debuffs.raise", true)
+	set("debuffs.raise", false)
+	local level = plate:GetFrameLevel() + 1
+	assert(plate.kinds.buffs:GetFrameLevel() == level and plate.kinds.ccs:GetFrameLevel() == level, "both rows back behind")
+	clean(env, K)
+	local env2, K2, ns2, set2 = boot({ nameplate1 = {} })
+	local plate2, create, made = ns2.Plates.Get("nameplate1"), env2.CreateFrame, 0
+	env2.CreateFrame = function(kind, ...)
+		local frame = create(kind, ...)
+		if kind == "AuraContainer" then
+			made = made + 1
+			frame.AddAuraGroup = function() error("refused group") end
+		end
+		return frame
+	end
+	set2("buffs.enabled", true)
+	local before = made
+	for _ = 1, 5 do plate2:Refresh() end
+	assert(made == before, "no new container per refresh")
+	env2.CreateFrame = create
+end
+collectgarbage()
+
+-- Finding 8: a spell target on its own shows wherever the spell name is hidden, and stops short of the time left.
+do
+	local env, K, ns, set = boot({ nameplate1 = { spellTarget = "Thaldrin" } })
+	local plate = ns.Plates.Get("nameplate1")
+	set("cast.showTarget", true)
+	set("cast.targetPlace", "RIGHT")
+	set("cast.nameBelow", false)
+	N.Cast(env, "nameplate1", { name = "Bolt", text = "Bolt", texture = 1 })
+	assert(not plate.castName:IsShown() and plate.castTarget:IsShown() and env.Reveal(plate.castTarget:GetText()) == "Thaldrin",
+		"an unselected caster's hidden name leaves the target on its own")
+	N.Target(env, "nameplate1")
+	assert(plate.castName:IsShown() and not plate.castTarget:IsShown() and shown(env, plate.castName):find("Thaldrin", 1, true), "selected, the name carries it")
+	local row = ns.Settings.Row("cast.showTarget")
+	assert(not (row.disableWhen and row.disableWhen({ cast = { showName = false, enabled = true } })), "the target switch works without the spell name")
+	set("cast.nameBelow", true)
+	set("cast.showTime", true)
+	for _, place in ipairs({ "LEFT", "CENTER", "RIGHT" }) do
+		set("cast.targetPlace", place)
+		local text, clear = plate.castTarget, false
+		for i = 1, text:GetNumPoints() do
+			local p, rel = text:GetPoint(i)
+			clear = clear or p == "RIGHT" and rel == plate.castTime
+		end
+		assert(text:GetNumPoints() == 2 and clear, place .. ": the target stops short of the time left")
+	end
+	clean(env, K)
+end
+collectgarbage()
+
+-- Finding 9: the preview shows the distance on the sample it picks, every buff icon asked for, and each buff filter's own buffs.
+do
+	local env, K, ns, set = boot({})
+	local frame = ns.Preview.Build(env.UIParent)
+	set("name.afk", true)
+	set("target.distance", true)
+	frame.Refresh()
+	assert(frame.plates[frame.chosen].distanceText:IsShown(), "AFK tags and the distance together")
+	set("name.afk", false)
+	set("target.distance", false)
+	set("buffs.enabled", true)
+	set("buffs.count", 8)
+	frame.Refresh()
+	local icons = frame.plates[frame.chosen].sampleKinds.buffs.icons
+	local n = 0
+	for _, icon in ipairs(icons) do if icon:IsShown() then n = n + 1 end end
+	assert(n == 8, "eight buff icons preview eight")
+	local seen = {}
+	for _, filter in ipairs({ "important", "dispellable", "all" }) do
+		set("buffs.filter", filter)
+		frame.Refresh()
+		local textures = {}
+		for i = 1, 8 do textures[i] = N.Last(icons[i].tile.icon, "SetTexture")[1] end
+		local key = table.concat(textures, ",")
+		assert(not seen[key], filter .. " previews its own buffs")
+		seen[key] = true
+	end
+	clean(env, K)
+end
+collectgarbage()
+
+-- Finding 10: a tooltip line not followed by the level line is no NPC title.
+do
+	local env, K, ns, set = boot({ nameplate1 = { canAttack = false, reaction = 5 } })
+	local npc = ns.Plates.Get("nameplate1")
+	env.C_TooltipInfo.GetUnit = function() return { lines = { { type = 2, leftText = "Hale" }, { type = 0, leftText = "Unrelated note" } } } end
+	set("friendly.npcTitle", true)
+	assert(not (npc.subtitle and npc.subtitle:IsShown()), "an unrelated note stays off the plate")
 	clean(env, K)
 end
 collectgarbage()
