@@ -83,10 +83,9 @@ return Common.Run(function()
 		env.C_PetInfo = { GetPetHappiness = function() return 3 end }
 		env.HasPetUI = function() return true, true end
 		for _, event in ipairs({ "PLAYER_FOCUS_CHANGED", "INSTANCE_ENCOUNTER_ENGAGE_UNIT", "RAID_TARGET_UPDATE" }) do env.FireEvent(event) end
-		K.Options.Get(module)
 		for _, pair in ipairs({
 			{ "target.markerSize", 28 }, { "pet.happiness", true }, { "pet.happinessPosition", "LEFT" }, { "pet.castbar", true },
-			{ "pet.castbarHideIdle", false }, { "focus.auraCopy", "target" }, { "focus.auraBuffZoom", 0.25 },
+			{ "pet.castbarHideIdle", false }, { "focus.auraCopy", "target" }, { "target.auraBuffZoom", 0.25 },
 			{ "boss.auraSimple", "LEFT" }, { "boss.castbarHideIdle", false }, { "focus.auraFilter", "both" },
 		}) do
 			K.Options.Write(module, pair[1], pair[2])
@@ -103,5 +102,12 @@ return Common.Run(function()
 	end
 	env.RunTimers(); Gallery.Ticks(dofile("Tools/regression/widget_env.lua"), env, 40)
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))
+	if os.getenv("RENDER_PARITY_R3A") == "1" and module == "UnitFrames" then
+		local W, zoomed = dofile("Tools/regression/widget_env.lua"), false
+		for _, entry in ipairs(ns.Frames.Get("focus").views[1].auras.buttons) do
+			zoomed = zoomed or entry.buff and entry.button:IsVisible() and W.LastCall(entry.icon, "SetTexCoord")[1] == 0.25
+		end
+		assert(zoomed, "the focus shows a buff at the target's buff zoom")
+	end
 	return Gallery.Build(env)
 end)

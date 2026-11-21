@@ -403,7 +403,7 @@ local function Dress(view, key, button, buttons)
 	local entry = Auras.NewTile(button)
 	local skin = entry.skin
 	skin:SetAllPoints(button)
-	entry.kind, entry.buff = view.kind, key == "buffs"
+	entry.buff = key == "buffs"
 	if Settings.Form(view.kind) == "slab" and not Settings.AuraRows(view.kind) then
 		entry.slab = Widgets.NineSlice(skin, "medAuraBorder", "BACKGROUND", 1)
 		entry.chrome:SetShown(false)
