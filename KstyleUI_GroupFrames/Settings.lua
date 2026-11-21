@@ -110,11 +110,10 @@ local INDICATOR_DEFAULTS = {
 	{ category = "CROWD_CONTROL", position = "CENTER" },
 	{ category = "BIG_DEFENSIVE", position = "BOTTOMRIGHT" },
 }
-local FRIENDLY = Rgb("friendly")
 for i = 1, INDICATOR_SLOTS do
 	local preset = INDICATOR_DEFAULTS[i] or {}
 	Settings.defaults["indicator" .. i] = { category = preset.category or "OFF", position = preset.position or "TOPLEFT", spells = "", mine = false, size = 14, show = "BOTH", x = 0, y = 0,
-		style = "ICON", color = { r = FRIENDLY.r, g = FRIENDLY.g, b = FRIENDLY.b }, thick = 4, reverse = false, over = false }
+		style = "ICON", color = Rgb("friendly"), thick = 4, reverse = false, over = false }
 end
 
 local function Plain(r, g, b)
@@ -944,12 +943,9 @@ function Settings.Refresh()
 			end
 		end
 	end
-	local follow = current.follow
-	if follow.text or follow.auras or follow.heals or follow.icons or follow.power then
-		for section, keys in pairs(Settings.FOLLOW) do
-			if follow[section] then
-				for _, key in ipairs(keys) do current.party[key] = current.raid[key] end
-			end
+	for section, keys in pairs(Settings.FOLLOW) do
+		if current.follow[section] then
+			for _, key in ipairs(keys) do current.party[key] = current.raid[key] end
 		end
 	end
 	return current

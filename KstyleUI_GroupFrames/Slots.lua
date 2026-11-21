@@ -395,10 +395,9 @@ local EDGES = { TOPLEFT = "TOP", TOP = "TOP", TOPRIGHT = "TOP", BOTTOMLEFT = "BO
 local ACROSS = { BOTTOM = "TOP", TOP = "BOTTOM", LEFT = "RIGHT", RIGHT = "LEFT" }
 
 local function LineOn(f, edge)
-	local p = Settings.current.prediction
-	local shield = p.shield and Widgets.Border(f) * p.shieldLines or 0
-	if p.shield and p.shieldPlace == edge then return shield end
-	if p.healAbsorbLine and ACROSS[p.shieldPlace] == edge then return p.healAbsorbLines > 0 and Widgets.Border(f) * p.healAbsorbLines or Widgets.Border(f) * p.shieldLines end
+	local p, border = Settings.current.prediction, Widgets.Border(f)
+	if p.shield and p.shieldPlace == edge then return border * p.shieldLines end
+	if p.healAbsorbLine and ACROSS[p.shieldPlace] == edge then return border * (p.healAbsorbLines > 0 and p.healAbsorbLines or p.shieldLines) end
 	return 0
 end
 
