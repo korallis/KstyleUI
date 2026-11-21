@@ -263,7 +263,7 @@ end
 
 local function LevelColor(plate, level)
 	if Settings.Get("target.readableTicks") and not IsSecret(level) and level == SKULL_LEVEL then return Tokens.Color("nameHostile") end
-	local mark = Settings.Get("markers.classification") and Logic.MarkerColor(plate:Is("classification", UnitClassification, plate.unit))
+	local mark = Settings.Get("markers.classification") and not Plate.MarkersHidden() and Logic.MarkerColor(plate:Is("classification", UnitClassification, plate.unit))
 	if mark then
 		return Tokens.Color(mark)
 	end

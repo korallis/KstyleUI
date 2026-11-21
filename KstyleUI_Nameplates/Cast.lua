@@ -522,11 +522,26 @@ function Component.Room(plate, anchor)
 		return 0
 	end
 	local label = not anchor and plate.castNameBelow and Settings.Get("cast.showName") and Settings.Get("cast.nameBelow") and Settings.Get("cast.textSize") + GAP or 0
-	local h = Settings.Get("cast.height")
+	local h = Cast.Height(plate)
 	local icon = Settings.Get("cast.showIcon") and math.max(0, (Settings.Get("cast.iconScale") - 1) * h / 2 - Settings.Get("cast.iconY")) or 0
 	return math.max(0, h + Cast.Gap(plate) + Settings.Get("cast.offsetY") + Widgets.Border(plate.castBar) * 2 + label + icon)
 end
 Cast.Room = Component.Room
+
+function Cast.Height(plate)
+	local h = Settings.Get("cast.height")
+	return plate.castFocus and h * Settings.Get("focus.castHeight") or h
+end
+
+function Cast.Resize(plate)
+	Component.Restyle(plate)
+	if plate.casting then
+		plate.castR = nil
+		Paint(plate)
+	end
+	if not plate.sample then plate:PlaceOnBase(ns.state.width, ns.state.height) end
+	ns.Auras.Reanchor(plate)
+end
 
 function Cast.Gap(plate)
 	return Widgets.Border(plate.health) + Widgets.Snap(plate, ns.Plate.FRAME_GAP) + Widgets.Border(plate.castBar)
@@ -541,7 +556,7 @@ end
 function Component.Restyle(plate)
 	plate.castShade = nil
 	local state = ns.state
-	local h = Settings.Get("cast.height")
+	local h = Cast.Height(plate)
 	local showIcon = Settings.Get("cast.showIcon")
 	local badge = math.max(11, h)
 	local cast, bar, icon = plate.cast, plate.castBar, plate.castIcon
@@ -578,6 +593,11 @@ function Component.Restyle(plate)
 	bar:SetBarTexture(Settings.Get("cast.texture"))
 	bar:Restyle()
 	bar:SetFillCursor(Settings.Get("cast.spark"))
+	local bg = Settings.Get("cast.bgAlpha")
+	if bg ~= 1 then
+		Widgets.Tint(bar.background, bar.backgroundName, bg)
+		Widgets.Tint(bar.barEdge.track, "barTrack", bg)
+	end
 	local border = Settings.Get("cast.border")
 	if (not border or plate.castBare) and bar.barEdge then
 		plate.castBare = not border

@@ -71,8 +71,18 @@ local typeEnabled, typeInfo = {}, {}
 local TEXT_ELEMENTS = { "name", "healthText", "extra1", "extra2" }
 local TAG_EVENTS = { UNIT_LEVEL = "Level", UNIT_POWER_UPDATE = "Power", UNIT_MAXPOWER = "Power",
 	UNIT_ABSORB_AMOUNT_CHANGED = "Prediction", UNIT_TARGET = "Target" }
+local WHO_FORMAT = { player = "friendly.playerFormat", npc = "friendly.npcFormat" }
+local WHO_COLOR = { player = { "friendly.nameMode", "friendly.nameColor" }, npc = { "friendly.npcNameMode", "friendly.npcColor" } }
+local WHO_SIZE = { npc = "friendly.npcSize", pet = "friendly.petSize" }
+local SUB_GAP = 1
+local ABSORB = { after = { "LEFT", true, "RIGHT", false }, back = { "RIGHT", true, "RIGHT", true },
+	far = { "RIGHT", false, "RIGHT", true }, near = { "LEFT", false, "LEFT", false } }
+local FLIP, UPRIGHT = { LEFT = "RIGHT", RIGHT = "LEFT" }, { LEFT = "BOTTOM", RIGHT = "TOP" }
+local EXECUTE_LOW = 0.35
+local executeCurves = {}
 
 local function OnTagEvent(plate, event)
+	if event == "UNIT_ABSORB_AMOUNT_CHANGED" and plate.absorb then plate:UpdateAbsorb() end
 	plate:UpdateTags(TAG_EVENTS[event])
 end
 
@@ -222,6 +232,10 @@ function ns.NewPlate(parent, sample)
 	plate.threatShape:Hide()
 	function health:SetRimColor(r, g, b, a)
 		self.under.edgeHard:SetColorTexture(r, g, b, a or 1)
+		if plate.healthBare then
+			local br, bg, bb = Tokens.Color("black")
+			self.under.edgeHard:SetShown(not (r == br and g == bg and b == bb))
+		end
 	end
 	plate.healthText = NewText(health, "RIGHT")
 
@@ -331,7 +345,7 @@ local function ExtraTexts(plate)
 end
 
 local letterCfg = { textFormat = "", font = "", outline = "OUTLINE" }
-local OVERLAY_KEYS = { hashLine = "target.hashLine", threatText = "threat.percent", nameRaid = "markers.nameRaid", pvpBadge = "markers.pvp", targetFill = "target.fill" }
+local OVERLAY_KEYS = { hashLine = "target.hashLine", threatText = "threat.percent", nameRaid = "markers.nameRaid", pvpBadge = "markers.pvp" }
 
 local function Overlays(plate)
 	local health, barW, barH = plate.health, plate.barW, plate.barH
@@ -403,17 +417,18 @@ local function Overlays(plate)
 		Widgets.ShowSlice(plate.targetGlow, false)
 		plate.glowShown = false
 	end
-	if Settings.Get("target.fill") then
-		local fill = plate.targetFill
-		if not fill then
-			fill = Host(plate):CreateTexture(nil, "ARTWORK")
+	if Settings.Get("target.fill") or Settings.Get("focus.fill") or Settings.Get("target.hover") then
+		if not plate.targetFill then
+			local fill = Host(plate):CreateTexture(nil, "ARTWORK")
 			fill:SetAllPoints(health)
 			fill:SetBlendMode("ADD")
 			fill:SetColorTexture(Tokens.Color("white"))
+			fill:Hide()
 			plate.targetFill = fill
 		end
-		fill:SetVertexColor(Rgb(Settings.Get("target.fillColor")))
-		fill:SetAlpha(Settings.Get("target.fillAlpha"))
+		plate.fillWhich = false
+	elseif plate.targetFill then
+		plate:SetFill(nil)
 	end
 	for key, setting in pairs(OVERLAY_KEYS) do
 		if plate[key] and not Settings.Get(setting) then plate[key]:Hide() end
@@ -431,8 +446,13 @@ function Plate:Restyle()
 	self.nameFormat, self.healthFormat = Settings.Get("name.textFormat"), Settings.Get("healthText.textFormat")
 	self.nameEnabled, self.healthTextEnabled = Settings.Get("name.show"), Settings.Get("healthText.show")
 	self.statusTags = Settings.Get("name.afk") or Settings.Get("name.dnd")
-	self.textOptions = self.nameFormat ~= "" or self.healthFormat ~= ""
+	local formats = Settings.Get("friendly.playerFormat") ~= "" or Settings.Get("friendly.npcFormat") ~= ""
+	self.textOptions = self.nameFormat ~= "" or self.healthFormat ~= "" or formats
 		or Settings.Get("name.colorMode") ~= "" or Settings.Get("healthText.colorMode") ~= ""
+	self.subtitled = Settings.Get("friendly.guild") ~= "" or Settings.Get("friendly.owner")
+	self.friendlyNames = formats or self.subtitled or Settings.Get("friendly.title") or Settings.Get("friendly.nameMode") ~= ""
+		or Settings.Get("friendly.npcNameMode") ~= "" or Settings.Get("friendly.npcSize") ~= 0 or Settings.Get("friendly.petSize") ~= 0
+	self.who, self.whoSize = nil, nil
 	self:ApplyScale()
 	local state = ns.state
 	local w, h = state.width, state.height
@@ -457,6 +477,12 @@ function Plate:Restyle()
 	health:SetReverseFill(Settings.Get("health.reverse"))
 	health:SetBarTexture(Settings.Get("health.texture"))
 	health:Restyle()
+	local bare = not Settings.Get("health.border")
+	if bare or self.healthBare then
+		self.healthBare = bare
+		if bare then health.under.edgeSoft:Hide() end
+		health.under.edgeHard:SetShown(not bare)
+	end
 
 	local nameRole = Settings.Get("name.upper") and "names" or "heading"
 	Widgets.StyleText(self.name, nameRole)
@@ -484,6 +510,8 @@ function Plate:Restyle()
 
 	ExtraTexts(self)
 	Overlays(self)
+	self:LayoutAbsorb()
+	self:LayoutExecute()
 	self:RegisterTagEvents()
 	self.nameOnly = nil
 	self.bracketsShown = nil
@@ -496,8 +524,12 @@ local function Diagonal(frame, side)
 	return Widgets.Snap(frame, side * math.sqrt(2))
 end
 
+local function Side()
+	return DIAMOND_SIDE * Settings.Get("level.diamond")
+end
+
 function Plate.DiamondSize(plate)
-	return Diagonal(plate, DIAMOND_SIDE + Pixel(plate) * 2)
+	return Diagonal(plate, Side() + Pixel(plate) * 2)
 end
 
 function Plate.DiamondReach(plate)
@@ -513,7 +545,7 @@ function Plate:LayoutDiamond()
 	Place(diamond, "RIGHT", health, "LEFT", outer - Plate.DiamondReach(self) + Settings.Get("level.x"), Settings.Get("level.y"), outer, outer, self.barW, self.barH)
 	diamond.size = outer
 	diamond.outer.side = outer
-	diamond.rim.side = Diagonal(self, DIAMOND_SIDE)
+	diamond.rim.side = Diagonal(self, Side())
 	diamond.rimPixel = px
 	diamond.fill:SetVertexColor(DIAMOND_FILL[1], DIAMOND_FILL[2], DIAMOND_FILL[3], 1)
 	self.rimWeight = nil
@@ -529,7 +561,7 @@ function Plate:SetRimWeight(weight)
 	self.rimWeight = weight
 	local diamond = self.level
 	local px = diamond.rimPixel
-	local inner = DIAMOND_SIDE - px * 2 * weight
+	local inner = Side() - px * 2 * weight
 	diamond.inner.side = Diagonal(self, inner)
 	diamond.fill.side = Diagonal(self, inner - px * 2)
 	for _, layer in ipairs(diamond.layers) do
@@ -636,7 +668,16 @@ function Plate:LayoutName()
 		Place(name, "CENTER", self, "CENTER", 0, 0, nil, nil, self.barW, self.barH)
 	else
 		name:SetJustifyH("CENTER")
-		Place(name, "BOTTOM", health, "TOP", 0, NAME_GAP, nil, nil, self.barW, self.barH)
+		Place(name, "BOTTOM", health, "TOP", 0, NAME_GAP + (self.subtitleRoom or 0), nil, nil, self.barW, self.barH)
+	end
+	local sub = self.subtitle
+	if sub then
+		sub:ClearAllPoints()
+		if self.nameOnly then
+			Place(sub, "TOP", name, "BOTTOM", 0, -SUB_GAP)
+		else
+			Place(sub, "BOTTOM", health, "TOP", 0, NAME_GAP, nil, nil, self.barW, self.barH)
+		end
 	end
 end
 
@@ -654,7 +695,8 @@ function Plate:ClearUnit()
 	self:UnregisterAllEvents()
 	self.threatState = nil
 	if self.alphaTween then Motion.Stop(self.alphaTween); self.alphaTween = nil end
-	self.alphaGoal = nil
+	self.alphaGoal, self.hovered, self.outOfRange, self.fillWhich = nil, nil, nil, self.targetFill and false or nil
+	if self.executePulse then self.executePulse:Stop(); self.executeShown = nil end
 	self:SetAlpha(1)
 	Each("Clear", self)
 	self:Hide()
@@ -712,7 +754,35 @@ function Plate:UpdateStyle()
 		end
 	end
 	self.health:SetShown(not nameOnly)
+	local who
+	if self.kind == "friendly" and self.friendlyNames then
+		who = IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit)) and "player" or IsTrue(self:Is("pet", UnitPlayerControlled, self.unit)) and "pet" or "npc"
+	end
+	if who ~= self.who then
+		self.who = who
+		local key = WHO_SIZE[who]
+		local size = key and Settings.Get(key) or 0
+		size = size ~= 0 and size or nil
+		if size ~= self.whoSize then
+			self.whoSize = size
+			local path, _, flags = self.name:GetFont()
+			Widgets.ApplyFont(self.name, path, size or Settings.Get("name.size"), flags)
+		end
+		self:RegisterTagEvents()
+	end
 	self:UpdateColor()
+end
+
+function Plate:NameFormat()
+	local key = self.who and WHO_FORMAT[self.who]
+	local own = key and Settings.Get(key)
+	return own and own ~= "" and own or self.nameFormat
+end
+
+function Plate:WhoColor()
+	local keys = self.who and WHO_COLOR[self.who]
+	local mode = keys and Settings.Get(keys[1])
+	if mode and mode ~= "" then return mode, keys[2] end
 end
 
 local function ManaType()
@@ -765,7 +835,7 @@ function Plate:TypeColor(isPlayer, tapped)
 		typeEnabled[name] = Settings.Get(TYPE_KEYS[name])
 	end
 	typeInfo.isPlayer, typeInfo.tapped = isPlayer, tapped
-	typeInfo.quest, typeInfo.caster = self.quest, self.caster
+	typeInfo.quest, typeInfo.caster = self.quest and not Plate.MarkersHidden(), self.caster
 	typeInfo.classification = self:Is("classification", UnitClassification, self.unit)
 	if IsSecret(typeInfo.classification) then
 		typeInfo.classification = nil
@@ -830,6 +900,7 @@ function Plate:UpdateColor()
 	elseif last.r ~= r or last.g ~= g or last.b ~= b then
 		last.r, last.g, last.b = r, g, b
 		self.health:SetBarColor(r, g, b)
+		if self.fillWhich and Settings.Get("target.fillOwn") then self:SetFill(self.fillWhich) end
 	end
 end
 
@@ -845,7 +916,115 @@ function Plate:UpdateHealth(immediate, refreshing)
 		health:SetHealth(UnitHealth(unit), immediate)
 	end
 	self:UpdateHealthText()
+	if self.absorb then self:UpdateAbsorb() end
+	if self.executeGate then self:UpdateExecute() end
 	if (self.textOptions or self.extra1 or self.extra2) and not refreshing then self:UpdateTags("Health") end
+end
+
+function Plate:LayoutAbsorb()
+	local on = Settings.Get("health.absorbs")
+	if not (on or self.absorb) then return end
+	local health = self.health
+	if not self.absorb then
+		local clip = CreateFrame("Frame", nil, health)
+		clip:SetAllPoints(health)
+		clip:SetClipsChildren(true)
+		self.absorb = Widgets.StatusBar(clip, { background = false, color = "white" })
+	end
+	local bar, place = self.absorb, ABSORB[Settings.Get("health.absorbPlace")]
+	bar:GetParent():SetFrameLevel(health:GetFrameLevel() + 1)
+	local reverse, point, rel = Settings.Get("health.reverse"), place[1], place[3]
+	if reverse then point, rel = FLIP[point], FLIP[rel] end
+	if health.vertical then point, rel = UPRIGHT[point], UPRIGHT[rel] end
+	bar:SetOrientation(Settings.Get("health.orientation"))
+	bar:SetReverseFill(place[4] ~= reverse)
+	Widgets.Size(bar, self.barW, self.barH)
+	bar:ClearAllPoints()
+	bar:SetPoint(point, place[2] and health:GetStatusBarTexture() or health, rel)
+	bar:SetBarTexture(Settings.Get("health.texture"))
+	bar:SetBarColor(Widgets.Rgba("white", Settings.Get("health.absorbAlpha")))
+	bar:SetShown(on)
+	if on then self:UpdateAbsorb() end
+end
+
+function Plate:UpdateAbsorb()
+	local bar = self.absorb
+	if not bar:IsShown() then return end
+	local sample = self.sample
+	if sample then
+		bar:SetBarRange(0, 1)
+		bar:SetValue(sample.absorb or 0)
+	elseif self.unit then
+		local value = UnitValue(UnitGetTotalAbsorbs, self.unit)
+		bar:SetBarRange(0, UnitHealthMax(self.unit))
+		bar:SetValue(type(value) == "nil" and 0 or value)
+	end
+end
+
+local function ExecuteCurve(share)
+	local curve = executeCurves[share]
+	if curve == nil then
+		local util, kinds = C_CurveUtil, Enum and Enum.LuaCurveType
+		curve = false
+		if util and type(util.CreateCurve) == "function" and type(UnitHealthPercent) == "function" then
+			curve = util.CreateCurve()
+			if kinds and kinds.Step and curve.SetType then curve:SetType(kinds.Step) end
+			curve:AddPoint(0, 1)
+			curve:AddPoint(share, 1)
+			curve:AddPoint(share + 0.001, 0)
+			curve:AddPoint(1, 0)
+		else
+			LogOnce("execute-curve", "C_CurveUtil.CreateCurve or UnitHealthPercent is missing; plates show no execute glow")
+		end
+		executeCurves[share] = curve
+	end
+	return curve or nil
+end
+
+function Plate:LayoutExecute()
+	local on = Settings.Get("health.execute")
+	if not (on or self.executeGate) then return end
+	if not self.executeGate then
+		local gate = CreateFrame("Frame", nil, self.glowFrame)
+		gate:SetAllPoints(self.glowFrame)
+		local pulse = CreateFrame("Frame", nil, gate)
+		pulse:SetAllPoints(gate)
+		local glow = Widgets.NineSlice(pulse, "shadow", "BACKGROUND", -3)
+		for _, piece in ipairs(glow) do piece:SetBlendMode("ADD") end
+		local group = pulse:CreateAnimationGroup()
+		group:SetLooping("BOUNCE")
+		local fade = group:CreateAnimation("Alpha")
+		fade:SetFromAlpha(1)
+		fade:SetToAlpha(EXECUTE_LOW)
+		fade:SetDuration(Tokens.Duration("glowBreath"))
+		fade:SetSmoothing(Tokens.Smoothing.loop)
+		self.executeGate, self.executeFrame, self.executeGlow, self.executePulse = gate, pulse, glow, group
+	end
+	local level = self.glowFrame:GetFrameLevel()
+	self.executeGate:SetFrameLevel(level)
+	self.executeFrame:SetFrameLevel(level)
+	Widgets.LayoutSlice(self.executeGlow, self.health, GLOW_CORNER, GLOW_OUTSET)
+	local r, g, b = K.ColorVision.Color(2, Tokens.Color("hostile"))
+	Widgets.ColorSlice(self.executeGlow, r, g, b, THREAT_GLOW_ALPHA)
+	self.executeShown = nil
+	self:UpdateExecute()
+end
+
+function Plate:UpdateExecute()
+	local gate = self.executeGate
+	local shown = Settings.Get("health.execute") and self.kind == "enemy" and not self.nameOnly
+	if shown and self.sample then
+		gate:SetAlpha(1)
+	elseif shown then
+		local curve = ExecuteCurve(Settings.Get("health.executePercent") / 100)
+		shown = curve ~= nil and self.unit ~= nil
+		if shown then gate:SetAlpha(UnitHealthPercent(self.unit, true, curve)) end
+	end
+	shown = shown or false
+	if shown == self.executeShown then return end
+	self.executeShown = shown
+	gate:SetShown(shown)
+	if shown and Motion.Level() ~= "off" then self.executePulse:Play() else self.executePulse:Stop() end
 end
 
 function Plate:UpdateHealthText()
@@ -882,8 +1061,13 @@ function Plate:UpdateName(refreshing)
 	if not show then
 		return
 	end
-	local value = self:Is("name", UnitName, self.unit)
-	if self.nameFormat == "" then
+	local value
+	if self.who == "player" and Settings.Get("friendly.title") then
+		value = self:Is("pvpName", UnitPVPName, self.unit)
+	else
+		value = self:Is("name", UnitName, self.unit)
+	end
+	if self:NameFormat() == "" then
 		local tag = self.statusTags and self:StatusTag()
 		if IsSecret(value) then
 			if tag then name:SetFormattedText("%s <%s>", value, tag) else name:SetText(value) end
@@ -896,6 +1080,53 @@ function Plate:UpdateName(refreshing)
 	end
 	self:UpdateNameColor(true)
 	if (self.textOptions or self.extra1 or self.extra2) and not refreshing then self:UpdateTags("Name") end
+	if self.subtitled or self.subtitle then self:UpdateSubtitle() end
+end
+
+function Plate:UpdateSubtitle()
+	local text, size, brackets
+	if self.nameEnabled and self.who == "player" and Settings.Get("friendly.guild") ~= "" then
+		text, size, brackets = self:Is("guild", GetGuildInfo, self.unit), Settings.Get("friendly.guildSize"), Settings.Get("friendly.guild") == "brackets"
+	elseif self.nameEnabled and self.who == "pet" and Settings.Get("friendly.owner") then
+		text = self.sample and self.sample.owner
+		local guid = not self.sample and UnitValue(UnitOwnerGUID, self.unit) or nil
+		if type(guid) ~= "nil" then text = select(6, UnitValue(GetPlayerInfoByGUID, guid)) end
+		size = Settings.Get("friendly.ownerOwnSize") and Settings.Get("friendly.ownerSize") or self.whoSize or Settings.Get("name.size")
+	end
+	if not IsSecret(text) and (text == nil or text == "") then text = nil end
+	local sub, fresh = self.subtitle, false
+	if text ~= nil then
+		if not sub then
+			fresh = true
+			sub = NewText(self, "CENTER")
+			self.subtitle = sub
+		end
+		local path, _, flags = self.name:GetFont()
+		Widgets.ApplyFont(sub, path, size, flags)
+		sub:SetFormattedText(brackets and "<%s>" or "%s", text)
+		self:MatchSubtitle()
+		sub:Show()
+	elseif sub then
+		sub:Hide()
+	end
+	local room = text ~= nil and not self.nameOnly and Widgets.Snap(self, size + SUB_GAP) or 0
+	if fresh or room ~= (self.subtitleRoom or 0) then
+		self.subtitleRoom = room
+		self:LayoutName()
+		ns.Auras.Reanchor(self)
+		if self.rise then ns.Stacking.Bound(self, self.rise) end
+	end
+end
+
+function Plate:MatchSubtitle()
+	local sub = self.subtitle
+	if not sub then return end
+	local pet = self.who == "pet"
+	if Settings.Get(pet and "friendly.ownerMatch" or "friendly.guildMatch") then
+		sub:SetTextColor(self.name:GetTextColor())
+	else
+		sub:SetTextColor(Rgb(Settings.Get(pet and "friendly.ownerColor" or "friendly.guildColor")))
+	end
 end
 
 function Plate:StatusTag()
@@ -911,14 +1142,16 @@ end
 
 function Plate:RegisterTagEvents()
 	if self.sample then return end
-	if not (self.textOptions or self.extra1 or self.extra2) then
+	local absorbs = self.absorb ~= nil and Settings.Get("health.absorbs")
+	if not (self.textOptions or self.extra1 or self.extra2 or absorbs) then
 		for event in pairs(TAG_EVENTS) do self:UnregisterEvent(event) end
 		return
 	end
 	for event, field in pairs(TAG_EVENTS) do
-		local needed = false
+		local needed = absorbs and event == "UNIT_ABSORB_AMOUNT_CHANGED"
 		for _, key in ipairs(TEXT_ELEMENTS) do
-			if self[key] and (key:match("^extra") or Settings.Get(key .. ".show")) and Widgets.ParseText(Settings.Get(key .. ".textFormat")).events[field] then needed = true end
+			local format = key == "name" and self:NameFormat() or Settings.Get(key .. ".textFormat")
+			if self[key] and (key:match("^extra") or Settings.Get(key .. ".show")) and Widgets.ParseText(format).events[field] then needed = true end
 		end
 		if self.unit and needed then self:RegisterUnitEvent(event, self.unit) else self:UnregisterEvent(event) end
 	end
@@ -930,7 +1163,7 @@ function Plate:PaintTags(key)
 	if sample then
 		sample = { name = sample.name, health = sample.health * 100, healthMax = 100, level = sample.level, reaction = sample.reaction, own = sample.isPlayer }
 	end
-	local format = Settings.Get(key .. ".textFormat")
+	local format = key == "name" and self:NameFormat() or Settings.Get(key .. ".textFormat")
 	local tag = key == "name" and self.statusTags and self:StatusTag()
 	Widgets.TagText(self[key], tag and format .. " <" .. tag .. ">" or format, self.unit, sample)
 end
@@ -940,14 +1173,15 @@ function Plate:UpdateTags(event)
 	for _, key in ipairs(TEXT_ELEMENTS) do
 		local text = self[key]
 		local extra = key:match("^extra")
-		local format = text and Settings.Get(key .. ".textFormat") or ""
+		local format = text and (key == "name" and self:NameFormat() or Settings.Get(key .. ".textFormat")) or ""
 		if format ~= "" and (extra or Settings.Get(key .. ".show")) and (key ~= "healthText" or not self.nameOnly)
 			and (not event or Widgets.ParseText(format).events[event]) then
 			self:PaintTags(key)
 		end
 		local mode = text and Settings.Get(key .. ".colorMode") or ""
-		if mode ~= "" and not (key == "name" and self.threatState and ThreatName()) then
+		if mode ~= "" and not (key == "name" and (self.threatState and ThreatName() or self:WhoColor())) then
 			Widgets.TextTint(text, mode, Settings.Get(key .. ".color"), self.unit, self.sample)
+			if key == "name" then self:MatchSubtitle() end
 		end
 	end
 end
@@ -959,6 +1193,11 @@ function Plate:UpdateNameColor(force)
 	local name = self.name
 	if self.threatState and ThreatName() then
 		name:SetTextColor(ThreatColor(self.threatState))
+		return
+	end
+	local mode, colorKey = self:WhoColor()
+	if mode then
+		Widgets.TextTint(name, mode, Settings.Get(colorKey), self.unit, self.sample)
 		return
 	end
 	if IsTrue(self:Is("isPlayer", UnitIsPlayer, self.unit)) and Settings.Get("name.classColor") and (self.nameOnly
@@ -974,7 +1213,7 @@ function Plate:UpdateLevel()
 	local diamond = self.level
 	local level = self:Is("level", UnitEffectiveLevel or UnitLevel, self.unit)
 	local text = Settings.Get("level.show") and Logic.LevelText(level)
-	local mark = Settings.Get("markers.classification") and Logic.MarkerColor(self:Is("classification", UnitClassification, self.unit))
+	local mark = Settings.Get("markers.classification") and not Plate.MarkersHidden() and Logic.MarkerColor(self:Is("classification", UnitClassification, self.unit))
 	local show = not self.nameOnly and (text or mark) and true or false
 	diamond:SetShown(show)
 	if not show then
@@ -1003,6 +1242,10 @@ function Plate:UpdateLevel()
 end
 
 Plate.UpdateMarker = Plate.UpdateLevel
+
+function Plate.MarkersHidden()
+	return ns.state.inInstance and not Settings.Get("markers.instances")
+end
 
 function Plate.DifficultyColor(level)
 	if IsSecret(level) or type(level) ~= "number" or level <= 0 or type(GetCreatureDifficultyColor) ~= "function" then
@@ -1133,10 +1376,10 @@ function Plate:UpdateThreatText()
 end
 
 function Plate:UpdateHighlight(sigilCasts)
-	local state = ns.state
 	local isTarget, isFocus
 	if self.sample then
 		isTarget, isFocus = self.sample.target, self.sample.focus
+		self.hovered, self.outOfRange = self.sample.hovered, self.sample.outOfRange and Settings.Get("range.fade")
 	else
 		isTarget = ns.Plates.IsUnit(self, "target")
 		isFocus = ns.Plates.IsUnit(self, "focus")
@@ -1152,7 +1395,13 @@ function Plate:UpdateHighlight(sigilCasts)
 		self.glowShown = glow
 		Widgets.ShowSlice(self.targetGlow, glow)
 	end
-	if self.targetFill and Settings.Get("target.fill") then self.targetFill:SetShown(targeted) end
+	self.targeted, self.focused = targeted, isFocus and not self.nameOnly
+	if self.targetFill then self:UpdateFill() end
+	local tall = isFocus and Settings.Get("focus.castHeight") ~= 1 or nil
+	if tall ~= self.castFocus then
+		self.castFocus = tall
+		ns.Cast.Resize(self)
+	end
 	if self.resource or Settings.Get("resource.show") then ns.Resource.Place(self, isTarget) end
 	self:ShowBrackets(framed)
 	local health = self.health
@@ -1173,13 +1422,38 @@ function Plate:UpdateHighlight(sigilCasts)
 		self:ApplyScale()
 		if not self.sample then ns.Stacking.Bound(self, self.rise or 0) end
 	end
+	self.isTarget, self.isFocus = isTarget, isFocus
+	self:UpdateAlpha()
+end
+
+function Plate:UpdateAlpha()
 	local alpha = 1
-	if not self.sample and state.hasTarget and not isTarget
-		and not (isFocus and Settings.Get("focus.fullOpacity")) and not (self.casting and Settings.Get("cast.fullOpacity")) then
+	if not self.sample and ns.state.hasTarget and not self.isTarget
+		and not (self.isFocus and Settings.Get("focus.fullOpacity")) and not (self.casting and Settings.Get("cast.fullOpacity")) then
 		alpha = Settings.Get("target.dimOthers")
 	end
+	if self.outOfRange then alpha = alpha * Settings.Get("range.alpha") end
 	if self.alphaGoal ~= alpha or not Settings.Get("target.smoothOpacity") then
 		self.alphaGoal = alpha
 		self.alphaTween = Motion.Tween(self, "SetAlpha", self:GetAlpha(), alpha, Settings.Get("target.smoothOpacity") and 0.2 or 0, "outQuad")
 	end
+end
+
+function Plate:UpdateFill()
+	if not self.targetFill then return end
+	local which = self.targeted and Settings.Get("target.fill") and "target" or self.focused and Settings.Get("focus.fill") and "focus"
+		or self.hovered and Settings.Get("target.hover") and not self.nameOnly and "target" or nil
+	if which ~= self.fillWhich then self:SetFill(which) end
+end
+
+function Plate:SetFill(which)
+	self.fillWhich = which
+	local fill = self.targetFill
+	fill:SetShown(which ~= nil)
+	if not which then return end
+	local r, g, b = Rgb(Settings.Get(which .. ".fillColor"))
+	local last = self.colorKey
+	if Settings.Get("target.fillOwn") and last.r then r, g, b = last.r, last.g, last.b end
+	fill:SetVertexColor(r, g, b)
+	fill:SetAlpha(Settings.Get(which .. ".fillAlpha"))
 end

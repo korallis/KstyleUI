@@ -9,7 +9,7 @@ local CVars = {}
 ns.CVars = CVars
 
 local KEYS = { "maxDistance", "verticalDistance", "stacking", "selectedScale", "minScale", "clickSize",
-	"showEnemies", "showFriends", "enemyMinions", "friendlyMinions", "friendlyNpcs", "friendlyNameOnly" }
+	"showEnemies", "showFriends", "enemyMinions", "friendlyMinions", "friendlyNpcs", "friendlyNameOnly", "lineOfSight", "lineOfSightAlpha" }
 local queued = false
 
 CVars.Exists = K.CVars.Exists

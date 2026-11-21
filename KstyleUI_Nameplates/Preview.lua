@@ -13,21 +13,25 @@ local SIZE_LIMITS = { minWidth = 40, maxWidth = 320, minHeight = 4, maxHeight = 
 
 Preview.SAMPLES = {
 	{
-		name = L["Dark Iron Summoner"], level = 51, classification = "elite", health = 0.64,
+		name = L["Dark Iron Summoner"], level = 51, classification = "elite", health = 0.64, absorb = 0.2,
 		enemy = true, reaction = 2, isPlayer = false, target = true, focus = true, raid = 8, caster = true, threatPct = 87,
 		cast = { text = L["Molten Pulse"], texture = 135812, time = "2.8", progress = 0.45, notInterruptible = false, target = L["Thaldrin"], important = true },
 	},
 	{
 		name = L["Elunara"], level = 60, classification = "normal", health = 0.81, afk = true, dnd = true,
-		enemy = true, reaction = 2, isPlayer = true, class = "PRIEST", threat = "warning", threatPct = 87, pvp = true, faction = "Horde",
+		enemy = true, reaction = 2, isPlayer = true, class = "PRIEST", threat = "warning", threatPct = 87, pvp = true, faction = "Horde", hovered = true, outOfRange = true,
 		cast = { text = L["Greater Heal"], texture = 135913, time = "1.2", progress = 0.7, notInterruptible = true },
 	},
 	{
 		name = L["Thaldrin"], level = 60, classification = "normal", health = 0.92,
-		enemy = false, reaction = 5, isPlayer = true, class = "PALADIN", focus = true,
+		enemy = false, reaction = 5, isPlayer = true, class = "PALADIN", focus = true, pvpName = L["Sergeant Thaldrin"], guild = L["Ashen Vanguard"],
 	},
+	{ name = L["Innkeeper Hale"], level = 30, classification = "normal", health = 1, enemy = false, reaction = 5, isPlayer = false },
+	{ name = L["Ember"], level = 60, classification = "normal", health = 1, enemy = false, reaction = 5, isPlayer = false, pet = true, owner = L["Thaldrin"] },
 }
-local PLAYER_ROWS = { "name.afk", "name.dnd", "markers.pvp", "enemy.playersUseEnemy", "threat.name", "threat.percentColor" }
+local PLAYER_ROWS = { "name.afk", "name.dnd", "markers.pvp", "enemy.playersUseEnemy", "threat.name", "threat.percentColor", "target.hover", "range.fade" }
+local FRIENDLY_ROWS = { { 3, "friendly.nameMode", "friendly.playerFormat", "friendly.title", "friendly.guild" },
+	{ 4, "friendly.npcFormat", "friendly.npcSize", "friendly.npcNameMode" }, { 5, "friendly.petSize", "friendly.owner" } }
 local THREAT_SAMPLE = { healthEdge = true, name = true }
 
 local function Span(plate)
@@ -46,13 +50,19 @@ local function Stack(frame)
 		plate:GetParent():SetScale(1)
 	end
 	local chosen, smallest
-	local first = 1
+	local first, last = 1, 3
 	for _, key in ipairs(PLAYER_ROWS) do
 		if Settings.Get(key) then first = 2 end
 	end
 	if THREAT_SAMPLE[Settings.Get("threat.display")] and not (Settings.Get("target.glow") or Settings.Get("target.fill")
 		or Settings.Get("resource.show") or Settings.Get("target.scale") ~= 1) then first = 2 end
-	for i = first, #frame.plates do
+	for _, rows in ipairs(FRIENDLY_ROWS) do
+		for i = 2, #rows do
+			local value = Settings.Get(rows[i])
+			if value and value ~= "" and value ~= 0 then first, last = rows[1], rows[1] end
+		end
+	end
+	for i = first, last do
 		local w, h = Span(frame.plates[i])
 		if not known or (w and w <= width and h <= height) then
 			chosen = i

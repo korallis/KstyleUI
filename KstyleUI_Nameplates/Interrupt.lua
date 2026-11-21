@@ -45,6 +45,7 @@ local function NamedSpell(text)
 	end
 	return text
 end
+Interrupt.NamedSpell = NamedSpell
 
 function Interrupt.Resolve()
 	local named = Settings.Get("cast.interruptSpell")

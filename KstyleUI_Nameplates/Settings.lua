@@ -29,9 +29,14 @@ Settings.defaults = {
 	offsetY = 0,
 	shrinkDistant = false,
 	font = "",
-	health = { width = 156.75, height = Tokens.Size("barHeight"), texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false },
+	health = { width = 156.75, height = Tokens.Size("barHeight"), texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
+		border = true, absorbs = false, absorbAlpha = 0.35, absorbPlace = "after", execute = false, executePercent = 30 },
+	range = { fade = false, alpha = 0.5, spell = "" },
 	enemy = { colorSource = "class", color = Color("plateHostile"), playersUseEnemy = false },
-	friendly = { colorSource = "class", color = Color("friendly"), nameOnly = false },
+	friendly = { colorSource = "class", color = Color("friendly"), nameOnly = false,
+		nameMode = "", nameColor = Color("friendly"), playerFormat = "", title = false, guild = "", guildSize = 12, guildMatch = true, guildColor = Color("text"),
+		npcFormat = "", npcSize = 0, npcNameMode = "", npcColor = Color("friendly"),
+		petSize = 0, owner = false, ownerOwnSize = false, ownerSize = 12, ownerMatch = true, ownerColor = Color("text") },
 	types = {
 		quest = false, questColor = Color("quest"), rare = false, rareColor = Color("rare"),
 		elite = false, eliteColor = Color("neutral"), caster = false, casterColor = Color("epic"),
@@ -41,7 +46,7 @@ Settings.defaults = {
 		normal = false, normalColor = Color("plateHostile"),
 	},
 	name = { show = true, size = 16, outline = "NONE", upper = true, classColor = false, afk = false, dnd = false, font = "", colorMode = "", color = Color("textEmphasis"), textFormat = "" },
-	level = { show = true, size = 13, outline = "NONE", font = "", colorMode = "", color = Color("giltLit"), x = 0, y = 0 },
+	level = { show = true, size = 13, outline = "NONE", font = "", colorMode = "", color = Color("giltLit"), x = 0, y = 0, diamond = 1 },
 	healthText = { show = false, size = 13, outline = "OUTLINE", format = "percent", font = "", colorMode = "", color = Color("textEmphasis"), textFormat = "" },
 	cast = {
 		enabled = true, outcomes = true, combatCues = true, shieldBadge = true, height = 6, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
@@ -49,12 +54,14 @@ Settings.defaults = {
 		waitColor = Color("giltDim"), interruptSpell = "", hideOnTarget = false,
 		showIcon = false, iconRight = false, offsetY = 0, inFront = false, showTarget = false, nameAlign = "LEFT", spark = false, hideUnitName = false, fullOpacity = false, showName = true, nameSelectedOnly = true, nameBelow = true, showTime = false, textSize = 11, outline = "OUTLINE",
 		iconScale = 1, iconX = 0, iconY = 0, offsetX = 0, border = true, important = false, importantGlow = false, importantColor = Color("legendary"), importantKick = false, scale = 1,
+		bgAlpha = 1,
 	},
 	debuffs = {
 		enabled = true, onlyMine = true, dispellable = false, allowSpells = "", blockSpells = "", includePlateOnly = true, size = 29, spacing = 2, columns = 5, rows = 1, order = "important",
 		growthX = "LEFT", growthY = "UP", showTime = true, showCount = true, textSize = 13, outline = "OUTLINE", readableText = true, expiring = 5,
 		timePlace = "BELOW", timeX = 0, timeY = 0, countPlace = "TOPRIGHT", countX = 0, countY = 0,
 		border = true, cropped = false, crop = 10, raise = false, dispelColor = false, pandemic = false, tooltips = false,
+		nameGap = Tokens.Size("gapMedium"),
 	},
 	threat = {
 		display = "glow", keyline = true, shapes = true, role = "auto", groupOnly = true, name = false, calm = false, overTypes = true,
@@ -63,9 +70,10 @@ Settings.defaults = {
 		safe = Color("friendly"), warning = Color("neutral"), danger = Color("hostile"),
 	},
 	target = { readableTicks = true, smoothOpacity = true, highlight = true, friendly = true, colorSource = "custom", color = Color("giltLit"), dimOthers = 1, hashLine = false, hashPercent = 30,
-		glow = false, glowAlpha = 0.9, fill = false, fillColor = Color("white"), fillAlpha = 0.2, scale = 1 },
-	focus = { fullOpacity = false, highlight = true, color = Color("rare"), letter = "", letterSize = 12, letterX = 0, letterY = 0 },
-	markers = { classification = true, raid = true, raidSize = 16, nameRaid = false, nameRaidSize = 14, pvp = false, pvpEnemyOnly = false, pvpPlayersOnly = true },
+		glow = false, glowAlpha = 0.9, fill = false, fillColor = Color("white"), fillAlpha = 0.2, scale = 1, fillOwn = false, hover = false },
+	focus = { fullOpacity = false, highlight = true, color = Color("rare"), letter = "", letterSize = 12, letterX = 0, letterY = 0,
+		fill = false, fillColor = Color("white"), fillAlpha = 0.2, castHeight = 1 },
+	markers = { classification = true, raid = true, raidSize = 16, nameRaid = false, nameRaidSize = 14, pvp = false, pvpEnemyOnly = false, pvpPlayersOnly = true, instances = true },
 	resource = { show = false, colorSource = "class", color = Color("gilt"), place = "BOTTOM", scale = 1, spacing = 2,
 		energy = false, energyHeight = 3, energyPlace = "BELOW", energyWidth = 1, energyHideFull = false },
 	stacking = { footprint = "plate" },
@@ -73,6 +81,7 @@ Settings.defaults = {
 		enabled = false, maxDistance = 40, verticalDistance = 0, stacking = "enemy",
 		selectedScale = 1.2, minScale = 0.8, clickSize = 2,
 		showEnemies = "game", showFriends = "game", enemyMinions = "game", friendlyMinions = "game", friendlyNpcs = "game", friendlyNameOnly = "game",
+		lineOfSight = false, lineOfSightAlpha = 0.4,
 	},
 }
 
@@ -150,6 +159,10 @@ function Settings.Schema()
 		{ value = "difficulty", label = L["Level difficulty colour"] },
 		{ value = "custom", label = L["Custom colour"] },
 	}
+	local NAME_COLORS = {
+		{ value = "", label = L["Current style"] }, { value = "class", label = L["Class colour"] }, { value = "reaction", label = L["Reaction colour"] },
+		{ value = "accent", label = L["Accent"] }, { value = "custom", label = L["Custom colour"] },
+	}
 	local TIME_PLACES = {
 		{ value = "BELOW", label = L["Under the icon"] }, { value = "CENTER", label = L["Centre"] },
 		{ value = "TOP", label = L["Top"] }, { value = "BOTTOM", label = L["Bottom"] },
@@ -192,6 +205,9 @@ function Settings.Schema()
 		end
 	end
 	local targetTint = None(Is("target.highlight", true), Is("target.glow", true))
+	local function Either(a, b)
+		return function(s) return a(s) or b(s) end
+	end
 
 	local function HasCVar(name)
 		return function()
@@ -231,6 +247,9 @@ function Settings.Schema()
 			type = "toggle", key = "shrinkDistant", label = L["Shrink distant plates"],
 			help = L["Plates shrink with distance and grow on your target, as the game's own do."],
 		},
+		{ type = "toggle", key = "range.fade", label = L["Fade out of range"], help = L["Fades enemy plates your range spell cannot reach."] },
+		{ type = "slider", key = "range.alpha", label = L["Out of range opacity"], help = L["How visible enemy plates out of range are."], min = 0.1, max = 1, step = 0.05, disableWhen = Off("range.fade") },
+		{ type = "text", key = "range.spell", label = L["Range spell"], help = L["The spell whose range is checked. Blank uses your interrupt."], maxLetters = 40, disableWhen = Off("range.fade") },
 		{
 			type = "font", key = "font", label = L["Font"],
 			options = K.Widgets.InheritedFontOptions,
@@ -256,6 +275,14 @@ function Settings.Schema()
 			type = "toggle", key = "health.reverse", label = L["Reverse fill"],
 			help = L["Fills the bar from the other end."],
 		},
+		{ type = "toggle", key = "health.border", label = L["Health bar border"], help = L["Frames the health bar with its dark edge. Off drops it; threat and focus edges still show."] },
+		{ type = "toggle", key = "health.absorbs", label = L["Absorb shields"], help = L["Shows absorb shields on the health bar, as the unit frames do."] },
+		{ type = "slider", key = "health.absorbAlpha", label = L["Absorb opacity"], help = L["How solid absorb shields look on the health bar."], min = 0.1, max = 1, step = 0.05, disableWhen = Off("health.absorbs") },
+		{ type = "dropdown", key = "health.absorbPlace", label = L["Absorb placement"], help = L["Where the shield is drawn on the health bar."], disableWhen = Off("health.absorbs"), options = {
+			{ value = "after", label = L["After the health"] }, { value = "back", label = L["Back over the health"] },
+			{ value = "far", label = L["From the far end"] }, { value = "near", label = L["From the near end"] } } },
+		{ type = "toggle", key = "health.execute", label = L["Execute glow"], help = L["Pulses a red glow around enemies below the execute health percent."] },
+		{ type = "slider", key = "health.executePercent", label = L["Execute health percent"], help = L["Enemies below this health percent glow."], min = 5, max = 50, step = 1, disableWhen = Off("health.execute") },
 		{ type = "header", label = L["Enemy plates"] },
 	})
 	K.Widgets.BarRows(schema, "enemy", { texture = false, options = COLOR_SOURCES, custom = Is("enemy.colorSource", "custom") })
@@ -270,6 +297,25 @@ function Settings.Schema()
 			type = "toggle", key = "friendly.nameOnly", label = L["Name only"],
 			help = L["Friendly plates show just the name, without a health bar."],
 		},
+		{ type = "dropdown", key = "friendly.nameMode", label = L["Player name colour"], help = L["Colours friendly players' names. The current style keeps the name's own colour."], options = NAME_COLORS },
+		{ type = "color", key = "friendly.nameColor", label = L["Custom player name colour"], help = L["The name colour when its colour mode is custom."], showWhen = Is("friendly.nameMode", "custom") },
+		{ type = "text", key = "friendly.playerFormat", label = L["Player name format"], help = L["A format for friendly players' names, with the name tags. Blank uses the name's format."], maxLetters = 160 },
+		{ type = "toggle", key = "friendly.title", label = L["Player titles"], help = L["Writes friendly players' names with their title."] },
+		{ type = "dropdown", key = "friendly.guild", label = L["Guild under the name"], help = L["Shows a friendly player's guild on a line under the name."], options = {
+			{ value = "", label = L["Off"] }, { value = "plain", label = L["Guild name"] }, { value = "brackets", label = L["<Guild name>"] } } },
+		{ type = "slider", key = "friendly.guildSize", label = L["Guild text size"], help = L["The size of the guild line, in interface units."], min = TEXT_MIN, max = TEXT_MAX, step = 1, disableWhen = Is("friendly.guild", "") },
+		{ type = "toggle", key = "friendly.guildMatch", label = L["Guild in the name colour"], help = L["Colours the guild like the player's name. Off uses the guild colour."], disableWhen = Is("friendly.guild", "") },
+		{ type = "color", key = "friendly.guildColor", label = L["Guild colour"], help = L["The guild line's colour."], disableWhen = Either(Is("friendly.guild", ""), Is("friendly.guildMatch", true)) },
+		{ type = "text", key = "friendly.npcFormat", label = L["NPC name format"], help = L["A format for friendly NPCs' names, with the name tags. Blank uses the name's format."], maxLetters = 160 },
+		{ type = "slider", key = "friendly.npcSize", label = L["NPC name size"], help = L["The size of friendly NPCs' names. 0 uses the name size."], min = 0, max = TEXT_MAX, step = 1 },
+		{ type = "dropdown", key = "friendly.npcNameMode", label = L["NPC name colour"], help = L["Colours friendly NPCs' names. The current style keeps the name's own colour."], options = NAME_COLORS },
+		{ type = "color", key = "friendly.npcColor", label = L["Custom NPC name colour"], help = L["The name colour when its colour mode is custom."], showWhen = Is("friendly.npcNameMode", "custom") },
+		{ type = "slider", key = "friendly.petSize", label = L["Pet name size"], help = L["The size of friendly pets' and minions' names. 0 uses the name size."], min = 0, max = TEXT_MAX, step = 1 },
+		{ type = "toggle", key = "friendly.owner", label = L["Owner under pet names"], help = L["Shows whose pet or minion it is on a line under a friendly pet's name."] },
+		{ type = "toggle", key = "friendly.ownerOwnSize", label = L["Owner text uses its own size"], help = L["Off, the owner line takes the pet name's size."], disableWhen = Off("friendly.owner") },
+		{ type = "slider", key = "friendly.ownerSize", label = L["Owner text size"], help = L["The size of the owner line, in interface units."], min = TEXT_MIN, max = TEXT_MAX, step = 1, disableWhen = Either(Off("friendly.owner"), Off("friendly.ownerOwnSize")) },
+		{ type = "toggle", key = "friendly.ownerMatch", label = L["Owner in the pet name colour"], help = L["Colours the owner line like the pet's name. Off uses the owner colour."], disableWhen = Off("friendly.owner") },
+		{ type = "color", key = "friendly.ownerColor", label = L["Owner colour"], help = L["The owner line's colour."], disableWhen = Either(Off("friendly.owner"), Is("friendly.ownerMatch", true)) },
 		{ type = "header", label = L["Unit types"] },
 	})
 	for _, t in ipairs({
@@ -308,6 +354,7 @@ function Settings.Schema()
 		showWhen = Is("level.colorMode", "custom"), disableWhen = Off("level.show") }
 	schema[#schema + 1] = { type = "slider", key = "level.x", label = L["Horizontal offset"], help = L["Moves the level left or right."], min = -50, max = 50, step = 1 }
 	schema[#schema + 1] = { type = "slider", key = "level.y", label = L["Vertical offset"], help = L["Moves the level up or down."], min = -50, max = 50, step = 1 }
+	schema[#schema + 1] = { type = "slider", key = "level.diamond", label = L["Diamond size"], help = L["Scales the level diamond and its elite and rare rim."], min = 0.5, max = 1.5, step = 0.05 }
 	SharedTextRows(schema, "healthText", L["Health text"])
 	schema[#schema + 1] = {
 		type = "dropdown", key = "healthText.format", label = L["Format"],
@@ -383,6 +430,7 @@ function Settings.Schema()
 		{ type = "slider", key = "cast.offsetY", label = L["Gap under the health bar"], help = L["Moves the cast bar down from the health bar, or up into it below zero."], min = -25, max = 75, step = 1, disableWhen = Off("cast.enabled") },
 		{ type = "toggle", key = "cast.inFront", label = L["Casts in front of plates"], help = L["Draws cast bars over neighbouring plates."], disableWhen = Off("cast.enabled") },
 		{ type = "toggle", key = "cast.border", label = L["Cast bar border"], help = L["Frames the cast bar with the dark bar edge. Off draws it without one."], disableWhen = Off("cast.enabled") },
+		{ type = "slider", key = "cast.bgAlpha", label = L["Cast background opacity"], help = L["How solid the dark track behind the cast fill is."], min = 0, max = 1, step = 0.05, disableWhen = Off("cast.enabled") },
 		{ type = "toggle", key = "cast.important", label = L["Important cast colour"], help = L["Colours casts the game marks as important, such as spells that are deadly if not interrupted."], disableWhen = Off("cast.enabled") },
 		{ type = "toggle", key = "cast.importantGlow", label = L["Important cast glow"], help = L["Glows around the cast bar during important casts."], disableWhen = Off("cast.enabled") },
 		{ type = "color", key = "cast.importantColor", label = L["Important colour"], help = L["The colour of important casts and their glow."], disableWhen = None(Is("cast.important", true), Is("cast.importantGlow", true)) },
@@ -464,6 +512,8 @@ function Settings.Schema()
 			help = L["Whether rows of debuffs stack upward above the name or downward under the cast bar."],
 			options = GROWTH_Y, disableWhen = Off("debuffs.enabled"),
 		},
+		{ type = "slider", key = "debuffs.nameGap", label = L["Gap to the name"], help = L["The space between the name and debuffs that grow above it."], min = 0, max = 20, step = 1,
+			disableWhen = Either(Off("debuffs.enabled"), Is("debuffs.growthY", "DOWN")) },
 		{
 			type = "toggle", key = "debuffs.showTime", label = L["Time left"],
 			help = L["Shows the time left under each debuff."],
@@ -570,6 +620,9 @@ function Settings.Schema()
 		{ type = "color", key = "target.fillColor", label = L["Highlight colour"], help = L["The colour that brightens your target's health bar."], disableWhen = Off("target.fill") },
 		{ type = "slider", key = "target.fillAlpha", label = L["Highlight opacity"], help = L["How strongly your target's health bar is brightened."], min = 0, max = 1, step = 0.05, disableWhen = Off("target.fill") },
 		{ type = "slider", key = "target.scale", label = L["Target plate size"], help = L["Draws your target's plate larger. 1 keeps its size."], min = 1, max = 1.6, step = 0.05 },
+		{ type = "toggle", key = "target.hover", label = L["Highlight under the mouse"], help = L["Brightens the health bar of the plate under your mouse with the highlight colour."] },
+		{ type = "toggle", key = "target.fillOwn", label = L["Highlight in the bar's colour"], help = L["Highlights take the health bar's own colour instead of their highlight colour."],
+			disableWhen = None(Is("target.fill", true), Is("focus.fill", true), Is("target.hover", true)) },
 		{ type = "toggle", key = "target.friendly", label = L["Highlight friendly targets"], help = L["Also highlights your target when it is friendly."], disableWhen = None(Is("target.highlight", true), Is("target.glow", true), Is("target.fill", true), Off("target.scale", 1)) },
 		{ type = "toggle", key = "target.hashLine", label = L["Health line on the target"], help = L["Marks a health percent, such as an execute range, on your target's health bar."] },
 		{ type = "slider", key = "target.hashPercent", label = L["Health line percent"], help = L["The health percent the line marks."], min = 0, max = 100, step = 1, disableWhen = Off("target.hashLine") },
@@ -597,6 +650,10 @@ function Settings.Schema()
 			help = L["The edge colour of your focus's plate."],
 			disableWhen = Off("focus.highlight"),
 		},
+		{ type = "toggle", key = "focus.fill", label = L["Focus bar highlight"], help = L["Brightens your focus's health bar."] },
+		{ type = "color", key = "focus.fillColor", label = L["Focus highlight colour"], help = L["The colour that brightens your focus's health bar."], disableWhen = Off("focus.fill") },
+		{ type = "slider", key = "focus.fillAlpha", label = L["Focus highlight opacity"], help = L["How strongly your focus's health bar is brightened."], min = 0, max = 1, step = 0.05, disableWhen = Off("focus.fill") },
+		{ type = "slider", key = "focus.castHeight", label = L["Focus cast bar height"], help = L["Draws your focus's cast bar taller. 1 keeps its height."], min = 1, max = 2, step = 0.05 },
 		{ type = "dropdown", key = "focus.letter", label = L["Focus letter"], help = L["Writes F on your focus's health bar."], options = FOCUS_LETTER },
 		{ type = "slider", key = "focus.letterSize", label = L["Text size"], help = L["The size of this text, in interface units."], min = TEXT_MIN, max = 32, step = 1, disableWhen = Is("focus.letter", "") },
 		{ type = "slider", key = "focus.letterX", label = L["Horizontal offset"], help = L["Moves this text left or right."], min = -100, max = 100, step = 1, disableWhen = Is("focus.letter", "") },
@@ -635,6 +692,7 @@ function Settings.Schema()
 		{ type = "toggle", key = "markers.pvp", label = L["PvP flag"], help = L["Shows a faction badge after the names of units flagged for PvP."] },
 		{ type = "toggle", key = "markers.pvpEnemyOnly", label = L["Opposite faction only"], help = L["Shows the PvP badge only on the other faction."], disableWhen = Off("markers.pvp") },
 		{ type = "toggle", key = "markers.pvpPlayersOnly", label = L["Players only"], help = L["Hides the PvP badge on faction NPCs such as guards."], disableWhen = Off("markers.pvp") },
+		{ type = "toggle", key = "markers.instances", label = L["Markers in instances"], help = L["Shows the elite and rare rim and the quest colour inside dungeons, raids and battlegrounds."] },
 		{ type = "header", label = L["Stacking"] },
 		{
 			type = "dropdown", key = "stacking.footprint", label = L["Plate size for the game"],
@@ -676,6 +734,10 @@ function Settings.Schema()
 			help = L["The game's own plate size, which sets where you can click and how plates stack."],
 			min = 1, max = 5, step = 1, disableWhen = Off("cvars.enabled"),
 		},
+		{ type = "toggle", key = "cvars.lineOfSight", label = L["Line of sight opacity"], help = L["Sets how visible plates behind walls are. Off leaves the game's setting."],
+			disableWhen = Off("cvars.enabled"), showWhen = HasCVar("nameplateOccludedAlphaMult") },
+		{ type = "slider", key = "cvars.lineOfSightAlpha", label = L["Opacity behind walls"], help = L["How visible plates of units out of sight are."], min = 0, max = 1, step = 0.05,
+			disableWhen = Either(Off("cvars.enabled"), Off("cvars.lineOfSight")), showWhen = HasCVar("nameplateOccludedAlphaMult") },
 	}
 	for _, c in ipairs({
 		{ "showEnemies", "nameplateShowEnemies", L["Enemy plates"] },

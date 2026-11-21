@@ -73,6 +73,36 @@ return Common.Run(function()
 			Hud.FillCast(ns.Plates.Get("nameplate1"), 0.55)
 			N.Cast(env, "nameplate2", { name = "Mirefin Hex", text = "Mirefin Hex", texture = 136071, notInterruptible = false })
 			Hud.FillCast(ns.Plates.Get("nameplate2"), 0.4)
+		elseif os.getenv("RENDER_PARITY_ROUND") == "3" then
+			-- Round 3 switched on: absorbs, the execute glow and the bar highlight on the target, a larger
+			-- diamond, a lighter cast track, the add as a taller-cast, highlighted focus fading out of range, and friendly plates:
+			-- a titled player with a guild line under the mouse, an NPC in its own colour and size, and a pet with its owner.
+			local k = 768 / 1080
+			for token, unit in pairs({
+				nameplate3 = { { name = "Thaldrin", pvpName = "Sergeant Thaldrin", guild = "Ashen Vanguard", isPlayer = true, class = "PALADIN", canAttack = false, reaction = 5, level = 40, health = 1800, maxHealth = 2000 }, 1180, 300 },
+				nameplate4 = { { name = "Innkeeper Hale", canAttack = false, reaction = 5, level = 30, health = 900, maxHealth = 900 }, 330, 330 },
+				nameplate5 = { { name = "Ember", pet = true, ownerGUID = "Player-1", canAttack = false, reaction = 5, level = 40, health = 700, maxHealth = 800 }, 560, 400 },
+			}) do
+				local base = N.Add(env, token, unit[1])
+				base:ClearAllPoints()
+				base:SetPoint("CENTER", env.WorldFrame, "BOTTOMLEFT", unit[2] * k, (1080 - unit[3]) * k)
+			end
+			env._players["Player-1"] = "Thaldrin"
+			N.Curves(env)
+			local target, add = env._units.nameplate1, env._units.nameplate2
+			target.health, target.absorb, add.outOfRange = 380, 260, true
+			env.FireEvent("UNIT_HEALTH", "nameplate1")
+			for key, value in pairs({ ["health.absorbs"] = true, ["health.execute"] = true, ["level.diamond"] = 1.2, ["cast.bgAlpha"] = 0.35,
+				["target.fill"] = true, ["focus.fill"] = true, ["focus.fillColor"] = { r = 0.31, g = 0.76, b = 1 },
+				["focus.castHeight"] = 1.5, ["range.fade"] = true, ["range.alpha"] = 0.6, ["target.hover"] = true, ["target.smoothOpacity"] = false,
+				["friendly.title"] = true, ["friendly.guild"] = "brackets", ["friendly.nameMode"] = "class", ["friendly.npcNameMode"] = "custom",
+				["friendly.npcColor"] = { r = 0.9, g = 0.8, b = 0.45 }, ["friendly.npcSize"] = 13, ["friendly.owner"] = true, ["friendly.petSize"] = 13,
+				["cast.hideUnitName"] = false }) do
+				K.Options.Write(module, key, value)
+			end
+			env.RunTickers()
+			env._mouseUnit = "nameplate3"
+			env.FireEvent("UPDATE_MOUSEOVER_UNIT")
 		end
 		N.Focus(env, "nameplate2")
 	end

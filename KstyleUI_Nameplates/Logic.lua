@@ -216,6 +216,7 @@ function Logic.CVarPlan(cvars)
 		local choice = cvars[entry.key]
 		plan[#plan + 1] = { name = entry.name, value = choice == "show" and "1" or choice == "hide" and "0" or nil }
 	end
+	plan[#plan + 1] = { name = "nameplateOccludedAlphaMult", value = cvars.lineOfSight and Number(cvars.lineOfSightAlpha) or nil }
 	return plan
 end
 

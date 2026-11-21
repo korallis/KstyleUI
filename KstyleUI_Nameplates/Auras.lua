@@ -15,7 +15,6 @@ local GROUP = "debuffs"
 local OVERFLOW_MAX = 16
 local TEMPLATE = "CustomAuraContainerTemplate"
 local GAP = Tokens.Size("gapTiny")
-local NAME_GAP = Tokens.Size("gapMedium")
 local ICON_CROP = 0.07
 local RINGS = { "black", "hostile", "black" }
 local RING_LEVELS, DISPEL_LEVEL = { 1, 2, 4 }, 3
@@ -431,7 +430,7 @@ end
 
 local function RoomAbove(plate)
 	if Settings.Get("name.show") and not plate.nameOnly then
-		return ns.Plate.NAME_GAP + Settings.Get("name.size") + NAME_GAP + ns.Resource.Room(plate, "TOP")
+		return ns.Plate.NAME_GAP + (plate.subtitleRoom or 0) + Settings.Get("name.size") + Settings.Get("debuffs.nameGap") + ns.Resource.Room(plate, "TOP")
 	end
 	return GAP + ns.Resource.Room(plate, "TOP")
 end

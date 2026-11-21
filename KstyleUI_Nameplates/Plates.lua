@@ -222,12 +222,15 @@ local function WidgetsOnly(unit)
 	return not IsSecret(only) and only == true
 end
 
+local hovered
+
 local function Detach(unit)
 	local plate = byUnit[unit]
 	if not plate then
 		return
 	end
 	byUnit[unit] = nil
+	if hovered == plate then hovered = nil end
 	for which, selected in pairs(highlighted) do
 		if selected == plate then highlighted[which] = nil end
 	end
@@ -395,6 +398,93 @@ local function OnCombat(event)
 	ns.Resource.Update()
 end
 
+local function OnWorld()
+	local inside = IsInInstance and IsInInstance()
+	inside = not IsSecret(inside) and inside == true
+	if inside == ns.state.inInstance then return end
+	ns.state.inInstance = inside
+	for _, plate in pairs(byUnit) do
+		plate:UpdateLevel()
+		plate:RefreshType()
+	end
+end
+
+local function OnHover()
+	local get, plate = C_NamePlate and C_NamePlate.GetNamePlateForUnit, nil
+	local ok, base = false, nil
+	if get then ok, base = pcall(get, "mouseover") end
+	if ok then
+		plate = base and byBase[base]
+	else
+		for _, each in pairs(byUnit) do
+			local same = UnitIsUnit and UnitIsUnit(each.unit, "mouseover")
+			if not IsSecret(same) and same == true then plate = each end
+		end
+	end
+	if plate and not plate.unit then plate = nil end
+	if plate == hovered then return end
+	if hovered then hovered.hovered = nil; hovered:UpdateFill() end
+	hovered = plate
+	if plate then plate.hovered = true; plate:UpdateFill() end
+end
+
+local RANGE_STEP = 0.25
+local rangeTicker, hoverOn, worldOn
+
+local function CheckRange()
+	local named = Settings.Get("range.spell")
+	local spell = named ~= "" and ns.Interrupt.NamedSpell(named) or ns.Interrupt.spell
+	local api = C_Spell and C_Spell.IsSpellInRange
+	if not (spell and type(api) == "function") then
+		LogOnce("range", "no range spell or C_Spell.IsSpellInRange; plates keep their opacity")
+	end
+	for _, plate in pairs(byUnit) do
+		local out = false
+		if spell and type(api) == "function" and plate.kind == "enemy" then
+			local ok, inRange = pcall(api, spell, plate.unit)
+			out = ok and not IsSecret(inRange) and inRange == false
+		end
+		if out ~= (plate.outOfRange == true) then
+			plate.outOfRange = out
+			plate:UpdateAlpha()
+		end
+	end
+end
+
+function Plates.SyncOptions()
+	local world = Plates.running and not Settings.Get("markers.instances") or false
+	if world ~= (worldOn == true) then
+		worldOn = world
+		if world then
+			K.Events.Register(MODULE, "PLAYER_ENTERING_WORLD", OnWorld)
+		else
+			K.Events.Unregister(MODULE, "PLAYER_ENTERING_WORLD")
+			ns.state.inInstance = nil
+		end
+	end
+	if world then OnWorld() end
+	local hover = Plates.running and Settings.Get("target.hover") or false
+	if hover ~= (hoverOn == true) then
+		hoverOn = hover
+		if hover then
+			K.Events.Register(MODULE, "UPDATE_MOUSEOVER_UNIT", OnHover)
+		else
+			K.Events.Unregister(MODULE, "UPDATE_MOUSEOVER_UNIT")
+			if hovered then hovered.hovered = nil; hovered:UpdateFill(); hovered = nil end
+		end
+	end
+	local range = Plates.running and Settings.Get("range.fade")
+	if range and not rangeTicker and C_Timer and type(C_Timer.NewTicker) == "function" then
+		rangeTicker = C_Timer.NewTicker(RANGE_STEP, CheckRange)
+	elseif not range and rangeTicker then
+		rangeTicker:Cancel()
+		rangeTicker = nil
+		for _, plate in pairs(byUnit) do
+			if plate.outOfRange then plate.outOfRange = nil; plate:UpdateAlpha() end
+		end
+	end
+end
+
 local GLOBAL_EVENTS = {
 	NAME_PLATE_UNIT_ADDED = function(_, unit)
 		UpdateTokens()
@@ -442,6 +532,7 @@ end
 
 function Plates.RestyleAll()
 	ns.Resource.Sync()
+	Plates.SyncOptions()
 	Plates.Each(function(plate)
 		plate:Restyle()
 	end)
@@ -475,6 +566,7 @@ end
 
 function Plates.Stop()
 	Plates.running = false
+	Plates.SyncOptions()
 	ns.Interrupt.Stop()
 	ns.Resource.Sync()
 	for unit in pairs(byUnit) do
