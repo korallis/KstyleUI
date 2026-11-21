@@ -272,13 +272,33 @@ function Tip:Layout()
 	self:SetSize(width, Widgets.Snap(self, height))
 end
 
+local SIDES = { TOP = { "GetTop", 1, "BOTTOM" }, BOTTOM = { "GetBottom", -1, "TOP" }, RIGHT = { "GetRight", 1, "LEFT" }, LEFT = { "GetLeft", -1, "RIGHT" } }
+
+local function Plain(v)
+	return not Widgets.IsSecret(v) and type(v) == "number"
+end
+
+local function Room(owner, side)
+	local get, sign = SIDES[side][1], SIDES[side][2]
+	local screen, edge, scale, own = UIParent[get](UIParent), owner[get](owner), UIParent:GetEffectiveScale(), owner:GetEffectiveScale()
+	if Plain(screen) and Plain(edge) and Plain(scale) and Plain(own) then
+		return sign * (screen * scale - edge * own)
+	end
+end
+
 local function Position(self)
 	local owner = self.owner
 	if not owner then
 		return
 	end
-	local a = ANCHORS[self.anchor]
 	local gap = Widgets.Snap(self, ANCHOR_GAP)
+	local side = self.anchor
+	local need = ((side == "TOP" or side == "BOTTOM") and self:GetHeight() or self:GetWidth()) + gap
+	local room, other = Room(owner, side), Room(owner, SIDES[side][3])
+	if room and other and room < need * self:GetEffectiveScale() and other > room then
+		side = SIDES[side][3]
+	end
+	local a = ANCHORS[side]
 	self:ClearAllPoints()
 	self:SetPoint(a[1], owner, a[2], a[3] * gap + self.offsetX, a[4] * gap + self.offsetY)
 end
