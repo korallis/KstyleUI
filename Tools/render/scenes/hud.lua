@@ -1316,15 +1316,34 @@ local function fillAuras(env, A, container, key, group, entries)
 	return buttons
 end
 
+-- RENDER_AURAS_REMINDER=1 switches on the missing buff reminder (parity round 3): the class knows its reminder buff
+-- and lacks it, so the buff is left off the buff row and the card names it.
+local REMINDER = { MAGE = { 1459, "Arcane Intellect", 135932 }, PRIEST = { 1243, "Power Word: Fortitude", 135987 }, DRUID = { 1126, "Mark of the Wild", 136078 },
+	WARLOCK = { 687, "Demon Skin", 136185 }, SHAMAN = { 324, "Lightning Shield", 136048 }, PALADIN = { 465, "Devotion Aura", 135893 }, HUNTER = { 13165, "Aspect of the Hawk", 136076 } }
+
 function modules.auras(opts)
 	local A = dofile("Tools/regression/auras_env.lua")
-	local _, spec = Hud.Class(opts)
+	local class, spec = Hud.Class(opts)
+	local reminder = os.getenv("RENDER_AURAS_REMINDER") == "1" and REMINDER[class]
 	local env, K, ns = A.New(Common.ScreenOpts({
 		saved = saved(opts, "Auras"),
 		setup = function(env)
 			shared(env, opts)
+			if reminder then
+				env.C_SpellBook = { IsSpellKnown = function(id) return id == reminder[1] end }
+				env.C_Spell = env.C_Spell or {}
+				env.C_Spell.GetSpellName = function(id) return id == reminder[1] and reminder[2] or nil end
+				env.C_Spell.GetSpellTexture = function(id) return id == reminder[1] and reminder[3] or nil end
+				env.C_Secrets.ShouldSpellAuraBeSecret = function() return false end
+				env.C_UnitAuras = env.C_UnitAuras or {}
+				env.C_UnitAuras.GetAuraDataBySpellName = function() return nil end
+				env.UnitIsDeadOrGhost = function() return false end
+			end
 		end,
 	}))
+	if reminder then
+		K.Options.Write("Auras", "reminder.enabled", true)
+	end
 	if not K.Modules.IsRunning("Auras") then
 		K.Modules.Enable("Auras")
 	end
@@ -1346,6 +1365,13 @@ function modules.auras(opts)
 	local settings = K.Store.Module("Auras")
 	-- opts.buffRow and opts.debuffRow ({ "Name", icon, "time" } each) replace the class's row and the warrior's debuffs.
 	local buffRow = opts.buffRow or Hud.BuffRow(spec, opts.buffs or #spec.buffRow)
+	if reminder then
+		local kept = {}
+		for _, buff in ipairs(buffRow) do
+			if buff[1] ~= reminder[2] then kept[#kept + 1] = buff end
+		end
+		buffRow = kept
+	end
 	local buffs, group = A.Container(env, "HELPFUL")
 	if buffs then
 		local columns = ns.Model.Group(settings, "buffs").columns

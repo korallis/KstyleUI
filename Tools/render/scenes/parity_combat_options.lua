@@ -1,4 +1,4 @@
--- parity_combat_options.lua: the real scoped Options page and its live preview, selected with RENDER_PARITY_MODULE; RENDER_PARITY_ENABLED=1 switches on round one's options, 2 the round two options (Auras, Cooldowns), 3 the Meters round two or Cooldowns round three options 4 the Cooldowns round four options and 5 the Cooldowns round five custom bar group.
+-- parity_combat_options.lua: the real scoped Options page and its live preview, selected with RENDER_PARITY_MODULE; RENDER_PARITY_ENABLED=1 switches on round one's options, 2 the round two options (Auras, Cooldowns), 3 the Meters round two, Auras round three (the missing buff reminder, its sample named Arcane Intellect) or Cooldowns round three options 4 the Cooldowns round four options and 5 the Cooldowns round five custom bar group.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -15,6 +15,11 @@ return Common.Run(function()
 			e.BreakUpLargeNumbers = e.AbbreviateNumbers
 		end
   if module == "Cooldowns" then driver.Game(e) end
+  if module == "Auras" then
+   e.C_Spell = e.C_Spell or {}
+   e.C_Spell.GetSpellName = function(id) return id == 1459 and "Arcane Intellect" or nil end
+   e.C_Spell.GetSpellTexture = function(id) return id == 1459 and 135932 or nil end
+  end
   e.C_AddOns = e.C_AddOns or {}
   e.C_AddOns.LoadAddOn = function(name)
    if name == "KstyleUI_Options" and not e._addons[name] then Load(O.Files(), e) end
@@ -48,6 +53,7 @@ return Common.Run(function()
    Cooldowns4 = { path = "mirror", ["essential.keybind"] = true, ["essential.pressMirror"] = true, ["utility.itemQuality"] = true, ["rules.cdBars"] = "x",
     ["bars.hashLines"] = true, ["bars.chargeShade"] = true, ["bars.lineWidth"] = 2 },
    Cooldowns5 = { path = "mirror", ["rules.group"] = "x", ["custom.name"] = "Burst", ["custom.count"] = 1 },
+   Auras3 = { ["reminder.enabled"] = true },
    Meters3 = { ["damage2.shown"] = true, ["damage.report"] = true, ["damage.englishUnits"] = false },
   }
   for key, value in pairs(values[enabled == "1" and module or module .. enabled]) do K.Options.Write(module, key, value) end
