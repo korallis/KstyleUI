@@ -711,20 +711,20 @@ function Frames.Relayout(uf)
 			Unit.Health(view, view.unit, true)
 		end
 		if (uf.s.auraSimple or "") ~= "" then ns.Auras.Apply(view) else ns.Auras.Place(view) end
-		local cb, x, y, w, h = view.castbar
+		local cb, cx, cy, cw, ch = view.castbar
 		if cb and g.cast then
-			x, y, w, h = g.cast.x, g.cast.y, g.cast.w, g.cast.h
+			cx, cy, cw, ch = g.cast.x, g.cast.y, g.cast.w, g.cast.h
 		elseif cb and uf.kind == "pet" then
-			x, y = g.panel.x, math.max(slot.h, g.medal and g.medal.y + g.medal.h or 0) + PET_CAST_GAP
-			w, h = uf.s.castbarWidth > 0 and uf.s.castbarWidth or g.panel.w, uf.s.castbarHeight
+			cx, cy = g.panel.x, math.max(slot.h, g.medal and g.medal.y + g.medal.h or 0) + PET_CAST_GAP
+			cw, ch = uf.s.castbarWidth > 0 and uf.s.castbarWidth or g.panel.w, uf.s.castbarHeight
 		end
-		if x then
+		if cx then
 			cb.frame:ClearAllPoints()
-			cb.frame:SetPoint("TOPLEFT", button, "TOPLEFT", K.Widgets.Snap(button, x), -K.Widgets.Snap(button, y))
-			cb.frame:SetSize(K.Widgets.Snap(button, w), K.Widgets.Snap(button, h))
+			cb.frame:SetPoint("TOPLEFT", button, "TOPLEFT", K.Widgets.Snap(button, cx), -K.Widgets.Snap(button, cy))
+			cb.frame:SetSize(K.Widgets.Snap(button, cw), K.Widgets.Snap(button, ch))
 			cb.noRoom = false
 			cb.frame:SetShown(cb.active == true or cb.idle == true)
-			ns.CastBars.Layout(cb, w, h)
+			ns.CastBars.Layout(cb, cw, ch)
 		elseif cb and gap and (g.form == "plate" or g.form == "slab") then
 			cb.frame:ClearAllPoints()
 			cb.frame:SetPoint("TOPLEFT", button, "TOPLEFT", g.panel.x, -(frameH + gap))
