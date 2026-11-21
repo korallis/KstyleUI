@@ -1,5 +1,22 @@
 # KstyleUI changelog
 
+## v0.2.8.5 (2026-11-21)
+
+A small fix release.
+
+Highlights:
+
+- With Debuffs and buffs, the target's aura rows stay clear of the target cast bar and the target of target.
+- On Medallions party frames, your heal icons no longer cover the health percent or the indicator icons.
+- The unit frame preview in the settings window shows the target's debuff and buff rows.
+
+### Fixed
+
+- With the target's auras on Debuffs and buffs under Orbs, their timers sit in the icon corners, so the buff row stays above the target cast bar.
+- With the target's auras on Debuffs and buffs under Medallions, the target shows one row of debuffs and one of buffs, clear of the target of target. A row count you saved still applies to each kind.
+- On Medallions party frames, your heal icons no longer hide the health percent or touch the indicator icons. They line up to the left of the percent, as on Frames rows.
+- With Debuffs and buffs, the unit frame preview in the settings window shows a row of debuffs and a row of buffs, as your target does.
+
 ## v0.2.8.4 (2026-11-21)
 
 A small fix release.
