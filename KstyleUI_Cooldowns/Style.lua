@@ -235,17 +235,25 @@ function Style.PlaceEssential(countdown, icon, scale)
 	countdown:SetJustifyH("CENTER")
 end
 
+local function Anchor(text)
+	local anchor = { text:GetPoint(1) }
+	for i = 1, 5 do
+		if ns.IsSecret(anchor[i]) then return nil end
+	end
+	return anchor[1] and anchor or nil
+end
+
+local function Shift(text, owner, anchor, x, y)
+	if anchor then text:SetPoint(anchor[1], anchor[2], anchor[3], anchor[4] + Widgets.Snap(owner, x), anchor[5] + Widgets.Snap(owner, y)) end
+end
+
 function Style.MoveText(text, owner, position, x, y)
 	if position ~= "" then
 		text:ClearAllPoints()
 		Widgets.Point(text, position, owner, position, x, y)
 		text:SetJustifyH(position:find("LEFT") and "LEFT" or position:find("RIGHT") and "RIGHT" or "CENTER")
 	elseif x ~= 0 or y ~= 0 then
-		local anchor = { text:GetPoint(1) }
-		for i = 1, 5 do
-			if ns.IsSecret(anchor[i]) then return end
-		end
-		if anchor[1] then text:SetPoint(anchor[1], anchor[2], anchor[3], anchor[4] + Widgets.Snap(owner, x), anchor[5] + Widgets.Snap(owner, y)) end
+		Shift(text, owner, Anchor(text), x, y)
 	end
 end
 
@@ -269,15 +277,11 @@ function Style.PlaceText(icon, group)
 	end
 	local cfg = ns.Settings.current[group]
 	Style.MoveText(countdown, icon, cfg.timerPosition, cfg.timerX, cfg.timerY)
-	icon.countBase = icon.countBase or { icon.count:GetPoint(1) }
-	local base = icon.countBase
-	if base[1] then
-		icon.count:SetPoint(base[1], base[2], base[3], base[4] + Widgets.Snap(icon, cfg.countX), base[5] + Widgets.Snap(icon, cfg.countY))
-	end
+	icon.countBase = icon.countBase or Anchor(icon.count)
+	Shift(icon.count, icon, icon.countBase, cfg.countX, cfg.countY)
 	if cfg.keybindX and (cfg.keybindX ~= 0 or cfg.keybindY ~= 0 or icon.keyBase) then
-		icon.keyBase = icon.keyBase or { icon.hotkey:GetPoint(1) }
-		base = icon.keyBase
-		if base[1] then icon.hotkey:SetPoint(base[1], base[2], base[3], base[4] + Widgets.Snap(icon, cfg.keybindX), base[5] + Widgets.Snap(icon, cfg.keybindY)) end
+		icon.keyBase = icon.keyBase or Anchor(icon.hotkey)
+		Shift(icon.hotkey, icon, icon.keyBase, cfg.keybindX, cfg.keybindY)
 	end
 end
 

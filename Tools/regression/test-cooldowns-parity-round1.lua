@@ -303,3 +303,23 @@ do
 end
 
 print("cooldowns parity round 1 ok")
+
+-- A count text whose anchor offsets read secret (as the client returns them on some cooldown icons) is left where it is;
+-- moving its offsets raises no arithmetic-on-secret error, and the offsets apply once the anchor reads plain again.
+do
+	local env, K, ns, Write = New("mirror")
+	local a = IconOf(ns, "essential", 1001)
+	local count, get = a.count, a.count.GetPoint
+	rawset(count, "GetPoint", function(self, i)
+		local point, rel, relPoint, x, y = get(self, i)
+		return point, rel, relPoint, env.Secret(x), env.Secret(y)
+	end)
+	a.countBase = nil
+	Write("essential.countX", 2)
+	Clean(env, K, "a secret count anchor")
+	assert(a.countBase == nil, "a secret anchor is not cached")
+	rawset(count, "GetPoint", nil)
+	Write("essential.countY", -1)
+	assert(type(a.countBase) == "table", "a plain anchor is cached on the next restyle")
+	Clean(env, K, "a plain count anchor after a secret one")
+end
