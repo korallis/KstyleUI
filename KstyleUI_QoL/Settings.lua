@@ -14,12 +14,13 @@ local SHOWN = { always = true, combat = true, instances = true, instancesCombat 
 local CHOICES = {
 	questModifier = ns.PAUSE_KEYS, combatAlertOn = { both = true, enter = true, leave = true },
 	deathSound = { none = true, warning = true, ready = true }, crosshair = { none = true, thin = true, normal = true, thick = true },
-	crosshairShow = SHOWN, cursorShow = SHOWN, autoLogWhere = { raid = true, party = true, all = true },
+	crosshairShow = SHOWN, cursorShow = SHOWN, autoLogWhere = { raid = true, party = true, both = true, all = true },
 	skipMode = { cinematics = true, movies = true, both = true }, cursorTexture = { ring = true, ringBevel = true },
 	statsValue = { percent = true, rating = true, both = true }, hideToasts = { none = true, loot = true, achievements = true, both = true },
 	moveMode = { text = true, timeFirst = true, time = true, icon = true, bar = true }, moveSound = { none = true, warning = true, ready = true },
 	rangeFormat = { range = true, plus = true, min = true }, rangeAlign = { LEFT = true, CENTER = true, RIGHT = true },
-	raidTools = { never = true, raid = true, group = true }, raidToolsLayout = { row = true, column = true },
+	raidTools = { never = true, raid = true, group = true, always = true }, raidToolsLayout = { row = true, column = true },
+	raidToolsShow = { all = true, two = true, group = true, markers = true },
 	raidToolsGrow = { downright = true, downleft = true, upright = true, upleft = true },
 }
 ns.LIMITS = {
@@ -109,6 +110,7 @@ ns.defaults = {
 	castRing = false,
 	castSpark = true,
 	castAttach = true,
+	gcdRing = false,
 	stats = false,
 	statsValue = "percent",
 	statsColored = false,
@@ -150,6 +152,8 @@ ns.defaults = {
 	raidToolsLayout = "row",
 	raidToolsGrow = "downright",
 	raidToolsReady = false,
+	raidToolsShow = "all",
+	quickFire = false,
 }
 
 function ns.Get(key)
@@ -179,14 +183,15 @@ function ns.Schema()
 		return function(settings) return not (settings.enabled and settings[key] and settings[key] ~= "none") end
 	end
 	local combatOff, talentOff, durabilityOff, crossOff, ringOff, logOff = when("combatAlert"), when("talentAlert"), when("durabilityAlert"), when("crosshair"), when("cursorRing"), when("autoLog")
-	local castOff, statsOff, skipOff = when("castRing"), when("stats"), when("skipCinematics")
+	local castOff, gcdOff, statsOff, skipOff = when("castRing"), when("gcdRing"), when("stats"), when("skipCinematics")
 	local moveOff, distanceOff = when("moveAlert"), when("rangeText")
 	local sounds = { { value = "none", label = L["None"] }, { value = "warning", label = L["Raid warning"] }, { value = "ready", label = L["Ready check"] } }
 	local function rangeOff(s) return crossOff(s) or not s.crosshairRange end
 	local function barOff(s) return moveOff(s) or s.moveMode ~= "bar" end
 	local function voiceOff(s) return moveOff(s) or s.moveVoice == -1 end
 	local function iconOff(s) return moveOff(s) or s.moveMode == "icon" end
-	local function aidsOff(s) return ringOff(s) and castOff(s) end
+	local function circlesOff(s) return castOff(s) and gcdOff(s) end
+	local function aidsOff(s) return ringOff(s) and circlesOff(s) end
 	local function raidOff(s) return not (s.enabled and s.raidTools ~= "never") end
 	local function slider(key, label, help, step, off)
 		local limit = ns.LIMITS[key]
@@ -277,14 +282,15 @@ function ns.Schema()
 		{ type = "toggle", key = "cursorTrail", label = L["Cursor trail"], help = L["Dots that follow the ring as the pointer moves."], disableWhen = ringOff },
 		{ type = "toggle", key = "castRing", label = L["Cast circle"], help = L["A ring that fills as you cast, in the ring's colour."], disableWhen = isOff },
 		{ type = "toggle", key = "castSpark", label = L["Cast spark"], help = L["A bright edge on the filling cast circle."], disableWhen = castOff },
-		{ type = "toggle", key = "castAttach", label = L["Cast circle on the pointer"], help = L["Off puts the cast circle at the screen centre."], disableWhen = castOff },
-		{ type = "dropdown", key = "cursorTexture", label = L["Ring style"], help = L["The look of the cursor ring and the cast circle."], options = {
+		{ type = "toggle", key = "gcdRing", label = L["Global cooldown circle"], help = L["A ring that fills over the global cooldown, between the cursor ring and the cast circle."], disableWhen = isOff },
+		{ type = "toggle", key = "castAttach", label = L["Cast circle on the pointer"], help = L["Off puts the cast and global cooldown circles at the screen centre."], disableWhen = circlesOff },
+		{ type = "dropdown", key = "cursorTexture", label = L["Ring style"], help = L["The look of the cursor ring and its circles."], options = {
 			{ value = "ring", label = L["Plain"] }, { value = "ringBevel", label = L["Bevelled"] },
 		}, disableWhen = aidsOff },
-		slider("cursorScale", L["Ring size"], L["The size of the cursor ring and the cast circle, in percent."], 5, aidsOff),
-		slider("cursorOpacity", L["Ring opacity"], L["How solid the cursor ring and the cast circle are, in percent."], 5, aidsOff),
-		{ type = "toggle", key = "cursorClass", label = L["Ring in class colour"], help = L["Use your class colour for the cursor ring and the cast circle."], disableWhen = aidsOff },
-		{ type = "color", key = "cursorColor", label = L["Ring colour"], help = L["The colour of the cursor ring and the cast circle."], disableWhen = function(s) return aidsOff(s) or s.cursorClass end },
+		slider("cursorScale", L["Ring size"], L["The size of the cursor ring and its circles, in percent."], 5, aidsOff),
+		slider("cursorOpacity", L["Ring opacity"], L["How solid the cursor ring and its circles are, in percent."], 5, aidsOff),
+		{ type = "toggle", key = "cursorClass", label = L["Ring in class colour"], help = L["Use your class colour for the cursor ring and its circles."], disableWhen = aidsOff },
+		{ type = "color", key = "cursorColor", label = L["Ring colour"], help = L["The colour of the cursor ring and its circles."], disableWhen = function(s) return aidsOff(s) or s.cursorClass end },
 		{ type = "header", label = L["Character stats"] },
 		{ type = "toggle", key = "stats", label = L["Show character stats"], help = L["Your stats as text at the top left of the screen. Move them in Layout Mode."], disableWhen = isOff },
 		{ type = "order", key = "statsList", label = L["Stats"], help = L["Switch stats on and move them up or down."], options = ns.StatOptions(), disableWhen = statsOff },
@@ -305,7 +311,7 @@ function ns.Schema()
 		{ type = "toggle", key = "announceReset", label = L["Announce instance resets"], help = L["Tell your party or raid when you reset instances."], disableWhen = isOff },
 		{ type = "toggle", key = "autoLog", label = L["Combat log in instances"], help = L["Start the combat log as you enter an instance and stop it as you leave."], disableWhen = isOff },
 		{ type = "dropdown", key = "autoLogWhere", label = L["Log in"], help = L["The instances that start the combat log."], options = {
-			{ value = "raid", label = L["Raids"] }, { value = "party", label = L["Dungeons"] }, { value = "all", label = L["All instances"] },
+			{ value = "raid", label = L["Raids"] }, { value = "party", label = L["Dungeons"] }, { value = "both", label = L["Raids and dungeons"] }, { value = "all", label = L["All instances"] },
 		}, disableWhen = logOff },
 		{ type = "toggle", key = "autoLogNotice", label = L["Combat log notice"], help = L["Say in chat when the combat log starts or stops."], disableWhen = logOff },
 		{ type = "toggle", key = "autoLogDelay", label = L["Keep logging 30 seconds"], help = L["Stop the combat log 30 seconds after you leave, for recording tools that read it."], disableWhen = logOff },
@@ -332,8 +338,11 @@ function ns.Schema()
 		{ type = "toggle", key = "guildCover", label = L["Guild chat privacy cover"], help = L["Cover guild chat in the guild and communities window until you click it."], disableWhen = isOff },
 		{ type = "header", label = L["Raid tools"] },
 		{ type = "dropdown", key = "raidTools", label = L["Show raid tools"], help = L["Ready check, role check, pull timer and markers. In a raid, only for the leader or assistants."], options = {
-			{ value = "never", label = L["Never"] }, { value = "raid", label = L["In a raid"] }, { value = "group", label = L["In a party or raid"] },
+			{ value = "never", label = L["Never"] }, { value = "raid", label = L["In a raid"] }, { value = "group", label = L["In a party or raid"] }, { value = "always", label = L["Always"] },
 		}, disableWhen = isOff },
+		{ type = "dropdown", key = "raidToolsShow", label = L["Raid tools show"], help = L["Every tool in one panel, the group tools and the markers in two panels, or only one of them."], options = {
+			{ value = "all", label = L["One panel"] }, { value = "two", label = L["Two panels"] }, { value = "group", label = L["Group tools only"] }, { value = "markers", label = L["Markers only"] },
+		}, disableWhen = raidOff },
 		{ type = "toggle", key = "raidToolsCollapsed", label = L["Start collapsed"], help = L["Show only the raid tools button until you click it or press its key."], disableWhen = raidOff },
 		{ type = "dropdown", key = "raidToolsLayout", label = L["Raid tools layout"], help = L["The buttons in one row or one column."], options = {
 			{ value = "row", label = L["Row"] }, { value = "column", label = L["Column"] },
@@ -343,6 +352,7 @@ function ns.Schema()
 		}, disableWhen = raidOff },
 		{ type = "toggle", key = "raidToolsReady", label = L["Open on ready check"], help = L["Open the raid tools when a ready check starts."], disableWhen = raidOff },
 		{ type = "note", label = L["Bind a key to Toggle raid tools in the game's key bindings, under KstyleUI. Size it in Layout Mode."] },
+		{ type = "toggle", key = "quickFire", label = L["Quick fire world markers"], help = L["Keys to place, undo or clear world markers at the pointer, in combat too. Bind them under KstyleUI."], disableWhen = isOff },
 		{ type = "header", label = L["Alerts"] },
 		{ type = "toggle", key = "quietErrors", label = L["Quiet error text"], help = L["Hide the red cooldown, range and resource errors that flood the screen in combat."], disableWhen = isOff },
 		{ type = "toggle", key = "autoDelete", label = L["Fill in the delete word"], help = L["Type the confirmation word when you delete a good item. You still click Yes."], disableWhen = isOff },

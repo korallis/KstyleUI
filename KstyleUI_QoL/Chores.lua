@@ -44,7 +44,7 @@ local function Check(now)
 	end
 	local inside, kind = IsInInstance()
 	local where = ns.Get("autoLogWhere")
-	local want = ns.running and ns.Get("autoLog") and ns.True(inside) and not ns.IsSecret(kind) and (where == "all" or kind == where)
+	local want = ns.running and ns.Get("autoLog") and ns.True(inside) and not ns.IsSecret(kind) and (where == "all" or kind == where or where == "both" and (kind == "raid" or kind == "party"))
 	if want then logToken = logToken + 1 end
 	if want and not logging and not ns.True(LoggingCombat()) then
 		LoggingCombat(true)

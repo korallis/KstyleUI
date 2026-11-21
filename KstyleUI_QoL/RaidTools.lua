@@ -1,4 +1,4 @@
--- RaidTools.lua: the raid tools, a Layout element: a star marker button that opens a glass panel of ready check, role check, a ten-second pull timer and the eight target markers with Clear, in a row or a column, opening down or up and right or left from the button, the other way on an axis where the chosen way would leave the screen. It shows by the Show raid tools rule (in a raid only for the leader or an assistant, the only players its buttons work for; an unknown raid answer hides it), starts collapsed when asked, opens on a ready check when asked, and the Toggle raid tools binding clicks it. The actions are the calls Blizzard's own raid manager makes, enabled as it enables them (ready check, role check and pull timer for the leader or an assistant in a group, the role check not in a finder group or a battleground, the markers for anyone the tools show to), repainted only when that or combat changes, and refused in combat, where the game restricts them; the frame is not secure, so it shows and hides in combat too.
+-- RaidTools.lua: the raid tools, a Layout element: a star marker button that opens a glass panel of ready check, role check, a ten-second pull timer and the eight target markers with Clear, in a row or a column, opening down or up and right or left from the button, the other way on an axis where the chosen way would leave the screen. It shows by the Show raid tools rule (in a raid only for the leader or an assistant, the only players its buttons work for, unless Always; an unknown raid answer hides it), with every tool in one panel, the group tools and the markers in two panels (the second after the first, across the way the buttons run), or only one of them, starts collapsed when asked, opens on a ready check when asked, and the Toggle raid tools binding clicks it. The actions are the calls Blizzard's own raid manager makes, enabled as it enables them (ready check, role check and pull timer for the leader or an assistant in a group, the role check not in a finder group or a battleground, the markers out of a raid or for the leader or an assistant in one), repainted only when that or combat changes, and refused in combat, where the game restricts them; the frame is not secure, so it shows and hides in combat too.
 local _, ns = ...
 
 local K, L = ns.K, ns.L
@@ -28,21 +28,28 @@ local ACTIONS = {
 	{ L["Pull timer"], function() Do(Party("DoCountdown"), PULL) end },
 }
 
+local LAST = #ACTIONS + COUNT + 1
+local SHOW = { all = { 1, LAST }, two = { 1, #ACTIONS }, group = { 1, #ACTIONS }, markers = { #ACTIONS + 1, LAST } }
+
 local function Mark(i)
 	Do(SetRaidTarget, "target", i ~= 0 and ns.Ask(GetRaidTargetIndex, "target") == i and 0 or i)
 end
 
 function ns.RaidToolsWanted()
 	local mode = ns.running and ns.Get("raidTools") or "never"
-	if mode == "never" then return false end
+	if mode == "never" or mode == "always" then return mode == "always" end
 	local raid = ns.Ask(IsInRaid)
 	if raid == true then return ns.Ask(UnitIsGroupLeader, "player") == true or ns.Ask(UnitIsGroupAssistant, "player") == true end
 	return raid == false and mode == "group" and ns.Ask(IsInGroup) == true
 end
 
-function ns.ArrangeRaidTools(panel, buttons, layout)
+local function Arrange(panel, all, from, to, layout)
 	local gap, pad = Tokens.Size("gapSmall"), panel.chrome:Inset("gapMedium")
-	local widest = 0
+	local widest, buttons = 0, {}
+	for i, button in ipairs(all) do
+		button:SetShown(i >= from and i <= to)
+		if i >= from and i <= to then buttons[#buttons + 1] = button end
+	end
 	for _, button in ipairs(buttons) do
 		if not button.SetIcon then
 			button.opts.width = nil
@@ -64,10 +71,38 @@ function ns.ArrangeRaidTools(panel, buttons, layout)
 	Widgets.Size(panel, w + 2 * pad, h + 2 * pad)
 end
 
-function ns.AnchorRaidTools(panel, grow, anchor)
-	local spot = GROW[grow]
-	panel:ClearAllPoints()
-	Widgets.Point(panel, spot[1], anchor, spot[2], 0, spot[3] * Tokens.Size("gapSmall"))
+function ns.ArrangeRaidTools(owner, layout)
+	local show = ns.Get("raidToolsShow")
+	local span = SHOW[show]
+	Arrange(owner.panel, owner.buttons, span[1], span[2], layout)
+	if show == "two" and not owner.panel2 then
+		owner.panel2 = Widgets.Panel(owner.panel:GetParent(), {})
+		owner.buttons2 = ns.RaidToolButtons(owner.panel2.content)
+	end
+	if show == "two" then Arrange(owner.panel2, owner.buttons2, SHOW.markers[1], SHOW.markers[2], layout) end
+end
+
+function ns.RaidToolsExtent(owner, layout)
+	local w, h = owner.panel:GetSize()
+	if ns.Get("raidToolsShow") ~= "two" then return w, h end
+	local w2, h2, gap = owner.panel2:GetWidth(), owner.panel2:GetHeight(), Tokens.Size("gapSmall")
+	if layout == "row" then return math.max(w, w2), h + gap + h2 end
+	return w + gap + w2, math.max(h, h2)
+end
+
+function ns.AnchorRaidTools(owner, grow, anchor, layout)
+	local spot, gap, panel2 = GROW[grow], Tokens.Size("gapSmall"), owner.panel2
+	owner.panel:ClearAllPoints()
+	Widgets.Point(owner.panel, spot[1], anchor, spot[2], 0, spot[3] * gap)
+	if panel2 then
+		panel2:ClearAllPoints()
+		if layout == "row" then
+			Widgets.Point(panel2, spot[1], owner.panel, spot[2], 0, spot[3] * gap)
+		else
+			local right = spot[1]:find("LEFT") ~= nil
+			Widgets.Point(panel2, spot[1], owner.panel, right and spot[1]:gsub("LEFT", "RIGHT") or spot[1]:gsub("RIGHT", "LEFT"), right and gap or -gap, 0)
+		end
+	end
 	return spot[1]
 end
 
@@ -93,27 +128,31 @@ local function Paint(event)
 	local free = event ~= "PLAYER_REGEN_DISABLED" and ns.Ask(InCombatLockdown) == false
 	local lead = free and ns.Ask(IsInGroup) == true and (ns.Ask(UnitIsGroupLeader, "player") == true or ns.Ask(UnitIsGroupAssistant, "player") == true)
 	local poll = lead and ns.Ask(HasLFGRestrictions) == false and ns.Ask(UnitInBattleground, "player") == nil
-	local state = (free and 1 or 0) + (lead and 2 or 0) + (poll and 4 or 0)
+	local marks = free and (lead or ns.Ask(IsInRaid) == false)
+	local state = (marks and 1 or 0) + (lead and 2 or 0) + (poll and 4 or 0)
 	if state ~= holder.state then
 		holder.state = state
-		for i, button in ipairs(holder.buttons) do
-			if i == 2 then button:SetEnabled(poll) elseif i <= 3 then button:SetEnabled(lead) else button:SetEnabled(free) end
+		for _, list in ipairs({ holder.buttons, holder.buttons2 or {} }) do
+			for i, button in ipairs(list) do
+				if i == 2 then button:SetEnabled(poll) elseif i <= #ACTIONS then button:SetEnabled(lead) else button:SetEnabled(marks) end
+			end
 		end
 	end
 	holder.panel:SetShown(open)
+	if holder.panel2 then holder.panel2:SetShown(open and ns.Get("raidToolsShow") == "two") end
 end
 
 local function Aim()
-	local grow, root, panel, gap = ns.Get("raidToolsGrow"), K.Scale.Root(), holder.panel, Tokens.Size("gapSmall")
+	local grow, root, gap, layout = ns.Get("raidToolsGrow"), K.Scale.Root(), Tokens.Size("gapSmall"), ns.Get("raidToolsLayout")
 	local k, left, bottom, right, top = holder:GetEffectiveScale() / root:GetEffectiveScale(), holder:GetLeft(), holder:GetBottom(), holder:GetRight(), holder:GetTop()
 	if left and bottom and right and top then
-		local w, h = panel:GetWidth(), panel:GetHeight()
+		local w, h = ns.RaidToolsExtent(holder, layout)
 		if grow:find("^down") and (bottom - gap - h) * k < root:GetBottom() then grow = "up" .. grow:sub(5)
 		elseif grow:find("^up") and (top + gap + h) * k > root:GetTop() then grow = "down" .. grow:sub(3) end
 		if grow:find("left$") and (right - w) * k < root:GetLeft() then grow = grow:sub(1, -5) .. "right"
 		elseif grow:find("right$") and (left + w) * k > root:GetRight() then grow = grow:sub(1, -6) .. "left" end
 	end
-	ns.AnchorRaidTools(panel, grow, holder)
+	ns.AnchorRaidTools(holder, grow, holder, layout)
 end
 
 local function Moved(_, key)
@@ -133,7 +172,8 @@ local function Build()
 	local restyle = holder.Restyle
 	holder.Restyle = function(self)
 		restyle(self)
-		ns.ArrangeRaidTools(self.panel, self.buttons, ns.Get("raidToolsLayout"))
+		ns.ArrangeRaidTools(self, ns.Get("raidToolsLayout"))
+		self.state = nil
 		Aim()
 	end
 	holder:Hide()

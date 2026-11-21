@@ -1,4 +1,4 @@
--- Aids.lua: the crosshair at the screen centre, and the ring around the mouse pointer with its centre dot, trail and the cast circle that fills as the player casts, each shown by its rule and redrawn only when a setting or that state changes. The pointer frame's OnUpdate, a reviewed exception to the no-per-frame rule, exists only while the ring or a cast circle on the pointer shows: one pointer read a frame, a move only when the pointer moved, and trail moves only until the trail settles.
+-- Aids.lua: the crosshair at the screen centre, and the ring around the mouse pointer with its centre dot, trail, the cast circle that fills as the player casts and the global cooldown circle that fills over the global cooldown (the cooldown of spell 29515, which has none of its own; see the README), each shown by its rule and redrawn only when a setting or that state changes. The pointer frame's OnUpdate, a reviewed exception to the no-per-frame rule, exists only while the ring, or a cast or global cooldown circle on the pointer, shows: one pointer read a frame, a move only when the pointer moved, and trail moves only until the trail settles.
 local _, ns = ...
 
 local K = ns.K
@@ -8,12 +8,14 @@ local OWNER = "QoL.aids"
 local WIDTHS = { thin = 1, normal = 2, thick = 4 }
 local RING, DOT, CAST, TRAIL = 32, 6, 1.5, 6
 local CROSS_ALPHA = 0.75
+local GCD_SPELL = 29515
+ns.GCD_SCALE = 1.25
 local CAST_EVENTS = { "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_STOP", "UNIT_SPELLCAST_FAILED", "UNIT_SPELLCAST_INTERRUPTED", "UNIT_SPELLCAST_DELAYED",
 	"UNIT_SPELLCAST_CHANNEL_START", "UNIT_SPELLCAST_CHANNEL_STOP", "UNIT_SPELLCAST_CHANNEL_UPDATE" }
 local LOOK_EVENTS = { PLAYER_STARTED_LOOKING = true, PLAYER_STOPPED_LOOKING = false, PLAYER_STARTED_TURNING = true, PLAYER_STOPPED_TURNING = false }
 
-local cross, ring, cast
-local fighting, instanced, casting = false, false, false
+local cross, ring, cast, gcd
+local fighting, instanced, casting, cooling = false, false, false, false
 local looking = {}
 
 local function Shown(mode)
@@ -79,9 +81,9 @@ function ns.BuildCast(parent)
 	return frame
 end
 
-function ns.PaintCast(frame, dim)
+function ns.PaintCast(frame, dim, scale)
 	local r, g, b = ns.NoticeColor("cursor")
-	local size = RING * CAST * ns.Get("cursorScale") / 100
+	local size = RING * (scale or CAST) * ns.Get("cursorScale") / 100
 	Widgets.Size(frame, size, size)
 	frame:SetSwipeTexture((Tokens.Texture(ns.Get("cursorTexture"))))
 	frame:SetSwipeColor(r, g, b, ns.Get("cursorOpacity") / 100 * (dim or 1))
@@ -124,9 +126,10 @@ end
 local function Visible()
 	if cross then cross:SetShown(ns.running and ns.Get("crosshair") ~= "none" and Shown(ns.Get("crosshairShow"))) end
 	if cast then cast:SetShown(ns.running and ns.Get("castRing") and casting) end
+	if gcd then gcd:SetShown(ns.running and ns.Get("gcdRing") and cooling) end
 	if ring then
 		local shown = ns.running and ns.Get("cursorRing") and Shown(ns.Get("cursorShow")) and (not ns.Get("cursorHidden") or next(looking) ~= nil)
-		local follow = shown or cast ~= nil and cast:IsShown() and ns.Get("castAttach")
+		local follow = shown or (cast ~= nil and cast:IsShown() or gcd ~= nil and gcd:IsShown()) and ns.Get("castAttach")
 		local trail = (shown and ns.Get("cursorTrail")) == true
 		ring.texture:SetShown(shown)
 		ring.dot:SetShown(shown and ns.Get("cursorDot"))
@@ -159,6 +162,18 @@ local function Pointer()
 	for i, dot in ipairs(ring.trail) do ns.PaintDot(dot, 1 - i / (TRAIL + 1)) end
 end
 
+local function Circle(frame, scale)
+	if not frame then
+		frame = ns.BuildCast(K.Scale.Root())
+		frame:SetFrameStrata("TOOLTIP")
+		frame:Hide()
+	end
+	ns.PaintCast(frame, nil, scale)
+	frame:ClearAllPoints()
+	if ring and ns.Get("castAttach") then Widgets.Point(frame, "CENTER", ring, "CENTER", 0, 0) else Widgets.Point(frame, "CENTER", K.Scale.Root(), "CENTER", 0, 0) end
+	return frame
+end
+
 local function Paint()
 	if ns.running and ns.Get("crosshair") ~= "none" then
 		if not cross then
@@ -169,18 +184,32 @@ local function Paint()
 		cross:ClearAllPoints()
 		Widgets.Point(cross, "CENTER", K.Scale.Root(), "CENTER", ns.Get("crosshairX"), ns.Get("crosshairY"))
 	end
-	local pointer = type(GetCursorPosition) == "function"
-	if ns.running and pointer and (ns.Get("cursorRing") or ns.Get("castRing")) then Pointer() end
-	if ns.running and ns.Get("castRing") then
-		if not cast then
-			cast = ns.BuildCast(K.Scale.Root())
-			cast:SetFrameStrata("TOOLTIP")
-			cast:Hide()
+	if ns.running and type(GetCursorPosition) == "function" and (ns.Get("cursorRing") or ns.Get("castRing") or ns.Get("gcdRing")) then Pointer() end
+	if ns.running and ns.Get("castRing") then cast = Circle(cast) end
+	if ns.running and ns.Get("gcdRing") then
+		local made = gcd == nil
+		gcd = Circle(gcd, ns.GCD_SCALE)
+		if made then
+			gcd:SetReverse(true)
+			gcd:HookScript("OnCooldownDone", function()
+				cooling = false
+				Visible()
+			end)
 		end
-		ns.PaintCast(cast)
-		cast:ClearAllPoints()
-		if pointer and ns.Get("castAttach") then Widgets.Point(cast, "CENTER", ring, "CENTER", 0, 0) else Widgets.Point(cast, "CENTER", K.Scale.Root(), "CENTER", 0, 0) end
 	end
+end
+
+local function Gcd()
+	local spell, was = C_Spell, cooling
+	local info = type(spell) == "table" and ns.Ask(spell.GetSpellCooldown, GCD_SPELL)
+	local duration = type(info) == "table" and info.isActive == true and ns.Ask(spell.GetSpellCooldownDuration, GCD_SPELL) or nil
+	cooling = duration ~= nil and gcd ~= nil and type(gcd.SetCooldownFromDurationObject) == "function"
+	if cooling then
+		gcd:SetCooldownFromDurationObject(duration)
+	elseif was and gcd then
+		gcd:Clear()
+	end
+	if cooling ~= was then Visible() end
 end
 
 local function Info(api)
@@ -220,13 +249,13 @@ local function Look(event)
 end
 
 function ns.AidFrames()
-	return cross, ring, cast
+	return cross, ring, cast, gcd
 end
 
 local EVENTS = { PLAYER_REGEN_DISABLED = Fight, PLAYER_REGEN_ENABLED = Fight, PLAYER_ENTERING_WORLD = State, ZONE_CHANGED_NEW_AREA = State }
 
 local function Sync()
-	local on = ns.running and (ns.Get("crosshair") ~= "none" or ns.Get("cursorRing") or ns.Get("castRing"))
+	local on = ns.running and (ns.Get("crosshair") ~= "none" or ns.Get("cursorRing") or ns.Get("castRing") or ns.Get("gcdRing"))
 	for event, fn in pairs(EVENTS) do
 		if on then K.Events.Register(OWNER, event, fn) else K.Events.Unregister(OWNER, event) end
 	end
@@ -239,11 +268,14 @@ local function Sync()
 	for _, event in ipairs(CAST_EVENTS) do
 		if casts then K.Events.RegisterUnit(OWNER, event, Cast, "player") else K.Events.Unregister(OWNER, event) end
 	end
+	local cools = ns.running and ns.Get("gcdRing")
+	if cools then K.Events.Register(OWNER, "SPELL_UPDATE_COOLDOWN", Gcd) else K.Events.Unregister(OWNER, "SPELL_UPDATE_COOLDOWN") end
 	if on then
 		Paint()
 		if casts then Cast() else casting = false end
+		if cools then Gcd() else cooling = false end
 		State()
-	elseif cross or ring or cast then
+	elseif cross or ring or cast or gcd then
 		Visible()
 	end
 end
@@ -253,6 +285,6 @@ ns.AddPart({
 	Start = Sync,
 	Stop = Sync,
 	Setting = function(key)
-		if key == nil or type(key) == "string" and (key:find("^crosshair") or key:find("^cursor") or key:find("^cast")) then Sync() end
+		if key == nil or type(key) == "string" and (key:find("^crosshair") or key:find("^cursor") or key:find("^cast") or key == "gcdRing") then Sync() end
 	end,
 })

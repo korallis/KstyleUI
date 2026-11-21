@@ -1,3 +1,6 @@
 <Bindings>
 	<Binding name="CLICK KstyleUI_RaidTools:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_QuickFirePlace:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_QuickFireUndo:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_QuickFireClear:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
 </Bindings>
