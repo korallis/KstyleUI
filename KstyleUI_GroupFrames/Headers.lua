@@ -72,14 +72,17 @@ local function NewCard(parent, holder, shape, title)
 	return { frame = card, chrome = K.Widgets.Chrome(card, shape), cap = K.Widgets.RailCap(card, { title = title }) }
 end
 
+local classOrder, classGeneration
 local function ClassOrder()
+	if classOrder and classGeneration == ns.Settings.generation then return classOrder end
 	local sort, seen, out = ns.Settings.current.sort, {}, {}
 	local function Add(class)
 		if type(class) == "string" and not seen[class] then seen[class], out[#out + 1] = true, class end
 	end
 	for i = 1, #ns.Settings.CLASSES do Add(sort["class" .. i]) end
 	for _, class in ipairs(ns.Settings.CLASSES) do Add(class) end
-	return table.concat(out, ",")
+	classOrder, classGeneration = table.concat(out, ","), ns.Settings.generation
+	return classOrder
 end
 
 function Headers.Build()
@@ -168,7 +171,7 @@ local function Sort(header, sortBy, groups)
 	elseif sortBy == "GROUP" then
 		header:SetAttribute("groupBy", "GROUP")
 		header:SetAttribute("groupingOrder", groups)
-	elseif sortBy == "CLASS" or sortBy ~= "GROUP" and ns.Settings.current.sort.classFirst then
+	elseif sortBy == "CLASS" or ns.Settings.current.sort.classFirst then
 		header:SetAttribute("groupBy", "CLASS")
 		header:SetAttribute("groupingOrder", ClassOrder())
 	end
