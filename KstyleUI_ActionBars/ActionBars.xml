@@ -16,6 +16,7 @@
 	<Script file="SlabEffects.lua"/>
 	<Script file="SlabJewels.lua"/>
 	<Script file="SlabHawks.lua"/>
+	<Script file="SlabCrown.lua"/>
 	<Script file="Bindings.lua"/>
 	<Script file="Keybind.lua"/>
 	<Script file="Blizzard.lua"/>

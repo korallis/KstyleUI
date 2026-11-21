@@ -1,4 +1,4 @@
--- Resource.lua: the class resource element under the player frame: combo points as one-point status bars, or the class-themed pips over them, and the druid's mana bar.
+-- Resource.lua: the class resource element under the player frame: combo points as one-point status bars, or the class-themed pips over them (a rogue's are the Medallions crest's crown of blades), and the druid's mana bar.
 local _, ns = ...
 
 local K = KstyleUI
@@ -248,7 +248,8 @@ function Resource.Visibility()
 		current = nil
 	end
 	local on = state.running and Settings.Resource("enabled")
-	state.showCombo = on and Settings.Resource("comboPoints") and (class == "ROGUE" or class == "DRUID" and current == energy) or false
+	local crowned = class == "ROGUE" and Settings.Resource("classPips") and K.HudStyle.Current() == "medallions"
+	state.showCombo = on and Settings.Resource("comboPoints") and (class == "ROGUE" and not crowned or class == "DRUID" and current == energy) or false
 	state.showMana = on and Settings.Resource("druidMana") and class == "DRUID" and current ~= nil and current ~= mana or false
 	state.flipped = state.showMana and Settings.Value("player", "powerMana") and current or nil
 	state.themed = ns.Pips.Apply(state.showCombo and Settings.Resource("classPips") and class or nil, state.content, PIPS)
@@ -257,7 +258,7 @@ function Resource.Visibility()
 	local Layout = K.Layout
 	if Layout and Layout.SetLive then
 		local comboOn, manaOn = Settings.Resource("comboPoints"), Settings.Resource("druidMana")
-		local placeable = on and (class == "ROGUE" and comboOn or class == "DRUID" and (comboOn or manaOn)) or false
+		local placeable = on and (class == "ROGUE" and comboOn and not crowned or class == "DRUID" and (comboOn or manaOn)) or false
 		Layout.SetLive(KEY, placeable and true or false)
 	end
 	Resource.ListenToPower(state.running and (state.showCombo or state.showMana))

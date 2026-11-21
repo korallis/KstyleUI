@@ -1,4 +1,4 @@
-"""Tests for Tools/media/make_pips.py: the class-themed pips match the script, and each class's textures share one silhouette."""
+"""Tests for Tools/media/make_pips.py: the druid's pips match the script and share one silhouette."""
 
 import contextlib
 import importlib.util
@@ -30,7 +30,7 @@ class MakePipsTest(unittest.TestCase):
 
     def test_each_class_shares_one_silhouette(self):
         # The lit pip must cover its socket and its mask exactly, or a socket edge shows round a lit pip.
-        for name in ("PipRogue", "PipDruid"):
+        for name in ("PipDruid",):
             alphas = [self.mp.paint(self.mp.TEXTURES[name + part])[3::4] for part in ("", "Socket", "Shape")]
             covered = [[a > 0 for a in alpha] for alpha in alphas]
             self.assertEqual(covered[0], covered[1], f"{name} and its socket cover different texels")

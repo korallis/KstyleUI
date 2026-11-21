@@ -938,17 +938,17 @@ The Medallions HUD style's portraits and crests. Each is original art generated 
 
 ## Class-themed combo point pips (2026-11-21)
 
-Original procedural art drawn by `Tools/media/make_pips.py` (standard library, `make_media.py`'s 4x4 sampler); no model, prompt or external art. Each class's three textures share one silhouette, so the lit pip covers its socket exactly and the shape masks only the pip. Colours follow the forged look: gilt (`giltLit`, `gilt`, `giltDim`) and steel (`steelLit`, `steel`, `steelDim`) lit from the upper left, with a 2.4-texel `08090b` keyline so each pip reads on bright and dark ground. `python3 Tools/media/make_pips.py --check` compares the files with the script.
+The rogue's dagger is original KstyleUI art in the crest's forged look (gilt and steel lit from the upper left, a thin dark outline), baked to 128x128 at the five angles the crest's crown of blades fans them at (130, 110, 90, 70 and 50 degrees; 90 is upright and is the unit frames' row). Each angle has four textures that share one silhouette, so the lit dagger covers the dormant one exactly and the shape masks only the blade. The druid's claws are procedural, drawn by `Tools/media/make_pips.py` (standard library, `make_media.py`'s 4x4 sampler; `--check` compares the files with the script).
 
 | File | Size | What it is |
 | --- | --- | --- |
-| `Media/Textures/Pips/PipRogue.png` | 64x64 | A lit rogue combo point: a dagger pointing up and right, with a gilt pommel and guard, a wrapped grip, a crimson ember blade hottest along its fuller, polished steel edges and a glint on the lit edge. Colours baked in. |
-| `Media/Textures/Pips/PipRogueSocket.png` | 64x64 | The same dagger dormant: gunmetal with a steel lit edge and a dim gilt guard. |
-| `Media/Textures/Pips/PipRogueShape.png` | 64x64 | The dagger's silhouette, white; the mask for the slide-in, slash and shine, and the flare, tinted `pipRogueCore`. |
+| `Media/Textures/Pips/PipBlade<angle>.png` | 128x128 | A lit rogue combo point: a dagger pointing out along the angle, a polished steel blade with a glowing crimson ember channel, a gilt crossguard with curled quillons, a dark wrapped grip and a gilt pommel set with a red gem. Colours baked in. |
+| `Media/Textures/Pips/PipBladeSteel<angle>.png` | 128x128 | The same dagger dormant: its luminance as cool ghost steel at 80% opacity. |
+| `Media/Textures/Pips/PipBladeShape<angle>.png` | 128x128 | The dagger's silhouette, white; the mask for the slide-in and slash, and the flare, tinted `pipRogueCore`. |
+| `Media/Textures/Pips/PipBladeGlow<angle>.png` | 128x128 | The silhouette blurred, white; the halo that hugs a lit dagger, ADD, tinted `pipRogueGlow`. |
 | `Media/Textures/Pips/PipDruid.png` | 64x64 | A lit cat-form druid combo point: three claws raked down and left, blunt where they went in and drawn to a point, amber hottest at the centre with green rims. Colours baked in. |
 | `Media/Textures/Pips/PipDruidSocket.png` | 64x64 | The same claws dormant, in dark bark tones. |
 | `Media/Textures/Pips/PipDruidShape.png` | 64x64 | The claws' silhouette, white; mask and flare as for the rogue, tinted `pipDruidCore`. |
-| `Media/Textures/Pips/PipStreak.png` | 64x64 | A soft white stroke along the falling diagonal, fading towards its ends: the spend's slash and the shine at the maximum, ADD. |
 
 ## Danger edge and portrait rings (E1/E2, 2026-11-18)
 

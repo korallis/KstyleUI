@@ -31,6 +31,10 @@ local function New(class, power, size)
 		end,
 	})
 	AB.Enable(env, K)
+	-- The jewels alone: a rogue's crown of blades listens too, and test-actionbars-medallions-crown covers it.
+	local profile = K.Store.Profile()
+	profile.UnitFrames = profile.UnitFrames or {}
+	profile.UnitFrames.resource = { classPips = false }
 	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	assert(K.HudStyle.Current() == "medallions")

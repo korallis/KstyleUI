@@ -1,12 +1,10 @@
-"""make_pips.py: draw the class-themed combo point pips into Media/Textures/Pips/.
+"""make_pips.py: draw the druid's class-themed combo point pips into Media/Textures/Pips/.
 
-Each class has three 64x64 textures that share one silhouette: the lit pip with its colours baked in, the
-empty socket, and the white shape that masks the slide-in, slash and shine and that the game tints for the
-flare. PipStreak.png is the soft diagonal stroke the slash and shine draw. The rogue's pip is a dagger
-pointing up and right (a gilt pommel and guard, a wrapped grip, a crimson ember blade with polished steel
-edges lit from the upper left, a glint on the lit edge); the druid's is three amber claw gouges with green
-rims, raked down and left. Every pixel is the mean of 4x4 samples of premultiplied colour, as make_media.py
-samples its shapes. Coordinates are texels, origin top left, y down. Standard library only.
+Three 64x64 textures share one silhouette: the lit pip with its colours baked in, the empty socket, and the
+white shape that masks the slide-in and slash and that the game tints for the flare. The pip is three amber
+claw gouges with green rims, raked down and left. Every pixel is the mean of 4x4 samples of premultiplied
+colour, as make_media.py samples its shapes. Coordinates are texels, origin top left, y down. Standard
+library only.
 
     python3 Tools/media/make_pips.py          # write the textures
     python3 Tools/media/make_pips.py --check  # compare with the files on disk
@@ -47,92 +45,8 @@ def ramp(stops, t):
 
 
 KEYLINE = hexrgb("08090b")
-GILT_LIT, GILT, GILT_DIM = hexrgb("f3dca4"), hexrgb("d3b574"), hexrgb("8a6c34")
-STEEL_LIT, STEEL, STEEL_DIM = hexrgb("e6ecf3"), hexrgb("b9c1cc"), hexrgb("6b7380")
-SOCKET, GUN_LIT = hexrgb("23262c"), hexrgb("5a616b")
-EMBER = [(0.0, hexrgb("ffd08a")), (0.3, hexrgb("ff7a3a")), (0.65, hexrgb("e8322a")), (1.0, hexrgb("9a141a"))]
 AMBER = [(0.0, hexrgb("fff6d0")), (0.25, hexrgb("ffd25a")), (0.6, hexrgb("f39a1c")), (1.0, hexrgb("a8520c"))]
 MOSS, MOSS_DIM = hexrgb("8fd651"), hexrgb("3f7a25")
-
-# The dagger runs from the pommel's end P0 to the tip P1. s is the distance along it, w across it (w < 0 is
-# the upper left, the lit side).
-P0, P1 = (5.0, 59.0), (60.0, 4.0)
-LENGTH = math.hypot(P1[0] - P0[0], P1[1] - P0[1])
-U = ((P1[0] - P0[0]) / LENGTH, (P1[1] - P0[1]) / LENGTH)
-V = (-U[1], U[0])
-BLADE = 24.0
-EDGE = 3.0  # texels of steel bevel on each blade edge
-
-
-def blade_half(s):
-    if s < 58:
-        return 9.0 - (s - BLADE) * (1.6 / (58 - BLADE))
-    return max(0.0, 7.4 * (LENGTH - s) / (LENGTH - 58))
-
-
-def dagger(x, y):
-    """(part, signed distance, s, w) of the dagger part nearest inside at (x, y)."""
-    dx, dy = x - P0[0], y - P0[1]
-    s, w = dx * U[0] + dy * U[1], dx * V[0] + dy * V[1]
-    parts = [
-        ("pommel", math.hypot(s - 5.6, w) - 5.8),
-        ("grip", max(abs(w) - 4.0, abs(s - 13.0) - 6.5)),
-        ("guard", max(abs(w) - (14.0 - 0.6 * abs(s - 21.0)), abs(s - 21.0) - 3.4)),
-        ("blade", max(abs(w) - blade_half(s), BLADE - 0.5 - s, s - LENGTH)),
-    ]
-    part, d = min(parts, key=lambda p: p[1])
-    return part, d, s, w
-
-
-def gilt(t):
-    return ramp([(0.0, GILT_LIT), (0.45, GILT), (1.0, GILT_DIM)], t)
-
-
-def dagger_lit(x, y):
-    part, d, s, w = dagger(x, y)
-    if d > OUTLINE:
-        return None
-    if d > 0:
-        return KEYLINE + (0.92,)
-    if part == "pommel":
-        lit = math.hypot(s - 3.4, w + 2.0) / 6.5
-        return (mix(gilt(lit), (1, 1, 1), 0.6) if lit < 0.25 else gilt(lit)) + (1.0,)
-    if part == "guard":
-        return gilt(0.1 + 0.65 * (w + 14.0) / 28 + (0.25 if s > 22.5 else 0)) + (1.0,)
-    if part == "grip":
-        band = (s % 3.4) < 1.2
-        return mix(hexrgb("4a3426"), hexrgb("22170f"), 0.75 if band else 0.15 + 0.3 * (w + 4.0) / 8.0) + (1.0,)
-    half = blade_half(s)
-    inner = half - abs(w)
-    if inner < EDGE:
-        edge = inner / EDGE
-        if w < 0:
-            steel = ramp([(0.0, STEEL_LIT), (0.5, STEEL), (1.0, STEEL_DIM)], edge)
-            glint = math.hypot(s - 48.0, w + half - 1.2)
-            if glint < 3.0:
-                steel = mix(steel, (1, 1, 1), 1 - glint / 3.0)
-            return steel + (1.0,)
-        return ramp([(0.0, STEEL_DIM), (1.0, hexrgb("3a3f47"))], edge) + (1.0,)
-    body = half - EDGE
-    heat = ramp(EMBER, abs(w + 0.25 * body) / (1.25 * max(0.01, body)))
-    return mix(heat, hexrgb("5a0c0e"), 0.35 * max(0.0, (BLADE + 6 - s) / 6)) + (1.0,)
-
-
-def dagger_socket(x, y):
-    part, d, s, w = dagger(x, y)
-    if d > OUTLINE:
-        return None
-    if d > 0:
-        return KEYLINE + (0.88,)
-    if part in ("guard", "pommel"):
-        return mix(GILT_DIM, SOCKET, 0.45 + 0.3 * (w + 14.0) / 28) + (0.95,)
-    if part == "grip":
-        return hexrgb("1a1512") + (0.95,)
-    inner = blade_half(s) - abs(w)
-    if inner < EDGE and w < 0:
-        return mix(GUN_LIT, SOCKET, inner / EDGE) + (0.95,)
-    return mix(SOCKET, hexrgb("0b0c0f"), max(0.0, w) / 9.0) + (0.95,)
-
 
 # Three claw gouges raked down and to the left: each a curved stroke, blunt where the claw went in at the upper
 # right and drawn out to a point at the lower left.
@@ -189,15 +103,6 @@ def white(fn):
     return shape
 
 
-def streak(x, y):
-    """A soft stroke along the falling diagonal through the centre, fading towards its ends."""
-    dx, dy = x - 32.0, y - 32.0
-    across = (dx - dy) / math.sqrt(2)
-    along = (dx + dy) / math.sqrt(2)
-    a = math.exp(-((across / 2.8) ** 2)) * max(0.0, 1 - (along / 30.0) ** 2)
-    return (1.0, 1.0, 1.0, a) if a > 0.004 else None
-
-
 def paint(fn, size=SIZE):
     """RGBA bytes: each pixel the mean of the samples' premultiplied colour."""
     out = bytearray()
@@ -217,13 +122,9 @@ def paint(fn, size=SIZE):
 
 
 TEXTURES = {
-    "PipRogue": dagger_lit,
-    "PipRogueSocket": dagger_socket,
-    "PipRogueShape": white(dagger_lit),
     "PipDruid": claw_lit,
     "PipDruidSocket": claw_socket,
     "PipDruidShape": white(claw_lit),
-    "PipStreak": streak,
 }
 
 
