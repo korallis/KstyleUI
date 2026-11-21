@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 MARKETING = ROOT / "docs" / "media" / "marketing"
 MASTER = ROOT / "docs" / "store" / "description.md"
 RAW = "https://raw.githubusercontent.com/korallis/KstyleUI/main/"
+DISCORD = "https://discord.gg/A5qqGZEXyN"
 ICON_RELEASES = "https://github.com/korallis/KstyleUI/releases/latest"  # the one allowed releases link: the icon pack's page, never a file
 SUMMARY = ("A complete, pixel-perfect interface for World of Warcraft: Forever "
            "\u2014 one dark forged style, three HUDs, set up in one window.")
@@ -131,7 +132,7 @@ class MarketingImages(unittest.TestCase):
         master = MASTER.read_text(encoding="utf-8")
         for match in re.finditer(r"!\[[^\]]+\]\(([^)]+)\)", master):
             name = match[1].rsplit("/", 1)[-1]
-            if name.startswith("header-") or name in ("show_frame_setup.jpg", "card-ready-in-minutes.jpg"):
+            if name.startswith("header-") or name in ("show_frame_setup.jpg", "card-ready-in-minutes.jpg", "show_crop_route.jpg"):
                 continue
             window = master[match.end():].split("![", 1)[0]
             caption = re.search(r"\*([^*]+)\*", window)
@@ -144,6 +145,11 @@ class MarketingImages(unittest.TestCase):
 
 
 class MasterDescription(unittest.TestCase):
+    def test_discord_invite_leads_the_page(self):
+        top = MASTER.read_text(encoding="utf-8").split("\n## ", 1)[0]
+        self.assertIn(DISCORD, top, "Fix: put the Discord invite " + DISCORD + " right under the banner in "
+                      "docs/store/description.md, before the first ## heading, then run marketing.py --pages")
+
     def test_published_prose_has_no_windows_mojibake(self):
         for path in (MASTER, ROOT / "README.md", ROOT / "Tools/render/README.md",
                      ROOT / "docs/store/curseforge.md", ROOT / "docs/store/wago.md"):

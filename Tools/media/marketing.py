@@ -57,10 +57,12 @@ PITCH = "Dark forged chrome for the whole game."
 PITCH2 = "Three HUDs. One setup. Every screen."
 
 HEADERS = [
+    ("header-discord.jpg", "JOIN THE DISCORD", "Help, bug reports, release news and UI sharing - discord.gg/A5qqGZEXyN"),
     ("header-three-huds.jpg", "THREE HUDS", "Medallions, Frames or Orbs - pick yours, change it any time"),
     ("header-every-screen.jpg", "EVERY SCREEN", "Pixel-perfect from a laptop to a 32:9 ultrawide"),
     ("header-set-up.jpg", "SET UP IN ONE WINDOW", "One short setup, then you are playing"),
-    ("header-rest-of-your-ui.jpg", "THE REST OF YOUR UI", "Nameplates, meter, bags, tooltips and window skins"),
+    ("header-rest-of-your-ui.jpg", "THE REST OF YOUR UI", "Nameplates, meter, map, bags, tooltips and window skins"),
+    ("header-make-it-yours.jpg", "MAKE IT YOURS", "Deep settings for every part, each with a live preview"),
 ]
 
 # One image per card, stacked in the markdown, so each stays readable on a phone.
@@ -88,6 +90,9 @@ SHOWCASES = [
     ("show_crop_meter.jpg", "crop_meter.jpg"),
     ("show_crop_meters_both.jpg", "crop_meters_both.jpg"),
     ("show_crop_rail.jpg", "crop_rail.jpg"),
+    ("show_crop_crest.jpg", "crop_crest.jpg"),
+    ("show_crop_dock.jpg", "crop_dock.jpg"),
+    ("show_crop_route.jpg", "crop_route.jpg"),
     ("show_frame_skins.jpg", "frame_skins.jpg"),
 ]
 
