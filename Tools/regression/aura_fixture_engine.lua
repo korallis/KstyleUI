@@ -73,7 +73,8 @@ function Engine.Refresh(env)
 				end
 			end
 			if count > 0 then
-				offset = offset + math.ceil(count / columns) * h
+				local rows = math.ceil(count / columns)
+				offset = offset + rows * h + (rows - 1) * (layout.lineSpacing or 0)
 				wide = math.max(wide, math.min(count, columns) * (w + gap) - gap)
 			end
 		end
