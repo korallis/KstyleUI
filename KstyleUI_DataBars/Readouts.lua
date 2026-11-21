@@ -74,7 +74,7 @@ function Readouts.HearthText(s, bind, cooldown)
 	return cooldown .. " " .. bind
 end
 
-function Readouts.ChoiceName(value)
+local function ChoiceName(value)
 	local kind, id = value:match("^(%a+):(%d+)$")
 	id = tonumber(id)
 	if kind == "spell" and C_Spell then
@@ -202,7 +202,7 @@ local function FriendRows()
 	return rows
 end
 
-function Readouts.Names(tip, rows, notes)
+local function Names(tip, rows, notes)
 	local cap = Clamp(Settings().socialList, 0, 40, 0)
 	if cap == 0 or #rows == 0 then return end
 	table.sort(rows, function(a, b) return a[1] < b[1] end)
@@ -216,7 +216,7 @@ function Readouts.Names(tip, rows, notes)
 end
 
 local supplies
-function Readouts.Supplies()
+local function Supplies()
 	if supplies then return supplies end
 	supplies = {}
 	local bags, items, E = C_Container, C_Item, Enum or {}
@@ -450,7 +450,7 @@ end
 Strip.VALUES.guild = Guild
 Strip.VALUES.friends = Friends
 Strip.VALUES.currencies = function(s) return Currencies(nil, Settings(s).currencyIcons) end
-Strip.VALUES.reagents = function(s) return Readouts.SupplyText(Settings(s), Readouts.Supplies()) end
+Strip.VALUES.reagents = function(s) return Readouts.SupplyText(Settings(s), Supplies()) end
 Strip.VALUES.location = function() return Plain(Call(GetZoneText), "string") or L["--"] end
 Strip.VALUES.itemLevel = function(s)
 	s = Settings(s)
@@ -521,27 +521,27 @@ Strip.TOOLTIPS.hearth = function(_, tip)
 		for _, key in ipairs(keys) do tip:AddDoubleLine(key, Plain(homes[key], "string") or L["--"]) end
 	end
 	local s = Settings()
-	local left = s.hearthLeft ~= "" and Readouts.ChoiceName(s.hearthLeft)
+	local left = s.hearthLeft ~= "" and ChoiceName(s.hearthLeft)
 	ProtectedNote(tip, left and format(L["Click: %s."], left) or L["Click: use your Hearthstone."])
 	for _, click in ipairs({ { "hearthRight", L["Right-click: %s."] }, { "hearthMiddle", L["Middle-click: %s."] } }) do
-		local name = not InCombatLockdown() and s[click[1]] ~= "" and Readouts.ChoiceName(s[click[1]])
+		local name = not InCombatLockdown() and s[click[1]] ~= "" and ChoiceName(s[click[1]])
 		if name then tip:AddLine(format(click[2], name), "text") end
 	end
 end
 Strip.TOOLTIPS.guild = function(_, tip)
 	Readouts.RequestRoster()
 	tip:AddDoubleLine(L["Online"], Guild())
-	if Settings().socialList > 0 then Readouts.Names(tip, GuildRows(), Settings().guildNotes) end
+	if Settings().socialList > 0 then Names(tip, GuildRows(), Settings().guildNotes) end
 end
 Strip.TOOLTIPS.friends = function(_, tip)
 	local _, wow, battle = Friends()
 	tip:AddDoubleLine(L["World of Warcraft"], Count(wow))
 	tip:AddDoubleLine(L["Battle.net"], Count(battle))
-	if Settings().socialList > 0 then Readouts.Names(tip, FriendRows(), Settings().friendNotes) end
+	if Settings().socialList > 0 then Names(tip, FriendRows(), Settings().friendNotes) end
 end
 Strip.TOOLTIPS.reagents = function(_, tip)
 	local any = false
-	for _, entry in ipairs(Readouts.Supplies()) do
+	for _, entry in ipairs(Supplies()) do
 		any = true
 		tip:AddDoubleLine((entry.icon and "|T" .. entry.icon .. ":0|t " or "") .. entry.name, tostring(entry.count))
 	end
