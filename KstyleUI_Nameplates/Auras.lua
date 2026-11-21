@@ -499,7 +499,6 @@ local function RoomAbove(plate)
 	if Settings.Get("name.show") and not plate.nameOnly then
 		return ns.Plate.NAME_GAP + (plate.subtitleRoom or 0) + (plate.whoSize or Settings.Get("name.size")) + Settings.Get("debuffs.nameGap") + ns.Resource.Room(plate, "TOP")
 			+ ns.Plate.QuestRise(plate)
-
 	end
 	return GAP + ns.Resource.Room(plate, "TOP")
 end

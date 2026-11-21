@@ -15,7 +15,6 @@ Preview.SAMPLES = {
 	{
 		name = L["Dark Iron Summoner"], level = 51, classification = "elite", health = 0.64, absorb = 0.2,
 		enemy = true, reaction = 2, isPlayer = false, target = true, focus = true, raid = 8, caster = true, threatPct = 87, questText = "3/8", questType = "monster",
-
 		cast = { text = L["Molten Pulse"], texture = 135812, time = "2.8", progress = 0.45, notInterruptible = false, target = L["Thaldrin"], important = true, atMe = true },
 	},
 	{

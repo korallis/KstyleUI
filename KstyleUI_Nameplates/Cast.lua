@@ -588,7 +588,6 @@ function Cast.BadgeReach(plate)
 end
 
 function Cast.Gap(plate)
-
 	return Widgets.Border(plate.health) + Widgets.Snap(plate, ns.Plate.FRAME_GAP) + Widgets.Border(plate.castBar)
 end
 

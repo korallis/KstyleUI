@@ -198,7 +198,6 @@ return Common.Run(function()
 				end
 			end
 		end
-
 		N.Focus(env, "nameplate2")
 	end
 	env.RunTimers(); Gallery.Ticks(dofile("Tools/regression/widget_env.lua"), env, 40)

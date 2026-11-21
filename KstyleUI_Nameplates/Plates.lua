@@ -474,7 +474,6 @@ local function OnCombat(event)
 	end
 end
 
-
 local function OnWorld()
 	local inside = IsInInstance and IsInInstance()
 	inside = not IsSecret(inside) and inside == true
@@ -581,7 +580,6 @@ local function QuestChanged(...)
 end
 
 local GLOBAL_EVENTS = {
-
 	NAME_PLATE_UNIT_ADDED = function(_, unit)
 		UpdateTokens()
 		Attach(unit)

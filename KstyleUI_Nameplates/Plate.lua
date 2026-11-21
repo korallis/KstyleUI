@@ -1187,7 +1187,6 @@ function Plate:UpdateQuest()
 	end
 	if count == false then return end
 	local text = self.questText
-
 	if count and not text then
 		text = NewText(self, "LEFT")
 		text:SetTextColor(Tokens.Color("quest"))
@@ -1209,7 +1208,6 @@ function Plate:UpdateQuest()
 		if known then self.questIcon:SetAtlas(atlas) elseif atlas then LogOnce("quest-atlas", "the client lacks " .. atlas .. "; quest progress shows no icon") end
 		self.questIcon:SetShown(known and true or false)
 	end
-
 end
 
 function Plate:LayoutQuest()
@@ -1447,7 +1445,6 @@ function Plate:UpdatePvp()
 	badge:SetShown(atlas and true or false)
 	if self.questText then self:LayoutQuest() end
 end
-
 
 function Plate:UpdateThreat()
 	local display = Settings.Get("threat.display")
