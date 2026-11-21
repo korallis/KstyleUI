@@ -22,7 +22,7 @@ function Preview.Build(...)
 
 	local SAMPLES = {
 		{
-			name = "Thaldren", class = "WARRIOR", health = 0.72, power = 0.35, role = "TANK", leader = true, threat = 3, absorb = 0.05, shield = 0.3,
+			name = "Thaldren", follower = "Thaldren Ironvow", class = "WARRIOR", health = 0.72, power = 0.35, role = "TANK", leader = true, threat = 3, absorb = 0.05, shield = 0.3,
 			healAbsorb = 0.18, debuffs = 2, hots = 2, boss = true, indicators = { EXTERNAL = true }, combat = true, overshield = 0.4,
 		},
 		{ name = "Sylaen", class = "DRUID", health = 0.87, power = 0.8, far = true, role = "HEALER", dispel = "Magic", debuffs = 1, hots = 1, indicators = { CROWD_CONTROL = true } },
@@ -123,7 +123,7 @@ function Preview.Build(...)
 				f.power:SetBarColor(Tokens.Color("rare"))
 			end
 		end
-		ns.Names.Set(f, sample.name)
+		ns.Names.Set(f, cfg[f.kind].nameFormat ~= "FULL" and sample.follower or sample.name)
 		if f.status then
 			f.name:SetTextColor(Tokens.Color("textDisabled"))
 		elseif cfg.text.nameColorSource == "class" then
@@ -204,8 +204,9 @@ function Preview.Build(...)
 		local memberSpacing = Geometry.IsVertical(party.growth) and party.spacing or (party.spacing + partyGeo.lane)
 		local x0 = partyGeo.laneSide == "LEFT" and partyGeo.lane or 0
 		PlaceRun(preview.partyFrames, preview.party, party, party.growth, count, x0, 0, partyGeo.corner, partyGeo.memberWidth, memberSpacing)
-		local merged = raid.sortBy == "GROUP" and raid.merge
-		local size, shownGroups = merged and GROUP_SIZE * RAID_GROUPS_SHOWN or GROUP_SIZE, merged and 1 or RAID_GROUPS_SHOWN
+		local total = GROUP_SIZE * RAID_GROUPS_SHOWN
+		local size = raid.sortBy == "GROUP" and raid.merge and math.min(raid.unitsPerColumn, total) or GROUP_SIZE
+		local shownGroups = math.ceil(total / size)
 		local gw, gh
 		if Geometry.IsVertical(raid.growth) then
 			gw, gh = raid.width, Geometry.Line(size, raid.height, raid.spacing)
@@ -221,11 +222,11 @@ function Preview.Build(...)
 		local corner = Geometry.Corner(raid.growth, raid.groupGrowth)
 		for g = 1, shownGroups do
 			local frames = {}
-			for m = 1, size do
+			for m = 1, math.min(size, total - (g - 1) * size) do
 				frames[m] = preview.raidFrames[(g - 1) * size + m]
 			end
 			local ox, oy = Geometry.Offset(Geometry.Perpendicular(raid.growth, raid.groupGrowth), (g - 1) * ((groupsWide and gw or gh) + raid.groupSpacing))
-			PlaceRun(frames, preview.raid, raid, raid.growth, size, ox, oy, corner)
+			PlaceRun(frames, preview.raid, raid, raid.growth, #frames, ox, oy, corner)
 		end
 		preview.canvas:SetSize(pw, ph)
 		preview.raidCanvas:SetSize(rw, rh)

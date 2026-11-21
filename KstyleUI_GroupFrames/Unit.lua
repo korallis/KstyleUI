@@ -318,11 +318,7 @@ end
 
 local function Health(f)
 	local unit = f.unit
-	if f.missingFill then
-		f.health:SetHealth(UnitHealthMissing(unit), f.fresh)
-	else
-		f.health:SetHealth(UnitHealth(unit), f.fresh)
-	end
+	f.health:SetHealth((f.missingFill and UnitHealthMissing or UnitHealth)(unit), f.fresh)
 	HealthText(f)
 end
 

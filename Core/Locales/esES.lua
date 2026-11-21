@@ -1631,7 +1631,7 @@ ns.Locale.Add({
 	["How many icons fit on one row."] = "Cu\195\161ntos iconos caben en una fila.",
 	["How many icons fit on one row. Point at the +N chip beside it to list the rest."] = "Cu\195\161ntos iconos caben en una fila. Se\195\177ala la insignia +N de al lado para ver el resto.",
 	["How many of each window's newest lines come back. The combat log is never kept."] = "Cu\195\161ntas de las l\195\173neas m\195\161s recientes de cada ventana vuelven. El registro de combate nunca se conserva.",
-	["How many pixels thick the heal absorb line is."] = "Cu\195\161ntos p\195\173xeles de grosor tiene la l\195\173nea de absorci\195\179n de sanaci\195\179n.",
+	["How many pixels thick the heal absorb line is; 0 matches the shield line."] = "Cu\195\161ntos p\195\173xeles de grosor tiene la l\195\173nea de absorci\195\179n de sanaci\195\179n; 0 iguala la l\195\173nea de escudo.",
 	["How many pixels thick the shield line is."] = "Cu\195\161ntos p\195\173xeles de grosor tiene la l\195\173nea de escudo.",
 	["How many quests the card shows at once."] = "Cu\195\161ntas misiones muestra la tarjeta a la vez.",
 	["How many rows of debuff icons a frame may show."] = "Cu\195\161ntas filas de iconos de perjuicios puede mostrar un marco.",

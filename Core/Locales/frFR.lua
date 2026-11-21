@@ -1631,7 +1631,7 @@ ns.Locale.Add({
 	["How many icons fit on one row."] = "Nombre d'ic\195\180nes par rang\195\169e.",
 	["How many icons fit on one row. Point at the +N chip beside it to list the rest."] = "Nombre d'ic\195\180nes par rang\195\169e. Pointez le badge +N \195\160 c\195\180t\195\169 pour lister les autres.",
 	["How many of each window's newest lines come back. The combat log is never kept."] = "Nombre des lignes les plus r\195\169centes de chaque fen\195\170tre qui reviennent. Le journal de combat n'est jamais conserv\195\169.",
-	["How many pixels thick the heal absorb line is."] = "\195\137paisseur de la ligne d'absorption de soins, en pixels.",
+	["How many pixels thick the heal absorb line is; 0 matches the shield line."] = "\195\137paisseur de la ligne d'absorption de soins, en pixels ; 0 reprend celle de la ligne de bouclier.",
 	["How many pixels thick the shield line is."] = "\195\137paisseur de la ligne de bouclier, en pixels.",
 	["How many quests the card shows at once."] = "Nombre de qu\195\170tes que la carte affiche \195\160 la fois.",
 	["How many rows of debuff icons a frame may show."] = "Nombre de rang\195\169es d'ic\195\180nes d'affaiblissements qu'un cadre peut afficher.",

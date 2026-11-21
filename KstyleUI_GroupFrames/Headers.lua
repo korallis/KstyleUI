@@ -214,10 +214,6 @@ local function Offset(geo, card, left, top, lane, kind)
 	return Px(kind, x), Px(kind, y)
 end
 
-local function State(key)
-	return ns.AutoLayout and ns.AutoLayout.state[key] == true
-end
-
 local function Separate(s)
 	return s.sortBy == "GROUP" and not s.merge
 end
@@ -229,14 +225,15 @@ function Headers.ApplyParty(s)
 	local card = Headers.cards.party
 	local width, height, left, top = Seat(card, s, geo, "party")
 	holder:SetSize(width, height)
-	local small, dx, dy = State("smallRaid"), 0, 0
-	if State("solo") then
+	local state = ns.AutoLayout.state
+	local small, dx, dy = state.smallRaid == true, 0, 0
+	if state.solo then
 		local vertical = Geometry.IsVertical(s.growth)
 		local step = vertical and s.height + math.abs(geo.yOffset) or geo.memberWidth + math.abs(geo.xOffset)
 		dx, dy = Geometry.Offset(s.growth, (geo.count - 1) * step / 2)
 	end
 	card.shiftX, card.shiftY = Px("party", dx), Px("party", dy)
-	Headers.FitParty(card.members, true)
+	Headers.SetPartyCount(card.members, true)
 	geo.left, geo.top = left, top
 	Quiet(header)
 	header:SetAttribute("showRaid", small)
@@ -301,16 +298,18 @@ function Headers.FitParty(members, now)
 	if not s then
 		return
 	end
-	card.members = members
 	local width, height = Geometry.PartyCard(s, K.Widgets.SECTION_CAP_HEIGHT, Geometry.PartyShown(s, members))
 	Fit(card, Headers.holders.party, Px("party", width), Px("party", height), now, Geometry.IsVertical(s.growth))
 end
 
-function Headers.SetPartyCount(count)
+function Headers.SetPartyCount(count, now)
 	local card = Headers.cards.party
 	if card then
-		card.cap:SetAside(count and count > 0 and tostring(count) or nil)
-		Headers.FitParty(count)
+		card.members = count
+		local sizes = ns.AutoLayout.state.smallRaid and ns.Unit.GroupSizes(count)
+		local shown = sizes and (sizes[1] or 0) or count
+		card.cap:SetAside(shown and shown > 0 and tostring(shown) or nil)
+		Headers.FitParty(shown, now)
 	end
 end
 
@@ -379,14 +378,12 @@ function Headers.ApplyRaid(s)
 	local geo = Separate(s) and Geometry.RaidGroups(s) or Geometry.RaidFlow(s)
 	local width, height, left, top = Seat(card, s, geo, "raid")
 	holder:SetSize(width, height)
-	local dx, dy = 0, 0
-	if ns.AutoLayout then dx, dy = ns.AutoLayout.Shift() end
-	card.shiftX, card.shiftY = Px("raid", dx), Px("raid", dy)
+	card.shiftX, card.shiftY = Px("raid", ns.AutoLayout.shiftX), Px("raid", ns.AutoLayout.shiftY)
 	Headers.FitRaid(card.members, card.groups, true)
 	geo.left, geo.top = left, top
 	local x, y = Offset(geo, card, left, top, nil, "raid")
 	x, y = x + card.shiftX, y + card.shiftY
-	local shown, hidden = ShownGroups(), State("smallRaid")
+	local shown, hidden = ShownGroups(), ns.AutoLayout.state.smallRaid
 	if Separate(s) then
 		for g, header in ipairs(Headers.raid) do
 			RaidHeader(header, holder, s)
@@ -404,8 +401,9 @@ function Headers.ApplyRaid(s)
 	for g, header in ipairs(Headers.raid) do
 		RaidHeader(header, holder, s)
 		if g == 1 then
-			header:SetAttribute("groupFilter", table.concat(shown, ","))
-			Sort(header, s.sortBy, table.concat(shown, ","))
+			local joined = table.concat(shown, ",")
+			header:SetAttribute("groupFilter", joined)
+			Sort(header, s.sortBy, joined)
 			Columns(header, geo.unitsPerColumn, geo.maxColumns, geo.columnAnchorPoint, geo.columnSpacing)
 			Grow(header, geo, "raid")
 			Precreate(header, RAID_BUTTONS)

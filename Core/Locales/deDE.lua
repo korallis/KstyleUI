@@ -1631,7 +1631,7 @@ ns.Locale.Add({
 	["How many icons fit on one row."] = "Wie viele Symbole in eine Reihe passen.",
 	["How many icons fit on one row. Point at the +N chip beside it to list the rest."] = "Wie viele Symbole in eine Reihe passen. Zeigt auf das Abzeichen +N daneben, um den Rest aufzulisten.",
 	["How many of each window's newest lines come back. The combat log is never kept."] = "Wie viele der neuesten Zeilen jedes Fensters zur\195\188ckkehren. Das Kampflog wird nie behalten.",
-	["How many pixels thick the heal absorb line is."] = "Wie viele Pixel dick die Heilungsabsorptionslinie ist.",
+	["How many pixels thick the heal absorb line is; 0 matches the shield line."] = "Wie viele Pixel dick die Heilungsabsorptionslinie ist; 0 \195\188bernimmt die Dicke der Schildlinie.",
 	["How many pixels thick the shield line is."] = "Wie viele Pixel dick die Schildlinie ist.",
 	["How many quests the card shows at once."] = "Wie viele Quests die Karte auf einmal zeigt.",
 	["How many rows of debuff icons a frame may show."] = "Wie viele Reihen Schw\195\164chungssymbole ein Rahmen zeigen darf.",

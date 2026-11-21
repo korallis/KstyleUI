@@ -36,9 +36,9 @@ Settings.defaults = {
 	party = {
 		extra1 = ExtraText(), extra2 = ExtraText(),
 		width = 259, height = 39, spacing = 13, growth = "DOWN", card = false,
-		showPlayer = true, showSolo = false, sortBy = "INDEX",
+		showPlayer = true, showSolo = false, sortBy = "INDEX", centerSolo = false, smallRaid = false,
 		portrait = false, portraitZoom = 0, portraitRingAlpha = 1, roleRing = false, classLine = false, power = true, powerHeight = 3,
-		textLayout = "ABOVE", nameSize = 13, nameChars = 0, healthText = "PERCENT", healthTextSize = 11, healthTextPlace = "ROW",
+		textLayout = "ABOVE", nameSize = 13, nameChars = 0, nameFormat = "FULL", healthText = "PERCENT", healthTextSize = 11, healthTextPlace = "ROW",
 		iconSize = 14,
 		auraSize = 18, auraCount = 6, auraDispelCount = 1, auraColumns = 3, auraRows = 2, auraSpacing = 2,
 		auraPosition = "OUTSIDE_RIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
@@ -48,9 +48,9 @@ Settings.defaults = {
 		extra1 = ExtraText(), extra2 = ExtraText(),
 		width = 116, height = 36, spacing = 9, growth = "DOWN", card = true,
 		groupGrowth = "RIGHT", groupSpacing = 13, groupsPerRow = 8,
-		sortBy = "GROUP", unitsPerColumn = 5,
+		sortBy = "GROUP", unitsPerColumn = 5, merge = false,
 		roleRing = false, classLine = false, power = true, powerHeight = 2,
-		textLayout = "ABOVE", nameSize = 12, nameChars = 0, healthText = "PERCENT", healthTextSize = 10, healthTextPlace = "ROW",
+		textLayout = "ABOVE", nameSize = 12, nameChars = 0, nameFormat = "FULL", healthText = "PERCENT", healthTextSize = 10, healthTextPlace = "ROW",
 		iconSize = 10,
 		auraSize = 12, auraCount = 3, auraDispelCount = 1, auraColumns = 3, auraRows = 1, auraSpacing = 1,
 		auraPosition = "BOTTOMRIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
@@ -59,7 +59,7 @@ Settings.defaults = {
 	health = {
 		texture = Tokens.MediaList("statusbar")[1].path, colorSource = "class", color = Rgb("friendly"), orientation = "HORIZONTAL", alpha = 1,
 		gradientHigh = Rgb("friendly"), gradientMid = Rgb("neutral"), gradientLow = Rgb("hostile"), gradientLowAt = 0, gradientHighAt = 100,
-		statusGrey = true, deadColor = Rgb("textDisabled"), offlineColor = Rgb("textDisabled"),
+		statusGrey = true, deadColor = Rgb("textDisabled"), offlineColor = Rgb("textDisabled"), missing = false,
 	},
 	power = { colorSource = "power", color = Rgb("rare"), tanks = true, healers = true, damagers = true, behind = false, keepRoom = false },
 	text = {
@@ -72,7 +72,7 @@ Settings.defaults = {
 		roleTank = true, roleHealer = true, roleDamager = true, roleInCombat = true, leaderInCombat = true,
 		roleText = false, readyPlace = "AUTO", readySize = 0, markerPlace = "AUTO", combat = false, combatPlace = "LEFT", combatSize = 14, combatClass = false,
 	},
-	threat = { enabled = true, shapes = true },
+	threat = { enabled = true, shapes = true, edge = false },
 	tooltip = { mode = "ALWAYS" },
 	groups = { show1 = true, show2 = true, show3 = true, show4 = true, show5 = true, show6 = true, show7 = true, show8 = true, mythicBench = true, hideEmpty = false },
 	auras = {
@@ -86,24 +86,14 @@ Settings.defaults = {
 	presets = { raid = "Compact" },
 	prediction = {
 		heals = true, absorbs = true, shield = true, shieldLines = 2, healAbsorbs = true,
-		shieldPlace = "BOTTOM", shieldGrow = "UP", absorbPlace = "FILL", overshield = false, healAbsorbLine = false,
+		shieldPlace = "BOTTOM", shieldGrow = "UP", absorbPlace = "FILL", overshield = false, healAbsorbLine = false, healAbsorbLines = 0,
+		absorbStyle = "SOLID", healAbsorbStyle = "SOLID", backing = 1, glow = false, maxLoss = "OFF", maxLossColor = Rgb("black", 0.6),
 		healColor = Rgb("friendly", HEAL_ALPHA), absorbColor = Rgb("white", ABSORB_ALPHA), healAbsorbColor = Rgb("hostile", HEAL_ABSORB_ALPHA),
 	},
-	auto = { size = true, role = true, smallMost = 10, largeLeast = 26, shownOnly = false },
-	accent = { source = "class", color = Rgb("accentDefault"), hover = true, target = true, targetLines = 2 },
+	auto = { size = true, role = true, smallMost = 10, largeLeast = 26, shownOnly = false, icons = false, heals = false,
+		smallWidth = 0, smallHeight = 0, smallX = 0, smallY = 0, largeWidth = 0, largeHeight = 0, largeX = 0, largeY = 0 },
+	accent = { source = "class", color = Rgb("accentDefault"), hover = true, hoverLines = 1, target = true, targetLines = 2 },
 }
-
-for section, extra in pairs({
-	party = { nameFormat = "FULL", centerSolo = false, smallRaid = false },
-	raid = { nameFormat = "FULL", merge = false },
-	health = { missing = false },
-	prediction = { absorbStyle = "SOLID", healAbsorbStyle = "SOLID", backing = 1, glow = false, healAbsorbLines = 2, maxLoss = "OFF", maxLossColor = Rgb("black", 0.6) },
-	auto = { icons = false, heals = false, smallWidth = 0, smallHeight = 0, smallX = 0, smallY = 0, largeWidth = 0, largeHeight = 0, largeX = 0, largeY = 0 },
-	accent = { hoverLines = 1 },
-	threat = { edge = false },
-}) do
-	for key, value in pairs(extra) do Settings.defaults[section][key] = value end
-end
 
 local INDICATOR_DEFAULTS = {
 	{ category = "EXTERNAL", position = "CENTER" },
@@ -513,7 +503,7 @@ function Settings.Schema(includeText)
 		add({ type = "color", key = "prediction.healAbsorbColor", label = L["Heal absorb colour"], help = L["The colour of heal absorbs on the health bar."], hasAlpha = true, showWhen = Is("prediction.healAbsorbs", true) })
 		add(Dropdown("prediction.healAbsorbStyle", L["Heal absorb style"], L["Draws heal absorbs as a solid fill or in the game's heal absorb pattern."], FILL_STYLE, { showWhen = Is("prediction.healAbsorbs", true) }))
 		add(Toggle("prediction.healAbsorbLine", L["Heal absorb line"], L["A thin line for the whole heal absorb on the edge across from the shield line."]))
-		add(Slider("prediction.healAbsorbLines", L["Heal absorb line thickness"], L["How many pixels thick the heal absorb line is."], 1, 20, 1))
+		add(Slider("prediction.healAbsorbLines", L["Heal absorb line thickness"], L["How many pixels thick the heal absorb line is; 0 matches the shield line."], 0, 20, 1))
 		schema[#schema].showWhen = Is("prediction.healAbsorbLine", true)
 		add(Dropdown("prediction.maxLoss", L["Lost maximum health"], L["Marks the maximum health a debuff has taken away, at the bar's end."], Options({ { "OFF", L["Off"] }, { "SOLID", L["Solid"] }, { "STRIPES", L["Patterned"] } })))
 		add({ type = "color", key = "prediction.maxLossColor", label = L["Lost maximum health colour"], help = L["The colour and opacity of lost maximum health."], hasAlpha = true, showWhen = IsNot("prediction.maxLoss", "OFF") })

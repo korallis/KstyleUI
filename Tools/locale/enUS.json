@@ -1624,7 +1624,7 @@
 	"How many icons fit on one row.",
 	"How many icons fit on one row. Point at the +N chip beside it to list the rest.",
 	"How many of each window's newest lines come back. The combat log is never kept.",
-	"How many pixels thick the heal absorb line is.",
+	"How many pixels thick the heal absorb line is; 0 matches the shield line.",
 	"How many pixels thick the shield line is.",
 	"How many quests the card shows at once.",
 	"How many rows of debuff icons a frame may show.",

@@ -1624,7 +1624,7 @@
 	"How many icons fit on one row.": "每行能放几个图标。",
 	"How many icons fit on one row. Point at the +N chip beside it to list the rest.": "每行能放几个图标。指向旁边的 +N 标记可列出其余的。",
 	"How many of each window's newest lines come back. The combat log is never kept.": "每个窗口恢复多少行最新内容。战斗记录从不保留。",
-	"How many pixels thick the heal absorb line is.": "治疗吸收线的粗细（像素）。",
+	"How many pixels thick the heal absorb line is; 0 matches the shield line.": "治疗吸收线的粗细（像素）；0 与护盾线相同。",
 	"How many pixels thick the shield line is.": "护盾线的厚度（像素）。",
 	"How many quests the card shows at once.": "卡片一次显示多少个任务。",
 	"How many rows of debuff icons a frame may show.": "一个框体最多显示几行负面效果图标。",

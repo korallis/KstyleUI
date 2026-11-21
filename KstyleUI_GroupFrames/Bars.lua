@@ -3,12 +3,11 @@ local _, ns = ...
 
 local K = KstyleUI
 local Widgets = K.Widgets
-local Settings, Style, Unit, Prediction = ns.Settings, ns.Style, ns.Unit, ns.Prediction
+local Settings, Style, Unit = ns.Settings, ns.Style, ns.Unit
 
 local STRIPES = { absorbs = "RaidFrame-Shield-Overlay", healAbsorbs = "RaidFrame-Absorb-Overlay", maxLoss = "raidframe-MaximumHealthReduction-Overlay" }
 local GLOW = "RaidFrame-Shield-Overshield"
 local GLOW_WIDTH = 8
-local HEALER = "player"
 
 local function HasAtlas(name)
 	local info = C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(name)
@@ -64,7 +63,7 @@ local function Missing(f, vertical)
 	end
 	if f.overClip then
 		f.overClip:ClearAllPoints()
-		f.overClip:SetPoint(vertical and "BOTTOMLEFT" or "TOPLEFT", f.health, vertical and "BOTTOMLEFT" or "TOPLEFT", 0, 0)
+		f.overClip:SetPoint(vertical and "BOTTOMLEFT" or "TOPLEFT", f.health)
 		f.overClip:SetPoint(vertical and "TOPRIGHT" or "BOTTOMRIGHT", fill, vertical and "BOTTOMRIGHT" or "BOTTOMLEFT", 0, 0)
 	end
 end
@@ -103,7 +102,6 @@ local function MaxLoss(f, rect)
 		return
 	end
 	bar:SetOrientation(Settings.current.health.orientation)
-	bar:SetReverseFill(true)
 	bar:SetBarTexture(Settings.current.health.texture)
 	bar.opts.width, bar.opts.height = rect.width, rect.height
 	bar:Restyle()
@@ -130,27 +128,7 @@ local function Layout(f, parts)
 end
 Style.appliers[#Style.appliers + 1] = Layout
 
-local function Clamped(f)
-	local glow = f.shieldGlow
-	if type(CreateUnitHealPredictionCalculator) ~= "function" or type(UnitGetDetailedHealPrediction) ~= "function" then
-		Style.LogOnce("glowCalculator", "the heal prediction calculator is missing; the shield glow stays off")
-		glow:SetAlpha(0)
-		return
-	end
-	local p = Settings.current.prediction
-	local calc = Prediction.Calculator(f)
-	if not (p.heals or p.absorbs or p.healAbsorbs) then
-		UnitGetDetailedHealPrediction(f.unit, HEALER, calc)
-	end
-	local _, clamped = calc:GetDamageAbsorbs()
-	if glow.SetAlphaFromBoolean then
-		glow:SetAlphaFromBoolean(clamped, 1, 0)
-	elseif not Unit.IsSecret(clamped) then
-		glow:SetAlpha(clamped and 1 or 0)
-	end
-end
-
-local function Update(f)
+local function MaxLossValue(f)
 	if f.maxLoss and Settings.current.prediction.maxLoss ~= "OFF" then
 		if type(GetUnitTotalModifiedMaxHealthPercent) == "function" then
 			f.maxLoss:SetBarValue(GetUnitTotalModifiedMaxHealthPercent(f.unit))
@@ -159,8 +137,30 @@ local function Update(f)
 			f.maxLoss:SetBarValue(0)
 		end
 	end
-	if f.shieldGlow and f.shieldGlow:IsShown() then
-		Clamped(f)
+end
+
+local function GlowValue(f)
+	local glow, calc = f.shieldGlow, f.glowCalc
+	if not (glow and glow:IsShown()) then
+		return
+	end
+	if calc == nil then
+		local modes = Enum and Enum.UnitDamageAbsorbClampMode
+		calc = modes and modes.MissingHealthWithoutIncomingHeals and type(CreateUnitHealPredictionCalculator) == "function" and CreateUnitHealPredictionCalculator()
+		if calc and calc.SetDamageAbsorbClampMode then calc:SetDamageAbsorbClampMode(modes.MissingHealthWithoutIncomingHeals) else calc = false end
+		f.glowCalc = calc
+	end
+	if not calc or type(UnitGetDetailedHealPrediction) ~= "function" then
+		Style.LogOnce("glowCalculator", "the heal prediction calculator is missing; the shield glow stays off")
+		glow:SetAlpha(0)
+		return
+	end
+	UnitGetDetailedHealPrediction(f.unit, "player", calc)
+	local _, clamped = calc:GetDamageAbsorbs()
+	if glow.SetAlphaFromBoolean then
+		glow:SetAlphaFromBoolean(clamped, 1, 0)
+	elseif not Unit.IsSecret(clamped) then
+		glow:SetAlpha(clamped and 1 or 0)
 	end
 end
 
@@ -174,7 +174,9 @@ local function PaintSample(f, sample)
 end
 Style.painters[#Style.painters + 1] = PaintSample
 
-Unit.extra[#Unit.extra + 1] = Update
-for _, event in ipairs({ "UNIT_HEAL_PREDICTION", "UNIT_ABSORB_AMOUNT_CHANGED", "UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_MAX_HEALTH_MODIFIERS_CHANGED" }) do
-	Unit.Chain(event, Update)
+Unit.extra[#Unit.extra + 1] = MaxLossValue
+Unit.extra[#Unit.extra + 1] = GlowValue
+Unit.Chain("UNIT_MAX_HEALTH_MODIFIERS_CHANGED", MaxLossValue)
+for _, event in ipairs({ "UNIT_ABSORB_AMOUNT_CHANGED", "UNIT_HEALTH", "UNIT_MAXHEALTH" }) do
+	Unit.Chain(event, GlowValue)
 end

@@ -1624,7 +1624,7 @@
 	"How many icons fit on one row.": "Cuántos iconos caben en una fila.",
 	"How many icons fit on one row. Point at the +N chip beside it to list the rest.": "Cuántos iconos caben en una fila. Señala la insignia +N de al lado para ver el resto.",
 	"How many of each window's newest lines come back. The combat log is never kept.": "Cuántas de las líneas más recientes de cada ventana vuelven. El registro de combate nunca se conserva.",
-	"How many pixels thick the heal absorb line is.": "Cuántos píxeles de grosor tiene la línea de absorción de sanación.",
+	"How many pixels thick the heal absorb line is; 0 matches the shield line.": "Cuántos píxeles de grosor tiene la línea de absorción de sanación; 0 iguala la línea de escudo.",
 	"How many pixels thick the shield line is.": "Cuántos píxeles de grosor tiene la línea de escudo.",
 	"How many quests the card shows at once.": "Cuántas misiones muestra la tarjeta a la vez.",
 	"How many rows of debuff icons a frame may show.": "Cuántas filas de iconos de perjuicios puede mostrar un marco.",

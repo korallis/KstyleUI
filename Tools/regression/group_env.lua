@@ -547,7 +547,7 @@ local function relativeAnchor(point)
 end
 
 -- Anchors the shown children as configureChildren does in SecureGroupHeaders.lua: the first at the header's
--- point and, with columns, at its columnAnchorPoint too, each next one against the previous at the header's xOffset and yOffset, each new column against the
+-- point and, with more than one column filled, at its columnAnchorPoint too, each next one against the previous at the header's xOffset and yOffset, each new column against the
 -- first of the previous column at columnAnchorPoint and columnSpacing; then sizes the header around them.
 local function anchorChildren(env, header, numDisplayed, perColumn, columns)
 	local a = header._attributes
@@ -555,7 +555,7 @@ local function anchorChildren(env, header, numDisplayed, perColumn, columns)
 	local relativePoint, xSign, ySign = relativeAnchor(point)
 	local xMult, yMult = math.abs(xSign), math.abs(ySign)
 	local xOffset, yOffset = a.xOffset or 0, a.yOffset or 0
-	local columnPoint = a.columnAnchorPoint
+	local columnPoint = columns > 1 and a.columnAnchorPoint or nil
 	local columnSpacing = a.columnSpacing or 0
 	local colRel, colX, colY = relativeAnchor(columnPoint)
 	for i = 1, numDisplayed do

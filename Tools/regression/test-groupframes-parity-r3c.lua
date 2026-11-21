@@ -35,11 +35,6 @@ local function value(env, bar)
 	return call and plain(env, call[1])
 end
 
-local function anchor(region, i)
-	local point, relative, relativePoint, x, y = region:GetPoint(i or 1)
-	return point, relative, relativePoint, x, y
-end
-
 local function party(env)
 	G.SetRoster(env, "party", {
 		{ name = "Thaldren", class = "WARRIOR", role = "TANK", health = 50, maxHealth = 100, absorb = 70, healAbsorb = 20, maxLoss = 0.2, threat = 3 },
@@ -62,7 +57,7 @@ do
 	env.RunTimers()
 	local get = ns.Settings.Get
 	for key, want in pairs({ ["health.missing"] = false, ["prediction.absorbStyle"] = "SOLID", ["prediction.healAbsorbStyle"] = "SOLID",
-		["prediction.backing"] = 1, ["prediction.glow"] = false, ["prediction.healAbsorbLines"] = 2, ["prediction.maxLoss"] = "OFF",
+		["prediction.backing"] = 1, ["prediction.glow"] = false, ["prediction.healAbsorbLines"] = 0, ["prediction.maxLoss"] = "OFF",
 		["auto.icons"] = false, ["auto.heals"] = false, ["auto.smallWidth"] = 0, ["auto.largeHeight"] = 0, ["auto.smallX"] = 0, ["auto.largeY"] = 0,
 		["accent.hoverLines"] = 1, ["threat.edge"] = false, ["party.nameFormat"] = "FULL", ["raid.nameFormat"] = "FULL",
 		["party.centerSolo"] = false, ["party.smallRaid"] = false, ["raid.merge"] = false }) do
@@ -76,7 +71,7 @@ do
 	local tank = frame(ns, "party1")
 	assert(tank.threat:IsShown(), "threat keeps its border")
 	assert(tank.name:GetText() == "Thaldren" and frame(ns, "party3").name:GetText() == "Captain Garrick", "names stay whole")
-	local _, _, _, x, y = anchor(ns.Headers.party)
+	local _, _, _, x, y = ns.Headers.party:GetPoint(1)
 	assert(x == 0 and y == 0, "the party header keeps its corner")
 	noErrors(env, K)
 end
@@ -93,24 +88,24 @@ do
 	write(env, K, "health.missing", true)
 	assert(f.missingFill and f.health:GetReverseFill() == true and f.health.lossOn == false, "the bar fills from its end, with no loss band")
 	assert(value(env, f.health) == 50, "it carries the missing health: " .. tostring(value(env, f.health)))
-	local point, relative, relativePoint = anchor(f.heals)
+	local point, relative, relativePoint = f.heals:GetPoint(1)
 	assert(point == "TOPLEFT" and relative == fill and relativePoint == "TOPLEFT", "incoming heals start at the missing fill's edge")
-	point, relative, relativePoint = anchor(f.healAbsorbs)
+	point, relative, relativePoint = f.healAbsorbs:GetPoint(1)
 	assert(point == "TOPRIGHT" and relative == fill and relativePoint == "TOPLEFT", "heal absorbs eat back from that edge")
 	env._roster.units.party1.health = 30
 	env.FireEvent("UNIT_HEALTH", "party1")
 	assert(value(env, f.health) == 70, "UNIT_HEALTH follows the missing health")
 	write(env, K, "prediction.overshield", true)
-	assert(select(3, anchor(f.overClip, 2)) == "BOTTOMLEFT", "the overshield clips to the current health")
+	assert(select(3, f.overClip:GetPoint(2)) == "BOTTOMLEFT", "the overshield clips to the current health")
 	write(env, K, "prediction.overshield", false)
 	write(env, K, "health.orientation", "VERTICAL")
-	point, relative, relativePoint = anchor(f.heals)
+	point, relative, relativePoint = f.heals:GetPoint(1)
 	assert(point == "BOTTOMLEFT" and relative == f.health:GetStatusBarTexture() and relativePoint == "BOTTOMLEFT", "a vertical bar's heals start at the edge too")
 	write(env, K, "health.orientation", "HORIZONTAL")
 	write(env, K, "health.missing", false)
 	assert(not f.missingFill and f.health:GetReverseFill() == false and f.health.lossOn == true, "off restores the fill and the loss band")
 	assert(value(env, f.health) == 30, "and the bar carries the health again")
-	assert(select(3, anchor(f.heals)) == "TOPRIGHT", "heals return after the health")
+	assert(select(3, f.heals:GetPoint(1)) == "TOPRIGHT", "heals return after the health")
 	noErrors(env, K)
 end
 collectgarbage()
@@ -139,7 +134,7 @@ do
 	write(env, K, "prediction.absorbStyle", "STRIPES")
 	local stripes = f.absorbs.stripes
 	assert(stripes and stripes:IsShown() and stripes._state.Atlas[1] == "RaidFrame-Shield-Overlay", "shields take Blizzard's stripes")
-	assert(select(2, anchor(stripes)) == f.absorbs:GetStatusBarTexture(), "laid on the shield's fill")
+	assert(select(2, stripes:GetPoint(1)) == f.absorbs:GetStatusBarTexture(), "laid on the shield's fill")
 	write(env, K, "prediction.backing", 0.5)
 	assert(near(f.absorbs.colorRGBA[4], a * 0.5), "the backing opacity thins the fill under them")
 	write(env, K, "prediction.healAbsorbStyle", "STRIPES")
@@ -283,24 +278,24 @@ do
 		"debuffs and indicators grow with the frames")
 	write(env, K, "auto.heals", true)
 	assert(cfg.raid.buffSize == math.floor(buff * 54 / 36 + 0.5), "and heal icons when asked")
-	local _, _, _, x0, y0 = anchor(ns.Headers.raid[1])
-	local _, _, _, cx0, cy0 = anchor(ns.Headers.cards.raid.frame)
+	local _, _, _, x0, y0 = ns.Headers.raid[1]:GetPoint(1)
+	local _, _, _, cx0, cy0 = ns.Headers.cards.raid.frame:GetPoint(1)
 	write(env, K, "auto.smallX", 30)
 	write(env, K, "auto.smallY", -20)
-	local _, _, _, x1, y1 = anchor(ns.Headers.raid[1])
-	local _, _, _, cx1, cy1 = anchor(ns.Headers.cards.raid.frame)
+	local _, _, _, x1, y1 = ns.Headers.raid[1]:GetPoint(1)
+	local _, _, _, cx1, cy1 = ns.Headers.cards.raid.frame:GetPoint(1)
 	assert(near(x1 - x0, 30) and near(y1 - y0, -20) and near(cx1 - cx0, 30) and near(cy1 - cy0, -20), "the frames and their card move together")
 	env.SetCombat(true)
 	G.SetRoster(env, "raid", G.Members(16))
-	assert(near(select(4, anchor(ns.Headers.raid[1])), x1), "in combat nothing moves")
+	assert(near(select(4, ns.Headers.raid[1]:GetPoint(1)), x1), "in combat nothing moves")
 	env.SetCombat(false)
 	env.RunTimers()
-	assert(ns.AutoLayout.state.bracket == "MEDIUM" and near(select(4, anchor(ns.Headers.raid[1])), x0) and cfg.raid.width == ns.Settings.Get("raid.width"), "after combat a standard raid is back in place")
+	assert(ns.AutoLayout.state.bracket == "MEDIUM" and near(select(4, ns.Headers.raid[1]:GetPoint(1)), x0) and cfg.raid.width == ns.Settings.Get("raid.width"), "after combat a standard raid is back in place")
 	for _, key in ipairs({ "auto.smallWidth", "auto.smallHeight", "auto.smallX", "auto.smallY" }) do write(env, K, key, 0) end
 	write(env, K, "auto.largeX", -15)
 	G.SetRoster(env, "raid", G.Members(30))
 	env.RunTimers()
-	assert(ns.AutoLayout.state.bracket == "LARGE" and near(select(4, anchor(ns.Headers.raid[1])) - x0, -15), "the compact frames take their own offset")
+	assert(ns.AutoLayout.state.bracket == "LARGE" and near(select(4, ns.Headers.raid[1]:GetPoint(1)) - x0, -15), "the compact frames take their own offset")
 	noErrors(env, K)
 end
 collectgarbage()
@@ -346,17 +341,17 @@ do
 	env.RunTimers()
 	write(env, K, "party.showSolo", true)
 	local header = ns.Headers.party
-	local _, _, _, x0, y0 = anchor(header)
+	local _, _, _, x0, y0 = header:GetPoint(1)
 	write(env, K, "party.centerSolo", true)
 	local s = ns.Settings.current.party
-	local _, _, _, x1, y1 = anchor(header)
+	local _, _, _, x1, y1 = header:GetPoint(1)
 	local step = s.height + s.spacing
 	assert(near(x1, x0) and near(y1 - y0, -(4 * step) / 2), "solo, the frame moves down half the empty space: " .. tostring(y1 - y0))
-	local _, _, _, _, cy = anchor(ns.Headers.cards.party.frame)
+	local _, _, _, _, cy = ns.Headers.cards.party.frame:GetPoint(1)
 	assert(near(cy, y1 - y0), "its card moves with it")
 	party(env)
 	env.RunTimers()
-	assert(near(select(5, anchor(header)), y0), "in a group the frames start at the corner again")
+	assert(near(select(5, header:GetPoint(1)), y0), "in a group the frames start at the corner again")
 	write(env, K, "party.centerSolo", false)
 	noErrors(env, K)
 end
@@ -381,8 +376,8 @@ do
 	assert(kragar.maxLoss:IsShown() and value(env, kragar.maxLoss) == 0.15, "Kragar shows lost maximum health")
 	assert(tank.threatEdge and not tank.threat:IsShown(), "the portrait tank's tile edge takes the threat colour")
 	local raid = preview.raidFrames
-	local _, _, _, x1 = anchor(raid[1])
-	local _, _, _, x3, y3 = anchor(raid[3])
+	local _, _, _, x1 = raid[1]:GetPoint(1)
+	local _, _, _, x3, y3 = raid[3]:GetPoint(1)
 	assert(near(x1, x3) and y3 < 0, "merged, the four raid samples run on in one column")
 	noErrors(env, K)
 end
