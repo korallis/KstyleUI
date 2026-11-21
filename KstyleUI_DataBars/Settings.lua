@@ -119,9 +119,10 @@ local MODULES = {
 	{ "spacer", L["Spacer"], "right", L["Adds room between readouts."] },
 	{ "reagents", L["Class resources"], "right", L["Shows the class reagents and ammunition you carry."] },
 }
-defaults.strip.modules = {}
+defaults.strip.modules, defaults.strip.secondModules = {}, {}
 for i, def in ipairs(MODULES) do
 	defaults.strip.modules[i] = { id = def[1], shown = i <= 12, zone = def[3] }
+	if def[1] ~= "micro" then defaults.strip.secondModules[#defaults.strip.secondModules + 1] = { id = def[1], shown = false, zone = "right" } end
 end
 
 defaults.strip.dockModules = {}
@@ -133,11 +134,6 @@ end
 defaults.strip.railModules = {}
 for i, entry in ipairs(defaults.strip.dockModules) do
 	defaults.strip.railModules[i] = { id = entry.id, shown = i <= 3 or entry.id == "micro", zone = "right" }
-end
-
-defaults.strip.secondModules = {}
-for _, def in ipairs(MODULES) do
-	if def[1] ~= "micro" then defaults.strip.secondModules[#defaults.strip.secondModules + 1] = { id = def[1], shown = false, zone = "right" } end
 end
 
 function ns.FillModules(s)
@@ -652,13 +648,12 @@ function ns.Preview(...)
 			if not second then return end
 			second.frame:SetShown(s.second == true)
 			if not s.second then return end
-			local rail = Strip.SecondSettings(s)
 			second.paintColor = nil
 			second.frame:SetScale(scale)
 			second.frame:SetSize(available / scale, Strip.LINE)
 			second.frame:ClearAllPoints()
 			Widgets.Point(second.frame, "TOPLEFT", self, "TOPLEFT", 0, -(sample.top + height) / scale)
-			Strip.Paint(second, rail, StripSamples(rail))
+			Strip.Paint(second, Strip.SecondSettings(s), samples)
 		end
 		frame:Refresh()
 		return frame

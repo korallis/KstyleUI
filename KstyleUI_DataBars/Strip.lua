@@ -1328,7 +1328,7 @@ local function RefreshSecond()
 		local holder = CreateFrame("Frame", nil, K.Scale.Root())
 		view = Strip.NewView(holder)
 		view.frame:SetAllPoints(holder)
-		view.bind, view.holder = Strip.view.bind, holder
+		view.bind = Strip.view.bind
 		Register(holder, KEY2)
 		Strip.second = view
 		holder:HookScript("OnShow", RefreshSecond)
