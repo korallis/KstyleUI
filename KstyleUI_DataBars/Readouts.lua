@@ -102,12 +102,10 @@ function Readouts.Travel(value)
 	local kind, id = value:match("^(%a+):(%d+)$")
 	id = tonumber(id)
 	local cooldown = L["--"]
-	if kind == "spell" and C_Spell and type(C_Spell.GetSpellCooldown) == "function" then
+	if kind == "spell" and C_Spell then
 		local info = Call(C_Spell.GetSpellCooldown, id)
-		if not ns.IsSecret(info) and type(info) == "table" then
-			cooldown = info.isOnGCD == true and L["ready"] or Remaining(info.startTime, info.duration)
-		end
-	elseif kind == "item" and C_Item and type(C_Item.GetItemCooldown) == "function" then
+		if not ns.IsSecret(info) and type(info) == "table" then cooldown = Remaining(info.startTime, info.duration) end
+	elseif kind == "item" and C_Item then
 		cooldown = Remaining(Call(C_Item.GetItemCooldown, id))
 	end
 	return ChoiceName(value) or L["--"], cooldown
