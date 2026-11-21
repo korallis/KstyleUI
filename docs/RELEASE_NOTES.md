@@ -8,7 +8,7 @@ Zygor Guides Viewer, contributed by Baine, now gets what RestedXP has: its guide
 
 Under Medallions, the crest's resource jewels are richer cut stones that flare when you gain a point and drain when you spend one, and at the maximum the whole rune ring glows in the resource's colour (Glow at max under Action Bars > Slab and cooldowns, on by default). Hunters with Summon Hawk get two hawk perches on the crest ring, an idea from Baine: each hawk shows as a gilt hawk with a green timer that drains over its 18 seconds, flashes in on a summon and fades when it leaves, and the ring glows while both hawks are out (Hawk perches, beside it, on by default).
 
-`/kstyle perf nan` now gets the line asking for a finite number of seconds instead of starting a profile that never finishes under LuaJIT, the player frame's resting Zz shows in full instead of two dots, and Layout Mode and interface-size changes no longer raise a forbidden-object error from aura icons on locked nameplates. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+`/kstyle perf nan` now gets the line asking for a finite number of seconds instead of starting a profile that never finishes under LuaJIT, the player frame's resting Zz shows in full instead of two dots, and Layout Mode and interface-size changes no longer raise a forbidden-object error from aura icons on locked nameplates. Using the world map in combat no longer raises a blocked-action error; Smooth zoom, Remember zoom and Wheel between maps are removed because they caused it. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
 
 ## 0.2.10: the frame-rate release (2026-11-21)
 

@@ -25,12 +25,14 @@ Highlights:
 ### Changed
 
 - Medallions crest jewels are richer cut gems that flare when you gain a point and drain when you spend one.
+- World map: Smooth zoom, Remember zoom and Wheel between maps are gone; they caused a blocked-action error in combat.
 
 ### Fixed
 
 - `/kstyle perf nan` gets the line asking for a finite number of seconds instead of starting a profile that never finishes under LuaJIT.
 - The player frame's resting Zz shows in full instead of two dots.
 - Layout Mode and interface-size changes no longer raise a forbidden-object error from aura icons on locked nameplates.
+- Closing or using the world map in combat no longer raises a blocked-action error from KstyleUI Skins.
 
 ### Upgrading
 
