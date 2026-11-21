@@ -387,7 +387,7 @@ function Settings.Schema(includeText)
 			add(Slider(key .. "y", up, L["Moves it up or down from its place."], -50, 50, 1, showWhen))
 		end
 		local placed = Is("icons.role", true)
-		After(schema, "icons.roleText", { Dropdown("icons.rolePlace", L["Role icon place"], L["Where on the health bar the role icon sits; Automatic keeps today's place."], ICON_PLACE, { showWhen = Is("icons.role", true) }),
+		After(schema, "icons.roleText", { Dropdown("icons.rolePlace", L["Role icon place"], L["Where on the health bar the role icon sits; Automatic keeps today's place."], ICON_PLACE, { showWhen = placed }),
 			Slider("icons.roleX", L["Role icon offset across"], L["Moves it left or right from its place."], -50, 50, 1, placed),
 			Slider("icons.roleY", L["Role icon offset up"], L["Moves it up or down from its place."], -50, 50, 1, placed) })
 		local marked = function(settings) return settings.icons.marker and settings.icons.markerPlace ~= "AUTO" end

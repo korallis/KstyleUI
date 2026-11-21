@@ -555,7 +555,8 @@ end
 
 -- Anchors the shown children as configureChildren does in SecureGroupHeaders.lua: the first at the header's
 -- point and, with more than one column filled, at its columnAnchorPoint too, each next one against the previous at the header's xOffset and yOffset, each new column against the
--- first of the previous column at columnAnchorPoint and columnSpacing; then sizes the header around them.
+-- first of the previous column at columnAnchorPoint and columnSpacing; then sizes the header around them, or with none
+-- shown to minWidth and minHeight or one button across its growth, at least 0.1.
 local function anchorChildren(env, header, numDisplayed, perColumn, columns)
 	local a = header._attributes
 	local point = a.point or "TOP"
@@ -587,6 +588,8 @@ local function anchorChildren(env, header, numDisplayed, perColumn, columns)
 		local width = w + (count - 1) * xMult * (w + xSign * xOffset) + (columns - 1) * math.abs(colX) * (w + columnSpacing)
 		local height = h + (count - 1) * yMult * (h + ySign * yOffset) + (columns - 1) * math.abs(colY) * (h + columnSpacing)
 		header:SetSize(math.max(0.1, width), math.max(0.1, height))
+	elseif a.child1 then
+		header:SetSize(math.max(a.minWidth or ySign * a.child1:GetWidth(), 0.1), math.max(a.minHeight or xSign * a.child1:GetHeight(), 0.1))
 	end
 end
 

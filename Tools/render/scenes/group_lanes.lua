@@ -17,7 +17,8 @@
 -- line, heal icons nudged, class first and centred raid groups. RENDER_GROUP_LANE=1 gives the first member three of your heals and the three default indicators.
 -- RENDER_PARITY_R5=1 switches on round 5's: party class order of its own, leader, name and group number offsets, the health
 -- text left under icons, a heal absorb backing of its own, three heals with their own zoom, an indicator offset, and pet, tank and
--- friendly boss frames.
+-- friendly boss frames. RENDER_EXTRAS=1 switches on only pet, tank and friendly boss frames, at their defaults. RENDER_PLACES=default
+-- leaves every group frame holder at its default place instead of the mock-ups'.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
@@ -53,6 +54,7 @@ local AT = { party = { 24, 392 }, raid = { 14, 330 } }
 local R3A = os.getenv("RENDER_PARITY_R3A") == "1"
 local R4 = os.getenv("RENDER_PARITY_R4") == "1"
 local R5 = os.getenv("RENDER_PARITY_R5") == "1"
+local EXTRAS = os.getenv("RENDER_EXTRAS") == "1"
 local SPELLS = { [1243] = { "Power Word: Fortitude", 135987 }, [1459] = { "Arcane Intellect", 135932 }, [467] = { "Thorns", 136104 } }
 local GROUP_SPELLS = { [21562] = "Prayer of Fortitude", [23028] = "Arcane Brilliance" }
 local IDENTITY = {
@@ -60,6 +62,7 @@ local IDENTITY = {
 }
 
 local function place(K, key, x, y)
+	if os.getenv("RENDER_PLACES") == "default" then return end
 	assert(K.Layout.Set(key, "anchor", "TOPLEFT"))
 	assert(K.Layout.Set(key, "x", x))
 	assert(K.Layout.Set(key, "y", -y))
@@ -118,11 +121,13 @@ return Common.Run(function()
 			env.C_Secrets.ShouldUnitIdentityBeSecret = function()
 				return false
 			end
-			if R5 then
+			if R5 or EXTRAS then
 				G.Secure(env)
 				env._units = env._units or {}
 				env._units.pet = { name = "Grawl", class = "HUNTER", health = 76, maxHealth = 100 }
 				env._units.partypet2 = { name = "Imp", class = "WARLOCK", health = 58, maxHealth = 100 }
+				env._units.raidpet3 = { name = "Fang", class = "HUNTER", health = 88, maxHealth = 100 }
+				env._units.raidpet9 = { name = "Imp", class = "WARLOCK", health = 58, maxHealth = 100 }
 				env._units.boss1 = { name = "Valithria", class = "DRUID", health = 41, maxHealth = 100 }
 				env.UnitCanAssist = function(_, unit) return unit == "boss1" end
 			end
@@ -231,6 +236,13 @@ return Common.Run(function()
 		place(K, "groupframes.pets", AT[kind][1], kind == "party" and AT.party[2] + 290 or 40)
 		place(K, "groupframes.tanks", AT[kind][1] + 520, 40)
 		place(K, "groupframes.boss", AT[kind][1] + 1000, 40)
+	end
+	if EXTRAS then
+		for key, value in pairs({ ["pets.enabled"] = true, ["tanks.enabled"] = true, ["boss.display"] = "ALWAYS", ["boss.dungeons"] = true }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+		env.RunTimers()
+		env.RunStateDrivers()
 	end
 	place(K, "groupframes." .. kind, AT[kind][1], AT[kind][2])
 	if r3c == "small" then place(K, "groupframes.party", AT.party[1], AT.party[2]) end

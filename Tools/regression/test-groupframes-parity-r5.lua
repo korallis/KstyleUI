@@ -486,7 +486,8 @@ do
 end
 collectgarbage()
 
--- The time left stays inside the heal icons' clip at every offset the sliders allow.
+-- The time left stays inside the heal icons' clip at every offset the sliders allow; at no offset, "12s" is a twentieth of a
+-- unit wider than its 11-unit icon, so the sides allow a tenth.
 do
 	local env, K, ns = boot()
 	local f = frame(ns, "party1")
@@ -502,8 +503,8 @@ do
 		write(env, K, "auras.timerY", nudge[2])
 		local x, y, w, h = Scene.Rect(env, timer)
 		local cx, cy, cw, ch = Scene.Rect(env, f.buffClip)
-		assert(x >= cx - 1e-3 and x + w <= cx + cw + 1e-3 and y >= cy - 1e-3 and y + h <= cy + ch + 1e-3,
-			("offset %d, %d: the time left %.1f..%.1f x %.1f..%.1f leaves the clip %.1f..%.1f x %.1f..%.1f"):format(nudge[1], nudge[2], x, x + w, y, y + h, cx, cx + cw, cy, cy + ch))
+		assert(x >= cx - 0.1 and x + w <= cx + cw + 0.1 and y >= cy - 1e-3 and y + h <= cy + ch + 1e-3,
+			("offset %d, %d: the time left %.3f..%.3f x %.3f..%.3f leaves the clip %.3f..%.3f x %.3f..%.3f"):format(nudge[1], nudge[2], x, x + w, y, y + h, cx, cx + cw, cy, cy + ch))
 	end
 	noErrors(env, K)
 end
@@ -576,8 +577,8 @@ do
 	preview:Refresh()
 	assert(select(1, pet.name:GetTextColor()) == 1 and select(2, pet.name:GetTextColor()) == 0, "the pet sample's name takes the custom colour")
 	local fr, fg, fb = K.Tokens.Color("friendly")
-	local r, g, b = boss.health:GetBarColor()
-	assert(near(r, fr) and near(g, fg) and near(b, fb), "the boss sample's bar takes the friendly colour")
+	local c = boss.health.colorRGBA
+	assert(near(c[1], fr) and near(c[2], fg) and near(c[3], fb), "the boss sample's bar takes the friendly colour")
 	write(env, K, "pets.enabled", false)
 	preview:Refresh()
 	assert(not preview.extras.pets.holder:IsShown(), "off hides the pet samples")
@@ -605,6 +606,9 @@ do
 		local hx, hy, hw, hh = Scene.Rect(env, g.holder)
 		assert(x >= hx - 1e-3 and x + w <= hx + hw + 1e-3 and y >= hy - 1e-3 and y + h <= hy + hh + 1e-3, name .. ": Layout Mode's box holds the card")
 	end
+	write(env, K, "pets.enabled", true)
+	env.RunStateDrivers()
+	assert(ns.Extras.groups.pets.header:IsVisible() and not ns.Extras.groups.pets.card.frame:IsVisible(), "a raid without pets shows no empty pet card")
 	write(env, K, "raid.card", false)
 	env.RunStateDrivers()
 	assert(not ns.Extras.groups.tanks.card.frame:IsShown() and not ns.Extras.groups.boss.card.frame:IsShown(), "no raid card, no extra cards")

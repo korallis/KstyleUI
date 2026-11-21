@@ -306,8 +306,10 @@ local function TimerSize(size)
 end
 
 local function TimerRoom(f, size)
-	if not Settings.current.auras.timers then return 0 end
-	return math.ceil(TimerSize(size) * TIMER_LINE) + Widgets.Border(f)
+	local a = Settings.current.auras
+	if not a.timers then return 0, 0, 0 end
+	local x, y = Widgets.Snap(f, a.timerX), Widgets.Snap(f, a.timerY)
+	return math.ceil(TimerSize(size) * TIMER_LINE) + Widgets.Border(f) + math.max(0, -y), math.abs(x), math.max(0, y - size)
 end
 
 local function PlaceTimer(timer, skin)
@@ -768,9 +770,9 @@ local function GroupInit(key)
 	end
 end
 
-function Auras.Dress(button, owner, size)
+function Auras.Dress(button, owner, size, key)
 	owners[button:GetParent()] = owner
-	local ok, err = pcall(BuildIcon, button)
+	local ok, err = pcall(BuildIcon, button, key)
 	if not ok then
 		Style.LogOnce("auraButton", "building an indicator icon failed: " .. tostring(err))
 		return
@@ -1162,7 +1164,7 @@ local function NewContainer(f)
 			initializeFrame = function(button)
 				Auras.Dress(button, f, function()
 					return Auras.BossSize(f)
-				end)
+				end, BOSS_SLOT)
 			end,
 		})
 		f.bossSlot = bossMade or nil
@@ -1284,16 +1286,18 @@ local function ConfigureBuffs(f)
 	local side, count, size, spacing, _, _, row = HealIcons(f, k)
 	local corner = "TOP" .. side
 	local clip = f.buffClip
+	local room, across, up = TimerRoom(f, size)
+	local out = side == "RIGHT" and across or -across
 	clip:ClearAllPoints()
 	if row then
 		local x = side == "RIGHT" and row.left + row.width or row.left
-		clip:SetPoint(corner, f, "TOPLEFT", Widgets.Snap(f, x), -Widgets.Snap(f, row.top))
+		clip:SetPoint(corner, f, "TOPLEFT", Widgets.Snap(f, x) + out, up - Widgets.Snap(f, row.top))
 	else
-		clip:SetPoint(corner, f, corner, Widgets.Snap(f, k.buffX), Widgets.Snap(f, k.buffY))
+		clip:SetPoint(corner, f, corner, Widgets.Snap(f, k.buffX) + out, Widgets.Snap(f, k.buffY) + up)
 	end
-	clip:SetSize(math.max(1, Geometry.Line(count, size, spacing)), size + TimerRoom(f, size))
+	clip:SetSize(math.max(1, Geometry.Line(count, size, spacing)) + 2 * across, size + room + up)
 	container:ClearAllPoints()
-	container:SetPoint(corner, clip, corner, 0, 0)
+	container:SetPoint(corner, clip, corner, -out, -up)
 	local axis = AnchorUtil and AnchorUtil.FlowLayoutAxis
 	local direction = AnchorUtil and AnchorUtil.FlowDirection
 	if axis and direction then
@@ -1315,15 +1319,16 @@ local function Configure(f)
 	local size, spacing = Sizes(f, k)
 	local block = Block(f, k)
 	local point, x, y = Anchor(f, block, k)
-	local room = TimerRoom(f, block.size)
-	local lift = point:find("^BOTTOM") and room or 0
+	local room, across, up = TimerRoom(f, block.size)
+	local lift, rise = point:find("^BOTTOM") and room or 0, point:find("^TOP") and up or 0
+	local out = point:find("RIGHT$") and across or -across
 	local clip = f.auraClip
 	clip:ClearAllPoints()
-	clip:SetPoint(point, f, "TOPLEFT", x, y - lift)
-	clip:SetSize(math.max(1, block.width), math.max(1, block.height + room))
+	clip:SetPoint(point, f, "TOPLEFT", x + out, y - lift + rise)
+	clip:SetSize(math.max(1, block.width) + 2 * across, math.max(1, block.height + room) + up)
 	clip:SetShown(block.cells > 0)
 	container:ClearAllPoints()
-	container:SetPoint(point, clip, point, 0, lift)
+	container:SetPoint(point, clip, point, -out, lift - rise)
 	local axis = AnchorUtil and AnchorUtil.FlowLayoutAxis
 	local direction = AnchorUtil and AnchorUtil.FlowDirection
 	if axis and direction then
@@ -1568,7 +1573,7 @@ local function LayoutSamples(f, k)
 		icon.tile.chrome:Restyle()
 		icon.tile.chrome:SetRimAccent(Style.Accent())
 		PlaceIcon(icon.tile)
-		Zoom(icon.art, IconZoom())
+		Zoom(icon.art, Settings.current.auras.zoom)
 	end
 	local first, a = f.sampleAuras[1], Settings.current.auras
 	local textSize = math.max(6, math.floor(size * COUNT_SHARE + 0.5))

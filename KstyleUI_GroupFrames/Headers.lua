@@ -72,6 +72,7 @@ local function NewCard(parent, holder, shape, title)
 	card:SetFrameLevel(parent:GetFrameLevel())
 	return { frame = card, chrome = K.Widgets.Chrome(card, shape), cap = K.Widgets.RailCap(card, { title = title }) }
 end
+Headers.NewCard = NewCard
 
 local classOrder, classGeneration = {}, nil
 local function ClassOrder(kind)
@@ -212,6 +213,7 @@ local function Seat(card, s, geo, kind)
 	cap:Restyle()
 	return width, height, left, top
 end
+Headers.Seat = Seat
 
 local function Offset(geo, card, left, top, lane, kind)
 	if not card.settings.card then
@@ -221,6 +223,7 @@ local function Offset(geo, card, left, top, lane, kind)
 	local x, y = Geometry.CardOffset(geo.corner, left, top, lane)
 	return Px(kind, x), Px(kind, y)
 end
+Headers.Offset = Offset
 
 local function Separate(s)
 	return s.sortBy == "GROUP" and not s.merge
@@ -452,6 +455,7 @@ function Headers.ApplyRaid(s)
 			Driver(header, shown[g] and not hidden and DRIVER_RAID or DRIVER_HIDE)
 		end
 		Headers.Numbers()
+		ns.Extras.Apply()
 		return geo
 	end
 	Headers.Numbers()
@@ -470,6 +474,7 @@ function Headers.ApplyRaid(s)
 		end
 		header:SetPoint(geo.corner, holder, geo.corner, x, y)
 	end
+	ns.Extras.Apply()
 	return geo
 end
 
@@ -484,6 +489,7 @@ function Headers.Stop()
 	for _, holder in pairs(Headers.holders) do
 		holder:Hide()
 	end
+	ns.Extras.Stop()
 end
 
 function Headers.Show()

@@ -255,7 +255,6 @@ Geometry.POWER_GAP = POWER_GAP
 Geometry.EDGE = EDGE
 local Overlay
 local NAME_EM = 5.6
-Geometry.NAME_EM = NAME_EM
 
 local function Whole(v, px)
 	if px and px > 0 then
