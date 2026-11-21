@@ -839,3 +839,18 @@ function Settings.Refresh()
 	end
 	return current
 end
+
+K.Callbacks.Register("SettingChanged", MODULE .. ":classOrder", function(_, module, key, value)
+	local at = module == MODULE and type(key) == "string" and tonumber(key:match("^sort%.class(%d+)$"))
+	if not at then return end
+	local free = {}
+	for _, class in ipairs(Settings.CLASSES) do free[class] = true end
+	for i = 1, #Settings.CLASSES do free[Settings.Get("sort.class" .. i)] = nil end
+	for i = 1, #Settings.CLASSES do
+		if i ~= at and Settings.Get("sort.class" .. i) == value then
+			for _, class in ipairs(Settings.CLASSES) do
+				if free[class] then return K.Options.Write(MODULE, "sort.class" .. i, class) end
+			end
+		end
+	end
+end)
