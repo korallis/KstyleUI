@@ -1,4 +1,4 @@
--- test-actionbars-medallions-crown.lua: the Medallions crest's crown: five ClassPip daggers fanned out of the top of the rune ring for a rogue, claws for a cat-form druid with its mana as a thin line above them, none for other classes, on by default and with Unit Frames not loaded, off when the unit frames' Class-themed pips setting is off; each piece's art is drawn at its own angle, every lit layer is a one-point status bar fed the raw combo points now, before or at the maximum, a power event plays the fades only when motion allows, a target change and Off show the end states, the glint repeats only at a known maximum at Full, nothing runs OnUpdate, and it listens only while it shows.
+-- test-actionbars-medallions-crown.lua: the Medallions crest's crown: five ClassPip daggers fanned out of the top of the rune ring for a rogue, claws for a cat-form druid (its mana stays on the unit frames' druid bar), none for other classes, on by default and with Unit Frames not loaded, off when the unit frames' Class resource, Combo points or Class-themed pips setting is off, and it tells the unit frames whether it shows; each piece's art is drawn at its own angle, every lit layer is a one-point status bar fed the raw combo points now, before or at the maximum, a power event plays the fades only when motion allows, a target change and Off show the end states, the glints return on one common period only at a known maximum at Full, a changed maximum reuses the pieces built for it, nothing runs OnUpdate, and it listens only while it shows.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local ANGLES = { 130, 110, 90, 70, 50 }
@@ -35,12 +35,7 @@ local function Reveal(env, value)
 	return env.issecretvalue(value) and env.Reveal(value) or value
 end
 
-local function Last(region, method)
-	local calls = region._calls
-	for i = #calls, 1, -1 do
-		if calls[i].method == method then return calls[i].args end
-	end
-end
+local Last = AB.W.LastCall
 
 local function Moving(state)
 	local shown, playing, loops = 0, 0, 0
@@ -70,6 +65,7 @@ local hub = ns.Slab.hub
 local saved = K.Store.Profile().UnitFrames
 assert(not env._addons.KstyleUI_UnitFrames and not (saved and saved.resource), "the action bars run without Unit Frames or its resource settings")
 assert(C.shown and #C.pips == 5, "a rogue's crest wears the crown by default, with Unit Frames not loaded")
+assert(K.Widgets.ClassCrown(), "and tells the unit frames it shows the points")
 for i, p in ipairs(C.pips) do
 	local angle = ANGLES[i]
 	assert(p.frame:IsShown() and p.frame:GetParent() == hub.top, "blade " .. i .. " stands on the hub")
@@ -115,17 +111,46 @@ Points(env, 5)
 shown, playing, loops = Moving(C)
 assert(shown == 6 * 5 and playing == 6 * 5 and loops == 0, "Calm plays the fades and never loops")
 
--- At a known maximum at Full each glint repeats; below it, or at a secret count, nothing loops.
+-- At a known maximum at Full the glints sweep 0.05 s apart, then all return on one 3.5 s rest, so the wave keeps its
+-- shape (review 678 #4); below it, or at a secret count, they stop.
+local function Sweep()
+	for _, p in ipairs(C.pips) do
+		if p.shine.anim:IsPlaying() then p.shine.anim._scripts.OnFinished(p.shine.anim) end
+	end
+end
 K.Options.Write("Medallions", "motion", "full")
 Points(env, 5, "PLAYER_TARGET_CHANGED")
-loops = select(3, Moving(C))
-assert(loops == 5, "at the maximum at Full each blade's glint repeats, got " .. loops)
+for i, p in ipairs(C.pips) do
+	assert(p.shine.anim:IsPlaying() and math.abs(Last(p.shineWait, "SetDuration")[1] - (3.5 + (i - 1) * 0.05)) < 1e-9, "glint " .. i .. " starts 0.05 s after the one before")
+end
+Sweep()
+for i, p in ipairs(C.pips) do
+	assert(p.shine.anim:IsPlaying() and Last(p.shineWait, "SetDuration")[1] == 3.5, "glint " .. i .. " returns on the common 3.5 s rest")
+end
+assert(select(3, Moving(C)) == 0, "the return is no loop, so no group's period drifts")
+local function Glints()
+	local n = 0
+	for _, p in ipairs(C.pips) do
+		if p.shine.anim:IsPlaying() or p.shine:IsShown() then n = n + 1 end
+	end
+	return n
+end
 Points(env, 4)
-assert(select(3, Moving(C)) == 0, "below the maximum nothing loops")
+Sweep()
+assert(Glints() == 0, "below the maximum the glints stop")
 env._restricted = true
 Points(env, 5, "PLAYER_TARGET_CHANGED")
-assert(select(3, Moving(C)) == 0, "a secret count never starts the loop")
+assert(Glints() == 0, "a secret count never starts them")
 env._restricted = false
+
+-- A changed maximum reuses the pieces built for that count; the client never frees a frame (review 678 #5).
+local before = #env._frames
+for _, most in ipairs({ 4, 5, 4, 5, 4, 5 }) do
+	env._max = most
+	env.FireEvent("UNIT_MAXPOWER", "player", "COMBO_POINTS")
+	assert(#C.pips == most, "the crown has " .. most .. " pieces")
+end
+assert(#env._frames - before == 4 * 9, "only the four-piece crown is new, got " .. (#env._frames - before) .. " frames")
 
 -- The unit frames' Class-themed pips setting turns it off and on, even with Unit Frames not loaded.
 K.Store.Profile().UnitFrames = K.Store.Profile().UnitFrames or {}
@@ -136,26 +161,30 @@ K.Store.Profile().UnitFrames.resource.classPips = true
 K.Callbacks.Fire("SettingChanged", "UnitFrames", "resource.classPips", true)
 assert(C.shown and C.pips[1].frame:IsShown(), "on again: the crown")
 
+-- The unit frames' Class resource and Combo points switches turn it off too (review 678 #3).
+for _, key in ipairs({ "enabled", "comboPoints" }) do
+	K.Store.Profile().UnitFrames.resource = { [key] = false }
+	K.Callbacks.Fire("SettingChanged", "UnitFrames", "resource." .. key, false)
+	assert(not C.shown and not K.Widgets.ClassCrown(), "resource." .. key .. " off: no crown, and the unit frames know")
+	K.Store.Profile().UnitFrames.resource = {}
+	K.Callbacks.Fire("SettingChanged", "UnitFrames", "resource." .. key, true)
+	assert(C.shown and K.Widgets.ClassCrown(), "resource." .. key .. " on: the crown")
+end
+
 -- Frames hides it with the hub.
 K.Options.Write("HudStyle", "style", "frames")
-assert(not C.shown and not C.pips[1].frame:IsShown(), "Frames has no crown")
+assert(not C.shown and not C.pips[1].frame:IsShown() and not K.Widgets.ClassCrown(), "Frames has no crown")
 assert(#env._errors == 0 and K.ErrorCount() == 0, "rogue: " .. tostring(env._errors[1]))
 
--- A druid: claws in cat form with its mana as a thin line above them (off with the unit frames' Druid mana), nothing in
+-- A druid: claws in cat form, its mana left to the unit frames' druid bar and its settings (review 678 #3), nothing in
 -- caster form.
 do
 	local denv, DK, dns = New("DRUID")
 	local state = dns.SlabCrown.state
 	assert(state.shown and #state.pips == 5 and tostring(Last(state.pips[3].blade, "SetStatusBarTexture")[1]):find("PipClaw90.png", 1, true), "a cat-form druid wears a crown of claws")
-	local line = state.mana
-	assert(line and line:IsShown(), "with its mana as a line above them")
-	local _, _, _, _, y = line:GetPoint(1)
-	assert(y > 76 + 44, "the mana line sits above the claws' tips")
-	assert(Last(line, "SetValue")[1] == 1500 and select(2, line:GetMinMaxValues()) == 3000, "fed the druid's mana")
-	DK.Store.Profile().UnitFrames = DK.Store.Profile().UnitFrames or {}
-	DK.Store.Profile().UnitFrames.resource = { druidMana = false }
-	DK.Callbacks.Fire("SettingChanged", "UnitFrames", "resource.druidMana", false)
-	assert(state.shown and not line:IsShown(), "Druid mana off hides the line and keeps the claws")
+	for _, f in ipairs(denv._frames) do
+		assert(not (f:GetParent() == dns.Slab.hub.top and f._type == "StatusBar"), "the crown draws no mana line of its own")
+	end
 	denv._powerType = 0
 	denv.FireEvent("UPDATE_SHAPESHIFT_FORM")
 	assert(not state.shown and not state.pips[1].frame:IsShown(), "caster form: no crown")

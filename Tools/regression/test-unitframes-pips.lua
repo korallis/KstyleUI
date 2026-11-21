@@ -148,10 +148,47 @@ Points(env, 5)
 assert(Loops(P) == 0, "Frames loops nothing, even at the maximum at Full")
 noErrors(env, K, "motion")
 
--- Under Medallions a rogue's points are the crest's crown of blades: the row hides and has no mover; off brings the plain row back.
+-- Turning motion Off settles a row that is still playing at once (review 678 #4).
+Points(env, 2)
+assert(P.pips[2].flare.anim:IsPlaying() and P.row.was.anim:IsPlaying(), "a spend is playing")
+K.Options.Write("Medallions", "motion", "off")
+assert(Moving(P) == 0 and not P.row.was.anim:IsPlaying() and not P.row.was:IsShown(), "Off settles the playing row at once")
+K.Options.Write("Medallions", "motion", "full")
+
+-- An unchanged readable count plays nothing again; a secret one is never compared, so it replays (review 678 #5).
+local calls = 0
+for _, bar in ipairs(Bars(P)) do
+	for _, method in ipairs({ "Play", "Stop" }) do
+		local native = bar.anim[method]
+		bar.anim[method] = function(...) calls = calls + 1 return native(...) end
+	end
+end
+Points(env, 2)
+assert(calls == 0, "an unchanged count touches no animation, got " .. calls .. " calls")
+env._restricted = true
+Points(env, 2)
+assert(calls > 0, "a secret count is never compared with the one before")
+env._restricted = false
+noErrors(env, K, "settle")
+
+-- A secret count never meets a truth test: choose the fed value with an explicit if (review 678 #1).
+for path, pattern in pairs({ ["Core/Widgets/ClassPip.lua"] = "and was or now", ["KstyleUI_UnitFrames/Pips.lua"] = "and state.points or", ["KstyleUI_ActionBars/SlabCrown.lua"] = "and state.points or" }) do
+	local file = assert(io.open(path, "rb"))
+	local source = file:read("*a")
+	file:close()
+	assert(not source:find(pattern, 1, true), path .. ": '" .. pattern .. "' tests a secret count; pick it with if on the public flag")
+end
+
+-- Under Medallions the row stays until the crest's crown shows the points (Action Bars off, the slab off or unpaired:
+-- no crown, review 678 #2); while it does, a rogue's row hides and has no mover; off brings the plain row back.
 K.Options.Write("HudStyle", "style", "medallions")
-assert(K.HudStyle.Current() == "medallions" and not R.showCombo and not R.content:IsShown(), "under Medallions a rogue's row gives way to the crown")
+assert(K.HudStyle.Current() == "medallions" and R.showCombo and R.content:IsShown() and K.Layout.Live("unitframes.resource"), "with no crown a rogue keeps its row under Medallions")
+K.Widgets.SetClassCrown(true)
+assert(not R.showCombo and not R.content:IsShown(), "the crown takes a rogue's points")
 assert(not K.Layout.Live("unitframes.resource"), "and the empty element has no mover")
+K.Widgets.SetClassCrown(false)
+assert(R.showCombo and R.content:IsShown(), "the row comes back when the crown goes")
+K.Widgets.SetClassCrown(true)
 K.Options.Write("UnitFrames", "resource.classPips", false)
 assert(R.showCombo and not R.themed and R.pips[1]:IsShown(), "Class-themed pips off: the plain pips come back under Medallions")
 K.Options.Write("HudStyle", "style", "frames")
@@ -160,12 +197,22 @@ for i, pip in ipairs(R.pips) do
 end
 Points(env, 2)
 assert(Reveal(W.LastCall(R.pips[1], "SetValue")[1]) == 2, "off: the plain pips take the count")
+K.Widgets.SetClassCrown(false)
 K.Options.Write("UnitFrames", "resource.classPips", true)
 assert(R.themed and P.pips[1].frame:IsShown() and not R.pips[1]:IsShown(), "on again: the daggers")
 noErrors(env, K, "switch")
 
--- A druid: claws in cat form, nothing in caster form; under Medallions the crest's crown takes the claws and the cat-form mana,
--- and bear form keeps its mana bar here.
+-- The combo colour paints the plain pips only, so it shows while Class-themed pips is off (review 678 #3).
+for _, key in ipairs({ "resource.comboColor", "resource.comboCustom" }) do
+	local row = K.Options.Row("UnitFrames", key)
+	local function shows(classPips)
+		return row.showWhen({ edit = "player", resource = { enabled = true, classPips = classPips, comboColor = "custom" } })
+	end
+	assert(not shows(true) and shows(false), key .. " shows only for the plain pips")
+end
+
+-- A druid: claws in cat form, nothing in caster form; under Medallions the crest's crown takes the claws, and the
+-- druid bar stays here with its own settings in every form (review 678 #2, #3).
 local denv, DK, dns = U.New({ setup = function(e)
 	e._units.player.class = "DRUID"
 	e._units.player.powerType, e._units.player.powerToken = 3, "ENERGY"
@@ -179,7 +226,11 @@ assert(W.LastCall(DP.pips[1].halo, "SetStatusBarColor")[1] == DK.Tokens.Color("p
 Points(denv, 5)
 assert(Loops(DP) == 0, "the row loops nothing, even at the maximum")
 DK.Options.Write("HudStyle", "style", "medallions")
-assert(not DR.showCombo and not DR.showMana and not DR.content:IsShown(), "under Medallions the crown takes the claws and the cat-form mana")
+DK.Widgets.SetClassCrown(true)
+assert(not DR.showCombo and DR.showMana and DR.content:IsShown() and DK.Layout.Live("unitframes.resource"), "under Medallions the crown takes the claws and the mana bar stays, with its mover")
+DK.Options.Write("UnitFrames", "player.powerMana", true)
+assert(DR.flipped == 3, "Mana in forms still swaps the druid bar to the form's power")
+DK.Options.Write("UnitFrames", "player.powerMana", false)
 denv._units.player.powerType, denv._units.player.powerToken = 1, "RAGE"
 denv.FireEvent("UPDATE_SHAPESHIFT_FORM")
 assert(DR.showMana and not DR.showCombo, "bear form keeps its mana bar under Medallions")
