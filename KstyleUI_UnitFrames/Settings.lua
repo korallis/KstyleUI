@@ -24,6 +24,7 @@ local BOSS_GAP_MAX = 20
 local MARKER_MAX, CAST_WIDTH_MIN, CAST_WIDTH_MAX = 48, 2 * CAST_HEIGHT_MAX, 400
 local PRECISE_MAX, SPELL_LIST_LETTERS = 90, 240
 local HEALTH_HEIGHT_MAX, ABSORB_BAR_MAX, OFFSET_MAX = 40, 10, 100
+local NO_ABOVE = { slab = true, bar = true, sigil = true }
 Settings.OFFSET_MAX = OFFSET_MAX
 
 Settings.MODULE = MODULE
@@ -375,7 +376,7 @@ Settings.FontOptions = FontOptions
 local function TextureOptions()
 	local out = { { value = "", label = L["Same as the health bar"] } }
 	for _, option in ipairs(K.Widgets.MediaOptions("statusbar")) do
-		out[#out + 1] = option
+		if type(option.value) == "string" then out[#out + 1] = option end
 	end
 	return out
 end
@@ -1258,14 +1259,14 @@ local function KindRows(schema, kind)
 		help = L["Shades the power fill from darker to its colour."], options = CHOICES.gradient }, function(s) return s.power ~= false end)
 	local function powerOn(s) return s.power ~= false end
 	for _, spec in ipairs({
-		{ "toggle", "powerAbove", L["Above the health bar"], function(s) return powerOn(s) and Settings.Form(kind) ~= "slab" end, L["Puts the power bar above the health bar, keeping the gap between them."] },
+		{ "toggle", "powerAbove", L["Above the health bar"], function(s) return powerOn(s) and not NO_ABOVE[Settings.Form(kind)] end, L["Puts the power bar above the health bar, keeping the gap between them."] },
 		{ "dropdown", "powerTextAlign", L["Text position"], powerOn, L["Where the text sits on the bar: left, centre or right."], CHOICES.align },
 		{ "dropdown", "powerTextColor", L["Text colour"], powerOn, L["Keep the current style, or colour the power text by its power type or a custom colour."], CHOICES.powerTextColor },
 		{ "color", "powerTextCustom", L["Custom text colour"], function(s) return powerOn(s) and s.powerTextColor == "custom" end, L["The text colour when its colour mode is custom."] },
-		kind == "player" and { "toggle", "powerCost", L["Spell cost"], powerOn, L["While you cast, marks the power the spell will cost at the end of the fill."] } or false,
-		kind == "player" and { "color", "powerCostColor", L["Spell cost colour"], function(s) return powerOn(s) and s.powerCost == true end, L["The colour of the spell cost mark."] } or false,
-		kind == "player" and { "toggle", "manaSpark", L["Five-second rule"], powerOn, L["After you spend mana, a spark crosses the bar for the five seconds before regeneration resumes."] } or false,
-		kind == "player" and { "toggle", "powerMana", L["Mana in forms"], function(s) return powerOn(s) and K.Theme.Class() == "DRUID" end, L["Druids: shows mana in bear and cat form; the class resource bar shows the form's power."] } or false,
+		kind == "player" and { "toggle", "powerCost", L["Spell cost"], powerOn, L["While you cast, marks the power the spell will cost at the end of the fill."] },
+		kind == "player" and { "color", "powerCostColor", L["Spell cost colour"], function(s) return powerOn(s) and s.powerCost == true end, L["The colour of the spell cost mark."] },
+		kind == "player" and { "toggle", "manaSpark", L["Five-second rule"], powerOn, L["After you spend mana, a spark crosses the bar for the five seconds before regeneration resumes."] },
+		kind == "player" and { "toggle", "powerMana", L["Mana in forms"], function(s) return powerOn(s) and K.Theme.Class() == "DRUID" end, L["Druids: shows mana in bear and cat form; the class resource bar shows the form's power."] },
 	}) do
 		if spec then
 			schema[#schema + 1] = Row(kind, { type = spec[1], key = spec[2], label = spec[3], help = spec[5], options = spec[6] }, spec[4])

@@ -11,6 +11,7 @@ ns.Unit = Unit
 local CLASS_CIRCLES = "Interface\\TargetingFrame\\UI-Classes-Circles"
 local UNKNOWN_LEVEL = "??"
 local HOSTILE_MAX = 3
+local KEPT_MIN = 0.01
 local THIN_SPACE = "\226\128\137"
 local CODEPOINT = "([\1-\127\194-\244][\128-\191]*)"
 local ELITE_SUFFIX = "+"
@@ -156,8 +157,7 @@ function Unit.HealthColor(view, unit)
 end
 
 local function ManaType()
-	local types = Enum and Enum.PowerType
-	return types and types.Mana or 0
+	return Enum and Enum.PowerType and Enum.PowerType.Mana or 0
 end
 
 local function ShownPower(view, unit)
@@ -190,11 +190,14 @@ Unit.PowerTypeColor = PowerTypeColor
 function Unit.PowerColor(view, unit)
 	local s = view.s
 	local source = s.powerColor
+	if source == "power" or s.powerTextColor == "power" then
+		view.typeR, view.typeG, view.typeB = PowerTypeColor(unit, s.form == "column", ShownPower(view, unit) and "MANA")
+	end
 	if source == "custom" then
 		local c = s.powerCustom
 		ns.Style.PowerTint(view, c.r, c.g, c.b)
 	elseif source == "power" then
-		ns.Style.PowerTint(view, PowerTypeColor(unit, s.form == "column", ShownPower(view, unit) and "MANA"))
+		ns.Style.PowerTint(view, view.typeR, view.typeG, view.typeB)
 	else
 		ns.Style.PowerTint(view, UnitColor(unit, source))
 	end
@@ -227,8 +230,8 @@ function Unit.Prediction(view, unit)
 	if not glow then Hide(view.shieldGlow) end
 	if not strip then Hide(view.absorbBar) end
 	if not s.healPrediction then
-		view.incoming:Hide()
-		view.absorb:Hide()
+		Hide(view.incoming)
+		Hide(view.absorb)
 		if not (glow or strip) then return end
 	end
 	if wanted and not eaten then
@@ -257,10 +260,12 @@ function Unit.Prediction(view, unit)
 		if (s.absorbPlacement ~= "" or strip) and UnitGetTotalAbsorbs then total = UnitGetTotalAbsorbs(unit) end
 		if s.healPrediction then
 			view.incoming:SetBarValue((calc:GetIncomingHeals()))
-			view.absorb:SetBarValue(s.absorbPlacement ~= "" and total or absorbs)
+			if s.absorbPlacement ~= "" then view.absorb:SetBarValue(total) else view.absorb:SetBarValue(absorbs) end
 			view.absorb:SetShown(s.absorbs ~= false)
 		end
-		if glow then
+		if glow and IsSecret(over) and not glow.SetAlphaFromBoolean then
+			Hide(glow)
+		elseif glow then
 			if IsSecret(over) then
 				glow:SetAlphaFromBoolean(over, 1, 0)
 				glow.lit = nil
@@ -388,14 +393,14 @@ local function LostShare(view, unit)
 	if not (view.s and view.s.maxHealthLoss) or type(GetUnitTotalModifiedMaxHealthPercent) ~= "function" then return nil end
 	local share = GetUnitTotalModifiedMaxHealthPercent(unit)
 	if IsSecret(share) or type(share) ~= "number" or share ~= share then return 0 end
-	return math.max(0, math.min(share, 0.9))
+	return math.max(0, math.min(share, 1))
 end
 
 function Unit.HealthRange(view, unit)
 	local max, lost = UnitHealthMax(unit), LostShare(view, unit)
 	view.rangeMax = nil
 	if lost and lost > 0 and not issecretvalue(max) and type(max) == "number" and max > 0 then
-		view.rangeMax = max / (1 - lost)
+		view.rangeMax = max / math.max(1 - lost, KEPT_MIN)
 	else
 		lost = lost and 0
 	end
@@ -465,14 +470,11 @@ function Unit.Power(view, unit, instant)
 	Format.Power(view.powerText, unit, view.s.powerText, shown)
 end
 
-local function Costs(spellID)
-	if spellID == nil or IsSecret(spellID) or not (C_Spell and C_Spell.GetSpellPowerCost) then return nil end
+local function CostOf(spellID, powerType)
+	if IsSecret(spellID) or spellID == nil or not (C_Spell and C_Spell.GetSpellPowerCost) then return nil end
 	local costs = C_Spell.GetSpellPowerCost(spellID)
-	return type(costs) == "table" and costs or nil
-end
-
-local function CostOf(costs, powerType)
-	for _, info in ipairs(costs or {}) do
+	if type(costs) ~= "table" then return nil end
+	for _, info in ipairs(costs) do
 		if type(info) == "table" and not IsSecret(info.type) and info.type == powerType then return info.cost end
 	end
 	return nil
@@ -484,7 +486,7 @@ local function BarPower(view)
 end
 
 function Unit.Cost(view, spellID)
-	local cost = view.s.powerCost and view.s.power and CostOf(Costs(spellID), BarPower(view))
+	local cost = view.s.powerCost and view.s.power and CostOf(spellID, BarPower(view))
 	if not IsSecret(cost) and (type(cost) ~= "number" or cost <= 0) then
 		Hide(view.costBar)
 		return
@@ -496,10 +498,18 @@ function Unit.Cost(view, spellID)
 end
 
 function Unit.Spark(view, spellID)
-	if not (view.s.manaSpark and view.s.power) or BarPower(view) ~= ManaType() then return end
-	local cost = CostOf(Costs(spellID), ManaType())
+	local spark = view.manaSpark
+	if not (view.s.manaSpark and view.s.power) then
+		if spark and spark:IsShown() then
+			spark.group:Stop()
+			spark:Hide()
+		end
+		return
+	end
+	if BarPower(view) ~= ManaType() then return end
+	local cost = CostOf(spellID, ManaType())
 	if IsSecret(cost) or type(cost) ~= "number" or cost <= 0 then return end
-	local spark = view.manaSpark or ns.Style.Spark(view)
+	spark = spark or ns.Style.Spark(view)
 	spark.group:Stop()
 	spark:Show()
 	spark.group:Play()

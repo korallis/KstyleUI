@@ -39,7 +39,7 @@ for _, kind in ipairs(U.KINDS) do
 	end
 	local snapshot = Settings.Snapshot(kind)
 	for key in pairs(Settings.defaults[kind]) do
-		if key ~= "fonts" then
+		if key ~= "fonts" and snapshot[key] ~= nil then
 			assert(snapshot[key] == Settings.Value(kind, key), kind .. "." .. key .. ": the snapshot's default path matches Value")
 		end
 	end

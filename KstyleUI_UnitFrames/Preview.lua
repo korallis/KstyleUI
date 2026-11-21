@@ -56,7 +56,7 @@ local function SampleColor(s, sample, source, custom)
 		return ns.Unit.ShareColor(sample.healthMax > 0 and sample.health / sample.healthMax or 0)
 	end
 	if source == "power" then
-		return ns.Unit.PowerTypeColor(sample.own and "player" or nil)
+		return ns.Unit.PowerTypeColor(sample.own and "player" or nil, nil, sample.own and s.powerMana and "MANA" or nil)
 	end
 	if source == "class" and sample.own then
 		return Theme.ClassColor(Theme.Class())
@@ -139,7 +139,7 @@ local function Paint(view, kind)
 	view.power:SetBarRange(0, sample.powerMax)
 	view.power:SetValue(sample.power)
 	Style.PowerFill(view, SampleColor(s, sample, s.powerColor, s.powerCustom))
-	Style.PowerText(view, SampleColor(s, sample, s.powerColor, s.powerCustom))
+	Style.PowerText(view, SampleColor(s, sample, "power"))
 	Format.Sample(view.powerText, s.powerText, sample.power, sample.powerMax)
 	if s.healPrediction then
 		view.incoming:SetBarRange(0, sample.healthMax)
@@ -169,8 +169,6 @@ local function Paint(view, kind)
 		strip:SetBarRange(0, sample.healthMax)
 		strip:SetValue(sample.healthMax * INCOMING_SHARE)
 		strip:Show()
-	elseif view.absorbBar then
-		view.absorbBar:Hide()
 	end
 	local lost = s.maxHealthLoss and Style.LossBar(view) or view.lossBar
 	if lost then
@@ -477,8 +475,38 @@ local OFFSET = {
 	BOTTOMLEFT = { 0, 1 }, BOTTOM = { 0.5, 1 }, BOTTOMRIGHT = { 1, 1 },
 }
 
+local function PaintResource(frame, view, kind, sample)
+	local box, format = frame.resource, Settings.Resource("manaText")
+	if kind ~= "player" or format == "none" or not (Settings.Resource("enabled") and Settings.Resource("druidMana")) then
+		if box then box:Hide() end
+		return
+	end
+	if not box then
+		box = CreateFrame("Frame", nil, frame.holders.player)
+		box.bar = K.Widgets.UnitBar(box, { loss = false, spark = false })
+		box.text = K.Widgets.FontString(box, "OVERLAY")
+		box.text:SetWordWrap(false)
+		box.text:SetAllPoints(box)
+		frame.resource = box
+	end
+	local element, bar = K.Setup.Layouts.Element(ns.Resource.KEY), box.bar
+	box:SetSize(element.width, element.height)
+	box:ClearAllPoints()
+	box:SetPoint("BOTTOM", frame.holders.player, "TOP", 0, CAST_GAP)
+	bar.opts.width, bar.opts.height = element.width, ns.Resource.MANA_MAX
+	bar:ClearAllPoints()
+	bar:SetPoint("CENTER", box, "CENTER")
+	bar:Restyle()
+	ns.Resource.StyleBar(bar, view.s.powerMana)
+	bar:SetBarRange(0, sample.powerMax)
+	bar:SetValue(sample.power)
+	ns.Resource.StyleText(box.text)
+	Format.Sample(box.text, format, sample.power, sample.powerMax)
+	box:Show()
+end
+
 local function Box(region, holder, width, height)
-	if not region:IsShown() then
+	if not (region and region:IsShown()) then
 		return nil
 	end
 	local point, relative, relPoint, x, y = region:GetPoint(1)
@@ -494,8 +522,9 @@ end
 
 local function Fit(frame, holder, kind, width, height)
 	local l, t, r, b = 0, 0, width, height
-	for _, region in ipairs({ frame.auraHosts[kind], frame.casts[kind] and frame.casts[kind].frame, frame.views[kind].portraitFrame }) do
-		local rl, rt, rr, rb = Box(region, holder, width, height)
+	local regions = { frame.auraHosts[kind], frame.casts[kind] and frame.casts[kind].frame, frame.views[kind].portraitFrame, frame.resource }
+	for i = 1, 4 do
+		local rl, rt, rr, rb = Box(regions[i], holder, width, height)
 		if rl then
 			l, t, r, b = math.min(l, rl), math.min(t, rt), math.max(r, rr), math.max(b, rb)
 		end
@@ -537,6 +566,7 @@ local function Refresh(frame)
 	Style.Restyle(view, kind)
 	Style.Layout(view, view.s, width, height)
 	Paint(view, kind)
+	PaintResource(frame, view, kind, SAMPLES[kind])
 	PaintIndicators(view, view.s, SAMPLES[kind])
 	PaintCast(frame, view, kind, height)
 	frame.auraCount = PaintAuras(frame, view, kind)

@@ -20,7 +20,7 @@ local TRACK = "buttonFill"
 
 local state = { built = false, running = false, showCombo = false, showMana = false }
 Resource.state = state
-Resource.KEY = KEY
+Resource.KEY, Resource.MANA_MAX = KEY, MANA_MAX
 
 local function PowerTypes()
 	local types = Enum and Enum.PowerType
@@ -108,11 +108,12 @@ function Resource.Layout()
 		manaH = min(h, MANA_MAX)
 	end
 	local pipRow = state.showCombo and (state.showMana and max(0, h - manaH - GAP) or h) or 0
+	local x, span
 	if state.showCombo then
 		local spacing = min(Settings.Resource("spacing"), max(0, (w - PIPS) / (PIPS - 1)))
 		local size = max(0, min(pipRow, (w - spacing * (PIPS - 1)) / PIPS))
-		local span = size * PIPS + spacing * (PIPS - 1)
-		local x = (w - span) / 2
+		span = size * PIPS + spacing * (PIPS - 1)
+		x = (w - span) / 2
 		for i, pip in ipairs(state.pips) do
 			Place(pip, x + (i - 1) * (size + spacing), (pipRow - size) / 2, size, size)
 			pip:Show()
@@ -130,6 +131,18 @@ function Resource.Layout()
 		state.mana:Show()
 	else
 		state.mana:Hide()
+	end
+	local text = state.text
+	if text then
+		local left, right = 0, w
+		if x and Settings.Resource("manaTextAlign") == "LEFT" then
+			right = x - GAP
+		elseif x then
+			left = x + span + GAP
+		end
+		text:ClearAllPoints()
+		text:SetPoint("TOPLEFT", state.content, "TOPLEFT", Snap(left), 0)
+		text:SetSize(Snap(max(0, right - left)), Snap(h))
 	end
 end
 
@@ -156,6 +169,22 @@ local function ManaColor()
 	return Tokens.Color("rare")
 end
 
+function Resource.StyleBar(bar, flipped)
+	bar:SetBarTexture(Settings.Resource("manaTexture"))
+	if flipped then bar:SetBarColor(ns.Unit.PowerTypeColor("player")) else bar:SetBarColor(ManaColor()) end
+	local o = Style.ORIENTATION[Settings.Resource("manaOrientation")] or Style.ORIENTATION.RIGHT
+	bar:SetOrientation(o[1])
+	bar:SetReverseFill(o[2])
+end
+
+function Resource.StyleText(text)
+	local path, size, flags = Settings.Font("player", "power")
+	Widgets.ApplyFont(text, path, size, flags)
+	text:SetTextColor(Tokens.Color("textEmphasis"))
+	local align = Settings.Resource("manaTextAlign")
+	text:SetJustifyH(align ~= "" and align or "CENTER")
+end
+
 function Resource.Restyle()
 	if not state.built then
 		return
@@ -166,27 +195,17 @@ function Resource.Restyle()
 		pip:SetBarTexture(texture)
 		pip:SetBarColor(r, g, b)
 	end
-	state.mana:SetBarTexture(Settings.Resource("manaTexture"))
-	state.mana:SetBarColor(ManaColor())
 	local format, text = Settings.Resource("manaText"), state.text
 	state.format = format
 	if format ~= "none" and not text then
 		text = Widgets.FontString(state.mana, "OVERLAY")
 		text:SetWordWrap(false)
-		text:SetAllPoints(state.mana)
 		state.text = text
 	end
 	if text then
-		local path, size, flags = Settings.Font("player", "power")
-		Widgets.ApplyFont(text, path, size, flags)
-		text:SetTextColor(Tokens.Color("textEmphasis"))
-		local align = Settings.Resource("manaTextAlign")
-		text:SetJustifyH(align ~= "" and align or "CENTER")
+		Resource.StyleText(text)
 		text:SetShown(format ~= "none")
 	end
-	local o = Style.ORIENTATION[Settings.Resource("manaOrientation")] or Style.ORIENTATION.RIGHT
-	state.mana:SetOrientation(o[1])
-	state.mana:SetReverseFill(o[2])
 	Resource.Visibility()
 end
 
@@ -227,9 +246,7 @@ function Resource.Visibility()
 	state.showCombo = on and Settings.Resource("comboPoints") and (class == "ROGUE" or class == "DRUID" and current == energy) or false
 	state.showMana = on and Settings.Resource("druidMana") and class == "DRUID" and current ~= nil and current ~= mana or false
 	state.flipped = state.showMana and Settings.Value("player", "powerMana") and current or nil
-	if state.showMana then
-		state.mana:SetBarColor(state.flipped and ns.Unit.PowerTypeColor("player") or ManaColor())
-	end
+	if state.showMana then Resource.StyleBar(state.mana, state.flipped) end
 	state.content:SetShown(state.showCombo or state.showMana)
 	local Layout = K.Layout
 	if Layout and Layout.SetLive then

@@ -37,7 +37,7 @@ local VALUE_GAP = 2
 local SCRIM_SUBLEVEL = -8
 local SCRIM_PAD = { sigil = { 36, 22, 0.5 }, row = { 30, 18, 0.75 }, card = { 30, 3, 0.75 }, slab = { 18, 14, 0.55 } }
 local GLOW_LINE, SPARK_W, FIVE_SECONDS, COST_ALPHA, ABSORB_BAR_ALPHA = 6, 6, 5, 0.6, 0.9
-local NUDGE = { name = "name", healthText = "health", healthSub = "health", powerText = "power", levelText = "level", caption = "level" }
+local NUDGE = { name = "name", healthText = "health", healthSub = "health", powerText = "power", levelText = "level", caption = "level", slabLevel = "level" }
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -710,7 +710,12 @@ function Style.Layout(view, s, width, height)
 	view.form = g.form
 	if g.form ~= "plate" then
 		LayoutLumen(view, g, s)
+		local built = view.medallion
 		ns.Slab.Layout(view, g)
+		if view.nudges and not built and view.medallion then
+			Style.Nudge(view)
+			ns.Slab.Layout(view, g)
+		end
 		for _, key in ipairs({ "name", "caption", "healthText", "healthSub", "capLabel" }) do
 			Widgets.TextScrim(view[key], g.form ~= "slab" and view[key]:IsShown())
 		end
@@ -778,29 +783,36 @@ local function Offset(value)
 	return type(value) == "number" and value == value and math.max(-most, math.min(most, value)) or 0
 end
 
-local function Nudge(view)
+local function Wrap(view, text, nudge)
+	if not text or text.nudge == nudge then return end
+	if not nudge then
+		text.SetPoint, text.nudge, text.native = text.native, nil, nil
+		return
+	end
+	local set = text.SetPoint
+	text.nudge, text.native = nudge, set
+	text.SetPoint = function(self, point, rel, ...)
+		if type(rel) ~= "table" or rel.nudge == nudge then return set(self, point, rel, ...) end
+		local relPoint, x, y = ...
+		return set(self, point, rel, relPoint or point, (x or 0) + Snap(view, nudge[1]), (y or 0) + Snap(view, nudge[2]))
+	end
+end
+
+function Style.Nudge(view)
 	local fonts = view.s and view.s.fonts
 	if not fonts then return end
-	if not view.nudged then
-		local any = false
-		for _, element in ipairs(Settings.TEXTS) do
-			any = any or fonts[element].x ~= 0 or fonts[element].y ~= 0
-		end
-		if not any then return end
-		view.nudged = true
-		for key in pairs(NUDGE) do
-			local text = view[key]
-			local set = text.SetPoint
-			text.nudge = { 0, 0 }
-			text.SetPoint = function(self, point, rel, ...)
-				if type(rel) ~= "table" or rel.nudge then return set(self, point, rel, ...) end
-				local relPoint, x, y = ...
-				return set(self, point, rel, relPoint or point, (x or 0) + Snap(view, self.nudge[1]), (y or 0) + Snap(view, self.nudge[2]))
-			end
-		end
+	local on = false
+	for _, element in ipairs(Settings.TEXTS) do
+		on = on or Offset(fonts[element].x) ~= 0 or Offset(fonts[element].y) ~= 0
 	end
+	if not (on or view.nudges) then return end
+	local nudges = on and (view.nudges or { name = {}, health = {}, power = {}, level = {} }) or nil
+	view.nudges = nudges
 	for key, element in pairs(NUDGE) do
-		local nudge = view[key].nudge
+		Wrap(view, view[key], nudges and nudges[element])
+	end
+	Wrap(view, view.medallion and view.medallion.levelText, nudges and nudges.level)
+	for element, nudge in pairs(nudges or {}) do
 		nudge[1], nudge[2] = Offset(fonts[element].x), Offset(fonts[element].y)
 	end
 end
@@ -855,7 +867,7 @@ function Style.Restyle(view, kind)
 	view.power:SetBarTexture(Settings.Value(kind, "powerTexture"))
 	view.incoming:SetBarTexture(s and s.incomingTexture ~= "" and s.incomingTexture or health)
 	view.absorb:SetBarTexture(s and s.absorbTexture ~= "" and s.absorbTexture or health)
-	Nudge(view)
+	Style.Nudge(view)
 	view.orientation = Settings.Value(kind, "healthOrientation")
 	Orient(view.health, view.orientation)
 	Orient(view.power, Settings.Value(kind, "powerOrientation"))
@@ -934,7 +946,6 @@ end
 
 function Style.PowerTint(view, r, g, b)
 	view.powerR, view.powerG, view.powerB = nil, nil, nil
-	local tr, tg, tb = r, g, b
 	local separate = false
 	if Plain(r, g, b) then
 		view.powerR, view.powerG, view.powerB = r, g, b
@@ -961,15 +972,16 @@ function Style.PowerTint(view, r, g, b)
 		Widgets.ApplyFont(view.powerFillText, path, size)
 		Widgets.InkText(view.powerFillText, r, g, b)
 	end
-	Style.PowerText(view, tr, tg, tb)
+	Style.PowerText(view, view.typeR, view.typeG, view.typeB)
 end
 
 function Style.PowerText(view, r, g, b)
 	local mode = view.s and view.s.powerTextColor
-	if mode ~= "power" and mode ~= "custom" then return end
 	if mode == "custom" then
 		local c = view.s.powerTextCustom
 		r, g, b = c.r, c.g, c.b
+	elseif mode ~= "power" or r == nil then
+		return
 	end
 	view.powerText:SetTextColor(r, g, b)
 	view.powerFillText:SetTextColor(r, g, b)

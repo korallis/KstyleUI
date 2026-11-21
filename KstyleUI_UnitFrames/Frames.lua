@@ -785,11 +785,17 @@ local function TargetChange(view)
 end
 
 local castsHeard = false
-local function OnCast(event, _, _, spellID)
+local function OnCast(event, _, castGUID, spellID)
 	local uf = frames.player
 	if not (running and uf and uf.active) then return end
 	local view = uf.views[1]
-	Unit.Cost(view, event == "UNIT_SPELLCAST_START" and spellID or nil)
+	if event == "UNIT_SPELLCAST_START" then
+		view.costCast = not issecretvalue(castGUID) and castGUID or nil
+		Unit.Cost(view, spellID)
+	elseif issecretvalue(castGUID) or view.costCast == nil or castGUID == view.costCast then
+		view.costCast = nil
+		Unit.Cost(view)
+	end
 	if event == "UNIT_SPELLCAST_SUCCEEDED" then Unit.Spark(view, spellID) end
 end
 
@@ -830,6 +836,7 @@ function Frames.Restyle(uf)
 	if uf.kind == "player" then
 		HearCasts()
 		if not uf.s.powerCost then Unit.Cost(uf.views[1]) end
+		Unit.Spark(uf.views[1])
 	end
 	local applied = Frames.Relayout(uf) and (uf.s.auraSimple or "") ~= ""
 	for _, view in ipairs(uf.views) do
