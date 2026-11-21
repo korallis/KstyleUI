@@ -446,6 +446,7 @@ function Face:SetCoords(text)
 	self.coords:SetShown(text ~= nil and Settings.Get("coords.shown") and (not Settings.Get("coords.hover") or self.revealed))
 	self:SyncPlaques()
 	if placed then self:PlaceInside() end
+	if self.clockAnchor and (self.coords:GetStringWidth() or 0) > self.coordsFit then self:PlaceRound(true) end
 end
 
 function Face:SetDifficulty(text)
@@ -626,8 +627,9 @@ function Face:PlaceRound(round)
 	local rowWidth = width
 	if seated then
 		local coords = Face.Moved("coords") and 0 or self.coords:GetStringWidth() or 0
-		local clock = Face.Moved("clock") and 0 or (self.clock:GetStringWidth() or 0) + (self.meridiem:GetStringWidth() or 0)
+		local clock = self.coordsAlone and 0 or (self.clock:GetStringWidth() or 0) + (self.meridiem:GetStringWidth() or 0)
 		rowWidth = Snap(card, min(width, max(side * 0.6, coords + clock + 2 * PLAQUE_PAD + 12)))
+		self.coordsFit = (Face.Moved("coords") or rowWidth >= width) and math.huge or max(coords, rowWidth - clock - 2 * PLAQUE_PAD - 12)
 	end
 	row:SetWidth(rowWidth)
 	if seated then
@@ -803,10 +805,16 @@ function Face:Layout()
 		self.plate:ClearAllPoints()
 		Widgets.Point(self.plate, "CENTER", area, "TOP", 0, frame + self.zoneY - Snap(card, PlaqueHeight(self) / 2 + BADGE / 2 + 2))
 	end
+	self.coordsAlone = round and (Settings.Get("clock.shown") ~= true or Face.Moved("clock"))
 	self:PlaceRound(round)
 	local seated = self.clockAnchor ~= nil
+	local dx, dy = Snap(card, Settings.Get("coords.x")), Snap(card, Settings.Get("coords.y"))
 	coords:ClearAllPoints()
-	Widgets.Point(coords, "LEFT", self.clockAnchor or card, seated and "LEFT" or "BOTTOMLEFT", x + Snap(card, Settings.Get("coords.x")), (seated and 0 or -rowY) + Snap(card, Settings.Get("coords.y")))
+	if self.coordsAlone then
+		Widgets.Point(coords, "CENTER", self.plaques[2], "CENTER", dx, dy)
+	else
+		Widgets.Point(coords, "LEFT", self.clockAnchor or card, seated and "LEFT" or "BOTTOMLEFT", x + dx, (seated and 0 or -rowY) + dy)
+	end
 	local w, h = (self.clockAnchor or card):GetSize()
 	self.clockPixel = pixel
 	self.clockRight = Plain(w) and w / pixel or 0
