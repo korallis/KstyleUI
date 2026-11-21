@@ -6,30 +6,19 @@ local Effects = {}
 
 local STATES = { ready = true, cap = true, levelup = true, cast = true, stopped = true, vignette = true, burst = true, rest = true, jewels = true, hawks = true }
 
--- The hawk story RENDER_FX=hawks plays: Summon Hawk at these seconds; a hawk fills a free totem slot (2, then 3)
--- or replaces the oldest, and leaves HAWK_LIFE seconds later.
-local HAWKS, HAWK_LIFE = { 1, 7, 20.5, 23 }, 18
-
--- HawkEvents() -> the story's totem updates in order, { at, slot, summon }.
-local function HawkEvents()
-	local events, slots = {}, {}
-	local function expire(now)
-		for slot = 2, 3 do
-			if slots[slot] and slots[slot] + HAWK_LIFE <= now then
-				events[#events + 1] = { at = slots[slot] + HAWK_LIFE, slot = slot }
-				slots[slot] = nil
-			end
-		end
-	end
-	for _, at in ipairs(HAWKS) do
-		expire(at)
-		local slot = not slots[2] and 2 or not slots[3] and 3 or (slots[2] < slots[3] and 2 or 3)
-		slots[slot] = at
-		events[#events + 1] = { at = at, slot = slot, summon = true }
-	end
-	table.sort(events, function(a, b) return a.at < b.at end)
-	return events
-end
+-- The hawk story RENDER_FX=hawks plays, as totem updates in order: Summon Hawk at 1, 9, 20.5 and 26.5 s, at least
+-- its 6 s category recovery apart, fills a free slot (2, then 3) or the oldest hawk's, and each hawk leaves
+-- HAWK_LIFE seconds later.
+local HAWK_LIFE = 18
+local HAWKS = {
+	{ at = 1, slot = 2, summon = true },
+	{ at = 9, slot = 3, summon = true },
+	{ at = 19, slot = 2 },
+	{ at = 20.5, slot = 2, summon = true },
+	{ at = 26.5, slot = 3, summon = true },
+	{ at = 38.5, slot = 2 },
+	{ at = 44.5, slot = 3 },
+}
 
 local MANA = { MAGE = true, PRIEST = true, WARLOCK = true, PALADIN = true, SHAMAN = true, DRUID = true }
 
@@ -138,7 +127,7 @@ function Effects.Apply(env, module, ns, notes)
 				K.Options.Write("ActionBars", "crestHawks", false)
 			end
 			ns.SlabHawks.Update()
-			for _, e in ipairs(HawkEvents()) do
+			for _, e in ipairs(HAWKS) do
 				if e.at <= at then
 					totems[e.slot] = e.summon and { start = env._time - (at - e.at), spell = e.slot == 2 and 1293248 or 1312637 } or nil
 					env.FireEvent("PLAYER_TOTEM_UPDATE", e.slot)

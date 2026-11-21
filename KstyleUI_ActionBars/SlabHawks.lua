@@ -11,7 +11,6 @@ ns.SlabHawks = Hawks
 
 local OWNER = "ActionBars.SlabHawks"
 local SPELLS = { 1293241, 1293525, 1293526, 1293527 }
-local SLOTS = { 2, 3 }
 local RADIUS, ANGLE = 78, 40
 local TRACK, SOCKET, SEAT, SIGIL, GLOW, BURST, GLINT, GLINT_AT = 42, 28, 29, 23, 60, 56, 4, 8
 local STEEL_ALPHA, GLOW_ALPHA, BURST_ALPHA, RING_HALO = 0.45, 0.55, 0.6, 1.6
@@ -82,16 +81,16 @@ local function Fade(target, from, to, duration, order)
 	group:SetScript("OnFinished", function()
 		target:Hide()
 	end)
-	return group
 end
 
-local function Lit(p, frame, size, glow)
-	local add = function(t) p.parts[#p.parts + 1] = t return t end
+local function Lit(add, slot, frame, size, glow)
 	if glow then
 		add(Texture(frame, "BACKGROUND", 0, "glow", "jewelHawk", GLOW, "ADD")):SetAlpha(GLOW_ALPHA)
 	end
 	local sigil = add(Texture(frame, "ARTWORK", 0, "hawkSigil", "white", size, glow == false and "ADD" or nil))
-	p.sigils[#p.sigils + 1] = sigil
+	if slot == 3 then
+		sigil:SetTexCoord(1, 0, 0, 1)
+	end
 	return sigil
 end
 
@@ -100,11 +99,11 @@ local function Build(hub, slot)
 	holder.units = TRACK
 	local base = hub.top:GetFrameLevel() + 1
 	holder:SetFrameLevel(base)
-	local p = { holder = holder, slot = slot, parts = {}, sigils = {} }
+	local p = { holder = holder, slot = slot, parts = {} }
 	local add = function(t) p.parts[#p.parts + 1] = t return t end
 	add(Texture(holder, "BACKGROUND", 0, "orbRing", "medSocket", TRACK))
 	add(Texture(holder, "BORDER", 0, "dot", "medSocket", SOCKET))
-	local steel = Lit(p, holder, SIGIL)
+	local steel = Lit(add, slot, holder, SIGIL)
 	steel:SetVertexColor(Tokens.Color("steel"))
 	steel:SetDesaturated(true)
 	steel:SetAlpha(STEEL_ALPHA)
@@ -121,16 +120,16 @@ local function Build(hub, slot)
 	local cover = Layer(holder, base + 2)
 	add(Texture(cover, "ARTWORK", 0, "ring", "gilt", SEAT))
 	p.lit = Layer(holder, base + 3)
-	Lit(p, p.lit, SIGIL, true)
+	Lit(add, slot, p.lit, SIGIL, true)
 	p.glint = add(Texture(p.lit, "OVERLAY", 0, "diamond", "white", GLINT, "ADD"))
 	p.wasGate = Layer(holder, base + 3)
 	p.was = Layer(p.wasGate, base + 3)
-	Lit(p, p.was, SIGIL, true)
+	Lit(add, slot, p.was, SIGIL, true)
 	Fade(p.was, 1, 0, FADE)
 	p.flareGate = Layer(holder, base + 4)
 	p.flare = Layer(p.flareGate, base + 4)
 	add(Texture(p.flare, "ARTWORK", 0, "glow", "jewelHawkCore", BURST, "ADD")):SetAlpha(BURST_ALPHA)
-	Lit(p, p.flare, SIGIL * POP, false)
+	Lit(add, slot, p.flare, SIGIL * POP, false)
 	Fade(p.flare, 0, 1, FLARE_RISE)
 	Fade(p.flare, 1, 0, FLARE_FALL, 2)
 	for _, frame in ipairs({ p.was, p.flare }) do
@@ -151,8 +150,7 @@ local function BuildPair(hub)
 	pair.halo = Layer(pair.glow, 0)
 	local glyphs = Texture(pair.glyphs, "ARTWORK", 0, "medRuneGlyphs", "jewelHawk", ns.Slab.RING, "ADD")
 	glyphs:SetAllPoints(pair.glyphs)
-	local halo = Texture(pair.halo, "BACKGROUND", 0, "glow", "jewelHawk", ns.Slab.RING * RING_HALO, "ADD")
-	pair.haloTexture = halo
+	pair.haloTexture = Texture(pair.halo, "BACKGROUND", 0, "glow", "jewelHawk", ns.Slab.RING * RING_HALO, "ADD")
 	pair.breath = pair.glow:CreateAnimationGroup()
 	pair.breath:SetLooping("BOUNCE")
 	local a = pair.breath:CreateAnimation("Alpha")
@@ -165,8 +163,8 @@ local function BuildPair(hub)
 end
 
 local function Place(hub)
-	for i, slot in ipairs(SLOTS) do
-		local p = state.perches[i] or Build(hub, slot)
+	for i = 1, 2 do
+		local p = state.perches[i] or Build(hub, i + 1)
 		state.perches[i] = p
 		local side = i == 1 and -1 or 1
 		local a = rad(ANGLE)
@@ -175,11 +173,6 @@ local function Place(hub)
 		Even(p.holder)
 		for _, part in ipairs(p.parts) do
 			Even(part)
-		end
-		for _, sigil in ipairs(p.sigils) do
-			if side > 0 then
-				sigil:SetTexCoord(1, 0, 0, 1)
-			end
 		end
 		local glint = Widgets.Snap(p.holder, GLINT_AT)
 		p.glint:SetPoint("CENTER", p.holder, "CENTER", -glint, glint)
@@ -207,15 +200,11 @@ local function Gate(frame, value)
 end
 
 local function Pair()
-	local pair = state.pair
-	local first, second = state.perches[1], state.perches[2]
-	if not (pair and first and second) then
-		return
-	end
+	local pair, first, second = state.pair, state.perches[1], state.perches[2]
 	Gate(pair, first.have)
 	Gate(pair.inner, second.have)
 	pair:SetShown(pair:IsShown() and pair.inner:IsShown())
-	if pair:IsShown() and Effects.Allows("pulse") then
+	if pair:IsShown() and not (IsSecret(first.have) or IsSecret(second.have)) and Effects.Allows("pulse") then
 		if not pair.breath:IsPlaying() then
 			pair.breath:Play()
 		end
@@ -239,7 +228,7 @@ local function Paint(p, moving)
 		frame.fade:Stop()
 		frame:Hide()
 	end
-	if moving and p.seen then
+	if moving then
 		Gate(p.flareGate, have)
 		Gate(p.wasGate, p.have)
 		for _, frame in ipairs({ p.was, p.flare }) do
@@ -249,7 +238,7 @@ local function Paint(p, moving)
 			end
 		end
 	end
-	p.have, p.seen = have, true
+	p.have = have
 end
 
 local function OnTotem(_, slot)
@@ -265,11 +254,11 @@ end
 local function Stop()
 	if state.listening then
 		K.Events.UnregisterAll(OWNER)
+		K.Callbacks.Unregister("EffectsLevelChanged", OWNER)
 		state.listening = false
 	end
 	for _, p in ipairs(state.perches) do
 		p.holder:Hide()
-		p.seen = nil
 	end
 	if state.pair then
 		state.pair.breath:Stop()
@@ -284,6 +273,7 @@ function Hawks.Update()
 	end
 	if not state.listening then
 		K.Events.Register(OWNER, "PLAYER_TOTEM_UPDATE", OnTotem)
+		K.Callbacks.Register("EffectsLevelChanged", OWNER, Hawks.Update)
 		state.listening = true
 	end
 	Place(hub)
@@ -293,12 +283,13 @@ function Hawks.Update()
 	Pair()
 end
 
+function Hawks.Recheck()
+	if (Active() ~= nil) ~= (state.listening == true) then
+		Hawks.Update()
+	end
+end
+
 function Hawks.SetEnabled(on)
 	state.enabled = on
-	if on then
-		K.Callbacks.Register("EffectsLevelChanged", OWNER, Hawks.Update)
-	else
-		K.Callbacks.Unregister("EffectsLevelChanged", OWNER)
-	end
 	Hawks.Update()
 end

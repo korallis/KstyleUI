@@ -187,7 +187,7 @@ end
 
 local function OnSpells()
 	ns.Flyout.QueueRefresh()
-	ns.SlabHawks.Update()
+	ns.SlabHawks.Recheck()
 end
 
 local function OnLearned(_, spellID)
@@ -445,7 +445,7 @@ local EVENTS = {
 	SPELLS_CHANGED = OnSpells,
 	LEARNED_SPELL_IN_SKILL_LINE = OnLearned,
 	SPELL_DATA_LOAD_RESULT = OnSpellLoaded,
-	SPELL_FLYOUT_UPDATE = OnSpells,
+	SPELL_FLYOUT_UPDATE = ns.Flyout.QueueRefresh,
 	VEHICLE_UPDATE = ns.Vehicle.Update,
 	UPDATE_BONUS_ACTIONBAR = ns.Vehicle.Update,
 	UPDATE_OVERRIDE_ACTIONBAR = ns.Vehicle.Update,
