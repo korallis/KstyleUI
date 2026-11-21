@@ -164,7 +164,7 @@ local function ShownPower(view, unit)
 	if not view.s.powerMana then return nil end
 	local mana = ManaType()
 	local max = UnitPowerMax(unit, mana)
-	if IsSecret(max) or type(max) ~= "number" or max <= 0 then return nil end
+	if issecretvalue(max) or type(max) ~= "number" or max <= 0 then return nil end
 	return mana
 end
 
@@ -394,13 +394,12 @@ end
 function Unit.HealthRange(view, unit)
 	local max, lost = UnitHealthMax(unit), LostShare(view, unit)
 	view.rangeMax = nil
-	if lost and lost > 0 and not IsSecret(max) and type(max) == "number" and max > 0 then
-		max = max / (1 - lost)
-		view.rangeMax = max
+	if lost and lost > 0 and not issecretvalue(max) and type(max) == "number" and max > 0 then
+		view.rangeMax = max / (1 - lost)
 	else
 		lost = lost and 0
 	end
-	view.health:SetBarRange(0, max)
+	view.health:SetBarRange(0, view.rangeMax or max)
 	if lost and lost > 0 then
 		local bar = view.lossBar or ns.Style.LossBar(view)
 		bar:SetValue(lost)
