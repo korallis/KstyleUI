@@ -71,12 +71,22 @@ local TARGET = { name = "Riverglade Crocolisk", level = 38, health = 864, health
 -- The race each class's player is drawn as, so the Medallions portrait resolver finds painted art; Frames and Orbs never read it.
 Hud.RACES = { WARRIOR = "Human", PALADIN = "Dwarf", HUNTER = "NightElf", ROGUE = "Human", PRIEST = "Dwarf", SHAMAN = "Dwarf", MAGE = "Gnome", WARLOCK = "Scourge", DRUID = "NightElf" }
 
+-- Pips() -> from, to: RENDER_PIPS=from,to, the combo points' change the unit frames' pips play; the crest jewels
+-- show the second count and a druid is in cat form. RENDER_PIPS=off turns the class-themed pips off.
+function Hud.Pips()
+	local value = os.getenv("RENDER_PIPS") or ""
+	local from, to = value:match("^(%d+),(%d+)$")
+	assert(value == "" or value == "off" or from, "RENDER_PIPS must be from,to, such as 4,5, or off")
+	return tonumber(from), tonumber(to)
+end
+
 -- Player(opts) -> the player unit for the scene's class, as unitframes_env takes it.
 function Hud.Player(opts)
 	local class, spec = Hud.Class(opts)
+	local power = class == "DRUID" and Hud.Pips() and { type = 3, token = "ENERGY", value = 80, max = 100 } or spec.power
 	local player = {
 		name = spec.name, class = class, level = 38, health = 2750, healthMax = 3350,
-		power = spec.power.value, powerMax = spec.power.max, powerType = spec.power.type, powerToken = spec.power.token,
+		power = power.value, powerMax = power.max, powerType = power.type, powerToken = power.token,
 		isPlayer = true, reaction = 5, race = Hud.RACES[class], sex = 2,
 	}
 	for k, v in pairs(type(opts) == "table" and type(opts.player) == "table" and opts.player or {}) do
@@ -559,6 +569,25 @@ function modules.unitframes(opts)
 		local who = orbs and "the target lost " or "the player lost " .. LOSS_SHARE.player * 100 .. "% and the target "
 		notes[#notes + 1] = who .. LOSS_SHARE.target * 100 .. "% of their health " .. LOSS_AGO .. " s ago (RENDER_LOSS)"
 	end
+	-- RENDER_PIPS=from,to: the combo points went from one count to the other RENDER_PIPS_T seconds before the scene's
+	-- clock through the addon's power event; equal counts settle there with no change. RENDER_PIPS_MOTION sets
+	-- Medallions motion (off shows the end states).
+	local from, to = Hud.Pips()
+	if os.getenv("RENDER_PIPS") == "off" then
+		K.Options.Write("UnitFrames", "resource.classPips", false)
+	elseif from then
+		local motion, clock = os.getenv("RENDER_PIPS_MOTION"), env._now
+		if motion and motion ~= "" then
+			K.Options.Write("Medallions", "motion", motion)
+		end
+		env._comboPoints = from
+		env.FireEvent("PLAYER_TARGET_CHANGED")
+		env._now = env._time - (tonumber(os.getenv("RENDER_PIPS_T") or "") or 0)
+		env._comboPoints = to
+		env.FireEvent(from == to and "PLAYER_TARGET_CHANGED" or "UNIT_POWER_FREQUENT", "player", "COMBO_POINTS")
+		env._now = clock
+		notes[#notes + 1] = "pips: " .. from .. " to " .. to .. ", " .. (os.getenv("RENDER_PIPS_T") or "0") .. " s in"
+	end
 	local scene = build(env, opts, { time = env._time }, function()
 		Fx.Apply(env, "unitframes", ns, notes)
 	end)
@@ -621,7 +650,12 @@ function modules.actionbars(opts)
 			end
 			-- The player's combo points, holy power or soul shards, which the Medallions hub's jewels light (spec.combo, else 3 of 5).
 			env.GetComboPoints = env.GetComboPoints or function()
-				return spec.combo or 0
+				return select(2, Hud.Pips()) or spec.combo or 0
+			end
+			if Hud.Pips() then
+				env.UnitPowerType = function()
+					return Hud.Player(opts).powerType
+				end
 			end
 			env.UnitPower = env.UnitPower or function()
 				return spec.combo or 3
