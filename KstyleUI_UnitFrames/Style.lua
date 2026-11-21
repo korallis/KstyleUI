@@ -690,11 +690,60 @@ function Style.PlaceName(view, rect)
 	end
 end
 
+local BAR_GAP, BAR_PAD, BAR_MIN_BODY = 4, 4, 20
+local BAR_SLOTS = { "textBarLeft", "textBarCenter", "textBarRight" }
+Style.BAR_SLOTS = BAR_SLOTS
+
+local function BarRoom(s, height)
+	local gap = (s.textBarPlace == "BELOW" or s.textBarPlace == "ABOVE") and BAR_GAP or 0
+	local h = math.min(s.textBarHeight, math.max(0, height - gap - BAR_MIN_BODY))
+	if h <= 0 then return 0, 0, false end
+	return h, gap, s.textBarPlace == "TOP" or s.textBarPlace == "ABOVE"
+end
+
+local function TextBar(view, s)
+	local rect, bar = view.barRect, view.textBar
+	if not rect then
+		if bar and bar:IsShown() then
+			bar:Hide()
+			for _, key in ipairs(BAR_SLOTS) do if view[key] then view[key]:Hide() end end
+		end
+		return
+	end
+	if not bar then
+		bar = CreateFrame("Frame", nil, view.parent)
+		bar.fill = bar:CreateTexture(nil, "BACKGROUND")
+		bar.fill:SetAllPoints(bar)
+		bar.icon = bar:CreateTexture(nil, "ARTWORK")
+		bar.inner = CreateFrame("Frame", nil, bar)
+		view.textBar = bar
+	end
+	bar.fill:SetColorTexture(Widgets.Rgba(TRACK))
+	Place(view, bar, rect)
+	local strata = s.textBarStrata ~= "" and s.textBarStrata or view.parent:GetFrameStrata()
+	if not issecretvalue(strata) then bar:SetFrameStrata(strata) end
+	local icon, pad, size = s.textBarIcon, Snap(view, BAR_PAD), Snap(view, rect.h)
+	bar.icon:ClearAllPoints()
+	bar.icon:SetSize(size, size)
+	bar.icon:SetPoint(icon == "RIGHT" and "RIGHT" or "LEFT", bar, icon == "RIGHT" and "RIGHT" or "LEFT")
+	bar.icon:SetShown(icon ~= "")
+	bar.inner:ClearAllPoints()
+	bar.inner:SetPoint("TOPLEFT", bar, "TOPLEFT", pad + (icon == "LEFT" and size or 0), 0)
+	bar.inner:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", -pad - (icon == "RIGHT" and size or 0), 0)
+	local inner = math.max(0, rect.w - 2 * BAR_PAD - (icon ~= "" and rect.h or 0))
+	for _, key in ipairs(BAR_SLOTS) do
+		view[key] = Widgets.PlaceText(view[key], s[key], bar, bar.inner, Snap(view, inner))
+	end
+	bar:Show()
+end
+
 local function ExtraTexts(view, s)
 	for i = 1, 2 do
 		local key = "extra" .. i
 		view[key] = Widgets.PlaceText(view[key], s[key], view.top, view.parent)
 	end
+	if view.barRect or view.textBar then TextBar(view, s) end
+	view.tagged = view.extra1 or view.extra2 or view.textBar
 	local align = s.powerTextAlign
 	if align ~= "" or view.powerAligned then
 		view.powerAligned = align ~= ""
@@ -704,7 +753,17 @@ local function ExtraTexts(view, s)
 end
 
 function Style.Layout(view, s, width, height)
-	local g = Geometry.Frame(s, width, height, K.Theme.FontScale())
+	local barH, gap, top = 0, 0, false
+	if s.textBar then barH, gap, top = BarRoom(s, height) end
+	local g = Geometry.Frame(s, width, height - barH - gap, K.Theme.FontScale())
+	if view.barRect then view.barRect = nil end
+	if barH > 0 then
+		local w = gap > 0 and s.textBarWidth > 0 and math.min(s.textBarWidth, width) or width
+		view.barRect = { x = (width - w) / 2, y = top and 0 or height - barH, w = w, h = barH }
+		for _, r in pairs(top and g or {}) do
+			if type(r) == "table" and type(r.y) == "number" then r.y = r.y + barH + gap end
+		end
+	end
 	view.geometry = g
 	view.portraitOrnament.mirror = g.mirror == true
 	view.form = g.form

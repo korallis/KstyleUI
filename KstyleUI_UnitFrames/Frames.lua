@@ -714,6 +714,10 @@ function Frames.Relayout(uf)
 			Unit.HealthColor(view, view.unit)
 			Unit.Health(view, view.unit, true)
 		end
+		if view.barRect and Active(view) and UnitExists(view.unit) then
+			Unit.TextTags(view, view.unit)
+			Unit.BarIcon(view, view.unit)
+		end
 		if (uf.s.auraSimple or "") ~= "" then ns.Auras.Apply(view) else ns.Auras.Place(view) end
 		local cb, cx, cy, cw, ch = view.castbar
 		if cb and g.cast then
@@ -730,12 +734,13 @@ function Frames.Relayout(uf)
 			cb.frame:SetShown(cb.active == true or cb.idle == true)
 			ns.CastBars.Layout(cb, cw, ch)
 		elseif cb and gap and (g.form == "plate" or g.form == "slab") then
+			cw = (uf.s.castbarWidth or 0) > 0 and math.min(uf.s.castbarWidth, g.panel.w) or g.panel.w
 			cb.frame:ClearAllPoints()
 			cb.frame:SetPoint("TOPLEFT", button, "TOPLEFT", g.panel.x, -(frameH + gap))
-			cb.frame:SetSize(g.panel.w, room)
+			cb.frame:SetSize(cw, room)
 			cb.noRoom = room <= 0
 			cb.frame:SetShown(room > 0 and (cb.active == true or cb.idle == true))
-			ns.CastBars.Layout(cb, g.panel.w, room)
+			ns.CastBars.Layout(cb, cw, room)
 		elseif cb then
 			cb.noRoom = true
 			cb.frame:Hide()
@@ -960,7 +965,7 @@ local function OnSettingChanged(_, module, key)
 		ns.Resource.Restyle()
 	elseif REACTION_KEYS[key:match("^%a+")] then
 		ForEach(function(each) RefreshKind(each.kind, true) end)
-	elseif key == "auraLayout" or key == "stableSlabNames" or key == "singleSlabLevel" or key == "healthDecimal" or key == "healthDecimalBoss" then
+	elseif key == "auraLayout" or key == "stableSlabNames" or key == "singleSlabLevel" or key == "healthDecimal" or key == "healthDecimalBoss" or key == "healthDecimalTrim" then
 		K.Combat.Queue(function()
 			ForEach(function(each)
 				if each.active then Frames.Restyle(each) end

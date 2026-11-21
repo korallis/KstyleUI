@@ -927,12 +927,21 @@ function Unit.Portrait(view, unit)
 end
 
 local TEXT_ELEMENTS = { "name", "health" }
+local TAGGED = { "extra1", "extra2", "textBarLeft", "textBarCenter", "textBarRight" }
+
+function Unit.BarIcon(view, unit, sample)
+	local bar = view.textBar
+	if not (bar and bar:IsShown() and view.s.textBarIcon ~= "") then return end
+	local file = sample and (sample.own and K.Theme.Class() or sample.classFile) or ClassFile(unit)
+	bar.icon:SetShown(HasClass(file) and Unit.ClassArt(bar.icon, file, view.s) and true or false)
+end
+
 function Unit.TextTags(view, unit, event, sample)
-	if not (view.s.textOptions or view.extra1 or view.extra2) then return end
+	if not (view.s.textOptions or view.tagged) then return end
 	local Widgets = K.Widgets
 	event = event == "MaxHealth" and "Health" or event == "PowerType" and "Power" or event
-	for i = 1, 2 do
-		local key = "extra" .. i
+	for i = 1, #TAGGED do
+		local key = TAGGED[i]
 		local text, cfg = view[key], view.s[key]
 		if text and text:IsShown() then
 			local format = cfg.textFormat
@@ -972,4 +981,5 @@ function Unit.All(view, unit, instant)
 	Unit.Portrait(view, unit)
 	Indicators.Update(view, unit)
 	Unit.TextTags(view, unit)
+	if view.textBar then Unit.BarIcon(view, unit) end
 end

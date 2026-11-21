@@ -43,7 +43,7 @@ local pet = Frames.Get("pet").views[1]
 assert(pet.castbar == nil, "no pet cast bar is made until it is turned on")
 
 local schema = keys(Settings.Schema())
-assert(schema["pet.castbarWidth"] and not schema["boss.castbarWidth"], "only the pet has a cast bar width")
+assert(schema["pet.castbarWidth"] and schema["boss.castbarWidth"] and not schema["focus.castbarWidth"], "the pet and, since round 4a, the boss have a cast bar width")
 assert(schema["pet.castbarHideIdle"] and schema["boss.castbarHideIdle"] and schema["player.castbarHideIdle"], "every cast bar can keep an idle bar")
 assert(schema["pet.happinessPosition"] and not schema["target.happinessPosition"], "only the pet places a happiness badge")
 assert(schema["boss.auraSimple"] and not schema["target.auraSimple"], "only boss frames have the simple display")

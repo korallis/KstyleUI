@@ -10,15 +10,15 @@ ns.Format = Format
 local ceil = math.ceil
 
 local COLUMN = { none = 0, legacy = 0, auto = 3.8, percent = 3.2, current = 3.8, currentMax = 7, both = 10.4 }
-local PERCENT = { [0] = "%.0f%%", "%.1f%%", "%.2f%%", bare = "%.0f" }
+local PERCENT = { [0] = "%.0f%%", [true] = "%.1f%%", [2] = "%.2f%%", bare = "%.0f", trim = "%s%%" }
 local CURRENT_MAX = "%s / %s"
-local BOTH = { [0] = "%s / %s  %.0f%%", "%s / %s  %.1f%%", "%s / %s  %.2f%%", bare = "%s / %s  %.0f" }
+local BOTH = { [0] = "%s / %s  %.0f%%", [true] = "%s / %s  %.1f%%", [2] = "%s / %s  %.2f%%", bare = "%s / %s  %.0f", trim = "%s / %s  %s%%" }
 local MAX = "/ %s"
 
 function Format.ColumnWidth(format, size, decimal)
 	local em = COLUMN[format] or 0
 	if decimal and (format == "percent" or format == "both") then
-		em = em + (decimal == 2 and 1 or 0.4)
+		em = em + ((decimal == 2 or decimal == -2) and 1 or 0.4)
 	end
 	return ceil(em * size)
 end
@@ -64,6 +64,33 @@ function Format.ResetCurve()
 	curve, curveTried = nil, false
 end
 
+local trims = {}
+local TRIM_PROBES = { { { 415.5, "41.5" }, { 410.5, "41" }, { 0.5, "0" } }, { { 4127.5, "41.27" }, { 4120.5, "41.2" }, { 4100.5, "41" } } }
+local function Trim(places)
+	if trims[places] ~= nil then return trims[places] or nil end
+	trims[places] = false
+	local scale, util = 10 ^ places, C_CurveUtil
+	if type(AbbreviateNumbers) ~= "function" or not (util and type(util.CreateCurve) == "function") then
+		Log("trailing zeros: AbbreviateNumbers or C_CurveUtil is missing; decimals keep their zeros")
+		return nil
+	end
+	local options = { breakpointData = { { breakpoint = 0, abbreviation = "", significandDivisor = 1, fractionDivisor = scale, abbreviationIsGlobal = false } } }
+	for _, probe in ipairs(TRIM_PROBES[places]) do
+		local ok, text = pcall(AbbreviateNumbers, probe[1], options)
+		if not ok or K.Widgets.IsSecret(text) or text ~= probe[2] then
+			Log("trailing zeros: AbbreviateNumbers writes " .. tostring(text) .. "; decimals keep their zeros")
+			return nil
+		end
+	end
+	local made = util.CreateCurve()
+	if made.SetType and Enum and Enum.LuaCurveType and Enum.LuaCurveType.Linear then made:SetType(Enum.LuaCurveType.Linear) end
+	made:AddPoint(0, 0.5)
+	made:AddPoint(1, 100 * scale + 0.5)
+	trims[places] = { curve = made, options = options, scale = scale }
+	return trims[places]
+end
+
+
 local Abbreviate = K.Widgets.ShortNumber
 
 local function Gone(unit)
@@ -90,7 +117,7 @@ end
 
 local function Write(text, format, current, max, percent, hasPercent, decimal, bare)
 	if hasPercent and not decimal then percent = K.Widgets.WholePercent(percent) end
-	local places = bare and "bare" or decimal == 2 and 2 or decimal and 1 or 0
+	local places = bare and "bare" or decimal or 0
 	if format == "current" then
 		text:SetText(Abbreviate(current))
 	elseif format == "percent" and hasPercent then
@@ -115,7 +142,13 @@ function Format.Health(text, unit, format, decimal)
 		local c = Curve()
 		if c and UnitHealthPercent then
 			hasPercent = true
-			percent = UnitHealthPercent(unit, true, c)
+			local trim = decimal and decimal ~= true and decimal < 0 and Trim(-decimal)
+			if trim then
+				percent, decimal = AbbreviateNumbers(UnitHealthPercent(unit, true, trim.curve), trim.options), "trim"
+			else
+				percent = UnitHealthPercent(unit, true, c)
+				if decimal and decimal ~= true and decimal < 0 then decimal = decimal == -2 and 2 or true end
+			end
 		end
 	end
 	Write(text, format, UnitHealth(unit), UnitHealthMax(unit), percent, hasPercent, decimal)
@@ -198,5 +231,11 @@ function Format.Sample(text, format, current, max, decimal, bare)
 		return
 	end
 	local percent = max > 0 and current / max * 100 or 0
+	local trim = decimal and decimal ~= true and decimal < 0 and Trim(-decimal)
+	if trim then
+		percent, decimal = AbbreviateNumbers(percent * trim.scale + 0.5, trim.options), "trim"
+	elseif decimal and decimal ~= true and decimal < 0 then
+		decimal = decimal == -2 and 2 or true
+	end
 	Write(text, format, current, max, percent, true, decimal, bare)
 end

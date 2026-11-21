@@ -368,7 +368,7 @@ local function Card(out, s, width, height, scale)
 		capH = 0
 	end
 	local powerH = s.power and min(s.powerHeight or 0, CARD.powerMax) or 0
-	local castH = s.castbar and BOLD_LINE or 0
+	local castH = s.castbar and (s.castbarHeight or BOLD_LINE) or 0
 	local gaps = { CARD.top, capH > 0 and CARD.capGap or 0, CARD.nameGap, powerH > 0 and CARD.powerGap or 0, castH > 0 and CARD.castGap or 0, CARD.bottom }
 	local fixed = capH + rowH + healthH + powerH + castH
 	local sum = 0
@@ -376,8 +376,8 @@ local function Card(out, s, width, height, scale)
 		sum = sum + g
 	end
 	if fixed + sum > height and castH > 0 and fixed > height - 2 then
+		fixed = fixed - castH
 		castH, gaps[5] = 0, 0
-		fixed = fixed - BOLD_LINE
 	end
 	if fixed > height then
 		fixed, capH, gaps[2] = fixed - capH, 0, 0
@@ -423,7 +423,7 @@ local function Card(out, s, width, height, scale)
 	if castH > 0 then
 		out.rest = min(height, y + gap(6))
 		y = y + gap(5)
-		out.cast = Rect(padX, y, colW, castH)
+		out.cast = Rect(padX, y, (s.castbarWidth or 0) > 0 and min(s.castbarWidth, colW) or colW, castH)
 	end
 	out.panel = Rect(padX, 0, colW, height)
 end

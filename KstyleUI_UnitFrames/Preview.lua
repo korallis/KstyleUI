@@ -35,7 +35,7 @@ local SAMPLES = {
 	player = { name = L["Valerin"], level = 60, health = 3120, healthMax = 3980, power = 3120, powerMax = 3980, reaction = 5, own = true, leader = true, resting = true, caption = L["Battle Stance"], class = L["Warrior"] },
 	target = { name = L["Frost Howler"], level = 61, classification = "elite", creature = L["Beast"], health = 2240, healthMax = 4020, power = 40, powerMax = 100, reaction = 2, marker = true, threat = true, faction = "Horde" },
 	targettarget = { name = L["Valerin"], level = 60, health = 3120, healthMax = 3980, power = 3120, powerMax = 3980, reaction = 5, own = true },
-	focus = { name = L["Elunara"], level = 60, health = 2530, healthMax = 4010, power = 2900, powerMax = 4400, reaction = 2 },
+	focus = { name = L["Elunara"], level = 60, health = 2530, healthMax = 4010, power = 2900, powerMax = 4400, reaction = 2, classFile = "MAGE" },
 	focustarget = { name = L["Krazhk"], level = 60, health = 3300, healthMax = 4000, power = 1800, powerMax = 3600, reaction = 2 },
 	pet = { name = L["Wolf"], level = 58, health = 1460, healthMax = 2000, power = 80, powerMax = 100, reaction = 5 },
 	boss = { name = L["Magmatus"], level = -1, classification = "worldboss", health = 72000, healthMax = 100000, power = 0, powerMax = 100, reaction = 2, marker = true, threat = true },
@@ -196,6 +196,7 @@ local function Paint(view, kind)
 		ns.Unit.Refit(view)
 	end
 	ns.Unit.TextTags(view, nil, nil, sample)
+	if view.textBar then ns.Unit.BarIcon(view, nil, sample) end
 	if s.portraitStyle == "class" and GetClassAtlas and Theme.Class() then
 		ns.Unit.ClassArt(view.portrait, Theme.Class(), s)
 	elseif SetPortraitTexture then
@@ -276,7 +277,9 @@ local function PaintCast(frame, view, kind, height)
 	local x, y, w, extra = g.panel.x, height + CAST_GAP, g.panel.w, castH + CAST_GAP
 	if kind == "pet" then
 		w, y = view.s.castbarWidth > 0 and view.s.castbarWidth or w, math.max(height, g.medal and g.medal.y + g.medal.h or 0) + CAST_GAP
-	elseif g.form ~= "plate" then
+	elseif g.form == "plate" then
+		w = (view.s.castbarWidth or 0) > 0 and math.min(view.s.castbarWidth, w) or w
+	else
 		if not g.cast then
 			cb.frame:Hide()
 			return 0
@@ -379,10 +382,13 @@ local function Samples(kind)
 	local friend = SAMPLES[kind].reaction >= 5
 	local ids = K.Options.AuraCandidates({ blockSpells = Settings.Value(kind, "auraHidden"),
 		allowSpells = friend and Settings.Value(kind, "auraTrackedOnly") and Settings.Value(kind, "auraTracked") or "" }) or {}
+	local foes = not friend and Settings.Value(kind, "auraTrackedDebuffs") and K.Options.AuraCandidates({ allowSpells = Settings.Value(kind, "auraTracked") })
 	local kept = {}
 	for p, t in ipairs(AURA_TRAITS) do
 		local keep = not (t.id and Settings.Value(kind, "auraHideLockout") or ids.excludeSpellIDs and ids.excludeSpellIDs[t.id])
-		if t.buff then
+		if not t.buff and foes and foes.includeSpellIDs then
+			keep = keep and foes.includeSpellIDs[t.id] == true
+		elseif t.buff then
 			keep = keep and not (ids.includeSpellIDs and not ids.includeSpellIDs[t.id])
 			for _, lane in ipairs(LANES) do
 				local mode = Settings.Value(kind, lane)

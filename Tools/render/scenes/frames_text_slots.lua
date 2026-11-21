@@ -1,4 +1,4 @@
--- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text, unit-frame parity round 1, 2, 3a, 3b, 3c, 3d or 4b options through Options (RENDER_TOTEMS and RENDER_PORTRAIT set the totem and portrait sides), or (RENDER_AURA_BOTH=1) the target's Debuffs and buffs with timers under the icons, nudged by RENDER_AURA_TIMER_Y.
+-- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text, unit-frame parity round 1, 2, 3a, 3b, 3c, 3d, 4a or 4b options through Options (RENDER_TOTEMS and RENDER_PORTRAIT set the totem and portrait sides), or (RENDER_AURA_BOTH=1) the target's Debuffs and buffs with timers under the icons, nudged by RENDER_AURA_TIMER_Y.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -208,6 +208,26 @@ return Common.Run(function()
 		env.FireEvent("PLAYER_TOTEM_UPDATE", 1)
 		local cast = env._units.player.cast
 		if cast then env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", cast.spellID) end
+	end
+	if os.getenv("RENDER_PARITY_R4A") == "1" and module == "UnitFrames" then
+		local U, target = dofile("Tools/regression/unitframes_env.lua"), env._units.target
+		target.class = "MAGE"
+		U.SetUnit(env, "focus", target)
+		local now = env.GetTime() * 1000
+		U.SetUnit(env, "boss1", { name = "Magmatus", level = -1, classification = "worldboss", health = 41200, healthMax = 100000, reaction = 2, canAttack = true,
+			cast = { name = "Fireball", text = "Fireball", texture = 135808, start = now - 900, finish = now + 1100, spellID = 1 } })
+		for _, event in ipairs({ "PLAYER_FOCUS_CHANGED", "INSTANCE_ENCOUNTER_ENGAGE_UNIT" }) do env.FireEvent(event) end
+		K.Options.Get(module)
+		for _, pair in ipairs({
+			{ "healthDecimal", true }, { "healthDecimalTrim", true }, { "boss.style", "plate" }, { "boss.castbarHeight", 16 }, { "boss.castbarWidth", 150 },
+			{ "player.textBar", true }, { "player.textBarIcon", "LEFT" }, { "player.textBarLeft.textFormat", "[name]" }, { "player.textBarRight.textFormat", "[hp:pct]" },
+			{ "target.textBar", true }, { "target.textBarPlace", "TOP" }, { "target.textBarCenter.textFormat", "[level] [c:ff8800]>[/c] [target]" },
+			{ "focus.textBar", true }, { "focus.textBarPlace", "BELOW" }, { "focus.textBarWidth", 170 }, { "focus.textBarIcon", "RIGHT" },
+			{ "focus.textBarLeft.textFormat", "[name]" }, { "focus.textBarRight.textFormat", "[pp:abr]" },
+		}) do
+			K.Options.Write(module, pair[1], pair[2])
+		end
+		env.FireEvent("UNIT_SPELLCAST_START", "boss1", "Cast-1", 1)
 	end
 	env.RunTimers(); Gallery.Ticks(dofile("Tools/regression/widget_env.lua"), env, 40)
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))

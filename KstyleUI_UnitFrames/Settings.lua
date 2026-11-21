@@ -21,7 +21,7 @@ local ALPHA_MIN, ALPHA_STEP = 0.1, 0.05
 local ZOOM_MAX, ZOOM_STEP = 0.3, 0.01
 local NUDGE = 50
 local BOSS_GAP_MAX = 20
-local MARKER_MAX, CAST_WIDTH_MIN, CAST_WIDTH_MAX = 48, 2 * CAST_HEIGHT_MAX, 400
+local MARKER_MAX, CAST_WIDTH_MIN, CAST_WIDTH_MAX, CARD_CAST = 48, 2 * CAST_HEIGHT_MAX, 400, 16
 local PRECISE_MAX, SPELL_LIST_LETTERS = 90, 240
 local HEALTH_HEIGHT_MAX, ABSORB_BAR_MAX, OFFSET_MAX = 40, 10, 100
 local NO_ABOVE = { slab = true, bar = true, sigil = true }
@@ -215,7 +215,7 @@ Settings.defaults = {
 	castOutcomes = true,
 	healthDecimal = false,
 	unitTooltip = "always",
-	healthDecimalBoss = false, targetSounds = false, reactionColors = false, hostileColor = Color("healthHostile"),
+	healthDecimalBoss = false, healthDecimalTrim = false, targetSounds = false, reactionColors = false, hostileColor = Color("healthHostile"),
 	neutralColor = Color("neutral"), friendlyColor = Color("friendly"), tappedColor = Color("textDisabled"),
 	castbarRaise = false,
 	dispelCustom = false, dispelMagic = Color("magic"), dispelCurse = Color("epic"), dispelPoison = Color("uncommon"), dispelDisease = Color("legendary"), dispelBleed = Color("hostile"),
@@ -274,6 +274,15 @@ AddDefaults({ "player" }, { threatNonTank = false, pvpTimer = false, pvpTimerSiz
 AddDefaults({ "target", "focus" }, { threatPercent = false, threatPercentPosition = "RIGHT", slabThreatPercentPosition = "OUTLEFT", threatPercentColor = true })
 Settings.defaults.focus.threatPercentPosition = "OUTRIGHT"
 AddDefaults({ "target", "targettarget", "focus", "focustarget", "boss" }, { eliteSize = 0, eliteX = 0, eliteY = 0, eliteInstances = true })
+AddDefaults({ "boss" }, { castbarWidth = 0 })
+AddDefaults({ "target", "targettarget", "focus", "focustarget", "boss" }, { auraTrackedDebuffs = false })
+Settings.TEXT_BAR = { player = true, target = true, focus = true }
+for kind in pairs(Settings.TEXT_BAR) do
+	local d = Settings.defaults[kind]
+	d.textBar, d.textBarPlace, d.textBarHeight, d.textBarWidth, d.textBarStrata, d.textBarIcon = false, "BOTTOM", 16, 0, "", ""
+	d.textBarLeft, d.textBarCenter, d.textBarRight = ExtraText(), ExtraText(), ExtraText()
+	d.textBarLeft.position, d.textBarRight.position = "LEFT", "RIGHT"
+end
 
 for _, kind in ipairs({ "targettarget", "focustarget", "pet" }) do
 	local fonts = Settings.defaults[kind].fonts
@@ -348,6 +357,10 @@ Settings.CHOICES = {
 local CHOICES = Settings.CHOICES
 CHOICES.threatPlace = Options({ { "OUTLEFT", L["Left of the bar"] }, { "OUTRIGHT", L["Right of the bar"] }, { "LEFT", L["Inside the left edge"] },
 	{ "RIGHT", L["Inside the right edge"] }, { "CENTER", L["Centre"] } })
+CHOICES.textBarPlace = Options({ { "BOTTOM", L["Bottom of the frame"] }, { "TOP", L["Top of the frame"] }, { "BELOW", L["Below the frame, apart"] }, { "ABOVE", L["Above the frame, apart"] } })
+CHOICES.textBarIcon = Options({ { "", L["None"] }, { "LEFT", L["Left"] }, { "RIGHT", L["Right"] } })
+CHOICES.strata = { { value = "", label = L["Same as the frame"] } }
+for _, option in ipairs(K.Layout and K.Layout.STRATA_OPTIONS or {}) do CHOICES.strata[#CHOICES.strata + 1] = option end
 
 local CHOICE_OF = {
 	style = "style",
@@ -378,6 +391,7 @@ local CHOICE_OF = {
 	threatPercentPosition = "threatPlace",
 	slabThreatPercentPosition = "threatPlace",
 	dispelOverlay = "dispelOverlay", dispelFilter = "dispelFilter", dispelIcon = "dispelIcon", totemPosition = "totemPosition", auraLists = "auraCopy",
+	textBarPlace = "textBarPlace", textBarIcon = "textBarIcon", textBarStrata = "strata",
 }
 
 local function Allowed(list, value)
@@ -468,6 +482,7 @@ local RANGES = {
 	classZoom = { 0, ZOOM_MAX }, leaderSize = { 0, ICON_SIZE_MAX }, pvpSize = { 0, ICON_SIZE_MAX }, eliteSize = { 0, ICON_SIZE_MAX }, combatSize = { 0, ICON_SIZE_MAX },
 	pvpTimerSize = { FONT_SIZE_MIN, FONT_SIZE_MAX },
 	castbarIconSize = { 0, 64 }, dispelAlpha = { 0.05, 1 }, dispelIconSize = { 8, 40 }, totemSize = { 16, 48 },
+	textBarHeight = { 8, CAST_HEIGHT_MAX }, textBarWidth = { 0, CAST_WIDTH_MAX },
 }
 for _, key in ipairs({ "auraX", "auraY", "auraTimerX", "auraTimerY", "auraCountX", "auraCountY",
 	"castbarIconX", "castbarIconY", "castbarTextX", "castbarTextY", "castbarTimerX", "castbarTimerY",
@@ -483,14 +498,15 @@ RANGES.auraRowGap, RANGES.auraPrecise = { 0, AURA_SPACING_MAX }, { 0, PRECISE_MA
 CHOICES.lane = Options({ { "", L["Show all"] }, { "only", L["Only these"] }, { "hide", L["Hide these"] } })
 CHOICE_OF.buffStealable, CHOICE_OF.buffDefensive, CHOICE_OF.buffDispellable = "lane", "lane", "lane"
 
-local SLAB_DEFAULTS = { target = { auraSize = 22, auraSpacing = 2, auraColumns = 6, auraGrowth = "LEFT_DOWN" } }
+local FORM_DEFAULTS = { target = { auraSize = 22, auraSpacing = 2, auraColumns = 6, auraGrowth = "LEFT_DOWN" }, boss = { castbarHeight = CARD_CAST } }
+local DEFAULT_FORM = { target = "slab", boss = "card" }
 local ROW_DEFAULTS = {
 	player = { auraPosition = "ABOVE", auraGrowth = "RIGHT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
 	target = { auraPosition = "ABOVE", auraGrowth = "LEFT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
 }
 
 local DERIVED = { auras = true, auraFilter = true, threatPercentPosition = true }
-for _, list in pairs({ SLAB_DEFAULTS, ROW_DEFAULTS }) do
+for _, list in pairs({ FORM_DEFAULTS, ROW_DEFAULTS }) do
 	for _, keys in pairs(list) do
 		for key in pairs(keys) do DERIVED[key] = true end
 	end
@@ -526,9 +542,9 @@ local function Value(kind, key)
 	local value = own[key]
 	local rows = ROW_DEFAULTS[kind]
 	if rows and rows[key] ~= nil and (value == nil or value == default) and Settings.AuraRows(kind) then return rows[key] end
-	local slab = SLAB_DEFAULTS[kind] and SLAB_DEFAULTS[kind][key]
-	if slab ~= nil and (value == nil or value == default) and Settings.Form(kind) == "slab" then
-		return slab
+	local form = FORM_DEFAULTS[kind] and FORM_DEFAULTS[kind][key]
+	if form ~= nil and (value == nil or value == default) and Settings.Form(kind) == DEFAULT_FORM[kind] then
+		return form
 	end
 	if value == default or type(value) ~= type(default) then
 		return default
@@ -725,6 +741,7 @@ function Settings.Snapshot(kind)
 	local s = { fonts = fonts, form = form, kind = kind, rowsAbove = Settings.AuraRows(kind), inlineCast = form == "column" and kind ~= "player" }
 	local m = Settings.Module()
 	s.healthDecimal = kind == "boss" and m.healthDecimalBoss == true and 2 or m.healthDecimal == true
+	if s.healthDecimal and m.healthDecimalTrim == true then s.healthDecimal = s.healthDecimal == 2 and -2 or -1 end
 	s.textOptions = fonts.name.textFormat ~= "" or fonts.health.textFormat ~= "" or fonts.name.colorMode ~= "" or fonts.health.colorMode ~= ""
 	for key, default in pairs(d) do
 		if key ~= "fonts" and not LIVE[key] then
@@ -746,7 +763,7 @@ local function Shows(kind, extra)
 	end
 end
 
-local IconRows, ResourceRows, CastRows, AuraRows
+local IconRows, ResourceRows, CastRows, AuraRows, TextBarRows
 
 local function Scope(kind)
 	return { key = "edit", value = kind }
@@ -943,6 +960,9 @@ CastRows = function(schema, kind)
 		options = CHOICES.castbarColor,
 		height = not Settings.CAST_ELEMENTS[kind] and { CAST_HEIGHT_MIN, CAST_HEIGHT_MAX, 1, key = "castbarHeight" } or nil,
 		row = function(row)
+			if kind == "boss" and row.type == "slider" then
+				row.shown = function(value) return value == Settings.defaults.boss.castbarHeight and Settings.Form(kind) == "card" and CARD_CAST or value end
+			end
 			return Row(kind, row, row.type == "color" and function(s) return on(s) and s.castbarColor == "custom" end or on)
 		end,
 	})
@@ -975,9 +995,10 @@ CastRows = function(schema, kind)
 		help = L["How solid the cast fill is. Lower lets the track show through."], min = ALPHA_MIN, max = 1, step = ALPHA_STEP }, on)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarSpark", label = L["Cast spark"], help = L["Shows the current style's bright cast progress edge."] }, on)
 	schema[#schema + 1] = Row(kind, { type = "color", key = "castbarLockedColor", label = L["Uninterruptible colour"], help = L["The colour of casts nothing can interrupt."] }, on)
-	if kind == "pet" then
+	if kind == "pet" or kind == "boss" then
 		schema[#schema + 1] = Row(kind, { type = "slider", key = "castbarWidth", label = L["Cast bar width"], min = 0, max = CAST_WIDTH_MAX, step = 1,
-			help = L["The cast bar's width under the frame. 0 matches the frame."], shown = function(value) return value > 0 and math.max(value, CAST_WIDTH_MIN) or value end }, on)
+			help = kind == "pet" and L["The cast bar's width under the frame. 0 matches the frame."] or L["The cast bar's width, from its left end. 0 matches the frame."],
+			shown = function(value) return value > 0 and math.max(value, CAST_WIDTH_MIN) or value end }, on)
 	end
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarHideIdle", label = L["Hide when idle"],
 		help = L["Hides the cast bar between casts. Off keeps its empty track shown."] }, on)
@@ -1029,10 +1050,16 @@ local function FilterRows(schema, kind, on, own)
 		help = L["Hides Sated, Exhaustion and the other Bloodlust lockout debuffs on friendly units."] }, on)
 	schema[#schema + 1] = Row(kind, { type = "text", key = "auraHidden", label = L["Hidden spell IDs"], maxLetters = SPELL_LIST_LETTERS,
 		help = L["Hides these spell IDs, separated by commas or spaces, on buffs of friends and debuffs of enemies."] }, function() return on() and listed() end)
+	local enemies = kind ~= "player" and kind ~= "pet"
+	local function foes() return enemies and on() and Settings.Value(kind, "auraFilter") ~= "buffs" end
 	schema[#schema + 1] = Row(kind, { type = "text", key = "auraTracked", label = L["Tracked spell IDs"], maxLetters = SPELL_LIST_LETTERS,
-		help = L["The buffs Only tracked buffs keeps, as spell IDs separated by commas or spaces."] }, function() return buffs() and listed() end)
+		help = L["Spell IDs, separated by commas or spaces, that Only tracked buffs and debuffs keep."] }, function() return (buffs() or foes()) and listed() end)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraTrackedOnly", label = L["Only tracked buffs"],
 		help = L["On friendly units, shows only the buffs in Tracked spell IDs. Enemy buffs show as usual."] }, function() return buffs() and listed() end)
+	if enemies then
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraTrackedDebuffs", label = L["Only tracked debuffs"],
+			help = L["On enemies, shows only the debuffs in Tracked spell IDs. Debuffs on friends show as usual."] }, function() return foes() and listed() end)
+	end
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraRowGap", label = L["Extra row spacing"],
 		help = L["Adds this many units between aura rows, on top of Aura spacing."], min = 0, max = AURA_SPACING_MAX, step = 1 }, own)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraPrecise", label = L["Precise timers below (minutes)"],
@@ -1202,6 +1229,33 @@ ResourceRows = function(schema)
 		help = L["Where the text sits on the bar: left, centre or right."], showWhen = shows(function(r) return on(r) and r.manaText ~= "none" end) }
 	for i = first, #schema do
 		schema[i].scope = Scope("player")
+	end
+end
+
+TextBarRows = function(schema, kind)
+	local function on(s) return s.textBar == true end
+	schema[#schema + 1] = Header(kind, L["text bar"])
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "textBar", label = L["Text bar"],
+		help = L["A strip with left, centre and right text. It takes its room from the frame, so nothing moves."] })
+	for _, spec in ipairs({
+		{ "dropdown", "textBarPlace", L["Text bar place"], L["The frame's bottom or top edge, or below or above it with a gap."], CHOICES.textBarPlace },
+		{ "slider", "textBarHeight", L["Text bar height"], L["The strip's height in units."], nil, 8, CAST_HEIGHT_MAX },
+		{ "slider", "textBarWidth", L["Text bar width"], L["The strip's width when it sits apart, centred on the frame. 0 matches the frame."], nil, 0, CAST_WIDTH_MAX },
+		{ "dropdown", "textBarStrata", L["Text bar strata"], L["Which layer the strip draws in."], CHOICES.strata },
+		{ "dropdown", "textBarIcon", L["Class icon"], L["The unit's class icon at one end of the strip."], CHOICES.textBarIcon },
+	}) do
+		schema[#schema + 1] = Row(kind, { type = spec[1], key = spec[2], label = spec[3], help = spec[4], options = spec[5], min = spec[6], max = spec[7], step = spec[6] and 1 },
+			spec[2] == "textBarWidth" and function(s) return on(s) and (s.textBarPlace == "BELOW" or s.textBarPlace == "ABOVE") end or on)
+	end
+	for _, slot in ipairs({ { "textBarLeft", L["Left text"] }, { "textBarCenter", L["Centre text"] }, { "textBarRight", L["Right text"] } }) do
+		K.Widgets.TextRows(schema, slot[1], { outlines = CHOICES.outline, tags = true, width = true, row = function(row)
+			row.label = slot[2] .. ": " .. row.label
+			if row.type == "text" then row.help = L["Blank hides it. Tags: [name] [hp:pct] [pp:abr] [level] [absorb] [target] [group] [c:ff8800]x[/c]."] end
+			return Row(kind, row, row.type == "color" and function(s) return on(s) and s[slot[1]].colorMode == "custom" end or on)
+		end })
+		for _, axis in ipairs({ { "x", L["Horizontal offset"], L["Moves this text left or right."] }, { "y", L["Vertical offset"], L["Moves this text up or down."] } }) do
+			schema[#schema + 1] = Row(kind, { type = "slider", key = slot[1] .. "." .. axis[1], label = slot[2] .. ": " .. axis[2], help = axis[3], min = -NUDGE, max = NUDGE, step = 1 }, on)
+		end
 	end
 end
 
@@ -1398,6 +1452,7 @@ local function KindRows(schema, kind)
 		K.Widgets.TextRows(schema, key, { outlines = CHOICES.outline, tags = true, placement = true, width = true,
 			row = function(row) return Row(kind, row) end })
 	end
+	if Settings.TEXT_BAR[kind] then TextBarRows(schema, kind) end
 	IconRows(schema, kind)
 	if Settings.CASTBAR[kind] then
 		CastRows(schema, kind)
@@ -1426,6 +1481,8 @@ function Settings.Schema()
 			help = L["When hovering a unit frame shows the unit's tooltip."] },
 		{ type = "toggle", key = "healthDecimalBoss", label = L["Boss health percent with two decimals"],
 			help = L["Shows boss frame health percentages with two decimal places, such as 41.27%."] },
+		{ type = "toggle", key = "healthDecimalTrim", label = L["Hide trailing zeros"], help = L["Shows 41% rather than 41.0%, and 41.5% rather than 41.50%."],
+			showWhen = function(s) return s.healthDecimal == true or s.healthDecimalBoss == true end },
 		{ type = "toggle", key = "targetSounds", label = L["Target lost sound"],
 			help = L["Plays the game's sound when you lose your target while KstyleUI hides Blizzard's target frame."] },
 		{ type = "toggle", key = "reactionColors", label = L["Custom reaction colours"],
