@@ -91,7 +91,6 @@ do
 	game.slots[1001], game.keys.ACTIONBUTTON3 = { 3 }, "SHIFT-3"
 	game.slots[1002], game.keys.MULTIACTIONBAR1BUTTON2 = { 62 }, "CTRL-Q"
 	game.slots[2001] = { 15 }
-	game.keys.ACTIONBUTTON3 = "SHIFT-3"
 	Write("essential.keybind", true)
 	assert(Key(a) == "S3" and Key(b) == "CQ", "each icon shows its spell's short key: main bar and bottom left bar")
 	assert(Registered(env, "UPDATE_BINDINGS") and Registered(env, "ACTIONBAR_PAGE_CHANGED") and Registered(env, "UPDATE_BONUS_ACTIONBAR"), "key events are heard while a keybind shows")
@@ -136,6 +135,31 @@ do
 	Clean(env, K, "keybind")
 end
 
+-- Show keybind reads the binding that fires the slot: the main bar's key for a side-bar page it shows, none while the stance page is unreadable, KstyleUI's own buttons while Action Bars answers, and fresh bindings after a restart.
+do
+	local env, K, ns, Write = New("mirror")
+	local a = IconOf(ns, "essential", 1001)
+	game.page, game.slots[1001], game.keys.ACTIONBUTTON1 = 3, { 25 }, "F"
+	Write("essential.keybind", true)
+	assert(Key(a) == "F", "a side-bar slot the main bar shows takes the main bar's key")
+	game.page, game.slots[1001] = 1, { 1 }
+	env.C_ActionBar.HasBonusActionBar = function() return env.Secret(true) end
+	Fire(env, "UPDATE_BINDINGS")
+	assert(not Key(a) or Key(a) == "", "an unreadable stance page shows no main bar key")
+	env.C_ActionBar.HasBonusActionBar = function() return false end
+	K.Widgets.SetActionKeys(function(slot) return slot == 1 and "G" or false end); env.RunTimers()
+	assert(Key(a) == "G", "KstyleUI's own bars give the key of the button that shows the slot")
+	K.Widgets.SetActionKeys(function() return false end); env.RunTimers()
+	assert(not Key(a) or Key(a) == "", "and none when no KstyleUI button shows it")
+	K.Widgets.SetActionKeys(nil); env.RunTimers()
+	assert(Key(a) == "F", "without Action Bars Blizzard's bars decide again")
+	K.Modules.Disable("Cooldowns"); env.RunTimers()
+	game.keys.ACTIONBUTTON1 = "G"
+	K.Modules.Enable("Cooldowns"); env.RunTimers()
+	assert(Key(IconOf(ns, "essential", 1001)) == "G", "a restart reads the bindings afresh")
+	Clean(env, K, "key lookup")
+end
+
 -- Mirror key presses: a press of the slot holding the spell presses its icon, even on cooldown; other icons and other groups stay still; off stops it.
 do
 	local env, K, ns, Write = New("mirror")
@@ -157,14 +181,25 @@ do
 	K.Widgets.ActionPressed(env.Secret(1), true)
 	Clean(env, K, "secret presses")
 	Write("essential.pressMirror", false)
-	a.pressHeld = nil
+	assert(c.pressHeld == false, "off releases a held icon")
 	K.Widgets.ActionPressed(1, true)
-	assert(a.pressHeld == nil, "off stops mirroring presses")
+	assert(a.pressHeld == false, "off stops mirroring presses")
 	Write("essential.pressMirror", true)
-	K.Modules.Disable("Cooldowns"); env.RunTimers()
-	a.pressHeld = nil
 	K.Widgets.ActionPressed(1, true)
-	assert(a.pressHeld == nil, "stopping the module stops listening")
+	Write("essential.pressMirror", false)
+	K.Widgets.ActionPressed(1, false)
+	Write("essential.pressMirror", true)
+	local flashes = #W.Calls(a.press, "Play")
+	K.Widgets.ActionPressed(1, true)
+	assert(#W.Calls(a.press, "Play") == flashes + 1, "a press held while the option went off does not swallow the next press")
+	game.actions[1] = 1002
+	K.Widgets.ActionPressed(1, false)
+	assert(a.pressHeld == false and not b.pressHeld, "a release reaches the icon its press went to, after the slot changes")
+	K.Widgets.ActionPressed(1, true)
+	K.Modules.Disable("Cooldowns"); env.RunTimers()
+	assert(b.pressHeld == false, "stopping releases a held icon")
+	K.Widgets.ActionPressed(1, true)
+	assert(b.pressHeld == false, "stopping the module stops listening")
 	Clean(env, K, "presses")
 end
 
@@ -191,6 +226,24 @@ do
 	Write("utility.itemQuality", false)
 	assert(Shown(potion.rankDots) == 0, "off hides the pips")
 	Clean(env, K, "item quality")
+end
+
+-- Item quality: five pips stay inside the icon at the smallest size on every test screen, after a resize too.
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local env, K, ns, Write = New("mirror")
+	env.GetPhysicalScreenSize = function() return screen[1], screen[2] end
+	Fire(env, "DISPLAY_SIZE_CHANGED")
+	game.quality[8001] = 5
+	Write("utility.size", 16)
+	Write("utility.itemQuality", true)
+	local potion = IconOf(ns, "utility", 30)
+	for _, size in ipairs({ 16, 64, 16 }) do
+		Write("utility.size", size)
+		local dot = potion.rankDots[5]
+		local left = potion:GetWidth() + select(4, dot:GetPoint(1)) - dot:GetWidth()
+		assert(dot:IsShown() and left >= 0, "the fifth pip stays inside a " .. size .. " icon at " .. screen[1] .. "x" .. screen[2] .. " (" .. left .. ")")
+	end
+	Clean(env, K, "pip bounds")
 end
 
 -- Only with talent: a talent by name or ID hides a spell until known, follows SPELLS_CHANGED, closes gaps, and is safe without its APIs.
@@ -227,7 +280,12 @@ do
 	local env, K, ns, Write = New("mirror")
 	Write("bars.count", 4)
 	env._cdm.cooldown[1001] = { active = true }
+	local asked, charges = 0, env.C_Spell.GetSpellCharges
+	env.C_Spell.GetSpellCharges = function(id, ...) if id == 1001 then asked = asked + 1 end return charges(id, ...) end
 	Write("rules.cdBars", "1001, 1002")
+	Fire(env, "SPELL_UPDATE_COOLDOWN"); Fire(env, "SPELL_UPDATE_CHARGES")
+	assert(asked == 0, "a cooldown bar asks for no charges while Charge hash lines is off or its spell has none")
+	env.C_Spell.GetSpellCharges = charges
 	local bar, charged = BarOf(ns, 1001), BarOf(ns, 1002)
 	assert(bar and charged and ns.Mirror.Row("bars").count == 2, "each listed cooldown is a bar")
 	assert(bar.name:GetText() == "Spell 1001" and bar:GetAlpha() == 1, "a cooldown bar shows its name in full")
@@ -275,6 +333,34 @@ do
 	Clean(env, K, "cooldown bars")
 end
 
+-- Cooldown bars obey Hide these and Only with talent, and a list change in combat with restricted auras reconciles them while the buff bars keep their last state.
+do
+	local env, K, ns, Write = New("mirror")
+	Write("rules.cdBars", "1001, 1002")
+	Write("rules.talent", "1001=9001")
+	assert(not BarOf(ns, 1001) and BarOf(ns, 1002), "a cooldown bar waits for its talent")
+	game.known[9001] = true; Fire(env, "SPELLS_CHANGED")
+	assert(BarOf(ns, 1001), "learning the talent adds the bar")
+	Write("rules.hide", "1001")
+	assert(not BarOf(ns, 1001), "Hide these hides the cooldown bar")
+	Write("rules.hide", "")
+	env._cdm.auras[4001] = { auraInstanceID = 77 }
+	env.FireEvent("UNIT_AURA", "player", { isFullUpdate = true }); env.RunTimers()
+	local buff = BarOf(ns, 4001)
+	assert(buff and BarOf(ns, 1001), "a tracked buff bar and the cooldown bars show")
+	local dressed = #W.Calls(buff.timer, "SetCooldownFromDurationObject")
+	env._cdm.secretAuras = true
+	env.SetCombat(true)
+	Write("rules.cdBars", "1002")
+	assert(not BarOf(ns, 1001) and BarOf(ns, 1002) and BarOf(ns, 4001) == buff, "a list change in combat with restricted auras reconciles the cooldown bars")
+	assert(#W.Calls(buff.timer, "SetCooldownFromDurationObject") == dressed, "and leaves the buff bar's last state alone")
+	Write("rules.cdBars", "")
+	assert(not BarOf(ns, 1002) and BarOf(ns, 4001) == buff, "clearing the list removes them")
+	env.SetCombat(false)
+	env._cdm.secretAuras = nil
+	Clean(env, K, "cooldown bar rules")
+end
+
 -- Preview: sample keybinds, a press, quality pips on the sample potion, hidden talent samples and a sample cooldown bar with its sections.
 do
 	local env, K, ns, Write = New("mirror")
@@ -296,15 +382,35 @@ do
 	Write("rules.talent", ""); Write("rules.cdBars", "x"); Write("bars.hashLines", true); frame:Refresh()
 	local bar = frame.rows.bars.bars[2]
 	assert(bar.name:GetText() == K.L["Multi-Shot"] and bar.hashes[1]:IsShown() and bar.recharge:IsShown(), "the preview shows a cooldown bar with its sections")
+	assert(W.LastCall(bar.recharge, "SetValue")[2] == nil, "the sample snaps while Smooth cooldown bars is off")
+	Write("bars.cdSmooth", true); frame:Refresh()
+	assert(W.LastCall(bar.recharge, "SetValue")[2] == 1, "Smooth cooldown bars eases the sample cooldown bar")
+	Write("bars.hashLines", false); frame:Refresh()
+	assert(W.LastCall(bar.status, "SetValue")[2] == 1, "without sections the whole sample bar eases")
 	Write("rules.cdBars", ""); frame:Refresh()
 	assert(not bar.recharge:IsShown(), "and goes back to the buff bars")
 	Clean(env, K, "preview")
 end
 
+-- Options: the charge line settings show only with Charge hash lines, and Shade darkness only with Partial charge shade.
+do
+	local _, _, ns, Write = New("mirror")
+	local rows = {}
+	for _, row in ipairs(ns.Settings.Schema()) do rows[row.key or ""] = row end
+	local function Offered(key) return rows[key].showWhen(ns.Settings.current) end
+	for _, key in ipairs({ "bars.lineWidth", "bars.lineColor", "bars.chargeShade", "bars.shadeAlpha" }) do
+		assert(not Offered(key), key .. " hides while Charge hash lines is off")
+	end
+	Write("bars.hashLines", true)
+	assert(Offered("bars.lineWidth") and Offered("bars.lineColor") and Offered("bars.chargeShade") and not Offered("bars.shadeAlpha"), "hash lines offer the line and shade settings")
+	Write("bars.chargeShade", true)
+	assert(Offered("bars.shadeAlpha"), "Partial charge shade offers Shade darkness")
+end
+
 -- Action Bars relays a key press on its button, down and up, with the slot, only while someone listens.
 do
 	local AB = dofile("Tools/regression/actionbars_env.lua")
-	local env, K = AB.New({ class = "WARRIOR", setup = function(e) e._game.bindings.ACTIONBUTTON1 = { "1" } end })
+	local env, K, ns = AB.New({ class = "WARRIOR", setup = function(e) e._game.bindings.ACTIONBUTTON1 = { "1" } end })
 	AB.Enable(env, K)
 	AB.Slot(env, 1, { texture = 135489, type = "spell", id = 100 })
 	local got = {}
@@ -314,6 +420,14 @@ do
 	K.Widgets.OnActionPress(nil)
 	AB.PressKey(env, "1")
 	assert(#got == 2, "with no listener nothing is relayed")
+	local heard = 0
+	K.Widgets.OnActionKeys(function() heard = heard + 1 end)
+	assert(K.Widgets.ActionKey(1) == "1" and K.Widgets.ActionKey(25) == false, "Action Bars names the key of the button that shows a slot")
+	ns.Button.SetSlot(AB.Button(ns, "bar1", 1), 25)
+	assert(heard > 0 and K.Widgets.ActionKey(25) == "1" and K.Widgets.ActionKey(1) == false, "its own paging moves the key with the slot and says so")
+	K.Modules.Disable("ActionBars"); env.RunTimers()
+	assert(K.Widgets.ActionKey(25) == nil, "with Action Bars off Blizzard's bars decide")
+	K.Widgets.OnActionKeys(nil)
 	assert(#AB.Errors(env) == 0, "relaying raised no errors")
 end
 
