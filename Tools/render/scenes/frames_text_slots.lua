@@ -21,8 +21,8 @@ return Common.Run(function()
 			{ "player.powerAbove", true }, { "player.powerTextAlign", "CENTER" }, { "player.powerTextColor", "power" },
 			{ "player.maxHealthLoss", true }, { "player.powerCost", true }, { "player.absorbBar", "BOTTOM" }, { "player.fonts.level.y", 4 },
 			{ "target.healthHeight", 28 }, { "target.absorbPlacement", "END" }, { "target.absorbGlow", true }, { "target.absorbBar", "TOP" },
-			{ "target.fonts.name.x", 6 }, { "target.extra1.textFormat", "[c:ffb347][level][/c] [name]" }, { "target.extra1.position", "BOTTOMLEFT" },
-			{ "target.extra1.y", -14 }, { "target.extra1.width", 60 }, { "pet.healthHeight", 9 },
+			{ "target.fonts.name.x", 6 }, { "player.extra1.textFormat", "[c:ffb347][level][/c] [name]" }, { "player.extra1.position", "BOTTOMLEFT" },
+			{ "player.extra1.y", -16 }, { "player.extra1.width", 60 }, { "pet.healthHeight", 9 },
 		}) do
 			K.Options.Write(module, pair[1], pair[2])
 		end
