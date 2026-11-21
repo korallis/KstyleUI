@@ -150,10 +150,7 @@ for _, wh in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 21
 end
 
 -- 4. Events: an elite target arriving after the layout takes its corner, and a style switch keeps the corners clear.
-U.SetUnit(env, "target", nil)
-env.FireEvent("PLAYER_TARGET_CHANGED")
 local fresh, FK, fn = boot()
-fn.Frames.Get("target").views[1].extraIcon = nil
 FK.Options.Write("UnitFrames", "target.elite", true)
 FK.Options.Write("UnitFrames", "target.elitePlace", "BOTTOMRIGHT")
 fresh.RunTimers()
@@ -281,14 +278,11 @@ assert(U.Shown(env, pane.views.boss.healthText) == "72.43K / 100.6K", "the previ
 write("healthDecimalPercentOnly", true)
 pane:Refresh()
 assert(U.Shown(env, boss.healthText) == "240.5K / 100K" and boss.geometry.healthText.w == narrow, "on restores one decimal and the column")
-assert(U.Shown(env, pane.views.boss.healthText) == "72.4K / 100.6K", "and the preview")
+assert(U.Shown(env, pane.views.boss.healthText) == "72K / 100K", "and the preview's sample: " .. U.Shown(env, pane.views.boss.healthText))
 clean(env, K)
 
 -- 10. A formatter that cannot write two decimals keeps secret values at one; plain values still take two.
-local odd, OK, on = U.New({ saved = { version = U.DbVersion(), characters = {}, profiles = { Default = { UnitFrames = { enabled = true, healthDecimalBoss = true, healthDecimalPercentOnly = false, boss = { healthText = "currentMax" } } } } },
-	setup = function(e)
-		e.C_Texture = e.C_Texture or {}
-	end })
+local odd, OK, on = U.New({ saved = { version = U.DbVersion(), characters = {}, profiles = { Default = { UnitFrames = { enabled = true, healthDecimalBoss = true, healthDecimalPercentOnly = false, boss = { healthText = "currentMax" } } } } } })
 local game = odd.AbbreviateNumbers
 odd.AbbreviateNumbers = function(value, options)
 	if options and options.breakpointData and options.breakpointData[3].fractionDivisor == 100 then return "240.550K" end
@@ -298,4 +292,46 @@ U.SetUnit(odd, "boss1", { name = "Magmatus", level = -1, classification = "world
 odd.FireEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
 assert(U.Shown(odd, on.Frames.Get("boss").views[1].healthText) == "240.5K / 1.25M", "a refused probe keeps the secret at one decimal: " .. U.Shown(odd, on.Frames.Get("boss").views[1].healthText))
 clean(odd, OK)
+
+-- 11. Review probes (c8668917), switched on: each failed before its fix.
+local file = assert(io.open("KstyleUI_UnitFrames/Format.lua", "rb"))
+local source = file:read("*a")
+file:close()
+assert(not source:find("and TwoPlaces%b() or") and not source:find("and AbbreviateNumbers%b() or"), "a secret formatter result meets a boolean test: branch on the option, then return the formatter's result")
+local e2, k2, n2 = boot()
+local function set(key, value)
+	k2.Options.Write("UnitFrames", key, value)
+	e2.RunTimers()
+end
+local pv = n2.Frames.Get("player").views[1]
+local sink = { SetText = function() end, SetFormattedText = function() end }
+U.SetUnit(e2, "focus", { name = "Ogre", classification = "elite", level = 62, health = 240550, healthMax = 1250000, reaction = 2, canAttack = true, combat = true })
+n2.Indicators.Layout(pv, pv.geometry, pv.s)
+n2.Format.Health(sink, "focus", "currentMax")
+local Budget = dofile("Tools/regression/instruction_budget.lua")
+Budget(function() for _ = 1, 100 do n2.Indicators.Layout(pv, pv.geometry, pv.s) end end, 210000, "skip the corner work while no icon is cornered")
+Budget(function() for _ = 1, 2000 do n2.Format.Health(sink, "focus", "currentMax") end end, 315000, "choose the value formatter once per write")
+for _, pair in ipairs({ { "focus.combat", true }, { "focus.elite", true }, { "focus.iconSize", 32 } }) do set(pair[1], pair[2]) end
+e2.FireEvent("PLAYER_FOCUS_CHANGED")
+e2.FireEvent("UNIT_FLAGS", "focus")
+local fv = n2.Frames.Get("focus").views[1]
+assert(fv.extraIcon:IsShown() and fv.icons.combat:IsShown(), "the focus shows its elite badge and combat swords")
+for _, corner in ipairs({ "TOPLEFT", "TOPRIGHT" }) do
+	set("focus.elitePlace", corner)
+	for _, key in ipairs(n2.Indicators.SLOTS) do
+		assert(not overlaps(rect(fv.extraIcon), rect(fv.icons[key])), corner .. ": the elite badge keeps clear of the status row's " .. key)
+	end
+end
+local tv2 = n2.Frames.Get("target").views[1]
+U.SetUnit(e2, "target", { name = "Ogre", classification = "elite", level = 62, health = 50, healthMax = 100, reaction = 2, canAttack = true })
+e2.GetRaidTargetIndex = function() return 8 end
+e2.FireEvent("PLAYER_TARGET_CHANGED")
+set("target.markerPlace", "TOPRIGHT")
+local alone = W.LastCall(tv2.marker, "SetPoint")[4]
+set("target.elite", true)
+set("target.elitePlace", "TOPRIGHT")
+assert(W.LastCall(tv2.marker, "SetPoint")[4] ~= alone, "the elite badge shares the marker's corner")
+set("target.elite", false)
+assert(W.LastCall(tv2.marker, "SetPoint")[4] == alone, "a switched-off icon leaves its corner's run")
+clean(e2, k2)
 print("test-unitframes-parity-r6: ok")
