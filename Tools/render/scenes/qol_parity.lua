@@ -78,6 +78,7 @@ return Common.Run(function()
 		assert(K.Layout.Set("Options.Window", "y", -28))
 		env._addons.KstyleUI_Options.Window.Jump({ page = "QoL", module = "QoL", key = os.getenv("RENDER_QOL_KEY") or "combatAlert" })
 		env.RunTimers()
+		if ns.StatsFrame() then ns.StatsFrame():Hide() end -- the window covers the top left, where the stats sit
 		O.W.Settle(env)
 	end
 	local scene = Gallery.Build(env)

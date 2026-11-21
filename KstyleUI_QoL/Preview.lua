@@ -1,4 +1,4 @@
--- Preview.lua: the QoL page's live preview, a miniature of the screen centre: the alert lines, the crosshair and the cursor ring where the screen puts them (the entering, leaving and group death samples, of which the screen shows one at a time, stack down from the flash line's spot and everything under that line moves down with them, and the ring sits beside the crosshair with its dot, a trail and the cast circle part filled), and the character stats with sample values at the left, painted by the same functions the screen uses and dimmed while their switch is off.
+-- Preview.lua: the QoL page's live preview, a miniature of the screen centre: the alert lines, the crosshair and the cursor ring where the screen puts them (the entering, leaving and group death samples, of which the screen shows one at a time, stack down from the flash line's spot and everything under that line moves down with them, and the ring sits beside the crosshair with its dot and a trail, the cast circle part filled around the ring, or on the crosshair when it is off the pointer), and the character stats with sample values at the left, painted by the same functions the screen uses and dimmed while their switch is off.
 local _, ns = ...
 
 local K, L = ns.K, ns.L
@@ -61,7 +61,7 @@ function ns.Preview(parent)
 		local rx = cx + cw / 2 + 2 * GAP + sw / 2
 		items[6] = { self.cross, cx, cy, cw, ch }
 		items[7] = { self.ring, rx, cy, rw, rw }
-		items[8] = { self.cast, rx, cy, sw, sw }
+		items[8] = { self.cast, ns.Get("castAttach") and rx or cx, cy, sw, sw }
 		items[9] = { self.dot, rx, cy, self.dot:GetWidth(), self.dot:GetHeight() }
 		for i, dot in ipairs(self.trail) do
 			ns.PaintDot(dot, (1 - i / (TRAIL + 1)) * (Dim(ring and ns.Get("cursorTrail")) or 1))

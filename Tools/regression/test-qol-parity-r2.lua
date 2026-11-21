@@ -464,6 +464,10 @@ do
 	assert(preview.stats:GetAlpha() == 1 and shows(preview.stats.lines[1]):find("Crit|r", 1, true), "the preview follows the stats settings")
 	assert(preview.ring:GetTexture():find("RingBevel", 1, true) and last(preview.cast, "SetSwipeTexture")[1]:find("RingBevel", 1, true), "both rings take the style")
 	assert(last(preview.cast, "SetDrawEdge")[1] == false and preview.trail[1]:IsShown(), "spark and trail follow")
+	assert(select(4, preview.cast:GetPoint(1)) == select(4, preview.cross:GetPoint(1)), "off the pointer, the cast circle sits on the crosshair")
+	Q.Write(env, K, "castAttach", true)
+	preview:Refresh()
+	assert(select(4, preview.cast:GetPoint(1)) == select(4, preview.ring:GetPoint(1)), "on the pointer, it rings the ring")
 	local function span(region)
 		local x = select(4, region:GetPoint(1))
 		return x - region:GetWidth() / 2, x + region:GetWidth() / 2
