@@ -118,8 +118,7 @@ local function Off(region, units)
 	return units ~= 0 and Widgets.Snap(region, units) or 0
 end
 
-local function StyleTexts(view, count, timer, style)
-	style = style or TextStyle(view)
+local function StyleTexts(count, timer, style)
 	local path, size, flags = unpack(style)
 	local countSize = style.auraCountSize
 	for _, text in ipairs({ count, timer }) do
@@ -170,13 +169,20 @@ local function PlaceCount(count, skin, style)
 	end
 end
 
-function Auras.StyleSample(tile, kind)
-	local view = { kind = kind }
-	local style = TextStyle(view)
+function Auras.StyleSample(tile, kind, role)
+	local style = TextStyle({ kind = kind })
 	Auras.Zoom(tile, kind)
 	PlaceCount(tile.count, tile.skin, style)
-	StyleTexts(view, tile.count, tile.timer, style)
+	StyleTexts(tile.count, tile.timer, style)
 	Auras.PlaceTimer(tile.timer, tile.skin, kind, tile.badge, style)
+	local buff = role ~= "debuff"
+	local edge = role and FILTERS[Settings.Value(kind, "auraFilter")][buff and "buffs" or "debuffs"] and style[buff and "auraBuffDispel" or "auraDispel"] and not (role == "buff" and style.auraStealable)
+	if edge and not tile.dispel then
+		tile.dispel = Widgets.NineSlice(tile.skin, "chamferTile", "BORDER", DISPEL_SUBLEVEL)
+		Widgets.LayoutSlice(tile.dispel, tile.skin, tile.chrome:Chamfer(), 0)
+		Widgets.ColorSlice(tile.dispel, Tokens.Color("magic"))
+	end
+	if tile.dispel then Widgets.ShowSlice(tile.dispel, edge and true or false) end
 end
 
 function Auras.NewTile(parent, chrome)
@@ -275,7 +281,64 @@ function Auras.Badge(parent, text)
 	return badge
 end
 
-local Dispel
+local dispelOptions
+local function DispelOptions()
+	if dispelOptions == nil then
+		local styles = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
+		if styles and styles.PreserveAsset then
+			dispelOptions = { style = styles.PreserveAsset, showWhenHarmful = true, showWithoutDispelType = true }
+		else
+			dispelOptions = false
+			LogOnce("dispel", "frame auras: Enum.CustomAuraButtonDispelTypeTextureStyle is missing; debuffs show no dispel colour")
+		end
+	end
+	return dispelOptions or nil
+end
+
+local function Dispel(entry, style)
+	local options, button, buff = DispelOptions(), entry.button, entry.key == "buffs"
+	local mode = options and style[buff and "auraBuffDispel" or "auraDispel"] and (buff and style.auraStealable and "steal" or "on") or false
+	local steal = Enum and Enum.CustomAuraButtonDispelTypeStealableFilter
+	if mode == "steal" and not (steal and steal.Stealable) then
+		LogOnce("steal", "frame auras: Enum.CustomAuraButtonDispelTypeStealableFilter is missing; buffs show no stealable edge")
+		mode = false
+	end
+	if (entry.dispelMode or false) == mode then
+		return
+	end
+	if not (button.AddDispelTypeTexture and button.RemoveDispelTypeTexture) then
+		LogOnce("dispel-api", "frame auras: Add or RemoveDispelTypeTexture is missing; auras show no dispel edges")
+		return
+	end
+	local parts = entry.dispelParts
+	if entry.dispelMode then
+		for _, part in ipairs(parts) do
+			button:RemoveDispelTypeTexture(part)
+			part:Hide()
+		end
+	end
+	entry.dispelMode = mode
+	if not mode then
+		return
+	end
+	if not parts then
+		parts = entry.slab and { entry.underline } or Widgets.NineSlice(entry.skin, "chamferTile", "BORDER", DISPEL_SUBLEVEL)
+		if not entry.slab then
+			Widgets.ShowSlice(parts, false)
+			entry.dispel = parts
+		end
+		entry.dispelParts = parts
+	end
+	local add = options
+	if buff then
+		add = { style = options.style, showWhenHelpful = true, showWithoutDispelType = false, stealableFilter = mode == "steal" and steal.Stealable or nil }
+	elseif entry.slab then
+		add = { style = options.style, showWhenHarmful = options.showWhenHarmful, showWithoutDispelType = false }
+	end
+	for _, part in ipairs(parts) do
+		button:AddDispelTypeTexture(part, add)
+	end
+end
 
 local function StyleButton(view, entry, style)
 	style = style or TextStyle(view)
@@ -285,7 +348,7 @@ local function StyleButton(view, entry, style)
 	Auras.LayoutTile(entry)
 	Auras.Zoom(entry, view.kind)
 	PlaceCount(entry.count, entry.skin, style)
-	StyleTexts(view, entry.count, entry.timer, style)
+	StyleTexts(entry.count, entry.timer, style)
 	Auras.PlaceTimer(entry.timer, entry.skin, view.kind, entry.badge, style)
 	entry.timer:SetShown(Value(view, "auraTimer"))
 	entry.badge:SetShown(not TimerBelow(view.kind) and Value(view, "auraTimer") == true)
@@ -333,65 +396,6 @@ local function Wait(view)
 	K.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", OnGate)
 	pcall(K.Events.Register, OWNER, "ADDON_RESTRICTION_STATE_CHANGED", OnGate)
 	Log("frame auras: aura buttons are restricted now; their restyle waits until aura data is readable")
-end
-
-local dispelOptions
-local function DispelOptions()
-	if dispelOptions == nil then
-		local styles = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
-		if styles and styles.PreserveAsset then
-			dispelOptions = { style = styles.PreserveAsset, showWhenHarmful = true, showWithoutDispelType = true }
-		else
-			dispelOptions = false
-			LogOnce("dispel", "frame auras: Enum.CustomAuraButtonDispelTypeTextureStyle is missing; debuffs show no dispel colour")
-		end
-	end
-	return dispelOptions or nil
-end
-
-Dispel = function(entry, style)
-	local options, button, buff = DispelOptions(), entry.button, entry.key == "buffs"
-	local mode = options and style[buff and "auraBuffDispel" or "auraDispel"] and (buff and style.auraStealable and "steal" or "on") or false
-	local steal = Enum and Enum.CustomAuraButtonDispelTypeStealableFilter
-	if mode == "steal" and not (steal and steal.Stealable) then
-		LogOnce("steal", "frame auras: Enum.CustomAuraButtonDispelTypeStealableFilter is missing; buffs show no stealable edge")
-		mode = false
-	end
-	if (entry.dispelMode or false) == mode then
-		return
-	end
-	local parts = entry.dispelParts
-	if entry.dispelMode then
-		if not button.RemoveDispelTypeTexture then
-			LogOnce("dispel-remove", "frame auras: RemoveDispelTypeTexture is missing; dispel edges stay until reload")
-			return
-		end
-		for _, part in ipairs(parts) do
-			button:RemoveDispelTypeTexture(part)
-			part:Hide()
-		end
-	end
-	entry.dispelMode = mode
-	if not mode then
-		return
-	end
-	if not parts then
-		parts = entry.slab and { entry.underline } or Widgets.NineSlice(entry.skin, "chamferTile", "BORDER", DISPEL_SUBLEVEL)
-		if not entry.slab then
-			Widgets.ShowSlice(parts, false)
-			entry.dispel = parts
-		end
-		entry.dispelParts = parts
-	end
-	local add = options
-	if buff then
-		add = { style = options.style, showWhenHelpful = true, showWithoutDispelType = false, stealableFilter = mode == "steal" and steal.Stealable or nil }
-	elseif entry.slab then
-		add = { style = options.style, showWhenHarmful = options.showWhenHarmful, showWithoutDispelType = false }
-	end
-	for _, part in ipairs(parts) do
-		button:AddDispelTypeTexture(part, add)
-	end
 end
 
 local function Dress(view, key, button, buttons)

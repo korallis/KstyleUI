@@ -245,8 +245,8 @@ local piece = W.LastCall(glow.line[1], "SetVertexColor")
 assert(piece and piece[1] == 0 and piece[2] == 1, "the outline takes its colour")
 env._units.target.cast = nil
 env.FireEvent("UNIT_SPELLCAST_STOP", "target", "Cast-1", 686)
-env.RunTimers()
 assert(not glow:IsShown(), "the outline goes with the cast")
+env.RunTimers()
 env._units.target.cast = { name = "Shadow Bolt", texture = 1, start = 1000, finish = 3000, spellID = 686 }
 write("target.castbarImportant", false)
 env.FireEvent("UNIT_SPELLCAST_START", "target", "Cast-1", 686)

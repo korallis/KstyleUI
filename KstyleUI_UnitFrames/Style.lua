@@ -779,7 +779,11 @@ function Style.PowerFill(view, r, g, b, base)
 	local direction = s and s.powerGradient or ""
 	local texture = direction ~= "" and Plain(r, g, b) and bar:GetStatusBarTexture()
 	if texture and texture.SetGradient and CreateColor then
-		texture:SetGradient(direction, CreateColor(r * GRADIENT_SHADE, g * GRADIENT_SHADE, b * GRADIENT_SHADE, a), CreateColor(r, g, b, a))
+		local from, to = view.powerFrom or CreateColor(0, 0, 0, 1), view.powerTo or CreateColor(0, 0, 0, 1)
+		view.powerFrom, view.powerTo = from, to
+		from.r, from.g, from.b, from.a = r * GRADIENT_SHADE, g * GRADIENT_SHADE, b * GRADIENT_SHADE, a
+		to.r, to.g, to.b, to.a = r, g, b, a
+		texture:SetGradient(direction, from, to)
 	end
 end
 
