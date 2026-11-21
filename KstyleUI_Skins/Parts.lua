@@ -47,44 +47,25 @@ end
 
 Parts.IsTexture = IsTexture
 
-local function LayoutRim(holder)
-	local target = holder.target
-	local outset = Widgets.Snap(holder, holder.outset)
-	holder:ClearAllPoints()
-	holder:SetPoint("TOPLEFT", target, "TOPLEFT", -outset, outset)
-	holder:SetPoint("BOTTOMRIGHT", target, "BOTTOMRIGHT", outset, -outset)
-end
-
-local function PaintRim(holder)
-	local color = holder.color
-	if color then
-		holder.chrome:SetRim(color[1], color[2], color[3], color[4] or 1)
-	else
-		holder.chrome:SetRim()
-	end
-end
-
 local function RestyleRim(holder)
 	if Widgets.MayMove(holder) then
-		LayoutRim(holder)
+		local target = holder.target
+		local outset = Widgets.Snap(holder, holder.outset)
+		holder:ClearAllPoints()
+		holder:SetPoint("TOPLEFT", target, "TOPLEFT", -outset, outset)
+		holder:SetPoint("BOTTOMRIGHT", target, "BOTTOMRIGHT", outset, -outset)
 	end
 	holder.chrome:Restyle()
-	PaintRim(holder)
 end
 
 local function SetRimColor(holder, r, g, b, a)
-	if r == nil then
-		holder.color = nil
-	else
-		holder.color = { r, g, b, a or 1 }
-	end
-	PaintRim(holder)
+	holder.color = r ~= nil and { r, g, b, a or 1 } or nil
+	holder.chrome:SetRim(r, g, b, a)
 end
 
 local function GetRimColor(holder)
-	local color = holder.color
-	if color then
-		return color[1], color[2], color[3], color[4]
+	if holder.color then
+		return unpack(holder.color, 1, 4)
 	end
 	return nil
 end
