@@ -46,7 +46,7 @@ local function Key(slot, main)
 end
 
 function Keys.For(spell)
-	if type(Plain(spell)) ~= "number" then return nil end
+	if type((Plain(spell))) ~= "number" then return nil end
 	local key = found[spell]
 	if key == nil then
 		key = false
@@ -54,7 +54,7 @@ function Keys.For(spell)
 		if type(slots) == "table" then
 			local main = MainPage()
 			for _, slot in ipairs(slots) do
-				key = type(Plain(slot)) == "number" and Key(slot, main) or false
+				key = type((Plain(slot))) == "number" and Key(slot, main) or false
 				if key then break end
 			end
 		end
@@ -68,7 +68,7 @@ function Keys.Reset()
 end
 
 function Keys.Spell(slot)
-	if type(Plain(slot)) ~= "number" then return nil end
+	if type((Plain(slot))) ~= "number" then return nil end
 	local kind, id = Ask(GetActionInfo, slot)
 	if kind == "spell" and Plain(id) ~= nil then return id end
 end

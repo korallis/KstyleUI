@@ -1252,7 +1252,7 @@ local function Release(slot)
 end
 
 local function OnPress(slot, down)
-	if type(ns.Plain(slot)) ~= "number" then return end
+	if type((ns.Plain(slot))) ~= "number" then return end
 	if not down then return Release(slot) end
 	local spell = running and Keys.Spell(slot)
 	if not spell then return end
