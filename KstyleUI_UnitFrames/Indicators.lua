@@ -129,10 +129,25 @@ local function PlaceExtra(view)
 	if spot then
 		local size, gap = Snap(view, view.s.iconSize), Snap(view, ICON_GAP)
 		local x, y = spot[3] * gap, spot[4] * gap
-		local medal = chosen and view.geometry and view.geometry.medal
+		local g = chosen and view.geometry
+		local medal, m, left = g and g.medal, g and g.marker, spot[2]:find("LEFT")
 		if medal then
-			x = x + Snap(view, spot[2]:find("LEFT") and math.min(0, medal.x) or math.max(0, medal.x + medal.w - view.geometry.glass.w))
+			x = x + Snap(view, left and math.min(0, medal.x) or math.max(0, medal.x + medal.w - g.glass.w))
 			y = y + Snap(view, spot[4] > 0 and math.max(0, -medal.y) or 0)
+		end
+		if m then
+			local w = g.glass.w
+			local bx = (left and 0 or w) + x - (spot[1]:find("RIGHT") and size or 0)
+			local by = spot[4] > 0 and -y - size or (g.glass.h - size) / 2
+			if bx < m.x + m.w and m.x < bx + size and by < m.y + m.h and m.y < by + size then
+				if spot[4] > 0 then
+					y = gap - Snap(view, m.y)
+				elseif left then
+					x = Snap(view, m.x) - gap
+				else
+					x = Snap(view, m.x + m.w - w) + gap
+				end
+			end
 		end
 		icon:SetSize(size, size)
 		icon:SetPoint(spot[1], view.parent, spot[2], x, y)
