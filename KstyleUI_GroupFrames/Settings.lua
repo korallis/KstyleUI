@@ -126,16 +126,7 @@ defaults.label = { enabled = false, format = "FULL", size = 14, padding = 4, col
 local rows
 
 local textRows = false
-local moreRows, moreAdded = nil, false
-local function MoreRows(schema)
-	if moreAdded or not moreRows then return end
-	moreAdded = true
-	local first = #schema + 1
-	moreRows(schema)
-	for i = first, #schema do
-		if rows and schema[i].key then rows[schema[i].key] = schema[i] end
-	end
-end
+local moreRows
 local function TextSlotRows(schema)
 	if textRows then return end
 	textRows = true
@@ -157,11 +148,12 @@ local function TextSlotRows(schema)
 			if rows and row.key then rows[row.key] = row end
 		end
 	end
+	moreRows(schema)
 end
 
 function Settings.Schema(includeText)
 	if Settings.schema then
-		if includeText then TextSlotRows(Settings.schema); MoreRows(Settings.schema) end
+		if includeText then TextSlotRows(Settings.schema) end
 		return Settings.schema
 	end
 	local function Options(list)
@@ -247,8 +239,8 @@ function Settings.Schema(includeText)
 		end
 	end
 
-	local function Slider(key, label, help, low, high, step)
-		return { type = "slider", key = key, label = label, help = help, min = low, max = high, step = step }
+	local function Slider(key, label, help, low, high, step, showWhen)
+		return { type = "slider", key = key, label = label, help = help, min = low, max = high, step = step, showWhen = showWhen }
 	end
 
 	local function Dropdown(key, label, help, options, extra)
@@ -366,6 +358,7 @@ function Settings.Schema(includeText)
 	moreRows = function(schema)
 		local function add(row)
 			schema[#schema + 1] = row
+			if rows and row.key then rows[row.key] = row end
 		end
 		local PLACES, AUTO_PLACES = { { value = "NONE", label = L["Off"] } }, { { value = "AUTO", label = L["With the health text"] } }
 		for _, option in ipairs(INDICATOR_POSITION) do
@@ -375,8 +368,7 @@ function Settings.Schema(includeText)
 		local reminding = IsNot("reminders.place", "NONE")
 		add({ type = "header", label = L["Missing buffs"] })
 		add(Dropdown("reminders.place", L["Missing buffs"], L["Shows a buff you can cast on members who lack it, except while the game hides auras."], PLACES))
-		add(Slider("reminders.size", L["Missing buff size"], L["The missing buff icon's size."], 8, 40, 1))
-		schema[#schema].showWhen = reminding
+		add(Slider("reminders.size", L["Missing buff size"], L["The missing buff icon's size."], 8, 40, 1, reminding))
 		for _, buff in ipairs({ { "fortitude", L["Fortitude"] }, { "wild", L["Mark of the Wild"] }, { "intellect", L["Arcane Intellect"] },
 			{ "spirit", L["Divine Spirit"] }, { "thorns", L["Thorns"] }, { "salvation", L["Salvation"] } }) do
 			add(Toggle("reminders." .. buff[1], buff[2], L["Reminds you of this buff; only buffs you know show."], { showWhen = reminding }))
@@ -387,8 +379,7 @@ function Settings.Schema(includeText)
 		add(Slider("status.size", L["Status text size"], L["The size of Dead, Ghost and Offline; 0 uses the health text's size."], 0, 30, 1))
 		add({ type = "header", label = L["Dispel type"] })
 		add(Dropdown("dispel.icon", L["Dispel type icon"], L["Shows the type icon of a debuff you can dispel on the health bar. Off shows none."], PLACES))
-		add(Slider("dispel.iconSize", L["Dispel type icon size"], L["The dispel type icon's size."], 8, 40, 1))
-		schema[#schema].showWhen = IsNot("dispel.icon", "NONE")
+		add(Slider("dispel.iconSize", L["Dispel type icon size"], L["The dispel type icon's size."], 8, 40, 1, IsNot("dispel.icon", "NONE")))
 		add(Toggle("dispel.iconBorder", L["Debuff type border"], L["Outlines each debuff icon in its type's colour. Off keeps the plain border."]))
 		add(Toggle("dispel.custom", L["Own dispel colours"], L["Colours the highlight, the debuff borders and the type icon in the colours below."]))
 		for _, kind in ipairs({ { "magic", L["Magic colour"] }, { "curse", L["Curse colour"] }, { "poison", L["Poison colour"] }, { "disease", L["Disease colour"] }, { "bleed", L["Bleed colour"] } }) do
@@ -401,16 +392,13 @@ function Settings.Schema(includeText)
 		add(Toggle("names.dividerAccent", L["Divider in the highlight colour"], L["Draws the divider in the hover and target highlight colour."], { showWhen = Is("names.divider", true) }))
 		add({ type = "header", label = L["Group numbers"] })
 		add(Toggle("numbers.show", L["Group numbers"], L["Numbers each raid group above its frames while raid frames sit in groups."]))
-		add(Slider("numbers.size", L["Group number size"], L["The size of the group numbers."], 6, 30, 1))
-		schema[#schema].showWhen = Is("numbers.show", true)
+		add(Slider("numbers.size", L["Group number size"], L["The size of the group numbers."], 6, 30, 1, Is("numbers.show", true)))
 		local mana = IsNot("mana.mode", "NONE")
 		add({ type = "header", label = L["Healer mana"] })
 		add(Dropdown("mana.mode", L["Healer mana"], L["A movable list of your group's healers and their mana. Place it in Layout Mode."],
 			Options({ { "NONE", L["Off"] }, { "PARTY", L["In a party"] }, { "RAID", L["In a raid"] }, { "BOTH", L["In a party or raid"] } })))
-		add(Slider("mana.size", L["Healer mana text size"], L["The size of each healer's line."], 8, 24, 1))
-		schema[#schema].showWhen = mana
-		add(Slider("mana.spacing", L["Healer mana spacing"], L["The gap between healers' lines."], 0, 12, 1))
-		schema[#schema].showWhen = mana
+		add(Slider("mana.size", L["Healer mana text size"], L["The size of each healer's line."], 8, 24, 1, mana))
+		add(Slider("mana.spacing", L["Healer mana spacing"], L["The gap between healers' lines."], 0, 12, 1, mana))
 		add(Dropdown("mana.align", L["Healer mana alignment"], L["Lines the healers' lines up at the left, centre or right."], ALIGN, { showWhen = mana }))
 		add(Dropdown("mana.growth", L["Healer mana growth"], L["Which way the list grows as healers join."], Options({ { "DOWN", L["Down"] }, { "UP", L["Up"] } }), { showWhen = mana }))
 		add(Toggle("mana.names", L["Healer names in a raid"], L["Puts each healer's name before the mana in a raid; a party shows the mana alone."], { showWhen = mana }))
@@ -422,10 +410,8 @@ function Settings.Schema(includeText)
 		add({ type = "header", label = L["Your group label"] })
 		add(Toggle("label.enabled", L["Your group label"], L["A movable label with your raid group's number. Place it in Layout Mode."]))
 		add(Dropdown("label.format", L["Label text"], L["The number alone, or the word Group with it."], Options({ { "NUMBER", "3" }, { "FULL", GROUP_NUMBER and GROUP_NUMBER:format(3) or "3" } }), { showWhen = label }))
-		add(Slider("label.size", L["Label text size"], L["The size of the label's text."], 6, 40, 1))
-		schema[#schema].showWhen = label
-		add(Slider("label.padding", L["Label padding"], L["The room between the label's text and its plate."], 0, 20, 1))
-		schema[#schema].showWhen = label
+		add(Slider("label.size", L["Label text size"], L["The size of the label's text."], 6, 40, 1, label))
+		add(Slider("label.padding", L["Label padding"], L["The room between the label's text and its plate."], 0, 20, 1, label))
 		add({ type = "color", key = "label.color", label = L["Label text colour"], help = L["The colour of the label's text."], showWhen = label })
 	end
 
@@ -644,7 +630,7 @@ function Settings.Schema(includeText)
 
 	local schema = BuildSchema()
 	Settings.schema = schema
-	if includeText then TextSlotRows(schema); MoreRows(schema) end
+	if includeText then TextSlotRows(schema) end
 
 	rows = {}
 	for _, row in ipairs(schema) do
@@ -779,6 +765,7 @@ end
 Settings.current = current
 
 function Settings.Refresh()
+	Settings.generation = (Settings.generation or 0) + 1
 	local stored = K.Store.IsLoaded() and K.Store.Module(MODULE) or Settings.defaults
 	for section, out in pairs(current) do
 		local own = stored[section]

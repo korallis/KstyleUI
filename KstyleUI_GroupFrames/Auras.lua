@@ -338,21 +338,25 @@ local function DispelStyle()
 	return enum and enum.PreserveAsset
 end
 
+local colorKey, colorGeneration
 local function ColorKey()
+	if colorKey and colorGeneration == Settings.generation then return colorKey end
 	local d = Settings.current.dispel
-	if not d.custom or type(CreateColor) ~= "function" then return "game" end
+	colorGeneration, colorKey = Settings.generation, "game"
+	if not d.custom or type(CreateColor) ~= "function" then return colorKey end
 	local out = {}
-	for key in pairs(DISPEL_TYPES) do
+	for _, key in ipairs(SAMPLE_TYPES) do
 		local c = d[key]
-		out[#out + 1] = key .. c.r .. "," .. c.g .. "," .. c.b
+		out[#out + 1] = c.r .. "," .. c.g .. "," .. c.b
 	end
-	table.sort(out)
-	return table.concat(out, ";")
+	colorKey = table.concat(out, ";")
+	return colorKey
 end
 
 local function Tinted(options)
-	if ColorKey() == "game" then return options end
-	local map, d = {}, Settings.current.dispel
+	local d = Settings.current.dispel
+	if not d.custom or type(CreateColor) ~= "function" then return options end
+	local map = {}
 	for key, name in pairs(DISPEL_TYPES) do
 		local c = d[key]
 		map[name] = CreateColor(c.r, c.g, c.b, 1)
@@ -410,9 +414,10 @@ local function LayoutDispel(wash, ring, owner, chamfer, engine)
 	for i, line in ipairs(ring) do
 		local on = i <= a.dispelLines
 		if engine and (line.on ~= false) ~= on and DispelStyle() then
+			local options = on and Tinted({ style = DispelStyle(), showWhenHarmful = true })
 			for _, piece in ipairs(line) do
 				if on then
-					owner:AddDispelTypeTexture(piece, Tinted({ style = DispelStyle(), showWhenHarmful = true }))
+					owner:AddDispelTypeTexture(piece, options)
 				else
 					owner:RemoveDispelTypeTexture(piece)
 					piece:Hide()
@@ -812,7 +817,7 @@ local function PlaceType(f)
 	local d, slot = Settings.current.dispel, f.typeFrame
 	if not slot or d.icon == "NONE" then return end
 	slot:SetFrameLevel(f.highlights:GetFrameLevel() + TEXT_ABOVE)
-	Style.Pin(f, f.typeIcon, d.icon, Widgets.Snap(f, d.iconSize))
+	Style.Pin(f, f.typeIcon, d.icon, Widgets.Snap(f, math.min(d.iconSize, f.parts.health.height)))
 end
 
 local function TypeOptions()
@@ -1622,7 +1627,7 @@ local function PaintSample(f, sample)
 	for i, icon in ipairs(f.sampleAuras) do
 		icon:SetShown(i <= shown)
 		if kept[i] then icon.art:SetTexture(SAMPLE_ICONS[kept[i]]) end
-		local c = d.custom and d.iconBorder and kept[i] and d[SAMPLE_TYPES[kept[i]] or ""]
+		local c = d.iconBorder and kept[i] and (d.custom and d or Settings.defaults.dispel)[SAMPLE_TYPES[kept[i]] or ""]
 		if c and not icon.typeBorder then icon.typeBorder = Widgets.NineSlice(icon.tile.skin, "chamferTile", "BORDER", DISPEL_SUBLEVEL) end
 		if icon.typeBorder then
 			Widgets.ShowSlice(icon.typeBorder, c and true or false)
@@ -1646,7 +1651,7 @@ local function PaintSample(f, sample)
 		f.sampleType = f.sampleType or f.text:CreateTexture(nil, "OVERLAY")
 		f.sampleType:SetTexture((Tokens.Texture("dispel" .. sample.dispel:sub(1, 1))))
 		f.sampleType:SetVertexColor(own and own.r or 1, own and own.g or 1, own and own.b or 1)
-		Style.Pin(f, f.sampleType, d.icon, Widgets.Snap(f, d.iconSize))
+		Style.Pin(f, f.sampleType, d.icon, Widgets.Snap(f, math.min(d.iconSize, f.parts.health.height)))
 	end
 	if f.sampleType then f.sampleType:SetShown(sample.dispel ~= nil and d.icon ~= "NONE") end
 	local dispel = a.dispelHighlight and sample.dispel

@@ -43,7 +43,7 @@ do
 	assert(shown(tank) and icon(tank) == 101243, "Fortitude shows first")
 	local point, rel, relPoint = tank.reminder:GetPoint(1)
 	assert(point == "TOP" and rel == tank.health and relPoint == "TOP", "on the health bar at the chosen place")
-	assert(math.abs(width(env, tank.reminder) - 14) < 1, "at the chosen size")
+	assert(math.abs(width(env, tank.reminder) - math.min(14, H.reveal(env, tank.health:GetHeight()))) < 1, "at the chosen size, never past the bar")
 	env._buffs.party1 = { [FORTITUDE] = true }
 	env.FireEvent("UNIT_AURA", "party1")
 	assert(shown(tank) and icon(tank) == 100467, "a rage user skips Arcane Intellect and gets Thorns")
@@ -125,7 +125,7 @@ do
 	local entry = slot.frame._aura.dispel[1]
 	assert(entry.texture == f.typeIcon and entry.options.customDispelAssetMap.Magic, "it shows KstyleUI's type letter")
 	local point, rel = f.typeIcon:GetPoint(1)
-	assert(point == "TOPRIGHT" and rel == f.health and math.abs(width(env, f.typeIcon) - 14) < 1, "on the bar at the chosen place and size")
+	assert(point == "TOPRIGHT" and rel == f.health and math.abs(width(env, f.typeIcon) - math.min(14, H.reveal(env, f.health:GetHeight()))) < 1, "on the bar at the chosen place and size")
 	A.Assign(env, f.auras, "debuffs", 1)
 	env.RunTimers()
 	local button = f.auras._groups.debuffs.frames[1]
@@ -268,13 +268,13 @@ do
 	assert(healer.reminder:IsShown(), "the sample healer misses a buff")
 	assert(healer.sampleType and healer.sampleType:IsShown(), "and shows its debuff's type letter")
 	assert(preview.numbers[1]:IsShown() and preview.numbers[1]:GetText() == 1, "the sample raid groups are numbered")
-	assert(preview.readout:IsShown() and preview.readout:GetText():find("87%", 1, true), "the healer mana line shows")
+	assert(preview.mana:IsShown() and text(env, preview.mana.rows[1].text):find("80%", 1, true), "the healer mana list shows")
 	local dead = preview.raidFrames[4]
 	assert(dead.sample.dead and dead.healthText:GetPoint(1) == "TOP", "Dead moves onto the sample bar")
 	write(env, K, "reminders.place", "NONE")
 	write(env, K, "mana.mode", "NONE")
 	preview:Refresh()
-	assert(not healer.reminder:IsShown() and not preview.readout:IsShown(), "and back")
+	assert(not healer.reminder:IsShown() and not preview.mana:IsShown(), "and back")
 	noErrors(env, K)
 end
 

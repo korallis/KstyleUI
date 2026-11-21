@@ -150,11 +150,11 @@ local function Place(f, region, rect)
 	Widgets.Point(region, "TOPLEFT", f, "TOPLEFT", rect.left, -rect.top)
 end
 
-function Style.Pin(f, region, place, size)
+function Style.Pin(f, region, place, size, shift)
 	local inset = Widgets.Snap(f, Tokens.Size("gapTiny"))
 	region:ClearAllPoints()
 	if size then region:SetSize(size, size) end
-	region:SetPoint(place, f.health, place, place:find("LEFT") and inset or place:find("RIGHT") and -inset or 0,
+	region:SetPoint(place, f.health, place, (place:find("LEFT") and inset or place:find("RIGHT") and -inset or 0) + (shift or 0),
 		place:find("TOP") and -inset or place:find("BOTTOM") and inset or 0)
 end
 
@@ -369,13 +369,18 @@ function Style.InRow(f)
 	return f.status ~= nil and Settings.current.status.place == "AUTO"
 end
 
+function Style.StatusSize(f, size)
+	local own = Settings.current.status.size
+	return f.status and own > 0 and own or size
+end
+
 local function PlaceOverlay(f, k, parts)
 	local cfg = Settings.current.text
 	local name, healthText = f.name, f.healthText
 	local rect, spot = parts.name, parts.healthText
 	local status = Style.InRow(f)
 	local shown = k.healthText ~= "NONE"
-	local size, lane = k.healthTextSize, spot.right - spot.left
+	local size, lane = Style.StatusSize(f, k.healthTextSize), spot.right - spot.left
 	f.classLine:Hide()
 	local onBar = status and lane <= 0
 	local outline = onBar and cfg.healthOutline == "NONE" and ON_FILL_OUTLINE or cfg.healthOutline
@@ -422,7 +427,9 @@ local function PlaceRow(f)
 		return
 	end
 	if parts.nameInside then
-		f.healthText:SetShown(Settings.current[f.kind].healthText ~= "NONE" or f.status ~= nil)
+		local k, cfg = Settings.current[f.kind], Settings.current.text
+		SetFont(f.healthText, cfg.healthFont, Style.StatusSize(f, k.healthTextSize), OnBar(cfg.healthOutline))
+		f.healthText:SetShown(k.healthText ~= "NONE" or f.status ~= nil)
 		ApplyName(f)
 		return
 	end
@@ -436,13 +443,13 @@ local function PlaceRow(f)
 	local onBar = shown and not status and k.healthTextPlace == "BAR"
 	local inRow = status or (shown and not onBar)
 	local name, healthText, classLine = f.name, f.healthText, f.classLine
-	local cfg = Settings.current.text
-	SetFont(healthText, cfg.healthFont, k.healthTextSize, inRow and cfg.healthOutline or OnBar(cfg.healthOutline))
+	local cfg, size = Settings.current.text, Style.StatusSize(f, k.healthTextSize)
+	SetFont(healthText, cfg.healthFont, size, inRow and cfg.healthOutline or OnBar(cfg.healthOutline))
 	healthText:SetShown(shown or status)
 	healthText:ClearAllPoints()
 	local reserve = (inRow or onBar) and Style.Reserve(f, k)
 	if status then
-		reserve = math.max(reserve or 0, Style.StatusWidth(f, k.healthTextSize) or 0)
+		reserve = math.max(reserve or 0, Style.StatusWidth(f, size) or 0)
 	end
 	healthText:SetWidth(reserve or 0)
 	local bar = parts.health
@@ -494,7 +501,7 @@ function Style.PinStatus(f)
 	local status, parts = Settings.current.status, f.parts
 	if parts and f.status and status.place ~= "AUTO" then
 		local text = Settings.current.text
-		SetFont(f.healthText, text.healthFont, status.size > 0 and status.size or Settings.current[f.kind].healthTextSize, OnBar(text.healthOutline))
+		SetFont(f.healthText, text.healthFont, Style.StatusSize(f, Settings.current[f.kind].healthTextSize), OnBar(text.healthOutline))
 		f.healthText:SetWidth(0)
 		f.healthText:SetJustifyH("CENTER")
 		Style.Pin(f, f.healthText, status.place)

@@ -36,6 +36,11 @@ local function IsSecret(v)
 end
 Unit.IsSecret = IsSecret
 
+function Unit.Plain(value, kind)
+	if IsSecret(value) or type(value) ~= kind then return nil end
+	return value
+end
+
 local percentCurve, fullCurve
 local function Curves()
 	if percentCurve ~= nil then
@@ -92,6 +97,7 @@ local function Status(f)
 	if f.status ~= status then
 		f.status = status
 		Style.PlaceRowEnd(f)
+		if Unit.OnStatus then Unit.OnStatus(f) end
 	end
 end
 

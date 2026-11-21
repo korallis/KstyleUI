@@ -356,8 +356,8 @@ end
 function Headers.Numbers()
 	local cfg, card = ns.Settings.current.numbers, Headers.cards.raid
 	if not (cfg.show or Headers.numbered) then return end
-	Headers.numbered = true
-	local sizes, grouped = card and card.groups, card and card.settings and card.settings.sortBy == "GROUP"
+	Headers.numbered = cfg.show
+	local sizes, grouped = card and card.groups, card and card.settings and Separate(card.settings)
 	local shown = ShownGroups()
 	for g, header in ipairs(Headers.raid) do
 		local group = shown[g]
@@ -399,6 +399,8 @@ end
 
 function Headers.ApplyRaid(s)
 	s = OnGrid("raid", s)
+	local numbers = ns.Settings.current.numbers
+	if numbers.show and Separate(s) then s.groupSpacing = s.groupSpacing + Px("raid", numbers.size + 2) end
 	local holder, card = Headers.holders.raid, Headers.cards.raid
 	local geo = Separate(s) and Geometry.RaidGroups(s) or Geometry.RaidFlow(s)
 	local width, height, left, top = Seat(card, s, geo, "raid")

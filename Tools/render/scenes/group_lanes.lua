@@ -47,6 +47,7 @@ end
 local AT = { party = { 24, 392 }, raid = { 14, 330 } }
 local R3A = os.getenv("RENDER_PARITY_R3A") == "1"
 local SPELLS = { [1243] = { "Power Word: Fortitude", 135987 }, [1459] = { "Arcane Intellect", 135932 }, [467] = { "Thorns", 136104 } }
+local GROUP_SPELLS = { [21562] = "Prayer of Fortitude", [23028] = "Arcane Brilliance" }
 local IDENTITY = {
 	Valerin = { "Dwarf", 2 }, Morvane = { "Scourge", 2 }, Thessaly = { "Human", 3 }, Brannoc = { "Orc", 2 }, Ilyra = { "NightElf", 3 }, Dunmar = { "Dwarf", 2 },
 }
@@ -91,12 +92,13 @@ return Common.Run(function()
 			if R3A then
 				env.C_SpellBook = { IsSpellKnown = function(id) return SPELLS[id] ~= nil end }
 				env.C_Spell = env.C_Spell or {}
-				env.C_Spell.GetSpellName = function(id) return SPELLS[id] and SPELLS[id][1] end
+				env.C_Spell.GetSpellName = function(id) return SPELLS[id] and SPELLS[id][1] or GROUP_SPELLS[id] end
+				env.C_Secrets.ShouldSpellAuraBeSecret = function() return false end
 				env.C_Spell.GetSpellTexture = function(id) return SPELLS[id] and SPELLS[id][2] end
 				env.C_UnitAuras = env.C_UnitAuras or {}
 				env.C_UnitAuras.GetAuraDataBySpellName = function(unit, name)
 					local n = tonumber(unit:match("%d+$") or 0)
-					return (n % 3 ~= 1 or name ~= "Power Word: Fortitude") and (n % 2 == 0 or name ~= "Arcane Intellect") and {} or nil
+					return not (n % 3 == 1 and name:find("Fortitude") or n % 2 == 1 and name:find("Arcane")) and {} or nil
 				end
 				env.UnitPowerPercent = function(_, _, _, curve) return curve and curve:Evaluate(0.64) or 0.64 end
 				env.UnitInRaid = function(unit) return unit == "player" and env._roster.kind == "raid" and 1 or nil end

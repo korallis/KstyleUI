@@ -4,6 +4,7 @@ local _, ns = ...
 local K = KstyleUI
 local Widgets, Tokens, L = K.Widgets, K.Tokens, K.L
 local Settings, Style, Unit, Frames = ns.Settings, ns.Style, ns.Unit, ns.Frames
+local Plain, IsSecret = Unit.Plain, Unit.IsSecret
 
 local Readouts = {}
 ns.Readouts = Readouts
@@ -15,15 +16,7 @@ local LABEL_AT = { anchor = "TOP", x = 0, y = -96 }
 local MANA_EM = 9
 local LINE = 1.2
 local EVENTS = { "UNIT_POWER_UPDATE", "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UNIT_NAME_UPDATE" }
-
-local issecretvalue = issecretvalue or function()
-	return false
-end
-
-local function Plain(value, kind)
-	if issecretvalue(value) or type(value) ~= kind then return nil end
-	return value
-end
+local SAMPLE = { { "Sylaen", "DRUID", "80%" }, { "Vexen", "PRIEST", "90%" } }
 
 local function Holder(key, position, label)
 	local holder = CreateFrame("Frame", nil, K.Scale.Root())
@@ -75,8 +68,9 @@ local function Percent(unit)
 	return Widgets.ShortNumber(Widgets.WholePercent(UnitPowerPercent(unit, MANA, false, curve))) .. "%"
 end
 
-local function Hex(r, g, b)
-	return string.format("|cff%02x%02x%02x", r * 255, g * 255, b * 255)
+local function Named(class, name, mana)
+	local r, g, b = Unit.NameColor(class)
+	return string.format("|cff%02x%02x%02x", r * 255, g * 255, b * 255) .. name .. "|r " .. mana
 end
 
 local function PaintRow(row)
@@ -87,31 +81,42 @@ local function PaintRow(row)
 		return
 	end
 	local name = UnitName(unit)
-	if not issecretvalue(name) and type(name) ~= "string" then name = "" end
-	text:SetText(Hex(Unit.NameColor(Plain(select(2, UnitClass(unit)), "string"))) .. name .. "|r " .. mana)
+	if not IsSecret(name) and type(name) ~= "string" then name = "" end
+	text:SetText(Named(Plain(select(2, UnitClass(unit)), "string"), name, mana))
 end
 
 local mana, label
+
+local function Row(holder, i)
+	local row = holder.rows[i]
+	if not row then
+		row = CreateFrame("Frame", nil, holder)
+		row.text = Widgets.FontString(row, "OVERLAY")
+		row.text:SetAllPoints(row)
+		row:SetScript("OnEvent", PaintRow)
+		holder.rows[i] = row
+	end
+	return row
+end
 
 local function Rows(holder, count)
 	local cfg = Settings.current.mana
 	local size, spacing = cfg.size, cfg.spacing
 	local width, step = size * MANA_EM, size * LINE + spacing
-	holder:SetSize(width, math.max(1, count) * step - spacing)
+	local height = math.max(1, count) * step - spacing
+	local anchor, sign = "TOP", -1
+	if cfg.growth == "UP" then anchor, sign = "BOTTOM", 1 end
+	holder:SetSize(width, height)
 	for i, row in ipairs(holder.rows) do
 		row:ClearAllPoints()
 		row:SetSize(width, size * LINE)
-		local y = (i - 1) * step
-		if cfg.growth == "UP" then
-			row:SetPoint("BOTTOM", holder, "BOTTOM", 0, y)
-		else
-			row:SetPoint("TOP", holder, "TOP", 0, -y)
-		end
+		row:SetPoint(anchor, holder, anchor, 0, sign * (i - 1) * step)
 		Style.SetFont(row.text, Settings.current.text.healthFont, size, "OUTLINE")
 		row.text:SetJustifyH(cfg.align)
 		row.text:SetTextColor(ManaColor())
 		row:SetShown(i <= count)
 	end
+	return height
 end
 
 local function Mana()
@@ -125,14 +130,7 @@ local function Mana()
 		if Plain(UnitGroupRolesAssigned and UnitGroupRolesAssigned(unit), "string") == "HEALER" then healers[#healers + 1] = unit end
 	end
 	for i, unit in ipairs(healers) do
-		local row = mana.rows[i]
-		if not row then
-			row = CreateFrame("Frame", nil, mana)
-			row.text = Widgets.FontString(row, "OVERLAY")
-			row.text:SetAllPoints(row)
-			row:SetScript("OnEvent", PaintRow)
-			mana.rows[i] = row
-		end
+		local row = Row(mana, i)
 		row.unit = unit
 		for _, event in ipairs(EVENTS) do row:RegisterUnitEvent(event, unit) end
 		PaintRow(row)
@@ -149,32 +147,35 @@ local function Group()
 	return group
 end
 
-local function LabelText(text, group, format)
-	if format == "FULL" and GROUP_NUMBER then
-		text:SetFormattedText(GROUP_NUMBER, group)
-	else
-		text:SetText(group)
+local function Plate(holder)
+	local cfg = Settings.current.label
+	if not holder.text then
+		holder.chrome = Widgets.Chrome(holder, { shape = "panel" })
+		holder.text = Widgets.FontString(holder, "OVERLAY")
+		holder.text:SetPoint("CENTER", holder, "CENTER", 0, 0)
 	end
+	Style.SetFont(holder.text, Settings.current.text.healthFont, cfg.size, "NONE")
+	holder.text:SetTextColor(cfg.color.r, cfg.color.g, cfg.color.b)
+	local sample = cfg.format == "FULL" and GROUP_NUMBER and GROUP_NUMBER:format(8) or "8"
+	local height = Widgets.Snap(holder, cfg.size * LINE + 2 * cfg.padding)
+	holder:SetSize(Widgets.Snap(holder, ns.Names.Width(holder.text, sample, cfg.size) + 2 * cfg.padding), height)
+	holder.chrome:Restyle()
+	return height
 end
 
 local function Label()
 	local cfg = Settings.current.label
 	local on = cfg.enabled and Frames.Active()
 	if not on and not label then return end
-	if not label then
-		label = Holder(LABEL_KEY, LABEL_AT, L["Your group label"])
-		label.chrome = Widgets.Chrome(label, { shape = "panel" })
-		label.text = Widgets.FontString(label, "OVERLAY")
-		label.text:SetPoint("CENTER", label, "CENTER", 0, 0)
-	end
+	label = label or Holder(LABEL_KEY, LABEL_AT, L["Your group label"])
+	Plate(label)
 	local group = on and Group()
-	Style.SetFont(label.text, Settings.current.text.healthFont, cfg.size, "NONE")
-	label.text:SetTextColor(cfg.color.r, cfg.color.g, cfg.color.b)
-	local sample = cfg.format == "FULL" and GROUP_NUMBER and GROUP_NUMBER:format(8) or "8"
-	label:SetSize(Widgets.Snap(label, ns.Names.Width(label.text, sample, cfg.size) + 2 * cfg.padding), Widgets.Snap(label, cfg.size * LINE + 2 * cfg.padding))
-	label.chrome:Restyle()
-	local known = issecretvalue(group) or type(group) == "number"
-	if known then LabelText(label.text, group, cfg.format) end
+	local known = IsSecret(group) or type(group) == "number"
+	if known and cfg.format == "FULL" and GROUP_NUMBER then
+		label.text:SetFormattedText(GROUP_NUMBER, group)
+	elseif known then
+		label.text:SetText(group)
+	end
 	Live(LABEL_KEY, label, on and known)
 end
 
@@ -183,19 +184,24 @@ function Readouts.Refresh()
 	Label()
 end
 
-function Readouts.Sample()
-	local parts, cfg = {}, Settings.current
-	if cfg.mana.mode ~= "NONE" then
-		local r, g, b = ManaColor()
-		parts[#parts + 1] = Hex(r, g, b) .. (cfg.mana.names and "Sylaen " or "") .. "87%|r"
+function Readouts.Sample(list, plate)
+	local cfg = Settings.current
+	local listed, labelled = cfg.mana.mode ~= "NONE", cfg.label.enabled
+	list:SetShown(listed)
+	plate:SetShown(labelled)
+	if listed then
+		list.rows = list.rows or {}
+		local names = cfg.mana.names and cfg.mana.mode ~= "PARTY"
+		for i, healer in ipairs(SAMPLE) do
+			Row(list, i).text:SetText(names and Named(healer[2], healer[1], healer[3]) or healer[3])
+		end
 	end
-	if cfg.label.enabled then
-		parts[#parts + 1] = cfg.label.format == "FULL" and GROUP_NUMBER and GROUP_NUMBER:format(1) or "1"
-	end
-	return #parts > 0 and table.concat(parts, "   ") or nil
+	local height = labelled and Plate(plate) or 0
+	if labelled then plate.text:SetText(cfg.label.format == "FULL" and GROUP_NUMBER and GROUP_NUMBER:format(1) or "1") end
+	return listed and Rows(list, #SAMPLE) or 0, height
 end
 
-for _, name in ipairs({ "Enable", "Disable", "Apply" }) do
+for _, name in ipairs({ "Enable", "Disable", "Apply", "OnTransition" }) do
 	local fn = Frames[name]
 	Frames[name] = function(...)
 		fn(...)

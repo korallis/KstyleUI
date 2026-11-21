@@ -365,7 +365,7 @@ end
 
 local function TextReserve(f, k)
 	local percent = k.healthText ~= "NONE" and Style.Reserve(f, k, nil, true) or 0
-	local status = Style.InRow(f) and Style.StatusWidth(f, k.healthTextSize) or 0
+	local status = Style.InRow(f) and Style.StatusWidth(f, Style.StatusSize(f, k.healthTextSize)) or 0
 	return math.max(percent, status) + Slack(f), percent > 0 and percent + Slack(f) or 0
 end
 
@@ -376,6 +376,7 @@ local function TileText(f)
 	local right = Widgets.Snap(f, tile.percentRight or tile.right)
 	local gap = Widgets.Snap(f, tile.gap)
 	local reserve = TextReserve(f, k)
+	Style.SetFont(f.healthText, Settings.current.text.healthFont, Style.StatusSize(f, k.healthTextSize), TILE_TEXT)
 	local lines = 1.2 * (Widgets.FontSize(f.name, 12) + Widgets.FontSize(f.healthText, k.healthTextSize))
 	local refined = Widgets.Readability("readableBars")
 	local separated = refined and tile.stacked and health.height - 2 * tile.inset >= lines
