@@ -36,6 +36,13 @@ local function Fixtures(env)
 	end
 end
 
+-- Jewels() -> the two counts of RENDER_JEWELS=from,to, the crest jewels' change; the unit frame's combo pips show the second.
+local function Jewels()
+	local from, to = (os.getenv("RENDER_JEWELS") or "4,5"):match("^(%d+),(%d+)$")
+	assert(from, "RENDER_JEWELS must be from,to, such as 4,5")
+	return from, to
+end
+
 local function Medallions(K)
 	return K and K.HudStyle and K.HudStyle.Current() == "medallions"
 end
@@ -70,8 +77,7 @@ function Effects.Apply(env, module, ns, notes)
 		elseif state == "jewels" then
 			-- RENDER_JEWELS=from,to: the crest jewels went from one count to the other RENDER_FX_T seconds ago;
 			-- RENDER_JEWELS_BREATH is how far the ring's breath has run; RENDER_JEWELS_MOTION sets Medallions motion.
-			local from, to = (os.getenv("RENDER_JEWELS") or "4,5"):match("^(%d+),(%d+)$")
-			assert(from, "RENDER_JEWELS must be from,to, such as 4,5")
+			local from, to = Jewels()
 			local motion = os.getenv("RENDER_JEWELS_MOTION")
 			if motion and motion ~= "" then
 				K.Options.Write("Medallions", "motion", motion)
@@ -95,7 +101,12 @@ function Effects.Apply(env, module, ns, notes)
 			notes[#notes + 1] = "fx: the hub's 2D level-up burst " .. t .. " s in (the 3D rays at Full are not drawn)"
 		end
 	elseif module == "unitframes" then
-		if state == "vignette" then
+		if state == "jewels" then
+			local _, to = Jewels()
+			env._comboPoints = tonumber(to)
+			env.FireEvent("UNIT_POWER_FREQUENT", "player", "COMBO_POINTS")
+			notes[#notes + 1] = "fx: the player's combo pips at " .. to .. ", as the crest jewels"
+		elseif state == "vignette" then
 			Fixtures(env)
 			env._health = 0.08
 			for _, kind in ipairs({ "player", "target" }) do
