@@ -54,7 +54,7 @@ function ns.Preview(parent)
 		ns.PaintDot(self.dot, Dim(ring and ns.Get("cursorDot")))
 		ns.PaintCast(self.cast, Dim(cast))
 		self.cast:SetReverse(true)
-		self.cast:SetCooldown(GetTime() - CAST_DONE, CAST_SECONDS)
+		if type(GetTime) == "function" then self.cast:SetCooldown(GetTime() - CAST_DONE, CAST_SECONDS) end
 		if type(self.cast.Pause) == "function" then self.cast:Pause() end
 		local cw, ch = self.cross:GetSize()
 		local rw, sw, cx, cy = self.ring:GetWidth(), self.cast:GetWidth(), ns.Get("crosshairX"), ns.Get("crosshairY")

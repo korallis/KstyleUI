@@ -159,7 +159,6 @@ function ns.Schema()
 		{ type = "toggle", key = "fastLoot", label = L["Faster auto loot"], help = L["When the game auto loots, take every item the moment the window opens."], disableWhen = isOff },
 		{ type = "toggle", key = "lootFeed", label = L["Loot feed"], help = L["Short lines above the chat for what you loot, with icons, quality colours and coin colours."], disableWhen = isOff },
 		{ type = "toggle", key = "coinIcons", label = L["Coin icons"], help = L["Show coin icons instead of gold, silver and copper letters in the loot feed."], disableWhen = function(s) return not (s.enabled and s.lootFeed) end },
-		slider("rollsClose", L["Close loot rolls after"], L["Seconds before the loot rolls window closes once you open it; zero leaves it open."], 1, isOff),
 		{ type = "header", label = L["Merchants"] },
 		{ type = "toggle", key = "autoRepair", label = L["Repair by itself"], help = L["Repair your gear at merchants and print the cost."], disableWhen = isOff },
 		{ type = "toggle", key = "guildRepair", label = L["Guild funds first"], help = L["Pay from the guild bank when your rank allows it."], disableWhen = when("autoRepair") },
@@ -258,6 +257,7 @@ function ns.Schema()
 		{ type = "dropdown", key = "hideToasts", label = L["Hide toasts"], help = L["Hide the loot or achievement toasts that pop up on screen."], options = {
 			{ value = "none", label = L["None"] }, { value = "loot", label = L["Loot"] }, { value = "achievements", label = L["Achievements"] }, { value = "both", label = L["Both"] },
 		}, disableWhen = isOff },
+		slider("rollsClose", L["Close loot rolls after"], L["Seconds before the loot rolls window closes once you open it; zero leaves it open."], 1, isOff),
 		{ type = "toggle", key = "trainAll", label = L["Train all button"], help = L["A Train all button at trainers that learns everything you can afford."], disableWhen = isOff },
 		{ type = "toggle", key = "autoOpen", label = L["Open containers"], help = L["Open boxes and bags in your bags, out of combat and away from merchants, mail, banks and trades."], disableWhen = isOff },
 		{ type = "toggle", key = "openSkipWarbound", label = L["Leave warbound containers"], help = L["Leave containers bound to your account for your other characters."], disableWhen = when("autoOpen") },
