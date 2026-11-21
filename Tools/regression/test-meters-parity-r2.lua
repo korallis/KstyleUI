@@ -5,7 +5,7 @@ local G = dofile("Tools/regression/geometry.lua")
 local function Party(e)
 	e._group = { raid = false, size = 5 }
 	e._units.player.guid = "Player-3"
-	e.LE_PARTY_CATEGORY_INSTANCE = 2
+	e.LE_PARTY_CATEGORY_HOME, e.LE_PARTY_CATEGORY_INSTANCE = 1, 2
 	e.IsInGroup = function(category)
 		if category == 2 then return e._instance == true end
 		return e._group.size > 0
@@ -40,6 +40,7 @@ for key, value in pairs({ ["damage.englishUnits"] = true, ["damage.report"] = fa
 end
 assert(not ns.Damage2.holder and not list.reportButton and not list.resetButton, "the second window and the report button build nothing until switched on")
 assert(Value(list, 1) == "52.3K" and list.rest == "3.2K dps", "English units by default: " .. tostring(Value(list, 1)) .. " " .. tostring(list.rest))
+assert(list.rows[1].label == nil and ns.Damage.slots[1].label == nil, "with reports off a refresh keeps no report data per row")
 
 -- English number units off uses the game's own units, for rows, the rate and the hover breakdown; on restores.
 local game = env.AbbreviateLargeNumbers
@@ -200,4 +201,52 @@ end
 set("damage2.shown", false); preview:Refresh()
 assert(not preview.second.holder:IsShown(), "and hides it again")
 Errors("preview")
+-- Review of #621: the reset button, fail-closed checks, secret death times, home chats, room beside threat and the preview.
+set("damage2.shown", true); set("damage.englishUnits", true)
+set("threat.shown", true); set("threat.group", false); Refresh()
+local s2, t2 = Rect(ns.Damage2.holder), Rect(ns.Threat.holder)
+assert(ns.Threat.paired and ns.Threat.list.panel:IsVisible() and second.panel:IsVisible(), "Both docks threat beside the damage meter")
+assert(s2.right <= t2.left or t2.right <= s2.left or s2.top <= t2.bottom or t2.top <= s2.bottom, "the second window starts clear of the docked threat card")
+assert(math.abs(s2.right - s2.left - (Rect(ns.Damage.holder).right - Rect(ns.Damage.holder).left)) < 1e-6, "the second window has the main card's room for names")
+set("damage.report", true); set("damage.resetButton", true)
+local resets, reset = 0, env.C_DamageMeter.ResetAllCombatSessions
+env.C_DamageMeter.ResetAllCombatSessions = function() resets = resets + 1 end
+Shift(list.resetButton, "OnClick")
+assert(resets == 0 and #sent == 6, "a Shift-click on Reset reports instead of resetting")
+list.resetButton._scripts.OnClick(list.resetButton, "LeftButton"); env.RunTimers()
+assert(resets == 1, "a plain click on Reset still resets")
+env.C_DamageMeter.ResetAllCombatSessions = reset
+set("damage.resetButton", false)
+local lockdown, combat = env.C_ChatInfo.InChatMessagingLockdown, env.InCombatLockdown
+env.C_ChatInfo.InChatMessagingLockdown = nil; Click(); Refused("without the chat lockdown check the report refuses")
+env.C_ChatInfo.InChatMessagingLockdown = lockdown
+env.InCombatLockdown = function() error("no answer") end; Click(); env.InCombatLockdown = combat
+Refused("a combat check that fails refuses")
+set("damage.meter", "Deaths"); sources[1].deathTimeSeconds = env.Secret(67); Refresh(); Click()
+Refused("a secret death time refuses the report")
+sources[1].deathTimeSeconds = 67; Refresh(); Click()
+assert(#sent == 6 and sent[2][1] == "1. Player 1 1:07", "a plain death time reports: " .. tostring(sent[2] and sent[2][1]))
+set("damage.meter", "DamageDone")
+local inGroup, inRaid = env.IsInGroup, env.IsInRaid
+env.IsInGroup = function(category) return category ~= 1 end
+env.IsInRaid = function(category) return category ~= 1 end
+for _, chat in ipairs({ "PARTY", "RAID" }) do
+	set("damage.reportTo", chat); Click()
+	assert(#sent == 0 and #env._printed == 6, "an instance group alone does not open " .. chat .. " chat")
+end
+env.IsInGroup, env.IsInRaid = inGroup, inRaid
+set("damage.reportTo", "auto"); set("damage.report", false)
+set("damage2.session", "Overall"); preview:Refresh()
+assert(preview.second.switchSelected == 3 and second.switchSelected == 3, "the preview shows the second window's fight")
+set("damage2.meter", "Deaths"); preview:Refresh()
+assert(Value(second, 1) == "1:07" and tostring(Value(preview.second, 1)):match("^%d+:%d%d$"), "the preview shows death times: " .. tostring(Value(preview.second, 1)))
+set("damage2.session", "Current"); set("damage2.meter", "HealingDone")
+set("damage.mode", "skin")
+for _, row in ipairs(ns.Schema()) do
+	local shown = row.showWhen and row.showWhen(K.Store.Module("Meters"))
+	if row.key == "damage.meter" or row.key == "damage.session" then assert(not shown, row.key .. " belongs to the restyled main window") end
+	if row.key == "damage.percent" or row.key == "damage2.meter" then assert(shown, row.key .. " still serves the second window") end
+end
+set("damage.mode", "window"); set("damage2.shown", false)
+Errors("review")
 print("meters parity round 2 ok")

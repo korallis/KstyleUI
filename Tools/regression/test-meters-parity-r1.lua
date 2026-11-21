@@ -249,7 +249,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		for _, layout in ipairs({ "DPS", "Tank", "Healer" }) do
 			local e, k, n = M.New({ width = screen[1], height = screen[2], followRole = true,
 				saved = { version = 42, account = { setupSeen = true }, profiles = { Default = { HudStyle = { style = style },
-					Meters = { timer = { shown = true }, history = { icons = true, bars = true }, damage2 = { shown = true } } } } },
+					Meters = { timer = { shown = true }, history = { icons = true, bars = true }, damage2 = { shown = true },
+						roles = { TANK = "both", HEALER = "both", DAMAGER = "both" }, threat = { group = false } } } } },
 				setup = function(x) x._fitScale, x._size = true, "auto" end })
 			assert(k.Setup.Apply({ layout = layout, modules = { Meters = true } }))
 			e.RunTimers()
@@ -260,6 +261,9 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			for name, holder in pairs({ timer = n.Timer.holder, icons = n.History.holder, bars = n.History.list.holder, second = n.Damage2.holder }) do
 				mine[name] = assert(Geometry.Rect(holder, r0))
 			end
+			local s, t = mine.second, assert(Geometry.Rect(n.Threat.holder, r0))
+			assert(n.Threat.paired and (s.right <= t.left or t.right <= s.left or s.top <= t.bottom or t.top <= s.bottom),
+				string.format("%dx%d %s %s: the second window overlaps the threat card docked beside the damage meter", screen[1], screen[2], style, layout))
 			for p, lhs in pairs(mine) do
 				for q, second in pairs(mine) do
 					assert(p == q or lhs.right <= second.left or second.right <= lhs.left or lhs.top <= second.bottom or second.top <= lhs.bottom, p .. " overlaps " .. q)
