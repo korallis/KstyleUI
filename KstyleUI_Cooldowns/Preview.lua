@@ -191,13 +191,14 @@ function Preview.Build(...)
 		local cfg, caption = current.custom, frame.caption
 		local previous, rule = nil, {}
 		for _, key in ipairs(Settings.RULES) do rule[key] = Rules.Sample(key) end
-		local using = current.rules.group ~= "" or cfg.autoAdd
+		local using = (current.rules.group ~= "" or cfg.autoAdd) and not ns.Path.Restyles("bars", current.path) and ns.Path.Get("bars") ~= "reskin"
 		local listed, samples, main, mine = using and cfg.shift == "", rule.cdBars and { SAMPLE_BARS[1], SAMPLE_COOLDOWN_BAR } or SAMPLE_BARS, {}, {}
 		for _, sample in ipairs(samples) do
 			local into = listed and (rule.group or cfg.autoAdd and not sample.charges) and mine or main
 			into[#into + 1] = sample
 		end
-		Widgets.SetText(caption, cfg.name ~= "" and cfg.name or L["Custom bars"])
+		local lift = #mine > cfg.count and cfg.spacing + cfg.height or 0
+		Widgets.SetText(caption, cfg.title ~= "" and cfg.title or L["Custom bars"])
 		caption:SetShown(using)
 		frame.rows.custom.holder:SetShown(using)
 		for _, group in ipairs(ORDER) do
@@ -208,7 +209,7 @@ function Preview.Build(...)
 				row:SetCount(0)
 			else
 				local y = -gap
-				if group == "custom" then y = y - Widgets.LineHeight(caption) - gap end
+				if group == "custom" then y = y - Widgets.LineHeight(caption) - gap - lift end
 				if group == "bars" and using and not listed then y = y + (cfg.shift == "up" and 1 or -1) * (cfg.height + cfg.spacing + cfg.shiftY) end
 				if previous then
 					Widgets.Point(row.holder, "TOP", previous.holder, "BOTTOM", 0, y)
@@ -218,10 +219,8 @@ function Preview.Build(...)
 				previous = row
 			end
 		end
-		Widgets.Point(caption, "BOTTOMLEFT", frame.rows.custom.holder, "TOPLEFT", 0, gap)
-		for _, group in ipairs(Settings.GROUPS) do
-			if group ~= "bars" then Fill(frame.rows[group], group, Samples(frame, group), rule) end
-		end
+		Widgets.Point(caption, "BOTTOMLEFT", frame.rows.custom.holder, "TOPLEFT", 0, gap + lift)
+		for _, group in ipairs(Settings.ICON_GROUPS) do Fill(frame.rows[group], group, Samples(frame, group), rule) end
 		FillBars(frame.rows.bars, rule, main)
 		if using then FillBars(frame.rows.custom, rule, mine) end
 		FocusSample(frame)

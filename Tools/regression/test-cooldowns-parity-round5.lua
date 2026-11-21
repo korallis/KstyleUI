@@ -39,7 +39,7 @@ end
 do
 	local env, K, ns = New("mirror")
 	local custom = ns.Settings.current.custom
-	assert(custom.name == "" and custom.count == 2 and not custom.autoAdd and custom.shift == "" and custom.shiftY == 0, "the custom group's settings keep their defaults")
+	assert(custom.title == "" and custom.count == 2 and not custom.autoAdd and custom.shift == "" and custom.shiftY == 0, "the custom group's settings keep their defaults")
 	assert(ns.Settings.current.rules.group == "", "its spell list is empty")
 	assert(ns.Mirror.Row("custom") == nil and K.Layout.Element("cooldowns.custom") == nil, "no custom row or Layout element is made")
 	assert(Spells(ns.Mirror.Row("bars")) == "4001,4002", "the tracked bars keep both buffs")
@@ -144,11 +144,9 @@ do
 	local base = Bottom(K, "probe.below")
 	assert(row.count == 0 and row.empty, "a spell not in the Cooldown Manager leaves the group empty")
 	Write("custom.shift", "up")
-	local _, h = K.Layout.Rect("cooldowns.custom")
 	local _, height = ns.Grid.Size(cfg.grid)
 	local pitch = (cfg.height + cfg.spacing) * select(4, K.Layout.Rect("cooldowns.custom")) / height
 	assert(math.abs(Bottom(K, "probe.below") - (base + pitch)) < 0.01, "Upward moves the attached element up by one bar")
-	assert(h, "the group keeps its rect")
 	Write("custom.shiftY", 5)
 	assert(math.abs(Bottom(K, "probe.below") - (base + pitch + 5)) < 0.01, "Extra shift adds to the move")
 	Write("custom.shift", "down")
@@ -212,7 +210,7 @@ end
 do
 	local env, K, ns = New("mirror", { custom = { name = string.rep("x", 60), count = 99, autoAdd = "yes", shift = "sideways", shiftY = -400 } })
 	local custom = ns.Settings.current.custom
-	assert(custom.name == "" and custom.count == 12 and custom.autoAdd == false and custom.shift == "" and custom.shiftY == -50, "bad saved values fall back or clamp")
+	assert(custom.title == "" and custom.count == 12 and custom.autoAdd == false and custom.shift == "" and custom.shiftY == -50, "bad saved values fall back or clamp")
 	Clean(env, K, "upgrade")
 end
 

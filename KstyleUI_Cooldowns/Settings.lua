@@ -364,18 +364,6 @@ function Settings.Schema()
 		end
 	end
 
-	local function CustomRows(schema)
-		local function Shifted(settings) return type(settings.custom) == "table" and SHIFT[settings.custom.shift] and settings.custom.shift ~= "" end
-		Add(schema, { type = "header", label = L["Custom bar group"] })
-		Add(schema, { type = "text", key = "rules.group", label = L["Spells in this group"], help = L["Tracked bars or cooldowns to show here as bars, in this order, by name or ID."], maxLetters = MAX_RULE }, "bars")
-		Add(schema, { type = "text", key = "custom.name", label = L["Group name"], help = L["The name Layout Mode and the Elements page show for this group."], maxLetters = MAX_NAME }, "bars")
-		Add(schema, Slider("custom", "count", L["Bars"], L["How many bars show. Point at the +N more bar above them to list the rest."], CUSTOM_RANGE), "bars")
-		Add(schema, Toggle("custom", "autoAdd", L["Add new tracked bars"], L["Every tracked bar the game shows joins this group, after the listed spells."]), "bars")
-		local SHIFT_OPTIONS = { { value = "", label = L["None"] }, { value = "up", label = L["Upward"] }, { value = "down", label = L["Downward"] } }
-		Add(schema, { type = "dropdown", key = "custom.shift", label = L["Shift attached elements"], help = L["While no spell of this group is in your Cooldown Manager, move what is attached to it by one bar."], options = SHIFT_OPTIONS }, "bars")
-		Add(schema, { type = "slider", key = "custom.shiftY", label = L["Extra shift"], help = L["Adds to that one-bar move."], min = CUSTOM_RANGE.shiftY[1], max = CUSTOM_RANGE.shiftY[2], step = CUSTOM_RANGE.shiftY[3], showWhen = Shifted }, "bars")
-	end
-
 	local function RuleRows(schema)
 		local function Rule(key, label, help, mirrorOnly)
 			Add(schema, { type = "text", key = "rules." .. key, label = label, help = help, maxLetters = MAX_RULE }, mirrorOnly == true and "essential" or mirrorOnly)
@@ -465,6 +453,15 @@ function Settings.Schema()
 		Add(schema, Hashed({ type = "color", key = "bars.lineColor", label = L["Line colour"], help = L["The colour of the charge lines."] }), group)
 		Add(schema, Hashed(Toggle(group, "chargeShade", L["Partial charge shade"], L["Darken the section still recharging the next charge."])), group)
 		Add(schema, Hashed(Slider(group, "shadeAlpha", L["Shade darkness"], L["How dark the recharging section is."], BAR_RANGE), true), group)
+		local function Shifted(settings) return type(settings.custom) == "table" and SHIFT[settings.custom.shift] and settings.custom.shift ~= "" end
+		Add(schema, { type = "header", label = L["Custom bar group"] })
+		Add(schema, { type = "text", key = "rules.group", label = L["Spells in this group"], help = L["Tracked bars or cooldowns to show here as bars, in this order, by name or ID."], maxLetters = MAX_RULE }, "bars")
+		Add(schema, { type = "text", key = "custom.name", label = L["Group name"], help = L["The name Layout Mode and the Elements page show for this group."], maxLetters = MAX_NAME }, "bars")
+		Add(schema, Slider("custom", "count", L["Bars"], L["How many bars show. Point at the +N more bar above them to list the rest."], CUSTOM_RANGE), "bars")
+		Add(schema, Toggle("custom", "autoAdd", L["Add new tracked bars"], L["Every tracked bar the game shows joins this group, after the listed spells."]), "bars")
+		local SHIFT_OPTIONS = { { value = "", label = L["None"] }, { value = "up", label = L["Upward"] }, { value = "down", label = L["Downward"] } }
+		Add(schema, { type = "dropdown", key = "custom.shift", label = L["Shift attached elements"], help = L["While no spell of this group is in your Cooldown Manager, move what is attached to it by one bar."], options = SHIFT_OPTIONS }, "bars")
+		Add(schema, { type = "slider", key = "custom.shiftY", label = L["Extra shift"], help = L["Adds to that one-bar move."], min = CUSTOM_RANGE.shiftY[1], max = CUSTOM_RANGE.shiftY[2], step = CUSTOM_RANGE.shiftY[3], showWhen = Shifted }, "bars")
 	end
 
 	local schema = {
@@ -498,7 +495,6 @@ function Settings.Schema()
 	IconRows(schema, "utility", L["Utility cooldowns"])
 	IconRows(schema, "buffs", L["Tracked buff icons"])
 	BarRows(schema)
-	CustomRows(schema)
 	RuleRows(schema)
 	Add(schema, { type = "header", label = L["Focus interrupt"] })
 	Add(schema, { type = "text", key = "focusSpell", label = L["Interrupt spell"], help = L["Your interrupt, by name or ID. Its icon shows on your focus's nameplate."], maxLetters = MAX_RULE })
@@ -666,7 +662,7 @@ function Settings.Read()
 	custom.shiftY = Number(own.shiftY, CUSTOM_RANGE.shiftY, 0)
 	custom.shift, custom.autoAdd = Choice(own.shift, SHIFT, ""), own.autoAdd == true
 	local name = own.name
-	custom.name = type(name) == "string" and not ns.IsSecret(name) and #name:gsub("[\128-\191]", "") <= MAX_NAME and not name:find("[%c|]") and name or ""
+	custom.title = type(name) == "string" and not ns.IsSecret(name) and #name:gsub("[\128-\191]", "") <= MAX_NAME and not name:find("[%c|]") and name or ""
 	ns.Rules.Reset()
 	return current
 end

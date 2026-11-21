@@ -29,7 +29,10 @@ local function Parse(text, ranked)
 		end
 		token = token:match("^%s*(.-)%s*$")
 		if token:match("^[%d%s]+$") then
-			for id in token:gmatch("%d+") do set[tonumber(id)] = value end
+			for id in token:gmatch("%d+") do
+				set[tonumber(id)] = value
+				if ranked then rank = rank + 1; value = rank end
+			end
 		elseif token ~= "" then
 			set[token] = value
 		end

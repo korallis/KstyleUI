@@ -15,6 +15,7 @@ local RETRY_SECONDS = 1
 local MAX_RETRIES = 10
 local KEYS = { essential = "cooldowns.essential", utility = "cooldowns.utility", buffs = "cooldowns.buffs", bars = "cooldowns.bars", custom = "cooldowns.custom" }
 local COOLDOWN_LIST = { "essential", "utility" }
+local RANKED = { "bars", "essential", "utility" }
 local OTHER = { essential = "utility", utility = "essential" }
 local EMPTY = Rules.EMPTY
 
@@ -31,7 +32,7 @@ local fighting = false
 local trinkets = { { equipSlot = 13 }, { equipSlot = 14 } }
 local swingStart, swingDuration, swingLate, swingStamp = nil, 0, false, 0
 local keysQueued, cooldownBars, chargeMax, barStamp = false, {}, {}, 0
-local held, layoutHooked = {}, false
+local held, picked, order, ordered = {}, {}, {}, false
 
 local pcall = pcall
 
@@ -744,17 +745,30 @@ local function Draw(row, out, list)
 	end
 end
 
-local function Rank(entry)
-	local rank = Rules.For(entry).group
-	return type(rank) == "number" and rank or math.huge
-end
-
-local function Reshift()
-	local row = rows.custom
-	local empty = row ~= nil and row.live and row.assigned == 0
-	if row and row.empty ~= empty then
+local function Reshift(row)
+	local empty = row.live and row.assigned == 0
+	if row.empty ~= empty then
 		row.empty = empty
 		K.Layout.Restore(KEYS.custom)
+	end
+end
+
+local function Unknown(rule)
+	return type(rule.talent) == "string" and not Rules.Known(rule.talent)
+end
+
+local function Order()
+	ordered = true
+	Empty(order)
+	for _, group in ipairs(RANKED) do
+		for _, entry in ipairs(lists[group] or EMPTY) do
+			local rank = Rules.For(entry).group
+			if rank then
+				local j = #order
+				while j > 0 and Rules.For(order[j]).group > rank do order[j + 1], j = order[j], j - 1 end
+				order[j + 1] = entry
+			end
+		end
 	end
 end
 
@@ -782,14 +796,14 @@ local function AssignAuras(row, list)
 		Empty(held)
 		if custom and list then
 			Empty(custom)
-			local kept = 0
+			Empty(picked)
 			for _, entry in ipairs(out) do
-				if auto or Rules.For(entry).group then custom[#custom + 1] = entry else kept = kept + 1; out[kept] = entry end
+				local rule = Rules.For(entry)
+				if auto or rule.group then picked[entry] = not Unknown(rule) and (rule.group or true) end
 			end
-			for i = #out, kept + 1, -1 do out[i] = nil end
 			for _, entry in ipairs(list) do
 				local rule = Rules.For(entry)
-				if (auto or rule.group) and not rule.hide then assigned = assigned + 1 end
+				if (auto or rule.group) and not rule.hide and not Unknown(rule) then assigned = assigned + 1 end
 			end
 		elseif custom then
 			for _, entry in ipairs(custom) do held[entry] = cooldownBars[entry] end
@@ -800,26 +814,35 @@ local function AssignAuras(row, list)
 		for _, group in ipairs((rules.cdBars ~= "" or rules.group ~= "") and COOLDOWN_LIST or EMPTY) do
 			for _, entry in ipairs(Live(group) and lists[group] or EMPTY) do
 				local rule = Rules.For(entry)
-				if entry.spell and (rule.cdBars or rule.group) and not rule.hide and not (type(rule.talent) == "string" and not Rules.Known(rule.talent)) then
+				if entry.spell and (rule.cdBars or rule.group) and not rule.hide and not Unknown(rule) then
 					if not (custom and rule.group) then
 						if rule.cdBars then out[#out + 1], cooldownBars[entry] = entry, true end
 					elseif list then
-						custom[#custom + 1], cooldownBars[entry], assigned = entry, true, assigned + 1
+						picked[entry], cooldownBars[entry], assigned = rule.group, true, assigned + 1
 					end
 				end
 			end
 		end
 		if custom then
 			if list then
-				for i = 2, #custom do
-					local entry, j = custom[i], i - 1
-					while j > 0 and Rank(custom[j]) > Rank(entry) do custom[j + 1], j = custom[j], j - 1 end
-					custom[j + 1] = entry
+				if not ordered then Order() end
+				for _, entry in ipairs(order) do
+					if picked[entry] then custom[#custom + 1] = entry end
 				end
+				local kept = 0
+				for _, entry in ipairs(out) do
+					if picked[entry] == nil then
+						kept = kept + 1
+						out[kept] = entry
+					elseif picked[entry] == true then
+						custom[#custom + 1] = entry
+					end
+				end
+				for i = #out, kept + 1, -1 do out[i] = nil end
 				rows.custom.assigned = assigned
 			end
 			Draw(rows.custom, custom, list)
-			Reshift()
+			Reshift(rows.custom)
 		end
 	end
 	Draw(row, out, list)
@@ -1030,7 +1053,7 @@ local function Rebuild(group)
 	if source == "dirty" and sources[group] == "layout" then
 		return true
 	end
-	scratch[group], lists[group] = lists[group], list
+	scratch[group], lists[group], ordered = lists[group], list, false
 	if sources[group] ~= source then
 		sources[group] = source
 		ns.Log(group .. ": " .. #list .. " entries from the " .. source)
@@ -1104,7 +1127,7 @@ local ListenRules
 local function ApplySettings(key)
 	Settings.Read()
 	Keys.Reset()
-	barStamp = barStamp + 1
+	barStamp, ordered = barStamp + 1, false
 	ListenRules()
 	Mirror.Custom()
 	for _, group in ipairs(GROUPS) do
@@ -1164,17 +1187,17 @@ function Mirror.Custom()
 	if use and not row then
 		row = BarRow.New(K.Scale.Root(), cfg)
 		rows.custom, shown.custom, row.assigned = row, {}, 0
-		if not layoutHooked and type(hooksecurefunc) == "function" then
-			layoutHooked = true
+		if type(hooksecurefunc) == "function" then
 			hooksecurefunc(K.Layout, "Enter", OnLayoutMode)
 			hooksecurefunc(K.Layout, "Exit", OnLayoutMode)
 		end
 	end
 	if not row then return end
-	local label = cfg.name ~= "" and cfg.name or K.L["Custom bars"]
+	local label = cfg.title ~= "" and cfg.title or K.L["Custom bars"]
 	if row.label ~= label then
-		local left, bottom, _, h = K.Layout.Rect(KEYS.bars)
-		row.place = row.place or { anchor = "BOTTOMLEFT", x = left or 0, y = (bottom or 0) + (h or 0) + Settings.current.bars.spacing }
+		local bars, left, bottom, _, h = Settings.current.bars, K.Layout.Rect(KEYS.bars)
+		local _, tall = Grid.Size(bars.grid)
+		row.place = row.place or { anchor = "BOTTOMLEFT", x = left or 0, y = (bottom or 0) + (h or 0) * (1 + (2 * bars.spacing + bars.height) / tall) }
 		row.label = label
 		K.Layout.Register(row.holder, KEYS.custom, row.place, { label = label, module = MODULE, scalable = true, clamp = Shift })
 	end
@@ -1186,7 +1209,7 @@ function Mirror.Custom()
 	end
 	row:Apply(cfg)
 	K.Layout.Restore(KEYS.custom)
-	Reshift()
+	Reshift(row)
 end
 
 local eventSpell, eventShow, eventEntry
