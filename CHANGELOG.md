@@ -1,5 +1,21 @@
 # KstyleUI changelog
 
+## v0.2.8.3 (2026-11-21)
+
+A small fix release.
+
+Highlights:
+
+- Character sheet quality borders and selected tabs are thin rings again.
+- The stance bar backing fits the stances and forms you have.
+- Medallions minimap coordinates sit centred on their plate.
+
+### Fixed
+
+- Character sheet quality borders and selected tabs are thin coloured rings again instead of thick solid blocks.
+- The stance bar's backing strip and Medallions plate fit the stances and forms you have instead of a full row, and resize when you learn one (after combat if you're fighting).
+- The coordinates under the round Medallions minimap sit centred on their plate with even padding when the clock is hidden or moved, instead of crammed against the plate's left edge.
+
 ## v0.2.8.2 (2026-11-20)
 
 The options release: the player bug fixes first, then a large batch of new settings across every module, each starting off or at today's value, and world map routes that follow real roads.

@@ -2,6 +2,10 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.2.8.3: fixes (2026-11-21)
+
+Character sheet quality borders and selected tabs are thin rings again instead of solid blocks, the stance bar's backing fits the stances and forms you have, and the coordinates under the Medallions minimap sit centred on their plate when the clock is hidden or moved. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.2.8.2: the options release (2026-11-20)
 
 Player fixes come first. RestedXP's guide card shows every line of the current step again, so each line can be ticked and the step skipped, and in combat a longer step never covers the quest card or RestedXP's item and target boxes. The welcome page keeps its closing sentence, the French and German Options footer no longer covers help text, the top data bar is readable at 1920x1080, and the colour-vision modes recolour health bars on nameplates and unit frames. Ten smaller fixes cover typing 50 into a percent setting, World latency, accented bag and map search, mover double-click and the Layout Mode finder, settings search, the Medallions leave-vehicle button, the setup's Modules page, and the chat and Data Bars previews in German and French.
