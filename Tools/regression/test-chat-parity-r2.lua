@@ -340,4 +340,202 @@ do
 	clean(env, K)
 end
 
+-- Review of cdb0019a, finding 1: a bigger size never pushes a button into the messages, the card or another button
+-- at either end of the slider, at every screen size and backing: the room beside the messages widens with the
+-- buttons, and above 1 they grow only while the stack still fits the column, so they never overlap more than at 1.
+local function area(a, b)
+	return math.max(0, math.min(a.right, b.right) - math.max(a.left, b.left)) * math.max(0, math.min(a.top, b.top) - math.max(a.bottom, b.bottom))
+end
+for _, size in ipairs(SIZES) do
+	for _, voice in ipairs({ false, true }) do
+		local env, K, ns = C.New({ width = size[1], height = size[2], saved = saved({ enabled = true, buttons = true }), setup = function(e) e._size, e._fitScale = "auto", true end })
+		env.RunTimers()
+		local names = { "QuickJoinToastButton", "ChatFrameChannelButton", "ChatFrameMenuButton" }
+		if voice then
+			names[#names + 1], names[#names + 2] = "ChatFrameToggleVoiceDeafenButton", "ChatFrameToggleVoiceMuteButton"
+		else
+			for _, name in ipairs({ "ChatFrameToggleVoiceDeafenButton", "ChatFrameToggleVoiceMuteButton" }) do env[name]:Hide() end
+		end
+		local function rect(f) return assert(G.ScaledRect(f, env.UIParent, K.Scale.Root())) end
+		for _, style in ipairs({ "card", "glass", "bare" }) do
+			write(env, K, "sideStyle", style)
+			write(env, K, "sideGap", 0)
+			local at = {}
+			for _, scale in ipairs({ 1, 0.5, 2 }) do
+				write(env, K, "sideScale", scale)
+				local where = size[1] .. "x" .. size[2] .. " " .. style .. " scale " .. scale .. (voice and " with voice" or "")
+				local msgs, card = rect(env.ChatFrame1), rect(ns.Panel.Glass())
+				for i, name in ipairs(names) do
+					local r = rect(env[name])
+					assert(area(r, msgs) == 0, where .. ": " .. name .. " reaches into the messages")
+					assert(style == "card" or area(r, card) == 0, where .. ": " .. name .. " reaches onto the card")
+					for j = i + 1, #names do
+						local both = area(r, rect(env[names[j]]))
+						at[i .. "," .. j] = at[i .. "," .. j] or both
+						assert(voice and both <= at[i .. "," .. j] + 0.01 or both == 0, where .. ": " .. name .. " overlaps " .. names[j] .. " by " .. both)
+					end
+				end
+			end
+			write(env, K, "sideScale", 1)
+		end
+		clean(env, K)
+	end
+end
+
+-- Finding 2: a free spot for the friends button survives the alert container putting it back on its corner.
+do
+	local env, K = boot()
+	write(env, K, "sideFree", true)
+	write(env, K, "sidePositions", { QuickJoinToastButton = { x = 111, y = -50 } })
+	env.ChatAlertFrame:UpdateAnchors()
+	env.RunTimers()
+	local p, rel, relp, x, y = point(env.QuickJoinToastButton)
+	assert(p == "CENTER" and rel == env.ChatFrame1.buttonFrame and relp == "TOPLEFT" and near(x, 111) and near(y, -50), "the friends button keeps its spot, got " .. tostring(relp) .. " " .. tostring(x) .. " " .. tostring(y))
+	clean(env, K)
+end
+
+-- Finding 3: a restricted scale is left to the game instead of breaking the layout, and a drag without the combat
+-- check is refused.
+do
+	local env, K = boot({ enabled = true })
+	local menu = env.ChatFrameMenuButton
+	menu.GetScale = function() return env.Secret(1) end
+	write(env, K, "buttons", true)
+	write(env, K, "sideScale", 1.5)
+	assert(W.LastCall(menu, "SetScale") == nil and env.ChatFrameChannelButton:GetScale() > 1, "only the readable scales change")
+	clean(env, K)
+	write(env, K, "sideFree", true)
+	env._modifiers.shift = true
+	local lockdown = env.InCombatLockdown
+	env.InCombatLockdown = nil
+	local channels = env.ChatFrameChannelButton
+	local ok, err = pcall(channels:GetScript("OnDragStart"), channels)
+	env.InCombatLockdown = lockdown
+	assert(ok, tostring(err))
+	assert(W.LastCall(channels, "StartMoving") == nil, "no combat check, no drag")
+	clean(env, K)
+end
+
+-- Finding 4: only the scroll bar's anchor that followed the jump-to-bottom button moves, so the resize grip keeps a
+-- secondary window's bar, and off gives back the game's anchors exactly without FCF_UpdateScrollbarAnchors.
+do
+	local env, K = boot()
+	local function anchors(bar)
+		local list = {}
+		for i = 1, bar:GetNumPoints() do list[i] = { bar:GetPoint(i) } end
+		return list
+	end
+	local function same(a, b, what)
+		assert(#a == #b, what .. ": " .. #b .. " anchors, wanted " .. #a)
+		for i = 1, #a do for j = 1, 5 do assert(a[i][j] == b[i][j], what .. ", anchor " .. i .. " field " .. j) end end
+	end
+	local two = env.ChatFrame2
+	two.ScrollBar:ClearAllPoints()
+	two.ScrollBar:SetPoint("TOPLEFT", two, "TOPRIGHT", 0, 0)
+	two.ScrollBar:SetPoint("BOTTOM", two.ResizeButton, "TOP", 0, 0)
+	local grip, game = anchors(two.ScrollBar), anchors(env.ChatFrame1.ScrollBar)
+	write(env, K, "sideScroll", true)
+	same(grip, anchors(two.ScrollBar), "the resize grip keeps the bar")
+	for _, a in ipairs(anchors(env.ChatFrame1.ScrollBar)) do assert(a[2] ~= env.ChatFrame1.ScrollToBottomButton, "the bar leaves the moved button") end
+	write(env, K, "sideScroll", false)
+	same(grip, anchors(two.ScrollBar), "off keeps the grip's anchors")
+	same(game, anchors(env.ChatFrame1.ScrollBar), "off gives back the game's anchors")
+	clean(env, K)
+end
+
+-- Finding 5: the moved jump-to-bottom button follows the hover rule, even when the game fades it in at rest, and
+-- gives back the game's alpha when it goes home.
+do
+	local env, K, ns = boot()
+	write(env, K, "sideStyle", "glass")
+	write(env, K, "sideScroll", true)
+	local scroll = env.ChatFrame1.ScrollToBottomButton
+	scroll:SetAlpha(1)
+	scroll:Show()
+	write(env, K, "sideHover", true)
+	assert(ns.Panel.strip:GetAlpha() == 0 and scroll:GetEffectiveAlpha() == 0, "the scroll button waits with the column, got " .. scroll:GetEffectiveAlpha())
+	scroll:SetAlpha(0.65)
+	assert(scroll:GetAlpha() == 0, "the game's fade-in at rest stays hidden")
+	ns.Panel.strip:GetScript("OnEnter")(ns.Panel.strip)
+	assert(scroll:GetAlpha() == 0.65, "the pointer brings back the game's alpha")
+	ns.Panel.strip:GetScript("OnLeave")(ns.Panel.strip)
+	env.RunTimers()
+	assert(scroll:GetAlpha() == 0, "and leaving hides it again")
+	write(env, K, "sideScroll", false)
+	assert(scroll:GetAlpha() == 0.65, "going home gives back the game's alpha")
+	clean(env, K)
+end
+
+-- Finding 6: the voice toggles the game hides while logged out of voice give up their slots, and take them back when
+-- the game shows them (VoiceToggleButton.lua:17-21). The stub's Hide runs no OnHide, so the test runs it as the game does.
+do
+	local env, K = boot()
+	write(env, K, "sideOrder", "voice,channels,menu")
+	local column, channels = env.ChatFrame1.buttonFrame, env.ChatFrameChannelButton
+	for _, name in ipairs({ "ChatFrameToggleVoiceDeafenButton", "ChatFrameToggleVoiceMuteButton" }) do
+		env[name]:Hide()
+		local hidden = env[name]:GetScript("OnHide")
+		if hidden then hidden(env[name]) end
+	end
+	env.RunTimers()
+	local p, rel, relp = point(channels)
+	assert(p == "TOP" and rel == column and relp == "TOP", "logged out of voice, channels lead the column")
+	env.ChatFrameToggleVoiceDeafenButton:Show()
+	env.ChatFrameToggleVoiceMuteButton:Show()
+	env.RunTimers()
+	assert(select(2, point(channels)) == env.ChatFrameToggleVoiceMuteButton, "logging in gives the toggles their slots back")
+	clean(env, K)
+end
+
+-- Finding 7: the preview draws no strip in the bare framing, as the panel does, and puts a freely moved button at
+-- its spot against the column.
+do
+	local env, K, ns = boot()
+	write(env, K, "sideStyle", "glass")
+	write(env, K, "framing", "bare")
+	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
+	parent:SetPoint("CENTER")
+	parent:SetSize(320, 480)
+	local preview = K.Options.Preview("Chat")(parent)
+	assert(not ns.Panel.strip:IsShown() and not preview.strip:IsShown(), "bare framing draws no strip, live or in the preview")
+	write(env, K, "framing", "card")
+	local function menu()
+		preview:Refresh()
+		for _, tile in ipairs(preview.icons) do
+			if tile:IsShown() and tile.glyph:IsShown() then return tile:GetCenter() end
+		end
+	end
+	local _, y0 = menu()
+	write(env, K, "sideFree", true)
+	write(env, K, "sidePositions", { ChatFrameMenuButton = { x = 20, y = -40 } })
+	local x1, y1 = menu()
+	write(env, K, "sidePositions", { ChatFrameMenuButton = { x = 30, y = -50 } })
+	local x2, y2 = menu()
+	assert(y1 > y0 + 20, "the spot near the column's top moves the menu tile up from the foot")
+	assert(math.abs(x2 - x1 - 10) < 0.5 and math.abs(y2 - y1 + 10) < 0.5, "the tile follows the spot")
+	clean(env, K)
+end
+
+-- Finding 8: with free move switched on and off again, the layout's own triggers neither re-register drags nor
+-- rewrite unchanged scales.
+do
+	local env, K, ns = boot()
+	write(env, K, "sideFree", true)
+	write(env, K, "sideFree", false)
+	local register, scale = 0, 0
+	for _, name in ipairs({ "QuickJoinToastButton", "ChatFrameChannelButton", "ChatFrameToggleVoiceDeafenButton", "ChatFrameToggleVoiceMuteButton", "ChatFrameMenuButton" }) do
+		local b = env[name]
+		local r, s = b.RegisterForDrag, b.SetScale
+		b.RegisterForDrag = function(...) register = register + 1 return r(...) end
+		b.SetScale = function(...) scale = scale + 1 return s(...) end
+	end
+	local resize = ns.Panel.Holder():GetScript("OnSizeChanged")
+	for _ = 1, 5 do
+		resize(ns.Panel.Holder())
+		env.RunTimers()
+	end
+	assert(register == 0 and scale == 0, "five layout passes: " .. register .. " drag registrations, " .. scale .. " scale writes")
+	clean(env, K)
+end
+
 print("chat parity r2 ok: backing, gap, order, size, spacing, column width, free move, scroll button and tabs above apply, restore and follow their events")
