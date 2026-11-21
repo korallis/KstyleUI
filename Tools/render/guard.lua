@@ -168,13 +168,13 @@ function Guard.Clothes(backdrop, glass)
 	return frame
 end
 
--- Cards(scene) -> the scene's cards: { frame, scope, glass = { x, y, w, h } }, smallest first. The glass is what
+-- Cards(scene) -> the scene's cards: { frame, scope, glass = { x, y, w, h }, at }, smallest first. The glass is what
 -- the page draws of the card's fill, inside any clip rect, and of any lens disc on the card itself (the minimap
--- card's arched top).
+-- card's arched top); at is the draw index of its first slice.
 function Guard.Cards(scene)
 	local byFrame, order = {}, {}
 	local isCard = {}
-	for _, item in ipairs(scene.items) do
+	for i, item in ipairs(scene.items) do
 		local owner = item.object and item.object._parent
 		if owner and item.kind == "texture" then
 			local file = fileOf(item)
@@ -183,7 +183,7 @@ function Guard.Cards(scene)
 			end
 			if file:find("CardShape", 1, true) or file:find("LumenShape", 1, true) or file:find("LensMask", 1, true) then
 				if not byFrame[owner] then
-					byFrame[owner] = { frame = owner }
+					byFrame[owner] = { frame = owner, at = i }
 					order[#order + 1] = owner
 				end
 				byFrame[owner].glass = union(byFrame[owner].glass, intersect(item.rect, item.clip))
@@ -247,8 +247,9 @@ local function depth(frame)
 end
 
 -- Owner(cards, item, rect) -> the card a drawn item belongs to, or nil: of the cards whose content holds it in the
--- frame tree, the one whose content root is deepest; else, for a text, the smallest card its centre sits on. A
--- card's own chrome belongs to no card.
+-- frame tree, the one whose content root is deepest; else, for a text drawn at index at, the smallest card its centre
+-- sits on whose glass is drawn first (a HUD line under a window on a higher strata is not on it). A card's own chrome
+-- belongs to no card.
 local function ownBorder(item, card, rect)
 	local object = item.object
 	local file = fileOf(item)
@@ -279,7 +280,7 @@ local function ownBorder(item, card, rect)
 	return true
 end
 
-function Guard.Owner(cards, item, rect)
+function Guard.Owner(cards, item, rect, at)
 	local object = item.object
 	local x, y = centre(rect)
 	local tree, treeDepth, onto
@@ -293,7 +294,7 @@ function Guard.Owner(cards, item, rect)
 				if not tree or d > treeDepth then
 					tree, treeDepth = card, d
 				end
-			elseif item.kind == "text" and not onto and onGlass(x, y, card.glass) then
+			elseif item.kind == "text" and not onto and not (at and card.at > at) and onGlass(x, y, card.glass) then
 				onto = card
 			end
 		end
@@ -469,7 +470,7 @@ function Guard.Check(scene)
 			end
 		end
 	end
-	for _, item in ipairs(scene.items) do
+	for at, item in ipairs(scene.items) do
 		local why = ellipsis(item)
 		if why then
 			add("ellipsis", item, nil, why)
@@ -478,7 +479,7 @@ function Guard.Check(scene)
 		if object and not isDecor(item) and item.rect then
 			local rect = intersect(item.rect, item.clip)
 			if rect[3] > 0 and rect[4] > 0 then
-				local card = Guard.Owner(cards, item, rect)
+				local card = Guard.Owner(cards, item, rect, at)
 				if card and not Guard.Excused(cards, card, rect) then
 					local past = Geometry.Outside(bounds(rect), bounds(card.glass))
 					if past > slack then

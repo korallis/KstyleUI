@@ -1,4 +1,4 @@
--- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text or unit-frame parity round 1, 2, 3a, 3b, 3c or 3d options through Options.
+-- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text, unit-frame parity round 1, 2, 3a, 3b, 3c or 3d options through Options, or (RENDER_AURA_BOTH=1) the target's Debuffs and buffs with timers under the icons.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -174,6 +174,12 @@ return Common.Run(function()
 			K.Options.Write(module, pair[1], pair[2])
 		end
 		env.FireEvent("PVP_TIMER_UPDATE", "player")
+	end
+	if os.getenv("RENDER_AURA_BOTH") == "1" and module == "UnitFrames" then
+		K.Options.Write(module, "target.auraFilter", "both")
+		env._units.target.auras = { { id = 1, icon = 135813, left = 9, harmful = true, mine = true }, { id = 2, icon = 136026, left = 3, harmful = true, mine = true },
+			{ id = 3, icon = 136207, left = 30, harmful = false }, { id = 4, icon = 136118, left = 12, harmful = false } }
+		dofile("Tools/regression/aura_fixture_engine.lua").Install(env)
 	end
 	env.RunTimers(); Gallery.Ticks(dofile("Tools/regression/widget_env.lua"), env, 40)
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))
