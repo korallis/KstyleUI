@@ -282,8 +282,8 @@ function Preview.Build(...)
 				local per = name == "tanks" and s.wrapAfter > 0 and s.wrapAfter or #list
 				local vertical, lines = Geometry.IsVertical(growth), math.ceil(#list / per)
 				local along, across = Geometry.Line(math.min(per, #list), vertical and h or w, spacing), Geometry.Line(lines, vertical and w or h, spacing)
-				local gw, gh = vertical and across or along, vertical and along or across
-				list.holder:SetSize(gw, gh)
+				local bw, bh = vertical and across or along, vertical and along or across
+				list.holder:SetSize(bw, bh)
 				list.holder:ClearAllPoints()
 				list.holder:SetPoint("TOPLEFT", preview.raid, "TOPLEFT", ex, -(rh + groupSpacing))
 				for line = 1, lines do
@@ -296,7 +296,7 @@ function Preview.Build(...)
 					Style.Apply(f, w, h)
 					Paint(f, f.sample)
 				end
-				ex, eh = ex + gw + groupSpacing, math.max(eh, gh)
+				ex, eh = ex + bw + groupSpacing, math.max(eh, bh)
 			end
 		end
 		if eh > 0 then
