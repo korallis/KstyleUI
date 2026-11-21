@@ -57,7 +57,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 3456, 2234 } }) do
 		M.Enable(env, K)
 		local threat, damage = ns.Threat.list, ns.Damage.list
 		local w, h = ns.Threat.holder:GetSize()
-		assert(math.abs(w - ns.Damage.holder:GetWidth()) < 1 and math.abs(h - ns.Damage.holder:GetHeight()) < 1, preset .. ": paired cards share the damage width and height")
+		assert(math.abs(w - ns.SLOT_WIDTH) < 1 and math.abs(h - ns.Damage.holder:GetHeight()) < 1, preset .. ": the paired threat card takes the slot width and the damage height")
 		assert(threat.panel:IsVisible() and damage.panel:IsVisible(), preset .. ": both actual cards can show together")
 		local root = K.Scale.Root()
 		local t, d = assert(Geometry.Rect(threat.panel, root)), assert(Geometry.Rect(damage.panel, root))

@@ -25,7 +25,7 @@ local function Window(section, key)
 		drill = { active = false }, slots = {} }
 end
 local Damage, Second = Window("damage", KEY), Window("damage2", SECOND)
-ns.Damage, ns.Damage2 = Damage, Second
+ns.Damage, ns.Damage2, ns.SLOT_WIDTH = Damage, Second, SECOND_WIDTH
 
 local IsSecret = Logic.IsSecret
 local max, min = math.max, math.min

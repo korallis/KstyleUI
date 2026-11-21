@@ -280,7 +280,7 @@ function DockGuide()
 		Threat.soloWidth = Threat.soloWidth or holder:GetWidth()
 		Threat.soloHeight = Threat.soloHeight or holder:GetHeight()
 		if holder:GetHeight() ~= damage:GetHeight() then holder:SetHeight(damage:GetHeight()) end
-		if holder:GetWidth() ~= damage:GetWidth() then holder:SetWidth(damage:GetWidth()) end
+		if holder:GetWidth() ~= ns.SLOT_WIDTH then holder:SetWidth(ns.SLOT_WIDTH) end
 		holder:ClearAllPoints()
 		K.Widgets.Point(holder, "TOPRIGHT", damage, "TOPLEFT", -K.Setup.Layouts.GAP / K.Widgets.ScaleFactor(holder), 0, true)
 		ns.Damage.list:Fit()
