@@ -14,7 +14,7 @@
 -- RENDER_PARITY_R3A=1 switches on round 3a's: missing buffs, Dead on the bar, the dispel type letter, centred names
 -- with a divider, group numbers, healer mana and your group label.
 -- RENDER_PARITY_R4=1 switches on round 4's: role icons on the bar with an offset, glowing missing buffs, a taller name
--- line, heal icons nudged, class first and centred raid groups.
+-- line, heal icons nudged, class first and centred raid groups. RENDER_GROUP_LANE=1 gives the first member three of your heals and the three default indicators.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
@@ -231,6 +231,24 @@ return Common.Run(function()
 				local button = f.auras._groups.debuffs.frames[1]
 				button._aura.icon:SetTexture(135813)
 				if A.Dispel then A.Dispel(button, "Magic") end
+			end
+		end)
+	end
+	if os.getenv("RENDER_GROUP_LANE") == "1" then
+		local A = dofile("Tools/regression/auras_env.lua")
+		ns.Unit.ForEach(function(f)
+			if (f.unit == "party1" or f.unit == "raid1") and f.buffs then
+				local heals = f.buffs._groups.buffs
+				A.Assign(env, f.buffs, "buffs", 3)
+				for i, button in ipairs(heals.active) do button._aura.icon:SetTexture(({ 136081, 135953, 136076 })[i]) end
+				Hud.PlaceAuras(f.buffs, heals, heals.active, 3)
+				for i = 1, 3 do
+					local slot = f.indicators and f.indicators._slots["indicator" .. i]
+					if slot and slot.enabled then
+						slot.frame:Show()
+						if slot.frame._aura then slot.frame._aura.icon:SetTexture(({ 135936, 136071, 135940 })[i]) end
+					end
+				end
 			end
 		end)
 	end
