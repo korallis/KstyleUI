@@ -52,7 +52,7 @@ local SORT = "Expiration"
 local LANES = { { "buffDefensive", "BIG_DEFENSIVE" }, { "buffDispellable", "DISPELLABLE" } }
 local LOCKOUTS = { [57723] = true, [57724] = true, [80354] = true, [95809] = true, [160455] = true, [264689] = true, [390435] = true }
 local TRACK = OWNER .. ":track"
-local SIDE_OF = { CENTER = "BELOW", SIDE = "RIGHT" }
+local SIDE_OF = { SIDE = "RIGHT" }
 local FIXED_UNIT = { player = true, pet = true }
 
 local issecretvalue = issecretvalue or function()
@@ -531,10 +531,12 @@ local function EngineReady()
 	end
 end
 
+local held = {}
+
 function Auras.Apart(kind)
 	local place = Settings.Value(kind, "auraBuffPlace")
-	if place == "" or Settings.Value(kind, "auraFilter") ~= "both" or kind == "boss" and Settings.Value(kind, "auraSimple") ~= "" then return false end
-	local debuffs = Settings.Value(kind, "auraPosition")
+	if held[kind] or place == "" or Settings.Value(kind, "auraFilter") ~= "both" or kind == "boss" and Settings.Value(kind, "auraSimple") ~= "" then return false end
+	local debuffs = Centred(kind) and "BELOW" or Settings.Value(kind, "auraPosition")
 	return (SIDE_OF[debuffs] or debuffs) ~= place
 end
 
@@ -793,7 +795,7 @@ function Auras.SetCandidates(cache, slot, container, key, candidates)
 	end
 end
 
-local function ApplyOverflow(view, filter, want)
+local function ApplyOverflow(view, filter)
 	local a = view.auras
 	if not a.overflow then
 		return
@@ -803,11 +805,10 @@ local function ApplyOverflow(view, filter, want)
 	for _, key in ipairs(GROUPS) do
 		local chip = a.overflow[key]
 		if chip then
-			local on = want and filter[key] ~= nil
 			local apart = key == "buffs" and a.buff
 			local point, x, y, cell = Auras.LastCell(view.kind, a.host, key == "debuffs" or not filter.debuffs or apart, after)
 			Overflow.Apply(chip, {
-				enabled = on, groups = { { filter = filter[key], candidates = a.candidates[apart and "buffApart" or key] } }, cap = capacity, cell = cell, after = after,
+				enabled = filter[key] ~= nil, groups = { { filter = filter[key], candidates = a.candidates[apart and "buffApart" or key] } }, cap = capacity, cell = cell, after = after,
 				rel = apart and a.buff.container or a.container, relPoint = point, x = x, y = y, level = level, accent = Settings.Accent,
 			})
 		end
@@ -858,12 +859,11 @@ local function BuffBlock(view)
 		initializeFrame = function(button) K.Call(Dress, view, "buffs", button, buttons) end,
 	})) then
 		LogOnce("buffBlock", "frame auras: the buff block's container was refused; buffs stay with the debuffs")
-		return nil
+		return
 	end
 	container:SetUnit(view.unit)
 	MirrorHolder(view, host)
 	cached.buff = { host = host, container = container }
-	return cached.buff
 end
 
 local function ApplyContainer(view, fan)
@@ -879,9 +879,10 @@ local function ApplyContainer(view, fan)
 	if fan then
 		filter.debuffs = not settings.onlyMine and base.debuffs == "HARMFUL" and filter.debuffs .. "|!PLAYER" or nil
 	end
+	held[view.kind] = nil
 	local wanted, cached = filter.debuffs and filter.buffs and Auras.Apart(view.kind), a.styles[a.style]
 	if wanted and cached.buff == nil then
-		if Auras.Open() then BuffBlock(view) else Wait(view) end
+		if not (C_Secrets and C_Secrets.ShouldAurasBeSecret) then cached.buff = false elseif Auras.Open() then BuffBlock(view) else Wait(view) end
 	end
 	a.buffWait = wanted and cached.buff == nil or nil
 	local block = wanted and cached.buff or nil
@@ -889,7 +890,7 @@ local function ApplyContainer(view, fan)
 		a.buff.container:SetEnabled(false)
 		a.buff.host:Hide()
 	end
-	a.buff = block
+	a.buff, held[view.kind] = block, wanted and not block or nil
 	local method, direction = Sort(view)
 	for _, key in ipairs(GROUPS) do
 		Group(view, container, key, filter[key], key, filter[key] ~= nil and not (block and key == "buffs"), method, direction)
@@ -900,7 +901,7 @@ local function ApplyContainer(view, fan)
 		Group(view, block.container, "buffs", filter.buffs, "buffApart", true, method, direction)
 		Flow(block.container, block.host, view.kind)
 	end
-	ApplyOverflow(view, filter, true)
+	ApplyOverflow(view, filter)
 	Auras.Place(view)
 end
 
@@ -961,7 +962,6 @@ end
 function Auras.Anchor(host, frame, kind, panelX, spot, buff)
 	local position = POSITION[Settings.Value(kind, buff and "auraBuffPlace" or "auraPosition")] or POSITION.BELOW
 	local dx, dy = Off(host, Settings.Value(kind, buff and "auraBuffX" or "auraX")), Off(host, Settings.Value(kind, buff and "auraBuffY" or "auraY"))
-	spot = not buff and spot or nil
 	host:ClearAllPoints()
 	if spot and spot.outer and Settings.AuraRows(kind) and Settings.Value(kind, "auraPosition") == "ABOVE" then
 		local side = kind == "target" and "RIGHT" or "LEFT"
@@ -1017,7 +1017,7 @@ function Auras.Apply(view)
 		return
 	end
 	a.container:SetEnabled(want and true or false)
-	if a.buff then a.buff.container:SetEnabled(want and true or false) end
+	if a.buff and not want then a.buff.container:SetEnabled(false) end
 	a.assist, a.formatter = nil, Formatter(Value(view, "auraPrecise"))
 	local fan = ns.Fan.Apply(view, Active(view))
 	if want then

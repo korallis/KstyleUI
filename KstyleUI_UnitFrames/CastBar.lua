@@ -797,6 +797,21 @@ local function BarColor(cb)
 	return K.Theme.Accent()
 end
 
+local function StyleText(text, path, size, flags)
+	if not Widgets.ApplyFont(text, path, size, flags) then
+		Widgets.ApplyFont(text, (Tokens.Font("body")), size, flags)
+	end
+end
+
+local function StyleTarget(cb)
+	local t, own, path, size, flags = cb.targetText, Settings.Value(cb.kind, "castbarTargetSize"), cb.text:GetFont()
+	StyleText(t, path, own > 0 and own * K.Theme.FontScale() or size, flags)
+	t:SetShadowColor(cb.text:GetShadowColor())
+	t:SetShadowOffset(cb.text:GetShadowOffset())
+	local c = Settings.Value(cb.kind, "castbarTargetColor")
+	t:SetTextColor(c.r, c.g, c.b)
+end
+
 local function Paint(cb, r, g, b, a)
 	local alpha = Settings.Value(cb.kind, "castbarAlpha")
 	if alpha < 1 then a = alpha end
@@ -808,6 +823,7 @@ local function Paint(cb, r, g, b, a)
 		else
 			Widgets.InkText(cb.text, r, g, b)
 		end
+		if cb.targetText then StyleTarget(cb) end
 	end
 	if not changed then
 		return
@@ -820,27 +836,14 @@ local function Paint(cb, r, g, b, a)
 	end
 end
 
-local function StyleText(text, path, size, flags)
-	if not Widgets.ApplyFont(text, path, size, flags) then
-		Widgets.ApplyFont(text, (Tokens.Font("body")), size, flags)
-	end
-end
-
-local function StyleTarget(cb)
-	local t, path, size, flags = cb.targetText, Settings.Font(cb.kind, "cast")
-	local own = Settings.Value(cb.kind, "castbarTargetSize")
-	StyleText(t, cb.textPath or path, own > 0 and own * K.Theme.FontScale() or size, cb.mode == "inside" and flags == "" and "OUTLINE" or flags)
-	local c = Settings.Value(cb.kind, "castbarTargetColor")
-	t:SetTextColor(c.r, c.g, c.b)
-end
-
 local function PlaceTarget(cb)
 	local place = not cb.line and Settings.Value(cb.kind, "castbarTarget") and Settings.Value(cb.kind, "castbarTargetPlace")
 	local t, text = cb.targetText, cb.text
 	local w, point, rel, relPoint, x, y = place and place ~= "" and text:GetWidth()
 	if w then point, rel, relPoint, x, y = text:GetPoint(1) end
 	cb.targetOn = nil
-	if not (w and not issecretvalue(w) and type(w) == "number" and w > 2 * TEXT_PAD and not issecretvalue(x) and type(x) == "number" and not issecretvalue(y) and type(y) == "number") then
+	if not (w and not issecretvalue(w) and type(w) == "number" and w > 2 * TEXT_PAD and not (issecretvalue(point) or issecretvalue(rel) or issecretvalue(relPoint) or issecretvalue(x) or issecretvalue(y))
+		and type(x) == "number" and type(y) == "number") then
 		if t then t:Hide() end
 		return
 	end
@@ -882,6 +885,7 @@ local function NameFont(cb, size)
 		cb.text:SetShadowOffset(border, -border)
 	end
 	cb.fitSize = size
+	if cb.targetText then StyleTarget(cb) end
 end
 
 local function Advance(text)
@@ -1034,7 +1038,6 @@ function CastBars.Restyle(cb)
 	Spark(cb)
 	Raise(cb)
 	StyleImportant(cb)
-	if cb.targetText then StyleTarget(cb) end
 	cb.styled = true
 	cb.pr = nil
 	Paint(cb, BarColor(cb))
@@ -1352,10 +1355,6 @@ local function Land(cb)
 	HoldThen(cb, Outcomes() and 0.35 or Tokens.Duration("pressIn") + Tokens.Duration("readyFlash"))
 end
 
-local function GcdEnd(cb, token)
-	if cb.gcd == token then Hide(cb, true) end
-end
-
 local function ShowGcd(cb, duration)
 	local token = (cb.gcdToken or 0) + 1
 	cb.gcdToken, cb.gcd, cb.timed = token, token, true
@@ -1366,19 +1365,21 @@ local function ShowGcd(cb, duration)
 	cb.label:Hide()
 	cb.lock:Hide()
 	Paint(cb, BarColor(cb))
-	cb.frame:SetAlpha(1)
+	Motion.Tween(cb.frame, "SetAlpha", 1, 1, 0)
 	cb.frame:Show()
 	local ok, left = pcall(duration.GetRemainingDuration, duration)
 	if not ok or issecretvalue(left) or type(left) ~= "number" or left ~= left or left <= 0 then left = GCD_MAX end
-	C_Timer.After(left, function() GcdEnd(cb, token) end)
+	C_Timer.After(left, function() if cb.gcd == token then Hide(cb, true) end end)
 end
 
 local function Gcd(cb, spellID)
-	if cb.gcd or cb.active or cb.landed or cb.holds > 0 or cb.noRoom then return end
-	local api = C_Spell
+	if cb.gcd and not cb.gcdNew or cb.active or cb.landed or cb.holds > 0 or cb.noRoom then return end
+	cb.gcdNew = nil
+	if issecretvalue(spellID) then spellID = nil end
+	local api, cast, probe = C_Spell, cb.gcdCast ~= spellID and cb.gcdCast or nil, cb.gcdProbe ~= spellID and cb.gcdProbe ~= cb.gcdCast and cb.gcdProbe or nil
 	for i = 1, 3 do
-		local id = select(i, spellID, cb.gcdCast, cb.gcdProbe)
-		if not issecretvalue(id) and type(id) == "number" then
+		local id = select(i, spellID, cast, probe)
+		if type(id) == "number" then
 			local ok, info = pcall(api.GetSpellCooldown, id)
 			local on = ok and type(info) == "table" and info.isOnGCD
 			if not issecretvalue(on) and on == true then
@@ -1546,6 +1547,7 @@ local function Listen(cb)
 		cb.onGcd = cb.onGcd or function(_, spellID) Gcd(cb, spellID) end
 		cb.onCast = cb.onCast or function(_, _, _, spellID)
 			if not issecretvalue(spellID) and type(spellID) == "number" then cb.gcdCast = spellID end
+			cb.gcdNew = true
 		end
 		K.Events.Register(owner, "SPELL_UPDATE_COOLDOWN", cb.onGcd)
 		K.Events.RegisterUnit(owner, "UNIT_SPELLCAST_SUCCEEDED", cb.onCast, cb.unit)

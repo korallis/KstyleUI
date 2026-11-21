@@ -255,7 +255,28 @@ local function Place(view, region, rect)
 	region:SetSize(Snap(view, rect.w), Snap(view, rect.h))
 end
 
+local function PowerStrata(view)
+	local s = view.s
+	local own = s and s.powerDetach ~= "" and s.form ~= "slab" and s.powerDetachStrata or ""
+	if own == (view.powerStrata or "") then return end
+	view.powerStrata = own ~= "" and own or nil
+	local lift = view.powerLift or CreateFrame("Frame", nil, view.top)
+	view.powerLift = lift
+	lift:SetAllPoints(view.top)
+	local home = own ~= "" and lift or view.top
+	view.powerText:SetParent(home)
+	view.powerFillClip:SetParent(home)
+	view.powerFillClip:SetFrameLevel(home:GetFrameLevel() + 1)
+	local strata = own ~= "" and own or view.power:GetParent():GetFrameStrata()
+	if not issecretvalue(strata) then
+		view.power:SetFrameStrata(strata)
+		lift:SetFrameStrata(strata)
+		view.powerFillClip:SetFrameStrata(strata)
+	end
+end
+
 local function PlaceBar(view, bar, rect)
+	if bar == view.power then PowerStrata(view) end
 	if not rect then
 		bar:Hide()
 		return
@@ -264,15 +285,7 @@ local function PlaceBar(view, bar, rect)
 	bar:ClearAllPoints()
 	bar:SetPoint("TOPLEFT", view.parent, "TOPLEFT", Snap(view, rect.x), -Snap(view, rect.y))
 	bar:Restyle()
-	if bar == view.power then
-		view.powerTypeLine:SetHeight(Snap(view, 1))
-		local own = view.s and view.s.powerDetach ~= "" and view.s.powerDetachStrata or ""
-		if own ~= "" or view.powerStrata then
-			view.powerStrata = own ~= "" or nil
-			local strata = own ~= "" and own or bar:GetParent():GetFrameStrata()
-			if not issecretvalue(strata) then bar:SetFrameStrata(strata) end
-		end
-	end
+	if bar == view.power then view.powerTypeLine:SetHeight(Snap(view, 1)) end
 	bar:Show()
 end
 

@@ -279,12 +279,11 @@ local function PaintCast(frame, view, kind, height)
 		w, y = view.s.castbarWidth > 0 and view.s.castbarWidth or w, math.max(height, g.medal and g.medal.y + g.medal.h or 0) + CAST_GAP
 	elseif g.form == "plate" or g.form == "slab" and not Settings.CAST_ELEMENTS[kind] then
 		w = (view.s.castbarWidth or 0) > 0 and math.min(view.s.castbarWidth, w) or w
-	else
-		if not g.cast then
-			cb.frame:Hide()
-			return 0
-		end
+	elseif g.cast then
 		x, y, w, castH, extra = g.cast.x, g.cast.y, g.cast.w, g.cast.h, 0
+	elseif not (kind == "player" and Settings.Value(kind, "castbarGcd")) then
+		cb.frame:Hide()
+		return 0
 	end
 	cb.frame:ClearAllPoints()
 	cb.frame:SetPoint("TOPLEFT", frame.holders[kind], "TOPLEFT", x, -y)
@@ -309,14 +308,9 @@ local function PaintCast(frame, view, kind, height)
 		cb.timer:SetFormattedText("%.1fs", CAST_LEFT)
 	end
 	cb.icon:SetTexture(CAST_ICON)
-	if player and Settings.Value(kind, "castbarGcd") then
-		cb.bar:SetValue(GCD_SHARE)
-		ns.CastBars.SetName(cb, "")
-		ns.CastBars.Important(cb)
-		cb.timer:SetText("")
-		cb.icon:SetTexture(nil)
-	elseif not Settings.Value(kind, "castbarHideIdle") then
-		cb.bar:SetValue(0)
+	local gcd = player and Settings.Value(kind, "castbarGcd")
+	if gcd or not Settings.Value(kind, "castbarHideIdle") then
+		cb.bar:SetValue(gcd and GCD_SHARE or 0)
 		ns.CastBars.SetName(cb, "")
 		ns.CastBars.Important(cb)
 		cb.timer:SetText("")
@@ -407,11 +401,6 @@ local function Samples(kind)
 	return kept
 end
 
-local function BuffHost(frame, kind, holder)
-	frame.buffHosts[kind] = frame.buffHosts[kind] or CreateFrame("Frame", nil, holder)
-	return frame.buffHosts[kind]
-end
-
 local function PaintAuras(frame, view, kind)
 	local tiles = frame.auraTiles[kind]
 	if not tiles then
@@ -427,11 +416,18 @@ local function PaintAuras(frame, view, kind)
 	end
 	local on = Settings.AURAS[kind] and Settings.Value(kind, "auras")
 	local kept = on and Samples(kind) or {}
-	local rows = Settings.Value(kind, "auraRows") * (Settings.Value(kind, "auraFilter") == "both" and 2 or 1)
+	local apart = on and ns.Auras.Apart(kind)
+	local rows = Settings.Value(kind, "auraRows") * (Settings.Value(kind, "auraFilter") == "both" and not apart and 2 or 1)
 	local full, cap = #kept == #AURA_TRAITS, Settings.Value(kind, "auraColumns") * rows
-	local count = on and (full and cap or math.min(cap, #kept)) or 0
+	local picks, slots, i = {}, { 0, 0 }, 0
+	while on and slots[1] + slots[2] < (apart and 2 or 1) * cap and (full or i < #kept) do
+		i = i + 1
+		local into = apart and AURA_TRAITS[kept[i] or (i - 1) % #AURA_TRAITS + 1].buff and 2 or 1
+		if slots[into] < cap then slots[into], picks[#picks + 1] = slots[into] + 1, i end
+	end
+	local count = #picks
 	local filter = on and Settings.Value(kind, "auraFilter")
-	local chip = frame.auraChips[kind]
+	local chip, more = frame.auraChips[kind], frame.auraChips[kind .. "+"]
 	if count > 0 then
 		local width, height, corner, _, growth = ns.Auras.Footprint(kind, host)
 		local size = Widgets.Snap(host, Settings.Value(kind, "auraSize"))
@@ -443,24 +439,26 @@ local function PaintAuras(frame, view, kind)
 		host:SetSize(width, math.min(height, rows * (size + room) + (rows - 1) * (spacing + gap)))
 		ns.Auras.Anchor(host, holder, kind, view.geometry.panel.x, view.geometry.aura)
 		host:Show()
-		local apart, slots = ns.Auras.Apart(kind) and BuffHost(frame, kind, holder), { 0, 0 }
 		if apart then
+			apart = frame.buffHosts[kind] or CreateFrame("Frame", nil, holder)
+			frame.buffHosts[kind] = apart
 			apart:SetSize(host:GetSize())
 			ns.Auras.Anchor(apart, holder, kind, view.geometry.panel.x, nil, true)
 			apart:Show()
 		end
-		for i = 1, count do
-			local tile = tiles[i]
+		local seen, last = { 0, 0 }, {}
+		for j, i in ipairs(picks) do
+			local tile = tiles[j]
 			if not tile then
 				tile = ns.Auras.SampleTile(host)
-				tiles[i], icons[i] = tile, tile.skin
+				tiles[j], icons[j] = tile, tile.skin
 			end
 			local p = kept[i] or (i - 1) % #AURA_TRAITS + 1
 			tile.buff = filter == "buffs" or filter == "both" and (AURA_DISPEL[kept[i]] == "steal" or AURA_DISPEL[kept[i]] == "buff")
 			tile.icon:SetTexture(AURA_ICONS[(p - 1) % #AURA_ICONS + 1])
 			local into = apart and AURA_TRAITS[p].buff and 2 or 1
-			slots[into] = slots[into] + 1
-			PlaceTile(tile.skin, into == 2 and apart or host, kind, apart and slots[into] or i, count, size, across, size + room + spacing + gap, corner, growth)
+			seen[into], last[into] = seen[into] + 1, tile
+			PlaceTile(tile.skin, into == 2 and apart or host, kind, seen[into], slots[into], size, across, size + room + spacing + gap, corner, growth)
 			ns.Auras.LayoutTile(tile)
 			ns.Auras.StyleSample(tile, kind, AURA_DISPEL[kept[i]])
 			local exact = AURA_PRECISE[p]
@@ -474,18 +472,20 @@ local function PaintAuras(frame, view, kind)
 		end
 		local after = timers and room > 0
 		local centred = Settings.Value(kind, "auraPosition") == "CENTER"
+		local dx = (not centred and growth[2] == "Left") and -across or across
 		if full then
-			PaintChip(frame, kind, host, tiles[count], size, after, (not centred and growth[2] == "Left") and -across or across)
+			PaintChip(frame, kind, host, last[1], size, after, dx)
 		elseif chip then
 			chip:Hide()
 		end
+		if full and apart then PaintChip(frame, kind .. "+", apart, last[2], size, after, dx) elseif more then more:Hide() end
 	else
 		host:Hide()
 		if chip then
 			chip:Hide()
 		end
 	end
-	if frame.buffHosts[kind] and not (count > 0 and ns.Auras.Apart(kind)) then frame.buffHosts[kind]:Hide() end
+	if frame.buffHosts[kind] and not (count > 0 and apart) then frame.buffHosts[kind]:Hide() end
 	for i = count + 1, #icons do
 		icons[i]:Hide()
 	end
@@ -587,8 +587,10 @@ end
 
 local function Fit(frame, holder, kind, width, height)
 	local l, t, r, b = 0, 0, width, height
-	local regions = { frame.auraHosts[kind], frame.casts[kind] and frame.casts[kind].frame, frame.views[kind].portraitFrame, frame.resource, kind == "player" and frame.totems or nil, frame.buffHosts[kind] }
-	for i = 1, 6 do
+	local view = frame.views[kind]
+	local regions = { frame.auraHosts[kind], frame.casts[kind] and frame.casts[kind].frame, view.portraitFrame, frame.resource, kind == "player" and frame.totems or nil, frame.buffHosts[kind],
+		view.s.powerDetach ~= "" and view.power or nil }
+	for i = 1, 7 do
 		local rl, rt, rr, rb = Box(regions[i], holder, width, height)
 		if rl then
 			l, t, r, b = math.min(l, rl), math.min(t, rt), math.max(r, rr), math.max(b, rb)

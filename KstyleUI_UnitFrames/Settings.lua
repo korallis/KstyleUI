@@ -1142,7 +1142,7 @@ AuraRows = function(schema, kind)
 	local function both(s) return placed(s) and Settings.Value(kind, "auraFilter") == "both" end
 	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "auraBuffPlace", label = L["Buff position"], options = CHOICES.buffPlace,
 		help = L["With the debuffs, or in their own block on another side of the frame."] }, both)
-	Nudges(schema, kind, "auraBuff", L["Buffs"], function(s) return both(s) and (s.auraBuffPlace or "") ~= "" end)
+	Nudges(schema, kind, "auraBuff", L["Buffs"], function(s) return both(s) and ns.Auras.Apart(kind) end)
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "auraGrowth", label = L["Aura growth"],
 		help = L["Which way new aura icons are added."], options = CHOICES.auraGrowth,
