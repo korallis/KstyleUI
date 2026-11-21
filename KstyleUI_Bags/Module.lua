@@ -23,12 +23,13 @@ local function Restyle()
 	end
 end
 
+local engaged = false
+
 local function SettingsChanged(_, key)
 	Inventory.SettingsChanged(key)
 	Bank.SettingsChanged(key)
+	ns.Quick.Sync(engaged)
 end
-
-local engaged = false
 
 local function Engage()
 	if engaged or not Blizzard.Start() then
@@ -42,11 +43,13 @@ local function Engage()
 	Bank.Enable()
 	Junk.Enable()
 	Alts.Enable()
+	ns.Quick.Sync(true)
 end
 
 local function Disengage()
 	if engaged then
 		engaged = false
+		ns.Quick.Sync(false)
 		Alts.Disable()
 		Junk.Disable()
 		Bank.Disable()

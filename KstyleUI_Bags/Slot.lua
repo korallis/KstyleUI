@@ -420,6 +420,9 @@ local function OnEnter(button)
 		return
 	end
 	Motion.Tween(slot, SetHover, slot.hoverT or 0, 1, Tokens.Duration("hover"), Tokens.Easing("hover"))
+	if ns.Quick.on then
+		ns.Quick.Enter(slot)
+	end
 	if slot.state.isNew then
 		Slot.Unmark(slot)
 		local newItems = C_NewItems
@@ -434,6 +437,9 @@ local function OnLeave(button)
 	local slot = bySlotButton[button]
 	if slot then
 		Motion.Tween(slot, SetHover, slot.hoverT or 0, 0, Tokens.Duration("hover"), Tokens.Easing("hover"))
+		if ns.Quick.on then
+			ns.Quick.Leave()
+		end
 	end
 end
 
@@ -473,7 +479,7 @@ function Slot.New(parent, id, opts)
 	if store then
 		store:Hide()
 	end
-	local slot = { button = button, id = id, bag = opts.bag, state = { empty = true, match = true }, record = {} }
+	local slot = { button = button, id = id, bag = opts.bag, pin = opts.pin, state = { empty = true, match = true }, record = {} }
 	slot.chrome = Widgets.IconChrome(button)
 	local maskPath = Tokens.Texture("iconMask")
 	local icon = button:CreateTexture(nil, "ARTWORK")
