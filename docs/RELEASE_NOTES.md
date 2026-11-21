@@ -2,6 +2,14 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.2.11: the guides and crest release (2026-11-21)
+
+Zygor Guides Viewer, contributed by Baine, now gets what RestedXP has: its guide window sits on the story rail at the card's width, hanging from the card's top, in KstyleUI's window card, forged by default. The guide's name heads it with the shared gem and rule, Zygor's step and line fills give way to the card, prev, next and close become KstyleUI's own buttons, the progress bar takes the accent colour and the waypoint arrow is drawn flat with themed text. Fit guide to its steps lets the guide keep its steps' height and off stretches it over the story slot; drag the window away and KstyleUI leaves it where you put it and turns Story rail off for that character. With RestedXP loaded too, the guide shown last owns the card and the other window goes back where it was. KstyleUI writes none of Zygor's settings. All of it is under Window Skins > Zygor, on by default.
+
+Under Medallions, the crest's resource jewels are richer cut stones that flare when you gain a point and drain when you spend one, and at the maximum the whole rune ring glows in the resource's colour (Glow at max under Action Bars > Slab and cooldowns, on by default). Hunters with Summon Hawk get two hawk perches on the crest ring, an idea from Baine: each hawk shows as a gilt hawk with a green timer that drains over its 18 seconds, flashes in on a summon and fades when it leaves, and the ring glows while both hawks are out (Hawk perches, beside it, on by default).
+
+`/kstyle perf nan` now gets the line asking for a finite number of seconds instead of starting a profile that never finishes under LuaJIT, and the player frame's resting Zz shows in full instead of two dots. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.2.10: the frame-rate release (2026-11-21)
 
 KstyleUI now draws less every frame. The see-through middles of its rings, outlines and frame borders are no longer drawn, which takes about a fifth of the drawn area off Frames, a quarter off Medallions and a tenth off Orbs, and nothing looks different. Two new switches under General > Medallions trade effects for frame rate: Low-health vignette takes the red screen edge at low health out of the drawing while your portrait's danger ring stays, and Ambient hub effects stills the hub's turning runes, breathing glow, sheen and sparks while combat, proc and cast flashes still play. Both start on, so Medallions looks as before until you turn one off.
