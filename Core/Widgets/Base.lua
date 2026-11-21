@@ -1540,11 +1540,7 @@ function Widgets.ShowSlice(slice, shown)
 	end
 	local hollow = Widgets.HOLLOW[slice.texture]
 	for i = 1, #slice do
-		if hollow and i == 5 then
-			slice[i]:Hide()
-		else
-			slice[i]:SetShown(shown)
-		end
+		slice[i]:SetShown((not hollow or i ~= 5) and shown)
 	end
 end
 
