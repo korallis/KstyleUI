@@ -178,7 +178,7 @@ local DPS = {
 	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
 	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -263, y = 217.5 + LIFT + 102.5 + GAP },
 	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = READOUT_Y },
-	["databars.strip2"] = { anchor = "TOP", x = STORY_W / 2 + GAP + 9, y = -16 },
+	["databars.strip2"] = { anchor = "BOTTOMRIGHT", x = -308, y = 184 },
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y + MICRO_H },
 	["databars.xp"] = { anchor = "BOTTOM", x = 0, y = TRAY_BOTTOM - TRAY_STRIP_GAP - XP_H + 9 },
@@ -455,6 +455,7 @@ local ORBS = {
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = RAIL_BARS_Y + MICRO_H },
 	["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = TIP_Y },
 	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
+	["databars.strip2"] = { anchor = "BOTTOMRIGHT", x = -308, y = 300 },
 }
 local STORY_STYLES = {
 	orbs = {
