@@ -19,7 +19,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import make_media as mm  # noqa: E402
+import make_media as mm
 
 ROOT = HERE.parent.parent
 FOLDER = "Media/Textures/Pips"

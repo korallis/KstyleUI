@@ -114,7 +114,7 @@ local function Case(layout, class, form, screen)
 	assert(resource.showMana == (class == "DRUID"), label .. ": shifted mana visibility")
 	if resource.showCombo then
 		for i, pip in ipairs(resource.pips) do
-			Require(pip, "combo pip " .. i)
+			Require(resource.themed and U.Pips.state.pips[i].holder or pip, "combo pip " .. i)
 		end
 	end
 	if resource.showMana then
