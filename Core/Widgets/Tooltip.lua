@@ -25,10 +25,10 @@ local CODEPOINT = "([\1-\127\194-\244][\128-\191]*)"
 Widgets.TOOLTIP_MIN_WIDTH = MIN_WIDTH
 
 local ANCHORS = {
-	RIGHT = { "LEFT", "RIGHT", 1, 0 },
-	LEFT = { "RIGHT", "LEFT", -1, 0 },
-	TOP = { "BOTTOM", "TOP", 0, 1 },
-	BOTTOM = { "TOP", "BOTTOM", 0, -1 },
+	RIGHT = { "LEFT", "RIGHT", 1, 0, "GetRight", "TOP", "BOTTOM" },
+	LEFT = { "RIGHT", "LEFT", -1, 0, "GetLeft", "TOP", "BOTTOM" },
+	TOP = { "BOTTOM", "TOP", 0, 1, "GetTop", "RIGHT", "LEFT" },
+	BOTTOM = { "TOP", "BOTTOM", 0, -1, "GetBottom", "RIGHT", "LEFT" },
 }
 
 local ROLES = { title = "body", caption = "caption", line = "body", double = "body" }
@@ -90,9 +90,9 @@ local function Color(text, a, b, c, fallback)
 	end
 end
 
-function Tip:SetOwner(owner, anchor, x, y, factor)
+function Tip:SetOwner(owner, anchor, x, y, factor, bar)
 	self:ClearLines()
-	self.owner, self.factor = owner, factor or 1
+	self.owner, self.bar, self.factor = owner, bar or owner, factor or 1
 	local key = type(anchor) == "string" and anchor:gsub("^ANCHOR_", "") or "RIGHT"
 	self.anchor = ANCHORS[key] and key or "RIGHT"
 	self.offsetX, self.offsetY = x or 0, y or 0
@@ -269,38 +269,53 @@ function Tip:Layout()
 	if self.iconShown then
 		height = max(height, iconSize + 2 * inset)
 	end
-	self:SetSize(width, Widgets.Snap(self, height))
+	height = Widgets.Snap(self, height)
+	self:SetSize(width, height)
+	return width, height
 end
-
-local SIDES = { TOP = { "GetTop", 1, "BOTTOM" }, BOTTOM = { "GetBottom", -1, "TOP" }, RIGHT = { "GetRight", 1, "LEFT" }, LEFT = { "GetLeft", -1, "RIGHT" } }
 
 local function Plain(v)
 	return not Widgets.IsSecret(v) and type(v) == "number"
 end
 
-local function Room(owner, side)
-	local get, sign = SIDES[side][1], SIDES[side][2]
-	local screen, edge, scale, own = UIParent[get](UIParent), owner[get](owner), UIParent:GetEffectiveScale(), owner:GetEffectiveScale()
+local function Room(region, side)
+	local a = ANCHORS[side]
+	local screen, edge, scale, own = UIParent[a[5]](UIParent), region[a[5]](region), UIParent:GetEffectiveScale(), region:GetEffectiveScale()
 	if Plain(screen) and Plain(edge) and Plain(scale) and Plain(own) then
-		return sign * (screen * scale - edge * own)
+		return (a[3] + a[4]) * (screen * scale - edge * own)
 	end
 end
 
-local function Position(self)
-	local owner = self.owner
+local function Position(self, width, height)
+	local owner, bar = self.owner, self.bar
 	if not owner then
 		return
 	end
 	local gap = Widgets.Snap(self, ANCHOR_GAP)
-	local side = self.anchor
-	local need = ((side == "TOP" or side == "BOTTOM") and self:GetHeight() or self:GetWidth()) + gap
-	local room, other = Room(owner, side), Room(owner, SIDES[side][3])
-	if room and other and room < need * self:GetEffectiveScale() and other > room then
-		side = SIDES[side][3]
+	local asked = ANCHORS[self.anchor]
+	local side, x, y, extra = self.anchor, self.offsetX, self.offsetY, 0
+	if not Widgets.Restricted(owner) and not Widgets.Restricted(bar) then
+		local scale, most = self:GetEffectiveScale(), nil
+		for _, s in ipairs({ side, asked[1], asked[6], asked[7] }) do
+			local room = Room(bar, s)
+			local free = room and room - ((ANCHORS[s][3] == 0 and height or width) + gap) * scale
+			if free and (not most or free > most) then
+				side, most = s, free
+			end
+			if most and most >= 0 then
+				break
+			end
+		end
+		local inner, outer = Room(owner, side), Room(bar, side)
+		extra = inner and outer and (inner - outer) / scale or 0
+	end
+	if side ~= self.anchor then
+		local flip = side == asked[1] and -1 or 0
+		x, y = x * flip, y * flip
 	end
 	local a = ANCHORS[side]
 	self:ClearAllPoints()
-	self:SetPoint(a[1], owner, a[2], a[3] * gap + self.offsetX, a[4] * gap + self.offsetY)
+	self:SetPoint(a[1], owner, a[2], a[3] * (gap + extra) + x, a[4] * (gap + extra) + y)
 end
 
 function Tip:Restyle()
@@ -347,8 +362,7 @@ function Widgets.Tooltip()
 		if self.scaled ~= self.factor then
 			self:Restyle()
 		end
-		self:Layout()
-		Position(self)
+		Position(self, self:Layout())
 		local from = self:IsShown() and self:GetAlpha() or 0
 		nativeShow(self)
 		Motion.Tween(self, "SetAlpha", from, 1, Tokens.Duration("hover"), Tokens.Easing("hover"))
