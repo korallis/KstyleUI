@@ -90,7 +90,6 @@ local function Trim(places)
 	return trims[places]
 end
 
-
 local Abbreviate = K.Widgets.ShortNumber
 
 local function Gone(unit)

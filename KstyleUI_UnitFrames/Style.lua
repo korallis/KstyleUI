@@ -692,7 +692,6 @@ end
 
 local BAR_GAP, BAR_PAD, BAR_MIN_BODY = 4, 4, 20
 local BAR_SLOTS = { "textBarLeft", "textBarCenter", "textBarRight" }
-Style.BAR_SLOTS = BAR_SLOTS
 
 local function BarRoom(s, height)
 	local gap = (s.textBarPlace == "BELOW" or s.textBarPlace == "ABOVE") and BAR_GAP or 0
@@ -760,8 +759,8 @@ function Style.Layout(view, s, width, height)
 	if barH > 0 then
 		local w = gap > 0 and s.textBarWidth > 0 and math.min(s.textBarWidth, width) or width
 		view.barRect = { x = (width - w) / 2, y = top and 0 or height - barH, w = w, h = barH }
-		for _, r in pairs(top and g or {}) do
-			if type(r) == "table" and type(r.y) == "number" then r.y = r.y + barH + gap end
+		for _, r in pairs(g) do
+			if top and type(r) == "table" and type(r.y) == "number" then r.y = r.y + barH + gap end
 		end
 	end
 	view.geometry = g
