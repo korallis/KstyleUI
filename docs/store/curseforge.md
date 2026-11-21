@@ -122,9 +122,9 @@ Your first two action bars sit in recessed sockets on one dark slab: twelve butt
 
 Rogues and cat-form druids see their combo points on the crest itself, as cut jewels round the top of the ring (**Options, Action Bars, Crest resource jewels**). A jewel flares when you gain a point and drains when you spend one, and at the maximum the whole ring glows (**Glow at max**). Hunters with Summon Hawk get hawk perches on the ring, each hawk with a green timer for its time left (**Hawk perches**).
 
-![KstyleUI test render over an in-game screenshot of the Medallions crest: three resource jewels lit on the ring, two still dark](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_crest.jpg)
+![KstyleUI test render over an in-game screenshot of the Medallions crest: a rogue's three combo points lit as red jewels on the ring, two still dark](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_crest.jpg)
 
-*KstyleUI test render over an in-game screenshot: three of five jewels lit on the crest. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
+*KstyleUI test render over an in-game screenshot: three of five combo points lit on the crest. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
 Under the slab, your data bar docks on forged plates: the clock on one side; frame rate, latency, gold and experience on the other, each in its own segment with an icon and gilt dividers.
 
