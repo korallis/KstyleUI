@@ -44,7 +44,6 @@ return Common.Run(function()
 			e.C_Item.GetItemInfoInstant = function(id) return id, "", "", "", 0, 5, 0 end
 			e.C_QuestLog = { GetNumQuestLogEntries = function() return 1, 1 end, GetInfo = function() return { questID = 7, isHeader = false } end, ReadyForTurnIn = function() return true end }
 			e.GetQuestLogRewardXP = function() return 6000 end
-			e.GetProfessions = function() return 1 end
 			local ldb = { GetDataObjectByName = function() return { text = "42 items", label = "Bags" } end }
 			e.LibStub = { GetLibrary = function() return ldb end }
 			e.C_AddOns = e.C_AddOns or {}

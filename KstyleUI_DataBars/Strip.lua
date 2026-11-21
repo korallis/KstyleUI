@@ -50,7 +50,7 @@ local MENU_PAD = 3
 local GLYPHS = "Interface\\AddOns\\KstyleUI_DataBars\\Media\\Glyphs.png"
 local GLYPH_COLUMNS, GLYPH_ROWS = 4, 8
 local GLYPH_CELLS = { fps = 0, latency = 1, gold = 2, durability = 3, time = 4, spec = 5, hearth = 6, guild = 7, friends = 8, bags = 9, currencies = 10, xp = 11, location = 12, itemLevel = 13,
-	coords = 14, combat = 15, played = 16, audio = 17, prof1 = 18, prof2 = 18, broker = 19, reagents = 20 }
+	coords = 14, combat = 15, played = 16, audio = 17, prof1 = 18, prof2 = 21, broker = 19, reagents = 20 }
 local SEGMENT_PAD, GLYPH_GAP, GLYPH_SHARE = 4, 3, 1.1
 local PLATE_RISE, PLATE_DROP, RULE_SHARE, RULE_ALPHA, HOVER_ALPHA = 2, 4, 0.7, 0.45, 0.14
 Strip.UNIT_GAP = UNIT_GAP
@@ -488,7 +488,7 @@ local function Segment(view, item, rule, glyph, glyphGap, h, icons)
 		item.icon, item.hover = Glyph(button, item.id), button:CreateTexture(nil, "BACKGROUND")
 		item.hover:SetColorTexture(Tokens.Color("giltLit"))
 		PaintItem(item)
-	elseif on and not was and item.icon then
+	elseif on and not was then
 		PaintItem(item)
 	end
 	if not item.icon then return end
@@ -1455,6 +1455,7 @@ function Strip.Setting(key)
 		MatchLine(s)
 	end
 	Strip.Refresh()
+	if field and field:find("^hearth") then ns.Click.Refresh() end
 	if field == "modules" or field == "dockModules" or field == "railModules" or field == "enabled" or field == "placement" then
 		StartTicker()
 	end

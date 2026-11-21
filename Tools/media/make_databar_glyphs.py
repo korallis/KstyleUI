@@ -20,10 +20,10 @@ COLUMNS, ROWS = 4, 8
 WIDTH, HEIGHT = CELL * COLUMNS, CELL * ROWS
 STROKE = 3.4
 
-# Cell order matches GLYPH_CELLS in Strip.lua; both professions share one cell, and the cells after the last stay empty.
+# Cell order matches GLYPH_CELLS in Strip.lua; the cells after the last stay empty.
 NAMES = ["fps", "latency", "gold", "durability", "time", "spec", "hearth", "guild",
          "friends", "bags", "currencies", "xp", "location", "itemLevel", "coords", "combat",
-         "played", "audio", "profession", "broker", "reagents"]
+         "played", "audio", "prof1", "broker", "reagents", "prof2"]
 
 
 def poly(*points):
@@ -111,6 +111,10 @@ def glyph_profession():
     return [segment(7, 25, 18, 14)] + poly((13, 11), (16, 8), (24, 16), (21, 19), (13, 11))
 
 
+def glyph_profession2():
+    return poly((4, 10), (27, 10), (27, 14), (21, 17), (21, 21), (25, 26), (7, 26), (11, 21), (11, 17), (8, 15), (4, 10))
+
+
 def glyph_broker():
     return [segment(12, 5, 12, 10), segment(20, 5, 20, 10), segment(16, 20, 16, 27)] + poly((8, 10), (24, 10), (24, 16), (20, 20), (12, 20), (8, 16), (8, 10))
 
@@ -121,7 +125,8 @@ def glyph_reagents():
 
 GLYPHS = [glyph_fps, glyph_latency, glyph_gold, glyph_durability, glyph_time, glyph_spec, glyph_hearth,
           glyph_guild, glyph_friends, glyph_bags, glyph_currencies, glyph_xp, glyph_location, glyph_item_level,
-          glyph_coords, glyph_combat, glyph_played, glyph_audio, glyph_profession, glyph_broker, glyph_reagents]
+          glyph_coords, glyph_combat, glyph_played, glyph_audio, glyph_profession, glyph_broker, glyph_reagents,
+          glyph_profession2]
 
 
 def main(argv):

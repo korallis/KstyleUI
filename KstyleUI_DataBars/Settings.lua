@@ -151,6 +151,10 @@ local function Docked()
 	return view ~= nil and (view.slab or view.docked) ~= nil
 end
 
+local function NoIcons(settings)
+	return settings.strip.icons == "off" or Cells(settings) or Docked()
+end
+
 function ns.Schema()
 	ns.schema = {}
 	ns.FillModules(ns.Settings().strip)
@@ -314,9 +318,8 @@ function ns.Schema()
 		}, disableWhen = function(settings) return Cells(settings) or Strip.view ~= nil and Strip.view.deco == true end },
 		{ type = "dropdown", key = "strip.iconColor", label = L["Icon colour"], help = L["Icons in the label colour, the accent colour or your own."], options = {
 			{ value = "label", label = L["Label colour"] }, { value = "accent", label = L["Accent colour"] }, { value = "custom", label = L["Custom colour"] },
-		}, disableWhen = function(settings) return settings.strip.icons == "off" or Docked() end },
-		{ type = "color", key = "strip.iconCustom", label = L["Custom icon colour"], help = L["The colour of every icon when the icon colour is custom."], showWhen = function(settings) return settings.strip.iconColor == "custom" end,
-			disableWhen = function(settings) return settings.strip.icons == "off" or Docked() end },
+		}, disableWhen = NoIcons },
+		{ type = "color", key = "strip.iconCustom", label = L["Custom icon colour"], help = L["The colour of every icon when the icon colour is custom."], showWhen = function(settings) return settings.strip.iconColor == "custom" end, disableWhen = NoIcons },
 		{ type = "toggle", key = "strip.menus", label = L["Menu and bag buttons in the card"], help = L["Docks the micro menu and the bag bar under the readout, in the same card, when they are shown."] },
 		{ type = "toggle", key = "strip.accentEdge", label = L["Accent edge"], help = L["Draws the strip's inner edge in the accent colour."] },
 		{ type = "toggle", key = "strip.backdrop", label = L["Glass"], help = L["Draws the strip on smoked glass."] },
@@ -541,6 +544,10 @@ function ns.Preview(...)
 		Widgets.Point(caption, "TOPLEFT", frame, "TOPLEFT", 0, -(y - PREVIEW_TOP))
 		Widgets.SetText(caption, L["Data bar"])
 		local strip = Strip.NewView(frame)
+		strip.bind = function(item)
+			item.button:HookScript("OnEnter", function() Strip.ShowTooltip(item) end)
+			item.button:HookScript("OnLeave", function() Strip.HideTooltip(item) end)
+		end
 		strip.top = y
 		frame.strip, frame.captions.strip = strip, caption
 		function frame.Refresh(self)

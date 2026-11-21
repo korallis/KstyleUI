@@ -84,11 +84,15 @@ local function ChoiceName(value)
 	return kind == "item" and C_Item and Plain(Call(C_Item.GetItemNameByID, id), "string") or nil
 end
 
+local travelGroups, travelFresh
 function Readouts.TravelChoices(click)
 	local out, travel = { { value = "", label = click == "hearthLeft" and L["Hearthstone"] or L["None"] } }, K.Safe.Side(K).travelData
-	local groups = travel and travel.Read() or {}
+	if travel and not travelFresh and not InCombatLockdown() then
+		travelGroups, travelFresh = travel.Read(), type(C_Timer) == "table" and type(C_Timer.After) == "function"
+		if travelFresh then C_Timer.After(0, function() travelFresh = nil end) end
+	end
 	for g = 1, 2 do
-		for _, entry in ipairs(groups[g] or {}) do
+		for _, entry in ipairs(travelGroups and travelGroups[g] or {}) do
 			if entry.name and (entry.kind ~= "item" or entry.id ~= 6948 or click ~= "hearthLeft") then out[#out + 1] = { value = entry.kind .. ":" .. entry.id, label = entry.name } end
 		end
 	end
@@ -176,7 +180,7 @@ local function GuildRows()
 	if ns.IsSecret(members) or type(members) ~= "table" then return rows end
 	local online = { [presence.Online or 1] = true, [presence.Away or 4] = true, [presence.Busy or 5] = true }
 	for _, member in ipairs(members) do
-		local info = Call(club.GetMemberInfo, id, member)
+		local info = not ns.IsSecret(member) and Call(club.GetMemberInfo, id, member)
 		if not ns.IsSecret(info) and type(info) == "table" and Plain(info.isSelf, "boolean") ~= true and online[Plain(info.presence, "number") or 0] then
 			rows[#rows + 1] = { Plain(info.name, "string") or L["--"], Plain(info.zone, "string"), Plain(info.memberNote, "string") }
 		end
@@ -540,12 +544,11 @@ Strip.TOOLTIPS.friends = function(_, tip)
 	if Settings().socialList > 0 then Names(tip, FriendRows(), Settings().friendNotes) end
 end
 Strip.TOOLTIPS.reagents = function(_, tip)
-	local any = false
-	for _, entry in ipairs(Supplies()) do
-		any = true
+	local entries = Supplies()
+	for _, entry in ipairs(entries) do
 		tip:AddDoubleLine((entry.icon and "|T" .. entry.icon .. ":0|t " or "") .. entry.name, tostring(entry.count))
 	end
-	if not any then tip:AddLine(L["You carry no class reagents or ammunition."], "textDisabled") end
+	if #entries == 0 then tip:AddLine(L["You carry no class reagents or ammunition."], "textDisabled") end
 end
 Strip.TOOLTIPS.currencies = function(_, tip)
 	local text = Currencies(tip)
@@ -700,9 +703,9 @@ function Readouts.Sync(shown)
 				local function Handle(...) Changed(readout, ...) end
 				for _, event in ipairs(events) do K.Events.Register(owner, event, Handle) end
 				if id == "hearth" then Readouts.SaveHearth() end
-				if id == "reagents" then supplies = nil end
 			else
 				K.Events.UnregisterAll(owner)
+				if id == "reagents" then supplies = nil end
 			end
 		end
 	end

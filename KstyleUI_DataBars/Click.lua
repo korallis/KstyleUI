@@ -46,6 +46,10 @@ function Click.Detach()
 	current = nil
 end
 
+function Click.Refresh()
+	if current then Click.Attach(current) end
+end
+
 function Click.Release(item)
 	if current == item then
 		ns.Strip.HideTooltip(item)

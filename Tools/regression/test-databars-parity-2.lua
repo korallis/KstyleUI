@@ -358,7 +358,7 @@ assert(table.concat(lines, "|"):gsub("\226\128\137", ""):find("Completed quests=
 x.quests[2].ready = true
 env.FireEvent("QUEST_LOG_UPDATE")
 near(bar.quest:GetWidth(), K.Widgets.Snap(bar.quest, w * 4900 / 50000), "a finished quest grows the mark")
-eq(events, 1, "one quest-log owner while on")
+eq(events, 2, "one owner follows the quest log and level-ups while on")
 write("xp.questColor", { r = 0, g = 1, b = 0, a = 0.5 })
 eq(tint(bar.quest), "0.000 1.000 0.000", "quest colour")
 local q = setmetatable({ orientation = "HORIZONTAL" }, { __index = K.Store.Module("DataBars").xp })
