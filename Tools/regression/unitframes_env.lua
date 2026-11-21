@@ -596,7 +596,7 @@ function U.Install(env)
 		end
 		local setSize = button.SetSize
 		button.SetSize = function(self, ...)
-			if env.C_Secrets.ShouldAurasBeSecret() then
+			if env.C_Secrets and env.C_Secrets.ShouldAurasBeSecret() then
 				error("attempt to access a restricted aura button")
 			end
 			return setSize(self, ...)
