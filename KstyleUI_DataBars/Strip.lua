@@ -1222,7 +1222,7 @@ end
 local secondBase, secondSettings
 local function SecondSettings(s)
 	if secondBase ~= s then
-		secondBase, secondSettings = s, setmetatable({ placement = "rail", menus = false }, { __index = s })
+		secondBase, secondSettings = s, setmetatable({ placement = "rail", orientation = "HORIZONTAL" }, { __index = s })
 	end
 	secondSettings.railModules = s.secondModules
 	return secondSettings

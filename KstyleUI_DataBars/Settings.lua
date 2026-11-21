@@ -160,7 +160,7 @@ local function Docked()
 end
 
 local function SecondLine(settings)
-	return settings.strip.second == true and Strip.LineMode(settings.strip)
+	return settings.strip.second == true and Strip.LineMode(Strip.SecondSettings(settings.strip))
 end
 
 local function NoLine(settings)
