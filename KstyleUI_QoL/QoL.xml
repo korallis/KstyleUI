@@ -10,6 +10,8 @@
 	<Script file="Alerts.lua"/>
 	<Script file="Notices.lua"/>
 	<Script file="Aids.lua"/>
+	<Script file="Stats.lua"/>
+	<Script file="Keys.lua"/>
 	<Script file="Chores.lua"/>
 	<Script file="Preview.lua"/>
 	<Script file="Module.lua"/>
