@@ -645,4 +645,24 @@ do
 		"solve a top and centre anchor pair before falling back to an explicit size")
 end
 
+-- Quiet mode (the performance check) logs no calls, so a natural-size text measures what its last setter gave.
+do
+	local text = env.UIParent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	text:SetPoint("TOPLEFT", env.UIParent, "TOPLEFT", 0, 0)
+	text:SetText("i")
+	local function width() return select(3, Scene.Rect(env, text)) end
+	local narrow = width()
+	text:SetText("WWWWWWWWWW")
+	local wide = width()
+	text:SetText("i")
+	env.SetQuiet(true)
+	text:SetFormattedText("%s", "WWWWWWWWWW")
+	local formatted = width()
+	text:SetText("i")
+	local plain = width()
+	env.SetQuiet(false)
+	near(formatted, wide, "a quiet SetFormattedText measures its new text")
+	near(plain, narrow, "a quiet SetText after SetFormattedText measures the later text")
+end
+
 print("ok")
