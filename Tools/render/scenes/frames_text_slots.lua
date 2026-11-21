@@ -230,6 +230,7 @@ return Common.Run(function()
 		}) do
 			K.Options.Write(module, pair[1], pair[2])
 		end
+		env.FireEvent("UNIT_AURA", "target")
 		env.FireEvent("UNIT_SPELLCAST_START", "boss1", "Cast-1", 1)
 	end
 	env.RunTimers(); Gallery.Ticks(dofile("Tools/regression/widget_env.lua"), env, 40)
