@@ -209,8 +209,8 @@ local function Untransform(event, _, info)
 		i = i + 1
 		local aura = auras.GetBuffDataByIndex("player", i)
 		if ns.IsSecret(aura) or type(aura) == "table" and ns.IsSecret(aura.spellId) then pending = true
-		elseif type(aura) == "table" and TRANSFORMS[aura.spellId] then found[#found + 1] = i end
-	until not ns.IsSecret(aura) and aura == nil
+		elseif type(aura) == "table" and TRANSFORMS[ns.Number(aura.spellId)] then found[#found + 1] = i end
+	until type(aura) == "nil"
 	for n = #found, 1, -1 do CancelUnitBuff("player", found[n], "HELPFUL") end
 end
 
