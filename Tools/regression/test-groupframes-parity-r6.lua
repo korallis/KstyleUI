@@ -155,6 +155,7 @@ do
 	local pv = preview(env, K)
 	local sample = pv.partyFrames[1].sampleSlots[1]
 	assert(sample.bar and sample.bar:IsShown() and sample.tile.skin:GetAlpha() == 0, "the preview shows the bar")
+	assert(sample:GetFrameLevel() == pv.partyFrames[1]:GetFrameLevel() + ns.Auras.CONTAINER_LEVEL, "under the sample debuff icons, as live")
 	local secret = env.C_Secrets.ShouldAurasBeSecret
 	env.C_Secrets.ShouldAurasBeSecret = function() return true end
 	K.Options.Write(MODULE, "indicator1.style", "ICON")

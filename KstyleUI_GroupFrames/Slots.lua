@@ -632,6 +632,7 @@ function Slots.LayoutSamples(f)
 	for i, icon in ipairs(f.sampleSlots or {}) do
 		local place, slot = placements[i], Settings.current[Key(i)]
 		icon:ClearAllPoints()
+		icon:SetFrameLevel(place.bar and not slot.over and f:GetFrameLevel() + Auras.CONTAINER_LEVEL or icon:GetParent():GetFrameLevel() + COUNT - i)
 		icon.tile.skin:SetAlpha(place.bar and 0 or 1)
 		if place.bar and not icon.bar then
 			icon.bar, icon.barBack = icon:CreateTexture(nil, "ARTWORK"), icon:CreateTexture(nil, "BACKGROUND")
