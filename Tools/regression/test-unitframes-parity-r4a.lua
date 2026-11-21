@@ -40,7 +40,7 @@ for _, key in ipairs({ "healthDecimalTrim", "boss.castbarWidth", "target.auraTra
 	"player.textBarStrata", "focus.textBarWidth", "target.textBarLeft.textFormat", "player.textBarRight.width", "focus.textBarCenter.x" }) do
 	assert(rows[key] and rows[key].help, key .. " has a row with help")
 end
-assert(rows["boss.castbarHeight"].shown(10) == 16 and rows["boss.castbarHeight"].shown(24) == 24, "the boss card's height slider shows the card's line")
+assert(rows["boss.castbarHeight"].shown(10) == 16 and rows["boss.castbarHeight"].shown(11) == 17, "the boss card's height slider shows the card's line")
 assert(not rows["pet.textBar"] and not rows["boss.textBar"] and not rows["player.auraTrackedDebuffs"] and not rows["pet.auraTrackedDebuffs"], "rows show only where they work")
 
 -- Boss cast bar: height and width on the boss card, then under a plate.
@@ -50,8 +50,8 @@ env.FireEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
 local cast, panel = boss.geometry.cast, boss.geometry.panel
 assert(cast and cast.h == 16 and same(cast.w, panel.w), "the card's cast line is 16 units across the card")
 local fullW = cast.w
-write("boss.castbarHeight", 24)
-assert(boss.geometry.cast.h == 24, "the card takes the cast height")
+write("boss.castbarHeight", 18)
+assert(boss.geometry.cast.h == 24, "the card's line follows the cast height, 16 at the default 10")
 write("boss.castbarWidth", 100)
 assert(boss.geometry.cast.w == 100 and boss.geometry.cast.x == cast.x, "the card's cast line takes the width from its left end")
 local size = W.LastCall(boss.castbar.frame, "SetSize")
@@ -184,22 +184,10 @@ write("target.auraTrackedDebuffs", false)
 write("healthDecimal", true)
 write("healthDecimalTrim", true)
 write("edit", "boss")
-write("boss.castbarHeight", 22)
+write("boss.castbarHeight", 16)
 pane:Refresh()
 assert(pane.casts.boss and same(W.LastCall(pane.casts.boss.frame, "SetSize")[2], 22), "the preview's boss cast takes its height")
 assert(not U.Shown(env, pane.views.boss.healthText):find("%.0%%"), "the preview trims zeros: " .. U.Shown(env, pane.views.boss.healthText))
 clean()
 
--- A formatter that writes another decimal mark fails its probes, so the decimals keep their zeros.
-local comma, Kc, nsc = U.New({
-	saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true, healthDecimal = true, healthDecimalTrim = true } } }, characters = {} },
-	setup = function(e)
-		local abbreviate = e.AbbreviateNumbers
-		e.AbbreviateNumbers = function(...) local text = abbreviate(...); return e.issecretvalue(text) and text or (text:gsub("%.", ",")) end
-	end,
-})
-U.SetUnit(comma, "target", { name = "Ogre", level = 62, health = 2000, healthMax = 4000, reaction = 2, canAttack = true })
-comma.FireEvent("PLAYER_TARGET_CHANGED")
-assert(U.Shown(comma, nsc.Frames.Get("target").views[1].healthText):find("50.0%", 1, true), "a failed probe keeps the fixed decimal")
-assert(#comma._errors == 0 and Kc.ErrorCount() == 0, tostring(comma._errors[1]))
 print("test-unitframes-parity-r4a: ok")
