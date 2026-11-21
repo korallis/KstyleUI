@@ -645,7 +645,7 @@ function U.Install(env)
 	end
 
 	-- Blizzard's frames that the module hides. Each is a stub frame on UIParent.
-	for _, name in ipairs({ "PlayerFrame", "TargetFrame", "FocusFrame", "PetFrame", "BossTargetFrameContainer", "PlayerCastingBarFrame" }) do
+	for _, name in ipairs({ "PlayerFrame", "TargetFrame", "FocusFrame", "PetFrame", "BossTargetFrameContainer", "PlayerCastingBarFrame", "PetCastingBarFrame" }) do
 		env.CreateFrame("Button", name, env.UIParent)
 	end
 	for i = 1, 5 do

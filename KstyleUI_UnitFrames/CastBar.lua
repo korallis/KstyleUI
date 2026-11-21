@@ -306,6 +306,20 @@ local function Hide(cb, instant)
 	if cb.latency then cb.latency:Hide() end
 	if cb.important then cb.important:Hide() end
 	cb.duration = nil
+	if cb.idle then
+		StopFlash(cb)
+		cb.bar:SetMinMaxValues(0, 1)
+		cb.bar:SetValue(0)
+		CastBars.SetName(cb, "")
+		cb.timer:SetText("")
+		cb.icon:SetTexture(nil)
+		if cb.bar.fillCursor then cb.bar.fillCursor:Hide() end
+		cb.label:Hide()
+		cb.lock:Hide()
+		cb.frame:SetAlpha(1)
+		cb.frame:SetShown(not cb.noRoom)
+		return
+	end
 	if instant or not cb.frame:IsShown() then
 		StopFlash(cb)
 		cb.frame:Hide()
@@ -1100,6 +1114,7 @@ local function Start(cb, channel, update)
 	cb.duration = nil
 	if not update or not Outcomes() then Motion.FadeIn(cb.frame, Outcomes() and 0.08 or Tokens.Duration("fade")) end
 	Notify(cb)
+	if cb.idle then cb.bar:PlaceFillCursor() end
 	CastBars.SetName(cb, text, SpellTarget(cb))
 	Icon(cb, texture)
 	if not cb.styled then
@@ -1268,7 +1283,9 @@ end
 local function Listen(cb)
 	local owner = Owner(cb)
 	K.Events.UnregisterAll(owner)
-	if not Enabled(cb) then
+	local on = Enabled(cb)
+	cb.idle = on and not Settings.Value(cb.kind, "castbarHideIdle")
+	if not on then
 		Hide(cb, true)
 		return
 	end
@@ -1425,6 +1442,7 @@ function CastBars.Disable()
 	for _, kind in ipairs(Settings.KINDS) do
 		Each(kind, function(cb)
 			K.Events.UnregisterAll(Owner(cb))
+			cb.idle = false
 			Hide(cb, true)
 		end)
 	end

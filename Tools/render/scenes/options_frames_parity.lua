@@ -17,7 +17,7 @@ return Common.Run(function()
 	if module == "UnitFrames" then K.Options.Write(module, "edit", os.getenv("RENDER_OPTIONS_EDIT") or "player") end
 	for item in (os.getenv("RENDER_OPTIONS_ON") or ""):gmatch("[^,]+") do
 		local key, value = item:match("^([^=]+)=?(.*)$")
-		K.Options.Write(module, key, value == "" or value)
+		K.Options.Write(module, key, value == "" or tonumber(value) or value)
 	end
 	if module == "UnitFrames" and os.getenv("RENDER_PARITY_R1") == "1" then
 		local kind = os.getenv("RENDER_OPTIONS_EDIT") or "player"

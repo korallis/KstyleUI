@@ -149,7 +149,8 @@ function Auras.SampleTile(parent)
 end
 
 function Auras.Zoom(entry, kind)
-	local zoom = Settings.Value(kind, "auraZoom")
+	local zoom = entry.buff and Settings.Value(kind, "auraBuffZoom") or -1
+	if zoom < 0 then zoom = Settings.Value(kind, "auraZoom") end
 	entry.icon:SetTexCoord(zoom, 1 - zoom, zoom, 1 - zoom)
 	local button = entry.button
 	if button and button.SetHideTooltipInCombat then
@@ -402,7 +403,7 @@ local function Dress(view, key, button, buttons)
 	local entry = Auras.NewTile(button)
 	local skin = entry.skin
 	skin:SetAllPoints(button)
-	entry.kind = view.kind
+	entry.kind, entry.buff = view.kind, key == "buffs"
 	if Settings.Form(view.kind) == "slab" and not Settings.AuraRows(view.kind) then
 		entry.slab = Widgets.NineSlice(skin, "medAuraBorder", "BACKGROUND", 1)
 		entry.chrome:SetShown(false)

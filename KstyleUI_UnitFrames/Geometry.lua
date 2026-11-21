@@ -700,7 +700,7 @@ local function Marker(out, s)
 	if not s.raidMarker then
 		return
 	end
-	local size = (s.iconSize or 12) + MARKER_EXTRA
+	local size = (s.markerSize or 0) > 0 and s.markerSize or (s.iconSize or 12) + MARKER_EXTRA
 	if out.form == "slab" and out.medal then
 		local medal = out.medal
 		local x = out.mirror and medal.x + medal.w + MARKER_GAP or medal.x - size - MARKER_GAP

@@ -116,13 +116,26 @@ function Indicators.Fit(view)
 	PlaceMarker(view, x)
 end
 
+local EXTRA_SPOT = {
+	TOPLEFT = { "BOTTOMLEFT", "TOPLEFT", 0, 1 }, TOPRIGHT = { "BOTTOMRIGHT", "TOPRIGHT", 0, 1 },
+	LEFT = { "RIGHT", "LEFT", -1, 0 }, RIGHT = { "LEFT", "RIGHT", 1, 0 },
+}
+
 local function PlaceExtra(view)
 	local icon = view.extraIcon
 	icon:ClearAllPoints()
-	if view.form == "row" then
-		local size = Snap(view, view.s.iconSize)
+	local chosen = EXTRA_SPOT[view.s.happinessPosition or ""]
+	local spot = chosen or view.form == "row" and EXTRA_SPOT.TOPRIGHT
+	if spot then
+		local size, gap = Snap(view, view.s.iconSize), Snap(view, ICON_GAP)
+		local x, y = spot[3] * gap, spot[4] * gap
+		local medal = chosen and view.geometry and view.geometry.medal
+		if medal then
+			x = x + Snap(view, spot[2]:find("LEFT") and math.min(0, medal.x) or math.max(0, medal.x + medal.w - view.geometry.glass.w))
+			y = y + Snap(view, spot[4] > 0 and math.max(0, -medal.y) or 0)
+		end
 		icon:SetSize(size, size)
-		icon:SetPoint("BOTTOMRIGHT", view.parent, "TOPRIGHT", 0, Snap(view, ICON_GAP))
+		icon:SetPoint(spot[1], view.parent, spot[2], x, y)
 	else
 		icon:SetAllPoints(view.icons.resting)
 	end

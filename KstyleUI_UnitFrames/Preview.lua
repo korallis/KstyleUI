@@ -231,7 +231,9 @@ local function PaintCast(frame, view, kind, height)
 	local g = view.geometry
 	local castH = CastHeight(kind)
 	local x, y, w, extra = g.panel.x, height + CAST_GAP, g.panel.w, castH + CAST_GAP
-	if g.form ~= "plate" then
+	if kind == "pet" then
+		w, y = view.s.castbarWidth > 0 and view.s.castbarWidth or w, math.max(height, g.medal and g.medal.y + g.medal.h or 0) + CAST_GAP
+	elseif g.form ~= "plate" then
 		if not g.cast then
 			cb.frame:Hide()
 			return 0
@@ -327,6 +329,7 @@ local function PaintAuras(frame, view, kind)
 	end
 	local on = Settings.AURAS[kind] and Settings.Value(kind, "auras")
 	local count = on and Settings.Value(kind, "auraColumns") * Settings.Value(kind, "auraRows") or 0
+	local buffs = on and Settings.Value(kind, "auraFilter") == "buffs"
 	local chip = frame.auraChips[kind]
 	if count > 0 then
 		local width, height, corner, _, growth = ns.Auras.Footprint(kind, host)
@@ -344,6 +347,7 @@ local function PaintAuras(frame, view, kind)
 				tile = ns.Auras.SampleTile(host)
 				tiles[i], icons[i] = tile, tile.skin
 			end
+			tile.buff = buffs
 			tile.icon:SetTexture(AURA_ICONS[(i - 1) % #AURA_ICONS + 1])
 			PlaceTile(tile.skin, host, kind, i, count, size, spacing, size + room + spacing, corner, growth)
 			ns.Auras.LayoutTile(tile)
@@ -455,7 +459,7 @@ local function Refresh(frame)
 	local view = frame.views[kind]
 	view.s = Settings.Snapshot(kind)
 	local width, height = Size(frame, kind, view.s)
-	if Settings.CASTBAR[kind] and not Settings.CAST_ELEMENTS[kind] and view.s.castbar and view.s.form == "plate" then
+	if Settings.CASTBAR[kind] and not Settings.CAST_ELEMENTS[kind] and kind ~= "pet" and view.s.castbar and view.s.form == "plate" then
 		height = math.max(0, height - view.s.castbarHeight - CAST_GAP)
 	end
 	holder:SetSize(width, height)

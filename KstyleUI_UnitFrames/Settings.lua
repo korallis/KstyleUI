@@ -21,6 +21,7 @@ local ALPHA_MIN, ALPHA_STEP = 0.1, 0.05
 local ZOOM_MAX, ZOOM_STEP = 0.3, 0.01
 local NUDGE = 50
 local BOSS_GAP_MAX = 20
+local MARKER_MAX, CAST_WIDTH_MAX = 48, 400
 
 Settings.MODULE = MODULE
 Settings.THEME_FONT = THEME_FONT
@@ -64,7 +65,7 @@ Settings.CAP_LABELS = { focus = L["Focus"], boss = L["Boss"] }
 
 Settings.COLUMN = { player = true, target = true }
 
-Settings.CASTBAR = { player = true, target = true, focus = true, boss = true }
+Settings.CASTBAR = { player = true, target = true, focus = true, boss = true, pet = true }
 Settings.CAST_ELEMENTS = { player = "unitframes.castbar.player", target = "unitframes.castbar.target" }
 Settings.AURAS = { player = true, target = true, focus = true, boss = true, pet = true }
 
@@ -128,6 +129,7 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		powerSeparate = true,
 		percentLead = true,
 		raidMarker = true,
+		markerSize = 0,
 		leader = full,
 		role = full,
 		pvp = full,
@@ -160,7 +162,10 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		castbarTarget = false,
 		castbarImportant = false,
 		castbarImportantColor = Color("legendary"),
+		castbarHideIdle = true,
 		auras = aura ~= nil and aura.on or false,
+		auraCopy = "",
+		auraBuffZoom = -1,
 		auraFilter = "mine",
 		auraFilters = { onlyMine = false, dispellable = false, sort = "" },
 		auraSize = aura and aura.size or 20,
@@ -226,8 +231,8 @@ Settings.defaults = {
 	targettarget = Kind(false),
 	focus = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false }, 16, 12, { on = true, size = 20, position = "ABOVE" }, { 16, 14, 9, 12 }),
 	focustarget = Kind(false),
-	pet = Kind(false, { happiness = false, auraPosition = "ABOVE", auraColumns = 5, auraFilter = "debuffs" }),
-	boss = Kind(true, { power = false, castbarColor = "gold", castbarCaps = true, auraGrowth = "LEFT_DOWN", growth = "DOWN", gap = 6 }, 10, 12, { on = true, size = 22, columns = 4, rows = 1, position = "LEFT" }, { 13, 13, 9, 12 }),
+	pet = Kind(false, { happiness = false, auraPosition = "ABOVE", auraColumns = 5, auraFilter = "debuffs", happinessPosition = "", castbarHeight = 12, castbarWidth = 0 }),
+	boss = Kind(true, { power = false, castbarColor = "gold", castbarCaps = true, auraGrowth = "LEFT_DOWN", growth = "DOWN", gap = 6, auraSimple = "" }, 10, 12, { on = true, size = 22, columns = 4, rows = 1, position = "LEFT" }, { 13, 13, 9, 12 }),
 	resource = {
 		enabled = true,
 		comboPoints = true,
@@ -288,6 +293,9 @@ Settings.CHOICES = {
 	growth = Options({ { "DOWN", L["Downward"] }, { "UP", L["Upward"] } }),
 	countPoint = Options({ { "TOPRIGHT", L["Top right"] }, { "TOPLEFT", L["Top left"] }, { "CENTER", L["Centre"] } }),
 	auraPosition = Options({ { "CENTER", L["Centred below the frame"] }, { "BELOW", L["Below the frame"] }, { "ABOVE", L["Above the frame"] }, { "RIGHT", L["Right of the frame"] }, { "LEFT", L["Left of the frame"] }, { "SIDE", L["Right of the portrait"] } }),
+	auraCopy = Options({ { "", L["Own settings"] }, { "player", L["Player"] }, { "target", L["Target"] }, { "focus", L["Focus"] }, { "pet", L["Pet"] }, { "boss", L["Boss"] } }),
+	auraSimple = Options({ { "", L["Off"] }, { "LEFT", L["Left of the frame"] }, { "RIGHT", L["Right of the frame"] } }),
+	happinessPosition = Options({ { "", L["Standard"] }, { "TOPLEFT", L["Above the left end"] }, { "TOPRIGHT", L["Above the right end"] }, { "LEFT", L["Left of the frame"] }, { "RIGHT", L["Right of the frame"] } }),
 }
 local CHOICES = Settings.CHOICES
 
@@ -312,6 +320,9 @@ local CHOICE_OF = {
 	auraGrowth = "auraGrowth",
 	auraPosition = "auraPosition",
 	growth = "growth",
+	auraCopy = "auraCopy",
+	auraSimple = "auraSimple",
+	happinessPosition = "happinessPosition",
 }
 
 local function Allowed(list, value)
@@ -385,6 +396,9 @@ local RANGES = {
 	powerAlpha = { ALPHA_MIN, 1 },
 	auraCountSize = { 0, FONT_SIZE_MAX },
 	gap = { 0, BOSS_GAP_MAX },
+	auraBuffZoom = { -1, ZOOM_MAX },
+	markerSize = { 0, MARKER_MAX },
+	castbarWidth = { 0, CAST_WIDTH_MAX },
 }
 for _, key in ipairs({ "auraX", "auraY", "auraTimerX", "auraTimerY", "auraCountX", "auraCountY",
 	"castbarIconX", "castbarIconY", "castbarTextX", "castbarTextY", "castbarTimerX", "castbarTimerY" }) do
@@ -412,12 +426,35 @@ function Settings.AuraRows(kind)
 	return ROW_DEFAULTS[kind] ~= nil and K.HudStyle.Current() == "medallions" and Settings.Module().auraLayout ~= "fan"
 end
 
-function Settings.Value(kind, key)
+local AURA_LOOK = { auraSize = "simple", auraPosition = false, auraSpacing = true, auraRows = true, auraColumns = true,
+	auraGrowth = true, auraTimer = true, auraZoom = true, auraBuffZoom = true, auraTooltipCombat = true }
+
+local function SimpleSize()
+	local G, uf = ns.Geometry, ns.Frames and ns.Frames.Get("boss")
+	local h = uf and uf.holder:GetHeight()
+	if not (IsNumber(h) and h > 0) then h = K.Setup.Layouts.Element(Settings.ELEMENTS.boss).height end
+	local slot = (h - G.BOSS_GAP * (G.BOSS_COUNT - 1)) / G.BOSS_COUNT
+	local n = Settings.Value("boss", "auraRows") * (Settings.Value("boss", "auraFilter") == "both" and 2 or 1)
+	return math.max(1, (slot - (n - 1) * Settings.Value("boss", "auraSpacing")) / n)
+end
+
+function Settings.Value(kind, key, direct)
 	if kind == "player" and (key == "auras" or key == "auraFilter") and Settings.AuraRows(kind) then key = key == "auras" and "medallionsAuras" or "medallionsAuraFilter" end
 	local own, d = Kinds(kind)
 	local default = d[key]
 	if default == nil then
 		error("UnitFrames.Settings.Value: unknown setting " .. tostring(key), 2)
+	end
+	local look = AURA_LOOK[key]
+	if look ~= nil then
+		local simple = not direct and kind == "boss" and look ~= true and own.auraSimple
+		if simple == "LEFT" or simple == "RIGHT" then
+			return key == "auraPosition" and simple or SimpleSize()
+		end
+		local from = look and not direct and own.auraCopy
+		if from and from ~= kind and Settings.AURAS[from] then
+			return Settings.Value(from, key, true)
+		end
 	end
 	local value = own[key]
 	local rows = ROW_DEFAULTS[kind]
@@ -705,6 +742,12 @@ IconRows = function(schema, kind)
 		help = L["The size of the status icons on the frame's top edge."],
 		min = ICON_SIZE_MIN, max = ICON_SIZE_MAX, step = 1,
 	})
+	schema[#schema + 1] = Row(kind, { type = "slider", key = "markerSize", label = L["Raid marker size"], min = 0, max = MARKER_MAX, step = 1,
+		help = L["The raid marker's size in units. 0 follows the icon size."] }, function(s) return s.raidMarker ~= false end)
+	if kind == "pet" then
+		schema[#schema + 1] = Row(kind, { type = "dropdown", key = "happinessPosition", label = L["Happiness position"],
+			help = L["Where the pet happiness badge sits."], options = CHOICES.happinessPosition }, function(s) return s.happiness == true end)
+	end
 end
 
 CastRows = function(schema, kind)
@@ -775,6 +818,14 @@ CastRows = function(schema, kind)
 		help = L["How solid the cast fill is. Lower lets the track show through."], min = ALPHA_MIN, max = 1, step = ALPHA_STEP }, on)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarSpark", label = L["Cast spark"], help = L["Shows the current style's bright cast progress edge."] }, on)
 	schema[#schema + 1] = Row(kind, { type = "color", key = "castbarLockedColor", label = L["Uninterruptible colour"], help = L["The colour of casts nothing can interrupt."] }, on)
+	if kind == "pet" then
+		schema[#schema + 1] = Row(kind, { type = "slider", key = "castbarWidth", label = L["Cast bar width"], min = 0, max = CAST_WIDTH_MAX, step = 1,
+			help = L["The cast bar's width under the frame. 0 matches the frame."] }, on)
+	end
+	if kind == "pet" or kind == "boss" then
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarHideIdle", label = L["Hide when idle"],
+			help = L["Hides the cast bar between casts. Off keeps its empty track shown."] }, on)
+	end
 	if kind == "player" then
 		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarSmooth", label = L["Smooth cast progress"],
 			help = L["Use the game's smoothing for cast and channel progress."] }, on)
@@ -820,35 +871,49 @@ AuraRows = function(schema, kind)
 		row.showWhen, row.scope = Shows(kind, on), Scope(kind)
 		schema[#schema + 1] = row
 	end
+	local copies = {}
+	for _, option in ipairs(CHOICES.auraCopy) do
+		if option.value == "" or option.value ~= kind and Settings.AURAS[option.value] then copies[#copies + 1] = option end
+	end
+	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "auraCopy", label = L["Copy auras from"], options = copies,
+		help = L["Use another frame's aura size, spacing, rows, growth, timers and zoom."] }, on)
+	local function simple(s) return kind == "boss" and (s.auraSimple == "LEFT" or s.auraSimple == "RIGHT") end
+	local function own(s) return on() and (s.auraCopy == nil or s.auraCopy == "" or s.auraCopy == kind) end
+	local function placed(s) return on() and not simple(s) end
+	local function sized(s) return own(s) and not simple(s) end
+	if kind == "boss" then
+		schema[#schema + 1] = Row(kind, { type = "dropdown", key = "auraSimple", label = L["Simple aura display"], options = CHOICES.auraSimple,
+			help = L["One row of large icons beside each boss frame, as tall as the frame."] }, on)
+	end
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "auraPosition", label = L["Aura position"],
 		help = L["Which side of the frame the auras sit on."], options = CHOICES.auraPosition,
-	}, on)
+	}, placed)
 	Nudges(schema, kind, "aura", L["Auras"], on)
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "auraGrowth", label = L["Aura growth"],
 		help = L["Which way new aura icons are added."], options = CHOICES.auraGrowth,
-	}, on)
+	}, own)
 	schema[#schema + 1] = Row(kind, {
 		type = "slider", key = "auraSize", label = L["Aura icon size"],
 		help = L["The size of each aura icon in units."], min = AURA_SIZE_MIN, max = AURA_SIZE_MAX, step = 1,
-	}, on)
+	}, sized)
 	schema[#schema + 1] = Row(kind, {
 		type = "slider", key = "auraSpacing", label = L["Aura spacing"],
 		help = L["The gap between aura icons in units."], min = 0, max = AURA_SPACING_MAX, step = 1,
-	}, on)
+	}, own)
 	schema[#schema + 1] = Row(kind, {
 		type = "slider", key = "auraRows", label = L["Aura rows"],
 		help = L["How many rows of each kind of aura show."], min = 1, max = AURA_ROWS_MAX, step = 1,
-	}, on)
+	}, own)
 	schema[#schema + 1] = Row(kind, {
 		type = "slider", key = "auraColumns", label = L["Aura columns"],
 		help = L["How many aura icons fit in a row."], min = 1, max = AURA_COLUMNS_MAX, step = 1,
-	}, on)
+	}, own)
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "auraTimer", label = L["Aura timers"],
 		help = L["Shows the time left on each aura."],
-	}, on)
+	}, own)
 	local crest = kind == "target"
 	Nudges(schema, kind, "auraTimer", L["Aura timers"], function(s) return on() and s.auraTimer ~= false end, crest)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraCountSize", label = L["Stack text size"],
@@ -865,9 +930,12 @@ AuraRows = function(schema, kind)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraStealable", label = L["Only buffs you can steal"],
 		help = L["Edges only buffs a spell steal can take."] }, function(s) return on() and s.auraBuffDispel == true end)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraZoom", label = L["Aura icon zoom"],
-		help = L["Crops into each aura icon. 0 shows the whole icon with its border."], min = 0, max = ZOOM_MAX, step = ZOOM_STEP }, on)
+		help = L["Crops into each aura icon. 0 shows the whole icon with its border."], min = 0, max = ZOOM_MAX, step = ZOOM_STEP }, own)
+	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraBuffZoom", label = L["Buff icon zoom"], min = 0, max = ZOOM_MAX, step = ZOOM_STEP,
+		help = L["Crops buff icons on their own. Until set, buffs follow the aura icon zoom."],
+		shown = function(value) return value < 0 and Settings.Value(kind, "auraZoom") or value end }, own)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraTooltipCombat", label = L["Aura tooltips in combat"],
-		help = L["Off hides aura tooltips while you fight; they still show out of combat."] }, on)
+		help = L["Off hides aura tooltips while you fight; they still show out of combat."] }, own)
 	TextRows(schema, kind, "aura")
 end
 
