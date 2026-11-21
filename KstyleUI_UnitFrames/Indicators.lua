@@ -125,7 +125,6 @@ local function PlaceExtra(view)
 	local icon = view.extraIcon
 	local s = view.s
 	local own, x, y = s.eliteSize or 0, s.eliteX or 0, s.eliteY or 0
-	if view.kind == "pet" then own, x, y = 0, 0, 0 end
 	icon:ClearAllPoints()
 	local spot = EXTRA_SPOT[s.happinessPosition or ""]
 	if spot then
@@ -170,17 +169,17 @@ function Indicators.Layout(view, g, s)
 	local size = Snap(view, s.iconSize)
 	local panel = g.panel
 	local fromRight = s.portrait and s.portraitSide ~= "RIGHT" or not s.portrait
-	local step = size + Snap(view, ICON_GAP)
+	local gap, dir = Snap(view, ICON_GAP), fromRight and -1 or 1
 	view.iconsFromRight = fromRight
-	local x = fromRight and (panel.x + panel.w - ICON_INSET - size) or (panel.x + ICON_INSET)
-	for i, key in ipairs(SLOTS) do
+	local x = fromRight and (panel.x + panel.w - ICON_INSET) or (panel.x + ICON_INSET)
+	for _, key in ipairs(SLOTS) do
 		local icon = view.icons[key]
-		local offset = (i - 1) * step
-		local left = fromRight and (x - offset) or (x + offset)
 		local own = s[key .. "Size"] or 0
+		local iconSize = own > 0 and Snap(view, own) or size
 		icon:ClearAllPoints()
-		icon:SetPoint("CENTER", view.parent, "TOPLEFT", Snap(view, left + size / 2 + (s[key .. "X"] or 0)), -Snap(view, g.glass.y - (s[key .. "Y"] or 0)))
-		if own > 0 then icon:SetSize(Snap(view, own), Snap(view, own)) else icon:SetSize(size, size) end
+		icon:SetPoint("CENTER", view.parent, "TOPLEFT", Snap(view, x + dir * iconSize / 2 + (s[key .. "X"] or 0)), -Snap(view, g.glass.y - (s[key .. "Y"] or 0)))
+		icon:SetSize(iconSize, iconSize)
+		x = x + dir * (iconSize + gap)
 		if key == "resting" then
 			local path = Settings.Font(view.kind, "level")
 			Widgets.ApplyFont(icon, path, size, "OUTLINE")
@@ -198,6 +197,7 @@ function Indicators.Layout(view, g, s)
 	end
 	if view.threatText then view.threatText.where = nil end
 	if view.pvpTimer then view.pvpTimer.where = nil end
+	if view.icons.combat.tint then view.icons.combat.tint = true end
 	Indicators.Fit(view)
 	view.glowFrame:ClearAllPoints()
 	view.glowFrame:SetAllPoints(g.chrome == false and view.health or view.panel)
@@ -252,9 +252,11 @@ function Indicators.Role(view, unit)
 	end
 end
 
-local function InInstance()
-	local inside = IsInInstance and IsInInstance()
-	return not issecretvalue(inside) and inside == true
+local GROUP_INSTANCE = { party = true, raid = true }
+
+local function InGroupInstance()
+	local kind = IsInInstance and select(2, IsInInstance())
+	return not issecretvalue(kind) and GROUP_INSTANCE[kind] == true
 end
 
 local function PvPSeconds()
@@ -287,7 +289,7 @@ function Indicators.PvPTimer(view, sample)
 		text:SetTextColor(Tokens.Color("textEmphasis"))
 		text:ClearAllPoints()
 		local right = view.iconsFromRight
-		text:SetPoint(right and "RIGHT" or "LEFT", view.icons.resting, right and "LEFT" or "RIGHT", Snap(view, right and -ICON_GAP or ICON_GAP), 0)
+		text:SetPoint(right and "RIGHT" or "LEFT", view.icons.resting, right and "LEFT" or "RIGHT", Snap(view, (right and -ICON_GAP or ICON_GAP) + s.pvpTimerX), Snap(view, s.pvpTimerY))
 	end
 	text:SetFormattedText("%d:%02d", math.floor(left / 60), left % 60)
 	if not text:IsShown() then text:Show() end
@@ -377,9 +379,9 @@ end
 
 local THREAT_PLACE = { RIGHT = { "RIGHT", "RIGHT", -1 }, LEFT = { "LEFT", "LEFT", 1 }, CENTER = { "CENTER", "CENTER", 0 }, OUTRIGHT = { "LEFT", "RIGHT", 1 }, OUTLEFT = { "RIGHT", "LEFT", -1 } }
 
-local function Tanking()
+local function NonTank()
 	local role = UnitGroupRolesAssigned and UnitGroupRolesAssigned("player")
-	return not issecretvalue(role) and role == "TANK"
+	return not issecretvalue(role) and (role == "DAMAGER" or role == "HEALER")
 end
 
 function Indicators.ThreatText(view, unit, sample)
@@ -401,25 +403,32 @@ function Indicators.ThreatText(view, unit, sample)
 	end
 	local where = s.threatPercentPosition
 	if text.where ~= where then
-		text.where = where
+		text.where, text.tone = where, nil
 		local path, size, flags = Settings.Font(view.kind, "level")
 		Widgets.ApplyFont(text, path, size, flags)
 		local place = THREAT_PLACE[where] or THREAT_PLACE.OUTLEFT
 		text:ClearAllPoints()
 		text:SetPoint(place[1], view.health, place[2], Snap(view, place[3] * ICON_INSET), 0)
 	end
-	local r, g, b
-	if s.threatPercentColor and status then r, g, b = K.Theme.ThreatColor(status) end
-	if not r then r, g, b = Tokens.Color("textEmphasis") end
-	text:SetTextColor(r, g, b)
-	text:SetFormattedText("%.0f%%", percent)
+	local tone = s.threatPercentColor and status or false
+	if text.tone ~= tone then
+		text.tone = tone
+		local r, g, b
+		if tone then r, g, b = K.Theme.ThreatColor(tone) end
+		if not r then r, g, b = Tokens.Color("textEmphasis") end
+		text:SetTextColor(r, g, b)
+	end
+	if text.percent ~= percent then
+		text.percent = percent
+		text:SetFormattedText("%.0f%%", percent)
+	end
 	if not text:IsShown() then text:Show() end
 end
 
 function Indicators.Threat(view, unit)
 	local glow = view.glowFrame
 	if view.kind == "target" or view.kind == "focus" then Indicators.ThreatText(view, unit) end
-	if not view.s.threat or view.kind == "player" and view.s.threatNonTank and (Tanking() or not InInstance()) then
+	if not view.s.threat or view.kind == "player" and view.s.threatNonTank and not (NonTank() and InGroupInstance()) then
 		view.threatStatus = nil
 		glow:Hide()
 		return
@@ -455,7 +464,7 @@ local function ExtraAtlas(view, unit, sample)
 		local mood = sample or not issecretvalue(hunter) and hunter and info.GetPetHappiness()
 		return not issecretvalue(mood) and MOOD[mood] or nil
 	end
-	if not s.elite or view.kind == "player" or not s.eliteInstances and InInstance() then
+	if not s.elite or view.kind == "player" or not s.eliteInstances and InGroupInstance() then
 		return nil
 	end
 	local rank = sample or UnitClassification and UnitClassification(unit)

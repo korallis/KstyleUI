@@ -19,8 +19,10 @@ local FRAMES = {
 Blizzard.FRAMES = FRAMES
 
 local logged = {}
+local hadTarget = false
 
 function Blizzard.Apply(active)
+	hadTarget = UnitExists("target") and true or false
 	local Safe = K.Safe
 	local hideAll = active and Settings.Module().hideBlizzard == true
 	for _, entry in ipairs(FRAMES) do
@@ -40,15 +42,12 @@ function Blizzard.Apply(active)
 	end
 end
 
-local hadTarget = false
-
 function Blizzard.TargetSound()
 	local had = hadTarget
 	hadTarget = UnitExists("target") and true or false
 	if hadTarget or not had or not Settings.Module().targetSounds or not (PlaySound and SOUNDKIT and SOUNDKIT.INTERFACE_SOUND_LOST_TARGET_UNIT) then return end
-	local frame = TargetFrame
 	local loose = IsTargetLoose and IsTargetLoose()
-	if frame and K.Safe.IsHidden(frame) and not (issecretvalue and issecretvalue(loose)) and loose ~= true then
+	if TargetFrame and K.Safe.IsHidden(TargetFrame) and not (issecretvalue and issecretvalue(loose)) and loose ~= true then
 		PlaySound(SOUNDKIT.INTERFACE_SOUND_LOST_TARGET_UNIT, nil, true)
 	end
 end

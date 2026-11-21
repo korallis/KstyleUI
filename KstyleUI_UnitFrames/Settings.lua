@@ -215,6 +215,8 @@ Settings.defaults = {
 	castOutcomes = true,
 	healthDecimal = false,
 	unitTooltip = "always",
+	healthDecimalBoss = false, targetSounds = false, reactionColors = false, hostileColor = Color("healthHostile"),
+	neutralColor = Color("neutral"), friendlyColor = Color("friendly"), tappedColor = Color("textDisabled"),
 	castbarRaise = false,
 	accent = "class",
 	accentColor = Color("accentDefault"),
@@ -267,14 +269,10 @@ local function AddDefaults(kinds, keys)
 end
 AddDefaults(KINDS, { auraTooltips = true, classZoom = 0, combatClassColor = false, powerPercentSign = true, leaderSize = 0, leaderX = 0, leaderY = 0,
 	pvpSize = 0, pvpX = 0, pvpY = 0, combatSize = 0, combatX = 0, combatY = 0 })
-AddDefaults({ "player" }, { threatNonTank = false, pvpTimer = false, pvpTimerSize = 10 })
-AddDefaults({ "target", "focus" }, { threatPercent = false, threatPercentPosition = "RIGHT", threatPercentColor = true })
+AddDefaults({ "player" }, { threatNonTank = false, pvpTimer = false, pvpTimerSize = 10, pvpTimerX = 0, pvpTimerY = 0 })
+AddDefaults({ "target", "focus" }, { threatPercent = false, threatPercentPosition = "RIGHT", slabThreatPercentPosition = "OUTLEFT", threatPercentColor = true })
 Settings.defaults.focus.threatPercentPosition = "OUTRIGHT"
 AddDefaults({ "target", "targettarget", "focus", "focustarget", "boss" }, { eliteSize = 0, eliteX = 0, eliteY = 0, eliteInstances = true })
-for key, value in pairs({ healthDecimalBoss = false, targetSounds = false, reactionColors = false, hostileColor = Color("healthHostile"),
-	neutralColor = Color("neutral"), friendlyColor = Color("friendly"), tappedColor = Color("textDisabled") }) do
-	Settings.defaults[key] = value
-end
 
 for _, kind in ipairs({ "targettarget", "focustarget", "pet" }) do
 	local fonts = Settings.defaults[kind].fonts
@@ -371,6 +369,7 @@ local CHOICE_OF = {
 	absorbPlacement = "placement", healAbsorbPlacement = "placement", absorbBar = "absorbBar",
 	powerTextAlign = "align", powerTextColor = "powerTextColor",
 	threatPercentPosition = "threatPlace",
+	slabThreatPercentPosition = "threatPlace",
 }
 
 local function Allowed(list, value)
@@ -463,7 +462,7 @@ local RANGES = {
 }
 for _, key in ipairs({ "auraX", "auraY", "auraTimerX", "auraTimerY", "auraCountX", "auraCountY",
 	"castbarIconX", "castbarIconY", "castbarTextX", "castbarTextY", "castbarTimerX", "castbarTimerY",
-	"leaderX", "leaderY", "pvpX", "pvpY", "combatX", "combatY", "eliteX", "eliteY" }) do
+	"leaderX", "leaderY", "pvpX", "pvpY", "combatX", "combatY", "eliteX", "eliteY", "pvpTimerX", "pvpTimerY" }) do
 	RANGES[key] = { -NUDGE, NUDGE }
 end
 
@@ -475,13 +474,13 @@ RANGES.auraRowGap, RANGES.auraPrecise = { 0, AURA_SPACING_MAX }, { 0, PRECISE_MA
 CHOICES.lane = Options({ { "", L["Show all"] }, { "only", L["Only these"] }, { "hide", L["Hide these"] } })
 CHOICE_OF.buffStealable, CHOICE_OF.buffDefensive, CHOICE_OF.buffDispellable = "lane", "lane", "lane"
 
-local SLAB_DEFAULTS = { target = { auraSize = 22, auraSpacing = 2, auraColumns = 6, auraGrowth = "LEFT_DOWN", threatPercentPosition = "OUTLEFT" }, focus = { threatPercentPosition = "OUTLEFT" } }
+local SLAB_DEFAULTS = { target = { auraSize = 22, auraSpacing = 2, auraColumns = 6, auraGrowth = "LEFT_DOWN" } }
 local ROW_DEFAULTS = {
 	player = { auraPosition = "ABOVE", auraGrowth = "RIGHT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
 	target = { auraPosition = "ABOVE", auraGrowth = "LEFT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
 }
 
-local DERIVED = { auras = true, auraFilter = true }
+local DERIVED = { auras = true, auraFilter = true, threatPercentPosition = true }
 for _, list in pairs({ SLAB_DEFAULTS, ROW_DEFAULTS }) do
 	for _, keys in pairs(list) do
 		for key in pairs(keys) do DERIVED[key] = true end
@@ -507,6 +506,7 @@ end
 
 local function Value(kind, key)
 	if kind == "player" and (key == "auras" or key == "auraFilter") and Settings.AuraRows(kind) then key = key == "auras" and "medallionsAuras" or "medallionsAuraFilter" end
+	if key == "threatPercentPosition" and Settings.Form(kind) == "slab" then key = "slabThreatPercentPosition" end
 	local own, d = Kinds(kind)
 	local default = d[key]
 	if default == nil then
@@ -845,34 +845,41 @@ IconRows = function(schema, kind)
 		schema[#schema + 1] = Row(kind, { type = "dropdown", key = "happinessPosition", label = L["Happiness position"],
 			help = L["Where the pet happiness badge sits."], options = CHOICES.happinessPosition }, function(s) return s.happiness == true end)
 	end
-	local rows = {}
-	local function place(icon, label)
-		for _, spec in ipairs({ { "Size", L["Size"], L["0 follows Icon size."], 0, ICON_SIZE_MAX }, { "X", L["Horizontal offset"], L["Moves it left or right."], -NUDGE, NUDGE },
-			{ "Y", L["Vertical offset"], L["Moves it up or down."], -NUDGE, NUDGE } }) do
-			rows[#rows + 1] = { icon, { type = "slider", key = icon .. spec[1], label = label .. ": " .. spec[2], help = spec[3], min = spec[4], max = spec[5], step = 1 } }
+	local function add(icon, row, second)
+		schema[#schema + 1] = Row(kind, row, function()
+			return (not icon or Settings.Value(kind, icon) == true) and (not second or Settings.Value(kind, second) == true)
+		end)
+	end
+	local specs = { { "Size", L["Size"], L["0 follows Icon size."], 0, ICON_SIZE_MAX }, { "X", L["Horizontal offset"], L["Moves it left or right."], -NUDGE, NUDGE },
+		{ "Y", L["Vertical offset"], L["Moves it up or down."], -NUDGE, NUDGE } }
+	local function place(icon, label, key)
+		for i = key and 2 or 1, 3 do
+			local spec = specs[i]
+			add(icon, { type = "slider", key = (key or icon) .. spec[1], label = label .. ": " .. spec[2], help = spec[3], min = spec[4], max = spec[5], step = 1 }, key)
 		end
 	end
 	place("leader", L["Leader icon"])
 	place("pvp", L["PvP icon"])
 	place("combat", L["Combat icon"])
-	rows[#rows + 1] = { "combat", { type = "toggle", key = "combatClassColor", label = L["Combat icon in class colour"], help = L["Tints the crossed swords in the unit's class colour."] } }
+	add("combat", { type = "toggle", key = "combatClassColor", label = L["Combat icon in class colour"], help = L["Tints the crossed swords in the unit's class colour."] })
 	if kind ~= "player" and kind ~= "pet" then
 		place("elite", L["Elite and rare icon"])
-		rows[#rows + 1] = { "elite", { type = "toggle", key = "eliteInstances", label = L["Elite icon in instances"], help = L["Off hides the elite badge in dungeons and raids, where most enemies are elite."] } }
+		add("elite", { type = "toggle", key = "eliteInstances", label = L["Elite icon in instances"], help = L["Off hides the elite badge in dungeons and raids, where most enemies are elite."] })
 	end
 	if kind == "player" then
-		rows[#rows + 1] = { "pvp", { type = "toggle", key = "pvpTimer", label = L["PvP flag timer"], help = L["Shows the time left before your PvP flag drops, after the status icons."] } }
-		rows[#rows + 1] = { "pvp", { type = "slider", key = "pvpTimerSize", label = L["Timer text size"], help = L["The size of the PvP flag timer."], min = FONT_SIZE_MIN, max = FONT_SIZE_MAX, step = 1 }, "pvpTimer" }
-		rows[#rows + 1] = { "threat", { type = "toggle", key = "threatNonTank", label = L["Threat glow only as a non-tank"], help = L["Glows only in dungeons and raids, and only while you are not the tank."] } }
+		add("pvp", { type = "toggle", key = "pvpTimer", label = L["PvP flag timer"], help = L["Shows the time left before your PvP flag drops, after the status icons."] })
+		add("pvp", { type = "slider", key = "pvpTimerSize", label = L["Timer text size"], help = L["The size of the PvP flag timer."], min = FONT_SIZE_MIN, max = FONT_SIZE_MAX, step = 1 }, "pvpTimer")
+		place("pvp", L["PvP flag timer"], "pvpTimer")
+		add("threat", { type = "toggle", key = "threatNonTank", label = L["Threat glow only as a non-tank"], help = L["Glows only in dungeons and raids, and only while you are not the tank."] })
 	elseif kind == "target" or kind == "focus" then
-		rows[#rows + 1] = { nil, { type = "toggle", key = "threatPercent", label = L["Threat percent"], help = L["Shows your threat on this unit as a percentage while the game shares it."] } }
-		rows[#rows + 1] = { "threatPercent", { type = "dropdown", key = "threatPercentPosition", label = L["Threat percent place"], options = CHOICES.threatPlace, help = L["Where the threat percentage sits on the health bar."] } }
-		rows[#rows + 1] = { "threatPercent", { type = "toggle", key = "threatPercentColor", label = L["Colour by threat"], help = L["Colours the percentage by your threat. Off uses the frame's text colour."] } }
-	end
-	for _, spec in ipairs(rows) do
-		schema[#schema + 1] = Row(kind, spec[2], function()
-			return (not spec[1] or Settings.Value(kind, spec[1]) == true) and (not spec[3] or Settings.Value(kind, spec[3]) == true)
-		end)
+		add(nil, { type = "toggle", key = "threatPercent", label = L["Threat percent"], help = L["Shows your threat on this unit as a percentage while the game shares it."] })
+		for _, slab in ipairs({ false, true }) do
+			schema[#schema + 1] = Row(kind, { type = "dropdown", key = slab and "slabThreatPercentPosition" or "threatPercentPosition", label = L["Threat percent place"],
+				options = CHOICES.threatPlace, help = L["Where the threat percentage sits on the health bar."] }, function()
+				return Settings.Value(kind, "threatPercent") == true and (Settings.Form(kind) == "slab") == slab
+			end)
+		end
+		add("threatPercent", { type = "toggle", key = "threatPercentColor", label = L["Colour by threat"], help = L["Colours the percentage by your threat. Off uses the frame's text colour."] })
 	end
 end
 

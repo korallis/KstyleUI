@@ -103,12 +103,17 @@ local function Custom(key, ...)
 	return ...
 end
 
-function Unit.ReactionColor(reaction)
-	local plain = not IsSecret(reaction) and type(reaction) == "number"
-	if plain and reaction <= HOSTILE_MAX then
-		return Custom("hostileColor", K.ColorVision.Color(2, Tokens.Color("healthHostile")))
-	elseif plain then
-		return Custom(reaction == 4 and "neutralColor" or "friendlyColor", K.ColorVision.ReactionColor(reaction))
+local function Tapped(tapped, ...)
+	if IsSecret(tapped) or tapped ~= true then return ... end
+	return Custom("tappedColor", ...)
+end
+
+function Unit.ReactionColor(reaction, plain)
+	local known = not IsSecret(reaction) and type(reaction) == "number"
+	if known and reaction <= HOSTILE_MAX then
+		return Custom(not plain and "hostileColor", K.ColorVision.Color(2, Tokens.Color("healthHostile")))
+	elseif known then
+		return Custom(not plain and (reaction == 4 and "neutralColor" or "friendlyColor"), K.ColorVision.ReactionColor(reaction))
 	end
 	return K.ColorVision.ReactionColor(reaction)
 end
@@ -144,13 +149,13 @@ end
 function Unit.HealthColor(view, unit)
 	local s = view.s
 	local r, g, b
-	local grey = UnitIsConnected and not UnitIsConnected(unit) or UnitIsTapDenied and UnitIsTapDenied(unit)
+	local tapped = UnitIsTapDenied and UnitIsTapDenied(unit)
+	local grey = UnitIsConnected and not UnitIsConnected(unit) or tapped
 	view.health:SetHealthUnit(nil)
 	view.healthByShare = false
 	if grey then
 		r, g, b = Tokens.Color("textDisabled")
-		local tapped = UnitIsTapDenied and UnitIsTapDenied(unit)
-		if not IsSecret(tapped) and tapped == true then r, g, b = Custom("tappedColor", r, g, b) end
+		if s.healthColor == "reaction" or s.healthColor == "class" then r, g, b = Tapped(tapped, r, g, b) end
 	elseif s.healthColor == "custom" then
 		local c = s.healthCustom
 		r, g, b = c.r, c.g, c.b
@@ -212,6 +217,8 @@ function Unit.PowerColor(view, unit)
 		ns.Style.PowerTint(view, c.r, c.g, c.b)
 	elseif source == "power" then
 		ns.Style.PowerTint(view, view.typeR, view.typeG, view.typeB)
+	elseif ns.Settings.Module().reactionColors == true and UnitIsTapDenied then
+		ns.Style.PowerTint(view, Tapped(UnitIsTapDenied(unit), UnitColor(unit, source)))
 	else
 		ns.Style.PowerTint(view, UnitColor(unit, source))
 	end

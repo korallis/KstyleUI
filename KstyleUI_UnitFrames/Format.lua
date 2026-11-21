@@ -10,7 +10,6 @@ ns.Format = Format
 local ceil = math.ceil
 
 local COLUMN = { none = 0, legacy = 0, auto = 3.8, percent = 3.2, current = 3.8, currentMax = 7, both = 10.4 }
-local DECIMAL_EM = { 0.4, 1 }
 local PERCENT = { [0] = "%.0f%%", "%.1f%%", "%.2f%%", bare = "%.0f" }
 local CURRENT_MAX = "%s / %s"
 local BOTH = { [0] = "%s / %s  %.0f%%", "%s / %s  %.1f%%", "%s / %s  %.2f%%", bare = "%s / %s  %.0f" }
@@ -19,7 +18,7 @@ local MAX = "/ %s"
 function Format.ColumnWidth(format, size, decimal)
 	local em = COLUMN[format] or 0
 	if decimal and (format == "percent" or format == "both") then
-		em = em + DECIMAL_EM[decimal == 2 and 2 or 1]
+		em = em + (decimal == 2 and 1 or 0.4)
 	end
 	return ceil(em * size)
 end

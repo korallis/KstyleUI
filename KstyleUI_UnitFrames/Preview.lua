@@ -62,7 +62,7 @@ local function SampleColor(s, sample, source, custom)
 	if source == "class" and sample.own then
 		return Theme.ClassColor(Theme.Class())
 	end
-	return ns.Unit.ReactionColor(sample.reaction)
+	return ns.Unit.ReactionColor(sample.reaction, source == "hud")
 end
 
 local function Hostile(s, sample)
@@ -220,7 +220,7 @@ local function PaintIndicators(view, s, sample)
 		ns.Indicators.Tint(icons.combat, Theme.Class())
 	end
 	ns.Indicators.ThreatText(view, nil, s.threatPercent and PREVIEW_THREAT or false)
-	local badge = view.kind == "player" and s.pvp and s.pvpTimer and not (issecretvalue and issecretvalue(own)) and ns.Indicators.ATLAS[own]
+	local badge = view.kind == "player" and s.pvp and s.pvpTimer and not s.pvpEnemyOnly and not (issecretvalue and issecretvalue(own)) and ns.Indicators.ATLAS[own]
 	if badge then
 		icons.pvp:SetAtlas(badge)
 		icons.pvp:Show()
@@ -236,7 +236,7 @@ local function PaintIndicators(view, s, sample)
 	end
 	ns.Indicators.Fit(view)
 	local r, g, b
-	if s.threat and sample.threat then
+	if s.threat and (sample.threat or view.kind == "player" and s.threatNonTank) then
 		r, g, b = K.Theme.ThreatColor(THREAT_TANKING)
 	end
 	if r then

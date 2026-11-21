@@ -157,7 +157,7 @@ return Common.Run(function()
 	if os.getenv("RENDER_PARITY_R3B") == "1" and module == "UnitFrames" then
 		local target, player = env._units.target, env._units.player
 		target.classification, target.class, target.combat, target.detail = "elite", "MAGE", true, { false, 2, 86, 86, 900 }
-		player.leader, player.pvp, player.faction = true, true, "Alliance"
+		player.leader, player.role, player.pvp, player.faction = true, "TANK", true, "Alliance"
 		env.UnitDetailedThreatSituation = function(_, mob) local u = env._units[mob]; if u and u.detail then return unpack(u.detail) end end
 		env.IsPVPTimerRunning, env.GetPVPTimer = function() return true end, function() return 272000 end
 		dofile("Tools/regression/unitframes_env.lua").SetUnit(env, "focus", target)
@@ -168,12 +168,12 @@ return Common.Run(function()
 			{ "reactionColors", true }, { "hostileColor", { r = 0.75, g = 0.2, b = 0.55 } }, { "target.healthColor", "reaction" },
 			{ "target.threatPercent", true }, { "target.combat", true }, { "target.combatClassColor", true }, { "target.elite", true }, { "target.eliteSize", 16 },
 			{ "focus.threatPercent", true }, { "focus.threatPercentColor", false }, { "focus.elite", true }, { "focus.eliteX", 6 },
-			{ "player.leaderSize", 16 }, { "player.pvpSize", 16 }, { "player.pvpTimer", true }, { "player.pvpTimerSize", 12 },
+			{ "player.leaderSize", 24 }, { "player.pvpSize", 16 }, { "player.pvpTimer", true }, { "player.pvpTimerSize", 12 },
 			{ "player.powerText", "percent" }, { "player.powerPercentSign", false }, { "player.portraitStyle", "class" }, { "player.classZoom", 0.2 },
 		}) do
 			K.Options.Write(module, pair[1], pair[2])
 		end
-		env.FireEvent("PLAYER_FLAGS_CHANGED", "player")
+		env.FireEvent("PVP_TIMER_UPDATE", "player")
 	end
 	env.RunTimers(); Gallery.Ticks(dofile("Tools/regression/widget_env.lua"), env, 40)
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))
