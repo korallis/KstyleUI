@@ -5,9 +5,6 @@ local K = KstyleUI
 local Widgets = K.Widgets
 local Settings, Style, Unit, Frames, Auras = ns.Settings, ns.Style, ns.Unit, ns.Frames, ns.Auras
 
-local Reminders = {}
-ns.Reminders = Reminders
-
 local BUFFS = {
 	{ key = "fortitude", spells = { 1243, 21562 } },
 	{ key = "wild", spells = { 1126, 21849 } },
@@ -16,7 +13,6 @@ local BUFFS = {
 	{ key = "thorns", spells = { 467 }, tanks = true },
 	{ key = "salvation", spells = { 1038, 25895 }, notTanks = true },
 }
-Reminders.BUFFS = BUFFS
 local FILTER = "HELPFUL"
 local MANA = 0
 
@@ -160,7 +156,6 @@ local function All()
 	end)
 	Unit.ForEach(Show)
 end
-Reminders.All = All
 
 local events = Frames.events
 for _, event in ipairs({ "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED", "ENCOUNTER_START", "ENCOUNTER_END", "PLAYER_ROLES_ASSIGNED" }) do
