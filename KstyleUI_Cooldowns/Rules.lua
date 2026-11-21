@@ -1,4 +1,4 @@
--- Rules.lua: the per-spell rules the settings' spell lists name (spell IDs, or names in any case, separated by commas; a spell may carry its own colour, "Fireball #FF8000", its own bar name, "Fireball=Fire", or its own tenths threshold, "Fireball=5"), matched once per entry or spell and kept until the settings change; the preview takes each list's first colour, name or threshold.
+-- Rules.lua: the per-spell rules the settings' spell lists name (spell IDs, or names in any case, separated by commas; a spell may carry its own colour, "Fireball #FF8000", its own bar name, "Fireball=Fire", its own tenths threshold, "Fireball=5", or its talent, "Shred=Feral Instinct"), matched once per entry or spell and kept until the settings change, and whether a named talent is known, kept until the spells change; the preview takes each list's first colour, name or threshold.
 local _, ns = ...
 
 local Rules = {}
@@ -6,7 +6,7 @@ ns.Rules = Rules
 
 local EMPTY = {}
 Rules.EMPTY = EMPTY
-local parsed, samples, bySpell = {}, {}, {}
+local parsed, samples, bySpell, known = {}, {}, {}, {}
 local stamp = 0
 
 local function Hex(hex, from)
@@ -71,7 +71,7 @@ end
 
 function Rules.Reset()
 	stamp = stamp + 1
-	bySpell = {}
+	bySpell, known = {}, {}
 	local rules = ns.Settings.current.rules
 	for _, key in ipairs(ns.Settings.RULES) do
 		parsed[key], samples[key] = nil, nil
@@ -91,6 +91,30 @@ function Rules.ForSpell(spell)
 	if ns.IsSecret(spell) or type(spell) ~= "number" then return EMPTY end
 	if not bySpell[spell] then bySpell[spell] = Build(spell) end
 	return bySpell[spell]
+end
+
+function Rules.Forget()
+	known = {}
+end
+
+function Rules.Known(talent)
+	local hit = known[talent]
+	if hit == nil then
+		local book, api, id = C_SpellBook, C_Spell, tonumber(talent)
+		hit = true
+		if book and type(book.IsSpellKnown) == "function" then
+			if not id and api and type(api.GetSpellIDForSpellIdentifier) == "function" then
+				local got, found = pcall(api.GetSpellIDForSpellIdentifier, talent)
+				if got and not ns.IsSecret(found) then id, hit = found, found ~= nil end
+			end
+			if id then
+				local ok, on = pcall(book.IsSpellKnown, id)
+				hit = not ok or ns.IsSecret(on) or on == true
+			end
+		end
+		known[talent] = hit
+	end
+	return hit
 end
 
 function Rules.Sample(key)

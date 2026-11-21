@@ -1,4 +1,4 @@
--- Preview.lua: the settings window's live preview: sample essential, utility and buff rows and buff bars drawn with the current settings (with a sample potion and trinket while an item option is changed, a swing sweep at the start of the late-swing window, and a sample enemy plate with the focus interrupt on its chosen side and the reminder under it while either is on), cooldown samples passed to the other row past its grid, and every sample treated as listed in each spell rule that is not empty, with the list's first colour, name or threshold.
+-- Preview.lua: the settings window's live preview: sample essential, utility and buff rows and buff bars drawn with the current settings (with sample keybinds and a press on the first cooldown, a sample potion and trinket while an item option is changed, a sample cooldown bar with its charge sections, a swing sweep at the start of the late-swing window, and a sample enemy plate with the focus interrupt on its chosen side and the reminder under it while either is on), cooldown samples passed to the other row past its grid, and every sample treated as listed in each spell rule that is not empty, with the list's first colour, name or threshold.
 local _, ns = ...
 
 local K = KstyleUI
@@ -34,6 +34,9 @@ function Preview.Build(...)
 		{ icon = 136076, name = L["Aspect of the Hawk"], duration = 1800, left = 1260 },
 	}
 	local SAMPLE_BAR_FILL = 0.6
+	local SAMPLE_KEYS = { "1", "2", "3", "Q", "E", "R" }
+	local SAMPLE_RANK = 3
+	local SAMPLE_COOLDOWN_BAR = { icon = 132111, name = L["Multi-Shot"], duration = 10, left = 4, charges = 2 }
 
 	local function Samples(frame, group)
 		local list, other = {}, OTHER[group]
@@ -43,7 +46,7 @@ function Preview.Build(...)
 			for i = Grid.Capacity(cfg) + 1, #SAMPLE_ICONS[other] do list[#list + 1] = { other, i } end
 		end
 		local own = frame.rows[group].cfg
-		if other and (own.trinkets or own.hideMissing or not own.itemCount) then list[#list + 1] = { "items", 1 } end
+		if other and (own.trinkets or own.hideMissing or own.itemQuality or not own.itemCount) then list[#list + 1] = { "items", 1 } end
 		if other and own.trinkets then list[#list + 1] = { "items", 2 } end
 		return list
 	end
@@ -95,6 +98,12 @@ function Preview.Build(...)
 					icon.chargeCooldown:Clear()
 				end
 				row:Visible(icon)
+				icon:SetHotkey(cfg.keybind and SAMPLE_KEYS[i] or nil)
+				Style.Rank(icon, cfg.itemQuality and from == "items" and SAMPLE_RANK or nil)
+				if cfg.pressMirror and i == 1 then
+					icon:AnimatePress(true)
+					icon:AnimatePress(false)
+				end
 			end
 		end
 		row:Settle()
@@ -128,10 +137,14 @@ function Preview.Build(...)
 	end
 
 	local function FillBars(row, rule)
-		local count = row:SetCount(#SAMPLE_BARS)
+		local samples = rule.cdBars and { SAMPLE_BARS[1], SAMPLE_COOLDOWN_BAR } or SAMPLE_BARS
+		local count = row:SetCount(#samples)
 		local now = GetTime and GetTime() or 0
 		for i = 1, count do
-			local bar, sample = row.bars[i], SAMPLE_BARS[i]
+			local bar, sample = row.bars[i], samples[i]
+			local sections = sample.charges and row.cfg.hashLines and sample.charges or nil
+			row:Hash(bar, sections)
+			row:Recharge(bar, sections and true)
 			bar.icon:SetTexture(sample.icon)
 			Widgets.SetText(bar.name, type(rule.names) == "string" and rule.names or sample.name)
 			bar.status:SetMinMaxValues(0, 1)
@@ -139,7 +152,13 @@ function Preview.Build(...)
 			bar.timer:SetCooldown(now - (sample.duration - sample.left), sample.duration)
 			Widgets.SetText(bar.count, rule.count and sample.count or nil)
 			row:ShowCount(bar, rule)
-			bar:SetAlpha((rule.hide or rule.missing) and 0 or 1)
+			bar:SetAlpha((rule.hide or rule.missing) and not sample.charges and 0 or 1)
+			if sections then
+				bar.status:SetMinMaxValues(0, sections)
+				bar.status:SetValue(1)
+				bar.recharge:SetMinMaxValues(0, 1)
+				bar.recharge:SetValue(SAMPLE_BAR_FILL)
+			end
 		end
 	end
 

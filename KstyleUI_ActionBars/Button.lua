@@ -643,6 +643,12 @@ local function SelectKeybind(b, on)
 	end
 end
 
+local animate
+local function AnimatePress(b, down)
+	animate(b, down)
+	Widgets.ActionPressed(b.slot, down)
+end
+
 local function OnEnter(b)
 	b.kbar:SetHovered(true)
 	ShowTooltip(b)
@@ -727,6 +733,7 @@ function Button.New(bar, index)
 		b:SetAttribute("checkselfcast", true)
 		b:SetAttribute("checkfocuscast", true)
 		b:SetAttribute("checkmouseovercast", true)
+		animate, b.AnimatePress = b.AnimatePress, AnimatePress
 	elseif def.kind == "pet" then
 		b:SetAttribute("type", "pet")
 		b:SetAttribute("action", index)

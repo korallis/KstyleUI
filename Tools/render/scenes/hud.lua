@@ -908,9 +908,46 @@ function modules.cooldowns(opts)
 			K.Options.Write("Cooldowns", key, value)
 		end
 	end
+	-- RENDER_COOLDOWN_PARITY=4: round 4 switched on over KstyleUI rows: each essential spell on its own main bar slot
+	-- with keys 1 to 5 and Shift-1, an equipped trinket with a rank-3 crafted quality, and the first two cooling
+	-- essential spells as cooldown bars beside the tracked buff bars, the second with two charges split by a line
+	-- and its recharging section shaded.
+	local charged
+	if os.getenv("RENDER_COOLDOWN_PARITY") == "4" then
+		local held, keys, cooling, n = {}, {}, {}, 0
+		for _, entry in ipairs(entries) do
+			if entry.group == "essential" then
+				n = n + 1
+				held[entry.spell], keys["ACTIONBUTTON" .. n] = { n }, n == 6 and "SHIFT-1" or tostring(n)
+				if type(entry.state) == "table" then cooling[#cooling + 1] = entry end
+			end
+		end
+		local no = function() return false end
+		env.C_ActionBar = { FindSpellActionButtons = function(spell) return held[spell] or {} end, GetActionBarPage = function() return 1 end,
+			HasVehicleActionBar = no, HasOverrideActionBar = no, HasTempShapeshiftActionBar = no, HasBonusActionBar = no }
+		env.GetBindingKey = function(command) return keys[command] end
+		env.GetInventoryItemID = function(_, slot) return slot == 13 and 1 or nil end
+		env.GetInventoryItemTexture = function() return 133283 end
+		env.GetInventoryItemCooldown = function() return 0, 0, 1, false end
+		env.C_TradeSkillUI = { GetItemCraftedQualityByItemInfo = function() return 3 end }
+		charged = cooling[2]
+		if charged then
+			cooldowns[charged.id].charges = true
+			env.C_Spell.GetSpellCharges = function(spell) if spell == charged.spell then return { currentCharges = 1, maxCharges = 2, isActive = true } end end
+		end
+		for key, value in pairs({ path = "mirror", ["essential.keybind"] = true, ["utility.trinkets"] = true, ["utility.itemQuality"] = true,
+			["rules.cdBars"] = (cooling[1] and cooling[1].name or "") .. (charged and ", " .. charged.name or ""), ["bars.count"] = 4,
+			["bars.hashLines"] = true, ["bars.chargeShade"] = true }) do
+			K.Options.Write("Cooldowns", key, value)
+		end
+	end
 	local cdm = env._cdm
 	local now = 10
 	env._time = now
+	if charged then
+		local state = charged.state
+		cdm.chargeDurations[charged.spell] = { kind = "charge", start = now - (state[1] - state[2]), finish = now + state[2] }
+	end
 	local instance = 80
 	for _, entry in ipairs(entries) do
 		local spell, state = entry.spell, entry.state

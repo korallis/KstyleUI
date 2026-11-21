@@ -17,7 +17,7 @@ C.checkFade = function() C:CheckFade() end
 function C.Bindings()
 	for _, b in ipairs(buttons) do
 		b.key = ns.FirstKey(b.binding)
-		b:SetHotkey(b.itemID and Config().hotkey ~= false and ns.ShortKey(b.key) or "")
+		b:SetHotkey(b.itemID and Config().hotkey ~= false and K.Widgets.ShortKey(b.key) or "")
 	end
 end
 
@@ -157,7 +157,7 @@ function C.Apply()
 		b.itemID, b.hasAction = record and record.id, record ~= nil
 		b:SetAttribute("item", record and "item:" .. record.id or nil)
 		b:SetIcon(record and record.icon)
-		b:SetHotkey(record and cfg.hotkey ~= false and ns.ShortKey(b.key) or "")
+		b:SetHotkey(record and cfg.hotkey ~= false and K.Widgets.ShortKey(b.key) or "")
 		if not record then b.count:SetText(""); b.hotkey:SetText(""); b:ClearCooldown(); b:SetUsable(false) end
 		b:SetShown(i <= capacity and (record ~= nil or #selected == 0 and cfg.hideEmpty == false))
 	end

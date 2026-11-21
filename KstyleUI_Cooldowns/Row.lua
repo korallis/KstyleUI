@@ -1,4 +1,4 @@
--- Row.lua: a holder of KstyleUI icon buttons placed on the grid (two rows may differ in count and icon size), shared by the cooldown rows and the preview, each icon dressed by its spell rules (recharge swipe and countdown included) and hidden or faded by them, by its form or by a missing item (Close gaps re-places the rest); past the grid, a "+N" chip one socket left of the tracked buffs' full row, away from the combat cluster, lists the rest on hover.
+-- Row.lua: a holder of KstyleUI icon buttons placed on the grid (two rows may differ in count and icon size), shared by the cooldown rows and the preview, each icon dressed by its spell rules (recharge swipe and countdown included) and hidden or faded by them, by its form, an unknown talent or a missing item (Close gaps re-places the rest); past the grid, a "+N" chip one socket left of the tracked buffs' full row, away from the combat cluster, lists the rest on hover.
 local _, ns = ...
 
 local K = KstyleUI
@@ -57,6 +57,7 @@ function Row:StyleIcon(icon)
 	end
 	Style.Font(icon.cooldown:GetCountdownFontString(), current.timerFont, cfg.timerSize, current.timerOutline, self.group ~= "essential" and "timer" or nil)
 	Style.Font(icon.count, current.countFont, cfg.countSize, current.countOutline)
+	if cfg.keybind then Style.Font(icon.hotkey, current.countFont, cfg.countSize, current.countOutline) end
 	Style.PlaceText(icon, self.group)
 	Style.Mouse(icon, current.tooltips and not icon.ruleHidden and not icon.blank)
 	Style.Accent(icon)
@@ -166,7 +167,7 @@ function Row:Visible(icon)
 	local rule, current = icon.rule or EMPTY, ns.Settings.current
 	local cooling = icon.onCooldown == true
 	local ready = not cooling and not (icon.recharging and not rule.spent)
-	local hidden = (rule.hide or rule.form and Outside(rule.form) or icon.missing and self.cfg.hideMissing or rule.hideCooling and cooling or rule.hideReady and ready or rule.hideUnusable and (cooling or icon.castable == false)) and true or false
+	local hidden = (rule.hide or rule.form and Outside(rule.form) or type(rule.talent) == "string" and not Rules.Known(rule.talent) or icon.missing and self.cfg.hideMissing or rule.hideCooling and cooling or rule.hideReady and ready or rule.hideUnusable and (cooling or icon.castable == false)) and true or false
 	local alpha = hidden and 0 or rule.fade and cooling and current.fadeAlpha or 1
 	if (icon.ruleAlpha or 1) ~= alpha then
 		icon.ruleAlpha = alpha

@@ -40,6 +40,8 @@ local ICON_RANGE = {
 	baseCount = { 0, 12, 1 },
 	baseSize = { -20, 20, 1 },
 	secondSize = { -20, 20, 1 },
+	keybindX = { -50, 50, 1 },
+	keybindY = { -50, 50, 1 },
 }
 local FADE_RANGE = { 0, 1, 0.05 }
 local TENTHS_RANGE = { 1, 60, 1 }
@@ -56,9 +58,11 @@ local BAR_RANGE = {
 	countSize = { 6, 24, 1 },
 	fillOpacity = { 0, 1, 0.05 },
 	decimalBelow = TENTHS_RANGE,
+	lineWidth = { 1, 10, 1 },
+	shadeAlpha = { 0.05, 0.95, 0.05 },
 }
-local ICON_FLAGS = { "timer", "gcd", "desaturate", "usable", "readyGlow", "procGlow", "inactive", "showCount", "swipe", "edge", "vertical", "hideZero", "countOnly", "overflow", "numbersOnly", "keepPlace", "itemCount", "hideMissing", "trinkets" }
-local RULES = { "hideCooling", "hideReady", "hideUnusable", "spent", "fade", "grey", "colour", "reverse", "noSwipe", "tint", "noGcd", "noCount", "noEdge", "noCost", "glow", "range", "hide", "shift", "missing", "count", "timerColour", "activeGlow", "decimals", "names", "chargeSwipe", "chargeTimer", "threshold", "form", "swing", "swingGlow", "sound" }
+local ICON_FLAGS = { "timer", "gcd", "desaturate", "usable", "readyGlow", "procGlow", "inactive", "showCount", "swipe", "edge", "vertical", "hideZero", "countOnly", "overflow", "numbersOnly", "keepPlace", "itemCount", "hideMissing", "trinkets", "keybind", "pressMirror", "itemQuality" }
+local RULES = { "hideCooling", "hideReady", "hideUnusable", "spent", "fade", "grey", "colour", "reverse", "noSwipe", "tint", "noGcd", "noCount", "noEdge", "noCost", "glow", "range", "hide", "shift", "missing", "count", "timerColour", "activeGlow", "decimals", "names", "chargeSwipe", "chargeTimer", "threshold", "form", "swing", "swingGlow", "sound", "talent", "cdBars" }
 Settings.RULES = RULES
 local POSITION = { [""] = true, CENTER = true, TOPLEFT = true, TOP = true, TOPRIGHT = true, LEFT = true, RIGHT = true, BOTTOMLEFT = true, BOTTOM = true, BOTTOMRIGHT = true }
 local INACTIVE = { [""] = true, grey = true, colour = true }
@@ -66,7 +70,7 @@ local SOURCE = { class = true, custom = true }
 local SIDE = { LEFT = true, RIGHT = true, TOP = true, BOTTOM = true }
 Settings.SOUNDS = { warning = "RAID_WARNING", ready = "READY_CHECK" }
 local MAX_RULE = 240
-local BAR_FLAGS = { "reverse", "icon", "name", "timer", "inactive", "showCount", "fillUp", "smooth", "spark", "nameWrap", "decimals" }
+local BAR_FLAGS = { "reverse", "icon", "name", "timer", "inactive", "showCount", "fillUp", "smooth", "spark", "nameWrap", "decimals", "cdSmooth", "hashLines", "chargeShade" }
 
 local PATH = { auto = true, mirror = true, reskin = true }
 local GROWTH = { center = true, right = true, left = true, rightAligned = true }
@@ -112,6 +116,7 @@ local function IconDefaults(size, timerSize, countSize, cooldown, spacing, colum
 		out.gcd, out.desaturate, out.usable, out.readyGlow, out.procGlow, out.edge = false, false, true, false, true, true
 		out.hideZero, out.countOnly, out.overflow = false, false, false
 		out.itemCount, out.hideMissing, out.trinkets = true, false, false
+		out.keybind, out.keybindX, out.keybindY, out.pressMirror, out.itemQuality = false, 0, 0, false, false
 	else
 		out.inactive, out.inactiveShade, out.keepPlace = false, "", false
 	end
@@ -192,6 +197,12 @@ Settings.defaults = {
 		nameWrap = false,
 		decimals = false,
 		decimalBelow = 3,
+		cdSmooth = false,
+		hashLines = false,
+		lineWidth = 1,
+		lineColor = { r = 0, g = 0, b = 0 },
+		chargeShade = false,
+		shadeAlpha = 0.5,
 	},
 }
 
@@ -330,6 +341,11 @@ function Settings.Schema()
 			Add(schema, Toggle(group, "itemCount", L["Item counts"], L["Show how many potions or healthstones you carry."]), group)
 			Add(schema, Toggle(group, "hideMissing", L["Hide missing items"], L["Hide a potion or healthstone while you carry none."]), group)
 			Add(schema, Toggle(group, "trinkets", L["All trinkets"], L["Also show equipped trinkets that have no use effect."]), group)
+			Add(schema, Toggle(group, "itemQuality", L["Item quality"], L["Show the crafted quality of potions, healthstones and trinkets as pips."]), group)
+			Add(schema, Toggle(group, "keybind", L["Show keybind"], L["Show the key each spell is bound to on your action bars."]), group)
+			Add(schema, Slider(group, "keybindX", L["Keybind horizontal offset"], L["Moves the keybind left or right."], ICON_RANGE), group)
+			Add(schema, Slider(group, "keybindY", L["Keybind vertical offset"], L["Moves the keybind down or up."], ICON_RANGE), group)
+			Add(schema, Toggle(group, "pressMirror", L["Mirror key presses"], L["Show a KstyleUI action button's press on its spell's icon."]), group)
 			Add(schema, Toggle(group, "gcd", L["Global cooldown"], L["Sweep every icon during the global cooldown."]))
 			Add(schema, Toggle(group, "edge", L["Cooldown edge"], L["Show the bright line that sweeps around a cooling icon."]))
 			Add(schema, Toggle(group, "desaturate", L["Grey while cooling"], L["Show an icon in grey while its spell is on cooldown."]))
@@ -392,6 +408,8 @@ function Settings.Schema()
 		Add(schema, { type = "slider", key = "swingWindow", label = L["Seconds before swing"], help = L["How long before the swing the glow starts."], min = SWING_RANGE[1], max = SWING_RANGE[2], step = SWING_RANGE[3] }, "essential")
 		Rule("sound", L["Sound when ready"], L["Play a sound when these spells come off cooldown."], true)
 		Add(schema, { type = "dropdown", key = "readySound", label = L["Ready sound"], help = L["The sound listed spells play when ready."], options = SOUND_OPTIONS }, "essential")
+		Rule("talent", L["Only with talent"], L["Show these only while you know a talent, named after the spell: Shred=Feral Instinct."], true)
+		Rule("cdBars", L["Cooldown bars"], L["Also show these cooldowns as tracked bars that fill as they recover."], "bars")
 	end
 
 	local function BarRows(schema)
@@ -420,6 +438,12 @@ function Settings.Schema()
 		Add(schema, Toggle(group, "nameWrap", L["Wrap names"], L["Let a long name use a second line when the bar is tall enough."]), group)
 		Add(schema, Toggle(group, "decimals", L["Tenths"], L["Show tenths of a second below the threshold."]), group)
 		Add(schema, Slider(group, "decimalBelow", L["Tenths threshold"], L["Below this many seconds, the timer shows tenths."], BAR_RANGE), group)
+		Add(schema, Toggle(group, "cdSmooth", L["Smooth cooldown bars"], L["Ease cooldown bars to a new value instead of snapping."]), group)
+		Add(schema, Toggle(group, "hashLines", L["Charge hash lines"], L["Split a cooldown bar into one section per charge; the timer shows the next charge."]), group)
+		Add(schema, Slider(group, "lineWidth", L["Line width"], L["The width of the charge lines, in pixels."], BAR_RANGE), group)
+		Add(schema, { type = "color", key = "bars.lineColor", label = L["Line colour"], help = L["The colour of the charge lines."] }, group)
+		Add(schema, Toggle(group, "chargeShade", L["Partial charge shade"], L["Darken the section still recharging the next charge."]), group)
+		Add(schema, Slider(group, "shadeAlpha", L["Shade darkness"], L["How dark the recharging section is."], BAR_RANGE), group)
 	end
 
 	local schema = {
@@ -565,6 +589,7 @@ local function ReadBars(out, saved, defaults)
 	out.colorSource = Choice(saved.colorSource, COLOR_SOURCE, defaults.colorSource)
 	out.orientation = Choice(saved.orientation, ORIENTATION, defaults.orientation)
 	Color(out, "color", saved.color, defaults.color)
+	Color(out, "lineColor", saved.lineColor, defaults.lineColor)
 	for _, key in ipairs(BAR_FLAGS) do
 		out[key] = Bool(saved[key], defaults[key])
 	end

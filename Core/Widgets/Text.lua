@@ -1,4 +1,4 @@
--- Text.lua: shared text settings and cached tag painters that pass restricted values straight to text setters.
+-- Text.lua: shared text settings, cached tag painters that pass restricted values straight to text setters, and the short key labels keybind text uses (SHIFT-1 reads S1).
 local _, ns = ...
 local W, L = ns.Widgets, ns.L
 local placementPoints, textColors
@@ -201,4 +201,46 @@ function W.TextTint(text, mode, color, unit, sample)
 		local reaction = sample and sample.reaction or UnitReaction and UnitReaction(unit, "player")
 		text:SetTextColor(ns.Theme.ReactionColor(reaction))
 	end
+end
+
+local MODIFIERS = { { "ALT-", "A" }, { "CTRL-", "C" }, { "SHIFT-", "S" }, { "META-", "Cm" } }
+local KEYS = {
+	MIDDLEBUTTON = "M3", MOUSEWHEELUP = "WU", MOUSEWHEELDOWN = "WD", NUMPADPLUS = "N+", NUMPADMINUS = "N-",
+	NUMPADMULTIPLY = "N*", NUMPADDIVIDE = "N/", NUMPADDECIMAL = "N.", SPACE = "Sp", PAGEUP = "PU", PAGEDOWN = "PD",
+	BACKSPACE = "Bs", INSERT = "Ins", DELETE = "Del", HOME = "Hm", ["END"] = "End", CAPSLOCK = "Cap", TAB = "Tab",
+	ENTER = "Ent", ESCAPE = "Esc", UP = "Up", DOWN = "Dn", LEFT = "Lt", RIGHT = "Rt",
+}
+
+function W.ShortKey(key, fallback)
+	if type(key) ~= "string" or key == "" then
+		return ""
+	end
+	local prefix, rest = "", key
+	for _, modifier in ipairs(MODIFIERS) do
+		local word, short = modifier[1], modifier[2]
+		if rest:sub(1, #word) == word then
+			prefix, rest = prefix .. short, rest:sub(#word + 1)
+		end
+	end
+	local short = KEYS[rest]
+	if not short then
+		local mouse = rest:match("^BUTTON(%d+)$")
+		local pad = rest:match("^NUMPAD(%d)$")
+		if mouse then
+			short = "M" .. mouse
+		elseif pad then
+			short = "N" .. pad
+		elseif #rest <= 3 then
+			short = rest
+		elseif fallback then
+			short = fallback(key)
+			if type(short) ~= "string" then
+				short = rest
+			end
+			return short
+		else
+			short = rest
+		end
+	end
+	return prefix .. short
 end

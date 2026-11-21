@@ -156,7 +156,7 @@ In game: check left/right click and Escape inside and outside combat, missing He
 | File | What it holds |
 | --- | --- |
 | `Init.lua` | The addon table the files share |
-| `Data.lua` | The bar table and the pure parts: `GridSize`, `Cell`, `Slot`, `PagingDriver`, `PAGE_SNIPPET`, `ShortKey`, `FontFlags` |
+| `Data.lua` | The bar table and the pure parts: `GridSize`, `Cell`, `Slot`, `PagingDriver`, `PAGE_SNIPPET`, `FontFlags` |
 | `Settings.lua` | The defaults and the settings schema |
 | `Socket.lua` | The action bars' state on the kit's shared `Slot` (see [Lumen sockets](#lumen-sockets)) and the one table of tokens it reads |
 | `Button.lua` | One button: the kit's `Slot` on `SecureActionButtonTemplate`, and every visual update |
@@ -277,7 +277,7 @@ A flyout action shows a small chevron on the edge it opens from.
 
 ## Keybinds
 
-`Bindings.lua` reads `GetBindingKey` for each shown button's Blizzard binding name and points every key at the KstyleUI button with `SetOverrideBindingClick(owner, false, key, buttonName, "LeftButton")`. It clears and rebuilds them out of combat on `UPDATE_BINDINGS`, a settings change or a gamepad transition; in combat the old bindings keep working until the queued rebuild runs. The player's own bindings are never changed: the override bindings sit on top of them and vanish when the module or the bar turns off. The hotkey text is `ShortKey` of the first key, such as `S1` for Shift-1 and `M4` for mouse button 4, with `GetBindingText(key, true)` for a key it does not know.
+`Bindings.lua` reads `GetBindingKey` for each shown button's Blizzard binding name and points every key at the KstyleUI button with `SetOverrideBindingClick(owner, false, key, buttonName, "LeftButton")`. It clears and rebuilds them out of combat on `UPDATE_BINDINGS`, a settings change or a gamepad transition; in combat the old bindings keep working until the queued rebuild runs. The player's own bindings are never changed: the override bindings sit on top of them and vanish when the module or the bar turns off. The hotkey text is the kit's `Widgets.ShortKey` (`Core/Widgets/Text.lua`, shared with the Cooldowns keybinds) of the first key, such as `S1` for Shift-1 and `M4` for mouse button 4, with `GetBindingText(key, true)` for a key it does not know.
 
 ## New spell ranks and new spells
 

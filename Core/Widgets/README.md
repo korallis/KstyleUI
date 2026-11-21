@@ -245,6 +245,8 @@ Fields: `icon`, `mask`, `cooldown`, `countdown` (the cooldown's countdown font s
 
 Every state is set on an event and every motion is an animation group the client runs: `Widgets.Hover` and `Widgets.Press` call the slot's `AnimateHover` and `AnimatePress` instead of tweening `hoverT` and `pressT`, so no hover, press, proc or ready motion repaints the slot or runs Lua each frame. With motion off a press and a ready flash do not show and hover shows at once. `Tools/regression/test-widgets-slot.lua` covers it and `Tools/render/scenes/slots.lua` renders every state.
 
+Action Bars relays each action button's press through `Widgets.ActionPressed(slot, down)`, called from the button's own `AnimatePress`; `Widgets.OnActionPress(fn)` sets the one listener (Cooldowns' Mirror key presses), or clears it with nil, and with none the relay does nothing. `Widgets.ShortKey(key, fallback)` (`Text.lua`) is the short keybind label both modules write (`S3` for Shift-3, `M4` for mouse button 4).
+
 ### Icon chrome
 
 Every square icon in KstyleUI draws the same body and rim through one helper, so the action buttons, the bag slots, the aura tiles of the Auras, UnitFrames, GroupFrames and Nameplates modules, the skins' item rims, the tooltip's item icon, the micro menu, the bag bar, the cooldown icons and the flyouts all look like the design's button.

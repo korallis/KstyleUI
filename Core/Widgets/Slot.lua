@@ -1,4 +1,4 @@
--- Slot.lua: the action slot every tray shares: an opaque well, a lit rim and bevel, the key at the top left, a centred cooldown number over a sweep with a lit edge, and the press flash, hover lift, proc glow and ready flash as animation groups.
+-- Slot.lua: the action slot every tray shares: an opaque well, a lit rim and bevel, the key at the top left, a centred cooldown number over a sweep with a lit edge, and the press flash, hover lift, proc glow and ready flash as animation groups; Action Bars relays each action button's press through it, so another slot can show the same press.
 local _, ns = ...
 
 local Widgets = ns.Widgets
@@ -181,6 +181,16 @@ function Slot:AnimateHover(on)
 		self.hoverIn:Stop()
 		layer:Hide()
 	end
+end
+
+local pressed
+
+function Widgets.OnActionPress(fn)
+	pressed = fn
+end
+
+function Widgets.ActionPressed(slot, down)
+	if pressed then pressed(slot, down) end
 end
 
 function Slot:AnimatePress(down)

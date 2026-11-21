@@ -1,4 +1,4 @@
--- parity_combat_options.lua: the real scoped Options page and its live preview, selected with RENDER_PARITY_MODULE; RENDER_PARITY_ENABLED=1 switches on round one's options, 2 the round two options (Auras, Cooldowns) and 3 the Meters round two or Cooldowns round three options.
+-- parity_combat_options.lua: the real scoped Options page and its live preview, selected with RENDER_PARITY_MODULE; RENDER_PARITY_ENABLED=1 switches on round one's options, 2 the round two options (Auras, Cooldowns), 3 the Meters round two or Cooldowns round three options and 4 the Cooldowns round four options.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -29,7 +29,7 @@ return Common.Run(function()
  if not K.Modules.IsRunning(module) then K.Modules.Enable(module) end
  env.RunTimers()
  local enabled = os.getenv("RENDER_PARITY_ENABLED")
- if enabled == "1" or enabled == "2" or enabled == "3" then
+ if enabled == "1" or enabled == "2" or enabled == "3" or enabled == "4" then
   local values = {
    Auras2 = { ["extraBuffs.enabled"] = true, ["extraDebuffs.enabled"] = true, ["buffs.glow"] = true, ["debuffs.glow"] = true,
     ["timer.position"] = "TOPRIGHT", ["debuffs.typeIcon"] = "BOTTOM" },
@@ -45,6 +45,8 @@ return Common.Run(function()
    Cooldowns3 = { path = "mirror", ["rules.threshold"] = "x", thresholdBelow = 30, ["rules.chargeSwipe"] = "x", ["rules.chargeTimer"] = "x", ["rules.swing"] = "x",
     ["rules.swingGlow"] = "x", textAboveGlow = true, ["essential.rows"] = 2, ["essential.baseCount"] = 3, ["essential.secondSize"] = -6,
     ["utility.hideMissing"] = true, ["utility.trinkets"] = true, focusSpell = "1766", focusReminder = true },
+   Cooldowns4 = { path = "mirror", ["essential.keybind"] = true, ["essential.pressMirror"] = true, ["utility.itemQuality"] = true, ["rules.cdBars"] = "x",
+    ["bars.hashLines"] = true, ["bars.chargeShade"] = true, ["bars.lineWidth"] = 2 },
    Meters3 = { ["damage2.shown"] = true, ["damage.report"] = true, ["damage.englishUnits"] = false },
   }
   for key, value in pairs(values[enabled == "1" and module or module .. enabled]) do K.Options.Write(module, key, value) end
