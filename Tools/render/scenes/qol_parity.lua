@@ -1,4 +1,4 @@
--- qol_parity.lua: the full HUD with every QoL parity round 1 option on, most away from its default (a larger alert size, class colours, a lower crosshair with set lengths and thicknesses, a larger class-coloured ring, a higher durability warning), after a combat round trip and then a party member's death, so the flash line shows the death alert over the talent line; RENDER_QOL_ROUND=2 adds round 2: the character stats (percent and rating, coloured, short labels), the bevelled ring with its centre dot and a trail mid-move, and the cast circle 40% into a cast; RENDER_QOL_ROUND=3 adds round 3a over round 2: a warrior's Charge and Intercept counting down as class-coloured bars, the target distance, the crosshair in its out-of-range colour and the potion ready flash; RENDER_QOL_ROUND=3b adds round 3b over round 2 instead: frame rate and latency (latency without labels) in the stats and the raid tools open in a party; with RENDER_QOL_OPTIONS=1 the QoL page and its live preview.
+-- qol_parity.lua: the full HUD with every QoL parity round 1 option on, most away from its default (a larger alert size, class colours, a lower crosshair with set lengths and thicknesses, a larger class-coloured ring, a higher durability warning), after a combat round trip and then a party member's death, so the flash line shows the death alert over the talent line; RENDER_QOL_ROUND=2 adds round 2: the character stats (percent and rating, coloured, short labels), the bevelled ring with its centre dot and a trail mid-move, and the cast circle 40% into a cast; RENDER_QOL_ROUND=3 adds round 3a over round 2: a warrior's Charge and Intercept counting down as class-coloured bars, the target distance, the crosshair in its out-of-range colour and the potion ready flash; RENDER_QOL_ROUND=3b adds round 3b over round 2 instead: frame rate and latency (latency without labels) in the stats and the raid tools open in a party, in the RENDER_QOL_LAYOUT and RENDER_QOL_GROW given, and with RENDER_QOL_PASTE=1 the paste window and the guild chat cover over a stand-in chat area (the Communities window around it is not drawn); RENDER_QOL_ROUND=0 turns QoL on with every option at its default; with RENDER_QOL_OPTIONS=1 the QoL page and its live preview.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Reference = dofile("Tools/render/scenes/_reference.lua")
@@ -19,10 +19,11 @@ local ROUND2 = {
 local ROUND3 = {
 	moveAlert = true, moveMode = "bar", moveClass = true, rangeText = true, crosshairRange = true, crosshairMelee = true, potionAlert = true,
 }
-local ROUND3B = { statsNetLabels = false, raidTools = "group" }
+local ROUND3B = { statsNetLabels = false, raidTools = "group", raidToolsLayout = os.getenv("RENDER_QOL_LAYOUT") or "row", raidToolsGrow = os.getenv("RENDER_QOL_GROW") or "downright" }
 local round3 = os.getenv("RENDER_QOL_ROUND") == "3"
 local round3b = os.getenv("RENDER_QOL_ROUND") == "3b"
 local round2 = round3 or round3b or os.getenv("RENDER_QOL_ROUND") == "2"
+local defaults, paste = os.getenv("RENDER_QOL_ROUND") == "0", round3b and os.getenv("RENDER_QOL_PASTE") == "1"
 
 -- Round 3a: a warrior with Charge and Intercept cooling, a target 25 to 30 yards away (out of melee range) and a potion
 -- whose cooldown has just ended. The engine draws a text binding's time and a timer bar's fill; the harness has no engine,
@@ -95,6 +96,19 @@ return Common.Run(function()
 			Gallery.Setup(e)
 			if round2 then Stats(e) end
 			if round3 then Round3(e) end
+			if paste then
+				e.CommunitiesFrame = e.CreateFrame("Frame", "CommunitiesFrame", e.UIParent)
+				e.CommunitiesFrame:SetSize(380, 220)
+				e.CommunitiesFrame:SetPoint("CENTER", e.UIParent, "CENTER", 560, 40)
+				e.CommunitiesFrame.Chat = e.CreateFrame("Frame", nil, e.CommunitiesFrame)
+				e.CommunitiesFrame.Chat:SetAllPoints()
+				e.CommunitiesFrame.Chat.MessageFrame = e.CreateFrame("Frame", nil, e.CommunitiesFrame.Chat)
+				e.CommunitiesFrame.Chat.MessageFrame:SetAllPoints()
+				e.CommunitiesFrame.GetSelectedClubId = function() return 7 end
+				e.C_Club = { GetClubInfo = function() return { clubType = 2 } end }
+				e.Enum = e.Enum or {}
+				e.Enum.ClubType = { Guild = 2 }
+			end
 			e.C_AddOns = e.C_AddOns or {}
 			e.C_AddOns.LoadAddOn = function(name)
 				if name == "KstyleUI_Options" and not e._addons.KstyleUI_Options then Load(O.Files(), e) end
@@ -103,7 +117,7 @@ return Common.Run(function()
 		end,
 	}))
 	if not K.Modules.IsRunning("QoL") then assert(K.Modules.Enable("QoL")) end
-	for key, value in pairs(ON) do assert(K.Options.Write("QoL", key, value) ~= false, key) end
+	for key, value in pairs(defaults and {} or ON) do assert(K.Options.Write("QoL", key, value) ~= false, key) end
 	for key, value in pairs(round2 and ROUND2 or {}) do assert(K.Options.Write("QoL", key, value) ~= false, key) end
 	for key, value in pairs(round3 and ROUND3 or {}) do assert(K.Options.Write("QoL", key, value) ~= false, key) end
 	for key, value in pairs(round3b and ROUND3B or {}) do assert(K.Options.Write("QoL", key, value) ~= false, key) end
@@ -130,6 +144,11 @@ return Common.Run(function()
 		end
 	end
 	if round3b then env.FireEvent("GROUP_ROSTER_UPDATE") end
+	if paste then
+		assert(K.Options.Write("QoL", "wayPaste", true) ~= false and K.Options.Write("QoL", "guildCover", true) ~= false)
+		env.SlashCmdList.KSTYLEQOLPASTE("")
+		ns.PasteWindow().area:SetText("/way 52.5 40 The inn\n/way #1430 20 20 Sentinel Hill")
+	end
 	local root = K.Scale.Root()
 	env._cursor = { root:GetWidth() * (options and 0.85 or 0.35) * root:GetEffectiveScale(), root:GetHeight() * 0.68 * root:GetEffectiveScale() }
 	local _, ring = ns.AidFrames()
@@ -142,8 +161,10 @@ return Common.Run(function()
 			ring:GetScript("OnUpdate")(ring, 0)
 		end
 	end
-	ring:GetScript("OnUpdate")(ring, 0)
-	ring:SetScript("OnUpdate", nil) -- the pointer stands still for the picture, and Settle waits for every OnUpdate to stop
+	if ring then
+		ring:GetScript("OnUpdate")(ring, 0)
+		ring:SetScript("OnUpdate", nil) -- the pointer stands still for the picture, and Settle waits for every OnUpdate to stop
+	end
 	env.RunTimers()
 	O.W.Settle(env)
 	if options then
@@ -165,6 +186,6 @@ return Common.Run(function()
 	if not options then
 		scene = Common.Scene.Merge({ Reference.Build({ layout = os.getenv("RENDER_LAYOUT") or "DPS" }), scene })
 	end
-	scene.log[#scene.log + 1] = "qol parity: round " .. (round3 and "1, 2 and 3a" or round3b and "1, 2 and 3b" or round2 and "1 and 2" or "1") .. " options " .. (options and "page" or "on over the HUD")
+	scene.log[#scene.log + 1] = "qol parity: round " .. (defaults and "none (defaults)" or round3 and "1, 2 and 3a" or round3b and "1, 2 and 3b" or round2 and "1 and 2" or "1") .. " options " .. (options and "page" or "on over the HUD")
 	return scene
 end)
