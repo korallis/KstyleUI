@@ -1,4 +1,4 @@
--- Focus.lua: the focus interrupt: your interrupt's icon, styled as a utility cooldown, on a side of your focus's (or target's) enemy nameplate; a sound when that unit starts a cast while the interrupt is ready, or on any cast without one; and, in dungeons while you have no focus, a reminder under enemy casters' nameplates. Each part listens to its events only while a setting asks for it.
+-- Focus.lua: the focus interrupt: your interrupt's icon, styled as a utility cooldown, on a side of your focus's (or target's) enemy nameplate, parented to the plate so it hides with it; a sound when that unit starts a cast while the interrupt is ready, or on any cast without one; and, in dungeons while you have no focus, a reminder under enemy casters' nameplates. Each part listens to its events only while a setting asks for it.
 local _, ns = ...
 
 local K = KstyleUI
@@ -75,6 +75,7 @@ local function Place()
 	if icon.plate ~= plate or icon.side ~= side then
 		icon.plate, icon.side = plate, side
 		local place, gap = SIDES[side], K.Tokens.Size("actionGap")
+		icon:SetParent(plate)
 		icon:ClearAllPoints()
 		Widgets.Point(icon, place[1], plate, place[2], place[3] * gap, place[4] * gap)
 	end
@@ -98,6 +99,7 @@ local function Note(unit)
 	end
 	if text.plate ~= plate then
 		text.plate = plate
+		text:SetParent(plate)
 		text:ClearAllPoints()
 		Widgets.Point(text, "TOP", plate, "BOTTOM", 0, -K.Tokens.Size("actionGap"))
 	end

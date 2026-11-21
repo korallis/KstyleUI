@@ -289,7 +289,7 @@ do
 	Fire(env, "PLAYER_FOCUS_CHANGED")
 	local icon = ns.Focus.icon
 	local point = W.LastCall(icon, "SetPoint")
-	assert(icon:IsShown() and point[1] == "RIGHT" and point[2] == plate and point[3] == "LEFT", "the icon sits left of the focus's plate")
+	assert(icon:IsShown() and point[1] == "RIGHT" and point[2] == plate and point[3] == "LEFT" and icon:GetParent() == plate, "the icon sits left of the focus's plate, hiding with it")
 	assert(Last(icon.icon, "SetTexture") == 501766 and not icon:IsMouseEnabled(), "showing the interrupt, letting clicks reach the plate")
 	assert(W.LastCall(icon.cooldown, "SetCooldownFromDurationObject"), "with its cooldown")
 	local writes = #W.Calls(icon, "SetPoint")
@@ -326,7 +326,7 @@ do
 	assert(not ns.Focus.notes.nameplate1, "outside a dungeon no reminder shows")
 	game.instance = "party"; Fire(env, "PLAYER_ENTERING_WORLD"); Fire(env, "NAME_PLATE_UNIT_ADDED", "nameplate1")
 	local note = ns.Focus.notes.nameplate1
-	assert(note and note:IsShown() and W.LastCall(note, "SetPoint")[2] == caster, "in a dungeon an enemy caster without a focus is marked")
+	assert(note and note:IsShown() and W.LastCall(note, "SetPoint")[2] == caster and note:GetParent() == caster, "in a dungeon an enemy caster without a focus is marked")
 	game.units.focus = "enemy"; Fire(env, "PLAYER_FOCUS_CHANGED")
 	assert(not note:IsShown(), "setting a focus clears the reminders")
 	game.units.focus = nil; Fire(env, "PLAYER_FOCUS_CHANGED")
