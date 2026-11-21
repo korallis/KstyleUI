@@ -89,7 +89,10 @@ function Widgets.IconChrome(owner, opts)
 	chrome.rimSet, chrome.rimAccent = false, false
 	local paint = chrome.Paint
 	chrome.Paint = function(self)
+		local held = self.edgeHeld
+		self.edgeHeld = true
 		paint(self)
+		self.edgeHeld = held
 		PaintRim(self)
 	end
 	chrome.SetRim, chrome.SetRimAccent = SetRim, SetRimAccent
@@ -150,7 +153,10 @@ function IconButton:Paint()
 		r, g, b, a = Widgets.Mix(r, g, b, a, pr, pg, pb, pa, press)
 		lift = DIM_FILL_LIFT * press
 	end
+	local held = chrome.edgeHeld
+	chrome.edgeHeld = true
 	chrome:SetRim(r, g, b, a)
+	chrome.edgeHeld = held
 	local fr, fg, fb, fa = Tokens.Color(self.opts.fill or "buttonFill")
 	if lift > 0 then
 		local xr, xg, xb, xa = Tokens.Color("raised")

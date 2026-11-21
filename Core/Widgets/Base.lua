@@ -2361,7 +2361,7 @@ function Chrome:Paint()
 end
 
 function Chrome:PaintEdge()
-	if not self.fill then
+	if not self.fill or self.edgeHeld then
 		return
 	end
 	self:SyncMaterialFrame()

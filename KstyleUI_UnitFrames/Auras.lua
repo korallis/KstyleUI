@@ -417,14 +417,16 @@ local function Flush()
 	end
 	local work = pending
 	pending = {}
-	for view in pairs(work) do
+	for view, mode in pairs(work) do
 		if not view.auras or view.auras.style ~= PoolStyle(view) or ns.Fan.Wanted(view) and not view.auras.fan then
 			K.Call(Auras.Apply, view)
 		else
 			view.auraStyle = nil
 			local style = TextStyle(view)
 			for _, entry in ipairs(view.auras.buttons) do
-				K.Call(StyleButton, view, entry, style)
+				if mode ~= "fresh" then
+					K.Call(StyleButton, view, entry, style)
+				end
 				K.Call(Auras.Precise, view, entry)
 			end
 			ns.Fan.Restyle(view)
@@ -504,9 +506,9 @@ local function Dress(view, key, button, buttons)
 	buttons[#buttons + 1] = entry
 end
 
-local function Restyle(view)
+local function Restyle(view, fresh)
 	if view.auras and #view.auras.buttons > 0 then
-		pending[view] = true
+		pending[view] = pending[view] or fresh and "fresh" or true
 		if not Flush() then
 			Wait(view)
 		end
@@ -921,6 +923,7 @@ function Auras.Apply(view)
 	end
 	view.auraStyle = nil
 	local want = Wanted(view)
+	local fresh = not (view.auras and view.auras.styles[PoolStyle(view)])
 	if not view.auras then
 		if not want and not (Active(view) and ns.Fan.Wanted(view)) then
 			return
@@ -949,7 +952,7 @@ function Auras.Apply(view)
 		K.Call(ApplyContainer, view, fan)
 	end
 	if want or Active(view) and ns.Fan.Wanted(view) then
-		Restyle(view)
+		Restyle(view, fresh)
 	end
 	EnableOverflow(view, want)
 	Auras.Sync(view)
