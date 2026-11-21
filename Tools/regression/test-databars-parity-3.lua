@@ -173,6 +173,16 @@ local second = ns.Strip.second
 assert(second and second.frame:IsVisible(), "turning it on builds and shows the second bar")
 assert(K.Layout.Element("databars.strip2") and K.Layout.Live("databars.strip2"), "it is live in Layout Mode")
 eq(table.concat(second.order, ","), "fps,gold,time", "it starts as a copy of the main bar's readouts")
+local sx, sy, sw, sh = rect(second.frame)
+local crest = 0
+for _, art in ipairs(ns.Strip.view.art) do
+	local ax, ay, aw, ah = rect(art)
+	if art:IsShown() and ax then
+		crest = crest + 1
+		assert(ax + aw <= sx or sx + sw <= ax or ay + ah <= sy or sy + sh <= ay, "the second bar's default place clears the top bar's crest and brackets")
+	end
+end
+assert(crest > 0, "the forged top bar shows its crest")
 assert(not hidden("strip.secondModules"), "its module list shows")
 eq(text("gold", second), text("gold"), "the same values")
 show({ "coords", "latency", "durability" }, "secondModules")

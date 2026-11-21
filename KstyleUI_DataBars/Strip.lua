@@ -219,9 +219,9 @@ local function Block(s, id)
 end
 
 local function Shows(s, id)
-	local mode = Block(s, id)
-	mode = mode and mode.show or "bar"
 	if not GLYPH_CELLS[id] then return false, false end
+	local block = Block(s, id)
+	local mode = block and block.show or "bar"
 	if mode == "bar" then return s.icons == "beside" or s.icons == "only", s.icons == "only" end
 	return mode ~= "value", mode == "icon"
 end
@@ -1523,12 +1523,15 @@ function Strip.Setting(key)
 		for _, view in ipairs({ Strip.view, Strip.second }) do view.paintColor = nil end
 	end
 	if field == "second" and s.second then
-		local any, copy = false, {}
+		local any = false
 		for _, entry in ipairs(s.secondModules) do any = any or entry.shown end
-		for _, entry in ipairs(Strip.Modules(s)) do
-			if entry.id ~= "micro" then copy[#copy + 1] = { id = entry.id, shown = entry.shown, zone = entry.zone } end
+		if not any then
+			local copy = {}
+			for _, entry in ipairs(Strip.Modules(s)) do
+				if entry.id ~= "micro" then copy[#copy + 1] = { id = entry.id, shown = entry.shown, zone = entry.zone } end
+			end
+			K.Options.Write(ns.MODULE, "strip.secondModules", copy)
 		end
-		if not any then K.Options.Write(ns.MODULE, "strip.secondModules", copy) end
 	end
 	if field == "placement" and s.placement == "rail" then
 		K.Options.Write(ns.MODULE, "strip.menus", false)

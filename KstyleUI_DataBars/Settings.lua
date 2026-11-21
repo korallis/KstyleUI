@@ -652,9 +652,9 @@ function ns.Preview(...)
 			local rail = setmetatable({ placement = "rail", menus = false, railModules = s.secondModules }, { __index = s })
 			second.paintColor = nil
 			second.frame:SetScale(scale)
-			second.frame:SetSize(available / scale, PREVIEW_STRIP)
+			second.frame:SetSize(available / scale, Strip.LINE)
 			second.frame:ClearAllPoints()
-			Widgets.Point(second.frame, "TOPLEFT", self, "TOPLEFT", 0, -(sample.top + height + PREVIEW_STRIP_PAD) / scale)
+			Widgets.Point(second.frame, "TOPLEFT", self, "TOPLEFT", 0, -(sample.top + height) / scale)
 			Strip.Paint(second, rail, StripSamples(rail))
 		end
 		frame:Refresh()
