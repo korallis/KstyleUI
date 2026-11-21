@@ -143,6 +143,9 @@ do
 	custom = tinted(button)
 	assert(custom, "own colours reach the debuff borders")
 	assert(tinted(f.dispelFrame), "and the highlight")
+	for _, each in ipairs(f.dispelFrame._aura.dispel) do
+		assert(each.texture ~= f.dispelRing[1][5] and each.texture ~= f.dispelRing[2][5], "a retint gives the engine only a ring line's eight edge pieces; it shows every dispel texture it holds")
+	end
 	local map = f.dispelFrame._aura.dispel[1].options.customDispelColorMap
 	assert(select(1, map.Magic:GetRGBA()) == 1, "in the colour chosen")
 	assert(slot.frame._aura.dispel[1].options.customDispelColorMap, "and the type letter")
