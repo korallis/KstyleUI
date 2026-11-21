@@ -1,92 +1,13 @@
 -- test-groupframes-parity-r3a.lua: EllesmereUI parity round 3a: a v0.2.8 profile keeps every default and makes nothing new; each new option switched on applies, follows its events, reaches the preview and switches back.
-local G = dofile("Tools/regression/group_env.lua")
+local H = dofile("Tools/regression/groupframes_r3a.lua")
 local A = dofile("Tools/regression/auras_env.lua")
-
-local MODULE = "GroupFrames"
-local FORTITUDE, INTELLECT, THORNS = "Power Word: Fortitude", "Arcane Intellect", "Thorns"
-local NAMES = { [1243] = FORTITUDE, [21562] = "Prayer of Fortitude", [1459] = INTELLECT, [23028] = "Arcane Brilliance", [467] = THORNS }
+local G, MODULE, FORTITUDE, INTELLECT = H.G, H.MODULE, H.FORTITUDE, H.INTELLECT
+local setup, write, text, formatted, frame, noErrors, party, width, shown, icon = H.setup, H.write, H.text, H.formatted, H.frame, H.noErrors, H.party, H.width, H.shown, H.icon
 
 local function saved(own)
 	own = own or {}
 	own.enabled = true
 	return { version = 42, profiles = { Default = { [MODULE] = own } }, characters = {}, layouts = {} }
-end
-
-local function setup(env)
-	env._buffs = {}
-	env._known = { [1243] = true, [1459] = true, [467] = true }
-	env.C_SpellBook = { IsSpellKnown = function(id) return env._known[id] == true end }
-	env.C_Spell = env.C_Spell or {}
-	env.C_Spell.GetSpellName = function(id) return NAMES[id] end
-	env.C_Spell.GetSpellTexture = function(id) return 100000 + id end
-	env.C_UnitAuras = env.C_UnitAuras or {}
-	env.C_UnitAuras.GetAuraDataBySpellName = function(unit, name, filter)
-		assert(filter == "HELPFUL", "missing buffs read helpful auras")
-		if env._aurasSecret then return env.Secret({}) end
-		local own = env._buffs[unit]
-		return own and own[name] and { name = name } or nil
-	end
-	env.UnitPowerType = function(unit)
-		local m = env._member(unit)
-		return m and m.rage and 1 or 0, m and m.rage and "RAGE" or "MANA"
-	end
-	env.UnitPowerPercent = function(unit, kind, _, curve)
-		assert(kind == 0, "healer mana reads mana")
-		local m = env._member(unit)
-		local share = (m and m.power or 50) / (m and m.maxPower or 100)
-		return env.Secret(curve and curve:Evaluate(share) or share)
-	end
-	env.UnitInRaid = function(unit)
-		return env._roster.kind == "raid" and unit == "player" and 1 or nil
-	end
-end
-
-local function write(env, K, key, value)
-	K.Options.Write(MODULE, key, value)
-	env.RunTimers()
-end
-
-local function text(env, region)
-	local t = region:GetText()
-	return env.issecretvalue(t) and env.Reveal(t) or t
-end
-
-local function formatted(env, region)
-	local args = region._state.FormattedText
-	local out = {}
-	for i = 1, args.n do out[i] = env.issecretvalue(args[i]) and env.Reveal(args[i]) or args[i] end
-	return string.format(unpack(out, 1, args.n))
-end
-
-local function frame(ns, unit)
-	local out
-	ns.Unit.ForEach(function(f) if f.unit == unit then out = f end end)
-	return assert(out, "no frame for " .. unit)
-end
-
-local function noErrors(env, K)
-	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
-end
-
-local function party(env)
-	G.SetRoster(env, "party", {
-		{ name = "Thaldren", class = "WARRIOR", role = "TANK", rage = true, health = 50, maxHealth = 100 },
-		{ name = "Sylaen", class = "DRUID", role = "HEALER", health = 80, maxHealth = 100 },
-		{ name = "Kragar", class = "SHAMAN", role = "DAMAGER", health = 90, maxHealth = 100 },
-	})
-end
-
-local function width(env, region)
-	local w = region:GetWidth()
-	return env.issecretvalue(w) and env.Reveal(w) or w
-end
-
-local function shown(f)
-	return f.reminder ~= nil and f.reminder:IsShown()
-end
-
-local function icon(f)
-	return f.reminder.tile.icon:GetTexture()
 end
 
 -- A v0.2.8-shaped profile keeps every default and builds none of the new parts.
