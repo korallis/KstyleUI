@@ -190,6 +190,6 @@ function Dispel.Sample(view, holder, kind)
 	end
 	local r, g, b = Dispel.Magic()
 	for _, texture in ipairs(p.tinted) do texture:SetVertexColor(r, g, b, 1) end
-	if Settings.Module().dispelCustom == true then p.icon:SetVertexColor(r, g, b, 1) else p.icon:SetVertexColor(1, 1, 1, 1) end
+	if Settings.Module().dispelCustom == true then p.icon:SetVertexColor(r, g, b, 1) else p.icon:SetVertexColor(Widgets.Rgba("white", 1)) end
 	Layout(p, view)
 end
