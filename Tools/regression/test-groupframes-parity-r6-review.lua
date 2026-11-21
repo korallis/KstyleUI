@@ -1,4 +1,4 @@
--- test-groupframes-parity-r6-review.lua: the round 6 review's probes: an indicator bar with no room on its edge reports it does not fit on four screens, one bar per edge, the icon's square without the engine's duration bar, the Options sample's texture and the icon size row in Bar mode, the own raid size over the larger frames, a tank list that refuses unreadable rosters and an unknown lockdown and scans once per roster change, and party frames that follow the raid as the automatic layout and the HUD style leave it.
+-- test-groupframes-parity-r6-review.lua: the round 6 review's probes: an indicator bar with no room on its edge reports it does not fit on four screens, one bar per edge, the icon's square without the engine's duration bar, the Options sample's texture and the icon size row in Bar mode, the own raid size over the larger frames, a tank list that refuses unreadable rosters and an unknown lockdown and scans once per roster change, and party frames that follow the raid as the automatic layout and the HUD style leave it, medallion party frames keeping their names above the bar.
 local H = dofile("Tools/regression/groupframes_r3a.lua")
 local G, MODULE = H.G, H.MODULE
 local write, frame, noErrors, near = H.write, H.frame, H.noErrors, H.near
@@ -114,7 +114,7 @@ do
 	noErrors(env, K)
 end
 
--- Party frames take the raid's values as the compact raid layout and the Medallions style leave them.
+-- Party frames take the raid's values as the compact raid layout and the Medallions style leave them; medallion party frames keep their names above the bar.
 do
 	local c = ns.Settings.current
 	for _, section in ipairs({ "text", "heals", "power" }) do write(env, K, "follow." .. section, true) end
@@ -125,7 +125,7 @@ do
 	env.RunTimers()
 	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
-	assert(c.party.textLayout == c.raid.textLayout and c.party.power == c.raid.power and c.party.buffCount == c.raid.buffCount, "Medallions: " .. c.party.textLayout .. " " .. c.raid.textLayout)
+	assert(c.party.textLayout == "ABOVE" and c.raid.textLayout == "INSIDE" and c.party.power == c.raid.power and c.party.buffCount == c.raid.buffCount, "Medallions: " .. c.party.textLayout .. " " .. c.raid.textLayout)
 	noErrors(env, K)
 end
 
