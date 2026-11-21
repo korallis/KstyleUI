@@ -1,4 +1,4 @@
--- test-unitframes-aura-timer-lane.lua: with Debuffs and buffs, the buff row starts below the debuff timers under their icons, nudged down too; a wrapped debuff group steps its rows as it steps to the buffs; with timers off the groups touch, as the engine's default groupLineSpacing (0) places them.
+-- test-unitframes-aura-timer-lane.lua: with Debuffs and buffs, the buff row starts below the debuff timers under their icons, nudged down too; without a timer lane (timers off, or two rows) it starts right under the debuffs' last row, as the engine's default groupLineSpacing (0) places it.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local Engine = dofile("Tools/regression/aura_fixture_engine.lua")
 local Scene = dofile("Tools/render/scene.lua")
@@ -43,6 +43,5 @@ end
 local off = Measure({ auraTimer = false })
 assert(math.abs(off.buff - off.low) < 0.01, string.format("with timers off the buff row starts at %.2f, not right under the debuffs at %.2f", off.buff, off.low))
 local wrap = Measure({ auraColumns = 2, auraRows = 2, auraRowGap = 6 })
-assert(wrap.last > wrap.first and math.abs((wrap.last - wrap.first) - (wrap.buff - wrap.last)) < 0.01,
-	string.format("a wrapped group steps %.2f between its rows but %.2f to the buffs", wrap.last - wrap.first, wrap.buff - wrap.last))
-print("ok: the buff row clears the debuff timers, nudged or not; touches the debuffs with timers off; wrapped rows step alike")
+assert(wrap.last > wrap.first and math.abs(wrap.buff - wrap.low) < 0.01, string.format("two rows without a timer lane: the buff row starts at %.2f, not right under the last at %.2f", wrap.buff, wrap.low))
+print("ok: the buff row clears the debuff timers, nudged or not, and without a timer lane starts right under the debuffs' last row")
