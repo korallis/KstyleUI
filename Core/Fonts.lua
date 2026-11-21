@@ -14,6 +14,7 @@ local holders = {}
 local loaded = {}
 local reported = {}
 local made = 0
+local fontPaths = setmetatable({}, { __index = function(known, path) known[path] = Theme.IsFontPath(path) return known[path] end })
 
 local function Log(message)
 	ns.DevTest.Log(SECTION, message)
@@ -51,7 +52,12 @@ local function Collect(value, out, depth, seen)
 	elseif type(value) == "table" and depth < MAX_DEPTH and not seen[value] then
 		seen[value] = true
 		for _, child in pairs(value) do
-			Collect(child, out, depth + 1, seen)
+			local kind = type(child)
+			if kind == "table" then
+				Collect(child, out, depth + 1, seen)
+			elseif kind == "string" and fontPaths[child] then
+				out[#out + 1] = child
+			end
 		end
 	end
 end

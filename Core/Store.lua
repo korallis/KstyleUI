@@ -6,7 +6,7 @@ ns.Store = Store
 
 local L = ns.L
 local Codec = ns.Codec
-local format, sub, floor = string.format, string.sub, math.floor
+local format, sub, floor, huge = string.format, string.sub, math.floor, math.huge
 
 Store.DB_VERSION = 43
 Store.migrations = {}
@@ -1054,6 +1054,7 @@ local NOT_LOADED = L["KstyleUI has not loaded its saved settings yet."]
 
 local db, active, activeName, account, charKey
 local registered = {}
+local returned = {}
 local implicit = {}
 local logged = {}
 
@@ -1081,7 +1082,10 @@ local function deepCopy(value)
 	end
 	local out = {}
 	for k, v in pairs(value) do
-		out[k] = deepCopy(v)
+		if type(v) == "table" then
+			v = deepCopy(v)
+		end
+		out[k] = v
 	end
 	return out
 end
@@ -1122,21 +1126,15 @@ end
 
 local function fill(dest, defaults)
 	for key, default in pairs(defaults) do
-		local value = dest[key]
-		if type(default) == "table" then
-			if isAtomic(default) then
-				if type(value) ~= "table" then
-					dest[key] = deepCopy(default)
-				end
-			else
-				if type(value) ~= "table" then
-					value = {}
-					dest[key] = value
-				end
-				fill(value, default)
+		local value, kind = dest[key], type(default)
+		if kind ~= "table" then
+			if type(value) ~= kind then
+				dest[key] = default
 			end
-		elseif type(value) ~= type(default) then
-			dest[key] = default
+		elseif type(value) ~= "table" then
+			dest[key] = deepCopy(default)
+		elseif not isAtomic(default) then
+			fill(value, default)
 		end
 	end
 end
@@ -1372,27 +1370,27 @@ local function requireLoaded(fnName)
 	end
 end
 
-local function checkDefaults(value, path)
+local function copyDefaults(value)
+	local out = {}
 	for key, child in pairs(value) do
-		local kt = type(key)
+		local kt, ct, problem = type(key), type(child)
 		if kt ~= "string" and kt ~= "number" then
-			return path .. " has a " .. kt .. " key"
-		end
-		local ct = type(child)
-		local childPath = path .. "." .. tostring(key)
-		if ct == "table" then
-			local problem = checkDefaults(child, childPath)
-			if problem then
-				return problem
-			end
+			return nil, " has a " .. kt .. " key"
+		elseif ct == "table" then
+			child, problem = copyDefaults(child)
 		elseif ct == "number" then
-			if not Codec.IsFinite(child) then
-				return childPath .. " is not a finite number"
+			if child ~= child or child == huge or child == -huge then
+				problem = " is not a finite number"
 			end
 		elseif ct ~= "boolean" and ct ~= "string" then
-			return childPath .. " is a " .. ct .. "; settings hold only booleans, numbers, strings and tables"
+			problem = " is a " .. ct .. "; settings hold only booleans, numbers, strings and tables"
 		end
+		if problem then
+			return nil, "." .. tostring(key) .. problem
+		end
+		out[key] = child
 	end
+	return out
 end
 
 function Store.RegisterDefaults(section, defaults)
@@ -1409,11 +1407,10 @@ function Store.RegisterDefaults(section, defaults)
 	if switch ~= nil and defaults.enabled ~= nil and defaults.enabled ~= switch then
 		error("KstyleUI.Store.RegisterDefaults: " .. section .. " defaults.enabled must be " .. tostring(switch) .. ", its switch in Features.modules", 2)
 	end
-	local problem = checkDefaults(defaults, "defaults")
+	local copy, problem = copyDefaults(defaults)
 	if problem then
-		error("KstyleUI.Store.RegisterDefaults: " .. section .. " " .. problem, 2)
+		error("KstyleUI.Store.RegisterDefaults: " .. section .. " defaults" .. problem, 2)
 	end
-	local copy = deepCopy(defaults)
 	if switch ~= nil then
 		copy.enabled = switch
 	end
@@ -1441,8 +1438,13 @@ function Store.Profile()
 end
 
 function Store.Module(name)
-	local values = active and active[name]
+	local values = returned[name]
+	if values and active[name] == values then
+		return values
+	end
+	values = active and active[name]
 	if registered[name] and type(values) == "table" then
+		returned[name] = values
 		return values
 	end
 	requireLoaded("Module")
