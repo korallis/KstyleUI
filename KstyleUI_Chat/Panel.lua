@@ -134,13 +134,12 @@ local function Tile()
 	return Number(state.settings and state.settings.editHeight, EDIT_TILE)
 end
 
-local function Free(spots, name)
-	local spot = spots[name]
+local function Free(s, name)
+	local spot = s.sideFree == true and type(s.sidePositions) == "table" and s.sidePositions[name]
 	return type(spot) == "table" and type(spot.x) == "number" and type(spot.y) == "number" and spot or nil
 end
 
 local function Picks(s)
-	local spots = s.sideFree == true and type(s.sidePositions) == "table" and s.sidePositions or {}
 	local icons, ids, top, bottom, free = type(s.sideIcons) == "table" and s.sideIcons or {}, {}, {}, {}, {}
 	for id in tostring(s.sideOrder):gmatch("%a+") do
 		if ICONS[id] then ids[#ids + 1] = id end
@@ -149,12 +148,12 @@ local function Picks(s)
 		for _, name in ipairs(icons[id] ~= false and ICONS[id] or {}) do
 			local icon = _G[name]
 			if type(icon) == "table" and type(icon.SetScale) == "function" and icon:IsShown() then
-				local list = Free(spots, name) and free or i == #ids and bottom or top
+				local list = Free(s, name) and free or i == #ids and bottom or top
 				list[#list + 1] = icon
 			end
 		end
 	end
-	return top, bottom, free, spots
+	return top, bottom, free
 end
 
 local function Tall(frame)
@@ -746,9 +745,9 @@ end
 
 local function Stack(column, s, scale)
 	local gap = max(0, tonumber(s.sideSpacing) or 2) / scale
-	local top, bottom, free, spots = Picks(s)
+	local top, bottom, free = Picks(s)
 	for _, icon in ipairs(free) do
-		if Resize(icon, scale) then Spot(icon, column, spots[icon:GetName()]) end
+		if Resize(icon, scale) then Spot(icon, column, Free(s, icon:GetName())) end
 	end
 	local above = column
 	for _, icon in ipairs(top) do
@@ -873,7 +872,7 @@ function Panel.Place()
 				frame:SetPoint("BOTTOM", column, "TOP", 0, 0)
 			end
 		end
-		local spot = kept[friends] and s.sideFree == true and type(s.sidePositions) == "table" and Free(s.sidePositions, "QuickJoinToastButton")
+		local spot = kept[friends] and Free(s, "QuickJoinToastButton")
 		if spot then Spot(friends, column, spot) end
 		Stack(column, s, g.scale)
 		Draggable(s.sideFree == true)
@@ -1235,8 +1234,7 @@ local function Watch(chat)
 	end
 	if type(ChatAlertFrame) == "table" and type(ChatAlertFrame.UpdateAnchors) == "function" then
 		hooksecurefunc(ChatAlertFrame, "UpdateAnchors", function()
-			local s = state.settings
-			local spot = kept[QuickJoinToastButton] and s.sideFree == true and type(s.sidePositions) == "table" and Free(s.sidePositions, "QuickJoinToastButton")
+			local spot = kept[QuickJoinToastButton] and Free(state.settings, "QuickJoinToastButton")
 			if spot then Spot(QuickJoinToastButton, state.chat.buttonFrame, spot) end
 		end)
 	end
