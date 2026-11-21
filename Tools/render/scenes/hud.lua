@@ -80,27 +80,23 @@ function Hud.Pips()
 	return tonumber(from), tonumber(to)
 end
 
--- PlayPips(env, K, set, class) -> note: RENDER_PIPS=from,to moves the class's pip power (combo points, holy power or
--- soul shards) from one count to the other RENDER_PIPS_T seconds before the scene's clock through the addon's own power
--- event (set(n) gives the stubs the count); equal counts settle there with no change. RENDER_PIPS_MOTION sets
--- Medallions motion (off shows the end states).
-local PIP_TOKENS = { PALADIN = "HOLY_POWER", WARLOCK = "SOUL_SHARDS" }
-local function PlayPips(env, K, set, class)
+-- PlayPips(env, K, set) -> note: RENDER_PIPS=from,to moves the combo points from one count to the other RENDER_PIPS_T
+-- seconds before the scene's clock through the addon's own power event (set(n) gives the stubs the count); equal
+-- counts settle there with no change. RENDER_PIPS_MOTION sets Medallions motion (off shows the end states).
+local function PlayPips(env, K, set)
 	local from, to = Hud.Pips()
 	if not from then
 		return nil
 	end
-	local token = PIP_TOKENS[class] or "COMBO_POINTS"
-	local still = token == "COMBO_POINTS" and "PLAYER_TARGET_CHANGED" or "UNIT_MAXPOWER"
 	local motion, clock = os.getenv("RENDER_PIPS_MOTION"), env._now
 	if motion and motion ~= "" then
 		K.Options.Write("Medallions", "motion", motion)
 	end
 	set(from)
-	env.FireEvent(still, "player", token)
+	env.FireEvent("PLAYER_TARGET_CHANGED")
 	env._now = env._time - (tonumber(os.getenv("RENDER_PIPS_T") or "") or 0)
 	set(to)
-	env.FireEvent(from == to and still or "UNIT_POWER_FREQUENT", "player", token)
+	env.FireEvent(from == to and "PLAYER_TARGET_CHANGED" or "UNIT_POWER_FREQUENT", "player", "COMBO_POINTS")
 	env._now = clock
 	return "pips: " .. from .. " to " .. to .. ", " .. (os.getenv("RENDER_PIPS_T") or "0") .. " s in"
 end
@@ -597,11 +593,7 @@ function modules.unitframes(opts)
 	if os.getenv("RENDER_PIPS") == "off" then
 		K.Options.Write("UnitFrames", "resource.classPips", false)
 	end
-	notes[#notes + 1] = PlayPips(env, K, function(n)
-		local me = env._units.player
-		me.powers, me.powerMaxes = me.powers or {}, me.powerMaxes or {}
-		env._comboPoints, me.powers[7], me.powers[9], me.powerMaxes[7], me.powerMaxes[9] = n, n, n, 5, 5
-	end, (Hud.Class(opts)))
+	notes[#notes + 1] = PlayPips(env, K, function(n) env._comboPoints = n end)
 	local scene = build(env, opts, { time = env._time }, function()
 		Fx.Apply(env, "unitframes", ns, notes)
 	end)
@@ -672,7 +664,7 @@ function modules.actionbars(opts)
 				end
 			end
 			env.UnitPower = env.UnitPower or function()
-				return env._pips or spec.combo or 3
+				return spec.combo or 3
 			end
 			env.UnitPowerMax = env.UnitPowerMax or function()
 				return 5
@@ -801,7 +793,7 @@ function modules.actionbars(opts)
 		end
 		env._now = clock
 	end
-	local notes = { PlayPips(env, K, function(n) env._pips = n end, (Hud.Class(opts))) }
+	local notes = { PlayPips(env, K, function(n) env._pips = n end) }
 	local scene = build(env, opts, { time = env._time }, function()
 		Fx.Apply(env, "actionbars", ns, notes)
 		if travel then

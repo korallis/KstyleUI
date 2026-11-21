@@ -1239,7 +1239,7 @@ ResourceRows = function(schema)
 	}
 	schema[#schema + 1] = {
 		type = "toggle", key = "resource.classPips", label = L["Class-themed pips"], showWhen = shows(on),
-		help = L["Animated class art for combo points, holy power and soul shards. Off restores the plain pips."],
+		help = L["Animated daggers for a rogue and claws for a druid. Off restores the plain pips."],
 	}
 	schema[#schema + 1] = {
 		type = "dropdown", key = "resource.comboColor", label = L["Combo point colour"], showWhen = shows(on),

@@ -23,8 +23,6 @@ local LAYERS = {
 local CLASSES = {
 	ROGUE = { art = "pipBlade", glowColor = "jewelCombo", coreColor = "jewelComboCore" },
 	DRUID = { art = "pipClaw", glowColor = "pipDruidGlow", coreColor = "pipDruidCore" },
-	PALADIN = { art = "pipSpear", glowColor = "jewelHoly", coreColor = "jewelHolyCore" },
-	WARLOCK = { art = "pipShard", glowColor = "jewelShard", coreColor = "jewelShardCore" },
 }
 
 local Pip = {}

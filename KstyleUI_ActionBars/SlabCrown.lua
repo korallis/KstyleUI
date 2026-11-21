@@ -1,4 +1,4 @@
--- SlabCrown.lua: the Medallions crest's crown, one Widgets.ClassPip piece per point of the jewels' resource fanned out of the top of the rune ring (a rogue's daggers, a cat-form druid's claws with its mana as a thin line above them, a paladin's sun-spears, a warlock's soul shards), dormant until each point ignites one; on while the unit frames' Class-themed pips setting is on, which it is by default and when Unit Frames is off.
+-- SlabCrown.lua: the Medallions crest's crown, one Widgets.ClassPip piece per point of the jewels' resource fanned out of the top of the rune ring (a rogue's daggers, a cat-form druid's claws with its mana as a thin line above them), dormant until each point ignites one; on while the unit frames' Class-themed pips setting is on, which it is by default and when Unit Frames is off.
 local _, ns = ...
 
 local K = KstyleUI

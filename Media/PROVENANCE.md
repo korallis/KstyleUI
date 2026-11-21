@@ -938,14 +938,12 @@ The Medallions HUD style's portraits and crests. Each is original art generated 
 
 ## Class-themed pips (2026-11-21)
 
-Original KstyleUI art in the crest's forged look (gilt and steel lit from the upper left, a thin dark outline), one piece per class, each baked to 128x128 at the five angles the Medallions crest's crown fans them at (130, 110, 90, 70 and 50 degrees; 90 is upright and is the unit frames' row). Each piece has four textures per angle that share one silhouette, so the lit piece covers the dormant one exactly and the shape masks only the piece.
+Original KstyleUI art in the crest's forged look (gilt and steel lit from the upper left, a thin dark outline), one piece for each class with a pip resource on Forever (a rogue and a cat-form druid), each baked to 128x128 at the five angles the Medallions crest's crown fans them at (130, 110, 90, 70 and 50 degrees; 90 is upright and is the unit frames' row). Each piece has four textures per angle that share one silhouette, so the lit piece covers the dormant one exactly and the shape masks only the piece.
 
 | File | Size | What it is |
 | --- | --- | --- |
 | `Media/Textures/Pips/PipBlade<angle>.png` | 128x128 | A rogue's combo point: a dagger with a polished steel blade and a glowing crimson ember channel, a gilt crossguard with curled quillons, a dark wrapped grip and a gilt pommel set with a red gem. |
 | `Media/Textures/Pips/PipClaw<angle>.png` | 128x128 | A cat-form druid's combo point: a curved ivory talon with a glowing amber channel along its inner curve, in a gilt cuff with green leaf filigree. |
-| `Media/Textures/Pips/PipSpear<angle>.png` | 128x128 | A paladin's holy power: a gilt sun-spear with a white-gold core, a sunburst at its base and a pale blue gem in its shaft. |
-| `Media/Textures/Pips/PipShard<angle>.png` | 128x128 | A warlock's soul shard: a faceted violet crystal veined with fel green, in a dark iron and gilt cradle. |
 | `Media/Textures/Pips/Pip<piece>Steel<angle>.png` | 128x128 | The same piece dormant: its luminance as cool ghost steel at 80% opacity. |
 | `Media/Textures/Pips/Pip<piece>Shape<angle>.png` | 128x128 | The piece's silhouette, white: the mask for the slide-in and slash, and the flare, tinted the class's core colour. |
 | `Media/Textures/Pips/Pip<piece>Glow<angle>.png` | 128x128 | The silhouette blurred, white: the halo that hugs a lit piece, ADD, tinted the class's glow colour. |

@@ -1,4 +1,4 @@
--- test-unitframes-pips.lua: the class-themed pip row (on by default) draws Widgets.ClassPip daggers for a rogue, claws for a cat-form druid, sun-spears for a paladin's holy power and soul shards for a warlock over the plain pips' places, as many as UnitPowerMax gives (none at 0); every lit layer is a one-point status bar fed the raw count now, before, or at the maximum; a power event plays the gain, spend and maximum fades only when motion allows, a target change and Off show the end states, transient layers are hidden rather than alpha 0, nothing runs OnUpdate or loops, under Medallions the row gives way to the crest's crown (a cat-form druid's mana too), and switching the pips off restores the plain ones (and nothing for a paladin or warlock, as before).
+-- test-unitframes-pips.lua: the class-themed combo point row (on by default) draws Widgets.ClassPip daggers for a rogue and claws for a cat-form druid over the plain pips' places; every lit layer is a one-point status bar fed the raw count now, before, or at the maximum; a power event plays the gain, spend and maximum fades only when motion allows, a target change and Off show the end states, transient layers are hidden rather than alpha 0, nothing runs OnUpdate or loops, under Medallions the row gives way to the crest's crown (a cat-form druid's mana too), and switching the pips off restores the plain ones; a paladin or warlock shows nothing, as before.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -188,38 +188,10 @@ denv.FireEvent("UPDATE_SHAPESHIFT_FORM")
 assert(not DR.themed and not DP.pips[1].frame:IsShown(), "caster form: no pips")
 noErrors(denv, DK, "druid")
 
--- A paladin's holy power and a warlock's soul shards: as many pieces as UnitPowerMax gives, fed that power, none at 0,
--- and nothing at all with the pips off, as before.
-for _, case in ipairs({ { "PALADIN", 9, "HOLY_POWER", "PipSpear90.png", "jewelHoly" }, { "WARLOCK", 7, "SOUL_SHARDS", "PipShard90.png", "jewelShard" } }) do
-	local class, power, token, art, colour = case[1], case[2], case[3], case[4], case[5]
-	local cenv, CK, cns = U.New({ setup = function(e)
-		e._units.player.class = class
-		e._units.player.powerType, e._units.player.powerToken = 0, "MANA"
-		e._units.player.powers, e._units.player.powerMaxes = { [power] = 1 }, { [power] = 3 }
-	end })
-	local CP, CR = cns.Pips.state, cns.Resource.state
-	assert(CR.showCombo and CR.themed and #CP.pips == 3, class .. ": three pieces for a maximum of three")
-	assert(File(CP.pips[1].blade, "SetStatusBarTexture"):find(art, 1, true), class .. ": its own art")
-	assert(W.LastCall(CP.pips[1].halo, "SetStatusBarColor")[1] == CK.Tokens.Color(colour), class .. ": its jewels' colour")
-	assert(select(2, U.Bar(cenv, CP.pips[1].shine)) == 2, class .. ": the glint lights at its maximum of three")
-	assert(not CR.pips[4]:IsShown() and not CR.pips[1]:IsShown(), class .. ": no plain pips under the theme")
-	cenv._units.player.powers[power] = 3
-	cenv._restricted = true
-
-	cenv.FireEvent("UNIT_POWER_FREQUENT", "player", token)
-	local value = W.LastCall(CP.pips[3].blade, "SetValue")[1]
-	assert(cenv.issecretvalue(value) and Reveal(value) == 3, class .. ": the pieces get the secret power itself")
-	cenv._restricted = false
-	CK.Options.Write("UnitFrames", "resource.classPips", false)
-	assert(not CR.showCombo and not CR.content:IsShown(), class .. ": off shows nothing, as before")
-	CK.Options.Write("UnitFrames", "resource.classPips", true)
-	cenv._units.player.powerMaxes[power] = 0
-	cenv.FireEvent("UNIT_DISPLAYPOWER", "player")
-	assert(not CR.showCombo, class .. ": a client without the power draws nothing")
-	cenv._units.player.powerMaxes[power] = 3
-	cenv.FireEvent("UNIT_DISPLAYPOWER", "player")
-	CK.Options.Write("HudStyle", "style", "medallions")
-	assert(not CR.showCombo, class .. ": under Medallions the crest's crown shows it")
+-- A paladin or warlock has no pip resource on Forever and shows nothing, themed or not.
+for _, class in ipairs({ "PALADIN", "WARLOCK" }) do
+	local cenv, CK, cns = U.New({ setup = function(e) e._units.player.class = class end })
+	assert(not cns.Resource.state.showCombo and not cns.Resource.state.themed, class .. ": no pips")
 	noErrors(cenv, CK, class)
 end
 

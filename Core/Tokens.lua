@@ -481,7 +481,7 @@ local TEXTURES = {
 	logo = { file = "Logo\\Logo64.png" },
 	logoLarge = { file = "Logo\\Logo256.tga" },
 }
-for _, set in ipairs({ "Blade", "Claw", "Spear", "Shard" }) do
+for _, set in ipairs({ "Blade", "Claw" }) do
 	for _, kind in ipairs({ "", "Steel", "Shape", "Glow" }) do
 		for _, angle in ipairs({ 130, 110, 90, 70, 50 }) do
 			TEXTURES["pip" .. set .. kind .. angle] = { file = "Textures\\Pips\\Pip" .. set .. kind .. angle .. ".png" }
