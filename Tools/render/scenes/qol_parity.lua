@@ -1,4 +1,4 @@
--- qol_parity.lua: the full HUD with every QoL parity round 1 option on, most away from its default (a larger alert size, class colours, a lower crosshair with set lengths and thicknesses, a larger class-coloured ring, a higher durability warning), after a combat round trip and then a party member's death, so the flash line shows the death alert over the talent line; RENDER_QOL_ROUND=2 adds round 2: the character stats (percent and rating, coloured, short labels), the bevelled ring with its centre dot and a trail mid-move, and the cast circle 40% into a cast; RENDER_QOL_ROUND=3 adds round 3a over round 2: a warrior's Charge and Intercept counting down as class-coloured bars, the target distance, the crosshair in its out-of-range colour and the potion ready flash; RENDER_QOL_ROUND=3b adds round 3b over round 2 instead: frame rate and latency (latency without labels) in the stats and the raid tools open in a party, in the RENDER_QOL_LAYOUT and RENDER_QOL_GROW given, and with RENDER_QOL_PASTE=1 the paste window and the guild chat cover over a stand-in chat area (the Communities window around it is not drawn); RENDER_QOL_ROUND=4 adds round 4 over round 3b: the raid tools shown always as two panels, the global cooldown circle 40% through inside the cast circle, and Quick fire and logging raids and dungeons on; RENDER_QOL_ROUND=0 turns QoL on with every option at its default; with RENDER_QOL_OPTIONS=1 the QoL page and its live preview.
+-- qol_parity.lua: the full HUD with every QoL parity round 1 option on, most away from its default (a larger alert size, class colours, a lower crosshair with set lengths and thicknesses, a larger class-coloured ring, a higher durability warning), after a combat round trip and then a party member's death, so the flash line shows the death alert over the talent line; RENDER_QOL_ROUND=2 adds round 2: the character stats (percent and rating, coloured, short labels), the bevelled ring with its centre dot and a trail mid-move, and the cast circle 40% into a cast; RENDER_QOL_ROUND=3 adds round 3a over round 2: a warrior's Charge and Intercept counting down as class-coloured bars, the target distance, the crosshair in its out-of-range colour and the potion ready flash; RENDER_QOL_ROUND=3b adds round 3b over round 2 instead: frame rate and latency (latency without labels) in the stats and the raid tools open in a party, in the RENDER_QOL_LAYOUT and RENDER_QOL_GROW given, and with RENDER_QOL_PASTE=1 the paste window and the guild chat cover over a stand-in chat area (the Communities window around it is not drawn); RENDER_QOL_ROUND=4 adds round 4 over round 3b: the raid tools shown always as two panels, the global cooldown circle 40% through inside the cast circle, and Quick fire and logging raids and dungeons on; RENDER_QOL_ROUND=5 adds round 5 over round 4: Hide item transforms on, which draws nothing; RENDER_QOL_ROUND=0 turns QoL on with every option at its default; with RENDER_QOL_OPTIONS=1 the QoL page and its live preview.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Reference = dofile("Tools/render/scenes/_reference.lua")
@@ -22,7 +22,8 @@ local ROUND3 = {
 local ROUND3B = { statsNetLabels = false, raidTools = "group", raidToolsLayout = os.getenv("RENDER_QOL_LAYOUT") or "row", raidToolsGrow = os.getenv("RENDER_QOL_GROW") or "downright" }
 local round3 = os.getenv("RENDER_QOL_ROUND") == "3"
 local ROUND4 = { gcdRing = true, raidTools = "always", raidToolsShow = "two", quickFire = true, autoLogWhere = "both" }
-local round4 = os.getenv("RENDER_QOL_ROUND") == "4"
+local round5 = os.getenv("RENDER_QOL_ROUND") == "5"
+local round4 = round5 or os.getenv("RENDER_QOL_ROUND") == "4"
 local round3b = round4 or os.getenv("RENDER_QOL_ROUND") == "3b"
 local round2 = round3 or round3b or os.getenv("RENDER_QOL_ROUND") == "2"
 local defaults, paste = os.getenv("RENDER_QOL_ROUND") == "0", round3b and os.getenv("RENDER_QOL_PASTE") == "1"
@@ -130,6 +131,7 @@ return Common.Run(function()
 	for key, value in pairs(round3 and ROUND3 or {}) do assert(K.Options.Write("QoL", key, value) ~= false, key) end
 	for key, value in pairs(round3b and ROUND3B or {}) do assert(K.Options.Write("QoL", key, value) ~= false, key) end
 	for key, value in pairs(round4 and ROUND4 or {}) do assert(K.Options.Write("QoL", key, value) ~= false, key) end
+	if round5 then assert(K.Options.Write("QoL", "hideTransforms", true) ~= false, "hideTransforms") end
 	if round4 then env.FireEvent("SPELL_UPDATE_COOLDOWN") end
 	if round3b then
 		local list = {}
@@ -196,6 +198,6 @@ return Common.Run(function()
 	if not options then
 		scene = Common.Scene.Merge({ Reference.Build({ layout = os.getenv("RENDER_LAYOUT") or "DPS" }), scene })
 	end
-	scene.log[#scene.log + 1] = "qol parity: round " .. (defaults and "none (defaults)" or round3 and "1, 2 and 3a" or round4 and "1, 2, 3b and 4" or round3b and "1, 2 and 3b" or round2 and "1 and 2" or "1") .. " options " .. (options and "page" or "on over the HUD")
+	scene.log[#scene.log + 1] = "qol parity: round " .. (defaults and "none (defaults)" or round3 and "1, 2 and 3a" or round5 and "1, 2, 3b, 4 and 5" or round4 and "1, 2, 3b and 4" or round3b and "1, 2 and 3b" or round2 and "1 and 2" or "1") .. " options " .. (options and "page" or "on over the HUD")
 	return scene
 end)
