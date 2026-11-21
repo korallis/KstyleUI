@@ -227,11 +227,8 @@ end
 local function Paint(p, moving)
 	local have, _, start, duration = GetTotemInfo(p.slot)
 	Gate(p.lit, have)
-	local ok, object = false, nil
-	if GetTotemDuration then
-		ok, object = pcall(GetTotemDuration, p.slot)
-	end
-	if ok and object then
+	local object = GetTotemDuration and GetTotemDuration(p.slot)
+	if object then
 		p.timer:SetCooldownFromDurationObject(object)
 	elseif not (IsSecret(have) or IsSecret(start) or IsSecret(duration)) and have == true then
 		p.timer:SetCooldown(start, duration)
