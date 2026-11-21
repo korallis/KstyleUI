@@ -37,6 +37,11 @@ function Fake.Install(env, opts)
 	stepNum.Step:SetFont("Fonts\\FRIZQT__.TTF", 12)
 	frame.Controls = { StepContainer = container, Logo = frame.Border.TitleBar:CreateTexture(nil, "ARTWORK"), StepNum = stepNum }
 	-- Zygor's title buttons re-set their icon through AssignTextures on every skin pass (Skins/Default/ViewerFrame.lua ZGV_DefaultSkin_TitleButton_Mixin).
+	-- Zygor's menu button sits at the title bar's left (ViewerFrame.lua: MenuSettingsButton TOPLEFT 9,-7).
+	local menu = env.CreateFrame("Button", nil, frame.Border)
+	menu:SetSize(16, 16)
+	menu:SetPoint("TOPLEFT", frame.Border.TitleBar, "TOPLEFT", 9, -7)
+	frame.Controls.MenuSettingsButton = menu
 	for _, key in ipairs({ "NextButton", "ReportStep" }) do
 		local button = env.CreateFrame("Button", nil, frame.Border.TitleBar)
 		button:SetSize(16, 16)

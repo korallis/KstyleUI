@@ -97,6 +97,8 @@ do
 		if region.GetText and region:GetText() == "SKYBORNE STARTER (1-13)" then caption = region end
 	end
 	assert(caption and caption:IsShown(), "the title bar carries the guide's name as a caps caption, as RestedXP's card does")
+	local gem = ns.Parts.HeadingOf(caption).gem
+	assert(gem:GetLeft() >= zygor.frame.Controls.MenuSettingsButton:GetRight(), string.format("the heading gem sits after Zygor's menu button, %.1f < %.1f", gem:GetLeft(), zygor.frame.Controls.MenuSettingsButton:GetRight()))
 	assert(not zygor.frame.Controls.Logo:IsShown() or zygor.frame.Controls.Logo:GetAlpha() == 0, "Zygor's logo steps aside for the caption")
 	assert(zygor.frame.Controls.StepNum.Step:GetFont() == ns.Style.Font("body"), "the step number takes the theme's body face")
 	local next, report = zygor.frame.Controls.NextButton, zygor.frame.Controls.ReportStep

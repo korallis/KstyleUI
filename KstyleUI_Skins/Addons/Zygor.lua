@@ -472,6 +472,8 @@ local function Steps(frame)
 	end
 end
 
+local MENU_LEFT = 9
+
 local function Caption(z, panel)
 	local frame = z.Frame
 	local bar = IsTable(frame.Border) and frame.Border.TitleBar
@@ -485,19 +487,16 @@ local function Caption(z, panel)
 			Parts.Hush(frame.Controls.Logo)
 		end
 		caption = Widgets.FontString(bar, "OVERLAY")
-		local search = IsTable(frame.Controls) and frame.Controls.MenuSettingsButton
-		if IsTable(search) and type(search.GetRight) == "function" then
-			caption:SetPoint("LEFT", search, "RIGHT", Tokens.Size("gapXLarge") * 2, 0)
-		else
-			caption:SetPoint("LEFT", bar, "LEFT", Tokens.Size("gapXLarge") * 2, 0)
-		end
-		caption:SetPoint("RIGHT", bar, "RIGHT", -Tokens.Size("gapXLarge") * 2, 0)
+		caption:SetPoint("LEFT", bar, "LEFT")
 		caption:SetJustifyH("LEFT")
 		caption:SetWordWrap(false)
 		Style.ApplyFont(caption, "caps", Lumen.Size(bar, Lumen.CAP_SIZE))
 		Widgets.TextColor(caption, "capsGold")
 		state.caption = caption
-		Parts.Heading(panel, caption, { row = bar })
+		local controls = IsTable(frame.Controls) and frame.Controls or {}
+		local menu = controls.MenuSettingsButton
+		local inset = IsTable(menu) and Plain(menu:GetWidth()) and MENU_LEFT + menu:GetWidth() or 0
+		Parts.Heading(panel, caption, { row = bar, inset = inset, close = controls.CloseButton })
 	end
 	local guide = z.CurrentGuide
 	local title = IsTable(guide) and (guide.title_short or guide.title)
