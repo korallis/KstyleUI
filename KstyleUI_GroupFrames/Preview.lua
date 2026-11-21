@@ -162,7 +162,7 @@ function Preview.Build(...)
 		local f = CreateFrame("Frame", nil, parent)
 		Style.Build(f, kind)
 		local pick = kind == "raid" and RAID_SAMPLES[index] or index
-		f.sample = SAMPLES[(pick - 1) % #SAMPLES + 1]
+		f.sample, f.order = SAMPLES[(pick - 1) % #SAMPLES + 1], index
 		f.others = SAMPLE_NAMES
 		for _, hook in ipairs(ns.Button.built) do
 			hook(f)
@@ -181,6 +181,19 @@ function Preview.Build(...)
 			f:SetSize(width, s.height)
 			f:SetPoint(corner, holder, corner, x0 + dx * stepX * (i - 1), y0 + dy * stepY * (i - 1))
 		end
+	end
+
+	local function Order(frames, byClass, per)
+		local rank = {}
+		for i = #Settings.CLASSES, 1, -1 do rank[Settings.current.sort["class" .. i]] = i end
+		local function Key(f)
+			return (per and math.ceil(f.order / per) or 0) * 100 + (byClass and rank[f.sample.class] or 0)
+		end
+		table.sort(frames, function(a, b)
+			local ka, kb = Key(a), Key(b)
+			if ka ~= kb then return ka < kb end
+			return a.order < b.order
+		end)
 	end
 
 	local function Sized(value)
@@ -205,6 +218,9 @@ function Preview.Build(...)
 		preview.party:SetPoint("TOPLEFT", preview.canvas, "TOPLEFT", 0, 0)
 		local memberSpacing = Geometry.IsVertical(party.growth) and party.spacing or (party.spacing + partyGeo.lane)
 		local x0 = partyGeo.laneSide == "LEFT" and partyGeo.lane or 0
+		local separate = raid.sortBy == "GROUP" and not raid.merge
+		Order(preview.partyFrames, cfg.sort.classFirst and party.sortBy ~= "ROLE")
+		Order(preview.raidFrames, raid.sortBy == "CLASS" or separate and cfg.sort.classFirst, separate and GROUP_SIZE)
 		PlaceRun(preview.partyFrames, preview.party, party, party.growth, count, x0, 0, partyGeo.corner, partyGeo.memberWidth, memberSpacing)
 		local total = GROUP_SIZE * RAID_GROUPS_SHOWN
 		local size = raid.sortBy == "GROUP" and raid.merge and math.min(raid.unitsPerColumn, total) or GROUP_SIZE
@@ -218,8 +234,11 @@ function Preview.Build(...)
 		local groupsWide = not Geometry.IsVertical(Geometry.Perpendicular(raid.growth, raid.groupGrowth))
 		local numberRoom = cfg.numbers.show and raid.sortBy == "GROUP" and not raid.merge and cfg.numbers.size + 2 or 0
 		local groupSpacing = raid.groupSpacing + numberRoom
-		local rw = groupsWide and Geometry.Line(shownGroups, gw, groupSpacing) or gw
-		local rh = (groupsWide and gh or Geometry.Line(shownGroups, gh, groupSpacing)) + numberRoom
+		local groups = 0
+		for g = 1, 8 do groups = groups + (cfg.groups["show" .. g] and 1 or 0) end
+		local centre = math.max(0, ((raid.center and separate and math.min(raid.groupsPerRow, groups) or 0) - shownGroups) / 2)
+		local rw = groupsWide and Geometry.Line(shownGroups + 2 * centre, gw, groupSpacing) or gw
+		local rh = (groupsWide and gh or Geometry.Line(shownGroups + 2 * centre, gh, groupSpacing)) + numberRoom
 		preview.raid:SetSize(rw, rh)
 		preview.raid:ClearAllPoints()
 		preview.raid:SetPoint("TOPLEFT", preview.raidCanvas, "TOPLEFT", 0, 0)
@@ -229,7 +248,7 @@ function Preview.Build(...)
 			for m = 1, math.min(size, total - (g - 1) * size) do
 				frames[m] = preview.raidFrames[(g - 1) * size + m]
 			end
-			local ox, oy = Geometry.Offset(Geometry.Perpendicular(raid.growth, raid.groupGrowth), (g - 1) * ((groupsWide and gw or gh) + groupSpacing))
+			local ox, oy = Geometry.Offset(Geometry.Perpendicular(raid.growth, raid.groupGrowth), (g - 1 + centre) * ((groupsWide and gw or gh) + groupSpacing))
 			PlaceRun(frames, preview.raid, raid, raid.growth, #frames, ox, oy - (corner:find("TOP", 1, true) and numberRoom or 0), corner)
 			local number = preview.numbers[g]
 			if cfg.numbers.show and not number then
@@ -273,8 +292,6 @@ function Preview.Build(...)
 			Style.Apply(f, partyGeo.memberWidth, party.height)
 			Paint(f, f.sample)
 		end
-		local groups = 0
-		for g = 1, 8 do groups = groups + (cfg.groups["show" .. g] and 1 or 0) end
 		for i, f in ipairs(preview.raidFrames) do
 			f:SetShown(i <= math.min(groups, RAID_GROUPS_SHOWN) * GROUP_SIZE)
 			Style.Apply(f, raid.width, raid.height)
