@@ -29,7 +29,7 @@ Highlights:
 - Party and raid frames: role letters, a combat icon, and every icon, name, status text and heal icon placed or nudged where you like; name line height, alignment and divider, and whole, first, last or initial names.
 - Party and raid frames: missing buff reminders for Fortitude, Mark of the Wild, Arcane Intellect, Divine Spirit, Thorns and Salvation, with an optional glow.
 - Party targets: a small frame beside each party member for what they target; click it to target that too.
-- Pet frames, tank frames and friendly boss frames, each made only when you switch it on and placed anywhere in Layout Mode. Friendly boss frames show never, only while you heal, or always.
+- Pet frames (up to 30), tank frames (up to 8) and friendly boss frames, each made only when you switch it on, in the raid frames' card and placed in Layout Mode. Friendly boss frames follow a boss that changes sides.
 - Raid layout: choose which groups show, close up, merge or centre them, sort party and raid by class in your own order, size large and compact raid frames apart, number each group, and use party frames for small raids.
 - A movable healer mana list and a movable label with your raid group's number.
 - Nameplates: cast bar icon size and place, important-cast colours and glows, a glow when a cast is aimed at you, the cast's target, enemies that grow while casting, and a taller cast bar on your focus.
