@@ -510,17 +510,22 @@ do
 end
 collectgarbage()
 
--- Friendly boss frames switched to Never stop listening and painting; pet frames switched off are not laid out again.
+-- Friendly boss frames switched to Never and pet frames switched off stop listening and painting, and are not laid out again.
 do
 	local env, K, ns = bootSecure()
 	G.SetRoster(env, "raid", G.Members(10))
+	env._units.raidpet2 = { name = "Fang", class = "HUNTER", health = 50, maxHealth = 50 }
 	env.RunTimers()
 	write(env, K, "boss.display", "ALWAYS")
 	write(env, K, "pets.enabled", true)
+	env.RunStateDrivers()
+	local pet = ns.Button.Content(ns.Extras.groups.pets.header:GetAttribute("child1"))
+	assert(pet.unit == "raidpet2", "the pet frame follows its pet while on")
 	write(env, K, "boss.display", "NEVER")
 	write(env, K, "pets.enabled", false)
 	local f = ns.Button.Content(ns.Extras.groups.boss.buttons[1])
 	assert(not f:IsEventRegistered("UNIT_HEALTH") and f.unit == nil, "Never leaves no boss unit or listener")
+	assert(not pet:IsEventRegistered("UNIT_HEALTH") and pet.unit == nil, "off leaves no pet unit or listener")
 	local repaints, refresh = 0, ns.Unit.Refresh
 	ns.Unit.Refresh = function(v, ...) if v.extra then repaints = repaints + 1 end return refresh(v, ...) end
 	ns.Unit.RefreshAll()
