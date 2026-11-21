@@ -375,12 +375,14 @@ function C.Trigger(env, event, ...)
 end
 
 -- New(opts) -> env, K, ns: the core loaded with the fake game, the module's files loaded, then the core booted.
--- opts.saved is KstyleUIDB; opts.setup(env) runs after the fake game is installed.
+-- opts.saved is KstyleUIDB; opts.width and opts.height size the screen; opts.setup(env) runs after the fake game is installed.
 function C.New(opts)
 	opts = opts or {}
 	local env, K = W.New({
 		boot = false,
 		saved = opts.saved,
+		width = opts.width,
+		height = opts.height,
 		setup = function(env)
 			C.Install(env, opts)
 			if opts.setup then

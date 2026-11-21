@@ -2,11 +2,13 @@
 local C = dofile("Tools/regression/cooldowns_env.lua")
 local W = C.W
 
-local function New(path, extra)
+local G = dofile("Tools/regression/geometry.lua")
+
+local function New(path, extra, screen)
 	local profile = { enabled = true, path = path }
 	for key, value in pairs(extra or {}) do profile[key] = value end
 	local saved = { version = 42, profiles = { Default = { Cooldowns = profile } }, characters = {} }
-	local env, K, ns = C.New({ saved = saved, setup = C.Game })
+	local env, K, ns = C.New({ saved = saved, setup = C.Game, width = screen and screen[1], height = screen and screen[2] })
 	env._cdm.auras[4001] = { auraInstanceID = 41 }
 	env._cdm.auras[4002] = { auraInstanceID = 42 }
 	env.RunTimers()
@@ -26,6 +28,7 @@ end
 local function Clean(env, K, what) assert(#env._errors == 0 and K.ErrorCount() == 0, what .. " raised no errors") end
 local function Fire(env, ...) env.FireEvent(...); env.RunTimers() end
 local function Bottom(K, key) return select(2, K.Layout.Rect(key)) end
+local function Clear(a, b) return math.min(a.right, b.right) - math.max(a.left, b.left) <= 0.01 or math.min(a.top, b.top) - math.max(a.bottom, b.bottom) <= 0.01 end
 local function Overlap(K, a, b)
 	local al, ab, aw, ah = K.Layout.Rect(a)
 	local bl, bb, bw, bh = K.Layout.Rect(b)
@@ -237,6 +240,106 @@ do
 	Write("custom.autoAdd", false); Write("custom.shift", ""); frame:Refresh()
 	assert(not custom.holder:IsShown() and bars.count == 2, "off puts the preview back")
 	Clean(env, K, "preview")
+end
+
+-- Placement: on every test screen the group's bars start clear of the tracked bars' +N bar, which sits one slot above them.
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	local env, K, ns, Write = New("mirror", nil, screen)
+	Write("rules.group", "1001, 1002"); Write("rules.cdBars", "2001")
+	local chip, bar, root = ns.Mirror.Row("bars").chip, ns.Mirror.Row("custom").bars[2], K.Scale.Root()
+	local size = screen[1] .. "x" .. screen[2]
+	assert(chip and chip:IsShown() and bar:IsShown(), "the tracked bars overflow and the group shows two bars at " .. size)
+	assert(Clear(G.ScaledRect(chip, env.UIParent, root), G.ScaledRect(bar, env.UIParent, root)), "the +N bar and the group's last bar do not overlap at " .. size)
+	Clean(env, K, "placement at " .. size)
+end
+
+-- Name: the tracked bars' Name switch shows or hides the group's names too, while Group name still labels it.
+do
+	local env, K, ns, Write = New("mirror")
+	Write("custom.name", "Raid CDs"); Write("bars.name", false); Write("rules.group", "4001")
+	local row = ns.Mirror.Row("custom")
+	assert(not row.bars[1].name:IsShown() and not ns.Mirror.Row("bars").bars[1].name:IsShown(), "Name off hides the group's names with the tracked bars'")
+	assert(K.Layout.Element("cooldowns.custom").label == "Raid CDs", "while the group keeps its own name")
+	Write("bars.name", true)
+	assert(row.bars[1].name:IsShown(), "Name on shows them again")
+	Clean(env, K, "name switch")
+end
+
+-- Only with talent: a listed tracked bar waits for its talent as a listed cooldown does, and counts as missing for the shift.
+do
+	local env, K, ns, Write = New("mirror")
+	local learned = false
+	env.C_SpellBook = { IsSpellKnown = function() return learned end }
+	Write("custom.shift", "up"); Write("rules.group", "4001"); Write("rules.talent", "4001=9999")
+	Fire(env, "SPELLS_CHANGED")
+	local row = ns.Mirror.Row("custom")
+	assert(Spells(row) == "" and Spells(ns.Mirror.Row("bars")) == "4002", "a listed bar waiting for its talent shows nowhere")
+	assert(row.empty, "and leaves the group empty, so attached elements shift")
+	learned = true
+	Fire(env, "SPELLS_CHANGED")
+	assert(Spells(row) == "4001" and not row.empty, "learning the talent brings it back on SPELLS_CHANGED")
+	Clean(env, K, "talent")
+end
+
+-- Order: an unchanged aura refresh filters the group's kept order; it does not sort it again.
+do
+	local env, K, ns, Write = New("mirror")
+	local spells = {}
+	for i = 1, 30 do
+		env._cdm.cooldowns[500 + i] = { spellID = 5000 + i, category = C.CATEGORY.TrackedBar, selfAura = true, hasAura = true }
+		env._cdm.auras[5000 + i] = { auraInstanceID = 100 + i }
+		table.insert(spells, 1, tostring(5000 + i))
+	end
+	Fire(env, "COOLDOWN_VIEWER_DATA_LOADED")
+	local function Lookups()
+		local count, For = 0, ns.Rules.For
+		ns.Rules.For = function(...) count = count + 1; return For(...) end
+		Fire(env, "UNIT_AURA", "player", { isFullUpdate = true })
+		ns.Rules.For = For
+		return count
+	end
+	local off = Lookups()
+	Write("rules.group", table.concat(spells, ","))
+	assert(Spells(ns.Mirror.Row("custom")) == "5030,5029", "the group shows its first two listed bars")
+	Lookups()
+	local on = Lookups()
+	assert(on <= off + 3 * #spells, "a refresh of 30 listed buffs in reverse viewer order costs " .. on .. " rule lookups against " .. off .. " without the group")
+	Clean(env, K, "order")
+end
+
+-- Space-separated IDs keep their order.
+do
+	local env, K, ns, Write = New("mirror")
+	Write("rules.group", "4002 4001")
+	assert(Spells(ns.Mirror.Row("custom")) == "4002,4001", "4002 4001 shows 4002 first")
+	Clean(env, K, "space-separated")
+end
+
+-- Preview: with Bars at one, the caption sits above the +N bar, clear of the buff row.
+do
+	local env, K, ns, Write = New("mirror")
+	local pane = env.CreateFrame("Frame", nil, env.UIParent)
+	pane:SetSize(280, 300)
+	local frame = ns.Preview.Build(pane)
+	Write("rules.group", "x"); Write("custom.count", 1); frame:Refresh()
+	frame.caption:SetSize(1, K.Widgets.LineHeight(frame.caption))
+	local chip, caption = frame.rows.custom.chip, G.ScaledRect(frame.caption, frame)
+	assert(chip and chip:IsShown(), "two samples over one bar show the +N bar")
+	assert(Clear(caption, G.ScaledRect(chip, frame)), "the caption stays clear of the +N bar")
+	assert(Clear(caption, G.ScaledRect(frame.rows.buffs.holder, frame)), "and of the buff row above it")
+	Clean(env, K, "preview caption")
+end
+
+-- Preview: no group while the bars restyle Blizzard's viewer, as in the game.
+do
+	local env, K, ns, Write = New("mirror")
+	Write("rules.group", "x"); Write("path", "reskin")
+	local pane = env.CreateFrame("Frame", nil, env.UIParent)
+	pane:SetSize(280, 300)
+	local frame = ns.Preview.Build(pane)
+	assert(not ns.Mirror.Row("custom").holder:IsShown(), "the game shows no group on the restyled path")
+	assert(not frame.rows.custom.holder:IsShown() and not frame.caption:IsShown() and frame.rows.bars.count == 2, "and neither does the preview")
+	Clean(env, K, "preview restyled")
 end
 
 print("test-cooldowns-parity-round5: ok")
