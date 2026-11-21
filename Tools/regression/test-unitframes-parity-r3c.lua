@@ -166,7 +166,7 @@ assert(anchor == target.health and p == rp, "shields draw back from the bar's ow
 env.FireEvent("UNIT_ABSORB_AMOUNT_CHANGED", "target")
 assert(plain(W.LastCall(target.absorb, "SetValue")[1]) == 500, "the full shield amount fills from the end")
 write("target.absorbPlacement", "")
-p, anchor = target.absorb:GetPoint(1)
+_, anchor = target.absorb:GetPoint(1)
 assert(anchor == target.incoming:GetStatusBarTexture(), "off chains shields after incoming heals again")
 
 -- Overshield glow: made on first use, lit by the calculator's clamp flag, readable or secret.
@@ -215,7 +215,7 @@ write("target.healAbsorbPlacement", "START")
 p, anchor, rp = target.healAbsorb:GetPoint(1)
 assert(anchor == target.health and p == rp, "heal absorbs draw from the bar's start")
 write("target.healAbsorbPlacement", "")
-p, anchor = target.healAbsorb:GetPoint(1)
+_, anchor = target.healAbsorb:GetPoint(1)
 assert(anchor == target.health:GetStatusBarTexture(), "off draws them back from the fill's end")
 write("target.healAbsorbs", false)
 
