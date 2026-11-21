@@ -149,7 +149,7 @@ end)
 
 -- 6. The Medallions crest keeps its own aura text, and the target's rows say so.
 check("6", function()
-	local crest = K.L["The Medallions crest keeps its own stack and timer text."]
+	local crest = "Not the Medallions crest."
 	for _, key in ipairs({ "auraCountSize", "auraCountPoint", "auraCountX", "auraCountY", "auraTimerX", "auraTimerY" }) do
 		assert(row("target." .. key).help:find(crest, 1, true), "target." .. key .. " names the crest exception")
 		assert(not row("focus." .. key).help:find(crest, 1, true), "focus." .. key .. " has no crest")

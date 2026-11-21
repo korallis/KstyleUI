@@ -578,11 +578,8 @@ function Settings.Snapshot(kind)
 	for key, default in pairs(d) do
 		if key ~= "fonts" then
 			local value = own[key]
-			if (value == nil or value == default) and not DERIVED[key] then
-				s[key] = default
-			else
-				s[key] = Settings.Value(kind, key)
-			end
+			if DERIVED[key] or (value ~= nil and value ~= default) then default = Settings.Value(kind, key) end
+			s[key] = default
 		end
 	end
 	return s
@@ -642,9 +639,10 @@ local function BarRows(schema, kind, bar)
 	}, on)
 end
 
-local function Nudges(schema, kind, prefix, label, show)
-	for _, axis in ipairs({ { "X", L["Horizontal offset"], L["Moves it left or right."] }, { "Y", L["Vertical offset"], L["Moves it up or down."] } }) do
-		schema[#schema + 1] = Row(kind, { type = "slider", key = prefix .. axis[1], label = label .. ": " .. axis[2], help = axis[3],
+local function Nudges(schema, kind, prefix, label, show, crest)
+	for _, axis in ipairs({ { "X", L["Horizontal offset"], L["Moves it left or right."], L["Moves it left or right. Not the Medallions crest."] },
+		{ "Y", L["Vertical offset"], L["Moves it up or down."], L["Moves it up or down. Not the Medallions crest."] } }) do
+		schema[#schema + 1] = Row(kind, { type = "slider", key = prefix .. axis[1], label = label .. ": " .. axis[2], help = crest and axis[4] or axis[3],
 			min = -NUDGE, max = NUDGE, step = 1 }, show)
 	end
 end
@@ -757,7 +755,7 @@ CastRows = function(schema, kind)
 	}, on)
 	local function iconShown(s)
 		local form = Settings.Form(kind)
-		return on(s) and Settings.Value(kind, "castbarIcon") and K.HudStyle.Current() ~= "medallions" and (form == "plate" or form == "column")
+		return on(s) and Settings.Value(kind, "castbarIcon") and K.HudStyle.Current() ~= "medallions" and (form == "plate" or form == "column" or form == "bar" and Settings.CAST_ELEMENTS[kind] ~= nil)
 	end
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarIconRight", label = L["Icon on the right"],
 		help = L["Put the spell icon at the right end of the cast bar."] }, iconShown)
@@ -851,12 +849,15 @@ AuraRows = function(schema, kind)
 		type = "toggle", key = "auraTimer", label = L["Aura timers"],
 		help = L["Shows the time left on each aura."],
 	}, on)
-	Nudges(schema, kind, "auraTimer", L["Aura timers"], function(s) return on() and s.auraTimer ~= false end)
+	local crest = kind == "target"
+	Nudges(schema, kind, "auraTimer", L["Aura timers"], function(s) return on() and s.auraTimer ~= false end, crest)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraCountSize", label = L["Stack text size"],
-		help = L["The size of aura stack counts. 0 matches the aura text size."], min = 0, max = FONT_SIZE_MAX, step = 1 }, on)
+		help = crest and L["Stack count size; the aura text size until you move it. Not the Medallions crest."] or L["The size of aura stack counts. It matches the aura text size until you move it."],
+		min = FONT_SIZE_MIN, max = FONT_SIZE_MAX, step = 1,
+		shown = function(value) return value == 0 and math.max(FONT_SIZE_MIN, math.floor(Settings.FontSize(kind, "aura") / K.Theme.FontScale() + 0.5)) or value end }, on)
 	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "auraCountPoint", label = L["Stack position"],
-		help = L["Which corner of each aura icon shows its stack count."], options = CHOICES.countPoint }, on)
-	Nudges(schema, kind, "auraCount", L["Stack position"], on)
+		help = crest and L["Which corner of each aura icon shows its stack count. Not the Medallions crest."] or L["Which corner of each aura icon shows its stack count."], options = CHOICES.countPoint }, on)
+	Nudges(schema, kind, "auraCount", L["Stack position"], on, crest)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraDispel", label = L["Debuff dispel colours"],
 		help = L["Edges debuffs in their dispel type's colour."] }, on)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraBuffDispel", label = L["Buff dispel colours"],
