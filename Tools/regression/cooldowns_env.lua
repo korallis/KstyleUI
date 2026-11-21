@@ -480,6 +480,15 @@ function C.Item(env, viewer, id)
 	item.IsActive = function(self)
 		return self._active ~= false
 	end
+	-- SetCooldownID runs OnCooldownIDSet when the ID changes or is forced, as CooldownViewerItemDataMixin:SetCooldownID
+	-- does (CooldownViewerItemData.lua:16); RefreshData reassigns live items this way without acquiring them again.
+	item.OnCooldownIDSet = function() end
+	item.SetCooldownID = function(self, cooldownID, forceSet)
+		if forceSet or self.cooldownID ~= cooldownID then
+			self.cooldownID = cooldownID
+			self:OnCooldownIDSet()
+		end
+	end
 	viewer._items[#viewer._items + 1] = item
 	item.layoutIndex = #viewer._items
 	return item

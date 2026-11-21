@@ -296,4 +296,105 @@ do
 	Clean(env, K, "preview")
 end
 
+-- Review of 7813255e on KstyleUI icons, bars and the preview: each check is one of the review's probes.
+do
+	local env, K, ns, Write = New("mirror")
+	local cdm, row = env._cdm, ns.Mirror.Row("buffs")
+	for _, option in ipairs(ns.Settings.Schema()) do assert(option.key ~= "assist", "Forever has no Assisted Highlight (HasAssistedCombat is false), so no rotation helper is offered") end
+	assert(not next(cdm.callbacks["AssistedCombatManager.OnAssistedHighlightSpellChange"] or {}), "and nothing listens for it")
+
+	Write("buffs.keepPlace", true)
+	for _, growth in ipairs({ "rightAligned", "center", "right" }) do
+		Write("buffs.growth", growth)
+		cdm.auras[3002] = nil; Aura(env)
+		local x = X(row.icons[1])
+		cdm.auras[3002] = { auraInstanceID = 72 }; Aura(env)
+		assert(row.icons[1].entry.spellID == 3001 and X(row.icons[1]) == x, "Keep buffs in place holds an active buff still as the next one comes on: " .. growth)
+	end
+	Write("buffs.keepPlace", false); cdm.auras[3002] = nil; Aura(env)
+
+	cdm.stacks[71] = "3"; Aura(env); Write("buffs.numbersOnly", true)
+	assert(row.icons[1].count:GetAlpha() == 0, "Numbers only hides a buff's stacks")
+	Write("buffs.numbersOnly", false)
+	assert(row.icons[1].count:GetAlpha() == 1, "and off restores them")
+
+	local a = IconOf(ns, "essential", 1001)
+	Write("essential.usable", false); Write("rules.form", "1001")
+	cdm.usable[1001] = { usable = false, noMana = false }; env.FireEvent("SPELL_UPDATE_USABLE")
+	assert(a:GetAlpha() == 1, "no API names a spell's form, so an unusable spell is never hidden as outside it")
+	cdm.usable[1001] = nil; env.FireEvent("SPELL_UPDATE_USABLE"); Write("essential.usable", true)
+
+	Write("rules.decimals", "1001=2, 1002=8, 1003")
+	local function Below(spell) return W.LastCall(IconOf(ns, "essential", spell).cooldown, "SetCountdownFormatter")[1].breakpoints[2].threshold end
+	assert(Below(1001) == 2 and Below(1002) == 8 and Below(1003) == 3, "each listed spell takes its own tenths threshold, or the shared one")
+	Write("rules.decimals", "")
+
+	local bar = ns.Mirror.Row("bars").bars[1]
+	Write("bars.showCount", false); Write("rules.count", "4001")
+	K.Callbacks.Fire("LayoutChanged", "cooldowns.bars"); env.RunTimers()
+	assert(bar.count:GetAlpha() == 1, "a layout restyle keeps a listed bar's count")
+	local writes = #W.Calls(bar.count, "SetAlpha")
+	Aura(env); Aura(env)
+	assert(#W.Calls(bar.count, "SetAlpha") == writes, "an unchanged aura update writes no count alpha")
+	Write("rules.count", ""); Write("bars.showCount", true)
+
+	Write("bars.orientation", "VERTICAL"); Write("bars.spark", true)
+	assert(bar.status.spark:GetWidth() <= bar.status:GetWidth(), "a vertical fill's spark stays within the bar")
+	Write("bars.orientation", "HORIZONTAL"); Write("bars.spark", false)
+	Write("bars.height", 40); Write("bars.nameSize", 6); Write("bars.nameWrap", true)
+	assert(W.LastCall(bar.name, "SetMaxLines")[1] == 2, "Wrap names allows a second line, no more")
+	Write("bars.nameWrap", false)
+	local wrap = W.LastCall(bar.name, "SetWordWrap")
+	assert((not wrap or wrap[1] == true) and W.LastCall(bar.name, "SetMaxLines")[1] == 0, "and off restores the name's own wrapping")
+
+	local pane = env.CreateFrame("Frame", nil, env.UIParent)
+	pane:SetSize(280, 300)
+	local preview = ns.Preview.Build(pane)
+	Write("rules.names", "4001=Shield, Rapid Fire=Shield"); Write("rules.timerColour", "1001 #F000A1"); Write("rules.count", "x"); Write("buffs.keepPlace", true)
+	preview:Refresh()
+	local sample, colour = preview.rows.bars.bars[1], W.LastCall(preview.rows.essential.icons[1].countdown, "SetTextColor")
+	assert(sample.name:GetText() == "Shield" and tostring(sample.count:GetText()) == "3", "the preview shows the entered bar name and a listed count")
+	assert(Near(colour[1], 0xF0 / 255) and Near(colour[2], 0) and Near(colour[3], 0xA1 / 255), "and the entered countdown colour")
+	assert(preview.rows.buffs.icons[3]:GetAlpha() == 0 and preview.rows.buffs.icons[1]:GetAlpha() == 1, "and the kept place of an inactive sample")
+	Write("rules.hide", "x"); preview:Refresh()
+	assert(sample:GetAlpha() == 0, "and hides listed bars")
+	Clean(env, K, "review on KstyleUI icons")
+end
+
+-- Review of 7813255e on the restyled viewers.
+do
+	local env, K, ns, Write = New("reskin")
+	for _, option in ipairs(ns.Settings.Schema()) do
+		if option.key == "glowSource" then assert(not option.showWhen or option.showWhen(ns.Settings.current), "the restyle path offers the glow tint Glow while active uses") end
+	end
+	local bar = env._viewers.BuffBarCooldownViewer._items[1]
+	bar.GetSpellID = function() return 4001 end
+	Write("bars.showCount", false); Write("rules.count", "4001")
+	assert(bar.Icon.Applications:GetAlpha() == 1, "Show counts reaches Blizzard's bar by its spell")
+	Write("rules.count", ""); Write("bars.showCount", true)
+
+	local buff = env._viewers.BuffIconCooldownViewer._items[1]
+	Write("rules.activeGlow", "3001")
+	local glow, restyles = K.Safe.Side(buff).glow, 0
+	local restyle = glow.Restyle
+	glow.Restyle = function(...) restyles = restyles + 1; return restyle(...) end
+	buff:UpdateShownState(); env.RunTimers(); buff:UpdateShownState(); env.RunTimers()
+	assert(restyles == 0, "an unchanged native refresh does not restyle the glow")
+	buff.IsActive = function() return env.Secret(true) end
+	Write("rules.activeGlow", "")
+	assert(not glow.playing, "clearing the list stops the glow while the state is secret")
+
+	local item = env._viewers.EssentialCooldownViewer._items[1]
+	local countdown = item.Cooldown:GetCountdownFontString()
+	local plain = W.LastCall(countdown, "SetTextColor")[1]
+	Write("rules.timerColour", "1001 #00FF00")
+	item.GetSpellID = function() return 9999 end; item:SetCooldownID(9999, true)
+	assert(Near(W.LastCall(countdown, "SetTextColor")[1], plain), "a live item reassigned to an unlisted spell drops the colour")
+	item.GetSpellID = function() return 1001 end; item:SetCooldownID(1001, true)
+	assert(W.LastCall(countdown, "SetTextColor")[2] == 1, "and takes it again with its spell")
+	ns.definition.Disable()
+	assert(Near(W.LastCall(countdown, "SetTextColor")[1], plain), "stopping the module restores the countdown colour")
+	Clean(env, K, "review on the restyled viewers")
+end
+
 print("cooldowns parity round 2 ok")
