@@ -113,7 +113,7 @@ end
 
 local function PartyParts(out, o)
 	local icons, name, spot = out.icons, out.name, out.healthText
-	if not (icons and name and spot and icons.role and o.role and not icons.roleInRing) then
+	if not (icons and name and spot and spot.right and icons.role and o.role and not icons.roleInRing) then
 		return out
 	end
 	local gap = Tokens.Size("gapTiny")
