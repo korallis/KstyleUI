@@ -174,7 +174,7 @@ end
 -- every Place, Layout snapped it and queued a scoped restyle, whose tracked Restyle scheduled Place again, forever
 -- (904 placements in 30 s in game, 38 ms of Lua a second). At 1600x900 and size 0.53 the stub's timer guard caught it.
 do
-	local env, K, ns, zygor = Boot({ width = 1600, height = 900, size = 0.53 })
+	local env, K = Boot({ width = 1600, height = 900, size = 0.53 })
 	local z, resized = env.ZygorGuidesViewer, 0
 	local resize = z.ResizeFrame
 	z.ResizeFrame = function(...)
