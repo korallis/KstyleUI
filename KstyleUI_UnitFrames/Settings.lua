@@ -439,23 +439,12 @@ local function SimpleSize()
 	return math.max(1, (slot - (n - 1) * Settings.Value("boss", "auraSpacing")) / n)
 end
 
-function Settings.Value(kind, key, direct)
+local function Value(kind, key)
 	if kind == "player" and (key == "auras" or key == "auraFilter") and Settings.AuraRows(kind) then key = key == "auras" and "medallionsAuras" or "medallionsAuraFilter" end
 	local own, d = Kinds(kind)
 	local default = d[key]
 	if default == nil then
 		error("UnitFrames.Settings.Value: unknown setting " .. tostring(key), 2)
-	end
-	local look = AURA_LOOK[key]
-	if look ~= nil then
-		local simple = not direct and kind == "boss" and look ~= true and own.auraSimple
-		if simple == "LEFT" or simple == "RIGHT" then
-			return key == "auraPosition" and simple or key == "auraRows" and 1 or SimpleSize()
-		end
-		local from = look and not direct and own.auraCopy
-		if from and from ~= kind and Settings.AURAS[from] then
-			return Settings.Value(from, key, true)
-		end
 	end
 	local value = own[key]
 	local rows = ROW_DEFAULTS[kind]
@@ -479,6 +468,39 @@ function Settings.Value(kind, key, direct)
 	end
 	return value
 end
+
+local function Linked(kind, key)
+	local look = AURA_LOOK[key]
+	if look ~= nil then
+		local own = Kinds(kind)
+		local simple = kind == "boss" and look ~= true and own.auraSimple
+		if simple == "LEFT" or simple == "RIGHT" then
+			return key == "auraPosition" and simple or key == "auraRows" and 1 or SimpleSize()
+		end
+		local from = look and own.auraCopy
+		if from and from ~= kind and Settings.AURAS[from] then
+			return Value(from, key)
+		end
+	end
+	return Value(kind, key)
+end
+
+local function Link()
+	local linked = false
+	for kind in pairs(Settings.AURAS) do
+		local own = Kinds(kind)
+		linked = linked or (own.auraCopy or "") ~= "" or (own.auraSimple or "") ~= ""
+	end
+	Settings.Value = linked and Linked or Value
+end
+
+function Settings.Value(kind, key)
+	if not Saved() then return Value(kind, key) end
+	Link()
+	return Settings.Value(kind, key)
+end
+K.Callbacks.Register("SettingChanged", MODULE .. ":link", function(_, module, key) if module == MODULE and (key:find("aura[CS]") or not key:find(".", 1, true)) and Saved() then Link() end end)
+K.Callbacks.Register("ProfileChanged", MODULE .. ":link", function() if Saved() then Link() end end)
 
 local RESOURCE_CHOICES = { comboColor = "accent", manaColor = "manaColor", manaOrientation = "orientation" }
 
