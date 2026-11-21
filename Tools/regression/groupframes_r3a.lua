@@ -99,15 +99,38 @@ function H.near(a, b)
 	return math.abs(a - b) < 1e-3
 end
 
+-- boot(opts) -> a quiet environment with the module on and a party; opts.setup defaults to H.setup, and a screen given by
+-- opts.width and opts.height is checked to be the one booted.
 function H.boot(opts)
 	opts = opts or {}
-	opts.setup = H.setup
+	opts.setup = opts.setup or H.setup
 	local env, K, ns = H.G.New(opts)
 	env.SetQuiet(true) -- The parity checks read frame state; they do not need the widget call history.
+	if opts.width then
+		local w, h = env.GetPhysicalScreenSize()
+		assert(w == opts.width and h == opts.height, "booted " .. w .. "x" .. h .. " for " .. opts.width .. "x" .. opts.height)
+	end
 	H.party(env)
 	K.Modules.Enable(H.MODULE)
 	env.RunTimers()
 	return env, K, ns
+end
+
+H.SCREENS = { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
+
+-- screen(size) -> H.boot options for one of H.SCREENS at the game's default UI scale and the automatic interface size.
+function H.screen(size, opts)
+	opts = opts or {}
+	opts.width, opts.height, opts.uiScale, opts.size = size[1], size[2], 768 / 1080, "auto"
+	return opts
+end
+
+-- overlap(env, a, b) -> how far two regions' rendered rects cross, across and down; either at 0 or below means apart.
+local Scene
+function H.overlap(env, a, b)
+	Scene = Scene or dofile("Tools/render/scene.lua")
+	local r, s = { Scene.Rect(env, a) }, { Scene.Rect(env, b) }
+	return math.min(r[1] + r[3], s[1] + s[3]) - math.max(r[1], s[1]), math.min(r[2] + r[4], s[2] + s[4]) - math.max(r[2], s[2])
 end
 
 return H
