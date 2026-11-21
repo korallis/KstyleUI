@@ -772,6 +772,17 @@ local function Hue(r, g, b)
 	return ((r - g) / delta + 4) * 60
 end
 
+function Style.PowerFill(view, r, g, b, base)
+	local s, bar = view.s, view.power
+	local a = s and s.powerAlpha or 1
+	if a < 1 then bar:SetBarColor(r, g, b, a) elseif base then bar:SetBarColor(r, g, b, base) else bar:SetBarColor(r, g, b) end
+	local direction = s and s.powerGradient or ""
+	local texture = direction ~= "" and Plain(r, g, b) and bar:GetStatusBarTexture()
+	if texture and texture.SetGradient and CreateColor then
+		texture:SetGradient(direction, CreateColor(r * GRADIENT_SHADE, g * GRADIENT_SHADE, b * GRADIENT_SHADE, a), CreateColor(r, g, b, a))
+	end
+end
+
 function Style.PowerTint(view, r, g, b)
 	view.powerR, view.powerG, view.powerB = nil, nil, nil
 	local separate = false
@@ -790,7 +801,7 @@ function Style.PowerTint(view, r, g, b)
 		view.powerTypeLine:SetColorTexture(r, g, b, 1)
 		r, g, b = Tokens.Color("steelLit")
 	end
-	view.power:SetBarColor(r, g, b)
+	Style.PowerFill(view, r, g, b)
 	local geometry = view.geometry
 	local inside = geometry and geometry.form ~= "plate" and geometry.powerText and geometry.form ~= "slab"
 	view.powerFillClip:SetShown(inside == true)

@@ -511,6 +511,7 @@ function U.Install(env)
 	end
 	env.Enum.StatusBarTimerDirection = { ElapsedTime = 0, RemainingTime = 1 }
 	env.Enum.CustomAuraButtonDispelTypeTextureStyle = { Border = 0, BorderWithIcon = 1, Icon = 2, PreserveAsset = 3, CustomAsset = 4 }
+	env.Enum.CustomAuraButtonDispelTypeStealableFilter = { Stealable = 0, NotStealable = 1 }
 	function env.CreateColor(r, g, b, a)
 		return { r = r, g = g, b = b, a = a or 1 }
 	end
@@ -581,6 +582,14 @@ function U.Install(env)
 			self._aura.dispel = self._aura.dispel or {}
 			table.insert(self._aura.dispel, texture)
 			self._aura.dispelOptions = options
+		end
+		button.RemoveDispelTypeTexture = function(self, texture)
+			for i, added in ipairs(self._aura.dispel or {}) do
+				if added == texture then
+					table.remove(self._aura.dispel, i)
+					return
+				end
+			end
 		end
 		local setSize = button.SetSize
 		button.SetSize = function(self, ...)

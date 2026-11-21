@@ -1,4 +1,4 @@
--- options_frames_parity.lua: each real frame options page, selected with RENDER_PARITY_MODULE and optionally RENDER_OPTIONS_KEY, RENDER_OPTIONS_ON, RENDER_OPTIONS_EDIT and RENDER_PARITY_R1.
+-- options_frames_parity.lua: each real frame options page, selected with RENDER_PARITY_MODULE and optionally RENDER_OPTIONS_KEY, RENDER_OPTIONS_ON, RENDER_OPTIONS_EDIT, RENDER_PARITY_R1 and RENDER_PARITY_R2.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -23,6 +23,13 @@ return Common.Run(function()
 		local kind = os.getenv("RENDER_OPTIONS_EDIT") or "player"
 		for _, pair in ipairs({ { "healthDecimal", true }, { kind .. ".healthAlpha", 0.75 }, { kind .. ".healthColor", "health" },
 			{ kind .. ".portraitMirror", true }, { kind .. ".hoverBorder", true }, { kind .. ".auraZoom", 0.2 } }) do
+			K.Options.Write(module, pair[1], pair[2])
+		end
+	end
+	if module == "UnitFrames" and os.getenv("RENDER_PARITY_R2") == "1" then
+		local kind = os.getenv("RENDER_OPTIONS_EDIT") or "player"
+		for _, pair in ipairs({ { kind .. ".auras", true }, { kind .. ".auraCountSize", 12 }, { kind .. ".auraBuffDispel", true },
+			{ kind .. ".powerAlpha", 0.6 }, { kind .. ".powerGradient", "HORIZONTAL" }, { kind .. ".castbarTarget", true }, { kind .. ".castbarImportant", true } }) do
 			K.Options.Write(module, pair[1], pair[2])
 		end
 	end

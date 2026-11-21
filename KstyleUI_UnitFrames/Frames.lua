@@ -604,7 +604,7 @@ local function ClampColumn(uf, left, bottom, width, height, rootWidth, rootHeigh
 	if p then reachLeft, reachRight = math.max(trim, -Snap(view.button, p.x) + trim), math.max(trim, Snap(view.button, p.x) + Snap(view.button, p.w) - width + trim) end
 	if g.aura and uf.s.auras and uf.s.auraPosition == "SIDE" then
 		local host = view.auras and view.auras.host or view.button
-		reachRight = math.max(reachRight, Snap(host, g.aura.x) + ns.Auras.Footprint(uf.kind, host) - width)
+		reachRight = math.max(reachRight, Snap(host, g.aura.x + uf.s.auraX) + ns.Auras.Footprint(uf.kind, host) - width)
 	end
 	local margin, origin, pixel = K.Tokens.Size("screenMargin"), K.Scale.Origin(), K.Scale.Pixel(1)
 	if left - reachLeft < -origin then left = math.ceil((margin + reachLeft - origin) / pixel) * pixel
@@ -676,7 +676,7 @@ end
 
 local function Slots(uf, w, h)
 	if uf.kind == "boss" then
-		return Geometry.Slots(BOSS_COUNT, BOSS_GAP, w, h, uf.s and uf.s.growth == "UP")
+		return Geometry.Slots(BOSS_COUNT, uf.s and uf.s.gap or BOSS_GAP, w, h, uf.s and uf.s.growth == "UP")
 	end
 	return { { x = 0, y = 0, w = w, h = h } }
 end

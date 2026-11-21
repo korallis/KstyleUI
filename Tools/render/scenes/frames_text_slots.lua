@@ -1,4 +1,4 @@
--- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text or unit-frame parity round 1 options through Options.
+-- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text or unit-frame parity round 1 and 2 options through Options.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -49,6 +49,26 @@ return Common.Run(function()
 		end
 		local pet = ns.Frames.Get("pet").views[1]
 		if pet.button:IsShown() then dofile("Tools/regression/widget_env.lua").Enter(pet.button) end
+	end
+	if os.getenv("RENDER_PARITY_R2") == "1" and module == "UnitFrames" then
+		local U = dofile("Tools/regression/unitframes_env.lua")
+		if not env._units.pet then
+			U.SetUnit(env, "pet", { name = "Wolf", level = 38, health = 1460, healthMax = 2000, power = 80, powerMax = 100, reaction = 5 })
+		end
+		env._units.pet.auras = { { id = 1, icon = 136207, left = 9, harmful = true, mine = false, count = 2 }, { id = 2, icon = 135813, left = 14, harmful = false, mine = true } }
+		env._units.target.auras = { { id = 3, icon = 135813, left = 6, harmful = true, mine = true, count = 3 }, { id = 4, icon = 136207, left = 12, harmful = true, mine = true } }
+		env.C_Spell.IsSpellImportant = function() return true end
+		env.UnitShouldDisplaySpellTargetName = function() return true end
+		env.UnitSpellTargetName = function() return env._units.player.name end
+		K.Options.Get(module)
+		for _, pair in ipairs({
+			{ "pet.auras", true }, { "pet.auraFilter", "both" }, { "target.auraCountSize", 12 }, { "target.auraCountPoint", "TOPLEFT" },
+			{ "target.auraBuffDispel", true }, { "target.auraTimerY", 1 }, { "player.powerAlpha", 0.6 }, { "player.powerGradient", "HORIZONTAL" },
+			{ "target.castbarTarget", true }, { "target.castbarImportant", true }, { "player.castbarIconX", 2 }, { "boss.gap", 12 },
+		}) do
+			K.Options.Write(module, pair[1], pair[2])
+		end
+		dofile("Tools/regression/aura_fixture_engine.lua").Install(env)
 	end
 	env.RunTimers(); Gallery.Ticks(dofile("Tools/regression/widget_env.lua"), env, 40)
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))

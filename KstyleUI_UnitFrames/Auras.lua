@@ -101,16 +101,31 @@ local function TextSize(kind, size)
 	return math.max(size, math.min(TEXT_FLOOR, room))
 end
 
+local STYLE_KEYS = { "auraCountSize", "auraCountPoint", "auraCountX", "auraCountY", "auraTimerX", "auraTimerY", "auraDispel", "auraBuffDispel", "auraStealable" }
+
 local function TextStyle(view)
+	if view.auraStyle then return view.auraStyle end
 	local path, size, flags = Settings.Font(view.kind, "aura")
-	return { path, TextSize(view.kind, size), flags }
+	local style = { path, TextSize(view.kind, size), flags }
+	for _, key in ipairs(STYLE_KEYS) do
+		style[key] = Settings.Value(view.kind, key)
+	end
+	if view.auras then view.auraStyle = style end
+	return style
+end
+
+local function Off(region, units)
+	return units ~= 0 and Widgets.Snap(region, units) or 0
 end
 
 local function StyleTexts(view, count, timer, style)
-	local path, size, flags = unpack(style or TextStyle(view))
+	style = style or TextStyle(view)
+	local path, size, flags = unpack(style)
+	local countSize = style.auraCountSize
 	for _, text in ipairs({ count, timer }) do
-		if not Widgets.ApplyFont(text, path, size, flags) then
-			Widgets.ApplyFont(text, (Tokens.Font("number")), size, flags)
+		local own = text == count and countSize > 0 and math.max(6, countSize) * K.Theme.FontScale() or size
+		if not Widgets.ApplyFont(text, path, own, flags) then
+			Widgets.ApplyFont(text, (Tokens.Font("number")), own, flags)
 		end
 		pcall(text.SetTextColor, text, Tokens.Color("textEmphasis"))
 	end
@@ -143,14 +158,25 @@ function Auras.Zoom(entry, kind)
 	end
 end
 
+local function PlaceCount(count, skin, style)
+	local point = style.auraCountPoint
+	local inset = Widgets.Snap(skin, COUNT_INSET)
+	local side = point == "TOPLEFT" and -inset or point == "TOPRIGHT" and inset or 0
+	count:ClearAllPoints()
+	count:SetPoint(point, skin, point, side + Off(skin, style.auraCountX), (point == "CENTER" and 0 or inset) + Off(skin, style.auraCountY))
+	if point ~= "TOPRIGHT" or count.countPoint then
+		count.countPoint = point
+		count:SetJustifyH(point == "TOPLEFT" and "LEFT" or point == "TOPRIGHT" and "RIGHT" or "CENTER")
+	end
+end
+
 function Auras.StyleSample(tile, kind)
 	local view = { kind = kind }
+	local style = TextStyle(view)
 	Auras.Zoom(tile, kind)
-	local inset = Widgets.Snap(tile.skin, COUNT_INSET)
-	tile.count:ClearAllPoints()
-	tile.count:SetPoint("TOPRIGHT", tile.skin, "TOPRIGHT", inset, inset)
-	StyleTexts(view, tile.count, tile.timer)
-	Auras.PlaceTimer(tile.timer, tile.skin, kind, tile.badge)
+	PlaceCount(tile.count, tile.skin, style)
+	StyleTexts(view, tile.count, tile.timer, style)
+	Auras.PlaceTimer(tile.timer, tile.skin, kind, tile.badge, style)
 end
 
 function Auras.NewTile(parent, chrome)
@@ -216,16 +242,18 @@ function Auras.TimerRoom(kind)
 	return TimerRoom(kind)
 end
 
-function Auras.PlaceTimer(timer, skin, kind, badge)
+function Auras.PlaceTimer(timer, skin, kind, badge, style)
 	timer:ClearAllPoints()
 	local below = TimerBelow(kind)
+	style = style or TextStyle({ kind = kind })
+	local dx, dy = Off(skin, style.auraTimerX), Off(skin, style.auraTimerY)
 	if below then
 		local gap = Settings.Form(kind) == "column" and COLUMN_TIMER_GAP or TIMER_BELOW_GAP
-		timer:SetPoint("TOP", skin, "BOTTOM", 0, -Widgets.Snap(skin, gap))
+		timer:SetPoint("TOP", skin, "BOTTOM", dx, dy - Widgets.Snap(skin, gap))
 		timer:SetJustifyH("CENTER")
 	else
 		local inset = Widgets.Snap(skin, COUNT_INSET)
-		timer:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", -inset, inset)
+		timer:SetPoint("BOTTOMRIGHT", skin, "BOTTOMRIGHT", dx - inset, dy + inset)
 		timer:SetJustifyH("RIGHT")
 	end
 	if badge then
@@ -247,16 +275,18 @@ function Auras.Badge(parent, text)
 	return badge
 end
 
+local Dispel
+
 local function StyleButton(view, entry, style)
+	style = style or TextStyle(view)
 	local size = Snap(view, Value(view, "auraSize"))
 	entry.button:SetSize(size, size)
+	Dispel(entry, style)
 	Auras.LayoutTile(entry)
 	Auras.Zoom(entry, view.kind)
-	local inset = Widgets.Snap(entry.skin, COUNT_INSET)
-	entry.count:ClearAllPoints()
-	entry.count:SetPoint("TOPRIGHT", entry.skin, "TOPRIGHT", inset, inset)
+	PlaceCount(entry.count, entry.skin, style)
 	StyleTexts(view, entry.count, entry.timer, style)
-	Auras.PlaceTimer(entry.timer, entry.skin, view.kind, entry.badge)
+	Auras.PlaceTimer(entry.timer, entry.skin, view.kind, entry.badge, style)
 	entry.timer:SetShown(Value(view, "auraTimer"))
 	entry.badge:SetShown(not TimerBelow(view.kind) and Value(view, "auraTimer") == true)
 end
@@ -271,6 +301,7 @@ local function Flush()
 		if not view.auras or view.auras.style ~= PoolStyle(view) or ns.Fan.Wanted(view) and not view.auras.fan then
 			K.Call(Auras.Apply, view)
 		else
+			view.auraStyle = nil
 			local style = TextStyle(view)
 			for _, entry in ipairs(view.auras.buttons) do
 				K.Call(StyleButton, view, entry, style)
@@ -318,20 +349,48 @@ local function DispelOptions()
 	return dispelOptions or nil
 end
 
-local function Dispel(entry, button)
-	local options = DispelOptions()
-	if not options then
+Dispel = function(entry, style)
+	local options, button, buff = DispelOptions(), entry.button, entry.key == "buffs"
+	local mode = options and style[buff and "auraBuffDispel" or "auraDispel"] and (buff and style.auraStealable and "steal" or "on") or false
+	local steal = Enum and Enum.CustomAuraButtonDispelTypeStealableFilter
+	if mode == "steal" and not (steal and steal.Stealable) then
+		LogOnce("steal", "frame auras: Enum.CustomAuraButtonDispelTypeStealableFilter is missing; buffs show no stealable edge")
+		mode = false
+	end
+	if (entry.dispelMode or false) == mode then
 		return
 	end
-	if entry.slab then
-		button:AddDispelTypeTexture(entry.underline, { style = options.style, showWhenHarmful = options.showWhenHarmful, showWithoutDispelType = false })
+	local parts = entry.dispelParts
+	if entry.dispelMode then
+		if not button.RemoveDispelTypeTexture then
+			LogOnce("dispel-remove", "frame auras: RemoveDispelTypeTexture is missing; dispel edges stay until reload")
+			return
+		end
+		for _, part in ipairs(parts) do
+			button:RemoveDispelTypeTexture(part)
+			part:Hide()
+		end
+	end
+	entry.dispelMode = mode
+	if not mode then
 		return
 	end
-	local slice = Widgets.NineSlice(entry.skin, "chamferTile", "BORDER", DISPEL_SUBLEVEL)
-	Widgets.ShowSlice(slice, false)
-	entry.dispel = slice
-	for i = 1, #slice do
-		button:AddDispelTypeTexture(slice[i], options)
+	if not parts then
+		parts = entry.slab and { entry.underline } or Widgets.NineSlice(entry.skin, "chamferTile", "BORDER", DISPEL_SUBLEVEL)
+		if not entry.slab then
+			Widgets.ShowSlice(parts, false)
+			entry.dispel = parts
+		end
+		entry.dispelParts = parts
+	end
+	local add = options
+	if buff then
+		add = { style = options.style, showWhenHelpful = true, showWithoutDispelType = false, stealableFilter = mode == "steal" and steal.Stealable or nil }
+	elseif entry.slab then
+		add = { style = options.style, showWhenHarmful = options.showWhenHarmful, showWithoutDispelType = false }
+	end
+	for _, part in ipairs(parts) do
+		button:AddDispelTypeTexture(part, add)
 	end
 end
 
@@ -373,10 +432,7 @@ local function Dress(view, key, button, buttons)
 	local timer = Widgets.Fitted(Widgets.FontString(over, "OVERLAY"))
 	entry.badge = over:CreateTexture(nil, "BACKGROUND")
 	entry.countBadge = Auras.Badge(over, count)
-	entry.button, entry.count, entry.timer = button, count, timer
-	if key == "debuffs" then
-		Dispel(entry, button)
-	end
+	entry.button, entry.count, entry.timer, entry.key = button, count, timer, key
 	StyleButton(view, entry)
 	button:SetIcon(entry.icon)
 	button:SetDurationCooldown(cooldown)
@@ -677,26 +733,24 @@ end
 
 function Auras.Anchor(host, frame, kind, panelX, spot)
 	local position = POSITION[Settings.Value(kind, "auraPosition")] or POSITION.BELOW
+	local dx, dy = Off(host, Settings.Value(kind, "auraX")), Off(host, Settings.Value(kind, "auraY"))
+	host:ClearAllPoints()
 	if spot and spot.outer and Settings.AuraRows(kind) and Settings.Value(kind, "auraPosition") == "ABOVE" then
 		local side = kind == "target" and "RIGHT" or "LEFT"
-		host:ClearAllPoints()
-		host:SetPoint("BOTTOM" .. side, frame, "TOPLEFT", Widgets.Snap(host, spot.x), -Widgets.Snap(host, spot.y))
+		host:SetPoint("BOTTOM" .. side, frame, "TOPLEFT", Widgets.Snap(host, spot.x) + dx, dy - Widgets.Snap(host, spot.y))
 		return
 	end
 	if spot and spot.centred then
-		host:ClearAllPoints()
-		host:SetPoint("TOP", frame, "TOPLEFT", Widgets.Snap(host, spot.x), -Widgets.Snap(host, spot.y))
+		host:SetPoint("TOP", frame, "TOPLEFT", Widgets.Snap(host, spot.x) + dx, dy - Widgets.Snap(host, spot.y))
 		return
 	end
 	if spot and Settings.Value(kind, "auraPosition") == "SIDE" then
-		host:ClearAllPoints()
-		host:SetPoint("TOPLEFT", frame, "TOPLEFT", Widgets.Snap(host, spot.x), -Widgets.Snap(host, spot.y))
+		host:SetPoint("TOPLEFT", frame, "TOPLEFT", Widgets.Snap(host, spot.x) + dx, dy - Widgets.Snap(host, spot.y))
 		return
 	end
 	local x = position[5] and Widgets.Snap(host, panelX) or 0
 	local gap = Widgets.Snap(host, GAP)
-	host:ClearAllPoints()
-	host:SetPoint(position[1], frame, position[2], x + position[3] * gap, position[4] * gap)
+	host:SetPoint(position[1], frame, position[2], x + position[3] * gap + dx, position[4] * gap + dy)
 end
 
 function Auras.Place(view)
@@ -710,6 +764,7 @@ function Auras.Apply(view)
 	if not Settings.AURAS[view.kind] then
 		return
 	end
+	view.auraStyle = nil
 	local want = Wanted(view)
 	if not view.auras then
 		if not want and not (Active(view) and ns.Fan.Wanted(view)) then

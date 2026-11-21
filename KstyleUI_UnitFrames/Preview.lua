@@ -132,7 +132,7 @@ local function Paint(view, kind)
 	end
 	view.power:SetBarRange(0, sample.powerMax)
 	view.power:SetValue(sample.power)
-	view.power:SetBarColor(SampleColor(s, sample, s.powerColor, s.powerCustom))
+	Style.PowerFill(view, SampleColor(s, sample, s.powerColor, s.powerCustom))
 	Format.Sample(view.powerText, s.powerText, sample.power, sample.powerMax)
 	if s.healPrediction then
 		view.incoming:SetBarRange(0, sample.healthMax)
@@ -245,7 +245,8 @@ local function PaintCast(frame, view, kind, height)
 	ns.CastBars.Layout(cb, w, castH)
 	cb.bar:SetMinMaxValues(0, 1)
 	cb.bar:SetValue(CAST_SHARE)
-	ns.CastBars.SetName(cb, L["Frostbolt"])
+	ns.CastBars.SetName(cb, L["Frostbolt"], Settings.Value(kind, "castbarTarget") and SAMPLES.player.name or nil)
+	ns.CastBars.Important(cb, nil, true)
 	cb.timer:SetFormattedText("%.1fs", CAST_LEFT)
 	cb.icon:SetTexture(CAST_ICON)
 	cb.frame:SetAlpha(1)
@@ -385,7 +386,7 @@ local function Size(frame, kind, s)
 		width, height = saved.width, saved.height
 	end
 	if kind == "boss" then
-		height = Geometry.Slots(Geometry.BOSS_COUNT, Geometry.BOSS_GAP, width, height)[1].h
+		height = Geometry.Slots(Geometry.BOSS_COUNT, s.gap, width, height)[1].h
 	end
 	local room = Room(frame:GetWidth())
 	if room then

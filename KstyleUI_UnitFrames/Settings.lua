@@ -19,6 +19,8 @@ local AURA_ROWS_MAX, AURA_COLUMNS_MAX = 6, 16
 local SPACING_MIN, SPACING_MAX = 0, 12
 local ALPHA_MIN, ALPHA_STEP = 0.1, 0.05
 local ZOOM_MAX, ZOOM_STEP = 0.3, 0.01
+local NUDGE = 50
+local BOSS_GAP_MAX = 20
 
 Settings.MODULE = MODULE
 Settings.THEME_FONT = THEME_FONT
@@ -64,7 +66,7 @@ Settings.COLUMN = { player = true, target = true }
 
 Settings.CASTBAR = { player = true, target = true, focus = true, boss = true }
 Settings.CAST_ELEMENTS = { player = "unitframes.castbar.player", target = "unitframes.castbar.target" }
-Settings.AURAS = { player = true, target = true, focus = true, boss = true }
+Settings.AURAS = { player = true, target = true, focus = true, boss = true, pet = true }
 
 local function Color(token)
 	local r, g, b = Tokens.Color(token)
@@ -120,6 +122,8 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		powerColor = "power",
 		powerCustom = Color("rare"),
 		powerOrientation = "RIGHT",
+		powerAlpha = 1,
+		powerGradient = "",
 		powerText = "none",
 		powerSeparate = true,
 		percentLead = true,
@@ -152,6 +156,10 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		castbarInside = false,
 		castbarAlpha = 1,
 		castbarIconRight = false,
+		castbarIconX = 0, castbarIconY = 0, castbarTextX = 0, castbarTextY = 0, castbarTimerX = 0, castbarTimerY = 0,
+		castbarTarget = false,
+		castbarImportant = false,
+		castbarImportantColor = Color("legendary"),
 		auras = aura ~= nil and aura.on or false,
 		auraFilter = "mine",
 		auraFilters = { onlyMine = false, dispellable = false, sort = "" },
@@ -164,6 +172,9 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		auraTimer = true,
 		auraZoom = 0.07,
 		auraTooltipCombat = true,
+		auraX = 0, auraY = 0, auraTimerX = 0, auraTimerY = 0,
+		auraCountSize = 0, auraCountPoint = "TOPRIGHT", auraCountX = 0, auraCountY = 0,
+		auraDispel = true, auraBuffDispel = false, auraStealable = false,
 		fonts = {
 			name = TextStyle(text[1]),
 			health = TextStyle(text[2]),
@@ -215,8 +226,8 @@ Settings.defaults = {
 	targettarget = Kind(false),
 	focus = Kind(true, { power = false, castbarColor = "gold", castbarCaps = false }, 16, 12, { on = true, size = 20, position = "ABOVE" }, { 16, 14, 9, 12 }),
 	focustarget = Kind(false),
-	pet = Kind(false, { happiness = false }),
-	boss = Kind(true, { power = false, castbarColor = "gold", castbarCaps = true, auraGrowth = "LEFT_DOWN", growth = "DOWN" }, 10, 12, { on = true, size = 22, columns = 4, rows = 1, position = "LEFT" }, { 13, 13, 9, 12 }),
+	pet = Kind(false, { happiness = false, auraPosition = "ABOVE", auraColumns = 5, auraFilter = "debuffs" }),
+	boss = Kind(true, { power = false, castbarColor = "gold", castbarCaps = true, auraGrowth = "LEFT_DOWN", growth = "DOWN", gap = 6 }, 10, 12, { on = true, size = 22, columns = 4, rows = 1, position = "LEFT" }, { 13, 13, 9, 12 }),
 	resource = {
 		enabled = true,
 		comboPoints = true,
@@ -275,6 +286,7 @@ Settings.CHOICES = {
 	auraFilter = Options({ { "mine", L["Your debuffs"] }, { "debuffs", L["All debuffs"] }, { "buffs", L["Buffs"] }, { "both", L["Debuffs and buffs"] } }),
 	auraGrowth = Options({ { "RIGHT_DOWN", L["Right, then down"] }, { "RIGHT_UP", L["Right, then up"] }, { "LEFT_DOWN", L["Left, then down"] }, { "LEFT_UP", L["Left, then up"] } }),
 	growth = Options({ { "DOWN", L["Downward"] }, { "UP", L["Upward"] } }),
+	countPoint = Options({ { "TOPRIGHT", L["Top right"] }, { "TOPLEFT", L["Top left"] }, { "CENTER", L["Centre"] } }),
 	auraPosition = Options({ { "CENTER", L["Centred below the frame"] }, { "BELOW", L["Below the frame"] }, { "ABOVE", L["Above the frame"] }, { "RIGHT", L["Right of the frame"] }, { "LEFT", L["Left of the frame"] }, { "SIDE", L["Right of the portrait"] } }),
 }
 local CHOICES = Settings.CHOICES
@@ -286,6 +298,8 @@ local CHOICE_OF = {
 	portraitSide = "portraitSide",
 	healthColor = "healthColor",
 	healthGradient = "gradient",
+	powerGradient = "gradient",
+	auraCountPoint = "countPoint",
 	powerColor = "powerColor",
 	healthOrientation = "orientation",
 	powerOrientation = "orientation",
@@ -368,7 +382,14 @@ local RANGES = {
 	castbarAlpha = { ALPHA_MIN, 1 },
 	portraitZoom = { 0, ZOOM_MAX },
 	auraZoom = { 0, ZOOM_MAX },
+	powerAlpha = { ALPHA_MIN, 1 },
+	auraCountSize = { 0, FONT_SIZE_MAX },
+	gap = { 0, BOSS_GAP_MAX },
 }
+for _, key in ipairs({ "auraX", "auraY", "auraTimerX", "auraTimerY", "auraCountX", "auraCountY",
+	"castbarIconX", "castbarIconY", "castbarTextX", "castbarTextY", "castbarTimerX", "castbarTimerY" }) do
+	RANGES[key] = { -NUDGE, NUDGE }
+end
 
 local function IsNumber(v)
 	return not (issecretvalue and issecretvalue(v)) and type(v) == "number" and v == v
@@ -379,6 +400,13 @@ local ROW_DEFAULTS = {
 	player = { auraPosition = "ABOVE", auraGrowth = "RIGHT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
 	target = { auraPosition = "ABOVE", auraGrowth = "LEFT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
 }
+
+local DERIVED = { auras = true, auraFilter = true }
+for _, list in pairs({ SLAB_DEFAULTS, ROW_DEFAULTS }) do
+	for _, keys in pairs(list) do
+		for key in pairs(keys) do DERIVED[key] = true end
+	end
+end
 
 function Settings.AuraRows(kind)
 	return ROW_DEFAULTS[kind] ~= nil and K.HudStyle.Current() == "medallions" and Settings.Module().auraLayout ~= "fan"
@@ -547,9 +575,14 @@ function Settings.Snapshot(kind)
 	local s = { fonts = fonts, form = form, kind = kind, rowsAbove = Settings.AuraRows(kind), inlineCast = form == "column" and kind ~= "player" }
 	s.healthDecimal = Settings.Module().healthDecimal == true
 	s.textOptions = fonts.name.textFormat ~= "" or fonts.health.textFormat ~= "" or fonts.name.colorMode ~= "" or fonts.health.colorMode ~= ""
-	for key in pairs(Settings.defaults[kind]) do
+	for key, default in pairs(d) do
 		if key ~= "fonts" then
-			s[key] = Settings.Value(kind, key)
+			local value = own[key]
+			if (value == nil or value == default) and not DERIVED[key] then
+				s[key] = default
+			else
+				s[key] = Settings.Value(kind, key)
+			end
 		end
 	end
 	return s
@@ -715,11 +748,27 @@ CastRows = function(schema, kind)
 		help = L["Which way the cast bar fills. A bar taller than it is wide stacks its icon on top."],
 		options = CHOICES.orientation,
 	}, on)
+	local function iconShown(s)
+		local form = Settings.Form(kind)
+		return on(s) and Settings.Value(kind, "castbarIcon") and K.HudStyle.Current() ~= "medallions" and (form == "plate" or form == "column")
+	end
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarIconRight", label = L["Icon on the right"],
-		help = L["Put the spell icon at the right end of the cast bar."] }, function(s)
-			local form = Settings.Form(kind)
-			return on(s) and Settings.Value(kind, "castbarIcon") and K.HudStyle.Current() ~= "medallions" and (form == "plate" or form == "column")
-		end)
+		help = L["Put the spell icon at the right end of the cast bar."] }, iconShown)
+	for _, spec in ipairs({ { "castbarIcon", L["Spell icon"] }, { "castbarText", L["Spell name"] }, { "castbarTimer", L["Timer"] } }) do
+		local part = spec[1]
+		for _, axis in ipairs({ { "X", L["Horizontal offset"], L["Moves it left or right."] }, { "Y", L["Vertical offset"], L["Moves it up or down."] } }) do
+			schema[#schema + 1] = Row(kind, { type = "slider", key = part .. axis[1], label = spec[2] .. ": " .. axis[2], help = axis[3],
+				min = -NUDGE, max = NUDGE, step = 1 }, part == "castbarIcon" and iconShown or function(s) return on(s) and s[part] ~= false end)
+		end
+	end
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarTarget", label = L["Spell target"],
+		help = L["Adds who the spell is cast on after its name, when the game shows it."] }, function(s) return on(s) and s.castbarText ~= false end)
+	if kind ~= "player" then
+		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarImportant", label = L["Important cast outline"],
+			help = L["Outlines the cast bar while the unit casts a spell the game marks as important."] }, on)
+		schema[#schema + 1] = Row(kind, { type = "color", key = "castbarImportantColor", label = L["Outline colour"],
+			help = L["The colour of the important cast outline."] }, function(s) return on(s) and s.castbarImportant == true end)
+	end
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "castbarAlpha", label = L["Fill opacity"],
 		help = L["How solid the cast fill is. Lower lets the track show through."], min = ALPHA_MIN, max = 1, step = ALPHA_STEP }, on)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarSpark", label = L["Cast spark"], help = L["Shows the current style's bright cast progress edge."] }, on)
@@ -773,6 +822,13 @@ AuraRows = function(schema, kind)
 		type = "dropdown", key = "auraPosition", label = L["Aura position"],
 		help = L["Which side of the frame the auras sit on."], options = CHOICES.auraPosition,
 	}, on)
+	local function Nudges(prefix, label, extra)
+		for _, axis in ipairs({ { "X", L["Horizontal offset"], L["Moves it left or right."] }, { "Y", L["Vertical offset"], L["Moves it up or down."] } }) do
+			schema[#schema + 1] = Row(kind, { type = "slider", key = prefix .. axis[1], label = label .. ": " .. axis[2], help = axis[3],
+				min = -NUDGE, max = NUDGE, step = 1 }, function(s) return on() and (extra == nil or extra(s)) end)
+		end
+	end
+	Nudges("aura", L["Auras"])
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "auraGrowth", label = L["Aura growth"],
 		help = L["Which way new aura icons are added."], options = CHOICES.auraGrowth,
@@ -797,6 +853,18 @@ AuraRows = function(schema, kind)
 		type = "toggle", key = "auraTimer", label = L["Aura timers"],
 		help = L["Shows the time left on each aura."],
 	}, on)
+	Nudges("auraTimer", L["Aura timers"], function(s) return s.auraTimer ~= false end)
+	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraCountSize", label = L["Stack text size"],
+		help = L["The size of aura stack counts. 0 matches the aura text size."], min = 0, max = FONT_SIZE_MAX, step = 1 }, on)
+	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "auraCountPoint", label = L["Stack position"],
+		help = L["Which corner of each aura icon shows its stack count."], options = CHOICES.countPoint }, on)
+	Nudges("auraCount", L["Stack position"])
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraDispel", label = L["Debuff dispel colours"],
+		help = L["Edges debuffs in their dispel type's colour."] }, on)
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraBuffDispel", label = L["Buff dispel colours"],
+		help = L["Edges buffs that have a dispel type in its colour, such as magic buffs you can purge."] }, on)
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraStealable", label = L["Only buffs you can steal"],
+		help = L["Edges only buffs a spell steal can take."] }, function(s) return on() and s.auraBuffDispel == true end)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraZoom", label = L["Aura icon zoom"],
 		help = L["Crops into each aura icon. 0 shows the whole icon with its border."], min = 0, max = ZOOM_MAX, step = ZOOM_STEP }, on)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraTooltipCombat", label = L["Aura tooltips in combat"],
@@ -889,6 +957,8 @@ local function KindRows(schema, kind)
 			help = L["Down from the top, or up from the foot so a lone boss sits by your combat cluster."],
 			options = CHOICES.growth,
 		})
+		schema[#schema + 1] = Row(kind, { type = "slider", key = "gap", label = L["Spacing"],
+			help = L["The gap between boss frames in units. The frames share the element's height."], min = 0, max = BOSS_GAP_MAX, step = 1 })
 	end
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "portrait", label = L["Portrait"],
@@ -974,6 +1044,10 @@ local function KindRows(schema, kind)
 		type = "toggle", key = "powerSeparate", label = L["Separate similar health and power colours"],
 		help = L["When the colours are close, draws power in steel with a thin line of its original colour."],
 	}, function(s) return s.power ~= false end)
+	schema[#schema + 1] = Row(kind, { type = "slider", key = "powerAlpha", label = L["Fill opacity"],
+		help = L["How solid the power fill is. Lower lets the track show through."], min = ALPHA_MIN, max = 1, step = ALPHA_STEP }, function(s) return s.power ~= false end)
+	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "powerGradient", label = L["Fill gradient"],
+		help = L["Shades the power fill from darker to its colour."], options = CHOICES.gradient }, function(s) return s.power ~= false end)
 	schema[#schema + 1] = Header(kind, L["text"])
 	for _, element in ipairs(Settings.TEXTS) do
 		TextRows(schema, kind, element)
