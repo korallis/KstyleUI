@@ -359,7 +359,6 @@ function Routes.Pick(row)
 	if not ownsWaypoint then previousWaypoint, previousTrack = Plain(old, "table"), tracked end
 	ownsWaypoint, target = true, row
 	Call(C_SuperTrack, "SetSuperTrackedUserWaypoint", true)
-	-- No map:SetMapID here: an addon-written map ID taints the pins Blizzard acquires afterwards, even in later combat.
 	Hide(results)
 	if search then search:ClearFocus() end
 	RefreshRoute()

@@ -1,6 +1,4 @@
 -- WorldMap.lua: the world map and quest log skins: the map window's chrome, whose glass docks the quest log beside the map, and the quest list and details on it.
--- Never write the map's zoom, pan or map ID from here: those fields taint every pin Blizzard acquires later, and in combat
--- AcquirePin's SetPassThroughButtons is then blocked (ADDON_ACTION_BLOCKED from KstyleUI_Skins).
 local _, ns = ...
 
 local K = KstyleUI
