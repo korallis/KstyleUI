@@ -97,7 +97,7 @@ local function Animate(p)
 	end
 end
 
-local function Build(i, theme)
+local function Build(i, theme, count)
 	local holder = CreateFrame("Frame", nil, state.parent)
 	local level = state.parent:GetFrameLevel() + 2
 	holder:SetFrameLevel(level)
@@ -113,6 +113,12 @@ local function Build(i, theme)
 		local bar = CreateFrame("StatusBar", nil, holder)
 		bar:SetFrameLevel(level + n)
 		bar:SetStatusBarTexture((Tokens.Texture(files[layer.art])))
+		bar:SetStatusBarColor(Tokens.Color(layer.art == "glow" and theme.glow or layer.add and theme.core or "white"))
+		if layer.feed == "max" then
+			bar:SetMinMaxValues(count - 1, count)
+		else
+			bar:SetMinMaxValues(i - 1, i)
+		end
 		if layer.key == "halo" or layer.key == "haloWas" then
 			bar:SetPoint("CENTER", holder, "CENTER", 0, 0)
 			bar:SetAlpha(ALPHA)
@@ -132,7 +138,7 @@ local function Build(i, theme)
 	return p
 end
 
-local function BuildRow()
+local function BuildRow(theme, count)
 	local row = CreateFrame("Frame", nil, state.parent)
 	row:SetFrameLevel(state.parent:GetFrameLevel() + 1)
 	row.now = CreateFrame("StatusBar", nil, row)
@@ -142,6 +148,8 @@ local function BuildRow()
 		bar:SetAllPoints(row)
 		bar:SetStatusBarTexture((Tokens.Texture("glow")))
 		bar:GetStatusBarTexture():SetBlendMode("ADD")
+		bar:SetStatusBarColor(Tokens.Color(theme.glow))
+		bar:SetMinMaxValues(count - 1, count)
 	end
 	Step(row.now, 1, FADE, 0, 1)
 	Step(row.was, 1, FADE, 1, 0)
@@ -154,22 +162,7 @@ local function BuildRow()
 	a:SetToAlpha(LOW)
 	a:SetDuration(BREATH)
 	a:SetSmoothing("IN_OUT")
-	state.row = row
 	return row
-end
-
-local function Paint(theme)
-	local core = { Tokens.Color(theme.core) }
-	local glow = { Tokens.Color(theme.glow) }
-	for _, p in ipairs(state.pips) do
-		for _, layer in ipairs(LAYERS) do
-			local color = layer.art == "glow" and glow or layer.add and core or nil
-			p[layer.key]:SetStatusBarColor(color and color[1] or 1, color and color[2] or 1, color and color[3] or 1)
-		end
-	end
-	for _, bar in ipairs({ state.row.now, state.row.was }) do
-		bar:SetStatusBarColor(glow[1], glow[2], glow[3])
-	end
 end
 
 function Pips.Apply(class, parent, count)
@@ -186,27 +179,13 @@ function Pips.Apply(class, parent, count)
 	end
 	state.parent, state.count = parent, count
 	for i = #state.pips + 1, count do
-		state.pips[i] = Build(i, theme)
+		state.pips[i] = Build(i, theme, count)
 	end
-	if not state.row then
-		BuildRow()
-	end
-	for i, p in ipairs(state.pips) do
-		p.holder:SetShown(i <= count)
-		for _, layer in ipairs(LAYERS) do
-			local bar = p[layer.key]
-			if layer.feed == "max" then
-				bar:SetMinMaxValues(count - 1, count)
-			else
-				bar:SetMinMaxValues(i - 1, i)
-			end
-		end
-	end
-	for _, bar in ipairs({ state.row.now, state.row.was }) do
-		bar:SetMinMaxValues(count - 1, count)
+	state.row = state.row or BuildRow(theme, count)
+	for _, p in ipairs(state.pips) do
+		p.holder:Show()
 	end
 	state.row:Show()
-	Paint(theme)
 	return true
 end
 
