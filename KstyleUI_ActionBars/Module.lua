@@ -187,6 +187,7 @@ end
 
 local function OnSpells()
 	ns.Flyout.QueueRefresh()
+	ns.SlabHawks.Update()
 end
 
 local function OnLearned(_, spellID)
@@ -488,6 +489,7 @@ local function Enable()
 	ns.Travel.Enable()
 	ns.SlabEffects.Enable()
 	ns.SlabJewels.SetEnabled(true)
+	ns.SlabHawks.SetEnabled(true)
 	ns.enabling = false
 	ns.Keybind.Enable()
 	ns.Consumables.Enable()
@@ -509,6 +511,7 @@ local function Disable()
 	ns.Flyout.Close()
 	ns.SlabEffects.Disable()
 	ns.SlabJewels.SetEnabled(false)
+	ns.SlabHawks.SetEnabled(false)
 	ns.Slab.Disable()
 	ns.Travel.Disable()
 	ns.Ranks.Stop()

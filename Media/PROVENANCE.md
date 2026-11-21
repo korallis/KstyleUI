@@ -553,6 +553,14 @@ The Medallions HUD style's style kit and effect textures, the files directly in 
 | `Media/Textures/Medallions/TargetBrackets.png` | 32x32 | A nameplate target tick, 8 units square: a medGunLit L, arms 4 units and 1 unit thick, in a 0.5-unit black outline, in the top-left corner. Flip the texture coordinates for the other corners. | `Tools/media/medallions_kit.py chrome`, procedural from the med* colours in `Core/Tokens.lua`, no model | 4x4 supersampled; BLEND | 2026-11-16 |
 <!-- END medallions_kit -->
 
+## Medallions hawk perches (2026-11-21)
+
+The sigil the crest's hawk perches draw (`KstyleUI_ActionBars/SlabHawks.lua`, token `hawkSigil`). It sits in its own folder, apart from the style kit that `Tools/media/medallions_kit.py` owns.
+
+| File | Size | What it is | Source | Processing | Date |
+| --- | --- | --- | --- | --- | --- |
+| `Media/Textures/Medallions/Hawks/HawkSigil.png` | 128x128 | The hawk perches' sigil: a gilt hawk stooping, wings swept back and talons forward, facing right, with dark engraved feathers and a thin dark outline, on transparent. Mirrored for the right perch; desaturated and tinted steel on an empty perch. | Higgsfield `gpt_image_2_5`, job `e0e3494c-2c51-4a7c-813d-976a3fd758eb` (quality high, 1k, transparent background), with `Media/Textures/Medallions/Crests/nightelf_hunter.png` as the style reference; prompt: "A single small heraldic emblem of a hawk diving with wings swept back and talons forward, seen from the side, cast in polished antique gold with crisp dark engraved feather lines and a thin dark outline, jewellery-like metalwork matching the gold filigree of the reference shield, bold readable silhouette that stays clear at very small sizes, centred, no text, no frame, no background, isolated object on transparent background, fantasy game interface icon"; source SHA-256 `684a00cb7661b75cd8ca41ed8a25f9b8608629ed8c450627d93ec05c6764b5c1` | alpha below 24 cut to nothing, trimmed to the bird, padded to a square with a 4% margin, linear-light premultiplied Lanczos to 128x128; SHA-256 `1319419f1d8d5d1df411028b252f6068715229810cb928d0f8a3b9c7f1fc3852` | 2026-11-21 |
+
 <!-- medallions:begin (written by Tools/medallions/medallions.py bake) -->
 
 ## Medallions (KSTY-89, 2026-11-15)

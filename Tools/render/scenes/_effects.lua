@@ -4,7 +4,32 @@ local Scene = dofile("Tools/render/scene.lua")
 
 local Effects = {}
 
-local STATES = { ready = true, cap = true, levelup = true, cast = true, stopped = true, vignette = true, burst = true, rest = true, jewels = true }
+local STATES = { ready = true, cap = true, levelup = true, cast = true, stopped = true, vignette = true, burst = true, rest = true, jewels = true, hawks = true }
+
+-- The hawk story RENDER_FX=hawks plays: Summon Hawk at these seconds; a hawk fills a free totem slot (2, then 3)
+-- or replaces the oldest, and leaves HAWK_LIFE seconds later.
+local HAWKS, HAWK_LIFE = { 1, 7, 20.5, 23 }, 18
+
+-- HawkEvents() -> the story's totem updates in order, { at, slot, summon }.
+local function HawkEvents()
+	local events, slots = {}, {}
+	local function expire(now)
+		for slot = 2, 3 do
+			if slots[slot] and slots[slot] + HAWK_LIFE <= now then
+				events[#events + 1] = { at = slots[slot] + HAWK_LIFE, slot = slot }
+				slots[slot] = nil
+			end
+		end
+	end
+	for _, at in ipairs(HAWKS) do
+		expire(at)
+		local slot = not slots[2] and 2 or not slots[3] and 3 or (slots[2] < slots[3] and 2 or 3)
+		slots[slot] = at
+		events[#events + 1] = { at = at, slot = slot, summon = true }
+	end
+	table.sort(events, function(a, b) return a.at < b.at end)
+	return events
+end
 
 local MANA = { MAGE = true, PRIEST = true, WARLOCK = true, PALADIN = true, SHAMAN = true, DRUID = true }
 
@@ -13,7 +38,7 @@ function Effects.State()
 	if not state or state == "" then
 		return nil
 	end
-	assert(STATES[state], "RENDER_FX must be one of ready, cap, levelup, cast, stopped, vignette, burst, rest or jewels")
+	assert(STATES[state], "RENDER_FX must be one of ready, cap, levelup, cast, stopped, vignette, burst, rest, jewels or hawks")
 	local t = tonumber(rawget(_G, "RENDER_FX_T") or os.getenv("RENDER_FX_T") or "")
 	return state, t
 end
@@ -93,6 +118,41 @@ function Effects.Apply(env, module, ns, notes)
 				ring.breath._playedAt = env._time - (tonumber(os.getenv("RENDER_JEWELS_BREATH") or "") or 0)
 			end
 			notes[#notes + 1] = "fx: the crest jewels " .. from .. " to " .. to .. ", " .. (t or 0) .. " s in"
+		elseif state == "hawks" then
+			-- A hunter who knows Summon Hawk, RENDER_FX_T seconds into the HAWKS story (10 when unset): every totem
+			-- update so far goes through the addon's own handler, and each perch's flare or fade is sampled from its last.
+			local at = t or 10
+			local totems, last = {}, {}
+			env.C_SpellBook = env.C_SpellBook or {}
+			env.C_SpellBook.IsSpellKnown = function(id) return id == 1293241 end
+			env.GetTotemInfo = function(slot)
+				local hawk = totems[slot]
+				if not hawk then return false, "", 0, 0, 0, 1, 0 end
+				return true, "Hawk", hawk.start, HAWK_LIFE, 132158, 1, hawk.spell
+			end
+			env.GetTotemDuration = function(slot)
+				local hawk = totems[slot]
+				return { start = hawk and hawk.start or 0, finish = hawk and hawk.start + HAWK_LIFE or 0 }
+			end
+			if os.getenv("RENDER_HAWK_PERCHES") == "off" then
+				K.Options.Write("ActionBars", "crestHawks", false)
+			end
+			ns.SlabHawks.Update()
+			for _, e in ipairs(HawkEvents()) do
+				if e.at <= at then
+					totems[e.slot] = e.summon and { start = env._time - (at - e.at), spell = e.slot == 2 and 1293248 or 1312637 } or nil
+					env.FireEvent("PLAYER_TOTEM_UPDATE", e.slot)
+					last[e.slot] = e.at
+				end
+			end
+			for _, p in ipairs(ns.SlabHawks.state.perches) do
+				for _, group in ipairs({ p.flare.fade, p.was.fade }) do
+					if group._playedAt and last[p.slot] then
+						group._playedAt = env._time - (at - last[p.slot])
+					end
+				end
+			end
+			notes[#notes + 1] = "fx: the hawk perches " .. at .. " s into the story"
 		elseif state == "levelup" then
 			K.Options.Write("Medallions", "motion", "calm")
 			env.FireEvent("PLAYER_LEVEL_UP", 12)
