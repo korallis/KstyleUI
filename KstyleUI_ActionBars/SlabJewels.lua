@@ -77,6 +77,15 @@ local function Fade(target, from, to, duration, delay, order)
 	return group
 end
 
+local function Fleeting(target)
+	target:SetAlpha(0)
+	target:Hide()
+	target.fleeting = true
+	target.fade:SetScript("OnFinished", function()
+		target:Hide()
+	end)
+end
+
 local function Texture(parent, size, sublevel, texture, color)
 	local t = parent:CreateTexture(nil, "ARTWORK", nil, sublevel)
 	t:SetTexture((Tokens.Texture(texture)))
@@ -123,15 +132,15 @@ local function Build(hub, i)
 	for _, key in ipairs({ "halo", "core", "glint" }) do
 		jewel[key]:SetAlpha(ALPHA)
 	end
-	for _, key in ipairs({ "haloWas", "flare", "ember" }) do
-		jewel[key]:SetAlpha(0)
-	end
 	Fade(jewel.halo, 0, ALPHA, FADE)
 	Fade(jewel.haloWas, ALPHA, 0, FADE)
 	Fade(jewel.flare, 0, 1, FLARE_RISE)
 	Fade(jewel.flare, 1, 0, FLARE_FALL, 0, 2)
 	Fade(jewel.ember, 1, 1, FLARE_RISE + FLARE_FALL)
 	Fade(jewel.ember, 1, 0, DRAIN, 0, 2)
+	for _, key in ipairs({ "haloWas", "flare", "ember" }) do
+		Fleeting(jewel[key])
+	end
 	jewel.fades = { jewel.halo.fade, jewel.haloWas.fade, jewel.flare.fade, jewel.ember.fade }
 	return jewel
 end
@@ -154,9 +163,9 @@ local function BuildRing(hub)
 		frame.halo = OnePoint(frame, 1, ns.Slab.RING * RING_HALO, "glow", 0, true)
 		ring[side] = frame
 	end
-	ring.was:SetAlpha(0)
 	Fade(ring.now, 0, 1, FADE)
 	Fade(ring.was, 1, 0, FADE)
+	Fleeting(ring.was)
 	state.ring = ring
 	return ring
 end
@@ -240,6 +249,10 @@ end
 
 local function Restart(group, moving)
 	group:Stop()
+	local target = group:GetParent()
+	if target.fleeting then
+		target:SetShown(moving)
+	end
 	if moving then
 		group:Play()
 	end

@@ -1,4 +1,4 @@
--- test-actionbars-medallions-jewel-glow.lua: the crest jewels' motion and full ring: at the maximum the rune ring's glyphs and halo light in the resource's colour, fading in, and fade out on a spend; a gained jewel's core flares under the ember that keeps unchanged jewels steady, and a spent jewel's ember drains; every lit layer is a one-point status bar fed the raw value now or the value before, so secret values light them with no Lua compare; Calm stills the ring's breath, Off plays nothing and shows the end states, nothing runs OnUpdate, Glow at max off keeps the plain ring and lends the paladin's and warlock's cap ring back; every layer is an even number of physical pixels centred on its setting at four screen sizes.
+-- test-actionbars-medallions-jewel-glow.lua: the crest jewels' motion and full ring: at the maximum the rune ring's glyphs and halo light in the resource's colour, fading in, and fade out on a spend; a gained jewel's core flares under the ember that keeps unchanged jewels steady, and a spent jewel's ember drains; every lit layer is a one-point status bar fed the raw value now or the value before, so secret values light them with no Lua compare; the flare, the drain and the glow before show only while they play; Calm stills the ring's breath, Off plays nothing and shows the end states, nothing runs OnUpdate, Glow at max off keeps the plain ring and lends the paladin's and warlock's cap ring back; every layer is an even number of physical pixels centred on its setting at four screen sizes.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local ENERGY, MANA = 3, 0
@@ -126,6 +126,9 @@ do
 	local j1, j3 = jewels[1], jewels[3]
 	assert(Lit(env, j3.gem) and Lit(env, j3.flare) and not Lit(env, j3.ember), "a gained jewel lights with its flare and no ember over it")
 	assert(j3.flare.fade:IsPlaying(), "the gained jewel's core flares")
+	assert(j3.flare:IsShown(), "the flare shows while it plays")
+	j3.flare.fade:GetScript("OnFinished")(j3.flare.fade)
+	assert(not j3.flare:IsShown(), "and hides once it has ended, so it draws nothing at rest")
 	local flare = Alpha(j3.flare.fade)
 	assert(flare[1][1] == 0 and flare[1][2] == 1 and flare[2][1] == 1 and flare[2][2] == 0 and flare[2][4] == 2, "the flare rises, then settles")
 	assert(j3.flare:GetAlpha() == 0, "the flare ends unseen")
@@ -156,6 +159,7 @@ do
 	K.Options.Write("Medallions", "motion", "off")
 	Set(env, 3)
 	assert(Playing(ns) == 0, "Off plays no jewel or ring animation")
+	assert(not (j3.flare:IsShown() or j3.ember:IsShown() or j3.haloWas:IsShown() or ring.was:IsShown()), "Off hides the flare, the drain and the glow before, which have nothing to show")
 	assert(Lit(env, j3.gem) and not Lit(env, jewels[4].gem) and not Lit(env, ring.now.glyphs), "Off shows the end state at once")
 	Set(env, 5)
 	assert(Playing(ns) == 0 and Lit(env, ring.now.glyphs) and ring.now:GetAlpha() == 1, "Off lights the full ring at once, still")

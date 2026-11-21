@@ -1,7 +1,9 @@
 -- test-perf-idle-draw.lua: what the idle suite asks the renderer to draw stays bounded: Widgets.HOLLOW lists exactly the sliced textures whose centre texels are transparent, no such centre is shown, nothing runs every frame or writes to a widget once the login fades end (OnUpdate scripts and tickers at their intervals), no animation plays on a hidden owner, Frames and Orbs loop nothing, and shown regions stay at the counts measured after the hollow-centre cut.
 local Suite = dofile("Tools/regression/suite_env.lua")
 local Png = dofile("Tools/regression/png.lua")
-local CEILING = { frames = 2761, orbs = 2676, medallions = 1715 }
+local W = dofile("Tools/regression/widget_env.lua")
+-- Medallions adds 22 drawn regions to its 1710: the suite's combo points light all ten crest jewels and the full ring, so each jewel's rim and glint and the ring's glyphs and halo draw.
+local CEILING = { frames = 2761, orbs = 2676, medallions = 1732 }
 local SETTLE, WINDOW = 600, 120
 
 local function CheckHollow(K)
@@ -58,7 +60,7 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 	local frames, busy = 0, true
 	while busy and frames < SETTLE do
 		frames = frames + 1
-		busy = Frame(env)
+		busy = Frame(env) or W.FinishGroups(env)
 	end
 	assert(not busy, style .. ": an OnUpdate still runs after " .. SETTLE .. " idle frames; stop per-frame scripts when their work is done (Motion's driver clears its own when no tween runs)")
 	local objects, before = {}, {}
