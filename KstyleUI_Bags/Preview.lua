@@ -214,7 +214,7 @@ function Preview.Build(...)
 		for i = 1, PREVIEW_COLUMNS * PREVIEW_ROWS do
 			frame.slots[i] = Slot.New(frame.grid, i)
 			frame.slots[i].button:HookScript("OnEnter", Hint)
-			frame.slots[i].button:HookScript("OnLeave", function() GameTooltip:Hide() end)
+			frame.slots[i].button:HookScript("OnLeave", function() if type(GameTooltip_Hide) == "function" then GameTooltip_Hide() end end)
 		end
 		frame.Refresh = Refresh
 		Refresh(frame)
