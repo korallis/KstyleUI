@@ -113,7 +113,7 @@ local INDICATOR_DEFAULTS = {
 for i = 1, INDICATOR_SLOTS do
 	local preset = INDICATOR_DEFAULTS[i] or {}
 	Settings.defaults["indicator" .. i] = { category = preset.category or "OFF", position = preset.position or "TOPLEFT", spells = "", mine = false, size = 14, show = "BOTH", x = 0, y = 0,
-		style = "ICON", color = Rgb("friendly"), thick = 4, reverse = false, under = false }
+		style = "ICON", color = Rgb("friendly"), thick = 4, reverse = false, over = false }
 end
 
 local function Plain(r, g, b)
@@ -446,7 +446,7 @@ function Settings.Schema(includeText)
 				{ type = "color", key = p .. "color", label = L["Colour"], help = L["The colour of the square or bar."], showWhen = styled },
 				Slider(p .. "thick", L["Bar thickness"], L["How thick the bar is, never thicker than the health bar."], 1, 20, 1, barred),
 				Toggle(p .. "reverse", L["Reverse fill"], L["The bar fills from the other end."], { showWhen = barred }),
-				Toggle(p .. "under", L["Bar under the debuff icons"], L["Draws the bar under debuff and heal icons, still over the health bar."], { showWhen = barred }) })
+				Toggle(p .. "over", L["Bar over the debuff icons"], L["Draws the bar over debuff and heal icons. Off, it sits under them, over the health bar."], { showWhen = barred }) })
 		end
 		After(schema, "raid.groupsPerRow", { Toggle("raid.center", L["Centre groups"], L["Centres the raid groups with members along their row, out of combat."], { showWhen = Separate }) })
 		local reminding = IsNot("reminders.place", "NONE")

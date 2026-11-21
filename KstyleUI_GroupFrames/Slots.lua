@@ -392,14 +392,24 @@ function Slots.Misfit(kind, i)
 end
 
 local EDGES = { TOPLEFT = "TOP", TOP = "TOP", TOPRIGHT = "TOP", BOTTOMLEFT = "BOTTOM", BOTTOM = "BOTTOM", BOTTOMRIGHT = "BOTTOM", LEFT = "LEFT", RIGHT = "RIGHT", CENTER = "CENTER" }
+local ACROSS = { BOTTOM = "TOP", TOP = "BOTTOM", LEFT = "RIGHT", RIGHT = "LEFT" }
+
+local function LineOn(f, edge)
+	local p = Settings.current.prediction
+	local shield = p.shield and Widgets.Border(f) * p.shieldLines or 0
+	if p.shield and p.shieldPlace == edge then return shield end
+	if p.healAbsorbLine and ACROSS[p.shieldPlace] == edge then return p.healAbsorbLines > 0 and Widgets.Border(f) * p.healAbsorbLines or Widgets.Border(f) * p.shieldLines end
+	return 0
+end
 
 function Slots.Bar(f, slot)
 	local health = f.parts.health
 	local edge = EDGES[slot.position] or "BOTTOM"
 	local upright = edge == "LEFT" or edge == "RIGHT"
-	local thick = math.min(slot.thick, upright and health.width or health.height)
-	local left = edge == "RIGHT" and health.left + health.width - thick or health.left
-	local top = edge == "BOTTOM" and health.top + health.height - thick or edge == "CENTER" and health.top + (health.height - thick) / 2 or health.top
+	local line = LineOn(f, edge)
+	local thick = math.min(slot.thick, (upright and health.width or health.height) - line)
+	local left = edge == "RIGHT" and health.left + health.width - line - thick or edge == "LEFT" and health.left + line or health.left
+	local top = edge == "BOTTOM" and health.top + health.height - line - thick or edge == "CENTER" and health.top + (health.height - thick) / 2 or edge == "TOP" and health.top + line or health.top
 	return left, top, upright and thick or health.width, upright and health.height or thick, upright
 end
 
@@ -409,13 +419,17 @@ local function Look(button, slot, upright)
 	if not p or p.look == key then return end
 	p.look = key or nil
 	local c, bar = slot.color, slot.style == "BAR"
-	if slot.style == "SQUARE" and not p.square then
+	if bar and type(button.SetDurationBar) ~= "function" then
+		Style.LogOnce("slotBar", "aura buttons have no SetDurationBar; bar indicators stay squares")
+		bar = false
+	end
+	if not bar and slot.style ~= "ICON" and not p.square then
 		p.square = p.skin:CreateTexture(nil, "ARTWORK", nil, 1)
 		p.square:SetAllPoints(p.icon)
 		p.square:AddMaskTexture(p.mask)
 	end
 	if p.square then
-		p.square:SetShown(slot.style == "SQUARE")
+		p.square:SetShown(not bar and slot.style ~= "ICON")
 		p.square:SetColorTexture(c.r, c.g, c.b, 1)
 	end
 	p.skin:SetAlpha(bar and 0 or 1)
@@ -453,7 +467,7 @@ local function Place(f)
 			if place.bar then
 				local left, top, w, h, upright = Slots.Bar(f, slot)
 				button:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, left + slot.x), -Widgets.Snap(f, top - slot.y))
-				button:SetFrameLevel(slot.under and f:GetFrameLevel() + Auras.CONTAINER_LEVEL or base + COUNT - i)
+				button:SetFrameLevel(slot.over and base + COUNT - i or f:GetFrameLevel() + Auras.CONTAINER_LEVEL)
 				Auras.StyleIcon(button)
 				Widgets.Size(button, Widgets.Snap(f, w), Widgets.Snap(f, h))
 				Look(button, slot, upright)

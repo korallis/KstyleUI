@@ -1,22 +1,12 @@
--- test-groupframes-parity-r6.lua: EllesmereUI parity round 6: v0.2.8 profiles keep every new default; the shield edge, role icons under the highlights, indicator squares and bars, party frames that follow the raid's settings, an own raid size and tank frames that leave you out apply when on, follow their events, combat and secrecy, reach the preview and switch back.
+-- test-groupframes-parity-r6.lua: EllesmereUI parity round 6 on party frames: v0.2.8 profiles keep every new default; the shield edge, role icons under the highlights, indicator squares and bars and party frames that follow the raid's settings apply when on, follow secrecy, reach the preview and switch back. The raid checks are in test-groupframes-parity-r6-raid.lua.
 local H = dofile("Tools/regression/groupframes_r3a.lua")
-local G, MODULE = H.G, H.MODULE
+local MODULE = H.MODULE
 local write, frame, noErrors, boot, near = H.write, H.frame, H.noErrors, H.boot, H.near
 
 local function saved(own)
 	own = own or {}
 	own.enabled = true
 	return { version = 42, profiles = { Default = { [MODULE] = own } }, characters = {}, layouts = {} }
-end
-
-local function shownUnits(header)
-	local out, i = {}, 1
-	while header:GetAttribute("child" .. i) do
-		local child = header:GetAttribute("child" .. i)
-		if child:IsShown() and child:GetAttribute("unit") then out[#out + 1] = child:GetAttribute("unit") end
-		i = i + 1
-	end
-	return table.concat(out, ",")
 end
 
 local function tint(region, i)
@@ -43,7 +33,7 @@ do
 	assert(get("auto.customLeast") == 0 and get("auto.customWidth") == 0, "no own raid size")
 	for _, section in ipairs({ "text", "auras", "heals", "icons", "power" }) do assert(get("follow." .. section) == false, "party frames keep their own " .. section) end
 	for i = 1, ns.Settings.INDICATOR_SLOTS do
-		assert(get("indicator" .. i .. ".style") == "ICON" and get("indicator" .. i .. ".thick") == 4 and get("indicator" .. i .. ".reverse") == false and get("indicator" .. i .. ".under") == false, "indicators stay icons")
+		assert(get("indicator" .. i .. ".style") == "ICON" and get("indicator" .. i .. ".thick") == 4 and get("indicator" .. i .. ".reverse") == false and get("indicator" .. i .. ".over") == false, "indicators stay icons")
 	end
 	local f = frame(ns, "party1")
 	assert(f.shieldEdge == nil, "no shield edge is made")
@@ -109,7 +99,7 @@ do
 	noErrors(env, K)
 end
 
--- Indicator looks: a square in one colour, a bar on the health bar's edge that the engine drains, reversed, under the debuff icons; secrecy waits; icon restores.
+-- Indicator looks: a square in one colour, a bar on the health bar's edge that the engine drains, under the icons, stepped in past the shield lines, reversed or over the icons, a square without the engine's bar; secrecy waits; icon restores.
 do
 	local f = frame(ns, "party1")
 	local button = f.indicators._slots.indicator1.frame
@@ -125,9 +115,21 @@ do
 	assert(near(button:GetWidth(), K.Widgets.Snap(f, health.width)) and near(button:GetHeight(), K.Widgets.Snap(f, 4)), "the health bar's width, four units thick")
 	local _, _, _, _, y = button:GetPoint(1)
 	assert(near(y, -K.Widgets.Snap(f, health.top + (health.height - 4) / 2)), "across the middle for a centred place")
+	assert(button:GetFrameLevel() == f:GetFrameLevel() + ns.Auras.CONTAINER_LEVEL, "under the debuff and heal icons, over the health bar")
+	local line = K.Widgets.Border(f) * ns.Settings.current.prediction.shieldLines
 	write(env, K, "indicator1.position", "BOTTOMRIGHT")
 	_, _, _, _, y = button:GetPoint(1)
-	assert(near(y, -K.Widgets.Snap(f, health.top + health.height - 4)), "on the bottom edge for a bottom place")
+	assert(near(y, -K.Widgets.Snap(f, health.top + health.height - line - 4)), "on the bottom edge, stepped in past the shield line there")
+	write(env, K, "prediction.shield", false)
+	_, _, _, _, y = button:GetPoint(1)
+	assert(near(y, -K.Widgets.Snap(f, health.top + health.height - 4)), "on the edge itself without the shield line")
+	write(env, K, "prediction.healAbsorbLine", true)
+	write(env, K, "indicator1.position", "TOP")
+	_, _, _, _, y = button:GetPoint(1)
+	assert(near(y, -K.Widgets.Snap(f, health.top + line)), "past the heal absorb line across from the shield line")
+	write(env, K, "prediction.healAbsorbLine", false)
+	write(env, K, "prediction.shield", true)
+	write(env, K, "indicator1.position", "BOTTOMRIGHT")
 	assert(select(1, p.bar:GetStatusBarColor()) == 1, "in its colour")
 	write(env, K, "indicator1.position", "LEFT")
 	assert(near(button:GetWidth(), K.Widgets.Snap(f, 4)) and near(button:GetHeight(), K.Widgets.Snap(f, health.height)) and p.bar:GetOrientation() == "VERTICAL", "upright on the left edge")
@@ -138,8 +140,17 @@ do
 	write(env, K, "indicator1.reverse", true)
 	assert(p.bar:GetReverseFill() == true, "reverse fill")
 	local level = button:GetFrameLevel()
-	write(env, K, "indicator1.under", true)
-	assert(button:GetFrameLevel() == f:GetFrameLevel() + ns.Auras.CONTAINER_LEVEL and button:GetFrameLevel() < level, "under the debuff icons, over the health bar")
+	write(env, K, "indicator1.over", true)
+	assert(button:GetFrameLevel() > level and button:GetFrameLevel() > f.auras:GetFrameLevel() + 1, "over the debuff icons, with the other indicators")
+	write(env, K, "indicator1.over", false)
+	assert(button:GetFrameLevel() == level, "off puts it back under them")
+	local setBar = button.SetDurationBar
+	button.SetDurationBar = nil
+	write(env, K, "indicator1.reverse", false)
+	assert(p.square:IsShown() and not p.bar:IsShown() and p.skin:GetAlpha() == 1, "without the engine's duration bar a bar stays a square")
+	button.SetDurationBar = setBar
+	write(env, K, "indicator1.reverse", true)
+	assert(p.bar:IsShown() and not p.square:IsShown(), "and becomes a bar again with it")
 	assert(not ns.Slots.Misfit("party", 1), "a bar takes no icon spot")
 	local pv = preview(env, K)
 	local sample = pv.partyFrames[1].sampleSlots[1]
@@ -154,7 +165,7 @@ do
 	write(env, K, "indicator1.style", "SQUARE")
 	pv:Refresh()
 	assert(tint(sample.tile.icon, 1) == 1 and not sample.bar:IsShown(), "the preview's square")
-	for key, value in pairs({ style = "ICON", position = "CENTER", thick = 4, reverse = false, under = false }) do write(env, K, "indicator1." .. key, value) end
+	for key, value in pairs({ style = "ICON", position = "CENTER", thick = 4, reverse = false, over = false }) do write(env, K, "indicator1." .. key, value) end
 	pv:Refresh()
 	assert(sample.tile.icon:GetTexture() ~= nil and sample.tile.skin:GetAlpha() == 1, "the preview's icon returns")
 	noErrors(env, K)
@@ -185,80 +196,4 @@ do
 	noErrors(env, K)
 end
 
--- An own raid size from a raid size of your choosing, switched with the roster out of combat.
-do
-	G.SetRoster(env, "raid", G.Members(18))
-	env.RunTimers()
-	local width = frame(ns, "raid1"):GetWidth()
-	write(env, K, "auto.customLeast", 16)
-	write(env, K, "auto.customWidth", 150)
-	write(env, K, "auto.customHeight", 40)
-	assert(ns.AutoLayout.state.bracket == "CUSTOM" and near(frame(ns, "raid1"):GetWidth(), 150) and near(frame(ns, "raid1"):GetHeight(), 40), "18 players take the own size")
-	write(env, K, "auto.icons", true)
-	assert(ns.Settings.current.raid.auraSize == math.floor(12 * 40 / 36 + 0.5), "icons scale with it")
-	G.SetRoster(env, "raid", G.Members(12))
-	env.RunTimers()
-	assert(ns.AutoLayout.state.bracket == "MEDIUM" and near(frame(ns, "raid1"):GetWidth(), width), "12 players keep the raid size")
-	env.SetCombat(true)
-	G.SetRoster(env, "raid", G.Members(18))
-	env.RunTimers()
-	assert(near(frame(ns, "raid1"):GetWidth(), width) and #env._blocked == 0, "combat waits")
-	env.SetCombat(false)
-	env.RunTimers()
-	assert(near(frame(ns, "raid1"):GetWidth(), 150), "and the size follows after it")
-	G.SetRoster(env, "raid", G.Members(30))
-	env.RunTimers()
-	assert(ns.AutoLayout.state.bracket == "LARGE", "compact frames still win")
-	write(env, K, "auto.customLeast", 0)
-	G.SetRoster(env, "raid", G.Members(18))
-	env.RunTimers()
-	assert(ns.AutoLayout.state.bracket == "MEDIUM" and near(frame(ns, "raid1"):GetWidth(), width), "0 turns it off")
-	write(env, K, "auto.icons", false)
-	noErrors(env, K)
-end
-
--- Tank frames leave you out by a name list built out of combat, follow role and roster changes, wait for combat, refuse secret names and switch back.
-do
-	local members = G.Members(10, function(i, m) m.role = (i == 3 or i == 7) and "TANK" or m.role end)
-	G.SetRoster(env, "raid", members, members[3])
-	env.RunTimers()
-	write(env, K, "tanks.enabled", true)
-	local header = ns.Extras.groups.tanks.header
-	assert(shownUnits(header) == "raid3,raid7", "you are a tank among them: " .. shownUnits(header))
-	write(env, K, "tanks.excludeSelf", true)
-	assert(shownUnits(header) == "raid7" and header:GetAttribute("nameList") == "Member7" and header:GetAttribute("roleFilter") == nil, "you are left out: " .. shownUnits(header))
-	members[5].role = "TANK"
-	env.FireEvent("PLAYER_ROLES_ASSIGNED")
-	assert(shownUnits(header) == "raid5,raid7", "a new tank joins: " .. shownUnits(header))
-	members[9].raidRole = "MAINTANK"
-	env.SetCombat(true)
-	env.FireEvent("PLAYER_ROLES_ASSIGNED")
-	assert(shownUnits(header) == "raid5,raid7" and #env._blocked == 0, "combat waits")
-	env.SetCombat(false)
-	env.RunTimers()
-	assert(shownUnits(header) == "raid5,raid7,raid9", "a main tank follows after it: " .. shownUnits(header))
-	members[11] = { name = "Member11", class = "WARRIOR", role = "TANK", health = 80, maxHealth = 100 }
-	G.SetRoster(env, "raid", members, members[3])
-	env.RunTimers()
-	assert(shownUnits(header) == "raid5,raid7,raid9,raid11", "the roster's tank joins: " .. shownUnits(header))
-	local name = env.UnitName
-	env.UnitName = function(unit) if unit == "player" then return env.Secret("Member3"), nil end return name(unit) end
-	env.FireEvent("PLAYER_ROLES_ASSIGNED")
-	assert(header:GetAttribute("roleFilter") == "MAINTANK,TANK" and header:GetAttribute("nameList") == nil, "a secret name refuses the list")
-	env.UnitName = name
-	env.FireEvent("PLAYER_ROLES_ASSIGNED")
-	assert(header:GetAttribute("nameList") ~= nil, "and it returns once names are readable")
-	local pv = preview(env, K)
-	local tanks = pv.extras.tanks
-	assert(not tanks[1]:IsShown() and tanks[2]:IsShown(), "the preview leaves your sample out")
-	write(env, K, "tanks.excludeSelf", false)
-	G.SetRoster(env, "raid", members, members[3])
-	env.RunTimers()
-	assert(header:GetAttribute("roleFilter") == "MAINTANK,TANK" and header:GetAttribute("nameList") == nil and shownUnits(header):find("raid3", 1, true), "off brings you back: " .. shownUnits(header))
-	pv:Refresh()
-	assert(tanks[1]:IsShown(), "in the preview too")
-	write(env, K, "tanks.enabled", false)
-	noErrors(env, K)
-end
-
-print("groupframes parity round 6 ok: the shield edge, role icons under the highlights, indicator squares and bars, party frames that follow the raid, an own raid size and tank frames that leave you out")
+print("groupframes parity round 6 ok: the shield edge, role icons under the highlights, indicator squares and bars and party frames that follow the raid")
