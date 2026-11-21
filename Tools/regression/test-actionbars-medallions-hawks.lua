@@ -1,4 +1,4 @@
--- test-actionbars-medallions-hawks.lua: the crest's hawk perches: a hunter who knows Summon Hawk gets two perches on the rune ring's shoulders, nobody else gets a frame or an event; each perch lights from totem slot 2 or 3 through the slot's own boolean and drains through the slot's duration object, secret or not, with no Lua compare; a summon flares, an expiry fades, a third summon refreshes the oldest perch alone, both hawks out light the rune ring; Calm stills the breath, Off shows end states with no animation, nothing runs OnUpdate, Hawk perches off hides everything, and every layer is an even number of pixels centred on its perch, mirrored across the crown, at four screen sizes.
+-- test-actionbars-medallions-hawks.lua: the crest's hawk perches: a hunter who knows Summon Hawk gets two perches on the rune ring's shoulders, nobody else gets a frame, an event or a callback; each perch lights from totem slot 2 or 3 through the slot's own boolean and drains through the slot's duration object, secret or not, with no Lua compare; a summon flares, an expiry fades, a third summon refreshes the oldest perch alone, both hawks out light the rune ring, breathing only while Lua can read both slots; a flyout or spellbook update leaves a playing flare alone; the render story keeps Summon Hawk's recovery and ends empty; Calm stills the breath, Off shows end states with no animation, nothing runs OnUpdate, Hawk perches off hides everything, and every layer is an even number of pixels centred on its perch, mirrored across the crown, at four screen sizes.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local SIZES = { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
@@ -14,7 +14,9 @@ local function New(class, known, size)
 			e._totems, e._known = {}, known or {}
 			e.C_SpellBook = e.C_SpellBook or {}
 			e.C_SpellBook.IsSpellKnown = function(id) return e._known[id] == true end
+			e._reads = 0
 			e.GetTotemInfo = function(slot)
+				e._reads = e._reads + 1
 				local t = e._totems[slot]
 				if not t then return false, "", 0, 0, 0, 1, 0 end
 				return t.have, "Hawk", t.start, t.duration, 132158, 1, t.spell
@@ -25,6 +27,17 @@ local function New(class, known, size)
 			end
 		end,
 	})
+	-- env._callbacks: the callbacks the hawks hold now, by event.
+	local register, unregister = K.Callbacks.Register, K.Callbacks.Unregister
+	env._callbacks = {}
+	K.Callbacks.Register = function(event, owner, fn)
+		if owner == "ActionBars.SlabHawks" then env._callbacks[event] = true end
+		return register(event, owner, fn)
+	end
+	K.Callbacks.Unregister = function(event, owner)
+		if owner == "ActionBars.SlabHawks" then env._callbacks[event] = nil end
+		return unregister(event, owner)
+	end
 	AB.Enable(env, K)
 	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
@@ -89,6 +102,7 @@ for _, case in ipairs({ { "WARRIOR", { [RANK3] = true } }, { "ROGUE", {} }, { "H
 	local env, K, ns = New(case[1], case[2])
 	local state = ns.SlabHawks.state
 	assert(#state.perches == 0 and state.pair == nil and not state.listening, case[1] .. ": no perch, ring or event unless a hunter knows Summon Hawk")
+	assert(next(env._callbacks) == nil, case[1] .. ": no hawk callback either; register EffectsLevelChanged with the totem event")
 	Hawk(env, 2, 10)
 	assert(#state.perches == 0, case[1] .. ": a totem update builds nothing")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
@@ -112,6 +126,10 @@ do
 	assert(Timer(left) and Timer(left).start == 100 and Timer(left).finish == 118, "the timer is the slot's own duration object")
 	assert(Drawn(env, left, "flare") and left.flare.fade:IsPlaying(), "a summon flares")
 	assert(not Drawn(env, left, "was"), "nothing was there to fade")
+	local reads = env._reads
+	env.FireEvent("SPELL_FLYOUT_UPDATE", 1)
+	env.FireEvent("SPELLS_CHANGED")
+	assert(left.flare.fade:IsPlaying() and env._reads == reads, "a flyout or spellbook update that changes nothing leaves the perches alone")
 	assert(not state.pair:IsShown(), "one hawk leaves the ring plain")
 	left.flare.fade:GetScript("OnFinished")(left.flare.fade)
 	assert(not left.flare:IsShown(), "the flare hides once it has played")
@@ -158,6 +176,7 @@ do
 	K.Options.Write("ActionBars", "crestHawks", false)
 	env.RunTimers()
 	assert(not left.holder:IsShown() and not right.holder:IsShown() and not state.pair:IsShown() and not state.listening, "Hawk perches off hides both perches and the ring and stops listening")
+	assert(next(env._callbacks) == nil, "Hawk perches off drops the hawks' callback too")
 	K.Options.Write("ActionBars", "crestHawks", true)
 	env.RunTimers()
 	assert(left.holder:IsShown() and Seen(env, left.lit) and state.listening, "turning it back on reads the slots again")
@@ -176,9 +195,38 @@ do
 	assert(env.issecretvalue(left.lit._state.AlphaFromBoolean[1]), "a secret slot lights its perch through the engine's boolean")
 	assert(Seen(env, left.lit) and Seen(env, right.lit) and Seen(env, state.pair) and Seen(env, state.pair.inner), "two secret hawks light both perches and the ring")
 	assert(env.issecretvalue(state.pair._state.AlphaFromBoolean[1]) and env.issecretvalue(state.pair.inner._state.AlphaFromBoolean[1]), "the ring is gated by both secret booleans, one per frame")
+	assert(not state.pair.breath:IsPlaying(), "a ring Lua cannot see does not breathe, so it never loops at alpha 0")
 	Gone(env, 2, true)
 	assert(not Seen(env, left.lit) and Drawn(env, left, "was") and not Drawn(env, left, "flare"), "a secret expiry fades the perch and never flares")
 	assert(not Seen(env, state.pair), "and the ring goes dark through the boolean")
+	Gone(env, 3, true)
+	assert(not state.pair.breath:IsPlaying(), "two secret empty slots: the ring's breath stays stopped")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- The render story (RENDER_FX=hawks) is one a hunter can play: summons at least Summon Hawk's 6 s category recovery
+-- apart, and every hawk gone by the end.
+do
+	local env, K, ns = New("HUNTER", { [RANK3] = true })
+	local state = ns.SlabHawks.state
+	local fire, summons = env.FireEvent, {}
+	env.FireEvent = function(event, slot, ...)
+		fire(event, slot, ...)
+		if event == "PLAYER_TOTEM_UPDATE" and env.GetTotemInfo(slot) then
+			summons[#summons + 1] = select(3, env.GetTotemInfo(slot))
+		end
+	end
+	rawset(_G, "RENDER_FX", "hawks")
+	rawset(_G, "RENDER_FX_T", "60")
+	env._time = env._now or 0
+	dofile("Tools/render/scenes/_effects.lua").Apply(env, "actionbars", ns, {})
+	rawset(_G, "RENDER_FX", nil)
+	rawset(_G, "RENDER_FX_T", nil)
+	assert(#summons >= 3, "the story summons a third hawk")
+	for i = 2, #summons do
+		assert(summons[i] - summons[i - 1] >= 6, "story summons " .. (i - 1) .. " and " .. i .. " are " .. (summons[i] - summons[i - 1]) .. " s apart; keep Summon Hawk's 6 s recovery")
+	end
+	assert(not Seen(env, state.perches[1].lit) and not Seen(env, state.perches[2].lit), "the story ends with both hawks gone; add their expiries")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
