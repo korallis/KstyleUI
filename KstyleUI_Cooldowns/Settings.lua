@@ -85,6 +85,7 @@ local MAX_PATH = 260
 local accentR, accentG, accentB = Tokens.Color("accentDefault")
 local rangeR, rangeG, rangeB = Tokens.Color("hostile")
 local textR, textG, textB = Tokens.Color("textEmphasis")
+local blackR, blackG, blackB = Tokens.Color("black")
 local DEFAULT_BAR_TEXTURE = Tokens.MediaList("statusbar")[1].path
 
 local function IconDefaults(size, timerSize, countSize, cooldown, spacing, columns)
@@ -200,7 +201,7 @@ Settings.defaults = {
 		cdSmooth = false,
 		hashLines = false,
 		lineWidth = 1,
-		lineColor = { r = 0, g = 0, b = 0 },
+		lineColor = { r = blackR, g = blackG, b = blackB },
 		chargeShade = false,
 		shadeAlpha = 0.5,
 	},
