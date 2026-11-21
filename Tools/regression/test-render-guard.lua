@@ -251,6 +251,19 @@ local iconArt = iconHolder:CreateTexture(nil, "ARTWORK")
 iconArt:SetAllPoints(iconHolder)
 iconArt:SetTexture("Interface\\Icons\\inv_misc_questionmark")
 
+-- A HUD alert line on a lower strata, half under a window on a higher one (QoL's talent line under Options): the
+-- window draws over it as the game stacks strata, so the line is not the window's content, nor covered by it.
+local alerts = env.CreateFrame("Frame", "GuardAlerts", UIParent)
+alerts:SetFrameStrata("BACKGROUND")
+alerts:SetSize(300, 40)
+alerts:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 1000, -500)
+text(alerts, "Unspent talent points", 300, false):SetPoint("LEFT", alerts, "LEFT", 0, 0)
+local options = env.CreateFrame("Frame", "GuardOptions", UIParent)
+options:SetFrameStrata("HIGH")
+options:SetSize(200, 100)
+options:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 950, -470)
+glass(options)
+
 local scene = Scene.Build(env, {})
 local findings = Guard.Check(scene)
 local by = {}
@@ -285,6 +298,9 @@ for _, f in ipairs(findings) do
 end
 assert(not textOverTexture, "a text drawn over a texture, on its own frame or a frame below, is the design")
 assert(not by["overlap|Hello & Visible"], "a label clipped out of view does not slide into view to cross a visible one")
+for _, f in ipairs(findings) do
+	assert(not f.subject:find("Unspent talent points", 1, true), "a HUD line under a window on a higher strata is not the window's content: " .. f.kind .. " " .. f.subject)
+end
 assert(by["overlap|GuardShelf.icon.? inv_misc_questionmark & Page 1"] or by["overlap|GuardShelf.icon.? inv_misc_questionmark.png & Page 1"], "an icon file over another frame's label is a cover: " .. table.concat((function()
 	local subjects = {}
 	for _, f in ipairs(findings) do
