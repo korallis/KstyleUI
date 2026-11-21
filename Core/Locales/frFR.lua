@@ -1485,7 +1485,7 @@ ns.Locale.Add({
 	["Glows around your target's plate in the target colour."] = "Fait luire la barre de votre cible de la couleur de cible.",
 	["Glows in the threat colour when the unit has or causes threat."] = "Brille de la couleur de menace quand l'unit\195\169 a ou g\195\169n\195\168re de la menace.",
 	["Glows only in combat"] = "Lueurs en combat seulement",
-	["Glows only in dungeons and raids, and only while you are not the tank."] = "Ne brille qu'en donjon et en raid, et seulement si vous n'\195\170tes pas le tank.",
+	["Glows only in dungeons and raids, and only while your role is damage or healer."] = "Ne brille qu'en donjon et en raid, et seulement si votre r\195\180le est d\195\169g\195\162ts ou soins.",
 	["Gold"] = "Or",
 	["Gold and silver"] = "Or et argent",
 	["Gold format"] = "Format de l'or",

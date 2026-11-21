@@ -870,7 +870,7 @@ IconRows = function(schema, kind)
 		add("pvp", { type = "toggle", key = "pvpTimer", label = L["PvP flag timer"], help = L["Shows the time left before your PvP flag drops, after the status icons."] })
 		add("pvp", { type = "slider", key = "pvpTimerSize", label = L["Timer text size"], help = L["The size of the PvP flag timer."], min = FONT_SIZE_MIN, max = FONT_SIZE_MAX, step = 1 }, "pvpTimer")
 		place("pvp", L["PvP flag timer"], "pvpTimer")
-		add("threat", { type = "toggle", key = "threatNonTank", label = L["Threat glow only as a non-tank"], help = L["Glows only in dungeons and raids, and only while you are not the tank."] })
+		add("threat", { type = "toggle", key = "threatNonTank", label = L["Threat glow only as a non-tank"], help = L["Glows only in dungeons and raids, and only while your role is damage or healer."] })
 	elseif kind == "target" or kind == "focus" then
 		add(nil, { type = "toggle", key = "threatPercent", label = L["Threat percent"], help = L["Shows your threat on this unit as a percentage while the game shares it."] })
 		for _, slab in ipairs({ false, true }) do

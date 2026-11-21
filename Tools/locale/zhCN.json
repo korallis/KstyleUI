@@ -1478,7 +1478,7 @@
 	"Glows around your target's plate in the target colour.": "以目标颜色在你目标的姓名板周围发光。",
 	"Glows in the threat colour when the unit has or causes threat.": "单位拥有或造成仇恨时以仇恨颜色发光。",
 	"Glows only in combat": "仅在战斗中显示光晕",
-	"Glows only in dungeons and raids, and only while you are not the tank.": "仅在地下城和团队副本中、且你不是坦克时发光。",
+	"Glows only in dungeons and raids, and only while your role is damage or healer.": "仅在地下城和团队副本中、且你的职责为伤害输出或治疗时发光。",
 	"Gold": "金币",
 	"Gold and silver": "金币和银币",
 	"Gold format": "金币格式",
