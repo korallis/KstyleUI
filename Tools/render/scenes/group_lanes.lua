@@ -23,6 +23,8 @@
 -- indicator 1 as a bar on the health bar's foot, filling the other way and over the debuff icons, and indicator 2 as a square (both
 -- shown on the first member), party frames that take the raid's text, debuffs, heal icons, status icon size and power bar, an own
 -- raid size from 16 players and tank frames that leave you out (you are the first member).
+-- RENDER_GROUP_DISPEL=1 shows the dispel highlight on the second member as the aura engine does for a Magic debuff: every texture
+-- registered with the slot shown in the Magic colour, keeping its own alpha as the options preview does.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
@@ -276,6 +278,18 @@ return Common.Run(function()
 			if slot and (f.unit == "party2" or f.unit == "raid2") then
 				slot.frame:Show()
 				dofile("Tools/regression/auras_env.lua").Dispel(slot.frame, "Magic")
+			end
+		end)
+	end
+	if os.getenv("RENDER_GROUP_DISPEL") == "1" then
+		ns.Unit.ForEach(function(f)
+			local slot = f.highlights and f.highlights._slots.dispel
+			if slot and (f.unit == "party2" or f.unit == "raid2") then
+				for _, entry in ipairs(slot.frame._aura.dispel) do
+					entry.texture:SetVertexColor(0.2, 0.6, 1, entry.texture:GetAlpha())
+					entry.texture:Show()
+				end
+				slot.frame:Show()
 			end
 		end)
 	end
