@@ -1,7 +1,8 @@
 -- bags_parity.lua: the bag window with the parity options on: labels, sections, merged stacks, the reagent marker, the
 -- bag strip and tracked currencies; RENDER_BAGS_LIST=1 shows the list view at a banker, RENDER_BAGS_DEFAULTS=1 no options
 -- (with RENDER_BAGS_COMPACT=1, only Compact bags); RENDER_BAGS_OPTIONS=<key> opens the Options page at that row;
--- RENDER_BAGS_ROUND2=1 shows the category list, Pinned and a chosen currency with the bank, =grid the steady grid sorted to the bottom.
+-- RENDER_BAGS_ROUND2=1 shows the category list, Pinned and a chosen currency with the bank, =grid the steady grid sorted to the bottom,
+-- =cap the list scrolling inside a 30% Maximum height.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local B = dofile("Tools/regression/bags_env.lua")
@@ -22,6 +23,7 @@ local LIST = {
 local ROUND2 = {
 	["1"] = { compactBags = true, pins = true, sidebar = true, currencies = true, currency1 = 390, bagSlots = true },
 	grid = { pins = true, pinsDim = true, sortBottom = true, sidebar = true, sidebarEmpty = true, currencies = true },
+	cap = { compactBags = true, pins = true, sidebar = true, sidebarEmpty = true, maxHeight = 30 },
 }
 
 return Common.Run(function()
