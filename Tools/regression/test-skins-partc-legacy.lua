@@ -109,7 +109,7 @@ do
 	assert(Alpha(f.Tabs[1].Icon) == 1, "the selected one at full")
 	f.Tabs[1]:SetChecked(false)
 	f.Tabs[2]:SetChecked(true)
-	assert(ns.Parts.RimOf(f.Tabs[2]):GetRimColor() ~= nil and not ns.Parts.RimOf(f.Tabs[1]):GetRimColor() ~= nil, "the rim follows the page")
+	assert(ns.Parts.RimOf(f.Tabs[2]):GetRimColor() ~= nil and ns.Parts.RimOf(f.Tabs[1]):GetRimColor() == nil, "the rim follows the page")
 	assert(Alpha(f.RewardTrackPage.Background) == 0 and Alpha(f.ChallengesPage.Background) == 0 and Alpha(f.TreePage.Background) == 0, "page art is hidden by default")
 	K.Options.Write("Skins", "legacy.pageArt", true)
 	assert(Alpha(f.TreePage.Background) == 1, "the page art setting brings it back at once")

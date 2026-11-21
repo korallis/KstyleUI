@@ -66,6 +66,13 @@ function S.New(opts)
 	return env, K, ns
 end
 
+-- RimColor(ns, frame) -> the colour of the frame's Parts.Rim, or nil when it is plain.
+function S.RimColor(ns, frame)
+	local rim = ns.Parts.RimOf(frame)
+	assert(rim, "the frame has a KstyleUI rim")
+	return rim:GetRimColor()
+end
+
 -- LoadAddOn(env, name) marks a Blizzard addon loaded and fires its ADDON_LOADED.
 function S.LoadAddOn(env, name)
 	env._loaded = env._loaded or {}

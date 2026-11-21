@@ -19,12 +19,6 @@ local function FontPath(text)
 	return (text:GetFont())
 end
 
-local function RimColor(ns, frame)
-	local rim = ns.Parts.RimOf(frame)
-	assert(rim, "the frame has a KstyleUI rim")
-	return rim:GetRimColor()
-end
-
 local function SameQuality(K, r, g, b, quality)
 	local qr, qg, qb = K.Theme.QualityColor(quality)
 	return W.Near(r, qr) and W.Near(g, qg) and W.Near(b, qb)
@@ -165,7 +159,7 @@ do
 	assert(Alpha(item.icon) == 1 and Alpha(item.IconBorder) == 0 and Alpha(item.NormalTexture) == 0, "the item keeps its icon and loses Blizzard's slot art")
 	local crop = W.LastCall(item.icon, "SetTexCoord")
 	assert(crop and W.Near(crop[1], 0.07), "the icon is cropped")
-	local r, g, b = RimColor(ns, item)
+	local r, g, b = S.RimColor(ns, item)
 	assert(SameQuality(K, r, g, b, QUALITY_EPIC), "an epic item gets the epic rim")
 	assert(FontPath(row.Text) == Style.Font("body") and FontPath(row.QualityText) == Style.Font("caption"), "the name and quality label wear the skin fonts")
 	assert(W.SameRGB({ GetVertexColor = function() return row.QualityText:GetTextColor() end }, K.Theme.QualityColor(QUALITY_EPIC)), "the quality label takes the quality colour")
@@ -182,11 +176,11 @@ do
 	assert(not wash:IsShown())
 	snap = B.snapshot()
 
-	assert(RimColor(ns, p.money.Item) == nil, "common coin stays plain by default")
+	assert(S.RimColor(ns, p.money.Item) == nil, "common coin stays plain by default")
 	K.Options.Write("Skins", "loot.qualityFrom", QUALITY_COMMON)
-	assert(RimColor(ns, p.money.Item) ~= nil, "lowering the threshold rims common loot at once")
+	assert(S.RimColor(ns, p.money.Item) ~= nil, "lowering the threshold rims common loot at once")
 	K.Options.Write("Skins", "loot.qualityBorders", false)
-	assert(RimColor(ns, item) == nil, "switching quality borders off clears every rim")
+	assert(S.RimColor(ns, item) == nil, "switching quality borders off clears every rim")
 	K.Options.Write("Skins", "loot.qualityBorders", true)
 	K.Options.Write("Skins", "loot.qualityFrom", 2)
 
@@ -194,7 +188,7 @@ do
 	assert(Alpha(p.late.NameFrame) == 0 and K.Skin.IsSkinned(p.late, "Backdrop"), "a row the list shows later is skinned too")
 	row:SetData({ slotIndex = 1, quality = QUALITY_COMMON })
 	p.box.Init(row, { slotIndex = 1, quality = QUALITY_COMMON })
-	assert(RimColor(ns, item) == nil, "a recycled row repaints for its new item")
+	assert(S.RimColor(ns, item) == nil, "a recycled row repaints for its new item")
 
 	B.check(snap, { SetData = true, Show = true, Hide = true, SetShown = true })
 	assert(#env._errors == 0, tostring(env._errors[1]))
@@ -237,7 +231,7 @@ do
 		assert(FontPath(frame.Name) == Style.Font("body"), "the item name wears the body font")
 		assert(Alpha(frame.LootButtonContainer.NeedButton.Art) == 1, "the need, greed and pass buttons keep their icons")
 	end
-	local r, g, b = RimColor(ns, first.IconFrame)
+	local r, g, b = S.RimColor(ns, first.IconFrame)
 	assert(SameQuality(K, r, g, b, QUALITY_EPIC), "the roll's item quality colours the icon rim")
 	local timer = first.Timer
 	assert(Alpha(timer.Background) == 0 and Alpha(timer:GetStatusBarTexture()) == 0, "Blizzard's timer art is hidden")
@@ -267,9 +261,9 @@ do
 	second.rollID = env.Secret(8)
 	S.Show(second)
 	env.GroupLootFrame_SetupItemDisplay(second)
-	assert(RimColor(ns, second.IconFrame) == nil, "a secret roll ID leaves the rim plain")
+	assert(S.RimColor(ns, second.IconFrame) == nil, "a secret roll ID leaves the rim plain")
 	K.Options.Write("Skins", "lootRolls.qualityBorders", false)
-	assert(RimColor(ns, first.IconFrame) == nil, "switching quality borders off clears the rims")
+	assert(S.RimColor(ns, first.IconFrame) == nil, "switching quality borders off clears the rims")
 
 	B.check(snap, { rollID = true, SetValue = true, SetMinMaxValues = true })
 	assert(#env._errors == 0, tostring(env._errors[1]))
@@ -289,7 +283,7 @@ do
 	S.Show(roll)
 	assert(ns.Skins.IsApplied("lootRolls") and K.Skin.IsSkinned(roll, "Backdrop"))
 	assert(S.Logged(env, "GroupLootFrame_SetupItemDisplay is missing"), "the missing hook is logged")
-	assert(RimColor(ns, roll.IconFrame) == nil)
+	assert(S.RimColor(ns, roll.IconFrame) == nil)
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
