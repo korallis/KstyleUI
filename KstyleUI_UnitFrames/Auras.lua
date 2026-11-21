@@ -394,11 +394,13 @@ end
 
 local function GroupLayout(view, key)
 	local size, spacing = Snap(view, Value(view, "auraSize")), Snap(view, Value(view, "auraSpacing"))
+	local room = Snap(view, TimerRoom(view.kind))
 	return {
 		elementWidth = size,
 		elementHeight = size,
 		elementSpacing = spacing,
-		lineSpacing = spacing + Snap(view, TimerRoom(view.kind)),
+		lineSpacing = spacing + room,
+		groupLineSpacing = room > 0 and spacing + room or 0,
 		forceNewLine = key == "buffs" and Value(view, "auraFilter") == "both",
 	}
 end
