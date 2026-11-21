@@ -74,28 +74,36 @@ local OLD = { version = 1, characters = {}, layouts = { Default = {} }, profiles
 	},
 	Second = { Chat = { framing = "card" } },
 } }
-local probe = Suite.New(nil, 1920, 1080)
 local migrated = DeepCopy(OLD)
-for version = OLD.version + 1, probe.KstyleUI.Store.DB_VERSION do
-	local step = probe.KstyleUI.Store.migrations[version]
+for version = OLD.version + 1, K.Store.DB_VERSION do
+	local step = K.Store.migrations[version]
 	if step then step(migrated) end
 end
 env, K = Boot(DeepCopy(OLD), migrated.profiles.Default, "upgraded")
 assert(K.Store.Module("UnitFrames").player.face == FONT and K.Fonts.IsLoaded(FONT), "a saved font path deep in a section is read and requested")
 RoundTrip(env, K, "upgraded")
 
--- A section replaced in the profile reads as the new table.
-local section = {}
-K.Store.Profile().Chat = section
-assert(K.Store.Module("Chat") == section, "Store.Module reads the profile's current section table")
+-- A section replaced in the profile reads as the new table, even one an __eq metamethod calls equal to the old.
+K.Store.RegisterDefaults("ReadProbe", { text = "first" })
+local eq = { __eq = function() return true end }
+setmetatable(K.Store.Module("ReadProbe"), eq)
+K.Store.Profile().ReadProbe = setmetatable({ text = "second" }, eq)
+assert(K.Store.Module("ReadProbe").text == "second", "Store.Module must read the profile's current section by identity, never ==")
+
+-- A deleted profile's sections are freed once nothing else holds them.
+local held = setmetatable({}, { __mode = "v" })
+assert(K.Store.SetProfile("Temporary"))
+held[1] = K.Store.Module("ReadProbe")
+assert(K.Store.SetProfile("Default") and K.Store.DeleteProfile("Temporary"))
+collectgarbage()
+collectgarbage()
+assert(held[1] == nil, "Store.Module must keep no reference to a section the active profile no longer holds")
 
 -- Bad defaults are refused with the path of the bad value.
-local core, CK = CoreEnv.New()
-CoreEnv.Boot(core)
-Raises(function() CK.Store.RegisterDefaults("BadKey", { a = { [true] = 1 } }) end, "BadKey defaults.a has a boolean key")
-Raises(function() CK.Store.RegisterDefaults("BadNumber", { a = { b = 0 / 0 } }) end, "BadNumber defaults.a.b is not a finite number")
-Raises(function() CK.Store.RegisterDefaults("BadInf", { list = { 1, -math.huge } }) end, "BadInf defaults.list.2 is not a finite number")
-Raises(function() CK.Store.RegisterDefaults("BadType", { f = print }) end, "BadType defaults.f is a function; settings hold only")
-assert(CK.Store.Defaults("BadKey") == nil, "a refused section is not registered")
+Raises(function() K.Store.RegisterDefaults("BadKey", { a = { [true] = 1 } }) end, "BadKey defaults.a has a boolean key")
+Raises(function() K.Store.RegisterDefaults("BadNumber", { a = { b = 0 / 0 } }) end, "BadNumber defaults.a.b is not a finite number")
+Raises(function() K.Store.RegisterDefaults("BadInf", { list = { 1, -math.huge } }) end, "BadInf defaults.list.2 is not a finite number")
+Raises(function() K.Store.RegisterDefaults("BadType", { f = print }) end, "BadType defaults.f is a function; settings hold only")
+assert(K.Store.Defaults("BadKey") == nil, "a refused section is not registered")
 
 print("store reads ok")
