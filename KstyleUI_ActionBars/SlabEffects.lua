@@ -17,7 +17,7 @@ local PROC_SECONDS, PROC_SHARE = 0.9, 1
 local LEVEL_SECONDS, LEVEL_SHARE = 1.2, 1.6
 local SECONDARY = { PALADIN = "HolyPower", WARLOCK = "SoulShards" }
 
-Fx.READY, Fx.CAP_AT, Fx.CAP_LOW, Fx.CAP_BREATH, Fx.CAP_HALO = READY, CAP_AT, CAP_LOW, CAP_BREATH, CAP_HALO
+Fx.READY, Fx.CAP_AT, Fx.CAP_LOW, Fx.CAP_BREATH = READY, CAP_AT, CAP_LOW, CAP_BREATH
 
 local function IsSecret(value)
 	return issecretvalue ~= nil and issecretvalue(value) == true

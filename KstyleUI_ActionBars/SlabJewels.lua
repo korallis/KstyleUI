@@ -59,9 +59,9 @@ local function Count(kind)
 	return math.max(0, math.min(MAX_COUNT, math.floor(most)))
 end
 
-local function Even(region, units)
+local function Even(region)
 	local px = Widgets.Border(region)
-	local side = max(2, 2 * floor(units / px / 2 + 0.5)) * px
+	local side = max(2, 2 * floor(region.units / px / 2 + 0.5)) * px
 	region:SetSize(side, side)
 end
 
@@ -161,10 +161,6 @@ local function BuildRing(hub)
 	return ring
 end
 
-local function Lay(region)
-	Even(region, region.units)
-end
-
 local function Place(hub, count)
 	local mid, step = (count + 1) / 2, count > 5 and ARC / (count - 1) or STEP
 	for i = 1, math.max(count, #state.jewels) do
@@ -176,12 +172,12 @@ local function Place(hub, count)
 			local holder = jewel.holder
 			holder:ClearAllPoints()
 			holder:SetPoint("CENTER", hub, "CENTER", Widgets.Snap(hub, RADIUS * cos(a)), Widgets.Snap(hub, RADIUS * sin(a)))
-			Lay(holder)
+			Even(holder)
 			for _, t in ipairs(jewel.setting) do
-				Lay(t)
+				Even(t)
 			end
 			for _, key in ipairs({ "halo", "haloWas", "rim", "gem", "flare", "ember", "core", "glint" }) do
-				Lay(jewel[key])
+				Even(jewel[key])
 			end
 			local glint = Widgets.Snap(holder, GLINT_AT)
 			jewel.glint:SetPoint("CENTER", holder, "CENTER", -glint, glint)
