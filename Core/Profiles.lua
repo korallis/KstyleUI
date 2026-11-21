@@ -123,18 +123,37 @@ local function SpecKeys()
 	return keys[1] and keys or nil
 end
 
+local function SpecCooldowns()
+	local config = (Store.Account().specializationProfiles or {})[Store.CharacterKey() or ""]
+	local out = {}
+	for key, name in pairs(type(config) == "table" and type(config.profiles) == "table" and config.profiles or {}) do
+		local payload = type(key) == "string" and Store.Decode((Store.Export(name)))
+		if payload then
+			payload.settings, payload.layout, payload.namedLayouts = { Cooldowns = payload.settings.Cooldowns }, {}, nil
+			out[key] = Encode(payload)
+		end
+	end
+	return next(out) and out or nil
+end
+
+local function Envelope(scope, payload, includeLayout, cooldowns)
+	return "KSS1:" .. Codec.EncodeBase64(Codec.Serialize({ scope = scope, profile = Encode(payload), includeLayout = includeLayout, cooldowns = cooldowns }))
+end
+
 function Profiles.Export(scope, includeLayout, extras)
 	local text, why = Store.Export()
 	if not text or not Store.Module("ProfileTools").review then return text, why end
 	scope = scope or "everything"
 	extras = extras or {}
-	if scope == "everything" and includeLayout ~= false and not (extras.specs or extras.editMode) then return text, why end
+	if scope == "everything" and includeLayout ~= false and not (extras.specs or extras.editMode or extras.cooldowns) then return text, why end
 	local payload, err = Store.Decode(text)
 	if not payload then return nil, err end
 	payload.specs = extras.specs and SpecKeys() or nil
 	payload.editMode = extras.editMode and EditModeChunks() or nil
 	if extras.editMode and not payload.editMode then return nil, L["Edit Mode's active layout could not be read."] end
-	if scope == "everything" and includeLayout ~= false then return Encode(payload) end
+	local cooldowns = extras.cooldowns and SpecCooldowns() or nil
+	if extras.cooldowns and not cooldowns then return nil, L["No specialization has a profile assigned yet."] end
+	if scope == "everything" and includeLayout ~= false then return cooldowns and Envelope("everything", payload, nil, cooldowns) or Encode(payload) end
 	if scope == "everything" then scope = "settings" end
 	local selected = Selection(scope)
 	if type(scope) == "table" then
@@ -153,7 +172,7 @@ function Profiles.Export(scope, includeLayout, extras)
 	else
 		return nil, L["Choose a module to share."]
 	end
-	return "KSS1:" .. Codec.EncodeBase64(Codec.Serialize({ scope = scope, profile = Encode(payload), includeLayout = scope == "modules" and includeLayout ~= false or nil }))
+	return Envelope(scope, payload, scope == "modules" and includeLayout ~= false or nil, cooldowns)
 end
 
 local function Decode(text)
@@ -161,11 +180,16 @@ local function Decode(text)
 		if #text > 1048576 then return nil, L["This profile string is too large."] end
 		local raw = Codec.DecodeBase64(text:sub(6):gsub("%s+", ""))
 		local envelope = raw and Codec.Deserialize(raw)
-		if type(envelope) ~= "table" or type(envelope.scope) ~= "string" or (envelope.scope ~= "layout" and envelope.scope ~= "settings" and envelope.scope ~= "modules" and not Store.Defaults(envelope.scope)) then
+		local scopes = { layout = true, settings = true, modules = true, everything = true }
+		if type(envelope) ~= "table" or type(envelope.scope) ~= "string" or not (scopes[envelope.scope] or Store.Defaults(envelope.scope)) then
 			return nil, L["This scoped profile is not valid."]
 		end
+		local cooldowns = envelope.cooldowns
+		for key, value in pairs(type(cooldowns) == "table" and cooldowns or {}) do
+			if type(key) ~= "string" or not key:find("^%a+:%w+$") or type(value) ~= "string" then cooldowns = nil break end
+		end
 		local payload, why = Store.Decode(envelope.profile)
-		return payload, why, envelope.scope, envelope.includeLayout == true
+		return payload, why, envelope.scope, envelope.includeLayout == true, type(cooldowns) == "table" and cooldowns or nil
 	end
 	return Store.Decode(text)
 end
@@ -179,10 +203,12 @@ local function Merge(base, values)
 end
 
 function Profiles.Preview(text, scope, includeLayout, extras)
-	local payload, why, sharedScope, sharedLayout = Decode(text)
+	local payload, why, sharedScope, sharedLayout, cooldowns = Decode(text)
 	if not payload then return nil, why end
 	extras = extras or {}
 	local specs, editMode = extras.specs and payload.specs, extras.editMode and payload.editMode
+	cooldowns = extras.cooldowns and cooldowns
+	if sharedScope == "everything" then sharedScope = nil end
 	scope = scope or "everything"
 	if sharedScope == "modules" then
 		if scope == "everything" then
@@ -226,6 +252,7 @@ function Profiles.Preview(text, scope, includeLayout, extras)
 	end
 	if specs then changes[#changes + 1] = L["Specializations"] end
 	if editMode then changes[#changes + 1] = L["Edit Mode"] end
+	if cooldowns then changes[#changes + 1] = L["Cooldowns per specialization"] end
 	table.sort(changes)
 	payload.settings, payload.layout, payload.specs, payload.editMode = settings, layout, specs or nil, editMode or nil
 	local encoded = Encode(payload)
@@ -234,7 +261,7 @@ function Profiles.Preview(text, scope, includeLayout, extras)
 	local current, future = Store.Module("Appearance"), settings.Appearance
 	local scaleChanged = Store.Module("ProfileTools").scaleWarning and future
 		and (future.uiScaleAuto ~= current.uiScaleAuto or future.uiScaleAuto == false and future.uiScale ~= current.uiScale)
-	return { text = encoded, changes = changes, summary = #changes > 0 and table.concat(changes, ", ") or L["No changes"],
+	return { text = cooldowns and Envelope("everything", payload, nil, cooldowns) or encoded, changes = changes, summary = #changes > 0 and table.concat(changes, ", ") or L["No changes"],
 		warning = scaleChanged and L["This import changes your interface size. Review Size in General after applying."] or nil }
 end
 
@@ -257,10 +284,31 @@ local function ImportEditMode(chunks, name)
 	end)
 end
 
+local function ImportCooldowns(cooldowns, payload, target)
+	local names, defaults = K.API:GetProfileKeys(), Store.Defaults("Cooldowns")
+	for _, choice in ipairs(K.Specialization.Choices()) do
+		local shared = cooldowns[choice.key] and Store.Decode(cooldowns[choice.key])
+		local rules = shared and shared.settings.Cooldowns
+		local name, i = format("%s (%s)", target, choice.label):sub(1, 48), 1
+		while names[name] do i = i + 1; name = format("%s (%s %d)", target, choice.label, i):sub(1, 48) end
+		if type(rules) == "table" and Equal(Merge(defaults, rules), Merge(defaults, payload.settings.Cooldowns)) then
+			K.Specialization.Assign(choice.key, target)
+		elseif type(rules) == "table" and Store.CopyProfile(target, name) then
+			Store.Data().profiles[name].Cooldowns, names[name] = rules, true
+			K.Specialization.Assign(choice.key, name)
+		end
+	end
+end
+
 local import, reset = Store.Import, Store.ResetProfile
 function Store.Import(text, name, extras)
 	if not Store.IsLoaded() then return import(text, name) end
-	local payload, why = Store.Decode(text)
+	local payload, why, scope, _, cooldowns = Decode(text)
+	if scope == "everything" then
+		text = payload and Encode(payload)
+	elseif scope then
+		payload, why, cooldowns = Store.Decode(text)
+	end
 	if not payload then return false, why end
 	if Store.Module("ProfileTools").backups then
 		local ok, err = Profiles.Backup(L["Before import"])
@@ -270,6 +318,7 @@ function Store.Import(text, name, extras)
 	extras = ok and extras or {}
 	for _, key in ipairs(extras.specs and payload.specs or {}) do K.Specialization.Assign(key, target) end
 	if extras.editMode and payload.editMode then ImportEditMode(payload.editMode, target) end
+	if extras.cooldowns and cooldowns then ImportCooldowns(cooldowns, payload, target) end
 	return ok, target
 end
 

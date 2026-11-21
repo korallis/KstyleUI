@@ -754,7 +754,7 @@ local function SelectLater(handle)
 end
 
 local function Extras()
-	return { specs = Pages.shareSpecs == true, editMode = Pages.shareEditMode == true }
+	return { specs = Pages.shareSpecs == true, editMode = Pages.shareEditMode == true, cooldowns = Pages.shareCooldowns == true }
 end
 
 function Pages.ExportProfile()
@@ -997,6 +997,8 @@ local function ProfileItems()
 		disableWhen = function() return Pages.shareScope ~= nil and Pages.shareScope ~= "everything" and Pages.shareScope ~= "modules" end })
 	add({ kind = "toggle", label = L["Include specialization assignments"], help = L["Shares which specializations use this profile; imports assign them again."],
 		get = function() return Pages.shareSpecs == true end, set = function(value) Pages.shareSpecs = value end })
+	add({ kind = "toggle", label = L["Include cooldowns per specialization"], help = L["Shares each specialization's cooldown spells; imports give each its own copy of the profile."],
+		get = function() return Pages.shareCooldowns == true end, set = function(value) Pages.shareCooldowns = value end })
 	add({ kind = "toggle", label = L["Include Edit Mode layout"], help = L["Shares your active Edit Mode layout; imports add it after combat and switch to it."],
 		get = function() return Pages.shareEditMode == true end, set = function(value) Pages.shareEditMode = value end })
 	end
