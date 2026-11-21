@@ -93,13 +93,7 @@ local function Build(f)
 end
 Button.built[#Button.built + 1] = Build
 
-local function Pin(f, icon, place, size)
-	local inset = Widgets.Snap(f, Tokens.Size("gapTiny"))
-	icon:ClearAllPoints()
-	if size then icon:SetSize(size, size) end
-	icon:SetPoint(place, f.health, place, place:find("LEFT") and inset or place:find("RIGHT") and -inset or 0,
-		place:find("TOP") and -inset or place:find("BOTTOM") and inset or 0)
-end
+local Pin = Style.Pin
 
 local function PlaceIcon(f, icon, rect, size)
 	icon:ClearAllPoints()
