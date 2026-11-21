@@ -17,8 +17,10 @@ local CAST_GAP = 4
 local CAST_SHARE = 0.6
 local CAST_LEFT = 1.2
 local CAST_ICON = 135846
+local CAST_RANK, CAST_CRAFTS, CAST_TIME, CAST_LAG = 3, 3, 3, 42
 local AURA_ICONS = { 135846, 136096, 135813, 136075 }
 local AURA_TIMES = { "12s", "4s", "1m", "25s", "8s", "3m", "40s", "2m" }
+local AURA_PRECISE = { [6] = { 168, "2m 48s" }, [8] = { 112, "1m 52s" } }
 local AURA_STACKS = { [2] = "3", [5] = "2" }
 local AURA_DISPEL = { "debuff", "steal", "buff" }
 local AURA_MORE = 3
@@ -248,9 +250,16 @@ local function PaintCast(frame, view, kind, height)
 	ns.CastBars.Layout(cb, w, castH)
 	cb.bar:SetMinMaxValues(0, 1)
 	cb.bar:SetValue(CAST_SHARE)
-	ns.CastBars.SetName(cb, L["Frostbolt"], Settings.Value(kind, "castbarTarget") and SAMPLES.player.name or nil)
+	local name, left = L["Frostbolt"], CAST_LEFT
+	if kind == "player" and Settings.Value(kind, "castbarRank") then name = name .. " (" .. string.format(L["Rank %d"], CAST_RANK) .. ")" end
+	if kind == "player" and Settings.Value(kind, "castbarCraft") then name, left = name .. " (" .. CAST_CRAFTS .. ")", CAST_LEFT + (CAST_CRAFTS - 1) * CAST_TIME end
+	ns.CastBars.SetName(cb, name, Settings.Value(kind, "castbarTarget") and SAMPLES.player.name or nil)
 	ns.CastBars.Important(cb, nil, true)
-	cb.timer:SetFormattedText("%.1fs", CAST_LEFT)
+	if kind == "player" and Settings.Value(kind, "castbarLagText") then
+		cb.timer:SetFormattedText("%.1fs (%dms)", left, CAST_LAG)
+	else
+		cb.timer:SetFormattedText("%.1fs", left)
+	end
 	cb.icon:SetTexture(CAST_ICON)
 	cb.frame:SetAlpha(1)
 	cb.frame:Show()
@@ -336,9 +345,11 @@ local function PaintAuras(frame, view, kind)
 		local size = Widgets.Snap(host, Settings.Value(kind, "auraSize"))
 		local spacing = Widgets.Snap(host, Settings.Value(kind, "auraSpacing"))
 		local room = Widgets.Snap(host, ns.Auras.TimerRoom(kind))
+		local gap = Widgets.Snap(host, Settings.Value(kind, "auraRowGap"))
 		local timers = Settings.Value(kind, "auraTimer") == true
 		local rows = Settings.Value(kind, "auraRows")
-		host:SetSize(width, math.min(height, rows * (size + room) + (rows - 1) * spacing))
+		local precise = Settings.Value(kind, "auraPrecise") * 60
+		host:SetSize(width, math.min(height, rows * (size + room) + (rows - 1) * (spacing + gap)))
 		ns.Auras.Anchor(host, holder, kind, view.geometry.panel.x, view.geometry.aura)
 		host:Show()
 		for i = 1, count do
@@ -349,10 +360,11 @@ local function PaintAuras(frame, view, kind)
 			end
 			tile.buff = filter == "buffs" or filter == "both" and (AURA_DISPEL[i] == "steal" or AURA_DISPEL[i] == "buff")
 			tile.icon:SetTexture(AURA_ICONS[(i - 1) % #AURA_ICONS + 1])
-			PlaceTile(tile.skin, host, kind, i, count, size, spacing, size + room + spacing, corner, growth)
+			PlaceTile(tile.skin, host, kind, i, count, size, spacing, size + room + spacing + gap, corner, growth)
 			ns.Auras.LayoutTile(tile)
 			ns.Auras.StyleSample(tile, kind, AURA_DISPEL[i])
-			tile.timer:SetText(AURA_TIMES[(i - 1) % #AURA_TIMES + 1])
+			local exact = AURA_PRECISE[(i - 1) % #AURA_TIMES + 1]
+			tile.timer:SetText(exact and exact[1] < precise and exact[2] or AURA_TIMES[(i - 1) % #AURA_TIMES + 1])
 			tile.timer:SetShown(timers)
 			local stack = AURA_STACKS[i]
 			tile.count:SetText(stack or "")

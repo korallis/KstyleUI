@@ -1,4 +1,4 @@
--- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text or unit-frame parity round 1, 2 or 3a options through Options.
+-- frames_text_slots.lua: real default frames for base pixel comparisons, with optional extra text or unit-frame parity round 1, 2, 3a or 3d options through Options.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -99,6 +99,21 @@ return Common.Run(function()
 		end
 		env._units.boss1.auras, env._units.target.auras = auras(3, 0), auras(2, 2)
 		dofile("Tools/regression/aura_fixture_engine.lua").Install(env)
+	end
+	if os.getenv("RENDER_PARITY_R3D") == "1" and module == "UnitFrames" then
+		env.GetNetStats = function() return 0, 0, 20, 42 end
+		env.C_Spell.GetSpellSubtext = function() return "Rank 3" end
+		K.Options.Get(module)
+		for _, key in ipairs({ "player.castbarFit", "player.castbarRank", "player.castbarLagText", "target.castbarFit" }) do
+			K.Options.Write(module, key, true)
+		end
+		for token, name in pairs({ player = "Arcane Missiles of Storms", target = "Shadow Bolt Volley of the Endless Abyss" }) do
+			local cast = env._units[token] and env._units[token].cast
+			if cast then
+				cast.name, cast.text = name, name
+				env.FireEvent("UNIT_SPELLCAST_START", token, "Cast-1", cast.spellID)
+			end
+		end
 	end
 	env.RunTimers(); Gallery.Ticks(dofile("Tools/regression/widget_env.lua"), env, 40)
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))

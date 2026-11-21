@@ -638,6 +638,19 @@ function U.Install(env)
 		function c:SetAuraGroupLayout(key, layout) self._groups[key].layout = layout end
 		function c:SetAuraGroupMaxFrameCount(key, n) self._groups[key].max = n end
 		function c:SetAuraGroupSortMethod(key, method, direction) self._groups[key].sort = { method, direction } end
+		-- As GetInboundCandidateFilters validates: a table or nil, a non-negative maxDuration, boolean flags and spell ID maps.
+		function c:SetAuraGroupCandidateFilters(key, candidates)
+			assert(candidates == nil or type(candidates) == "table", "candidateFilters must be a table or nil")
+			if candidates then
+				assert(candidates.maxDuration == nil or type(candidates.maxDuration) == "number" and candidates.maxDuration >= 0, "maxDuration must be a non-negative number or nil")
+				assert(candidates.isStealable == nil or type(candidates.isStealable) == "boolean", "isStealable must be a boolean or nil")
+				for _, field in ipairs({ "includeSpellIDs", "excludeSpellIDs" }) do
+					assert(candidates[field] == nil or type(candidates[field]) == "table", field .. " must be a table or nil")
+				end
+			end
+			self._groups[key].candidates = candidates
+			self._candidateCalls = (self._candidateCalls or 0) + 1
+		end
 		function c:SetFlowLayoutAnchorPoint(point) self._anchor = point end
 		function c:SetFlowLayoutGrowthDirection(h, v) self._growth = { h, v } end
 		function c:SetFlowLayoutMaximumLineSize(n) self._line = n end

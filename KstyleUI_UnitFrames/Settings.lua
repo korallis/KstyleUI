@@ -22,6 +22,7 @@ local ZOOM_MAX, ZOOM_STEP = 0.3, 0.01
 local NUDGE = 50
 local BOSS_GAP_MAX = 20
 local MARKER_MAX, CAST_WIDTH_MIN, CAST_WIDTH_MAX = 48, 2 * CAST_HEIGHT_MAX, 400
+local PRECISE_MAX, SPELL_LIST_LETTERS = 90, 240
 
 Settings.MODULE = MODULE
 Settings.THEME_FONT = THEME_FONT
@@ -254,6 +255,18 @@ for _, kind in ipairs({ "targettarget", "focustarget", "pet" }) do
 	fonts.name.outline, fonts.health.outline = "OUTLINE", "OUTLINE"
 end
 
+local LIVE = {}
+local function Live(d, values)
+	for key, value in pairs(values) do
+		d[key], LIVE[key] = value, true
+	end
+end
+for _, kind in ipairs(KINDS) do
+	Live(Settings.defaults[kind], { buffStealable = "", buffDefensive = "", buffDispellable = "", auraHidden = "", auraTracked = "",
+		auraTimed = false, auraHideLockout = false, auraTrackedOnly = false, auraRowGap = 0, auraPrecise = 0, castbarFit = false })
+end
+Live(Settings.defaults.player, { castbarRank = false, castbarLagText = false, castbarCraft = false })
+
 local function Options(list)
 	local out = {}
 	for i, item in ipairs(list) do
@@ -408,6 +421,10 @@ end
 local function IsNumber(v)
 	return not (issecretvalue and issecretvalue(v)) and type(v) == "number" and v == v
 end
+
+RANGES.auraRowGap, RANGES.auraPrecise = { 0, AURA_SPACING_MAX }, { 0, PRECISE_MAX }
+CHOICES.lane = Options({ { "", L["Show all"] }, { "only", L["Only these"] }, { "hide", L["Hide these"] } })
+CHOICE_OF.buffStealable, CHOICE_OF.buffDefensive, CHOICE_OF.buffDispellable = "lane", "lane", "lane"
 
 local SLAB_DEFAULTS = { target = { auraSize = 22, auraSpacing = 2, auraColumns = 6, auraGrowth = "LEFT_DOWN" } }
 local ROW_DEFAULTS = {
@@ -636,7 +653,7 @@ function Settings.Snapshot(kind)
 	s.healthDecimal = Settings.Module().healthDecimal == true
 	s.textOptions = fonts.name.textFormat ~= "" or fonts.health.textFormat ~= "" or fonts.name.colorMode ~= "" or fonts.health.colorMode ~= ""
 	for key, default in pairs(d) do
-		if key ~= "fonts" then
+		if key ~= "fonts" and not LIVE[key] then
 			local value = own[key]
 			if DERIVED[key] or (value ~= nil and value ~= default) then default = Settings.Value(kind, key) end
 			s[key] = default
@@ -774,6 +791,19 @@ IconRows = function(schema, kind)
 	end
 end
 
+local function MoreCastRows(schema, kind, on)
+	local function named(s) return on(s) and s.castbarText ~= false end
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarFit", label = L["Show full spell name"],
+		help = L["Shrinks long spell names to fit instead of cutting them off."] }, named)
+	if kind ~= "player" then return end
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarRank", label = L["Show spell rank"],
+		help = L["Adds the spell's rank after its name, for spells that have one."] }, named)
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarLagText", label = L["Show latency"],
+		help = L["Adds your world latency to the timer, such as 1.8 (42ms)."] }, function(s) return on(s) and s.castbarTimer ~= false end)
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarCraft", label = L["Whole craft batch"],
+		help = L["Crafting a batch, the timer counts down the whole batch and the name shows how many are left."] }, on)
+end
+
 CastRows = function(schema, kind)
 	local function on(s)
 		return s.castbar ~= false
@@ -862,7 +892,37 @@ CastRows = function(schema, kind)
 		schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarTotal", label = L["Show total duration"],
 			help = L["Show the time cast so far and the full cast time, such as 0.4 / 2.0."] }, function(s) return on(s) and s.castbarTimer ~= false end)
 	end
+	MoreCastRows(schema, kind, on)
 	TextRows(schema, kind, "cast")
+end
+
+local function FilterRows(schema, kind, on)
+	local function buffs()
+		local filter = Settings.Value(kind, "auraFilter")
+		return on() and (filter == "buffs" or filter == "both")
+	end
+	for _, spec in ipairs({
+		{ "buffStealable", L["Stealable buffs"], L["Buffs a spell steal or purge can take: show only these, or hide them."] },
+		{ "buffDefensive", L["Big defensives"], L["Major defensive cooldowns: show only these, or hide them."] },
+		{ "buffDispellable", L["Dispellable buffs"], L["Buffs with a dispel type: show only these, or hide them."] },
+	}) do
+		schema[#schema + 1] = Row(kind, { type = "dropdown", key = spec[1], label = spec[2], help = spec[3], options = CHOICES.lane }, buffs)
+	end
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraTimed", label = L["Only auras with a duration"],
+		help = L["Hides auras that never run out."] }, on)
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraHideLockout", label = L["Hide Bloodlust lockouts"],
+		help = L["Hides Sated, Exhaustion and the other Bloodlust lockout debuffs on friendly units."] }, on)
+	schema[#schema + 1] = Row(kind, { type = "text", key = "auraHidden", label = L["Hidden spell IDs"], maxLetters = SPELL_LIST_LETTERS,
+		help = L["Hides these spell IDs, separated by commas or spaces, on buffs of friends and debuffs of enemies."] }, on)
+	schema[#schema + 1] = Row(kind, { type = "text", key = "auraTracked", label = L["Tracked spell IDs"], maxLetters = SPELL_LIST_LETTERS,
+		help = L["The buffs Only tracked buffs keeps, as spell IDs separated by commas or spaces."] }, buffs)
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraTrackedOnly", label = L["Only tracked buffs"],
+		help = L["On friendly units, shows only the buffs in Tracked spell IDs. Enemy buffs show as usual."] }, buffs)
+	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraRowGap", label = L["Extra row spacing"],
+		help = L["Adds this many units between aura rows, on top of Aura spacing."], min = 0, max = AURA_SPACING_MAX, step = 1 }, on)
+	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraPrecise", label = L["Precise timers below (minutes)"],
+		help = L["Timers under this many minutes show minutes and seconds, such as 4m 32s. 0 keeps the short form."],
+		min = 0, max = PRECISE_MAX, step = 1 }, function(s) return on() and s.auraTimer ~= false end)
 end
 
 AuraRows = function(schema, kind)
@@ -909,6 +969,7 @@ AuraRows = function(schema, kind)
 		schema[#schema + 1] = Row(kind, { type = "dropdown", key = "auraSimple", label = L["Simple aura display"], options = CHOICES.auraSimple,
 			help = L["Large icons beside each boss frame, filling its height: one row, or one each for debuffs and buffs."] }, on)
 	end
+	FilterRows(schema, kind, on)
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "auraPosition", label = L["Aura position"],
 		help = L["Which side of the frame the auras sit on."], options = CHOICES.auraPosition,
