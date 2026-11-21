@@ -1112,8 +1112,9 @@ local function NpcTitle(unit)
 	end
 	local ok, data = pcall(api.GetUnit, unit)
 	local lines = ok and not IsSecret(data) and type(data) == "table" and not IsSecret(data.lines) and data.lines
-	local line = type(lines) == "table" and lines[2]
-	if type(line) == "table" and not IsSecret(line.type) and line.type == kinds.None then
+	local line, level = type(lines) == "table" and lines[2], type(lines) == "table" and lines[3]
+	if type(line) == "table" and type(level) == "table" and not IsSecret(line.type) and line.type == kinds.None
+		and not IsSecret(level.type) and level.type == kinds.UnitLevel then
 		return line.leftText
 	end
 end
@@ -1433,7 +1434,7 @@ function Plate:UpdateHighlight(sigilCasts)
 	local framed = targeted and Settings.Get("target.highlight") or false
 	if self.hashLine and Settings.Get("target.hashLine") then self.hashLine:SetShown(isTarget and not self.nameOnly or false) end
 	if self.focusLetter and Settings.Get("focus.letter") ~= "" then self.focusLetter:SetShown(isFocus and not self.nameOnly or false) end
-	if self.distanceText and Settings.Get("target.distance") then self.distanceText:SetShown(isTarget and not self.nameOnly or false) end
+	if self.distanceText and Settings.Get("target.distance") then self.distanceText:SetShown((isTarget or self.sample) and not self.nameOnly or false) end
 	local glow = Settings.Get("target.glow") and targeted or false
 	if self.targetGlow and self.glowShown ~= glow then
 		self.glowShown = glow

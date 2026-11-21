@@ -20,7 +20,7 @@ Preview.SAMPLES = {
 	{
 		name = L["Elunara"], level = 60, classification = "normal", health = 0.81, afk = true, dnd = true,
 		enemy = true, reaction = 2, isPlayer = true, class = "PRIEST", threat = "warning", threatPct = 87, pvp = true, faction = "Horde", hovered = true, outOfRange = true,
-		cast = { text = L["Greater Heal"], texture = 135913, time = "1.2", progress = 0.7, notInterruptible = true },
+		cast = { text = L["Greater Heal"], texture = 135913, time = "1.2", progress = 0.7, notInterruptible = true, atMe = true },
 	},
 	{
 		name = L["Thaldrin"], level = 60, classification = "normal", health = 0.92,

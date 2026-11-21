@@ -31,9 +31,7 @@ local function Api(name)
 	return nil
 end
 
-local function Plain(value)
-	return not IsSecret(value) and type(value) == "number" and value or nil
-end
+local Plain = ns.Plates.Plain
 
 local function Bounding()
 	local mixin = NamePlateScriptBaseMixin
@@ -145,8 +143,8 @@ function Stacking.Extent(plate)
 			right = math.max(right, extra)
 		end
 	end
-	local reachLeft, reachRight = ns.Auras.Reach(plate)
-	left, right = math.max(left, reachLeft), math.max(right, reachRight)
+	local reach = math.max(ns.Auras.Reach(plate))
+	left, right = math.max(left, reach), math.max(right, reach)
 	local width = state.width + left + right
 	if Settings.Get("name.show") then
 		width = math.max(width, K.Widgets.Snap(plate, state.width + ns.Plate.NAME_OVERHANG * 2))
@@ -177,21 +175,22 @@ local function HitInsets()
 	if get then ok, w, h = pcall(get) end
 	w, h = ok and Plain(w), ok and Plain(h)
 	local running = ns.Plates.running
+	local cw, ch = Settings.Get("stacking.clickWidth"), Settings.Get("stacking.clickHeight")
 	local want = {
-		[types.Enemy] = running and w and h and (Settings.Get("stacking.clickWidth") ~= 1 or Settings.Get("stacking.clickHeight") ~= 1)
-			and { w * (1 - Settings.Get("stacking.clickWidth")) / 2, h * (1 - Settings.Get("stacking.clickHeight")) / 2 } or nil,
+		[types.Enemy] = running and w and h and (cw ~= 1 or ch ~= 1) and { cw ~= 1 and w * (1 - cw) / 2, ch ~= 1 and h * (1 - ch) / 2 } or nil,
 		[types.Friendly] = running and w and h and not Settings.Get("stacking.friendlyClicks") and { w / 2, h / 2 } or nil,
 	}
 	for _, kind in pairs(types) do
-		local insets, last = want[kind], hit.written[kind]
-		if insets and not (last and last[1] == insets[1] and last[2] == insets[2]) then
-			if not hit.original[kind] then
-				local read, l, r, t, b = pcall(manager.GetNamePlateHitTestInsets, kind)
-				hit.original[kind] = read and Plain(l) and Plain(r) and Plain(t) and Plain(b) and { l, r, t, b } or { 0, 0, 0, 0 }
-			end
-			if pcall(manager.SetNamePlateHitTestInsets, kind, insets[1], insets[1], insets[2], insets[2]) then hit.written[kind] = insets end
+		local insets, last, o = want[kind], hit.written[kind], hit.original[kind]
+		if insets and not o then
+			local read, l, r, t, b = pcall(manager.GetNamePlateHitTestInsets, kind)
+			o = read and Plain(l) and Plain(r) and Plain(t) and Plain(b) and { l, r, t, b } or nil
+			hit.original[kind] = o
+			if not o then LogOnce("hit-original", "the game's plate click area could not be read, so KstyleUI leaves it alone") end
+		end
+		if insets and o and not (last and last[1] == insets[1] and last[2] == insets[2]) then
+			if pcall(manager.SetNamePlateHitTestInsets, kind, insets[1] or o[1], insets[1] or o[2], insets[2] or o[3], insets[2] or o[4]) then hit.written[kind] = insets end
 		elseif not insets and last then
-			local o = hit.original[kind]
 			if pcall(manager.SetNamePlateHitTestInsets, kind, o[1], o[2], o[3], o[4]) then hit.written[kind], hit.original[kind] = nil, nil end
 		end
 	end

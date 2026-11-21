@@ -263,13 +263,13 @@ do
 	N.Cast(env, "nameplate1", { name = "Bolt", text = "Bolt", texture = 1 })
 	assert(plate.castTarget:IsShown() and env.Reveal(plate.castTarget:GetText()) == "Thaldrin", "the target on its own")
 	assert(not tostring(plate.castName:GetText()):find(">", 1, true), "not after the name")
-	local p = plate.castTarget:GetPoint(1)
-	assert(p == "RIGHT", "at the right of the bar")
+	assert(N.Last(plate.castTarget, "SetJustifyH")[1] == "RIGHT", "at the right of the bar")
 	set("cast.showTime", true)
-	local _, rel = plate.castTarget:GetPoint(1)
+	local _, rel = plate.castTarget:GetPoint(2)
 	assert(rel == plate.castTime, "clear of the time left")
+	N.Target(env, "nameplate1")
 	set("cast.nameBelow", false)
-	assert(not plate.castTarget:IsShown() and plate.castTargetOwn == false, "a name inside the bar takes the target after it")
+	assert(not plate.castTarget:IsShown(), "a name shown inside the bar takes the target after it")
 	set("cast.nameBelow", true)
 	set("cast.targetPlace", "")
 	assert(not plate.castTarget:IsShown(), "after the name again")
@@ -417,7 +417,7 @@ collectgarbage()
 
 -- Finding 2: the click area keeps the axis it does not change, and is never written when the game's is unreadable.
 do
-	local env, K, ns, set = boot({ nameplate1 = {} })
+	local env, K, _, set = boot({ nameplate1 = {} })
 	env._insets[1] = { 3, 4, 5, 6 }
 	set("stacking.clickWidth", 0.5)
 	local w = env.C_NamePlate.GetNamePlateSize()
@@ -522,6 +522,7 @@ do
 	for _ = 1, 5 do plate2:Refresh() end
 	assert(made == before, "no new container per refresh")
 	env2.CreateFrame = create
+	clean(env2, K2)
 end
 collectgarbage()
 

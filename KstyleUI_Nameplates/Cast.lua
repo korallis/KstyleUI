@@ -358,10 +358,16 @@ function Cast.Start(plate, channel, update)
 	Recolor(plate)
 end
 
+local function ShowTarget(plate)
+	if plate.castTarget then
+		plate.castTarget:SetShown(plate.castTargetOwn and not (plate.castName:IsShown() and not Settings.Get("cast.nameBelow")))
+	end
+end
+
 function Cast.Name(plate, spell, target)
 	if plate.castTargetOwn then
 		if type(target) == "nil" then plate.castTarget:SetText("") else plate.castTarget:SetText(target) end
-		target = nil
+		if Settings.Get("cast.nameBelow") then target = nil end
 	end
 	if type(target) ~= "nil" then
 		plate.castName:SetFormattedText("%s > %s", spell, target)
@@ -495,6 +501,7 @@ end
 function Cast.Selection(plate, isTarget, isFocus)
 	local shown = Settings.Get("cast.showName") and (not Settings.Get("cast.nameSelectedOnly") or isTarget or isFocus) and true or false
 	plate.castName:SetShown(shown)
+	ShowTarget(plate)
 	local below = shown and Settings.Get("cast.nameBelow") and true or false
 	if below == (plate.castNameBelow == true) then return end
 	plate.castNameBelow = below
@@ -689,22 +696,22 @@ function Component.Restyle(plate)
 	plate.castTime:ClearAllPoints()
 	ns.Plate.Place(plate.castTime, "RIGHT", bar, "RIGHT", -TEXT_INSET, 0, nil, nil, nil, Widgets.Snap(plate, h))
 	local place = Settings.Get("cast.showTarget") and Settings.Get("cast.targetPlace") or ""
-	local own = place ~= "" and not (Settings.Get("cast.showName") and not Settings.Get("cast.nameBelow"))
+	local own = place ~= ""
 	plate.castTargetOwn = own
 	if own or plate.castTarget then
 		local text = plate.castTarget or Widgets.FontString(bar, "OVERLAY")
 		plate.castTarget = text
-		text:SetShown(own)
+		ShowTarget(plate)
 		if own then
 			text:SetWordWrap(false)
 			text:SetJustifyH(place)
 			StyleFont(text, "caps")
 			text:ClearAllPoints()
-			if place == "RIGHT" and Settings.Get("cast.showTime") then
-				Widgets.Point(text, "RIGHT", plate.castTime, "LEFT", -GAP, 0)
+			ns.Plate.Place(text, "LEFT", bar, "LEFT", TEXT_INSET + (Settings.Get("cast.combatCues") and glyphSize or 0), 0, nil, nil, nil, Widgets.Snap(plate, h))
+			if Settings.Get("cast.showTime") then
+				text:SetPoint("RIGHT", plate.castTime, "LEFT", -Widgets.Snap(plate, GAP), 0)
 			else
-				local x = place == "LEFT" and TEXT_INSET + (Settings.Get("cast.combatCues") and glyphSize or 0) or place == "RIGHT" and -TEXT_INSET or 0
-				ns.Plate.Place(text, place, bar, place, x, 0, nil, nil, nil, Widgets.Snap(plate, h))
+				ns.Plate.Place(text, "RIGHT", bar, "RIGHT", -TEXT_INSET, 0, nil, nil, nil, Widgets.Snap(plate, h))
 			end
 		end
 	end

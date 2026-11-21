@@ -361,6 +361,7 @@ local distanceTicker, ranges
 local function Plain(value)
 	return not IsSecret(value) and type(value) == "number" and value or nil
 end
+Plates.Plain = Plain
 
 local function Ranges()
 	local book, spell, bank = C_SpellBook, C_Spell, Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Player
@@ -375,10 +376,13 @@ local function Ranges()
 		for slot = info.itemIndexOffset + 1, info.itemIndexOffset + info.numSpellBookItems do
 			local item = book.GetSpellBookItemInfo(slot, bank)
 			local data = item and not item.isPassive and Plain(item.spellID) and spell.GetSpellInfo(item.spellID)
-			local range = data and Plain(data.maxRange)
-			if range and range > 0 and not seen[range] then
-				seen[range] = true
-				list[#list + 1] = { range, item.spellID }
+			local range = data and Plain(data.minRange) == 0 and Plain(data.maxRange)
+			if range and range > 0 then
+				if not seen[range] then
+					seen[range] = { range }
+					list[#list + 1] = seen[range]
+				end
+				table.insert(seen[range], item.spellID)
 			end
 		end
 	end
@@ -397,8 +401,14 @@ local function CheckDistance()
 	end
 	local text, beyond = "", 0
 	for _, entry in ipairs(ranges) do
-		local ok, inRange = pcall(api, entry[2], "target")
-		if not ok or IsSecret(inRange) then inRange = nil end
+		local inRange
+		for i = 2, #entry do
+			local ok, answer = pcall(api, entry[i], "target")
+			if ok and not IsSecret(answer) and answer ~= nil then
+				inRange = answer
+				break
+			end
+		end
 		if inRange == true then
 			text = string.format("%d-%d", beyond, entry[1])
 			break
