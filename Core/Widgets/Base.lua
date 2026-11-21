@@ -1338,8 +1338,10 @@ end
 local SOFT = { lumenShadow = true, shadow = true }
 local RUN_PIECES = { 2, 4, 6, 8 }
 local RUNS = { lumenOutline = true }
+Widgets.HOLLOW = { lumenOutline = true, lumenShadow = true, forgedFrame1 = true, forgedFrame2 = true, forgedFrame3 = true, medAuraBorder = true, medGroupTargetRing = true }
 for _, lines in ipairs(RINGS) do
 	RUNS["ringLine" .. lines] = true
+	Widgets.HOLLOW["ringLine" .. lines] = true
 end
 
 local function SliceCoords(texture, piece, f)
@@ -1388,6 +1390,9 @@ local function PaintSlice(p, name)
 			p[piece]:SetTexture(path)
 			SliceCoords(p[piece], piece, f)
 		end
+	end
+	if Widgets.HOLLOW[name] then
+		p[5]:Hide()
 	end
 end
 
@@ -1533,8 +1538,13 @@ function Widgets.ShowSlice(slice, shown)
 		end
 		return
 	end
+	local hollow = Widgets.HOLLOW[slice.texture]
 	for i = 1, #slice do
-		slice[i]:SetShown(shown)
+		if hollow and i == 5 then
+			slice[i]:Hide()
+		else
+			slice[i]:SetShown(shown)
+		end
 	end
 end
 
