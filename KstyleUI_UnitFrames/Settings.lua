@@ -539,7 +539,9 @@ local function Value(kind, key)
 	end
 	local value = own[key]
 	local rows = ROW_DEFAULTS[kind]
-	if rows and rows[key] ~= nil and (value == nil or value == default) and Settings.AuraRows(kind) then return rows[key] end
+	if rows and rows[key] ~= nil and (value == nil or value == default) and Settings.AuraRows(kind) then
+		return key == "auraRows" and Value(kind, "auraFilter") == "both" and default or rows[key]
+	end
 	local slab = SLAB_DEFAULTS[kind] and SLAB_DEFAULTS[kind][key]
 	if slab ~= nil and (value == nil or value == default) and Settings.Form(kind) == "slab" then
 		return slab
