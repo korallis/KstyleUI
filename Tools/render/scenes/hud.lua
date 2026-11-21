@@ -465,7 +465,6 @@ function modules.unitframes(opts)
 			env._units.boss1 = opts.boss and opts.target == opts.boss and target or opts.boss
 			env._units.targettarget = opts.boss and target and player or nil
 			env._comboPoints = spec.combo or 0
-			-- RENDER_RESTING=1: the player rests in an inn, so the player frame shows its Zz.
 			env._resting = os.getenv("RENDER_RESTING") == "1"
 			env.UnitClass = function(token)
 				local u = env._units[token]
