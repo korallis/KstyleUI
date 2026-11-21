@@ -397,14 +397,16 @@ local function RaidHeader(header, holder, s)
 end
 
 local function Centre(s, geo, shown)
-	local filled, per, last = ns.AutoLayout.state.filled, math.min(s.groupsPerRow, #shown), 0
-	if not (s.center and Separate(s) and filled and per > 1) then return 0, 0 end
+	local filled, per, first, rows, last = ns.AutoLayout.state.filled, math.min(s.groupsPerRow, #shown), {}, {}, 0
+	if not (s.center and Separate(s) and filled and per > 1) then return 0, 0, 0, rows end
 	for slot, g in ipairs(shown) do
-		if filled:find(g, 1, true) then last = slot end
+		local row, col = math.ceil(slot / s.groupsPerRow), (slot - 1) % s.groupsPerRow
+		if filled:find(g, 1, true) then first[row], rows[row], last = first[row] or col, col, slot end
 	end
-	if last == 0 or last >= per then return 0, 0 end
+	local card = last > 0 and (per - math.min(per, last)) / 2 or 0
+	for row, col in pairs(rows) do rows[row] = (per - 1 - first[row] - col) / 2 - card end
 	local a, b = geo.slots[1], geo.slots[2]
-	return (b.x - a.x) * (per - last) / 2, (b.y - a.y) * (per - last) / 2
+	return b.x - a.x, b.y - a.y, card, rows
 end
 
 function Headers.ApplyRaid(s)
@@ -418,8 +420,8 @@ function Headers.ApplyRaid(s)
 	local width, height, left, top = Seat(card, s, geo, "raid")
 	holder:SetSize(width, height)
 	local shown, hidden = ShownGroups(), ns.AutoLayout.state.smallRaid
-	local cx, cy = Centre(s, geo, shown)
-	card.shiftX, card.shiftY = Px("raid", ns.AutoLayout.shiftX + cx), Px("raid", ns.AutoLayout.shiftY + cy)
+	local dx, dy, centre, rows = Centre(s, geo, shown)
+	card.shiftX, card.shiftY = Px("raid", ns.AutoLayout.shiftX + dx * centre), Px("raid", ns.AutoLayout.shiftY + dy * centre)
 	Headers.FitRaid(card.members, card.groups, true)
 	geo.left, geo.top = left, top
 	local x, y = Offset(geo, card, left, top, nil, "raid")
@@ -431,8 +433,8 @@ function Headers.ApplyRaid(s)
 			Sort(header, "INDEX")
 			Columns(header, nil, nil, nil, nil)
 			Grow(header, geo, "raid")
-			local slot = geo.slots[g]
-			header:SetPoint(geo.corner, holder, geo.corner, slot.x + x, slot.y + y - (geo.corner:find("TOP", 1, true) and s.numberRoom or 0))
+			local slot, row = geo.slots[g], rows[math.ceil(g / s.groupsPerRow)] or 0
+			header:SetPoint(geo.corner, holder, geo.corner, slot.x + x + Px("raid", dx * row), slot.y + y + Px("raid", dy * row) - (geo.corner:find("TOP", 1, true) and s.numberRoom or 0))
 			Precreate(header, GROUP_BUTTONS)
 			Driver(header, shown[g] and not hidden and DRIVER_RAID or DRIVER_HIDE)
 		end
