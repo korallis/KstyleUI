@@ -4,7 +4,7 @@ local Scene = dofile("Tools/render/scene.lua")
 
 local Effects = {}
 
-local STATES = { ready = true, cap = true, levelup = true, cast = true, stopped = true, vignette = true, burst = true, rest = true }
+local STATES = { ready = true, cap = true, levelup = true, cast = true, stopped = true, vignette = true, burst = true, rest = true, jewels = true }
 
 local MANA = { MAGE = true, PRIEST = true, WARLOCK = true, PALADIN = true, SHAMAN = true, DRUID = true }
 
@@ -13,7 +13,7 @@ function Effects.State()
 	if not state or state == "" then
 		return nil
 	end
-	assert(STATES[state], "RENDER_FX must be one of ready, cap, levelup, cast, stopped, vignette, burst or rest")
+	assert(STATES[state], "RENDER_FX must be one of ready, cap, levelup, cast, stopped, vignette, burst, rest or jewels")
 	local t = tonumber(rawget(_G, "RENDER_FX_T") or os.getenv("RENDER_FX_T") or "")
 	return state, t
 end
@@ -67,6 +67,26 @@ function Effects.Apply(env, module, ns, notes)
 			env._power = 1
 			ns.SlabEffects.UpdateCap()
 			notes[#notes + 1] = "fx: the hub ring at a capped resource (power type " .. tostring(env._askedPower) .. "), its alpha the curve's answer"
+		elseif state == "jewels" then
+			-- RENDER_JEWELS=from,to: the crest jewels went from one count to the other RENDER_FX_T seconds ago;
+			-- RENDER_JEWELS_BREATH is how far the ring's breath has run; RENDER_JEWELS_MOTION sets Medallions motion.
+			local from, to = (os.getenv("RENDER_JEWELS") or "4,5"):match("^(%d+),(%d+)$")
+			assert(from, "RENDER_JEWELS must be from,to, such as 4,5")
+			local motion = os.getenv("RENDER_JEWELS_MOTION")
+			if motion and motion ~= "" then
+				K.Options.Write("Medallions", "motion", motion)
+			end
+			local points = tonumber(from)
+			env.GetComboPoints = function() return points end
+			env.UnitPower = function() return points end
+			ns.SlabJewels.Update()
+			points = tonumber(to)
+			ns.SlabJewels.Update()
+			local ring = ns.SlabJewels.state.ring
+			if ring and ring.breath._playedAt then
+				ring.breath._playedAt = env._time - (tonumber(os.getenv("RENDER_JEWELS_BREATH") or "") or 0)
+			end
+			notes[#notes + 1] = "fx: the crest jewels " .. from .. " to " .. to .. ", " .. (t or 0) .. " s in"
 		elseif state == "levelup" then
 			K.Options.Write("Medallions", "motion", "calm")
 			env.FireEvent("PLAYER_LEVEL_UP", 12)

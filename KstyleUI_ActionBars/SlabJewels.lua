@@ -1,9 +1,9 @@
--- SlabJewels.lua: the Medallions hub's resource jewels: up to ten gilt-set diamonds across the top arc of the rune ring, lit one per combo point (rogue, cat-form druid), holy power (paladin) or soul shard (warlock); each gem is a one-point status bar so the engine compares the value and Lua never reads it.
+-- SlabJewels.lua: the Medallions hub's resource jewels: up to ten cut gems in gilt settings across the top arc of the rune ring, lit one per combo point (rogue, cat-form druid), holy power (paladin) or soul shard (warlock), igniting on a gain and draining on a spend, with the whole rune ring glowing in the resource's colour at the maximum; every lit layer is a one-point status bar fed the raw value, now or the value before, so the engine compares and Lua never reads a secret.
 local _, ns = ...
 
 local K = KstyleUI
-local Widgets, Tokens = K.Widgets, K.Tokens
-local cos, sin, rad = math.cos, math.sin, math.rad
+local Widgets, Tokens, Effects = K.Widgets, K.Tokens, K.Effects
+local cos, sin, rad, floor, max = math.cos, math.sin, math.rad, math.floor, math.max
 local IsSecret = Widgets.IsSecret
 
 local Jewels = {}
@@ -12,15 +12,18 @@ ns.SlabJewels = Jewels
 local OWNER = "ActionBars.SlabJewels"
 local DEFAULT_COUNT, MAX_COUNT = 5, 10
 local RADIUS, STEP, ARC = 62, 30, 120
-local SETTING, LIP, GEM, CORE, HALO = 11, 8, 7, 3, 20
-local ALPHA = 0.9
+local SETTING, LIP, GEM, BODY, CORE, GLINT, HALO = 12, 10, 8, 6, 3, 2, 20
+local ALPHA, RING_HALO, GLINT_AT = 0.9, 1.6, 1
+local FLARE_RISE, FLARE_FALL, DRAIN, FADE = 0.03, 0.09, 0.18, 0.2
 local KINDS = {
-	combo = { power = "ComboPoints", token = "COMBO_POINTS", color = "jewelCombo", core = "jewelComboCore" },
-	holy = { power = "HolyPower", token = "HOLY_POWER", color = "jewelHoly", core = "jewelHolyCore" },
-	shard = { power = "SoulShards", token = "SOUL_SHARDS", color = "jewelShard", core = "jewelShardCore" },
+	combo = { power = "ComboPoints", token = "COMBO_POINTS", color = "jewelCombo", rim = "jewelComboRim", core = "jewelComboCore" },
+	holy = { power = "HolyPower", token = "HOLY_POWER", color = "jewelHoly", rim = "jewelHolyRim", core = "jewelHolyCore" },
+	shard = { power = "SoulShards", token = "SOUL_SHARDS", color = "jewelShard", rim = "jewelShardRim", core = "jewelShardCore" },
 }
 local CLASS_KIND = { ROGUE = "combo", DRUID = "combo", PALADIN = "holy", WARLOCK = "shard" }
 local POWER_IDS = { Energy = 3, ComboPoints = 4, SoulShards = 7, HolyPower = 9 }
+-- Layers fed the current value; haloWas and ember get the value before it.
+local NOW = { "halo", "rim", "gem", "flare", "core", "glint" }
 
 local state = { jewels = {}, count = 0 }
 Jewels.state = state
@@ -57,43 +60,114 @@ local function Count(kind)
 	return math.max(0, math.min(MAX_COUNT, math.floor(most)))
 end
 
-local function Texture(parent, size, sublevel, color)
+-- An even number of physical pixels, so every layer centres exactly on its setting.
+local function Even(region, units)
+	local px = Widgets.Border(region)
+	local side = max(2, 2 * floor(units / px / 2 + 0.5)) * px
+	region:SetSize(side, side)
+end
+
+local function Fade(target, from, to, duration, delay, order)
+	local group = target.fade or target:CreateAnimationGroup()
+	local a = group:CreateAnimation("Alpha")
+	a:SetFromAlpha(from)
+	a:SetToAlpha(to)
+	a:SetDuration(duration)
+	a:SetStartDelay(delay or 0)
+	a:SetOrder(order or 1)
+	target.fade = group
+	return group
+end
+
+local function Texture(parent, size, sublevel, texture, color)
 	local t = parent:CreateTexture(nil, "ARTWORK", nil, sublevel)
-	t:SetTexture((Tokens.Texture("diamond")))
-	t:SetPoint("CENTER", parent, "CENTER", 0, 0)
-	Widgets.Size(t, size, size)
+	t:SetTexture((Tokens.Texture(texture)))
 	t:SetVertexColor(Tokens.Color(color))
+	t:SetPoint("CENTER", parent, "CENTER", 0, 0)
+	t.units = size
+	return t
 end
 
 local function OnePoint(parent, i, size, texture, level, additive)
 	local bar = CreateFrame("StatusBar", nil, parent)
 	bar:SetFrameLevel(level)
-	bar:SetStatusBarTexture((Tokens.Texture(texture)))
+	bar:SetStatusBarTexture((Effects.Texture(texture, "glow")))
 	if additive then
 		bar:GetStatusBarTexture():SetBlendMode("ADD")
 	end
 	bar:SetMinMaxValues(i - 1, i)
 	bar:SetValue(0)
 	bar:SetPoint("CENTER", parent, "CENTER", 0, 0)
-	Widgets.Size(bar, size, size)
+	bar.units = size
 	return bar
 end
 
 local function Build(hub, i)
 	local holder = CreateFrame("Frame", nil, hub.top)
-	Widgets.Size(holder, SETTING, SETTING)
+	holder.units = SETTING
 	local base = hub.top:GetFrameLevel() + 1
 	holder:SetFrameLevel(base + 1)
 	local jewel = { holder = holder }
 	jewel.halo = OnePoint(holder, i, HALO, "glow", base, true)
-	Texture(holder, SETTING, 0, "gilt")
-	Texture(holder, LIP, 1, "jewelSetting")
-	Texture(holder, GEM, 2, "jewelSocket")
-	jewel.gem = OnePoint(holder, i, GEM, "diamond", base + 2)
-	jewel.core = OnePoint(holder, i, CORE, "diamond", base + 3)
-	jewel.core:SetAlpha(ALPHA)
-	jewel.halo:SetAlpha(ALPHA)
+	jewel.haloWas = OnePoint(holder, i, HALO, "glow", base, true)
+	jewel.setting = {
+		Texture(holder, SETTING, 0, "diamond", "gilt"),
+		Texture(holder, LIP, 1, "diamond", "jewelSetting"),
+		Texture(holder, GEM, 2, "forgedDiamond", "jewelSocket"),
+	}
+	jewel.setting[3]:SetTexCoord(1, 0, 0, 1)
+	jewel.rim = OnePoint(holder, i, GEM, "diamond", base + 2)
+	jewel.gem = OnePoint(holder, i, BODY, "diamond", base + 3)
+	-- The flare sits under the ember: a jewel lit before and after keeps its ember over the flare until it ends.
+	jewel.flare = OnePoint(holder, i, BODY, "diamond", base + 4, true)
+	jewel.ember = OnePoint(holder, i, BODY, "diamond", base + 5)
+	jewel.core = OnePoint(holder, i, CORE, "diamond", base + 6)
+	jewel.glint = OnePoint(holder, i, GLINT, "diamond", base + 6, true)
+	for _, key in ipairs({ "halo", "core", "glint" }) do
+		jewel[key]:SetAlpha(ALPHA)
+	end
+	for _, key in ipairs({ "haloWas", "flare", "ember" }) do
+		jewel[key]:SetAlpha(0)
+	end
+	Fade(jewel.halo, 0, ALPHA, FADE)
+	Fade(jewel.haloWas, ALPHA, 0, FADE)
+	Fade(jewel.flare, 0, 1, FLARE_RISE)
+	Fade(jewel.flare, 1, 0, FLARE_FALL, 0, 2)
+	Fade(jewel.ember, 1, 1, FLARE_RISE + FLARE_FALL)
+	Fade(jewel.ember, 1, 0, DRAIN, 0, 2)
+	jewel.fades = { jewel.halo.fade, jewel.haloWas.fade, jewel.flare.fade, jewel.ember.fade }
 	return jewel
+end
+
+-- The ring's glyphs glow over the rune band; its halo sits a level under the hub, whose ring and socket hide it
+-- inside the rim, so it shows only round the ring and never washes over the crest.
+local function BuildRing(hub)
+	local ring = CreateFrame("Frame", nil, hub)
+	ring:SetAllPoints(hub)
+	local Fx = ns.SlabEffects
+	ring.breath = ring:CreateAnimationGroup()
+	ring.breath:SetLooping("BOUNCE")
+	local a = ring.breath:CreateAnimation("Alpha")
+	a:SetFromAlpha(1)
+	a:SetToAlpha(Fx.CAP_LOW)
+	a:SetDuration(Fx.CAP_BREATH)
+	a:SetSmoothing("IN_OUT")
+	for _, side in ipairs({ "now", "was" }) do
+		local frame = CreateFrame("Frame", nil, ring)
+		frame:SetAllPoints(ring)
+		frame.glyphs = OnePoint(frame, 1, ns.Slab.RING, "medRuneGlyphs", 0, true)
+		frame.halo = OnePoint(frame, 1, ns.Slab.RING * RING_HALO, "glow", 0, true)
+		ring[side] = frame
+	end
+	ring.was:SetAlpha(0)
+	Fade(ring.now, 0, 1, FADE)
+	Fade(ring.was, 1, 0, FADE)
+	state.ring = ring
+	return ring
+end
+
+local function Lay(region)
+	Even(region, region.units)
 end
 
 local function Place(hub, count)
@@ -104,24 +178,79 @@ local function Place(hub, count)
 			jewel = jewel or Build(hub, i)
 			state.jewels[i] = jewel
 			local a = rad(90 + (mid - i) * step)
-			jewel.holder:ClearAllPoints()
-			jewel.holder:SetPoint("CENTER", hub, "CENTER", Widgets.Snap(hub, RADIUS * cos(a)), Widgets.Snap(hub, RADIUS * sin(a)))
-			jewel.holder:Show()
+			local holder = jewel.holder
+			holder:ClearAllPoints()
+			holder:SetPoint("CENTER", hub, "CENTER", Widgets.Snap(hub, RADIUS * cos(a)), Widgets.Snap(hub, RADIUS * sin(a)))
+			Lay(holder)
+			for _, t in ipairs(jewel.setting) do
+				Lay(t)
+			end
+			for _, key in ipairs({ "halo", "haloWas", "rim", "gem", "flare", "ember", "core", "glint" }) do
+				Lay(jewel[key])
+			end
+			local glint = Widgets.Snap(holder, GLINT_AT)
+			jewel.glint:SetPoint("CENTER", holder, "CENTER", -glint, glint)
+			holder:Show()
 		else
 			jewel.holder:Hide()
 		end
 	end
 	state.count = count
+	local ring = state.ring
+	local glow = count > 0 and ns.Config("crestJewelGlow") ~= false
+	if glow and not ring then
+		ring = BuildRing(hub)
+	end
+	if ring then
+		local under = max(0, hub:GetFrameLevel() - 1)
+		ring:SetFrameLevel(under)
+		for _, side in ipairs({ ring.now, ring.was }) do
+			side:SetFrameLevel(under)
+			side.glyphs:SetFrameLevel(hub:GetFrameLevel() + 1)
+			side.halo:SetFrameLevel(under)
+			for _, bar in ipairs({ side.glyphs, side.halo }) do
+				bar:SetMinMaxValues(count - 1, count)
+				Widgets.Size(bar, bar.units, bar.units)
+			end
+		end
+		ring:SetShown(glow)
+		if glow and Effects.Allows("pulse") then
+			if not ring.breath:IsPlaying() then
+				ring.breath:Play()
+			end
+		else
+			ring.breath:Stop()
+		end
+	end
 end
 
 local function Paint(kind)
 	local def = KINDS[kind]
 	local r, g, b = Tokens.Color(def.color)
+	local rr, rg, rb = Tokens.Color(def.rim)
 	local cr, cg, cb = Tokens.Color(def.core)
 	for _, jewel in ipairs(state.jewels) do
-		jewel.gem:SetStatusBarColor(r, g, b)
-		jewel.halo:SetStatusBarColor(r, g, b)
+		for _, key in ipairs({ "gem", "ember", "halo", "haloWas" }) do
+			jewel[key]:SetStatusBarColor(r, g, b)
+		end
+		jewel.rim:SetStatusBarColor(rr, rg, rb)
 		jewel.core:SetStatusBarColor(cr, cg, cb)
+		jewel.flare:SetStatusBarColor(cr, cg, cb)
+		jewel.glint:SetStatusBarColor(Tokens.Color("white"))
+	end
+	local ring = state.ring
+	if ring then
+		for _, side in ipairs({ ring.now, ring.was }) do
+			side.glyphs:SetStatusBarColor(r, g, b)
+			side.halo:SetStatusBarColor(r, g, b)
+		end
+	end
+end
+
+local function Restart(group, moving)
+	group:Stop()
+	if moving then
+		group:Play()
 	end
 end
 
@@ -138,11 +267,31 @@ local function Points()
 	else
 		return
 	end
+	local was = points
+	if state.seen then
+		was = state.points
+	end
+	state.points, state.seen = points, true
+	local moving = Effects.Allows("flare")
 	for i = 1, state.count do
 		local jewel = state.jewels[i]
-		jewel.gem:SetValue(points)
-		jewel.core:SetValue(points)
-		jewel.halo:SetValue(points)
+		for _, key in ipairs(NOW) do
+			jewel[key]:SetValue(points)
+		end
+		jewel.haloWas:SetValue(was)
+		jewel.ember:SetValue(was)
+		for _, group in ipairs(jewel.fades) do
+			Restart(group, moving)
+		end
+	end
+	local ring = state.ring
+	if ring and ring:IsShown() then
+		ring.now.glyphs:SetValue(points)
+		ring.now.halo:SetValue(points)
+		ring.was.glyphs:SetValue(was)
+		ring.was.halo:SetValue(was)
+		Restart(ring.now.fade, moving)
+		Restart(ring.was.fade, moving)
 	end
 end
 
@@ -186,5 +335,10 @@ end
 
 function Jewels.SetEnabled(on)
 	state.enabled = on
+	if on then
+		K.Callbacks.Register("EffectsLevelChanged", OWNER, Jewels.Update)
+	else
+		K.Callbacks.Unregister("EffectsLevelChanged", OWNER)
+	end
 	Jewels.Update()
 end
