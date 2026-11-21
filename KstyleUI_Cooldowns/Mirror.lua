@@ -759,8 +759,8 @@ local function AssignAuras(row, list)
 		local bar = row.bars and row.bars[i]
 		if cooldownBars[out[i]] then
 			if bar.entry ~= out[i] or bar.cdStamp ~= barStamp then CooldownBar(row, bar, out[i]) end
-		elseif row.group == "bars" then
-			ShowBar(row, row.bars[i], out[i])
+		elseif bar then
+			ShowBar(row, bar, out[i])
 		else
 			ShowAuraIcon(row, row.icons[i], out[i])
 		end
