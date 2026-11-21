@@ -483,14 +483,7 @@ function Widgets.Slot(parent, opts)
 	end)
 	local paint, restyle = b.Paint, b.Restyle
 	b.Paint = function(self)
-		local rim, chrome = Lit(self) and self.rimToken, self.chrome
-		local held = chrome.edgeHeld
-		chrome.edgeHeld = held or rim
-		paint(self)
-		chrome.edgeHeld = held
-		if rim then
-			chrome:SetRim(Tokens.Color(rim))
-		end
+		paint(self, Lit(self) and self.rimToken)
 		Breathe(self)
 	end
 	b.Restyle = function(self)
