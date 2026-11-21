@@ -65,7 +65,10 @@ local hub = ns.Slab.hub
 local saved = K.Store.Profile().UnitFrames
 assert(not env._addons.KstyleUI_UnitFrames and not (saved and saved.resource), "the action bars run without Unit Frames or its resource settings")
 assert(C.shown and #C.pips == 5, "a rogue's crest wears the crown by default, with Unit Frames not loaded")
-assert(K.Widgets.ClassCrown(), "and tells the unit frames it shows the points")
+local line = C.line
+assert(line and K.Widgets.ClassCrown() == line, "and tells the unit frames it shows the points, with a seat for the druid bar")
+local _, seatTo, _, seatX, seatY = line:GetPoint(1)
+assert(seatTo == hub and seatX == 0 and seatY > 76 + 44, "the seat is just above the tips")
 for i, p in ipairs(C.pips) do
 	local angle = ANGLES[i]
 	assert(p.frame:IsShown() and p.frame:GetParent() == hub.top, "blade " .. i .. " stands on the hub")

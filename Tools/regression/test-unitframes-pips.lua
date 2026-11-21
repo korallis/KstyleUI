@@ -1,4 +1,4 @@
--- test-unitframes-pips.lua: the class-themed combo point row (on by default) draws Widgets.ClassPip daggers for a rogue and claws for a cat-form druid over the plain pips' places; every lit layer is a one-point status bar fed the raw count now, before, or at the maximum; a power event plays the gain, spend and maximum fades only when motion allows, a target change and Off show the end states, transient layers are hidden rather than alpha 0, nothing runs OnUpdate or loops, under Medallions the row gives way to the crest's crown (a cat-form druid's mana too), and switching the pips off restores the plain ones; a paladin or warlock shows nothing, as before.
+-- test-unitframes-pips.lua: the class-themed combo point row (on by default) draws Widgets.ClassPip daggers for a rogue and claws for a cat-form druid over the plain pips' places; every lit layer is a one-point status bar fed the raw count now, before, or at the maximum; a power event plays the gain, spend and maximum fades only when motion allows, a target change and Off show the end states, transient layers are hidden rather than alpha 0, nothing runs OnUpdate or loops, under Medallions the row gives way to the crest's crown only while it shows and a cat-form druid's bar sits above it, and switching the pips off restores the plain ones; a paladin or warlock shows nothing, as before.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -183,12 +183,13 @@ end
 -- no crown, review 678 #2); while it does, a rogue's row hides and has no mover; off brings the plain row back.
 K.Options.Write("HudStyle", "style", "medallions")
 assert(K.HudStyle.Current() == "medallions" and R.showCombo and R.content:IsShown() and K.Layout.Live("unitframes.resource"), "with no crown a rogue keeps its row under Medallions")
-K.Widgets.SetClassCrown(true)
+local crest = env.CreateFrame("Frame", nil, env.UIParent)
+K.Widgets.SetClassCrown(crest)
 assert(not R.showCombo and not R.content:IsShown(), "the crown takes a rogue's points")
 assert(not K.Layout.Live("unitframes.resource"), "and the empty element has no mover")
-K.Widgets.SetClassCrown(false)
+K.Widgets.SetClassCrown(nil)
 assert(R.showCombo and R.content:IsShown(), "the row comes back when the crown goes")
-K.Widgets.SetClassCrown(true)
+K.Widgets.SetClassCrown(crest)
 K.Options.Write("UnitFrames", "resource.classPips", false)
 assert(R.showCombo and not R.themed and R.pips[1]:IsShown(), "Class-themed pips off: the plain pips come back under Medallions")
 K.Options.Write("HudStyle", "style", "frames")
@@ -197,7 +198,7 @@ for i, pip in ipairs(R.pips) do
 end
 Points(env, 2)
 assert(Reveal(W.LastCall(R.pips[1], "SetValue")[1]) == 2, "off: the plain pips take the count")
-K.Widgets.SetClassCrown(false)
+K.Widgets.SetClassCrown(nil)
 K.Options.Write("UnitFrames", "resource.classPips", true)
 assert(R.themed and P.pips[1].frame:IsShown() and not R.pips[1]:IsShown(), "on again: the daggers")
 noErrors(env, K, "switch")
@@ -212,7 +213,8 @@ for _, key in ipairs({ "resource.comboColor", "resource.comboCustom" }) do
 end
 
 -- A druid: claws in cat form, nothing in caster form; under Medallions the crest's crown takes the claws, and the
--- druid bar stays here with its own settings in every form (review 678 #2, #3).
+-- druid bar keeps its own settings in every form (review 678 #2, #3), seated just above the crown's tips in cat form so
+-- the two never overlap.
 local denv, DK, dns = U.New({ setup = function(e)
 	e._units.player.class = "DRUID"
 	e._units.player.powerType, e._units.player.powerToken = 3, "ENERGY"
@@ -226,14 +228,18 @@ assert(W.LastCall(DP.pips[1].halo, "SetStatusBarColor")[1] == DK.Tokens.Color("p
 Points(denv, 5)
 assert(Loops(DP) == 0, "the row loops nothing, even at the maximum")
 DK.Options.Write("HudStyle", "style", "medallions")
-DK.Widgets.SetClassCrown(true)
-assert(not DR.showCombo and DR.showMana and DR.content:IsShown() and DK.Layout.Live("unitframes.resource"), "under Medallions the crown takes the claws and the mana bar stays, with its mover")
+local dcrest = denv.CreateFrame("Frame", nil, denv.UIParent)
+DK.Widgets.SetClassCrown(dcrest)
+assert(not DR.showCombo and DR.showMana and DR.content:IsShown(), "under Medallions the crown takes the claws and the druid bar stays")
+local _, seat = DR.content:GetPoint(1)
+assert(seat == dcrest and not DK.Layout.Live("unitframes.resource"), "seated on the crown's anchor, so the element's own place is empty and has no mover")
 DK.Options.Write("UnitFrames", "player.powerMana", true)
 assert(DR.flipped == 3, "Mana in forms still swaps the druid bar to the form's power")
 DK.Options.Write("UnitFrames", "player.powerMana", false)
 denv._units.player.powerType, denv._units.player.powerToken = 1, "RAGE"
+DK.Widgets.SetClassCrown(nil)
 denv.FireEvent("UPDATE_SHAPESHIFT_FORM")
-assert(DR.showMana and not DR.showCombo, "bear form keeps its mana bar under Medallions")
+assert(DR.showMana and not DR.showCombo and select(2, DR.content:GetPoint(1)) == DR.holder, "bear form has no crown, so its mana bar is back in its own place")
 denv._units.player.powerType, denv._units.player.powerToken = 0, "MANA"
 denv.FireEvent("UPDATE_SHAPESHIFT_FORM")
 assert(not DR.themed and not DP.pips[1].frame:IsShown(), "caster form: no pips")
