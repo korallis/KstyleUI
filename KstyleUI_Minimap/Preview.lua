@@ -19,8 +19,16 @@ function Preview.Build(...)
 	local SAMPLE_GROUP, SAMPLE_FPS, SAMPLE_MS = 25, 60, 42
 	local SAMPLE_ADDONS = { { "BugSack", 132176 }, { "Details", 132153 }, { "WeakAuras", 132111 } }
 
-	local function Refresh(frame)
+	local function Refresh(frame, fitted)
 		local face, drawer = frame.face, frame.column.drawer
+		local width, scale = K.Setup.Layouts.Element(KEY).width, frame:GetScale()
+		frame:SetScale(fitted and scale or 1)
+		Widgets.Size(frame, width + 2 * Format.FRAME, width + Format.HEADING + Format.CAPTION + 2 * Format.FRAME)
+		Widgets.Size(face.holder, width, width)
+		Widgets.Point(face.holder, "CENTER", frame, "CENTER", 0, Widgets.Snap(face.holder, (Format.CAPTION - Format.HEADING) / 2))
+		Widgets.Size(frame.player, PLAYER_SIZE, PLAYER_SIZE)
+		Widgets.Point(frame.player, "CENTER", face.mapArea, "CENTER")
+		frame:SetScale(scale)
 		if Settings.Get("column.drawer") and Settings.Get("drawer.behaviour") == "open" then
 			drawer:Refresh()
 		else
@@ -44,13 +52,8 @@ function Preview.Build(...)
 	end
 
 	build = function(parent)
-		local element = K.Setup.Layouts.Element(KEY)
 		local frame = CreateFrame("Frame", nil, parent)
-		Widgets.Size(frame, element.width + 2 * Format.FRAME, element.width + Format.HEADING + Format.CAPTION + 2 * Format.FRAME)
-		local map = CreateFrame("Frame", nil, frame)
-		Widgets.Size(map, element.width, element.width)
-		Widgets.Point(map, "CENTER", frame, "CENTER", 0, Widgets.Snap(map, (Format.CAPTION - Format.HEADING) / 2))
-		local face = Face.New(map)
+		local face = Face.New(CreateFrame("Frame", nil, frame))
 		frame.face = face
 
 		local area = face.mapArea
@@ -70,8 +73,6 @@ function Preview.Build(...)
 		grain:AddMaskTexture(face.mask)
 		local player = area:CreateTexture(nil, "OVERLAY")
 		player:SetTexture((Tokens.Texture("dot")))
-		Widgets.Size(player, PLAYER_SIZE, PLAYER_SIZE)
-		Widgets.Point(player, "CENTER", area, "CENTER")
 		frame.player = player
 		area:EnableMouse(true)
 		area:SetScript("OnMouseUp", function(_, button)
@@ -89,9 +90,8 @@ function Preview.Build(...)
 		end
 		drawer.active, frame.column.drawer = true, drawer
 
-		frame.Refresh, frame.Restyle = Refresh, Refresh
-		Widgets.Track(frame)
-		frame:Refresh()
+		frame.Refresh, frame.Restyle = Refresh, function(self) Refresh(self, true) end
+		Widgets.Track(frame):Refresh()
 		return frame
 	end
 	return build(...)
