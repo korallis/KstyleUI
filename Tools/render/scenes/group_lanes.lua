@@ -11,6 +11,8 @@
 -- =small (RENDER_GROUP=10) keeps six players, group 1 shown as party frames.
 -- RENDER_PARITY_R3B=1 switches on round 3b's party targets (an enemy, a player and an enemy), text above icons, a party debuff
 -- offset, the thick icon text outline and indicator 1 kept to raid frames.
+-- RENDER_PARITY_R3A=1 switches on round 3a's: missing buffs, Dead on the bar, the dispel type letter, centred names
+-- with a divider, group numbers, healer mana and your group label.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
@@ -43,6 +45,8 @@ if os.getenv("RENDER_PLAYER") == "warlock" then
 	PLAYER = { name = "Morvane", class = "WARLOCK", health = 82, maxHealth = 100, power = 70, maxPower = 100, role = "DAMAGER" }
 end
 local AT = { party = { 24, 392 }, raid = { 14, 330 } }
+local R3A = os.getenv("RENDER_PARITY_R3A") == "1"
+local SPELLS = { [1243] = { "Power Word: Fortitude", 135987 }, [1459] = { "Arcane Intellect", 135932 }, [467] = { "Thorns", 136104 } }
 local IDENTITY = {
 	Valerin = { "Dwarf", 2 }, Morvane = { "Scourge", 2 }, Thessaly = { "Human", 3 }, Brannoc = { "Orc", 2 }, Ilyra = { "NightElf", 3 }, Dunmar = { "Dwarf", 2 },
 }
@@ -84,6 +88,20 @@ return Common.Run(function()
 				local id = identity(unit)
 				return id and id[2] or 2
 			end
+			if R3A then
+				env.C_SpellBook = { IsSpellKnown = function(id) return SPELLS[id] ~= nil end }
+				env.C_Spell = env.C_Spell or {}
+				env.C_Spell.GetSpellName = function(id) return SPELLS[id] and SPELLS[id][1] end
+				env.C_Spell.GetSpellTexture = function(id) return SPELLS[id] and SPELLS[id][2] end
+				env.C_UnitAuras = env.C_UnitAuras or {}
+				env.C_UnitAuras.GetAuraDataBySpellName = function(unit, name)
+					local n = tonumber(unit:match("%d+$") or 0)
+					return (n % 3 ~= 1 or name ~= "Power Word: Fortitude") and (n % 2 == 0 or name ~= "Arcane Intellect") and {} or nil
+				end
+				env.UnitPowerPercent = function(_, _, _, curve) return curve and curve:Evaluate(0.64) or 0.64 end
+				env.UnitInRaid = function(unit) return unit == "player" and env._roster.kind == "raid" and 1 or nil end
+				env.GROUP_NUMBER = "Group %d"
+			end
 			if os.getenv("RENDER_PARITY_R2") == "1" then
 				env.UnitAffectingCombat = function(unit) return unit == "party1" or unit == "raid1" or unit == "raid7" end
 			end
@@ -109,6 +127,7 @@ return Common.Run(function()
 		for i, m in ipairs(PARTY) do
 			members[i] = { name = m[1], class = m[2], health = m[3], maxHealth = 100, power = m[5], maxPower = 100, role = m[4] }
 		end
+		if R3A then members[4].dead = true end
 	else
 		kind = "raid"
 		local n = tonumber(group)
@@ -141,6 +160,12 @@ return Common.Run(function()
 	if os.getenv("RENDER_PARITY_R1") == "1" then
 		for key, value in pairs({ ["health.colorSource"] = "gradient", ["health.alpha"] = 0.85, ["icons.roleDamager"] = false,
 			["power.damagers"] = false, ["groups.show2"] = false, ["auras.dispelAlpha"] = 0.3, ["auras.dispelLines"] = 1 }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+	end
+	if R3A then
+		for key, value in pairs({ ["reminders.place"] = "TOPRIGHT", ["status.place"] = "CENTER", ["dispel.icon"] = "LEFT", ["names.align"] = "CENTER",
+			["names.divider"] = true, ["numbers.show"] = true, ["mana.mode"] = "BOTH", ["label.enabled"] = true }) do
 			K.Options.Write("GroupFrames", key, value)
 		end
 	end
@@ -178,6 +203,15 @@ return Common.Run(function()
 	end
 	Hud.Tick(env, 1)
 	env.RunTimers()
+	if R3A then
+		ns.Unit.ForEach(function(f)
+			local slot = f.highlights and f.highlights._slots.dispelType
+			if slot and (f.unit == "party2" or f.unit == "raid2") then
+				slot.frame:Show()
+				dofile("Tools/regression/auras_env.lua").Dispel(slot.frame, "Magic")
+			end
+		end)
+	end
 	if os.getenv("RENDER_GROUP_STATUS") == "1" then
 		local A = dofile("Tools/regression/auras_env.lua")
 		ns.Unit.ForEach(function(f)

@@ -365,7 +365,7 @@ end
 
 local function TextReserve(f, k)
 	local percent = k.healthText ~= "NONE" and Style.Reserve(f, k, nil, true) or 0
-	local status = f.status and Style.StatusWidth(f, k.healthTextSize) or 0
+	local status = Style.InRow(f) and Style.StatusWidth(f, k.healthTextSize) or 0
 	return math.max(percent, status) + Slack(f), percent > 0 and percent + Slack(f) or 0
 end
 
@@ -453,6 +453,7 @@ local placeRowEnd = Style.PlaceRowEnd
 function Style.PlaceRowEnd(f)
 	if f.parts and f.parts.tile and Medallions.Active() then
 		TileText(f)
+		Style.PinStatus(f)
 		return
 	end
 	return placeRowEnd(f)

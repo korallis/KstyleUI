@@ -229,6 +229,19 @@ function Preview.Build(...)
 			end
 			local ox, oy = Geometry.Offset(Geometry.Perpendicular(raid.growth, raid.groupGrowth), (g - 1) * ((groupsWide and gw or gh) + raid.groupSpacing))
 			PlaceRun(frames, preview.raid, raid, raid.growth, #frames, ox, oy, corner)
+			local number = preview.numbers[g]
+			if cfg.numbers.show and not number then
+				number = K.Widgets.FontString(preview.raid, "OVERLAY")
+				preview.numbers[g] = number
+			end
+			if number then
+				number:SetShown(cfg.numbers.show and raid.sortBy == "GROUP")
+				Style.SetFont(number, cfg.text.healthFont, cfg.numbers.size, "OUTLINE")
+				number:SetTextColor(Tokens.Color("text"))
+				number:SetText(g)
+				number:ClearAllPoints()
+				number:SetPoint("BOTTOM", frames[raid.growth == "UP" and #frames or 1], "TOP", 0, 1)
+			end
 		end
 		preview.canvas:SetSize(pw, ph)
 		preview.raidCanvas:SetSize(rw, rh)
@@ -264,6 +277,16 @@ function Preview.Build(...)
 			Paint(f, f.sample)
 		end
 		local height = raidTop + rh * raidScale
+		local line = ns.Readouts.Sample()
+		if line and not preview.readout then preview.readout = K.Widgets.FontString(preview, "OVERLAY") end
+		if preview.readout then
+			preview.readout:SetShown(line ~= nil)
+			Style.SetFont(preview.readout, cfg.text.healthFont, cfg.mana.size, "OUTLINE")
+			preview.readout:SetText(line or "")
+			preview.readout:ClearAllPoints()
+			preview.readout:SetPoint("TOPLEFT", preview, "TOPLEFT", 0, -(height + gap / 2))
+			if line then height = height + gap / 2 + math.ceil(cfg.mana.size * 1.2) end
+		end
 		preview.clickCast:ClearAllPoints()
 		preview.clickCast:SetPoint("TOPLEFT", preview, "TOPLEFT", 0, -(height + gap))
 		preview.clickCast:SetPoint("RIGHT", preview, "RIGHT", 0, 0)
@@ -279,7 +302,7 @@ function Preview.Build(...)
 		preview.raidCanvas = K.Widgets.MarkPreview(CreateFrame("Frame", nil, preview))
 		preview.party = CreateFrame("Frame", nil, preview.canvas)
 		preview.raid = CreateFrame("Frame", nil, preview.raidCanvas)
-		preview.partyFrames, preview.raidFrames = {}, {}
+		preview.partyFrames, preview.raidFrames, preview.numbers = {}, {}, {}
 		for i = 1, PARTY_SHOWN do
 			preview.partyFrames[i] = Sample(preview.party, "party", i)
 			preview.partyFrames[i].nameGroup = preview.partyFrames

@@ -26,6 +26,7 @@ local MARK_SUBLEVEL = 6
 local GLOWS = { glowBoss = { isBossAura = true }, glowImportant = { isPriorityAura = true } }
 local GLOW_FILTER = "HARMFUL"
 local SLOT = "dispel"
+local TYPE_SLOT = "dispelType"
 local BOSS_SLOT = "boss"
 local BOSS_CANDIDATES = { isBossAura = true }
 local TEMPLATE = "CustomAuraContainerTemplate"
@@ -337,6 +338,56 @@ local function DispelStyle()
 	return enum and enum.PreserveAsset
 end
 
+local function ColorKey()
+	local d = Settings.current.dispel
+	if not d.custom or type(CreateColor) ~= "function" then return "game" end
+	local out = {}
+	for key in pairs(DISPEL_TYPES) do
+		local c = d[key]
+		out[#out + 1] = key .. c.r .. "," .. c.g .. "," .. c.b
+	end
+	table.sort(out)
+	return table.concat(out, ";")
+end
+
+local function Tinted(options)
+	if ColorKey() == "game" then return options end
+	local map, d = {}, Settings.current.dispel
+	for key, name in pairs(DISPEL_TYPES) do
+		local c = d[key]
+		map[name] = CreateColor(c.r, c.g, c.b, 1)
+	end
+	options.customDispelColorMap = map
+	return options
+end
+
+local function Retint(owner, pieces, options)
+	for _, piece in ipairs(pieces) do
+		owner:RemoveDispelTypeTexture(piece)
+		owner:AddDispelTypeTexture(piece, options)
+	end
+end
+
+local function IconKey()
+	local d = Settings.current.dispel
+	if not d.custom then return d.iconBorder and "game+" or "game-" end
+	return ColorKey() .. (d.iconBorder and "+" or "-")
+end
+
+local function TintIcon(button, p)
+	local key = IconKey()
+	if p.tint == key or not DispelStyle() then return end
+	local on = Settings.current.dispel.iconBorder
+	if p.tintOn then
+		for _, piece in ipairs(p.dispel) do button:RemoveDispelTypeTexture(piece) end
+	end
+	local options = Tinted({ style = DispelStyle(), showWhenHarmful = true, showWithoutDispelType = true })
+	for _, piece in ipairs(p.dispel) do
+		if on then button:AddDispelTypeTexture(piece, options) else piece:Hide() end
+	end
+	p.tint, p.tintOn = key, on
+end
+
 local function LayoutDispel(wash, ring, owner, chamfer, engine)
 	Style.LayoutWash(wash, owner, chamfer)
 	Style.LayoutRing(ring, owner, chamfer)
@@ -347,12 +398,21 @@ local function LayoutDispel(wash, ring, owner, chamfer, engine)
 		end
 		wash.alpha = a.dispelAlpha
 	end
+	local key = engine and DispelStyle() and ColorKey()
+	if key and wash.tint ~= key then
+		local options = Tinted({ style = DispelStyle(), showWhenHarmful = true })
+		Retint(owner, wash, options)
+		for _, line in ipairs(ring) do
+			if line.on ~= false then Retint(owner, line, options) end
+		end
+		wash.tint = key
+	end
 	for i, line in ipairs(ring) do
 		local on = i <= a.dispelLines
 		if engine and (line.on ~= false) ~= on and DispelStyle() then
 			for _, piece in ipairs(line) do
 				if on then
-					owner:AddDispelTypeTexture(piece, { style = DispelStyle(), showWhenHarmful = true })
+					owner:AddDispelTypeTexture(piece, Tinted({ style = DispelStyle(), showWhenHarmful = true }))
 				else
 					owner:RemoveDispelTypeTexture(piece)
 					piece:Hide()
@@ -418,6 +478,7 @@ local function StyleIcon(button)
 		return
 	end
 	local k = Settings.current[f.kind]
+	TintIcon(button, p)
 	if p.dispelLetter then p.dispelLetter:SetAlpha(Settings.current.auras.typeLetters and 1 or 0) end
 	local size = p.size and p.size() or (p.buff and BuffSizes(f, k) or Sizes(f, k))
 	local border = Widgets.Border(p.skin)
@@ -519,7 +580,7 @@ local function StyleGroup(container, key)
 	local row = f.parts and f.parts.healRow
 	local ar, ag, ab = Style.Accent()
 	local count = container:GetAuraGroupFrameCount(key)
-	local inputs = { styleGeneration, size, spacing, block.columns, block.rows, k.auraGrowth, k.auraWrap, k.buffCount, cfg.text.healthFont, cfg.auras.swipe, Widgets.Border(f), ar, ag, ab, MarkLift(key), f.debuffChip ~= nil, k.buffSize, row and row.width, row and row.height, row and row.side, cfg.auras.typeLetters, cfg.auras.stacks, cfg.auras.timers, cfg.auras.timerSize, cfg.auras.zoom, cfg.auras.tooltips, cfg.buffs.tooltips, cfg.auras.tipCombat, cfg.auras.textOutline }
+	local inputs = { styleGeneration, size, spacing, block.columns, block.rows, k.auraGrowth, k.auraWrap, k.buffCount, cfg.text.healthFont, cfg.auras.swipe, Widgets.Border(f), ar, ag, ab, MarkLift(key), f.debuffChip ~= nil, k.buffSize, row and row.width, row and row.height, row and row.side, cfg.auras.typeLetters, cfg.auras.stacks, cfg.auras.timers, cfg.auras.timerSize, cfg.auras.zoom, cfg.auras.tooltips, cfg.buffs.tooltips, cfg.auras.tipCombat, cfg.auras.textOutline, IconKey() }
 	local groups = styledGroups[container]
 	local old = groups and groups[key]
 	local changed = f.auraInputsDirty or not old or old.count ~= count
@@ -660,13 +721,6 @@ local function BuildIcon(button, key)
 	button:SetIcon(p.icon)
 	button:SetDurationCooldown(cooldown)
 	button:SetApplicationCount(count)
-	local style = DispelStyle()
-	if style then
-		local options = { style = style, showWhenHarmful = true, showWithoutDispelType = true }
-		for _, piece in ipairs(p.dispel) do
-			button:AddDispelTypeTexture(piece, options)
-		end
-	end
 	local types = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
 	if not p.buff and types and types.CustomAsset ~= nil and K.ColorVision and type(button.AddDispelTypeTexture) == "function" then
 		p.dispelLetter = textFrame:CreateTexture(nil, "OVERLAY")
@@ -740,7 +794,8 @@ local function BuildDispel(slot, f)
 	f.dispelWash, f.dispelRing, f.dispelFrame = wash, ring, slot
 	local style = DispelStyle()
 	if style then
-		local options = { style = style, showWhenHarmful = true }
+		local options = Tinted({ style = style, showWhenHarmful = true })
+		wash.tint = ColorKey()
 		for _, piece in ipairs(wash) do
 			slot:AddDispelTypeTexture(piece, options)
 		end
@@ -751,6 +806,48 @@ local function BuildDispel(slot, f)
 		Style.LogOnce("dispelStyle", "the dispel texture styles are missing; the dispel highlight stays off")
 	end
 	LayoutDispel(wash, ring, slot, f.chrome:Chamfer(), true)
+end
+
+local function PlaceType(f)
+	local d, slot = Settings.current.dispel, f.typeFrame
+	if not slot or d.icon == "NONE" then return end
+	slot:SetFrameLevel(f.highlights:GetFrameLevel() + TEXT_ABOVE)
+	Style.Pin(f, f.typeIcon, d.icon, Widgets.Snap(f, d.iconSize))
+end
+
+local function TypeOptions()
+	return Tinted({ style = Enum.CustomAuraButtonDispelTypeTextureStyle.CustomAsset, showWhenHarmful = true, customDispelAssetMap = K.ColorVision.DispelAssets() })
+end
+
+local function BuildType(slot, f)
+	pcall(slot.EnableMouse, slot, false)
+	slot:ClearAllPoints()
+	slot:SetAllPoints(f)
+	f.typeFrame, f.typeIcon, f.typeTint = slot, slot:CreateTexture(nil, "OVERLAY"), ColorKey()
+	slot:AddDispelTypeTexture(f.typeIcon, TypeOptions())
+	PlaceType(f)
+end
+
+Auras.restylers[#Auras.restylers + 1] = function(f)
+	if f.typeFrame and f.typeTint ~= ColorKey() then
+		Retint(f.typeFrame, { f.typeIcon }, TypeOptions())
+		f.typeTint = ColorKey()
+	end
+end
+
+local function ConfigureType(f, filter)
+	local highlights, on = f.highlights, Settings.current.dispel.icon ~= "NONE"
+	if on and highlights and f.typeSlot == nil and Enum and Enum.CustomAuraButtonDispelTypeTextureStyle and K.ColorVision then
+		f.typeSlot = pcall(highlights.AddAuraSlot, highlights, TYPE_SLOT, filter, { initializeFrame = function(slot)
+			local built, err = pcall(BuildType, slot, f)
+			if not built then Style.LogOnce("typeBuild", "building the dispel type icon failed: " .. tostring(err)) end
+		end })
+	end
+	if f.typeSlot then
+		highlights:SetAuraSlotFilterString(TYPE_SLOT, filter)
+		highlights:SetAuraSlotEnabled(TYPE_SLOT, on)
+		PlaceType(f)
+	end
 end
 
 local function GroupOptions(f, k, key, types)
@@ -1257,6 +1354,7 @@ local function Configure(f)
 		highlights:SetAuraSlotFilterString(SLOT, DISPEL_FILTERS[a.dispelFilter] or DISPEL_FILTERS.PLAYER)
 		highlights:SetAuraSlotEnabled(SLOT, a.dispelHighlight)
 	end
+	ConfigureType(f, DISPEL_FILTERS[a.dispelFilter] or DISPEL_FILTERS.PLAYER)
 	Restyle(f)
 end
 
@@ -1285,7 +1383,7 @@ local function Bind(f)
 		return
 	end
 	local a = Settings.current.auras
-	local on = (a.enabled or a.dispelHighlight or a.glow) and available and Unit.running
+	local on = (a.enabled or a.dispelHighlight or a.glow or Settings.current.dispel.icon ~= "NONE") and available and Unit.running
 	if not on then
 		if f.auras then
 			SetUnit(f, NONE)
@@ -1520,9 +1618,19 @@ local function PaintSample(f, sample)
 	local debuffs = #kept
 	local more = cells > 0 and debuffs > cells
 	local shown = more and cells - 1 or math.min(debuffs, cells)
+	local d = Settings.current.dispel
 	for i, icon in ipairs(f.sampleAuras) do
 		icon:SetShown(i <= shown)
 		if kept[i] then icon.art:SetTexture(SAMPLE_ICONS[kept[i]]) end
+		local c = d.custom and d.iconBorder and kept[i] and d[SAMPLE_TYPES[kept[i]] or ""]
+		if c and not icon.typeBorder then icon.typeBorder = Widgets.NineSlice(icon.tile.skin, "chamferTile", "BORDER", DISPEL_SUBLEVEL) end
+		if icon.typeBorder then
+			Widgets.ShowSlice(icon.typeBorder, c and true or false)
+			if c then
+				Widgets.LayoutSlice(icon.typeBorder, icon.tile.skin, icon.tile.chrome:Chamfer(), 0)
+				Widgets.ColorSlice(icon.typeBorder, c.r, c.g, c.b, 1)
+			end
+		end
 	end
 	if more then
 		Widgets.SetText(f.sampleChip.text, MARK .. (debuffs - shown))
@@ -1533,9 +1641,18 @@ local function PaintSample(f, sample)
 	for i, icon in ipairs(f.sampleBuffs) do
 		icon:SetShown(i <= hots)
 	end
+	local own = sample.dispel and d.custom and d[sample.dispel:lower()]
+	if sample.dispel and d.icon ~= "NONE" then
+		f.sampleType = f.sampleType or f.text:CreateTexture(nil, "OVERLAY")
+		f.sampleType:SetTexture((Tokens.Texture("dispel" .. sample.dispel:sub(1, 1))))
+		f.sampleType:SetVertexColor(own and own.r or 1, own and own.g or 1, own and own.b or 1)
+		Style.Pin(f, f.sampleType, d.icon, Widgets.Snap(f, d.iconSize))
+	end
+	if f.sampleType then f.sampleType:SetShown(sample.dispel ~= nil and d.icon ~= "NONE") end
 	local dispel = a.dispelHighlight and sample.dispel
 	if dispel then
 		local r, g, b = Tokens.Color("rare")
+		if own then r, g, b = own.r, own.g, own.b end
 		Widgets.ColorSlice(f.sampleDispelWash, r, g, b, a.dispelAlpha)
 		Style.ColorRing(f.sampleDispelRing, r, g, b, 1)
 	end
