@@ -475,10 +475,18 @@ local function QuietStep(step)
 	end
 end
 
-local function QuietLine(line, r, g, b, a)
-	local center = IsTable(line.back) and line.back.Center
+local function QuietBack(back, r, g, b, a)
+	local center = back.Center
 	if state.saved and IsTable(center) and type(center.SetColorTexture) == "function" and Plain(a) then
 		center:SetColorTexture(r, g, b, a * LINE_ALPHA)
+	end
+end
+
+local function AccentBar(bar, r, g)
+	if state.saved and r == 0 and Plain(g) and g > 0.7 and IsTable(bar.Texture) then
+		local ar, ag, ab = Tokens.Color("accent")
+		bar.Texture:SetVertexColor(ar, ag, ab, 1)
+		if IsTable(bar.Decor) then bar.Decor:SetVertexColor(ar, ag, ab, 1) end
 	end
 end
 
@@ -492,11 +500,10 @@ local function Steps(frame)
 			hookedSteps[step] = true
 			hooksecurefunc(step, "SetBackgroundForStep", QuietStep)
 			for _, line in ipairs(IsTable(step.lines) and step.lines or {}) do
-				if type(line.SetBackColor) == "function" then
-					hooksecurefunc(line, "SetBackColor", QuietLine)
-					if IsTable(line.back) and type(line.back.GetBackdropColor) == "function" then
-						QuietLine(line, line.back:GetBackdropColor())
-					end
+				local back = line.back
+				if IsTable(back) and type(back.SetBackdropColor) == "function" and type(back.GetBackdropColor) == "function" then
+					hooksecurefunc(back, "SetBackdropColor", QuietBack)
+					QuietBack(back, back:GetBackdropColor())
 				end
 			end
 		end
@@ -558,6 +565,13 @@ local function Paint(z)
 	if not state.steps and IsTable(z.Frame) and type(z.Frame.AddStep) == "function" then
 		state.steps = true
 		hooksecurefunc(z.Frame, "AddStep", Steps)
+		local bar = z.ProgressBar
+		if IsTable(bar) and type(bar.SetColor) == "function" then
+			hooksecurefunc(bar, "SetColor", AccentBar)
+			if IsTable(bar.Texture) and type(bar.Texture.GetVertexColor) == "function" then
+				AccentBar(bar, bar.Texture:GetVertexColor())
+			end
+		end
 	end
 end
 

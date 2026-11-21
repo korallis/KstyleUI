@@ -37,8 +37,8 @@ function Fake.Install(env, opts)
 	local back = env.CreateFrame("Frame", nil, step)
 	back.Center = back:CreateTexture(nil, "BACKGROUND")
 	back.GetBackdropColor = function() return 0.5, 0, 0, 1 end
+	back.SetBackdropColor = function(self, r, g, b, a) self.Center:SetColorTexture(r, g, b, a) end
 	step.lines[1].back = back
-	step.lines[1].SetBackColor = function(self, r, g, b, a) back.Center:SetColorTexture(r, g, b, a) end
 	frame.stepframes = { step }
 	function frame:AddStep() step:SetBackgroundForStep() end
 	local profile = { resizeup = opts.resizeup == true, fixedheight = false, showcountsteps = opts.allsteps and 0 or 1, framescale = 1, frame_anchor = { "CENTER", "CENTER", 0, 0 } }

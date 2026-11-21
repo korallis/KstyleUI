@@ -95,7 +95,7 @@ do
 	local step = zygor.step
 	zygor.frame:AddStep()
 	assert(step.backdrop[4] == 0, "a repainted step lets the card show through")
-	step.lines[1]:SetBackColor(0.5, 0, 0, 1)
+	step.lines[1].back:SetBackdropColor(0.5, 0, 0, 1)
 	local _, _, _, lineAlpha = step.lines[1].back.Center:GetVertexColor()
 	assert(lineAlpha and lineAlpha < 0.5, "a goal colour stays as a faint tint, not a solid bar: " .. tostring(lineAlpha))
 	assert(zygor.applied >= 1, "Zygors skin is applied after the rail's colours go in")
