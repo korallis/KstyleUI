@@ -2,18 +2,17 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.2.10 (2026-11-21)", {
+		L["KstyleUI draws less every frame, up to a quarter less area, with no change in how it looks."],
+		L["Medallions switches for Low-health vignette and Ambient hub effects trade effects for frame rate, both on by default."],
+		L["Thanks to Baine, /kstyle perf records your frame rate and KstyleUI's Lua time for frame-rate reports."],
+		L["Party frames can follow the raid's settings, and indicators can be coloured squares or bars that drain."],
+		L["Party and raid frames gain a shield edge, a raid size of your own and tank frames that can leave you out."],
+	} },
 	{ "v0.2.9.2 (2026-11-21)", {
 		L["Tooltips on the top data bar open clear of the bar, so every button stays reachable."],
 	} },
 	{ "v0.2.9.1 (2026-11-21)", {
 		L["Medallions party frames no longer error when their names sit on the bar."],
-	} },
-	{ "v0.2.9 (2026-11-21)", {
-		L["Combo points, holy power and soul shards glow as jewels on the Medallions crest, on by default."],
-		L["New options for unit, party and raid frames, nameplates, cooldowns and auras, each keeping today's look."],
-		L["A second data bar, a second damage window with reports, a forged Medallions dock and new bag views."],
-		L["Alerts, a cursor ring, a crosshair, raid tools and /way waypoints, all off until you turn them on."],
-		L["Share whole profiles with your layouts, and read each release's highlights under About > What's new."],
-		L["KstyleUI loads faster after a reload."],
 	} },
 }

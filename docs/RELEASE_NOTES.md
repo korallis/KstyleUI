@@ -2,6 +2,14 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.2.10: the frame-rate release (2026-11-21)
+
+KstyleUI now draws less every frame. The see-through middles of its rings, outlines and frame borders are no longer drawn, which takes about a fifth of the drawn area off Frames, a quarter off Medallions and a tenth off Orbs, and nothing looks different. Two new switches under General > Medallions trade effects for frame rate: Low-health vignette takes the red screen edge at low health out of the drawing while your portrait's danger ring stays, and Ambient hub effects stills the hub's turning runes, breathing glow, sheen and sparks while combat, proc and cast flashes still play. Both start on, so Medallions looks as before until you turn one off.
+
+`/kstyle perf`, contributed by Baine, records your frame rate and the Lua time KstyleUI spends for 20 seconds or the length you give, then writes the costliest work first to the devlog. To report low frame rate, stand where it drops, type `/kstyle perf 30` and play on until the chat says the profile is written, then `/reload` and send the lines marked `Perf` from `WTF/Account/<ACCOUNT>/SavedVariables/KstyleUI.lua` with your HUD style and screen size. The lowest frame rate is the stutter figure, and the rows show how much of the cost is KstyleUI's own Lua.
+
+Party and raid frames gain a shield edge where a shield starts on the health bar, indicators that can be a coloured square or a bar along the health bar's edge that drains as the aura ends, party frames that follow the raid's text, debuffs, heal icons, status icon size or power bar one by one, a raid frame size of your own from a player count you choose, tank frames that leave you out, and role icons under the hover and target highlights. Every new option starts off or at today's value unless stated. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.2.9.2: fixes (2026-11-21)
 
 Tooltips on the data bar, its micro and bag menus and the experience bars now open clear of the bar and the pointer, so the next button stays reachable. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
