@@ -92,7 +92,7 @@ end
 collectgarbage()
 
 -- Switched on at their default places, pet, tank and friendly boss frames clear the raid, the party and each other on every test screen,
--- with a ten-player raid (its frames are the largest), in the module's own layout and the first-run setup's.
+-- with a ten-player raid and you healing (its frames are the largest), in the module's own layout and the first-run setup's.
 for pass, screen in ipairs({ SCREENS[1], SCREENS[2], SCREENS[3], SCREENS[4], SCREENS[1] }) do
 	do
 		local env, K, ns = boot(function(e)
@@ -102,7 +102,7 @@ for pass, screen in ipairs({ SCREENS[1], SCREENS[2], SCREENS[3], SCREENS[4], SCR
 			e.UnitCanAssist = function(_, unit) return unit == "boss1" end
 		end, screen)
 		if pass == 5 then assert(K.Setup.Apply(K.Setup.NewChoice())) end
-		G.SetRoster(env, "raid", G.Members(10, function(i, m) if i <= 2 then m.role = "TANK" end end))
+		G.SetRoster(env, "raid", G.Members(10, function(i, m) if i <= 2 then m.role = "TANK" end end), { name = "Tester", class = "PRIEST", role = "HEALER" })
 		for i = 1, 3 do env._units["raidpet" .. i] = { name = "Fang", class = "HUNTER", health = 50, maxHealth = 50 } end
 		env._units.boss1 = { name = "Valithria", class = "DRUID", health = 41, maxHealth = 100 }
 		env.RunTimers()
