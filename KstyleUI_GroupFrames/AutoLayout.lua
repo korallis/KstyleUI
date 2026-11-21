@@ -140,7 +140,9 @@ function Settings.Refresh()
 	local cfg = AutoLayout.Overlay(refresh())
 	for section, keys in pairs(Settings.FOLLOW) do
 		if cfg.follow[section] then
-			for _, key in ipairs(keys) do cfg.party[key] = cfg.raid[key] end
+			for _, key in ipairs(keys) do
+				if key ~= "textLayout" or not ns.Medallions.Active() then cfg.party[key] = cfg.raid[key] end
+			end
 		end
 	end
 	return cfg
