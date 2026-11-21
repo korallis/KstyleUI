@@ -1,4 +1,4 @@
--- ClassPip.lua: one class-themed resource pip, an art set (lit, dormant, shape, glow) seen along an axis; every lit layer is a one-point status bar fed the raw count now, before, or at the maximum, so the engine compares and Lua never reads a secret: a gain slides the art out along its axis under a flare, a spend holds, slashes and cools to the dormant art, and the maximum runs a glint up the axis.
+-- ClassPip.lua: one class-themed resource pip, an art set (lit, dormant, shape, glow) seen along an axis; every lit layer is a one-point status bar fed the raw count now, before, or at the maximum, so the engine compares and Lua never reads a secret: a gain slides the art out along its axis under a flare, a spend holds, slashes and cools to the dormant art, and the maximum runs a glint up the axis, staggered along the row and then back on one common period; the crest's crown says through SetClassCrown whether it shows the combo points, so the unit frames hand them over only then.
 local _, ns = ...
 
 local Widgets, Tokens = ns.Widgets, ns.Tokens
@@ -26,6 +26,7 @@ local CLASSES = {
 }
 
 local Pip = {}
+local crowned, follower = false, nil
 
 local function Create(bar, kind, order, duration, smoothing)
 	bar.anim = bar.anim or bar:CreateAnimationGroup()
@@ -43,16 +44,14 @@ local function Fade(bar, order, duration, from, to, smoothing)
 	return a
 end
 
-local function Restart(bar, looping)
-	bar.anim:Stop()
-	bar.anim:SetLooping(looping or "NONE")
+local function Restart(bar)
 	bar:Show()
 	bar.anim:Play()
 end
 
-function Pip:Idle()
-	self.shineWait:SetDuration(REST + (self.i - 1) * STAGGER)
-	Restart(self.shine, "REPEAT")
+function Pip:Idle(wait)
+	self.shineWait:SetDuration(wait)
+	Restart(self.shine)
 end
 
 function Pip:Layout(size)
@@ -79,19 +78,34 @@ function Pip:Set(now, was, moving, idle)
 		if layer.transient then
 			bar:Hide()
 		end
-		bar:SetValue(layer.feed == "was" and was or now)
+		if layer.feed == "was" then
+			bar:SetValue(was)
+		else
+			bar:SetValue(now)
+		end
 	end
 	if moving then
-		for _, layer in ipairs(LAYERS) do
-			if layer.key ~= "shine" then
-				Restart(self[layer.key])
-			end
-		end
 		self.shineWait:SetDuration(HOLD + (self.i - 1) * STAGGER)
-		Restart(self.shine)
+		for _, layer in ipairs(LAYERS) do
+			Restart(self[layer.key])
+		end
 	elseif idle then
-		self:Idle()
+		self:Idle(REST + (self.i - 1) * STAGGER)
 	end
+end
+
+function Widgets.SetClassCrown(shown)
+	if shown ~= crowned then
+		crowned = shown
+		if follower then
+			follower()
+		end
+	end
+end
+
+function Widgets.ClassCrown(follow)
+	follower = follow or follower
+	return crowned
 end
 
 function Widgets.ClassPipSet(class, angle)
@@ -126,11 +140,8 @@ function Widgets.ClassPip(parent, set, i, count)
 		if layer.mask then
 			texture:AddMaskTexture(p.mask)
 		end
-		if layer.feed == "max" then
-			bar:SetMinMaxValues(count - 1, count)
-		else
-			bar:SetMinMaxValues(i - 1, i)
-		end
+		local top = layer.feed == "max" and count or i
+		bar:SetMinMaxValues(top - 1, top)
 		bar:SetValue(0)
 		p[layer.key] = bar
 	end
@@ -165,7 +176,7 @@ function Widgets.ClassPip(parent, set, i, count)
 			bar:Hide()
 			bar.anim:SetScript("OnFinished", function()
 				if bar == p.shine and p.idle then
-					p:Idle()
+					p:Idle(REST)
 				else
 					bar:Hide()
 				end

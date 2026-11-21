@@ -1,8 +1,8 @@
--- SlabCrown.lua: the Medallions crest's crown, one Widgets.ClassPip piece per combo point fanned out of the top of the rune ring (a rogue's daggers, a cat-form druid's claws with its mana as a thin line above them), dormant until each point ignites one; on while the unit frames' Class-themed pips setting is on, which it is by default and when Unit Frames is off.
+-- SlabCrown.lua: the Medallions crest's crown, one Widgets.ClassPip piece per combo point fanned out of the top of the rune ring (a rogue's daggers, a cat-form druid's claws), dormant until each point ignites one; on while the unit frames' Class resource, Combo points and Class-themed pips settings are on, which they are by default and when Unit Frames is off, and it tells the unit frames whether it shows.
 local _, ns = ...
 
 local K = KstyleUI
-local Widgets, Tokens, Effects = K.Widgets, K.Tokens, K.Effects
+local Widgets, Effects = K.Widgets, K.Effects
 local cos, sin, rad = math.cos, math.sin, math.rad
 local IsSecret = Widgets.IsSecret
 
@@ -12,9 +12,9 @@ ns.SlabCrown = Crown
 local OWNER = "ActionBars.SlabCrown"
 local FANS = { { 90 }, { 110, 70 }, { 110, 90, 70 }, { 130, 110, 70, 50 }, { 130, 110, 90, 70, 50 } }
 local BASE, LENGTH, ART = 76, 44, 128 / 120
-local LINE, LINE_GAP, LINE_WIDTH = 3, 4, 150
+local KEYS = { ["resource.enabled"] = true, ["resource.comboPoints"] = true, ["resource.classPips"] = true }
 
-local state = { pips = {} }
+local state = { pips = {}, built = {} }
 Crown.state = state
 
 local function Saved(key)
@@ -26,60 +26,31 @@ end
 
 local function Class()
 	local hub = ns.Slab and ns.Slab.hub
-	if not (state.enabled and hub and hub:IsShown() and Saved("classPips") and UnitClass) then
+	if not (state.enabled and hub and hub:IsShown() and Saved("enabled") and Saved("comboPoints") and Saved("classPips") and UnitClass) then
 		return nil
 	end
 	local _, class = UnitClass("player")
 	return not IsSecret(class) and Widgets.ClassPipSet(class, 90) and class or nil
 end
 
-local function ManaType()
-	local types = Enum and Enum.PowerType
-	return types and types.Mana or 0
-end
-
-local function ManaLine(hub)
-	local bar = state.mana
-	if not bar then
-		bar = CreateFrame("StatusBar", nil, hub.top)
-		local track = bar:CreateTexture(nil, "BACKGROUND")
-		track:SetAllPoints(bar)
-		track:SetColorTexture(Tokens.Color("medGunDark"))
-		bar:SetStatusBarTexture((Tokens.Texture("barFlat")))
-		local c = K.Theme.Palette("MANA")
-		if type(c) == "table" and type(c.r) == "number" then
-			bar:SetStatusBarColor(K.Theme.Brighten(c.r, c.g, c.b))
-		else
-			bar:SetStatusBarColor(Tokens.Color("hudMana"))
-		end
-		state.mana = bar
-	end
-	bar:ClearAllPoints()
-	bar:SetPoint("CENTER", hub, "CENTER", 0, Widgets.Snap(hub, BASE + LENGTH + LINE_GAP))
-	Widgets.Size(bar, LINE_WIDTH, LINE)
-	return bar
-end
-
-local function Mana()
-	local bar = state.mana
-	if bar and bar:IsShown() then
-		bar:SetMinMaxValues(0, UnitPowerMax("player", ManaType()))
-		bar:SetValue(UnitPower("player", ManaType()))
-	end
-end
-
 local function Build(hub, class, count)
 	for _, p in ipairs(state.pips) do
 		p.frame:Hide()
 	end
-	state.pips, state.built = {}, class .. count
-	for i, angle in ipairs(FANS[count]) do
-		local p = Widgets.ClassPip(hub.top, Widgets.ClassPipSet(class, angle), i, count)
-		local centre = BASE + LENGTH / 2
-		p.frame:SetPoint("CENTER", hub, "CENTER", Widgets.Snap(hub, centre * cos(rad(angle))), Widgets.Snap(hub, centre * sin(rad(angle))))
-		p:Layout(LENGTH * ART)
-		state.pips[i] = p
+	state.key = class .. count
+	local pips = state.built[state.key]
+	if not pips then
+		pips = {}
+		for i, angle in ipairs(FANS[count]) do
+			local p = Widgets.ClassPip(hub.top, Widgets.ClassPipSet(class, angle), i, count)
+			local centre = BASE + LENGTH / 2
+			p.frame:SetPoint("CENTER", hub, "CENTER", Widgets.Snap(hub, centre * cos(rad(angle))), Widgets.Snap(hub, centre * sin(rad(angle))))
+			p:Layout(LENGTH * ART)
+			pips[i] = p
+		end
+		state.built[state.key] = pips
 	end
+	state.pips = pips
 end
 
 local function Points(event)
@@ -87,7 +58,13 @@ local function Points(event)
 		return
 	end
 	local points = GetComboPoints and GetComboPoints("player", "target")
-	local was = state.seen and state.points or points
+	local was = points
+	if state.seen then
+		was = state.points
+		if event and not IsSecret(points) and not IsSecret(was) and points == was then
+			return
+		end
+	end
 	state.points, state.seen = points, true
 	local moving = event ~= nil and event ~= "PLAYER_TARGET_CHANGED" and Effects.Allows("flare")
 	local idle = Effects.Allows("pulse") and not IsSecret(points) and type(points) == "number" and points >= #state.pips
@@ -99,8 +76,6 @@ end
 local function OnPower(event, _, token)
 	if token == "COMBO_POINTS" then
 		Points(event)
-	elseif token == "MANA" then
-		Mana()
 	end
 end
 
@@ -129,20 +104,14 @@ function Crown.Update()
 	local count = kind and math.min(#FANS, ns.SlabJewels.Count(kind)) or 0
 	Listen(class, kind)
 	state.shown = count > 0
-	if state.shown and state.built ~= class .. count then
+	if state.shown and state.key ~= class .. count then
 		Build(ns.Slab.hub, class, count)
 	end
 	for _, p in ipairs(state.pips) do
 		p.frame:SetShown(state.shown)
 	end
-	local line = state.shown and class == "DRUID" and Saved("druidMana")
-	if line then
-		ManaLine(ns.Slab.hub):Show()
-	elseif state.mana then
-		state.mana:Hide()
-	end
+	Widgets.SetClassCrown(state.shown)
 	Points()
-	Mana()
 end
 
 function Crown.SetEnabled(on)
@@ -151,7 +120,7 @@ function Crown.SetEnabled(on)
 	if on then
 		Callbacks.Register("EffectsLevelChanged", OWNER, function() Points() end)
 		Callbacks.Register("SettingChanged", OWNER, function(_, module, key)
-			if module == "UnitFrames" and (key == "resource.classPips" or key == "resource.druidMana") then
+			if module == "UnitFrames" and KEYS[key] then
 				Crown.Update()
 			end
 		end)

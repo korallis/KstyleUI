@@ -71,13 +71,13 @@ local TARGET = { name = "Riverglade Crocolisk", level = 38, health = 864, health
 -- The race each class's player is drawn as, so the Medallions portrait resolver finds painted art; Frames and Orbs never read it.
 Hud.RACES = { WARRIOR = "Human", PALADIN = "Dwarf", HUNTER = "NightElf", ROGUE = "Human", PRIEST = "Dwarf", SHAMAN = "Dwarf", MAGE = "Gnome", WARLOCK = "Scourge", DRUID = "NightElf" }
 
--- Pips() -> from, to: RENDER_PIPS=from,to, the combo points' change the unit frames' pips play; the crest jewels
+-- Pips() -> from, to, off: RENDER_PIPS=from,to, the combo points' change the unit frames' pips play; the crest jewels
 -- show the second count and a druid is in cat form. RENDER_PIPS=off turns the class-themed pips off.
 function Hud.Pips()
-	local value = os.getenv("RENDER_PIPS") or ""
+	local value = rawget(_G, "RENDER_PIPS") or os.getenv("RENDER_PIPS") or ""
 	local from, to = value:match("^(%d+),(%d+)$")
 	assert(value == "" or value == "off" or from, "RENDER_PIPS must be from,to, such as 4,5, or off")
-	return tonumber(from), tonumber(to)
+	return tonumber(from), tonumber(to), value == "off"
 end
 
 -- PlayPips(env, K, set) -> note: RENDER_PIPS=from,to moves the combo points from one count to the other RENDER_PIPS_T
@@ -495,7 +495,7 @@ function modules.unitframes(opts)
 			-- the boss targets you, so the target of target shows beside the sigil.
 			env._units.boss1 = opts.boss and opts.target == opts.boss and target or opts.boss
 			env._units.targettarget = opts.boss and target and player or nil
-			env._comboPoints = spec.combo or 0
+			env._comboPoints = opts.combo or spec.combo or 0
 			env._resting = os.getenv("RENDER_RESTING") == "1"
 			env.UnitClass = function(token)
 				local u = env._units[token]
@@ -590,9 +590,11 @@ function modules.unitframes(opts)
 		local who = orbs and "the target lost " or "the player lost " .. LOSS_SHARE.player * 100 .. "% and the target "
 		notes[#notes + 1] = who .. LOSS_SHARE.target * 100 .. "% of their health " .. LOSS_AGO .. " s ago (RENDER_LOSS)"
 	end
-	if os.getenv("RENDER_PIPS") == "off" then
+	if select(3, Hud.Pips()) then
 		K.Options.Write("UnitFrames", "resource.classPips", false)
 	end
+	-- The action bars' scene is its own client: under Medallions its crest's crown shows the points, as in the game.
+	K.Widgets.SetClassCrown(K.HudStyle.Current() == "medallions")
 	notes[#notes + 1] = PlayPips(env, K, function(n) env._comboPoints = n end)
 	local scene = build(env, opts, { time = env._time }, function()
 		Fx.Apply(env, "unitframes", ns, notes)
@@ -687,6 +689,9 @@ function modules.actionbars(opts)
 	env._time = 10
 	env.GetTime = function()
 		return env._time
+	end
+	if select(3, Hud.Pips()) then
+		K.Store.Profile().UnitFrames = { resource = { classPips = false } }
 	end
 	AB.Enable(env, K)
 	local consumables = tonumber(rawget(_G, "RENDER_CONSUMABLES") or os.getenv("RENDER_CONSUMABLES") or "")

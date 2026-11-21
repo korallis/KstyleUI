@@ -1,8 +1,9 @@
--- Pips.lua: the class-themed combo point row over the plain pips' places for Frames and Orbs, Widgets.ClassPip daggers for a rogue and claws for a cat-form druid, with a glow under the full row; under Medallions the crest's crown shows them instead.
+-- Pips.lua: the class-themed combo point row over the plain pips' places for Frames and Orbs, Widgets.ClassPip daggers for a rogue and claws for a cat-form druid, with a glow under the full row; while the Medallions crest's crown shows them the row hides.
 local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens, Effects = K.Widgets, K.Tokens, K.Effects
+local IsSecret = Widgets.IsSecret
 
 local Pips = {}
 ns.Pips = Pips
@@ -11,10 +12,6 @@ local ART, ROW, FADE = 1.6, 0.35, 0.2
 
 local state = { pips = {}, count = 0 }
 Pips.state = state
-
-function Pips.Has(class)
-	return Widgets.ClassPipSet(class, 90) ~= nil
-end
 
 local function Glow(row, set, count, from, to)
 	local bar = CreateFrame("StatusBar", nil, row)
@@ -80,7 +77,13 @@ function Pips.Set(points, animate)
 	if not state.theme then
 		return
 	end
-	local was = state.seen and state.points or points
+	local was = points
+	if state.seen then
+		was = state.points
+		if animate and not IsSecret(points) and not IsSecret(was) and points == was then
+			return
+		end
+	end
 	state.points, state.seen = points, true
 	local moving = animate and Effects.Allows("flare")
 	for _, p in ipairs(state.pips) do

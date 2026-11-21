@@ -1227,6 +1227,9 @@ ResourceRows = function(schema)
 	local function on(r)
 		return r.enabled ~= false
 	end
+	local function plain(r)
+		return on(r) and r.classPips == false
+	end
 	local first = #schema + 1
 	schema[#schema + 1] = { type = "header", label = Settings.LABELS.player .. ": " .. L["class resource"], showWhen = shows() }
 	schema[#schema + 1] = {
@@ -1242,14 +1245,14 @@ ResourceRows = function(schema)
 		help = L["Animated daggers for a rogue and claws for a druid. Off restores the plain pips."],
 	}
 	schema[#schema + 1] = {
-		type = "dropdown", key = "resource.comboColor", label = L["Combo point colour"], showWhen = shows(on),
+		type = "dropdown", key = "resource.comboColor", label = L["Combo point colour"], showWhen = shows(plain),
 		help = L["The pips follow the class colour or a custom colour."], options = CHOICES.accent,
 	}
 	schema[#schema + 1] = {
 		type = "color", key = "resource.comboCustom", label = L["Custom combo point colour"],
 		help = L["The pips' colour when it is custom."],
 		showWhen = shows(function(r)
-			return on(r) and r.comboColor == "custom"
+			return plain(r) and r.comboColor == "custom"
 		end),
 	}
 	schema[#schema + 1] = {

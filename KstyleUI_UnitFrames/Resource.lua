@@ -1,4 +1,4 @@
--- Resource.lua: the class resource element under the player frame: combo points as one-point status bars, or the class-themed pips over them (under Medallions the crest's crown shows them, and a cat-form druid's mana), and the druid's mana bar.
+-- Resource.lua: the class resource element under the player frame: combo points as one-point status bars, or the class-themed pips over them (while the Medallions crest's crown shows them the row hides), and the druid's mana bar.
 local _, ns = ...
 
 local K = KstyleUI
@@ -248,9 +248,9 @@ function Resource.Visibility()
 		current = nil
 	end
 	local on = state.running and Settings.Resource("enabled")
-	local crowned = Settings.Resource("classPips") and ns.Pips.Has(class) and K.HudStyle.Current() == "medallions"
+	local crowned = Settings.Resource("classPips") and Widgets.ClassCrown()
 	state.showCombo = on and Settings.Resource("comboPoints") and not crowned and (class == "ROGUE" or class == "DRUID" and current == energy) or false
-	state.showMana = on and Settings.Resource("druidMana") and class == "DRUID" and current ~= nil and current ~= mana and not (crowned and current == energy) or false
+	state.showMana = on and Settings.Resource("druidMana") and class == "DRUID" and current ~= nil and current ~= mana or false
 	state.flipped = state.showMana and Settings.Value("player", "powerMana") and current or nil
 	state.themed = ns.Pips.Apply(state.showCombo and Settings.Resource("classPips") and class or nil, state.content, PIPS)
 	if state.showMana then Resource.StyleBar(state.mana, state.flipped) end
@@ -305,6 +305,8 @@ function Resource.Enable()
 	Events.Register(OWNER, "UPDATE_SHAPESHIFT_FORM", Resource.Visibility)
 	Events.Register(OWNER, "PLAYER_TARGET_CHANGED", Resource.Points)
 	Events.Register(OWNER, "COMBO_TARGET_CHANGED", Resource.Points)
+	K.Callbacks.Register("EffectsLevelChanged", OWNER, function() Resource.Points() end)
+	Widgets.ClassCrown(Resource.Visibility)
 	Resource.Restyle()
 end
 
@@ -312,6 +314,7 @@ function Resource.Disable()
 	state.running = false
 	state.listening = false
 	K.Events.UnregisterAll(OWNER)
+	K.Callbacks.Unregister("EffectsLevelChanged", OWNER)
 	if state.built then
 		state.content:Hide()
 		state.holder:Hide()
