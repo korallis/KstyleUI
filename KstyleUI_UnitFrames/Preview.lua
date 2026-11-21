@@ -29,6 +29,7 @@ local LANES = { "buffStealable", "buffDispellable", "buffDefensive" }
 local AURA_MORE = 3
 local CHIP_SHARE, CHIP_MIN, CHIP_LEVEL = 0.42, 8, 4
 local THREAT_TANKING = 3
+local PREVIEW_THREAT, PREVIEW_PVP = 87, 272
 
 local SAMPLES = {
 	player = { name = L["Valerin"], level = 60, health = 3120, healthMax = 3980, power = 3120, powerMax = 3980, reaction = 5, own = true, leader = true, resting = true, caption = L["Battle Stance"], class = L["Warrior"] },
@@ -140,7 +141,7 @@ local function Paint(view, kind)
 	view.power:SetValue(sample.power)
 	Style.PowerFill(view, SampleColor(s, sample, s.powerColor, s.powerCustom))
 	Style.PowerText(view, SampleColor(s, sample, "power"))
-	Format.Sample(view.powerText, s.powerText, sample.power, sample.powerMax)
+	Format.Sample(view.powerText, s.powerText, sample.power, sample.powerMax, nil, not s.powerPercentSign)
 	if s.healPrediction then
 		view.incoming:SetBarRange(0, sample.healthMax)
 		view.incoming:SetValue(sample.healthMax * INCOMING_SHARE)
@@ -214,6 +215,17 @@ local function PaintIndicators(view, s, sample)
 	local pvp = s.pvp and sample.faction and not s.pvpPlayersOnly and not (s.pvpEnemyOnly and (issecretvalue and issecretvalue(own) or own == sample.faction))
 	icons.pvp:SetShown(pvp == true)
 	if pvp then icons.pvp:SetAtlas(ns.Indicators.ATLAS[sample.faction]) end
+	if s.combat and s.combatClassColor then
+		icons.combat:Show()
+		ns.Indicators.Tint(icons.combat, Theme.Class())
+	end
+	ns.Indicators.ThreatText(view, nil, s.threatPercent and PREVIEW_THREAT or false)
+	local badge = view.kind == "player" and s.pvp and s.pvpTimer and not (issecretvalue and issecretvalue(own)) and ns.Indicators.ATLAS[own]
+	if badge then
+		icons.pvp:SetAtlas(badge)
+		icons.pvp:Show()
+	end
+	ns.Indicators.PvPTimer(view, badge and PREVIEW_PVP or false)
 	ns.Indicators.Extra(view, nil, view.kind == "pet" and 3 or sample.classification or "normal")
 	ns.Frames.Edge(view, true)
 	if s.raidMarker and sample.marker then

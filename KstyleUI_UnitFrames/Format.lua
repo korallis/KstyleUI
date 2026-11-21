@@ -10,16 +10,16 @@ ns.Format = Format
 local ceil = math.ceil
 
 local COLUMN = { none = 0, legacy = 0, auto = 3.8, percent = 3.2, current = 3.8, currentMax = 7, both = 10.4 }
-local DECIMAL_EM = 0.4
-local PERCENT, PERCENT_DECIMAL = "%.0f%%", "%.1f%%"
+local DECIMAL_EM = { 0.4, 1 }
+local PERCENT = { [0] = "%.0f%%", "%.1f%%", "%.2f%%", bare = "%.0f" }
 local CURRENT_MAX = "%s / %s"
-local BOTH, BOTH_DECIMAL = "%s / %s  %.0f%%", "%s / %s  %.1f%%"
+local BOTH = { [0] = "%s / %s  %.0f%%", "%s / %s  %.1f%%", "%s / %s  %.2f%%", bare = "%s / %s  %.0f" }
 local MAX = "/ %s"
 
 function Format.ColumnWidth(format, size, decimal)
 	local em = COLUMN[format] or 0
 	if decimal and (format == "percent" or format == "both") then
-		em = em + DECIMAL_EM
+		em = em + DECIMAL_EM[decimal == 2 and 2 or 1]
 	end
 	return ceil(em * size)
 end
@@ -89,14 +89,15 @@ local function Status(text, unit)
 	return false
 end
 
-local function Write(text, format, current, max, percent, hasPercent, decimal)
+local function Write(text, format, current, max, percent, hasPercent, decimal, bare)
 	if hasPercent and not decimal then percent = K.Widgets.WholePercent(percent) end
+	local places = bare and "bare" or decimal == 2 and 2 or decimal and 1 or 0
 	if format == "current" then
 		text:SetText(Abbreviate(current))
 	elseif format == "percent" and hasPercent then
-		text:SetFormattedText(decimal and PERCENT_DECIMAL or PERCENT, percent)
+		text:SetFormattedText(PERCENT[places], percent)
 	elseif format == "both" and hasPercent then
-		text:SetFormattedText(decimal and BOTH_DECIMAL or BOTH, Abbreviate(current), Abbreviate(max), percent)
+		text:SetFormattedText(BOTH[places], Abbreviate(current), Abbreviate(max), percent)
 	else
 		text:SetFormattedText(CURRENT_MAX, Abbreviate(current), Abbreviate(max))
 	end
@@ -161,7 +162,7 @@ function Format.PowerMode(unit, format, powerType)
 	return powerType == 0 and "percent" or "current"
 end
 
-function Format.Power(text, unit, format, powerType)
+function Format.Power(text, unit, format, powerType, bare)
 	format = Format.PowerMode(unit, format, powerType)
 	if format == "none" then
 		text:SetText("")
@@ -179,7 +180,7 @@ function Format.Power(text, unit, format, powerType)
 			percent = UnitPowerPercent(unit, powerType, false, c)
 		end
 	end
-	Write(text, format, UnitPower(unit, powerType), UnitPowerMax(unit, powerType), percent, hasPercent)
+	Write(text, format, UnitPower(unit, powerType), UnitPowerMax(unit, powerType), percent, hasPercent, nil, bare)
 end
 
 function Format.SampleDetail(text, format, current, max)
@@ -190,7 +191,7 @@ function Format.SampleDetail(text, format, current, max)
 	Write(text, "currentMax", current, max)
 end
 
-function Format.Sample(text, format, current, max, decimal)
+function Format.Sample(text, format, current, max, decimal, bare)
 	if format == "legacy" then format = "none" end
 	if format == "auto" then format = "percent" end
 	if format == "none" then
@@ -198,5 +199,5 @@ function Format.Sample(text, format, current, max, decimal)
 		return
 	end
 	local percent = max > 0 and current / max * 100 or 0
-	Write(text, format, current, max, percent, true, decimal)
+	Write(text, format, current, max, percent, true, decimal, bare)
 end

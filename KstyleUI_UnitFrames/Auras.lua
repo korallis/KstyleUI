@@ -152,13 +152,21 @@ function Auras.SampleTile(parent)
 	return tile
 end
 
-function Auras.Zoom(entry, kind)
+function Auras.Zoom(entry, kind, mute)
 	local zoom = entry.buff and Settings.Value(kind, "auraBuffZoom") or -1
 	if zoom < 0 then zoom = Settings.Value(kind, "auraZoom") end
 	entry.icon:SetTexCoord(zoom, 1 - zoom, zoom, 1 - zoom)
 	local button = entry.button
 	if button and button.SetHideTooltipInCombat then
 		button:SetHideTooltipInCombat(not Settings.Value(kind, "auraTooltipCombat"))
+	end
+	if mute ~= nil and button and button.SetMouseMotionEnabled and (entry.muted or false) ~= mute then
+		K.Combat.Queue(function()
+			if (entry.muted or false) ~= mute then
+				button:SetMouseMotionEnabled(not mute)
+				entry.muted = mute
+			end
+		end)
 	end
 end
 
@@ -351,7 +359,7 @@ local function StyleButton(view, entry, style)
 	entry.button:SetSize(size, size)
 	Dispel(entry, style)
 	Auras.LayoutTile(entry)
-	Auras.Zoom(entry, view.kind)
+	Auras.Zoom(entry, view.kind, view.s.auraTooltips == false)
 	PlaceCount(entry.count, entry.skin, style)
 	StyleTexts(entry.count, entry.timer, style)
 	Auras.PlaceTimer(entry.timer, entry.skin, view.kind, entry.badge, style)

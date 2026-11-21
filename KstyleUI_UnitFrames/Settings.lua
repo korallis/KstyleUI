@@ -260,6 +260,22 @@ Settings.defaults = {
 
 Settings.defaults.target.fonts.aura.size = 12
 
+local function AddDefaults(kinds, keys)
+	for _, kind in ipairs(kinds) do
+		for key, value in pairs(keys) do Settings.defaults[kind][key] = value end
+	end
+end
+AddDefaults(KINDS, { auraTooltips = true, classZoom = 0, combatClassColor = false, powerPercentSign = true, leaderSize = 0, leaderX = 0, leaderY = 0,
+	pvpSize = 0, pvpX = 0, pvpY = 0, combatSize = 0, combatX = 0, combatY = 0 })
+AddDefaults({ "player" }, { threatNonTank = false, pvpTimer = false, pvpTimerSize = 10 })
+AddDefaults({ "target", "focus" }, { threatPercent = false, threatPercentPosition = "RIGHT", threatPercentColor = true })
+Settings.defaults.focus.threatPercentPosition = "OUTRIGHT"
+AddDefaults({ "target", "targettarget", "focus", "focustarget", "boss" }, { eliteSize = 0, eliteX = 0, eliteY = 0, eliteInstances = true })
+for key, value in pairs({ healthDecimalBoss = false, targetSounds = false, reactionColors = false, hostileColor = Color("healthHostile"),
+	neutralColor = Color("neutral"), friendlyColor = Color("friendly"), tappedColor = Color("textDisabled") }) do
+	Settings.defaults[key] = value
+end
+
 for _, kind in ipairs({ "targettarget", "focustarget", "pet" }) do
 	local fonts = Settings.defaults[kind].fonts
 	fonts.name.outline, fonts.health.outline = "OUTLINE", "OUTLINE"
@@ -325,6 +341,8 @@ Settings.CHOICES = {
 	powerTextColor = Options({ { "", L["Current style"] }, { "power", L["Power type"] }, { "custom", L["Custom colour"] } }),
 }
 local CHOICES = Settings.CHOICES
+CHOICES.threatPlace = Options({ { "OUTLEFT", L["Left of the bar"] }, { "OUTRIGHT", L["Right of the bar"] }, { "LEFT", L["Inside the left edge"] },
+	{ "RIGHT", L["Inside the right edge"] }, { "CENTER", L["Centre"] } })
 
 local CHOICE_OF = {
 	style = "style",
@@ -352,6 +370,7 @@ local CHOICE_OF = {
 	happinessPosition = "happinessPosition",
 	absorbPlacement = "placement", healAbsorbPlacement = "placement", absorbBar = "absorbBar",
 	powerTextAlign = "align", powerTextColor = "powerTextColor",
+	threatPercentPosition = "threatPlace",
 }
 
 local function Allowed(list, value)
@@ -439,9 +458,12 @@ local RANGES = {
 	healthHeight = { 0, HEALTH_HEIGHT_MAX },
 	absorbBarHeight = { 1, ABSORB_BAR_MAX },
 	maxHealthAlpha = { ALPHA_MIN, 1 },
+	classZoom = { 0, ZOOM_MAX }, leaderSize = { 0, ICON_SIZE_MAX }, pvpSize = { 0, ICON_SIZE_MAX }, eliteSize = { 0, ICON_SIZE_MAX }, combatSize = { 0, ICON_SIZE_MAX },
+	pvpTimerSize = { FONT_SIZE_MIN, FONT_SIZE_MAX },
 }
 for _, key in ipairs({ "auraX", "auraY", "auraTimerX", "auraTimerY", "auraCountX", "auraCountY",
-	"castbarIconX", "castbarIconY", "castbarTextX", "castbarTextY", "castbarTimerX", "castbarTimerY" }) do
+	"castbarIconX", "castbarIconY", "castbarTextX", "castbarTextY", "castbarTimerX", "castbarTimerY",
+	"leaderX", "leaderY", "pvpX", "pvpY", "combatX", "combatY", "eliteX", "eliteY" }) do
 	RANGES[key] = { -NUDGE, NUDGE }
 end
 
@@ -453,7 +475,7 @@ RANGES.auraRowGap, RANGES.auraPrecise = { 0, AURA_SPACING_MAX }, { 0, PRECISE_MA
 CHOICES.lane = Options({ { "", L["Show all"] }, { "only", L["Only these"] }, { "hide", L["Hide these"] } })
 CHOICE_OF.buffStealable, CHOICE_OF.buffDefensive, CHOICE_OF.buffDispellable = "lane", "lane", "lane"
 
-local SLAB_DEFAULTS = { target = { auraSize = 22, auraSpacing = 2, auraColumns = 6, auraGrowth = "LEFT_DOWN" } }
+local SLAB_DEFAULTS = { target = { auraSize = 22, auraSpacing = 2, auraColumns = 6, auraGrowth = "LEFT_DOWN", threatPercentPosition = "OUTLEFT" }, focus = { threatPercentPosition = "OUTLEFT" } }
 local ROW_DEFAULTS = {
 	player = { auraPosition = "ABOVE", auraGrowth = "RIGHT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
 	target = { auraPosition = "ABOVE", auraGrowth = "LEFT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
@@ -678,7 +700,8 @@ function Settings.Snapshot(kind)
 	fonts.cast = { size = Settings.FontSize(kind, "cast") / K.Theme.FontScale() }
 	local form = Settings.Form(kind)
 	local s = { fonts = fonts, form = form, kind = kind, rowsAbove = Settings.AuraRows(kind), inlineCast = form == "column" and kind ~= "player" }
-	s.healthDecimal = Settings.Module().healthDecimal == true
+	local m = Settings.Module()
+	s.healthDecimal = kind == "boss" and m.healthDecimalBoss == true and 2 or m.healthDecimal == true
 	s.textOptions = fonts.name.textFormat ~= "" or fonts.health.textFormat ~= "" or fonts.name.colorMode ~= "" or fonts.health.colorMode ~= ""
 	for key, default in pairs(d) do
 		if key ~= "fonts" and not LIVE[key] then
@@ -821,6 +844,35 @@ IconRows = function(schema, kind)
 	if kind == "pet" then
 		schema[#schema + 1] = Row(kind, { type = "dropdown", key = "happinessPosition", label = L["Happiness position"],
 			help = L["Where the pet happiness badge sits."], options = CHOICES.happinessPosition }, function(s) return s.happiness == true end)
+	end
+	local rows = {}
+	local function place(icon, label)
+		for _, spec in ipairs({ { "Size", L["Size"], L["0 follows Icon size."], 0, ICON_SIZE_MAX }, { "X", L["Horizontal offset"], L["Moves it left or right."], -NUDGE, NUDGE },
+			{ "Y", L["Vertical offset"], L["Moves it up or down."], -NUDGE, NUDGE } }) do
+			rows[#rows + 1] = { icon, { type = "slider", key = icon .. spec[1], label = label .. ": " .. spec[2], help = spec[3], min = spec[4], max = spec[5], step = 1 } }
+		end
+	end
+	place("leader", L["Leader icon"])
+	place("pvp", L["PvP icon"])
+	place("combat", L["Combat icon"])
+	rows[#rows + 1] = { "combat", { type = "toggle", key = "combatClassColor", label = L["Combat icon in class colour"], help = L["Tints the crossed swords in the unit's class colour."] } }
+	if kind ~= "player" and kind ~= "pet" then
+		place("elite", L["Elite and rare icon"])
+		rows[#rows + 1] = { "elite", { type = "toggle", key = "eliteInstances", label = L["Elite icon in instances"], help = L["Off hides the elite badge in dungeons and raids, where most enemies are elite."] } }
+	end
+	if kind == "player" then
+		rows[#rows + 1] = { "pvp", { type = "toggle", key = "pvpTimer", label = L["PvP flag timer"], help = L["Shows the time left before your PvP flag drops, after the status icons."] } }
+		rows[#rows + 1] = { "pvp", { type = "slider", key = "pvpTimerSize", label = L["Timer text size"], help = L["The size of the PvP flag timer."], min = FONT_SIZE_MIN, max = FONT_SIZE_MAX, step = 1 }, "pvpTimer" }
+		rows[#rows + 1] = { "threat", { type = "toggle", key = "threatNonTank", label = L["Threat glow only as a non-tank"], help = L["Glows only in dungeons and raids, and only while you are not the tank."] } }
+	elseif kind == "target" or kind == "focus" then
+		rows[#rows + 1] = { nil, { type = "toggle", key = "threatPercent", label = L["Threat percent"], help = L["Shows your threat on this unit as a percentage while the game shares it."] } }
+		rows[#rows + 1] = { "threatPercent", { type = "dropdown", key = "threatPercentPosition", label = L["Threat percent place"], options = CHOICES.threatPlace, help = L["Where the threat percentage sits on the health bar."] } }
+		rows[#rows + 1] = { "threatPercent", { type = "toggle", key = "threatPercentColor", label = L["Colour by threat"], help = L["Colours the percentage by your threat. Off uses the frame's text colour."] } }
+	end
+	for _, spec in ipairs(rows) do
+		schema[#schema + 1] = Row(kind, spec[2], function()
+			return (not spec[1] or Settings.Value(kind, spec[1]) == true) and (not spec[3] or Settings.Value(kind, spec[3]) == true)
+		end)
 	end
 end
 
@@ -1047,8 +1099,10 @@ AuraRows = function(schema, kind)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraBuffZoom", label = L["Buff icon zoom"], min = 0, max = ZOOM_MAX, step = ZOOM_STEP,
 		help = L["Crops buff icons on their own. Until set, buffs follow the aura icon zoom."],
 		shown = function(value) return value < 0 and Settings.Value(kind, "auraZoom") or value end }, own)
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraTooltips", label = L["Aura tooltips"],
+		help = L["Off never shows a tooltip when you hover this frame's auras."] }, on)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraTooltipCombat", label = L["Aura tooltips in combat"],
-		help = L["Off hides aura tooltips while you fight; they still show out of combat."] }, own)
+		help = L["Off hides aura tooltips while you fight; they still show out of combat."] }, function(s) return own(s) and Settings.Value(kind, "auraTooltips") end)
 	TextRows(schema, kind, "aura")
 end
 
@@ -1167,7 +1221,9 @@ local function KindRows(schema, kind)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "portraitMirror", label = L["Mirror portrait"],
 		help = L["Flips the portrait or class icon to face the other way."] }, flatPortrait)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "portraitZoom", label = L["Portrait zoom"],
-		help = L["Crops into the portrait or class icon. 0 shows all of it."], min = 0, max = ZOOM_MAX, step = ZOOM_STEP }, flatPortrait)
+		help = L["Crops into the portrait. 0 shows all of it."], min = 0, max = ZOOM_MAX, step = ZOOM_STEP }, function(s) return flatPortrait(s) and s.portraitStyle ~= "class" end)
+	schema[#schema + 1] = Row(kind, { type = "slider", key = "classZoom", label = L["Class icon zoom"],
+		help = L["Crops into the class icon. 0 shows all of it."], min = 0, max = ZOOM_MAX, step = ZOOM_STEP }, function(s) return flatPortrait(s) and s.portraitStyle == "class" end)
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "name", label = L["Name"],
 		help = L["Shows the unit's name."],
@@ -1272,6 +1328,8 @@ local function KindRows(schema, kind)
 			schema[#schema + 1] = Row(kind, { type = spec[1], key = spec[2], label = spec[3], help = spec[5], options = spec[6] }, spec[4])
 		end
 	end
+	schema[#schema + 1] = Row(kind, { type = "toggle", key = "powerPercentSign", label = L["Percent sign"],
+		help = L["Writes % after the power percentage. Off shows the number alone."] }, function(s) return s.power ~= false and (s.powerText == "percent" or s.powerText == "both" or s.powerText == "auto") end)
 	schema[#schema + 1] = Header(kind, L["text"])
 	for _, element in ipairs(Settings.TEXTS) do
 		TextRows(schema, kind, element)
@@ -1308,6 +1366,16 @@ function Settings.Schema()
 			help = L["Shows health percentages with one decimal place. Shortened health values already show one."] },
 		{ type = "dropdown", key = "unitTooltip", label = L["Unit tooltips"], options = CHOICES.unitTooltip,
 			help = L["When hovering a unit frame shows the unit's tooltip."] },
+		{ type = "toggle", key = "healthDecimalBoss", label = L["Boss health percent with two decimals"],
+			help = L["Shows boss frame health percentages with two decimal places, such as 41.27%."] },
+		{ type = "toggle", key = "targetSounds", label = L["Target lost sound"],
+			help = L["Plays the game's sound when you lose your target while KstyleUI hides Blizzard's target frame."] },
+		{ type = "toggle", key = "reactionColors", label = L["Custom reaction colours"],
+			help = L["Your own colours for hostile, neutral, friendly and tapped units on bars that follow reaction."] },
+		{ type = "color", key = "hostileColor", label = L["Hostile colour"], help = L["The bar colour for these units while custom reaction colours are on."], showWhen = function(s) return s.reactionColors == true end },
+		{ type = "color", key = "neutralColor", label = L["Neutral colour"], help = L["The bar colour for these units while custom reaction colours are on."], showWhen = function(s) return s.reactionColors == true end },
+		{ type = "color", key = "friendlyColor", label = L["Friendly colour"], help = L["The bar colour for these units while custom reaction colours are on."], showWhen = function(s) return s.reactionColors == true end },
+		{ type = "color", key = "tappedColor", label = L["Tapped colour"], help = L["The bar colour for these units while custom reaction colours are on."], showWhen = function(s) return s.reactionColors == true end },
 		{ type = "toggle", key = "stableSlabNames", label = L["Keep Medallions name face"],
 			help = L["Shorten long names in the same face and capitals. Off allows the original body face."] },
 		{ type = "toggle", key = "singleSlabLevel", label = L["Show each level once"],

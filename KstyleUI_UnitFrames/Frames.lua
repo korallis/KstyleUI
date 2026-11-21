@@ -915,6 +915,8 @@ local function ForEach(fn)
 	end
 end
 
+local REACTION_KEYS = { reactionColors = true, hostileColor = true, neutralColor = true, friendlyColor = true, tappedColor = true }
+
 local function OnSettingChanged(_, module, key)
 	if module ~= MODULE then
 		return
@@ -947,7 +949,9 @@ local function OnSettingChanged(_, module, key)
 	end
 	if kind == "resource" then
 		ns.Resource.Restyle()
-	elseif key == "auraLayout" or key == "stableSlabNames" or key == "singleSlabLevel" or key == "healthDecimal" then
+	elseif REACTION_KEYS[key:match("^%a+")] then
+		ForEach(function(each) RefreshKind(each.kind, true) end)
+	elseif key == "auraLayout" or key == "stableSlabNames" or key == "singleSlabLevel" or key == "healthDecimal" or key == "healthDecimalBoss" then
 		K.Combat.Queue(function()
 			ForEach(function(each)
 				if each.active then Frames.Restyle(each) end
@@ -1048,6 +1052,7 @@ local function RegisterEvents()
 		RefreshKind("targettarget", true)
 		Frames.MarkTargets()
 		EachShown(Frames.Edge)
+		ns.Blizzard.TargetSound()
 	end)
 	Events.Register(MODULE, "PLAYER_FOCUS_CHANGED", function()
 		RefreshKind("focus", true)
@@ -1081,6 +1086,7 @@ local function RegisterEvents()
 		Events.Register(MODULE, event, function()
 			EachShown(Indicators.Status)
 			EachShown(function(view, unit) Unit.TextTags(view, unit, "Group") end)
+			OnPlayer(Indicators.Threat)
 		end)
 	end
 	Events.Register(MODULE, "ADDON_RESTRICTION_STATE_CHANGED", OnRestriction)

@@ -1,4 +1,4 @@
--- Blizzard.lua: hides Blizzard's player, target, focus, pet and boss frames through KstyleUI.Safe while KstyleUI's own frames replace them.
+-- Blizzard.lua: hides Blizzard's player, target, focus, pet and boss frames through KstyleUI.Safe while KstyleUI's own frames replace them, and plays the target-lost sound their hidden target frame cannot.
 local _, ns = ...
 
 local K = KstyleUI
@@ -37,5 +37,18 @@ function Blizzard.Apply(active)
 				K.DevTest.Log(Settings.MODULE, name .. " is missing on this client; nothing to hide")
 			end
 		end
+	end
+end
+
+local hadTarget = false
+
+function Blizzard.TargetSound()
+	local had = hadTarget
+	hadTarget = UnitExists("target") and true or false
+	if hadTarget or not had or not Settings.Module().targetSounds or not (PlaySound and SOUNDKIT and SOUNDKIT.INTERFACE_SOUND_LOST_TARGET_UNIT) then return end
+	local frame = TargetFrame
+	local loose = IsTargetLoose and IsTargetLoose()
+	if frame and K.Safe.IsHidden(frame) and not (issecretvalue and issecretvalue(loose)) and loose ~= true then
+		PlaySound(SOUNDKIT.INTERFACE_SOUND_LOST_TARGET_UNIT, nil, true)
 	end
 end

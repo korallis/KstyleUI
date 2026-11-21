@@ -18,12 +18,12 @@ end
 local function TextStyle(fan)
 	local path, size, flags = Settings.Font("target", "aura")
 	local r, g, b, a = Tokens.Color("textEmphasis")
-	return { path, math.min(12, math.max(10, size)), flags or "", 2 * Widgets.Border(fan.holder), r, g, b, a }
+	return { path, math.min(12, math.max(10, size)), flags or "", 2 * Widgets.Border(fan.holder), r, g, b, a, Settings.Value("target", "auraTooltips") == false }
 end
 
 local function Style(entry, style)
 	ns.Auras.LayoutTile(entry, true, style[4])
-	ns.Auras.Zoom(entry, "target")
+	ns.Auras.Zoom(entry, "target", style[9])
 	for _, text in ipairs({ entry.timer, entry.count }) do
 		Widgets.ApplyFont(text, style[1], style[2], style[3])
 		text:SetTextColor(style[5], style[6], style[7], style[8])
