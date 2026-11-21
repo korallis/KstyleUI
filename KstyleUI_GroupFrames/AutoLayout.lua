@@ -165,7 +165,7 @@ local function Settle(sizes)
 	local now = Read(sizes)
 	AutoLayout.state = now
 	if now.bracket == AutoLayout.Bracket(Counted(cfg, state)) and now.healer == state.healer and now.mythic == state.mythic
-		and (now.filled == state.filled or not (cfg.groups.hideEmpty or cfg.raid.center)) and now.solo == state.solo and now.smallRaid == state.smallRaid then
+		and (now.filled == state.filled or not (cfg.groups.hideEmpty or cfg.raid.center and cfg.raid.sortBy == "GROUP" and not cfg.raid.merge)) and now.solo == state.solo and now.smallRaid == state.smallRaid then
 		return
 	end
 	K.DevTest.Log(Settings.MODULE, "automatic layout: " .. now.bracket:lower() .. " raid, " .. (now.healer and "healer" or "not healing"))
