@@ -127,9 +127,21 @@ assert(state.id == 1 and state.waypoint.uiMapID == 2 and state.tracked, "combat 
 assert(R.card:IsShown() and R.distance:GetText() == "Distance unavailable", "another map has no line or distance on the current canvas")
 env.SetCombat(false)
 R.Pick(crossMap)
-assert(state.id == 2, "out of combat selection may navigate to the destination map")
+assert(state.id == 1 and state.waypoint.uiMapID == 2, "out of combat selection also leaves Blizzard's map alone: an addon-set map ID taints later pins")
 R.Clear()
-map:SetMapID(1)
+
+-- An addon write to the map's ID, zoom or pan taints every pin Blizzard acquires afterwards, and in combat
+-- AcquirePin's SetPassThroughButtons is then blocked. The world map files may hook them but never call them.
+for _, path in ipairs({ "KstyleUI_Skins/WorldMap.lua", "KstyleUI_Skins/WorldMapRoutes.lua", "KstyleUI_Skins/WorldMapRoads.lua" }) do
+	local file = assert(io.open(path, "rb"))
+	local source = file:read("*a"):gsub("%-%-[^\n]*", "")
+	file:close()
+	for _, writer in ipairs({ "SetMapID", "NavigateToParentMap", "InstantPanAndZoom", "SetZoomTarget", "SetPanTarget",
+		"ResetZoom", "SetMouseWheelZoomMode", "SetShouldZoomInstantly", "ZoomIn", "ZoomOut" }) do
+		assert(not source:find("[:.]" .. writer .. "%s*%("),
+			path .. " calls the map writer " .. writer .. "; it taints Blizzard's pins (ADDON_ACTION_BLOCKED SetPassThroughButtons)")
+	end
+end
 
 local zone
 for _, region in ipairs({ map:GetCanvas():GetRegions() }) do
