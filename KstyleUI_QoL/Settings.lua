@@ -164,6 +164,7 @@ function ns.Schema()
 	local function rangeOff(s) return crossOff(s) or not s.crosshairRange end
 	local function barOff(s) return moveOff(s) or s.moveMode ~= "bar" end
 	local function voiceOff(s) return moveOff(s) or s.moveVoice == -1 end
+	local function iconOff(s) return moveOff(s) or s.moveMode == "icon" end
 	local function aidsOff(s) return ringOff(s) and castOff(s) end
 	local function slider(key, label, help, step, off)
 		local limit = ns.LIMITS[key]
@@ -311,14 +312,14 @@ function ns.Schema()
 			{ value = "text", label = L["Name and time"] }, { value = "timeFirst", label = L["Time and name"] }, { value = "time", label = L["Time left"] },
 			{ value = "icon", label = L["Icon"] }, { value = "bar", label = L["Bar"] },
 		}, disableWhen = moveOff },
-		slider("moveSize", L["Movement text size"], L["The size of the movement alert's text."], 1, function(s) return moveOff(s) or s.moveMode == "icon" end),
+		slider("moveSize", L["Movement text size"], L["The size of the movement alert's text."], 1, iconOff),
 		slider("moveIconSize", L["Movement icon size"], L["The size of the movement alert's icon."], 1, function(s) return moveOff(s) or s.moveMode ~= "icon" end),
 		{ type = "toggle", key = "moveDecimal", label = L["Tenths under three seconds"], help = L["Show the last three seconds in tenths."], disableWhen = moveOff },
 		bar[1],
 		{ type = "toggle", key = "moveBarIcon", label = L["Icon on the bar"], help = L["Show the spell's icon at the bar's left end."], disableWhen = barOff },
 		{ type = "toggle", key = "moveBarText", label = L["Time on the bar"], help = L["Show the time left after the spell's name on the bar."], disableWhen = barOff },
-		{ type = "toggle", key = "moveClass", label = L["Movement alert in class colour"], help = L["Use your class colour for the movement alert's text or bar."], disableWhen = moveOff },
-		{ type = "color", key = "moveColor", label = L["Movement alert colour"], help = L["The colour of the movement alert's text or bar."], disableWhen = function(s) return moveOff(s) or s.moveClass end },
+		{ type = "toggle", key = "moveClass", label = L["Movement alert in class colour"], help = L["Use your class colour for the movement alert's text or bar."], disableWhen = iconOff },
+		{ type = "color", key = "moveColor", label = L["Movement alert colour"], help = L["The colour of the movement alert's text or bar."], disableWhen = function(s) return iconOff(s) or s.moveClass end },
 		{ type = "dropdown", key = "moveSound", label = L["Ready sound"], help = L["The sound that plays when a movement spell is ready."], options = {
 			{ value = "none", label = L["None"] }, { value = "warning", label = L["Raid warning"] }, { value = "ready", label = L["Ready check"] },
 		}, disableWhen = function(s) return moveOff(s) or s.moveVoice ~= -1 end },

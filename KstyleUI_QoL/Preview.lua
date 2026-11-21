@@ -90,11 +90,12 @@ function ns.Preview(parent)
 			move.text:SetText(label)
 		end
 		move:SetAlpha(ns.Get("moveAlert") and 1 or OFF)
-		items[#items + 1] = { move, 0, MOVE_TOP - mh / 2, move:GetWidth(), mh }
+		local below = math.min(MOVE_TOP, math.min(cy - ch / 2, cy - rw / 2, (attach and cy or 0) - sw / 2) - GAP)
+		items[#items + 1] = { move, 0, below - mh / 2, move:GetWidth(), mh }
 		ns.PaintRange(range.text, range)
 		range.text:SetText(ns.RangeText(30, 35))
 		range:SetAlpha(ns.Get("rangeText") and 1 or OFF)
-		items[#items + 1] = { range, RANGE_X, 0, range:GetWidth(), range:GetHeight() }
+		items[#items + 1] = { range, math.min(RANGE_X, cx - cw / 2 - GAP - range:GetWidth() / 2), 0, range:GetWidth(), range:GetHeight() }
 		local _, flash = ns.NoticeSpot("flash", h)
 		local step = flash - select(2, ns.NoticeSpot("talents", h))
 		for i, item in ipairs(items) do
