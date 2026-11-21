@@ -189,6 +189,15 @@ show({ "coords", "latency", "durability" }, "secondModules")
 eq(table.concat(second.order, ","), "coords,latency,durability", "its own list")
 eq(table.concat(ns.Strip.view.order, ","), "fps,gold,time", "the main bar keeps its list")
 apart(second)
+write("strip.placement", "rail")
+write("strip.orientation", "VERTICAL")
+local hx, hy, hw, hh = rect(second.frame)
+for _, id in ipairs(second.order) do
+	local bx, by, bw, bh = rect(item(id, second).button)
+	assert(bx >= hx - 0.01 and by >= hy - 0.01 and bx + bw <= hx + hw + 0.01 and by + bh <= hy + hh + 0.01, id .. " stays inside the second bar's Layout Mode footprint while the main bar is a column")
+end
+write("strip.orientation", "HORIZONTAL")
+write("strip.placement", "top")
 assert(listens(), "the second bar's readouts listen for their events")
 env._game.durability[1] = { 40, 100 }
 env.FireEvent("UPDATE_INVENTORY_DURABILITY")
