@@ -2,6 +2,11 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.2.8.4 (2026-11-21)", {
+		L["With the meter on Both, the threat card no longer covers the stance bar or the Medallions second bar and XP bar."],
+		L["Target debuff timers no longer draw over the target's buffs."],
+		L["The minimap and unit frame previews in the settings window keep their proper sizes."],
+	} },
 	{ "v0.2.8.3 (2026-11-21)", {
 		L["Character sheet quality borders and selected tabs are thin rings again."],
 		L["The stance bar backing fits the stances and forms you have."],
@@ -14,9 +19,5 @@ ns.NOTES = {
 		L["New options for frames, nameplates, cooldowns, auras, chat, minimap, tooltips and Layout Mode, keeping today's look."],
 		L["World map routes follow roads, passes, flights and boats, with travel steps and time."],
 		L["KstyleUI loads faster after a reload."],
-	} },
-	{ "v0.2.8.1 (2026-11-20)", {
-		L["Options pages switch without a scroll-list Lua error."],
-		L["The consumables bar stays where you move it in Layout Mode."],
 	} },
 }

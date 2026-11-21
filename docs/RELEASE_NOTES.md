@@ -2,6 +2,10 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.2.8.4: fixes (2026-11-21)
+
+With the meter set to Both, the threat card beside the damage card no longer covers the stance bar or the Medallions second bar and XP bar, target debuff timers no longer draw over the target's buffs, and the minimap and unit frame previews in the settings window keep their proper sizes. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.2.8.3: fixes (2026-11-21)
 
 Character sheet quality borders and selected tabs are thin rings again instead of solid blocks, the stance bar's backing fits the stances and forms you have, and the coordinates under the Medallions minimap sit centred on their plate when the clock is hidden or moved. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).

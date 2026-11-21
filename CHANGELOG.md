@@ -1,5 +1,22 @@
 # KstyleUI changelog
 
+## v0.2.8.4 (2026-11-21)
+
+A small fix release.
+
+Highlights:
+
+- With the meter on Both, the threat card no longer covers the stance bar or the Medallions second bar and XP bar.
+- Target debuff timers no longer draw over the target's buffs.
+- The minimap and unit frame previews in the settings window keep their proper sizes.
+
+### Fixed
+
+- With the meter on Both, the threat card beside the damage card is 180 units wide, clear of the Frames stance bar and the Medallions second bar and XP bar. Long names can end in "...".
+- With the target's auras on Debuffs and buffs, the debuff timers under their icons no longer draw over the buff row below.
+- The minimap preview in the settings window looks the same after you resize the window or change the Interface size or display as it does when first opened.
+- The unit frame preview always draws its cast bar text at the preview's size, so the cast bar keeps the same share of the frame as on your screen.
+
 ## v0.2.8.3 (2026-11-21)
 
 A small fix release.
