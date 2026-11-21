@@ -253,10 +253,6 @@ local function Moving()
 	return Slab.Allows("flare")
 end
 
-local function Idling()
-	return Slab.Allows("ambient") and K.Store.Module("Medallions").ambient ~= false
-end
-
 local function Play(g, kind)
 	if g and Slab.Allows(kind or "flare") then
 		g:Stop()
@@ -629,7 +625,7 @@ end
 
 local function Animate()
 	local hub = Slab.hub
-	if not (Idling() and hub:IsShown()) then
+	if not (Slab.Allows("ambient") and K.Store.Module("Medallions").ambient ~= false and hub:IsShown()) then
 		Motionless()
 		return
 	end
@@ -655,6 +651,7 @@ local function Animate()
 		end
 	end
 	hub.glow:SetAlpha(state.combat and min(1, BREATH_HIGH * COMBAT_GLOW) or BREATH_HIGH)
+	hub.bloom:SetAlpha(1)
 end
 
 local function Edges(frame)

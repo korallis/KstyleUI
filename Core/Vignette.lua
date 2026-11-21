@@ -1,4 +1,4 @@
--- Vignette.lua: the Medallions screen-edge low-health vignette: a crimson frame around the screen, under the whole interface, whose alpha is the player's health through a curve (no threshold in Lua), breathing at the Full motion level and still at Calm, shown only under the Medallions style with its switch on and never while dead.
+-- Vignette.lua: the Medallions screen-edge low-health vignette: a crimson frame around the screen, under the whole interface, whose alpha is the player's health through a curve (no threshold in Lua), breathing at the Full motion level and still at Calm, shown only under the Medallions style and never while dead; its switch off hides the edge textures, and the breath runs on only while the portrait ring breathes on it.
 local _, ns = ...
 
 local Effects = ns.Effects
@@ -17,6 +17,10 @@ local frame, curve, logged
 
 local function Restrained()
 	return not (ns.Store.IsLoaded() and ns.Store.Defaults("UnitFrames")) or ns.Store.Module("UnitFrames").dangerEdge ~= false
+end
+
+local function On()
+	return not ns.Store.IsLoaded() or ns.Store.Module("Medallions").vignette ~= false
 end
 
 local function IsSecret(value)
@@ -128,7 +132,7 @@ end
 
 local function Layout()
 	if not frame then return end
-	local restrained = Restrained()
+	local restrained, on = Restrained(), On()
 	local parent = restrained and UIParent or WorldFrame or UIParent
 	frame:SetParent(parent)
 	frame:ClearAllPoints()
@@ -137,9 +141,9 @@ local function Layout()
 		frame.body = Layer("dangerBody", 0.6, "BLEND")
 		frame.ember = Layer("hostile", 0.22, "ADD")
 	end
-	for _, t in ipairs(frame.art) do t:SetShown(not restrained) end
+	for _, t in ipairs(frame.art) do t:SetShown(on and not restrained) end
 	for _, textures in ipairs({ frame.body, frame.ember }) do
-		for _, t in ipairs(textures) do t:SetShown(restrained) end
+		for _, t in ipairs(textures) do t:SetShown(on and restrained) end
 	end
 	local width, height = UIParent:GetWidth(), UIParent:GetHeight()
 	if IsSecret(width) or IsSecret(height) or type(width) ~= "number" or type(height) ~= "number" then return end
@@ -150,6 +154,7 @@ end
 
 function Vignette.Breath(target, animation)
 	if not frame then Build() end
+	frame.ring = target
 	animation = Breath(target, animation)
 	Vignette.Update()
 	return animation
@@ -179,8 +184,7 @@ local function Dead()
 end
 
 function Vignette.Update()
-	local on = not ns.Store.IsLoaded() or ns.Store.Module("Medallions").vignette ~= false
-	local c = on and Effects.Active() and Curve()
+	local c = Effects.Active() and Curve()
 	if not c or Dead() then
 		if frame then
 			frame.breath:Stop()
@@ -199,7 +203,7 @@ function Vignette.Update()
 	if IsSecret(visible) then
 		visible = true
 	end
-	if visible and Effects.Allows("pulse") then
+	if visible and Effects.Allows("pulse") and (frame.ring or On()) then
 		if not frame.breath:IsPlaying() then
 			frame.breath:Play()
 		end

@@ -12,6 +12,7 @@ local function Census(e)
 	for frame = 1, SETTLE + 1 do
 		local busy = false
 		e._now = e._now + 1 / 60
+		e.RunTimers()
 		for _, f in ipairs(e._frames) do
 			local update = f._scripts.OnUpdate
 			if update and f:IsVisible() then
@@ -19,7 +20,6 @@ local function Census(e)
 				update(f, 1 / 60)
 			end
 		end
-		e.RunTimers()
 		if not busy then break end
 		assert(frame <= SETTLE, "an OnUpdate still runs after " .. SETTLE .. " idle frames; stop per-frame scripts when their work is done")
 	end
