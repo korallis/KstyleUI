@@ -444,7 +444,7 @@ function Settings.AuraRows(kind)
 end
 
 local AURA_LOOK = { auraSize = "simple", auraPosition = false, auraSpacing = true, auraRows = "simple", auraColumns = true,
-	auraGrowth = true, auraTimer = true, auraZoom = true, auraBuffZoom = true, auraTooltipCombat = true }
+	auraGrowth = true, auraTimer = true, auraZoom = true, auraBuffZoom = true, auraTooltipCombat = true, auraRowGap = true, auraPrecise = true }
 Settings.AURA_LOOK = AURA_LOOK
 
 local function SimpleSize()
@@ -891,7 +891,7 @@ CastRows = function(schema, kind)
 	TextRows(schema, kind, "cast")
 end
 
-local function FilterRows(schema, kind, on)
+local function FilterRows(schema, kind, on, own)
 	local function buffs()
 		local filter = Settings.Value(kind, "auraFilter")
 		return on() and (filter == "buffs" or filter == "both")
@@ -914,10 +914,10 @@ local function FilterRows(schema, kind, on)
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "auraTrackedOnly", label = L["Only tracked buffs"],
 		help = L["On friendly units, shows only the buffs in Tracked spell IDs. Enemy buffs show as usual."] }, buffs)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraRowGap", label = L["Extra row spacing"],
-		help = L["Adds this many units between aura rows, on top of Aura spacing."], min = 0, max = AURA_SPACING_MAX, step = 1 }, on)
+		help = L["Adds this many units between aura rows, on top of Aura spacing."], min = 0, max = AURA_SPACING_MAX, step = 1 }, own)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraPrecise", label = L["Precise timers below (minutes)"],
 		help = L["Timers under this many minutes show minutes and seconds, such as 4m 32s. 0 keeps the short form."],
-		min = 0, max = PRECISE_MAX, step = 1 }, function(s) return on() and s.auraTimer ~= false end)
+		min = 0, max = PRECISE_MAX, step = 1 }, function(s) return own(s) and s.auraTimer ~= false end)
 end
 
 AuraRows = function(schema, kind)
@@ -964,7 +964,7 @@ AuraRows = function(schema, kind)
 		schema[#schema + 1] = Row(kind, { type = "dropdown", key = "auraSimple", label = L["Simple aura display"], options = CHOICES.auraSimple,
 			help = L["Large icons beside each boss frame, filling its height: one row, or one each for debuffs and buffs."] }, on)
 	end
-	FilterRows(schema, kind, on)
+	FilterRows(schema, kind, on, own)
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "auraPosition", label = L["Aura position"],
 		help = L["Which side of the frame the auras sit on."], options = CHOICES.auraPosition,
