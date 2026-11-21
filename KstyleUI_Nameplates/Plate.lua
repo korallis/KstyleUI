@@ -66,6 +66,8 @@ for _, name in ipairs(TYPES) do
 	TYPE_KEYS[name], TYPE_COLOR_KEYS[name] = "types." .. name, "types." .. name .. "Color"
 end
 local PVP_ATLAS = { Horde = "UI-HUD-UnitFrame-SmallCircle-Horde", Alliance = "UI-HUD-UnitFrame-SmallCircle-Alliance" }
+local QUEST_ICONS, QUEST_ICON = { monster = "crosshair_attack_48", item = "crosshair_lootall_48" }, "crosshair_quest_48"
+local objectives
 local INSIDE_X = { LEFT = 1, CENTER = 0, RIGHT = -1 }
 local typeEnabled, typeInfo = {}, {}
 local TEXT_ELEMENTS = { "name", "healthText", "extra1", "extra2" }
@@ -442,6 +444,7 @@ local function Overlays(plate)
 	for key, setting in pairs(OVERLAY_KEYS) do
 		if plate[key] and not Settings.Get(setting) then plate[key]:Hide() end
 	end
+	if plate.questText then plate:LayoutQuest() end
 end
 
 function Plate:SetNameAlpha(alpha)
@@ -449,6 +452,7 @@ function Plate:SetNameAlpha(alpha)
 	if self.subtitle then self.subtitle:SetAlpha(alpha) end
 	if self.nameRaid then self.nameRaid:SetAlpha(alpha) end
 	if self.pvpBadge then self.pvpBadge:SetAlpha(alpha) end
+	if self.questText then self.questText:SetAlpha(alpha); self.questIcon:SetAlpha(alpha) end
 end
 
 function Plate:Restyle()
@@ -825,14 +829,15 @@ function Plate:UpdateType()
 	if sample then
 		self.caster = sample.caster
 		self.quest = sample.quest
-		return
+	else
+		local unit = self.unit
+		local caster = Logic.IsCaster((UnitValue(UnitPowerType, unit)), (UnitValue(UnitPowerMax, unit)), ManaType())
+		if caster ~= nil then
+			self.caster = caster
+		end
+		self.quest = IsTrue(QuestUnit(unit))
 	end
-	local unit = self.unit
-	local caster = Logic.IsCaster((UnitValue(UnitPowerType, unit)), (UnitValue(UnitPowerMax, unit)), ManaType())
-	if caster ~= nil then
-		self.caster = caster
-	end
-	self.quest = IsTrue(QuestUnit(unit))
+	self:UpdateQuest()
 end
 
 function Plate:RefreshType()
@@ -1104,19 +1109,121 @@ function Plate:UpdateName(refreshing)
 	if self.subtitled or self.subtitle then self:UpdateSubtitle() end
 end
 
-local function NpcTitle(unit)
+local function TooltipLines(unit, missing)
 	local api, kinds = C_TooltipInfo, Enum and Enum.TooltipDataLineType
 	if not (api and type(api.GetUnit) == "function" and kinds) then
-		LogOnce("npc-title", "C_TooltipInfo.GetUnit is missing; friendly NPCs show no title")
+		LogOnce(missing, "C_TooltipInfo.GetUnit is missing; plates show no " .. missing)
 		return nil
 	end
 	local ok, data = pcall(api.GetUnit, unit)
 	local lines = ok and not IsSecret(data) and type(data) == "table" and not IsSecret(data.lines) and data.lines
-	local line, level = type(lines) == "table" and lines[2], type(lines) == "table" and lines[3]
+	return type(lines) == "table" and lines or nil, kinds
+end
+
+local function NpcTitle(unit)
+	local lines, kinds = TooltipLines(unit, "NPC titles")
+	local line, level = lines and lines[2], lines and lines[3]
 	if type(line) == "table" and type(level) == "table" and not IsSecret(line.type) and line.type == kinds.None
 		and not IsSecret(level.type) and level.type == kinds.UnitLevel then
 		return line.leftText
 	end
+end
+
+function Plate.QuestChanged()
+	objectives = nil
+end
+
+local function ObjectiveType(text)
+	if not objectives then
+		objectives = {}
+		local log = C_QuestLog
+		local count = log and type(log.GetNumQuestLogEntries) == "function" and type(log.GetInfo) == "function"
+			and type(log.GetQuestObjectives) == "function" and log.GetNumQuestLogEntries()
+		if IsSecret(count) or type(count) ~= "number" then
+			LogOnce("quest-log", "the quest log API is missing; objective icons show the quest icon")
+			count = 0
+		end
+		for i = 1, count do
+			local info = log.GetInfo(i)
+			local id = type(info) == "table" and not IsTrue(info.isHeader) and info.questID
+			for _, goal in ipairs(type(id) == "number" and not IsSecret(id) and log.GetQuestObjectives(id) or {}) do
+				if not IsSecret(goal.text) and type(goal.text) == "string" then objectives[goal.text] = goal.type end
+			end
+		end
+	end
+	return objectives[text] or objectives[(text:gsub("^[%s%-]+", ""))]
+end
+
+local function QuestProgress(unit, typed)
+	local lines, kinds = TooltipLines(unit, "quest progress")
+	local hidden = false
+	for _, line in ipairs(lines or {}) do
+		local text = type(line) == "table" and not IsSecret(line.type) and line.type == kinds.QuestObjective and not IsTrue(line.completed) and line.leftText
+		if IsSecret(text) then
+			hidden = true
+		elseif type(text) == "string" then
+			local count = text:match("%d+/%d+") or text:match("%d+%%")
+			if count then return count, typed and ObjectiveType(text) end
+		end
+	end
+	if hidden then return false end
+end
+
+function Plate.QuestRise(plate)
+	if not Settings.Get("markers.questText") then return 0 end
+	local size = Settings.Get("markers.questSize")
+	local tall = Settings.Get("markers.questIcon") and size * math.max(1, Settings.Get("markers.questIconScale")) or size
+	return math.max(0, tall - (plate.whoSize or Settings.Get("name.size")))
+end
+
+function Plate:UpdateQuest()
+	local on = Settings.Get("markers.questText") and self.nameEnabled and not Plate.MarkersHidden()
+	if not (on or self.questText) then return end
+	local typed, count, kind = Settings.Get("markers.questIcon")
+	if on and self.sample then
+		count, kind = self.sample.questText, self.sample.questType
+	elseif on and self.quest and self.unit then
+		count, kind = QuestProgress(self.unit, typed)
+	end
+	if count == false then return end
+	local text = self.questText
+
+	if count and not text then
+		text = NewText(self, "LEFT")
+		text:SetTextColor(Tokens.Color("quest"))
+		self.questText, self.questIcon = text, self:CreateTexture(nil, "OVERLAY")
+		self:LayoutQuest()
+		self:SetNameAlpha(self.name:GetAlpha())
+	end
+	if not text then return end
+	if count ~= text.count then
+		text.count = count
+		if count then text:SetText(count) end
+		text:SetShown(count ~= nil)
+	end
+	local atlas = count and typed and (QUEST_ICONS[kind] or QUEST_ICON) or false
+	if atlas ~= self.questIcon.atlas then
+		self.questIcon.atlas = atlas
+		local api = C_Texture and C_Texture.GetAtlasInfo
+		local known = atlas and type(api) == "function" and api(atlas) ~= nil
+		if known then self.questIcon:SetAtlas(atlas) elseif atlas then LogOnce("quest-atlas", "the client lacks " .. atlas .. "; quest progress shows no icon") end
+		self.questIcon:SetShown(known and true or false)
+	end
+
+end
+
+function Plate:LayoutQuest()
+	local text, icon = self.questText, self.questIcon
+	local size = Settings.Get("markers.questSize")
+	StyleFont(text, size, Settings.Get("name.outline"), "number")
+	local side = size * Settings.Get("markers.questIconScale")
+	Widgets.Size(icon, side, side)
+	local after = self.pvpBadge and self.pvpBadge:IsShown() and self.pvpBadge or self.name
+	local typed = Settings.Get("markers.questIcon")
+	icon:ClearAllPoints()
+	text:ClearAllPoints()
+	Widgets.Point(icon, "BOTTOMLEFT", after, "BOTTOMRIGHT", BADGE_GAP, 0)
+	Widgets.Point(text, "BOTTOMLEFT", typed and icon or after, "BOTTOMRIGHT", typed and SUB_GAP or BADGE_GAP, 0)
 end
 
 function Plate:UpdateSubtitle()
@@ -1338,7 +1445,9 @@ function Plate:UpdatePvp()
 	badge.atlas = atlas
 	if atlas then badge:SetAtlas(atlas) end
 	badge:SetShown(atlas and true or false)
+	if self.questText then self:LayoutQuest() end
 end
+
 
 function Plate:UpdateThreat()
 	local display = Settings.Get("threat.display")

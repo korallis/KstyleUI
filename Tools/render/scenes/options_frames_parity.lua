@@ -9,6 +9,8 @@ return Common.Run(function()
 	local loader = dofile("Tools/regression/" .. assert(loaders[module]) .. ".lua")
 	local env, K = loader.New(Common.ScreenOpts({ saved = Gallery.Saved({ module }), setup = function(e)
 		Gallery.Setup(e)
+		e.C_Texture = e.C_Texture or {}
+		e.C_Texture.GetAtlasInfo = e.C_Texture.GetAtlasInfo or Common.Scene.AtlasInfo
 		e.C_AddOns = { LoadAddOn = function(name)
 			if name == "KstyleUI_Options" and not e._addons[name] then Load(O.Files(), e) end
 			return true

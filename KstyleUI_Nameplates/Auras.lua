@@ -40,7 +40,7 @@ local KINDS = {
 		icons = { important = { 135940, 135932 }, dispellable = { 135940, 135953 }, all = { 135940, 135932, 135987, 136104 } } },
 	ccs = { ring = "hostile", icons = { 135963, 136071 }, filter = "HARMFUL|CROWD_CONTROL|INCLUDE_NAME_PLATE_ONLY" },
 }
-local KIND_ORDER = { "buffs", "ccs" }
+local KIND_ORDER, CC_FIRST = { "buffs", "ccs" }, { "ccs", "buffs" }
 local BUFF_FILTERS = { important = "HELPFUL|IMPORTANT|INCLUDE_NAME_PLATE_ONLY", dispellable = "HELPFUL|DISPELLABLE|INCLUDE_NAME_PLATE_ONLY", all = "HELPFUL|INCLUDE_NAME_PLATE_ONLY" }
 local PLACES = {
 	LEFT = { "RIGHT", "LEFT", "TOPRIGHT", "Left", -1, 0 }, RIGHT = { "LEFT", "RIGHT", "TOPLEFT", "Right", 1, 0 },
@@ -498,6 +498,8 @@ end
 local function RoomAbove(plate)
 	if Settings.Get("name.show") and not plate.nameOnly then
 		return ns.Plate.NAME_GAP + (plate.subtitleRoom or 0) + (plate.whoSize or Settings.Get("name.size")) + Settings.Get("debuffs.nameGap") + ns.Resource.Room(plate, "TOP")
+			+ ns.Plate.QuestRise(plate)
+
 	end
 	return GAP + ns.Resource.Room(plate, "TOP")
 end
@@ -555,7 +557,7 @@ local function KindSpot(plate, kind)
 	local size, spacing, _, _, height = Grid(plate)
 	local place, step = Settings.Get(kind .. ".place"), 0
 	local v, left, right = PLACES[place][6], Span(kind, size, spacing)
-	for _, other in ipairs(KIND_ORDER) do
+	for _, other in ipairs(Settings.Get("ccs.first") and CC_FIRST or KIND_ORDER) do
 		if other == kind then break end
 		local there, l, r = Settings.Get(other .. ".place"), Span(other, size, spacing)
 		if KindShows(plate, other) and (there == place or v ~= 0 and PLACES[there][6] == v and l < right and left < r) then
@@ -565,13 +567,21 @@ local function KindSpot(plate, kind)
 	return place, step, size, spacing, height
 end
 
-local function SideReach(plate, sign)
+local function SideReach(plate, sign, bare)
 	local Plate = ns.Plate
+	local reach
 	if sign < 0 then
-		return (Settings.Get("level.show") or Settings.Get("markers.classification")) and Plate.DiamondReach(plate) or Plate.MarkerReach()
+		reach = (Settings.Get("level.show") or Settings.Get("markers.classification")) and Plate.DiamondReach(plate) or Plate.MarkerReach()
+	else
+		reach = Plate.MarkerReach() + (Settings.Get("markers.raid") and Settings.Get("markers.raidSize") + GAP or 0)
 	end
-	return Plate.MarkerReach() + (Settings.Get("markers.raid") and Settings.Get("markers.raidSize") + GAP or 0)
+	local icon = ns.Cast.FullIcon(plate, sign)
+	if not icon then return reach end
+	reach = math.max(reach, sign < 0 and ns.Cast.BadgeReach(plate) or 0) + GAP
+	return bare and reach or reach + icon
 end
+
+Auras.SideReach = SideReach
 
 local function PlaceKind(plate, kind, frame)
 	local place, step, _, spacing = KindSpot(plate, kind)

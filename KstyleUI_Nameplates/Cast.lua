@@ -556,7 +556,7 @@ function Component.Room(plate, anchor)
 	end
 	local label = not anchor and plate.castNameBelow and Settings.Get("cast.showName") and Settings.Get("cast.nameBelow") and Settings.Get("cast.textSize") + GAP or 0
 	local h = Cast.Height(plate)
-	local icon = Settings.Get("cast.showIcon") and math.max(0, (Settings.Get("cast.iconScale") - 1) * h / 2 - Settings.Get("cast.iconY")) or 0
+	local icon = Settings.Get("cast.showIcon") and not Settings.Get("cast.iconFull") and math.max(0, (Settings.Get("cast.iconScale") - 1) * h / 2 - Settings.Get("cast.iconY")) or 0
 	return math.max(0, h + Cast.Gap(plate) + Settings.Get("cast.offsetY") + Widgets.Border(plate.castBar) * 2 + label + icon)
 end
 Cast.Room = Component.Room
@@ -576,7 +576,19 @@ function Cast.Resize(plate)
 	ns.Auras.Reanchor(plate)
 end
 
+function Cast.FullIcon(plate, sign)
+	if not (Settings.Get("cast.iconFull") and Settings.Get("cast.showIcon") and Settings.Get("cast.enabled")) or (Settings.Get("cast.iconRight") and 1 or -1) ~= sign then
+		return nil
+	end
+	return math.max(Cast.Height(plate), Widgets.Snap(plate, ns.state.height) + Cast.Gap(plate) + Widgets.Snap(plate, Settings.Get("cast.offsetY")) + Widgets.Snap(plate, Cast.Height(plate)))
+end
+
+function Cast.BadgeReach(plate)
+	return Settings.Get("cast.shieldBadge") and math.max(11, Cast.Height(plate)) + GAP or 0
+end
+
 function Cast.Gap(plate)
+
 	return Widgets.Border(plate.health) + Widgets.Snap(plate, ns.Plate.FRAME_GAP) + Widgets.Border(plate.castBar)
 end
 
@@ -595,14 +607,21 @@ function Component.Restyle(plate)
 	local cast, bar, icon = plate.cast, plate.castBar, plate.castIcon
 	Widgets.Size(cast, state.width, h)
 	Cast.Place(plate)
-	local side = h * Settings.Get("cast.iconScale")
-	local grow = (side - h) / 2
-	local iconRoom = showIcon and h + grow + GAP or 0
-	Widgets.Size(icon, side, side)
 	local right = Settings.Get("cast.iconRight")
+	local sign = right and 1 or -1
+	local full = Cast.FullIcon(plate, sign)
+	local side = full or h * Settings.Get("cast.iconScale")
+	local grow = (side - h) / 2
+	local iconRoom = showIcon and not full and h + grow + GAP or 0
+	Widgets.Size(icon, side, side)
 	local iconSide = right and "TOPRIGHT" or "TOPLEFT"
 	icon:ClearAllPoints()
-	icon:SetPoint(iconSide, cast, iconSide, Widgets.Snap(plate, (right and grow or -grow) + Settings.Get("cast.iconX")), Widgets.Snap(plate, grow + Settings.Get("cast.iconY")))
+	if full then
+		icon:SetPoint(right and "TOPLEFT" or "TOPRIGHT", plate.health, iconSide, Widgets.Snap(plate, sign * ns.Auras.SideReach(plate, sign, true) + Settings.Get("cast.iconX")),
+			Widgets.Snap(plate, Settings.Get("cast.iconY")))
+	else
+		icon:SetPoint(iconSide, cast, iconSide, Widgets.Snap(plate, (right and grow or -grow) + Settings.Get("cast.iconX")), Widgets.Snap(plate, grow + Settings.Get("cast.iconY")))
+	end
 	local front = Settings.Get("cast.inFront")
 	if front or plate.castRaised then
 		plate.castGate:SetFrameLevel(plate:GetFrameLevel() + (front and IN_FRONT or 1))

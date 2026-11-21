@@ -158,7 +158,47 @@ return Common.Run(function()
 			end
 			fill(ns.Plates.Get("nameplate1").auras, "sunder", { { 132363, "27" } })
 			env.RunTickers()
+		elseif os.getenv("RENDER_PARITY_ROUND") == "5" then
+			-- Round 5 switched on: full-height spell icons beside both casts, crowd control first where it shares the right of
+			-- the bar with enemy buffs, and the add's quest progress with the client's kill-objective crosshair.
+			local goal = "Mirefin Oracle slain: 3/8"
+			env.Enum.TooltipDataLineType = { None = 0, UnitName = 2, QuestObjective = 8, UnitLevel = 47 }
+			env.C_Texture = env.C_Texture or {}
+			env.C_Texture.GetAtlasInfo = Common.Scene.AtlasInfo
+			env.C_TooltipInfo = { GetUnit = function(unit) return { lines = { { type = 8, leftText = unit == "nameplate2" and goal or nil } } } end }
+			env.C_QuestLog.GetNumQuestLogEntries = function() return 1 end
+			env.C_QuestLog.GetInfo = function() return { questID = 1 } end
+			env.C_QuestLog.GetQuestObjectives = function() return { { text = goal, type = "monster" } } end
+			env._units.nameplate2.quest = true
+			env.FireEvent("QUEST_LOG_UPDATE")
+			for key, value in pairs({ ["cast.showIcon"] = true, ["cast.iconFull"] = true, ["buffs.enabled"] = true, ["buffs.count"] = 2,
+				["ccs.enabled"] = true, ["ccs.place"] = "RIGHT", ["ccs.first"] = true, ["markers.questText"] = true, ["markers.questIcon"] = true,
+				["cast.hideUnitName"] = false }) do
+				K.Options.Write(module, key, value)
+			end
+			N.Cast(env, "nameplate1", { name = "Snap", text = "Snap", texture = 132200, notInterruptible = false })
+			Hud.FillCast(ns.Plates.Get("nameplate1"), 0.55)
+			N.Cast(env, "nameplate2", { name = "Mirefin Hex", text = "Mirefin Hex", texture = 136071, notInterruptible = false })
+			Hud.FillCast(ns.Plates.Get("nameplate2"), 0.4)
+			local A = dofile("Tools/regression/auras_env.lua")
+			for _, token in ipairs({ "nameplate1", "nameplate2" }) do
+				local plate = ns.Plates.Get(token)
+				for key, icons in pairs({ buffs = { { 135940, "24" }, { 135932, "9m" } }, ccs = { { 135963, "4" } } }) do
+					local container = plate.kinds[key]
+					local group = container._groups[key]
+					A.Assign(env, container, key, #icons)
+					for i, icon in ipairs(icons) do
+						local aura = group.active[i]._aura
+						aura.icon:SetTexture(env.Secret(icon[1]))
+						if aura.timer then aura.timer:SetText(icon[2]) end
+						local ring = aura.dispel[1] and aura.dispel[1].texture
+						if ring then ring:SetShown(false) end
+					end
+					Hud.PlaceAuras(container, group, group.active, #icons)
+				end
+			end
 		end
+
 		N.Focus(env, "nameplate2")
 	end
 	env.RunTimers(); Gallery.Ticks(dofile("Tools/regression/widget_env.lua"), env, 40)

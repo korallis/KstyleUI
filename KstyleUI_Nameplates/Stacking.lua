@@ -143,6 +143,8 @@ function Stacking.Extent(plate)
 			right = math.max(right, extra)
 		end
 	end
+	if ns.Cast.FullIcon(plate, -1) then left = math.max(left, ns.Auras.SideReach(plate, -1)) end
+	if ns.Cast.FullIcon(plate, 1) then right = math.max(right, ns.Auras.SideReach(plate, 1)) end
 	local reach = math.max(ns.Auras.Reach(plate))
 	left, right = math.max(left, reach), math.max(right, reach)
 	local width = state.width + left + right
