@@ -726,8 +726,8 @@ function Frames.Relayout(uf)
 		elseif cb and uf.kind == "pet" then
 			cx, cy = g.panel.x, math.max(slot.h, g.medal and g.medal.y + g.medal.h or 0) + PET_CAST_GAP
 			cw, ch = uf.s.castbarWidth > 0 and uf.s.castbarWidth or g.panel.w, uf.s.castbarHeight
-		elseif cb and uf.s.inlineCast and g.form == "slab" then
-			cx, cy, cw, ch = g.health.x, slot.h + SLAB_CAST_GAP, g.health.w, SLAB_CAST_H
+		elseif cb and uf.s.inlineCast and (g.form == "slab" or g.form == "plate") then
+			cx, cy, cw, ch = g.panel.x, slot.h + SLAB_CAST_GAP, g.panel.w, SLAB_CAST_H
 		end
 		if cx then
 			cb.frame:ClearAllPoints()
@@ -934,6 +934,13 @@ end
 
 local REACTION_KEYS = { reactionColors = true, hostileColor = true, neutralColor = true, friendlyColor = true, tappedColor = true }
 
+local function PlaceCasts()
+	for kind in pairs(Settings.CAST_ELEMENTS) do
+		if frames[kind] and frames[kind].active then Frames.Restyle(frames[kind]) end
+	end
+	ns.CastBars.Apply()
+end
+
 local function OnSettingChanged(_, module, key)
 	if module ~= MODULE then
 		return
@@ -983,8 +990,7 @@ local function OnSettingChanged(_, module, key)
 	elseif key == "orbCastRoom" then
 		ns.CastBars.Apply()
 	elseif key == "castbarOnFrame" then
-		ForEach(function(each) if each.active then Frames.Restyle(each) end end)
-		ns.CastBars.Apply()
+		K.Combat.Queue(PlaceCasts)
 	elseif key == "castbarRaise" then
 		K.Combat.Queue(ns.CastBars.Apply)
 	elseif key == "unitTooltip" then
@@ -1045,9 +1051,8 @@ local function OnLayoutChanged(_, key, reason)
 		if key == castKey then
 			ns.CastBars.LayoutElement(kind)
 			local uf = frames[kind]
-			if uf and uf.active and uf.s and uf.s.form == "slab" and uf.s.inlineCast ~= Settings.CastOnFrame(kind) then
-				Frames.Restyle(uf)
-				ns.CastBars.Apply()
+			if uf and uf.active and uf.s and K.HudStyle.Current() == "medallions" and uf.s.inlineCast ~= Settings.CastOnFrame(kind) then
+				K.Combat.Queue(PlaceCasts)
 			end
 		end
 	end
@@ -1163,10 +1168,10 @@ function Frames.Enable()
 		for _, kind in ipairs(Settings.KINDS) do
 			Build(kind)
 		end
+		ns.CastBars.Build()
 		Log("built " .. #order .. " unit frames")
 	end
 	RegisterEvents()
-	ns.CastBars.Build()
 	ns.Auras.Enable()
 	ns.Orbs.Enable()
 	ForEach(Frames.Apply)

@@ -177,7 +177,6 @@ function Common.ForceScreen(env, completePreset)
 			profile.GroupFrames.layout = { tidyLanes = false }
 		end
 	end
-	-- RENDER_CAST_ON_FRAME=off keeps the Medallions player and target cast bars above the crest.
 	if os.getenv("RENDER_CAST_ON_FRAME") == "off" and type(db) == "table" and type(db.profiles) == "table" then
 		for _, profile in pairs(db.profiles) do
 			profile.UnitFrames = profile.UnitFrames or {}

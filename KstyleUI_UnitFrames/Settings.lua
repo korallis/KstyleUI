@@ -743,7 +743,7 @@ function Settings.CastOnFrame(kind)
 	if not (key and K.HudStyle.Current() == "medallions" and Settings.Module().castbarOnFrame ~= false) then return false end
 	local el = K.Layout.Element(key)
 	local s, d = el and el.settings, el and el.default
-	return not (s and d and (s.anchor ~= d.anchor or s.x ~= d.x or s.y ~= d.y or s.attachTo ~= d.attachTo or s.link ~= nil))
+	return not (s and d and (s.anchor ~= d.anchor or s.x ~= d.x or s.y ~= d.y or s.attachTo ~= d.attachTo or s.shown ~= d.shown or s.link ~= nil))
 end
 
 function Settings.Snapshot(kind)
@@ -758,7 +758,7 @@ function Settings.Snapshot(kind)
 	end
 	fonts.cast = { size = Settings.FontSize(kind, "cast") / K.Theme.FontScale() }
 	local form = Settings.Form(kind)
-	local s = { fonts = fonts, form = form, kind = kind, rowsAbove = Settings.AuraRows(kind), inlineCast = form == "column" and kind ~= "player" or form == "slab" and Settings.CastOnFrame(kind) }
+	local s = { fonts = fonts, form = form, kind = kind, rowsAbove = Settings.AuraRows(kind), inlineCast = form == "column" and kind ~= "player" or Settings.CastOnFrame(kind) }
 	local m = Settings.Module()
 	s.healthDecimal = kind == "boss" and m.healthDecimalBoss == true and 2 or m.healthDecimal == true
 	if s.healthDecimal and m.healthDecimalTrim == true then s.healthDecimal = s.healthDecimal == 2 and -2 or -1 end

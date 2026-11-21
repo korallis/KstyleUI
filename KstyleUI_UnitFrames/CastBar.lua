@@ -78,6 +78,7 @@ end
 local bars = {}
 local inline = {}
 local holders = {}
+local onFrame = {}
 local hiddenByModule = {}
 local running = false
 
@@ -665,7 +666,6 @@ end
 local function LayoutMedal(cb, width, height, column)
 	local frame = cb.frame
 	cb.geometry = { medal = true }
-	cb.iconFrame:Hide()
 	cb.chrome:SetShadow(false)
 	cb.chrome:SetShown(false)
 	cb.panel:ClearAllPoints()
@@ -674,11 +674,20 @@ local function LayoutMedal(cb, width, height, column)
 	ShowLock(cb)
 	local inset, pad = Snap(cb, MEDAL_INSET), Snap(cb, MEDAL_TEXT_PAD)
 	local barW, barH = math.max(0, width - 2 * MEDAL_INSET), math.max(0, height - 2 * MEDAL_INSET)
+	local icon = cb.inline == true and Settings.Value(cb.kind, "castbarIcon") == true and barH > 0
+	local right = icon and ns.Geometry.SLAB[cb.kind].side == "LEFT"
+	if icon then
+		barW = math.max(0, barW - barH - MEDAL_INSET)
+		Place(cb, cb.iconFrame, { x = right and width - MEDAL_INSET - barH or MEDAL_INSET, y = MEDAL_INSET, w = barH, h = barH })
+		cb.icon:ClearAllPoints()
+		cb.icon:SetAllPoints(cb.iconFrame)
+	end
+	cb.iconFrame:SetShown(icon)
 	local bar = cb.bar
 	bar.opts.width, bar.opts.height = barW, barH
 	bar:Restyle()
 	bar:ClearAllPoints()
-	bar:SetPoint("TOPLEFT", frame, "TOPLEFT", inset, -inset)
+	bar:SetPoint("TOPLEFT", frame, "TOPLEFT", Snap(cb, MEDAL_INSET + (icon and not right and barH + MEDAL_INSET or 0)), -inset)
 	bar:SetSparkShown(false)
 	bar.keyline:Hide()
 	bar:SetTrackBacking(true)
@@ -1474,9 +1483,12 @@ local function Enabled(cb)
 	if not (running and Settings.Value(kind, "castbar")) then
 		return false
 	end
+	if onFrame[kind] then
+		return (cb.inline == true) == Settings.Value(kind, "enabled")
+	end
 	local form = Settings.Form(kind)
 	local plate = form == "plate"
-	local separate = kind == "player" and form == "column" or form == "bar" or K.HudStyle.Current() == "medallions" and Settings.CAST_ELEMENTS[kind] ~= nil and not Settings.CastOnFrame(kind)
+	local separate = kind == "player" and form == "column" or form == "bar" or form == "slab" and Settings.CAST_ELEMENTS[kind] ~= nil
 	if cb.inline then
 		return not plate and not separate and Settings.Value(kind, "enabled")
 	end
@@ -1636,11 +1648,8 @@ function CastBars.Attach(view)
 end
 
 function CastBars.Build()
-	for _, kind in ipairs({ "player", "target" }) do
-		if not bars[kind] then
-			Element(kind)
-		end
-	end
+	Element("player")
+	Element("target")
 end
 
 function CastBars.NewBar(parent, kind, attached)
@@ -1668,6 +1677,7 @@ end
 
 function CastBars.Apply()
 	for _, kind in ipairs(Settings.KINDS) do
+		onFrame[kind] = Settings.CastOnFrame(kind)
 		Each(kind, function(cb)
 			Listen(cb)
 			CastBars.Restyle(cb)
@@ -1685,7 +1695,6 @@ end
 
 function CastBars.Enable()
 	running = true
-	CastBars.Build()
 	for kind, holder in pairs(holders) do
 		if hiddenByModule[kind] then
 			hiddenByModule[kind] = nil
