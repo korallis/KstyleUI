@@ -174,15 +174,6 @@ local function FontPath(text)
 	return (text:GetFont())
 end
 
-local function RimColor(ns, frame)
-	local rim = ns.Parts.RimOf(frame)
-	assert(rim, "the frame has a KstyleUI rim")
-	if not rim.rim[1]:IsShown() then
-		return nil
-	end
-	return rim.rim[1]:GetVertexColor()
-end
-
 -- The whole window, as Forever builds it ------------------------------------------------------------
 
 do
@@ -210,17 +201,17 @@ do
 	assert(FontPath(f.TitleContainer.TitleText) == Style.Font("names"), "the title is the character's name, in the names face")
 	assert(Alpha(p.toggleArt) == 0, "the pane toggle's art is stripped")
 
-	assert(RimColor(ns, f.ModeTabs.Tabs[1]) ~= nil, "the tab Blizzard had selected before the skin keeps its selection")
+	assert(S.RimColor(ns, f.ModeTabs.Tabs[1]) ~= nil, "the tab Blizzard had selected before the skin keeps its selection")
 	local tab = f.ModeTabs.Tabs[2]
 	assert(Alpha(tab.Background) == 0 and Alpha(tab.SelectedTexture) == 0 and Alpha(tab.HighlightTexture) == 0, "side tab art is stripped")
 	assert(Alpha(tab.Icon) > 0 and Alpha(tab.Icon) < 1, "an unchosen side tab keeps its icon, quiet")
 	tab:SetChecked(true)
 	local ar, ag, ab = Style.Accent()
-	local r, g, b = RimColor(ns, tab)
+	local r, g, b = S.RimColor(ns, tab)
 	assert(W.Near(r, ar) and W.Near(g, ag) and W.Near(b, ab), "the selected side tab wears an accent rim")
 	assert(Alpha(tab.Icon) == 1, "and its icon at full")
 	tab:SetChecked(false)
-	assert(RimColor(ns, tab) == nil, "an unselected side tab has no rim")
+	assert(S.RimColor(ns, tab) == nil, "an unselected side tab has no rim")
 	-- The mode tabs stand in a gutter of the window's own glass: the one docked-tab treatment every skinned
 	-- window shares (Parts.Dock; test-skins-dock.lua measures the geometry). No second panel hangs beside
 	-- the window, and no rail of its own is left (#177's ns.CharacterRail is gone).
@@ -232,7 +223,7 @@ do
 	assert(next(dock.seams) == nil, "this fixture has no geometry, so the dock waits for a rect before it draws a seam")
 	local sidebar = env.PaperDollSidebarTab1
 	sidebar:SetChecked(true)
-	assert(RimColor(ns, sidebar) ~= nil and Alpha(sidebar.Icon) == 1, "the paper doll's sidebar tabs follow their check state")
+	assert(S.RimColor(ns, sidebar) ~= nil and Alpha(sidebar.Icon) == 1, "the paper doll's sidebar tabs follow their check state")
 
 	local head, hand = p.slots.CharacterHeadSlot, p.slots.CharacterMainHandSlot
 	assert(Alpha(head.icon) == 1, "the slot keeps its icon")
@@ -241,15 +232,15 @@ do
 	env.PaperDollItemSlotButton_Update(head)
 	env.PaperDollItemSlotButton_Update(hand)
 	local qr, qg, qb = K.Theme.QualityColor(4)
-	r, g, b = RimColor(ns, head)
+	r, g, b = S.RimColor(ns, head)
 	assert(W.Near(r, qr) and W.Near(g, qg) and W.Near(b, qb), "an epic item gets the epic rim")
-	assert(RimColor(ns, hand) == nil, "a common item stays plain by default")
+	assert(S.RimColor(ns, hand) == nil, "a common item stays plain by default")
 	K.Options.Write("Skins", "character.qualityFrom", 1)
-	assert(RimColor(ns, hand) ~= nil, "lowering the threshold rims common items at once")
+	assert(S.RimColor(ns, hand) ~= nil, "lowering the threshold rims common items at once")
 	K.Options.Write("Skins", "character.qualityBorders", false)
-	assert(RimColor(ns, head) == nil, "switching quality borders off clears every rim")
+	assert(S.RimColor(ns, head) == nil, "switching quality borders off clears every rim")
 	K.Options.Write("Skins", "character.qualityBorders", true)
-	assert(RimColor(ns, head) ~= nil)
+	assert(S.RimColor(ns, head) ~= nil)
 	assert(S.Logged(env, "CharacterNeckSlot is missing"), "a slot this client lacks is logged and skipped")
 
 	assert(Alpha(p.strip) == 0 and Alpha(p.modelArt) == 0, "the paper doll's backdrop art is stripped")

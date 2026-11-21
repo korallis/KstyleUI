@@ -7,8 +7,6 @@ local Skin, Tokens, Widgets = K.Skin, K.Tokens, K.Widgets
 local Parts = {}
 ns.Parts = Parts
 
-local RIM_UNITS = 2
-local RIM_SUBLEVEL = -6
 local LEVEL_BELOW = 1
 local LINE_UNITS = 2
 local BAR_UNITS = 10
@@ -49,42 +47,27 @@ end
 
 Parts.IsTexture = IsTexture
 
-local function LayoutRim(holder)
-	local target = holder.target
-	local outset = Widgets.Snap(holder, holder.outset)
-	holder:ClearAllPoints()
-	holder:SetPoint("TOPLEFT", target, "TOPLEFT", -outset, outset)
-	holder:SetPoint("BOTTOMRIGHT", target, "BOTTOMRIGHT", outset, -outset)
-	Widgets.LayoutSlice(holder.rim, holder, holder.chrome:Chamfer(), RIM_UNITS)
-end
-
-local function PaintRim(holder)
-	local color = holder.color
-	if color then
-		Widgets.ShowSlice(holder.rim, true)
-		Widgets.ColorSlice(holder.rim, color[1], color[2], color[3], color[4] or 1)
-		holder.chrome:SetRim(color[1], color[2], color[3], color[4] or 1)
-	else
-		Widgets.ShowSlice(holder.rim, false)
-		holder.chrome:SetRim()
-	end
-end
-
 local function RestyleRim(holder)
 	if Widgets.MayMove(holder) then
-		LayoutRim(holder)
+		local target = holder.target
+		local outset = Widgets.Snap(holder, holder.outset)
+		holder:ClearAllPoints()
+		holder:SetPoint("TOPLEFT", target, "TOPLEFT", -outset, outset)
+		holder:SetPoint("BOTTOMRIGHT", target, "BOTTOMRIGHT", outset, -outset)
 	end
 	holder.chrome:Restyle()
-	PaintRim(holder)
 end
 
 local function SetRimColor(holder, r, g, b, a)
-	if r == nil then
-		holder.color = nil
-	else
-		holder.color = { r, g, b, a or 1 }
+	holder.color = r ~= nil and { r, g, b, a or 1 } or nil
+	holder.chrome:SetRim(r, g, b, a)
+end
+
+local function GetRimColor(holder)
+	if holder.color then
+		return unpack(holder.color, 1, 4)
 	end
-	PaintRim(holder)
+	return nil
 end
 
 function Parts.Rim(frame, opts)
@@ -97,9 +80,9 @@ function Parts.Rim(frame, opts)
 	holder.target = opts.target or frame
 	holder.outset = opts.outset or 0
 	holder.chrome = Widgets.IconChrome(holder)
-	holder.rim = Widgets.NineSlice(holder, "chamferTile", "BACKGROUND", RIM_SUBLEVEL)
 	holder.Restyle = RestyleRim
 	holder.SetRimColor = SetRimColor
+	holder.GetRimColor = GetRimColor
 	RestyleRim(holder)
 	rims[frame] = holder
 	return Widgets.Track(holder)

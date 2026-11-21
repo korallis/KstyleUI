@@ -12,15 +12,6 @@ local function FontPath(text)
 	return (text:GetFont())
 end
 
-local function RimColor(ns, frame)
-	local rim = ns.Parts.RimOf(frame)
-	assert(rim, "the frame has a KstyleUI rim")
-	if not rim.rim[1]:IsShown() then
-		return nil
-	end
-	return rim.rim[1]:GetVertexColor()
-end
-
 local function Button(B, parent, key)
 	local button = B.frame("Button", parent)
 	button.Art = B.texture(button)
@@ -119,18 +110,18 @@ do
 		assert(path == bodyPath and size >= bodySize, "popup text takes the skin face at no less than the body size")
 	end
 	local er, eg, eb = K.Theme.Brighten(0.64, 0.21, 0.93)
-	local r, g, b = RimColor(ns, popups[1].ItemFrame.Item)
+	local r, g, b = S.RimColor(ns, popups[1].ItemFrame.Item)
 	assert(W.Near(r, er) and W.Near(g, eg) and W.Near(b, eb), "an item Blizzard showed before the skin applied is rimmed at once")
 	local item = popups[2].ItemFrame
 	item:DisplayInfo("link", "Bracers", { 0.64, 0.21, 0.93, 1 })
-	r, g, b = RimColor(ns, item.Item)
+	r, g, b = S.RimColor(ns, item.Item)
 	assert(W.Near(r, er) and W.Near(g, eg) and W.Near(b, eb), "Blizzard's colour array for the item rims its icon")
 	item:DisplayInfo("link", "Linen", { 1, 1, 1, 1 })
-	assert(RimColor(ns, item.Item) == nil, "a white or grey item stays plain")
+	assert(S.RimColor(ns, item.Item) == nil, "a white or grey item stays plain")
 	item:DisplayInfo("link", "Gold", nil)
-	assert(RimColor(ns, item.Item) == nil, "no colour leaves the rim plain")
+	assert(S.RimColor(ns, item.Item) == nil, "no colour leaves the rim plain")
 	item.Text:SetTextColor(0, 0.44, 0.87)
-	assert(RimColor(ns, item.Item) ~= nil, "any colour Blizzard gives the item name, as the standard callback does, rims the icon")
+	assert(S.RimColor(ns, item.Item) ~= nil, "any colour Blizzard gives the item name, as the standard callback does, rims the icon")
 	B.check(snap, HOOKED)
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end

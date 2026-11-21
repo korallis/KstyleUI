@@ -132,7 +132,7 @@ do
 	assert(frame and type(frame.Refresh) == "function", "the preview has a Refresh")
 	assert(#frame.slots == 3, "three quality slots")
 	local qr, qg, qb = K.Theme.QualityColor(4)
-	assert(W.SameRGB(frame.slots[3].rim.rim[1], qr, qg, qb), "the epic slot wears the epic rim")
+	assert(W.SameRimColor(frame.slots[3].rim, qr, qg, qb), "the epic slot wears the epic rim")
 	K.Options.Write("Skins", "bars.color", "custom")
 	K.Options.Write("Skins", "bars.customColor", { r = 0.3, g = 0.6, b = 0.9 })
 	frame:Refresh()
