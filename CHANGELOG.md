@@ -12,7 +12,8 @@ Highlights:
 
 ### Fixed
 
-- With the target's auras on Debuffs and buffs and the default row count, the target's aura rows no longer reach the rest of the HUD. Under Orbs, their timers sit in the icon corners so the buff row stays above the target cast bar; under Medallions, the target shows one row of debuffs and one of buffs, so they stay clear of the target of target. A row count you saved still applies to each kind.
+- With the target's auras on Debuffs and buffs under Orbs, their timers sit in the icon corners, so the buff row stays above the target cast bar.
+- With the target's auras on Debuffs and buffs under Medallions, the target shows one row of debuffs and one of buffs, clear of the target of target. A row count you saved still applies to each kind.
 - On Medallions party frames, your heal icons no longer hide the health percent or touch the indicator icons. They line up to the left of the percent, as on Frames rows.
 - With Debuffs and buffs, the unit frame preview in the settings window shows a row of debuffs and a row of buffs, as your target does.
 
