@@ -91,6 +91,7 @@ return Common.Run(function()
 				return false
 			end
 			if os.getenv("RENDER_PARITY_R3B") == "1" then
+				G.Secure(env)
 				env._units = env._units or {}
 				env._units.party1target = { name = "Gorvak", class = "WARRIOR", reaction = 2, health = 64, maxHealth = 100 }
 				env._units.party2target = { name = "Thessaly", class = "PALADIN", player = true, health = 92, maxHealth = 100 }

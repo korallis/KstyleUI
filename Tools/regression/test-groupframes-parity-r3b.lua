@@ -11,6 +11,7 @@ local function saved(own)
 end
 
 local function setup(env)
+	G.Secure(env)
 	env._units = env._units or {}
 	env.UnitIsPlayer = function(unit)
 		local m = env._member(unit)

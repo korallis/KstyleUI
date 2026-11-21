@@ -184,8 +184,9 @@ local function installRoster(env)
 		local inRange = not m or m.inRange ~= false
 		return env.Secret(inRange), env.Secret(true)
 	end
-	function env.UnitReaction()
-		return 5
+	function env.UnitReaction(unit)
+		local m = member(unit)
+		return m and m.reaction or 5
 	end
 	function env.SetPortraitTexture(texture, unit)
 		texture._portraitUnit = unit
@@ -851,11 +852,12 @@ local function installMeasure(env)
 	end
 end
 
--- Unit watch and secure handlers, as SecureStateDriver.lua and SecureHandlers.lua run them: a watched
--- frame shows while SecureButton_GetUnit's unit exists (again on RunStateDrivers); a wrapped
--- OnAttributeChanged runs its snippet as secure code, before the frame's own script, with GetFrameRef.
+-- Secure(env), called from a test's setup: unit watch and secure handlers, as SecureStateDriver.lua and
+-- SecureHandlers.lua run them: a watched frame shows while SecureButton_GetUnit's unit exists (again on
+-- RunStateDrivers); a wrapped OnAttributeChanged runs its snippet as secure code, before the frame's own script,
+-- with GetFrameRef. Only the tests that ask get them, so other modules sharing an environment keep their paths.
 -- env._units["party1target"] = { name, class, reaction, health, maxHealth } gives a member a target.
-local function installSecure(env)
+function G.Secure(env)
 	env._watched = {}
 	local function unitOf(frame)
 		local a = frame._attributes
@@ -892,6 +894,9 @@ local function installSecure(env)
 	function env.SecureHandlerSetFrameRef(frame, label, ref)
 		frame:SetAttribute("frameref-" .. label, ref)
 	end
+	function env.SecureHandlerUnwrapScript(frame)
+		frame._wrapped = nil
+	end
 	function env.SecureHandlerWrapScript(frame, script, _, body)
 		assert(script == "OnAttributeChanged", "the stub wraps OnAttributeChanged only")
 		local chunk = assert(loadstring("local self, name, value = ... " .. body))
@@ -908,13 +913,6 @@ local function installSecure(env)
 			env._secure = was
 		end
 	end
-	function env.SecureHandlerUnwrapScript(frame)
-		frame._wrapped = nil
-	end
-	function env.UnitReaction(unit)
-		local m = env._member(unit)
-		return m and m.reaction or 5
-	end
 end
 
 -- New(opts) -> env, KstyleUI, the module's private table. opts: the CoreEnv.New options, plus
@@ -929,7 +927,6 @@ function G.Install(env, opts)
 	installDrivers(env)
 	installBlizzard(env)
 	installMeasure(env)
-	installSecure(env)
 	env.InCombatLockdown = function()
 		return env._combat == true
 	end
