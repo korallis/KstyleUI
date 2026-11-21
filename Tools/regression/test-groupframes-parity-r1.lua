@@ -296,7 +296,12 @@ do
 		end
 		return false
 	end
+	local function centres()
+		return registered(f.dispelRing[1][5]) or registered(f.dispelRing[2][5])
+	end
+	local HOLLOW = "the engine shows every dispel texture it holds; give it only a ring line's eight edge pieces, never the transparent centre"
 	assert(registered(f.dispelRing[2][1]) and f.dispelWash[1]:GetAlpha() == 0.16, "two outline lines and the usual tint")
+	assert(registered(f.dispelWash[5]) and not centres(), HOLLOW)
 	write(env, K, "auras.dispelAlpha", 0.3)
 	assert(f.dispelWash[1]:GetAlpha() == 0.3, "the tint opacity applies")
 	write(env, K, "auras.dispelLines", 1)
@@ -305,6 +310,7 @@ do
 	assert(not registered(f.dispelRing[1][1]), "none leaves the tint alone")
 	write(env, K, "auras.dispelLines", 2)
 	assert(registered(f.dispelRing[1][1]) and registered(f.dispelRing[2][1]), "two restores both lines")
+	assert(not centres(), HOLLOW)
 	A.Assign(env, f.auras, "debuffs", 1)
 	env.RunTimers()
 	local debuff = f.auras._groups.debuffs.active[1]

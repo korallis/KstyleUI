@@ -33,7 +33,7 @@ for _, each in ipairs(view.auras.buttons) do
 		entry = each
 	end
 end
-assert(entry and entry.slab and entry.slab[5]:IsShown(), "the tile wears the aura slab material")
+assert(entry and entry.slab and entry.slab[1]:IsShown() and not entry.slab[5]:IsShown(), "the tile wears the aura slab material, its transparent centre hidden")
 assert(entry.slab[5]:GetTexture() == (Tokens.Texture("medAuraBorder")), "from the medAuraBorder slice")
 assert(not entry.chrome.visible, "the Frames chrome stays off")
 local dispel = button._aura.dispel

@@ -17,9 +17,9 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		env.RunTimers()
 		local ring, isRing = holder.chrome.rim, {}
 		assert(ring and #ring == 9, "the socket draws its ring line")
-		for _, region in ipairs(ring) do
+		for i, region in ipairs(ring) do
 			isRing[region] = true
-			assert(region:IsVisible() and region:GetDrawLayer() == "BORDER", "the quality colour rides the shown ring line on BORDER")
+			assert(region:IsVisible() == (i ~= 5) and region:GetDrawLayer() == "BORDER", "the quality colour rides the shown ring line on BORDER, its transparent centre hidden")
 			assert(W.SameColor(region, 0.2, 0.4, 0.8, 1), "the ring line wears the quality colour")
 		end
 		for _, region in ipairs(holder._regions) do
@@ -31,7 +31,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		holder:SetRimColor(nil)
 		assert(holder:GetRimColor() == nil, "a cleared rim reports no colour")
 		for i, region in ipairs(ring) do
-			assert(region:IsVisible() and W.SameColor(region, bare.chrome.rim[i]:GetVertexColor()), "a cleared rim returns the ring line to the plain socket edge")
+			assert(region:IsVisible() == (i ~= 5) and W.SameColor(region, bare.chrome.rim[i]:GetVertexColor()), "a cleared rim returns the ring line to the plain socket edge")
 		end
 	end
 end

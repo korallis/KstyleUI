@@ -187,6 +187,15 @@ local function Step(_, elapsed)
 	StopDriverIfIdle()
 end
 
+local stepScript = Step
+
+function Motion.SetProfiling(on)
+	stepScript = on and ns.DevTest.Timed("Motion step", Step) or Step
+	if driver and driver:GetScript("OnUpdate") then
+		driver:SetScript("OnUpdate", stepScript)
+	end
+end
+
 local function Find(obj, setter)
 	for i = 1, #active do
 		local rec = active[i]
@@ -240,7 +249,7 @@ function Motion.Tween(obj, setter, from, to, duration, easing, onDone)
 		driver = CreateFrame("Frame")
 	end
 	if not driver:GetScript("OnUpdate") then
-		driver:SetScript("OnUpdate", Step)
+		driver:SetScript("OnUpdate", stepScript)
 	end
 	return handle
 end

@@ -244,6 +244,9 @@ assert(p.health:IsShown() and not p.card:IsShown() and not p.edge:IsShown() and 
 assert(p.health:GetAlpha() == 0.3, "the wash takes the fill opacity")
 local button = slot.frame
 assert(#button._aura.dispel == #p.tinted + 1, "every wash, edge and icon texture is tinted by the engine")
+for _, texture in ipairs(button._aura.dispel) do
+	assert(texture ~= p.line[5], "the engine shows every dispel texture it holds; tint only the edge's eight outline pieces, never its transparent centre")
+end
 assert(button._aura.dispelOptions.customDispelColorMap == nil, "the game's colours by default")
 local point = W.LastCall(p.health, "SetAllPoints")
 assert(point and point[1] == player.health, "the health wash covers the health bar")

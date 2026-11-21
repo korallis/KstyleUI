@@ -69,7 +69,9 @@ local function NewParts(owner)
 	p.icon:SetAllPoints(p.mark)
 	p.tinted = { p.fill }
 	for _, slice in ipairs({ p.wash, p.line }) do
-		for _, piece in ipairs(slice) do p.tinted[#p.tinted + 1] = piece end
+		for i, piece in ipairs(slice) do
+			if i ~= 5 or not Widgets.HOLLOW[slice.texture] then p.tinted[#p.tinted + 1] = piece end
+		end
 	end
 	return p
 end

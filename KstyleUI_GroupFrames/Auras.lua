@@ -369,9 +369,9 @@ local function Tinted(options)
 end
 
 local function Retint(owner, pieces, options)
-	for _, piece in ipairs(pieces) do
+	for i, piece in ipairs(pieces) do
 		owner:RemoveDispelTypeTexture(piece)
-		owner:AddDispelTypeTexture(piece, options)
+		if i ~= 5 or not Widgets.HOLLOW[pieces.texture] then owner:AddDispelTypeTexture(piece, options) end
 	end
 end
 
@@ -417,19 +417,16 @@ local function LayoutDispel(wash, ring, owner, chamfer, engine)
 	for i, line in ipairs(ring) do
 		local on = i <= a.dispelLines
 		if engine and (line.on ~= false) ~= on and DispelStyle() then
-			local options = on and Tinted({ style = DispelStyle(), showWhenHarmful = true })
-			for _, piece in ipairs(line) do
-				if on then
-					owner:AddDispelTypeTexture(piece, options)
-				else
+			if on then
+				Retint(owner, line, Tinted({ style = DispelStyle(), showWhenHarmful = true }))
+			else
+				for _, piece in ipairs(line) do
 					owner:RemoveDispelTypeTexture(piece)
 					piece:Hide()
 				end
 			end
 		elseif not engine then
-			for _, piece in ipairs(line) do
-				piece:SetShown(on)
-			end
+			Widgets.ShowSlice(line, on)
 		end
 		line.on = on
 	end
@@ -820,12 +817,10 @@ local function BuildDispel(slot, f)
 	if style then
 		local options = Tinted({ style = style, showWhenHarmful = true })
 		wash.tint = ColorKey()
-		for _, piece in ipairs(wash) do
-			slot:AddDispelTypeTexture(piece, options)
+		Retint(slot, wash, options)
+		for _, line in ipairs(ring) do
+			Retint(slot, line, options)
 		end
-		Style.Pieces(ring, function(piece)
-			slot:AddDispelTypeTexture(piece, options)
-		end)
 	else
 		Style.LogOnce("dispelStyle", "the dispel texture styles are missing; the dispel highlight stays off")
 	end

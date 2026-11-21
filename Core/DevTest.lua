@@ -5,6 +5,7 @@ local DevTest = {}
 ns.DevTest = DevTest
 
 local L = ns.L
+local format = string.format
 local MAX_ENTRIES = 500
 local MAX_MESSAGE = 1000
 local MAX_BLOCKED = 50
@@ -12,6 +13,118 @@ local MAX_BLOCKED = 50
 local pending = {}
 local checks = {}
 local blocked = {}
+
+local PERF_SECONDS = 20
+local PERF_SAMPLE = 0.5
+local PERF_TOP = 10
+local max = math.max
+local perf, sampler
+
+function DevTest.Profiling()
+	return perf ~= nil
+end
+
+local function stop(state, name, start, outer, ...)
+	local spent = max(debugprofilestop() - start, 0)
+	state.spent[name] = (state.spent[name] or 0) + max(spent - state.inner, 0)
+	state.calls[name] = (state.calls[name] or 0) + 1
+	state.inner = outer + spent
+	return ...
+end
+
+function DevTest.Time(name, fn, ...)
+	local state = perf
+	if not state then
+		return fn(...)
+	end
+	local outer, start = state.inner, debugprofilestop()
+	state.inner = 0
+	return stop(state, name, start, outer, fn(...))
+end
+
+function DevTest.Timed(name, fn)
+	return function(...)
+		return DevTest.Time(name, fn, ...)
+	end
+end
+
+local function swap(on)
+	ns.Events.SetProfiling(on)
+	ns.Motion.SetProfiling(on)
+	ns.Layout.Calm.SetProfiling(on)
+end
+
+local function perfFinish()
+	local state = perf
+	perf = nil
+	sampler:SetScript("OnUpdate", nil)
+	swap(false)
+	local seconds = state.elapsed
+	if seconds <= 0 then
+		ns.Print(L["The profile stopped before its first frame, so there is nothing to report."])
+		return
+	end
+
+	local count, sum, low, high = #state.fps, 0, math.huge, 0
+	for i = 1, count do
+		local fps = state.fps[i]
+		sum, low, high = sum + fps, math.min(low, fps), max(high, fps)
+	end
+	DevTest.Log("Perf", format("%.1f s window: %.0f fps mean, %.0f lowest, %.0f highest, %d samples", seconds, sum / count, low, high, count))
+
+	local spent, calls, list = 0, 0, {}
+	for name, ms in pairs(state.spent) do
+		spent = spent + ms
+		calls = calls + state.calls[name]
+		list[#list + 1] = { name = name, ms = ms, calls = state.calls[name] }
+	end
+	DevTest.Log("Perf", format("this addon's Lua: %.1f ms per second, %.2f%% of the wall time, %d timed calls", spent / seconds, spent / seconds / 10, calls))
+	if #list == 0 then
+		DevTest.Log("Perf", "no timed work ran in the window")
+	else
+		table.sort(list, function(a, b)
+			return a.ms > b.ms
+		end)
+		for i = 1, math.min(#list, PERF_TOP) do
+			DevTest.Log("Perf", format("%7.2f ms/s %6d calls  %s", list[i].ms / seconds, list[i].calls, list[i].name))
+		end
+	end
+	ns.Print(L["Profile written to the devlog; type /reload to save it."])
+end
+
+local function sample(_, dt)
+	local state = perf
+	state.elapsed = state.elapsed + dt
+	state.tick = state.tick + dt
+	if state.tick >= PERF_SAMPLE then
+		state.tick = state.tick % PERF_SAMPLE
+		state.fps[#state.fps + 1] = GetFramerate and GetFramerate() or 0
+	end
+	if state.elapsed >= state.seconds then
+		perfFinish()
+	end
+end
+
+function DevTest.Profile(seconds)
+	if perf then
+		perfFinish()
+		return
+	end
+	if type(debugprofilestop) ~= "function" then
+		ns.Print(L["This client has no debugprofilestop, so the profiler cannot run."])
+		return
+	end
+	seconds = max(tonumber(seconds) or PERF_SECONDS, 1)
+	if seconds ~= seconds or seconds == math.huge then
+		ns.Print(L["The profile needs a finite number of seconds, such as /kstyle perf 30."])
+		return
+	end
+	perf = { seconds = seconds, elapsed = 0, tick = 0, inner = 0, fps = { GetFramerate and GetFramerate() or 0 }, spent = {}, calls = {} }
+	sampler = sampler or CreateFrame("Frame")
+	sampler:SetScript("OnUpdate", sample)
+	swap(true)
+	ns.Print(format(L["Profiling for %s seconds: play normally now, then type /kstyle perf again to stop."], seconds))
+end
 
 local PROBES = {
 	{ path = "CreateFrame", required = true },

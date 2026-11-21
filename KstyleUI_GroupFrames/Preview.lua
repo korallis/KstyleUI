@@ -279,20 +279,22 @@ function Preview.Build(...)
 				local w, h, spacing = ns.Extras.Size(name)
 				local growth = name == "tanks" and s.growth or raid.growth
 				local wrap = Geometry.Perpendicular(growth, name == "tanks" and s.wrap or "RIGHT")
-				local per = name == "tanks" and s.wrapAfter > 0 and s.wrapAfter or #list
-				local vertical, lines = Geometry.IsVertical(growth), math.ceil(#list / per)
-				local along, across = Geometry.Line(math.min(per, #list), vertical and h or w, spacing), Geometry.Line(lines, vertical and w or h, spacing)
+				local items = name == "tanks" and s.excludeSelf and { list[2] } or list
+				if name == "tanks" then list[1]:SetShown(not s.excludeSelf) end
+				local per = name == "tanks" and s.wrapAfter > 0 and s.wrapAfter or #items
+				local vertical, lines = Geometry.IsVertical(growth), math.ceil(#items / per)
+				local along, across = Geometry.Line(math.min(per, #items), vertical and h or w, spacing), Geometry.Line(lines, vertical and w or h, spacing)
 				local bw, bh = vertical and across or along, vertical and along or across
 				list.holder:SetSize(bw, bh)
 				list.holder:ClearAllPoints()
 				list.holder:SetPoint("TOPLEFT", preview.raid, "TOPLEFT", ex, -(rh + groupSpacing))
 				for line = 1, lines do
 					local run = {}
-					for m = 1, per do run[m] = list[(line - 1) * per + m] end
+					for m = 1, per do run[m] = items[(line - 1) * per + m] end
 					local ox, oy = Geometry.Offset(wrap, (line - 1) * ((vertical and w or h) + spacing))
 					PlaceRun(run, list.holder, { height = h }, growth, #run, ox, oy, Geometry.Corner(growth, wrap), w, spacing)
 				end
-				for _, f in ipairs(list) do
+				for _, f in ipairs(items) do
 					Style.Apply(f, w, h)
 					Paint(f, f.sample)
 				end

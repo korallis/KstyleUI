@@ -242,6 +242,7 @@ The effects that animate Medallions (motion level, priorities, the 3D model pool
 - `DevTest.AddCheck(name, fn)` adds a smoke check. `fn` returns `ok, detail`.
 - `DevTest.Run()` logs one `PASS`, `WARN` or `FAIL` line per check and returns `passed, failed, warnings`. It checks the store, each module that is switched on, the caught errors and the blocked actions of KstyleUI addons, the APIs the core uses, an export round trip, and each added check.
 - `DevTest.SetEditModeLogging(on)` and `DevTest.EditModeLogging()` control the session-only, read-only Edit Mode recorder. It is off after every reload; `/kstyle devlog on|off` is its developer command. Geometry, module/settings context, bounds and the two exact diagnostic drags are in [EDIT_MODE_RECORDER.md](EDIT_MODE_RECORDER.md).
+- `DevTest.Profile(seconds)` records the frame rate and the Lua time this addon spends for that window (20 s unless given), then logs the worst work first to the devlog; `/kstyle perf [seconds]` runs it, and `/kstyle perf` again stops it early. `DevTest.Time(name, fn, ...)` attributes one call's own time to `name` while a profile runs and returns exactly what `fn` returns, and `DevTest.Timed(name, fn)` wraps an `OnUpdate` script with it. Both pass straight through when no profile runs. For the window only, the profile calls `Events.SetProfiling`, `Motion.SetProfiling` and `Layout.Calm.SetProfiling`, which swap timed handlers in and put the plain ones back when it ends. The measurement needs `debugprofilestop`; without it the command says so. [PROFILING.md](PROFILING.md) explains what each line of the report means and how to judge it.
 
 ## The /kstyle command
 
@@ -252,6 +253,7 @@ The effects that animate Medallions (motion level, priorities, the 3D model pool
 | `/kstyle setup` | `KstyleUI.Setup.Open()` |
 | `/kstyle test` | `DevTest.Run()` |
 | `/kstyle devlog on, off` | Enable/disable the developer-only Edit Mode geometry recorder for this session |
+| `/kstyle perf`, `/kstyle perf <seconds>` | `DevTest.Profile(seconds)`: records the frame rate and the addon's Lua time into the devlog for 20 s or the given window, and a second run stops it early |
 | `/kstyle profile` | Lists the profiles and marks the active one with `*` |
 | `/kstyle profile use, new, copy, rename or delete <name>` | `SetProfile`, `CreateProfile`, `CopyProfile(<name>, active)`, `RenameProfile(active, <name>)` or `DeleteProfile` |
 | `/kstyle profile reset` | `ResetProfile()` |

@@ -5,6 +5,7 @@ local Events = {}
 ns.Events = Events
 
 local owners = {}
+local profiling = false
 
 local function checkOwner(fnName, owner)
 	if type(owner) ~= "string" or owner == "" then
@@ -16,21 +17,39 @@ local function checkOwner(fnName, owner)
 	end
 end
 
+local function timed(owner, handlers)
+	local Time = ns.DevTest.Time
+	return function(_, event, ...)
+		local fn = handlers[event]
+		if fn then
+			Time(owner .. " " .. event, ns.Call, fn, event, ...)
+		end
+	end
+end
+
 local function slot(owner)
 	local entry = owners[owner]
 	if not entry then
 		local handlers = {}
 		local frame = CreateFrame("Frame")
-		frame:SetScript("OnEvent", function(_, event, ...)
+		local function plain(_, event, ...)
 			local fn = handlers[event]
 			if fn then
 				ns.Call(fn, event, ...)
 			end
-		end)
-		entry = { frame = frame, handlers = handlers }
+		end
+		frame:SetScript("OnEvent", profiling and timed(owner, handlers) or plain)
+		entry = { frame = frame, handlers = handlers, plain = plain }
 		owners[owner] = entry
 	end
 	return entry
+end
+
+function Events.SetProfiling(on)
+	profiling = on
+	for owner, entry in pairs(owners) do
+		entry.frame:SetScript("OnEvent", on and timed(owner, entry.handlers) or entry.plain)
+	end
 end
 
 local function checkHandler(fnName, event, fn)

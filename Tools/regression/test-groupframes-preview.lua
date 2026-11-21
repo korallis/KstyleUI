@@ -68,6 +68,9 @@ assert(healed, "a sample shows incoming heals")
 eq(tank.sampleAuras[1]:IsShown(), true, "the sample tank shows debuff icons")
 eq(tank.sampleAuras[3]:IsShown(), false, "only as many as it has")
 eq(preview.partyFrames[2].sampleDispel:IsShown(), true, "a sample shows the dispel highlight")
+for _, line in ipairs(preview.partyFrames[2].sampleDispelRing) do
+	eq(line[5]:IsShown(), false, "a sample ring line keeps its transparent centre hidden: show the line with Widgets.ShowSlice")
+end
 for _, piece in ipairs(preview.partyFrames[2].sampleDispelWash) do
 	eq(piece:GetAlpha(), 0.16, "ColorSlice must pass WASH_ALPHA: its vertex write replaces NewDispel's alpha")
 	eq(select(4, piece:GetVertexColor()), 0.16, "the Options dispel wash exposes the same 16% vertex alpha")

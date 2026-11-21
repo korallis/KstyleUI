@@ -19,6 +19,12 @@
 -- text left under icons, a heal absorb backing of its own, three heals with their own zoom, an indicator offset, and pet, tank and
 -- friendly boss frames. RENDER_EXTRAS=1 switches on only pet, tank and friendly boss frames, at their defaults. RENDER_PLACES=default
 -- leaves every group frame holder at its default place instead of the mock-ups'.
+-- RENDER_PARITY_R6=1 switches on round 6's: the shield edge on the first member's shield, role icons under the highlights,
+-- indicator 1 as a bar on the health bar's foot, filling the other way and over the debuff icons, and indicator 2 as a square (both
+-- shown on the first member), party frames that take the raid's text, debuffs, heal icons, status icon size and power bar, an own
+-- raid size from 16 players and tank frames that leave you out (you are the first member).
+-- RENDER_GROUP_DISPEL=1 shows the dispel highlight on the second member as the aura engine does for a Magic debuff: every texture
+-- registered with the slot shown in the Magic colour, keeping its own alpha as the options preview does.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
@@ -55,6 +61,7 @@ local R3A = os.getenv("RENDER_PARITY_R3A") == "1"
 local R4 = os.getenv("RENDER_PARITY_R4") == "1"
 local R5 = os.getenv("RENDER_PARITY_R5") == "1"
 local EXTRAS = os.getenv("RENDER_EXTRAS") == "1"
+local R6 = os.getenv("RENDER_PARITY_R6") == "1"
 local SPELLS = { [1243] = { "Power Word: Fortitude", 135987 }, [1459] = { "Arcane Intellect", 135932 }, [467] = { "Thorns", 136104 } }
 local GROUP_SPELLS = { [21562] = "Prayer of Fortitude", [23028] = "Arcane Brilliance" }
 local IDENTITY = {
@@ -171,7 +178,8 @@ return Common.Run(function()
 		if r3c == "small" then for i = #members, 7, -1 do members[i] = nil end end
 	end
 	if R5 then members[1].healAbsorb = 20 end
-	G.SetRoster(env, r3c ~= "solo" and kind or nil, r3c ~= "solo" and members or {}, PLAYER)
+	if R6 then members[1].absorb = 25 end
+	G.SetRoster(env, r3c ~= "solo" and kind or nil, r3c ~= "solo" and members or {}, R6 and kind == "raid" and members[1] or PLAYER)
 	if not K.Modules.IsRunning("GroupFrames") then
 		assert(K.Modules.Enable("GroupFrames"))
 	end
@@ -237,6 +245,17 @@ return Common.Run(function()
 		place(K, "groupframes.tanks", AT[kind][1] + 520, 40)
 		place(K, "groupframes.boss", AT[kind][1] + 1000, 40)
 	end
+	if R6 then
+		for key, value in pairs({ ["prediction.edge"] = true, ["icons.roleBehind"] = true, ["indicator1.style"] = "BAR", ["indicator1.position"] = "BOTTOM",
+			["indicator1.color"] = { r = 0.35, g = 0.85, b = 0.55 }, ["indicator1.reverse"] = true, ["indicator1.over"] = true, ["indicator2.style"] = "SQUARE", ["indicator2.color"] = { r = 0.95, g = 0.7, b = 0.2 },
+			["follow.text"] = true, ["follow.auras"] = true, ["follow.heals"] = true, ["follow.icons"] = true, ["follow.power"] = true, ["auto.customLeast"] = 16, ["auto.customWidth"] = 130,
+			["auto.customHeight"] = 40, ["tanks.enabled"] = true, ["tanks.excludeSelf"] = true }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+		env.RunTimers()
+		env.RunStateDrivers()
+		place(K, "groupframes.tanks", AT[kind][1] + 760, 40)
+	end
 	if EXTRAS then
 		for key, value in pairs({ ["pets.enabled"] = true, ["tanks.enabled"] = true, ["boss.display"] = "ALWAYS", ["boss.dungeons"] = true }) do
 			K.Options.Write("GroupFrames", key, value)
@@ -259,6 +278,18 @@ return Common.Run(function()
 			if slot and (f.unit == "party2" or f.unit == "raid2") then
 				slot.frame:Show()
 				dofile("Tools/regression/auras_env.lua").Dispel(slot.frame, "Magic")
+			end
+		end)
+	end
+	if os.getenv("RENDER_GROUP_DISPEL") == "1" then
+		ns.Unit.ForEach(function(f)
+			local slot = f.highlights and f.highlights._slots.dispel
+			if slot and (f.unit == "party2" or f.unit == "raid2") then
+				for _, entry in ipairs(slot.frame._aura.dispel) do
+					entry.texture:SetVertexColor(0.2, 0.6, 1, entry.texture:GetAlpha())
+					entry.texture:Show()
+				end
+				slot.frame:Show()
 			end
 		end)
 	end
@@ -287,6 +318,22 @@ return Common.Run(function()
 					if slot and slot.enabled then
 						slot.frame:Show()
 						if slot.frame._aura then slot.frame._aura.icon:SetTexture(({ 135936, 136071, 135940 })[i]) end
+					end
+				end
+			end
+		end)
+	end
+	if R6 then
+		ns.Unit.ForEach(function(f)
+			for i = 1, (f.unit == "party1" or f.unit == "raid1") and 2 or 0 do
+				local slot = f.indicators and f.indicators._slots["indicator" .. i]
+				if slot and slot.enabled then
+					slot.frame:Show()
+					slot.frame._aura.icon:SetTexture(({ 135936, 136071 })[i])
+					local bar = ns.Auras.Parts(slot.frame).bar
+					if bar then
+						bar:SetMinMaxValues(0, 1)
+						bar:SetValue(0.6)
 					end
 				end
 			end

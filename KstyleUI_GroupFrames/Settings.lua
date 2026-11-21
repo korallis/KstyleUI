@@ -75,7 +75,7 @@ Settings.defaults = {
 		roleTank = true, roleHealer = true, roleDamager = true, roleInCombat = true, leaderInCombat = true,
 		roleText = false, readyPlace = "AUTO", readySize = 0, markerPlace = "AUTO", combat = false, combatPlace = "LEFT", combatSize = 14, combatClass = false,
 		rolePlace = "AUTO", roleX = 0, roleY = 0, markerX = 0, markerY = 0, readyX = 0, readyY = 0, combatX = 0, combatY = 0,
-	leaderX = 0, leaderY = 0,
+	leaderX = 0, leaderY = 0, roleBehind = false,
 	},
 	threat = { enabled = true, shapes = true, edge = false },
 	tooltip = { mode = "ALWAYS" },
@@ -96,11 +96,12 @@ Settings.defaults = {
 		heals = true, absorbs = true, shield = true, shieldLines = 2, healAbsorbs = true,
 		shieldPlace = "BOTTOM", shieldGrow = "UP", absorbPlace = "FILL", overshield = false, healAbsorbLine = false, healAbsorbLines = 0,
 		absorbStyle = "SOLID", healAbsorbStyle = "SOLID", backing = 1, glow = false, maxLoss = "OFF", maxLossColor = Rgb("black", 0.6),
-		backingOwn = false, healAbsorbBacking = 1, maxLossBacking = 1,
+		backingOwn = false, healAbsorbBacking = 1, maxLossBacking = 1, edge = false,
 		healColor = Rgb("friendly", HEAL_ALPHA), absorbColor = Rgb("white", ABSORB_ALPHA), healAbsorbColor = Rgb("hostile", HEAL_ABSORB_ALPHA),
 	},
 	auto = { size = true, role = true, smallMost = 10, largeLeast = 26, shownOnly = false, icons = false, heals = false,
-		smallWidth = 0, smallHeight = 0, smallX = 0, smallY = 0, largeWidth = 0, largeHeight = 0, largeX = 0, largeY = 0 },
+		smallWidth = 0, smallHeight = 0, smallX = 0, smallY = 0, largeWidth = 0, largeHeight = 0, largeX = 0, largeY = 0,
+		customLeast = 0, customWidth = 0, customHeight = 0, customX = 0, customY = 0 },
 	accent = { source = "class", color = Rgb("accentDefault"), hover = true, hoverLines = 1, target = true, targetLines = 2 },
 }
 
@@ -111,7 +112,8 @@ local INDICATOR_DEFAULTS = {
 }
 for i = 1, INDICATOR_SLOTS do
 	local preset = INDICATOR_DEFAULTS[i] or {}
-	Settings.defaults["indicator" .. i] = { category = preset.category or "OFF", position = preset.position or "TOPLEFT", spells = "", mine = false, size = 14, show = "BOTH", x = 0, y = 0 }
+	Settings.defaults["indicator" .. i] = { category = preset.category or "OFF", position = preset.position or "TOPLEFT", spells = "", mine = false, size = 14, show = "BOTH", x = 0, y = 0,
+		style = "ICON", color = Rgb("friendly"), thick = 4, reverse = false, over = false }
 end
 
 local function Plain(r, g, b)
@@ -130,7 +132,15 @@ defaults.sort = { classFirst = false, classFirstIn = "BOTH", partyOwn = false }
 for i, class in ipairs(Settings.CLASSES) do defaults.sort["class" .. i], defaults.sort["partyClass" .. i] = class, class end
 defaults.label = { enabled = false, format = "FULL", size = 14, padding = 4, color = Rgb("textEmphasis") }
 defaults.pets = { enabled = false, nameColor = "raid", color = Rgb("textEmphasis"), width = 0, height = 0 }
-defaults.tanks = { enabled = false, growth = "DOWN", wrap = "RIGHT", wrapAfter = 0, width = 0, height = 0 }
+defaults.tanks = { enabled = false, growth = "DOWN", wrap = "RIGHT", wrapAfter = 0, width = 0, height = 0, excludeSelf = false }
+defaults.follow = { text = false, auras = false, heals = false, icons = false, power = false }
+Settings.FOLLOW = {
+	text = { "textLayout", "nameSize", "nameChars", "nameFormat", "healthText", "healthTextSize", "healthTextPlace" },
+	auras = { "auraSize", "auraCount", "auraDispelCount", "auraColumns", "auraRows", "auraSpacing", "auraPosition", "auraGrowth", "auraWrap", "auraX", "auraY" },
+	heals = { "buffSize", "buffCount", "buffX", "buffY" },
+	icons = { "iconSize" },
+	power = { "power", "powerHeight" },
+}
 defaults.boss = { display = "NEVER", dungeons = false, colorSource = "reaction", width = 0, height = 0 }
 
 local rows
@@ -382,6 +392,7 @@ function Settings.Schema(includeText)
 			PLACES[#PLACES + 1], AUTO_PLACES[#AUTO_PLACES + 1] = option, option
 		end
 		local ALIGN = Options({ { "LEFT", L["Left"] }, { "CENTER", L["Centre"] }, { "RIGHT", L["Right"] } })
+		local LOOKS = Options({ { "ICON", L["Icon"] }, { "SQUARE", L["Square"] }, { "BAR", L["Bar"] } })
 		local function Nudge(key, across, up, showWhen)
 			add(Slider(key .. "x", across, L["Moves it left or right from its place."], -50, 50, 1, showWhen))
 			add(Slider(key .. "y", up, L["Moves it up or down from its place."], -50, 50, 1, showWhen))
@@ -426,9 +437,15 @@ function Settings.Schema(includeText)
 		After(schema, "auras.timerSize", { Slider("auras.timerX", L["Time left offset across"], L["Moves it left or right from its place."], -20, 20, 1, timed),
 			Slider("auras.timerY", L["Time left offset up"], L["Moves it up or down from its place."], -20, 20, 1, timed) })
 		for i = 1, INDICATOR_SLOTS do
-			local p, on = "indicator" .. i .. ".", IsNot("indicator" .. i .. ".category", "OFF")
+			local p, key, on = "indicator" .. i .. ".", "indicator" .. i, IsNot("indicator" .. i .. ".category", "OFF")
+			local styled, barred = function(s) return on(s) and s[key].style ~= "ICON" end, function(s) return on(s) and s[key].style == "BAR" end
 			After(schema, p .. "mine", { Slider(p .. "x", L["Offset across"], L["Moves it left or right from its place."], -50, 50, 1, on),
-				Slider(p .. "y", L["Offset up"], L["Moves it up or down from its place."], -50, 50, 1, on) })
+				Slider(p .. "y", L["Offset up"], L["Moves it up or down from its place."], -50, 50, 1, on),
+				Dropdown(p .. "style", L["Look"], L["The aura's icon, a square in one colour, or a bar on the health bar's edge that drains as it ends."], LOOKS, { showWhen = on }),
+				{ type = "color", key = p .. "color", label = L["Colour"], help = L["The colour of the square or bar."], showWhen = styled },
+				Slider(p .. "thick", L["Bar thickness"], L["How thick the bar is, never thicker than the health bar."], 1, 20, 1, barred),
+				Toggle(p .. "reverse", L["Reverse fill"], L["The bar fills from the other end."], { showWhen = barred }),
+				Toggle(p .. "over", L["Bar over the debuff icons"], L["Draws the bar over debuff and heal icons. Off, it sits under them, over the health bar."], { showWhen = barred }) })
 		end
 		After(schema, "raid.groupsPerRow", { Toggle("raid.center", L["Centre groups"], L["Centres the raid groups with members along their row, out of combat."], { showWhen = Separate }) })
 		local reminding = IsNot("reminders.place", "NONE")
@@ -527,6 +544,31 @@ function Settings.Schema(includeText)
 			add(Dropdown("sort.partyClass" .. i, L["Party class %d"]:format(i), L["The class in this place on party frames; a repeat's place goes to the one left out."], classes,
 				{ showWhen = function(settings) return partyFirst(settings) and settings.sort.partyOwn end }))
 		end
+		After(schema, "prediction.glow", { Toggle("prediction.edge", L["Shield edge"], L["A bright line where a shield meets the health."], { showWhen = Is("prediction.absorbs", true) }) })
+		After(schema, "icons.roleText", { Toggle("icons.roleBehind", L["Role icons under the highlights"], L["Draws role icons under the hover line, the names and the target ring."], { showWhen = placed }) })
+		After(schema, "tanks.wrapAfter", { Toggle("tanks.excludeSelf", L["Leave yourself out"], L["Keeps your own frame out of the tank frames. Changes in combat follow when it ends."], { showWhen = tanks }) })
+		local custom = function(settings) return settings.auto.size and settings.auto.customLeast > 0 end
+		After(schema, "auto.largeLeast", { Slider("auto.customLeast", L["Own size from"], L["From this many players, raid frames take the size below; 0 turns it off. Compact frames still win."], 0, 40, 1, Is("auto.size", true)),
+			Slider("auto.customWidth", L["Own size: width"], L["The frames' width at this raid size; 0 sizes them automatically."], 0, 400, 1, custom),
+			Slider("auto.customHeight", L["Own size: height"], L["The frames' height at this raid size; 0 sizes them automatically."], 0, 120, 1, custom),
+			Slider("auto.customX", L["Own size: X offset"], L["Moves the raid frames right, or left below 0, at this raid size."], -400, 400, 1, custom),
+			Slider("auto.customY", L["Own size: Y offset"], L["Moves the raid frames up, or down below 0, at this raid size."], -400, 400, 1, custom) })
+		local follows = {}
+		for section, keys in pairs(Settings.FOLLOW) do
+			for _, key in ipairs(keys) do follows[key] = section end
+		end
+		for _, row in ipairs(schema) do
+			local section = row.key and follows[row.key:match("^party%.(%w+)$")]
+			if section then
+				local own = row.showWhen
+				row.showWhen = function(settings) return not (settings.follow and settings.follow[section]) and (not own or own(settings)) end
+			end
+		end
+		After(schema, "party.showPlayer", { Toggle("follow.text", L["Use the raid's text"], L["Party frames take the raid frames' name and health text settings."]),
+			Toggle("follow.auras", L["Use the raid's debuffs"], L["Party frames take the raid frames' debuff icon settings."]),
+			Toggle("follow.heals", L["Use the raid's heal icons"], L["Party frames take the raid frames' heal icon settings."]),
+			Toggle("follow.icons", L["Use the raid's status icon size"], L["Party frames take the raid frames' status icon size."]),
+			Toggle("follow.power", L["Use the raid's power bar"], L["Party frames take the raid frames' power bar settings."]) })
 	end
 
 	local function BuildSchema()
@@ -658,7 +700,7 @@ function Settings.Schema(includeText)
 			add(Dropdown(p .. "position", L["Place"], L["Where on the frame the indicator sits."], INDICATOR_POSITION, { showWhen = on }))
 			add(Dropdown(p .. "show", L["Show on"], L["Shows this indicator on party and raid frames, or on one kind only."], SHOW_ON, { showWhen = on }))
 			add(Slider(p .. "size", L["Size"], L["The indicator's icon size."], 6, 32, 1))
-			schema[#schema].showWhen = on
+			schema[#schema].showWhen = function(s) return on(s) and s["indicator" .. i].style ~= "BAR" end
 			add(Toggle(p .. "mine", L["Only yours"], L["Shows only auras you cast."], { showWhen = on }))
 			add({ type = "text", key = p .. "spells", label = L["Spell IDs"], help = L["Buff spell IDs, separated by commas, such as 774, 139."], maxLetters = 120, showWhen = Is(p .. "category", "SPELLS") })
 			for _, misfit in ipairs(MISFITS) do

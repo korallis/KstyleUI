@@ -22,6 +22,8 @@ function AutoLayout.Bracket(members)
 		return "MEDIUM"
 	elseif members >= auto.largeLeast then
 		return "LARGE"
+	elseif auto.customLeast > 0 and members >= auto.customLeast then
+		return "CUSTOM"
 	elseif members > 0 and members <= auto.smallMost then
 		return "SMALL"
 	end
@@ -127,13 +129,23 @@ function AutoLayout.Overlay(cfg, state)
 	elseif auto.size and bracket == "LARGE" then
 		Large(cfg.raid)
 		Custom(cfg, "large", base)
+	elseif auto.size and bracket == "CUSTOM" then
+		Custom(cfg, "custom", base)
 	end
 	return cfg
 end
 
 local refresh = Settings.Refresh
 function Settings.Refresh()
-	return AutoLayout.Overlay(refresh())
+	local cfg = AutoLayout.Overlay(refresh())
+	for section, keys in pairs(Settings.FOLLOW) do
+		if cfg.follow[section] then
+			for _, key in ipairs(keys) do
+				if key ~= "textLayout" or not ns.Medallions.Active() then cfg.party[key] = cfg.raid[key] end
+			end
+		end
+	end
+	return cfg
 end
 
 local function Read(sizes)

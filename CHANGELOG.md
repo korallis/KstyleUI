@@ -1,5 +1,39 @@
 # KstyleUI changelog
 
+## v0.2.10 (2026-11-21)
+
+The frame-rate release: KstyleUI draws less every frame with no change in look, two new Medallions switches trade effects for frame rate, `/kstyle perf` measures what KstyleUI costs, and party and raid frames gain new options, each starting off.
+
+Highlights:
+
+- KstyleUI draws less every frame, up to a quarter less area, with no change in how it looks.
+- Medallions switches for Low-health vignette and Ambient hub effects trade effects for frame rate, both on by default.
+- Thanks to Baine, /kstyle perf records your frame rate and KstyleUI's Lua time for frame-rate reports.
+- Party frames can follow the raid's settings, and indicators can be coloured squares or bars that drain.
+- Party and raid frames gain a shield edge, a raid size of your own and tank frames that can leave you out.
+
+### Added
+
+- Medallions: Low-health vignette under General > Medallions, on by default. Off takes the red screen edge at low health out of the drawing; your portrait's danger ring stays.
+- Medallions: Ambient hub effects under General > Medallions, on by default. Off stills the hub's turning runes, breathing glow, sheen and sparks; the hub art stays and combat, proc and cast flashes still play.
+- `/kstyle perf [seconds]` records your frame rate and the Lua time KstyleUI spends, for 20 seconds or the length you give, then writes the costliest work first to the devlog. Thanks to Baine for this contribution.
+- To report low frame rate, run `/kstyle perf 30` where it drops and play on, then `/reload` and send the Perf lines from `KstyleUI.lua` in your account's SavedVariables folder.
+- Party and raid frames: Shield edge, a bright line where a shield starts on the health bar, shown only while there is a shield.
+- Party and raid indicators: a Look of Square, one colour instead of the spell icon, or Bar, a line along the health bar's edge that drains as the aura ends, in your colour and thickness, with reverse fill.
+- Party frames can use the raid frames' text, debuffs, heal icons, status icon size and power bar, each on its own. Under Medallions, party frames keep their own name position.
+- Raid frames: Own size from a number of players you choose, with its own width, height and offsets.
+- Tank frames: Leave yourself out, so they show only the raid's other tanks.
+- Role icons can sit under the hover and target highlights.
+
+### Changed
+
+- KstyleUI no longer draws the see-through middles of its rings, outlines and frame borders: about a fifth less drawn area in Frames, a quarter in Medallions and a tenth in Orbs, with no visible change.
+
+### Upgrading
+
+- New options start off, so your interface looks the same until you change one.
+- Low-health vignette and Ambient hub effects start on, as before; turn them off under General > Medallions.
+
 ## v0.2.9.2 (2026-11-21)
 
 A small fix release.

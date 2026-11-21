@@ -253,10 +253,6 @@ local function Moving()
 	return Slab.Allows("flare")
 end
 
-local function Idling()
-	return Slab.Allows("ambient")
-end
-
 local function Play(g, kind)
 	if g and Slab.Allows(kind or "flare") then
 		g:Stop()
@@ -615,7 +611,9 @@ local function Motionless()
 	Each(hub.particles, function(p)
 		p.anim:Stop()
 		p:SetAlpha(0)
+		p:Hide()
 	end)
+	hub.sheen:Hide()
 	hub.glow:SetAlpha(BREATH_HIGH)
 	hub.bloom:SetAlpha(BREATH_LOW)
 end
@@ -627,12 +625,13 @@ end
 
 local function Animate()
 	local hub = Slab.hub
-	if not (Idling() and hub:IsShown()) then
+	if not (Slab.Allows("ambient") and K.Store.Module("Medallions").ambient ~= false and hub:IsShown()) then
 		Motionless()
 		return
 	end
 	local speed = state.combat and COMBAT_SPEED or 1
 	local held = Held()
+	hub.sheen:Show()
 	for _, g in ipairs(Loops()) do
 		g:SetAnimationSpeedMultiplier(speed)
 		if not g:IsPlaying() and not (held and g == hub.sheen.run) then
@@ -641,6 +640,7 @@ local function Animate()
 	end
 	local alive = (held or not Slab.Allows("particle")) and 0 or state.combat and PARTICLES or CALM_PARTICLES
 	for i, p in ipairs(hub.particles) do
+		p:SetShown(i <= alive)
 		if i <= alive then
 			if not p.anim:IsPlaying() then
 				p.anim:Play()
@@ -651,6 +651,7 @@ local function Animate()
 		end
 	end
 	hub.glow:SetAlpha(state.combat and min(1, BREATH_HIGH * COMBAT_GLOW) or BREATH_HIGH)
+	hub.bloom:SetAlpha(1)
 end
 
 local function Edges(frame)
