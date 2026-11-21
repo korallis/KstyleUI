@@ -580,6 +580,14 @@ function Style.Apply(f, width, height)
 		f.targetLines = cfg.accent.targetLines
 		for i, line in ipairs(f.targetRing) do Widgets.ShowSlice(line, i <= f.targetLines) end
 	end
+	local hoverLine = cfg.accent.hover and cfg.accent.hoverLines == 2
+	if hoverLine and not f.hoverLine then
+		f.hoverLine = Widgets.NineSlice(f.text, "lumenOutline", "OVERLAY", 0)
+	end
+	if f.hoverLine then
+		Widgets.LayoutSlice(f.hoverLine, f.text, f.chrome:Chamfer(), -Widgets.Border(f.text))
+		Widgets.ShowSlice(f.hoverLine, hoverLine)
+	end
 	f.tileless = parts.overlay == true or (f.kind == "party" and k.roleRing == true)
 	if not f.chromeHooked then
 		f.chromeHooked = true
@@ -605,8 +613,17 @@ local function PaintEdge(f, r, g, b)
 		r, g, b = Style.Accent()
 	end
 	local er, eg, eb, ea = Tokens.Color("edgeInner")
+	local threat = f.threatEdge
+	if threat then
+		er, eg, eb, ea = threat[1], threat[2], threat[3], 1
+	end
 	f.chrome:SetEdgeRGBA(Widgets.Mix(er, eg, eb, ea or 1, r, g, b, HOVER_ALPHA, f.hoverT or 0))
+	local line = f.hoverLine
+	for i = 1, line and #line or 0 do
+		line[i]:SetVertexColor(r, g, b, HOVER_ALPHA * (f.hoverT or 0))
+	end
 end
+Style.PaintEdge = PaintEdge
 
 local function SetHoverT(f, t)
 	f.hoverT = t

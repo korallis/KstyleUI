@@ -378,23 +378,43 @@ local function Ready(f)
 	f.ready:Show()
 end
 
+local function Edge(f, r, g, b)
+	if not (r or f.threatEdge) then
+		return
+	end
+	if r then
+		f.edgeRGB = f.edgeRGB or {}
+		f.edgeRGB[1], f.edgeRGB[2], f.edgeRGB[3] = r, g, b
+	end
+	f.threatEdge = r and f.edgeRGB or nil
+	Style.PaintEdge(f)
+end
+
+local function ThreatOn(f, r, g, b)
+	local edge = Settings.current.threat.edge and not f.tileless
+	f.threatGlow:SetColorRGB(r, g, b)
+	f.threat:SetShown(not edge)
+	Edge(f, edge and r, g, b)
+end
+
+local function NoThreat(f)
+	f.threat:Hide()
+	Edge(f)
+end
+
 local function Threat(f)
 	f.threatShape:Hide()
 	if not Settings.current.threat.enabled or not UnitThreatSituation then
-		f.threat:Hide()
-		return
+		return NoThreat(f)
 	end
 	local status = UnitThreatSituation(f.unit)
 	if issecretvalue(status) or type(status) ~= "number" or status < 1 then
-		f.threat:Hide()
-		return
+		return NoThreat(f)
 	end
 	local r, g, b = K.Theme.ThreatColor(status)
 	if not Plain(r) or not Plain(g) or not Plain(b) then
-		f.threat:Hide()
-		return
+		return NoThreat(f)
 	end
-	f.threatGlow:SetColorRGB(r, g, b)
 	if Settings.current.threat.shapes then
 		if status == 2 then
 			f.threatShape:SetTexture((Tokens.Texture("diamond")))
@@ -407,7 +427,7 @@ local function Threat(f)
 		f.threatShape:SetVertexColor(r, g, b)
 		f.threatShape:Show()
 	end
-	f.threat:Show()
+	ThreatOn(f, r, g, b)
 end
 
 local COMBAT_ATLAS = "UI-HUD-UnitFrame-Player-CombatIcon"
@@ -535,10 +555,9 @@ local function PaintSample(f, sample)
 		r, g, b = K.Theme.ThreatColor(threat)
 	end
 	if r then
-		f.threatGlow:SetColorRGB(r, g, b)
-		f.threat:Show()
+		ThreatOn(f, r, g, b)
 	else
-		f.threat:Hide()
+		NoThreat(f)
 	end
 end
 Style.painters[#Style.painters + 1] = PaintSample

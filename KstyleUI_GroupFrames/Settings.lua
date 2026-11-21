@@ -93,6 +93,18 @@ Settings.defaults = {
 	accent = { source = "class", color = Rgb("accentDefault"), hover = true, target = true, targetLines = 2 },
 }
 
+for section, extra in pairs({
+	party = { nameFormat = "FULL", centerSolo = false, smallRaid = false },
+	raid = { nameFormat = "FULL", merge = false },
+	health = { missing = false },
+	prediction = { absorbStyle = "SOLID", healAbsorbStyle = "SOLID", backing = 1, glow = false, healAbsorbLines = 2, maxLoss = "OFF", maxLossColor = Rgb("black", 0.6) },
+	auto = { icons = false, heals = false, smallWidth = 0, smallHeight = 0, smallX = 0, smallY = 0, largeWidth = 0, largeHeight = 0, largeX = 0, largeY = 0 },
+	accent = { hoverLines = 1 },
+	threat = { edge = false },
+}) do
+	for key, value in pairs(extra) do Settings.defaults[section][key] = value end
+end
+
 local INDICATOR_DEFAULTS = {
 	{ category = "EXTERNAL", position = "CENTER" },
 	{ category = "CROWD_CONTROL", position = "CENTER" },
@@ -188,6 +200,8 @@ function Settings.Schema(includeText)
 		{ "BOTTOMLEFT", L["Bottom left"] }, { "BOTTOM", L["Bottom"] }, { "BOTTOMRIGHT", L["Bottom right"] },
 	})
 	local ICON_PLACE = { { value = "AUTO", label = L["Automatic"] } }
+	local FILL_STYLE = Options({ { "SOLID", L["Solid"] }, { "STRIPES", L["Patterned"] } })
+	local NAME_FORMAT = Options({ { "FULL", L["Whole name"] }, { "FIRST", L["First word"] }, { "LAST", L["Last word"] }, { "ABBR", L["Initials and last word"] } })
 	for _, option in ipairs(INDICATOR_POSITION) do ICON_PLACE[#ICON_PLACE + 1] = option end
 
 	Settings.OPTIONS = {
@@ -233,6 +247,10 @@ function Settings.Schema(includeText)
 		return row
 	end
 
+	local function Separate(settings)
+		return Is("raid.sortBy", "GROUP")(settings) and not Is("raid.merge", true)(settings)
+	end
+
 	local function Portraits(kind)
 		local portrait = Is(kind .. ".portrait", true)
 		return function(settings)
@@ -258,6 +276,8 @@ function Settings.Schema(includeText)
 			add(Dropdown(p .. "sortBy", L["Sort by"], L["The order of the party frames."], PARTY_SORT))
 			add(Toggle(p .. "showPlayer", L["Show yourself"], L["Includes your own frame with the party."]))
 			add(Toggle(p .. "showSolo", L["Show when solo"], L["Shows your frame even when you are not in a group."]))
+			add(Toggle(p .. "centerSolo", L["Centre when solo"], L["Centres your own frame in the party frames' space while you are not in a group."], { showWhen = Is(p .. "showSolo", true) }))
+			add(Toggle(p .. "smallRaid", L["Party frames in small raids"], L["In a raid of under 10 players, shows group 1 as party frames. Not in battlegrounds."]))
 			add(Toggle(p .. "portrait", L["Portraits"], L["Shows each member's portrait beside the bar."]))
 			add(Slider(p .. "portraitZoom", L["Portrait zoom"], L["Crops into each portrait so the face fills more of it."], 0, 0.3, 0.05))
 			schema[#schema].showWhen = Is(p .. "portrait", true)
@@ -265,12 +285,13 @@ function Settings.Schema(includeText)
 			schema[#schema].showWhen = function(settings) return Is(p .. "portrait", true)(settings) or Is(p .. "roleRing", true)(settings) or ns.Medallions.Active() end
 		else
 			add(Dropdown(p .. "sortBy", L["Sort by"], L["Groups side by side, or everyone in role or class order."], RAID_SORT))
+			add(Toggle(p .. "merge", L["Merge groups"], L["Runs the groups on in one block, in group order, with no gap between them."], { showWhen = Is(p .. "sortBy", "GROUP") }))
 			add(Dropdown(p .. "groupGrowth", L["Group growth"], L["Which way the next group or column goes."], GROWTH))
 			add(Slider(p .. "groupSpacing", L["Group spacing"], L["The gap between groups or columns."], 0, 40, 1))
 			add(Slider(p .. "groupsPerRow", L["Groups per row"], L["How many groups sit side by side before a new row."], 1, 8, 1))
-			schema[#schema].showWhen = Is(p .. "sortBy", "GROUP")
+			schema[#schema].showWhen = Separate
 			add(Slider(p .. "unitsPerColumn", L["Frames per column"], L["How many frames fill a column before the next."], 1, 40, 1))
-			schema[#schema].showWhen = IsNot(p .. "sortBy", "GROUP")
+			schema[#schema].showWhen = function(settings) return not Separate(settings) end
 			for g = 1, 8 do
 				add(Toggle("groups.show" .. g, L["Show group %d"]:format(g), L["Shows this raid group's members. The groups shown close up, in order."]))
 			end
@@ -283,6 +304,7 @@ function Settings.Schema(includeText)
 		add(Dropdown(p .. "textLayout", L["Name position"], L["Puts the name above the health bar or on it."], TEXT_LAYOUT))
 		add(Slider(p .. "nameSize", L["Name size"], L["The size of the name text."], 6, 24, 1))
 		add(Slider(p .. "nameChars", L["Name letters"], L["Shortens names to this many letters. 0 keeps whole names."], 0, 20, 1))
+		add(Dropdown(p .. "nameFormat", L["Name format"], L["Shows the whole name, its first or last word, or the first words as initials."], NAME_FORMAT))
 		add(Dropdown(p .. "healthText", L["Health text"], L["What the health text shows."], HEALTH_TEXT))
 		add(Slider(p .. "healthTextSize", L["Health text size"], L["The size of the health text."], 6, 24, 1))
 		schema[#schema].showWhen = IsNot(p .. "healthText", "NONE")
@@ -345,6 +367,7 @@ function Settings.Schema(includeText)
 		schema[#schema].showWhen = gradient
 		add(Slider("health.alpha", L["Fill opacity"], L["How solid the health fill is."], 0.1, 1, 0.05))
 		add(Dropdown("health.orientation", L["Fill direction"], L["Fills the health bar from left to right or from the bottom up."], ORIENTATION))
+		add(Toggle("health.missing", L["Fill missing health"], L["The bar fills with the health a member has lost, growing as they take damage."]))
 		add(Toggle("health.statusGrey", L["Grey dead and offline bars"], L["Off paints the bars of dead and offline members in colours you choose."]))
 		add({ type = "color", key = "health.deadColor", label = L["Dead colour"], help = L["The bar's colour while a member is dead or a ghost."], showWhen = Is("health.statusGrey", false) })
 		add({ type = "color", key = "health.offlineColor", label = L["Offline colour"], help = L["The bar's colour while a member is offline."], showWhen = Is("health.statusGrey", false) })
@@ -393,6 +416,7 @@ function Settings.Schema(includeText)
 		add(Toggle("icons.combatClass", L["Class-coloured combat icon"], L["Tints the combat icon in the member's class colour."], { showWhen = combat }))
 		add(Toggle("threat.enabled", L["Threat border"], L["Draws a border in the threat colour around members with aggro."]))
 		add(Toggle("threat.shapes", L["Threat shapes"], L["Adds a tick, triangle or square beside the threat border. Off keeps the border alone."]))
+		add(Toggle("threat.edge", L["Threat edge"], L["Colours a tiled frame's own edge in the threat colour; rows without a tile keep the border."], { showWhen = Is("threat.enabled", true) }))
 		add({ type = "header", label = L["Debuffs"] })
 		add(Toggle("auras.enabled", L["Debuff icons"], L["Shows a few debuffs on each frame."]))
 		add(Toggle("auras.typeLetters", L["Debuff type letters"], L["Adds M, C, D, P or E when the game knows the debuff type. Off keeps the usual border."]))
@@ -452,6 +476,19 @@ function Settings.Schema(includeText)
 		add(Slider("auto.largeLeast", L["Compact frames from"], L["The fewest players a raid needs for the compact frames."], 21, 40, 1))
 		schema[#schema].showWhen = sized
 		add(Toggle("auto.shownOnly", L["Count only shown groups"], L["Sizes the raid by the members in the groups you show, not by everyone."], { showWhen = sized }))
+		add(Toggle("auto.icons", L["Resize icons with the frames"], L["Debuff icons and indicators grow and shrink with the larger and compact frames."], { showWhen = sized }))
+		add(Toggle("auto.heals", L["Resize heal icons with the frames"], L["Your heal icons grow and shrink with the larger and compact frames."], { showWhen = sized }))
+		for _, size in ipairs({ { "small", L["Larger frames: width"], L["Larger frames: height"], L["Larger frames: X offset"], L["Larger frames: Y offset"] },
+			{ "large", L["Compact frames: width"], L["Compact frames: height"], L["Compact frames: X offset"], L["Compact frames: Y offset"] } }) do
+			add(Slider("auto." .. size[1] .. "Width", size[2], L["The frames' width at this raid size; 0 sizes them automatically."], 0, 400, 1))
+			schema[#schema].showWhen = sized
+			add(Slider("auto." .. size[1] .. "Height", size[3], L["The frames' height at this raid size; 0 sizes them automatically."], 0, 120, 1))
+			schema[#schema].showWhen = sized
+			add(Slider("auto." .. size[1] .. "X", size[4], L["Moves the raid frames right, or left below 0, at this raid size."], -400, 400, 1))
+			schema[#schema].showWhen = sized
+			add(Slider("auto." .. size[1] .. "Y", size[5], L["Moves the raid frames up, or down below 0, at this raid size."], -400, 400, 1))
+			schema[#schema].showWhen = sized
+		end
 		add(Toggle("auto.role", L["Healer frames when you heal"], L["As a healer: two dispellable debuffs first and three of your heals, on wider raid frames."]))
 		add({ type = "header", label = L["Click casting"] })
 		add(Toggle("clickCast.hint", L["Click casting reminder"], L["Points the tooltip to the game's Click Casting, which these frames use, until you bind a spell."]))
@@ -462,17 +499,28 @@ function Settings.Schema(includeText)
 		add(Toggle("prediction.absorbs", L["Absorbs"], L["Shows shields, such as Power Word: Shield, after the health."]))
 		add({ type = "color", key = "prediction.absorbColor", label = L["Absorb colour"], help = L["The colour of shields on the health bar."], hasAlpha = true, showWhen = Is("prediction.absorbs", true) })
 		add(Dropdown("prediction.absorbPlace", L["Absorb place"], L["Draws shields after the health, or back from the bar's end."], ABSORB_PLACE, { showWhen = Is("prediction.absorbs", true) }))
+		add(Dropdown("prediction.absorbStyle", L["Absorb style"], L["Draws shields as a solid fill or in the game's shield pattern."], FILL_STYLE, { showWhen = Is("prediction.absorbs", true) }))
 		add(Toggle("prediction.overshield", L["Overshield"], L["Draws the part of a shield larger than the missing health back over the health, from the bar's end."]))
+		add(Toggle("prediction.glow", L["Shield glow"], L["A bright line at the bar's end when a shield is bigger than the missing health."]))
 		add(Toggle("prediction.shield", L["Shield line"], L["A thin line under the health bar for the whole shield, seen even at full health."]))
 		local line = Is("prediction.shield", true)
-		add(Slider("prediction.shieldLines", L["Shield line thickness"], L["How many pixels thick the shield line is."], 1, 6, 1))
+		add(Slider("prediction.shieldLines", L["Shield line thickness"], L["How many pixels thick the shield line is."], 1, 20, 1))
 		schema[#schema].showWhen = line
 		add(Dropdown("prediction.shieldPlace", L["Shield line place"], L["Which edge of the health bar the shield line runs along."], SHIELD_PLACE, { showWhen = line }))
 		add(Dropdown("prediction.shieldGrow", L["Shield line growth"], L["Which way a shield line on the left or right edge grows."], Options({ { "UP", L["Up"] }, { "DOWN", L["Down"] } })))
 		schema[#schema].showWhen = function(settings) return line(settings) and not Is("prediction.shieldPlace", "BOTTOM")(settings) and not Is("prediction.shieldPlace", "TOP")(settings) end
 		add(Toggle("prediction.healAbsorbs", L["Heal absorbs"], L["Marks the health that heal-absorbing debuffs will eat, from the fill's end."]))
 		add({ type = "color", key = "prediction.healAbsorbColor", label = L["Heal absorb colour"], help = L["The colour of heal absorbs on the health bar."], hasAlpha = true, showWhen = Is("prediction.healAbsorbs", true) })
+		add(Dropdown("prediction.healAbsorbStyle", L["Heal absorb style"], L["Draws heal absorbs as a solid fill or in the game's heal absorb pattern."], FILL_STYLE, { showWhen = Is("prediction.healAbsorbs", true) }))
 		add(Toggle("prediction.healAbsorbLine", L["Heal absorb line"], L["A thin line for the whole heal absorb on the edge across from the shield line."]))
+		add(Slider("prediction.healAbsorbLines", L["Heal absorb line thickness"], L["How many pixels thick the heal absorb line is."], 1, 20, 1))
+		schema[#schema].showWhen = Is("prediction.healAbsorbLine", true)
+		add(Dropdown("prediction.maxLoss", L["Lost maximum health"], L["Marks the maximum health a debuff has taken away, at the bar's end."], Options({ { "OFF", L["Off"] }, { "SOLID", L["Solid"] }, { "STRIPES", L["Patterned"] } })))
+		add({ type = "color", key = "prediction.maxLossColor", label = L["Lost maximum health colour"], help = L["The colour and opacity of lost maximum health."], hasAlpha = true, showWhen = IsNot("prediction.maxLoss", "OFF") })
+		add(Slider("prediction.backing", L["Backing opacity"], L["How solid the fill under patterned shields, heal absorbs and lost maximum health is."], 0, 1, 0.05))
+		schema[#schema].showWhen = function(settings)
+			return Is("prediction.absorbStyle", "STRIPES")(settings) or Is("prediction.healAbsorbStyle", "STRIPES")(settings) or Is("prediction.maxLoss", "STRIPES")(settings)
+		end
 		add({ type = "header", label = L["Range and highlight"] })
 		add(Toggle("range.fade", L["Fade out of range"], L["Fades members who are too far away to heal."]))
 		add(Slider("range.alpha", L["Out of range opacity"], L["How faint a member out of range looks."], 0.1, 1, 0.05))
@@ -480,6 +528,8 @@ function Settings.Schema(includeText)
 		add(Dropdown("accent.source", L["Highlight colour"], L["The colour that marks your target and the frame under the mouse."], ACCENT))
 		add({ type = "color", key = "accent.color", label = L["Custom highlight colour"], help = L["The highlight colour when it uses a custom colour."], showWhen = Is("accent.source", "custom") })
 		add(Toggle("accent.hover", L["Hover highlight"], L["Lights the frame's edge under the mouse."]))
+		add(Slider("accent.hoverLines", L["Hover highlight lines"], L["The hover highlight's thickness: one line or two."], 1, 2, 1))
+		schema[#schema].showWhen = Is("accent.hover", true)
 		add(Toggle("accent.target", L["Highlight the target"], L["Rings the frame of the member you target."]))
 		add(Slider("accent.targetLines", L["Target ring lines"], L["The target ring's thickness: two lines or one."], 1, 2, 1))
 		schema[#schema].showWhen = Is("accent.target", true)

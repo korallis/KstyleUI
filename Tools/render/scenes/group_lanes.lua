@@ -4,6 +4,9 @@
 -- members, health and roles are the mock-ups' own, and the frames sit where the mock-ups put them. RENDER_PARITY_R1=1
 -- switches on the EllesmereUI parity round 1 options that show without extra state; RENDER_PARITY_R2=1 switches on round 2's,
 -- with the first member in combat, shielded past the missing health and the fourth carrying a heal absorb.
+-- RENDER_PARITY_R3C=1 switches on round 3c's striped shields, shield glow, lost maximum health, threat edge and merged
+-- raid groups (party frames with portraits, so the threat edge has a tile), with the first member shielded and on aggro and the second missing a fifth of their maximum health;
+-- RENDER_PARITY_R3C=missing also fills the bars with missing health.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
@@ -106,6 +109,10 @@ return Common.Run(function()
 	if os.getenv("RENDER_PARITY_R2") == "1" then
 		members[1].absorb, members[4].healAbsorb, members[3].marker = 30, 15, 2
 	end
+	local r3c = os.getenv("RENDER_PARITY_R3C")
+	if r3c then
+		members[1].absorb, members[1].threat, members[2].maxLoss, members[4].healAbsorb = 70, 3, 0.2, 15
+	end
 	G.SetRoster(env, kind, members, PLAYER)
 	if not K.Modules.IsRunning("GroupFrames") then
 		assert(K.Modules.Enable("GroupFrames"))
@@ -125,6 +132,12 @@ return Common.Run(function()
 		for key, value in pairs({ ["icons.roleText"] = true, ["icons.combat"] = true, ["icons.combatClass"] = true, ["icons.markerPlace"] = "TOPRIGHT",
 			["prediction.overshield"] = true, ["prediction.absorbPlace"] = "END", ["prediction.healAbsorbLine"] = true, ["prediction.shieldPlace"] = "TOP",
 			["accent.targetLines"] = 1, ["power.behind"] = true }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+	end
+	if r3c then
+		for key, value in pairs({ ["prediction.absorbStyle"] = "STRIPES", ["prediction.healAbsorbStyle"] = "STRIPES", ["prediction.glow"] = true,
+			["prediction.maxLoss"] = "STRIPES", ["threat.edge"] = true, ["party.portrait"] = true, ["raid.merge"] = true, ["health.missing"] = r3c == "missing" }) do
 			K.Options.Write("GroupFrames", key, value)
 		end
 	end

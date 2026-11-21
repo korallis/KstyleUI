@@ -17,6 +17,7 @@ local ROLE_ORDER = "TANK,HEALER,DAMAGER,NONE"
 local DRIVER_PARTY = "[group:raid] hide; [group] show; hide"
 local DRIVER_PARTY_SOLO = "[group:raid] hide; show"
 local DRIVER_RAID = "[group:raid] show; hide"
+local DRIVER_SMALL_RAID = "[group] show; hide"
 local DRIVER_HIDE = "hide"
 local GRID = { "width", "height", "spacing", "groupSpacing" }
 
@@ -155,13 +156,16 @@ local function Precreate(header, count)
 	header:SetAttribute("showSolo", solo)
 end
 
-local function Sort(header, sortBy)
+local function Sort(header, sortBy, groups)
 	header:SetAttribute("groupBy", nil)
 	header:SetAttribute("groupingOrder", nil)
 	header:SetAttribute("sortMethod", sortBy == "NAME" and "NAME" or "INDEX")
 	if sortBy == "ROLE" then
 		header:SetAttribute("groupBy", "ASSIGNEDROLE")
 		header:SetAttribute("groupingOrder", ROLE_ORDER)
+	elseif sortBy == "GROUP" then
+		header:SetAttribute("groupBy", "GROUP")
+		header:SetAttribute("groupingOrder", groups)
 	elseif sortBy == "CLASS" then
 		local order = ClassOrder()
 		if order then
@@ -210,6 +214,14 @@ local function Offset(geo, card, left, top, lane, kind)
 	return Px(kind, x), Px(kind, y)
 end
 
+local function State(key)
+	return ns.AutoLayout and ns.AutoLayout.state[key] == true
+end
+
+local function Separate(s)
+	return s.sortBy == "GROUP" and not s.merge
+end
+
 function Headers.ApplyParty(s)
 	s = OnGrid("party", s)
 	local geo = Geometry.Party(s)
@@ -217,24 +229,31 @@ function Headers.ApplyParty(s)
 	local card = Headers.cards.party
 	local width, height, left, top = Seat(card, s, geo, "party")
 	holder:SetSize(width, height)
+	local small, dx, dy = State("smallRaid"), 0, 0
+	if State("solo") then
+		local vertical = Geometry.IsVertical(s.growth)
+		local step = vertical and s.height + math.abs(geo.yOffset) or geo.memberWidth + math.abs(geo.xOffset)
+		dx, dy = Geometry.Offset(s.growth, (geo.count - 1) * step / 2)
+	end
+	card.shiftX, card.shiftY = Px("party", dx), Px("party", dy)
 	Headers.FitParty(card.members, true)
 	geo.left, geo.top = left, top
 	Quiet(header)
-	header:SetAttribute("showRaid", false)
+	header:SetAttribute("showRaid", small)
 	header:SetAttribute("showParty", true)
 	header:SetAttribute("showPlayer", s.showPlayer)
 	header:SetAttribute("showSolo", s.showSolo)
-	header:SetAttribute("groupFilter", nil)
+	header:SetAttribute("groupFilter", small and "1" or nil)
 	Sort(header, s.sortBy)
 	Columns(header, nil, nil, nil, nil)
 	Grow(header, geo, "party")
 	header:ClearAllPoints()
 	local lane = geo.corner:find("RIGHT", 1, true) and geo.laneSide == "RIGHT" or not geo.corner:find("RIGHT", 1, true) and geo.laneSide == "LEFT"
 	local x, y = Offset(geo, card, left, top, lane and geo.lane or 0, "party")
-	header:SetPoint(geo.corner, holder, geo.corner, x, y)
+	header:SetPoint(geo.corner, holder, geo.corner, x + card.shiftX, y + card.shiftY)
 	Resize(header, Px("party", geo.memberWidth), s.height)
 	Precreate(header, PARTY_BUTTONS)
-	Driver(header, s.showSolo and DRIVER_PARTY_SOLO or DRIVER_PARTY)
+	Driver(header, small and DRIVER_SMALL_RAID or s.showSolo and DRIVER_PARTY_SOLO or DRIVER_PARTY)
 	return geo
 end
 
@@ -252,10 +271,11 @@ end
 
 local function Fit(card, holder, width, height, now, vertical)
 	local frame = card.frame
-	local corner = card.anchor or "TOPLEFT"
-	if frame:GetPoint(1) ~= corner then
+	local corner, x, y = card.anchor or "TOPLEFT", card.shiftX or 0, card.shiftY or 0
+	local point, _, _, px, py = frame:GetPoint(1)
+	if point ~= corner or px ~= x or py ~= y then
 		frame:ClearAllPoints()
-		frame:SetPoint(corner, holder, corner, 0, 0)
+		frame:SetPoint(corner, holder, corner, x, y)
 	end
 	if card.tween then
 		K.Motion.Stop(card.tween)
@@ -317,7 +337,7 @@ local function RaidShown(s, members, sizes)
 	for slot, g in ipairs(sizes and ShownGroups() or {}) do
 		groups = (sizes[g] or 0) > 0 and slot or groups
 	end
-	if s.sortBy == "GROUP" then
+	if Separate(s) then
 		return Geometry.RaidGroups(s, groups or (members and math.ceil(members / GROUP_BUTTONS)))
 	end
 	return Geometry.RaidFlow(s, members)
@@ -331,7 +351,7 @@ function Headers.FitRaid(members, groups, now)
 	end
 	card.members, card.groups = members, groups
 	local width, height = Geometry.Card(RaidShown(s, members, groups), K.Widgets.SECTION_CAP_HEIGHT)
-	Fit(card, Headers.holders.raid, Px("raid", width), Px("raid", height), now, Geometry.IsVertical(s.sortBy == "GROUP" and s.groupGrowth or Geometry.Perpendicular(s.growth, s.groupGrowth)))
+	Fit(card, Headers.holders.raid, Px("raid", width), Px("raid", height), now, Geometry.IsVertical(Separate(s) and s.groupGrowth or Geometry.Perpendicular(s.growth, s.groupGrowth)))
 end
 
 function Headers.SetRaidCount(count, groups)
@@ -356,14 +376,18 @@ end
 function Headers.ApplyRaid(s)
 	s = OnGrid("raid", s)
 	local holder, card = Headers.holders.raid, Headers.cards.raid
-	local geo = s.sortBy == "GROUP" and Geometry.RaidGroups(s) or Geometry.RaidFlow(s)
+	local geo = Separate(s) and Geometry.RaidGroups(s) or Geometry.RaidFlow(s)
 	local width, height, left, top = Seat(card, s, geo, "raid")
 	holder:SetSize(width, height)
+	local dx, dy = 0, 0
+	if ns.AutoLayout then dx, dy = ns.AutoLayout.Shift() end
+	card.shiftX, card.shiftY = Px("raid", dx), Px("raid", dy)
 	Headers.FitRaid(card.members, card.groups, true)
 	geo.left, geo.top = left, top
 	local x, y = Offset(geo, card, left, top, nil, "raid")
-	local shown = ShownGroups()
-	if s.sortBy == "GROUP" then
+	x, y = x + card.shiftX, y + card.shiftY
+	local shown, hidden = ShownGroups(), State("smallRaid")
+	if Separate(s) then
 		for g, header in ipairs(Headers.raid) do
 			RaidHeader(header, holder, s)
 			header:SetAttribute("groupFilter", tostring(shown[g] or g))
@@ -373,7 +397,7 @@ function Headers.ApplyRaid(s)
 			local slot = geo.slots[g]
 			header:SetPoint(geo.corner, holder, geo.corner, slot.x + x, slot.y + y)
 			Precreate(header, GROUP_BUTTONS)
-			Driver(header, shown[g] and DRIVER_RAID or DRIVER_HIDE)
+			Driver(header, shown[g] and not hidden and DRIVER_RAID or DRIVER_HIDE)
 		end
 		return geo
 	end
@@ -381,11 +405,11 @@ function Headers.ApplyRaid(s)
 		RaidHeader(header, holder, s)
 		if g == 1 then
 			header:SetAttribute("groupFilter", table.concat(shown, ","))
-			Sort(header, s.sortBy)
+			Sort(header, s.sortBy, table.concat(shown, ","))
 			Columns(header, geo.unitsPerColumn, geo.maxColumns, geo.columnAnchorPoint, geo.columnSpacing)
 			Grow(header, geo, "raid")
 			Precreate(header, RAID_BUTTONS)
-			Driver(header, #shown > 0 and DRIVER_RAID or DRIVER_HIDE)
+			Driver(header, #shown > 0 and not hidden and DRIVER_RAID or DRIVER_HIDE)
 		else
 			Driver(header, DRIVER_HIDE)
 		end
