@@ -2,6 +2,9 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.2.9.2 (2026-11-21)", {
+		L["Tooltips on the top data bar open clear of the bar, so every button stays reachable."],
+	} },
 	{ "v0.2.9.1 (2026-11-21)", {
 		L["Medallions party frames no longer error when their names sit on the bar."],
 	} },
@@ -12,10 +15,5 @@ ns.NOTES = {
 		L["Alerts, a cursor ring, a crosshair, raid tools and /way waypoints, all off until you turn them on."],
 		L["Share whole profiles with your layouts, and read each release's highlights under About > What's new."],
 		L["KstyleUI loads faster after a reload."],
-	} },
-	{ "v0.2.8.5 (2026-11-21)", {
-		L["With Debuffs and buffs, the target's aura rows stay clear of the target cast bar and the target of target."],
-		L["On Medallions party frames, your heal icons no longer cover the health percent or the indicator icons."],
-		L["The unit frame preview in the settings window shows the target's debuff and buff rows."],
 	} },
 }

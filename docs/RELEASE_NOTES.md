@@ -2,6 +2,10 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.2.9.2: fixes (2026-11-21)
+
+Tooltips on the data bar, its micro and bag menus and the experience bars now open clear of the bar and the pointer, so the next button stays reachable. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.2.9.1: fixes (2026-11-21)
 
 Under Medallions, choosing names on the bar for party frames no longer raises a Lua error. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).

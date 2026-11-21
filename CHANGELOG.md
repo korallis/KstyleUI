@@ -1,5 +1,17 @@
 # KstyleUI changelog
 
+## v0.2.9.2 (2026-11-21)
+
+A small fix release.
+
+Highlights:
+
+- Tooltips on the top data bar open clear of the bar, so every button stays reachable.
+
+### Fixed
+
+- Tooltips on the data bar, its micro and bag menus and the experience bars open on the side with room, clear of the bar and the pointer, instead of covering the next button.
+
 ## v0.2.9.1 (2026-11-21)
 
 A small fix release.
