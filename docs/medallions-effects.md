@@ -30,7 +30,7 @@ At Off an effect's end state is applied at once (the secondary frames dim), and 
 
 Two switches on the same page, both on by default, let a player drop an effect's drawing cost without touching the rest (`Medallions.vignette`, `Medallions.ambient`):
 
-- **Low-health vignette** off hides the vignette frame, so its 16 edge slices leave the draw (health is secret, so Lua cannot hide them by health), and stops its breath. The portrait's low-health ring still shows and holds still, as at Calm, because it breathes on the vignette's group.
+- **Low-health vignette** off hides the vignette's 16 edge slices, so they leave the draw (health is secret, so Lua cannot hide them by health). The portrait's low-health ring still shows and keeps breathing: it breathes on the vignette's group, so that one group runs on while the ring uses it and stops otherwise.
 - **Ambient hub effects** off stills the hub as Calm does: the rune turn, glow and bloom breaths, sheen and particles stop, and the sheen and particles are hidden. The static hub art stays, and flares (combat, proc, level-up, ready and cast flashes) still play by the motion level.
 
 | Function | Behaviour |
