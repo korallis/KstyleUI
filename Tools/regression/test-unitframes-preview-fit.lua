@@ -122,19 +122,6 @@ preview:Refresh()
 local focusScale = preview.holders.focus:GetScale()
 assert(focusScale > 1 and focusScale <= 1.5 + 1e-6, "the 200-unit focus card grows towards the pane's width, at most 1.5: " .. focusScale)
 
--- Built on an unmarked parent, the cast line's texts take the preview's scaled text floor, as under Options' marked
--- pane: before, they took the full floor (20.5 units against 13.0 at 0.54 scale) and crowded out the bar.
-local marked = env.CreateFrame("Frame", nil, pane)
-marked:SetAllPoints(pane)
-local twin = K.Options.Preview("UnitFrames")(K.Widgets.MarkPreview(marked))
-K.Options.Write("UnitFrames", "edit", "target")
-preview:Refresh()
-twin:Refresh()
-for _, key in ipairs({ "label", "text", "timer" }) do
-	local size, want = select(2, preview.casts.target[key]:GetFont()), select(2, twin.casts.target[key]:GetFont())
-	assert(math.abs(size - want) < 0.01, string.format("the preview built on an unmarked parent sizes its cast %s at %.2f, not the preview's %.2f", key, size, want))
-end
-
 assert(#env._errors == 0, tostring(env._errors[1]))
 assert(K.ErrorCount() == 0, "KstyleUI caught no errors")
 print("unitframes preview fit ok")

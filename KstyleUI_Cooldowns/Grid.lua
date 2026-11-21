@@ -1,10 +1,11 @@
--- Grid.lua: pure maths that places icons and bars in a holder by cell size, spacing, columns, rows, growth, wrap and, for a vertical grid, columns filled top to bottom: inside the same box, its columns placed by growth, or turned on its side when the row is free of the HUD.
+-- Grid.lua: pure maths that places icons and bars in a holder by cell size, spacing, columns, rows, growth, wrap, two rows of their own count and icon size (never under the smallest icon) and, for a vertical grid, columns filled top to bottom: inside the same box, its columns placed by growth, or turned on its side when the row is free of the HUD.
 local _, ns = ...
 
 local Grid = {}
 ns.Grid = Grid
 
 local floor, max = math.floor, math.max
+local MIN_ICON = 16
 
 local function Whole(value, low)
 	if type(value) ~= "number" or value ~= value then
@@ -23,12 +24,33 @@ local function Dims(cfg)
 	return columns, rows, spacing, cfg.cellWidth or 0, cfg.cellHeight or 0
 end
 
+local function Two(cfg)
+	local base, a, b = cfg.baseCount or 0, cfg.baseSize or 0, cfg.secondSize or 0
+	if base == 0 and a == 0 and b == 0 or cfg.vertical then return nil end
+	local columns, rows, spacing, cw, ch = Dims(cfg)
+	if rows ~= 2 then return nil end
+	a, b = max(a, MIN_ICON - cw), max(b, MIN_ICON - cw)
+	return base > 0 and math.min(base, columns) or columns, columns, spacing, cw + a, ch + a, cw + b, ch + b
+end
+
 function Grid.Capacity(cfg)
-	local columns, rows = Dims(cfg)
-	return columns * rows
+	local first, columns = Two(cfg)
+	if first then return first + columns end
+	local cols, rows = Dims(cfg)
+	return cols * rows
+end
+
+function Grid.Cell(index, cfg)
+	local first, _, _, aw, _, bw = Two(cfg)
+	if not first then return cfg.cellWidth end
+	return index <= first and aw or bw
 end
 
 function Grid.Size(cfg)
+	local first, columns2, gap, aw, ah, bw, bh = Two(cfg)
+	if first then
+		return max(first * (aw + gap), columns2 * (bw + gap)) - gap, ah + bh + gap
+	end
 	local columns, rows, spacing, cw, ch = Dims(cfg)
 	if cfg.vertical and cfg.free then
 		return rows * cw + (rows - 1) * spacing, columns * ch + (columns - 1) * spacing
@@ -72,6 +94,17 @@ local function Line(index, count, cfg, columns, rows, spacing, along, across)
 end
 
 function Grid.Offset(index, count, cfg)
+	local first, columns2, gap, aw, ah, bw, bh = Two(cfg)
+	if first then
+		if index < 1 or index > first + columns2 then return nil end
+		local second = index > first
+		local slots, along = second and columns2 or first, second and bw or aw
+		local x = Line(second and index - first or index, second and count - first or count, cfg, slots, 1, gap, along, 0)
+		local share = cfg.growth == "right" and 0 or (cfg.growth == "center" and 0.5 or 1)
+		x = x + (Grid.Size(cfg) - slots * (along + gap) + gap) * share
+		if cfg.wrap == "up" then return x, second and 0 or bh + gap end
+		return x, second and ah + gap or 0
+	end
 	local columns, rows, spacing, cw, ch = Dims(cfg)
 	if cfg.vertical and cfg.free then
 		local y, x = Line(index, count, cfg, columns, rows, spacing, ch, cw)

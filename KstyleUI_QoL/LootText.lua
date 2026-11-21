@@ -122,6 +122,11 @@ function LootText.Money(text)
 	return nil
 end
 
+function LootText.Matches(key, text)
+	local entry = Plain(text) and Entry(key, true)
+	return entry and text:find(entry.pattern) ~= nil or false
+end
+
 function LootText.Reset()
 	compiled = {}
 end

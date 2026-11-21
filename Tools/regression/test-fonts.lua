@@ -118,4 +118,21 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- A long session of non-font text leaves nothing behind once the text is replaced.
+do
+	local _, K = booted({})
+	K.Store.RegisterDefaults("FontProbe", { list = {} })
+	local function heap()
+		collectgarbage()
+		collectgarbage()
+		return collectgarbage("count")
+	end
+	local before = heap()
+	for i = 1, 10000 do
+		K.Options.Write("FontProbe", "list", { "not a font " .. i })
+	end
+	local grown = heap() - before
+	assert(grown < 512, "Fonts must remember checked strings for one scan only; 10,000 replaced values kept " .. math.floor(grown) .. " KiB")
+end
+
 print("fonts ok")

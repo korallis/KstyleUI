@@ -35,7 +35,7 @@ local function PlayerClass()
 	return file
 end
 
-local function NamedSpell(text)
+function Interrupt.NamedSpell(text)
 	local api = C_Spell
 	if api and type(api.GetSpellIDForSpellIdentifier) == "function" then
 		local id = api.GetSpellIDForSpellIdentifier(text)
@@ -50,7 +50,7 @@ function Interrupt.Resolve()
 	local named = Settings.Get("cast.interruptSpell")
 	local spell
 	if type(named) == "string" and named ~= "" then
-		spell = NamedSpell(named)
+		spell = Interrupt.NamedSpell(named)
 	else
 		local class = PlayerClass()
 		spell = Logic.InterruptSpell(class, Known)

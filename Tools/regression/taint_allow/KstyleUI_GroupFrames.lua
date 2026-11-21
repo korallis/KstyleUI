@@ -6,4 +6,10 @@ return {
 			["GameTooltip:Hide"] = 1,
 		},
 	},
+	["KstyleUI_GroupFrames/Style.lua"] = {
+		why = "Text above icons moves the frame's own name, health and extra font strings between its own two text layers, so only they rise over the icons; no Blizzard or Edit Mode frame is reparented.",
+		calls = {
+			["f[?]:SetParent"] = 1,
+		},
+	},
 }

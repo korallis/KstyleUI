@@ -1,6 +1,7 @@
 -- test-groupframes-preview-fit.lua: the options live preview stacks the party block, the raid block and the click casting panel, each with a measured height, inside the 280-unit pane, with nothing overlapping the click casting panel; it fits again when the pane resizes, and threat draws as an edge, not a wash over the row.
 local G = dofile("Tools/regression/group_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
+local Guard = dofile("Tools/render/guard.lua")
 
 local PANE_W = 280
 
@@ -91,6 +92,20 @@ for _, height in ipairs({ 720, 560 }) do
 	eq(preview.raidCanvas:GetScale(), 1, what .. ": the raid tiles keep true scale")
 	for _, f in ipairs(preview.raidFrames) do
 		eq(f.name:GetText(), f.sample.name, what .. ": the raid sample " .. f.sample.name .. " is whole")
+	end
+	-- The render guard's "LumenShape.png & Orrin": no raid sample's indicator covers its name's glyphs.
+	for _, f in ipairs(preview.raidFrames) do
+		for _, item in ipairs(scene.items) do
+			if item.object == f.name then
+				local ink = Guard.Ink(item)
+				for _, icon in ipairs(f.sampleSlots) do
+					local r = { Scene.Rect(env, icon) }
+					local w = math.min(ink[1] + ink[3], r[1] + r[3]) - math.max(ink[1], r[1])
+					local h = math.min(ink[2] + ink[4], r[2] + r[4]) - math.max(ink[2], r[2])
+					assert(not (icon:IsShown() and w > Guard.OVERLAP and h > Guard.OVERLAP), what .. ": " .. f.sample.name .. "'s indicator " .. describe(r) .. " stays off its name " .. describe(ink))
+				end
+			end
+		end
 	end
 	local drawn = Drawn(scene, preview.canvas)
 	for _, item in ipairs(Drawn(scene, preview.raidCanvas)) do

@@ -63,6 +63,39 @@ local function ClickHint(tooltip)
 	tooltip:AddLine(L["Bind spells to clicks on these frames in %s."]:format(path), r, g, b, true)
 end
 
+local function Calm(fn, ...)
+	if type(fn) ~= "function" then
+		return false
+	end
+	local value = fn(...)
+	return not issecretvalue(value) and value == false
+end
+
+local function TooltipAllowed()
+	local mode = Settings.current.tooltip.mode
+	if mode == "COMBAT" then
+		return Calm(UnitAffectingCombat, "player")
+	elseif mode == "BOSS" then
+		return Calm(C_InstanceEncounter and C_InstanceEncounter.IsEncounterInProgress)
+	end
+	return mode ~= "NEVER"
+end
+
+local function HideOwned(button)
+	local tooltip = GameTooltip
+	if tooltip and tooltip.IsOwned and tooltip:IsOwned(button) then
+		tooltip:Hide()
+	end
+end
+
+local held
+local STARTS = { PLAYER_REGEN_DISABLED = "COMBAT", ENCOUNTER_START = "BOSS" }
+function Button.Starting(event)
+	if held and STARTS[event] == Settings.current.tooltip.mode then
+		HideOwned(held)
+	end
+end
+
 local function OnEnter(button)
 	local f = contents[button]
 	if not f then
@@ -70,11 +103,12 @@ local function OnEnter(button)
 	end
 	Style.SetHovered(f, true)
 	local tooltip = GameTooltip
-	if f.unit and tooltip and GameTooltip_SetDefaultAnchor and tooltip.SetUnit then
+	if f.unit and tooltip and GameTooltip_SetDefaultAnchor and tooltip.SetUnit and TooltipAllowed() then
 		GameTooltip_SetDefaultAnchor(tooltip, button)
 		tooltip:SetUnit(f.unit)
 		ClickHint(tooltip)
 		tooltip:Show()
+		held = button
 	end
 end
 
@@ -84,10 +118,7 @@ local function OnLeave(button)
 		return
 	end
 	Style.SetHovered(f, false)
-	local tooltip = GameTooltip
-	if tooltip and tooltip.IsOwned and tooltip:IsOwned(button) then
-		tooltip:Hide()
-	end
+	HideOwned(button)
 end
 
 local function Clicks(button)

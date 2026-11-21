@@ -39,8 +39,19 @@ local function Tail(chars, n)
 	return table.concat(chars, "", #chars - n + 1, #chars)
 end
 
+local FORMATS = {
+	FIRST = function(name) return name:match("^%S+") end,
+	LAST = function(name) return name:match("%S+$") end,
+	ABBR = function(name)
+		local head, last = name:match("^(.-)%s*(%S+)$")
+		return head and head:gsub("(" .. CHAR .. ")%S*%s*", "%1. ") .. last
+	end,
+}
+
 local function Limited(f)
 	local name, k = f.rawName, ns.Settings.current[f.kind]
+	local format = type(name) == "string" and k and FORMATS[k.nameFormat]
+	name = format and format(name) or name
 	local limit = k and k.nameChars or 0
 	if type(name) ~= "string" or limit <= 0 then return name end
 	local chars = Chars(name)

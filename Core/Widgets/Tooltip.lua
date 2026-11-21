@@ -90,9 +90,9 @@ local function Color(text, a, b, c, fallback)
 	end
 end
 
-function Tip:SetOwner(owner, anchor, x, y)
+function Tip:SetOwner(owner, anchor, x, y, factor)
 	self:ClearLines()
-	self.owner = owner
+	self.owner, self.factor = owner, factor or 1
 	local key = type(anchor) == "string" and anchor:gsub("^ANCHOR_", "") or "RIGHT"
 	self.anchor = ANCHORS[key] and key or "RIGHT"
 	self.offsetX, self.offsetY = x or 0, y or 0
@@ -284,7 +284,8 @@ local function Position(self)
 end
 
 function Tip:Restyle()
-	self:SetScale(Widgets.Setting("tooltipScale"))
+	self.scaled = self.factor
+	self:SetScale(Widgets.Setting("tooltipScale") * self.factor)
 	self.chrome:Restyle()
 	if self:IsShown() then
 		self:Layout()
@@ -321,8 +322,11 @@ function Widgets.Tooltip()
 	tip:EnableMouse(false)
 	tip.chrome = Widgets.Chrome(tip, { shape = "panel", fill = "surface", shadow = true, popup = true })
 	tip.icon = IconTile(tip)
-	tip.used, tip.pool = {}, {}
+	tip.used, tip.pool, tip.factor = {}, {}, 1
 	function tip.Show(self)
+		if self.scaled ~= self.factor then
+			self:Restyle()
+		end
 		self:Layout()
 		Position(self)
 		local from = self:IsShown() and self:GetAlpha() or 0

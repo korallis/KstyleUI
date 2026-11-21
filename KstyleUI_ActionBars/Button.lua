@@ -470,6 +470,15 @@ function Button.Update(b, trusted)
 	end
 end
 
+function Button.KeyFor(slot)
+	if not ns.running or ns.gamepad then return nil end
+	for _, b in ipairs(ns.actionButtons) do
+		local key = b.slot == slot and b.index <= b.kbar.count and b.kbar:Shown() and ns.FirstKey(b.commandName)
+		if key then return key end
+	end
+	return false
+end
+
 function Button.SetSlot(b, slot)
 	if b.slot == slot then
 		return false
@@ -477,6 +486,7 @@ function Button.SetSlot(b, slot)
 	b.slot = slot
 	b.gcd = nil
 	UpdateAction(b)
+	Widgets.SetActionKeys(Button.KeyFor)
 	return true
 end
 

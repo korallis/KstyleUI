@@ -39,6 +39,11 @@ local DEBUFFS = {
 -- suffix and in minutes and seconds under ten minutes, written by the timer formatter the module hands the engine (the
 -- seconds each tile above stands for).
 local PARITY = os.getenv("RENDER_AURAS_PARITY") == "1"
+-- RENDER_AURAS_PARITY=2 switches on round two's options: the extra buff and debuff rows (filled with two important buffs
+-- and one crowd control debuff) under the debuff rows, the glow on the debuff rows, the timer in the tile's top right
+-- corner with the stack count stepped under it, and the type icon on the debuffs' bottom edge (in the extra debuff row's
+-- top right corner, with the timer in the lane under it).
+local ROUND2 = os.getenv("RENDER_AURAS_PARITY") == "2"
 local SECONDS = { buffs = { 1680, 24, 17, 12, 9, 480, 180, 3600, 2.4 }, debuffs = { 18, 9, 4, 60, 26 } }
 local REFRESHABLE = { buffs = 9, debuffs = 3 }
 
@@ -112,6 +117,15 @@ return Common.Run(function()
 		end
 		env.RunTimers()
 	end
+	if ROUND2 then
+		for key, value in pairs({
+			["extraBuffs.enabled"] = true, ["extraDebuffs.enabled"] = true, ["debuffs.glow"] = true, ["extraDebuffs.glow"] = true,
+			["timer.position"] = "TOPRIGHT", ["debuffs.typeIcon"] = "BOTTOM", ["extraDebuffs.typeIcon"] = "TOPRIGHT",
+		}) do
+			K.Options.Write("Auras", key, value)
+		end
+		env.RunTimers()
+	end
 	local Widgets = K.Widgets
 	local frames = Gallery.Frames()
 	for _, container in ipairs(env._containers) do
@@ -160,6 +174,28 @@ return Common.Run(function()
 		caption = "The debuff rows, their own element 16 under the buffs: five debuffs on the same bare tiles, the hostile rim under a nine-piece plate the engine colours magic, curse, poison, disease and none (red), timers under the icons and a stack badge on the first.",
 		match = "Tiles as the buff rows; the rims are the dispel colours, not the mockup's neutral grey, since the mockup shows no debuffs.",
 	})
+
+	if ROUND2 then
+		local top = DEBUFFS_Y + 88 + 16
+		move(K, "auras.extraBuffs", BUFFS_X, top)
+		move(K, "auras.extraDebuffs", BUFFS_X, top + 66)
+		for _, row in ipairs({ { "HELPFUL|IMPORTANT", "extraBuffs", { 2, 5 }, BUFFS }, { "HARMFUL|CROWD_CONTROL", "extraDebuffs", { 2 }, DEBUFFS } }) do
+			local container, group = A.Container(env, row[1])
+			local list = {}
+			for i, n in ipairs(row[3]) do
+				local spec, button = row[4][n], group.frames[i]
+				fill(env, button, spec[1], spec[2], row[4] == BUFFS and spec[3] or spec[4], SECONDS[row[4] == BUFFS and "buffs" or "debuffs"][n])
+				if row[4] == DEBUFFS then dispel(env, Widgets, button, spec[3]) end
+				list[#list + 1] = button
+			end
+			Hud.PlaceAuras(container, group, list, 8)
+			frames:Add(env, K.Layout.Element("auras." .. row[2]).frame, {
+				name = "auras_" .. row[2]:lower(), title = row[2] == "extraBuffs" and "Extra buff row" or "Extra debuff row", grade = "button", reference = "bufficons",
+				caption = "Parity round 2: an extra row with its own filter (Blizzard's important buffs, or crowd control) and 36-unit tiles; the debuff one glows.",
+				match = "The same tiles as the main rows, larger.",
+			})
+		end
+	end
 
 	-- The Auras page's live preview: sample buffs and debuffs on the module's own tiles.
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())

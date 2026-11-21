@@ -33,6 +33,7 @@ function Preview.Build(...)
 			drawer:Refresh()
 		else
 			drawer:Close(true)
+			drawer:Layout()
 		end
 		face:Refresh()
 		local zone, pvpType = Data.Zone()
@@ -73,6 +74,11 @@ function Preview.Build(...)
 		local player = area:CreateTexture(nil, "OVERLAY")
 		player:SetTexture((Tokens.Texture("dot")))
 		frame.player = player
+		area:EnableMouse(true)
+		area:SetScript("OnMouseUp", function(_, button)
+			if button == "MiddleButton" and Settings.Get("microMenu") and ns.Map.IsRunning() then ns.Micro.Toggle(frame) end
+		end)
+		area:SetScript("OnLeave", ns.Micro.CheckHover)
 		frame.column = Column.New(face, { preview = true })
 		local drawer = ns.Drawer.New(frame.column, { preview = true })
 		drawer.panel:SetFrameStrata("DIALOG")

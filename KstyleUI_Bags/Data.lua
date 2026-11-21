@@ -47,14 +47,15 @@ function Data.Grid(count, columns)
 	return cols, ceil(count / cols)
 end
 
-function Data.Size(cols, rows, size, spacing)
+function Data.Size(cols, rows, size, spacing, height)
 	if cols <= 0 or rows <= 0 then
 		return 0, 0
 	end
-	return cols * size + (cols - 1) * spacing, rows * size + (rows - 1) * spacing
+	height = height or size
+	return cols * size + (cols - 1) * spacing, rows * height + (rows - 1) * spacing
 end
 
-function Data.Cell(index, cols, rows, size, spacing, growth)
+function Data.Cell(index, cols, rows, size, spacing, growth, height)
 	local flip = GROWTH[growth]
 	if not flip then
 		error("KstyleUI_Bags Data.Cell: unknown growth " .. tostring(growth), 2)
@@ -67,8 +68,7 @@ function Data.Cell(index, cols, rows, size, spacing, growth)
 	if flip[2] then
 		row = rows - 1 - row
 	end
-	local step = size + spacing
-	return col * step, -row * step
+	return col * (size + spacing), -row * ((height or size) + spacing)
 end
 
 local function InventoryCount(field, fallback)
@@ -142,7 +142,7 @@ function Data.Read(bag, slot, record)
 	record.name = Plain(info.itemName, "string")
 	record.locked = Plain(info.isLocked, "boolean") == true
 	record.noValue = Plain(info.hasNoValue, "boolean") == true
-	record.bound = Plain(info.isBound, "boolean") == true
+	record.bound = Plain(info.isBound, "boolean")
 	local newItems = C_NewItems
 	if newItems and newItems.IsNewItem then
 		record.isNew = Plain(newItems.IsNewItem(bag, slot), "boolean") == true
@@ -552,13 +552,63 @@ function Data.CursorItem()
 	end
 end
 
+function Data.ReagentBag()
+	local index = Enum and Enum.BagIndex
+	return Plain(index and index.ReagentBag, "number") or REAGENT_BAG_FALLBACK
+end
+
+local infos = {}
+
+function Data.Info(record)
+	local id, item = record.itemID, C_Item
+	local info = id and infos[id]
+	if info or not id or not item or type(item.GetItemInfo) ~= "function" then
+		return info or NONE
+	end
+	local name, _, _, _, _, _, subType, _, equipLoc, _, price, _, _, bind, expansion = item.GetItemInfo(record.link or id)
+	if not Plain(name, "string") then
+		return NONE
+	end
+	info = { subType = Plain(subType, "string"), equipLoc = Plain(equipLoc, "string"), price = Plain(price, "number"), bind = Plain(bind, "number"), expansion = Plain(expansion, "number") }
+	infos[id] = info
+	return info
+end
+
+local setNames
+
+function Data.SetsChanged()
+	setNames = nil
+end
+
+function Data.SetName(itemID)
+	if not setNames then
+		setNames = {}
+		local sets = C_EquipmentSet
+		local ids = sets and type(sets.GetEquipmentSetIDs) == "function" and sets.GetEquipmentSetIDs()
+		if type(ids) == "table" and not IsSecret(ids) and type(sets.GetEquipmentSetInfo) == "function" and type(sets.GetItemIDs) == "function" then
+			for _, setID in ipairs(ids) do
+				local name = Plain(sets.GetEquipmentSetInfo(setID), "string")
+				local items = name and sets.GetItemIDs(setID)
+				if type(items) == "table" and not IsSecret(items) then
+					for _, id in pairs(items) do
+						id = Plain(id, "number")
+						if id and not setNames[id] then
+							setNames[id] = name
+						end
+					end
+				end
+			end
+		end
+	end
+	return itemID and setNames[itemID]
+end
+
 function Data.CanHold(bag, itemID)
 	local item = C_Item
 	if Data.IsKeyring(bag) then
 		return ItemClass({ itemID = itemID }) == ((Enum and Enum.ItemClass and Enum.ItemClass.Key) or CLASS_KEY)
 	end
-	local index = Enum and Enum.BagIndex
-	if bag == (Plain(index and index.ReagentBag, "number") or REAGENT_BAG_FALLBACK) then
+	if bag == Data.ReagentBag() then
 		return item and type(item.GetItemInfo) == "function" and Plain(select(17, item.GetItemInfo(itemID)), "boolean") == true
 	end
 	local family = Data.BagFamily(bag)
@@ -603,6 +653,74 @@ function Data.Drop(bags, itemID, preferredBag)
 		end
 	end
 	return false
+end
+
+function Data.BagName(bag)
+	local container = C_Container
+	local name = container and type(container.GetBagName) == "function" and Plain(container.GetBagName(bag), "string")
+	return name or string.format(L["Bag %d"], bag)
+end
+
+function Data.CurrencyText()
+	local parts, picked, info = {}, false, C_CurrencyInfo
+	local function add(entry)
+		local amount, icon = Plain(entry.quantity, "number"), Plain(entry.iconFileID, "number")
+		if amount then
+			parts[#parts + 1] = (icon and ("|T" .. icon .. ":0|t ") or "") .. amount
+		end
+	end
+	for _, key in ipairs(ns.Settings.CURRENCIES) do
+		local id = ns.Settings.Get(key)
+		picked = picked or id > 0
+		local entry = id > 0 and info and type(info.GetCurrencyInfo) == "function" and Plain(info.GetCurrencyInfo(id), "table")
+		if entry then add(entry) end
+	end
+	for i = 1, picked and 0 or 10 do
+		local entry = info and type(info.GetBackpackCurrencyInfo) == "function" and info.GetBackpackCurrencyInfo(i)
+		if type(entry) ~= "table" or IsSecret(entry) then
+			break
+		end
+		add(entry)
+	end
+	return #parts > 0 and table.concat(parts, "   ") or nil
+end
+
+function Data.Pins(create)
+	local store = KstyleUI.Store
+	if not (store and store.IsLoaded and store.IsLoaded()) then
+		return NONE
+	end
+	local account = store.Account()
+	local pins = account.bagPins
+	if type(pins) ~= "table" or type(pins.shared) ~= "table" or type(pins.characters) ~= "table" then
+		if not create then
+			return NONE
+		end
+		pins = { shared = {}, characters = {} }
+		account.bagPins = pins
+	end
+	if not ns.Settings.Get("pinsPerCharacter") then
+		return pins.shared
+	end
+	local key = tostring(store.CharacterKey())
+	local own = pins.characters[key]
+	if type(own) ~= "table" and not create then
+		return pins.shared
+	elseif type(own) ~= "table" then
+		own = {}
+		for id in pairs(pins.shared) do
+			own[id] = true
+		end
+		pins.characters[key] = own
+	end
+	return own
+end
+
+function Data.TogglePin(itemID)
+	local pins = Data.Pins(true)
+	if itemID and pins ~= NONE then
+		pins[itemID] = not pins[itemID] or nil
+	end
 end
 
 function Data.FreeSlots(bags)

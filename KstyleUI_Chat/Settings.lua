@@ -37,6 +37,14 @@ local defaults = {
 	sideRight = false,
 	sideWidth = 35,
 	sideIcons = { menu = true, channels = true, voice = true, friends = true },
+	sideStyle = "card",
+	sideGap = 8,
+	sideOrder = "channels,voice,menu",
+	sideScale = 1,
+	sideSpacing = 2,
+	sideFree = false,
+	sidePositions = {},
+	sideScroll = false,
 	copyButton = true,
 	editBox = "typing",
 	inputOnTop = false,
@@ -48,6 +56,8 @@ local defaults = {
 	idleWake = { emotes = false, skills = false, reputation = false, loot = false, system = false, achievements = false, npc = false },
 	font = "",
 	fontSize = FOLLOW,
+	editFont = "messages",
+	editFontSize = FOLLOW,
 	lineSpacing = FOLLOW,
 	fontOutline = "none",
 	fade = true,
@@ -59,6 +69,7 @@ local defaults = {
 	tabFontSize = 12,
 	tabFont = "",
 	tabHeight = 34,
+	tabsAbove = false,
 	tabSpacing = 13.5,
 	tabPadding = 6,
 	tabOpacity = 1,
@@ -110,6 +121,10 @@ end
 
 local function ShownSize(value)
 	return value == FOLLOW and Tokens.TypeDefault("chatSize") or value
+end
+
+local function ShownEditSize(value)
+	return value == FOLLOW and ns.TextSize(ns.Settings()) or value
 end
 
 local function ShownSpacing(value)
@@ -183,8 +198,14 @@ local function Sided(s)
 	return s.buttons == true
 end
 
+local function Beside(s)
+	return s.buttons == true and (s.sideStyle == "glass" or s.sideStyle == "bare")
+end
+
 local SIDE_ICONS = { "menu", "channels", "voice", "friends" }
 local ICON_LABELS = { menu = L["Chat menu button"], channels = L["Channels button"], voice = L["Voice buttons"], friends = L["Friends button"] }
+local ORDER_NAMES = { channels = L["Channels"], voice = L["Voice"], menu = L["Menu"] }
+local ORDERS = { "channels,voice,menu", "channels,menu,voice", "voice,channels,menu", "voice,menu,channels", "menu,channels,voice", "menu,voice,channels" }
 
 local WAKE_LABELS = {
 	emotes = L["Wake on emotes"],
@@ -200,6 +221,12 @@ local function Append(schema, rows)
 	for _, row in ipairs(rows) do
 		schema[#schema + 1] = row
 	end
+end
+
+local function EditFonts()
+	local list = K.Widgets.InheritedFontOptions()
+	table.insert(list, 1, { value = "messages", label = L["Message font"] })
+	return list
 end
 
 local function TabFonts()
@@ -248,12 +275,29 @@ function ns.Schema()
 		},
 		{ type = "toggle", key = "sideHover", label = L["Chat buttons on hover"], help = L["Shows the chat buttons only while the pointer is over the chat."], showWhen = Sided },
 		{ type = "toggle", key = "sideRight", label = L["Chat buttons on the right"], help = L["Puts the chat buttons on the right side of the card."], showWhen = Sided },
-		{ type = "slider", key = "sideWidth", label = L["Chat button room"], help = L["The room the card keeps for the chat buttons, in units."], min = 32, max = 60, step = 1, showWhen = Sided },
+		{ type = "slider", key = "sideWidth", label = L["Chat button room"], help = L["The room the card keeps for the chat buttons, and their column's width, in units."], min = 32, max = 100, step = 1, showWhen = Sided },
+		{
+			type = "dropdown", key = "sideStyle", label = L["Chat button backing"], showWhen = Sided,
+			help = L["In the card, on their own glass beside it, or beside it with no glass."],
+			options = { { value = "card", label = L["In the card"] }, { value = "glass", label = L["Own glass beside the card"] }, { value = "bare", label = L["Beside the card, no glass"] } },
+		},
+		{ type = "slider", key = "sideGap", label = L["Chat button gap"], help = L["The gap between the card and the chat buttons beside it, in units."], min = 0, max = 30, step = 1, showWhen = Beside },
 	}
 	for _, key in ipairs(SIDE_ICONS) do
 		schema[#schema + 1] = { type = "toggle", key = "sideIcons." .. key, label = ICON_LABELS[key], help = L["Shows this button among the chat buttons."], showWhen = Sided }
 	end
+	local orders = {}
+	for i, order in ipairs(ORDERS) do
+		local names = {}
+		for id in order:gmatch("%a+") do names[#names + 1] = ORDER_NAMES[id] end
+		orders[i] = { value = order, label = table.concat(names, ", ") }
+	end
 	Append(schema, {
+		{ type = "dropdown", key = "sideOrder", label = L["Chat button order"], help = L["The order of the buttons down the column. The last one sits at the foot."], options = orders, showWhen = Sided },
+		{ type = "slider", key = "sideScale", label = L["Chat button size"], help = L["Scales the chat buttons."], min = 0.5, max = 2, step = 0.05, showWhen = Sided },
+		{ type = "slider", key = "sideSpacing", label = L["Chat button spacing"], help = L["The gap between stacked chat buttons, in units."], min = 0, max = 30, step = 1, showWhen = Sided },
+		{ type = "toggle", key = "sideFree", label = L["Move chat buttons freely"], help = L["Shift-drag a chat button anywhere, out of combat. Off returns every button to the column."], showWhen = Sided },
+		{ type = "toggle", key = "sideScroll", label = L["Scroll button with the chat buttons"], help = L["Moves the jump-to-bottom button from the card's corner to the foot of the chat buttons."], showWhen = Sided },
 		{ type = "toggle", key = "inputOnTop", label = L["Input on top"], help = L["Place the typing box above chat messages, below the tabs."] },
 		{ type = "slider", key = "editHeight", label = L["Edit box tile height"], help = L["The height of the tile drawn behind the text you type, in units."], min = 16, max = 30, step = 1 },
 		{ type = "toggle", key = "lockSize", label = L["Lock chat size"], help = L["Hides the size grip on docked chat windows, so the chat resizes only in Layout Mode."] },
@@ -270,12 +314,18 @@ function ns.Schema()
 		{
 			type = "font", key = "font", label = L["Font"],
 			options = K.Widgets.InheritedFontOptions,
-			help = L["The font of chat messages and the edit box. Tabs use the caps face."],
+			help = L["The font of chat messages, and of the edit box unless it has its own. Tabs use the caps face."],
 		},
 		{
 			type = "slider", key = "fontSize", label = L["Text size"],
-			help = L["The size of chat messages and the edit box."],
+			help = L["The size of chat messages, and of the edit box unless it has its own."],
 			min = FONT_MIN, max = FONT_MAX, step = 1, shown = ShownSize,
+		},
+		{ type = "font", key = "editFont", label = L["Edit box font"], options = EditFonts, help = L["The font of the text you type. The default is the message font."] },
+		{
+			type = "slider", key = "editFontSize", label = L["Edit box text size"],
+			help = L["The size of the text you type. The default is the message size."],
+			min = FONT_MIN, max = FONT_MAX, step = 1, shown = ShownEditSize,
 		},
 		{
 			type = "slider", key = "lineSpacing", label = L["Line spacing"],
@@ -332,6 +382,7 @@ function ns.Schema()
 		},
 		{ type = "font", key = "tabFont", label = L["Tab font"], options = TabFonts, help = L["The font of the tab names. The default is the caps face."] },
 		{ type = "slider", key = "tabHeight", label = L["Tab row height"], help = L["The height of the tab row above the messages, in units."], min = 24, max = 48, step = 1 },
+		{ type = "toggle", key = "tabsAbove", label = L["Tabs above the card"], help = L["The card starts below the tab row, so the tabs sit above it."] },
 		{ type = "slider", key = "tabSpacing", label = L["Tab spacing"], help = L["The space after each tab name, in units."], min = 4, max = 30, step = 0.5 },
 		{ type = "slider", key = "tabPadding", label = L["Tile padding"], help = L["How far the selected tab's tile reaches past its name, up to half the tab spacing."], min = 0, max = 12, step = 0.5, showWhen = Filled },
 		{ type = "slider", key = "tabOpacity", label = L["Tile opacity"], help = L["How solid the selected tab's tile looks."], min = 0, max = 1, step = 0.05, showWhen = Filled },

@@ -199,7 +199,8 @@ function Plate:LayoutDiamond()
 		return
 	end
 	self.levelText:ClearAllPoints()
-	Plate.Place(self.levelText, "RIGHT", self.health, "LEFT", -Widgets.Snap(self, LEVEL_GAP + (Settings.Get("target.readableTicks") and 2 or 0)), 0, nil, nil, self.barW, self.barH)
+	Plate.Place(self.levelText, "RIGHT", self.health, "LEFT", -Widgets.Snap(self, LEVEL_GAP + (Settings.Get("target.readableTicks") and 2 or 0)) + Settings.Get("level.x"),
+		Settings.Get("level.y"), nil, nil, self.barW, self.barH)
 end
 
 local layoutBrackets = Plate.LayoutBrackets
@@ -262,7 +263,7 @@ end
 
 local function LevelColor(plate, level)
 	if Settings.Get("target.readableTicks") and not IsSecret(level) and level == SKULL_LEVEL then return Tokens.Color("nameHostile") end
-	local mark = Settings.Get("markers.classification") and Logic.MarkerColor(plate:Is("classification", UnitClassification, plate.unit))
+	local mark = Settings.Get("markers.classification") and not Plate.MarkersHidden() and Logic.MarkerColor(plate:Is("classification", UnitClassification, plate.unit))
 	if mark then
 		return Tokens.Color(mark)
 	end

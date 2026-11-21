@@ -1,4 +1,4 @@
--- Data.lua: the bar table and the pure parts of the action bars: grid maths, slots, paging drivers, key text and the page snippet.
+-- Data.lua: the bar table and the pure parts of the action bars: grid maths, slots, paging drivers and the page snippet.
 local _, ns = ...
 
 local ceil, floor, max, min = math.ceil, math.floor, math.max, math.min
@@ -123,48 +123,6 @@ ns.PAGE_SNIPPET = [[
 	end
 	self:SetAttribute("actionpage", page)
 ]]
-
-local MODIFIERS = { { "ALT-", "A" }, { "CTRL-", "C" }, { "SHIFT-", "S" }, { "META-", "Cm" } }
-local KEYS = {
-	MIDDLEBUTTON = "M3", MOUSEWHEELUP = "WU", MOUSEWHEELDOWN = "WD", NUMPADPLUS = "N+", NUMPADMINUS = "N-",
-	NUMPADMULTIPLY = "N*", NUMPADDIVIDE = "N/", NUMPADDECIMAL = "N.", SPACE = "Sp", PAGEUP = "PU", PAGEDOWN = "PD",
-	BACKSPACE = "Bs", INSERT = "Ins", DELETE = "Del", HOME = "Hm", ["END"] = "End", CAPSLOCK = "Cap", TAB = "Tab",
-	ENTER = "Ent", ESCAPE = "Esc", UP = "Up", DOWN = "Dn", LEFT = "Lt", RIGHT = "Rt",
-}
-
-function ns.ShortKey(key, fallback)
-	if type(key) ~= "string" or key == "" then
-		return ""
-	end
-	local prefix, rest = "", key
-	for _, modifier in ipairs(MODIFIERS) do
-		local word, short = modifier[1], modifier[2]
-		if rest:sub(1, #word) == word then
-			prefix, rest = prefix .. short, rest:sub(#word + 1)
-		end
-	end
-	local short = KEYS[rest]
-	if not short then
-		local mouse = rest:match("^BUTTON(%d+)$")
-		local pad = rest:match("^NUMPAD(%d)$")
-		if mouse then
-			short = "M" .. mouse
-		elseif pad then
-			short = "N" .. pad
-		elseif #rest <= 3 then
-			short = rest
-		elseif fallback then
-			short = fallback(key)
-			if type(short) ~= "string" then
-				short = rest
-			end
-			return short
-		else
-			short = rest
-		end
-	end
-	return prefix .. short
-end
 
 local OUTLINES = { NONE = "", OUTLINE = "OUTLINE", THICK = "THICKOUTLINE" }
 

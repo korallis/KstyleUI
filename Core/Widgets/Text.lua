@@ -1,7 +1,13 @@
--- Text.lua: shared text settings and cached tag painters that pass restricted values straight to text setters.
+-- Text.lua: shared text settings, cached tag painters that pass restricted values straight to text setters, and the short key labels keybind text uses (SHIFT-1 reads S1).
 local _, ns = ...
 local W, L = ns.Widgets, ns.L
-local placementPoints
+local placementPoints, textColors
+
+function W.TextColors()
+	textColors = textColors or { { value = "", label = L["Current style"] }, { value = "class", label = L["Class colour"] },
+		{ value = "reaction", label = L["Reaction colour"] }, { value = "accent", label = L["Accent"] }, { value = "custom", label = L["Custom colour"] } }
+	return textColors
+end
 
 function W.TextRows(schema, key, opts)
 	opts = opts or {}
@@ -18,16 +24,12 @@ function W.TextRows(schema, key, opts)
 		help = L["A soft shadow, or an outline for text over busy scenes."] })
 	if not opts.tags then return end
 	add({ type = "dropdown", key = "colorMode", label = L["Text colour"],
-		help = L["Keep the current style, or choose class, reaction, accent or a custom colour."], options = {
-		{ value = "", label = L["Current style"] }, { value = "class", label = L["Class colour"] },
-		{ value = "reaction", label = L["Reaction colour"] }, { value = "accent", label = L["Accent"] },
-		{ value = "custom", label = L["Custom colour"] },
-	} })
+		help = L["Keep the current style, or choose class, reaction, accent or a custom colour."], options = W.TextColors() })
 	add({ type = "color", key = "color", label = L["Custom text colour"],
 		help = L["The text colour when its colour mode is custom."], showWhen = opts.custom })
 	add({ type = "text", key = "textFormat", label = L["Text format"], maxLetters = 160,
-		help = opts.placement and L["Blank hides this slot. Tags: [name], [hp:pct], [pp:abr], [level], [absorb], [target], [group]."]
-			or L["Blank uses the preset. Tags: [name], [hp], [hp:pct], [hp:abr], [pp], [level], [absorb]."] })
+		help = opts.placement and L["Blank hides it. Tags: [name] [hp:pct] [pp:abr] [level] [absorb] [target] [group] [c:ff8800]x[/c]."]
+			or L["Blank uses the preset. Tags: [name] [hp] [hp:pct] [hp:abr] [pp] [level] [absorb] [c:ff8800]x[/c]."] })
 	if opts.placement then
 		placementPoints = placementPoints or {
 			{ value = "CENTER", label = L["Centre"] },
@@ -38,6 +40,9 @@ function W.TextRows(schema, key, opts)
 		add({ type = "dropdown", key = "position", label = L["Place"], help = L["Where this text sits on the frame."], options = placementPoints })
 		add({ type = "slider", key = "x", label = L["Horizontal offset"], help = L["Moves this text left or right."], min = -200, max = 200, step = 1 })
 		add({ type = "slider", key = "y", label = L["Vertical offset"], help = L["Moves this text up or down."], min = -200, max = 200, step = 1 })
+	end
+	if opts.width then
+		add({ type = "slider", key = "width", label = L["Text width"], help = L["How much of the frame's width this text may use, in percent."], min = 20, max = 100, step = 5 })
 	end
 end
 
@@ -61,7 +66,9 @@ function W.PlaceText(text, cfg, parent, anchor, width)
 		text:SetTextColor(ns.Tokens.Color("textEmphasis"))
 		text:ClearAllPoints()
 		text:SetPoint(position, anchor, position, W.Snap(anchor, Offset(cfg.x)), W.Snap(anchor, Offset(cfg.y)))
-		text:SetWidth(W.Snap(anchor, width or anchor:GetWidth()))
+		width = width or anchor:GetWidth()
+		if type(cfg.width) == "number" and cfg.width >= 20 and cfg.width < 100 then width = width * cfg.width / 100 end
+		text:SetWidth(W.Snap(anchor, width))
 		text:SetJustifyH(position:find("LEFT") and "LEFT" or position:find("RIGHT") and "RIGHT" or "CENTER")
 	end
 	if text then text:SetShown(on) end
@@ -93,9 +100,9 @@ end
 
 local parsed = {}
 local SAMPLE_FIELDS = { UnitName = "name", UnitHealth = "health", UnitHealthMax = "healthMax",
-	UnitPower = "power", UnitPowerMax = "powerMax", UnitLevel = "level", UnitGetTotalAbsorbs = "absorb" }
+	UnitPower = "power", UnitPowerMax = "powerMax", UnitLevel = "level", UnitGetTotalAbsorbs = "absorb", UnitPVPName = "pvpName" }
 local TAGS = {
-	name = { "UnitName", "Name" }, hp = { "UnitHealth", "Health" },
+	name = { "UnitName", "Name" }, title = { "UnitPVPName", "Name", nil, "UnitName" }, hp = { "UnitHealth", "Health" },
 	["hp:abr"] = { "UnitHealth", "Health", "short" }, ["hp:max"] = { "UnitHealthMax", "Health" },
 	["hp:pct"] = { "UnitHealthPercent", "Health", "percent" }, pp = { "UnitPower", "Power" },
 	["pp:abr"] = { "UnitPower", "Power", "short" }, ["pp:max"] = { "UnitPowerMax", "Power" },
@@ -111,8 +118,8 @@ function W.ParseText(format)
 	local pos = 1
 	for first, tag, last in format:gmatch("()%[([^%]]+)%]()") do
 		if first > pos then plan[#plan + 1] = format:sub(pos, first - 1) end
-		local spec = TAGS[tag]
-		plan[#plan + 1] = spec or format:sub(first, last - 1)
+		local spec, hex = TAGS[tag], tag:match("^c:(%x%x%x%x%x%x)$")
+		plan[#plan + 1] = spec or hex and "|cff" .. hex or tag == "/c" and "|r" or format:sub(first, last - 1)
 		if spec then plan.events[spec[2]] = true end
 		pos = last
 	end
@@ -169,7 +176,7 @@ function W.TagText(text, format, unit, sample)
 		elseif spec[1] == "group" then
 			value = Group(unit)
 		else
-			local fn = _G[spec[1]]
+			local fn = _G[spec[1]] or spec[4] and _G[spec[4]]
 			value = ""
 			if type(fn) == "function" then value = fn(spec[3] == "target" and unit .. "target" or unit) end
 			if spec[3] == "short" then value = W.ShortNumber(value) end
@@ -194,4 +201,46 @@ function W.TextTint(text, mode, color, unit, sample)
 		local reaction = sample and sample.reaction or UnitReaction and UnitReaction(unit, "player")
 		text:SetTextColor(ns.Theme.ReactionColor(reaction))
 	end
+end
+
+local MODIFIERS = { { "ALT-", "A" }, { "CTRL-", "C" }, { "SHIFT-", "S" }, { "META-", "Cm" } }
+local KEYS = {
+	MIDDLEBUTTON = "M3", MOUSEWHEELUP = "WU", MOUSEWHEELDOWN = "WD", NUMPADPLUS = "N+", NUMPADMINUS = "N-",
+	NUMPADMULTIPLY = "N*", NUMPADDIVIDE = "N/", NUMPADDECIMAL = "N.", SPACE = "Sp", PAGEUP = "PU", PAGEDOWN = "PD",
+	BACKSPACE = "Bs", INSERT = "Ins", DELETE = "Del", HOME = "Hm", ["END"] = "End", CAPSLOCK = "Cap", TAB = "Tab",
+	ENTER = "Ent", ESCAPE = "Esc", UP = "Up", DOWN = "Dn", LEFT = "Lt", RIGHT = "Rt",
+}
+
+function W.ShortKey(key, fallback)
+	if type(key) ~= "string" or key == "" then
+		return ""
+	end
+	local prefix, rest = "", key
+	for _, modifier in ipairs(MODIFIERS) do
+		local word, short = modifier[1], modifier[2]
+		if rest:sub(1, #word) == word then
+			prefix, rest = prefix .. short, rest:sub(#word + 1)
+		end
+	end
+	local short = KEYS[rest]
+	if not short then
+		local mouse = rest:match("^BUTTON(%d+)$")
+		local pad = rest:match("^NUMPAD(%d)$")
+		if mouse then
+			short = "M" .. mouse
+		elseif pad then
+			short = "N" .. pad
+		elseif #rest <= 3 then
+			short = rest
+		elseif fallback then
+			short = fallback(key)
+			if type(short) ~= "string" then
+				short = rest
+			end
+			return short
+		else
+			short = rest
+		end
+	end
+	return prefix .. short
 end

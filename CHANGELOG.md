@@ -1,5 +1,88 @@
 # KstyleUI changelog
 
+## v0.2.9 (2026-11-21)
+
+The customisation release: resource jewels on the Medallions crest, then a big wave of new options across every module, each starting off or at today's value, plus faster loading and a few fixes.
+
+Highlights:
+
+- Combo points, holy power and soul shards glow as jewels on the Medallions crest, on by default.
+- New options for unit, party and raid frames, nameplates, cooldowns and auras, each keeping today's look.
+- A second data bar, a second damage window with reports, a forged Medallions dock and new bag views.
+- Alerts, a cursor ring, a crosshair, raid tools and /way waypoints, all off until you turn them on.
+- Share whole profiles with your layouts, and read each release's highlights under About > What's new.
+- KstyleUI loads faster after a reload.
+
+### Added
+
+- Crest resource jewels: combo points for rogues and cat-form druids, holy power for paladins and soul shards for warlocks glow as jewels on the Medallions crest ring. On by default under Action Bars.
+- Unit frames: see-through, gradient or health-coloured health bars, one-decimal health percents (two on boss frames, trailing zeros optional), mirrored and zoomed portraits, and heal and absorb opacity and textures.
+- Unit frames: move the name, health, power and level text, set the health bar's height, put the power bar above the health bar or apart from the frame, and colour part of a text line with `[c:ff8800]...[/c]`.
+- Unit frames: a text bar along the player, target or focus frame with left, centre and right texts, and three more Shown choices: when mounted, not while mounted, and in combat or with a target.
+- Unit frames: shields from either end of the bar, an overshield glow, a thin absorb bar, lost maximum health marked on the bar, spell costs and the five-second rule on your power bar, and druid mana in bear and cat form.
+- Unit frames: size, nudge or corner the leader, PvP, combat, elite and raid marker icons, a PvP flag timer, threat percent on target and focus, hover and target outlines, reaction colours and a target lost sound.
+- Unit frame auras: pet auras, a separate buff block, large boss auras, copy another frame's aura look, movable timers and stacks, and filters for stealable, defensive, dispellable or timed auras.
+- Player frame: a dispel overlay, outline and type icon while you carry a debuff you can dispel, your own dispel colours, and totem timers beside the frame.
+- Cast bars: a pet cast bar, Hide when idle on every bar, icon size and place, the spell's target, important-cast outlines, names that shrink to fit, rank, latency, craft batches and out-of-range grey.
+- Party and raid frames: By health colours, fill opacity, missing health fills, dead and offline colours, the power bar off per role, and shields, heal absorbs and lost maximum health in the game's patterns.
+- Party and raid debuffs: filter by type, boss, role, crowd control, source, importance or what your class can apply; icon zoom, timer size, outlines and tooltips; a dispel type letter and your own dispel colours.
+- Party and raid frames: role letters, a combat icon, and every icon, name, status text and heal icon placed or nudged where you like; name line height, alignment and divider, and whole, first, last or initial names.
+- Party and raid frames: missing buff reminders for Fortitude, Mark of the Wild, Arcane Intellect, Divine Spirit, Thorns and Salvation, with an optional glow.
+- Party targets: a small frame beside each party member for what they target; click it to target that too.
+- Pet frames (up to 30), tank frames (up to 8) and friendly boss frames, each made only when you switch it on, in the raid frames' card and placed in Layout Mode. Friendly boss frames follow a boss that changes sides.
+- Raid layout: choose which groups show, close up, merge or centre them, sort party and raid by class in your own order, size large and compact raid frames apart, number each group, and use party frames for small raids.
+- A movable healer mana list and a movable label with your raid group's number.
+- Nameplates: cast bar icon size and place, important-cast colours and glows, a glow when a cast is aimed at you, the cast's target, enemies that grow while casting, and a taller cast bar on your focus.
+- Nameplates: your target can glow, brighten and grow; hover and focus highlights, absorb shields, an execute glow, and fading for enemies out of your interrupt's range.
+- Nameplates: enemy buffs with a purge glow, crowd control from anyone, Sunder Armor stacks for warriors, and debuff timers and stacks you can move, with dispel-coloured rings, wide tiles and pandemic marks.
+- Nameplates: combo points and energy on your target's plate for rogues and cat-form druids, quest progress such as 3/8 after a mob's name, and the distance to your target.
+- Friendly nameplates: separate colours, formats and sizes for players, NPCs and pets, player titles, guild lines, NPC titles such as Innkeeper, pet owners, and click-through plates.
+- Nameplates: threat that leaves boss, mini-boss and caster colours alone per role, plate spacing, a narrower enemy click area, a movable level and a full-height spell icon.
+- Cooldowns: Spell rules can hide a spell, close gaps, remind you of a missing buff, show a spell only in a form or with a talent, shade recharges and count down to the next charge.
+- Cooldowns: per-spell swipe, glow and countdown colours, colours and tenths below a threshold, a sound when a spell is ready, keybinds on icons, mirrored key presses and crafted quality pips.
+- Cooldowns: swing timer sweeps and late-swing glows for on-next-swing attacks, two-row grids with their own sizes, and a focus interrupt tracker beside your focus's nameplate.
+- Cooldown and buff bars: fill up or drain, ease, a spark, two-line and renamed bars, cooldowns as bars with charge sections, and a custom bar group in your own order.
+- Auras: an extra buff row and an extra debuff row with their own filter, size and place, a glow per row, timers in any corner, and a card that names a missing class buff out of combat.
+- Chat: buttons on their own glass or beside the card, in your order, size and spacing, or Shift-dragged anywhere; the jump-to-bottom button among them, tabs above the card, and an edit box font and size.
+- Minimap: an addon compartment button in any corner, drawer, column or hidden for each addon button, middle-click for the game menus, and a tooltip size.
+- A second data bar with its own readouts, moved and sized in Layout Mode, that works even with the main bar off.
+- Data bar readouts: coordinates, a combat timer, time played, volume, both professions, class reagents and ammunition, any LibDataBroker plugin and a spacer.
+- Data bar options: icons with or instead of values, colours, fill the rest, mail and resting on the clock, richer bag, spec, experience and gold readouts, online names in guild and friend tooltips, and Hearthstone travel.
+- Quest experience on the experience bar marks what your finished quests will give.
+- Bags: a list view, a category list down the side, Alt-click pinned items, recent items first, merged stacks, sell values, more ways to split sections, BoE and WuE labels and equipment set names.
+- Bags: a maximum height, a corner anchor, an equipped bag row, footer currencies, opening with the merchant, mailbox and other windows, gold kept on hand at the bank, and Alt-right-click to disenchant or pick a lock.
+- Bags: point at your money to see every character's gold and the total. On by default.
+- Tooltips: a player's item level, difficulty and class colours, a short level line, faction colours, a player's buffs as icons, the side tooltips open on, modifier keys for ID and stack lines, and Detailed tooltips.
+- Meters: a second damage window with its own meter and fight, such as healing beside your damage; it starts beside the damage meter and moves in Layout Mode.
+- Meters: Shift-click to report a meter to chat after combat, a stripe on your own bar, see-through cards, title and text sizes, a Reset label, keys to reset or show meters, and the game's own number units.
+- A standalone combat timer, and a spell history of your last casts as icons or bars.
+- Alerts: entering and leaving combat, unspent talent points, a party or raid death, low durability, potions ready, and a countdown for your movement spells.
+- Cursor: a cursor ring with styles, a dot and a trail, a cast circle and a global cooldown circle.
+- A crosshair that changes colour when your target is out of range, the distance to your target, and character stats on screen, with frame rate and latency.
+- Raid tools: ready check, role check, a pull timer and markers from one button, and keys to place, undo and clear world markers, in combat too.
+- Slash commands: /way x y pins a waypoint, /kpaste follows a pasted list of /way pins, and /cd opens the cooldown manager. Each is a switch in Quality of Life.
+- Quality of life: Space and number keys for quest and gossip windows, Train all at trainers, open boxes and bags, hide toasts, announce instance resets, log combat in instances, and take off costume transforms.
+- Profiles: share a profile with its specialization assignments, Edit Mode layout or per-specialization cooldowns, share everything as one string, start from a role and HUD style preset, and switch with five hotkeys.
+- Profile installers can export, import, list and switch KstyleUI profiles through `KstyleUI.API`.
+- Options: About > What's new lists the highlights of the latest three versions in your language.
+- Options: recolour classes and power types, one outline for KstyleUI's text, a world name font, attach by any of nine points, game menu buttons, folding sections, remembered search picks and a CPU readout.
+
+### Changed
+
+- The Medallions dock sits on forged plates, with a glyph for each readout, gilt dividers and a highlight on hover. Data bar artwork set to Plain gives it glass.
+- KstyleUI loads faster after a reload, with nothing on screen changed.
+
+### Fixed
+
+- The data bar's Options preview no longer draws the clock over the right-hand readouts.
+- The Party and Raid options preview no longer draws an indicator over a raid sample's name.
+- On Medallions party frames, the indicator icons no longer cover names while your heal icons share the name line; they sit at the end of the health bar.
+
+### Upgrading
+
+- New options start off or at today's value, so your interface looks the same until you change one.
+- Crest resource jewels and every character's gold in bags are on by default; turn them off under Action Bars and Bags.
+
 ## v0.2.8.5 (2026-11-21)
 
 A small fix release.

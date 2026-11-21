@@ -55,7 +55,7 @@ do
 	ns.Settings.Get = get
 	assert(not read.show and not read.peekKey, "a default tooltip reads no visibility setting as it opens")
 	local preview = K.Options.Preview("Tooltips")(env.CreateFrame("Frame", nil, K.Scale.Root()))
-	local title, ride = preview.unit.rows[1].left, preview.unit.rows[5]
+	local title, ride = preview.unit.rows[1].left, preview.unit.rows[6]
 	assert(title:GetText() == "Valerin" and not ride.left:IsShown(), "the preview keeps today's unit sample")
 
 	write(env, K, "Tooltips", "awayTag", true)

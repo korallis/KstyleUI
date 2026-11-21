@@ -1,4 +1,4 @@
--- Theme.lua: resolves tokens to the current accent: the class colour or the player's fixed colour.
+-- Theme.lua: resolves tokens to the current accent (the class colour or the player's fixed colour), the class and power palette and the inherited outline.
 local _, ns = ...
 
 local Theme = {}
@@ -291,7 +291,53 @@ function Theme.Brighten(r, g, b)
 	return r + (1 - r) * t, g + (1 - g) * t, b + (1 - b) * t
 end
 
+local palette, darken, paletteCache = {}, 0, {}
+local OUTLINES = { [""] = true, SHADOW = true, OUTLINE = true, THICKOUTLINE = true }
+
+function Theme.SetPalette(colors, amount)
+	amount = IsUnit(amount) and math.min(amount, 0.6) or 0
+	local same = amount == darken
+	for key, c in pairs(colors) do
+		local now = palette[key]
+		same = same and now and now.r == c.r and now.g == c.g and now.b == c.b
+	end
+	for key in pairs(palette) do same = same and colors[key] ~= nil end
+	if same then return end
+	palette, darken, paletteCache = colors, amount, {}
+	Fire("ThemeChanged")
+end
+
+function Theme.Palette(key)
+	if IsSecret(key) or type(key) ~= "string" then return nil end
+	local hit = paletteCache[key]
+	if hit == nil then
+		local c, r, g, b = palette[key]
+		if c then
+			r, g, b = c.r, c.g, c.b
+		elseif darken > 0 then
+			r, g, b = Unpack(type(PowerBarColor) == "table" and PowerBarColor[key])
+			if not r then r, g, b = LookupClassColor(key) end
+		end
+		hit = r and { r = r * (1 - darken), g = g * (1 - darken), b = b * (1 - darken) } or false
+		paletteCache[key] = hit
+	end
+	return hit or nil
+end
+
+function Theme.SetOutline(value)
+	if not OUTLINES[value] then return false end
+	local outline = value ~= "" and (value == "SHADOW" and "" or value) or nil
+	if Theme.outline ~= outline then
+		Theme.outline = outline
+		ns.Widgets.SetOutline(outline)
+		Fire("ThemeChanged")
+	end
+	return true
+end
+
 function Theme.ClassColor(file)
+	local p = Theme.Palette(file)
+	if p then return p.r, p.g, p.b end
 	local r, g, b
 	if IsSecret(file) then
 		if C_ClassColor and C_ClassColor.GetClassColor then

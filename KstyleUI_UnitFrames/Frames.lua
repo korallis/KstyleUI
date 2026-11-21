@@ -10,6 +10,7 @@ ns.Frames = Frames
 local MODULE = Settings.MODULE
 local BOSS_COUNT, BOSS_GAP = Geometry.BOSS_COUNT, Geometry.BOSS_GAP
 local CAST_GAP = { focus = 4, boss = 2 }
+local PET_CAST_GAP = 4
 local MIN_FRAME_HEIGHT = 20
 local POLL_INTERVAL = 0.2
 local CHIP_LEVEL, CHIP_GAP, CHIP_HEIGHT, CHIP_PAD, CHIP_EM = 9, 6, 20, 10, 0.62
@@ -19,6 +20,9 @@ local SMALL_LIMITS = { minWidth = 60, minHeight = 14, maxWidth = 400, maxHeight 
 local BOSS_LIMITS = { minWidth = 120, minHeight = 100, maxWidth = 640, maxHeight = 800 }
 
 local POLLED = { targettarget = true, focustarget = true }
+local LOSS_EVENT = "UNIT_MAX_HEALTH_MODIFIERS_CHANGED"
+local CAST_OWNER = MODULE .. ":cost"
+local CAST_EVENTS = { "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_STOP", "UNIT_SPELLCAST_FAILED", "UNIT_SPELLCAST_INTERRUPTED", "UNIT_SPELLCAST_SUCCEEDED" }
 
 local UNIT_EVENTS = {
 	UNIT_HEALTH = "Health",
@@ -116,6 +120,7 @@ local HANDLERS = {
 	end,
 	Level = function(view, unit)
 		Unit.Level(view, unit)
+		Indicators.Extra(view, unit)
 	end,
 	Portrait = function(view, unit)
 		Unit.Portrait(view, unit)
@@ -123,6 +128,7 @@ local HANDLERS = {
 	Colors = function(view, unit)
 		Unit.HealthColor(view, unit)
 		Unit.Health(view, unit)
+		if view.s.powerColor == "reaction" or view.s.powerColor == "class" then Unit.PowerColor(view, unit) end
 		Indicators.Combat(view, unit)
 		Indicators.PvP(view, unit)
 	end,
@@ -135,10 +141,44 @@ local function Active(view)
 	return running and view.uf.active
 end
 
+function Frames.Edge(view, sample)
+	local s, edge = view.s, view.edge
+	local target = s and s.targetBorder and view.kind ~= "target"
+	local on = false
+	if s and (s.hoverBorder or target) then
+		local same = target and view.unit and UnitExists(view.unit) and UnitIsUnit and UnitIsUnit(view.unit, "target")
+		on = sample == true or s.hoverBorder and view.hovered or not issecretvalue(same) and same == true
+	end
+	if not on then
+		if edge and edge:IsShown() then edge:Hide() end
+		return
+	end
+	if not edge then
+		edge = CreateFrame("Frame", nil, view.chip and view.button or view.parent)
+		edge.line = K.Widgets.NineSlice(edge, "lumenOutline", "OVERLAY")
+		edge.line.cacheColor = true
+		view.edge = edge
+	end
+	local chip = view.targeted and view.chip
+	local host = chip or view.panel
+	if edge.host ~= host then
+		edge.host = host
+		local level = (chip or view.top):GetFrameLevel()
+		if not issecretvalue(level) then edge:SetFrameLevel(level + (chip and 1 or -1)) end
+		edge:ClearAllPoints()
+		edge:SetAllPoints(host)
+	end
+	K.Widgets.LayoutSlice(edge.line, edge, K.Tokens.Size("radiusTile"), 0)
+	local r, g, b = Settings.Accent()
+	K.Widgets.ColorSlice(edge.line, r, g, b, 1)
+	if not edge:IsShown() then edge:Show() end
+end
+
 local function Refresh(view, instant)
 	if Active(view) then
 		Unit.All(view, view.unit, instant)
 		Frames.Range(view)
+		Frames.Edge(view)
 	end
 end
 
@@ -194,16 +234,31 @@ local function RefreshKind(kind, instant)
 	ns.CastBars.Refresh(kind)
 end
 
-local function OnEnter(button)
-	if UnitFrame_OnEnter then
-		UnitFrame_OnEnter(button)
+local hovered
+local function Tooltip(button, combat)
+	local mode = Settings.Module().unitTooltip
+	local show = mode == "always" or mode == "noCombat" and not combat
+	if show ~= button.tip then
+		button.tip = show
+		local fn = show and UnitFrame_OnEnter or UnitFrame_OnLeave
+		if fn then fn(button) end
 	end
+end
+
+local function OnEnter(button)
+	hovered, button.tip = button, false
+	Tooltip(button, InCombatLockdown())
+	button.view.hovered = true
+	Frames.Edge(button.view)
 end
 
 local function OnLeave(button)
 	if UnitFrame_OnLeave then
 		UnitFrame_OnLeave(button)
 	end
+	hovered, button.tip = nil, nil
+	button.view.hovered = false
+	Frames.Edge(button.view)
 end
 
 local function Poll(uf)
@@ -421,6 +476,8 @@ local function MarkTarget(view)
 			part:SetAlphaFromBoolean(same, 0, 1)
 		end
 		Hit(view, false)
+		view.targeted = false
+		Frames.Edge(view)
 		return
 	end
 	same = same == true
@@ -431,6 +488,8 @@ local function MarkTarget(view)
 		part:SetAlpha(same and 0 or 1)
 	end
 	Hit(view, same)
+	view.targeted = same
+	Frames.Edge(view)
 end
 
 local function OpenHits()
@@ -497,7 +556,7 @@ local function FitCard(view)
 		return
 	end
 	local cb = view.castbar
-	local open = cb ~= nil and cb.active == true
+	local open = cb ~= nil and (cb.active == true or cb.idle == true)
 	view.panel:SetHeight(K.Widgets.Snap(view.parent, open and g.glass.h or g.rest))
 end
 
@@ -524,7 +583,7 @@ local function NewView(uf, unit)
 	if uf.kind == "boss" then
 		view.chip = NewChip(button, view.chrome.shapeName)
 	end
-	if Settings.CASTBAR[uf.kind] then
+	if Settings.CASTBAR[uf.kind] and (uf.kind ~= "pet" or Settings.Value("pet", "castbar")) then
 		local cb = ns.CastBars.Attach(view)
 		cb.notify = function()
 			FitCard(view)
@@ -550,7 +609,7 @@ local function ClampColumn(uf, left, bottom, width, height, rootWidth, rootHeigh
 	if p then reachLeft, reachRight = math.max(trim, -Snap(view.button, p.x) + trim), math.max(trim, Snap(view.button, p.x) + Snap(view.button, p.w) - width + trim) end
 	if g.aura and uf.s.auras and uf.s.auraPosition == "SIDE" then
 		local host = view.auras and view.auras.host or view.button
-		reachRight = math.max(reachRight, Snap(host, g.aura.x) + ns.Auras.Footprint(uf.kind, host) - width)
+		reachRight = math.max(reachRight, Snap(host, g.aura.x + uf.s.auraX) + ns.Auras.Footprint(uf.kind, host) - width)
 	end
 	local margin, origin, pixel = K.Tokens.Size("screenMargin"), K.Scale.Origin(), K.Scale.Pixel(1)
 	if left - reachLeft < -origin then left = math.ceil((margin + reachLeft - origin) / pixel) * pixel
@@ -622,7 +681,7 @@ end
 
 local function Slots(uf, w, h)
 	if uf.kind == "boss" then
-		return Geometry.Slots(BOSS_COUNT, BOSS_GAP, w, h, uf.s and uf.s.growth == "UP")
+		return Geometry.Slots(BOSS_COUNT, uf.s and uf.s.gap or BOSS_GAP, w, h, uf.s and uf.s.growth == "UP")
 	end
 	return { { x = 0, y = 0, w = w, h = h } }
 end
@@ -655,23 +714,33 @@ function Frames.Relayout(uf)
 			Unit.HealthColor(view, view.unit)
 			Unit.Health(view, view.unit, true)
 		end
-		ns.Auras.Place(view)
-		local cb = view.castbar
+		if view.tagged and Active(view) and UnitExists(view.unit) then
+			Unit.TextTags(view, view.unit)
+			Unit.BarIcon(view, view.unit)
+		end
+		if (uf.s.auraSimple or "") ~= "" then ns.Auras.Apply(view) else ns.Auras.Place(view) end
+		local cb, cx, cy, cw, ch = view.castbar
 		if cb and g.cast then
-			local c = g.cast
+			cx, cy, cw, ch = g.cast.x, g.cast.y, g.cast.w, g.cast.h
+		elseif cb and uf.kind == "pet" then
+			cx, cy = g.panel.x, math.max(slot.h, g.medal and g.medal.y + g.medal.h or 0) + PET_CAST_GAP
+			cw, ch = uf.s.castbarWidth > 0 and uf.s.castbarWidth or g.panel.w, uf.s.castbarHeight
+		end
+		if cx then
 			cb.frame:ClearAllPoints()
-			cb.frame:SetPoint("TOPLEFT", button, "TOPLEFT", K.Widgets.Snap(button, c.x), -K.Widgets.Snap(button, c.y))
-			cb.frame:SetSize(K.Widgets.Snap(button, c.w), K.Widgets.Snap(button, c.h))
+			cb.frame:SetPoint("TOPLEFT", button, "TOPLEFT", K.Widgets.Snap(button, cx), -K.Widgets.Snap(button, cy))
+			cb.frame:SetSize(K.Widgets.Snap(button, cw), K.Widgets.Snap(button, ch))
 			cb.noRoom = false
-			cb.frame:SetShown(cb.active == true)
-			ns.CastBars.Layout(cb, c.w, c.h)
+			cb.frame:SetShown(cb.active == true or cb.idle == true)
+			ns.CastBars.Layout(cb, cw, ch)
 		elseif cb and gap and (g.form == "plate" or g.form == "slab") then
+			cw = (uf.s.castbarWidth or 0) > 0 and math.min(uf.s.castbarWidth, g.panel.w) or g.panel.w
 			cb.frame:ClearAllPoints()
 			cb.frame:SetPoint("TOPLEFT", button, "TOPLEFT", g.panel.x, -(frameH + gap))
-			cb.frame:SetSize(g.panel.w, room)
+			cb.frame:SetSize(cw, room)
 			cb.noRoom = room <= 0
-			cb.frame:SetShown(room > 0 and cb.active == true)
-			ns.CastBars.Layout(cb, g.panel.w, room)
+			cb.frame:SetShown(room > 0 and (cb.active == true or cb.idle == true))
+			ns.CastBars.Layout(cb, cw, room)
 		elseif cb then
 			cb.noRoom = true
 			cb.frame:Hide()
@@ -682,6 +751,11 @@ function Frames.Relayout(uf)
 			MarkTarget(view)
 		end
 	end
+	if uf.kind == "player" then
+		ns.Dispel.Apply(uf.views[1])
+		ns.Totems.Apply(uf)
+	end
+	return true
 end
 
 local function PrepareTarget(view)
@@ -720,17 +794,65 @@ local function TargetChange(view)
 	if exists then ns.Slab.FlipIn(view) end
 end
 
+local castsHeard = false
+local function OnCast(event, _, castGUID, spellID)
+	local uf = frames.player
+	if not (running and uf and uf.active) then return end
+	local view = uf.views[1]
+	if event == "UNIT_SPELLCAST_START" then
+		view.costCast = not issecretvalue(castGUID) and castGUID or nil
+		Unit.Cost(view, spellID)
+	elseif issecretvalue(castGUID) or view.costCast == nil or castGUID == view.costCast then
+		view.costCast = nil
+		Unit.Cost(view)
+	end
+	if event == "UNIT_SPELLCAST_SUCCEEDED" then Unit.Spark(view, spellID) end
+end
+
+local function HearCasts()
+	local uf = frames.player
+	local on = running and uf and uf.active and uf.s and (uf.s.powerCost or uf.s.manaSpark) and true or false
+	if on == castsHeard then return end
+	castsHeard = on
+	for _, event in ipairs(CAST_EVENTS) do
+		if on then
+			K.Events.RegisterUnit(CAST_OWNER, event, OnCast, "player")
+		else
+			K.Events.Unregister(CAST_OWNER, event)
+		end
+	end
+end
+
+local function HearLoss(view)
+	local on = view.s.maxHealthLoss and view.handler and not POLLED[view.uf.kind] and Active(view) and true or false
+	if on ~= (view.hearsLoss == true) then
+		view.hearsLoss = on
+		if on then
+			K.Events.RegisterUnit(Owner(view.unit), LOSS_EVENT, view.handler, view.unit)
+		else
+			K.Events.Unregister(Owner(view.unit), LOSS_EVENT)
+		end
+	end
+end
+
 function Frames.Restyle(uf)
 	uf.s = Settings.Snapshot(uf.kind)
+	if uf.kind == "pet" and uf.s.castbar and not uf.views[1].castbar then ns.CastBars.Attach(uf.views[1]) end
 	for _, view in ipairs(uf.views) do
 		view.s = uf.s
 		Style.Restyle(view, uf.kind)
+		if view.hearsLoss or uf.s.maxHealthLoss then HearLoss(view) end
 	end
-	Frames.Relayout(uf)
+	if uf.kind == "player" then
+		HearCasts()
+		if not uf.s.powerCost then Unit.Cost(uf.views[1]) end
+		Unit.Spark(uf.views[1])
+	end
+	local applied = Frames.Relayout(uf) and (uf.s.auraSimple or "") ~= ""
 	for _, view in ipairs(uf.views) do
 		PrepareTarget(view)
 		Refresh(view, true)
-		ns.Auras.Apply(view)
+		if not applied then ns.Auras.Apply(view) end
 	end
 end
 
@@ -742,7 +864,7 @@ local function RegisterUnitEvents(view)
 	local handler = view.handler
 	if not handler then
 		handler = function(event)
-			local name = UNIT_EVENTS[event]
+			local name = event == LOSS_EVENT and "MaxHealth" or UNIT_EVENTS[event]
 			if name and Active(view) then
 				HANDLERS[name](view, view.unit)
 				Unit.TextTags(view, view.unit, name)
@@ -780,6 +902,7 @@ function Frames.Apply(uf)
 			button:Hide()
 			TargetLoss(view)
 			K.Events.UnregisterAll(Owner(view.unit))
+			view.hearsLoss = false
 		end
 	end
 	if want then
@@ -789,8 +912,13 @@ function Frames.Apply(uf)
 		StartPolling(uf)
 	elseif not want then
 		StopPolling(uf)
+		if uf.kind == "player" then HearCasts() end
 		for _, view in ipairs(uf.views) do
 			ns.Auras.Apply(view)
+		end
+		if uf.kind == "player" then
+			ns.Dispel.Apply(uf.views[1])
+			ns.Totems.Apply(uf)
 		end
 	end
 end
@@ -800,6 +928,8 @@ local function ForEach(fn)
 		fn(frames[kind])
 	end
 end
+
+local REACTION_KEYS = { reactionColors = true, hostileColor = true, neutralColor = true, friendlyColor = true, tappedColor = true }
 
 local function OnSettingChanged(_, module, key)
 	if module ~= MODULE then
@@ -816,9 +946,15 @@ local function OnSettingChanged(_, module, key)
 			Frames.Restyle(uf)
 			if rest == "rangeFade" then for _, view in ipairs(uf.views) do Frames.Range(view) end end
 		end
+		if Settings.AURA_LOOK[rest] or Settings.LISTS[rest] or rest == "style" or rest == "auraLists" then
+			ForEach(function(each)
+				if each ~= uf and each.active and (Settings.Value(each.kind, "auraCopy") == kind or Settings.Lists(each.kind) == Settings.Lists(kind)) then Frames.Restyle(each) end
+			end)
+		end
 		if kind == "target" then
 			Frames.MarkTargets()
 		end
+		if rest == "powerMana" then ns.Resource.Restyle() end
 		if rest == "style" or rest:find("^castbar") or rest:find("^fonts%.cast") then
 			ns.CastBars.Apply()
 			ns.Blizzard.Apply(running)
@@ -827,16 +963,26 @@ local function OnSettingChanged(_, module, key)
 	end
 	if kind == "resource" then
 		ns.Resource.Restyle()
-	elseif key == "auraLayout" or key == "stableSlabNames" or key == "singleSlabLevel" then
+	elseif REACTION_KEYS[key:match("^%a+")] then
+		ForEach(function(each) RefreshKind(each.kind, true) end)
+	elseif key == "auraLayout" or key == "stableSlabNames" or key == "singleSlabLevel" or key == "healthDecimal" or key == "healthDecimalBoss" or key == "healthDecimalTrim" or key == "healthDecimalPercentOnly" then
 		K.Combat.Queue(function()
 			ForEach(function(each)
 				if each.active then Frames.Restyle(each) end
 			end)
 		end)
+	elseif key:find("^dispel") then
+		ForEach(function(each)
+			if each.active then Frames.Restyle(each) end
+		end)
 	elseif key == "hideBlizzard" then
 		ns.Blizzard.Apply(running)
 	elseif key == "orbCastRoom" then
 		ns.CastBars.Apply()
+	elseif key == "castbarRaise" then
+		K.Combat.Queue(ns.CastBars.Apply)
+	elseif key == "unitTooltip" then
+		if hovered then Tooltip(hovered, InCombatLockdown()) end
 	elseif key == "cleanLowRing" then
 		ForEach(function(each)
 			if each.active then
@@ -850,6 +996,7 @@ local function OnSettingChanged(_, module, key)
 		ForEach(function(each)
 			for _, view in ipairs(each.views) do
 				Style.Accent(view)
+				Frames.Edge(view)
 			end
 		end)
 	end
@@ -900,20 +1047,21 @@ local function OnLayoutChanged(_, key, reason)
 	end)
 end
 
-local function RefreshIdentity()
+local function RefreshRestricted()
 	if K.HudStyle.Current() == "medallions" then
 		EachShown(ns.Slab.Refresh)
 	end
+	EachShown(Indicators.Threat)
 end
 
 local function OnRestriction(_, _, state)
 	local states = Enum and Enum.AddOnRestrictionState
 	local activating = states and states.Activating
 	if activating ~= nil and not (issecretvalue and issecretvalue(state)) and state == activating and C_Timer and C_Timer.After then
-		C_Timer.After(0, RefreshIdentity)
+		C_Timer.After(0, RefreshRestricted)
 		return
 	end
-	RefreshIdentity()
+	RefreshRestricted()
 end
 
 local function RegisterEvents()
@@ -922,6 +1070,8 @@ local function RegisterEvents()
 		TargetChange(frames.target and frames.target.views[1])
 		RefreshKind("targettarget", true)
 		Frames.MarkTargets()
+		EachShown(Frames.Edge)
+		ns.Blizzard.TargetSound()
 	end)
 	Events.Register(MODULE, "PLAYER_FOCUS_CHANGED", function()
 		RefreshKind("focus", true)
@@ -933,6 +1083,10 @@ local function RegisterEvents()
 	Events.RegisterUnit(MODULE, "UNIT_PET", function()
 		RefreshKind("pet", true)
 	end, "player")
+	Events.RegisterUnit(MODULE, "UNIT_HAPPINESS", function()
+		local uf = frames.pet
+		if running and uf and uf.active then Indicators.Extra(uf.views[1], "pet") end
+	end, "pet")
 	Events.Register(MODULE, "INSTANCE_ENCOUNTER_ENGAGE_UNIT", function()
 		RefreshKind("boss", true)
 		Frames.MarkTargets()
@@ -951,18 +1105,24 @@ local function RegisterEvents()
 		Events.Register(MODULE, event, function()
 			EachShown(Indicators.Status)
 			EachShown(function(view, unit) Unit.TextTags(view, unit, "Group") end)
+			OnPlayer(Indicators.Threat)
 		end)
 	end
 	Events.Register(MODULE, "ADDON_RESTRICTION_STATE_CHANGED", OnRestriction)
+	Events.Register(MODULE, "PVP_TIMER_UPDATE", function()
+		OnPlayer(Indicators.PvP)
+	end)
 	Events.Register(MODULE, "UNIT_THREAT_SITUATION_UPDATE", OnThreat)
 	Events.Register(MODULE, "UNIT_THREAT_LIST_UPDATE", OnThreat)
 	Events.Register(MODULE, "PLAYER_REGEN_DISABLED", function()
 		OnPlayer(Indicators.Combat)
 		OpenHits()
+		if hovered then Tooltip(hovered, true) end
 	end)
 	Events.Register(MODULE, "PLAYER_REGEN_ENABLED", function()
 		OnPlayer(Indicators.Combat)
 		Frames.MarkTargets()
+		if hovered then Tooltip(hovered, false) end
 	end)
 	Events.Register(MODULE, "PLAYER_UPDATE_RESTING", function()
 		OnPlayer(Indicators.Resting)

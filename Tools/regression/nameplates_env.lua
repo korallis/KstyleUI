@@ -108,6 +108,8 @@ function N.Install(env, opts)
 			token = env._targetUnit
 		elseif token == "focus" then
 			token = env._focusUnit
+		elseif token == "mouseover" then
+			token = env._mouseUnit
 		end
 		return token and env._units[token], token
 	end
@@ -160,10 +162,13 @@ function N.Install(env, opts)
 		local u = unit(token)
 		return u and u.maxHealth or 1
 	end
+	-- A curve from N.Curves evaluates in Lua; any other curve stands for CurveConstants.ScaleTo100.
 	function env.UnitHealthPercent(token, usePredicted, curve)
 		local u = unit(token)
 		local pct = u and u.health / u.maxHealth or 0
-		if curve then
+		if curve and curve.Evaluate then
+			return env.Secret(curve:Evaluate(pct))
+		elseif curve then
 			pct = pct * 100
 		end
 		return env.Secret(pct)
@@ -287,6 +292,33 @@ function N.Install(env, opts)
 		local u = unit(token)
 		return env.Secret(u and u.absorb or 0)
 	end
+	-- unit.pvpName is the name with a title, unit.guild the guild (secret with unit.secretGuild), unit.pet a player's pet,
+	-- unit.ownerGUID its owner in env._players; env._instance is IsInInstance's answer and unit.outOfRange the range check's.
+	function env.UnitPVPName(token)
+		local u = unit(token)
+		return u and (u.pvpName or u.name)
+	end
+	function env.GetGuildInfo(token)
+		local u = unit(token)
+		if u and u.guild then return u.secretGuild and env.Secret(u.guild) or u.guild, "Member", 1 end
+	end
+	function env.UnitPlayerControlled(token)
+		local u = unit(token)
+		return u ~= nil and u.pet == true
+	end
+	function env.UnitOwnerGUID(token)
+		local u = unit(token)
+		return u and u.ownerGUID
+	end
+	env._players = {}
+	function env.GetPlayerInfoByGUID(guid)
+		local name = env._players[guid]
+		if name then return "Paladin", "PALADIN", "Human", "Human", 2, name, "" end
+	end
+	env._instance = false
+	function env.IsInInstance()
+		return env._instance, env._instance and "party" or "none"
+	end
 	env.C_QuestLog = env.C_QuestLog or {}
 	function env.C_QuestLog.UnitIsRelatedToActiveQuest(token)
 		local u = unit(token)
@@ -305,6 +337,10 @@ function N.Install(env, opts)
 	env.C_Spell = env.C_Spell or {}
 	function env.C_Spell.GetSpellCooldown(identifier)
 		return env._cooldowns[identifier] or { startTime = 0, duration = 0, isEnabled = true, isActive = false, modRate = 1, isOnGCD = false }
+	end
+	function env.C_Spell.IsSpellInRange(_, token)
+		local u = unit(token)
+		if u then return u.secretRange and env.Secret(not u.outOfRange) or not u.outOfRange end
 	end
 	function env.C_Spell.GetSpellIDForSpellIdentifier(identifier)
 		if type(identifier) == "number" then
@@ -501,6 +537,22 @@ function N.Install(env, opts)
 		env.NamePlateScriptBaseMixin = { SetStackingBoundsFrame = function() end }
 		env.NamePlateSetupOptions = blizzard.options
 		env._plateSize, env._driverSize = { blizzard.width, blizzard.height }, { blizzard.width, blizzard.height }
+	end
+end
+
+-- Curves(env) adds C_CurveUtil.CreateCurve, whose curves evaluate in Lua as a step or a line through their points.
+function N.Curves(env)
+	env.Enum.LuaCurveType = env.Enum.LuaCurveType or { Linear = "Linear", Step = "Step" }
+	env.C_CurveUtil.CreateCurve = function()
+		local curve = { points = {} }
+		function curve.SetType(self, kind) self.kind = kind end
+		function curve.AddPoint(self, x, y) self.points[#self.points + 1] = { x, y } end
+		function curve.Evaluate(self, x)
+			local value = self.points[1][2]
+			for _, p in ipairs(self.points) do if x >= p[1] then value = p[2] end end
+			return value
+		end
+		return curve
 	end
 end
 

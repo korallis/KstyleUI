@@ -233,6 +233,20 @@ function Alts.Characters()
 	return list
 end
 
+function Alts.Money()
+	local list = {}
+	for _, character in ipairs(Alts.Characters()) do
+		local money = Plain(store.characters[character.key].money, "number")
+		if character.own and type(GetMoney) == "function" then
+			money = Plain(GetMoney(), "number") or money
+		end
+		if money then
+			list[#list + 1] = { name = character.name, class = character.class, money = money }
+		end
+	end
+	return list
+end
+
 local function Entries(counts, items, rank)
 	local list = {}
 	for id, count in pairs(counts) do

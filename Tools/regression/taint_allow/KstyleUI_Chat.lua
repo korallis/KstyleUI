@@ -13,11 +13,12 @@ return {
 		},
 	},
 	["KstyleUI_Chat/Panel.lua"] = {
-		why = "Blizzard and chat addons set the edit-box and tab alpha on focus and fade ticks: the alpha hooks retain the wanted alpha and follow the fade under guards. Blizzard docking, Edit Mode and KstyleUI layout call chat SetPoint on dock, drag, resize and reload; Schedule coalesces placement and exits during its own placement.",
+		why = "Blizzard and chat addons set the edit-box and tab alpha on focus and fade ticks: the alpha hooks retain the wanted alpha and follow the fade under guards. Blizzard docking, Edit Mode and KstyleUI layout call chat SetPoint on dock, drag, resize and reload; Schedule coalesces placement and exits during its own placement. Chat button size scales the game's chat buttons (menu, channels, voice toggles, friends; FloatingChatFrame.xml, FloatingChatFrameVoiceChat.xml, QuickJoinToast.xml), none of them protected, only from Place, which waits for K.Combat when the chat is protected; Keep records the game's scale and Release gives it back. With Scroll button with the chat buttons on, the game fades each moved jump-to-bottom button through UIFrameFade, which calls SetAlpha every frame of its 0.1 s fade-in and 2 s fade-out (FCF_FadeInScrollbar and FCF_FadeOutScrollbar, FloatingChatFrame.lua:1212-1235; CHAT_FRAME_FADE_OUT_TIME, :12), on hover changes and while new lines arrive scrolled up; the hook returns at once unless the hover rule or idle fade holds that button, and then sets only its alpha under the busy guard.",
 		calls = {
 			["frame.editBox:SetAlpha"] = 1,
 			["chat:SetPoint"] = 1,
 			["tab:SetAlpha"] = 1,
+			["frame.ScrollToBottomButton:SetAlpha"] = 1,
 		},
 	},
 }

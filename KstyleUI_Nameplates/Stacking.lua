@@ -31,9 +31,7 @@ local function Api(name)
 	return nil
 end
 
-local function Plain(value)
-	return not IsSecret(value) and type(value) == "number" and value or nil
-end
+local Plain = ns.Plates.Plain
 
 local function Bounding()
 	local mixin = NamePlateScriptBaseMixin
@@ -102,7 +100,7 @@ function Stacking.Bound(plate, rise)
 		below = math.max(below, rise)
 		frame:ClearAllPoints()
 		frame:SetPoint("BOTTOM", plate, "BOTTOM", 0, -below * k)
-		frame:SetSize(width * k, (above + height + below) * k)
+		frame:SetSize(width * k, (above + height + below) * k * Settings.Get("stacking.spacing"))
 		Register(plate)
 	elseif plate.boundTo then
 		frame:ClearAllPoints()
@@ -145,6 +143,11 @@ function Stacking.Extent(plate)
 			right = math.max(right, extra)
 		end
 	end
+	local sign, Snap = Settings.Get("cast.iconRight") and 1 or -1, K.Widgets.Snap
+	local icon = ns.Cast.FullIcon(plate, sign)
+	icon = icon and sign * Snap(plate, sign * ns.Auras.SideReach(plate, sign, true) + Settings.Get("cast.iconX")) + Snap(plate, icon) + (Snap(plate, state.width) - state.width) / 2
+	local reach = math.max(icon or 0, ns.Auras.Reach(plate))
+	left, right = math.max(left, reach), math.max(right, reach)
 	local width = state.width + left + right
 	if Settings.Get("name.show") then
 		width = math.max(width, K.Widgets.Snap(plate, state.width + ns.Plate.NAME_OVERHANG * 2))
@@ -158,7 +161,42 @@ local function Footprint()
 		return nil
 	end
 	local scale = Logic.PlateScale(K.Scale.Root():GetEffectiveScale(), UIParent:GetEffectiveScale())
-	return Logic.Footprint(width, height, above, below, scale)
+	local w, h = Logic.Footprint(width, height, above, below, scale)
+	return w, h and h * Settings.Get("stacking.spacing")
+end
+
+local hit = { written = {}, original = {} }
+
+local function HitInsets()
+	local manager, types = C_NamePlateManager, Enum and Enum.NamePlateType
+	if not (manager and types and type(manager.SetNamePlateHitTestInsets) == "function" and type(manager.GetNamePlateHitTestInsets) == "function") then
+		LogOnce("hit-insets", "C_NamePlateManager.SetNamePlateHitTestInsets is missing; plates keep the game's click area")
+		return
+	end
+	local get = Api("GetNamePlateSize")
+	local ok, w, h = false, nil, nil
+	if get then ok, w, h = pcall(get) end
+	w, h = ok and Plain(w), ok and Plain(h)
+	local running = ns.Plates.running
+	local cw, ch = Settings.Get("stacking.clickWidth"), Settings.Get("stacking.clickHeight")
+	local want = {
+		[types.Enemy] = running and w and h and (cw ~= 1 or ch ~= 1) and { cw ~= 1 and w * (1 - cw) / 2, ch ~= 1 and h * (1 - ch) / 2 } or nil,
+		[types.Friendly] = running and w and h and not Settings.Get("stacking.friendlyClicks") and { w / 2, h / 2 } or nil,
+	}
+	for _, kind in pairs(types) do
+		local insets, last, o = want[kind], hit.written[kind], hit.original[kind]
+		if insets and not o then
+			local read, l, r, t, b = pcall(manager.GetNamePlateHitTestInsets, kind)
+			o = read and Plain(l) and Plain(r) and Plain(t) and Plain(b) and { l, r, t, b } or nil
+			hit.original[kind] = o
+			if not o then LogOnce("hit-original", "the game's plate click area could not be read, so KstyleUI leaves it alone") end
+		end
+		if insets and o and not (last and last[1] == insets[1] and last[2] == insets[2]) then
+			if pcall(manager.SetNamePlateHitTestInsets, kind, insets[1] or o[1], insets[1] or o[2], insets[2] or o[3], insets[2] or o[4]) then hit.written[kind] = insets end
+		elseif not insets and last then
+			if pcall(manager.SetNamePlateHitTestInsets, kind, o[1], o[2], o[3], o[4]) then hit.written[kind], hit.original[kind] = nil, nil end
+		end
+	end
 end
 
 local function Settle(plate)
@@ -370,6 +408,9 @@ function Stacking.Sync()
 	if bounded or was then
 		ns.Plates.Each(Settle)
 	end
+	if next(hit.written) or Settings.Get("stacking.clickWidth") ~= 1 or Settings.Get("stacking.clickHeight") ~= 1 or not Settings.Get("stacking.friendlyClicks") then
+		HitInsets()
+	end
 end
 
 local function Hook()
@@ -392,7 +433,7 @@ local function Hook()
 				K.DevTest.Log(MODULE, "Blizzard reset the nameplate size in combat to " .. size .. "; the game stacks plates by it until combat ends, then KstyleUI's footprint comes back")
 			end
 			Stacking.Schedule()
-		elseif bounded then
+		elseif bounded or next(hit.written) then
 			original = nil
 			Remember()
 			Stacking.Schedule()

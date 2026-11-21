@@ -11,7 +11,6 @@ local MAX_RAID = 40
 local MAX_PARTY = 4
 local PERCENT_MAX = 100
 local LIMITS = { minWidth = 120, maxWidth = 600, minHeight = 40, maxHeight = 800 }
-local SLOT_WIDTH = 180
 local EVENTS = {
 	"PLAYER_TARGET_CHANGED", "UNIT_TARGET", "UNIT_THREAT_LIST_UPDATE", "UNIT_THREAT_SITUATION_UPDATE",
 	"GROUP_ROSTER_UPDATE", "UNIT_PET", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD",
@@ -27,7 +26,7 @@ end
 
 local DockGuide
 local Threat = { section = "threat", key = KEY, roster = {}, size = 0, rows = {}, order = {}, count = 0 }
-ns.Threat, ns.SLOT_WIDTH = Threat, SLOT_WIDTH
+ns.Threat = Threat
 
 local function IsSecret(v)
 	return Logic.IsSecret(v)
@@ -152,7 +151,7 @@ local function Count(list, text)
 end
 
 local function Visible()
-	if not ns.MeterShown("threat") then
+	if not ns.MeterShown("threat") or ns.windowsHidden then
 		return false
 	end
 	if ns.Get("threat.group") then
@@ -231,6 +230,7 @@ local function Update()
 		local row = Threat.rows[Threat.order[i]]
 		list:SetRow(i, row.name, row.class, "friendly", row.scaled, PERCENT_MAX, Logic.ThreatText(row.threat), PercentText(row))
 		if ns.Get("nameplateRows") then ns.SetClassIcon(list, i, row.class) end
+		list:SetMarker(i, row.isPlayer)
 	end
 	list:Finish(shown, count == 0 and L["No threat"] or nil)
 	local watched = Logic.ThreatWatch(Threat.rows, count)
@@ -269,7 +269,7 @@ function DockGuide()
 	end
 	local atDefault = layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
 	local damage = ns.Damage.holder
-	local both = atDefault and Visible() and ns.MeterShown("damage") and ns.Damage.Mode() == "window" and damage and ns.Damage.list.panel:IsShown()
+	local both = atDefault and Visible() and ns.MeterShown("damage") and ns.Damage.Mode() == "window" and damage and ns.Damage.list.panel:IsShown() and not ns.Damage2.Wanted()
 	Threat.paired = both == true
 	if Threat.soloWidth and not both then
 		holder:SetSize(Threat.soloWidth, Threat.soloHeight)
@@ -280,7 +280,7 @@ function DockGuide()
 		Threat.soloWidth = Threat.soloWidth or holder:GetWidth()
 		Threat.soloHeight = Threat.soloHeight or holder:GetHeight()
 		if holder:GetHeight() ~= damage:GetHeight() then holder:SetHeight(damage:GetHeight()) end
-		if holder:GetWidth() ~= SLOT_WIDTH then holder:SetWidth(SLOT_WIDTH) end
+		if holder:GetWidth() ~= ns.SLOT_WIDTH then holder:SetWidth(ns.SLOT_WIDTH) end
 		holder:ClearAllPoints()
 		K.Widgets.Point(holder, "TOPRIGHT", damage, "TOPLEFT", -K.Setup.Layouts.GAP / K.Widgets.ScaleFactor(holder), 0, true)
 		ns.Damage.list:Fit()

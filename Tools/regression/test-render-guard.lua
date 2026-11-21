@@ -251,11 +251,25 @@ local iconArt = iconHolder:CreateTexture(nil, "ARTWORK")
 iconArt:SetAllPoints(iconHolder)
 iconArt:SetTexture("Interface\\Icons\\inv_misc_questionmark")
 
+-- A HUD alert line on a lower strata, half under a window on a higher one (QoL's talent line under Options): the
+-- window draws over it as the game stacks strata, so the line is not the window's content, nor covered by it.
+local alerts = env.CreateFrame("Frame", "GuardAlerts", UIParent)
+alerts:SetFrameStrata("BACKGROUND")
+alerts:SetSize(300, 40)
+alerts:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 1000, -500)
+text(alerts, "Unspent talent points", 300, false):SetPoint("LEFT", alerts, "LEFT", 0, 0)
+local options = env.CreateFrame("Frame", "GuardOptions", UIParent)
+options:SetFrameStrata("HIGH")
+options:SetSize(200, 100)
+options:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 950, -470)
+glass(options)
+
 local scene = Scene.Build(env, {})
 local findings = Guard.Check(scene)
 local by = {}
 for _, f in ipairs(findings) do
 	by[f.kind .. "|" .. f.subject] = f
+	assert(not f.subject:find("Unspent talent points", 1, true), "a HUD line under a window on a higher strata is not the window's content: " .. f.kind .. " " .. f.subject)
 end
 
 local cutText = by["clipped|Casting Frostbolt"]

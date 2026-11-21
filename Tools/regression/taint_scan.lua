@@ -50,7 +50,7 @@ local PROTECTED = set({
 	"PickupAction", "PlaceAction", "SetBinding", "SetOverrideBinding", "SetOverrideBindingClick",
 	"ClearOverrideBindings", "CreateMacro", "EditMacro",
 	"C_Container.UseContainerItem", "TargetUnit", "CastSpellByName", "CastSpellByID", "UseAction",
-	"RunMacroText", "C_Macro.RunMacroText", "ShowUIPanel", "HideUIPanel",
+	"RunMacroText", "C_Macro.RunMacroText", "ShowUIPanel", "HideUIPanel", "CancelUnitBuff",
 })
 
 local CLOSED_TABLES = set({ "UISpecialFrames", "UIPanelWindows", "hash_SlashCmdList" })

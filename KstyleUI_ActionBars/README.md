@@ -106,6 +106,10 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 
 ## Files
 
+### Resource jewels
+
+Under Medallions, **Crest resource jewels** (Action Bars > Slab and cooldowns, on by default) puts one gilt-set diamond per point of the player's secondary resource across the top arc of the hub ring, filling left to right: combo points on the target for a rogue or a druid in cat form (embers, `jewelCombo`), holy power for a paladin (gold, `jewelHoly`) and soul shards for a warlock (violet, `jewelShard`). Other classes, and a druid out of cat form, show none; off restores the plain ring. The count is `UnitPowerMax` for that power, capped at ten, five when the maximum is secret, and none when it is zero, so a client without the power draws nothing. Up to five jewels sit 30 degrees apart; six to ten share the same 120-degree arc. Each gem, its bright core and its glow are one-point status bars (range `i - 1` to `i`) fed the raw `GetComboPoints` or `UnitPower` value, so the engine lights them and Lua never compares a secret value. The jewels listen only while the hub shows them: `UNIT_POWER_FREQUENT` for their own power token, `PLAYER_TARGET_CHANGED` and `COMBO_TARGET_CHANGED` for combo points, and the max-power and form events for the count and a druid's form.
+
 ### Crest travel
 
 In Medallions, **Crest travel clicks** defaults on. Left click uses `item:6948`; the native action does nothing when no Hearthstone is carried, and preparation clears its action type too. Right click opens travel above the crest and both central cast bars. Right click again, Escape, or using a destination closes it. The crest tooltip uses the shared KstyleUI tooltip, showing the bind location, remaining Hearthstone cooldown (`--` when secret), missing-Hearthstone notice and both clicks. Turning the setting off hides the secure overlay and restores click-through artwork.
@@ -152,7 +156,7 @@ In game: check left/right click and Escape inside and outside combat, missing He
 | File | What it holds |
 | --- | --- |
 | `Init.lua` | The addon table the files share |
-| `Data.lua` | The bar table and the pure parts: `GridSize`, `Cell`, `Slot`, `PagingDriver`, `PAGE_SNIPPET`, `ShortKey`, `FontFlags` |
+| `Data.lua` | The bar table and the pure parts: `GridSize`, `Cell`, `Slot`, `PagingDriver`, `PAGE_SNIPPET`, `FontFlags` |
 | `Settings.lua` | The defaults and the settings schema |
 | `Socket.lua` | The action bars' state on the kit's shared `Slot` (see [Lumen sockets](#lumen-sockets)) and the one table of tokens it reads |
 | `Button.lua` | One button: the kit's `Slot` on `SecureActionButtonTemplate`, and every visual update |
@@ -161,6 +165,7 @@ In game: check left/right click and Escape inside and outside combat, missing He
 | `Tray.lua` | The [Frames tray](#frames-tray): one card behind bars 1 and 2 while they stand stacked |
 | `Slab.lua` | The [Medallions slab](#medallions-slab): the slab behind bars 1 and 2, the crest hub between them and its motion |
 | `SlabEffects.lua` | The Medallions effects beside the slab: the slot ready flash, the hub's resource-cap ring and the hub's 3D models ([medallions-effects.md](../docs/medallions-effects.md)) |
+| `SlabJewels.lua` | The Medallions hub's [resource jewels](#resource-jewels): combo points, holy power or soul shards as gems on the ring |
 | `Bindings.lua` | Keybind mirroring and the hotkey text |
 | `Keybind.lua` | Hover overlays, the Save/Discard panel and staged game bindings |
 | `Blizzard.lua` | Hiding and restoring Blizzard's bars, and the gamepad check |
@@ -272,7 +277,7 @@ A flyout action shows a small chevron on the edge it opens from.
 
 ## Keybinds
 
-`Bindings.lua` reads `GetBindingKey` for each shown button's Blizzard binding name and points every key at the KstyleUI button with `SetOverrideBindingClick(owner, false, key, buttonName, "LeftButton")`. It clears and rebuilds them out of combat on `UPDATE_BINDINGS`, a settings change or a gamepad transition; in combat the old bindings keep working until the queued rebuild runs. The player's own bindings are never changed: the override bindings sit on top of them and vanish when the module or the bar turns off. The hotkey text is `ShortKey` of the first key, such as `S1` for Shift-1 and `M4` for mouse button 4, with `GetBindingText(key, true)` for a key it does not know.
+`Bindings.lua` reads `GetBindingKey` for each shown button's Blizzard binding name and points every key at the KstyleUI button with `SetOverrideBindingClick(owner, false, key, buttonName, "LeftButton")`. It clears and rebuilds them out of combat on `UPDATE_BINDINGS`, a settings change or a gamepad transition; in combat the old bindings keep working until the queued rebuild runs. The player's own bindings are never changed: the override bindings sit on top of them and vanish when the module or the bar turns off. `Button.KeyFor(slot)` is the key of the shown button that holds a slot, which `Widgets.ActionKey` hands to Cooldowns; a slot change and a hotkey refresh tell it the keys moved. The hotkey text is the kit's `Widgets.ShortKey` (`Core/Widgets/Text.lua`, shared with the Cooldowns keybinds) of the first key, such as `S1` for Shift-1 and `M4` for mouse button 4, with `GetBindingText(key, true)` for a key it does not know.
 
 ## New spell ranks and new spells
 

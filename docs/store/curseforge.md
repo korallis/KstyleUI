@@ -38,6 +38,10 @@ On the Description step, switch the editor to Markdown, then paste this. The blo
 
 *In-game screenshot behind the banner wordmark. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
+[![KstyleUI section: Join the Discord - help, bug reports, release news and UI sharing](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-discord.jpg)](https://discord.gg/A5qqGZEXyN)
+
+**Join the KstyleUI Discord: [discord.gg/A5qqGZEXyN](https://discord.gg/A5qqGZEXyN)** - get help, report a bug, hear about every release first and show off your UI.
+
 **Your whole interface, forged as one piece.** Pick a HUD, run one short setup, and play - every bar, plate, bag and window in the same dark gunmetal and gold.
 
 **Install in a minute:** the CurseForge app, the Wago app or WowUp, or unzip by hand into your AddOns folder - full steps are at the bottom.
@@ -72,8 +76,10 @@ Good to know: the pack works with or without the KstyleUI addon. It loads only a
 
 - **Three HUDs, one choice at setup.** Medallions, Frames or Orbs - pick yours on first login, change it any time.
 - **The whole game in one style.** Bars, nameplates, bags, tooltips, windows and the damage meter all wear the same dark forged chrome.
+- **Make every part yours.** Deep settings for unit, party and raid frames, nameplates, cooldowns, auras, chat, the minimap, bags, tooltips and meters, each with a live preview.
+- **A map that plans the trip.** Search the world map and get a route along real roads, flights and boats, with every step and its travel time.
 - **Sharp on every screen.** Pixel-perfect sizing from a laptop to a 32:9 ultrawide; at 1080 lines and above, a text floor that scales with your screen keeps type readable.
-- **Nothing you don't want.** Every part is its own module. Switch one off and it costs nothing.
+- **Nothing you don't want.** Every part is its own module. Switch one off and it costs nothing, and reloads are quick.
 - **Ready in minutes.** One short setup, layouts for DPS, Tank and Healer, and profiles you can copy between characters.
 
 ![In-game screenshot; KstyleUI feature card: Three HUD styles - Medallions, Frames or Orbs; pick at setup, switch any time](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/card-three-huds.jpg)
@@ -113,6 +119,18 @@ Pick your style in the first-run setup. Switch later in **Options, General, HUD 
 Dark gunmetal with rounded, bevelled edges, like a piece of forged hardware. You and your target are slabs with clean bars and a round medallion on the outer end, its rim engraved with runes. Yours is a painted portrait of your race, class and sex - other players get their own; a creature, pet or boss shows the game's portrait.
 
 Your first two action bars sit in recessed sockets on one dark slab: twelve buttons each side of a crest painted for your race and class, in a ring of runes in your class colour. Your pet and stance bars get small slabs beside it, and your experience runs along the slab's lower edge.
+
+Rogues, cat-form druids, paladins and warlocks see their class resource on the crest itself: combo points, holy power or soul shards light up as jewels round the top of the ring (**Options, Action Bars, Crest resource jewels**).
+
+![KstyleUI test render over an in-game screenshot of the Medallions crest: a warlock's three soul shards lit as purple jewels on the ring, two still dark](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_crest.jpg)
+
+*KstyleUI test render over an in-game screenshot: three of five soul shards lit on the crest. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
+
+Under the slab, your data bar docks on forged plates: the clock on one side; frame rate, latency, gold and experience on the other, each in its own segment with an icon and gilt dividers.
+
+![KstyleUI test render over an in-game screenshot of the Medallions slab: both medallions, the jewelled crest, two rows of sockets and the forged data dock underneath](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_dock.jpg)
+
+*KstyleUI test render over an in-game screenshot: the slab, the crest and the forged data dock under it. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
 ![In-game screenshot of the Medallions HUD in combat, cropped to 16:9 from the ultrawide screenshot](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/game_medallions_16x9.jpg)
 
@@ -188,7 +206,7 @@ With **Interface size: Auto (pixel perfect)**, the default, KstyleUI picks the s
 
 ![KstyleUI section: Set up in one window - one short setup, then you are playing](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-set-up.jpg)
 
-The first time you log in, one short setup does it all: pick Medallions, Frames or Orbs, pick the DPS, Tank or Healer layout over a live preview, choose your modules, then apply. Close it early and you get the DPS layout with every module on; **Keep my UI** leaves the game's interface untouched. Run it again any time with `/kstyle setup`.
+The first time you log in, one short setup does it all: pick Medallions, Frames or Orbs, pick the DPS, Tank or Healer layout over a live preview, choose your modules and which of your other addons KstyleUI skins, then apply. Close it early and you get the DPS layout with every module on; **Keep my UI** leaves the game's interface untouched. Run it again any time with `/kstyle setup`.
 
 ![KstyleUI test render over an in-game screenshot of the addon's first-run setup on its layout step: DPS, Tank and Healer cards over a preview of the layout under the pointer](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frame_setup.jpg)
 
@@ -200,9 +218,9 @@ Tank gives threat its own clear slot. Healer gives party and raid frames more ro
 
 *KstyleUI test render over an in-game screenshot: the raid frames. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
-`/kstyle` opens one settings window with a page per module, a search across every setting and a live preview. `/kb` or `/kstyle kb` binds your action buttons: hover a button, press a key, then save. `/kstyle layout` moves, resizes or scales any element. Keep a profile per specialization, switching automatically after combat. Profiles copy between characters, and export and import as one string.
+`/kb` or `/kstyle kb` binds your action buttons: hover a button, press a key, then save. `/kstyle layout` moves, resizes or scales any element. Keep a profile per specialization, switching automatically after combat. Profiles copy between characters, and export and import as one string.
 
-![KstyleUI section: The rest of your UI - nameplates, meter, bags, tooltips and window skins](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-rest-of-your-ui.jpg)
+![KstyleUI section: The rest of your UI - nameplates, meter, map, bags, tooltips and window skins](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-rest-of-your-ui.jpg)
 
 ### Nameplates that stay out of the way
 
@@ -234,6 +252,14 @@ One class-coloured bar per player. Switch between this fight, the last fight and
 
 Your buffs sit above a map card with the zone, your coordinates and the clock. The quest card keeps your quests in view and scrolls for the rest; in the picture the taller guide card beside it takes more of the rail, so it shows one quest and counts the others below. With a RestedXP guide open, the guide takes the tall column beside it, and RestedXP's target and item boxes dock underneath. The minimap's drawer collects every addon button cluttering the map.
 
+### A world map that plans the trip
+
+![KstyleUI test render over an in-game screenshot of the world map's route card: Thunder Bluff from Orgrimmar - the road to the flight master, the flight, then the last stretch - with each step's distance and time](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_route.jpg)
+
+*KstyleUI test render over an in-game screenshot: a route from Orgrimmar to Thunder Bluff. The plain green stands in for the game's own map art.*
+
+Search the map for a flight master, a dungeon or raid entrance or a quest, and KstyleUI draws the way there along real roads, passes, flights and boats. The route card lists every step with its distance and travel time, and offers a flight when one saves you at least a minute. The map zooms smoothly with the wheel, remembers where you were, and shows dungeon and zone level ranges.
+
 ### Bags, tooltips and windows
 
 ![KstyleUI test render over an in-game screenshot of the addon's skin on Blizzard's character sheet](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frame_skins.jpg)
@@ -244,6 +270,22 @@ Your buffs sit above a map card with the zone, your coordinates and the clock. T
 - **Tooltips:** on the same dark card, with quality and class colours and a health bar.
 - **Window skins:** the character sheet, spellbook, talents, world map and quest log, mail, merchant, professions, loot, group finder, social windows and the game menu - and the RestedXP windows - all in KstyleUI's style.
 - **And the rest:** unit frames, group frames to 40, action bars, cooldowns, auras, combat text, chat, data bars, a threat meter and swing timer, and quality-of-life touches such as fast auto loot and auto repair. Each is its own module, and a module you switch off costs nothing.
+
+![KstyleUI section: Make it yours - deep settings for every part, each with a live preview](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-make-it-yours.jpg)
+
+`/kstyle` opens one settings window with a page per module, a search across every setting and a live preview that redraws as you change things. Every module goes deep, and every new option starts at the look you already have:
+
+- **Unit, party and raid frames:** text slots of your own, absorb shields, aura filters and sorting, cast bar colours with a latency zone, and AFK, resurrection and summon marks.
+- **Nameplates:** colours for bosses, casters and minor mobs, threat percent, an execute-range mark and raid-marker tags.
+- **Cooldowns and auras:** per-spell rules to hide, fade or glow a spell, and auras filtered by category, duration or spell.
+- **Chat:** fading when it goes quiet, tabs and buttons you arrange, class-coloured names and link tooltips on hover.
+- **Minimap:** zone, clock and coordinates inside the map, and buttons you can Shift-drag anywhere on it.
+- **Bags:** a list view, pinned items, a category list down the side, and sections by slot, type, set or expansion.
+- **Tooltips and meters:** item level and buffs on player tooltips; a second damage window, spell history and a combat timer.
+- **Data bars:** icons on every readout, new readouts such as coordinates and professions, and a second data bar you place yourself.
+- **Quality of life:** alerts for combat, deaths, low durability and potions, a cursor ring and crosshair, raid tools and `/way` waypoints.
+
+New in a version? **About, What's new** lists the highlights in game, in your language.
 
 Every module stays inside the rules Forever sets for addons: a protected change made in combat waits for combat to end.
 

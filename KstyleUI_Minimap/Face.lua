@@ -479,7 +479,11 @@ function Face:PlaceInside()
 	local edge, gap = Snap(area, Format.EDGE), Snap(area, 2)
 	local column = Settings.Get("column.side") == "left" and 1 or -1
 	local reserve = max(0, Snap(area, Format.EDGE + Settings.Get("column.offset")) + ns.Column.Size(self.holder))
-	local mail = Settings.Get("column.mail") and Settings.Get("mail.position")
+	local corners = { [Settings.Get("column.mail") and Settings.Get("mail.position") or ""] = reserve }
+	if self.compartment then
+		local corner = Settings.Get("compartment.position")
+		corners[corner] = max(corners[corner] or 0, reserve + ns.Column.Size(self.holder) * (Settings.Get("compartment.scale") - 1))
+	end
 	local used = {}
 	for _, name in ipairs(INSIDE) do
 		local point, text = Face.Moved(name), self[name]
@@ -487,7 +491,7 @@ function Face:PlaceInside()
 			local h = point:find("LEFT") and 1 or point:find("RIGHT") and -1 or 0
 			local v = point:find("TOP") and -1 or point:find("BOTTOM") and 1 or 0
 			local corner = Face.Round() and h ~= 0 and v ~= 0 and Snap(area, side * ROUND_CORNER) or 0
-			local x = edge + corner + (h == column and reserve or 0) + (point == mail and reserve or 0)
+			local x = edge + corner + (h == column and reserve or 0) + (corners[point] or 0)
 				+ (point == "LEFT" and Snap(area, SLIDER_INSET + SLIDER_HIT) or 0)
 			local y = (v == 0 and 0 or edge + corner) + (used[point] or 0)
 			x = h * x + Snap(area, Settings.Get(name .. ".x"))

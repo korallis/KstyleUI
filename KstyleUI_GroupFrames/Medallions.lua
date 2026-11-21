@@ -57,7 +57,7 @@ end
 local colorSources = Unit.ColorSources
 function Unit.ColorSources(f)
 	if f and f.kind == "raid" and Medallions.Active() then
-		return "class", "text"
+		return colorSources(f) == "gradient" and "gradient" or "class", "text"
 	end
 	return colorSources(f)
 end
@@ -147,7 +147,7 @@ local function TidyParts(out, kind, o)
 	local size = kind == "party" and 14 or 10
 	local count = 0
 	for i = 1, Settings.INDICATOR_SLOTS do
-		if ns.Slots.CATEGORIES[Settings.current["indicator" .. i].category] then count = count + 1 end
+		if ns.Slots.Category(Settings.current["indicator" .. i], kind) then count = count + 1 end
 	end
 	count = math.min(3, count)
 	local reserve = o.reserve or 0
@@ -159,13 +159,15 @@ local function TidyParts(out, kind, o)
 	end
 	local width = count > 0 and count * size + (count - 1) * 1 or 0
 	out.indicatorLane = { left = endName - width, top = name.top + math.max(0, (name.height - size) / 2), width = width, height = size, size = size, count = count, step = size + 1, fromRight = true, legible = true }
+	if heal then
+		out.indicatorLane.left, out.indicatorLane.top = right - width, health.top + (health.height - size) / 2
+	end
 	if out.tile then
 		out.tile.percentRight, out.tile.gap = right, gap
 	else
 		out.healthText.right, out.healthText.markedRight = right, right
 	end
-	local nameRight = endName - width - (width > 0 and gap or 0)
-	if heal then nameRight = math.min(endName, math.max(nameRight, name.left + Geometry.NAME_EM * (o.nameMin or 0))) end
+	local nameRight = heal and endName or endName - width - (width > 0 and gap or 0)
 	out.name = { left = name.left, top = name.top, width = math.max(1, nameRight - name.left), height = name.height }
 	out.tidyLanes = true
 	return out
@@ -372,7 +374,7 @@ end
 
 local function TextReserve(f, k)
 	local percent = k.healthText ~= "NONE" and Style.Reserve(f, k, nil, true) or 0
-	local status = f.status and Style.StatusWidth(f, k.healthTextSize) or 0
+	local status = Style.InRow(f) and Style.StatusWidth(f, Style.StatusSize(f, k.healthTextSize)) or 0
 	return math.max(percent, status) + Slack(f), percent > 0 and percent + Slack(f) or 0
 end
 
@@ -383,6 +385,7 @@ local function TileText(f)
 	local right = Widgets.Snap(f, tile.percentRight or tile.right)
 	local gap = Widgets.Snap(f, tile.gap)
 	local reserve = TextReserve(f, k)
+	Style.SetFont(f.healthText, Settings.current.text.healthFont, Style.StatusSize(f, k.healthTextSize), TILE_TEXT)
 	local lines = 1.2 * (Widgets.FontSize(f.name, 12) + Widgets.FontSize(f.healthText, k.healthTextSize))
 	local refined = Widgets.Readability("readableBars")
 	local separated = refined and tile.stacked and health.height - 2 * tile.inset >= lines
@@ -460,6 +463,7 @@ local placeRowEnd = Style.PlaceRowEnd
 function Style.PlaceRowEnd(f)
 	if f.parts and f.parts.tile and Medallions.Active() then
 		TileText(f)
+		Style.PinStatus(f)
 		return
 	end
 	return placeRowEnd(f)
@@ -515,7 +519,10 @@ local function PaintSample(f, sample)
 	if not Medallions.Active() or f.kind ~= "raid" or f.status then
 		return
 	end
-	f.health:SetBarColor(K.Theme.ClassColor(sample.class))
+	if Settings.current.health.colorSource ~= "gradient" then
+		local r, g, b = K.Theme.ClassColor(sample.class)
+		f.health:SetBarColor(r, g, b, Settings.current.health.alpha)
+	end
 	if Widgets.Readability("readableBars") then Unit.NameColored(f, sample.class) else f.name:SetTextColor(Tokens.Color("textEmphasis")) end
 end
 Style.painters[#Style.painters + 1] = PaintSample

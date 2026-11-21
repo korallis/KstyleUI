@@ -138,11 +138,13 @@ do
 	assert(talk.text:GetFont() == (ns.Style.Font("body")), "in the body face")
 
 	-- The place: the text starts under the cap's title, and the check sits left of it in the gem's column.
-	local want = K.Widgets.Snap(f.CurrentStepFrame, 4) + ns.Lumen.CapColumn(f.CurrentStepFrame)
+	local label = path.cap.label
+	local want = label:GetLeft() * label:GetEffectiveScale()
 	for _, element in ipairs(step.elements) do
 		local point, relative, relativePoint, x, y = element.text:GetPoint(1)
 		assert(point == "TOPLEFT" and relative == element and relativePoint == "TOPLEFT", "a step's text hangs from its own row")
-		assert(near(x, want, 0.01) and near(y, -K.Widgets.Snap(f.CurrentStepFrame, 2), 0.01), "it starts where the cap's title starts, got " .. tostring(x) .. " for " .. tostring(want))
+		local got = element.text:GetLeft() * element.text:GetEffectiveScale()
+		assert(near(got, want, 0.01) and near(y, -K.Widgets.Snap(f.CurrentStepFrame, 2), 0.01), "it starts where the cap's title starts on screen, got " .. tostring(got) .. " for " .. tostring(want))
 		local _, _, _, cx = element.button:GetPoint(1)
 		assert(cx + element.button:GetWidth() < x, "its check sits left of the text, got " .. tostring(cx))
 	end
@@ -150,7 +152,7 @@ do
 	assert(holder[2] == f.CurrentStepFrame and near(holder[5], -K.Widgets.Snap(path.holder, 12), K.Scale.Pixel(1) / K.Widgets.ScaleFactor(path.holder) / 2 + 1e-6), "the cap reads right over the first line, within half a physical pixel of the 12-unit rise")
 	-- RestedXP lays the steps out again whenever a line changes (CurrentStepFrame.UpdateText): the place holds.
 	f.CurrentStepFrame.UpdateText()
-	assert(near(select(4, talk.text:GetPoint(1)), want, 0.01) and select(2, talk.text:GetPoint(1)) == talk, "RestedXP's own layout pass leaves the text under the title")
+	assert(near(talk.text:GetLeft() * talk.text:GetEffectiveScale(), want, 0.01) and select(2, talk.text:GetPoint(1)) == talk, "RestedXP's own layout pass leaves the text under the title")
 	local function LineHeight(text)
 		return math.ceil(select(2, text:GetFont()) * 1.1) + 1
 	end

@@ -87,9 +87,12 @@ local function Render(keepOffset, reselect, pageChanged)
 	local items
 	local page = CurrentPage()
 	if state.query then
-		items = Model.Search(K.Store.Account().optionsSearchPage == true and { page } or state.pages, state.query) or {}
+		local account = K.Store.Account()
+		items = Model.Search(account.optionsSearchPage == true and { page } or state.pages, state.query) or {}
 		if #items == 0 then
 			items = Note(format(L["No settings match \"%s\"."], state.query))
+		elseif account.optionsSearchMemory then
+			items = Window.Picks(items, account)
 		end
 	else
 		items = page and Model.Visible(Model.PageItems(page)) or {}
@@ -112,7 +115,8 @@ local function Render(keepOffset, reselect, pageChanged)
 	local calm = CalmLists()
 	content.revealLimit = calm and 0.45 or nil
 	content:SetData(items, keepOffset, not calm or pageChanged == true)
-	local sections = K.Store.Account().optionsRailSections ~= false and state.sections or {}
+	local folded = K.Store.Account().optionsRailFolded
+	local sections = K.Store.Account().optionsRailSections ~= false and not (folded and folded[state.page]) and state.sections or {}
 	if reselect then
 		rail:Select(state.query and "" or state.page, sections)
 	else
@@ -129,6 +133,63 @@ local function JumpTo(entry)
 		return
 	end
 	content:ScrollToIndex(entry.index, false, "TOP")
+end
+
+local function PickId(item)
+	return item.page .. "|" .. tostring(item.element or item.module) .. "|" .. tostring(item.key or item.label)
+end
+
+function Window.Picks(items, account)
+	local picks, first, out = account.optionsSearchPicks or {}, {}, {}
+	for _, item in ipairs(items) do
+		if item.set and item.kind ~= "header" then
+			local id, set = PickId(item), item.set
+			item.set = function(...)
+				local list = account.optionsSearchPicks or {}
+				for i = #list, 1, -1 do if list[i] == id then table.remove(list, i) end end
+				table.insert(list, 1, id)
+				list[9] = nil
+				account.optionsSearchPicks = list
+				return set(...)
+			end
+			for rank, pick in ipairs(picks) do if pick == id then first[rank] = item end end
+		end
+	end
+	for rank = 1, 8 do
+		if first[rank] then
+			if not out[1] then out[1] = { kind = "header", level = 1, label = L["Recent picks"], page = first[rank].page } end
+			out[#out + 1] = first[rank]
+		end
+	end
+	for _, item in ipairs(items) do out[#out + 1] = item end
+	return out
+end
+
+local function Fold(id)
+	local account = K.Store.Account()
+	local folded = account.optionsRailFolded or {}
+	folded[id] = not folded[id] or nil
+	account.optionsRailFolded = next(folded) and folded or nil
+	if id == state.page and not state.query then Render(true) end
+end
+
+function Window.SetFolded(fold)
+	if not win or (state.folded or false) == fold then return end
+	if fold then
+		local parent = win:GetParent()
+		local left, top, pl, pb, ps, ws = win:GetLeft(), win:GetTop(), parent:GetLeft(), parent:GetBottom(), parent:GetEffectiveScale(), win:GetEffectiveScale()
+		for _, v in ipairs({ left or false, top or false, pl or false, pb or false, ps or false, ws or false }) do
+			if Widgets.IsSecret(v) or type(v) ~= "number" or v ~= v then return end
+		end
+		if ws <= 0 then return end
+		local ratio = ps / ws
+		win:ClearAllPoints()
+		win:SetPoint("TOPLEFT", parent, "BOTTOMLEFT", left - pl * ratio, top - pb * ratio)
+		win:SetHeight(Snap(Widgets.WindowInset(win) * 2 + HEADER))
+	end
+	state.folded = fold
+	if win.SetClipsChildren then win:SetClipsChildren(fold) end
+	if not fold then K.Layout.Restore(Pages.WINDOW_KEY) end
 end
 
 function Window.Refresh()
@@ -366,7 +427,17 @@ local function Build()
 	end)
 	win.header:SetScript("OnDragStop", function()
 		win:StopMovingOrSizing()
-		SavePosition()
+		if not state.folded then SavePosition() end
+	end)
+	win.header:SetScript("OnMouseUp", function(_, button)
+		if button ~= "LeftButton" or K.Store.Account().optionsFold ~= true then return end
+		local now = GetTime()
+		if state.clicked and now - state.clicked < 0.4 then
+			state.clicked = nil
+			Window.SetFolded(not state.folded)
+		else
+			state.clicked = now
+		end
 	end)
 	win.logo = win.header:CreateTexture(nil, "ARTWORK")
 	win.logo:SetTexture((Tokens.Texture("logo")))
@@ -392,7 +463,7 @@ local function Build()
 	end)
 	clear:Hide()
 
-	rail = Rail.Create(win, Select, JumpTo)
+	rail = Rail.Create(win, Select, JumpTo, Fold)
 	win.split = win:CreateTexture(nil, "ARTWORK")
 	win.split:SetColorTexture(Tokens.Color("white"))
 	content = Widgets.ScrollList(win, {
@@ -482,6 +553,10 @@ local function Build()
 end
 
 function Window.Show(page)
+	if page == false then
+		if win and win:IsShown() then win:Close() end
+		return
+	end
 	if type(page) == "table" then
 		Window.Show(page.page)
 		if not Window.Jump(page) then
@@ -515,6 +590,7 @@ function Window.Show(page)
 	state.query = nil
 	search:SetText("")
 	clear:Hide()
+	Window.SetFolded(false)
 	ReloadPages()
 	win:Open()
 	win:Raise()

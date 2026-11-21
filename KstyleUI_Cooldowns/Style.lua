@@ -1,4 +1,4 @@
--- Style.lua: the fonts, accent tints, glows, tooltips and the "+N" overflow chip (one socket beyond a full row, on the side away from the combat cluster, listing the hidden buffs on hover) the Cooldowns icons and bars share.
+-- Style.lua: the fonts, accent tints, glows (the proc glow lowered under the numbers on request), countdown formats (coloured below a threshold), text and keybind offsets, crafted-quality pips, tooltips and the "+N" overflow chip (one socket beyond a full row, on the side away from the combat cluster, listing the hidden buffs on hover) the Cooldowns icons and bars share.
 local _, ns = ...
 
 local K = KstyleUI
@@ -91,13 +91,14 @@ function Style.Font(text, choice, size, outline, role)
 	end
 end
 
-local formatter
+local formatters = {}
 
-local function Formatter()
-	if formatter ~= nil then
-		return formatter or nil
+local function Formatter(tenths)
+	local key = tenths or 0
+	if formatters[key] ~= nil then
+		return formatters[key] or nil
 	end
-	formatter = false
+	formatters[key] = false
 	local util, E = C_StringUtil, Enum
 	if not (util and type(util.CreateSecondsFormatter) == "function" and E and E.SecondsFormatterAbbreviation and E.SecondsFormatterRounding and E.SecondsFormatterInterval) then
 		ns.LogOnce("countdown", "C_StringUtil.CreateSecondsFormatter is missing; countdowns keep the engine's numbers")
@@ -113,26 +114,31 @@ local function Formatter()
 		if E.SecondsFormatterIntervalWhitespace and E.SecondsFormatterIntervalWhitespace.Strip ~= nil then
 			f:SetStripIntervalWhitespace(E.SecondsFormatterIntervalWhitespace.Strip)
 		end
+		if tenths then f:SetMillisecondsThreshold(tenths) end
 		return f
 	end)
 	if ok and made then
-		formatter = made
+		formatters[key] = made
 		ns.LogOnce("countdown", "countdowns read with a one-letter seconds formatter (4s, 2m)")
 	else
 		ns.LogOnce("countdown", "the countdown formatter failed (" .. tostring(made) .. "); countdowns keep the engine's numbers")
 	end
-	return formatter or nil
+	return formatters[key] or nil
 end
 
-function Style.Countdown(cooldown, native, bar)
+function Style.Hex(r, g, b)
+	return string.format("%02x%02x%02x", math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
+end
+
+function Style.Countdown(cooldown, native, bar, tenths, colour, below)
 	if type(cooldown) ~= "table" or type(cooldown.SetCountdownFormatter) ~= "function" then
 		return false
 	end
-	if not bar and ns.Settings.current.readableCountdown then
-		return pcall(Widgets.CountdownFormat, cooldown)
+	if not bar and (ns.Settings.current.readableCountdown or colour) then
+		return pcall(Widgets.CountdownFormat, cooldown, tenths, colour, below)
 	end
-	if native then return pcall(cooldown.SetCountdownFormatter, cooldown, nil) end
-	local f = Formatter()
+	if native and not tenths then return pcall(cooldown.SetCountdownFormatter, cooldown, nil) end
+	local f = Formatter(tenths)
 	if not f then
 		return false
 	end
@@ -141,6 +147,18 @@ function Style.Countdown(cooldown, native, bar)
 		ns.LogOnce("countdown-set", "SetCountdownFormatter failed (" .. tostring(err) .. "); countdowns keep the engine's numbers")
 	end
 	return ok
+end
+
+local coloured = setmetatable({}, { __mode = "k" })
+
+function Style.TextColour(text, colour, token)
+	if not text or not (colour or coloured[text]) then return end
+	coloured[text] = colour and true or nil
+	if colour then
+		text:SetTextColor(ns.Rules.Colour(colour, "timer"))
+	else
+		Widgets.TextColor(text, token)
+	end
 end
 
 local function Custom()
@@ -256,6 +274,34 @@ function Style.PlaceText(icon, group)
 	if base[1] then
 		icon.count:SetPoint(base[1], base[2], base[3], base[4] + Widgets.Snap(icon, cfg.countX), base[5] + Widgets.Snap(icon, cfg.countY))
 	end
+	if cfg.keybindX and (cfg.keybindX ~= 0 or cfg.keybindY ~= 0 or icon.keyBase) then
+		icon.keyBase = icon.keyBase or { icon.hotkey:GetPoint(1) }
+		base = icon.keyBase
+		if base[1] then icon.hotkey:SetPoint(base[1], base[2], base[3], base[4] + Widgets.Snap(icon, cfg.keybindX), base[5] + Widgets.Snap(icon, cfg.keybindY)) end
+	end
+end
+
+local RANK_DOT, RANK_GAP, RANK_INSET = 4, 1, 2
+
+function Style.Rank(icon, rank)
+	local dots = icon.rankDots or {}
+	icon.rankDots, icon.rank = dots, rank
+	local fit = math.min(1, icon:GetWidth() / (5 * RANK_DOT + 4 * RANK_GAP + 2 * RANK_INSET))
+	local px = K.Scale.Pixel(1) / Widgets.ScaleFactor(icon)
+	local size, step, inset = math.max(px, math.floor(RANK_DOT * fit / px) * px), RANK_GAP * fit, RANK_INSET * fit
+	for i = 1, rank or 0 do
+		local dot = dots[i]
+		if not dot then
+			dot = icon.overlay:CreateTexture(nil, "OVERLAY")
+			dot:SetTexture((Tokens.Texture("dot")))
+			Widgets.Tint(dot, "textEmphasis")
+			dots[i] = dot
+		end
+		Widgets.Size(dot, size, size)
+		Widgets.Point(dot, "TOPRIGHT", icon, "TOPRIGHT", -inset - (i - 1) * (size + step), -inset)
+		dot:Show()
+	end
+	for i = (rank or 0) + 1, #dots do dots[i]:Hide() end
 end
 
 local function ShowTooltip(icon)
@@ -370,9 +416,11 @@ function Style.Decorate(icon, group)
 		local restyle = icon.Restyle
 		icon.Restyle = function(self)
 			restyle(self)
-			self.countBase = nil
+			self.countBase, self.keyBase = nil, nil
 			Style.Dress(self)
 			Style.PlaceText(self, group)
+			if self.rankDots then Style.Rank(self, self.rank) end
+			Style.TextColour(self.countdown, self.rule and self.rule.timerColour, "slotNumber")
 		end
 		Style.PlaceText(icon, group)
 	end
@@ -390,12 +438,33 @@ function Style.Tooltips(frame)
 	frame:HookScript("OnLeave", HideTooltip)
 end
 
+function Style.Lift(icon)
+	local glow, on = icon.lumenGlow, ns.Settings.current.textAboveGlow
+	if not (glow and (on or icon.procLevel)) then return end
+	icon.procLevel = icon.procLevel or glow:GetFrameLevel()
+	local level = on and icon:GetFrameLevel() or icon.procLevel
+	if glow:GetFrameLevel() ~= level then glow:SetFrameLevel(level) end
+end
+
 function Style.SetProc(icon, on)
 	on = on and true or false
 	if icon.proc == on then
 		return
 	end
 	icon:SetProc(on)
+end
+
+function Style.Glow(store, frame, key, on, r, g, b)
+	local glow = store[key]
+	if on then
+		glow = glow or Widgets.Glow(frame, { kind = "selection" })
+		store[key] = glow
+		local rgb = glow.colorRGB
+		if not (rgb and rgb[1] == r and rgb[2] == g and rgb[3] == b) then glow:SetColorRGB(r, g, b) end
+		glow:Start()
+	elseif glow then
+		glow:Stop()
+	end
 end
 
 function Style.SetReady(icon, on)

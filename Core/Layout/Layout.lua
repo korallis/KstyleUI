@@ -30,6 +30,7 @@ local IS_FIELD = {}
 for _, field in ipairs(FIELDS) do
 	IS_FIELD[field] = true
 end
+IS_FIELD.link = true
 Layout.FIELDS = FIELDS
 
 local STYLED = { anchor = true, x = true, y = true, scale = true, width = false, height = false }
@@ -49,6 +50,9 @@ Layout.SHOWN_OPTIONS = {
 	{ value = "noRaid", label = L["Not in a raid"] },
 	{ value = "noSolo", label = L["In a group only"] },
 	{ value = "target", label = L["With a target"] },
+	{ value = "combatTarget", label = L["In combat or with a target"] },
+	{ value = "mounted", label = L["When mounted only"] },
+	{ value = "noMounted", label = L["Not while mounted"] },
 	{ value = "mouseover", label = L["On mouseover"] },
 	{ value = "never", label = L["Never"] },
 }
@@ -286,6 +290,11 @@ function Layout.RootSize()
 	return FALLBACK_ROOT_W, FALLBACK_ROOT_H
 end
 
+local function Mounted()
+	local mounted = type(IsMounted) == "function" and IsMounted()
+	return not IsSecret(mounted) and mounted == true
+end
+
 local function TargetExists()
 	if type(UnitExists) ~= "function" then
 		return false
@@ -387,6 +396,19 @@ local CHECK = {
 	matchWidth = function(el, v)
 		if not IsSecret(v) and type(v) == "boolean" and (not v or el.opts.resizable) then return v end
 		return nil, L["a resizable element"]
+	end,
+	link = function(el, v)
+		if IsSecret(v) or type(v) ~= "table" then return nil, L["a table"] end
+		local out = {}
+		for field, value in pairs(v) do
+			local ok
+			if field == "point" or field == "target" then ok = G.IsAnchor(value)
+			elseif field == "x" or field == "y" then ok = IsFinite(value) and abs(value) <= MAX_OFFSET
+			elseif field == "width" or field == "height" or field == "snap" then ok = not IsSecret(value) and type(value) == "string" and #value <= MAX_KEY and value ~= el.key end
+			if not ok then return nil, L["a table"] end
+			out[field] = value
+		end
+		return next(out) and out or nil, L["a table"]
 	end,
 	anchor = function(_, v)
 		if G.IsAnchor(v) then
@@ -513,6 +535,15 @@ local function LinkedRect(el, w, h, offset)
 	local target = LinkTarget(el)
 	if not target then return end
 	local l, b, tw, th = Layout.Rect(target.key)
+	local link = el.settings.link
+	if link then
+		l, b = l + (link.x or 0), b + (link.y or 0)
+		if link.point then
+			local fx, fy = G.Fraction(link.point)
+			local tx, ty = G.Fraction(link.target or "CENTER")
+			return l + tw * tx - w * fx, b + th * ty - h * fy, "point"
+		end
+	end
 	local s = SIDES[el.settings.side]
 	local side, along = s[1], s[2]
 	offset = offset or el.settings.offset
@@ -520,6 +551,27 @@ local function LinkedRect(el, w, h, offset)
 	if side == "below" then return l + (tw - w) * along, b - h - offset, side end
 	if side == "left" then return l - w - offset, b + (th - h) * along, side end
 	return l + tw + offset, b + (th - h) * along, side
+end
+
+local MATCH = { width = "matchWidth", height = "matchHeight" }
+local function MatchTarget(el, field)
+	local s = el.settings
+	if not s[MATCH[field]] then return end
+	local key = s.link and s.link[field]
+	local target = key and elements[key]
+	if target and target ~= el and Layout.Live(key) and target.settings.shown ~= "never" then return target end
+	return LinkTarget(el)
+end
+
+local function SizeSource(el, field)
+	local target = MatchTarget(el, field)
+	local at = target
+	for _ = 1, 32 do
+		if at == el then return end
+		if not at then return target end
+		at = MatchTarget(at, field)
+	end
+	return target
 end
 
 local function Style()
@@ -606,8 +658,10 @@ local function Resolve(el)
 	for i = 1, #FIELDS do
 		s[FIELDS[i]] = d[FIELDS[i]]
 	end
+	s.link = nil
 	for _, key in ipairs({ el.key, el.style and StoreKey(el, "anchor") or nil }) do
 		local entry = Entry(key)
+		if entry and entry.link ~= nil and key == el.key then s.link = CHECK.link(el, entry.link) end
 		for i = 1, entry and #FIELDS or 0 do
 			local field = FIELDS[i]
 			local v = entry[field]
@@ -628,7 +682,7 @@ local function Resolve(el)
 	else
 		s.width, s.height = FrameSize(el.frame)
 	end
-	links[el.key] = s.attachTo ~= "" and el or nil
+	links[el.key] = (s.attachTo ~= "" or s.link and (s.link.width or s.link.height)) and el or nil
 	if el.key == "databars.strip" and Store.IsLoaded() and (Store.Module("DataBars").strip or {}).enabled == false then s.shown = "never" end
 	if el.key == "databars.strip" and ns.Setup.Layouts.DataBarDock() then
 		s.anchor, s.x, s.y, s.width, s.height = d.anchor, d.x, d.y, d.width, d.height
@@ -714,13 +768,16 @@ local function ApplyGeometry(el, quiet)
 	local w, h
 	if el.opts.resizable then
 		local width, height = s.width, s.height
-		local target = (s.matchWidth or s.matchHeight) and LinkTarget(el)
-		if target then
-			local _, _, tw, th = Layout.Rect(target.key)
-			if s.matchWidth then width = Clamp((tw + s.extraWidth) / f, el.limits.minWidth, el.limits.maxWidth) end
-			if s.matchHeight then height = Clamp((th + s.extraHeight) / f, el.limits.minHeight, el.limits.maxHeight) end
-			if el.aspect then width, height = AspectFit(el, s.matchWidth and width or height * el.aspect) end
+		local wide, tall = s.matchWidth and SizeSource(el, "width"), s.matchHeight and SizeSource(el, "height")
+		if wide then
+			local _, _, tw = Layout.Rect(wide.key)
+			width = Clamp((tw + s.extraWidth) / f, el.limits.minWidth, el.limits.maxWidth)
 		end
+		if tall then
+			local _, _, _, th = Layout.Rect(tall.key)
+			height = Clamp((th + s.extraHeight) / f, el.limits.minHeight, el.limits.maxHeight)
+		end
+		if el.aspect and (wide or tall) then width, height = AspectFit(el, wide and width or height * el.aspect) end
 		w, h = G.SnapSize(width, f, pixel), G.SnapSize(height, f, pixel)
 		frame:SetSize(w, h)
 	else
@@ -805,7 +862,7 @@ local function ApplyVisibility(el)
 		end
 		el.driver = nil
 	end
-	if Rules.Visible(el.settings.shown, state.combat, state.target, state.group) then
+	if Rules.Visible(el.settings.shown, state.combat, state.target, state.group, state.mounted) then
 		ShowHidden(el)
 		return
 	end
@@ -1037,10 +1094,14 @@ local function Apply(el, instant)
 	RefreshLinks(el.key)
 end
 
+local refreshing = {}
 function RefreshLinks(key)
 	for _, el in pairs(links) do
-		if el.settings.attachTo == key and Layout.CanAttach(el.key, key) then
+		local s = el.settings
+		if (s.attachTo == key and Layout.CanAttach(el.key, key) or s.link and (s.link.width == key or s.link.height == key)) and not refreshing[el] then
+			refreshing[el] = true
 			Apply(el)
+			refreshing[el] = nil
 			if state.active then Mode("Changed", el.key) end
 		end
 	end
@@ -1090,6 +1151,11 @@ local function OnTarget()
 	RefreshDynamic()
 end
 
+local function OnMount()
+	state.mounted = Mounted()
+	RefreshDynamic()
+end
+
 local function OnCombatStart()
 	state.combat = true
 	if state.active then
@@ -1107,15 +1173,27 @@ local function OnCombatEnd()
 end
 
 local function UpdateEvents()
-	local combat, target, hover, group = state.active, false, false, false
+	local combat, target, hover, group, mount = state.active, false, false, false, false
 	for i = 1, #order do
 		local s = elements[order[i]].settings
 		combat = combat or Rules.NeedsCombat(s.shown, s.alphaCombat, s.alphaIdle)
-		target = target or Rules.NeedsTarget(s.shown)
-		hover = hover or s.shown == "mouseover"
-		group = group or (Rules.NeedsGroup(s.shown) and not IsProtectedFrame(elements[order[i]].frame))
+		if s.shown ~= "always" then
+			target = target or Rules.NeedsTarget(s.shown)
+			hover = hover or s.shown == "mouseover"
+			group = group or (Rules.NeedsGroup(s.shown) and not IsProtectedFrame(elements[order[i]].frame))
+			mount = mount or (s.shown == "mounted" or s.shown == "noMounted") and not IsProtectedFrame(elements[order[i]].frame)
+		end
 	end
 	UpdatePoll(hover)
+	if mount ~= state.mountEvents then
+		state.mountEvents = mount
+		if mount then
+			OnMount()
+			ns.Events.Register(SECTION, "PLAYER_MOUNT_DISPLAY_CHANGED", OnMount)
+		else
+			ns.Events.Unregister(SECTION, "PLAYER_MOUNT_DISPLAY_CHANGED")
+		end
+	end
 	if group ~= state.groupEvents then
 		state.groupEvents = group
 		if group then
@@ -1235,11 +1313,12 @@ local CLEAR = {}
 for _, field in ipairs(FIELDS) do
 	CLEAR[field] = RESET
 end
+CLEAR.link = RESET
 
 local ELEMENT_FIELDS = {
 	shown = true, anchor = true, x = true, y = true, width = true, height = true, scale = true,
 	alphaCombat = true, alphaIdle = true, strata = true,
-	attachTo = true, side = true, offset = true, matchWidth = true, matchHeight = true, extraWidth = true, extraHeight = true,
+	attachTo = true, side = true, offset = true, matchWidth = true, matchHeight = true, extraWidth = true, extraHeight = true, link = true,
 }
 Layout.ELEMENT_FIELDS = ELEMENT_FIELDS
 
@@ -1310,7 +1389,7 @@ local function OnShow(frame)
 	if IsProtectedFrame(frame) then
 		return
 	end
-	if not Rules.Visible(el.settings.shown, state.combat, state.target, state.group) then
+	if not Rules.Visible(el.settings.shown, state.combat, state.target, state.group, state.mounted) then
 		el.hidden = true
 		frame:Hide()
 	end
@@ -1582,6 +1661,11 @@ end
 function Layout.Movement(key, left, bottom, w, h)
 	local el = elements[key]
 	local l, b, side = LinkedRect(el, w, h, 0)
+	if side == "point" then
+		local link = Copy(el.settings.link)
+		link.x, link.y = (link.x or 0) + left - l, (link.y or 0) + bottom - b
+		return { link = link }
+	end
 	if l then
 		local offset = side == "above" and bottom - b or side == "below" and b - bottom or side == "left" and l - left or left - l
 		return { offset = offset }

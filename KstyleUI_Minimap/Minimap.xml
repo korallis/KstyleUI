@@ -9,6 +9,7 @@
 	<Script file="Column.lua"/>
 	<Script file="Pins.lua"/>
 	<Script file="Drawer.lua"/>
+	<Script file="Micro.lua"/>
 	<Script file="Map.lua"/>
 	<Script file="Preview.lua"/>
 	<Script file="Module.lua"/>

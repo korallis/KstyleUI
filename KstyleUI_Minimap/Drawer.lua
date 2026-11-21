@@ -20,7 +20,9 @@ local DRAG_BUTTON = "LeftButton"
 local OWN_PREFIX = "^KstyleUI"
 
 local hooked = setmetatable({}, { __mode = "k" })
+local crystals = setmetatable({}, { __mode = "k" })
 local Watch, OnIconCreated
+local waiting = false
 
 local function Log(message)
 	K.DevTest.Log("Minimap", message)
@@ -116,6 +118,71 @@ local function SortKey(text)
 	return text:lower()
 end
 
+function Drawer.Label(name)
+	return (tostring(name):gsub("^LibDBIcon10_", ""))
+end
+
+function Drawer.Shown(frame)
+	local shown = frame:IsShown()
+	return not IsSecret(shown) and shown == true
+end
+
+local function Reseat()
+	waiting = false
+	local drawer = ns.Map and ns.Map.drawer
+	if drawer and drawer.active then
+		drawer:Layout()
+		drawer.column:Refresh()
+	end
+end
+
+local function Movable(button)
+	if Widgets.MayMove(button) then
+		return true
+	end
+	if not waiting then
+		waiting = true
+		K.Combat.Queue(Reseat)
+	end
+	return false
+end
+
+local function Seat(button, parent)
+	if button:GetParent() ~= parent then
+		button:SetParent(parent)
+		button:SetFrameStrata(parent:GetFrameStrata())
+		button:SetFrameLevel(parent:GetFrameLevel() + LEVEL_BUTTON)
+	end
+end
+
+local function Present(button, state)
+	local column = state.place == "column"
+	if state.tile then
+		state.tile:SetShown(not column)
+	end
+	if column and not crystals[button] then
+		crystals[button] = Widgets.CrystalDisc(button)
+	end
+	if crystals[button] then
+		crystals[button]:SetShown(column and Settings.Get("column.backgrounds"))
+	end
+end
+
+local function Usable(data)
+	return type(data) == "table" and Data.IsText(data.text) and type(data.func) == "function"
+end
+
+function Drawer.CompartmentCount()
+	local frame, count = AddonCompartmentFrame, 0
+	local list = frame and frame.registeredAddons
+	for i = 1, type(list) == "table" and #list or 0 do
+		if Usable(list[i]) then
+			count = count + 1
+		end
+	end
+	return count
+end
+
 function Drawer.CompartmentEntries()
 	local out = {}
 	local frame = AddonCompartmentFrame
@@ -124,7 +191,7 @@ function Drawer.CompartmentEntries()
 		return out
 	end
 	for _, data in ipairs(list) do
-		if type(data) == "table" and Data.IsText(data.text) and type(data.func) == "function" then
+		if Usable(data) then
 			out[#out + 1] = data
 		end
 	end
@@ -192,6 +259,8 @@ function Drawer.New(column, opts)
 	panel:Hide()
 	drawer.chrome = Widgets.Chrome(panel, { shape = "panel", popup = true })
 	drawer.panel = panel
+	drawer.attic = CreateFrame("Frame", nil, column.holder)
+	drawer.attic:Hide()
 	return drawer
 end
 
@@ -203,14 +272,27 @@ function Drawer:Toggle()
 	end
 end
 
+function Drawer:PlaceOf(button)
+	local place = Settings.Get("column.drawer") and Settings.Get("drawer.places")[self.adopted[button].name]
+	return (place == "column" or place == "hidden") and place or "drawer"
+end
+
 function Drawer:Count()
 	local count = 0
 	for _, button in ipairs(self.order) do
-		if button:IsShown() == true then
+		if Drawer.Shown(button) and self:PlaceOf(button) == "drawer" then
 			count = count + 1
 		end
 	end
 	return count
+end
+
+function Drawer:PutInColumn(button, home, point, area, x, y, size)
+	if Movable(button) then
+		Seat(button, home)
+		self.adopted[button].spot = { point, area, x, y, size }
+		self:Place(button)
+	end
 end
 
 function Drawer:HasContent()
@@ -220,7 +302,7 @@ function Drawer:HasContent()
 	if self:Count() > 0 then
 		return true
 	end
-	return Settings.Get("drawer.compartment") and #Drawer.CompartmentEntries() > 0
+	return Settings.Get("drawer.compartment") and Drawer.CompartmentCount() > 0
 end
 
 local function Toggle(column)
@@ -237,30 +319,36 @@ end
 
 function Drawer:Place(button)
 	local state = self.adopted[button]
-	if not state or not state.slot then
+	local point, relative, x, y, size
+	if not (state and Movable(button)) then
 		return
-	end
-	local size = self:Size()
-	local spacing = Widgets.Snap(self.panel, Settings.Get("drawer.spacing"))
-	local pad, index = Widgets.Snap(self.panel, PAD), state.slot - 1
-	local point, x, y
-	if self.rows then
-		point, x, y = "TOPLEFT", pad + math.floor(index / self.rows) * self.cell, -(pad + index % self.rows * (size + spacing))
+	elseif state.place == "column" and state.spot then
+		point, relative, x, y, size = unpack(state.spot)
+	elseif state.place == "drawer" and state.slot then
+		size, relative = self:Size(), self.panel
+		local spacing = Widgets.Snap(self.panel, Settings.Get("drawer.spacing"))
+		local pad, index = Widgets.Snap(self.panel, PAD), state.slot - 1
+		if self.rows then
+			point, x, y = "TOPLEFT", pad + math.floor(index / self.rows) * self.cell, -(pad + index % self.rows * (size + spacing))
+		else
+			point, x, y = Format.Grid(state.slot, self.columns or Settings.Get("drawer.columns"), size, spacing, Format.Direction(Settings.Get("drawer.direction"), Settings.Get("column.side")), pad)
+		end
 	else
-		point, x, y = Format.Grid(state.slot, self.columns or Settings.Get("drawer.columns"), size, spacing, Format.Direction(Settings.Get("drawer.direction"), Settings.Get("column.side")), pad)
+		return
 	end
 	local compact = Settings.Get("compactIcons")
 	local scale = compact and 1 or button:GetScale()
 	if not Format.IsNumber(scale) or scale <= 0 then return end
 	self.placing = true
 	button:ClearAllPoints()
-	button:SetPoint(point, self.panel, point, x / scale, y / scale)
+	button:SetPoint(point, relative, point, x / scale, y / scale)
 	button:SetSize(size / scale, size / scale)
 	local icon = state.icon
 	if type(icon) == "table" and type(icon.SetPoint) == "function" then
 		icon:ClearAllPoints()
 		icon:SetPoint("CENTER", button, "CENTER")
-		Widgets.Size(icon, size * ICON_FILL / scale, size * ICON_FILL / scale)
+		local fill = state.place == "column" and ns.Column.GLYPH_SHARE or ICON_FILL
+		Widgets.Size(icon, size * fill / scale, size * fill / scale)
 	end
 	self.placing = false
 end
@@ -272,7 +360,14 @@ function Drawer:Layout()
 	local slot = 0
 	for _, button in ipairs(self.order) do
 		local state = self.adopted[button]
-		if button:IsShown() == true then
+		if Movable(button) then
+			state.place = self:PlaceOf(button)
+			if state.place ~= "column" then
+				Seat(button, state.place == "hidden" and self.attic or panel)
+			end
+			Present(button, state)
+		end
+		if Drawer.Shown(button) and state.place == "drawer" then
 			slot = slot + 1
 			state.slot = slot
 		else
@@ -306,7 +401,7 @@ function Drawer:Layout()
 			if list and state.slot then
 				Widgets.StyleText(label, "body")
 				Widgets.TextColor(label, "text")
-				label:SetText((tostring(state.name):gsub("^LibDBIcon10_", "")))
+				label:SetText(Drawer.Label(state.name))
 				label:ClearAllPoints()
 				label:SetPoint("LEFT", button, "RIGHT", gap, 0)
 				local w = label:GetStringWidth()
@@ -367,7 +462,7 @@ end
 local function OnShownChanged(button)
 	local drawer = ns.Map and ns.Map.drawer
 	local state = drawer and drawer.active and drawer.adopted[button]
-	local shown = button:IsShown() == true
+	local shown = Drawer.Shown(button)
 	if state and state.shown ~= shown then
 		state.shown = shown
 		drawer:Layout()
@@ -386,7 +481,7 @@ function Drawer:Adopt(name, button, own)
 	if self.adopted[button] then
 		return false
 	end
-	if InCombatLockdown() and button:IsProtected() ~= false then
+	if not Widgets.MayMove(button) then
 		return false
 	end
 	local panel = self.panel
@@ -408,7 +503,6 @@ function Drawer:Adopt(name, button, own)
 	table.sort(self.order, function(a, b)
 		return self.adopted[a].name < self.adopted[b].name
 	end)
-	button:SetParent(panel)
 	if type(button.RegisterForDrag) == "function" then
 		button:RegisterForDrag()
 	end
@@ -418,8 +512,7 @@ function Drawer:Adopt(name, button, own)
 	if type(button.SetFixedFrameLevel) == "function" then
 		button:SetFixedFrameLevel(false)
 	end
-	button:SetFrameStrata(panel:GetFrameStrata())
-	button:SetFrameLevel(panel:GetFrameLevel() + LEVEL_BUTTON)
+	Seat(button, panel)
 	button:SetAlpha(1)
 	if not hooked[button] then
 		hooked[button] = true
@@ -428,7 +521,6 @@ function Drawer:Adopt(name, button, own)
 			keep[state.icon] = true
 		end
 		K.Skin.Strip(button, { keep = keep })
-		K.Skin.Backdrop(button, { shape = "tile", fill = "buttonFill" })
 		hooksecurefunc(button, "SetPoint", OnMoved)
 		hooksecurefunc(button, "SetAlpha", KeepOpaque)
 		local fade = button.fadeOut
@@ -445,6 +537,7 @@ function Drawer:Adopt(name, button, own)
 		hooksecurefunc(button, "Hide", OnShownChanged)
 		button:HookScript("OnClick", OnAddonClick)
 	end
+	state.tile = K.Skin.Backdrop(button, { shape = "tile", fill = "buttonFill" })
 	Log("collected the minimap button " .. tostring(name) .. " into the drawer")
 	return true
 end
@@ -479,6 +572,7 @@ function Drawer:Collect()
 	end
 	if added then
 		self:Layout()
+		self.column:Layout()
 	end
 	return added
 end
@@ -510,6 +604,8 @@ function Drawer:Stop()
 	self.listening = false
 	for _, button in ipairs(self.order) do
 		local state = self.adopted[button]
+		state.place = nil
+		Present(button, state)
 		button:ClearAllPoints()
 		button:SetParent(state.parent)
 		if type(button.RegisterForDrag) == "function" then
@@ -610,7 +706,7 @@ function Drawer:OnToggleClick(mouseButton)
 	if not self.active then
 		return
 	end
-	local compartment = Settings.Get("drawer.compartment") and #Drawer.CompartmentEntries() > 0
+	local compartment = Settings.Get("drawer.compartment") and Drawer.CompartmentCount() > 0
 	if compartment and (mouseButton == "RightButton" or self:Count() == 0) then
 		Drawer.OpenCompartment(Toggle(self.column))
 		return

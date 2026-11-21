@@ -333,7 +333,7 @@ function Medallion:Burst(class)
 	local word = CLASS_WORD[class]
 	local path, own = effects.Texture(word and ("medBurst" .. word) or "glow", "glow")
 	burst:SetTexture(path)
-	local c = not own and class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
+	local c = not own and class and (ns.Theme.Palette(class) or RAID_CLASS_COLORS and RAID_CLASS_COLORS[class])
 	if c then
 		burst:SetVertexColor(c.r, c.g, c.b, 1)
 	else

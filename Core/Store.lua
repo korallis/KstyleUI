@@ -6,9 +6,9 @@ ns.Store = Store
 
 local L = ns.L
 local Codec = ns.Codec
-local format, sub, floor = string.format, string.sub, math.floor
+local format, sub, floor, huge = string.format, string.sub, math.floor, math.huge
 
-Store.DB_VERSION = 42
+Store.DB_VERSION = 43
 Store.migrations = {}
 
 Store.migrations[38] = function(data)
@@ -1020,6 +1020,15 @@ Store.migrations[42] = function(data)
 	end
 end
 
+Store.migrations[43] = function(data)
+	for _, profile in pairs(data.profiles) do
+		local frames = type(profile) == "table" and type(profile.UnitFrames) == "table" and profile.UnitFrames or {}
+		for _, kind in pairs(frames) do
+			if type(kind) == "table" and type(kind.portraitZoom) == "number" and kind.classZoom == nil then kind.classZoom = kind.portraitZoom end
+		end
+	end
+end
+
 local PREFIX = "KSUI1:"
 local LUA_MAGIC = "KSL1:"
 local KIND = "KstyleUI profile"
@@ -1034,7 +1043,7 @@ local MAX_KEY = 64
 local MAX_NAME = 48
 local MAX_INTEGER_KEY = 2147483647
 local FIELDS = { "profiles", "characters", "layouts", "account", "devlog" }
-local PAYLOAD_FIELDS = { kind = true, version = true, name = true, settings = true, layout = true, namedLayouts = true }
+local PAYLOAD_FIELDS = { kind = true, version = true, name = true, settings = true, layout = true, namedLayouts = true, specs = true, editMode = true }
 local ENCODING_FUNCTIONS = { "SerializeCBOR", "DeserializeCBOR", "CompressString", "DecompressString", "EncodeBase64", "DecodeBase64" }
 
 local PASTE = L["Paste a KstyleUI profile string first."]
@@ -1045,6 +1054,7 @@ local NOT_LOADED = L["KstyleUI has not loaded its saved settings yet."]
 
 local db, active, activeName, account, charKey
 local registered = {}
+local sections = setmetatable({}, { __mode = "k" })
 local implicit = {}
 local logged = {}
 
@@ -1072,7 +1082,7 @@ local function deepCopy(value)
 	end
 	local out = {}
 	for k, v in pairs(value) do
-		out[k] = deepCopy(v)
+		out[k] = type(v) == "table" and deepCopy(v) or v
 	end
 	return out
 end
@@ -1113,21 +1123,11 @@ end
 
 local function fill(dest, defaults)
 	for key, default in pairs(defaults) do
-		local value = dest[key]
-		if type(default) == "table" then
-			if isAtomic(default) then
-				if type(value) ~= "table" then
-					dest[key] = deepCopy(default)
-				end
-			else
-				if type(value) ~= "table" then
-					value = {}
-					dest[key] = value
-				end
-				fill(value, default)
-			end
-		elseif type(value) ~= type(default) then
-			dest[key] = default
+		local value, kind = dest[key], type(default)
+		if type(value) ~= kind then
+			dest[key] = kind == "table" and deepCopy(default) or default
+		elseif kind == "table" and not isAtomic(default) then
+			fill(value, default)
 		end
 	end
 end
@@ -1363,27 +1363,27 @@ local function requireLoaded(fnName)
 	end
 end
 
-local function checkDefaults(value, path)
+local function copyDefaults(value)
+	local out = {}
 	for key, child in pairs(value) do
-		local kt = type(key)
+		local kt, ct, problem = type(key), type(child)
 		if kt ~= "string" and kt ~= "number" then
-			return path .. " has a " .. kt .. " key"
-		end
-		local ct = type(child)
-		local childPath = path .. "." .. tostring(key)
-		if ct == "table" then
-			local problem = checkDefaults(child, childPath)
-			if problem then
-				return problem
-			end
+			return nil, " has a " .. kt .. " key"
+		elseif ct == "table" then
+			child, problem = copyDefaults(child)
 		elseif ct == "number" then
-			if not Codec.IsFinite(child) then
-				return childPath .. " is not a finite number"
+			if child ~= child or child == huge or child == -huge then
+				problem = " is not a finite number"
 			end
 		elseif ct ~= "boolean" and ct ~= "string" then
-			return childPath .. " is a " .. ct .. "; settings hold only booleans, numbers, strings and tables"
+			problem = " is a " .. ct .. "; settings hold only booleans, numbers, strings and tables"
 		end
+		if problem then
+			return nil, "." .. tostring(key) .. problem
+		end
+		out[key] = child
 	end
+	return out
 end
 
 function Store.RegisterDefaults(section, defaults)
@@ -1400,11 +1400,10 @@ function Store.RegisterDefaults(section, defaults)
 	if switch ~= nil and defaults.enabled ~= nil and defaults.enabled ~= switch then
 		error("KstyleUI.Store.RegisterDefaults: " .. section .. " defaults.enabled must be " .. tostring(switch) .. ", its switch in Features.modules", 2)
 	end
-	local problem = checkDefaults(defaults, "defaults")
+	local copy, problem = copyDefaults(defaults)
 	if problem then
-		error("KstyleUI.Store.RegisterDefaults: " .. section .. " " .. problem, 2)
+		error("KstyleUI.Store.RegisterDefaults: " .. section .. " defaults" .. problem, 2)
 	end
-	local copy = deepCopy(defaults)
 	if switch ~= nil then
 		copy.enabled = switch
 	end
@@ -1432,15 +1431,19 @@ function Store.Profile()
 end
 
 function Store.Module(name)
+	local values = active and active[name]
+	if sections[values] == name then
+		return values
+	end
+	if registered[name] and type(values) == "table" then
+		sections[values] = name
+		return values
+	end
 	requireLoaded("Module")
 	if not sectionDefaults(name) then
 		error("KstyleUI.Store.Module: unknown settings section " .. tostring(name), 2)
 	end
-	local values = active[name]
-	if type(values) ~= "table" then
-		values = fillSection(active, name)
-	end
-	return values
+	return type(values) == "table" and values or fillSection(active, name)
 end
 
 function Store.Account()
@@ -1542,7 +1545,7 @@ function Store.CopyProfile(source, target)
 	return true
 end
 
-local function reassignSpecializations(from, to)
+local function reassignSpecializations(from, to, hotkey)
 	local assignments = account.specializationProfiles
 	for _, config in pairs(type(assignments) == "table" and assignments or {}) do
 		local profiles = type(config) == "table" and config.profiles
@@ -1551,6 +1554,10 @@ local function reassignSpecializations(from, to)
 				profiles[key] = to
 			end
 		end
+	end
+	local keys = type(account.profileKeys) == "table" and account.profileKeys or {}
+	for i, name in pairs(keys) do
+		if name == from then keys[i] = hotkey end
 	end
 end
 
@@ -1575,7 +1582,7 @@ function Store.RenameProfile(old, new)
 	end
 	db.profiles[to], db.profiles[from] = db.profiles[from], nil
 	db.layouts[to], db.layouts[from] = db.layouts[from] or {}, nil
-	reassignSpecializations(from, to)
+	reassignSpecializations(from, to, to)
 	for key, name in pairs(db.characters) do
 		if name == from then
 			db.characters[key] = to
@@ -1986,6 +1993,13 @@ local function checkPayload(payload)
 			end
 		end
 	end
+	for field, pattern in pairs({ specs = "^%a+:%w+$", editMode = "^[^|]+$" }) do
+		local list = payload[field]
+		if list ~= nil and (type(list) ~= "table" or #list > 64) then return nil, L["This profile's specialization or Edit Mode part is not valid."] end
+		for i, value in pairs(list or {}) do
+			if type(i) ~= "number" or type(value) ~= "string" or not value:find(pattern) then return nil, L["This profile's specialization or Edit Mode part is not valid."] end
+		end
+	end
 	local data = {
 		version = version,
 		profiles = { [name] = deepCopy(payload.settings) },
@@ -2001,7 +2015,8 @@ local function checkPayload(payload)
 	if problem then
 		return nil, problem
 	end
-	return { kind = KIND, version = Store.DB_VERSION, name = name, settings = data.profiles[name], layout = data.layouts[name], namedLayouts = deepCopy(named) }
+	return { kind = KIND, version = Store.DB_VERSION, name = name, settings = data.profiles[name], layout = data.layouts[name], namedLayouts = deepCopy(named),
+		specs = deepCopy(payload.specs), editMode = deepCopy(payload.editMode) }
 end
 
 function Store.Decode(text)
@@ -2058,7 +2073,14 @@ function Store.Import(text, name)
 			return false, err
 		end
 	end
-	target = freeName(target)
+	target = Store.AddProfile(payload, target)
+	Store.SetProfile(target)
+	log("imported profile " .. target)
+	return true, target
+end
+
+function Store.AddProfile(payload, name)
+	local target = freeName(name)
 	db.profiles[target] = payload.settings
 	db.layouts[target] = payload.layout
 	if payload.namedLayouts then
@@ -2072,9 +2094,7 @@ function Store.Import(text, name)
 			account.namedLayouts[importedName] = positions
 		end
 	end
-	Store.SetProfile(target)
-	log("imported profile " .. target)
-	return true, target
+	return target
 end
 
 ns.Events.Register("Store", "ADDON_LOADED", function(_, name)

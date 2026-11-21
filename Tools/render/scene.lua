@@ -576,22 +576,13 @@ local function textOf(env, region)
 	if region._renderText ~= nil then
 		return region._renderText
 	end
-	local calls = region._calls or {}
-	for i = #calls, 1, -1 do
-		local call = calls[i]
-		if call.method == "SetText" then
-			return formatText(env, call.args)
-		elseif call.method == "SetFormattedText" then
-			call.args.format = true
-			return formatText(env, call.args)
-		end
-	end
+	-- The stubs keep the last setter's arguments (_lastText); a fixture may set _state alone.
 	local formatted = region._state.FormattedText
-	if formatted then
-		formatted.format = true
-		return formatText(env, formatted)
+	local stored = region._lastText or formatted or region._state.Text
+	if stored then
+		stored.format = stored == formatted or nil
 	end
-	return formatText(env, region._state.Text) or ""
+	return formatText(env, stored) or ""
 end
 
 -- fontSpec(env, object, log, depth) -> { path, size, flags, color } from a Font object, a font string
@@ -644,6 +635,41 @@ local function fontOf(env, region, log)
 end
 
 -- Anchors -----------------------------------------------------------------------------------------
+
+-- natural(env, region, log): a font string with no width or height of its own takes its natural size from its text,
+-- approximately, as the game sizes it.
+local function natural(env, region, log)
+	region._naturalW, region._naturalH, region._naturalSideW, region._naturalSideH = nil, nil, nil, nil
+	region._wrapSpec, region._wrapped = nil, nil
+	local text = textOf(env, region)
+	if text ~= "" then
+		local fontPath, size = fontOf(env, region, log)
+		local xs, ys = {}, {}
+		for _, pack in ipairs(region._points or {}) do
+			local point = POINTS[(pack[1])]
+			if point then
+				xs[point[1]] = true
+				ys[point[2]] = true
+			end
+		end
+		local hasW = type(region._width) == "number" and region._width > 0
+		local hasH = type(region._height) == "number" and region._height > 0
+		if not hasW and not (xs[0] and xs[1]) then
+			-- The natural width is the drawn words', without colour codes, links and textures, as the game sizes it.
+			region._naturalW = textWidthEm(plainText(text), fontPath) * size
+			region._naturalSideW = xs[1] and "right" or xs[0.5] and "center" or "left"
+		end
+		if not hasH and not (ys[0] and ys[1]) then
+			local _, breaks = text:gsub("\n", "")
+			local spacing = spacingOf(region)
+			region._naturalH = size * lineEm(region) * (breaks + 1) + spacing * breaks
+			region._naturalSideH = ys[1] and "top" or ys[0.5] and "middle" or "bottom"
+			if state(region, "WordWrap") ~= false then
+				region._wrapSpec = { text = text, size = size, fontPath = fontPath, spacing = spacing, em = lineEm(region) }
+			end
+		end
+	end
+end
 
 local Solver = {}
 Solver.__index = Solver
@@ -714,9 +740,11 @@ function Solver:solve(object)
 	if object == env.UIParent then
 		return self.screen
 	end
+	local width, height = num(env, object._width), num(env, object._height)
+	if self.natural and object._type == "FontString" and not ((width or 0) > 0 and (height or 0) > 0) then
+		natural(env, object, self.log)
+	end
 	local scale = effectiveScale(object)
-	local width = num(env, object._width)
-	local height = num(env, object._height)
 	if object._atlasSize then
 		width, height = object._atlasSize[1], object._atlasSize[2]
 	end
@@ -1542,36 +1570,7 @@ function Scene.Build(env, opts)
 					region._atlasSize = { info.width, info.height }
 				end
 			elseif region._type == "FontString" then
-				region._naturalW, region._naturalH, region._naturalSideW, region._naturalSideH = nil, nil, nil, nil
-				region._wrapSpec, region._wrapped = nil, nil
-				local text = textOf(env, region)
-				if text ~= "" then
-					local fontPath, size = fontOf(env, region, logLine)
-					local xs, ys = {}, {}
-					for _, pack in ipairs(region._points or {}) do
-						local point = POINTS[(pack[1])]
-						if point then
-							xs[point[1]] = true
-							ys[point[2]] = true
-						end
-					end
-					local hasW = type(region._width) == "number" and region._width > 0
-					local hasH = type(region._height) == "number" and region._height > 0
-					if not hasW and not (xs[0] and xs[1]) then
-						-- The natural width is the drawn words', without colour codes, links and textures, as the game sizes it.
-						region._naturalW = textWidthEm(plainText(text), fontPath) * size
-						region._naturalSideW = xs[1] and "right" or xs[0.5] and "center" or "left"
-					end
-					if not hasH and not (ys[0] and ys[1]) then
-						local _, breaks = text:gsub("\n", "")
-						local spacing = spacingOf(region)
-						region._naturalH = size * lineEm(region) * (breaks + 1) + spacing * breaks
-						region._naturalSideH = ys[1] and "top" or ys[0.5] and "middle" or "bottom"
-						if state(region, "WordWrap") ~= false then
-							region._wrapSpec = { text = text, size = size, fontPath = fontPath, spacing = spacing, em = lineEm(region) }
-						end
-					end
-				end
+				natural(env, region, logLine)
 			end
 		end
 	end
@@ -1628,6 +1627,7 @@ end
 -- friends) makes one and keeps it until an anchor, size, scale or text changes.
 function Scene.RectSolver(env)
 	local solver = newSolver(env, {}, function() end)
+	solver.natural = true
 	local width, height = env.GetPhysicalScreenSize()
 	local uiParent = env.UIParent
 	local parentScale = type(uiParent._scale) == "number" and uiParent._scale or 1

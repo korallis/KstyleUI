@@ -9,6 +9,13 @@ local Style = {}
 ns.Style = Style
 
 local TEXT_LEVEL = 4
+local TEXT_OVER_ICONS = 40
+local ABOVE_ICONS = { name = "aboveName", healthText = "aboveHealth", extra1 = "aboveExtra", extra2 = "aboveExtra" }
+
+local function TextParent(f, key)
+	local text = Settings.current.text
+	return text.above and text[ABOVE_ICONS[key]] and f.textTop or f.text
+end
 local NAME_LINE_EXTRA = 2
 local ON_FILL_OUTLINE = "THICKOUTLINE"
 local ON_BAR_OUTLINE = "OUTLINE"
@@ -128,6 +135,7 @@ function Style.Build(f, kind)
 	f.target:SetAllPoints(f)
 	f.targetRing = Style.Ring(f.target, "OVERLAY")
 	f.target:SetAlpha(0)
+	f.targetLines = RING_LINES
 	return f
 end
 
@@ -147,11 +155,20 @@ local function Place(f, region, rect)
 	Widgets.Point(region, "TOPLEFT", f, "TOPLEFT", rect.left, -rect.top)
 end
 
+function Style.Pin(f, region, place, size, x, y)
+	local inset = Widgets.Snap(f, Tokens.Size("gapTiny"))
+	region:ClearAllPoints()
+	if size then region:SetSize(size, size) end
+	region:SetPoint(place, f.health, place, (place:find("LEFT") and inset or place:find("RIGHT") and -inset or 0) + Widgets.Snap(f, x or 0),
+		(place:find("TOP") and -inset or place:find("BOTTOM") and inset or 0) + Widgets.Snap(f, y or 0))
+end
+
 local function PlaceBar(f, bar, rect)
 	bar.opts.width, bar.opts.height = Widgets.Snap(f, rect.width), Widgets.Snap(f, rect.height)
 	Place(f, bar, rect)
 	bar:Restyle()
 end
+Style.PlaceBar = PlaceBar
 
 function Style.Accent()
 	local accent = Settings.current.accent
@@ -168,6 +185,21 @@ function Style.MemberWidth(kind)
 		return Geometry.MemberWidth(k)
 	end
 	return k.width
+end
+
+local POWER_ROLES = { TANK = "tanks", HEALER = "healers", DAMAGER = "damagers" }
+function Style.PowerShown(f)
+	local power = Settings.current.power
+	if not Settings.current[f.kind].power then
+		return false
+	elseif power.tanks and power.healers and power.damagers then
+		return true
+	end
+	local role = f.sample and f.sample.role
+	if not f.sample and f.unit and UnitGroupRolesAssigned then
+		role = UnitGroupRolesAssigned(f.unit)
+	end
+	return (issecretvalue and issecretvalue(role)) or power[POWER_ROLES[role]] ~= false
 end
 
 function Style.Size(f)
@@ -338,13 +370,22 @@ function Style.StatusWidth(f, size)
 	return Widgets.Snap(f, math.ceil(Names.Width(f.healthText, text, size)))
 end
 
+function Style.InRow(f)
+	return f.status ~= nil and Settings.current.status.place == "AUTO"
+end
+
+function Style.StatusSize(f, size)
+	local own = Settings.current.status.size
+	return f.status and own > 0 and own or size
+end
+
 local function PlaceOverlay(f, k, parts)
 	local cfg = Settings.current.text
 	local name, healthText = f.name, f.healthText
 	local rect, spot = parts.name, parts.healthText
-	local status = f.status ~= nil
+	local status = Style.InRow(f)
 	local shown = k.healthText ~= "NONE"
-	local size, lane = k.healthTextSize, spot.right - spot.left
+	local size, lane = Style.StatusSize(f, k.healthTextSize), spot.right - spot.left
 	f.classLine:Hide()
 	local onBar = status and lane <= 0
 	local outline = onBar and cfg.healthOutline == "NONE" and ON_FILL_OUTLINE or cfg.healthOutline
@@ -372,15 +413,16 @@ local function PlaceOverlay(f, k, parts)
 			overflow = math.max(0, Widgets.Snap(f, width) - Widgets.Snap(f, lane + free))
 		end
 	end
+	local nudge = Settings.current.names
 	name:ClearAllPoints()
 	name:SetJustifyH("LEFT")
-	name:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top))
+	name:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, rect.left + nudge.x), -Widgets.Snap(f, rect.top - nudge.y))
 	f.nameWidth = math.max(1, Widgets.Snap(f, rect.width) - overflow)
 	name:SetWidth(f.nameWidth)
 	ApplyName(f)
 end
 
-function Style.PlaceRowEnd(f)
+local function PlaceRow(f)
 	local parts = f.parts
 	f.nameFloor = false
 	if not parts then
@@ -391,27 +433,31 @@ function Style.PlaceRowEnd(f)
 		return
 	end
 	if parts.nameInside then
-		f.healthText:SetShown(Settings.current[f.kind].healthText ~= "NONE" or f.status ~= nil)
+		local k, cfg = Settings.current[f.kind], Settings.current.text
+		SetFont(f.healthText, cfg.healthFont, Style.StatusSize(f, k.healthTextSize), OnBar(cfg.healthOutline))
+		f.healthText:SetShown(k.healthText ~= "NONE" or f.status ~= nil)
 		ApplyName(f)
 		return
 	end
 	local k = Settings.current[f.kind]
 	local spot, rect = parts.healthText, parts.name
 	local right = f.marked and spot.markedRight or spot.right
+	local nudge = Settings.current.names
+	local nx, ny = Widgets.Snap(f, nudge.x), Widgets.Snap(f, nudge.y)
 	local left, top = Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top)
 	local gap = Widgets.Snap(f, Tokens.Size("gapSmall"))
 	local shown = k.healthText ~= "NONE"
-	local status = f.status ~= nil
+	local status = Style.InRow(f)
 	local onBar = shown and not status and k.healthTextPlace == "BAR"
 	local inRow = status or (shown and not onBar)
 	local name, healthText, classLine = f.name, f.healthText, f.classLine
-	local cfg = Settings.current.text
-	SetFont(healthText, cfg.healthFont, k.healthTextSize, inRow and cfg.healthOutline or OnBar(cfg.healthOutline))
+	local cfg, size = Settings.current.text, Style.StatusSize(f, k.healthTextSize)
+	SetFont(healthText, cfg.healthFont, size, inRow and cfg.healthOutline or OnBar(cfg.healthOutline))
 	healthText:SetShown(shown or status)
 	healthText:ClearAllPoints()
 	local reserve = (inRow or onBar) and Style.Reserve(f, k)
 	if status then
-		reserve = math.max(reserve or 0, Style.StatusWidth(f, k.healthTextSize) or 0)
+		reserve = math.max(reserve or 0, Style.StatusWidth(f, size) or 0)
 	end
 	healthText:SetWidth(reserve or 0)
 	local bar = parts.health
@@ -435,11 +481,11 @@ function Style.PlaceRowEnd(f)
 		end
 	end
 	name:ClearAllPoints()
-	name:SetPoint("TOPLEFT", f, "TOPLEFT", left, top)
+	name:SetPoint("TOPLEFT", f, "TOPLEFT", left + nx, top + ny)
 	f.nameWidth = nil
 	if captioned then
 		name:SetWidth(0)
-		name:SetPoint("RIGHT", classLine, "LEFT", -gap, 0)
+		name:SetPoint("RIGHT", classLine, "LEFT", -gap + nx, ny)
 		f.nameFloor = inRow and not reserve
 		local captionWidth = ns.Names and ns.Names.Width(classLine, f.classCaption or "", Tokens.Size("caption"))
 		if captionWidth and (not inRow or reserve) then
@@ -447,7 +493,7 @@ function Style.PlaceRowEnd(f)
 		end
 	elseif inRow and not reserve then
 		name:SetWidth(0)
-		name:SetPoint("RIGHT", healthText, "LEFT", -gap, 0)
+		name:SetPoint("RIGHT", healthText, "LEFT", -gap + nx, ny)
 	else
 		f.nameWidth = math.max(1, Widgets.Snap(f, right - rect.left - (reserve and reserve + gap or 0)))
 		name:SetWidth(f.nameWidth)
@@ -457,6 +503,34 @@ function Style.PlaceRowEnd(f)
 		name:SetWidth(f.nameWidth)
 	end
 	ApplyName(f)
+end
+
+function Style.PinStatus(f)
+	local status, parts = Settings.current.status, f.parts
+	if parts and f.status and status.place ~= "AUTO" then
+		local text = Settings.current.text
+		SetFont(f.healthText, text.healthFont, Style.StatusSize(f, Settings.current[f.kind].healthTextSize), OnBar(text.healthOutline))
+		f.healthText:SetWidth(0)
+		f.healthText:SetJustifyH("CENTER")
+		Style.Pin(f, f.healthText, status.place, nil, status.x, status.y)
+		f.healthText:Show()
+		f.statusPinned = true
+	elseif f.statusPinned then
+		f.statusPinned = nil
+		if parts and parts.nameInside then
+			LayoutTexts(f, Settings.current[f.kind], parts)
+			ApplyName(f)
+		end
+	end
+end
+
+function Style.PlaceRowEnd(f)
+	PlaceRow(f)
+	local align = Settings.current.names.align
+	if f.parts and not f.parts.nameInside and align ~= "AUTO" then
+		f.name:SetJustifyH(align)
+	end
+	Style.PinStatus(f)
 end
 
 function Style.SetMarked(f, marked)
@@ -470,7 +544,7 @@ end
 local function ExtraTexts(f, k)
 	for i = 1, 2 do
 		local key = "extra" .. i
-		f[key] = Widgets.PlaceText(f[key], k[key], f.text, f, f.width)
+		f[key] = Widgets.PlaceText(f[key], k[key], TextParent(f, key), f, f.width)
 	end
 end
 
@@ -493,12 +567,14 @@ function Style.Apply(f, width, height)
 	} or nil
 	local healRow = cfg.buffs.enabled and k.buffCount > 0 and Widgets.Snap(f, k.buffSize) or nil
 	local nameMin = Style.NameMin(k)
+	f.powerShown = Style.PowerShown(f)
 	local parts = Geometry.Button(width, height, {
 		portrait = f.kind == "party" and k.portrait,
-		power = k.power,
+		power = f.powerShown or (k.power and cfg.power.keepRoom),
 		powerHeight = k.powerHeight,
 		nameAbove = k.textLayout == "ABOVE",
 		nameHeight = k.nameSize + NAME_LINE_EXTRA,
+		nameLine = cfg.names.height > 0 and math.max(cfg.names.height, k.nameSize) or nil,
 		iconSize = k.iconSize,
 		role = cfg.icons.role,
 		roleShapes = cfg.icons.roleShapes,
@@ -521,6 +597,12 @@ function Style.Apply(f, width, height)
 		healthLine = k.healthTextSize + NAME_LINE_EXTRA,
 		pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(f),
 	})
+	local bar, powerRect = parts.health, parts.power
+	local behind = cfg.power.behind and powerRect ~= nil
+	if behind then
+		parts.health = { left = bar.left, top = bar.top, width = bar.width, height = powerRect.top + powerRect.height - bar.top }
+	end
+	if not f.powerShown then parts.power = nil end
 	f.parts = parts
 	local health = cfg.health
 	f.health:SetBarTexture(health.texture)
@@ -531,6 +613,12 @@ function Style.Apply(f, width, height)
 	if parts.power then
 		f.power:SetBarTexture(health.texture)
 		PlaceBar(f, f.power, parts.power)
+	end
+	f.behind = behind and f.showPower
+	if f.behind or f.powerLevel then
+		f.powerLevel = f.powerLevel or f.power:GetFrameLevel()
+		f.power:SetFrameLevel(f.behind and f.health:GetFrameLevel() + 2 or f.powerLevel)
+		if not f.behind then f.powerLevel = nil end
 	end
 	LayoutPortrait(f, parts, k)
 	LayoutTexts(f, k, parts)
@@ -547,6 +635,18 @@ function Style.Apply(f, width, height)
 	ExtraTexts(f, k)
 	if f.extra1 or f.extra2 then ns.Unit.Listen(f) end
 	Style.LayoutRing(f.targetRing, f.target, f.chrome:Chamfer())
+	if f.targetLines ~= cfg.accent.targetLines then
+		f.targetLines = cfg.accent.targetLines
+		for i, line in ipairs(f.targetRing) do Widgets.ShowSlice(line, i <= f.targetLines) end
+	end
+	local hoverLine = cfg.accent.hover and cfg.accent.hoverLines == 2
+	if hoverLine and not f.hoverLine then
+		f.hoverLine = Widgets.NineSlice(f.text, "lumenOutline", "OVERLAY", 0)
+	end
+	if f.hoverLine then
+		Widgets.LayoutSlice(f.hoverLine, f.text, f.chrome:Chamfer(), -Widgets.Border(f.text))
+		Widgets.ShowSlice(f.hoverLine, hoverLine)
+	end
 	f.tileless = parts.overlay == true or (f.kind == "party" and k.roleRing == true)
 	if not f.chromeHooked then
 		f.chromeHooked = true
@@ -558,6 +658,19 @@ function Style.Apply(f, width, height)
 	end
 	f.chrome:SetShadow(f.kind == "party" and not f.tileless)
 	f.chrome:Restyle()
+	local text = cfg.text
+	local above = text.above and ((text.aboveName and "n" or "") .. (text.aboveHealth and "h" or "") .. (text.aboveExtra and "e" or ""))
+	if (f.textAbove or false) ~= above then
+		f.textAbove = above
+		if not f.textTop then
+			f.textTop = CreateFrame("Frame", nil, f)
+			f.textTop:SetAllPoints(f)
+			f.textTop:SetFrameLevel(f:GetFrameLevel() + TEXT_OVER_ICONS)
+		end
+		for key in pairs(ABOVE_ICONS) do
+			if f[key] then f[key]:SetParent(TextParent(f, key)) end
+		end
+	end
 	for i = 1, #Style.appliers do
 		Style.appliers[i](f, parts, k)
 	end
@@ -567,13 +680,43 @@ end
 Style.appliers = {}
 Style.painters = {}
 
+Style.appliers[1] = function(f, parts)
+	local cfg = Settings.current.names
+	local on = cfg.divider and not parts.nameInside and not (parts.tile and ns.Medallions and ns.Medallions.Active())
+	if not on then
+		if f.nameDivider then f.nameDivider:Hide() end
+		return
+	end
+	local line = f.nameDivider or f.text:CreateTexture(nil, "ARTWORK")
+	f.nameDivider = line
+	local bar = parts.health
+	line:ClearAllPoints()
+	line:SetPoint("BOTTOMLEFT", f, "TOPLEFT", Widgets.Snap(f, bar.left), -Widgets.Snap(f, bar.top))
+	line:SetSize(Widgets.Snap(f, bar.width), Widgets.Border(f))
+	if cfg.dividerAccent then
+		line:SetColorTexture(Style.Accent())
+	else
+		line:SetColorTexture(Widgets.Rgba(Widgets.Medallions() and "steel" or "capsGold", 0.5))
+	end
+	line:Show()
+end
+
 local function PaintEdge(f, r, g, b)
 	if not r then
 		r, g, b = Style.Accent()
 	end
 	local er, eg, eb, ea = Tokens.Color("edgeInner")
+	local threat = f.threatEdge
+	if threat then
+		er, eg, eb, ea = threat[1], threat[2], threat[3], 1
+	end
 	f.chrome:SetEdgeRGBA(Widgets.Mix(er, eg, eb, ea or 1, r, g, b, HOVER_ALPHA, f.hoverT or 0))
+	local line = f.hoverLine
+	for i = 1, line and #line or 0 do
+		line[i]:SetVertexColor(r, g, b, HOVER_ALPHA * (f.hoverT or 0))
+	end
 end
+Style.PaintEdge = PaintEdge
 
 local function SetHoverT(f, t)
 	f.hoverT = t
@@ -581,6 +724,10 @@ local function SetHoverT(f, t)
 end
 
 function Style.Paint(f)
+	if not Settings.current.accent.hover and (f.hovered or (f.hoverT or 0) > 0) then
+		f.hovered = false
+		K.Motion.Tween(f, SetHoverT, 0, 0, 0)
+	end
 	local r, g, b = Style.Accent()
 	Style.ColorRing(f.targetRing, r, g, b, 1)
 	f.badgeRing:SetVertexColor(r, g, b, 1)
@@ -596,6 +743,10 @@ function Style.Paint(f)
 end
 
 function Style.SetHovered(f, hovered)
-	f.hovered = hovered and true or false
+	hovered = hovered and Settings.current.accent.hover and true or false
+	if not (hovered or f.hovered or (f.hoverT or 0) > 0) then
+		return
+	end
+	f.hovered = hovered
 	K.Motion.Tween(f, SetHoverT, f.hoverT or 0, f.hovered and 1 or 0, Tokens.Duration("hover"), Tokens.Easing("hover"))
 end

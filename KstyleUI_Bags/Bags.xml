@@ -4,7 +4,9 @@
 	<Script file="Data.lua"/>
 	<Script file="Settings.lua"/>
 	<Script file="Slot.lua"/>
+	<Script file="Quick.lua"/>
 	<Script file="Window.lua"/>
+	<Script file="List.lua"/>
 	<Script file="Remote.lua"/>
 	<Script file="Blizzard.lua"/>
 	<Script file="Junk.lua"/>

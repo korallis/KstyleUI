@@ -32,6 +32,12 @@ local function Key(i)
 	return "indicator" .. i
 end
 
+local SHOWN_ON = { party = "PARTY", raid = "RAID" }
+local function Category(slot, kind)
+	return (slot.show == "BOTH" or slot.show == SHOWN_ON[kind]) and CATEGORIES[slot.category] or nil
+end
+Slots.Category = Category
+
 function Slots.Spells(text)
 	local set, any = {}, false
 	if type(text) ~= "string" then
@@ -167,13 +173,16 @@ local function Field(f, w, h)
 			blocked[#blocked + 1] = Box(block.left, block.top, block.width, block.height)
 		end
 	end
+	local heal
 	if Settings.current.buffs.enabled then
-		local _, count, _, _, _, _, row = Auras.HealIcons(f, k)
+		local side, count, size, spacing, _, _, row = Auras.HealIcons(f, k)
 		if count > 0 and row then
 			blocked[#blocked + 1] = FromRect(row)
+			local drawn = Geometry.Line(count, size, spacing)
+			heal = (k.buffX ~= 0 or k.buffY ~= 0) and Box(side == "RIGHT" and row.left + row.width - drawn or row.left, row.top, drawn, row.height) or nil
 		end
 	end
-	return field, blocked, gap, fill
+	return field, blocked, gap, fill, heal
 end
 
 local function Preferred(field, point, size)
@@ -270,7 +279,7 @@ local function Key2(f, w, h, field, blocked, spots)
 	end
 	for i = 1, COUNT do
 		local slot = cfg[Key(i)]
-		out[#out + 1] = (CATEGORIES[slot.category] and (Slots.Helpful(slot.category) and "h" or "1") or "0") .. slot.position .. slot.size
+		out[#out + 1] = (Category(slot, f.kind) and (Slots.Helpful(slot.category) and "h" or "1") or "0") .. slot.position .. slot.size
 	end
 	return table.concat(out, "|")
 end
@@ -308,7 +317,7 @@ function Slots.Placements(f)
 	local cfg = Settings.current
 	seen[f.kind] = f
 	local w, h = Style.Size(f)
-	local field, blocked, gap, fill = Field(f, w, h)
+	local field, blocked, gap, fill, heal = Field(f, w, h)
 	local spots = Spots(f)
 	local key = Key2(f, w, h, field, blocked, spots) .. (fill and "|fill" or "")
 	if cache[key] then
@@ -334,12 +343,13 @@ function Slots.Placements(f)
 			return a < b
 		end)
 	end
-	local lane = 1
+	local lane, crowded = 1, false
 	for _, i in ipairs(order) do
 		local slot = cfg[Key(i)]
 		local place = { point = slot.position, x = 0, y = 0, size = Widgets.Snap(f, Slots.Size(f, slot.size)), fits = false }
-		if CATEGORIES[slot.category] then
+		if Category(slot, f.kind) then
 			local spot
+			while heal and spots and spots.lane[lane] and Overlaps(spots.lane[lane], heal) do lane, crowded = lane + 1, true end
 			if spots and spots.lane[lane] then
 				spot, lane = spots.lane[lane], lane + 1
 			end
@@ -350,7 +360,7 @@ function Slots.Placements(f)
 					spot = Box(spot.left + full - place.size, spot.top + inset, place.size, place.size)
 				end
 				Put(place, spot, w, h)
-			elseif not (f.parts and f.parts.tidyLanes) then
+			elseif crowded or not (f.parts and f.parts.tidyLanes) then
 				spot = Search(f, field, taken, fill, gap, slot, place)
 				if spot then
 					taken[#taken + 1] = spot
@@ -370,7 +380,7 @@ end
 function Slots.Misfit(kind, i)
 	local f = seen[kind]
 	local slot = Settings.current[Key(i)]
-	if not f or not f.parts or not CATEGORIES[slot.category] then
+	if not f or not f.parts or not Category(slot, kind) then
 		return false
 	end
 	return not Slots.Placements(f)[i].fits
@@ -383,9 +393,9 @@ local function Place(f)
 	for i = 1, COUNT do
 		local button = container:GetAuraSlotFrame(Key(i))
 		if button then
-			local place = placements[i]
+			local place, slot = placements[i], Settings.current[Key(i)]
 			button:ClearAllPoints()
-			button:SetPoint(place.point, f, place.point, place.x, place.y)
+			button:SetPoint(place.point, f, place.point, place.x + Widgets.Snap(f, slot.x), place.y + Widgets.Snap(f, slot.y))
 			button:SetFrameLevel(base + COUNT - i)
 			Auras.StyleIcon(button)
 			Widgets.Size(button, place.size, place.size)
@@ -541,9 +551,9 @@ Button.built[#Button.built + 1] = BuildSamples
 function Slots.LayoutSamples(f)
 	local placements = Slots.Placements(f)
 	for i, icon in ipairs(f.sampleSlots or {}) do
-		local place = placements[i]
+		local place, slot = placements[i], Settings.current[Key(i)]
 		icon:ClearAllPoints()
-		icon:SetPoint(place.point, f, place.point, place.x, place.y)
+		icon:SetPoint(place.point, f, place.point, place.x + Widgets.Snap(f, slot.x), place.y + Widgets.Snap(f, slot.y))
 		icon:SetSize(place.size, place.size)
 		icon.tile.chrome:Restyle()
 		icon.tile.chrome:SetRimAccent(Style.Accent())
@@ -557,7 +567,7 @@ local function PaintSample(f, sample)
 	local placements = Slots.Placements(f)
 	for i, icon in ipairs(f.sampleSlots or {}) do
 		local slot = cfg[Key(i)]
-		local category = CATEGORIES[slot.category]
+		local category = Category(slot, f.kind)
 		local on = category ~= nil and shows[slot.category] == true and placements[i].fits
 		if on then
 			icon.tile.icon:SetTexture(category.icon)

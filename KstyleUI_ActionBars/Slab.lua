@@ -703,6 +703,7 @@ local function Hide()
 	end
 	Motionless()
 	ns.SlabEffects.UpdateCap()
+	ns.SlabJewels.Update()
 end
 
 local function PlaceSweeps(slab, half)
@@ -788,6 +789,7 @@ function Slab.Refresh()
 	Animate()
 	Slab.PlaceSides(true, cfg)
 	ns.SlabEffects.UpdateCap()
+	ns.SlabJewels.Update()
 	if ns.Travel then ns.Travel.Refresh() end
 	return true
 end

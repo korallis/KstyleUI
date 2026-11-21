@@ -83,8 +83,11 @@ do
 	assert(ns.PagingDriver({}, nil) == "1", "missing settings page nothing")
 end
 
--- ShortKey: compact keybind text from the raw key, with the binding text as the fallback.
+-- ShortKey (the kit's, Core/Widgets/Text.lua, shared with the Cooldowns keybinds): compact keybind text from the raw key, with the binding text as the fallback.
 do
+	local core = setmetatable({ _addons = { KstyleUI = { Widgets = {}, L = {} } } }, { __index = _G })
+	Load({ "Core/Widgets/Text.lua" }, core)
+	local ShortKey = core._addons.KstyleUI.Widgets.ShortKey
 	local cases = {
 		["1"] = "1", Q = "Q", ["SHIFT-1"] = "S1", ["CTRL-Q"] = "CQ", ["ALT-CTRL-SHIFT-F"] = "ACSF",
 		BUTTON4 = "M4", ["SHIFT-BUTTON5"] = "SM5", MIDDLEBUTTON = "M3", BUTTON3 = "M3",
@@ -95,14 +98,14 @@ do
 		RIGHT = "Rt", F12 = "F12", ["META-K"] = "CmK",
 	}
 	for key, want in pairs(cases) do
-		local got = ns.ShortKey(key)
+		local got = ShortKey(key)
 		assert(got == want, "ShortKey(" .. key .. ") = " .. tostring(got) .. ", want " .. want)
 	end
-	assert(ns.ShortKey("PADLSHOULDER", function(key)
+	assert(ShortKey("PADLSHOULDER", function(key)
 		return "LB:" .. key
 	end) == "LB:PADLSHOULDER", "an unknown key uses the fallback")
-	assert(ns.ShortKey("PADLSHOULDER") == "PADLSHOULDER", "and without one, the key itself")
-	assert(ns.ShortKey(nil) == "" and ns.ShortKey("") == "", "no key, no text")
+	assert(ShortKey("PADLSHOULDER") == "PADLSHOULDER", "and without one, the key itself")
+	assert(ShortKey(nil) == "" and ShortKey("") == "", "no key, no text")
 end
 
 -- FontFlags: the outline setting becomes SetFont flags.

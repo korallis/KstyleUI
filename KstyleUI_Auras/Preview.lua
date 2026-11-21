@@ -13,18 +13,18 @@ local build
 function Preview.Build(...)
 	if build then return build(...) end
 	local BUFFS = {
-		{ icon = 135987, seconds = 24, spell = 1243, cancelable = true },
-		{ icon = 136078, seconds = 17, stacks = "3", spell = 1126, cancelable = true },
-		{ icon = 135932, seconds = 12, spell = 1459, cancelable = true },
-		{ icon = 135906, seconds = 480, spell = 19740, cancelable = true },
+		{ icon = 135987, seconds = 24, spell = 1243, cancelable = true, dispellable = true },
+		{ icon = 136078, seconds = 17, stacks = "3", spell = 1126, cancelable = true, important = true },
+		{ icon = 135932, seconds = 12, spell = 1459, cancelable = true, bigDefensive = true },
+		{ icon = 135906, seconds = 480, spell = 19740, cancelable = true, important = true },
 		{ icon = 132333, seconds = 180, spell = 6673, cancelable = true },
-		{ icon = 135953, seconds = 2.4, refresh = true, spell = 139, cancelable = true },
+		{ icon = 135953, seconds = 2.4, refresh = true, spell = 139, cancelable = true, dispellable = true },
 		{ icon = 135893, spell = 465 },
 	}
 	local DEBUFFS = {
 		{ icon = 136207, seconds = 18, kind = "MAGIC", dispellable = true },
 		{ icon = 136118, seconds = 9, kind = "CURSE", stacks = "2", dispellable = true },
-		{ icon = 135846, seconds = 4, kind = "NONE", refresh = true },
+		{ icon = 135846, seconds = 4, kind = "NONE", refresh = true, crowdControl = true },
 	}
 	local TYPE_NAMES = { MAGIC = "Magic", CURSE = "Curse" }
 
@@ -101,7 +101,7 @@ function Preview.Build(...)
 	end
 
 	local function Passes(spec, group, lists)
-		if (group.show ~= "all" and not spec[group.show]) or (group.timed and not spec.seconds) then
+		if (group.show ~= "all" and not spec[group.show]) or (group.timed and not spec.seconds) or (group.dispellable and not spec.dispellable) then
 			return false
 		end
 		local include, exclude = lists and lists.includeSpellIDs, lists and lists.excludeSpellIDs
@@ -111,7 +111,8 @@ function Preview.Build(...)
 	local function PlaceGroup(box, entries, group, ctx, lists)
 		local w, h = ctx.width, ctx.height
 		local visible = {}
-		for _, entry in ipairs(entries) do
+		for i = 1, #entries do
+			local entry = entries[group.reverse and #entries + 1 - i or i]
 			local pass = #visible < group.rows * group.columns and Passes(entry.spec, group, lists)
 			if pass then
 				visible[#visible + 1] = entry
@@ -166,7 +167,10 @@ function Preview.Build(...)
 		timer.size, count.size = timer.size * textScale, count.size * textScale
 		local gap = Tokens.Size("gapLarge")
 		local widest = 0
-		local boxes = { { frame.buffBox, frame.buffs, "buffs" }, { frame.debuffBox, frame.debuffs, "debuffs" } }
+		local boxes = {
+			{ frame.buffBox, frame.buffs, "buffs" }, { frame.debuffBox, frame.debuffs, "debuffs" },
+			{ frame.extraBuffBox, frame.extraBuffs, "extraBuffs" }, { frame.extraDebuffBox, frame.extraDebuffs, "extraDebuffs" },
+		}
 		local top = 0
 		local available = frame:GetWidth()
 		if type(available) ~= "number" or Widgets.IsSecret(available) or available <= 0 then
@@ -175,16 +179,32 @@ function Preview.Build(...)
 		for _, item in ipairs(boxes) do
 			local box, entries, name = item[1], item[2], item[3]
 			local group = Fit(Model.Group(settings, name), timer, available)
-			local r, g, b = Tokens.Color("black")
-			local ctx = Context(frame.canvas, group, timer, count, { r, g, b, 1 })
-			for _, entry in ipairs(entries) do
-				StyleSample(entry, ctx)
+			box:SetShown(group.enabled)
+			if group.enabled then
+				local r, g, b = Tokens.Color("black")
+				local ctx = Context(frame.canvas, group, timer, count, { r, g, b, 1 })
+				for _, entry in ipairs(entries) do
+					StyleSample(entry, ctx)
+				end
+				local w, h = PlaceGroup(box, entries, group, ctx, Model.KIND[name] == "buffs" and K.Options.AuraCandidates(settings[name] or {}) or nil)
+				box:ClearAllPoints()
+				Widgets.Point(box, "TOPRIGHT", frame.canvas, "TOPRIGHT", 0, -top)
+				top = top + h + gap
+				widest = max(widest, w)
 			end
-			local w, h = PlaceGroup(box, entries, group, ctx, name == "buffs" and K.Options.AuraCandidates(settings.buffs or {}) or nil)
-			box:ClearAllPoints()
-			Widgets.Point(box, "TOPRIGHT", frame.canvas, "TOPRIGHT", 0, -top)
-			top = top + h + gap
-			widest = max(widest, w)
+		end
+		local reminder = settings.reminder.enabled == true
+		if reminder and not frame.reminder then
+			frame.reminder = ns.Reminder.Card(frame.canvas)
+		end
+		if frame.reminder then
+			frame.reminder:SetShown(reminder)
+			if reminder then
+				local w, h = ns.Reminder.Paint(frame.reminder, ns.Reminder.Sample())
+				frame.reminder:ClearAllPoints()
+				Widgets.Point(frame.reminder, "TOPRIGHT", frame.canvas, "TOPRIGHT", 0, -top)
+				top, widest = top + h + gap, max(widest, w)
+			end
 		end
 		local scale = 1
 		if available and widest > available then
@@ -205,14 +225,12 @@ function Preview.Build(...)
 		frame:SetAllPoints(parent)
 		local canvas = CreateFrame("Frame", nil, frame)
 		frame.canvas = canvas
-		frame.buffBox = CreateFrame("Frame", nil, canvas)
-		frame.debuffBox = CreateFrame("Frame", nil, canvas)
-		frame.buffs, frame.debuffs = {}, {}
-		for i, spec in ipairs(BUFFS) do
-			frame.buffs[i] = Sample(frame.buffBox, spec, false)
-		end
-		for i, spec in ipairs(DEBUFFS) do
-			frame.debuffs[i] = Sample(frame.debuffBox, spec, true)
+		for _, row in ipairs({ { "buffBox", "buffs", BUFFS }, { "debuffBox", "debuffs", DEBUFFS }, { "extraBuffBox", "extraBuffs", BUFFS }, { "extraDebuffBox", "extraDebuffs", DEBUFFS } }) do
+			local box = CreateFrame("Frame", nil, canvas)
+			frame[row[1]], frame[row[2]] = box, {}
+			for i, spec in ipairs(row[3]) do
+				frame[row[2]][i] = Sample(box, spec, row[3] == DEBUFFS)
+			end
 		end
 		frame.Refresh = Refresh
 		Refresh(frame)

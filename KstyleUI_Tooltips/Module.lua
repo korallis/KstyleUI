@@ -1,16 +1,60 @@
--- Module.lua: registers KstyleUI_Tooltips with the core: Enable, Disable, the settings page and its live preview.
+-- Module.lua: registers KstyleUI_Tooltips with the core: Enable, Disable, the settings page, its live preview and the Detailed tooltips CVar.
 local _, ns = ...
 
 local K = KstyleUI
-local Settings, Style, Anchor, Content, Health = ns.Settings, ns.Style, ns.Anchor, ns.Content, ns.Health
+local Settings, Style, Anchor, Content, Health, Units = ns.Settings, ns.Style, ns.Anchor, ns.Content, ns.Health, ns.Units
 
 local MODULE = ns.MODULE
+local UBER, DETAILED, SHARED = "UberTooltips", "TooltipsDetailed", "*"
+
+local Detailed
+
+local function OnVariables()
+	K.Events.Unregister(DETAILED, "VARIABLES_LOADED")
+	Detailed()
+end
+
+Detailed = function()
+	local CVars, account = K.CVars, K.Store.Account()
+	local all = account.tooltipsDetailed
+	local shared = type(all) == "table" and type(all[SHARED]) == "table" and all[SHARED] or nil
+	local want, memory = ns.active and Settings.Get("detailed") or "game", shared and shared[UBER]
+	if want == "game" and type(memory) ~= "table" then
+		return
+	end
+	if not CVars.Loaded() then
+		K.Events.Register(DETAILED, "VARIABLES_LOADED", OnVariables)
+		return
+	end
+	local current = CVars.Get(UBER)
+	if not current then
+		Settings.LogOnce("detailed", "UberTooltips cannot be read; Detailed tooltips keeps the game's setting")
+		return
+	end
+	if want == "game" then
+		if current ~= memory.written or type(memory.original) ~= "string"
+			or CVars.Set(UBER, memory.original) and CVars.Get(UBER) == memory.original then
+			shared[UBER] = nil
+		end
+		return
+	end
+	memory = type(memory) == "table" and memory or {}
+	if current ~= memory.written then
+		memory.original = current
+	end
+	local value = want == "on" and "1" or "0"
+	if current == value or CVars.Set(UBER, value) then
+		memory.written = value
+		account.tooltipsDetailed = { [SHARED] = { [UBER] = memory } }
+	end
+end
 
 local function ApplyScale()
 	if ns.active then
 		Anchor.Resize()
 		Style.ApplyScale(Anchor.Scale())
 		Style.ApplyFonts()
+		Units.Restyle()
 	end
 end
 
@@ -25,6 +69,8 @@ local function ApplyAll()
 	if ns.active then
 		Health.Restyle()
 		Anchor.Watch()
+		Detailed()
+		Content.Watch()
 	end
 end
 
@@ -87,6 +133,8 @@ function def.Disable()
 	Health.Hide()
 	Style.RestoreFonts()
 	Style.RestoreScale()
+	Units.Restyle()
+	Detailed()
 end
 
 local function Check()

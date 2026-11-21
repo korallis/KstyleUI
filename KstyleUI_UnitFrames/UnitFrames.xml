@@ -12,6 +12,8 @@
 	<Script file="Resource.lua"/>
 	<Script file="CastEffects.lua"/>
 	<Script file="CastBar.lua"/>
+	<Script file="Dispel.lua"/>
+	<Script file="Totems.lua"/>
 	<Script file="Overflow.lua"/>
 	<Script file="Auras.lua"/>
 	<Script file="Fan.lua"/>

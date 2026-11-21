@@ -44,14 +44,22 @@ function Fonts.IsLoaded(path)
 end
 
 local function Collect(value, out, depth, seen)
-	if type(value) == "string" then
-		if Theme.IsFontPath(value) then
-			out[#out + 1] = value
-		end
+	if type(value) == "string" and Theme.IsFontPath(value) then
+		out[#out + 1] = value
 	elseif type(value) == "table" and depth < MAX_DEPTH and not seen[value] then
 		seen[value] = true
 		for _, child in pairs(value) do
-			Collect(child, out, depth + 1, seen)
+			local kind = type(child)
+			if kind == "table" then
+				Collect(child, out, depth + 1, seen)
+			elseif kind == "string" then
+				if seen[child] == nil then
+					seen[child] = Theme.IsFontPath(child)
+				end
+				if seen[child] then
+					out[#out + 1] = child
+				end
+			end
 		end
 	end
 end

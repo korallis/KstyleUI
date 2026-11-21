@@ -31,6 +31,8 @@ local TRACK = "buttonFill"
 local TIMER_FORMAT = "%.1fs"
 local ELAPSED_FORMAT = "%.1f / %.1f"
 local REMAINING_FORMAT = "%.1f"
+local LAG_SUFFIX, LAG_EM, FIT_FLOOR = " (%dms)", 3.5, 0.6
+local LAGGED = { [TIMER_FORMAT] = TIMER_FORMAT .. LAG_SUFFIX, [ELAPSED_FORMAT] = ELAPSED_FORMAT .. LAG_SUFFIX, [REMAINING_FORMAT] = REMAINING_FORMAT .. LAG_SUFFIX }
 local CAPTION_BAR = { above = 14, below = 14, inside = 14 }
 local CAPTION_OFFSET = { above = 0, below = 0.5, inside = 0 }
 local CAPTION_GAP = { above = 1, below = 3.5, inside = 0 }
@@ -52,6 +54,9 @@ local FLASH_LEVEL = 2
 local LIT_ALPHA, SHADE_ALPHA = 0.6, 0.45
 local MEDAL_INSET, MEDAL_TEXT_PAD = 3, 5
 local SPARK = { 227 / 255, 232 / 255, 238 / 255, 1 }
+local RANGE_STEP = 0.2
+local BATCH_GAP = 2
+local GCD_MAX = 1.5
 
 local EVENTS = {
 	UNIT_SPELLCAST_START = "Cast",
@@ -110,19 +115,6 @@ local function NewText(owner, justify)
 	return text
 end
 
-function CastBars.SetName(cb, text)
-	if issecretvalue(text) or type(text) ~= "string" or not Settings.Value(cb.kind, "castbarCaps") then
-		cb.text:SetText(text)
-	else
-		cb.text:SetText(ns.Unit.Tracked(text, cb.textPath or (Settings.Font(cb.kind, "cast"))))
-	end
-	local secret = issecretvalue(text)
-	if not cb.ornament.joined and (secret or text ~= cb.ornamentText) then
-		cb.ornamentText = not secret and text or nil
-		cb.ornament:Restyle()
-	end
-end
-
 local function Caption(cb)
 	local form = Settings.Form(cb.kind)
 	if form == "column" then
@@ -142,14 +134,19 @@ local function Elapsed(cb)
 end
 
 local function WriteTimer(cb, elapsed, total, remaining)
-	if Elapsed(cb) then
-		cb.timer:SetFormattedText(ELAPSED_FORMAT, elapsed, total)
-	elseif cb.mode == "below" or cb.mode == "inside" or cb.medal then
-		cb.timer:SetFormattedText(REMAINING_FORMAT, remaining)
-	else
-		cb.timer:SetFormattedText(TIMER_FORMAT, remaining)
+	local lag, batch = cb.lag, cb.batch
+	if batch then
+		remaining = math.max(0, batch - GetTime())
 	end
+	if Elapsed(cb) and not batch then
+		if lag then cb.timer:SetFormattedText(LAGGED[ELAPSED_FORMAT], elapsed, total, lag) else cb.timer:SetFormattedText(ELAPSED_FORMAT, elapsed, total) end
+		return
+	end
+	local fmt = (cb.mode == "below" or cb.mode == "inside" or cb.medal) and REMAINING_FORMAT or TIMER_FORMAT
+	if lag then cb.timer:SetFormattedText(LAGGED[fmt], remaining, lag) else cb.timer:SetFormattedText(fmt, remaining) end
 end
+
+CastBars.WriteTimer = WriteTimer
 
 local function Tick(frame, elapsed)
 	local cb = frame.cb
@@ -242,10 +239,14 @@ local function StopTimer(cb)
 	cb.frame:SetScript("OnUpdate", nil)
 end
 
+local StopRange
+
 local function EndTimer(cb, value)
 	cb.inkEmpty = value == 0
 	StopTimer(cb)
+	StopRange(cb)
 	if cb.latency then cb.latency:Hide() end
+	if cb.important then cb.important:Hide() end
 	cb.duration = nil
 	cb.timer:SetText("")
 	local bar = cb.bar
@@ -282,15 +283,34 @@ local function Notify(cb)
 end
 
 local function Hide(cb, instant)
-	cb.active, cb.landed = false, false
+	cb.active, cb.landed, cb.gcd = false, false, nil
 	Notify(cb)
 	cb.token = (cb.token or 0) + 1
 	if cb.timed then
 		EndTimer(cb, 0)
 	end
 	StopTimer(cb)
+	StopRange(cb)
 	if cb.latency then cb.latency:Hide() end
+	if cb.important then cb.important:Hide() end
 	cb.duration = nil
+	if cb.idle then
+		StopFlash(cb)
+		if cb.ended then pcall(cb.bar.SetTimerDuration, cb.bar, cb.ended, Interpolation(), Direction(true)) end
+		cb.bar:SetMinMaxValues(0, 1)
+		cb.bar:SetValue(0)
+		CastBars.SetName(cb, "")
+		cb.timer:SetText("")
+		cb.icon:SetTexture(nil)
+		cb.bar:SetFillCursor(false)
+		cb.label:Hide()
+		cb.lock:Hide()
+		cb.empty = true
+		cb.frame:SetAlpha(1)
+		local gone = cb.holder and not UnitExists(cb.unit)
+		cb.frame:SetShown(not cb.noRoom and (issecretvalue(gone) or not gone))
+		return
+	end
 	if instant or not cb.frame:IsShown() then
 		StopFlash(cb)
 		cb.frame:Hide()
@@ -383,14 +403,16 @@ local function Inline(out, bar, tall, timer, size, em)
 	out.text = TextRect(x, w - (timer and timerW + TEXT_PAD or 0), bar.y, bar.h, size)
 end
 
-function CastBars.Geometry(width, height, icon, timer, size, em, right)
+function CastBars.Geometry(width, height, icon, timer, size, em, right, iconSize)
 	em = em or TIMER_COLUMN
 	local out = { tall = height > width }
 	local thick = out.tall and width or height
 	local offset = 0
 	if icon then
-		out.icon = Rect((right and not out.tall) and width - thick or 0, 0, thick, thick)
-		offset = thick + math.max(GAP_MIN, math.floor(thick * GAP_SHARE + 0.5))
+		local side = (iconSize or 0) > 0 and math.min(iconSize, thick) or thick
+		local across = (thick - side) / 2
+		out.icon = Rect(out.tall and across or right and width - side or 0, out.tall and 0 or across, side, side)
+		offset = side + math.max(GAP_MIN, math.floor(side * GAP_SHARE + 0.5))
 	end
 	local panel
 	if out.tall then
@@ -421,10 +443,15 @@ function CastBars.Geometry(width, height, icon, timer, size, em, right)
 	return out
 end
 
-local function Place(cb, region, rect)
+local function Place(cb, region, rect, dx, dy)
 	region:ClearAllPoints()
-	region:SetPoint("TOPLEFT", cb.frame, "TOPLEFT", Snap(cb, rect.x), -Snap(cb, rect.y))
+	region:SetPoint("TOPLEFT", cb.frame, "TOPLEFT", Snap(cb, rect.x) + (dx or 0), (dy or 0) - Snap(cb, rect.y))
 	region:SetSize(Snap(cb, rect.w), Snap(cb, rect.h))
+end
+
+local function Nudge(cb, part)
+	local x, y = Settings.Value(cb.kind, part .. "X"), Settings.Value(cb.kind, part .. "Y")
+	return x ~= 0 and Snap(cb, x) or 0, y ~= 0 and Snap(cb, y) or 0
 end
 
 local function Lined(cb)
@@ -439,8 +466,8 @@ local function Form(cb)
 	cb.medal = K.HudStyle.Current() == "medallions"
 	cb.line = not cb.medal and Lined(cb)
 	cb.mode = not cb.medal and Caption(cb) or nil
-	local player = cb.kind == "player"
-	cb.iconRight, cb.showTotal = player and Settings.Value(cb.kind, "castbarIconRight"), player and Settings.Value(cb.kind, "castbarTotal")
+	cb.iconRight, cb.showTotal = Settings.Value(cb.kind, "castbarIconRight"), cb.kind == "player" and Settings.Value(cb.kind, "castbarTotal")
+	cb.lagText = cb.kind == "player" and Settings.Value(cb.kind, "castbarLagText")
 	if cb.medalOn == cb.medal then
 		return
 	end
@@ -456,14 +483,14 @@ local function Form(cb)
 	cb.bar.shade:SetShown(not cb.medal)
 end
 
-local function Anchor(cb, region, point, relative, relPoint, x)
+local function Anchor(cb, region, point, relative, relPoint, x, dx, dy)
 	region:ClearAllPoints()
-	region:SetPoint(point, relative, relPoint, Snap(cb, x), 0)
+	region:SetPoint(point, relative, relPoint, Snap(cb, x) + (dx or 0), dy or 0)
 end
 
 local function ShowLock(cb)
 	local label, lock, value = cb.label, cb.lock, cb.locked
-	if not cb.line then
+	if not cb.line or cb.empty then
 		label:Hide()
 		lock:Hide()
 		return
@@ -497,9 +524,10 @@ local function LayoutLine(cb, width, height, column)
 	cb.lock:SetHeight(h)
 	cb.lock:SetWidth(0)
 	ShowLock(cb)
-	Anchor(cb, cb.text, "LEFT", cb.label, "RIGHT", LINE_LABEL_GAP)
+	local tx, ty = Nudge(cb, "castbarText")
+	local mx, my = Nudge(cb, "castbarTimer")
+	Anchor(cb, cb.text, "LEFT", cb.label, "RIGHT", LINE_LABEL_GAP, tx, ty)
 	cb.text:SetHeight(h)
-	cb.text:SetWidth(0)
 	cb.text:SetJustifyH("LEFT")
 	cb.text:SetShown(Settings.Value(cb.kind, "castbarText"))
 	local size = Settings.FontSize(cb.kind, "cast")
@@ -510,10 +538,9 @@ local function LayoutLine(cb, width, height, column)
 	elseif timerOn then
 		room = room - timerW - LINE_LABEL_GAP
 	end
-	if room < LINE_NAME_EM * size then
-		cb.text:SetWidth(Snap(cb, math.max(0, room)))
-	end
-	Anchor(cb, cb.timer, "RIGHT", frame, "RIGHT", 0)
+	cb.nameRoom, cb.nameFree = Snap(cb, math.max(0, room)), room >= LINE_NAME_EM * size
+	cb.text:SetWidth(cb.nameFree and not cb.longName and 0 or cb.nameRoom)
+	Anchor(cb, cb.timer, "RIGHT", frame, "RIGHT", 0, mx, my)
 	cb.timer:SetSize(Snap(cb, timerW), h)
 	cb.timer:SetJustifyH("RIGHT")
 	cb.timer:SetShown(timerOn)
@@ -521,9 +548,13 @@ local function LayoutLine(cb, width, height, column)
 	bar.opts.width, bar.opts.height = width, math.min(height, math.max(LINE_BAR, math.floor(height * LINE_BAR_SHARE)))
 	bar:Restyle()
 	bar:ClearAllPoints()
-	bar:SetPoint("LEFT", cb.text:IsShown() and cb.text or cb.label, "RIGHT", Snap(cb, LINE_BAR_GAP), 0)
+	if cb.text:IsShown() then
+		bar:SetPoint("LEFT", cb.text, "RIGHT", Snap(cb, LINE_BAR_GAP) - tx, -ty)
+	else
+		bar:SetPoint("LEFT", cb.label, "RIGHT", Snap(cb, LINE_BAR_GAP), 0)
+	end
 	if timerOn then
-		bar:SetPoint("RIGHT", cb.timer, "LEFT", -Snap(cb, LINE_LABEL_GAP), 0)
+		bar:SetPoint("RIGHT", cb.timer, "LEFT", -Snap(cb, LINE_LABEL_GAP) - mx, -my)
 	else
 		bar:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
 	end
@@ -539,11 +570,12 @@ local function LayoutCaption(cb, width, height)
 	local above, inside = mode == "above", mode == "inside"
 	cb.geometry = { caption = mode }
 	local lead = 0
-	local side = Snap(cb, inside and math.min(CAPTION_BAR.inside, height) or height)
+	local base, own = inside and math.min(CAPTION_BAR.inside, height) or height, Settings.Value(cb.kind, "castbarIconSize")
+	local side = Snap(cb, own > 0 and math.min(own, base) or base)
 	if Settings.Value(cb.kind, "castbarIcon") and side + Snap(cb, CAPTION_ICON_GAP) < width then
 		lead = side + Snap(cb, CAPTION_ICON_GAP)
-		cb.geometry.icon = { x = cb.iconRight and width - side or 0, y = inside and height - side or 0, w = side, h = side }
-		Place(cb, cb.iconFrame, cb.geometry.icon)
+		cb.geometry.icon = { x = cb.iconRight and width - side or 0, y = own > 0 and (inside and height - (base + side) / 2 or (base - side) / 2) or inside and height - side or 0, w = side, h = side }
+		Place(cb, cb.iconFrame, cb.geometry.icon, Nudge(cb, "castbarIcon"))
 		cb.iconChrome:Restyle()
 		local inset = Widgets.Border(cb.frame)
 		cb.icon:ClearAllPoints()
@@ -572,11 +604,16 @@ local function LayoutCaption(cb, width, height)
 	end
 	local barH = math.min(CAPTION_BAR[mode], labelOn and not inside and spare or height - barOffset)
 	local timerOn = labelOn and Settings.Value(cb.kind, "castbarTimer")
-	local timerW = timerOn and math.min(math.ceil(CAPTION_TIMER_EM[Elapsed(cb) and "elapsed" or "remaining"] * size), math.floor(width / 2)) or 0
+	local em = CAPTION_TIMER_EM[Elapsed(cb) and "elapsed" or "remaining"] + (cb.lagText and LAG_EM or 0)
+	local timerW = timerOn and math.min(math.ceil(em * size), math.floor(width / 2)) or 0
 	local reach, roomy = 0, above and Roomy(cb)
 	if roomy then
 		reach = Ceil(cb, math.max(0, CAPTION_ROOM + timerW + (timerOn and TEXT_PAD or 0) - width) / 2)
 		width, lead = width + 2 * reach, lead - reach
+		if trail > 0 then
+			cb.geometry.icon.x = cb.geometry.icon.x + reach
+			Place(cb, cb.iconFrame, cb.geometry.icon, Nudge(cb, "castbarIcon"))
+		end
 	end
 	local bar = cb.bar
 	bar.opts.width, bar.opts.height = width, barH
@@ -597,19 +634,21 @@ local function LayoutCaption(cb, width, height)
 		text:SetHeight(Snap(cb, inside and barH or rowH))
 		text:SetJustifyV(inside and "MIDDLE" or above and "BOTTOM" or "TOP")
 	end
+	local tx, ty = Nudge(cb, "castbarText")
+	local mx, my = Nudge(cb, "castbarTimer")
 	if inside then
-		cb.text:SetPoint("LEFT", bar, "LEFT", pad, 0)
+		cb.text:SetPoint("LEFT", bar, "LEFT", pad + tx, ty)
 	else
-		cb.text:SetPoint(point .. "LEFT", frame, point .. "LEFT", lead, offset)
+		cb.text:SetPoint(point .. "LEFT", frame, point .. "LEFT", lead + tx, offset + ty)
 	end
 	local textW = math.max(0, width - timerW - 2 * pad - (timerOn and TEXT_PAD or 0))
 	cb.text:SetWidth(roomy and Ceil(cb, textW) or Snap(cb, textW))
 	cb.text:SetJustifyH("LEFT")
 	cb.text:SetShown(labelOn and Settings.Value(cb.kind, "castbarText"))
 	if inside then
-		cb.timer:SetPoint("RIGHT", bar, "RIGHT", -pad, 0)
+		cb.timer:SetPoint("RIGHT", bar, "RIGHT", mx - pad, my)
 	else
-		cb.timer:SetPoint(point .. "RIGHT", frame, point .. "RIGHT", reach - trail, offset)
+		cb.timer:SetPoint(point .. "RIGHT", frame, point .. "RIGHT", reach - trail + mx, offset + my)
 	end
 	cb.timer:SetWidth(Snap(cb, timerW))
 	cb.timer:SetJustifyH("RIGHT")
@@ -644,7 +683,7 @@ local function LayoutMedal(cb, width, height, column)
 	bar.keyline:Hide()
 	bar:SetTrackBacking(true)
 	bar:SetInnerEdge(true, "black")
-	bar:SetFillCursor(Settings.Value(cb.kind, "castbarSpark"))
+	bar:SetFillCursor(not cb.empty and Settings.Value(cb.kind, "castbarSpark"))
 	Spark(cb)
 	local size = Settings.FontSize(cb.kind, "cast")
 	local timerOn = Settings.Value(cb.kind, "castbarTimer")
@@ -654,19 +693,21 @@ local function LayoutMedal(cb, width, height, column)
 		text:SetHeight(Snap(cb, barH))
 		text:SetJustifyV("MIDDLE")
 	end
-	cb.text:SetPoint("LEFT", bar, "LEFT", pad, 0)
+	local tx, ty = Nudge(cb, "castbarText")
+	local mx, my = Nudge(cb, "castbarTimer")
+	cb.text:SetPoint("LEFT", bar, "LEFT", pad + tx, ty)
 	cb.text:SetWidth(Snap(cb, math.max(0, barW - timerW - 2 * MEDAL_TEXT_PAD - (timerOn and TEXT_PAD or 0))))
 	cb.text:SetJustifyH("LEFT")
 	cb.text:SetShown(Settings.Value(cb.kind, "castbarText"))
-	cb.timer:SetPoint("RIGHT", bar, "RIGHT", -pad, 0)
+	cb.timer:SetPoint("RIGHT", bar, "RIGHT", mx - pad, my)
 	cb.timer:SetWidth(Snap(cb, timerW))
 	cb.timer:SetJustifyH("RIGHT")
 	cb.timer:SetShown(timerOn)
 end
 
-function CastBars.Layout(cb, width, height)
+local function LayoutParts(cb, width, height)
 	Form(cb)
-	local column = cb.showTotal and CAPTION_TIMER_EM.elapsed or TIMER_COLUMN
+	local column = (cb.showTotal and CAPTION_TIMER_EM.elapsed or TIMER_COLUMN) + (cb.lagText and LAG_EM or 0)
 	if cb.medal then
 		LayoutMedal(cb, width, height, column)
 		return
@@ -686,11 +727,11 @@ function CastBars.Layout(cb, width, height)
 	cb.chrome:SetShadow(true)
 	cb.chrome:SetShown(true)
 	cb.bar:SetSparkShown(Settings.Value(cb.kind, "castbarSpark"))
-	local g = CastBars.Geometry(width, height, Settings.Value(cb.kind, "castbarIcon"), Settings.Value(cb.kind, "castbarTimer"), Settings.FontSize(cb.kind, "cast"), column, cb.iconRight)
+	local g = CastBars.Geometry(width, height, Settings.Value(cb.kind, "castbarIcon"), Settings.Value(cb.kind, "castbarTimer"), Settings.FontSize(cb.kind, "cast"), column, cb.iconRight, Settings.Value(cb.kind, "castbarIconSize"))
 	cb.geometry = g
 	if g.icon then
 		local inset = Widgets.Border(cb.frame)
-		Place(cb, cb.iconFrame, g.icon)
+		Place(cb, cb.iconFrame, g.icon, Nudge(cb, "castbarIcon"))
 		cb.iconChrome:Restyle()
 		cb.icon:ClearAllPoints()
 		cb.icon:SetPoint("TOPLEFT", cb.iconFrame, "TOPLEFT", inset, -inset)
@@ -706,8 +747,8 @@ function CastBars.Layout(cb, width, height)
 	bar:ClearAllPoints()
 	bar:SetPoint("TOPLEFT", cb.frame, "TOPLEFT", Snap(cb, g.bar.x), -Snap(cb, g.bar.y))
 	bar:Restyle()
-	Place(cb, cb.text, g.text)
-	Place(cb, cb.timer, g.timer)
+	Place(cb, cb.text, g.text, Nudge(cb, "castbarText"))
+	Place(cb, cb.timer, g.timer, Nudge(cb, "castbarTimer"))
 	cb.text:SetJustifyH(g.tall and "CENTER" or "LEFT")
 	cb.timer:SetJustifyH(g.tall and "CENTER" or "RIGHT")
 	cb.text:SetShown(Settings.Value(cb.kind, "castbarText"))
@@ -731,6 +772,9 @@ local function Reaction(cb)
 end
 
 local function BarColor(cb)
+	if cb.outOfRange then
+		return Tokens.Color("textDisabled")
+	end
 	if cb.channel and cb.kind == "player" and Settings.Value("player", "castbarChannelOverride") then
 		local c = Settings.Value("player", "castbarChannelColor")
 		return c.r, c.g, c.b
@@ -753,7 +797,24 @@ local function BarColor(cb)
 	return K.Theme.Accent()
 end
 
+local function StyleText(text, path, size, flags)
+	if not Widgets.ApplyFont(text, path, size, flags) then
+		Widgets.ApplyFont(text, (Tokens.Font("body")), size, flags)
+	end
+end
+
+local function StyleTarget(cb)
+	local t, own, path, size, flags = cb.targetText, Settings.Value(cb.kind, "castbarTargetSize"), cb.text:GetFont()
+	StyleText(t, path, own > 0 and own * K.Theme.FontScale() or size, flags)
+	t:SetShadowColor(cb.text:GetShadowColor())
+	t:SetShadowOffset(cb.text:GetShadowOffset())
+	local c = Settings.Value(cb.kind, "castbarTargetColor")
+	t:SetTextColor(c.r, c.g, c.b)
+end
+
 local function Paint(cb, r, g, b, a)
+	local alpha = Settings.Value(cb.kind, "castbarAlpha")
+	if alpha < 1 then a = alpha end
 	local changed = cb.pr ~= r or cb.pg ~= g or cb.pb ~= b or cb.pa ~= a
 	if (cb.medal or cb.mode == "inside") and Widgets.Readability("readableBars") and (changed or cb.inkPaint ~= cb.inkEmpty) then
 		cb.inkPaint = cb.inkEmpty
@@ -762,6 +823,7 @@ local function Paint(cb, r, g, b, a)
 		else
 			Widgets.InkText(cb.text, r, g, b)
 		end
+		if cb.targetText then StyleTarget(cb) end
 	end
 	if not changed then
 		return
@@ -774,9 +836,110 @@ local function Paint(cb, r, g, b, a)
 	end
 end
 
-local function StyleText(text, path, size, flags)
-	if not Widgets.ApplyFont(text, path, size, flags) then
-		Widgets.ApplyFont(text, (Tokens.Font("body")), size, flags)
+local function PlaceTarget(cb)
+	local place = not cb.line and Settings.Value(cb.kind, "castbarTarget") and Settings.Value(cb.kind, "castbarTargetPlace")
+	local t, text = cb.targetText, cb.text
+	local w, point, rel, relPoint, x, y = place and place ~= "" and text:GetWidth()
+	if w then point, rel, relPoint, x, y = text:GetPoint(1) end
+	cb.targetOn = nil
+	if not (w and not issecretvalue(w) and type(w) == "number" and w > 2 * TEXT_PAD and not (issecretvalue(point) or issecretvalue(rel) or issecretvalue(relPoint) or issecretvalue(x) or issecretvalue(y))
+		and type(x) == "number" and type(y) == "number") then
+		if t then t:Hide() end
+		return
+	end
+	if not t then
+		t = NewText(text:GetParent(), place)
+		cb.targetText = t
+		cb.ornament.texts[#cb.ornament.texts + 1] = t
+		StyleTarget(cb)
+	end
+	cb.targetOn = place
+	local pad = Snap(cb, TEXT_PAD)
+	local half = Snap(cb, (w - TEXT_PAD) / 2)
+	local tx, ty = Nudge(cb, "castbarTarget")
+	text:SetWidth(half)
+	t:ClearAllPoints()
+	t:SetSize(half, text:GetHeight())
+	t:SetJustifyV(text:GetJustifyV())
+	t:SetJustifyH(place)
+	if place == "RIGHT" then
+		t:SetPoint("LEFT", text, "RIGHT", pad + tx, ty)
+	else
+		text:SetPoint(point, rel, relPoint, x + half + pad, y)
+		t:SetPoint("RIGHT", text, "LEFT", tx - pad, ty)
+	end
+	t:SetShown(text:IsShown())
+end
+
+function CastBars.Layout(cb, width, height)
+	LayoutParts(cb, width, height)
+	PlaceTarget(cb)
+end
+
+local function NameFont(cb, size)
+	local style = cb.nameStyle
+	StyleText(cb.text, style.path, size, style.flags)
+	if style.shadow then
+		local border = K.Scale.Border() / Widgets.ScaleFactor(cb.text)
+		cb.text:SetShadowColor(Tokens.Color("textShadow"))
+		cb.text:SetShadowOffset(border, -border)
+	end
+	cb.fitSize = size
+	if cb.targetText then StyleTarget(cb) end
+end
+
+local function Advance(text)
+	local width = text:GetUnboundedStringWidth()
+	return not issecretvalue(width) and type(width) == "number" and width or nil
+end
+
+local function Fit(cb)
+	local style = cb.nameStyle
+	if not style then return end
+	local size, room = style.size, Settings.Value(cb.kind, "castbarFit") and cb.text:GetWidth()
+	local width = room and not issecretvalue(room) and type(room) == "number" and room > 0 and Advance(cb.text)
+	if not width then
+		if size ~= cb.fitSize then NameFont(cb, size) end
+		return
+	end
+	local least = math.min(size, math.max(size * FIT_FLOOR, K.Scale.TextFloor() * K.Scale.Pixel(1) / Widgets.ScaleFactor(cb.text)))
+	width = width * size / cb.fitSize
+	if width > room then size = math.max(least, size * room / width) end
+	if size ~= cb.fitSize then NameFont(cb, size) end
+	width = size < style.size and Advance(cb.text)
+	if width and width > room then
+		NameFont(cb, math.max(least, size - K.Scale.Pixel(1) / Widgets.ScaleFactor(cb.text)))
+	end
+end
+
+function CastBars.SetName(cb, text, target)
+	if cb.targetOn then
+		if issecretvalue(target) or target ~= nil then cb.targetText:SetText(target) else cb.targetText:SetText("") end
+		target = nil
+	end
+	local shown, secret = text, issecretvalue(text)
+	if not (secret or type(text) ~= "string" or not Settings.Value(cb.kind, "castbarCaps")) then
+		shown = ns.Unit.Tracked(text, cb.textPath or (Settings.Font(cb.kind, "cast")))
+	end
+	local named = issecretvalue(target) or target ~= nil
+	if named then
+		cb.text:SetText(shown .. " - " .. target)
+	else
+		cb.text:SetText(shown)
+	end
+	if cb.line and cb.nameFree then
+		local width = named and not (secret or issecretvalue(target)) and cb.text:GetUnboundedStringWidth()
+		local long = named and not (not issecretvalue(width) and type(width) == "number" and width <= cb.nameRoom)
+		if long ~= (cb.longName or false) then
+			cb.longName = long
+			cb.text:SetWidth(long and cb.nameRoom or 0)
+		end
+	end
+	Fit(cb)
+	secret = secret or named
+	if not cb.ornament.joined and (secret or text ~= cb.ornamentText) then
+		cb.ornamentText = not secret and text or nil
+		cb.ornament:Restyle()
 	end
 end
 
@@ -798,6 +961,37 @@ local function Orient(cb)
 	end
 end
 
+local LOW_STRATA = { BACKGROUND = true, LOW = true, MEDIUM = true }
+
+local function Raise(cb)
+	local on = cb.unit ~= nil and Settings.Module().castbarRaise == true
+	if on == (cb.raised ~= nil) then
+		return
+	end
+	local frame = cb.frame
+	if on then
+		local strata = frame:GetFrameStrata()
+		if issecretvalue(strata) or not LOW_STRATA[strata] then
+			return
+		end
+		cb.raised = strata
+		frame:SetFrameStrata("HIGH")
+	else
+		frame:SetFrameStrata(cb.raised)
+		cb.raised = nil
+	end
+end
+
+local function StyleImportant(cb)
+	local glow = cb.important
+	if not glow then return end
+	local level = cb.bar:GetFrameLevel()
+	if not issecretvalue(level) then glow:SetFrameLevel(level + FLASH_LEVEL) end
+	Widgets.LayoutSlice(glow.line, glow, Tokens.Size("radiusTile"), 0)
+	local c = Settings.Value(cb.kind, "castbarImportantColor")
+	Widgets.ColorSlice(glow.line, c.r, c.g, c.b, 1)
+end
+
 function CastBars.Restyle(cb)
 	local path, size, flags = Settings.Font(cb.kind, "cast")
 	Form(cb)
@@ -814,12 +1008,8 @@ function CastBars.Restyle(cb)
 		timerPath = Tokens.Font("number")
 	end
 	cb.textPath = textPath
-	StyleText(cb.text, textPath, size, flags)
-	if caption and flags == "" then
-		local border = K.Scale.Border() / Widgets.ScaleFactor(cb.text)
-		cb.text:SetShadowColor(Tokens.Color("textShadow"))
-		cb.text:SetShadowOffset(border, -border)
-	end
+	cb.nameStyle = { path = textPath, size = size, flags = flags, shadow = caption and flags == "" }
+	NameFont(cb, size)
 	StyleText(cb.timer, timerPath, size, cb.medal and Widgets.Readability("readableBars") and "OUTLINE" or flags)
 	StyleText(cb.label, path, size, flags)
 	StyleText(cb.lock, path, size, flags)
@@ -838,7 +1028,7 @@ function CastBars.Restyle(cb)
 	if cb.medal then
 		cb.bar:SetBarTexture(Tokens.Texture("barFlat"))
 		cb.bar:SetInnerEdge(true, "black")
-		cb.bar:SetFillCursor(Settings.Value(cb.kind, "castbarSpark"))
+		cb.bar:SetFillCursor(not cb.empty and Settings.Value(cb.kind, "castbarSpark"))
 	else
 		cb.bar:SetBarTexture(Settings.Value(cb.kind, "castbarTexture"))
 		cb.bar:SetInnerEdge(cb.mode ~= nil and cb.bar:FlatTexture(), "castEdge")
@@ -846,6 +1036,8 @@ function CastBars.Restyle(cb)
 	end
 	Orient(cb)
 	Spark(cb)
+	Raise(cb)
+	StyleImportant(cb)
 	cb.styled = true
 	cb.pr = nil
 	Paint(cb, BarColor(cb))
@@ -856,17 +1048,18 @@ local function ColorObjects(cb, r, g, b)
 	if not create then
 		return nil
 	end
-	local c = cb.colors
-	if c.r ~= r or c.g ~= g or c.b ~= b then
+	local c, a = cb.colors, Settings.Value(cb.kind, "castbarAlpha")
+	if c.r ~= r or c.g ~= g or c.b ~= b or c.a ~= a then
 		c.r, c.g, c.b = r, g, b
-		c.normal = create(r, g, b, 1)
+		c.normal = create(r, g, b, a)
 	end
 	local color = Settings.Value(cb.kind, "castbarLockedColor")
 	local lr, lg, lb = color.r, color.g, color.b
-	if c.lr ~= lr or c.lg ~= lg or c.lb ~= lb then
+	if c.lr ~= lr or c.lg ~= lg or c.lb ~= lb or c.a ~= a then
 		c.lr, c.lg, c.lb = lr, lg, lb
-		c.locked = create(lr, lg, lb, 1)
+		c.locked = create(lr, lg, lb, a)
 	end
+	c.a = a
 	return c.locked, c.normal
 end
 
@@ -898,6 +1091,35 @@ local function Locked(cb, notInterruptible)
 	cb.locked = notInterruptible
 	Tint(cb, notInterruptible)
 	ShowLock(cb)
+end
+
+local function Range(cb)
+	local ok, inRange = pcall(C_Spell.IsSpellInRange, cb.rangeID)
+	local out = ok and not issecretvalue(inRange) and inRange == false
+	if out ~= cb.outOfRange then
+		cb.outOfRange = out
+		Tint(cb, cb.locked)
+	end
+end
+
+function StopRange(cb)
+	if not cb.rangeTicker then return end
+	cb.rangeTicker:Cancel()
+	cb.rangeTicker, cb.rangeID = nil, nil
+	if cb.outOfRange then
+		cb.outOfRange = false
+		Tint(cb, cb.locked)
+	end
+end
+
+local function WatchRange(cb, spellID)
+	StopRange(cb)
+	if not (cb.kind == "player" and Settings.Value("player", "castbarRangeGrey") and C_Timer and C_Timer.NewTicker and C_Spell and C_Spell.IsSpellInRange)
+		or issecretvalue(spellID) or type(spellID) ~= "number" then
+		return
+	end
+	cb.rangeID, cb.outOfRange = spellID, false
+	cb.rangeTicker = C_Timer.NewTicker(RANGE_STEP, function() Range(cb) end)
 end
 
 local function Icon(cb, texture)
@@ -954,12 +1176,50 @@ local function RunTimes(cb, channel, startMs, endMs)
 	return false
 end
 
+local function Span(cb)
+	local util = C_DurationUtil
+	cb.span = cb.span or util and type(util.CreateDuration) == "function" and util.CreateDuration() or nil
+	if not (cb.span and pcall(cb.span.SetTimeSpan, cb.span, cb.craftFirst / MS, cb.batch) and pcall(cb.bar.SetTimerDuration, cb.bar, cb.span, Interpolation(cb), Direction(false))) then
+		return false
+	end
+	cb.timed, cb.duration = true, cb.span
+	return true
+end
+
+local function Ranked(text, spellID)
+	local api = C_Spell and C_Spell.GetSpellSubtext
+	if not api or issecretvalue(text) or type(text) ~= "string" or issecretvalue(spellID) or type(spellID) ~= "number" then return text end
+	local rank = api(spellID)
+	if issecretvalue(rank) or type(rank) ~= "string" or not rank:find("%d") then return text end
+	return text .. " (" .. rank .. ")"
+end
+
+local function Batch(cb, text, startMs, endMs, merge)
+	local api = C_TradeSkillUI and C_TradeSkillUI.GetRemainingRecasts
+	local left = api and api()
+	if issecretvalue(left) or type(left) ~= "number" or left < 0 or issecretvalue(text) or type(text) ~= "string"
+		or issecretvalue(startMs) or issecretvalue(endMs) or type(startMs) ~= "number" or type(endMs) ~= "number" or endMs <= startMs then
+		return text
+	end
+	local finish = (endMs + left * (endMs - startMs)) / MS
+	local same = cb.craftEnd and math.abs(finish - cb.craftEnd) < (endMs - startMs) / MS / 2
+	if not same then cb.craftFirst = startMs end
+	cb.craftEnd = finish
+	if left < 1 and not (merge and same) then return text end
+	cb.batch, cb.craftMore = finish, left > 0
+	return text .. " (" .. (left + 1) .. ")"
+end
+
 local function Latency(cb, channel, startMs, endMs)
 	if cb.latency then cb.latency:Hide() end
-	if cb.kind ~= "player" or not Settings.Value(cb.kind, "castbarLatency") or not GetNetStats then return end
-	if issecretvalue(startMs) or issecretvalue(endMs) or type(startMs) ~= "number" or type(endMs) ~= "number" or startMs ~= startMs or endMs ~= endMs or endMs <= startMs then return end
+	cb.lag = nil
+	local zone = cb.kind == "player" and Settings.Value(cb.kind, "castbarLatency")
+	if not ((zone or cb.lagText) and GetNetStats) then return end
 	local _, _, _, ms = GetNetStats()
-	if issecretvalue(ms) or type(ms) ~= "number" or ms ~= ms or ms <= 0 then return end
+	if issecretvalue(ms) or type(ms) ~= "number" or ms ~= ms or ms < 0 then return end
+	if cb.lagText then cb.lag = math.floor(ms + 0.5) end
+	if not zone or ms == 0 then return end
+	if issecretvalue(startMs) or issecretvalue(endMs) or type(startMs) ~= "number" or type(endMs) ~= "number" or startMs ~= startMs or endMs ~= endMs or endMs <= startMs then return end
 	local w, h = cb.bar:GetSize()
 	if issecretvalue(w) or issecretvalue(h) or type(w) ~= "number" or type(h) ~= "number" or not (w > 0 and h > 0) then return end
 	if not cb.latency then
@@ -977,42 +1237,89 @@ local function Latency(cb, channel, startMs, endMs)
 	cb.latency:Show()
 end
 
+function CastBars.Important(cb, spellID, sample)
+	local glow, api = cb.important, C_Spell and C_Spell.IsSpellImportant
+	if not (Settings.Value(cb.kind, "castbarImportant") and (sample or api and (issecretvalue(spellID) or spellID ~= nil))) then
+		if glow and glow:IsShown() then glow:Hide() end
+		return
+	end
+	if not glow then
+		glow = CreateFrame("Frame", nil, cb.frame)
+		glow:SetAllPoints(cb.frame)
+		glow.line = Widgets.NineSlice(glow, "lumenOutline", "OVERLAY")
+		cb.important = glow
+		StyleImportant(cb)
+	end
+	local important = sample or api(spellID)
+	if issecretvalue(important) and glow.SetAlphaFromBoolean then
+		glow:Show()
+		glow:SetAlphaFromBoolean(important, 1, 0)
+	else
+		glow:SetAlpha(1)
+		glow:SetShown(not issecretvalue(important) and important == true)
+	end
+end
+
+local function SpellTarget(cb)
+	if not (UnitSpellTargetName and UnitShouldDisplaySpellTargetName and Settings.Value(cb.kind, "castbarTarget")) then return nil end
+	local show = UnitShouldDisplaySpellTargetName(cb.unit)
+	if issecretvalue(show) or show ~= true then return nil end
+	local name = UnitSpellTargetName(cb.unit)
+	if issecretvalue(name) or type(name) == "string" and name ~= "" then return name end
+end
+
 local function Start(cb, channel, update)
 	local _, text, texture, startMs, endMs, isTradeSkill, notInterruptible, spellID, castBarID
-	if channel then
-		_, text, texture, startMs, endMs, isTradeSkill, notInterruptible, _, _, _, castBarID = UnitChannelInfo(cb.unit)
-	else
+	if channel and UnitChannelInfo then
+		_, text, texture, startMs, endMs, isTradeSkill, notInterruptible, spellID, _, _, castBarID = UnitChannelInfo(cb.unit)
+	elseif not channel and UnitCastingInfo then
 		_, text, texture, startMs, endMs, isTradeSkill, _, notInterruptible, spellID, castBarID = UnitCastingInfo(cb.unit)
 	end
 	if type(isTradeSkill) ~= "boolean" or cb.noRoom then
 		Hide(cb, true)
 		return
 	end
-	cb.active, cb.landed, cb.channel, cb.error = true, false, channel, false
+	cb.active, cb.landed, cb.channel, cb.error, cb.gcd = true, false, channel, false, nil
 	cb.inkEmpty = false
 	StopFlash(cb)
 	cb.castBarID, cb.spellID = nil, nil
 	if not issecretvalue(castBarID) and type(castBarID) == "number" then
 		cb.castBarID = castBarID
 	end
-	if not issecretvalue(spellID) and type(spellID) == "number" then
+	if not channel and not issecretvalue(spellID) and type(spellID) == "number" then
 		cb.spellID = spellID
+	end
+	cb.batch, cb.rankID = nil, nil
+	if cb.kind == "player" then
+		if Settings.Value("player", "castbarRank") then text, cb.rankID = Ranked(text, spellID), not issecretvalue(spellID) and spellID or nil end
+		cb.merge = Settings.Value("player", "castbarCraftBar")
+		if not issecretvalue(isTradeSkill) and isTradeSkill == true and (cb.merge or Settings.Value("player", "castbarCraft")) then text = Batch(cb, text, startMs, endMs, cb.merge) end
 	end
 	cb.token = (cb.token or 0) + 1
 	cb.duration = nil
 	if not update or not Outcomes() then Motion.FadeIn(cb.frame, Outcomes() and 0.08 or Tokens.Duration("fade")) end
 	Notify(cb)
-	CastBars.SetName(cb, text)
+	if cb.empty then
+		cb.empty = false
+		cb.bar:SetFillCursor(cb.medal and Settings.Value(cb.kind, "castbarSpark"))
+		Spark(cb)
+	end
+	CastBars.SetName(cb, text, SpellTarget(cb))
 	Icon(cb, texture)
 	if not cb.styled then
 		CastBars.Restyle(cb)
 	end
+	WatchRange(cb, spellID)
 	Locked(cb, notInterruptible)
+	if cb.rangeID then Range(cb) end
+	CastBars.Important(cb, spellID)
 	Latency(cb, channel, startMs, endMs)
 	cb.elapsed = TIMER_STEP
 	cb.total = nil
 	local tick
-	if RunDuration(cb, channel) then
+	if cb.batch and cb.merge and Span(cb) then
+		tick = Settings.Value(cb.kind, "castbarTimer")
+	elseif RunDuration(cb, channel) then
 		tick = cb.duration ~= nil and Settings.Value(cb.kind, "castbarTimer")
 	else
 		tick = RunTimes(cb, channel, startMs, endMs)
@@ -1048,7 +1355,47 @@ local function Land(cb)
 	HoldThen(cb, Outcomes() and 0.35 or Tokens.Duration("pressIn") + Tokens.Duration("readyFlash"))
 end
 
+local function ShowGcd(cb, duration)
+	local token = (cb.gcdToken or 0) + 1
+	cb.gcdToken, cb.gcd, cb.timed = token, token, true
+	StopFlash(cb)
+	CastBars.SetName(cb, "")
+	cb.timer:SetText("")
+	cb.icon:SetTexture(nil)
+	cb.label:Hide()
+	cb.lock:Hide()
+	Paint(cb, BarColor(cb))
+	Motion.Tween(cb.frame, "SetAlpha", 1, 1, 0)
+	cb.frame:Show()
+	local ok, left = pcall(duration.GetRemainingDuration, duration)
+	if not ok or issecretvalue(left) or type(left) ~= "number" or left ~= left or left <= 0 then left = GCD_MAX end
+	C_Timer.After(left, function() if cb.gcd == token then Hide(cb, true) end end)
+end
+
+local function Gcd(cb, spellID)
+	if cb.gcd and not cb.gcdNew or cb.active or cb.landed or cb.holds > 0 or cb.noRoom then return end
+	cb.gcdNew = nil
+	if issecretvalue(spellID) then spellID = nil end
+	local api, cast, probe = C_Spell, cb.gcdCast ~= spellID and cb.gcdCast or nil, cb.gcdProbe ~= spellID and cb.gcdProbe ~= cb.gcdCast and cb.gcdProbe or nil
+	for i = 1, 3 do
+		local id = select(i, spellID, cast, probe)
+		if type(id) == "number" then
+			local ok, info = pcall(api.GetSpellCooldown, id)
+			local on = ok and type(info) == "table" and info.isOnGCD
+			if not issecretvalue(on) and on == true then
+				local got, duration = pcall(api.GetSpellCooldownDuration, id)
+				if got and type(duration) ~= "nil" and pcall(cb.bar.SetTimerDuration, cb.bar, duration, Interpolation(cb), Direction(false)) then
+					cb.gcdProbe = id
+					ShowGcd(cb, duration)
+					return
+				end
+			end
+		end
+	end
+end
+
 local function Casting(unit)
+	if not (UnitCastingInfo and UnitChannelInfo) then return false end
 	local _, _, _, _, _, castTrade = UnitCastingInfo(unit)
 	if type(castTrade) == "boolean" then
 		return true
@@ -1083,7 +1430,11 @@ local HANDLERS = {
 	end,
 	Stop = function(cb, event, ...)
 		if cb.active and Matches(cb, event, ...) then
-			if not cb.channel then
+			if not cb.channel and cb.batch and cb.merge and cb.craftMore then
+				local token = cb.token
+				C_Timer.After(BATCH_GAP, function() if cb.token == token and cb.active then Land(cb) end end)
+				return
+			elseif not cb.channel then
 				Land(cb)
 				return
 			end
@@ -1147,7 +1498,7 @@ local function Each(kind, fn)
 end
 
 local function RefreshOne(cb)
-	if Enabled(cb) and UnitExists(cb.unit) then
+	if Enabled(cb) and UnitExists(cb.unit) and UnitCastingInfo and UnitChannelInfo then
 		local _, _, _, _, _, castTrade = UnitCastingInfo(cb.unit)
 		local _, _, _, _, _, channelTrade = UnitChannelInfo(cb.unit)
 		if type(castTrade) == "boolean" then
@@ -1166,10 +1517,18 @@ function CastBars.Refresh(kind)
 	Each(kind, RefreshOne)
 end
 
+function CastBars.Lined(kind)
+	local lined = false
+	Each(kind, function(cb) lined = lined or cb.line == true and Enabled(cb) end)
+	return lined
+end
+
 local function Listen(cb)
 	local owner = Owner(cb)
 	K.Events.UnregisterAll(owner)
-	if not Enabled(cb) then
+	local on = Enabled(cb)
+	cb.idle = on and not Settings.Value(cb.kind, "castbarHideIdle")
+	if not on then
 		Hide(cb, true)
 		return
 	end
@@ -1183,6 +1542,21 @@ local function Listen(cb)
 	end
 	for event in pairs(EVENTS) do
 		K.Events.RegisterUnit(owner, event, cb.handler, cb.unit)
+	end
+	if cb.kind == "player" and Settings.Value("player", "castbarGcd") and C_Spell and C_Spell.GetSpellCooldown and C_Spell.GetSpellCooldownDuration and C_Timer then
+		cb.onGcd = cb.onGcd or function(_, spellID) Gcd(cb, spellID) end
+		cb.onCast = cb.onCast or function(_, _, _, spellID)
+			if not issecretvalue(spellID) and type(spellID) == "number" then cb.gcdCast = spellID end
+			cb.gcdNew = true
+		end
+		K.Events.Register(owner, "SPELL_UPDATE_COOLDOWN", cb.onGcd)
+		K.Events.RegisterUnit(owner, "UNIT_SPELLCAST_SUCCEEDED", cb.onCast, cb.unit)
+	end
+	if cb.kind == "player" and Settings.Value("player", "castbarRank") then
+		cb.onText = cb.onText or function(_, spellID)
+			if cb.active and not issecretvalue(spellID) and spellID == cb.rankID then Start(cb, cb.channel, true) end
+		end
+		K.Events.Register(owner, "SPELL_TEXT_UPDATE", cb.onText)
 	end
 end
 
@@ -1230,7 +1604,7 @@ end
 function CastBars.Attach(view)
 	local kind = view.kind
 	local cb = New(kind == "target" and view.button or view.body or view.button, kind, view.unit)
-	cb.attached = true
+	cb.attached, cb.noRoom = true, true
 	view.castbar = cb
 	local block = view.health and view.health.ornament
 	if block then
@@ -1326,6 +1700,7 @@ function CastBars.Disable()
 	for _, kind in ipairs(Settings.KINDS) do
 		Each(kind, function(cb)
 			K.Events.UnregisterAll(Owner(cb))
+			cb.idle = false
 			Hide(cb, true)
 		end)
 	end

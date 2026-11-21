@@ -16,7 +16,12 @@ local BADGE_LEVEL = 2
 local MIN_APPLICATIONS = 2
 local MAX_APPLICATIONS = 999
 local CANCEL_CLICK = "RightButtonUp"
-local BESIDE_ICON = { TOPRIGHT = { "TOPRIGHT", "TOPLEFT", -1 }, TOPLEFT = { "TOPLEFT", "TOPRIGHT", 1 }, BOTTOMRIGHT = { "BOTTOMRIGHT", "BOTTOMLEFT", -1 }, BOTTOMLEFT = { "BOTTOMLEFT", "BOTTOMRIGHT", 1 }, CENTER = { "RIGHT", "LEFT", -1 } }
+local BESIDE_ICON = {
+	TOPRIGHT = { "TOPRIGHT", "TOPLEFT", -1 }, TOPLEFT = { "TOPLEFT", "TOPRIGHT", 1 }, BOTTOMRIGHT = { "BOTTOMRIGHT", "BOTTOMLEFT", -1 }, BOTTOMLEFT = { "BOTTOMLEFT", "BOTTOMRIGHT", 1 },
+	CENTER = { "RIGHT", "LEFT", -1 }, TOP = { "TOPRIGHT", "TOPLEFT", -1 }, BOTTOM = { "BOTTOMRIGHT", "BOTTOMLEFT", -1 }, LEFT = { "LEFT", "RIGHT", 1 }, RIGHT = { "RIGHT", "LEFT", -1 },
+}
+local LANE = { TOPLEFT = "BOTTOMLEFT", TOP = "BOTTOM", TOPRIGHT = "BOTTOMRIGHT", LEFT = "BOTTOMLEFT", CENTER = "BOTTOM", RIGHT = "BOTTOMRIGHT", BOTTOMLEFT = "TOPLEFT", BOTTOM = "TOP", BOTTOMRIGHT = "TOPRIGHT" }
+local TIMER_ANCHORS = { inside = "BOTTOM", top = "TOP", center = "CENTER" }
 
 local logged = {}
 
@@ -89,20 +94,21 @@ function Button.Create(button, hasDispel)
 	return entry
 end
 
-local function PlaceTexts(entry, ctx, inset)
+local function PlaceTexts(entry, ctx, inset, iconCorner)
 	local skin, timer, count, badge = entry.skin, entry.timer, entry.count, entry.badge
 	Button.StyleText(timer, ctx.timer, "timerText", "timer")
 	Button.StyleText(count, ctx.count)
 	timer:ClearAllPoints()
 	count:ClearAllPoints()
 	local edge = inset + Widgets.Snap(skin, TEXT_INSET)
+	local SIGNS = ns.Model.CORNER_SIGNS
 	local position = ctx.timer.position
-	if position == "inside" then
-		Widgets.Point(timer, "BOTTOM", skin, "BOTTOM", ctx.timer.x, edge + ctx.timer.y)
-	elseif position == "top" then
-		Widgets.Point(timer, "TOP", skin, "TOP", ctx.timer.x, -edge + ctx.timer.y)
-	elseif position == "center" then
-		Widgets.Point(timer, "CENTER", skin, "CENTER", ctx.timer.x, ctx.timer.y)
+	local anchor = position ~= "below" and (TIMER_ANCHORS[position] or position)
+	if anchor and anchor == iconCorner then
+		local lane = LANE[anchor]
+		Widgets.Point(timer, LANE[lane], entry.typeIcon, lane, ctx.timer.x, SIGNS[LANE[lane]][2] * inset + ctx.timer.y)
+	elseif anchor then
+		Widgets.Point(timer, anchor, skin, anchor, SIGNS[anchor][1] * edge + ctx.timer.x, SIGNS[anchor][2] * edge + ctx.timer.y)
 	else
 		Widgets.Point(timer, "TOP", skin, "BOTTOM", ctx.timer.x, -(ns.Model.TIMER_GAP - TIMER_LIFT) + ctx.timer.y)
 	end
@@ -110,10 +116,19 @@ local function PlaceTexts(entry, ctx, inset)
 	count:SetShadowColor(Tokens.Color("textShadow"))
 	count:SetShadowOffset(shadow, -shadow)
 	local corner = ctx.count.position
-	local signs = ns.Model.CORNER_SIGNS[corner]
-	Widgets.Point(count, corner, skin, corner, signs[1] * edge + ctx.count.x, signs[2] * edge + ctx.count.y)
+	local signs = SIGNS[corner]
+	if ctx.count.shown and corner == iconCorner then
+		local beside = BESIDE_ICON[corner]
+		count:SetPoint(beside[1], entry.typeIcon, beside[2], beside[3] * inset + ctx.count.x, ctx.count.y)
+	else
+		local step = 0
+		if corner == anchor and ctx.timer.format ~= "none" then
+			step = signs[2] == 0 and (ctx.timer.size + ctx.count.size) / 2 + TEXT_INSET or signs[2] * (ctx.timer.size + TEXT_INSET)
+		end
+		Widgets.Point(count, corner, skin, corner, signs[1] * edge + ctx.count.x, signs[2] * edge + ctx.count.y + step)
+	end
 	count:SetAlpha(ctx.count.shown and 1 or 0)
-	timer:SetJustifyH("CENTER")
+	timer:SetJustifyH(anchor and SIGNS[anchor][3] or "CENTER")
 	count:SetJustifyH(signs[3])
 	badge:ClearAllPoints()
 	badge:SetAllPoints(skin)
@@ -194,18 +209,13 @@ end
 
 local function Extras(entry, ctx, inset)
 	local skin, group = entry.skin, ctx.group
-	local corner = group.typeIcon
-	if entry.dispel and corner and corner ~= "none" then
+	local corner = entry.dispel and group.typeIcon ~= "none" and group.typeIcon
+	if corner then
 		entry.typeIcon = entry.typeIcon or entry.over:CreateTexture(nil, "OVERLAY")
 		local signs, size = ns.Model.CORNER_SIGNS[corner], Widgets.Snap(skin, group.typeIconSize)
 		entry.typeIcon:SetSize(size, size)
 		entry.typeIcon:ClearAllPoints()
 		Widgets.Point(entry.typeIcon, corner, skin, corner, signs[1] * inset, signs[2] * inset)
-		local beside = ctx.count.shown and ctx.count.position == corner and BESIDE_ICON[corner]
-		if beside then
-			entry.count:ClearAllPoints()
-			entry.count:SetPoint(beside[1], entry.typeIcon, beside[2], beside[3] * inset + ctx.count.x, ctx.count.y)
-		end
 	end
 	if group.refresh and not entry.cue then
 		local cue = entry.over:CreateTexture(nil, "OVERLAY")
@@ -216,6 +226,26 @@ local function Extras(entry, ctx, inset)
 		cue:Hide()
 		entry.cue = cue
 	end
+	local scale = group.glow and Widgets.ScaleFactor(skin)
+	if group.glow and not entry.glow then
+		local glow = Widgets.Glow(skin, { kind = "selection", color = ns.Model.KIND[group.name] == "debuffs" and "hostile" or "accent" })
+		local restyle = glow.Restyle
+		glow.Restyle = function(self)
+			if ns.Panel.Open() then restyle(self) else entry.glowSize = nil; ns.Panel.Wait() end
+		end
+		entry.glow, entry.glowRestyle, entry.glowSize, entry.glowScale = glow, restyle, ctx.icon, scale
+	end
+	if entry.glow then
+		if group.glow and (entry.glowSize ~= ctx.icon or entry.glowScale ~= scale) then
+			entry.glowRestyle(entry.glow)
+			entry.glowSize, entry.glowScale = ctx.icon, scale
+		end
+		if entry.glowOn ~= group.glow then
+			entry.glow:SetIntensity(group.glow and 1 or 0)
+			entry.glowOn = group.glow
+		end
+	end
+	return (ctx.typeIconOptions or not Engine(entry.button)) and corner
 end
 
 function Button.Style(entry, ctx)
@@ -253,8 +283,7 @@ function Button.Style(entry, ctx)
 		end
 		entry.swipe:SetShown(ctx.group.swipe)
 	end
-	PlaceTexts(entry, ctx, inset)
-	Extras(entry, ctx, inset)
+	PlaceTexts(entry, ctx, inset, Extras(entry, ctx, inset))
 	if Engine(button) then
 		Button.Bind(entry, ctx)
 	end

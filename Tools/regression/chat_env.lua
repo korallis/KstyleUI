@@ -433,6 +433,12 @@ function C.Install(env, opts)
 		friends:SetSize(32, 32)
 		friends:SetPoint("BOTTOMLEFT", alerts, "BOTTOMLEFT", 0, 0)
 		env.QuickJoinToastButton = friends
+		-- AlertFrames.lua:417-426 and :57-64: the container's UpdateAnchors puts each auto-anchored frame back on its own
+		-- corner, the friends button first (QuickJoinToast.lua:16-17).
+		function alerts:UpdateAnchors()
+			friends:ClearAllPoints()
+			friends:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, 0)
+		end
 		-- FloatingChatFrame.xml:723 and FloatingChatFrameVoiceChat.xml: the menu and channel buttons live in the column,
 		-- the voice toggles under UIParent, anchored below the channel button.
 		local column = env.ChatFrame1.buttonFrame

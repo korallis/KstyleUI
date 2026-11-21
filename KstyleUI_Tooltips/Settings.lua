@@ -14,6 +14,7 @@ local SIZE_MIN, SIZE_MAX, SIZE_STEP = 8, 32, 1
 local BAR_MIN, BAR_MAX, BAR_STEP, BAR_SIZE = 2, 16, 1, Tokens.Size("barHeight")
 local ICON_MIN, ICON_MAX, ICON_STEP, ICON_SIZE = 20, 64, 1, 44
 local OFFSET_MIN, OFFSET_MAX, OFFSET_STEP = -64, 64, 1
+local BUFF_MIN, BUFF_MAX, BUFF_SIZE, ROW_MAX, ROW_SIZE, BUFF_OFFSET = 12, 40, 20, 16, 8, 100
 local TITLE_SIZE, BODY_SIZE, SMALL_SIZE = 13, 12, 11
 local LEGACY_SIZES = { ["title.size"] = 11, ["body.size"] = 11, ["small.size"] = 9, iconSize = 50 }
 
@@ -35,6 +36,8 @@ Settings.defaults = {
 	peekKey = "SHIFT",
 	cursorX = 0,
 	cursorY = 0,
+	cursorSide = "ANCHOR_CURSOR_RIGHT",
+	growth = "auto",
 	followFont = true,
 	title = Text(TITLE_SIZE),
 	body = Text(BODY_SIZE),
@@ -51,6 +54,12 @@ Settings.defaults = {
 	targetLine = true,
 	awayTag = false,
 	mountLine = false,
+	itemLevel = false,
+	levelColor = false,
+	classLine = false,
+	compactLevel = false,
+	factionColor = false,
+	buffs = { shown = false, position = "BOTTOM", size = BUFF_SIZE, perRow = ROW_SIZE, x = 0, y = 0 },
 	unitEdge = false,
 	healthBar = true,
 	bar = {
@@ -65,6 +74,9 @@ Settings.defaults = {
 	maxStack = false,
 	spellID = false,
 	iconID = false,
+	idKey = "none",
+	stackKey = "none",
+	detailed = "game",
 	icon = true,
 	iconSize = ICON_SIZE,
 }
@@ -77,6 +89,13 @@ function Settings.Schema()
 		{ value = "NONE", label = L["None"] },
 		{ value = "OUTLINE", label = L["Thin"] },
 		{ value = "THICKOUTLINE", label = L["Thick"] },
+	}
+
+	local KEYS = {
+		{ value = "none", label = L["None"] },
+		{ value = "SHIFT", label = L["Shift"] },
+		{ value = "CTRL", label = L["Ctrl"] },
+		{ value = "ALT", label = L["Alt"] },
 	}
 
 	local function Cursor(settings)
@@ -140,6 +159,25 @@ function Settings.Schema()
 			help = L["How far above the mouse the tooltip sits."],
 			min = OFFSET_MIN, max = OFFSET_MAX, step = OFFSET_STEP, showWhen = Cursor,
 		},
+		{
+			type = "dropdown", key = "cursorSide", label = L["Cursor side"],
+			help = L["Where the tooltip opens beside the mouse."], showWhen = Cursor,
+			options = {
+				{ value = "ANCHOR_CURSOR_RIGHT", label = L["Right"] },
+				{ value = "ANCHOR_CURSOR_LEFT", label = L["Left"] },
+				{ value = "ANCHOR_CURSOR", label = L["Above"] },
+			},
+		},
+		{
+			type = "dropdown", key = "growth", label = L["Growth direction"],
+			help = L["How a tooltip at the Layout Mode anchor grows. Automatic grows away from the screen edge."],
+			showWhen = function(settings) return settings.anchor ~= "cursor" end,
+			options = {
+				{ value = "auto", label = L["Automatic"] },
+				{ value = "up", label = L["Up"] },
+				{ value = "down", label = L["Down"] },
+			},
+		},
 		{ type = "header", label = L["Visibility"] },
 		{
 			type = "dropdown", key = "show", label = L["Show tooltips"],
@@ -154,12 +192,7 @@ function Settings.Schema()
 		{
 			type = "dropdown", key = "peekKey", label = L["Peek key"],
 			help = L["Hold this key as a tooltip opens to see it while tooltips are hidden."],
-			options = {
-				{ value = "none", label = L["None"] },
-				{ value = "SHIFT", label = L["Shift"] },
-				{ value = "CTRL", label = L["Ctrl"] },
-				{ value = "ALT", label = L["Alt"] },
-			},
+			options = KEYS,
 			showWhen = function(settings) return settings.show ~= nil and settings.show ~= "always" end,
 		},
 		{ type = "header", label = L["Text"] },
@@ -221,6 +254,14 @@ function Settings.Schema()
 		return settings.icon ~= false
 	end
 
+	local function BuffsShown(settings)
+		return type(settings.buffs) == "table" and settings.buffs.shown == true
+	end
+
+	local function IDs(settings)
+		return settings.itemID == true or settings.spellID == true or settings.iconID == true
+	end
+
 	local MORE = {
 		{ type = "header", label = L["Units"] },
 		{ type = "toggle", key = "playerTitles", label = L["Player titles"], help = L["Keep titles in player names. Off shows the character name alone."] },
@@ -243,10 +284,23 @@ function Settings.Schema()
 		},
 		{ type = "toggle", key = "awayTag", label = L["Away and busy tag"], help = L["Adds <AFK> or <DND> after the names of away or busy players."] },
 		{ type = "toggle", key = "mountLine", label = L["Mount line"], help = L["Adds the mount a player rides, when the game shares it."] },
+		{ type = "toggle", key = "itemLevel", label = L["Item level"], help = L["Adds a player's item level. Other players are inspected out of combat, a few seconds apart."] },
+		{ type = "toggle", key = "levelColor", label = L["Level difficulty colour"], help = L["Colours the unit's level from grey for trivial to red for far above you."] },
+		{ type = "toggle", key = "classLine", label = L["Class-coloured class"], help = L["Colours the class on a player's level line in the class colour."] },
+		{ type = "toggle", key = "compactLevel", label = L["Compact level line"], help = L["Drops the word Level and the (Player) tag from the level line."] },
+		{ type = "toggle", key = "factionColor", label = L["Faction colour"], help = L["Colours the Alliance or Horde line in its faction colour."] },
 		{
 			type = "toggle", key = "unitEdge", label = L["Unit edge"],
 			help = L["Lights the tooltip's edge in the unit's class or reaction colour."],
 		},
+		{ type = "header", label = L["Player buffs"] },
+		{ type = "toggle", key = "buffs.shown", label = L["Player buffs"], help = L["Shows a player's buffs as icons beside the tooltip whenever the game shares them."] },
+		{ type = "dropdown", key = "buffs.position", label = L["Position"], help = L["The side of the tooltip the buff icons sit on."], showWhen = BuffsShown,
+			options = { { value = "BOTTOM", label = L["Bottom"] }, { value = "TOP", label = L["Top"] }, { value = "LEFT", label = L["Left"] }, { value = "RIGHT", label = L["Right"] } } },
+		{ type = "slider", key = "buffs.size", label = L["Icon size"], help = L["The size of each buff icon, in KstyleUI units."], min = BUFF_MIN, max = BUFF_MAX, step = 1, showWhen = BuffsShown },
+		{ type = "slider", key = "buffs.perRow", label = L["Icons per row"], help = L["How many buff icons sit in each row."], min = 1, max = ROW_MAX, step = 1, showWhen = BuffsShown },
+		{ type = "slider", key = "buffs.x", label = L["Buff offset X"], help = L["Moves the buff icons right, or left when negative."], min = -BUFF_OFFSET, max = BUFF_OFFSET, step = 1, showWhen = BuffsShown },
+		{ type = "slider", key = "buffs.y", label = L["Buff offset Y"], help = L["Moves the buff icons up, or down when negative."], min = -BUFF_OFFSET, max = BUFF_OFFSET, step = 1, showWhen = BuffsShown },
 		{ type = "header", label = L["Health bar"] },
 		{
 			type = "toggle", key = "healthBar", label = L["Health bar"],
@@ -302,6 +356,13 @@ function Settings.Schema()
 			type = "toggle", key = "iconID", label = L["Icon ID"],
 			help = L["Adds the icon's file ID to item, spell and aura tooltips."],
 		},
+		{ type = "dropdown", key = "idKey", label = L["ID key"], options = KEYS, showWhen = IDs,
+			help = L["Shows the item, spell and icon ID lines only while this key is held."] },
+		{ type = "dropdown", key = "stackKey", label = L["Stack key"], options = KEYS, showWhen = function(settings) return settings.maxStack == true end,
+			help = L["Shows the maximum stack line only while this key is held."] },
+		{ type = "dropdown", key = "detailed", label = L["Detailed tooltips"],
+			help = L["Blizzard's longer spell descriptions. Game setting leaves the game's own choice alone."],
+			options = { { value = "game", label = L["Game setting"] }, { value = "on", label = L["On"] }, { value = "off", label = L["Off"] } } },
 		{
 			type = "toggle", key = "icon", label = L["Icon"],
 			help = L["Shows the item or spell icon in the tooltip's top left corner."],

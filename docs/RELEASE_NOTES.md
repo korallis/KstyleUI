@@ -2,6 +2,14 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.2.9: the crest jewels and customisation release (2026-11-21)
+
+Under Medallions, combo points for rogues and cat-form druids, holy power for paladins and soul shards for warlocks now glow as jewels on the crest ring; Crest resource jewels is on by default under Action Bars.
+
+A big wave of new options follows across every module. Unit frames gain new health bar looks, movable text, a text bar, detached power bars, richer shields and absorbs, icon placement and aura filters, a pet cast bar and totem timers. Party and raid frames gain health colours and patterns, debuff filters, placement for every icon and text, missing buff reminders, party targets, pet, tank and friendly boss frames, and a raid layout you sort and arrange yourself. Nameplates gain cast and target glows, enemy buffs and crowd control, quest progress and friendly name styles; cooldowns gain more Spell rules, colours, keybinds, swing timer sweeps, bars and a custom bar group; auras gain extra rows and a missing buff card. Chat buttons move and resize, the minimap gains a compartment button and a menu on middle-click, data bars gain a second bar, new readouts and icons, and the Medallions dock sits on forged plates. Bags gain a list view, a category list and pinned items, and pointing at your money shows every character's gold, on by default. Tooltips gain item level and buffs, and meters gain a second damage window, reports, a combat timer and spell history. Quality of life adds alerts, a cursor ring, a crosshair, raid tools, character stats and the /way, /kpaste and /cd commands. Profiles share specializations, layouts and cooldowns, and About > What's new lists each release's highlights in your language. Every new option starts off or at today's value unless stated, so nothing looks different until you change it.
+
+KstyleUI also loads faster after a reload, and the data bar and Party and Raid previews in Options and the Medallions party indicators no longer overlap their text. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.2.8.5: fixes (2026-11-21)
 
 With the target's auras on Debuffs and buffs, the target's aura rows stay clear of the target cast bar and the target of target, and the settings preview shows both rows. On Medallions party frames, your heal icons no longer cover the health percent or the indicator icons. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).

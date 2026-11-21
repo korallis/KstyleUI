@@ -1,12 +1,13 @@
--- Damage.lua: the damage meter: KstyleUI's own window over C_DamageMeter, with fight segments and a per-source spell list, in place of Blizzard's, or Blizzard's window restyled when C_DamageMeter is missing or the player picks it.
+-- Damage.lua: the damage meter: KstyleUI's own windows over C_DamageMeter (the main one and an optional second), with fight segments, a per-source spell list and reports to chat, in place of Blizzard's, or Blizzard's window restyled when C_DamageMeter is missing or the player picks it.
 local _, ns = ...
 
 local K = KstyleUI
 local L = K.L
 local Logic = ns.Logic
 
-local KEY = "meters.damage"
+local KEY, SECOND = "meters.damage", "meters.damage2"
 local LIMITS = { minWidth = 120, maxWidth = 600, minHeight = 40, maxHeight = 800 }
+local SECOND_PLACE, SECOND_WIDTH = { anchor = "BOTTOMRIGHT", x = -283, y = 17 }, 180
 local SECONDS_PER_MINUTE = 60
 local EVENTS = {
 	"DAMAGE_METER_COMBAT_SESSION_UPDATED", "DAMAGE_METER_CURRENT_SESSION_UPDATED", "DAMAGE_METER_RESET",
@@ -15,14 +16,19 @@ local EVENTS = {
 local SKIN_EVENTS = { "GROUP_ROSTER_UPDATE", "PLAYER_ENTERING_WORLD" }
 local SESSION_ORDER = { "Current", "Previous", "Overall" }
 local SESSION_WORDS = { Current = L["Now"], Previous = L["Last"], Overall = L["All"] }
+local FIGHTS = { Current = L["Current fight"], Previous = L["Previous fight"], Overall = L["Overall"] }
+local GROUP_CHATS = { "INSTANCE_CHAT", "RAID", "PARTY" }
+local REPORT_LINES = 10
 
-local Damage = { section = "damage", key = KEY, combat = false, view = 1, filled = 0 }
-ns.Damage = Damage
+local function Window(section, key)
+	return { section = section, key = key, meterKey = section .. ".meter", sessionKey = section .. ".session", view = 1, filled = 0,
+		drill = { active = false }, slots = {} }
+end
+local Damage, Second = Window("damage", KEY), Window("damage2", SECOND)
+ns.Damage, ns.Damage2, ns.SLOT_WIDTH = Damage, Second, SECOND_WIDTH
 
 local IsSecret = Logic.IsSecret
 local max, min = math.max, math.min
-local drill = { active = false }
-local slots = {}
 local PLAYER = "player"
 local NO_REST = { Deaths = true, EnemyDamageTaken = true }
 local FAMILY = { DamageDone = "HealingDone", Dps = "Hps", HealingDone = "DamageDone", Hps = "Dps" }
@@ -30,13 +36,15 @@ local HEALING = { HealingDone = true, Hps = true }
 local CLASS_TEXTURE = "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes"
 local order = {}
 local classIcons = {}
+local abbreviate = Logic.Abbreviate
+local reporting = false
 
 local function NumberText(amount, format)
 	if format == "full" and type(BreakUpLargeNumbers) == "function" then
 		local ok, text = pcall(BreakUpLargeNumbers, amount)
 		if ok then return text end
 	end
-	return Logic.Abbreviate(amount)
+	return abbreviate(amount)
 end
 
 local function HideBlizzard()
@@ -79,8 +87,16 @@ function Damage.Mode()
 	return ns.ResolveMode(ns.Get("damage.mode"))
 end
 
-local function Info()
-	local meter = ns.Get("damage.meter")
+function Damage.Wanted()
+	return ns.MeterShown("damage") and Damage.Mode() == "window"
+end
+
+function Second.Wanted()
+	return ns.Get("damage2.shown") and Api()
+end
+
+local function Info(key)
+	local meter = ns.Get(key)
 	for i, info in ipairs(ns.METER_TYPES) do
 		if info.value == meter then
 			return info, i
@@ -88,6 +104,7 @@ local function Info()
 	end
 	return ns.METER_TYPES[1], 1
 end
+ns.MeterInfo = Info
 
 local function Readable(t)
 	if IsSecret(t) or type(t) ~= "table" then
@@ -113,25 +130,26 @@ local function Alone()
 	return ns.Get("damage.group") and IsInGroup() ~= true
 end
 
-local function Visible()
-	return ns.MeterShown("damage") and Damage.Mode() == "window" and not Alone()
+local function Visible(W)
+	return W.Wanted() and not Alone() and not ns.windowsHidden
 end
 
-local function DeathText(source)
-	local seconds = Logic.Plain(source.deathTimeSeconds)
+local function DeathText(seconds)
+	seconds = Logic.Plain(seconds)
 	if not seconds or seconds < 0 then
 		return ""
 	end
 	return string.format("%d:%02d", math.floor(seconds / SECONDS_PER_MINUTE), math.floor(seconds % SECONDS_PER_MINUTE))
 end
+ns.DeathText = DeathText
 
 local function Present(value)
 	return IsSecret(value) or value ~= nil
 end
 
-local function Hidden(list)
+local function Hidden(W, list)
 	ns.LogOnce("damageHidden", "C_DamageMeter data is hidden from addons right now; the window waits for it")
-	if Damage.filled == Damage.view and (list.count or 0) > 0 then
+	if W.filled == W.view and (list.count or 0) > 0 then
 		list:SetColumn(L["Paused"])
 		return
 	end
@@ -145,7 +163,7 @@ local function SessionID(session)
 	return Logic.Plain(session.sessionID)
 end
 
-local function PreviousFight()
+local function PreviousFight(W)
 	local meter = C_DamageMeter
 	if type(meter.GetAvailableCombatSessions) ~= "function" or type(meter.GetCombatSessionFromID) ~= "function" then
 		ns.LogOnce("noSessionList", "C_DamageMeter cannot list past fights on this client; the previous fight stays empty")
@@ -155,7 +173,7 @@ local function PreviousFight()
 	if not ok or not Readable(sessions) then
 		return nil
 	end
-	local current = Damage.currentID
+	local current = W.currentID
 	if current == nil then
 		for i = 1, #sessions do
 			local id = SessionID(sessions[i])
@@ -174,25 +192,24 @@ local function PreviousFight()
 	return best, PlainString(name)
 end
 
-local function Fight()
-	local session = ns.Get("damage.session")
+local function Fight(W)
+	local session = ns.Get(W.sessionKey)
 	if session == "Previous" then
-		local id, name = PreviousFight()
+		local id, name = PreviousFight(W)
 		return nil, id, name
 	end
 	local types = Enum and Enum.DamageMeterSessionType
 	return types and types[session], nil, nil
 end
 
-local switchWords, switchShort = {}, {}
-
-local function Switch(list, name)
-	local session = ns.Get("damage.session")
-	if list.switchWords and not list.hot and Damage.switchLayout == list.textLayout and Damage.switchName == name and Damage.switchSession == session then
+local function Switch(list, sessionKey, name)
+	local session = ns.Get(sessionKey)
+	if list.switchWords and not list.hot and list.fightLayout == list.textLayout and list.fightName == name and list.fightSession == session then
 		return
 	end
-	Damage.switchLayout, Damage.switchName, Damage.switchSession = list.textLayout, name, session
-	local words, short, selected = switchWords, switchShort, 1
+	list.fightLayout, list.fightName, list.fightSession = list.textLayout, name, session
+	list.fightWords, list.fightShort = list.fightWords or {}, list.fightShort or {}
+	local words, short, selected = list.fightWords, list.fightShort, 1
 	for i, key in ipairs(SESSION_ORDER) do
 		words[i] = SESSION_WORDS[key]
 		short[i] = nil
@@ -206,23 +223,24 @@ local function Switch(list, name)
 	end
 	list:SetSwitch(words, selected, short)
 end
+ns.FightSwitch = Switch
 
-local function Back()
-	if not drill.active then
+local function Back(W)
+	if not W.drill.active then
 		return
 	end
-	drill.active = false
-	Damage.view = Damage.view + 1
-	if Damage.list then
-		Damage.list:SetIcons(false)
+	W.drill.active = false
+	W.view = W.view + 1
+	if W.list then
+		W.list:SetIcons(false)
 	end
 end
 
-local function Slot(i)
-	local slot = slots[i]
+local function Slot(W, i)
+	local slot = W.slots[i]
 	if not slot then
 		slot = {}
-		slots[i] = slot
+		W.slots[i] = slot
 	end
 	return slot
 end
@@ -232,8 +250,8 @@ local function Own(call)
 	return ok and PlainString(value) or nil
 end
 
-local function Remember(i, source, reaction, deaths)
-	local slot = Slot(i)
+local function Remember(W, i, source, reaction, deaths)
+	local slot = Slot(W, i)
 	local own = source.isLocalPlayer == true
 	slot.guid = PlainString(source.sourceGUID) or (own and Own(UnitGUID) or nil)
 	slot.creature = Logic.Plain(source.sourceCreatureID)
@@ -254,7 +272,7 @@ local function RateOf(sources, info, guid)
 			return nil
 		end
 		if (guid == nil and source.isLocalPlayer == true) or (guid ~= nil and PlainString(source.sourceGUID) == guid) then
-			return Logic.FormatRate(source.amountPerSecond, info.rate)
+			return Logic.FormatRate(source.amountPerSecond, info.rate, abbreviate)
 		end
 	end
 	return nil
@@ -302,24 +320,24 @@ local function Order(entries, n, info)
 	end
 end
 
-local function Span(list, n, pinned)
+local function Span(W, list, n, pinned)
 	local capacity = list.capacity or 0
-	if Damage.offsetView ~= Damage.view then
-		Damage.offsetView = Damage.view
-		Damage.offset = 0
+	if W.offsetView ~= W.view then
+		W.offsetView = W.view
+		W.offset = 0
 	end
 	local room = capacity
-	local first = max(0, min(Damage.offset or 0, n - room))
+	local first = max(0, min(W.offset or 0, n - room))
 	local pin = pinned ~= nil and capacity >= 2 and (pinned <= first or pinned > first + room)
 	if pin then
 		room = capacity - 1
-		first = max(0, min(Damage.offset or 0, n - room))
+		first = max(0, min(W.offset or 0, n - room))
 		pin = pinned <= first or pinned > first + room
 		if not pin then
 			room = capacity
 		end
 	end
-	Damage.offset, Damage.top = first, max(0, n - room)
+	W.offset, W.top = first, max(0, n - room)
 	return first, max(0, min(room, n - first)), pin
 end
 
@@ -366,16 +384,16 @@ local function SpellRow(list, i, id)
 	end
 end
 
-local function SourceRow(list, i, source, info, maxAmount, total, percent, enemy, format, rank)
+local function SourceRow(W, list, i, source, info, maxAmount, total, percent, enemy, format, place, pinned)
 	local display = source.sourceDisplayType
 	local reaction = (enemy ~= nil and not IsSecret(display) and display == enemy) and "hostile" or "friendly"
-	Remember(i, source, reaction, info.deaths)
+	Remember(W, i, source, reaction, info.deaths)
 	local name = source.name
-	if rank and not ns.Get("damage.hideRank") then
-		name = rank .. ". " .. name
+	if pinned and not ns.Get("damage.hideRank") then
+		name = place .. ". " .. name
 	end
 	if info.deaths then
-		list:SetRow(i, name, source.classFilename, reaction, 1, 1, DeathText(source), "")
+		list:SetRow(i, name, source.classFilename, reaction, 1, 1, DeathText(source.deathTimeSeconds), "")
 	else
 		local amount = source.totalAmount
 		if not Present(amount) then
@@ -384,14 +402,20 @@ local function SourceRow(list, i, source, info, maxAmount, total, percent, enemy
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(source.totalAmount, total)) or ""
 		list:SetRow(i, name, source.classFilename, reaction, amount, maxAmount, NumberText(Amount(source, info), format), percentText)
 	end
+	if reporting then
+		local row = list.rows[i]
+		row.place, row.label = place, source.name
+		if info.deaths and IsSecret(source.deathTimeSeconds) then row.label = nil end
+	end
 	ns.SetClassIcon(list, i, source.classFilename)
+	list:SetMarker(i, source.isLocalPlayer)
 	SpellRow(list, i)
 end
 
-local function FillSources(list, info, session)
+local function FillSources(W, list, info, session)
 	local sources = session.combatSources
 	if not Readable(sources) then
-		Hidden(list)
+		Hidden(W, list)
 		return
 	end
 	local maxAmount, total = session.maxAmount, session.totalAmount
@@ -412,16 +436,16 @@ local function FillSources(list, info, session)
 			break
 		end
 	end
-	local first, shown, pin = Span(list, n, ns.Get("damage.alwaysPlayer") and mine or nil)
+	local first, shown, pin = Span(W, list, n, ns.Get("damage.alwaysPlayer") and mine or nil)
 	for i = 1, shown do
-		SourceRow(list, i, sources[order[first + i]], info, maxAmount, total, percent, enemy, format)
+		SourceRow(W, list, i, sources[order[first + i]], info, maxAmount, total, percent, enemy, format, first + i)
 	end
 	local count = shown
 	if pin then
 		count = shown + 1
-		SourceRow(list, count, sources[order[mine]], info, maxAmount, total, percent, enemy, format, mine)
+		SourceRow(W, list, count, sources[order[mine]], info, maxAmount, total, percent, enemy, format, mine, true)
 	end
-	Damage.filled = Damage.view
+	W.filled = W.view
 	list:Finish(count, count == 0 and L["No data yet"] or nil)
 end
 
@@ -436,6 +460,7 @@ local function SpellCall(api, spellID)
 	end
 	return nil
 end
+ns.SpellCall = SpellCall
 
 local function SpellName(spell, sourceName)
 	local name = SpellCall("GetSpellName", spell.spellID)
@@ -461,40 +486,40 @@ local function SourceData(meterType, sessionType, sessionID, guid, creature)
 	return pcall(meter.GetCombatSessionSourceFromType, sessionType, meterType, guid, creature)
 end
 
-local function Context()
-	local info = Info()
+local function Context(W)
+	local info = Info(W.meterKey)
 	local meterTypes = Enum and Enum.DamageMeterType
 	local meterType = meterTypes and meterTypes[info.value]
 	if meterType == nil or not (Enum and Enum.DamageMeterSessionType) then
 		return nil
 	end
-	local sessionType, sessionID, name = Fight()
+	local sessionType, sessionID, name = Fight(W)
 	return info, meterType, sessionType, sessionID, name
 end
 
-local function RowTooltip(tip, list, i)
+local function RowTooltip(W, tip, list, i)
 	local shown, game = i <= (list.count or 0), GameTooltip
 	local row = shown and list.rows[i]
 	if row and row.spellID and ns.Get("damage.spellTooltips") and game and type(game.SetSpellByID) == "function" then
 		game:SetOwner(row.frame, ns.BarList.Inward(row.frame))
 		game:SetSpellByID(row.spellID)
-		if drill.active then game:AddLine(L["Click to go back to every source."]) end
+		if W.drill.active then game:AddLine(L["Click to go back to every source."]) end
 		game:Show()
 		return false
 	end
-	if drill.active and shown then
+	if W.drill.active and shown then
 		tip:AddLine(L["Click to go back to every source."])
 		return true
 	end
 	return false
 end
 
-local function RowSplit(split, list, i)
-	local slot = slots[i]
-	if drill.active or not slot or not slot.ok or i > (list.count or 0) then
+local function RowSplit(W, split, list, i)
+	local slot = W.slots[i]
+	if W.drill.active or not slot or not slot.ok or i > (list.count or 0) then
 		return false
 	end
-	local info, meterType, sessionType, sessionID = Context()
+	local info, meterType, sessionType, sessionID = Context(W)
 	if not info or not SourceApi() or (sessionType == nil and sessionID == nil) then
 		split:SetNote(L["Click for every spell"])
 		return true
@@ -537,11 +562,11 @@ local function RowSplit(split, list, i)
 	return true
 end
 
-local function RowSplits(list, i)
-	if not ns.Get("damage.hover") or drill.active or Damage.resting then
+local function RowSplits(W, list, i)
+	if not ns.Get("damage.hover") or W.drill.active or W.resting then
 		return false
 	end
-	local slot = slots[i]
+	local slot = W.slots[i]
 	return slot ~= nil and slot.ok == true and i <= (list.count or 0) and SourceApi()
 end
 
@@ -552,7 +577,7 @@ local function Session(meterType, sessionType, sessionID)
 	return pcall(C_DamageMeter.GetCombatSessionFromType, sessionType, meterType)
 end
 
-local function FillSpells(list, info, meterType, sessionType, sessionID, who)
+local function FillSpells(W, list, info, meterType, sessionType, sessionID, who)
 	local ok, source = SourceData(meterType, sessionType, sessionID, who.guid, who.creature)
 	if not ok then
 		ns.LogOnce("damageSourceError", "C_DamageMeter's source call failed: " .. tostring(source))
@@ -560,7 +585,7 @@ local function FillSpells(list, info, meterType, sessionType, sessionID, who)
 		return
 	end
 	if not Readable(source) or not Readable(source.combatSpells) then
-		Hidden(list)
+		Hidden(W, list)
 		return
 	end
 	local spells = source.combatSpells
@@ -576,7 +601,7 @@ local function FillSpells(list, info, meterType, sessionType, sessionID, who)
 	local percent = ns.Get("damage.percent")
 	local n = Entries(spells)
 	Order(spells, n, info)
-	local first, count = Span(list, n)
+	local first, count = Span(W, list, n)
 	for i = 1, count do
 		local spell = spells[order[first + i]]
 		local amount = spell.totalAmount
@@ -584,11 +609,16 @@ local function FillSpells(list, info, meterType, sessionType, sessionID, who)
 			amount = 0
 		end
 		local percentText = percent and Logic.FormatPercent(Logic.Percent(spell.totalAmount, total)) or ""
-		list:SetRow(i, SpellName(spell, who.name), who.class, who.reaction, amount, maxAmount, NumberText(Amount(spell, info), format), percentText, nil, Logic.SchoolToken(spell.spellID))
+		local label = SpellName(spell, who.name)
+		list:SetRow(i, label, who.class, who.reaction, amount, maxAmount, NumberText(Amount(spell, info), format), percentText, nil, Logic.SchoolToken(spell.spellID))
 		list:SetRowIcon(i, SpellCall("GetSpellTexture", spell.spellID))
+		list:SetMarker(i)
 		SpellRow(list, i, Logic.Plain(spell.spellID))
+		if reporting then
+			list.rows[i].place, list.rows[i].label = first + i, label
+		end
 	end
-	Damage.filled = Damage.view
+	W.filled = W.view
 	list:Finish(count, count == 0 and L["No data yet"] or nil)
 end
 
@@ -606,25 +636,26 @@ local function OwnSource(info)
 	return { guid = guid, name = name, class = class, reaction = "friendly", own = true }
 end
 
-local function Refresh()
-	Damage.pending = false
-	local list = Damage.list
+local function Refresh(W)
+	W.pending = false
+	local list = W.list
 	if not list or not ns.IsRunning() then
 		return
 	end
-	local visible = Visible()
+	local visible = Visible(W)
 	list.panel:SetShown(visible)
 	if not visible then
 		return
 	end
-	local info, meterType, sessionType, sessionID, name = Context()
+	local info, meterType, sessionType, sessionID, name = Context(W)
 	if not info then
 		ns.LogOnce("damageEnum", "the Damage Meter enums are missing; the window stays empty")
 		list:Finish(0, L["No data yet"])
 		return
 	end
+	local drill = W.drill
 	local own = not drill.active and IsInGroup() ~= true and OwnSource(info) or nil
-	Damage.resting = own ~= nil
+	W.resting = own ~= nil
 	if drill.active and drill.own then
 		list:SetTitle(info.cap or info.label)
 	elseif drill.active then
@@ -634,13 +665,13 @@ local function Refresh()
 	else
 		list:SetTitle(info.cap or info.label)
 	end
-	Switch(list, name)
+	Switch(list, W.sessionKey, name)
 	if sessionType == nil and sessionID == nil then
 		list:Finish(0, L["No earlier fight yet"])
 		return
 	end
 	if drill.active or own then
-		FillSpells(list, info, meterType, sessionType, sessionID, own or drill)
+		FillSpells(W, list, info, meterType, sessionType, sessionID, own or drill)
 		return
 	end
 	local ok, session = Session(meterType, sessionType, sessionID)
@@ -650,69 +681,155 @@ local function Refresh()
 		return
 	end
 	if not Readable(session) then
-		Hidden(list)
+		Hidden(W, list)
 		return
 	end
-	FillSources(list, info, session)
+	FillSources(W, list, info, session)
+end
+for _, W in ipairs({ Damage, Second }) do
+	W.refresh = function() Refresh(W) end
 end
 
-local function Schedule()
-	if Damage.pending then
+function ns.ResetMeters()
+	local meter = C_DamageMeter
+	if type(meter) ~= "table" or type(meter.ResetAllCombatSessions) ~= "function" then
+		ns.LogOnce("noReset", "C_DamageMeter.ResetAllCombatSessions is missing; nothing is reset")
 		return
 	end
-	Damage.pending = true
-	C_Timer.After(ns.Get("damage.refresh"), Refresh)
+	K.Combat.Queue(function() K.Call(meter.ResetAllCombatSessions) end)
+end
+
+local function Is(call, want, ...)
+	if type(call) ~= "function" then
+		return false
+	end
+	local ok, value = pcall(call, ...)
+	return ok and not IsSecret(value) and value == want
+end
+
+local function Locked()
+	local chat = C_ChatInfo
+	return not Is(InCombatLockdown, false) or not Is(type(chat) == "table" and chat.InChatMessagingLockdown, false)
+end
+
+local function Channel()
+	local home, instance = LE_PARTY_CATEGORY_HOME, LE_PARTY_CATEGORY_INSTANCE
+	local open = {
+		INSTANCE_CHAT = instance ~= nil and Is(IsInGroup, true, instance),
+		RAID = home ~= nil and Is(IsInRaid, true, home), PARTY = home ~= nil and Is(IsInGroup, true, home), GUILD = Is(IsInGuild, true),
+	}
+	local to = ns.Get("damage.reportTo")
+	if to ~= "auto" then
+		return open[to] and to or nil
+	end
+	for _, chat in ipairs(GROUP_CHATS) do
+		if open[chat] then return chat end
+	end
+	return nil
+end
+
+local function Report(W)
+	local list, drill = W.list, W.drill
+	local count = list.panel:IsShown() and min(list.count or 0, REPORT_LINES) or 0
+	if count == 0 then
+		K.Print(L["No data yet"])
+		return
+	end
+	if Locked() then
+		K.Print(L["The meter can report after combat."])
+		return
+	end
+	local lines = { string.format("%s%s (%s)", drill.active and drill.name .. ": " or "", Info(W.meterKey).label, FIGHTS[ns.Get(W.sessionKey)]) }
+	for i = 1, count do
+		local row = list.rows[i]
+		local label, text, share = row.label, row.amount, row.share
+		if IsSecret(label) or IsSecret(text) or IsSecret(share) or type(label) ~= "string" then
+			K.Print(L["The meter can report after combat."])
+			return
+		end
+		lines[#lines + 1] = string.format("%d. %s %s", row.place, label, text) .. (share ~= "" and " (" .. share .. ")" or "")
+	end
+	local chat, send = Channel(), C_ChatInfo and C_ChatInfo.SendChatMessage
+	for _, line in ipairs(lines) do
+		if not chat or type(send) ~= "function" then
+			K.Print(line)
+		elseif not pcall(send, line, chat) then
+			ns.LogOnce("reportFailed", "C_ChatInfo.SendChatMessage refused the report")
+			return
+		end
+	end
+end
+
+local function Schedule(W)
+	if W.pending then
+		return
+	end
+	W.pending = true
+	C_Timer.After(ns.Get("damage.refresh"), W.refresh)
 end
 
 local function SkinVisibility()
-	if Alone() then
+	if Alone() or ns.windowsHidden then
 		HideBlizzard()
 	else
 		RestoreBlizzard()
 	end
 end
 
+local function OnEvent(W, event, _, sessionID)
+	if event == "DAMAGE_METER_RESET" then
+		W.currentID = nil
+		Back(W)
+	elseif event == "DAMAGE_METER_COMBAT_SESSION_UPDATED" then
+		local id = Logic.Plain(sessionID)
+		if id and id > 0 then
+			W.currentID = id
+		end
+	end
+	Schedule(W)
+end
+Second.OnEvent = OnEvent
+
 function Damage:OnEvent(event, meterType, sessionID)
 	if Damage.Mode() ~= "window" then
 		SkinVisibility()
 		return
 	end
-	if event == "PLAYER_REGEN_DISABLED" then
-		self.combat = true
-	elseif event == "PLAYER_REGEN_ENABLED" then
-		self.combat = false
-	elseif event == "DAMAGE_METER_RESET" then
-		self.currentID = nil
-		Back()
-	elseif event == "DAMAGE_METER_COMBAT_SESSION_UPDATED" then
-		local id = Logic.Plain(sessionID)
-		if id and id > 0 then
-			self.currentID = id
-		end
-	end
-	Schedule()
+	OnEvent(self, event, meterType, sessionID)
 end
 
-local function OnRowClick(list, i, button)
-	if drill.active then
-		Back()
-		Refresh()
+local function Reporting(W)
+	if reporting and Is(IsShiftKeyDown, true) then
+		Report(W)
+		return true
+	end
+	return false
+end
+
+local function OnRowClick(W, list, i, button)
+	if Reporting(W) then
 		return
 	end
-	local slot = slots[i]
-	if Damage.resting or button ~= "LeftButton" or not slot or not slot.ok or i > (list.count or 0) or not SourceApi() then
+	local drill = W.drill
+	if drill.active then
+		Back(W)
+		Refresh(W)
+		return
+	end
+	local slot = W.slots[i]
+	if W.resting or button ~= "LeftButton" or not slot or not slot.ok or i > (list.count or 0) or not SourceApi() then
 		return
 	end
 	drill.active = true
 	drill.guid, drill.creature, drill.name = slot.guid, slot.creature, slot.name
 	drill.class, drill.reaction, drill.own = slot.class, slot.reaction, slot.own
-	Damage.view = Damage.view + 1
+	W.view = W.view + 1
 	list:SetIcons(true)
-	Refresh()
+	Refresh(W)
 end
 
-local function NextSession()
-	local session = ns.Get("damage.session")
+local function NextSession(W)
+	local session = ns.Get(W.sessionKey)
 	for i, value in ipairs(SESSION_ORDER) do
 		if value == session then
 			return SESSION_ORDER[i % #SESSION_ORDER + 1]
@@ -721,35 +838,46 @@ local function NextSession()
 	return SESSION_ORDER[1]
 end
 
-local function OnClick(_, button)
-	if drill.active then
-		Back()
-		Refresh()
+local function OnClick(W, _, button, title)
+	if Reporting(W) then
+		return
+	end
+	if W.drill.active then
+		Back(W)
+		Refresh(W)
 		return
 	end
 	if button == "RightButton" then
-		K.Options.Write(ns.MODULE, "damage.session", NextSession())
+		K.Options.Write(ns.MODULE, W.sessionKey, NextSession(W))
 		return
 	end
-	local _, index = Info()
-	local nextType = ns.METER_TYPES[index % #ns.METER_TYPES + 1]
-	K.Options.Write(ns.MODULE, "damage.meter", nextType.value)
+	local info, index = Info(W.meterKey)
+	K.Options.Write(ns.MODULE, W.meterKey, title and (FAMILY[info.value] or "DamageDone") or ns.METER_TYPES[index % #ns.METER_TYPES + 1].value)
 end
 
-local function Tooltip(tip)
-	if drill.active then
+local function OnReset(W)
+	if not Reporting(W) then
+		ns.ResetMeters()
+	end
+end
+
+local function Tooltip(W, tip)
+	if W.drill.active then
 		tip:AddLine(L["Click to go back to every source."])
-		return
+	else
+		tip:AddLine(L["Click a name for its spells. Click the card for the next meter."])
+		tip:AddLine(L["Scroll for more names."])
+		tip:AddLine(L["Click Now, Last or All for the next fight: this fight, the last fight or every fight."])
 	end
-	tip:AddLine(L["Click a name for its spells. Click the card for the next meter."])
-	tip:AddLine(L["Scroll for more names."])
-	tip:AddLine(L["Click Now, Last or All for the next fight: this fight, the last fight or every fight."])
+	if reporting then
+		tip:AddLine(L["Shift-click to report these rows to chat."])
+	end
 end
 
-local function SwitchTooltip(tip)
+local function SwitchTooltip(W, tip)
 	tip:AddLine(L["Click for the next fight: this fight, the last fight or every fight."])
-	if Damage.list and Api() then
-		local id, name = PreviousFight()
+	if W.list and Api() then
+		local id, name = PreviousFight(W)
 		if id then
 			tip:AddLine(string.format(L["Last fight: %s"], name or L["Previous fight"]))
 		else
@@ -758,33 +886,20 @@ local function SwitchTooltip(tip)
 	end
 end
 
-local function OnTitle(_, button)
-	if drill.active then
-		Back()
-		Refresh()
-		return
-	end
-	if button == "RightButton" then
-		K.Options.Write(ns.MODULE, "damage.session", NextSession())
-		return
-	end
-	K.Options.Write(ns.MODULE, "damage.meter", FAMILY[Info().value] or "DamageDone")
-end
-
-local function TitleTooltip(tip)
-	if drill.active then
+local function TitleTooltip(W, tip)
+	if W.drill.active then
 		tip:AddLine(L["Click to go back to every source."])
 		return
 	end
 	tip:AddLine(L["Click to show damage or healing."])
 end
 
-local function OnWheel(_, delta)
-	local top = Damage.top or 0
-	local offset = max(0, min(top, (Damage.offset or 0) + (delta > 0 and -1 or 1)))
-	if offset ~= Damage.offset then
-		Damage.offset = offset
-		Refresh()
+local function OnWheel(W, _, delta)
+	local top = W.top or 0
+	local offset = max(0, min(top, (W.offset or 0) + (delta > 0 and -1 or 1)))
+	if offset ~= W.offset then
+		W.offset = offset
+		Refresh(W)
 	end
 end
 
@@ -792,72 +907,89 @@ local function Icons()
 	return ns.Get("damage.icons") == true
 end
 
-local function OnSwitch()
-	K.Options.Write(ns.MODULE, "damage.session", NextSession())
+local function OnSwitch(W)
+	if Reporting(W) then
+		return
+	end
+	K.Options.Write(ns.MODULE, W.sessionKey, NextSession(W))
 end
 
 local function Columns()
 	return { value = true, percent = ns.Get("damage.percent") }
 end
 
-local function Build()
+local function Build(W)
+	local function Bind(call) return function(...) return call(W, ...) end end
 	local width, height = ns.Footprint(KEY)
-	Damage.list = ns.BarList.New(K.Scale.Root(), "damage", {
-		key = KEY, width = width or 269, height = height or 158, columns = Columns, onClick = OnClick, block = true,
-		onRowClick = OnRowClick, tooltip = Tooltip, onSwitch = OnSwitch, switchTooltip = SwitchTooltip,
-		rowTooltip = RowTooltip, rowSplits = RowSplits, rowSplit = RowSplit,
-		onTitle = OnTitle, titleTooltip = TitleTooltip, onWheel = OnWheel, icons = Icons,
+	if W == Second then width = SECOND_WIDTH end
+	W.list = ns.BarList.New(K.Scale.Root(), "damage", {
+		key = W.key, width = width or 269, height = height or 158, columns = Columns, onClick = Bind(OnClick), block = true,
+		onRowClick = Bind(OnRowClick), tooltip = Bind(Tooltip), onSwitch = Bind(OnSwitch), switchTooltip = Bind(SwitchTooltip),
+		rowTooltip = Bind(RowTooltip), rowSplits = Bind(RowSplits), rowSplit = Bind(RowSplit),
+		onTitle = function(list, button) OnClick(W, list, button, true) end, titleTooltip = Bind(TitleTooltip), onWheel = Bind(OnWheel), icons = Icons, onReset = Bind(OnReset),
 	})
-	Damage.holder = Damage.list.holder
-	ns.Place(Damage.holder, KEY, LIMITS)
-end
-
-function Damage:Resized()
-	if self.list then
-		self.list:Restyle()
-		Schedule()
+	W.holder = W.list.holder
+	if W == Damage then
+		ns.Place(W.holder, KEY, LIMITS)
+	else
+		K.Layout.Register(W.holder, SECOND, SECOND_PLACE, { label = L["Second damage window"], module = ns.MODULE, resizable = true,
+			minWidth = LIMITS.minWidth, maxWidth = LIMITS.maxWidth, minHeight = LIMITS.minHeight, maxHeight = LIMITS.maxHeight })
 	end
 end
 
+local function Resized(W)
+	if W.list then
+		W.list:Restyle()
+		Schedule(W)
+	end
+end
+Damage.Resized, Second.Resized = Resized, Resized
+
 function Damage:Start()
 	if not self.holder then
-		Build()
+		Build(self)
 	end
 	self:Apply()
 end
 
-local function Track(self)
-	local meter, session = ns.Get("damage.meter"), ns.Get("damage.session")
-	if meter ~= self.meter then
-		self.meter = meter
-		Back()
-		self.view = self.view + 1
+local function Track(W)
+	local meter, session = ns.Get(W.meterKey), ns.Get(W.sessionKey)
+	if meter ~= W.meter then
+		W.meter = meter
+		Back(W)
+		W.view = W.view + 1
 	end
-	if session ~= self.session then
-		self.session = session
-		self.view = self.view + 1
+	if session ~= W.session then
+		W.session = session
+		W.view = W.view + 1
 	end
 end
 
-local function Window(self)
-	ns.DamageSkin.Deactivate()
-	ns.DamageCVar.Want(false)
-	self.holder:Show()
+local function Open(W)
+	abbreviate = ns.Get("damage.englishUnits") and Logic.Abbreviate or Logic.GameUnits
+	reporting = ns.Get("damage.report") == true
+	W.holder:Show()
 	for _, event in ipairs(EVENTS) do
-		ns.Watch(self, event)
+		ns.Watch(W, event)
 	end
-	HideBlizzard()
-	Track(self)
-	self.list:Restyle()
-	self.combat = InCombatLockdown() == true
-	Refresh()
+	Track(W)
+	W.list:Restyle()
+	Refresh(W)
+end
+
+local function Close(W)
+	ns.UnwatchAll(W)
+	W.currentID = nil
+	Back(W)
+	W.list.panel:Hide()
+	W.holder:Hide()
 end
 
 function Damage:Apply()
 	if not self.holder or not ns.IsRunning() then
 		return
 	end
-	ns.SetLive(KEY, ns.MeterShown("damage") and Damage.Mode() == "window")
+	ns.SetLive(KEY, Damage.Wanted())
 	if not ns.MeterShown("damage") then
 		self:Stop()
 		if ns.Get("followRole") and not ns.damageOverlap then
@@ -866,20 +998,19 @@ function Damage:Apply()
 		return
 	end
 	if Damage.Mode() == "window" then
-		Window(self)
+		ns.DamageSkin.Deactivate()
+		ns.DamageCVar.Want(false)
+		HideBlizzard()
+		Open(self)
 		return
 	end
 	if ns.Get("damage.mode") ~= "skin" then
 		ns.LogOnce("damageSkinPath", "C_DamageMeter is missing; the damage meter restyles Blizzard's window")
 	end
-	ns.UnwatchAll(self)
-	self.currentID = nil
+	Close(self)
 	for _, event in ipairs(SKIN_EVENTS) do
 		ns.Watch(self, event)
 	end
-	Back()
-	self.list.panel:Hide()
-	self.holder:Hide()
 	SkinVisibility()
 	ns.DamageCVar.Want(true)
 	ns.DamageSkin.Activate()
@@ -889,12 +1020,31 @@ function Damage:Stop()
 	if not self.holder then
 		return
 	end
-	ns.UnwatchAll(self)
-	self.currentID = nil
-	Back()
-	self.list.panel:Hide()
-	self.holder:Hide()
+	Close(self)
 	RestoreBlizzard()
 	ns.DamageSkin.Deactivate()
 	ns.DamageCVar.Want(false)
+end
+
+function Second:Apply()
+	if not ns.IsRunning() then
+		return
+	end
+	local on = Second.Wanted()
+	ns.SetLive(SECOND, on)
+	if not on then
+		self:Stop()
+		return
+	end
+	if not self.holder then
+		Build(self)
+	end
+	Open(self)
+end
+Second.Start = Second.Apply
+
+function Second:Stop()
+	if self.holder then
+		Close(self)
+	end
 end

@@ -1,4 +1,4 @@
--- shell_parity.lua: one shell module's real Options page or affected frames, with parity switches applied through Options.Write.
+-- shell_parity.lua: one shell module's real Options page or affected frames, with parity switches applied through Options.Write; batch 4 shows a unit tooltip, its buffs on the RENDER_BUFF_SIDE side if set.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -7,8 +7,11 @@ local module = os.getenv("RENDER_SHELL_MODULE") or "Minimap"
 local loaders = { Minimap = "minimap", DataBars = "databars", Chat = "chat", Bags = "bags", Tooltips = "tooltips", QoL = "qol" }
 local keys = { Minimap = "zone.subzone", DataBars = "strip.modules", Bags = "desaturateJunk", Tooltips = "maxStack", QoL = "autoGossip" }
 local batch = os.getenv("RENDER_SHELL_FOLLOWUP")
-local followup = batch == "1" or batch == "3"
-local followups = batch == "3" and {
+local followup = batch == "1" or batch == "3" or batch == "4"
+local unitTip = module == "Tooltips" and batch == "4"
+local followups = batch == "4" and {
+	Tooltips = { { "buffs.shown", true }, { "itemLevel", true }, { "levelColor", true }, { "classLine", true }, { "compactLevel", true }, { "factionColor", true } },
+} or batch == "3" and {
 	DataBars = { { "strip.money", "short" } },
 	Bags = { { "characterBags", true } },
 	Tooltips = { { "show", "outOfCombat" }, { "awayTag", true }, { "mountLine", true } },
@@ -21,14 +24,19 @@ local followups = batch == "3" and {
 	Tooltips = { { "playerTitles", false } },
 	QoL = { { "coinIcons", true }, { "skipCinematics", true }, { "skipDelay", 5 } },
 }
--- RENDER_MINIMAP_R1 (a or b) switches on the minimap's first EllesmereUI parity round: a moves and adds caption readouts, b restyles the column and drawer.
+if unitTip and os.getenv("RENDER_BUFF_SIDE") then table.insert(followups.Tooltips, { "buffs.position", os.getenv("RENDER_BUFF_SIDE") }) end
+-- RENDER_MINIMAP_R1 switches on a minimap EllesmereUI parity round: a moves and adds caption readouts, b restyles the column and drawer,
+-- c (round 2) adds the compartment button, an addon button in the column and the micro menu; d shows the same with a larger tooltip.
 local r1 = os.getenv("RENDER_MINIMAP_R1")
 local rounds = {
 	a = { { "column.hover", false }, { "difficulty.shown", true }, { "perf.shown", true }, { "clock.mode", "local12" }, { "clock.accent", true },
 		{ "mail.position", "TOPLEFT" }, { "coords.position", "BOTTOMRIGHT" }, { "perf.hover", "lockouts" } },
 	b = { { "column.hover", false }, { "column.backgrounds", false }, { "column.offset", 4 }, { "drawer.list", true }, { "drawer.behaviour", "open" },
 		{ "rotate", true }, { "zone.position", "BOTTOM" }, { "column.tooltip", "up" } },
+	c = { { "column.hover", false }, { "compartment.shown", true }, { "compartment.position", "BOTTOMLEFT" }, { "compartment.scale", 1.2 },
+		{ "drawer.button", "Details" }, { "drawer.place", "column" }, { "microMenu", true }, { "tooltipScale", 1.25 }, { "column.tooltip", "left" } },
 }
+rounds.d = rounds.c
 local driver = assert(loaders[module], "RENDER_SHELL_MODULE must name a shell module")
 local D = dofile("Tools/regression/" .. driver .. "_env.lua")
 
@@ -56,6 +64,28 @@ return Common.Run(function()
 				local lib = D.FakeLibDBIcon(env)
 				lib:Add("BugSack").icon:SetTexture(Hud.ICONS.sunderArmor)
 				lib:Add("Details").icon:SetTexture(Hud.ICONS.whirlwind)
+				env.AddonCompartmentFrame.registeredAddons = { { text = "BugSack", func = function() end }, { text = "Details", func = function() end } }
+				for _, name in ipairs({ "CharacterMicroButton", "SpellbookMicroButton", "TalentMicroButton", "QuestLogMicroButton", "GuildMicroButton",
+					"LFDMicroButton", "CollectionsMicroButton", "MainMenuMicroButton" }) do
+					env.CreateFrame("Button", name, env.UIParent)
+				end
+			end
+			if unitTip then
+				local buffs = { 136076, 132212, 132328, 135987, 135906 }
+				local hunter = dofile("Tools/render/scenes/_classes.lua").HUNTER.colour
+				env.RAID_CLASS_COLORS.HUNTER = { r = hunter[1], g = hunter[2], b = hunter[3] }
+				env.UnitTokenFromGUID = function() return "mouseover" end
+				env.UnitIsPlayer = function(unit) return unit == "mouseover" end
+				env.UnitIsUnit = function(a, b) return a == b or (a == "mouseover" and b == "player") end
+				env.UnitClass = function() return "Hunter", "HUNTER", 3 end
+				env.UnitLevel = function() return 60 end
+				env.UnitReaction = function() return 5 end
+				env.UnitFactionGroup = function() return "Horde", "Horde" end
+				env.GetFactionColor = function() return { GetRGB = function() return 0.9, 0.05, 0.07 end } end
+				env.GetCreatureDifficultyColor = function() return { r = 1, g = 0.82, b = 0 } end
+				env.TOOLTIP_UNIT_LEVEL, env.PLAYER = "Level %s", "Player"
+				env.C_Secrets = { ShouldAurasBeSecret = function() return false end }
+				env.C_UnitAuras = { GetAuraDataByIndex = function(_, i) return buffs[i] and { icon = buffs[i] } or nil end }
 			end
 			env.C_AddOns = env.C_AddOns or {}
 			env.C_AddOns.LoadAddOn = function(name)
@@ -95,7 +125,18 @@ return Common.Run(function()
 		env.FireEvent("CHAT_MSG_MONEY", "You loot 1 Gold, 4 Silver, 14 Copper")
 	end
 	if module == "Bags" then env.ToggleAllBags() end
-	if module == "Tooltips" then
+	if unitTip then
+		local tip = env.GameTooltip
+		tip:SetOwner(env.UIParent, "ANCHOR_NONE")
+		for _, text in ipairs({ "Valerin", "<Kstyle>", "Level 60 Hunter (Player)", "Horde" }) do tip:AddLine(text, 1, 1, 1) end
+		D.BlizzardShow(tip, true)
+		D.PostCall(env, tip, { type = env.Enum.TooltipDataType.Unit, guid = "Player-1-0001" })
+		D.BlizzardShow(tip.StatusBar, true)
+		tip.StatusBar:SetValue(0.72)
+		dofile("Tools/render/scenes/tooltip.lua").Layout(env, tip)
+		tip:ClearAllPoints()
+		tip:SetPoint("TOPRIGHT", K.Scale.Root(), "TOPRIGHT", -80, -180)
+	elseif module == "Tooltips" then
 		local tip = env.GameTooltip
 		env._items[2447] = { quality = 1, icon = 133939 }
 		tip:SetOwner(env.UIParent, "ANCHOR_NONE")
@@ -134,6 +175,15 @@ return Common.Run(function()
 		env.RunTimers()
 		O.W.Settle(env)
 		env._r1Note = note
+		if r1 == "c" and not defaults then
+			ns.Micro.Toggle(ns.Map.holder)
+			ns.Micro.panel._mouseOver = true
+		elseif r1 == "d" and not defaults then
+			local tip = K.Widgets.Tooltip()
+			ns.Column.Tooltip("calendar", tip, ns.Map.column.buttons.calendar)
+			tip:Show()
+		end
+		for _ = 1, (r1 == "c" or r1 == "d") and 30 or 0 do O.W.Tick(env, 0.016) end
 	end
 	local scene = Gallery.Build(env)
 	local errors = Common.Errors(env, K)

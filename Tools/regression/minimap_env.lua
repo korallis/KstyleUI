@@ -46,6 +46,12 @@ function M.Blizzard(env, opts)
 	CreateFrame("Button", "TimeManagerClockButton", cluster)
 	CreateFrame("DropdownButton", "AddonCompartmentFrame", cluster)
 	env.AddonCompartmentFrame.registeredAddons = {}
+	-- As Blizzard_Minimap/Mainline/AddonCompartment.lua:161: a registration after load calls UpdateDisplay, with no event.
+	function env.AddonCompartmentFrame:RegisterAddon(data)
+		table.insert(self.registeredAddons, data)
+		self:UpdateDisplay()
+	end
+	function env.AddonCompartmentFrame.UpdateDisplay() end
 	CreateFrame("Button", "QueueStatusButton", env.UIParent)
 	env.QueueStatusButton:Hide()
 
@@ -350,8 +356,8 @@ function M.FakeTooltip()
 	function tip.AddDoubleLine(_, left, right)
 		tip.lines[#tip.lines + 1] = tostring(left) .. " | " .. tostring(right)
 	end
-	function tip.SetOwner(_, owner)
-		tip.owner = owner
+	function tip.SetOwner(_, owner, _, _, _, factor)
+		tip.owner, tip.factor = owner, factor
 	end
 	function tip.Has(_, text)
 		for _, line in ipairs(tip.lines) do

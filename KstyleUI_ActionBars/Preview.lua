@@ -67,7 +67,7 @@ function Preview:Refresh()
 			button:Show()
 			button:SetIcon(Sample(def.kind == "action" and ns.Slot(i, def.page or 1) or i))
 			local command = def.kind == "consumable" and "CLICK KstyleUI_Consumable" .. i .. ":LeftButton" or def.binding .. i
-			button:SetHotkey(cfg.hotkey and ns.ShortKey(ns.FirstKey(command)) or nil)
+			button:SetHotkey(cfg.hotkey and K.Widgets.ShortKey(ns.FirstKey(command)) or nil)
 			button.hotkey:SetShown(cfg.hotkey == true)
 			button:SetCount(i == 2 and cfg.count and "3" or nil)
 			button:SetAccent(r, g, b)

@@ -16,6 +16,7 @@ local TARGETS = {
 	time = { "GameTimeFrame", "TimeManagerClockButton" },
 }
 
+local TRAVEL = { "hearthLeft", "hearthRight", "hearthMiddle" }
 local current
 
 function Click.Target(id)
@@ -43,6 +44,10 @@ function Click.Detach()
 		proxy:ClearAllPoints()
 	end
 	current = nil
+end
+
+function Click.Refresh()
+	if current then Click.Attach(current) end
 end
 
 function Click.Release(item)
@@ -135,9 +140,19 @@ function Click.Attach(item)
 		return false
 	end
 	current = item
-	button:SetAttribute("type1", item.id == "hearth" and "item" or "click")
+	local hearth, s = item.id == "hearth", ns.Settings().strip
+	button:SetAttribute("type1", hearth and "item" or "click")
 	button:SetAttribute("clickbutton1", target)
-	button:SetAttribute("item1", item.id == "hearth" and "item:6948" or nil)
+	button:SetAttribute("item1", hearth and "item:6948" or nil)
+	for n, key in ipairs(TRAVEL) do
+		local kind, id = (hearth and s[key] or ""):match("^(%a+):(%d+)$")
+		if kind == "spell" or kind == "item" then
+			button:SetAttribute("type" .. n, kind)
+			button:SetAttribute(kind .. n, kind == "item" and "item:" .. id or tonumber(id))
+		elseif n > 1 then
+			button:SetAttribute("type" .. n, nil)
+		end
+	end
 	local strata = item.button:GetFrameStrata()
 	if type(strata) == "string" and not ns.IsSecret(strata) then
 		button:SetFrameStrata(strata)

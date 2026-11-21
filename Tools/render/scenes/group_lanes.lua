@@ -1,8 +1,24 @@
 -- group_lanes.lua: the party and raid frames as the KSTY-44 and KSTY-47 mock-ups draw them, on the owner's screen:
 -- RENDER_GROUP is party (the player and four members, bare on the world) or 10, 20, 25 or 40 (a raid of that size in
 -- groups of five, seated in its card); RENDER_HUD_STYLE picks the HUD style and RENDER_SCREEN the screen. The
--- members, health and roles are the mock-ups' own, and the frames sit where the mock-ups put them.
--- RENDER_GROUP_LANE=1 gives the first member three of your heals and the three default indicators.
+-- members, health and roles are the mock-ups' own, and the frames sit where the mock-ups put them. RENDER_PARITY_R1=1
+-- switches on the EllesmereUI parity round 1 options that show without extra state; RENDER_PARITY_R2=1 switches on round 2's,
+-- with the first member in combat, shielded past the missing health and the fourth carrying a heal absorb.
+-- RENDER_PARITY_R3C=1 switches on round 3c's striped shields, shield glow, lost maximum health, threat edge and merged
+-- raid groups (party frames with portraits, so the threat edge has a tile), with the first member shielded and on aggro and the second missing a fifth of their maximum health;
+-- RENDER_PARITY_R3C=missing also fills the bars with missing health; =layout (RENDER_GROUP=10) gives the larger frames a custom size
+-- and offset with icons that scale and two hover lines on the hovered first frame; =solo (RENDER_GROUP=party) shows you alone, centred;
+-- =small (RENDER_GROUP=10) keeps six players, group 1 shown as party frames.
+-- RENDER_PARITY_R3B=1 switches on round 3b's party targets (an enemy, a player and an enemy), text above icons, a party debuff
+-- offset, the thick icon text outline and indicator 1 kept to raid frames.
+-- RENDER_PARITY_R3A=1 switches on round 3a's: missing buffs, Dead on the bar, the dispel type letter, centred names
+-- with a divider, group numbers, healer mana and your group label.
+-- RENDER_PARITY_R4=1 switches on round 4's: role icons on the bar with an offset, glowing missing buffs, a taller name
+-- line, heal icons nudged, class first and centred raid groups. RENDER_GROUP_LANE=1 gives the first member three of your heals and the three default indicators.
+-- RENDER_PARITY_R5=1 switches on round 5's: party class order of its own, leader, name and group number offsets, the health
+-- text left under icons, a heal absorb backing of its own, three heals with their own zoom, an indicator offset, and pet, tank and
+-- friendly boss frames. RENDER_EXTRAS=1 switches on only pet, tank and friendly boss frames, at their defaults. RENDER_PLACES=default
+-- leaves every group frame holder at its default place instead of the mock-ups'.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
@@ -35,11 +51,18 @@ if os.getenv("RENDER_PLAYER") == "warlock" then
 	PLAYER = { name = "Morvane", class = "WARLOCK", health = 82, maxHealth = 100, power = 70, maxPower = 100, role = "DAMAGER" }
 end
 local AT = { party = { 24, 392 }, raid = { 14, 330 } }
+local R3A = os.getenv("RENDER_PARITY_R3A") == "1"
+local R4 = os.getenv("RENDER_PARITY_R4") == "1"
+local R5 = os.getenv("RENDER_PARITY_R5") == "1"
+local EXTRAS = os.getenv("RENDER_EXTRAS") == "1"
+local SPELLS = { [1243] = { "Power Word: Fortitude", 135987 }, [1459] = { "Arcane Intellect", 135932 }, [467] = { "Thorns", 136104 } }
+local GROUP_SPELLS = { [21562] = "Prayer of Fortitude", [23028] = "Arcane Brilliance" }
 local IDENTITY = {
 	Valerin = { "Dwarf", 2 }, Morvane = { "Scourge", 2 }, Thessaly = { "Human", 3 }, Brannoc = { "Orc", 2 }, Ilyra = { "NightElf", 3 }, Dunmar = { "Dwarf", 2 },
 }
 
 local function place(K, key, x, y)
+	if os.getenv("RENDER_PLACES") == "default" then return end
 	assert(K.Layout.Set(key, "anchor", "TOPLEFT"))
 	assert(K.Layout.Set(key, "x", x))
 	assert(K.Layout.Set(key, "y", -y))
@@ -76,9 +99,48 @@ return Common.Run(function()
 				local id = identity(unit)
 				return id and id[2] or 2
 			end
+			if R3A or R4 then
+				env.C_SpellBook = { IsSpellKnown = function(id) return SPELLS[id] ~= nil end }
+				env.C_Spell = env.C_Spell or {}
+				env.C_Spell.GetSpellName = function(id) return SPELLS[id] and SPELLS[id][1] or GROUP_SPELLS[id] end
+				env.C_Secrets.ShouldSpellAuraBeSecret = function() return false end
+				env.C_Spell.GetSpellTexture = function(id) return SPELLS[id] and SPELLS[id][2] end
+				env.C_UnitAuras = env.C_UnitAuras or {}
+				env.C_UnitAuras.GetAuraDataBySpellName = function(unit, name)
+					local n = tonumber(unit:match("%d+$") or 0)
+					return not (n % 3 == 1 and name:find("Fortitude") or n % 2 == 1 and name:find("Arcane")) and {} or nil
+				end
+				env.UnitPowerPercent = function(_, _, _, curve) return curve and curve:Evaluate(0.64) or 0.64 end
+				env.UnitInRaid = function(unit) return unit == "player" and env._roster.kind == "raid" and 1 or nil end
+				env.GROUP_NUMBER = "Group %d"
+			end
+			if os.getenv("RENDER_PARITY_R2") == "1" then
+				env.UnitAffectingCombat = function(unit) return unit == "party1" or unit == "raid1" or unit == "raid7" end
+			end
 			env.C_Secrets = env.C_Secrets or {}
 			env.C_Secrets.ShouldUnitIdentityBeSecret = function()
 				return false
+			end
+			if R5 or EXTRAS then
+				G.Secure(env)
+				env._units = env._units or {}
+				env._units.pet = { name = "Grawl", class = "HUNTER", health = 76, maxHealth = 100 }
+				env._units.partypet2 = { name = "Imp", class = "WARLOCK", health = 58, maxHealth = 100 }
+				env._units.raidpet3 = { name = "Fang", class = "HUNTER", health = 88, maxHealth = 100 }
+				env._units.raidpet9 = { name = "Imp", class = "WARLOCK", health = 58, maxHealth = 100 }
+				env._units.boss1 = { name = "Valithria", class = "DRUID", health = 41, maxHealth = 100 }
+				env.UnitCanAssist = function(_, unit) return unit == "boss1" end
+			end
+			if os.getenv("RENDER_PARITY_R3B") == "1" then
+				G.Secure(env)
+				env._units = env._units or {}
+				env._units.party1target = { name = "Gorvak", class = "WARRIOR", reaction = 2, health = 64, maxHealth = 100 }
+				env._units.party2target = { name = "Thessaly", class = "PALADIN", player = true, health = 92, maxHealth = 100 }
+				env._units.party3target = { name = "Gorvak", class = "WARRIOR", reaction = 2, health = 64, maxHealth = 100 }
+				env.UnitIsPlayer = function(unit)
+					local m = env._member(unit)
+					return m ~= nil and m.player == true
+				end
 			end
 		end,
 	}))
@@ -87,6 +149,7 @@ return Common.Run(function()
 		for i, m in ipairs(PARTY) do
 			members[i] = { name = m[1], class = m[2], health = m[3], maxHealth = 100, power = m[5], maxPower = 100, role = m[4] }
 		end
+		if R3A then members[4].dead = true end
 	else
 		kind = "raid"
 		local n = tonumber(group)
@@ -99,7 +162,16 @@ return Common.Run(function()
 			m.role = ROLES[(i - 1) % 5 + 1]
 		end)
 	end
-	G.SetRoster(env, kind, members, PLAYER)
+	if os.getenv("RENDER_PARITY_R2") == "1" then
+		members[1].absorb, members[4].healAbsorb, members[3].marker = 30, 15, 2
+	end
+	local r3c = os.getenv("RENDER_PARITY_R3C")
+	if r3c then
+		members[1].absorb, members[1].threat, members[2].maxLoss, members[4].healAbsorb = 70, 3, 0.2, 15
+		if r3c == "small" then for i = #members, 7, -1 do members[i] = nil end end
+	end
+	if R5 then members[1].healAbsorb = 20 end
+	G.SetRoster(env, r3c ~= "solo" and kind or nil, r3c ~= "solo" and members or {}, PLAYER)
 	if not K.Modules.IsRunning("GroupFrames") then
 		assert(K.Modules.Enable("GroupFrames"))
 	end
@@ -108,10 +180,88 @@ return Common.Run(function()
 		K.Options.Write("GroupFrames", "presets.raid", "Healer")
 	end
 	if os.getenv("RENDER_TEXT_PRESET") == "Readable" and K.Profiles then K.Profiles.Readable("Readable") end
+	if os.getenv("RENDER_PARITY_R1") == "1" then
+		for key, value in pairs({ ["health.colorSource"] = "gradient", ["health.alpha"] = 0.85, ["icons.roleDamager"] = false,
+			["power.damagers"] = false, ["groups.show2"] = false, ["auras.dispelAlpha"] = 0.3, ["auras.dispelLines"] = 1 }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+	end
+	if R3A then
+		for key, value in pairs({ ["reminders.place"] = "TOPRIGHT", ["status.place"] = "CENTER", ["dispel.icon"] = "LEFT", ["names.align"] = "CENTER",
+			["names.divider"] = true, ["numbers.show"] = true, ["mana.mode"] = "BOTH", ["label.enabled"] = true }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+	end
+	if R4 then
+		for key, value in pairs({ ["icons.rolePlace"] = "LEFT", ["icons.roleX"] = 2, ["reminders.place"] = "TOPRIGHT", ["reminders.glow"] = true,
+			["names.height"] = 18, ["party.buffX"] = -4, ["raid.buffY"] = 2, ["sort.classFirst"] = true, ["raid.center"] = true }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+	end
+	if os.getenv("RENDER_PARITY_R2") == "1" then
+		for key, value in pairs({ ["icons.roleText"] = true, ["icons.combat"] = true, ["icons.combatClass"] = true, ["icons.markerPlace"] = "TOPRIGHT",
+			["prediction.overshield"] = true, ["prediction.absorbPlace"] = "END", ["prediction.healAbsorbLine"] = true, ["prediction.shieldPlace"] = "TOP",
+			["accent.targetLines"] = 1, ["power.behind"] = true }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+	end
+	if r3c then
+		for key, value in pairs({ ["prediction.absorbStyle"] = "STRIPES", ["prediction.healAbsorbStyle"] = "STRIPES", ["prediction.glow"] = true,
+			["prediction.maxLoss"] = "STRIPES", ["threat.edge"] = true, ["party.portrait"] = true, ["raid.merge"] = true, ["health.missing"] = r3c == "missing" }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+		for key, value in pairs(({ solo = { ["party.showSolo"] = true, ["party.centerSolo"] = true }, small = { ["party.smallRaid"] = true },
+			layout = { ["auto.smallWidth"] = 150, ["auto.smallHeight"] = 48, ["auto.smallX"] = 40, ["auto.smallY"] = -30, ["auto.icons"] = true,
+				["auto.heals"] = true, ["accent.hoverLines"] = 2 } })[r3c] or {}) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+	end
+	if os.getenv("RENDER_PARITY_R3B") == "1" then
+		for key, value in pairs({ ["targets.enabled"] = true, ["text.above"] = true, ["party.auraX"] = 12, ["auras.textOutline"] = "THICKOUTLINE", ["indicator1.show"] = "RAID" }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+		env.RunTimers()
+		env.RunStateDrivers()
+	end
+	if R5 then
+		for key, value in pairs({ ["sort.classFirst"] = true, ["sort.classFirstIn"] = "PARTY", ["sort.partyOwn"] = true, ["sort.partyClass1"] = "PRIEST",
+			["icons.leaderX"] = 3, ["names.x"] = 2, ["numbers.show"] = true, ["numbers.y"] = 2, ["text.above"] = true, ["text.aboveHealth"] = false,
+			["prediction.healAbsorbStyle"] = "STRIPES", ["prediction.backingOwn"] = true, ["prediction.healAbsorbBacking"] = 0.3,
+			["auras.zoomEach"] = true, ["buffs.zoom"] = 0.15, ["indicator1.x"] = -1, ["pets.enabled"] = true, ["tanks.enabled"] = true,
+			["tanks.growth"] = "RIGHT", ["boss.display"] = "ALWAYS", ["boss.dungeons"] = true }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+		env.RunTimers()
+		env.RunStateDrivers()
+		place(K, "groupframes.pets", AT[kind][1], kind == "party" and AT.party[2] + 290 or 40)
+		place(K, "groupframes.tanks", AT[kind][1] + 520, 40)
+		place(K, "groupframes.boss", AT[kind][1] + 1000, 40)
+	end
+	if EXTRAS then
+		for key, value in pairs({ ["pets.enabled"] = true, ["tanks.enabled"] = true, ["boss.display"] = "ALWAYS", ["boss.dungeons"] = true }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+		env.RunTimers()
+		env.RunStateDrivers()
+	end
 	place(K, "groupframes." .. kind, AT[kind][1], AT[kind][2])
+	if r3c == "small" then place(K, "groupframes.party", AT.party[1], AT.party[2]) end
 	env.RunTimers()
+	if r3c == "layout" then
+		local button = ns.Headers.raid[1]:GetAttribute("child1")
+		button:GetScript("OnEnter")(button)
+	end
 	Hud.Tick(env, 1)
 	env.RunTimers()
+	if R3A then
+		ns.Unit.ForEach(function(f)
+			local slot = f.highlights and f.highlights._slots.dispelType
+			if slot and (f.unit == "party2" or f.unit == "raid2") then
+				slot.frame:Show()
+				dofile("Tools/regression/auras_env.lua").Dispel(slot.frame, "Magic")
+			end
+		end)
+	end
 	if os.getenv("RENDER_GROUP_STATUS") == "1" then
 		local A = dofile("Tools/regression/auras_env.lua")
 		ns.Unit.ForEach(function(f)
@@ -123,7 +273,8 @@ return Common.Run(function()
 			end
 		end)
 	end
-	if os.getenv("RENDER_GROUP_LANE") == "1" then
+	local lane = os.getenv("RENDER_GROUP_LANE") == "1"
+	if lane or R5 then
 		local A = dofile("Tools/regression/auras_env.lua")
 		ns.Unit.ForEach(function(f)
 			if (f.unit == "party1" or f.unit == "raid1") and f.buffs then
@@ -131,7 +282,7 @@ return Common.Run(function()
 				A.Assign(env, f.buffs, "buffs", 3)
 				for i, button in ipairs(heals.active) do button._aura.icon:SetTexture(({ 136081, 135953, 136076 })[i]) end
 				Hud.PlaceAuras(f.buffs, heals, heals.active, 3)
-				for i = 1, 3 do
+				for i = 1, lane and 3 or 0 do
 					local slot = f.indicators and f.indicators._slots["indicator" .. i]
 					if slot and slot.enabled then
 						slot.frame:Show()

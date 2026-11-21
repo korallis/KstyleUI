@@ -93,23 +93,33 @@ local function Build(f)
 end
 Button.built[#Button.built + 1] = Build
 
-local function PlaceIcon(f, icon, rect, size)
+local Pin = Style.Pin
+
+local function PlaceIcon(f, icon, rect, size, x, y)
 	icon:ClearAllPoints()
 	icon:SetSize(size, size)
-	icon:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, rect.left), -Widgets.Snap(f, rect.top))
+	icon:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, rect.left + (x or 0)), -Widgets.Snap(f, rect.top - (y or 0)))
 end
 
 local function Layout(f, parts, k)
 	local icons = parts.icons
 	local size = Widgets.Snap(f, icons.size)
-	f.roleInRing = icons.roleInRing == true
+	local health, cfg = parts.health, Settings.current.icons
+	local roleRect = cfg.rolePlace == "AUTO" and icons.role or nil
+	f.roleInRing = icons.roleInRing == true and roleRect ~= nil
 	if f.roleInRing then
 		f.role:Hide()
 	end
 	f.pipped = icons.pip == true
 	local roleSize = f.pipped and Widgets.Snap(f, icons.role.width) or size
-	PlaceIcon(f, f.role, icons.role, roleSize)
-	PlaceIcon(f, f.pipEdge, icons.role, roleSize)
+	if roleRect then
+		PlaceIcon(f, f.role, roleRect, roleSize, cfg.roleX, cfg.roleY)
+		PlaceIcon(f, f.pipEdge, roleRect, roleSize, cfg.roleX, cfg.roleY)
+	else
+		roleSize = Widgets.Snap(f, math.min(roleSize, health.height))
+		Pin(f, f.role, cfg.rolePlace, roleSize, cfg.roleX, cfg.roleY)
+		Pin(f, f.pipEdge, cfg.rolePlace, roleSize, cfg.roleX, cfg.roleY)
+	end
 	local edge = Widgets.Border(f)
 	f.pipFill:ClearAllPoints()
 	f.pipFill:SetPoint("TOPLEFT", f.pipEdge, "TOPLEFT", edge, -edge)
@@ -118,42 +128,69 @@ local function Layout(f, parts, k)
 		f.pipEdge:Hide()
 		f.pipFill:Hide()
 	end
-	PlaceIcon(f, f.leader, icons.leader, icons.badge and Widgets.Snap(f, icons.leader.width) or size)
-	PlaceIcon(f, f.marker, icons.marker, f.pipped and Widgets.Snap(f, icons.marker.width) or size)
+	PlaceIcon(f, f.leader, icons.leader, icons.badge and Widgets.Snap(f, icons.leader.width) or size, cfg.leaderX, cfg.leaderY)
+	local markerSize = f.pipped and Widgets.Snap(f, icons.marker.width) or size
+	PlaceIcon(f, f.marker, icons.marker, markerSize)
 	f.assist:ClearAllPoints()
 	f.assist:SetSize(size, size)
 	f.assist:SetPoint("CENTER", f.leader, "CENTER", 0, 0)
-	local health = parts.health
-	local ready = Widgets.Snap(f, math.min(health.height, k.iconSize * READY_SHARE))
+	local own = cfg.readySize > 0 and Widgets.Snap(f, math.min(cfg.readySize, health.height)) or nil
+	local ready, status = own or Widgets.Snap(f, math.min(health.height, k.iconSize * READY_SHARE)), own or 14
 	f.ready:ClearAllPoints()
 	f.ready:SetSize(ready, ready)
 	f.ready:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, health.left + health.width / 2), -Widgets.Snap(f, health.top + health.height / 2))
-	local statusLeft, statusTop = health.left + health.width / 2 - 7, health.top + health.height / 2 - 7
+	local statusLeft, statusTop = health.left + health.width / 2 - status / 2, health.top + health.height / 2 - status / 2
 	if parts.tidyLanes then
 		local laneSize = f.kind == "party" and 14 or 10
 		local portrait = parts.portrait
 		local left = portrait and portrait.left or health.left
 		local top = portrait and portrait.top + portrait.height - laneSize or health.top + health.height - laneSize
-		statusLeft, statusTop = left + (laneSize - 14) / 2, top + (laneSize - 14) / 2
-		local rect = { left = left, top = top }
-		PlaceIcon(f, f.ready, rect, Widgets.Snap(f, laneSize))
-		rect.left = left + laneSize + 4
-		PlaceIcon(f, f.marker, rect, Widgets.Snap(f, laneSize))
+		local lane = own or laneSize
+		local rect = { left = left, top = top + laneSize - lane }
+		statusLeft, statusTop = left + (lane - status) / 2, rect.top + (lane - status) / 2
+		PlaceIcon(f, f.ready, rect, Widgets.Snap(f, lane))
+		rect = { left = left + laneSize + 4, top = top }
+		markerSize = Widgets.Snap(f, laneSize)
+		PlaceIcon(f, f.marker, rect, markerSize)
 		if not portrait then
 			rect.left = left + 2 * (laneSize + 4)
-			PlaceIcon(f, f.leader, rect, Widgets.Snap(f, laneSize))
+			PlaceIcon(f, f.leader, rect, Widgets.Snap(f, laneSize), cfg.leaderX, cfg.leaderY)
 		end
 	end
 	for _, icon in pairs(f.statusIcons) do
-		Widgets.Size(icon, 14, 14)
+		Widgets.Size(icon, status, status)
 		icon:ClearAllPoints()
 		Widgets.Point(icon, "TOPLEFT", f, "TOPLEFT", statusLeft, -statusTop)
+		if cfg.readyPlace ~= "AUTO" then Pin(f, icon, cfg.readyPlace, nil, cfg.readyX, cfg.readyY) end
+	end
+	if cfg.readyPlace ~= "AUTO" then
+		Pin(f, f.ready, cfg.readyPlace, nil, cfg.readyX, cfg.readyY)
+	end
+	if cfg.markerPlace ~= "AUTO" then
+		Pin(f, f.marker, cfg.markerPlace, markerSize, cfg.markerX, cfg.markerY)
+	end
+	if cfg.roleText and not f.roleLetter then
+		f.roleLetter = Widgets.FontString(f.text, "OVERLAY")
+		f.roleLetter:SetJustifyH("CENTER")
+	end
+	if f.roleLetter then
+		f.roleLetter:ClearAllPoints()
+		if roleRect then
+			f.roleLetter:SetPoint("CENTER", f, "TOPLEFT", Widgets.Snap(f, roleRect.left + roleRect.width / 2 + cfg.roleX), -Widgets.Snap(f, roleRect.top + roleRect.height / 2 - cfg.roleY))
+		else
+			f.roleLetter:SetPoint("CENTER", f.role, "CENTER", 0, 0)
+		end
+		Style.SetFont(f.roleLetter, Settings.current.text.healthFont, math.max(6, roleRect and roleRect.height or roleSize), "OUTLINE")
+	end
+	if f.combatIcon or cfg.combat then
+		f.combatIcon = f.combatIcon or f.text:CreateTexture(nil, "OVERLAY")
+		Pin(f, f.combatIcon, cfg.combatPlace, Widgets.Snap(f, math.min(cfg.combatSize, health.height)), cfg.combatX, cfg.combatY)
 	end
 end
 Style.appliers[#Style.appliers + 1] = Layout
 
 local function UnitRole(f)
-	local role = UnitGroupRolesAssigned(f.unit)
+	local role = UnitGroupRolesAssigned and UnitGroupRolesAssigned(f.unit)
 	if issecretvalue(role) or type(role) ~= "string" or role == "NONE" or not GetMicroIconForRole then
 		f.role:Hide()
 		return
@@ -181,19 +218,52 @@ local function ShowPip(f, role)
 	if atlas then f.role:SetAtlas(atlas); f.role:SetVertexColor(Tokens.Color("steelLit")) end
 end
 
+local function Fighting()
+	local fighting = UnitAffectingCombat and UnitAffectingCombat("player")
+	return not issecretvalue(fighting) and fighting == true
+end
+
+local ROLE_KEYS = { TANK = "roleTank", HEALER = "roleHealer", DAMAGER = "roleDamager" }
+local function RoleHidden(f)
+	local icons = Settings.current.icons
+	if not icons.roleInCombat and not f.sample and Fighting() then
+		return true
+	elseif icons.roleTank and icons.roleHealer and icons.roleDamager then
+		return false
+	end
+	local role = f.sample and f.sample.role
+	if not f.sample and UnitGroupRolesAssigned then role = UnitGroupRolesAssigned(f.unit) end
+	return not issecretvalue(role) and ROLE_KEYS[role] ~= nil and not icons[ROLE_KEYS[role]]
+end
+
+local function Lettered(f, role)
+	local letter = f.roleLetter
+	if not (letter and Settings.current.icons.roleText) or issecretvalue(role) or not PIP_COLORS[role] then
+		return false
+	end
+	f.role:Hide()
+	letter:SetText(Style.ROLE_LETTERS[role])
+	letter:SetTextColor(Tokens.Color(PIP_COLORS[role]))
+	letter:Show()
+	return true
+end
+
 local function Role(f)
 	ShowPip(f, nil)
-	if not Settings.current.icons.role or f.roleInRing then
+	if f.roleLetter then f.roleLetter:Hide() end
+	local icons = Settings.current.icons
+	if not icons.role or f.showRoleRing or RoleHidden(f) then
 		f.role:Hide()
 		return
 	end
-	if f.pipped then
-		local role = UnitGroupRolesAssigned(f.unit)
-		if not issecretvalue(role) then
-			f.role:Hide()
-			ShowPip(f, role)
-			return
-		end
+	local role = (f.pipped or icons.roleText) and UnitGroupRolesAssigned and UnitGroupRolesAssigned(f.unit)
+	if Lettered(f, role) or f.roleInRing then
+		return
+	end
+	if f.pipped and not issecretvalue(role) then
+		f.role:Hide()
+		ShowPip(f, role)
+		return
 	end
 	local util = UnitFrameUtil
 	if util and type(util.UpdateUnitFrameRoleIcon) == "function" then
@@ -219,7 +289,8 @@ local function FromBoolean(region, value)
 end
 
 local function Leader(f)
-	local on = Settings.current.icons.leader
+	local icons = Settings.current.icons
+	local on = icons.leader and (icons.leaderInCombat or f.sample ~= nil or not Fighting())
 	f.leader:SetShown(on)
 	f.assist:SetShown(on)
 	if not on then
@@ -310,23 +381,43 @@ local function Ready(f)
 	f.ready:Show()
 end
 
+local function Edge(f, r, g, b)
+	if not (r or f.threatEdge) then
+		return
+	end
+	if r then
+		f.edgeRGB = f.edgeRGB or {}
+		f.edgeRGB[1], f.edgeRGB[2], f.edgeRGB[3] = r, g, b
+	end
+	f.threatEdge = r and f.edgeRGB or nil
+	Style.PaintEdge(f)
+end
+
+local function ThreatOn(f, r, g, b)
+	local edge = Settings.current.threat.edge and not f.tileless
+	f.threatGlow:SetColorRGB(r, g, b)
+	f.threat:SetShown(not edge)
+	Edge(f, edge and r, g, b)
+end
+
+local function NoThreat(f)
+	f.threat:Hide()
+	Edge(f)
+end
+
 local function Threat(f)
 	f.threatShape:Hide()
 	if not Settings.current.threat.enabled or not UnitThreatSituation then
-		f.threat:Hide()
-		return
+		return NoThreat(f)
 	end
 	local status = UnitThreatSituation(f.unit)
 	if issecretvalue(status) or type(status) ~= "number" or status < 1 then
-		f.threat:Hide()
-		return
+		return NoThreat(f)
 	end
 	local r, g, b = K.Theme.ThreatColor(status)
 	if not Plain(r) or not Plain(g) or not Plain(b) then
-		f.threat:Hide()
-		return
+		return NoThreat(f)
 	end
-	f.threatGlow:SetColorRGB(r, g, b)
 	if Settings.current.threat.shapes then
 		if status == 2 then
 			f.threatShape:SetTexture((Tokens.Texture("diamond")))
@@ -339,11 +430,56 @@ local function Threat(f)
 		f.threatShape:SetVertexColor(r, g, b)
 		f.threatShape:Show()
 	end
-	f.threat:Show()
+	ThreatOn(f, r, g, b)
+end
+
+local COMBAT_ATLAS = "UI-HUD-UnitFrame-Player-CombatIcon"
+
+local function Combat(f)
+	local icon = f.combatIcon
+	if not icon or not Settings.current.icons.combat then
+		return
+	end
+	if f.sample then
+		icon:SetAlpha(f.sample.combat and 1 or 0)
+	elseif UnitAffectingCombat then
+		FromBoolean(icon, UnitAffectingCombat(f.unit))
+	else
+		icon:SetAlpha(0)
+	end
+end
+
+local function DressCombat(f)
+	local icon = f.combatIcon
+	if not icon then
+		return
+	end
+	if icon.atlas == nil then
+		icon.atlas = HasAtlas(COMBAT_ATLAS)
+		if icon.atlas then
+			icon:SetAtlas(COMBAT_ATLAS)
+		else
+			Style.LogOnce("combatAtlas", "the combat icon atlas is missing; the combat icon stays hidden")
+		end
+	end
+	local cfg = Settings.current.icons
+	icon:SetShown(cfg.combat and icon.atlas)
+	if not cfg.combat then
+		return
+	end
+	if cfg.combatClass then
+		local class = f.sample and f.sample.class
+		if not f.sample then class = select(2, UnitClass(f.unit)) end
+		icon:SetVertexColor(Unit.ClassColor(class))
+	else
+		icon:SetVertexColor(Tokens.Color("white"))
+	end
+	Combat(f)
 end
 
 local function Refresh(f)
 	Role(f)
+	DressCombat(f)
 	Leader(f)
 	Marker(f)
 	Ready(f)
@@ -351,6 +487,7 @@ local function Refresh(f)
 end
 Unit.extra[#Unit.extra + 1] = Refresh
 Unit.Chain("UNIT_THREAT_SITUATION_UPDATE", Threat)
+Unit.Chain("UNIT_FLAGS", Combat)
 
 local function Each(fn)
 	local function Visit(f)
@@ -388,16 +525,17 @@ end
 
 local function PaintSample(f, sample)
 	local icons = Settings.current.icons
-	local atlas = icons.role and not f.roleInRing and sample.role and GetMicroIconForRole and GetMicroIconForRole(sample.role)
-	ShowPip(f, f.pipped and icons.role and sample.role or nil)
-	if f.pipped then
+	local role = icons.role and not RoleHidden(f) and sample.role or nil
+	local atlas = not f.roleInRing and role and GetMicroIconForRole and GetMicroIconForRole(role)
+	ShowPip(f, nil)
+	if f.roleLetter then f.roleLetter:Hide() end
+	local lettered = not f.showRoleRing and Lettered(f, role)
+	if f.pipped and not lettered then
 		f.role:Hide()
-		ShowPip(f, icons.role and sample.role or nil)
-	elseif type(atlas) == "string" then
-		f.role:SetAtlas(atlas)
-		f.role:Show()
-	else
-		f.role:Hide()
+		ShowPip(f, role)
+	elseif not lettered then
+		if type(atlas) == "string" then f.role:SetAtlas(atlas) end
+		f.role:SetShown(type(atlas) == "string")
 	end
 	f.leader:SetShown(icons.leader)
 	f.leader:SetAlpha(sample.leader and 1 or 0)
@@ -410,28 +548,43 @@ local function PaintSample(f, sample)
 		f.marker:Hide()
 		Style.SetMarked(f, false)
 	end
-	f.ready:Hide()
+	local ready = icons.readyCheck and (icons.readyPlace ~= "AUTO" or icons.readySize > 0) and READY_ATLAS.ready()
+	if type(ready) == "string" then f.ready:SetAtlas(ready) end
+	f.ready:SetShown(type(ready) == "string")
+	DressCombat(f)
 	local threat = Settings.current.threat.enabled and sample.threat
 	local r, g, b
 	if threat then
 		r, g, b = K.Theme.ThreatColor(threat)
 	end
 	if r then
-		f.threatGlow:SetColorRGB(r, g, b)
-		f.threat:Show()
+		ThreatOn(f, r, g, b)
 	else
-		f.threat:Hide()
+		NoThreat(f)
 	end
 end
 Style.painters[#Style.painters + 1] = PaintSample
 
 local events = Frames.events
+local EachRole, EachLeader = Each(Role), Each(Leader)
 events[#events + 1] = { event = "RAID_TARGET_UPDATE", fn = Each(Marker) }
-events[#events + 1] = { event = "PARTY_LEADER_CHANGED", fn = Each(Leader) }
-events[#events + 1] = { event = "PLAYER_ROLES_ASSIGNED", fn = Each(Role) }
+events[#events + 1] = { event = "PARTY_LEADER_CHANGED", fn = EachLeader }
+events[#events + 1] = { event = "PLAYER_ROLES_ASSIGNED", fn = EachRole }
 events[#events + 1] = { event = "READY_CHECK", fn = ReadyStart }
 events[#events + 1] = { event = "READY_CHECK_CONFIRM", fn = EachReady }
 events[#events + 1] = { event = "READY_CHECK_FINISHED", fn = ReadyFinished }
 for _, event in ipairs({ "INCOMING_RESURRECT_CHANGED", "INCOMING_SUMMON_CHANGED", "PLAYER_FLAGS_CHANGED" }) do
 	events[#events + 1] = { event = event, fn = Each(Status) }
+end
+local EachCombat = Each(Combat)
+local function CombatChanged()
+	local icons = Settings.current.icons
+	if not icons.roleInCombat then EachRole() end
+	if not icons.leaderInCombat then EachLeader() end
+	if icons.combat then EachCombat() end
+end
+events[#events + 1] = { event = "PLAYER_REGEN_DISABLED", fn = CombatChanged }
+events[#events + 1] = { event = "PLAYER_REGEN_ENABLED", fn = CombatChanged }
+for _, event in ipairs({ "PLAYER_REGEN_DISABLED", "ENCOUNTER_START" }) do
+	events[#events + 1] = { event = event, fn = Button.Starting }
 end

@@ -88,8 +88,14 @@ local function Describe(key, short)
 		for _, option in ipairs(Layout.SideOptions()) do
 			if option.value == s.side then side = option.label break end
 		end
-		local target = Layout.Element(s.attachTo)
+		local target, link = Layout.Element(s.attachTo), s.link
 		text = format("%s: %s / %d", side, target and target.label or s.attachTo, floor(s.offset + 0.5))
+		if link and link.point then
+			local names = {}
+			for _, option in ipairs(Layout.ANCHOR_OPTIONS) do names[option.value] = option.label end
+			text = format("%s > %s: %s / %d, %d", names[link.point], names[link.target or "CENTER"], target and target.label or s.attachTo,
+				floor((link.x or 0) + 0.5), floor((link.y or 0) + 0.5))
+		end
 		if s.matchWidth then text = text .. " / " .. L["Match width"] end
 		if s.matchHeight then text = text .. " / " .. L["Match height"] end
 		return text
@@ -320,18 +326,48 @@ local function ShowGuide(guide, at, vertical)
 	guide:Show()
 end
 
-local function Targets(key)
+local function Targets(key, only)
 	local rects = {}
 	for _, element in ipairs(Layout.Elements()) do
 		local other = element.key
 		local plate = plates[other]
-		if other ~= key and plate and plate:IsShown() then
+		if other ~= key and plate and plate:IsShown() and (not only or other == only) then
 			local l, b, w, h = Layout.Rect(other)
 			rects[#rects + 1] = { left = l, bottom = b, width = w, height = h }
 		end
 	end
 	local rw, rh = Layout.RootSize()
-	return G.Targets(rw, rh, rects)
+	local targets = G.Targets(rw, rh, rects)
+	for _ = 1, only and 3 or 0 do
+		table.remove(targets.xs, 1)
+		table.remove(targets.ys, 1)
+	end
+	return targets
+end
+
+local gridSpan, lit, was, lastX, lastY = nil, {}, {}, nil, nil
+local function LightGrid(x, y)
+	if x == lastX and y == lastY then return end
+	lastX, lastY, lit, was = x, y, was, lit
+	local g, alpha = gridSpan, Layout.Setting("gridAlpha")
+	for axis = 1, g and x and grid:IsShown() and 2 or 0 do
+		local at, centre, first, count, base = x, g.cx, g.vFirst, g.vCount, 0
+		if axis == 2 then at, centre, first, count, base = y, g.cy, g.hFirst, g.hCount, g.vCount end
+		local k = floor((at - centre) / g.size + 0.5)
+		for i = k - 2, k + 2 do
+			local index = i - first + 1
+			if i ~= 0 and index >= 1 and index <= count then
+				local line = gridLines[base + index]
+				local near = 1 - min(1, math.abs(centre + i * g.size - at) / (3 * g.size))
+				Widgets.Tint(line, "white", min(1, alpha + near * 0.35))
+				lit[line], was[line] = true, nil
+			end
+		end
+	end
+	for line in pairs(was) do
+		Widgets.Tint(line, "white", alpha)
+		was[line] = nil
+	end
 end
 
 local function GridSpec()
@@ -359,7 +395,8 @@ local function UpdateDrag()
 		end
 		local axis = KeyDown(IsShiftKeyDown) and d.axis
 		l, b = G.ClampToRoot(l + dx, b + dy, w, h, rw, rh)
-		if Layout.Setting("snap") then
+		if d.light then LightGrid(x, y) end
+		if d.snap then
 			l, b, gx, gy = G.SnapMove(l, b, w, h, d.targets, Layout.Setting("snapDistance"), d.grid)
 		end
 		l, b = G.Align(l, pixel), G.Align(b, pixel)
@@ -400,8 +437,12 @@ local function Begin(kind, key, handle)
 	local l, b, w, h = Layout.Rect(key)
 	drag = { kind = kind, key = key, handle = handle, cx = cx, cy = cy, left = l, bottom = b, width = w, height = h, scale = el.settings.scale }
 	if kind == "move" then
-		drag.targets = Targets(key)
-		drag.grid = GridSpec()
+		local snap = el.settings.link and el.settings.link.snap
+		local only = snap ~= "none" and snap ~= "all" and snap or nil
+		drag.snap = snap == "all" or only ~= nil or snap ~= "none" and Layout.Setting("snap")
+		drag.targets = Targets(key, only)
+		drag.grid = not only and GridSpec() or nil
+		drag.light = ns.Store.Account().layoutGridLight == true
 	elseif kind == "resize" then
 		local f = Widgets.ScaleFactor(el.frame)
 		local limits = el.limits
@@ -423,10 +464,11 @@ local function EndDrag(commit)
 	overlay:SetScript("OnUpdate", nil)
 	guideX:Hide()
 	guideY:Hide()
+	if d.light then LightGrid() end
 	local ok = false
 	if commit and d.moved then
 		local values = Layout.Movement(d.key, d.l, d.b, d.w, d.h)
-		if values.offset == nil then
+		if values.offset == nil and values.link == nil then
 			local rw, rh = Layout.RootSize()
 			values.anchor, values.x, values.y = G.Position(d.l, d.b, d.w, d.h, rw, rh)
 		end
@@ -738,14 +780,17 @@ local function DrawGrid()
 	local pixel, border = Scale.Pixel(1), Scale.Border()
 	local cx, cy = rw / 2, rh / 2
 	local n = 0
+	gridSpan, lastX = { size = size, cx = cx, cy = cy, vFirst = -floor(cx / size + EPSILON), hFirst = -floor(cy / size + EPSILON) }, nil
 	for k = -floor(cx / size + EPSILON), floor((rw - cx) / size + EPSILON) do
 		n = n + 1
 		PlaceLine(n, true, cx + k * size, k == 0, pixel, border)
 	end
+	gridSpan.vCount = n
 	for k = -floor(cy / size + EPSILON), floor((rh - cy) / size + EPSILON) do
 		n = n + 1
 		PlaceLine(n, false, cy + k * size, k == 0, pixel, border)
 	end
+	gridSpan.hCount = n - gridSpan.vCount
 	for i = n + 1, #gridLines do
 		gridLines[i]:Hide()
 	end

@@ -205,6 +205,7 @@ members[6].name = "Latecomer"
 G.SetRoster(env, "raid", members)
 eq(#env._blocked, 0, "a roster change in combat makes no protected call: " .. tostring(env._blocked[1]))
 eq(content("raid6").rawName, "Latecomer", "a roster change in combat updates the name")
+env.RunTimers()
 env.SetCombat(false)
 eq((children(Headers.raid[1])[1]:GetSize()), 80 + 16, "the size applies after combat, 16 wider for a raid of up to ten")
 eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))

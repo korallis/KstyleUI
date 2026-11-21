@@ -99,38 +99,36 @@ def glyph_drawer():
 GLYPHS = [glyph_tracking, glyph_mail, glyph_calendar, glyph_queue, glyph_drawer]
 
 
-def draw():
-    cells = [g() for g in GLYPHS]
+def draw(glyphs=GLYPHS, columns=COLUMNS, rows=ROWS, half=HALF):
+    cells = [g() for g in glyphs]
 
     def fn(x, y):
         col, row = int(x // CELL), int(y // CELL)
-        index = row * COLUMNS + col
+        index = row * columns + col
         if index >= len(cells):
             return 0.0
         lx, ly = x - col * CELL, y - row * CELL
-        for dist in cells[index]:
-            if dist(lx, ly) <= HALF:
-                return 1.0
-        return 0.0
+        return float(any(dist(lx, ly) <= half for dist in cells[index]))
 
-    return mm.white(mm.sample(WIDTH, HEIGHT, fn))
+    width, height = CELL * columns, CELL * rows
+    return mm.encode_png(width, height, bytes(mm.white(mm.sample(width, height, fn))))
 
 
-def main(argv):
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+def main(argv, path=PATH, sheet=draw, doc=__doc__):
+    parser = argparse.ArgumentParser(description=doc.splitlines()[0])
     parser.add_argument("--root", type=Path, default=ROOT, help="the repository root")
     parser.add_argument("--check", action="store_true", help="compare with the file on disk instead of writing")
     args = parser.parse_args(argv)
-    path = args.root / PATH
-    data = mm.encode_png(WIDTH, HEIGHT, bytes(draw()))
+    target = args.root / path
+    data = sheet()
     if args.check:
-        if not path.exists() or path.read_bytes() != data:
-            print(f"differs: {PATH}; run python3 Tools/media/make_minimap_glyphs.py")
+        if not target.exists() or target.read_bytes() != data:
+            print(f"differs: {path}; run python3 Tools/media/{doc.split(':')[0]}")
             return 1
         return 0
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(data)
-    print(f"wrote {PATH}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(data)
+    print(f"wrote {path}")
     return 0
 
 

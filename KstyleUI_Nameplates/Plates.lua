@@ -33,6 +33,7 @@ local refading = false
 local plateFor = { target = nil, focus = nil }
 local plateForWorks = { target = true, focus = true }
 local highlighted = {}
+Plates.highlighted = highlighted
 
 local LogOnce = ns.LogOnce
 
@@ -221,12 +222,15 @@ local function WidgetsOnly(unit)
 	return not IsSecret(only) and only == true
 end
 
+local hovered
+
 local function Detach(unit)
 	local plate = byUnit[unit]
 	if not plate then
 		return
 	end
 	byUnit[unit] = nil
+	if hovered == plate then hovered = nil end
 	for which, selected in pairs(highlighted) do
 		if selected == plate then highlighted[which] = nil end
 	end
@@ -321,8 +325,9 @@ end
 
 local UNIT_EVENTS = {
 	UNIT_HEALTH = Method("UpdateHealth"),
-	UNIT_MAXHEALTH = Method("UpdateHealth"),
+	UNIT_MAXHEALTH = function(plate) plate:UpdateHealth(); if plate.absorb then plate:UpdateAbsorb() end end,
 	UNIT_NAME_UPDATE = Method("UpdateName"),
+	PLAYER_GUILD_UPDATE = function(plate) if plate.subtitled or plate.subtitle then plate:UpdateSubtitle() end end,
 	UNIT_LEVEL = function(plate) plate:UpdateLevel(); plate:RefreshType(); plate:UpdateTags("Level") end,
 	PLAYER_FLAGS_CHANGED = function(plate) if plate.statusTags then plate:UpdateName() end end,
 	UNIT_CLASSIFICATION_CHANGED = function(plate)
@@ -351,6 +356,77 @@ local function AddComponentEvents()
 	componentsAdded = #components
 end
 
+local distanceTicker, ranges
+
+local function Plain(value)
+	return not IsSecret(value) and type(value) == "number" and value or nil
+end
+Plates.Plain = Plain
+
+local function Ranges()
+	local book, spell, bank = C_SpellBook, C_Spell, Enum and Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Player
+	local list, seen = {}, {}
+	if not (book and spell and bank and type(book.GetNumSpellBookSkillLines) == "function" and type(book.GetSpellBookSkillLineInfo) == "function"
+		and type(book.GetSpellBookItemInfo) == "function" and type(spell.GetSpellInfo) == "function") then
+		LogOnce("distance", "the spellbook API or C_Spell.GetSpellInfo is missing; plates show no distance")
+		return list
+	end
+	for line = 1, book.GetNumSpellBookSkillLines() do
+		local info = book.GetSpellBookSkillLineInfo(line)
+		for slot = info.itemIndexOffset + 1, info.itemIndexOffset + info.numSpellBookItems do
+			local item = book.GetSpellBookItemInfo(slot, bank)
+			local data = item and not item.isPassive and Plain(item.spellID) and spell.GetSpellInfo(item.spellID)
+			local range = data and Plain(data.minRange) == 0 and Plain(data.maxRange)
+			if range and range > 0 then
+				if not seen[range] then
+					seen[range] = { range }
+					list[#list + 1] = seen[range]
+				end
+				table.insert(seen[range], item.spellID)
+			end
+		end
+	end
+	table.sort(list, function(a, b) return a[1] < b[1] end)
+	return list
+end
+
+local function CheckDistance()
+	local plate = highlighted.target
+	local api = C_Spell and C_Spell.IsSpellInRange
+	if not (plate and plate.distanceText and type(api) == "function") then return end
+	if not ranges then
+		local ok, list = pcall(Ranges)
+		ranges = ok and list or {}
+		if not ok then LogOnce("distance-book", "reading the spellbook failed: " .. tostring(list)) end
+	end
+	local text, beyond = "", 0
+	for _, entry in ipairs(ranges) do
+		local inRange
+		for i = 2, #entry do
+			local ok, answer = pcall(api, entry[i], "target")
+			if ok and not IsSecret(answer) and answer ~= nil then
+				inRange = answer
+				break
+			end
+		end
+		if inRange == true then
+			text = string.format("%d-%d", beyond, entry[1])
+			break
+		elseif inRange == false then
+			beyond = entry[1]
+		end
+	end
+	if text == "" and beyond > 0 then text = string.format("%d+", beyond) end
+	if text ~= plate.distanceValue then
+		plate.distanceValue = text
+		plate.distanceText:SetText(text)
+	end
+end
+
+local function OnSpells()
+	ranges = nil
+end
+
 local function FindHighlight(which)
 	local base = plateFor[which]
 	if base then return byBase[base] end
@@ -376,13 +452,133 @@ local function OnHighlight(event)
 		end
 	end
 	highlighted.target, highlighted.focus = target, focus
+	if distanceTicker then CheckDistance() end
 end
 
 local function OnRole()
+	local tank = ns.state.isTank
 	UpdateRole()
+	local flipped = tank ~= ns.state.isTank
 	for _, plate in pairs(byUnit) do
 		plate:UpdateThreat()
+		if flipped then plate:UpdateColor() end
 		plate:UpdateTags("Group")
+	end
+end
+
+local function OnCombat(event)
+	ns.state.inCombat = event == "PLAYER_REGEN_DISABLED"
+	ns.Resource.Update()
+	if not ns.state.inCombat and Settings.Get("markers.questText") then
+		for _, plate in pairs(byUnit) do plate:UpdateQuest() end
+	end
+end
+
+local function OnWorld()
+	local inside = IsInInstance and IsInInstance()
+	inside = not IsSecret(inside) and inside == true
+	if inside == ns.state.inInstance then return end
+	ns.state.inInstance = inside
+	for _, plate in pairs(byUnit) do
+		plate:UpdateLevel()
+		plate:RefreshType()
+		plate:UpdateQuest()
+	end
+end
+
+local function OnHover()
+	local get, plate = C_NamePlate and C_NamePlate.GetNamePlateForUnit, nil
+	local ok, base = false, nil
+	if get then ok, base = pcall(get, "mouseover") end
+	if ok then
+		plate = base and byBase[base]
+	elseif not ns.state.inCombat then
+		for _, each in pairs(byUnit) do
+			local same = UnitIsUnit and UnitIsUnit(each.unit, "mouseover")
+			if not IsSecret(same) and same == true then plate = each end
+		end
+	end
+	if plate and not plate.unit then plate = nil end
+	if plate == hovered then return end
+	if hovered then hovered.hovered = nil; hovered:UpdateFill() end
+	hovered = plate
+	if plate then plate.hovered = true; plate:UpdateFill() end
+end
+
+local RANGE_STEP = 0.25
+local rangeTicker, rangeSpell, hoverOn, worldOn
+
+local function CheckRange()
+	local spell = rangeSpell or ns.Interrupt.spell
+	local api = C_Spell and C_Spell.IsSpellInRange
+	if not (spell and type(api) == "function") then
+		LogOnce("range", "no range spell or C_Spell.IsSpellInRange; plates keep their opacity")
+	end
+	for _, plate in pairs(byUnit) do
+		local out = false
+		if spell and type(api) == "function" and plate.kind == "enemy" then
+			local ok, inRange = pcall(api, spell, plate.unit)
+			out = ok and not IsSecret(inRange) and inRange == false
+		end
+		if out ~= (plate.outOfRange == true) then
+			plate.outOfRange = out
+			plate:UpdateAlpha()
+		end
+	end
+end
+
+function Plates.SyncOptions()
+	local distance = Plates.running and Settings.Get("target.distance") or false
+	if distance and not distanceTicker and C_Timer and type(C_Timer.NewTicker) == "function" then
+		ranges = nil
+		K.Events.Register("NameplatesDistance", "SPELLS_CHANGED", OnSpells)
+		distanceTicker = C_Timer.NewTicker(RANGE_STEP, CheckDistance)
+	elseif not distance and distanceTicker then
+		distanceTicker:Cancel()
+		distanceTicker = nil
+		K.Events.Unregister("NameplatesDistance", "SPELLS_CHANGED")
+	end
+	local world = Plates.running and not Settings.Get("markers.instances") or false
+	if world ~= (worldOn == true) then
+		worldOn = world
+		if world then
+			K.Events.Register(MODULE, "PLAYER_ENTERING_WORLD", OnWorld)
+		else
+			K.Events.Unregister(MODULE, "PLAYER_ENTERING_WORLD")
+			ns.state.inInstance = nil
+		end
+	end
+	if world then OnWorld() end
+	local hover = Plates.running and Settings.Get("target.hover") or false
+	if hover ~= (hoverOn == true) then
+		hoverOn = hover
+		if hover then
+			K.Events.Register(MODULE, "UPDATE_MOUSEOVER_UNIT", OnHover)
+			OnHover()
+		else
+			K.Events.Unregister(MODULE, "UPDATE_MOUSEOVER_UNIT")
+			if hovered then hovered.hovered = nil; hovered:UpdateFill(); hovered = nil end
+		end
+	end
+	local range = Plates.running and Settings.Get("range.fade")
+	local named = range and Settings.Get("range.spell") or ""
+	rangeSpell = named ~= "" and ns.Interrupt.NamedSpell(named) or nil
+	if range and not rangeTicker and C_Timer and type(C_Timer.NewTicker) == "function" then
+		rangeTicker = C_Timer.NewTicker(RANGE_STEP, CheckRange)
+	elseif not range and rangeTicker then
+		rangeTicker:Cancel()
+		rangeTicker = nil
+		for _, plate in pairs(byUnit) do
+			if plate.outOfRange then plate.outOfRange = nil; plate:UpdateAlpha() end
+		end
+	end
+end
+
+local function QuestChanged()
+	Plate.QuestChanged()
+	for _, plate in pairs(byUnit) do
+		plate:RefreshType()
+		plate:UpdateQuest()
 	end
 end
 
@@ -396,8 +592,8 @@ local GLOBAL_EVENTS = {
 		UpdateTokens()
 	end,
 	RAID_TARGET_UPDATE = ForAll("UpdateRaid"),
-	QUEST_LOG_UPDATE = ForAll("RefreshType"),
-	UNIT_QUEST_LOG_CHANGED = ForAll("RefreshType"),
+	QUEST_LOG_UPDATE = QuestChanged,
+	UNIT_QUEST_LOG_CHANGED = QuestChanged,
 	PLAYER_LEVEL_UP = function()
 		for _, plate in pairs(byUnit) do
 			plate:UpdateLevel()
@@ -408,6 +604,8 @@ local GLOBAL_EVENTS = {
 	PLAYER_FOCUS_CHANGED = OnHighlight,
 	PLAYER_ROLES_ASSIGNED = OnRole,
 	GROUP_ROSTER_UPDATE = OnRole,
+	PLAYER_REGEN_DISABLED = OnCombat,
+	PLAYER_REGEN_ENABLED = OnCombat,
 }
 Plates.UNIT_EVENTS, Plates.GLOBAL_EVENTS = UNIT_EVENTS, GLOBAL_EVENTS
 
@@ -430,6 +628,8 @@ function Plates.ReadSize()
 end
 
 function Plates.RestyleAll()
+	ns.Resource.Sync()
+	Plates.SyncOptions()
 	Plates.Each(function(plate)
 		plate:Restyle()
 	end)
@@ -437,6 +637,8 @@ end
 
 function Plates.Start()
 	Plates.running = true
+	local fighting = InCombatLockdown()
+	ns.state.inCombat = not IsSecret(fighting) and fighting == true
 	Settings.Invalidate()
 	UpdateRole()
 	UpdateTokens()
@@ -461,7 +663,9 @@ end
 
 function Plates.Stop()
 	Plates.running = false
+	Plates.SyncOptions()
 	ns.Interrupt.Stop()
+	ns.Resource.Sync()
 	for unit in pairs(byUnit) do
 		Detach(unit)
 	end

@@ -33,6 +33,7 @@ function Common.FinishSettings(profile)
 		DataBars = { strip = { dockMeter = false } },
 		Minimap = { clearPlaques = false },
 		Bags = { separateFigures = false, readableHeaders = false },
+		ActionBars = { crestJewels = false },
 	}
 	local function merge(target, values)
 		for key, value in pairs(values) do
@@ -253,13 +254,9 @@ end
 -- ChatSettings(env, K): RENDER_CHAT_SETTINGS ("key=value;key=value") writes chat options the way the settings window
 -- does, so a render shows options switched on. Values are true, false, numbers or text; nested keys use dots.
 function Common.ChatSettings(env, K)
-	for key, value in (os.getenv("RENDER_CHAT_SETTINGS") or ""):gmatch("([%w%.]+)=([^;]+)") do
-		local parsed = value == "true" or (value ~= "false" and (tonumber(value) or value))
-		assert(K.Options.Write("Chat", key, parsed) ~= false, "RENDER_CHAT_SETTINGS: Chat." .. key .. " did not write")
-		env.RunTimers()
-	end
 	-- The stand-in chat buttons have no art, so each gets a flat tile to show its slot. The voice toggles stay hidden,
-	-- as the game keeps them while the player is logged out of voice chat (VoiceToggleButton.lua:17-21).
+	-- as the game keeps them while the player is logged out of voice chat (VoiceToggleButton.lua:17-21), from before
+	-- the settings so the column is laid out without them, as the game's OnHide reflow leaves it.
 	if os.getenv("RENDER_CHAT_SETTINGS") then
 		for name, rgb in pairs({ QuickJoinToastButton = { 0.25, 0.6, 1 }, ChatFrameChannelButton = { 0.95, 0.7, 0.2 }, ChatFrameMenuButton = { 0.4, 0.85, 0.4 } }) do
 			local tile = env[name] and env[name]:CreateTexture(nil, "ARTWORK")
@@ -271,6 +268,11 @@ function Common.ChatSettings(env, K)
 		for _, name in ipairs({ "ChatFrameToggleVoiceDeafenButton", "ChatFrameToggleVoiceMuteButton" }) do
 			if env[name] then env[name]:Hide() end
 		end
+	end
+	for key, value in (os.getenv("RENDER_CHAT_SETTINGS") or ""):gmatch("([%w%.]+)=([^;]+)") do
+		local parsed = value == "true" or (value ~= "false" and (tonumber(value) or value))
+		assert(K.Options.Write("Chat", key, parsed) ~= false, "RENDER_CHAT_SETTINGS: Chat." .. key .. " did not write")
+		env.RunTimers()
 	end
 end
 

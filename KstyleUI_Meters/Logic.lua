@@ -34,6 +34,14 @@ local Plain = Logic.Plain
 
 Logic.Abbreviate = KstyleUI.Widgets.ShortNumber
 
+function Logic.GameUnits(value)
+	if type(AbbreviateLargeNumbers) == "function" then
+		local ok, text = pcall(AbbreviateLargeNumbers, value)
+		if ok then return text end
+	end
+	return Logic.Abbreviate(value)
+end
+
 function Logic.Percent(part, total)
 	part, total = Plain(part), Plain(total)
 	if not part or not total or total <= 0 then
@@ -67,9 +75,10 @@ function Logic.Whole(secret)
 	return round(secret)
 end
 
-function Logic.FormatRate(value, unit)
+function Logic.FormatRate(value, unit, abbreviate)
+	abbreviate = abbreviate or Logic.Abbreviate
 	if IsSecret(value) then
-		local text = Logic.Abbreviate(value)
+		local text = abbreviate(value)
 		if not IsSecret(text) and text == "" then
 			return ""
 		end
@@ -80,7 +89,7 @@ function Logic.FormatRate(value, unit)
 		return ""
 	end
 	if value >= RATE_ABBREVIATE_FROM then
-		return Logic.Abbreviate(value) .. " " .. unit
+		return abbreviate(value) .. " " .. unit
 	end
 	return format("%.1f %s", value, unit)
 end

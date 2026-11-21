@@ -618,6 +618,16 @@ function modules.actionbars(opts)
 			env.UnitLevel = env.UnitLevel or function()
 				return Hud.Player(opts).level
 			end
+			-- The player's combo points, holy power or soul shards, which the Medallions hub's jewels light (spec.combo, else 3 of 5).
+			env.GetComboPoints = env.GetComboPoints or function()
+				return spec.combo or 0
+			end
+			env.UnitPower = env.UnitPower or function()
+				return spec.combo or 3
+			end
+			env.UnitPowerMax = env.UnitPowerMax or function()
+				return 5
+			end
 			-- The client's seconds formatter, which the sockets put on their cooldown numbers ("4s").
 			if travel then
 				env._resolveRects = true
@@ -856,9 +866,99 @@ function modules.cooldowns(opts)
 			K.Options.Write("Cooldowns", key, value)
 		end
 	end
+	-- RENDER_COOLDOWN_PARITY=2: round 2 switched on over KstyleUI rows: tenths below its own 30 seconds and an own countdown
+	-- colour on the first cooling essential spell, an own swipe colour on the second, the last hidden with its gap closed,
+	-- utility numbers only, the first tracked buff glowing, and the bars renamed, filling up with a spark.
+	if os.getenv("RENDER_COOLDOWN_PARITY") == "2" then
+		local cooling, last, buff, bar = {}, nil, nil, nil
+		for _, entry in ipairs(entries) do
+			if entry.group == "essential" then
+				last = entry.name
+				if type(entry.state) == "table" then cooling[#cooling + 1] = entry.name end
+			end
+			buff = buff or entry.group == "buffs" and entry.name or nil
+			bar = bar or entry.group == "bars" and entry.name or nil
+		end
+		for key, value in pairs({ path = "mirror", ["rules.decimals"] = cooling[1] and cooling[1] .. "=30" or "",
+			["rules.timerColour"] = (cooling[1] or "") .. " #FFB000", ["rules.tint"] = (cooling[2] or "") .. " #3070FF", ["rules.hide"] = last or "", ["rules.shift"] = last or "",
+			["utility.numbersOnly"] = true, ["rules.activeGlow"] = buff or "", ["rules.names"] = bar and bar .. "=Shield" or "",
+			["bars.fillUp"] = true, ["bars.spark"] = true, ["bars.smooth"] = true }) do
+			K.Options.Write("Cooldowns", key, value)
+		end
+	end
+	-- RENDER_COOLDOWN_PARITY=3: round 3 switched on over KstyleUI rows: the first cooling essential countdown red below
+	-- 30 seconds, the last essential spell swept by a main hand swing and glowing late in it, numbers over the proc
+	-- glow, a two-row essential grid with a smaller second row, and an equipped trinket with no use effect.
+	local swing
+	if os.getenv("RENDER_COOLDOWN_PARITY") == "3" then
+		local cooling, last = nil, nil
+		for _, entry in ipairs(entries) do
+			if entry.group == "essential" then
+				last = entry.name
+				if type(entry.state) == "table" then cooling = cooling or entry.name end
+			end
+		end
+		swing = last
+		env.GetInventoryItemID = function(_, slot) return slot == 13 and 1 or nil end
+		env.GetInventoryItemTexture = function() return 133283 end
+		env.GetInventoryItemCooldown = function() return 0, 0, 1, false end
+		for key, value in pairs({ path = "mirror", ["rules.threshold"] = cooling or "", thresholdBelow = 30, ["rules.swing"] = last or "",
+			["rules.swingGlow"] = last or "", textAboveGlow = true, ["essential.rows"] = 2, ["essential.baseCount"] = 4,
+			["essential.secondSize"] = -6, ["utility.trinkets"] = true }) do
+			K.Options.Write("Cooldowns", key, value)
+		end
+	end
+	-- RENDER_COOLDOWN_PARITY=4: round 4 switched on over KstyleUI rows: each essential spell on its own main bar slot
+	-- with keys 1 to 5 and Shift-1, an equipped trinket with a rank-3 crafted quality, and the first two cooling
+	-- essential spells as cooldown bars beside the tracked buff bars, the second with two charges split by a line
+	-- and its recharging section shaded.
+	local charged
+	if os.getenv("RENDER_COOLDOWN_PARITY") == "4" then
+		local held, keys, cooling, n = {}, {}, {}, 0
+		for _, entry in ipairs(entries) do
+			if entry.group == "essential" then
+				n = n + 1
+				held[entry.spell], keys["ACTIONBUTTON" .. n] = { n }, n == 6 and "SHIFT-1" or tostring(n)
+				if type(entry.state) == "table" then cooling[#cooling + 1] = entry end
+			end
+		end
+		local no = function() return false end
+		env.C_ActionBar = { FindSpellActionButtons = function(spell) return held[spell] or {} end, GetActionBarPage = function() return 1 end,
+			HasVehicleActionBar = no, HasOverrideActionBar = no, HasTempShapeshiftActionBar = no, HasBonusActionBar = no }
+		env.GetBindingKey = function(command) return keys[command] end
+		env.GetInventoryItemID = function(_, slot) return slot == 13 and 1 or nil end
+		env.GetInventoryItemTexture = function() return 133283 end
+		env.GetInventoryItemCooldown = function() return 0, 0, 1, false end
+		env.C_TradeSkillUI = { GetItemCraftedQualityByItemInfo = function() return 3 end }
+		charged = cooling[2]
+		if charged then
+			cooldowns[charged.id].charges = true
+			env.C_Spell.GetSpellCharges = function(spell) if spell == charged.spell then return { currentCharges = 1, maxCharges = 2, isActive = true } end end
+		end
+		for key, value in pairs({ path = "mirror", ["essential.keybind"] = true, ["utility.trinkets"] = true, ["utility.itemQuality"] = true,
+			["rules.cdBars"] = (cooling[1] and cooling[1].name or "") .. (charged and ", " .. charged.name or ""), ["bars.count"] = 4,
+			["bars.hashLines"] = true, ["bars.chargeShade"] = true }) do
+			K.Options.Write("Cooldowns", key, value)
+		end
+	end
+	-- RENDER_COOLDOWN_PARITY=5: round 5 switched on over KstyleUI rows: a custom bar group named Burst with the first
+	-- cooling essential spell, above the tracked bars, which keep the second as a cooldown bar.
+	if os.getenv("RENDER_COOLDOWN_PARITY") == "5" then
+		local cooling = {}
+		for _, entry in ipairs(entries) do
+			if entry.group == "essential" and type(entry.state) == "table" then cooling[#cooling + 1] = entry.name end
+		end
+		for key, value in pairs({ path = "mirror", ["rules.group"] = cooling[1] or "", ["rules.cdBars"] = cooling[2] or "", ["custom.name"] = "Burst" }) do
+			K.Options.Write("Cooldowns", key, value)
+		end
+	end
 	local cdm = env._cdm
 	local now = 10
 	env._time = now
+	if charged then
+		local state = charged.state
+		cdm.chargeDurations[charged.spell] = { kind = "charge", start = now - (state[1] - state[2]), finish = now + state[2] }
+	end
 	local instance = 80
 	for _, entry in ipairs(entries) do
 		local spell, state = entry.spell, entry.state
@@ -894,6 +994,16 @@ function modules.cooldowns(opts)
 		env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", spell)
 	end
 	env.RunTimers()
+	if swing then
+		local after, late = env.C_Timer.After, nil
+		env.C_Timer.After = function(delay, fn) if delay > 0 then late = late or fn else after(delay, fn) end end
+		env._time = now - 2
+		env.FireEvent("PLAYER_SWING", 2.6, 0)
+		env._time = now
+		env.C_Timer.After = after
+		late()
+		env.RunTimers()
+	end
 	C.W.Settle(env)
 	local scene = build(env, opts, { time = env._time })
 	scene.log[#scene.log + 1] = "cooldowns: " .. ns.Mirror.Report() .. "; Blizzard's tracked buff viewers at Apply's Edit Mode anchors" .. (#told > 0 and (", and Apply said: " .. table.concat(told, " ")) or "")
@@ -978,6 +1088,17 @@ function modules.chat(opts)
 	end
 	env.RunTimers()
 	C.W.Settle(env)
+	-- RENDER_CHAT_TYPING="text" types into the general window's edit box, so its font shows. The stub's SetFocus does
+	-- not make HasFocus answer, and the module hides an unfocused box, so the scene answers for the game.
+	local typing = os.getenv("RENDER_CHAT_TYPING")
+	if typing then
+		local box = chat.editBox
+		box:SetText(typing)
+		box.HasFocus = function() return true end
+		box:SetFocus()
+		local gained = box:GetScript("OnEditFocusGained")
+		if gained then gained(box) end
+	end
 	C.Dock(env, Scene.TextWidth)
 	env.RunTimers()
 	C.W.Settle(env)
@@ -1206,19 +1327,47 @@ local function fillAuras(env, A, container, key, group, entries)
 	return buttons
 end
 
+-- RENDER_AURAS_REMINDER=1 switches on the missing buff reminder (parity round 3): the class knows its reminder buff
+-- and lacks it, so the buff is left off the buff row and the card names it. Its other spells get stand-in names, as the reminder reads every one.
+local REMINDER = { MAGE = { 1459, "Arcane Intellect", 135932 }, PRIEST = { 1243, "Power Word: Fortitude", 135987 }, DRUID = { 1126, "Mark of the Wild", 136078 },
+	WARLOCK = { 687, "Demon Skin", 136185 }, SHAMAN = { 324, "Lightning Shield", 136048 }, PALADIN = { 465, "Devotion Aura", 135893 }, HUNTER = { 13165, "Aspect of the Hawk", 136076 } }
+
 function modules.auras(opts)
 	local A = dofile("Tools/regression/auras_env.lua")
-	local _, spec = Hud.Class(opts)
+	local class, spec = Hud.Class(opts)
+	local reminder = os.getenv("RENDER_AURAS_REMINDER") == "1" and REMINDER[class]
 	local env, K, ns = A.New(Common.ScreenOpts({
 		saved = saved(opts, "Auras"),
 		setup = function(env)
 			shared(env, opts)
+			if reminder then
+				env.C_SpellBook = { IsSpellKnown = function(id) return id == reminder[1] end }
+				env.C_Spell = env.C_Spell or {}
+				env.C_Spell.GetSpellName = function(id) return id == reminder[1] and reminder[2] or "Spell " .. id end
+				env.C_Spell.GetSpellTexture = function(id) return id == reminder[1] and reminder[3] or nil end
+				env.C_Secrets.ShouldSpellAuraBeSecret = function() return false end
+				env.C_UnitAuras = env.C_UnitAuras or {}
+				env.C_UnitAuras.GetAuraDataBySpellName = function() return nil end
+				env.UnitIsDeadOrGhost = function() return false end
+			end
 		end,
 	}))
+	if reminder then
+		K.Options.Write("Auras", "reminder.enabled", true)
+	end
 	if not K.Modules.IsRunning("Auras") then
 		K.Modules.Enable("Auras")
 	end
 	env.RunTimers()
+	-- RENDER_AURAS_EXTRA=1 switches on the extra buff and debuff rows (parity round 2) at their default places, the
+	-- debuff one glowing, with two important buffs and one crowd control debuff.
+	local extra = os.getenv("RENDER_AURAS_EXTRA") == "1"
+	if extra then
+		for key, value in pairs({ ["extraBuffs.enabled"] = true, ["extraDebuffs.enabled"] = true, ["extraDebuffs.glow"] = true }) do
+			K.Options.Write("Auras", key, value)
+		end
+		env.RunTimers()
+	end
 	for _, container in ipairs(env._containers) do
 		for _, button in ipairs(A.Buttons(container)) do
 			button:Hide()
@@ -1227,6 +1376,13 @@ function modules.auras(opts)
 	local settings = K.Store.Module("Auras")
 	-- opts.buffRow and opts.debuffRow ({ "Name", icon, "time" } each) replace the class's row and the warrior's debuffs.
 	local buffRow = opts.buffRow or Hud.BuffRow(spec, opts.buffs or #spec.buffRow)
+	if reminder then
+		local kept = {}
+		for _, buff in ipairs(buffRow) do
+			if buff[1] ~= reminder[2] then kept[#kept + 1] = buff end
+		end
+		buffRow = kept
+	end
 	local buffs, group = A.Container(env, "HELPFUL")
 	if buffs then
 		local columns = ns.Model.Group(settings, "buffs").columns
@@ -1243,6 +1399,10 @@ function modules.auras(opts)
 	end
 	if debuffs then
 		Hud.PlaceAuras(debuffs, harmful, fillAuras(env, A, debuffs, "debuffs", harmful, entries), ns.Model.Group(settings, "debuffs").columns)
+	end
+	for _, row in ipairs(extra and { { "HELPFUL|IMPORTANT", "extraBuffs", { buffRow[1], buffRow[2] } }, { "HARMFUL|CROWD_CONTROL", "extraDebuffs", { DEBUFF_ROW[2] } } } or {}) do
+		local container, extraGroup = A.Container(env, row[1])
+		Hud.PlaceAuras(container, extraGroup, fillAuras(env, A, container, row[2], extraGroup, row[3]), ns.Model.Group(settings, row[2]).columns)
 	end
 	-- The rows' "+N" cells are counted by the engine's layout; the stub plays that pass for the counts laid out.
 	A.Counters(ns, { #buffRow, 0, #entries })
@@ -1619,6 +1779,18 @@ function modules.meters(opts)
 		env.SetTime(now + 1.1)
 	end
 	M.Tick(env)
+	-- opts.meterCasts ({ spellID, name, icon }, newest last): the player cast these 84.3 seconds into a fight, for the
+	-- combat timer and spell history.
+	if opts.meterCasts then
+		local now = env.GetTime()
+		env.SetCombat(true)
+		for _, s in ipairs(opts.meterCasts) do
+			env._spells[s[1]] = { name = s[2], icon = s[3] }
+			env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-" .. s[1], s[1])
+		end
+		env.SetTime(now + 84.3)
+		env.RunTickers()
+	end
 	-- opts.meterHover ({ spellID, name, icon, amount }, highest first): the pointer rests on the player's row, so its
 	-- split opens under the row, inside the card, with the player's top three spells of the fight, as the game reads them out of combat.
 	if opts.meterHover and rows[1] then

@@ -231,6 +231,39 @@ local function Values(view, s, info, instant)
 		rested = min(info.current + info.rested, info.max)
 	end
 	track:SetValue(rested)
+	Bars.Quest(view, s, info)
+end
+
+local QUEST_POINTS = {
+	HORIZONTAL = { "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }, REVERSE = { "TOPRIGHT", "TOPLEFT", "BOTTOMRIGHT", "BOTTOMLEFT" },
+	VERTICAL = { "BOTTOMLEFT", "TOPLEFT", "BOTTOMRIGHT", "TOPRIGHT" }, VERTICALREVERSE = { "TOPLEFT", "BOTTOMLEFT", "TOPRIGHT", "BOTTOMRIGHT" },
+}
+local questXP = 0
+function Bars.Quest(view, s, info)
+	local xp = view.def.id == "xp" and s.questXP == true and info and (info.quest or questXP) or 0
+	local room = info and info.max > 0 and min(xp, info.max - info.current) / info.max or 0
+	if room <= 0 then
+		if view.questSig then
+			view.quest:Hide()
+			view.questSig = nil
+		end
+		return
+	end
+	view.quest = view.quest or view.fill:CreateTexture(nil, "ARTWORK")
+	local quest, vertical, c = view.quest, s.orientation == "VERTICAL", s.questColor
+	local direction = (vertical and "VERTICAL" or "") .. (s.reverse and "REVERSE" or "")
+	local points = QUEST_POINTS[direction] or QUEST_POINTS.HORIZONTAL
+	local fill, w, h = view.fill:GetStatusBarTexture(), Size(view.fill)
+	local sig = table.concat({ room, w, h, direction, s.texture, c.r, c.g, c.b, c.a or 1 }, ":")
+	if view.questSig == sig then return end
+	view.questSig = sig
+	quest:ClearAllPoints()
+	Widgets.Point(quest, points[1], fill, points[2])
+	Widgets.Point(quest, points[3], fill, points[4])
+	if vertical then quest:SetHeight(Widgets.Snap(quest, h * room)) else quest:SetWidth(Widgets.Snap(quest, w * room)) end
+	quest:SetTexture(s.texture)
+	quest:SetVertexColor(c.r, c.g, c.b, c.a or 1)
+	quest:Show()
 end
 
 local function Style(view, s)
@@ -331,6 +364,8 @@ local function AddTooltip(view, tip)
 	elseif id == "honor" and info.kind == "rank" then
 		tip:AddLine(L["Rank points earned toward your next PvP rank."], "text")
 	end
+	local quest = id == "xp" and ns.Settings().xp.questXP and questXP or 0
+	if quest > 0 then tip:AddDoubleLine(L["Completed quests"], Format.Number(quest)) end
 end
 
 local function Settings(view)
@@ -494,6 +529,24 @@ local function MatchAll()
 	end
 end
 
+local questEvents = false
+local function QuestChanged()
+	questXP = Sources.QuestXP()
+	Bars.Update("xp")
+end
+local function QuestEvents()
+	local on = running and ns.Settings().xp.questXP == true
+	if on == questEvents then return end
+	questEvents = on
+	if on then
+		questXP = Sources.QuestXP()
+		K.Events.Register("DataBars.QuestXP", "QUEST_LOG_UPDATE", QuestChanged)
+		K.Events.Register("DataBars.QuestXP", "PLAYER_LEVEL_UP", QuestChanged)
+	else
+		K.Events.UnregisterAll("DataBars.QuestXP")
+	end
+end
+
 function Bars.Enable()
 	running = true
 	for _, def in ipairs(DEFS) do
@@ -501,11 +554,13 @@ function Bars.Enable()
 		view.holder:Show()
 	end
 	MatchAll()
+	QuestEvents()
 	Bars.UpdateAll(true)
 end
 
 function Bars.Disable()
 	running = false
+	QuestEvents()
 	for _, view in pairs(Bars.views) do
 		if view.tween then
 			Motion.Stop(view.tween, true)
@@ -529,6 +584,7 @@ function Bars.Setting(key)
 	if field == "orientation" then
 		MatchOrientation(def)
 	end
+	QuestEvents()
 	Bars.Update(id, true)
 end
 
@@ -556,5 +612,6 @@ end)
 
 ns.AddPart({ Enable = Bars.Enable, Disable = Bars.Disable, Setting = Bars.Setting, Refresh = function()
 	MatchAll()
+	QuestEvents()
 	Bars.UpdateAll(true)
 end })

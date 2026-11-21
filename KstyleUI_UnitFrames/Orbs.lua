@@ -388,7 +388,7 @@ local function Tint(orb, r, g, b)
 	orb.surface:SetVertexColor(K.Widgets.Mix(r, g, b, 1, 1, 1, 1, 1, SURFACE_LIFT))
 end
 
-local healthText, healthOff
+local healthText, healthOff, powerBare
 local function TextTags(event)
 	if not healthText then return end
 	local text = orbs.health.value
@@ -415,6 +415,7 @@ local function Restyle()
 	end
 	healthText = Settings.Module().player.fonts.health
 	healthOff = Settings.Value("player", "healthText") == "none"
+	powerBare = Settings.Value("player", "powerPercentSign") == false
 	local default = Settings.defaults.player.fonts.health
 	if not K.Theme.FollowsKit(healthText.font) or healthText.size ~= default.size or healthText.outline ~= default.outline then
 		local ownPath, ownSize, flags = Settings.Font("player", "health")
@@ -422,6 +423,7 @@ local function Restyle()
 			healthText.outline == "INHERIT" and VALUE_FLAGS or flags)
 	end
 	Format.Health(orbs.health.value, "player", HEALTH_FORMAT)
+	Format.Power(orbs.power.value, "player", POWER_FORMAT, nil, powerBare)
 	TextTags()
 	local sharp = Settings.Module().orbGlass ~= false
 	for _, orb in pairs(orbs) do
@@ -496,7 +498,7 @@ local function Power(eased)
 	local orb = orbs.power
 	orb.bar:SetMinMaxValues(0, UnitPowerMax("player"))
 	SetBarValue(orb.bar, UnitPower("player"), eased)
-	Format.Power(orb.value, "player", POWER_FORMAT)
+	Format.Power(orb.value, "player", POWER_FORMAT, nil, powerBare)
 end
 
 local function Refresh()

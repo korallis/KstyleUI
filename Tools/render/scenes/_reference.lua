@@ -318,6 +318,9 @@ function Reference.Build(opts)
 			state.damage = Reference.GROUP_DAMAGE[opts.meterGroup]
 			state.meterMe = opts.meterGroup == "raid" and 14 or 1
 		end
+		if os.getenv("RENDER_METERS_PARITY") == "1" then
+			state.meterCasts = Reference.STATE.meterSpells
+		end
 		if opts.meterChoice then
 			state.followRole, state.role = true, "DAMAGER"
 			if opts.meterChoice == "both" then
@@ -335,7 +338,12 @@ function Reference.Build(opts)
 			} or os.getenv("RENDER_PARITY_ENABLED") == "1" and {
 				UnitFrames = { player = { castbarIconRight = true, castbarTotal = true, castbarInside = false } },
 				Cooldowns = { essential = { edge = false }, utility = { edge = false } },
-				Meters = { damage = { iconZoom = 0.2 } },
+				Meters = os.getenv("RENDER_METERS_PARITY") == "2" and {
+					damage = { report = true, englishUnits = false }, damage2 = { shown = true }, roles = opts.meterChoice and { DAMAGER = opts.meterChoice } or nil,
+				} or os.getenv("RENDER_METERS_PARITY") == "1" and {
+					damage = { iconZoom = 0.2, panelAlpha = 0.6, capAlpha = 0.8, headerHeight = 4, titleX = 6, titleY = 2, resetButton = true, nameScale = 0.9, valueScale = 1.1, playerMarker = true },
+					timer = { shown = true, decimal = true }, history = { icons = true, bars = true, grow = "RIGHT" },
+				} or { damage = { iconZoom = 0.2 } },
 			} or opts.meterChoice and { Meters = { roles = { DAMAGER = opts.meterChoice }, nameplateRows = os.getenv("RENDER_METER_ROWS") ~= "legacy" } } or nil,
 			layout = layout,
 			applyPreset = true,

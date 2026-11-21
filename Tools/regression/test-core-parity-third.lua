@@ -119,9 +119,9 @@ debug.sethook(function()
 end, "", 1)
 for _ = 1, 100 do Layout.Preview("Parity.Bar", l + 1, b, w, h) end
 debug.sethook()
-local budget = rawget(_G, "jit") and 1441 or 1379
+local budget = rawget(_G, "jit") and 1450 or 1388
 assert(steps <= budget * 100, "a centred link's drag preview takes " .. steps / 100 .. " addon instructions, budget " .. budget
-	.. ": the base path plus the 8-instruction SIDES lookup for corner sides; never parse a side per preview")
+	.. ": the base path, the 8-instruction SIDES lookup for corner sides and the 9-instruction attached-offset check; never parse a side per preview")
 Layout.Restore("Parity.Bar")
 assert(Layout.Update("Parity.Bar", { side = "leftBottom", offset = 0 }))
 assert(Layout.Enter())

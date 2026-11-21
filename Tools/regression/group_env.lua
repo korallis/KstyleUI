@@ -184,8 +184,9 @@ local function installRoster(env)
 		local inRange = not m or m.inRange ~= false
 		return env.Secret(inRange), env.Secret(true)
 	end
-	function env.UnitReaction()
-		return 5
+	function env.UnitReaction(unit)
+		local m = member(unit)
+		return m and m.reaction or 5
 	end
 	function env.SetPortraitTexture(texture, unit)
 		texture._portraitUnit = unit
@@ -228,11 +229,22 @@ local function installRoster(env)
 	function env.GetMicroIconForRole(role)
 		return roleIcons[role] or roleIcons.DAMAGER
 	end
-	-- C_Texture.GetAtlasInfo answers for the atlases the client has (the names above, the leader crown and the
-	-- ready-check marks) and nothing for any other name, as the game does; SetAtlas itself returns nothing.
-	local atlases = { ["UI-HUD-UnitFrame-Player-Group-LeaderIcon"] = { width = 16, height = 16 }, ["UI-LFG-ReadyMark"] = { width = 32, height = 32 }, ["UI-LFG-DeclineMark"] = { width = 32, height = 32 }, ["UI-LFG-PendingMark"] = { width = 32, height = 32 } }
+	-- C_Texture.GetAtlasInfo answers for the atlases the client has (the names above, the leader crown, the combat
+	-- swords and the ready-check marks) and nothing for any other name, as the game does; SetAtlas itself returns nothing.
+	local atlases = { ["UI-HUD-UnitFrame-Player-Group-LeaderIcon"] = { width = 16, height = 16 }, ["UI-HUD-UnitFrame-Player-CombatIcon"] = { width = 16, height = 16 }, ["UI-LFG-ReadyMark"] = { width = 32, height = 32 }, ["UI-LFG-DeclineMark"] = { width = 32, height = 32 }, ["UI-LFG-PendingMark"] = { width = 32, height = 32 } }
 	for _, name in pairs(roleIcons) do
 		atlases[name] = { width = 21, height = 21 }
+	end
+	-- Blizzard_UnitFrame/Shared/CompactUnitFrame.lua's absorb atlases.
+	for _, name in ipairs({ "RaidFrame-Shield-Overlay", "RaidFrame-Absorb-Overlay", "raidframe-MaximumHealthReduction-Overlay", "RaidFrame-Shield-Overshield" }) do
+		atlases[name] = { width = 32, height = 32 }
+	end
+	function env.GetUnitTotalModifiedMaxHealthPercent(unit)
+		local m = member(unit)
+		return m and m.maxLoss or 0
+	end
+	function env.IsInInstance()
+		return env._instance ~= nil, env._instance or "none"
 	end
 	env.C_Texture = env.C_Texture or {}
 	function env.C_Texture.GetAtlasInfo(name)
@@ -296,8 +308,10 @@ local function installPrediction(env)
 		function calc.GetIncomingHeals(self)
 			return env.Secret(self.heals), env.Secret(0), env.Secret(self.heals), env.Secret(false)
 		end
+		-- UnitHealPredictionCalculatorSharedDocumentation.lua: MissingHealth subtracts the incoming heals from the missing health.
 		function calc.GetDamageAbsorbs(self)
-			return env.Secret(self.absorbs), env.Secret(false)
+			local heals = self.modes.absorb == env.Enum.UnitDamageAbsorbClampMode.MissingHealth and self.heals or 0
+			return env.Secret(self.absorbs), env.Secret(self.absorbs > (self.missing or 0) - heals)
 		end
 		function calc.SetHealAbsorbClampMode(self, mode)
 			self.modes.healAbsorb = mode
@@ -313,6 +327,7 @@ local function installPrediction(env)
 		calc.heals = m and m.incoming or 0
 		calc.absorbs = m and m.absorb or 0
 		calc.healAbsorbs = m and m.healAbsorb or 0
+		calc.missing = m and (m.maxHealth or 100) - (m.health or 100) or 0
 	end
 	function env.UnitGetTotalHealAbsorbs(unit)
 		local m = env._member(unit)
@@ -431,9 +446,11 @@ end
 -- on: showRaid, showParty, showPlayer and showSolo, groupFilter with numbers or classes, groupBy with
 -- groupingOrder, sortMethod INDEX or NAME, unitsPerColumn, maxColumns, startingIndex, child creation
 -- from the template with initialConfigFunction's size read from the header's attributes, and the
--- unit, child<n> and statehidden attributes.
+-- unit, child<n> and statehidden attributes; roleFilter against a member's role or raidRole; the pet header's
+-- pet units (pet, partypet<n>, raidpet<n>) for members whose pet exists.
 local HEADER_TEMPLATES = {
 	SecureGroupHeaderTemplate = true, SecurePartyHeaderTemplate = true, SecureRaidGroupHeaderTemplate = true,
+	SecureGroupPetHeaderTemplate = true,
 }
 
 local function split(text)
@@ -476,6 +493,8 @@ local function headerUnits(env, header)
 			end
 		end
 	end
+	local roles = a.roleFilter and {}
+	for _, token in ipairs(a.roleFilter and split(a.roleFilter) or {}) do roles[token] = true end
 	local filter = {}
 	for i, token in ipairs(split(a.groupFilter or "1,2,3,4,5,6,7,8")) do
 		filter[token] = i
@@ -484,7 +503,7 @@ local function headerUnits(env, header)
 	for _, e in ipairs(entries) do
 		local m = e.m or {}
 		local group = kind == "raid" and (m.group or 1) or 1
-		if filter[group] or filter[m.class or ""] then
+		if (filter[group] or filter[m.class or ""]) and (not roles or roles[m.role or ""] or roles[m.raidRole or ""]) then
 			kept[#kept + 1] = e
 		end
 	end
@@ -517,7 +536,9 @@ local function headerUnits(env, header)
 		return x.index < y.index
 	end)
 	for _, e in ipairs(kept) do
-		list[#list + 1] = e.unit
+		local unit = e.unit
+		if header._pets then unit = unit == "player" and "pet" or unit:gsub("^(%a+)(%d+)$", "%1pet%2") end
+		if not header._pets or env.UnitExists(unit) then list[#list + 1] = unit end
 	end
 	return list
 end
@@ -533,15 +554,16 @@ local function relativeAnchor(point)
 end
 
 -- Anchors the shown children as configureChildren does in SecureGroupHeaders.lua: the first at the header's
--- point, each next one against the previous at the header's xOffset and yOffset, each new column against the
--- first of the previous column at columnAnchorPoint and columnSpacing; then sizes the header around them.
+-- point and, with more than one column filled, at its columnAnchorPoint too, each next one against the previous at the header's xOffset and yOffset, each new column against the
+-- first of the previous column at columnAnchorPoint and columnSpacing; then sizes the header around them, or with none
+-- shown to minWidth and minHeight or one button across its growth, at least 0.1.
 local function anchorChildren(env, header, numDisplayed, perColumn, columns)
 	local a = header._attributes
 	local point = a.point or "TOP"
 	local relativePoint, xSign, ySign = relativeAnchor(point)
 	local xMult, yMult = math.abs(xSign), math.abs(ySign)
 	local xOffset, yOffset = a.xOffset or 0, a.yOffset or 0
-	local columnPoint = a.columnAnchorPoint
+	local columnPoint = columns > 1 and a.columnAnchorPoint or nil
 	local columnSpacing = a.columnSpacing or 0
 	local colRel, colX, colY = relativeAnchor(columnPoint)
 	for i = 1, numDisplayed do
@@ -550,6 +572,9 @@ local function anchorChildren(env, header, numDisplayed, perColumn, columns)
 		local columnNum = math.floor((i - 1) / perColumn) + 1
 		if buttonNum == 1 and columnNum == 1 then
 			button:SetPoint(point, header, point, 0, 0)
+			if columnPoint then
+				button:SetPoint(columnPoint, header, columnPoint, 0, 0)
+			end
 		elseif buttonNum == 1 and columnPoint then
 			button:SetPoint(columnPoint, a["child" .. (i - perColumn)], colRel, colX * columnSpacing, colY * columnSpacing)
 		else
@@ -563,6 +588,8 @@ local function anchorChildren(env, header, numDisplayed, perColumn, columns)
 		local width = w + (count - 1) * xMult * (w + xSign * xOffset) + (columns - 1) * math.abs(colX) * (w + columnSpacing)
 		local height = h + (count - 1) * yMult * (h + ySign * yOffset) + (columns - 1) * math.abs(colY) * (h + columnSpacing)
 		header:SetSize(math.max(0.1, width), math.max(0.1, height))
+	elseif a.child1 then
+		header:SetSize(math.max(a.minWidth or ySign * a.child1:GetWidth(), 0.1), math.max(a.minHeight or xSign * a.child1:GetHeight(), 0.1))
 	end
 end
 
@@ -705,6 +732,9 @@ local function makeAttributeScripts(env, button)
 	local setAttribute, hide = base(button, "SetAttribute"), base(button, "Hide")
 	rawset(button, "SetAttribute", function(self, key, value)
 		setAttribute(self, key, value)
+		if self._wrapped and not tostring(key):match("^_") then
+			self._wrapped(key, value)
+		end
 		runScript(env, self, "OnAttributeChanged", key, value)
 	end)
 	rawset(button, "Hide", function(self)
@@ -723,6 +753,7 @@ local function installHeaders(env)
 	env.CreateFrame = function(frameType, name, parent, template)
 		local frame = create(frameType, name, parent, template)
 		if template and HEADER_TEMPLATES[template] then
+			frame._pets = template == "SecureGroupPetHeaderTemplate"
 			makeHeader(env, frame)
 			protect(env, frame, true)
 			protectAncestors(env, frame)
@@ -741,7 +772,7 @@ local function installHeaders(env)
 end
 
 -- Macro options for state drivers, with the group conditions the stub's parser lacks: [group:raid],
--- [group:party], [group] and [nogroup], next to combat, nocombat, exists and noexists with @unit.
+-- [group:party], [group] and [nogroup], next to combat, nocombat, exists, noexists and help with @unit.
 local function installDrivers(env)
 	local function holds(group)
 		local unit, ok = "target", true
@@ -765,6 +796,8 @@ local function installDrivers(env)
 				ok = ok and kind ~= nil
 			elseif part == "nogroup" then
 				ok = ok and kind == nil
+			elseif part == "help" then
+				ok = ok and env.UnitExists(unit) == true and env.UnitCanAssist ~= nil and env.UnitCanAssist("player", unit) == true
 			elseif env.Condition then
 				ok = ok and env.Condition(part)
 			else
@@ -828,6 +861,73 @@ local function installMeasure(env)
 			return text
 		end
 		return frame
+	end
+end
+
+-- Secure(env), called from a test's setup: unit watch and secure handlers, as SecureStateDriver.lua and
+-- SecureHandlers.lua run them: a watched frame shows while SecureButton_GetUnit's unit exists (again on
+-- RunStateDrivers); a wrapped OnAttributeChanged runs its snippet as secure code, before the frame's own script,
+-- with GetFrameRef. Only the tests that ask get them, so other modules sharing an environment keep their paths.
+-- env._units["party1target"] = { name, class, reaction, health, maxHealth } gives a member a target.
+function G.Secure(env)
+	env._watched = {}
+	local function unitOf(frame)
+		local a = frame._attributes
+		local unit = a.unit
+		if unit == nil and a["useparent-unit"] and frame._parent then
+			unit = frame._parent._attributes.unit
+		end
+		if unit and a.unitsuffix then
+			unit = unit .. a.unitsuffix
+		end
+		return unit
+	end
+	env.SecureButton_GetUnit = unitOf
+	local function watch(frame)
+		local unit, was = unitOf(frame), env._secure
+		local exists = unit ~= nil and env.UnitExists(unit) == true
+		env._secure = true
+		if env._watched[frame] == "state" then
+			if frame._attributes["state-unitexists"] ~= exists then frame:SetAttribute("state-unitexists", exists) end
+		elseif exists then frame:Show() else frame:Hide() end
+		env._secure = was
+	end
+	function env.RegisterUnitWatch(frame, asState)
+		env._watched[frame] = asState and "state" or true
+		watch(frame)
+	end
+	function env.UnregisterUnitWatch(frame)
+		env._watched[frame] = nil
+	end
+	local run = env.RunStateDrivers
+	function env.RunStateDrivers()
+		run()
+		for frame in pairs(env._watched) do
+			watch(frame)
+		end
+	end
+	function env.SecureHandlerSetFrameRef(frame, label, ref)
+		frame:SetAttribute("frameref-" .. label, ref)
+	end
+	function env.SecureHandlerUnwrapScript(frame)
+		frame._wrapped = nil
+	end
+	function env.SecureHandlerWrapScript(frame, script, _, body)
+		assert(script == "OnAttributeChanged", "the stub wraps OnAttributeChanged only")
+		local chunk = assert(loadstring("local self, name, value = ... " .. body))
+		setfenv(chunk, setmetatable({ PlayerCanAssist = function(unit) return env.UnitCanAssist ~= nil and env.UnitCanAssist("player", unit) == true end }, { __index = _G }))
+		local handle = setmetatable({ GetFrameRef = function(_, label) return frame._attributes["frameref-" .. label] end }, {
+			__index = function(_, key)
+				local v = frame[key]
+				return type(v) == "function" and function(_, ...) return v(frame, ...) end or v
+			end,
+		})
+		frame._wrapped = function(name, value)
+			local was = env._secure
+			env._secure = true
+			chunk(handle, name, value)
+			env._secure = was
+		end
 	end
 end
 

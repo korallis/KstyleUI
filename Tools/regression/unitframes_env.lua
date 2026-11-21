@@ -365,7 +365,7 @@ function U.Install(env)
 			return env.Secret(self.incoming), env.Secret(0), env.Secret(0), false
 		end
 		function calc:GetDamageAbsorbs()
-			return env.Secret(self.absorb), false
+			return env.Secret(self.absorb), self.over or false
 		end
 		function calc:SetIncomingHealClampMode(mode)
 			self.clamp = mode
@@ -382,6 +382,7 @@ function U.Install(env)
 		local u = unitOf(token)
 		calc.incoming = u and u.incoming or 0
 		calc.absorb = u and u.absorb or 0
+		calc.over = u and u.overshield
 		local clamp = u and (calc.healAbsorbClamp == 0 and u.health or calc.healAbsorbClamp == 1 and u.healthMax)
 		calc.healAbsorb = u and math.min(u.healAbsorb or 0, clamp or math.huge) or 0
 	end
@@ -511,6 +512,7 @@ function U.Install(env)
 	end
 	env.Enum.StatusBarTimerDirection = { ElapsedTime = 0, RemainingTime = 1 }
 	env.Enum.CustomAuraButtonDispelTypeTextureStyle = { Border = 0, BorderWithIcon = 1, Icon = 2, PreserveAsset = 3, CustomAsset = 4 }
+	env.Enum.CustomAuraButtonDispelTypeStealableFilter = { Stealable = 0, NotStealable = 1 }
 	function env.CreateColor(r, g, b, a)
 		return { r = r, g = g, b = b, a = a or 1 }
 	end
@@ -572,7 +574,7 @@ function U.Install(env)
 		local button = createFrame("AuraButton", nil, parent)
 		button._layoutForbidden = true
 		button._aura = {}
-		for _, method in ipairs({ "SetIcon", "SetDurationCooldown", "SetApplicationCount", "SetDurationText", "ClearDurationText", "ClearDispelTypeTextures", "AddPandemicRegion" }) do
+		for _, method in ipairs({ "SetIcon", "SetDurationCooldown", "SetApplicationCount", "SetDurationText", "ClearDurationText", "ClearDispelTypeTextures", "AddPandemicRegion", "SetHideTooltipInCombat" }) do
 			button[method] = function(self, ...)
 				self._aura[method] = { ... }
 			end
@@ -581,10 +583,20 @@ function U.Install(env)
 			self._aura.dispel = self._aura.dispel or {}
 			table.insert(self._aura.dispel, texture)
 			self._aura.dispelOptions = options
+			self._aura.dispelFor = self._aura.dispelFor or {}
+			self._aura.dispelFor[texture] = options
+		end
+		button.RemoveDispelTypeTexture = function(self, texture)
+			for i, added in ipairs(self._aura.dispel or {}) do
+				if added == texture then
+					table.remove(self._aura.dispel, i)
+					return
+				end
+			end
 		end
 		local setSize = button.SetSize
 		button.SetSize = function(self, ...)
-			if env.C_Secrets.ShouldAurasBeSecret() then
+			if env.C_Secrets and env.C_Secrets.ShouldAurasBeSecret() then
 				error("attempt to access a restricted aura button")
 			end
 			return setSize(self, ...)
@@ -629,14 +641,46 @@ function U.Install(env)
 		function c:SetAuraGroupLayout(key, layout) self._groups[key].layout = layout end
 		function c:SetAuraGroupMaxFrameCount(key, n) self._groups[key].max = n end
 		function c:SetAuraGroupSortMethod(key, method, direction) self._groups[key].sort = { method, direction } end
+		-- As GetInboundCandidateFilters validates: a table or nil, a non-negative maxDuration, boolean flags and spell ID maps.
+		function c:SetAuraGroupCandidateFilters(key, candidates)
+			assert(candidates == nil or type(candidates) == "table", "candidateFilters must be a table or nil")
+			if candidates then
+				assert(candidates.maxDuration == nil or type(candidates.maxDuration) == "number" and candidates.maxDuration >= 0, "maxDuration must be a non-negative number or nil")
+				assert(candidates.isStealable == nil or type(candidates.isStealable) == "boolean", "isStealable must be a boolean or nil")
+				for _, field in ipairs({ "includeSpellIDs", "excludeSpellIDs" }) do
+					assert(candidates[field] == nil or type(candidates[field]) == "table", field .. " must be a table or nil")
+				end
+			end
+			self._groups[key].candidates = candidates
+			self._candidateCalls = (self._candidateCalls or 0) + 1
+		end
 		function c:SetFlowLayoutAnchorPoint(point) self._anchor = point end
 		function c:SetFlowLayoutGrowthDirection(h, v) self._growth = { h, v } end
 		function c:SetFlowLayoutMaximumLineSize(n) self._line = n end
+		-- Aura slots (Blizzard_CustomAuraContainer.lua, AddAuraSlot): one engine button per slot, made and initialised
+		-- at once and hidden until an aura fills it; a test shows it to stand in for a matching debuff.
+		c._slots = {}
+		function c:AddAuraSlot(key, filter, options)
+			assert(type(key) == "string" and key ~= "" and not self._slots[key], "aura slot keys are unique non-empty strings")
+			assert(type(filter) == "string" and (filter:find("HARMFUL", 1, true) or filter:find("HELPFUL", 1, true)), "invalid filter string " .. tostring(filter))
+			local button = auraButton(self)
+			button:Hide()
+			self._slots[key] = { filter = filter, enabled = true, frame = button }
+			self._layoutForbidden = true
+			if options and options.initializeFrame then options.initializeFrame(button) end
+			return button
+		end
+		function c:SetAuraSlotFilterString(key, filter) self._slots[key].filter = filter end
+		function c:SetAuraSlotEnabled(key, on)
+			assert(type(on) == "boolean", "enabled must be a boolean")
+			self._slots[key].enabled = on
+		end
+		function c:GetAuraSlotFrame(key) return self._slots[key] and self._slots[key].frame end
 		return c
 	end
 
 	-- Blizzard's frames that the module hides. Each is a stub frame on UIParent.
-	for _, name in ipairs({ "PlayerFrame", "TargetFrame", "FocusFrame", "PetFrame", "BossTargetFrameContainer", "PlayerCastingBarFrame" }) do
+	for _, name in ipairs({ "PlayerFrame", "TargetFrame", "FocusFrame", "PetFrame", "BossTargetFrameContainer", "PlayerCastingBarFrame", "PetCastingBarFrame" }) do
 		env.CreateFrame("Button", name, env.UIParent)
 	end
 	for i = 1, 5 do

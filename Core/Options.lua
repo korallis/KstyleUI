@@ -30,6 +30,7 @@ local EXTRA_FIELDS = {
 	dropdown = { options = true },
 	segmented = { options = true },
 	font = { options = true },
+	texture = { options = true },
 	color = { hasAlpha = true },
 	text = { maxLetters = true },
 	pictures = { options = true },

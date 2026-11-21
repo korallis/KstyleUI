@@ -1,4 +1,4 @@
--- Preview.lua: the settings window's live sample: an item and a unit tooltip drawn with the module's fonts, colours, edges, icon, health bar, away tag and mount line.
+-- Preview.lua: the settings window's live sample: an item and a unit tooltip drawn with the module's fonts, colours, edges, icon, health bar, away tag, level, faction, mount and item level lines and buff icons.
 local _, ns = ...
 
 local K = KstyleUI
@@ -22,6 +22,7 @@ function Preview.Build(...)
 	local BAR_EDGE = 8
 	local FRIENDLY = 5
 	local PAIR_MIN_SIZE = 8
+	local SAMPLE_BUFFS = { 136076, 132212, 132328, 135987, 135906 }
 
 	local ITEM = {
 		header = 2,
@@ -40,8 +41,10 @@ function Preview.Build(...)
 		{ left = L["Valerin"], role = "title", kit = "names", color = "class" },
 		{ left = "", color = "guild", key = "guildLine" },
 		{ left = L["Level 60 Hunter (Player)"], color = "highlight" },
+		{ left = L["Horde"], color = "faction", key = "factionColor" },
 		{ left = L["Target"], right = L["You"], color = "text", rightColor = "accent", key = "targetLine" },
 		{ left = L["Mount"], right = L["Swift Brown Wolf"], color = "text", rightColor = "textEmphasis", key = "mountLine" },
+		{ left = L["Item level"], right = "62", color = "text", rightColor = "textEmphasis", key = "itemLevel" },
 	}
 
 	local BLIZZARD = { highlight = "HIGHLIGHT_FONT_COLOR", normal = "NORMAL_FONT_COLOR", bonus = "GREEN_FONT_COLOR" }
@@ -66,6 +69,10 @@ function Preview.Build(...)
 			kind = "highlight"
 		elseif kind == "accent" then
 			return Settings.Accent()
+		elseif kind == "faction" then
+			local c = type(GetFactionColor) == "function" and GetFactionColor("Horde")
+			if type(c) == "table" and type(c.GetRGB) == "function" then return c:GetRGB() end
+			return Tokens.Color("hostile")
 		elseif kind == "guild" or kind == "text" or kind == "textEmphasis" then
 			return Tokens.Color(kind == "guild" and "friendly" or kind)
 		end
@@ -207,6 +214,12 @@ function Preview.Build(...)
 			local away = Settings.Get("awayTag") and type(CHAT_FLAG_AFK) == "string"
 			glass.rows[1].left:SetText(away and L["Valerin"] .. " " .. CHAT_FLAG_AFK or L["Valerin"])
 			glass.rows[2].left:SetText(Settings.Get("guildRank") and Logic.GuildText(L["Kstyle"], L["Officer"]) or Logic.GuildText(L["Kstyle"]))
+			local level = L["Level 60 Hunter (Player)"]
+			local byLevel = Settings.Get("levelColor") and type(GetCreatureDifficultyColor) == "function" and GetCreatureDifficultyColor(60) or nil
+			local r, g, b = Theme.ClassColor("HUNTER")
+			local byClass = Settings.Get("classLine") and r and { r = r, g = g, b = b } or nil
+			level = Logic.LevelLine(level, TOOLTIP_UNIT_LEVEL, Settings.Get("compactLevel"), PLAYER, byLevel, L["Hunter"], byClass) or level
+			glass.rows[3].left:SetText(level)
 		end
 		Widgets.Size(glass, width, y - gap + pad + (reserve.bottom or 0))
 		local divider = glass.divider
@@ -287,6 +300,30 @@ function Preview.Build(...)
 		icon:SetShown(Settings.Get("icon"))
 	end
 
+	local function LayoutBuffs(frame)
+		local on = Settings.Get("buffs.shown")
+		if on and not frame.buffs then
+			frame.buffs = {}
+			for i, id in ipairs(SAMPLE_BUFFS) do
+				frame.buffs[i] = Style.IconTile(frame)
+				frame.buffs[i].texture:SetTexture(id)
+			end
+		end
+		for i, icon in ipairs(frame.buffs or {}) do
+			if on then
+				Style.PlaceBuff(icon, frame.unit, i)
+				Style.PaintIcon(icon)
+			end
+			icon:SetShown(on)
+		end
+		local side = Settings.Get("buffs.position")
+		if not on or side == "BOTTOM" then
+			return 0
+		end
+		local rows = math.ceil(#SAMPLE_BUFFS / Settings.Get("buffs.perRow"))
+		return math.max(0, Settings.Get("buffs.y") + (side == "TOP" and rows * (Settings.Get("buffs.size") + Tokens.Size("gapSmall")) or 0))
+	end
+
 	local function Refresh(frame)
 		frame.item.indent = (Settings.Get("icon") and Settings.Get("iconSize") + Tokens.Size("gapLarge") or 0) + Room(frame.item)
 		if Settings.Get("hierarchy") then frame.item.indent = Widgets.Snap(frame.item, frame.item.indent) end
@@ -307,8 +344,9 @@ function Preview.Build(...)
 		Edge(frame.unit, Settings.Get("unitEdge"), cr, cg, cb)
 		LayoutIcon(frame)
 		LayoutBar(frame)
+		local rise = LayoutBuffs(frame)
 		frame.unit:ClearAllPoints()
-		Widgets.Point(frame.unit, "TOPLEFT", frame.item, "BOTTOMLEFT", 0, -Widgets.Snap(frame.unit, SAMPLE_GAP))
+		Widgets.Point(frame.unit, "TOPLEFT", frame.item, "BOTTOMLEFT", 0, -Widgets.Snap(frame.unit, SAMPLE_GAP + rise))
 	end
 
 	build = function(parent)

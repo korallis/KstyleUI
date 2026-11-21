@@ -1,4 +1,4 @@
--- Rules.lua: the shown rules and opacities every Layout element takes, as Lua tests and as secure state-driver macro options.
+-- Rules.lua: the shown rules (including mounted and combined ones) and opacities every Layout element takes, as Lua tests and as secure state-driver macro options.
 local _, ns = ...
 
 local Layout = ns.Layout or {}
@@ -7,7 +7,7 @@ ns.Layout = Layout
 local Rules = {}
 Layout.Rules = Rules
 
-Rules.SHOWN = { "always", "combat", "noCombat", "target", "mouseover", "never", "party", "raid", "solo", "noParty", "noRaid", "noSolo" }
+Rules.SHOWN = { "always", "combat", "noCombat", "target", "mouseover", "never", "party", "raid", "solo", "noParty", "noRaid", "noSolo", "mounted", "noMounted", "combatTarget" }
 
 local VALID = {}
 for _, rule in ipairs(Rules.SHOWN) do
@@ -25,6 +25,9 @@ local DRIVERS = {
 	noParty = "[group:raid] show; [group:party] hide; show",
 	noRaid = "[group:raid] hide; show",
 	noSolo = "[group] show; hide",
+	mounted = "[mounted] show; hide",
+	noMounted = "[mounted] hide; show",
+	combatTarget = "[combat] show; [@target,exists] show; hide",
 }
 
 local GROUPS = { party = "party", raid = "raid", solo = "solo", noParty = "party", noRaid = "raid", noSolo = "solo" }
@@ -37,7 +40,7 @@ function Rules.Driver(rule)
 	return DRIVERS[rule]
 end
 
-function Rules.Visible(rule, combat, target, group)
+function Rules.Visible(rule, combat, target, group, mounted)
 	if GROUPS[rule] and group then
 		return (group == GROUPS[rule]) == (rule:sub(1, 2) ~= "no")
 	end
@@ -47,6 +50,10 @@ function Rules.Visible(rule, combat, target, group)
 		return combat ~= true
 	elseif rule == "target" then
 		return target == true
+	elseif rule == "mounted" or rule == "noMounted" then
+		return (mounted == true) == (rule == "mounted")
+	elseif rule == "combatTarget" then
+		return combat == true or target == true
 	elseif rule == "never" then
 		return false
 	end
@@ -64,7 +71,7 @@ function Rules.Alpha(rule, combat, hovered, alphaCombat, alphaIdle)
 end
 
 function Rules.NeedsCombat(rule, alphaCombat, alphaIdle)
-	return rule == "combat" or rule == "noCombat" or alphaCombat ~= alphaIdle
+	return rule == "combat" or rule == "noCombat" or rule == "combatTarget" or alphaCombat ~= alphaIdle
 end
 
 function Rules.NeedsGroup(rule)
@@ -72,5 +79,5 @@ function Rules.NeedsGroup(rule)
 end
 
 function Rules.NeedsTarget(rule)
-	return rule == "target"
+	return rule == "target" or rule == "combatTarget"
 end

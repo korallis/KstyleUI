@@ -280,6 +280,13 @@ Render: `Tools/render/shoot.sh tracker` builds the tracker the way Forever does 
 | `tracker.titles` | `true` | toggle: quest titles in quest gold instead of Blizzard's quest colours |
 | `tracker.counts` | `true` | toggle: each objective's count moved to the right of its line |
 
+#### EllesmereUI parity rows (2026-11-21)
+
+| Publicly documented option | KstyleUI status | Control or remaining work | Public source |
+| --- | --- | --- | --- |
+| Quest-tracker font and per-line sizes (Options mirror) | Missing, fits | Follow-up: Objective tracker > Font and header, title and objective text sizes on the shared Text rows; Skin font stays the switch and today's sizes the default | [1017, 1036](https://github.com/EllesmereGaming/EllesmereUI/blob/9409539/EllesmereUIOptions/EUI_Fonts_Options.lua#L1017) |
+| Character enchant text size (Options mirror) | Missing, fits | Follow-up: optional enchant names beside the character window's gear slots, with a size row; off by default | [1067](https://github.com/EllesmereGaming/EllesmereUI/blob/9409539/EllesmereUIOptions/EUI_Fonts_Options.lua#L1067) |
+
 ### Quest card (`Quests/`, key `quests`)
 
 When the slot cannot hold the current quest row under the section cap, the card switches to one quest per page. It folds the cap, keeps the normal eleven-unit top padding and shows the quest count in the scroll hint, with a six-unit foot so descenders and shadows clear the border. A first objective too tall for the remaining view wraps onto the lines that fit, keeping its progress visible. The ordinary cap and padding return whenever the current quest fits with them; secure item buttons keep the same combat lock and cached quests retain their per-quest progress. Shared header measurement follows recorded show and hide requests on the cap's own holder, without reading region visibility under secure or engine ancestors.

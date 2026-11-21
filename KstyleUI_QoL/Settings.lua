@@ -1,15 +1,42 @@
--- Settings.lua: KstyleUI_QoL's defaults, its settings page and checked reads of each setting.
+-- Settings.lua: KstyleUI_QoL's defaults, its settings page, checked reads of each setting, and ns.Ask, which answers nil when a game API is missing or its first answer is secret.
 local _, ns = ...
 
 local K, L = ns.K, ns.L
 
 ns.PAUSE_KEYS = { SHIFT = "IsShiftKeyDown", CTRL = "IsControlKeyDown", ALT = "IsAltKeyDown" }
 
+local function Color(name)
+	local r, g, b = K.Tokens.Color(name)
+	return { r = r, g = g, b = b }
+end
+
+local SHOWN = { always = true, combat = true, instances = true, instancesCombat = true }
+local CHOICES = {
+	questModifier = ns.PAUSE_KEYS, combatAlertOn = { both = true, enter = true, leave = true },
+	deathSound = { none = true, warning = true, ready = true }, crosshair = { none = true, thin = true, normal = true, thick = true },
+	crosshairShow = SHOWN, cursorShow = SHOWN, autoLogWhere = { raid = true, party = true, both = true, all = true },
+	skipMode = { cinematics = true, movies = true, both = true }, cursorTexture = { ring = true, ringBevel = true },
+	statsValue = { percent = true, rating = true, both = true }, hideToasts = { none = true, loot = true, achievements = true, both = true },
+	moveMode = { text = true, timeFirst = true, time = true, icon = true, bar = true }, moveSound = { none = true, warning = true, ready = true },
+	rangeFormat = { range = true, plus = true, min = true }, rangeAlign = { LEFT = true, CENTER = true, RIGHT = true },
+	raidTools = { never = true, raid = true, group = true, always = true }, raidToolsLayout = { row = true, column = true },
+	raidToolsShow = { all = true, two = true, group = true, markers = true },
+	raidToolsGrow = { downright = true, downleft = true, upright = true, upleft = true },
+}
+ns.LIMITS = {
+	skipDelay = { 0, 30 }, alertSize = { 14, 64 }, durabilityPercent = { 5, 100 }, durabilityY = { -500, 500 },
+	crosshairHLength = { 1, 500 }, crosshairVLength = { 1, 500 }, crosshairHWidth = { 0, 20 }, crosshairVWidth = { 0, 20 },
+	crosshairBorder = { 0, 5 }, crosshairX = { -200, 200 }, crosshairY = { -200, 200 }, cursorScale = { 50, 200 }, cursorOpacity = { 10, 100 },
+	rollsClose = { 0, 60 }, statsScale = { 50, 200 }, moveSize = { 8, 72 }, moveIconSize = { 16, 128 }, moveVolume = { 0, 100 }, rangeSize = { 10, 48 },
+	statsInterval = { 1, 5 }, mapSidebarsOpacity = { 0, 100 },
+}
+
 ns.defaults = {
 	enabled = false,
 	fastLoot = true,
 	lootFeed = true,
 	coinIcons = false,
+	rollsClose = 0,
 	autoRepair = true,
 	guildRepair = false,
 	autoQuests = false,
@@ -18,24 +45,134 @@ ns.defaults = {
 	questInstances = true,
 	skipCinematics = false,
 	skipDelay = 0,
+	skipMode = "cinematics",
+	skipAuto = true,
+	alertSize = 28,
+	combatAlert = false,
+	combatAlertOn = "both",
+	combatEnterText = "",
+	combatEnterColor = Color("hostile"),
+	combatEnterClass = false,
+	combatLeaveText = "",
+	combatLeaveColor = Color("friendly"),
+	combatLeaveClass = false,
+	talentAlert = false,
+	talentText = "",
+	talentColor = Color("neutral"),
+	talentClass = false,
+	deathAlert = false,
+	deathSound = "warning",
+	durabilityAlert = false,
+	durabilityPercent = 40,
+	durabilityY = 250,
+	durabilityThrown = true,
+	potionAlert = false,
+	moveAlert = false,
+	moveCombat = false,
+	moveMode = "text",
+	moveSize = 18,
+	moveIconSize = 40,
+	moveDecimal = false,
+	moveTexture = "Flat",
+	moveBarIcon = true,
+	moveBarText = true,
+	moveClass = false,
+	moveColor = Color("neutral"),
+	moveSound = "none",
+	moveVoice = -1,
+	moveVolume = 100,
+	rangeText = false,
+	rangeFormat = "range",
+	rangeAlign = "CENTER",
+	rangeSize = 18,
+	crosshairRange = false,
+	crosshairRangeColor = Color("hostile"),
+	crosshairMelee = false,
+	crosshair = "none",
+	crosshairShow = "always",
+	crosshairHLength = 40,
+	crosshairHWidth = 0,
+	crosshairVLength = 40,
+	crosshairVWidth = 0,
+	crosshairBorder = 0,
+	crosshairX = 0,
+	crosshairY = 0,
+	cursorRing = false,
+	cursorShow = "always",
+	cursorScale = 100,
+	cursorOpacity = 70,
+	cursorClass = false,
+	cursorColor = Color("gilt"),
+	cursorTexture = "ring",
+	cursorDot = false,
+	cursorHidden = false,
+	cursorTrail = false,
+	castRing = false,
+	castSpark = true,
+	castAttach = true,
+	gcdRing = false,
+	stats = false,
+	statsValue = "percent",
+	statsColored = false,
+	statsShort = false,
+	statsScale = 100,
+	statsInterval = 1,
+	statsNetLabels = true,
+	dialogKeys = false,
+	numberKeys = false,
+	confirmPopups = false,
+	hideToasts = "none",
+	trainAll = false,
+	autoOpen = false,
+	openSkipWarbound = true,
+	autoUnwrap = false,
+	hideTransforms = false,
+	hideScreenshot = false,
+	announceReset = false,
+	autoLog = false,
+	autoLogWhere = "raid",
+	autoLogNotice = true,
+	autoLogDelay = false,
 	questModifier = "SHIFT",
 	maxCamera = true,
 	quietErrors = false,
 	autoDelete = false,
 	autoResurrect = false,
+	wayCommand = false,
+	wayPaste = false,
+	wayArrival = true,
+	wayManual = false,
+	cdCommand = false,
+	ahCurrent = false,
+	mapSidebars = false,
+	mapSidebarsOpacity = 0,
+	mapClickThrough = true,
+	guildCover = false,
+	raidTools = "never",
+	raidToolsCollapsed = false,
+	raidToolsLayout = "row",
+	raidToolsGrow = "downright",
+	raidToolsReady = false,
+	raidToolsShow = "all",
+	quickFire = false,
 }
 
 function ns.Get(key)
 	local default = ns.defaults[key]
 	local value = K.Store.Module(ns.MODULE)[key]
-	if type(value) ~= type(default) then
+	if type(value) ~= type(default) or ns.IsSecret(value) then
 		return default
 	end
-	if key == "skipDelay" and (ns.IsSecret(value) or value ~= value or value < 0 or value > 30) then return default end
-	if key == "questModifier" and not ns.PAUSE_KEYS[value] then
-		return default
-	end
+	local limit, choices = ns.LIMITS[key], CHOICES[key]
+	if limit and (value ~= value or value < limit[1] or value > limit[2]) or choices and not choices[value] then return default end
+	if type(value) == "table" and not (type(value.r) == "number" and type(value.g) == "number" and type(value.b) == "number") then return default end
 	return value
+end
+
+function ns.Ask(api, ...)
+	if type(api) ~= "function" then return nil end
+	local value = api(...)
+	if not ns.IsSecret(value) then return value end
 end
 
 function ns.Schema()
@@ -43,13 +180,28 @@ function ns.Schema()
 		return not settings.enabled
 	end
 
-	local function repairOff(settings)
-		return not (settings.enabled and settings.autoRepair)
+	local function when(key)
+		return function(settings) return not (settings.enabled and settings[key] and settings[key] ~= "none") end
 	end
-
-	local function questsOff(settings)
-		return not (settings.enabled and settings.autoQuests)
+	local combatOff, talentOff, durabilityOff, crossOff, ringOff, logOff = when("combatAlert"), when("talentAlert"), when("durabilityAlert"), when("crosshair"), when("cursorRing"), when("autoLog")
+	local castOff, gcdOff, statsOff, skipOff = when("castRing"), when("gcdRing"), when("stats"), when("skipCinematics")
+	local moveOff, distanceOff = when("moveAlert"), when("rangeText")
+	local sounds = { { value = "none", label = L["None"] }, { value = "warning", label = L["Raid warning"] }, { value = "ready", label = L["Ready check"] } }
+	local function rangeOff(s) return crossOff(s) or not s.crosshairRange end
+	local function barOff(s) return moveOff(s) or s.moveMode ~= "bar" end
+	local function voiceOff(s) return moveOff(s) or s.moveVoice == -1 end
+	local function iconOff(s) return moveOff(s) or s.moveMode == "icon" end
+	local function circlesOff(s) return castOff(s) and gcdOff(s) end
+	local function aidsOff(s) return ringOff(s) and circlesOff(s) end
+	local function raidOff(s) return not (s.enabled and s.raidTools ~= "never") end
+	local function slider(key, label, help, step, off)
+		local limit = ns.LIMITS[key]
+		return { type = "slider", key = key, label = label, help = help, min = limit[1], max = limit[2], step = step, disableWhen = off }
 	end
+	local SHOW_OPTIONS = {
+		{ value = "always", label = L["Always"] }, { value = "combat", label = L["In combat"] },
+		{ value = "instances", label = L["In instances"] }, { value = "instancesCombat", label = L["In instance combat"] },
+	}
 
 	local PAUSE_OPTIONS = {
 		{ value = "SHIFT", label = L["Shift"] },
@@ -66,12 +218,12 @@ function ns.Schema()
 		{ type = "toggle", key = "coinIcons", label = L["Coin icons"], help = L["Show coin icons instead of gold, silver and copper letters in the loot feed."], disableWhen = function(s) return not (s.enabled and s.lootFeed) end },
 		{ type = "header", label = L["Merchants"] },
 		{ type = "toggle", key = "autoRepair", label = L["Repair by itself"], help = L["Repair your gear at merchants and print the cost."], disableWhen = isOff },
-		{ type = "toggle", key = "guildRepair", label = L["Guild funds first"], help = L["Pay from the guild bank when your rank allows it."], disableWhen = repairOff },
+		{ type = "toggle", key = "guildRepair", label = L["Guild funds first"], help = L["Pay from the guild bank when your rank allows it."], disableWhen = when("autoRepair") },
 		{ type = "note", label = L["Junk selling lives on the Bags page, as Sell junk by itself."] },
 		{ type = "header", label = L["Quests"] },
 		{ type = "toggle", key = "autoQuests", label = L["Accept and turn in quests"], help = L["Accept quests and hand in finished ones. A choice of rewards stays yours."], disableWhen = isOff },
 		{ type = "toggle", key = "autoGossip", label = L["Select single gossip"], help = L["Choose a lone gossip option when the NPC offers no quests. The pause key still works."], disableWhen = isOff },
-		{ type = "toggle", key = "ignoreTrivial", label = L["Ignore low-level quests"], help = L["Leave low-level quest offers for you to choose."], disableWhen = questsOff },
+		{ type = "toggle", key = "ignoreTrivial", label = L["Ignore low-level quests"], help = L["Leave low-level quest offers for you to choose."], disableWhen = when("autoQuests") },
 		{ type = "toggle", key = "questInstances", label = L["Quest helpers in instances"], help = L["Allow automatic quests and single gossip inside instances."], disableWhen = function(settings) return not (settings.enabled and (settings.autoQuests or settings.autoGossip)) end },
 		{
 			type = "dropdown", key = "questModifier", label = L["Pause key"], help = L["Hold this key as you talk to a quest giver to do it yourself."],
@@ -79,13 +231,169 @@ function ns.Schema()
 		},
 		{ type = "header", label = L["Camera"] },
 		{ type = "toggle", key = "skipCinematics", label = L["Skip cinematics"], help = L["Skip cancellable cinematics. Hold Shift to watch them."], disableWhen = isOff },
-		{ type = "slider", key = "skipDelay", label = L["Skip after"], help = L["Seconds before skipping a cancellable cinematic; zero skips now. Hold Shift to watch."], min = 0, max = 30, step = 1, disableWhen = function(s) return not (s.enabled and s.skipCinematics) end },
+		{ type = "dropdown", key = "skipMode", label = L["Skip which"], help = L["Skip in-game cinematics, movies, or both."], options = {
+			{ value = "cinematics", label = L["Cinematics"] }, { value = "movies", label = L["Movies"] }, { value = "both", label = L["Both"] },
+		}, disableWhen = skipOff },
+		{ type = "toggle", key = "skipAuto", label = L["Skip at once"], help = L["Skip as it starts. Off, Escape skips without asking."], disableWhen = skipOff },
+		{ type = "slider", key = "skipDelay", label = L["Skip after"], help = L["Seconds before skipping a cancellable cinematic; zero skips now. Hold Shift to watch."], min = 0, max = 30, step = 1, disableWhen = skipOff },
 		{ type = "toggle", key = "maxCamera", label = L["Max camera distance"], help = L["Let the camera zoom out as far as the game allows."], disableWhen = isOff },
+		{ type = "header", label = L["On-screen alerts"] },
+		slider("alertSize", L["Alert text size"], L["The size of the combat, talent, death and durability alerts."], 1, isOff),
+		{ type = "toggle", key = "combatAlert", label = L["Combat alert"], help = L["Show large text as you enter or leave combat."], disableWhen = isOff },
+		{ type = "dropdown", key = "combatAlertOn", label = L["Show on"], help = L["Show the alert as you enter combat, as you leave it, or both."], options = {
+			{ value = "both", label = L["Both"] }, { value = "enter", label = L["Entering"] }, { value = "leave", label = L["Leaving"] },
+		}, disableWhen = combatOff },
+		{ type = "text", key = "combatEnterText", label = L["Entering text"], help = L["Blank shows +Combat."], maxLetters = 40, disableWhen = combatOff },
+		{ type = "color", key = "combatEnterColor", label = L["Entering colour"], help = L["The colour of the alert as you enter combat."], disableWhen = function(s) return combatOff(s) or s.combatEnterClass end },
+		{ type = "toggle", key = "combatEnterClass", label = L["Entering in class colour"], help = L["Use your class colour as you enter combat."], disableWhen = combatOff },
+		{ type = "text", key = "combatLeaveText", label = L["Leaving text"], help = L["Blank shows -Combat."], maxLetters = 40, disableWhen = combatOff },
+		{ type = "color", key = "combatLeaveColor", label = L["Leaving colour"], help = L["The colour of the alert as you leave combat."], disableWhen = function(s) return combatOff(s) or s.combatLeaveClass end },
+		{ type = "toggle", key = "combatLeaveClass", label = L["Leaving in class colour"], help = L["Use your class colour as you leave combat."], disableWhen = combatOff },
+		{ type = "toggle", key = "talentAlert", label = L["Unspent talents alert"], help = L["Show text out of combat while you have talent points to spend."], disableWhen = isOff },
+		{ type = "text", key = "talentText", label = L["Talent alert text"], help = L["Blank shows Unspent talent points."], maxLetters = 40, disableWhen = talentOff },
+		{ type = "color", key = "talentColor", label = L["Talent alert colour"], help = L["The colour of the unspent talents alert."], disableWhen = function(s) return talentOff(s) or s.talentClass end },
+		{ type = "toggle", key = "talentClass", label = L["Talent alert in class colour"], help = L["Use your class colour for the unspent talents alert."], disableWhen = talentOff },
+		{ type = "toggle", key = "deathAlert", label = L["Group death alert"], help = L["Show large text when a party or raid member dies."], disableWhen = isOff },
+		{ type = "dropdown", key = "deathSound", label = L["Death sound"], help = L["The sound that plays with a group death alert."], options = sounds, disableWhen = when("deathAlert") },
+		{ type = "toggle", key = "durabilityAlert", label = L["Low durability warning"], help = L["Warn out of combat when worn gear wears down."], disableWhen = isOff },
+		slider("durabilityPercent", L["Warn below"], L["Warn when any worn item falls below this durability, in percent."], 1, durabilityOff),
+		slider("durabilityY", L["Warning height"], L["Moves the durability warning up or down from the screen centre."], 1, durabilityOff),
+		{ type = "toggle", key = "durabilityThrown", label = L["Ignore thrown weapons"], help = L["Leave out thrown weapons, which wear down with every throw."], disableWhen = durabilityOff },
+		{ type = "toggle", key = "potionAlert", label = L["Potion ready alert"], help = L["Show large text when your potions are off cooldown again."], disableWhen = isOff },
+		{ type = "header", label = L["Crosshair"] },
+		{ type = "dropdown", key = "crosshair", label = L["Crosshair"], help = L["A crosshair at the centre of the screen, over your character."], options = {
+			{ value = "none", label = L["None"] }, { value = "thin", label = L["Thin"] }, { value = "normal", label = L["Normal"] }, { value = "thick", label = L["Thick"] },
+		}, disableWhen = isOff },
+		{ type = "dropdown", key = "crosshairShow", label = L["Show crosshair"], help = L["When the crosshair shows."], options = SHOW_OPTIONS, disableWhen = crossOff },
+		slider("crosshairHLength", L["Horizontal length"], L["The length of the horizontal line."], 1, crossOff),
+		slider("crosshairHWidth", L["Horizontal thickness"], L["The horizontal line's thickness in pixels; zero follows the style."], 1, crossOff),
+		slider("crosshairVLength", L["Vertical length"], L["The length of the vertical line."], 1, crossOff),
+		slider("crosshairVWidth", L["Vertical thickness"], L["The vertical line's thickness in pixels; zero follows the style."], 1, crossOff),
+		slider("crosshairBorder", L["Outline"], L["A dark outline around the lines, in pixels."], 1, crossOff),
+		slider("crosshairX", L["Horizontal offset"], L["Moves the crosshair left or right."], 1, crossOff),
+		slider("crosshairY", L["Vertical offset"], L["Moves the crosshair up or down."], 1, crossOff),
+		{ type = "toggle", key = "crosshairRange", label = L["Colour out of range"], help = L["Colour the crosshair while your target is beyond the reach of your spells."], disableWhen = crossOff },
+		{ type = "color", key = "crosshairRangeColor", label = L["Out of range colour"], help = L["The crosshair's colour while your target is out of range."], disableWhen = rangeOff },
+		{ type = "toggle", key = "crosshairMelee", label = L["Melee range only"], help = L["Count your target as out of range beyond melee range, for paladins and other melee fighters."], disableWhen = rangeOff },
+		{ type = "header", label = L["Cursor"] },
+		{ type = "toggle", key = "cursorRing", label = L["Cursor ring"], help = L["A ring around the mouse pointer, so you can find it."], disableWhen = isOff },
+		{ type = "dropdown", key = "cursorShow", label = L["Show cursor ring"], help = L["When the cursor ring shows."], options = SHOW_OPTIONS, disableWhen = ringOff },
+		{ type = "toggle", key = "cursorHidden", label = L["Only while looking around"], help = L["Show the ring only while you hold a mouse button to turn the camera."], disableWhen = ringOff },
+		{ type = "toggle", key = "cursorDot", label = L["Centre dot"], help = L["A small dot at the centre of the ring."], disableWhen = ringOff },
+		{ type = "toggle", key = "cursorTrail", label = L["Cursor trail"], help = L["Dots that follow the ring as the pointer moves."], disableWhen = ringOff },
+		{ type = "toggle", key = "castRing", label = L["Cast circle"], help = L["A ring that fills as you cast, in the ring's colour."], disableWhen = isOff },
+		{ type = "toggle", key = "castSpark", label = L["Cast spark"], help = L["A bright edge on the filling cast and global cooldown circles."], disableWhen = circlesOff },
+		{ type = "toggle", key = "gcdRing", label = L["Global cooldown circle"], help = L["A ring that fills over the global cooldown, between the cursor ring and the cast circle."], disableWhen = isOff },
+		{ type = "toggle", key = "castAttach", label = L["Cast circle on the pointer"], help = L["Off puts the cast and global cooldown circles at the screen centre."], disableWhen = circlesOff },
+		{ type = "dropdown", key = "cursorTexture", label = L["Ring style"], help = L["The look of the cursor ring and its circles."], options = {
+			{ value = "ring", label = L["Plain"] }, { value = "ringBevel", label = L["Bevelled"] },
+		}, disableWhen = aidsOff },
+		slider("cursorScale", L["Ring size"], L["The size of the cursor ring and its circles, in percent."], 5, aidsOff),
+		slider("cursorOpacity", L["Ring opacity"], L["How solid the cursor ring and its circles are, in percent."], 5, aidsOff),
+		{ type = "toggle", key = "cursorClass", label = L["Ring in class colour"], help = L["Use your class colour for the cursor ring and its circles."], disableWhen = aidsOff },
+		{ type = "color", key = "cursorColor", label = L["Ring colour"], help = L["The colour of the cursor ring and its circles."], disableWhen = function(s) return aidsOff(s) or s.cursorClass end },
+		{ type = "header", label = L["Character stats"] },
+		{ type = "toggle", key = "stats", label = L["Show character stats"], help = L["Your stats as text at the top left of the screen. Move them in Layout Mode."], disableWhen = isOff },
+		{ type = "order", key = "statsList", label = L["Stats"], help = L["Switch stats on and move them up or down."], options = ns.StatOptions(), disableWhen = statsOff },
+		{ type = "dropdown", key = "statsValue", label = L["Show ratings as"], help = L["Crit, haste, dodge, parry and block as a percentage, the rating, or both."], options = {
+			{ value = "percent", label = L["Percent"] }, { value = "rating", label = L["Rating"] }, { value = "both", label = L["Percent and rating"] },
+		}, disableWhen = statsOff },
+		{ type = "toggle", key = "statsColored", label = L["Coloured values"], help = L["Draw the values in the accent colour."], disableWhen = statsOff },
+		{ type = "toggle", key = "statsShort", label = L["Short labels"], help = L["Abbreviate the stat names."], disableWhen = statsOff },
+		slider("statsScale", L["Stats size"], L["The size of the stats text, in percent."], 5, statsOff),
+		slider("statsInterval", L["Frame rate and latency every"], L["Seconds between frame rate and latency updates."], 1, statsOff),
+		{ type = "toggle", key = "statsNetLabels", label = L["Latency labels"], help = L["Off shows only the milliseconds for home and world latency."], disableWhen = statsOff },
+		{ type = "header", label = L["Dialog keys"] },
+		{ type = "toggle", key = "dialogKeys", label = L["Space continues dialogs"], help = L["Space accepts, continues or hands in a quest and picks the first choice. Out of combat."], disableWhen = isOff },
+		{ type = "toggle", key = "numberKeys", label = L["Number keys pick choices"], help = L["Keys 1 to 9 pick the matching gossip or quest choice. Out of combat."], disableWhen = isOff },
+		{ type = "toggle", key = "confirmPopups", label = L["Space confirms popups"], help = L["Space clicks the first button of a popup. Out of combat."], disableWhen = isOff },
+		{ type = "header", label = L["Tools"] },
+		{ type = "toggle", key = "hideScreenshot", label = L["Hide screenshot notice"], help = L["Hide the message that says a screenshot was saved."], disableWhen = isOff },
+		{ type = "toggle", key = "announceReset", label = L["Announce instance resets"], help = L["Tell your party or raid when you reset instances."], disableWhen = isOff },
+		{ type = "toggle", key = "autoLog", label = L["Combat log in instances"], help = L["Start the combat log as you enter an instance and stop it as you leave."], disableWhen = isOff },
+		{ type = "dropdown", key = "autoLogWhere", label = L["Log in"], help = L["The instances that start the combat log."], options = {
+			{ value = "raid", label = L["Raids"] }, { value = "party", label = L["Dungeons"] }, { value = "both", label = L["Raids and dungeons"] }, { value = "all", label = L["All instances"] },
+		}, disableWhen = logOff },
+		{ type = "toggle", key = "autoLogNotice", label = L["Combat log notice"], help = L["Say in chat when the combat log starts or stops."], disableWhen = logOff },
+		{ type = "toggle", key = "autoLogDelay", label = L["Keep logging 30 seconds"], help = L["Stop the combat log 30 seconds after you leave, for recording tools that read it."], disableWhen = logOff },
+		{ type = "dropdown", key = "hideToasts", label = L["Hide toasts"], help = L["Hide the loot or achievement toasts that pop up on screen."], options = {
+			{ value = "none", label = L["None"] }, { value = "loot", label = L["Loot"] }, { value = "achievements", label = L["Achievements"] }, { value = "both", label = L["Both"] },
+		}, disableWhen = isOff },
+		slider("rollsClose", L["Close loot rolls after"], L["Seconds before the loot rolls window closes once you open it; zero leaves it open."], 1, isOff),
+		{ type = "toggle", key = "trainAll", label = L["Train all button"], help = L["A Train all button at trainers that learns everything you can afford."], disableWhen = isOff },
+		{ type = "toggle", key = "autoOpen", label = L["Open containers"], help = L["Open boxes and bags in your bags, out of combat and away from merchants, mail, banks and trades."], disableWhen = isOff },
+		{ type = "toggle", key = "openSkipWarbound", label = L["Leave warbound containers"], help = L["Leave containers bound to your account for your other characters."], disableWhen = when("autoOpen") },
+		{ type = "toggle", key = "autoUnwrap", label = L["Unwrap new mounts and toys"], help = L["Clear the gift wrap from new mounts and toys in the collections."], disableWhen = isOff },
+		{ type = "toggle", key = "hideTransforms", label = L["Hide item transforms"], help = L["Take off costume, food and toy transforms out of combat. Disguises stay."], disableWhen = isOff },
+		{ type = "toggle", key = "cdCommand", label = L["/cd opens the cooldown manager"], help = L["Type /cd to open or close the game's cooldown manager settings."], disableWhen = isOff },
+		{ type = "header", label = L["Waypoints"] },
+		{ type = "toggle", key = "wayCommand", label = L["/way command"], help = L["Type /way x y, or /way zone x y, to pin a map waypoint and print its link."], disableWhen = isOff },
+		{ type = "toggle", key = "wayPaste", label = L["/kpaste command"], help = L["Paste /way lines; each pin follows the last as you arrive. /kpaste macro makes a bar macro."], disableWhen = isOff },
+		{ type = "toggle", key = "wayArrival", label = L["Arrival message"], help = L["Say in chat when you reach a /way or /kpaste pin."], disableWhen = function(s) return not (s.enabled and (s.wayCommand or s.wayPaste)) end },
+		{ type = "toggle", key = "wayManual", label = L["Arrival at your own pins"], help = L["Also say when you reach a pin you placed on the map yourself."], disableWhen = isOff },
+		{ type = "note", label = L["Turning /way, /kpaste or /cd off frees its name; one you typed since the last reload stays until you reload."] },
+		{ type = "header", label = L["Windows"] },
+		{ type = "toggle", key = "mapSidebars", label = L["Clear world map sidebars"], help = L["Lighten the black bars beside the full-screen world map."], disableWhen = isOff },
+		slider("mapSidebarsOpacity", L["Sidebar opacity"], L["How dark the bars beside the full-screen map stay, in percent."], 5, when("mapSidebars")),
+		{ type = "toggle", key = "mapClickThrough", label = L["Click through sidebars"], help = L["Let clicks and camera turns pass through the bars beside the map."], disableWhen = when("mapSidebars") },
+		{ type = "toggle", key = "ahCurrent", label = L["Current expansion at the auction house"], help = L["Tick the auction house's Current Expansion Only filter when it opens, if the game offers it."], disableWhen = isOff },
+		{ type = "toggle", key = "guildCover", label = L["Guild chat privacy cover"], help = L["Cover guild chat in the guild and communities window until you click it."], disableWhen = isOff },
+		{ type = "header", label = L["Raid tools"] },
+		{ type = "dropdown", key = "raidTools", label = L["Show raid tools"], help = L["Ready check, role check, pull timer and markers. Raids: leader and assistants only, unless Always."], options = {
+			{ value = "never", label = L["Never"] }, { value = "raid", label = L["In a raid"] }, { value = "group", label = L["In a party or raid"] }, { value = "always", label = L["Always"] },
+		}, disableWhen = isOff },
+		{ type = "dropdown", key = "raidToolsShow", label = L["Raid tools show"], help = L["Every tool in one panel, the group tools and the markers in two panels, or only one of them."], options = {
+			{ value = "all", label = L["One panel"] }, { value = "two", label = L["Two panels"] }, { value = "group", label = L["Group tools only"] }, { value = "markers", label = L["Markers only"] },
+		}, disableWhen = raidOff },
+		{ type = "toggle", key = "raidToolsCollapsed", label = L["Start collapsed"], help = L["Show only the raid tools button until you click it or press its key."], disableWhen = raidOff },
+		{ type = "dropdown", key = "raidToolsLayout", label = L["Raid tools layout"], help = L["The buttons in one row or one column."], options = {
+			{ value = "row", label = L["Row"] }, { value = "column", label = L["Column"] },
+		}, disableWhen = raidOff },
+		{ type = "dropdown", key = "raidToolsGrow", label = L["Raid tools open"], help = L["Which way the tools open from their button."], options = {
+			{ value = "downright", label = L["Down and right"] }, { value = "downleft", label = L["Down and left"] }, { value = "upright", label = L["Up and right"] }, { value = "upleft", label = L["Up and left"] },
+		}, disableWhen = raidOff },
+		{ type = "toggle", key = "raidToolsReady", label = L["Open on ready check"], help = L["Open the raid tools when a ready check starts."], disableWhen = raidOff },
+		{ type = "note", label = L["Bind a key to Toggle raid tools in the game's key bindings, under KstyleUI. Size it in Layout Mode."] },
+		{ type = "toggle", key = "quickFire", label = L["Quick fire world markers"], help = L["Keys to place, undo or clear world markers at the pointer, in combat too. Bind them under KstyleUI."], disableWhen = isOff },
 		{ type = "header", label = L["Alerts"] },
 		{ type = "toggle", key = "quietErrors", label = L["Quiet error text"], help = L["Hide the red cooldown, range and resource errors that flood the screen in combat."], disableWhen = isOff },
 		{ type = "toggle", key = "autoDelete", label = L["Fill in the delete word"], help = L["Type the confirmation word when you delete a good item. You still click Yes."], disableWhen = isOff },
 		{ type = "header", label = L["Resurrection"] },
 		{ type = "toggle", key = "autoResurrect", label = L["Accept resurrection"], help = L["Accept a resurrection out of combat the moment it is offered, unless the game makes you wait."], disableWhen = isOff },
+		{ type = "header", label = L["Movement alert"] },
+		{ type = "toggle", key = "moveAlert", label = L["Movement alert"], help = L["Count down your movement spells while they cool down. Move it in Layout Mode."], disableWhen = isOff },
 	}
+	local bar = {}
+	K.Widgets.BarRows(bar, "", { keys = { texture = "moveTexture" }, colors = false, disableWhen = barOff })
+	for _, row in ipairs(ns.MoveRows(moveOff)) do ns.schema[#ns.schema + 1] = row end
+	for _, row in ipairs({
+		{ type = "toggle", key = "moveCombat", label = L["Only in combat"], help = L["Show the movement alert only while you are in combat."], disableWhen = moveOff },
+		{ type = "dropdown", key = "moveMode", label = L["Show as"], help = L["Text with the spell's name, the time alone, an icon or a bar."], options = {
+			{ value = "text", label = L["Name and time"] }, { value = "timeFirst", label = L["Time and name"] }, { value = "time", label = L["Time left"] },
+			{ value = "icon", label = L["Icon"] }, { value = "bar", label = L["Bar"] },
+		}, disableWhen = moveOff },
+		slider("moveSize", L["Movement text size"], L["The size of the movement alert's text."], 1, iconOff),
+		slider("moveIconSize", L["Movement icon size"], L["The size of the movement alert's icon."], 1, function(s) return moveOff(s) or s.moveMode ~= "icon" end),
+		{ type = "toggle", key = "moveDecimal", label = L["Tenths under 3 seconds"], help = L["Show the last three seconds in tenths."], disableWhen = moveOff },
+		bar[1],
+		{ type = "toggle", key = "moveBarIcon", label = L["Icon on the bar"], help = L["Show the spell's icon at the bar's left end."], disableWhen = barOff },
+		{ type = "toggle", key = "moveBarText", label = L["Time on the bar"], help = L["Show the time left after the spell's name on the bar."], disableWhen = barOff },
+		{ type = "toggle", key = "moveClass", label = L["Movement alert in class colour"], help = L["Use your class colour for the movement alert's text or bar."], disableWhen = iconOff },
+		{ type = "color", key = "moveColor", label = L["Movement alert colour"], help = L["The colour of the movement alert's text or bar."], disableWhen = function(s) return iconOff(s) or s.moveClass end },
+		{ type = "dropdown", key = "moveSound", label = L["Ready sound"], help = L["The sound that plays when a movement spell is ready."], options = sounds,
+			disableWhen = function(s) return moveOff(s) or s.moveVoice ~= -1 end },
+		{ type = "dropdown", key = "moveVoice", label = L["Speak when ready"], help = L["Say the spell's name in this voice when it is ready, instead of the sound."], options = ns.VoiceOptions(), disableWhen = moveOff },
+		slider("moveVolume", L["Speech volume"], L["How loud the spoken name is, in percent."], 5, voiceOff),
+		{ type = "header", label = L["Target distance"] },
+		{ type = "toggle", key = "rangeText", label = L["Target distance"], help = L["How many yards away your target is, from the spells you know. Move it in Layout Mode."], disableWhen = isOff },
+		{ type = "dropdown", key = "rangeFormat", label = L["Distance format"], help = L["A band of yards, its lower end with a plus, or the lower end alone."], options = {
+			{ value = "range", label = "30-35" }, { value = "plus", label = "30+" }, { value = "min", label = "30" },
+		}, disableWhen = distanceOff },
+		{ type = "dropdown", key = "rangeAlign", label = L["Text align"], help = L["Line the distance up to the left, the centre or the right of its box."], options = {
+			{ value = "LEFT", label = L["Left"] }, { value = "CENTER", label = L["Centre"] }, { value = "RIGHT", label = L["Right"] },
+		}, disableWhen = distanceOff },
+		slider("rangeSize", L["Distance text size"], L["The size of the target distance text."], 1, distanceOff),
+	}) do ns.schema[#ns.schema + 1] = row end
+	ns.schema.preview = ns.Preview
 	return ns.schema
 end

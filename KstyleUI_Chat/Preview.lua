@@ -15,6 +15,9 @@ function Preview.Build(...)
 	local UNDERLINE = 1
 	local CHEVRON = 8
 	local LINE_GAP = 3
+	local SLOT, TILE, GLYPH, SPARE = 32, 20, 8, 6
+	local MENU, FRIENDS = "ChatFrameMenuButton", "QuickJoinToastButton"
+	local NAMES = { channels = { "ChatFrameChannelButton" }, voice = { "ChatFrameToggleVoiceDeafenButton", "ChatFrameToggleVoiceMuteButton" }, menu = { MENU } }
 
 	local SAMPLES = {
 		{ event = "CHAT_MSG_GUILD", channel = "|Hchannel:GUILD|h[" .. L["Guild"] .. "]|h ", name = "Thargor", class = "WARRIOR", text = L["LFM tank for Razorfen Kraul"] },
@@ -50,12 +53,76 @@ function Preview.Build(...)
 		return Format.Decorate(text, sample.event, opts)
 	end
 
+	local function Tile(self, n, kind, scale)
+		local tile = self.icons[n]
+		if not tile then
+			tile = CreateFrame("Frame", nil, self)
+			tile:SetFrameLevel(self.glass:GetFrameLevel() + 3)
+			tile.chrome = Widgets.Chrome(tile, { shape = "tile", fill = "buttonFill", shadow = false })
+			tile.glyph = tile:CreateTexture(nil, "OVERLAY")
+			tile.glyph:SetPoint("CENTER", tile, "CENTER")
+			Widgets.Tint(tile.glyph, "text")
+			self.icons[n] = tile
+		end
+		tile.glyph:SetShown(kind == MENU or kind == "scroll")
+		tile.glyph:SetTexture((Tokens.Texture(kind == MENU and "glyphClose" or "glyphChevron")))
+		tile.glyph:SetRotation(kind == MENU and math.pi / 4 or 0)
+		Widgets.Size(tile.glyph, GLYPH * scale, GLYPH * scale)
+		Widgets.Size(tile, TILE * scale, TILE * scale)
+		tile:SetAlpha(self.glass:GetAlpha())
+		tile:Show()
+		return tile
+	end
+
+	local function Buttons(self, settings, cx, right, from, foot)
+		local n, scale = 0, tonumber(settings.sideScale) or 1
+		local pitch, edge = SLOT * scale + (tonumber(settings.sideSpacing) or 0), right and "RIGHT" or "LEFT"
+		local x = right and -cx or cx
+		if settings.buttons == true then
+			local icons, ids, top, bottom, free = settings.sideIcons or {}, {}, {}, {}, {}
+			local spots = settings.sideFree == true and type(settings.sidePositions) == "table" and settings.sidePositions or {}
+			local function Add(list, name)
+				local spot = spots[name]
+				list = type(spot) == "table" and type(spot.x) == "number" and type(spot.y) == "number" and free or list
+				list[#list + 1] = name
+			end
+			for id in tostring(settings.sideOrder):gmatch("%a+") do ids[#ids + 1] = id end
+			if icons.friends ~= false then Add(top, FRIENDS) end
+			for i, id in ipairs(ids) do
+				for _, name in ipairs(icons[id] ~= false and NAMES[id] or {}) do Add(i == #ids and bottom or top, name) end
+			end
+			if settings.sideScroll == true then table.insert(bottom, "scroll") end
+			for side, list in ipairs({ top, bottom }) do
+				for i, kind in ipairs(list) do
+					n = n + 1
+					local tile = Tile(self, n, kind, scale)
+					tile:ClearAllPoints()
+					Widgets.Point(tile, "CENTER", self.glass, (side == 1 and "TOP" or "BOTTOM") .. edge, x, side == 1 and -(from + (i - 0.5) * pitch) or foot + (#list - i + 0.5) * pitch)
+				end
+			end
+			local w, h = self.glass:GetWidth(), self.glass:GetHeight()
+			local left = (right and w - cx or cx) - ((tonumber(settings.sideWidth) or ns.defaults.sideWidth) - SPARE) / 2
+			local below = from + (top[1] == FRIENDS and pitch or 0)
+			for _, name in ipairs(free) do
+				n = n + 1
+				local tile = Tile(self, n, name, scale)
+				local px, py = left + spots[name].x, spots[name].y - below
+				if w > 0 and h > 0 then px, py = math.min(w, math.max(0, px)), math.max(-h, math.min(0, py)) end
+				tile:ClearAllPoints()
+				Widgets.Point(tile, "CENTER", self.glass, "TOPLEFT", px, py)
+			end
+		end
+		for i = n + 1, #self.icons do self.icons[i]:Hide() end
+	end
+
 	local function Refresh(self)
 		local settings = ns.Settings()
-		local glass = self.glass
+		local glass, card = self.glass, self.card
 		local r, g, b = Tokens.Color("surface")
-		glass.chrome:SetFillRGBA(r, g, b, settings.panelOpacity)
-		glass.chrome:SetShadow(settings.shadow == true)
+		for _, panel in ipairs({ card, self.strip }) do
+			panel.chrome:SetFillRGBA(r, g, b, settings.panelOpacity)
+			panel.chrome:SetShadow(settings.shadow == true)
+		end
 		local path, size, flags, tabSize, tabPath = ns.Frames.Fonts(settings)
 		local ar, ag, ab = ns.Accent(settings)
 		local style = settings.tabStyle
@@ -64,17 +131,38 @@ function Preview.Build(...)
 		local pad = Tokens.Size("gapSmall") * ns.Frames.TilePad(settings) / ns.defaults.tabPadding
 		local top = ((tonumber(settings.tabHeight) or ns.defaults.tabHeight) - 2) / 2
 		local room = settings.buttons == true and (tonumber(settings.sideWidth) or ns.defaults.sideWidth) or 0
-		local band = settings.sideRight == true and room or 0
-		local left, always = inset + room - band, settings.editBox == "always"
+		local beside = room > 0 and (settings.sideStyle == "glass" or settings.sideStyle == "bare")
+		local strip = beside and 2 * inset + room - SPARE or 0
+		local apart = beside and strip + (tonumber(settings.sideGap) or 0) or 0
+		local right = settings.sideRight == true
+		room = beside and 0 or room
+		local band = right and room + apart or 0
+		local separate = settings.editFont ~= "messages" or settings.editFontSize ~= ns.FOLLOW
+		local left, always = inset + (right and 0 or room + apart), settings.editBox == "always" or separate
 		local tall = tonumber(settings.editHeight) or ns.defaults.editHeight
 		local lift = always and settings.inputOnTop == true and tall + inset or 0
+		local above = settings.tabsAbove == true and top * 2 or 0
+		local edge = inset + (beside and band or room)
 		if settings.idleFade == true or self.faded then
 			self.faded = settings.idleFade == true
-			glass:SetAlpha(self.faded and 1 - math.min(1, tonumber(settings.idleStrength) or 0) or 1)
+			local alpha = self.faded and 1 - math.min(1, tonumber(settings.idleStrength) or 0) or 1
+			glass:SetAlpha(alpha)
+			card:SetAlpha(alpha)
+			self.strip:SetAlpha(alpha)
 		end
+		card:ClearAllPoints()
+		Widgets.Point(card, "TOPLEFT", glass, "TOPLEFT", right and 0 or apart, -above)
+		Widgets.Point(card, "BOTTOMRIGHT", glass, "BOTTOMRIGHT", right and -apart or 0, 0)
+		self.strip:ClearAllPoints()
+		Widgets.Point(self.strip, right and "TOPRIGHT" or "TOPLEFT", glass, right and "TOPRIGHT" or "TOPLEFT", 0, -above)
+		Widgets.Point(self.strip, right and "BOTTOMRIGHT" or "BOTTOMLEFT", glass, right and "BOTTOMRIGHT" or "BOTTOMLEFT", 0, 0)
+		self.strip:SetWidth(math.max(1, strip))
+		self.strip:SetShown(beside and settings.sideStyle == "glass" and not ns.Panel.Bare(settings))
+		Buttons(self, settings, beside and strip / 2 or inset + (room - SPARE) / 2, right, top * 2 + inset, inset)
+		self.divider:SetShown(above == 0)
 		self.divider:ClearAllPoints()
 		Widgets.Point(self.divider, "TOPLEFT", glass, "TOPLEFT", left, -(top * 2))
-		Widgets.Point(self.divider, "TOPRIGHT", glass, "TOPRIGHT", -(inset + room), -(top * 2))
+		Widgets.Point(self.divider, "TOPRIGHT", glass, "TOPRIGHT", -edge, -(top * 2))
 		self.lines[1]:ClearAllPoints()
 		Widgets.Point(self.lines[1], "TOPLEFT", glass, "TOPLEFT", left, -(top * 2 + inset + lift))
 		self.edit:ClearAllPoints()
@@ -86,9 +174,15 @@ function Preview.Build(...)
 		Widgets.Point(self.edit, "RIGHT", glass, "RIGHT", -(inset + band), 0)
 		self.edit:SetHeight(Widgets.Snap(self.edit, tall))
 		self.edit:SetShown(always)
+		self.edit.text:SetShown(separate)
+		if separate then
+			local editPath, editSize = ns.Frames.EditFont(settings, path, size)
+			ns.Frames.ApplyFont(self.edit.text, editPath, editSize, flags)
+			self.edit.text:SetText((type(CHAT_SAY_SEND) == "string" and CHAT_SAY_SEND or "") .. L["Anyone for the croc hunt?"])
+		end
 		local x = left
-		local right = glass:GetWidth() > 0 and glass:GetWidth() - inset - room or math.huge
-		local spare = right - x
+		local limit = glass:GetWidth() > 0 and glass:GetWidth() - edge or math.huge
+		local spare = limit - x
 		for i, tab in ipairs(self.tabs) do
 			ns.Frames.ApplyFont(tab, tabPath, tabSize, flags)
 			local label = TABS[i]
@@ -96,12 +190,16 @@ function Preview.Build(...)
 			spare = spare - Widgets.TextWidth(tab, TAB_WIDTH)
 		end
 		local fits = spare >= math.min(gap, Tokens.Size("gapSmall")) * (#self.tabs - 1)
-		local stop = fits and right or right - CHEVRON - Tokens.Size("gapSmall")
+		local stop = fits and limit or limit - CHEVRON - Tokens.Size("gapSmall")
 		gap = math.max(math.min(gap, Tokens.Size("gapSmall")), math.min(gap, spare / (#self.tabs - 1)))
 		for i, tab in ipairs(self.tabs) do
 			tab:ClearAllPoints()
 			Widgets.Point(tab, "LEFT", glass, "TOPLEFT", x, -top)
 			local width = Widgets.TextWidth(tab, TAB_WIDTH)
+			if above > 0 or tab.sized then
+				tab.sized = above > 0
+				tab:SetSize(tab.sized and width + Widgets.TrackPad(tab) or 0, tab.sized and top * 2 or 0)
+			end
 			if i == 1 then
 				self.fill:ClearAllPoints()
 				Widgets.Point(self.fill, "LEFT", tab, "LEFT", -pad, 0)
@@ -116,7 +214,7 @@ function Preview.Build(...)
 			tab:SetTextColor(Widgets.Rgba(color))
 		end
 		self.more:SetShown(not fits)
-		Widgets.Point(self.more, "RIGHT", glass, "TOPRIGHT", -(inset + room), -top)
+		Widgets.Point(self.more, "RIGHT", glass, "TOPRIGHT", -edge, -top)
 		Widgets.Tint(self.more, ns.Frames.TabLook(style, false) or "text")
 		local _, underlined, filled = ns.Frames.TabLook(style, true)
 		ns.Frames.PaintUnderline(self.underline, self.glow, underlined)
@@ -140,10 +238,13 @@ function Preview.Build(...)
 		local frame = CreateFrame("Frame", nil, parent)
 		Widgets.Fill(frame, parent, 0, 0, 0, 0)
 		local pad = Tokens.Size("gapMedium")
-		local glass = Widgets.Panel(frame, {})
+		frame.card = Widgets.Panel(frame, {})
+		frame.strip = Widgets.Panel(frame, {})
+		local glass = CreateFrame("Frame", nil, frame)
+		glass:SetFrameLevel(frame.card:GetFrameLevel() + 2)
 		Widgets.Point(glass, "TOPLEFT", frame, "TOPLEFT", pad, -pad)
 		Widgets.Point(glass, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -pad, pad)
-		frame.glass = glass
+		frame.glass, frame.icons = glass, {}
 		frame.fill = CreateFrame("Frame", nil, glass)
 		frame.fill.chrome = Widgets.Chrome(frame.fill, { shape = "tile", fill = "buttonFill", shadow = false })
 		frame.fill.wash = frame.fill:CreateTexture(nil, "ARTWORK")
@@ -151,6 +252,10 @@ function Preview.Build(...)
 		frame.fill.wash:SetColorTexture(Tokens.Color("white"))
 		frame.edit = CreateFrame("Frame", nil, glass)
 		frame.edit.chrome = Widgets.Chrome(frame.edit, { shape = "tile", fill = "buttonFill", shadow = false })
+		frame.edit.text = Widgets.FontString(frame.edit, "OVERLAY")
+		Widgets.Point(frame.edit.text, "LEFT", frame.edit, "LEFT", Tokens.Size("gapSmall"), 0)
+		Widgets.Point(frame.edit.text, "RIGHT", frame.edit, "RIGHT", -Tokens.Size("gapSmall"), 0)
+		frame.edit.text:SetJustifyH("LEFT")
 		local top = CreateFrame("Frame", nil, glass)
 		top:SetAllPoints(glass)
 		top:SetFrameLevel(frame.fill:GetFrameLevel() + 1)

@@ -7,7 +7,7 @@ ALLOWED = (
     "Media/",
     "docs/media/readme/", "docs/media/marketing/", "docs/media/plates/", "docs/media/faq/",
     "docs/store/", "docs/design/mockups/",
-    "KstyleUI_Minimap/Media/",
+    "KstyleUI_DataBars/Media/", "KstyleUI_Minimap/Media/",
     "Tools/icons/setB/Icons/", "Tools/medallions/anchors/", "Tools/media/materials/",
     "Tools/regression/fixtures/paths/", "Tools/spikes/KstyleUI_Spike/Media/",
 )

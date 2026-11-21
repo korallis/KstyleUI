@@ -28,7 +28,7 @@ local MOVE_STOP = { "PLAYER_STOPPED_MOVING", "PLAYER_CONTROL_GAINED" }
 
 local running = false
 local original
-local configHooked, zoomHooked = false, false
+local configHooked, zoomHooked, compartmentHooked = false, false, false
 local waitingForEditMode = false
 local queueFaded, queueHooked = false, false
 local checkAdded = false
@@ -240,6 +240,7 @@ local function EnterCombat()
 		Column.Drag(button, false, true)
 	end
 	SecureClick.Detach()
+	ns.Micro.Close()
 	SyncCoords()
 end
 
@@ -327,7 +328,7 @@ local function OnSliderZoom(share)
 end
 
 local function ZoneTooltip(tip, frame)
-	tip:SetOwner(frame, "ANCHOR_LEFT")
+	tip:SetOwner(frame, "ANCHOR_LEFT", 0, 0, Settings.Get("tooltipScale"))
 	local zone = GetZoneText and GetZoneText()
 	tip:AddTitle(zone or L["Zone"])
 	local sub = GetSubZoneText and GetSubZoneText()
@@ -356,7 +357,7 @@ local function Lockouts(tip, redraw)
 end
 
 local function ClockTooltip(tip, frame, redraw)
-	tip:SetOwner(frame, "ANCHOR_LEFT")
+	tip:SetOwner(frame, "ANCHOR_LEFT", 0, 0, Settings.Get("tooltipScale"))
 	tip:AddTitle(L["Time"])
 	local hours = Data.Uses24(Settings.Get("clock.mode")) and "24" or "12"
 	tip:AddDoubleLine(L["Local time"], Data.Clock("local" .. hours) or "")
@@ -367,7 +368,8 @@ local function ClockTooltip(tip, frame, redraw)
 	end
 end
 
-local function PerfTooltip(tip, _, redraw)
+local function PerfTooltip(tip, frame, redraw)
+	tip:SetOwner(frame, "ANCHOR_LEFT", 0, 0, Settings.Get("tooltipScale"))
 	tip:AddTitle(L["Instance lockouts"])
 	Lockouts(tip, redraw)
 end
@@ -470,6 +472,7 @@ local function WatchHover(frame, elapsed)
 end
 
 function Map.CheckHover()
+	ns.Micro.CheckHover()
 	if running and Map.face and Map.face.revealed then
 		graceLeft = HOVER_GRACE
 		Map.face.overlay:SetScript("OnUpdate", WatchHover)
@@ -479,6 +482,12 @@ end
 local function HookHover(frame)
 	frame:HookScript("OnEnter", Reveal)
 	frame:HookScript("OnLeave", Map.CheckHover)
+end
+
+local function OnMapClick(_, button)
+	if running and button == "MiddleButton" and Settings.Get("microMenu") then
+		ns.Micro.Toggle(Map.holder)
+	end
 end
 
 local function CollectButtons()
@@ -497,6 +506,7 @@ function Map.Refresh()
 		return
 	end
 	SyncRotate()
+	if not Settings.Get("microMenu") then ns.Micro.Close() end
 	face:Paint()
 	if Face.Round() then K.Layout.Restore(KEY) end
 	face:Layout()
@@ -551,14 +561,11 @@ local function Build()
 	SecureClick.Bind(face.clockHit, function()
 		return TimeManagerClockButton, GameTimeFrame
 	end, ClockTooltip)
-	Map.column = Column.New(face)
+	Map.column = Column.New(face, { hook = HookHover })
 	Map.drawer = Drawer.New(Map.column)
 	Map.column.drawer = Map.drawer
 	for _, frame in ipairs({ face.zoneHit, face.clockHit, face.perfHit, face.zoom }) do
 		HookHover(frame)
-	end
-	for _, button in pairs(Map.column.buttons) do
-		HookHover(button)
 	end
 	holder:HookScript("OnSizeChanged", Relayout)
 	hooksecurefunc(holder, "SetPoint", function(_, point, _, _, x, y)
@@ -694,6 +701,7 @@ function Adopt()
 	if not hoverHooked and type(minimap.HookScript) == "function" then
 		hoverHooked = true
 		HookHover(minimap)
+		minimap:HookScript("OnMouseUp", OnMapClick)
 	end
 	Log("Minimap moved into KstyleUI's square frame with the square mask")
 end
@@ -773,6 +781,11 @@ local function HookBlizzard()
 		zoomHooked = true
 		hooksecurefunc(minimap, "SetZoom", OnBlizzardZoom)
 	end
+	local compartment = AddonCompartmentFrame
+	if not compartmentHooked and compartment and type(compartment.UpdateDisplay) == "function" then
+		compartmentHooked = true
+		hooksecurefunc(compartment, "UpdateDisplay", RefreshColumn)
+	end
 end
 
 local function RegisterEvents()
@@ -837,9 +850,9 @@ local function RegisterCallbacks()
 	Callbacks.Register("LayoutChanged", MODULE, function(_, key)
 		if key == "databars.strip" then ClockChanged() end
 	end)
-	Callbacks.Register("SettingChanged", MODULE, function(_, module)
+	Callbacks.Register("SettingChanged", MODULE, function(_, module, key, value)
 		if module == MODULE then
-			Map.Refresh()
+			if not Settings.Mirror(key, value) then Map.Refresh() end
 		elseif module == "DataBars" then
 			ClockChanged()
 		end
@@ -887,6 +900,7 @@ function Map.Disable()
 	SyncPerf()
 	SyncRotate()
 	SecureClick.SetActive(false)
+	ns.Micro.Close()
 	if Map.drawer then
 		Map.drawer:Sync(false)
 	end

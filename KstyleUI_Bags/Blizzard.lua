@@ -21,7 +21,7 @@ local FALLBACK_CONTAINER_FRAMES = 13
 
 local installed = false
 local active = false
-local pending
+local pending, source
 local scheduled = false
 local handlers = {}
 
@@ -88,22 +88,22 @@ end
 
 local function Flush()
 	scheduled = false
-	local action = pending
-	pending = nil
+	local action, from = pending, source
+	pending, source = nil, nil
 	if not active or not action then
 		return
 	end
 	local handler = handlers[action]
 	if handler then
-		K.Call(handler, Blizzard.AnyOpen())
+		K.Call(handler, Blizzard.AnyOpen(), from)
 	end
 end
 
-local function Request(action)
+local function Request(action, frame)
 	if not active then
 		return
 	end
-	pending = action
+	pending, source = action, frame
 	if scheduled then
 		return
 	end
@@ -123,8 +123,8 @@ local function Install()
 	for _, hook in ipairs(HOOKS) do
 		local name, action = hook[1], hook[2]
 		if type(_G[name]) == "function" then
-			hooksecurefunc(name, function()
-				Request(action)
+			hooksecurefunc(name, function(frame)
+				Request(action, frame)
 			end)
 		else
 			ns.Log(name .. " is missing; the bag window does not follow it")

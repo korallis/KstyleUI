@@ -45,6 +45,10 @@ function Preview.Sample(parent)
 			height = height + row + gap
 		end
 		Widgets.Size(self, width + 2 * Tokens.Size("gapLarge"), height)
+		for i, key in pairs({ [2] = K.Theme.Class() or "", [3] = "MANA" }) do
+			local c = K.Theme.Palette(key)
+			if c then samples[i]:SetTextColor(c.r, c.g, c.b) else Widgets.TextColor(samples[i], i == 2 and "textEmphasis" or "text") end
+		end
 	end
 	frame.Restyle = frame.Refresh
 	Widgets.Track(frame)

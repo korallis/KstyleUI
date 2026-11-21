@@ -38,7 +38,7 @@ end
 
 function ns.UpdateHotkey(b)
 	local def = b.kbar.def
-	local text = ns.ShortKey(ns.FirstKey(def.binding .. b.index), BindingText)
+	local text = K.Widgets.ShortKey(ns.FirstKey(def.binding .. b.index), BindingText)
 	local unbound = ns.Config("bindingHints") and text == "" and b.kind == "action" and b.hasAction ~= false
 	b.keyHasAction = b.hasAction
 	b:SetHotkey(unbound and "-" or text)
@@ -54,6 +54,7 @@ function ns.UpdateHotkeys()
 			end
 		end
 	end
+	K.Widgets.SetActionKeys(ns.Button.KeyFor)
 end
 
 local function Apply()

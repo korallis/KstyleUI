@@ -55,7 +55,7 @@ local function Call(name, ...)
 		ns.Log("C_Bank." .. name .. " failed: " .. tostring(result))
 		return nil
 	end
-	return result
+	return result, true
 end
 
 local function Flag(name, ...)
@@ -129,11 +129,20 @@ function Bank.IsAtBank()
 	return atBank
 end
 
+local single = {}
+
 local function SelectedBags()
 	if not bankType then
 		return NONE
 	end
-	return TabBags(bankType)
+	local tabs, only = TabBags(bankType), Bank.window and Bank.window.onlyBag
+	for _, bag in ipairs(only and tabs or NONE) do
+		if bag == only then
+			single[1] = bag
+			return single
+		end
+	end
+	return tabs
 end
 
 local function FirstType()
@@ -201,25 +210,6 @@ local function BagTooltip(button)
 	tooltip:Show()
 end
 
-local function HideTooltip()
-	if type(GameTooltip_Hide) == "function" then
-		GameTooltip_Hide()
-	end
-end
-
-local function NewBagSlot(parent, id)
-	local slot = Slot.New(parent, id)
-	local button = slot.button
-	button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-	button:RegisterForDrag("LeftButton")
-	button:SetScript("OnClick", PickupBag)
-	button:SetScript("OnDragStart", PickupBag)
-	button:SetScript("OnReceiveDrag", PickupBag)
-	button:HookScript("OnEnter", BagTooltip)
-	button:HookScript("OnLeave", HideTooltip)
-	return slot
-end
-
 local function UpdateBankBags(win)
 	local strip = win.bankBags
 	local kind = bankType or FirstType()
@@ -232,7 +222,7 @@ local function UpdateBankBags(win)
 			local index = id - 1
 			local slot = strip.slots[index]
 			if not slot then
-				slot = NewBagSlot(strip.frame, id)
+				slot = Slot.NewBag(strip.frame, id, PickupBag, BagTooltip)
 				strip.slots[index] = slot
 			end
 			local bought = id <= purchased
@@ -275,21 +265,7 @@ local function Below(win, content, top, width)
 	if not strip.frame:IsShown() then
 		return top
 	end
-	local size = Widgets.Snap(win.panel, Tokens.Size("rowHeight"))
-	local gap = Widgets.Snap(win.panel, Tokens.Size("gapSmall"))
-	strip.frame:ClearAllPoints()
-	strip.frame:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -top)
-	strip.frame:SetSize(max(1, width), size)
-	local x = 0
-	for _, slot in ipairs(strip.slots) do
-		if slot.button:IsShown() then
-			Slot.Layout(slot, size)
-			slot.button:ClearAllPoints()
-			slot.button:SetPoint("TOPLEFT", strip.frame, "TOPLEFT", x, 0)
-			x = x + size + gap
-		end
-	end
-	return top + size + Widgets.Snap(win.panel, Tokens.Size("gapMedium"))
+	return Slot.Row(win.panel, strip.frame, strip.slots, content, top, width)
 end
 
 local function Refreshed(win)
@@ -297,9 +273,9 @@ local function Refreshed(win)
 	UpdateBankBags(win)
 end
 
-local function Closed()
+local function Closed(win)
 	local wasOpen = open
-	open = false
+	open, win.onlyBag = false, nil
 	if wasOpen and atBank then
 		Call("CloseBankFrame")
 	end
@@ -311,6 +287,9 @@ function Bank.SelectType(kind)
 	end
 	bankType = kind
 	local window = Bank.window
+	if window then
+		window.onlyBag = nil
+	end
 	if window and open then
 		window:Refresh(true)
 	end
@@ -327,8 +306,12 @@ function Bank.Build()
 		title = L["Bank"],
 		position = Bank.POSITION,
 		columns = "bankColumns",
+		nest = "bankNestExpansion",
 		canDrop = Bank.IsAtBank,
 		sections = { { bags = SelectedBags, free = true, categories = true } },
+		listTabs = function()
+			return bankType and TabBags(bankType) or NONE
+		end,
 		sort = Bank.Sort,
 		onClosed = Closed,
 		above = Above,
@@ -376,8 +359,47 @@ function Bank.Open()
 	window:Open()
 end
 
+local COPPER_PER_GOLD = 10000
+local visit = 0
+
+local function KeepGold()
+	visit = visit + 1
+	if not Settings.Get("warbandGold") then
+		return
+	end
+	local this = visit
+	K.Combat.Queue(function()
+		if not atBank or this ~= visit or not Settings.Get("warbandGold") then
+			return
+		end
+		local amount = tonumber(Settings.Get("warbandGoldAmount"):match("^%s*(%d+)%s*$"))
+		local _, account = Types()
+		if not amount or not Flag("DoesBankTypeSupportMoneyTransfer", account) then
+			ns.Log("gold stays put: no whole number of gold to keep, or the Warband bank cannot move money")
+			return
+		end
+		local money = type(GetMoney) == "function" and Data.Plain(GetMoney(), "number")
+		local target = amount * COPPER_PER_GOLD
+		if not money or money == target then
+			return
+		end
+		local moved, text, done
+		if money > target and Flag("CanDepositMoney", account) then
+			moved, text = money - target, L["Deposited %s into the Warband bank."]
+			done = select(2, Call("DepositMoney", account, moved))
+		elseif money < target and Flag("CanWithdrawMoney", account) then
+			moved, text = min(target - money, Data.Plain(Call("FetchDepositedMoney", account), "number") or 0), L["Withdrew %s from the Warband bank."]
+			done = moved > 0 and select(2, Call("WithdrawMoney", account, moved))
+		end
+		if done and Settings.Get("warbandGoldChat") then
+			K.Print(string.format(text, ns.Window.MoneyText(moved)))
+		end
+	end)
+end
+
 local function Opened()
 	atBank = true
+	KeepGold()
 	if not replaced or not Bank.window or afterVisit == "hide" then
 		return
 	end
@@ -450,6 +472,7 @@ end)
 ns.On("BAG_UPDATE_DELAYED", Refresh)
 ns.On("BAG_CONTAINER_UPDATE", Refresh)
 ns.On("BANK_TABS_CHANGED", Refresh)
+ns.On("EQUIPMENT_SETS_CHANGED", Refresh)
 ns.On("PLAYERBANKSLOTS_CHANGED", Refresh)
 ns.On("PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED", Refresh)
 ns.On("GET_ITEM_INFO_RECEIVED", InfoArrived)
@@ -559,6 +582,9 @@ function Bank.SettingsChanged(key)
 		return
 	end
 	local window = Bank.window
+	if window and key == "nearestCorner" then
+		window:HoldCorner()
+	end
 	if window and open then
 		window:Refresh(true)
 	elseif window then

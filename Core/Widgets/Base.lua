@@ -665,6 +665,18 @@ function Widgets.StyleText(text, role)
 	end
 end
 
+local styleText = Widgets.StyleText
+function Widgets.SetOutline(flags)
+	Widgets.StyleText = flags and function(text, role)
+		role = role or textRole[text] or "body"
+		textRole[text] = role
+		local path, size = Tokens.Font(role)
+		if role == "caps" and Widgets.CapsSized[text] ~= nil or not Widgets.ApplyFont(text, path, size, flags) then
+			return styleText(text, role)
+		end
+	end or styleText
+end
+
 local baseFont
 
 function Widgets.FontString(parent, layer)
@@ -2317,7 +2329,7 @@ function Chrome:PaintMaterial()
 	self.grain:SetShown(self.visible)
 end
 
-function Chrome:Paint()
+function Chrome:Paint(skipEdge)
 	if not self.fill then
 		return
 	end
@@ -2345,7 +2357,9 @@ function Chrome:Paint()
 	if self.gilt then
 		ShowOnce(self, "giltState", self.gilt, self.visible and self.ticksShown and not self.steel and not (self.frameReady and material and material.brackets))
 	end
-	self:PaintEdge()
+	if not skipEdge then
+		self:PaintEdge()
+	end
 end
 
 function Chrome:PaintEdge()

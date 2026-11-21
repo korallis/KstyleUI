@@ -57,7 +57,7 @@ local function PaintRim(chrome)
 	chrome:SetEdgeRGBA(r, g, b, a)
 end
 
-local function SetRim(chrome, r, g, b, a)
+local function SetRim(chrome, r, g, b, a, defer)
 	chrome.rimAccent = false
 	if Plain(r) and Plain(g) and Plain(b) then
 		local c = chrome.rimColor
@@ -66,7 +66,9 @@ local function SetRim(chrome, r, g, b, a)
 	else
 		chrome.rimSet = false
 	end
-	PaintRim(chrome)
+	if not defer then
+		PaintRim(chrome)
+	end
 end
 
 local function SetRimAccent(chrome, r, g, b, strength)
@@ -89,7 +91,7 @@ function Widgets.IconChrome(owner, opts)
 	chrome.rimSet, chrome.rimAccent = false, false
 	local paint = chrome.Paint
 	chrome.Paint = function(self)
-		paint(self)
+		paint(self, true)
 		PaintRim(self)
 	end
 	chrome.SetRim, chrome.SetRimAccent = SetRim, SetRimAccent
@@ -126,7 +128,7 @@ local function Accent(self)
 	return r, g, b
 end
 
-function IconButton:Paint()
+function IconButton:Paint(rim)
 	local hover, press = self.hoverT or 0, self.pressT or 0
 	local usable = self.usable and self:IsEnabled() ~= false
 	local cooling = self.cooling and self.realCooldown
@@ -150,7 +152,10 @@ function IconButton:Paint()
 		r, g, b, a = Widgets.Mix(r, g, b, a, pr, pg, pb, pa, press)
 		lift = DIM_FILL_LIFT * press
 	end
-	chrome:SetRim(r, g, b, a)
+	if rim then
+		r, g, b, a = Tokens.Color(rim)
+	end
+	SetRim(chrome, r, g, b, a, true)
 	local fr, fg, fb, fa = Tokens.Color(self.opts.fill or "buttonFill")
 	if lift > 0 then
 		local xr, xg, xb, xa = Tokens.Color("raised")
@@ -234,21 +239,33 @@ function IconButton:StyleCooldown(real)
 	end
 end
 
-local countdownFormatter
-function Widgets.CountdownFormat(cooldown)
+local countdownFormatters = {}
+function Widgets.CountdownFormat(cooldown, tenths, colour, below)
 	if type(cooldown.SetCountdownFormatter) ~= "function" then return end
 	local util, rounding = C_StringUtil, Enum and Enum.NumericRuleFormatRounding
-	if countdownFormatter == nil and util and type(util.CreateNumericRuleFormatter) == "function" and rounding then
+	local key = colour and (tenths or 0) .. ":" .. colour .. ":" .. below or tenths or 0
+	if countdownFormatters[key] == nil and util and type(util.CreateNumericRuleFormatter) == "function" and rounding then
 		local ok, formatter = pcall(function()
 			local made = util.CreateNumericRuleFormatter()
-			made:AddBreakpoint({ threshold = 0, step = 1, rounding = rounding.Up, min = 1, format = "%d" })
+			local cuts = { 0 }
+			if tenths then cuts[#cuts + 1] = tenths end
+			if colour and below < 60 then cuts[#cuts + 1] = below end
+			table.sort(cuts)
+			for i, from in ipairs(cuts) do
+				if from ~= cuts[i - 1] then
+					local fine = tenths and from < tenths
+					local format = fine and "%.1f" or "%d"
+					if colour and from < below then format = "|cff" .. colour .. format .. "|r" end
+					made:AddBreakpoint({ threshold = from, step = fine and 0.1 or 1, rounding = rounding.Up, min = not fine and 1 or nil, format = format })
+				end
+			end
 			made:AddBreakpoint({ threshold = 60, format = "%dm", components = { { div = 60, step = 1, rounding = rounding.Up } } })
 			made:AddBreakpoint({ threshold = 3600, max = 32400, format = "%dh", components = { { div = 3600, step = 1, rounding = rounding.Up } } })
 			return made
 		end)
-		countdownFormatter = ok and formatter or false
+		countdownFormatters[key] = ok and formatter or false
 	end
-	cooldown:SetCountdownFormatter(countdownFormatter or nil)
+	cooldown:SetCountdownFormatter(countdownFormatters[key] or nil)
 end
 
 function Widgets.MedallionsFrame(button, on, overlay)
@@ -321,7 +338,7 @@ function IconButton:ClearCooldown()
 	SetRealCooldown(self, false)
 end
 
-function IconButton:SetChargeCooldownFromDuration(durationObject)
+function IconButton:ChargeCooldown()
 	local charge = self.chargeCooldown
 	if not charge then
 		charge = CreateFrame("Cooldown", nil, self, "CooldownFrameTemplate")
@@ -334,6 +351,11 @@ function IconButton:SetChargeCooldownFromDuration(durationObject)
 		self.chargeCooldown = charge
 		self:StyleCooldown()
 	end
+	return charge
+end
+
+function IconButton:SetChargeCooldownFromDuration(durationObject)
+	local charge = self:ChargeCooldown()
 	if type(charge.SetCooldownFromDurationObject) ~= "function" then
 		Widgets.LogOnce("charge-object", "Cooldown:SetCooldownFromDurationObject is missing; charge recharges are not shown")
 		return false

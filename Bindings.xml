@@ -1,0 +1,7 @@
+<Bindings>
+	<Binding name="CLICK KstyleUI_Profile1:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_Profile2:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_Profile3:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_Profile4:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_Profile5:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+</Bindings>

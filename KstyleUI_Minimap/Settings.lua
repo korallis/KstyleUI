@@ -26,10 +26,14 @@ Settings.defaults = {
 	frame = "medallion",
 	accent = { source = "class", color = { r = accentR, g = accentG, b = accentB } },
 	rotate = false,
+	microMenu = false,
+	tooltipScale = 1,
 	column = { side = "right", size = 19.5, spacing = 5.5, growth = "down", hover = true, tracking = true, mail = true, calendar = true, queue = true, drawer = true,
 		offset = 0, tooltip = "auto", backgrounds = true, free = false, spots = {} },
 	mail = { position = "column", x = 0, y = 0 },
-	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = false, edgePins = false, list = false },
+	compartment = { shown = false, position = "TOPRIGHT", scale = 1, x = 0, y = 0 },
+	drawer = { behaviour = "click", direction = "auto", size = 24, spacing = 4, columns = 6, autoClose = true, compartment = true, hideEmpty = false, edgePins = false, list = false,
+		button = "", place = "drawer", places = {} },
 	zoom = { wheel = true, slider = true, reset = false, delay = 10 },
 	zone = { shown = true, subzone = true, color = "plain", font = "", size = 12, outline = "world", position = "", x = 0, y = 0 },
 	clock = { shown = true, mode = "game", font = "", size = 12.5, outline = "world", position = "", x = 0, y = 0, accent = false, hover = "none" },
@@ -57,6 +61,36 @@ end
 
 function Settings.MailMoved(v)
 	return v.column.mail and v.mail.position ~= "column"
+end
+
+function Settings.AddonButtons()
+	local out, drawer = { { value = "", label = L["Choose a button"] } }, ns.Map and ns.Map.drawer
+	for _, button in ipairs(drawer and drawer.order or {}) do
+		local name = drawer.adopted[button].name
+		out[#out + 1] = { value = name, label = ns.Drawer.Label(name) }
+	end
+	return out
+end
+
+function Settings.Mirror(key, value)
+	local places, name = Settings.Get("drawer.places"), Settings.Get("drawer.button")
+	if key == "drawer.button" and value ~= "" then
+		local place = (places[value] == "column" or places[value] == "hidden") and places[value] or "drawer"
+		if Settings.Get("drawer.place") == place then return end
+		K.Options.Write(MODULE, "drawer.place", place)
+		return true
+	elseif key == "drawer.place" and name == "" then
+		if next(places) == nil then return end
+		K.Options.Write(MODULE, "drawer.places", {})
+		return true
+	elseif key == "drawer.place" then
+		local want, copy = value ~= "drawer" and value or nil, {}
+		if places[name] == want then return end
+		for k, v in pairs(places) do copy[k] = v end
+		copy[name] = want
+		K.Options.Write(MODULE, "drawer.places", copy)
+		return true
+	end
 end
 
 function Settings.TooltipsPlace()
@@ -137,7 +171,9 @@ function Settings.Schema()
 	}
 	local CAPTION_POINTS = { { value = "", label = L["Usual place"] } }
 	for _, point in ipairs(POINTS) do CAPTION_POINTS[#CAPTION_POINTS + 1] = point end
+	local CORNERS = { POINTS[1], POINTS[3], POINTS[6], POINTS[8] }
 	local MAIL_POINTS = { { value = "column", label = L["In the button column"] }, POINTS[1], POINTS[3], POINTS[6], POINTS[8] }
+	local BUTTON_PLACES = { { value = "drawer", label = L["In the drawer"] }, { value = "column", label = L["In the button column"] }, { value = "hidden", label = L["Hidden"] } }
 	local TOOLTIP_OPTIONS = {
 		{ value = "auto", label = L["Away from the map"] }, { value = "up", label = L["Up"] }, { value = "down", label = L["Down"] },
 		{ value = "left", label = L["Left"] }, { value = "right", label = L["Right"] },
@@ -183,6 +219,9 @@ function Settings.Schema()
 		{ type = "toggle", key = "compactIcons", label = L["Compact map icons"], help = L["Shrink map pins, tracking and drawer icons. Off by default keeps at least their native size."] },
 		{ type = "toggle", key = "clearPlaques", label = L["Keep map plaques clear"], help = L["Keep round-map labels below the screen edge and clear of the ring. Off uses the old positions."] },
 		{ type = "toggle", key = "rotate", label = L["Rotate the map"], help = L["Turns the map so you always face up, and hides the N. Off leaves the game's own setting alone."] },
+		{ type = "toggle", key = "microMenu", label = L["Micro menu on middle-click"], help = L["Middle-click the map for a list of the game's menus, out of combat."] },
+		{ type = "slider", key = "tooltipScale", label = L["Tooltip size"], min = 0.5, max = 2, step = 0.05,
+			help = L["Scales the tooltips of the map's buttons, zone, clock and readouts."] },
 		{
 			type = "dropdown", key = "accent.source", label = L["Accent colour"], options = ACCENT_OPTIONS,
 			help = L["The zoom slider's fill and the active buttons follow your class colour or your own colour."],
@@ -247,6 +286,10 @@ function Settings.Schema()
 			type = "toggle", key = "column.drawer", label = L["Addon drawer button"],
 			help = L["Gathers minimap buttons from other addons into a drawer."],
 		},
+		{ type = "toggle", key = "compartment.shown", label = L["Compartment button"],
+			help = L["A button in a corner of the map that lists the addon compartment."] },
+		{ type = "slider", key = "compartment.scale", label = L["Compartment size"], min = 0.5, max = 1.5, step = 0.05,
+			showWhen = function(v) return v.compartment.shown end, help = L["Its size next to the other buttons."] },
 		{ type = "header", label = L["Addon drawer"] },
 		{
 			type = "dropdown", key = "drawer.behaviour", label = L["Drawer opens"], options = BEHAVIOUR_OPTIONS,
@@ -288,6 +331,11 @@ function Settings.Schema()
 			help = L["Shows the pins addons such as guides park on the map's edge for places off the map."],
 		},
 		{ type = "toggle", key = "drawer.list", label = L["Show as a list"], help = L["One column with each addon's name beside its button."] },
+		{ type = "dropdown", key = "drawer.button", label = L["Addon button"], options = Settings.AddonButtons, showWhen = function(v) return v.column.drawer end,
+			help = L["Pick an addon's button, then choose where it sits."] },
+		{ type = "dropdown", key = "drawer.place", label = L["Its place"], options = BUTTON_PLACES,
+			showWhen = function(v) return v.column.drawer and v.drawer.button ~= "" end,
+			help = L["In the drawer, in the button column, or hidden."] },
 		{ type = "header", label = L["Zoom"] },
 		{
 			type = "toggle", key = "zoom.wheel", label = L["Zoom with the mouse wheel"],
@@ -322,8 +370,11 @@ function Settings.Schema()
 			help = L["Colours the zone name plainly, by PvP status or with the accent."],
 		},
 	}
-	local function Add(list)
-		for _, row in ipairs(list) do schema[#schema + 1] = row end
+	local function Add(list, at)
+		for i, row in ipairs(list) do table.insert(schema, at and at + i or #schema + 1, row) end
+	end
+	for i, row in ipairs(schema) do
+		if row.key == "compartment.scale" then Add(Place("compartment", L["Compartment"], CORNERS, function(v) return v.compartment.shown end), i) break end
 	end
 	Add(TextRows("zone", { L["Zone font"], L["Zone text size"], L["Zone outline"] }, L["zone name"]))
 	Add(Place("zone", L["Zone"], CAPTION_POINTS))
@@ -444,7 +495,7 @@ local function Valid(row, value, default)
 		return value == value and value >= row.min and value <= row.max
 	elseif row.type == "dropdown" and type(row.options) == "table" then
 		return InOptions(row.options, value)
-	elseif row.type == "dropdown" then
+	elseif row.options == Settings.FontOptions then
 		return K.Theme.FollowsKit(value) or K.Theme.IsFontPath(value)
 	elseif row.type == "color" then
 		return IsChannel(value.r) and IsChannel(value.g) and IsChannel(value.b)
