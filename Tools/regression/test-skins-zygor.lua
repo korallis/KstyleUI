@@ -85,7 +85,9 @@ do
 	assert(not zygor.master._clamped, "the card's window is not clamped to the screen")
 	assert(zygor.profile.frame_anchor[1] == "CENTER", "the rail writes no anchor of its own into Zygor's settings")
 	assert(zygor.saves == 0, string.format("the rail holds the window, so Zygors own anchor save stays quiet, got %d", zygor.saves))
-	assert(zygor.style.WindowBackdropColor[1] ~= 1, "the window is painted in KstyleUI's colours")
+	assert(zygor.style.WindowBackdropColor[4] == 0, "Zygor's own window fill steps aside for the KstyleUI card")
+	local card = K.Skin.Parts(zygor.frame.Border).backdrop
+	assert(card and card:IsShown(), "the window wears KstyleUI's window card, forged by default, as RestedXP's does")
 	assert(zygor.applied >= 1, "Zygors skin is applied after the rail's colours go in")
 	assert(zygor.profile.fullheight == nil, "the window's own height save is not written while the rail holds it")
 	-- Every step change brings the window back to the card, whatever Zygor's resize did to it.
@@ -122,6 +124,16 @@ do
 	env.RunTimers()
 	assert(zygor.writes.font == fonts, string.format("a repaint sets no font again, %d new", zygor.writes.font - fonts))
 	assert(zygor.writes.text == texts, string.format("a repaint rewrites no text, %d new", zygor.writes.text - texts))
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+
+-- Switching the skin off hides the card and gives Zygor its own window colours back.
+do
+	local env, K, ns, zygor = Boot({})
+	K.Options.Write("Skins", "zygor.enabled", false)
+	env.RunTimers()
+	assert(not K.Skin.Parts(zygor.frame.Border).backdrop:IsShown(), "the KstyleUI card goes when the skin is switched off")
+	assert(zygor.style.WindowBackdropColor[1] == 1, "Zygor's own window colour is put back")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 

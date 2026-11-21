@@ -380,10 +380,6 @@ local function Flat()
 	return { bgFile = WHITE, tile = true, tileSize = 16, insets = { left = 0, right = 0, top = 0, bottom = 0 } }
 end
 
-local function Card()
-	return { bgFile = WHITE, edgeFile = WHITE, tile = true, tileSize = 16, edgeSize = 1, insets = { left = 1, right = 1, top = 1, bottom = 1 } }
-end
-
 local function Color(name)
 	local r, g, b, a = Tokens.Color(name)
 	return { r, g, b, a }
@@ -481,13 +477,10 @@ local function Paint(z)
 		end
 		style[name] = value
 	end
-	Set("WindowBackdrop", Card())
-	Set("WindowBackdropFlipped", Card())
-	Set("WindowBackdropColor", Color("surface"))
-	Set("WindowBackdropBorderColor", Color("edgeInner"))
-	Set("WindowBottomBackdrop", Card())
-	Set("WindowBottomBackdropColor", Color("surface"))
-	Set("WindowBottomBackdropBorderColor", Color("edgeInner"))
+	Set("WindowBackdropColor", Clear())
+	Set("WindowBackdropBorderColor", Clear())
+	Set("WindowBottomBackdropColor", Clear())
+	Set("WindowBottomBackdropBorderColor", Clear())
 	Set("TabBackdrop", Flat())
 	Set("TabBackdropColor", Clear())
 	Set("SystemBarBackdropColor", Clear())
@@ -516,6 +509,11 @@ local function Paint(z)
 	if type(z.ApplySkin) == "function" then
 		K.Call(z.ApplySkin, z)
 	end
+	local border = IsTable(z.Frame) and z.Frame.Border
+	local panel = IsTable(border) and K.Skin.Backdrop(border, { shape = "window", fill = "surface", shadow = true })
+	if panel then
+		panel:Show()
+	end
 	Text(z.Frame)
 end
 
@@ -530,6 +528,11 @@ local function Unpaint(z)
 	state.saved = nil
 	if type(z.ApplySkin) == "function" then
 		K.Call(z.ApplySkin, z)
+	end
+	local border = IsTable(z.Frame) and z.Frame.Border
+	local panel = IsTable(border) and K.Skin.Parts(border).backdrop
+	if panel then
+		panel:Hide()
 	end
 end
 
