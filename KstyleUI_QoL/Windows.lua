@@ -28,14 +28,13 @@ local function Auction()
 	local button, id, filters = Expansion()
 	local account, key = K.Store.Account(), K.Store.CharacterKey()
 	if not (button and type(filters) == "table" and type(key) == "string") then return end
-	local want, ticked = ns.running and ns.Get("ahCurrent"), type(account.qolAuctionTicked) == "table" and account.qolAuctionTicked[key] == true
+	local want, owned = ns.running and ns.Get("ahCurrent"), type(account.qolAuctionTicked) == "table" and account.qolAuctionTicked or {}
 	if want and filters[id] ~= true and Offered(id) then
 		button:ToggleFilter(id)
-		account.qolAuctionTicked = type(account.qolAuctionTicked) == "table" and account.qolAuctionTicked or {}
-		account.qolAuctionTicked[key] = true
-	elseif not want and ticked then
+		owned[key], account.qolAuctionTicked = true, owned
+	elseif not want and owned[key] then
 		if filters[id] == true then button:ToggleFilter(id) end
-		account.qolAuctionTicked[key] = nil
+		owned[key] = nil
 	end
 end
 
