@@ -1,4 +1,4 @@
--- qol_parity.lua: the full HUD with every QoL parity round 1 option on, most away from its default (a larger alert size, class colours, a lower crosshair with set lengths and thicknesses, a larger class-coloured ring, a higher durability warning), after a combat round trip and then a party member's death, so the flash line shows the death alert over the talent line; RENDER_QOL_ROUND=2 adds round 2: the character stats (percent and rating, coloured, short labels), the bevelled ring with its centre dot and a trail mid-move, and the cast circle 40% into a cast; with RENDER_QOL_OPTIONS=1 the QoL page and its live preview.
+-- qol_parity.lua: the full HUD with every QoL parity round 1 option on, most away from its default (a larger alert size, class colours, a lower crosshair with set lengths and thicknesses, a larger class-coloured ring, a higher durability warning), after a combat round trip and then a party member's death, so the flash line shows the death alert over the talent line; RENDER_QOL_ROUND=2 adds round 2: the character stats (percent and rating, coloured, short labels), the bevelled ring with its centre dot and a trail mid-move, and the cast circle 40% into a cast; RENDER_QOL_ROUND=3 adds round 3a over round 2: a warrior's Charge and Intercept counting down as class-coloured bars, the target distance, the crosshair in its out-of-range colour and the potion ready flash; with RENDER_QOL_OPTIONS=1 the QoL page and its live preview.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Reference = dofile("Tools/render/scenes/_reference.lua")
@@ -16,7 +16,63 @@ local ON = {
 local ROUND2 = {
 	stats = true, statsValue = "both", statsColored = true, statsShort = true, cursorTexture = "ringBevel", cursorDot = true, cursorTrail = true, castRing = true,
 }
-local round2 = os.getenv("RENDER_QOL_ROUND") == "2"
+local ROUND3 = {
+	moveAlert = true, moveMode = "bar", moveClass = true, rangeText = true, crosshairRange = true, crosshairMelee = true, potionAlert = true,
+}
+local round3 = os.getenv("RENDER_QOL_ROUND") == "3"
+local round2 = round3 or os.getenv("RENDER_QOL_ROUND") == "2"
+
+-- Round 3a: a warrior with Charge and Intercept cooling, a target 25 to 30 yards away (out of melee range) and a potion
+-- whose cooldown has just ended. The engine draws a text binding's time and a timer bar's fill; the harness has no engine,
+-- so the binding writes its format with a fixed time and the scene sets each bar to the time it shows.
+local LEFT = { [11578] = { "Charge", 132337, 9, 15 }, [20617] = { "Intercept", 132307, 21, 30 } }
+local function Round3(e)
+	e.UnitClass = function() return "Warrior", "WARRIOR", 1 end
+	local book = { { spellID = 11578 }, { spellID = 20617 }, { spellID = 2764 } }
+	e.Enum = e.Enum or {}
+	e.Enum.SpellBookSpellBank = { Player = 0 }
+	e.Enum.DurationTextBindingProperty = { RemainingDuration = 0 }
+	e.Enum.SecondsFormatterAbbreviation = { OneLetter = 2 }
+	e.Enum.SecondsFormatterInterval = { Seconds = 0 }
+	e.Enum.SecondsFormatterRounding = { RoundUp = 0, Truncate = 1 }
+	local formatter = setmetatable({}, { __index = function() return function() end end })
+	e.C_StringUtil = e.C_StringUtil or {}
+	e.C_StringUtil.CreateSecondsFormatter = e.C_StringUtil.CreateSecondsFormatter or function() return formatter end
+	e.C_SpellBook = {
+		IsSpellKnown = function(id) return LEFT[id] ~= nil end,
+		GetNumSpellBookSkillLines = function() return 1 end,
+		GetSpellBookSkillLineInfo = function() return { itemIndexOffset = 0, numSpellBookItems = #book } end,
+		GetSpellBookItemInfo = function(slot) return book[slot] end,
+	}
+	e.C_Spell = {
+		GetSpellName = function(id) return LEFT[id] and LEFT[id][1] or ({ [100] = "Charge", [20252] = "Intercept" })[id] end,
+		GetSpellTexture = function(id) return LEFT[id] and LEFT[id][2] end,
+		GetSpellCooldown = function(id) return { isActive = LEFT[id] ~= nil, isOnGCD = false } end,
+		GetSpellCooldownDuration = function(id) return LEFT[id] and { id = id } end,
+		GetSpellInfo = function(id) return { maxRange = id == 2764 and 30 or 25 } end,
+		IsSpellHarmful = function() return true end,
+		IsSpellHelpful = function() return false end,
+		IsSpellInRange = function(id) return id == 2764 end,
+	}
+	e.C_DurationUtil = { CreateDurationTextBinding = function()
+		local b = {}
+		function b:SetFontString(fs) self.fs = fs end
+		function b:SetTextFormat(format) self.format = format end
+		function b:SetDuration(d) self.fs:SetText((self.format:gsub("{}", LEFT[d.id][3] .. "s"))) end
+		function b:SetEnabled() end
+		return b
+	end }
+	e.UnitExists = function(unit) return unit == "target" end
+	e.UnitCanAttack = function() return true end
+	e.NUM_BAG_SLOTS = 0
+	e.C_Container = {
+		GetContainerNumSlots = function() return 1 end,
+		GetContainerItemInfo = function() return { itemID = 858 } end,
+		GetItemCooldown = function() return 100, 120, 1 end,
+	}
+	local instant = e.C_Item.GetItemInfoInstant
+	e.C_Item.GetItemInfoInstant = function(id) if id == 858 then return id, "Consumable", "Potion", "", 134830, 0, 1 end return instant(id) end
+end
 
 local function Stats(e)
 	e.UnitStat = function(_, i) return 120, 120 + 31 * i, 0, 0 end
@@ -34,6 +90,7 @@ return Common.Run(function()
 		setup = function(e)
 			Gallery.Setup(e)
 			if round2 then Stats(e) end
+			if round3 then Round3(e) end
 			e.C_AddOns = e.C_AddOns or {}
 			e.C_AddOns.LoadAddOn = function(name)
 				if name == "KstyleUI_Options" and not e._addons.KstyleUI_Options then Load(O.Files(), e) end
@@ -44,6 +101,7 @@ return Common.Run(function()
 	if not K.Modules.IsRunning("QoL") then assert(K.Modules.Enable("QoL")) end
 	for key, value in pairs(ON) do assert(K.Options.Write("QoL", key, value) ~= false, key) end
 	for key, value in pairs(round2 and ROUND2 or {}) do assert(K.Options.Write("QoL", key, value) ~= false, key) end
+	for key, value in pairs(round3 and ROUND3 or {}) do assert(K.Options.Write("QoL", key, value) ~= false, key) end
 	if round2 then env.FireEvent("UNIT_SPELLCAST_START", "player") end
 	env._unspent, env._durability[5] = true, { 21, 100 }
 	env.FireEvent("TRAIT_CONFIG_UPDATED", 1)
@@ -52,6 +110,15 @@ return Common.Run(function()
 	env.SetCombat(false)
 	env._group, env._names.party1, env._dead.party1 = true, "Valerin", true
 	env.FireEvent("UNIT_HEALTH", "party1")
+	if round3 then
+		env.FireEvent("PLAYER_TARGET_CHANGED")
+		env.Release()
+		local _, slots = ns.MoveFrame()
+		for _, slot in ipairs(slots) do
+			local id = slot.binding and slot.binding.fs and (slot.binding.format:find("Charge") and 11578 or 20617)
+			if id then slot.bar:SetBarRange(0, LEFT[id][4]); slot.bar:SetBarValue(LEFT[id][3]) end
+		end
+	end
 	local root = K.Scale.Root()
 	env._cursor = { root:GetWidth() * (options and 0.85 or 0.35) * root:GetEffectiveScale(), root:GetHeight() * 0.68 * root:GetEffectiveScale() }
 	local _, ring = ns.AidFrames()
@@ -87,6 +154,6 @@ return Common.Run(function()
 	if not options then
 		scene = Common.Scene.Merge({ Reference.Build({ layout = os.getenv("RENDER_LAYOUT") or "DPS" }), scene })
 	end
-	scene.log[#scene.log + 1] = "qol parity: round " .. (round2 and "1 and 2" or "1") .. " options " .. (options and "page" or "on over the HUD")
+	scene.log[#scene.log + 1] = "qol parity: round " .. (round3 and "1, 2 and 3a" or round2 and "1 and 2" or "1") .. " options " .. (options and "page" or "on over the HUD")
 	return scene
 end)

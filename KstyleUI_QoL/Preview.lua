@@ -1,4 +1,4 @@
--- Preview.lua: the QoL page's live preview, a miniature of the screen centre: the alert lines, the crosshair and the cursor ring where the screen puts them (the entering, leaving and group death samples, of which the screen shows one at a time, stack down from the flash line's spot and everything under that line moves down with them, and the ring sits beside the crosshair with its dot and a trail, the cast circle part filled around the ring, or at the screen centre when it is off the pointer), and the character stats with sample values at the left, painted by the same functions the screen uses and dimmed while their switch is off.
+-- Preview.lua: the QoL page's live preview, a miniature of the screen centre: the alert lines, the crosshair (in its out-of-range colour while that is on), the cursor ring, a movement alert counting down and the target distance where the screen puts them (the entering, leaving, group death and potion samples, of which the screen shows one at a time, stack down from the flash line's spot and everything under that line moves down with them, and the ring sits beside the crosshair with its dot and a trail, the cast circle part filled around the ring, or at the screen centre when it is off the pointer), and the character stats with sample values at the left, painted by the same functions the screen uses and dimmed while their switch is off.
 local _, ns = ...
 
 local K, L = ns.K, ns.L
@@ -6,7 +6,8 @@ local Widgets, Tokens = K.Widgets, K.Tokens
 
 local OFF = 0.35
 local GAP = Tokens.Size("gapLarge")
-local TRAIL, CAST_SECONDS, CAST_DONE = 3, 10, 6
+local TRAIL, CAST_SECONDS, CAST_DONE, FLASH = 3, 10, 6, 4
+local MOVE_TOP, RANGE_X, MOVE_LEFT = -40, -90, 2.4
 
 local function Sample(stat)
 	local n = #stat[1]
@@ -20,13 +21,16 @@ end
 function ns.Preview(parent)
 	local frame = CreateFrame("Frame", nil, parent)
 	frame.lines = {}
-	for i = 1, 5 do frame.lines[i] = Widgets.FontString(frame, "OVERLAY") end
+	for i = 1, 6 do frame.lines[i] = Widgets.FontString(frame, "OVERLAY") end
 	frame.cross = ns.BuildCrosshair(frame)
 	frame.ring = frame:CreateTexture(nil, "OVERLAY")
 	frame.dot = frame:CreateTexture(nil, "OVERLAY")
 	frame.trail = {}
 	for i = 1, TRAIL do frame.trail[i] = frame:CreateTexture(nil, "ARTWORK") end
 	frame.cast = ns.BuildCast(frame)
+	frame.move = ns.BuildMoveSlot(frame)
+	frame.range = CreateFrame("Frame", nil, frame)
+	frame.range.text = Widgets.FontString(frame.range, "OVERLAY")
 	frame.stats = CreateFrame("Frame", nil, frame)
 	frame.stats.lines = {}
 	frame.Refresh = function(self)
@@ -35,6 +39,7 @@ function ns.Preview(parent)
 			{ ns.NoticeText("combatEnter"), combat and mode ~= "leave", "flash", ns.NoticeColor("combatEnter") },
 			{ ns.NoticeText("combatLeave"), combat and mode ~= "enter", "flash", ns.NoticeColor("combatLeave") },
 			{ L["A group member died"], ns.Get("deathAlert"), "flash", Tokens.Color("hostile") },
+			{ L["Potion ready"], ns.Get("potionAlert"), "flash", Tokens.Color("friendly") },
 			{ ns.NoticeText("talent"), ns.Get("talentAlert"), "talents", ns.NoticeColor("talent") },
 			{ string.format(L["Low durability: %d%%"], ns.Get("durabilityPercent") - 1), ns.Get("durabilityAlert"), "durability", Tokens.Color("neutral") },
 		}
@@ -47,7 +52,7 @@ function ns.Preview(parent)
 			local point, y = ns.NoticeSpot(sample[3], h)
 			items[i] = { text, 0, point == "TOP" and y - h / 2 or y + h / 2, Widgets.TextWidth(text, 1), h }
 		end
-		ns.PaintCrosshair(self.cross)
+		ns.PaintCrosshair(self.cross, ns.Get("crosshairRange"))
 		self.cross:SetAlpha(ns.Get("crosshair") ~= "none" and 1 or OFF)
 		local ring, cast = ns.Get("cursorRing"), ns.Get("castRing")
 		ns.PaintRing(self.ring, Dim(ring))
@@ -59,19 +64,41 @@ function ns.Preview(parent)
 		local cw, ch = self.cross:GetSize()
 		local rw, sw, cx, cy = self.ring:GetWidth(), self.cast:GetWidth(), ns.Get("crosshairX"), ns.Get("crosshairY")
 		local rx = cx + cw / 2 + 2 * GAP + sw / 2
-		items[6] = { self.cross, cx, cy, cw, ch }
-		items[7] = { self.ring, rx, cy, rw, rw }
+		items[7] = { self.cross, cx, cy, cw, ch }
+		items[8] = { self.ring, rx, cy, rw, rw }
 		local attach = ns.Get("castAttach")
-		items[8] = { self.cast, attach and rx or 0, attach and cy or 0, sw, sw }
-		items[9] = { self.dot, rx, cy, self.dot:GetWidth(), self.dot:GetHeight() }
+		items[9] = { self.cast, attach and rx or 0, attach and cy or 0, sw, sw }
+		items[10] = { self.dot, rx, cy, self.dot:GetWidth(), self.dot:GetHeight() }
 		for i, dot in ipairs(self.trail) do
 			ns.PaintDot(dot, (1 - i / (TRAIL + 1)) * (Dim(ring and ns.Get("cursorTrail")) or 1))
 			items[#items + 1] = { dot, rx - sw / 2 - i * 2 * dot:GetWidth(), cy, dot:GetWidth(), dot:GetHeight() }
 		end
+		local move, range = self.move, self.range
+		local mh, time = move:Paint(), Widgets.Duration.Format(MOVE_LEFT, ns.Get("moveDecimal") and "decimal" or "short")
+		local id = ns.MoveSample()
+		local label, icon = ns.MoveFormat(ns.MoveName(id)):gsub("{}", time), C_Spell and ns.Ask(C_Spell.GetSpellTexture, id)
+		if move.mode == "icon" then
+			move.icon:SetIcon(icon)
+			if type(GetTime) == "function" then move.icon:SetCooldown(GetTime() - CAST_DONE, CAST_DONE + MOVE_LEFT) end
+			if type(move.icon.cooldown.Pause) == "function" then move.icon.cooldown:Pause() end
+		elseif move.mode == "bar" then
+			move.bar.label:SetText(label)
+			move.bar.art:SetTexture(icon)
+			move.bar:SetBarRange(0, CAST_DONE + MOVE_LEFT)
+			move.bar:SetBarValue(MOVE_LEFT)
+		else
+			move.text:SetText(label)
+		end
+		move:SetAlpha(ns.Get("moveAlert") and 1 or OFF)
+		items[#items + 1] = { move, 0, MOVE_TOP - mh / 2, move:GetWidth(), mh }
+		ns.PaintRange(range.text, range)
+		range.text:SetText(ns.RangeText(30, 35))
+		range:SetAlpha(ns.Get("rangeText") and 1 or OFF)
+		items[#items + 1] = { range, RANGE_X, 0, range:GetWidth(), range:GetHeight() }
 		local _, flash = ns.NoticeSpot("flash", h)
 		local step = flash - select(2, ns.NoticeSpot("talents", h))
 		for i, item in ipairs(items) do
-			item[3] = item[3] - (i <= 3 and i - 1 or item[3] < flash - h and 2 or 0) * step
+			item[3] = item[3] - (i <= FLASH and i - 1 or item[3] < flash - h and FLASH - 1 or 0) * step
 		end
 		local left, right, top, bottom = math.huge, -math.huge, -math.huge, math.huge
 		for _, item in ipairs(items) do

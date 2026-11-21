@@ -17,12 +17,14 @@ local CHOICES = {
 	crosshairShow = SHOWN, cursorShow = SHOWN, autoLogWhere = { raid = true, party = true, all = true },
 	skipMode = { cinematics = true, movies = true, both = true }, cursorTexture = { ring = true, ringBevel = true },
 	statsValue = { percent = true, rating = true, both = true }, hideToasts = { none = true, loot = true, achievements = true, both = true },
+	moveMode = { text = true, timeFirst = true, time = true, icon = true, bar = true }, moveSound = { none = true, warning = true, ready = true },
+	rangeFormat = { range = true, plus = true, min = true }, rangeAlign = { LEFT = true, CENTER = true, RIGHT = true },
 }
 ns.LIMITS = {
 	skipDelay = { 0, 30 }, alertSize = { 14, 64 }, durabilityPercent = { 5, 100 }, durabilityY = { -500, 500 },
 	crosshairHLength = { 1, 500 }, crosshairVLength = { 1, 500 }, crosshairHWidth = { 0, 20 }, crosshairVWidth = { 0, 20 },
 	crosshairBorder = { 0, 5 }, crosshairX = { -200, 200 }, crosshairY = { -200, 200 }, cursorScale = { 50, 200 }, cursorOpacity = { 10, 100 },
-	rollsClose = { 0, 60 }, statsScale = { 50, 200 },
+	rollsClose = { 0, 60 }, statsScale = { 50, 200 }, moveSize = { 8, 72 }, moveIconSize = { 16, 128 }, moveVolume = { 0, 100 }, rangeSize = { 10, 48 },
 }
 
 ns.defaults = {
@@ -60,6 +62,28 @@ ns.defaults = {
 	durabilityPercent = 40,
 	durabilityY = 250,
 	durabilityThrown = true,
+	potionAlert = false,
+	moveAlert = false,
+	moveCombat = false,
+	moveMode = "text",
+	moveSize = 18,
+	moveIconSize = 40,
+	moveDecimal = false,
+	moveTexture = "Flat",
+	moveBarIcon = true,
+	moveBarText = true,
+	moveClass = false,
+	moveColor = Color("neutral"),
+	moveSound = "none",
+	moveVoice = -1,
+	moveVolume = 100,
+	rangeText = false,
+	rangeFormat = "range",
+	rangeAlign = "CENTER",
+	rangeSize = 18,
+	crosshairRange = false,
+	crosshairRangeColor = Color("hostile"),
+	crosshairMelee = false,
 	crosshair = "none",
 	crosshairShow = "always",
 	crosshairHLength = 40,
@@ -136,6 +160,10 @@ function ns.Schema()
 	end
 	local combatOff, talentOff, durabilityOff, crossOff, ringOff, logOff = when("combatAlert"), when("talentAlert"), when("durabilityAlert"), when("crosshair"), when("cursorRing"), when("autoLog")
 	local castOff, statsOff, skipOff = when("castRing"), when("stats"), when("skipCinematics")
+	local moveOff, distanceOff = when("moveAlert"), when("rangeText")
+	local function rangeOff(s) return crossOff(s) or not s.crosshairRange end
+	local function barOff(s) return moveOff(s) or s.moveMode ~= "bar" end
+	local function voiceOff(s) return moveOff(s) or s.moveVoice == -1 end
 	local function aidsOff(s) return ringOff(s) and castOff(s) end
 	local function slider(key, label, help, step, off)
 		local limit = ns.LIMITS[key]
@@ -204,6 +232,7 @@ function ns.Schema()
 		slider("durabilityPercent", L["Warn below"], L["Warn when any worn item falls below this durability, in percent."], 1, durabilityOff),
 		slider("durabilityY", L["Warning height"], L["Moves the durability warning up or down from the screen centre."], 1, durabilityOff),
 		{ type = "toggle", key = "durabilityThrown", label = L["Ignore thrown weapons"], help = L["Leave out thrown weapons, which wear down with every throw."], disableWhen = durabilityOff },
+		{ type = "toggle", key = "potionAlert", label = L["Potion ready alert"], help = L["Show large text when your potions are off cooldown again."], disableWhen = isOff },
 		{ type = "header", label = L["Crosshair"] },
 		{ type = "dropdown", key = "crosshair", label = L["Crosshair"], help = L["A crosshair at the centre of the screen, over your character."], options = {
 			{ value = "none", label = L["None"] }, { value = "thin", label = L["Thin"] }, { value = "normal", label = L["Normal"] }, { value = "thick", label = L["Thick"] },
@@ -216,6 +245,9 @@ function ns.Schema()
 		slider("crosshairBorder", L["Outline"], L["A dark outline around the lines, in pixels."], 1, crossOff),
 		slider("crosshairX", L["Horizontal offset"], L["Moves the crosshair left or right."], 1, crossOff),
 		slider("crosshairY", L["Vertical offset"], L["Moves the crosshair up or down."], 1, crossOff),
+		{ type = "toggle", key = "crosshairRange", label = L["Colour out of range"], help = L["Colour the crosshair while your target is beyond the reach of your spells."], disableWhen = crossOff },
+		{ type = "color", key = "crosshairRangeColor", label = L["Out of range colour"], help = L["The crosshair's colour while your target is out of range."], disableWhen = rangeOff },
+		{ type = "toggle", key = "crosshairMelee", label = L["Melee range only"], help = L["Count your target as out of range beyond melee range, for paladins and other melee fighters."], disableWhen = rangeOff },
 		{ type = "header", label = L["Cursor"] },
 		{ type = "toggle", key = "cursorRing", label = L["Cursor ring"], help = L["A ring around the mouse pointer, so you can find it."], disableWhen = isOff },
 		{ type = "dropdown", key = "cursorShow", label = L["Show cursor ring"], help = L["When the cursor ring shows."], options = SHOW_OPTIONS, disableWhen = ringOff },
@@ -267,7 +299,41 @@ function ns.Schema()
 		{ type = "toggle", key = "autoDelete", label = L["Fill in the delete word"], help = L["Type the confirmation word when you delete a good item. You still click Yes."], disableWhen = isOff },
 		{ type = "header", label = L["Resurrection"] },
 		{ type = "toggle", key = "autoResurrect", label = L["Accept resurrection"], help = L["Accept a resurrection out of combat the moment it is offered, unless the game makes you wait."], disableWhen = isOff },
+		{ type = "header", label = L["Movement alert"] },
+		{ type = "toggle", key = "moveAlert", label = L["Movement alert"], help = L["Count down your movement spells while they cool down. Move it in Layout Mode."], disableWhen = isOff },
 	}
+	local bar = {}
+	K.Widgets.BarRows(bar, "", { keys = { texture = "moveTexture" }, colors = false, disableWhen = barOff })
+	for _, row in ipairs(ns.MoveRows(moveOff)) do ns.schema[#ns.schema + 1] = row end
+	for _, row in ipairs({
+		{ type = "toggle", key = "moveCombat", label = L["Only in combat"], help = L["Show the movement alert only while you are in combat."], disableWhen = moveOff },
+		{ type = "dropdown", key = "moveMode", label = L["Show as"], help = L["Text with the spell's name, the time alone, an icon or a bar."], options = {
+			{ value = "text", label = L["Name and time"] }, { value = "timeFirst", label = L["Time and name"] }, { value = "time", label = L["Time left"] },
+			{ value = "icon", label = L["Icon"] }, { value = "bar", label = L["Bar"] },
+		}, disableWhen = moveOff },
+		slider("moveSize", L["Movement text size"], L["The size of the movement alert's text."], 1, function(s) return moveOff(s) or s.moveMode == "icon" end),
+		slider("moveIconSize", L["Movement icon size"], L["The size of the movement alert's icon."], 1, function(s) return moveOff(s) or s.moveMode ~= "icon" end),
+		{ type = "toggle", key = "moveDecimal", label = L["Tenths under three seconds"], help = L["Show the last three seconds in tenths."], disableWhen = moveOff },
+		bar[1],
+		{ type = "toggle", key = "moveBarIcon", label = L["Icon on the bar"], help = L["Show the spell's icon at the bar's left end."], disableWhen = barOff },
+		{ type = "toggle", key = "moveBarText", label = L["Time on the bar"], help = L["Show the time left after the spell's name on the bar."], disableWhen = barOff },
+		{ type = "toggle", key = "moveClass", label = L["Movement alert in class colour"], help = L["Use your class colour for the movement alert's text or bar."], disableWhen = moveOff },
+		{ type = "color", key = "moveColor", label = L["Movement alert colour"], help = L["The colour of the movement alert's text or bar."], disableWhen = function(s) return moveOff(s) or s.moveClass end },
+		{ type = "dropdown", key = "moveSound", label = L["Ready sound"], help = L["The sound that plays when a movement spell is ready."], options = {
+			{ value = "none", label = L["None"] }, { value = "warning", label = L["Raid warning"] }, { value = "ready", label = L["Ready check"] },
+		}, disableWhen = function(s) return moveOff(s) or s.moveVoice ~= -1 end },
+		{ type = "dropdown", key = "moveVoice", label = L["Speak when ready"], help = L["Say the spell's name in this voice when it is ready, instead of the sound."], options = ns.VoiceOptions(), disableWhen = moveOff },
+		slider("moveVolume", L["Speech volume"], L["How loud the spoken name is, in percent."], 5, voiceOff),
+		{ type = "header", label = L["Target distance"] },
+		{ type = "toggle", key = "rangeText", label = L["Target distance"], help = L["How many yards away your target is, from the spells you know. Move it in Layout Mode."], disableWhen = isOff },
+		{ type = "dropdown", key = "rangeFormat", label = L["Distance format"], help = L["A band of yards, its lower end with a plus, or the lower end alone."], options = {
+			{ value = "range", label = "30-35" }, { value = "plus", label = "30+" }, { value = "min", label = "30" },
+		}, disableWhen = distanceOff },
+		{ type = "dropdown", key = "rangeAlign", label = L["Text align"], help = L["Line the distance up to the left, the centre or the right of its box."], options = {
+			{ value = "LEFT", label = L["Left"] }, { value = "CENTER", label = L["Centre"] }, { value = "RIGHT", label = L["Right"] },
+		}, disableWhen = distanceOff },
+		slider("rangeSize", L["Distance text size"], L["The size of the target distance text."], 1, distanceOff),
+	}) do ns.schema[#ns.schema + 1] = row end
 	ns.schema.preview = ns.Preview
 	return ns.schema
 end

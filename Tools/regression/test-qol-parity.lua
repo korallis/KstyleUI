@@ -344,7 +344,7 @@ do
 		Q.Write(env, K, key, value)
 	end
 	preview:Refresh()
-	assert(preview.lines[1]:GetText() == "Go" and preview.lines[1]:GetAlpha() == 1 and preview.lines[4]:GetAlpha() == 1)
+	assert(preview.lines[1]:GetText() == "Go" and preview.lines[1]:GetAlpha() == 1 and preview.lines[5]:GetAlpha() == 1, "the talent sample lights")
 	assert(near(preview.cross.h:GetWidth(), 70) and near(preview.cross.h:GetHeight(), K.Scale.Pixel(1)))
 	assert(near(select(4, preview.ring:GetVertexColor()), 0.7), "the ring sample takes the ring's opacity")
 	clean(env, K)

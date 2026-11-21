@@ -27,14 +27,22 @@ function ns.BuildCrosshair(parent)
 	return frame
 end
 
-function ns.PaintCrosshair(frame)
+function ns.CrossColor(frame, out)
+	local r, g, b = Tokens.Color("textEmphasis")
+	if out or out == nil and ns.rangeOut and ns.Get("crosshairRange") then
+		local c = ns.Get("crosshairRangeColor")
+		r, g, b = c.r, c.g, c.b
+	end
+	frame.h:SetColorTexture(r, g, b, CROSS_ALPHA)
+	frame.v:SetColorTexture(r, g, b, CROSS_ALPHA)
+end
+
+function ns.PaintCrosshair(frame, out)
 	local base = WIDTHS[ns.Get("crosshair")] or WIDTHS.normal
 	local hw, vw, edge = ns.Get("crosshairHWidth"), ns.Get("crosshairVWidth"), K.Scale.Pixel(ns.Get("crosshairBorder"))
 	hw, vw = K.Scale.Pixel(hw > 0 and hw or base), K.Scale.Pixel(vw > 0 and vw or base)
 	local hl, vl = ns.Get("crosshairHLength"), ns.Get("crosshairVLength")
-	local r, g, b = Tokens.Color("textEmphasis")
-	frame.h:SetColorTexture(r, g, b, CROSS_ALPHA)
-	frame.v:SetColorTexture(r, g, b, CROSS_ALPHA)
+	ns.CrossColor(frame, out)
 	frame.hb:SetColorTexture(Tokens.Color("textShadow"))
 	frame.vb:SetColorTexture(Tokens.Color("textShadow"))
 	Widgets.Size(frame.h, hl, hw)

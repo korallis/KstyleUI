@@ -1,4 +1,4 @@
--- Notices.lua: large alert lines over the world: entering and leaving combat, a group member's death, unspent talent points and low durability, in the display font with the world outline, registering only the events their switches need. The flash line hangs from a fixed top with the talent line under it, spaced by their measured height, and the durability warning stands on Warning height, so no size overlaps them; a global text size change restyles them at once.
+-- Notices.lua: large alert lines over the world: entering and leaving combat, a group member's death, a potion ready again (potions share one cooldown, so any potion's ID reads it, and the last one seen in the bags stays known after they run out), unspent talent points and low durability, in the display font with the world outline, registering only the events their switches need. The flash line hangs from a fixed top with the talent line under it, spaced by their measured height, and the durability warning stands on Warning height, so no size overlaps them; a global text size change restyles them at once.
 local _, ns = ...
 
 local K, L = ns.K, ns.L
@@ -9,8 +9,9 @@ local HOLD = 2
 local TOP = 216
 local SOUNDS = { warning = "RAID_WARNING", ready = "READY_CHECK" }
 local THROWN = 18
+local CONSUMABLE, POTION, GCD = 0, 1, 1.5
 
-local holder
+local holder, potion, potionEnds
 local lines, dead = {}, {}
 local flashToken, flashKey, fighting, members = 0, nil, false, "^party%d$"
 
@@ -163,8 +164,46 @@ local function Health(_, unit)
 	local name = UnitName(unit)
 	local r, g, b = Tokens.Color("hostile")
 	Flash("deathAlert", type(name) == "string" and not ns.IsSecret(name) and string.format(L["%s died"], name) or L["A group member died"], r, g, b)
-	local kit = SOUNDKIT and SOUNDKIT[SOUNDS[ns.Get("deathSound")]]
+	ns.AlertSound(ns.Get("deathSound"))
+end
+
+function ns.AlertSound(choice)
+	local kit = SOUNDKIT and SOUNDKIT[SOUNDS[choice]]
 	if kit and type(PlaySound) == "function" then PlaySound(kit, "Master") end
+end
+
+local function Potions()
+	local bags, info = C_Container, C_Item and C_Item.GetItemInfoInstant
+	if not (bags and type(bags.GetContainerNumSlots) == "function" and type(info) == "function") then return end
+	for bag = 0, ns.Number(NUM_BAG_SLOTS) or 4 do
+		for slot = 1, ns.Number(ns.Ask(bags.GetContainerNumSlots, bag)) or 0 do
+			local item = ns.Ask(bags.GetContainerItemInfo, bag, slot)
+			local id = type(item) == "table" and ns.Number(item.itemID)
+			local class, sub = select(6, info(id or 0))
+			if id and class == CONSUMABLE and sub == POTION then
+				potion = id
+				return
+			end
+		end
+	end
+end
+
+local function Potion()
+	local api = C_Container and C_Container.GetItemCooldown
+	if not potion or type(api) ~= "function" then return end
+	local start, length, enabled = api(potion)
+	start, length, enabled = ns.Number(start), ns.Number(length), ns.Number(enabled)
+	if not (start and length and enabled ~= 0 and length > GCD and C_Timer and type(C_Timer.After) == "function") then return end
+	local ends = start + length
+	if ends == potionEnds then return end
+	potionEnds = ends
+	C_Timer.After(math.max(0, ends - GetTime()), function()
+		if ends == potionEnds and ns.running and ns.Get("potionAlert") then
+			potionEnds = nil
+			local r, g, b = Tokens.Color("friendly")
+			Flash("potionAlert", L["Potion ready"], r, g, b)
+		end
+	end)
 end
 
 local EVENTS = {
@@ -172,6 +211,7 @@ local EVENTS = {
 	{ "talentAlert", { PLAYER_LEVEL_UP = Talents, TRAIT_CONFIG_UPDATED = Talents, PLAYER_TALENT_UPDATE = Talents } },
 	{ "durabilityAlert", { UPDATE_INVENTORY_DURABILITY = Durability, PLAYER_EQUIPMENT_CHANGED = Durability } },
 	{ "deathAlert", { UNIT_HEALTH = Health, GROUP_ROSTER_UPDATE = Roster } },
+	{ "potionAlert", { BAG_UPDATE_DELAYED = Potions, BAG_UPDATE_COOLDOWN = Potion } },
 }
 
 local function Wanted(key)
@@ -191,6 +231,12 @@ local function Sync()
 	if not (any or holder) then return end
 	fighting = ns.Ask(InCombatLockdown) ~= false
 	if ns.running and ns.Get("deathAlert") then Roster() end
+	if ns.running and ns.Get("potionAlert") then
+		if not potion then Potions() end
+		Potion()
+	else
+		potionEnds = nil
+	end
 	if not (ns.running and flashKey and ns.Get(flashKey)) then flashToken = flashToken + 1; Hide("flash") end
 	Talents()
 	Durability()
@@ -199,7 +245,7 @@ end
 ns.noticeLines = lines
 
 local KEYS = { alertSize = true, combatAlert = true, talentAlert = true, talentText = true, talentColor = true, talentClass = true, deathAlert = true,
-	durabilityAlert = true, durabilityPercent = true, durabilityY = true, durabilityThrown = true }
+	durabilityAlert = true, durabilityPercent = true, durabilityY = true, durabilityThrown = true, potionAlert = true }
 
 ns.AddPart({
 	name = "notices",
