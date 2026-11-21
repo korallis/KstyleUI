@@ -307,8 +307,10 @@ local function installPrediction(env)
 		function calc.GetIncomingHeals(self)
 			return env.Secret(self.heals), env.Secret(0), env.Secret(self.heals), env.Secret(false)
 		end
+		-- UnitHealPredictionCalculatorSharedDocumentation.lua: MissingHealth subtracts the incoming heals from the missing health.
 		function calc.GetDamageAbsorbs(self)
-			return env.Secret(self.absorbs), env.Secret(self.absorbs > (self.missing or 0))
+			local heals = self.modes.absorb == env.Enum.UnitDamageAbsorbClampMode.MissingHealth and self.heals or 0
+			return env.Secret(self.absorbs), env.Secret(self.absorbs > (self.missing or 0) - heals)
 		end
 		function calc.SetHealAbsorbClampMode(self, mode)
 			self.modes.healAbsorb = mode
