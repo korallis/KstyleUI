@@ -212,7 +212,7 @@ function List.Update(win, left, top, tallest)
 	Widgets.Size(frame, width, head + height)
 	Widgets.Point(list.fold, "TOPLEFT", frame, "TOPLEFT")
 	Widgets.Point(list.scroll, "TOPLEFT", frame, "TOPLEFT", 0, -head)
-	Widgets.Size(list.scroll, width, height)
+	list.scroll:SetSize(width, height)
 	List.Show(list.scroll, items, folded)
 	return Widgets.Snap(panel, width + Tokens.Size("gapMedium")), Widgets.Snap(panel, head + height)
 end

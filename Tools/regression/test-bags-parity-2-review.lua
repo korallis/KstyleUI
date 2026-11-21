@@ -152,6 +152,7 @@ case("5 the list keeps the window's size limits", function()
 		clean(env, K)
 	end
 	local env, K, _, w = new({ enabled = true, sidebar = true, shrink = false }, { bags = { [0] = { size = 4, items = { Item("sword") } } } })
+	assert(not w.list.scroll.bar:IsShown(), "a list that fits shows no scroll bar")
 	local width = w.panel:GetWidth()
 	click(env, w.list.fold)
 	assert(W.Near(w.panel:GetWidth(), width), "a held window keeps its width when the list folds, got " .. w.panel:GetWidth() .. " from " .. width)

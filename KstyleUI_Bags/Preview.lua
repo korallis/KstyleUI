@@ -142,7 +142,7 @@ function Preview.Build(...)
 			local items = ListItems(view, categories, pinned, order)
 			frame.list:ClearAllPoints()
 			Widgets.Point(frame.list, "TOPRIGHT", pinned and frame.pinCap or frame.title, "TOPLEFT", -Tokens.Size("gapMedium"), 0)
-			Widgets.Size(frame.list, ns.List.WIDTH, #items * ns.List.ROW)
+			frame.list:SetSize(ns.List.WIDTH, #items * ns.List.ROW)
 			ns.List.Show(frame.list, items, false)
 		end
 		local bags = Settings.Get("bagSlots")
