@@ -533,7 +533,7 @@ local function Caption(z, panel)
 			Parts.Hush(frame.Controls.Logo)
 		end
 		caption = Widgets.FontString(bar, "OVERLAY")
-		local search = IsTable(frame.Controls) and frame.Controls.SearchButton
+		local search = bar.SearchButton or IsTable(frame.Controls) and frame.Controls.SearchButton
 		if IsTable(search) and type(search.GetRight) == "function" then
 			caption:SetPoint("LEFT", search, "RIGHT", Tokens.Size("gapXLarge") * 2, 0)
 		else
