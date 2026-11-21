@@ -69,6 +69,7 @@ for id in pairs(ns.Strip.GLYPH_CELLS) do
 	eq(s.blocks[id].iconColor, "bar", id .. " icon colour")
 end
 eq(s.second, false, "second bar")
+eq(s.hearthLeftText, "none", "left click text")
 eq(s.hearthRightText, "none", "right click text")
 eq(s.hearthMiddleText, "none", "middle click text")
 eq(s.modules[1].id, "gold", "the saved order survives")
@@ -129,13 +130,13 @@ assert(disabled("strip.blocks.fps.show") and disabled("strip.blocks.fps.iconColo
 write("strip.line", true)
 write("strip.placement", "top")
 
--- Travel text: the left click's text follows its own spell; right and middle add theirs after a middle dot.
+-- Travel text: the Hearthstone keeps its text; each click with its own spell or item adds its text after a middle dot.
 show({ "hearth", "fps" })
 eq(text("hearth"), "ready Stormwind", "today's text")
 write("strip.hearthLeft", "spell:556")
 eq(text("hearth"), "ready Stormwind", "a saved left click keeps the Hearthstone's text")
 write("strip.hearthLeft", "")
-assert(disabled("strip.hearthRightText") and disabled("strip.hearthMiddleText"), "a click's text waits for its click")
+assert(disabled("strip.hearthLeftText") and disabled("strip.hearthRightText") and disabled("strip.hearthMiddleText"), "a click's text waits for its click")
 write("strip.hearthRight", "spell:556")
 write("strip.hearthMiddle", "item:6948")
 eq(text("hearth"), "ready Stormwind", "None adds nothing")
@@ -156,8 +157,8 @@ spells[556] = nil
 write("strip.hearthMiddleText", "both")
 eq(text("hearth"), "ready Stormwind \194\183 -- \194\183 ready Stormwind", "the Hearthstone on the middle click reads its home")
 write("strip.hearthLeft", "spell:3561")
-write("strip.hearthText", "location")
-assert(text("hearth"):find("^Teleport: Stormwind \194\183 "), "the left text follows the left click: " .. text("hearth"))
+write("strip.hearthLeftText", "location")
+eq(text("hearth"), "ready Stormwind \194\183 Teleport: Stormwind \194\183 -- \194\183 ready Stormwind", "the left click adds its own text")
 local calls, info = 0, env.C_Spell.GetSpellInfo
 env.C_Spell.GetSpellInfo = function(id) calls = calls + 1 return info(id) end
 ns.Strip.Tick()
@@ -165,8 +166,7 @@ ns.Strip.Tick()
 eq(calls, 0, "names are read once, not every second")
 env.C_Spell.GetSpellInfo = info
 for _, key in ipairs({ "hearthLeft", "hearthRight", "hearthMiddle" }) do write("strip." .. key, "") end
-for _, key in ipairs({ "hearthRightText", "hearthMiddleText" }) do write("strip." .. key, "none") end
-write("strip.hearthText", "both")
+for _, key in ipairs({ "hearthLeftText", "hearthRightText", "hearthMiddleText" }) do write("strip." .. key, "none") end
 eq(text("hearth"), "ready Stormwind", "off restores today's text")
 
 -- The second bar: built when turned on, a copy of the main bar's readouts, live in Layout Mode, and gone when off.

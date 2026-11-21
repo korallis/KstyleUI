@@ -85,7 +85,7 @@ defaults.strip = {
 	audioChannel = "Master", professionText = "name", brokerPlugin = "", brokerWidth = 0, brokerLabel = true,
 	icons = "off", iconColor = "label", iconCustom = Rgb("text"), fill = "none", currencyIcons = false, reagentsShown = "all", reagentsLabel = false,
 	socialList = 0, guildNotes = false, friendNotes = false, hearthText = "both", hearthLeft = "", hearthRight = "", hearthMiddle = "",
-	hearthRightText = "none", hearthMiddleText = "none", second = false, blocks = {},
+	hearthLeftText = "none", hearthRightText = "none", hearthMiddleText = "none", second = false, blocks = {},
 }
 local TEXT = Rgb("text")
 for id in pairs(Strip.GLYPH_CELLS) do defaults.strip.blocks[id] = { show = "bar", iconColor = "bar", iconCustom = TEXT } end
@@ -399,10 +399,8 @@ function ns.Schema()
 		end },
 	})
 	local TRAVEL_TEXT = {
-		{ value = "both", label = L["Cooldown and destination"] }, { value = "location", label = L["Destination"] }, { value = "cooldown", label = L["Cooldown"] }, { value = "smart", label = L["Cooldown, or destination when ready"] },
+		{ value = "none", label = L["None"] }, { value = "both", label = L["Cooldown and destination"] }, { value = "location", label = L["Destination"] }, { value = "cooldown", label = L["Cooldown"] }, { value = "smart", label = L["Cooldown, or destination when ready"] },
 	}
-	local TRAVEL_EXTRA = { { value = "none", label = L["None"] } }
-	for i, option in ipairs(TRAVEL_TEXT) do TRAVEL_EXTRA[i + 1] = option end
 	ns.AddRows({
 		{ type = "header", label = L["Clock"] },
 		{ type = "dropdown", key = "strip.timeSource", label = L["Clock"], help = L["Your computer's time or the realm's time."], options = TIME_SOURCES },
@@ -442,13 +440,17 @@ function ns.Schema()
 		{ type = "text", key = "strip.spec2Text", label = L["Group 2 text"], help = L["Shown in place of the specialization name. Empty uses the name."], maxLetters = 24 },
 		{ type = "header", label = L["Hearthstone"] },
 		{ type = "toggle", key = "strip.hearthOthers", label = L["Other characters"], help = L["Lists your other characters' homes in the Hearthstone tooltip."] },
+		{ type = "dropdown", key = "strip.hearthText", label = L["Text"], help = L["What the Hearthstone readout shows."], options = {
+			{ value = "both", label = L["Cooldown and home"] }, { value = "location", label = L["Home"] }, { value = "cooldown", label = L["Cooldown"] }, { value = "smart", label = L["Cooldown, or home when ready"] },
+		} },
 		{ type = "dropdown", key = "strip.hearthLeft", label = L["Left click"], help = L["The travel spell or item a left click uses, out of combat."], options = function() return ns.Readouts.TravelChoices("hearthLeft") end },
-		{ type = "dropdown", key = "strip.hearthText", label = L["Left click text"], help = L["What the readout shows for the left click: the destination, its cooldown or both."], options = TRAVEL_TEXT },
+		{ type = "dropdown", key = "strip.hearthLeftText", label = L["Left click text"], help = L["What the readout adds for the left click. Needs a left click other than the Hearthstone."], options = TRAVEL_TEXT,
+			disableWhen = function(settings) return settings.strip.hearthLeft == "" end },
 		{ type = "dropdown", key = "strip.hearthRight", label = L["Right click"], help = L["The travel spell or item a right click uses, out of combat."], options = function() return ns.Readouts.TravelChoices("hearthRight") end },
-		{ type = "dropdown", key = "strip.hearthRightText", label = L["Right click text"], help = L["What the readout adds for the right click. Needs a right click other than None."], options = TRAVEL_EXTRA,
+		{ type = "dropdown", key = "strip.hearthRightText", label = L["Right click text"], help = L["What the readout adds for the right click. Needs a right click other than None."], options = TRAVEL_TEXT,
 			disableWhen = function(settings) return settings.strip.hearthRight == "" end },
 		{ type = "dropdown", key = "strip.hearthMiddle", label = L["Middle click"], help = L["The travel spell or item a middle click uses, out of combat."], options = function() return ns.Readouts.TravelChoices("hearthMiddle") end },
-		{ type = "dropdown", key = "strip.hearthMiddleText", label = L["Middle click text"], help = L["What the readout adds for the middle click. Needs a middle click other than None."], options = TRAVEL_EXTRA,
+		{ type = "dropdown", key = "strip.hearthMiddleText", label = L["Middle click text"], help = L["What the readout adds for the middle click. Needs a middle click other than None."], options = TRAVEL_TEXT,
 			disableWhen = function(settings) return settings.strip.hearthMiddle == "" end },
 		{ type = "header", label = L["Guild and friends"] },
 		{ type = "slider", key = "strip.socialList", label = L["Names in the tooltip"], help = L["Lists up to this many online guild members and friends in their tooltips. 0 shows the counts alone."], min = 0, max = 40, step = 1 },

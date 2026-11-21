@@ -67,8 +67,7 @@ local function Hearth()
 	return L["--"], L["--"]
 end
 
-function Readouts.HearthText(s, bind, cooldown, mode)
-	mode = mode or s.hearthText
+local function HearthText(mode, bind, cooldown)
 	if mode == "location" or mode == "smart" and cooldown == L["ready"] then return bind end
 	if mode == "cooldown" or mode == "smart" then return cooldown end
 	return cooldown .. " " .. bind
@@ -114,15 +113,13 @@ function Readouts.Travel(value)
 	return ChoiceName(value) or L["--"], cooldown
 end
 
-local CLICKS = { { "hearthRight", "hearthRightText" }, { "hearthMiddle", "hearthMiddleText" } }
+local CLICKS = { { "hearthLeft", "hearthLeftText" }, { "hearthRight", "hearthRightText" }, { "hearthMiddle", "hearthMiddleText" } }
 function Readouts.HearthValue(s, travel)
-	local place, cooldown = travel(s.hearthLeft)
-	local text = Readouts.HearthText(s, place, cooldown)
+	local text = HearthText(s.hearthText, travel(""))
 	for _, click in ipairs(CLICKS) do
 		local mode = s[click[2]]
 		if mode ~= "none" and s[click[1]] ~= "" then
-			place, cooldown = travel(s[click[1]])
-			text = text .. " \194\183 " .. Readouts.HearthText(s, place, cooldown, mode)
+			text = text .. " \194\183 " .. HearthText(mode, travel(s[click[1]]))
 		end
 	end
 	return text
