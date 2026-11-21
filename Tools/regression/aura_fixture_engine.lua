@@ -1,4 +1,4 @@
--- aura_fixture_engine.lua: native aura filtering, sorting, binding and flow layout at the test boundary; fixtures stay outside addon Lua.
+-- aura_fixture_engine.lua: native aura filtering, sorting, binding and flow layout (a group starts its new line groupLineSpacing below the last, 0 unless set, as the engine's defaults) at the test boundary; fixtures stay outside addon Lua.
 local Engine = {}
 
 local function Matches(aura, filter)
@@ -35,6 +35,7 @@ function Engine.Refresh(env)
 				end)
 			end
 			local count = math.min(#matches, group.max)
+			if count > 0 and offset > 0 then offset = offset + (group.layout.groupLineSpacing or 0) end
 			container:_Acquire(key, count)
 			group.assigned = {}
 			local layout = group.layout
@@ -59,7 +60,8 @@ function Engine.Refresh(env)
 				end
 			end
 			if count > 0 then
-				offset = offset + math.ceil(count / columns) * h
+				local rows = math.ceil(count / columns)
+				offset = offset + rows * h + (rows - 1) * (layout.lineSpacing or 0)
 				wide = math.max(wide, math.min(count, columns) * (w + gap) - gap)
 			end
 		end
