@@ -33,6 +33,24 @@ return Common.Run(function()
 		K.Options.Write(module, "cast.fullOpacity", true)
 		K.Options.Write(module, "focus.fullOpacity", true)
 		local N = dofile("Tools/regression/nameplates_env.lua")
+		local function cast(token, name, texture, shield, progress)
+			N.Cast(env, token, { name = name, text = name, texture = texture, notInterruptible = shield })
+			Hud.FillCast(ns.Plates.Get(token), progress)
+		end
+		local A
+		local function fill(container, key, icons)
+			A = A or dofile("Tools/regression/auras_env.lua")
+			local group = container._groups[key]
+			A.Assign(env, container, key, #icons)
+			for i, icon in ipairs(icons) do
+				local aura = group.active[i]._aura
+				aura.icon:SetTexture(env.Secret(icon[1]))
+				if aura.timer then aura.timer:SetText(icon[2]) end
+				local ring = aura.dispel[1] and aura.dispel[1].texture
+				if ring then ring:SetVertexColor(0.2, 0.6, 1); ring:SetShown(icon[3] ~= nil) end
+			end
+			Hud.PlaceAuras(container, group, group.active, #icons)
+		end
 		if os.getenv("RENDER_PARITY_ROUND") == "1" then
 			-- Round 1 switched on: threat percent (at the right, beside the health text) and name colour, the health line and
 			-- name marker on the target, the focus letter, a PvP badge, the spell target and a level difficulty colour.
@@ -46,8 +64,7 @@ return Common.Run(function()
 				["markers.pvpPlayersOnly"] = false, ["cast.showTarget"] = true, ["cast.hideUnitName"] = false, ["level.colorMode"] = "difficulty" }) do
 				K.Options.Write(module, key, value)
 			end
-			N.Cast(env, "nameplate2", { name = "Mirefin Hex", text = "Mirefin Hex", texture = 136071, notInterruptible = false })
-			Hud.FillCast(ns.Plates.Get("nameplate2"), 0.4)
+			cast("nameplate2", "Mirefin Hex", 136071, false, 0.4)
 		elseif os.getenv("RENDER_PARITY_ROUND") == "2" then
 			-- Round 2 switched on: the target's glow, bar highlight and size, a rogue's combo points and energy on the target, an
 			-- important cast with its glow and a larger spell icon on the add, the target's protected important cast keeping its colour
@@ -69,10 +86,8 @@ return Common.Run(function()
 				K.Options.Write(module, key, value)
 			end
 			ns.Interrupt.spell, ns.Interrupt.ready = 1766, true
-			N.Cast(env, "nameplate1", { name = "Snap", text = "Snap", texture = 132200, notInterruptible = true })
-			Hud.FillCast(ns.Plates.Get("nameplate1"), 0.55)
-			N.Cast(env, "nameplate2", { name = "Mirefin Hex", text = "Mirefin Hex", texture = 136071, notInterruptible = false })
-			Hud.FillCast(ns.Plates.Get("nameplate2"), 0.4)
+			cast("nameplate1", "Snap", 132200, true, 0.55)
+			cast("nameplate2", "Mirefin Hex", 136071, false, 0.4)
 		elseif os.getenv("RENDER_PARITY_ROUND") == "3" then
 			-- Round 3 switched on: absorbs, the execute glow and the bar highlight on the target, a larger
 			-- diamond, a lighter cast track, the add as a taller-cast, highlighted focus fading out of range, and friendly plates:
@@ -134,23 +149,8 @@ return Common.Run(function()
 				["target.distance"] = true, ["friendly.npcTitle"] = true, ["cast.hideUnitName"] = false }) do
 				K.Options.Write(module, key, value)
 			end
-			N.Cast(env, "nameplate1", { name = "Snap", text = "Snap", texture = 132200, notInterruptible = false })
-			Hud.FillCast(ns.Plates.Get("nameplate1"), 0.55)
-			N.Cast(env, "nameplate2", { name = "Mirefin Hex", text = "Mirefin Hex", texture = 136071, notInterruptible = false })
-			Hud.FillCast(ns.Plates.Get("nameplate2"), 0.4)
-			local A = dofile("Tools/regression/auras_env.lua")
-			local function fill(container, key, icons)
-				local group = container._groups[key]
-				A.Assign(env, container, key, #icons)
-				for i, icon in ipairs(icons) do
-					local aura = group.active[i]._aura
-					aura.icon:SetTexture(env.Secret(icon[1]))
-					if aura.timer then aura.timer:SetText(icon[2]) end
-					local ring = aura.dispel[1] and aura.dispel[1].texture
-					if ring then ring:SetVertexColor(0.2, 0.6, 1); ring:SetShown(icon[3] ~= nil) end
-				end
-				Hud.PlaceAuras(container, group, group.active, #icons)
-			end
+			cast("nameplate1", "Snap", 132200, false, 0.55)
+			cast("nameplate2", "Mirefin Hex", 136071, false, 0.4)
 			for _, token in ipairs({ "nameplate1", "nameplate2" }) do
 				local plate = ns.Plates.Get(token)
 				fill(plate.kinds.buffs, "buffs", { { 135940, "24", "Magic" }, { 135932, "9m" } })
@@ -176,26 +176,12 @@ return Common.Run(function()
 				["cast.hideUnitName"] = false }) do
 				K.Options.Write(module, key, value)
 			end
-			N.Cast(env, "nameplate1", { name = "Snap", text = "Snap", texture = 132200, notInterruptible = false })
-			Hud.FillCast(ns.Plates.Get("nameplate1"), 0.55)
-			N.Cast(env, "nameplate2", { name = "Mirefin Hex", text = "Mirefin Hex", texture = 136071, notInterruptible = false })
-			Hud.FillCast(ns.Plates.Get("nameplate2"), 0.4)
-			local A = dofile("Tools/regression/auras_env.lua")
+			cast("nameplate1", "Snap", 132200, false, 0.55)
+			cast("nameplate2", "Mirefin Hex", 136071, false, 0.4)
 			for _, token in ipairs({ "nameplate1", "nameplate2" }) do
 				local plate = ns.Plates.Get(token)
-				for key, icons in pairs({ buffs = { { 135940, "24" }, { 135932, "9m" } }, ccs = { { 135963, "4" } } }) do
-					local container = plate.kinds[key]
-					local group = container._groups[key]
-					A.Assign(env, container, key, #icons)
-					for i, icon in ipairs(icons) do
-						local aura = group.active[i]._aura
-						aura.icon:SetTexture(env.Secret(icon[1]))
-						if aura.timer then aura.timer:SetText(icon[2]) end
-						local ring = aura.dispel[1] and aura.dispel[1].texture
-						if ring then ring:SetShown(false) end
-					end
-					Hud.PlaceAuras(container, group, group.active, #icons)
-				end
+				fill(plate.kinds.buffs, "buffs", { { 135940, "24" }, { 135932, "9m" } })
+				fill(plate.kinds.ccs, "ccs", { { 135963, "4" } })
 			end
 		end
 		N.Focus(env, "nameplate2")
