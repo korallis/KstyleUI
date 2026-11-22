@@ -11,4 +11,4 @@ stateDiagram-v2
     Applied --> Applied: Change Steel window buttons
 ```
 
-The quest continuation, story alignment, meter fitting, data-strip docking, minimap plaque clearance, bag-heading and bag-figure switches refresh their matching module immediately. Switching them off restores their previous arrangement.
+The quest continuation, guide card trim, meter fitting, data-strip docking, minimap plaque clearance, bag-heading and bag-figure switches refresh their matching module immediately. Switching them off restores their previous arrangement.

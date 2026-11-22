@@ -1,4 +1,4 @@
--- Rail.lua: puts RestedXP's guide window in a card of its own: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, in the top left corner above the party frames by default) and the guide hangs from the element's top on its left edge and width, the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the current step always shows whole (RestedXP completes a step only once every line is ticked) and the later steps that would run past the element's foot rest unseen behind a muted "N more" line; in combat a step that grows grows the card up, clear of the docked boxes, the card holding the whole step; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window. RestedXP's Active Targets and Active Items boxes dock under the guide's card: side by side at half its width with compact headers, or one at its full width (stacked when an icon row does not fit half; a box with more icons keeps the card's right edge and grows toward the middle), the guide's room cut to leave them space, until the player drags one away. While the rail holds the window it keeps RestedXP's active steps above its header, where RestedXP's "top" orientation puts them, after RestedXP anchors them under its window (its "bottom" orientation, or its own flip when the steps' top passes the screen's top), so the card never shows RestedXP's hushed header and folded window between its cap and the step; letting the window go hands the anchoring back to RestedXP.
+-- Rail.lua: puts RestedXP's guide window in a card of its own: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, in the top left corner above the party frames by default) and the guide stands on the element's foot on its left edge and width, with the element's room above it to grow into (from the element's top when the step is taller than the element), the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the current step always shows whole (RestedXP completes a step only once every line is ticked) and the later steps that would run past the element's foot rest unseen behind a muted "N more" line; in combat a step that grows grows the card up, clear of the docked boxes, the card holding the whole step; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window. RestedXP's Active Targets and Active Items boxes dock under the guide's card: side by side at half its width with compact headers, or one at its full width (stacked when an icon row does not fit half; a box with more icons keeps the card's right edge and grows toward the middle), the guide's room cut to leave them space, until the player drags one away. While the rail holds the window it keeps RestedXP's active steps above its header, where RestedXP's "top" orientation puts them, after RestedXP anchors them under its window (its "bottom" orientation, or its own flip when the steps' top passes the screen's top), so the card never shows RestedXP's hushed header and folded window between its cap and the step; letting the window go hands the anchoring back to RestedXP.
 local _, ns = ...
 
 local K = KstyleUI
@@ -216,9 +216,8 @@ end
 
 local function Plan(band)
 	local boxes, gap = Boxes(), Tokens.Size(BOX_GAP)
-	local gutter = gap
 	local span = band.right - band.left
-	local share = (span - gutter) / 2
+	local share = (span - gap) / 2
 	local row = #boxes == 2
 	for _, box in ipairs(boxes) do
 		if Icons(box) * Widgets.ScaleFactor(box) > share then
@@ -229,7 +228,7 @@ local function Plan(band)
 	for i, box in ipairs(boxes) do
 		local height = Tall(box, Reach(box))
 		if row then
-			plan[i] = { box = box, left = band.left + (i - 1) * (share + gutter), width = share, drop = gap, label = box == Box("items") and L["Items"] or L["Targets"] }
+			plan[i] = { box = box, left = band.left + (i - 1) * (share + gap), width = share, drop = gap, label = box == Box("items") and L["Items"] or L["Targets"] }
 			tall = math.max(tall, gap + height)
 		else
 			drop = drop + gap
@@ -249,7 +248,7 @@ function Rail.Band()
 	end
 	local _, reserve = Plan(band)
 	band.bottom = band.bottom + math.min(reserve, math.max(0, band.top - band.bottom - Need()))
-	return band, story
+	return band
 end
 
 local function Remember(f)
@@ -458,7 +457,8 @@ end
 local function Hang(f, path, band, left)
 	local scale = Widgets.ScaleFactor(f)
 	local shape = Shape(f, path, f.CurrentStepFrame:IsShown() and Height(f.CurrentStepFrame) or nil)
-	local top = band.top / scale - shape.headTop - shape.above - shape.cap
+	local span = math.max(shape.span, path and path.cardHeight or 0)
+	local top = math.min(band.top / scale, band.bottom / scale + span) - shape.headTop - shape.above - shape.cap
 	if Widgets.Readability("snapEdges") then
 		Widgets.Point(f, "TOPLEFT", UIParent, "BOTTOMLEFT", left + K.Scale.Origin() / scale, top, true)
 	else
@@ -816,7 +816,7 @@ local function OnHead(f)
 	local placed = state.placed
 	if placed and On() and IsTable(f) and f == Frame() then
 		local path = RestedXP.Chrome.Path(f)
-		Fit(f, path, (Rail.Band()))
+		Fit(f, path, Rail.Band())
 	end
 	Schedule()
 end

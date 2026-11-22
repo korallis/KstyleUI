@@ -368,7 +368,7 @@ for _, name in ipairs(NAMES) do
 		anchor = "TOPRIGHT", x = -EDGE, y = -STORY_TOP,
 		width = STORY_W, height = HEIGHT - STORY_TOP - STORY_BOTTOM,
 		label = L["Story rail"],
-		hint = L["Apply places the quest tracker here through Edit Mode."],
+		hint = L["Apply places the quest tracker beside this space through Edit Mode."],
 	}
 end
 
@@ -646,9 +646,8 @@ function Layouts.Story(name, rootHeight, guide, rootWidth, out, targetWidth, cre
 			foot = DPS["meters.threat"].y + THREAT_H
 		end
 	end
-	local column = math.max(0, rh - STORY_TOP - foot - GAP - inset)
 	out.guide = guide and Card(out.guide, STORY_KEYS.guide, "TOPLEFT", MARGIN, -MARGIN, STORY_W, rh - MARGIN - GAP - partyTop) or nil
-	out.quests = Card(out.quests, STORY_KEYS.quests, slot.anchor, x, slot.y - offset, slot.width, column)
+	out.quests = Card(out.quests, STORY_KEYS.quests, slot.anchor, x, slot.y - offset, slot.width, math.max(0, rh - STORY_TOP - foot - GAP - inset))
 	out.slot = slot.height - Lift(rootHeight) - inset
 	return out
 end
@@ -1517,12 +1516,9 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	local rects, boxes, count = state.rects, state.boxes, 0
 	local elements, medals = #ELEMENTS, Layouts.MEDALLIONS_MEDALS
 	local story = Layouts.FitStory(state, name, physicalWidth, physicalHeight, user)
-	if enabled[STORY_KEYS.guide] ~= false and story.slot < STORY_FLOOR then
-		return false
-	end
 	for i = 1, 2 do
 		local card = i == 1 and story.guide or story.quests
-		if enabled[card.key] ~= false and (card.width <= 0 or card.height < STORY_FLOOR) then
+		if enabled[card.key] ~= false and (card.width <= 0 or card.height < STORY_FLOOR or i == 1 and story.slot < STORY_FLOOR) then
 			return false
 		end
 	end

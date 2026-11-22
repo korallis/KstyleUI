@@ -222,7 +222,7 @@ One class-coloured bar per player. Switch between this fight, the last fight and
 
 *KstyleUI test render over an in-game screenshot: the right rail - map card, quest card and guide card. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
-Your buffs sit beside a round map with the zone and your coordinates. The quest card keeps your quests in view and scrolls for the rest. With a RestedXP or Zygor Guides Viewer guide open, the guide takes the column beside it in the same forged card, and RestedXP's target and item boxes dock underneath. The minimap's drawer collects every addon button cluttering the map.
+Your buffs sit beside a round map with the zone and your coordinates. The quest card keeps your quests in view and scrolls for the rest. With a RestedXP or Zygor Guides Viewer guide open, the guide gets a forged card of its own in the top left corner, above your party frames, and RestedXP's target and item boxes dock underneath. The minimap's drawer collects every addon button cluttering the map.
 
 ### A world map that plans the trip
 
@@ -278,10 +278,10 @@ An optional icon pack repaints ability and item icons everywhere, including buff
 World of Warcraft: Forever. It is built and tested for that client only.
 
 **Does it work with RestedXP?**
-Yes. The guide gets its own tall card beside your quest card, RestedXP's Active Targets and Active Items boxes dock underneath it, and the RestedXP windows are skinned to match.
+Yes. The guide gets its own card in the top left corner, above your party frames, RestedXP's Active Targets and Active Items boxes dock underneath it, and the RestedXP windows are skinned to match.
 
 **Does it work with Zygor Guides Viewer?**
-Yes. The guide sits on the right rail like RestedXP's, in KstyleUI's forged card with themed controls, progress bar and waypoint arrow. Switch it under **Options, Window Skins, Zygor**.
+Yes. The guide sits in the top left corner like RestedXP's, in KstyleUI's forged card with themed controls, progress bar and waypoint arrow. Switch it under **Options, Window Skins, Zygor**.
 
 **Does it work with Questie?** Yes. KstyleUI keeps Questie's map pins and uses its own quest card by default; choose your tracker under **Options, General, Existing addons**.
 

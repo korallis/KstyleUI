@@ -1,4 +1,4 @@
--- Zygor.lua: the Zygor switch: once Zygor Guides Viewer has loaded it restyles the guide window in the KstyleUI theme without touching Zygor's settings, and hangs the window in a card of its own in the top left corner above the party frames, its own mover in Layout Mode, re-placed after each step and after a layout change, out of combat, and kept out of Zygor's saved anchor while the rail holds it.
+-- Zygor.lua: the Zygor switch: once Zygor Guides Viewer has loaded it restyles the guide window in the KstyleUI theme without touching Zygor's settings, and hangs the window in a card of its own in the top left corner above the party frames, never taller than the card, its own mover in Layout Mode, re-placed after each step and after a layout change, out of combat, and kept out of Zygor's saved anchor while the rail holds it.
 local _, ns = ...
 
 local K = KstyleUI
@@ -145,11 +145,12 @@ function Fit()
 	if state.busy or not (placed and frame) then
 		return
 	end
-	if ns.Skins.Setting(KEY, FIT) == true then
+	local height = placed.room
+	local tall = frame:GetHeight()
+	if ns.Skins.Setting(KEY, FIT) == true and not (Plain(tall) and tall > height) then
 		return
 	end
-	local height = placed.room
-	if Plain(height) and height > 0 and not Near(frame:GetHeight(), height) then
+	if Plain(height) and height > 0 and not Near(tall, height) then
 		local z = state.z
 		local profile = IsTable(z) and IsTable(z.db) and z.db.profile
 		local full = IsTable(profile) and profile.fullheight
@@ -794,7 +795,7 @@ ns.Skins.Add({
 	addon = ADDON,
 	defaults = { rail = true, fit = true },
 	rows = {
-		{ type = "toggle", key = FIT, label = L["Fit guide to its steps"], help = L["Size the guide to its steps. Off stretches it over its card."] },
+		{ type = "toggle", key = FIT, label = L["Fit guide to its steps"], help = L["Size the guide to its steps, never past its card. Off stretches it over its card."] },
 		{
 			type = "toggle", key = RAIL, label = L["Guide card"],
 			help = L["Puts the guide in its own card in the top left corner. Drag the guide away to keep your spot."],

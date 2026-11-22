@@ -157,6 +157,7 @@ local function StoryBox(name, rw, rh, part)
 	if not card then
 		return nil
 	end
+	card.x = Layouts.Band(card.key, card.anchor, card.x, ns.Scale.Band())
 	local l, b, r, t = Layouts.Rect(card, card, rw, rh)
 	return { l = l, b = b, r = r, t = t }
 end

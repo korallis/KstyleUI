@@ -44,11 +44,6 @@ do
 	within(assert(find(questing, "QUESTS"), "the quests' caption draws"), column, "the quests' caption")
 	within(assert(find(questing, "[8] Break a Few Eggs"), "the second quest draws, with Forever's level"), column, "the second quest")
 	assert(not find(questing, "RestedXP Guides v4.11.35") and not find(questing, "Speedrun Guide 1-22"), "the guide's version footer and its group line, which repeat the head, are hushed")
-	local guideCard
-	for _, card in ipairs(questing.rail) do
-		if card.name == "guide" then guideCard = card end
-	end
-	within(assert(find(questing, "2/10 Kul Tiras Sailor slain"), "the guide's active step draws"), assert(guideCard, "the guide's card draws"), "the guide's active step")
 	assert(find(questing, "DAMAGE  HEALING").rect[2] >= slot.top + slot.height, "the damage meter's cap sits under the slot")
 	assert(math.abs(column.top - slot.top) < 0.01 and math.abs(slot.left - (column.left + column.width) - 16 * 16 / 19) < 0.02, "the quests' column stands a rail gap left of the slot, at its top")
 end
@@ -69,6 +64,7 @@ for _, scene in ipairs({ questing, combat }) do
 	assert(chat.top >= party.top + party.height - 0.5, scene.state .. ": chat starts under the party")
 	assert(math.abs(quests.left - column.left) <= 0.5 and math.abs(quests.width - column.width) <= 1, scene.state .. ": the quest card is on the column's edge and width, got " .. quests.left .. " by " .. quests.width)
 	assert(quests.top >= column.top - 0.75 and quests.top + quests.height <= column.top + column.height + 0.75, scene.state .. ": the quest card stays inside the column")
+	if scene == questing then within(assert(find(scene, "2/10 Kul Tiras Sailor slain"), "the guide's active step draws"), guide, "the guide's active step") end
 	assert(math.abs(guide.left - party.left) <= 0.75 and guide.top + guide.height <= party.top, scene.state .. ": the guide stands over the party on the left rail's edge, got " .. guide.left .. ", " .. guide.top .. ", " .. guide.height .. " for the party at " .. party.left .. ", " .. party.top)
 	for _, text in ipairs({ "QUESTS", "Bloodtalon Scythemaw" }) do
 		local item = assert(find(scene, text), scene.state .. ": " .. text .. " draws")

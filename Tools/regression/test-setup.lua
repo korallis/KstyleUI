@@ -534,7 +534,7 @@ do
 		W.Settle(env)
 		assert(preview.slot and preview.slot:IsShown(), name .. "'s preview outlines the story slot")
 		assert(panel.layoutHint:GetText():find("Story rail", 1, true) and panel.layoutHint:GetText():find("Edit Mode", 1, true), "the step names the Story rail and says what goes there")
-		assert(panel.layoutHint:GetText():find("Apply places the quest tracker there", 1, true), "and that Apply places the tracker itself (round 3, Opus #4)")
+		assert(panel.layoutHint:GetText():find("Apply places the quest tracker beside it", 1, true), "and that Apply places the tracker itself (round 3, Opus #4)")
 		assert(not panel.layoutHint:GetText():find("yourself", 1, true), "with no drag instruction: a refusal gets Try again on the summary (round 4, Muse #4)")
 		-- Round 5, Muse #5: the RestedXP step moved to the summary's checklist; the layout choice carries no chore.
 		assert(not panel.layoutHint:GetText():find("Drag", 1, true) and not K.Setup.Layouts.Slot(name).hint:find("Drag", 1, true), "the layout step and the slot hint ask for no drag")
