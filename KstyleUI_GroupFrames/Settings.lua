@@ -363,7 +363,7 @@ function Settings.Schema(includeText)
 		add(Slider(p .. "auraX", L["Debuff offset across"], L["Moves the debuff icons left or right from their place."], -60, 60, 1))
 		add(Slider(p .. "auraY", L["Debuff offset up"], L["Moves the debuff icons up or down from their place."], -60, 60, 1))
 		add(Slider(p .. "buffSize", L["Your heal icon size"], L["The size of each of your heals over time and shields on the frame."], 6, 24, 1))
-		add(Slider(p .. "buffCount", L["Your heal icon count"], L["The most of your heals over time and shields each frame shows."], 0, 6, 1))
+		add(Slider(p .. "buffCount", L["Your heal icon count"], L["The most of your heals over time and shields each frame shows."], kind == "raid" and 0 or 1, 6, 1))
 	end
 
 	local MISFITS = {

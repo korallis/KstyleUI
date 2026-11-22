@@ -53,7 +53,7 @@ local function TileParts(out, w, h, o)
 	local inset = TILE_INSET
 	local spacing = o.aura and o.aura.spacing or 0
 	local nameLine, line = (o.nameHeight or 0) - LINE_EXTRA, (o.healthLine or 0) - LINE_EXTRA
-	local full = h - 2 * pad
+	local full = (out.power and out.power.top - gap or h - pad) - pad
 	local width = w - 2 * pad
 	local heal = o.healRow and math.min(o.healRow, full - nameLine - 2 * inset) or nil
 	local stacked = full >= nameLine + math.max(line, heal or 0) + 2 * inset
