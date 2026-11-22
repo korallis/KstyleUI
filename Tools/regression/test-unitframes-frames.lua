@@ -44,14 +44,14 @@ for kind, key in pairs(ELEMENTS) do
 	assert(el.label == K.Setup.Layouts.Element(key).label, key .. " uses the setup's label")
 	assert(el.opts.resizable == true, key .. " is resizable")
 	local _, _, width, height = K.Layout.Rect(key)
-	local footprint = K.Setup.Layouts.Element(key)
+	local footprint = K.Setup.Layouts.Style(K.Layout.Setting("preset"), key)
 	assert(math.abs(width - footprint.width) < 1 and math.abs(height - footprint.height) < 1,
-		key .. " starts at its footprint, got " .. width .. " x " .. height)
+		key .. " starts at the Medallions HUD's footprint, got " .. width .. " x " .. height)
 end
 
 -- Every full frame takes the kit sheet's proportions: about 3.3 times as wide as tall, its portrait as tall as the frame.
--- The plate was drawn for the classic sizes; the Lumen layouts give these elements the vitals, sigil and card sizes,
--- so the plate is measured at its own sizes and the elements go back to their footprints after.
+-- The plate was drawn for the classic sizes; the Medallions HUD gives these elements its own sizes, so the plates are
+-- checked at the classic sizes from here on.
 local CLASSIC = { player = { 220, 70 }, target = { 220, 70 }, focus = { 200, 80 }, boss = { 200, 5 * 72 + 4 * 6 } }
 for kind, size in pairs(CLASSIC) do
 	assert(K.Layout.Update(ELEMENTS[kind], { width = size[1], height = size[2] }))
@@ -62,10 +62,8 @@ for kind, ratio in pairs({ player = 3.15, target = 3.15, focus = 3.33, boss = 3.
 	local width, frameH = view.button:GetWidth(), view.geometry.portrait.h
 	assert(math.abs(width / frameH - ratio) < 0.1, kind .. " is about " .. ratio .. " times as wide as tall (the mockup's 279 by 90 for the player and target), got " .. width .. " x " .. frameH)
 end
-for kind in pairs(CLASSIC) do
-	K.Layout.Reset(ELEMENTS[kind])
-end
-env.RunTimers()
+-- Known: a relayout that brings the power bar in repaints health but not power; the next power event paints its text.
+env.FireEvent("UNIT_POWER_UPDATE", "player", "MANA")
 
 -- Secure buttons: one per unit, a child of the holder, targeting on left click and the unit menu on right click.
 local function checkButton(view, unit)
@@ -328,6 +326,10 @@ K.Options.Write("UnitFrames", "focus.enabled", false)
 assert(not K.Layout.Live("unitframes.focus"), "switching a frame off takes its element out of Layout Mode")
 K.Options.Write("UnitFrames", "focus.enabled", true)
 assert(K.Layout.Live("unitframes.focus"), "switching it on brings it back")
+for _, castKey in pairs(ns.Settings.CAST_ELEMENTS) do
+	assert(not K.Layout.Live(castKey), castKey .. " stays out of Layout Mode while its cast sits on the frame")
+end
+K.Options.Write("UnitFrames", "castbarOnFrame", false)
 for kind, castKey in pairs(ns.Settings.CAST_ELEMENTS) do
 	assert(K.Layout.Live(castKey), castKey .. " is live while its cast bar is on")
 	K.Options.Write("UnitFrames", kind .. ".castbar", false)
@@ -335,6 +337,7 @@ for kind, castKey in pairs(ns.Settings.CAST_ELEMENTS) do
 	K.Options.Write("UnitFrames", kind .. ".castbar", true)
 	assert(K.Layout.Live(castKey), castKey .. " comes back")
 end
+K.Options.Write("UnitFrames", "castbarOnFrame", true)
 assert(not K.Layout.Live("unitframes.resource"), "a hunter has no class resource to place")
 noErrors("live elements")
 
@@ -345,7 +348,7 @@ do
 	assert(not env2._watched[view.button], "a switched-off frame has no unit watch")
 	K2.Options.Write("UnitFrames", "player.enabled", true)
 	assert(#env2._errors == 0, "enabling a frame later raises no error: " .. tostring(env2._errors[1]))
-	assert(env2._watched[view.button] and U.Shown(env2, view.healthText) == "78%", "and it shows its unit at once")
+	assert(env2._watched[view.button] and U.Shown(env2, view.healthText) == "3.1K / 3.9K  78%", "and it shows its unit at once, on one line at the Medallions size")
 end
 
 -- A player whose class is secret, as under SecretWhenUnitIdentityRestricted: the game's class colour for
