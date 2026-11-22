@@ -197,7 +197,7 @@ local function Paint(view, kind)
 		ns.Slab.SetCaption(view, sample.creature or sample.class or "")
 		ns.Unit.Refit(view)
 	end
-	ns.Unit.TextTags(view, nil, nil, sample)
+	ns.Unit.TextTags(view, nil, nil, SAMPLES[kind])
 	if view.textBar then ns.Unit.BarIcon(view, nil, sample) end
 	if s.portraitStyle == "class" and GetClassAtlas and Theme.Class() then
 		ns.Unit.ClassArt(view.portrait, Theme.Class(), s)
@@ -268,7 +268,7 @@ local function PaintCast(frame, view, kind, height)
 		if cb then
 			cb.frame:Hide()
 		end
-		return 0
+		return
 	end
 	if not cb then
 		cb = ns.CastBars.NewBar(frame.holders[kind], kind, true)
@@ -277,16 +277,16 @@ local function PaintCast(frame, view, kind, height)
 	local g = view.geometry
 	local castH = CastHeight(kind)
 	local gap = kind == "target" and TARGET_CAST_GAP or CAST_GAP
-	local x, y, w, extra = g.panel.x, height + gap, g.panel.w, castH + gap
+	local x, y, w = g.panel.x, height + gap, g.panel.w
 	if kind == "pet" then
 		w, y = view.s.castbarWidth > 0 and view.s.castbarWidth or w, math.max(height, g.medal and g.medal.y + g.medal.h or 0) + CAST_GAP
 	elseif g.form == "plate" or g.form == "slab" and (kind == "target" or not Settings.CAST_ELEMENTS[kind]) then
 		w = (view.s.castbarWidth or 0) > 0 and math.min(view.s.castbarWidth, w) or w
 	elseif g.cast then
-		x, y, w, castH, extra = g.cast.x, g.cast.y, g.cast.w, g.cast.h, 0
+		x, y, w, castH = g.cast.x, g.cast.y, g.cast.w, g.cast.h
 	elseif not (kind == "player" and Settings.Value(kind, "castbarGcd")) then
 		cb.frame:Hide()
-		return 0
+		return
 	end
 	cb.frame:ClearAllPoints()
 	cb.frame:SetPoint("TOPLEFT", frame.holders[kind], "TOPLEFT", x, -y)
@@ -321,7 +321,6 @@ local function PaintCast(frame, view, kind, height)
 	end
 	cb.frame:SetAlpha(1)
 	cb.frame:Show()
-	return extra
 end
 
 local function Chip(frame, kind, host)
@@ -588,7 +587,7 @@ local function Box(region, holder, width, height)
 	return left, top, left + w, top + h
 end
 
-local function Fit(frame, holder, kind, width, height)
+local function Fit(frame, holder, kind, width, height, scale)
 	local l, t, r, b = 0, 0, width, height
 	local view = frame.views[kind]
 	local regions = { frame.auraHosts[kind], frame.casts[kind] and frame.casts[kind].frame, view.portraitFrame, frame.resource, kind == "player" and frame.totems or nil, frame.buffHosts[kind],
@@ -599,15 +598,11 @@ local function Fit(frame, holder, kind, width, height)
 			l, t, r, b = math.min(l, rl), math.min(t, rt), math.max(r, rr), math.max(b, rb)
 		end
 	end
-	local scale = MAX_SCALE
 	local reserve = frame.reserve
 	local rl, rr, rt, rb = reserve and reserve[1] or 0, reserve and reserve[2] or 0, reserve and reserve[3] or 0, reserve and reserve[4] or 0
-	local roomW, roomH = Room(frame:GetWidth() - rl - rr), Room(frame:GetHeight() - rt - rb)
-	if roomW then
-		scale = math.min(scale, roomW / (r - l))
-	end
-	if roomH then
-		scale = math.min(scale, roomH / (b - t))
+	if not scale then
+		local roomW, roomH = Room(frame:GetWidth() - rl - rr), Room(frame:GetHeight() - rt - rb)
+		scale = math.min(MAX_SCALE, roomW and roomW / (r - l) or MAX_SCALE, roomH and roomH / (b - t) or MAX_SCALE)
 	end
 	holder:SetScale(scale)
 	holder:ClearAllPoints()
@@ -635,7 +630,6 @@ local function Refresh(frame)
 	holder:Show()
 	Style.Restyle(view, kind)
 	Style.Layout(view, view.s, width, height)
-	Paint(view, kind)
 	PaintResource(frame, view, kind, SAMPLES[kind])
 	PaintIndicators(view, view.s, SAMPLES[kind])
 	PaintCast(frame, view, kind, height)
@@ -645,11 +639,10 @@ local function Refresh(frame)
 	Style.Restyle(view, kind)
 	Style.Layout(view, view.s, width, height)
 	Paint(view, kind)
-	ns.Unit.TextTags(view, nil, nil, SAMPLES[kind])
 	ns.Dispel.Sample(view, holder, kind)
 	PaintCast(frame, view, kind, height)
-	Fit(frame, holder, kind, width, height)
-	frame.kind, frame.width, frame.height = kind, frame:GetWidth(), frame:GetHeight()
+	Fit(frame, holder, kind, width, height, holder:GetScale())
+	frame.kind, frame.width, frame.height = kind, frame:GetSize()
 end
 
 function Preview.Build(parent)

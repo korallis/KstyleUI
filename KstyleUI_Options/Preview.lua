@@ -396,7 +396,8 @@ local function Settle(pane)
 		local holderTop, eff = Edge(pane.holder:GetTop()), Edge(pane.holder:GetEffectiveScale())
 		local own = Edge(frame:GetEffectiveScale())
 		if top and holderTop and Known(eff) and Known(own) then
-			frame.previewOffset = (holderTop * eff - top) / own
+			local pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(frame)
+			frame.previewOffset = math.floor((holderTop * eff - top) / own / pixel + 1e-6) * pixel
 			MovePreview(frame, frame.previewOffset)
 			Widgets.RestyleUnder({ [frame] = true }, Widgets.IsOrnament)
 		end
