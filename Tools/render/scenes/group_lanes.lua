@@ -23,6 +23,7 @@
 -- indicator 1 as a bar on the health bar's foot, filling the other way and over the debuff icons, and indicator 2 as a square (both
 -- shown on the first member), party frames that take the raid's text, debuffs, heal icons, status icon size and power bar, an own
 -- raid size from 16 players and tank frames that leave you out (you are the first member).
+-- RENDER_RAID_POWER=1 switches the raid power bar on.
 -- RENDER_GROUP_DISPEL=1 shows the dispel highlight on the second member as the aura engine does for a Magic debuff: every texture
 -- registered with the slot shown in the Magic colour, keeping its own alpha as the options preview does.
 local Common = dofile("Tools/render/scenes/_common.lua")
@@ -187,6 +188,7 @@ return Common.Run(function()
 	if os.getenv("RENDER_HEALER_PRESET") == "1" and K.Options.Row("GroupFrames", "presets.raid") then
 		K.Options.Write("GroupFrames", "presets.raid", "Healer")
 	end
+	if os.getenv("RENDER_RAID_POWER") == "1" then K.Options.Write("GroupFrames", "raid.power", true) end
 	if os.getenv("RENDER_TEXT_PRESET") == "Readable" and K.Profiles then K.Profiles.Readable("Readable") end
 	if os.getenv("RENDER_PARITY_R1") == "1" then
 		for key, value in pairs({ ["health.colorSource"] = "gradient", ["health.alpha"] = 0.85, ["icons.roleDamager"] = false,
