@@ -96,11 +96,11 @@ end
 -- Staging saved and exported version 45 with the ornament level, card material and samples switch still in place: migration 46 drops them and keeps a context-menu choice made since 45.
 do
 	local STAGING = "KSUI1:S1NMMToxNzQ6MjA3NDg4NjYyNzp7czQ6a2luZHMxNjpLc3R5bGVVSSBwcm9maWxlczY6bGF5b3V0e31zNDpuYW1lczc6RGVmYXVsdHM4OnNldHRpbmdze3MxOTpPcHRpb25zUHJlc2VudGF0aW9ue3M3OnNhbXBsZXNGfXM3OldpZGdldHN7czEyOmNhcmRNYXRlcmlhbHM1OkdsYXNzczk6b3JuYW1lbnRzczM6T2ZmfX1zNzp2ZXJzaW9ubjQ1O30="
-	local env, K = CoreEnv.New({ saved = { version = 45, profiles = { Default = {
+	local senv, K = CoreEnv.New({ saved = { version = 45, profiles = { Default = {
 		Widgets = { ornaments = "Off", cardMaterial = "Glass", panelOpacity = 0.8 }, OptionsPresentation = { samples = false, tasks = false }, Skins = { contextMenus = { enabled = true } },
 	} } } })
-	CoreEnv.Boot(env)
-	local profile = env.KstyleUIDB.profiles.Default
+	CoreEnv.Boot(senv)
+	local profile = senv.KstyleUIDB.profiles.Default
 	assert(profile.Widgets.ornaments == nil and profile.Widgets.cardMaterial == nil and profile.Widgets.panelOpacity == 0.8
 		and profile.OptionsPresentation.samples == nil and profile.OptionsPresentation.tasks == false, "a version 45 database loses the retired keys and keeps the rest")
 	assert(profile.Skins.contextMenus.enabled == true, "context menus turned back on after migration 45 stay on")
@@ -109,6 +109,6 @@ do
 	assert(decoded.settings.Widgets.ornaments == nil and decoded.settings.Widgets.cardMaterial == nil and decoded.settings.OptionsPresentation.samples == nil, "and loses its retired keys")
 	local ok, name = K.Store.Import(STAGING)
 	assert(ok and K.Store.Decode(assert(K.Store.Export(name))), "the imported staging profile exports and decodes again")
-	assert(#env._errors == 0, tostring(env._errors[1]))
+	assert(#senv._errors == 0, tostring(senv._errors[1]))
 end
 print("store medallions only ok")
