@@ -277,6 +277,23 @@ local hushes = #typeName._calls
 for _ = 1, 10 do typeName:SetAlpha(0) end
 local more = #typeName._calls - hushes - 10
 assert(more == 0, "Blizzard setting the hushed type name to 0 ten times made " .. more .. " more writes; hush again only when the new alpha is not 0 (KstyleUI_Meters/DamageSkin.lua Rehush)")
+-- Blizzard refreshes the window on every combat-session update; with nothing changed the skin restyles nothing but the bars' colours.
+window:Refresh()
+local refreshed = {}
+for _, f in ipairs(env._frames) do
+	refreshed[f] = #f._calls
+	for _, region in ipairs(f._regions) do refreshed[region] = #region._calls end
+end
+window:Refresh()
+local rewrites = {}
+for o, start in pairs(refreshed) do
+	for i = start + 1, #o._calls do
+		local method = o._calls[i].method
+		if not (method:find("^Get") or method:find("^Is") or method:find("^Has") or method:find("^Can")) then rewrites[#rewrites + 1] = method end
+	end
+end
+table.sort(rewrites)
+assert(#rewrites <= 4, "an unchanged window refresh wrote " .. #rewrites .. " times (" .. table.concat(rewrites, " ") .. "); restyle the cap once per style generation and place it only when its room changes (KstyleUI_Meters/DamageSkin.lua RestyleWindow, PlaceCap)")
 window.DamageMeterTypeDropdown.TypeName:SetText("Damage Done")
 assert(tostring(M.Last(cap.label, "SetText")[1]):upper() == "DAMAGE DONE", "the cap's title follows Blizzard's type name")
 assert(select(1, cap.label:GetFont()) == K.Tokens.Font("caps"), "in the caps face, as the card's heading")

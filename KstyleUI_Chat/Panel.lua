@@ -840,11 +840,13 @@ function Panel.Place()
 	end
 	local clear = chat.ClearAllPointsBase or chat.ClearAllPoints
 	local setPoint = chat.SetPointBase or chat.SetPoint
+	local anchors = { TOPLEFT = { g.left / g.k, -g.top / g.k }, BOTTOMRIGHT = { -g.right / g.k, g.bottom / g.k } }
 	state.placing = true
 	clear(chat)
-	setPoint(chat, "TOPLEFT", holder, "TOPLEFT", g.left / g.k, -g.top / g.k)
-	setPoint(chat, "BOTTOMRIGHT", holder, "BOTTOMRIGHT", -g.right / g.k, g.bottom / g.k)
+	setPoint(chat, "TOPLEFT", holder, "TOPLEFT", unpack(anchors.TOPLEFT))
+	setPoint(chat, "BOTTOMRIGHT", holder, "BOTTOMRIGHT", unpack(anchors.BOTTOMRIGHT))
 	state.placing = false
+	state.anchors = anchors
 	state.waiting = false
 	local s = state.settings
 	if s.buttons and type(chat.buttonFrame) == "table" and Keep(chat.buttonFrame, true) then
@@ -900,6 +902,16 @@ local function Schedule()
 	end
 	state.queued = true
 	C_Timer.After(0, Panel.Place)
+end
+
+local function OnSetPoint(_, point, relative, relativePoint, x, y)
+	local plain = not (IsSecret(point) or IsSecret(relative) or IsSecret(relativePoint) or IsSecret(x) or IsSecret(y))
+	local anchor = plain and state.anchors and type(point) == "string" and state.anchors[point]
+	if anchor and relative == state.holder and relativePoint == point and type(x) == "number" and type(y) == "number"
+		and math.abs(x - anchor[1]) < 0.001 and math.abs(y - anchor[2]) < 0.001 then
+		return
+	end
+	Schedule()
 end
 
 local function OnEditModeExit()
@@ -1209,7 +1221,7 @@ local function Watch(chat)
 		return
 	end
 	state.hooked = true
-	hooksecurefunc(chat, "SetPoint", Schedule)
+	hooksecurefunc(chat, "SetPoint", OnSetPoint)
 	chat:HookScript("OnSizeChanged", Schedule)
 	state.holder:HookScript("OnSizeChanged", Schedule)
 	if type(FCFDock_SetPrimary) == "function" then

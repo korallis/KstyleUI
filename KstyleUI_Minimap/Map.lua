@@ -90,13 +90,9 @@ local function UpdateClock()
 	Map.face:SetClock(Data.Clock(Settings.Get("clock.mode")))
 end
 
-local function UpdateCoords()
-	Map.face:SetCoords(Data.Coords(Settings.Get("coords.precision")))
-end
-
-local function TickCoords()
+local function UpdateCoords(tick)
 	local text = Data.Coords(Settings.Get("coords.precision"))
-	if text ~= Map.face.coordsText then
+	if not tick or text ~= Map.face.coordsText then
 		Map.face:SetCoords(text)
 	end
 end
@@ -208,7 +204,7 @@ local function CoordsOnUpdate(_, elapsed)
 	coordsElapsed = coordsElapsed + elapsed
 	if coordsElapsed >= COORDS_INTERVAL then
 		coordsElapsed = 0
-		TickCoords()
+		UpdateCoords(true)
 	end
 end
 
@@ -233,7 +229,7 @@ local function SyncCoords()
 		return
 	end
 	if C_Timer and type(C_Timer.NewTicker) == "function" then
-		coordsTicker = C_Timer.NewTicker(COORDS_INTERVAL, TickCoords)
+		coordsTicker = C_Timer.NewTicker(COORDS_INTERVAL, function() UpdateCoords(true) end)
 	else
 		coordsElapsed = 0
 		frame:SetScript("OnUpdate", CoordsOnUpdate)

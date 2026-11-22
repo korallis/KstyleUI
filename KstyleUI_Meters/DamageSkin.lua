@@ -21,6 +21,7 @@ local sources = setmetatable({}, WEAK)
 local entries = setmetatable({}, WEAK)
 local pills = setmetatable({}, WEAK)
 local caps = setmetatable({}, WEAK)
+local placed = setmetatable({}, WEAK)
 local hushed = setmetatable({}, WEAK)
 local busy = false
 local generation = 1
@@ -268,10 +269,15 @@ end
 
 local function PlaceCap(window, cap)
 	Match(window, cap)
+	local reserve = Reserve(window, cap)
+	if placed[cap] == reserve .. ":" .. generation then
+		return
+	end
+	placed[cap] = reserve .. ":" .. generation
 	local top = CAP_MIDDLE - Widgets.SECTION_CAP_HEIGHT / 2
 	cap:ClearAllPoints()
 	Widgets.Point(cap, "TOPLEFT", window, "TOPLEFT", CAP_LEFT, -top)
-	Widgets.Point(cap, "TOPRIGHT", window, "TOPRIGHT", -Reserve(window, cap), -top)
+	Widgets.Point(cap, "TOPRIGHT", window, "TOPRIGHT", -reserve, -top)
 end
 
 local function NewCap(window)
@@ -296,12 +302,13 @@ local function RestyleWindow(window)
 	if not DamageSkin.active or type(window) ~= "table" then
 		return
 	end
-	local cap = caps[window]
+	local cap, fresh = caps[window], windows[window] ~= generation
+	windows[window] = generation
 	if cap then
-		cap:Restyle()
+		if fresh then cap:Restyle() end
 		PlaceCap(window, cap)
 	end
-	CapAside(window.SessionDropdown and window.SessionDropdown.SessionName)
+	if fresh then CapAside(window.SessionDropdown and window.SessionDropdown.SessionName) end
 	local box = type(window.GetScrollBox) == "function" and window:GetScrollBox()
 	if type(box) == "table" and type(box.ForEachFrame) == "function" then
 		box:ForEachFrame(StyleEntry)

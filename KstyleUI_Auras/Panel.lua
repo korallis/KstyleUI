@@ -325,7 +325,7 @@ local shared
 
 local function Key(read)
 	if not read[1] then
-		return tostring(read[2])
+		return read[2]
 	end
 	local ids = {}
 	for id in pairs(read[1]) do
@@ -340,7 +340,6 @@ local function Candidates(desc)
 	desc.tracked = false
 	if group.tracked == "cdm" then
 		local read = shared or { Tracked.Set() }
-		if shared == false then shared = read end
 		desc.tracked = Key(read)
 		local set, why = read[1], read[2]
 		if set then
@@ -736,11 +735,14 @@ local function OnEnchant()
 end
 
 local function OnTracked()
-	shared = { Tracked.Set() }
-	local key = Key(shared)
+	local key
 	for name, desc in pairs(groups) do
-		if running and KIND[name] == "buffs" and not desc.failed and not desc.off and desc.tracked ~= false and desc.tracked ~= key then
-			K.Call(ApplyGroup, desc)
+		if running and KIND[name] == "buffs" and not desc.failed and not desc.off and desc.tracked ~= false then
+			if not shared then
+				shared = { Tracked.Set() }
+				key = Key(shared)
+			end
+			if desc.tracked ~= key then K.Call(ApplyGroup, desc) end
 		end
 	end
 	shared = nil

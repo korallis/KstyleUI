@@ -13,7 +13,6 @@ local EVENTS = {
 	"PLAYER_SWING", "PLAYER_SWING_RANGE_UPDATE", "PLAYER_TARGET_CHANGED", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED",
 	"PLAYER_ENTERING_WORLD", "WEAPON_SLOT_CHANGED",
 }
-local PLAYER_EVENTS = { "UNIT_ATTACK_SPEED", "UNIT_INVENTORY_CHANGED" }
 local BLIZZARD = { "SwingTimerMainHandFrame", "SwingTimerOffHandFrame", "SwingTimerRangedFrame" }
 
 local types = Enum and Enum.PlayerSwingType or {}
@@ -545,9 +544,8 @@ function Swing:Apply()
 	for _, event in ipairs(EVENTS) do
 		ns.Watch(self, event)
 	end
-	for _, event in ipairs(PLAYER_EVENTS) do
-		ns.Watch(self, event, "player")
-	end
+	ns.Watch(self, "UNIT_ATTACK_SPEED", "player")
+	ns.Watch(self, "UNIT_INVENTORY_CHANGED", "player")
 	EnableRangeChecks()
 	for _, slot in ipairs(SLOTS) do
 		if not Enabled(slot) and self.state[slot.type].running then
