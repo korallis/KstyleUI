@@ -1,4 +1,4 @@
--- test-unitframes-medallions-fx.lua: the Medallions unit-frame effects through the shared layer: the portrait sheen is ambient motion that yields while a flip-in holds the medallion and comes back after; a level-up blooms a class-motif burst behind the player's medallion (a 3D model at Full, the 2D still at Calm, nothing at Off); a cast that lands or stops washes the bar steel or red with a light streak clipped to the bar and Off keeps it still.
+-- test-unitframes-medallions-fx.lua: the Medallions unit-frame effects through the shared layer: the portrait sheen is ambient motion that yields while a flip-in holds the medallion and comes back after; a level-up blooms a class-motif burst behind the player's medallion (a 3D model at Full, the 2D still at Calm, nothing at Off); a cast that lands or stops washes the bar steel or red with a light streak clipped to the bar, Off keeps it still, and Frames keeps its gilt flash.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -107,6 +107,17 @@ for _, frame in ipairs(env._frames) do
 	assert(not (frame == cb.flash or frame == cb.medStreak) or not frame:GetScript("OnUpdate"), "the flash runs no OnUpdate")
 end
 noErrors("cast")
+
+K.Options.Write("HudStyle", "style", "frames")
+env.RunTimers()
+assert(Fx.Flash(cb, "giltLit", 0.6) == false, "Frames keeps CastBar's own flash")
+player.cast = { name = "Frostbolt", texture = 135846, start = 1000, finish = 3500, spellID = 116, barID = 1 }
+env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116, 1)
+cb = ns.CastBars.Get("player")[1]
+player.cast = nil
+env.FireEvent("UNIT_SPELLCAST_STOP", "player", "Cast-1", 116, 1)
+assert(cb.flash.group:IsPlaying() and near("giltLit", 0.6) and not cb.medStreak, "under Frames a landed cast keeps its gilt flash")
+noErrors("frames cast")
 
 do
 	local wenv, WK, wns = U.New({ setup = function(e)

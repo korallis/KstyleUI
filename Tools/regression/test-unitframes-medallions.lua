@@ -1,4 +1,4 @@
--- test-unitframes-medallions.lua: under the Medallions HUD style every unit frame is a slab, the player, target, focus, pet and boss frames carry a medallion on their outer end with a class or reaction ring and a level plaque, target of target and focus target are mini slabs, the resolver picks painted art only from plain identity strings, and the flip-in, low-health ring and sheen run as engine animations.
+-- test-unitframes-medallions.lua: under the Medallions HUD style every unit frame is a slab, the player, target, focus, pet and boss frames carry a medallion on their outer end with a class or reaction ring and a level plaque, target of target and focus target are mini slabs, the resolver picks painted art only from plain identity strings, and the flip-in, low-health ring and sheen run as engine animations; Frames comes back untouched.
 local U = dofile("Tools/regression/unitframes_env.lua")
 
 local BUST, BADGE = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Medallions\\Bust_Dwarf_SHAMAN_2.png", "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Medallions\\Badge_Dwarf_SHAMAN_2.png"
@@ -170,4 +170,10 @@ assert(U.W.LastCall(m.portrait, "SetDesaturated")[1] == false, "the portrait reg
 er, eg, eb = m.enamel:GetVertexColor()
 assert(near(er, cr) and near(eg, cg) and near(eb, cb), "the class ring returns")
 noErrors("effects")
+
+K.Options.Write("HudStyle", "style", "frames")
+assert(view.form ~= "slab" and not m:IsShown() and not view.slab[5]:IsShown(), "Frames hides the slab and the medallion")
+assert(view.health.finish == nil and view.health.under.edgeSoft:IsShown(), "Frames takes its own bar finish and soft edge back")
+assert(not m.sheenAnim:IsPlaying() and not m.pulse:IsPlaying(), "the medallion's animations stop")
+noErrors("back to Frames")
 print("ok unitframes medallions")
