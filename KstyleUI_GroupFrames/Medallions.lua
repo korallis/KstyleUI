@@ -33,13 +33,17 @@ local function Line(count, size, spacing)
 	return count * size + math.max(0, count - 1) * spacing
 end
 
-local function Pips(block, room, height, spacing)
+local function Pips(block, room, height, spacing, px)
 	if not block or block.cells <= 0 then
 		return nil
 	end
 	local size = math.floor(math.min(block.size, math.max(MIN_CELL, height * PIP_SHARE)))
+	if size < MIN_CELL then
+		return nil
+	end
+	size = math.floor(size / px + 0.5) * px
 	local columns = math.min(block.cells, math.floor((room + spacing) / (size + spacing)))
-	if size < MIN_CELL or columns <= 0 then
+	if columns <= 0 then
 		return nil
 	end
 	return {
@@ -70,7 +74,7 @@ local function TileParts(out, w, h, o)
 	end
 	out.health = bar
 	local right = pad + width - inset
-	out.block = Pips(out.block, width * PIP_ROOM, stacked and nameLine or bar.height - 2 * inset, spacing)
+	out.block = Pips(out.block, width * PIP_ROOM, stacked and nameLine or bar.height - 2 * inset, spacing, o.pixel or 1)
 	local lane = width - 2 * inset - (out.block and out.block.width + gap or 0)
 	out.name = { left = pad + inset, top = pad, width = lane, height = bar.height }
 	out.tile = { stacked = stacked, inset = inset, gap = gap, right = right }
