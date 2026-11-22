@@ -246,17 +246,17 @@ do
 	assert(active["unitframes.castbar.target"], "a configured separate target cast bar counts even though the preset draws it inline")
 end
 
--- Exercise live bar-3 resizing where its cap is tighter than the meter/story cap.
+-- Exercise live resizing when the shown threat meter tightens the cap.
 do
 	local menv, MK = CoreEnv.New({
 		width = 1920, height = 1080, fit = true,
 		saved = { version = K.Store.DB_VERSION, account = { setupSeen = true }, profiles = {
-			Default = Profile("Healer", 1.5), WithBar3 = Profile("Healer", 1.5, true), Small = Profile("Healer", 0.7, true),
+			Default = Profile("Healer", 1.5, nil, false), WithThreat = Profile("Healer", 1.5, nil, true), Small = Profile("Healer", 0.7, nil, true),
 		} },
 	})
-	local defaults = CoreEnv.DeepCopy(Profile("Healer", 1.5).ActionBars)
+	local defaults = CoreEnv.DeepCopy(Profile("Healer", 1.5, nil, false).Meters)
 	defaults.enabled = nil
-	MK.Modules.Register(CoreEnv.Module("ActionBars", { defaults = defaults }))
+	MK.Modules.Register(CoreEnv.Module("Meters", { defaults = defaults }))
 	CoreEnv.Boot(menv)
 	local root = MK.Scale.Root()
 	local setScale, resized = root.SetScale, 0
@@ -267,49 +267,49 @@ do
 	end
 	local off = MK.Scale.AppliedUserScale()
 	menv._printed = {}
-	MK.Options.Write("ActionBars", "bar3.enabled", true)
+	MK.Options.Write("Meters", "threat.shown", true)
 	local on = MK.Scale.AppliedUserScale()
-	assert(on < off and resized == 1, "enabling a colliding bar recomputes the cap and resizes once")
+	assert(on < off and resized == 1, "showing a colliding meter recomputes the cap and resizes once")
 	assert(#menv._printed == 1 and CoreEnv.Printed(menv, "to keep enabled elements on screen and apart"), "one line explains the resize")
-	assert(CoreEnv.Printed(menv, string.format("%.1f%%", on * 100)), "the explanation distinguishes the small real change from 99.74 to 99.72 percent, both 99.7")
-	assert(MK.Scale.UserScale() == 1.5 and MK.Appearance.Get("uiScale") == 1.5, "enabling a bar preserves the saved request")
-	MK.Options.Write("ActionBars", "bar3.enabled", true)
-	assert(resized == 1 and #menv._printed == 1, "a duplicate enable neither resizes nor prints")
-	MK.Options.Write("ActionBars", "bar3.enabled", false)
-	assert(math.abs(MK.Scale.AppliedUserScale() - off) < 1e-9, "disabling the bar restores the larger saved size up to its cap")
-	assert(#menv._printed == 1, "growing after a disable needs no warning")
+	assert(CoreEnv.Printed(menv, string.format("%.1f%%", on * 100)), "the explanation names the new size")
+	assert(MK.Scale.UserScale() == 1.5 and MK.Appearance.Get("uiScale") == 1.5, "showing a meter preserves the saved request")
+	MK.Options.Write("Meters", "threat.shown", true)
+	assert(resized == 1 and #menv._printed == 1, "a duplicate show neither resizes nor prints")
+	MK.Options.Write("Meters", "threat.shown", false)
+	assert(math.abs(MK.Scale.AppliedUserScale() - off) < 1e-9, "hiding the meter restores the larger saved size up to its cap")
+	assert(#menv._printed == 1, "growing after a hide needs no warning")
 	menv._printed, resized = {}, 0
 	menv.SetCombat(true)
-	MK.Options.Write("ActionBars", "bar3.enabled", true)
-	assert(MK.Scale.AppliedUserScale() == off and resized == 0 and #menv._printed == 0, "enabling in combat leaves the root and messages unchanged")
+	MK.Options.Write("Meters", "threat.shown", true)
+	assert(MK.Scale.AppliedUserScale() == off and resized == 0 and #menv._printed == 0, "showing in combat leaves the root and messages unchanged")
 	menv.FireEvent("PLAYER_REGEN_ENABLED")
 	assert(resized == 0, "a regen event while still locked cannot flush the clamp")
 	menv.SetCombat(false)
 	assert(math.abs(MK.Scale.AppliedUserScale() - on) < 1e-9 and resized == 1 and #menv._printed == 1, "after combat the pending clamp resizes and explains it once")
-	MK.Options.Write("ActionBars", "bar3.enabled", false)
+	MK.Options.Write("Meters", "threat.shown", false)
 	menv.SetCombat(true)
-	MK.Options.Write("ActionBars", "bar3.enabled", true)
-	MK.Options.Write("ActionBars", "bar3.enabled", false)
+	MK.Options.Write("Meters", "threat.shown", true)
+	MK.Options.Write("Meters", "threat.shown", false)
 	menv._printed, resized = {}, 0
 	menv.SetCombat(false)
-	assert(MK.Scale.AppliedUserScale() == off and resized == 0 and #menv._printed == 0, "an enable reverted during combat causes no resize or stale warning")
-	MK.Options.Write("ActionBars", "bar3.enabled", true)
-	MK.Modules.Disable("ActionBars")
+	assert(MK.Scale.AppliedUserScale() == off and resized == 0 and #menv._printed == 0, "a show reverted during combat causes no resize or stale warning")
+	MK.Options.Write("Meters", "threat.shown", true)
+	MK.Modules.Disable("Meters")
 	assert(MK.Scale.AppliedUserScale() == off, "direct module disable recomputes the active set")
 	menv._printed = {}
-	MK.Modules.Enable("ActionBars")
+	MK.Modules.Enable("Meters")
 	assert(MK.Scale.AppliedUserScale() == on and #menv._printed == 1, "direct module enable reapplies the clamp and one explanation")
-	MK.Modules.Disable("ActionBars")
+	MK.Modules.Disable("Meters")
 	menv.SetCombat(true)
 	menv._printed, resized = {}, 0
-	MK.Options.Write("ActionBars", "enabled", true)
+	MK.Options.Write("Meters", "enabled", true)
 	assert(MK.Scale.AppliedUserScale() == off and resized == 0 and #menv._printed == 0, "module enable and its clamp both wait for combat")
 	menv.SetCombat(false)
 	assert(MK.Scale.AppliedUserScale() == on and resized == 1 and #menv._printed == 1, "the module-start and scale queues do not duplicate the post-combat clamp")
-	MK.Options.Write("ActionBars", "bar3.enabled", false)
+	MK.Options.Write("Meters", "threat.shown", false)
 	menv._printed = {}
-	MK.Store.SetProfile("WithBar3")
-	assert(MK.Scale.AppliedUserScale() == on and #menv._printed == 1, "switching to a profile with the bar enabled recomputes the cap")
+	MK.Store.SetProfile("WithThreat")
+	assert(MK.Scale.AppliedUserScale() == on and #menv._printed == 1, "switching to a profile with the meter shown recomputes the cap")
 	MK.Store.SetProfile("Default")
 	menv._printed = {}
 	MK.Store.SetProfile("Small")
@@ -417,9 +417,9 @@ K.Store.Module("Meters").swing = { attached = false }
 for _, name in ipairs(Layouts.Names()) do
 	for _, element in ipairs(Layouts.ELEMENTS) do
 		local w, h = Layouts.Footprint(name, element.key)
-		if not Layouts.Sizes(name)[element.key] then
+		-- Action bars and consumables take their Medallions grid's size; every other element draws its element size.
+		if not Layouts.Sizes(name)[element.key] and not element.key:find("^actionbars%.") and element.key ~= "consumables.bar" then
 			local drawnW, drawnH = element.width, element.height
-			if element.key == "consumables.bar" then drawnW, drawnH = 121.5, 39.5 end
 			assert(w >= drawnW and h >= drawnH, string.format("%s: %s draws %g x %g but the layout plans only %g x %g", name, element.key, drawnW, drawnH, w, h))
 		end
 	end
@@ -473,17 +473,15 @@ for _, name in ipairs(Layouts.Names()) do
 	end
 end
 
--- The live boss column: the unit frames build it at the element's size and its auras fit the footprint's spare width --
+-- The live boss column: the unit frames build it at the Medallions box's size and its auras fit that box --
 do
 	local U = dofile("Tools/regression/unitframes_env.lua")
 	local uenv, UK, ns = U.New()
 	local s = ns.Settings.Snapshot("boss")
-	local element = UK.Setup.Layouts.Element("unitframes.boss")
-	local fw = UK.Setup.Layouts.Footprint("DPS", "unitframes.boss")
-	local auraW = s.auraColumns * s.auraSize + (s.auraColumns - 1) * s.auraSpacing + 2
-	assert(s.auraPosition == "LEFT" and fw - element.width >= auraW, "the boss auras hang left of the cards inside the footprint: " .. (fw - element.width) .. " < " .. auraW)
+	local styled = UK.Setup.Layouts.Style("DPS", "unitframes.boss")
+	assert(s.auraPosition == "LEFT", "the boss auras hang left of the cards")
 	local _, _, w, h = UK.Layout.Rect("unitframes.boss")
-	assert(math.abs(w - element.width) < 1 and math.abs(h - element.height) < 1, "the boss holder is built at the element's size")
+	assert(math.abs(w - styled.width) < 1 and math.abs(h - styled.height) < 1, "the boss holder is built at the Medallions box's size")
 	-- Each preset's live boss column: with the preset's own unit-frame settings and at its position, every card's debuff
 	-- row lies inside the footprint the preset keeps and on screen (Healer heads the left rail, where the debuffs
 	-- hang towards the centre on the right of the cards; codex review: they once hung off the left edge).
@@ -500,15 +498,15 @@ do
 				UK.Options.Write("UnitFrames", entry.key, entry.value)
 			end
 		end
-		local position = Layouts.Get(name)["unitframes.boss"]
+		local position = Layouts.Style(name, "unitframes.boss")
 		assert(UK.Layout.Update("unitframes.boss", { anchor = position.anchor, x = position.x, y = position.y }))
 		uenv.RunTimers()
-		local bw, bh = Layouts.Footprint(name, "unitframes.boss")
-		local l, b, r, t = Layouts.Rect({ width = bw, height = bh }, position, rw, rh)
+		local l, _, r = Layouts.Rect(position, position, rw, rh)
 		for i, view in ipairs(UK.Layout and ns.Frames.Get("boss").views or {}) do
 			local host = Geometry.Rect(view.auras.host, root)
-			assert(host and host.left >= l - 0.5 and host.right <= r + 0.5 and host.bottom >= b - 0.5 and host.top <= t + 0.5,
-				string.format("%s: boss%d's debuff row (%.0f-%.0f) lies inside the column's footprint (%.0f-%.0f)", name, i, host and host.left or -1, host and host.right or -1, l, r))
+			-- The Medallions box (as on staging) holds only the cards; the debuff row hangs outside it, so check it stays on screen.
+			assert(host and host.left >= -0.5 and host.right <= rw + 0.5 and host.bottom >= -0.5 and host.top <= rh + 0.5,
+				string.format("%s: boss%d's debuff row (%.0f-%.0f) lies on screen beside the column (%.0f-%.0f)", name, i, host and host.left or -1, host and host.right or -1, l, r))
 			local card = Geometry.Rect(view.button, root)
 			assert(host.right <= card.left + 0.5 or host.left >= card.right - 0.5, name .. ": boss" .. i .. "'s debuffs sit beside its card")
 		end
@@ -594,18 +592,17 @@ for _, name in ipairs(Layouts.Names()) do
 		local tw, th = Layouts.Footprint(name, "unitframes.target")
 		local _, _, _, sigilTop = Layouts.Rect({ width = tw, height = th }, layout["unitframes.target"], width, HEIGHT)
 		for _, element in ipairs(Layouts.ELEMENTS) do
-			if element.key:find("^actionbars%.") then
-				local w, h = Layouts.Footprint(name, element.key)
+			-- Medallions bar 3, off by default, stands left of the casts across the band (as on staging).
+			if element.key:find("^actionbars%.") and element.key ~= "actionbars.bar3" then
+				local w, h = Layouts.Footprint(name, element.key, aspect[1])
 				local r = { Layouts.Rect({ width = w, height = h }, layout[element.key], width, HEIGHT) }
 				local where = string.format("%s at %s: %s (%.0f,%.0f-%.0f,%.0f)", name, aspect[1], element.key, r[1], r[2], r[3], r[4])
-				if element.key == "actionbars.bar3" then
-					assert(math.abs(r[2] - 640) < 1e-6 and math.abs((r[1] + r[3]) / 2 - width / 2 + 460) < 1e-6, where .. " keeps its separate slot to the left of the casts")
-				elseif element.key == "actionbars.possess" then
+				if element.key == "actionbars.possess" then
 					assert(math.abs(r[1] - 656) < 1e-6 and math.abs(r[4] - (HEIGHT - 17)) < 1e-6, where .. " keeps its separate top slot beside the raid")
 				else
 					assert(not (overlap(r, column) and r[4] > sigilTop), where .. " stands in the centre column above the sigil's top " .. sigilTop)
 				end
-				assert(element.key == "actionbars.bar3" and r[3] <= width / 2 - 180 or not overlap(r, band), where .. " lies across the central play field")
+				assert(not overlap(r, band), where .. " lies across the central play field")
 				bars = bars + 1
 			end
 		end
@@ -614,7 +611,7 @@ end
 
 -- An action bar's footprint is the grid its preset writes (round 5, Fable #2: the pet bar was planned as two rows of
 -- five while the bar drew one row of ten, so its first button sat on the chat card). Each bar the layouts place, at
--- the rows and buttons Apply writes and the action bars' own defaults, is exactly its element's size.
+-- the rows and buttons Apply writes and the action bars' own defaults, is exactly the footprint the layouts plan.
 do
 	local A = dofile("Tools/regression/actionbars_env.lua")
 	local aenv, AK, ans = A.New()
@@ -626,13 +623,13 @@ do
 		end
 	end
 	for _, def in ipairs(ans.BARS) do
-		local element = Layouts.Element(def.element)
+		local fw, fh = AK.Setup.Layouts.Footprint("DPS", def.element, AK.Scale.Aspect())
 		local cfg = ans.defaults[def.key]
 		assert(written[def.key .. ".rows"] == cfg.rows, def.key .. ": Apply writes the rows the bar has by default (" .. tostring(written[def.key .. ".rows"]) .. " against " .. tostring(cfg.rows) .. ")")
 		local count, rows, size, spacing = AK.Setup.Layouts.ActionBarGrid(AK.Scale.Aspect(), def.element, cfg)
 		local w, h = ans.GridSize(count, rows, size, spacing)
-		assert(math.abs(w - element.width) < 0.5 and math.abs(h - element.height) < 0.5,
-			string.format("%s draws %.0f x %.0f in %d rows, but its element is %d x %d", def.key, w, h, rows, element.width, element.height))
+		assert(math.abs(w - fw) < 0.5 and math.abs(h - fh) < 0.5,
+			string.format("%s draws %.0f x %.0f in %d rows, but its footprint is %.0f x %.0f", def.key, w, h, rows, fw, fh))
 	end
 	assert(#aenv._errors == 0, tostring(aenv._errors[1]))
 end
