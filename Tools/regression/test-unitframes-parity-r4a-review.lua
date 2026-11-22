@@ -41,7 +41,10 @@ end
 local target = ns.Frames.Get("target").views[1]
 set("target.auraPosition", "SIDE")
 set("target.textBarPlace", "TOP")
+local before = W.LastCall(target.auras.host, "SetPoint")
 set("target.textBar", true)
+local after = W.LastCall(target.auras.host, "SetPoint")
+assert(after[4] == before[4] and after[5] == before[5], "a top strip leaves the side auras where they were: " .. before[5] .. " then " .. after[5])
 local player = ns.Frames.Get("player").views[1]
 set("player.textBar", true)
 set("player.textBarIcon", "LEFT")

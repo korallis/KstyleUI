@@ -148,9 +148,8 @@ for _, kind in ipairs(KINDS) do
 		assert(outlines.NONE and outlines.OUTLINE and outlines.THICKOUTLINE, kind .. " " .. element .. ": outline choices")
 	end
 end
--- Cast bars and the druid's mana bar choose their colour source and fill direction like every other bar.
+-- Cast bars and the druid's mana bar choose their colour source and fill direction like every other bar; every cast bar paints the flat fill.
 for _, kind in ipairs({ "player", "target", "focus", "boss" }) do
-	row(kind .. ".castbarTexture", "texture")
 	row(kind .. ".castbarCaps", "toggle")
 	local sources = values(row(kind .. ".castbarColor", "dropdown"))
 	assert(sources.class and sources.reaction and sources.custom, kind .. " cast bar: class, reaction or custom colour")

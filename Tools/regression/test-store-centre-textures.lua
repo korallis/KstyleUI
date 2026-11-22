@@ -83,9 +83,9 @@ local de, DK, dns = D.New({ saved = profile({ DataBars = { xp = { texture = path
 assert(DK.Store.Module("DataBars").xp.texture == paths.Flat and dns.Bars.views.xp.fill.texturePath == paths.Flat, "the XP picker and paint agree after migration")
 for _, choice in ipairs({ "Glass", paths.Glass }) do
 	DK.Options.Write("DataBars", "xp.texture", choice)
-	assert(DK.Store.Module("DataBars").xp.texture == choice and dns.Bars.views.xp.fill.texturePath == paths.Flat and dns.Bars.views.xp.track.texturePath == paths.Flat, "a post-migration Glass choice is saved; the Medallions strip keeps both layers flat")
+	assert(DK.Store.Module("DataBars").xp.texture == choice and dns.Bars.views.xp.fill.texturePath == paths.Glass and dns.Bars.views.xp.track.texturePath == paths.Glass, "a post-migration Glass choice is saved and paints both layers")
 end
 Core.Logout(de)
 local _, DK2, dns2 = D.New({ saved = de.KstyleUIDB })
-assert(DK2.Store.Module("DataBars").xp.texture == paths.Glass and dns2.Bars.views.xp.track.texturePath == paths.Flat, "XP does not remigrate a later Glass choice")
+assert(DK2.Store.Module("DataBars").xp.texture == paths.Glass and dns2.Bars.views.xp.track.texturePath == paths.Glass, "XP does not remigrate a later Glass choice")
 print("store centre textures ok")

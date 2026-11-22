@@ -192,6 +192,14 @@ assert(target.healAbsorb.texturePath == GLASS, "the heal absorb texture applies"
 write("target.healAbsorbTexture", "")
 assert(target.healAbsorb.texturePath == target.health.texturePath, "blank restores the health texture")
 write("target.healAbsorbs", false)
+-- The Medallions slab's health and power bars take their texture settings.
+local FLAT = K.Tokens.MediaList("statusbar")[1].path
+write("target.healthTexture", GLASS)
+write("target.powerTexture", GLASS)
+assert(target.health.texturePath == GLASS and target.power.texturePath == GLASS, "the slab's health and power bars take their textures")
+write("target.healthTexture", FLAT)
+write("target.powerTexture", FLAT)
+assert(target.health.texturePath == FLAT and target.power.texturePath == FLAT, "and return to the flat default")
 
 -- 3. Without SetAlphaFromBoolean, a secret clamp flag hides the glow instead of erroring.
 write("target.absorbGlow", true)

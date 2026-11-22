@@ -95,7 +95,7 @@ local function Found(results, module, key)
 end
 
 local CASES = {
-	{ module = "UnitFrames", selector = "edit", sample = { "target.castbarTexture", "focus.portraitStyle", "boss.healthTexture", "pet.enabled" } },
+	{ module = "UnitFrames", selector = "edit", sample = { "target.castbarColor", "focus.portraitStyle", "boss.healthTexture", "pet.enabled" } },
 	{ module = "ActionBars", selector = "editBar", sample = { "bar2.size", "bar6.fade", "pet.hotkey", "stance.spacing" } },
 }
 
@@ -120,14 +120,14 @@ end
 
 -- A result names its frame or bar in its section header, so equal labels stay apart.
 do
-	local results = Model.Search(ns.Pages.List(), "cast bar texture")
+	local results = Model.Search(ns.Pages.List(), "cast bar colour")
 	local sections = {}
 	for _, item in ipairs(results) do
 		if item.kind == "header" and item.level == 2 then
 			sections[#sections + 1] = item.label
 		end
 	end
-	assert(#sections > 1, "cast bar texture is found for several frames")
+	assert(#sections > 1, "cast bar colour is found for several frames")
 	local seen = {}
 	for _, label in ipairs(sections) do
 		assert(not seen[label], "each frame's cast bar has its own section header, got " .. label .. " twice")

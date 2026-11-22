@@ -62,7 +62,6 @@ eq(flags, "OUTLINE", "the caption stands on the world: an outline, with the kit'
 K.Options.Write("DataBars", "xp.border", true)
 eq(xp.track.barEdge.hard:IsShown(), false, "the Medallions strip keeps its one dark edge whatever the border setting")
 eq(xp.fill.barEdge.hard:IsShown(), false, "and the fill adds none")
-K.Options.Write("DataBars", "xp.text", "levelRested")
 game.level, game.xp, game.rested = 12, 2500, 0
 env.FireEvent("PLAYER_LEVEL_UP", 12)
 eq(xp.text:GetText(), "25%", "the caption follows game values without a stale rested share")

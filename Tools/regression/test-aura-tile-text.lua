@@ -73,8 +73,7 @@ do
 		local tile = { Scene.Rect(env, entry.skin) }
 		local count = TextBox(env, entry.count)
 		local timer, timerSize = TextBox(env, entry.timer)
-		-- Known: on the Medallions focus and boss tiles the stack count overlaps the timer.
-		assert(kind ~= "target" or not intersects(count, timer), string.format("%s: the stack count %s and the timer %s overlap on a %d-unit tile", kind, fmt(count), fmt(timer), tile[3]))
+		assert(not intersects(count, timer), string.format("%s: the stack count %s and the timer %s overlap on a %d-unit tile", kind, fmt(count), fmt(timer), tile[3]))
 		assert(badgeOf(entry.count), kind .. ": the stack count sits on its own badge")
 		assert(count[2] <= tile[2] + 1 and count[1] + count[3] >= tile[1] + tile[3] - 1, kind .. ": the count sits in the tile's top-right corner, on its rim")
 		if kind == "target" then

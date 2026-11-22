@@ -33,8 +33,8 @@ do
 	noErrors(env, K, "frames")
 end
 
--- Item 1: the boss frames lay out no glass card, and the folded boss chip wears none. Known: the Medallions boss scrim
--- runs past the 6-unit gap to the next boss.
+-- Item 1: the boss frames lay out no glass card, and the folded boss chip wears none. Each boss's scrim stays within its
+-- slot and half the gap, so it never darkens the next boss.
 do
 	local env, K, ns = U.New({ saved = saved("frames"), setup = withEnum })
 	for i = 1, 2 do
@@ -49,6 +49,11 @@ do
 		if i <= 2 then
 			assert(not view.chrome.visible, "boss " .. i .. " shows no card")
 			assert(view.scrim:IsShown(), "boss " .. i .. " reads on the world over the soft scrim")
+			local _, _, _, _, cy = view.scrim:GetPoint(1)
+			local _, h = view.scrim:GetSize()
+			local half = ns.Settings.Value("boss", "gap") / 2
+			assert(-cy - h / 2 >= -half - 0.01 and -cy + h / 2 <= view.button:GetHeight() + half + 0.01,
+				string.format("boss %d's %.1f-unit scrim stays within its slot and half the gap", i, h))
 		end
 	end
 	local chip = ns.Frames.Get("boss").views[1].chip

@@ -29,16 +29,18 @@ end
 eq(ticks, 9, "the mock-up's ten segments")
 for _, choice in ipairs({ "Glass", paths.Glass, paths.Soft }) do
 	K.Options.Write("DataBars", "xp.texture", choice)
-	eq(xp.fill.texturePath, paths.Flat, "the Medallions strip keeps its flat fill")
-	eq(xp.track.texturePath, paths.Flat, "and its flat rested reach")
-	eq(xp.fill.innerEdgeOn, true, "with its dark inner edge")
+	local want = choice == "Glass" and paths.Glass or choice
+	eq(xp.fill.texturePath, want, "the strip takes its texture setting")
+	eq(xp.track.texturePath, want, "and so does its rested reach")
+	eq(xp.fill.innerEdgeOn, want == paths.Flat, "with its dark inner edge only on the flat fill")
 end
+K.Options.Write("DataBars", "xp.texture", paths.Flat)
 K.Options.Write("DataBars", "xp.segments", 4)
 ticks = 0
 for _, tick in ipairs(xp.ticks) do
 	ticks = ticks + (tick:IsShown() and 1 or 0)
 end
-eq(ticks, 9, "the Medallions strip keeps its ten segments")
+eq(ticks, 3, "the segments setting applies: four segments, three ticks")
 eq(#env._errors, 0, "no game errors")
 local screens = { {1280, 720}, {1366, 768}, {1920, 1080}, {2560, 1440}, {3440, 1440}, {5120, 1440}, {3840, 2160}, {2383, 1540}, {3456, 2234} }
 for _, screen in ipairs(screens) do
