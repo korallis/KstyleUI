@@ -172,6 +172,20 @@ r, g, b = imp.levelText:GetTextColor()
 local er, eg, eb = K.Tokens.Color("medText")
 assert(near(r, er) and near(g, eg) and near(b, eb), "a friendly level takes the Medallions label colour, not a difficulty")
 
+-- Back to Frames: the badge goes, the plate takes Frames' width, the brackets their arms and the level its diamond.
+K.Options.Write("HudStyle", "style", "frames")
+env.RunTimers()
+assert(not badge:IsShown() and not badge.ring:IsShown(), "Frames takes the badge away")
+eq(ns.state.width, ns.Plate.DEFAULT_WIDTH, "the plate is Frames' width again")
+for _, side in ipairs(enemy.brackets.sides) do
+	assert(side.top:IsShown() and side.bottom:IsShown(), side.side .. " bracket has its arms again")
+end
+for _, layer in ipairs(enemy.level.layers) do
+	assert(layer:IsShown(), "the diamond is back")
+end
+assert(not tostring(face(enemy.levelText)):find("Barlow", 1, true), "Frames' level is not Barlow")
+eq(ns.Settings.Get("debuffs.size"), 29, "debuffs are Frames' size again")
+
 eq(#env._errors, 0, "no error: " .. tostring(env._errors[1]))
 eq(K.ErrorCount(), 0, "no addon error")
 print("ok - test-nameplates-medallions")

@@ -104,4 +104,16 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- Frames: the KSTY-44 bible's 132 by 10 physical-pixel fill inside the same two-pixel edge, 136 by 14 outside.
+do
+	local env, K, ns = N.New({ frames = true, width = REFERENCE.width, height = REFERENCE.height, size = REFERENCE.size, uiScale = REFERENCE.uiScale })
+	N.Add(env, "nameplate1", { name = "Shadowgale Poacher", reaction = 2, health = 100, maxHealth = 100 })
+	local bar = ns.Plates.Get("nameplate1").health
+	local width, height = pixels(K, bar, env.Look(bar:GetWidth())), pixels(K, bar, env.Look(bar:GetHeight()))
+	local _, halo = borderPixels(K, bar)
+	assert(math.abs(width - 132) < 0.01 and math.abs(height - 10) < 0.01, "the Frames fill is 132 by 10 physical pixels, got " .. tostring(width) .. " by " .. tostring(height))
+	assert(math.abs(width + halo * 2 - 136) < 0.01 and math.abs(height + halo * 2 - 14) < 0.01, "the outer rect is 136 by 14")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 print("nameplates height: ok")
