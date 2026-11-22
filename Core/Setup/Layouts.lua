@@ -817,7 +817,7 @@ function Layouts.Style(name, key)
 		return layouts[name] and layouts[name][key]
 	end
 	if key == "minimap.main" and Layouts.MinimapCrest() then
-		local overhang = Layouts.CREST_GROW / 2
+		local overhang = Layouts.CREST_GROW / 2 + ns.Scale.Pixel(1)
 		return { anchor = "TOPRIGHT", x = -(EDGE + overhang), y = -(EDGE + overhang + 20) }
 	end
 	local extra = key ~= "chat.main" and key ~= "qol.lootfeed" and key ~= "unitframes.resource" and Layouts.ExtraBarsPlace(ns.Scale.Aspect(), name, key)
