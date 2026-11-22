@@ -109,14 +109,14 @@ end
 
 -- On a 3:2 MacBook at the shipped size the lane narrows to the room between the chat card and the boss column's debuff
 -- row (443 units at 3456 x 2234), so setup can stand the warnings beside the boss frames in the upper band; at 16:9
--- the 580-unit lane fits as it is.
+-- it narrows to the room between the Healer raid frames and that row (542 units), so every preset keeps the top.
 do
 	local _, K, _, frame = New({ width = 3456, height = 2234, uiScale = 768 / 1080, size = "default" })
 	local lane = K.Setup.EditMode.WarningLane()
 	assert(lane == 443, "the 3:2 lane is the room beside the boss frames, got " .. lane)
 	Near(frame:GetWidth(), lane / K.Widgets.ScaleFactor(frame), "the warnings narrow to it")
 	local _, K169 = New({ width = 1920, height = 1080, uiScale = 768 / 1080, size = "default" })
-	assert(K169.Setup.EditMode.WarningLane() == K169.Setup.EditMode.WARNING_LANE, "16:9 keeps the full lane")
+	assert(K169.Setup.EditMode.WarningLane() == 542, "the 16:9 lane clears the raid frames and the debuff row, got " .. K169.Setup.EditMode.WarningLane())
 end
 
 -- A scale change resizes the lane and every string the pool already made; a change to the skins' shared text settings
