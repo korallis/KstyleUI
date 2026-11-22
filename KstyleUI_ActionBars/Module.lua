@@ -153,8 +153,6 @@ local function UpdatePets()
 	for i = 1, #list do
 		ns.Button.Update(list[i])
 	end
-	local main = ns.bars.bar1
-	if main then main:RefreshSlab() end
 end
 
 local function UpdateStances()

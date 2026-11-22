@@ -1077,6 +1077,18 @@ local function Socket(b, on)
 	b:Paint()
 end
 
+local function Press(b)
+	if b.medSocketOn and b.pressHeld then
+		b.medPushed.release:Stop()
+		b.medPushed:SetAlpha(ns.Config("inputContinuity") and 0.6 or 1)
+		b.medPushed:Show()
+	elseif b.medSocketOn and ns.Config("inputContinuity") and Moving() and b.medPushed:IsShown() then
+		if not b.medPushed.release:IsPlaying() then b.medPushed.release:Play() end
+	else
+		b.medPushed:Hide()
+	end
+end
+
 function Slab.Dress(b)
 	local on = Slab.Active() and DRESSED[b.kind] == true and Known("medSlot") ~= nil
 	if not b.medFrame then
@@ -1104,11 +1116,8 @@ function Slab.Dress(b)
 		Fade(b.medPushed.release, 0.6, 0, 0.1):SetSmoothing("IN")
 		b.medPushed.release:SetScript("OnFinished", function() b.medPushed:Hide() end)
 		if type(hooksecurefunc) == "function" then
-			for _, method in ipairs({ "SetSelected", "AnimatePress" }) do
-				if type(b[method]) == "function" then
-					hooksecurefunc(b, method, Slab.Dress)
-				end
-			end
+			hooksecurefunc(b, "SetSelected", Slab.Dress)
+			hooksecurefunc(b, "AnimatePress", Press)
 		end
 	end
 	if b.SetSlabDress then b:SetSlabDress(on) end
@@ -1120,15 +1129,7 @@ function Slab.Dress(b)
 	if b.medHover then
 		b.medHover:SetShown(on)
 	end
-	if on and b.pressHeld then
-		b.medPushed.release:Stop()
-		b.medPushed:SetAlpha(ns.Config("inputContinuity") and 0.6 or 1)
-		b.medPushed:Show()
-	elseif on and ns.Config("inputContinuity") and Moving() and b.medPushed:IsShown() then
-		if not b.medPushed.release:IsPlaying() then b.medPushed.release:Play() end
-	else
-		b.medPushed:Hide()
-	end
+	Press(b)
 	Slab.Keybind(b)
 end
 

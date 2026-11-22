@@ -54,6 +54,7 @@ return {
 			local env, K = AB.New()
 			AB.Enable(env, K)
 			env._game.petExists = true
+			env._game.pet[1] = { name = "Bite", texture = 132278, spellID = 17253 }
 			env.FireEvent("UNIT_PET", "player")
 			env.SetCombat(true)
 			env.RunTimers()
