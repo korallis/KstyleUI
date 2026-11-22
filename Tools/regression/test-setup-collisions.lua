@@ -231,6 +231,21 @@ for _, screen in ipairs({ { 3456, 2234 }, { 3024, 1964 }, { 2560, 1600 }, { 2383
 	assert(math.abs(tank - dps) < 1e-9, string.format("Tank with both meter cards caps at %.4f at %dx%d, under DPS's %.4f", tank, screen[1], screen[2], dps))
 end
 
+-- The second data bar's spare slot clears the target's medallion and the loot feed clears the pet and stance bars on
+-- small, MacBook and 3:2 screens, so turning the bar on never shrinks the HUD there and the shipped size fits.
+for _, screen in ipairs({ { 2383, 1540 }, { 2642, 1651 }, { 1366, 768 }, { 3024, 1964 } }) do
+	for _, name in ipairs(Layouts.Names()) do
+		local enabled = Layouts.Enabled(name)
+		enabled["consumables.bar"] = false
+		local without = Layouts.ScaleLimit(screen[1], screen[2], name, enabled)
+		enabled["databars.strip2"] = true
+		local with = Layouts.ScaleLimit(screen[1], screen[2], name, enabled)
+		local label = string.format("%s at %dx%d", name, screen[1], screen[2])
+		assert(math.abs(with - without) < 1e-9, label .. ": the second data bar shrinks the HUD from " .. without .. " to " .. with)
+		assert(without >= K.Scale.DEFAULT_USER_SCALE, label .. ": caps at " .. without .. ", under the shipped size")
+	end
+end
+
 -- The second data bar tightens the Healer cap at 1080p; compare enabled sets on either side of that boundary.
 do
 	assert(Layouts.Fits("Healer", 1920, 1080, 0.95), "the hidden second data bar must not collide at a size above its own cap")
@@ -254,6 +269,8 @@ do
 	profile.UnitFrames.target.style = "plate"
 	active = Layouts.Enabled("Tank", profile)
 	assert(active["unitframes.castbar.target"], "a configured separate target cast bar counts even though the preset draws it inline")
+	profile.DataBars.strip = { second = true }
+	assert(Layouts.Enabled("Tank", profile)["databars.strip2"], "Show a second data bar (strip.second) counts the second bar")
 end
 
 -- Exercise live resizing when the shown boss frames tighten the cap.
