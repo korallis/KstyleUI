@@ -136,4 +136,7 @@ G.Raises(function()
 	S.Get("party.nope")
 end, "nope", "an unknown setting raises")
 
+-- Medallions raid tiles carry no role, so Role icons says it shows on party frames.
+assert(rows["icons.role"].help:find("party", 1, true), "Role icons names the party frames it shows on: " .. rows["icons.role"].help)
+
 print("groupframes settings ok")
