@@ -1014,18 +1014,19 @@ local function Table(value)
 	return type(value) == "table" and value or {}
 end
 
-local function DropStyledPositions(positions)
+local function DropStyledPositions(positions, frames)
 	for key in pairs(Table(positions)) do
-		if type(key) == "string" and (key:match("^orbs:") or key:match("^frames:")) then positions[key] = nil end
+		if type(key) == "string" and (key:match("^orbs:") or not frames and key:match("^frames:")) then positions[key] = nil end
 	end
 end
 
 Store.migrations[45] = function(data, live)
-	local moved = false
-	for _, profile in pairs(data.profiles) do
+	local moved, kept = false, {}
+	for name, profile in pairs(data.profiles) do
 		if type(profile) == "table" then
 			local hud = type(profile.HudStyle) == "table" and profile.HudStyle.style
 			local frames = hud == "frames"
+			kept[name] = frames
 			moved = moved or not frames and hud ~= "medallions"
 			if not frames then profile.HudStyle = nil end
 			for module, values in pairs(frames and ns.HudStyle.FRAMES_LOOK or {}) do
@@ -1068,8 +1069,8 @@ Store.migrations[45] = function(data, live)
 			end
 		end
 	end
-	for _, layout in pairs(data.layouts) do
-		DropStyledPositions(layout)
+	for name, layout in pairs(data.layouts) do
+		DropStyledPositions(layout, kept[name])
 	end
 	for _, positions in pairs(Table(Table(data.account).namedLayouts)) do
 		DropStyledPositions(positions)
