@@ -150,7 +150,7 @@ ns.Locale.Add({
 	["A small copy glyph beside the plus in the tab row. A tab's right-click menu can copy too."] = "Ein kleines Kopiersymbol neben dem Plus in der Reiterzeile. Auch das Rechtsklickmen\195\188 eines Reiters kann kopieren.",
 	["A small dot at the centre of the ring."] = "Ein kleiner Punkt in der Mitte des Rings.",
 	["A small frame beside each party member for what they target; click it to target that too."] = "Ein kleiner Rahmen neben jedem Gruppenmitglied f\195\188r dessen Ziel; ein Klick darauf w\195\164hlt es ebenfalls als Ziel.",
-	["A small square map with zone and clock."] = "Eine kleine quadratische Karte mit Zone und Uhr.",
+	["A small round map with zone and clock."] = "Eine kleine runde Karte mit Zone und Uhr.",
 	["A smooth ring on you, a still red rim on enemies. Off restores every portrait's smoky pulse."] = "Glatter Ring um Euch, stiller roter Feindrand. Aus: rauchiger Puls an allen Portr\195\164ts.",
 	["A soft accent glow around a spell that is ready."] = "Ein sanftes Akzentleuchten um einen Zauber, der bereit ist.",
 	["A soft glow around each icon in this row, so what it shows stands out."] = "Ein sanftes Leuchten um jedes Symbol dieser Reihe, damit hervorsticht, was sie zeigt.",
