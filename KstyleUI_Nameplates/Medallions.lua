@@ -25,8 +25,7 @@ Medallions.WIDTH, Medallions.HEIGHT = WIDTH, HEIGHT
 Medallions.GUNMETAL = GUNMETAL
 
 function Medallions.Active()
-	local hud = K.HudStyle
-	return hud ~= nil and type(hud.Current) == "function" and hud.Current() == STYLE
+	return K.HudStyle.Current() == STYLE
 end
 
 local readSize = Plates.ReadSize

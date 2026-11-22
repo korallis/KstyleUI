@@ -25,8 +25,7 @@ local CHIP_ALPHA = 0.55
 local CHIP_WIDTH = 30
 local LABEL_FACE = Tokens.FontPath("InterSemiBold")
 function Medallions.Active()
-	local hud = K.HudStyle
-	return hud ~= nil and type(hud.Current) == "function" and hud.Current() == STYLE
+	return K.HudStyle.Current() == STYLE
 end
 
 local colorSources = Unit.ColorSources
