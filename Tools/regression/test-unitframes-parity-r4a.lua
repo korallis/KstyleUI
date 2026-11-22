@@ -40,24 +40,19 @@ for _, key in ipairs({ "healthDecimalTrim", "boss.castbarWidth", "target.auraTra
 	"player.textBarStrata", "focus.textBarWidth", "target.textBarLeft.textFormat", "player.textBarRight.width", "focus.textBarCenter.x" }) do
 	assert(rows[key] and rows[key].help, key .. " has a row with help")
 end
-assert(rows["boss.castbarHeight"].shown(10) == 16 and rows["boss.castbarHeight"].shown(11) == 17, "the boss card's height slider shows the card's line")
+assert(rows["boss.castbarHeight"].shown(10) == 10, "the Medallions boss frame is no card, so its height slider shows its own value")
 assert(not rows["pet.textBar"] and not rows["boss.textBar"] and not rows["player.auraTrackedDebuffs"] and not rows["pet.auraTrackedDebuffs"], "rows show only where they work")
 
--- Boss cast bar: height and width on the boss card, then under a plate.
+-- Boss cast bar: its width on the Medallions boss frame, then under a plate.
 local boss = ns.Frames.Get("boss").views[1]
 U.SetUnit(env, "boss1", { name = "Magmatus", level = -1, classification = "worldboss", health = 41270, healthMax = 100000, reaction = 2, canAttack = true })
 env.FireEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
-local cast, panel = boss.geometry.cast, boss.geometry.panel
-assert(cast and cast.h == 16 and same(cast.w, panel.w), "the card's cast line is 16 units across the card")
-local fullW = cast.w
-write("boss.castbarHeight", 18)
-assert(boss.geometry.cast.h == 24, "the card's line follows the cast height, 16 at the default 10")
 write("boss.castbarWidth", 100)
-assert(boss.geometry.cast.w == 100 and boss.geometry.cast.x == cast.x, "the card's cast line takes the width from its left end")
 local size = W.LastCall(boss.castbar.frame, "SetSize")
-assert(size and math.abs(size[1] - 100) < 1 and math.abs(size[2] - 24) < 1, "the cast bar frame follows")
+assert(size and math.abs(size[1] - 100) < 1, "the boss cast bar takes the width")
 write("boss.castbarWidth", 2000 - 1600)
-assert(boss.geometry.cast.w == fullW, "a width past the card stops at the card")
+size = W.LastCall(boss.castbar.frame, "SetSize")
+assert(size and math.abs(size[1] - math.min(400, boss.geometry.panel.w)) < 1, "a width past the frame stops at the frame")
 write("boss.style", "plate")
 size = W.LastCall(boss.castbar.frame, "SetSize")
 assert(size and math.abs(size[1] - math.min(400, boss.geometry.panel.w)) < 1, "under a plate the width applies too")
@@ -65,8 +60,6 @@ write("boss.castbarWidth", 0)
 size = W.LastCall(boss.castbar.frame, "SetSize")
 assert(math.abs(size[1] - boss.geometry.panel.w) < 1, "0 matches the frame again")
 write("boss.style", "lumen")
-write("boss.castbarHeight", 10)
-assert(boss.geometry.cast.h == 16 and boss.geometry.cast.w == fullW, "the default restores the card's line")
 clean()
 
 -- Hide trailing zeros: one decimal, then the boss's two, live and after health changes, queued in combat.
@@ -81,6 +74,8 @@ assert(pct(target) == "50%", "trimmed: " .. tostring(pct(target)))
 env._units.target.health = 2223
 env.FireEvent("UNIT_HEALTH", "target")
 assert(pct(target) == "55.6%", "a real decimal stays: " .. tostring(pct(target)))
+-- The Medallions boss frame reads its health as values; the boss decimals show once it reads a percent.
+write("boss.healthText", "percent")
 write("healthDecimalBoss", true)
 assert(pct(boss) == "41.27%", "boss keeps two places: " .. tostring(pct(boss)))
 env._units.boss1.health = 41200
@@ -186,7 +181,7 @@ write("healthDecimalTrim", true)
 write("edit", "boss")
 write("boss.castbarHeight", 16)
 pane:Refresh()
-assert(pane.casts.boss and same(W.LastCall(pane.casts.boss.frame, "SetSize")[2], 22), "the preview's boss cast takes its height")
+assert(pane.casts.boss and same(W.LastCall(pane.casts.boss.frame, "SetSize")[2], 16), "the preview's boss cast takes its height")
 assert(not U.Shown(env, pane.views.boss.healthText):find("%.0%%"), "the preview trims zeros: " .. U.Shown(env, pane.views.boss.healthText))
 clean()
 
