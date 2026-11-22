@@ -17,6 +17,13 @@ local function isColor(number, K, token)
 	return near(r, er) and near(g, eg) and near(b, eb)
 end
 
+-- The Medallions look's own damage and critical colours.
+local function isLook(number, ns, kind)
+	local r, g, b = color(number)
+	local cfg = ns.Module.cfg
+	return near(r, cfg[kind .. "R"]) and near(g, cfg[kind .. "G"]) and near(b, cfg[kind .. "B"])
+end
+
 local function enabled(opts)
 	local env, K, ns = CT.New(opts)
 	CT.Enable(env, K)
@@ -46,9 +53,9 @@ do
 	assert(el.module == "CombatText", "the field belongs to the CombatText module")
 	assert(el.opts.resizable, "the field is resizable")
 	assert(el.label == K.Setup.Layouts.Element("combattext.player").label, "the field uses the setup's label")
-	local default = K.Setup.Layouts.Default("combattext.player")
+	local default = K.Setup.Layouts.Place(K.Layout.Setting("preset"), "medallions", K.Scale.Aspect(), "combattext.player", K.Scale.Band())
 	local settings = K.Layout.Get("combattext.player")
-	assert(settings.anchor == default.anchor and settings.x == default.x and settings.y == default.y, "the field starts at the DPS layout's position")
+	assert(settings.anchor == default.anchor and settings.x == default.x and settings.y == default.y, "the field starts at the Medallions HUD's position")
 	assert(K.Layout.Live("combattext.player"), "the field is live while the module runs")
 	Hit(env, "player", "WOUND", "", env.Secret(5), 1)
 	local number = Shown(ns)[1]
@@ -69,12 +76,12 @@ do
 	assert(#shown == 1, "one hit shows one number, got " .. #shown)
 	local number = shown[1]
 	assert(Text(env, number) == "secret:short(1234)", "the text is AbbreviateNumbers of the secret amount, got " .. tostring(Text(env, number)))
-	assert(isColor(number, K, "white"), "a normal hit is white, whatever its school")
+	assert(isLook(number, ns, "damage"), "a normal hit is the Medallions damage gold, whatever its school")
 	assert(number.frame:IsShown(), "the number shows")
 	local _, relative, relPoint = number.frame:GetPoint(1)
 	assert(relative == K.Layout.Element("combattext.player").frame and relPoint == "BOTTOM", "the number starts at the bottom of the player's field")
 	local path, size, flags = LastCall(number.text, "SetFont")
-	assert(path == (K.Tokens.Font("number")) and size == 18 and flags == "OUTLINE", "the number uses the default font, size and outline")
+	assert(path == K.Tokens.FontPath("BarlowBold") and size == 20 and flags == "OUTLINE", "the number uses the Medallions Barlow Bold at 20 units, outlined")
 	assert(env._errors[1] == nil, tostring(env._errors[1]))
 end
 
@@ -97,14 +104,14 @@ do
 	Hit(env, "player", "WOUND", "", 0, 1)
 	assert(Text(env, Shown(ns)[4]) == "Miss", "a plain wound of 0 shows Miss")
 	Hit(env, "player", "WOUND", "ABSORB", env.Secret(55), 1)
-	local guessed = Shown(ns)[4]
+	local guessed = Shown(ns)[5]
 	assert(Text(env, guessed) == "Absorb", "a secret amount with ABSORB shows the word, since 0 cannot be ruled out")
 	Hit(env, "player", "WOUND", "ABSORB", 300, 1)
-	assert(Text(env, Shown(ns)[4]) == "short(300)", "a plain partial absorb shows its amount")
+	assert(Text(env, Shown(ns)[6]) == "short(300)", "a plain partial absorb shows its amount")
 	assert(env._errors[1] == nil, tostring(env._errors[1]))
 end
 
--- Two sizes: critical hits grow to 1.6 and turn gold; glancing blows keep the normal size ---------
+-- Two sizes: critical hits grow to the Medallions 1.4 and turn pale gold; glancing blows keep the normal size ------
 
 do
 	local env, K, ns = enabled()
@@ -113,20 +120,20 @@ do
 	Hit(env, "player", "WOUND", "GLANCING", env.Secret(400), 1)
 	local plain, crit, glance = Shown(ns)[1], Shown(ns)[2], Shown(ns)[3]
 	assert(near(plain.frame:GetScale(), 1), "a plain hit has no emphasis")
-	assert(near(crit.frame:GetScale(), 1.6), "a critical hit is 1.6 times a normal one (KSTY-44 3.10), got " .. tostring(crit.frame:GetScale()))
+	assert(near(crit.frame:GetScale(), 1.4), "a critical hit is 1.4 times a normal one, got " .. tostring(crit.frame:GetScale()))
 	assert(near(glance.frame:GetScale(), 1), "a glancing blow keeps the normal size: two sizes, normal and critical")
-	assert(isColor(crit, K, "neutral"), "critical damage is gold")
-	assert(isColor(plain, K, "white") and isColor(glance, K, "white"), "plain and glancing damage are white")
+	assert(isLook(crit, ns, "crit"), "critical damage is pale gold")
+	assert(isLook(plain, ns, "damage") and isLook(glance, ns, "damage"), "plain and glancing damage are the damage gold")
 	assert(Anim(crit, "pop").scaleFrom > 1, "a critical hit pops in")
 
 	K.Options.Write("CombatText", "critColor", false)
 	K.Options.Write("CombatText", "critScale", 1)
 	Hit(env, "player", "WOUND", "CRITICAL", env.Secret(1900), 1)
 	local calm = Shown(ns)[4]
-	assert(near(calm.frame:GetScale(), 1) and isColor(calm, K, "white"), "a critical size of 1 and no critical colour turn the emphasis off")
+	assert(near(calm.frame:GetScale(), 1) and isLook(calm, ns, "damage"), "a critical size of 1 and no critical colour turn the emphasis off")
 
 	Hit(env, "player", "HEAL", "CRITICAL", env.Secret(700), 2)
-	local healCrit = Shown(ns)[4]
+	local healCrit = Shown(ns)[5]
 	assert(isColor(healCrit, K, "friendly"), "a critical heal keeps the heal colour")
 end
 
@@ -137,7 +144,7 @@ do
 	Hit(env, "player", "WOUND", env.Secret("CRITICAL"), env.Secret(10), env.Secret(4))
 	local hidden = Shown(ns)[1]
 	assert(hidden and near(hidden.frame:GetScale(), 1), "a secret flag gives no emphasis")
-	assert(isColor(hidden, K, "white"), "a secret school takes the damage colour")
+	assert(isLook(hidden, ns, "damage"), "a secret school takes the damage colour")
 	Hit(env, "player", env.Secret("HEAL"), "", env.Secret(10), 2)
 	local unknown = Shown(ns)[2]
 	assert(unknown and Text(env, unknown) == "secret:short(10)" and isColor(unknown, K, "text"), "a secret event shows the amount in the neutral colour")
@@ -183,12 +190,13 @@ end
 
 do
 	local env, K, ns = enabled()
-	for i = 1, 5 do
+	local cap = ns.Module.cfg.maxPerFrame
+	for i = 1, cap + 1 do
 		Hit(env, "player", "WOUND", "", env.Secret(i), 1)
 	end
 	local shown = Shown(ns)
-	assert(#shown == 4, "the field shows at most four numbers at once, got " .. #shown)
-	assert(Text(env, shown[1]) == "secret:short(2)" and Text(env, shown[4]) == "secret:short(5)", "the oldest number makes way for the newest")
+	assert(#shown == cap and cap == 6, "the field shows at most the Medallions six numbers at once, got " .. #shown)
+	assert(Text(env, shown[1]) == "secret:short(2)" and Text(env, shown[cap]) == "secret:short(" .. (cap + 1) .. ")", "the oldest number makes way for the newest")
 
 	K.Options.Write("CombatText", "maxPerFrame", 2)
 	Hit(env, "player", "WOUND", "", env.Secret(6), 1)
@@ -229,43 +237,48 @@ end
 
 do
 	local env, K, ns = enabled()
+	local cfg = ns.Module.cfg
+	local function newest(back)
+		local shown = Shown(ns)
+		return shown[#shown - (back or 0)]
+	end
 	Hit(env, "player", "WOUND", "", env.Secret(1), 1)
-	local rise = Anim(Shown(ns)[1], "move")
-	assert(rise.offsetX == 0 and near(rise.offsetY, 48), "rise moves straight up, a short 48 units (KSTY-44), got " .. tostring(rise.offsetY))
-	assert(near(rise.duration, 1.2), "the default duration is 1.2 seconds")
-	local fade = Anim(Shown(ns)[1], "fade")
-	assert(fade.fromAlpha == 1 and fade.toAlpha == 0 and near(fade.delay + fade.duration, 1.2), "the number fades out by the end")
+	local rise = Anim(newest(), "move")
+	assert(rise.offsetX == 0 and near(rise.offsetY, cfg.rise) and cfg.rise == 40, "rise moves straight up, the Medallions 40 units, got " .. tostring(rise.offsetY))
+	assert(near(rise.duration, 0.9), "the Medallions duration is 0.9 seconds")
+	local fade = Anim(newest(), "fade")
+	assert(fade.fromAlpha == 1 and fade.toAlpha == 0 and near(fade.delay + fade.duration, 0.9), "the number fades out by the end")
 
 	K.Layout.Set("combattext.player", "height", 360)
 	Hit(env, "player", "WOUND", "", env.Secret(1), 1)
-	assert(near(Anim(Shown(ns)[2], "move").offsetY, 48), "a taller field keeps the short rise")
+	assert(near(Anim(newest(), "move").offsetY, cfg.rise), "a taller field keeps the short rise")
 	K.Layout.Set("combattext.player", "height", 60)
 	Hit(env, "player", "WOUND", "", env.Secret(1), 1)
-	local low = Anim(Shown(ns)[3], "move").offsetY
-	assert(low > 0 and low < 48, "a field too short for the rise moves numbers only as far as it has room, got " .. tostring(low))
+	local low = Anim(newest(), "move").offsetY
+	assert(low > 0 and low < cfg.rise, "a field too short for the rise moves numbers only as far as it has room, got " .. tostring(low))
 
 	K.Options.Write("CombatText", "style", "arc")
 	Hit(env, "player", "WOUND", "", env.Secret(1), 1)
 	Hit(env, "player", "WOUND", "", env.Secret(1), 1)
-	local a, b = Shown(ns)[3], Shown(ns)[4]
+	local a, b = newest(1), newest()
 	assert(Anim(a, "move").offsetX ~= 0 and Anim(a, "fall").offsetY < 0, "arc moves sideways, up, then down")
 	assert(Anim(a, "move").offsetX * Anim(b, "move").offsetX < 0, "arcs alternate sides")
 
 	K.Options.Write("CombatText", "style", "pop")
 	Hit(env, "player", "WOUND", "", env.Secret(1), 1)
-	assert(Anim(Shown(ns)[4], "pop").scaleFrom > 1, "pop starts large")
+	assert(Anim(newest(), "pop").scaleFrom > 1, "pop starts large")
 
 	K.Motion.SetLevel("reduced")
 	Hit(env, "player", "WOUND", "CRITICAL", env.Secret(1), 1)
-	local reduced = Shown(ns)[4]
+	local reduced = newest()
 	assert(Anim(reduced, "move").offsetY == 0 and Anim(reduced, "fall").offsetY == 0 and Anim(reduced, "pop").scaleFrom == 1, "reduced motion keeps numbers still")
 	assert(Anim(reduced, "fade").toAlpha == 0, "reduced motion still fades")
 
 	K.Motion.SetLevel("off")
 	Hit(env, "player", "WOUND", "", env.Secret(1), 1)
-	local off = Anim(Shown(ns)[4], "fade")
-	assert(off.duration < 0.1 and near(off.delay + off.duration, 1.2), "with motion off a number shows, then goes at once")
-	assert(CT.Called(Shown(ns)[4].group, "Play"), "the group plays")
+	local off = Anim(newest(), "fade")
+	assert(off.duration < 0.1 and near(off.delay + off.duration, 0.9), "with motion off a number shows, then goes at once")
+	assert(CT.Called(newest().group, "Play"), "the group plays")
 	K.Motion.SetLevel("full")
 end
 
