@@ -75,7 +75,9 @@ local function StyleType(plate)
 		Widgets.ApplyFont(plate.name, Tokens.FontPath(NAME_FACE), Settings.Get("name.size"), OUTLINE_FLAGS[Settings.Get("name.outline")])
 	end
 	local number = (Tokens.Font("number"))
-	Widgets.ApplyFont(plate.levelText, number, Settings.Get("level.size"), OUTLINE_FLAGS[Settings.Get("level.outline")])
+	if K.Theme.FollowsKit(Settings.Get("level.font")) then
+		Widgets.ApplyFont(plate.levelText, number, Settings.Get("level.size"), OUTLINE_FLAGS[Settings.Get("level.outline")])
+	end
 	if K.Theme.FollowsKit(Settings.Get("healthText.font")) then
 		Widgets.ApplyFont(plate.healthText, number, Settings.Get("healthText.size"), OUTLINE_FLAGS[Settings.Get("healthText.outline")])
 	end

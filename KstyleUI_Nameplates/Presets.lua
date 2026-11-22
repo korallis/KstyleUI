@@ -105,7 +105,11 @@ function Presets.OnSetting(_, module, key)
 			Presets.Apply(name)
 		end
 	elseif key ~= "enabled" and key ~= "personalResource" and not key:find("^cvars%.") and Settings.Get("preset") ~= "custom" then
+		local slim = Settings.Get("preset") == "lumen" and key ~= "health.height" and Settings.Get("health.height") == ns.Plate.DEFAULT_HEIGHT
 		K.Options.Write(MODULE, "preset", "custom")
+		if slim then
+			K.Options.Write(MODULE, "health.height", ns.Medallions.HEIGHT)
+		end
 	end
 	Settings.Invalidate()
 end
