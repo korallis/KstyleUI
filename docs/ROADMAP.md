@@ -1,25 +1,25 @@
 # KstyleUI roadmap
 
-What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.2.12 is out now: KstyleUI is Medallions only, every class gets a crown over the crest, shamans get Spirit Poles (the totem bar on the crest) and Storm Orbs (Lightning Shield charges), and the player and target cast bars sit on their frames. New releases now land about once a day.
+What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.2.13 is out now: Frames is back next to Medallions, your RestedXP or Zygor guide sits top left with the quests on the story rail, raid warnings fit MacBook screens, and Zygor and the action bars cost a lot less frame rate. New releases now land about once a day.
 
-## v0.2.13 — options and fixes
+## v0.2.14 — smoother and the last options
 
 Estimated: within a day or two.
 
-The last of the customisation work and a round of Medallions fixes.
+KstyleUI stops doing work it doesn't need, and the last of the customisation work lands.
 
 Highlights:
 
+- KstyleUI never fights other addons: RestedXP, Questie and minimap buttons cost next to nothing.
+- The minimap, vignette, auras and meters do no work while idle.
 - The last party and raid frame options, including more indicator places and frame sorting.
 - A consumable count and low-mana text on the aura reminders.
 - Movable Blizzard windows and a Time Spiral alert, once they are checked in game.
-- Raid tiles, party rows and unit frames honour every setting: timers, zoom, fonts and sizes.
-- Raid warnings, boss frames and Edit Mode fit 3:2 and MacBook screens.
 - More fixes from your reports, released as soon as they are ready.
 
 ## v0.3.0 — the polish release
 
-Estimated: about a week after v0.2.13.
+Estimated: about a week after v0.2.14.
 
 A full polish pass over everything you see and touch, so KstyleUI feels premium from the first minute.
 
