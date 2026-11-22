@@ -63,18 +63,14 @@ local function Kind(class)
 	return kind and Widgets.CrownCount(kind) and kind or nil
 end
 
-local function Refresh()
-	ns.Resource.Visibility()
-end
-
 local function Watch(on)
 	if on == state.watching then
 		return
 	end
 	state.watching = on
 	if on then
-		K.Events.Register(OWNER, "SPELLS_CHANGED", Refresh)
-		K.Callbacks.Register("EffectsLevelChanged", OWNER, Refresh)
+		K.Events.Register(OWNER, "SPELLS_CHANGED", ns.Resource.Visibility)
+		K.Callbacks.Register("EffectsLevelChanged", OWNER, ns.Resource.Visibility)
 	else
 		K.Events.Unregister(OWNER, "SPELLS_CHANGED")
 		K.Callbacks.Unregister("EffectsLevelChanged", OWNER)
@@ -116,9 +112,9 @@ function Pips.Fed(class, parent)
 	end
 	K.Events.Unregister(OWNER, "PLAYER_REGEN_ENABLED")
 	if pending then
-		K.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", Refresh)
+		K.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", ns.Resource.Visibility)
 	end
-	Watch(class ~= nil)
+	Watch(Widgets.CrownCount(class == "SHAMAN" and "STORM" or class == "DRUID" and "BEAR" or class) ~= nil)
 	state.crown = kind and state.fed[kind] or nil
 	return state.crown ~= nil
 end

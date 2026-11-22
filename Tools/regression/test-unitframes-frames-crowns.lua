@@ -60,7 +60,7 @@ end
 -- The rogue's daggers set the size every piece takes; a cat's claws, which share the row with the druid bar, a bear's.
 local renv, RK, rns = New("ROGUE")
 local dagger = rns.Pips.state.pips[1].frame:GetWidth()
-assert(rns.Resource.state.themed and not rns.Resource.state.fed and dagger > 0, "a rogue keeps its combo row and no fed crown")
+assert(rns.Resource.state.themed and not rns.Resource.state.fed and dagger > 0 and not rns.Pips.state.watching, "a rogue keeps its combo row, no fed crown and no spellbook watch")
 Clean(renv, RK, "rogue")
 local cenv, CK, cns = New("DRUID", { setup = function(e) e._units.player.powerType, e._units.player.powerToken = 3, "ENERGY" end })
 local claw = cns.Pips.state.pips[1].frame:GetWidth()
@@ -167,7 +167,7 @@ end
 -- Other classes, and a caster-form druid, get no row.
 for _, class in ipairs({ "PALADIN", "WARLOCK" }) do
 	local env, K, ns = New(class)
-	assert(not ns.Resource.state.fed and next(ns.Pips.state.fed) == nil, class .. " gets nothing")
+	assert(not ns.Resource.state.fed and next(ns.Pips.state.fed) == nil and not ns.Pips.state.watching, class .. " gets nothing and watches no spellbook")
 	Clean(env, K, class)
 end
 do

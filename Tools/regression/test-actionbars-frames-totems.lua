@@ -109,9 +109,12 @@ do
 	assert(AB.Used(env) == "destroytotem1", "shift right click dismisses")
 
 	-- A totem lights its upright spire; the slab setting has no say under Frames.
-	env._totems[1] = { have = true, start = 10, duration = 20, finish = 30 }
-	env.FireEvent("PLAYER_TOTEM_UPDATE", 1)
+	for i = 1, 4 do
+		env._totems[i] = { have = true, start = 10, duration = 20, finish = 30 }
+		env.FireEvent("PLAYER_TOTEM_UPDATE", i)
+	end
 	assert(fire.spire.gate:IsShown(), "a totem lights its spire")
+	assert(not st.ring.breath:IsPlaying(), "the hidden ring does not breathe with all four up")
 	K.Options.Write("ActionBars", "slab", false)
 	env.RunTimers()
 	assert(st.shown and st.header:IsShown(), "the slab setting does not take the row away under Frames")
@@ -131,11 +134,17 @@ do
 	-- Medallions puts the poles back on the crest with their own art; Frames brings the row back.
 	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
-	assert(st.shown and st.header:GetPoint(1) ~= "BOTTOMLEFT" and st.ring[5]:IsShown(), "Medallions: the poles on the crest, the ring back")
+	assert(st.shown and st.header:GetPoint(1) ~= "BOTTOMLEFT" and st.ring[5]:IsShown() and st.ring.breath:IsPlaying(), "Medallions: the poles on the crest, the ring back and breathing")
 	assert(tostring(AB.W.LastCall(fire.spire.steel, "SetTexture")[1]):find("PipSpireSteel102.png", 1, true), "the crest's fire spire leans at its own angle")
 	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
-	assert(st.shown and st.header:GetPoint(1) == "BOTTOMLEFT" and not st.ring[5]:IsShown(), "Frames: the row again")
+	assert(st.shown and st.header:GetPoint(1) == "BOTTOMLEFT" and not st.ring[5]:IsShown() and not st.ring.breath:IsPlaying(), "Frames: the row again, the ring still")
+	for _, size in ipairs({ 32, 48 }) do
+		K.Options.Write("ActionBars", "stance.size", size)
+		env.RunTimers()
+		local socket, stance = Rect(st.sockets[1], root), Rect(ns.bars.stance.buttons[1], root)
+		assert(Near(socket[3], size) and Near(stance[3], size), "a stance size of " .. size .. " sizes the sockets as the stance button (" .. socket[3] .. ")")
+	end
 	Clean(env, K, "row")
 end
 

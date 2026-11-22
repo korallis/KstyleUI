@@ -273,6 +273,7 @@ end
 
 local function PaintRing()
 	local ring, breathe = state.ring, Effects.Allows("pulse")
+	if not ring[5]:IsShown() then return ring.breath:Stop() end
 	for i, b in ipairs(state.sockets) do
 		Gate(ring[i], b.have)
 		breathe = breathe and not IsSecret(b.have) and b.have == true
@@ -476,7 +477,7 @@ local function Place()
 	local header, seat, hub = state.header, Seat(), ns.Slab.hub
 	local crest = seat == hub
 	local own = header:GetParent():GetEffectiveScale()
-	header:SetScale(own > 0 and seat:GetEffectiveScale() / own * (crest and 1 or K.Setup.Layouts.Grid("actionbars.stance").size / SOCKET) or 1)
+	header:SetScale(own > 0 and seat:GetEffectiveScale() / own * (crest and 1 or ns.bars.stance.buttons[1].opts.size / SOCKET) or 1)
 	header:ClearAllPoints()
 	local half, pitch, w, h = SOCKET / 2, SOCKET + ROW_GAP, 4 * (SOCKET + ROW_GAP) + 2 * MEDAL + 2 * ROW_GAP, SOCKET + SPIRE_LIFT + SPIRE
 	if crest then
