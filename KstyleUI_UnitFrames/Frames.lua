@@ -127,7 +127,7 @@ local HANDLERS = {
 		Unit.Portrait(view, unit)
 	end,
 	Colors = function(view, unit)
-		Unit.HealthColor(view, unit)
+		Unit.HealthColor(view, unit, true)
 		Unit.Health(view, unit)
 		if view.s.powerColor == "reaction" or view.s.powerColor == "class" then Unit.PowerColor(view, unit) end
 		Indicators.Combat(view, unit)
@@ -706,6 +706,9 @@ function Frames.Relayout(uf)
 		if ((before.healthSub == nil) ~= (g.healthSub == nil) or before.compact ~= g.compact) and Active(view) and UnitExists(view.unit) then
 			Unit.HealthColor(view, view.unit)
 			Unit.Health(view, view.unit, true)
+		end
+		if (before.power == nil) ~= (g.power == nil) and Active(view) and UnitExists(view.unit) then
+			Unit.Power(view, view.unit, true)
 		end
 		if view.tagged and Active(view) and UnitExists(view.unit) then
 			Unit.TextTags(view, view.unit)

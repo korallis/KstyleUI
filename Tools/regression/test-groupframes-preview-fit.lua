@@ -115,9 +115,7 @@ for _, height in ipairs({ 720, 560 }) do
 	end
 	for _, item in ipairs(drawn) do
 		local halo = type(item.file) == "string" and item.file:find("Shadow%.png$") ~= nil
-		-- Known: the Medallions party badge's enamel and ring bleed a unit past the pane's left edge.
-		local badge = type(item.file) == "string" and (item.file:find("Medallions/Enamel128%.png$") or item.file:find("Medallions/Ring128%.png$")) ~= nil
-		if not halo and not badge then
+		if not halo then
 			inside(item.rect, box, what .. ": " .. tostring(item.kind) .. " " .. tostring(item.text or item.texture or ""))
 		end
 		assert(not intersects(item.rect, click), what .. ": " .. tostring(item.kind) .. " " .. tostring(item.text or item.texture or "") .. " " .. describe(item.rect) .. " stays off the click casting panel")

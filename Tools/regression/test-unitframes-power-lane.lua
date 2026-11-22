@@ -52,6 +52,17 @@ K.Options.Write("UnitFrames", "player.powerSeparate", true)
 local sr, sg, sb = K.Tokens.Color("steelLit")
 r, g, b = view.power:GetStatusBarColor()
 assert(near(r, sr) and near(g, sg) and near(b, sb), "nearby hues use steel for power when enabled")
+local paint = U.W.LastCall(view.power, "SetStatusBarColor")
+env.FireEvent("UNIT_FLAGS", "player")
+assert(paint == U.W.LastCall(view.power, "SetStatusBarColor"), "unchanged flags must not repaint the separated power bar")
+env._units.player.tapDenied = true
+env.FireEvent("UNIT_FLAGS", "player")
+r, g, b = view.power:GetStatusBarColor()
+assert(near(r, 1) and near(g, 0.9) and near(b, 0), "tapping greys health and restores the power hue")
+env._units.player.tapDenied = false
+env.FireEvent("UNIT_FLAGS", "player")
+r, g, b = view.power:GetStatusBarColor()
+assert(near(r, sr) and near(g, sg) and near(b, sb), "untapping restores the contrasting steel")
 assert(view.powerFillText, "a fill-clipped ink layer leaves the empty power track readable")
 local player = env._units.player
 for _, amount in ipairs({ 0, 50, 100 }) do

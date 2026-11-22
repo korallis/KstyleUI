@@ -90,13 +90,19 @@ do
 end
 collectgarbage()
 
--- The time left stays inside its clip, and the preview follows the group number offsets and shows pet, tank and friendly boss samples with their own size, colour and wrap.
+-- Boss debuff zoom reaches the live boss debuff icon over the party's badge; the time left stays inside its clip; and the preview follows the group number offsets and shows pet, tank and friendly boss samples with their own size, colour and wrap.
 do
 	local env, K, ns = boot()
-	-- The Medallions party row has no boss debuff slot; the time left stays inside its clip.
 	do
 		local f = frame(ns, "party1")
-		assert(f.parts.boss == nil, "the Medallions party row lays out no boss debuff slot")
+		local boss, badge = f.parts.boss, f.parts.portrait
+		assert(boss and boss.left >= badge.left and boss.left + boss.width <= badge.left + badge.width, "the Medallions party row lays its boss debuff slot over the badge")
+		write(env, K, "auras.zoomEach", true)
+		write(env, K, "auras.bossZoom", 0.19)
+		local p = ns.Auras.Parts(f.highlights:GetAuraSlotFrame("boss"))
+		assert(near((p.icon:GetTexCoord()), 0.19), "the boss debuff crops at its own zoom: " .. p.icon:GetTexCoord())
+		write(env, K, "auras.zoomEach", false)
+		assert(near((p.icon:GetTexCoord()), 0.07), "off restores the shared zoom")
 		-- The time left stays inside the heal icons' clip at every offset the sliders allow; at no offset, "12s" is a twentieth
 		-- of a unit wider than its 11-unit icon, so the sides allow a tenth.
 		write(env, K, "auras.timers", true)

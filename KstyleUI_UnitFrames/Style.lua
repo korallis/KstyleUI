@@ -599,7 +599,8 @@ local function PlaceScrim(view, g)
 	scrim:SetVertexColor(r, gg, b, pad[3])
 	scrim:ClearAllPoints()
 	scrim:SetPoint("CENTER", view.parent, "TOPLEFT", Snap(view, g.glass.x + g.glass.w / 2), -Snap(view, g.glass.y + g.glass.h / 2))
-	scrim:SetSize(Snap(view, g.glass.w + 2 * pad[1]), Snap(view, g.glass.h + 2 * pad[2]))
+	local padY = view.kind == "boss" and math.min(pad[2], view.s.gap / 2) or pad[2]
+	scrim:SetSize(Snap(view, g.glass.w + 2 * pad[1]), Snap(view, g.glass.h + 2 * padY))
 	scrim:Show()
 end
 
@@ -774,6 +775,7 @@ function Style.Layout(view, s, width, height)
 			for key, r in pairs(g) do
 				if top and type(r) == "table" and type(r.y) == "number" and (key ~= "aura" or r.centred) then r.y = r.y + barH + gap end
 			end
+			if top and g.aura and not g.aura.centred then g.aura = Geometry.Frame(s, width, height, K.Theme.FontScale()).aura end
 		else
 			g = Geometry.Frame(s, width, height, K.Theme.FontScale())
 		end

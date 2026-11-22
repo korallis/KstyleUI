@@ -313,6 +313,9 @@ do
 		return n
 	end
 	assert(shown() == 5, "friends, channels, two voice toggles and the menu, got " .. shown())
+	for _, region in ipairs({ preview.glass:GetRegions() }) do
+		assert(not (region:IsShown() and region:GetTexture() == K.Tokens.Texture("divider")), "the preview draws no rule under the tabs, as the live panel draws none")
+	end
 	local menuTile
 	for _, tile in ipairs(preview.icons) do if tile:IsShown() and tile.glyph:IsShown() then menuTile = tile end end
 	local y = select(5, menuTile:GetPoint(1))
@@ -334,7 +337,7 @@ do
 	assert(not preview.strip:IsShown(), "no glass behind bare buttons")
 	write(env, K, "tabsAbove", true)
 	preview:Refresh()
-	assert(select(5, preview.card:GetPoint(1)) < -20 and not preview.divider:IsShown(), "the card starts under the tabs")
+	assert(select(5, preview.card:GetPoint(1)) < -20, "the card starts under the tabs")
 	local tab = preview.tabs[1]
 	assert(tab:GetTop() and tab:GetBottom() >= preview.card:GetTop() - 0.01, "the tab names sit above the card and resolve, so the settings pane keeps them in view")
 	write(env, K, "buttons", false)

@@ -1,5 +1,38 @@
 # KstyleUI changelog
 
+## v0.2.12.1 (2026-11-22)
+
+A fix release.
+
+Highlights:
+
+- Medallions unit frames honour their bar textures, and focus and boss aura timers clear the stack count.
+- Raid tiles and party rows honour Icon zoom, Time left, Name font and Portrait zoom, and keep names whole.
+- Party rows get a boss debuff slot, and the leader, marker and indicators no longer cover heals or names.
+- Nameplates honour the level font, and Readable bag headings draw their full title band.
+
+### Changed
+
+- Party rows show two of your three heal icons on the Default preset, so names of twelve letters fit. The Healer preset keeps its two.
+- Raid tiles no longer show a role icon on their own, so names stay whole. Role icons now shows the role on party frames, and on raid tiles only as Role letters or at a chosen Role icon place.
+- Unit Frames cast bars lose their texture setting: every cast bar draws the flat fill.
+
+### Fixed
+
+- Medallions unit frames honour their health and power bar textures.
+- Focus and boss aura timers no longer sit under the stack count, long focus names have more room, and the boss shadow no longer darkens the next boss.
+- The unit frame preview in the settings window shows the target's cast, so Spell target and Important cast outline have something to show.
+- The experience bar honours its texture, segments, text and font size settings.
+- Medallions raid tiles honour Icon zoom, Debuff and Heal icon tooltips, tooltips in combat, Icon text outline, Time left and Name font, and keep names whole.
+- Medallions party rows honour Portrait zoom, keep names of twelve letters whole and show a boss debuff slot in the portrait's top corner.
+- The leader, marker and indicators no longer draw over your heals, names, debuff pips or the health percent on raid tiles and party rows.
+- Medallions nameplates honour the level font and keep their slim bar when you change a setting.
+- Readable bag headings draw their full title band.
+- The chat preview in the settings window matches the panel.
+- Data bar values repaint at once when you move the bar to the Right rail.
+- New spell ranks fill the slab's first free slot.
+- The level-up caption over the Medallions crest draws on whole pixels, and the crest minimap sits exactly on its layout spot.
+
 ## v0.2.12 (2026-11-22)
 
 The Medallions release: KstyleUI is now Medallions only, class crowns rise over the crest, shamans get Spirit Poles and Storm Orbs, and cast bars move onto the player and target frames.

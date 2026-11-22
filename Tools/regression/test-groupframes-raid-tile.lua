@@ -113,6 +113,9 @@ for _, size in ipairs(SIZES) do
 		local text, whole = member.name:GetText(), K.Locale.Upper(LONG[i])
 		assert(#text > 0 and whole:sub(1, #text) == text, what .. ": " .. LONG[i] .. " keeps its head, got " .. text)
 	end
+	if size.percent then
+		eq(content(ns, ns.Headers.raid[2], "raid7").name:GetText(), "MEMBER7", what .. ": a short name stays whole")
+	end
 
 	-- The percent at the bar's end, on the fill, clear of the name and the debuffs; over 25 members there is none.
 	if size.percent then
@@ -181,7 +184,7 @@ do
 	local tank = content(ns, ns.Headers.party, "party1")
 	local k = ns.Settings.current.party
 	local _, count = ns.Auras.HealIcons(tank, k)
-	eq(count, 3, "party tank: all three of your heals have room")
+	eq(count, 2, "party tank: two of your three heals have room; a wide twelve-letter name keeps the third's")
 	local heals = { Scene.Rect(env, tank.buffClip) }
 	local bar = { Scene.Rect(env, tank.health) }
 	assert(heals[2] + heals[4] <= bar[2] - ns.Geometry.PAD + 0.01, "party tank: your heals " .. describe(heals) .. " sit wholly above the bar " .. describe(bar) .. ", not in its row")

@@ -1,26 +1,25 @@
 # KstyleUI roadmap
 
-What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.2.11 is out now: Zygor Guides Viewer joins RestedXP on the story rail in KstyleUI's forged card (thanks to Baine), the Medallions crest jewels flare, drain and light the whole ring at the maximum, and Summon Hawk's hawks perch on the crest. New releases now land about once a day.
+What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.2.12 is out now: KstyleUI is Medallions only, every class gets a crown over the crest, shamans get Spirit Poles (the totem bar on the crest) and Storm Orbs (Lightning Shield charges), and the player and target cast bars sit on their frames. New releases now land about once a day.
 
-## v0.2.12 — cast bars and class crowns
+## v0.2.13 — options and fixes
 
 Estimated: within a day or two.
 
-More Medallions polish and the last of the customisation work.
+The last of the customisation work and a round of Medallions fixes.
 
 Highlights:
 
-- Medallions cast bars on the player and target frames.
-- Class crowns over the crest: a crown of blades for rogues and claws for cat-form druids.
-- Crowns for warriors, priests, shamans, mages, bear-form druids and hunters.
 - The last party and raid frame options, including more indicator places and frame sorting.
 - A consumable count and low-mana text on the aura reminders.
 - Movable Blizzard windows and a Time Spiral alert, once they are checked in game.
+- Raid tiles, party rows and unit frames honour every setting: timers, zoom, fonts and sizes.
+- Raid warnings, boss frames and Edit Mode fit 3:2 and MacBook screens.
 - More fixes from your reports, released as soon as they are ready.
 
 ## v0.3.0 — the polish release
 
-Estimated: about a week after v0.2.12.
+Estimated: about a week after v0.2.13.
 
 A full polish pass over everything you see and touch, so KstyleUI feels premium from the first minute.
 

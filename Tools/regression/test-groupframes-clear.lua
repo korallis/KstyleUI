@@ -252,11 +252,8 @@ for _, screen in ipairs({ { 2560, 1600 }, { 3456, 2234 } }) do
 	for _, pair in ipairs({ { "debuffs", f.auras._groups.debuffs, f.auraClip }, { "your heals", f.buffs._groups.buffs, f.buffClip } }) do
 		local group, clip = pair[2], pair[3]
 		local laid, drawn = group.layout.elementWidth, group.frames[1]:GetWidth()
-		-- Known: the Medallions tile sizes its debuff pips and their clip in whole units, not whole pixels.
-		if pair[1] ~= "debuffs" then
-			assert(math.abs(laid - drawn) < 1e-6, what .. ": " .. pair[1] .. " are laid out at the size they are drawn, " .. laid .. " and " .. drawn)
-			assert(clip:GetHeight() + 1e-6 >= drawn, what .. ": and their clip holds a whole icon")
-		end
+		assert(math.abs(laid - drawn) < 1e-6, what .. ": " .. pair[1] .. " are laid out at the size they are drawn, " .. laid .. " and " .. drawn)
+		assert(clip:GetHeight() + 1e-6 >= drawn, what .. ": and their clip holds a whole icon")
 	end
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end

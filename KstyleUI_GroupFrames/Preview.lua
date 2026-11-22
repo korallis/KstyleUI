@@ -16,6 +16,7 @@ function Preview.Build(...)
 	local GROUP_SIZE = 2
 	local RAID_SAMPLES = { 1, 2, 6, 4 }
 	local SECTION_GAP = 16
+	local BADGE_BLEED = 1
 	local SAMPLE_LEVEL = 60
 	local SAMPLE_MAX = 41800
 	local PERCENT = 100
@@ -140,7 +141,8 @@ function Preview.Build(...)
 		end
 		if f.showPortrait then
 			f.portrait:SetTexture((Tokens.Texture("logo")))
-			f.portrait:SetTexCoord(0, 1, 0, 1)
+			local zoom = cfg[f.kind].portraitZoom
+			f.portrait:SetTexCoord(zoom, 1 - zoom, zoom, 1 - zoom)
 			f.level:SetText(SAMPLE_LEVEL)
 		elseif f.showRoleRing then
 			f.roleText:SetText(Style.ROLE_LETTERS[sample.role] or "")
@@ -220,7 +222,8 @@ function Preview.Build(...)
 		pw, ph = pw + tw, ph + th
 		preview.party:SetSize(pw, ph)
 		preview.party:ClearAllPoints()
-		preview.party:SetPoint("TOPLEFT", preview.canvas, "TOPLEFT", 0, 0)
+		preview.party:SetPoint("TOPLEFT", preview.canvas, "TOPLEFT", BADGE_BLEED, 0)
+		pw = pw + BADGE_BLEED
 		local memberSpacing = Geometry.IsVertical(party.growth) and party.spacing or (party.spacing + partyGeo.lane)
 		local x0 = partyGeo.laneSide == "LEFT" and partyGeo.lane or 0
 		local separate = raid.sortBy == "GROUP" and not raid.merge

@@ -71,10 +71,7 @@ local function checkEnvironment(env, name)
 			end
 			seen[object] = true
 			local font = object._state.Font
-			-- Not the Medallions hub's level-up caption, hidden at alpha 0: its size stays fractional after the hub
-			-- rescales (staging too), a possible bug.
-			local hubCaption = name == "actionbars" and object:GetAlpha() == 0 and object:GetText() == nil
-			if object._fontFromAddon and font and type(font[2]) == "number" and object:IsVisible() and not hubCaption then
+			if object._fontFromAddon and font and type(font[2]) == "number" and object:IsVisible() then
 				local k = object:GetEffectiveScale() * screen[2] / 768
 				local where = string.format("%s at %dx%d, requested %.5f, applied %.5f", name, screen[1], screen[2], size, K.Scale.AppliedUserScale())
 				assert(whole(font[2] * k), where .. ": font is fractional: " .. font[2] * k)

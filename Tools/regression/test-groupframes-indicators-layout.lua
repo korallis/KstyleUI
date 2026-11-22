@@ -5,13 +5,17 @@ local Scene = dofile("Tools/render/scene.lua")
 local SCREEN = { width = 2383, height = 1540, uiScale = 768 / 1080 }
 local SIZES = {
 	{ label = "default", party = { width = 259, height = 39 }, raid = { width = 116, height = 36 } },
-	{ label = "smallest", party = { width = 40, height = 16 }, raid = { width = 40, height = 16 } },
+	{ label = "smallest", party = { width = 40, height = 16, spacing = 0 }, raid = { width = 40, height = 16, spacing = 0 } },
 	{ label = "largest", party = { width = 400, height = 120 }, raid = { width = 400, height = 120 } },
 }
+-- The smallest frames, with no spacing, on the four owner screens: a portrait there leaves no room for the lane.
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+	SIZES[#SIZES + 1] = { label = "smallest at " .. screen[1] .. "x" .. screen[2], screen = screen, party = SIZES[2].party, raid = SIZES[2].raid }
+end
 local INDICATORS = { "role", "leader", "marker", "healthText" }
 
 local function saved(kind, size, extra)
-	local settings = { enabled = true, [kind] = { width = size.width, height = size.height, healthText = "PERCENT" } }
+	local settings = { enabled = true, [kind] = { width = size.width, height = size.height, spacing = size.spacing, healthText = "PERCENT" } }
 	for key, value in pairs(extra or {}) do
 		settings[kind][key] = value
 	end
@@ -46,8 +50,8 @@ local function describe(r)
 end
 
 -- One frame of the kind at the size: the leader, a tank, marked with the skull, at 82% health.
-local function frame(kind, size, extra)
-	local opts = { width = SCREEN.width, height = SCREEN.height, uiScale = SCREEN.uiScale, saved = saved(kind, size, extra) }
+local function frame(kind, size, extra, screen)
+	local opts = { width = screen and screen[1] or SCREEN.width, height = screen and screen[2] or SCREEN.height, uiScale = SCREEN.uiScale, saved = saved(kind, size, extra) }
 	local env, K, ns = G.New(opts)
 	local member = { name = "Thaldren", class = "WARRIOR", role = "TANK", leader = true, marker = 8, health = 82, maxHealth = 100 }
 	local unit
@@ -72,7 +76,7 @@ end
 
 for _, size in ipairs(SIZES) do
 	for _, kind in ipairs({ "party", "raid" }) do
-		local env, f = frame(kind, size[kind])
+		local env, f = frame(kind, size[kind], nil, size.screen)
 		local what = kind .. " " .. size.label .. " (" .. size[kind].width .. " by " .. size[kind].height .. ")"
 		local scene = Scene.Build(env)
 		local rects = {}
@@ -101,11 +105,17 @@ for _, size in ipairs(SIZES) do
 			for j = i + 1, #list do
 				local a, b = list[i], list[j]
 				local pair = (a == "role" and b == "leader") or (a == "leader" and b == "role")
-				-- Known: at 40 by 16 the Medallions party pip and raid tile text collide with the marker and leader.
-				local known = size.label == "smallest" and (b == "healthText" and (a == "marker" or kind == "raid" and a == "leader") or kind == "party" and a == "role" and b == "marker")
-				if not (badge and pair) and not known then
+				if not (badge and pair) then
 					assert(not intersects(rects[a], rects[b]), what .. ": the " .. a .. " " .. describe(rects[a]) .. " overlaps the " .. b .. " " .. describe(rects[b]))
 				end
+			end
+		end
+		-- The party's boss debuff slot keeps off the crown, the ready check and the skull, or the badge lays out none.
+		if f.parts.boss then
+			local boss = { Scene.Rect(env, f.highlights:GetAuraSlotFrame("boss")) }
+			for _, name in ipairs({ "leader", "ready", "marker" }) do
+				local r = { Scene.Rect(env, f[name]) }
+				assert(not intersects(boss, r), what .. ": the boss debuff slot " .. describe(boss) .. " overlaps the " .. name .. " " .. describe(r))
 			end
 		end
 		local frameRect = { Scene.Rect(env, f) }
@@ -114,6 +124,10 @@ for _, size in ipairs(SIZES) do
 			local r = rects[name]
 			if name == "role" or name == "healthText" then
 				assert(r[1] >= frameRect[1] - 0.01 and r[1] + r[3] <= frameRect[1] + frameRect[3] + 0.01, what .. ": the " .. name .. " " .. describe(r) .. " stays inside the frame's width " .. describe(frameRect))
+			end
+			-- With no spacing, a skull or crown outside its frame lands on the next member (the portrait's crown rises by design).
+			if name == "marker" or name == "leader" and not f.parts.portrait then
+				assert(r[1] >= frameRect[1] - 0.01 and r[2] >= frameRect[2] - 0.01 and r[1] + r[3] <= frameRect[1] + frameRect[3] + 0.01 and r[2] + r[4] <= frameRect[2] + frameRect[4] + 0.01, what .. ": the " .. name .. " " .. describe(r) .. " stays inside its frame " .. describe(frameRect))
 			end
 		end
 	end

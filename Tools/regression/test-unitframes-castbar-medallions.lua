@@ -48,6 +48,9 @@ assert(near(barH, frameH - 2 * inset, 0.6) and near(barW, frameW - 2 * inset, 0.
 local bp, _, _, bx, by = bar:GetPoint(1)
 assert(bp == "TOPLEFT" and near(bx, inset) and near(by, -inset), "the bar sits inside the rim")
 assert(bar.texturePath == flat, "the fill is the flat bar texture")
+for _, row in ipairs(ns.Settings.Schema()) do
+	assert(not tostring(row.key):find("castbarTexture$"), "no cast bar texture row: every cast bar paints the flat fill, so " .. tostring(row.key) .. " would do nothing")
+end
 assert(bar.innerEdgeOn == true and bar.innerEdgeToken == "black" and W.SameRGB(bar.innerEdge[1], 0, 0, 0), "a one-pixel black edge")
 assert(bar.backingOn == true and bar.keyline:IsShown() == false, "a dark flat track with no keyline round it")
 assert(bar.lit:IsShown() == false and bar.shade:IsShown() == false and bar.spark:IsShown() == false, "no lit edge, shade or glass spark")

@@ -24,6 +24,15 @@ assert(U.Shown(env, focus.name) == "ELUNARA" and not focus.name:IsTruncated(), "
 U.SetUnit(env, "focus", { name = "Elunara Frostweaver", level = 39, health = 300, healthMax = 400, reaction = 2, canAttack = true })
 env.FireEvent("UNIT_NAME_UPDATE", "focus")
 assert(math.abs(size(focus.name) - full) < 0.01 and not focus.name:IsTruncated(), "a longer name that fits keeps the frame's own size, whole")
+-- At the gallery's 200 by 90 the level sits on the medallion's plaque, so the name line keeps no room for it.
+local element = K.Layout.Get("unitframes.focus")
+local w, h = element.width, element.height
+assert(K.Layout.Update("unitframes.focus", { width = 200, height = 90 }))
+env.RunTimers()
+env.FireEvent("UNIT_NAME_UPDATE", "focus")
+assert(not focus.name:IsTruncated() and focus.name:GetUnboundedStringWidth() <= focus.geometry.name.w, "at 200 by 90 the long name shows whole on its line")
+assert(K.Layout.Update("unitframes.focus", { width = w, height = h }))
+env.RunTimers()
 
 -- A name too long even at the floor truncates there; nothing shrinks further.
 U.SetUnit(env, "focus", { name = "Elunara Frostweaver the Everlasting Moonshadow", level = 39, health = 300, healthMax = 400, reaction = 2, canAttack = true })

@@ -856,9 +856,9 @@ function Strip.Paint(view, s, values)
 			PaintItem(item)
 		end
 	end
-	local force = view.paintColor ~= s.valueColor or view.paintDock ~= view.docked or view.paintLine ~= view.lineMode
+	local force = view.paintColor ~= s.valueColor or view.paintDock ~= view.docked or view.paintLine ~= view.lineMode or view.paintSlab ~= view.slab
 	SetValues(view, s, values, nil, force)
-	view.paintColor, view.paintDock, view.paintLine = s.valueColor, view.docked, view.lineMode
+	view.paintColor, view.paintDock, view.paintLine, view.paintSlab = s.valueColor, view.docked, view.lineMode, view.slab
 	if not view.combat then Strip.DockMenus(view, s) end
 	PlaceItems(view, s)
 	if wings then

@@ -100,10 +100,30 @@ local function Value(view, key)
 	return Settings.Value(view.kind, key)
 end
 
-local function TextSize(kind, size)
-	local tile = Settings.Value(kind, "auraSize")
-	local room = math.floor((tile - 2 * COUNT_INSET) / (2 * TEXT_LINE))
-	return math.max(size, math.min(TEXT_FLOOR, room))
+local function Centred(kind)
+	if Settings.Form(kind) == "bar" then
+		return true
+	end
+	local position = POSITION[Settings.Value(kind, "auraPosition")]
+	return position ~= nil and position.centred == true
+end
+
+local function TimerBelow(kind)
+	if Settings.AuraRows(kind) then return Settings.Value(kind, "auraTimer") == true end
+	local position = POSITION[Settings.Value(kind, "auraPosition")]
+	local centred = Centred(kind)
+	local below = centred or position ~= nil and position.below == true
+	return below and Settings.Value(kind, "auraTimer") == true and Settings.Value(kind, "auraRows") == 1
+		and not (centred and kind == "target" and Settings.Value(kind, "auraFilter") == "both")
+end
+
+local function TextSize(kind, size, below)
+	local tile = Settings.Value(kind, "auraSize") - 2 * COUNT_INSET
+	local fit = math.max(size, math.min(TEXT_FLOOR, math.floor(tile / (2 * TEXT_LINE))))
+	if below or Settings.Value(kind, "auraTimer") ~= true then return fit end
+	local count = Settings.Value(kind, "auraCountSize")
+	local room = count > 0 and tile / TEXT_LINE - math.max(6, count) * K.Theme.FontScale() or tile / (2 * TEXT_LINE)
+	return math.min(fit, math.max(1, math.floor(room)))
 end
 
 local STYLE_KEYS = { "auraCountSize", "auraCountPoint", "auraCountX", "auraCountY", "auraTimerX", "auraTimerY", "auraDispel", "auraBuffDispel", "auraStealable" }
@@ -111,7 +131,7 @@ local STYLE_KEYS = { "auraCountSize", "auraCountPoint", "auraCountX", "auraCount
 local function TextStyle(view)
 	if view.auraStyle then return view.auraStyle end
 	local path, size, flags = Settings.Font(view.kind, "aura")
-	local style = { path, TextSize(view.kind, size), flags }
+	local style = { path, TextSize(view.kind, size, TimerBelow(view.kind)), flags }
 	for _, key in ipairs(STYLE_KEYS) do
 		style[key] = Settings.Value(view.kind, key)
 	end
@@ -235,30 +255,13 @@ function Auras.LayoutTile(tile, skipChrome, sharedInset)
 	end
 end
 
-local function Centred(kind)
-	if Settings.Form(kind) == "bar" then
-		return true
-	end
-	local position = POSITION[Settings.Value(kind, "auraPosition")]
-	return position ~= nil and position.centred == true
-end
-
-local function TimerBelow(kind)
-	if Settings.AuraRows(kind) then return Settings.Value(kind, "auraTimer") == true end
-	local position = POSITION[Settings.Value(kind, "auraPosition")]
-	local centred = Centred(kind)
-	local below = centred or position ~= nil and position.below == true
-	return below and Settings.Value(kind, "auraTimer") == true and Settings.Value(kind, "auraRows") == 1
-		and not (centred and kind == "target" and Settings.Value(kind, "auraFilter") == "both")
-end
-
 local function TimerRoom(kind)
 	if not TimerBelow(kind) then
 		return 0
 	end
 	local _, fontSize = Settings.Font(kind, "aura")
 	local gap = Settings.Form(kind) == "column" and COLUMN_TIMER_GAP or TIMER_BELOW_GAP
-	return gap + TextSize(kind, fontSize) + TIMER_ROOM_EXTRA + math.max(0, -Settings.Value(kind, "auraTimerY"))
+	return gap + TextSize(kind, fontSize, true) + TIMER_ROOM_EXTRA + math.max(0, -Settings.Value(kind, "auraTimerY"))
 end
 
 function Auras.TimerRoom(kind)
@@ -404,7 +407,7 @@ function Auras.Spacing(kind)
 	local path, size, flags = Settings.Font(kind, "aura")
 	ruler = ruler or Widgets.FontString(K.Scale.Root(), "OVERLAY")
 	ruler:Hide()
-	Widgets.ApplyFont(ruler, path, TextSize(kind, size), flags)
+	Widgets.ApplyFont(ruler, path, TextSize(kind, size, TimerBelow(kind)), flags)
 	ruler:SetText(minutes > 10 and "88m 88s" or "8m 88s")
 	local width = Widgets.TextWidth(ruler)
 	return width and math.max(spacing, math.ceil(width) + 2 * (BADGE_PAD + GAP) - Settings.Value(kind, "auraSize")) or spacing

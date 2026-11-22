@@ -278,7 +278,7 @@ local function PaintCast(frame, view, kind, height)
 	local x, y, w, extra = g.panel.x, height + CAST_GAP, g.panel.w, castH + CAST_GAP
 	if kind == "pet" then
 		w, y = view.s.castbarWidth > 0 and view.s.castbarWidth or w, math.max(height, g.medal and g.medal.y + g.medal.h or 0) + CAST_GAP
-	elseif g.form == "plate" or g.form == "slab" and not Settings.CAST_ELEMENTS[kind] then
+	elseif g.form == "plate" or g.form == "slab" and (kind == "target" or not Settings.CAST_ELEMENTS[kind]) then
 		w = (view.s.castbarWidth or 0) > 0 and math.min(view.s.castbarWidth, w) or w
 	elseif g.cast then
 		x, y, w, castH, extra = g.cast.x, g.cast.y, g.cast.w, g.cast.h, 0

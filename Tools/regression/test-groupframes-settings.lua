@@ -136,4 +136,8 @@ G.Raises(function()
 	S.Get("party.nope")
 end, "nope", "an unknown setting raises")
 
+-- Medallions raid tiles draw no automatic role, yet Role letters and a chosen Role icon place still show it there.
+local help = rows["icons.role"].help
+assert(help:lower():find("raid tiles", 1, true) and help:find("Role letters", 1, true) and help:find("Role icon place", 1, true), "Role icons names the raid tiles' exceptions: " .. help)
+
 print("groupframes settings ok")

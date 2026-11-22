@@ -170,6 +170,13 @@ do
 	eq(font(f), label, "a roomy tile keeps the label face")
 	eq(f.name:GetText(), whole, "and the whole name")
 	fits(K, ns, f, "roomy raid")
+	local custom = ns.Settings.COMPACT_NAME_FONT
+	K.Options.Write("GroupFrames", "text.nameFont", custom)
+	env.RunTimers()
+	eq(font(f), custom, "a saved name face wins over the tile's label face")
+	K.Options.Write("GroupFrames", "text.nameFont", ns.Settings.THEME_FONT)
+	env.RunTimers()
+	eq(font(f), label, "the KstyleUI font restores the label face")
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
@@ -200,7 +207,7 @@ do
 	assert(W.Near(previewSize(), original), "the real roster does not shrink the preview group")
 	local last = preview.partyFrames[1]
 	local name = last.sample.name
-	last.sample.name = "Mhaldrenwick"
+	last.sample.name = "Wormwoodmama"
 	preview:Refresh()
 	assert(previewSize() < original, "one longer preview member steps down the entire group")
 	last.sample.name = name

@@ -522,7 +522,7 @@ def main(argv):
             if result["ok"] and not any(line.startswith("FAIL ") for line in lines):
                 with open(os.path.join(logs, name + ".out"), encoding="utf-8", errors="replace") as log:
                     for line in log:
-                        if line.startswith("WARN "):
+                        if line.startswith("WARN ") or (name.startswith("test-perf") and "B/call on addon lines" in line):
                             print(line.rstrip())
                 passed += 1
                 continue

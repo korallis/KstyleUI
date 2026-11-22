@@ -2,7 +2,8 @@ local G = dofile("Tools/regression/group_env.lua")
 local Common = dofile("Tools/render/scenes/_common.lua")
 
 local CLASSES = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
-local NAME = "Thaldrenwick"
+-- Mountainmama is among the widest ordinary twelve-letter names; the Healer preset keeps two heals and lets it cut.
+local NAMES = { Default = "Mountainmama", DPS = "Mountainmama", Tank = "Mountainmama", Healer = "Thaldrenwick" }
 
 return function(screens)
 	local previous = rawget(_G, "RENDER_SCREEN")
@@ -14,6 +15,7 @@ return function(screens)
 			if preset ~= "Default" then
 				assert(K.Setup.Apply({ layout = preset, modules = { GroupFrames = true } }))
 			end
+			local NAME = NAMES[preset]
 			for batch = 0, 2 do
 				local roster = {}
 				for i = 1, 4 do
@@ -32,11 +34,11 @@ return function(screens)
 						local path, size = f.name:GetFont()
 						assert(path == (K.Tokens.Font("names")) or path == ns.Settings.COMPACT_NAME_FONT, context .. ": the names face where the twelve-letter name fits, else the measured compact face (KSTY-57's uncaptioned lanes)")
 						assert(not sharedSize or math.abs(sharedSize - size) < 0.00001, context .. ": one size across the entire group")
-						local shown = f.name:GetText()
-						local head = shown:match("^(.-)%.%.%.$") or shown
-						assert(#head > 0 and NAME:sub(1, #head) == head, context .. ": the twelve-letter name keeps its head, got " .. shown)
-						assert(ns.Names.Width(f.name, shown, size) <= f.nameWidth + f.nameFit.slack, context .. ": the shown name fits its snapped lane")
+						assert(f.name:GetText() == NAME, context .. ": the twelve-letter name stays whole, got " .. f.name:GetText())
+						assert(ns.Names.Width(f.name, NAME, size) <= f.nameWidth + f.nameFit.slack, context .. ": the full advance fits its snapped lane")
 						assert(size >= K.Widgets.FontSize(f.name, f.nameFit.min) - 0.00001, context .. ": the existing floor is unchanged")
+						local heal = f.parts.healRow
+						assert(preset ~= "Healer" or not heal or heal.width >= 2 * heal.height, context .. ": the Healer preset keeps two heals")
 						sharedSize, count = size, count + 1
 					end
 				end)

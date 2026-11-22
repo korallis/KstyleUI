@@ -111,4 +111,28 @@ do
 	assert(ns.Settings.Get("preset") == "compact", "the dropdown still reads Compact")
 end
 
+-- Turning Custom, from the dropdown or by a change by hand, keeps the height each plate shows ------------------
+
+for _, route in ipairs({ "dropdown", "outline", "layout" }) do
+	local env, K, ns = N.New()
+	N.Add(env, "nameplate1")
+	env.RunTimers()
+	if route == "layout" then
+		assert(K.Layout.Set("nameplates.plate", "width", 180))
+	end
+	local plate = ns.Plates.Get("nameplate1")
+	local before = plate.barH
+	if route == "dropdown" then
+		K.Options.Write("Nameplates", "preset", "custom")
+	else
+		K.Options.Write("Nameplates", "name.outline", "THICKOUTLINE")
+	end
+	assert(ns.Settings.Get("preset") == "custom", route .. ": the preset reads Custom")
+	assert(plate.barH == before, route .. ": the plate keeps its " .. before .. "-unit bar, got " .. plate.barH)
+	if route == "layout" then
+		assert(ns.Settings.Get("health.height") == ns.Plate.DEFAULT_HEIGHT, "a wide Layout plate, which never drew the slim bar, keeps its saved height")
+	end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+
 print("nameplates presets ok")

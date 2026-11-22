@@ -62,8 +62,6 @@ for kind, ratio in pairs({ player = 3.15, target = 3.15, focus = 3.33, boss = 3.
 	local width, frameH = view.button:GetWidth(), view.geometry.portrait.h
 	assert(math.abs(width / frameH - ratio) < 0.1, kind .. " is about " .. ratio .. " times as wide as tall (the mockup's 279 by 90 for the player and target), got " .. width .. " x " .. frameH)
 end
--- Known: a relayout that brings the power bar in repaints health but not power; the next power event paints its text.
-env.FireEvent("UNIT_POWER_UPDATE", "player", "MANA")
 
 -- Secure buttons: one per unit, a child of the holder, targeting on left click and the unit menu on right click.
 local function checkButton(view, unit)

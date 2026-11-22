@@ -40,8 +40,28 @@ end
 -- 1. The strip keeps clear of the form's own content and leaves the outside anchors where they were.
 local target = ns.Frames.Get("target").views[1]
 set("target.auraPosition", "SIDE")
-set("target.textBarPlace", "TOP")
-set("target.textBar", true)
+local before = W.LastCall(target.auras.host, "SetPoint")
+-- A bottom or below strip keeps staging's anchor; only the top placements were in scope.
+local STAGING = { BOTTOM = { 330, 18 }, BELOW = { 327, 17 } }
+for _, place in ipairs({ "ABOVE", "BOTTOM", "BELOW", "TOP" }) do
+	set("target.textBar", false)
+	set("target.textBarPlace", place)
+	set("target.textBar", true)
+	local after, want = W.LastCall(target.auras.host, "SetPoint"), STAGING[place] or { before[4], before[5] }
+	assert(math.abs(after[4] - want[1]) < 0.01 and math.abs(after[5] - want[2]) < 0.01,
+		string.format("a %s strip puts the side auras at %s,%s, not %s,%s", place, want[1], want[2], after[4], after[5]))
+end
+local focus = ns.Frames.Get("focus").views[1]
+set("focus.textBar", true)
+local builds, frame = 0, ns.Geometry.Frame
+ns.Geometry.Frame = function(...)
+	builds = builds + 1
+	return frame(...)
+end
+ns.Style.Layout(focus, focus.s, focus.button:GetWidth(), focus.button:GetHeight())
+ns.Geometry.Frame = frame
+assert(focus.barRect and builds == 1, "a placed strip with no outside aura builds the frame's geometry once, not " .. builds)
+set("focus.textBar", false)
 local player = ns.Frames.Get("player").views[1]
 set("player.textBar", true)
 set("player.textBarIcon", "LEFT")

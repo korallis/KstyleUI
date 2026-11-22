@@ -104,9 +104,10 @@ local function EmptySlot()
 		if bar and bar:Shown() and bar.holder:IsShown() and bar.header:IsShown() then
 			local slots = {}
 			local cfg = bar:Config()
+			local grouped = ns.Slab.Grouped(bar.def)
 			for i = 1, bar.count do
 				local button = bar.buttons[i]
-				local col, row = ns.Cell(i, bar.count, ns.Slab.Rows(bar.def, cfg), cfg.orientation, cfg.growth)
+				local col, row = ns.Cell(i, bar.count, ns.Slab.Rows(bar.def, cfg), grouped and "HORIZONTAL" or cfg.orientation, grouped and "RIGHTDOWN" or cfg.growth)
 				slots[#slots + 1] = { slot = button.slot, col = col, row = row }
 			end
 			table.sort(slots, function(a, b) return a.row == b.row and a.col < b.col or a.row < b.row end)

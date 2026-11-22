@@ -13,6 +13,8 @@ local STEEL_LIT = { Tokens.Color("steelLit") }
 local TILE_INSET = 2
 local LINE_EXTRA = 2
 local MIN_CELL = 8
+local PARTY_LANE = 14
+local NAME_EM = 6.5
 local PIP_SHARE = 0.6
 local PIP_ROOM = 0.25
 local TILE_TEXT = "NONE"
@@ -29,22 +31,19 @@ function Unit.ColorSources(f)
 	return colorSources(f)
 end
 
-local function Line(count, size, spacing)
-	return count * size + math.max(0, count - 1) * spacing
-end
-
-local function Pips(block, room, height, spacing)
-	if not block or block.cells <= 0 then
+local function Pips(block, room, height, spacing, px)
+	if not block or block.cells <= 0 or block.size < MIN_CELL then
 		return nil
 	end
 	local size = math.floor(math.min(block.size, math.max(MIN_CELL, height * PIP_SHARE)))
+	size = math.floor(size / px + 0.5) * px
 	local columns = math.min(block.cells, math.floor((room + spacing) / (size + spacing)))
-	if size < MIN_CELL or columns <= 0 then
+	if columns <= 0 then
 		return nil
 	end
 	return {
 		position = block.position, columns = columns, rows = 1, cells = columns, size = size,
-		width = Line(columns, size, spacing), height = size, left = 0, top = 0,
+		width = Geometry.Line(columns, size, spacing), height = size, left = 0, top = 0,
 	}
 end
 
@@ -56,7 +55,7 @@ local function TileParts(out, w, h, o)
 	local full = (out.power and out.power.top - gap or h - pad) - pad
 	local width = w - 2 * pad
 	local heal = o.healRow and math.min(o.healRow, full - nameLine - 2 * inset) or nil
-	local stacked = full >= nameLine + math.max(line, heal or 0) + 2 * inset
+	local stacked = full + (o.pixel or 0) >= nameLine + math.max(line, heal or 0) + 2 * inset
 	if not stacked then
 		heal = o.healRow
 	end
@@ -70,7 +69,7 @@ local function TileParts(out, w, h, o)
 	end
 	out.health = bar
 	local right = pad + width - inset
-	out.block = Pips(out.block, width * PIP_ROOM, stacked and nameLine or bar.height - 2 * inset, spacing)
+	out.block = Pips(out.block, width * PIP_ROOM, stacked and nameLine or bar.height - 2 * inset, spacing, o.pixel or 1)
 	local lane = width - 2 * inset - (out.block and out.block.width + gap or 0)
 	out.name = { left = pad + inset, top = pad, width = lane, height = bar.height }
 	out.tile = { stacked = stacked, inset = inset, gap = gap, right = right }
@@ -79,6 +78,12 @@ local function TileParts(out, w, h, o)
 end
 
 local function PartyParts(out, o)
+	local badge, crown = out.portrait, out.icons.leader
+	local right = badge.left + badge.width - Geometry.EDGE
+	local size = math.min(Style.BOSS_SLOT, right - crown.left - crown.width, badge.height - Geometry.EDGE - PARTY_LANE)
+	if Settings.current.auras.enabled and size >= Geometry.MIN_ICON then
+		out.boss = { left = right - size, top = badge.top + Geometry.EDGE, width = size, height = size }
+	end
 	local icons, name, spot = out.icons, out.name, out.healthText
 	if not (icons and name and spot and spot.right and icons.role and o.role and not icons.roleInRing) then
 		return out
@@ -100,32 +105,44 @@ end
 local styling = nil
 local apply = Style.Apply
 function Style.Apply(f, ...)
-	styling = f.kind
+	styling = f
 	apply(f, ...)
 	styling = nil
 end
 
 local button = Geometry.Button
-local function TidyParts(out, kind, o)
+local function TidyParts(out, f, o)
 	if not Settings.current.layout.tidyLanes then return out end
+	local kind = f.kind
 	local health, name = out.health, out.name
 	if not (health and name) then return out end
-	local right, gap = health.left + health.width, 4
-	local size = kind == "party" and 14 or 10
+	local right = health.left + health.width
+	local size = kind == "party" and PARTY_LANE or 10
 	local count = 0
 	for i = 1, Settings.INDICATOR_SLOTS do
 		if ns.Slots.Category(Settings.current["indicator" .. i], kind) then count = count + 1 end
 	end
 	count = math.min(3, count)
 	local reserve = o.reserve or 0
-	local endName = right - reserve - (reserve > 0 and gap or 0)
+	local top = name.top + math.max(0, (name.height - size) / 2)
+	if out.tile and out.tile.stacked and Widgets.Readability("readableBars") then
+		reserve, top = 0, health.top
+	end
 	local heal = out.healRow and out.healRow.side == "RIGHT" and out.healRow
+	local gap = heal and Tokens.Size("gapTiny") or 4
+	local endName = right - reserve - (reserve > 0 and gap or 0)
 	if heal then
+		local step, keep = heal.height + (o.healSpacing or 0), NAME_EM * Widgets.FontSize(f.name, o.nameMin) - (o.pixel or 0)
+		while heal.width > step + heal.height and endName - heal.width - gap - name.left < keep do
+			heal.width = heal.width - step
+		end
 		heal.left = endName - heal.width
 		endName = heal.left - gap
+	else
+		count = math.max(0, math.min(count, math.floor((endName - name.left + 1) / (size + 1))))
 	end
-	local width = count > 0 and count * size + (count - 1) * 1 or 0
-	out.indicatorLane = { left = endName - width, top = name.top + math.max(0, (name.height - size) / 2), width = width, height = size, size = size, count = count, step = size + 1, fromRight = true, legible = true }
+	local width = Geometry.Line(count, size, 1)
+	out.indicatorLane = { left = endName - width, top = top, width = width, height = size, size = size, count = count, step = size + 1, fromRight = true, legible = true }
 	if heal then
 		out.indicatorLane.left, out.indicatorLane.top = right - width, health.top + (health.height - size) / 2
 	end
@@ -142,14 +159,15 @@ end
 
 function Geometry.Button(w, h, o)
 	local out = button(w, h, o)
-	if styling == "raid" and out.nameInside then
-		return TidyParts(TileParts(out, w, h, o), styling, o)
-	elseif styling == "party" and out.portrait and not out.overlay then
-		return TidyParts(PartyParts(out, o), styling, o)
-	elseif styling then
-		return TidyParts(out, styling, o)
+	local kind = styling and styling.kind
+	if not styling then
+		return out
+	elseif kind == "raid" and out.nameInside then
+		TileParts(out, w, h, o)
+	elseif kind == "party" and out.portrait and not out.overlay then
+		PartyParts(out, o)
 	end
-	return out
+	return TidyParts(out, styling, o)
 end
 
 local setName = ns.Names.Set
@@ -178,6 +196,8 @@ function Unit.SetPortrait(f)
 	local api = K.Medallions
 	if f.kind == "party" and api and type(api.Portrait) == "function" then
 		Mask(f, not api.Portrait(f.portrait, f.unit, "badge"))
+		local zoom = Settings.current.party.portraitZoom
+		f.portrait:SetTexCoord(zoom, 1 - zoom, zoom, 1 - zoom)
 		return
 	end
 	if f.masked == false then
@@ -406,10 +426,11 @@ local function Tile(f, parts, k)
 	Slab(f, true)
 	local fit = f.nameFit
 	if fit then
-		fit.path, fit.kit = LABEL_FACE, false
+		local face = K.Theme.FollowsKit(Settings.current.text.nameFont) and LABEL_FACE or fit.path
+		fit.path, fit.kit = face, false
 		if Widgets.Readability("readableBars") then fit.size, fit.min = 12, 11 end
 		fit.set = function(text, size)
-			Style.SetFont(text, LABEL_FACE, size, (not Widgets.Readability("readableBars") or f.medInked) and TILE_TEXT or "OUTLINE")
+			Style.SetFont(text, face, size, (not Widgets.Readability("readableBars") or f.medInked) and TILE_TEXT or "OUTLINE")
 			if f.medInked then
 				InkShadow(text)
 			end

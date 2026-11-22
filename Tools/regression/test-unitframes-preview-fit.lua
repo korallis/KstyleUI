@@ -55,7 +55,7 @@ local function Check(where)
 							r[3] = text
 						end
 					end
-					-- Known: the Medallions target and boss previews hang their marker past the pane, and the boss's name too at 220 units.
+					-- The bare pane skips the Options host's Reserve, which keeps the target and boss markers and the boss's name inside the window's pane.
 					local known = key == "marker" and (kind == "target" or kind == "boss") or key == "name" and kind == "boss"
 					assert(known or inside(r, box), string.format("%s: the %s preview's %s %s leaves the pane %s", where, kind, key, fmt(r), fmt(box)))
 				end
@@ -123,6 +123,20 @@ K.Options.Write("UnitFrames", "edit", "focus")
 preview:Refresh()
 local focusScale = preview.holders.focus:GetScale()
 assert(focusScale > 1 and focusScale <= 1.5 + 1e-6, "the 200-unit focus card grows towards the pane's width, at most 1.5: " .. focusScale)
+
+-- The Medallions target's cast sample shows under the frame, so its spell target and important outline rows show.
+K.Options.Write("UnitFrames", "target.castbarTarget", true)
+K.Options.Write("UnitFrames", "target.castbarImportant", true)
+K.Options.Write("UnitFrames", "edit", "target")
+preview:Refresh()
+local tcb = preview.casts.target
+assert(tcb and tcb.frame:IsShown(), "the target preview shows a cast sample")
+assert(tostring(tcb.text:GetText()):find(K.L["Valerin"], 1, true), "with the spell target: " .. tostring(tcb.text:GetText()))
+assert(tcb.important and tcb.important:IsShown(), "and the important cast outline")
+K.Options.Write("UnitFrames", "castbarOnFrame", false)
+preview:Refresh()
+assert(tcb.frame:IsShown(), "a detached target cast bar keeps its sample, so its spell target and outline rows still show")
+K.Options.Write("UnitFrames", "castbarOnFrame", true)
 
 assert(#env._errors == 0, tostring(env._errors[1]))
 assert(K.ErrorCount() == 0, "KstyleUI caught no errors")

@@ -172,7 +172,7 @@ do
 end
 collectgarbage()
 
--- Group frames: a raid tile keeps its dispel letter and stack count inside it (Medallions' 8-unit tiles bind no time left, as on staging); the preview shows both.
+-- Group frames: a raid tile's time left stays clear of the dispel letter and the stack count; the preview shows both.
 do
 	local env, K, ns = G.New()
 	G.SetRoster(env, "raid", G.Members(10))
@@ -184,9 +184,15 @@ do
 	A.Assign(env, f.auras, "debuffs", 1)
 	env.RunTimers()
 	local button = f.auras._groups.debuffs.active[1]
+	A.Remaining(env, button, 12)
 	A.Dispel(button, "Magic")
 	local aura, p = button._aura, ns.Auras.Parts(button)
 	local size = button:GetWidth()
+	assert(aura.timer and aura.timer:IsVisible(), "a raid tile's debuff shows its time left")
+	local point, to, toPoint, _, y = aura.timer:GetPoint()
+	assert(point == "TOP" and to == p.skin and toPoint == "BOTTOM" and y <= 0, "the time left sits below the tile: " .. tostring(point) .. " " .. tostring(toPoint))
+	local _, timerSize = aura.timer:GetFont()
+	assert(f.auraClip:GetHeight() >= size + timerSize, "the debuff clip grows down to hold the time left: " .. f.auraClip:GetHeight() .. " for a " .. size .. " tile")
 	local cPoint, cTo, cToPoint = aura.count:GetPoint()
 	assert(cPoint == "BOTTOMRIGHT" and cTo == p.skin and cToPoint == "BOTTOMRIGHT", "the stack count stays inside the tile")
 	for _, entry in ipairs(aura.dispel) do

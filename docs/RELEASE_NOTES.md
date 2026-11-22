@@ -2,6 +2,10 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.2.12.1: fixes (2026-11-22)
+
+Medallions unit frames honour their bar textures and the experience bar its settings, and focus and boss aura timers no longer sit under the stack count. Raid tiles and party rows honour Icon zoom, Time left, Name font and Portrait zoom, keep names whole and no longer draw the leader, marker or indicators over heals or names; to make room, party rows show two of your three heal icons on the Default preset and raid tiles show no role icon on their own. Party rows gain a boss debuff slot, nameplates honour the level font, Readable bag headings draw their full title band, and the cast bar texture setting is gone because every cast bar draws the flat fill. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.2.12: the Medallions release (2026-11-22)
 
 KstyleUI is now Medallions only. The Frames and Orbs HUD styles are gone, with their art, settings and setup steps. If your HUD was on Frames or Orbs, it moves to Medallions at your next login, keeps your other settings and says so with one line in chat. The first-run setup is shorter: welcome, layout, modules and summary, with Your addons when it finds supported addons. General no longer offers HUD style, ornament or card material choices, Data Bars > Position offers Docked under the action bars or Right rail, and Action Bars > Split in two offers Always or Never. If you used the Glass card material, Window Skins > Context menus turns off, so Blizzard's menus stay as they were.

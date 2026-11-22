@@ -95,7 +95,7 @@ do
 			shownTicks = shownTicks + 1
 		end
 	end
-	eq(shownTicks, 9, "the Medallions strip keeps its ten segments whatever the setting")
+	eq(shownTicks, 0, "the segments setting applies: 0 draws none")
 	K.Options.Write("DataBars", "xp.segments", 10)
 	-- The overhaul's strip: the mock-up's 7 px at 1080 (KSTY-60 item 28; 7 mock-up px, 8.3125 units), square ends with
 	-- no pill caps.
@@ -277,23 +277,23 @@ do
 	Options.Write("DataBars", "xp.colorSource", "class")
 	assert(sameColor(xp.fill, K.Theme.Accent()), "back to the class colour")
 
-	local flat = K.Tokens.MediaList("statusbar")[3].path
-	Options.Write("DataBars", "xp.texture", flat)
-	eq(xp.fill:GetStatusBarTexture():GetTexture(), K.Tokens.Texture("barFlat"), "the Medallions strip keeps its flat fill whatever the texture setting")
-	eq(xp.track:GetStatusBarTexture():GetTexture(), K.Tokens.Texture("barFlat"), "so does the rested overlay")
+	local soft = K.Tokens.MediaList("statusbar")[3].path
+	Options.Write("DataBars", "xp.texture", soft)
+	eq(xp.fill:GetStatusBarTexture():GetTexture(), soft, "the strip takes its texture setting")
+	eq(xp.track:GetStatusBarTexture():GetTexture(), soft, "so does the rested overlay")
 
 	Options.Write("DataBars", "xp.segments", 4)
 	local shown = 0
 	for _, tick in ipairs(xp.ticks) do
 		shown = shown + (tick:IsShown() and 1 or 0)
 	end
-	eq(shown, 9, "the Medallions strip keeps its ten segments")
+	eq(shown, 3, "four segments draw three ticks")
 	Options.Write("DataBars", "xp.segments", 0)
 	shown = 0
 	for _, tick in ipairs(xp.ticks) do
 		shown = shown + (tick:IsShown() and 1 or 0)
 	end
-	eq(shown, 9, "whatever the segments setting")
+	eq(shown, 0, "and 0 draws none")
 
 	Options.Write("DataBars", "xp.border", false)
 	eq(xp.track.barEdge.hard:IsShown(), false, "the frame around the bar can be turned off")
@@ -318,7 +318,7 @@ do
 	Options.Write("DataBars", "xp.text", "percent")
 	Options.Write("DataBars", "xp.textHover", false)
 	eq(xp.text:IsShown(), true, "the text can always show")
-	eq(xp.text:GetText(), "25% \194\183 rested 16%", "in the Medallions caption's format")
+	eq(xp.text:GetText(), "25%", "in the chosen format")
 	Options.Write("DataBars", "xp.text", "none")
 	eq(xp.text:IsShown(), false, "no text hides it")
 	eq(xp.plate:IsShown(), false, "and its plate")
@@ -330,7 +330,7 @@ do
 	Options.Write("DataBars", "xp.outline", "THICKOUTLINE")
 	local path, fontSize, flags = xp.text:GetFont()
 	eq(path, face, "the chosen font")
-	eq(fontSize, 11 * K.Theme.FontScale(), "the Medallions instrument caption keeps its 11 units, times the interface text size")
+	eq(fontSize, 14 * K.Theme.FontScale(), "the chosen size, times the interface text size")
 	eq(flags, "THICKOUTLINE", "the chosen outline")
 	Options.Write("DataBars", "xp.font", "default")
 	path = xp.text:GetFont()

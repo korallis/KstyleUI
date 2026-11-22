@@ -316,13 +316,13 @@ do
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
 	parent:SetSize(320, 240)
 	local preview = K.Options.Preview("Chat")(parent)
-	local function ruleY()
-		return select(5, preview.divider:GetPoint(1))
+	local function lineY()
+		return select(5, preview.lines[1]:GetPoint(1))
 	end
-	local y = ruleY()
+	local y = lineY()
 	write(env, K, "tabHeight", 46)
 	preview:Refresh()
-	assert(ruleY() < y - 10, "the preview's rule moves with the tab row")
+	assert(lineY() < y - 10, "the preview's messages move with the tab row")
 	write(env, K, "tabStyle", "filled")
 	write(env, K, "tabOpacity", 0.5)
 	write(env, K, "tabEdge", "panel")
@@ -535,7 +535,7 @@ do
 	assert(select(4, preview.fill:GetPoint(1)) <= 0, "the preview tile never starts inside its name")
 	local function shot()
 		local p = {}
-		for _, f in ipairs({ preview.divider, preview.lines[1], preview.tabs[1] }) do
+		for _, f in ipairs({ preview.edit, preview.lines[1], preview.tabs[1] }) do
 			for i = 1, f:GetNumPoints() do
 				for _, v in ipairs({ f:GetPoint(i) }) do p[#p + 1] = tostring(v) end
 			end

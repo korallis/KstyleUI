@@ -144,10 +144,8 @@ do
 	eq(item(ns, "gold").label:IsShown(), false, "money carries its own units")
 	eq(item(ns, "gold").dot:GetText(), "\194\183", "the middle dot is a decimal-escaped source string")
 
-	-- The values keep the Medallions slab's muted ink after the strip leaves the slab (Strip.Paint repaints values only on
-	-- a colour, dock or line change); the dots repaint on every paint.
 	for _, it in ipairs({ item(ns, "fps"), item(ns, "latency"), (item(ns, "gold")) }) do
-		assert(sameText(it.value, K.Tokens.Color("medTextMuted")), it.id .. "'s value keeps the slab's muted ink")
+		assert(sameText(it.value, K.Tokens.Color("text")), it.id .. "'s value leaves the slab's muted ink with the slab, though it did not change")
 		assert(sameText(it.dot, K.Tokens.Color("text")), it.id .. "'s dot is the picture's soft grey-white")
 	end
 	assert(sameText(item(ns, "fps").label, K.Tokens.Color("labelMuted")), "the unit is a muted caption beside its value")

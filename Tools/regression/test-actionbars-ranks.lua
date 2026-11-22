@@ -334,6 +334,7 @@ do
 	assert(#env._errors == 0, AB.Errors(env))
 	local g
 	env, K, g = NewSpells()
+	K.Options.Write("ActionBars", "bar1.growth", "LEFTDOWN")
 	Learn(env, 200)
 	assert(Has(Shown(env, K), "NEW ABILITY") and #K.Widgets.DialogHost().visibleButtons == 2 and #g.placed == 0)
 	Press(env, K, "Add new to bars")

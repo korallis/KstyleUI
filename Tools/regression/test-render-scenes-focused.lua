@@ -234,4 +234,17 @@ do
 	assert(sh > 60, "the first step holds its four elements, got " .. tostring(sh))
 end
 
+-- The options parity scene builds the Chat page, and a round that has no Chat options says so.
+do
+	local function build(vars)
+		local loader = assert(loadfile("Tools/render/scenes/parity_combat_options.lua"))
+		local picked = setmetatable({ getenv = function(key) return vars[key] or os.getenv(key) end }, { __index = os })
+		setfenv(loader, setmetatable({ os = picked }, { __index = _G }))
+		return pcall(loader())
+	end
+	assert(build({ RENDER_PARITY_MODULE = "Chat" }), "the Chat options page builds")
+	local ok, why = build({ RENDER_PARITY_MODULE = "Chat", RENDER_PARITY_ENABLED = "1" })
+	assert(not ok and tostring(why):find("RENDER_PARITY_ENABLED=1 has no Chat options", 1, true), "a round with no Chat options names itself, got " .. tostring(why))
+end
+
 print("ok")
