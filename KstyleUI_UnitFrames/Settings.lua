@@ -1311,10 +1311,10 @@ local function TextBarRows(schema, kind)
 end
 
 local STYLE_HELP = {
-	column = L["Column: full-width bars, portrait outside. Vitals line: one line, gilt ring. Plate: a panel."],
-	target = L["Column: bars by a portrait. Wide bar: no portrait. Sigil: centred, with debuffs. Plate: a panel."],
-	card = L["Standard: clean bars under a section cap. Plate: a panel."],
-	row = L["Standard: a name over a thin bar. Plate: a small tile."],
+	column = L["Medallions: Standard, the slab. Frames: Column or Vitals line. Plate: a panel."],
+	target = L["Medallions: Standard, the slab. Frames: Column, Wide bar or Sigil. Plate: a panel."],
+	card = L["Standard: the slab in Medallions, bars under a cap in Frames. Plate: a panel."],
+	row = L["Standard: the slab in Medallions, a name over a thin bar in Frames. Plate: a small tile."],
 }
 
 local function KindRows(schema, kind)
