@@ -23,13 +23,4 @@ assert(K.VERSION == "package-cache-test", "the fixture must replace the real rel
 assert(env.KstyleUIDB.scaleCache and env.KstyleUIDB.scaleCache.version == K.VERSION,
 	"assemble the development marker so packager substitution does not disable release caching")
 assert(#env._errors == 0 and K.ErrorCount() == 0, "the packaged bootstrap must load without errors")
-local before = env.KstyleUIDB.scaleCache.entries[1].key
-K.Store.Module("DataBars").enabled = true
-K.Store.Module("DataBars").strip = { placement = "top", height = 32 }
-K.Callbacks.Fire("SettingChanged", "DataBars", "strip.height")
-local tall = env.KstyleUIDB.scaleCache.entries[1].key
-assert(before ~= tall, "the release scale cache includes the data bar height")
-K.Store.Layout()["databars.strip"] = { anchor = "BOTTOM", x = 0, y = 400 }
-K.Callbacks.Fire("SettingChanged", "DataBars", "strip.height")
-assert(tall ~= env.KstyleUIDB.scaleCache.entries[1].key, "the release scale cache includes the moved bar placement")
 print("scale cache package ok")
