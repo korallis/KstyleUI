@@ -85,7 +85,7 @@ for _, size in ipairs(SIZES) do
 	local px, pad = K.Scale.Pixel(1), K.Tokens.Size("gapSmall")
 
 	-- The Medallions tile: the class-coloured bar fills the tile inside its padding, never thinner than the mock-up
-	-- draws the bar, with no power line and the ring carrying the role.
+	-- draws the bar, with no power line and no role icon.
 	assert(bar[4] >= size.bar - px, what .. ": the bar is at least the mock-up's " .. size.bar .. " units tall, got " .. bar[4])
 	assert(math.abs(bar[1] - (frame[1] + pad)) <= px and math.abs(bar[1] + bar[3] - (frame[1] + frame[3] - pad)) <= px, what .. ": the bar spans the tile " .. describe(bar))
 	eq(f.power:IsShown(), false, what .. ": no power line")
