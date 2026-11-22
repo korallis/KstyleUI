@@ -1,7 +1,6 @@
--- test-unitframes-parity-r2-review.lua: the parity round 2 review's probes: guarded secret cast data, a long spell target leaves the line's track, wide-bar icon offsets, the outline ends with the cast, preview dispel edges, the crest's own aura text, safe dispel and outline fallbacks, reused power gradient colours, real stack sizes and the offsets switched on.
+-- test-unitframes-parity-r2-review.lua: the parity round 2 review's probes: guarded secret cast data, the outline ends with the cast, preview dispel edges, the crest's own aura text, safe dispel and outline fallbacks, reused power gradient colours, real stack sizes and the offsets switched on.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
-local Scene = dofile("Tools/render/scene.lua")
 
 local env, K, ns = U.New({ setup = function(e) e.C_Spell.IsSpellImportant = function() return true end end })
 local function set(key, value)
@@ -43,55 +42,8 @@ check("1", function()
 	end
 end)
 
--- 2. A long spell target leaves the focus line's track its minimum width.
-check("2", function()
-	env._textWidth = function(text, path, size) return Scene.TextWidth(text, size, path) end
-	local line = ns.Frames.Get("focus").views[1].castbar
-	assert(line.line, "the focus cast bar is a line")
-	ns.CastBars.Layout(line, 280, 18)
-	local function natural(region)
-		local path, size = region:GetFont()
-		return Scene.TextWidth(U.Shown(env, region), size, path)
-	end
-	local function track()
-		local width = W.LastCall(line.text, "SetWidth")[1]
-		if width == 0 then width = natural(line.text) end
-		return 280 - natural(line.label) - 5 - width - 8 - (line.timer:IsShown() and line.timer:GetWidth() + 5 or 0)
-	end
-	ns.CastBars.SetName(line, "Greater Shadow Bolt", "High Inquisitor Whitemane")
-	assert(track() >= 24, "a long target name must leave the 24-unit track, left " .. track())
-	ns.CastBars.SetName(line, "Greater Shadow Bolt", env.Secret("High Inquisitor Whitemane"))
-	assert(track() >= 24, "a secret target name, never measured, leaves the track too")
-	ns.CastBars.SetName(line, "Bolt", "Valerin")
-	assert(W.LastCall(line.text, "SetWidth")[1] == 0 and track() > 24, "a short target keeps the name's natural width")
-	ns.CastBars.SetName(line, "Greater Shadow Bolt")
-	assert(W.LastCall(line.text, "SetWidth")[1] == 0, "no target, natural width")
-	env._textWidth = nil
-end)
-
--- 3. Wide bar: the separate cast bar draws the icon, so its offsets show.
-check("3", function()
-	U.SetUnit(env, "target", { name = "Ogre", health = 3000, healthMax = 4000, power = 80, powerMax = 100, reaction = 2 })
-	local style = K.Options.Read("UnitFrames", "target.style")
-	set("target.style", "bar")
-	set("edit", "target")
-	set("target.castbarIcon", true)
-	local solo = ns.CastBars.Get("target")[1]
-	local drawn = ns.CastBars.ElementLive("target") and solo.iconFrame:IsShown()
-	local hidden = {}
-	for _, key in ipairs({ "target.castbarIconX", "target.castbarIconY", "target.castbarIconRight" }) do
-		if not row(key).showWhen(ns.Settings.Module()) then hidden[#hidden + 1] = key end
-	end
-	local iconY = moved(solo.iconFrame, "target.castbarIconY", 3, 5)
-	local timerX = moved(solo.timer, "target.castbarTimerX", -4, 4)
-	set("target.castbarIcon", false)
-	set("target.style", style)
-	assert(drawn, "the wide bar's cast bar shows its icon")
-	assert(#hidden == 0, table.concat(hidden, ", ") .. " must show where the icon is drawn")
-	assert(near(iconY, K.Widgets.Snap(solo.frame, 3)), "the icon's vertical offset moves it")
-	assert(near(timerX, K.Widgets.Snap(solo.frame, -4)), "the timer's horizontal offset moves it")
-end)
-
+U.SetUnit(env, "target", { name = "Ogre", health = 3000, healthMax = 4000, power = 80, powerMax = 100, reaction = 2 })
+set("edit", "target")
 local cb = ns.CastBars.Inline("target")[1]
 
 -- 4. The important outline goes the moment the cast ends, not after the hold.

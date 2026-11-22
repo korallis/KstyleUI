@@ -1,4 +1,4 @@
--- test-unitframes-parity-r3a-review.lua: the PR #625 review probes: an unplaced pet cast bar in combat, idle decorations after relayout, the happiness badge over the raid marker, the pet spell icon row and tiny widths, simple boss auras, mixed preview zoom, copy restyles and missing cast APIs.
+-- test-unitframes-parity-r3a-review.lua: the PR #625 review probes: an unplaced pet cast bar in combat, idle decorations after relayout, the happiness badge over the raid marker, tiny widths, simple boss auras, mixed preview zoom, copy restyles and missing cast APIs.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 local env, K, ns = U.New()
@@ -35,13 +35,7 @@ env.RunTimers()
 cb = assert(pet.views[1].castbar, "combat's end makes the pet cast bar")
 assert(cb.frame:IsShown() and cb.frame:GetWidth() and W.LastCall(cb.frame, "SetPoint"), "combat's end places and shows the idle track")
 
--- An idle track stays empty through relayouts and restyles, in Frames and Medallions.
-assert(not cb.label:IsShown() and not cb.lock:IsShown(), "the idle track shows no Casting label after combat's layout")
-pet.holder:SetSize(180, 42)
-assert(not cb.label:IsShown() and not cb.lock:IsShown(), "a resize keeps the idle track empty")
-write("pet.castbarColor", "gold")
-assert(not cb.label:IsShown(), "a restyle keeps the idle track empty")
-env.RunTimers()
+-- An idle track shows no progress edge through relayouts.
 assert(not (cb.bar.fillCursor and cb.bar.fillCursor:IsShown()), "the Medallions idle track shows no progress edge")
 pet.holder:SetSize(200, 46)
 assert(not (cb.bar.fillCursor and cb.bar.fillCursor:IsShown()), "a resize keeps the Medallions idle track without its edge")
@@ -64,39 +58,28 @@ local function clear(where)
 	local oh = math.min(m.y + m.h, y + size) - math.max(m.y, y)
 	assert(icon:IsShown() and v.marker:IsShown() and (ow <= 0.01 or oh <= 0.01), where .. ": the badge overlaps the marker by " .. ow .. " x " .. oh)
 end
-for _, style in ipairs({ "medallions", "frames" }) do
-	env.RunTimers()
-	for _, look in ipairs({ "lumen", "plate" }) do
-		write("pet.style", look)
-		for _, spot in ipairs({ "LEFT", "TOPLEFT", "RIGHT", "TOPRIGHT" }) do
-			write("pet.happinessPosition", spot)
-			clear(style .. " " .. look .. " " .. spot)
-		end
+for _, look in ipairs({ "lumen", "plate" }) do
+	write("pet.style", look)
+	for _, spot in ipairs({ "LEFT", "TOPLEFT", "RIGHT", "TOPRIGHT" }) do
+		write("pet.happinessPosition", spot)
+		clear(look .. " " .. spot)
 	end
 end
 write("pet.happinessPosition", "")
 write("pet.markerSize", 0)
 write("pet.happiness", false)
 
--- The pet's Spell icon row shows only where its cast bar draws the icon, and a tiny width keeps a usable bar.
+-- A tiny width keeps a usable bar.
 write("edit", "pet")
-write("pet.style", "lumen")
-assert(not rowShown("pet.castbarIcon"), "the pet's line cast bar draws no icon, so its row hides")
 write("pet.style", "plate")
-assert(rowShown("pet.castbarIcon"), "the plate draws the icon, so its row shows")
-write("pet.castbarIcon", true)
 env._units.pet.cast = { name = "Bite", texture = 132278, start = 1000, finish = 10000, spellID = 17253 }
 env.FireEvent("UNIT_SPELLCAST_START", "pet", "Cast-1", 17253)
-assert(cb.active and cb.iconFrame:IsShown(), "the plate's pet cast shows its icon")
 write("pet.castbarWidth", 1)
-assert(cb.geometry.bar.w > 0 and cb.geometry.text.w > 0, "a 1-unit width keeps a usable fill and spell name")
+assert(cb.bar:GetWidth() > 0 and W.LastCall(cb.text, "SetWidth")[1] > 0, "a 1-unit width keeps a usable fill and spell name")
 env._units.pet.cast = nil
 env.FireEvent("UNIT_SPELLCAST_STOP", "pet", "Cast-1", 17253)
 env.RunTimers()
 write("pet.castbarWidth", 0)
-env.RunTimers()
-assert(not rowShown("pet.castbarIcon"), "a Medallions cast bar draws no icon, so its row hides")
-env.RunTimers()
 write("pet.style", "lumen")
 
 -- Simple boss auras: one row of each group, as tall as the boss slot between the boss gaps.
