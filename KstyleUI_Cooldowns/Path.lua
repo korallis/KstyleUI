@@ -33,11 +33,7 @@ function Path.ProbeAuras()
 end
 
 function Path.ViewerOff()
-	local get = C_CVar and C_CVar.GetCVarBool
-	if type(get) ~= "function" then
-		return false
-	end
-	local ok, on = pcall(get, "cooldownViewerEnabled")
+	local ok, on = pcall(C_CVar and C_CVar.GetCVarBool, "cooldownViewerEnabled")
 	return ok and not ns.IsSecret(on) and on == false
 end
 
