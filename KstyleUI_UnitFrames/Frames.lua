@@ -783,11 +783,12 @@ local function TargetChange(view)
 		view.targetSeen = true
 		if view.deathTween then K.Motion.Stop(view.deathTween); view.deathTween = nil end
 		if on and seen then
-			K.Motion.Tween(view.body, "SetAlpha", view.body:GetAlpha(), 0, 0.06, "inOutSine", function()
+			view.flipIn = view.flipIn or function()
 				RefreshKind("target", true)
 				ns.Slab.FlipIn(view)
 				K.Motion.FadeIn(view.body, 0.06)
-			end)
+			end
+			K.Motion.Tween(view.body, "SetAlpha", view.body:GetAlpha(), 0, 0.06, "inOutSine", view.flipIn)
 			return
 		elseif on then
 			K.Motion.FadeIn(view.body, 0.12)
