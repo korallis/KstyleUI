@@ -1,4 +1,4 @@
--- Pips.lua: the class-themed combo point row over the plain pips' places for Frames, Widgets.ClassPip daggers for a rogue and claws for a cat-form druid, with a glow under the full row; while the Medallions crest's crown shows them the row hides. Under Frames the same row holds the crowns the game feeds, upright Widgets.FedCrown pieces centred on the pips' places (a warrior's banners, a priest's candles, a mage's shards, a hunter's arrows, a bear's talons, a shaman's Lightning Shield charges as storm orbs) with the same glow at the maximum; a build or rebind that meets secret auras waits for the end of combat.
+-- Pips.lua: the class-themed combo point row over the plain pips' places for Frames, Widgets.ClassPip daggers for a rogue and claws for a cat-form druid, with a glow under the full row; while the Medallions crest's crown shows them the row hides. Under Frames the same row holds the crowns the game feeds, upright Widgets.FedCrown pieces centred on the pips' places (a warrior's banners, a priest's candles, a mage's shards, a hunter's arrows, a bear's talons, a shaman's Lightning Shield charges as storm orbs) with the same glow at the maximum, standing on the druid bar when it shows (a bear's talons at a cat's claws' size); a build or rebind that meets secret auras waits for the end of combat.
 local _, ns = ...
 
 local K = KstyleUI
@@ -123,7 +123,7 @@ function Pips.Fed(class, parent)
 	return state.crown ~= nil
 end
 
-function Pips.Layout(cells, size, spacing)
+function Pips.Layout(cells, size, spacing, floor)
 	local parent = cells[1]:GetParent()
 	local art = Widgets.Snap(parent, size) + 2 * Widgets.Snap(parent, size * (ART - 1) / 2)
 	local crown = state.crown
@@ -131,8 +131,13 @@ function Pips.Layout(cells, size, spacing)
 		local n, half = #crown.pips, size / 2 + size * ROW
 		for i, p in ipairs(crown.pips) do
 			local x = (i - (n + 1) / 2) * (size + spacing)
+			x = x < 0 and -Widgets.Snap(parent, -x) or Widgets.Snap(parent, x)
 			p.frame:ClearAllPoints()
-			p.frame:SetPoint("CENTER", cells[3], "CENTER", x < 0 and -Widgets.Snap(parent, -x) or Widgets.Snap(parent, x), 0)
+			if floor then
+				p.frame:SetPoint("BOTTOM", floor, "TOP", x, Widgets.Snap(parent, 1))
+			else
+				p.frame:SetPoint("CENTER", cells[3], "CENTER", x, 0)
+			end
 		end
 		crown:Layout(art)
 		local glow = crown.glow:GetParent()

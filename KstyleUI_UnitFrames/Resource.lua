@@ -109,13 +109,9 @@ function Resource.Layout()
 	end
 	local max, min = math.max, math.min
 	local row = state.showCombo or state.fed
-	local manaH = 0
-	if state.showMana and row then
-		manaH = min(max(MANA_MIN, min(MANA_MAX, h * MANA_SHARE)), max(0, (h - GAP) / 2))
-	elseif state.showMana then
-		manaH = min(h, MANA_MAX)
-	end
-	local pipRow = row and (state.showMana and max(0, h - manaH - GAP) or h) or 0
+	local share = min(max(MANA_MIN, min(MANA_MAX, h * MANA_SHARE)), max(0, (h - GAP) / 2))
+	local manaH = state.showMana and (state.showCombo and share or min(h, MANA_MAX)) or 0
+	local pipRow = row and (state.showMana and max(0, h - share - GAP) or h) or 0
 	local x, span
 	if row then
 		local spacing = min(Settings.Resource("spacing"), max(0, (w - PIPS) / (PIPS - 1)))
@@ -126,7 +122,7 @@ function Resource.Layout()
 			Place(pip, x + (i - 1) * (size + spacing), (pipRow - size) / 2, size, size)
 			pip:SetShown(state.showCombo and not state.themed)
 		end
-		ns.Pips.Layout(state.pips, size, spacing)
+		ns.Pips.Layout(state.pips, size, spacing, state.showMana and state.mana)
 	else
 		for _, pip in ipairs(state.pips) do
 			pip:Hide()
@@ -134,7 +130,7 @@ function Resource.Layout()
 	end
 	if state.showMana then
 		local edge = 2 * Widgets.Border(state.content)
-		local top = max(edge, row and pipRow + GAP or (h - manaH) / 2)
+		local top = max(edge, state.showCombo and pipRow + GAP or (h - manaH) / 2)
 		local bottom = min(h - edge, top + manaH)
 		Place(state.mana, edge, top, max(0, w - 2 * edge), max(0, bottom - top))
 		state.mana:Show()

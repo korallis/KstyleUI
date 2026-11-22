@@ -1,4 +1,4 @@
--- test-unitframes-frames-crowns.lua: under Frames the player's class resource row holds the crowns the game feeds, upright, as the rogue's daggers stand: a warrior's 5 banners, a priest's 5 candles (with Shadow Weaving only), a mage's 4 shards, a hunter's 3 arrows, a bear's 5 talons above its druid bar and a shaman's 3 Lightning Shield storm orbs; each piece is the dagger's size, centred on the plain pips' places, its glow and lit art application bars Blizzard's aura slots feed (Immediate at Motion Off), the full row glows at the maximum, and the row has a mover; Class-themed pips off, Medallions or no source shows nothing; a spellbook update brings a learnt crown and secret auras put the build off until combat ends.
+-- test-unitframes-frames-crowns.lua: under Frames the player's class resource row holds the crowns the game feeds, upright, as the rogue's daggers stand: a warrior's 5 banners, a priest's 5 candles (with Shadow Weaving only), a mage's 4 shards, a hunter's 3 arrows, a bear's 5 talons standing on its druid bar, which keeps its own height and place and a shaman's 3 Lightning Shield storm orbs; each piece is the dagger's size, centred on the plain pips' places, its glow and lit art application bars Blizzard's aura slots feed (Immediate at Motion Off), the full row glows at the maximum, and the row has a mover; Class-themed pips off, Medallions or no source shows nothing; a spellbook update brings a learnt crown and secret auras put the build off until combat ends.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
 local W = U.W
@@ -82,9 +82,11 @@ for _, class in ipairs(ORDER) do
 		assert(tostring(W.LastCall(p.steel, "SetTexture")[1]):find(spec.art .. "Steel90.png", 1, true), class .. " piece " .. i .. " is upright dormant steel")
 		assert(tostring(W.LastCall(p.blade, "SetStatusBarTexture")[1]):find(spec.art .. "90.png", 1, true), class .. " piece " .. i .. " lights its upright art")
 		assert(math.abs(p.frame:GetWidth() - (class == "DRUID" and claw or dagger)) < 1e-6, class .. " piece " .. i .. " is the size of the combo pieces")
-		local _, anchor, _, x, y = p.frame:GetPoint(1)
+		local point, anchor, rel, x, y = p.frame:GetPoint(1)
 		local mirror = select(4, crown.pips[n + 1 - i].frame:GetPoint(1))
-		assert(anchor == R.pips[3] and y == 0 and math.abs(x + mirror) < 1e-6, class .. " piece " .. i .. " is centred on the plain pips' places")
+		local centred = anchor == R.pips[3] and y == 0
+		if class == "DRUID" then centred = point == "BOTTOM" and anchor == R.mana and rel == "TOP" and y > 0 end
+		assert(centred and math.abs(x + mirror) < 1e-6, class .. " piece " .. i .. " is centred on the plain pips' places (a bear's standing clear on its druid bar)")
 		assert(not p.frame._scripts.OnUpdate, class .. ": no piece runs OnUpdate")
 	end
 	if n == 5 then
@@ -94,7 +96,12 @@ for _, class in ipairs(ORDER) do
 		assert(a and b and x2 - x1 > 0, class .. ": five pieces keep the pips' order, left to right")
 	end
 	if class == "DRUID" then
-		assert(R.showMana and R.mana:IsShown(), "a bear keeps its druid bar beside the talons")
+		assert(R.showMana and R.mana:IsShown(), "a bear keeps its druid bar under the talons")
+		local place, height = { R.mana:GetPoint(1) }, R.mana.opts.height
+		K.Options.Write("UnitFrames", "resource.classPips", false)
+		local plain = { R.mana:GetPoint(1) }
+		assert(height == R.mana.opts.height and height == ns.Resource.MANA_MAX and plain[4] == place[4] and plain[5] == place[5], "the talons leave the druid bar its full height and place, as without them (" .. height .. " at " .. place[5] .. ")")
+		K.Options.Write("UnitFrames", "resource.classPips", true)
 	end
 
 	local aura = { id = spec.aura, count = 1, harmful = spec.unit == "target", mine = true }
