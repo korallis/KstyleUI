@@ -1,4 +1,4 @@
--- test-unitframes-parity-r4a-review.lua: the round 4a review's probes: the text bar clear of the frame's content with outside anchors fixed, tracked debuffs on the crest fan and for an unknown reaction, the preview's class icon, tints, Medallions boss cast and debuffs-only samples, the switched-off tag pass and static tints, and the formatter's fallbacks.
+-- test-unitframes-parity-r4a-review.lua: the round 4a review's probes: the text bar clear of the frame's content with outside anchors fixed (Frames' column target and Wide bar too), tracked debuffs on the crest fan and for an unknown reaction, the preview's class icon, tints, Medallions boss cast and debuffs-only samples, every Frames boss card cast height and the focus card, the switched-off tag pass and static tints, and the formatter's fallbacks.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -10,6 +10,11 @@ local env, K, ns = U.New({
 
 local function set(key, value)
 	K.Options.Write("UnitFrames", key, value)
+	env.RunTimers()
+end
+
+local function hud(style)
+	K.Options.Write("HudStyle", "style", style)
 	env.RunTimers()
 end
 
@@ -73,6 +78,30 @@ clear(ns.Frames.Get("focus").views[1], "Medallions focus, above", true)
 set("focus.textBar", false)
 set("player.textBar", false)
 set("target.textBar", false)
+clean()
+
+-- Frames: a top strip leaves the column target's side auras where they were, and the Wide bar keeps its strip clear.
+hud("frames")
+set("target.textBarPlace", "TOP")
+before = W.LastCall(target.auras.host, "SetPoint")
+set("target.textBar", true)
+local after = W.LastCall(target.auras.host, "SetPoint")
+assert(after[4] == before[4] and after[5] == before[5], "a top strip leaves the side auras where they were: " .. before[5] .. " then " .. after[5])
+clear(target, "Frames target, top", true)
+set("target.style", "bar")
+set("target.textBarPlace", "BOTTOM")
+set("target.textBarHeight", 40)
+local uf = ns.Frames.Get("target")
+uf.holder:SetSize(320, 80)
+ns.Frames.Relayout(uf)
+clear(target, "a short Wide bar")
+uf.holder:SetSize(320, 103)
+ns.Frames.Relayout(uf)
+clear(target, "a Wide bar with auras under it")
+set("target.textBarHeight", 16)
+set("target.textBar", false)
+set("target.style", "column")
+hud("medallions")
 clean()
 
 -- 2. Only tracked debuffs follows the crest fan without frame auras, and an unknown reaction is not an enemy.
@@ -152,6 +181,21 @@ clean()
 U.SetUnit(env, "boss1", { name = "Magmatus", level = -1, classification = "worldboss", health = 41200, healthMax = 100000, reaction = 2, canAttack = true })
 env.FireEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
 local boss = ns.Frames.Get("boss").views[1]
+
+-- 5. On Frames every boss card cast height can be picked, the default stays 16, and the focus card keeps its line.
+hud("frames")
+local heights = {}
+for i, h in ipairs({ 9, 10, 11 }) do
+	set("boss.castbarHeight", h)
+	heights[i] = boss.geometry.cast.h
+end
+assert(heights[1] < heights[2] and heights[2] == 16 and heights[2] < heights[3], "9, 10 and 11 draw three card lines: " .. table.concat(heights, ", "))
+set("boss.castbarHeight", 10)
+set("focus.castbarHeight", 24)
+assert(ns.Frames.Get("focus").views[1].geometry.cast.h == 16, "the focus card keeps its 16-unit line")
+set("focus.castbarHeight", 16)
+hud("medallions")
+clean()
 
 -- 6. A strip switched off costs the tag pass nothing, and a health event leaves a static colour alone.
 local function count()

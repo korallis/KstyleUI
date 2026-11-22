@@ -1,4 +1,4 @@
--- test-unitframes-crest-debuffs.lua: your target debuffs move into a bounded native-engine fan, including control effects and restricted combat updates.
+-- test-unitframes-crest-debuffs.lua: your target debuffs move into a bounded native-engine fan only under Medallions, including control effects and restricted combat updates.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local Engine = dofile("Tools/regression/aura_fixture_engine.lua")
 local Scene = dofile("Tools/render/scene.lua")
@@ -140,6 +140,12 @@ settings.target.crestDebuffs = true
 K.Callbacks.Fire("SettingChanged", "UnitFrames", "target.crestDebuffs", true)
 refresh()
 assert(fan.content._shown ~= false, "switching on restores the fan")
+for _, style in ipairs({ "frames", "medallions" }) do
+	K.Options.Write("HudStyle", "style", style)
+	env.RunTimers()
+	refresh()
+	assert(fan.content._shown == (style == "medallions"), "only Medallions has a fan")
+end
 K.Modules.Disable("UnitFrames")
 for _, container in ipairs(fan.containers) do assert(container._enabled == false, "off modules stop every fan engine") end
 assert(#env._errors == 0 and K.ErrorCount() == 0, "no errors across the lifecycle")
