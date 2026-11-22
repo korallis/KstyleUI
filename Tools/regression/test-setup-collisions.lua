@@ -231,12 +231,12 @@ for _, screen in ipairs({ { 3456, 2234 }, { 3024, 1964 }, { 2560, 1600 }, { 2383
 	assert(math.abs(tank - dps) < 1e-9, string.format("Tank with both meter cards caps at %.4f at %dx%d, under DPS's %.4f", tank, screen[1], screen[2], dps))
 end
 
--- The threat meter tightens the Healer cap at 1080p; compare enabled sets on either side of that boundary.
+-- The second data bar tightens the Healer cap at 1080p; compare enabled sets on either side of that boundary.
 do
-	assert(Layouts.Fits("Healer", 1920, 1080, 0.95), "the hidden threat meter must not collide at a size above its own cap")
+	assert(Layouts.Fits("Healer", 1920, 1080, 0.95), "the hidden second data bar must not collide at a size above its own cap")
 	local enabled = Layouts.Enabled("Healer")
-	enabled["meters.threat"] = true
-	assert(not Layouts.Fits("Healer", 1920, 1080, 0.95, enabled), "the same meter counts when the player shows it")
+	enabled["databars.strip2"] = true
+	assert(not Layouts.Fits("Healer", 1920, 1080, 0.95, enabled), "the same bar counts when the player shows it")
 	assert(Layouts.ScaleLimit(1920, 1080, "Healer", enabled) < Layouts.ScaleLimit(1920, 1080, "Healer"), "the cache distinguishes enabled-element sets")
 end
 
@@ -256,17 +256,22 @@ do
 	assert(active["unitframes.castbar.target"], "a configured separate target cast bar counts even though the preset draws it inline")
 end
 
--- Exercise live resizing when the shown threat meter tightens the cap.
+-- Exercise live resizing when the shown boss frames tighten the cap.
 do
+	local function Boss(requested, shown)
+		local profile = Profile("Healer", requested)
+		profile.UnitFrames.boss.enabled = shown
+		return profile
+	end
 	local menv, MK = CoreEnv.New({
 		width = 1920, height = 1080, fit = true,
 		saved = { version = K.Store.DB_VERSION, account = { setupSeen = true }, profiles = {
-			Default = Profile("Healer", 1.5, nil, false), WithThreat = Profile("Healer", 1.5, nil, true), Small = Profile("Healer", 0.7, nil, true),
+			Default = Boss(1.5, false), WithBoss = Boss(1.5, true), Small = Boss(0.7, true),
 		} },
 	})
-	local defaults = CoreEnv.DeepCopy(Profile("Healer", 1.5, nil, false).Meters)
+	local defaults = CoreEnv.DeepCopy(Boss(1.5, false).UnitFrames)
 	defaults.enabled = nil
-	MK.Modules.Register(CoreEnv.Module("Meters", { defaults = defaults }))
+	MK.Modules.Register(CoreEnv.Module("UnitFrames", { defaults = defaults }))
 	CoreEnv.Boot(menv)
 	local root = MK.Scale.Root()
 	local setScale, resized = root.SetScale, 0
@@ -277,49 +282,49 @@ do
 	end
 	local off = MK.Scale.AppliedUserScale()
 	menv._printed = {}
-	MK.Options.Write("Meters", "threat.shown", true)
+	MK.Options.Write("UnitFrames", "boss.enabled", true)
 	local on = MK.Scale.AppliedUserScale()
-	assert(on < off and resized == 1, "showing a colliding meter recomputes the cap and resizes once")
+	assert(on < off and resized == 1, "showing colliding boss frames recomputes the cap and resizes once")
 	assert(#menv._printed == 1 and CoreEnv.Printed(menv, "to keep enabled elements on screen and apart"), "one line explains the resize")
 	assert(CoreEnv.Printed(menv, string.format("%.1f%%", on * 100)), "the explanation names the new size")
-	assert(MK.Scale.UserScale() == 1.5 and MK.Appearance.Get("uiScale") == 1.5, "showing a meter preserves the saved request")
-	MK.Options.Write("Meters", "threat.shown", true)
+	assert(MK.Scale.UserScale() == 1.5 and MK.Appearance.Get("uiScale") == 1.5, "showing boss frames preserves the saved request")
+	MK.Options.Write("UnitFrames", "boss.enabled", true)
 	assert(resized == 1 and #menv._printed == 1, "a duplicate show neither resizes nor prints")
-	MK.Options.Write("Meters", "threat.shown", false)
-	assert(math.abs(MK.Scale.AppliedUserScale() - off) < 1e-9, "hiding the meter restores the larger saved size up to its cap")
+	MK.Options.Write("UnitFrames", "boss.enabled", false)
+	assert(math.abs(MK.Scale.AppliedUserScale() - off) < 1e-9, "hiding them restores the larger saved size up to its cap")
 	assert(#menv._printed == 1, "growing after a hide needs no warning")
 	menv._printed, resized = {}, 0
 	menv.SetCombat(true)
-	MK.Options.Write("Meters", "threat.shown", true)
+	MK.Options.Write("UnitFrames", "boss.enabled", true)
 	assert(MK.Scale.AppliedUserScale() == off and resized == 0 and #menv._printed == 0, "showing in combat leaves the root and messages unchanged")
 	menv.FireEvent("PLAYER_REGEN_ENABLED")
 	assert(resized == 0, "a regen event while still locked cannot flush the clamp")
 	menv.SetCombat(false)
 	assert(math.abs(MK.Scale.AppliedUserScale() - on) < 1e-9 and resized == 1 and #menv._printed == 1, "after combat the pending clamp resizes and explains it once")
-	MK.Options.Write("Meters", "threat.shown", false)
+	MK.Options.Write("UnitFrames", "boss.enabled", false)
 	menv.SetCombat(true)
-	MK.Options.Write("Meters", "threat.shown", true)
-	MK.Options.Write("Meters", "threat.shown", false)
+	MK.Options.Write("UnitFrames", "boss.enabled", true)
+	MK.Options.Write("UnitFrames", "boss.enabled", false)
 	menv._printed, resized = {}, 0
 	menv.SetCombat(false)
 	assert(MK.Scale.AppliedUserScale() == off and resized == 0 and #menv._printed == 0, "a show reverted during combat causes no resize or stale warning")
-	MK.Options.Write("Meters", "threat.shown", true)
-	MK.Modules.Disable("Meters")
+	MK.Options.Write("UnitFrames", "boss.enabled", true)
+	MK.Modules.Disable("UnitFrames")
 	assert(MK.Scale.AppliedUserScale() == off, "direct module disable recomputes the active set")
 	menv._printed = {}
-	MK.Modules.Enable("Meters")
+	MK.Modules.Enable("UnitFrames")
 	assert(MK.Scale.AppliedUserScale() == on and #menv._printed == 1, "direct module enable reapplies the clamp and one explanation")
-	MK.Modules.Disable("Meters")
+	MK.Modules.Disable("UnitFrames")
 	menv.SetCombat(true)
 	menv._printed, resized = {}, 0
-	MK.Options.Write("Meters", "enabled", true)
+	MK.Options.Write("UnitFrames", "enabled", true)
 	assert(MK.Scale.AppliedUserScale() == off and resized == 0 and #menv._printed == 0, "module enable and its clamp both wait for combat")
 	menv.SetCombat(false)
 	assert(MK.Scale.AppliedUserScale() == on and resized == 1 and #menv._printed == 1, "the module-start and scale queues do not duplicate the post-combat clamp")
-	MK.Options.Write("Meters", "threat.shown", false)
+	MK.Options.Write("UnitFrames", "boss.enabled", false)
 	menv._printed = {}
-	MK.Store.SetProfile("WithThreat")
-	assert(MK.Scale.AppliedUserScale() == on and #menv._printed == 1, "switching to a profile with the meter shown recomputes the cap")
+	MK.Store.SetProfile("WithBoss")
+	assert(MK.Scale.AppliedUserScale() == on and #menv._printed == 1, "switching to a profile with the boss frames shown recomputes the cap")
 	MK.Store.SetProfile("Default")
 	menv._printed = {}
 	MK.Store.SetProfile("Small")

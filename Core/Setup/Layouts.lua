@@ -805,6 +805,7 @@ end
 
 Layouts.MAP_FRAME = MAP_FRAME
 Layouts.GAP = GAP
+Layouts.METER_SLOT = 180
 Layouts.SPLIT_GAP = 198.55
 
 function Layouts.DataBarBelowDock(name, key, class)
@@ -1450,7 +1451,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 			local pad, point = Layouts.MEDALLIONS_SLAB.pad, OFFSETS[layout[key].anchor]
 			width, height, offsetX, offsetY = width + 2 * pad, height + 2 * pad, (2 * point[1] - 1) * pad, (2 * point[2] - 1) * pad
 		end
-		if key == "meters.threat" and enabled["meters.damage"] ~= false then height = DAMAGE_H end
+		if key == "meters.threat" and enabled["meters.damage"] ~= false then width, height = Layouts.METER_SLOT, DAMAGE_H end
 		state.sizes[i] = { width, height, offsetX, offsetY, OFFSETS[layout[key].anchor] or OFFSETS.CENTER, key }
 	end
 	local rectCount = #ELEMENTS + 2
