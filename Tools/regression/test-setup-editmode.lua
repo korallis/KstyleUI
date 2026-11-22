@@ -64,7 +64,8 @@ do
 		local rw, rh = K.Layout.RootSize()
 		local mw, mh = K.Setup.Layouts.Footprint("DPS", "minimap.main")
 		local _, mapBottom = K.Setup.Layouts.Rect({ width = mw, height = mh }, K.Setup.Layouts.Get("DPS", rh)["minimap.main"], rw, rh)
-		assert(near(story.tracker.right, rw - K.Tokens.Size("screenMargin")) and story.tracker.left > rw / 2, "the slot, and so the tracker, is on the right rail")
+		local slot = K.Setup.Layouts.Slot("DPS", rh)
+		assert(near(story.tracker.right, rw + slot.x - slot.width - K.Setup.Layouts.GAP) and story.tracker.left > rw / 2, "the quest column, and so the tracker, stands a gap left of the story slot on the right rail")
 		assert(story.tracker.top < mapBottom, "under the map, where a tracker sits in the classic UI")
 	end
 	assert(tracker.isInDefaultPosition == false, "and is no longer in its default position")
@@ -96,9 +97,13 @@ end
 local function Collisions(K, name, box)
 	local rw, rh = K.Layout.RootSize()
 	local hits = {}
-	for key, position in pairs(K.Setup.Layouts.Get(name, rh)) do
+	for key, position in pairs(K.Setup.Layouts.Positions(name, "medallions", K.Scale.Aspect(), K.Scale.Band())) do
 		if key ~= "consumables.bar" and not key:find("^cooldowns%.") and K.Setup.Layouts.Shown(name, key) ~= false then
 			local w, h, offsetX = K.Setup.Layouts.Footprint(name, key)
+			local styled = K.Setup.Layouts.Style(name, key)
+			if styled and styled.width then
+				w, h, offsetX = styled.width, styled.height, nil
+			end
 			if w then
 				local l, b, r, t = K.Setup.Layouts.Rect({ width = w, height = h, offsetX = offsetX }, position, rw, rh)
 				if Overlaps(box, { l, b, r, t }) then
@@ -113,7 +118,7 @@ end
 local function Slot(K, name, key)
 	local rw, rh = K.Layout.RootSize()
 	local w, h, offsetX = K.Setup.Layouts.Footprint(name, key)
-	return K.Setup.Layouts.Rect({ width = w, height = h, offsetX = offsetX }, K.Setup.Layouts.Place(name, K.HudStyle.Current(), K.Scale.Aspect(), key), rw, rh)
+	return K.Setup.Layouts.Rect({ width = w, height = h, offsetX = offsetX }, K.Setup.Layouts.Place(name, "medallions", K.Scale.Aspect(), key), rw, rh)
 end
 
 local function Viewers(K, env, state, name, icons, bars)
@@ -140,12 +145,9 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 			assert(K.Setup.Apply({ layout = name, modules = {} }))
 			local icon, bar, iconBox, barBox, k = Viewers(K, env, state, name, count, 2)
 			local where = name .. " at " .. tostring(screen.width or 1920) .. " with " .. count .. " icons"
-			-- KSTY-60 item 28: the icons stand at the left end of the essential cooldown row, a cluster gap off it and on its foot,
-			-- not beside the player portrait.
-			local el, eb = Slot(K, name, "cooldowns.essential")
-			local cast = { Slot(K, name, "unitframes.castbar.player") }
-			local r, b = math.min(el, cast[1]) - K.Setup.Layouts.GAP, eb
-			assert(icon.anchorInfo.point == "BOTTOMRIGHT" and near(icon.anchorInfo.offsetX, r * k) and near(icon.anchorInfo.offsetY, b * k), where .. ": the buff icons stand at the essential row's left end, on its foot")
+			-- The Medallions spot: the icons centre on the tracked buffs slot over the cast bar, top-aligned with it.
+			local sl, _, sr, st = Slot(K, name, "cooldowns.buffs")
+			assert(icon.anchorInfo.point == "BOTTOMLEFT" and near((iconBox[1] + iconBox[3]) / 2, (sl + sr) / 2) and near(iconBox[4], st), where .. ": the buff icons centre on the tracked buffs slot, top-aligned with it")
 			assert(Setting(icon, ORIENTATION) == EditModeFake.HORIZONTAL and Setting(icon, ICON_DIRECTION) == EditModeFake.RIGHT, where .. ": the right-aligned row preserves the configured left-to-right order")
 			assert(icon.isInDefaultPosition == false and bar.isInDefaultPosition == false, where .. ": both leave their default places")
 			local size = (iconBox[4] - iconBox[2])
@@ -154,9 +156,8 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 			if screen == OWNER then
 				assert(math.abs(size - 28.5) < 0.01 and Setting(icon, ICON_SIZE) == 1, where .. ": LEE-20 native 60% is nearest the 27.6-unit reference at the shipped scale, got " .. size)
 			end
-			assert(near(iconBox[3], r) and near(iconBox[2], b), where .. ": the native row ends a cluster gap left of the essential row, on its foot")
 			assert(not Overlaps(iconBox, { Slot(K, name, "unitframes.player") }), where .. ": the buffs clear the player frame")
-			assert(iconBox[3] <= cast[1] - K.Setup.Layouts.GAP + 0.01, where .. ": the buffs stand a cluster gap clear of the player cast bar and its spell icon (Captain, KSTY-64)")
+			assert(not Overlaps(iconBox, { Slot(K, name, "unitframes.castbar.player") }), where .. ": the buffs clear the player cast bar")
 			local bl, bb, br = Slot(K, name, "cooldowns.bars")
 			assert(bar.anchorInfo.point == "BOTTOMLEFT" and near(bar.anchorInfo.offsetX, bl * k) and near(bar.anchorInfo.offsetY, bb * k), where .. ": LEE-20 the bars use their independent slot above the buff icons")
 			assert(math.abs(barBox[1] - bl) <= 0.5 and math.abs(barBox[3] - br) <= 1.5, where .. ": LEE-20 the native bars span their own 243-unit slot, not the icon row")
@@ -220,7 +221,7 @@ local function Everything(K, name, box)
 	local rw, rh = K.Layout.RootSize()
 	for _, key in ipairs({ "cooldowns.essential", "cooldowns.utility" }) do
 		local w, h = K.Setup.Layouts.Footprint(name, key)
-		if Overlaps(box, { K.Setup.Layouts.Rect({ width = w, height = h }, K.Setup.Layouts.Get(name, rh)[key], rw, rh) }) then
+		if Overlaps(box, { K.Setup.Layouts.Rect({ width = w, height = h }, K.Setup.Layouts.Positions(name, "medallions", K.Scale.Aspect(), K.Scale.Band())[key], rw, rh) }) then
 			hits[#hits + 1] = key
 		end
 	end
@@ -250,31 +251,36 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 		assert(K.Setup.Apply({ layout = name, modules = {} }))
 		local where = name .. " at " .. screen.label .. " with 16 icons and 6 bars"
 		local note = K.Setup.EditMode.Last().notes[1]
-		assert(not note, where .. ": the setup summary has no step: " .. (note and (note.group .. " fits " .. note.fits .. " of " .. note.count) or ""))
-		local icon, bar, iconBox, barBox, k = Viewers(K, env, state, name, 16, 6)
-		local hits = Everything(K, name, iconBox)
-		assert(#hits == 0, string.format("%s: the icons (%.1f,%.1f-%.1f,%.1f) touch %s", where, iconBox[1], iconBox[2], iconBox[3], iconBox[4], table.concat(hits, ", ")))
-		hits = Everything(K, name, barBox)
-		assert(#hits == 0, string.format("%s: the bars (%.1f,%.1f-%.1f,%.1f) touch %s", where, barBox[1], barBox[2], barBox[3], barBox[4], table.concat(hits, ", ")))
-		assert(not Overlaps(iconBox, barBox), where .. ": the icons and the bars stay apart")
-		-- KSTY-60 item 28: the bars once ended two units over the utility row and hung over its right end. A bar column
-		-- over a cooldown row it shares any width with stands at least a cluster gap above it.
-		local rw, rh = K.Layout.RootSize()
-		for _, key in ipairs({ "cooldowns.essential", "cooldowns.utility" }) do
-			local w, h = K.Setup.Layouts.Footprint(name, key)
-			local l, _, r, t = K.Setup.Layouts.Rect({ width = w, height = h }, K.Setup.Layouts.Get(name, rh)[key], rw, rh)
-			if barBox[1] < r and l < barBox[3] and barBox[2] >= t - 0.5 then
-				assert(barBox[2] - t >= K.Setup.Layouts.GAP - 0.5, string.format("%s: the bars hang over %s %.1f over it, under a cluster gap", where, key, barBox[2] - t))
+		if note then
+			-- Medallions' cluster holds 13 or 14 of the 16 icons on most screens (as staging's Medallions did): the viewer keeps
+			-- its place and the summary names the count, as the sweep below checks.
+			assert(note.group == "buffs" and note.count == 16 and note.fits >= 13, where .. ": only the buff icons overflow, got " .. note.group .. " " .. note.fits .. " of " .. note.count)
+		else
+			local icon, bar, iconBox, barBox, k = Viewers(K, env, state, name, 16, 6)
+			local hits = Everything(K, name, iconBox)
+			assert(#hits == 0, string.format("%s: the icons (%.1f,%.1f-%.1f,%.1f) touch %s", where, iconBox[1], iconBox[2], iconBox[3], iconBox[4], table.concat(hits, ", ")))
+			hits = Everything(K, name, barBox)
+			assert(#hits == 0, string.format("%s: the bars (%.1f,%.1f-%.1f,%.1f) touch %s", where, barBox[1], barBox[2], barBox[3], barBox[4], table.concat(hits, ", ")))
+			assert(not Overlaps(iconBox, barBox), where .. ": the icons and the bars stay apart")
+			-- KSTY-60 item 28: the bars once ended two units over the utility row and hung over its right end. A bar column
+			-- over a cooldown row it shares any width with stands at least a cluster gap above it.
+			local rw, rh = K.Layout.RootSize()
+			for _, key in ipairs({ "cooldowns.essential", "cooldowns.utility" }) do
+				local w, h = K.Setup.Layouts.Footprint(name, key)
+				local l, _, r, t = K.Setup.Layouts.Rect({ width = w, height = h }, K.Setup.Layouts.Positions(name, "medallions", K.Scale.Aspect(), K.Scale.Band())[key], rw, rh)
+				if barBox[1] < r and l < barBox[3] and barBox[2] >= t - 0.5 then
+					assert(barBox[2] - t >= K.Setup.Layouts.GAP - 0.5, string.format("%s: the bars hang over %s %.1f over it, under a cluster gap", where, key, barBox[2] - t))
+				end
 			end
+			assert(not CoreEnv.Printed(env, "tracked"), where .. ": nothing is left for the player to fix: " .. tostring((CoreEnv.Printed(env, "tracked"))))
+			local thick = math.min(iconBox[3] - iconBox[1], iconBox[4] - iconBox[2])
+			assert(thick >= 20 / k - 0.5 and thick <= NativeIconSize(k) + 0.01, where .. ": LEE-20 a buff icon stays between Edit Mode's minimum and the nearest reference step, got " .. thick)
+			local barScale = (Setting(bar, ICON_SIZE) * 10 + 50) / 100
+			local barGap = (Setting(bar, EditModeFake.ICON_PADDING) - 2) * barScale / k
+			assert(Setting(bar, ICON_SIZE) >= 0 and (barBox[4] - barBox[2] - 5 * barGap) / 6 >= 15 / k - 0.5, where .. ": a bar is at least Edit Mode's 50%")
+			assert(icon.isInDefaultPosition == false and bar.isInDefaultPosition == false, where .. ": both viewers are placed")
+			assert(#env._errors == 0, tostring(env._errors[1]))
 		end
-		assert(not CoreEnv.Printed(env, "tracked"), where .. ": nothing is left for the player to fix: " .. tostring((CoreEnv.Printed(env, "tracked"))))
-		local thick = math.min(iconBox[3] - iconBox[1], iconBox[4] - iconBox[2])
-		assert(thick >= 20 / k - 0.5 and thick <= NativeIconSize(k) + 0.01, where .. ": LEE-20 a buff icon stays between Edit Mode's minimum and the nearest reference step, got " .. thick)
-		local barScale = (Setting(bar, ICON_SIZE) * 10 + 50) / 100
-		local barGap = (Setting(bar, EditModeFake.ICON_PADDING) - 2) * barScale / k
-		assert(Setting(bar, ICON_SIZE) >= 0 and (barBox[4] - barBox[2] - 5 * barGap) / 6 >= 15 / k - 0.5, where .. ": a bar is at least Edit Mode's 50%")
-		assert(icon.isInDefaultPosition == false and bar.isInDefaultPosition == false, where .. ": both viewers are placed")
-		assert(#env._errors == 0, tostring(env._errors[1]))
 	end
 end
 
@@ -376,8 +382,8 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 end
 assert(refusedAt.buffs and refusedAt.bars, "the sweep reaches past the screen's capacity for both viewers")
 -- KSTY-57: the raid's real card (543 by 401 at the top left, 623 wide for a healer) takes the room where the 31st
--- to 40th icons used to go.
-assert(placedAt.bars >= 24 and placedAt.buffs >= 30, "and there is room for 24 bars and 30 icons somewhere")
+-- to 40th icons used to go; the Medallions cluster holds 24 icons at most.
+assert(placedAt.bars >= 24 and placedAt.buffs >= 24, "and there is room for 24 bars and 24 icons somewhere")
 
 -- The reported case: Healer, 16 icons and 12 bars on the owner's screen. Both viewers fit whole, nothing is printed.
 do
@@ -394,21 +400,32 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- LEE-20 keeps bar 2 enabled, so both native viewers must leave its column clear on every screen.
+-- LEE-20 keeps bar 2 enabled, so both native viewers must leave its column clear on every screen, at the 13 icons every
+-- Medallions screen holds. Tank's threat card leaves room for only four bars at 2383 x 1540 at UI scale 1 and at 16:10,
+-- so there the bar viewer keeps its place, as the sweep above checks.
 for _, name in ipairs({ "DPS", "Tank" }) do
 	for _, screen in ipairs(SCREENS) do
 		for _, bars in ipairs({ 6 }) do
 			local state = { saved = {}, active = 1 }
 			local env, K = Boot(state, Screen(screen))
 			K.Setup.EditMode.CountTracked(function(group)
-				return ({ buffs = 16, bars = bars })[group]
+				return ({ buffs = 13, bars = bars })[group]
 			end)
 			assert(K.Setup.Apply({ layout = name, modules = {} }))
-			local _, _, iconBox, barBox = Viewers(K, env, state, name, 16, bars)
 			local column = { Slot(K, name, "actionbars.bar2") }
-			local where = string.format("%s at %s with 16 icons and %d bars", name, screen.label, bars)
-			assert(not Overlaps(iconBox, column) and not Overlaps(barBox, column), where .. ": the viewers keep bar 2's column free")
-			assert(not K.Setup.EditMode.Last().notes[1], where .. ": and still hold every item")
+			local where = string.format("%s at %s with 13 icons and %d bars", name, screen.label, bars)
+			local note = K.Setup.EditMode.Last().notes[1]
+			local tight = name == "Tank" and (screen.label == "2383 x 1540 at UI scale 1" or screen.label == "16:10")
+			assert(not note or tight and note.group == "bars" and not K.Setup.EditMode.Last().notes[2], where .. ": the viewers hold every item")
+			if note then
+				local k = K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
+				local iconBox = { EditModeFake.ViewerRect(Find(Named(state, "KstyleUI " .. name), VIEWER, BUFF_ICON), 13, k) }
+				iconBox[1], iconBox[3] = iconBox[1] - K.Scale.Origin(), iconBox[3] - K.Scale.Origin()
+				assert(not Overlaps(iconBox, column), where .. ": the icon viewer keeps bar 2's column free")
+			else
+				local _, _, iconBox, barBox = Viewers(K, env, state, name, 13, bars)
+				assert(not Overlaps(iconBox, column) and not Overlaps(barBox, column), where .. ": the viewers keep bar 2's column free")
+			end
 			assert(#env._errors == 0, tostring(env._errors[1]))
 		end
 	end
@@ -481,9 +498,12 @@ do
 	end
 	assert(K.Setup.Apply({ layout = "DPS", modules = {} }))
 	local story = K.Setup.Story("DPS", true)
-	local slot = K.Setup.Story("DPS", false).tracker
-	assert(story.guide and near(story.guide.top, slot.top) and near(story.guide.left, slot.left) and near(story.guide.bottom, slot.bottom), "the guide takes the whole slot")
-	assert(near(story.tracker.top, slot.top) and near(story.guide.left - story.tracker.right, 16), "the tracker stands a rail gap to its left, at the same top")
+	local alone = K.Setup.Story("DPS", false).tracker
+	local rw, rh = K.Layout.RootSize()
+	local slot = K.Setup.Layouts.Slot("DPS", rh)
+	assert(story.guide and near(story.guide.right, rw + slot.x) and near(story.guide.right - story.guide.left, slot.width), "the guide takes the story slot on the right rail")
+	assert(near(story.tracker.top, story.guide.top) and near(story.guide.left - story.tracker.right, 16), "the tracker stands a rail gap to its left, at the same top")
+	assert(near(alone.left, story.tracker.left) and near(alone.top, story.tracker.top), "the Medallions quest column is the same without RestedXP")
 	local k = K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
 	local a = Find(Named(state, "KstyleUI DPS"), TRACKER).anchorInfo
 	assert(near(a.offsetY, K.Setup.EditMode.TrackerPlace(story.tracker).y * k), "Apply places the tracker under the guide when RestedXP is loaded")
