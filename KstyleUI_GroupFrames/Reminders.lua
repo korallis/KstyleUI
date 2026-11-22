@@ -13,7 +13,11 @@ local BUFFS = {
 	{ key = "spirit", spells = { 14752, 27681 }, mana = true },
 	{ key = "thorns", spells = { 467 }, tanks = true },
 	{ key = "salvation", spells = { 1038, 25895 }, notTanks = true },
+	{ key = "MIGHT", spells = { 19740, 25782 }, blessing = true },
+	{ key = "WISDOM", spells = { 19742, 25894 }, blessing = true },
+	{ key = "KINGS", spells = { 20217, 25898 }, blessing = true },
 }
+local ROLE_BLESSING = { TANK = "tankBlessing", HEALER = "healerBlessing" }
 local FILTER = "HELPFUL"
 local MANA = 0
 
@@ -77,8 +81,15 @@ local function HasTank()
 	return hasTank
 end
 
+local function Blessing(class, role, cfg)
+	local pick = cfg["bless" .. tostring(class)]
+	return pick and pick ~= "ROLE" and pick or cfg[ROLE_BLESSING[role] or "damageBlessing"]
+end
+
 local function Wanted(buff, unit, role, cfg)
-	if buff.notTanks and role == "TANK" then
+	if buff.blessing then
+		return Blessing(Plain(UnitClass and select(2, UnitClass(unit)), "string"), role, cfg) == buff.key
+	elseif buff.notTanks and role == "TANK" then
 		return false
 	elseif buff.tanks and cfg.thornsTank then
 		return role == "TANK" or not HasTank() and UnitIsUnit and Plain(UnitIsUnit(unit, "player"), "boolean") == true
@@ -93,7 +104,7 @@ local function Missing(f)
 	if cfg.place == "NONE" or f.sample or not f.unit or f.status or Auras.AurasSecret() then return nil end
 	local role = Role(f.unit)
 	for _, entry in ipairs(Known()) do
-		if cfg[entry.buff.key] and Wanted(entry.buff, f.unit, role, cfg) then
+		if (entry.buff.blessing or cfg[entry.buff.key]) and Wanted(entry.buff, f.unit, role, cfg) then
 			local has = Has(f.unit, entry)
 			if has == nil then return nil end
 			if not has then return entry end
@@ -163,7 +174,7 @@ local function PaintSample(f, sample)
 	if not tile then return end
 	local cfg, buff = Settings.current.reminders, nil
 	for _, each in ipairs(BUFFS) do
-		if cfg[each.key] then
+		if each.blessing and Blessing(sample.class, sample.role, cfg) == each.key or not each.blessing and cfg[each.key] then
 			buff = each
 			break
 		end

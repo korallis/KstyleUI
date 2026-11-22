@@ -49,6 +49,12 @@ local function Room(f, k)
 	return cfg.x, cfg.y - math.max(k.height, block.top + block.height) - gap
 end
 
+function Targets.Spot(f, k)
+	local x, y = Room(f, k)
+	local cfg = Settings.current.targets
+	return x - cfg.x, y - cfg.y
+end
+
 function Targets.Room(k)
 	local cfg = Settings.current.targets
 	if not cfg.enabled then

@@ -6,6 +6,12 @@ return {
 			["GameTooltip:Hide"] = 1,
 		},
 	},
+	["KstyleUI_GroupFrames/Preview.lua"] = {
+		why = "The settings preview moves its own two pet samples onto the party sample canvas while party pets sit beside their owners, and back to the pet sample holder; they are plain preview frames, never a secure, Blizzard or Edit Mode frame.",
+		calls = {
+			["f:SetParent"] = 1,
+		},
+	},
 	["KstyleUI_GroupFrames/Style.lua"] = {
 		why = "Text above icons moves the frame's own name, health and extra font strings between its own two text layers, so only they rise over the icons; no Blizzard or Edit Mode frame is reparented.",
 		calls = {
