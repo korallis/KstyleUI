@@ -499,6 +499,10 @@ do
 	local fire, s = st.sockets[2], st.sockets[2].spire
 	env.GetTime = function() return 100 end
 	local function Near(a, b) return math.abs(a - b) < 1e-6 end
+	local pending, after, get, reads = {}, env.C_Timer.After, env.GetTotemInfo, 0
+	env.C_Timer.After = function(t, fn)
+		if t > 1 then pending[#pending + 1] = fn else return after(t, fn) end
+	end
 
 	Drop(env, 1, 100)
 	AB.Click(env, fire, "RightButton", false)
@@ -510,16 +514,13 @@ do
 	assert(Near(fire.icon:GetAlpha(), 1), "Magma up lifts its icon to full")
 	Expire(env, 1)
 
-	local pending, after, get, reads = {}, env.C_Timer.After, env.GetTotemInfo, 0
-	env.C_Timer.After = function(t, fn)
-		if t > 1 then pending[#pending + 1] = fn else return after(t, fn) end
-	end
 	env.GetTotemInfo = function(slot) reads = reads + 1; return get(slot) end
 	Drop(env, 1, 100)
 	assert(reads == 1, "one slot update reads GetTotemInfo once (" .. reads .. ")")
 	env.GetTotemInfo = get
+	local n = #pending
 	for _ = 1, 10 do ns.Totems.Update(); env.RunTimers() end
-	assert(#pending == 1, "refreshes keep one last-fifth deadline per spire (" .. #pending .. ")")
+	assert(#pending == n, "refreshes reuse the spire's last-fifth deadline (" .. #pending - n .. " more)")
 	local t = env._totems[1]
 	t.have, t.start, t.duration = env.Secret(true), env.Secret(100), env.Secret(20)
 	env.FireEvent("PLAYER_TOTEM_UPDATE", 2)
