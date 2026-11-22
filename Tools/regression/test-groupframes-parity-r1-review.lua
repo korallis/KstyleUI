@@ -228,7 +228,22 @@ do
 end
 collectgarbage()
 
--- Medallions: raid tiles honour By health; the party preview keeps the badge's own crop.
+-- Medallions: the party's painted badge and its preview crop at Portrait zoom.
+do
+	local env, K, ns = G.New({ setup = setup })
+	G.SetRoster(env, "party", { { name = "Thaldren", class = "WARRIOR", role = "TANK" } })
+	K.Modules.Enable(MODULE)
+	env.RunTimers()
+	local f = frame(ns, "party1")
+	assert(f.showPortrait and (f.portrait:GetTexCoord()) == 0, "the badge shows its full art by default")
+	write(env, K, "party.portraitZoom", 0.2)
+	assert(near((f.portrait:GetTexCoord()), 0.2), "Portrait zoom crops into the badge: " .. f.portrait:GetTexCoord())
+	assert(near((preview(env, K).partyFrames[1].portrait:GetTexCoord()), 0.2), "and into the preview's")
+	noErrors(env, K)
+end
+collectgarbage()
+
+-- Medallions: raid tiles honour By health.
 do
 	local env, K, ns = G.New({ setup = setup })
 	G.SetRoster(env, "raid", G.Members(5))
@@ -237,10 +252,7 @@ do
 	env.RunTimers()
 	write(env, K, "health.colorSource", "gradient")
 	assert(ns.Unit.ColorSources(frame(ns, "raid1")) == "gradient", "Medallions raid tiles take the By health colour")
-	write(env, K, "party.portrait", true)
-	write(env, K, "party.portraitZoom", 0.2)
 	local pane = preview(env, K)
-	assert((pane.partyFrames[1].portrait:GetTexCoord()) == 0, "the Medallions party preview keeps the badge's full crop, as live")
 	local tile = pane.raidFrames[1]
 	local cr = K.Theme.ClassColor(tile.sample.class)
 	assert(not near(tile.health.colorRGBA[1], cr), "the Medallions raid preview paints By health too")
