@@ -1,25 +1,22 @@
 # KstyleUI roadmap
 
-What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.2.13 is out now: Frames is back next to Medallions, your RestedXP or Zygor guide sits top left with the quests on the story rail, raid warnings fit MacBook screens, and Zygor and the action bars cost a lot less frame rate. New releases now land about once a day.
+What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.2.14 is out now: flask and low-mana reminders, more party and raid frame options, unit frame aura settings that stick in every layout, and another round of KstyleUI doing less work so it runs smoother. New releases now land about once a day.
 
-## v0.2.14 — smoother and the last options
+## v0.2.15 — the last frame options
 
 Estimated: within a day or two.
 
-KstyleUI stops doing work it doesn't need, and the last of the customisation work lands.
+The last party and raid frame options, and fixes from your reports.
 
 Highlights:
 
-- KstyleUI never fights other addons: RestedXP, Questie and minimap buttons cost next to nothing.
-- The minimap, vignette, auras and meters do no work while idle.
-- The last party and raid frame options, including more indicator places and frame sorting.
-- A consumable count and low-mana text on the aura reminders.
+- Party and raid frames: anchor and show-on-bottom choices, indicator match mode, and frame sorting where Forever allows.
 - Movable Blizzard windows and a Time Spiral alert, once they are checked in game.
 - More fixes from your reports, released as soon as they are ready.
 
 ## v0.3.0 — the polish release
 
-Estimated: about a week after v0.2.14.
+Estimated: about a week after v0.2.15.
 
 A full polish pass over everything you see and touch, so KstyleUI feels premium from the first minute.
 

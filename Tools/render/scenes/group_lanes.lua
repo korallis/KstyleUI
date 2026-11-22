@@ -26,6 +26,9 @@
 -- RENDER_PARITY_R7=1 switches on round 7's: your frame last in the party, party pets beside their owners (yours and the second
 -- member's), the dispel highlight under the bar's fills on the second member's heal absorb (with RENDER_GROUP_DISPEL=1), and in a
 -- raid tank frames 16 taller whose icons grow with them.
+-- RENDER_PARITY_R8=1 switches on round 8's: names under the bar (Medallions raid tiles and party rows) and party heal icons
+-- right of the frames past the debuffs, with the first member's three heals shown; =left puts the heals left of the frames, and
+-- =above gives raid frames the name above the bar first, so the row moves under the bar too.
 -- RENDER_RAID_POWER=1 switches the raid power bar on.
 -- RENDER_GROUP_DISPEL=1 shows the dispel highlight on the second member as the aura engine does for a Magic debuff: every texture
 -- registered with the slot shown in the Magic colour, keeping its own alpha as the options preview does.
@@ -67,6 +70,7 @@ local R5 = os.getenv("RENDER_PARITY_R5") == "1"
 local EXTRAS = os.getenv("RENDER_EXTRAS") == "1"
 local R6 = os.getenv("RENDER_PARITY_R6") == "1"
 local R7 = os.getenv("RENDER_PARITY_R7") == "1"
+local R8 = os.getenv("RENDER_PARITY_R8")
 local SPELLS = { [1243] = { "Power Word: Fortitude", 135987 }, [1459] = { "Arcane Intellect", 135932 }, [467] = { "Thorns", 136104 } }
 local GROUP_SPELLS = { [21562] = "Prayer of Fortitude", [23028] = "Arcane Brilliance" }
 local IDENTITY = {
@@ -265,6 +269,12 @@ return Common.Run(function()
 		env.RunStateDrivers()
 		place(K, "groupframes.tanks", AT[kind][1] + 760, 40)
 	end
+	if R8 then
+		for key, value in pairs({ ["names.bottom"] = true, ["raid.textLayout"] = R8 == "above" and "ABOVE" or nil, ["party.buffAnchor"] = R8 == "left" and "LEFT" or "RIGHT" }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+		env.RunTimers()
+	end
 	if R6 then
 		for key, value in pairs({ ["prediction.edge"] = true, ["icons.roleBehind"] = true, ["indicator1.style"] = "BAR", ["indicator1.position"] = "BOTTOM",
 			["indicator1.color"] = { r = 0.35, g = 0.85, b = 0.55 }, ["indicator1.reverse"] = true, ["indicator1.over"] = true, ["indicator2.style"] = "SQUARE", ["indicator2.color"] = { r = 0.95, g = 0.7, b = 0.2 },
@@ -325,7 +335,7 @@ return Common.Run(function()
 		end)
 	end
 	local lane = os.getenv("RENDER_GROUP_LANE") == "1"
-	if lane or R5 then
+	if lane or R5 or R8 then
 		local A = dofile("Tools/regression/auras_env.lua")
 		ns.Unit.ForEach(function(f)
 			if (f.unit == "party1" or f.unit == "raid1") and f.buffs then

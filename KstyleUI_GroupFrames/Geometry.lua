@@ -136,22 +136,39 @@ function Geometry.MemberWidth(s, gap)
 	return max(MIN_PART * 2, s.width - Geometry.AuraLane(s, gap))
 end
 
+function Geometry.HealLane(s)
+	local cfg = ns.Settings.current
+	if (s.buffAnchor or "FRAME") == "FRAME" or (s.buffCount or 0) <= 0 or not cfg.buffs.enabled then
+		return 0, nil, false
+	end
+	local gap = Tokens.Size("gapSmall")
+	if not Geometry.IsVertical(s.growth) then
+		return gap + s.buffSize + ns.Auras.TimerSpan(s.buffSize), "TOP", true
+	end
+	local beyond = s.buffAnchor == "RIGHT" and (cfg.targets.enabled or cfg.pets.enabled and cfg.pets.beside)
+	return gap + Line(s.buffCount, s.buffSize, s.auraSpacing or 0), s.buffAnchor, not beyond
+end
+
 local function Members(s, growth, count)
 	local lane = Geometry.AuraLane(s)
 	local memberWidth = s.width - lane
 	local spacing = GROWTH[growth].vertical and s.spacing or s.spacing + lane
 	local w, h = Block(growth, count, memberWidth, s.height, spacing)
-	return w + lane, h, memberWidth, spacing, lane
+	local heal, side, held = Geometry.HealLane(s)
+	heal = held and heal or 0
+	if side == "TOP" then h = h + heal else w = w + heal end
+	return w + lane, h, memberWidth, spacing, lane, heal, side
 end
 
 function Geometry.Party(s)
 	local growth = Clean(s.growth)
 	local count = s.showPlayer == false and PARTY_MAX - 1 or PARTY_MAX
-	local w, h, memberWidth, spacing, lane = Members(s, growth, count)
+	local w, h, memberWidth, spacing, lane, heal, healSide = Members(s, growth, count)
 	local point, x, y = Geometry.Grow(growth, spacing)
 	return {
 		width = w, height = h, count = count, corner = Geometry.Corner(growth), point = point, xOffset = x, yOffset = y,
 		memberWidth = memberWidth, lane = lane, laneSide = AURA_SIDES[s.auraPosition] and (s.auraPosition == "OUTSIDE_LEFT" and "LEFT" or "RIGHT") or nil,
+		heal = heal, healSide = healSide,
 	}
 end
 
@@ -571,6 +588,33 @@ function Overlay(w, h, o)
 		end
 	end
 	return out
+end
+
+function Geometry.NamesBelow(out, h)
+	local name, tile, health = out.name, out.tile, out.health
+	if tile and tile.stacked then
+		for _, rect in pairs({ out.healRow, out.indicatorLane }) do rect.top = 2 * health.top + health.height - rect.top - rect.height end
+		tile.below = true
+		return
+	elseif out.nameInside or not name then
+		return
+	end
+	local gap, margin = out.overlay and NAME_GAP or INSET, out.overlay and EDGE or Tokens.Size("gapSmall")
+	local top, line = name.top, name.top + name.height
+	local down, up = h - 2 * top - name.height, line + gap - margin
+	local column = out.portrait and out.portrait.left + out.portrait.width + 1e-6
+	local icons = out.icons or {}
+	for _, rect in pairs({ name, health, out.power, out.healRow, out.lane, out.indicatorLane, out.block, out.boss, icons.role, icons.leader, icons.marker }) do
+		if not (column and rect.left + rect.width <= column) then
+			rect.top = rect.top + (rect.top < line - 1e-6 and down or -up)
+		end
+	end
+	local spot = out.healthText
+	if spot then
+		spot.top = spot.top and spot.top + down
+		spot.middle = spot.middle and spot.middle - up
+	end
+	out.below = true
 end
 
 local AURA_INSIDE = { TOPLEFT = true, TOPRIGHT = true, BOTTOMLEFT = true, BOTTOMRIGHT = true }

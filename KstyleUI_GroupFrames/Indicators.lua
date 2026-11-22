@@ -146,10 +146,10 @@ local function Layout(f, parts, k)
 		local portrait = parts.portrait
 		local left = portrait and portrait.left or health.left
 		local top = portrait and portrait.top + portrait.height - laneSize or health.top + health.height - laneSize
-		local heal, tile, block = not portrait and parts.healRow, parts.tile, parts.block
+		local heal, tile, block = not portrait and parts.healRow and not parts.healRow.outside and parts.healRow, parts.tile, parts.block
 		if tile and tile.stacked then
 			local px = K.Scale.Pixel(1) / Widgets.ScaleFactor(f)
-			top = math.max(top, math.ceil((Widgets.Snap(f, health.top + tile.inset) + 1.2 * Widgets.FontSize(f.name, f.nameFit.size)) / px) * px)
+			top = tile.below and Widgets.Snap(f, health.top + tile.inset) or math.max(top, math.ceil((Widgets.Snap(f, health.top + tile.inset) + 1.2 * Widgets.FontSize(f.name, f.nameFit.size)) / px) * px)
 		end
 		if heal and heal.top < top + laneSize then
 			local _, count, healSize, spacing = ns.Auras.HealIcons(f, k)

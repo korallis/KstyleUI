@@ -448,7 +448,8 @@ end
 -- groupingOrder, sortMethod INDEX or NAME, unitsPerColumn, maxColumns, startingIndex, child creation
 -- from the template with initialConfigFunction's size read from the header's attributes, and the
 -- unit, child<n> and statehidden attributes; roleFilter against a member's role or raidRole; nameList, used only
--- without groupFilter and roleFilter, in roster order; the pet header's
+-- without groupFilter and roleFilter, in roster order or, with sortMethod NAMELIST, in the list's order (a repeated name takes its last
+-- place); groupBy without groupingOrder on the group path raises as the client's gsub does; the pet header's
 -- pet units (pet, partypet<n>, raidpet<n>) for members whose pet exists.
 local HEADER_TEMPLATES = {
 	SecureGroupHeaderTemplate = true, SecurePartyHeaderTemplate = true, SecureRaidGroupHeaderTemplate = true,
@@ -502,7 +503,10 @@ local function headerUnits(env, header)
 		filter[token] = i
 	end
 	local names = a.nameList and not a.groupFilter and not roles and {}
-	for _, token in ipairs(names and split(a.nameList) or {}) do names[token] = true end
+	for i, token in ipairs(names and split(a.nameList) or {}) do names[token] = i end
+	if a.groupBy and not names and a.groupingOrder == nil then
+		error("SecureGroupHeaders.lua:467: attempt to index local 'groupingOrder' (a nil value)", 0)
+	end
 	local kept = {}
 	for _, e in ipairs(entries) do
 		local m = e.m or {}
@@ -538,6 +542,8 @@ local function headerUnits(env, header)
 		end
 		if a.sortMethod == "NAME" then
 			return tostring((x.m or {}).name) < tostring((y.m or {}).name)
+		elseif names and a.sortMethod == "NAMELIST" then
+			return names[(x.m or {}).name] < names[(y.m or {}).name]
 		end
 		return x.index < y.index
 	end)
