@@ -1399,6 +1399,8 @@ function Layouts.Enabled(name, profile)
 		end
 		enabled[key] = on
 	end
+	local meters = profile and profile.Meters
+	enabled["meters.damage2"] = type(meters) == "table" and type(meters.damage2) == "table" and meters.damage2.shown == true or nil
 	return enabled
 end
 
@@ -1419,7 +1421,8 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 	if not layout then
 		return nil
 	end
-	if enabled["meters.damage"] ~= false and enabled["meters.threat"] ~= false then
+	local paired = enabled["meters.damage"] ~= false and enabled["meters.threat"] ~= false and not enabled["meters.damage2"]
+	if paired then
 		local damage = layout["meters.damage"]
 		layout["meters.threat"] = { anchor = damage.anchor, x = damage.x - DAMAGE_W - GAP, y = damage.y }
 	end
@@ -1455,7 +1458,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 		elseif bars.slab ~= false and (key == "actionbars.pet" or key == "actionbars.stance") then
 			width, offsetX = width + 2 * Layouts.MEDALLIONS_SIDE.pad, (2 * OFFSETS[layout[key].anchor][1] - 1) * Layouts.MEDALLIONS_SIDE.pad
 		end
-		if key == "meters.threat" and enabled["meters.damage"] ~= false then width, height = Layouts.METER_SLOT, DAMAGE_H end
+		if key == "meters.threat" and paired then width, height = Layouts.METER_SLOT, DAMAGE_H end
 		state.sizes[i] = { width, height, offsetX, offsetY, OFFSETS[layout[key].anchor] or OFFSETS.CENTER, key }
 	end
 	local rectCount = #ELEMENTS + 2
@@ -1606,7 +1609,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled)
 	for i, element in ipairs(ELEMENTS) do
 		flags[i] = element.key ~= "consumables.bar" and enabled[element.key] ~= false and "1" or "0"
 	end
-	local signature = (Layouts.ThirdBarFinished() and "finished" or "legacy") .. table.concat(flags) .. Layouts.ActionBarSignature()
+	local signature = (Layouts.ThirdBarFinished() and "finished" or "legacy") .. table.concat(flags) .. (enabled["meters.damage2"] and "2" or "") .. Layouts.ActionBarSignature()
 		.. Layouts.CrestKey()
 	local cached = limits[preset]
 	if cached and cached.width == physicalWidth and cached.height == physicalHeight and cached.signature == signature then
