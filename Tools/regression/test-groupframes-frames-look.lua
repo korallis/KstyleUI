@@ -44,4 +44,24 @@ do
 	assert(ns.Settings.Get("name.size") == 11 and ns.Settings.Get("debuffs.size") == 22, "and Medallions' look returns")
 end
 
+do
+	local env, K = G.New()
+	K.Options.Write("GroupFrames", "party.portrait", false)
+	K.Options.Write("HudStyle", "style", "frames")
+	K.Options.Write("HudStyle", "style", "medallions")
+	env.RunTimers()
+	assert(K.Options.Read("GroupFrames", "party.portrait") == false, "a Medallions value the player set that matches the Frames look survives Frames and back")
+end
+
+do
+	local C = G.CoreEnv
+	local env, K = C.New()
+	C.Boot(env)
+	assert(K.Store.Defaults("GroupFrames") == nil, "the group frames are not loaded")
+	K.Options.Write("HudStyle", "style", "frames")
+	C.Logout(env)
+	local _, later = G.New({ saved = C.DeepCopy(env.KstyleUIDB) })
+	assert(later.HudStyle.Current() == "frames" and later.Options.Read("GroupFrames", "party.portrait") == false, "a module loaded after Frames was chosen gets the Frames look at login")
+end
+
 print("groupframes frames look ok")

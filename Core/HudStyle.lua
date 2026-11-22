@@ -1,4 +1,4 @@
--- HudStyle.lua: the HUD style setting, Medallions or Frames, saved per profile; it switches out of combat, waits for combat to end when chosen in lockdown, fires HudStyleChanged, and offers a reload when a module fails to switch.
+-- HudStyle.lua: the HUD style setting, Medallions or Frames, saved per profile; it switches out of combat, waits for combat to end when chosen in lockdown, fires HudStyleChanged, offers a reload when a module fails to switch, and gives Frames the look it drew before #699 made the Medallions look the defaults, without touching what the player set.
 local addonName, ns = ...
 
 local HudStyle = {}
@@ -14,14 +14,10 @@ local FRAMES_LOOK = {
 	Nameplates = { ["name.size"] = 16, ["name.outline"] = "NONE", ["level.size"] = 13, ["level.outline"] = "NONE", ["debuffs.size"] = 29, ["debuffs.textSize"] = 13 },
 }
 
-HudStyle.defaults = { style = "medallions" }
+HudStyle.defaults = { style = "medallions", look = {} }
 HudStyle.FRAMES_LOOK = FRAMES_LOOK
 
 local applied, queued
-
-local function Log(message)
-	ns.DevTest.Log(SECTION, message)
-end
 
 function HudStyle.Valid(value)
 	return not (issecretvalue and issecretvalue(value)) and STYLES[value] == true
@@ -42,20 +38,24 @@ function HudStyle.Current()
 end
 
 local function Look(style)
-	local Options = ns.Options
+	local Options, marks = ns.Options, Store.Module(SECTION).look
+	HudStyle.looking = true
 	for module, values in pairs(FRAMES_LOOK) do
 		if Store.Defaults(module) then
 			for key, frames in pairs(values) do
-				local known, default = pcall(Options.Default, module, key)
+				local mark, known, default = module .. "." .. key, pcall(Options.Default, module, key)
 				local value = known and Options.Read(module, key)
-				if known and style == "frames" and value == default then
-					Options.Write(module, key, frames)
-				elseif known and style == "medallions" and value == frames then
-					Options.Write(module, key, default)
+				if known and style == "frames" and marks[mark] == nil then
+					marks[mark] = value == default
+					if value == default then Options.Write(module, key, frames) end
+				elseif known and style == "medallions" and marks[mark] then
+					marks[mark] = nil
+					if value == frames then Options.Write(module, key, default) end
 				end
 			end
 		end
 	end
+	HudStyle.looking = false
 end
 
 local function Apply(chosen)
@@ -77,7 +77,7 @@ local function Apply(chosen)
 	end
 	if chosen then Look(style) end
 	applied = style
-	Log("HUD style " .. style)
+	ns.DevTest.Log(SECTION, "HUD style " .. style)
 	local errors = ns.ErrorCount()
 	ns.Callbacks.Fire("HudStyleChanged", style)
 	if ns.ErrorCount() > errors then
@@ -104,15 +104,21 @@ Store.RegisterDefaults(SECTION, HudStyle.defaults)
 ns.Options.Register(SECTION, HudStyle.Schema)
 
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
-	if module == SECTION then
-		Apply(key == "style")
+	if module == SECTION and key == "style" then
+		Apply(true)
 	end
 end)
-ns.Callbacks.Register("ProfileChanged", SECTION, function() Apply() end)
+ns.Callbacks.Register("ProfileChanged", SECTION, function()
+	Apply()
+	ns.Combat.Queue(function() Look(HudStyle.Current()) end)
+end)
 
 ns.Events.Register(SECTION, "ADDON_LOADED", function(_, name)
 	if name == addonName and Store.IsLoaded() then
 		ns.Events.Unregister(SECTION, "ADDON_LOADED")
 		Apply()
 	end
+end)
+ns.Events.Register(SECTION, "PLAYER_LOGIN", function()
+	ns.Combat.Queue(function() Look(HudStyle.Current()) end)
 end)

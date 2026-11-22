@@ -923,7 +923,7 @@ end
 
 Store.migrations[37] = function(data)
 	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
-		for _, key in ipairs({ "actionbars.bar3", "frames:actionbars.bar3", "medallions:actionbars.bar3" }) do
+		for _, key in ipairs({ "actionbars.bar3", "medallions:actionbars.bar3" }) do
 			local entry = type(layout) == "table" and layout[key]
 			if type(entry) == "table" and entry.anchor == "BOTTOMLEFT" and entry.x == 17 and entry.y == 462.5 then
 				entry.anchor, entry.x, entry.y = nil, nil, nil
@@ -1014,29 +1014,27 @@ local function Table(value)
 	return type(value) == "table" and value or {}
 end
 
-local function DropStyledPositions(positions, frames)
+local function DropStyledPositions(positions)
 	for key in pairs(Table(positions)) do
-		if type(key) == "string" and (key:match("^orbs:") or not frames and key:match("^frames:")) then positions[key] = nil end
+		if type(key) == "string" and (key:match("^orbs:") or key:match("^frames:")) then positions[key] = nil end
 	end
 end
 
 Store.migrations[45] = function(data, live)
-	local moved, kept = false, {}
-	for name, profile in pairs(data.profiles) do
+	local moved = false
+	for _, profile in pairs(data.profiles) do
 		if type(profile) == "table" then
-			local hud = type(profile.HudStyle) == "table" and profile.HudStyle.style
-			local frames = hud == "frames"
-			kept[name] = frames
-			moved = moved or not frames and hud ~= "medallions"
-			if not frames then profile.HudStyle = nil end
+			local hud = Table(profile.HudStyle).style
+			local frames = hud == nil or hud == "frames"
+			moved = moved or hud == "orbs"
+			profile.HudStyle = frames and { style = "frames", look = {} } or nil
 			for module, values in pairs(frames and ns.HudStyle.FRAMES_LOOK or {}) do
 				profile[module] = Table(profile[module])
 				for path, value in pairs(values) do
-					local node, parent, leaf = profile[module], path:match("^(.-)%.?([^%.]+)$")
-					for part in parent:gmatch("[^%.]+") do
-						node[part] = Table(node[part])
-						node = node[part]
-					end
+					local group, leaf = path:match("^(%a+)%.(%a+)$")
+					local node = Table(profile[module][group])
+					profile[module][group] = node
+					profile.HudStyle.look[module .. "." .. path] = node[leaf] == nil
 					if node[leaf] == nil then node[leaf] = value end
 				end
 			end
@@ -1062,25 +1060,25 @@ Store.migrations[45] = function(data, live)
 					if unit.style ~= nil and unit.style ~= "plate" and unit.style ~= slab then unit.style = nil end
 				end
 			end
-			if Table(profile.Widgets).cardMaterial == "Glass" then
+			if not frames and Table(profile.Widgets).cardMaterial == "Glass" then
 				profile.Skins = Table(profile.Skins)
 				profile.Skins.contextMenus = Table(profile.Skins.contextMenus)
 				profile.Skins.contextMenus.enabled = false
 			end
 		end
 	end
-	for name, layout in pairs(data.layouts) do
-		DropStyledPositions(layout, kept[name])
+	for _, layout in pairs(data.layouts) do
+		DropStyledPositions(layout)
 	end
 	for _, positions in pairs(Table(Table(data.account).namedLayouts)) do
 		DropStyledPositions(positions)
 	end
-	if moved and live then ns.Print(L["Your HUD moved to Medallions. Played on Frames? Pick it again under HUD style at the top of the settings window's General page."]) end
+	if moved and live then ns.Print(L["Orbs is gone, so your HUD moved to Medallions. Frames is still here: pick it under HUD style at the top of the settings window's General page."]) end
 end
 
 Store.migrations[46] = function(data)
 	for _, profile in pairs(data.profiles) do
-		if type(profile) == "table" then
+		if type(profile) == "table" and Table(profile.HudStyle).style ~= "frames" then
 			local widgets, options = Table(profile.Widgets), Table(profile.OptionsPresentation)
 			widgets.ornaments, widgets.cardMaterial, options.samples = nil, nil, nil
 		end

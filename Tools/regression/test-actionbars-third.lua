@@ -142,7 +142,7 @@ end
 print("third action bar ok")
 
 for _, style in ipairs({ "frames", "medallions" }) do
-	local key = style .. ":actionbars.bar3"
+	local key = style == "frames" and "actionbars.bar3" or style .. ":actionbars.bar3"
 	local env, K = CoreEnv.New({ saved = { version = 36, profiles = { Default = { HudStyle = { style = style } }, Custom = { HudStyle = { style = style } } }, layouts = {
 		Default = { ["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = 17, y = 462.5 }, [key] = { anchor = "BOTTOMLEFT", x = 17, y = 462.5 } },
 		Custom = { [key] = { anchor = "BOTTOMLEFT", x = 19, y = 462.5 } },

@@ -1,7 +1,7 @@
 -- test-store-medallions-only.lua: migration 45 moves Orbs and implicit Frames profiles to Medallions and leaves a saved Frames choice with its keys, says so once on live data and never on a preview, drops the keys and positions only they read (named layouts and exports too), folds choices that now draw the same and keeps the rest; migration 46 drops the forged ornament and card material keys from staging's version 45 data and exports.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 
-local MESSAGE = "Your HUD moved to Medallions. Played on Frames? Pick it again under HUD style at the top of the settings window's General page."
+local MESSAGE = "Orbs is gone, so your HUD moved to Medallions. Frames is still here: pick it under HUD style at the top of the settings window's General page."
 
 local function Boot(style)
 	local env, K = CoreEnv.New({ saved = {
@@ -73,16 +73,18 @@ for _, style in ipairs({ "orbs" }) do
 	assert(not CoreEnv.Printed(again, MESSAGE) and AK.Store.DB_VERSION == again.KstyleUIDB.version, style .. ": the next login says nothing")
 end
 
-do
-	local env, K = Boot("frames")
+for _, style in ipairs({ "frames", false }) do
+	local env, K = Boot(style or nil)
 	local profile = env.KstyleUIDB.profiles.Default
-	assert(not CoreEnv.Printed(env, MESSAGE) and K.HudStyle.Current() == "frames", "a saved Frames choice stays Frames and nothing is said")
+	assert(not CoreEnv.Printed(env, MESSAGE) and K.HudStyle.Current() == "frames", tostring(style) .. ": a Frames profile, saved or the old unsaved default, stays Frames and nothing is said")
+	assert(profile.Widgets.ornaments == "Subtle" and profile.Widgets.cardMaterial == "Slate" and profile.OptionsPresentation.samples == false, "and keeps its ornaments, card material and samples switch")
+	assert(profile.HudStyle.look["Nameplates.name.size"] == true and profile.HudStyle.look["DataBars.strip.placement"] == false, "the Frames look marks what it wrote, not what the player saved")
 	assert(profile.ActionBars.useTray == true and profile.CombatText.fieldDistance == 60 and profile.UnitFrames.target.castbarInside == true
 		and profile.UnitFrames.target.style == "bar" and profile.DataBars.strip.height == 20, "and keeps the keys Frames reads")
 	assert(profile.UnitFrames.orbGlass == nil and profile.ActionBars.bar2.split == nil and profile.Chat.framing == nil, "while the Orbs-only keys still go")
 	assert(env.KstyleUIDB.profiles.Other.DataBars.strip.placement == "top", "a Frames profile keeps its top data bar")
 	local layout = env.KstyleUIDB.layouts.Default
-	assert(layout["frames:unitframes.player"].x == -200 and layout["orbs:actionbars.bar1"] == nil, "its layout keeps the Frames positions and loses the Orbs ones")
+	assert(layout["frames:unitframes.player"] == nil and layout["orbs:actionbars.bar1"] == nil, "its layout loses the Orbs positions and the frames: ones Layout never reads")
 	assert(profile.Nameplates.name.size == 16 and profile.GroupFrames.party.portrait == false and profile.DataBars.xp.text == "levelRested"
 		and profile.DataBars.strip.height == 20, "the values Frames drew before the Medallions look became the defaults are written where nothing was saved")
 	assert(#env._errors == 0, tostring(env._errors[1]))

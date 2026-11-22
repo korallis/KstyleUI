@@ -26,13 +26,16 @@ function CoreEnv.Files()
 end
 
 -- CoreEnv.New(opts) -> env, KstyleUI. opts holds the Stubs.NewEnv options plus:
---   saved     KstyleUIDB as the game loads it before ADDON_LOADED
+--   saved     KstyleUIDB as the game loads it before ADDON_LOADED; a profile saved before version 45 with no HUD style
+--             loads as Medallions, as the fixture was written, unless legacyStyle is set (then migration 45 reads it as
+--             the old default, Frames)
 --   encoding  the C_EncodingUtil table, or nil for a client without it
 --   setup     function(env) that runs before the core files load
 function CoreEnv.New(opts)
 	opts = opts or {}
 	local env = Stubs.NewEnv(opts)
 	env.KstyleUIDB = opts.saved
+	env._legacyStyle = opts.legacyStyle
 	env.C_EncodingUtil = opts.encoding
 	env._printed = {}
 	env.print = function(...)
@@ -67,6 +70,12 @@ function CoreEnv.New(opts)
 end
 
 function CoreEnv.LoadSaved(env)
+	local saved = env.KstyleUIDB
+	if type(saved) == "table" and (tonumber(saved.version) or 0) < 45 and not env._legacyStyle then
+		for _, profile in pairs(type(saved.profiles) == "table" and saved.profiles or {}) do
+			if type(profile) == "table" and profile.HudStyle == nil then profile.HudStyle = { style = "medallions" } end
+		end
+	end
 	env.FireEvent("ADDON_LOADED", "KstyleUI", false)
 	if env._renderCardMaterial then
 		assert(env.KstyleUI.Tokens.Material(env._renderCardMaterial), "unknown RENDER_CARD_MATERIAL: " .. env._renderCardMaterial)

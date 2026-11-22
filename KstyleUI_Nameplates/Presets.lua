@@ -112,7 +112,7 @@ function Presets.OnSetting(_, module, key)
 			K.Options.Write(MODULE, "health.height", ns.Medallions.HEIGHT)
 		end
 	elseif key ~= "enabled" and key ~= "personalResource" and not key:find("^cvars%.") and Settings.Get("preset") ~= "custom"
-		and K.HudStyle.Saved() == K.HudStyle.Current() then
+		and not K.HudStyle.looking then
 		Presets.applying = true
 		K.Options.Write(MODULE, "preset", "custom")
 		Presets.applying = false
@@ -124,3 +124,6 @@ function Presets.OnSetting(_, module, key)
 end
 
 K.Callbacks.Register("SettingChanged", MODULE .. "Presets", Presets.OnSetting)
+K.Callbacks.Register("HudStyleChanged", MODULE .. "Presets", function()
+	if Settings.Get("preset") ~= "custom" then Presets.Apply(Settings.Get("preset")) end
+end)
