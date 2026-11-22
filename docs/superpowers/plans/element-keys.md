@@ -21,7 +21,7 @@ The first-run setup writes the DPS, Tank or Healer position of each key into the
 
 Footprints are width x height in root units. The centre column follows the owner's 2026-11-09 picture ruling, LEE-20, superseding the older sigil and single-action-row arrangement. A footprint followed by the room the layouts keep is a reserve (`Setup.Layouts.Reserves()`): the element's frame is its footprint. `Footprint(name, key)` also returns the reserve's `offsetX`; pass it to `Rect` to measure the external portrait and aura space without moving the bar column's registered anchor.
 
-KSTY-49 (2026-11-13): the Frames tray card, at the KSTY-44 mock-ups' size, lifts every element of the centre stack by `Layouts.TRAY_LIFT` (31 units): the player, target, cast bars, class resource, pet and focus frames, target of target, cooldown rows, swing timer, threat card and combat text, and in Healer the party and raid. A position below quoted from LEE-20 is before that lift; `Setup.Layouts` holds the live values.
+KSTY-49 (2026-11-13): the action bar tray, at the KSTY-44 mock-ups' size, lifts every element of the centre stack by `Layouts.TRAY_LIFT` (31 units): the player, target, cast bars, class resource, pet and focus frames, target of target, cooldown rows, swing timer, threat card and combat text, and in Healer the party and raid. A position below quoted from LEE-20 is before that lift; `Setup.Layouts` holds the live values.
 
 | Key | Module | Element | Footprint | Shape the layouts plan for |
 | --- | --- | --- | --- | --- |
