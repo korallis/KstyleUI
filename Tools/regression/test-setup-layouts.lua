@@ -7,9 +7,9 @@ CoreEnv.Boot(env)
 K.Store.Module("Cooldowns").attached = false
 K.Store.Module("Meters").swing = { attached = false }
 local Layouts = K.Setup and K.Setup.Layouts
-local LIFT, TRAY_PAD, TRAY_BOTTOM = Layouts.TRAY_LIFT, Layouts.TRAY_PAD, Layouts.TRAY_BOTTOM
-local TRAY_TILE, TRAY_GAP = 38 * 19 / 16, 3 * 19 / 16
-local TRAY_ROW = 12 * TRAY_TILE + 11 * TRAY_GAP
+-- The base placement's tray measures, as Core/Setup/Layouts.lua builds them from the mock-up's pixel (19 / 16 units).
+local TRAY_TILE, TRAY_GAP, TRAY_PAD, TRAY_BOTTOM = 38 * 19 / 16, 3 * 19 / 16, 9 * 19 / 16, 40 * 19 / 16 + 4
+local LIFT = math.ceil(TRAY_BOTTOM + 2 * TRAY_PAD + 2 * TRAY_TILE + TRAY_GAP - 132)
 assert(type(Layouts) == "table", "KstyleUI.Setup.Layouts is missing")
 
 -- The element keys modules register with Layout, as docs/superpowers/plans/element-keys.md lists them.
@@ -51,8 +51,6 @@ local REFERENCE = {
 	["unitframes.resource"] = { 120, 14, 0, 421 + LIFT },
 	["cooldowns.essential"] = { 243.2, 36.7, 0, 335.3 + LIFT },
 	["cooldowns.buffs"] = { 182.6, 41.6, -(243.2 / 2 + 16 + 182.6 / 2), 335.3 + LIFT },
-	["actionbars.bar1"] = { TRAY_ROW, TRAY_TILE, 0, TRAY_BOTTOM + TRAY_PAD },
-	["actionbars.bar2"] = { TRAY_ROW, TRAY_TILE, 0, TRAY_BOTTOM + TRAY_PAD + TRAY_TILE + TRAY_GAP },
 	["databars.xp"] = { 491, 7 * 19 / 16, 0, TRAY_BOTTOM - 9 * 19 / 16 - 7 * 19 / 16 + 9 },
 }
 for _, name in ipairs(Layouts.Names()) do
@@ -404,10 +402,6 @@ for _, name in ipairs(names) do
 		local swing = rect("meters.swing")
 		assert(same(swing.bottom - resource.top, 8) and swing.bottom - cast.top >= 8 + 14, label .. ": KSTY-60 item 13: the swing line has its own slot 8 above the class resource, clear of the player cast, as in Orbs")
 		local block = math.max(bars.top, essential.top, utility.top)
-		local petBar, stance = rect("actionbars.pet"), rect("actionbars.stance")
-		local near = K.Tokens.Size("gapLarge")
-		assert(same(bar1.left - TRAY_PAD - petBar.right, near) and same(petBar.bottom, TRAY_BOTTOM), label .. ": the optional pet sockets stand beside the tray card, on its bottom edge")
-		assert(same(stance.left - bar1.right - TRAY_PAD, near) and same(stance.bottom, TRAY_BOTTOM), label .. ": the optional stance sockets stand beside the tray card, on its bottom edge")
 		local rep, honor = rect("databars.rep"), rect("databars.honor")
 		assert(same(rep.x - mid, -337.5) and same(rep.bottom, TRAY_BOTTOM - 9 * 19 / 16 - 1) and rep.top < TRAY_BOTTOM, label .. ": the reputation line keeps its old x under the tray card's left end")
 		assert(same(honor.x - mid, 337.5) and same(honor.bottom, rep.bottom), label .. ": the honour line mirrors it under the right end")
@@ -451,7 +445,7 @@ for _, name in ipairs(names) do
 		assert(same(cast.bottom - essential.top, 13.5) and same(targetCast.bottom, 628 + LIFT) and same(targetCast.top, 660 + LIFT), label .. ": LEE-20 the player cast sits over the cooldowns; the optional target cast keeps its top under the clear centre")
 		local bar3 = rect("actionbars.bar3")
 		assert(same(bar2.w, bar1.w) and same(bar2.h, bar1.h) and same(bar3.w, 489) and same(bar3.h, 38), label .. ": LEE-20 bars 1 and 2 match; spare bar 3 keeps its old button dimensions")
-		assert(same(bar2.left, bar1.left) and same(bar2.bottom - bar1.top, TRAY_GAP) and same(vitals.bottom, 138 + LIFT) and vitals.bottom - bar2.top - TRAY_PAD >= 6, label .. ": bars 1 and 2 stack at the KSTY-44 tray's gap, the tray card at least 6 under the player")
+		assert(same(vitals.bottom, 138 + LIFT), label .. ": the player stands at the picture's height")
 
 		-- The boss column stands on the centre's right edge in DPS and Tank, a rail gap left of the quest card's column
 		-- beside the RestedXP guide (KSTY-33, the Captain's ruling on the Fable audit), its foot a rail gap over your combat
@@ -562,15 +556,18 @@ do
 end
 
 -- Footprints: LEE-20 centre dimensions and unchanged optional frames and rail cards. ----------------------------
+-- Bars 1 and 2 take the Medallions slab's row; the pet and stance bars the Medallions side grid, two rows of five 30-unit
+-- sockets 4 apart.
+local _, _, SLAB_W, SLAB_H = Layouts.MedallionsGroup(K.Scale.Aspect())
 local FOOTPRINTS = {
-	["actionbars.bar1"] = { TRAY_ROW, TRAY_TILE },
-	["actionbars.bar2"] = { TRAY_ROW, TRAY_TILE },
+	["actionbars.bar1"] = { SLAB_W, SLAB_H },
+	["actionbars.bar2"] = { SLAB_W, SLAB_H },
 	["actionbars.bar3"] = { 12 * 38 + 11 * 3, 38 },
 	["actionbars.bar4"] = { 36.7, 12 * 36.7 + 11 * 4.6 },
 	["actionbars.bar5"] = { 36.7, 12 * 36.7 + 11 * 4.6 },
 	["actionbars.bar6"] = { 36.7, 12 * 36.7 + 11 * 4.6 },
-	["actionbars.pet"] = { 4 * 30 + 3 * 3, 3 * 30 + 2 * 3 },
-	["actionbars.stance"] = { 4 * 30 + 3 * 3, 3 * 30 + 2 * 3 },
+	["actionbars.pet"] = { 5 * 30 + 4 * 4, 2 * 30 + 4 },
+	["actionbars.stance"] = { 5 * 30 + 4 * 4, 2 * 30 + 4 },
 	-- LEE-20 reserves external portraits and target debuffs; the optional focus retains its 22-unit aura reserve.
 	["cooldowns.essential"] = { 243.2, 36.7 },
 	["cooldowns.utility"] = { 4 * 38 + 3 * 3, 38 },
@@ -616,6 +613,8 @@ do
 	-- LEE-20 adds asymmetric portrait reserves; focus auras, boss debuffs and docked menus retain their reserves. The map's zone, coordinates and clock hang
 	-- in the 36 units under its 188 square.
 	local RESERVES = { ["unitframes.player"] = { 586.5, 77.5, -47.75 }, ["unitframes.target"] = { 737.4, 102.5, 123.2 }, ["unitframes.focus"] = { 200, 112 }, ["unitframes.boss"] = { 318, 334 }, ["minimap.main"] = { 208, 222 } }
+	-- The slab bars, the side grids and the consumables take Medallions footprints (FOOTPRINTS above) over their elements.
+	local MEDALLIONS_GRIDS = { ["actionbars.bar1"] = true, ["actionbars.bar2"] = true, ["actionbars.pet"] = true, ["actionbars.stance"] = true, ["consumables.bar"] = true }
 	local reserved = {}
 	for _, entry in ipairs(Layouts.Reserves()) do
 		local want = RESERVES[entry.key]
@@ -631,7 +630,7 @@ do
 	assert(focus.width == 200 and focus.height == 90 and Layouts.Get("DPS")["unitframes.focus"].anchor == "BOTTOM", "the focus card's frame foots its reserve, so its debuffs sit inside it")
 	assert(boss.width == 222 and boss.height == 5 * 62 + 4 * 6, "the boss column holds five 62-unit cards 6 apart, 222 wide beside a row of four 22-unit debuffs")
 	for _, element in ipairs(Layouts.ELEMENTS) do
-		if not RESERVES[element.key] then
+		if not RESERVES[element.key] and not MEDALLIONS_GRIDS[element.key] then
 			local w, h = Layouts.Footprint("DPS", element.key)
 			local drawnW, drawnH = element.width, element.height
 			if element.key == "consumables.bar" then drawnW, drawnH = 121.5, 39.5 end
