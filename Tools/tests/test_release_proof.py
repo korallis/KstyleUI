@@ -3,6 +3,7 @@
 import contextlib
 import io
 import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,6 +11,9 @@ from unittest import mock
 
 from Tools.release import proof
 from Tools.tests.test_workflows import WORKFLOWS, jobs_of
+
+# The tag "a" is a merge commit with the tree of staging commit "c"; "b" has another tree.
+TREES = {"a" * 40: "1" * 40, "c" * 40: "1" * 40, "b" * 40: "2" * 40}
 
 
 class ReleaseProofTest(unittest.TestCase):
@@ -29,8 +33,7 @@ class ReleaseProofTest(unittest.TestCase):
         clock.sleep.side_effect = sleep
 
         def api(path):
-            self.assertIn("head_sha=" + "a" * 40, path)
-            self.assertIn("event=push", path)
+            self.assertIn("/actions/workflows/checks.yml/runs?branch=staging&event=push", path)
             if error:
                 raise error
             return {"workflow_runs": runs(run) if runs else [run]}
@@ -41,6 +44,7 @@ class ReleaseProofTest(unittest.TestCase):
             with mock.patch.dict(os.environ, GITHUB_REPOSITORY="korallis/KstyleUI", GITHUB_SHA="a" * 40,
                                  GITHUB_OUTPUT=str(output)), \
                     mock.patch.object(proof, "github_json", side_effect=api), \
+                    mock.patch.object(proof, "tree", side_effect=TREES.get), \
                     mock.patch.object(proof, "time", clock), contextlib.redirect_stdout(log):
                 result = proof.main()
             return result, output.read_text() if output.exists() else "", log.getvalue()
@@ -63,9 +67,25 @@ class ReleaseProofTest(unittest.TestCase):
         result, output, log = self.run_proof(lambda run: [dict(run, path=".github/workflows/release.yml",
                                                                head_branch="v0.2.8.1", status="in_progress")])
         self.assertEqual((result, output), (0, "run=true\n"))
-        self.assertIn("No checks.yml push run", log)
+        self.assertIn("No checks.yml staging run", log)
 
-    def test_other_workflows_events_repositories_or_shas_cannot_prove_release(self):
+    def test_staging_run_of_the_same_tree_proves_the_release_merge_commit(self):
+        result, output, log = self.run_proof(lambda run: [dict(run, head_sha="c" * 40)])
+        self.assertEqual((result, output), (0, "run=false\n"))
+        self.assertIn("reusing checks", log)
+
+    def test_red_staging_run_of_the_same_tree_refuses(self):
+        result, output, _ = self.run_proof(lambda run: [run, dict(run, id=124, head_sha="c" * 40,
+                                                                  conclusion="failure")])
+        self.assertEqual((result, output), (1, ""))
+
+    def test_tree_reads_git_and_unknown_shas_have_none(self):
+        head = subprocess.run(["git", "rev-parse", "HEAD^{tree}"], capture_output=True, text=True,
+                              check=True).stdout.strip()
+        self.assertEqual(proof.tree("HEAD"), head)
+        self.assertIsNone(proof.tree("f" * 40))
+
+    def test_other_workflows_events_repositories_or_trees_cannot_prove_release(self):
         for changes in ({"path": ".github/workflows/release.yml"}, {"event": "pull_request"},
                         {"head_repository": {"full_name": "fork/KstyleUI"}}, {"head_sha": "b" * 40}):
             with self.subTest(changes=changes):
