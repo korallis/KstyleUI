@@ -230,15 +230,6 @@ function Widgets.CrownCount(kind)
 	return CLASSES[kind] and CLASSES[kind].count
 end
 
-local Fed = {}
-
-function Fed:Layout(size)
-	local px = Widgets.Snap(self.frame, size)
-	self.frame:SetSize(px, px)
-	local halo = Widgets.Snap(self.frame, px * HALO)
-	self.haloFrame:SetSize(halo, halo)
-end
-
 local Crown = {}
 
 local function Interpolation(moving)
@@ -272,14 +263,13 @@ local function Bind(feeds, moving)
 end
 
 function Crown:SetMotion(moving)
-	moving = moving and true or false
 	if moving ~= self.moving and pcall(Bind, self.feeds, moving) then
 		self.moving = moving
 	end
+	return moving == self.moving
 end
 
 function Crown:Listen(owner, on)
-	on = on and true or false
 	if self.listening == on then
 		return
 	end
@@ -292,16 +282,11 @@ function Crown:Listen(owner, on)
 end
 
 function Crown:SetShown(on)
-	on = on and true or false
 	self.holder:SetShown(on)
 	self.container:SetEnabled(on)
-	if on and not self.shown then
-		self.container:UpdateAllAuras()
-	end
-	self.shown = on
 end
 
-function Widgets.FedCrown(parent, kind, angles)
+function Widgets.FedCrown(parent, kind, angles, size, moving)
 	local c = CLASSES[kind]
 	local holder = CreateFrame("Frame", nil, parent)
 	holder:SetAllPoints(parent)
@@ -323,16 +308,24 @@ function Widgets.FedCrown(parent, kind, angles)
 		local set = Widgets.ClassPipSet(kind, angle)
 		local frame = CreateFrame("Frame", nil, holder)
 		frame:SetFrameLevel(level)
-		local p = setmetatable({ frame = frame, i = i, axis = angle }, { __index = Fed })
+		local px = Widgets.Snap(frame, size)
+		frame:SetSize(px, px)
+		local p = { frame = frame, i = i, axis = angle }
 		p.steel = frame:CreateTexture(nil, "BACKGROUND")
 		p.steel:SetTexture((Tokens.Texture(set.steel)))
 		p.steel:SetAllPoints(frame)
 		p.haloFrame = CreateFrame("Frame", nil, frame)
 		p.haloFrame:SetPoint("CENTER", frame, "CENTER", 0, 0)
+		local halo = Widgets.Snap(frame, px * HALO)
+		p.haloFrame:SetSize(halo, halo)
 		p.halo = Slot(fed, "halo" .. i, p.haloFrame, level + 2, i - 1, false, set.glow, set.glowColor, true)
 		p.blade = Slot(fed, "lit" .. i, frame, level + 3, i - 1, true, set.lit, "white")
 		fed.pips[i] = p
 	end
 	fed.max = Slot(fed, "max", holder, level + 1, #angles)
+	if not fed:SetMotion(moving) then
+		holder:Hide()
+		return nil
+	end
 	return fed
 end

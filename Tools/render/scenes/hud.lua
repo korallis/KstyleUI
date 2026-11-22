@@ -85,7 +85,7 @@ end
 -- scene's class (a druid's in bear form with RENDER_FORM=bear), whose spell the player then knows; nil for the combo
 -- point classes and the rest.
 local CROWN_AURAS = { WARRIOR = 7386, PRIEST = 15258, MAGE = 400573, HUNTER = 1310687, BEAR = 1328617 }
-local CROWN_KNOWN = { WARRIOR = { 7386 }, PRIEST = { 15257 }, MAGE = { 400574 }, HUNTER = { 1310687 }, BEAR = { 1328617 } }
+local CROWN_KNOWN = { WARRIOR = 7386, PRIEST = 15257, MAGE = 400574, HUNTER = 1310687, BEAR = 1328617 }
 function Hud.Crown(opts)
 	local class = Hud.Class(opts)
 	local kind = class == "DRUID" and os.getenv("RENDER_FORM") == "bear" and "BEAR" or class
@@ -661,14 +661,9 @@ function modules.actionbars(opts)
 			local kind = Hud.Crown(opts)
 			if kind then
 				dofile("Tools/regression/aura_slots.lua").Install(env)
-				local known = {}
-				for _, id in ipairs(CROWN_KNOWN[kind]) do
-					known[id] = true
-				end
-				-- A hunter's crown is drawn with its Summon Hawk perches (1293241), which share the crest.
-				known[1293241] = kind == "HUNTER" and Hud.Pips() ~= nil
+				-- A hunter's crown is drawn with its Summon Hawk perches (1293241), which share the crest, on or off.
 				env.C_SpellBook = env.C_SpellBook or {}
-				env.C_SpellBook.IsSpellKnown = function(id) return known[id] == true end
+				env.C_SpellBook.IsSpellKnown = function(id) return id == CROWN_KNOWN[kind] or kind == "HUNTER" and id == 1293241 end
 				env.GetTotemInfo = function() return false, "", 0, 0, 0, 1, 0 end
 				env.GetTotemDuration = function() return { start = 0, finish = 0 } end
 			end
