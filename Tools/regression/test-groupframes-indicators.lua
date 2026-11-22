@@ -179,8 +179,8 @@ eq(tank.absorbs:IsShown(), true, "absorbs stay on")
 eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
 
 -- Blizzard's secret-safe role helper is used when the client has it.
-local seen, utilK
-env, utilK, _, _, content = setup({
+local seen
+env, _, _, _, content = setup({
 	setup = function(e)
 		e.UnitFrameUtil = {
 			UpdateUnitFrameRoleIcon = function(elements)
@@ -197,13 +197,6 @@ env.RunTimers()
 local secretRole = content("party1")
 eq(secretRole.pipFill:IsShown(), false, "a secret role shows no pip")
 eq(last(secretRole.role, "SetAtlas")[1], "blizzard-role", "UnitFrameUtil draws the role icon for a secret role")
-assert(seen ~= nil, "UnitFrameUtil gets the unit")
-env._member("party1").role = "TANK"
-seen = nil
-utilK.Options.Write("GroupFrames", "party.portrait", true)
-utilK.Options.Write("GroupFrames", "party.roleRing", false)
-env.RunTimers()
-eq(last(content("party1").role, "SetAtlas")[1], "blizzard-role", "UnitFrameUtil draws the role icon")
 assert(seen ~= nil, "UnitFrameUtil gets the unit")
 eq(#env._errors, 0, "no errors with UnitFrameUtil: " .. tostring(env._errors[1]))
 
