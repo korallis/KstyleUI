@@ -62,7 +62,9 @@ for name, values in pairs(Presets.VALUES) do
 end
 
 local function Default(key)
-	return K.HudStyle.Current() == "frames" and K.HudStyle.FRAMES_LOOK[MODULE][key] or lookup(Settings.defaults, key)
+	local frames = K.HudStyle.Current() == "frames" and K.HudStyle.FRAMES_LOOK[MODULE][key]
+	if frames ~= nil and frames ~= false then K.Store.Module("HudStyle").look[MODULE .. "." .. key] = true end
+	return frames or lookup(Settings.defaults, key)
 end
 
 local function Write(key, value)
@@ -124,6 +126,3 @@ function Presets.OnSetting(_, module, key)
 end
 
 K.Callbacks.Register("SettingChanged", MODULE .. "Presets", Presets.OnSetting)
-K.Callbacks.Register("HudStyleChanged", MODULE .. "Presets", function()
-	if Settings.Get("preset") ~= "custom" then Presets.Apply(Settings.Get("preset")) end
-end)

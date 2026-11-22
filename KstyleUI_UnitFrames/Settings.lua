@@ -1329,8 +1329,8 @@ local function KindRows(schema, kind)
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "style", label = L["Style"],
 		help = STYLE_HELP[kind == "target" and "target" or Settings.COLUMN[kind] and "column" or Settings.FORMS[kind]],
-		options = function()
-			local column = K.HudStyle.Current() == "medallions" and CHOICES.styleMedallions or kind == "target" and CHOICES.styleTarget or CHOICES.style
+		options = function(all)
+			local column = not all and K.HudStyle.Current() == "medallions" and CHOICES.styleMedallions or kind == "target" and CHOICES.styleTarget or CHOICES.style
 			return Settings.COLUMN[kind] and column or CHOICES.styleLumen
 		end,
 	})

@@ -38,6 +38,7 @@ function HudStyle.Current()
 end
 
 local function Look(style)
+	if not Store.IsLoaded() then return end
 	local Options, marks = ns.Options, Store.Module(SECTION).look
 	HudStyle.looking = true
 	for module, values in pairs(FRAMES_LOOK) do

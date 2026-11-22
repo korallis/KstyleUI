@@ -310,8 +310,8 @@ function ns.Schema()
 	local stripRows = {
 		{ type = "header", label = L["Data bar"] },
 		{ type = "toggle", key = "strip.enabled", label = L["Show the data bar"], help = L["Show the data bar and its readouts."] },
-		{ type = "dropdown", key = "strip.placement", label = L["Position"], help = L["Docked sits under the action bars. Right rail is the old readout."], options = function()
-			return Widgets.Medallions() and { placements[2], placements[3] } or placements
+		{ type = "dropdown", key = "strip.placement", label = L["Position"], help = L["Docked sits under the action bars. Right rail is the old readout."], options = function(all)
+			return not all and Widgets.Medallions() and { placements[2], placements[3] } or placements
 		end },
 		{ type = "slider", key = "strip.height", label = L["Height"], help = L["The height of the top data bar."], min = 12, max = 32, step = 1, showWhen = function() return not Widgets.Medallions() end },
 		{ type = "dropdown", key = "strip.artwork", label = L["Data bar artwork"], help = L["Forged trim and a crest gem, or a plain glass plate."], showWhen = function(settings) return settings.strip.placement == "top" or Widgets.Medallions() and settings.strip.placement ~= "rail" end, options = {

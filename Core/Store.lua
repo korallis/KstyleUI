@@ -1924,7 +1924,7 @@ local function checkRow(row, value, path, default)
 	elseif row.type == "dropdown" or row.type == "segmented" or row.type == "pictures" then
 		local options = row.options
 		if type(options) == "function" then
-			local ok, list = pcall(options)
+			local ok, list = pcall(options, true)
 			if not ok or type(list) ~= "table" then
 				return format(L["%s could not be checked against its choices."], path)
 			end
