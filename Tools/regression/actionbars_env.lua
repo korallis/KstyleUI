@@ -332,6 +332,7 @@ local function InstallGame(env, opts)
 			return g.zeroDuration
 		end,
 	}
+	env.Constants = { SpellCooldownConsts = { GLOBAL_RECOVERY_CATEGORY = 133 } }
 	env.GetBindingKey = function(name)
 		local keys = g.bindings[name]
 		if keys then

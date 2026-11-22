@@ -283,13 +283,26 @@ local function UpdateTrustedCooldown(button)
 	ns.Button.UpdateCooldown(button, true)
 end
 
-local function OnSpellCooldown()
-	ForActions(UpdateTrustedCooldown)
+local function OnSpellCooldown(_, spellID, baseSpellID, category, recovery)
+	local IsSecret, consts = ns.IsSecret, Constants and Constants.SpellCooldownConsts
+	local gcd = consts and consts.GLOBAL_RECOVERY_CATEGORY
+	if type(gcd) ~= "number" or IsSecret(spellID) or type(spellID) ~= "number" or IsSecret(baseSpellID) or IsSecret(category) or category ~= nil or IsSecret(recovery) or recovery == gcd then
+		ForActions(UpdateTrustedCooldown)
+	else
+		local list = ns.actionButtons
+		for i = 1, #list do
+			local button = list[i]
+			local id = button.spellID
+			if id == nil or id == spellID or id == baseSpellID or button.gcd == true then
+				UpdateTrustedCooldown(button)
+			end
+		end
+	end
 	for _, button in ipairs(ns.petButtons) do
-		ns.Button.Update(button, true)
+		UpdateTrustedCooldown(button)
 	end
 	for _, button in ipairs(ns.stanceButtons) do
-		ns.Button.Update(button, true)
+		UpdateTrustedCooldown(button)
 	end
 	ns.Flyout.UpdateCooldown()
 end
@@ -319,7 +332,7 @@ local function OnForms()
 end
 
 local function OnForm()
-	ForActions(ns.Button.Update)
+	ForActions(ns.Button.UpdateForm)
 	UpdateStances()
 end
 

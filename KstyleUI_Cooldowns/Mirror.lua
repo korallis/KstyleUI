@@ -102,6 +102,9 @@ local function Texture(texture, entry)
 			fileID = file
 		end
 	end
+	local plain = not ns.IsSecret(fileID)
+	if plain and texture.mirrorSet and texture.mirrorFile == fileID then return end
+	texture.mirrorSet, texture.mirrorFile = plain, plain and fileID or nil
 	texture:SetTexture(fileID)
 end
 
@@ -1212,7 +1215,12 @@ function Mirror.Custom()
 	Reshift(row)
 end
 
-local eventSpell, eventShow, eventEntry
+local eventSpell, eventShow, eventEntry, cooledSpell, cooledBase
+
+local function Cooled(entry)
+	return cooledSpell == nil or not entry or entry.categoryID ~= nil or entry.equipSlot ~= nil or entry.spell == cooledSpell
+		or entry.spellID == cooledSpell or entry.spellID == cooledBase or entry.previousOverrideSpellID == cooledSpell
+end
 
 local function EachCooldownIcon(fn)
 	for group in pairs(COOLDOWN_GROUPS) do
@@ -1227,8 +1235,10 @@ local function EachCooldownIcon(fn)
 end
 
 local function CooldownIcon(row, icon)
-	Cooldown(row, icon, true)
-	Charges(icon)
+	if Cooled(icon.entry) then
+		Cooldown(row, icon, true)
+		Charges(icon)
+	end
 end
 
 local function ChargeIcon(_, icon)
@@ -1343,7 +1353,7 @@ end
 local function CooldownTimings(row, cooldownEvent)
 	for i = 1, row.count do
 		local bar = row.bars[i]
-		if cooldownBars[bar.entry] then CooldownTiming(row, bar, cooldownEvent) end
+		if cooldownBars[bar.entry] and Cooled(bar.entry) then CooldownTiming(row, bar, cooldownEvent) end
 	end
 end
 
@@ -1434,9 +1444,15 @@ local EVENTS = {
 	SPELL_UPDATE_USES = function()
 		EachCooldownIcon(UsesIcon)
 	end,
-	SPELL_UPDATE_COOLDOWN = function()
+	SPELL_UPDATE_COOLDOWN = function(_, spell, base, category, recovery)
+		local IsSecret, consts = ns.IsSecret, Constants and Constants.SpellCooldownConsts
+		local gcd = consts and consts.GLOBAL_RECOVERY_CATEGORY
+		if not (type(gcd) ~= "number" or IsSecret(spell) or type(spell) ~= "number" or IsSecret(base) or IsSecret(category) or category ~= nil or IsSecret(recovery) or recovery == gcd) then
+			cooledSpell, cooledBase = spell, base
+		end
 		EachCooldownIcon(CooldownIcon)
 		RefreshCooldownBars(true)
+		cooledSpell, cooledBase = nil, nil
 	end,
 	SPELL_UPDATE_CHARGES = function()
 		EachCooldownIcon(ChargeIcon)

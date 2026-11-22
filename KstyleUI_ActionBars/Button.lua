@@ -138,11 +138,15 @@ local function ClearChargeCooldown(b)
 	end
 end
 
+local PetOrStanceCooldown
+
 function Button.UpdateCooldown(b, trusted)
 	if not b.hasAction then
 		ClearCooldown(b)
 		ClearChargeCooldown(b)
 		return
+	elseif b.kind == "pet" or b.kind == "stance" then
+		return PetOrStanceCooldown(b, trusted)
 	end
 	local slot, bar = b.slot, C_ActionBar
 	local info = CooldownInfo(bar, slot)
@@ -311,6 +315,15 @@ function Button.ItemInfoReceived(_, id)
 	if buttons then for b in pairs(buttons) do Button.UpdateRarity(b) end end
 end
 
+local function SetIcon(b, texture)
+	local plain = not IsSecret(texture)
+	if plain and b.iconSet and b.iconTexture == texture then
+		return
+	end
+	b.iconSet, b.iconTexture = plain, plain and texture or nil
+	b:SetIcon(texture)
+end
+
 local function SpellOf(slot)
 	if type(GetActionInfo) ~= "function" then
 		return nil
@@ -330,7 +343,7 @@ local function UpdateAction(b)
 	local has = slot ~= nil and ns.SlotValid(slot) and Flag(bar.HasAction(slot), true)
 	b.hasAction = has
 	if has then
-		b:SetIcon(bar.GetActionTexture(slot))
+		SetIcon(b, bar.GetActionTexture(slot))
 		local spellID = SpellOf(slot)
 		if b.spellID ~= spellID then
 			b.gcd = nil
@@ -341,7 +354,7 @@ local function UpdateAction(b)
 		local most = type(charges) == "table" and Plain(charges.maxCharges)
 		b.hasCharges = type(most) == "number" and most > 1
 	else
-		b:SetIcon(nil)
+		SetIcon(b, nil)
 		b.gcd = nil
 		b.spellID, b.hasCharges, b.isFlyout = nil, false, false
 	end
@@ -362,6 +375,15 @@ local function UpdateAction(b)
 	Button.UpdateState(b)
 	Button.UpdateProc(b)
 	Button.UpdateAlpha(b)
+end
+
+function Button.UpdateForm(b)
+	if not b.hasAction then
+		return
+	elseif SpellOf(b.slot) ~= b.spellID then
+		return UpdateAction(b)
+	end
+	SetIcon(b, C_ActionBar.GetActionTexture(b.slot))
 end
 
 local function SpellOnGlobalCooldown(b, spell, spellID, trusted)
@@ -395,6 +417,15 @@ local function SpellCooldown(b, spellID, start, duration, trusted)
 	end
 end
 
+function PetOrStanceCooldown(b, trusted)
+	local pet = b.kind == "pet"
+	local get, start, duration = pet and GetPetActionCooldown or GetShapeshiftFormCooldown
+	if type(get) == "function" then
+		start, duration = get(b.index)
+	end
+	SpellCooldown(b, pet and b.petSpell or b.formSpell, start, duration, trusted)
+end
+
 local function UpdatePet(b, trusted)
 	local i = b.index
 	local name, texture, isToken, isActive, autoCastAllowed, autoCastEnabled, spellID
@@ -406,9 +437,9 @@ local function UpdatePet(b, trusted)
 		texture = _G[texture]
 	end
 	if b.hasAction then
-		b:SetIcon(texture)
+		SetIcon(b, texture)
 	else
-		b:SetIcon(nil)
+		SetIcon(b, nil)
 	end
 	b.petSpell = Plain(spellID)
 	b.autoCastAllowed = Flag(autoCastAllowed, false)
@@ -423,11 +454,7 @@ local function UpdatePet(b, trusted)
 	end
 	SetUsable(b, usable)
 	if b.hasAction then
-		local start, duration
-		if type(GetPetActionCooldown) == "function" then
-			start, duration = GetPetActionCooldown(i)
-		end
-		SpellCooldown(b, b.petSpell, start, duration, trusted)
+		PetOrStanceCooldown(b, trusted)
 	else
 		ClearCooldown(b)
 	end
@@ -441,7 +468,7 @@ local function UpdateStance(b, trusted)
 		texture, isActive, isCastable, spellID = GetShapeshiftFormInfo(i)
 	end
 	b.hasAction = IsSecret(texture) or texture ~= nil
-	b:SetIcon(texture)
+	SetIcon(b, texture)
 	b.formSpell = Plain(spellID)
 	local selected = b.hasAction and Flag(isActive, false)
 	if selected ~= (b.selected == true) then
@@ -449,11 +476,7 @@ local function UpdateStance(b, trusted)
 	end
 	SetUsable(b, not b.hasAction or Flag(isCastable, true))
 	if b.hasAction then
-		local start, duration
-		if type(GetShapeshiftFormCooldown) == "function" then
-			start, duration = GetShapeshiftFormCooldown(i)
-		end
-		SpellCooldown(b, b.formSpell, start, duration, trusted)
+		PetOrStanceCooldown(b, trusted)
 	else
 		ClearCooldown(b)
 	end

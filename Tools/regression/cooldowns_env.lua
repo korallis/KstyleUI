@@ -182,6 +182,7 @@ function C.Install(env, opts)
 	env.Enum = env.Enum or {}
 	env.Enum.CooldownViewerCategory = C.CATEGORY
 	env.Enum.CooldownSetSpellFlags = C.FLAGS
+	env.Constants = { SpellCooldownConsts = { GLOBAL_RECOVERY_CATEGORY = 133 } }
 	env.Enum.StatusBarInterpolation = { Immediate = 0, ExponentialEaseOut = 1 }
 	env.Enum.StatusBarTimerDirection = { ElapsedTime = 0, RemainingTime = 1 }
 	C.StringUtil(env)
