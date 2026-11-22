@@ -12,6 +12,7 @@ ns.Panel = Panel
 local KEY = "chat.main"
 local STRATA = "BACKGROUND"
 local MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT = 260, 120, 1000, 800
+local RULE_ALPHA = 0.35
 local CHAT_FILL = "medChatFill"
 local SHADE_LOBES, SHADE_X, SHADE_Y, SHADE_W, SHADE_H, SHADE_ALPHA = { -0.2727, 0, 0.2727 }, 0.47, 0.563, 1.09, 2.38, 0.46
 local BUTTON_SIZE, BUTTON_GLYPH, BUTTON_INSET = 20, 8, 22
@@ -534,6 +535,10 @@ end
 function Panel.Sync()
 	state.alpha = nil
 	Mirror()
+end
+
+function Panel.PaintRule(divider)
+	Widgets.Tint(divider, "gilt", RULE_ALPHA)
 end
 
 local function SyncHeader()
