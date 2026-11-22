@@ -146,6 +146,5 @@ assert(A.W.SameColor(frame.tile.chrome.rim[5], K.Tokens.Color("medSocketRim")), 
 K.Options.Write("Auras", "medallionsIcons", false); env.RunTimers()
 assert(A.W.SameColor(frame.tile.chrome.rim[5], K.Tokens.Color("edgeInner")), "the setting off restores the plain rim")
 K.Options.Write("Auras", "medallionsIcons", true)
-assert(A.W.SameColor(frame.tile.chrome.rim[5], K.Tokens.Color("edgeInner")), "Frames keeps the plain rim")
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("test-auras-reminder: ok")

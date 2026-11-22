@@ -261,18 +261,11 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 							local pixel = 1080/h
 							local margin = K.Tokens.Size("screenMargin")*K.Scale.AppliedUserScale()
 							local width = w*1080/h
-							local topMenu=strip.topBar and micro:GetParent()==strip.frame
-							allowed["databars.micro/databars.strip"]=topMenu
-							local bar=topMenu and {Scene.Rect(env,strip.frame)}
 							local dockDrop=strip.slab and 15*K.Scale.AppliedUserScale() or 0
 							local function add(key, item)
 									local r=item.rect
-									local edge = key == "databars.strip" and K.Setup.Layouts.DataBarHeight(style) and 0 or margin
-									local top=topMenu and key=="databars.micro" and 0 or edge
+									local edge, top = margin, margin
 									local bottomMargin=(key=="databars.rep" or key=="databars.honor") and math.max(0,margin-dockDrop) or edge
-									if topMenu and key=="databars.micro" then
-										assert(r[2]>=bar[2]-pixel and r[2]+r[4]<=bar[2]+bar[4]+pixel,"the docked menu must stay inside the top bar")
-									end
 									if r[1]<edge-pixel or r[2]<top-pixel or r[1]+r[3]>width-edge+pixel or r[2]+r[4]>1080-bottomMargin+pixel then
 										fail(label,key,"outside screen margin; move the default inward and reserve its full ornament/label bounds (" .. (item.text or item.file or item.kind) .. " " .. table.concat(r,",") .. ")")
 									end
@@ -332,14 +325,14 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 							local rw,rootHeight=K.Layout.RootSize()
 							for i,element in ipairs(L.ELEMENTS) do
 								local key=element.key
-								if not groups[key] and (key~="consumables.bar" or env._addons.KstyleUI_ActionBars.Consumables.header and env._addons.KstyleUI_ActionBars.Consumables.header:IsShown()) and not (style=="orbs" and key=="unitframes.player") then
+								if not groups[key] and (key~="consumables.bar" or env._addons.KstyleUI_ActionBars.Consumables.header and env._addons.KstyleUI_ActionBars.Consumables.header:IsShown()) then
 									local size=state.sizes[i]
 									local p=L.Place(layout,style,K.Scale.Aspect(),key,K.Scale.Band())
 									local l,b,r,t=L.Rect({width=size[1],height=size[2],offsetX=size[3],offsetY=size[4]},p,rw,rootHeight)
 									add(key,{kind="reserve",rect={rx+l*scale,ry+rh-t*scale,(r-l)*scale,(t-b)*scale}})
 								end
 							end
-							local story=L.Story(layout,rootHeight,true,style,rw)
+							local story=L.Story(layout,rootHeight,true,rw)
 							for _,card in pairs(story) do
 								if type(card)=="table" and card.key and not groups[card.key] then
 									local l,b,r,t=L.Rect(card,card,rw,rootHeight)
@@ -347,7 +340,7 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 								end
 							end
 							for _,element in ipairs(L.ELEMENTS) do
-								assert(groups[element.key] or element.key=="consumables.bar" and not (env._addons.KstyleUI_ActionBars.Consumables.header and env._addons.KstyleUI_ActionBars.Consumables.header:IsShown()) or style=="orbs" and element.key=="unitframes.player",label .. ": missing HUD bounds for " .. element.key)
+								assert(groups[element.key] or element.key=="consumables.bar" and not (env._addons.KstyleUI_ActionBars.Consumables.header and env._addons.KstyleUI_ActionBars.Consumables.header:IsShown()),label .. ": missing HUD bounds for " .. element.key)
 							end
 							for i,a in ipairs(clicks) do
 								for j=i+1,#clicks do

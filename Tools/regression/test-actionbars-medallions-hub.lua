@@ -68,9 +68,6 @@ local function Columns(bar)
 	return rows
 end
 
-local function Medallions(K)
-end
-
 local checked = 0
 for _, screen in ipairs(SCREENS) do
 	local width, height = screen[1], screen[2]
@@ -86,8 +83,6 @@ for _, screen in ipairs(SCREENS) do
 		env._game.pet[i] = { name = action, texture = 135809 + i, spellID = 8000 + i }
 	end
 	AB.Enable(env, K)
-	assert(not (ns.Slab.frame and ns.Slab.frame:IsShown()), what .. ": under Frames there is no slab")
-	Medallions(K)
 	env.RunTimers()
 	local Slab = ns.Slab
 	local slab, hub = Slab.frame, Slab.hub
@@ -170,11 +165,8 @@ for _, screen in ipairs(SCREENS) do
 	local gapLeft, gapRight = Rect(bar1.holder)[3], Rect(bar2.holder)[1]
 	assert(math.abs(centre - (gapLeft + gapRight) / 2) < 1, what .. ": the hub is centred in the gap")
 	assert(math.abs((hubRect[2] + hubRect[4]) / 2 - top) < 1, what .. ": the hub's centre sits on the slots' top edge")
-	assert(not (ns.Tray.card and ns.Tray.card:IsShown()), what .. ": the Frames tray is hidden under Medallions")
 
 	env.RunTimers()
-	assert(not slab:IsShown() and not hub:IsShown(), what .. ": back to Frames the slab and hub hide")
-	assert(Columns(bar1) == 1, what .. ": back to Frames bar 1 is one row again")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 	checked = checked + 1
 end
@@ -182,7 +174,6 @@ end
 do
 	local env, K, ns = AB.New({ width = 1920, height = 1080, class = "SHAMAN" })
 	AB.Enable(env, K)
-	Medallions(K)
 	env.RunTimers()
 	local hub = ns.Slab.hub
 	local bar1, bar2 = ns.bars.bar1, ns.bars.bar2

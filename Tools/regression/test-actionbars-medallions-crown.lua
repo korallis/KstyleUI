@@ -173,8 +173,6 @@ for _, key in ipairs({ "enabled", "comboPoints" }) do
 	assert(C.shown and K.Widgets.ClassCrown(), "resource." .. key .. " on: the crown")
 end
 
--- Frames hides it with the hub.
-assert(not C.shown and not C.pips[1].frame:IsShown() and not K.Widgets.ClassCrown(), "Frames has no crown")
 assert(#env._errors == 0 and K.ErrorCount() == 0, "rogue: " .. tostring(env._errors[1]))
 
 -- A druid: claws in cat form, its mana left to the unit frames' druid bar and its settings (review 678 #3), nothing in

@@ -30,11 +30,8 @@ b:ClearCooldown()
 assert(b.hotkey:GetAlpha() == 1, "clearing the cooldown restores the keybind")
 local _, keySize = b.hotkey:GetFont()
 assert(keySize >= K.Scale.TEXT_FLOOR, "Medallions keybind respects the 11-unit floor")
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-	env.RunTimers()
-	local point = b.hotkey._points[1]
-	assert(point[1] == "TOPLEFT" and point[4] > 0 and point[5] < 0, style .. ": keep the readable keybind inside the icon border")
-end
+local point = b.hotkey._points[1]
+assert(point[1] == "TOPLEFT" and point[4] > 0 and point[5] < 0, "keep the readable keybind inside the icon border")
 local _, numberSize, flags = b.countdown:GetFont()
 assert(math.abs(numberSize - b.opts.size * 0.42) < 1 and flags == "OUTLINE", "outline a countdown at 42 percent of the slot")
 local savedSize = ns.Config("bar1").size
@@ -56,6 +53,5 @@ K.Options.Write("ActionBars", "quietCooldown", false)
 b:SetCooldown(10, 1.5, true)
 assert(W.LastCall(b.cooldown, "SetDrawEdge")[1] == true, "quiet cooldown off restores the GCD edge")
 assert(W.LastCall(b.chargeCooldown, "SetEdgeColor")[4] == 1, "quiet cooldown off restores the native charge edge")
-assert(empty:GetAlpha() == 1, "Frames empty sockets retain their full opacity")
 assert(#env._blocked == 0 and #env._errors == 0, AB.Errors(env))
 print("ok quiet slab: independent choices restore sockets, countdowns, GCD edge and crest")

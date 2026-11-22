@@ -9,7 +9,8 @@ local function New(class)
 	return env, K, ns
 end
 
-local function Medallions(K, env)
+local function Refresh(env)
+	env.FireEvent("PLAYER_ENTERING_WORLD")
 	env.RunTimers()
 end
 
@@ -40,18 +41,7 @@ end
 
 do
 	local env, K, ns = New()
-	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
-	local b = AB.Button(ns, "bar1", 1)
-	b.realCooldown = true
-	b:FlashReady()
-	assert(b.readyFlash:IsPlaying() and not b.medReady, "under Frames the slot keeps its own ready flash")
-	assert(not Listening(env, "UNIT_POWER_UPDATE"), "under Frames the hub ring does not listen to power")
-	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
-end
-
-do
-	local env, K, ns = New()
-	Medallions(K, env)
+	Refresh(env)
 	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
 	local b = AB.Button(ns, "bar1", 1)
 	local before = Updating(env)
@@ -84,7 +74,7 @@ end
 
 do
 	local env, K, ns = New()
-	Medallions(K, env)
+	Refresh(env)
 	local Fx, hub = ns.SlabEffects, ns.Slab.hub
 	assert(hub and hub:IsShown(), "the hub shows under Medallions")
 	local frame = Fx and select(1, hub:GetChildren())
@@ -105,15 +95,13 @@ do
 	assert(capped.breath:IsPlaying(), "the ring breathes at Full")
 	K.Options.Write("Medallions", "motion", "calm")
 	assert(not capped.breath:IsPlaying() and capped:IsShown(), "the ring holds still at Calm")
-	env.RunTimers()
-	assert(not capped:IsShown() and not Listening(env, "UNIT_POWER_UPDATE"), "leaving Medallions hides the ring and stops listening")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
 do
 	local env, K, ns = New("PALADIN")
 	env._powerType, env._powerToken = 0, "MANA"
-	Medallions(K, env)
+	Refresh(env)
 	assert(ns.SlabEffects.PowerType() == nil, "a paladin's crest jewels glow at full holy power, so the cap ring leaves it to them")
 	K.Options.Write("ActionBars", "crestJewelGlow", false)
 	env.RunTimers()
@@ -125,7 +113,7 @@ end
 do
 	local env, K, ns = New("MAGE")
 	env._powerType, env._powerToken = 0, "MANA"
-	Medallions(K, env)
+	Refresh(env)
 	local hub = ns.Slab.hub
 	local before = Updating(env)
 	for _, child in ipairs({ hub:GetChildren() }) do
@@ -159,7 +147,7 @@ end
 do
 	local env, K, ns = New("WARLOCK")
 	env._powerType, env._powerToken = 0, "MANA"
-	Medallions(K, env)
+	Refresh(env)
 	assert(ns.SlabEffects.PowerType() == nil, "Lee's warlock: the crest jewels glow at full soul shards, so the cap ring leaves them to the jewels")
 	K.Options.Write("ActionBars", "crestJewels", false)
 	env.RunTimers()

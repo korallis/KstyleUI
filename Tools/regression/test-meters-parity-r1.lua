@@ -287,7 +287,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 				end
 			end
 			for _, guide in ipairs({ true, false }) do
-				for _, card in pairs(layouts.Story(preset, r0:GetHeight(), guide, style, r0:GetWidth()) or {}) do
+				for _, card in pairs(layouts.Story(preset, r0:GetHeight(), guide, r0:GetWidth()) or {}) do
 					if type(card) == "table" and card.anchor and card.width > 0 and card.height > 0 then
 						local left, bottom, right, top2 = layouts.Rect(card, card, r0:GetWidth(), r0:GetHeight())
 						for name, rect in pairs(mine) do

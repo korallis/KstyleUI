@@ -7,7 +7,8 @@ local function New(opts)
 	return env, K, ns
 end
 
-local function Medallions(K, env)
+local function Refresh(env)
+	env.FireEvent("PLAYER_ENTERING_WORLD")
 	env.RunTimers()
 end
 
@@ -21,18 +22,7 @@ end
 
 do
 	local env, K, ns = New()
-	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
-	local b = AB.Button(ns, "bar1", 1)
-	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
-	assert(b.proc and not (b.medProc and b.medProc:IsShown()), "under Frames a proc runs no Medallions loop")
-	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
-	assert(not (ns.Slab.hub and ns.Slab.hub:IsShown()), "under Frames there is no hub")
-	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
-end
-
-do
-	local env, K, ns = New()
-	Medallions(K, env)
+	Refresh(env)
 	local Slab, hub = ns.Slab, ns.Slab.hub
 	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
 	AB.Slot(env, 3, { texture = 3, type = "spell", id = 200 })
@@ -103,7 +93,7 @@ end
 do
 	local env, K, ns = New()
 	K.Motion.SetLevel("off")
-	Medallions(K, env)
+	Refresh(env)
 	local hub = ns.Slab.hub
 	assert(not hub.runes.turn:IsPlaying() and not hub.glow.breath:IsPlaying(), "motion off keeps the hub still")
 	env.SetCombat(true)
@@ -114,7 +104,7 @@ end
 
 do
 	local env, K, ns = New()
-	Medallions(K, env)
+	Refresh(env)
 	local hub = ns.Slab.hub
 	assert(hub.crestPath == K.Tokens.Texture("logoLarge") or hub.crestPath ~= nil, "a placeholder crest shows before the resolver answers")
 	K.Medallions = { Crest = function(unit)
@@ -134,7 +124,7 @@ end
 
 do
 	local env, K, ns = New()
-	Medallions(K, env)
+	Refresh(env)
 	local hub = ns.Slab.hub
 	local function Ambient()
 		local n = 0
@@ -175,7 +165,8 @@ do
 	K.Effects = { Level = function()
 		return level
 	end }
-	Medallions(K, env)
+	K.Callbacks.Fire("EffectsLevelChanged")
+	Refresh(env)
 	local hub = ns.Slab.hub
 	assert(ns.Slab.Level() == "calm", "the effects layer's level rules the hub")
 	assert(hub.runes.turn:IsPlaying() and hub.glow.breath:IsPlaying() and hub.sheen.run:IsPlaying(), "calm keeps the idle loops")
@@ -212,7 +203,7 @@ do
 		end
 		return texture(name)
 	end
-	Medallions(K, env)
+	Refresh(env)
 	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
 	local b = AB.Button(ns, "bar1", 1)
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
@@ -224,7 +215,6 @@ do
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
 	env.RunTimers()
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
-	assert(b.lumenGlow:IsShown() and not b.medProc:IsShown(), "back to Frames the slot's own proc glow returns")
 	K.Tokens.Texture = texture
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
@@ -237,7 +227,7 @@ do
 	env.UnitSex = function()
 		return 2
 	end
-	Medallions(K, env)
+	Refresh(env)
 	local hub = ns.Slab.hub
 	local own = K.MedallionAssets.crests.Dwarf.SHAMAN
 	assert(hub.crestPath == own.crest and hub.bloom:GetTexture() == own.glow, "the hub shows the player's crest from KstyleUI.Medallions.Crest, by race and class")
@@ -278,24 +268,23 @@ do
 	b:SetSelected(false)
 	assert(not b.medChecked:IsShown(), "and hides it again")
 	env.RunTimers()
-	assert(not b.medFrame:IsShown() and not b.medWell:IsShown() and not b.medHover:IsShown() and not b.medPushed:IsShown(), "back to Frames the slot frames hide")
-	assert(b.chrome.visible and b.hotkey:IsShown(), "back to Frames the slot's own chrome and keybind return")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
 -- Lee's own character, an undead warlock with his imp out: the Forsaken warlock crest, and the fel motif in the slot
 -- loop and the particles, each in its baked colours.
 do
-	local env, K, ns = New({ class = "WARLOCK" })
+	local env, K, ns = AB.New({ class = "WARLOCK" })
 	env._game.petExists = true
 	env._game.pet[1] = { name = "Firebolt", texture = 135809, spellID = 8001 }
+	AB.Enable(env, K)
 	env.UnitRace = function()
 		return "Undead", "Scourge", 5
 	end
 	env.UnitSex = function()
 		return 2
 	end
-	Medallions(K, env)
+	Refresh(env)
 	local hub = ns.Slab.hub
 	local art = K.MedallionAssets.crests.Scourge.WARLOCK
 	assert(hub.crestPath == art.crest and hub.bloom:GetTexture() == art.glow, "the hub wears the undead warlock's crest")

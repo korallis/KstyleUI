@@ -139,8 +139,6 @@ for _, size in ipairs(SIZES) do
 	env.RunTimers()
 	assert(Shown(ns) == 10 and Frequent(env) == 1, at .. "turning them back on restores the jewels")
 	env.RunTimers()
-	assert(Shown(ns) == 0, at .. "Frames has no hub and no jewels")
-	assert(Frequent(env) == 0, at .. "the jewels stop listening without the hub")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
