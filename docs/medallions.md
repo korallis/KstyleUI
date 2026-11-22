@@ -4,7 +4,7 @@ The unit and party rims are original procedural art, generated with `python Tool
 
 `Tools/regression/test-medallions-rune-rim.lua` checks every procedural chrome file against the texture registry, opens the registered PNGs, checks the rim's resolution and exercises unit and party draws. A generated chrome file without a registration fails with the instruction to register it in `Core/Tokens.lua`.
 
-`Tools/medallions/` makes the Medallions HUD style's painted art: a bust and a badge for each of the 104 race, class and sex combinations, and a crest for each of the 52 race and class combinations (KSTY-87 section 5, KSTY-88 section 2). It is modelled on `Tools/icons/iconset.py`: a committed prompts table, generation with the Higgsfield CLI, a scripted judge, a by-eye review on contact sheets, and provenance for every file.
+`Tools/medallions/` makes the Medallions HUD's painted art: a bust and a badge for each of the 104 race, class and sex combinations, and a crest for each of the 52 race and class combinations (KSTY-87 section 5, KSTY-88 section 2). It is modelled on `Tools/icons/iconset.py`: a committed prompts table, generation with the Higgsfield CLI, a scripted judge, a by-eye review on contact sheets, and provenance for every file.
 
 | File | What it holds |
 | --- | --- |

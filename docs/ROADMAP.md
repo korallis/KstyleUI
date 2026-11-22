@@ -29,7 +29,7 @@ Highlights:
 - One typeface voice across the Medallions HUD, cards, chat and tooltips, and one lit glass finish on every bar.
 - Readable everywhere: small text over the world sits on a soft backing, and names and timers stay clear in busy fights.
 - A clean screen at rest: panels fade out of combat and come straight back on hover, target or combat.
-- Casts by their caster, a target cast rail in Orbs, and interrupt states you can read at a glance.
+- Casts by their caster and interrupt states you can read at a glance.
 - Medallions finish: slab end caps and a calmer resting crest.
 - A smoother Layout Mode and Options: search that takes you there, live previews and one motion style.
 - A better first run: big HUD pictures, one-click Looks, and Medallions as the default for new profiles.

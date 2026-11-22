@@ -46,9 +46,8 @@ or reducing the crop's width.
 No source offers a UI-free full 5120-pixel width at 32:9. The honest ultrawide
 crops above are 2048x576 and 1600x450, enlarged to 5120x1440 without extending
 the scenery. They are previews over screenshot crops, not full-screen captures.
-The README's ultrawide HUD heroes stay Spread; the Every screen pair keeps both
-Centred and Spread. Frames and detail scenes use the current-build forest;
-Orbs uses the brighter town crop.
+The Every screen pair keeps both Centred and Spread. Every scene uses the
+current-build forest; the town crops stay for bright-ground checks.
 
 Regenerate plates with `python Tools/media/plates.py` (needs the private source
 screenshots). Retake all published pictures immediately before release:
@@ -65,9 +64,8 @@ Windows; shoot.sh converts them to escaped native file URLs. `standins.py --inte
 internal tests only; publishing always passes a committed real crop explicitly.
 The package ignores docs/, so these plates never ship as addon assets.
 
-Real captures would be better than these fixture previews: Frames and Orbs HUDs
-at 1080p and ultrawide in combat; the Centred/Spread healer pair; unit-frame and
-orb close-ups; raid frames in a populated raid; first-run setup with its live
+Real captures would be better than these fixture previews: the Medallions HUD
+at 1080p in combat; the Centred/Spread healer pair; unit-frame close-ups; raid frames in a populated raid; first-run setup with its live
 preview; character-sheet and other Blizzard window skins; nameplates during a
 pull; a populated party damage meter; and the map, quest and RestedXP rail.
 Capture after the visual audit changes land, with chat/player names hidden as
