@@ -436,7 +436,7 @@ local function Tile(f, parts, k)
 		fit.path, fit.kit = face, false
 		if Widgets.Readability("readableBars") then fit.size, fit.min = 12, 11 end
 		fit.set = function(text, size)
-			Style.SetFont(text, face, size,(not Widgets.Readability("readableBars") or f.medInked) and TILE_TEXT or "OUTLINE")
+			Style.SetFont(text, face, size, (not Widgets.Readability("readableBars") or f.medInked) and TILE_TEXT or "OUTLINE")
 			if f.medInked then
 				InkShadow(text)
 			end
