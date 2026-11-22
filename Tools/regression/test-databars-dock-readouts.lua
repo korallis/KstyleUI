@@ -96,7 +96,6 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 	K.Options.Write("DataBars", "strip.dockModules", s.dockModules)
 	check()
 	assert(not view.xpRule:IsShown() and view.xpGlyph:IsShown() == view.slab.text:IsVisible(), "a caption with no readout before it keeps its glyph but no rule")
-	for i, entry in ipairs(s.modules) do assert(entry.shown == (i <= 12), "the top bar retains its independent defaults; XP and the optional readouts after it stay off") end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 do
@@ -104,12 +103,9 @@ do
 	local view = ns.Strip.view
 	local function set(group, key, value) K.Options.Write(group, key, value) env.RunTimers() D.W.Settle(env) end
 	local function layers() return tostring(view.frame:GetFrameStrata()) .. view.frame:GetFrameLevel() .. view.card:GetFrameLevel() end
-	local top = layers()
-	set("HudStyle", "style", "orbs")
-	set("DataBars", "strip.placement", "dock")
-	assert(view.slab and not view.chrome.visible and not (view.wing and view.wing.visible) and not (view.xpGlyph and view.xpGlyph:IsShown()) and layers() == top, "only the Medallions dock wears plates, glyph segments and the XP strip's layer")
+	set("DataBars", "strip.placement", "rail")
+	local rail = layers()
 	set("DataBars", "strip.placement", "top")
-	set("HudStyle", "style", "medallions")
 	local docked, holder = layers(), view.slab.holder
 	holder.GetFrameLevel = function() return env.Secret(2) end
 	ns.Strip.Refresh()
@@ -146,10 +142,7 @@ do
 	set("DataBars", "strip.placement", "rail")
 	local fps = view.items.fps
 	assert(not fps.icon:IsShown() and not fps.hover:IsShown() and not view.xpGlyph:IsShown() and not view.xpRule:IsShown(), "rail cells drop the dock's glyphs, highlight and rules")
-	set("DataBars", "strip.line", true)
-	set("DataBars", "strip.placement", "top")
-	set("HudStyle", "style", "frames")
-	assert(layers() == top, "leaving the dock restores the strip's strata and frame levels")
+	assert(layers() == rail, "leaving the dock restores the strip's strata and frame levels")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 print("databar dock readouts ok: defaults, whole-item suffix overflow, tooltip and wing bounds on four screens")
