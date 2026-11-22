@@ -2383,10 +2383,13 @@ function Chrome:PaintEdge()
 		return
 	end
 	self:SyncMaterialFrame()
-	local e = self.edge
+	local r, g, b, a
 	local material = self:Material()
 	if material and material.edge and not self.ownEdge then
-		e = { Widgets.Rgba(material.edge) }
+		r, g, b, a = Widgets.Rgba(material.edge)
+	else
+		local e = self.edge
+		r, g, b, a = e[1], e[2], e[3], e[4]
 	end
 	local bevelled = self:Bevelled()
 	if self.line then
@@ -2400,7 +2403,6 @@ function Chrome:PaintEdge()
 		Widgets.ColorSlice(self.rim, Widgets.Rgba("gilt"))
 		return
 	end
-	local r, g, b, a = e[1], e[2], e[3], e[4]
 	if self.frameWanted and self.frameReady and self.proc then
 		r, g, b, a = Widgets.Rgba("giltLit")
 	end
