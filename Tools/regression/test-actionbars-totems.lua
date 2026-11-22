@@ -2,7 +2,7 @@
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local SIZES = { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
-local KNOWN = { [1] = { 3599, 8190, 8227 }, [2] = { 8075, 8071 }, [3] = { 5394 } }
+local KNOWN = { [1] = { 3599, 8190, 8227 }, [2] = { 8075, 8071 }, [3] = { 5394 }, [4] = { 8512 } }
 
 local function New(class, opts)
 	opts = opts or {}
@@ -101,7 +101,14 @@ do
 	local earth, fire, water, air = unpack(state.sockets)
 	assert(earth.element.slot == 2 and fire.element.slot == 1 and water.element.slot == 3 and air.element.slot == 4, "the sockets keep the game's bar order: earth, fire, water, air")
 	assert(fire:GetAttribute("type") == "action" and fire:GetAttribute("action") == 133 and earth:GetAttribute("action") == 134, "each socket drops its multi-cast action slot on page 12")
-	assert(fire:IsShown() and earth:IsShown() and water:IsShown() and not air:IsShown(), "an element with no known totem has no socket")
+	assert(fire:IsShown() and earth:IsShown() and water:IsShown() and air:IsShown(), "each element with a known totem has a socket")
+	KNOWN[4] = nil
+	ns.Totems.Update()
+	env.RunTimers()
+	assert(not air:IsShown() and not air.spire:IsShown(), "an element with no known totem has no socket")
+	KNOWN[4] = { 8512 }
+	ns.Totems.Update()
+	env.RunTimers()
 	assert(fire.hasAction and not earth.hasAction and earth.rune:IsShown() and not fire.rune:IsShown(), "a chosen totem shows its icon; an empty slot shows the element's rune")
 	assert(state.wolf:IsShown() and state.wolf:GetAttribute("spell") == 2645 and state.call:GetAttribute("spell") == 66842, "Ghost Wolf and Call of the Elements are medals")
 
@@ -159,6 +166,7 @@ do
 	assert(s.flare:IsShown() and s.flare.anim:IsPlaying() and s.ignite:IsPlaying(), "a drop flares and ignites the spire at Full")
 	Expire(env, 1)
 	assert(not s.gate:IsShown(), "an expired totem leaves dark steel")
+	assert(not s.flare.anim:IsPlaying() and not s.ignite:IsPlaying(), "a readable expiry plays no flare or ignite")
 	Drop(env, 1, 200, true)
 	assert(s.gate:IsShown() and Seen(env, s.gate), "a secret totem lights through SetAlphaFromBoolean")
 	Expire(env, 1, true)
@@ -231,6 +239,35 @@ for _, size in ipairs(SIZES) do
 		local top = bottom and (bottom + height) * b.spire:GetEffectiveScale() / root
 		assert(not b:IsShown() or top < row - 2 and top < fan, size[1] .. "x" .. size[2] .. ": the " .. b.element.name .. " spire stays under the cooldown row and the crest debuff fan (" .. tostring(top) .. " against " .. row .. ")")
 	end
+	local ring = hub:GetWidth() * hub:GetEffectiveScale() / root / 2
+	local units = {}
+	for _, key in ipairs({ "unitframes.player", "unitframes.target" }) do
+		local p = Place(key) or layouts.Style("medallions", K.Layout.Setting("preset"), key)
+		units[#units + 1] = { hx + p.x - p.width / 2, p.y, p.width, p.height }
+	end
+	for _, b in ipairs(state.sockets) do
+		AB.Click(env, b, "RightButton", false)
+		local choices = {}
+		for _, f in ipairs(b.fan.buttons) do
+			if f:IsShown() then
+				local l, bottom, w, h = f:GetRect()
+				local s = f:GetEffectiveScale() / root
+				l, bottom, w, h = l * s, bottom * s, w * s, h * s
+				local label = size[1] .. "x" .. size[2] .. ": " .. b.element.name .. " fan choice " .. #choices + 1
+				assert(bottom + h < row - 2 and bottom + h < fan, label .. " stays under the cooldown row and the crest debuff fan (" .. bottom + h .. " against " .. row .. ")")
+				local nx, ny = math.max(l, math.min(hx, l + w)), math.max(bottom, math.min(hy, bottom + h))
+				assert((nx - hx) ^ 2 + (ny - hy) ^ 2 > ring * ring, label .. " stays out of the ring")
+				for _, u in ipairs(units) do
+					assert(l + w <= u[1] or u[1] + u[3] <= l or bottom + h <= u[2] or u[2] + u[4] <= bottom, label .. " stays off the unit frames")
+				end
+				for _, c in ipairs(choices) do
+					assert(l + w <= c[1] + 0.5 or c[1] + c[3] <= l + 0.5 or bottom + h <= c[2] + 0.5 or c[2] + c[4] <= bottom + 0.5, label .. " overlaps another choice")
+				end
+				choices[#choices + 1] = { l, bottom, w, h }
+			end
+		end
+		assert(#choices == #KNOWN[b.element.slot] + 1, size[1] .. "x" .. size[2] .. ": the " .. b.element.name .. " fan holds none and every known totem")
+	end
 	local wx = state.wolf:GetCenter()
 	local cx = state.call:GetCenter()
 	assert(wx < hx and cx > hx, size[1] .. "x" .. size[2] .. ": Ghost Wolf on the left shoulder, Call on the right")
@@ -244,4 +281,133 @@ for _, size in ipairs(SIZES) do
 		end
 	end
 	Clean(env, K, "ring " .. size[1])
+end
+
+-- Review of 5f5ee15a: the secure actions as the client resolves modified attributes, Recall's key and medal.
+do
+	local env, K, ns = New("SHAMAN")
+	local st, used = ns.Totems.state, env._game.used
+	env._game.bindings["CLICK KstyleUI_TotemCall:RightButton"] = { "F6" }
+	assert(AB.PressKey(env, "F6") and AB.Used(env) == "spell36936", "the Totemic Recall key casts Recall")
+	env._known[36936] = nil
+	ns.Totems.Update()
+	env.RunTimers()
+	local n = #used
+	AB.Click(env, st.call, "RightButton", false)
+	env._game.shift = true
+	AB.Click(env, st.call, "RightButton", false)
+	env._game.shift = false
+	assert(#used == n, "right click on Call without Recall does nothing, not Call of the Elements: " .. tostring(AB.Used(env)))
+	env._known[66842], env._known[36936] = nil, true
+	ns.Totems.Update()
+	env.RunTimers()
+	assert(st.call:IsShown(), "Recall alone keeps the medal")
+	AB.Click(env, st.call, "LeftButton", false)
+	assert(#used == n, "left click without Call of the Elements does nothing")
+	AB.Click(env, st.call, "RightButton", false)
+	assert(AB.Used(env) == "spell36936", "right click still casts Recall")
+	Clean(env, K, "recall")
+end
+
+-- Learning the first totem brings the bar, with no reload or layout refresh.
+do
+	local saved = KNOWN
+	KNOWN = {}
+	local env, K, ns = New("SHAMAN")
+	assert(not ns.Totems.state.shown, "a shaman who knows no totem has no bar")
+	KNOWN = saved
+	env.FireEvent("SPELLS_CHANGED")
+	env.RunTimers()
+	assert(ns.Totems.state.shown, "learning the first totem brings the bar")
+	Clean(env, K, "learn")
+end
+
+-- Cooldown events: SPELL_UPDATE_COOLDOWN's argument is a spell, so every socket repaints its cooldown and re-reads
+-- isOnGCD; ACTIONBAR_UPDATE_COOLDOWN keeps the last trusted GCD flag; neither touches the fans' selection.
+do
+	local env, K, ns = New("SHAMAN")
+	local st = ns.Totems.state
+	local fire = st.sockets[2]
+	local reads, selects, gcd = 0, 0, true
+	local get = env.C_ActionBar.GetActionCooldownDuration
+	env.C_ActionBar.GetActionCooldownDuration = function(slot, ...)
+		if slot == 133 then reads = reads + 1 end
+		return get(slot, ...)
+	end
+	env.C_ActionBar.GetActionCooldown = function() return { isOnGCD = gcd } end
+	env._game.slots[133].cooldown = { name = "cd" }
+	for _, b in ipairs(st.sockets) do
+		for _, f in ipairs(b.fan.buttons) do
+			local set = f.SetSelected
+			f.SetSelected = function(...) selects = selects + 1; return set(...) end
+		end
+	end
+	env.FireEvent("SPELL_UPDATE_COOLDOWN", 3599)
+	assert(reads > 0, "a cooldown event for the Fire socket's spell repaints its cooldown")
+	assert(fire.realCooldown == false, "the spell cooldown event reads isOnGCD")
+	gcd = false
+	env.FireEvent("ACTIONBAR_UPDATE_COOLDOWN")
+	assert(fire.realCooldown == false, "an action bar cooldown event keeps the last trusted GCD flag")
+	env.FireEvent("ACTIONBAR_UPDATE_USABLE")
+	assert(selects == 0, "cooldown and usable events leave the fans' selection alone (" .. selects .. " SetSelected calls)")
+	Clean(env, K, "cooldowns")
+end
+
+-- The socket's icon is passed to SetIcon, never tested as a Lua condition (a file ID may be secret).
+do
+	local f = assert(io.open("KstyleUI_ActionBars/Totems.lua", "rb"))
+	local src = f:read("*a")
+	f:close()
+	assert(not src:find("and [%w_%.]*GetActionTexture%b() or"), "Totems.lua tests GetActionTexture's return with and/or; pass it to SetIcon in an explicit branch")
+end
+
+-- Fans: one open at a time, shut when the bar goes, every known totem offered.
+do
+	local env, K, ns = New("SHAMAN")
+	local st = ns.Totems.state
+	local earth, fire = st.sockets[1], st.sockets[2]
+	AB.Click(env, fire, "RightButton", false)
+	AB.Click(env, earth, "RightButton", false)
+	assert(earth.fan:IsShown() and not fire.fan:IsShown(), "opening a fan shuts the one already open")
+	K.Options.Write("ActionBars", "totemBar", false)
+	env.RunTimers()
+	K.Options.Write("ActionBars", "totemBar", true)
+	env.RunTimers()
+	assert(st.header:IsShown() and not earth.fan:IsShown(), "turning the bar off and on leaves every fan shut")
+	local saved = KNOWN[1]
+	KNOWN[1] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 }
+	ns.Totems.Update()
+	env.RunTimers()
+	local offered = {}
+	for _, f in ipairs(fire.fan.buttons) do
+		if f:IsShown() then offered[#offered + 1] = f:GetAttribute("spell") end
+	end
+	assert(#offered == 12 and offered[12] == 11, "the fan offers none and every known totem (" .. #offered .. " shown)")
+	KNOWN[1] = saved
+	Clean(env, K, "fans")
+end
+
+-- Keys: a bound socket shows its key; with the bar off its key does nothing; a vehicle or override bar hides the bar,
+-- as Blizzard's MultiCastActionBarFrame hides when the main action bar is overridden.
+do
+	local env, K, ns = New("SHAMAN")
+	local st, used = ns.Totems.state, env._game.used
+	local fire = st.sockets[2]
+	env._game.bindings["CLICK KstyleUI_TotemSlot2:LeftButton"] = { "F5" }
+	env.FireEvent("UPDATE_BINDINGS")
+	assert(fire.hotkey:IsShown() and fire.hotkey:GetText() == "F5", "a bound socket shows its key")
+	for _, flag in ipairs({ "vehicle", "override" }) do
+		env._game[flag] = 1
+		env.RunStateDrivers()
+		assert(not st.header:IsShown(), "a " .. flag .. " hides the totem bar")
+		env._game[flag] = nil
+		env.RunStateDrivers()
+		assert(st.header:IsShown(), "leaving the " .. flag .. " brings it back")
+	end
+	K.Options.Write("ActionBars", "totemBar", false)
+	env.RunTimers()
+	local n = #used
+	AB.PressKey(env, "F5")
+	assert(#used == n, "with the bar off the Fire totem key does nothing: " .. tostring(AB.Used(env)))
+	Clean(env, K, "keys")
 end
