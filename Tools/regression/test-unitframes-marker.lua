@@ -1,4 +1,5 @@
--- test-unitframes-marker.lua: a raid marker never covers its unit's name, on every frame kind on the Medallions slab and the plate, for short and long names (round 4: Opus #2).
+-- test-unitframes-marker.lua: a raid marker never covers its unit's name, on every frame kind on the Medallions slab and the plate, for short and long names (round 4: Opus #2). test-unitframes-marker-frames.lua runs them on Frames.
+local frames = ... == "frames"
 local U = dofile("Tools/regression/unitframes_env.lua")
 local D = dofile("Tools/regression/databars_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
@@ -44,7 +45,7 @@ local function unit(name)
 end
 
 local function Check(style)
-	local env, K, ns = U.New({ plate = style == "plate" })
+	local env, K, ns = U.New({ frames = frames, plate = style == "plate", lumen = style == "lumen" })
 	env._textWidth = D.TextWidth
 	for _, name in ipairs(NAMES) do
 		for _, token in pairs(TOKENS) do
@@ -82,13 +83,27 @@ local function Check(style)
 	assert(K.ErrorCount() == 0, "KstyleUI caught no errors")
 end
 
-Check("slab")
+Check(frames and "lumen" or "slab")
 Check("plate")
+
+-- The Frames sigil's marker sits beside the name, not out at the lane's end.
+if frames then
+	local env, _, ns = U.New({ frames = true, lumen = true })
+	env._textWidth = D.TextWidth
+	U.SetUnit(env, "target", unit("Frost Howler"))
+	env.SetTarget(true)
+	local view = ns.Frames.Get("target").views[1]
+	local m = { Scene.Rect(env, view.marker) }
+	local n = inked(env, view.name)
+	local gap = n[1] - (m[1] + m[3])
+	assert(gap >= 0 and gap <= 8, "the sigil's skull sits just left of the name: gap " .. gap)
+	assert(math.abs((m[2] + m[4] / 2) - (n[2] + n[4] / 2)) <= 1, "level with the name")
+end
 
 -- A marker that arrives after the name narrows the lane, and the name fits itself to the narrower lane at once:
 -- it drops to the body face before it truncates (codex review of round 4).
 do
-	local env, _, ns = U.New({ lumen = true })
+	local env, _, ns = U.New({ frames = frames, lumen = true })
 	env._textWidth = D.TextWidth
 	U.SetUnit(env, "pet", { name = "Snow Wolf", level = 38, health = 300, healthMax = 400, reaction = 5 })
 	env.FireEvent("UNIT_PET", "player")

@@ -1,8 +1,9 @@
--- test-unitframes-boss.lua: the boss column holds five Medallions slabs inside the element the HUD places, within the footprint the layouts reserve with the aura room; the boss you target folds its frame to a slim Targeted chip, because the target frame already carries its name, health and cast (round 2: Grok #2, Muse #1). A secret unit comparison goes through SetAlphaFromBoolean.
+-- test-unitframes-boss.lua: the boss column holds five Medallions slabs inside the element the HUD places, within the footprint the layouts reserve with the aura room; the boss you target folds its frame to a slim Targeted chip, because the target frame already carries its name, health and cast (round 2: Grok #2, Muse #1). A secret unit comparison goes through SetAlphaFromBoolean. test-unitframes-boss-frames.lua runs them on Frames.
+local frames = ... == "frames"
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
-local env, K, ns = U.New()
+local env, K, ns = U.New({ frames = frames })
 local Frames, Geometry, Layouts = ns.Frames, ns.Geometry, K.Setup.Layouts
 
 local function noErrors(where)
@@ -16,7 +17,7 @@ end
 
 -- The column: five slots at the size the Medallions HUD gives the element, each a slab with a name and a bar ----------
 
-local element = K.Layout.Get("unitframes.boss")
+local element = frames and Layouts.Element("unitframes.boss") or K.Layout.Get("unitframes.boss")
 local uf = Frames.Get("boss")
 assert(#uf.views == 5, "five boss cards, boss1 to boss5")
 local slots = Geometry.Slots(Geometry.BOSS_COUNT, Geometry.BOSS_GAP, element.width, element.height)
@@ -24,8 +25,19 @@ local last = slots[#slots]
 assert(near(last.y + last.h, element.height, 1e-6), "the fifth card ends at the column's foot")
 local s = ns.Settings.Snapshot("boss")
 local g = Geometry.Frame(s, slots[1].w, slots[1].h, 1)
-assert(g.form == "slab", "each boss is a Medallions slab")
-assert(g.name and g.health, "a slab keeps the name and the bar")
+if frames then
+	assert(g.form == "card", "each boss is a card")
+	assert(g.name and g.health and g.cast, "a compact card keeps the name, the pill and the cast line")
+	assert(g.cap == nil, "a compact card drops the section cap: five caps reading Boss say nothing")
+	assert(g.name.h >= 14 and g.cast.h >= Geometry.CAST_LINE, "the name and cast line keep their size")
+	assert(g.cast.y + g.cast.h <= slots[1].h + 1e-6 and g.name.y >= 1, "everything sits inside the card")
+	assert(g.health.y >= g.name.y + g.name.h and g.cast.y >= g.health.y + g.health.h, "name, then pill, then cast line")
+	local tall = Geometry.Frame(s, 318, 120, 1)
+	assert(tall.cap, "a full-height card still has its cap")
+else
+	assert(g.form == "slab", "each boss is a Medallions slab")
+	assert(g.name and g.health, "a slab keeps the name and the bar")
+end
 
 -- The footprint: the layouts reserve the whole column plus the aura room the cards hang to their left -------------
 local base = Layouts.Element("unitframes.boss")
@@ -49,9 +61,13 @@ for i, view in ipairs(uf.views) do
 	local _, _, _, x, y = view.button:GetPoint(1)
 	local bw, bh = view.button:GetSize()
 	assert(x >= 0 and -y >= 0 and x + bw <= hw + 0.5 and -y + bh <= hh + 0.5, "boss" .. i .. " sits inside the column")
-	-- Fits, Edit Mode and the warnings lane count the debuff row the cards hang to their left (Layouts.BOSS_AURAS).
-	local host = view.auras.host
-	assert(host:GetLeft() >= uf.holder:GetLeft() - Layouts.BOSS_AURAS - 0.5 and host:GetRight() <= uf.holder:GetLeft(), "boss" .. i .. "'s debuff row stands in the room the layouts count: " .. host:GetLeft() .. " for a column at " .. uf.holder:GetLeft())
+	if frames then
+		assert(view.geometry.cast, "boss" .. i .. " has room for its cast line")
+	else
+		-- Fits, Edit Mode and the warnings lane count the debuff row the cards hang to their left (Layouts.BOSS_AURAS).
+		local host = view.auras.host
+		assert(host:GetLeft() >= uf.holder:GetLeft() - Layouts.BOSS_AURAS - 0.5 and host:GetRight() <= uf.holder:GetLeft(), "boss" .. i .. "'s debuff row stands in the room the layouts count: " .. host:GetLeft() .. " for a column at " .. uf.holder:GetLeft())
+	end
 end
 noErrors("column")
 
@@ -158,7 +174,11 @@ do
 	local tw = b1.chip.text:GetUnboundedStringWidth()
 	local nw = b1.chip.name:GetUnboundedStringWidth()
 	assert(nw and tw and nw + tw + 30 < chipW, "the long name fits beside Targeted: " .. tostring(nw) .. " + " .. tostring(tw) .. " in " .. chipW)
-	assert(U.Shown(env, b1.chip.name) == K.Locale.Upper("Bloodtalon Matriarch"), "whole, in the Medallions caps: " .. U.Shown(env, b1.chip.name))
+	if frames then
+		assert(U.Shown(env, b1.chip.name) == "Bloodtalon Matriarch", "in mixed case: " .. U.Shown(env, b1.chip.name))
+	else
+		assert(U.Shown(env, b1.chip.name) == K.Locale.Upper("Bloodtalon Matriarch"), "whole, in the Medallions caps: " .. U.Shown(env, b1.chip.name))
+	end
 	env._textWidth = nil
 end
 -- A targeted boss renamed in place (a phase change) renames its chip without a target change.
