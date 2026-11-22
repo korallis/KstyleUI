@@ -1,7 +1,7 @@
 -- test-store-medallions-only.lua: migration 45 moves Frames and Orbs profiles to Medallions, says so once on live data and never on a preview, drops the keys and positions only they read (named layouts and exports too), folds choices that now draw the same and keeps the rest; migration 46 drops the forged ornament and card material keys from staging's version 45 data and exports.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 
-local MESSAGE = "KstyleUI is now Medallions only; your HUD moved to Medallions."
+local MESSAGE = "Your HUD moved to Medallions. Played on Frames? Pick it again under HUD style at the top of the settings window's General page."
 
 local function Boot(style)
 	local env, K = CoreEnv.New({ saved = {
@@ -41,7 +41,7 @@ for _, style in ipairs({ "frames", "orbs" }) do
 		if line:find(MESSAGE, 1, true) then said = said + 1 end
 	end
 	assert(said == 1, style .. ": the move is announced once, got " .. said)
-	assert(profile.HudStyle == nil, style .. ": the HUD style setting is gone")
+	assert(K.HudStyle.Current() == "medallions", style .. ": the profile runs Medallions")
 	local bars, units, text = profile.ActionBars, profile.UnitFrames, profile.CombatText
 	assert(bars.useTray == nil and bars.tray == nil and bars.trayColumn == nil and bars.bar1.size == 40, style .. ": tray keys go, bar settings stay")
 	assert(units.orbGlass == nil and units.orbLedge == nil and units.orbCastRoom == nil and units.castbarOnFrame == false, style .. ": orb keys go, unit frame settings stay")

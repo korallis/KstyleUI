@@ -25,7 +25,7 @@ local function Writable(region)
 end
 
 local function Wanted()
-	return enabled and not InCombatLockdown()
+	return enabled and not InCombatLockdown() and Widgets.Setting("cardMaterial") ~= "Glass"
 end
 
 local function CloseMenus()
@@ -191,7 +191,7 @@ end
 ns.Skins.Add({
 	key = "contextMenus",
 	label = K.L["Context menus"],
-	help = K.L["Style KstyleUI's tracking, addon and quest menus outside combat. Off keeps Blizzard's look."],
+	help = K.L["Style KstyleUI's tracking, addon and quest menus outside combat. Glass keeps Blizzard's look."],
 	sweep = false,
 	live = true,
 	Apply = function()

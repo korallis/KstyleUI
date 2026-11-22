@@ -434,7 +434,7 @@ function Style.Decorate(icon, group)
 end
 
 function Style.Dress(icon)
-	Widgets.MedallionsIcon(icon, ns.Settings.current.medallionsIcons == true)
+	Widgets.MedallionsIcon(icon, ns.Settings.current.medallionsIcons == true and K.HudStyle.Current() == "medallions")
 end
 
 function Style.Tooltips(frame)

@@ -299,3 +299,8 @@ ns.Callbacks.Register("EffectsLevelChanged", "EffectModels", function()
 		Effects.StopModels(nil, Effects.Allows("flare"))
 	end
 end)
+ns.Callbacks.Register("HudStyleChanged", "EffectModels", function(_, style)
+	if style ~= "medallions" then
+		Effects.StopModels()
+	end
+end)

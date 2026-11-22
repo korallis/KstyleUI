@@ -1,4 +1,4 @@
--- Pins.lua: the pins other addons place on the minimap through HereBeDragons: one that floats on the map's edge for a place off the map is faded out while it rides the edge of KstyleUI's map, unless the player keeps edge pins.
+-- Pins.lua: the pins other addons place on the minimap through HereBeDragons: one that floats on the map's edge for a place off the map is faded out while it rides the edge of KstyleUI's square map, unless the player keeps edge pins.
 local _, ns = ...
 
 local K = KstyleUI

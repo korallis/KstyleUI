@@ -18,6 +18,7 @@ local RAIL_WIDTH = 196
 local PREVIEW_WIDTH = 280
 local SEARCH_WIDTH = 340
 local LOGO_SIZE = 28
+local RULE_ALPHA = 0.5
 local TITLE = "K S T Y L E U I"
 local DEFAULT_POSITION = { anchor = "CENTER", x = 0, y = 20 }
 
@@ -350,7 +351,7 @@ function Relayout(keepPreview)
 	win.rule:SetPoint("LEFT", win.title, "RIGHT", Snap(Tokens.Size("gapLarge")), 0)
 	win.rule:SetPoint("RIGHT", search, "LEFT", -Snap(Tokens.Size("gapLarge")), 0)
 	win.rule:SetHeight(Widgets.Border(win))
-	Widgets.PaintCapRule(win.rule)
+	Widgets.PaintCapRule(win.rule, RULE_ALPHA)
 	win.closeButton:ClearAllPoints()
 	win.closeButton:SetPoint("TOPRIGHT", win, "TOPRIGHT", -Snap(pad), -Snap(pad))
 	search:ClearAllPoints()

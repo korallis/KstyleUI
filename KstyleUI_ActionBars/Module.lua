@@ -64,18 +64,18 @@ local function Build(def)
 	return bar
 end
 
-local function RefreshSlab()
-	ns.slabHeld = false
+local function RefreshTray()
+	ns.trayHeld = false
 	local main = ns.bars.bar1
 	if main then
-		main:RefreshSlab()
+		main:RefreshTray(true)
 	end
 end
 
-local function HoldSlab(fn)
-	ns.slabHeld = true
+local function HoldTray(fn)
+	ns.trayHeld = true
 	local ok, err = pcall(fn)
-	RefreshSlab()
+	RefreshTray()
 	if not ok then
 		error(err, 0)
 	end
@@ -99,7 +99,7 @@ local function ApplyAll(geometryOnly)
 		return
 	end
 	local extra = ns.ApplyExtraBars()
-	HoldSlab(function() ApplyBars(geometryOnly) end)
+	HoldTray(function() ApplyBars(geometryOnly) end)
 	if extra == "beside" then ns.ClearExtraChat() end
 	if ns.flyout and ns.flyout.frame then
 		local frame = ns.flyout.frame
@@ -127,7 +127,7 @@ local function RefreshBars()
 end
 
 local function RefreshVisuals()
-	HoldSlab(RefreshBars)
+	HoldTray(RefreshBars)
 	ApplyAccent()
 end
 
@@ -153,6 +153,8 @@ local function UpdatePets()
 	for i = 1, #list do
 		ns.Button.Update(list[i])
 	end
+	local main = ns.bars.bar1
+	if main then main:RefreshTray() end
 end
 
 local function UpdateStances()
@@ -361,7 +363,7 @@ local function OnSetting(_, module, key)
 		end
 		ApplyAll()
 		return
-	elseif key == "slab" or key == "safeDragging" then
+	elseif key == "trayColumn" or key == "useTray" or key == "slab" or key == "safeDragging" then
 		ApplyAll()
 		return
 	elseif barKey and ns.BAR[barKey] then

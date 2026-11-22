@@ -19,7 +19,7 @@ local TILE_EDGE = "black"
 local GATE_EVENTS = { "ADDON_RESTRICTION_STATE_CHANGED", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD" }
 local ENCHANT_EVENTS = { "WEAPON_ENCHANT_CHANGED", "WEAPON_SLOT_CHANGED", "PLAYER_ENTERING_WORLD" }
 local INPUT_EVENT = "INPUT_DEVICE_INTERFACE_TRANSITION"
-local CALLBACKS = { "SettingChanged", "ThemeChanged", "ScaleChanged", "ProfileChanged", "LayoutChanged" }
+local CALLBACKS = { "SettingChanged", "ThemeChanged", "ScaleChanged", "ProfileChanged", "LayoutChanged", "HudStyleChanged" }
 local EDGE_TOKENS = { buffs = "edgeInner", debuffs = "hostile" }
 local KIND = Model.KIND
 local LAYOUT_TEMPLATE = "DisableUntrustedLayoutScriptsTemplate"
@@ -681,6 +681,7 @@ for _, key in pairs(Model.KEYS) do
 end
 
 local HANDLERS = {
+	HudStyleChanged = function() ApplyAll(false) end,
 	SettingChanged = OnSetting,
 	ThemeChanged = function()
 		ApplyAll(false)

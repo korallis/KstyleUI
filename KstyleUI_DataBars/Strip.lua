@@ -197,7 +197,7 @@ local function TextWidth(text, fontSize)
 end
 
 function Strip.Modules(s)
-	return s.placement == "rail" and s.railModules or s.dockModules
+	return s.placement == "rail" and s.railModules or Widgets.Medallions() and s.dockModules or s.modules
 end
 
 local function Order(s)
@@ -320,6 +320,22 @@ local function TopBar(view)
 		local holder = CreateFrame("Frame", nil, frame)
 		holder:SetAllPoints(frame)
 		view.zones[zone] = holder
+	end
+	view.art = {}
+	for _, piece in ipairs({
+		{ "medLevelPlaque", "TOP", "BOTTOM", 0, 0, 18, "giltLit" },
+		{ "forgedDiamond", "TOP", "BOTTOM", 0, -5, 8, "materialGold" },
+		{ "forgedBracket1", "BOTTOMLEFT", "BOTTOMLEFT", 17, 0, 8, "white" },
+		{ "forgedBracket1", "BOTTOMRIGHT", "BOTTOMRIGHT", -17, 0, 8, "white", true },
+	}) do
+		local texture = frame:CreateTexture(nil, "OVERLAY")
+		texture:SetTexture((Tokens.Texture(piece[1])))
+		Widgets.Point(texture, piece[2], frame, piece[3], piece[4], piece[5])
+		Widgets.Size(texture, piece[6], piece[6])
+		if piece[8] then texture:SetTexCoord(1, 0, 1, 0) else texture:SetTexCoord(0, 1, 1, 0) end
+		Widgets.Tint(texture, piece[7])
+		texture:Hide()
+		view.art[#view.art + 1] = texture
 	end
 end
 
@@ -532,8 +548,8 @@ local function PlaceLine(view, s)
 	if view.line and view.line < h then
 		h = view.line
 	end
-	local edge = view.slab and 0 or (view.bare and 0 or Pad(frame))
-	local unitGap, lift = Widgets.Snap(frame, UNIT_GAP), Widgets.Snap(frame, LINE_LIFT)
+	local edge = view.slab and 0 or view.topBar and Tokens.Size("screenMargin") or (view.bare and 0 or Pad(frame))
+	local unitGap, lift = Widgets.Snap(frame, UNIT_GAP), view.topBar and 0 or Widgets.Snap(frame, LINE_LIFT)
 	local order = view.order
 	local step = K.Scale.Pixel(1) / Widgets.ScaleFactor(frame)
 	local dotSize = s.fontSize * K.Theme.FontScale()
@@ -557,8 +573,8 @@ local function PlaceLine(view, s)
 	local captionGap = LABEL_GAP
 	if view.slab then
 		local layouts = K.Setup.Layouts
-		local left = layouts.ActionBarFootprint(K.Scale.Aspect(), "actionbars.bar1")
-		local right = layouts.ActionBarFootprint(K.Scale.Aspect(), "actionbars.bar2")
+		local left = layouts.ActionBarFootprint("medallions", K.Scale.Aspect(), "actionbars.bar1")
+		local right = layouts.ActionBarFootprint("medallions", K.Scale.Aspect(), "actionbars.bar2")
 		local ratio = frame:GetWidth() / (left + right + layouts.MEDALLIONS_HUB_GAP)
 		view.wingLeft, view.wingRight = left * ratio, right * ratio
 		limits.left = max(0, view.wingLeft - LABEL_GAP)
@@ -567,9 +583,15 @@ local function PlaceLine(view, s)
 	elseif view.rail then
 		limits.right = max(0, frame:GetWidth() - 2 * edge - EDGE_BORDERS)
 	end
-	local signature = { tostring(view.slab), tostring(view.deco), tostring(view.docked), frame:GetWidth(), h, edge, unitGap, lift, dotGap, step, limits.left or 0, limits.right or 0 }
+	local signature = { tostring(view.slab), tostring(view.deco), tostring(view.topBar), tostring(view.docked), frame:GetWidth(), h, edge, unitGap, lift, dotGap, step, limits.left or 0, limits.right or 0, view.leftInset or 0 }
 	for _, entry in ipairs(Strip.Modules(s) or {}) do zones[entry.id] = widths[entry.zone] and entry.zone or "right" end
-	for _, id in ipairs(order) do
+	local fit, sequence = view.topBar and view == Strip.view, order
+	if fit then
+		sequence = {}
+		for _, id in ipairs(order) do if zones[id] == "centre" then sequence[#sequence + 1] = id end end
+		for _, id in ipairs(order) do if zones[id] ~= "centre" then sequence[#sequence + 1] = id end end
+	end
+	for _, id in ipairs(sequence) do
 		local item = view.items[id]
 		local icon, bare = GLYPH_CELLS[id] ~= nil, false
 		if not seg then icon, bare = Shows(s, id) end
@@ -585,7 +607,8 @@ local function PlaceLine(view, s)
 		if view.slab and zone == "centre" then zone = "left" end
 		local joined = widths[zone] > 0 and id ~= "spacer" and last[zone] ~= "spacer"
 		local gap = joined and not seg and Widgets.Snap(frame, TextWidth(item.dot, s.fontSize) + 2 * dotGap) or 0
-		local overflow = (view.slab or view.rail) and (#hidden[zone] > 0 or widths[zone] + gap + width + 2 > limits[zone])
+		if fit and zone ~= "centre" then limits[zone] = (frame:GetWidth() - widths.centre) / 2 - edge - LABEL_GAP - (zone == "left" and view.leftInset or 0) end
+		local overflow = (view.slab or view.rail or fit and zone ~= "centre") and (#hidden[zone] > 0 or widths[zone] + gap + width + 2 > limits[zone])
 		positions[id] = { zone, widths[zone] + gap, width, joined, value, label, overflow, icon }
 		if overflow then
 			hidden[zone][#hidden[zone] + 1] = id
@@ -618,7 +641,7 @@ local function PlaceLine(view, s)
 		button:SetShown(not item.overflow)
 		item.cell, item.inner = nil, nil
 		button:ClearAllPoints()
-		if view.slab then
+		if view.topBar or view.slab then
 			local zone, offset = position[1], position[2]
 			local anchor = zone == "centre" and "TOP" or zone == "left" and "TOPLEFT" or "TOPRIGHT"
 			local start = zone == "centre" and -widths[zone] / 2 or zone == "left" and edge - (seg and pad - padding or 0) or -edge - widths[zone] - (view.slab and 2 or 0)
@@ -636,7 +659,7 @@ local function PlaceLine(view, s)
 		Widgets.Point(item.label, view.slab and "TOPLEFT" or "LEFT", button, view.slab and "TOPLEFT" or "LEFT", run + Widgets.Snap(button, valueWidth + unitGap), view.slab and 0 or lift)
 		item.label:SetWidth(Widgets.Snap(item.label, max(1, labelWidth + 2)))
 		item.label:SetJustifyH("LEFT")
-		local follows = view.slab and position[4] or not view.slab and i > 1 and order[i] ~= "spacer" and order[i - 1] ~= "spacer"
+		local follows = (view.topBar or view.slab) and position[4] or not view.topBar and not view.slab and i > 1 and order[i] ~= "spacer" and order[i - 1] ~= "spacer"
 		Segment(view, item, seg and not item.overflow and follows, glyph, glyphGap, h, position[8])
 		if not item.overflow then x = x + width end
 		local captionDot = not seg and view.slab and position[1] == "right" and position[2] == 0 and view.slab.text:IsVisible()
@@ -651,7 +674,7 @@ local function PlaceLine(view, s)
 			x = x + Widgets.Snap(frame, dotWidth + 2 * dotGap)
 		end
 	end
-	view.contentWidth = Widgets.Snap(frame, x - edge)
+	view.contentWidth = Widgets.Snap(frame, view.topBar and 2 * (max(widths.left, widths.right) + edge + LABEL_GAP) + widths.centre or x - edge)
 	CaptionSegment(view, seg and view.slab ~= nil and view.slab.text:IsVisible(), widths.right > 0, glyph, glyphGap, h)
 	if view.docked then
 		if view.dockWidth ~= view.contentWidth then
@@ -788,14 +811,16 @@ end
 function Strip.Paint(view, s, values)
 	local order = Order(s)
 	view.order, view.s = order, s
+	view.topBar = s.placement == "top" and not Widgets.Medallions()
 	view.rail = s.placement == "rail" and not view.docked
-	local plate, wings = view.deco, view.deco and view.slab ~= nil
+	local plate, wings = view.topBar or view.deco, view.deco and view.slab ~= nil
 	if wings and not view.wing then
 		view.wingCard = CreateFrame("Frame", nil, view.frame)
 		view.wing = Widgets.Chrome(view.wingCard, { shape = "panel", fill = "surface" })
 	end
+	if view.topBar then TopBar(view) end
 	view.lineMode = plate or view.slab ~= nil or LineMode(s)
-	view.bare = view.slab ~= nil or view.lineMode and s.backdrop == false
+	view.bare = view.slab ~= nil or not view.topBar and view.lineMode and s.backdrop == false
 	local inOrder = {}
 	for _, id in ipairs(order) do
 		inOrder[id] = true
@@ -803,6 +828,9 @@ function Strip.Paint(view, s, values)
 			view.items[id] = NewItem(view, id)
 			if view.bind then view.bind(view.items[id]) end
 		end
+	end
+	if view.art then
+		for _, texture in ipairs(view.art) do texture:SetShown(view.topBar and s.artwork ~= "plain") end
 	end
 	for _, chrome in ipairs({ view.chrome, view.wing }) do
 		chrome.materialOn = not (plate and s.artwork == "plain")
@@ -822,18 +850,22 @@ function Strip.Paint(view, s, values)
 	end
 	local caption = view.slab and ns.Bars.Settings(view.slab)
 	local f = caption or s
-	local size = f.fontSize
+	local px = Widgets.Border(view.frame)
+	local size = view.topBar and min(s.fontSize, floor(floor(view.frame:GetHeight() / px + 0.5) * 5 / 6) * px / K.Theme.FontScale()) or f.fontSize
 	local fontSize = size * K.Theme.FontScale()
 	for id, item in pairs(view.items) do
 		local on = inOrder[id] == true
 		item.button:SetShown(on and not item.overflow)
 		if not on then
-			item.grade, item.overflow = nil, nil
+			item.grade = nil
 			ns.Click.Release(item)
 			item.separator:Hide()
 			item.dot:Hide()
 		else
 			if item.font ~= f.font or item.fontSize ~= fontSize or item.outline ~= f.outline or item.lineMode ~= view.lineMode or item.slab ~= view.slab or item.instrument ~= f.instrumentText then
+				Widgets.Fitted(item.label, view.topBar)
+				Widgets.Fitted(item.value, view.topBar)
+				Widgets.Fitted(item.dot, view.topBar)
 				if view.slab then
 					Font.Caption(item.label, caption, caption.medal)
 					Font.Caption(item.value, caption, caption.medal)
@@ -971,7 +1003,26 @@ end
 function Strip.DockMenus(view, s)
 	local Menus = ns.Menus
 	local frame, card = view.frame, view.card
-	local docked = s.enabled ~= false and not view.slab and s.menus == true and Menus ~= nil and view == Strip.view and Menus.Holder("micro") ~= nil
+	view.leftInset = nil
+	if view.topBar and s.enabled ~= false and s.menus == true and Menus and view == Strip.view then
+		view.microDock = view.microDock or function(content, width, height)
+			content:ClearAllPoints()
+			Widgets.Point(content, "LEFT", frame, "LEFT", Tokens.Size("screenMargin"), 0)
+			Widgets.Size(content, width, height)
+		end
+		Menus.SetDock("micro", view.microDock, frame, min(15, frame:GetHeight()), 1, true)
+		Menus.SetDock("bags", nil)
+		local micro = Menus.Content("micro")
+		view.leftInset = Tokens.Size("screenMargin") + (micro and Menus.Visible("micro") and micro:GetWidth() + MENU_GAP or 0)
+		view.zones.left:ClearAllPoints()
+		Widgets.Point(view.zones.left, "TOPLEFT", frame, "TOPLEFT", view.leftInset, 0)
+		Widgets.Point(view.zones.left, "BOTTOMRIGHT", frame, "BOTTOMRIGHT")
+		view.line, view.lineTop, view.wrapMenus = nil, nil, nil
+		card:ClearAllPoints()
+		card:SetAllPoints(frame)
+		return
+	end
+	local docked = s.enabled ~= false and not view.topBar and not view.slab and s.menus == true and Menus ~= nil and view == Strip.view and Menus.Holder("micro") ~= nil
 	view.pad = view.bare and 0 or Pad(frame)
 	local pad, gap = view.pad, Widgets.Snap(frame, MENU_GAP)
 	local line = Widgets.Snap(frame, view.lineMode and LINE or CELL_LINE)
@@ -1210,7 +1261,7 @@ local function DockMeter(view, s)
 	local layout = K.Layout.Get(KEY)
 	local element = K.Layout.Element(KEY)
 	local default = element and element.default
-	local on = not K.Setup.Layouts.DataBarDock() and s.enabled ~= false and s.dockMeter ~= false and LineMode(s) and not s.menus and meter and meter.holder:IsVisible() and meter.cap.frame:IsShown() and layout and default and layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
+	local on = not K.Setup.Layouts.DataBarDock() and not (s.placement == "top" and not Widgets.Medallions()) and s.enabled ~= false and s.dockMeter ~= false and LineMode(s) and not s.menus and meter and meter.holder:IsVisible() and meter.cap.frame:IsShown() and layout and default and layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
 	if on then
 		meter:ReserveTitle((view.contentWidth or 0) + Widgets.Snap(view.frame, LABEL_GAP))
 		local width = math.max(1, view.contentWidth or 1)
@@ -1307,7 +1358,7 @@ local function RefreshMain()
 	local dock = K.Setup.Layouts.DataBarDock()
 	K.Layout.SetLive(KEY, s.enabled ~= false and not dock)
 	view.slab = dock and xp or nil
-	view.deco = view.slab ~= nil
+	view.deco = view.slab ~= nil and Widgets.Medallions()
 	if view.slab then
 		TopBar(view)
 		view.frame:ClearAllPoints()
@@ -1412,7 +1463,7 @@ end
 
 local function MatchOrientation(s, changed)
 	local layout = K.Layout.Get(KEY)
-	if not layout then
+	if not layout or s.placement == "top" and not Widgets.Medallions() then
 		return
 	end
 	local vertical = s.orientation == "VERTICAL"
@@ -1427,7 +1478,7 @@ end
 
 local function MatchLine(s)
 	local layout = K.Layout.Get(KEY)
-	if not layout or s.orientation == "VERTICAL" then
+	if not layout or s.orientation == "VERTICAL" or s.placement == "top" and not Widgets.Medallions() then
 		return
 	end
 	local _, height = Footprint(KEY)
@@ -1499,7 +1550,7 @@ function Strip.Setting(key)
 	end
 	Strip.Refresh()
 	if field and field:find("^hearth") then ns.Click.Refresh() end
-	if field == "dockModules" or field == "railModules" or field == "secondModules" or field == "second" or field == "enabled" or field == "placement" then
+	if field == "modules" or field == "dockModules" or field == "railModules" or field == "secondModules" or field == "second" or field == "enabled" or field == "placement" then
 		StartTicker()
 	end
 end
@@ -1515,6 +1566,8 @@ ns.Subscribe("LayoutChanged", function(key)
 		Strip.Refresh()
 	end
 end)
+
+ns.Subscribe("HudStyleChanged", Strip.Refresh)
 
 ns.Subscribe("ModuleChanged", function(module)
 	if module == "Meters" and running then

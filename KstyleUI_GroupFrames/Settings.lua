@@ -321,6 +321,7 @@ function Settings.Schema(includeText)
 			add(Slider(p .. "portraitZoom", L["Portrait zoom"], L["Crops into each portrait so the face fills more of it."], 0, 0.3, 0.05))
 			schema[#schema].showWhen = Is(p .. "portrait", true)
 			add(Slider(p .. "portraitRingAlpha", L["Ring opacity"], L["How solid the class ring round each portrait or role ring is."], 0, 1, 0.05))
+			schema[#schema].showWhen = function(settings) return Is(p .. "portrait", true)(settings) or Is(p .. "roleRing", true)(settings) or ns.Medallions.Active() end
 		else
 			add(Dropdown(p .. "sortBy", L["Sort by"], L["Groups side by side, or everyone in role or class order."], RAID_SORT))
 			add(Toggle(p .. "merge", L["Merge groups"], L["Runs the groups on in one block, in group order, with no gap between them."], { showWhen = Is(p .. "sortBy", "GROUP") }))

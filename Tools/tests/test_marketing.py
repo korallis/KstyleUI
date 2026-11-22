@@ -14,7 +14,7 @@ RAW = "https://raw.githubusercontent.com/korallis/KstyleUI/main/"
 DISCORD = "https://discord.gg/A5qqGZEXyN"
 ICON_RELEASES = "https://github.com/korallis/KstyleUI/releases/latest"  # the one allowed releases link: the icon pack's page, never a file
 SUMMARY = ("A complete, pixel-perfect interface for World of Warcraft: Forever "
-           "\u2014 one dark forged style, the Medallions HUD, set up in one window.")
+           "\u2014 one dark forged style, three HUDs, set up in one window.")
 
 try:
     from PIL import Image
@@ -124,7 +124,7 @@ class MarketingImages(unittest.TestCase):
         for alt, rel in re.findall(r"!\[([^\]]+)\]\(" + re.escape(RAW) + r"([^)]+)\)", master):
             if "/header-" in rel:
                 continue
-            label = "in-game screenshot" if "/game_" in rel or rel.endswith(("banner.jpg", "card-medallions.jpg")) else "test render over an in-game screenshot"
+            label = "in-game screenshot" if "/game_" in rel or rel.endswith(("banner.jpg", "card-three-huds.jpg")) else "test render over an in-game screenshot"
             self.assertIn(label, alt.lower(), rel)
 
     def test_pictured_icon_pack_is_disclosed(self):
@@ -140,7 +140,7 @@ class MarketingImages(unittest.TestCase):
             self.assertIn(notice, caption[1], name)
         for store in ("curseforge.md", "wago.md"):
             for line in (MASTER.parent / store).read_text(encoding="utf-8").splitlines():
-                if line.startswith("| `gallery/") and "04-setup.jpg" not in line:
+                if line.startswith("| `gallery/") and "06-setup.jpg" not in line:
                     self.assertIn(notice, line, store + ": " + line)
 
 

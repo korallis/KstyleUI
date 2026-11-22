@@ -425,9 +425,7 @@ function Slot:SetSlabDress(on)
 	self.slabProc = on == true
 	self.slabDressed = on == true and self.opts.inputContinuity == true
 	if self.hoverWash then self.hoverWash:SetShown(not self.slabDressed) end
-	if self.hoverRim then
-		for _, rim in ipairs(self.hoverRim) do rim:SetShown(not self.slabDressed) end
-	end
+	for _, rim in ipairs(self.hoverRim or {}) do rim:SetShown(not self.slabDressed) end
 	if self.slabDressed then
 		self.pressLayer:Hide()
 	end

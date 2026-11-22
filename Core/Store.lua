@@ -1058,7 +1058,7 @@ Store.migrations[45] = function(data, live)
 	for _, positions in pairs(Table(Table(data.account).namedLayouts)) do
 		DropStyledPositions(positions)
 	end
-	if moved and live then ns.Print(L["KstyleUI is now Medallions only; your HUD moved to Medallions."]) end
+	if moved and live then ns.Print(L["Your HUD moved to Medallions. Played on Frames? Pick it again under HUD style at the top of the settings window's General page."]) end
 end
 
 Store.migrations[46] = function(data)

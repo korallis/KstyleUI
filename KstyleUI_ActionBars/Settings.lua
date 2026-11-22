@@ -83,10 +83,13 @@ local defaults = {
 	tooltips = "always",
 	ranks = "ask",
 	newSpells = "ask",
+	tray = true,
+	useTray = true,
 	slab = true,
 	extraBarsLayout = "off",
 	extraBarsApplied = "off",
 	extraBarsPrevious = {},
+	trayColumn = true,
 	quietSockets = true,
 	quietCooldown = true,
 	readableCountdown = true,
@@ -155,12 +158,12 @@ function ns.ApplyExtraBars()
 	settings.extraBarsApplied = wanted
 	if preset then
 		local layouts, rootWidth = K.Setup.Layouts, K.Layout.RootSize()
-		local _, _, _, gap = layouts.ActionBarGrid(K.Scale.Aspect(), "actionbars.bar1")
+		local _, _, _, gap = layouts.ActionBarGrid("medallions", K.Scale.Aspect(), "actionbars.bar1")
 		for i, key in ipairs({ "bar4", "bar5" }) do
 			local parent = i == 1 and "actionbars.bar1" or "actionbars.bar2"
 			local x, y, w, h = K.Layout.Rect(parent)
 			if x then
-				local bw, bh = layouts.ActionBarFootprint(K.Scale.Aspect(), "actionbars." .. key)
+				local bw, bh = layouts.ActionBarFootprint("medallions", K.Scale.Aspect(), "actionbars." .. key)
 				local scale = wanted == "rows" and K.Layout.Get(parent).scale or 1
 				local center = x + w / 2 - rootWidth / 2
 				if wanted == "beside" then center = center + (i == 1 and -1 or 1) * (w / 2 + 2 * layouts.MEDALLIONS_SLAB.pad + gap + bw / 2) end
@@ -182,7 +185,7 @@ function ns.ClearExtraChat()
 	local pad = K.Setup.Layouts.MEDALLIONS_SLAB.pad
 	if x - pad < l + w and l < x + bw + pad and y - pad < b + h and b < y + bh + pad then
 		local position = K.Layout.Get("actionbars.bar4")
-		local _, _, _, gap = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), "actionbars.bar1")
+		local _, _, _, gap = K.Setup.Layouts.ActionBarGrid("medallions", K.Scale.Aspect(), "actionbars.bar1")
 		K.Layout.Set("actionbars.bar4", "y", position.y + b + h + pad + gap - y)
 	end
 end
@@ -263,12 +266,12 @@ local function BarRows(schema, def)
 		if key == "bar1" or key == "bar2" then
 			local field = row.key and row.key:match("%.(.+)$")
 			if field == "rows" or field == "orientation" or field == "growth" or field == "spacing" or field == "split" or field == "showEmpty" or field == "backing" or field == "reverse" then
-				row.showWhen = function(settings) return editing(settings) and settings[key].enabled and settings.slab == false end
+				row.showWhen = function(settings) return editing(settings) and settings[key].enabled and not (K.HudStyle.Current() == "medallions" and settings.slab ~= false) end
 			end
 		end
 		if key == "consumables" and row.key and row.key:find(".placement.", 1, true) then
 			row.disableWhen = function()
-				local _, size = K.Setup.Layouts.ConsumableGrid()
+				local _, size = K.Setup.Layouts.ConsumableGrid(K.HudStyle.Current())
 				return size < 30
 			end
 		end
@@ -280,8 +283,8 @@ local function BarRows(schema, def)
 	add({ type = "toggle", key = key .. ".enabled", label = L["Show this bar"], help = help })
 	if key == "bar3" then add({ type = "toggle", key = "bar3.finished", label = L["Finished third bar"], help = L["Seats bar 3 clear of the HUD, with a Medallions slab. Off restores its old place and finish."] }) end
 	if key == "bar1" or key == "bar2" then
-		add({ type = "note", label = L["The slab joins bars 1 and 2 into one row each, with fixed spacing and backing. Turn off Use the Medallions slab above to unlock rows, spacing, growth and split. Button size scales both sides."], showWhen = function(settings) return editing(settings) and settings.slab ~= false end })
-		add({ type = "note", label = L["The slab fixes button order. Turn it off above to reverse these bars."], showWhen = function(settings) return editing(settings) and settings.slab ~= false end })
+		add({ type = "note", label = L["The slab joins bars 1 and 2 into one row each, with fixed spacing and backing. Turn off Use the Medallions slab above to unlock rows, spacing, growth and split. Button size scales both sides."], showWhen = function(settings) return editing(settings) and K.HudStyle.Current() == "medallions" and settings.slab ~= false end })
+		add({ type = "note", label = L["The slab fixes button order. Turn it off above to reverse these bars."], showWhen = function(settings) return editing(settings) and K.HudStyle.Current() == "medallions" and settings.slab ~= false end })
 	end
 	add({ type = "slider", key = key .. ".buttons", label = L["Buttons"], help = L["How many buttons the bar shows."], min = 1, max = def.max, step = 1 })
 	add({ type = "slider", key = key .. ".rows", label = L["Rows"], help = (def.kind == "action" or def.kind == "consumable") and L["12 buttons in 2 rows gives 6 buttons per row."] or L["12 buttons in 2 rows gives 6 buttons per row. 0 keeps the HUD style's default rows."], min = (def.kind == "action" or def.kind == "consumable") and 1 or 0, max = def.max, step = 1 })
@@ -318,7 +321,7 @@ local function BarRows(schema, def)
 		add({ type = "toggle", key = key .. ".rarityBorder", label = L["Item quality borders"], help = L["Colours the border of buttons holding an uncommon or better item."] })
 	end
 	add({ type = "toggle", key = key .. ".moverOptions", label = L["Double-click mover for settings"], help = L["Opens this bar in Options from Layout Mode. Click selects; right-click resets."] })
-	if def.kind == "consumable" then add({ type = "note", label = L["Below 30 units, consumables keep count and cooldown apart."], showWhen = function(settings) return editing(settings) and settings[key].enabled and select(2, K.Setup.Layouts.ConsumableGrid()) < 30 end }) end
+	if def.kind == "consumable" then add({ type = "note", label = L["Below 30 units, consumables keep count and cooldown apart."], showWhen = function(settings) return editing(settings) and settings[key].enabled and select(2, K.Setup.Layouts.ConsumableGrid(K.HudStyle.Current())) < 30 end }) end
 	for _, spec in ipairs(ns.TEXTS) do
 		if spec.key == "hotkey" or spec.key == "cooldown" or spec.key == "count" and (def.kind == "action" or def.kind == "consumable") or spec.key == "macro" and def.kind == "action" then
 			local path = key .. ".placement." .. spec.key
@@ -370,27 +373,31 @@ function ns.Schema()
 	K.Callbacks.Register("ProfileChanged", "ActionBarsVisibility", ns.SyncVisibilities)
 	local schema = {
 		{ type = "segmented", key = "editBar", pin = true, label = L["Bar to edit"], help = L["Choose the bar the settings below change."], options = EditOptions() },
-		{ type = "toggle", key = "slab", label = L["Use the Medallions slab"], help = L["Seats bars 1 and 2 in the connected slab. Off gives both bars every arrangement option."], showWhen = function(settings) return settings.editBar == "bar1" or settings.editBar == "bar2" end },
+		{ type = "toggle", key = "slab", label = L["Use the Medallions slab"], help = L["Seats bars 1 and 2 in the connected slab. Off gives both bars every arrangement option."], showWhen = function(settings) return (settings.editBar == "bar1" or settings.editBar == "bar2") and K.HudStyle.Current() == "medallions" end },
 	}
 	for _, def in ipairs(ns.BARS) do BarRows(schema, def) end
 	BarRows(schema, ns.Consumables.def)
 	local shared = {
 		{ type = "header", label = L["Slab and cooldowns"] },
-		{ type = "dropdown", key = "extraBarsLayout", label = L["Extra bars layout"], help = L["Places bars 4 and 5 once; all controls stay editable. Off restores their previous settings."],
+		{ type = "dropdown", key = "extraBarsLayout", label = L["Extra bars layout"], help = L["Places bars 4 and 5 once; all controls stay editable. Off restores their previous settings."], showWhen = function() return K.HudStyle.Current() == "medallions" end,
 			options = { { value = "off", label = L["Off"] }, { value = "rows", label = L["Two rows on the slab"] }, { value = "beside", label = L["Beside the slab"] } } },
 		{ type = "toggle", key = "quietSockets", label = L["Quiet empty sockets"], help = L["Dims empty Medallions buttons until you drag an action, bind keys or enter Layout Mode."] },
 		{ type = "toggle", key = "quietCooldown", label = L["Quieter cooldowns"], help = L["Removes the bright edge from the global cooldown and keeps cooling icons readable."] },
 		{ type = "toggle", key = "readableCountdown", label = L["Readable countdowns"], help = L["Centres outlined timers and dims larger key labels during real cooldowns."] },
 		{ type = "toggle", key = "seatedCrest", label = L["Seat the crest"], help = L["Fits the Medallions crest inside its opening with a small metal lip. Off restores the larger crest."] },
-		{ type = "toggle", key = "crestTravel", label = L["Crest travel clicks"], help = L["Left click the crest to hearth; right click for your travel spells, items and mounts."] },
-		{ type = "toggle", key = "crestJewels", label = L["Crest resource jewels"], help = L["Lights combo points, holy power or soul shards as jewels on the Medallions crest ring."] },
-		{ type = "toggle", key = "crestJewelGlow", label = L["Glow at max"], help = L["Lights the whole crest ring in the resource's colour while the jewels are full."], showWhen = function(settings) return settings.crestJewels ~= false end },
-		{ type = "toggle", key = "crestHawks", label = L["Hawk perches"], help = L["Shows each Summon Hawk hawk and its time left as a perch on the Medallions crest ring."] },
-		{ type = "toggle", key = "totemBar", label = L["Shaman totem bar"], help = L["Replaces Blizzard's totem bar: element sockets, spires timing each totem, Ghost Wolf and Call."], showWhen = function() return ns.class == "SHAMAN" end },
-		{ type = "toggle", key = "crestStorm", label = L["Lightning Shield on the crest"], help = L["Shows each Lightning Shield charge as a storm orb circling the Medallions crest."], showWhen = function() return ns.class == "SHAMAN" end },
+		{ type = "toggle", key = "crestTravel", label = L["Crest travel clicks"], help = L["Left click the crest to hearth; right click for your travel spells, items and mounts."], showWhen = function() return K.HudStyle.Current() == "medallions" end },
+		{ type = "toggle", key = "crestJewels", label = L["Crest resource jewels"], help = L["Lights combo points, holy power or soul shards as jewels on the Medallions crest ring."], showWhen = function() return K.HudStyle.Current() == "medallions" end },
+		{ type = "toggle", key = "crestJewelGlow", label = L["Glow at max"], help = L["Lights the whole crest ring in the resource's colour while the jewels are full."], showWhen = function(settings) return settings.crestJewels ~= false and K.HudStyle.Current() == "medallions" end },
+		{ type = "toggle", key = "crestHawks", label = L["Hawk perches"], help = L["Shows each Summon Hawk hawk and its time left as a perch on the Medallions crest ring."], showWhen = function() return K.HudStyle.Current() == "medallions" end },
+		{ type = "toggle", key = "totemBar", label = L["Shaman totem bar"], help = L["Replaces Blizzard's totem bar: element sockets, spires timing each totem, Ghost Wolf and Call."], showWhen = function() return ns.class == "SHAMAN" and K.HudStyle.Current() == "medallions" end },
+		{ type = "toggle", key = "crestStorm", label = L["Lightning Shield on the crest"], help = L["Shows each Lightning Shield charge as a storm orb circling the Medallions crest."], showWhen = function() return ns.class == "SHAMAN" and K.HudStyle.Current() == "medallions" end },
 		{ type = "toggle", key = "hubNumber", label = L["Clear hub level"],
 			help = L["Use the number face on a larger Medallions level badge. Off restores the original badge."] },
 		{ type = "note", label = L["Type /kb to hover a button and press a key to bind it. Save for your account or this character, or Discard your changes."] },
+		{ type = "header", label = L["Tray"], showWhen = function() return K.HudStyle.Current() ~= "medallions" end },
+		{ type = "toggle", key = "useTray", label = L["Use the tray"], help = L["Frames bars 1 and 2 in their HUD tray. Off frees the bars and removes the tray's button sizing."], showWhen = function() return K.HudStyle.Current() ~= "medallions" end },
+		{ type = "toggle", key = "tray", label = L["Tray card"], help = L["Frames bar 1 and bar 2 in one card while bar 2 stands straight above bar 1."], showWhen = function(settings) return settings.useTray ~= false and K.HudStyle.Current() == "frames" end },
+		{ type = "toggle", key = "trayColumn", label = L["Tray on the centre column"], help = L["Frames: bars 1 and 2 shrink so their buttons line up with the unit bars above."], showWhen = function(settings) return settings.useTray ~= false and K.HudStyle.Current() == "frames" end },
 		{ type = "header", label = L["Bars"] },
 		{ type = "toggle", key = "safeDragging", label = L["Safe dragging"], help = L["Clicks cast on release; keys keep their timing. Off makes clicks follow the key setting."] },
 		{ type = "toggle", key = "bindingHints", label = L["Binding helpers"], help = L["Shows Bind keys buttons and a dash on unbound actions. Off keeps the usual binding display."] },

@@ -1,4 +1,4 @@
--- CastEffects.lua: the Medallions cast flash: when a cast lands or stops the bar washes steel or red and a light streak runs along it, clipped to the bar, through the shared effects layer so it obeys the Medallions motion level.
+-- CastEffects.lua: the Medallions cast flash: when a cast lands or stops the bar washes steel or red and a light streak runs along it, clipped to the bar, through the shared effects layer so it obeys the Medallions motion level; other styles keep CastBar's own flash.
 local _, ns = ...
 
 local K = KstyleUI
@@ -63,7 +63,7 @@ end
 
 function CastEffects.Flash(cb, colorName, alpha)
 	local effects = K.Effects
-	if not effects then
+	if not (effects and effects.Active and effects.Active()) then
 		return false
 	end
 	if not (effects.Allows("flare") and cb.frame:IsShown()) then

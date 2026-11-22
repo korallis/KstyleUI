@@ -430,22 +430,26 @@ function Profiles.ImportAccount(text)
 	return true, count
 end
 
+local STYLE_LABELS = { frames = L["Frames"], medallions = L["Medallions"] }
 function Profiles.Presets()
 	local out, layouts = {}, K.Setup and K.Setup.Layouts
 	for _, layout in ipairs(layouts and layouts.Names() or {}) do
-		out[#out + 1] = { value = layout, label = layouts.Label(layout) or layout }
+		for _, style in ipairs({ "medallions", "frames" }) do
+			out[#out + 1] = { value = layout .. ":" .. style, label = format("%s, %s", layouts.Label(layout) or layout, STYLE_LABELS[style]) }
+		end
 	end
 	return out
 end
 
-function Profiles.FromPreset(layout, name)
+function Profiles.FromPreset(preset, name)
+	local layout, style = tostring(preset):match("^(%w+):(%a+)$")
 	local setup = K.Setup
-	if not (setup and setup.Layouts.Get(layout)) then return false, L["Choose a preset."] end
+	if not (layout and setup and setup.Layouts.Get(layout) and K.HudStyle.Valid(style)) then return false, L["Choose a preset."] end
 	local ok, result = Store.CreateProfile(name)
 	if not ok then return false, result end
 	Store.SetProfile(result)
 	local choice = setup.NewChoice(true)
-	choice.layout = layout
+	choice.layout, choice.hudStyle = layout, style
 	return setup.Apply(choice), result
 end
 

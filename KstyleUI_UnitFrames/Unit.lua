@@ -811,6 +811,26 @@ function Unit.Caption(view, unit)
 	end
 end
 
+local function Rank(view, unit)
+	local ring = view.portraitOrnament
+	if not ring then
+		return
+	end
+	local classification = type(UnitClassification) == "function" and UnitClassification(unit)
+	local known = not IsSecret(classification)
+	local player = unit == "player"
+	local boss = known and (classification == "worldboss" or view.kind == "boss")
+	local elite = known and (classification == "elite" or classification == "rareelite" or classification == "rare" or classification == "worldboss")
+	if ring.player == player and ring.boss == boss and ring.elite == elite then
+		view.health.ornament:Restyle()
+	else
+		ring.player, ring.boss, ring.elite = player, boss, elite
+		ring:Restyle()
+		ns.Style.RestyleBlocks()
+	end
+	view.chrome:RestyleOrnament()
+end
+
 function Unit.Level(view, unit)
 	local text = view.levelText
 	if view.form == "slab" then
@@ -818,6 +838,7 @@ function Unit.Level(view, unit)
 		Unit.Caption(view, unit)
 		return
 	end
+	Rank(view, unit)
 	if view.form and view.form ~= "plate" then
 		Unit.Caption(view, unit)
 		if (view.form == "vitals" or view.form == "column" or view.form == "bar") and view.s.level then

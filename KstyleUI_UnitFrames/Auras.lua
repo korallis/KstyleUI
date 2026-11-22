@@ -60,7 +60,7 @@ local issecretvalue = issecretvalue or function()
 end
 
 local function PoolStyle(view)
-	return Settings.AuraRows(view.kind) and "medallionsRows" or "medallions"
+	return Settings.AuraRows(view.kind) and "medallionsRows" or K.HudStyle.Current()
 end
 
 local views = {}

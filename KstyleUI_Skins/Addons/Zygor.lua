@@ -59,17 +59,19 @@ local function Shown()
 		return false
 	end
 	local _, rh = Setup.RootSize()
-	return Layouts.Story(Preset(), rh, true) ~= nil
+	local story = Layouts.Story(Preset(), rh, true, K.HudStyle.Current())
+	return story ~= nil and not story.stacked
 end
 
-local function Spec()
+local function Spec(style)
 	local Setup = K.Setup
 	local Layouts = Setup and Setup.Layouts
 	if not (Layouts and type(Layouts.Story) == "function") then
 		return nil
 	end
 	local rw, rh = Setup.RootSize()
-	local story = Layouts.Story(Preset(), rh, true, rw) or Layouts.Story(DEFAULT_PRESET, rh, true, rw)
+	local shown = Shown()
+	local story = Layouts.Story(Preset(), rh, true, style, rw, shown) or Layouts.Story(DEFAULT_PRESET, rh, true, style, rw, shown)
 	return story and story.guide
 end
 
@@ -199,7 +201,7 @@ end
 
 local function Live()
 	local Layout = K.Layout
-	local spec = state.holder and Spec()
+	local spec = state.holder and Spec(K.HudStyle.Current())
 	if spec and Layout and type(Layout.SetLive) == "function" then
 		Layout.SetLive(spec.key, On())
 	end
@@ -274,8 +276,8 @@ function Place()
 	local z = Zygor()
 	local frame = z and z.Frame
 	local master = frame and frame:GetParent()
-	local spec = Spec()
-	local story = K.Setup.Story(Preset(), true)
+	local spec = Spec(K.HudStyle.Current())
+	local story = K.Setup.Story(Preset(), true, Shown())
 	local band = story and story.guide
 	if not (master and spec and band) then
 		return Skip("no " .. (not master and "window" or not spec and "slot" or "story band") .. " (shown=" .. tostring(Shown()) .. ")")

@@ -2,6 +2,10 @@
 	<Script file="Base.lua"/>
 	<Script file="Text.lua"/>
 	<Script file="Ink.lua"/>
+	<Script file="Rects.lua"/>
+	<Script file="OrnamentData.lua"/>
+	<Script file="OrnamentInk.lua"/>
+	<Script file="Ornaments.lua"/>
 	<Script file="Glow.lua"/>
 	<Script file="Rail.lua"/>
 	<Script file="Tooltip.lua"/>

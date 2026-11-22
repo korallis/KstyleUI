@@ -11,7 +11,7 @@ end
 
 ns.Events.Register(OWNER, "PLAYER_LEVEL_UP", function()
 	local medallion = Effects.playerMedallion
-	if not medallion then
+	if not (medallion and Effects.Active()) then
 		return
 	end
 	local _, class = UnitClass("player")

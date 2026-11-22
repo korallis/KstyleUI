@@ -1,4 +1,4 @@
--- Vehicle.lua: the leave-vehicle slot beyond the Medallions right slab.
+-- Vehicle.lua: the leave-vehicle slot beyond the Medallions right slab or beside the Frames tray and stance bar.
 local _, ns = ...
 
 local K = KstyleUI
@@ -54,7 +54,7 @@ function Vehicle.Update()
 	local bar = ns.bars.bar1
 	button:SetScale(bar and bar.holder:GetScale() or 1)
 	local size = bar and bar:Config().size or Tokens.Size("actionButton")
-	if bar then
+	if bar and K.HudStyle.Current() == "medallions" then
 		size = ns.Slab.Size(bar.def, bar:Config())
 	end
 	if button.opts.size ~= size then
@@ -62,9 +62,14 @@ function Vehicle.Update()
 		button:Restyle()
 	end
 	button:ClearAllPoints()
-	if bar then
+	if bar and K.HudStyle.Current() == "medallions" then
 		local right = ns.bars.bar2 and ns.bars.bar2:Shown() and ns.bars.bar2 or bar
 		button:SetPoint("LEFT", right.holder, "RIGHT", Widgets.Snap(button, ns.Slab.Spec().pad + Tokens.Size("gapMedium")), 0)
+	elseif bar then
+		local pad = ns.Config("tray") == true and K.Setup.Layouts.TRAY_PAD or 0
+		local stance = ns.bars.stance
+		local anchor = K.HudStyle.Current() == "frames" and stance and stance:Shown() and stance.count > 0 and stance.holder or bar.holder
+		button:SetPoint("LEFT", anchor, "RIGHT", Widgets.Snap(button, Tokens.Size("gapMedium") + pad), 0)
 	else
 		local root = K.Scale.Root()
 		button:SetPoint("BOTTOM", root, "BOTTOM", 0, Tokens.Size("gapHuge"))

@@ -41,7 +41,7 @@ class ManifestTest(unittest.TestCase):
         for name in (
             "LumenShape", "CardShape", "RingLine2", "RingLine3", "RingLine4", "RingLine5", "RingLine6", "LumenOutline", "Diamond",
             "PillCapLeft", "PillCapRight", "BarSheen", "LensMask", "SocketMask", "PortraitMask", "RuleFade", "Shadow", "Glow", "Divider", "Noise", "Ring", "RingBevel",
-            "BarFlat", "BarSoft", "BarGlass", "Logo64", "Logo256",
+            "BarFlat", "BarSoft", "BarGlass", "MinimapMask", "Logo64", "Logo256",
             "Dot", "Pill", "GlyphChevron", "GlyphClose",
         ):
             self.assertIn(name, names)
@@ -52,6 +52,18 @@ class ManifestTest(unittest.TestCase):
         # The core TOC's IconTexture names Media\Logo\Logo64 with no extension, which the game
         # resolves to a TGA or BLP file, not a PNG.
         self.assertIn("Media/Logo/Logo64.tga", paths)
+
+    def test_hud_style_pictures_are_renders(self):
+        # KSTY-60 item 27: the HUD style picker shows a picture of each style, cropped from the hud_reference render
+        # (Tools/media/hud_pictures.py), not the flat schematic drawing of a handful of colours it showed before.
+        for name in ("HudStyleFrames", "HudStyleOrbs", "HudStyleMedallions"):
+            asset = next(a for a in self.mm.ASSETS if Path(a.path).stem == name)
+            self.assertEqual((asset.width, asset.height), (1024, 512), name)
+            width, height, pixels = self.mm.decode_png((ROOT / asset.path).read_bytes())
+            self.assertEqual((width, height, pixels), self.mm.decode_tga((ROOT / f"Media/Textures/{name}.tga").read_bytes()),
+                             f"{name}: client TGA and browser PNG must have identical pixels")
+            colours = {bytes(pixels[i:i + 3]) for i in range(0, len(pixels), 4)}
+            self.assertGreater(len(colours), 2000, f"{name} is a picture, not a schematic of {len(colours)} colours")
 
     def test_lumen_geometry_matches_the_radius_tokens(self):
         # The fills are drawn on a 14-unit corner and the outline on 8, at TEXELS_PER_UNIT; the kit stretches them to
@@ -356,11 +368,22 @@ class DrawingTest(unittest.TestCase):
         levels = [self.px("BarGlass.png", 0, y)[0] for y in range(32)]
         self.assertEqual(levels, sorted(levels, reverse=True), "the gradient falls steadily, with no sheen")
 
-    def test_minimap_module_wears_the_round_mask(self):
+    def test_minimap_mask_is_a_plain_square(self):
+        # The owner's picture draws the map as a plain square with square corners (LEE-20: the picture wins over the
+        # chamfered mask of #207), so the mask is opaque white to every edge and corner of its 64 texels.
+        width, height, _ = self.rendered["MinimapMask.png"]
+        self.assertEqual((width, height), (64, 64))
+        for x, y in ((0, 0), (63, 0), (0, 63), (63, 63), (32, 32), (32, 0), (0, 32)):
+            self.assertEqual(self.alpha("MinimapMask.png", x, y), 255, f"texel {x},{y} is opaque: no corner is cut")
+        px = self.px("MinimapMask.png", 32, 32)
+        self.assertEqual(px[:3], (255, 255, 255), "white, so the alpha alone masks")
+
+    def test_minimap_module_wears_the_square_mask(self):
         face = (ROOT / "KstyleUI_Minimap" / "Face.lua").read_text(encoding="ascii")
         game = (ROOT / "KstyleUI_Minimap" / "Map.lua").read_text(encoding="ascii")
-        self.assertIn('Widgets.TextureName("medMinimapMask")', face, "the face's own mask is the Medallions round mask")
+        self.assertIn('Tokens.Texture("minimapMask")', face, "the face's own mask is the square mask")
         self.assertIn("Face.MaskPath()", game, "the Minimap frame and the hybrid map wear the face's mask")
+        self.assertIn('return (Tokens.Texture("minimapMask"))', face, "which is the square mask outside Medallions")
         self.assertNotIn("lensMask", face + game, "nothing in the module asks for the round lens mask")
         fmt = (ROOT / "KstyleUI_Minimap" / "Format.lua").read_text(encoding="ascii")
         self.assertNotIn("MASK_", fmt, "no chamfer numbers: the mask has no cut to meet")

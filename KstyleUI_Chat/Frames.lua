@@ -180,7 +180,7 @@ function Frames.TabLook(style, selected)
 end
 
 function Frames.PaintUnderline(line, glow, shown)
-	local r, g, b = Widgets.LumenColor("accent")
+	local r, g, b = Widgets.LumenColor(Widgets.Medallions() and "accent" or "gilt")
 	line:SetVertexColor(r, g, b, 1)
 	line:SetShown(shown)
 	if glow then

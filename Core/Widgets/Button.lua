@@ -132,6 +132,12 @@ end
 function Widgets.CloseRing(owner, below, store)
 	store = store or owner
 	local ring = store.closeRing
+	if not Widgets.Medallions() then
+		if ring then
+			ring.chrome:SetShown(false)
+		end
+		return
+	end
 	if not ring then
 		local frame = owner
 		if below then
