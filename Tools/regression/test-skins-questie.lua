@@ -114,4 +114,31 @@ do
 	assert(#R.env._errors == 0 and R.K.ErrorCount() == 0, tostring(R.env._errors[1]))
 end
 
+-- With the Questie skin off, Questie's own SetFont costs KstyleUI no font lookup.
+do
+	local R = Boot({ width = 1920, height = 1080, uiScale = 768 / 1080 }, nil, nil, nil, Questie.Install)
+	R.K.Options.Write("Integrations", "questTracker", "questie")
+	R.settle()
+	local text
+	for _, region in ipairs({ R.env.Questie_BaseFrame:GetRegions() }) do
+		if region:GetObjectType() == "FontString" then
+			text = region
+			break
+		end
+	end
+	R.ns.Skins.Get("questie"):OnSwitch(false)
+	local style, reads = R.ns.Style, 0
+	local font = style.Font
+	style.Font = function(...)
+		reads = reads + 1
+		return font(...)
+	end
+	for _ = 1, 10 do
+		text:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+	end
+	style.Font = font
+	assert(reads == 0, "with the Questie skin off, PaintFont returns before it looks up the body face, not after " .. reads .. " lookups")
+	assert(#R.env._errors == 0 and R.K.ErrorCount() == 0, tostring(R.env._errors[1]))
+end
+
 print("test-skins-questie: ok")

@@ -28,7 +28,7 @@ local BOX_PAD = 4
 
 local state = { rxp = nil, placed = nil, original = nil, queued = false, hooked = false, holder = nil, cut = setmetatable({}, { __mode = "k" }), hidden = 0, boxes = {} }
 
-local Dock, ReleaseBoxes, Need, Restore, Schedule, Drifted
+local Dock, ReleaseBoxes, Need, Restore, Schedule
 
 local function Log(message)
 	K.DevTest.Log(MODULE, "restedXP rail: " .. message)
@@ -546,12 +546,12 @@ end
 
 local function Key(f, band, path)
 	local current = f.CurrentStepFrame
-	local _, relative, _, x, y = f:GetPoint(1)
+	local point, relative, relativePoint, x, y = f:GetPoint(1)
 	local held = path and Rail.CardHeight(path, true)
 	path = path or {}
-	local key = { band.left, band.top, band.bottom, band.right, Widgets.ScaleFactor(f), RestedXP.Chrome.Reach(f.GuideName), Bit(f:GetWidth()), Bit(f:GetHeight()), Bit(relative), Bit(x), Bit(y), Height(current), Bit(current.anchor), Bit(current:IsShown()), Bit(Bars(f)), Bit(Docking()), Bit(Widgets.Readability("snapEdges")), Bit(ns.Skins.Setting(KEY, "compose")), Bit(held), Bit(path.height), Bit(path.capHeight), Bit(path.cardHeight), Bit(path.metaShown), Bit(path.rest) }
+	local key = { band.left, band.top, band.bottom, band.right, Widgets.ScaleFactor(f), RestedXP.Chrome.Reach(f.GuideName), Bit(f:GetWidth()), Bit(f:GetHeight()), f:GetNumPoints(), Bit(point), Bit(relative), Bit(relativePoint), Bit(x), Bit(y), Height(current), Bit(current.anchor), Bit(current:IsShown()), Bit(Bars(f)), Bit(Docking()), Bit(Widgets.Readability("snapEdges")), Bit(ns.Skins.Setting(KEY, "compose")), Bit(held), Bit(path.height), Bit(path.capHeight), Bit(path.cardHeight), Bit(path.metaShown), Bit(path.rest) }
 	for _, step in ipairs(IsTable(current.framePool) and current.framePool or {}) do
-		key[#key + 1] = IsTable(step) and step:IsShown() and Height(step) or 0
+		key[#key + 1] = IsTable(step) and step:IsShown() and Height(step) .. "/" .. Alpha(step) or 0
 	end
 	return table.concat(key, " ")
 end
@@ -576,7 +576,7 @@ function Rail.Place()
 	end
 	local path = RestedXP.Chrome.Path(f)
 	if state.placed and state.key == Key(f, band, path) then
-		if Docking() and Drifted() then
+		if Docking() then
 			Dock(f, path, band)
 		end
 		return true
@@ -747,7 +747,7 @@ local function BoxMoved(box, left, top)
 	K.Print(L["KstyleUI leaves RestedXP's item and target boxes where you put them. Turn Dock RestedXP's boxes back on in the RestedXP skin's settings."])
 end
 
-function Drifted()
+local function Drifted()
 	for _, which in ipairs(BOXES) do
 		local box = Box(which)
 		local entry = box and state.boxes[box]
@@ -825,7 +825,8 @@ function Dock(f, path, band)
 		local width
 		for _ = 1, 2 do
 			width = math.max(icons, slot.width / scale - reach.left - reach.right)
-			if box:GetWidth() ~= width then
+			local current = box:GetWidth()
+			if not (Plain(current) and current == width) then
 				box:SetWidth(width)
 			end
 			RestedXP.Chrome.IconInset(box)
@@ -835,7 +836,8 @@ function Dock(f, path, band)
 		local y = (top - slot.drop) / scale - reach.top
 		local x = left + K.Scale.Origin() / scale
 		local point, relative, relativePoint, px, py = box:GetPoint(1)
-		if box:GetNumPoints() ~= 1 or point ~= "TOPLEFT" or relative ~= UIParent or relativePoint ~= "BOTTOMLEFT" or px ~= x or py ~= y then
+		local secret = Widgets.IsSecret(point) or Widgets.IsSecret(relative) or Widgets.IsSecret(relativePoint) or not (Plain(px) and Plain(py))
+		if secret or box:GetNumPoints() ~= 1 or point ~= "TOPLEFT" or relative ~= UIParent or relativePoint ~= "BOTTOMLEFT" or px ~= x or py ~= y then
 			box:ClearAllPoints()
 			box:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x, y)
 		end

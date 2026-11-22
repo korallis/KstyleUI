@@ -1,4 +1,4 @@
--- questcard_guide_env.lua: the Medallions quest card and RestedXP guide in one live Skins environment.
+-- questcard_guide_env.lua: the Medallions quest card and RestedXP guide in one live Skins environment; screen.setup(env), when given, runs first in its setup.
 local S = dofile("Tools/regression/skins_env.lua")
 local Quests = dofile("Tools/regression/quests_fake.lua")
 local RestedXP = dofile("Tools/regression/restedxp_fake.lua")
@@ -17,6 +17,7 @@ return function(screen, item, previous, nativeRects, questie)
 			characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {},
 		},
 		setup = function(e)
+			if screen.setup then screen.setup(e) end
 			if nativeRects then e._resolveRects = true end
 			e._size, e._fitScale = screen.size or "auto", true
 			e.UnitClass = function() return "Warlock", "WARLOCK", 9 end

@@ -11,8 +11,9 @@ local titleValue, countValue, layout
 local function PaintFont(text, path, size, flags)
 	if painting then return end
 	fonts[text] = { path, size, flags }
+	if not active or K.Store.Module("Skins").restyleAddons == false then return end
 	local body = ns.Style.Font("body")
-	if not active or path == body or K.Store.Module("Skins").restyleAddons == false then return end
+	if path == body then return end
 	painting = true
 	text:SetFont(body, size, flags)
 	painting = false

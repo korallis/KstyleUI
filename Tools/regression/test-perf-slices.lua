@@ -48,6 +48,21 @@ assert(wrote == "", "fights audit: Widgets.ApplyFont must not set an unchanged f
 chrome:SetShown(true)
 wrote = Writes(function() chrome:SetShown(true) end)
 assert(wrote == "", "fights audit: Chrome:SetShown with an unchanged visibility must write nothing (it wrote " .. wrote .. "); the minimap's coordinate ticker shows its plaques five times a second")
+local host = env.CreateFrame("Frame", nil, env.UIParent)
+local art = host:CreateTexture(nil, "ARTWORK")
+K.Skin.Strip(host)
+local before = #art._calls
+art:SetAlpha(0)
+art:SetVertexColor(1, 1, 1, 0)
+art:SetAlpha(1)
+local calls = {}
+for i = before + 1, #art._calls do
+	local method = art._calls[i].method
+	if not method:find("^Get") then
+		calls[#calls + 1] = method
+	end
+end
+assert(table.concat(calls, ", ") == "SetAlpha, SetVertexColor, SetAlpha, SetAlpha" and art:GetAlpha() == 0, "fights audit: a hushed texture answers only an owner write that shows it (" .. table.concat(calls, ", ") .. "); Rehush returns when the alpha is already 0")
 chrome:SetShown(false)
 assert(not chrome.fill[1]:IsShown(), "a hidden chrome hides its slices")
 chrome:SetShown(true)
