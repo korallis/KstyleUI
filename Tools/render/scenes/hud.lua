@@ -505,6 +505,7 @@ function modules.unitframes(opts)
 			end
 		end,
 	}))
+	if os.getenv("RENDER_PLAYER_AURAS") == "on" then K.Options.Write("UnitFrames", "player.medallionsAuras", true) end
 	env._time = 10
 	env.SetTarget(target ~= nil)
 	if player.cast then

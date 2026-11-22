@@ -16,7 +16,7 @@ return Common.Run(function()
 	}
 	return Lumen.Build("questing", {
 		class = "SHAMAN", layout = os.getenv("RENDER_LAYOUT") or "DPS", applyPreset = true, state = state,
-		settings = { UnitFrames = { auraLayout = os.getenv("RENDER_AURA_LAYOUT") or "rows", player = { auras = true, auraFilter = "buffs", medallionsAuras = os.getenv("RENDER_PLAYER_AURAS") == "on" or nil } } },
+		settings = { UnitFrames = { auraLayout = os.getenv("RENDER_AURA_LAYOUT") or "rows", player = { auras = true, auraFilter = "buffs" } } },
 		modules = { "nameplates", "chat", "minimap", "auras", "databars", "tracker", "meters", "unitframes", "actionbars", "cooldowns", "lootfeed" },
 	})
 end)
