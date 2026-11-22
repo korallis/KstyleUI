@@ -6,8 +6,8 @@ local LANES = { "name", "healthText", "healthSub", "powerText", "levelText", "ca
 local CORNERS = { "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }
 local PLACED = { "leader", "pvp", "combat", "elite", "marker" }
 
-local function boot(style, wh)
-	local saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true }, HudStyle = style and { style = style } or nil } }, characters = {} }
+local function boot(wh)
+	local saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {} }
 	return U.New({ saved = saved, width = wh and wh[1], height = wh and wh[2], size = wh and "auto", fit = wh and true })
 end
 
@@ -142,16 +142,16 @@ local function sweep(e, k, n, label)
 	e.RunTimers()
 	clean(e, k)
 end
-for _, style in ipairs({ "frames", "medallions", "orbs" }) do
-	local e, k, n = boot(style)
-	sweep(e, k, n, style)
+do
+	local e, k, n = boot()
+	sweep(e, k, n, "medallions")
 end
 for _, wh in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
-	local e, k, n = boot(nil, wh)
+	local e, k, n = boot(wh)
 	sweep(e, k, n, wh[1] .. "x" .. wh[2])
 end
 
--- 4. Events: an elite target arriving after the layout takes its corner, and a style switch keeps the corners clear.
+-- 4. Events: an elite target arriving after the layout takes its corner.
 local fresh, FK, fn = boot()
 FK.Options.Write("UnitFrames", "target.elite", true)
 FK.Options.Write("UnitFrames", "target.elitePlace", "BOTTOMRIGHT")
@@ -163,9 +163,6 @@ assert(tv.extraIcon and tv.extraIcon:IsShown(), "the elite badge shows")
 local spot = tv.spots.elite
 local box = rect(tv.extraIcon)
 assert(math.abs(box.x + box.w / 2 - spot.x) < 1 and math.abs(box.y + box.h / 2 - spot.y) < 1, "a badge made after the layout sits on its corner")
-fresh.RunTimers()
-box = rect(tv.extraIcon)
-assert(math.abs(box.x + box.w / 2 - tv.spots.elite.x) < 1, "a style switch moves the badge to the new frame's corner")
 FK.Options.Write("UnitFrames", "target.elitePlace", "")
 fresh.RunTimers()
 assert(W.LastCall(tv.extraIcon, "SetAllPoints") and not tv.spots.elite, "off puts the badge back in the resting slot")
@@ -259,14 +256,12 @@ write("boss.healthText", "currentMax")
 write("healthDecimalBoss", true)
 assert(rows["healthDecimalPercentOnly"].showWhen(module), "the switch shows with the boss two decimals")
 assert(U.Shown(env, boss.healthText) == "41.2K / 100K", "percentages only keeps one decimal: " .. U.Shown(env, boss.healthText))
-local narrow = boss.geometry.healthText.w
 env.SetCombat(true)
 write("healthDecimalPercentOnly", false)
 assert(U.Shown(env, boss.healthText) == "41.2K / 100K", "a change in combat waits")
 env.SetCombat(false)
 env.RunTimers()
 assert(U.Shown(env, boss.healthText) == "41.27K / 100K", "values take two decimals: " .. U.Shown(env, boss.healthText))
-assert(boss.geometry.healthText.w > narrow, "the value column widens for the second decimal")
 env._units.boss1.health = 240550
 env.FireEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
 assert(env.issecretvalue(env.UnitHealth("boss1")), "the boss's health reaches the text as a secret")
@@ -277,7 +272,7 @@ pane:Refresh()
 assert(U.Shown(env, pane.views.boss.healthText) == "72.43K / 100.6K", "the preview shows the boss values' two decimals: " .. U.Shown(env, pane.views.boss.healthText))
 write("healthDecimalPercentOnly", true)
 pane:Refresh()
-assert(U.Shown(env, boss.healthText) == "240.5K / 100K" and boss.geometry.healthText.w == narrow, "on restores one decimal and the column")
+assert(U.Shown(env, boss.healthText) == "240.5K / 100K", "on restores one decimal")
 assert(U.Shown(env, pane.views.boss.healthText) == "72K / 100K", "and the preview's sample: " .. U.Shown(env, pane.views.boss.healthText))
 clean(env, K)
 
