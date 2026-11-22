@@ -1,6 +1,6 @@
 # First-run setup
 
-The first-run setup picks a DPS, Tank or Healer layout, the modules, addon choices and the ornament level, then applies them and writes a matching Edit Mode layout. `Core/Setup/Setup.lua` holds the choice and Apply; `Core/Setup/Window.lua` holds the window and `Addons.lua` its addon controls. The window has six steps when enabled supported addons are detected, otherwise five. `test-setup`, `test-setup-addons`, `test-setup-summary` and `test-setup-editmode*` drive it.
+The first-run setup picks a DPS, Tank or Healer layout, the modules and addon choices, then applies them and writes a matching Edit Mode layout. `Core/Setup/Setup.lua` holds the choice and Apply; `Core/Setup/Window.lua` holds the window and `Addons.lua` its addon controls. The window has six steps when enabled supported addons are detected, otherwise five. `test-setup`, `test-setup-addons`, `test-setup-summary` and `test-setup-editmode*` drive it.
 
 ## Window flow
 
@@ -19,12 +19,10 @@ stateDiagram-v2
         Welcome --> Layout : Next
         Layout --> Modules : Next, whole-module overlaps start off
         Modules --> YourAddons : Next, enabled supported addons detected
-        Modules --> Ornaments : Next, no enabled supported addons
-        YourAddons --> Ornaments : Next
-        Ornaments --> Summary : Next
-        Summary --> Ornaments : Back
-        Ornaments --> YourAddons : Back, addons detected
-        Ornaments --> Modules : Back, no addons
+        Modules --> Summary : Next, no enabled supported addons
+        YourAddons --> Summary : Next
+        Summary --> YourAddons : Back, addons detected
+        Summary --> Modules : Back, no addons
         YourAddons --> Modules : Back
         Modules --> Layout : Back
         Layout --> Welcome : Back
@@ -52,7 +50,7 @@ stateDiagram-v2
 | Steps | Next and Back call `Setup.Go` one step on; a step tab calls `Setup.Go(value)` for any step up to the furthest reached. Your addons follows Modules only when the live client list contains enabled supported addons; the strip and final step adjust to five or six steps. Keep my UI shows only on step 1. | `Setup.Go`, `Setup.ShowWindow`, `Refresh` |
 | Your addons | Enumerates `C_AddOns.GetNumAddOns` / `GetAddOnInfo`, excluding Blizzard and KstyleUI addons. `GetAddOnEnableState` uses the player's GUID, as Blizzard's AddOnList does; `Integrations.Loaded` is the fallback. Registry skins get Skin it; same-job addons get the existing Options settings, including the Questie tracker choices. Unsupported addons and unavailable skin choices are omitted. Reopening rebuilds the list and reads current choices. Changes remain pending until Apply. | `Integrations.Addons`, `Integrations.AddonRows`, `Setup.NewChoice`, `Addons.lua`; `test-setup-addons` |
 | Layout pictures | General > Layout pictures in setup defaults on: each role card shows its rendered Medallions layout. Off restores the hovered footprint diagram and story-rail legend. The picture never applies settings. | `PlaceLayouts`, `BuildLayouts`; `test-setup-polish` |
-| NotApplied, Applied | The window's `applied` flag. Apply shows only while it is false; Reload and Later only while it is true. Picking any card (layout, ornaments) or module toggle calls `Changed`, which clears it. | `Refresh`, `Changed`, the Apply button's `onClick` |
+| NotApplied, Applied | The window's `applied` flag. Apply shows only while it is false; Reload and Later only while it is true. Picking a layout card or a module toggle calls `Changed`, which clears it. | `Refresh`, `Changed`, the Apply button's `onClick` |
 | Closing | Close, Escape and Later call `Setup.Closed(applied)`. By default an unapplied first-run close applies the picked setup, as before. General > Closing the setup window > Do nothing, ask again later leaves settings, modules, positions and setupSeen alone, so next login asks again. Keep my UI and an applied setup mark setupSeen. | `OnClose`, `Setup.Closed`, `Setup.MarkSeen` |
 
 `Setup.Apply(picked)` refuses when the Store is not loaded or the layout is unknown. With Profiles > Recovery backups on (default), it first saves a named **Before setup** recovery profile, then writes module switches, layout positions, module settings and ornaments, queues the Edit Mode write, and marks setup seen. Closing calls Apply in the default **Apply the default setup** mode; the **Do nothing, ask again later** choice does not apply. Timer/announcement lanes and named WeakAuras anchors default on and can be switched off in General. With General > Other-addon notices on (default), the Modules step names detected overlapping addons; its feature toggles choose which KstyleUI modules Apply enables, without rewriting another addon's settings.

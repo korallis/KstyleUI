@@ -1,6 +1,6 @@
 # Card materials
 
-Open **Options → General → Card material** to choose the surface of KstyleUI's cards, panels, rails and windows. The dropdown is separate from the **Panel appearance** section's opacity and shadow controls. Selection repaints existing cards immediately through the widget kit's normal setting handler; switching profiles uses its existing profile handler. Neither action needs a reload.
+Medallions dresses every card in dark bevelled steel, so General no longer offers **Card material**; a saved choice is kept but draws nothing different, and a Glass profile keeps Blizzard's context menus through **Skins > Context menus**. The rest of this page describes the materials the code still holds until they are removed. The dropdown is separate from the **Panel appearance** section's opacity and shadow controls. Selection repaints existing cards immediately through the widget kit's normal setting handler; switching profiles uses its existing profile handler. Neither action needs a reload.
 
 | Choice | Surface |
 | --- | --- |

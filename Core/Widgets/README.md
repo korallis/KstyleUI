@@ -22,7 +22,7 @@ The kit registers the `Widgets` settings page with `Store.RegisterDefaults` and 
 
 | Key | Default | Row | Effect |
 | --- | --- | --- | --- |
-| `cardMaterial` | `ForgedBrackets`, the owner's choice of 2026-11-10 | dropdown: Glass, Flat, Slate, ForgedTicks, ForgedBrackets | The card-grade surface and caption finish; no changes to bars or sockets |
+| `cardMaterial` | `ForgedBrackets`, the owner's choice of 2026-11-10 | no control: Medallions cards are steel | Kept for saved profiles; Glass ones keep Blizzard's context menus through Skins > Context menus |
 | `panelOpacity` | the `surface` token's alpha, 0.75 | slider, 0.5 to 1 in steps of 0.01 | Absolute Glass alpha; other materials scale their authored fill and grain opacity relative to 0.75 |
 | `shadows` | `true` | toggle | Shows the shadow of panels, windows and tooltips |
 | `sounds` | `true` | toggle | Plays the kit's click and open sounds |
