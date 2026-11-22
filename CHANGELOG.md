@@ -1,5 +1,39 @@
 # KstyleUI changelog
 
+## v0.2.13 (2026-11-22)
+
+The guides release: RestedXP and Zygor guides move to a card of their own in the top left corner, where a whole step fits, the quest log keeps the story rail and raid warnings fit MacBook screens.
+
+Highlights:
+
+- RestedXP and Zygor guides move to a card in the top left corner, above the party frames, where a whole step fits.
+- The quest log keeps the story rail under the minimap to itself, at its own height.
+- The threat meter keeps its own place instead of following the guide card.
+- Raid and boss warnings sit in the upper part of MacBook and other 3:2 screens, clear of the boss frames.
+- Setup's Apply fits 16 tracked buff icons and a Tank's 6 tracked bars in Edit Mode at Interface size 1.
+
+### Changed
+
+- The RestedXP and Zygor guide card moves to the top left corner, above the party frames, where a whole step fits on every screen. Window Skins > RestedXP or Zygor > Guide card, on by default.
+- The quest log keeps its column on the story rail under the minimap and its own height; it no longer stretches to the guide's height.
+- Zygor Guides Viewer, contributed by Baine, sizes its guide to its steps but never past its card. Window Skins > Zygor > Fit guide to its steps, on by default.
+- A RestedXP step that grows in combat grows the card up, so the whole step stays on the screen.
+- In a raid the guide card shares the corner with the raid frames; close the guide or drag either one away.
+- Story rail is now Guide card under Window Skins > RestedXP and Zygor, and RestedXP's Align story cards is now Trim the guide card. Your choices stay.
+- The threat meter no longer follows the guide card: Follow the guide card leaves Meters > Threat meter, and the threat card keeps its own place.
+
+### Fixed
+
+- Raid and boss warnings sit in the upper part of the screen on MacBook and other 3:2 screens instead of under the boss frames.
+- The warnings keep clear of the boss frames' debuffs, and after an Interface size change they move with the HUD.
+- With the Cooldowns module off, Apply in `/kstyle setup` fits 16 tracked buff icons over your casts and a Tank's 6 tracked bars beside the threat card in Edit Mode at Interface size 1.
+
+### Upgrading
+
+- The guide card moves to the top left corner at your next login; a place you saved in Layout Mode stays.
+- A threat card that followed the guide goes back to its own place, and Follow the guide card is gone.
+- On a MacBook or other 3:2 screen, the raid warnings move up the next time you press Apply in `/kstyle setup`.
+
 ## v0.2.12.1 (2026-11-22)
 
 A fix release.
