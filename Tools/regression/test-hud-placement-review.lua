@@ -7,23 +7,15 @@ local pick = arg and arg[1]
 if not pick or pick == "grid" then
 	local env, K, ns = C.New({cooldowns=C.Sample()})
 	C.Enable(env, K)
-	for _, style in ipairs({"frames", "orbs", "medallions"}) do
-		env.RunTimers()
-		for _, group in ipairs({"essential", "utility"}) do
-			local key = "cooldowns." .. group
-			local width, height = ns.Grid.Size(ns.Settings.current[group])
-			local w, h = K.Setup.Layouts.Footprint("DPS", key)
-			assert(math.abs(w-width)<0.01 and math.abs(h-height)<0.01, style .. " " .. group .. ": footprint must equal the real mirror grid, not the old six-icon box")
-			local fit = K.Setup.Layouts.PrepareFits("DPS",1920,1080,K.Setup.Layouts.Enabled("DPS"),nil)
-			for i, element in ipairs(K.Setup.Layouts.ELEMENTS) do
-				if element.key == key then assert(math.abs(fit.sizes[i][1]-width)<0.01 and math.abs(fit.sizes[i][2]-height)<0.01, "Fits must measure the full mirror grid") end
-			end
-		end
-		if style == "orbs" then
-			local utility=K.Setup.Layouts.Place("DPS",style,K.Scale.Aspect(),"cooldowns.utility")
-			local swing=K.Setup.Layouts.Place("DPS",style,K.Scale.Aspect(),"meters.swing")
-			local _,height=K.Setup.Layouts.Footprint("DPS","meters.swing",style)
-			assert(utility.x==0 and utility.y>=swing.y+height+8,"Orbs utility grid must sit above the central swing strip, clear of the focus and threat lanes")
+	env.RunTimers()
+	for _, group in ipairs({"essential", "utility"}) do
+		local key = "cooldowns." .. group
+		local width, height = ns.Grid.Size(ns.Settings.current[group])
+		local w, h = K.Setup.Layouts.Footprint("DPS", key)
+		assert(math.abs(w-width)<0.01 and math.abs(h-height)<0.01, group .. ": footprint must equal the real mirror grid, not the old six-icon box")
+		local fit = K.Setup.Layouts.PrepareFits("DPS",1920,1080,K.Setup.Layouts.Enabled("DPS"),nil)
+		for i, element in ipairs(K.Setup.Layouts.ELEMENTS) do
+			if element.key == key then assert(math.abs(fit.sizes[i][1]-width)<0.01 and math.abs(fit.sizes[i][2]-height)<0.01, "Fits must measure the full mirror grid") end
 		end
 	end
 	for _, attached in ipairs({true, false}) do
@@ -38,7 +30,7 @@ if not pick or pick == "grid" then
 			assert(math.abs(w-width)<0.01 and math.abs(h-height)<0.01,"explicit grid settings must have the same footprint with either placement option")
 		end
 	end
-	print("review grid: declared and fitted bounds equal both live grids in every style")
+	print("review grid: declared and fitted bounds equal both live grids")
 end
 
 if not pick or pick == "rim" then
@@ -61,13 +53,11 @@ if not pick or pick == "resource" then
 	local env,K = M.New()
 	M.Enable(env,K)
 	local L = K.Setup.Layouts
-	for _,style in ipairs({"frames","orbs","medallions"}) do
-		local old=L.Previous(style,"DPS","unitframes.resource",K.Scale.Aspect())
-		for _,on in ipairs({true,false}) do
-			M.Write(env,K,"swing.attached",on)
-			local p=L.Place("DPS",style,K.Scale.Aspect(),"unitframes.resource")
-			assert(p.anchor==old.anchor and p.x==old.x and p.y==old.y, "Meters must never move the Unit Frames class-resource bar")
-		end
+	local old=L.Previous("medallions","DPS","unitframes.resource",K.Scale.Aspect())
+	for _,on in ipairs({true,false}) do
+		M.Write(env,K,"swing.attached",on)
+		local p=L.Place("DPS","medallions",K.Scale.Aspect(),"unitframes.resource")
+		assert(p.anchor==old.anchor and p.x==old.x and p.y==old.y, "Meters must never move the Unit Frames class-resource bar")
 	end
 	local old=L.Default("unitframes.resource")
 	local data={profiles={Default={}},layouts={Default={["unitframes.resource"]={anchor=old.anchor,x=old.x,y=old.y}}}}

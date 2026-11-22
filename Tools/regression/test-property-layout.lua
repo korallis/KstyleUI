@@ -1,10 +1,9 @@
--- test-property-layout.lua: at random screens from 1024 x 768 to 7680 x 2160 (4:3 to 32:9), Interface sizes, HUD widths, all three HUD styles, both arrangements, the DPS, Tank and Healer layouts and random optional bars, every element Layout places from its defaults lies on screen with its edges on whole physical pixels, and no two elements the fit check keeps apart overlap, the orbs, the Medallions hub and the quest card included.
+-- test-property-layout.lua: at random screens from 1024 x 768 to 7680 x 2160 (4:3 to 32:9), Interface sizes, HUD widths, both arrangements, the DPS, Tank and Healer layouts and random optional bars, every element Layout places from its defaults lies on screen with its edges on whole physical pixels, and no two elements the fit check keeps apart overlap, the Medallions hub and the quest card included.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 local Property = dofile("Tools/regression/property_lib.lua")
 
 local RATIOS = { 4 / 3, 3 / 2, 16 / 10, 16 / 9, 64 / 27, 43 / 18, 32 / 9 }
 local EPS = 1e-6
-local ORBS_EDGE = 2
 
 local probe, PK = CoreEnv.New({})
 CoreEnv.Boot(probe)
@@ -20,7 +19,7 @@ local function Generate(g)
 	end
 	return {
 		width = math.max(1024, width), height = height,
-		preset = g:pick({ "DPS", "Tank", "Healer" }), style = g:pick({ "frames", "orbs", "medallions" }),
+		preset = g:pick({ "DPS", "Tank", "Healer" }),
 		arrangement = g:pick({ "centred", "spread" }), canvas = g:pick({ "21:9", "16:9", "full" }),
 		size = (not g:bool(0.4)) and g:float(0.6, 1.5) or nil,
 		bars = { bar3 = g:bool(0.3), bar4 = g:bool(0.7), bar5 = g:bool(0.7), bar6 = g:bool(0.3) },
@@ -35,8 +34,8 @@ local function Show(c)
 			bars[#bars + 1] = bar
 		end
 	end
-	return string.format("%dx%d %s %s %s, HUD width %s, size %s (applied %s, fit cap %s), bars 1, 2%s, threat meter %s", c.width, c.height, c.preset,
-		c.style, c.arrangement, c.canvas, c.size and string.format("%.4f", c.size) or "automatic", c.applied and string.format("%.15g", c.applied) or "?",
+	return string.format("%dx%d %s %s, HUD width %s, size %s (applied %s, fit cap %s), bars 1, 2%s, threat meter %s", c.width, c.height, c.preset,
+		c.arrangement, c.canvas, c.size and string.format("%.4f", c.size) or "automatic", c.applied and string.format("%.15g", c.applied) or "?",
 		c.cap and string.format("%.15g", c.cap) or "?", #bars > 0 and (", " .. table.concat(bars, ", ")) or "", c.threat and "on" or "off")
 end
 
@@ -79,14 +78,8 @@ local function Overlap(r, s)
 	return r[1] < s[3] - EPS and s[1] < r[3] - EPS and r[2] < s[4] - EPS and s[2] < r[4] - EPS
 end
 
-local function CircleMeets(o, r)
-	local x = math.max(r[1], math.min(o.x, r[3]))
-	local y = math.max(r[2], math.min(o.y, r[4]))
-	return (o.x - x) ^ 2 + (o.y - y) ^ 2 < (o.radius - EPS) ^ 2
-end
-
 -- Place(c) boots the core at the case's screen and profile, registers a stand-in of each enabled element's footprint the way its
--- module does, and returns each placed rect in physical pixels from the screen's bottom-left, plus the orbs as circles.
+-- module does, and returns each placed rect in physical pixels from the screen's bottom-left.
 local function Place(c)
 	local env, K = CoreEnv.New({
 		width = c.width, height = c.height, uiScale = 768 / 1080, size = "auto", fit = true,
@@ -99,9 +92,9 @@ local function Place(c)
 	})
 	CoreEnv.Boot(env)
 	local Layouts, Layout, Scale, Widgets = K.Setup.Layouts, K.Layout, K.Scale, K.Widgets
-	assert(K.HudStyle.Current() == c.style and Layout.Setting("preset") == c.preset and Scale.Arrangement() == c.arrangement, "the saved choices load")
+	assert(Layout.Setting("preset") == c.preset and Scale.Arrangement() == c.arrangement, "the saved choices load")
 	local pixel, origin = Scale.Pixel(1), Scale.Origin()
-	local rects, orbs = {}, {}
+	local rects = {}
 	local function Add(key, left, bottom, w, h, offsetX, offsetY)
 		local l, b = (origin + left) / pixel, bottom / pixel
 		local r, t = l + w / pixel, b + h / pixel
@@ -111,16 +104,13 @@ local function Place(c)
 	local enabled = Layouts.Enabled(c.preset, K.Store.Profile())
 	for _, element in ipairs(ELEMENTS) do
 		local key = element.key
-		if enabled[key] and not (c.style == "orbs" and key == "unitframes.player") then
+		if enabled[key] then
 			local w, h, offsetX, offsetY = Layouts.Footprint(c.preset, key)
-			local styled = c.style ~= "frames" and Layouts.Style(c.style, c.preset, key)
+			local styled = Layouts.Style(c.preset, key)
 			if styled and styled.width then
 				w, h, offsetX, offsetY = styled.width, styled.height, nil, nil
 			end
-			if c.style == "orbs" and key == "actionbars.bar2" then
-				w = w + Layouts.SPLIT_GAP
-			end
-			local grouped, groupHeight = Layouts.StyleSize(c.style, Scale.Aspect(), key)
+			local grouped, groupHeight = Layouts.StyleSize(Scale.Aspect(), key)
 			if grouped then
 				w, h, offsetX, offsetY = grouped, groupHeight, nil, nil
 			end
@@ -143,15 +133,6 @@ local function Place(c)
 			local reserveW, reserveH = Scale.Snap(w - bodyW), Scale.Snap(h - bodyH)
 			Add(key, left - reserveW * fx, bottom - reserveH * fy, fw + reserveW, fh + reserveH, offsetX, offsetY)
 			rects[#rects].edges = { (origin + left) / pixel, bottom / pixel, (origin + left + fw) / pixel, (bottom + fh) / pixel }
-			if key == "actionbars.bar1" and c.style == "orbs" then
-				local art = Layouts.OrbsTray(fw)
-				local rw, rh = Layout.RootSize()
-				local reach, low = art.ringX + art.ring / 2 + ORBS_EDGE, art.ring / 2 + ORBS_EDGE
-				local cx = math.min(math.max(left + fw / 2, reach), rw - reach)
-				local cy = math.min(math.max(bottom + fh / 2, low - art.lift), rh - low - art.lift) + art.lift
-				orbs[1] = { key = "orbs.health", x = (origin + cx - art.ringX) / pixel, y = cy / pixel, radius = art.ring / 2 / pixel }
-				orbs[2] = { key = "orbs.power", x = (origin + cx + art.ringX) / pixel, y = cy / pixel, radius = art.ring / 2 / pixel }
-			end
 		end
 	end
 	local bar1, bar2
@@ -159,23 +140,23 @@ local function Place(c)
 		bar1 = r.key == "actionbars.bar1" and r or bar1
 		bar2 = r.key == "actionbars.bar2" and r or bar2
 	end
-	if c.style == "medallions" and bar1 and bar2 then
+	if bar1 and bar2 then
 		local ring = Layouts.MEDALLIONS_RING / pixel
 		local cx, top = (bar1[3] + bar2[1]) / 2, math.max(bar1[4], bar2[4])
 		rects[#rects + 1] = { cx - ring / 2, top - ring / 2, cx + ring / 2, top + ring / 2, key = "medallions.hub", edges = {} }
 	end
 	local rw, rh = Layout.RootSize()
-	local spec, sized = Layouts.Story(c.preset, rh, false, nil, rw).quests, Layouts.Story(c.preset, rh, false, c.style, rw).quests
+	local spec = Layouts.Story(c.preset, rh, false, rw).quests
 	local holder = env.CreateFrame("Frame", nil, Scale.Root())
-	holder:SetSize(sized.width, sized.height)
+	holder:SetSize(spec.width, spec.height)
 	Widgets.Place(holder, spec.key, { anchor = spec.anchor, x = spec.x, y = spec.y }, { label = "Quest card", module = "Skins" })
 	local left, bottom, fw, fh = Layout.Rect(spec.key)
 	Add(spec.key, left, bottom, fw, fh)
 	assert(#env._errors == 0, "the boot raised: " .. tostring(env._errors[1]))
-	local canvas, style = Scale.CanvasWidth(c.width, c.height), K.HudStyle.Current()
+	local canvas = Scale.CanvasWidth(c.width, c.height)
 	c.fitsAtCap = Layouts.Fits(c.preset, canvas, c.height, Scale.MaxUserScale(), enabled, nil)
 	c.fitsApplied = Layouts.Fits(c.preset, canvas, c.height, Scale.AppliedUserScale(), enabled, nil)
-	return rects, orbs, Scale.AppliedUserScale(), Scale.MaxUserScale()
+	return rects, Scale.AppliedUserScale(), Scale.MaxUserScale()
 end
 
 local function Apart(Layouts, a, b)
@@ -191,7 +172,7 @@ local function Apart(Layouts, a, b)
 end
 
 local function Holds(c)
-	local rects, orbs, applied, cap = Place(c)
+	local rects, applied, cap = Place(c)
 	c.applied, c.cap = applied, cap
 	local Layouts = PK.Setup.Layouts
 	local out = {}
@@ -205,16 +186,6 @@ local function Holds(c)
 		for i, edge in ipairs(r.edges) do
 			if not Whole(edge) then
 				Fail("%s has its %s edge at %.4f px, between physical pixels", r.key, ({ "left", "bottom", "right", "top" })[i], edge)
-			end
-		end
-	end
-	for _, o in ipairs(orbs) do
-		if o.x - o.radius < -EPS or o.y - o.radius < -EPS or o.x + o.radius > c.width + EPS or o.y + o.radius > c.height + EPS then
-			Fail("%s leaves the screen: centre %.1f %.1f, radius %.1f", o.key, o.x, o.y, o.radius)
-		end
-		for _, r in ipairs(rects) do
-			if r.key ~= "actionbars.bar1" and CircleMeets(o, r) then
-				Fail("%s overlaps %s", o.key, r.key)
 			end
 		end
 	end

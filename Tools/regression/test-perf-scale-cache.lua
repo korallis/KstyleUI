@@ -54,8 +54,6 @@ assert(hits() > before, "P1: include physical width and height in the cache key"
 width, height = 5120, 1440
 warm.FireEvent("DISPLAY_SIZE_CHANGED")
 warm.RunTimers()
-before = hits()
-assert(hits() > before, "P1: a HUD style change must invalidate the scale answer")
 for _, setting in ipairs({ { "preset", "Tank" }, { "canvas", "16:9" }, { "arrangement", "spread" } }) do
 	local n = hits()
 	W.Options.Write("Layout", setting[1], setting[2])
@@ -72,8 +70,9 @@ local _, reloaded, manualHits = New(warm.KstyleUIDB)
 assert(manualHits() == 0, "P1: retain both manual answers needed while Appearance restores a profile")
 assert(string.format("%.17g", reloaded.Scale.AppliedUserScale()) == manual, "P1: preserve manual-size answers as well as Auto")
 for _, preset in ipairs({ "DPS", "Healer", "Tank" }) do
-	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+	for _, arrangement in ipairs({ "centred", "spread" }) do
 		W.Options.Write("Layout", "preset", preset)
+		W.Options.Write("Layout", "arrangement", arrangement)
 	end
 end
 assert(#warm.KstyleUIDB.scaleCache.entries <= 6, "P1: keep only the six most recently used scale keys")

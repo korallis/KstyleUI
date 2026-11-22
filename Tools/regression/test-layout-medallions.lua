@@ -17,9 +17,6 @@ local function New()
 	return env, K, Element
 end
 
-local function Style(K, style)
-end
-
 local function At(K, key, position, label)
 	local s = K.Layout.Get(key)
 	assert(s.anchor == position.anchor and near(s.x, position.x) and near(s.y, position.y),
@@ -30,7 +27,7 @@ do
 	local _, K = New()
 	local Layouts = K.Setup.Layouts
 	for _, name in ipairs(Layouts.Names()) do
-		local keys = Layouts.StyleKeys("medallions", name)
+		local keys = Layouts.StyleKeys(name)
 		assert(#keys >= 11, name .. ": Medallions places the surfaces it moves, got " .. #keys)
 		for _, key in ipairs(keys) do
 			assert(Layouts.Element(key), name .. ": " .. key .. " is an element")
@@ -40,7 +37,7 @@ do
 		for _, key in ipairs({ BAR1, BAR2, PLAYER, "unitframes.target", "actionbars.pet", "actionbars.stance", "unitframes.targettarget", "unitframes.focus", "unitframes.boss" }) do
 			assert(Layouts.Style(name, key), name .. ": Medallions places " .. key)
 		end
-		assert(Layouts.Style(name, "chat.main") == nil, name .. ": the rails keep their Frames places")
+		assert(Layouts.Style(name, "chat.main") == nil, name .. ": the rails keep their base places")
 	end
 	local one, two = Layouts.Style("DPS", BAR1), Layouts.Style("DPS", BAR2)
 	assert(near(one.x, -two.x) and near(one.y, two.y), "bar 1 is the slab's left group and bar 2 its right, on one baseline")
@@ -86,26 +83,12 @@ do
 	Element(BAR1, { label = "Bar 1" })
 	Element(BAR2, { label = "Bar 2" })
 	Element(PLAYER)
-	local frames1, frames2 = Layouts.Default(BAR1), Layouts.Default(PLAYER)
-	At(K, BAR1, frames1, "Frames default")
-	local fired, last = 0, nil
-	K.Callbacks.Register("HudStyleChanged", "test", function(_, style)
-		fired = fired + 1
-		last = style
-	end)
-	Style(K, "medallions")
-	assert(fired == 1 and last == "medallions", "HudStyleChanged fires once with medallions")
 	At(K, BAR1, Layouts.Style("DPS", BAR1), "Medallions default")
 	At(K, PLAYER, Layouts.Style("DPS", PLAYER), "Medallions default")
 	assert(Layout.Set(BAR1, "x", -999), "a position under Medallions saves")
 	local saved = env.KstyleUIDB.layouts.Default
 	assert(near(saved["medallions:" .. BAR1].x, -999) and saved[BAR1] == nil, "it is saved under the medallions: key")
-	Style(K, "frames")
-	assert(fired == 2 and last == "frames", "and the way back fires once")
-	At(K, BAR1, frames1, "Frames after Medallions")
-	At(K, PLAYER, frames2, "Frames after Medallions")
-	Style(K, "medallions")
-	At(K, BAR1, { anchor = "BOTTOM", x = -999, y = Layouts.Style("DPS", BAR1).y }, "the saved Medallions position returns")
+	At(K, BAR1, { anchor = "BOTTOM", x = -999, y = Layouts.Style("DPS", BAR1).y }, "the saved Medallions position holds")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
