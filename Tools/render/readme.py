@@ -10,6 +10,8 @@ In-game Medallions media uses the game_ prefix and is preserved.
 The pictures:
 
   hud_1080                             the whole HUD in combat on a 1920x1080 screen at the 15/16 size the game picks
+  hud_frames_5120, hud_frames_1080     the whole Frames HUD in combat at the shipped ornament level, Full: 5120x1440 in
+                                       the Spread arrangement at Interface size Auto, and 1920x1080 at 15/16
   ultrawide_centred, ultrawide_spread  the Healer layout on 5120x1440 in each ultrawide arrangement
   crop_*                               close crops of the 1080 HUD drawn at twice the density: the unit frames, the
                                        right rail, the group meter, and the nameplate scene; a rogue's crest jewels
@@ -46,8 +48,8 @@ HUD = dict(HD, **COMBAT)
 RENDERS = {
     "hud_1080": ("hud_reference", 1.0, HUD, "--strict"),
     "hud_1080_2x": ("hud_reference", 2.0, HUD, "--strict"),
-    "frames_5120": ("hud_reference", 1440 / 1080, {**ULTRAWIDE, **COMBAT, "RENDER_HUD_STYLE": "Frames", "RENDER_ARRANGEMENT": "spread"}, "--strict"),
-    "frames_1080": ("hud_reference", 1.0, dict(HUD, RENDER_HUD_STYLE="Frames"), "--strict"),
+    "frames_5120": ("hud_reference", 1440 / 1080, {**ULTRAWIDE, **COMBAT, "RENDER_HUD_STYLE": "Frames", "RENDER_ORNAMENTS": "Full", "RENDER_ARRANGEMENT": "spread"}, "--strict"),
+    "frames_1080": ("hud_reference", 1.0, dict(HUD, RENDER_HUD_STYLE="Frames", RENDER_ORNAMENTS="Full"), "--strict"),
     "healer_centred": ("hud_reference", 1440 / 1080, {**ULTRAWIDE, **COMBAT, "RENDER_LAYOUT": "Healer", "RENDER_ARRANGEMENT": "centred"}, "--strict"),
     "healer_spread": ("hud_reference", 1440 / 1080, {**ULTRAWIDE, **COMBAT, "RENDER_LAYOUT": "Healer", "RENDER_ARRANGEMENT": "spread"}, "--strict"),
     "meter_party": ("hud_reference", 2.0, dict(HUD, RENDER_METER_GROUP="party"), "--strict"),
