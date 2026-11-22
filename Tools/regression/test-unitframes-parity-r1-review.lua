@@ -141,6 +141,18 @@ env._units.player.cast = nil
 env.FireEvent("UNIT_SPELLCAST_FAILED", "player", "Cast-1", 116)
 assert(cb.error and math.abs(W.LastCall(cb.bar, "SetStatusBarColor")[4] - 0.35) < 1e-6, "a failed cast keeps the fill opacity")
 write("player.castbarAlpha", 1)
+-- On Frames Icon on the right is offered only where the icon can show.
+K.Options.Write("HudStyle", "style", "frames")
+env.RunTimers()
+local store = K.Store.Module("UnitFrames")
+write("boss.castbarIcon", true)
+write("edit", "boss")
+assert(row("boss.castbarIconRight").showWhen(store) == false, "the boss's lined cast bar never shows its icon, so the row hides")
+write("edit", "player")
+assert(row("player.castbarIconRight").showWhen(store) == true, "the player's cast bar shows its icon, so the row shows")
+write("boss.castbarIcon", false)
+K.Options.Write("HudStyle", "style", "medallions")
+env.RunTimers()
 
 -- 9. Repeated event work.
 local atlasCalls = 0

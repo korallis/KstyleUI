@@ -382,4 +382,20 @@ do
 	assert(#env2._errors == 0 and K2.ErrorCount() == 0, "a secret class raises no error: " .. tostring(env2._errors[1]))
 end
 
+-- Frames: each element starts at its own footprint, and a frame switched on later shows its percent at once.
+do
+	local fenv, FK = U.New({ frames = true })
+	for _, key in pairs(ELEMENTS) do
+		local _, _, width, height = FK.Layout.Rect(key)
+		local footprint = FK.Setup.Layouts.Element(key)
+		assert(math.abs(width - footprint.width) < 1 and math.abs(height - footprint.height) < 1, "Frames: " .. key .. " starts at its footprint, got " .. width .. " x " .. height)
+	end
+	assert(#fenv._errors == 0 and FK.ErrorCount() == 0, tostring(fenv._errors[1]))
+	local env3, K3, ns3 = U.New({ frames = true, plate = true, saved = { version = 2, profiles = { Default = { UnitFrames = { enabled = true, player = { enabled = false } } } }, characters = {} } })
+	K3.Options.Write("UnitFrames", "player.enabled", true)
+	local view = ns3.Frames.Get("player").views[1]
+	assert(env3._watched[view.button] and U.Shown(env3, view.healthText) == "78%", "Frames: a frame switched on later shows its unit at once")
+	assert(#env3._errors == 0 and K3.ErrorCount() == 0, tostring(env3._errors[1]))
+end
+
 print("unitframes frames ok")
