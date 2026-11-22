@@ -619,9 +619,9 @@ function Layouts.Slot(name, rootHeight)
 end
 
 do
-local function Card(out, key, x, height, place, slot, inset)
+local function Card(out, key, x, height, slot, inset)
 	out = out or {}
-	out.key, out.anchor, out.x, out.y, out.width, out.height = key, place and place.anchor or slot.anchor, x, place and place.y or slot.y - (inset or 0), slot.width, height
+	out.key, out.anchor, out.x, out.y, out.width, out.height = key, slot.anchor, x, slot.y - inset, slot.width, height
 	return out
 end
 
@@ -646,8 +646,8 @@ function Layouts.Story(name, rootHeight, guide, rootWidth, out, targetWidth, cre
 		end
 	end
 	local column = math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - foot - GAP - inset)
-	out.guide = guide and Card(out.guide, STORY_KEYS.guide, slot.x, slotHeight, nil, slot, offset) or nil
-	out.quests = Card(out.quests, STORY_KEYS.quests, x, column, nil, slot, offset)
+	out.guide = guide and Card(out.guide, STORY_KEYS.guide, slot.x, slotHeight, slot, offset) or nil
+	out.quests = Card(out.quests, STORY_KEYS.quests, x, column, slot, offset)
 	return out
 end
 end

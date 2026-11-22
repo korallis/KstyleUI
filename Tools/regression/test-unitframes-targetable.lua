@@ -1,7 +1,7 @@
 -- test-unitframes-targetable.lua: only boss targetability changes refresh the boss column, with the same health, name, cast and Targeted chip state as an encounter refresh.
 local U = dofile("Tools/regression/unitframes_env.lua")
 
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+for _, style in ipairs({ "medallions" }) do
 	local env, K, ns = U.New()
 	env.RunTimers()
 	local views = ns.Frames.Get("boss").views

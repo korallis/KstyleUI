@@ -4,7 +4,7 @@ local G = dofile("Tools/regression/geometry.lua")
 local env, K, ns = C.New({ cooldowns = C.Sample() })
 C.Enable(env, K)
 assert(K.Store.Module("Cooldowns").attached == true, "Cooldowns needs an attached placement setting, on by default")
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+for _, style in ipairs({ "medallions" }) do
 	env.RunTimers()
 	local L = K.Setup.Layouts
 	for _, count in ipairs({1,3,6,12}) do

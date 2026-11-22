@@ -58,7 +58,7 @@ local function Clear(a, b)
 end
 
 for _, screen in ipairs(SCREENS) do
-	for _, style in ipairs({ "orbs", "frames" }) do
+	for _, style in ipairs({ "medallions" }) do
 		local what = string.format("%dx%d %s", screen[1], screen[2], style)
 		local env, K, ns, rxp = Boot(screen, style)
 		local px = K.Scale.Pixel(1) + 0.01

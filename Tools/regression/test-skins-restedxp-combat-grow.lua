@@ -59,7 +59,7 @@ local function Run(style, width, height, item)
 	end
 end
 
-for _, style in ipairs({ "orbs", "frames", "medallions" }) do
+for _, style in ipairs({ "medallions" }) do
 	for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 		Run(style, screen[1], screen[2])
 	end

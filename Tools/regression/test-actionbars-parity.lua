@@ -129,7 +129,7 @@ quality[200] = env.Secret(4)
 env.FireEvent("GET_ITEM_INFO_RECEIVED", 200, true)
 assert(b.itemQuality == nil, "secret quality is never compared or used as a key")
 quality[200] = 4
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+for _, style in ipairs({ "medallions" }) do
 	Write("bar1.placement.hotkey.anchor", "RIGHT")
 	env.RunTimers()
 	assert(b.hotkey._points[1][1] == "RIGHT", "restyling preserves chosen position in " .. style)

@@ -27,7 +27,6 @@ U.SetUnit(env, "target", { name = "Poacher", health = 50, healthMax = 100, react
 env.SetTarget(true)
 settle()
 
-assert(near(ns.Geometry.COLUMN.ring + ns.Geometry.COLUMN.ringGap, 91.5), "the ring and gap keep the old outside reserve")
 local r, g, b = K.Tokens.Color("hudTargetHealth")
 assert(near(r, 197 / 255) and near(g, 68 / 255) and near(b, 62 / 255), "target health uses the measured red")
 for _, cast in ipairs({ ns.CastBars.Inline("player")[1], ns.CastBars.Inline("target")[1] }) do

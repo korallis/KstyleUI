@@ -203,14 +203,6 @@ function Bar:FormsChanged()
 	return false
 end
 
-local function SplitGap(cfg)
-	local split = cfg.split
-	if split == "on" then
-		return K.Setup.Layouts.SPLIT_GAP
-	end
-	return 0
-end
-
 local CUMULATIVE = { bar1 = true, bar2 = true, bar3 = true, bar4 = true, bar5 = true, bar6 = true }
 
 function Bar:Layout()
@@ -226,7 +218,6 @@ function Bar:Layout()
 	end
 	self.count = count
 	local _, rows, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), def.element, cfg)
-	local wide, wideGap = cell, spacing
 	local size, gap = Widgets.Snap(header, cell), Widgets.Snap(header, spacing)
 	local width, height = ns.GridSize(count, rows, size, gap)
 	local pitch, drop = size + gap, 0
@@ -235,10 +226,6 @@ function Bar:Layout()
 		pitch = cell + spacing
 		width = Widgets.Snap(header, (columns - 1) * pitch) + size
 		height = Widgets.Snap(header, (used - 1) * pitch) + size
-		if cell ~= wide then
-			local tall = Widgets.Snap(header, (used - 1) * (wide + wideGap)) + Widgets.Snap(header, wide)
-			drop, height = def.key == "bar2" and tall - height or 0, tall
-		end
 	end
 	local cols, used
 	if def.kind == "stance" and (rows or 1) > 1 then
@@ -246,7 +233,7 @@ function Bar:Layout()
 		cols, used = full, max(1, ceil(count / full))
 		width, height = cols * size + (cols - 1) * gap, used * size + (used - 1) * gap
 	end
-	local split = grouped and 0 or SplitGap(cfg)
+	local split = not grouped and cfg.split == "on" and K.Setup.Layouts.SPLIT_GAP or 0
 	local half = math.huge
 	if split > 0 and def.kind == "action" then
 		local _, _, columns = ns.GridSize(count, rows, 1, 0)

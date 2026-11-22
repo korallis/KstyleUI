@@ -34,7 +34,7 @@ local function Check(style)
 	end
 	assert(#env._errors == 0, style .. ": " .. tostring(env._errors[1]))
 end
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+for _, style in ipairs({ "medallions" }) do
 	Check(style)
 	collectgarbage("collect")
 end

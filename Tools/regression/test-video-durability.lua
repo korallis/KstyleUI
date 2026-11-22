@@ -17,7 +17,7 @@ for _, explicit in ipairs({ false, true }) do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) do
-	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+	for _, style in ipairs({ "medallions" }) do
 		local state = { saved = {}, active = 1 }
 		local env, K = W.New({ width = screen[1], height = screen[2], setup = function(e) F.Install(e, state) end })
 		assert(K.Setup.Apply({ layout = "DPS", modules = {}, hudStyle = style }))

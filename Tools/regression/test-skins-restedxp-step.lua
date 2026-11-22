@@ -1,5 +1,4 @@
 -- test-skins-restedxp-step.lua: with RestedXP's Active Targets and Active Items boxes docked under the guide, the guide's current step still shows its first line at 1920x1080 and 5120x1440 at UI scale 1 and at Blizzard's default 768/1080 (KSTY-77, the Captain's ruling: the quest card gives up a row before the guide gives up its step), the boxes share one row, the "N more" line keeps off the card's title, and the header keeps its step counter.
-rawset(_G, "RENDER_HUD_STYLE", "Orbs")
 rawset(_G, "RENDER_RXP_BOXES", "1")
 local Reference = dofile("Tools/render/scenes/_reference.lua")
 local owner = Reference.SCREEN
@@ -50,7 +49,6 @@ for _, screen in ipairs({ { 1920, 1080, 1 }, { 5120, 1440, 1 }, { 1920, 1080, 76
 	assert(not more or more.top >= cap.bottom, string.format("%s: the more line keeps off the card's title, more %.1f..%.1f title %.1f..%.1f", what, more and more.top or 0, more and more.bottom or 0, cap.top, cap.bottom))
 end
 Reference.SCREEN = owner
-rawset(_G, "RENDER_HUD_STYLE", nil)
 rawset(_G, "RENDER_RXP_BOXES", nil)
 
 print("skins restedxp step ok")

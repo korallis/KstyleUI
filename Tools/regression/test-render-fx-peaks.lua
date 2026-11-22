@@ -1,7 +1,6 @@
 -- test-render-fx-peaks.lua: every requested FX still samples a playing addon animation at its own peak, and explicit times sample its start and end.
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = dofile("Tools/render/scene.lua")
-rawset(_G, "RENDER_HUD_STYLE", "Medallions")
 
 local function find(scene, object)
 	for _, item in ipairs(scene.items) do
@@ -58,5 +57,4 @@ assert(hub.shock:GetAlpha() == 0 and hub.flash:GetAlpha() == 0, "the v0.2.2 reti
 assert(not find(idle, hub.shock) and not find(idle, hub.flash), "the idle hub must match the game captures: no shock ring or flash")
 assert(find(idle, hub.runes), "the resting rune ornament remains visible")
 Hud.envs[idle] = nil
-rawset(_G, "RENDER_HUD_STYLE", nil)
 print("ok render FX: cast, stopped, ready and burst peaks follow addon calls")

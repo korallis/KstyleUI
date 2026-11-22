@@ -4,7 +4,6 @@ local _, ns = ...
 local Widgets = ns.Widgets
 local Tokens, Scale = ns.Tokens, ns.Scale
 
-local GEM_ALPHA = 1
 local RULE_ALPHA = 0.5
 local GEM_CENTRE = 7.4
 local GEM_SIZE = 8
@@ -140,8 +139,6 @@ function Cap:MeasureCount(value)
 end
 
 function Cap:Paint()
-	self.gem:SetVertexColor(Widgets.Rgba("capsGold", GEM_ALPHA))
-	self.rule:SetColorTexture(Widgets.Rgba("capsGold", RULE_ALPHA))
 	Widgets.PaintCapMaterial(self.gem, self.rule)
 	Widgets.TextColor(self.label, "capsGold")
 	Widgets.TextColor(self.count, "muted")

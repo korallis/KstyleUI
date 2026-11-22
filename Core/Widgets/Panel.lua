@@ -182,7 +182,6 @@ function Panel:Restyle()
 		Widgets.Point(cap.label, "LEFT", cap.gem, "CENTER", Widgets.Snap(self, TEXT_FROM_GEM), 0)
 		cap.label:SetSize(0, heading)
 		cap.rule:SetHeight(Widgets.Border(self))
-		cap.gem:SetVertexColor(Widgets.Rgba("capsGold", 1))
 		Widgets.PaintCapMaterial(cap.gem, cap.rule)
 		Widgets.TextColor(cap.label, "capsGold")
 		if Widgets.Readability("sectionHeadings") then

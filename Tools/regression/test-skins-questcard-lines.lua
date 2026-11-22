@@ -4,7 +4,6 @@ local Guard = dofile("Tools/render/guard.lua")
 local getenv = os.getenv
 local frame
 rawset(os, "getenv", function(key) if key == "RENDER_MINIMAP_FRAME" then return frame end return getenv(key) end)
-rawset(_G, "RENDER_HUD_STYLE", "Medallions")
 
 for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) do
 	for _, choice in ipairs({ "medallion", "ring", "classic" }) do
@@ -57,5 +56,4 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 end
 rawset(os, "getenv", getenv)
 rawset(_G, "RENDER_SCREEN", nil)
-rawset(_G, "RENDER_HUD_STYLE", nil)
 print("test-skins-questcard-lines: ok (12 frame/screen cases)")

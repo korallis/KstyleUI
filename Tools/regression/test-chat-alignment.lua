@@ -3,7 +3,7 @@ local C = dofile("Tools/regression/chat_env.lua")
 local G = dofile("Tools/regression/geometry.lua")
 
 for _, screen in ipairs({ {1920,1080}, {2560,1440}, {3440,1440}, {3456,2234}, {3840,2160}, {5120,1440} }) do
-	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+	for _, style in ipairs({ "medallions" }) do
 		local env, K, ns = C.New({ width = screen[1], height = screen[2], setup = function(e)
 			e._size, e._fitScale = "auto", true
 			e.ChatFrame1.SetResizeBounds = function(self, ...) self._bounds = {...} end

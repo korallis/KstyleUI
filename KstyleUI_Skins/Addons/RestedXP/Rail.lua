@@ -645,9 +645,6 @@ Rail.Need = Need
 
 function Restore()
 	ReleaseBoxes(true)
-	if ns.Quests and type(ns.Quests.Give) == "function" then
-		ns.Quests.Give(0)
-	end
 	local f = Frame()
 	local original = state.original
 	state.placed, state.shown = nil, nil

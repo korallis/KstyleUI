@@ -298,7 +298,6 @@ local function New(parent, kind, unit)
 	cb.frame = frame
 	local iconFrame = CreateFrame("Frame", nil, frame)
 	cb.iconFrame = iconFrame
-	cb.iconChrome = Widgets.IconChrome(iconFrame)
 	cb.icon = iconFrame:CreateTexture(nil, "ARTWORK")
 	cb.iconMask = iconFrame:CreateMaskTexture()
 	cb.iconMask:SetTexture((Tokens.Texture("iconMask")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
@@ -344,7 +343,6 @@ local function Form(cb)
 	if cb.slab then
 		return
 	end
-	cb.iconChrome:SetShown(false)
 	cb.slab = Widgets.NineSlice(cb.frame, "medUnitSlab", "BACKGROUND", 1)
 	Widgets.ShowSlice(cb.slab, true)
 	cb.bar.lit:SetShown(false)

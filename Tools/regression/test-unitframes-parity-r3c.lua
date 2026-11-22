@@ -60,7 +60,7 @@ for _, row in ipairs(Settings.Schema()) do
 	if row.key then rows[row.key] = row end
 end
 for _, kind in ipairs(U.KINDS) do
-	for _, key in ipairs({ "healthHeight", "powerAbove", "powerTextAlign", "absorbGlow", "absorbBar", "maxHealthLoss", "fonts.name.x", "fonts.level.y", "extra1.width" }) do
+	for _, key in ipairs({ "powerAbove", "powerTextAlign", "absorbGlow", "absorbBar", "maxHealthLoss", "fonts.name.x", "fonts.level.y", "extra1.width" }) do
 		assert(rows[kind .. "." .. key], kind .. " has a " .. key .. " row")
 	end
 end

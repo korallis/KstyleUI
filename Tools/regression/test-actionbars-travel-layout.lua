@@ -8,7 +8,6 @@ end
 
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	rawset(_G, "RENDER_SCREEN", { width = screen[1], height = screen[2], size = "auto" })
-	rawset(_G, "RENDER_HUD_STYLE", "Medallions")
 	for _, mode in ipairs({ "mage", "simple" }) do
 		rawset(_G, "RENDER_TRAVEL", mode)
 		local class = mode == "mage" and "MAGE" or "WARRIOR"
@@ -39,6 +38,5 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	end
 end
 rawset(_G, "RENDER_SCREEN", nil)
-rawset(_G, "RENDER_HUD_STYLE", nil)
 rawset(_G, "RENDER_TRAVEL", nil)
 print("ok crest travel layout at all four screen sizes")

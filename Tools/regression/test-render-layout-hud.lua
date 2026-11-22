@@ -29,5 +29,4 @@ for _, art in ipairs(scene.items) do
 	end
 end
 rawset(_G, "RENDER_SCREEN", nil)
-rawset(_G, "RENDER_HUD_STYLE", nil)
 print("layout HUD render ok: Medallions at 5120x1440, cooldown reserves, XP track, toolbar and all four video labels")

@@ -151,6 +151,5 @@ f:close()
 assert(header:byte(3) == 2 and header:byte(13) == 0 and header:byte(14) == 1 and header:byte(15) == 0 and header:byte(16) == 1 and header:byte(17) == 32,
 	"the selected welcome logo export must be a 256x256 RGBA TGA matching its PNG companion")
 rawset(_G, "RENDER_SCREEN", nil)
-rawset(_G, "RENDER_HUD_STYLE", nil)
 rawset(_G, "RENDER_LOCALE", nil)
 print("setup welcome: screens, locales, text floor, original-page toggle and logo export format OK")

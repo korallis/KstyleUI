@@ -1344,11 +1344,6 @@ local function KindRows(schema, kind)
 		help = L["How solid the health fill is. Lower lets the track show through."], min = ALPHA_MIN, max = 1, step = ALPHA_STEP })
 	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "healthGradient", label = L["Fill gradient"],
 		help = L["Shades the health fill from darker to its colour."], options = CHOICES.gradient }, function(s) return s.healthColor ~= "health" end)
-	schema[#schema + 1] = Row(kind, { type = "slider", key = "healthHeight", label = L["Health bar height"], min = 0, max = HEALTH_HEIGHT_MAX, step = 1,
-		help = L["The health bar's height in units. 0 keeps the style's own."] }, function()
-			local form = Settings.Form(kind)
-			return form ~= "plate" and form ~= "slab"
-		end)
 	if kind == "target" then
 		schema[#schema + 1] = Row(kind, {
 			type = "toggle", key = "transitions", label = L["Gentle target changes"],

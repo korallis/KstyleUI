@@ -2206,7 +2206,7 @@ function Chrome:PaintEdge()
 		local e = self.edge
 		r, g, b, a = e[1], e[2], e[3], e[4]
 	end
-	local bevelled = self:Bevelled()
+	local bevelled = material ~= nil
 	if self.line then
 		local name = self.proc and "giltLit" or (bevelled and "medOutline") or self.shape.line
 		local key = Widgets.ColorName(name)

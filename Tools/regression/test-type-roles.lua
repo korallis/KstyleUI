@@ -7,19 +7,17 @@ end
 
 local CAST = { ["LIGHTNING BOLT"] = true, ["SHADOW BOLT"] = true }
 
-local function hud(width, height, style)
-	rawset(_G, "RENDER_HUD_STYLE", style)
+local function hud(width, height)
 	local Reference = dofile("Tools/render/scenes/_reference.lua")
 	Reference.SCREEN = { width = width, height = height, uiScale = 768 / 1080, size = "auto" }
 	local scene = Reference.Build({ layout = "DPS" })
-	rawset(_G, "RENDER_HUD_STYLE", nil)
 	return scene
 end
 
-for _, case in ipairs({ { 1920, 1080, "Frames" }, { 1920, 1080, "Orbs" }, { 5120, 1440, "Frames" } }) do
-	local width, height, style = case[1], case[2], case[3]
-	local label = width .. "x" .. height .. " " .. style
-	local scene = hud(width, height, style)
+for _, case in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
+	local width, height = case[1], case[2]
+	local label = width .. "x" .. height
+	local scene = hud(width, height)
 	local texts, casts = 0, 0
 	for _, item in ipairs(scene.items) do
 		local file = item.kind == "text" and item.font and tostring(item.font.file) or ""
