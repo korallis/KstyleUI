@@ -187,8 +187,8 @@ local function CapAside(text)
 	end
 end
 
-local function Rehush(region)
-	if busy then
+local function Rehush(region, alpha)
+	if busy or not Logic.IsSecret(alpha) and alpha == 0 then
 		return
 	end
 	busy = true

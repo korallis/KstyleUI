@@ -23,6 +23,10 @@ end
 assert(blizzMain:GetAlpha() == 0, "Blizzard's main-hand timer is held at alpha 0")
 blizzMain:SetAlpha(1)
 assert(blizzMain:GetAlpha() == 0, "Blizzard code cannot bring it back while the module runs")
+local holds = #blizzMain._calls
+for _ = 1, 10 do blizzMain:SetAlpha(0) end
+assert(#blizzMain._calls - holds == 10, "Blizzard setting its held timer to 0 ten times made " .. (#blizzMain._calls - holds - 10) .. " more writes; hold again only when the new alpha is not 0 (KstyleUI_Meters/Swing.lua Rehold)")
+blizzMain:SetAlpha(1)
 assert(blizzOff:GetAlpha() == 0, "every Blizzard swing timer is held")
 for _, frame in ipairs({ blizzMain, blizzOff }) do
 	assert(M.Calls(frame, "Hide") == 0 and M.Calls(frame, "SetParent") == 0 and M.Calls(frame, "SetScript") == 0,

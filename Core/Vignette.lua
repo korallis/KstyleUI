@@ -137,11 +137,12 @@ local function Layout()
 	frame:SetParent(parent)
 	frame:ClearAllPoints()
 	frame:SetAllPoints(parent)
-	if not frame.body then
+	if on and not frame.body then
 		frame.body = Layer("dangerBody", 0.6, "BLEND")
 		frame.ember = Layer("hostile", 0.22, "ADD")
 	end
 	for _, t in ipairs(frame.art) do t:SetShown(on and not restrained) end
+	if not frame.body then return end
 	for _, textures in ipairs({ frame.body, frame.ember }) do
 		for _, t in ipairs(textures) do t:SetShown(on and restrained) end
 	end
@@ -226,17 +227,20 @@ local function Listen()
 	if active ~= listening then
 		listening = active
 		if active then
-			ns.Events.RegisterUnit(OWNER, "UNIT_HEALTH", OnHealth, "player")
-			ns.Events.RegisterUnit(OWNER, "UNIT_MAXHEALTH", OnHealth, "player")
 			for _, event in ipairs(LIFE) do
 				ns.Events.Register(OWNER, event, Vignette.Update)
 			end
 		else
-			ns.Events.Unregister(OWNER, "UNIT_HEALTH")
-			ns.Events.Unregister(OWNER, "UNIT_MAXHEALTH")
 			for _, event in ipairs(LIFE) do
 				ns.Events.Unregister(OWNER, event)
 			end
+		end
+	end
+	for _, event in ipairs({ "UNIT_HEALTH", "UNIT_MAXHEALTH" }) do
+		if active and On() then
+			ns.Events.RegisterUnit(OWNER, event, OnHealth, "player")
+		else
+			ns.Events.Unregister(OWNER, event)
 		end
 	end
 	Vignette.Update()
@@ -248,5 +252,5 @@ ns.Callbacks.Register("ProfileChanged", OWNER, Listen)
 ns.Callbacks.Register("EffectsLevelChanged", OWNER, Vignette.Update)
 ns.Callbacks.Register("ScaleChanged", OWNER, Layout)
 ns.Callbacks.Register("SettingChanged", OWNER, function(_, module, key)
-	if (module == "UnitFrames" and key == "dangerEdge") or (module == "Medallions" and key == "vignette") then Vignette.Update() end
+	if (module == "UnitFrames" and key == "dangerEdge") or (module == "Medallions" and key == "vignette") then Listen() end
 end)

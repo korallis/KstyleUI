@@ -209,8 +209,9 @@ for _, name in ipairs({ "Enable", "Disable", "Apply", "OnTransition" }) do
 	end
 end
 Frames.events[#Frames.events + 1] = { event = "PLAYER_ROLES_ASSIGNED", fn = Readouts.Refresh }
-local rosterChanged = Unit.RosterChanged
-function Unit.RosterChanged(...)
-	rosterChanged(...)
+local flushRoster = Unit.FlushRoster
+function Unit.FlushRoster()
+	local count = flushRoster()
 	Readouts.Refresh()
+	return count
 end

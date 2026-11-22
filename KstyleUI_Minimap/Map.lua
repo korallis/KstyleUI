@@ -94,6 +94,13 @@ local function UpdateCoords()
 	Map.face:SetCoords(Data.Coords(Settings.Get("coords.precision")))
 end
 
+local function TickCoords()
+	local text = Data.Coords(Settings.Get("coords.precision"))
+	if text ~= Map.face.coordsText then
+		Map.face:SetCoords(text)
+	end
+end
+
 local function UpdateDifficulty()
 	if Settings.Get("difficulty.shown") then
 		Map.face:SetDifficulty(Data.Difficulty())
@@ -201,7 +208,7 @@ local function CoordsOnUpdate(_, elapsed)
 	coordsElapsed = coordsElapsed + elapsed
 	if coordsElapsed >= COORDS_INTERVAL then
 		coordsElapsed = 0
-		UpdateCoords()
+		TickCoords()
 	end
 end
 
@@ -226,7 +233,7 @@ local function SyncCoords()
 		return
 	end
 	if C_Timer and type(C_Timer.NewTicker) == "function" then
-		coordsTicker = C_Timer.NewTicker(COORDS_INTERVAL, UpdateCoords)
+		coordsTicker = C_Timer.NewTicker(COORDS_INTERVAL, TickCoords)
 	else
 		coordsElapsed = 0
 		frame:SetScript("OnUpdate", CoordsOnUpdate)

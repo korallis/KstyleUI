@@ -76,6 +76,12 @@ env.FireEvent("PLAYER_SWING", 1.8, OFF)
 env._speeds[2] = nil
 env.FireEvent("UNIT_ATTACK_SPEED", "target")
 assert(Running(OFF), "another unit's attack speed leaves the off hand alone")
+dofile("Tools/regression/instruction_budget.lua")(function()
+	for i = 1, 40 do
+		env.FireEvent("UNIT_ATTACK_SPEED", "raid" .. i)
+		env.FireEvent("UNIT_INVENTORY_CHANGED", "raid" .. i)
+	end
+end, 1, "a raid's UNIT_ATTACK_SPEED and UNIT_INVENTORY_CHANGED ran Meters code; the swing timer reads only the player's, so register them for the player (KstyleUI_Meters/Swing.lua PLAYER_EVENTS)")
 
 -- A hand that loses its weapon mid-swing (SwingTimerMixin:UpdateFrameState, ShouldClearSwing): the game clears that
 -- hand's timer on UNIT_INVENTORY_CHANGED, UNIT_ATTACK_SPEED and PLAYER_ENTERING_WORLD, with no WEAPON_SLOT_CHANGED.

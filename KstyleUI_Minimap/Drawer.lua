@@ -320,6 +320,9 @@ end
 function Drawer:Place(button)
 	local state = self.adopted[button]
 	local point, relative, x, y, size
+	if state then
+		state.anchor = nil
+	end
 	if not (state and Movable(button)) then
 		return
 	elseif state.place == "column" and state.spot then
@@ -340,8 +343,9 @@ function Drawer:Place(button)
 	local scale = compact and 1 or button:GetScale()
 	if not Format.IsNumber(scale) or scale <= 0 then return end
 	self.placing = true
+	state.anchor = { point, relative, point, x / scale, y / scale, scale = not compact and scale or nil }
 	button:ClearAllPoints()
-	button:SetPoint(point, relative, point, x / scale, y / scale)
+	button:SetPoint(unpack(state.anchor))
 	button:SetSize(size / scale, size / scale)
 	local icon = state.icon
 	if type(icon) == "table" and type(icon.SetPoint) == "function" then
@@ -449,7 +453,15 @@ local function OnMoved(button)
 			state.points = asked
 		end
 	end
-	drawer:Place(button)
+	local anchor = state.anchor
+	if not (anchor and Widgets.MayMove(button) and (anchor.scale == nil or button:GetScale() == anchor.scale)) then
+		drawer:Place(button)
+		return
+	end
+	drawer.placing = true
+	button:ClearAllPoints()
+	button:SetPoint(unpack(anchor))
+	drawer.placing = false
 end
 
 local function KeepOpaque(button, alpha)

@@ -272,6 +272,11 @@ assert(cap, "a KstyleUI section cap heads the window")
 assert(window.DamageMeterTypeDropdown.TypeName:GetAlpha() == 0 and window.SessionTimer:GetAlpha() == 0, "Blizzard's type name and timer are hushed")
 window.DamageMeterTypeDropdown.TypeName:SetAlpha(1)
 assert(window.DamageMeterTypeDropdown.TypeName:GetAlpha() == 0, "Blizzard code cannot bring the type name back")
+local typeName = window.DamageMeterTypeDropdown.TypeName
+local hushes = #typeName._calls
+for _ = 1, 10 do typeName:SetAlpha(0) end
+local more = #typeName._calls - hushes - 10
+assert(more == 0, "Blizzard setting the hushed type name to 0 ten times made " .. more .. " more writes; hush again only when the new alpha is not 0 (KstyleUI_Meters/DamageSkin.lua Rehush)")
 window.DamageMeterTypeDropdown.TypeName:SetText("Damage Done")
 assert(tostring(M.Last(cap.label, "SetText")[1]):upper() == "DAMAGE DONE", "the cap's title follows Blizzard's type name")
 assert(select(1, cap.label:GetFont()) == K.Tokens.Font("caps"), "in the caps face, as the card's heading")

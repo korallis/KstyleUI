@@ -59,8 +59,8 @@ local KEEPS_ALPHA = { "SoftTargetFrame" }
 local childAlpha = setmetatable({}, { __mode = "k" })
 local childIgnored = setmetatable({}, { __mode = "k" })
 
-local function OnBlizzardAlpha(frame)
-	if refading or not Plates.running or not faded[frame] then
+local function OnBlizzardAlpha(frame, alpha)
+	if refading or not Plates.running or not faded[frame] or not IsSecret(alpha) and alpha == 0 then
 		return
 	end
 	refading = true

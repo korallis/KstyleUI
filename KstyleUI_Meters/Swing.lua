@@ -11,8 +11,9 @@ local LINGER = 1.5
 local LIMITS = { minWidth = 40, maxWidth = 800, minHeight = 2, maxHeight = 64 }
 local EVENTS = {
 	"PLAYER_SWING", "PLAYER_SWING_RANGE_UPDATE", "PLAYER_TARGET_CHANGED", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED",
-	"PLAYER_ENTERING_WORLD", "WEAPON_SLOT_CHANGED", "UNIT_ATTACK_SPEED", "UNIT_INVENTORY_CHANGED",
+	"PLAYER_ENTERING_WORLD", "WEAPON_SLOT_CHANGED",
 }
+local PLAYER_EVENTS = { "UNIT_ATTACK_SPEED", "UNIT_INVENTORY_CHANGED" }
 local BLIZZARD = { "SwingTimerMainHandFrame", "SwingTimerOffHandFrame", "SwingTimerRangedFrame" }
 
 local types = Enum and Enum.PlayerSwingType or {}
@@ -45,7 +46,7 @@ local function Rehold(frame, alpha)
 	if not Logic.IsSecret(alpha) then
 		wanted[frame] = alpha
 	end
-	if not held[frame] then
+	if not held[frame] or not Logic.IsSecret(alpha) and alpha == 0 then
 		return
 	end
 	busy = true
@@ -427,12 +428,6 @@ function Swing:OnEvent(event, ...)
 		UpdateWeapons()
 		RestartForWeapons()
 		Refresh()
-	elseif event == "UNIT_ATTACK_SPEED" or event == "UNIT_INVENTORY_CHANGED" then
-		if ... == "player" then
-			UpdateWeapons()
-			ClearUnarmed()
-			Refresh()
-		end
 	else
 		UpdateWeapons()
 		ClearUnarmed()
@@ -549,6 +544,9 @@ function Swing:Apply()
 	end
 	for _, event in ipairs(EVENTS) do
 		ns.Watch(self, event)
+	end
+	for _, event in ipairs(PLAYER_EVENTS) do
+		ns.Watch(self, event, "player")
 	end
 	EnableRangeChecks()
 	for _, slot in ipairs(SLOTS) do
