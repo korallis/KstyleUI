@@ -58,10 +58,6 @@ function Pips.Apply(class, parent, count)
 	return set ~= nil
 end
 
-local function Fed(class)
-	return class == "SHAMAN" and "STORM" or class == "DRUID" and "BEAR" or class
-end
-
 local function Kind(class)
 	local kind = class and Widgets.CrownKind(class == "SHAMAN" and "STORM" or class)
 	return kind and Widgets.CrownCount(kind) and kind or nil
@@ -122,7 +118,7 @@ function Pips.Fed(class, parent)
 	if pending then
 		K.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", Refresh)
 	end
-	Watch(class ~= nil and Widgets.CrownCount(Fed(class)) ~= nil)
+	Watch(class ~= nil)
 	state.crown = kind and state.fed[kind] or nil
 	return state.crown ~= nil
 end

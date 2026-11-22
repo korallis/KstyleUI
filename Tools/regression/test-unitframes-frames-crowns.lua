@@ -157,10 +157,10 @@ do
 	Clean(env, K, "learn")
 end
 
--- Other classes, and a caster-form druid, get no row and no crown listeners.
+-- Other classes, and a caster-form druid, get no row.
 for _, class in ipairs({ "PALADIN", "WARLOCK" }) do
 	local env, K, ns = New(class)
-	assert(not ns.Resource.state.fed and next(ns.Pips.state.fed) == nil and not ns.Pips.state.watching, class .. " gets nothing")
+	assert(not ns.Resource.state.fed and next(ns.Pips.state.fed) == nil, class .. " gets nothing")
 	Clean(env, K, class)
 end
 do
