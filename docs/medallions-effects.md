@@ -99,7 +99,7 @@ The APIs, proved in the 70862 source (`Blizzard_APIDocumentationGenerated/`): `M
 
 ## The primary test character
 
-Lee plays an undead (Forsaken) warlock, so that case is checked first: `hud_warlock_mac` under `RENDER_HUD_STYLE=Medallions` renders the undead warlock bust and crest with the imp out, and every `RENDER_FX` state above renders there too. The tests pin the warlock's effects: the hub ring follows soul shards rather than mana, a proc runs the fel flipbook (`medProcWarlock`) and the warlock's model (166071) at the hub, the level-up burst is `medBurstWarlock` (the warlock model at Full), and the imp's frame rests after combat while the warlock's own does not (`test-actionbars-medallions-fx`, `test-unitframes-medallions-fx`).
+Lee plays an undead (Forsaken) warlock, so that case is checked first: `hud_warlock_mac` renders the undead warlock bust and crest with the imp out, and every `RENDER_FX` state above renders there too. The tests pin the warlock's effects: the hub ring follows soul shards rather than mana, a proc runs the fel flipbook (`medProcWarlock`) and the warlock's model (166071) at the hub, the level-up burst is `medBurstWarlock` (the warlock model at Full), and the imp's frame rests after combat while the warlock's own does not (`test-actionbars-medallions-fx`, `test-unitframes-medallions-fx`).
 
 ## In-game checks
 
