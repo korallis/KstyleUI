@@ -37,9 +37,8 @@ GALLERY = [
     ("04-crowns-more.gif", "marketing/crowns-more.gif", None),
     ("05-shaman.gif", "marketing/shaman.gif", None),
     ("06-hawks.gif", "marketing/hawks.gif", None),
-    ("07-jewels.gif", "marketing/jewels.gif", None),
-    ("08-hud.jpg", "readme/hud_1080.jpg", None),
-    ("09-frames.jpg", "readme/hud_frames_1080.jpg", None),
+    ("07-hud.jpg", "readme/hud_1080.jpg", None),
+    ("08-frames.jpg", "readme/hud_frames_1080.jpg", None),
 ]
 
 # Core/Tokens.lua colours.
@@ -103,7 +102,6 @@ def story(scene, env, clock, beats, fast):
     return [shot for shot in shots if shot[3]]
 
 
-JEWELS = {"RENDER_FX": "jewels"}
 CLIPS = {
     "classes.gif": (STRIP, [(scene, env, None, [0], 1100) for scene, env in (
         ("hud_rogue_mac", {"RENDER_PIPS": "5,5", "RENDER_PIPS_T": "1"}),
@@ -111,10 +109,8 @@ CLIPS = {
         ("hud_warrior_mac", {"RENDER_PIPS": "5,5", "RENDER_PIPS_T": "1"}),
         ("hud_druid_mac", {"RENDER_PIPS": "5,5", "RENDER_PIPS_T": "1"}),
         ("hud_hunter_mac", {"RENDER_FX": "hawks", "RENDER_FX_T": "10"}),
-        ("hud_paladin_mac", {**JEWELS, "RENDER_JEWELS": "5,5", "RENDER_FX_T": "1"}),
         ("hud_mage_mac", {"RENDER_PIPS": "4,4", "RENDER_PIPS_T": "1"}),
         ("hud_priest_mac", {"RENDER_PIPS": "5,5", "RENDER_PIPS_T": "1"}),
-        ("hud_warlock_mac", {**JEWELS, "RENDER_JEWELS": "5,5", "RENDER_FX_T": "1"}),
     )]),
     "crowns.gif": (CREST, climb("hud_rogue_mac", 5) + climb("hud_druid_mac", 5)),
     "crowns-more.gif": (CREST, [shot for scene, top, env in (
@@ -129,8 +125,6 @@ CLIPS = {
     "hawks.gif": (CREST, story("hud_hunter_mac", {"RENDER_FX": "hawks"}, "RENDER_FX_T", [
         (0.5, 0.5, 300), (0.9, 1.6, 0), (8.9, 9.6, 300), (18.9, 19.45, 0), (20.4, 21.1, 700),
     ], 0.7)),
-    "jewels.gif": (CREST, climb("hud_paladin_mac", 5, JEWELS, "RENDER_JEWELS", "RENDER_FX_T", 0.28)
-                   + climb("hud_warlock_mac", 5, JEWELS, "RENDER_JEWELS", "RENDER_FX_T", 0.28)),
 }
 
 README_HEADER = """<p align="center">

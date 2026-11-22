@@ -5,12 +5,11 @@ The same master description ([docs/store/description.md](../store/description.md
 | Picture | What it is | Made by |
 | --- | --- | --- |
 | marketing/banner.jpg | Real in-game screenshot (readme/game_medallions_hero.jpg), darkened, with the logo and wordmark | `marketing.py` |
-| marketing/classes.gif | Test render over the real forest plate: the Medallions HUD for nine classes | `marketing.py --clips` |
-| marketing/crowns.gif | Test render over the real forest plate: rogue blades and cat druid claws, gain to spend | `marketing.py --clips` |
+| marketing/classes.gif | Test render over the real forest plate: the Medallions HUD for seven classes | `marketing.py --clips` |
+| marketing/crowns.gif | Test render over the real forest plate: rogue blades and cat druid claws with the ring's jewels, gain to spend | `marketing.py --clips` |
 | marketing/crowns-more.gif | Test render over the real forest plate: warrior, priest, mage, hunter and bear crowns | `marketing.py --clips` |
 | marketing/shaman.gif | Test render over the real forest plate: Spirit Poles, then Lightning Shield's storm orbs | `marketing.py --clips` |
 | marketing/hawks.gif | Test render over the real forest plate: the hunter's hawk perches | `marketing.py --clips` |
-| marketing/jewels.gif | Test render over the real forest plate: paladin and warlock crest jewels | `marketing.py --clips` |
 | marketing/show_hud_1080.jpg | Test render over the real forest plate (readme/hud_1080.jpg): the whole HUD at 1920 by 1080 | `readme.py`, `marketing.py` |
 | marketing/show_hud_frames_1080.jpg | Test render over the real forest plate (readme/hud_frames_1080.jpg): the Frames look at 1920 by 1080. Until the Frames restore lands, this is the last Frames render, from `37c066152` (2026-11-20); `readme.py --only hud_frames_1080` retakes it after | `readme.py`, `marketing.py` |
 | marketing/show_frame_raid.jpg | Test render over the real forest-mac plate (readme/frame_raid.jpg): the raid frames | `readme.py`, `marketing.py` |

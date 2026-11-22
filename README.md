@@ -14,13 +14,13 @@ KstyleUI swaps the default UI for one dark forged style, the same on your bars, 
 
 Every picture below is a test render of the addon over my own in-game screenshots. Icons in these pictures are the optional AI-made icon pack, not art shipped in the addon.
 
-![KstyleUI test render over an in-game screenshot: the Medallions HUD for nine classes in turn, each with its own crest](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/classes.gif)
+![KstyleUI test render over an in-game screenshot: the Medallions HUD for seven classes in turn, each with its own crest](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/classes.gif)
 
 *Every class gets its own crest, and most of them get a crown on top.*
 
 ![KstyleUI test render over an in-game screenshot: a rogue's crown of blades and a cat druid's claws filling with combo points, then a finisher slashing them out](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/crowns.gif)
 
-*Rogues get a crown of blades and cat druids get claws. Each combo point lights one, and a finisher slashes them out.*
+*Rogues get a crown of blades and cat druids get claws. Each combo point lights one and a jewel on the ring, the ring glows when you're capped, and a finisher slashes them out.*
 
 ![KstyleUI test render over an in-game screenshot: warrior banners, priest candles, mage shards, hunter arrows and bear talons filling up on the crest](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/crowns-more.gif)
 
@@ -33,10 +33,6 @@ Every picture below is a test render of the addon over my own in-game screenshot
 ![KstyleUI test render over an in-game screenshot: a hunter's hawk perches lighting up with a timer for each hawk](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/hawks.gif)
 
 *Hunters with Summon Hawk get a perch on the ring for each hawk, with a timer round it. Baine's idea.*
-
-![KstyleUI test render over an in-game screenshot: holy power and soul shard jewels lighting up on the crest ring](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/jewels.gif)
-
-*Holy power and soul shards light jewels on the ring, and the whole ring glows when you're capped.*
 
 ![KstyleUI test render over an in-game screenshot of the whole HUD on a 1920 by 1080 screen: the guide card top left, the quests on the right under the map](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_hud_1080.jpg)
 
