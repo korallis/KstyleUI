@@ -2,6 +2,12 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.2.12.1 (2026-11-22)", {
+		L["Medallions unit frames honour their bar textures, and focus and boss aura timers clear the stack count."],
+		L["Raid tiles and party rows honour Icon zoom, Time left, Name font and Portrait zoom, and keep names whole."],
+		L["Party rows get a boss debuff slot, and the leader, marker and indicators no longer cover heals or names."],
+		L["Nameplates honour the level font, and Readable bag headings draw their full title band."],
+	} },
 	{ "v0.2.12 (2026-11-22)", {
 		L["KstyleUI is now Medallions only: Frames and Orbs are gone, your HUD moves over on update and setup is shorter."],
 		L["Class crowns rise over the crest for rogues, druids, warriors, priests, mages and hunters, on by default."],
@@ -12,12 +18,5 @@ ns.NOTES = {
 	} },
 	{ "v0.2.11.1 (2026-11-22)", {
 		L["With Blizzard's Cooldown Manager switched off, KstyleUI no longer shows its own cooldown icons."],
-	} },
-	{ "v0.2.11 (2026-11-21)", {
-		L["Thanks to Baine, Zygor Guides Viewer sits on the story rail like RestedXP, under Window Skins > Zygor."],
-		L["Zygor takes the KstyleUI theme: the forged window card and a themed header, controls, progress bar and waypoint arrow."],
-		L["Medallions crest jewels are richer cut gems that flare when you gain a point and drain when you spend one."],
-		L["At the maximum the whole crest ring glows in the resource's colour; Glow at max is on by default."],
-		L["Hawk perches show each Summon Hawk hawk and its time left on the Medallions crest, an idea from Baine."],
 	} },
 }
