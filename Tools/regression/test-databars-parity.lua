@@ -10,7 +10,7 @@ for i, id in ipairs(OLD) do old[i] = { id = id, shown = i <= 10, zone = id == "t
 
 local game, x = nil, {}
 local env, K, ns = D.New({
-	saved = { version = 42, profiles = { Default = { DataBars = { enabled = true, strip = { modules = old } } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
+	saved = { version = 42, profiles = { Default = { DataBars = { enabled = true, strip = { dockModules = old } } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
 	setup = function(e)
 		D.Menus(e)
 		game = Fixture(e)
@@ -62,9 +62,9 @@ end
 -- A v0.2.8 profile with a saved, reordered module list gains every absent readout switched off, as an absent entry was before;
 -- an absent micro menu stays shown, as the menu treated it. The Great Vault waits for live Forever evidence.
 local s = K.Store.Module("DataBars").strip
-eq(#s.modules, #K.Options.Default("DataBars", "strip.modules"), "saved list gains the absent readouts")
-eq(s.modules[1].id, "gold", "the saved order survives")
-for i = #OLD + 1, #s.modules do eq(s.modules[i].shown, s.modules[i].id == "micro", s.modules[i].id .. " keeps its absent state") end
+eq(#s.dockModules, #K.Options.Default("DataBars", "strip.dockModules"), "saved list gains the absent readouts")
+eq(s.dockModules[1].id, "gold", "the saved order survives")
+for i = #OLD + 1, #s.dockModules do eq(s.dockModules[i].shown, s.dockModules[i].id == "micro", s.dockModules[i].id .. " keeps its absent state") end
 eq(ns.Strip.VALUES.vault, nil, "no Great Vault readout")
 for _, key in ipairs({ "hover", "goldSession", "goldCharacters", "brokerLabel" }) do eq(s[key], true, key) end
 for _, key in ipairs({ "labelCustom", "goldHistory", "specUpper", "specLoadout", "hearthOthers", "clockMail", "clockRest", "bagsReagent", "combatOnly", "playedTotal" }) do eq(s[key], false, key) end
