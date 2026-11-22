@@ -311,6 +311,12 @@ local function TimerRoom(f, size)
 	local x, y = Widgets.Snap(f, a.timerX), Widgets.Snap(f, a.timerY)
 	return math.ceil(TimerSize(size) * TIMER_LINE) + Widgets.Border(f) + math.max(0, -y), math.abs(x), math.max(0, y - size)
 end
+Auras.TimerRoom = TimerRoom
+
+function Auras.TimerSpan(size)
+	local a = Settings.current.auras
+	return a.timers and math.ceil(TimerSize(size) * TIMER_LINE) + 1 + math.max(0, -a.timerY) or 0
+end
 
 local function PlaceTimer(timer, skin)
 	local a = Settings.current.auras

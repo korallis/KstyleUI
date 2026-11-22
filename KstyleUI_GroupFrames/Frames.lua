@@ -116,8 +116,8 @@ end
 
 local function Listen()
 	local Events, Callbacks = K.Events, K.Callbacks
-	Events.Register(MODULE, "GROUP_ROSTER_UPDATE", function(...)
-		Unit.RosterChanged(...)
+	Events.Register(MODULE, "GROUP_ROSTER_UPDATE", function()
+		Unit.RosterChanged()
 		Headers.Resort()
 	end)
 	Events.Register(MODULE, "PLAYER_ENTERING_WORLD", Unit.RefreshAll)
@@ -154,7 +154,9 @@ local function Listen()
 end
 
 Frames.events = { { event = "PLAYER_ROLES_ASSIGNED", fn = Unit.RolesChanged }, { event = "PLAYER_ROLES_ASSIGNED", fn = Headers.Resort },
-	{ event = "ZONE_CHANGED_NEW_AREA", fn = Headers.Resort } }
+	{ event = "ZONE_CHANGED_NEW_AREA", fn = Headers.Resort }, { event = "UNIT_NAME_UPDATE", fn = function(_, unit)
+		if not Unit.IsSecret(unit) and type(unit) == "string" and (unit == "player" or unit:find("^party%d") or unit:find("^raid%d")) then Headers.Resort() end
+	end } }
 
 local function Start()
 	Headers.Show()

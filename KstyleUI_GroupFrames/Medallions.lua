@@ -373,6 +373,10 @@ local function TileText(f)
 	local left = Widgets.Snap(f, health.left + tile.inset)
 	local right = Widgets.Snap(f, tile.percentRight or tile.right)
 	local gap = Widgets.Snap(f, tile.gap)
+	if tile.below and parts.healRow and Settings.current.auras.timers then
+		local _, count, size, spacing = ns.Auras.HealIcons(f, k)
+		if count > 0 then left = Widgets.Snap(f, parts.healRow.left + Geometry.Line(count, size, spacing)) + gap end
+	end
 	local reserve = TextReserve(f, k)
 	Style.SetFont(f.healthText, Settings.current.text.healthFont, Style.StatusSize(f, k.healthTextSize), TILE_TEXT)
 	local lines = 1.2 * (Widgets.FontSize(f.name, 12) + Widgets.FontSize(f.healthText, k.healthTextSize))
@@ -394,8 +398,9 @@ local function TileText(f)
 	f.healthText:SetWidth(math.max(1, reserve))
 	f.healthText:SetShown(k.healthText ~= "NONE" or f.status ~= nil)
 	if tile.stacked then
-		f.name:SetPoint("TOPLEFT", f, "TOPLEFT", left, -Widgets.Snap(f, health.top + tile.inset))
-		f.healthText:SetPoint("BOTTOMRIGHT", f, "TOPLEFT", right, -Widgets.Snap(f, health.top + health.height - tile.inset))
+		local top, bottom = -Widgets.Snap(f, health.top + tile.inset), -Widgets.Snap(f, health.top + health.height - tile.inset)
+		f.name:SetPoint(tile.below and "BOTTOMLEFT" or "TOPLEFT", f, "TOPLEFT", left, tile.below and bottom or top)
+		f.healthText:SetPoint(tile.below and "TOPRIGHT" or "BOTTOMRIGHT", f, "TOPLEFT", right, tile.below and top or bottom)
 	else
 		local middle = -Widgets.Snap(f, health.top + health.height / 2)
 		f.name:SetPoint("LEFT", f, "TOPLEFT", left, middle)
@@ -444,7 +449,7 @@ local function Tile(f, parts, k)
 		local _, percent = TextReserve(f, k)
 		local right = Widgets.Snap(f, tile.right)
 		block.left = (percent > 0 and right - percent - Widgets.Snap(f, tile.gap) or right) - block.width
-		block.top = tile.stacked and (Widgets.Readability("readableBars") and health.top + health.height - tile.inset - block.height or health.top + tile.inset) or health.top + math.floor((health.height - block.height) / 2)
+		block.top = tile.stacked and ((not Widgets.Readability("readableBars")) == (tile.below == true) and health.top + health.height - tile.inset - block.height or health.top + tile.inset) or health.top + math.floor((health.height - block.height) / 2)
 	end
 	TileText(f)
 end

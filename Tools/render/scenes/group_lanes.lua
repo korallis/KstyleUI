@@ -26,8 +26,9 @@
 -- RENDER_PARITY_R7=1 switches on round 7's: your frame last in the party, party pets beside their owners (yours and the second
 -- member's), the dispel highlight under the bar's fills on the second member's heal absorb (with RENDER_GROUP_DISPEL=1), and in a
 -- raid tank frames 16 taller whose icons grow with them.
--- RENDER_PARITY_R8=1 switches on round 8's: names under the bar (raid rows with the name above the bar, so it moves too) and
--- party heal icons right of the frames past the debuffs, with the first member's three heals shown; =left puts the heals left of the frames.
+-- RENDER_PARITY_R8=1 switches on round 8's: names under the bar (Medallions raid tiles and party rows) and party heal icons
+-- right of the frames past the debuffs, with the first member's three heals shown; =left puts the heals left of the frames, and
+-- =above gives raid frames the name above the bar first, so the row moves under the bar too.
 -- RENDER_RAID_POWER=1 switches the raid power bar on.
 -- RENDER_GROUP_DISPEL=1 shows the dispel highlight on the second member as the aura engine does for a Magic debuff: every texture
 -- registered with the slot shown in the Magic colour, keeping its own alpha as the options preview does.
@@ -269,7 +270,7 @@ return Common.Run(function()
 		place(K, "groupframes.tanks", AT[kind][1] + 760, 40)
 	end
 	if R8 then
-		for key, value in pairs({ ["names.bottom"] = true, ["raid.textLayout"] = "ABOVE", ["party.buffAnchor"] = R8 == "left" and "LEFT" or "RIGHT" }) do
+		for key, value in pairs({ ["names.bottom"] = true, ["raid.textLayout"] = R8 == "above" and "ABOVE" or nil, ["party.buffAnchor"] = R8 == "left" and "LEFT" or "RIGHT" }) do
 			K.Options.Write("GroupFrames", key, value)
 		end
 		env.RunTimers()

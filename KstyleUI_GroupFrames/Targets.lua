@@ -44,7 +44,7 @@ local function Room(f, k)
 	local gap, block = Tokens.Size("gapSmall"), Auras.Block(f, k)
 	if Geometry.IsVertical(k.growth) then
 		local geo = Geometry.Party(k)
-		return math.max(geo.memberWidth + (geo.laneSide == "RIGHT" and geo.lane or 0), block.left + block.width) + gap + (geo.healSide == "RIGHT" and geo.heal or 0), 0
+		return math.max(geo.memberWidth + (geo.laneSide == "RIGHT" and geo.lane or 0), block.left + block.width) + gap, 0
 	end
 	return 0, -math.max(k.height, block.top + block.height) - gap
 end

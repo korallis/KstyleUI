@@ -139,13 +139,14 @@ end
 function Geometry.HealLane(s)
 	local cfg = ns.Settings.current
 	if (s.buffAnchor or "FRAME") == "FRAME" or (s.buffCount or 0) <= 0 or not cfg.buffs.enabled then
-		return 0, nil
+		return 0, nil, false
 	end
 	local gap = Tokens.Size("gapSmall")
-	if not GROWTH[Clean(s.growth)].vertical then
-		return gap + s.buffSize, "TOP"
+	if not Geometry.IsVertical(s.growth) then
+		return gap + s.buffSize + ns.Auras.TimerSpan(s.buffSize), "TOP", true
 	end
-	return gap + Line(s.buffCount, s.buffSize, s.auraSpacing or 0), s.buffAnchor
+	local beyond = s.buffAnchor == "RIGHT" and (cfg.targets.enabled or cfg.pets.enabled and cfg.pets.beside)
+	return gap + Line(s.buffCount, s.buffSize, s.auraSpacing or 0), s.buffAnchor, not beyond
 end
 
 local function Members(s, growth, count)
@@ -153,7 +154,8 @@ local function Members(s, growth, count)
 	local memberWidth = s.width - lane
 	local spacing = GROWTH[growth].vertical and s.spacing or s.spacing + lane
 	local w, h = Block(growth, count, memberWidth, s.height, spacing)
-	local heal, side = Geometry.HealLane(s)
+	local heal, side, held = Geometry.HealLane(s)
+	heal = held and heal or 0
 	if side == "TOP" then h = h + heal else w = w + heal end
 	return w + lane, h, memberWidth, spacing, lane, heal, side
 end
@@ -589,18 +591,21 @@ function Overlay(w, h, o)
 end
 
 function Geometry.NamesBelow(out, h)
-	local name = out.name
-	if out.nameInside or not name then return out end
+	local name, tile, health = out.name, out.tile, out.health
+	if tile and tile.stacked then
+		for _, rect in pairs({ out.healRow, out.indicatorLane }) do rect.top = 2 * health.top + health.height - rect.top - rect.height end
+		tile.below = true
+		return
+	elseif out.nameInside or not name then
+		return
+	end
 	local gap, margin = out.overlay and NAME_GAP or INSET, out.overlay and EDGE or Tokens.Size("gapSmall")
 	local top, line = name.top, name.top + name.height
 	local down, up = h - 2 * top - name.height, line + gap - margin
 	local column = out.portrait and out.portrait.left + out.portrait.width + 1e-6
-	local moved, icons = {}, out.icons or {}
-	local rects = { name, out.health, out.power, out.healRow, out.lane, out.indicatorLane, out.block, out.boss, icons.role, icons.leader, icons.marker }
-	for i = 1, 11 do
-		local rect = rects[i]
-		if rect and not moved[rect] and not (column and rect.left + rect.width <= column) then
-			moved[rect] = true
+	local icons = out.icons or {}
+	for _, rect in pairs({ name, health, out.power, out.healRow, out.lane, out.indicatorLane, out.block, out.boss, icons.role, icons.leader, icons.marker }) do
+		if not (column and rect.left + rect.width <= column) then
 			rect.top = rect.top + (rect.top < line - 1e-6 and down or -up)
 		end
 	end
@@ -610,7 +615,6 @@ function Geometry.NamesBelow(out, h)
 		spot.middle = spot.middle and spot.middle - up
 	end
 	out.below = true
-	return out
 end
 
 local AURA_INSIDE = { TOPLEFT = true, TOPRIGHT = true, BOTTOMLEFT = true, BOTTOMRIGHT = true }

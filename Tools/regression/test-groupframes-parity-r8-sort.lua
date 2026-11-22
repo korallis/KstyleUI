@@ -10,11 +10,7 @@ local function Api(env, order)
 		return true
 	end
 	api.v3 = {
-		Sorting = { RegisterPostSortCallback = register, GetFriendlyUnits = function()
-			local out = {}
-			for i, unit in ipairs(api.order) do out[i] = unit end
-			return out
-		end },
+		Sorting = { RegisterPostSortCallback = register, GetFriendlyUnits = function() return api.order end },
 		Options = { RegisterConfigurationChangedCallback = register },
 	}
 	env.FrameSortApi = api

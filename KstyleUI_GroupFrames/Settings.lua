@@ -581,8 +581,8 @@ function Settings.Schema(includeText)
 			Slider("auto.customHeight", L["Own size: height"], L["The frames' height at this raid size; 0 sizes them automatically."], 0, 120, 1, custom),
 			Slider("auto.customX", L["Own size: X offset"], L["Moves the raid frames right, or left below 0, at this raid size."], -400, 400, 1, custom),
 			Slider("auto.customY", L["Own size: Y offset"], L["Moves the raid frames up, or down below 0, at this raid size."], -400, 400, 1, custom) })
-		After(schema, "party.buffY", { Dropdown("party.buffAnchor", L["Heal icon place"], L["On the frame, or outside it on the right or left. Frames side by side put them above."],
-			Options({ { "FRAME", L["On the frame"] }, { "RIGHT", L["Right of the frame"] }, { "LEFT", L["Left of the frame"] } })) })
+		After(schema, "party.buffY", { Dropdown("party.buffAnchor", L["Heal icon place"], L["Outside: beside stacked frames, past debuffs, targets and pets; above frames side by side."],
+			Options({ { "FRAME", L["On the frame"] }, { "RIGHT", L["Outside, right"] }, { "LEFT", L["Outside, left"] } })) })
 		After(schema, "names.height", { Toggle("names.bottom", L["Name under the bar"], L["Puts the name line under the health and power bars instead of above them."]) })
 		local follows = {}
 		for section, keys in pairs(Settings.FOLLOW) do

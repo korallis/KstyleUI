@@ -97,8 +97,8 @@ local function holder(ns)
 	return h:GetWidth(), h:GetHeight()
 end
 
--- Party heal icons outside the frame: right or left of stacked frames, past the outside debuffs and before party targets and
--- pets beside; above frames side by side; the holder makes room, the name takes its line back, combat waits and off restores.
+-- Party heal icons outside the frame: right or left of stacked frames, past the outside debuffs, party targets and pets beside;
+-- above frames side by side, at the chosen end; the holder makes room, the name takes its line back, combat waits and off restores.
 for _, style in ipairs({ "medallions", "frames" }) do
 	local env, K, ns = boot({})
 	K.Options.Write("HudStyle", "style", style)
@@ -117,7 +117,14 @@ for _, style in ipairs({ "medallions", "frames" }) do
 	assert(w1 - w0 >= ns.Geometry.HealLane(k) - 1, style .. ": the holder makes room")
 	if style == "frames" then assert(f.parts.name.width > name0, "frames: the name takes the heals' place back") end
 	write(env, K, "targets.enabled", true)
-	assert(ns.Targets.Spot(f, k) >= row.left + row.width, style .. ": party targets sit past the heals")
+	row = f.parts.healRow
+	local t = ns.Settings.current.targets
+	assert(row.left >= ns.Targets.Spot(f, k) + t.x + t.width and H.near(holder(ns), w0), style .. ": past party targets, outside the holder as they are")
+	write(env, K, "pets.enabled", true)
+	write(env, K, "pets.beside", true)
+	row = f.parts.healRow
+	assert(row.left >= ns.Extras.PetSpot(f, k) + ns.Extras.PetSize(), style .. ": and past pets beside their owners")
+	write(env, K, "pets.enabled", false)
 	write(env, K, "targets.enabled", false)
 	write(env, K, "party.buffAnchor", "LEFT")
 	row = f.parts.healRow
@@ -127,7 +134,10 @@ for _, style in ipairs({ "medallions", "frames" }) do
 	assert(x >= ns.Geometry.HealLane(k) - 1, style .. ": the frames move right inside the holder")
 	write(env, K, "party.growth", "RIGHT")
 	row = f.parts.healRow
-	assert(row.outside and row.top + row.height <= 0, style .. ": frames side by side put the heals above")
+	assert(row.outside and row.top + row.height <= 0 and row.left == 0 and row.width <= f.width, style .. ": frames side by side put the heals above, from the left end")
+	write(env, K, "party.buffAnchor", "RIGHT")
+	row = f.parts.healRow
+	assert(row.side == "RIGHT" and H.near(row.left + row.width, f.width), style .. ": or from the right end")
 	local _, h2 = holder(ns)
 	local y = select(5, ns.Headers.party:GetPoint(1))
 	assert(y < 0 and h2 > ns.Settings.current.party.height, style .. ": the holder grows upward and the frames move down")

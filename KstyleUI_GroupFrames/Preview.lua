@@ -225,7 +225,7 @@ function Preview.Build(...)
 			local w, h = ns.Extras.PetSize()
 			tw, th = Geometry.IsVertical(party.growth) and tw + w + Tokens.Size("gapSmall") or tw, Geometry.IsVertical(party.growth) and th or th + h + Tokens.Size("gapSmall")
 		end
-		local heal, healSide = partyGeo.heal, partyGeo.healSide
+		local heal, healSide = Geometry.HealLane(party)
 		pw, ph = pw + tw + (healSide == "TOP" and 0 or heal), ph + th + (healSide == "TOP" and heal or 0)
 		preview.party:SetSize(pw, ph)
 		preview.party:ClearAllPoints()

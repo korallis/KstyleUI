@@ -555,15 +555,22 @@ function Style.Scaled(f, size)
 end
 
 function Style.HealsOutside(f, k, size, w, h)
-	local spacing, gap = Widgets.Snap(f, k.auraSpacing), Tokens.Size("gapSmall")
-	local width = Geometry.Line(k.buffCount, size, spacing)
+	local cfg, spacing, gap = Settings.current, Widgets.Snap(f, k.auraSpacing), Tokens.Size("gapSmall")
+	local room, right = ns.Auras.TimerRoom(f, size), k.buffAnchor == "RIGHT"
 	if not Geometry.IsVertical(k.growth) then
-		return { left = 0, top = -gap - size, width = width, height = size, side = "LEFT", outside = true }
+		local width = math.min(Geometry.Line(k.buffCount, size, spacing), w)
+		return { left = right and w - width or 0, top = -gap - room - size, width = width, height = size, side = right and "RIGHT" or "LEFT", outside = true }
 	end
-	local lane = Geometry.AuraLane(k)
-	local left = k.auraPosition == "OUTSIDE_LEFT" and lane or 0
-	local x = k.buffAnchor == "LEFT" and -left - gap - width or w + lane - left + gap
-	return { left = x, top = Widgets.Snap(f, (h - size) / 2), width = width, height = size, side = k.buffAnchor == "LEFT" and "RIGHT" or "LEFT", outside = true }
+	size = math.max(1, math.min(size, h - room))
+	local width, lane = Geometry.Line(k.buffCount, size, spacing), Geometry.AuraLane(k)
+	local inner = k.auraPosition == "OUTSIDE_LEFT" and lane or 0
+	local x = right and w + lane - inner + gap or -inner - gap - width
+	if right and cfg.pets.enabled and cfg.pets.beside then
+		x = math.max(x, ns.Extras.PetSpot(f, k) + ns.Extras.PetSize() + gap)
+	elseif right and cfg.targets.enabled then
+		x = math.max(x, ns.Targets.Spot(f, k) + cfg.targets.x + cfg.targets.width + gap)
+	end
+	return { left = x, top = Widgets.Snap(f, (h - size - room) / 2), width = width, height = size, side = right and "LEFT" or "RIGHT", outside = true }
 end
 
 function Style.Apply(f, width, height)
@@ -584,7 +591,7 @@ function Style.Apply(f, width, height)
 		size = Widgets.Snap(f, Style.Scaled(f, k.auraSize)), spacing = Widgets.Snap(f, k.auraSpacing),
 	} or nil
 	local healRow = cfg.buffs.enabled and k.buffCount > 0 and Widgets.Snap(f, Style.Scaled(f, k.buffSize)) or nil
-	local healOut = healRow and f.kind == "party" and k.buffAnchor ~= "FRAME" and healRow
+	local healOut = f.kind == "party" and k.buffAnchor ~= "FRAME" and healRow
 	if healOut then healRow = nil end
 	local nameMin = Style.NameMin(k)
 	f.powerShown = Style.PowerShown(f)
@@ -712,12 +719,9 @@ Style.appliers[1] = function(f, parts)
 	local line = f.nameDivider or f.text:CreateTexture(nil, "ARTWORK")
 	f.nameDivider = line
 	local bar, low = parts.health, parts.power or parts.health
+	local y = parts.below and low.top + low.height or bar.top
 	line:ClearAllPoints()
-	if parts.below then
-		line:SetPoint("TOPLEFT", f, "TOPLEFT", Widgets.Snap(f, bar.left), -Widgets.Snap(f, low.top + low.height))
-	else
-		line:SetPoint("BOTTOMLEFT", f, "TOPLEFT", Widgets.Snap(f, bar.left), -Widgets.Snap(f, bar.top))
-	end
+	line:SetPoint(parts.below and "TOPLEFT" or "BOTTOMLEFT", f, "TOPLEFT", Widgets.Snap(f, bar.left), -Widgets.Snap(f, y))
 	line:SetSize(Widgets.Snap(f, bar.width), Widgets.Border(f))
 	if cfg.dividerAccent then
 		line:SetColorTexture(Style.Accent())
