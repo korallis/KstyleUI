@@ -122,6 +122,10 @@ local function TidyParts(out, kind, o)
 	end
 	count = math.min(3, count)
 	local reserve = o.reserve or 0
+	local top = name.top + math.max(0, (name.height - size) / 2)
+	if out.tile and out.tile.stacked and Widgets.Readability("readableBars") then
+		reserve, top = 0, health.top
+	end
 	local endName = right - reserve - (reserve > 0 and gap or 0)
 	local heal = out.healRow and out.healRow.side == "RIGHT" and out.healRow
 	if heal then
@@ -129,7 +133,7 @@ local function TidyParts(out, kind, o)
 		endName = heal.left - gap
 	end
 	local width = count > 0 and count * size + (count - 1) * 1 or 0
-	out.indicatorLane = { left = endName - width, top = name.top + math.max(0, (name.height - size) / 2), width = width, height = size, size = size, count = count, step = size + 1, fromRight = true, legible = true }
+	out.indicatorLane = { left = endName - width, top = top, width = width, height = size, size = size, count = count, step = size + 1, fromRight = true, legible = true }
 	if heal then
 		out.indicatorLane.left, out.indicatorLane.top = right - width, health.top + (health.height - size) / 2
 	end
