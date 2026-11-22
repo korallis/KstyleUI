@@ -22,7 +22,7 @@ The kit registers the `Widgets` settings page with `Store.RegisterDefaults` and 
 
 | Key | Default | Row | Effect |
 | --- | --- | --- | --- |
-| `cardMaterial` | `ForgedBrackets`, the owner's choice of 2026-11-10 | dropdown: Glass, Flat, Slate, ForgedTicks, ForgedBrackets | The card-grade surface and caption finish under Frames (Medallions cards are steel); no changes to bars or sockets |
+| `cardMaterial` | `ForgedBrackets`, the owner's choice of 2026-11-10 | dropdown, under Frames only: Glass, Flat, Slate, ForgedTicks, ForgedBrackets | The card-grade surface and caption finish under Frames (Medallions cards are steel); no changes to bars or sockets |
 | `panelOpacity` | the `surface` token's alpha, 0.75 | slider, 0.5 to 1 in steps of 0.01 | Absolute Glass alpha; the steel and the other materials scale their fill and grain opacity relative to 0.75 |
 | `shadows` | `true` | toggle | Shows the shadow of panels, windows and tooltips |
 | `sounds` | `true` | toggle | Plays the kit's click and open sounds |

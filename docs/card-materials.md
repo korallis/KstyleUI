@@ -1,6 +1,6 @@
 # Card materials
 
-Open **Options → General → Card material** to choose the surface of KstyleUI's cards, panels, rails and windows under the Frames HUD style. Under Medallions every card wears the Medallions steel, whatever material is saved. The dropdown is separate from the **Panel appearance** section's opacity and shadow controls. Selection repaints existing cards immediately through the widget kit's normal setting handler; switching profiles uses its existing profile handler. Neither action needs a reload.
+Open **Options → General → Card material** to choose the surface of KstyleUI's cards, panels, rails and windows under the Frames HUD style. Under Medallions every card wears the Medallions steel, whatever material is saved, and the row is hidden. The dropdown is separate from the **Panel appearance** section's opacity and shadow controls. Selection repaints existing cards immediately through the widget kit's normal setting handler; switching profiles uses its existing profile handler. Neither action needs a reload.
 
 | Choice | Surface |
 | --- | --- |
