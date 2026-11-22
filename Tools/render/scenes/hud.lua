@@ -1480,26 +1480,19 @@ function modules.tracker(opts)
 	env.RunTimers()
 	S.W.Settle(env)
 	-- The guide renders in its own environment, so here the rail stands in for it being on screen (opts.withGuide):
-	-- in a style that does not stack the two cards, the quest card then holds the story slot and the guide the column.
+	-- the quest card then holds the story slot and the guide the column.
 	local rail = opts.withGuide and ns.RestedXP and ns.RestedXP.Rail
 	if rail then
 		function rail.Shown()
-			local story = K.Setup.Story(K.Layout.Setting("preset") or "DPS", true)
-			return story ~= nil and not story.stacked and ns.Quests.Active()
+			return K.Setup.Story(K.Layout.Setting("preset") or "DPS", true) ~= nil and ns.Quests.Active()
 		end
 		ns.Quests.Replace()
 		S.W.Settle(env)
 	end
-	if opts.questGive then
-		ns.Quests.Give(opts.questGive)
-		S.W.Settle(env)
-	end
-	-- The quest card stands in for Blizzard's tracker, four quests at a time, in its own Layout element: the story
-	-- slot, or under Orbs on top of the RestedXP guide's card (opts.withGuide).
+	-- The quest card stands in for Blizzard's tracker, four quests at a time, in its own Layout element: the story slot.
 	local card = ns.Quests.Active()
 	local scene = build(env, opts)
-	local stacked = rail and not rail.Shown() and K.Setup.Story(K.Layout.Setting("preset") or "DPS", true).stacked
-	local place = opts.withGuide and (stacked and "on top of the RestedXP guide's card in one column" or "in the story slot, the shown RestedXP guide's card in the column beside it") or "in the layout's story slot"
+	local place = opts.withGuide and "in the story slot, the shown RestedXP guide's card in the column beside it" or "in the layout's story slot"
 	if card then
 		scene.log[#scene.log + 1] = "the quest card shows " .. #(opts.quests or Tracker.QUESTS) .. " tracked quests from a stand-in quest log, four at a time, " .. place .. "; Blizzard's tracker is hidden while it holds only quests"
 	else

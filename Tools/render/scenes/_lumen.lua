@@ -296,18 +296,6 @@ function Lumen.Build(state, opts)
 	end
 	QuestCard()
 	local guide, R = Hud.Module("restedxp", base)
-	-- The rail asks the quest card for the room the guide's current step needs beside RestedXP's docked boxes; the
-	-- card renders in its own environment here, so it is drawn again giving that room, and the guide placed again.
-	local give = R and R.ns.Quests and R.ns.Quests.Given() or 0
-	if give > 0 and built.tracker then
-		base.questGive = give
-		local scene, ns, extra = Hud.Module("tracker", base)
-		scenes[at.tracker] = scene
-		built.tracker = { scene = scene, ns = ns, extra = extra }
-		QuestCard()
-		guide, R = Hud.Module("restedxp", base)
-		log[#log + 1] = string.format("tracker: drawn again giving the guide %.1f units for its current step", give)
-	end
 	table.insert(scenes, 1, guide)
 	if state == "combat" then
 		scenes[#scenes + 1] = (Encounter.Build(Hud, { layout = layout, guide = true, saved = Hud.Saved(base, "Skins") }))

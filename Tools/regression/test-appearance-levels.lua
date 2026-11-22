@@ -60,7 +60,7 @@ do
 	assert(not K.Theme.IsFontPath("Comic") and not K.Theme.IsFontPath("Fonts\\a.png") and not K.Theme.IsFontPath("Fonts\\|cff.ttf"), "names, images and escapes are not font paths")
 	assert(K.Theme.SetFontFace(SHARED_FONT) == true and fired == 2, "a font path is accepted as the face")
 	assert(K.Tokens.Font("body") == SHARED_FONT, "Tokens.Font uses the path")
-	assert(K.Tokens.Font("number"):find("SourceSans3", 1, true), "numbers keep Source Sans 3")
+	assert(K.Tokens.Font("number"):find("BarlowSemiCondensedTabular-SemiBold", 1, true), "numbers keep the Medallions tabular face")
 	assert(K.Theme.SetFontFace("Comic") == false and K.Tokens.Font("body") == SHARED_FONT, "an unknown name is still refused")
 end
 
