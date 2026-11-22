@@ -420,4 +420,15 @@ do
 	assert(zygor.positions and top, "the rail asks Zygor to place its action bar")
 	assert(top * K.Widgets.ScaleFactor(zygor.bar) > r.top, "Zygor's action bar sits above the window once the rail has placed it")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+	-- A client without the clamp getters, and a bar whose anchoring is restricted, still place: the rail writes as before.
+	for _, method in ipairs({ "IsClampedToScreen", "GetClampRectInsets" }) do
+		zygor.master[method] = false
+		local ok, err = pcall(z.ReanchorFrame, z)
+		zygor.master[method] = nil
+		assert(ok, "ReanchorFrame without " .. method .. " must fall back to writing the clamp (KstyleUI_Skins/Addons/Zygor.lua Assert): " .. tostring(err))
+	end
+	env.RestrictAnchoring(zygor.bar)
+	zygor.Step()
+	env.RunTimers()
+	assert(#env._errors == 0 and K.ErrorCount() == 0, "a restricted action bar must not stop the placement; read its edges with Widgets.Edges (KstyleUI_Skins/Addons/Zygor.lua Followed): " .. tostring(env._errors[1]))
 end

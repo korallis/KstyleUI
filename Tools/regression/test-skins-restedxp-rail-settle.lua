@@ -89,4 +89,14 @@ for _, size in ipairs(SCREENS) do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
+-- With the rail off, a guide whose steps' anchoring is restricted still refits its head.
+do
+	local R = Boot({ width = 1920, height = 1080, uiScale = 768 / 1080 })
+	R.K.Options.Write("Skins", "restedXP.rail", false)
+	R.env.RunTimers()
+	R.env.RestrictAnchoring(R.rxp.RXPFrame.CurrentStepFrame)
+	local ok, err = pcall(R.ns.RestedXP.Chrome.Refit, R.rxp.RXPFrame)
+	assert(ok, "a restricted step frame must not stop the head refit; read its edges with Widgets.Edges (KstyleUI_Skins/Addons/RestedXP/Chrome.lua PlaceHead): " .. tostring(err))
+end
+
 print("skins restedxp rail settle ok")

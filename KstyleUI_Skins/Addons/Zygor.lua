@@ -116,6 +116,9 @@ local function Near(a, b)
 end
 
 local function Unclamped(region)
+	if type(region.GetClampRectInsets) ~= "function" then
+		return false
+	end
 	local l, r, t, b = region:GetClampRectInsets()
 	return Plain(l) and Plain(r) and Plain(t) and Plain(b) and l == 0 and r == 0 and t == 0 and b == 0
 end
@@ -123,7 +126,7 @@ end
 local function Holds(region, point, relative, relativePoint, x, y)
 	local own, to, toPoint, ox, oy = region:GetPoint(1)
 	local secret = Widgets.IsSecret(own) or Widgets.IsSecret(to) or Widgets.IsSecret(toPoint)
-	return region:GetNumPoints() == 1 and not secret and own == point and to == relative and toPoint == relativePoint and Plain(ox) and Plain(oy) and ox == x and oy == y
+	return region:GetNumPoints() == 1 and not secret and own == point and to == relative and toPoint == relativePoint and Plain(ox) and Plain(oy) and Plain(x) and Plain(y) and ox == x and oy == y
 end
 
 local function Assert(keepHeight)
@@ -132,18 +135,16 @@ local function Assert(keepHeight)
 		return
 	end
 	local corner = placed.up and "BOTTOMLEFT" or "TOPLEFT"
-	local clamped = master:IsClampedToScreen()
+	local clamped = type(master.IsClampedToScreen) ~= "function" or master:IsClampedToScreen()
 	if Widgets.IsSecret(clamped) or clamped ~= false then
 		master:SetClampedToScreen(false)
 	end
 	if not Unclamped(master) then
 		master:SetClampRectInsets(0, 0, 0, 0)
 	end
-	local at = state.at
-	if not (at and at.placed == placed and Holds(master, corner, UIParent, "BOTTOMLEFT", at.x, at.y)) then
+	if not Holds(master, corner, UIParent, "BOTTOMLEFT", placed.x, placed.y) then
 		Anchor(master, corner, "BOTTOMLEFT", placed.left, placed.up and placed.bottom or placed.top)
-		local _, _, _, x, y = master:GetPoint(1)
-		state.at = { placed = placed, x = x, y = y }
+		placed.x, placed.y = select(4, master:GetPoint(1))
 	end
 	if not Unclamped(frame) then
 		frame:SetClampRectInsets(0, 0, 0, 0)
@@ -192,7 +193,9 @@ end
 Fit = T("Fit", Fit)
 
 local function Followed(frame, bar)
-	local values = { frame:GetLeft(), frame:GetTop(), frame:GetRight(), frame:GetBottom(), bar:GetLeft(), bar:GetBottom() }
+	local fl, fr, ft, fb = Widgets.Edges(frame)
+	local bl, _, _, bb = Widgets.Edges(bar)
+	local values = { fl, ft, fr, fb, bl, bb }
 	for i = 1, 6 do
 		if not Plain(values[i]) then
 			return nil

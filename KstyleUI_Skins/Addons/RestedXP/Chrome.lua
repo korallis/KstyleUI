@@ -652,7 +652,7 @@ local function PlaceHead(path)
 	rise = Widgets.Snap(holder, rise)
 	path.capHeight = full - rise
 	local snap = Skins.Setting(KEY, "rail") and Widgets.Readability("snapEdges")
-	local left, right, top = anchor:GetLeft(), anchor:GetRight(), anchor:GetTop()
+	local left, right, top = Widgets.Edges(anchor)
 	local key = Plain(left) and Plain(right) and Plain(top) and table.concat({ tostring(anchor), left, right, top, rise, full, tostring(snap) }, " ")
 	if not key or path.headKey ~= key then
 		path.headKey = key

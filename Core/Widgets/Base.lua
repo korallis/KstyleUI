@@ -327,6 +327,7 @@ function Widgets.RestyleUnder(roots, only)
 		local region = Region(widget)
 		if (region == nil or Under(region, roots, seen)) and (only == nil or only(widget)) then
 			ns.Call(widget.Restyle, widget)
+			seen = {}
 		end
 	end
 end
@@ -1153,7 +1154,22 @@ function Widgets.Point(region, point, relativeTo, relativePoint, x, y, hard)
 	end
 end
 
-local Anchored
+local function Anchored(region, point, relative, relativePoint, x, y)
+	if not Plain(region) then
+		return false
+	end
+	for i = 1, region:GetNumPoints() do
+		local own, to, toPoint, ox, oy = region:GetPoint(i)
+		if IsSecret(own) or IsSecret(to) or IsSecret(toPoint) or IsSecret(ox) or IsSecret(oy) then
+			return false
+		end
+		if own == point then
+			return to == relative and toPoint == relativePoint and type(ox) == "number" and type(oy) == "number"
+				and abs(ox - x) < 1e-6 and abs(oy - y) < 1e-6
+		end
+	end
+	return false
+end
 
 local function Refill(region)
 	if region.kstyleFilling then
@@ -1206,23 +1222,6 @@ function Widgets.Fill(region, relativeTo, left, top, right, bottom, hard)
 		region.kstyleSettles = region:HookScript("OnSizeChanged", Refill) ~= false
 	end
 	HookFollow(region)
-end
-
-function Anchored(region, point, relative, relativePoint, x, y)
-	if not Plain(region) then
-		return false
-	end
-	for i = 1, region:GetNumPoints() do
-		local own, to, toPoint, ox, oy = region:GetPoint(i)
-		if IsSecret(own) or IsSecret(to) or IsSecret(toPoint) or IsSecret(ox) or IsSecret(oy) then
-			return false
-		end
-		if own == point then
-			return to == relative and toPoint == relativePoint and type(ox) == "number" and type(oy) == "number"
-				and abs(ox - x) < 1e-6 and abs(oy - y) < 1e-6
-		end
-	end
-	return false
 end
 
 local function Depth(region)

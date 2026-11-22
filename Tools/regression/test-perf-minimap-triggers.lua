@@ -68,6 +68,10 @@ local function Run(style, width, height)
 		for _ = 1, 10 do alpha:SetPoint(unpack(current)) end
 	end)
 	assert(writes == 10, string.format("%s: 10 placements on the button's own slot cost the drawer %d writes (%s); return when the slot already holds", where, writes - 10, by))
+	writes, by = Cost(env, function()
+		for _ = 1, 10 do drawer:Place(alpha) end
+	end)
+	assert(writes == 0, string.format("%s: 10 Drawer:Place calls on a button already in its slot wrote %d times (%s); compare the icon with its snapped fill before Widgets.Size (KstyleUI_Minimap/Drawer.lua Fit)", where, writes, by))
 
 	-- An owner resizing the button and moving its icon, then moving it, gets the whole slot back.
 	alpha:SetSize(79, 79)
