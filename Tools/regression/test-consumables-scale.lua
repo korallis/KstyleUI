@@ -4,15 +4,13 @@ local env, K = CoreEnv.New({ fit = true })
 CoreEnv.Boot(env)
 K.Store.Module("DataBars").strip = { placement = "rail" }
 local L = K.Setup.Layouts
-local tank = { 14 / 16, 57 / 64, 15 / 16, 29 / 32 }
-for index, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	for _, name in ipairs(L.Names()) do
 		local enabled = L.Enabled(name)
 		enabled["consumables.bar"] = false
 		local cap, fits = L.ScaleLimit(screen[1], screen[2], name, enabled)
 		local baseline = K.Scale.Auto(screen[2], cap, fits)
-		local expected = name == "Tank" and tank[index] or 15 / 16
-		assert(baseline == expected, "preserve origin/staging 10a5c811 auto scale for " .. name .. " " .. screen[1])
+		assert(baseline == 15 / 16, "preserve origin/staging 10a5c811 auto scale for " .. name .. " " .. screen[1])
 		for _, rows in ipairs({ 2, 1, 3 }) do
 			K.Store.Module("ActionBars").consumables = { rows = rows }
 			enabled["consumables.bar"] = true
