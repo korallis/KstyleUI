@@ -1,4 +1,5 @@
--- test-unitframes-parity-r1.lua: parity round 1 options keep v0.2.8 looks and regions, then write and apply fill and prediction opacity, colour by health, gradient, decimals, portrait mirror and zoom, friendly level colour, PvP filters, elite and pet badges, hover and target highlights, tooltips, cast icon side, cast opacity and layering, and aura zoom.
+-- test-unitframes-parity-r1.lua: parity round 1 options keep v0.2.8 looks and regions, then write and apply fill and prediction opacity, colour by health, gradient, decimals, portrait mirror and zoom, friendly level colour, PvP filters, elite and pet badges, hover and target highlights, tooltips, cast icon side, cast opacity and layering, and aura zoom. test-unitframes-parity-r1-frames.lua runs them on Frames.
+local frames = ... == "frames"
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -35,7 +36,7 @@ local function keys(schema)
 	return out
 end
 
-local env, K, ns = U.New({
+local env, K, ns = U.New({ frames = frames,
 	saved = saved(),
 	setup = function(e)
 		e.C_Texture = { GetAtlasInfo = function() return { leftTexCoord = 0.1, rightTexCoord = 0.3, topTexCoord = 0.5, bottomTexCoord = 0.7 } end }
@@ -60,6 +61,7 @@ local DEFAULTS = {
 	elite = false, hoverBorder = false, targetBorder = false, castbarAlpha = 1,
 	auraZoom = 0.07, auraTooltipCombat = true,
 }
+if frames then DEFAULTS.castbarIconRight = false end
 for _, kind in ipairs(U.KINDS) do
 	for key, value in pairs(DEFAULTS) do
 		assert(Settings.Value(kind, key) == value, kind .. "." .. key .. " keeps its default")
@@ -82,7 +84,9 @@ U.SetUnit(env, "target", { name = "Ogre", level = 62, health = 3000, healthMax =
 env._units.player.faction = "Alliance"
 local target = ns.Frames.Get("target").views[1]
 local bar = target.health
-do
+if frames then
+	assert(W.LastCall(bar, "SetStatusBarColor").n == 3, "a solid fill keeps the three-channel colour")
+else
 	local fill = W.LastCall(bar, "SetStatusBarColor")
 	assert(fill.n == 3 or fill[4] == 1, "a solid fill keeps full opacity")
 end
@@ -150,8 +154,8 @@ assert(near(W.LastCall(target.healAbsorb, "SetStatusBarColor")[4], 0.4), "heal a
 write("target.levelDifficulty", true)
 env._units.target.canAttack = false
 env.FireEvent("UNIT_FACTION", "target")
-local level = target.medallion.levelText
-local er, eg, eb = K.Tokens.Color("steelLit")
+local level = frames and target.levelText or target.medallion.levelText
+local er, eg, eb = K.Tokens.Color(frames and "textEmphasis" or "steelLit")
 r, g, b = level:GetTextColor()
 assert(near(r, er) and near(g, eg) and near(b, eb), "a friendly level keeps its colour by default")
 write("target.levelFriendly", true)
@@ -207,8 +211,13 @@ local pet = ns.Frames.Get("pet").views[1]
 write("pet.happiness", true)
 local mood = assert(pet.extraIcon, "turning happiness on makes the badge")
 assert(mood:IsShown() and W.LastCall(mood, "SetAtlas")[1] == "UI-PetHappiness", "a happy pet shows its mood")
-local spot = W.LastCall(mood, "SetAllPoints")
-assert(pet.form == "slab" and spot and spot[1] == pet.icons.resting, "a Medallions slab's badge takes the resting icon's place")
+if frames then
+	local spot = W.LastCall(mood, "SetPoint")
+	assert(pet.form == "row" and spot[1] == "BOTTOMRIGHT" and spot[2] == pet.parent and spot[3] == "TOPRIGHT", "a row frame's badge sits above the frame, clear of its name")
+else
+	local spot = W.LastCall(mood, "SetAllPoints")
+	assert(pet.form == "slab" and spot and spot[1] == pet.icons.resting, "a Medallions slab's badge takes the resting icon's place")
+end
 env._mood = 1
 env.FireEvent("UNIT_HAPPINESS", "pet")
 assert(W.LastCall(mood, "SetAtlas")[1] == "UI-PetMad", "UNIT_HAPPINESS updates the mood")
@@ -271,7 +280,11 @@ write("unitTooltip", "always")
 local width = target.geometry.healthText.w
 write("healthDecimal", true)
 assert(U.Shown(env, target.healthText):find("75.0%", 1, true), "health percent shows a decimal: " .. U.Shown(env, target.healthText))
-assert(width and target.geometry.healthText.w == width, "the Medallions slab's health text already spans its bar, so the decimal needs no wider column")
+if frames then
+	assert(width and target.geometry.healthText.w > width, "the percent column widens for the decimal")
+else
+	assert(width and target.geometry.healthText.w == width, "the Medallions slab's health text already spans its bar, so the decimal needs no wider column")
+end
 env.SetCombat(true)
 write("healthDecimal", false)
 env.FireEvent("UNIT_HEALTH", "target")
@@ -280,8 +293,42 @@ env.SetCombat(false)
 env.RunTimers()
 assert(U.Shown(env, target.healthText):find("75%", 1, true) and not U.Shown(env, target.healthText):find("75.0", 1, true), "combat's end applies the whole percent")
 
--- Cast bars: fill opacity, layering, on the Medallions player cast bar.
-local cb = ns.CastBars.Inline("player")[1]
+local coords
+if frames then
+	-- Portrait mirror and zoom, for portraits and class art, kept through portrait updates.
+	local portrait = player.portrait
+	write("player.portraitMirror", true)
+	coords = W.LastCall(portrait, "SetTexCoord")
+	assert(coords[1] == 1 and coords[2] == 0 and coords[3] == 0 and coords[4] == 1, "mirror flips the portrait")
+	write("player.portraitZoom", 0.2)
+	coords = W.LastCall(portrait, "SetTexCoord")
+	assert(near(coords[1], 0.9) and near(coords[2], 0.1) and near(coords[3], 0.1) and near(coords[4], 0.9), "zoom crops evenly into a mirrored portrait")
+	env.FireEvent("UNIT_PORTRAIT_UPDATE", "player")
+	coords = W.LastCall(portrait, "SetTexCoord")
+	assert(near(coords[1], 0.9), "a portrait update keeps the crop")
+	write("player.portraitStyle", "class")
+	write("player.classZoom", 0.2)
+	coords = W.LastCall(portrait, "SetTexCoord")
+	assert(near(coords[1], 0.28) and near(coords[2], 0.12) and near(coords[3], 0.52) and near(coords[4], 0.68), "class art crops and flips inside its atlas")
+	write("player.portraitMirror", false)
+	write("player.portraitZoom", 0)
+	write("player.classZoom", 0)
+	coords = W.LastCall(portrait, "SetTexCoord")
+	assert(coords[1] == 0 and coords[2] == 1, "off leaves the atlas's own coordinates")
+	write("player.portraitStyle", "portrait")
+end
+
+-- Cast bars: fill opacity, layering, on the Medallions player cast bar (on Frames, icon side first).
+local cb = (frames and ns.CastBars.Get or ns.CastBars.Inline)("player")[1]
+if frames then
+	local geometry = ns.CastBars.Geometry(200, 20, true, true, 10, nil, true)
+	assert(geometry.icon.x == 180 and geometry.panel.x == 0 and geometry.panel.x + geometry.panel.w <= geometry.icon.x, "the icon sits at the right end, clear of the bar")
+	geometry = ns.CastBars.Geometry(200, 20, true, true, 10)
+	assert(geometry.icon.x == 0 and geometry.panel.x > 0, "the default keeps the icon on the left")
+	write("player.castbarIconRight", true)
+	local icon = cb.geometry.icon
+	assert(icon and icon.x > 0 and cb.bar.opts.width <= icon.x, "the caption bar stops before a right-hand icon")
+end
 write("player.castbarAlpha", 0.6)
 env._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1000, finish = 3000, spellID = 116 }
 env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116)
@@ -294,6 +341,7 @@ assert(locked and near(locked[2].a, 0.6) and near(locked[3].a, 0.6), "secret loc
 env._units.player.cast, env._units.player.secretCast = nil, nil
 env.FireEvent("UNIT_SPELLCAST_STOP", "player", "Cast-2", 116)
 write("player.castbarAlpha", 1)
+if frames then write("player.castbarIconRight", false) end
 cb.frame:SetFrameStrata("MEDIUM")
 write("castbarRaise", true)
 assert(W.LastCall(cb.frame, "SetFrameStrata")[1] == "HIGH", "cast bars rise above other frames")
@@ -306,7 +354,7 @@ assert(auras and #auras.buttons > 0, "the target has aura buttons")
 write("target.auraZoom", 0.15)
 write("target.auraTooltipCombat", false)
 for _, entry in ipairs(auras.buttons) do
-	local coords = W.LastCall(entry.icon, "SetTexCoord")
+	coords = W.LastCall(entry.icon, "SetTexCoord")
 	assert(near(coords[1], 0.15) and near(coords[2], 0.85), "aura zoom crops each icon")
 	assert(entry.button._aura.SetHideTooltipInCombat[1] == true, "aura tooltips hide in combat")
 end
@@ -335,8 +383,13 @@ pane:Refresh()
 r, g, b = W.LastCall(sample.health, "SetStatusBarColor")[1], W.LastCall(sample.health, "SetStatusBarColor")[2], W.LastCall(sample.health, "SetStatusBarColor")[3]
 wr, wg, wb = ns.Unit.ShareColor(2240 / 4020)
 assert(near(r, wr) and near(g, wg) and near(b, wb), "the preview colours its sample by health left")
+if frames then write("target.portraitMirror", true) end
 write("target.portrait", true)
 pane:Refresh()
+if frames then
+	coords = W.LastCall(sample.portrait, "SetTexCoord")
+	assert(coords and coords[1] == 1 and coords[2] == 0, "the preview portrait mirrors")
+end
 write("target.elite", false)
 write("target.hoverBorder", false)
 pane:Refresh()

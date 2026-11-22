@@ -1,4 +1,5 @@
--- test-unitframes-parity-r3c.lua: round 3c's text offsets, power bar above health on a plate, power text position and colour, prediction textures and placement, overshield glow, absorb bar, lost maximum health, spell cost, five-second spark, mana in forms, druid bar text, extra text width and colour tags keep v0.2.8 looks and regions, then work switched on, follow their events and restore when off.
+-- test-unitframes-parity-r3c.lua: round 3c's text offsets, power bar above health on a plate, power text position and colour, prediction textures and placement, overshield glow, absorb bar, lost maximum health, spell cost, five-second spark, mana in forms, druid bar text, extra text width and colour tags keep v0.2.8 looks and regions, then work switched on, follow their events and restore when off. test-unitframes-parity-r3c-frames.lua runs them on Frames.
+local frames = ... == "frames"
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -6,7 +7,7 @@ local function near(a, b)
 	return math.abs(a - b) < 1e-6
 end
 
-local env, K, ns = U.New({
+local env, K, ns = U.New({ frames = frames,
 	saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {}, layouts = {} },
 	setup = function(e)
 		e._lost = 0.2
@@ -59,8 +60,10 @@ local rows = {}
 for _, row in ipairs(Settings.Schema()) do
 	if row.key then rows[row.key] = row end
 end
+local ROWS = { "powerAbove", "powerTextAlign", "absorbGlow", "absorbBar", "maxHealthLoss", "fonts.name.x", "fonts.level.y", "extra1.width" }
+if frames then table.insert(ROWS, 1, "healthHeight") end
 for _, kind in ipairs(U.KINDS) do
-	for _, key in ipairs({ "powerAbove", "powerTextAlign", "absorbGlow", "absorbBar", "maxHealthLoss", "fonts.name.x", "fonts.level.y", "extra1.width" }) do
+	for _, key in ipairs(ROWS) do
 		assert(rows[kind .. "." .. key], kind .. " has a " .. key .. " row")
 	end
 end
@@ -87,12 +90,56 @@ write("target.fonts.name.x", 0)
 write("target.fonts.name.y", 0)
 _, _, _, ax, ay = point(target.name)
 assert(near(ax, nx) and near(ay, ny), "zero offsets restore the name's point")
+if frames then
+	local pet = ns.Frames.Get("pet").views[1]
+	local _, subRel, _, sx = point(player.healthSub)
+	local _, mainRel, _, mx = point(player.healthText)
+	assert(subRel == player.parent and mainRel == player.healthSub, "the player's health value sits beside its maximum")
+	write("player.fonts.health.x", 8)
+	local _, _, _, sx2 = point(player.healthSub)
+	local _, _, _, mx2 = point(player.healthText)
+	assert(near(sx2, sx + Widgets.Snap(player.parent, 8)) and near(mx2, mx), "the health texts move once, together")
+	write("player.fonts.health.x", 0)
+	local _, _, _, lx = point(target.levelText)
+	write("target.fonts.level.y", 6)
+	local _, _, _, lx2, ly2 = point(target.levelText)
+	assert(near(lx2, lx) and ly2 ~= 0, "the level badge number moves by its offset")
+	write("target.fonts.level.y", 0)
+
+	-- Health bar height overrides the style's own bar, and 0 restores it.
+	local own = target.geometry.health.h
+	write("target.healthHeight", 30)
+	assert(target.geometry.health.h == 30, "the column health bar takes the chosen height")
+	write("pet.healthHeight", 10)
+	assert(pet.geometry.health.h == 10 and pet.geometry.health.y >= 0, "the row health bar takes the chosen height")
+	write("target.healthHeight", 0)
+	write("pet.healthHeight", 0)
+	assert(target.geometry.health.h == own, "0 keeps the style's own height")
+	env.SetCombat(true)
+	write("target.healthHeight", 25)
+	assert(target.geometry.health.h == own, "a combat change waits for combat's end")
+	env.SetCombat(false)
+	env.RunTimers()
+	assert(target.geometry.health.h == 25, "combat's end applies the height")
+	write("target.healthHeight", 0)
+
+	-- Power bar above health: the bands swap and keep their gap, in a lumen frame and a plate.
+	local g = player.geometry
+	local gap = g.power.y - g.health.y - g.health.h
+	write("player.powerAbove", true)
+	g = player.geometry
+	assert(g.power.y < g.health.y and near(g.health.y - g.power.y - g.power.h, gap), "the power bar sits above health with the same gap")
+end
 -- Power bar above health on a plate; the Medallions slab keeps its own band order and bar heights.
 local s = Settings.Snapshot("player")
 s.form, s.powerAbove, s.portrait = "plate", true, false
 local plate = ns.Geometry.Frame(s, 260, 64, 1)
 assert(plate.power.y < plate.health.y and (not plate.trackLine or plate.trackLine.y < plate.health.y), "a plate's power row and its rule move above the health track")
 assert(not plate.powerText or plate.powerText.y + plate.powerText.h <= plate.health.y + 1e-6, "the power text moves with its row")
+if frames then
+	write("player.powerAbove", false)
+	assert(player.geometry.power.y > player.geometry.health.y, "off puts the power bar back below")
+end
 
 -- Power text position and colour, kept through power type changes, restored when off.
 write("player.powerTextAlign", "CENTER")
@@ -109,6 +156,18 @@ assert(r == 1 and gg == 0 and b == 0, "a power type change keeps the colour")
 write("player.powerTextColor", "")
 r, gg, b = player.powerText:GetTextColor()
 assert(not (r == 1 and gg == 0 and b == 0), "off restores the power text's own colour")
+
+if frames then
+	-- Prediction textures follow the health bar until chosen.
+	local glass = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\BarGlass.png"
+	write("target.healthTexture", glass)
+	assert(target.incoming.texturePath == target.health.texturePath and target.absorb.texturePath == target.health.texturePath, "blank textures follow the health bar")
+	local flat = Settings.CHOICES and K.Tokens.MediaList("statusbar")[1].path
+	write("target.absorbTexture", flat)
+	assert(target.absorb.texturePath ~= target.health.texturePath, "a chosen absorb texture applies")
+	write("target.absorbTexture", "")
+	assert(target.absorb.texturePath == target.health.texturePath, "blank restores the health texture")
+end
 
 -- Absorb placement from the bar's end shows the whole shield, unclamped.
 write("target.absorbPlacement", "END")
@@ -263,10 +322,15 @@ write("player.powerCost", true)
 write("player.manaSpark", true)
 write("player.powerTextColor", "custom")
 write("player.fonts.name.x", 12)
+if frames then write("player.healthHeight", 16) end
 pane:Refresh()
 assert(sample.shieldGlow:IsShown() and sample.absorbBar:IsShown() and sample.lossBar:IsShown(), "the preview shows the glow, absorb bar and lost health")
 assert(sample.costBar:IsShown() and sample.manaSpark:IsShown(), "the preview shows the spell cost and spark")
-assert(sample.name.nudge[1] == 12, "the preview takes the offset")
+if frames then
+	assert(sample.geometry.health.h == 16 and sample.name.nudge[1] == 12, "the preview takes the height and offset")
+else
+	assert(sample.name.nudge[1] == 12, "the preview takes the offset")
+end
 r = sample.powerText:GetTextColor()
 assert(r == 1, "the preview colours the power text")
 for _, key in ipairs({ "absorbGlow", "maxHealthLoss", "powerCost", "manaSpark" }) do write("player." .. key, false) end

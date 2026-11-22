@@ -1,8 +1,9 @@
--- test-unitframes-parity-r4b.lua: parity round 4b keeps v0.2.8 frames and makes nothing new, then turns on, probes after events and turns off idle cast bars, out-of-range grey, the player's dispel overlay, edge, type icon and own colours, totem timers and shared spell ID lists, and checks the preview.
+-- test-unitframes-parity-r4b.lua: parity round 4b keeps v0.2.8 frames and makes nothing new, then turns on, probes after events and turns off idle cast bars, out-of-range grey, the player's dispel overlay, edge, type icon and own colours, totem timers and shared spell ID lists, and checks the preview. test-unitframes-parity-r4b-frames.lua runs them on Frames.
+local frames = ... == "frames"
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
-local env, K, ns = U.New({
+local env, K, ns = U.New({ frames = frames,
 	saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {}, layouts = {} },
 	setup = function(e)
 		e._inRange = true
@@ -60,7 +61,7 @@ for key, value in pairs(PLAYER) do
 	assert(Settings.Value("player", key) == value, "player." .. key .. " keeps its default")
 end
 for _, kind in ipairs(U.KINDS) do
-	assert(Settings.Value(kind, "auraLists") == "" and Settings.Value(kind, "castbarHideIdle") == true, kind .. " keeps its cast and list defaults")
+	assert((not frames or Settings.Value(kind, "castbarIconSize") == 0) and Settings.Value(kind, "auraLists") == "" and Settings.Value(kind, "castbarHideIdle") == true, kind .. " keeps its cast and list defaults")
 end
 assert(Settings.Module().dispelCustom == false and ns.Dispel.Key() == "game", "dispel colours follow the game")
 local player = Frames.Get("player").views[1]
@@ -69,9 +70,14 @@ for _, c in ipairs(env._containers) do
 	assert(next(c._slots) == nil, "no aura slot exists by default")
 end
 local schema = keys(Settings.Schema())
-for _, key in ipairs({ "player.castbarHideIdle", "target.castbarHideIdle", "focus.castbarHideIdle", "player.castbarRangeGrey",
+local ROWS = { "player.castbarHideIdle", "target.castbarHideIdle", "focus.castbarHideIdle", "player.castbarRangeGrey",
 	"player.dispelOverlay", "player.dispelAlpha", "player.dispelEdge", "player.dispelIcon", "player.dispelIconSize", "player.dispelFilter", "player.totems", "player.totemPosition",
-	"player.totemSize", "target.auraLists", "dispelCustom", "dispelMagic", "dispelBleed" }) do
+	"player.totemSize", "target.auraLists", "dispelCustom", "dispelMagic", "dispelBleed" }
+if frames then
+	table.insert(ROWS, 4, "boss.castbarIconSize")
+	table.insert(ROWS, 4, "player.castbarIconSize")
+end
+for _, key in ipairs(ROWS) do
 	assert(schema[key], key .. " has a row")
 end
 assert(not schema["target.castbarRangeGrey"] and not schema["target.dispelOverlay"] and not schema["target.totems"], "range grey, dispel and totems are the player's")
@@ -82,7 +88,7 @@ local function stop(token)
 	env.FireEvent("UNIT_SPELLCAST_STOP", token, "Cast-1", 116, 1)
 	env.RunTimers()
 end
-local pcb = ns.CastBars.Inline("player")[1]
+local pcb = (frames and ns.CastBars.Get or ns.CastBars.Inline)("player")[1]
 write("player.castbarHideIdle", false)
 assert(pcb.idle and pcb.frame:IsShown(), "an idle player bar shows its track")
 assert(U.Shown(env, pcb.text) == "" and select(1, U.Bar(env, pcb.bar)) == 0, "the idle player track is empty")
@@ -96,8 +102,10 @@ local ended = W.LastCall(pcb.bar, "SetTimerDuration")
 assert(ended and ended[1] == pcb.ended and ended[3] == env.Enum.StatusBarTimerDirection.RemainingTime, "the landed cast's full timer is emptied for the idle track")
 write("player.castbarHideIdle", true)
 assert(not pcb.idle and not pcb.frame:IsShown(), "on hides the idle player bar again")
-local tcb = ns.CastBars.Inline("target")[1]
+local tcb = (frames and ns.CastBars.Get or ns.CastBars.Inline)("target")[1]
+if frames then write("target.style", "bar") end
 write("target.castbarHideIdle", false)
+if frames then assert(ns.CastBars.ElementLive("target"), "the wide bar target uses its own cast bar element") end
 local hadTarget = env._units.target
 U.SetUnit(env, "target", hadTarget or { name = "Dummy", reaction = 2, health = 50, healthMax = 100 })
 env.FireEvent("PLAYER_TARGET_CHANGED")
@@ -106,11 +114,16 @@ assert(tcb.frame:IsShown() and tcb.idle, "a target shows the idle track")
 U.SetUnit(env, "target", nil)
 env.FireEvent("PLAYER_TARGET_CHANGED")
 env.RunTimers()
-assert(not tcb.frame:IsVisible(), "no target, no idle target track")
+if frames then
+	assert(not tcb.frame:IsShown(), "no target, no idle target track")
+else
+	assert(not tcb.frame:IsVisible(), "no target, no idle target track")
+end
 U.SetUnit(env, "target", hadTarget)
 env.FireEvent("PLAYER_TARGET_CHANGED")
 write("target.castbarHideIdle", true)
 assert(not tcb.idle and not tcb.frame:IsShown(), "on hides the idle target bar")
+if frames then write("target.style", "column") end
 local focus = Frames.Get("focus").views[1]
 U.SetUnit(env, "focus", env._units.focus or { name = "Focus", reaction = 2, health = 50, healthMax = 100 })
 env.FireEvent("PLAYER_FOCUS_CHANGED")
@@ -119,6 +132,39 @@ assert(focus.castbar.idle and focus.castbar.frame:IsShown(), "an idle focus bar 
 write("focus.castbarHideIdle", true)
 assert(not focus.castbar.frame:IsShown(), "on folds the focus bar away")
 clean("idle")
+
+if frames then
+	-- Spell icon size: framed and caption icons shrink and centre on the bar; 0 restores the exact rectangle.
+	local G = ns.CastBars.Geometry
+	local base = G(200, 20, true, true, 10)
+	local small = G(200, 20, true, true, 10, nil, false, 12)
+	assert(small.icon.w == 12 and small.icon.h == 12 and small.icon.y == 4 and small.icon.x == 0, "a 12-unit icon centres on a 20-unit bar")
+	assert(small.panel.x < base.panel.x and small.panel.w > base.panel.w, "the bar takes the room a smaller icon frees")
+	local right = G(200, 20, true, true, 10, nil, true, 12)
+	assert(right.icon.x == 188, "a right-hand icon stays at the far end")
+	local big = G(200, 20, true, true, 10, nil, false, 64)
+	assert(big.icon.w == 20 and big.icon.y == 0, "an icon never outgrows the bar's height")
+	local same = G(200, 20, true, true, 10, nil, false, 0)
+	for _, part in ipairs({ "icon", "panel", "bar", "text", "timer" }) do
+		for _, field in ipairs({ "x", "y", "w", "h" }) do
+			assert(same[part][field] == base[part][field], "0 keeps the " .. part .. " " .. field)
+		end
+	end
+	local tall = G(20, 120, true, true, 10, nil, false, 12)
+	assert(tall.icon.w == 12 and tall.icon.x == 4 and tall.icon.y == 0, "a tall bar centres a smaller icon across")
+	write("player.style", "plate")
+	write("player.castbarIconSize", 10)
+	env._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1000, finish = 4000, spellID = 116 }
+	env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116)
+	local w, h = pcb.iconFrame:GetSize()
+	assert(pcb.iconFrame:IsShown() and math.abs(w - 10) < 0.6 and math.abs(h - 10) < 0.6, "the player's framed icon takes its size: " .. tostring(w))
+	write("player.style", "column")
+	local caption = pcb.geometry.icon
+	assert(caption and caption.w <= 10.5, "the caption icon takes its size too")
+	write("player.castbarIconSize", 0)
+	stop("player")
+	clean("icon size")
+end
 
 -- Grey when out of range: a ticker reads the cast spell's range while the player casts, and only then.
 local function fill()
@@ -201,7 +247,7 @@ env._trade, env._time = nil, 1
 clean("craft bar")
 
 -- Dispel overlay, edge and type icon: one engine slot on the player's plate, made on first use.
-write("player.style", "plate")
+if not frames then write("player.style", "plate") end
 write("player.dispelOverlay", "health")
 local d = assert(player.dispel, "the overlay makes its container")
 local slot = d.container._slots.dispel
@@ -261,10 +307,19 @@ assert(p.mark:IsShown() and slot.enabled, "the icon alone keeps the slot on")
 write("player.dispelIcon", "")
 assert(not slot.enabled and not p.mark:IsShown(), "all off disables the slot")
 write("player.dispelOverlay", "health")
-write("player.style", "lumen")
-assert(not slot.enabled, "the slab keeps its forged portrait")
-write("player.style", "plate")
-assert(slot.enabled, "back to the plate")
+if frames then
+	K.Options.Write("HudStyle", "style", "medallions")
+	env.RunTimers()
+	assert(not slot.enabled, "Medallions keeps its forged portrait")
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	assert(slot.enabled, "back to Frames")
+else
+	write("player.style", "lumen")
+	assert(not slot.enabled, "the slab keeps its forged portrait")
+	write("player.style", "plate")
+	assert(slot.enabled, "back to the plate")
+end
 write("player.dispelOverlay", "")
 assert(not slot.enabled, "off again")
 clean("dispel")
@@ -332,6 +387,7 @@ write("player.style", "plate")
 write("player.dispelOverlay", "health")
 write("player.dispelEdge", true)
 write("player.totems", true)
+if frames then write("player.castbarIconSize", 12) end
 local pane = ns.Preview.Build(env.UIParent)
 local view = pane.views.player
 local sample = assert(view.dispelSample, "the preview makes a dispel sample")
@@ -352,9 +408,11 @@ assert(pc.pr == gr2 and pc.pg == gg2 and pc.pb == gb2, "the preview cast shows t
 write("player.castbarRangeGrey", false)
 pane:Refresh()
 assert(pc.pr ~= gr2 or pc.pg ~= gg2, "and its own colour when off")
+if frames then assert(math.abs(pane.casts.player.iconFrame:GetWidth() - 12) < 0.6, "the preview's spell icon takes its size") end
 write("player.dispelOverlay", "")
 write("player.dispelEdge", false)
 write("player.totems", false)
+if frames then write("player.castbarIconSize", 0) end
 write("dispelCustom", false)
 pane:Refresh()
 assert(not sample.health:IsShown() and not sample.edge:IsShown() and not pane.totems:IsShown(), "the preview clears them")
