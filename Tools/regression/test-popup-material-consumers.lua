@@ -1,17 +1,15 @@
--- test-popup-material-consumers.lua: the existing tooltip, Blizzard popup and RestedXP overlays opt into opaque materials at runtime, and the meter's hover split, rows of its card with no chrome of its own, keeps its rows across material changes.
+-- test-popup-material-consumers.lua: the existing tooltip, Blizzard popup and RestedXP overlays opt into the opaque steel at runtime, and the meter's hover split, rows of its card with no chrome of its own, keeps its rows across material changes.
 local W = dofile("Tools/regression/widget_env.lua")
-local materials = { "Flat", "Slate", "ForgedTicks", "ForgedBrackets" }
+local materials = { "Glass", "Flat", "Slate", "ForgedTicks", "ForgedBrackets" }
 
 local function Painted(K, chromes, material)
-	local spec = K.Tokens.Material(material)
-	local r, g, b = K.Tokens.Color(spec.fill)
+	local r, g, b = K.Widgets.Rgba("medCardFill")
 	for _, chrome in ipairs(chromes) do
-		assert(chrome:Material() == spec, "the existing popup consumer resolves " .. material)
+		assert(chrome:Material() == K.Widgets.SteelMaterial(), "the existing popup consumer takes the steel under " .. material)
 		for _, piece in ipairs(chrome.fill) do
-			assert(W.SameColor(piece, r, g, b, 1), "the existing popup consumer has an opaque " .. material .. " fill")
+			assert(W.SameColor(piece, r, g, b, 1), "the existing popup consumer has an opaque steel fill under " .. material)
 		end
-		assert((chrome.grain ~= nil and chrome.grain:IsShown()) == (spec.texture ~= nil))
-		assert((chrome.materialFrame ~= nil and chrome.materialFrame[1]:IsShown()) == (spec.frame == true), "card popups keep their material frame")
+		assert(chrome.grain == nil and chrome.materialFrame == nil, "no grain or forged frame")
 	end
 end
 
@@ -25,14 +23,6 @@ local function Cycle(K, chromes, refresh)
 		end
 	end
 	K.Options.Write("Widgets", "panelOpacity", 0.75)
-	K.Options.Write("Widgets", "cardMaterial", "Glass")
-	if refresh then refresh() end
-	local r, g, b = K.Tokens.Color("surface")
-	for _, chrome in ipairs(chromes) do
-		assert(W.SameColor(chrome.fill[5], r, g, b, 0.75), "Glass consumers retain the original translucent fill")
-		assert(not chrome.grain or not chrome.grain:IsShown())
-		assert(not chrome.materialFrame or not chrome.materialFrame[1]:IsShown())
-	end
 end
 
 do
@@ -187,12 +177,9 @@ do
 		end
 		local tile = K.Skin.Parts(bnet).backdrop.chrome
 		assert(tile:Material() == nil and W.SameColor(tile.fill[5], K.Widgets.Rgba("surface", K.Widgets.Setting("panelOpacity") / 0.75)), "the embedded Battle.net strip remains an ordinary glass tile")
-		local spec = K.Tokens.Material(K.Widgets.Setting("cardMaterial"))
-		if spec.fill then
-			local r, g, b, a = K.Tokens.Color(spec.fill)
-			for _, frame in ipairs({ friends, professions }) do
-				assert(W.SameColor(K.Skin.Parts(frame).backdrop.chrome.fill[5], r, g, b, math.min(1, a * K.Widgets.Setting("panelOpacity") / 0.75)), "the containing window still honors panel opacity")
-			end
+		local r, g, b, a = K.Widgets.Rgba("medCardFill")
+		for _, frame in ipairs({ friends, professions }) do
+			assert(W.SameColor(K.Skin.Parts(frame).backdrop.chrome.fill[5], r, g, b, math.min(1, a * K.Widgets.Setting("panelOpacity") / 0.75)), "the containing window still honors panel opacity")
 		end
 	end)
 	B.check(snapshot)
@@ -219,11 +206,8 @@ do
 	Cycle(K, { menu.chrome, submenu.chrome, panel.chrome }, function()
 		assert(dialog.obj.titletext:GetText() == "RestedXP: Popup material export", "the leased dialog retains RestedXP's text")
 		local guide = K.Skin.Parts(rxp.RXPFrame).backdrop.chrome
-		local material = K.Tokens.Material(K.Widgets.Setting("cardMaterial"))
-		if material.fill then
-			local r, g, b, a = K.Tokens.Color(material.fill)
-			assert(W.SameColor(guide.fill[5], r, g, b, math.min(1, a * K.Widgets.Setting("panelOpacity") / 0.75)), "the docked story card remains an ordinary opacity-controlled card")
-		end
+		local r, g, b, a = K.Widgets.Rgba(guide.steelFill or "medCardFill")
+		assert(W.SameColor(guide.fill[5], r, g, b, math.min(1, a * K.Widgets.Setting("panelOpacity") / 0.75)), "the docked story card remains an ordinary opacity-controlled card")
 	end)
 	rxp.fake.close(rxp.menuLists[1])
 	rxp.fake.close(rxp.menuLists[2])
@@ -272,7 +256,7 @@ do
 	local width, height = split.frame:GetSize()
 	assert(type(width) == "number" and type(height) == "number", "the hovered split has measured dimensions")
 	local text = split.lines[1].name:GetText()
-	assert(text:find("Mortal Strike", 1, true))
+	assert(text:find("MORTAL STRIKE", 1, true), "the split names the spell in the Medallions caps")
 	Cycle(K, {}, function()
 		assert(split.frame:IsShown(), "the detail overlay remains open")
 		assert(W.Near(split.frame:GetWidth(), width) and W.Near(split.frame:GetHeight(), height), "the split size changed from " .. width .. "x" .. height .. " to " .. split.frame:GetWidth() .. "x" .. split.frame:GetHeight())

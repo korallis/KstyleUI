@@ -1,4 +1,4 @@
--- test-card-material-options.lua: the registered material dropdown, saved-value validation and immediate setting/profile repaint.
+-- test-card-material-options.lua: the registered material dropdown and saved-value validation; cards keep the Medallions steel whatever the choice, setting or profile.
 local O = dofile("Tools/regression/options_env.lua")
 local W = O.W
 local values = { "Glass", "Flat", "Slate", "ForgedTicks", "ForgedBrackets" }
@@ -70,25 +70,14 @@ settings.cardMaterial = K.Widgets.defaults.cardMaterial
 local panel = K.Widgets.Panel(K.Scale.Root(), { width = 320, height = 200, title = "Material" })
 local chrome = panel.chrome
 local function painted(value)
-	local spec = K.Tokens.Material(value)
 	assert(K.Widgets.Setting("cardMaterial") == value)
-	local r, g, b, a = K.Tokens.Color(spec.fill or "surface")
-	if spec.fill then
-		a = math.min(1, a * K.Widgets.Setting("panelOpacity") / 0.75)
-	else
-		a = K.Widgets.Setting("panelOpacity")
-	end
-	assert(W.SameColor(chrome.fill[5], r, g, b, a), value .. " repaints the existing fill immediately")
-	assert((chrome.grain ~= nil and chrome.grain:IsShown()) == (spec.texture ~= nil), value .. " updates grain visibility")
-	assert((chrome.materialFrame ~= nil and chrome.materialFrame[1]:IsShown()) == (spec.frame == true), value .. " updates the frame")
-	assert(chrome.gilt[1]:IsShown() == (value ~= "ForgedBrackets"), value .. " updates gilt tick visibility")
+	local r, g, b, a = K.Widgets.Rgba("medCardFill")
+	a = math.min(1, a * K.Widgets.Setting("panelOpacity") / 0.75)
+	assert(W.SameColor(chrome.fill[5], r, g, b, a), value .. " keeps the steel fill at the panel opacity")
+	assert(chrome.grain == nil and chrome.materialFrame == nil, value .. " draws no grain and no forged frame")
+	assert(not chrome.gilt[1]:IsShown(), value .. " shows no gilt ticks")
 end
 painted("ForgedBrackets")
-assert(chrome.grain:GetTexture() == K.Tokens.Texture("materialForged"), "the default uses the forged grain")
-assert(#chrome.materialBrackets == 4, "the default has four brackets")
-for _, bracket in ipairs(chrome.materialBrackets) do
-	assert(bracket:IsShown(), "every default bracket is visible")
-end
 
 assert(K.Options.Open("General"))
 env.RunTimers()
@@ -145,4 +134,4 @@ assert(K.Store.SetProfile(original))
 painted("ForgedTicks")
 
 assert(#env._errors == 0, "errors: " .. table.concat(env._errors, "\n"))
-print("card material options: five registered choices, validation and immediate dropdown/profile repaint passed")
+print("card material options: five registered choices and validation passed; cards keep the steel")

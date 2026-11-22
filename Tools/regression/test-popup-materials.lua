@@ -1,40 +1,20 @@
--- test-popup-materials.lua: floating surfaces use opaque selected materials without changing embedded tiles, popup geometry or authored fills.
+-- test-popup-materials.lua: floating surfaces take the opaque Medallions steel whatever card material is saved, without changing embedded tiles, popup geometry or authored fills.
 local W = dofile("Tools/regression/widget_env.lua")
-local materials = { "Flat", "Slate", "ForgedTicks", "ForgedBrackets" }
+local materials = { "Glass", "Flat", "Slate", "ForgedTicks", "ForgedBrackets" }
 
 local function Painted(K, chrome, material)
-	local spec = K.Tokens.Material(material)
-	assert(chrome:Material() == spec, material .. ": the popup resolves the selected material")
-	local r, g, b = K.Tokens.Color(spec.fill)
+	assert(chrome:Material() == K.Widgets.SteelMaterial(), material .. ": the popup takes the steel")
+	local r, g, b = K.Widgets.Rgba("medCardFill")
 	for _, piece in ipairs(chrome.fill) do
-		assert(W.SameColor(piece, r, g, b, 1), material .. ": every popup fill piece is opaque")
+		assert(W.SameColor(piece, r, g, b, 1), material .. ": every popup fill piece is opaque steel")
 	end
-	assert((chrome.grain ~= nil and chrome.grain:IsShown()) == (spec.texture ~= nil), material .. ": grain follows the material")
-	if spec.texture then
-		assert(chrome.grain:GetTexture() == K.Tokens.Texture(spec.texture))
-		assert(W.SameColor(chrome.grain, K.Widgets.Rgba("white", spec.grain)), "grain does not follow panel opacity")
-	end
+	assert(chrome.grain == nil and chrome.materialFrame == nil and chrome.materialBrackets == nil, material .. ": no grain, forged frame or brackets")
 	if chrome.shapeName == "tile" then
 		assert(chrome.line[1]:IsShown() and chrome.rim[1]:IsShown(), "tile popups retain the small legacy edge")
-		assert(not chrome.materialFrame and not chrome.materialBrackets and not chrome.gilt, "tile popups never acquire a large card frame or finish")
+		assert(not chrome.gilt, "tile popups never acquire a card finish")
 	else
-		assert((chrome.materialFrame ~= nil and chrome.materialFrame[1]:IsShown()) == (spec.frame == true), "card popups keep the selected material frame")
-		assert((chrome.materialBrackets ~= nil and chrome.materialBrackets[1]:IsShown()) == (spec.brackets == true), "card popups keep the selected bracket finish")
-		if spec.frame then
-			assert(W.SameColor(chrome.materialFrame[1], K.Widgets.Rgba("white", 1)), "the popup frame is fully visible")
-		end
+		assert(not chrome.gilt or not chrome.gilt[1]:IsShown(), "card popups show no gilt ticks under the steel")
 	end
-end
-
-local function Legacy(K, chrome, alpha)
-	local r, g, b = K.Tokens.Color("surface")
-	for _, piece in ipairs(chrome.fill) do
-		assert(W.SameColor(piece, r, g, b, alpha), "Glass retains its original surface and opacity")
-	end
-	assert(not chrome.grain or not chrome.grain:IsShown(), "Glass has no material grain")
-	assert(not chrome.materialFrame or not chrome.materialFrame[1]:IsShown(), "Glass restores the legacy frame")
-	assert(not chrome.materialBrackets or not chrome.materialBrackets[1]:IsShown(), "Glass has no forged brackets")
-	assert(chrome.line[1]:IsShown() and chrome.rim[1]:IsShown(), "Glass restores the legacy edge")
 end
 
 local function Size(frame)
@@ -89,7 +69,7 @@ do
 	local tipSize, hostSize = Size(tip), Size(host)
 	local title = tip.used[1].left:GetText()
 	local buttonColor = { K.Tokens.Color("buttonFill") }
-	Legacy(K, menu.chrome, 0.75)
+	Painted(K, menu.chrome, "Glass")
 	for _, material in ipairs(materials) do
 		K.Options.Write("Widgets", "cardMaterial", material)
 		for _, opacity in ipairs({ 0.5, 0.75, 1 }) do
@@ -119,15 +99,14 @@ do
 			for _, chrome in ipairs({ embedded, plainBackdrop.chrome }) do
 				assert(chrome:Material() == nil and W.SameColor(chrome.fill[5], K.Widgets.Rgba("surface", opacity / 0.75)), "ordinary surface tiles keep their glass fill")
 			end
-			local spec = K.Tokens.Material(material)
-			local r, g, b, a = K.Tokens.Color(spec.fill)
+			local r, g, b, a = K.Widgets.Rgba("medCardFill")
 			assert(W.SameColor(panel.chrome.fill[5], r, g, b, math.min(1, a * opacity / 0.75)), "ordinary panels still honor panel opacity")
 		end
 	end
 	K.Options.Write("Widgets", "panelOpacity", 0.75)
 	K.Options.Write("Widgets", "cardMaterial", "Glass")
 	for _, chrome in ipairs({ menu.chrome, tip.chrome, host.chrome, popupPanel.chrome, backdrop.chrome, window.chrome }) do
-		Legacy(K, chrome, 0.75)
+		Painted(K, chrome, "Glass")
 	end
 	assert(menu.chrome:Radius() == radius and menu.chrome.rim[1]:GetTexture() == edgeTexture)
 	SameSize(menu, menuSize)
@@ -139,7 +118,7 @@ do
 	K.Options.Write("Widgets", "cardMaterial", "Slate")
 	K.Options.Write("Widgets", "panelOpacity", 0.5)
 	assert(K.Store.SetProfile(original))
-	Legacy(K, menu.chrome, 0.75)
+	Painted(K, menu.chrome, "Glass")
 	assert(K.Store.SetProfile("Opaque popup"))
 	for _, chrome in ipairs({ menu.chrome, tip.chrome, host.chrome, backdrop.chrome, window.chrome }) do
 		Painted(K, chrome, "Slate")
@@ -186,7 +165,7 @@ do
 		end
 		K.Options.Write("Widgets", "panelOpacity", 0.75)
 		K.Options.Write("Widgets", "cardMaterial", "Glass")
-		Legacy(K, menu.chrome, 0.75)
+		Painted(K, menu.chrome, "Glass")
 		SameSize(menu, size)
 		picker:Close()
 		W.Settle(env)
@@ -212,8 +191,6 @@ do
 			Painted(K, chrome, material)
 			chrome:SetFillRGBA(K.Widgets.Rgba("hostile", 0.4))
 			assert(chrome:Material() == nil and W.SameColor(chrome.fill[5], K.Widgets.Rgba("hostile", 0.4)), "a popup's authored RGB and alpha are not replaced")
-			assert(not chrome.grain or not chrome.grain:IsShown())
-			assert(not chrome.materialFrame or not chrome.materialFrame[1]:IsShown())
 			chrome:SetFill("buttonFill")
 			assert(chrome:Material() == nil and W.SameColor(chrome.fill[5], K.Tokens.Color("buttonFill")), "a popup's named custom fill remains authored")
 			chrome:SetFill("surface")
@@ -221,7 +198,7 @@ do
 	end
 	K.Options.Write("Widgets", "cardMaterial", "Glass")
 	card:SetFillRGBA(K.Widgets.Rgba("surface", 0.2))
-	Legacy(K, card, 0.75 * 0.2)
+	Painted(K, card, "Glass")
 	local schema = K.Options.Get("Widgets")
 	local header
 	for _, row in ipairs(schema) do
@@ -234,4 +211,4 @@ do
 	assert(#env._errors == 0, table.concat(env._errors, "\n"))
 end
 
-print("popup materials: four opaque materials, opacity/profile changes, dropdown/media pickers, tooltip/dialog/backdrop propagation and authored-fill isolation passed")
+print("popup materials: opaque steel under every saved material, opacity/profile changes, dropdown/media pickers, tooltip/dialog/backdrop propagation and authored-fill isolation passed")
