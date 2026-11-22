@@ -3,7 +3,9 @@ local C = dofile("Tools/regression/core_env.lua")
 local probe, PK = C.New()
 C.Boot(probe)
 local Layouts = PK.Setup.Layouts
-local LIFT = Layouts.TRAY_LIFT
+-- The base placement's tray lift, as Core/Setup/Layouts.lua builds it from the mock-up's pixel (19 / 16 units).
+local TILE, GAP, PAD, BOTTOM = 38 * 19 / 16, 3 * 19 / 16, 9 * 19 / 16, 40 * 19 / 16 + 4
+local LIFT = math.ceil(BOTTOM + 2 * PAD + 2 * TILE + GAP - 132)
 local now = Layouts.Get("DPS")["meters.swing"]
 assert(now.anchor == "BOTTOM" and now.x == 0 and math.abs(now.y - (421 + 14 + 8 + LIFT)) < 1e-6, "the Frames swing slot is 8 above the class resource, got " .. tostring(now.y))
 assert(#probe._errors == 0, tostring(probe._errors[1]))
