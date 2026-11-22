@@ -2,7 +2,7 @@
 local B = dofile("Tools/regression/bags_env.lua")
 local Item = B.Item
 
-for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 3456, 2234 } }) do
+for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 }, { 3456, 2234 } }) do
 	local env, K, ns = B.New({ width = screen[1], height = screen[2], bags = {
 		[0] = { size = 4, items = { [1] = Item("helm", { count = 12 }) } },
 	} })
