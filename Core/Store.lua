@@ -1028,6 +1028,17 @@ Store.migrations[45] = function(data, live)
 			local frames = hud == "frames"
 			moved = moved or not frames and hud ~= "medallions"
 			if not frames then profile.HudStyle = nil end
+			for module, values in pairs(frames and ns.HudStyle.FRAMES_LOOK or {}) do
+				profile[module] = Table(profile[module])
+				for path, value in pairs(values) do
+					local node, parent, leaf = profile[module], path:match("^(.-)%.?([^%.]+)$")
+					for part in parent:gmatch("[^%.]+") do
+						node[part] = Table(node[part])
+						node = node[part]
+					end
+					if node[leaf] == nil then node[leaf] = value end
+				end
+			end
 			for module, keys in pairs(RETIRED) do
 				if not frames or module == "UnitFrames" then
 					local section = Table(profile[module])

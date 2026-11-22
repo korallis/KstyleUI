@@ -10,6 +10,7 @@ local SECTION = "HudStyle"
 local STYLES = { frames = true, medallions = true }
 local FRAMES_LOOK = {
 	GroupFrames = { ["party.portrait"] = false, ["raid.power"] = true, ["raid.textLayout"] = "ABOVE", ["raid.buffCount"] = 3 },
+	DataBars = { ["xp.text"] = "levelRested", ["xp.fontSize"] = 12 },
 	Nameplates = { ["name.size"] = 16, ["name.outline"] = "NONE", ["level.size"] = 13, ["level.outline"] = "NONE", ["debuffs.size"] = 29, ["debuffs.textSize"] = 13 },
 }
 

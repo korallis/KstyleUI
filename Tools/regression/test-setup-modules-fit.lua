@@ -3,7 +3,7 @@ local getenv = os.getenv
 rawset(_G, "RENDER_SCENE_LIB", true)
 rawset(os, "getenv", function(key)
 	if key == "RENDER_SUBJECT" then return "setup" end
-	if key == "RENDER_SETUP_STEP" then return "3" end
+	if key == "RENDER_SETUP_STEP" then return "4" end
 	return getenv(key)
 end)
 for _, case in ipairs({ { "enUS", 1920, 1080 }, { "frFR", 2560, 1440 }, { "enUS", 3840, 2160 } }) do

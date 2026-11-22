@@ -81,6 +81,8 @@ do
 		and profile.UnitFrames.target.style == "bar" and profile.DataBars.strip.height == 20, "and keeps the keys Frames reads")
 	assert(profile.UnitFrames.orbGlass == nil and profile.ActionBars.bar2.split == nil and profile.Chat.framing == nil, "while the Orbs-only keys still go")
 	assert(env.KstyleUIDB.profiles.Other.DataBars.strip.placement == "top", "a Frames profile keeps its top data bar")
+	assert(profile.Nameplates.name.size == 16 and profile.GroupFrames.party.portrait == false and profile.DataBars.xp.text == "levelRested"
+		and profile.DataBars.strip.height == 20, "the values Frames drew before the Medallions look became the defaults are written where nothing was saved")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
