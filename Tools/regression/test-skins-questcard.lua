@@ -318,7 +318,7 @@ do
 				assert(math.abs(rh - height / perUnit) < 1e-6, what .. ": the root is " .. height / perUnit .. " units tall, got " .. rh)
 				local shown = ns.RestedXP.Rail.Shown()
 				local story = K.Setup.Story(preset, true, shown)
-				local column = shown and story.guide or story.tracker
+				local column = story.tracker
 				local glass = RootRect(K, assert(K.Skin.Parts(rxp.RXPFrame).backdrop, "the guide wears its glass"))
 				local card = RootRect(K, ns.Quests.Card())
 				local px = K.Scale.Pixel(1) + 0.01
@@ -369,7 +369,6 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 		local story = K.Setup.Story(preset, withGuide, shown)
 		local band = story.tracker
 		local over = math.min(Box("minimap.main").bottom, Box("auras.debuffs").bottom)
-		local under = math.max(Box("actionbars.bar4").top, Box("actionbars.bar5").top, Box("meters.damage").top, Box("databars.strip").top)
 		local card = RootRect(K, ns.Quests.Card())
 		local holder = RootRect(K, ns.Quests.Holder())
 		local what = preset .. (withGuide and " with the guide" or " without the guide")
@@ -377,20 +376,11 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 		assert(K.Layout.Get("skins.quests") ~= nil, what .. ": the quest card is a Layout element of its own")
 		assert(math.abs(holder.left - band.left) <= px and math.abs(holder.top - band.top) <= px and math.abs(holder.bottom - band.bottom) <= px, what .. ": the element is the card's band")
 		assert(card.top <= over - 15 + 0.5, what .. ": the card starts 15 under the map and the aura rows, got " .. card.top .. " for " .. over)
-		assert(math.abs(card.top - st) <= px, what .. ": at the story slot's top, level with the guide's card beside it as mock-up B draws them (KSTY-67 item 1), got " .. card.top .. " for " .. st)
+		assert(math.abs(card.top - (st - Layouts.GAP)) <= px, what .. ": a rail gap under the story slot's top, level with the guide's card beside it as mock-up B draws them (KSTY-67 item 1), got " .. card.top .. " for " .. st)
 		assert(card.bottom >= band.bottom - px and card.top <= band.top + px, what .. ": inside its element")
 		assert(math.abs(card.left - band.left) <= px and math.abs(card.right - band.right) <= px, what .. ": on its element's edge and width")
 		assert(math.abs(card.right - card.left - 278) <= 0.6, what .. ": the picture's 278 rail column")
-		local edge = K.Tokens.Size("screenMargin")
-		if shown then
-			assert(math.abs(card.left - sl) <= px and math.abs(card.right - sr) <= px, what .. ": the guide shown takes the tall column, so the quest card holds the story slot (LEE-1532), got " .. card.left .. " for " .. sl)
-		elseif withGuide then
-			assert(math.abs(card.right - (sl - 16)) <= px, what .. ": a rail gap left of the guide's slot, got " .. card.right .. " for " .. sl)
-		else
-			local foot = K.Tokens.Size("gapLarge")
-			assert(card.bottom >= under + foot - 0.5, what .. ": the card ends a large gap over bars 4 and 5, the damage card and the readout, as the picture leaves 12, got " .. card.bottom .. " for " .. under)
-			assert(math.abs(card.right - (rw - edge)) <= 0.6 and math.abs(card.left - sl) <= 0.6, what .. ": alone, it takes the story slot on the screen margin")
-		end
+		assert(math.abs(card.right - (sl - Layouts.GAP)) <= px, what .. ": the Medallions quest column stands a rail gap left of the story slot, got " .. card.right .. " for " .. sl)
 		assert(#Shown(ns) >= 1, what .. ": at least one quest shows")
 		for _, row in ipairs(ns.Quests.Rows()) do
 			if row:IsShown() then
@@ -404,13 +394,9 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 			assert(ns.RestedXP.Rail.Placed(), what .. ": the guide is placed")
 			local glass = assert(K.Skin.Parts(rxp.RXPFrame).backdrop, "the guide wears its glass")
 			local g = RootRect(K, glass)
-			assert(g.top <= over - 15 + 0.5 and g.top >= st - px, what .. ": the guide's card starts at the slot's top, under the map and the aura rows, got " .. g.top)
-			if shown then
-				assert(g.bottom >= story.guide.bottom - px and g.right <= sl - 8 + px, what .. ": the guide keeps an eight-unit gutter beside the slot")
-			else
-				assert(g.bottom >= sb - px and g.left >= sl - px and g.right <= sr + px, what .. ": and stays inside the slot, got " .. g.left .. ".." .. g.right .. " by " .. g.bottom)
-				assert(g.left >= card.right + 8 - px, what .. ": an eight-unit gutter right of the quests")
-			end
+			assert(g.top <= over - 15 + 0.5 and g.top >= st - Layouts.GAP - px, what .. ": the guide's card starts a rail gap under the slot's top, under the map and the aura rows, got " .. g.top)
+			assert(g.bottom >= sb - px and g.left >= sl - 8 - px and g.right <= sr - 8 + px, what .. ": and stays in the slot's column, composed 8 units toward the quests, got " .. g.left .. ".." .. g.right .. " by " .. g.bottom)
+			assert(g.left >= card.right + 8 - px, what .. ": an eight-unit gutter right of the quests")
 		end
 		Clean(env, K)
 	end
