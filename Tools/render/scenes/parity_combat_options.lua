@@ -4,8 +4,8 @@ local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 local module = os.getenv("RENDER_PARITY_MODULE") or "Auras"
-local files = { Auras = "auras", Cooldowns = "cooldowns", CombatText = "combattext", Meters = "meters" }
-local keys = { Auras = "count.shown", Cooldowns = "essential.swipe", CombatText = "direction", Meters = "damage.hover" }
+local files = { Auras = "auras", Cooldowns = "cooldowns", CombatText = "combattext", Meters = "meters", Chat = "chat" }
+local keys = { Auras = "count.shown", Cooldowns = "essential.swipe", CombatText = "direction", Meters = "damage.hover", Chat = "tabHeight" }
 return Common.Run(function()
  local driver = dofile("Tools/regression/" .. assert(files[module], "unknown module") .. "_env.lua")
  local function setup(e)
