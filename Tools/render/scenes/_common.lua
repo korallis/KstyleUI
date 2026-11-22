@@ -162,6 +162,8 @@ end
 -- ForceScreen(env) gives any environment the owner's screen, whatever options its loader passed on. Call it
 -- from the loader's setup hook, after Stubs.NewEnv has made UIParent and before the addon loads.
 function Common.ForceScreen(env, completePreset)
+	-- RENDER_HUD_STYLE (Frames or Medallions) is the saved HUD style of every profile the scene loads that names none.
+	local style = rawget(_G, "RENDER_HUD_STYLE") or os.getenv("RENDER_HUD_STYLE")
 	local db = rawget(env, "KstyleUIDB")
 	if os.getenv("RENDER_SLAB_FINISH") == "off" and type(db) == "table" and type(db.profiles) == "table" then
 		for _, profile in pairs(db.profiles) do
@@ -188,7 +190,16 @@ function Common.ForceScreen(env, completePreset)
 			for _, key in ipairs({ "readableBars", "worldText", "chatTabs", "barColors" }) do profile.Appearance[key] = false end
 		end
 	end
+	if style and style ~= "" and type(db) == "table" and type(db.profiles) == "table" then
+		for _, profile in pairs(db.profiles) do
+			if type(profile) == "table" and profile.HudStyle == nil then
+				profile.HudStyle = { style = style:lower() }
+			end
+		end
+	end
 	env._materialChromes = env._materialChromes or {}
+	local material = os.getenv("RENDER_CARD_MATERIAL")
+	env._renderCardMaterial = material and material ~= "" and material or nil
 	-- RENDER_CHAT_FRAMING (auto, card or bare) is the chat's saved framing, so a scene shows the bare chat the Orbs
 	-- HUD style gives it, or a framing the player picked.
 	local framing = os.getenv("RENDER_CHAT_FRAMING")
@@ -196,6 +207,13 @@ function Common.ForceScreen(env, completePreset)
 	-- RENDER_ARRANGEMENT (centred or spread) is the saved ultrawide arrangement, as a global or in the environment.
 	local arrangement = rawget(_G, "RENDER_ARRANGEMENT") or os.getenv("RENDER_ARRANGEMENT")
 	env._renderArrangement = arrangement and arrangement ~= "" and arrangement or nil
+	-- RENDER_ORNAMENTS (Off, Subtle or Full) is the ornament level a scene draws at. A scene draws Off unless it
+	-- names a level, so hud_reference, the measurements and the galleries keep their meaning; a test that builds
+	-- several levels in one process sets the global RENDER_ORNAMENTS instead. env._ornamentHandles collects every
+	-- ornament the addon attaches, for Scene.Build to restyle at the rects it solves.
+	local ornaments = rawget(_G, "RENDER_ORNAMENTS") or os.getenv("RENDER_ORNAMENTS")
+	env._renderOrnaments = ornaments and ornaments ~= "" and ornaments or "Off"
+	env._ornamentHandles = env._ornamentHandles or {}
 	local width, height, uiScale = Common.SCREEN.width, Common.SCREEN.height, Common.SCREEN.uiScale
 	-- A scene shows the HUD at the Interface size KstyleUI ships, not the tests' size 1 (Stubs.NewEnv).
 	env._size = Common.SCREEN.size or "default"

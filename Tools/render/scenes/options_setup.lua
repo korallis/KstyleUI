@@ -55,6 +55,12 @@ return Common.Run(function()
 		end
 		Gallery.Ticks(W, env, 40)
 	end
+	if os.getenv("RENDER_TARGET") == "ornaments" and env._addons.KstyleUI_Options then
+		local options = env._addons.KstyleUI_Options
+		for i, item in ipairs(options.Window.State().items) do
+			if item.module == "Widgets" and item.key == "ornaments" then options.Window.Parts().content:ScrollToIndex(i, true, "TOP"); break end
+		end
+	end
 	local query = os.getenv("RENDER_QUERY")
 	if query and env._addons.KstyleUI_Options then
 		local parts = env._addons.KstyleUI_Options.Window.Parts()

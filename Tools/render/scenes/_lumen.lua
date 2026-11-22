@@ -76,6 +76,7 @@ function Lumen.Preset(layout)
 	local settings = Hud.PresetSettings(layout)
 	local rootHeight = Layouts.HEIGHT
 	local width = K.Scale.CanvasWidth(Common.SCREEN.width, Common.SCREEN.height)
+	if Hud.Style() then K.Options.Write("HudStyle", "style", Hud.Style():lower()) end
 	K.Store.Module("Minimap").enabled = true
 	K.Store.Module("Minimap").frame = os.getenv("RENDER_MINIMAP_FRAME")
 	local story = Layouts.Story(layout, rootHeight, true, rootHeight * width / Common.SCREEN.height)
@@ -230,6 +231,50 @@ function Lumen.Build(state, opts)
 		built[name] = { scene = scene, ns = ns, extra = extra }
 		at[name] = #scenes
 	end
+	-- The minimap's corners and the data bars keep clear of the Layout elements beside them, which the game finds in
+	-- its one Layout registry; each module builds in its own environment here, so a module is drawn again with every
+	-- module's elements in reach when they change its pieces.
+	Hud.layoutElements = {}
+	for _, name in ipairs(names) do
+		local env = Hud.envs[built[name].scene]
+		local Layout = env and env.KstyleUI and env.KstyleUI.Layout
+		if Layout then
+			for _, element in ipairs(env.KstyleUI.Setup.Layouts.ELEMENTS) do
+				local el = Layout.Element(element.key)
+				if el and el.frame and not Hud.layoutElements[element.key] then
+					Hud.layoutElements[element.key] = { el = el, live = Layout.Live(element.key) }
+				end
+			end
+		end
+	end
+	for _, name in ipairs(names) do
+		local env = Hud.envs[built[name].scene]
+		local handles = env and env._ornamentHandles or {}
+		local function placed()
+			local out = {}
+			for _, handle in ipairs(handles) do
+				if handle.neighbours then
+					handle:Restyle()
+					for i = 1, handle.used do
+						local t = handle.textures[i]
+						out[#out + 1] = table.concat({ tostring(t:GetTexture()), tostring(t:GetLeft()), tostring(t:GetTop()), tostring(t:GetWidth()) }, " ")
+					end
+				end
+			end
+			return table.concat(out, "\n")
+		end
+		local before = placed()
+		if before ~= "" then
+			Hud.ShareLayout(env)
+			if placed() ~= before then
+				local scene, ns, extra = Hud.Module(name, base)
+				scenes[at[name]] = scene
+				built[name] = { scene = scene, ns = ns, extra = extra }
+				log[#log + 1] = "ornaments: " .. name .. " is drawn again with every module's Layout elements in reach, as the game's one Layout registry holds them"
+			end
+		end
+	end
+	Hud.layoutElements = nil
 	-- opts.seat(built, plates, rect) -> the fixture plates seated clear of a card the HUD drew over them, or nil to keep
 	-- them; rect(name, object) is Scene.Rect in that module's environment. The plates are then drawn again.
 	if opts.seat and built.nameplates and base.plates then
