@@ -3734,7 +3734,7 @@
 	"Shows up to this many debuffs in a row.": "Affiche au plus ce nombre d'affaiblissements par rangée.",
 	"Shows up to this many icons.": "Affiche au plus ce nombre d'icônes.",
 	"Shows up to three currencies tracked in your backpack.": "Affiche jusqu'à trois monnaies suivies dans votre sac à dos.",
-	"Shows whether each member is a tank, healer or damage dealer.": "Indique si chaque membre est tank, soigneur ou personnage de dégâts.",
+	"Shows whether each party member is a tank, healer or damage dealer. Raid tiles leave it out.": "Indique si chaque membre du groupe est tank, soigneur ou dégâts. Les tuiles de raid l'omettent.",
 	"Shows whose pet or minion it is on a line under a friendly pet's name.": "Affiche à qui appartient un familier ou serviteur amical sur une ligne sous son nom.",
 	"Shows words such as Dodge, Parry, Absorb and Immune.": "Affiche des mots comme Esquive, Parade, Absorbe et Insensible.",
 	"Shows your combo points on your target's plate, as the unit frames' pips.": "Affiche vos points de combo sur la barre de votre cible, comme les points des cadres d'unité.",

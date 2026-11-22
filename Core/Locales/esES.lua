@@ -3741,7 +3741,7 @@ ns.Locale.Add({
 	["Shows up to this many debuffs in a row."] = "Muestra hasta este n\195\186mero de perjuicios en una fila.",
 	["Shows up to this many icons."] = "Muestra hasta esta cantidad de iconos.",
 	["Shows up to three currencies tracked in your backpack."] = "Muestra hasta tres monedas seguidas en tu mochila.",
-	["Shows whether each member is a tank, healer or damage dealer."] = "Muestra si cada miembro es tanque, sanador o de da\195\177o.",
+	["Shows whether each party member is a tank, healer or damage dealer. Raid tiles leave it out."] = "Muestra si cada miembro del grupo es tanque, sanador o da\195\177o. Las casillas de banda lo omiten.",
 	["Shows whose pet or minion it is on a line under a friendly pet's name."] = "Muestra de qui\195\169n es una mascota o esbirro amistoso en una l\195\173nea bajo su nombre.",
 	["Shows words such as Dodge, Parry, Absorb and Immune."] = "Muestra palabras como Esquivar, Parada, Absorber e Inmune.",
 	["Shows your combo points on your target's plate, as the unit frames' pips."] = "Muestra tus puntos de combo en la placa de tu objetivo, como los puntos de los marcos de unidad.",
