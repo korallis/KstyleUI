@@ -184,6 +184,7 @@ function Effects.Apply(env, module, ns, notes)
 						aura.count = e.charges
 					end
 					Slots.Set(env, "player", aura and { aura } or nil)
+					env.FireEvent("UNIT_AURA", "player", {})
 					env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-storm", e.spell)
 				end
 			end

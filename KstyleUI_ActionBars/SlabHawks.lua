@@ -63,14 +63,14 @@ local function Texture(parent, layer, sublevel, texture, color, size, blend)
 	return t
 end
 
-Hawks.Known, Hawks.Even, Hawks.Texture = Known, Even, Texture
-
 local function Layer(holder, level)
 	local frame = CreateFrame("Frame", nil, holder)
 	frame:SetAllPoints(holder)
 	frame:SetFrameLevel(level)
 	return frame
 end
+
+Hawks.Known, Hawks.Even, Hawks.Texture, Hawks.Layer = Known, Even, Texture, Layer
 
 local function Fade(target, from, to, duration, order)
 	local group = target.fade or target:CreateAnimationGroup()

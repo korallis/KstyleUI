@@ -196,6 +196,7 @@ local function Fade(g, from, to, duration, order, delay)
 	end
 	return a
 end
+Slab.Fade = Fade
 
 local function Grow(g, from, to, duration, order)
 	local s = g:CreateAnimation("Scale")
