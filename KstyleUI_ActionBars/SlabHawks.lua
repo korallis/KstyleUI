@@ -19,12 +19,12 @@ local FLARE_RISE, FLARE_FALL, FADE, POP = 0.05, 0.4, 0.35, 1.3
 local state = { perches = {} }
 Hawks.state = state
 
-local function Known()
+local function Known(spells)
 	local book = C_SpellBook
 	if not (book and type(book.IsSpellKnown) == "function") then
 		return false
 	end
-	for _, id in ipairs(SPELLS) do
+	for _, id in ipairs(spells) do
 		local known = book.IsSpellKnown(id)
 		if not IsSecret(known) and known == true then
 			return true
@@ -42,7 +42,7 @@ local function Active()
 	if IsSecret(class) or class ~= "HUNTER" then
 		return nil
 	end
-	return Known() and hub or nil
+	return Known(SPELLS) and hub or nil
 end
 
 local function Even(region)
@@ -62,6 +62,8 @@ local function Texture(parent, layer, sublevel, texture, color, size, blend)
 	t.units = size
 	return t
 end
+
+Hawks.Known, Hawks.Even, Hawks.Texture = Known, Even, Texture
 
 local function Layer(holder, level)
 	local frame = CreateFrame("Frame", nil, holder)
