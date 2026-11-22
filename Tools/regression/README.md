@@ -99,14 +99,6 @@ Every command prints measured CPU and wall time. Failed commands include those m
 
 Reference-unit fixtures isolate the fit cap: `load_files.lua` supplies their unrestricted 1.5 maximum. Pass `fit = true` to exercise the production preset-fit calculation at a numeric size; `size = "default"` and render scenes enable it automatically. `test-setup-collisions.lua` explicitly opts into it across nine screens, three requests and all three presets. `test-pixels.lua` checks unbounded pixel arithmetic; `test-text-pixels.lua` builds modules once and drives live display/size changes through production fit and restyle callbacks. Its optional `STUB_ENVS` collector and `STUB_FONT_ORIGINS` marker distinguish addon setters from scene stand-ins: engine-sized world numbers and manually copied chat lines are not addon font setters.
 
-## Centre clearance matrix
-
-`test-centre-clearance-<preset>-<class>.lua` covers all nine screens in each DPS, Tank and Healer preset for rogue, druid cat, druid bear and paladin (108 cases). Each case builds the real UnitFrames and Cooldowns scenes through `Setup.Apply`, at the shipped Interface size, with both casts, six essential and four utility cooldowns, five tracked buffs, two tracked bars, two target debuffs and every supported secondary resource visible. Shifted druid casts and rogue First Aid are synthetic lane-stress states, not class-mechanics tests. Paladin is the no-secondary-resource control.
-
-The common `centre_clearance_lib.lua` assigns the renderer's actual visible texture/text rectangles to logical body, portrait, level, cast, aura, resource and cooldown components. It includes captions, countdowns, counts, chrome and empty tracks rather than using a Layout holder's enclosing rectangle. An unclaimed drawn asset fails, so a new screen-level asset cannot silently escape the measurement. It requires every intended item to paint with positive area, every asset to stay on screen, and every pair of different components to avoid overlap and clear both 4 root units and 3 physical pixels (0.001 rounding tolerance for the renderer's four-decimal coordinates). Internal widget composition is one component; the only cross-component exceptions are `player.level/player.portrait` and `target.level/target.portrait`, the attached level discs. The separate target cast holder is off; the test measures the target's inline cast. `test-centre-clearance.lua` proves overlap and both thresholds fail independently.
-
-The twelve matrix files split by class/form and preset, with collection between screens, so no file retains the whole matrix or approaches the Lua 5.1 time/memory budget. Measure them with `bash Tools/regression/run-all.sh --affected origin/staging --margins`. They test the normal automatic path (essential/utility mirrors, tracked buff/bar native reskins), not hand-saved layouts or native Essential/Utility fallback; those need their own native-template and managed-flow fixture.
-
 ## Property tests
 
 Three test files check properties on random cases instead of fixed ones. `property_lib.lua` makes each case from a seed and the case number with its own generator (Park and Miller's, exact in both Lua 5.1 and LuaJIT), so the same seed and case give the same case on every machine.
@@ -264,8 +256,6 @@ Windows evidence: Beast, LuaBinaries PUC 5.1.5, 21 serial files (the final slowe
 
 | File | Mac 1 CPU s | Mac 2 CPU s | Mac 3 CPU s | Windows CPU s | Mac allowance s |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `test-ornament-surfaces-minimap-subtle.lua` | — | 38.50 | 35.73 | 49.72 | 49 |
-| `test-ornament-surfaces-minimap-full.lua` | 34.50 | — | 37.13 | 44.42 | 47 |
 | `test-render-story-guard-tank.lua` | — | 26.22 | 23.38 | 29.31 | 33 |
 | `test-render-scenes-gallery.lua` | — | 26.08 | 23.84 | 40.11 | 33 |
 | `test-text-pixels-hud.lua` | 25.76 | — | 23.84 | 44.70 | 33 |
@@ -298,29 +288,12 @@ These worst observed Mac CPU values include calibration runs, full run 439538025
 | File | Worst Mac CPU s | Allowance s | Source |
 | --- | ---: | ---: | --- |
 | `test-actionbars-vehicle.lua` | 19.811575 | 25 | Mac 1, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
-| `test-centre-clearance-dps-cat.lua` | 16.530659 | 21 | Mac 3, [run 43944756619](https://github.com/korallis/KstyleUI/actions/runs/43944756619) |
-| `test-centre-clearance-healer-bear.lua` | 17.407659 | 22 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-centre-clearance-healer-cat.lua` | 18.035937 | 23 | Mac 3, [run 43944756619](https://github.com/korallis/KstyleUI/actions/runs/43944756619) |
-| `test-centre-clearance-healer-paladin.lua` | 18.073578 | 23 | Mac 3, [run 43944756619](https://github.com/korallis/KstyleUI/actions/runs/43944756619) |
-| `test-centre-clearance-healer-rogue.lua` | 18.200957 | 23 | Mac 3, [run 43944756619](https://github.com/korallis/KstyleUI/actions/runs/43944756619) |
-| `test-centre-clearance-tank-bear.lua` | 17.435912 | 22 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-centre-clearance-tank-cat.lua` | 17.872141 | 23 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-centre-clearance-tank-paladin.lua` | 17.948227 | 23 | Mac 3, [run 43944756619](https://github.com/korallis/KstyleUI/actions/runs/43944756619) |
-| `test-centre-clearance-tank-rogue.lua` | 17.489064 | 22 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
 | `test-groupframes-grid.lua` | 17.034914 | 22 | Mac 1, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
 | `test-groupframes-medallions-tiles-wide.lua` | 18.470120 | 24 | Mac 1, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
 | `test-groupframes-medallions-tiles.lua` | 18.362331 | 23 | Mac 1, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
 | `test-groupframes-raid-tile.lua` | 16.931091 | 22 | Mac 1, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
 | `test-groupframes-rows.lua` | 22.281631 | 28 | Mac 1, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
 | `test-hud-material-tank.lua` | 21.126243 | 27 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-ornament-surfaces-minimap-full.lua` | 38.294389 | 48 | Mac 3, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
-| `test-ornament-surfaces-minimap-subtle.lua` | 38.498007 | 49 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-ornament-surfaces-xp-b.lua` | 16.370179 | 21 | Mac 1, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-ornament-surfaces-xp-c.lua` | 16.431729 | 21 | Mac 3, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
-| `test-ornament-surfaces-xp-d.lua` | 16.154422 | 21 | Mac 3, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
-| `test-ornament-surfaces-xp-f.lua` | 16.128701 | 21 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-ornament-surfaces-xp-h.lua` | 16.370400 | 21 | Mac 1, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-ornament-surfaces-xp-j.lua` | 16.171037 | 21 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
 | `test-perf-frames.lua` | 16.497820 | 21 | Mac 1, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
 | `test-perf-skins.lua` | 25.667379 | 33 | Mac 1, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
 | `test-perf.lua` | 30.999676 | 39 | Mac 1, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
@@ -349,7 +322,6 @@ These worst observed Mac CPU values include calibration runs, full run 439538025
 | `test-text-floor.lua` | 20.662359 | 26 | Mac 3, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
 | `test-text-pixels-hud.lua` | 25.756223 | 33 | Mac 1, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
 | `test-type-roles.lua` | 20.670064 | 26 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-unitframes-column-keep.lua` | 18.874668 | 24 | Mac 1, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
 
 ## Files
 

@@ -5,14 +5,6 @@ test-groupframes-medallions-tiles.lua	23	LEE-5827
 test-groupframes-raid-tile.lua	22	LEE-5827
 test-groupframes-rows.lua	28	LEE-5827
 test-hud-material-tank.lua	27	LEE-5827
-test-ornament-surfaces-minimap-full.lua	48	LEE-5827
-test-ornament-surfaces-minimap-subtle.lua	49	LEE-5827
-test-ornament-surfaces-xp-b.lua	21	LEE-5827
-test-ornament-surfaces-xp-c.lua	21	LEE-5827
-test-ornament-surfaces-xp-d.lua	21	LEE-5827
-test-ornament-surfaces-xp-f.lua	21	LEE-5827
-test-ornament-surfaces-xp-h.lua	21	LEE-5827
-test-ornament-surfaces-xp-j.lua	21	LEE-5827
 test-perf-frames.lua	21	LEE-5827
 test-perf-skins.lua	33	LEE-5827
 test-perf.lua	39	LEE-5827
@@ -41,4 +33,3 @@ test-setup-collisions.lua	25	LEE-5827
 test-text-floor.lua	26	LEE-5827
 test-text-pixels-hud.lua	33	LEE-5827
 test-type-roles.lua	26	LEE-5827
-test-unitframes-column-keep.lua	24	LEE-5827
