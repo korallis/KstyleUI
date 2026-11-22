@@ -5,6 +5,7 @@ local CoreEnv = dofile("Tools/regression/core_env.lua")
 local env, K = CoreEnv.New({ width = 3456, height = 2234, size = 16 / 19 })
 CoreEnv.Boot(env)
 K.Store.Module("DataBars").enabled = true
+K.Store.Module("DataBars").strip = { placement = "dock" }
 K.Store.Module("Minimap").enabled = true
 local Layouts = K.Setup.Layouts
 local Guard = dofile("Tools/render/guard.lua")
@@ -32,15 +33,12 @@ return function(preset, built)
 	for _, key in ipairs({ "actionbars.bar1", "actionbars.bar2", "actionbars.bar4", "actionbars.bar5", "unitframes.player", "unitframes.target", "minimap.main", "meters.damage", "chat.main", "databars.xp" }) do
 		assert(positions[key] and built.elements[key], preset .. " compares the declared and applied position of " .. key)
 	end
-	-- Medallions applies these off their declared spot, as staging did: rep and honor under the dock and the crest map a
-	-- sub-pixel off.
-	local skip = { ["databars.rep"] = true, ["databars.honor"] = true, ["minimap.main"] = true }
 	for key, element in pairs(built.elements) do
 		local position = positions[key]
-		if position and not skip[key] then
+		if position then
 			element.key = key
 			local left, bottom = Layouts.Rect(element, position, rw, rh)
-			if key == "databars.xp" or key == "databars.rep" or key == "databars.honor" then bottom = math.max(bottom, K.Tokens.Size("screenMargin") + Layouts.Element(key).insets[3]) end
+			if key == "databars.xp" or key == "databars.rep" or key == "databars.honor" then bottom = math.max(bottom, K.Tokens.Size("screenMargin") + select(3, Layouts.DisplayInsets(key, element.height, position.anchor))) end
 			assert(math.abs(left - element.left) * 2234 / rh <= 1, preset .. " did not Apply " .. key .. " horizontally")
 			assert(math.abs(bottom - element.bottom) * 2234 / rh <= 1, preset .. " did not Apply " .. key .. " vertically")
 		end
