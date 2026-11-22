@@ -94,7 +94,7 @@ local ELEMENTS = {
 	{ key = "auras.extraDebuffs", module = "Auras", label = L["Extra debuff row"], width = 6 * 36 + 5 * AURA_GAP, height = 36 + AURA_TIMER },
 	{ key = "minimap.main", module = "Minimap", label = L["Minimap"], short = L["Map"], width = MAP, height = MAP, reserve = { MAP, MAP + MAP_CAPTION } },
 	{ key = "chat.main", module = "Chat", label = L["Chat"], short = L["Chat"], width = 442, height = 186 },
-	{ key = "qol.lootfeed", module = "QoL", label = L["Loot feed"], short = L["Loot"], width = ns.Tokens.Size("railWidth"), height = FEED_LINES * FEED_ROW + (FEED_LINES - 1) * FEED_GAP + 2 * FEED_PAD },
+	{ key = "qol.lootfeed", module = "QoL", label = L["Loot feed"], short = L["Loot"], width = 311, height = FEED_LINES * FEED_ROW + (FEED_LINES - 1) * FEED_GAP + 2 * FEED_PAD },
 	{ key = "databars.xp", module = "DataBars", label = L["Experience bar"], width = COLUMN, height = XP_H, insets = { 0, 0, 24, 0 } },
 	{ key = "databars.rep", module = "DataBars", label = L["Reputation bar"], width = 162, height = 5, insets = { 0, 0, 24, 0 } },
 	{ key = "databars.honor", module = "DataBars", label = L["Honour bar"], width = 162, height = 5, insets = { 0, 0, 24, 0 } },
@@ -178,7 +178,7 @@ local DPS = {
 	["meters.damage"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = EDGE },
 	["meters.threat"] = { anchor = "BOTTOMRIGHT", x = -263, y = 217.5 + LIFT + 102.5 + GAP },
 	["databars.strip"] = { anchor = "BOTTOMRIGHT", x = -EDGE, y = READOUT_Y },
-	["databars.strip2"] = { anchor = "BOTTOMRIGHT", x = -308, y = 184 },
+	["databars.strip2"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = TIP_Y + select(2, ElementSize("tooltips.anchor")) + GAP },
 	["databars.micro"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y },
 	["databars.bags"] = { anchor = "BOTTOMRIGHT", x = -SPARE_X, y = RAIL_BARS_Y + MICRO_H },
 	["databars.xp"] = { anchor = "BOTTOM", x = 0, y = TRAY_BOTTOM - TRAY_STRIP_GAP - XP_H + 9 },
@@ -1380,6 +1380,8 @@ function Layouts.Enabled(name, profile)
 					local role = ns.Specialization.Role()
 					local choice = section.roles and section.roles[role] or (role == "TANK" and "threat" or "damage")
 					on = choice == "both" or choice == id
+				elseif key == "databars.strip2" then
+					on = type(section.strip) == "table" and section.strip.second == true
 				elseif cast then
 					on = type(entry) == "table" and entry.castbar ~= false
 					if on and entry.enabled ~= false then
@@ -1450,6 +1452,8 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 		if bars.extraBarsApplied == "beside" and (key == "actionbars.bar4" or key == "actionbars.bar5") then
 			local pad, point = Layouts.MEDALLIONS_SLAB.pad, OFFSETS[layout[key].anchor]
 			width, height, offsetX, offsetY = width + 2 * pad, height + 2 * pad, (2 * point[1] - 1) * pad, (2 * point[2] - 1) * pad
+		elseif bars.slab ~= false and (key == "actionbars.pet" or key == "actionbars.stance") then
+			width, offsetX = width + 2 * Layouts.MEDALLIONS_SIDE.pad, (2 * OFFSETS[layout[key].anchor][1] - 1) * Layouts.MEDALLIONS_SIDE.pad
 		end
 		if key == "meters.threat" and enabled["meters.damage"] ~= false then width, height = Layouts.METER_SLOT, DAMAGE_H end
 		state.sizes[i] = { width, height, offsetX, offsetY, OFFSETS[layout[key].anchor] or OFFSETS.CENTER, key }

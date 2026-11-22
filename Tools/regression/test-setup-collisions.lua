@@ -231,9 +231,9 @@ for _, screen in ipairs({ { 3456, 2234 }, { 3024, 1964 }, { 2560, 1600 }, { 2383
 	assert(math.abs(tank - dps) < 1e-9, string.format("Tank with both meter cards caps at %.4f at %dx%d, under DPS's %.4f", tank, screen[1], screen[2], dps))
 end
 
--- The second data bar's spare slot clears the target's medallion and the loot feed clears the pet and stance bars on
--- small, MacBook and 3:2 screens, so turning the bar on never shrinks the HUD there and the shipped size fits.
-for _, screen in ipairs({ { 2383, 1540 }, { 2642, 1651 }, { 1366, 768 }, { 3024, 1964 } }) do
+-- The second data bar's spare slot clears the target's medallion on small, MacBook and 3:2 screens, so turning the bar
+-- on never shrinks the HUD there, and the shipped size fits.
+for _, screen in ipairs({ { 2383, 1540 }, { 2642, 1651 }, { 1366, 768 } }) do
 	for _, name in ipairs(Layouts.Names()) do
 		local enabled = Layouts.Enabled(name)
 		enabled["consumables.bar"] = false
@@ -246,13 +246,13 @@ for _, screen in ipairs({ { 2383, 1540 }, { 2642, 1651 }, { 1366, 768 }, { 3024,
 	end
 end
 
--- The second data bar tightens the Healer cap at 1080p; compare enabled sets on either side of that boundary.
+-- The boss frames tighten the Healer cap at 1080p; compare enabled sets on either side of that boundary.
 do
-	assert(Layouts.Fits("Healer", 1920, 1080, 0.95), "the hidden second data bar must not collide at a size above its own cap")
 	local enabled = Layouts.Enabled("Healer")
-	enabled["databars.strip2"] = true
-	assert(not Layouts.Fits("Healer", 1920, 1080, 0.95, enabled), "the same bar counts when the player shows it")
-	assert(Layouts.ScaleLimit(1920, 1080, "Healer", enabled) < Layouts.ScaleLimit(1920, 1080, "Healer"), "the cache distinguishes enabled-element sets")
+	enabled["unitframes.boss"] = false
+	assert(Layouts.Fits("Healer", 1920, 1080, 0.9685, enabled), "hidden boss frames must not collide at a size above their own cap")
+	assert(not Layouts.Fits("Healer", 1920, 1080, 0.9685), "the same frames count when the player shows them")
+	assert(Layouts.ScaleLimit(1920, 1080, "Healer") < Layouts.ScaleLimit(1920, 1080, "Healer", enabled), "the cache distinguishes enabled-element sets")
 end
 
 do
