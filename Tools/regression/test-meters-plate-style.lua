@@ -3,12 +3,12 @@ local M = dofile("Tools/regression/meters_env.lua")
 local N = dofile("Tools/regression/nameplates_env.lua")
 
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
-	for _, style in ipairs({ "medallions" }) do
-		local saved = { version = 38, profiles = { Default = { } } }
+	for _, style in ipairs({ "frames", "medallions" }) do
+		local saved = { version = 38, profiles = { Default = { HudStyle = { style = style } } } }
 		local ne, _, plates = N.New({ width = screen[1], height = screen[2], saved = saved })
 		N.Add(ne, "nameplate1", { name = "Warrior", class = "WARRIOR", isPlayer = true })
 		local plate = assert(plates.Plates.Get("nameplate1"))
-		local env, K, ns = M.New({ width = screen[1], height = screen[2], saved = { version = 38, profiles = { Default = { } } } })
+		local env, K, ns = M.New({ width = screen[1], height = screen[2], saved = { version = 38, profiles = { Default = { HudStyle = { style = style } } } } })
 		local lists = {}
 		for _, section in ipairs({ "damage", "threat" }) do
 			local list = ns.BarList.New(K.Scale.Root(), section, { width = 269, height = 158, columns = function() return { value = true, percent = true } end })
@@ -34,4 +34,4 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		assert(#env._errors == 0 and #ne._errors == 0)
 	end
 end
-print("meter/nameplate style ok: 4 screens")
+print("meter/nameplate style ok: both HUD styles, 4 screens")
