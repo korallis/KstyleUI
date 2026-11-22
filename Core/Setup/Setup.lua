@@ -284,12 +284,14 @@ local function Restyle()
 	end)
 end
 
-local aspect, band = ns.Scale.Aspect(), ns.Scale.Band()
+local aspect, band, lane = ns.Scale.Aspect(), ns.Scale.Band()
 ns.Callbacks.Register("ScaleChanged", "Setup", function()
-	if ns.Scale.Aspect() ~= aspect or ns.Scale.Band() ~= band then
+	local width = Setup.EditMode.WarningLane()
+	if ns.Scale.Aspect() ~= aspect or ns.Scale.Band() ~= band or (lane and width ~= lane) then
 		aspect, band = ns.Scale.Aspect(), ns.Scale.Band()
 		Restyle()
 	end
+	lane = width
 end)
 
 function Setup.Apply(picked)

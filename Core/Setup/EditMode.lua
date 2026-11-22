@@ -1,4 +1,4 @@
--- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker where the quest card stands (the story rail's column beside the slot under the map),Blizzard's damage meter on the damage card, Blizzard's own essential and utility rows on KstyleUI's rows when the Cooldowns module falls back to them (centred, else growing away from the other row, in one or two lines that fit clear, leaving a row the player placed or that fits nowhere where it was, and again in the active KstyleUI layout when the fallback comes later), its tracked buff icon and bar viewers where every tracked item fits whole (the slots beside the hands, else a column beside the cluster or the rail and the bars under the target of target, over the focus frame or beside the right rail, keeping bar 2's column free when anything else fits) or leaves a viewer that fits nowhere where it was, the raid warnings in the highest free band between the chat and the minimap from 15% under the top, over a low target or, when the target heads the screen as Orbs puts it, under or beside it in the upper half (a cluster gap from every card, else a tight gap at the sides, else across the right end of the group cards), and again on a HUD style switch while they stand where Apply put them, saves the layouts and activates that one, out of combat, and keeps the result for the setup summary.
+-- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker where the quest card stands (the story rail's column beside the slot under the map), Blizzard's damage meter on the damage card, Blizzard's own essential and utility rows on KstyleUI's rows when the Cooldowns module falls back to them (centred, else growing away from the other row, in one or two lines that fit clear, leaving a row the player placed or that fits nowhere where it was, and again in the active KstyleUI layout when the fallback comes later), its tracked buff icon and bar viewers where every tracked item fits whole (the slots beside the hands, else a column beside the cluster or the rail or a row over the focus frame, and the bars under the target of target, over the focus frame or beside the right rail or the threat card, keeping bar 2's column free when anything else fits) or leaves a viewer that fits nowhere where it was, the raid warnings, in a lane no wider than the room left of the boss column (beside the raid frames, else from the chat card), in the highest free band between the chat and the minimap from 15% under the top, over a low target or, when the target heads the screen as Orbs puts it, under or beside it in the upper half (a cluster gap from every card, else a tight gap at the sides, else across the right end of the group cards), and again on a HUD style switch while they stand where Apply put them, saves the layouts and activates that one, out of combat, and keeps the result for the setup summary.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -16,7 +16,7 @@ local METER_HEIGHT_MIN, METER_HEIGHT_MAX = 120, 400
 local VIEWER_SIZE_MIN, VIEWER_SIZE_STEP, VIEWER_SIZE_MAX = 50, 10, 200
 local BAR_WIDTH_MIN, BAR_WIDTH_MAX = 50, 200
 local VIEWER_CLEAR, VIEWER_MIN_ITEMS, FOCUS_CLEAR, SLIDES = 2, 2, 16, 6
-local WARNING_WIDTH, WARNING_HEIGHT, WARNING_TOP, WARNING_SIDE = 800, 100, 0.15, 4
+local WARNING_WIDTH, WARNING_HEIGHT, WARNING_TOP, WARNING_SIDE, WARNING_MIN = 800, 100, 0.15, 4, 400
 local DURABILITY_TOP = 80
 local DENSE_GAPS = { 4, 2 }
 local VIEWERS = {
@@ -125,17 +125,30 @@ local function Positions(name)
 end
 
 local function Box(name, key, rw, rh)
-	local position = Positions(name)[key]
+	local position = Layouts.Place(name, "medallions", ns.Scale.Aspect(), key, ns.Scale.Band())
 	local w, h, offsetX = Layouts.Footprint(name, key)
 	local styled = Layouts.Style(name, key)
 	if styled and styled.width then
-		w, h, offsetX = styled.width, styled.height, nil
+		w, h, offsetX = styled.width + (key == "unitframes.boss" and Layouts.BOSS_AURAS or 0), styled.height, nil
 	end
 	if not (position and w) then
 		return nil
 	end
 	local l, b, r, t = Layouts.Rect({ width = w, height = h, offsetX = offsetX }, position, rw, rh)
 	return { l = l, b = b, r = r, t = t }
+end
+
+function EditMode.WarningLane()
+	local rw, rh = Setup.RootSize()
+	local clear, top, under = Layouts.SIGIL_CLEAR, math.huge, math.huge
+	for _, name in ipairs(Layouts.Names()) do
+		local chat, raid, boss = Box(name, "chat.main", rw, rh), Box(name, "groupframes.raid", rw, rh), Box(name, "unitframes.boss", rw, rh)
+		if chat and raid and boss then
+			top, under = min(top, floor(boss.l - raid.r - 2 * clear)), min(under, floor(boss.l - clear - chat.r))
+		end
+	end
+	local room = top >= WARNING_MIN and top or under
+	return room >= WARNING_MIN and min(room, EditMode.WARNING_LANE) or EditMode.WARNING_LANE
 end
 
 local function StoryBox(name, rw, rh, part)
@@ -216,6 +229,7 @@ local function Spots(group, boxes, icons)
 		if focus and target then
 			list[#list + 1] = { x = focus.r + VIEWER_CLEAR, y = target.t + VIEWER_CLEAR, gaps = DENSE_GAPS }
 		end
+		list[#list + 1] = { x = (slot.l + slot.r) / 2, y = max(slot.t, focus and focus.t or slot.t) + VIEWER_CLEAR, center = true, across = true, gaps = { 3 } }
 		return list
 	end
 	local width = slot.r - slot.l
@@ -230,9 +244,11 @@ local function Spots(group, boxes, icons)
 			list[#list + 1] = { x = icons.rect.r + VIEWER_CLEAR, y = focus.t + FOCUS_CLEAR, width = width, trim = true, gaps = { 2 } }
 		end
 	end
-	local rail = boxes["meters.damage"]
-	if rail then
-		list[#list + 1] = { x = rail.l - VIEWER_CLEAR, y = slot.b, right = true, width = width, trim = true, gaps = { 2 } }
+	for _, key in ipairs({ "meters.damage", "meters.threat" }) do
+		local edge = boxes[key]
+		if edge then
+			list[#list + 1] = { x = edge.l - VIEWER_CLEAR, y = slot.b, right = true, width = width, trim = true, gaps = { 2 } }
+		end
 	end
 	return list
 end
@@ -575,7 +591,8 @@ local function Places(name, story, notes)
 			end
 		end
 		if not viewers then
-			viewers, told, chosen = Arrange(false, { "buffs", "bars" })
+			viewers, told, chosen = Arrange(false, { "bars", "buffs" })
+			table.sort(told, function(a, b) return a.group > b.group end)
 		end
 		for _, place in ipairs(viewers) do
 			places[#places + 1] = place

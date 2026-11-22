@@ -102,7 +102,9 @@ local function Collisions(K, name, box)
 			local w, h, offsetX = K.Setup.Layouts.Footprint(name, key)
 			local styled = K.Setup.Layouts.Style(name, key)
 			if styled and styled.width then
-				w, h, offsetX = styled.width, styled.height, nil
+				-- The boss column counts the debuff row its cards hang to their left, the aura room the layouts reserve.
+				local boss = key == "unitframes.boss" and K.Setup.Layouts.Element(key)
+				w, h, offsetX = styled.width + (boss and boss.reserve[1] - boss.width or 0), styled.height, nil
 			end
 			if w then
 				local l, b, r, t = K.Setup.Layouts.Rect({ width = w, height = h, offsetX = offsetX }, position, rw, rh)
@@ -190,9 +192,10 @@ end
 -- Sixteen tracked buffs and six tracked bars (round 4, Astra #1: the icons once crossed chat and the bars the focus
 -- and target frames, with a printed step in place of a layout). The left wing holds about eleven icons and two
 -- bars, so Apply picks a denser arrangement from the counts before it saves: the icons stand in one column beside
--- the cluster, the bars stack under the target of target where Tank keeps its threat meter, or over the focus
--- frame in Tank. The whole assembled layout must touch nothing, every tracked item keeps its slot, nothing leaves
--- the screen, and nothing is printed, on every preset, at every supported aspect and the owner's screen.
+-- the cluster or one row centred over the casts above the focus frame, the bars stack under the target of target,
+-- over the focus frame or left of Tank's threat card. The whole assembled layout must touch nothing, every tracked
+-- item keeps its slot, nothing leaves the screen, and nothing is printed, on every preset, at every supported aspect
+-- and the owner's screen.
 
 local SCREENS = {
 	{ label = "the owner's 2383 x 1540", width = 2383, height = 1540, uiScale = 768 / 1080, size = "default" },
@@ -250,11 +253,13 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 		end)
 		assert(K.Setup.Apply({ layout = name, modules = {} }))
 		local where = name .. " at " .. screen.label .. " with 16 icons and 6 bars"
-		local note = K.Setup.EditMode.Last().notes[1]
+		local notes = K.Setup.EditMode.Last().notes
+		local note = notes[1]
 		if note then
-			-- Medallions' cluster holds 13 or 14 of the 16 icons on most screens (as staging's Medallions did): the viewer keeps
-			-- its place and the summary names the count, as the sweep below checks.
-			assert(note.group == "buffs" and note.count == 16 and note.fits >= 13, where .. ": only the buff icons overflow, got " .. note.group .. " " .. note.fits .. " of " .. note.count)
+			-- Only 2560 x 1440 at its automatic size (0.98 at UIParent scale 1) is too short for both: the bars keep the room
+			-- over the focus frame they had before the icons' raised row, 14 of the 16 icons fit, so that viewer keeps its
+			-- place and the summary names the count.
+			assert(#notes == 1 and screen.label == "2560 x 1440" and note.group == "buffs" and note.fits >= 13, where .. ": every icon and bar fits, got " .. note.group .. " " .. note.fits .. " of " .. note.count)
 		else
 			local icon, bar, iconBox, barBox, k = Viewers(K, env, state, name, 16, 6)
 			local hits = Everything(K, name, iconBox)
