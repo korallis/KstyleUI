@@ -232,7 +232,7 @@ do
 	assert(registered and registered.frame == panel and registered.opts.scalable, "the window registers with Layout as a scalable element")
 	assert(panel.titleText and panel.closeButton, "a titled panel with a close button")
 	local tabs = panel.steps
-	assert(#tabs.buttons == 5, "a strip of five steps")
+	assert(#tabs.buttons == 4, "a strip of four steps: Medallions draws no ornaments, so setup asks nothing about them")
 	assert(tabs:GetValue() == 1)
 	assert(tabs:Select(3) == false, "steps not reached yet are disabled")
 	assert(panel.pages[1]:IsShown() and not panel.pages[2]:IsShown(), "one page at a time")
