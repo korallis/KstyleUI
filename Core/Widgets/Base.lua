@@ -296,28 +296,36 @@ local function Region(widget)
 	return nil
 end
 
-local function Under(node, roots)
+local function Under(node, roots, seen)
+	local start, under = node, false
 	while node do
-		if roots[node] then
-			return true
+		local known = seen[node]
+		if known ~= nil or roots[node] then
+			under = known ~= false
+			break
 		end
 		local ok, parent = pcall(node.GetParent, node)
 		if not ok then
-			return false
+			break
 		end
 		node = parent
 	end
-	return false
+	while start and start ~= node do
+		seen[start] = under
+		start = start:GetParent()
+	end
+	return under
 end
 
 function Widgets.RestyleUnder(roots, only)
 	if next(roots) == nil then
 		return
 	end
+	local seen = {}
 	for i = 1, #tracked do
 		local widget = tracked[i]
 		local region = Region(widget)
-		if (region == nil or Under(region, roots)) and (only == nil or only(widget)) then
+		if (region == nil or Under(region, roots, seen)) and (only == nil or only(widget)) then
 			ns.Call(widget.Restyle, widget)
 		end
 	end
@@ -1145,6 +1153,8 @@ function Widgets.Point(region, point, relativeTo, relativePoint, x, y, hard)
 	end
 end
 
+local Anchored
+
 local function Refill(region)
 	if region.kstyleFilling then
 		return
@@ -1176,9 +1186,11 @@ function Widgets.Fill(region, relativeTo, left, top, right, bottom, hard)
 	if h then
 		dy = oy + h - floor(oy + h - b + 0.5)
 	end
-	region:ClearAllPoints()
-	region:SetPoint("TOPLEFT", relative, "TOPLEFT", l * px, -t * px)
-	region:SetPoint("BOTTOMRIGHT", relative, "BOTTOMRIGHT", dx * px, dy * px)
+	if not (Anchored(region, "TOPLEFT", relative, "TOPLEFT", l * px, -t * px) and Anchored(region, "BOTTOMRIGHT", relative, "BOTTOMRIGHT", dx * px, dy * px) and region:GetNumPoints() == 2) then
+		region:ClearAllPoints()
+		region:SetPoint("TOPLEFT", relative, "TOPLEFT", l * px, -t * px)
+		region:SetPoint("BOTTOMRIGHT", relative, "BOTTOMRIGHT", dx * px, dy * px)
+	end
 	if Inside(region) then
 		return
 	end
@@ -1196,7 +1208,7 @@ function Widgets.Fill(region, relativeTo, left, top, right, bottom, hard)
 	HookFollow(region)
 end
 
-local function Anchored(region, point, relative, relativePoint, x, y)
+function Anchored(region, point, relative, relativePoint, x, y)
 	if not Plain(region) then
 		return false
 	end
@@ -1273,9 +1285,9 @@ local function PlaceRecorded(region, record)
 end
 
 function Widgets.PlaceAgain(roots)
-	local list, depth = {}, {}
+	local list, depth, seen = {}, {}, {}
 	for region in pairs(helped) do
-		local d = Plain(region) and (roots == nil or Under(region, roots)) and Depth(region)
+		local d = Plain(region) and (roots == nil or Under(region, roots, seen)) and Depth(region)
 		if d then
 			list[#list + 1] = region
 			depth[region] = d

@@ -241,6 +241,10 @@ local blizzard = env._viewers.EssentialCooldownViewer
 assert(blizzard:GetAlpha() == 0, "Blizzard's essential viewer is faded")
 blizzard:SetAlpha(0.8)
 assert(blizzard:GetAlpha() == 0, "Blizzard's own SetAlpha cannot bring it back")
+local calls = #blizzard._calls
+blizzard:SetAlpha(0)
+assert(#blizzard._calls == calls + 1, "Blizzard's own SetAlpha(0) leaves the faded viewer to it: KstyleUI_Cooldowns/Viewers.lua Refade writes 0 again only when the owner's alpha shows the viewer")
+blizzard:SetAlpha(0.8)
 for _, child in ipairs({ blizzard:GetChildren() }) do
 	assert(LastArg(child, "SetMouseMotionEnabled") == false, "a faded viewer's item takes no mouse")
 end

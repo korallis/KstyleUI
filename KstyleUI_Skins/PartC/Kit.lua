@@ -36,6 +36,10 @@ end
 
 Kit.IsSecret = IsSecret
 
+local function Same(a, b)
+	return not IsSecret(a) and not IsSecret(b) and a == b
+end
+
 function Kit.Log(key, message)
 	K.DevTest.Log(MODULE, key .. ": " .. message)
 end
@@ -275,7 +279,10 @@ function Kit.Wash(texture, alpha, color)
 	Style.Track(wash)
 	local function Follow()
 		local shown = texture:IsShown()
-		wash:SetShown(not IsSecret(shown) and shown == true)
+		shown = not IsSecret(shown) and shown == true
+		if wash:IsShown() ~= shown then
+			wash:SetShown(shown)
+		end
 	end
 	for _, method in ipairs(FOLLOW) do
 		hooksecurefunc(texture, method, Follow)
@@ -373,12 +380,20 @@ function Kit.MirrorBar(source, parent, width, height, opts)
 		bar:SetBarValue(value)
 	end
 	hooksecurefunc(source, "SetMinMaxValues", function(_, newLow, newHigh)
-		bar:SetBarRange(newLow, newHigh)
+		local from, to = bar:GetMinMaxValues()
+		if not (Same(from, newLow) and Same(to, newHigh)) then
+			bar:SetBarRange(newLow, newHigh)
+		end
 	end)
 	hooksecurefunc(source, "SetValue", function(_, newValue)
-		bar:SetBarValue(newValue)
+		if not Same(bar:GetValue(), newValue) then
+			bar:SetBarValue(newValue)
+		end
 	end)
 	hooksecurefunc(source, "SetStatusBarColor", function(_, r, g, b, a)
+		if Same(state.r, r) and Same(state.g, g) and Same(state.b, b) and Same(state.a, a) then
+			return
+		end
 		state.r, state.g, state.b, state.a = r, g, b, a
 		PaintMirror(state)
 	end)
@@ -444,8 +459,11 @@ function Kit.TriState(check)
 		end
 	end
 	hooksecurefunc(checked, "SetDesaturated", function(_, desaturated)
-		state.some = not IsSecret(desaturated) and desaturated == true
-		parts:Paint()
+		local some = not IsSecret(desaturated) and desaturated == true
+		if some ~= state.some then
+			state.some = some
+			parts:Paint()
+		end
 	end)
 	parts:Paint()
 	return true

@@ -565,7 +565,10 @@ function Drawer:Adopt(name, button, own)
 				local drawer = ns.Map and ns.Map.drawer
 				if drawer and drawer.active and drawer.adopted[button] then
 					group:Stop()
-					button:SetAlpha(1)
+					local alpha = button:GetAlpha()
+					if IsSecret(alpha) or alpha ~= 1 then
+						button:SetAlpha(1)
+					end
 				end
 			end)
 		end

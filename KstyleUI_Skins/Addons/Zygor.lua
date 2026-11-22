@@ -115,21 +115,43 @@ local function Near(a, b)
 	return Plain(a) and Plain(b) and math.abs(a - b) < 0.5
 end
 
+local function Unclamped(region)
+	local l, r, t, b = region:GetClampRectInsets()
+	return Plain(l) and Plain(r) and Plain(t) and Plain(b) and l == 0 and r == 0 and t == 0 and b == 0
+end
+
+local function Holds(region, point, relative, relativePoint, x, y)
+	local own, to, toPoint, ox, oy = region:GetPoint(1)
+	local secret = Widgets.IsSecret(own) or Widgets.IsSecret(to) or Widgets.IsSecret(toPoint)
+	return region:GetNumPoints() == 1 and not secret and own == point and to == relative and toPoint == relativePoint and Plain(ox) and Plain(oy) and ox == x and oy == y
+end
+
 local function Assert(keepHeight)
 	local placed, master, frame = state.placed, state.master, state.frame
 	if not (placed and master and frame) then
 		return
 	end
-	master:SetClampedToScreen(false)
-	master:SetClampRectInsets(0, 0, 0, 0)
-	if placed.up then
-		Anchor(master, "BOTTOMLEFT", "BOTTOMLEFT", placed.left, placed.bottom)
-	else
-		Anchor(master, "TOPLEFT", "BOTTOMLEFT", placed.left, placed.top)
+	local corner = placed.up and "BOTTOMLEFT" or "TOPLEFT"
+	local clamped = master:IsClampedToScreen()
+	if Widgets.IsSecret(clamped) or clamped ~= false then
+		master:SetClampedToScreen(false)
 	end
-	frame:SetClampRectInsets(0, 0, 0, 0)
-	frame:ClearAllPoints()
-	frame:SetPoint(placed.up and "BOTTOMLEFT" or "TOPLEFT", master, placed.up and "BOTTOMLEFT" or "TOPLEFT")
+	if not Unclamped(master) then
+		master:SetClampRectInsets(0, 0, 0, 0)
+	end
+	local at = state.at
+	if not (at and at.placed == placed and Holds(master, corner, UIParent, "BOTTOMLEFT", at.x, at.y)) then
+		Anchor(master, corner, "BOTTOMLEFT", placed.left, placed.up and placed.bottom or placed.top)
+		local _, _, _, x, y = master:GetPoint(1)
+		state.at = { placed = placed, x = x, y = y }
+	end
+	if not Unclamped(frame) then
+		frame:SetClampRectInsets(0, 0, 0, 0)
+	end
+	if not Holds(frame, corner, master, corner, 0, 0) then
+		frame:ClearAllPoints()
+		frame:SetPoint(corner, master, corner)
+	end
 	if not Near(frame:GetWidth(), placed.width) then
 		frame:SetWidth(placed.width)
 	end
@@ -169,15 +191,30 @@ end
 
 Fit = T("Fit", Fit)
 
+local function Followed(frame, bar)
+	local values = { frame:GetLeft(), frame:GetTop(), frame:GetRight(), frame:GetBottom(), bar:GetLeft(), bar:GetBottom() }
+	for i = 1, 6 do
+		if not Plain(values[i]) then
+			return nil
+		end
+	end
+	return table.concat(values, " ")
+end
+
 local function Follow()
 	local z = state.z
 	local bar = IsTable(z) and IsTable(z.ActionBar) and z.ActionBar.Frame
 	if not (state.placed and bar and bar.snapped == true) then
 		return
 	end
+	local key = Followed(state.frame, bar)
+	if key and key == state.followed then
+		return
+	end
 	if type(z.ActionBar.SavePosition) == "function" then
 		K.Call(z.ActionBar.SavePosition, z.ActionBar)
 	end
+	state.followed = Followed(state.frame, bar)
 end
 
 local function Settle()
@@ -326,7 +363,7 @@ end
 Place = T("Place", Place)
 
 function Restore()
-	state.placed, state.key = nil, nil
+	state.placed, state.key, state.followed = nil, nil, nil
 	local z, master, frame, original = state.z, state.master, state.frame, state.original
 	Hold(false)
 	if not (z and master and frame) then
