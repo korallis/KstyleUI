@@ -140,16 +140,12 @@ collectgarbage()
 
 -- Aura tooltips in combat reach debuff and heal icons through the engine's own switch; Icon text outline restyles
 -- counts and timers, on a party frame and a Medallions raid tile, which has no heal row.
-for _, unit in ipairs({ "party1", "raid1" }) do
+for _, kind in ipairs({ "party", "raid" }) do
 	local env, K, ns = G.New({ setup = setup })
-	if unit == "raid1" then
-		G.SetRoster(env, "raid", G.Members(10))
-	else
-		G.SetRoster(env, "party", { { name = "Thaldren", class = "WARRIOR", role = "TANK" }, { name = "Sylaen", class = "DRUID", role = "HEALER" } })
-	end
+	G.SetRoster(env, kind, G.Members(kind == "raid" and 10 or 2))
 	K.Modules.Enable(MODULE)
 	env.RunTimers()
-	local f = frame(ns, unit)
+	local f = frame(ns, kind .. "1")
 	A.Assign(env, f.auras, "debuffs", 1)
 	env.RunTimers()
 	local debuff = f.auras._groups.debuffs.active[1]

@@ -31,18 +31,11 @@ function Unit.ColorSources(f)
 	return colorSources(f)
 end
 
-local function Line(count, size, spacing)
-	return count * size + math.max(0, count - 1) * spacing
-end
-
 local function Pips(block, room, height, spacing, px)
-	if not block or block.cells <= 0 then
+	if not block or block.cells <= 0 or block.size < MIN_CELL then
 		return nil
 	end
 	local size = math.floor(math.min(block.size, math.max(MIN_CELL, height * PIP_SHARE)))
-	if size < MIN_CELL then
-		return nil
-	end
 	size = math.floor(size / px + 0.5) * px
 	local columns = math.min(block.cells, math.floor((room + spacing) / (size + spacing)))
 	if columns <= 0 then
@@ -50,7 +43,7 @@ local function Pips(block, room, height, spacing, px)
 	end
 	return {
 		position = block.position, columns = columns, rows = 1, cells = columns, size = size,
-		width = Line(columns, size, spacing), height = size, left = 0, top = 0,
+		width = Geometry.Line(columns, size, spacing), height = size, left = 0, top = 0,
 	}
 end
 
@@ -123,7 +116,7 @@ local function TidyParts(out, f, o)
 	local kind = f.kind
 	local health, name = out.health, out.name
 	if not (health and name) then return out end
-	local right, gap = health.left + health.width, 4
+	local right = health.left + health.width
 	local size = kind == "party" and PARTY_LANE or 10
 	local count = 0
 	for i = 1, Settings.INDICATOR_SLOTS do
@@ -136,9 +129,7 @@ local function TidyParts(out, f, o)
 		reserve, top = 0, health.top
 	end
 	local heal = out.healRow and out.healRow.side == "RIGHT" and out.healRow
-	if heal then
-		gap = Tokens.Size("gapTiny")
-	end
+	local gap = heal and Tokens.Size("gapTiny") or 4
 	local endName = right - reserve - (reserve > 0 and gap or 0)
 	if heal then
 		local step, keep = heal.height + (o.healSpacing or 0), NAME_EM * Widgets.FontSize(f.name, o.nameMin) - (o.pixel or 0)
@@ -150,7 +141,7 @@ local function TidyParts(out, f, o)
 	else
 		count = math.max(0, math.min(count, math.floor((endName - name.left + 1) / (size + 1))))
 	end
-	local width = count > 0 and count * size + (count - 1) * 1 or 0
+	local width = Geometry.Line(count, size, 1)
 	out.indicatorLane = { left = endName - width, top = top, width = width, height = size, size = size, count = count, step = size + 1, fromRight = true, legible = true }
 	if heal then
 		out.indicatorLane.left, out.indicatorLane.top = right - width, health.top + (health.height - size) / 2
@@ -169,14 +160,14 @@ end
 function Geometry.Button(w, h, o)
 	local out = button(w, h, o)
 	local kind = styling and styling.kind
-	if kind == "raid" and out.nameInside then
-		return TidyParts(TileParts(out, w, h, o), styling, o)
+	if not styling then
+		return out
+	elseif kind == "raid" and out.nameInside then
+		TileParts(out, w, h, o)
 	elseif kind == "party" and out.portrait and not out.overlay then
-		return TidyParts(PartyParts(out, o), styling, o)
-	elseif styling then
-		return TidyParts(out, styling, o)
+		PartyParts(out, o)
 	end
-	return out
+	return TidyParts(out, styling, o)
 end
 
 local setName = ns.Names.Set
