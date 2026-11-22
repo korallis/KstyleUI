@@ -37,7 +37,7 @@ function Preview:Refresh()
 	local def = ns.BAR[key] or key == "consumables" and ns.Consumables.def or ns.BAR.bar1
 	local cfg = ns.Config(def.key)
 	local rowCount, cell, spacing
-	if def.kind == "consumable" then rowCount, cell, spacing = K.Setup.Layouts.ConsumableGrid(K.HudStyle.Current())
+	if def.kind == "consumable" then rowCount, cell, spacing = K.Setup.Layouts.ConsumableGrid()
 	else local _; _, rowCount, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), def.element, cfg, K.HudStyle.Current()) end
 	cell, spacing = ns.Tray.Grid(def, cell, spacing)
 	local size, gap = Widgets.Snap(self, cell), Widgets.Snap(self, spacing)

@@ -238,9 +238,9 @@ end
 do
 	local parts = ns.Window.Parts()
 	local sections = railSections(ns)
-	assert(sections[1] == "Accent" and has(sections, "Panel appearance"), "General's level-1 headers sit under it in the rail: " .. table.concat(sections, "|"))
+	assert(sections[1] == "HUD" and sections[2] == "Accent" and has(sections, "Panel appearance"), "General's level-1 headers sit under it in the rail, the HUD style first: " .. table.concat(sections, "|"))
 	local entries = O.Labels(parts.rail:GetData())
-	assert(entries[1] == "General" and entries[2] == "Accent" and entries[#sections + 2] == "Elements", "the sections follow their page and the next page follows them: " .. table.concat(entries, "|"))
+	assert(entries[1] == "General" and entries[2] == "HUD" and entries[#sections + 2] == "Elements", "the sections follow their page and the next page follows them: " .. table.concat(entries, "|"))
 	assert(ns.Window.State().section == 1, "the first section is current while the rows sit at their top")
 
 	local function firstRow()
@@ -624,6 +624,25 @@ do
 	W.Click(ns2.Window.Parts().layoutButton)
 	assert(W.CoreEnv.Printed(env2, "Layout Mode is not available"), "the Layout Mode button says it is not available")
 	assert(#env2._errors == 0, "errors: " .. table.concat(env2._errors, "\n"))
+end
+
+-- The HUD style row at the top of General: a picture card per style, the saved one edged in the accent, a click saves.
+do
+	local env3, K3, ns3 = boot(true)
+	assert(K3.Options.Open("General") == true)
+	settle(env3)
+	local pictures = rowFor(ns3, "HUD style").controls.pictures
+	assert(pictures and pictures.cards[2]:IsShown() and not (pictures.cards[3] and pictures.cards[3]:IsShown()), "the HUD style row shows two picture cards")
+	local medallions, frames = pictures.cards[1], pictures.cards[2]
+	assert(medallions.value == "medallions" and frames.value == "frames", "Medallions, then Frames")
+	assert(medallions.picture:GetTexture() == (K3.Tokens.Texture("hudStyleMedallions")) and frames.picture:GetTexture() == (K3.Tokens.Texture("hudStyleFrames")), "each card shows its picture")
+	W.Click(frames)
+	settle(env3)
+	assert(K3.HudStyle.Saved() == "frames", "a click on Frames saves it")
+	W.Click(medallions)
+	settle(env3)
+	assert(K3.HudStyle.Saved() == "medallions", "a click on Medallions saves it")
+	assert(#env3._errors == 0, "errors: " .. table.concat(env3._errors, "\n"))
 end
 
 print("options window ok")

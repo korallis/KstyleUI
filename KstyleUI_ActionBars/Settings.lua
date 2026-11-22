@@ -158,7 +158,7 @@ function ns.ApplyExtraBars()
 	settings.extraBarsApplied = wanted
 	if preset then
 		local layouts, rootWidth = K.Setup.Layouts, K.Layout.RootSize()
-		local _, _, _, gap = layouts.ActionBarGrid(K.Scale.Aspect(), "actionbars.bar1", "medallions")
+		local _, _, _, gap = layouts.ActionBarGrid(K.Scale.Aspect(), "actionbars.bar1", nil, "medallions")
 		for i, key in ipairs({ "bar4", "bar5" }) do
 			local parent = i == 1 and "actionbars.bar1" or "actionbars.bar2"
 			local x, y, w, h = K.Layout.Rect(parent)
@@ -185,7 +185,7 @@ function ns.ClearExtraChat()
 	local pad = K.Setup.Layouts.MEDALLIONS_SLAB.pad
 	if x - pad < l + w and l < x + bw + pad and y - pad < b + h and b < y + bh + pad then
 		local position = K.Layout.Get("actionbars.bar4")
-		local _, _, _, gap = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), "actionbars.bar1", "medallions")
+		local _, _, _, gap = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), "actionbars.bar1", nil, "medallions")
 		K.Layout.Set("actionbars.bar4", "y", position.y + b + h + pad + gap - y)
 	end
 end
@@ -271,7 +271,7 @@ local function BarRows(schema, def)
 		end
 		if key == "consumables" and row.key and row.key:find(".placement.", 1, true) then
 			row.disableWhen = function()
-				local _, size = K.Setup.Layouts.ConsumableGrid(K.HudStyle.Current())
+				local _, size = K.Setup.Layouts.ConsumableGrid()
 				return size < 30
 			end
 		end
@@ -321,7 +321,7 @@ local function BarRows(schema, def)
 		add({ type = "toggle", key = key .. ".rarityBorder", label = L["Item quality borders"], help = L["Colours the border of buttons holding an uncommon or better item."] })
 	end
 	add({ type = "toggle", key = key .. ".moverOptions", label = L["Double-click mover for settings"], help = L["Opens this bar in Options from Layout Mode. Click selects; right-click resets."] })
-	if def.kind == "consumable" then add({ type = "note", label = L["Below 30 units, consumables keep count and cooldown apart."], showWhen = function(settings) return editing(settings) and settings[key].enabled and select(2, K.Setup.Layouts.ConsumableGrid(K.HudStyle.Current())) < 30 end }) end
+	if def.kind == "consumable" then add({ type = "note", label = L["Below 30 units, consumables keep count and cooldown apart."], showWhen = function(settings) return editing(settings) and settings[key].enabled and select(2, K.Setup.Layouts.ConsumableGrid()) < 30 end }) end
 	for _, spec in ipairs(ns.TEXTS) do
 		if spec.key == "hotkey" or spec.key == "cooldown" or spec.key == "count" and (def.kind == "action" or def.kind == "consumable") or spec.key == "macro" and def.kind == "action" then
 			local path = key .. ".placement." .. spec.key

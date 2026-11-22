@@ -79,17 +79,17 @@ end
 
 function Slab.Rows(def, cfg)
 	if not Grouped(def) and cfg.rows ~= 0 then return cfg.rows end
-	return select(2, Layouts().ActionBarGrid(K.HudStyle.Current(), K.Scale.Aspect(), def.element, cfg))
+	return select(2, Layouts().ActionBarGrid(K.Scale.Aspect(), def.element, cfg, K.HudStyle.Current()))
 end
 
 function Slab.Size(def, cfg)
 	if not Grouped(def) then return cfg.size end
-	return select(3, Layouts().ActionBarGrid(K.HudStyle.Current(), K.Scale.Aspect(), def.element, cfg))
+	return select(3, Layouts().ActionBarGrid(K.Scale.Aspect(), def.element, cfg, K.HudStyle.Current()))
 end
 
 function Slab.Spacing(def, cfg)
 	if not Grouped(def) and cfg.spacing >= 0 then return cfg.spacing end
-	return select(4, Layouts().ActionBarGrid(K.HudStyle.Current(), K.Scale.Aspect(), def.element, cfg))
+	return select(4, Layouts().ActionBarGrid(K.Scale.Aspect(), def.element, cfg, K.HudStyle.Current()))
 end
 
 function Slab.TextSize(key, cfg, size, text)
@@ -754,7 +754,7 @@ function Slab.Refresh()
 			if bar and bar:Shown() and not bar.holderHidden and not bar.gateHidden then
 				local l, r, t, b = Edges(bar.holder)
 				local bl, br, bt = Edges(base.holder)
-				local _, _, _, spacing = Layouts().ActionBarGrid(STYLE, K.Scale.Aspect(), base.def.element)
+				local _, _, _, spacing = Layouts().ActionBarGrid(K.Scale.Aspect(), base.def.element, nil, STYLE)
 				local unit = K.Scale.Root():GetEffectiveScale()
 				local slack = 2 * K.Scale.Pixel(1) * unit
 				if l and abs(l - bl) <= slack and abs(r - br) <= slack and abs(b - bt - spacing * unit) <= slack then

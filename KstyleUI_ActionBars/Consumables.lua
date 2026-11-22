@@ -120,7 +120,7 @@ function C.Apply()
 	if not holder and #selected == 0 and cfg.hideEmpty then applying = false; return end
 	Build()
 	local style, layouts = K.HudStyle.Current(), K.Setup.Layouts
-	local rows, size, gap = layouts.ConsumableGrid(style)
+	local rows, size, gap = layouts.ConsumableGrid(nil, style)
 	local capacity = cfg.buttons or 12
 	local width, height, columns, used = ns.GridSize(capacity, rows, size, gap)
 	holder:SetSize(width, height)
