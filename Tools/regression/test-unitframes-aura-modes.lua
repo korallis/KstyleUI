@@ -1,11 +1,12 @@
--- test-unitframes-aura-modes.lua: Medallions rows and the target's Medallions fan keep their own player and target aura settings (Frames and the fan share the rest): untouched each layout draws its look and its Options row shows it, any choice (another layout's default included) survives a reload without touching another layout's own, and older profiles draw what they drew before.
+-- test-unitframes-aura-modes.lua: Medallions rows, the target's rows on Debuffs and buffs and the target's Medallions fan keep their own player and target aura settings (Frames and the fan share the rest): untouched each layout draws its look and its Options row shows it, any choice (another layout's default included) survives a reload without touching another layout's own, older profiles draw what they drew before, and a frame copying the target's auras follows its size and row count, also when the target's filter changes.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local KEYS = { "auraPosition", "auraGrowth", "auraSize", "auraSpacing", "auraColumns", "auraRows" }
 local LABELS = { auraPosition = "Aura position", auraGrowth = "Aura growth", auraSize = "Aura icon size", auraSpacing = "Aura spacing", auraColumns = "Aura columns", auraRows = "Aura rows" }
-local MODES = { { "frames", "frames", "rows" }, { "rows", "medallions", "rows" }, { "fan", "medallions", "fan" } }
+local MODES = { { "frames", "frames", "rows", "mine" }, { "rows", "medallions", "rows", "mine" }, { "both", "medallions", "rows", "both" }, { "fan", "medallions", "fan", "mine" } }
 local LOOK = {
 	frames = { player = { "BELOW", "RIGHT_DOWN", 22, 2, 8, 1 }, target = { "SIDE", "RIGHT_DOWN", 27.6, 4, 4, 1 } },
 	rows = { player = { "ABOVE", "RIGHT_UP", 28, 2, 6, 2 }, target = { "ABOVE", "LEFT_UP", 28, 2, 6, 2 } },
+	both = { player = { "ABOVE", "RIGHT_UP", 28, 2, 6, 2 }, target = { "ABOVE", "LEFT_UP", 28, 2, 6, 1 } },
 	fan = { player = { "BELOW", "RIGHT_DOWN", 22, 2, 8, 1 }, target = { "SIDE", "LEFT_DOWN", 22, 2, 6, 1 } },
 }
 
@@ -17,6 +18,7 @@ end
 local function Enter(mode)
 	K.Options.Write("HudStyle", "style", mode[2])
 	K.Options.Write("UnitFrames", "auraLayout", mode[3])
+	K.Options.Write("UnitFrames", "target.auraFilter", mode[4])
 	env.RunTimers()
 end
 local function Shown(kind, key)
@@ -40,22 +42,17 @@ local function Check(mode, want, why)
 		end
 	end
 end
-local function Copy(t)
-	local out = {}
-	for k, v in pairs(t) do out[k] = type(v) == "table" and Copy(v) or v end
-	return out
-end
 
 Boot()
 K.Options.Write("UnitFrames", "player.auras", true)
 K.Options.Write("UnitFrames", "player.medallionsAuras", true)
 for _, mode in ipairs(MODES) do Check(mode, LOOK, "untouched") end
 
-local SLAB = { auraGrowth = true, auraSize = true, auraSpacing = true, auraColumns = true }
 local function Stored(mode, kind, key)
-	return mode == "rows" and "rows" or mode == "fan" and kind == "target" and SLAB[key] and "slab" or "base"
+	if mode == "both" and kind == "target" and key == "auraRows" then return "rowsBoth" end
+	return (mode == "rows" or mode == "both") and "rows" or mode == "fan" and kind == "target" and key ~= "auraRows" and key ~= "auraPosition" and "slab" or "base"
 end
-local want = Copy(LOOK)
+local want = K.Options.Copy(LOOK)
 for _, mode in ipairs(MODES) do
 	Enter(mode)
 	for kind, values in pairs(want[mode[1]]) do
@@ -78,14 +75,24 @@ for _, mode in ipairs(MODES) do
 end
 
 local old = { version = 47, profiles = { Default = { HudStyle = { style = "medallions" }, UnitFrames = { enabled = true,
-	player = { auras = true, medallionsAuras = true, auraGrowth = "LEFT_UP" }, target = { auraSize = 30, auraColumns = 6, auraRows = 1 } } } } }
+	player = { auras = true, medallionsAuras = true, auraGrowth = "LEFT_UP", auraRows = 1 }, target = { auraSize = 30, auraColumns = 6, auraRows = 3 } } } } }
 Boot(old)
-want = Copy(LOOK)
+want = K.Options.Copy(LOOK)
 for _, mode in pairs(want) do
-	mode.player[2], mode.target[3], mode.target[5] = "LEFT_UP", 30, 6
+	mode.player[2], mode.target[3], mode.target[5], mode.target[6] = "LEFT_UP", 30, 6, 3
 end
 for _, mode in ipairs(MODES) do Check(mode, want, "an older profile") end
+Enter(MODES[2])
 K.Options.Write("UnitFrames", "focus.auraCopy", "target")
 K.Options.Write("UnitFrames", Shown("target", "auraSize"), 33)
 assert(ns.Frames.Get("focus").s.auraSize == 33, "a frame that copies the target's auras follows its layout's own size; restyle it in Frames.lua OnSettingChanged")
-print("ok: Frames, Medallions rows and fan each keep their player and target aura settings; older profiles draw as before")
+for _, case in ipairs({ { "both", 1 }, { "mine", 3 } }) do
+	K.Options.Write("UnitFrames", "target.auraFilter", case[1])
+	K.Options.Write("UnitFrames", Shown("target", "auraRows"), case[2])
+end
+for _, case in ipairs({ { "both", 1 }, { "mine", 3 }, { "both", 1 } }) do
+	K.Options.Write("UnitFrames", "target.auraFilter", case[1])
+	local rows, held = ns.Settings.Value("focus", "auraRows"), ns.Frames.Get("focus").views[1].auras.container._groups.debuffs.max
+	assert(rows == case[2] and held == rows * ns.Settings.Value("focus", "auraColumns"), string.format("the target on %s: the copying focus holds %d auras, want %d rows of %d; restyle it when the target's filter changes in Frames.lua OnSettingChanged", case[1], held, rows, ns.Settings.Value("focus", "auraColumns")))
+end
+print("ok: Frames, Medallions rows, rows on Debuffs and buffs and fan each keep their player and target aura settings; older profiles draw as before")
