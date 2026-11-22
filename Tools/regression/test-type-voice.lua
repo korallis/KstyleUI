@@ -4,10 +4,8 @@ local D = dofile("Tools/regression/databars_env.lua")
 local function near(a, b) return math.abs(a - b) < 1e-6 end
 
 for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
-	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-		local _, K = U.New({ width = screen[1], height = screen[2] })
-		assert(K.Scale.TextFloor() == math.floor(11 * screen[2] / 1080 + 0.5), "retain the ordinary-screen reading floor in every HUD style")
-	end
+	local _, K = U.New({ width = screen[1], height = screen[2] })
+	assert(K.Scale.TextFloor() == math.floor(11 * screen[2] / 1080 + 0.5), "retain the ordinary-screen reading floor in every HUD style")
 end
 
 for _, screen in ipairs({ { 1920, 1080 }, { 3456, 2234 }, { 5120, 1440 } }) do

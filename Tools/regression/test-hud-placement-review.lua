@@ -59,7 +59,7 @@ if not pick or pick == "resource" then
 		local p=L.Place("DPS","medallions",K.Scale.Aspect(),"unitframes.resource")
 		assert(p.anchor==old.anchor and p.x==old.x and p.y==old.y, "Meters must never move the Unit Frames class-resource bar")
 	end
-	local old=L.Default("unitframes.resource")
+	old=L.Default("unitframes.resource")
 	local data={profiles={Default={}},layouts={Default={["unitframes.resource"]={anchor=old.anchor,x=old.x,y=old.y}}}}
 	K.Store.migrations[36](data)
 	assert(data.layouts.Default["unitframes.resource"] and data.layouts.Default["unitframes.resource"].y==old.y,"migration 36 must leave class-resource positions intact")

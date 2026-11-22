@@ -52,10 +52,8 @@ assert(card.count:GetFont() == skinK.Tokens.Font("number"), "C3 off: story-card 
 assert(select(2, card.label:GetFont()) == skinK.Widgets.FontSize(card.label, 12 * skinK.Theme.FontScale()), "C5 off: restore the original story heading size")
 assert(#skinEnv._errors == 0, tostring(skinEnv._errors[1]))
 
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-	for _, headings in ipairs({ true, false }) do
-		skinK.Options.Write("Appearance", "sectionHeadings", headings)
-		skinK.Theme.SetRoleFonts({ number = "SourceSans3Semibold" })
-		assert(card.count:GetFont() == skinK.Tokens.Font("number"), "cap asides must respect an explicit number-role font in every HUD and heading mode")
-	end
+for _, headings in ipairs({ true, false }) do
+	skinK.Options.Write("Appearance", "sectionHeadings", headings)
+	skinK.Theme.SetRoleFonts({ number = "SourceSans3Semibold" })
+	assert(card.count:GetFont() == skinK.Tokens.Font("number"), "cap asides must respect an explicit number-role font in every HUD and heading mode")
 end
