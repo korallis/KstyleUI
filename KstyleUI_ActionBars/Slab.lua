@@ -707,6 +707,7 @@ local function Hide()
 	ns.SlabJewels.Update()
 	ns.SlabHawks.Update()
 	ns.SlabCrown.Update()
+	ns.Totems.Update()
 end
 
 local function PlaceSweeps(slab, half)
@@ -795,6 +796,7 @@ function Slab.Refresh()
 	ns.SlabJewels.Update()
 	ns.SlabHawks.Update()
 	ns.SlabCrown.Update()
+	ns.Totems.Update()
 	if ns.Travel then ns.Travel.Refresh() end
 	return true
 end
@@ -1023,7 +1025,7 @@ local function SlotLayer(parent, layer, sublevel, name, owner)
 	return t
 end
 
-local DRESSED = { action = true, pet = true, stance = true, travel = true }
+local DRESSED = { action = true, pet = true, stance = true, travel = true, totem = true }
 
 function Slab.Keybind(b, wanted)
 	local cfg = K.Store.Module("ActionBars")

@@ -951,6 +951,27 @@ Original KstyleUI art in the crest's forged look (gilt and steel lit from the up
 | `Media/Textures/Pips/PipBladeGlow130.png`, `Media/Textures/Pips/PipBladeGlow110.png`, `Media/Textures/Pips/PipBladeGlow90.png`, `Media/Textures/Pips/PipBladeGlow70.png`, `Media/Textures/Pips/PipBladeGlow50.png` | 128x128 | The dagger's silhouette blurred, white: the halo that hugs a lit dagger, ADD, tinted `jewelCombo`. |
 | `Media/Textures/Pips/PipClawGlow130.png`, `Media/Textures/Pips/PipClawGlow110.png`, `Media/Textures/Pips/PipClawGlow90.png`, `Media/Textures/Pips/PipClawGlow70.png`, `Media/Textures/Pips/PipClawGlow50.png` | 128x128 | The talon's silhouette blurred, white: its halo, ADD, tinted `pipDruidGlow`. |
 
+## Spirit Poles: the shaman's totem spires and element runes (2026-11-22)
+
+The crown spires of the shaman's totem bar (`KstyleUI_ActionBars/Totems.lua`, tokens `pipSpire<kind><angle>`) and the four element runes its empty sockets show (tokens `totemRune<element>`).
+
+**Spire source.** Higgsfield `gpt_image_2_5`, job `edf8a5ac-3508-4774-910c-21230d0b2779` (quality high, 1k, 9:16, transparent background), with `Media/Textures/Pips/PipBlade90.png` and `Media/Textures/Medallions/Crests/orc_shaman.png` as style references; prompt: "A single slender totem spire for a fantasy game interface, standing perfectly upright and centred: a tall narrow four-sided spike of polished antique silver steel with crisp bevelled facets lit from the upper left, a thin engraved rune channel running up its centre that glows soft white, two small gilt bands wrapped around it near the base and a short carved gilt collar at the very bottom, tapering to a sharp point at the top, thin dark outline, jewellery-like metalwork matching the gilt and steel of the reference dagger and shield, bold readable silhouette that stays clear at very small sizes, no text, no frame, no background, isolated object on transparent background"; source 752x1344, SHA-256 `1b38b8ad6f62b127a3f650586d815a8810afb5a19b97e82d57e91f693e92fd2b`. No CaithUI, MeowCactus or Blizzard image was an input.
+
+**Bake.** Alpha below 24 cut to nothing. The rune channel (luminance above 200, saturation below 0.22, within 18 px of the blade's axis, between y 262 and 1000) and the collar's gem (red above 150, green below 70, blue below 80, saturation above 0.6, below y 1150) form the core mask, softened by a 1.5 px Gaussian. Lit: the source with the core mask turned white-hot. Steel: luminance with the core darkened by 60%, as cool steel (0.74, 0.79, 0.88) at 80% opacity. Core: the core mask in white. The piece is trimmed, padded, its height scaled to 72%, rotated about its centre to each angle the crest fans it at (126, 102, 78 and 54 degrees, and 90 upright for the Frames and Orbs row), cut to a square whose side is the rotated piece's height (so a vertical timer bar drains it linearly), premultiplied and Lanczos-resized to 128x128. Glow: the rotated silhouette in a square 1.5 times as large on the same centre, Lanczos to 128x128, Gaussian blur of 5.76 px, alpha times 1.6.
+
+| Files | Size | What it is |
+| --- | --- | --- |
+| `Media/Textures/Pips/PipSpire126.png`, `Media/Textures/Pips/PipSpire102.png`, `Media/Textures/Pips/PipSpire90.png`, `Media/Textures/Pips/PipSpire78.png`, `Media/Textures/Pips/PipSpire54.png` | 128x128 | A lit spire: polished steel with a white-hot rune channel, gilt bands and collar. Drawn untinted as a timer bar that drains with the totem's time left. |
+| `Media/Textures/Pips/PipSpireSteel126.png`, `Media/Textures/Pips/PipSpireSteel102.png`, `Media/Textures/Pips/PipSpireSteel90.png`, `Media/Textures/Pips/PipSpireSteel78.png`, `Media/Textures/Pips/PipSpireSteel54.png` | 128x128 | The spire dormant: cool ghost steel, its runes dark. |
+| `Media/Textures/Pips/PipSpireCore126.png`, `Media/Textures/Pips/PipSpireCore102.png`, `Media/Textures/Pips/PipSpireCore90.png`, `Media/Textures/Pips/PipSpireCore78.png`, `Media/Textures/Pips/PipSpireCore54.png` | 128x128 | The rune channel and gem, white: ADD, tinted the element's colour (`totemEarth`, `totemFire`, `totemWater`, `totemAir`) while the totem is up, and `totemCore` for the drop flare. |
+| `Media/Textures/Pips/PipSpireGlow126.png`, `Media/Textures/Pips/PipSpireGlow102.png`, `Media/Textures/Pips/PipSpireGlow90.png`, `Media/Textures/Pips/PipSpireGlow78.png`, `Media/Textures/Pips/PipSpireGlow54.png` | 128x128 | The spire's silhouette blurred, white: the halo, ADD, tinted the element's colour. |
+
+**Element runes.** Original procedural art drawn with Python/Pillow; no model, prompt or external art. The four alchemical element signs (fire an upward triangle, water a downward one, air an upward triangle with a bar, earth a downward triangle with a bar), each a 30-unit equilateral triangle on a 64-unit square, drawn at 8x as a 4.5-unit white stroke with round joins over a 7.5-unit black outline (85% opacity, 0.6-unit blur), shaded 25% darker from top to bottom, Lanczos to 64x64. Tinted the element's colour in the socket.
+
+| Files | Size | What it is |
+| --- | --- | --- |
+| `Media/Textures/Totems/RuneEarth.png`, `Media/Textures/Totems/RuneFire.png`, `Media/Textures/Totems/RuneWater.png`, `Media/Textures/Totems/RuneAir.png` | 64x64 | An empty socket's element rune, and the "no totem" choice in its fan. |
+
 ## Danger edge and portrait rings (E1/E2, 2026-11-18)
 
 Original procedural white RGBA masks, drawn with Python/Pillow; no model, prompt, external art or dependency added. Existing vignette and smoke assets remain for the previous-look settings.

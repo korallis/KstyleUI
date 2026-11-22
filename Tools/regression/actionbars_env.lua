@@ -76,6 +76,7 @@ local function RestrictedEnv(env)
 		HasBonusActionBar = function() return g.bonus ~= nil end,
 		GetBonusBarIndex = function() return g.bonus end,
 		GetActionBarPage = function() return g.page end,
+		IsShiftKeyDown = function() return g.shift == true end,
 	}
 end
 
@@ -469,6 +470,8 @@ local function InstallGame(env, opts)
 	end
 	env.Enum = env.Enum or {}
 	env.Enum.InputDeviceInterfaceType = { Mkb = 0, Gamepad = 1 }
+	env.Enum.StatusBarInterpolation = env.Enum.StatusBarInterpolation or { Immediate = 0, ExponentialEaseOut = 1 }
+	env.Enum.StatusBarTimerDirection = env.Enum.StatusBarTimerDirection or { ElapsedTime = 0, RemainingTime = 1 }
 	env.C_InputInterfaceStyle = {
 		GetCurrentStyle = function()
 			return g.style
@@ -749,13 +752,18 @@ function AB.Click(env, button, mouse, down)
 		if page == nil and button:GetAttribute("useparent-actionpage") then
 			page = button:GetParent():GetAttribute("actionpage")
 		end
-		local id = button:GetID()
+		local id = button:GetID() or 0
 		local slot = id > 0 and (id + ((page or 1) - 1) * 12) or button:GetAttribute("action")
 		g.used[#g.used + 1] = slot
 	elseif kind == "pet" then
 		g.used[#g.used + 1] = "pet" .. tostring(button:GetAttribute("action"))
 	elseif kind == "spell" then
-		g.used[#g.used + 1] = "spell" .. tostring(button:GetAttribute("spell"))
+		g.used[#g.used + 1] = "spell" .. tostring(button:GetAttribute("spell" .. suffix) or button:GetAttribute("spell"))
+	elseif kind == "multispell" then
+		g.used[#g.used + 1] = "multispell" .. tostring(button:GetAttribute("action")) .. ":" .. tostring(button:GetAttribute("spell"))
+		if env.SetMultiCastSpell then env.SetMultiCastSpell(button:GetAttribute("action"), button:GetAttribute("spell")) end
+	elseif kind == "destroytotem" then
+		g.used[#g.used + 1] = "destroytotem" .. tostring(button:GetAttribute("totem-slot" .. suffix) or button:GetAttribute("totem-slot"))
 	elseif kind == "item" then
 		g.used[#g.used + 1] = button:GetAttribute("item" .. suffix) or button:GetAttribute("item")
 	elseif kind == "click" then

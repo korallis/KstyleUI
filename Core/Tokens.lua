@@ -147,6 +147,12 @@ local COLORS = {
 	jewelSocket = { "4a505a", 1 },
 	jewelHawk = { "aad372", 1 },
 	jewelHawkCore = { "f1ffd9", 1 },
+	totemEarth = { "8cc152", 1 },
+	totemFire = { "ff8a3d", 1 },
+	totemWater = { "4aa8ff", 1 },
+	totemAir = { "b79cff", 1 },
+	totemCore = { "fff4dc", 1 },
+	totemSpirit = { "8fd8ff", 1 },
 	medGunLit = { "50555d", 1 },
 	medGunDark = { "0e0f12", 1 },
 	medGunHair = { "6b7380", 0.4 },
@@ -487,6 +493,14 @@ for _, set in ipairs({ "Blade", "Claw" }) do
 			TEXTURES["pip" .. set .. kind .. angle] = { file = "Textures\\Pips\\Pip" .. set .. kind .. angle .. ".png" }
 		end
 	end
+end
+for _, kind in ipairs({ "", "Steel", "Core", "Glow" }) do
+	for _, angle in ipairs({ 126, 102, 90, 78, 54 }) do
+		TEXTURES["pipSpire" .. kind .. angle] = { file = "Textures\\Pips\\PipSpire" .. kind .. angle .. ".png" }
+	end
+end
+for _, element in ipairs({ "Earth", "Fire", "Water", "Air" }) do
+	TEXTURES["totemRune" .. element] = { file = "Textures\\Totems\\Rune" .. element .. ".png" }
 end
 
 local RGBA = {}

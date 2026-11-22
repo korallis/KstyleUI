@@ -19,6 +19,7 @@ local Scene = Common.Scene
 local Tooltip = dofile("Tools/render/scenes/tooltip.lua")
 local Classes = dofile("Tools/render/scenes/_classes.lua")
 local Fx = dofile("Tools/render/scenes/_effects.lua")
+local TotemScene = dofile("Tools/render/scenes/_totems.lua")
 
 local Hud = {}
 Hud.Classes = Classes
@@ -187,6 +188,7 @@ local function saved(opts, module, settings, more)
 		merge(profile[name], opts.settings and opts.settings[name])
 	end
 	Common.FinishSettings(profile)
+	if module == "UnitFrames" and os.getenv("RENDER_AURA_LAYOUT") then section.auraLayout = os.getenv("RENDER_AURA_LAYOUT") end
 	profile.Minimap = profile.Minimap or { enabled = true }
 	profile.Minimap.frame = os.getenv("RENDER_MINIMAP_FRAME")
 	return {
@@ -656,6 +658,7 @@ function modules.actionbars(opts)
 			for i, form in ipairs(spec.forms or {}) do
 				env._game.forms[i] = { texture = form[2], isActive = form[3] == true, spellID = 7000 + i }
 			end
+			if class == "SHAMAN" and TotemScene.Story() then TotemScene.Install(env) end
 			-- The player's race, which picks the Medallions crest with the class, as the unit frames draw it (Hud.RACES).
 			env.UnitRace = env.UnitRace or function()
 				local race = Hud.RACES[(Hud.Class(opts))] or "Human"
@@ -813,6 +816,7 @@ function modules.actionbars(opts)
 	local notes = { PlayPips(env, K, function(n) env._pips = n end) }
 	local scene = build(env, opts, { time = env._time }, function()
 		Fx.Apply(env, "actionbars", ns, notes)
+		if class == "SHAMAN" and TotemScene.Story() then TotemScene.Play(env, K, ns, AB, notes) end
 		if travel then
 			K.Options.Write("ActionBars", "crestTravel", not travel:find("before", 1, true))
 			if ns.Travel.crest and ns.Travel.crest:IsShown() then ns.Travel.Prepare(); AB.Click(env, ns.Travel.crest, "RightButton", false) end
