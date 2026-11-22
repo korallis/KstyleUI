@@ -548,6 +548,12 @@ local function ExtraTexts(f, k)
 	end
 end
 
+function Style.Scaled(f, size)
+	local own = f.extra and Settings.current[f.extra]
+	if not (own and own.icons and f.height) then return size end
+	return math.max(1, math.floor(size * f.height / Settings.current.raid.height + 0.5))
+end
+
 function Style.Apply(f, width, height)
 	local cfg = Settings.current
 	local k = cfg[f.kind]
@@ -563,9 +569,9 @@ function Style.Apply(f, width, height)
 	local place, outside = Geometry.AuraPlace(k, f.kind == "party" and Geometry.AuraLane(k) or 0)
 	local aura = cfg.auras.enabled and not outside and {
 		position = place, count = math.max(1, math.min(k.auraCount, k.auraColumns * k.auraRows)), columns = k.auraColumns, rows = k.auraRows,
-		size = Widgets.Snap(f, k.auraSize), spacing = Widgets.Snap(f, k.auraSpacing),
+		size = Widgets.Snap(f, Style.Scaled(f, k.auraSize)), spacing = Widgets.Snap(f, k.auraSpacing),
 	} or nil
-	local healRow = cfg.buffs.enabled and k.buffCount > 0 and Widgets.Snap(f, k.buffSize) or nil
+	local healRow = cfg.buffs.enabled and k.buffCount > 0 and Widgets.Snap(f, Style.Scaled(f, k.buffSize)) or nil
 	local nameMin = Style.NameMin(k)
 	f.powerShown = Style.PowerShown(f)
 	local parts = Geometry.Button(width, height, {
@@ -592,7 +598,7 @@ function Style.Apply(f, width, height)
 		pip = PIP[f.kind],
 		reserve = reserve,
 		boss = overlay and cfg.auras.enabled and BOSS_SLOT or nil,
-		laneSize = overlay and math.max(Geometry.LEGIBLE, Widgets.Snap(f, k.auraSize)) or nil,
+		laneSize = overlay and math.max(Geometry.LEGIBLE, Widgets.Snap(f, Style.Scaled(f, k.auraSize))) or nil,
 		nameMin = nameMin,
 		healthLine = k.healthTextSize + NAME_LINE_EXTRA,
 		pixel = K.Scale.Pixel(1) / Widgets.ScaleFactor(f),

@@ -20,6 +20,8 @@ local DRIVER_RAID = "[group:raid] show; hide"
 local DRIVER_SMALL_RAID = "[group] show; hide"
 local DRIVER_HIDE = "hide"
 local GRID = { "width", "height", "spacing", "groupSpacing" }
+local FACING = { TOP = "BOTTOM", BOTTOM = "TOP", LEFT = "RIGHT", RIGHT = "LEFT" }
+Headers.FACING = FACING
 
 local CONFIG = [[
 	local header = self:GetParent()
@@ -230,6 +232,35 @@ local function Separate(s)
 	return s.sortBy == "GROUP" and not s.merge
 end
 
+local function Me(place, s, geo, header, x, y)
+	local me, holder = Headers.me, Headers.holders.party
+	if place and not me then
+		me = CreateFrame("Button", nil, holder, BUTTON_TEMPLATE)
+		me:SetAttribute("*type1", "target")
+		me:SetAttribute("*type2", "togglemenu")
+		ns.Button.Adopt(me, "party")
+		Headers.me = me
+	end
+	if me then
+		Quiet(me)
+		me:ClearAllPoints()
+		me:SetAttribute("unit", place and "player" or nil)
+	end
+	if place ~= "FIRST" then header:SetPoint(geo.corner, holder, geo.corner, x, y) end
+	if not place then return end
+	local width, dx, dy = Px("party", geo.memberWidth), Px("party", geo.xOffset), Px("party", geo.yOffset)
+	me:SetSize(width, s.height)
+	me:SetFrameLevel(header:GetFrameLevel() + 1)
+	Style.Apply(ns.Button.Content(me), width, s.height)
+	if place == "FIRST" then
+		me:SetPoint(geo.corner, holder, geo.corner, x, y)
+		header:SetPoint(geo.point, me, FACING[geo.point], dx, dy)
+	else
+		me:SetPoint(geo.point, header, FACING[geo.point], dx, dy)
+	end
+	Driver(me, place == "FIRST" and s.showSolo and DRIVER_PARTY_SOLO or DRIVER_PARTY)
+end
+
 function Headers.ApplyParty(s)
 	s = OnGrid("party", s)
 	local geo = Geometry.Party(s)
@@ -250,8 +281,9 @@ function Headers.ApplyParty(s)
 	Quiet(header)
 	header:SetAttribute("showRaid", small)
 	header:SetAttribute("showParty", true)
-	header:SetAttribute("showPlayer", s.showPlayer)
-	header:SetAttribute("showSolo", s.showSolo)
+	local place = s.showPlayer and not small and s.selfPosition ~= "SORTED" and s.selfPosition or nil
+	header:SetAttribute("showPlayer", s.showPlayer and not place)
+	header:SetAttribute("showSolo", s.showSolo and place ~= "FIRST")
 	header:SetAttribute("groupFilter", small and "1" or nil)
 	Sort(header, s.sortBy, nil, "party")
 	Columns(header, nil, nil, nil, nil)
@@ -259,7 +291,7 @@ function Headers.ApplyParty(s)
 	header:ClearAllPoints()
 	local lane = geo.corner:find("RIGHT", 1, true) and geo.laneSide == "RIGHT" or not geo.corner:find("RIGHT", 1, true) and geo.laneSide == "LEFT"
 	local x, y = Offset(geo, card, left, top, lane and geo.lane or 0, "party")
-	header:SetPoint(geo.corner, holder, geo.corner, x + card.shiftX, y + card.shiftY)
+	Me(place, s, geo, header, x + card.shiftX, y + card.shiftY)
 	Resize(header, Px("party", geo.memberWidth), s.height)
 	Precreate(header, PARTY_BUTTONS)
 	Driver(header, small and DRIVER_SMALL_RAID or s.showSolo and DRIVER_PARTY_SOLO or DRIVER_PARTY)
@@ -484,6 +516,7 @@ function Headers.Stop()
 		return
 	end
 	Quiet(Headers.party)
+	if Headers.me then Quiet(Headers.me) end
 	for _, header in ipairs(Headers.raid) do
 		Quiet(header)
 	end

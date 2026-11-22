@@ -1,4 +1,4 @@
--- test-unitframes-preview-fit.lua: the unit frames live preview fits its pane: every frame kind, its cast line and its sample auras lie inside the pane at the options pane's width, and a resize fits it again (round 4: Opus #1, Astra #2; "ing Frostbolt" cut at the pane's edge). test-unitframes-preview-fit-frames.lua runs them on Frames.
+-- test-unitframes-preview-fit.lua: the unit frames live preview fits its pane: every frame kind, its cast line and its sample auras lie inside the pane at the options pane's width, and a resize fits it again (round 4: Opus #1, Astra #2; "ing Frostbolt" cut at the pane's edge), a size change below a pixel leaves it laid out, names and captions take the final scale's pixel sizes (with a detached power bar too), and the Medallions target's cast hangs 2 units under the slab. test-unitframes-preview-fit-frames.lua runs them on Frames.
 local frames = ... == "frames"
 local U = dofile("Tools/regression/unitframes_env.lua")
 local D = dofile("Tools/regression/databars_env.lua")
@@ -20,6 +20,13 @@ local pane = env.CreateFrame("Frame", nil, K.Scale.Root())
 pane:SetSize(PANE_W, PANE_H)
 pane:SetPoint("CENTER")
 local preview = K.Options.Preview("UnitFrames")(pane)
+
+local function OnGrid(where, kind, key)
+	local text = preview.views[kind][key]
+	local _, size = text:GetFont()
+	local want = K.Widgets.FontSize(text, size)
+	assert(math.abs(size - want) < 1e-6, string.format("%s: size the %s preview's %s after the fit that sets its final scale, on whole pixels: %.4f, there %.4f", where, kind, key, size, want))
+end
 
 local function regions(kind)
 	local out = { holder = preview.holders[kind] }
@@ -45,6 +52,11 @@ local function Check(where)
 		K.Options.Write("UnitFrames", "edit", kind)
 		preview:Refresh()
 		assert(preview.kind == kind, "the preview draws " .. kind)
+		local before = preview.views[kind].s
+		pane:SetHeight(pane:GetHeight() + 1e-9)
+		assert(preview.views[kind].s == before, where .. ": a size change below a pixel, as the Options pane's move of the preview makes, lays the " .. kind .. " preview out again")
+		OnGrid(where, kind, "name")
+		OnGrid(where, kind, "caption")
 		for key, region in pairs(regions(kind)) do
 			if region:IsVisible() then
 				local r = { Scene.Rect(env, region) }
@@ -68,6 +80,17 @@ end
 Check("at " .. PANE_W .. " units")
 pane:SetSize(220, PANE_H)
 Check("after a resize to 220 units")
+for _, kind in ipairs({ "focus", "boss" }) do
+	K.Options.Write("UnitFrames", "edit", kind)
+	K.Options.Write("UnitFrames", kind .. ".power", true)
+	K.Options.Write("UnitFrames", kind .. ".powerDetach", "BELOW")
+	K.Options.Write("UnitFrames", kind .. ".powerDetachY", -40)
+	for _, size in ipairs({ { 280, 200 }, { 360, 125 } }) do
+		pane:SetSize(size[1], size[2])
+		preview:Refresh()
+		OnGrid("a detached power bar at " .. size[1] .. "x" .. size[2], kind, "name")
+	end
+end
 pane:SetSize(PANE_W, PANE_H)
 
 -- The target frame, in a fresh profile (on Frames, the older Lumen sigil, in a profile that keeps it).
@@ -134,6 +157,8 @@ if not frames then
 	preview:Refresh()
 	local tcb = preview.casts.target
 	assert(tcb and tcb.frame:IsShown(), "the target preview shows a cast sample")
+	local gap = -select(5, tcb.frame:GetPoint(1)) - preview.holders.target:GetHeight()
+	assert(math.abs(gap - 2) < 1e-6, "the cast sample hangs 2 units under the slab, as SLAB_CAST_GAP in KstyleUI_UnitFrames/Frames.lua does live: " .. gap)
 	assert(tostring(tcb.text:GetText()):find(K.L["Valerin"], 1, true), "with the spell target: " .. tostring(tcb.text:GetText()))
 	assert(tcb.important and tcb.important:IsShown(), "and the important cast outline")
 	K.Options.Write("UnitFrames", "castbarOnFrame", false)

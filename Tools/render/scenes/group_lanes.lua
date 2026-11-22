@@ -23,6 +23,9 @@
 -- indicator 1 as a bar on the health bar's foot, filling the other way and over the debuff icons, and indicator 2 as a square (both
 -- shown on the first member), party frames that take the raid's text, debuffs, heal icons, status icon size and power bar, an own
 -- raid size from 16 players and tank frames that leave you out (you are the first member).
+-- RENDER_PARITY_R7=1 switches on round 7's: your frame last in the party, party pets beside their owners (yours and the second
+-- member's), the dispel highlight under the bar's fills on the second member's heal absorb (with RENDER_GROUP_DISPEL=1), and in a
+-- raid tank frames 16 taller whose icons grow with them.
 -- RENDER_RAID_POWER=1 switches the raid power bar on.
 -- RENDER_GROUP_DISPEL=1 shows the dispel highlight on the second member as the aura engine does for a Magic debuff: every texture
 -- registered with the slot shown in the Magic colour, keeping its own alpha as the options preview does.
@@ -63,6 +66,7 @@ local R4 = os.getenv("RENDER_PARITY_R4") == "1"
 local R5 = os.getenv("RENDER_PARITY_R5") == "1"
 local EXTRAS = os.getenv("RENDER_EXTRAS") == "1"
 local R6 = os.getenv("RENDER_PARITY_R6") == "1"
+local R7 = os.getenv("RENDER_PARITY_R7") == "1"
 local SPELLS = { [1243] = { "Power Word: Fortitude", 135987 }, [1459] = { "Arcane Intellect", 135932 }, [467] = { "Thorns", 136104 } }
 local GROUP_SPELLS = { [21562] = "Prayer of Fortitude", [23028] = "Arcane Brilliance" }
 local IDENTITY = {
@@ -122,6 +126,10 @@ return Common.Run(function()
 				env.UnitInRaid = function(unit) return unit == "player" and env._roster.kind == "raid" and 1 or nil end
 				env.GROUP_NUMBER = "Group %d"
 			end
+			if R7 then
+				G.Secure(env)
+				env._units = { pet = { name = "Wolf", class = "HUNTER", health = 70, maxHealth = 100 }, partypet2 = { name = "Treant", class = "DRUID", health = 55, maxHealth = 100 } }
+			end
 			if os.getenv("RENDER_PARITY_R2") == "1" then
 				env.UnitAffectingCombat = function(unit) return unit == "party1" or unit == "raid1" or unit == "raid7" end
 			end
@@ -180,6 +188,7 @@ return Common.Run(function()
 	end
 	if R5 then members[1].healAbsorb = 20 end
 	if R6 then members[1].absorb = 25 end
+	if R7 then members[2].healAbsorb = 20 end
 	G.SetRoster(env, r3c ~= "solo" and kind or nil, r3c ~= "solo" and members or {}, R6 and kind == "raid" and members[1] or PLAYER)
 	if not K.Modules.IsRunning("GroupFrames") then
 		assert(K.Modules.Enable("GroupFrames"))
@@ -246,6 +255,15 @@ return Common.Run(function()
 		place(K, "groupframes.pets", AT[kind][1], kind == "party" and AT.party[2] + 290 or 40)
 		place(K, "groupframes.tanks", AT[kind][1] + 520, 40)
 		place(K, "groupframes.boss", AT[kind][1] + 1000, 40)
+	end
+	if R7 then
+		for key, value in pairs({ ["party.selfPosition"] = "LAST", ["pets.enabled"] = true, ["pets.beside"] = true, ["auras.dispelUnder"] = true,
+			["tanks.enabled"] = true, ["tanks.height"] = 16, ["tanks.icons"] = true }) do
+			K.Options.Write("GroupFrames", key, value)
+		end
+		env.RunTimers()
+		env.RunStateDrivers()
+		place(K, "groupframes.tanks", AT[kind][1] + 760, 40)
 	end
 	if R6 then
 		for key, value in pairs({ ["prediction.edge"] = true, ["icons.roleBehind"] = true, ["indicator1.style"] = "BAR", ["indicator1.position"] = "BOTTOM",

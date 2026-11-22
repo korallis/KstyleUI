@@ -1,4 +1,4 @@
--- test-skins-restedxp-rail-settle.lua: the RestedXP rail's unchanged-key return places exactly as a full placement would, at 1920x1080, 2560x1440, 5120x1440 and 3840x2160: the guide window, the docked Targets and Items boxes and the folded steps match a twin that places in full every time; an anchor RestedXP changes on the guide or a docked box, and a folded step RestedXP shows again, are put back by the next placement.
+-- test-skins-restedxp-rail-settle.lua: the RestedXP rail's unchanged-key return places exactly as a full placement would and the docked boxes settle to one width and place, at 1920x1080, 2560x1440, 5120x1440 and 3840x2160: the guide window, the docked Targets and Items boxes and the folded steps match a twin that places in full every time; an anchor RestedXP changes on the guide or a docked box, and a folded step RestedXP shows again, are put back by the next placement.
 local Boot = dofile("Tools/regression/questcard_guide_env.lua")
 local S = dofile("Tools/regression/skins_env.lua")
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
@@ -43,9 +43,13 @@ for _, size in ipairs(SCREENS) do
 			R.ns.RestedXP.Rail.Place()
 			R.env.RunTimers()
 		end
-		assert(Shape(fast) == Shape(full), string.format("%dx%d placement %d: the rail's unchanged-key return must place the guide and dock the boxes exactly as a full placement does (the docked boxes' measured reach changes their width on every dock)\n  return: %s\n  full:   %s", size[1], size[2], i, Shape(fast), Shape(full)))
+		assert(Shape(fast) == Shape(full), string.format("%dx%d placement %d: the rail's unchanged-key return must place the guide and dock the boxes exactly as a full placement does\n  return: %s\n  full:   %s", size[1], size[2], i, Shape(fast), Shape(full)))
 	end
 	local rxp, env = fast.rxp, fast.env
+	local settled = Shape(fast)
+	rxp:SortTimers()
+	env.RunTimers()
+	assert(Shape(fast) == settled, string.format("%dx%d: with nothing changed, the next placement moved the docked boxes; the measured glass reach is pixel-snapped, so Dock in Rail.lua keeps a box's width and point when the new one is within a pixel\n  before: %s\n  after:  %s", size[1], size[2], settled, Shape(fast)))
 	for _, region in ipairs({ rxp.RXPFrame, rxp.activeItemFrame }) do
 		local point, relative, relativePoint, x, y = region:GetPoint(1)
 		region:ClearAllPoints()
@@ -83,6 +87,16 @@ for _, size in ipairs(SCREENS) do
 	env.RunTimers()
 	assert(folded:GetAlpha() == 0, string.format("%dx%d: a folded step RestedXP shows again is folded again by the next placement", size[1], size[2]))
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+
+-- With the rail off, a guide whose steps' anchoring is restricted still refits its head.
+do
+	local R = Boot({ width = 1920, height = 1080, uiScale = 768 / 1080 })
+	R.K.Options.Write("Skins", "restedXP.rail", false)
+	R.env.RunTimers()
+	R.env.RestrictAnchoring(R.rxp.RXPFrame.CurrentStepFrame)
+	local ok, err = pcall(R.ns.RestedXP.Chrome.Refit, R.rxp.RXPFrame)
+	assert(ok, "a restricted step frame must not stop the head refit; read its edges with Widgets.Edges (KstyleUI_Skins/Addons/RestedXP/Chrome.lua PlaceHead): " .. tostring(err))
 end
 
 print("skins restedxp rail settle ok")

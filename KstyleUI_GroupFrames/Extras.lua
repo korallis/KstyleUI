@@ -15,6 +15,13 @@ local AT = {
 }
 local ORDER = { "pets", "tanks", "boss" }
 local DRIVER = "[group] show; hide"
+local PET_UNIT = [[
+	local pet = self:GetFrameRef("kstyle-pet")
+	if pet then
+		local unit = self:GetAttribute("unit")
+		pet:SetAttribute("unit", unit == "player" and "pet" or unit and gsub(unit, "^(%a+)(%d+)$", "%1pet%2") or nil)
+	end
+]]
 local CARD = { shape = "window", fill = "surface" }
 
 ns.Button.built[#ns.Button.built + 1] = function(f)
@@ -26,7 +33,8 @@ local function Fit(g)
 	local first, last
 	if g.header then
 		first = g.header:GetWidth() > 1 and g.header:GetHeight() > 1 and g.header or nil
-		last = first
+		last = g.picks and g.picks:IsShown() and g.picks:GetWidth() > 1 and g.picks:GetHeight() > 1 and g.picks or first
+		first = first or last
 	else
 		for _, button in ipairs(g.buttons) do
 			if button:IsShown() then first, last = first or button, button end
@@ -86,7 +94,8 @@ local function Build(name)
 		holder:Hide()
 	else
 		g.card = Headers.NewCard(g.header or holder, holder, CARD, AT[name].title)
-		if g.header then g.header:HookScript("OnSizeChanged", function() Fit(g) end) end
+		g.fit = function() Fit(g) end
+		if g.header then g.header:HookScript("OnSizeChanged", g.fit) end
 		Widgets.Place(holder, AT[name].key, AT[name].at, { label = AT[name].label, module = Settings.MODULE, scalable = true })
 	end
 	Extras.groups[name] = g
@@ -112,33 +121,50 @@ local function Seat(g, width, height, corner)
 	return Headers.Offset(geo, g.card, left, top, nil, "raid")
 end
 
-local function Others()
+local picks = {}
+
+local function Others(exclude, picked)
 	if type(GetRaidRosterInfo) ~= "function" or type(GetNumGroupMembers) ~= "function" or type(IsInRaid) ~= "function" or type(UnitName) ~= "function" then return nil end
 	local raid, count, me, names = IsInRaid(), GetNumGroupMembers(), UnitName("player"), {}
 	if Unit.IsSecret(raid) or raid ~= true or Unit.IsSecret(count) or type(count) ~= "number" or Unit.IsSecret(me) then return nil end
 	for i = 1, count do
 		local name, _, _, _, _, _, _, _, _, raidRole, _, role = GetRaidRosterInfo(i)
 		if Unit.IsSecret(name) or Unit.IsSecret(raidRole) or Unit.IsSecret(role) then return nil end
-		if type(name) == "string" and name ~= me and (raidRole == "MAINTANK" or role == "TANK") then names[#names + 1] = name end
+		local tank = raidRole == "MAINTANK" or role == "TANK"
+		if type(name) == "string" and not (exclude and name == me) and (picked and picks[name] and not tank or not picked and tank) then names[#names + 1] = name end
 	end
 	return table.concat(names, ",")
 end
 
+local function Picked(g, exclude)
+	local header = g.picks
+	if not header and next(picks) then
+		header = Headers.New(g.holder, "raid")
+		header.kstyleExtra = "tanks"
+		header:HookScript("OnSizeChanged", g.fit)
+		g.picks = header
+	end
+	if not header then return end
+	local names = next(picks) and Others(exclude, true) or nil
+	if header:GetAttribute("nameList") ~= (names or "") then header:SetAttribute("nameList", names or "") end
+end
+
 local function Filter(g, name)
 	local header, exclude = g.header, name == "tanks" and Settings.current.tanks.excludeSelf
-	if not exclude then g.stale = nil elseif g.stale ~= false then g.names, g.stale = Others(), false end
+	if not exclude then g.stale = nil elseif g.stale ~= false then g.names, g.stale = Others(exclude), false end
 	local names = exclude and g.names or nil
 	local roles = name == "tanks" and not names and "MAINTANK,TANK" or nil
 	if roles and header:GetAttribute("roleFilter") ~= roles then header:SetAttribute("roleFilter", roles) end
 	if header:GetAttribute("nameList") ~= names then header:SetAttribute("nameList", names) end
 	if not roles and header:GetAttribute("roleFilter") ~= nil then header:SetAttribute("roleFilter", nil) end
+	if name == "tanks" then Picked(g, exclude) end
 end
 
 local function Roster()
 	local g = Extras.groups.tanks
 	if not g then return end
 	g.stale = true
-	if not (g.on and g.header and Settings.current.tanks.excludeSelf) or type(InCombatLockdown) ~= "function" then return end
+	if not (g.on and g.header) or type(InCombatLockdown) ~= "function" or not (Settings.current.tanks.excludeSelf or next(picks) or g.picks) then return end
 	if not InCombatLockdown() then return Filter(g, "tanks") end
 	if not g.queued then
 		g.queued = true
@@ -146,10 +172,29 @@ local function Roster()
 	end
 end
 Frames.events[#Frames.events + 1] = { event = "PLAYER_ROLES_ASSIGNED", fn = Roster }
+
+local function Pick()
+	local g = Extras.groups.tanks
+	if not (g and g.on and Frames.Active() and type(UnitName) == "function" and type(UnitInRaid) == "function") then return end
+	local name, realm = UnitName("target")
+	local member = UnitInRaid("target")
+	if Unit.IsSecret(name) or Unit.IsSecret(realm) or Unit.IsSecret(member) or type(name) ~= "string" or not member then return end
+	name = type(realm) == "string" and realm ~= "" and name .. "-" .. realm or name
+	picks[name] = not picks[name] or nil
+	if g.picks then Roster() else Frames.Apply() end
+end
+_G.BINDING_HEADER_KSTYLEUI_ACTIONBARS = "KstyleUI"
+_G["BINDING_NAME_CLICK KstyleUI_GroupFramesTankPick:LeftButton"] = L["Add your target to tank frames"]
 local flush = Unit.FlushRoster
 function Unit.FlushRoster()
 	flush()
 	Roster()
+end
+
+local function BesideOn()
+	local pets = Settings.current.pets
+	return pets.enabled and pets.beside and not ns.AutoLayout.state.smallRaid and type(RegisterUnitWatch) == "function"
+		and type(UnregisterUnitWatch) == "function" and type(SecureHandlerSetFrameRef) == "function"
 end
 
 local function LayHeader(name, g)
@@ -161,8 +206,8 @@ local function LayHeader(name, g)
 	local columns = math.ceil(AT[name].count / per)
 	Headers.Quiet(header)
 	header:SetAttribute("showRaid", true)
-	header:SetAttribute("showParty", name == "pets")
-	header:SetAttribute("showPlayer", name == "pets")
+	header:SetAttribute("showParty", name == "pets" and not BesideOn())
+	header:SetAttribute("showPlayer", name == "pets" and not BesideOn())
 	Filter(g, name)
 	local point, x, y = Geometry.Grow(growth, spacing)
 	header:SetAttribute("point", point)
@@ -181,6 +226,16 @@ local function LayHeader(name, g)
 	Headers.Resize(header, Widgets.Snap(g.holder, width), Widgets.Snap(g.holder, height))
 	Headers.Precreate(header, AT[name].count)
 	Headers.Driver(header, DRIVER)
+	local p = g.picks
+	if p then
+		Headers.Quiet(p)
+		for _, key in ipairs({ "showRaid", "point", "xOffset", "yOffset", "unitsPerColumn", "maxColumns", "columnAnchorPoint", "columnSpacing" }) do p:SetAttribute(key, header:GetAttribute(key)) end
+		p:ClearAllPoints()
+		p:SetPoint(point, header, Headers.FACING[point], Widgets.Snap(g.holder, x), Widgets.Snap(g.holder, y))
+		Headers.Resize(p, Widgets.Snap(g.holder, width), Widgets.Snap(g.holder, height))
+		Headers.Precreate(p, AT[name].count)
+		Headers.Driver(p, DRIVER)
+	end
 	Fit(g)
 end
 
@@ -213,6 +268,7 @@ local function LayBosses(g)
 end
 
 local function Hush(name, g)
+	if g.picks then Headers.Quiet(g.picks) end
 	if g.header then
 		Headers.Quiet(g.header)
 		Headers.Children(g.header, function(button) button:SetAttribute("unit", nil) end)
@@ -222,8 +278,62 @@ local function Hush(name, g)
 	Live(name, g, false)
 end
 
+function Extras.PetSpot(f, k)
+	local t, gap = Settings.current.targets, Tokens.Size("gapSmall")
+	local x, y = ns.Targets.Spot(f, k)
+	if t.enabled and Geometry.IsVertical(k.growth) then x = x + t.x + t.width + gap elseif t.enabled then y = y + t.y - t.height - gap end
+	return x, y
+end
+
+function Extras.PetSize()
+	local w, h = Size("pets")
+	local k = Settings.current.party
+	if Geometry.IsVertical(k.growth) then return w, math.min(h, k.height) end
+	return math.min(w, Geometry.Party(k).memberWidth), h
+end
+
+local function Owned(owner, on, k, w, h)
+	local pet = owner.kstylePet
+	if not pet then
+		pet = CreateFrame("Button", nil, owner, "SecureUnitButtonTemplate")
+		pet.kstyleExtra = "pets"
+		pet:SetAttribute("*type1", "target")
+		pet:SetAttribute("*type2", "togglemenu")
+		pet:Hide()
+		ns.Button.Adopt(pet, "raid")
+		SecureHandlerSetFrameRef(owner, "kstyle-pet", pet)
+		owner.kstylePet = pet
+	end
+	owner:SetAttribute("refreshUnitChange", on and owner ~= Headers.me and PET_UNIT or nil)
+	local unit = on and owner:GetAttribute("unit")
+	pet:SetAttribute("unit", unit == "player" and "pet" or unit and (unit:gsub("^(%a+)(%d+)$", "%1pet%2")) or nil)
+	if not on then
+		UnregisterUnitWatch(pet)
+		return pet:Hide()
+	end
+	local x, y = Extras.PetSpot(ns.Button.Content(owner), k)
+	pet:ClearAllPoints()
+	pet:SetPoint("TOPLEFT", owner, "TOPLEFT", Widgets.Snap(owner, x), Widgets.Snap(owner, y))
+	pet:SetSize(Widgets.Snap(owner, w), Widgets.Snap(owner, h))
+	Style.Apply(ns.Button.Content(pet), pet:GetWidth(), pet:GetHeight())
+	RegisterUnitWatch(pet)
+end
+
+local function Beside()
+	local on, k = BesideOn(), Settings.current.party
+	if not (on or Extras.beside) then return end
+	Extras.beside = on
+	local w, h = Extras.PetSize()
+	Headers.Children(Headers.party, function(owner) Owned(owner, on, k, w, h) end)
+	if Headers.me then Owned(Headers.me, on and Headers.me:GetAttribute("unit") ~= nil, k, w, h) end
+end
+
 function Extras.Apply()
 	local cfg = Settings.current
+	if cfg.tanks.enabled and not Extras.pick then
+		Extras.pick = CreateFrame("Button", "KstyleUI_GroupFramesTankPick")
+		Extras.pick:SetScript("OnClick", Pick)
+	end
 	for _, name in ipairs(ORDER) do
 		local on = cfg[name].enabled or name == "boss" and cfg.boss.display ~= "NEVER"
 		local g = Extras.groups[name] or on and Build(name)
@@ -237,11 +347,13 @@ function Extras.Apply()
 			g.on = on
 		end
 	end
+	Beside()
 end
 
 function Extras.Stop()
 	for name, g in pairs(Extras.groups) do
 		if g.on then Hush(name, g) end
+		g.on = false
 	end
 end
 

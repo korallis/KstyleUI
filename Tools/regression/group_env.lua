@@ -635,6 +635,7 @@ local function configureChildren(env, header, units)
 		local button = a["child" .. n]
 		button:ClearAllPoints()
 		button:SetAttribute("unit", units[i])
+		if type(button._attributes.refreshUnitChange) == "string" and env.RefreshUnitChange then env.RefreshUnitChange(button) end
 		if not button._attributes.statehidden then
 			button:Show()
 		end
@@ -889,6 +890,22 @@ function G.Secure(env)
 		return unit
 	end
 	env.SecureButton_GetUnit = unitOf
+	-- RefreshUnitChange(button) runs a header child's refreshUnitChange snippet as configureChildren does, as secure code with GetFrameRef and gsub.
+	function env.RefreshUnitChange(button)
+		local chunk = assert(loadstring("local self = ... " .. button._attributes.refreshUnitChange))
+		setfenv(chunk, setmetatable({ gsub = string.gsub }, { __index = _G }))
+		local handle = setmetatable({ GetFrameRef = function(_, label) return button._attributes["frameref-" .. label] end }, {
+			__index = function(_, key)
+				local v = button[key]
+				return type(v) == "function" and function(_, ...) return v(button, ...) end or v
+			end,
+		})
+		local was = env._secure
+		env._secure = true
+		chunk(handle)
+		env._secure = was
+	end
+
 	local function watch(frame)
 		local unit, was = unitOf(frame), env._secure
 		local exists = unit ~= nil and env.UnitExists(unit) == true

@@ -375,10 +375,9 @@ function Drawer:Fit(button)
 			icon:ClearAllPoints()
 			icon:SetPoint("CENTER", button, "CENTER")
 		end
-		if not (anchor.icon and Near(icon:GetWidth(), anchor.icon) and Near(icon:GetHeight(), anchor.icon)) then
+		local fill = Widgets.Snap(icon, anchor.fill)
+		if not (Near(icon:GetWidth(), fill) and Near(icon:GetHeight(), fill)) then
 			Widgets.Size(icon, anchor.fill, anchor.fill)
-			local width = icon:GetWidth()
-			anchor.icon = Format.IsNumber(width) and width or nil
 		end
 	end
 	self.placing = false
@@ -565,7 +564,10 @@ function Drawer:Adopt(name, button, own)
 				local drawer = ns.Map and ns.Map.drawer
 				if drawer and drawer.active and drawer.adopted[button] then
 					group:Stop()
-					button:SetAlpha(1)
+					local alpha = button:GetAlpha()
+					if IsSecret(alpha) or alpha ~= 1 then
+						button:SetAlpha(1)
+					end
 				end
 			end)
 		end

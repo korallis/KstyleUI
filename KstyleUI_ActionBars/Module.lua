@@ -148,10 +148,10 @@ local function ForActions(fn)
 	end
 end
 
-local function UpdatePets()
-	local list = ns.petButtons
+local function UpdatePets(event)
+	local list, target = ns.petButtons, event == "PLAYER_TARGET_CHANGED"
 	for i = 1, #list do
-		ns.Button.Update(list[i])
+		ns.Button.Update(list[i], nil, target)
 	end
 end
 
@@ -327,9 +327,9 @@ local function OnState()
 	ForActions(ns.Button.UpdateState)
 end
 
-local function OnTarget()
+local function OnTarget(event)
 	ForActions(ns.Button.UpdateRange)
-	UpdatePets()
+	UpdatePets(event)
 end
 
 local function OnForms()

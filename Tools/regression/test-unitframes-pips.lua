@@ -1,5 +1,6 @@
 -- test-unitframes-pips.lua: the class-themed combo point row (on by default) draws Widgets.ClassPip daggers for a rogue and claws for a cat-form druid over the plain pips' places; every lit layer is a one-point status bar fed the raw count now, before, or at the maximum; a power event plays the gain, spend and maximum fades only when motion allows, a target change and Off show the end states, transient layers are hidden rather than alpha 0, nothing runs OnUpdate or loops, under Medallions the row gives way to the crest's crown only while it shows and a cat-form druid's bar sits above it, and switching the pips off restores the plain ones; a paladin or warlock shows nothing, as before.
 local U = dofile("Tools/regression/unitframes_env.lua")
+local Budget = dofile("Tools/regression/path_budget.lua")
 local W = U.W
 
 local function rogue(env)
@@ -169,6 +170,21 @@ env._restricted = true
 Points(env, 2)
 assert(calls > 0, "a secret count is never compared with the one before")
 env._restricted = false
+Points(env, 2)
+local writes = 0
+for _, p in ipairs(P.pips) do writes = writes - #W.Calls(p.frame, "SetShown") - #W.Calls(p.blade, "SetValue") end
+calls = 0
+env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+env.FireEvent("PLAYER_TARGET_CHANGED")
+for _, p in ipairs(P.pips) do writes = writes + #W.Calls(p.frame, "SetShown") + #W.Calls(p.blade, "SetValue") end
+assert(writes == 0 and calls == 0, "a stance or target change that leaves the count alone rewrites no pip; Pips.Apply shows the row only when that changes and Pips.Set returns on the same count and motion (staging: 15 writes, 84 animation calls)")
+local same = Budget.Count(env, function() Points(env, 2) end, 1)
+assert(same.instructions <= 110 and same.calls == 0, "an unchanged combo point event costs no more than staging's 101 instructions; Pips.Set returns on an animated same count before it asks Effects.Allows, got " .. same.instructions)
+Points(env, 5)
+Points(env, 2)
+K.Options.Write("UnitFrames", "resource.classPips", false)
+K.Options.Write("UnitFrames", "resource.classPips", true)
+assert(P.row:IsShown() and not P.row.was:IsShown(), "class pips off and on during a spend come back settled, not with the old full-row glow; Pips.Apply forgets the last count when the row hides")
 noErrors(env, K, "settle")
 
 -- A secret count never meets a truth test: choose the fed value with an explicit if (review 678 #1).

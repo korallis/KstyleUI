@@ -244,7 +244,7 @@ function Bar:EdgeThickness()
 	elseif band >= EDGE_THIN_PIXELS then
 		edge = 1
 	end
-	while edge > 0 and pixels - edge * 2 < EDGE_MIN_FILL do
+	while edge > 0 and band - edge * 2 < EDGE_MIN_FILL do
 		edge = edge - 1
 	end
 	return edge

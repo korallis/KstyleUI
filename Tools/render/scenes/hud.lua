@@ -1424,30 +1424,45 @@ local REMINDER = { MAGE = { 1459, "Arcane Intellect", 135932 }, PRIEST = { 1243,
 function modules.auras(opts)
 	local A = dofile("Tools/regression/auras_env.lua")
 	local class, spec = Hud.Class(opts)
-	local reminder = os.getenv("RENDER_AURAS_REMINDER") == "1" and REMINDER[class]
+	local mode = os.getenv("RENDER_AURAS_REMINDER")
+	local reminder = mode == "1" and REMINDER[class]
+	local setting = reminder and "reminder.enabled" or ({ flask = "reminder.flasks", mana = "reminder.mana" })[mode or ""]
 	local env, K, ns = A.New(Common.ScreenOpts({
 		saved = saved(opts, "Auras"),
 		setup = function(env)
 			shared(env, opts)
+			if not setting then return end
+			env.C_Secrets.ShouldSpellAuraBeSecret = function() return false end
+			env.C_UnitAuras = env.C_UnitAuras or {}
+			env.UnitIsDeadOrGhost = function() return false end
 			if reminder then
 				env.C_SpellBook = { IsSpellKnown = function(id) return id == reminder[1] end }
 				env.C_Spell = env.C_Spell or {}
 				env.C_Spell.GetSpellName = function(id) return id == reminder[1] and reminder[2] or "Spell " .. id end
 				env.C_Spell.GetSpellTexture = function(id) return id == reminder[1] and reminder[3] or nil end
-				env.C_Secrets.ShouldSpellAuraBeSecret = function() return false end
-				env.C_UnitAuras = env.C_UnitAuras or {}
 				env.C_UnitAuras.GetAuraDataBySpellName = function() return nil end
-				env.UnitIsDeadOrGhost = function() return false end
+			else
+				-- RENDER_AURAS_REMINDER=flask: in a raid with three Flasks of the Titans and none on; =mana: a ready check at 25 percent mana.
+				env.C_UnitAuras.GetPlayerAuraBySpellID = function() return nil end
+				env.C_Item = { GetItemCount = function(id) return id == 13510 and 3 or 0 end, GetItemNameByID = function() return "Flask of the Titans" end, GetItemIconByID = function() return 134842 end }
+				env.IsInInstance = function() return true, "raid" end
+				env.Enum.PowerType = { Mana = 0 }
+				env.UnitPowerMax = function() return 4000 end
+				env.UnitPower = function() return 1000 end
 			end
 		end,
 	}))
-	if reminder then
-		K.Options.Write("Auras", "reminder.enabled", true)
+	if setting then
+		K.Options.Write("Auras", setting, true)
 	end
 	if not K.Modules.IsRunning("Auras") then
 		K.Modules.Enable("Auras")
 	end
 	env.RunTimers()
+	if mode == "mana" then
+		env.FireEvent("READY_CHECK", "Leader", 35)
+		env.RunTimers()
+	end
 	-- RENDER_AURAS_EXTRA=1 switches on the extra buff and debuff rows (parity round 2) at their default places, the
 	-- debuff one glowing, with two important buffs and one crowd control debuff.
 	local extra = os.getenv("RENDER_AURAS_EXTRA") == "1"

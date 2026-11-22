@@ -193,16 +193,18 @@ function Preview.Build(...)
 				widest = max(widest, w)
 			end
 		end
-		local reminder = settings.reminder.enabled == true
-		if reminder and not frame.reminder then
-			frame.reminder = ns.Reminder.Card(frame.canvas)
-		end
-		if frame.reminder then
-			frame.reminder:SetShown(reminder)
-			if reminder then
-				local w, h = ns.Reminder.Paint(frame.reminder, ns.Reminder.Sample())
-				frame.reminder:ClearAllPoints()
-				Widgets.Point(frame.reminder, "TOPRIGHT", frame.canvas, "TOPRIGHT", 0, -top)
+		local samples = ns.Reminder.Samples(settings.reminder)
+		for i = 1, max(#samples, #frame.reminders) do
+			local card, sample = frame.reminders[i], samples[i]
+			if sample and not card then
+				card = ns.Reminder.Card(frame.canvas)
+				frame.reminders[i] = card
+			end
+			card:SetShown(sample ~= nil)
+			if sample then
+				local w, h = ns.Reminder.Paint(card, sample)
+				card:ClearAllPoints()
+				Widgets.Point(card, "TOPRIGHT", frame.canvas, "TOPRIGHT", 0, -top)
 				top, widest = top + h + gap, max(widest, w)
 			end
 		end
@@ -224,7 +226,7 @@ function Preview.Build(...)
 		local frame = CreateFrame("Frame", nil, parent)
 		frame:SetAllPoints(parent)
 		local canvas = CreateFrame("Frame", nil, frame)
-		frame.canvas = canvas
+		frame.canvas, frame.reminders = canvas, {}
 		for _, row in ipairs({ { "buffBox", "buffs", BUFFS }, { "debuffBox", "debuffs", DEBUFFS }, { "extraBuffBox", "extraBuffs", BUFFS }, { "extraDebuffBox", "extraDebuffs", DEBUFFS } }) do
 			local box = CreateFrame("Frame", nil, canvas)
 			frame[row[1]], frame[row[2]] = box, {}

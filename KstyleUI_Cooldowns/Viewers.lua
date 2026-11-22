@@ -63,7 +63,7 @@ local function Refade(frame, alpha)
 	if type(alpha) == "number" and not ns.IsSecret(alpha) then
 		state.wanted = alpha
 	end
-	if state.faded then
+	if state.faded and (ns.IsSecret(alpha) or alpha ~= 0) then
 		SetOwnAlpha(frame, state, 0)
 	end
 end

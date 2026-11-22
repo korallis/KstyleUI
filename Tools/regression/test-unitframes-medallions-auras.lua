@@ -47,10 +47,11 @@ assert(p1 == "BOTTOMLEFT" and r1 == "BOTTOMLEFT", "along the tile's foot")
 assert(entry.timer:GetFont() == Tokens.Font("timer"), "durations read in the timer role")
 noErrors("medallions tiles")
 
-K.Options.Write("UnitFrames", "target.auraSize", 30)
+local size = "target." .. Settings.AuraKey("target", "auraSize")
+K.Options.Write("UnitFrames", size, 30)
 assert(Settings.Value("target", "auraSize") == 30, "a saved aura size wins over the Medallions default")
 noErrors("saved size")
-K.Options.Write("UnitFrames", "target.auraSize", 27.6)
+K.Options.Write("UnitFrames", size, K.Options.Default("UnitFrames", size))
 
 for _, style in ipairs({ "frames", "medallions", "frames" }) do
 	local old = view.auras.container

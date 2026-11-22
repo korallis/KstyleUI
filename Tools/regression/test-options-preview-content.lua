@@ -1,4 +1,4 @@
--- test-options-preview-content.lua: hosted previews initialise their fonts, keep portraits inside their clip, and show the full French target name in Frames.
+-- test-options-preview-content.lua: hosted previews initialise their fonts, keep portraits inside their clip and ring tops (the aura rims too) exactly inside it, and show the full French target name in Frames.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -66,7 +66,9 @@ for _, screen in ipairs(... or { { 1920, 1080 }, { 5120, 1440 }, { 2383, 1540 } 
 				rings = rings + 1
 				local x, y, w, h = Common.Scene.Rect(env, item.object)
 				local c = item.clip
-				if x < c[1] - 0.5 or y < c[2] - 0.5 or x + w > c[1] + c[3] + 0.5 or y + h > c[2] + c[4] + 0.5 then
+				if y < c[2] - 1e-6 then
+					failures[#failures + 1] = string.format("%s: round the preview's move inward, so the %s top stays inside the pane: %.4f above it", label, item.file:match("[%w]+%.png$"), c[2] - y)
+				elseif x < c[1] - 0.5 or x + w > c[1] + c[3] + 0.5 or y + h > c[2] + c[4] + 0.5 then
 					failures[#failures + 1] = label .. ": fit the portrait ring inside the preview holder"
 				end
 			end

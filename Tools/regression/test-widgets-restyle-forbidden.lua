@@ -1,4 +1,4 @@
--- test-widgets-restyle-forbidden.lua: a scoped restyle stops at a forbidden or access-restricted frame (an aura tile on a locked nameplate or while auras are secret) instead of raising the client's forbidden-object error, and still restyles widgets under the scaled root.
+-- test-widgets-restyle-forbidden.lua: a scoped restyle stops at a forbidden or access-restricted frame (an aura tile on a locked nameplate or while auras are secret) instead of raising the client's forbidden-object error, still restyles widgets under the scaled root, and judges each widget by its parents after the restyles before it ran.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local env, K = U.New({ enabled = false })
 local Widgets = K.Widgets
@@ -19,5 +19,14 @@ Widgets.Track({ frame = mine, Restyle = function() restyled.mine = restyled.mine
 Widgets.RestyleUnder({ [root] = true })
 assert(restyled.locked == 0, "a widget on a forbidden or access-restricted frame is not under the scaled root")
 assert(restyled.mine == 1, "a widget under the scaled root still restyles")
+-- A restyle that moves its frame out of the root takes the frame's children with it.
+local group, other = env.CreateFrame("Frame"), env.CreateFrame("Frame")
+local shared = env.CreateFrame("Frame", nil, group)
+local child = env.CreateFrame("Frame", nil, shared)
+local moved = 0
+Widgets.Track({ frame = shared, Restyle = function() shared:SetParent(other) end })
+Widgets.Track({ frame = child, Restyle = function() moved = moved + 1 end })
+Widgets.RestyleUnder({ [group] = true })
+assert(moved == 0, "a widget whose parent an earlier restyle moved out of the root must not restyle; RestyleUnder in Core/Widgets/Base.lua forgets the parents it walked after each Restyle")
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("ok scoped restyle skips forbidden frames")

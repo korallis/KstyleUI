@@ -227,8 +227,12 @@ function Object:IsShown() return self._shown end
 function Object:IsVisible() return self._shown and (self._parent == nil or self._parent:IsVisible()) end
 -- Clamping is a hint to the game's own mover; the stub keeps the flags so a caller can read them back.
 function Object:SetClampedToScreen(on) self._clamped = on == true end
+function Object:IsClampedToScreen() return self._clamped == true end
 function Object:SetClampRectInsets(left, right, top, bottom)
 	self._clampInsets = { left, right, top, bottom }
+end
+function Object:GetClampRectInsets()
+	return unpack(self._clampInsets or { 0, 0, 0, 0 })
 end
 function Object:SetResizeBounds(minW, minH, maxW, maxH)
 	self._resizeBounds = { minW, minH, maxW, maxH }

@@ -132,8 +132,8 @@ for _, region in ipairs(W.Regions(preview.auraIcons.target[1], "Texture")) do
 	end
 end
 assert(bevels == 10, "the sample aura icons wear the live aura tile: the socket's line and rim, each ring's four corners and centre from its texture")
-K.Options.Write("UnitFrames", "target.auraPosition", "RIGHT")
-K.Options.Write("UnitFrames", "target.auraGrowth", "LEFT_DOWN")
+K.Options.Write("UnitFrames", "target." .. uf.Settings.AuraKey("target", "auraPosition"), "RIGHT")
+K.Options.Write("UnitFrames", "target." .. uf.Settings.AuraKey("target", "auraGrowth"), "LEFT_DOWN")
 settle()
 local sampleHost = preview.auraHosts.target
 local hp, hrel, hrp = sampleHost:GetPoint(1)
@@ -153,7 +153,7 @@ assert(math.abs(sampleBoss - liveBoss) <= 2 + K.Scale.Pixel(1), "the boss sample
 
 -- The Medallions target: its sample sockets centred under it.
 K.Options.Write("UnitFrames", "edit", "target")
-K.Options.Write("UnitFrames", "target.auraPosition", "CENTER")
+K.Options.Write("UnitFrames", "target." .. uf.Settings.AuraKey("target", "auraPosition"), "CENTER")
 settle()
 local cp, crel, crp = preview.auraHosts.target:GetPoint(1)
 assert(cp == "TOP" and crel == preview.holders.target and crp == "BOTTOM", "the sample sockets hang centred under the frame")
@@ -165,11 +165,10 @@ assert(frel == preview.auraHosts.target and fp == "TOPLEFT" and frp == "TOP" and
 -- the live row draws it when more auras are up than it holds.
 do
 	local columns = 6
-	K.Options.Write("UnitFrames", "target.auraColumns", columns)
-	K.Options.Write("UnitFrames", "target.auraRows", 1)
+	K.Options.Write("UnitFrames", "target." .. uf.Settings.AuraKey("target", "auraColumns"), columns)
+	K.Options.Write("UnitFrames", "target." .. uf.Settings.AuraKey("target", "auraRows"), 1)
 	K.Options.Write("UnitFrames", "target.auraTimer", true)
 	settle()
-	-- Known: a row count at its default of one reads the Medallions rows' two.
 	local rows = uf.Settings.Value("target", "auraRows")
 	assert(preview.auraCount == columns * rows, "the sample fills the grid: " .. preview.auraCount)
 	local timers, stacks = 0, 0
@@ -194,10 +193,10 @@ do
 	for i = 1, preview.auraCount do
 		assert(not preview.auraTiles.target[i].timer:IsShown(), "Aura timers off hides the sample times")
 	end
-	K.Options.Write("UnitFrames", "target.auraRows", 2)
+	K.Options.Write("UnitFrames", "target." .. uf.Settings.AuraKey("target", "auraRows"), 2)
 	settle()
 	assert(preview.auraCount == columns * 2, "a second row shows in the sample: " .. preview.auraCount)
-	K.Options.Write("UnitFrames", "target.auraRows", 1)
+	K.Options.Write("UnitFrames", "target." .. uf.Settings.AuraKey("target", "auraRows"), 1)
 	K.Options.Write("UnitFrames", "target.auraTimer", true)
 	settle()
 end

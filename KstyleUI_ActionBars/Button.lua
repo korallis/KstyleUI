@@ -432,12 +432,13 @@ function Button.UpdateForm(b)
 	SetIcon(b, C_ActionBar.GetActionTexture(b.slot))
 end
 
-local function UpdatePet(b, trusted)
+local function UpdatePet(b, trusted, target)
 	local i = b.index
 	local name, texture, isToken, isActive, autoCastAllowed, autoCastEnabled, spellID
 	if type(GetPetActionInfo) == "function" then
 		name, texture, isToken, isActive, autoCastAllowed, autoCastEnabled, spellID = GetPetActionInfo(i)
 	end
+	local had, spell = b.hasAction, b.petSpell
 	b.hasAction = IsSecret(name) or name ~= nil
 	if Flag(isToken, false) and not IsSecret(texture) and type(texture) == "string" then
 		texture = _G[texture]
@@ -448,7 +449,11 @@ local function UpdatePet(b, trusted)
 	SetIcon(b, texture)
 	b.petSpell = Plain(spellID)
 	b.autoCastAllowed = Flag(autoCastAllowed, false)
-	b.autocast:SetShown(b.hasAction and Flag(autoCastEnabled, false))
+	local autocast = b.hasAction and Flag(autoCastEnabled, false)
+	if b.autocastShown ~= autocast then
+		b.autocastShown = autocast
+		b.autocast:SetShown(autocast)
+	end
 	local selected = b.hasAction and Flag(isActive, false)
 	if selected ~= (b.selected == true) then
 		b:SetSelected(selected)
@@ -458,6 +463,9 @@ local function UpdatePet(b, trusted)
 		usable = Flag(GetPetActionSlotUsable(i), true)
 	end
 	SetUsable(b, usable)
+	if target and had == b.hasAction and spell == b.petSpell then
+		return
+	end
 	PetOrStanceCooldown(b, trusted)
 	Button.UpdateAlpha(b)
 end
@@ -479,12 +487,12 @@ local function UpdateStance(b, trusted)
 	PetOrStanceCooldown(b, trusted)
 end
 
-function Button.Update(b, trusted)
+function Button.Update(b, trusted, target)
 	local kind = b.kind
 	if kind == "action" then
 		UpdateAction(b)
 	elseif kind == "pet" then
-		UpdatePet(b, trusted)
+		UpdatePet(b, trusted, target)
 	else
 		UpdateStance(b, trusted)
 	end

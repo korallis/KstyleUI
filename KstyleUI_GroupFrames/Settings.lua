@@ -36,7 +36,7 @@ Settings.defaults = {
 	party = {
 		extra1 = ExtraText(), extra2 = ExtraText(),
 		width = 259, height = 39, spacing = 13, growth = "DOWN", card = false,
-		showPlayer = true, showSolo = false, sortBy = "INDEX", centerSolo = false, smallRaid = false,
+		showPlayer = true, showSolo = false, sortBy = "INDEX", centerSolo = false, smallRaid = false, selfPosition = "SORTED",
 		portrait = true, portraitZoom = 0, portraitRingAlpha = 1, roleRing = false, classLine = false, power = true, powerHeight = 3,
 		textLayout = "ABOVE", nameSize = 13, nameChars = 0, nameFormat = "FULL", healthText = "PERCENT", healthTextSize = 11, healthTextPlace = "ROW",
 		iconSize = 14,
@@ -83,7 +83,7 @@ Settings.defaults = {
 	auras = {
 		enabled = true, onlyMine = false, sort = "", typeLetters = true, stacks = true, timers = false, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER",
 		magic = true, curse = true, poison = true, disease = true, bleed = true, lasting = true, dispelAlpha = 0.16, dispelLines = 2,
-		zoom = 0.07, tooltips = true, typeMode = "HIDE", source = "ANY", canApply = false, timerSize = 0,
+		zoom = 0.07, tooltips = true, typeMode = "HIDE", source = "ANY", canApply = false, timerSize = 0, dispelUnder = false,
 		zoomEach = false, bossZoom = 0.07, tipCursor = false, countX = 0, countY = 0, timerX = 0, timerY = 0,
 		priority1 = "DISPEL", priority2 = "BOSS", priority3 = "IMPORTANT", priority4 = "OTHER", glow = true,
 		tipCombat = true, textOutline = "OUTLINE",
@@ -113,14 +113,15 @@ local INDICATOR_DEFAULTS = {
 for i = 1, INDICATOR_SLOTS do
 	local preset = INDICATOR_DEFAULTS[i] or {}
 	Settings.defaults["indicator" .. i] = { category = preset.category or "OFF", position = preset.position or "TOPLEFT", spells = "", mine = false, size = 14, show = "BOTH", x = 0, y = 0,
-		style = "ICON", color = Rgb("friendly"), thick = 4, reverse = false, over = false }
+		style = "ICON", color = Rgb("friendly"), thick = 4, reverse = false, over = false, role = "ANY", class = "ANY" }
 end
 
 local function Plain(r, g, b)
 	return { r = r, g = g, b = b }
 end
 local defaults = Settings.defaults
-defaults.reminders = { place = "NONE", size = 14, fortitude = true, wild = true, intellect = true, spirit = true, thorns = true, salvation = true, thornsTank = false, glow = false, x = 0, y = 0 }
+defaults.reminders = { place = "NONE", size = 14, fortitude = true, wild = true, intellect = true, spirit = true, thorns = true, salvation = true, thornsTank = false, glow = false, x = 0, y = 0,
+	tankBlessing = "NONE", healerBlessing = "NONE", damageBlessing = "NONE" }
 defaults.status = { place = "AUTO", size = 0, x = 0, y = 0 }
 defaults.dispel = { icon = "NONE", iconSize = 14, iconBorder = true, custom = false, x = 0, y = 0,
 	magic = Plain(0.2, 0.6, 1), curse = Plain(0.6, 0, 1), poison = Plain(0, 0.6, 0), disease = Plain(0.6, 0.4, 0), bleed = Plain(0.8, 0.1, 0.1) }
@@ -129,10 +130,13 @@ defaults.numbers = { show = false, size = 8, x = 0, y = 0 }
 defaults.mana = { mode = "NONE", size = 12, spacing = 2, align = "LEFT", growth = "DOWN", names = true, colorSource = "power", color = Rgb("rare") }
 Settings.CLASSES = type(CLASS_SORT_ORDER) == "table" and #CLASS_SORT_ORDER > 0 and CLASS_SORT_ORDER or { "WARRIOR", "PALADIN", "PRIEST", "SHAMAN", "DRUID", "ROGUE", "MAGE", "WARLOCK", "HUNTER" }
 defaults.sort = { classFirst = false, classFirstIn = "BOTH", partyOwn = false }
-for i, class in ipairs(Settings.CLASSES) do defaults.sort["class" .. i], defaults.sort["partyClass" .. i] = class, class end
+for i, class in ipairs(Settings.CLASSES) do
+	defaults.sort["class" .. i], defaults.sort["partyClass" .. i] = class, class
+	defaults.reminders["bless" .. class] = "ROLE"
+end
 defaults.label = { enabled = false, format = "FULL", size = 14, padding = 4, color = Rgb("textEmphasis") }
-defaults.pets = { enabled = false, nameColor = "raid", color = Rgb("textEmphasis"), width = 0, height = 0 }
-defaults.tanks = { enabled = false, growth = "DOWN", wrap = "RIGHT", wrapAfter = 0, width = 0, height = 0, excludeSelf = false }
+defaults.pets = { enabled = false, nameColor = "raid", color = Rgb("textEmphasis"), width = 0, height = 0, icons = false, beside = false }
+defaults.tanks = { enabled = false, growth = "DOWN", wrap = "RIGHT", wrapAfter = 0, width = 0, height = 0, excludeSelf = false, icons = false }
 defaults.follow = { text = false, auras = false, heals = false, icons = false, power = false }
 Settings.FOLLOW = {
 	text = { "textLayout", "nameSize", "nameChars", "nameFormat", "healthText", "healthTextSize", "healthTextPlace" },
@@ -141,7 +145,7 @@ Settings.FOLLOW = {
 	icons = { "iconSize" },
 	power = { "power", "powerHeight" },
 }
-defaults.boss = { display = "NEVER", dungeons = false, colorSource = "reaction", width = 0, height = 0 }
+defaults.boss = { display = "NEVER", dungeons = false, colorSource = "reaction", width = 0, height = 0, icons = false }
 
 local rows
 
@@ -436,8 +440,14 @@ function Settings.Schema(includeText)
 			Slider("auras.countY", L["Stack offset up"], L["Moves it up or down from its place."], -20, 20, 1, stacked) })
 		After(schema, "auras.timerSize", { Slider("auras.timerX", L["Time left offset across"], L["Moves it left or right from its place."], -20, 20, 1, timed),
 			Slider("auras.timerY", L["Time left offset up"], L["Moves it up or down from its place."], -20, 20, 1, timed) })
+		local classNames, classes = type(LOCALIZED_CLASS_NAMES_MALE) == "table" and LOCALIZED_CLASS_NAMES_MALE or {}, {}
+		for i, class in ipairs(Settings.CLASSES) do classes[i] = { value = class, label = classNames[class] or class } end
+		local ROLES = Options({ { "ANY", L["Any role"] }, { "TANK", L["Tank"] }, { "HEALER", L["Healer"] }, { "DAMAGER", L["Damage dealer"] } })
+		local CLASS = { { value = "ANY", label = L["Any class"] }, unpack(classes) }
 		for i = 1, INDICATOR_SLOTS do
 			local p, key, on = "indicator" .. i .. ".", "indicator" .. i, IsNot("indicator" .. i .. ".category", "OFF")
+			After(schema, p .. "show", { Dropdown(p .. "role", L["While you are"], L["Shows this indicator only while your role is this one."], ROLES, { showWhen = on }),
+				Dropdown(p .. "class", L["Only for your class"], L["Shows this indicator only while you play this class, so one profile suits each character."], CLASS, { showWhen = on }) })
 			local styled, barred = function(s) return on(s) and s[key].style ~= "ICON" end, function(s) return on(s) and s[key].style == "BAR" end
 			After(schema, p .. "mine", { Slider(p .. "x", L["Offset across"], L["Moves it left or right from its place."], -50, 50, 1, on),
 				Slider(p .. "y", L["Offset up"], L["Moves it up or down from its place."], -50, 50, 1, on),
@@ -457,6 +467,15 @@ function Settings.Schema(includeText)
 			add(Toggle("reminders." .. buff[1], buff[2], L["Reminds you of this buff; only buffs you know show."], { showWhen = reminding }))
 		end
 		add(Toggle("reminders.thornsTank", L["Thorns only on tanks"], L["Thorns shows on tanks, or on you when the group has no tank."], { showWhen = reminding }))
+		local BLESS = Options({ { "NONE", L["Off"] }, { "MIGHT", L["Blessing of Might"] }, { "WISDOM", L["Blessing of Wisdom"] }, { "KINGS", L["Blessing of Kings"] } })
+		for _, role in ipairs({ { "tank", L["Blessing for tanks"] }, { "healer", L["Blessing for healers"] }, { "damage", L["Blessing for damage dealers"] } }) do
+			add(Dropdown("reminders." .. role[1] .. "Blessing", role[2], L["The blessing a paladin is reminded of on this role; members with no role count as damage dealers."], BLESS, { showWhen = reminding }))
+		end
+		local byRole = { { value = "ROLE", label = L["Like their role"] } }
+		for _, option in ipairs(BLESS) do byRole[#byRole + 1] = option end
+		for _, class in ipairs(Settings.CLASSES) do
+			add(Dropdown("reminders.bless" .. class, L["Blessing for %s"]:format(classNames[class] or class), L["Replaces the role's blessing on members of this class."], byRole, { showWhen = reminding }))
+		end
 		add(Toggle("reminders.glow", L["Missing buff glow"], L["A soft glow round the missing buff icon, so it catches the eye."], { showWhen = reminding }))
 		Nudge("reminders.", L["Missing buff offset across"], L["Missing buff offset up"], reminding)
 		add({ type = "header", label = L["Status text"] })
@@ -506,6 +525,7 @@ function Settings.Schema(includeText)
 		local function Extra(p, on)
 			add(Slider(p .. "width", L["Extra width"], L["Widens these frames from the raid frames' width, or narrows them below 0."], -50, 100, 1, on))
 			add(Slider(p .. "height", L["Extra height"], L["Makes these frames taller than the raid frames, or shorter below 0."], -20, 100, 1, on))
+			add(Toggle(p .. "icons", L["Resize icons with the frames"], L["Debuff, heal and indicator icons grow and shrink with these frames' extra height."], { showWhen = on }))
 		end
 		local pets = Is("pets.enabled", true)
 		add({ type = "header", label = L["Pet frames"] })
@@ -531,8 +551,6 @@ function Settings.Schema(includeText)
 		Extra("boss.", boss)
 		add({ type = "header", label = L["Class order"] })
 		add(Toggle("sort.classFirst", L["Sort by class first"], L["Sorts each group's members by the class order below; role order still comes first."]))
-		local classes, names = {}, type(LOCALIZED_CLASS_NAMES_MALE) == "table" and LOCALIZED_CLASS_NAMES_MALE or {}
-		for i, class in ipairs(Settings.CLASSES) do classes[i] = { value = class, label = names[class] or class } end
 		add(Dropdown("sort.classFirstIn", L["Sort by class first in"], L["Sorts party frames, raid frames or both by class first."], SHOW_ON, { showWhen = Is("sort.classFirst", true) }))
 		local ordered = function(settings) return settings.sort.classFirst or settings.raid.sortBy == "CLASS" end
 		for i = 1, #classes do
@@ -546,7 +564,13 @@ function Settings.Schema(includeText)
 		end
 		After(schema, "prediction.glow", { Toggle("prediction.edge", L["Shield edge"], L["A bright line where a shield meets the health."], { showWhen = Is("prediction.absorbs", true) }) })
 		After(schema, "icons.roleText", { Toggle("icons.roleBehind", L["Role icons under the highlights"], L["Draws role icons under the hover line, the names and the target ring."], { showWhen = placed }) })
-		After(schema, "tanks.wrapAfter", { Toggle("tanks.excludeSelf", L["Leave yourself out"], L["Keeps your own frame out of the tank frames. Changes in combat follow when it ends."], { showWhen = tanks }) })
+		After(schema, "pets.color", { Toggle("pets.beside", L["Party pets beside their owners"], L["In a party, each pet shows beside its owner, past any target frame; raids keep the pet frames."], { showWhen = Is("pets.enabled", true) }) })
+		After(schema, "auras.dispelLines", { Toggle("auras.dispelUnder", L["Highlight under the bar's fills"], L["Draws the dispel tint under heal absorbs, shields and incoming heals, so they read through it."],
+			{ showWhen = Is("auras.dispelHighlight", true) }) })
+		After(schema, "tanks.wrapAfter", { Toggle("tanks.excludeSelf", L["Leave yourself out"], L["Keeps your own frame out of the tank frames. Changes in combat follow when it ends."], { showWhen = tanks }),
+			{ type = "note", label = L["Bind a key to Add your target to tank frames in the game's Key Bindings, under KstyleUI. Press it again to take them out."], showWhen = tanks } })
+		After(schema, "party.sortBy", { Dropdown("party.selfPosition", L["Your frame's place"], L["Puts your own frame at the start or the end of a party, whatever the order."],
+			Options({ { "SORTED", L["In the sort order"] }, { "FIRST", L["At the start"] }, { "LAST", L["At the end"] } }), { showWhen = Is("party.showPlayer", true) }) })
 		local custom = function(settings) return settings.auto.size and settings.auto.customLeast > 0 end
 		After(schema, "auto.largeLeast", { Slider("auto.customLeast", L["Own size from"], L["From this many players, raid frames take the size below; 0 turns it off. Compact frames still win."], 0, 40, 1, Is("auto.size", true)),
 			Slider("auto.customWidth", L["Own size: width"], L["The frames' width at this raid size; 0 sizes them automatically."], 0, 400, 1, custom),

@@ -13,7 +13,7 @@ local function Measure(settings)
 	} })
 	env.SetTarget(true)
 	K.Options.Write("UnitFrames", "target.auraFilter", "both")
-	for key, value in pairs(settings) do K.Options.Write("UnitFrames", "target." .. key, value) end
+	for key, value in pairs(settings) do K.Options.Write("UnitFrames", "target." .. ns.Settings.AuraKey("target", key), value) end
 	env.RunTimers()
 	Engine.Install(env)
 	local drawn, solver = {}, Scene.RectSolver(env)

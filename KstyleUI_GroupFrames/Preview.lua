@@ -190,11 +190,12 @@ function Preview.Build(...)
 		end
 	end
 
-	local function Order(frames, byClass, per, kind)
+	local SELF = { FIRST = -1000, LAST = 1000 }
+	local function Order(frames, byClass, per, kind, me)
 		local rank, list = {}, Settings.ClassList(kind)
 		for i = #Settings.CLASSES, 1, -1 do rank[Settings.current.sort[list .. i]] = i end
 		local function Key(f)
-			return (per and math.ceil(f.order / per) or 0) * 100 + (byClass and rank[f.sample.class] or 0)
+			return (per and math.ceil(f.order / per) or 0) * 100 + (byClass and rank[f.sample.class] or 0) + (f.sample.you and SELF[me] or 0)
 		end
 		table.sort(frames, function(a, b)
 			local ka, kb = Key(a), Key(b)
@@ -219,6 +220,11 @@ function Preview.Build(...)
 		local pw = Geometry.IsVertical(party.growth) and party.width or Geometry.Line(count, party.width, party.spacing)
 		local ph = Geometry.IsVertical(party.growth) and Geometry.Line(count, party.height, party.spacing) or party.height
 		local tw, th = ns.Targets.Room(party)
+		local pets = cfg.pets.enabled and cfg.pets.beside
+		if pets then
+			local w, h = ns.Extras.PetSize()
+			tw, th = Geometry.IsVertical(party.growth) and tw + w + Tokens.Size("gapSmall") or tw, Geometry.IsVertical(party.growth) and th or th + h + Tokens.Size("gapSmall")
+		end
 		pw, ph = pw + tw, ph + th
 		preview.party:SetSize(pw, ph)
 		preview.party:ClearAllPoints()
@@ -227,7 +233,7 @@ function Preview.Build(...)
 		local memberSpacing = Geometry.IsVertical(party.growth) and party.spacing or (party.spacing + partyGeo.lane)
 		local x0 = partyGeo.laneSide == "LEFT" and partyGeo.lane or 0
 		local separate = raid.sortBy == "GROUP" and not raid.merge
-		Order(preview.partyFrames, Settings.ClassFirst("party") and party.sortBy ~= "ROLE", nil, "party")
+		Order(preview.partyFrames, Settings.ClassFirst("party") and party.sortBy ~= "ROLE", nil, "party", party.showPlayer and party.selfPosition)
 		Order(preview.raidFrames, raid.sortBy == "CLASS" or separate and Settings.ClassFirst("raid"), separate and GROUP_SIZE, "raid")
 		PlaceRun(preview.partyFrames, preview.party, party, party.growth, count, x0, 0, partyGeo.corner, partyGeo.memberWidth, memberSpacing)
 		local total = GROUP_SIZE * RAID_GROUPS_SHOWN
@@ -276,7 +282,12 @@ function Preview.Build(...)
 		for _, name in ipairs({ "pets", "tanks", "boss" }) do
 			local list, s = preview.extras[name], cfg[name]
 			local on = s.enabled or name == "boss" and s.display ~= "NEVER"
+			local beside = name == "pets" and pets
 			list.holder:SetShown(on)
+			for _, f in ipairs(name == "pets" and list or {}) do
+				local parent = beside and preview.party or list.holder
+				if f:GetParent() ~= parent then f:SetParent(parent) end
+			end
 			if on then
 				local w, h, spacing = ns.Extras.Size(name)
 				local growth = name == "tanks" and s.growth or raid.growth
@@ -296,11 +307,19 @@ function Preview.Build(...)
 					local ox, oy = Geometry.Offset(wrap, (line - 1) * ((vertical and w or h) + spacing))
 					PlaceRun(run, list.holder, { height = h }, growth, #run, ox, oy, Geometry.Corner(growth, wrap), w, spacing)
 				end
+				local pw2, ph2 = ns.Extras.PetSize()
+				for i, f in ipairs(beside and list or {}) do
+					local owner = preview.partyFrames[i + 1]
+					local x, y = ns.Extras.PetSpot(owner, party)
+					f:ClearAllPoints()
+					f:SetPoint("TOPLEFT", owner, "TOPLEFT", x, y)
+					f:SetSize(pw2, ph2)
+				end
 				for _, f in ipairs(items) do
-					Style.Apply(f, w, h)
+					Style.Apply(f, beside and pw2 or w, beside and ph2 or h)
 					Paint(f, f.sample)
 				end
-				ex, eh = ex + bw + groupSpacing, math.max(eh, bh)
+				if not beside then ex, eh = ex + bw + groupSpacing, math.max(eh, bh) end
 			end
 		end
 		if eh > 0 then
@@ -380,6 +399,7 @@ function Preview.Build(...)
 		end
 		preview.clickCast = ns.ClickCast.Panel(preview)
 		preview.Refresh = Layout
+		Preview.live = preview
 		preview:SetScript("OnSizeChanged", function(self)
 			if not self.refitPending and C_Timer and type(C_Timer.After) == "function" then
 				self.refitPending = true

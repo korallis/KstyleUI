@@ -35,10 +35,21 @@ local function Key(i)
 end
 
 local SHOWN_ON = { party = "PARTY", raid = "RAID" }
-local function Category(slot, kind)
-	return (slot.show == "BOTH" or slot.show == SHOWN_ON[kind]) and CATEGORIES[slot.category] or nil
+local mine
+local function Mine()
+	if not mine then
+		mine = { role = Unit.Plain(UnitGroupRolesAssigned and UnitGroupRolesAssigned("player"), "string"), class = Unit.Plain(UnitClass and select(2, UnitClass("player")), "string") }
+	end
+	return mine
+end
+
+local function Category(slot, kind, anyone)
+	local own = not anyone and (slot.role ~= "ANY" or slot.class ~= "ANY") and Mine()
+	return (slot.show == "BOTH" or slot.show == SHOWN_ON[kind]) and (not own or (slot.role == "ANY" or slot.role == own.role) and (slot.class == "ANY" or slot.class == own.class))
+		and CATEGORIES[slot.category] or nil
 end
 Slots.Category = Category
+
 
 function Slots.Spells(text)
 	local set, any = {}, false
@@ -298,7 +309,7 @@ end
 
 local function Key2(f, w, h, field, blocked, spots)
 	local cfg = Settings.current
-	local out = { f.kind, w, h, field.left, field.top, field.right, field.bottom, Widgets.Snap(f, 1) }
+	local out = { f.kind, w, h, field.left, field.top, field.right, field.bottom, Widgets.Snap(f, 1), Style.Scaled(f, 100) }
 	for _, spot in ipairs(spots and spots.lane or {}) do
 		out[#out + 1] = "l" .. spot.left .. ":" .. spot.top .. ":" .. spot.right
 	end
@@ -376,7 +387,7 @@ function Slots.Placements(f)
 	local lane, crowded, edges = 1, false, {}
 	for _, i in ipairs(order) do
 		local slot = cfg[Key(i)]
-		local place, bar = { point = slot.position, x = 0, y = 0, size = Widgets.Snap(f, Slots.Size(f, slot.size)), fits = false }, Bar(f, slot, i)
+		local place, bar = { point = slot.position, x = 0, y = 0, size = Widgets.Snap(f, Slots.Size(f, Style.Scaled(f, slot.size))), fits = false }, Bar(f, slot, i)
 		if bar ~= nil then
 			place.bar = Category(slot, f.kind) and bar and not edges[bar.edge] and bar or nil
 			place.fits = place.bar ~= nil
@@ -611,6 +622,24 @@ local function Applied(f)
 	end
 end
 Style.appliers[#Style.appliers + 1] = Applied
+
+local function Roles()
+	local filtered = false
+	for i = 1, COUNT do filtered = filtered or Settings.current[Key(i)].role ~= "ANY" end
+	local had, role = mine ~= nil, mine and mine.role
+	mine = nil
+	if not (filtered and had) or role == Mine().role then return end
+	Unit.ForEach(Applied)
+	local preview = ns.Preview.live
+	if preview and preview:IsVisible() then preview:Refresh() end
+end
+ns.Frames.events[#ns.Frames.events + 1] = { event = "PLAYER_ROLES_ASSIGNED", fn = Roles }
+local flush = Unit.FlushRoster
+function Unit.FlushRoster()
+	local sizes = flush()
+	Roles()
+	return sizes
+end
 
 local function BuildSamples(f)
 	if not f.sample then

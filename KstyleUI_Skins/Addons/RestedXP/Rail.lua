@@ -820,13 +820,16 @@ function Dock(f, path, band)
 			state.boxes[box] = entry
 		end
 		local scale = Widgets.ScaleFactor(box)
+		local pixel = K.Scale.Pixel(1) / scale
 		RestedXP.Chrome.Label(box, slot.label, slot.label and slot.width / scale - ns.Parts.CAP_INDENT - ns.Parts.CAP_PAD or nil)
 		local reach, icons = Reach(box), Icons(box)
 		local width
 		for _ = 1, 2 do
 			width = math.max(icons, slot.width / scale - reach.left - reach.right)
 			local current = box:GetWidth()
-			if not (Plain(current) and current == width) then
+			if Plain(current) and math.abs(current - width) < pixel then
+				width = current
+			else
 				box:SetWidth(width)
 			end
 			RestedXP.Chrome.IconInset(box)
@@ -837,6 +840,9 @@ function Dock(f, path, band)
 		local x = left + K.Scale.Origin() / scale
 		local point, relative, relativePoint, px, py = box:GetPoint(1)
 		local secret = Widgets.IsSecret(point) or Widgets.IsSecret(relative) or Widgets.IsSecret(relativePoint) or not (Plain(px) and Plain(py))
+		if not secret and math.abs(px - x) < pixel and math.abs(py - y) < pixel then
+			x, y, left = px, py, px - K.Scale.Origin() / scale
+		end
 		if secret or box:GetNumPoints() ~= 1 or point ~= "TOPLEFT" or relative ~= UIParent or relativePoint ~= "BOTTOMLEFT" or px ~= x or py ~= y then
 			box:ClearAllPoints()
 			box:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x, y)

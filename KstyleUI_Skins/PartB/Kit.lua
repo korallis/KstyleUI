@@ -577,6 +577,11 @@ local function RankBar(frame)
 			if high == nil or value == nil then
 				return
 			end
+			local _, top = fill:GetMinMaxValues()
+			local now = fill:GetValue()
+			if not (IsSecret(high) or IsSecret(value) or IsSecret(top) or IsSecret(now)) and high == top and value == now then
+				return
+			end
 			fill:SetBarRange(0, high)
 			fill:SetBarValue(value)
 		end)

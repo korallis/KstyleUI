@@ -259,7 +259,7 @@ local function Restart(group, moving)
 	end
 end
 
-local function Points()
+local function Points(event)
 	local kind = state.kind
 	if not kind or state.count == 0 then
 		return
@@ -275,6 +275,9 @@ local function Points()
 	local was = points
 	if state.seen then
 		was = state.points
+		if event and issecretvalue and not issecretvalue(points) and not issecretvalue(was) and points == was then
+			return
+		end
 	end
 	state.points, state.seen = points, true
 	local moving = Effects.Allows("flare")

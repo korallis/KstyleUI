@@ -41,13 +41,14 @@ local function Look(t)
 end
 
 local function Room(f, k)
-	local cfg, gap, block = Settings.current.targets, Tokens.Size("gapSmall"), Auras.Block(f, k)
+	local gap, block = Tokens.Size("gapSmall"), Auras.Block(f, k)
 	if Geometry.IsVertical(k.growth) then
 		local geo = Geometry.Party(k)
-		return math.max(geo.memberWidth + (geo.laneSide == "RIGHT" and geo.lane or 0), block.left + block.width) + gap + cfg.x, cfg.y
+		return math.max(geo.memberWidth + (geo.laneSide == "RIGHT" and geo.lane or 0), block.left + block.width) + gap, 0
 	end
-	return cfg.x, cfg.y - math.max(k.height, block.top + block.height) - gap
+	return 0, -math.max(k.height, block.top + block.height) - gap
 end
+Targets.Spot = Room
 
 function Targets.Room(k)
 	local cfg = Settings.current.targets
@@ -64,6 +65,7 @@ end
 local function Layout(t, anchor)
 	local f, cfg, k = t.content, Settings.current.targets, Settings.current.party
 	local x, y = Room(f, k)
+	x, y = x + cfg.x, y + cfg.y
 	t:ClearAllPoints()
 	t:SetPoint("TOPLEFT", anchor, "TOPLEFT", Widgets.Snap(f, x), Widgets.Snap(f, y))
 	t:SetSize(Widgets.Snap(f, cfg.width), Widgets.Snap(f, cfg.height))

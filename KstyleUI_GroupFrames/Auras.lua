@@ -156,7 +156,7 @@ end
 
 local function Block(f, k)
 	local w, h = Style.Size(f)
-	local size, spacing = Widgets.Snap(f, k.auraSize), Widgets.Snap(f, k.auraSpacing)
+	local size, spacing = Widgets.Snap(f, Style.Scaled(f, k.auraSize)), Widgets.Snap(f, k.auraSpacing)
 	local inset, gap = Widgets.Snap(f, Tokens.Size("gapTiny")), Widgets.Snap(f, Tokens.Size("gapSmall"))
 	local lane = f.kind == "party" and Geometry.AuraLane(k) or 0
 	local place, outside = Geometry.AuraPlace(k, lane)
@@ -255,7 +255,7 @@ local function BuffSizes(f, k)
 	if row then
 		room = math.min(room, row.height)
 	end
-	return math.min(Widgets.Snap(f, k.buffSize), room), Widgets.Snap(f, k.auraSpacing)
+	return math.min(Widgets.Snap(f, Style.Scaled(f, k.buffSize)), room), Widgets.Snap(f, k.auraSpacing)
 end
 
 local function BuffLayout(f, k)
@@ -625,6 +625,14 @@ end
 
 Auras.restylers = {}
 
+local function Under(f, frame)
+	local want = Settings.current.auras.dispelUnder and f.predict and f.predict:GetFrameLevel() or frame.kstyleLevel
+	if (frame.kstyleAt or frame.kstyleLevel) ~= want then
+		frame:SetFrameLevel(want)
+		frame.kstyleAt = want
+	end
+end
+
 function RestyleNow(f)
 	local container = f.auras
 	if f.buffs then
@@ -652,6 +660,7 @@ function RestyleNow(f)
 		end
 	end
 	if f.dispelWash then
+		Under(f, f.dispelFrame)
 		local ok, err = pcall(LayoutDispel, f.dispelWash, f.dispelRing, f.dispelFrame, f.chrome:Chamfer(), true)
 		if not ok then
 			Style.LogOnce("dispelStyle", "laying out the dispel highlight failed: " .. tostring(err))
@@ -813,6 +822,7 @@ local function BuildDispel(slot, f)
 	slot:SetAllPoints(f)
 	local wash, ring = NewDispel(slot)
 	f.dispelWash, f.dispelRing, f.dispelFrame = wash, ring, slot
+	slot.kstyleLevel = slot:GetFrameLevel()
 	local style = DispelStyle()
 	if style then
 		local options = Tinted({ style = style, showWhenHarmful = true })
@@ -1530,6 +1540,7 @@ local function BuildSamples(f)
 	f.sampleDispel = CreateFrame("Frame", nil, holder)
 	f.sampleDispel:SetAllPoints(f)
 	f.sampleDispelWash, f.sampleDispelRing = NewDispel(f.sampleDispel)
+	f.sampleDispel.kstyleLevel = f.sampleDispel:GetFrameLevel()
 end
 Button.built[#Button.built + 1] = BuildSamples
 
@@ -1617,6 +1628,7 @@ local function LayoutSamples(f, k)
 		PlaceIcon(boss.tile)
 		Zoom(boss.tile.icon, IconZoom(BOSS_SLOT))
 	end
+	Under(f, f.sampleDispel)
 	LayoutDispel(f.sampleDispelWash, f.sampleDispelRing, f.sampleDispel, f.chrome:Chamfer())
 end
 

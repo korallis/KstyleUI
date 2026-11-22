@@ -30,55 +30,52 @@ local SCRIPTS = {
 	OnEditFocusGained = {}, OnEditFocusLost = {},
 }
 
--- KstyleUI widget writes allowed per replayed call, by the file that installs the hook and the hooked method or script
--- (RestyleUnder: per scoped restyle, by environment), measured on 2026-11-22, each file with its why. Anything not
--- listed must write nothing.
+-- KstyleUI widget writes allowed per replayed call, by the file that installs the hook and the hooked method or script,
+-- measured on 2026-11-22, each file with its why. Anything not listed must write nothing, and a scoped restyle of an
+-- unrelated frame must write nothing in any environment.
 local CEILINGS = {
-	["Core/Skin.lua"] = { OnClick = 2, OnDisable = 6, OnEnable = 6, OnEnter = 30, OnHide = 1, OnLeave = 30, OnMouseDown = 6, OnMouseUp = 6, OnShow = 433, SetAlpha = 1, SetChecked = 2, SetColorTexture = 1, SetTabSelected = 5, SetVertexColor = 1,
-		why = "a hushed texture answers each owner alpha or recolour once (texture alpha is one value); skinned buttons, tabs and check boxes repaint on each hover, press, enable and check; a skinned window restyles each time it shows" },
-	["Core/Widgets/Base.lua"] = { OnSizeChanged = 10,
+	["Core/Skin.lua"] = { OnClick = 2, OnDisable = 6, OnEnable = 6, OnEnter = 30, OnHide = 1, OnLeave = 30, OnMouseDown = 6, OnMouseUp = 6, OnShow = 224, SetAlpha = 1, SetChecked = 2, SetColorTexture = 1, SetTabSelected = 5, SetVertexColor = 1,
+		why = "a hushed texture answers each owner alpha or recolour once (texture alpha is one value); skinned buttons, tabs and check boxes repaint on each hover, press, enable and check; a skinned window re-places its metrics each time it shows, and the trainer relays out its list" },
+	["Core/Widgets/Base.lua"] = { OnSizeChanged = 7,
 		why = "chrome on another addon's frame relays out on each OnSizeChanged" },
 	["Core/Widgets/StatusBar.lua"] = { OnSizeChanged = 12,
 		why = "a bar edge relays out on each OnSizeChanged" },
-	["KstyleUI_Minimap/Drawer.lua"] = { Play = 2, SetAlpha = 1, SetPoint = 6,
-		why = "Place re-anchors and resizes a LibDBIcon button the library moves even when it is in its slot, and KeepOpaque answers each fade" },
+	["KstyleUI_Minimap/Drawer.lua"] = { Play = 1, SetAlpha = 1, SetPoint = 2,
+		why = "Fit puts back a LibDBIcon button the library moves out of its slot, and KeepOpaque answers each fade" },
 	["KstyleUI_Minimap/Map.lua"] = { OnEnter = 1, OnLeave = 1, SetAlpha = 1, SetZoom = 2, UpdateDisplay = 124, UpdateMinimapConfig = 2,
 		why = "the map puts its shape, zoom and fades back after each of Blizzard's minimap updates" },
 	["KstyleUI_Skins/Addons/Questie.lua"] = { OnShow = 4, OnSizeChanged = 3, SetColorTexture = 1, SetFont = 1, SetText = 3, SetVertexColor = 1, Update = 4,
 		why = "Questie's font and art are set back once per Questie write, and Refresh shows the card's cap again on each label SetText, resize and Update" },
-	["KstyleUI_Skins/Addons/RestedXP/Chrome.lua"] = { CreateGui = 45, CreateGuideConfigurator = 19, CreateGuideImporter = 67, CreateLevelSplits = 4, LoadGuide = 183, OnEnter = 6, OnLeave = 6, OnShow = 45, OpenBrandedExport = 1255, OpenBugReport = 1338, RenderSplitsBackground = 4, RenderTargetFrameBackground = 2, SetAlpha = 1, SetFont = 23, SetFontObject = 4, SetMinMaxValues = 1, SetRotation = 2, SetScale = 1196, SetStep = 304, SetTexCoord = 2, SetText = 182, SetTexture = 4, SetValue = 5, SetupArrow = 46, ShowMenu = 3, UpdateItemFrame = 207, UpdateTargetFrame = 202, UpdateText = 209, UpdateTheme = 50, UpdateVisuals = 188,
-		why = "RestedXP redraws its steps, boxes, windows and arrow and the chrome re-skins what it drew without comparing; new windows (CreateGui, the importer, the bug report and export dialogs) are dressed when made" },
-	["KstyleUI_Skins/Addons/RestedXP/Rail.lua"] = { OnHide = 163, OnMouseUp = 207, OnShow = 162, SetStep = 304, SortTimers = 163, UpdateItemFrame = 207, UpdateTargetFrame = 202,
-		why = "each RestedXP update places the guide again: the key skips the guide, but docking runs every time as on staging, and the boxes' measured glass reach moves them between two widths on every dock" },
-	["KstyleUI_Skins/Addons/Zygor.lua"] = { AssignTextures = 3, ReanchorFrame = 7, ResizeFrame = 294, SetFontSize = 4, SetFrameScale = 2,
-		why = "Fit re-fits after each ResizeFrame, Assert re-anchors on ReanchorFrame, Follow re-anchors Zygor's action bar, ArrowText answers Zygor's own arrow font and AssignTextures re-tints" },
+	["KstyleUI_Skins/Addons/RestedXP/Chrome.lua"] = { CreateGui = 45, CreateGuideConfigurator = 19, CreateGuideImporter = 67, CreateLevelSplits = 4, LoadGuide = 5, OnEnter = 6, OnLeave = 6, OnShow = 45, OpenBrandedExport = 1255, OpenBugReport = 1338, RenderSplitsBackground = 4, RenderTargetFrameBackground = 2, SetAlpha = 1, SetFont = 23, SetFontObject = 4, SetMinMaxValues = 1, SetRotation = 2, SetStep = 150, SetTexCoord = 2, SetText = 41, SetTexture = 4, SetValue = 5, SetupArrow = 34, ShowMenu = 3, UpdateItemFrame = 83, UpdateTargetFrame = 80, UpdateText = 32, UpdateTheme = 50, UpdateVisuals = 29,
+		why = "RestedXP re-anchors its step lines, resets a docked box's width and redraws its arrow and art, and the chrome puts them back; a caption re-fits when RestedXP sets its font or text (its same-text SetText re-snaps what is anchored to it); new windows (CreateGui, the importer, the bug report and export dialogs) are dressed when made" },
+	["KstyleUI_Skins/Addons/RestedXP/Rail.lua"] = { OnMouseUp = 83, SetStep = 150, UpdateItemFrame = 83, UpdateTargetFrame = 80,
+		why = "RestedXP's item and target updates reset a docked box's width; the rail docks it back and the box's glass follows both widths" },
+	["KstyleUI_Skins/Addons/Zygor.lua"] = { AssignTextures = 3, ReanchorFrame = 1, ResizeFrame = 294, SetFontSize = 4,
+		why = "Zygor's ResizeFrame sets its window's height on every call and Fit puts the card's height back, the glass following both; ReanchorFrame resets the window's clamp insets; ArrowText answers Zygor's own arrow font and AssignTextures re-tints" },
 	["KstyleUI_Skins/Character.lua"] = { PaperDollFrame_UpdateSidebarTabLayout = 4, UpdateRightPaneToggleButton = 1,
 		why = "the sidebar tabs and the pane toggle restyle after Blizzard lays them out" },
 	["KstyleUI_Skins/Lumen.lua"] = { OnClick = 3, OnEnter = 6, OnLeave = 6, OnShow = 3, SetChecked = 3,
 		why = "the Lumen ring repaints on each check, click, show and hover" },
 	["KstyleUI_Skins/PartB/GameMenu.lua"] = { InitButtons = 64, Setup = 19,
 		why = "the game menu buttons restyle after Blizzard sets them up" },
-	["KstyleUI_Skins/PartB/Kit.lua"] = { SetVertexColor = 1, Update = 2,
-		why = "kit parts follow the owner's colour and update each call" },
+	["KstyleUI_Skins/PartB/Kit.lua"] = { SetVertexColor = 1,
+		why = "kit parts follow the owner's colour" },
 	["KstyleUI_Skins/PartB/Merchant.lua"] = { MerchantFrame_UpdateMerchantInfo = 57,
 		why = "the merchant page restyles after each Blizzard update" },
 	["KstyleUI_Skins/PartB/Trainer.lua"] = { ClassTrainerFrame_SetTrainButtonEnabled = 2, ClassTrainerFrame_Update = 156,
 		why = "the trainer list restyles after each Blizzard update" },
-	["KstyleUI_Skins/PartC/Kit.lua"] = { Hide = 1, SetDesaturated = 2, SetMinMaxValues = 1, SetShown = 1, SetStatusBarColor = 4, SetValue = 1, Show = 1,
-		why = "bars mirror the owner's range, value, colour and shown state onto KstyleUI's own bar each call" },
 	["KstyleUI_Skins/PartC/Legacy.lua"] = { Init = 8,
 		why = "the Legacy track restyles on Init" },
-	["KstyleUI_Skins/Parts.lua"] = { OnClick = 1, OnDisable = 1, OnEnable = 1, OnEnter = 1, OnHide = 20, OnLeave = 1, OnShow = 433, OnSizeChanged = 10, SetChecked = 1, SetFormattedText = 5, SetText = 5, SetVertexColor = 1, UpdateTabLayout = 9,
+	["KstyleUI_Skins/Parts.lua"] = { OnClick = 1, OnDisable = 1, OnEnable = 1, OnEnter = 1, OnHide = 14, OnLeave = 1, OnShow = 224, OnSizeChanged = 7, SetChecked = 1, SetFormattedText = 5, SetText = 5, SetVertexColor = 1, UpdateTabLayout = 6,
 		why = "caps, tabs, docks and dropdowns restyle on the client's show, hide, size and hover, and a window title places its section cap again on each SetText" },
 	["KstyleUI_Skins/Quests/Quests.lua"] = { HideWatchFrame = 1, OnShow = 4, Update = 4, UpdateHeaderPosition = 2,
 		why = "SyncQuestie keeps the two trackers in step on each Questie and tracker update" },
-	["KstyleUI_Skins/Registry.lua"] = { OnShow = 433,
-		why = "a skinned window restyles each time it shows" },
-	["KstyleUI_Skins/Style.lua"] = { OnShow = 433, SetFontObject = 1, SetStatusBarColor = 1, SetTextColor = 1,
-		why = "a skinned window restyles each time it shows, and swept text and bars follow the owner's font and colour each call" },
+	["KstyleUI_Skins/Registry.lua"] = { OnShow = 224,
+		why = "a skinned window re-places its metrics each time it shows" },
+	["KstyleUI_Skins/Style.lua"] = { OnShow = 224, SetFontObject = 1, SetStatusBarColor = 1, SetTextColor = 1,
+		why = "a skinned window re-places its metrics each time it shows, and swept text and bars follow the owner's font and colour each call" },
 	["KstyleUI_Skins/Tracker.lua"] = { EndLayout = 18, OnEnter = 3, OnLeave = 3, SetAlpha = 1, SetCollapsed = 1, SetFontObject = 1, SetHeader = 2, SetText = 2, UpdateHeaderPosition = 2, UpdateHighlight = 2,
 		why = "the tracker restyles its lines, headers and highlights after each Blizzard layout, text and hover" },
-	RestyleUnder = { ["Zygor"] = 2, why = "the Zygor rail's tracked Restyle has no region, so Follow re-anchors Zygor's action bar on every scoped restyle" },
 }
 
 local function Addon(source)
@@ -317,7 +314,7 @@ local function Settle(label, env, K, w)
 		end
 	end)
 	assert(ok, err)
-	if writes / 10 > (CEILINGS.RestyleUnder[label] or 0) then
+	if writes > 0 then
 		failures[#failures + 1] = string.format("%s: 10 scoped restyles of an unrelated frame wrote %d times (%s). A tracked widget with no region runs on every scoped restyle: give the handle the frame it styles (owner, holder, frame, bar, button or target) so Widgets.RestyleUnder skips it (#685).", label, writes, List(by))
 	end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, label .. ": " .. tostring(env._errors[1]))

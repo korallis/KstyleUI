@@ -1,4 +1,4 @@
--- parity_combat_options.lua: the real scoped Options page and its live preview, selected with RENDER_PARITY_MODULE; RENDER_PARITY_ENABLED=1 switches on round one's options, 2 the round two options (Auras, Cooldowns), 3 the Meters round two, Auras round three (the missing buff reminder, its sample named Arcane Intellect) or Cooldowns round three options 4 the Cooldowns round four options and 5 the Cooldowns round five custom bar group.
+-- parity_combat_options.lua: the real scoped Options page and its live preview, selected with RENDER_PARITY_MODULE; RENDER_PARITY_ENABLED=1 switches on round one's options, 2 the round two options (Auras, Cooldowns), 3 the Meters round two, Auras round three (the reminder card: the low mana, Arcane Intellect and Flask of the Titans samples) or Cooldowns round three options 4 the Cooldowns round four options and 5 the Cooldowns round five custom bar group.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -53,7 +53,7 @@ return Common.Run(function()
    Cooldowns4 = { path = "mirror", ["essential.keybind"] = true, ["essential.pressMirror"] = true, ["utility.itemQuality"] = true, ["rules.cdBars"] = "x",
     ["bars.hashLines"] = true, ["bars.chargeShade"] = true, ["bars.lineWidth"] = 2 },
    Cooldowns5 = { path = "mirror", ["rules.group"] = "x", ["custom.name"] = "Burst", ["custom.count"] = 1 },
-   Auras3 = { ["reminder.enabled"] = true },
+   Auras3 = { ["reminder.enabled"] = true, ["reminder.flasks"] = true, ["reminder.mana"] = true },
    Meters3 = { ["damage2.shown"] = true, ["damage.report"] = true, ["damage.englishUnits"] = false },
   }
   for key, value in pairs(assert(values[enabled == "1" and module or module .. enabled], "RENDER_PARITY_ENABLED=" .. enabled .. " has no " .. module .. " options")) do K.Options.Write(module, key, value) end

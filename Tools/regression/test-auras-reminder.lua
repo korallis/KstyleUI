@@ -1,4 +1,4 @@
--- test-auras-reminder.lua: the missing buff reminder: a v0.2.8 profile builds nothing; switched on, the card names your first known class buff you lack, refreshes on aura, combat, death and spell changes, hides while auras are secret, takes its text rows, shows in the preview and goes away when off.
+-- test-auras-reminder.lua: the reminder card: a v0.2.8 profile builds nothing; switched on, the card names your first known class buff you lack, refreshes on aura, combat, death and spell changes, hides while auras are secret, takes its text rows, shows in the preview and goes away when off; the flask reminder and the ready check mana warning each work alone, switched on, off, in combat, secret and after bag, power and ready check events.
 local A = dofile("Tools/regression/auras_env.lua")
 local NAMES = { [1459] = "Arcane Intellect", [23028] = "Arcane Brilliance", [168] = "Frost Armor", [7302] = "Ice Armor", [6117] = "Mage Armor", [428741] = "Molten Armor" }
 local saved = { version = 4, profiles = { Default = { Auras = { enabled = true } } }, characters = {} }
@@ -16,6 +16,16 @@ local env, K = A.New({ saved = saved, setup = function(e)
 		assert(unit == "player" and filter == "HELPFUL", "the reminder reads your own helpful auras")
 		return e._mine[name] and { name = name } or nil
 	end
+	e._flasks, e._bags, e._zone, e._mana, e._manaMax, e._powerReads = {}, {}, "none", 4000, 4000, 0
+	e.C_UnitAuras.GetPlayerAuraBySpellID = function(id) return e._flasks[id] and { spellId = id } or nil end
+	e.C_Item = { GetItemCount = function(id) return e._bags[id] or 0 end, GetItemIconByID = function(id) return 200000 + id end,
+		GetItemNameByID = function(id) return ({ [13510] = "Flask of the Titans", [13512] = "Flask of Supreme Power" })[id] end,
+		RequestLoadItemDataByID = function(id) e._requested = id end }
+	e.GetTime = function() return e._now end
+	e.IsInInstance = function() return e._zone ~= "none", e._zone end
+	e.Enum.PowerType = { Mana = 0 }
+	e.UnitPowerMax = function(_, kind) assert(kind == 0, "mana is read"); return e._manaMax end
+	e.UnitPower = function(_, kind) assert(kind == 0, "mana is read"); e._powerReads = e._powerReads + 1; return e._mana end
 end })
 env.RunTimers()
 local function write(key, value) K.Options.Write("Auras", key, value); env.RunTimers() end
@@ -81,7 +91,7 @@ local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
 parent:SetSize(320, 240)
 local preview = K.Options.Preview("Auras")(parent)
 preview:Refresh()
-assert(preview.reminder and preview.reminder:IsShown() and preview.reminder.text:GetText() == "Missing: Arcane Intellect", "the preview shows the card")
+assert(preview.reminders[1] and preview.reminders[1]:IsShown() and preview.reminders[1].text:GetText() == "Missing: Arcane Intellect", "the preview shows the card")
 
 -- Switched off: the card and element go away and auras no longer refresh it.
 write("reminder.enabled", false)
@@ -90,7 +100,7 @@ env._mine = {}
 aura()
 assert(not frame:IsShown(), "and an aura change does not bring it back")
 preview:Refresh()
-assert(not preview.reminder:IsShown(), "the preview drops the card")
+assert(not preview.reminders[1]:IsShown(), "the preview drops the card")
 
 -- The PR #657 review's probes. Unchanged aura events repaint nothing.
 write("reminder.enabled", true)
@@ -148,5 +158,182 @@ assert(A.W.SameColor(frame.tile.chrome.rim[5], K.Tokens.Color("edgeInner")), "th
 K.Options.Write("Auras", "medallionsIcons", true)
 K.Options.Write("HudStyle", "style", "frames"); env.RunTimers()
 assert(A.W.SameColor(frame.tile.chrome.rim[5], K.Tokens.Color("edgeInner")), "Frames keeps the plain rim")
+K.Options.Write("HudStyle", "style", "medallions"); env.RunTimers()
+
+-- Round 3 defaults: the flask reminder and the mana warning start off.
+local s = K.Store.Module("Auras").reminder
+assert(s.flasks == false and s.mana == false, "the flask reminder and the mana warning start off")
+
+-- The flask reminder on its own: the class buffs off, the card still builds, and only in a raid.
+env.UnitClass = function() return "Mage", "MAGE" end
+env._known, env._mine = { [1459] = true }, {}
+write("reminder.enabled", false)
+assert(not K.Layout.Live("auras.reminder"), "every reminder off: no live element")
+write("reminder.flasks", true)
+assert(K.Layout.Live("auras.reminder") and not frame:IsShown(), "flasks alone keep the element; outside a raid nothing shows")
+env._bags = { [13510] = 3, [13512] = 1 }
+env._zone = "party"
+env.FireEvent("PLAYER_ENTERING_WORLD"); env.RunTimers()
+assert(not frame:IsShown(), "a dungeon is not a raid")
+env._zone = "raid"
+env.FireEvent("PLAYER_ENTERING_WORLD"); env.RunTimers()
+assert(frame:IsShown() and frame.text:GetText() == "Missing: Flask of the Titans (3)" and frame.icon:GetTexture() == 213510, "in a raid the card names the flask you carry, got " .. tostring(frame.text:GetText()))
+env._bags[13510] = 2
+env.FireEvent("BAG_UPDATE_DELAYED"); env.RunTimers()
+assert(frame.text:GetText() == "Missing: Flask of the Titans (2)", "a bag change updates the count")
+env._bags[13510] = nil
+env.FireEvent("BAG_UPDATE_DELAYED"); env.RunTimers()
+assert(frame.text:GetText() == "Missing: Flask of Supreme Power (1)", "the next flask you carry is named")
+env._flasks[17627] = true
+aura()
+assert(not frame:IsShown(), "any flask on you counts, Distilled Wisdom included")
+env._flasks = {}
+aura()
+assert(frame:IsShown(), "the flask fading brings the card back")
+setText, writes = frame.text.SetText, 0
+frame.text.SetText = function(self, ...) writes = writes + 1; return setText(self, ...) end
+for _ = 1, 10 do aura(); env.FireEvent("BAG_UPDATE_DELAYED"); env.RunTimers() end
+frame.text.SetText = nil
+assert(writes == 0, "unchanged aura and bag events repaint nothing, got " .. writes)
+env._aurasSecret = true
+aura()
+assert(not frame:IsShown(), "a secret flask aura shows nothing")
+env._aurasSecret = false
+env.SetCombat(true); env.FireEvent("PLAYER_REGEN_DISABLED"); env.RunTimers()
+assert(not frame:IsShown(), "combat hides the flask card")
+env.SetCombat(false); env.FireEvent("PLAYER_REGEN_ENABLED"); env.RunTimers()
+assert(frame:IsShown(), "and it returns after combat")
+write("reminder.enabled", true)
+assert(frame.text:GetText() == "Missing: Arcane Intellect", "a missing class buff comes before a flask")
+write("reminder.enabled", false)
+env._bags = {}
+env.FireEvent("BAG_UPDATE_DELAYED"); env.RunTimers()
+assert(not frame:IsShown(), "no flask in your bags, no card")
+env._bags = { [13510] = 3 }
+write("reminder.flasks", false)
+assert(not frame:IsShown() and not K.Layout.Live("auras.reminder"), "the flask reminder off hides the card and its element")
+
+-- The mana warning on its own: only during a ready check, only under 80 percent, following your mana.
+write("reminder.mana", true)
+env._mana = 1000
+aura()
+assert(K.Layout.Live("auras.reminder") and not frame:IsShown(), "no ready check, no warning")
+env.FireEvent("READY_CHECK", "Leader", 35); env.RunTimers()
+assert(frame:IsShown() and frame.text:GetText() == "Low mana" and frame.icon:GetTexture() == 132794, "a ready check at 25 percent mana warns, got " .. tostring(frame.text:GetText()))
+env._mana = 3300
+env.FireEvent("UNIT_POWER_UPDATE", "player", "MANA"); env.RunTimers()
+assert(not frame:IsShown(), "drinking past 80 percent hides it")
+env._mana = 3100
+env.FireEvent("UNIT_POWER_UPDATE", "player", "MANA"); env.RunTimers()
+assert(frame:IsShown(), "and dropping under 80 percent brings it back")
+env._mana = env.Secret(1000)
+env.FireEvent("UNIT_POWER_UPDATE", "player", "MANA"); env.RunTimers()
+assert(not frame:IsShown(), "secret mana shows nothing")
+env._mana = 1000
+write("reminder.enabled", true)
+assert(frame:IsShown() and frame.text:GetText() == "Low mana", "the mana warning comes before a missing class buff")
+write("reminder.enabled", false)
+env.FireEvent("READY_CHECK_FINISHED", false); env.RunTimers()
+assert(not frame:IsShown(), "the warning ends with the ready check")
+local reads = env._powerReads
+env.FireEvent("UNIT_POWER_UPDATE", "player", "MANA"); env.RunTimers()
+assert(env._powerReads == reads, "after the ready check, power changes do no work")
+env._manaMax = 0
+env.FireEvent("READY_CHECK", "Leader", 35); env.RunTimers()
+assert(not frame:IsShown(), "a class without mana is never warned")
+env._manaMax = 4000
+env.FireEvent("UNIT_POWER_UPDATE", "player", "MANA"); env.RunTimers()
+assert(frame:IsShown(), "and the warning follows the ready check that is still running")
+env.SetCombat(true); env.FireEvent("PLAYER_REGEN_DISABLED"); env.RunTimers()
+assert(not frame:IsShown(), "combat hides the warning")
+env.SetCombat(false); env.FireEvent("PLAYER_REGEN_ENABLED"); env.RunTimers()
+write("reminder.mana", false)
+assert(not frame:IsShown() and not K.Layout.Live("auras.reminder"), "the warning off hides the card and its element")
+reads = env._powerReads
+env.FireEvent("UNIT_POWER_UPDATE", "player", "MANA"); env.FireEvent("READY_CHECK", "Leader", 35); env.RunTimers()
+assert(env._powerReads == reads and not frame:IsShown(), "off, a ready check reads no mana")
+env.FireEvent("READY_CHECK_FINISHED", false); env.RunTimers()
+
+-- The preview shows one sample card for each reminder switched on, and drops each one switched off.
+for key, value in pairs({ ["reminder.enabled"] = true, ["reminder.flasks"] = true, ["reminder.mana"] = true }) do write(key, value) end
+preview:Refresh()
+local texts = {}
+for i, each in ipairs(preview.reminders) do texts[i] = each:IsShown() and each.text:GetText() or "-" end
+assert(table.concat(texts, "|") == "Low mana|Missing: Arcane Intellect|Missing: Flask of the Titans (3)", "the preview shows all three, got " .. table.concat(texts, "|"))
+write("reminder.mana", false); write("reminder.enabled", false)
+preview:Refresh()
+assert(preview.reminders[1].text:GetText() == "Missing: Flask of the Titans (3)" and not preview.reminders[2]:IsShown() and not preview.reminders[3]:IsShown(), "the preview keeps only the flask card")
+write("reminder.flasks", false)
+
+-- The PR #728 review's probes. A ready check already running when the warning is switched on counts, until its time runs out.
+env._mana, env._manaMax = 1000, 4000
+env.GetReadyCheckTimeLeft = function() return 20 end
+env.FireEvent("READY_CHECK", "Leader", 35); env.RunTimers()
+write("reminder.mana", true)
+assert(frame:IsShown() and frame.text:GetText() == "Low mana", "a ready check already running warns")
+env._now = env._now + 21
+env.FireEvent("UNIT_POWER_UPDATE", "player", "MANA"); env.RunTimers()
+assert(not frame:IsShown(), "once its time has run out, the warning ends")
+reads = env._powerReads
+env.FireEvent("UNIT_POWER_UPDATE", "player", "MANA"); env.RunTimers()
+assert(env._powerReads == reads, "and power changes do no more work")
+env.GetReadyCheckTimeLeft = function() return 0 end
+
+-- A larger mana pool makes the same mana low; another power type does no work.
+env._mana = 3200
+env.FireEvent("READY_CHECK", "Leader", 35); env.RunTimers()
+assert(not frame:IsShown(), "80 percent is not low")
+env._manaMax = 5000
+env.FireEvent("UNIT_MAXPOWER", "player", "MANA"); env.RunTimers()
+assert(frame:IsShown(), "a larger mana pool warns at once")
+reads = env._powerReads
+env.FireEvent("UNIT_POWER_UPDATE", "player", "ENERGY"); env.RunTimers()
+assert(env._powerReads == reads, "energy changes read no mana")
+env.FireEvent("READY_CHECK_FINISHED", false); env.RunTimers()
+env._manaMax = 4000
+write("reminder.mana", false)
+
+-- An unreadable class buff stops the class search but leaves a readable flask reminder.
+env._zone, env._bags = "raid", { [13510] = 3 }
+write("reminder.flasks", true)
+env.C_Secrets.ShouldSpellAuraBeSecret = function(id) return id == 1459 end
+write("reminder.enabled", true)
+assert(frame:IsShown() and frame.text:GetText() == "Missing: Flask of the Titans (3)", "a secret Arcane Intellect leaves the flask, got " .. tostring(frame:IsShown() and frame.text:GetText()))
+env.C_Secrets.ShouldSpellAuraBeSecret = function() return env._aurasSecret == true end
+write("reminder.enabled", false)
+
+-- A flask whose name or icon arrives late is shown and painted when its data loads.
+local itemName, itemIcon = env.C_Item.GetItemNameByID, env.C_Item.GetItemIconByID
+env.C_Item.GetItemNameByID = function() return nil end
+env.FireEvent("BAG_UPDATE_DELAYED"); env.RunTimers()
+assert(not frame:IsShown() and env._requested == 13510, "an unread name shows nothing and asks for the item")
+env.C_Item.GetItemNameByID = itemName
+env.FireEvent("ITEM_DATA_LOAD_RESULT", 13510, true); env.RunTimers()
+assert(frame:IsShown() and frame.text:GetText() == "Missing: Flask of the Titans (3)", "the name arriving shows the card")
+env.C_Item.GetItemIconByID = function() return nil end
+env.FireEvent("BAG_UPDATE_DELAYED"); env.RunTimers()
+env.C_Item.GetItemIconByID = itemIcon
+env.FireEvent("ITEM_DATA_LOAD_RESULT", 13510, true); env.RunTimers()
+assert(frame.icon:GetTexture() == 213510, "the icon arriving repaints the tile, got " .. tostring(frame.icon:GetTexture()))
+
+-- No repeated reads: unchanged bags are not counted again, aura refreshes read no auras, and bag events do nothing for the class buffs.
+local bagReads, flaskReads, classReads = 0, 0, 0
+local count, flask, class = env.C_Item.GetItemCount, env.C_UnitAuras.GetPlayerAuraBySpellID, env.C_UnitAuras.GetAuraDataBySpellName
+env.C_Item.GetItemCount = function(...) bagReads = bagReads + 1; return count(...) end
+env.C_UnitAuras.GetPlayerAuraBySpellID = function(...) flaskReads = flaskReads + 1; return flask(...) end
+env.C_UnitAuras.GetAuraDataBySpellName = function(...) classReads = classReads + 1; return class(...) end
+for _ = 1, 10 do env.FireEvent("UNIT_AURA", "player", { isFullUpdate = false, updatedAuraInstanceIDs = { 7 } }) end
+env.RunTimers()
+assert(flaskReads == 0, "aura refreshes read no flask auras, got " .. flaskReads)
+for _ = 1, 10 do aura() end
+assert(bagReads == 0 and flaskReads > 0, "aura changes read the flask auras but not the bags, got " .. bagReads)
+write("reminder.flasks", false)
+write("reminder.enabled", true)
+classReads = 0
+for _ = 1, 10 do env.FireEvent("BAG_UPDATE_DELAYED") end
+env.RunTimers()
+assert(classReads == 0, "bag events read no class buffs, got " .. classReads)
+write("reminder.enabled", false)
+env.C_Item.GetItemCount, env.C_UnitAuras.GetPlayerAuraBySpellID, env.C_UnitAuras.GetAuraDataBySpellName = count, flask, class
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("test-auras-reminder: ok")

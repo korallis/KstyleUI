@@ -651,14 +651,20 @@ local function PlaceHead(path)
 	local anchor = steps or header
 	rise = Widgets.Snap(holder, rise)
 	path.capHeight = full - rise
-	holder:ClearAllPoints()
-	holder:SetHeight(full)
-	if Skins.Setting(KEY, "rail") and Widgets.Readability("snapEdges") then
-		Widgets.Point(holder, "BOTTOMLEFT", anchor, "TOPLEFT", 0, -rise, true)
-		Widgets.Point(holder, "BOTTOMRIGHT", anchor, "TOPRIGHT", 0, -rise, true)
-	else
-		holder:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 0, -rise)
-		holder:SetPoint("BOTTOMRIGHT", anchor, "TOPRIGHT", 0, -rise)
+	local snap = Skins.Setting(KEY, "rail") and Widgets.Readability("snapEdges")
+	local left, right, top = Widgets.Edges(anchor)
+	local key = Plain(left) and Plain(right) and Plain(top) and table.concat({ tostring(anchor), left, right, top, rise, full, tostring(snap) }, " ")
+	if not key or path.headKey ~= key then
+		path.headKey = key
+		holder:ClearAllPoints()
+		holder:SetHeight(full)
+		if snap then
+			Widgets.Point(holder, "BOTTOMLEFT", anchor, "TOPLEFT", 0, -rise, true)
+			Widgets.Point(holder, "BOTTOMRIGHT", anchor, "TOPRIGHT", 0, -rise, true)
+		else
+			holder:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 0, -rise)
+			holder:SetPoint("BOTTOMRIGHT", anchor, "TOPRIGHT", 0, -rise)
+		end
 	end
 	PlaceCard(path)
 	if path.OnHead then
@@ -666,17 +672,25 @@ local function PlaceHead(path)
 	end
 end
 
+local function HeadKey(path, count, value, shown)
+	local tall = path.header:GetHeight()
+	return Plain(tall) and table.concat({ path.titleValue, count, value, tostring(shown), tall }, "\n") or nil
+end
+
 local function FitHead(path)
-	local cap = path.cap
-	cap:SetText(path.titleValue)
-	cap:SetCount(Trail(path.frame))
-	local meta, value = path.meta, path.metaValue
+	local count, value = Trail(path.frame), path.metaValue
 	local shown = value ~= "" and not path.metaHushed
-	meta:SetText(value)
-	meta:SetShown(shown)
-	path.metaShown = shown
-	path.height = shown and META_ROW or Tokens.Size(META_CLOSED)
-	path.header:SetHeight(Widgets.Snap(path.header, path.height))
+	local key = HeadKey(path, count, value, shown)
+	if not key or path.fitKey ~= key then
+		path.cap:SetText(path.titleValue)
+		path.cap:SetCount(count)
+		path.meta:SetText(value)
+		path.meta:SetShown(shown)
+		path.metaShown = shown
+		path.height = shown and META_ROW or Tokens.Size(META_CLOSED)
+		path.header:SetHeight(Widgets.Snap(path.header, path.height))
+		path.fitKey = HeadKey(path, count, value, shown)
+	end
 	PlaceHead(path)
 end
 
@@ -709,6 +723,7 @@ local function RestylePath(path)
 	meta:SetPoint("RIGHT", header, "RIGHT", -Widgets.Snap(meta, Tokens.Size(META_LEFT)), 0)
 	meta:SetJustifyH("LEFT")
 	meta:SetWordWrap(false)
+	path.fitKey, path.headKey = nil, nil
 	FitHead(path)
 end
 
@@ -894,8 +909,13 @@ end
 
 local restyler = { Restyle = Restyle }
 local rescaling = false
+local scales = setmetatable({}, WEAK)
 
-local function Rescaled()
+local function Rescaled(frame, scale)
+	if Plain(scale) and scales[frame] == scale then
+		return
+	end
+	scales[frame] = Plain(scale) and scale or nil
 	if rescaling then
 		return
 	end

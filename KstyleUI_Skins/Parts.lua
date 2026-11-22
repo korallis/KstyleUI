@@ -679,7 +679,7 @@ local function PlaceMetrics(state)
 		inset:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -Widgets.Snap(inset, 12), Widgets.Snap(inset, type(bottom) == "number" and not IsSecret(bottom) and math.max(12, bottom) or 12))
 	end
 	local parts = Skin.Parts(frame)
-	if parts and parts.backdrop then
+	if parts and parts.backdrop and parts.backdrop.chrome.headerBand ~= 32 then
 		parts.backdrop.chrome:SetHeader(32)
 	end
 	MetricChildren(frame, 1)

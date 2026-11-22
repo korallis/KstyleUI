@@ -339,6 +339,16 @@ for _, screen in ipairs(SCREENS) do
 	assert(#env._errors == 0, where .. ": " .. tostring(env._errors[1]))
 end
 do
+	-- Under a 0.31 scale, as in the Options preview, five whole pixels measure 4.9999999999999991.
+	local env, K = W.New({ width = 2560, height = 1440, uiScale = 768 / 1080, size = "default", setup = withColor })
+	local holder = env.CreateFrame("Frame", nil, K.Scale.Root())
+	holder:SetScale(0.31)
+	local bar = K.Widgets.StatusBar(holder, { width = 200, height = 5 * K.Scale.Pixel(1) / K.Widgets.ScaleFactor(holder) })
+	bar:SetBarTexture("Flat")
+	bar:SetInnerEdge(true, "castEdge")
+	assert(bar.innerEdge[1]:IsShown() == true, "five pixels a float hair short keep the one-pixel edge")
+end
+do
 	local env, K = W.New({ width = 1920, height = 1080, uiScale = 768 / 1080, size = "default", setup = withColor })
 	local power = K.Widgets.StatusBar(K.Scale.Root(), { width = 200, height = 8 })
 	power:SetBarTexture("Flat")
