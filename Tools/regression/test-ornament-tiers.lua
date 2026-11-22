@@ -118,10 +118,10 @@ for name in pairs(shipped) do
 	names[#names + 1] = name
 end
 table.sort(names)
-math.randomseed(23)
+local gen = dofile("Tools/regression/property_lib.lua").Generator(23)
 for trial = 1, 40 do
 	for _, name in ipairs(names) do
-		if math.random() < 0.35 then
+		if gen:bool(0.35) then
 			assets[name] = nil
 		end
 	end
