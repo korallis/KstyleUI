@@ -203,11 +203,11 @@ The meter follows your role: threat when you tank, damage otherwise. As DPS you 
 
 One class-coloured bar per player. Switch between this fight, the last fight and the whole session; point at a damage row for that player's spell split.
 
-### Quests, guide and map on the right
+### Quests and map on the right, guide on the left
 
-![KstyleUI test render over an in-game screenshot of the addon's right rail: your buffs beside the round minimap with the zone and coordinates, the quest card under the map and the RestedXP guide card beside it](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_rail.jpg)
+![KstyleUI test render over an in-game screenshot of the addon's right rail: your buffs beside the round minimap with the zone and coordinates, and the quest card under the map](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_rail.jpg)
 
-*KstyleUI test render over an in-game screenshot: the right rail - map card, quest card and guide card. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
+*KstyleUI test render over an in-game screenshot: the right rail - map card and quest card. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
 Your buffs sit beside a round map with the zone and your coordinates. The quest card keeps your quests in view and scrolls for the rest. With a RestedXP or Zygor Guides Viewer guide open, the guide gets a forged card of its own in the top left corner, above your party frames, and RestedXP's target and item boxes dock underneath. The minimap's drawer collects every addon button cluttering the map.
 
@@ -360,7 +360,7 @@ Upload in this order. The gallery description is the caption.
 | `gallery/04-setup.jpg` | 720×523 | First-run setup | KstyleUI test render over an in-game screenshot of the first-run setup on its layout step: DPS, Tank and Healer cards, each with a picture of its layout. |
 | `gallery/05-nameplates.jpg` | 800×466 | Nameplates | KstyleUI test render over an in-game screenshot of the nameplates in combat: a targeted beast, an elite, a rare, a world boss and a friendly player. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/06-meter.jpg` | 490×320 | Damage meter | KstyleUI test render over an in-game screenshot of the damage meter in a party of five, one class-coloured bar per player. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/07-quests.jpg` | 660×678 | Map, quests and guide | KstyleUI test render over an in-game screenshot of the right rail: the map card, the quest card and the guide card. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/07-quests.jpg` | 660×678 | Map and quests | KstyleUI test render over an in-game screenshot of the right rail: the map card and the quest card. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/08-medallion-closeup.gif` | 800×166 | Target medallion | In-game screenshot: selecting a target brings in the target medallion, and its red ring pulses at low health. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 
 The upload page for a project, once it exists, is `https://addons.wago.io/developers/projects/<slug>/gallery/create`.

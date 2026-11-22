@@ -186,11 +186,11 @@ The meter follows your role: threat when you tank, damage otherwise. As DPS you 
 
 One class-coloured bar per player. Switch between this fight, the last fight and the whole session; point at a damage row for that player's spell split.
 
-### Quests, guide and map on the right
+### Quests and map on the right, guide on the left
 
-![KstyleUI test render over an in-game screenshot of the addon's right rail: your buffs beside the round minimap with the zone and coordinates, the quest card under the map and the RestedXP guide card beside it](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_rail.jpg)
+![KstyleUI test render over an in-game screenshot of the addon's right rail: your buffs beside the round minimap with the zone and coordinates, and the quest card under the map](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_rail.jpg)
 
-*KstyleUI test render over an in-game screenshot: the right rail - map card, quest card and guide card. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
+*KstyleUI test render over an in-game screenshot: the right rail - map card and quest card. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
 Your buffs sit beside a round map with the zone and your coordinates. The quest card keeps your quests in view and scrolls for the rest. With a RestedXP or Zygor Guides Viewer guide open, the guide gets a forged card of its own in the top left corner, above your party frames, and RestedXP's target and item boxes dock underneath. The minimap's drawer collects every addon button cluttering the map.
 
