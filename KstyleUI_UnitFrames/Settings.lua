@@ -508,18 +508,15 @@ RANGES.auraRowGap, RANGES.auraPrecise = { 0, AURA_SPACING_MAX }, { 0, PRECISE_MA
 CHOICES.lane = Options({ { "", L["Show all"] }, { "only", L["Only these"] }, { "hide", L["Hide these"] } })
 CHOICE_OF.buffStealable, CHOICE_OF.buffDefensive, CHOICE_OF.buffDispellable = "lane", "lane", "lane"
 
-local LAYOUT_KEYS = {
-	rows = {
-		player = { auraPosition = "ABOVE", auraGrowth = "RIGHT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
-		target = { auraPosition = "ABOVE", auraGrowth = "LEFT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
-	},
-	slab = { target = { auraSize = 22, auraSpacing = 2, auraColumns = 6, auraGrowth = "LEFT_DOWN" } },
+local ROWS = {
+	player = { auraPosition = "ABOVE", auraGrowth = "RIGHT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
+	target = { auraPosition = "ABOVE", auraGrowth = "LEFT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
 }
-local ROWS, SLAB = LAYOUT_KEYS.rows, LAYOUT_KEYS.slab
+local SLAB, BOTH = { target = { auraSize = 22, auraSpacing = 2, auraColumns = 6, auraGrowth = "LEFT_DOWN" } }, { target = { auraRows = 1 } }
 
 local DERIVED = { auras = true, auraFilter = true, threatPercentPosition = true }
 Settings.LAYOUT_KEY = {}
-for layout, kinds in pairs(LAYOUT_KEYS) do
+for layout, kinds in pairs({ rows = ROWS, slab = SLAB, rowsBoth = BOTH }) do
 	for kind, keys in pairs(kinds) do
 		for key, value in pairs(keys) do
 			local name = layout .. key:gsub("^a", "A")
@@ -534,9 +531,9 @@ function Settings.AuraRows(kind)
 end
 
 function Settings.AuraKey(kind, key)
-	local rows, slab = ROWS[kind], SLAB[kind]
+	local rows, slab, both = ROWS[kind], SLAB[kind], BOTH[kind]
 	if not (rows and rows[key]) then return key end
-	if Settings.AuraRows(kind) and not (kind == "target" and key == "auraRows" and Settings.Value(kind, "auraFilter") == "both") then return rows[key] end
+	if Settings.AuraRows(kind) then return both and both[key] and Settings.Value(kind, "auraFilter") == "both" and both[key] or rows[key] end
 	return slab and slab[key] and Settings.Form(kind) == "slab" and slab[key] or key
 end
 
@@ -1158,8 +1155,9 @@ AuraRows = function(schema, kind)
 	local function placed(s) return on() and not simple(s) end
 	local function sized(s) return own(s) and not simple(s) end
 	local function Layouts(row, show)
-		local key = row.key
-		for _, name in ipairs({ key, ROWS[kind] and ROWS[kind][key], SLAB[kind] and SLAB[kind][key] }) do
+		local key, names = row.key, { row.key }
+		for _, layout in ipairs({ ROWS, SLAB, BOTH }) do names[#names + 1] = layout[kind] and layout[kind][key] or nil end
+		for _, name in ipairs(names) do
 			local each = {}
 			for field, value in pairs(row) do each[field] = value end
 			each.key = name

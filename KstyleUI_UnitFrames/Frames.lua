@@ -960,7 +960,7 @@ local function OnSettingChanged(_, module, key)
 			Frames.Restyle(uf)
 			if rest == "rangeFade" then for _, view in ipairs(uf.views) do Frames.Range(view) end end
 		end
-		if Settings.AURA_LOOK[rest] or Settings.LAYOUT_KEY[rest] or Settings.LISTS[rest] or rest == "style" or rest == "auraLists" then
+		if Settings.AURA_LOOK[rest] or Settings.LAYOUT_KEY[rest] or Settings.LISTS[rest] or rest == "style" or rest == "auraLists" or rest == "auraFilter" then
 			ForEach(function(each)
 				if each ~= uf and each.active and (Settings.Value(each.kind, "auraCopy") == kind or Settings.Lists(each.kind) == Settings.Lists(kind)) then Frames.Restyle(each) end
 			end)

@@ -124,7 +124,7 @@ write("player.auraTrackedOnly", false)
 write("player.auras", false)
 
 -- Extra row spacing reaches the engine's line spacing, the footprint and the +N cell.
-write("target.auraRows", 2)
+write("target." .. Settings.AuraKey("target", "auraRows"), 2)
 local line = groups.debuffs.layout.lineSpacing
 local _, height = ns.Auras.Footprint("target")
 local _, _, y = ns.Auras.LastCell("target", nil, true)

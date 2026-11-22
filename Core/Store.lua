@@ -1097,7 +1097,6 @@ local AURA_BASE = {
 	player = { auraPosition = "BELOW", auraGrowth = "RIGHT_DOWN", auraSize = 22, auraSpacing = 2, auraColumns = 8, auraRows = 1 },
 	target = { auraPosition = "SIDE", auraGrowth = "RIGHT_DOWN", auraSize = 27.6, auraSpacing = 4, auraColumns = 4, auraRows = 1 },
 }
-local SLAB_AURA = { auraGrowth = true, auraSize = true, auraSpacing = true, auraColumns = true }
 
 Store.migrations[48] = function(data)
 	for _, profile in pairs(data.profiles) do
@@ -1106,8 +1105,10 @@ Store.migrations[48] = function(data)
 			for key, default in pairs(base) do
 				local value, name = unit[key], key:gsub("^a", "A")
 				if value ~= nil and value ~= default then
-					if unit["rows" .. name] == nil then unit["rows" .. name] = value end
-					if kind == "target" and SLAB_AURA[key] and unit["slab" .. name] == nil then unit["slab" .. name] = value end
+					local own = kind == "target" and (key == "auraRows" and "rowsBoth" or key ~= "auraPosition" and "slab")
+					for _, layout in ipairs({ "rows", own or nil }) do
+						if unit[layout .. name] == nil then unit[layout .. name] = value end
+					end
 				end
 			end
 		end
