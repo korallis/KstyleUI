@@ -393,13 +393,15 @@ do
 	assert(Has(Shown(env, K), "No free slots") and #g.placed == 1)
 end
 
--- Physical left-to-right order follows reversed growth and vertical layouts too.
+-- Physical left-to-right order follows reversed growth and vertical layouts too, which only a bar off the slab takes.
 do
 	local env, K, g = NewSpells("auto")
+	K.Options.Write("ActionBars", "slab", false)
 	K.Options.Write("ActionBars", "bar1.growth", "LEFTDOWN")
 	Learn(env, 200)
 	assert(Holds(g, 12, 200) and #g.placed == 1)
 	env, K, g = NewSpells("auto")
+	K.Options.Write("ActionBars", "slab", false)
 	K.Options.Write("ActionBars", "bar1.growth", "RIGHTDOWN")
 	K.Options.Write("ActionBars", "bar1.rows", 2)
 	K.Options.Write("ActionBars", "bar1.orientation", "VERTICAL")
