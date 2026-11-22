@@ -87,7 +87,7 @@ function Totems.Play(env, K, ns, AB, notes)
 	end
 	env.RunTimers()
 	local state = ns.Totems.state
-	if not state.mode then
+	if not state.shown then
 		notes[#notes + 1] = "totems: the bar is off"
 		return
 	end

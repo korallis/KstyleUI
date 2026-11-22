@@ -67,8 +67,8 @@ end
 local function Wolf()
 	if type(GetShapeshiftFormInfo) ~= "function" then return nil end
 	for i = 1, ns.NumForms() do
-		local texture, _, _, spell = GetShapeshiftFormInfo(i)
-		if not IsSecret(spell) and type(spell) == "number" then return i, spell, texture end
+		local spell = select(4, GetShapeshiftFormInfo(i))
+		if not IsSecret(spell) and type(spell) == "number" then return i, spell end
 	end
 end
 
@@ -161,7 +161,7 @@ local function Spire(parent, e)
 	return s
 end
 
-function Totems.SetSpireAngle(s, angle, size)
+local function SetSpireAngle(s, angle, size)
 	for key, kind in pairs({ steel = "Steel", flareArt = "Core" }) do
 		s[key]:SetTexture((Tokens.Texture("pipSpire" .. kind .. angle)))
 	end
@@ -375,8 +375,9 @@ local function Fill()
 			f:SetShown(n <= count)
 		end
 	end
-	state.call:SetAttribute("type2", Known(RECALLS) and "spell" or nil)
-	state.call:SetAttribute("spell2", Known(RECALLS))
+	local recall = Known(RECALLS)
+	state.call:SetAttribute("type2", recall and "spell" or nil)
+	state.call:SetAttribute("spell2", recall)
 	state.call.known = Known({ CALL }) ~= nil
 	local form, spell = Wolf()
 	state.wolf.form = form
@@ -406,7 +407,7 @@ local function Place()
 		b:Restyle()
 		ns.Slab.Dress(b)
 		local reach = half + SPIRE_LIFT + SPIRE / 2
-		Totems.SetSpireAngle(b.spire, angle, Widgets.Snap(b.spire, SPIRE))
+		SetSpireAngle(b.spire, angle, Widgets.Snap(b.spire, SPIRE))
 		Put(b.spire, hub, x + reach * cos(rad(angle)), y + reach * sin(rad(angle)))
 		b.spire.rim:ClearAllPoints()
 		b.spire.rim:SetAllPoints(b)

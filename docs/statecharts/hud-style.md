@@ -55,6 +55,7 @@ stateDiagram-v2
 | `Core/Vignette.lua` | Listens to the player's health and death only under Medallions; shows or hides the low-health vignette. |
 | `Core/Layout/Rest.lua` | Listens to combat only under Medallions; leaving Medallions wakes any resting secondary frame at once. |
 | `KstyleUI_ActionBars/Slab.lua` | `OnStyle`: `Slab.Refresh` shows the action slab and the crest hub under Medallions while bars 1 and 2 stand on one baseline, hides them otherwise, and starts or stops each proc slot's Medallions loop. Bars 1 and 2 take the slab's one row (`Slab.Rows`) and its slot size (`Slab.Size`, from `Layouts.MedallionsGroup`), and at 16:9 the pet and stance bars its two rows of five, when Layout's `LayoutChanged` lays them out again. |
+| `KstyleUI_ActionBars/Totems.lua` | `Totems.Update`, from `Slab.Refresh`: a shaman's totem bar (Spirit Poles) shows on the crest hub while it shows and hides Blizzard's `MultiCastActionBarFrame` and the Ghost Wolf stance bar; leaving Medallions (or the slab) hides it and gives both back, out of combat. |
 
 ## Medallions in the module listeners
 
