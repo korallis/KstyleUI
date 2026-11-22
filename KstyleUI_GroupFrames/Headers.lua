@@ -7,6 +7,10 @@ local Geometry, Style = ns.Geometry, ns.Style
 local Headers = { raid = {}, holders = {}, cards = {}, built = false }
 ns.Headers = Headers
 
+local issecretvalue = issecretvalue or function()
+	return false
+end
+
 local RAID_GROUPS = 8
 local PARTY_BUTTONS = 5
 local GROUP_BUTTONS = 5
@@ -171,11 +175,106 @@ local function Precreate(header, count)
 end
 Headers.Precreate = Precreate
 
+local function Named(unit)
+	local name, server = UnitName(unit)
+	if issecretvalue(name) or issecretvalue(server) or type(name) ~= "string" then return nil end
+	return type(server) == "string" and server ~= "" and name .. "-" .. server or name
+end
+
+local function FrameSortNames(kind, groups)
+	local api = rawget(_G, "FrameSortApi")
+	local sorting = type(api) == "table" and type(api.v3) == "table" and api.v3.Sorting
+	if type(sorting) ~= "table" or type(sorting.GetFriendlyUnits) ~= "function" then return nil end
+	local ok, units = pcall(sorting.GetFriendlyUnits, sorting)
+	if not ok or type(units) ~= "table" then return nil end
+	local roster, order = {}, {}
+	if kind == "raid" or ns.AutoLayout.state.smallRaid then
+		local shown = {}
+		for g in tostring(kind == "raid" and groups or "1"):gmatch("%d+") do shown[tonumber(g)] = true end
+		for i = 1, RAID_BUTTONS do
+			if UnitExists("raid" .. i) then
+				local _, _, group = GetRaidRosterInfo(i)
+				local name = Named("raid" .. i)
+				if not name or issecretvalue(group) then return nil end
+				if shown[group] then roster[name], order[#order + 1] = true, name end
+			end
+		end
+	else
+		for i = 0, PARTY_BUTTONS - 1 do
+			local unit = i == 0 and "player" or "party" .. i
+			if UnitExists(unit) then
+				local name = Named(unit)
+				if not name then return nil end
+				roster[name], order[#order + 1] = true, name
+			end
+		end
+	end
+	local out = {}
+	for _, unit in ipairs(units) do
+		local name = type(unit) == "string" and UnitExists(unit) and Named(unit)
+		if name and roster[name] then out[#out + 1], roster[name] = name, false end
+	end
+	for _, name in ipairs(order) do
+		if roster[name] then out[#out + 1] = name end
+	end
+	return table.concat(out, ",")
+end
+
+local frameSorted = {}
+
+local function FrameSorted(header, s, names)
+	header:SetAttribute("groupFilter", not names and s.filter or nil)
+	header:SetAttribute("nameList", names)
+	header:SetAttribute("sortMethod", names and "NAMELIST" or "INDEX")
+	local grouped = not names and s.kind == "raid"
+	header:SetAttribute("groupBy", grouped and "GROUP" or nil)
+	header:SetAttribute("groupingOrder", grouped and s.groups or nil)
+end
+
+local resortQueued = false
+local function Resort()
+	resortQueued = false
+	if not next(frameSorted) or not ns.Frames.Active() then return end
+	if InCombatLockdown() then
+		resortQueued = true
+		K.Combat.Queue(Resort)
+		return
+	end
+	for header, s in pairs(frameSorted) do
+		local names = FrameSortNames(s.kind, s.groups)
+		if names ~= header:GetAttribute("nameList") then FrameSorted(header, s, names) end
+	end
+end
+
+function Headers.Resort()
+	if resortQueued or not next(frameSorted) then return end
+	resortQueued = true
+	if C_Timer and C_Timer.After then C_Timer.After(0, Resort) else Resort() end
+end
+
+local hooked = false
+local function Hook()
+	local api = rawget(_G, "FrameSortApi")
+	local v3 = not hooked and type(api) == "table" and type(api.v3) == "table" and api.v3
+	if not v3 then return end
+	hooked = true
+	for _, call in ipairs({ { v3.Sorting, "RegisterPostSortCallback" }, { v3.Options, "RegisterConfigurationChangedCallback" } }) do
+		if type(call[1]) == "table" and type(call[1][call[2]]) == "function" then pcall(call[1][call[2]], call[1], Headers.Resort) end
+	end
+end
+
 local function Sort(header, sortBy, groups, kind)
+	frameSorted[header] = nil
+	header:SetAttribute("nameList", nil)
 	header:SetAttribute("groupBy", nil)
 	header:SetAttribute("groupingOrder", nil)
 	header:SetAttribute("sortMethod", sortBy == "NAME" and "NAME" or "INDEX")
-	if sortBy == "ROLE" then
+	if sortBy == "FRAMESORT" then
+		Hook()
+		local s = { kind = kind, groups = groups, filter = header:GetAttribute("groupFilter") }
+		frameSorted[header] = s
+		FrameSorted(header, s, FrameSortNames(kind, groups))
+	elseif sortBy == "ROLE" then
 		header:SetAttribute("groupBy", "ASSIGNEDROLE")
 		header:SetAttribute("groupingOrder", ROLE_ORDER)
 	elseif sortBy == "GROUP" then
@@ -289,8 +388,9 @@ function Headers.ApplyParty(s)
 	Columns(header, nil, nil, nil, nil)
 	Grow(header, geo, "party")
 	header:ClearAllPoints()
-	local lane = geo.corner:find("RIGHT", 1, true) and geo.laneSide == "RIGHT" or not geo.corner:find("RIGHT", 1, true) and geo.laneSide == "LEFT"
-	local x, y = Offset(geo, card, left, top, lane and geo.lane or 0, "party")
+	local side = geo.corner:find("RIGHT", 1, true) and "RIGHT" or "LEFT"
+	local x, y = Offset(geo, card, left, top, (geo.laneSide == side and geo.lane or 0) + (geo.healSide == side and geo.heal or 0), "party")
+	if geo.healSide == "TOP" then y = y - Px("party", geo.heal) end
 	Me(place, s, geo, header, x + card.shiftX, y + card.shiftY)
 	Resize(header, Px("party", geo.memberWidth), s.height)
 	Precreate(header, PARTY_BUTTONS)

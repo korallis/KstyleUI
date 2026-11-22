@@ -136,11 +136,25 @@ function Geometry.MemberWidth(s, gap)
 	return max(MIN_PART * 2, s.width - Geometry.AuraLane(s, gap))
 end
 
+function Geometry.HealLane(s)
+	local cfg = ns.Settings.current
+	if (s.buffAnchor or "FRAME") == "FRAME" or (s.buffCount or 0) <= 0 or not cfg.buffs.enabled then
+		return 0, nil
+	end
+	local gap = Tokens.Size("gapSmall")
+	if not GROWTH[Clean(s.growth)].vertical then
+		return gap + s.buffSize, "TOP"
+	end
+	return gap + Line(s.buffCount, s.buffSize, s.auraSpacing or 0), s.buffAnchor
+end
+
 local function Members(s, growth, count)
 	local lane = Geometry.AuraLane(s)
 	local memberWidth = s.width - lane
 	local spacing = GROWTH[growth].vertical and s.spacing or s.spacing + lane
 	local w, h = Block(growth, count, memberWidth, s.height, spacing)
+	local heal, side = Geometry.HealLane(s)
+	if side == "TOP" then h = h + heal else w = w + heal end
 	return w + lane, h, memberWidth, spacing, lane
 end
 
@@ -149,9 +163,11 @@ function Geometry.Party(s)
 	local count = s.showPlayer == false and PARTY_MAX - 1 or PARTY_MAX
 	local w, h, memberWidth, spacing, lane = Members(s, growth, count)
 	local point, x, y = Geometry.Grow(growth, spacing)
+	local heal, healSide = Geometry.HealLane(s)
 	return {
 		width = w, height = h, count = count, corner = Geometry.Corner(growth), point = point, xOffset = x, yOffset = y,
 		memberWidth = memberWidth, lane = lane, laneSide = AURA_SIDES[s.auraPosition] and (s.auraPosition == "OUTSIDE_LEFT" and "LEFT" or "RIGHT") or nil,
+		heal = heal, healSide = healSide,
 	}
 end
 
@@ -570,6 +586,31 @@ function Overlay(w, h, o)
 			out.boss = Rect(x, Whole(max(roomTop, min(middle - size / 2, h - size)), o.pixel), size, size)
 		end
 	end
+	return out
+end
+
+function Geometry.NamesBelow(out, h)
+	local name = out.name
+	if out.nameInside or not name then return out end
+	local gap, margin = out.overlay and NAME_GAP or INSET, out.overlay and EDGE or Tokens.Size("gapSmall")
+	local top, line = name.top, name.top + name.height
+	local down, up = h - 2 * top - name.height, line + gap - margin
+	local column = out.portrait and out.portrait.left + out.portrait.width + 1e-6
+	local moved, icons = {}, out.icons or {}
+	local rects = { name, out.health, out.power, out.healRow, out.lane, out.indicatorLane, out.block, out.boss, icons.role, icons.leader, icons.marker }
+	for i = 1, 11 do
+		local rect = rects[i]
+		if rect and not moved[rect] and not (column and rect.left + rect.width <= column) then
+			moved[rect] = true
+			rect.top = rect.top + (rect.top < line - 1e-6 and down or -up)
+		end
+	end
+	local spot = out.healthText
+	if spot then
+		spot.top = spot.top and spot.top + down
+		spot.middle = spot.middle and spot.middle - up
+	end
+	out.below = true
 	return out
 end
 

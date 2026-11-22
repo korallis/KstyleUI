@@ -42,7 +42,7 @@ Settings.defaults = {
 		iconSize = 14,
 		auraSize = 18, auraCount = 6, auraDispelCount = 1, auraColumns = 3, auraRows = 2, auraSpacing = 2,
 		auraPosition = "OUTSIDE_RIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
-		buffSize = 11, buffCount = 3,
+		buffSize = 11, buffCount = 3, buffAnchor = "FRAME",
 		auraX = 0, auraY = 0, buffX = 0, buffY = 0,
 	},
 	raid = {
@@ -125,7 +125,7 @@ defaults.reminders = { place = "NONE", size = 14, fortitude = true, wild = true,
 defaults.status = { place = "AUTO", size = 0, x = 0, y = 0 }
 defaults.dispel = { icon = "NONE", iconSize = 14, iconBorder = true, custom = false, x = 0, y = 0,
 	magic = Plain(0.2, 0.6, 1), curse = Plain(0.6, 0, 1), poison = Plain(0, 0.6, 0), disease = Plain(0.6, 0.4, 0), bleed = Plain(0.8, 0.1, 0.1) }
-defaults.names = { align = "AUTO", divider = false, dividerAccent = false, height = 0, x = 0, y = 0 }
+defaults.names = { align = "AUTO", divider = false, dividerAccent = false, height = 0, x = 0, y = 0, bottom = false }
 defaults.numbers = { show = false, size = 8, x = 0, y = 0 }
 defaults.mana = { mode = "NONE", size = 12, spacing = 2, align = "LEFT", growth = "DOWN", names = true, colorSource = "power", color = Rgb("rare") }
 Settings.CLASSES = type(CLASS_SORT_ORDER) == "table" and #CLASS_SORT_ORDER > 0 and CLASS_SORT_ORDER or { "WARRIOR", "PALADIN", "PRIEST", "SHAMAN", "DRUID", "ROGUE", "MAGE", "WARLOCK", "HUNTER" }
@@ -198,6 +198,10 @@ function Settings.Schema(includeText)
 	local GROWTH = Options({ { "DOWN", L["Down"] }, { "UP", L["Up"] }, { "RIGHT", L["Right"] }, { "LEFT", L["Left"] } })
 	local PARTY_SORT = Options({ { "INDEX", L["Group order"] }, { "NAME", L["Name"] }, { "ROLE", L["Role"] } })
 	local RAID_SORT = Options({ { "GROUP", L["Group"] }, { "ROLE", L["Role"] }, { "CLASS", L["Class"] } })
+	if K.Setup.Integrations.Loaded("FrameSort") then
+		PARTY_SORT[#PARTY_SORT + 1] = { value = "FRAMESORT", label = L["FrameSort"] }
+		RAID_SORT[#RAID_SORT + 1] = { value = "FRAMESORT", label = L["FrameSort"] }
+	end
 	local TEXT_LAYOUT = Options({ { "ABOVE", L["Name above the bar"] }, { "INSIDE", L["Name on the bar"] } })
 	local HEALTH_TEXT = Options({
 		{ "NONE", L["None"] }, { "PERCENT", L["Percent"] }, { "CURRENT", L["Current"] }, { "DEFICIT", L["Missing"] },
@@ -577,6 +581,9 @@ function Settings.Schema(includeText)
 			Slider("auto.customHeight", L["Own size: height"], L["The frames' height at this raid size; 0 sizes them automatically."], 0, 120, 1, custom),
 			Slider("auto.customX", L["Own size: X offset"], L["Moves the raid frames right, or left below 0, at this raid size."], -400, 400, 1, custom),
 			Slider("auto.customY", L["Own size: Y offset"], L["Moves the raid frames up, or down below 0, at this raid size."], -400, 400, 1, custom) })
+		After(schema, "party.buffY", { Dropdown("party.buffAnchor", L["Heal icon place"], L["On the frame, or outside it on the right or left. Frames side by side put them above."],
+			Options({ { "FRAME", L["On the frame"] }, { "RIGHT", L["Right of the frame"] }, { "LEFT", L["Left of the frame"] } })) })
+		After(schema, "names.height", { Toggle("names.bottom", L["Name under the bar"], L["Puts the name line under the health and power bars instead of above them."]) })
 		local follows = {}
 		for section, keys in pairs(Settings.FOLLOW) do
 			for _, key in ipairs(keys) do follows[key] = section end

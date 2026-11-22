@@ -225,17 +225,18 @@ function Preview.Build(...)
 			local w, h = ns.Extras.PetSize()
 			tw, th = Geometry.IsVertical(party.growth) and tw + w + Tokens.Size("gapSmall") or tw, Geometry.IsVertical(party.growth) and th or th + h + Tokens.Size("gapSmall")
 		end
-		pw, ph = pw + tw, ph + th
+		local heal, healSide = partyGeo.heal, partyGeo.healSide
+		pw, ph = pw + tw + (healSide == "TOP" and 0 or heal), ph + th + (healSide == "TOP" and heal or 0)
 		preview.party:SetSize(pw, ph)
 		preview.party:ClearAllPoints()
 		preview.party:SetPoint("TOPLEFT", preview.canvas, "TOPLEFT", BADGE_BLEED, 0)
 		pw = pw + BADGE_BLEED
 		local memberSpacing = Geometry.IsVertical(party.growth) and party.spacing or (party.spacing + partyGeo.lane)
-		local x0 = partyGeo.laneSide == "LEFT" and partyGeo.lane or 0
+		local x0 = (partyGeo.laneSide == "LEFT" and partyGeo.lane or 0) + (healSide == "LEFT" and heal or 0)
 		local separate = raid.sortBy == "GROUP" and not raid.merge
-		Order(preview.partyFrames, Settings.ClassFirst("party") and party.sortBy ~= "ROLE", nil, "party", party.showPlayer and party.selfPosition)
+		Order(preview.partyFrames, Settings.ClassFirst("party") and party.sortBy ~= "ROLE" and party.sortBy ~= "FRAMESORT", nil, "party", party.showPlayer and party.selfPosition)
 		Order(preview.raidFrames, raid.sortBy == "CLASS" or separate and Settings.ClassFirst("raid"), separate and GROUP_SIZE, "raid")
-		PlaceRun(preview.partyFrames, preview.party, party, party.growth, count, x0, 0, partyGeo.corner, partyGeo.memberWidth, memberSpacing)
+		PlaceRun(preview.partyFrames, preview.party, party, party.growth, count, x0, healSide == "TOP" and -heal or 0, partyGeo.corner, partyGeo.memberWidth, memberSpacing)
 		local total = GROUP_SIZE * RAID_GROUPS_SHOWN
 		local size = raid.sortBy == "GROUP" and raid.merge and math.min(raid.unitsPerColumn, total) or GROUP_SIZE
 		local shownGroups = math.ceil(total / size)
