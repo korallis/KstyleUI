@@ -1,6 +1,7 @@
 local C = dofile("Tools/regression/core_env.lua")
+-- 1366x768 is a screen where the Medallions HUD's Auto size depends on the third bar's finish.
 local function New(saved)
-	local env, K = C.New({ width = 1920, height = 1080, fit = true, size = "auto", saved = saved })
+	local env, K = C.New({ width = 1366, height = 768, fit = true, size = "auto", saved = saved })
 	K.VERSION = "third-bar-finish-cache-test"
 	K.Modules.Register(C.Module("ActionBars", { defaults = { bar3 = { enabled = true, finished = true } } }))
 	K.Options.Register("ActionBars", { { type = "toggle", key = "bar3.finished", label = "Finish", help = "The third bar finish." } })
