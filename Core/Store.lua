@@ -923,7 +923,7 @@ end
 
 Store.migrations[37] = function(data)
 	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
-		for _, key in ipairs({ "actionbars.bar3", "medallions:actionbars.bar3" }) do
+		for _, key in ipairs({ "actionbars.bar3", "frames:actionbars.bar3", "medallions:actionbars.bar3" }) do
 			local entry = type(layout) == "table" and layout[key]
 			if type(entry) == "table" and entry.anchor == "BOTTOMLEFT" and entry.x == 17 and entry.y == 462.5 then
 				entry.anchor, entry.x, entry.y = nil, nil, nil

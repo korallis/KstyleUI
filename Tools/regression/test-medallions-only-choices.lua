@@ -1,4 +1,4 @@
--- test-medallions-only-choices.lua: Options offers no Orbs choice: no Orbs split, the data bar starts docked (Top is Frames' top bar and docks in Medallions), a slab or a plate per Medallions unit frame.
+-- test-medallions-only-choices.lua: under Medallions Options offers only choices that draw something different: no Orbs split, one docked data bar position beside the rail, a slab or a plate per unit frame.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local D = dofile("Tools/regression/databars_env.lua")
 local U = dofile("Tools/regression/unitframes_env.lua")
@@ -6,7 +6,7 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 local function Values(K, module, key)
 	local row = assert(K.Options.Row(module, key), module .. " has a " .. key .. " row")
 	local out = {}
-	for _, option in ipairs(row.options) do out[#out + 1] = option.value end
+	for _, option in ipairs(type(row.options) == "function" and row.options() or row.options) do out[#out + 1] = option.value end
 	return table.concat(out, ",")
 end
 
@@ -22,7 +22,7 @@ end
 
 do
 	local env, K, ns = D.New()
-	assert(Values(K, "DataBars", "strip.placement") == "top,dock,rail", "the data bar sits on top in Frames, docks under the action bars or keeps the right rail, got " .. Values(K, "DataBars", "strip.placement"))
+	assert(Values(K, "DataBars", "strip.placement") == "dock,rail", "the data bar docks under the action bars or keeps the right rail, got " .. Values(K, "DataBars", "strip.placement"))
 	assert(ns.defaults.strip.placement == "dock", "the data bar starts docked")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
