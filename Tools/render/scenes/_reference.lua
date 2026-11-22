@@ -335,7 +335,7 @@ function Reference.Build(opts)
 				Nameplates = { cast = { showName = false, combatCues = false, nameBelow = false, textSize = 13 }, debuffs = { size = 17, textSize = 10, showTime = false, readableText = false, expiring = 0 } },
 				CombatText = { clearLanes = false },
 			} or os.getenv("RENDER_PARITY_ENABLED") == "1" and {
-				UnitFrames = { player = { castbarIconRight = true, castbarTotal = true, castbarInside = false } },
+				UnitFrames = { player = { castbarTotal = true } },
 				Cooldowns = { essential = { edge = false }, utility = { edge = false } },
 				Meters = os.getenv("RENDER_METERS_PARITY") == "2" and {
 					damage = { report = true, englishUnits = false }, damage2 = { shown = true }, roles = opts.meterChoice and { DAMAGER = opts.meterChoice } or nil,

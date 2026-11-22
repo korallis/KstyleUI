@@ -130,7 +130,7 @@ write("strip.blocks.latency.show", "bar")
 write("strip.line", false)
 assert(disabled("strip.blocks.fps.show") and disabled("strip.blocks.fps.iconColor"), "cells turn the rows off")
 write("strip.line", true)
-write("strip.placement", "top")
+write("strip.placement", "dock")
 
 -- Travel text: the Hearthstone keeps its text; each click with its own spell or item adds its text after a middle dot.
 show({ "hearth", "fps" })
@@ -193,7 +193,7 @@ for _, id in ipairs(second.order) do
 	assert(bx >= hx - 0.01 and by >= hy - 0.01 and bx + bw <= hx + hw + 0.01 and by + bh <= hy + hh + 0.01, id .. " stays inside the second bar's Layout Mode footprint while the main bar is a column")
 end
 write("strip.orientation", "HORIZONTAL")
-write("strip.placement", "top")
+write("strip.placement", "dock")
 show({ "currencies" }, "secondModules")
 local refresh, refreshes = ns.Strip.Refresh, 0
 ns.Strip.Refresh = function(...) refreshes = refreshes + 1 return refresh(...) end

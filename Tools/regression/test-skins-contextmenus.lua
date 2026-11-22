@@ -99,23 +99,15 @@ do
 	NoErrors(env, "module off")
 end
 
--- Glass, a switched-off skin and combat change nothing --------------------------------------------------------------------
+-- An old profile on Glass cards kept Blizzard's menus; the move to Medallions keeps that as the Context menus switch off.
+-- A switched-off skin and combat change nothing.
 
 do
 	local env, K, _, nm = E.New({ material = "Glass" })
+	assert(K.Store.Module("Skins").contextMenus.enabled == false, "a Glass profile becomes the Context menus switch off")
 	for _, name in ipairs(ORDER) do
 		local menu = Open(name, env, nm)
 		SameAsBase(name, menu, nm, "Glass")
-		nm.Close(menu)
-	end
-	K.Options.Write("Widgets", "cardMaterial", "Slate")
-	local styled = Open("tracking", env, nm)
-	assert(nm.Snapshot(styled) ~= BASE.tracking.snapshot, "Slate does change the menu")
-	nm.Close(styled)
-	K.Options.Write("Widgets", "cardMaterial", "Glass")
-	for _, name in ipairs(ORDER) do
-		local menu = Open(name, env, nm)
-		SameAsBase(name, menu, nm, "going back to Glass")
 		nm.Close(menu)
 	end
 	NoErrors(env, "glass")
@@ -759,18 +751,18 @@ do
 	local styled = Open("compartment", env, nm)
 	local frame = styled.frame
 	nm.Close(styled)
-	K.Options.Write("Widgets", "cardMaterial", "Glass")
+	K.Options.Write("Skins", "contextMenus.enabled", false)
 	local plain = Open("compartment", env, nm)
 	assert(plain.frame == frame, "the pool handed the same frame to the next menu")
 	SameAsBase("compartment", plain, nm, "a pooled frame that wore the card")
 	assert(#Regions(plain) == BASE.compartment.regions, "no chrome stayed on it")
-	K.Options.Write("Widgets", "cardMaterial", "Flat")
 	K.Options.Write("Skins", "text.size", 1.2)
 	K.Callbacks.Fire("ThemeChanged")
 	assert(plain.open and nm.staleCloses == 0, "a restyle does not close a native menu on a frame that used to be styled")
 	nm.Close(plain)
+	K.Options.Write("Skins", "contextMenus.enabled", true)
 	local again = Open("compartment", env, nm)
-	assert(again.frame == frame, "and the frame is styled again when the material is back")
+	assert(again.frame == frame, "and the frame is styled again when the switch is back on")
 	CheckStyled("compartment", again, env, K, ns, nm, "Flat on the reused frame")
 	nm.Close(again)
 	NoErrors(env, "pooled frame")
@@ -810,7 +802,7 @@ do
 	nm.Close(styled)
 	assert(owned.released == true, "releasing the menu releases its chrome")
 
-	K.Options.Write("Widgets", "cardMaterial", "Glass")
+	K.Options.Write("Skins", "contextMenus.enabled", false)
 	local plain = Open("tracking", env, nm)
 	assert(plain.frame == frame, "the pool hands the same menu frame to a native menu")
 	local before, calls, mine = nm.Snapshot(plain), {}, {}

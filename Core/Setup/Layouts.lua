@@ -436,7 +436,7 @@ function Layouts.ActionBarFootprint(class, key)
 	local count, rows, size, gap, saved, cfg, grid, side = Layouts.ActionBarGrid(class, key)
 	if not count then return end
 	local defaultRows, defaultGap = side and 0 or grid.rows, side and -1 or grid.spacing or PITCH
-	local defaultSplit = key == "actionbars.bar2" and "auto" or "off"
+	local defaultSplit = "off"
 	if (cfg.buttons == nil or cfg.buttons == grid.buttons) and (cfg.rows == nil or cfg.rows == defaultRows) and (cfg.size == nil or cfg.size == grid.size)
 		and (cfg.spacing == nil or cfg.spacing == defaultGap) and (cfg.split == nil or cfg.split == defaultSplit) then
 		if saved.slab ~= false and (key == "actionbars.bar1" or key == "actionbars.bar2") then
@@ -508,6 +508,10 @@ function Layouts.CooldownGrid(key)
 end
 
 Layouts.CREST_GROW = MAP * (150 / 118 - 1)
+
+function Layouts.CrestKey()
+	return tostring(Layouts.MinimapCrest() and ns.Store.Module("Minimap").frame)
+end
 
 function Layouts.MinimapCrest()
 	local section = ns.Store.IsLoaded() and ns.Store.Profile().Minimap
@@ -1333,7 +1337,7 @@ end
 function Layouts.DataBarDock(name, class)
 	local strip = ns.Store.IsLoaded() and ns.Store.Module("DataBars").strip
 	if not strip or strip.enabled == false then return nil end
-	if strip.placement ~= "dock" and strip.placement ~= "top" then return nil end
+	if strip.placement ~= "dock" then return nil end
 	name = name or ns.Layout.Setting("preset")
 	local xp = Layouts.Aspect(class or ns.Scale.Aspect(), "medallions", name, "databars.xp") or Layouts.Style(name, "databars.xp") or layouts[name]["databars.xp"]
 	return { anchor = xp.anchor, x = xp.x, y = xp.y - 15, width = xp.width or COLUMN, height = 12 }
@@ -1598,7 +1602,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled)
 		flags[i] = element.key ~= "consumables.bar" and enabled[element.key] ~= false and "1" or "0"
 	end
 	local signature = (Layouts.ThirdBarFinished() and "finished" or "legacy") .. table.concat(flags) .. Layouts.ActionBarSignature()
-		.. tostring(Layouts.MinimapCrest() and ns.Store.Module("Minimap").frame)
+		.. Layouts.CrestKey()
 	local cached = limits[preset]
 	if cached and cached.width == physicalWidth and cached.height == physicalHeight and cached.signature == signature then
 		return cached.scale, cached.fits

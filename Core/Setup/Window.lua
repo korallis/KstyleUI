@@ -1,4 +1,4 @@
--- Window.lua: the setup, with HUD and role pictures, module and detected-addon choices, ornaments and the Apply summary.
+-- Window.lua: the setup, with HUD and role pictures, module and detected-addon choices and the Apply summary.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -8,11 +8,10 @@ local L = ns.L
 local max, min = math.max, math.min
 
 local WIDTH, HEIGHT = 760, 540
-local STEPS = 5
+local STEPS = 4
 local STRIP_HEIGHT = 32
 local FOOTER_HEIGHT = 28
 local CARD_HEIGHT = 120
-local ORNAMENT_CARD_HEIGHT = 64
 local REFERENCE_HEIGHT = ns.Setup.Layouts.HEIGHT
 local REFERENCE_WIDTH = REFERENCE_HEIGHT * 16 / 9
 local LABEL_ROOM = 2
@@ -31,7 +30,7 @@ local WINDOW_KEY = "setup.window"
 local WINDOW_POSITION = { anchor = "CENTER", x = 0, y = 40 }
 local SKIP_IN_PREVIEW = { ["groupframes.raid"] = true }
 local STORY = { label = L["Story rail"], short = L["Quests"] }
-local STEP_LABELS = { L["Welcome"], L["Layout"], L["Modules"], L["Ornaments"], L["Summary"] }
+local STEP_LABELS = { L["Welcome"], L["Layout"], L["Modules"], L["Summary"] }
 
 local panel
 local step, reached, applied, open = 0, 1, false, false
@@ -166,7 +165,6 @@ local function Refresh()
 	panel.reload:SetShown(step == STEPS and applied)
 	panel.later:SetShown(step == STEPS and applied)
 	Select(panel.cards, choice.layout)
-	Select(panel.ornamentCards, choice.ornaments)
 	PlaceLayouts()
 	if not panel.preview.hovered then
 		panel.preview:Draw(choice.layout)
@@ -179,15 +177,14 @@ local function Refresh()
 				list[#list + 1] = entry.label
 			end
 		end
-		local ornaments = Setup.Ornament(choice.ornaments)
 		local lead = string.format(L["Layout: %s."], Layouts.Label(choice.layout))
-		local head = lead .. "\n" .. string.format(L["Ornaments: %s. %s"], ornaments.label, ornaments.note) .. "\n\n"
+		local head = lead .. "\n\n"
 		local tail = #off > 0 and "\n" .. L["Off: "] .. table.concat(off, ", ") or ""
 		local modules = string.format(L["Modules on: %d of %d."], #on, #on + #off)
 		local count = head .. modules
 		panel.summaryTexts = { head .. L["On: "] .. (#on > 0 and table.concat(on, ", ") or L["none"]) .. tail, count .. tail, count }
 		if ns.Store.Module("Setup").readableNotes then
-			panel.summaryTexts[4] = lead .. "\n" .. string.format(L["Ornaments: %s. %s"], ornaments.label, "") .. "\n\n" .. modules
+			panel.summaryTexts[4] = head .. modules
 		end
 		panel.summary:SetText(panel.summaryTexts[1])
 		panel.summaryLayout.cap:SetText(string.format(L["%s layout"], Layouts.Label(choice.layout)))
@@ -270,17 +267,16 @@ end
 local function WelcomeNote()
 	local later = ns.Store.Module("Setup").closeBehaviour == "later"
 	local text = later and L["Close or press Escape to set up later. Only Apply changes your interface."]
-		or L["Close this window and KstyleUI applies the DPS layout with every module on and Full ornaments. Keep my UI leaves the game's own interface as it is."]
+		or L["Close this window and KstyleUI applies the DPS layout with every module on. Keep my UI leaves the game's own interface as it is."]
 	if later and ns.Store.Module("ProfileTools").backups then text = text .. " " .. L["A backup is saved before Apply."] end
 	return text
 end
 
 local function WelcomeSteps(page)
 	local addons = #Setup.Choice().addons > 0
-	Widgets.SetText(page.caption, addons and L["Five steps"] or L["Four steps"])
+	Widgets.SetText(page.caption, addons and L["Four steps"] or L["Three steps"])
 	page.list:SetText(L["1. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["2. Choose the modules you want."]
-		.. "\n" .. (addons and L["3. Choose how KstyleUI works with your addons."] .. "\n" .. L["4. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["5. Apply, then reload."]
-			or L["3. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["4. Apply, then reload."]))
+		.. "\n" .. (addons and L["3. Choose how KstyleUI works with your addons."] .. "\n" .. L["4. Apply, then reload."] or L["3. Apply, then reload."]))
 end
 
 local function BuildClassicWelcome(page)
@@ -303,7 +299,7 @@ local function BuildClassicWelcome(page)
 	WelcomeSteps(page)
 	local note = Paragraph(page, "body", "text", 520)
 	Widgets.Point(note, "TOPLEFT", list, "BOTTOMLEFT", 0, -gap("gapHuge"))
-	note:SetText(L["Close this window and KstyleUI applies the DPS layout with every module on and Full ornaments. Keep my UI leaves the game's own interface as it is."])
+	note:SetText(L["Close this window and KstyleUI applies the DPS layout with every module on. Keep my UI leaves the game's own interface as it is."])
 	return title, note
 end
 
@@ -343,7 +339,7 @@ local function BuildBrandedWelcome(page)
 	Widgets.Point(list, "TOPLEFT", caption, "BOTTOMLEFT", 0, -gutter)
 	local note = Paragraph(page, "body", "text", width - pad * 2)
 	Widgets.Point(note, "BOTTOMLEFT", page, "BOTTOMLEFT", pad, gutter)
-	note:SetText(L["Close this window and KstyleUI applies the DPS layout with every module on and Full ornaments. Keep my UI leaves the game's own interface as it is."])
+	note:SetText(L["Close this window and KstyleUI applies the DPS layout with every module on. Keep my UI leaves the game's own interface as it is."])
 	page.hero, page.features, page.caption, page.list = hero, features, caption, list
 	WelcomeSteps(page)
 	page.title, page.note, page.body, page.version = title, note, body, version
@@ -820,26 +816,6 @@ PlaceModules = function()
 	panel.moduleBar.Place()
 end
 
-local function BuildOrnaments(page, width)
-	local spacing = gap("gapLarge")
-	local height = Widgets.Snap(page, ORNAMENT_CARD_HEIGHT)
-	panel.ornamentCards = {}
-	for i, entry in ipairs(Setup.ORNAMENTS) do
-		local value = entry.value
-		local card = NewCard(page, width, ORNAMENT_CARD_HEIGHT, entry.label, entry.note, function()
-			Setup.Choice().ornaments = value
-		end)
-		card.ornaments = value
-		Widgets.Point(card, "TOPLEFT", page, "TOPLEFT", 0, -(i - 1) * (height + spacing))
-		panel.ornamentCards[value] = card
-	end
-	local hint = Paragraph(page, "body", "text", width, "body")
-	Widgets.Point(hint, "TOPLEFT", page, "TOPLEFT", 0, -#Setup.ORNAMENTS * (height + spacing))
-	hint:SetText(L["Ornaments add forged trim around the HUD without moving anything. They show on every card material but Glass."]
-		.. "\n\n" .. L["Change them at any time in the settings window, on the General page."])
-	panel.ornamentHint = hint
-end
-
 local function SummaryCard(page, text)
 	local card = CreateFrame("Frame", nil, page)
 	card.chrome = Widgets.Chrome(card, { shape = "card", shadow = false })
@@ -1023,9 +999,8 @@ local function Build()
 	BuildWelcome(panel.pages[1])
 	BuildLayouts(panel.pages[2], width)
 	BuildModules(panel.pages[3], width)
-	BuildOrnaments(panel.pages[4], width)
-	BuildSummary(panel.pages[5], width)
-	panel.ornamentPage, panel.summaryPage = panel.pages[4], panel.pages[5]
+	BuildSummary(panel.pages[4], width)
+	panel.summaryPage = panel.pages[4]
 	panel.addonsPage = CreateFrame("Frame", nil, content)
 	Widgets.Fill(panel.addonsPage, panel.pages[3])
 	panel.addonsPage:Hide()
@@ -1075,10 +1050,9 @@ function Setup.ShowWindow()
 		panel.pages[i]:Hide()
 	end
 	local addons = #Setup.Choice().addons > 0
-	STEPS = addons and 6 or 5
-	panel.pages[4] = addons and panel.addonsPage or panel.ornamentPage
-	panel.pages[5] = addons and panel.ornamentPage or panel.summaryPage
-	panel.pages[6] = addons and panel.summaryPage or nil
+	STEPS = addons and 5 or 4
+	panel.pages[4] = addons and panel.addonsPage or panel.summaryPage
+	panel.pages[5] = addons and panel.summaryPage or nil
 	local tabs = {}
 	for i, label in ipairs(STEP_LABELS) do
 		if addons and i == 4 then tabs[#tabs + 1] = { value = 4, label = L["Your addons"], disabled = true } end

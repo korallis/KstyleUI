@@ -57,7 +57,7 @@ end
 local DEFAULTS = {
 	healthAlpha = 1, healthGradient = "", incomingAlpha = 0.45, absorbAlpha = 0.35, healAbsorbAlpha = 0.7,
 	portraitMirror = false, portraitZoom = 0, levelFriendly = false, pvpEnemyOnly = false, pvpPlayersOnly = false,
-	elite = false, hoverBorder = false, targetBorder = false, castbarAlpha = 1, castbarIconRight = false,
+	elite = false, hoverBorder = false, targetBorder = false, castbarAlpha = 1,
 	auraZoom = 0.07, auraTooltipCombat = true,
 }
 for _, kind in ipairs(U.KINDS) do

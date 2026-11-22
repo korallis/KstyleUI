@@ -60,7 +60,7 @@ for key, value in pairs(PLAYER) do
 	assert(Settings.Value("player", key) == value, "player." .. key .. " keeps its default")
 end
 for _, kind in ipairs(U.KINDS) do
-	assert(Settings.Value(kind, "castbarIconSize") == 0 and Settings.Value(kind, "auraLists") == "" and Settings.Value(kind, "castbarHideIdle") == true, kind .. " keeps its cast and list defaults")
+	assert(Settings.Value(kind, "auraLists") == "" and Settings.Value(kind, "castbarHideIdle") == true, kind .. " keeps its cast and list defaults")
 end
 assert(Settings.Module().dispelCustom == false and ns.Dispel.Key() == "game", "dispel colours follow the game")
 local player = Frames.Get("player").views[1]

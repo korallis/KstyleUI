@@ -163,7 +163,7 @@ assert(item("latency").button:GetWidth() > item("gold").button:GetWidth(), "the 
 write("strip.fill", "none")
 for _, id in ipairs({ "fps", "latency", "gold" }) do eq(select(4, item(id).button:GetPoint()), lefts[id], id .. " left restores") end
 write("strip.line", true)
-write("strip.placement", "top")
+write("strip.placement", "dock")
 assert(disabled("strip.fill"), "fill is off on one line")
 
 -- Currency icons replace each name after its amount; off restores the names.

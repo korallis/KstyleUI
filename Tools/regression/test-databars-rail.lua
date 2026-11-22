@@ -35,7 +35,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local saved = D.CoreEnv.DeepCopy(env.KstyleUIDB)
 	env, K, ns = D.New({ width = screen[1], height = screen[2], size = "auto", saved = saved, setup = D.Menus })
 	rail()
-	K.Options.Write("DataBars", "strip.placement", "top")
+	K.Options.Write("DataBars", "strip.placement", "dock")
 	assert(K.Layout.Update("databars.strip", { anchor = "BOTTOM", x = 37, y = 300 }))
 	K.Options.Write("DataBars", "strip.placement", "rail")
 	local moved = K.Layout.Get("databars.strip")
@@ -90,7 +90,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	check(true)
 	assert(K.Layout.Update("databars.strip", { width = 1200 }))
 	check(false)
-	K.Options.Write("DataBars", "strip.placement", "top")
+	K.Options.Write("DataBars", "strip.placement", "dock")
 	assert(table.concat(view.order, ",") == "fps,latency,gold,durability,time", "the dock's defaults must stay independent of rail choices")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end

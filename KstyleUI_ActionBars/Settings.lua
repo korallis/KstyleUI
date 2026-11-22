@@ -59,7 +59,7 @@ local function BarDefaults(def)
 		out.count = true
 		out.macro = false
 		out.paging = ""
-		out.split = def.key == "bar2" and "auto" or "off"
+		out.split = "off"
 	end
 	if def.paged then
 		out.pageForms = true
@@ -212,7 +212,6 @@ local ORIENTATION_OPTIONS = {
 	{ value = "VERTICAL", label = L["Down columns first"] },
 }
 local SPLIT_OPTIONS = {
-	{ value = "auto", label = L["With the Orbs HUD style"] },
 	{ value = "on", label = L["Always"] },
 	{ value = "off", label = L["Never"] },
 }

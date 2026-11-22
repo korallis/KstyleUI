@@ -163,10 +163,8 @@ local function Kind(full, overrides, castHeight, castFont, aura, text)
 		castbarColor = "class",
 		castbarCustom = Color("rare"),
 		castbarOrientation = "RIGHT",
-		castbarInside = false,
 		castbarAlpha = 1,
-		castbarIconRight = false,
-		castbarIconX = 0, castbarIconY = 0, castbarTextX = 0, castbarTextY = 0, castbarTimerX = 0, castbarTimerY = 0,
+		castbarTextX = 0, castbarTextY = 0, castbarTimerX = 0, castbarTimerY = 0,
 		castbarTarget = false,
 		castbarImportant = false,
 		castbarImportantColor = Color("legendary"),
@@ -230,12 +228,12 @@ Settings.defaults = {
 		castbarSmooth = false, castbarChannelOverride = false, castbarChannelColor = Color("rare"), castbarTotal = false,
 		powerCost = false, powerCostColor = Color("white"), manaSpark = false, powerMana = false,
 		powerText = "auto",
-		style = "column", combat = true, resting = true, castbarIcon = true, castbarCaps = true, castbarColor = "gold", castbarInside = true,
+		style = "column", combat = true, resting = true, castbarIcon = true, castbarCaps = true, castbarColor = "gold",
 		healthColor = "hud",
 	}, 20, 12, { on = false, size = 22, position = "BELOW" }, { 22, 15, 10, 14 }),
 	target = Kind(true, {
 		crestDebuffs = true, transitions = true,
-		style = "column", rangeFade = true, portraitSide = "RIGHT", healthColor = "hud", castbarColor = "gold", castbarCaps = true, castbarIcon = false, castbarInside = true,
+		style = "column", rangeFade = true, portraitSide = "RIGHT", healthColor = "hud", castbarColor = "gold", castbarCaps = true, castbarIcon = false,
 		power = false, auraSpacing = 4,
 	}, 14, 12, { on = true, size = 27.6, columns = 4, rows = 1, position = "SIDE" }, { 22, 15, 10, 14 }),
 	targettarget = Kind(false),
@@ -295,7 +293,7 @@ local function Live(d, values)
 end
 for _, kind in ipairs(KINDS) do
 	Live(Settings.defaults[kind], { buffStealable = "", buffDefensive = "", buffDispellable = "", auraHidden = "", auraTracked = "",
-		auraTimed = false, auraHideLockout = false, auraTrackedOnly = false, auraRowGap = 0, auraPrecise = 0, castbarFit = false, castbarIconSize = 0, auraLists = "",
+		auraTimed = false, auraHideLockout = false, auraTrackedOnly = false, auraRowGap = 0, auraPrecise = 0, castbarFit = false, auraLists = "",
 		castbarTargetPlace = "", castbarTargetSize = 0, castbarTargetX = 0, castbarTargetY = 0, castbarTargetColor = Color("textEmphasis"), auraBuffPlace = "", auraBuffX = 0, auraBuffY = 0 })
 end
 for kind in pairs(Settings.AURAS) do Live(Settings.defaults[kind], { auraTrackedDebuffs = false }) end
@@ -317,9 +315,8 @@ Settings.CHOICES = {
 		{ "percent", L["Percentage"] }, { "current", L["Current"] }, { "currentMax", L["Current and max"] },
 		{ "both", L["Current, max and percentage"] }, { "none", L["None"] },
 	}),
-	style = Options({ { "column", L["Column"] }, { "lumen", L["Vitals line"] }, { "plate", L["Plate"] } }),
+	style = Options({ { "column", L["Standard"] }, { "plate", L["Plate"] } }),
 	styleLumen = Options({ { "lumen", L["Standard"] }, { "plate", L["Plate"] } }),
-	styleTarget = Options({ { "column", L["Column"] }, { "bar", L["Wide bar"] }, { "lumen", L["Sigil"] }, { "plate", L["Plate"] } }),
 	portraitStyle = Options({ { "portrait", L["Character portrait"] }, { "class", L["Class icon"] } }),
 	portraitShape = Options({ { "chamfered", L["Chamfered"] }, { "round", L["Round"] } }),
 	portraitSide = Options({ { "LEFT", L["Left"] }, { "RIGHT", L["Right"] } }),
@@ -488,12 +485,12 @@ local RANGES = {
 	maxHealthAlpha = { ALPHA_MIN, 1 },
 	classZoom = { 0, ZOOM_MAX }, leaderSize = { 0, ICON_SIZE_MAX }, pvpSize = { 0, ICON_SIZE_MAX }, eliteSize = { 0, ICON_SIZE_MAX }, combatSize = { 0, ICON_SIZE_MAX },
 	pvpTimerSize = { FONT_SIZE_MIN, FONT_SIZE_MAX },
-	castbarIconSize = { 0, 64 }, dispelAlpha = { 0.05, 1 }, dispelIconSize = { 8, 40 }, totemSize = { 16, 48 },
+	dispelAlpha = { 0.05, 1 }, dispelIconSize = { 8, 40 }, totemSize = { 16, 48 },
 	textBarHeight = { 8, CAST_HEIGHT_MAX }, textBarWidth = { 0, CAST_WIDTH_MAX },
 	castbarTargetSize = { 0, FONT_SIZE_MAX }, powerDetachWidth = { 0, DETACH_WIDTH_MAX },
 }
 for _, key in ipairs({ "auraX", "auraY", "auraTimerX", "auraTimerY", "auraCountX", "auraCountY",
-	"castbarIconX", "castbarIconY", "castbarTextX", "castbarTextY", "castbarTimerX", "castbarTimerY",
+	"castbarTextX", "castbarTextY", "castbarTimerX", "castbarTimerY",
 	"leaderX", "leaderY", "pvpX", "pvpY", "combatX", "combatY", "eliteX", "eliteY", "pvpTimerX", "pvpTimerY", "castbarTargetX", "castbarTargetY",
 	"powerDetachX", "powerDetachY", "auraBuffX", "auraBuffY" }) do
 	RANGES[key] = { -NUDGE, NUDGE }
@@ -559,7 +556,7 @@ local function Value(kind, key)
 	if value == default or type(value) ~= type(default) then
 		return default
 	end
-	local choice = kind == "target" and key == "style" and "styleTarget" or CHOICE_OF[key]
+	local choice = key == "style" and (Settings.COLUMN[kind] and "style" or "styleLumen") or CHOICE_OF[key]
 	if choice and not Allowed(CHOICES[choice], value) then
 		LogOnce(kind .. "." .. key .. "=" .. tostring(value), kind .. "." .. key .. ": " .. tostring(value) .. " is not a choice; using " .. tostring(default))
 		return default
@@ -1282,12 +1279,6 @@ local function TextBarRows(schema, kind)
 	end
 end
 
-local STYLE_HELP = {
-	column = L["Column: full-width bars, portrait outside. Vitals line: one line, gilt ring. Plate: a panel."],
-	target = L["Column: bars by a portrait. Wide bar: no portrait. Sigil: centred, with debuffs. Plate: a panel."],
-	card = L["Standard: clean bars under a section cap. Plate: a panel."],
-	row = L["Standard: a name over a thin bar. Plate: a small tile."],
-}
 
 local function KindRows(schema, kind)
 	local function portraitOn(s)
@@ -1300,8 +1291,8 @@ local function KindRows(schema, kind)
 	})
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "style", label = L["Style"],
-		help = STYLE_HELP[kind == "target" and "target" or Settings.COLUMN[kind] and "column" or Settings.FORMS[kind]],
-		options = kind == "target" and CHOICES.styleTarget or Settings.COLUMN[kind] and CHOICES.style or CHOICES.styleLumen,
+		help = L["Standard: the Medallions slab. Plate: a panel."],
+		options = Settings.COLUMN[kind] and CHOICES.style or CHOICES.styleLumen,
 	})
 	if kind == "boss" then
 		schema[#schema + 1] = Row(kind, {

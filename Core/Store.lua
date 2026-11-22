@@ -1008,8 +1008,19 @@ Store.migrations[44] = function(data)
 end
 
 local RETIRED = { ActionBars = { "useTray", "tray", "trayColumn" }, UnitFrames = { "orbGlass", "orbLedge", "orbCastRoom" }, CombatText = { "fieldDistance" } }
+local RETIRED_UNIT = { "castbarIconRight", "castbarIconSize", "castbarIconX", "castbarIconY", "castbarInside" }
 
-Store.migrations[45] = function(data)
+local function Table(value)
+	return type(value) == "table" and value or {}
+end
+
+local function DropStyledPositions(positions)
+	for key in pairs(Table(positions)) do
+		if type(key) == "string" and (key:match("^orbs:") or key:match("^frames:")) then positions[key] = nil end
+	end
+end
+
+Store.migrations[45] = function(data, live)
 	local moved = false
 	for _, profile in pairs(data.profiles) do
 		if type(profile) == "table" then
@@ -1017,20 +1028,37 @@ Store.migrations[45] = function(data)
 			moved = moved or hud ~= "medallions"
 			profile.HudStyle = nil
 			for module, keys in pairs(RETIRED) do
-				local section = type(profile[module]) == "table" and profile[module] or {}
+				local section = Table(profile[module])
 				for _, key in ipairs(keys) do section[key] = nil end
 			end
 			if type(profile.Chat) == "table" and profile.Chat.framing == "auto" then profile.Chat.framing = nil end
-			local strip = type(profile.DataBars) == "table" and type(profile.DataBars.strip) == "table" and profile.DataBars.strip or {}
+			local strip = Table(Table(profile.DataBars).strip)
 			strip.modules, strip.height = nil, nil
+			if strip.placement == "top" then strip.placement = "dock" end
+			for _, bar in pairs(Table(profile.ActionBars)) do
+				if type(bar) == "table" and bar.split == "auto" then bar.split = nil end
+			end
+			for kind, unit in pairs(Table(profile.UnitFrames)) do
+				if type(unit) == "table" then
+					for _, key in ipairs(RETIRED_UNIT) do unit[key] = nil end
+					local slab = (kind == "player" or kind == "target") and "column" or "lumen"
+					if unit.style ~= nil and unit.style ~= "plate" and unit.style ~= slab then unit.style = nil end
+				end
+			end
+			if Table(profile.Widgets).cardMaterial == "Glass" then
+				profile.Skins = Table(profile.Skins)
+				profile.Skins.contextMenus = Table(profile.Skins.contextMenus)
+				profile.Skins.contextMenus.enabled = false
+			end
 		end
 	end
 	for _, layout in pairs(data.layouts) do
-		for key in pairs(type(layout) == "table" and layout or {}) do
-			if type(key) == "string" and (key:match("^orbs:") or key:match("^frames:")) then layout[key] = nil end
-		end
+		DropStyledPositions(layout)
 	end
-	if moved then ns.Print(L["KstyleUI is now Medallions only; your HUD moved to Medallions."]) end
+	for _, positions in pairs(Table(Table(data.account).namedLayouts)) do
+		DropStyledPositions(positions)
+	end
+	if moved and live then ns.Print(L["KstyleUI is now Medallions only; your HUD moved to Medallions."]) end
 end
 
 local PREFIX = "KSUI1:"
@@ -1246,9 +1274,9 @@ local function upgrade(data, report)
 			if type(step) ~= "function" then
 				ok = false
 			elseif report then
-				ok = ns.Call(step, data)
+				ok = ns.Call(step, data, true)
 			else
-				ok = pcall(step, data)
+				ok = pcall(step, data, false)
 			end
 			if not ok then
 				return false, version
@@ -2009,7 +2037,7 @@ local function checkPayload(payload)
 		profiles = { [name] = deepCopy(payload.settings) },
 		layouts = { [name] = deepCopy(layout) },
 		characters = {},
-		account = {},
+		account = { namedLayouts = deepCopy(named) },
 		devlog = {},
 	}
 	if not upgrade(data, false) or type(data.profiles[name]) ~= "table" or type(data.layouts[name]) ~= "table" then
@@ -2019,7 +2047,7 @@ local function checkPayload(payload)
 	if problem then
 		return nil, problem
 	end
-	return { kind = KIND, version = Store.DB_VERSION, name = name, settings = data.profiles[name], layout = data.layouts[name], namedLayouts = deepCopy(named),
+	return { kind = KIND, version = Store.DB_VERSION, name = name, settings = data.profiles[name], layout = data.layouts[name], namedLayouts = data.account.namedLayouts,
 		specs = deepCopy(payload.specs), editMode = deepCopy(payload.editMode) }
 end
 

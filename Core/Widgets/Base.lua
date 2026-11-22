@@ -217,20 +217,6 @@ function Widgets.Schema()
 	Widgets.schema = {
 		{ type = "header", label = L["First-run setup"] },
 		{ type = "toggle", key = "general.brandedWelcome", label = L["Branded welcome page"], help = L["Logo, HUD previews and highlights in setup. Turn off for the original welcome page."] },
-		{ type = "header", label = L["Ornaments"] },
-		{ type = "segmented", key = "ornaments", label = L["Ornaments"], help = L["Adds forged trim without changing the HUD layout or its colours."], options = { { value = "Off", label = L["Off"] }, { value = "Subtle", label = L["Subtle"] }, { value = "Full", label = L["Full"] } } },
-		{ type = "header", label = L["Card material"] },
-		{
-			type = "dropdown", key = "cardMaterial", label = L["Material"],
-			help = L["Choose the surface of KstyleUI's cards and windows. Glass keeps the original smoked glass."],
-			options = {
-				{ value = "Glass", label = L["Glass"] },
-				{ value = "Flat", label = L["Flat"] },
-				{ value = "Slate", label = L["Slate"] },
-				{ value = "ForgedTicks", label = L["Forged iron, gilt ticks"] },
-				{ value = "ForgedBrackets", label = L["Forged iron, brackets"] },
-			},
-		},
 		{ type = "header", label = L["Panel appearance"] },
 		{
 			type = "slider", key = "panelOpacity", label = L["Panel opacity"],

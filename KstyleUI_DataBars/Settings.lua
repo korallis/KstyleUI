@@ -70,7 +70,7 @@ defaults.rep.rewardMarker = true
 defaults.honor = BarDefaults("custom", "epic", "labelPercent")
 defaults.honor.show = "pvp"
 defaults.strip = {
-	enabled = true, placement = "top", background = 85, artwork = "forged",
+	enabled = true, placement = "dock", background = 85, artwork = "forged",
 	dockMeter = true,
 	line = true, labels = "inline", menus = true, valueColor = "plain", accentEdge = false, backdrop = false, separators = false,
 	spacing = STRIP_SPACING, orientation = "HORIZONTAL",
@@ -309,8 +309,8 @@ function ns.Schema()
 	local stripRows = {
 		{ type = "header", label = L["Data bar"] },
 		{ type = "toggle", key = "strip.enabled", label = L["Show the data bar"], help = L["Show the data bar and its readouts."] },
-		{ type = "dropdown", key = "strip.placement", label = L["Position"], help = L["Top docks to the slab in Medallions. Dock follows the action bars. Rail is the old readout."], options = {
-			{ value = "top", label = L["Top"] }, { value = "dock", label = L["Docked under the action bars"] }, { value = "rail", label = L["Right rail"] },
+		{ type = "dropdown", key = "strip.placement", label = L["Position"], help = L["Docked sits under the action bars. Right rail is the old readout."], options = {
+			{ value = "dock", label = L["Docked under the action bars"] }, { value = "rail", label = L["Right rail"] },
 		} },
 		{ type = "dropdown", key = "strip.artwork", label = L["Data bar artwork"], help = L["Forged trim and a crest gem, or a plain glass plate."], showWhen = function(settings) return settings.strip.placement ~= "rail" end, options = {
 			{ value = "forged", label = L["Forged"] }, { value = "plain", label = L["Plain"] },

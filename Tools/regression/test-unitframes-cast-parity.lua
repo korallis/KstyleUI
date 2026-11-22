@@ -49,7 +49,7 @@ env.Enum.StatusBarInterpolation.ExponentialEaseOut = nil
 write("castbarSmooth", true)
 assert(W.LastCall(cb.bar, "SetTimerDuration")[2] == env.Enum.StatusBarInterpolation.Immediate, "missing smoothing falls back")
 assert(K.Store.Module("UnitFrames").player.castbarSmooth, "the smoothing choice is saved")
-assert(not settings.Value("player", "castbarIconRight") and not settings.Value("player", "castbarTotal"), "v0.2.8 keeps the icon left and the remaining time")
+assert(not settings.Value("player", "castbarTotal"), "v0.2.8 keeps the remaining time")
 local function timer()
 	start(false, false)
 	cb.frame:GetScript("OnUpdate")(cb.frame, 1)

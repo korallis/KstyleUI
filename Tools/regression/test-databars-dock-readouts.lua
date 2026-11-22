@@ -105,7 +105,7 @@ do
 	local function layers() return tostring(view.frame:GetFrameStrata()) .. view.frame:GetFrameLevel() .. view.card:GetFrameLevel() end
 	set("DataBars", "strip.placement", "rail")
 	local rail = layers()
-	set("DataBars", "strip.placement", "top")
+	set("DataBars", "strip.placement", "dock")
 	local docked, holder = layers(), view.slab.holder
 	holder.GetFrameLevel = function() return env.Secret(2) end
 	ns.Strip.Refresh()

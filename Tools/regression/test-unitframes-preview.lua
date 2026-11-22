@@ -152,7 +152,6 @@ local _, sampleBoss = preview.holders.boss:GetSize()
 assert(math.abs(sampleBoss - liveBoss) <= 2 + K.Scale.Pixel(1), "the boss sample is one live boss frame tall, within its pixel snap: " .. sampleBoss .. ", live " .. liveBoss)
 
 -- The Medallions target: its sample sockets centred under it.
-K.Options.Write("UnitFrames", "target.style", "lumen")
 K.Options.Write("UnitFrames", "edit", "target")
 K.Options.Write("UnitFrames", "target.auraPosition", "CENTER")
 settle()

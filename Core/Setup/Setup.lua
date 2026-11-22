@@ -13,7 +13,6 @@ ns.Options.Register("OptionsPresentation", function() return {
 	{ type = "toggle", key = "preview", label = L["Larger top-aligned previews"], help = L["Grow small previews up to 160% and place them at the top. Off keeps centred previews at 125%."] },
 	{ type = "toggle", key = "switches", label = L["Slim bright switches"], help = L["Use slimmer switches with a clearer On colour. Off restores the taller, dimmer switches."] },
 	{ type = "toggle", key = "columns", label = L["Aligned settings headings"], help = L["Line up the category, page and preview headings. Off restores the previous column layout."] },
-	{ type = "toggle", key = "samples", label = L["Show ornament samples"], help = L["Compare Off, Subtle and Full before choosing. Off keeps the text-only ornament picker."] },
 } end)
 ns.Store.RegisterDefaults("Setup", { closeBehaviour = "apply", replaceLayout = true, layoutPictures = true, readableNotes = true })
 ns.Options.Register("Setup", function() return {

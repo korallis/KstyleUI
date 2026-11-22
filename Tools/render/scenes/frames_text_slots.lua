@@ -63,7 +63,7 @@ return Common.Run(function()
 			{ "healthDecimal", true }, { "castbarRaise", true },
 			{ "target.healthAlpha", 0.75 }, { "target.healthGradient", "HORIZONTAL" }, { "target.elite", true },
 			{ "target.portraitMirror", true }, { "target.portraitZoom", 0.15 }, { "target.castbarIcon", true },
-			{ "target.castbarIconRight", true }, { "target.castbarAlpha", 0.75 }, { "target.auraZoom", 0.2 },
+			{ "target.castbarAlpha", 0.75 }, { "target.auraZoom", 0.2 },
 			{ "player.healthColor", "health" }, { "player.portraitMirror", true }, { "player.incomingAlpha", 0.8 },
 			{ "focus.targetBorder", true }, { "focus.elite", true }, { "pet.happiness", true }, { "pet.hoverBorder", true },
 		}) do
@@ -202,7 +202,7 @@ return Common.Run(function()
 		env.FireEvent("UNIT_SPELLCAST_STOP", "target", "Cast-1", 0, 1)
 		K.Options.Get(module)
 		for _, pair in ipairs({ { "player.dispelOverlay", "health" }, { "player.dispelEdge", true }, { "player.dispelIcon", "TOPRIGHT" }, { "player.dispelIconSize", 16 },
-			{ "player.totems", true }, { "player.totemPosition", os.getenv("RENDER_TOTEMS") or "RIGHT" }, { "player.castbarRangeGrey", true }, { "player.castbarIconSize", 14 }, { "target.castbarHideIdle", false } }) do
+			{ "player.totems", true }, { "player.totemPosition", os.getenv("RENDER_TOTEMS") or "RIGHT" }, { "player.castbarRangeGrey", true }, { "target.castbarHideIdle", false } }) do
 			K.Options.Write(module, pair[1], pair[2])
 		end
 		if os.getenv("RENDER_PORTRAIT") then

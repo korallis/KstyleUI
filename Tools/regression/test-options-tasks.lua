@@ -61,26 +61,6 @@ assert(hits("plater", "Integrations", "notices"), "G9: other addon names find in
 K.Options.Write("OptionsPresentation", "synonyms", false)
 assert(not hits("make kicks obvious", "Nameplates", "cast.showName"), "G9: Off restores literal search")
 assert(hits("Spell name", "Nameplates", "cast.showName"), "literal setting names still work")
-K.Options.Open("General")
-settle()
-local function ornamentRow()
-	for i, item in ipairs(ns.Window.State().items) do
-		if item.module == "Widgets" and item.key == "ornaments" then return rowAt(i) end
-	end
-	error("no ornament row")
-end
-local row = ornamentRow()
-assert(row.item.kind == "ornaments", "G9: ornament levels have samples by default")
-for i, value in ipairs({ "Off", "Subtle", "Full" }) do
-	local card = row.controls.ornaments.cards[i]
-	assert(card.sample:GetWidth() == 180 and card.sample:GetHeight() == 90, "G9: samples are 180 by 90")
-	W.Click(card)
-	settle()
-	assert(K.Options.Read("Widgets", "ornaments") == value, "the sample chooses the existing " .. value .. " level")
-end
-K.Options.Write("OptionsPresentation", "samples", false)
-settle()
-assert(ornamentRow().item.kind == "segmented", "G9: Off restores the text-only picker")
 K.Options.Write("OptionsPresentation", "tasks", false)
 K.Options.Open("General")
 ns.Window.Frame():Close()

@@ -1,8 +1,7 @@
--- test-card-material-options.lua: the registered material dropdown and saved-value validation; cards keep the Medallions steel whatever the choice, setting or profile.
+-- test-card-material-options.lua: saved card material values validate, General offers no material picker, and cards keep the Medallions steel whatever is saved.
 local O = dofile("Tools/regression/options_env.lua")
 local W = O.W
 local values = { "Glass", "Flat", "Slate", "ForgedTicks", "ForgedBrackets" }
-local labels = { "Glass", "Flat", "Slate", "Forged iron, gilt ticks", "Forged iron, brackets" }
 
 do
 	local _, K = W.New({ boot = false })
@@ -34,18 +33,10 @@ do
 	assert(#savedEnv._errors == 0 and #reloadedEnv._errors == 0)
 end
 
-local env, K, ns = O.New({ before = function(_, core) core.Store.Account().setupSeen = true end })
+local env, K = O.New({ before = function(_, core) core.Store.Account().setupSeen = true end })
 local schema = K.Options.Get("Widgets")
 assert(schema == K.Widgets.schema, "Options uses the real widget schema")
-local material, index = O.Find(schema, function(row) return row.key == "cardMaterial" end)
-assert(material and material == K.Options.Row("Widgets", "cardMaterial"))
-assert(material.type == "dropdown" and material.label == K.L["Material"])
-assert(schema[index - 1].type == "header" and schema[index - 1].label == K.L["Card material"])
-assert(schema[index + 1].type == "header", "the material dropdown has its own isolated section")
-assert(#material.options == #values, "the dropdown offers exactly the five approved materials")
-for i, value in ipairs(values) do
-	assert(material.options[i].value == value and material.options[i].label == K.L[labels[i]])
-end
+assert(K.Options.Row("Widgets", "cardMaterial") == nil, "General offers no material picker: Medallions cards are steel")
 
 local settings = K.Store.Module("Widgets")
 assert(settings.cardMaterial == "ForgedBrackets", "a new profile starts on the forged default")
@@ -79,34 +70,11 @@ local function painted(value)
 end
 painted("ForgedBrackets")
 
-assert(K.Options.Open("General"))
-env.RunTimers()
-W.Settle(env)
-env.RunTimers()
-local items = ns.Window.State().items
-local item, itemIndex = O.Find(items, function(row)
-	return row.module == "Widgets" and row.key == "cardMaterial"
-end)
-assert(item and item.kind == "dropdown" and item.options == material.options, "General exposes the registered dropdown")
-assert(items[itemIndex - 1].label == K.L["Card material"], "General keeps the material header")
-local content = ns.Window.Parts().content
-content:ScrollToIndex(itemIndex - 1, true, "TOP")
-env.RunTimers()
-W.Settle(env)
-local row = O.Find(content.rows, function(candidate)
-	return candidate:IsShown() and candidate.item == item
-end)
-assert(row and row.controls.dropdown, "the real Options row creates a dropdown control")
-local dropdown = row.controls.dropdown
-assert(dropdown:GetValue() == "ForgedBrackets", "the control displays the new default")
-assert(not dropdown:SetValue("missing"), "the dropdown rejects unlisted values")
-for i = 2, #values do
-	assert(dropdown:SetValue(values[i]))
-	assert(settings.cardMaterial == values[i], "the dropdown writes through Options to the active profile")
-	painted(values[i])
+for _, value in ipairs(values) do
+	settings.cardMaterial = value
+	painted(value)
 end
-assert(dropdown:SetValue("Glass"))
-painted("Glass")
+settings.cardMaterial = K.Widgets.defaults.cardMaterial
 
 K.Options.Write("Widgets", "cardMaterial", "Slate")
 painted("Slate")
@@ -134,4 +102,4 @@ assert(K.Store.SetProfile(original))
 painted("ForgedTicks")
 
 assert(#env._errors == 0, "errors: " .. table.concat(env._errors, "\n"))
-print("card material options: five registered choices and validation passed; cards keep the steel")
+print("card material options: saved values validate, General offers no picker, cards keep the steel")

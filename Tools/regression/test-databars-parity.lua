@@ -263,7 +263,7 @@ write("strip.orientation", "HORIZONTAL")
 for _, entry in ipairs(s.railModules) do if entry.id == "spacer" then entry.shown = false end end
 write("strip.railModules", s.railModules)
 write("strip.line", true)
-write("strip.placement", "top")
+write("strip.placement", "dock")
 
 -- New readouts: coordinates, combat, time played, audio, professions, DataBroker and spacer.
 show({ "fps", "latency", "coords", "combat", "played", "audio", "prof1", "prof2", "broker", "time" })
@@ -286,7 +286,7 @@ write("strip.placement", "rail")
 x.px = 0.8
 env.RunTickers()
 eq(text("coords"), "80.0, 62.2", "a placement change starts the ticker its readouts need")
-write("strip.placement", "top")
+write("strip.placement", "dock")
 x.px = 0.5
 show({ "fps", "latency", "coords", "combat", "played", "audio", "prof1", "prof2", "broker", "time" })
 
@@ -403,7 +403,7 @@ table.insert(list, fps + 1, table.remove(list, spacer))
 write("strip.railModules", list)
 assert(shown("spacer") and not item("spacer").dot:IsShown(), "the spacer draws no dot")
 assert(not item(list[fps + 2].id).dot:IsShown(), "the readout after a spacer draws no dot")
-write("strip.placement", "top")
+write("strip.placement", "dock")
 
 -- Missing APIs take the safe path.
 env.C_Map, env.C_CVar, env.GetProfessions = nil, nil, nil

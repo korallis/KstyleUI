@@ -16,7 +16,7 @@ local function Boot(style)
 				Chat = { framing = "auto" },
 				DataBars = { strip = { height = 20, modules = { { id = "fps", shown = true } }, placement = "rail" } },
 			},
-			Other = { DataBars = { strip = { placement = "top" } }, UnitFrames = { player = { style = "column" } }, Widgets = { cardMaterial = "Glass" } },
+			Other = { HudStyle = { style = style }, DataBars = { strip = { placement = "top" } }, UnitFrames = { player = { style = "column" } }, Widgets = { cardMaterial = "Glass" } },
 		},
 		account = { namedLayouts = { MyHUD = { ["orbs:actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = 90 }, ["medallions:actionbars.bar1"] = { anchor = "BOTTOM", x = -12, y = 40 } } } },
 		layouts = { Default = {
@@ -73,18 +73,18 @@ assert(not CoreEnv.Printed(env, MESSAGE), "a Medallions profile moves nowhere, s
 assert(env.KstyleUIDB.profiles.Default.HudStyle == nil and env.KstyleUIDB.layouts.Default["medallions:actionbars.bar1"].x == -12, "its saved style key goes and its positions stay")
 -- An old export only previewed or decoded changes nothing live and says nothing; its retired positions are gone.
 do
-	local env, K = CoreEnv.New()
-	CoreEnv.Boot(env)
+	local penv, K = CoreEnv.New()
+	CoreEnv.Boot(penv)
 	local slot = { ["orbs:actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = 90 }, ["medallions:actionbars.bar1"] = { anchor = "BOTTOM", x = -12, y = 40 } }
 	local text = CoreEnv.CraftLua({ kind = "KstyleUI profile", version = 44, name = "Shared", settings = { HudStyle = { style = "orbs" } }, layout = CoreEnv.DeepCopy(slot), namedLayouts = { MyHUD = CoreEnv.DeepCopy(slot) } })
-	local start = #env._printed
+	local start = #penv._printed
 	for _ = 1, 2 do assert(K.Profiles.Preview(text)) end
-	assert(#env._printed == start, "previewing an old export prints nothing: " .. tostring(env._printed[start + 1]))
+	assert(#penv._printed == start, "previewing an old export prints nothing: " .. tostring(penv._printed[start + 1]))
 	assert(K.Store.ProfileName() == "Default", "a preview leaves the active profile alone")
 	local decoded = assert(K.Store.Decode(text))
-	assert(#env._printed == start, "decoding an old export prints nothing")
+	assert(#penv._printed == start, "decoding an old export prints nothing")
 	assert(decoded.layout["orbs:actionbars.bar1"] == nil and decoded.namedLayouts.MyHUD["orbs:actionbars.bar1"] == nil
 		and decoded.namedLayouts.MyHUD["medallions:actionbars.bar1"].x == -12, "a decoded old export loses its Orbs positions, named layouts included")
-	assert(#env._errors == 0, tostring(env._errors[1]))
+	assert(#penv._errors == 0, tostring(penv._errors[1]))
 end
 print("store medallions only ok")
