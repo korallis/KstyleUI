@@ -1,4 +1,4 @@
--- Vehicle.lua: the leave-vehicle slot beyond the Medallions right slab, beyond the power orb or beside the Frames tray and stance bar.
+-- Vehicle.lua: the leave-vehicle slot beyond the Medallions right slab.
 local _, ns = ...
 
 local K = KstyleUI

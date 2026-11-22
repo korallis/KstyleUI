@@ -1,4 +1,4 @@
--- Map.lua: the live minimap: Blizzard's Minimap hosted in KstyleUI's square frame behind the square mask, the Blizzard pieces it hides, wheel and slider zoom, the hover that reveals the controls, and the caption's data.
+-- Map.lua: the live minimap: Blizzard's Minimap hosted in KstyleUI's frame behind the round Medallions mask, the Blizzard pieces it hides, wheel and slider zoom, the hover that reveals the controls, and the caption's data.
 local _, ns = ...
 
 local K = KstyleUI

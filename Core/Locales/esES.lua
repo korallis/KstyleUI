@@ -3464,7 +3464,7 @@ ns.Locale.Add({
 	["Shoulder"] = "Hombro",
 	["Show"] = "Mostrar",
 	["Show Blizzard's dungeon and raid entrance pins on the map."] = "Muestra los marcadores de Blizzard para entradas de mazmorras y bandas.",
-	["Show DPS, Tank and Healer pictures for your chosen HUD. Off restores the footprint diagram."] = "Muestra im\195\161genes DPS, Tanque y Sanador de tu HUD. Al desactivar restaura el diagrama.",
+	["Show DPS, Tank and Healer pictures of the HUD. Off restores the footprint diagram."] = "Muestra im\195\161genes DPS, Tanque y Sanador del HUD. Al desactivar restaura el diagrama.",
 	["Show Sunder Armor"] = "Mostrar Hender armadura",
 	["Show a KstyleUI action button's press on its spell's icon."] = "Muestra la pulsaci\195\179n de un bot\195\179n de acci\195\179n de KstyleUI en el icono de su hechizo.",
 	["Show a bright spark at the end of the fill."] = "Muestra una chispa brillante al final del relleno.",

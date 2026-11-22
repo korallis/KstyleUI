@@ -2,7 +2,7 @@
 
 This folder seeds the top verification journeys for KstyleUI. [The feature map](../../docs/feature-map.md) stays canonical. It lists every player-facing feature with its settings place, code path, regression files and render scene. These files only add the journey view: what the player sees, how to reach it, how to drive it, and what proves it works.
 
-- [HUD styles](hud-styles.md): Frames, Orbs and Medallions, the style switch, the medallion slabs and the crest hub.
+- [The Medallions HUD](medallions-hud.md): the medallion slabs, the action slab and crest hub, the effects, and the move from the removed styles.
 - [Layouts and screens](layouts-and-screens.md): the DPS, Tank and Healer layouts, screen size, and the ultrawide centred and spread arrangements.
 - [Unit frames and action bars](unitframes-and-actionbars.md): clean bars, cast bars, the action bars, and the Medallions action slab.
 - [Settings and setup](settings-and-setup.md): the first-run setup and the `/kstyle` settings window.

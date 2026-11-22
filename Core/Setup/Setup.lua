@@ -18,7 +18,7 @@ ns.Options.Register("OptionsPresentation", function() return {
 ns.Store.RegisterDefaults("Setup", { closeBehaviour = "apply", replaceLayout = true, layoutPictures = true, readableNotes = true })
 ns.Options.Register("Setup", function() return {
 	{ type = "header", label = L["Setup"] },
-	{ type = "toggle", key = "layoutPictures", label = L["Layout pictures in setup"], help = L["Show DPS, Tank and Healer pictures for your chosen HUD. Off restores the footprint diagram."] },
+	{ type = "toggle", key = "layoutPictures", label = L["Layout pictures in setup"], help = L["Show DPS, Tank and Healer pictures of the HUD. Off restores the footprint diagram."] },
 	{ type = "toggle", key = "readableNotes", label = L["Readable setup notes"], help = L["Use wrapping 11-unit notes in setup. Off restores the smaller, single-line module notes."] },
 	{ type = "dropdown", key = "closeBehaviour", label = L["Closing the setup window"], help = L["Choose whether first-run Close or Escape leaves your UI alone or applies the setup."], options = {
 		{ value = "apply", label = L["Apply the default setup"] },
