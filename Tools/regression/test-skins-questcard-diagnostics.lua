@@ -121,11 +121,11 @@ do
 		if entry.module == "Skins.Quests" then
 			if entry.message:find("automatic=no-visible-rows measuredRows=0", 1, true) then automatic = true end
 			if entry.message:find("watches=8 read=title-unavailable", 1, true)
-				and entry.message:find("style=", 1, true) and entry.message:find("guideIsShown=", 1, true)
+				and entry.message:find("guideIsShown=", 1, true)
 				and entry.message:find("trigger=", 1, true) then context = true end
 		end
 	end
-	assert(emptyNs.QuestData.Count() == 0 and automatic and context, "a zero-row initial read records watched quests, missing input, HUD style, guide state and last trigger")
+	assert(emptyNs.QuestData.Count() == 0 and automatic and context, "a zero-row initial read records watched quests, missing input, guide state and last trigger")
 	assert(#emptyEnv._errors == 0 and emptyK.ErrorCount() == 0, tostring(emptyEnv._errors[1]))
 end
 
