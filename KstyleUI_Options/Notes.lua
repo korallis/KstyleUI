@@ -2,6 +2,11 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.2.13.1 (2026-11-22)", {
+		L["Smoother frame rate with RestedXP and Questie."],
+		L["Minimap buttons stay put in the drawer with less work when other addons move them."],
+		L["The minimap, auras, chat and meters do less work while you stand still."],
+	} },
 	{ "v0.2.13 (2026-11-22)", {
 		L["Frames is back alongside Medallions, with class crowns, Spirit Poles, Ghost Wolf and Lightning Shield storm orbs."],
 		L["RestedXP and Zygor guides move to a card in the top left corner, above the party frames, where a whole step fits."],
@@ -15,13 +20,5 @@ ns.NOTES = {
 		L["Raid tiles and party rows honour Icon zoom, Time left, Name font and Portrait zoom, and keep names whole."],
 		L["Party rows get a boss debuff slot, and the leader, marker and indicators no longer cover heals or names."],
 		L["Nameplates honour the level font, and Readable bag headings draw their full title band."],
-	} },
-	{ "v0.2.12 (2026-11-22)", {
-		L["KstyleUI is now Medallions only: Frames and Orbs are gone, your HUD moves over on update and setup is shorter."],
-		L["Class crowns rise over the crest for rogues, druids, warriors, priests, mages and hunters, on by default."],
-		L["Shamans get Spirit Poles, a totem bar on the crest with Ghost Wolf and Call, and Storm Orbs for Lightning Shield."],
-		L["Cast bars sit on their frames: yours under the player frame and your target's under the target frame."],
-		L["Your own settings now win over the Medallions look, and your buffs no longer show twice on the player frame."],
-		L["Key presses, pet cooldowns, target changes and currency updates do less work, with no change in look."],
 	} },
 }
