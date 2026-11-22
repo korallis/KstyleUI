@@ -1998,7 +1998,7 @@ function Hud.EditModeLayout(layout, guide, counts, natives)
 	-- RaidWarningFrame as the encounter warnings skin leaves it at login, narrowed to the lane, so Apply reserves that width.
 	local warnings = env.CreateFrame("Frame", "RaidWarningFrame", env.UIParent)
 	env.RaidWarningFrame = warnings
-	warnings:SetSize(K.Setup.EditMode.WARNING_LANE * K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale(), 100)
+	warnings:SetSize(K.Setup.EditMode.WarningLane() * K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale(), 100)
 	if counts then
 		-- The Cooldowns module restyles Blizzard's buff row on Forever's automatic path and stops it at its six-socket
 		-- grid with a "+N" chip in the seventh slot (KstyleUI_Cooldowns/Cap.lua), so it reports seven slots past six.

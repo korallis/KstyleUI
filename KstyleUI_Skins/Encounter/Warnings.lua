@@ -20,7 +20,7 @@ local styled = setmetatable({}, { __mode = "k" })
 local frame, plate, lane
 
 local function Lane()
-	return K.Setup.EditMode.WARNING_LANE / Widgets.ScaleFactor(frame)
+	return K.Setup.EditMode.WarningLane() / Widgets.ScaleFactor(frame)
 end
 
 local function IsSecret(value)

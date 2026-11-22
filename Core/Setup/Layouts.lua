@@ -806,6 +806,7 @@ end
 Layouts.MAP_FRAME = MAP_FRAME
 Layouts.GAP = GAP
 Layouts.METER_SLOT = 180
+Layouts.BOSS_AURAS = byKey["unitframes.boss"].reserve[1] - byKey["unitframes.boss"].width
 Layouts.SPLIT_GAP = 198.55
 
 function Layouts.DataBarBelowDock(name, key, class)
@@ -1444,6 +1445,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 		local styled = not GRIDS[key] and (Layouts.Aspect(class, "medallions", name, key) or Layouts.Style(name, key))
 		if styled and styled.width then
 			width, height, offsetX, offsetY = styled.width, styled.height, nil, nil
+			if key == "unitframes.boss" then width = width + Layouts.BOSS_AURAS end
 		end
 		if key == "databars.strip" then
 			local dock = Layouts.DataBarDock(name, class)

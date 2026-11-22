@@ -16,7 +16,7 @@ local METER_HEIGHT_MIN, METER_HEIGHT_MAX = 120, 400
 local VIEWER_SIZE_MIN, VIEWER_SIZE_STEP, VIEWER_SIZE_MAX = 50, 10, 200
 local BAR_WIDTH_MIN, BAR_WIDTH_MAX = 50, 200
 local VIEWER_CLEAR, VIEWER_MIN_ITEMS, FOCUS_CLEAR, SLIDES = 2, 2, 16, 6
-local WARNING_WIDTH, WARNING_HEIGHT, WARNING_TOP, WARNING_SIDE = 800, 100, 0.15, 4
+local WARNING_WIDTH, WARNING_HEIGHT, WARNING_TOP, WARNING_SIDE, WARNING_MIN = 800, 100, 0.15, 4, 400
 local DURABILITY_TOP = 80
 local DENSE_GAPS = { 4, 2 }
 local VIEWERS = {
@@ -129,13 +129,25 @@ local function Box(name, key, rw, rh)
 	local w, h, offsetX = Layouts.Footprint(name, key)
 	local styled = Layouts.Style(name, key)
 	if styled and styled.width then
-		w, h, offsetX = styled.width, styled.height, nil
+		w, h, offsetX = styled.width + (key == "unitframes.boss" and Layouts.BOSS_AURAS or 0), styled.height, nil
 	end
 	if not (position and w) then
 		return nil
 	end
 	local l, b, r, t = Layouts.Rect({ width = w, height = h, offsetX = offsetX }, position, rw, rh)
 	return { l = l, b = b, r = r, t = t }
+end
+
+function EditMode.WarningLane()
+	local rw, rh = Setup.RootSize()
+	local room = math.huge
+	for _, name in ipairs(Layouts.Names()) do
+		local chat, boss = Box(name, "chat.main", rw, rh), Box(name, "unitframes.boss", rw, rh)
+		if chat and boss then
+			room = min(room, floor(boss.l - Layouts.SIGIL_CLEAR - chat.r))
+		end
+	end
+	return room >= WARNING_MIN and min(room, EditMode.WARNING_LANE) or EditMode.WARNING_LANE
 end
 
 local function StoryBox(name, rw, rh, part)
@@ -216,6 +228,7 @@ local function Spots(group, boxes, icons)
 		if focus and target then
 			list[#list + 1] = { x = focus.r + VIEWER_CLEAR, y = target.t + VIEWER_CLEAR, gaps = DENSE_GAPS }
 		end
+		list[#list + 1] = { x = (slot.l + slot.r) / 2, y = max(slot.t, focus and focus.t or slot.t) + VIEWER_CLEAR, center = true, across = true, gaps = { 3 } }
 		return list
 	end
 	local width = slot.r - slot.l
@@ -230,9 +243,11 @@ local function Spots(group, boxes, icons)
 			list[#list + 1] = { x = icons.rect.r + VIEWER_CLEAR, y = focus.t + FOCUS_CLEAR, width = width, trim = true, gaps = { 2 } }
 		end
 	end
-	local rail = boxes["meters.damage"]
-	if rail then
-		list[#list + 1] = { x = rail.l - VIEWER_CLEAR, y = slot.b, right = true, width = width, trim = true, gaps = { 2 } }
+	for _, key in ipairs({ "meters.damage", "meters.threat" }) do
+		local edge = boxes[key]
+		if edge then
+			list[#list + 1] = { x = edge.l - VIEWER_CLEAR, y = slot.b, right = true, width = width, trim = true, gaps = { 2 } }
+		end
 	end
 	return list
 end
