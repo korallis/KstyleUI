@@ -104,14 +104,15 @@ end
 local styling = nil
 local apply = Style.Apply
 function Style.Apply(f, ...)
-	styling = f.kind
+	styling = f
 	apply(f, ...)
 	styling = nil
 end
 
 local button = Geometry.Button
-local function TidyParts(out, kind, o)
+local function TidyParts(out, f, o)
 	if not Settings.current.layout.tidyLanes then return out end
+	local kind = f.kind
 	local health, name = out.health, out.name
 	if not (health and name) then return out end
 	local right, gap = health.left + health.width, 4
@@ -126,9 +127,16 @@ local function TidyParts(out, kind, o)
 	if out.tile and out.tile.stacked and Widgets.Readability("readableBars") then
 		reserve, top = 0, health.top
 	end
-	local endName = right - reserve - (reserve > 0 and gap or 0)
 	local heal = out.healRow and out.healRow.side == "RIGHT" and out.healRow
 	if heal then
+		gap = Tokens.Size("gapTiny")
+	end
+	local endName = right - reserve - (reserve > 0 and gap or 0)
+	if heal then
+		local step, keep = heal.height + (o.healSpacing or 0), Geometry.NAME_EM * Widgets.FontSize(f.name, o.nameMin) - (o.pixel or 0)
+		while heal.width > heal.height and endName - heal.width - gap - name.left < keep do
+			heal.width = heal.width - step
+		end
 		heal.left = endName - heal.width
 		endName = heal.left - gap
 	else
@@ -152,9 +160,10 @@ end
 
 function Geometry.Button(w, h, o)
 	local out = button(w, h, o)
-	if styling == "raid" and out.nameInside then
+	local kind = styling and styling.kind
+	if kind == "raid" and out.nameInside then
 		return TidyParts(TileParts(out, w, h, o), styling, o)
-	elseif styling == "party" and out.portrait and not out.overlay then
+	elseif kind == "party" and out.portrait and not out.overlay then
 		return TidyParts(PartyParts(out, o), styling, o)
 	elseif styling then
 		return TidyParts(out, styling, o)
