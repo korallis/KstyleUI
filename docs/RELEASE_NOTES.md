@@ -12,7 +12,6 @@ Shamans get Spirit Poles: KstyleUI takes over the totem bar and sets it into the
 
 Cast bars now sit on their frames, yours under the player frame and your target's under the target frame, which clears the space above the crest; Cast bars on unit frames under Unit Frames is on by default and off puts both back above the crest. Your own settings now win over the Medallions look: party portraits off, raid names above the bar, the raid power bar, raid heal icons and nameplate name, level and debuff sizes and outlines stay as you set them. Your buffs no longer show twice: the player frame's buff row is off by default because they already show by the minimap, and Unit Frames > Player > Auras turns it back on. Key presses, pet cooldowns, target changes, tooltips and experience updates do less work, the data dock no longer rebuilds itself on every currency change, switching the minimap between Crest medallion and Crest ring re-fits the HUD, and on Right rail the minimap clock steps aside only when the rail shows the time. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
 
-<!-- Drop the next paragraph if #702 (Medallions fits MacBook and 3:2 screens) is not merged before the tag. -->
 The Tank layout fits MacBook and 3:2 screens at the normal Interface size instead of shrinking the HUD, action bar 3 stays out of the middle of the screen, and the second data bar starts clear of the target frame.
 
 ## 0.2.11.1: fixes (2026-11-22)

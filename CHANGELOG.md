@@ -39,7 +39,6 @@ Highlights:
 - Action bar key presses, pet cooldowns, target changes, tooltips and experience updates do less work, and the data dock no longer rebuilds itself on every currency change.
 - Switching the minimap frame between Crest medallion and Crest ring re-fits the HUD to the ring's taller crest.
 - On Right rail, the minimap clock steps aside only when the rail itself shows the time.
-<!-- Drop the next line if #702 (Medallions fits MacBook and 3:2 screens) is not merged before the tag. -->
 - The Tank layout fits MacBook and 3:2 screens at the normal Interface size instead of shrinking the HUD, action bar 3 stays out of the middle of the screen, and the second data bar starts clear of the target frame.
 
 ### Upgrading
