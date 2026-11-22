@@ -31,12 +31,12 @@ do
 end
 
 -- Lumen Rails: the aura rows stand beside the minimap's left edge, and Layout > Apply's Edit Mode layout puts the
--- objective tracker in the left rail's story slot, so at the full two rows of eight buffs and three debuffs every
--- tile sits left of the map and clear of the tracker, on the far side of the screen.
+-- objective tracker in the quests' column beside the story slot, so at the full two rows of eight buffs and three
+-- debuffs every tile sits left of the map and clear of the tracker.
 do
 	local Hud = L.Hud
 	local Lumen = dofile("Tools/render/scenes/_lumen.lua")
-	local _, slot = Lumen.Preset("DPS")
+	local _, slot, _, _, column = Lumen.Preset("DPS")
 	local scene = check("auras_tracker", Hud.Build({ layout = "DPS", modules = { "minimap", "auras", "tracker" }, buffs = 16, debuffs = 3 }))
 	local tiles, quests, zone = {}, nil, nil
 	for _, item in ipairs(scene.items) do
@@ -53,7 +53,7 @@ do
 	end
 	assert(quests and zone, "the scene shows the tracker's caption and the minimap's zone")
 	assert(#tiles == 19, "sixteen buff tiles and three debuff tiles draw, got " .. #tiles)
-	assert(quests[1] >= slot.left and quests[1] + quests[3] <= slot.left + slot.width and quests[2] >= slot.top, "the tracker's caption sits in the story slot")
+	assert(quests[1] >= column.left and quests[1] + quests[3] <= column.left + column.width and quests[2] >= column.top, "the tracker's caption sits in the quests' column")
 	for _, rect in ipairs(tiles) do
 		assert(rect[1] + rect[3] <= zone[1], "every aura tile sits left of the map's zone line")
 		assert(rect[2] + rect[4] <= slot.top + 0.5, "every aura tile stays above the story slot, which hangs under the rows, got " .. (rect[2] + rect[4]) .. " for " .. slot.top)
@@ -111,8 +111,8 @@ assert(rightAligned["24s"] and rightAligned["12s"], "the buff bars' countdowns d
 assert(fills >= 2, "the buff bars draw their fills")
 
 -- The focused scenes. The nameplate scene puts the plate on a base the game scaled to 0.58, as the owner's Mac
--- does, and the plate still draws the KSTY-44 bible's 156.75 by 11.875 fill in root units: at the shipped
--- Interface size (16 / 19) that is 16 / 19 of it in screen units.
+-- does, and the plate still draws the Medallions 120 by 9 fill in root units: at the shipped Interface size
+-- (16 / 19) that is 16 / 19 of it in screen units.
 local plate = check("nameplate", dofile("Tools/render/scenes/nameplate.lua")())
 local fill
 for _, item in ipairs(plate.items) do
@@ -122,7 +122,7 @@ for _, item in ipairs(plate.items) do
 end
 assert(fill, "the plate's health fill is drawn")
 local SIZE = 16 / 19
-assert(math.abs(fill.rect[3] - 156.75 * SIZE * 864 / 1540) < 1 and math.abs(fill.rect[4] - 11.875 * SIZE) < 1, "the bar is the bible's fill on a 0.58 base, got " .. fill.rect[3] .. " x " .. fill.rect[4])
+assert(math.abs(fill.rect[3] - 120 * SIZE * 864 / 1540) < 1 and math.abs(fill.rect[4] - 9 * SIZE) < 1, "the bar is the Medallions fill on a 0.58 base, got " .. fill.rect[3] .. " x " .. fill.rect[4])
 local databars = check("databars", dofile("Tools/render/scenes/databars.lua")())
 local seen = {}
 for _, item in ipairs(databars.items) do
@@ -130,11 +130,11 @@ for _, item in ipairs(databars.items) do
 		seen[item.text] = true
 	end
 end
-for _, want in ipairs({ "Level 38 \194\183 32%", "fps", "144", "34", "ms", "143g 82s 17c", "armour", "96%" }) do
+-- The Medallions experience bar reads as an instrument: its share alone.
+for _, want in ipairs({ "32%", "fps", "144", "34", "ms", "143g 82s 17c", "armour", "96%" }) do
 	assert(seen[want], "the data bars scene shows " .. want)
 end
-assert(not seen["32%"], "the XP caption includes the level under LEE-20; this fixture has no rested XP")
-assert(seen["14:32"], "the top bar owns the clock alongside its other four default readouts")
+assert(seen["14:32"], "the data bar owns the clock alongside its other four default readouts")
 
 -- The chat scene shows the mockup's four tabs on Blizzard's dock, the plus glyph and five lines.
 local chat = check("chat", (dofile("Tools/render/scenes/chat.lua"))())
