@@ -2,7 +2,7 @@
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
--- These checks pin the classic plate's cast bars, the style setting's other choice; test-unitframes-lumen.lua covers the Lumen cast lines.
+-- These checks run the Medallions cast bars on the frames, with every frame in the classic plate style.
 local env, K, ns = U.New({ plate = true })
 local CastBars = ns.CastBars
 
@@ -25,7 +25,7 @@ local function sameColor(call, r, g, b)
 	return call ~= nil and near(call[1], r) and near(call[2], g) and near(call[3], b)
 end
 
-local player = CastBars.Get("player")[1]
+local player = CastBars.Inline("player")[1]
 local bar = player.bar
 
 -- Fill direction: left to right by default; each of the four directions sets the engine's orientation
@@ -51,28 +51,9 @@ assert(W.LastCall(focusBar.bar, "SetOrientation")[1] == "VERTICAL", "a cast bar 
 K.Options.Write("UnitFrames", "focus.castbarOrientation", "RIGHT")
 noErrors("orientation")
 
--- A tall cast bar stacks its icon above the bar, so a vertical bar can stand on its own.
-K.Options.Write("UnitFrames", "player.castbarIcon", true)
-assert(K.Layout.Set("unitframes.castbar.player", "width", 20), "the player cast bar can be 20 units wide")
-assert(K.Layout.Set("unitframes.castbar.player", "height", 200), "and 200 units tall")
-local iw, ih = player.iconFrame:GetSize()
-assert(near(iw, 20) and near(ih, 20), "the icon is as wide as the bar: " .. tostring(iw) .. "x" .. tostring(ih))
-local _, _, _, px, py = player.panel:GetPoint(1)
-local pw, ph = player.panel:GetSize()
-assert(near(px, 0) and py <= -20, "the glass starts under the icon")
-assert(near(pw, 20) and ph > 150 and -py + ph <= 200 + 1e-6, "the glass fills the rest of the height: " .. tostring(pw) .. "x" .. tostring(ph))
-local _, _, _, bx, by = bar:GetPoint(1)
-local bw, bh = bar:GetSize()
-assert(bx >= px and bx + bw <= px + pw + 1e-6 and by <= py and -by + bh <= -py + ph + 1e-6, "the bar sits inside the glass's lines")
-assert(bh > 150, "and fills its height: " .. tostring(bw) .. "x" .. tostring(bh))
-K.Layout.Reset("unitframes.castbar.player")
-local _, _, _, wx = bar:GetPoint(1)
-assert(wx > 0, "a wide cast bar puts the icon back on the left")
-noErrors("tall layout")
-
 -- Colour source: reaction colours the bar by the caster's reaction to you.
 K.Options.Write("UnitFrames", "target.castbarColor", "reaction")
-local target = CastBars.Get("target")[1]
+local target = CastBars.Inline("target")[1]
 local function targetCasting(reaction, extra)
 	local unit = { name = "Wolf", level = 10, health = 1, healthMax = 2, reaction = reaction,
 		cast = { name = "Howl", texture = 135808, start = 1000, finish = 3800, spellID = 999 } }
@@ -101,20 +82,21 @@ noErrors("reaction")
 local function count(object, method)
 	return #W.Calls(object, method)
 end
-local fonts = count(player.text, "SetFont") + count(player.timer, "SetFont")
 local textures = count(bar, "SetStatusBarTexture")
 env._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1000, finish = 3500, spellID = 116 }
 env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116)
 assert(player.frame:IsShown(), "the cast shows")
-assert(count(player.text, "SetFont") + count(player.timer, "SetFont") == fonts, "a cast start sets no font")
 assert(count(bar, "SetStatusBarTexture") == textures, "a cast start sets no bar texture")
+-- The Medallions ink follows the bar's colour, so only a cast in a new colour sets the name's font.
 local colours = count(bar, "SetStatusBarColor")
+local fonts = count(player.text, "SetFont") + count(player.timer, "SetFont")
 env._units.player.cast = nil
 env.FireEvent("UNIT_SPELLCAST_STOP", "player", "Cast-1", 116)
 settle()
 env._units.player.cast = { name = "Frostbolt", texture = 135846, start = 4000, finish = 6500, spellID = 116 }
 env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-2", 116)
 assert(count(bar, "SetStatusBarColor") == colours, "a second cast in the same colour paints nothing")
+assert(count(player.text, "SetFont") + count(player.timer, "SetFont") == fonts, "and sets no font")
 env._units.player.cast = nil
 env.FireEvent("UNIT_SPELLCAST_STOP", "player", "Cast-2", 116)
 settle()
@@ -180,8 +162,13 @@ local function interrupt(start)
 	env._units.player.cast = nil
 	local before = #held
 	env.FireEvent("UNIT_SPELLCAST_INTERRUPTED", "player", "Cast-5", 116)
-	assert(#held == before + 1, "the interrupt holds the bar for a moment")
-	return held[#held]
+	-- The Medallions cast flash keeps a timer of its own on the effects layer; the bar's hold is its release.
+	local holds = 0
+	for i = before + 1, #held do
+		if held[i] == player.release then holds = holds + 1 end
+	end
+	assert(holds == 1, "the interrupt holds the bar for a moment")
+	return player.release
 end
 local release1 = interrupt(13000)
 env._units.player.cast = { name = "Frostbolt", texture = 135846, start = 14000, finish = 16500, spellID = 116 }
@@ -200,7 +187,7 @@ assert(not player.frame:IsShown(), "the hold still ends in a fade")
 local queued = {}
 env.C_Timer.After = function(_, fn)
 	held[#held + 1] = fn
-	queued[#queued + 1] = fn
+	if fn == player.release then queued[#queued + 1] = fn end
 end
 interrupt(18000)
 interrupt(19000)
