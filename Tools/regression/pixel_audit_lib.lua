@@ -422,7 +422,7 @@ end
 -- in a fixed order, and Part(index, parts) deals them into parts of about equal cost (WEIGHTS, in tenths of a second
 -- per job under Windows Lua 5.1, about twice the Mac's; remeasure when a part drifts), so each test-pixel-grid-<n>.lua
 -- stays inside its time and memory budget.
-Audit.PARTS = 16
+Audit.PARTS = 28
 Audit.ALLOW = "Tools/regression/pixel_allow.tsv"
 local WEIGHTS = {
 	gallery_options = 124, hud_reference = 119, gallery_groupframes = 73, gallery_auracounts = 63, gallery_options_modules = 59,
