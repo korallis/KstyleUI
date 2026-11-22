@@ -3989,7 +3989,7 @@ ns.Locale.Add({
 	["Strength"] = "Force",
 	["Stronger name shadows, thin unit and aura outlines, and soft backing for exposed text."] = "Ombres des noms renforc\195\169es, contours fins et fond doux pour le texte sans carte.",
 	["Style"] = "Style",
-	["Style KstyleUI's tracking, addon and quest menus outside combat. Glass keeps Blizzard's look."] = "Menus KstyleUI hors combat. Verre conserve le style Blizzard.",
+	["Style KstyleUI's tracking, addon and quest menus outside combat. Off keeps Blizzard's look."] = "Menus KstyleUI hors combat. D\195\169sactiv\195\169 conserve le style Blizzard.",
 	["Subtle"] = "Discret",
 	["Summary"] = "R\195\169sum\195\169",
 	["Swaps the bar when you change stance or form."] = "Change de barre quand vous changez de posture ou de forme.",

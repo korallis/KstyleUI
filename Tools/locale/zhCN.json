@@ -3982,7 +3982,7 @@
 	"Strength": "力量",
 	"Stronger name shadows, thin unit and aura outlines, and soft backing for exposed text.": "增强姓名阴影与细描边，并为悬空文字添加柔和衬底。",
 	"Style": "样式",
-	"Style KstyleUI's tracking, addon and quest menus outside combat. Glass keeps Blizzard's look.": "美化非战斗时的KstyleUI菜单；玻璃保留暴雪外观。",
+	"Style KstyleUI's tracking, addon and quest menus outside combat. Off keeps Blizzard's look.": "美化非战斗时的KstyleUI菜单；关闭则保留暴雪外观。",
 	"Subtle": "精简",
 	"Summary": "总览",
 	"Swaps the bar when you change stance or form.": "切换姿态或形态时切换动作条。",
