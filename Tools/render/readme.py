@@ -9,14 +9,11 @@ Every render draws at the shipped ornament level, Full. In-game Medallions media
 
 The pictures:
 
-  hud_<style>_5120, hud_<style>_1080   the whole HUD in Frames and Orbs, in combat, on a 5120x1440 screen
-                                       in the Spread arrangement at Interface size Auto and on a 1920x1080 screen at the
-                                       15/16 size the game picks there
+  hud_1080                             the whole HUD in combat on a 1920x1080 screen at the 15/16 size the game picks
   ultrawide_centred, ultrawide_spread  the Healer layout on 5120x1440 in each ultrawide arrangement
-  crop_*                               close crops of the 1080 HUD drawn at twice the density: the orbs and tray, the
-                                       unit frames, the right rail, the group meter,
-                                       and the nameplate scene; a rogue's Medallions crest jewels and forged data
-                                       dock; a world map road and flight route
+  crop_*                               close crops of the 1080 HUD drawn at twice the density: the unit frames, the
+                                       right rail, the group meter, and the nameplate scene; a rogue's crest jewels
+                                       and forged data dock; a world map road and flight route
   frame_*                              frames cut directly from the gallery scenes
 
 --no-render reuses the renders a previous run left in DIR. --only redoes the named pictures. Pillow is needed; the script
@@ -38,7 +35,6 @@ DEFAULT_WORK = os.environ.get("KSTYLEUI_MEDIA_WORK", os.path.expanduser("~/.capy
 
 PLATES = Path(ROOT) / "docs/media/plates"
 GALLERY_PPU = 2.0
-STYLES = ("Frames", "Orbs")
 BUDGET_BYTES = 4 * 1024 * 1024
 QUALITY = 86
 
@@ -46,46 +42,31 @@ FULL = {"RENDER_ORNAMENTS": "Full"}
 COMBAT = {"RENDER_LAYOUT": "DPS", "RENDER_LOSS": "1", "RENDER_METER_SECRET": "1"}
 ULTRAWIDE = {"RENDER_SIZE": "auto", "RENDER_SCREEN": "5120x1440"}
 HD = {"RENDER_SIZE": "0.9375", "RENDER_SCREEN": "1920x1080"}
+HUD = dict(HD, **COMBAT)
 
-
-def style_env(style):
-    env = dict(COMBAT, RENDER_HUD_STYLE=style)
-    if style == "Orbs":
-        env["RENDER_ORBS_HIT"] = "1"
-    return env
-
-
-
-RENDERS = {}
-for _style in STYLES:
-    _key = _style.lower()
-    RENDERS[_key + "_5120"] = ("hud_reference", 1440 / 1080, dict(ULTRAWIDE, **style_env(_style), RENDER_ARRANGEMENT="spread"), "--strict")
-    RENDERS[_key + "_1080"] = ("hud_reference", 1.0, dict(HD, **style_env(_style)), "--strict")
-    RENDERS[_key + "_1080_2x"] = ("hud_reference", 2.0, dict(HD, **style_env(_style)), "--strict")
-for _arrangement in ("centred", "spread"):
-    RENDERS["healer_" + _arrangement] = ("hud_reference", 1440 / 1080, dict(
-        ULTRAWIDE, **dict(style_env("Frames"), RENDER_LAYOUT="Healer", RENDER_ARRANGEMENT=_arrangement)), "--strict")
-RENDERS["meter_party"] = ("hud_reference", 2.0, dict(HD, **dict(style_env("Frames"), RENDER_METER_GROUP="party")), "--strict")
-RENDERS["meter_both_2x"] = ("hud_reference", 2.0, dict(HD, **dict(style_env("Frames"), RENDER_METER_GROUP="party", RENDER_METER_CHOICE="both")), "--strict")
-RENDERS["plates"] = ("nameplate_bible", 2.0, {"RENDER_COMBAT": "1"}, "--strict")
-RENDERS["rogue_1080_2x"] = ("hud_rogue_mac", 2.0, dict(HD, **style_env("Medallions")), "--strict")
-RENDERS["route_flight"] = ("worldmap_roads", 2.0, dict(HD, RENDER_MAP_TRIP="flight"), "--strict")
+RENDERS = {
+    "hud_1080": ("hud_reference", 1.0, HUD, "--strict"),
+    "hud_1080_2x": ("hud_reference", 2.0, HUD, "--strict"),
+    "healer_centred": ("hud_reference", 1440 / 1080, {**ULTRAWIDE, **COMBAT, "RENDER_LAYOUT": "Healer", "RENDER_ARRANGEMENT": "centred"}, "--strict"),
+    "healer_spread": ("hud_reference", 1440 / 1080, {**ULTRAWIDE, **COMBAT, "RENDER_LAYOUT": "Healer", "RENDER_ARRANGEMENT": "spread"}, "--strict"),
+    "meter_party": ("hud_reference", 2.0, dict(HUD, RENDER_METER_GROUP="party"), "--strict"),
+    "meter_both_2x": ("hud_reference", 2.0, dict(HUD, RENDER_METER_GROUP="party", RENDER_METER_CHOICE="both"), "--strict"),
+    "plates": ("nameplate_bible", 2.0, {"RENDER_COMBAT": "1"}, "--strict"),
+    "rogue_1080_2x": ("hud_rogue_mac", 2.0, HUD, "--strict"),
+    "route_flight": ("worldmap_roads", 2.0, dict(HD, RENDER_MAP_TRIP="flight"), "--strict"),
+}
 
 GALLERIES = ("gallery_setup", "gallery_groupframes", "gallery_skins_character")
 
 # name, source, crop, width. A source is "render:<RENDERS key>" or "frame:<gallery frame name>"; a crop is
 # "WxH+X+Y" in the source's pixels or None. A picture narrower than its width stays as it is.
 IMAGES = [
-    ("hud_frames_5120", "render:frames_5120", None, 1600),
-    ("hud_orbs_5120", "render:orbs_5120", None, 1600),
-    ("hud_frames_1080", "render:frames_1080", None, 1200),
-    ("hud_orbs_1080", "render:orbs_1080", None, 1200),
-    ("crop_orbs", "render:orbs_1080_2x", "2120x525+860+1615", 1000),
-    ("crop_unitframes", "render:frames_1080_2x", "1480x560+1260+1290", 900),
+    ("hud_1080", "render:hud_1080", None, 1200),
+    ("crop_unitframes", "render:hud_1080_2x", "1640x270+1100+1695", 1400),
     ("crop_nameplates", "render:plates", "1340x780+400+300", 800),
-    ("crop_meter", "render:meter_party", "470x330+3340+1825", 540),
-    ("crop_meters_both", "render:meter_both_2x", "980x330+2830+1825", 1120),
-    ("crop_rail", "render:frames_1080_2x", "1100x1040+2720+20", 660),
+    ("crop_meter", "render:meter_party", "490x320+3328+1820", 540),
+    ("crop_meters_both", "render:meter_both_2x", "845x314+2975+1826", 1120),
+    ("crop_rail", "render:hud_1080_2x", "1100x1130+2720+10", 660),
     ("crop_crest", "render:rogue_1080_2x", "330x420+1755+1735", 540),
     ("crop_dock", "render:rogue_1080_2x", "1960x420+940+1740", 1400),
     ("crop_route", "render:route_flight", "1385x968+900+640", 1000),
@@ -143,8 +124,7 @@ def run(cmd, env=None):
 def scenery_plate(env):
     """Published renders always use a committed real plate, ignoring local mockup overrides."""
     shape = "ultrawide" if env.get("RENDER_SCREEN") == "5120x1440" else "1080" if env.get("RENDER_SCREEN") == "1920x1080" else "mac"
-    ground = "town" if env.get("RENDER_HUD_STYLE") == "Orbs" else "forest"
-    return PLATES / (ground + "-" + shape + ".jpg")
+    return PLATES / ("forest-" + shape + ".jpg")
 
 
 def bash_path(path):
