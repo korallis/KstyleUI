@@ -1000,6 +1000,13 @@ Store.migrations[43] = function(data)
 	end
 end
 
+Store.migrations[44] = function(data)
+	for _, profile in pairs(data.profiles) do
+		local player = type(profile) == "table" and type(profile.UnitFrames) == "table" and profile.UnitFrames.player
+		if type(player) == "table" and player.medallionsAuras == true then player.medallionsAuras = nil end
+	end
+end
+
 local RETIRED = { ActionBars = { "useTray", "tray", "trayColumn" }, UnitFrames = { "orbGlass", "orbLedge", "orbCastRoom" }, CombatText = { "fieldDistance" } }
 
 Store.migrations[45] = function(data)

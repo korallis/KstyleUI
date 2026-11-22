@@ -1,8 +1,9 @@
--- ClassPip.lua: one class-themed resource pip, an art set (lit, dormant, shape, glow) seen along an axis; every lit layer is a one-point status bar fed the raw count now, before, or at the maximum, so the engine compares and Lua never reads a secret: a gain slides the art out along its axis under a flare, a spend holds, slashes and cools to the dormant art, and the maximum runs a glint up the axis, staggered along the row and then back on one common period; while the crest's crown shows the combo points it hands SetClassCrown a seat just above its tips, so the unit frames hand the points over only then and seat the druid bar there.
+-- ClassPip.lua: one class-themed resource pip, an art set (lit, dormant, shape, glow) seen along an axis; every lit layer is a one-point status bar fed the raw count now, before, or at the maximum, so the engine compares and Lua never reads a secret: a gain slides the art out along its axis under a flare, a spend holds, slashes and cools to the dormant art, and the maximum runs a glint up the axis. Widgets.FedCrown builds the crowns the game feeds instead: an aura's stacks through Blizzard's aura slots, each piece's glow and lit art an application bar (the art sweeping up from its base on a gain and draining on a loss), with a gate shown only at the maximum. While the crest's crown shows a class's points it hands SetClassCrown a seat just above its tips, so the unit frames hand the points over only then and seat the druid bar there.
 local _, ns = ...
 
 local Widgets, Tokens = ns.Widgets, ns.Tokens
 local cos, sin, rad = math.cos, math.sin, math.rad
+local IsSecret = Widgets.IsSecret
 
 local HALO, SLIDE, SLASH_W, SLASH_H, GLINT, RUN = 1.2, 0.35, 0.55, 0.16, 0.3, 0.42
 local ALPHA = 0.7
@@ -23,6 +24,14 @@ local LAYERS = {
 local CLASSES = {
 	ROGUE = { art = "pipBlade", glowColor = "jewelCombo", coreColor = "jewelComboCore" },
 	DRUID = { art = "pipClaw", glowColor = "pipDruidGlow", coreColor = "pipDruidCore" },
+	WARRIOR = { art = "pipBanner", glowColor = "pipWarriorGlow", count = 5, unit = "target", filter = "HARMFUL", spells = { 7386, 7405, 8380, 11596, 11597, 20243 } },
+	PRIEST = { art = "pipCandle", glowColor = "pipPriestGlow", count = 5, unit = "target", filter = "HARMFUL", spells = { 15258 }, known = { 15257 } },
+	MAGE = {
+		art = "pipShard", glowColor = "pipMageGlow", count = 4, unit = "player", filter = "HELPFUL",
+		spells = { 400573, 1300176, 1300177, 400586 }, known = { 400574, 1239696, 1239697, 1239699, 1239700 },
+	},
+	HUNTER = { art = "pipArrow", glowColor = "jewelHawk", count = 3, unit = "player", filter = "HELPFUL", spells = { 1310687, 1310785, 1310786 } },
+	BEAR = { art = "pipTalon", glowColor = "pipBearGlow", count = 5, unit = "target", filter = "HARMFUL|PLAYER", spells = { 1328617, 1328616, 414644, 1235826, 1235827 } },
 }
 
 local Pip = {}
@@ -108,8 +117,8 @@ function Widgets.ClassCrown(follow)
 	return crown
 end
 
-function Widgets.ClassPipSet(class, angle)
-	local c = CLASSES[class]
+function Widgets.ClassPipSet(kind, angle)
+	local c = CLASSES[kind]
 	return c and {
 		lit = c.art .. angle, steel = c.art .. "Steel" .. angle, shape = c.art .. "Shape" .. angle, glow = c.art .. "Glow" .. angle,
 		glowColor = c.glowColor, coreColor = c.coreColor, axis = angle,
@@ -184,4 +193,139 @@ function Widgets.ClassPip(parent, set, i, count)
 		end
 	end
 	return p
+end
+
+local function Known(ids)
+	local book = C_SpellBook
+	if not (book and type(book.IsSpellKnown) == "function") then
+		return false
+	end
+	for _, id in ipairs(ids) do
+		local known = book.IsSpellKnown(id)
+		if not IsSecret(known) and known == true then
+			return true
+		end
+	end
+	return false
+end
+
+function Widgets.CrownKind(class)
+	if class == "DRUID" then
+		local form, types = UnitPowerType and UnitPowerType("player"), Enum and Enum.PowerType or {}
+		if IsSecret(form) then
+			return nil
+		elseif form == (types.Energy or 3) then
+			return "DRUID"
+		end
+		class = form == (types.Rage or 1) and "BEAR" or nil
+	end
+	local c = CLASSES[class]
+	if not c or c.spells and not Known(c.known or c.spells) then
+		return nil
+	end
+	return class
+end
+
+function Widgets.CrownCount(kind)
+	return CLASSES[kind] and CLASSES[kind].count
+end
+
+local Crown = {}
+
+local function Interpolation(moving)
+	local modes = Enum and Enum.StatusBarInterpolation or {}
+	return moving and (modes.ExponentialEaseOut or 1) or (modes.Immediate or 0)
+end
+
+local function Slot(fed, key, anchor, level, low, ease, texture, color, add)
+	local button = fed.container:AddAuraSlot(key, fed.c.filter, fed.options)
+	pcall(button.EnableMouse, button, false)
+	button:SetFrameLevel(level)
+	button:SetAllPoints(anchor)
+	local bar = CreateFrame("StatusBar", nil, button)
+	bar:SetAllPoints(button)
+	if texture then
+		bar:SetStatusBarTexture((Tokens.Texture(texture)))
+		bar:SetStatusBarColor(Tokens.Color(color))
+		bar:SetOrientation("VERTICAL")
+		if add then
+			bar:GetStatusBarTexture():SetBlendMode("ADD")
+		end
+	end
+	fed.feeds[#fed.feeds + 1] = { button = button, bar = bar, low = low, ease = ease }
+	return bar
+end
+
+local function Bind(feeds, moving)
+	for _, f in ipairs(feeds) do
+		f.button:SetApplicationBar(f.bar, { minApplications = f.low, maxApplications = f.low + 1, interpolation = Interpolation(f.ease and moving) })
+	end
+end
+
+function Crown:SetMotion(moving)
+	if moving ~= self.moving and pcall(Bind, self.feeds, moving) then
+		self.moving = moving
+	end
+	return moving == self.moving
+end
+
+function Crown:Listen(owner, on)
+	if self.listening == on then
+		return
+	end
+	self.listening = on
+	local Events = ns.Events
+	Events.UnregisterAll(owner)
+	if on and self.c.unit == "target" then
+		Events.Register(owner, "PLAYER_TARGET_CHANGED", function() self.container:UpdateAllAuras() end)
+	end
+end
+
+function Crown:SetShown(on)
+	self.holder:SetShown(on)
+	self.container:SetEnabled(on)
+end
+
+function Widgets.FedCrown(parent, kind, angles, size, moving)
+	local c = CLASSES[kind]
+	local holder = CreateFrame("Frame", nil, parent)
+	holder:SetAllPoints(parent)
+	local made, container = pcall(CreateFrame, "AuraContainer", nil, holder, "CustomAuraContainerTemplate")
+	if not made or type(container) ~= "table" or type(container.AddAuraSlot) ~= "function" then
+		holder:Hide()
+		return nil
+	end
+	local level = parent:GetFrameLevel() + 2
+	Widgets.KeepOut(container)
+	container:SetFrameLevel(level + 1)
+	container:SetUnit(c.unit)
+	local ids = {}
+	for _, id in ipairs(c.spells) do
+		ids[id] = true
+	end
+	local fed = setmetatable({ c = c, holder = holder, container = container, options = { candidateFilters = { includeSpellIDs = ids } }, pips = {}, feeds = {} }, { __index = Crown })
+	for i, angle in ipairs(angles) do
+		local set = Widgets.ClassPipSet(kind, angle)
+		local frame = CreateFrame("Frame", nil, holder)
+		frame:SetFrameLevel(level)
+		local px = Widgets.Snap(frame, size)
+		frame:SetSize(px, px)
+		local p = { frame = frame, i = i, axis = angle }
+		p.steel = frame:CreateTexture(nil, "BACKGROUND")
+		p.steel:SetTexture((Tokens.Texture(set.steel)))
+		p.steel:SetAllPoints(frame)
+		p.haloFrame = CreateFrame("Frame", nil, frame)
+		p.haloFrame:SetPoint("CENTER", frame, "CENTER", 0, 0)
+		local halo = Widgets.Snap(frame, px * HALO)
+		p.haloFrame:SetSize(halo, halo)
+		p.halo = Slot(fed, "halo" .. i, p.haloFrame, level + 2, i - 1, false, set.glow, set.glowColor, true)
+		p.blade = Slot(fed, "lit" .. i, frame, level + 3, i - 1, true, set.lit, "white")
+		fed.pips[i] = p
+	end
+	fed.max = Slot(fed, "max", holder, level + 1, #angles)
+	if not fed:SetMotion(moving) then
+		holder:Hide()
+		return nil
+	end
+	return fed
 end

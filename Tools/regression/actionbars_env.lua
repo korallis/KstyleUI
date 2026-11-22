@@ -76,6 +76,7 @@ local function RestrictedEnv(env)
 		HasBonusActionBar = function() return g.bonus ~= nil end,
 		GetBonusBarIndex = function() return g.bonus end,
 		GetActionBarPage = function() return g.page end,
+		IsShiftKeyDown = function() return g.shift == true end,
 	}
 end
 
@@ -469,6 +470,8 @@ local function InstallGame(env, opts)
 	end
 	env.Enum = env.Enum or {}
 	env.Enum.InputDeviceInterfaceType = { Mkb = 0, Gamepad = 1 }
+	env.Enum.StatusBarInterpolation = env.Enum.StatusBarInterpolation or { Immediate = 0, ExponentialEaseOut = 1 }
+	env.Enum.StatusBarTimerDirection = env.Enum.StatusBarTimerDirection or { ElapsedTime = 0, RemainingTime = 1 }
 	env.C_InputInterfaceStyle = {
 		GetCurrentStyle = function()
 			return g.style
@@ -716,6 +719,19 @@ function AB.Button(ns, barKey, index)
 	return ns.bars[barKey].buttons[index]
 end
 
+-- Attr(env, button, name, suffix) reads a modified attribute as SecureButton_GetModifiedAttribute does with
+-- Shift held or not: shift-name2, *name2, shift-name*, *name*, then name; "" (ATTRIBUTE_NOOP) reads as nil.
+local function Attr(env, button, name, suffix)
+	local prefix = env._game.shift and "shift-" or ""
+	for _, key in ipairs({ prefix .. name .. suffix, "*" .. name .. suffix, prefix .. name .. "*", "*" .. name .. "*", name }) do
+		local value = button:GetAttribute(key)
+		if value ~= nil then
+			if value == "" then return nil end
+			return value
+		end
+	end
+end
+
 -- Click(env, button, mouse, down) runs the secure action the button's attributes describe, as
 -- SecureActionButton_OnClick does, then the button's hooked OnClick and PostClick scripts.
 function AB.Click(env, button, mouse, down)
@@ -735,10 +751,7 @@ function AB.Click(env, button, mouse, down)
 		if newButton then mouse = tostring(newButton) end
 	end
 	local suffix = mouse == "RightButton" and "2" or "1"
-	local kind = button:GetAttribute("type" .. suffix)
-	if kind == nil then
-		kind = button:GetAttribute("type")
-	end
+	local kind = Attr(env, button, "type", suffix)
 	local g = env._game
 	local useOnKeyDown = button:GetAttribute("useOnKeyDown")
 	if useOnKeyDown == nil then useOnKeyDown = env.GetCVarBool("ActionButtonUseKeyDown") end
@@ -749,15 +762,21 @@ function AB.Click(env, button, mouse, down)
 		if page == nil and button:GetAttribute("useparent-actionpage") then
 			page = button:GetParent():GetAttribute("actionpage")
 		end
-		local id = button:GetID()
+		local id = button:GetID() or 0
 		local slot = id > 0 and (id + ((page or 1) - 1) * 12) or button:GetAttribute("action")
 		g.used[#g.used + 1] = slot
 	elseif kind == "pet" then
 		g.used[#g.used + 1] = "pet" .. tostring(button:GetAttribute("action"))
 	elseif kind == "spell" then
-		g.used[#g.used + 1] = "spell" .. tostring(button:GetAttribute("spell"))
+		g.used[#g.used + 1] = "spell" .. tostring(Attr(env, button, "spell", suffix))
+	elseif kind == "multispell" then
+		local spell = Attr(env, button, "spell", suffix)
+		g.used[#g.used + 1] = "multispell" .. tostring(button:GetAttribute("action")) .. ":" .. tostring(spell)
+		if env.SetMultiCastSpell then env.SetMultiCastSpell(button:GetAttribute("action"), spell) end
+	elseif kind == "destroytotem" then
+		g.used[#g.used + 1] = "destroytotem" .. tostring(Attr(env, button, "totem-slot", suffix))
 	elseif kind == "item" then
-		g.used[#g.used + 1] = button:GetAttribute("item" .. suffix) or button:GetAttribute("item")
+		g.used[#g.used + 1] = Attr(env, button, "item", suffix)
 	elseif kind == "click" then
 		local delegate = button:GetAttribute("clickbutton")
 		if delegate then
@@ -789,13 +808,13 @@ function AB.PressKey(env, key, down)
 		end
 	end
 	local command = env.GetBindingAction(key)
-	local name = command:match("^CLICK (.-):LeftButton$")
+	local name, mouse = command:match("^CLICK (.-):(%w+)$")
 	if name and env[name] then
-		if env[name]._secureClick then AB.Click(env, env[name], "LeftButton", false)
-		elseif env[name]:GetAttribute("type") then
-			AB.Click(env, env[name], "LeftButton", true)
-			AB.Click(env, env[name], "LeftButton", false)
-		else env[name]:Click("LeftButton") end
+		if env[name]._secureClick then AB.Click(env, env[name], mouse, false)
+		elseif Attr(env, env[name], "type", mouse == "RightButton" and "2" or "1") then
+			AB.Click(env, env[name], mouse, true)
+			AB.Click(env, env[name], mouse, false)
+		else env[name]:Click(mouse) end
 		return true
 	end
 	return false

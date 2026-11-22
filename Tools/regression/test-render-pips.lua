@@ -39,6 +39,15 @@ local _, cy = Scene.Rect(claw._env, claw)
 local bx, by, bw, bh = Scene.Rect(uf.Resource.state.mana._env, uf.Resource.state.mana)
 assert(uf.Resource.state.showMana and math.abs(bx + bw / 2 - (sx + sw / 2)) < 1, "the druid bar is centred on the crown's seat")
 assert(math.abs(by + bh / 2 - (sy + sh / 2)) < 1 and by + bh <= cy, "and clears the middle claw's art")
+
+-- A hunter keeps Summon Hawk and the same hawk slots with the arrows on or off, so RENDER_PIPS=off changes only the arrows.
+for _, pips in ipairs({ "3,3", "off" }) do
+	rawset(_G, "RENDER_PIPS", pips)
+	_, ab = Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = "HUNTER" }))
+	local perch = ab.SlabHawks.state.perches[1]
+	assert(perch and perch.holder:IsShown(), "RENDER_PIPS=" .. pips .. ": the hunter's hawk perches show")
+	assert((ab.SlabCrown.state.crown ~= nil) == (pips ~= "off"), "RENDER_PIPS=" .. pips .. ": the arrows follow the setting")
+end
 rawset(_G, "RENDER_PIPS", nil)
 
 -- The cat-form druid's three points draw lit claws on the crown.

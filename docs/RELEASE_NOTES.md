@@ -2,6 +2,10 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.2.11.1: fixes (2026-11-22)
+
+With Blizzard's Cooldown Manager switched off, KstyleUI no longer draws its own essential and utility cooldown rows, and switching it off or on takes effect without a reload. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.2.11: the guides and crest release (2026-11-21)
 
 Zygor Guides Viewer, contributed by Baine, now gets what RestedXP has: its guide window sits on the story rail at the card's width, hanging from the card's top, in KstyleUI's window card, forged by default. The guide's name heads it with the shared gem and rule, Zygor's step and line fills give way to the card, prev, next and close become KstyleUI's own buttons, the progress bar takes the accent colour and the waypoint arrow is drawn flat with themed text. Fit guide to its steps lets the guide keep its steps' height and off stretches it over the story slot; drag the window away and KstyleUI leaves it where you put it and turns Story rail off for that character. With RestedXP loaded too, the guide shown last owns the card and the other window goes back where it was. KstyleUI writes none of Zygor's settings. All of it is under Window Skins > Zygor, on by default.

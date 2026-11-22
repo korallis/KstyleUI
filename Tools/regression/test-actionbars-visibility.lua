@@ -17,7 +17,7 @@ local bindings = 0
 for command, category in bindingXML:gmatch('<Binding name="([^"]+)" category="([^"]+)"') do
 	assert(env["BINDING_NAME_" .. command], "each declared toggle has a localized binding label")
 	assert(env[category] == "KstyleUI", "Blizzard's keybinding UI resolves the KstyleUI category")
-	bindings = bindings + 1
+	if command:find("KstyleUI_Toggle_", 1, true) then bindings = bindings + 1 end
 end
 assert(bindings == 9, "every picker bar has a declared toggle key")
 local cfg, bar = ns.Config("bar1"), ns.bars.bar1

@@ -8,4 +8,10 @@
 	<Binding name="CLICK KstyleUI_Toggle_pet:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
 	<Binding name="CLICK KstyleUI_Toggle_stance:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
 	<Binding name="CLICK KstyleUI_Toggle_consumables:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_TotemSlot1:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_TotemSlot2:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_TotemSlot3:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_TotemSlot4:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_TotemCall:LeftButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
+	<Binding name="CLICK KstyleUI_TotemCall:RightButton" category="BINDING_HEADER_KSTYLEUI_ACTIONBARS"/>
 </Bindings>

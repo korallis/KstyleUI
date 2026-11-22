@@ -58,7 +58,7 @@ local function Count(kind)
 	end
 	return math.max(0, math.min(MAX_COUNT, math.floor(most)))
 end
-Jewels.Kind, Jewels.Count = Kind, Count
+Jewels.Count = Count
 
 local function Even(region)
 	local px = Widgets.Border(region)

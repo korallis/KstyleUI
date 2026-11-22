@@ -4,7 +4,9 @@ local Engine = dofile("Tools/regression/aura_fixture_engine.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local function Near(a, b, why) assert(math.abs(a - b) < 1.1, why .. ": " .. a .. " / " .. b) end
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
-	local env, K, ns = U.New({ width = screen[1], height = screen[2], size = "auto", fit = true })
+	local env, K, ns = U.New({ width = screen[1], height = screen[2], size = "auto", fit = true, before = function(_, core)
+		core.Store.Module("UnitFrames").player = { medallionsAuras = true }
+	end })
 	local fixtures = {}
 	for i = 1, 9 do fixtures[i] = { id = i, icon = 135813, left = i * 3, count = i, mine = true, harmful = true } end
 	fixtures[10] = { id = 10, icon = 136026, left = 1, mine = false, harmful = true }

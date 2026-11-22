@@ -1,4 +1,4 @@
--- Path.lua: which path each group takes (KstyleUI's mirror, Blizzard's viewer restyled in place, or off) and the switch when the mirror fails.
+-- Path.lua: which path each group takes (KstyleUI's mirror, Blizzard's viewer restyled in place, or off, as the mirror is while Blizzard's Cooldown Manager is switched off) and the switch when the mirror fails.
 local _, ns = ...
 
 local Path = {}
@@ -30,6 +30,11 @@ function Path.ProbeAuras()
 		return false, "C_UnitAuras lacks GetPlayerAuraBySpellID or GetAuraDuration"
 	end
 	return true
+end
+
+function Path.ViewerOff()
+	local ok, on = pcall(C_CVar and C_CVar.GetCVarBool, "cooldownViewerEnabled")
+	return ok and not ns.IsSecret(on) and on == false
 end
 
 function Path.AurasCanTurnSecret()
@@ -71,6 +76,9 @@ function Path.Choose(group, setting)
 	end
 	if setting ~= "mirror" and aura and Path.AurasCanTurnSecret() then
 		return Reskin(group, "aura data can turn secret in combat, so KstyleUI cannot follow tracked buffs there")
+	end
+	if Path.ViewerOff() then
+		return Set(group, "off", "the Cooldown Manager is switched off")
 	end
 	return Set(group, "mirror")
 end

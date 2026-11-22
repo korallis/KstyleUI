@@ -226,7 +226,7 @@ Settings.defaults = {
 	castbarOnFrame = true,
 	edit = "player",
 	player = Kind(true, {
-		medallionsAuras = true, medallionsAuraFilter = "buffs",
+		medallionsAuras = false, medallionsAuraFilter = "buffs",
 		castbarSmooth = false, castbarChannelOverride = false, castbarChannelColor = Color("rare"), castbarTotal = false,
 		powerCost = false, powerCostColor = Color("white"), manaSpark = false, powerMana = false,
 		powerText = "auto",
@@ -1206,7 +1206,7 @@ ResourceRows = function(schema)
 	schema[#schema + 1] = { type = "header", label = Settings.LABELS.player .. ": " .. L["class resource"], showWhen = shows() }
 	schema[#schema + 1] = {
 		type = "toggle", key = "resource.enabled", label = L["Class resource"], showWhen = shows(),
-		help = L["Shows combo points and the druid's mana under the player frame."],
+		help = L["Shows combo points and the druid's mana under the player frame, and the crest's class crowns."],
 	}
 	schema[#schema + 1] = {
 		type = "toggle", key = "resource.comboPoints", label = L["Combo points"], showWhen = shows(on),
@@ -1214,7 +1214,7 @@ ResourceRows = function(schema)
 	}
 	schema[#schema + 1] = {
 		type = "toggle", key = "resource.classPips", label = L["Class-themed pips"], showWhen = shows(on),
-		help = L["Animated daggers for a rogue and claws for a druid. Off restores the plain pips."],
+		help = L["Animated class marks, from a rogue's daggers to a hunter's arrows. Off: plain combo pips only."],
 	}
 	schema[#schema + 1] = {
 		type = "dropdown", key = "resource.comboColor", label = L["Combo point colour"], showWhen = shows(plain),
