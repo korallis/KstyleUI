@@ -13,6 +13,7 @@ local STEEL_LIT = { Tokens.Color("steelLit") }
 local TILE_INSET = 2
 local LINE_EXTRA = 2
 local MIN_CELL = 8
+local PARTY_LANE = 14
 local PIP_SHARE = 0.6
 local PIP_ROOM = 0.25
 local TILE_TEXT = "NONE"
@@ -83,10 +84,11 @@ local function TileParts(out, w, h, o)
 end
 
 local function PartyParts(out, o)
-	local badge = out.portrait
-	if Settings.current.auras.enabled then
-		local size = math.min(Style.BOSS_SLOT, badge.width - 2 * Geometry.EDGE)
-		out.boss = { left = badge.left + (badge.width - size) / 2, top = badge.top + Geometry.EDGE, width = size, height = size }
+	local badge, crown = out.portrait, out.icons.leader
+	local right = badge.left + badge.width - Geometry.EDGE
+	local size = math.min(Style.BOSS_SLOT, right - crown.left - crown.width, badge.height - Geometry.EDGE - PARTY_LANE)
+	if Settings.current.auras.enabled and size >= Geometry.MIN_ICON then
+		out.boss = { left = right - size, top = badge.top + Geometry.EDGE, width = size, height = size }
 	end
 	local icons, name, spot = out.icons, out.name, out.healthText
 	if not (icons and name and spot and spot.right and icons.role and o.role and not icons.roleInRing) then
@@ -121,7 +123,7 @@ local function TidyParts(out, f, o)
 	local health, name = out.health, out.name
 	if not (health and name) then return out end
 	local right, gap = health.left + health.width, 4
-	local size = kind == "party" and 14 or 10
+	local size = kind == "party" and PARTY_LANE or 10
 	local count = 0
 	for i = 1, Settings.INDICATOR_SLOTS do
 		if ns.Slots.Category(Settings.current["indicator" .. i], kind) then count = count + 1 end
