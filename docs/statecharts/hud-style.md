@@ -1,6 +1,6 @@
 # HUD style switch
 
-The HUD style is Medallions (the default) or Frames, saved per profile in the `HudStyle` section. Store migration 45 removed every saved style, so every profile reads Medallions until the player picks Frames again in setup or in Options. `Core/HudStyle.lua` owns the switch: it applies the saved style out of combat, holds a change made in combat until combat ends, fires `HudStyleChanged` once per real change, and offers a reload when a listener raised an error. The HUD style switch test drives the live switch, the combat queue (a second pick in combat prints nothing more) and the reload prompt; no test yet ends combat with the pick undone, or presses Later or Reload now.
+The HUD style is Medallions (the default) or Frames, saved per profile in the `HudStyle` section. Store migration 45 removed every saved style, so every profile reads Medallions until the player picks Frames again in setup or in Options. `Core/HudStyle.lua` owns the switch: it applies the saved style out of combat, holds a change made in combat until combat ends, fires `HudStyleChanged` once per real change, and offers a reload when a listener raised an error. `test-hud-style-gate` drives the live switch both ways and the two pickers; no test yet covers the combat queue (a second pick in combat prints nothing more), ending combat with the pick undone, or the reload prompt's Later and Reload now.
 
 ```mermaid
 stateDiagram-v2
