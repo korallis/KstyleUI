@@ -1,5 +1,23 @@
 # KstyleUI changelog
 
+## v0.2.15 (2026-11-22)
+
+The last group frames round. Names can sit under the bars, your party heal icons can move off the frame so the name gets its whole line back, and party and raid frames can follow FrameSort.
+
+Highlights:
+
+- Party and raid names can sit under the health and power bars, in Medallions and Frames. Off by default.
+- Your heal icons on party frames can sit outside the frame, so the name keeps its whole line. Off by default.
+- Party and raid frames can follow FrameSort's order while FrameSort is installed.
+
+### Added
+
+- Names can sit under the health and power bars on party and raid frames, with the role icon, leader crown, your heals and the health percent. Party and Raid > Names above the bar > Name under the bar, off by default.
+- On Medallions raid tiles tall enough for two lines, Name under the bar puts the name at the foot of each tile and the percent, debuff pips and heals at its head.
+- Your heal icons on party frames can sit outside the frame: beside it, past the debuffs, targets and pets, or above frames set side by side. Party and Raid > Party frames > Heal icon place.
+- Party and raid frames can take FrameSort's order and follow it when FrameSort changes it. Party and Raid > Party frames or Raid frames > Sort by > FrameSort, offered only while FrameSort is loaded.
+- The order only changes out of combat, so someone who joins mid-fight shows up when combat ends. Without FrameSort the frames go back to group order.
+
 ## v0.2.14 (2026-11-22)
 
 Raid night gets new reminders: flasks, low mana at ready checks and paladin blessings on party and raid frames, which also get pets beside their owners, your own place in the party and more. Your unit frame aura settings now stick in every layout, the Options previews fit their pane and RestedXP's boxes stop twitching.

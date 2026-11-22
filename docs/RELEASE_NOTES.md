@@ -2,6 +2,14 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.2.15: names under the bar (2026-11-22)
+
+This is the last group frames round. Name under the bar, under Party and Raid > Names above the bar, moves the name line under the health and power bars on party and raid frames, in Medallions and Frames, with the role icon, leader crown, your heals and the health percent going with it. On Medallions raid tiles tall enough for two lines the names drop to the foot and the percent, debuff pips and heals move to the head. It starts off.
+
+Heal icon place, under Party and Raid > Party frames, takes your heals over time off the party frame so the name keeps its whole line. Outside, right and Outside, left put them beside stacked frames, past the debuffs, party targets and pets, and above frames set side by side, from the end you pick and never wider than the frame. It starts On the frame, so nothing moves until you pick.
+
+With FrameSort installed, Sort by under Party frames and Raid frames offers FrameSort, and KstyleUI follows its order whenever FrameSort sorts again. The order only changes out of combat, so someone who joins mid-fight shows up when combat ends. Remove FrameSort and the frames go back to group order. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.2.14: raid reminders (2026-11-22)
 
 The reminder card under Auras > Missing buff reminder gets two new switches, both off by default and each working without the class buff reminder. Flask reminder names a flask you carry and how many you have while you are in a raid, out of combat, with no flask on you. Low mana at ready checks says Low mana during a ready check while your mana is under 80 percent, and goes once you drink past it. The card shows one message at a time: low mana first, then a missing class buff, then a flask. Reminder font, Reminder text size and Reminder outline style all three.
