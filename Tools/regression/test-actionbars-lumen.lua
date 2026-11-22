@@ -1,6 +1,6 @@
 -- test-actionbars-lumen.lua: the Lumen socket on the action buttons: a quiet rim at rest, the keybind at the top left,
--- a centred cooldown timer, a gilt proc rim with a breathing glow inside the socket, a red out-of-range tint, a cool
--- desaturated tint without resource, visible empty tiles, and bar 1 as one floating row.
+-- a centred cooldown timer, a gilt proc rim with the Medallions loop inside the socket, a red out-of-range tint, a cool
+-- desaturated tint without resource, quiet empty sockets, and bar 1 as one floating row.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local W = AB.W
 
@@ -111,37 +111,13 @@ do
 	assert(b.proc, "the button procs")
 	local gr, gg, gb = color(K, ns.Socket.TOKENS.gilt)
 	assert(W.SameRGB(rim(b), gr, gg, gb), "the proc rim is gilt")
-	assert(b.chrome.proc and W.SameRGB(b.chrome.line[1], gr, gg, gb), "the shared kit draws the outer proc edge in giltLit")
-	local glow = assert(b.lumenGlow, "the proc shows the socket's own glow")
-	assert(glow:IsShown(), "the glow shows")
-	assert(b.procGlow == nil, "the kit's glow, with its halo past the button, is not used")
-	local inside = glow._points[1]
-	assert(inside and inside[2] == b.icon, "the glow is laid over the icon, inside the socket")
-	assert(#glow.texture._masks > 0, "the glow is masked to the icon's shape")
-	local breath = glow.breath
-	assert(breath and breath:IsPlaying(), "the glow breathes")
-	assert(W.LastCall(breath, "SetLooping")[1] == "BOUNCE", "in and out")
-	local alpha = breath._anims[1]
-	assert(W.Near(W.LastCall(alpha, "SetDuration")[1], K.Tokens.Duration("glowBreath")), "at glowBreath seconds per leg")
+	assert(b.chrome.proc and W.SameRGB(b.chrome.line[1], K.Widgets.Rgba("giltLit")), "the shared kit draws the outer proc edge in giltLit's Medallions steel")
+	assert(not (b.lumenGlow and b.lumenGlow:IsShown()) and b.medProc and b.medProc:IsShown(), "the Medallions loop replaces the socket's own glow")
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
-	assert(not b.proc and not breath:IsPlaying(), "the hide event stops the breath")
+	assert(not b.proc, "the hide event ends the proc")
 	assert(not b.chrome.proc and W.SameColor(b.chrome.line[1], K.Tokens.Color("socketEdge")), "ending the proc restores the black outer socket edge")
-	W.Settle(env)
-	assert(not glow:IsShown() or glow:GetAlpha() == 0, "and the glow goes")
 	local qr, qg, qb, qa = color(K, ns.Socket.TOKENS.quietRim)
 	assert(W.SameColor(rim(b), qr, qg, qb, qa), "the rim returns to quiet")
-	assert(#env._errors == 0, AB.Errors(env))
-end
-
--- With reduced motion the proc glow holds still instead of breathing.
-do
-	local env, K, ns = new()
-	K.Motion.SetReducedMotion(true)
-	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
-	local b = AB.Button(ns, "bar1", 1)
-	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
-	assert(b.lumenGlow:IsShown() and not b.lumenGlow.breath:IsPlaying(), "a still glow under reduced motion")
-	K.Motion.SetReducedMotion(false)
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
@@ -196,20 +172,20 @@ end
 do
 	local env, K, ns = new()
 	local b = AB.Button(ns, "bar1", 7)
-	assert(b:GetAlpha() == 1, "an empty tile stays visible at rest")
+	assert(b:GetAlpha() == 0.4, "an empty tile stays visible at rest, as a quiet socket")
 	env.SetCombat(true)
-	assert(b:GetAlpha() == 1, "an empty tile stays visible in combat")
+	assert(b:GetAlpha() == 0.4, "an empty tile stays visible in combat")
 	assert(#env._blocked == 0, "only alpha changes in combat: " .. table.concat(env._blocked, ", "))
 	K.Widgets.Hover(b, true)
 	W.Settle(env)
-	assert(b:GetAlpha() == 1, "hovering still lights it in full")
+	assert(b:GetAlpha() == 0.4, "hovering keeps the quiet socket visible")
 	K.Widgets.Hover(b, false)
 	W.Settle(env)
 	env.FireEvent("ACTIONBAR_SHOWGRID")
 	assert(b:GetAlpha() == 1, "dragging an action shows it in full")
 	env.FireEvent("ACTIONBAR_HIDEGRID")
 	env.SetCombat(false)
-	assert(b:GetAlpha() == 1, "after combat it keeps its full opacity")
+	assert(b:GetAlpha() == 0.4, "after combat it keeps its quiet opacity")
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
