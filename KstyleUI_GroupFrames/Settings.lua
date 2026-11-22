@@ -121,7 +121,7 @@ local function Plain(r, g, b)
 end
 local defaults = Settings.defaults
 defaults.reminders = { place = "NONE", size = 14, fortitude = true, wild = true, intellect = true, spirit = true, thorns = true, salvation = true, thornsTank = false, glow = false, x = 0, y = 0,
-	tankBlessing = "KINGS", healerBlessing = "WISDOM", damageBlessing = "MIGHT" }
+	tankBlessing = "NONE", healerBlessing = "NONE", damageBlessing = "NONE" }
 defaults.status = { place = "AUTO", size = 0, x = 0, y = 0 }
 defaults.dispel = { icon = "NONE", iconSize = 14, iconBorder = true, custom = false, x = 0, y = 0,
 	magic = Plain(0.2, 0.6, 1), curse = Plain(0.6, 0, 1), poison = Plain(0, 0.6, 0), disease = Plain(0.6, 0.4, 0), bleed = Plain(0.8, 0.1, 0.1) }
@@ -440,8 +440,14 @@ function Settings.Schema(includeText)
 			Slider("auras.countY", L["Stack offset up"], L["Moves it up or down from its place."], -20, 20, 1, stacked) })
 		After(schema, "auras.timerSize", { Slider("auras.timerX", L["Time left offset across"], L["Moves it left or right from its place."], -20, 20, 1, timed),
 			Slider("auras.timerY", L["Time left offset up"], L["Moves it up or down from its place."], -20, 20, 1, timed) })
+		local classNames, classes = type(LOCALIZED_CLASS_NAMES_MALE) == "table" and LOCALIZED_CLASS_NAMES_MALE or {}, {}
+		for i, class in ipairs(Settings.CLASSES) do classes[i] = { value = class, label = classNames[class] or class } end
+		local ROLES = Options({ { "ANY", L["Any role"] }, { "TANK", L["Tank"] }, { "HEALER", L["Healer"] }, { "DAMAGER", L["Damage dealer"] } })
+		local CLASS = { { value = "ANY", label = L["Any class"] }, unpack(classes) }
 		for i = 1, INDICATOR_SLOTS do
 			local p, key, on = "indicator" .. i .. ".", "indicator" .. i, IsNot("indicator" .. i .. ".category", "OFF")
+			After(schema, p .. "show", { Dropdown(p .. "role", L["While you are"], L["Shows this indicator only while your role is this one."], ROLES, { showWhen = on }),
+				Dropdown(p .. "class", L["Only for your class"], L["Shows this indicator only while you play this class, so one profile suits each character."], CLASS, { showWhen = on }) })
 			local styled, barred = function(s) return on(s) and s[key].style ~= "ICON" end, function(s) return on(s) and s[key].style == "BAR" end
 			After(schema, p .. "mine", { Slider(p .. "x", L["Offset across"], L["Moves it left or right from its place."], -50, 50, 1, on),
 				Slider(p .. "y", L["Offset up"], L["Moves it up or down from its place."], -50, 50, 1, on),
@@ -465,7 +471,7 @@ function Settings.Schema(includeText)
 		for _, role in ipairs({ { "tank", L["Blessing for tanks"] }, { "healer", L["Blessing for healers"] }, { "damage", L["Blessing for damage dealers"] } }) do
 			add(Dropdown("reminders." .. role[1] .. "Blessing", role[2], L["The blessing a paladin is reminded of on this role; members with no role count as damage dealers."], BLESS, { showWhen = reminding }))
 		end
-		local byRole, classNames = { { value = "ROLE", label = L["Like their role"] } }, type(LOCALIZED_CLASS_NAMES_MALE) == "table" and LOCALIZED_CLASS_NAMES_MALE or {}
+		local byRole = { { value = "ROLE", label = L["Like their role"] } }
 		for _, option in ipairs(BLESS) do byRole[#byRole + 1] = option end
 		for _, class in ipairs(Settings.CLASSES) do
 			add(Dropdown("reminders.bless" .. class, L["Blessing for %s"]:format(classNames[class] or class), L["Replaces the role's blessing on members of this class."], byRole, { showWhen = reminding }))
@@ -545,8 +551,6 @@ function Settings.Schema(includeText)
 		Extra("boss.", boss)
 		add({ type = "header", label = L["Class order"] })
 		add(Toggle("sort.classFirst", L["Sort by class first"], L["Sorts each group's members by the class order below; role order still comes first."]))
-		local classes, names = {}, type(LOCALIZED_CLASS_NAMES_MALE) == "table" and LOCALIZED_CLASS_NAMES_MALE or {}
-		for i, class in ipairs(Settings.CLASSES) do classes[i] = { value = class, label = names[class] or class } end
 		add(Dropdown("sort.classFirstIn", L["Sort by class first in"], L["Sorts party frames, raid frames or both by class first."], SHOW_ON, { showWhen = Is("sort.classFirst", true) }))
 		local ordered = function(settings) return settings.sort.classFirst or settings.raid.sortBy == "CLASS" end
 		for i = 1, #classes do
@@ -567,14 +571,6 @@ function Settings.Schema(includeText)
 			{ type = "note", label = L["Bind a key to Add your target to tank frames in the game's Key Bindings, under KstyleUI. Press it again to take them out."], showWhen = tanks } })
 		After(schema, "party.sortBy", { Dropdown("party.selfPosition", L["Your frame's place"], L["Puts your own frame at the start or the end of a party, whatever the order."],
 			Options({ { "SORTED", L["In the sort order"] }, { "FIRST", L["At the start"] }, { "LAST", L["At the end"] } }), { showWhen = Is("party.showPlayer", true) }) })
-		local ROLES = Options({ { "ANY", L["Any role"] }, { "TANK", L["Tank"] }, { "HEALER", L["Healer"] }, { "DAMAGER", L["Damage dealer"] } })
-		local CLASS = { { value = "ANY", label = L["Any class"] } }
-		for _, class in ipairs(Settings.CLASSES) do CLASS[#CLASS + 1] = { value = class, label = classNames[class] or class } end
-		for i = 1, INDICATOR_SLOTS do
-			local p, on = "indicator" .. i .. ".", IsNot("indicator" .. i .. ".category", "OFF")
-			After(schema, p .. "show", { Dropdown(p .. "role", L["While you are"], L["Shows this indicator only while your role is this one."], ROLES, { showWhen = on }),
-				Dropdown(p .. "class", L["Only for your class"], L["Shows this indicator only while you play this class, so one profile suits each character."], CLASS, { showWhen = on }) })
-		end
 		local custom = function(settings) return settings.auto.size and settings.auto.customLeast > 0 end
 		After(schema, "auto.largeLeast", { Slider("auto.customLeast", L["Own size from"], L["From this many players, raid frames take the size below; 0 turns it off. Compact frames still win."], 0, 40, 1, Is("auto.size", true)),
 			Slider("auto.customWidth", L["Own size: width"], L["The frames' width at this raid size; 0 sizes them automatically."], 0, 400, 1, custom),

@@ -222,8 +222,8 @@ function Preview.Build(...)
 		local tw, th = ns.Targets.Room(party)
 		local pets = cfg.pets.enabled and cfg.pets.beside
 		if pets then
-			local w, h = ns.Extras.Size("pets")
-			tw, th = Geometry.IsVertical(party.growth) and tw + w + Tokens.Size("gapSmall") or tw, Geometry.IsVertical(party.growth) and th or th + math.min(h, party.height) + Tokens.Size("gapSmall")
+			local w, h = ns.Extras.PetSize()
+			tw, th = Geometry.IsVertical(party.growth) and tw + w + Tokens.Size("gapSmall") or tw, Geometry.IsVertical(party.growth) and th or th + h + Tokens.Size("gapSmall")
 		end
 		pw, ph = pw + tw, ph + th
 		preview.party:SetSize(pw, ph)
@@ -282,7 +282,12 @@ function Preview.Build(...)
 		for _, name in ipairs({ "pets", "tanks", "boss" }) do
 			local list, s = preview.extras[name], cfg[name]
 			local on = s.enabled or name == "boss" and s.display ~= "NEVER"
+			local beside = name == "pets" and pets
 			list.holder:SetShown(on)
+			for _, f in ipairs(name == "pets" and list or {}) do
+				local parent = beside and preview.party or list.holder
+				if f:GetParent() ~= parent then f:SetParent(parent) end
+			end
 			if on then
 				local w, h, spacing = ns.Extras.Size(name)
 				local growth = name == "tanks" and s.growth or raid.growth
@@ -302,21 +307,16 @@ function Preview.Build(...)
 					local ox, oy = Geometry.Offset(wrap, (line - 1) * ((vertical and w or h) + spacing))
 					PlaceRun(run, list.holder, { height = h }, growth, #run, ox, oy, Geometry.Corner(growth, wrap), w, spacing)
 				end
-				local beside = name == "pets" and pets
-				for i, f in ipairs(name == "pets" and list or {}) do
-					local parent = beside and preview.party or list.holder
-					if f:GetParent() ~= parent then f:SetParent(parent) end
-					if beside then
-						local owner = preview.partyFrames[i + 1]
-						local x, y = ns.Extras.PetSpot(owner, party)
-						f:ClearAllPoints()
-						f:SetPoint("TOPLEFT", owner, "TOPLEFT", x, y)
-					end
+				local pw2, ph2 = ns.Extras.PetSize()
+				for i, f in ipairs(beside and list or {}) do
+					local owner = preview.partyFrames[i + 1]
+					local x, y = ns.Extras.PetSpot(owner, party)
+					f:ClearAllPoints()
+					f:SetPoint("TOPLEFT", owner, "TOPLEFT", x, y)
+					f:SetSize(pw2, ph2)
 				end
-
 				for _, f in ipairs(items) do
-					Style.Apply(f, w, beside and math.min(h, party.height) or h)
-					if beside then f:SetSize(w, math.min(h, party.height)) end
+					Style.Apply(f, beside and pw2 or w, beside and ph2 or h)
 					Paint(f, f.sample)
 				end
 				if not beside then ex, eh = ex + bw + groupSpacing, math.max(eh, bh) end
@@ -399,6 +399,7 @@ function Preview.Build(...)
 		end
 		preview.clickCast = ns.ClickCast.Panel(preview)
 		preview.Refresh = Layout
+		Preview.live = preview
 		preview:SetScript("OnSizeChanged", function(self)
 			if not self.refitPending and C_Timer and type(C_Timer.After) == "function" then
 				self.refitPending = true

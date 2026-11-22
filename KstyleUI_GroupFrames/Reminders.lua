@@ -82,8 +82,9 @@ local function HasTank()
 end
 
 local function Blessing(class, role, cfg)
-	local pick = cfg["bless" .. tostring(class)]
-	return pick and pick ~= "ROLE" and pick or cfg[ROLE_BLESSING[role] or "damageBlessing"]
+	local pick = class and cfg["bless" .. class]
+	if pick ~= "ROLE" then return pick end
+	return role and cfg[ROLE_BLESSING[role] or "damageBlessing"]
 end
 
 local function Wanted(buff, unit, role, cfg)
@@ -174,7 +175,7 @@ local function PaintSample(f, sample)
 	if not tile then return end
 	local cfg, buff = Settings.current.reminders, nil
 	for _, each in ipairs(BUFFS) do
-		if each.blessing and Blessing(sample.class, sample.role, cfg) == each.key or not each.blessing and cfg[each.key] then
+		if each.blessing and Blessing(sample.class, sample.role or "NONE", cfg) == each.key or not each.blessing and cfg[each.key] then
 			buff = each
 			break
 		end

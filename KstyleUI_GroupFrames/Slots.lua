@@ -43,29 +43,13 @@ local function Mine()
 	return mine
 end
 
-local function Category(slot, kind)
-	local own = (slot.role ~= "ANY" or slot.class ~= "ANY") and Mine()
+local function Category(slot, kind, anyone)
+	local own = not anyone and (slot.role ~= "ANY" or slot.class ~= "ANY") and Mine()
 	return (slot.show == "BOTH" or slot.show == SHOWN_ON[kind]) and (not own or (slot.role == "ANY" or slot.role == own.role) and (slot.class == "ANY" or slot.class == own.class))
 		and CATEGORIES[slot.category] or nil
 end
 Slots.Category = Category
 
-local function Roles()
-	local role = mine and mine.role
-	mine = nil
-	if role ~= Mine().role then
-		for i = 1, COUNT do
-			if Settings.current[Key(i)].role ~= "ANY" then return Unit.ForEach(Style.Apply) end
-		end
-	end
-end
-ns.Frames.events[#ns.Frames.events + 1] = { event = "PLAYER_ROLES_ASSIGNED", fn = Roles }
-local flush = Unit.FlushRoster
-function Unit.FlushRoster()
-	local sizes = flush()
-	Roles()
-	return sizes
-end
 
 function Slots.Spells(text)
 	local set, any = {}, false
@@ -638,6 +622,24 @@ local function Applied(f)
 	end
 end
 Style.appliers[#Style.appliers + 1] = Applied
+
+local function Roles()
+	local filtered = false
+	for i = 1, COUNT do filtered = filtered or Settings.current[Key(i)].role ~= "ANY" end
+	local had, role = mine ~= nil, mine and mine.role
+	mine = nil
+	if not (filtered and had) or role == Mine().role then return end
+	Unit.ForEach(Applied)
+	local preview = ns.Preview.live
+	if preview and preview:IsVisible() then preview:Refresh() end
+end
+ns.Frames.events[#ns.Frames.events + 1] = { event = "PLAYER_ROLES_ASSIGNED", fn = Roles }
+local flush = Unit.FlushRoster
+function Unit.FlushRoster()
+	local sizes = flush()
+	Roles()
+	return sizes
+end
 
 local function BuildSamples(f)
 	if not f.sample then

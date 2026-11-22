@@ -47,22 +47,41 @@ do
 	env.UnitName = function(unit) if unit == "target" then return target, nil end return name(unit) end
 	env.UnitInRaid = function(unit) if unit == "target" then return target and 5 or nil end return inRaid(unit) end
 	key._scripts.OnClick(key)
-	assert(table.concat(G.Shown(header), ",") == "raid2,raid5" and header:GetAttribute("nameList") == "Member2,Member5", "your target joins the tanks")
+	local picked = function() return table.concat(G.Shown(ns.Extras.groups.tanks.picks), ",") end
+	assert(table.concat(G.Shown(header), ",") == "raid2" and header:GetAttribute("roleFilter") == "MAINTANK,TANK" and picked() == "raid5", "your target joins the tanks in a header of its own; the tanks keep their role filter")
+	local _, rel = ns.Extras.groups.tanks.picks:GetPoint(1)
+	assert(rel == header, "after the tanks")
 	env.SetCombat(true)
 	target = "Member7"
 	key._scripts.OnClick(key)
-	assert(#env._blocked == 0 and table.concat(G.Shown(header), ",") == "raid2,raid5", "combat waits")
+	members[6].role = "TANK"
+	G.SetRoster(env, "raid", members)
+	env.FireEvent("PLAYER_ROLES_ASSIGNED")
+	assert(#env._blocked == 0 and picked() == "raid5" and table.concat(G.Shown(header), ",") == "raid2,raid6", "in combat, a new tank joins at once and the pick waits")
 	env.SetCombat(false)
 	env.RunTimers()
-	assert(table.concat(G.Shown(header), ",") == "raid2,raid5,raid7", "and it follows after")
+	assert(picked() == "raid5,raid7", "and the pick follows after")
 	target = env.Secret("Member9")
 	key._scripts.OnClick(key)
-	assert(table.concat(G.Shown(header), ",") == "raid2,raid5,raid7", "a secret name is refused")
+	assert(picked() == "raid5,raid7", "a secret name is refused")
+	target = "Tester"
+	write(env, K, "tanks.excludeSelf", true)
+	key._scripts.OnClick(key)
+	assert(picked() == "raid5,raid7", "Leave yourself out keeps you out of the picks too")
+	K.Modules.Disable("GroupFrames")
+	env.RunTimers()
 	target = "Member5"
+	key._scripts.OnClick(key)
+	K.Modules.Enable("GroupFrames")
+	env.RunTimers()
+	assert(picked() == "raid5,raid7", "the key does nothing while the frames are off")
+	write(env, K, "tanks.excludeSelf", false)
 	key._scripts.OnClick(key)
 	target = "Member7"
 	key._scripts.OnClick(key)
-	assert(table.concat(G.Shown(header), ",") == "raid2" and header:GetAttribute("nameList") == nil and header:GetAttribute("roleFilter") == "MAINTANK,TANK", "pressed again, they leave and the role filter returns")
+	target = "Tester"
+	key._scripts.OnClick(key)
+	assert(picked() == "" and table.concat(G.Shown(header), ",") == "raid2,raid6" and header:GetAttribute("roleFilter") == "MAINTANK,TANK", "pressed again, they leave; the tanks never changed")
 	env.UnitName, env.UnitInRaid = name, inRaid
 	noErrors(env, K)
 end

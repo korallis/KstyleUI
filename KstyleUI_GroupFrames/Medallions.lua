@@ -122,7 +122,7 @@ local function TidyParts(out, f, o)
 	local size = kind == "party" and PARTY_LANE or 10
 	local count = 0
 	for i = 1, Settings.INDICATOR_SLOTS do
-		if ns.Slots.Category(Settings.current["indicator" .. i], kind) then count = count + 1 end
+		if ns.Slots.Category(Settings.current["indicator" .. i], kind, true) then count = count + 1 end
 	end
 	count = math.min(3, count)
 	local reserve = o.reserve or 0

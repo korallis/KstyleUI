@@ -627,7 +627,7 @@ Auras.restylers = {}
 
 local function Under(f, frame)
 	local want = Settings.current.auras.dispelUnder and f.predict and f.predict:GetFrameLevel() or frame.kstyleLevel
-	if frame.kstyleAt ~= want then
+	if (frame.kstyleAt or frame.kstyleLevel) ~= want then
 		frame:SetFrameLevel(want)
 		frame.kstyleAt = want
 	end
@@ -823,7 +823,6 @@ local function BuildDispel(slot, f)
 	local wash, ring = NewDispel(slot)
 	f.dispelWash, f.dispelRing, f.dispelFrame = wash, ring, slot
 	slot.kstyleLevel = slot:GetFrameLevel()
-	slot.kstyleAt = slot.kstyleLevel
 	local style = DispelStyle()
 	if style then
 		local options = Tinted({ style = style, showWhenHarmful = true })
@@ -1542,7 +1541,6 @@ local function BuildSamples(f)
 	f.sampleDispel:SetAllPoints(f)
 	f.sampleDispelWash, f.sampleDispelRing = NewDispel(f.sampleDispel)
 	f.sampleDispel.kstyleLevel = f.sampleDispel:GetFrameLevel()
-	f.sampleDispel.kstyleAt = f.sampleDispel.kstyleLevel
 end
 Button.built[#Button.built + 1] = BuildSamples
 

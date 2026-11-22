@@ -549,9 +549,9 @@ local function ExtraTexts(f, k)
 end
 
 function Style.Scaled(f, size)
-	local own, raid = f.extra and Settings.current[f.extra], Settings.current.raid
-	if not (own and own.icons and own.height ~= 0) then return size end
-	return math.max(1, math.floor(size * math.max(16, raid.height + own.height) / raid.height + 0.5))
+	local own = f.extra and Settings.current[f.extra]
+	if not (own and own.icons and f.height) then return size end
+	return math.max(1, math.floor(size * f.height / Settings.current.raid.height + 0.5))
 end
 
 function Style.Apply(f, width, height)

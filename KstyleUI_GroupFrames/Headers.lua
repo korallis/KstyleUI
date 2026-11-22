@@ -21,6 +21,7 @@ local DRIVER_SMALL_RAID = "[group] show; hide"
 local DRIVER_HIDE = "hide"
 local GRID = { "width", "height", "spacing", "groupSpacing" }
 local FACING = { TOP = "BOTTOM", BOTTOM = "TOP", LEFT = "RIGHT", RIGHT = "LEFT" }
+Headers.FACING = FACING
 
 local CONFIG = [[
 	local header = self:GetParent()

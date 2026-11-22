@@ -17,7 +17,7 @@ do
 	local get = ns.Settings.Get
 	assert(get("party.selfPosition") == "SORTED" and get("pets.icons") == false and get("tanks.icons") == false and get("boss.icons") == false
 		and get("indicator1.role") == "ANY" and get("indicator1.class") == "ANY" and get("reminders.blessWARRIOR") == "ROLE"
-		and get("reminders.tankBlessing") == "KINGS", "every new option starts at today's behaviour")
+		and get("reminders.tankBlessing") == "NONE" and get("reminders.healerBlessing") == "NONE" and get("reminders.damageBlessing") == "NONE", "every new option starts at today's behaviour")
 	assert(ns.Headers.me == nil and ns.Extras.pick == nil, "no new frame until an option needs it")
 	assert(ns.Headers.party:GetAttribute("showPlayer") == true, "your frame stays in the party header")
 	noErrors(env, K)
@@ -32,6 +32,8 @@ do
 	write(env, K, "reminders.place", "TOP")
 	for _, key in ipairs({ "fortitude", "intellect", "thorns" }) do write(env, K, "reminders." .. key, false) end
 	local tank, healer, dps = frame(ns, "party1"), frame(ns, "party2"), frame(ns, "party3")
+	assert(not shown(tank) and not shown(healer) and not shown(dps), "an upgraded profile with missing buffs on gains no blessing until one is chosen")
+	for key, value in pairs({ tankBlessing = "KINGS", healerBlessing = "WISDOM", damageBlessing = "MIGHT" }) do write(env, K, "reminders." .. key, value) end
 	assert(not shown(tank), "Kings for tanks: a paladin without it is never reminded")
 	assert(shown(healer) and icon(healer) == 119742, "Wisdom on the healer")
 	assert(shown(dps) and icon(dps) == 119740, "Might on the damage dealer")
@@ -47,6 +49,19 @@ do
 	assert(shown(tank) and icon(tank) == 119742, "a role change follows")
 	write(env, K, "reminders.blessWARRIOR", "NONE")
 	assert(not shown(tank), "Off leaves the class out")
+	local class, role = env.UnitClass, env.UnitGroupRolesAssigned
+	env.UnitClass = function(unit) if unit == "party1" then return env.Secret("Warrior"), env.Secret("WARRIOR") end return class(unit) end
+	env.FireEvent("UNIT_AURA", "party1", { isFullUpdate = true })
+	assert(not shown(tank), "an unreadable class is not a class without an exception")
+	env.UnitClass = class
+	write(env, K, "reminders.blessWARRIOR", "ROLE")
+	write(env, K, "reminders.healerBlessing", "NONE")
+	env.UnitGroupRolesAssigned = function(unit) if unit == "party1" then return env.Secret("HEALER") end return role(unit) end
+	env.FireEvent("UNIT_AURA", "party1", { isFullUpdate = true })
+	assert(not shown(tank), "an unreadable role is not a damage dealer")
+	env.UnitGroupRolesAssigned = role
+	write(env, K, "reminders.healerBlessing", "WISDOM")
+	write(env, K, "reminders.blessWARRIOR", "NONE")
 	env._aurasSecret = true
 	env.FireEvent("UNIT_AURA", "party2", { isFullUpdate = true })
 	assert(not shown(healer), "secret auras show nothing")

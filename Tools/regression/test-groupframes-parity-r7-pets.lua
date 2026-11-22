@@ -31,7 +31,7 @@ do
 	assert(rel == owner and x > owner:GetWidth(), "beside its owner, past the debuffs")
 	write(env, K, "targets.enabled", true)
 	local _, _, _, x2 = druid:GetPoint(1)
-	assert(near(x2, x + ns.Settings.current.targets.width + K.Tokens.Size("gapSmall")) or x2 > x, "and past the party target")
+	assert(near(x2, x + ns.Settings.current.targets.width + K.Tokens.Size("gapSmall")), "and past the party target")
 	assert(druid:GetHeight() <= ns.Settings.current.party.height + 1e-3, "never taller than the party frame")
 	env.SetCombat(true)
 	G.SetRoster(env, "party", { { name = "Sylaen", class = "DRUID", role = "HEALER" }, { name = "Thaldren", class = "WARRIOR", role = "TANK" } })
