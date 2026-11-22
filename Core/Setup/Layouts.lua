@@ -441,7 +441,7 @@ end
 
 function Layouts.ActionBarFootprint(class, key, style)
 	style = style or ns.HudStyle.Current()
-	local count, rows, size, gap, saved, cfg, grid, side = Layouts.ActionBarGrid(class, key, style)
+	local count, rows, size, gap, saved, cfg, grid, side = Layouts.ActionBarGrid(class, key, nil, style)
 	if not count then return end
 	local defaultRows, defaultGap = side and 0 or grid.rows, side and -1 or grid.spacing or PITCH
 	local defaultSplit = "off"
@@ -874,7 +874,7 @@ function Layouts.Style(name, key, style)
 	local set = STYLES[style][name]
 	local position = set and set[key]
 	if position then
-		local drop = Layouts.DataBarBelowDock(name, key, style) and 15 or 0
+		local drop = Layouts.DataBarBelowDock(name, key, nil, style) and 15 or 0
 		return { anchor = position.anchor, x = position.x, y = position.y - drop, scale = position.scale, width = position.width, height = position.height }
 	end
 end
@@ -902,7 +902,7 @@ end
 
 function Layouts.ExtraBarsPreset(kind, class)
 	if kind ~= "rows" and kind ~= "beside" then return end
-	local _, _, size, gap = Layouts.ActionBarGrid(class, "actionbars.bar1", "medallions")
+	local _, _, size, gap = Layouts.ActionBarGrid(class, "actionbars.bar1", nil, "medallions")
 	if kind == "beside" then size, gap = size * 0.75, gap * 0.75 end
 	return { enabled = true, buttons = kind == "rows" and 12 or 8, rows = kind == "rows" and 1 or 2,
 		size = size, spacing = gap, orientation = "HORIZONTAL", growth = "RIGHTDOWN", split = "off", showEmpty = true, backing = false }
@@ -929,7 +929,7 @@ function Layouts.ExtraBarsPlace(class, name, key)
 	local function Base(id) return places[id] or STYLES.medallions[name][id] or layouts[name][id] end
 	local left, right = Base("actionbars.bar1"), Base("actionbars.bar2")
 	local width, height = Layouts.ActionBarFootprint(class, "actionbars.bar1", "medallions")
-	local _, _, _, gap = Layouts.ActionBarGrid(class, "actionbars.bar1", "medallions")
+	local _, _, _, gap = Layouts.ActionBarGrid(class, "actionbars.bar1", nil, "medallions")
 	local slab, side = Layouts.MEDALLIONS_SLAB, Layouts.MEDALLIONS_SIDE
 	if group == "bars" then
 		local parent = key == "actionbars.bar4" and left or right
@@ -1438,7 +1438,7 @@ function Layouts.Rect(element, position, rootWidth, rootHeight, style)
 	local fx, fy = point[1], point[2]
 	local width, height = element.width, element.height
 	if element.key == "databars.strip" then
-		local dock = Layouts.DataBarDock(style)
+		local dock = Layouts.DataBarDock(nil, nil, style)
 		if dock then width, height = position.width or dock.width, position.height or dock.height end
 	end
 	if element.key == "databars.strip" and Layouts.DataBarHeight(style) then
@@ -1579,7 +1579,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 	local _, groupHeight = Layouts.ActionBarFootprint(class, "actionbars.bar1", "medallions")
 	state.hubLift = 0
 	if style == "medallions" and bars.extraBarsApplied == "rows" then
-		local _, _, _, gap = Layouts.ActionBarGrid(class, "actionbars.bar1", style)
+		local _, _, _, gap = Layouts.ActionBarGrid(class, "actionbars.bar1", nil, style)
 		for _, key in ipairs({ "actionbars.bar4", "actionbars.bar5" }) do
 			local base, extra = layout[key == "actionbars.bar4" and "actionbars.bar1" or "actionbars.bar2"], layout[key]
 			local w, h = Layouts.ActionBarFootprint(class, key, style)
@@ -1618,7 +1618,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	local floor, max, min = math.floor, math.max, math.min
 	local rootHeight = 1080 / user
 	enabled = enabled or Layouts.Enabled(name)
-	state = state or Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, positions, style)
+	state = state or Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, positions, nil, style)
 	if not state then
 		return false
 	end
