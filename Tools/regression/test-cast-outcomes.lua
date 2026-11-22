@@ -5,6 +5,7 @@ local W = U.W
 
 for _, level in ipairs({ "full", "reduced", "off" }) do
 	local env, K, ns = U.New({ plate = true })
+	K.Options.Write("UnitFrames", "castbarOnFrame", false)
 	K.Motion.SetLevel(level)
 	local pending = {}
 	env.C_Timer.After = function(seconds, fn) pending[#pending + 1] = { seconds, fn } end

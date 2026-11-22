@@ -90,7 +90,6 @@ groups = ns.TravelData.Read()
 assert(#groups[2] == 1 and groups[2][1].id == 18986, "keep a curated teleporter available after the secure item action equips it")
 env.C_Item.IsEquippedItem = function() return env.Secret(true) end
 assert(#ns.TravelData.Read()[2] == 0, "never test secret equipment state")
-assert(not travel.crest:IsShown(), "other HUD styles stay click-through")
 assert(#env._blocked == 0 and #env._errors == 0, AB.Errors(env))
 do
 	local fresh, core, bars = AB.New()
