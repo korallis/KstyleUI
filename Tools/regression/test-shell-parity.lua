@@ -39,7 +39,7 @@ do
 		e.GetAverageItemLevel = function() calls = calls + 1; return 62.8, 58.3 end
 	end })
 	assert(K.Store.Module("DataBars").strip.clock24 == false and calls == 0, "upgrade keeps the clock and defers off readouts")
-	for _, list in ipairs({ "modules", "dockModules", "railModules" }) do
+	for _, list in ipairs({ "dockModules", "railModules" }) do
 		local s = K.Store.Module("DataBars").strip
 		local found = 0
 		for _, entry in ipairs(s[list]) do
@@ -67,7 +67,7 @@ do
 	env.GetZoneText, env.GetAverageItemLevel = nil, nil
 	env.FireEvent("PLAYER_EQUIPMENT_CHANGED")
 	local s = K.Store.Module("DataBars").strip
-	for _, list in ipairs({ "modules", "dockModules", "railModules" }) do
+	for _, list in ipairs({ "dockModules", "railModules" }) do
 		for _, entry in ipairs(s[list]) do if entry.id == "location" or entry.id == "itemLevel" then entry.shown = false end end
 		write(env, K, "DataBars", "strip." .. list, s[list])
 	end

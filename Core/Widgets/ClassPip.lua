@@ -117,12 +117,23 @@ function Widgets.ClassCrown(follow)
 	return crown
 end
 
+local sets = {}
+
 function Widgets.ClassPipSet(kind, angle)
 	local c = CLASSES[kind]
-	return c and {
-		lit = c.art .. angle, steel = c.art .. "Steel" .. angle, shape = c.art .. "Shape" .. angle, glow = c.art .. "Glow" .. angle,
-		glowColor = c.glowColor, coreColor = c.coreColor, axis = angle,
-	}
+	if not c then
+		return nil
+	end
+	sets[kind] = sets[kind] or {}
+	local set = sets[kind][angle]
+	if not set then
+		set = {
+			lit = c.art .. angle, steel = c.art .. "Steel" .. angle, shape = c.art .. "Shape" .. angle, glow = c.art .. "Glow" .. angle,
+			glowColor = c.glowColor, coreColor = c.coreColor, axis = angle,
+		}
+		sets[kind][angle] = set
+	end
+	return set
 end
 
 function Widgets.ClassPip(parent, set, i, count)

@@ -67,9 +67,6 @@ end
 
 -- Check every row the list shows wholly inside its view.
 local function check(page, width, height)
-	K.Options.Open(page)
-	settle()
-	resize(width, height)
 	local content = ns.Window.Parts().content
 	local view = rect(content.view)
 	local scene = Scene.Build(env)
@@ -131,9 +128,13 @@ end
 
 for _, size in ipairs({ minimum and { 880, 520 } or { 1040, 680 } }) do
 	for _, page in ipairs({ "UnitFrames", "General" }) do
+		-- Open the page once: opening it again scrolls it back to the top, so the walk never left the first view.
+		K.Options.Open(page)
+		settle()
+		resize(size[1], size[2])
 		check(page, size[1], size[2])
 		local content = ns.Window.Parts().content
-		for _ = 1, 40 do
+		for _ = 1, 60 do
 			content:ScrollTo(content:GetOffset() + 120, true)
 			settle()
 			check(page, size[1], size[2])
