@@ -2,15 +2,34 @@
 local L = dofile("Tools/regression/render_scenes_lib.lua")
 local Reference = dofile("Tools/render/scenes/_reference.lua")
 local CoreEnv = dofile("Tools/regression/core_env.lua")
-local env, K = CoreEnv.New({ width = 3456, height = 2234, size = 16 / 19 })
-CoreEnv.Boot(env)
-K.Store.Module("DataBars").enabled = true
-K.Store.Module("DataBars").strip = { placement = "dock" }
-K.Store.Module("Minimap").enabled = true
-local Layouts = K.Setup.Layouts
 local Guard = dofile("Tools/render/guard.lua")
 
-return function(preset, built)
+-- Placed: each built element within a physical pixel of its declared spot on a width by height screen; keys must exist.
+local function Placed(preset, built, width, height, keys)
+	local env, K = CoreEnv.New({ width = width, height = height, size = 16 / 19 })
+	CoreEnv.Boot(env)
+	K.Store.Module("DataBars").strip = { placement = "dock" }
+	K.Store.Module("Minimap").enabled = true
+	local Layouts = K.Setup.Layouts
+	local rw, rh = K.Layout.RootSize()
+	local positions = Layouts.PrepareFits(preset, width, height, Layouts.Enabled(preset)).layout
+	for _, key in ipairs(keys) do
+		assert(positions[key] and built.elements[key], preset .. " compares the declared and applied position of " .. key)
+	end
+	for key, element in pairs(built.elements) do
+		local position = positions[key]
+		if position then
+			element.key = key
+			local left, bottom = Layouts.Rect(element, position, rw, rh)
+			if key == "databars.xp" or key == "databars.rep" or key == "databars.honor" then bottom = math.max(bottom, K.Tokens.Size("screenMargin") + select(3, Layouts.DisplayInsets(key, element.height, position.anchor))) end
+			assert(math.abs(left - element.left) * height / rh <= 1, preset .. " at " .. width .. "x" .. height .. " did not Apply " .. key .. " horizontally")
+			assert(math.abs(bottom - element.bottom) * height / rh <= 1, preset .. " at " .. width .. "x" .. height .. " did not Apply " .. key .. " vertically")
+		end
+	end
+	return K, rh
+end
+
+local function Check(preset, built)
 	local ok, why = pcall(Reference.Build, { layout = "unknown" })
 	assert(not ok and tostring(why):find("reference layout must be", 1, true), "unknown reference presets fail before building")
 	if not built then
@@ -27,22 +46,7 @@ return function(preset, built)
 	assert(built.layout == preset, "the scene names its preset")
 	local findings = Guard.Check(built)
 	assert(#findings == 0, preset .. " has a strict finding without any allowlist: " .. table.concat(Guard.Lines(findings, {}, {}, "strict"), "\n"))
-	local rh = 1080 / K.Scale.DEFAULT_USER_SCALE
-	local rw = rh * 3456 / 2234
-	local positions = Layouts.PrepareFits(preset, 3456, 2234, Layouts.Enabled(preset)).layout
-	for _, key in ipairs({ "actionbars.bar1", "actionbars.bar2", "actionbars.bar4", "actionbars.bar5", "unitframes.player", "unitframes.target", "minimap.main", "meters.damage", "chat.main", "databars.xp" }) do
-		assert(positions[key] and built.elements[key], preset .. " compares the declared and applied position of " .. key)
-	end
-	for key, element in pairs(built.elements) do
-		local position = positions[key]
-		if position then
-			element.key = key
-			local left, bottom = Layouts.Rect(element, position, rw, rh)
-			if key == "databars.xp" or key == "databars.rep" or key == "databars.honor" then bottom = math.max(bottom, K.Tokens.Size("screenMargin") + select(3, Layouts.DisplayInsets(key, element.height, position.anchor))) end
-			assert(math.abs(left - element.left) * 2234 / rh <= 1, preset .. " did not Apply " .. key .. " horizontally")
-			assert(math.abs(bottom - element.bottom) * 2234 / rh <= 1, preset .. " did not Apply " .. key .. " vertically")
-		end
-	end
+	local K, rh = Placed(preset, built, 3456, 2234, { "actionbars.bar1", "actionbars.bar2", "actionbars.bar4", "actionbars.bar5", "unitframes.player", "unitframes.target", "minimap.main", "meters.damage", "chat.main", "databars.xp", "databars.rep", "databars.honor" })
 	local seen = L.collect(built)
 	local questCount, firstObjective = 0, nil
 	for _, item in ipairs(built.items) do
@@ -109,3 +113,5 @@ return function(preset, built)
 	L.globs()
 	assert(rawget(_G, "RENDER_SCREEN") == nil, "every preset build gives the global screen back")
 end
+
+return Check, Placed
