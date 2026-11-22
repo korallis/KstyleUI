@@ -1,4 +1,4 @@
--- Totems.lua: the shaman's Spirit Poles, KstyleUI's own secure totem bar in place of Blizzard's MultiCastActionBarFrame: four element sockets in the game's bar order (earth, fire, water, air) drop the chosen totem from its multi-cast action slot, right click fans out that element's totems on a shallow arc between the crest's sockets and the cooldown row to choose one, one fan at a time (shift right click dismisses the totem), and each socket carries a crown spire that lights and burns down over the totem's life from the slot's own boolean and duration object, so Lua never reads a secret, and flickers through its last fifth at Full while the slot is readable; a chosen totem's icon rests at 82% until it is up, a fan unfolds from its socket over 0.12 s at Full and Calm, and with all four totems up the rune ring catches the shaman's colour, a halo under the crest and the glyphs over it as on the hawks' ring, and breathes at Full; Ghost Wolf and Call of the Elements (right click: Totemic Recall) ride as medals on the Medallions crest ring's shoulders, the lone Ghost Wolf stance bar hides, and a vehicle or override bar hides the bar as it hides Blizzard's; without the crest Blizzard's bar stays.
+-- Totems.lua: the shaman's Spirit Poles, KstyleUI's own secure totem bar in place of Blizzard's MultiCastActionBarFrame: four element sockets in the game's bar order (earth, fire, water, air) drop the chosen totem from its multi-cast action slot, right click fans out that element's totems on a shallow arc between the crest's sockets and the cooldown row to choose one, one fan at a time (shift right click dismisses the totem), and each socket carries a crown spire that lights and burns down over the totem's life from the slot's own boolean and duration object, so Lua never reads a secret, and flickers through its last fifth at Full while the slot is readable; a chosen totem's icon rests at 82% until that totem is up, a fan unfolds from its socket over 0.12 s at Full and Calm, and with all four totems up the rune ring catches the shaman's class colour, a halo under the crest and the glyphs over it as on the hawks' ring, and breathes at Full; Ghost Wolf and Call of the Elements (right click: Totemic Recall) ride as medals on the Medallions crest ring's shoulders, the lone Ghost Wolf stance bar hides, and a vehicle or override bar hides the bar as it hides Blizzard's; without the crest Blizzard's bar stays.
 local _, ns = ...
 
 local K = KstyleUI
@@ -113,13 +113,12 @@ local function Bar(parent, color, texture, blend)
 end
 
 local function Fade(target, from, to, duration, order)
-	local group = target.anim or target:CreateAnimationGroup()
-	local a = group:CreateAnimation("Alpha")
+	target.anim = target.anim or target:CreateAnimationGroup()
+	local a = target.anim:CreateAnimation("Alpha")
 	a:SetFromAlpha(from)
 	a:SetToAlpha(to)
 	a:SetDuration(duration)
 	a:SetOrder(order or 1)
-	target.anim = group
 	return a
 end
 
@@ -136,8 +135,7 @@ local function Spire(parent, e)
 	Fade(s.flicker, 1, 0.4, 0.06)
 	Fade(s.flicker, 0.4, 1, 0.08, 2)
 	Fade(s.flicker, 1, 0.7, 0.05, 3)
-	Fade(s.flicker, 0.7, 1, 0.06, 4)
-	Fade(s.flicker, 1, 1, 0.16, 5)
+	Fade(s.flicker, 0.7, 1, 0.06, 4):SetEndDelay(0.16)
 	s.flicker.anim:SetLooping("REPEAT")
 	s.glow = Bar(s.flicker, color, "pipSpireGlow" .. angle, "ADD")
 	s.glow:SetPoint("CENTER", s, "CENTER", 0, 0)
@@ -168,34 +166,45 @@ local function Spire(parent, e)
 	return s
 end
 
-local function Flicker(s, have, start, duration)
+local function Flicker(s, slot, have, start, duration)
 	s.flicker.anim:Stop()
-	s.fifth = nil
 	if IsSecret(have) or IsSecret(start) or IsSecret(duration) or have ~= true or type(duration) ~= "number" or duration <= 0
 		or type(GetTime) ~= "function" or not Effects.Allows("pulse") then
+		s.fifth = nil
 		return
 	end
-	local wait, token = start + duration * (1 - FIFTH) - GetTime(), {}
-	s.fifth = token
-	if wait <= 0 then
+	local due = start + duration * (1 - FIFTH)
+	if due <= GetTime() then
+		s.fifth = nil
 		s.flicker.anim:Play()
-	elseif C_Timer and C_Timer.After then
-		C_Timer.After(wait, function()
-			if s.fifth == token then s.flicker.anim:Play() end
+	elseif s.fifth ~= due and C_Timer and C_Timer.After then
+		s.fifth = due
+		C_Timer.After(due - GetTime(), function()
+			if s.fifth ~= due then return end
+			s.fifth = nil
+			local up = GetTotemInfo(slot)
+			if state.listening and not IsSecret(up) and up == true then s.flicker.anim:Play() end
 		end)
+	end
+end
+
+local function Rest(b)
+	local have, id = b.have, b.active
+	if not IsSecret(have) then
+		local other = b.chosen and not IsSecret(id) and type(id) == "number" and id ~= b.chosen
+		b.icon:SetAlpha(have == true and not other and 1 or IDLE_ICON)
+	elseif b.icon.SetAlphaFromBoolean then
+		b.icon:SetAlphaFromBoolean(have, 1, IDLE_ICON)
 	end
 end
 
 local function PaintSpire(b, moving)
 	local s, slot = b.spire, b.element.slot
-	local have, _, start, duration = GetTotemInfo(slot)
+	local have, _, start, duration, _, _, id = GetTotemInfo(slot)
+	b.have, b.active = have, id
 	Gate(s.gate, have)
-	if not IsSecret(have) then
-		b.icon:SetAlpha(have == true and 1 or IDLE_ICON)
-	elseif b.icon.SetAlphaFromBoolean then
-		b.icon:SetAlphaFromBoolean(have, 1, IDLE_ICON)
-	end
-	Flicker(s, have, start, duration)
+	Rest(b)
+	Flicker(s, slot, have, start, duration)
 	local object = type(GetTotemDuration) == "function" and GetTotemDuration(slot)
 	for _, bar in ipairs({ s.lit, s.core, s.glow }) do
 		if object and bar.SetTimerDuration then
@@ -234,6 +243,7 @@ local function PaintSocket(b)
 	local chosen = not IsSecret(kind) and kind == "spell" and not IsSecret(id) and id or nil
 	if chosen ~= b.chosen then b.gcd = nil end
 	b.chosen = chosen
+	Rest(b)
 	ns.Button.UpdateCooldown(b)
 	ns.Button.UpdateUsable(b)
 	for _, f in ipairs(b.fan.buttons) do
@@ -243,10 +253,9 @@ end
 
 local function PaintRing()
 	local ring, breathe = state.ring, Effects.Allows("pulse")
-	for slot = 1, 4 do
-		local have = GetTotemInfo(slot)
-		Gate(ring[slot], have)
-		breathe = breathe and not IsSecret(have) and have == true
+	for i, b in ipairs(state.sockets) do
+		Gate(ring[i], b.have)
+		breathe = breathe and not IsSecret(b.have) and b.have == true
 	end
 	if breathe then
 		if not ring.breath:IsPlaying() then ring.breath:Play() end
@@ -382,14 +391,11 @@ local function Build()
 		if i == 1 then parent:SetFrameStrata(ns.Slab.STRATA) end
 		ring[i] = parent
 	end
-	local c = K.Theme.Palette("SHAMAN")
 	ring.halo = Art(parent, "BACKGROUND", "glow", "white", "ADD")
 	ring.halo:SetPoint("CENTER", header, "CENTER", 0, 0)
 	ring.glyphs = CreateFrame("Frame", nil, parent)
-	ring.glyphs:SetAllPoints(header)
-	local glyphs = Art(ring.glyphs, "ARTWORK", "medRuneGlyphs", "white", "ADD")
-	glyphs:SetAllPoints(header)
-	for _, t in ipairs(c and { ring.halo, glyphs } or {}) do t:SetVertexColor(c.r, c.g, c.b) end
+	ring.art = Art(ring.glyphs, "ARTWORK", "medRuneGlyphs", "white", "ADD")
+	ring.art:SetAllPoints(header)
 	Fade(parent, 1, ns.SlabEffects.CAP_LOW, ns.SlabEffects.CAP_BREATH):SetSmoothing("IN_OUT")
 	ring.breath = parent.anim
 	ring.breath:SetLooping("BOUNCE")
@@ -483,6 +489,8 @@ local function Place()
 	for i = 1, 5 do state.ring[i]:SetFrameLevel(max(0, hub:GetFrameLevel() - 1)) end
 	state.ring.glyphs:SetFrameLevel(hub:GetFrameLevel() + 1)
 	Widgets.Size(state.ring.halo, ns.Slab.RING * RING_HALO, ns.Slab.RING * RING_HALO)
+	local c = K.Theme.Palette("SHAMAN")
+	for _, t in ipairs(c and { state.ring.halo, state.ring.art } or {}) do t:SetVertexColor(c.r, c.g, c.b) end
 	state.call:SetShown(state.call.known ~= nil)
 	state.wolf:SetShown(state.wolf.form ~= nil)
 	for side, m in pairs({ [-1] = state.wolf, [1] = state.call }) do
@@ -586,11 +594,8 @@ local function Apply()
 		RegisterStateDriver(state.header, "visibility", OVERRIDDEN)
 		Listen(true)
 		Hotkeys()
-		for _, b in ipairs(state.sockets) do
-			PaintSocket(b)
-			PaintSpire(b, false)
-		end
-		PaintRing()
+		for _, b in ipairs(state.sockets) do PaintSocket(b) end
+		OnMotion()
 		PaintMedals()
 	end
 	Blizzard(on)
