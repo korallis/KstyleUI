@@ -1,4 +1,4 @@
--- test-store-placement.lua: migration 31 lets every saved place still at its pre-KSTY-60 default follow the new one (the party out of the top-left corner to mid-left, the map's card onto the card margin with the aura rows beside it, the taller experience strip, the Orbs party and raid), and keeps a place or a size the player chose.
+-- test-store-placement.lua: migration 31 lets every saved place still at its pre-KSTY-60 default follow the new one (the party out of the top-left corner to mid-left, the map's card onto the card margin with the aura rows beside it, the taller experience strip), and keeps a place or a size the player chose.
 local C = dofile("Tools/regression/core_env.lua")
 local Layouts
 do
@@ -11,8 +11,6 @@ local MOCK = 19 / 16
 local TRAY_BOTTOM, STRIP_GAP = 40 * MOCK, 9 * MOCK
 local OLD = {
 	["groupframes.party"] = { "TOPLEFT", 17, -17 },
-	["orbs:groupframes.party"] = { "TOPLEFT", 17, -465 },
-	["orbs:groupframes.raid"] = { "TOPLEFT", 17, -465 },
 	["minimap.main"] = { "TOPRIGHT", -16, -38 },
 	["auras.buffs"] = { "TOPRIGHT", -(17 + 188 + 10.9), -18.4 },
 	["auras.debuffs"] = { "TOPRIGHT", -(17 + 188 + 10.9), -(18.4 + 41.5 + 8) },
@@ -23,8 +21,6 @@ for key, place in pairs(OLD) do
 	local got = moves[key]
 	assert(got and got[1] == place[1] and math.abs(got[2] - place[2]) < 1e-6 and math.abs(got[3] - place[3]) < 1e-6 and got[4] == place[4] and got[5] == place[5], key .. ": PlaceMoves names staging's old default")
 end
-local orbsXP = Layouts.Style("orbs", "DPS", "databars.xp")
-assert(math.abs(moves["orbs:databars.xp"][3] - (orbsXP.y + 7 * MOCK - 5)) < 1e-6, "the Orbs strip's old place keeps its top where the 5-unit strip had it")
 local function At(key, extra)
 	local place = OLD[key] or moves[key]
 	local entry = { anchor = place[1], x = place[2], y = place[3] }
@@ -43,9 +39,6 @@ local env, K = C.New({ saved = {
 			["auras.buffs"] = At("auras.buffs"),
 			["auras.debuffs"] = At("auras.debuffs"),
 			["databars.xp"] = At("databars.xp", { width = 491, height = 5 }),
-			["orbs:groupframes.party"] = At("orbs:groupframes.party"),
-			["orbs:groupframes.raid"] = At("orbs:groupframes.raid"),
-			["orbs:databars.xp"] = At("orbs:databars.xp"),
 		},
 		Healer = { ["groupframes.party"] = { width = 300 } },
 		Custom = {
@@ -66,16 +59,14 @@ local custom = db.layouts.Custom
 assert(custom["groupframes.party"].anchor == "TOPLEFT" and custom["groupframes.party"].x == 40 and custom["groupframes.party"].y == -200, "a party the player placed stays put")
 assert(custom["minimap.main"].anchor == nil and custom["minimap.main"].scale == 1.2, "the map follows its new place and keeps its scale")
 assert(custom["databars.xp"].anchor == nil and custom["databars.xp"].width == 600 and custom["databars.xp"].height == 5, "a strip the player sized keeps its size")
--- The new places themselves: the party at mid-left in both styles and every role, the map's card on the card margin.
+-- The new places themselves: the party at mid-left in every role, the map's card on the card margin.
 local margin = K.Tokens.Size("screenMargin")
 for _, name in ipairs(Layouts.Names()) do
-	for _, style in ipairs({ "frames", "orbs" }) do
-		local party = Layouts.Place(name, style, "16:9", "groupframes.party")
-		local _, height = Layouts.Footprint("DPS", "groupframes.party")
-		assert(party.anchor == "LEFT" and party.x == margin and math.abs(Layouts.HEIGHT / 2 - party.y - height / 2 - (name == "Healer" and style == "orbs" and 461 or 465)) < 1e-6, name .. " " .. style .. ": the party stands at mid-left, its top 465 under the top as the mock-ups draw it")
-		local raid = Layouts.Place(name, style, "16:9", "groupframes.raid")
-		assert(raid.anchor == "TOPLEFT" and raid.x == margin and raid.y == (name == "Healer" and style == "orbs" and -164 or -margin), name .. " " .. style .. ": the raid card keeps the top-left corner")
-	end
+	local party = Layouts.Place(name, "medallions", "16:9", "groupframes.party")
+	local _, height = Layouts.Footprint("DPS", "groupframes.party")
+	assert(party.anchor == "LEFT" and party.x == margin and math.abs(Layouts.HEIGHT / 2 - party.y - height / 2 - 465) < 1e-6, name .. ": the party stands at mid-left, its top 465 under the top as the mock-ups draw it")
+	local raid = Layouts.Place(name, "medallions", "16:9", "groupframes.raid")
+	assert(raid.anchor == "TOPLEFT" and raid.x == margin and raid.y == -margin, name .. ": the raid card keeps the top-left corner")
 end
 local map = Layouts.Get("DPS")["minimap.main"]
 assert(map.x == -(margin + Layouts.MAP_FRAME + 4), "the map's card, its frame outside the square, ends on the card margin")
@@ -110,36 +101,8 @@ do
 	assert(db34.layouts.Healer["chat.main"].width == 318 and db34.layouts.Healer["chat.main"].height == 186, "the Healer chat keeps its rail width")
 	local custom34 = db34.layouts.Custom
 	assert(custom34["chat.main"].x == 40 and custom34["chat.main"].width == nil, "a chat the player placed keeps its place, and its old default size follows the new one")
-	local orbsChat = custom34["orbs:chat.main"]
-	assert(orbsChat and orbsChat.anchor == "BOTTOMLEFT" and orbsChat.x == 40 and orbsChat.y == 40, "and Orbs, whose chat now has a style place of its own, keeps the player's place too")
-	assert(db34.layouts.Default["orbs:chat.main"] == nil, "a chat at its old default leaves Orbs on its own default")
 	local text = custom34["combattext.player"]
-	assert(text and text.anchor == "BOTTOM" and text.x == 410 and text.y == 500 and custom34["orbs:combattext.player"] == nil, "a combat text the player placed keeps its Frames place, and Orbs, which always had its own, is left alone")
-end
--- Migration 35 (Capy LEE-1460): action bar 3 gained an Orbs place of its own, so a bar 3 the player placed, which Orbs
--- showed from the shared key, keeps its place under Orbs too; a profile that never moved it, or already has an Orbs
--- place for it, is left alone.
-do
-	local env35, K35 = C.New({ saved = {
-		version = 34,
-		profiles = { Default = {}, Moved = {}, Both = {}, Broken = {} },
-		layouts = {
-			Default = {},
-			Moved = { ["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = 60, y = 520 } },
-			Both = { ["actionbars.bar3"] = { anchor = "TOPLEFT", x = 30, y = -30 }, ["orbs:actionbars.bar3"] = { anchor = "BOTTOM", x = 0, y = 600 } },
-			Broken = { ["actionbars.bar3"] = { anchor = 7, x = "left" } },
-		},
-	} })
-	C.Boot(env35)
-	local db35 = env35.KstyleUIDB
-	assert(db35.version == K35.Store.DB_VERSION and K35.Store.DB_VERSION >= 35 and K35.ErrorCount() == 0, "migration 35 runs without errors")
-	local moved = db35.layouts.Moved
-	assert(moved["actionbars.bar3"].x == 60 and moved["actionbars.bar3"].y == 520, "the Frames place stays")
-	local orbs = moved["orbs:actionbars.bar3"]
-	assert(orbs and orbs.anchor == "BOTTOMLEFT" and orbs.x == 60 and orbs.y == 520, "and Orbs keeps the place the player gave bar 3")
-	assert(db35.layouts.Default["orbs:actionbars.bar3"] == nil, "a bar 3 never moved takes the new Orbs place")
-	local both = db35.layouts.Both["orbs:actionbars.bar3"]
-	assert(both.anchor == "BOTTOM" and both.y == 600, "an Orbs place already saved is kept")
-	assert(db35.layouts.Broken["orbs:actionbars.bar3"] == nil, "a damaged bar 3 place is not copied to Orbs")
+	assert(text and text.anchor == "BOTTOM" and text.x == 410 and text.y == 500, "a combat text the player placed keeps its place")
+	assert(custom34["orbs:chat.main"] == nil and custom34["orbs:combattext.player"] == nil, "and no Orbs place survives to version 45")
 end
 print("store placement ok")
