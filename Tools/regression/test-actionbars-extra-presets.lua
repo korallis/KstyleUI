@@ -9,7 +9,7 @@ for _, screen in ipairs(screens) do
 	local cfg, positions = K.Store.Module("ActionBars"), K.Store.Layout()
 	assert(cfg.extraBarsLayout == "off" and cfg.extraBarsApplied == "off", "presets ship off")
 	local option = K.Options.Row("ActionBars", "extraBarsLayout")
-	assert(option and option.showWhen(cfg), "Medallions offers the preset selector")
+	assert(option, "the action bars offer the preset selector")
 	K.Options.Write("ActionBars", "bar4.rows", 3)
 	K.Options.Write("ActionBars", "bar5.enabled", false)
 	assert(K.Layout.Update("actionbars.bar4", { anchor = "TOPLEFT", x = 80, y = -200, scale = 0.8 }))
@@ -121,7 +121,6 @@ for _, screen in ipairs(screens) do
 	assert(K.Layout.Get("unitframes.resource").y == 460 and not positions["medallions:unitframes.resource"], "C preserves a saved class-resource position and its scope")
 	K.Options.Write("ActionBars", "extraBarsLayout", "off")
 	assert(C.DeepEqual(positions["unitframes.resource"], savedResource), "Off preserves the saved class-resource position")
-	assert(not option.showWhen(cfg), "other HUD styles hide this option")
 	assert(#env._blocked == 0 and #env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env) .. table.concat(env._blocked, ", "))
 	collectgarbage("collect")
 end

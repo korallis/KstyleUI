@@ -25,7 +25,6 @@ local function Jump(key)
 end
 Settle()
 K.Options.Write("ActionBars", "slab", false)
-K.Options.Write("ActionBars", "useTray", false)
 local choices = {}
 for _, def in ipairs(bars.BARS) do choices[#choices + 1] = def end
 choices[#choices + 1] = bars.Consumables.def

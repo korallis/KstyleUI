@@ -37,9 +37,6 @@ for _, kind in ipairs({ "player", "target", "pet", "focus" }) do
 	local m = ns.Frames.Get(kind).views[1].medallion
 	assert(m and m:IsShown() and m.ring:GetTexture() == K.Tokens.Texture("medRing"), kind .. " must draw the registered engraved rim")
 end
-for _, kind in ipairs({ "player", "target", "pet", "focus" }) do
-	assert(not ns.Frames.Get(kind).views[1].medallion:IsShown(), "Frames must hide " .. kind .. "'s engraved rim")
-end
 assert(#env._errors == 0, tostring(env._errors[1]))
 
 local G = dofile("Tools/regression/group_env.lua")

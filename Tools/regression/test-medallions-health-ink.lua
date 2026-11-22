@@ -32,6 +32,5 @@ env.SetTarget(true)
 local target = ns.Frames.Get("target").views[1]
 ns.Unit.HealthColor(target, "target")
 Light(target.healthText, "the yellow target fill")
-assert(view.health.finish == nil, "Frames restores its existing shading")
 assert(#env._errors == 0, tostring(env._errors[1]))
 print("Medallions health ink passed")

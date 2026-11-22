@@ -18,7 +18,6 @@ local env, K, ns = AB.New({ setup = function(e)
 end })
 AB.Enable(env, K)
 K.Options.Write("ActionBars", "slab", false)
-K.Options.Write("ActionBars", "useTray", false)
 K.Options.Write("ActionBars", "consumables.hideEmpty", false)
 local function Write(key, value) K.Options.Write("ActionBars", key, value) end
 local function Near(a, b) return math.abs(a - b) < 0.001 end

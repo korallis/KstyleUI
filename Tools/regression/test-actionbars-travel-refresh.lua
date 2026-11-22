@@ -1,4 +1,4 @@
--- test-actionbars-travel-refresh.lua: open travel survives tray events and prepared refreshes keep the unprepared instruction budget.
+-- test-actionbars-travel-refresh.lua: open travel survives slab refreshes and prepared refreshes keep the unprepared instruction budget.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Fixture = dofile("Tools/regression/travel_fixture.lua")
 local Budget = dofile("Tools/regression/path_budget.lua")
@@ -9,15 +9,15 @@ local read, reads = ns.TravelData.Read, 0
 ns.TravelData.Read = function(...) reads = reads + 1; return read(...) end
 AB.Enable(env, K)
 env.RunTimers()
-local function Tray() ns.bars.bar1:RefreshTray() end
+local function Tray() ns.bars.bar1:RefreshSlab() end
 local base = Budget.Count(env, Tray)
 AB.W.Enter(ns.Travel.crest)
 AB.W.Leave(ns.Travel.crest)
 local count = reads
 local prepared = Budget.Count(env, Tray)
-print(string.format("travel tray: base %d instructions/%d calls; prepared %d/%d; scans %d", base.instructions, base.calls, prepared.instructions, prepared.calls, reads - count))
-Budget.Check(prepared, base.instructions * 1.2, base.calls * 1.2, "keep bag/journal scans and menu rebuilding out of tray refreshes")
-assert(reads == count, "a plain tray refresh must not rescan travel")
+print(string.format("travel slab: base %d instructions/%d calls; prepared %d/%d; scans %d", base.instructions, base.calls, prepared.instructions, prepared.calls, reads - count))
+Budget.Check(prepared, base.instructions * 1.2, base.calls * 1.2, "keep bag/journal scans and menu rebuilding out of slab refreshes")
+assert(reads == count, "a plain slab refresh must not rescan travel")
 AB.Click(env, ns.Travel.crest, "RightButton", false)
 count = reads
 for _, event in ipairs({ "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA", "BAG_UPDATE_DELAYED", "PET_BAR_UPDATE", "PET_BAR_UPDATE_USABLE", "PET_BAR_UPDATE_COOLDOWN", "UNIT_FLAGS" }) do
