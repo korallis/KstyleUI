@@ -69,7 +69,7 @@ defaults.rep.rewardMarker = true
 defaults.honor = BarDefaults("custom", "epic", "labelPercent")
 defaults.honor.show = "pvp"
 defaults.strip = {
-	enabled = true, placement = "top", height = 14, background = 85, artwork = "forged",
+	enabled = true, placement = "dock", height = 14, background = 85, artwork = "forged",
 	dockMeter = true,
 	line = true, labels = "inline", menus = true, valueColor = "plain", accentEdge = false, backdrop = false, separators = false,
 	spacing = STRIP_SPACING, orientation = "HORIZONTAL",
