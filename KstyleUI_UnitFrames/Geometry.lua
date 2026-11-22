@@ -309,12 +309,11 @@ local function SlabFrame(out, s, width, height, scale)
 		y = height - rowH
 	end
 	local extra = powerText or spec.extra == "health" and s.healthText == "both"
-	local room = extra and floor(barW * SLAB_PAD.nameShare) or barW
+	local room = extra and floor(barW * SLAB_PAD.nameShare) or barW + outer
 	if s.name then
-		local levelSize = Size(s, "level", scale)
 		out.name = Rect(right and left + barW - room or left, y, room, rowH)
 		out.nameAuto, out.levelGap = true, SLAB_PAD.levelGap
-		out.nameRoom = s.singleSlabLevel and room or max(0, room - ceil(SLAB_PAD.levelEm * levelSize) - SLAB_PAD.levelGap)
+		out.nameRoom = s.singleSlabLevel and room or max(0, room - ceil(SLAB_PAD.levelEm * Size(s, "level", scale)) - SLAB_PAD.levelGap)
 	end
 	local extraW = max(0, barW - room - TEXT_GAP)
 	local extraX = right and left or left + barW - extraW

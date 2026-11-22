@@ -14,7 +14,7 @@ local MIN_SCALE, MAX_SCALE = 0.5, 1.5
 local INCOMING_SHARE = 0.08
 local LOST_SHARE, COST_SHARE = 0.1, 0.2
 local SKULL = 8
-local CAST_GAP = 4
+local CAST_GAP, INLINE_CAST_GAP = 4, 2
 local CAST_SHARE = 0.6
 local CAST_LEFT = 1.2
 local CAST_ICON = 135846
@@ -275,10 +275,11 @@ local function PaintCast(frame, view, kind, height)
 	end
 	local g = view.geometry
 	local castH = CastHeight(kind)
-	local x, y, w, extra = g.panel.x, height + CAST_GAP, g.panel.w, castH + CAST_GAP
+	local gap = kind == "target" and view.s.inlineCast and INLINE_CAST_GAP or CAST_GAP
+	local x, y, w, extra = g.panel.x, height + gap, g.panel.w, castH + gap
 	if kind == "pet" then
 		w, y = view.s.castbarWidth > 0 and view.s.castbarWidth or w, math.max(height, g.medal and g.medal.y + g.medal.h or 0) + CAST_GAP
-	elseif g.form == "plate" or g.form == "slab" and (view.s.inlineCast or not Settings.CAST_ELEMENTS[kind]) then
+	elseif g.form == "plate" or g.form == "slab" and (kind == "target" or not Settings.CAST_ELEMENTS[kind]) then
 		w = (view.s.castbarWidth or 0) > 0 and math.min(view.s.castbarWidth, w) or w
 	elseif g.cast then
 		x, y, w, castH, extra = g.cast.x, g.cast.y, g.cast.w, g.cast.h, 0
