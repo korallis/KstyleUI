@@ -642,6 +642,8 @@ function Widgets.SyncTracking(text)
 	end
 end
 
+local unset = setmetatable({}, { __mode = "k" })
+
 function Widgets.ApplyFont(text, path, size, flags, plain)
 	if IsSecret(size) or type(size) ~= "number" or size ~= size or size <= 0 or size == math.huge then
 		return false
@@ -657,8 +659,9 @@ function Widgets.ApplyFont(text, path, size, flags, plain)
 	end
 	height = max(1, height)
 	local current, currentHeight, currentFlags = text:GetFont()
-	local same = current == path and currentHeight == height and currentFlags == flags
+	local same = not unset[text] and current == path and currentHeight == height and currentFlags == flags
 	local ok = same or text:SetFont(path, height, flags) ~= false
+	unset[text] = not ok or nil
 	Shadow(text, flags, f)
 	if not plain then
 		Widgets.SyncTracking(text)
