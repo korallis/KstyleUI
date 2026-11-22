@@ -31,13 +31,13 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 	kit.Modules.Enable("DataBars")
 	assert(next(bar.Strip.view.items) == nil, "defer readout frames while the bar is disabled")
 	assert(next(listening) == nil, "register no readout events while the bar is disabled")
-	for _, entry in ipairs(s.modules) do entry.shown = entry.id == "fps" end
+	for _, entry in ipairs(s.dockModules) do entry.shown = entry.id == "fps" end
 	kit.Options.Write("DataBars", "strip.enabled", true)
 	assert(bar.Strip.view.items.fps and not bar.Strip.view.items.bags, "build only the module the bar first shows")
 	assert(next(listening) == nil, "off readouts must not register events beside the event-free fps readout")
 	local fps = bar.Strip.view.items.fps
-	for _, entry in ipairs(s.modules) do if entry.id == "bags" then entry.shown = true end end
-	kit.Options.Write("DataBars", "strip.modules", s.modules)
+	for _, entry in ipairs(s.dockModules) do if entry.id == "bags" then entry.shown = true end end
+	kit.Options.Write("DataBars", "strip.dockModules", s.dockModules)
 	assert(bar.Strip.view.items.bags and bar.Strip.view.items.fps == fps, "add a newly shown module and reuse existing readouts")
 	assert(listening["DataBars.Readouts.bags"], "first showing bags registers its events")
 	kit.Options.Write("DataBars", "strip.enabled", false)
@@ -48,6 +48,7 @@ end
 local game
 local env, K, ns = D.New({ setup = function(e) D.Menus(e); game = Fixture(e) end })
 Load({ "KstyleUI_ActionBars/TravelData.lua" }, env)
+for i, entry in ipairs(ns.Settings().strip.dockModules) do entry.shown = i <= 12 end
 ns.Strip.Refresh()
 local Budget = dofile("Tools/regression/path_budget.lua")
 ns.Bars.Disable()
@@ -61,13 +62,13 @@ ns.Menus.Enable()
 local function sameColor(region, token)
 	local r, g, b = K.Tokens.Color(token)
 	local ar, ag, ab = region:GetTextColor()
-	assert(ar == r and ag == g and ab == b, "readout values use text and units use labelMuted")
+	assert(ar == r and ag == g and ab == b, "dock readout values and units use medTextMuted")
 end
 for id, unit in pairs({ fps = "fps", latency = "ms", durability = "armour", guild = "guild", friends = "friends", bags = "free" }) do
 	local item = ns.Strip.view.items[id]
 	eq(item.label:GetText(), unit)
-	sameColor(item.value, "text")
-	sameColor(item.label, "labelMuted")
+	sameColor(item.value, "medTextMuted")
+	sameColor(item.label, "medTextMuted")
 end
 local values, settings = ns.Strip.VALUES, ns.Settings().strip
 eq(values.time(settings), "14:32")
@@ -174,9 +175,9 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 	local items = model.SchemaItems("DataBars", kit.Options.Get("DataBars"), "DataBars")
 	local entries = {}
 	for _, item in ipairs(model.Visible(items)) do if item.entry then entries[item.entry] = item end end
-	for _, entry in ipairs(bar.Settings().strip.modules) do
+	for i, entry in ipairs(bar.Settings().strip.dockModules) do
 		assert(entries[entry.id], entry.id .. " is in the real ordered list")
-		eq(entry.shown, not ({ xp = 1, location = 1, itemLevel = 1, coords = 1, combat = 1, played = 1, audio = 1, prof1 = 1, prof2 = 1, broker = 1, spacer = 1, reagents = 1 })[entry.id])
+		eq(entry.shown, i <= 6)
 	end
 	entries.micro.set({ shown = false })
 	assert(not bar.Menus.Visible("micro"))
@@ -195,9 +196,9 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 	assert(not clock:IsShown())
 	eq(bar.Strip.view.items.time.button._points[1][2], bar.Strip.view.zones.left)
 	entries.time.move(-1)
-	eq(bar.Settings().strip.modules[3].id, "time")
+	eq(bar.Settings().strip.dockModules[4].id, "time")
 	entries.time.move(1)
-	eq(bar.Settings().strip.modules[4].id, "time")
+	eq(bar.Settings().strip.dockModules[5].id, "time")
 	kit.Options.Write("DataBars", "strip.enabled", false)
 	assert(clock:IsShown())
 	kit.Options.Write("DataBars", "strip.enabled", true)
@@ -206,7 +207,6 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 	for _, entry in ipairs(dock) do if entry.id == "time" then entry.shown = false end end
 	kit.Options.Write("DataBars", "strip.dockModules", dock)
 	assert(clock:IsShown(), "the minimap clock returns when the independent dock clock is off")
-	assert(not clock:IsShown(), "the top bar retains its own enabled clock")
 	assert(#e._errors == 0 and kit.ErrorCount() == 0, tostring(e._errors[1]))
 end
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
