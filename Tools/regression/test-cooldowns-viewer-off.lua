@@ -107,4 +107,35 @@ do
 	assert(Drawn(ns) == "", "VARIABLES_LOADED with the Cooldown Manager off must clear KstyleUI's rows, yet it draws " .. Drawn(ns))
 end
 
+-- A live switch-off hides the cleared rows' Layout movers, as at a cold login, and switching back on restores them.
+do
+	local env, K = New("auto", true)
+	C.Enable(env, K)
+	env.RunTimers()
+	Flip(env, false)
+	assert(K.Layout.Enter())
+	for _, group in ipairs({ "essential", "utility" }) do
+		local plate = K.Layout.Mode.Plate("cooldowns." .. group)
+		assert(not (plate and plate:IsVisible()), group .. ": the Cooldown Manager is off, yet Layout Mode still offers its mover")
+	end
+	Flip(env, true)
+	for _, group in ipairs({ "essential", "utility" }) do
+		local plate = K.Layout.Mode.Plate("cooldowns." .. group)
+		assert(plate and plate:IsVisible(), group .. ": the Cooldown Manager is back on, so Layout Mode must offer its mover again")
+	end
+	K.Layout.Exit()
+end
+
+-- A deliberate live switch-off is not the login case: no hint, and the one-time account flag stays for the next login.
+for _, path in ipairs({ "auto", "reskin" }) do
+	local env, K = New(path, true)
+	C.Enable(env, K)
+	env.RunTimers()
+	Flip(env, false)
+	assert(K.Store.Account().cooldownViewerHinted == nil, path .. ": switching the Cooldown Manager off live used up the one-time login hint")
+	for _, line in ipairs(env._printed) do
+		assert(not line:find("Turn on the Cooldown Manager", 1, true), path .. ": switching the Cooldown Manager off live printed " .. line)
+	end
+end
+
 print("cooldowns viewer off ok")
