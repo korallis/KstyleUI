@@ -155,22 +155,30 @@ local function Layout(f, parts, k)
 			local _, count, healSize, spacing = ns.Auras.HealIcons(f, k)
 			left = heal.left + ns.Geometry.Line(count, healSize, spacing) + 4
 		end
-		local stop = block and block.top < top + laneSize and block.left - 4 or health.left + health.width
-		if not portrait and (top < health.top or stop - left < 2 * laneSize + 4) then
-			left, top = health.left, -laneSize
-		elseif portrait or left + 3 * laneSize + 8 <= stop then
-			local lane = own or laneSize
-			local rect = { left = left, top = top + laneSize - lane }
-			statusLeft, statusTop = left + (lane - status) / 2, rect.top + (lane - status) / 2
-			PlaceIcon(f, f.ready, rect, Widgets.Snap(f, lane))
-			left = left + laneSize + 4
-		end
-		local rect = { left = left, top = top }
-		markerSize = Widgets.Snap(f, laneSize)
-		PlaceIcon(f, f.marker, rect, markerSize)
-		if not portrait then
-			rect.left = left + laneSize + 4
-			PlaceIcon(f, f.leader, rect, Widgets.Snap(f, laneSize), cfg.leaderX, cfg.leaderY)
+		local stop = portrait and portrait.left + portrait.width or block and block.top < top + laneSize and block.left - 4 or health.left + health.width
+		if not portrait and top < health.top or stop - left < 2 * laneSize + 4 then
+			local bottom = portrait and portrait.top + portrait.height or f.height
+			local crown = portrait and icons.leader.top + size or Widgets.Snap(f, math.min(laneSize, bottom / 2))
+			markerSize = Widgets.Snap(f, math.min(laneSize, bottom - crown))
+			PlaceIcon(f, f.marker, { left = 0, top = bottom - markerSize }, markerSize)
+			if not portrait then
+				PlaceIcon(f, f.leader, { left = 0, top = 0 }, crown, cfg.leaderX, cfg.leaderY)
+			end
+		else
+			if portrait or left + 3 * laneSize + 8 <= stop then
+				local lane = own or laneSize
+				local rect = { left = left, top = top + laneSize - lane }
+				statusLeft, statusTop = left + (lane - status) / 2, rect.top + (lane - status) / 2
+				PlaceIcon(f, f.ready, rect, Widgets.Snap(f, lane))
+				left = left + laneSize + 4
+			end
+			local rect = { left = left, top = top }
+			markerSize = Widgets.Snap(f, laneSize)
+			PlaceIcon(f, f.marker, rect, markerSize)
+			if not portrait then
+				rect.left = left + laneSize + 4
+				PlaceIcon(f, f.leader, rect, markerSize, cfg.leaderX, cfg.leaderY)
+			end
 		end
 	end
 	for _, icon in pairs(f.statusIcons) do
