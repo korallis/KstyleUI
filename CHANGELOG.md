@@ -32,6 +32,8 @@ Highlights:
 - Raid and boss warnings sit in the upper part of the screen on MacBook and other 3:2 screens instead of under the boss frames.
 - The warnings keep clear of the boss frames' debuffs, and after an Interface size change they move with the HUD.
 - With the Cooldowns module off, Apply in `/kstyle setup` fits 16 tracked buff icons over your casts and a Tank's 6 tracked bars beside the threat card in Edit Mode at Interface size 1.
+- With Zygor's guide open, KstyleUI no longer repaints its waypoint arrow every frame or checks its tabs a hundred times a second.
+- Action bars and cooldown icons update only the spell that changed on a cooldown, and only the icons on a form change, so shapeshifting and fast fights cost far less.
 
 ### Upgrading
 
