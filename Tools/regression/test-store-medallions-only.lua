@@ -1,4 +1,4 @@
--- test-store-medallions-only.lua: migration 45 moves Frames and Orbs profiles to Medallions, says so once on live data and never on a preview, drops the keys and positions only they read (named layouts and exports too), folds choices that now draw the same and keeps the rest.
+-- test-store-medallions-only.lua: migration 45 moves Frames and Orbs profiles to Medallions, says so once on live data and never on a preview, drops the keys and positions only they, the forged ornaments and the card materials read (named layouts and exports too), folds choices that now draw the same and keeps the rest.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 
 local MESSAGE = "KstyleUI is now Medallions only; your HUD moved to Medallions."
@@ -15,6 +15,8 @@ local function Boot(style)
 				CombatText = { fieldDistance = 60, critScale = 1.4 },
 				Chat = { framing = "auto" },
 				DataBars = { strip = { height = 20, modules = { { id = "fps", shown = true } }, placement = "rail" } },
+				Widgets = { ornaments = "Subtle", cardMaterial = "Slate", panelOpacity = 0.8 },
+				OptionsPresentation = { samples = false, tasks = false },
 			},
 			Other = { HudStyle = { style = style }, DataBars = { strip = { placement = "top" } }, UnitFrames = { player = { style = "column" } }, Widgets = { cardMaterial = "Glass" } },
 		},
@@ -62,6 +64,9 @@ for _, style in ipairs({ "frames", "orbs" }) do
 	assert(bars.bar2.split == nil and bars.bar3.split == "on", style .. ": the Orbs split choice becomes Never; Always stays")
 	assert(db.profiles.Other.DataBars.strip.placement == "dock", style .. ": Top, which docks under the bars like Dock, becomes Dock")
 	assert(db.profiles.Other.Skins.contextMenus.enabled == false, style .. ": Glass cards kept Blizzard's context menus; the Skins switch keeps them")
+	assert(profile.Widgets.ornaments == nil and profile.Widgets.cardMaterial == nil and profile.Widgets.panelOpacity == 0.8, style .. ": the ornament level and card material go, panel opacity stays")
+	assert(db.profiles.Other.Widgets.cardMaterial == nil, style .. ": a Glass card material goes once the Skins switch holds it")
+	assert(profile.OptionsPresentation.samples == nil and profile.OptionsPresentation.tasks == false, style .. ": the ornament samples switch goes, the other window choices stay")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 	local again, AK = CoreEnv.New({ saved = CoreEnv.DeepCopy(db) })
 	CoreEnv.Boot(again)
@@ -76,7 +81,7 @@ do
 	local penv, K = CoreEnv.New()
 	CoreEnv.Boot(penv)
 	local slot = { ["orbs:actionbars.bar1"] = { anchor = "BOTTOM", x = 0, y = 90 }, ["medallions:actionbars.bar1"] = { anchor = "BOTTOM", x = -12, y = 40 } }
-	local text = CoreEnv.CraftLua({ kind = "KstyleUI profile", version = 44, name = "Shared", settings = { HudStyle = { style = "orbs" } }, layout = CoreEnv.DeepCopy(slot), namedLayouts = { MyHUD = CoreEnv.DeepCopy(slot) } })
+	local text = CoreEnv.CraftLua({ kind = "KstyleUI profile", version = 44, name = "Shared", settings = { HudStyle = { style = "orbs" }, Widgets = { ornaments = "Full", cardMaterial = "Slate" } }, layout = CoreEnv.DeepCopy(slot), namedLayouts = { MyHUD = CoreEnv.DeepCopy(slot) } })
 	local start = #penv._printed
 	for _ = 1, 2 do assert(K.Profiles.Preview(text)) end
 	assert(#penv._printed == start, "previewing an old export prints nothing: " .. tostring(penv._printed[start + 1]))
@@ -85,6 +90,7 @@ do
 	assert(#penv._printed == start, "decoding an old export prints nothing")
 	assert(decoded.layout["orbs:actionbars.bar1"] == nil and decoded.namedLayouts.MyHUD["orbs:actionbars.bar1"] == nil
 		and decoded.namedLayouts.MyHUD["medallions:actionbars.bar1"].x == -12, "a decoded old export loses its Orbs positions, named layouts included")
+	assert(decoded.settings.Widgets.ornaments == nil and decoded.settings.Widgets.cardMaterial == nil, "a decoded old export loses its ornament level and card material")
 	assert(#penv._errors == 0, tostring(penv._errors[1]))
 end
 print("store medallions only ok")
