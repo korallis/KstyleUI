@@ -4,7 +4,7 @@ local Reach = dofile("Tools/regression/hud_reach_lib.lua")
 
 return Common.Run(function()
 	local screen = Common.DEFAULT_SCREEN
-	local env, K = Reach.New(screen.width, screen.height, os.getenv("RENDER_LAYOUT") or "DPS")
+	local env, K = Reach.New(screen.width, screen.height, (os.getenv("RENDER_HUD_STYLE") or "Medallions"):lower(), os.getenv("RENDER_LAYOUT") or "DPS")
 	K.Options.Write("Layout", "arrangement", os.getenv("RENDER_ARRANGEMENT") or "centred")
 	K.Options.Write("Meters", "threat.shown", true)
 	if os.getenv("RENDER_GROUP")=="party" then

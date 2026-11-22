@@ -32,7 +32,7 @@ return Common.Run(function()
 	if os.getenv("RENDER_SUBJECT") == "setup" then
 		for _, name in ipairs(K.Setup.PICKER) do K.Modules.Register(W.CoreEnv.Module(name.name)) end
 		assert(K.Setup.Open(true))
-		assert(K.Setup.Go(tonumber(os.getenv("RENDER_SETUP_STEP")) or 3))
+		assert(K.Setup.Go(tonumber(os.getenv("RENDER_SETUP_STEP")) or 4))
 		key = "setup.window"
 	else
 		local page = os.getenv("RENDER_PAGE")
