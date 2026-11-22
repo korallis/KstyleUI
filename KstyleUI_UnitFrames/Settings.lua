@@ -229,7 +229,7 @@ Settings.defaults = {
 	castbarOnFrame = true,
 	edit = "player",
 	player = Kind(true, {
-		medallionsAuras = true, medallionsAuraFilter = "buffs",
+		medallionsAuras = false, medallionsAuraFilter = "buffs",
 		castbarSmooth = false, castbarChannelOverride = false, castbarChannelColor = Color("rare"), castbarTotal = false,
 		powerCost = false, powerCostColor = Color("white"), manaSpark = false, powerMana = false,
 		powerText = "auto",
