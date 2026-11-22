@@ -137,7 +137,11 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			local tint = W.LastCall(face.runes, "SetVertexColor")
 			assert(W.Near(tint[1], r) and W.Near(tint[2], g) and W.Near(tint[3], b), "the crest follows the player class, independently of a custom accent")
 		end
+		K.Options.Write("HudStyle", "style", "frames")
+		M.Settle(env)
+		assert(not face.ring:IsShown() and not face.enamel:IsShown() and not face.runes:IsShown() and not face.gem:IsShown(), "only Medallions has a crest minimap")
+		assert(face.plate.diamond.black:IsShown(), "Frames restores its north diamond")
 		assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 	end
 end
-print("minimap crest ok: three choices, four screens, defaults and saved positions, three presets and class changes")
+print("minimap crest ok: three choices, four screens, defaults and saved positions, three presets, class changes and style isolation")
