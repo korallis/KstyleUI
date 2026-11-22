@@ -86,7 +86,7 @@ IMAGES = [
     ("crop_meter", "render:meter_party", "470x330+3340+1825", 540),
     ("crop_meters_both", "render:meter_both_2x", "980x330+2830+1825", 1120),
     ("crop_rail", "render:frames_1080_2x", "1100x1040+2720+20", 660),
-    ("crop_crest", "render:rogue_1080_2x", "328x320+1756+1830", 540),
+    ("crop_crest", "render:rogue_1080_2x", "330x420+1755+1735", 540),
     ("crop_dock", "render:rogue_1080_2x", "1960x420+940+1740", 1400),
     ("crop_route", "render:route_flight", "1385x968+900+640", 1000),
     ("ultrawide_centred", "render:healer_centred", None, 1600),
