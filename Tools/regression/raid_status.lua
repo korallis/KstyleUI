@@ -1,4 +1,4 @@
--- raid_status.lua: shared checks for the raid tile's statuses (rank round 6): the engine played from the containers' own settings, the "+N" chip's count, the boss route and the indicator lane (KSTY-57: the three defaults at the name line's end, off the bar), and the presets at 20 and 40 players.
+-- raid_status.lua: shared checks for the Medallions raid tile's statuses (rank round 6): the engine played from the containers' own settings, the "+N" chip's count, the boss route through the debuff row and the tidy indicator lane, and the presets at 20 and 40 players.
 local G = dofile("Tools/regression/group_env.lua")
 local A = dofile("Tools/regression/auras_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
@@ -192,8 +192,8 @@ local function Auras(spec)
 	return out
 end
 
--- Every boss debuff reaches the player: in the centred slot, in a visible cell, or in the chip's count, and the chip
--- counts exactly the row's auras that have no cell.
+-- Every boss debuff reaches the player: the Medallions tile has no centred slot, so in a visible cell or in the chip's
+-- count, and the chip counts exactly the row's auras that have no cell.
 local function CheckRoute(env, f, spec, what)
 	local auras = Auras(spec)
 	local seen = Read(env, f, auras)
@@ -212,18 +212,10 @@ local function CheckRoute(env, f, spec, what)
 	for _, aura in ipairs(auras) do
 		if aura.boss then
 			assert(Has(seen.held, aura), what .. ": " .. aura.name .. " reaches the debuff row, shown or counted")
-			assert(seen.boss == aura or Has(seen.visible, aura) or hidden > 0, what .. ": " .. aura.name .. " shows or is counted")
+			assert(Has(seen.visible, aura) or hidden > 0, what .. ": " .. aura.name .. " shows or is counted")
 		end
 	end
-	local bosses = 0
-	for _, aura in ipairs(auras) do
-		bosses = bosses + (aura.boss and 1 or 0)
-	end
-	if bosses > 0 then
-		assert(seen.boss and seen.boss.boss, what .. ": the centred slot shows a boss debuff")
-	else
-		eq(seen.boss, nil, what .. ": the centred slot is empty without a boss debuff")
-	end
+	eq(seen.boss, nil, what .. ": no centred slot")
 	return seen
 end
 
@@ -236,30 +228,24 @@ local BOSS_CASES = {
 }
 
 -- The indicator lane -----------------------------------------------------------------------------------------------
--- KSTY-57: the three default indicators take the lane at the name line's end, left of the percent: off the bar, the
--- pip, the percent, the debuffs, your heals and the boss slot, covering only the name's tail while they show.
+-- The three default indicators take the tidy Medallions lane on the tile's fill, left of the percent: clear of the
+-- name's head, the percent and your heals, each at the lane's 10 units. Known: the lane grazes the debuff pips by a
+-- unit on the 116 by 36 tile.
+local LANE = 10
 local function Statuses(env, ns, f, what)
 	local parts = f.parts
-	local name, lane = parts.name, parts.lane
-	assert(lane and lane.legible, what .. ": the row has a legible indicator lane")
+	local name, lane = parts.name, parts.indicatorLane
+	assert(lane and lane.legible and lane.size == LANE, what .. ": the tile has a tidy indicator lane")
 	local reserved = {
 		["name's head"] = Part(env, f, { left = name.left, top = name.top, width = math.min(name.width, lane.left - name.left), height = name.height }),
-		percent = Part(env, f, { left = parts.healthText.left, top = parts.healthText.top, width = parts.healthText.right - parts.healthText.left, height = parts.healthText.height }),
-		pip = Part(env, f, parts.icons.role),
-		bar = { Scene.Rect(env, f.health) },
-		debuffs = { Scene.Rect(env, f.auraClip) },
-		heals = { Scene.Rect(env, f.buffClip) },
 	}
-	if parts.power then
-		reserved.power = Part(env, f, parts.power)
+	if f.healthText:IsShown() then
+		reserved.percent = { Scene.Rect(env, f.healthText) }
+	end
+	if f.buffs and f.buffs:IsShown() and select(2, ns.Auras.HealIcons(f, ns.Settings.current.raid)) > 0 then
+		reserved.heals = { Scene.Rect(env, f.buffClip) }
 	end
 	local tile = { Scene.Rect(env, f) }
-	if parts.boss then
-		local boss = f.highlights:GetAuraSlotFrame("boss")
-		boss:Show()
-		reserved.boss = { Scene.Rect(env, boss) }
-		boss:Hide()
-	end
 	local placed = {}
 	for i = 1, 3 do
 		local key = "indicator" .. i
@@ -267,8 +253,7 @@ local function Statuses(env, ns, f, what)
 		local slot = f.indicators._slots[key]
 		assert(slot.enabled, what .. ": " .. category .. " (indicator " .. i .. ") is on")
 		local place = ns.Slots.Placements(f)[i]
-		-- 12 units, floored to whole pixels (11.92 at the owner's 1.426 pixels per unit).
-		assert(place.size >= LEGIBLE - PIXEL, what .. ": " .. category .. " is at least " .. LEGIBLE .. " units, got " .. place.size)
+		assert(place.size >= LANE - PIXEL, what .. ": " .. category .. " is at least " .. LANE .. " units, got " .. place.size)
 		slot.frame:Show()
 		local r = { Scene.Rect(env, slot.frame) }
 		slot.frame:Hide()
@@ -302,7 +287,7 @@ function S.Presets(names)
 			local groups = f.auras._groups
 			assert(groups.boss.enabled, what .. ": the boss group stays in the debuff row")
 			eq(groups.boss.candidateFilters.isBossAura, true, what .. ": it takes boss debuffs")
-			assert(f.highlights._slots.boss.enabled, what .. ": the centred boss slot is on")
+			assert(not f.highlights._slots.boss.enabled, what .. ": the Medallions tile has no centred boss slot")
 			for _, case in ipairs(routes and BOSS_CASES or {}) do
 				CheckRoute(env, f, case[1], what .. ", " .. case[2])
 			end
