@@ -41,6 +41,19 @@ end
 
 do
 	local env, K, ns = New()
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
+	local b = AB.Button(ns, "bar1", 1)
+	b.realCooldown = true
+	b:FlashReady()
+	assert(b.readyFlash:IsPlaying() and not b.medReady, "under Frames the slot keeps its own ready flash")
+	assert(not Listening(env, "UNIT_POWER_UPDATE"), "under Frames the hub ring does not listen to power")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+do
+	local env, K, ns = New()
 	Refresh(env)
 	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
 	local b = AB.Button(ns, "bar1", 1)
@@ -95,6 +108,9 @@ do
 	assert(capped.breath:IsPlaying(), "the ring breathes at Full")
 	K.Options.Write("Medallions", "motion", "calm")
 	assert(not capped.breath:IsPlaying() and capped:IsShown(), "the ring holds still at Calm")
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	assert(not capped:IsShown() and not Listening(env, "UNIT_POWER_UPDATE"), "leaving Medallions hides the ring and stops listening")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

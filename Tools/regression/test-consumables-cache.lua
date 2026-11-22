@@ -16,7 +16,7 @@ AB.Enable(env, K)
 local C = ns.Consumables
 local scan, scans = C.Scan, 0
 C.Scan = function(...) scans = scans + 1; return scan(...) end
-for _, event in ipairs({ "ScaleChanged", "ThemeChanged" }) do K.Callbacks.Fire(event) end
+for _, event in ipairs({ "ScaleChanged", "ThemeChanged", "HudStyleChanged" }) do K.Callbacks.Fire(event) end
 K.Callbacks.Fire("ModuleChanged", "UnitFrames")
 assert(scans == 0, "visual changes reuse inventory instead of rescanning bags")
 K.Options.Write("ActionBars", "consumables.hotkey", true)

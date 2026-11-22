@@ -161,6 +161,22 @@ do
 	assert(b:GetAlpha() == 1, "and stays in full after a hover")
 end
 
+-- Under Frames an empty slot is a full-strength tile, and the stance bar stands in three rows of four.
+do
+	local env, K, ns = new({ setup = function(e)
+		e._game.forms = { { texture = 132349, spellID = 2457, isActive = true }, { texture = 132341, spellID = 71 } }
+	end })
+	K.Options.Write("HudStyle", "style", "frames")
+	local b = AB.Button(ns, "bar1", 2)
+	assert(b:GetAlpha() == 1, "Frames keeps an empty slot's tile at full opacity")
+	K.Widgets.Hover(b, true)
+	AB.W.Settle(env)
+	assert(b:GetAlpha() == 1, "hovering an empty Frames tile keeps it in full")
+	local bar = ns.bars.stance
+	assert(near(bar.holder:GetWidth(), 4 * 30 + 3 * 3) and near(bar.holder:GetHeight(), 30), "three rows of four keep a full row's width, the two forms on one row")
+	assert(#env._errors == 0, AB.Errors(env))
+end
+
 -- Empty buttons hidden by the setting stay hidden under the pointer, and show while dragging.
 do
 	local env, K, ns = new()

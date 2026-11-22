@@ -1,4 +1,4 @@
--- test-actionbars-split.lua: bar 2 as two groups of six: the Split in two setting off the Medallions slab, the gap between the halves, the holder that grows by it, and the slab that keeps both bars whole.
+-- test-actionbars-split.lua: bar 2 as two groups of six: the Split in two setting off the Medallions slab, the gap between the halves, the holder that grows by it, the slab that keeps both bars whole, and the Frames tray.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local function near(a, b, eps)
@@ -36,6 +36,19 @@ do
 	assert(near(split, whole + gap), "the holder grows by the gap: " .. split .. " vs " .. whole .. " + " .. gap)
 	K.Options.Write("ActionBars", "bar1.split", "on")
 	assert(near(Split(bar1), K.Widgets.Snap(bar1.header, K.Setup.Layouts.SPLIT_GAP)), "Always splits bar 1 too")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+do
+	local env, K, ns = AB.New()
+	AB.Enable(env, K)
+	K.Options.Write("HudStyle", "style", "frames")
+	K.Options.Write("ActionBars", "trayColumn", false)
+	local bar2 = ns.bars.bar2
+	assert(ns.Tray.card and ns.Tray.card:IsShown(), "under Frames the tray stands behind bars 1 and 2")
+	assert(near(Split(bar2), 0), "under Frames bar 2 is one row of twelve, got " .. Split(bar2))
+	K.Options.Write("ActionBars", "bar2.split", "on")
+	assert(near(Split(bar2), K.Widgets.Snap(bar2.header, K.Setup.Layouts.SPLIT_GAP)), "Always parts bar 2 under Frames, got " .. Split(bar2))
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

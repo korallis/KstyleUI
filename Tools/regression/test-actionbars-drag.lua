@@ -1,13 +1,14 @@
 -- test-actionbars-drag.lua: mouse pickup never activates a spell; binding timing still follows the game's CVar.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
-for _, style in ipairs({ "medallions" }) do
+for _, style in ipairs({ "frames", "medallions" }) do
 	local env, K, ns = AB.New({ width = 1920, height = 1080, class = "DRUID", setup = function(e)
 		e._game.forms = { { texture = 132276, spellID = 768 } }
 		e._game.petExists = true
 		e._game.pet[1] = { name = "Attack", texture = 132152 }
 		e._game.bindings.ACTIONBUTTON1 = { "1" }
 	end })
+	K.Options.Write("HudStyle", "style", style)
 	K.Options.Write("ActionBars", "bar3.enabled", true)
 	AB.Enable(env, K)
 	local stance = AB.Button(ns, "stance", 1)
@@ -79,4 +80,4 @@ for _, style in ipairs({ "medallions" }) do
 	assert(#env._game.used == used + 1, "reenabling safe dragging restores release timing")
 	assert(#env._blocked == 0 and #env._errors == 0, AB.Errors(env))
 end
-print("action bar dragging never casts in Frames, Orbs and Medallions (1920x1080)")
+print("action bar dragging never casts in Frames and Medallions (1920x1080)")

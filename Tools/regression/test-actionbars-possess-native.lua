@@ -10,7 +10,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	frame:Show()
 	assert(K.Setup.Layouts.Enabled("DPS", K.Store.Profile())["actionbars.possess"], "possession visibility enables its setup footprint")
 	frame:Hide()
-	for _, style in ipairs({ "medallions" }) do
+	for _, style in ipairs({ "frames", "medallions" }) do
+		K.Options.Write("HudStyle", "style", style)
 		local width, height = K.Setup.Layouts.Footprint("DPS", "actionbars.possess", style)
 		assert(math.abs(width - frame:GetWidth()) <= K.Scale.Pixel(1) and math.abs(height - frame:GetHeight()) <= K.Scale.Pixel(1), "native possess has a setup footprint in " .. style)
 		assert(K.Setup.Layouts.Positions("DPS", style, K.Scale.Aspect())["actionbars.possess"], "native possess participates in setup positions")

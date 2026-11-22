@@ -22,6 +22,19 @@ end
 
 do
 	local env, K, ns = New()
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
+	local b = AB.Button(ns, "bar1", 1)
+	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
+	assert(b.proc and not (b.medProc and b.medProc:IsShown()), "under Frames a proc runs no Medallions loop")
+	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
+	assert(not (ns.Slab.hub and ns.Slab.hub:IsShown()), "under Frames there is no hub")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+do
+	local env, K, ns = New()
 	Refresh(env)
 	local Slab, hub = ns.Slab, ns.Slab.hub
 	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
@@ -213,8 +226,10 @@ do
 	local kinds = Kinds(b.medProc.anim)
 	assert(kinds.FlipBook == 1 and b.medProc.anim._anims[1]:GetFlipBookFrames() == 16, "the class flipbook runs as a FlipBook of 16 frames")
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
+	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
+	assert(b.lumenGlow:IsShown() and not b.medProc:IsShown(), "back to Frames the slot's own proc glow returns")
 	K.Tokens.Texture = texture
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
@@ -267,7 +282,10 @@ do
 	assert(b.medChecked:IsShown(), "a checked action shows the checked frame")
 	b:SetSelected(false)
 	assert(not b.medChecked:IsShown(), "and hides it again")
+	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
+	assert(not b.medFrame:IsShown() and not b.medWell:IsShown() and not b.medHover:IsShown() and not b.medPushed:IsShown(), "back to Frames the slot frames hide")
+	assert(b.chrome.visible and b.hotkey:IsShown(), "back to Frames the slot's own chrome and keybind return")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
