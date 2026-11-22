@@ -10,7 +10,7 @@ local function Map()
 		return #(self:GetText() or "") * 7
 	end
 	face:SetZone(face.zoneText, face.pvpType)
-	assert(K.Widgets.Setting("ornaments") == "Full" and face.ornament == nil and face.brackets[1].across:IsShown(), "the minimap card draws its brackets and no ornament at Full")
+	assert(K.Widgets.Setting("ornaments") == "Full" and face.ornament == nil and face.ring:IsShown(), "the minimap draws its Medallions ring and no ornament at Full")
 	return env, face
 end
 
@@ -46,7 +46,7 @@ return {
 			local env, face = Map()
 			return env, function()
 				face:Layout()
-				assert(face.brackets[4].down:IsShown())
+				assert(face.ring:IsShown())
 			end
 		end,
 	},

@@ -85,7 +85,7 @@ return {
 			local b = AB.Button(ns, "bar1", 1)
 			local click = b:GetScript("OnClick")
 			click(b, "LeftButton", true)
-			assert(b.press:IsPlaying(), "the fixture's press plays the slot's flash")
+			assert(b.medPushed:IsShown(), "the fixture's press shows the slot's Medallions pushed frame")
 			click(b, "LeftButton", false)
 			return env, function()
 				click(b, "LeftButton", true)
