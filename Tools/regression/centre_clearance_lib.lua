@@ -235,16 +235,18 @@ function M.Check(groups, pixels, label, screen)
 	end
 end
 
-function M.Run(layout, class, form)
+-- Run(layout, class, form, first, last) checks screens first to last (all eleven by default).
+function M.Run(layout, class, form, first, last)
 	local previous, level = rawget(_G, "RENDER_SCREEN"), rawget(_G, "RENDER_ORNAMENTS")
 	rawset(_G, "RENDER_ORNAMENTS", "Full")
-	for _, screen in ipairs(SCREENS) do
-		M.Check(Case(layout, class, form, screen))
+	first, last = first or 1, last or #SCREENS
+	for i = first, last do
+		M.Check(Case(layout, class, form, SCREENS[i]))
 		collectgarbage("collect")
 	end
 	rawset(_G, "RENDER_SCREEN", previous)
 	rawset(_G, "RENDER_ORNAMENTS", level)
-	print("ok centre clearance " .. layout .. " " .. class .. " " .. (form or "") .. ": eleven screens")
+	print("ok centre clearance " .. layout .. " " .. class .. " " .. (form or "") .. ": screens " .. first .. " to " .. last)
 end
 
 return M
