@@ -1426,12 +1426,12 @@ function modules.auras(opts)
 	local class, spec = Hud.Class(opts)
 	local mode = os.getenv("RENDER_AURAS_REMINDER")
 	local reminder = mode == "1" and REMINDER[class]
-	local key = reminder and "reminder.enabled" or ({ flask = "reminder.flasks", mana = "reminder.mana" })[mode or ""]
+	local setting = reminder and "reminder.enabled" or ({ flask = "reminder.flasks", mana = "reminder.mana" })[mode or ""]
 	local env, K, ns = A.New(Common.ScreenOpts({
 		saved = saved(opts, "Auras"),
 		setup = function(env)
 			shared(env, opts)
-			if not key then return end
+			if not setting then return end
 			env.C_Secrets.ShouldSpellAuraBeSecret = function() return false end
 			env.C_UnitAuras = env.C_UnitAuras or {}
 			env.UnitIsDeadOrGhost = function() return false end
@@ -1452,8 +1452,8 @@ function modules.auras(opts)
 			end
 		end,
 	}))
-	if key then
-		K.Options.Write("Auras", key, true)
+	if setting then
+		K.Options.Write("Auras", setting, true)
 	end
 	if not K.Modules.IsRunning("Auras") then
 		K.Modules.Enable("Auras")
