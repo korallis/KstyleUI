@@ -1527,10 +1527,20 @@ local function OnLayout(_, key)
 	end
 end
 
+local viewerOff
+
+local function OnViewer(event, name)
+	if running and (event == "VARIABLES_LOADED" or name == "cooldownViewerEnabled") and Path.ViewerOff() ~= viewerOff then
+		Mirror.Stop()
+		Mirror.Start()
+	end
+end
+
 function Mirror.Start()
 	Settings.Read()
 	Keys.Reset()
 	running = true
+	viewerOff = Path.ViewerOff()
 	retries = 0
 	fighting = InCombatLockdown and InCombatLockdown() == true or false
 	auraOwed = false
@@ -1562,6 +1572,8 @@ function Mirror.Start()
 		K.Events.RegisterUnit(MODULE, "UNIT_AURA", OnUnitAura, "player", "target")
 		K.Events.Register(MODULE, "PLAYER_TARGET_CHANGED", OnTargetChanged)
 	end
+	K.Events.Register(MODULE, "CVAR_UPDATE", OnViewer)
+	K.Events.Register(MODULE, "VARIABLES_LOADED", OnViewer)
 	K.Callbacks.Register("SettingChanged", MODULE, OnSetting)
 	K.Callbacks.Register("ProfileChanged", MODULE, OnProfile)
 	K.Callbacks.Register("ThemeChanged", MODULE, OnTheme)

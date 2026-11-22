@@ -175,7 +175,7 @@ A group registers with Layout the first time it takes the mirror path, so a grou
 | KstyleUI icons | The mirror when its APIs exist, else the reskin | The same |
 | Restyle Blizzard's | The reskin | The reskin |
 
-The cooldown mirror needs `C_CooldownViewer` with its category functions, `Enum.CooldownViewerCategory` and `C_Spell.GetSpellCooldownDuration`. The buff mirror also needs `C_UnitAuras.GetPlayerAuraBySpellID` and `GetAuraDuration`. A group whose Blizzard viewer is missing too is `off`.
+The cooldown mirror needs `C_CooldownViewer` with its category functions, `Enum.CooldownViewerCategory` and `C_Spell.GetSpellCooldownDuration`. The buff mirror also needs `C_UnitAuras.GetPlayerAuraBySpellID` and `GetAuraDuration`. A group whose Blizzard viewer is missing too is `off`. A group that would take the mirror is `off` while Blizzard's Cooldown Manager is switched off (`cooldownViewerEnabled` reads false), so KstyleUI draws none of its icons, as Blizzard draws none of its own; the reskin needs no check, because Blizzard hides its viewers itself. The module restarts its paths when `CVAR_UPDATE` names that CVar or `VARIABLES_LOADED` changes its value, so the switch takes effect without a reload.
 
 If a mirror call raises an error, in combat or out, or a category set cannot be read, the group switches to the reskin at once for the session: the KstyleUI row hides, Blizzard's viewer gets its alpha and mouse back and is restyled, and the devlog records the error. Nothing on either path is protected, so the switch is safe in combat. `/kstyle test` reports each group's path and entry count as the `cooldowns` check.
 

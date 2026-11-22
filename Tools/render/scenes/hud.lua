@@ -907,6 +907,11 @@ function modules.cooldowns(opts)
 		setup = function(env)
 			shared(env, opts)
 			C.Game(env)
+			-- RENDER_COOLDOWN_VIEWER=off: Blizzard's Cooldown Manager switched off, its viewers hidden as UpdateShownState hides them.
+			if os.getenv("RENDER_COOLDOWN_VIEWER") == "off" then
+				env.C_CVar = { GetCVarBool = function(name) if name == "cooldownViewerEnabled" then return false end end }
+				for _, viewer in pairs(env._viewers) do viewer:Hide() end
+			end
 			Common.ForceScreen(env, true)
 			env.C_Spell.GetSpellName = function(spell)
 				return names[spell] or ("Spell " .. spell)

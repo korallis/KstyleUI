@@ -58,8 +58,10 @@ end
 local function Flip(env, value)
 	on = value
 	Blizzard(env)
+	local marks = Marks(env)
 	env.FireEvent("CVAR_UPDATE", CVAR, value and "1" or "0")
 	env.RunTimers()
+	return marks
 end
 
 for _, path in ipairs({ "auto", "mirror", "reskin" }) do
@@ -81,8 +83,7 @@ for _, path in ipairs({ "auto", "mirror", "reskin" }) do
 		env.RunTimers()
 		local before = Drawn(ns)
 		assert(path == "reskin" or before:find("essential", 1, true), path .. ": the mirror must draw the essential row while the Cooldown Manager is on")
-		local marks = Marks(env)
-		Flip(env, false)
+		local marks = Flip(env, false)
 		assert(Drawn(ns) == "", path .. ": switching the Cooldown Manager off must clear KstyleUI's rows live, yet it draws " .. Drawn(ns))
 		Touched(env, marks, true)
 		Flip(env, true)

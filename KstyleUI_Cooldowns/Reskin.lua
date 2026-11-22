@@ -9,7 +9,6 @@ local Reskin = {}
 ns.Reskin = Reskin
 
 local ICON_OUTSET = 0
-local CVAR = "cooldownViewerEnabled"
 
 local active = {}
 local watchedItems = setmetatable({}, { __mode = "k" })
@@ -281,11 +280,7 @@ end
 
 local function Hint()
 	local account = K.Store.Account()
-	if account.cooldownViewerHinted or not (C_CVar and C_CVar.GetCVarBool) then
-		return
-	end
-	local ok, on = pcall(C_CVar.GetCVarBool, CVAR)
-	if ok and not ns.IsSecret(on) and on == false then
+	if not account.cooldownViewerHinted and ns.Path.ViewerOff() then
 		account.cooldownViewerHinted = true
 		ns.Log("Blizzard's Cooldown Manager is switched off, so the restyled viewers show nothing")
 		local path = K.Locale.Path(GAMEMENU_OPTIONS, "Options", SETTING_GROUP_GAMEPLAY, "Gameplay", ADVANCED_OPTIONS_LABEL, "Advanced Options")
