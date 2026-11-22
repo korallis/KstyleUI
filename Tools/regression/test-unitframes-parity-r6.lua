@@ -6,8 +6,8 @@ local LANES = { "name", "healthText", "healthSub", "powerText", "levelText", "ca
 local CORNERS = { "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }
 local PLACED = { "leader", "pvp", "combat", "elite", "marker" }
 
-local function boot(wh)
-	local saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {} }
+local function boot(wh, style)
+	local saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true }, HudStyle = style and { style = style } or nil } }, characters = {} }
 	return U.New({ saved = saved, width = wh and wh[1], height = wh and wh[2], size = wh and "auto", fit = wh and true })
 end
 
@@ -142,16 +142,16 @@ local function sweep(e, k, n, label)
 	e.RunTimers()
 	clean(e, k)
 end
-do
-	local e, k, n = boot()
-	sweep(e, k, n, "medallions")
+for _, style in ipairs({ "frames", "medallions" }) do
+	local e, k, n = boot(nil, style)
+	sweep(e, k, n, style)
 end
 for _, wh in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	local e, k, n = boot(wh)
 	sweep(e, k, n, wh[1] .. "x" .. wh[2])
 end
 
--- 4. Events: an elite target arriving after the layout takes its corner.
+-- 4. Events: an elite target arriving after the layout takes its corner, and a style switch keeps the corners clear.
 local fresh, FK, fn = boot()
 FK.Options.Write("UnitFrames", "target.elite", true)
 FK.Options.Write("UnitFrames", "target.elitePlace", "BOTTOMRIGHT")
@@ -163,6 +163,12 @@ assert(tv.extraIcon and tv.extraIcon:IsShown(), "the elite badge shows")
 local spot = tv.spots.elite
 local box = rect(tv.extraIcon)
 assert(math.abs(box.x + box.w / 2 - spot.x) < 1 and math.abs(box.y + box.h / 2 - spot.y) < 1, "a badge made after the layout sits on its corner")
+FK.Options.Write("HudStyle", "style", "frames")
+fresh.RunTimers()
+box = rect(tv.extraIcon)
+assert(math.abs(box.x + box.w / 2 - tv.spots.elite.x) < 1, "a style switch moves the badge to the new frame's corner")
+FK.Options.Write("HudStyle", "style", "medallions")
+fresh.RunTimers()
 FK.Options.Write("UnitFrames", "target.elitePlace", "")
 fresh.RunTimers()
 assert(W.LastCall(tv.extraIcon, "SetAllPoints") and not tv.spots.elite, "off puts the badge back in the resting slot")
@@ -274,6 +280,15 @@ write("healthDecimalPercentOnly", true)
 pane:Refresh()
 assert(U.Shown(env, boss.healthText) == "240.5K / 100K", "on restores one decimal")
 assert(U.Shown(env, pane.views.boss.healthText) == "72K / 100K", "and the preview's sample: " .. U.Shown(env, pane.views.boss.healthText))
+K.Options.Write("HudStyle", "style", "frames")
+env.RunTimers()
+local narrow = boss.geometry.healthText.w
+write("healthDecimalPercentOnly", false)
+assert(boss.geometry.healthText.w > narrow, "the Frames value column widens for the second decimal")
+write("healthDecimalPercentOnly", true)
+assert(boss.geometry.healthText.w == narrow, "on restores the column")
+K.Options.Write("HudStyle", "style", "medallions")
+env.RunTimers()
 clean(env, K)
 
 -- 10. A formatter that cannot write two decimals keeps secret values at one; plain values still take two.
