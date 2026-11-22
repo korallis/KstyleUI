@@ -12,10 +12,10 @@ The [submission guide](https://support.curseforge.com/en/support/solutions/artic
 
 ## Summary
 
-Paste this one sentence. It is the README's pitch. The authors console rejects a summary longer than 256 characters (`summary.maxLength` 256 in the console). This one is 133.
+Paste this one sentence. It is the README's pitch. The authors console rejects a summary longer than 256 characters (`summary.maxLength` 256 in the console). This one is 170.
 
 ```
-A complete, pixel-perfect interface for World of Warcraft: Forever — one dark forged style, the Medallions HUD, set up in one window.
+One dark forged UI for World of Warcraft: Forever. Pick Medallions or Frames for your HUD, get a class crest that lights up as you fight, and set it all up in one window.
 ```
 
 The [moderation policies](https://support.curseforge.com/en/support/solutions/articles/9000197279-project-and-modpack-moderation-policies) call the summary a one-sentence tldr of what the project does.
@@ -58,7 +58,7 @@ Every picture below is a test render of the addon over my own in-game screenshot
 
 ![KstyleUI test render over an in-game screenshot: a shaman's totem bar on the crest, then Lightning Shield's three storm orbs throwing bolts](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/shaman.gif)
 
-*I put way too much effort into shamans. Your totem bar sits on the crest, and Lightning Shield turns into storm orbs that throw a bolt every time you get hit.*
+*I put way too much effort into shamans. Your totem bar sits on the crest, and Lightning Shield turns into storm orbs, and each one throws a bolt when its charge gets used up.*
 
 ![KstyleUI test render over an in-game screenshot: a hunter's hawk perches lighting up with a timer for each hawk](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/hawks.gif)
 
@@ -135,7 +135,7 @@ Upload in this order. Title, then caption.
 | `gallery/02-classes.gif` | 800×293 | A crest for every class | KstyleUI test render over an in-game screenshot: the Medallions HUD for nine classes in turn, each with its own crest. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/03-crowns.gif` | 800×494 | Crown of blades and claws | KstyleUI test render over an in-game screenshot: a rogue's crown of blades and a cat druid's claws fill with combo points, then a finisher slashes them out. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/04-crowns-more.gif` | 800×494 | Class crowns | KstyleUI test render over an in-game screenshot: warrior banners, priest candles, mage shards, hunter arrows and bear talons fill as their stacks build. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/05-shaman.gif` | 800×494 | Totems and Lightning Shield | KstyleUI test render over an in-game screenshot: the shaman's totem bar on the crest, then Lightning Shield's storm orbs throwing a bolt on each hit. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/05-shaman.gif` | 800×494 | Totems and Lightning Shield | KstyleUI test render over an in-game screenshot: the shaman's totem bar on the crest, then Lightning Shield's storm orbs, each throwing a bolt as its charge is spent. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/06-hawks.gif` | 800×494 | Hawk perches | KstyleUI test render over an in-game screenshot: a hunter's hawk perches on the crest ring, each with a timer for its hawk. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/07-hud.jpg` | 1920×1080 | The whole HUD | KstyleUI test render over an in-game screenshot of the whole HUD on a 1920 by 1080 screen: the guide card top left, the quests on the right under the map. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/08-frames.jpg` | 1200×675 | The Frames look | KstyleUI test render over an in-game screenshot of the Frames look on a 1920 by 1080 screen: the target's card stacked over the player's above the action bars. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |

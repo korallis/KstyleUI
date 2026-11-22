@@ -702,7 +702,7 @@ function modules.actionbars(opts)
 			end
 			-- RENDER_FOREVER_POWERS=1 gives soul shards (7) and holy power (9) no maximum, as Forever does, so no jewels show.
 			env.UnitPowerMax = env.UnitPowerMax or function(_, power)
-				return os.getenv("RENDER_FOREVER_POWERS") and (power == 7 or power == 9) and 0 or 5
+				return os.getenv("RENDER_FOREVER_POWERS") == "1" and (power == 7 or power == 9) and 0 or 5
 			end
 			-- The client's seconds formatter, which the sockets put on their cooldown numbers ("4s").
 			if travel then

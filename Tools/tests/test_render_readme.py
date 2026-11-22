@@ -27,19 +27,8 @@ R = load()
 
 
 def readme_pictures():
-    """The picture names README.md shows, in order, with the caption each one is read under.
-
-    README.md is generated from docs/store/description.md, where each picture
-    is a markdown image followed by an italic caption line.
-    """
-    text = README.read_text(encoding="utf-8")
-    found = []
-    for match in re.finditer(r"!\[[^\]]*\]\([^)]*(?:/readme/|/marketing/show_)([a-z0-9_]+)\.(?:jpg|gif)\)", text):
-        after = text[match.end():]
-        window = after[: after.find("![") if "![" in after else len(after)]
-        caption = re.search(r"\*([^*]+)\*", window)
-        found.append((match.group(1), caption.group(1) if caption else ""))
-    return found
+    """The picture names README.md shows, in order."""
+    return re.findall(r"!\[[^\]]*\]\([^)]*(?:/readme/|/marketing/show_)([a-z0-9_]+)\.(?:jpg|gif)\)", README.read_text(encoding="utf-8"))
 
 
 class Helpers(unittest.TestCase):
@@ -50,7 +39,7 @@ class Helpers(unittest.TestCase):
                 (media / name).write_bytes(b"in-game")
             with patch.multiple(R, OUT=work), \
                     patch.object(R, "pillow", return_value=True), \
-                    patch.object(R, "cut_all"), patch.object(R, "finish"), \
+                    patch.object(R, "finish"), \
                     patch.object(R, "total_bytes", return_value=0):
                 self.assertEqual(R.main(["--no-render"]), 0)
             self.assertEqual(sorted(p.name for p in media.iterdir()),
@@ -68,7 +57,7 @@ class Helpers(unittest.TestCase):
         names = R.picture_names()
         self.assertEqual(len(names), len(set(names)))
         for name, source, crop, width in R.IMAGES:
-            self.assertRegex(source, r"^(render:[a-z0-9_]+|frame:[a-z_]+)$", name)
+            self.assertRegex(source, r"^render:[a-z0-9_]+$", name)
             if source.startswith("render:"):
                 self.assertIn(source.split(":")[1], R.RENDERS, name)
             self.assertTrue(crop is None or R.parse_crop(crop), name)
@@ -88,14 +77,14 @@ class Helpers(unittest.TestCase):
 
 class ReadmePictures(unittest.TestCase):
     def test_readme_shows_every_render_once(self):
-        shown = [name for name, _ in readme_pictures()]
+        shown = readme_pictures()
         self.assertEqual(sorted(name for name in shown if not name.startswith("game_")), sorted(R.picture_names()))
         self.assertEqual(len(shown), len(set(shown)), "a picture is shown twice")
 
     def test_every_picture_file_exists_and_nothing_else_is_in_the_folder(self):
         # The in-game hero is the banner's and the store gallery's source (Tools/media/marketing.py).
         on_disk = {p.stem for p in MEDIA.glob("*") if p.is_file()}
-        self.assertEqual(on_disk, {name for name, _ in readme_pictures()} | {"game_medallions_hero"})
+        self.assertEqual(on_disk, set(readme_pictures()) | {"game_medallions_hero"})
         self.assertTrue(all(p.suffix in (".jpg", ".gif") for p in MEDIA.glob("*")))
 
     def test_medallions_has_no_generated_sources(self):

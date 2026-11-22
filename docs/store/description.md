@@ -22,7 +22,7 @@ Every picture below is a test render of the addon over my own in-game screenshot
 
 ![KstyleUI test render over an in-game screenshot: a shaman's totem bar on the crest, then Lightning Shield's three storm orbs throwing bolts](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/shaman.gif)
 
-*I put way too much effort into shamans. Your totem bar sits on the crest, and Lightning Shield turns into storm orbs that throw a bolt every time you get hit.*
+*I put way too much effort into shamans. Your totem bar sits on the crest, and Lightning Shield turns into storm orbs, and each one throws a bolt when its charge gets used up.*
 
 ![KstyleUI test render over an in-game screenshot: a hunter's hawk perches lighting up with a timer for each hawk](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/hawks.gif)
 

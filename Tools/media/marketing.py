@@ -14,13 +14,12 @@ here; the in-game crop is the addon's own screenshot, darkened.
 """
 
 import argparse
-import hashlib
 import importlib.util
-import json
 import os
 import re
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -44,7 +43,6 @@ GALLERY = [
 # Core/Tokens.lua colours.
 FORGED = (16, 18, 17)        # materialForged 101211
 SLAB_TOP = (21, 23, 28)      # slabTop 15171c
-SLAB_BOTTOM = (10, 11, 14)   # slabBottom 0a0b0e
 GILT = (211, 181, 116)       # gilt d3b574
 GILT_LIT = (243, 220, 164)   # giltLit f3dca4
 GILT_DIM = (138, 108, 52)    # giltDim 8a6c34
@@ -80,14 +78,14 @@ def times(start, stop, step=FRAME_MS / 1000):
     return [round(start + i * step, 3) for i in range(round((stop - start) / step) + 1)]
 
 
-def climb(scene, top, env=None, pair="RENDER_PIPS", clock="RENDER_PIPS_T", gain=0.35, peak=0.56, spend=True):
-    """Shots for a resource from 0 to top one point at a time, the maximum, then (spend) back to 0."""
-    env = env or {}
-    shots = [(scene, {**env, pair: "0,0"}, clock, [1], 400)]
-    shots += [(scene, {**env, pair: f"{n - 1},{n}"}, clock, times(0, gain), 100) for n in range(1, top + 1)]
-    shots.append((scene, {**env, pair: f"{top},{top}"}, clock, times(0, peak), 500))
+def climb(scene, top, env=None, gain=0.35, peak=0.56, spend=True):
+    """Shots for combo points or stacks from 0 to top one at a time, the maximum, then (spend) back to 0."""
+    env, clock = env or {}, "RENDER_PIPS_T"
+    shots = [(scene, {**env, "RENDER_PIPS": "0,0"}, clock, [1], 400)]
+    shots += [(scene, {**env, "RENDER_PIPS": f"{n - 1},{n}"}, clock, times(0, gain), 100) for n in range(1, top + 1)]
+    shots.append((scene, {**env, "RENDER_PIPS": f"{top},{top}"}, clock, times(0, peak), 500))
     if spend:
-        shots.append((scene, {**env, pair: f"{top},0"}, clock, times(0, 0.49), 600))
+        shots.append((scene, {**env, "RENDER_PIPS": f"{top},0"}, clock, times(0, 0.49), 600))
     return shots
 
 
@@ -103,7 +101,7 @@ def story(scene, env, clock, beats, fast):
 
 
 CLIPS = {
-    "classes.gif": (STRIP, [(scene, env, None, [0], 1100) for scene, env in (
+    "classes.gif": (STRIP, [(scene, env, None, [0], 630) for scene, env in (
         ("hud_rogue_mac", {"RENDER_PIPS": "5,5", "RENDER_PIPS_T": "1"}),
         ("hud_shaman_mac", {"RENDER_TOTEMS": "story", "RENDER_TOTEMS_T": "8", "RENDER_FX": "storm", "RENDER_FX_T": "2.5"}),
         ("hud_warrior_mac", {"RENDER_PIPS": "5,5", "RENDER_PIPS_T": "1"}),
@@ -243,7 +241,6 @@ def make_banner():
             top = max(0.0, 1 - yy / (height * 0.9))
             px[xx, yy] = int(215 * max(left, top * 0.8))
     img = Image.composite(Image.new("RGB", (width, height), (5, 6, 8)), img, shade)
-    draw = ImageDraw.Draw(img)
     logo = logo_image(300)
     img.paste(logo, (84, 120), logo)
     draw = ImageDraw.Draw(img)
@@ -287,60 +284,43 @@ def make_showcase(name, picture):
 
 
 def clip_frame(work, scene, env, box, standins):
-    """One clip frame cut to box, rendered once and kept in work under a key of everything that drew it."""
-    key = hashlib.sha1(json.dumps([scene, CLIP_ENV, env, box, CLIP_PPU], sort_keys=True).encode()).hexdigest()[:16]
-    path = work / (key + ".png")
-    if path.is_file():
-        return path
-    full, plate = work / key, (PLATES / "forest-1080.jpg").as_posix()
-    full.mkdir(parents=True, exist_ok=True)
+    """One clip frame, rendered fresh and strict over the real forest plate, cut to box."""
+    out, plate = Path(tempfile.mkdtemp(dir=work)), (PLATES / "forest-1080.jpg").as_posix()
     cmd = ["bash", "Tools/render/shoot.sh", scene, "--strict", "--ppu", str(CLIP_PPU), "--backdrop", plate,
-           "--out", (full / "frame.png").as_posix()] + ([] if standins else ["--no-standins"])
+           "--out", (out / "frame.png").as_posix()] + ([] if standins else ["--no-standins"])
     run = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True,
-                         env={**os.environ, **CLIP_ENV, **env, "RENDER_OUTDIR": full.as_posix(), "KSTYLEUI_PLATE": plate})
+                         env={**os.environ, **CLIP_ENV, **env, "RENDER_OUTDIR": out.as_posix(), "KSTYLEUI_PLATE": plate})
     if run.returncode:
         raise SystemExit(f"{scene} {env}: shoot.sh exited {run.returncode}\n{run.stdout[-3000:]}{run.stderr[-3000:]}")
     from PIL import Image
     x, y, w, h = (round(v * CLIP_PPU) for v in box)
-    with Image.open(full / "frame.png") as image:
-        image.crop((x, y, x + w, y + h)).save(path)
-    shutil.rmtree(full)
-    return path
+    with Image.open(out / "frame.png") as image:
+        return image.convert("RGB").crop((x, y, x + w, y + h))
 
 
 def write_gif(path, frames, durations):
-    """One palette for the whole clip; each frame after the first stores only the pixels that changed."""
-    from PIL import Image, ImageChops
+    """One palette for the whole clip, so colours hold still from frame to frame."""
+    from PIL import Image
     sample = frames[::max(1, len(frames) // 24)]
     stack = Image.new("RGB", (frames[0].width, frames[0].height * len(sample)))
     for i, frame in enumerate(sample):
         stack.paste(frame, (0, i * frame.height))
     palette = stack.quantize(colors=255, method=Image.Quantize.MEDIANCUT)
     indexed = [frame.quantize(palette=palette, dither=Image.Dither.NONE) for frame in frames]
-    blank = Image.new("P", indexed[0].size, 255)
-    out, prev = [indexed[0]], indexed[0]
-    for frame in indexed[1:]:
-        same = ImageChops.difference(Image.frombytes("L", frame.size, prev.tobytes()),
-                                     Image.frombytes("L", frame.size, frame.tobytes())).point(lambda v: 0 if v else 255)
-        delta = Image.composite(blank, frame, same)
-        delta.putpalette(frame.getpalette())
-        out.append(delta)
-        prev = frame
-    out[0].save(path, save_all=True, append_images=out[1:], duration=durations, loop=0, optimize=False,
-                transparency=255, disposal=[0] + [1] * (len(out) - 1))
+    indexed[0].save(path, save_all=True, append_images=indexed[1:], duration=durations, loop=0, optimize=True, disposal=1)
 
 
-def make_clip(name, work):
+def make_clip(name):
     """Render a clip's frames (two at a time) and write it as a GIF on the showcase's forged ground."""
     from concurrent.futures import ThreadPoolExecutor
     from PIL import Image, ImageDraw
     box, shots = CLIPS[name]
     jobs = [(scene, {**env, **({clock: str(t)} if clock else {})}) for scene, env, clock, ts, _ in shots for t in ts]
-    clip_frame(work, *jobs[0], box, True)
-    with ThreadPoolExecutor(2) as pool:
-        paths = list(pool.map(lambda job: clip_frame(work, *job, box, False), jobs))
-    durations = [FRAME_MS * (i < len(ts) - 1) + (FRAME_MS + hold) * (i == len(ts) - 1)
-                 for _, _, _, ts, hold in shots for i in range(len(ts))]
+    with tempfile.TemporaryDirectory() as work:
+        crops = [clip_frame(work, *jobs[0], box, True)]
+        with ThreadPoolExecutor(2) as pool:
+            crops += pool.map(lambda job: clip_frame(work, *job, box, False), jobs[1:])
+    durations = [FRAME_MS + (hold if i == len(ts) - 1 else 0) for _, _, _, ts, hold in shots for i in range(len(ts))]
     pad, label = 16, 34
     height = round(box[3] * CLIP_WIDTH / box[2])
     ground = gradient(CLIP_WIDTH + 2 * pad, height + pad + label, SLAB_TOP, FORGED)
@@ -349,10 +329,9 @@ def make_clip(name, work):
     gold_rule(draw, ground.width, ground.height - 4, 2)
     source_label(draw, (pad, height + pad + 5), name, size=18)
     frames = []
-    for path in paths:
+    for crop in crops:
         frame = ground.copy()
-        with Image.open(path) as image:
-            rounded_paste(frame, image.convert("RGB").resize((CLIP_WIDTH, height), Image.LANCZOS), (pad, pad), radius=10)
+        rounded_paste(frame, crop.resize((CLIP_WIDTH, height), Image.LANCZOS), (pad, pad), radius=10)
         frames.append(frame)
     write_gif(OUT / name, frames, durations)
     print(f"{name} {ground.width}x{ground.height} {len(frames)} frames {sum(durations) / 1000:.1f} s "
@@ -398,11 +377,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--pages", action="store_true", help="also regenerate the three pages")
     parser.add_argument("--clips", nargs="*", metavar="NAME", help="render these clips (all when none is named)")
-    parser.add_argument("--work", default=str(Path.home() / ".capy/work/marketing-clips"), help="clip frame cache")
     args = parser.parse_args(argv)
     if args.clips is not None:
         for name in args.clips or CLIPS:
-            make_clip(name, Path(args.work))
+            make_clip(name)
     make_banner()
     for name, picture in SHOWCASES:
         make_showcase(name, picture)

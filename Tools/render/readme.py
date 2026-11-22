@@ -4,21 +4,20 @@
     python3 Tools/render/readme.py [--work DIR] [--no-render] [--only NAME ...]
 
 Run it from the repository root with luajit and Google Chrome installed. It renders the scenes into DIR (default
-~/.capy/work/readme-renders), cuts them and writes the finished JPEGs to docs/media/readme/, where README.md reads them.
+~/.capy/work/readme-renders), crops them and writes the finished JPEGs to docs/media/readme/, where README.md reads them.
 In-game Medallions media uses the game_ prefix and is preserved.
 
 The pictures:
 
   hud_1080         the whole HUD in combat on a 1920x1080 screen at the 15/16 size the game picks
   hud_frames_1080  the same in the Frames look
-  frame_raid       the raid frames with their heading, cut from the group frames gallery scene at twice the density
+  frame_raid       the raid frames with their heading, from the group frames gallery scene at twice the density
 
 --no-render reuses the renders a previous run left in DIR. --only redoes the named pictures. Pillow is needed; the script
 runs itself again with the wow-dev virtual environment's Python when this one has none.
 """
 
 import argparse
-import json
 from pathlib import Path
 import os
 import subprocess
@@ -31,7 +30,6 @@ OUT = os.path.join(ROOT, "docs", "media", "readme")
 DEFAULT_WORK = os.environ.get("KSTYLEUI_MEDIA_WORK", os.path.expanduser("~/.capy/work/readme-renders"))
 
 PLATES = Path(ROOT) / "docs/media/plates"
-GALLERY_PPU = 2.0
 BUDGET_BYTES = 4 * 1024 * 1024
 QUALITY = 86
 
@@ -45,10 +43,7 @@ RENDERS = {
     "groupframes": ("gallery_groupframes", 2.0, {}, "--strict"),
 }
 
-GALLERIES = ()
-
-# name, source, crop, width. A source is "render:<RENDERS key>" or "frame:<gallery frame name>"; a crop is
-# "WxH+X+Y" in the source's pixels or None. A picture narrower than its width stays as it is.
+# name, source, crop, width. A source is "render:<RENDERS key>"; a crop is "WxH+X+Y" in the source's pixels or None. A picture narrower than its width stays as it is.
 IMAGES = [
     ("hud_1080", "render:hud_1080", None, 1920),
     ("hud_frames_1080", "render:frames_1080", None, 1200),
@@ -119,37 +114,6 @@ def render_all(work, wanted):
         if "render:" + key in sources:
             run(["bash", "Tools/render/shoot.sh", scene, guard, "--backdrop", bash_path(scenery_plate(env)), "--ppu", repr(ppu), "--out", os.path.join(work, key + ".png")],
                 dict(env, KSTYLEUI_PLATE=str(scenery_plate(env))))
-    if any(source.startswith("frame:") for source in sources):
-        for scene in GALLERIES:
-            run(["bash", "Tools/render/shoot.sh", scene, "--backdrop", bash_path(scenery_plate({})), "--ppu", str(GALLERY_PPU),
-                 "--out", os.path.join(work, scene + ".png")],
-                dict(KSTYLEUI_PLATE=str(scenery_plate({}))))
-
-
-def cut_all(work, wanted):
-    """Cut published gallery frames directly; design-mockup references are internal only."""
-    frames = Path(work) / "frames"
-    frames.mkdir(parents=True, exist_ok=True)
-    needed = {source[6:] for name, source, _, _ in IMAGES if name in wanted and source.startswith("frame:")}
-    for scene in GALLERIES if needed else ():
-        path = Path(ROOT) / "Tools/render/out" / scene
-        data = json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
-        with Image.open(Path(work) / (scene + ".png")) as image:
-            for frame in data["frames"]:
-                if frame["name"] not in needed:
-                    continue
-                x, y, width, height = frame["rect"]
-                pad = frame.get("pad", 14)
-                box = (max(0, round((x-pad)*GALLERY_PPU)), max(0, round((y-pad)*GALLERY_PPU)),
-                       min(image.width, round((x+width+pad)*GALLERY_PPU)), min(image.height, round((y+height+pad)*GALLERY_PPU)))
-                image.crop(box).save(frames / ("kstyle_" + frame["name"] + ".png"))
-
-
-def source_path(work, source):
-    kind, _, name = source.partition(":")
-    if kind == "frame":
-        return os.path.join(work, "frames", "kstyle_%s.png" % name)
-    return os.path.join(work, name + ".png")
 
 
 def save(image, name):
@@ -168,7 +132,7 @@ def finish(work, wanted):
     for name, source, crop, width in IMAGES:
         if name not in wanted:
             continue
-        image = Image.open(source_path(work, source))
+        image = Image.open(os.path.join(work, source.split(":")[1] + ".png"))
         if crop:
             image = image.crop(parse_crop(crop))
         save(scaled(image, width), name)
@@ -181,7 +145,7 @@ def total_bytes():
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--work", default=DEFAULT_WORK, help="where the renders and cut frames go")
+    parser.add_argument("--work", default=DEFAULT_WORK, help="where the renders go")
     parser.add_argument("--no-render", action="store_true", help="reuse the renders a previous run left")
     parser.add_argument("--only", nargs="*", default=[], help="redo only these pictures")
     args = parser.parse_args(argv)
@@ -193,7 +157,6 @@ def main(argv=None):
     wanted = set(args.only or picture_names())
     if not args.no_render:
         render_all(args.work, wanted)
-    cut_all(args.work, wanted)
     finish(args.work, wanted)
     for path in os.listdir(OUT):
         if not path.startswith("game_") and (os.path.splitext(path)[0] not in picture_names() or not path.endswith(".jpg")):

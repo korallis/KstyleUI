@@ -16,8 +16,8 @@ RAW = "https://raw.githubusercontent.com/korallis/KstyleUI/main/"
 DISCORD = "https://discord.gg/A5qqGZEXyN"
 ICON_RELEASES = "https://github.com/korallis/KstyleUI/releases/latest"  # the one allowed releases link: the icon pack's page, never a file
 GIF_CAP = 1_500_000  # the brief's ceiling; CurseForge refuses big images
-SUMMARY = ("A complete, pixel-perfect interface for World of Warcraft: Forever "
-           "\u2014 one dark forged style, the Medallions HUD, set up in one window.")
+SUMMARY = ("One dark forged UI for World of Warcraft: Forever. Pick Medallions or Frames for your HUD, get a class crest "
+           "that lights up as you fight, and set it all up in one window.")
 
 try:
     from PIL import Image
@@ -102,7 +102,7 @@ class MarketingImages(unittest.TestCase):
         with patch.object(readme, "run", side_effect=lambda cmd, env=None: calls.append((cmd, env))), \
                 patch.dict(os.environ, {"KSTYLEUI_PLATE": "/internal/mockup/clean.png"}):
             readme.render_all(str(M.PLATES), set(readme.picture_names()))
-        self.assertEqual(len(calls), len(readme.RENDERS) + len(readme.GALLERIES))
+        self.assertEqual(len(calls), len(readme.RENDERS))
         for cmd, env in calls:
             self.assertIn("--out", cmd, "Fix: every published render needs an explicit PNG output path, including galleries")
             self.assertIn("--backdrop", cmd, "Published pictures must use real scenery, not flat or mockup backdrops")
@@ -149,8 +149,6 @@ class MarketingImages(unittest.TestCase):
     def test_picture_alt_text_names_the_source(self):
         master = MASTER.read_text(encoding="utf-8")
         for alt, rel in re.findall(r"!\[([^\]]+)\]\(" + re.escape(RAW) + r"([^)]+)\)", master):
-            if "/header-" in rel:
-                continue
             label = "in-game screenshot" if "/game_" in rel or rel.endswith("banner.jpg") else "test render over an in-game screenshot"
             self.assertIn(label, alt.lower(), rel)
 

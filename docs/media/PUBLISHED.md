@@ -16,6 +16,6 @@ The same master description ([docs/store/description.md](../store/description.md
 
 The store gallery (`docs/store/gallery/`) holds copies of the hero, the clips and the HUD picture, in upload order.
 
-Rebuild everything with `python Tools/render/readme.py && python Tools/media/marketing.py --clips --pages`. The clips need LuaJIT and Chrome; their frames are kept in `--work` (default `~/.capy/work/marketing-clips`), so a second run only renders what changed.
+Rebuild everything with `python Tools/render/readme.py && python Tools/media/marketing.py --clips --pages`. The clips need LuaJIT and Chrome; every run renders every frame fresh from the tree it runs in, so nothing stale is reused.
 Every test render carries a visible source label inside the picture and in its alt text. The page's note above the clips and every gallery caption disclose the optional AI-made icon pack.
 Plate crops and the in-game capture wish list are in [PROVENANCE.md](plates/PROVENANCE.md).
