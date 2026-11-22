@@ -1,12 +1,6 @@
 -- groupframes_rows_frames.lua: test-groupframes-rows-frames*.lua's body: on Frames, KSTY-57's party and raid rows from 1280x720 through 3840x2160, including 2560x1440 and 5120x1440, at the automatic interface size: the role pip before the name, the name and percent above a full-width spark-free bar, a thin power line below, indicators off the bar, the raid marker clear of the percent, the party bare and the raid seated in its card. Run(screens) checks the given screens.
 local G = dofile("Tools/regression/group_env.lua")
-local New = G.New
-function G.New(opts)
-	if opts and opts.saved then opts.saved.profiles.Default.HudStyle = { style = "frames" } end
-	local env, K, ns = New(opts)
-	if not (opts and (opts.saved or opts.boot == false)) then K.Options.Write("HudStyle", "style", "frames") end
-	return env, K, ns
-end
+dofile("Tools/regression/groupframes_frames.lua")(G)
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Scene = dofile("Tools/render/scene.lua")
 

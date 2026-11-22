@@ -1,12 +1,6 @@
 -- test-groupframes-clear-frames.lua: on Frames, no helpful aura ever paints on a group frame's health bar, and the raid tile keeps its own lanes (KSTY-57): a whole name lane with the percent at its end over the bar's end, a row of three debuffs over the bar's right end (rank R5: harmful auras may overlay a raid bar's end, as Cell draws them), your heals on the name line, the indicators covering only the name's tail and a status ("Dead") in the percent's place, off the bar and the name, at the KSTY-47 mock-ups' 10, 20 and 40-player sizes and the Healer layout's.
 local G = dofile("Tools/regression/group_env.lua")
-local New = G.New
-function G.New(opts)
-	if opts and opts.saved then opts.saved.profiles.Default.HudStyle = { style = "frames" } end
-	local env, K, ns = New(opts)
-	if not (opts and (opts.saved or opts.boot == false)) then K.Options.Write("HudStyle", "style", "frames") end
-	return env, K, ns
-end
+dofile("Tools/regression/groupframes_frames.lua")(G)
 local Scene = dofile("Tools/render/scene.lua")
 
 

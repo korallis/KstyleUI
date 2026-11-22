@@ -1,12 +1,6 @@
 -- test-groupframes-depth-frames.lua: on Frames, the round-2 healer depth: party debuffs inside the card, one dead state, short deficits, distinct short names, heal absorbs, the debuff priority list and glow, the indicator slots, the automatic layout, the click casting panel, the preview fixture and many auras kept inside the tile.
 local G = dofile("Tools/regression/group_env.lua")
-local New = G.New
-function G.New(opts)
-	if opts and opts.saved then opts.saved.profiles.Default.HudStyle = { style = "frames" } end
-	local env, K, ns = New(opts)
-	if not (opts and (opts.saved or opts.boot == false)) then K.Options.Write("HudStyle", "style", "frames") end
-	return env, K, ns
-end
+dofile("Tools/regression/groupframes_frames.lua")(G)
 local Looks = dofile("Tools/regression/group_looks.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 local Scene = dofile("Tools/render/scene.lua")

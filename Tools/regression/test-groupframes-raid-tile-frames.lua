@@ -1,12 +1,6 @@
 -- test-groupframes-raid-tile-frames.lua: on Frames, the raid row at the KSTY-47 mock-ups' three sizes (KSTY-57): a name line with the role pip, a whole name and the percent at the bar's end, a full-width bar no thinner than the mock-up draws it (12, 11 and 9 units), a thin power line under it at 10 and 20, debuffs over the bar's right end, a centred boss slot where the bar holds one, Dead and Offline in the percent's place or on the emptied bar, your heals never on the fill; and the party tank's heals on the name line, clear of its bar.
 local G = dofile("Tools/regression/group_env.lua")
-local New = G.New
-function G.New(opts)
-	if opts and opts.saved then opts.saved.profiles.Default.HudStyle = { style = "frames" } end
-	local env, K, ns = New(opts)
-	if not (opts and (opts.saved or opts.boot == false)) then K.Options.Write("HudStyle", "style", "frames") end
-	return env, K, ns
-end
+dofile("Tools/regression/groupframes_frames.lua")(G)
 local Scene = dofile("Tools/render/scene.lua")
 
 local SIZES = {

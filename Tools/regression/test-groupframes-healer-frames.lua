@@ -1,11 +1,6 @@
 -- test-groupframes-healer-frames.lua: on Frames, the healer's group frames: raid names off the fill in the class colour, the percent at the bar's end by default, three of your heals over time from the aura engine beside a whole name, the shield line, the click casting reminder and outlined text on the bar.
 local G = dofile("Tools/regression/group_env.lua")
-local New = G.New
-function G.New(...)
-	local env, K, ns = New(...)
-	K.Options.Write("HudStyle", "style", "frames")
-	return env, K, ns
-end
+dofile("Tools/regression/groupframes_frames.lua")(G)
 local W = dofile("Tools/regression/widget_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 

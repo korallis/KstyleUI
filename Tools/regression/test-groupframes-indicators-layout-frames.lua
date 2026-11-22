@@ -1,12 +1,6 @@
 -- test-groupframes-indicators-layout-frames.lua: on Frames, the role icon (KSTY-57: the role pip), the leader icon, the raid marker and the health text never overlap on a group frame, resolved by the renderer's anchor solver at the default, smallest and largest party and raid frame sizes.
 local G = dofile("Tools/regression/group_env.lua")
-local New = G.New
-function G.New(opts)
-	if opts and opts.saved then opts.saved.profiles.Default.HudStyle = { style = "frames" } end
-	local env, K, ns = New(opts)
-	if not (opts and (opts.saved or opts.boot == false)) then K.Options.Write("HudStyle", "style", "frames") end
-	return env, K, ns
-end
+dofile("Tools/regression/groupframes_frames.lua")(G)
 local Scene = dofile("Tools/render/scene.lua")
 
 local SCREEN = { width = 2383, height = 1540, uiScale = 768 / 1080 }

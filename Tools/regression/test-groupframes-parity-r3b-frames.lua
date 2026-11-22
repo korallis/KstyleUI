@@ -1,12 +1,6 @@
 -- test-groupframes-parity-r3b-frames.lua: on Frames, EllesmereUI parity round 3b: v0.2.8 profiles keep every default and build nothing new; debuff offsets, text above icons, aura tooltips in combat, important debuffs, icon text outline, indicator Show on and party targets each apply when on, follow their events and combat, reach the preview and switch back exactly.
 local G = dofile("Tools/regression/group_env.lua")
-local New = G.New
-function G.New(opts)
-	if opts and opts.saved then opts.saved.profiles.Default.HudStyle = { style = "frames" } end
-	local env, K, ns = New(opts)
-	if not (opts and (opts.saved or opts.boot == false)) then K.Options.Write("HudStyle", "style", "frames") end
-	return env, K, ns
-end
+dofile("Tools/regression/groupframes_frames.lua")(G)
 local A = dofile("Tools/regression/auras_env.lua")
 
 local MODULE = "GroupFrames"

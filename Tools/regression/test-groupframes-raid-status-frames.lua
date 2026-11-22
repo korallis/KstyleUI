@@ -1,13 +1,7 @@
 -- test-groupframes-raid-status-frames.lua: on Frames, a raid tile keeps every status it is configured for (rank round 6): the debuff cluster ends in an engine-counted "+N" chip (Grok #2), every boss debuff past the centred slot still reaches the row or the chip (Astra #1), the shipped raid presets show their defensive indicators at 20 and 40 players in the indicator lane off the bar (Astra #2, KSTY-57), a configuration with no room says so in its settings row, the party's indicators are legible (Opus), and the missing health keeps clear of the debuffs (Muse).
 local S = dofile("Tools/regression/raid_status.lua")
 local G, A, Scene = S.G, S.A, S.Scene
-local New = G.New
-function G.New(opts)
-	if opts and opts.saved then opts.saved.profiles.Default.HudStyle = { style = "frames" } end
-	local env, K, ns = New(opts)
-	if not (opts and (opts.saved or opts.boot == false)) then K.Options.Write("HudStyle", "style", "frames") end
-	return env, K, ns
-end
+dofile("Tools/regression/groupframes_frames.lua")(G)
 local LEGIBLE = S.LEGIBLE
 local eq, intersects, describe = S.eq, S.intersects, S.describe
 local Saved, Batch, Part, Raid, CheckRoute, Content = S.Saved, S.Batch, S.Part, S.Raid, S.CheckRoute, S.Content

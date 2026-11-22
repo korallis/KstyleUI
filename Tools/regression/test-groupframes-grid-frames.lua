@@ -1,12 +1,6 @@
 -- test-groupframes-grid-frames.lua: on Frames, KSTY-67 items 3, 4 and 21 on the screens Lee judges by (1920x1080 at the 15/16 the game picks there, 3440x1440 and 5120x1440 at the automatic size): party and raid rows, their bars and the raid card on whole physical pixels; the party's percents and the raid's names and percents at the 11 px text floor or over; and class-coloured names lifted to a luminance of 0.62 so the dark class colours read on the card.
 local G = dofile("Tools/regression/group_env.lua")
-local New = G.New
-function G.New(opts)
-	if opts and opts.saved then opts.saved.profiles.Default.HudStyle = { style = "frames" } end
-	local env, K, ns = New(opts)
-	if not (opts and (opts.saved or opts.boot == false)) then K.Options.Write("HudStyle", "style", "frames") end
-	return env, K, ns
-end
+dofile("Tools/regression/groupframes_frames.lua")(G)
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Scene = dofile("Tools/render/scene.lua")
 

@@ -1,11 +1,6 @@
 -- test-groupframes-name-roles-frames.lua: on Frames, one measured face and size per party, semantic names in roomy lanes, whole compact raid names, and saved choices across restyles.
 local G = dofile("Tools/regression/group_env.lua")
-local New = G.New
-function G.New(...)
-	local env, K, ns = New(...)
-	K.Options.Write("HudStyle", "style", "frames")
-	return env, K, ns
-end
+dofile("Tools/regression/groupframes_frames.lua")(G)
 local Looks = dofile("Tools/regression/group_looks.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 
@@ -51,7 +46,6 @@ end
 -- The captioned rows of KSTY-31's party card, which KSTY-57 left a choice.
 do
 	local env, K, ns = G.New({ saved = Looks.Saved(Looks.PARTY_CARD) })
-	K.Options.Write("GroupFrames", "party.portrait", true)
 	G.SetRoster(env, "party", {
 		{ name = "Thaldren", class = "WARRIOR", role = "TANK", health = 72 },
 		{ name = "Kragar", class = "SHAMAN", role = "DAMAGER", health = 60 },

@@ -2,13 +2,7 @@
 local H = dofile("Tools/regression/groupframes_r3a.lua")
 local A = dofile("Tools/regression/auras_env.lua")
 local G, MODULE = H.G, H.MODULE
-local New = G.New
-function G.New(opts)
-	if opts and opts.saved then opts.saved.profiles.Default.HudStyle = { style = "frames" } end
-	local env, K, ns = New(opts)
-	if not (opts and (opts.saved or opts.boot == false)) then K.Options.Write("HudStyle", "style", "frames") end
-	return env, K, ns
-end
+dofile("Tools/regression/groupframes_frames.lua")(G)
 local write, frame, noErrors, boot, offset, near = H.write, H.frame, H.noErrors, H.boot, H.offset, H.near
 local Scene = dofile("Tools/render/scene.lua")
 
