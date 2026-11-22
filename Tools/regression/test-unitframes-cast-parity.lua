@@ -1,4 +1,4 @@
--- test-unitframes-cast-parity.lua: on the Medallions player cast bar, smoothing, channel colour and total duration preserve legacy defaults; uninterruptible colour keeps priority, including secret flags.
+-- test-unitframes-cast-parity.lua: on the Medallions player cast bar, smoothing, channel colour and total duration preserve legacy defaults; uninterruptible colour keeps priority, including secret flags; on Frames the icon side and the total's wider column hold on the plate and the caption cast.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local env, K, ns = U.New({ plate = true, saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {} } })
 local W, settings = U.W, ns.Settings
@@ -61,4 +61,52 @@ assert(timer() == "%.1f / %.1f", "the timer shows elapsed and total time")
 write("castbarTotal", false)
 assert(timer() ~= "%.1f / %.1f", "the cast option restores")
 assert(#env._errors == 0 and K.ErrorCount() == 0, "cast options apply without errors")
+
+local function frames(plate)
+	return U.New({ frames = true, plate = plate, saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {} } })
+end
+local penv, PK, pns = frames(true)
+local pcb = pns.CastBars.Get("player")[1]
+local function pwrite(key, value)
+	PK.Options.Write("UnitFrames", "player." .. key, value)
+	penv.RunTimers()
+end
+local function ptimer()
+	penv._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1000, finish = 4000, spellID = 116 }
+	penv.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116)
+	pcb.frame:GetScript("OnUpdate")(pcb.frame, 1)
+	return W.LastCall(pcb.timer, "SetFormattedText")[1]
+end
+assert(not pns.Settings.Value("player", "castbarIconRight"), "v0.2.8 keeps the icon left")
+local geo = pcb.geometry
+assert(geo.icon.x == 0 and geo.panel.x > 0 and ptimer() ~= "%.1f / %.1f", "the icon leads and the timer counts down by default")
+local column, width = geo.timer.w, geo.panel.x + geo.panel.w
+pwrite("castbarIconRight", true)
+geo = pcb.geometry
+assert(geo.panel.x == 0 and geo.icon.x > geo.bar.x + geo.bar.w and geo.icon.x + geo.icon.w == width, "the icon moves to the right end")
+assert(W.LastCall(pcb.iconFrame, "SetPoint")[4] > 0, "the icon frame is placed at the right")
+assert(PK.Store.Module("UnitFrames").player.castbarIconRight, "the icon side is saved")
+pwrite("castbarTotal", true)
+assert(ptimer() == "%.1f / %.1f" and pcb.geometry.timer.w > column, "the timer shows elapsed and total time in a wider column")
+pwrite("castbarIconRight", false)
+pwrite("castbarTotal", false)
+geo = pcb.geometry
+assert(geo.icon.x == 0 and geo.timer.w == column and ptimer() ~= "%.1f / %.1f", "both cast options restore")
+assert(#penv._errors == 0 and PK.ErrorCount() == 0, "Frames cast options apply without errors")
+local cenv, CK, cns = frames(false)
+local caption = cns.CastBars.Get("player")[1]
+local function cast()
+	cenv._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1000, finish = 4000, spellID = 116 }
+	cenv.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116)
+end
+cast()
+assert(caption.mode == "inside" and caption.geometry.icon.x == 0, "the caption cast leads with its icon by default")
+CK.Options.Write("UnitFrames", "player.castbarIconRight", true); cenv.RunTimers(); cast()
+local icon = caption.geometry.icon
+assert(icon.x > 0 and W.LastCall(caption.bar, "SetPoint")[4] == 0, "the caption cast puts its icon after the bar")
+CK.Options.Write("UnitFrames", "player.castbarInside", false); cenv.RunTimers(); cast()
+icon = caption.geometry.icon
+local point = W.LastCall(caption.timer, "SetPoint")
+assert(caption.mode == "above" and point[2] == caption.frame and icon.x + icon.w + point[4] <= icon.x, "the caption timer ends before a right-hand icon")
+assert(#cenv._errors == 0 and CK.ErrorCount() == 0, "the caption icon side applies without errors")
 print("cast parity ok")
