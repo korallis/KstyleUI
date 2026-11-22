@@ -17,8 +17,13 @@ class AutoSize(unittest.TestCase):
             input='''
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Core = dofile("Tools/regression/core_env.lua")
-local _, game = Core.New({ size = "auto", fit = true })
-for _, case in ipairs({ {1920, 1080}, {3456, 2234}, {5120, 1440} }) do
+local _, medallions = Core.New({ size = "auto", fit = true })
+local framesEnv, frames = Core.New({ size = "auto", fit = true })
+Core.LoadSaved(framesEnv)
+frames.Options.Write("HudStyle", "style", "frames")
+for _, case in ipairs({ {1920, 1080}, {3456, 2234}, {5120, 1440}, {3456, 2234, "Frames"} }) do
+    local game = case[3] and frames or medallions
+    RENDER_HUD_STYLE = case[3]
     RENDER_SCREEN = { width = case[1], height = case[2], size = "auto" }
     local enabled = game.Setup.Layouts.Enabled("DPS")
     enabled["actionbars.bar3"] = true
@@ -32,7 +37,7 @@ for _, case in ipairs({ {1920, 1080}, {3456, 2234}, {5120, 1440} }) do
             assert(K.Store.Module("ActionBars").bar3.enabled, "the scene enables bar 3")
         end
         local actual = K.Scale.AppliedUserScale()
-        print(string.format("%dx%d %s bar3 auto=%.8f game=%.8f", case[1], case[2], module, actual, expected))
+        print(string.format("%s %dx%d %s bar3 auto=%.8f game=%.8f", case[3] or "Medallions", case[1], case[2], module, actual, expected))
         assert(math.abs(actual - expected) < 1e-8, "RENDER_BAR3=1 must be included in the addon's fit in every HUD environment")
     end
 end
