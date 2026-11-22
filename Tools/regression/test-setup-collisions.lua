@@ -172,9 +172,8 @@ for _, mode in ipairs({ { bar3 = false }, { bar3 = true }, { bar3 = false, threa
 			if threat ~= nil then enabled["meters.threat"] = threat end
 			local cap = Layouts.ScaleLimit(K.Scale.CanvasWidth(width, height), height, name, enabled)
 			local label = string.format("%s at %dx%d, bar3 %s", name, width, height, tostring(bar3))
-			assert(cap >= K.Scale.MIN_USER_SCALE and cap <= K.Scale.MAX_USER_SCALE, label .. ": cap is in the supported range")
-			-- Medallions Tank on 3:2 screens caps below the shipped default (0.80 at 2383 x 1540, as on staging).
-			assert(cap < K.Scale.DEFAULT_USER_SCALE or Layouts.Fits(name, K.Scale.CanvasWidth(width, height), height, K.Scale.DEFAULT_USER_SCALE, enabled), label .. ": the shipped default fits live placement")
+			assert(cap >= K.Scale.DEFAULT_USER_SCALE and cap <= K.Scale.MAX_USER_SCALE, label .. ": cap is in the supported range")
+			assert(Layouts.Fits(name, K.Scale.CanvasWidth(width, height), height, K.Scale.DEFAULT_USER_SCALE, enabled), label .. ": the shipped default fits live placement")
 			assert(Layouts.Fits(name, K.Scale.CanvasWidth(width, height), height, cap, enabled), label .. ": cap fits the snapped footprints")
 			local measured, why = PhysicalFit(name, width, height, cap, enabled)
 			assert(measured, label .. ": " .. tostring(why) .. "; keep the independent snapped footprints apart")
@@ -219,6 +218,17 @@ for _, mode in ipairs({ { bar3 = false }, { bar3 = true }, { bar3 = false, threa
 		end
 		print(table.concat(record, " "))
 	end
+end
+
+-- Tank's threat card docks beside the damage card at the 180-unit slot width (KstyleUI_Meters/Threat.lua), so Tank fits
+-- the MacBook and 3:2 screens at the size DPS does; a 250-unit plan once capped it at 0.80 at 2383 x 1540.
+for _, screen in ipairs({ { 3456, 2234 }, { 3024, 1964 }, { 2560, 1600 }, { 2383, 1540 }, { 1920, 1200 } }) do
+	local enabled = {}
+	for _, element in ipairs(Layouts.ELEMENTS) do enabled[element.key] = Layouts.Shown("Tank", element.key) ~= false end
+	enabled["consumables.bar"] = false
+	local dps = Layouts.ScaleLimit(screen[1], screen[2], "DPS")
+	local tank = Layouts.ScaleLimit(screen[1], screen[2], "Tank", enabled)
+	assert(math.abs(tank - dps) < 1e-9, string.format("Tank with both meter cards caps at %.4f at %dx%d, under DPS's %.4f", tank, screen[1], screen[2], dps))
 end
 
 -- The threat meter tightens the Healer cap at 1080p; compare enabled sets on either side of that boundary.
