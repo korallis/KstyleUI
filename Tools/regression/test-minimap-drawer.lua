@@ -245,7 +245,7 @@ do
 	NoErrors(penv, "preview")
 end
 
--- A button the library placed before the module claimed the square map, and after it lets the map go -------------
+-- A button the library placed before the module claimed the map, and after it lets the map go -------------
 do
 	local senv, sK, sns = M.New({
 		enabled = true,
@@ -257,8 +257,8 @@ do
 	})
 	M.Settle(senv)
 	local solo = senv._soloLib
-	assert(senv.GetMinimapShape and senv.GetMinimapShape() == "SQUARE", "the module's map shape is square")
-	assert(solo.refreshed.Solo, "with the drawer off, the library places its button again once the map is square")
+	assert(senv.GetMinimapShape and senv.GetMinimapShape() == "ROUND", "the module's map shape is the Medallions round")
+	assert(solo.refreshed.Solo, "with the drawer off, the library places its button again once the module claims the map")
 	assert(solo.objects.Solo:GetParent() == senv.Minimap, "and the button stays on the map")
 	NoErrors(senv, "drawer off")
 
