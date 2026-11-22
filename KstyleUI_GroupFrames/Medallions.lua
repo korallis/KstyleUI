@@ -410,10 +410,11 @@ local function Tile(f, parts, k)
 	Slab(f, true)
 	local fit = f.nameFit
 	if fit then
-		fit.path, fit.kit = LABEL_FACE, false
+		local face = K.Theme.FollowsKit(Settings.current.text.nameFont) and LABEL_FACE or fit.path
+		fit.path, fit.kit = face, false
 		if Widgets.Readability("readableBars") then fit.size, fit.min = 12, 11 end
 		fit.set = function(text, size)
-			Style.SetFont(text, LABEL_FACE, size, (not Widgets.Readability("readableBars") or f.medInked) and TILE_TEXT or "OUTLINE")
+			Style.SetFont(text, face, size,(not Widgets.Readability("readableBars") or f.medInked) and TILE_TEXT or "OUTLINE")
 			if f.medInked then
 				InkShadow(text)
 			end
