@@ -278,6 +278,26 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- Under Frames the glass takes the card grade's six border lines and an item's heading rule is the card
+-- material's rule in its gold at half strength.
+do
+	local env, K, ns = Enabled()
+	K.Options.Write("HudStyle", "style", "frames")
+	local tip = env.GameTooltip
+	local glass = ns.Style.Glass(tip)
+	assert(glass.chrome:Chamfer() == 6 * K.Widgets.Border(glass.chrome.owner), "at the card grade's six border lines (the owner's picture, 2026-11-09)")
+	env._items[19019] = { quality = 3, icon = 135349 }
+	tip:SetOwner(env.UIParent, "ANCHOR_NONE")
+	tip:AddLine("Thunderfury", 1, 1, 1)
+	tip:AddLine("+5 Agility", 1, 1, 1)
+	T.PostCall(env, tip, { type = env.Enum.TooltipDataType.Item, id = 19019 })
+	local material = K.Tokens.Material(K.Widgets.Setting("cardMaterial"))
+	assert(material and material.rule, "the default card material carries the quest card's rule")
+	assert(W.LastCall(glass.divider, "SetTexture")[1] == K.Tokens.Texture(material.rule), "the rule is the quest card's heading rule")
+	assert(W.SameColor(glass.divider, K.Widgets.Rgba("materialGold", 0.5)), "in the quest card's gold at half strength")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- Post-calls: item quality edges, the title divider and softened line colours ------------------------
 
 do

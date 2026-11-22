@@ -134,4 +134,16 @@ for _, text in ipairs({ customRow.icons[1].countdown, engine.Cooldown:GetCountdo
 	assert(path == chosen and flags == "OUTLINE", "an explicit font and outline override the lighter kit role in both paths")
 	assert(W.Near(size, K.Widgets.FontSize(text, 14)), "the chosen buff timer size is retained")
 end
+-- Under Frames the proc rim is gold and a short buff row ends at the right edge, in configured order.
+K.Options.Write("HudStyle", "style", "frames")
+env.RunTimers()
+ns.Style.SetProc(icon, true)
+if icon.chrome.line then
+	assert(W.SameRGB(icon.chrome.line[1], K.Tokens.Color("giltLit")), "the shared chrome draws the gold outer proc rim")
+end
+ns.Style.SetProc(icon, false)
+local framesBuffs = ns.Settings.current.buffs
+local fx1, fx2 = ns.Grid.Offset(1, 2, framesBuffs), ns.Grid.Offset(2, 2, framesBuffs)
+assert(math.abs(fx2 + framesBuffs.size - ns.Grid.Size(framesBuffs)) < 1e-6 and fx1 < fx2, "a short row ends at the right edge in configured left-to-right order")
+assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("cooldowns appearance ok")
