@@ -61,7 +61,7 @@ legacyPaint("migration", LK.Store.Module("UnitFrames"), lns.CastBars)
 Core.Logout(le)
 local _, LK2, lns2 = U.New({ saved = le.KstyleUIDB })
 legacyPaint("next session", LK2.Store.Module("UnitFrames"), lns2.CastBars)
-local ok, imported = LK2.Store.Import(Core.CraftLua({ kind = "KstyleUI profile", version = 14, name = "Legacy", settings = { UnitFrames = legacy } }))
+local ok, imported = LK2.Store.Import(Core.CraftLua({ kind = "KstyleUI profile", version = 14, name = "Legacy", settings = { HudStyle = { style = "medallions" }, UnitFrames = legacy } }))
 assert(ok, tostring(imported))
 legacyPaint("import", LK2.Store.Module("UnitFrames"), lns2.CastBars)
 

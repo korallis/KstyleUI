@@ -77,6 +77,23 @@ return {
 		end,
 	},
 	{
+		name = "ActionBars Frames pet appears and leaves in combat, tray card kept",
+		budget = 750,
+		calls = 50,
+		setup = function()
+			local env, K, ns = AB.New()
+			AB.Enable(env, K)
+			K.Options.Write("HudStyle", "style", "frames")
+			env.RunTimers()
+			assert(ns.Tray.card and ns.Tray.card:IsShown(), "the fixture's bars stand in the tray card")
+			local pet = Perf.Event(env, "UNIT_PET", "player")
+			return env, function()
+				env._game.petExists = not env._game.petExists
+				pet()
+			end
+		end,
+	},
+	{
 		name = "ActionBars key press flashes a slot",
 		budget = 20,
 		setup = function()

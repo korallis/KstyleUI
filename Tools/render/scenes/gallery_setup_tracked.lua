@@ -45,7 +45,7 @@ return Common.Run(function()
 	end)
 	assert(K.Setup.Open(true), "the setup opens as on the first login")
 	W.Settle(env)
-	assert(K.Setup.Go(5), "the setup moves to the summary")
+	assert(K.Setup.Go(6), "the setup moves to the summary")
 	W.Settle(env)
 	local panel = K.Setup.window
 	assert(K.Layout.Set(KEY, "anchor", "CENTER"))

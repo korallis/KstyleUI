@@ -1,20 +1,30 @@
 -- test-unitframes-power-lane.lua: power stays inside the frame, automatic mana/resource formatting, secret-safe values, and opt-in hue separation.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local function near(a, b) return math.abs(a - b) < 0.02 end
-do
-	local env, K, ns = U.New()
+for _, style in ipairs({ "frames", "medallions" }) do
+	local env, K, ns = U.New({ frames = style == "frames" })
 	local view = ns.Frames.Get("player").views[1]
 	local g = view.geometry
-	assert(view.powerText:IsShown() and g.powerText, "H2: Medallions must display the power number")
-	assert(g.powerText.y == g.name.y and g.powerText.h == g.name.h, "Medallions power shares the identity row inside the card")
-	assert(g.powerText.y + g.powerText.h <= g.glass.h, "the Player Frame mover must contain the power text")
-	assert(g.healthSub == nil, "the in-card power number replaces the secondary health percentage")
-	assert(g.name.x + g.name.w <= g.powerText.x, "the name and power number have separate room")
+	assert(view.powerText:IsShown() and g.powerText, "H2: " .. style .. " must display the power number")
+	if style == "medallions" then
+		assert(g.powerText.y == g.name.y and g.powerText.h == g.name.h, "Medallions power shares the identity row inside the card")
+		assert(g.powerText.y + g.powerText.h <= g.glass.h, "the Player Frame mover must contain the power text")
+		assert(g.healthSub == nil, "the in-card power number replaces the secondary health percentage")
+		assert(g.name.x + g.name.w <= g.powerText.x, "the name and power number have separate room")
+	else
+		assert(g.powerReserve == nil and g.powerText.y == g.power.y and g.powerText.h == g.power.h, "Frames uses the existing power bar without moving its layout")
+		assert(view.powerFillClip:IsShown(), "Frames must keep its fill-clipped ink visible")
+	end
 	assert(view.powerText:GetJustifyH() == "RIGHT", "the number is right-aligned")
-	local _, size, flags = view.caption:GetFont()
-	assert((view.powerText:GetFont()) == ns.Settings.Font("player", "power") and select(2, view.powerText:GetFont()) == size,
-		"Medallions power keeps the number face at the caption size")
-	assert(select(3, view.powerText:GetFont()) == flags, "Medallions power uses the caption outline setting")
+	if style == "medallions" then
+		local _, size, flags = view.caption:GetFont()
+		assert((view.powerText:GetFont()) == ns.Settings.Font("player", "power") and select(2, view.powerText:GetFont()) == size,
+			"Medallions power keeps the number face at the caption size")
+		assert(select(3, view.powerText:GetFont()) == flags, "Medallions power uses the caption outline setting")
+	else
+		assert(select(2, view.powerText:GetFont()) >= 12 and (view.powerText:GetFont()) == K.Tokens.Font("number"),
+			"Frames power keeps the number font and size")
+	end
 	assert(U.Shown(env, view.powerText) == "50%", "mana reads as a percent by default")
 	local player = env._units.player
 	player.powerType, player.powerToken, player.power, player.powerMax = 3, "ENERGY", 37, 100
@@ -35,6 +45,26 @@ do
 	assert(not view.powerText:IsShown() and not view.geometry.powerText, "None removes the lane")
 	K.Options.Write("UnitFrames", "player.powerText", "legacy")
 	assert(not view.powerText:IsShown() and not view.geometry.powerText, "Previous display restores the original hidden power text")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+end
+
+-- Frames: the fill-clipped ink follows the merged dark-ink rule on a light fill and turns light on a dark one.
+do
+	local env, K, ns = U.New({ frames = true })
+	local view = ns.Frames.Get("player").views[1]
+	K.Options.Write("UnitFrames", "player.healthColor", "custom")
+	K.Options.Write("UnitFrames", "player.healthCustom", { r = 1, g = 1, b = 0 })
+	K.Options.Write("UnitFrames", "player.powerColor", "custom")
+	K.Options.Write("UnitFrames", "player.powerCustom", { r = 1, g = 0.9, b = 0 })
+	local ir, ig, ib, ia = K.Widgets.InkFor(K.Tokens.Color("steelLit"))
+	local tr, tg, tb, ta = view.powerFillText:GetTextColor()
+	assert(near(tr, ir) and near(tg, ig) and near(tb, ib) and near(ta, ia), "text inside the light power fill uses the merged dark-ink rule")
+	assert(select(3, view.powerFillText:GetFont()) == "", "dark ink on a light fill does not rely on an outline")
+	assert(select(1, view.powerText:GetTextColor()) > 0.9 and select(3, view.powerText:GetFont()) == "OUTLINE", "light outlined ink stays readable over the empty track")
+	K.Options.Write("UnitFrames", "player.powerCustom", { r = 0, g = 0, b = 1 })
+	ir, ig, ib = K.Widgets.InkFor(0, 0, 1)
+	tr, tg, tb = view.powerFillText:GetTextColor()
+	assert(near(tr, ir) and near(tg, ig) and near(tb, ib), "a dark fill restores light ink")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 

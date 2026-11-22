@@ -1,0 +1,2 @@
+-- test-groupframes-parity-r3b-frames.lua: on Frames, EllesmereUI parity round 3b: v0.2.8 profiles keep every default and build nothing new; debuff offsets, text above icons, aura tooltips in combat, important debuffs, icon text outline, indicator Show on and party targets each apply when on, follow their events and combat, reach the preview and switch back exactly.
+assert(loadfile("Tools/regression/test-groupframes-parity-r3b.lua"))("frames")

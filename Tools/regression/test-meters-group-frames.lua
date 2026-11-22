@@ -1,0 +1,2 @@
+-- test-meters-group-frames.lua: under the Frames HUD style, the group meter as Details! draws it (LEE-430): a party of five and a raid of twenty each get a row per member with the class colour, the class icon, the name, the amount and the share, sorted; rows refresh at most every 0.5 s and the client eases the bars; the cap switches between damage and healing; a click opens that player's spells; a raid scrolls and keeps the player's own row in view; and in combat secret values reach only widget setters.
+assert(loadfile("Tools/regression/test-meters-group.lua"))("frames")

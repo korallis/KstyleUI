@@ -18,4 +18,4 @@ Do these in order. The words to paste are in [curseforge.md](curseforge.md) and 
 
 ## Every feature release
 
-Update [description.md](description.md), the master, so every section describes what the release ships, and keep the Discord invite right under the banner. Give each new headline feature a picture: add its crop to `Tools/render/readme.py` and its showcase to `Tools/media/marketing.py`, rendered over the real plates with `--strict`. Then run `python3 Tools/render/readme.py --only <new pictures>` and `python3 Tools/media/marketing.py --pages`, and paste the new blocks into CurseForge and Wago once the release puts the images on `main`.
+Update [description.md](description.md), the master, so every section describes what the release ships, and keep the Discord invite right under the banner. Keep it short: a new headline feature gets one clip with one line under it. Add its shots to `CLIPS` in `Tools/media/marketing.py` (rendered over the real plates with `--strict`), run `python3 Tools/media/marketing.py --clips <name> --pages`, and paste the new blocks into CurseForge and Wago once the release puts the images on `main`.

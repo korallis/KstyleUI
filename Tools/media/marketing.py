@@ -1,20 +1,25 @@
 """Make KstyleUI's branded marketing images, and splice the master store description.
 
-    python3 Tools/media/marketing.py            # write docs/media/marketing/*
+    python3 Tools/media/marketing.py            # write docs/media/marketing/* and the store gallery
     python3 Tools/media/marketing.py --pages    # also regenerate README.md and the
                                                 # CurseForge/Wago description blocks
                                                 # from docs/store/description.md
+    python3 Tools/media/marketing.py --clips [NAME ...]   # also render the highlight clips (LuaJIT, Chrome)
 
 Images only use the addon's own OFL fonts (Media/Fonts), its procedural logo
-(Tools/media/make_media.py), the colours in Core/Tokens.lua and the in-game /
-test-render pictures already in docs/media/readme. No AI and no game art is
-created here; the in-game crop is the addon's own screenshot, darkened.
+(Tools/media/make_media.py), the colours in Core/Tokens.lua, the in-game /
+test-render pictures already in docs/media/readme and the clips' test renders
+over the real plates in docs/media/plates. No AI and no game art is created
+here; the in-game crop is the addon's own screenshot, darkened.
 """
 
 import argparse
 import importlib.util
+import os
 import re
 import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -23,21 +28,21 @@ OUT = ROOT / "docs" / "media" / "marketing"
 FONTS = ROOT / "Media" / "Fonts"
 MASTER = ROOT / "docs" / "store" / "description.md"
 PLATES = ROOT / "docs/media/plates"
+# Store gallery uploads, in order: (file, source under docs/media, width or None to copy).
 GALLERY = [
-    ("01-medallions-hero.jpg", "game_medallions_hero.jpg", 2560),
-    ("02-medallions-combat.jpg", "game_medallions_16x9.jpg", None),
-    ("03-ultrawide-spread.jpg", "ultrawide_spread.jpg", None),
-    ("04-setup.jpg", "frame_setup.jpg", None),
-    ("05-nameplates.jpg", "crop_nameplates.jpg", None),
-    ("06-meter.jpg", "crop_meter.jpg", None),
-    ("07-quests.jpg", "crop_rail.jpg", None),
-    ("08-medallion-closeup.gif", "game_medallions_target.gif", None),
+    ("01-medallions-hero.jpg", "readme/game_medallions_hero.jpg", 2560),
+    ("02-classes.gif", "marketing/classes.gif", None),
+    ("03-crowns.gif", "marketing/crowns.gif", None),
+    ("04-crowns-more.gif", "marketing/crowns-more.gif", None),
+    ("05-shaman.gif", "marketing/shaman.gif", None),
+    ("06-hawks.gif", "marketing/hawks.gif", None),
+    ("07-hud.jpg", "readme/hud_1080.jpg", None),
+    ("08-frames.jpg", "readme/hud_frames_1080.jpg", None),
 ]
 
 # Core/Tokens.lua colours.
 FORGED = (16, 18, 17)        # materialForged 101211
 SLAB_TOP = (21, 23, 28)      # slabTop 15171c
-SLAB_BOTTOM = (10, 11, 14)   # slabBottom 0a0b0e
 GILT = (211, 181, 116)       # gilt d3b574
 GILT_LIT = (243, 220, 164)   # giltLit f3dca4
 GILT_DIM = (138, 108, 52)    # giltDim 8a6c34
@@ -51,61 +56,76 @@ CINZEL_CAPS = "CinzelCaps-Medium.ttf"
 BODY = "AlegreyaSans-Regular.ttf"
 BODY_BOLD = "AlegreyaSansTabular-Bold.ttf"
 
-PITCH = "Dark forged chrome for the whole game."
-PITCH2 = "One HUD. One setup. Every screen."
-
-HEADERS = [
-    ("header-discord.jpg", "JOIN THE DISCORD", "Help, bug reports, release news and UI sharing - discord.gg/A5qqGZEXyN"),
-    ("header-medallions.jpg", "MEDALLIONS", "Painted portraits, your class crest and one forged slab"),
-    ("header-every-screen.jpg", "EVERY SCREEN", "Pixel-perfect from a laptop to a 32:9 ultrawide"),
-    ("header-set-up.jpg", "SET UP IN ONE WINDOW", "One short setup, then you are playing"),
-    ("header-rest-of-your-ui.jpg", "THE REST OF YOUR UI", "Nameplates, meter, map, bags, tooltips and window skins"),
-    ("header-make-it-yours.jpg", "MAKE IT YOURS", "Deep settings for every part, each with a live preview"),
-]
-
-# One image per card, stacked in the markdown, so each stays readable on a phone.
-CARDS = [
-    ("card-medallions.jpg", "game_medallions_closeup.jpg", "Medallions",
-     "Painted portraits and your class crest.", "One forged slab for your bars."),
-    ("card-pixel-perfect.jpg", "hud_1080.jpg", "Pixel-perfect sizing",
-     "Every edge lands on whole pixels.", "A readable text floor from 1080 lines up."),
-    ("card-ultrawide.jpg", "ultrawide_spread.jpg", "Ultrawide ready",
-     "Centred or Spread on 21:9 and 32:9.", "Nothing stranded at the edges."),
-    ("card-ready-in-minutes.jpg", "frame_setup.jpg", "Ready in minutes",
-     "One setup: layout and modules.", "DPS, Tank and Healer layouts built in."),
-    ("card-full-kit.jpg", "crop_meter.jpg", "The full kit",
-     "Meter, nameplates, bags, tooltips.", "One style across the whole game."),
-    ("card-nothing-extra.jpg", "frame_skins.jpg", "Nothing you don't want",
-     "Every feature is its own module.", "Switch one off and it costs nothing."),
-]
+PITCH = "One dark forged look for the whole game."
+PITCH2 = "Run the setup once and play."
 
 # Narrow crops framed at banner width so every picture fills the page column.
 SHOWCASES = [
-    ("show_crop_unitframes.jpg", "crop_unitframes.jpg"),
-    ("show_frame_setup.jpg", "frame_setup.jpg"),
+    ("show_hud_1080.jpg", "hud_1080.jpg"),
+    ("show_hud_frames_1080.jpg", "hud_frames_1080.jpg"),
     ("show_frame_raid.jpg", "frame_raid.jpg"),
-    ("show_crop_nameplates.jpg", "crop_nameplates.jpg"),
-    ("show_crop_meter.jpg", "crop_meter.jpg"),
-    ("show_crop_meters_both.jpg", "crop_meters_both.jpg"),
-    ("show_crop_rail.jpg", "crop_rail.jpg"),
-    ("show_crop_crest.jpg", "crop_crest.jpg"),
-    ("show_crop_dock.jpg", "crop_dock.jpg"),
-    ("show_crop_route.jpg", "crop_route.jpg"),
-    ("show_frame_skins.jpg", "frame_skins.jpg"),
 ]
 
-# The icon pack before-and-after: one action bar row from the hud_reference render, Blizzard's icons
-# then the pack's. Its crops live in Tools/render/out (icons_before.png, icons_after.png), cut from
-# that render and the same scene with the icon sources swapped to the Blizzard extract cache; a
-# machine without them keeps the committed image.
-COMPARE = ["icons-before-after.jpg"]
+# Highlight clips (--clips): 1920x1080 class HUD scenes rendered at CLIP_PPU over the real forest plate, cut to a box
+# in screen units (x, y, width, height). A shot is (scene, env, clock variable, times in seconds, hold in ms): one
+# frame per time, FRAME_MS apart, the last held hold ms longer.
+CLIP_PPU, FRAME_MS, CLIP_WIDTH = 2, 70, 768
+CLIP_ENV = {"RENDER_SCREEN": "1920x1080", "RENDER_SIZE": "auto", "RENDER_LAYOUT": "DPS"}
+CREST, STRIP = (768, 845, 384, 222), (540, 800, 840, 266)
 
-# (file, frame step, width, colours, posterize step) for clips over the size cap.
-GIF_SPECS = [
-    ("game_medallions_target.gif", 1, 800, 48, 8),
-    ("game_medallions_cast.gif", 2, 880, 80, 4),
-]
-GIF_CAP = 1_000_000
+
+def times(start, stop, step=FRAME_MS / 1000):
+    return [round(start + i * step, 3) for i in range(round((stop - start) / step) + 1)]
+
+
+def climb(scene, top, env=None, gain=0.35, peak=0.56, spend=True):
+    """Shots for combo points or stacks from 0 to top one at a time, the maximum, then (spend) back to 0."""
+    env, clock = env or {}, "RENDER_PIPS_T"
+    shots = [(scene, {**env, "RENDER_PIPS": "0,0"}, clock, [1], 400)]
+    shots += [(scene, {**env, "RENDER_PIPS": f"{n - 1},{n}"}, clock, times(0, gain), 100) for n in range(1, top + 1)]
+    shots.append((scene, {**env, "RENDER_PIPS": f"{top},{top}"}, clock, times(0, peak), 500))
+    if spend:
+        shots.append((scene, {**env, "RENDER_PIPS": f"{top},0"}, clock, times(0, 0.49), 600))
+    return shots
+
+
+def story(scene, env, clock, beats, fast):
+    """Shots for a story played at full speed through each (start, stop, hold) beat, fast seconds a frame between."""
+    shots, last = [], None
+    for start, stop, hold in beats:
+        if last is not None:
+            shots.append((scene, env, clock, times(last + fast, start - fast, fast), 0))
+        shots.append((scene, env, clock, times(start, stop), hold))
+        last = stop
+    return [shot for shot in shots if shot[3]]
+
+
+CLIPS = {
+    "classes.gif": (STRIP, [(scene, env, None, [0], 630) for scene, env in (
+        ("hud_rogue_mac", {"RENDER_PIPS": "5,5", "RENDER_PIPS_T": "1"}),
+        ("hud_shaman_mac", {"RENDER_TOTEMS": "story", "RENDER_TOTEMS_T": "8", "RENDER_FX": "storm", "RENDER_FX_T": "2.5"}),
+        ("hud_warrior_mac", {"RENDER_PIPS": "5,5", "RENDER_PIPS_T": "1"}),
+        ("hud_druid_mac", {"RENDER_PIPS": "5,5", "RENDER_PIPS_T": "1"}),
+        ("hud_hunter_mac", {"RENDER_FX": "hawks", "RENDER_FX_T": "10"}),
+        ("hud_paladin_mac", {"RENDER_FOREVER_POWERS": "1"}),
+        ("hud_mage_mac", {"RENDER_PIPS": "4,4", "RENDER_PIPS_T": "1"}),
+        ("hud_priest_mac", {"RENDER_PIPS": "5,5", "RENDER_PIPS_T": "1"}),
+        ("hud_warlock_mac", {"RENDER_FOREVER_POWERS": "1"}),
+    )]),
+    "crowns.gif": (CREST, climb("hud_rogue_mac", 5) + climb("hud_druid_mac", 5)),
+    "crowns-more.gif": (CREST, [shot for scene, top, env in (
+        ("hud_warrior_mac", 5, {}), ("hud_priest_mac", 5, {}), ("hud_mage_mac", 4, {}),
+        ("hud_hunter_mac", 3, {}), ("hud_druid_mac", 5, {"RENDER_FORM": "bear"}),
+    ) for shot in climb(scene, top, env, gain=0.21, peak=0.28, spend=False)]),
+    "shaman.gif": (CREST, story("hud_shaman_mac", {"RENDER_TOTEMS": "story"}, "RENDER_TOTEMS_T", [
+        (0.3, 0.3, 400), (0.5, 0.71, 0), (1.0, 1.0, 500), (1.5, 1.71, 0), (2.0, 2.42, 400), (6.0, 6.56, 900),
+    ], 1) + story("hud_shaman_mac", {"RENDER_FX": "storm"}, "RENDER_FX_T", [
+        (0.9, 1.6, 0), (4.4, 5.0, 0), (11.4, 12.3, 700),
+    ], 0.56)),
+    "hawks.gif": (CREST, story("hud_hunter_mac", {"RENDER_FX": "hawks"}, "RENDER_FX_T", [
+        (0.5, 0.5, 300), (0.9, 1.6, 0), (8.9, 9.6, 300), (18.9, 19.45, 0), (20.4, 21.1, 700),
+    ], 0.7)),
+}
 
 README_HEADER = """<p align="center">
 <a href="https://github.com/korallis/KstyleUI/releases/latest"><img src="https://img.shields.io/github/v/release/korallis/KstyleUI?label=Download%20the%20latest%20release" alt="Download the latest KstyleUI release from GitHub"></a>
@@ -115,10 +135,10 @@ README_HEADER = """<p align="center">
 
 """
 
-# GitHub is the icon pack's own host, so this note lives only in README.md.
-# It is inserted before the FAQ, at the end of the Install section.
-ICON_NOTE = """
-**Optional, GitHub only: the repainted icons.** The `KstyleUI-Icons-<version>.zip` on the [GitHub release page](https://github.com/korallis/KstyleUI/releases/latest) repaints ability and item icons everywhere. It is not an addon and does not go in `AddOns`: quit the game, copy its `Interface` folder into `World of Warcraft/_forever_/`, then start the game again. The [icon pack guide](https://github.com/korallis/KstyleUI/blob/main/docs/icons.md) has the details.
+README_FOOTER = """
+## For developers
+
+The code, the tests and how to build and render everything are in [docs/DEVELOPING.md](https://github.com/korallis/KstyleUI/blob/main/docs/DEVELOPING.md).
 """
 
 
@@ -221,7 +241,6 @@ def make_banner():
             top = max(0.0, 1 - yy / (height * 0.9))
             px[xx, yy] = int(215 * max(left, top * 0.8))
     img = Image.composite(Image.new("RGB", (width, height), (5, 6, 8)), img, shade)
-    draw = ImageDraw.Draw(img)
     logo = logo_image(300)
     img.paste(logo, (84, 120), logo)
     draw = ImageDraw.Draw(img)
@@ -238,26 +257,6 @@ def make_banner():
     return save(img, "banner.jpg")
 
 
-def make_header(name, title, subtitle):
-    from PIL import ImageDraw
-    width, height = 2048, 300
-    img = gradient(width, height, SLAB_TOP, FORGED)
-    draw = ImageDraw.Draw(img)
-    gold_rule(draw, width, 0, 3)
-    gold_rule(draw, width, height - 5, 3)
-    logo = logo_image(168)
-    img.paste(logo, (72, (height - 168) // 2), logo)
-    draw = ImageDraw.Draw(img)
-    x = 292
-    eyebrow_f, eyebrow_t = fit_tracked(draw, "KSTYLEUI", CINZEL_CAPS, 26, 0.4, 600)
-    tracked(draw, (x + 3, 58), "KSTYLEUI", eyebrow_f, GILT, eyebrow_t)
-    title_f, title_t = fit_tracked(draw, title, CINZEL, 84, 0.12, width - x - 80)
-    tracked(draw, (x, 92), title, title_f, EMPHASIS, title_t)
-    draw.rectangle([x + 4, 196, x + 150, 199], fill=GILT)
-    draw.text((x + 4, 214), subtitle, font=font(BODY, 36), fill=MUTED)
-    return save(img, name)
-
-
 def rounded_paste(img, thumb, xy, radius=14):
     from PIL import Image, ImageDraw
     mask = Image.new("L", thumb.size, 0)
@@ -265,29 +264,6 @@ def rounded_paste(img, thumb, xy, radius=14):
     img.paste(thumb, xy, mask)
     ImageDraw.Draw(img).rounded_rectangle(
         [xy[0], xy[1], xy[0] + thumb.width, xy[1] + thumb.height], radius=radius, outline=EDGE, width=2)
-
-
-def make_card(name, picture, title, line1, line2):
-    from PIL import Image, ImageDraw
-    width, height = 1600, 1010
-    img = gradient(width, height, (13, 15, 18), FORGED)
-    draw = ImageDraw.Draw(img)
-    gold_rule(draw, width, 0, 3)
-    gold_rule(draw, width, height - 5, 3)
-    draw.rounded_rectangle([40, 40, width - 40, height - 40], radius=22, fill=SLAB_TOP,
-                           outline=EDGE, width=2)
-    src = Image.open(README_MEDIA / picture).convert("RGB")
-    thumb = cover(src, width - 128, 520, focus_y=0.5)
-    rounded_paste(img, thumb, (64, 64))
-    draw = ImageDraw.Draw(img)
-    x, y = 88, 64 + 520
-    draw.rectangle([x, y + 36, x + 110, y + 40], fill=GILT)
-    face, tracking = fit_tracked(draw, title, CINZEL, 68, 0.04, width - 2 * x)
-    tracked(draw, (x, y + 58), title, face, EMPHASIS, tracking)
-    draw.text((x, y + 162), line1, font=font(BODY, 54), fill=TEXT)
-    draw.text((x, y + 232), line2, font=font(BODY, 54), fill=MUTED)
-    source_label(draw, (x, y + 322), picture)
-    return save(img, name, quality=84)
 
 
 def make_showcase(name, picture):
@@ -307,49 +283,73 @@ def make_showcase(name, picture):
     return save(img, name, quality=82)
 
 
-def make_icons_compare():
+def clip_frame(work, scene, env, box, standins):
+    """One clip frame, rendered fresh and strict over the real forest plate, cut to box."""
+    out, plate = Path(tempfile.mkdtemp(dir=work)), (PLATES / "forest-1080.jpg").as_posix()
+    cmd = ["bash", "Tools/render/shoot.sh", scene, "--strict", "--ppu", str(CLIP_PPU), "--backdrop", plate,
+           "--out", (out / "frame.png").as_posix()] + ([] if standins else ["--no-standins"])
+    run = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True,
+                         env={**os.environ, **CLIP_ENV, **env, "RENDER_OUTDIR": out.as_posix(), "KSTYLEUI_PLATE": plate})
+    if run.returncode:
+        raise SystemExit(f"{scene} {env}: shoot.sh exited {run.returncode}\n{run.stdout[-3000:]}{run.stderr[-3000:]}")
+    from PIL import Image
+    x, y, w, h = (round(v * CLIP_PPU) for v in box)
+    with Image.open(out / "frame.png") as image:
+        return image.convert("RGB").crop((x, y, x + w, y + h))
+
+
+def write_gif(path, frames, durations):
+    """One palette for the whole clip, so colours hold still from frame to frame."""
+    from PIL import Image
+    sample = frames[::max(1, len(frames) // 24)]
+    stack = Image.new("RGB", (frames[0].width, frames[0].height * len(sample)))
+    for i, frame in enumerate(sample):
+        stack.paste(frame, (0, i * frame.height))
+    palette = stack.quantize(colors=255, method=Image.Quantize.MEDIANCUT)
+    indexed = [frame.quantize(palette=palette, dither=Image.Dither.NONE) for frame in frames]
+    indexed[0].save(path, save_all=True, append_images=indexed[1:], duration=durations, loop=0, optimize=True, disposal=1)
+
+
+def make_clip(name):
+    """Render a clip's frames (two at a time) and write it as a GIF on the showcase's forged ground."""
+    from concurrent.futures import ThreadPoolExecutor
     from PIL import Image, ImageDraw
-    crops = [ROOT / "Tools/render/out" / name for name in ("icons_before.png", "icons_after.png")]
-    if not all(path.is_file() for path in crops):
-        print("icons-before-after.jpg kept (no crops in Tools/render/out)")
-        return
-    width = 1600
-    rows = []
-    for path in crops:
-        row = Image.open(path).convert("RGB")
-        rows.append(row.resize((width - 128, round(row.height * (width - 128) / row.width)), Image.LANCZOS))
-    height = 64 + 120 + sum(56 + row.height for row in rows) + 128
-    img = darken(cover(Image.open(PLATES / "forest-1080.jpg").convert("RGB"), width, height), 0.35)
-    draw = ImageDraw.Draw(img)
-    gold_rule(draw, width, 0, 3)
-    gold_rule(draw, width, height - 5, 3)
-    draw.rounded_rectangle([40, 40, width - 40, height - 40], radius=22, fill=SLAB_TOP,
-                           outline=EDGE, width=2)
-    x, y = 88, 64
-    draw.rectangle([x, y + 8, x + 110, y + 12], fill=GILT)
-    face, tracking = fit_tracked(draw, "KstyleUI Icons", CINZEL, 68, 0.04, width - 2 * x)
-    tracked(draw, (x, y + 30), "KstyleUI Icons", face, EMPHASIS, tracking)
-    y += 120
-    for label, row in zip(("Blizzard's icons", "With the pack"), rows):
-        draw.text((x, y), label, font=font(BODY_BOLD, 40), fill=GILT_LIT)
-        y += 56
-        rounded_paste(img, row, (64, y))
-        y += row.height
-    source_label(draw, (x, y + 28), "hud_1080.jpg")
-    return save(img, COMPARE[0], quality=84)
+    box, shots = CLIPS[name]
+    jobs = [(scene, {**env, **({clock: str(t)} if clock else {})}) for scene, env, clock, ts, _ in shots for t in ts]
+    with tempfile.TemporaryDirectory() as work:
+        crops = [clip_frame(work, *jobs[0], box, True)]
+        with ThreadPoolExecutor(2) as pool:
+            crops += pool.map(lambda job: clip_frame(work, *job, box, False), jobs[1:])
+    durations = [FRAME_MS + (hold if i == len(ts) - 1 else 0) for _, _, _, ts, hold in shots for i in range(len(ts))]
+    pad, label = 16, 34
+    height = round(box[3] * CLIP_WIDTH / box[2])
+    ground = gradient(CLIP_WIDTH + 2 * pad, height + pad + label, SLAB_TOP, FORGED)
+    draw = ImageDraw.Draw(ground)
+    gold_rule(draw, ground.width, 0, 2)
+    gold_rule(draw, ground.width, ground.height - 4, 2)
+    source_label(draw, (pad, height + pad + 5), name, size=18)
+    frames = []
+    for crop in crops:
+        frame = ground.copy()
+        rounded_paste(frame, crop.resize((CLIP_WIDTH, height), Image.LANCZOS), (pad, pad), radius=10)
+        frames.append(frame)
+    write_gif(OUT / name, frames, durations)
+    print(f"{name} {ground.width}x{ground.height} {len(frames)} frames {sum(durations) / 1000:.1f} s "
+          f"{(OUT / name).stat().st_size} bytes")
 
 
 def make_gallery():
     from PIL import Image
     out = ROOT / "docs/store/gallery"
-    out.mkdir(parents=True, exist_ok=True)
+    for old in out.glob("*.*"):
+        old.unlink()
     for name, source, width in GALLERY:
         if width:
-            with Image.open(README_MEDIA / source) as image:
+            with Image.open(ROOT / "docs/media" / source) as image:
                 image.resize((width, round(image.height * width / image.width)), Image.Resampling.LANCZOS).save(
                     out / name, quality=87, optimize=True, progressive=True)
         else:
-            shutil.copyfile(README_MEDIA / source, out / name)
+            shutil.copyfile(ROOT / "docs/media" / source, out / name)
         print("gallery/" + name)
     for store in ("curseforge.md", "wago.md"):
         path = ROOT / "docs/store" / store
@@ -361,51 +361,9 @@ def make_gallery():
         path.write_text(text, encoding="utf-8", newline="\n")
 
 
-def recompress_gif(name, step, width, colours, poster):
-    """Shrink an oversized clip: fewer frames (same duration), narrower, one shared
-    palette, unchanged pixels stored as transparent."""
-    from PIL import Image, ImageChops
-    path = README_MEDIA / name
-    if path.stat().st_size <= GIF_CAP:
-        return
-    src = Image.open(path)
-    frames, durations = [], []
-    for i in range(src.n_frames):
-        src.seek(i)
-        durations.append(src.info.get("duration", 60))
-        frames.append(src.convert("RGB"))
-    frames = frames[::step]
-    durations = [sum(durations[i:i + step]) for i in range(0, len(frames) * step, step)][:len(frames)]
-    height = round(frames[0].height * width / frames[0].width)
-    frames = [f.resize((width, height), Image.LANCZOS) for f in frames]
-    if poster > 1:
-        frames = [f.point(lambda v: v // poster * poster) for f in frames]
-    tile = Image.new("RGB", (width * 2, height * 2))
-    for j, fi in enumerate((0, len(frames) // 3, 2 * len(frames) // 3, len(frames) - 1)):
-        tile.paste(frames[fi], ((j % 2) * width, (j // 2) * height))
-    palette = tile.quantize(colors=colours - 1, method=Image.MEDIANCUT)
-    indexed = [f.quantize(colors=colours - 1, palette=palette, dither=Image.Dither.NONE)
-               for f in frames]
-    out, prev = [indexed[0]], indexed[0]
-    blank = Image.new("P", indexed[0].size, colours - 1)
-    blank.putpalette(indexed[0].getpalette())
-    for frame in indexed[1:]:
-        a = Image.frombytes("L", frame.size, prev.tobytes())
-        b = Image.frombytes("L", frame.size, frame.tobytes())
-        mask = ImageChops.difference(a, b).point(lambda v: 0 if v else 255)
-        delta = Image.composite(blank, frame, mask)
-        delta.putpalette(frame.getpalette())
-        out.append(delta)
-        prev = frame
-    out[0].save(path, save_all=True, append_images=out[1:], duration=durations, loop=0,
-                optimize=True, transparency=colours - 1, disposal=[0] + [1] * (len(out) - 1))
-    print(f"{name} recompressed to {path.stat().st_size} bytes")
-
-
 def build_pages():
     master = MASTER.read_text(encoding="utf-8").strip("\n")
-    readme = README_HEADER + master.replace("\n## FAQ\n", ICON_NOTE + "\n## FAQ\n", 1) + "\n"
-    (ROOT / "README.md").write_text(readme, encoding="utf-8", newline="\n")
+    (ROOT / "README.md").write_text(README_HEADER + master + "\n" + README_FOOTER, encoding="utf-8", newline="\n")
     for rel in ("docs/store/curseforge.md", "docs/store/wago.md"):
         path = ROOT / rel
         text = path.read_text(encoding="utf-8")
@@ -418,17 +376,14 @@ def build_pages():
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--pages", action="store_true", help="also regenerate the three pages")
+    parser.add_argument("--clips", nargs="*", metavar="NAME", help="render these clips (all when none is named)")
     args = parser.parse_args(argv)
+    if args.clips is not None:
+        for name in args.clips or CLIPS:
+            make_clip(name)
     make_banner()
-    for name, title, subtitle in HEADERS:
-        make_header(name, title, subtitle)
-    for card in CARDS:
-        make_card(*card)
     for name, picture in SHOWCASES:
         make_showcase(name, picture)
-    make_icons_compare()
-    for spec in GIF_SPECS:
-        recompress_gif(*spec)
     make_gallery()
     if args.pages:
         build_pages()

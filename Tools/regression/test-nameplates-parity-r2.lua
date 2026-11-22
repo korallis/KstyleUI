@@ -258,7 +258,7 @@ do
 end
 collectgarbage()
 
--- Level offsets move the level, which Medallions draws as bare text.
+-- Level offsets move the level, which Medallions draws as bare text and Frames in its diamond.
 do
 	local env, K, ns, set = boot({ nameplate1 = {} })
 	local plate = ns.Plates.Get("nameplate1")
@@ -272,6 +272,17 @@ do
 	set("level.x", 0)
 	set("level.y", 0)
 	local _, _, _, x2, y2 = plate.levelText:GetPoint(1)
+	assert(near(x2, x0) and near(y2, y0), "zero restores it")
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	_, _, _, x0, y0 = plate.level:GetPoint(1)
+	set("level.x", -6)
+	set("level.y", 3)
+	_, _, _, x1, y1 = plate.level:GetPoint(1)
+	assert(x1 < x0 and y1 > y0, "the Frames level diamond moves")
+	set("level.x", 0)
+	set("level.y", 0)
+	_, _, _, x2, y2 = plate.level:GetPoint(1)
 	assert(near(x2, x0) and near(y2, y0), "zero restores it")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end

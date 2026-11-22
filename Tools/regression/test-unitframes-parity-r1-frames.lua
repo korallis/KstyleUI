@@ -1,0 +1,2 @@
+-- test-unitframes-parity-r1-frames.lua: on Frames, parity round 1 options keep v0.2.8 looks and regions, then write and apply fill and prediction opacity, colour by health, gradient, decimals, portrait mirror and zoom, friendly level colour, PvP filters, elite and pet badges, hover and target highlights, tooltips, cast icon side, cast opacity and layering, and aura zoom.
+assert(loadfile("Tools/regression/test-unitframes-parity-r1.lua"))("frames")

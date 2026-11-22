@@ -363,6 +363,8 @@ local function NewChip(button, shape)
 	chip.text:SetJustifyH("RIGHT")
 	chip.text:SetJustifyV("MIDDLE")
 	chip.text:SetText(K.L["Targeted"])
+	chip.chrome.ornament = K.Widgets.Ornament(chip, "corners", nil, true)
+	chip.chrome.ornament.chrome, chip.chrome.ornament.inside = chip.chrome, { chip.gem, chip.name, chip.text }
 	chip.chrome:SetShown(false)
 	chip:Hide()
 	return chip
@@ -445,9 +447,14 @@ local function ChipText(view)
 	end
 end
 
+local function ChipName(view)
+	ChipText(view)
+	view.chip.chrome:RestyleOrnament()
+end
+
 function Frames.ChipName(view)
 	if Sigil() and UnitExists(view.unit) then
-		ChipText(view)
+		ChipName(view)
 	end
 end
 
@@ -459,7 +466,7 @@ local function MarkTarget(view)
 	local same = false
 	if Sigil() and UnitExists(view.unit) then
 		same = UnitIsUnit("target", view.unit)
-		ChipText(view)
+		ChipName(view)
 	end
 	local auras = AuraParts(view) or {}
 	if issecretvalue and issecretvalue(same) then
@@ -530,6 +537,7 @@ local function PlaceChip(view, width)
 	chip.name:SetTextColor(K.Tokens.Color("textEmphasis"))
 	local label = K.Widgets.TextWidth(chip.text, #K.L["Targeted"] * size * CHIP_EM)
 	chip.room = width - 2 * CHIP_PAD - gem - 2 * CHIP_GAP - label
+	chip.chrome:RestyleOrnament()
 end
 
 local function Reach(view, g, width)
@@ -1018,6 +1026,12 @@ local function RestyleAll()
 	ns.CastBars.Apply()
 end
 
+local function OnHudStyleChanged()
+	Frames.Apply(frames.player)
+	RestyleAll()
+	ns.Blizzard.Apply(running)
+end
+
 local function OnProfileChanged()
 	ForEach(Frames.Apply)
 	ns.Resource.Restyle()
@@ -1037,7 +1051,7 @@ local function OnLayoutChanged(_, key, reason)
 		if key == castKey then
 			ns.CastBars.LayoutElement(kind)
 			local uf = frames[kind]
-			if uf and uf.active and uf.s and uf.s.inlineCast ~= Settings.CastOnFrame(kind) then
+			if uf and uf.active and uf.s and K.HudStyle.Current() == "medallions" and uf.s.inlineCast ~= Settings.CastOnFrame(kind) then
 				K.Combat.Queue(PlaceCasts)
 			end
 		end
@@ -1050,7 +1064,9 @@ local function OnLayoutChanged(_, key, reason)
 end
 
 local function RefreshRestricted()
-	EachShown(ns.Slab.Refresh)
+	if K.HudStyle.Current() == "medallions" then
+		EachShown(ns.Slab.Refresh)
+	end
 	EachShown(Indicators.Threat)
 end
 
@@ -1143,6 +1159,7 @@ local function RegisterEvents()
 	Callbacks.Register("ScaleChanged", MODULE, RestyleAll)
 	Callbacks.Register("ProfileChanged", MODULE, OnProfileChanged)
 	Callbacks.Register("LayoutChanged", MODULE, OnLayoutChanged)
+	Callbacks.Register("HudStyleChanged", MODULE, OnHudStyleChanged)
 end
 
 function Frames.Enable()

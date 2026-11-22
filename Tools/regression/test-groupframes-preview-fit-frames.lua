@@ -1,0 +1,2 @@
+-- test-groupframes-preview-fit-frames.lua: on Frames, the options live preview stacks the party block, the raid block and the click casting panel, each with a measured height, inside the 280-unit pane, with nothing overlapping the click casting panel; it fits again when the pane resizes, and threat draws as an edge, not a wash over the row.
+assert(loadfile("Tools/regression/test-groupframes-preview-fit.lua"))("frames")

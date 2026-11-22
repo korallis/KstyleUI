@@ -19,10 +19,6 @@ ns.Encounter = Encounter
 local styled = setmetatable({}, { __mode = "k" })
 local frame, plate, lane
 
-local function Lane()
-	return K.Setup.EditMode.WARNING_LANE / Widgets.ScaleFactor(frame)
-end
-
 local function IsSecret(value)
 	return issecretvalue ~= nil and issecretvalue(value) == true
 end
@@ -101,7 +97,7 @@ local function Fade()
 end
 
 local function Restyle(self)
-	lane = Lane()
+	lane = K.Setup.EditMode.WarningLane() / Widgets.ScaleFactor(frame)
 	frame:SetWidth(lane)
 	local padX, padY = Widgets.Snap(self, Tokens.Size(PAD_X)), Widgets.Snap(self, Tokens.Size(PAD_Y))
 	self:ClearAllPoints()

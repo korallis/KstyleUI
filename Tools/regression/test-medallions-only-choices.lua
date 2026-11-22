@@ -1,4 +1,4 @@
--- test-medallions-only-choices.lua: Options offers only choices that draw something different under Medallions: no Orbs split, one docked data bar position beside the rail, a slab or a plate per unit frame.
+-- test-medallions-only-choices.lua: under Medallions Options offers only choices that draw something different: no Orbs split, one docked data bar position beside the rail, a slab or a plate per unit frame.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local D = dofile("Tools/regression/databars_env.lua")
 local U = dofile("Tools/regression/unitframes_env.lua")
@@ -6,7 +6,7 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 local function Values(K, module, key)
 	local row = assert(K.Options.Row(module, key), module .. " has a " .. key .. " row")
 	local out = {}
-	for _, option in ipairs(row.options) do out[#out + 1] = option.value end
+	for _, option in ipairs(type(row.options) == "function" and row.options() or row.options) do out[#out + 1] = option.value end
 	return table.concat(out, ",")
 end
 

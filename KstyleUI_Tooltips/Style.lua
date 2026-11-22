@@ -33,6 +33,7 @@ end
 local GILT, GILT_FALLBACK = "gilt", "neutral"
 Style.GILT_FALLBACK = GILT_FALLBACK
 local DIVIDER_GAP = 1
+local RULE_ALPHA = 0.5
 local DIVIDER_SUBLEVEL = 7
 local ICON_INSET = 9.5
 local TEXT_MARGIN = 10
@@ -172,8 +173,16 @@ end
 Style.Reset = Reset
 
 function Style.PaintGem(gem)
-	gem:SetTexture((Tokens.Texture("diamond")))
-	gem:SetVertexColor(Tokens.Color("accent"))
+	local medallions = Widgets.Medallions()
+	local material = not medallions and Tokens.Material(Widgets.Setting("cardMaterial"))
+	gem:SetTexture((Tokens.Texture(material and material.gem or "diamond")))
+	if medallions then
+		gem:SetVertexColor(Tokens.Color("accent"))
+	elseif material and material.rule then
+		gem:SetVertexColor(Tokens.Color("materialGold"))
+	else
+		gem:SetVertexColor(Style.Gilt())
+	end
 end
 
 local function Header(tooltip)
@@ -402,8 +411,17 @@ function Style.Soften(tooltip, from, colors)
 end
 
 function Style.PaintRule(rule)
-	rule:SetTexture((Tokens.Texture("ruleFade")))
-	rule:SetVertexColor(Widgets.Rgba("medCardDivider"))
+	local material = Tokens.Material(Widgets.Setting("cardMaterial"))
+	if Widgets.Medallions() then
+		rule:SetTexture((Tokens.Texture("ruleFade")))
+		rule:SetVertexColor(Widgets.Rgba("medCardDivider"))
+	elseif material and material.rule then
+		rule:SetTexture((Tokens.Texture(material.rule)))
+		rule:SetVertexColor(Widgets.Rgba("materialGold", RULE_ALPHA))
+	else
+		rule:SetTexture((Tokens.Texture("ruleFade")))
+		rule:SetVertexColor(Style.Gilt())
+	end
 end
 
 local function PlaceRule(glass, line)

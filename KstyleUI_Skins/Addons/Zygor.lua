@@ -1,4 +1,4 @@
--- Zygor.lua: the Zygor switch: once Zygor Guides Viewer has loaded it restyles the guide window in the KstyleUI theme without touching Zygor's settings, and hangs the window in a card of its own on the story rail, its own mover in Layout Mode, re-placed after each step and after a layout change, out of combat, and kept out of Zygor's saved anchor while the rail holds it.
+-- Zygor.lua: the Zygor switch: once Zygor Guides Viewer has loaded it restyles the guide window in the KstyleUI theme without touching Zygor's settings, and hangs the window in a card of its own in the top left corner above the party frames, never taller than the card, its own mover in Layout Mode, re-placed after each step and after a layout change, out of combat, and kept out of Zygor's saved anchor while the rail holds it.
 local _, ns = ...
 
 local K = KstyleUI
@@ -145,11 +145,12 @@ function Fit()
 	if state.busy or not (placed and frame) then
 		return
 	end
-	if ns.Skins.Setting(KEY, FIT) == true then
+	local height = placed.room
+	local tall = frame:GetHeight()
+	if ns.Skins.Setting(KEY, FIT) == true and not (Plain(tall) and tall > height) then
 		return
 	end
-	local height = placed.room
-	if Plain(height) and height > 0 and not Near(frame:GetHeight(), height) then
+	if Plain(height) and height > 0 and not Near(tall, height) then
 		local z = state.z
 		local profile = IsTable(z) and IsTable(z.db) and z.db.profile
 		local full = IsTable(profile) and profile.fullheight
@@ -283,8 +284,8 @@ function Place()
 		state.placed = nil
 		Restore()
 		K.Options.Write(MODULE, KEY .. "." .. RAIL, false)
-		Log("the player moved the guide; the story rail lets it be")
-		K.Print(L["KstyleUI leaves the Zygor guide where you put it. Turn Story rail back on in the Zygor skin's settings."])
+		Log("the player moved the guide; the guide card lets it be")
+		K.Print(L["KstyleUI leaves the Zygor guide where you put it. Turn Guide card back on in the Zygor skin's settings."])
 		return false
 	end
 	state.why = nil
@@ -526,6 +527,14 @@ local function Caption(z, panel)
 	caption:Show()
 end
 
+local facedTabs = setmetatable({}, { __mode = "k" })
+
+local function Refont(text)
+	if state.saved then
+		Face(text)
+	end
+end
+
 local function Fonts(z)
 	if not state.saved then
 		return
@@ -534,7 +543,12 @@ local function Fonts(z)
 	Face(IsTable(controls) and IsTable(controls.StepNum) and controls.StepNum.Step)
 	local pool = IsTable(z.Tabs) and z.Tabs.Pool
 	for _, tab in pairs(IsTable(pool) and pool or {}) do
-		Face(IsTable(tab) and tab.Text)
+		local text = IsTable(tab) and tab.Text
+		Face(text)
+		if IsTable(text) and type(text.SetFont) == "function" and not facedTabs[text] then
+			facedTabs[text] = true
+			hooksecurefunc(text, "SetFont", T("SetFont", Refont))
+		end
 	end
 end
 
@@ -598,13 +612,46 @@ local function ArrowText(arrow)
 	end
 end
 
+local abs = math.abs
+
+local OWN = {
+	{ "arr", "SetVertexColor", function(set)
+		local r, g, b, a = Tokens.Color("textEmphasis")
+		return function(texture)
+			local cr, cg, cb, ca = texture:GetVertexColor()
+			if not (Plain(cr) and Plain(ca) and abs(cr - r) + abs(cg - g) + abs(cb - b) + abs(ca - a) < 0.01) then
+				set(texture, r, g, b, a)
+			end
+		end
+	end },
+	{ "arrspecular", "SetAlpha", function(set)
+		return function(texture)
+			local a = texture:GetAlpha()
+			if not (Plain(a) and abs(a) < 0.01) then
+				set(texture, 0)
+			end
+		end
+	end },
+}
+local held = {}
+
 local function FlatArrow(frame)
 	local arrow = state.saved and IsTable(frame) and frame.arrow
-	if IsTable(arrow) and IsTable(arrow.arr) then
-		arrow.arr:SetVertexColor(Tokens.Color("textEmphasis"))
-	end
-	if IsTable(arrow) and IsTable(arrow.arrspecular) then
-		arrow.arrspecular:SetAlpha(0)
+	arrow = IsTable(arrow) and arrow
+	for i = 1, #OWN do
+		local own, pin = OWN[i], held[i]
+		local method, texture = own[2], arrow and arrow[own[1]]
+		if not (pin and pin.texture == texture) then
+			if pin and rawget(pin.texture, method) == pin.keep then
+				pin.texture[method] = pin.native
+			end
+			held[i] = nil
+			if IsTable(texture) then
+				pin = { texture = texture, native = rawget(texture, method), keep = own[3](texture[method]) }
+				held[i], texture[method] = pin, pin.keep
+				pin.keep(texture)
+			end
+		end
 	end
 end
 
@@ -690,8 +737,19 @@ local function Paint(z)
 			hooksecurefunc(z.Frame, "ApplySkin", T("ApplySkin", function() Fonts(z) end))
 		end
 		if IsTable(z.Tabs) and type(z.Tabs.ReanchorTabs) == "function" then
-			hooksecurefunc(z.Tabs, "ReanchorTabs", T("ReanchorTabs", function() Fonts(z) end))
+			hooksecurefunc(z.Tabs, "ReanchorTabs", T("ReanchorTabs", function()
+				local pool = state.saved and z.Tabs.Pool
+				if not IsTable(pool) then
+					return
+				end
+				for _, tab in pairs(pool) do
+					if IsTable(tab) and IsTable(tab.Text) and not facedTabs[tab.Text] then
+						return Fonts(z)
+					end
+				end
+			end))
 		end
+		state.restyle = ns.Style.Track({ Restyle = function() Fonts(z) end })
 		local bar = z.ProgressBar
 		if IsTable(bar) and type(bar.SetColor) == "function" then
 			hooksecurefunc(bar, "SetColor", T("SetColor", AccentBar))
@@ -711,6 +769,7 @@ local function Unpaint(z)
 		style[name] = value[1]
 	end
 	state.saved = nil
+	FlatArrow(state.arrow)
 	if type(z.ApplySkin) == "function" then
 		K.Call(z.ApplySkin, z)
 	end
@@ -790,14 +849,14 @@ ns.Guide.Add(KEY, {
 ns.Skins.Add({
 	key = KEY,
 	label = L["Zygor"],
-	help = L["Gives Zygor Guides Viewer the KstyleUI theme and puts its guide on the story rail."],
+	help = L["Gives Zygor Guides Viewer the KstyleUI theme and puts its guide in a card in the top left corner."],
 	addon = ADDON,
 	defaults = { rail = true, fit = true },
 	rows = {
-		{ type = "toggle", key = FIT, label = L["Fit guide to its steps"], help = L["Size the guide to its steps. Off stretches it over the story slot."] },
+		{ type = "toggle", key = FIT, label = L["Fit guide to its steps"], help = L["Size the guide to its steps, never past its card. Off stretches it over its card."] },
 		{
-			type = "toggle", key = RAIL, label = L["Story rail"],
-			help = L["Puts the guide in its own card on the story rail. Drag the guide away to keep your spot."],
+			type = "toggle", key = RAIL, label = L["Guide card"],
+			help = L["Puts the guide in its own card in the top left corner. Drag the guide away to keep your spot."],
 		},
 	},
 	Apply = function()

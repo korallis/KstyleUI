@@ -84,6 +84,12 @@ local function Prediction(health, colorName)
 	return bar
 end
 
+local PORTRAITS, BLOCKS = {}, {}
+
+function Style.RestyleBlocks()
+	for _, block in ipairs(BLOCKS) do block:Restyle() end
+end
+
 function Style.New(parent, kind)
 	local view = { kind = kind, parent = parent }
 	local base = parent:GetFrameLevel()
@@ -101,6 +107,9 @@ function Style.New(parent, kind)
 	view.incoming = Prediction(view.health, "friendly")
 	view.absorb = Prediction(view.health, "white")
 	view.power = Widgets.UnitBar(panel, { loss = false, spark = false })
+	view.health.ornament = Widgets.Ornament(panel, "bar", view.health)
+	view.health.ornament.span = view.power
+	Widgets.RecordAll(view.health, view.power)
 	view.trackLine = panel:CreateTexture(nil, "ARTWORK")
 	view.trackLine:SetColorTexture(Tokens.Color("white"))
 	view.powerTypeLine = view.power:CreateTexture(nil, "OVERLAY")
@@ -123,6 +132,7 @@ function Style.New(parent, kind)
 	view.ring = portraitFrame:CreateTexture(nil, "OVERLAY")
 	view.ring:SetTexture(ring)
 	view.ring:SetAllPoints(portraitFrame)
+	view.portraitOrnament = Widgets.Ornament(portraitFrame, "ring")
 
 	local badge = CreateFrame("Frame", nil, parent)
 	badge:SetFrameLevel(base + LEVEL_BADGE)
@@ -136,6 +146,19 @@ function Style.New(parent, kind)
 	local disc = CreateFrame("Frame", nil, parent)
 	disc:SetFrameLevel(base + LEVEL_BADGE)
 	view.disc = disc
+	view.health.ornament.avoid = { disc, badge, view.portraitOrnament }
+	view.health.ornament.yoke = view.portraitOrnament
+	view.health.ornament.card = view.chrome
+	view.health.ornament.forged = true
+	view.health.ornament.bare = true
+	view.chrome.ornament = Widgets.Ornament(panel, "corners", nil, true)
+	view.chrome.ornament.block, view.chrome.ornament.chrome = view.health.ornament, view.chrome
+	view.chrome.ornament.bars = { view.health, view.power }
+	view.health.ornament.others = PORTRAITS
+	view.portraitFrame.blockOf, view.portraitOrnament.blockOf = view.health.ornament, view.health.ornament
+	PORTRAITS[#PORTRAITS + 1] = view.portraitFrame
+	PORTRAITS[#PORTRAITS + 1] = view.portraitOrnament
+	BLOCKS[#BLOCKS + 1] = view.health.ornament
 	view.discEdge = disc:CreateTexture(nil, "BACKGROUND", nil, -2)
 	view.discEdge:SetTexture((Tokens.Texture("diamond")))
 	view.discBack = disc:CreateTexture(nil, "BACKGROUND")
@@ -173,7 +196,11 @@ function Style.New(parent, kind)
 			write(view.powerFillText, ...)
 		end
 	end
+	view.health.ornament.texts = { view.name, view.healthText, view.healthSub, view.powerText, view.levelText, view.caption, view.capLabel }
+	Widgets.RecordAll(unpack(view.health.ornament.texts))
 	view.capGem = Lumen.Gem(top)
+	local avoid = view.health.ornament.avoid
+	avoid[#avoid + 1] = view.capGem
 	view.capRule = top:CreateTexture(nil, "ARTWORK")
 	view.capRule:SetTexture((Tokens.Texture("divider")))
 	Indicators.New(view)
@@ -782,6 +809,7 @@ function Style.Layout(view, s, width, height)
 	end
 	view.geometry = g
 	view.healthText.twoPlaces, view.healthSub.twoPlaces = s.healthValues, s.healthValues
+	view.portraitOrnament.mirror = g.mirror == true
 	view.form = g.form
 	if g.form ~= "plate" then
 		LayoutLumen(view, g, s)

@@ -203,8 +203,10 @@ function Data.SetOverride(baseSpellID, overrideSpellID)
 	if not entry then
 		return nil
 	end
-	entry.overrideSpellID = Number(overrideSpellID)
-	entry.spell = entry.overrideSpellID or base
+	local override = Number(overrideSpellID)
+	if entry.overrideSpellID and not override then entry.previousOverrideSpellID = entry.overrideSpellID end
+	entry.overrideSpellID = override
+	entry.spell = override or base
 	entry.ruleStamp = nil
 	return entry
 end

@@ -48,6 +48,12 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local standard = K.Options.Row("UnitFrames", "player.auras")
 	local medallions = K.Options.Row("UnitFrames", "player.medallionsAuras")
 	assert(not standard.showWhen(settings) and medallions.showWhen(settings), "the rows layout shows the Medallions aura rows")
+	for _, style in ipairs({ "frames", "medallions" }) do
+		K.Options.Write("HudStyle", "style", style)
+		env.RunTimers()
+		assert(standard.showWhen(settings) == (style ~= "medallions") and medallions.showWhen(settings) == (style == "medallions"), "cached Options rows follow the current HUD style")
+	end
+	assert(target.auras.container == rowPool, "HUD switches restore the cached row pool")
 	K.Options.Write("UnitFrames", "player.medallionsAuras", false)
 	assert(not ns.Frames.Get("player").views[1].auras.container._enabled, "the player's aura toggle can turn rows off")
 	K.Options.Write("UnitFrames", "player.medallionsAuras", true)

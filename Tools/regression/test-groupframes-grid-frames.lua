@@ -1,0 +1,2 @@
+-- test-groupframes-grid-frames.lua: on Frames, KSTY-67 items 3, 4 and 21 on the screens Lee judges by (1920x1080 at the 15/16 the game picks there, 3440x1440 and 5120x1440 at the automatic size): party and raid rows, their bars and the raid card on whole physical pixels; the party's percents and the raid's names and percents at the 11 px text floor or over; and class-coloured names lifted to a luminance of 0.62 so the dark class colours read on the card.
+assert(loadfile("Tools/regression/test-groupframes-grid.lua"))("frames")

@@ -1,4 +1,4 @@
--- Resource.lua: the class resource element under the player frame: combo points as one-point status bars, or the class-themed pips over them (while the Medallions crest's crown shows them the row hides), and the druid's mana bar, seated above that crown in cat form.
+-- Resource.lua: the class resource element under the player frame: combo points as one-point status bars, or the class-themed pips over them (while the Medallions crest's crown shows them the row hides; under Frames the row also holds the crowns the game feeds), and the druid's mana bar, seated above that crown in cat form.
 local _, ns = ...
 
 local K = KstyleUI
@@ -108,24 +108,21 @@ function Resource.Layout()
 		state.content:SetAllPoints(state.holder)
 	end
 	local max, min = math.max, math.min
-	local manaH = 0
-	if state.showMana and state.showCombo then
-		manaH = min(max(MANA_MIN, min(MANA_MAX, h * MANA_SHARE)), max(0, (h - GAP) / 2))
-	elseif state.showMana then
-		manaH = min(h, MANA_MAX)
-	end
-	local pipRow = state.showCombo and (state.showMana and max(0, h - manaH - GAP) or h) or 0
+	local row = state.showCombo or state.fed
+	local share = min(max(MANA_MIN, min(MANA_MAX, h * MANA_SHARE)), max(0, (h - GAP) / 2))
+	local manaH = state.showMana and (state.showCombo and share or min(h, MANA_MAX)) or 0
+	local pipRow = row and (state.showMana and max(0, h - share - GAP) or h) or 0
 	local x, span
-	if state.showCombo then
+	if row then
 		local spacing = min(Settings.Resource("spacing"), max(0, (w - PIPS) / (PIPS - 1)))
 		local size = max(0, min(pipRow, (w - spacing * (PIPS - 1)) / PIPS))
 		span = size * PIPS + spacing * (PIPS - 1)
 		x = (w - span) / 2
 		for i, pip in ipairs(state.pips) do
 			Place(pip, x + (i - 1) * (size + spacing), (pipRow - size) / 2, size, size)
-			pip:SetShown(not state.themed)
+			pip:SetShown(state.showCombo and not state.themed)
 		end
-		ns.Pips.Layout(state.pips, size)
+		ns.Pips.Layout(state.pips, size, spacing, state.showMana and state.mana)
 	else
 		for _, pip in ipairs(state.pips) do
 			pip:Hide()
@@ -261,12 +258,13 @@ function Resource.Visibility()
 	state.crown = state.showMana and crown or nil
 	state.flipped = state.showMana and Settings.Value("player", "powerMana") and current or nil
 	state.themed = ns.Pips.Apply(state.showCombo and Settings.Resource("classPips") and class or nil, state.content, PIPS)
+	state.fed = ns.Pips.Fed(on and Settings.Resource("classPips") and K.HudStyle.Current() == "frames" and class or nil, state.content)
 	if state.showMana then Resource.StyleBar(state.mana, state.flipped) end
-	state.content:SetShown(state.showCombo or state.showMana)
+	state.content:SetShown(state.showCombo or state.showMana or state.fed)
 	local Layout = K.Layout
 	if Layout and Layout.SetLive then
 		local comboOn, manaOn = Settings.Resource("comboPoints"), Settings.Resource("druidMana")
-		local placeable = on and not state.crown and (comboOn and not crown and (class == "ROGUE" or class == "DRUID") or class == "DRUID" and manaOn) or false
+		local placeable = on and not state.crown and (comboOn and not crown and (class == "ROGUE" or class == "DRUID") or class == "DRUID" and manaOn or state.fed) or false
 		Layout.SetLive(KEY, placeable and true or false)
 	end
 	Resource.ListenToPower(state.running and (state.showCombo or state.showMana))
@@ -323,6 +321,7 @@ function Resource.Disable()
 	state.listening = false
 	K.Events.UnregisterAll(OWNER)
 	K.Callbacks.Unregister("EffectsLevelChanged", OWNER)
+	ns.Pips.Fed(nil)
 	if state.built then
 		state.content:Hide()
 		state.holder:Hide()

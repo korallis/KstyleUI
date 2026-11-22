@@ -1,7 +1,7 @@
--- test-store-medallions-only.lua: migration 45 moves Frames and Orbs profiles to Medallions, says so once on live data and never on a preview, drops the keys and positions only they read (named layouts and exports too), folds choices that now draw the same and keeps the rest; migration 46 drops the forged ornament and card material keys from staging's version 45 data and exports.
+-- test-store-medallions-only.lua: migration 45 moves Orbs and implicit Frames profiles to Medallions and leaves a saved Frames choice with its keys, says so once on live data and never on a preview, drops the keys and positions only they read (named layouts and exports too), folds choices that now draw the same and keeps the rest; migration 46 drops the forged ornament and card material keys from staging's version 45 data and exports.
 local CoreEnv = dofile("Tools/regression/core_env.lua")
 
-local MESSAGE = "KstyleUI is now Medallions only; your HUD moved to Medallions."
+local MESSAGE = "Orbs is gone, so your HUD moved to Medallions. Frames is still here: pick it under HUD style at the top of the settings window's General page."
 
 local function Boot(style)
 	local env, K = CoreEnv.New({ saved = {
@@ -32,7 +32,7 @@ local function Boot(style)
 	return env, K
 end
 
-for _, style in ipairs({ "frames", "orbs" }) do
+for _, style in ipairs({ "orbs" }) do
 	local env, K = Boot(style)
 	local db, profile = env.KstyleUIDB, env.KstyleUIDB.profiles.Default
 	assert(db.version == K.Store.DB_VERSION, style .. ": the store reaches the current version")
@@ -41,7 +41,7 @@ for _, style in ipairs({ "frames", "orbs" }) do
 		if line:find(MESSAGE, 1, true) then said = said + 1 end
 	end
 	assert(said == 1, style .. ": the move is announced once, got " .. said)
-	assert(profile.HudStyle == nil, style .. ": the HUD style setting is gone")
+	assert(K.HudStyle.Current() == "medallions", style .. ": the profile runs Medallions")
 	local bars, units, text = profile.ActionBars, profile.UnitFrames, profile.CombatText
 	assert(bars.useTray == nil and bars.tray == nil and bars.trayColumn == nil and bars.bar1.size == 40, style .. ": tray keys go, bar settings stay")
 	assert(units.orbGlass == nil and units.orbLedge == nil and units.orbCastRoom == nil and units.castbarOnFrame == false, style .. ": orb keys go, unit frame settings stay")
@@ -64,18 +64,35 @@ for _, style in ipairs({ "frames", "orbs" }) do
 	assert(bars.bar2.split == nil and bars.bar3.split == "on", style .. ": the Orbs split choice becomes Never; Always stays")
 	assert(db.profiles.Other.DataBars.strip.placement == "dock", style .. ": Top, which docks under the bars like Dock, becomes Dock")
 	assert(db.profiles.Other.Skins.contextMenus.enabled == false, style .. ": Glass cards kept Blizzard's context menus; the Skins switch keeps them")
-	assert(profile.Widgets.ornaments == nil and profile.Widgets.cardMaterial == nil and profile.Widgets.panelOpacity == 0.8, style .. ": the ornament level and card material go, panel opacity stays")
+	assert(profile.Widgets.ornaments == "Full" and profile.Widgets.cardMaterial == "ForgedBrackets" and profile.Widgets.panelOpacity == 0.8, style .. ": the ornament level and card material go back to their defaults, panel opacity stays")
 	assert(db.profiles.Other.Widgets.cardMaterial == nil, style .. ": a Glass card material goes once the Skins switch holds it")
-	assert(profile.OptionsPresentation.samples == nil and profile.OptionsPresentation.tasks == false, style .. ": the ornament samples switch goes, the other window choices stay")
+	assert(profile.OptionsPresentation.samples == true and profile.OptionsPresentation.tasks == false, style .. ": the ornament samples switch goes back to its default, the other window choices stay")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 	local again, AK = CoreEnv.New({ saved = CoreEnv.DeepCopy(db) })
 	CoreEnv.Boot(again)
 	assert(not CoreEnv.Printed(again, MESSAGE) and AK.Store.DB_VERSION == again.KstyleUIDB.version, style .. ": the next login says nothing")
 end
 
+for _, style in ipairs({ "frames", false }) do
+	local env, K = Boot(style or nil)
+	local profile = env.KstyleUIDB.profiles.Default
+	assert(not CoreEnv.Printed(env, MESSAGE) and K.HudStyle.Current() == "frames", tostring(style) .. ": a Frames profile, saved or the old unsaved default, stays Frames and nothing is said")
+	assert(profile.Widgets.ornaments == "Subtle" and profile.Widgets.cardMaterial == "Slate" and profile.OptionsPresentation.samples == false, "and keeps its ornaments, card material and samples switch")
+	assert(profile.HudStyle.look["Nameplates.name.size"] == true and profile.HudStyle.look["DataBars.strip.placement"] == false, "the Frames look marks what it wrote, not what the player saved")
+	assert(profile.ActionBars.useTray == true and profile.CombatText.fieldDistance == 60 and profile.UnitFrames.target.castbarInside == true
+		and profile.UnitFrames.target.style == "bar" and profile.DataBars.strip.height == 20, "and keeps the keys Frames reads")
+	assert(profile.UnitFrames.orbGlass == nil and profile.ActionBars.bar2.split == nil and profile.Chat.framing == nil, "while the Orbs-only keys still go")
+	assert(env.KstyleUIDB.profiles.Other.DataBars.strip.placement == "top", "a Frames profile keeps its top data bar")
+	local layout = env.KstyleUIDB.layouts.Default
+	assert(layout["frames:unitframes.player"] == nil and layout["orbs:actionbars.bar1"] == nil, "its layout loses the Orbs positions and the frames: ones Layout never reads")
+	assert(profile.Nameplates.name.size == 16 and profile.GroupFrames.party.portrait == false and profile.DataBars.xp.text == "levelRested"
+		and profile.DataBars.strip.height == 20, "the values Frames drew before the Medallions look became the defaults are written where nothing was saved")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 local env = Boot("medallions")
 assert(not CoreEnv.Printed(env, MESSAGE), "a Medallions profile moves nowhere, so nothing is said")
-assert(env.KstyleUIDB.profiles.Default.HudStyle == nil and env.KstyleUIDB.layouts.Default["medallions:actionbars.bar1"].x == -12, "its saved style key goes and its positions stay")
+assert((env.KstyleUIDB.profiles.Default.HudStyle or {}).style ~= "orbs" and env.KstyleUIDB.layouts.Default["medallions:actionbars.bar1"].x == -12, "its saved style key goes and its positions stay")
 -- An old export only previewed or decoded changes nothing live and says nothing; its retired positions are gone.
 do
 	local penv, K = CoreEnv.New()
@@ -101,8 +118,8 @@ do
 	} } } })
 	CoreEnv.Boot(senv)
 	local profile = senv.KstyleUIDB.profiles.Default
-	assert(profile.Widgets.ornaments == nil and profile.Widgets.cardMaterial == nil and profile.Widgets.panelOpacity == 0.8
-		and profile.OptionsPresentation.samples == nil and profile.OptionsPresentation.tasks == false, "a version 45 database loses the retired keys and keeps the rest")
+	assert(profile.Widgets.ornaments == "Full" and profile.Widgets.cardMaterial == "ForgedBrackets" and profile.Widgets.panelOpacity == 0.8
+		and profile.OptionsPresentation.samples == true and profile.OptionsPresentation.tasks == false, "a version 45 database loses the retired values to the defaults and keeps the rest")
 	assert(profile.Skins.contextMenus.enabled == true, "context menus turned back on after migration 45 stay on")
 	local decoded, err = K.Store.Decode(STAGING)
 	assert(decoded, "a staging export at version 45 decodes: " .. tostring(err))

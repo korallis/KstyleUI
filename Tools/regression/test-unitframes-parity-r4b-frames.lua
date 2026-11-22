@@ -1,0 +1,2 @@
+-- test-unitframes-parity-r4b-frames.lua: on Frames, parity round 4b keeps v0.2.8 frames and makes nothing new, then turns on, probes after events and turns off idle cast bars, spell icon size, out-of-range grey, the player's dispel overlay, edge, type icon and own colours, totem timers and shared spell ID lists, and checks the preview.
+assert(loadfile("Tools/regression/test-unitframes-parity-r4b.lua"))("frames")

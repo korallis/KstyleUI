@@ -32,7 +32,7 @@ return Common.Run(function()
 	if os.getenv("RENDER_SUBJECT") == "setup" then
 		for _, name in ipairs(K.Setup.PICKER) do K.Modules.Register(W.CoreEnv.Module(name.name)) end
 		assert(K.Setup.Open(true))
-		assert(K.Setup.Go(tonumber(os.getenv("RENDER_SETUP_STEP")) or 3))
+		assert(K.Setup.Go(tonumber(os.getenv("RENDER_SETUP_STEP")) or 4))
 		key = "setup.window"
 	else
 		local page = os.getenv("RENDER_PAGE")
@@ -54,6 +54,12 @@ return Common.Run(function()
 			if item.kind == "header" and item.label == os.getenv("RENDER_SECTION") then options.Window.Parts().content:ScrollToIndex(i, true, "TOP"); break end
 		end
 		Gallery.Ticks(W, env, 40)
+	end
+	if os.getenv("RENDER_TARGET") == "ornaments" and env._addons.KstyleUI_Options then
+		local options = env._addons.KstyleUI_Options
+		for i, item in ipairs(options.Window.State().items) do
+			if item.module == "Widgets" and item.key == "ornaments" then options.Window.Parts().content:ScrollToIndex(i, true, "TOP"); break end
+		end
 	end
 	local query = os.getenv("RENDER_QUERY")
 	if query and env._addons.KstyleUI_Options then

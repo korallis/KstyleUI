@@ -28,4 +28,12 @@ assert(resized.anchor == "BOTTOMRIGHT" and resized.x == -17 and resized.y == 17 
 local tank = layouts.Tank["meters.threat"]
 assert(tank.width == 200 and tank.x == nil and tank.y == nil and tank.anchor == nil, "the Tank entry keeps its size; migration 26 lifts its untouched default position with the tray")
 assert(env.KstyleUIDB.version == K.Store.DB_VERSION and K.ErrorCount() == 0, "the migration finishes without errors")
+-- Migration 47 retires the follow-the-guide switch, which left with the guide card's move to the top left corner, and keeps every other threat setting.
+local env47, K47 = C.New({ saved = { version = 46, profiles = {
+	Default = { Meters = { threat = { followGuide = false, tankAlarm = false } } }, Odd = { Meters = "broken" }, Empty = {},
+} } })
+C.Boot(env47)
+local threat47 = env47.KstyleUIDB.profiles.Default.Meters.threat
+assert(threat47.followGuide == nil and threat47.tankAlarm == false, "a version 46 profile loses threat.followGuide and keeps its other threat settings")
+assert(env47.KstyleUIDB.version == K47.Store.DB_VERSION and K47.ErrorCount() == 0 and #env47._errors == 0, "migration 47 runs over odd profiles without errors")
 print("store threat migration ok")

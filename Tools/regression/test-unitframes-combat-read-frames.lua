@@ -1,0 +1,2 @@
+-- test-unitframes-combat-read-frames.lua: on Frames, the combat centre reads at a glance (round 2: Astra #4, Opus #4, Grok #2, Muse #1): the sigil and card cast lines are bold, with readable text over a smaller name; an uninterruptible cast reads Locked in grey through the engine's flag, secret or not; a dark scrim backs the sigil's text over bright sky; the boss you target collapses to a slim Targeted chip; and a boss card with no cast hugs its pill.
+assert(loadfile("Tools/regression/test-unitframes-combat-read.lua"))("frames")

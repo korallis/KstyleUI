@@ -179,4 +179,10 @@ do
 		end
 	end
 end
+-- Under Frames bar 2 stands over bar 1 and the column reads the player's health alone.
+rawset(_G, "RENDER_HUD_STYLE", "Frames")
+local frames = Reference.Build()
+rawset(_G, "RENDER_HUD_STYLE", nil)
+assert(frames.elements["actionbars.bar2"].bottom > frames.elements["actionbars.bar1"].bottom, "under Frames bar 2 stands over bar 1")
+assert(L.collect(frames)["203"], "the Frames column reads the player's health")
 print("ok test-render-scenes-reference")

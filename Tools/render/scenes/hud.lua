@@ -25,6 +25,31 @@ local Hud = {}
 Hud.Classes = Classes
 -- Hud.envs[scene] -> the environment a module scene was built in, for scenes that measure frames after the build.
 Hud.envs = setmetatable({}, { __mode = "k" })
+-- Hud.layoutElements, while a HUD composes, holds every module's Layout elements ({ [key] = { el, live } }). The game
+-- keeps one Layout registry, where the minimap's corners find the elements beside it (KstyleUI_Minimap/Map.lua);
+-- build() lets each environment's Layout.Element and Layout.Live fall back to them. Nothing else crosses environments.
+Hud.layoutElements = nil
+
+function Hud.ShareLayout(env)
+	local Layout = env.KstyleUI and env.KstyleUI.Layout
+	if not (Hud.layoutElements and Layout) or Layout._shared then
+		return
+	end
+	local element, live = Layout.Element, Layout.Live
+	Layout._shared = true
+	Layout.Element = function(key)
+		local shared = Hud.layoutElements and Hud.layoutElements[key]
+		return element(key) or shared and shared.el
+	end
+	Layout.Live = function(key)
+		if element(key) then
+			return live(key)
+		end
+		local shared = Hud.layoutElements and Hud.layoutElements[key]
+		return shared ~= nil and shared.live
+	end
+end
+
 -- Class(opts) -> the scene's class token and its _classes.lua entry.
 -- opts.spec overlays the class's entry field by field (a fixture's own name, bars and buffs).
 function Hud.Class(opts)
@@ -44,7 +69,7 @@ end
 
 local TARGET = { name = "Riverglade Crocolisk", level = 38, health = 864, healthMax = 1540, power = 0, powerMax = 0, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true, classification = "normal", creature = "Beast" }
 
--- The race each class's player is drawn as, so the Medallions portrait resolver finds painted art.
+-- The race each class's player is drawn as, so the Medallions portrait resolver finds painted art; Frames never reads it.
 Hud.RACES = { WARRIOR = "Human", PALADIN = "Dwarf", HUNTER = "NightElf", ROGUE = "Human", PRIEST = "Dwarf", SHAMAN = "Dwarf", MAGE = "Gnome", WARLOCK = "Scourge", DRUID = "NightElf" }
 
 -- Pips() -> from, to, off: RENDER_PIPS=from,to, the combo points' change the unit frames' pips play; the crest jewels
@@ -59,8 +84,8 @@ end
 -- Crown(opts) -> under RENDER_PIPS (off too, so the setting is the only change), the crown the game feeds for the
 -- scene's class (a druid's in bear form with RENDER_FORM=bear), whose spell the player then knows; nil for the combo
 -- point classes and the rest.
-local CROWN_AURAS = { WARRIOR = 7386, PRIEST = 15258, MAGE = 400573, HUNTER = 1310687, BEAR = 1328617 }
-local CROWN_KNOWN = { WARRIOR = 7386, PRIEST = 15257, MAGE = 400574, HUNTER = 1310687, BEAR = 1328617 }
+local CROWN_AURAS = { WARRIOR = 7386, PRIEST = 15258, MAGE = 400573, HUNTER = 1310687, BEAR = 1328617, SHAMAN = 10432 }
+local CROWN_KNOWN = { WARRIOR = 7386, PRIEST = 15257, MAGE = 400574, HUNTER = 1310687, BEAR = 1328617, SHAMAN = 10432 }
 function Hud.Crown(opts)
 	local class = Hud.Class(opts)
 	local kind = class == "DRUID" and os.getenv("RENDER_FORM") == "bear" and "BEAR" or class
@@ -71,7 +96,7 @@ end
 -- SetCrown(env, kind, n) gives the crown's aura n stacks through the game's own feed (the same aura while it stays,
 -- so the slots ease; a new one is assigned at once).
 local function SetCrown(env, kind, n)
-	local unit = (kind == "MAGE" or kind == "HUNTER") and "player" or "target"
+	local unit = (kind == "MAGE" or kind == "HUNTER" or kind == "SHAMAN") and "player" or "target"
 	local aura = n > 0 and (env._crownAura or { id = CROWN_AURAS[kind], harmful = unit == "target", mine = true }) or nil
 	if aura then
 		aura.count = n
@@ -161,6 +186,14 @@ local function merge(into, from)
 	return into
 end
 
+-- Style() -> the HUD style a scene renders: RENDER_HUD_STYLE, set as a global by a test or in the environment.
+function Hud.Style()
+	local style = rawget(_G, "RENDER_HUD_STYLE") or os.getenv("RENDER_HUD_STYLE")
+	if style and style ~= "" then
+		return style
+	end
+end
+
 local function saved(opts, module, settings, more)
 	local section = { enabled = true }
 	merge(section, opts.settings and opts.settings[module])
@@ -169,6 +202,11 @@ local function saved(opts, module, settings, more)
 	if opts.dataBar then
 		profile.DataBars = merge(merge({}, opts.dataBar), opts.settings and opts.settings.DataBars)
 		if module == "DataBars" then merge(profile.DataBars, section) end
+	end
+	local style = Hud.Style()
+	if style then
+		assert(style == "Frames" or style == "Medallions", "RENDER_HUD_STYLE must be Frames or Medallions")
+		profile.HudStyle = { style = style:lower() }
 	end
 	for _, name in ipairs(more or {}) do
 		profile[name] = { enabled = true }
@@ -287,6 +325,7 @@ local function build(env, opts, extra, beforeDraw)
 	for k, v in pairs(extra or {}) do
 		sceneOpts[k] = v
 	end
+	Hud.ShareLayout(env)
 	if beforeDraw then
 		beforeDraw()
 	end
@@ -402,7 +441,7 @@ local SIGIL_DEBUFFS = { { 132155, "18s" }, { 132363, "9s", "3" }, { 132316, "4s"
 local function sigilSockets(env, K, ns, view, list)
 	list = list or SIGIL_DEBUFFS
 	local a = view.auras
-	if a then
+	if a and K.HudStyle.Current() == "medallions" then
 		if ns.Fan.Wanted(view) then K.Options.Write("UnitFrames", "target.auraFilter", "debuffs") end
 		local Engine = dofile("Tools/regression/aura_fixture_engine.lua")
 		local count = tonumber(os.getenv("RENDER_CREST_DEBUFFS")) or #list
@@ -467,6 +506,8 @@ function modules.unitframes(opts)
 	if spec.pet then
 		pet = { name = spec.pet.name, level = spec.pet.level, health = spec.pet.health, healthMax = spec.pet.healthMax, power = spec.pet.power, powerMax = spec.pet.powerMax, powerType = spec.pet.powerType, powerToken = spec.pet.powerToken, reaction = 5 }
 	end
+	-- Under Frames the player frame's own row shows the crown the game feeds, as the action bars' crest does under Medallions.
+	local crown = Hud.Style() == "Frames" and Hud.Crown(opts)
 	-- Round portraits: the owner chose the mockup's round shape as the default on 2026-11-08.
 	local env, K, ns = U.New(Common.ScreenOpts({
 		saved = saved(opts, "UnitFrames", {
@@ -484,6 +525,11 @@ function modules.unitframes(opts)
 			env._units.targettarget = opts.boss and target and player or nil
 			env._comboPoints = opts.combo or spec.combo or 0
 			env._resting = os.getenv("RENDER_RESTING") == "1"
+			if crown then
+				dofile("Tools/regression/aura_slots.lua").Install(env)
+				env.C_SpellBook = env.C_SpellBook or {}
+				env.C_SpellBook.IsSpellKnown = function(id) return id == CROWN_KNOWN[crown] end
+			end
 			env.UnitClass = function(token)
 				local u = env._units[token]
 				if u and u.class then
@@ -555,9 +601,9 @@ function modules.unitframes(opts)
 	if select(3, Hud.Pips()) then
 		K.Options.Write("UnitFrames", "resource.classPips", false)
 	end
-	-- The action bars' scene is its own client: its crest's crown shows the points, as in the game,
+	-- The action bars' scene is its own client: under Medallions its crest's crown shows the points, as in the game,
 	-- and a cat-form druid's bar sits on a stand-in of the crown's seat, placed where that scene puts it.
-	do
+	if K.HudStyle.Current() == "medallions" then
 		local seat = env.CreateFrame("Frame", nil, env.UIParent)
 		seat:SetSize(1, 1)
 		seat:SetPoint("CENTER")
@@ -568,7 +614,10 @@ function modules.unitframes(opts)
 		end
 		K.Widgets.SetClassCrown(seat)
 	end
-	notes[#notes + 1] = PlayPips(env, K, function(n) env._comboPoints = n end)
+	notes[#notes + 1] = PlayPips(env, K, function(n)
+		env._comboPoints = n
+		if crown then SetCrown(env, crown, n) end
+	end)
 	local scene = build(env, opts, { time = env._time }, function()
 		Fx.Apply(env, "unitframes", ns, notes)
 	end)
@@ -651,8 +700,9 @@ function modules.actionbars(opts)
 			env.UnitPower = env.UnitPower or function()
 				return spec.combo or 3
 			end
-			env.UnitPowerMax = env.UnitPowerMax or function()
-				return 5
+			-- RENDER_FOREVER_POWERS=1 gives soul shards (7) and holy power (9) no maximum, as Forever does, so no jewels show.
+			env.UnitPowerMax = env.UnitPowerMax or function(_, power)
+				return os.getenv("RENDER_FOREVER_POWERS") == "1" and (power == 7 or power == 9) and 0 or 5
 			end
 			-- The client's seconds formatter, which the sockets put on their cooldown numbers ("4s").
 			if travel then
@@ -751,7 +801,7 @@ function modules.actionbars(opts)
 	end
 	env.RunTimers()
 	AB.W.Settle(env)
-	-- RENDER_MEDALLIONS_STATE puts the slots beside the hub to work, so a crop shows
+	-- RENDER_MEDALLIONS_STATE (under Medallions) puts the slots beside the hub to work, so a crop shows
 	-- them over every hub layer: bar 2's first slot on an 8 s cooldown with 4 s left, then calm (nothing more), combat
 	-- (entering combat 0.3 s ago: the shockwave and the sweep halfway), proc (a fresh proc on bar 1's slot 12, beside the hub,
 	-- or the nearest filled slot before it, 0.3 s in) or levelup (level 12, 0.4 s into the burst, which spreads under the slots either side).
@@ -759,7 +809,7 @@ function modules.actionbars(opts)
 	if slabState and slabState ~= "" then
 		local ago = ({ calm = 0, combat = 0.3, proc = 0.3, levelup = 0.4 })[slabState]
 		assert(ago, "RENDER_MEDALLIONS_STATE must be calm, combat, proc or levelup")
-		assert(ns.Slab and ns.Slab.Active(), "RENDER_MEDALLIONS_STATE needs the action bars' slab")
+		assert(ns.Slab and ns.Slab.Active(), "RENDER_MEDALLIONS_STATE needs the Medallions HUD style")
 		env._game.slots[61].cooldown = { start = 6, finish = 14, remaining = 4, total = 8 }
 		env.FireEvent("ACTIONBAR_UPDATE_COOLDOWN")
 		local charging = AB.Button(ns, "bar2", 1)
@@ -1513,7 +1563,7 @@ function modules.tracker(opts)
 	-- The quest card stands in for Blizzard's tracker, four quests at a time, in its own Layout element: the story slot.
 	local card = ns.Quests.Active()
 	local scene = build(env, opts)
-	local place = opts.withGuide and "in the story slot, the shown RestedXP guide's card in the column beside it" or "in the layout's story slot"
+	local place = opts.withGuide and "in the column beside the story slot, the shown RestedXP guide's card in the top left corner" or "in the column beside the layout's story slot"
 	if card then
 		scene.log[#scene.log + 1] = "the quest card shows " .. #(opts.quests or Tracker.QUESTS) .. " tracked quests from a stand-in quest log, four at a time, " .. place .. "; Blizzard's tracker is hidden while it holds only quests"
 	else
@@ -1870,7 +1920,7 @@ function modules.meters(opts)
 	return finish(env, K, scene, "meters"), ns
 end
 
--- RestedXP: the guide window and its active step, skinned, where the skin's story rail puts it for opts.layout.
+-- RestedXP: the guide window and its active step, skinned, where the skin's guide card puts it for opts.layout.
 -- RestedXP's other windows stay closed.
 
 function modules.restedxp(opts)
@@ -1901,7 +1951,7 @@ function modules.restedxp(opts)
 		standin:SetPoint("BOTTOMLEFT", root, "BOTTOMLEFT", card[1], card[2])
 		standin:SetSize(card[3], card[4])
 		standin:SetAlpha(0)
-		R.ns.QuestCard = setmetatable({ Frame = function() return standin end, Resize = function(height) standin:SetHeight(height) end }, { __index = R.ns.QuestCard })
+		R.ns.QuestCard = setmetatable({ Frame = function() return standin end }, { __index = R.ns.QuestCard })
 		R.ns.RestedXP.Rail.Place()
 	end
 	for _, name in ipairs({ "items", "v2", "configurator" }) do
@@ -1955,7 +2005,7 @@ function modules.restedxp(opts)
 	for _, line in ipairs(R.log) do
 		scene.log[#scene.log + 1] = line
 	end
-	scene.log[#scene.log + 1] = "restedxp: the guide is in its own card where the skin's story rail puts it for the " .. tostring(opts.layout) .. " layout, its step list folded by RestedXP's own rule" .. (R.ns.RestedXP.Rail.Hidden() > 0 and ("; " .. R.ns.RestedXP.Rail.Hidden() .. " steps rest under its more line") or "")
+	scene.log[#scene.log + 1] = "restedxp: the guide is in its own card in the top left corner for the " .. tostring(opts.layout) .. " layout, its step list folded by RestedXP's own rule" .. (R.ns.RestedXP.Rail.Hidden() > 0 and ("; " .. R.ns.RestedXP.Rail.Hidden() .. " steps rest under its more line") or "")
 	return finish(R.env, R.K, scene, "restedxp"), R
 end
 
@@ -1998,7 +2048,7 @@ function Hud.EditModeLayout(layout, guide, counts, natives)
 	-- RaidWarningFrame as the encounter warnings skin leaves it at login, narrowed to the lane, so Apply reserves that width.
 	local warnings = env.CreateFrame("Frame", "RaidWarningFrame", env.UIParent)
 	env.RaidWarningFrame = warnings
-	warnings:SetSize(K.Setup.EditMode.WARNING_LANE * K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale(), 100)
+	warnings:SetSize(K.Setup.EditMode.WarningLane() * K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale(), 100)
 	if counts then
 		-- The Cooldowns module restyles Blizzard's buff row on Forever's automatic path and stops it at its six-socket
 		-- grid with a "+N" chip in the seventh slot (KstyleUI_Cooldowns/Cap.lua), so it reports seven slots past six.
@@ -2017,6 +2067,10 @@ function Hud.EditModeLayout(layout, guide, counts, natives)
 	end
 	K.Store.Module("Minimap").enabled = true
 	K.Store.Module("Minimap").frame = os.getenv("RENDER_MINIMAP_FRAME")
+	local style = Hud.Style()
+	if style then
+		K.Options.Write("HudStyle", "style", style:lower())
+	end
 	if not K.Setup.Apply({ layout = layout, modules = {} }) then
 		return nil
 	end
@@ -2137,7 +2191,7 @@ function Hud.Build(opts)
 	for _, name in ipairs(opts.modules or Hud.Order()) do
 		scenes[#scenes + 1] = (Hud.Module(name, opts))
 	end
-	local merged = Scene.Merge(scenes, true)
+	local merged = Scene.Merge(scenes, Hud.Style() ~= "Frames")
 	local class, spec = Hud.Class(opts)
 	-- The class the scene drew, for Tools/render/classes.py's manifest.
 	merged.class = { class = class, title = spec.title, name = spec.name, colour = { spec.colour[1], spec.colour[2], spec.colour[3] }, power = spec.power.token, cast = spec.cast and spec.cast[1] or nil }

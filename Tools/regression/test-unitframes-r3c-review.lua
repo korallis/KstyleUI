@@ -41,12 +41,21 @@ for path, patterns in pairs({ ["KstyleUI_UnitFrames/Unit.lua"] = { "and total or
 	end
 end
 
--- 6. Zero offsets unwrap SetPoint.
+-- 6. Zero offsets unwrap SetPoint; on Frames a caption anchored to the name takes its own level offset.
 write("player.fonts.level.y", 9)
 write("player.fonts.level.y", 0)
 write("player.fonts.name.x", 4)
 write("player.fonts.name.x", 0)
 assert(player.name.SetPoint == native and player.caption.SetPoint == captionNative, "zero offsets restore the native SetPoint")
+K.Options.Write("HudStyle", "style", "frames")
+env.RunTimers()
+local _, _, cy = point(player.caption)
+write("player.fonts.level.y", 9)
+local _, _, cy2 = point(player.caption)
+assert(player.caption:IsShown() and near(cy2 - cy, Widgets.Snap(player.parent, 9)), "the class caption moves by the level offset: " .. (cy2 - cy))
+write("player.fonts.level.y", 0)
+K.Options.Write("HudStyle", "style", "medallions")
+env.RunTimers()
 
 -- 5. Power-type text keeps the power type's colour under a custom fill.
 write("player.powerColor", "custom")
@@ -160,6 +169,14 @@ assert(not above.showWhen(ns.Settings.Module()), "the slab has no power bar to m
 write("target.style", "plate")
 assert(above.showWhen(ns.Settings.Module()), "the plate target keeps the row")
 write("target.style", "column")
+K.Options.Write("HudStyle", "style", "frames")
+env.RunTimers()
+write("target.style", "bar")
+assert(not above.showWhen(ns.Settings.Module()), "Frames' Wide bar has no power bar to move")
+write("target.style", "column")
+assert(above.showWhen(ns.Settings.Module()), "the Frames column target keeps the row")
+K.Options.Write("HudStyle", "style", "medallions")
+env.RunTimers()
 write("target.power", false)
 
 U.SetUnit(env, "target", { name = "Ogre", level = 62, health = 3000, healthMax = 4000, power = 30, powerMax = 100,

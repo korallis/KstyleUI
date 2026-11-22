@@ -24,7 +24,7 @@ for i = 1, MAX_PARTY do
 	PARTY[i], PARTY_PET[i] = "party" .. i, "partypet" .. i
 end
 
-local DockGuide
+local Dock
 local Threat = { section = "threat", key = KEY, roster = {}, size = 0, rows = {}, order = {}, count = 0 }
 ns.Threat = Threat
 
@@ -198,7 +198,7 @@ local function Update()
 	list.panel:SetShown(visible)
 	if Threat.visible ~= visible then
 		Threat.visible = visible
-		DockGuide()
+		Dock()
 	end
 	if not visible then
 		Alarm(false)
@@ -258,10 +258,8 @@ local function Schedule()
 	C_Timer.After(UPDATE_DELAY, Update)
 end
 
-function DockGuide()
+function Dock()
 	local holder = Threat.holder
-	local side = K.Safe.Side(K.Scale.Root())
-	local guide = side.storyGuide
 	local element = K.Layout.Element(KEY)
 	local layout, default = element and element.settings, element and element.default
 	if not holder or not layout or InCombatLockdown() then
@@ -285,14 +283,6 @@ function DockGuide()
 		K.Widgets.Point(holder, "TOPRIGHT", damage, "TOPLEFT", -K.Setup.Layouts.GAP / K.Widgets.ScaleFactor(holder), 0, true)
 		ns.Damage.list:Fit()
 		Threat.docked = true
-	elseif atDefault and ns.Get("threat.followGuide") and guide and guide:IsVisible() then
-		local foot = side.storyGuideBottom or guide
-		local top, bottom = Logic.Plain(guide:GetBottom()), Logic.Plain(foot:GetBottom())
-		local gap = top and bottom and math.max(0, top * K.Widgets.ScaleFactor(guide) - bottom * K.Widgets.ScaleFactor(foot)) or 0
-		holder:ClearAllPoints()
-		K.Widgets.Point(holder, "TOPRIGHT", guide, "BOTTOMRIGHT", 0, -(16 + gap) / K.Widgets.ScaleFactor(holder), true)
-		ns.Damage.list:Fit()
-		Threat.docked = true
 	elseif Threat.docked then
 		holder:ClearAllPoints()
 		K.Widgets.Point(holder, layout.anchor, K.Scale.Root(), layout.anchor, layout.x, layout.y, true)
@@ -301,7 +291,7 @@ function DockGuide()
 end
 
 function Threat:OnEvent(event, unit)
-	if event == "PLAYER_REGEN_ENABLED" then DockGuide() end
+	if event == "PLAYER_REGEN_ENABLED" then Dock() end
 	if event == "GROUP_ROSTER_UPDATE" or event == "UNIT_PET" or event == "PLAYER_ENTERING_WORLD" then
 		BuildRoster()
 		Threat.visible = nil
@@ -332,12 +322,11 @@ local function Build()
 	Threat.list.alarmFlash = group
 	Threat.holder = Threat.list.holder
 	ns.Place(Threat.holder, KEY, LIMITS)
-	K.Safe.Side(K.Scale.Root()).dockThreat = DockGuide
 end
 
 function Threat:Resized()
 	if self.list then
-		DockGuide()
+		Dock()
 		self.list:Restyle()
 		Schedule()
 	end
@@ -360,7 +349,7 @@ function Threat:Apply()
 		return
 	end
 	self.holder:Show()
-	DockGuide()
+	Dock()
 	for _, event in ipairs(EVENTS) do
 		ns.Watch(self, event)
 	end

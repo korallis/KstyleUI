@@ -1,0 +1,2 @@
+-- test-meters-drill-frames.lua: under the Frames HUD style, the damage meter window's depth: a click on a source lists its spells through C_DamageMeter's source calls, the fight segments (current, previous fight, overall), the rows it holds while combat hides the data, the group-only default in both styles, and the style picked once at login.
+assert(loadfile("Tools/regression/test-meters-drill.lua"))("frames")

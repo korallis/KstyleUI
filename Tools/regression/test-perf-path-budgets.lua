@@ -20,7 +20,7 @@ local stripEnv, _, ns = D.New()
 local tick = Budget.Count(stripEnv, ns.Strip.Tick)
 Budget.Check(tick, 24900, 701, "P2/P12: cache formatted strip text and move only after a measured width changes")
 ns.Strip.view.items.fps.button.hoverT = 0.5
-local hover = Budget.Count(stripEnv, ns.Strip.view.items.fps.button.Paint)
+local hover = Budget.Count(stripEnv, ns.Strip.view.items.fps.button.Paint, 1)
 Budget.Check(hover, 400, 3, "P2: paint only the hovered readout's glyph and highlight on the dock")
 local ok, err = pcall(Budget.Check, { instructions = 13000100, calls = 0 }, 13000000, 500000, "P3: defer unused slices")
 assert(not ok and tostring(err):find("P3: defer unused slices", 1, true), "P12: an instruction overrun must fail and name its fix")

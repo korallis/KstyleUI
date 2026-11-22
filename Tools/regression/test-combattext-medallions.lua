@@ -57,6 +57,11 @@ K.Options.Write("CombatText", "size", 18)
 K.Options.Write("CombatText", "damageColor", ns.Settings.defaults.damageColor)
 env.RunTimers()
 
+K.Options.Write("HudStyle", "style", "frames")
+env.RunTimers()
+cfg = ns.Module.cfg
+assert(not cfg.fontPath:find("Barlow", 1, true) and cfg.fadeTime == nil and cfg.rise == 48, "Frames gets its own face, fade and rise back")
+
 assert(#env._errors == 0, tostring(env._errors[1]))
 assert(K.ErrorCount() == 0, "no addon error")
 print("ok - test-combattext-medallions")

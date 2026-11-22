@@ -1,4 +1,4 @@
--- test-skins-restedxp-rest.lua: the RestedXP guide at rest, as the owner's picture draws it (LEE-20): the active steps are plain lines under the cap's title in the quest lines' size, RestedXP's default colours swapped for KstyleUI's and its inline icons dropped, the check rings shown only under the pointer; in the story rail the footer's cog and grip rest through everything RestedXP does to them, the quests start right under the last step with no footer band between, a timer bar brings the band back while it runs, a right click on the cap opens RestedXP's menu, and RestedXP's own save of its windows never takes the rail's placement; the arrow's text and the icon frames' titles read in KstyleUI's faces.
+-- test-skins-restedxp-rest.lua: the RestedXP guide at rest, as the owner's picture draws it (LEE-20): the active steps are plain lines under the cap's title in the quest lines' size, RestedXP's default colours swapped for KstyleUI's and its inline icons dropped, the check rings shown only under the pointer; in its card the footer's cog and grip rest through everything RestedXP does to them, the quests start right under the last step with no footer band between, a timer bar brings the band back while it runs, a right click on the cap opens RestedXP's menu, and RestedXP's own save of its windows never takes the rail's placement; the arrow's text and the icon frames' titles read in KstyleUI's faces.
 local S = dofile("Tools/regression/skins_env.lua")
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local Quests = dofile("Tools/regression/quests_fake.lua")
@@ -306,12 +306,10 @@ do
 	assert(not path.meta:IsShown(), "the guide's group line is hushed, so the steps are the guide's last row")
 	local glass = Rect(K, K.Skin.Parts(f).backdrop)
 	local quests = Geometry.ScaledRect(ns.Quests.Card(), env.UIParent, K.Scale.Root())
-	assert(near(glass.top, story.guide.top, 0.01), "the guide's card starts on the slot's top, to the pixel, got " .. glass.top .. " for " .. story.guide.top)
-	assert(glass.bottom >= story.guide.bottom - 0.5, "and ends inside it")
+	assert(near(glass.bottom, ns.RestedXP.Rail.Band().bottom, K.Scale.Pixel(1) + 0.01) and glass.top <= story.guide.top + 0.5, "the guide's card stands on its element's foot, inside it, got " .. glass.bottom .. " to " .. glass.top)
 	assert(near(f:GetHeight(), 28, 0.01), "RestedXP's window is folded to its floor")
-	assert(glass.bottom > quests.bottom and ns.Quests.Parts().glass:IsShown(), "the guide fits its steps independently of the taller quest card")
-	assert(glass.left >= quests.right + 8 - 1, "the guide and quest glass keep an eight-unit gutter, the quests on the left")
-	assert(near(quests.top, story.tracker.top, 1), "at the same top, got " .. quests.top .. " for " .. story.tracker.top)
+	assert(ns.Quests.Parts().glass:IsShown() and glass.right < quests.left, "the guide stands left of the quest card, which still shows")
+	assert(near(quests.top, story.tracker.top, 1), "the quest card keeps its column's top, got " .. quests.top .. " for " .. story.tracker.top)
 
 	-- A RestedXP timer bar draws on the footer (Timers.lua 14-16): while one runs the band is back, inside the card.
 	rxp.StartTimer(30, "Hearthstone")
@@ -376,6 +374,9 @@ end
 do
 	local env, K, ns, rxp = Boot({ measure = true })
 	local f = rxp.RXPFrame
+	-- A saved place on the right keeps the guide's cap far from the tip at the screen's left.
+	assert(K.Layout.Update("skins.guide", { anchor = "TOPRIGHT", x = -16, y = -300 }, true))
+	env.RunTimers()
 	-- RestedXP keeps a tip in the steps' pool but hangs it from the screen's bottom left, 230 wide (GuideWindow.lua
 	-- 1001-1012), far from the guide's cap, and leaves it out of the stack's height (1387-1391).
 	-- This tip takes three lines in RestedXP's column and two in the skin's wider one, so its row changes height.

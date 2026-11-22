@@ -1,0 +1,2 @@
+-- test-unitframes-parity-r3a-frames.lua: on Frames, parity round 3a (mini frames) keeps v0.2.8 looks and makes no pet cast bar until asked, then writes and applies raid marker size, happiness position, the pet cast bar with its width and height, hide when idle, copy auras from, buff icon zoom and the boss simple aura display, each on after its events, off back to the original state, and in the preview.
+assert(loadfile("Tools/regression/test-unitframes-parity-r3a.lua"))("frames")

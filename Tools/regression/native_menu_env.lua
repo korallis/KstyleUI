@@ -1,7 +1,7 @@
 -- native_menu_env.lua: the three KstyleUI menu generators and the context-menu skin in one stub environment, over the native menu fixture.
 --
 --   local E = dofile("Tools/regression/native_menu_env.lua")
---   local env, K, ns, nm = E.New()
+--   local env, K, ns, nm = E.New({ material = "Slate" })
 --   local menu, owner = E.Tracking(env, nm)     -- Column.OpenTracking, through a click on the minimap's tracking button
 --   local menu, owner = E.Compartment(env, nm)  -- Drawer.OpenCompartment, through a right click on the drawer button
 --   local menu, owner = E.Quest(env, nm)        -- the quest card's right-click menu on its first row
@@ -10,7 +10,7 @@
 --
 -- New(opts) boots the core, KstyleUI_Skins (with its quest card) and KstyleUI_Minimap, the three with Blizzard's minimap
 -- frames and the quest fakes the module tests use, and installs the native menu fixture last so it replaces the
--- tests' MenuUtil. opts: material (a saved card material, which the store's migration retires), skins (false leaves the Skins module off), skin (false
+-- tests' MenuUtil. opts: material (the saved card material), skins (false leaves the Skins module off), skin (false
 -- switches the context-menu skin off in the saved data), variant (the fixture's menu style), at ({ x, y } puts every menu there),
 -- hooks (the fixture's hooks), setup (runs first, on the bare environment, and may replace env._textWidth, which the fixture then measures with), modify (Menu.ModifyMenu callbacks by tag, registered before the skin's, as an addon loaded earlier would), quests (the tracked quests), measure (false keeps the fixture's fixed text advance).
 local S = dofile("Tools/regression/skins_env.lua")
@@ -22,6 +22,8 @@ local Load = dofile("Tools/regression/load_files.lua")
 local W = S.W
 
 local E = { S = S, M = M, W = W, Quests = Quests, Native = Native }
+
+E.MATERIALS = { "Glass", "Flat", "Slate", "ForgedTicks", "ForgedBrackets" }
 
 local function Saved(opts)
 	local profile = { Appearance = { uiScale = 16 / 19 } }

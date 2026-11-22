@@ -26,13 +26,16 @@ function CoreEnv.Files()
 end
 
 -- CoreEnv.New(opts) -> env, KstyleUI. opts holds the Stubs.NewEnv options plus:
---   saved     KstyleUIDB as the game loads it before ADDON_LOADED
+--   saved     KstyleUIDB as the game loads it before ADDON_LOADED; a profile saved before version 45 with no HUD style
+--             loads as Medallions, as the fixture was written, unless legacyStyle is set (then migration 45 reads it as
+--             the old default, Frames)
 --   encoding  the C_EncodingUtil table, or nil for a client without it
 --   setup     function(env) that runs before the core files load
 function CoreEnv.New(opts)
 	opts = opts or {}
 	local env = Stubs.NewEnv(opts)
 	env.KstyleUIDB = opts.saved
+	env._legacyStyle = opts.legacyStyle
 	env.C_EncodingUtil = opts.encoding
 	env._printed = {}
 	env.print = function(...)
@@ -55,11 +58,29 @@ function CoreEnv.New(opts)
 			return chrome
 		end
 	end
+	if env._ornamentHandles then
+		local attach = env.KstyleUI.Widgets.Ornament
+		env.KstyleUI.Widgets.Ornament = function(...)
+			local handle = attach(...)
+			env._ornamentHandles[#env._ornamentHandles + 1] = handle
+			return handle
+		end
+	end
 	return env, env.KstyleUI
 end
 
 function CoreEnv.LoadSaved(env)
+	local saved = env.KstyleUIDB
+	if type(saved) == "table" and (tonumber(saved.version) or 0) < 45 and not env._legacyStyle then
+		for _, profile in pairs(type(saved.profiles) == "table" and saved.profiles or {}) do
+			if type(profile) == "table" and profile.HudStyle == nil then profile.HudStyle = { style = "medallions" } end
+		end
+	end
 	env.FireEvent("ADDON_LOADED", "KstyleUI", false)
+	if env._renderCardMaterial then
+		assert(env.KstyleUI.Tokens.Material(env._renderCardMaterial), "unknown RENDER_CARD_MATERIAL: " .. env._renderCardMaterial)
+		env.KstyleUI.Options.Write("Widgets", "cardMaterial", env._renderCardMaterial)
+	end
 	if env._renderChatFraming then
 		local framing = env._renderChatFraming
 		assert(framing == "auto" or framing == "card" or framing == "bare", "unknown RENDER_CHAT_FRAMING: " .. tostring(framing))
@@ -69,6 +90,11 @@ function CoreEnv.LoadSaved(env)
 		local arrangement = env._renderArrangement
 		assert(arrangement == "centred" or arrangement == "spread", "unknown RENDER_ARRANGEMENT: " .. tostring(arrangement))
 		env.KstyleUI.Store.Module("Layout").arrangement = arrangement
+	end
+	if env._renderOrnaments then
+		local level = env._renderOrnaments
+		assert(level == "Off" or level == "Subtle" or level == "Full", "unknown RENDER_ORNAMENTS: " .. tostring(level))
+		env.KstyleUI.Store.Module("Widgets").ornaments = level
 	end
 end
 

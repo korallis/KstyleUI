@@ -231,6 +231,16 @@ do
 	assert(dps.showPower and dps.power:IsShown(), "a role change brings the power bar back")
 	write(env, K, "power.keepRoom", false)
 	write(env, K, "power.damagers", true)
+	env._roster.units.party3.role = "DAMAGER"
+	env.FireEvent("PLAYER_ROLES_ASSIGNED")
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	height = tank.health.opts.height
+	write(env, K, "power.damagers", false)
+	assert(not dps.showPower and dps.health.opts.height > height, "on Frames a damage dealer without power takes the room")
+	write(env, K, "power.damagers", true)
+	K.Options.Write("HudStyle", "style", "medallions")
+	env.RunTimers()
 	noErrors(env, K)
 end
 collectgarbage()
@@ -274,6 +284,14 @@ do
 	assert(point == "TOPLEFT" and relative == tank and near(W.LastCall(tank.ready, "SetSize")[1], math.min(20, most)), "Automatic with a size keeps the tidy lane's place")
 	write(env, K, "icons.readySize", 0)
 	assert(select(3, anchor(tank.ready)) == "TOPLEFT", "0 restores today's place")
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	write(env, K, "icons.readySize", 20)
+	point, relative = anchor(tank.ready)
+	assert(point == "CENTER" and relative == tank, "on Frames Automatic with a size keeps today's place")
+	write(env, K, "icons.readySize", 0)
+	K.Options.Write("HudStyle", "style", "medallions")
+	env.RunTimers()
 
 	env._busy = { party2 = true }
 	write(env, K, "icons.combat", true)

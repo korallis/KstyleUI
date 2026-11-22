@@ -1,6 +1,8 @@
--- test-groupframes-raid-status.lua: a raid tile keeps every status it is configured for (rank round 6): the debuff cluster ends in an engine-counted "+N" chip (Grok #2), every boss debuff reaches the row or the chip (Astra #1), the shipped raid presets show their defensive indicators at 20 and 40 players in the tidy Medallions lane (Astra #2, KSTY-57), a configuration with no room says so in its settings row, the party's indicators are legible (Opus), and the missing health keeps clear of the debuffs (Muse).
+-- test-groupframes-raid-status.lua: a raid tile keeps every status it is configured for (rank round 6): the debuff cluster ends in an engine-counted "+N" chip (Grok #2), every boss debuff reaches the row or the chip (Astra #1), the shipped raid presets show their defensive indicators at 20 and 40 players in the tidy Medallions lane (Astra #2, KSTY-57), a configuration with no room says so in its settings row, the party's indicators are legible (Opus), and the missing health keeps clear of the debuffs (Muse). test-groupframes-raid-status-frames.lua passes "frames" to check the same on Frames, where the indicator lane sits off the bar.
+local isFrames = ... == "frames"
 local S = dofile("Tools/regression/raid_status.lua")
 local G, A, Scene = S.G, S.A, S.Scene
+if isFrames then dofile("Tools/regression/groupframes_frames.lua")(G) end
 local LEGIBLE = S.LEGIBLE
 local eq, intersects, describe = S.eq, S.intersects, S.describe
 local Saved, Batch, Part, Raid, CheckRoute, Content = S.Saved, S.Batch, S.Part, S.Raid, S.CheckRoute, S.Content
@@ -71,7 +73,7 @@ end
 
 -- Muse: the missing health keeps clear of the debuffs, at the default tile and the Healer layout's --------------------
 for _, size in ipairs({ { 116, 36 }, { 116, 40 } }) do
-	local env, _, _, f = Raid({ raid = { width = size[1], height = size[2], healthText = "DEFICIT" } }, 5, function(_, m)
+	local env, _, ns, f = Raid({ raid = { width = size[1], height = size[2], healthText = "DEFICIT" } }, 5, function(_, m)
 		m.maxHealth = 41800
 		m.health = 30600
 	end)
@@ -83,7 +85,18 @@ for _, size in ipairs({ { 116, 36 }, { 116, 40 } }) do
 		end
 	end
 	assert(text and text.text and text.text:find("^%-"), "the missing health shows, got " .. tostring(text and text.text))
-	assert(not intersects(text.rect, { Scene.Rect(env, f.auraClip) }), size[1] .. " by " .. size[2] .. ": the missing health " .. describe(text.rect) .. " keeps clear of the debuffs")
+	if isFrames then
+		local boss = f.highlights:GetAuraSlotFrame("boss")
+		boss:Show()
+		local bossRect = { Scene.Rect(env, boss) }
+		boss:Hide()
+		local gap = ns.Geometry.INSET
+		local clear = { bossRect[1] - gap, bossRect[2], bossRect[3] + gap, bossRect[4] }
+		assert(not intersects(text.rect, clear), size[1] .. " by " .. size[2] .. ": the missing health " .. describe(text.rect) .. " keeps a gap from the boss slot " .. describe(bossRect))
+		assert(not intersects(text.rect, { Scene.Rect(env, f.auraClip) }), "and from the debuffs")
+	else
+		assert(not intersects(text.rect, { Scene.Rect(env, f.auraClip) }), size[1] .. " by " .. size[2] .. ": the missing health " .. describe(text.rect) .. " keeps clear of the debuffs")
+	end
 end
 
 -- Each indicator's settings row carries a note for a configuration with no room --------------------------------------
@@ -105,10 +118,16 @@ do
 		local row = assert(notes[i][kind], "indicator " .. i .. " has a " .. kind .. " note")
 		return row.showWhen(settings) == true, row
 	end
-	local f = Content(ns, ns.Headers.raid[1], "raid1")
-	assert(f.parts.indicatorLane.left >= f.parts.health.left, "the tidy lane stays on a 30 by 20 tile")
-	local on, row = shown(3, "raid")
-	assert(on, "a 30 by 20 tile has room for one indicator, so the third's note shows")
+	local on, row
+	if isFrames then
+		on, row = shown(1, "raid")
+		assert(on, "a 30 by 20 raid tile has no room for the external defensives, and the note says so")
+	else
+		local f = Content(ns, ns.Headers.raid[1], "raid1")
+		assert(f.parts.indicatorLane.left >= f.parts.health.left, "the tidy lane stays on a 30 by 20 tile")
+		on, row = shown(3, "raid")
+		assert(on, "a 30 by 20 tile has room for one indicator, so the third's note shows")
+	end
 	assert(row.label:find("raid", 1, true), "the note names raid frames: " .. row.label)
 	assert(not shown(4, "raid"), "an indicator that is off raises no note")
 	Batch(env, K, { { "raid.width", 116 }, { "raid.height", 36 } })

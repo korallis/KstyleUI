@@ -165,6 +165,11 @@ for _, screen in ipairs(SCREENS) do
 	local gapLeft, gapRight = Rect(bar1.holder)[3], Rect(bar2.holder)[1]
 	assert(math.abs(centre - (gapLeft + gapRight) / 2) < 1, what .. ": the hub is centred in the gap")
 	assert(math.abs((hubRect[2] + hubRect[4]) / 2 - top) < 1, what .. ": the hub's centre sits on the slots' top edge")
+	assert(not (ns.Tray.card and ns.Tray.card:IsShown()), what .. ": the Frames tray is hidden under Medallions")
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	assert(not slab:IsShown() and not hub:IsShown(), what .. ": back to Frames the slab and hub hide")
+	assert(Columns(bar1) == 1, what .. ": back to Frames bar 1 is one row again")
 
 	env.RunTimers()
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))

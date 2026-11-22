@@ -21,7 +21,7 @@ local COMPACT_PAD = 6
 local card, glass, cap, view, more, track, thumb, ruler, countRuler, fade
 local rows, buttons, heights = {}, {}, {}
 local pitch, lead, rowWidth = 0, 0, 0
-local offset, wanted, maxHeight, naturalHeight, baseHeight = 1, 4, 0, 0, 0
+local offset, wanted, maxHeight, naturalHeight = 1, 4, 0, 0
 local pending, waiting, active = false, false, false
 local pointed = false
 
@@ -690,15 +690,6 @@ function Card.SetShownCount(n)
 	wanted = math.max(1, math.min(MAX_SHOWN, math.floor(tonumber(n) or 4)))
 end
 
-function Card.Resize(height)
-	local available = math.max(baseHeight, height)
-	if math.abs(maxHeight - available) > 0.01 then
-		maxHeight = available
-		Card.Render()
-	end
-	card:SetHeight(Snap(height))
-end
-
 function Card.NaturalHeight()
 	return naturalHeight
 end
@@ -707,7 +698,7 @@ function Card.Place(root, left, top, width, height)
 	card:ClearAllPoints()
 	Widgets.Point(card, "TOPLEFT", root, "BOTTOMLEFT", Widgets.Snap(card, left), Widgets.Snap(card, top))
 	card:SetWidth(Widgets.Snap(card, width))
-	maxHeight, baseHeight = height, height
+	maxHeight = height
 end
 
 local function Restyle()
@@ -844,7 +835,7 @@ function Card.Diagnose()
 		.. " maxHeight=" .. DiagnosticText(maxHeight) .. " rowWidth=" .. DiagnosticText(rowWidth)
 		.. " pending=" .. DiagnosticText(pending) .. " waiting=" .. DiagnosticText(waiting)
 		.. " watches=" .. DiagnosticText(Data.watches) .. " read=" .. DiagnosticText(Data.status)
-		.. " guideIsShown=" .. DiagnosticRead(rxp and rxp.RXPFrame, "IsShown")
+		.. " style=" .. DiagnosticText(K.HudStyle.Current()) .. " guideIsShown=" .. DiagnosticRead(rxp and rxp.RXPFrame, "IsShown")
 		.. ns.Quests.Diagnostic())
 	DiagnosticPart("holder", card and card:GetParent())
 	DiagnosticPart("card", card)

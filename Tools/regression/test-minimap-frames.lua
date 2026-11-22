@@ -1,0 +1,2 @@
+-- test-minimap-frames.lua: under the Frames HUD style, the square minimap as the owner's picture draws it: off until enabled, its Layout element, the square mask inside a gilt pixel rim, the north plate, the caption under the map, the buttons at rest, the hover group, the Blizzard pieces it hides, wheel zoom, coordinates, the migration from the lens card, the accent and turning it off.
+assert(loadfile("Tools/regression/test-minimap.lua"))("frames")

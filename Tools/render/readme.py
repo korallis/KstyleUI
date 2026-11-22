@@ -4,24 +4,20 @@
     python3 Tools/render/readme.py [--work DIR] [--no-render] [--only NAME ...]
 
 Run it from the repository root with luajit and Google Chrome installed. It renders the scenes into DIR (default
-~/.capy/work/readme-renders), cuts them and writes the finished JPEGs to docs/media/readme/, where README.md reads them.
+~/.capy/work/readme-renders), crops them and writes the finished JPEGs to docs/media/readme/, where README.md reads them.
 In-game Medallions media uses the game_ prefix and is preserved.
 
 The pictures:
 
-  hud_1080                             the whole HUD in combat on a 1920x1080 screen at the 15/16 size the game picks
-  ultrawide_centred, ultrawide_spread  the Healer layout on 5120x1440 in each ultrawide arrangement
-  crop_*                               close crops of the 1080 HUD drawn at twice the density: the unit frames, the
-                                       right rail, the group meter, and the nameplate scene; a rogue's crest jewels
-                                       and forged data dock; a world map road and flight route
-  frame_*                              frames cut directly from the gallery scenes
+  hud_1080         the whole HUD in combat on a 1920x1080 screen at the 15/16 size the game picks
+  hud_frames_1080  the same in the Frames look
+  frame_raid       the raid frames with their heading, from the group frames gallery scene at twice the density
 
 --no-render reuses the renders a previous run left in DIR. --only redoes the named pictures. Pillow is needed; the script
 runs itself again with the wow-dev virtual environment's Python when this one has none.
 """
 
 import argparse
-import json
 from pathlib import Path
 import os
 import subprocess
@@ -34,46 +30,24 @@ OUT = os.path.join(ROOT, "docs", "media", "readme")
 DEFAULT_WORK = os.environ.get("KSTYLEUI_MEDIA_WORK", os.path.expanduser("~/.capy/work/readme-renders"))
 
 PLATES = Path(ROOT) / "docs/media/plates"
-GALLERY_PPU = 2.0
 BUDGET_BYTES = 4 * 1024 * 1024
 QUALITY = 86
 
 COMBAT = {"RENDER_LAYOUT": "DPS", "RENDER_LOSS": "1", "RENDER_METER_SECRET": "1"}
-ULTRAWIDE = {"RENDER_SIZE": "auto", "RENDER_SCREEN": "5120x1440"}
 HD = {"RENDER_SIZE": "0.9375", "RENDER_SCREEN": "1920x1080"}
 HUD = dict(HD, **COMBAT)
 
 RENDERS = {
     "hud_1080": ("hud_reference", 1.0, HUD, "--strict"),
-    "hud_1080_2x": ("hud_reference", 2.0, HUD, "--strict"),
-    "healer_centred": ("hud_reference", 1440 / 1080, {**ULTRAWIDE, **COMBAT, "RENDER_LAYOUT": "Healer", "RENDER_ARRANGEMENT": "centred"}, "--strict"),
-    "healer_spread": ("hud_reference", 1440 / 1080, {**ULTRAWIDE, **COMBAT, "RENDER_LAYOUT": "Healer", "RENDER_ARRANGEMENT": "spread"}, "--strict"),
-    "meter_party": ("hud_reference", 2.0, dict(HUD, RENDER_METER_GROUP="party"), "--strict"),
-    "meter_both_2x": ("hud_reference", 2.0, dict(HUD, RENDER_METER_GROUP="party", RENDER_METER_CHOICE="both"), "--strict"),
-    "plates": ("nameplate_bible", 2.0, {"RENDER_COMBAT": "1"}, "--strict"),
-    "rogue_1080_2x": ("hud_rogue_mac", 2.0, HUD, "--strict"),
-    "route_flight": ("worldmap_roads", 2.0, dict(HD, RENDER_MAP_TRIP="flight"), "--strict"),
+    "frames_1080": ("hud_reference", 1.0, dict(HUD, RENDER_HUD_STYLE="Frames", RENDER_ORNAMENTS="Full"), "--strict"),
+    "groupframes": ("gallery_groupframes", 2.0, {}, "--strict"),
 }
 
-GALLERIES = ("gallery_setup", "gallery_groupframes", "gallery_skins_character")
-
-# name, source, crop, width. A source is "render:<RENDERS key>" or "frame:<gallery frame name>"; a crop is
-# "WxH+X+Y" in the source's pixels or None. A picture narrower than its width stays as it is.
+# name, source, crop, width. A source is "render:<RENDERS key>"; a crop is "WxH+X+Y" in the source's pixels or None. A picture narrower than its width stays as it is.
 IMAGES = [
-    ("hud_1080", "render:hud_1080", None, 1200),
-    ("crop_unitframes", "render:hud_1080_2x", "1640x270+1100+1695", 1400),
-    ("crop_nameplates", "render:plates", "1340x780+400+300", 800),
-    ("crop_meter", "render:meter_party", "490x320+3328+1820", 540),
-    ("crop_meters_both", "render:meter_both_2x", "845x314+2975+1826", 1120),
-    ("crop_rail", "render:hud_1080_2x", "1100x1130+2720+10", 660),
-    ("crop_crest", "render:rogue_1080_2x", "330x420+1755+1735", 540),
-    ("crop_dock", "render:rogue_1080_2x", "1960x420+940+1740", 1400),
-    ("crop_route", "render:route_flight", "1385x968+900+640", 1000),
-    ("ultrawide_centred", "render:healer_centred", None, 1600),
-    ("ultrawide_spread", "render:healer_spread", None, 1600),
-    ("frame_setup", "frame:setup_layouts", None, 720),
-    ("frame_raid", "frame:groupframes_raid", None, 720),
-    ("frame_skins", "frame:skins_character", None, 560),
+    ("hud_1080", "render:hud_1080", None, 1920),
+    ("hud_frames_1080", "render:frames_1080", None, 1200),
+    ("frame_raid", "render:groupframes", "904x442+106+724", 720),
 ]
 
 Image = None
@@ -140,37 +114,6 @@ def render_all(work, wanted):
         if "render:" + key in sources:
             run(["bash", "Tools/render/shoot.sh", scene, guard, "--backdrop", bash_path(scenery_plate(env)), "--ppu", repr(ppu), "--out", os.path.join(work, key + ".png")],
                 dict(env, KSTYLEUI_PLATE=str(scenery_plate(env))))
-    if any(source.startswith("frame:") for source in sources):
-        for scene in GALLERIES:
-            run(["bash", "Tools/render/shoot.sh", scene, "--backdrop", bash_path(scenery_plate({})), "--ppu", str(GALLERY_PPU),
-                 "--out", os.path.join(work, scene + ".png")],
-                dict(KSTYLEUI_PLATE=str(scenery_plate({}))))
-
-
-def cut_all(work, wanted):
-    """Cut published gallery frames directly; design-mockup references are internal only."""
-    frames = Path(work) / "frames"
-    frames.mkdir(parents=True, exist_ok=True)
-    needed = {source[6:] for name, source, _, _ in IMAGES if name in wanted and source.startswith("frame:")}
-    for scene in GALLERIES if needed else ():
-        path = Path(ROOT) / "Tools/render/out" / scene
-        data = json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
-        with Image.open(Path(work) / (scene + ".png")) as image:
-            for frame in data["frames"]:
-                if frame["name"] not in needed:
-                    continue
-                x, y, width, height = frame["rect"]
-                pad = frame.get("pad", 14)
-                box = (max(0, round((x-pad)*GALLERY_PPU)), max(0, round((y-pad)*GALLERY_PPU)),
-                       min(image.width, round((x+width+pad)*GALLERY_PPU)), min(image.height, round((y+height+pad)*GALLERY_PPU)))
-                image.crop(box).save(frames / ("kstyle_" + frame["name"] + ".png"))
-
-
-def source_path(work, source):
-    kind, _, name = source.partition(":")
-    if kind == "frame":
-        return os.path.join(work, "frames", "kstyle_%s.png" % name)
-    return os.path.join(work, name + ".png")
 
 
 def save(image, name):
@@ -189,7 +132,7 @@ def finish(work, wanted):
     for name, source, crop, width in IMAGES:
         if name not in wanted:
             continue
-        image = Image.open(source_path(work, source))
+        image = Image.open(os.path.join(work, source.split(":")[1] + ".png"))
         if crop:
             image = image.crop(parse_crop(crop))
         save(scaled(image, width), name)
@@ -202,7 +145,7 @@ def total_bytes():
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--work", default=DEFAULT_WORK, help="where the renders and cut frames go")
+    parser.add_argument("--work", default=DEFAULT_WORK, help="where the renders go")
     parser.add_argument("--no-render", action="store_true", help="reuse the renders a previous run left")
     parser.add_argument("--only", nargs="*", default=[], help="redo only these pictures")
     args = parser.parse_args(argv)
@@ -214,7 +157,6 @@ def main(argv=None):
     wanted = set(args.only or picture_names())
     if not args.no_render:
         render_all(args.work, wanted)
-    cut_all(args.work, wanted)
     finish(args.work, wanted)
     for path in os.listdir(OUT):
         if not path.startswith("game_") and (os.path.splitext(path)[0] not in picture_names() or not path.endswith(".jpg")):

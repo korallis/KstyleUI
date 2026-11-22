@@ -1,5 +1,7 @@
--- test-groupframes-name-roles.lua: one measured face and size per party, semantic names in roomy lanes, Medallions raid tiles in their label face, and saved choices across restyles.
+-- test-groupframes-name-roles.lua: one measured face and size per party, semantic names in roomy lanes, Medallions raid tiles in their label face, and saved choices across restyles. test-groupframes-name-roles-frames.lua passes "frames" to check Frames' compact faces and whole compact raid names.
+local isFrames = ... == "frames"
 local G = dofile("Tools/regression/group_env.lua")
+if isFrames then dofile("Tools/regression/groupframes_frames.lua")(G) end
 local Looks = dofile("Tools/regression/group_looks.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 
@@ -52,8 +54,9 @@ do
 	assert(K.Modules.Enable("GroupFrames"))
 	env.RunTimers()
 	local tank, shaman = member(ns, "party1"), member(ns, "party2")
-	local names = (K.Tokens.Font("names"))
-	eq(font(tank), names, "the Medallions pip leaves captioned party lanes room for the names face")
+	local legacy = K.Tokens.FontPath("AlegreyaSansRegular")
+	local names = isFrames and legacy or (K.Tokens.Font("names"))
+	eq(font(tank), names, isFrames and "captioned party lanes deliberately keep the compact face" or "the Medallions pip leaves captioned party lanes room for the names face")
 	local originalSize = uniform(ns, names, "short party")
 	for _, row in ipairs(K.Options.Get("GroupFrames")) do
 		if row.key == "text.nameFont" or row.key == "text.healthFont" then
@@ -71,9 +74,13 @@ do
 	ns.Names.Set(tank, "Thaldrenwick")
 	eq(tank.name:GetText(), "Thaldrenwick", "a twelve-letter party member stays whole beside the class caption")
 	local groupSize = uniform(ns, names, "twelve-letter party")
-	assert(W.Near(groupSize, originalSize), "the roomy lane keeps the whole party's size")
+	if isFrames then
+		assert(groupSize < originalSize, "one longer row makes the whole party step down")
+	else
+		assert(W.Near(groupSize, originalSize), "the roomy lane keeps the whole party's size")
+	end
 	ns.Names.Set(tank, "Thaldren")
-	assert(W.Near(uniform(ns, names, "short names restored"), originalSize), "shortening that row keeps it")
+	assert(W.Near(uniform(ns, names, "short names restored"), originalSize), isFrames and "shortening that row restores the whole group" or "shortening that row keeps it")
 	K.Options.Write("GroupFrames", "party.classLine", false)
 	env.RunTimers()
 	uniform(ns, (K.Tokens.Font("names")), "roomy party without class captions")
@@ -106,12 +113,16 @@ do
 	ns.Names.Set(tank, "Thaldren")
 	assert(K.Theme.SetFontFace("Lumen"))
 	env.RunTimers()
-	eq(font(tank), (K.Tokens.Font("names")), "the kit's names face returns without a reload")
+	eq(font(tank), isFrames and legacy or (K.Tokens.Font("names")), isFrames and "the compact kit treatment returns without a reload" or "the kit's names face returns without a reload")
 	K.Options.Write("GroupFrames", "party.healthText", "CURRENT_MAX")
 	env.RunTimers()
-	assert(tank.nameWidth and tank.nameWidth > 0, "the tidy Medallions lane reserves the health text, so the fitter knows the name lane")
+	if isFrames then
+		eq(tank.nameWidth, nil, "unreserved health text never gives the fitter a guessed full name lane")
+	else
+		assert(tank.nameWidth and tank.nameWidth > 0, "the tidy Medallions lane reserves the health text, so the fitter knows the name lane")
+	end
 	local _, currentSize = tank.name:GetFont()
-	assert(W.Near(currentSize, K.Widgets.FontSize(tank.name, tank.nameFit.min)), "and the reserved health text leaves the name at the floor")
+	assert(W.Near(currentSize, K.Widgets.FontSize(tank.name, tank.nameFit.min)), isFrames and "unknown health width uses native fitting at the floor" or "and the reserved health text leaves the name at the floor")
 	K.Options.Write("GroupFrames", "party.classLine", false)
 	env.RunTimers()
 	local _, uncaptionedSize = tank.name:GetFont()
@@ -123,7 +134,7 @@ do
 	ns.Names.Set(tank, long)
 	eq(tank.rawName, long, "oversized data remains available for a later refit")
 	assert(tank.name:GetText():find("...", 1, true), "an out-of-contract long name is explicitly abbreviated")
-	uniform(ns, ns.Settings.COMPACT_NAME_FONT, "oversized name")
+	uniform(ns, isFrames and legacy or ns.Settings.COMPACT_NAME_FONT, "oversized name")
 	local _, size = tank.name:GetFont()
 	assert(W.Near(size, K.Widgets.FontSize(tank.name, tank.nameFit.min)), "a long name stops at the existing party floor")
 	local secret = env.Secret("Hidden")
@@ -133,7 +144,7 @@ do
 	ns.Style.Apply(tank)
 	local _, secretSize = tank.name:GetFont()
 	assert(W.Near(secretSize, K.Widgets.FontSize(tank.name, tank.nameFit.min)), "a secret-name restyle stays at the floor without reading the name back")
-	uniform(ns, (K.Tokens.Font("names")), "secret member")
+	uniform(ns, isFrames and legacy or (K.Tokens.Font("names")), "secret member")
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
@@ -155,28 +166,41 @@ do
 	env.RunTimers()
 	local f = member(ns, "raid1")
 	local label, whole = K.Tokens.FontPath("InterSemiBold"), K.Locale.Upper("Thaldrenwick")
-	eq(font(f), label, "the Medallions raid tile names in its Inter SemiBold label face")
-	local text = f.name:GetText()
-	assert(#text > 0 and whole:sub(1, #text) == text, "the compact tile keeps the twelve-letter name's head in caps, got " .. text)
+	local legacy = K.Tokens.FontPath("AlegreyaSansRegular")
+	if isFrames then
+		eq(font(f), legacy, "the compact raid deliberately keeps the proven Alegreya face")
+		eq(f.name:GetText(), "Thaldrenwick", "the existing twelve-letter fixture stays whole")
+	else
+		eq(font(f), label, "the Medallions raid tile names in its Inter SemiBold label face")
+		local text = f.name:GetText()
+		assert(#text > 0 and whole:sub(1, #text) == text, "the compact tile keeps the twelve-letter name's head in caps, got " .. text)
+	end
 	fits(K, ns, f, "compact raid")
 	assert(K.Theme.SetFontFace("InterSemiBold"))
 	env.RunTimers()
-	eq(font(f), label, "a global face keeps the tile's label face")
+	eq(font(f), isFrames and (K.Tokens.Font("names")) or label, isFrames and "an explicit global face overrides the compact default" or "a global face keeps the tile's label face")
 	assert(K.Theme.SetFontFace("Lumen"))
 	env.RunTimers()
-	eq(font(f), label, "and so does a kit")
+	eq(font(f), isFrames and legacy or label, isFrames and "returning to a kit restores the compact treatment" or "and so does a kit")
 	K.Options.Write("GroupFrames", "raid.width", 200)
 	env.RunTimers()
-	eq(font(f), label, "a roomy tile keeps the label face")
-	eq(f.name:GetText(), whole, "and the whole name")
+	eq(font(f), isFrames and (K.Tokens.Font("names")) or label, isFrames and "a roomy raid lane uses names" or "a roomy tile keeps the label face")
+	eq(f.name:GetText(), isFrames and "Thaldrenwick" or whole, isFrames and "the roomy raid also keeps the full data" or "and the whole name")
 	fits(K, ns, f, "roomy raid")
-	local custom = ns.Settings.COMPACT_NAME_FONT
+	local custom = isFrames and K.Tokens.FontPath("SourceSans3Regular") or ns.Settings.COMPACT_NAME_FONT
 	K.Options.Write("GroupFrames", "text.nameFont", custom)
+	if isFrames then
+		K.Options.Write("GroupFrames", "raid.width", 72)
+	end
 	env.RunTimers()
-	eq(font(f), custom, "a saved name face wins over the tile's label face")
-	K.Options.Write("GroupFrames", "text.nameFont", ns.Settings.THEME_FONT)
+	eq(font(f), custom, isFrames and "a compact lane never replaces a saved custom face" or "a saved name face wins over the tile's label face")
+	if isFrames then
+		K.Callbacks.Fire("ThemeChanged")
+	else
+		K.Options.Write("GroupFrames", "text.nameFont", ns.Settings.THEME_FONT)
+	end
 	env.RunTimers()
-	eq(font(f), label, "the KstyleUI font restores the label face")
+	eq(font(f), isFrames and custom or label, isFrames and "a theme restyle preserves the saved custom face" or "the KstyleUI font restores the label face")
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
@@ -185,13 +209,13 @@ do
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
 	parent:SetSize(300, 420)
 	local preview = K.Options.Preview("GroupFrames")(parent)
-	local names = env._addons.KstyleUI_GroupFrames.Settings.COMPACT_NAME_FONT
+	local names = isFrames and (K.Tokens.Font("names")) or env._addons.KstyleUI_GroupFrames.Settings.COMPACT_NAME_FONT
 	local function previewSize()
 		local size, count
 		count = 0
 		for _, f in ipairs(preview.partyFrames) do
 			local face, current = f.name:GetFont()
-			eq(face, names, "the preview uses the live Medallions party's compact face")
+			eq(face, names, isFrames and "the preview uses the live party's names face (KSTY-57)" or "the preview uses the live Medallions party's compact face")
 			assert(not size or W.Near(size, current), "preview members have one size")
 			eq(f.nameGroup, preview.partyFrames, "the preview has its own party membership")
 			eq(f.name:GetText(), f.sample.name, "the sample name stays whole")
@@ -207,7 +231,7 @@ do
 	assert(W.Near(previewSize(), original), "the real roster does not shrink the preview group")
 	local last = preview.partyFrames[1]
 	local name = last.sample.name
-	last.sample.name = "Wormwoodmama"
+	last.sample.name = isFrames and "Mhaldrenwick" or "Wormwoodmama"
 	preview:Refresh()
 	assert(previewSize() < original, "one longer preview member steps down the entire group")
 	last.sample.name = name

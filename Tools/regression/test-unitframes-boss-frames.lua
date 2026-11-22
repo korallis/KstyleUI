@@ -1,0 +1,2 @@
+-- test-unitframes-boss-frames.lua: on Frames, the boss column holds five compact cards that keep the name, the pill and the cast line, inside the footprint the layouts reserve with the cards' aura room; the boss you target folds its card to a slim Targeted chip, because the sigil already carries its name, health and cast (round 2: Grok #2, Muse #1). A secret unit comparison goes through SetAlphaFromBoolean.
+assert(loadfile("Tools/regression/test-unitframes-boss.lua"))("frames")

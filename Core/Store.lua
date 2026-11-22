@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor, huge = string.format, string.sub, math.floor, math.huge
 
-Store.DB_VERSION = 46
+Store.DB_VERSION = 47
 Store.migrations = {}
 
 Store.migrations[38] = function(data)
@@ -1024,28 +1024,43 @@ Store.migrations[45] = function(data, live)
 	local moved = false
 	for _, profile in pairs(data.profiles) do
 		if type(profile) == "table" then
-			local hud = type(profile.HudStyle) == "table" and profile.HudStyle.style
-			moved = moved or hud ~= "medallions"
-			profile.HudStyle = nil
+			local hud = Table(profile.HudStyle).style
+			local frames = hud == nil or hud == "frames"
+			moved = moved or hud == "orbs"
+			profile.HudStyle = frames and { style = "frames", look = {} } or nil
+			for module, values in pairs(frames and ns.HudStyle.FRAMES_LOOK or {}) do
+				profile[module] = Table(profile[module])
+				for path, value in pairs(values) do
+					local group, leaf = path:match("^(%a+)%.(%a+)$")
+					local node = Table(profile[module][group])
+					profile[module][group] = node
+					profile.HudStyle.look[module .. "." .. path] = node[leaf] == nil
+					if node[leaf] == nil then node[leaf] = value end
+				end
+			end
 			for module, keys in pairs(RETIRED) do
-				local section = Table(profile[module])
-				for _, key in ipairs(keys) do section[key] = nil end
+				if not frames or module == "UnitFrames" then
+					local section = Table(profile[module])
+					for _, key in ipairs(keys) do section[key] = nil end
+				end
 			end
 			if type(profile.Chat) == "table" and profile.Chat.framing == "auto" then profile.Chat.framing = nil end
 			local strip = Table(Table(profile.DataBars).strip)
-			strip.modules, strip.height = nil, nil
-			if strip.placement == "top" then strip.placement = "dock" end
+			if not frames then
+				strip.modules, strip.height = nil, nil
+				if strip.placement == "top" then strip.placement = "dock" end
+			end
 			for _, bar in pairs(Table(profile.ActionBars)) do
 				if type(bar) == "table" and bar.split == "auto" then bar.split = nil end
 			end
 			for kind, unit in pairs(Table(profile.UnitFrames)) do
-				if type(unit) == "table" then
+				if type(unit) == "table" and not frames then
 					for _, key in ipairs(RETIRED_UNIT) do unit[key] = nil end
 					local slab = (kind == "player" or kind == "target") and "column" or "lumen"
 					if unit.style ~= nil and unit.style ~= "plate" and unit.style ~= slab then unit.style = nil end
 				end
 			end
-			if Table(profile.Widgets).cardMaterial == "Glass" then
+			if not frames and Table(profile.Widgets).cardMaterial == "Glass" then
 				profile.Skins = Table(profile.Skins)
 				profile.Skins.contextMenus = Table(profile.Skins.contextMenus)
 				profile.Skins.contextMenus.enabled = false
@@ -1058,14 +1073,22 @@ Store.migrations[45] = function(data, live)
 	for _, positions in pairs(Table(Table(data.account).namedLayouts)) do
 		DropStyledPositions(positions)
 	end
-	if moved and live then ns.Print(L["KstyleUI is now Medallions only; your HUD moved to Medallions."]) end
+	if moved and live then ns.Print(L["Orbs is gone, so your HUD moved to Medallions. Frames is still here: pick it under HUD style at the top of the settings window's General page."]) end
 end
 
 Store.migrations[46] = function(data)
 	for _, profile in pairs(data.profiles) do
-		if type(profile) == "table" then
+		if type(profile) == "table" and Table(profile.HudStyle).style ~= "frames" then
 			local widgets, options = Table(profile.Widgets), Table(profile.OptionsPresentation)
 			widgets.ornaments, widgets.cardMaterial, options.samples = nil, nil, nil
+		end
+	end
+end
+
+Store.migrations[47] = function(data)
+	for _, profile in pairs(data.profiles) do
+		if type(profile) == "table" then
+			Table(Table(profile.Meters).threat).followGuide = nil
 		end
 	end
 end
@@ -1901,7 +1924,7 @@ local function checkRow(row, value, path, default)
 	elseif row.type == "dropdown" or row.type == "segmented" or row.type == "pictures" then
 		local options = row.options
 		if type(options) == "function" then
-			local ok, list = pcall(options)
+			local ok, list = pcall(options, true)
 			if not ok or type(list) ~= "table" then
 				return format(L["%s could not be checked against its choices."], path)
 			end

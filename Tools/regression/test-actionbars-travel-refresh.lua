@@ -10,11 +10,11 @@ ns.TravelData.Read = function(...) reads = reads + 1; return read(...) end
 AB.Enable(env, K)
 env.RunTimers()
 local function Tray() ns.bars.bar1:RefreshSlab() end
-local base = Budget.Count(env, Tray)
+local base = Budget.Count(env, Tray, 1)
 AB.W.Enter(ns.Travel.crest)
 AB.W.Leave(ns.Travel.crest)
 local count = reads
-local prepared = Budget.Count(env, Tray)
+local prepared = Budget.Count(env, Tray, 1)
 print(string.format("travel slab: base %d instructions/%d calls; prepared %d/%d; scans %d", base.instructions, base.calls, prepared.instructions, prepared.calls, reads - count))
 Budget.Check(prepared, base.instructions * 1.2, base.calls * 1.2, "keep bag/journal scans and menu rebuilding out of slab refreshes")
 assert(reads == count, "a plain slab refresh must not rescan travel")

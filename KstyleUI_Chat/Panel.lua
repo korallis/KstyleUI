@@ -12,6 +12,7 @@ ns.Panel = Panel
 local KEY = "chat.main"
 local STRATA = "BACKGROUND"
 local MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT = 260, 120, 1000, 800
+local RULE_ALPHA = 0.35
 local CHAT_FILL = "medChatFill"
 local SHADE_LOBES, SHADE_X, SHADE_Y, SHADE_W, SHADE_H, SHADE_ALPHA = { -0.2727, 0, 0.2727 }, 0.47, 0.563, 1.09, 2.38, 0.46
 local BUTTON_SIZE, BUTTON_GLYPH, BUTTON_INSET = 20, 8, 22
@@ -536,14 +537,20 @@ function Panel.Sync()
 	Mirror()
 end
 
+function Panel.PaintRule(divider)
+	Widgets.Tint(divider, "gilt", RULE_ALPHA)
+end
+
 local function SyncHeader()
 	local glass = state.glass
-	local above = state.settings and state.settings.tabsAbove
-	glass.chrome:SetHeader(not above and state.headerUnits or nil)
+	local banded, above = Widgets.Medallions(), state.settings and state.settings.tabsAbove
+	glass.divider:SetShown(not state.bare and not banded and not above)
+	glass.chrome:SetHeader(banded and not above and state.headerUnits or nil)
 end
 
 local function PlaceGlass(g)
 	local glass, holder = state.glass, state.holder
+	local divider = glass.divider
 	local top = state.settings.tabsAbove and -g.divider or 0
 	if state.near ~= g.near or state.far ~= g.far or state.top ~= top then
 		state.near, state.far, state.top = g.near, g.far, top
@@ -551,6 +558,11 @@ local function PlaceGlass(g)
 		glass:SetPoint("TOPLEFT", holder, "TOPLEFT", g.near, top)
 		glass:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", -g.far, 0)
 	end
+	divider:ClearAllPoints()
+	divider:SetPoint("TOPLEFT", glass, "TOPLEFT", g.left - g.near, -g.divider)
+	divider:SetPoint("TOPRIGHT", glass, "TOPRIGHT", g.far - g.rule, -g.divider)
+	divider:SetHeight(Widgets.Border(divider))
+	Panel.PaintRule(divider)
 	state.headerUnits = g.divider + Widgets.Border(glass)
 	SyncHeader()
 	local y, host = -g.divider / 2, top < 0 and holder or glass
@@ -1150,6 +1162,8 @@ local function Build()
 	glass:SetAllPoints(holder)
 	state.near, state.far, state.top = 0, 0, 0
 	glass:SetFixedFrameStrata(true)
+	glass.divider = glass:CreateTexture(nil, "ARTWORK")
+	glass.divider:SetColorTexture(Tokens.Color("white"))
 	state.shade = {}
 	for i = 1, #SHADE_LOBES do
 		local lobe = holder:CreateTexture(nil, "BACKGROUND")

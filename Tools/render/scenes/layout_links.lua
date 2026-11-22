@@ -7,7 +7,7 @@ local Load = dofile("Tools/regression/load_files.lua")
 return Common.Run(function(opts)
 	opts = opts or {}
 	local env, K = U.New(Common.ScreenOpts({
-		saved = Gallery.Saved({ UnitFrames = {} }),
+		saved = Gallery.Saved({ UnitFrames = { player = { castbarInside = false } } }),
 		setup = function(e)
 			Gallery.Setup(e)
 			e._units.player = { name = "Valerin", class = "WARRIOR", level = 38, health = 2750, healthMax = 3350,

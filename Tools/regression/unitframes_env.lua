@@ -728,6 +728,7 @@ end
 --   login    false to stop before PLAYER_LOGIN
 --   plate    true to save every frame's style as the classic plate, for the tests that pin the plate
 --   lumen    true to save the player's and target's style as the older Lumen vitals line and sigil
+--   frames   true to pick the Frames HUD style after the saved data loads (Medallions is the default)
 U.KINDS = { "player", "target", "targettarget", "focus", "focustarget", "pet", "boss" }
 
 -- DbVersion() -> the saved-data version the core runs at, read from Core/Store.lua. A profile saved at the current
@@ -789,6 +790,9 @@ function U.New(opts)
 	opts.boot = false
 	local env, K = W.New(opts)
 	W.CoreEnv.LoadSaved(env)
+	if opts.frames then
+		K.Options.Write("HudStyle", "style", "frames")
+	end
 	if opts.before then
 		opts.before(env, K)
 	end

@@ -1,4 +1,4 @@
--- Medallions.lua: the Medallions look on the group frames: painted badge medallions in a steel ring on the party, class-coloured raid tiles with the name on the fill, and a steel target ring.
+-- Medallions.lua: the Medallions HUD style on the group frames: painted badge medallions in a steel ring on the party, class-coloured raid tiles with the name on the fill, and a steel target ring.
 local _, ns = ...
 
 local K = KstyleUI
@@ -23,9 +23,11 @@ local LOW_STEP = 0.001
 local CHIP_ALPHA = 0.55
 local CHIP_WIDTH = 30
 local LABEL_FACE = Tokens.FontPath("InterSemiBold")
+Medallions.Active = K.Widgets.Medallions
+
 local colorSources = Unit.ColorSources
 function Unit.ColorSources(f)
-	if f and f.kind == "raid" then
+	if f and f.kind == "raid" and Medallions.Active() then
 		return colorSources(f) == "gradient" and "gradient" or "class", "text"
 	end
 	return colorSources(f)
@@ -105,7 +107,7 @@ end
 local styling = nil
 local apply = Style.Apply
 function Style.Apply(f, ...)
-	styling = f
+	styling = Medallions.Active() and f or nil
 	apply(f, ...)
 	styling = nil
 end
@@ -194,7 +196,7 @@ end
 local setPortrait = Unit.SetPortrait
 function Unit.SetPortrait(f)
 	local api = K.Medallions
-	if f.kind == "party" and api and type(api.Portrait) == "function" then
+	if f.kind == "party" and Medallions.Active() and api and type(api.Portrait) == "function" then
 		Mask(f, not api.Portrait(f.portrait, f.unit, "badge"))
 		local zoom = Settings.current.party.portraitZoom
 		f.portrait:SetTexCoord(zoom, 1 - zoom, zoom, 1 - zoom)
@@ -296,7 +298,7 @@ end
 local nameColored = Unit.NameColored
 function Unit.NameColored(f, class)
 	nameColored(f, class)
-	if not (f.parts and f.parts.tile) then
+	if not (f.parts and f.parts.tile and Medallions.Active()) then
 		f.medInked = nil
 		return
 	end
@@ -449,7 +451,7 @@ end
 
 local placeRowEnd = Style.PlaceRowEnd
 function Style.PlaceRowEnd(f)
-	if f.parts and f.parts.tile then
+	if f.parts and f.parts.tile and Medallions.Active() then
 		TileText(f)
 		Style.PinStatus(f)
 		return
@@ -459,24 +461,31 @@ end
 
 local function Applied(f, parts, k)
 	f.nameLetterCut = false
+	local on = Medallions.Active()
 	if f.kind == "party" then
-		Badge(f, f.showPortrait)
-		f.tileless = true
-		f.chrome:SetShadow(false)
-		f.chrome:Restyle()
-		f.medPartyScrim = f.medPartyScrim or Widgets.NineSlice(f, "chamferTile", "BACKGROUND", -1)
-		Widgets.ShowSlice(f.medPartyScrim, Widgets.Readability("worldText"))
-		Widgets.ColorSlice(f.medPartyScrim, Widgets.Rgba("slabBottom", 0.5))
-		if not f.medPartyInk then
-			f.medPartyInk = CreateFrame("Frame", nil, f)
-			f.medPartyInk:SetFrameLevel(f:GetFrameLevel())
+		Badge(f, on and f.showPortrait)
+		if on then
+			f.tileless = true
+			f.chrome:SetShadow(false)
+			f.chrome:Restyle()
 		end
-		local box, pad = f.medPartyInk, Widgets.Snap(f, 4)
-		box:ClearAllPoints()
-		box:SetPoint("TOPLEFT", f.name, "TOPLEFT", -pad, pad)
-		box:SetPoint("BOTTOMRIGHT", f.health, "BOTTOMRIGHT", pad, -pad)
-		Widgets.LayoutSlice(f.medPartyScrim, box, Tokens.Size("radiusTile"), 0)
-	elseif parts.tile then
+		if on or f.medPartyScrim then
+			f.medPartyScrim = f.medPartyScrim or Widgets.NineSlice(f, "chamferTile", "BACKGROUND", -1)
+			Widgets.ShowSlice(f.medPartyScrim, on and Widgets.Readability("worldText"))
+			if on then
+				Widgets.ColorSlice(f.medPartyScrim, Widgets.Rgba("slabBottom", 0.5))
+				if not f.medPartyInk then
+					f.medPartyInk = CreateFrame("Frame", nil, f)
+					f.medPartyInk:SetFrameLevel(f:GetFrameLevel())
+				end
+				local box, pad = f.medPartyInk, Widgets.Snap(f, 4)
+				box:ClearAllPoints()
+				box:SetPoint("TOPLEFT", f.name, "TOPLEFT", -pad, pad)
+				box:SetPoint("BOTTOMRIGHT", f.health, "BOTTOMRIGHT", pad, -pad)
+				Widgets.LayoutSlice(f.medPartyScrim, box, Tokens.Size("radiusTile"), 0)
+			end
+		end
+	elseif on and parts.tile then
 		Tile(f, parts, k)
 		return
 	end
@@ -491,11 +500,13 @@ table.insert(Style.appliers, 1, Applied)
 local paint = Style.Paint
 function Style.Paint(f)
 	paint(f)
-	Style.ColorRing(f.targetRing, STEEL_LIT[1], STEEL_LIT[2], STEEL_LIT[3], 1)
+	if Medallions.Active() then
+		Style.ColorRing(f.targetRing, STEEL_LIT[1], STEEL_LIT[2], STEEL_LIT[3], 1)
+	end
 end
 
 local function PaintSample(f, sample)
-	if f.kind ~= "raid" or f.status then
+	if not Medallions.Active() or f.kind ~= "raid" or f.status then
 		return
 	end
 	if Settings.current.health.colorSource ~= "gradient" then
@@ -506,6 +517,12 @@ local function PaintSample(f, sample)
 end
 Style.painters[#Style.painters + 1] = PaintSample
 
+local function Restyle()
+	if Frames.running then
+		Frames.Apply()
+	end
+end
+
 local enable, disable = Frames.Enable, Frames.Disable
 local function Repaint()
 	for class in pairs(inked) do
@@ -514,11 +531,13 @@ local function Repaint()
 end
 
 function Frames.Enable(...)
+	K.Callbacks.Register("HudStyleChanged", OWNER, Restyle)
 	K.Callbacks.Register("ThemeChanged", OWNER, Repaint)
 	return enable(...)
 end
 
 function Frames.Disable(...)
+	K.Callbacks.Unregister("HudStyleChanged", OWNER)
 	K.Callbacks.Unregister("ThemeChanged", OWNER)
 	return disable(...)
 end

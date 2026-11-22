@@ -1,4 +1,4 @@
--- test-unitframes-castbar-on-frame.lua: Medallions hangs the player and target cast bars under their frames; the setting off, or a moved or hidden bar keeps the bars above the crest.
+-- test-unitframes-castbar-on-frame.lua: Medallions hangs the player and target cast bars under their frames; the setting off, a moved or hidden bar, or Frames keep the bars above the crest.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -45,7 +45,7 @@ for _, kind in ipairs({ "player", "target" }) do
 	assert(not CastBars.ElementLive(kind) and not K.Layout.Live("unitframes.castbar." .. kind), kind .. ": the bar above the crest gives way, and Layout Mode drops its mover")
 	assert(not CastBars.Get(kind)[1].frame:IsShown(), kind .. ": nothing is left in the lane above the crest")
 	assert(view.s.inlineCast == true, kind .. ": the frame carries the cast")
-	assert(cb.frame:IsShown() and cb.active and cb.geometry.medal, kind .. ": the frame's own bar shows the cast in the Medallions look")
+	assert(cb.frame:IsShown() and cb.active and cb.medal and cb.geometry.medal, kind .. ": the frame's own bar shows the cast in the Medallions look")
 	assert(cb.slab and cb.slab[5]:IsShown(), kind .. ": the unit slab material")
 	assert(cb.iconFrame:IsShown() == Settings.Value(kind, "castbarIcon"), kind .. ": Spell icon decides the icon (player on, target off by default)")
 	local fw, fh = cb.frame:GetSize()
@@ -111,6 +111,14 @@ assert(CastBars.Get("target")[1].frame:IsShown(), "the target's cast shows above
 write("castbarOnFrame", true)
 assert(not CastBars.ElementLive("player") and ns.Frames.Get("player").views[1].s.inlineCast, "on again puts it back on the frame")
 clean("toggle")
+
+K.Options.Write("HudStyle", "style", "frames")
+W.Tick(env, 0.1)
+assert(CastBars.ElementLive("player") and not CastBars.ElementLive("target") and Settings.Snapshot("player").inlineCast == false, "Frames keeps its own placement")
+K.Options.Write("HudStyle", "style", "medallions")
+W.Tick(env, 0.1)
+assert(not CastBars.ElementLive("player") and ns.Frames.Get("player").views[1].s.inlineCast, "back on Medallions the cast returns to the frame")
+clean("styles")
 
 local moved = { anchor = "BOTTOM", x = 40, y = 600 }
 local env2, K2, ns2 = new({ ["medallions:unitframes.castbar.player"] = moved })

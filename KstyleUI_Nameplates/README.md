@@ -2,7 +2,7 @@
 
 A KstyleUI plate on each nameplate: a clean health bar, name, the level diamond, cast bar, the player's debuffs, threat colour, target brackets and the focus edge, raid, elite and rare marks, in a friendly and an enemy style. Enemy plates can colour quest mobs, rares, elites and casters by type, cast bars can colour by whether the player can interrupt right now, the game stacks plates by the plate's own footprint, and one dropdown applies a preset.
 
-Minimal keeps the shipped slim plate (120 by 9). Dungeon keeps its 120-unit width, with a 12-unit bar and an optional 11-unit health percent. Both keep 22-unit debuffs; the Icon size slider still wins. Existing explicit Layout Mode sizes still win. The preset's stored `lumen` key remains compatible with saved profiles; its label is now Minimal.
+Minimal keeps the shipped slim plate (120 by 9 under Medallions). Dungeon keeps each style's width (120 under Medallions, 156.75 under Frames), with a 12-unit bar and an optional 11-unit health percent. Both keep 22-unit debuffs under Medallions (the existing larger 29-unit icons in Frames); the Icon size slider still wins. Existing explicit Layout Mode sizes still win. The preset's stored `lumen` key remains compatible with saved profiles; its label is now Minimal.
 
 Debuff timers show by default, centred under each icon in outlined number-role text (11 units under Medallions). Stacks keep their corner badge. The engine's duration binding turns time red below five seconds without reading aura durations in Lua. The Nameplates page offers the number-font switch, time and stacks switches, size sliders, and an expiring-colour threshold (zero disables it). Choosing the previous size, plate font and hidden time restores the old appearance.
 
@@ -22,7 +22,7 @@ Target and focus swaps paint only their old and new plates and read the unit-fra
 
 The KSTY-44 design bible and its mock-up (`renders/KSTY-44/detail-nameplate-and-damage-numbers.jpg` in the Captain's drive) decide the plate now; Lee approved the mock-ups ("Ohh those look good") and asked for the whole overhaul at once. This replaces the 2026-11-09 picture's plate below wherever the two differ, and the rest of that section stands.
 
-- **The bar** is the mock-up's 132 by 10 px at 1920x1080 and the shipped Interface size, **156.75 by 11.875** root units, with a one-physical-pixel black edge and one more pixel of 45 percent black outside it, and the kit's one-pixel top highlight.
+- **The bar** is the mock-up's 132 by 10 px at 1920x1080 and the shipped Interface size, **156.75 by 11.875** root units, with a one-physical-pixel black edge and one more pixel of 45 percent black outside it, and the kit's one-pixel top highlight. No ornament draws on or around it at any ornament level (`docs/ORNAMENT-SPEC.md`, Nameplates).
 - **The target** shows **gilt brackets** at both ends, lit gilt (`giltLit`, the `target.color` default), 21.375 units tall with 5.9375-unit arms and a 2.375-unit stroke (at least one physical pixel), 7.125 units off the bar. They close in from 4.75 units out over 0.12 s, easing out, when a plate becomes the target, at full motion only, and never on a restyle. The target's bar keeps its black edge and its name stays white; the old gold outline and gold name are gone.
 - **The level diamond** sits at the bar's left end, its right point one physical pixel clear of where the left bracket stands, so nothing moves when the target changes. It is a 21.375-unit square turned 45 degrees: a black outer pixel, a gilt rim, a black pixel and a dark face, with the level in lit gilt at 13 units (11 px at 1080p, the bible's floor). It shows by default.
 - **Elite and rare marks** are on the diamond's rim, so rank never rests on colour alone: an elite, rare or world boss rim is two pixels instead of one, in gold (`neutral`), blue (`rare`) or red (`hostile`). With the level off, a marked unit keeps its diamond, empty.
@@ -77,7 +77,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Plates.lua` | `ns.Plates`: attach and detach, the Blizzard fade, events, target and focus tracking |
 | `CVars.lua` | `ns.CVars`: the nameplate CVars |
 | `Stacking.lua` | `ns.Stacking`: the nameplate size the game stacks and clicks by |
-| `Medallions.lua` | `ns.Medallions`: the Medallions plate: its size, type and level, the gunmetal target ticks and the friendly player's badge |
+| `Medallions.lua` | `ns.Medallions`: the Medallions HUD style's plate: its size, type and level, the gunmetal target ticks and the friendly player's badge |
 | `Preview.lua` | `ns.Preview`: the settings window's live preview and the Layout Mode sample |
 | `Presets.lua` | `ns.Presets`: the presets one dropdown applies |
 | `Module.lua` | `Modules.Register`, `Options.Register`, `Enable` and `Disable` |
@@ -193,7 +193,7 @@ The target's plate gets a glow and an edge in the accent, or a custom colour. Th
 
 ## Medallions
 
-`Medallions.lua` adds a component and wraps five plate methods and `Plates.ReadSize`. The look is KSTY-110's (section 3, nameplates). The game keeps Blizzard's own nameplate size and the plate still hangs from its base as `Plate:PlaceOnBase` puts it (#373); `test-nameplates-restyle.lua` checks that the Medallions plate holds its place through restyles.
+Under the Medallions HUD style, `Medallions.lua` adds a component, wraps five plate methods and `Plates.ReadSize`, and on `HudStyleChanged` reads the size again and restyles every plate. The look is KSTY-110's (section 3, nameplates). The game keeps Blizzard's own nameplate size and the plate still hangs from its base as `Plate:PlaceOnBase` puts it (#373); `test-nameplates-restyle.lua` checks that the Medallions plate holds its place through restyles, and that Frames gets its own back. Picking Frames under HUD style writes the Frames plate text over any of these still at its default (`HudStyle.FRAMES_LOOK`): a 16-unit name and a 13-unit level with no outline, and 29-unit debuffs with 13-unit text; picking Medallions again puts the default back over any still at the Frames value. Picking a style leaves the plate preset as it is, and a preset applied under Frames writes the Frames plate text.
 
 - **Size.** The plate is 120 by 9 units unless the player resized it in Edit Mode, whose size always wins.
 - **Defaults.** The module's defaults are the look: the name 11 units with an outline (the spec's 9 is under the kit's 11 px text floor, #361), the level 12 units with an outline, and debuffs 22 units with 11-unit timers. Any value the player saves, including the 2026-11-09 sizes and no outline, is kept.

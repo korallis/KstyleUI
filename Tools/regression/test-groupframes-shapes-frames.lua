@@ -1,0 +1,2 @@
+-- test-groupframes-shapes-frames.lua: on Frames, everything drawn on a group frame keeps the kit's rounded tile. The target highlight, the threat glow and the dispel highlight use the kit's rounded shape, outline and shadow textures, never a square colour box; debuff icons are the kit's rounded sockets, masked and sized in whole pixels; and their chrome waits while aura data is secret.
+assert(loadfile("Tools/regression/test-groupframes-shapes.lua"))("frames")

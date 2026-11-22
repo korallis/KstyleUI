@@ -91,6 +91,16 @@ assert(math.abs(gap - K.Widgets.Snap(leave, ns.Slab.Spec().pad + K.Tokens.Size("
 env._game.forms[1] = { texture = 132089, spellID = 7001 }
 env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
 assert(select(2, leave:GetPoint()) == right, "new forms keep the leave button beside the slab")
+K.Options.Write("HudStyle", "style", "frames")
+env._game.forms = {}
+env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
+assert(select(2, leave:GetPoint()) == ns.bars.bar1.holder, "under Frames without forms the leave button stands beside bar 1")
+local card = ns.Tray.card
+assert(card and card:IsShown(), "exercise the actual Frames tray card")
+assert(leave:GetLeft() * leave:GetEffectiveScale() > card:GetRight() * card:GetEffectiveScale(), "the leave button clears the Frames tray padding")
+env._game.forms[1] = { texture = 132089, spellID = 7001 }
+env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
+assert(select(2, leave:GetPoint()) == ns.bars.stance.holder, "new forms move the leave button beyond the stance bar")
 assert(#env._errors == 0, AB.Errors(env))
 
 local lateEnv, lateK, late = AB.New({ saved = { version = 2, profiles = { Default = { ActionBars = { bar1 = { enabled = false } } } } } })

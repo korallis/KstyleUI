@@ -1,5 +1,7 @@
--- test-meters-drill.lua: the damage meter window's depth: a click on a source lists its spells through C_DamageMeter's source calls, the fight segments (current, previous fight, overall), the rows it holds while combat hides the data, the group-only default in both styles, and the style picked once at login.
+-- test-meters-drill.lua: the damage meter window's depth: a click on a source lists its spells through C_DamageMeter's source calls, the fight segments (current, previous fight, overall), the rows it holds while combat hides the data, the group-only default in both styles, and the style picked once at login; given "frames" it checks the Frames HUD style, which keeps names as the game writes them.
+local isFrames = ... == "frames"
 local M = dofile("Tools/regression/meters_env.lua")
+if isFrames then M = dofile("Tools/regression/frames_lib.lua")(M) end
 
 local function Text(fontString)
 	local args = M.Last(fontString, "SetText")
@@ -103,9 +105,13 @@ do
 	local lines = splitTexts(split)
 	local joined = table.concat(lines, "\n")
 	assert(#split.lines == 3 or #lines == 4, "three spell lines and the count: " .. joined)
-	assert(joined:find("MORTAL STRIKE | 1.8K", 1, true), "the top spell shows with its amount, in the Medallions capitals: " .. joined)
+	if isFrames then
+		assert(joined:find("Mortal Strike | 1.8K", 1, true), "the top spell shows with its amount: " .. joined)
+	else
+		assert(joined:find("MORTAL STRIKE | 1.8K", 1, true), "the top spell shows with its amount, in the Medallions capitals: " .. joined)
+	end
 	assert(joined:find("45%", 1, true), "the spell's share of the source shows: " .. joined)
-	assert(joined:find("BITE (WOLF)", 1, true), "the pet's spell names the pet: " .. joined)
+	assert(joined:find(isFrames and "Bite (Wolf)" or "BITE (WOLF)", 1, true), "the pet's spell names the pet: " .. joined)
 	assert(joined:find("600", 1, true) and not joined:find("400", 1, true), "three spells list, the fourth does not: " .. joined)
 	assert(joined:find("Click for all 4 spells", 1, true), "the split ends by counting the spells a click lists: " .. joined)
 	assert(env._lastSource and env._lastSource[4] == "Player-1", "the hover read the source by its GUID, as a click does")
@@ -148,8 +154,12 @@ local call = env._lastSource
 assert(call and call[1] == "type" and call[2] == M.SESSION.Current and call[3] == M.METER.DamageDone, "the spells come from the current fight's damage done")
 assert(call[4] == "Player-1" and call[5] == nil, "the source is asked for by its GUID")
 assert(list.count == 2, "the source's two spells show: " .. tostring(list.count))
-assert(Text(list.rows[1].name) == "MORTAL STRIKE", "a spell row is named by C_Spell.GetSpellName, in the Medallions capitals")
-assert(Text(list.rows[2].name) == "BITE (WOLF)", "a pet's spell names the pet")
+if isFrames then
+	assert(Text(list.rows[1].name) == "Mortal Strike", "a spell row is named by C_Spell.GetSpellName")
+else
+	assert(Text(list.rows[1].name) == "MORTAL STRIKE", "a spell row is named by C_Spell.GetSpellName, in the Medallions capitals")
+end
+assert(Text(list.rows[2].name) == (isFrames and "Bite (Wolf)" or "BITE (WOLF)"), "a pet's spell names the pet")
 assert(Text(list.rows[1].value) == "1.8K", "the spell's amount is abbreviated")
 assert(Text(list.rows[1].percent) == "60%" and Text(list.rows[1].dot) == "\194\183", "the share is of the source's total, and the dot is its own piece")
 assert(M.Last(list.rows[1].bar, "SetMinMaxValues")[2] == 1800, "the bars run to the source's top spell")
@@ -174,7 +184,7 @@ assert(Text(list.rows[1].value) == "2.4K", "a session update refreshes the spell
 Click(list.panel)
 env.RunTimers()
 assert(ns.Get("damage.meter") == "DamageDone", "going back leaves the meter as it was")
-assert(list.count == 3 and Text(list.rows[1].name) == "KRAGAR", "the sources show again")
+assert(list.count == 3 and Text(list.rows[1].name) == (isFrames and "Kragar" or "KRAGAR"), "the sources show again")
 assert(not list.rows[1].icon:IsShown(), "source rows show no icon")
 assert(tostring(Text(list.title)):upper():find("DAMAGE", 1, true), "the title names the meter again")
 Click(list.rows[1].frame)
@@ -195,7 +205,7 @@ env.RunTimers()
 Click(list.rows[1].frame)
 env.RunTimers()
 M.Write(env, K, "damage.meter", "Dps")
-assert(Text(list.rows[1].name) == "KRAGAR", "a new meter starts at the sources")
+assert(Text(list.rows[1].name) == (isFrames and "Kragar" or "KRAGAR"), "a new meter starts at the sources")
 M.Write(env, K, "damage.meter", "DamageDone")
 
 -- Deaths have no spell list: a click does nothing.

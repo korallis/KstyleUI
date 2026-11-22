@@ -176,4 +176,15 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(scene.Rect(e, p.pvpTimer) == x, at .. "the PvP countdown sits at the Zz square's edge: " .. x .. " against " .. scene.Rect(e, p.pvpTimer))
 end
 
+-- Frames: the raid marker sits over the portrait's centre.
+do
+	local fenv, FK, fns = U.New({ frames = true })
+	local view = fns.Frames.Get("player").views[1]
+	local _, _, _, x = view.marker:GetPoint(1)
+	x = x + view.marker:GetWidth() / 2
+	local fg = view.geometry
+	assert(math.abs(x - (fg.portrait.x + fg.portrait.w / 2)) < 1, "the Frames raid marker sits over the portrait's centre")
+	assert(#fenv._errors == 0 and FK.ErrorCount() == 0, tostring(fenv._errors[1]))
+end
+
 print("unitframes indicators ok")

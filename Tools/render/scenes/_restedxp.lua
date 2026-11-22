@@ -7,7 +7,7 @@
 --   local RestedXP = dofile("Tools/render/scenes/_restedxp.lua")
 --   local R = RestedXP.Build()        -- R.env, R.K, R.ns, R.rxp, R.windows (name -> frame list) and R.log lines
 --
--- With RestedXP.PRESET set to a layout name, the skin's story rail places the guide window for that layout, as it
+-- With RestedXP.PRESET set to a layout name, the skin's guide card places the guide window for that layout, as it
 -- does in the game, and folds its step list; without it the window sits at RestedXP.LEFT and RestedXP.TOP, the
 -- gallery's spot, with its list at RestedXP.LIST_HEIGHT and the rail switched off.
 --
@@ -634,10 +634,11 @@ function RestedXP.Build()
 	local Fake = dofile("Tools/regression/restedxp_fake.lua")
 	local R = {}
 	local rail = RestedXP.PRESET ~= nil
+	local style = rawget(_G, "RENDER_HUD_STYLE") or os.getenv("RENDER_HUD_STYLE")
 	local env, K, ns = S.New(Common.ScreenOpts({
 		saved = {
 			version = 2,
-			profiles = { Default = Common.FinishSettings({ Skins = { enabled = true, restedXP = { rail = rail } }, Minimap = rail and { enabled = true, frame = os.getenv("RENDER_MINIMAP_FRAME") } or nil, Layout = rail and { preset = RestedXP.PRESET } or nil }) },
+			profiles = { Default = Common.FinishSettings({ Skins = { enabled = true, restedXP = { rail = rail } }, Minimap = rail and { enabled = true, frame = os.getenv("RENDER_MINIMAP_FRAME") } or nil, Layout = rail and { preset = RestedXP.PRESET } or nil, HudStyle = rail and style and style ~= "" and { style = style:lower() } or nil }) },
 			characters = {},
 			layouts = {},
 			account = { setupSeen = true },

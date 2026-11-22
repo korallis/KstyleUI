@@ -14,10 +14,10 @@ You need about two hours for the core and modules, plus a dungeon run and, if yo
 
 These checks close the finish plan after the harness work; leave each box open
 until its client evidence is saved. Record the addon commit, Forever build,
-date, hardware, resolution, UI scale and motion setting with every
+date, hardware, resolution, UI scale, HUD style and motion setting with every
 capture or measurement. Harness renders do not complete this checklist.
 
-- [ ] **Z4: current-build captures.** Capture Medallions, a party, a raid of
+- [ ] **Z4: current-build captures.** Capture Medallions, Frames, a party, a raid of
   25, three skinned windows, Options and setup, each over dark and bright ground.
   Retake the three effect GIFs at 60 fps. Save the originals and the capture
   settings together.
@@ -118,12 +118,13 @@ Type these in chat once you are in the world. Each setting is saved, so it stays
 
 ### Run the first-run setup
 
-About 2 seconds after your first login with KstyleUI, the setup opens: a glass panel that rises in, with four steps across the top.
+About 2 seconds after your first login with KstyleUI, the setup opens: a glass panel that rises in, with five steps across the top.
 
 1. **Welcome.** Click **Next**.
-2. **Layout.** Pick **DPS**, **Tank** or **Healer**. The picked card lights in your class colour. Click **Next**.
-3. **Modules.** Every module whose addon loaded is switched on, each with a one-line note. Leave them all on for this test. Click **Next**.
-4. **Summary.** It names the layout and how many modules are on. Click **Apply**, then **Reload**.
+2. **HUD style.** **Medallions** is picked. Each card shows a picture of its style. Pick one and click **Next**.
+3. **Layout.** Pick **DPS**, **Tank** or **Healer**. The picked card lights in your class colour. Click **Next**.
+4. **Modules.** Every module whose addon loaded is switched on, each with a one-line note. Leave them all on for this test. Click **Next**.
+5. **Summary.** It names the HUD style, the layout and how many modules are on. Click **Apply**, then **Reload**.
 
 After the reload, KstyleUI's frames replace Blizzard's and sit where the layout puts them. The setup does not open again. `/kstyle setup` reopens it.
 
@@ -355,11 +356,11 @@ Needs RestedXP Guides installed and on. Before you start, note your RestedXP the
 Needs Zygor Guides Viewer installed. Before you start, note where the guide window sits and its size (drag it and resize it once if it has never been moved).
 
 - [ ] Load a guide. The window has no Zygor artwork: dark glass with a KstyleUI edge, the tab bar and title bar on the same glass, the step text in KstyleUI's face and body size with monsters and items in the theme's hues rather than Zygor's red and blue, and the progress bar in your class colour.
-- [ ] The window sits in the story rail's tall card beside the quest card: the same width, hanging from the card's top, with the quest card keeping its own height.
-- [ ] With **Fit guide to its steps** on, the window is as tall as its steps, and a step with more lines than the card has runs past the card's foot rather than clipping; turn Fit off in **Skins** and the window fills the card.
+- [ ] The window sits in the guide card in the top left corner, above the party frames: the card's width, hanging from its top, with the quest card keeping its own column and height on the right rail.
+- [ ] With **Fit guide to its steps** on, the window is as tall as its steps but never runs past the card's foot, even with a step longer than the card; turn Fit off in **Skins** and the window fills the card.
 - [ ] The window's action bar (`ZygorGuidesViewer_ActionBar`) still sits above it and still takes its icons from the current step; drag it, and it keeps the place you drop it.
 - [ ] Wheel over the step list, click a step, take the next step: the window stays in the card and keeps the card's width.
-- [ ] Drag the window away: it stays where you drop it, a printed line says the story rail has let go, and the window is clamped to the screen again. **Story rail** in the Skins settings now reads off. Turn it back on: the window returns to the card.
+- [ ] Drag the window away: it stays where you drop it, a printed line says KstyleUI leaves the guide where you put it, and the window is clamped to the screen again. **Guide card** in the Skins settings now reads off. Turn it back on: the window returns to the card.
 - [ ] Close and reopen the guide, switch guides from the tab bar, then reload the game: the window comes back to the card each time.
 - [ ] Switch **Zygor** off in the Skins settings: the window's own colours and its glass come back where you last had it. Turn it on again.
 - [ ] With RestedXP Guides loaded too, show one guide and then the other: the one shown last takes the card, and the other goes back where it was.

@@ -21,8 +21,8 @@ local SCREENS = { { 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, 
 local M = {}
 
 function M.Run(uiScale)
-	local env, K = U.New({ lumen = true })
-	local cenv, cK, cns = U.New({ fit = true, size = "default", uiScale = uiScale })
+	local env, K = U.New({ frames = true, lumen = true })
+	local cenv, cK, cns = U.New({ frames = true, fit = true, size = "default", uiScale = uiScale })
 	local croot = cK.Scale.Root()
 	U.SetUnit(cenv, "target", { name = "Shadowgale Poacher", level = 12, health = 50, healthMax = 100, reaction = 2, canAttack = true })
 	cenv.FireEvent("PLAYER_TARGET_CHANGED")

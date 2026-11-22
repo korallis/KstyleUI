@@ -12,7 +12,7 @@ local panel = K.Setup.window
 local function settle()
 	env.RunTimers(); W.Settle(env); env.RunTimers()
 end
-K.Setup.Go(2)
+K.Setup.Go(3)
 settle()
 assert(not panel.preview:IsShown(), "G4: the picture choice replaces the grey footprint preview")
 for _, role in ipairs({ "DPS", "Tank", "Healer" }) do
@@ -37,7 +37,7 @@ K.Options.Write("Setup", "layoutPictures", false)
 settle()
 assert(panel.preview:IsShown() and panel.previewName:IsShown(), "G4: Off restores the footprint diagram and legend")
 for _, card in pairs(panel.cards) do assert(not card.picture:IsShown(), "Off hides the layout pictures") end
-K.Setup.Go(3)
+K.Setup.Go(4)
 K.Layout.Set("setup.window", "scale", 0.65)
 settle()
 local long = panel.toggles.Skins.note

@@ -98,7 +98,6 @@ ns.defaults = {
 	}),
 	damage2 = { shown = false, meter = "HealingDone", session = "Current" },
 	threat = Merge(Bars("left"), Text(12), {
-		followGuide = true,
 		shown = true,
 		group = true,
 		pets = true,
@@ -404,7 +403,6 @@ function ns.Schema()
 	} }
 
 	schema[#schema + 1] = { type = "header", label = L["Threat meter"] }
-	schema[#schema + 1] = { type = "toggle", key = "threat.followGuide", label = L["Follow the guide card"], help = L["Place threat below the guide and its controls. Off keeps the threat card's own position."] }
 	schema[#schema + 1] = { type = "toggle", key = "threat.tankAlarm", label = L["Tank threat alarm"], help = L["Flashes when another player passes 90 percent of your threat. Off keeps the usual warnings."] }
 	schema[#schema + 1] = { type = "toggle", key = "threat.shown", label = L["Show the threat meter"], disableWhen = Is("followRole", true), help = L["Shows your group's threat on your target when role-based meters are off."] }
 	schema[#schema + 1] = {

@@ -1,0 +1,2 @@
+-- test-groupframes-parity-r5-review-frames.lua: on Frames, the PR #654 review of EllesmereUI parity round 5: friendly bosses that follow their faction in combat, pet, tank and friendly boss frames in the raid's card (their default places are in test-groupframes-parity-r5-places.lua), every raid pet, the boss debuff zoom, the time left inside its clip, switched-off groups at rest, a refused boss group and the extra groups' preview.
+assert(loadfile("Tools/regression/test-groupframes-parity-r5-review.lua"))("frames")

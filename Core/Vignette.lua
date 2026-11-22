@@ -184,7 +184,7 @@ local function Dead()
 end
 
 function Vignette.Update()
-	local c = Curve()
+	local c = Effects.Active() and Curve()
 	if not c or Dead() then
 		if frame then
 			frame.breath:Stop()
@@ -222,18 +222,28 @@ local LIFE = { "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST" }
 local listening = false
 
 local function Listen()
-	if not listening then
-		listening = true
-		ns.Events.RegisterUnit(OWNER, "UNIT_HEALTH", OnHealth, "player")
-		ns.Events.RegisterUnit(OWNER, "UNIT_MAXHEALTH", OnHealth, "player")
-		for _, event in ipairs(LIFE) do
-			ns.Events.Register(OWNER, event, Vignette.Update)
+	local active = Effects.Active()
+	if active ~= listening then
+		listening = active
+		if active then
+			ns.Events.RegisterUnit(OWNER, "UNIT_HEALTH", OnHealth, "player")
+			ns.Events.RegisterUnit(OWNER, "UNIT_MAXHEALTH", OnHealth, "player")
+			for _, event in ipairs(LIFE) do
+				ns.Events.Register(OWNER, event, Vignette.Update)
+			end
+		else
+			ns.Events.Unregister(OWNER, "UNIT_HEALTH")
+			ns.Events.Unregister(OWNER, "UNIT_MAXHEALTH")
+			for _, event in ipairs(LIFE) do
+				ns.Events.Unregister(OWNER, event)
+			end
 		end
 	end
 	Vignette.Update()
 end
 
 ns.Events.Register(OWNER, "PLAYER_ENTERING_WORLD", Listen)
+ns.Callbacks.Register("HudStyleChanged", OWNER, Listen)
 ns.Callbacks.Register("ProfileChanged", OWNER, Listen)
 ns.Callbacks.Register("EffectsLevelChanged", OWNER, Vignette.Update)
 ns.Callbacks.Register("ScaleChanged", OWNER, Layout)

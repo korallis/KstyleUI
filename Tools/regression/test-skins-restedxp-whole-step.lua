@@ -1,4 +1,4 @@
--- test-skins-restedxp-whole-step.lua: on every screen the crew checks, at the automatic Interface size, the guide's card shows every line of the owner's Tirisfal Glades step 11 under its cap with no "more" line, RestedXP's boxes up and down, RestedXP's steps anchored under its window. The guide holds the story slot and the quest card its column beside it, still showing a quest; with RestedXP not loaded, or its guide closed, the quest card keeps that column, and the cards never trade places.
+-- test-skins-restedxp-whole-step.lua: on every screen the crew checks, at the automatic Interface size, the guide's card shows every line of the owner's Tirisfal Glades step 11 under its cap with no "more" line, RestedXP's boxes up and down, RestedXP's steps anchored under its window, all inside the guide's element in the top left corner above the party frames. The quest card holds its story-rail column, still showing a quest; with RestedXP not loaded, or its guide closed, the quest card keeps that column, and the cards never trade places.
 local S = dofile("Tools/regression/skins_env.lua")
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local Quests = dofile("Tools/regression/quests_fake.lua")
@@ -130,9 +130,19 @@ for _, screen in ipairs(SCREENS) do
 		assert(ns.RestedXP.Rail.Hidden() == 0, string.format("%s: no \"more\" line, %d of the step rest under one", what, ns.RestedXP.Rail.Hidden()))
 		local gap = cap.bottom - lines[1].top
 		assert(gap >= 0 and gap <= 6, string.format("%s: the step's first line stands right under the cap, %.1f units under it", what, gap))
-		-- At the automatic size the Medallions guide element is shorter than this step (a recorded limit, as staging's
-		-- Medallions drew it): the card hangs from the element's top and runs past its foot to hold the whole step.
 		assert(glass.top <= band.top + px, string.format("%s: the card %s hangs from its element's top %.1f", what, Describe(glass), band.top))
+		-- The guide's element stands in the top left corner above the party frames and holds the whole step and
+		-- RestedXP's docked boxes; on the story rail under the map it ran up to 100 units past its foot at the automatic size.
+		local element = Rect(K, ns.RestedXP.Rail.Holder())
+		local rw, rh = K.Layout.RootSize()
+		local _, partyHeight = K.Setup.Layouts.Footprint("DPS", "groupframes.party")
+		local _, _, _, partyTop = K.Setup.Layouts.Rect({ width = 1, height = partyHeight }, K.Setup.Layouts.Get("DPS")["groupframes.party"], rw, rh)
+		assert(element.right < rw / 2 and element.bottom >= partyTop + K.Setup.Layouts.GAP - px, string.format("%s: the guide's element %s stands on the left above the party frames' top %.1f", what, Describe(element), partyTop))
+		local foot = glass.bottom
+		for _, box in ipairs({ rxp.targeting.activeTargetFrame, rxp.activeItemFrame }) do
+			if box:IsShown() then foot = math.min(foot, Rect(K, K.Skin.Parts(box).backdrop).bottom) end
+		end
+		assert(foot >= element.bottom - px, string.format("%s: the step and RestedXP's boxes end at %.1f, inside the guide's element %s", what, foot, Describe(element)))
 		local card = ns.Quests.Fit()
 		assert(card, what .. ": the quest card is up")
 		local quests = Rect(K, ns.Quests.Parts().glass)
@@ -145,7 +155,7 @@ for _, screen in ipairs(SCREENS) do
 			end
 		end
 		local want = Expected(K, true)
-		assert(Same(Rect(K, ns.RestedXP.Rail.Holder()), want.guide, px), string.format("%s: the guide holds the story slot, %s for %s", what, Describe(Rect(K, ns.RestedXP.Rail.Holder())), Describe(want.guide)))
+		assert(Same(Rect(K, ns.RestedXP.Rail.Holder()), want.guide, px), string.format("%s: the guide holds its corner, %s for %s", what, Describe(Rect(K, ns.RestedXP.Rail.Holder())), Describe(want.guide)))
 		assert(Same(Rect(K, ns.Quests.Holder()), want.quests, px), string.format("%s: the quest card holds its column beside it, %s for %s", what, Describe(Rect(K, ns.Quests.Holder())), Describe(want.quests)))
 		assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 	end

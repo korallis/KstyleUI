@@ -1,4 +1,5 @@
--- test-unitframes-preview-fit.lua: the unit frames live preview fits its pane: every frame kind, its cast line and its sample auras lie inside the pane at the options pane's width, and a resize fits it again (round 4: Opus #1, Astra #2; "ing Frostbolt" cut at the pane's edge).
+-- test-unitframes-preview-fit.lua: the unit frames live preview fits its pane: every frame kind, its cast line and its sample auras lie inside the pane at the options pane's width, and a resize fits it again (round 4: Opus #1, Astra #2; "ing Frostbolt" cut at the pane's edge). test-unitframes-preview-fit-frames.lua runs them on Frames.
+local frames = ... == "frames"
 local U = dofile("Tools/regression/unitframes_env.lua")
 local D = dofile("Tools/regression/databars_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
@@ -13,7 +14,7 @@ local function fmt(r)
 	return string.format("(%.1f,%.1f %.1fx%.1f)", r[1], r[2], r[3], r[4])
 end
 
-local env, K = U.New()
+local env, K = U.New({ frames = frames })
 env._textWidth = D.TextWidth
 local pane = env.CreateFrame("Frame", nil, K.Scale.Root())
 pane:SetSize(PANE_W, PANE_H)
@@ -56,7 +57,7 @@ local function Check(where)
 						end
 					end
 					-- The bare pane skips the Options host's Reserve, which keeps the target and boss markers and the boss's name inside the window's pane.
-					local known = key == "marker" and (kind == "target" or kind == "boss") or key == "name" and kind == "boss"
+					local known = not frames and (key == "marker" and (kind == "target" or kind == "boss") or key == "name" and kind == "boss")
 					assert(known or inside(r, box), string.format("%s: the %s preview's %s %s leaves the pane %s", where, kind, key, fmt(r), fmt(box)))
 				end
 			end
@@ -69,8 +70,8 @@ pane:SetSize(220, PANE_H)
 Check("after a resize to 220 units")
 pane:SetSize(PANE_W, PANE_H)
 
--- The target frame, in a fresh profile.
-env, K = U.New()
+-- The target frame, in a fresh profile (on Frames, the older Lumen sigil, in a profile that keeps it).
+env, K = U.New({ frames = frames, lumen = frames })
 env._textWidth = D.TextWidth
 pane = env.CreateFrame("Frame", nil, K.Scale.Root())
 pane:SetSize(PANE_W, PANE_H)
@@ -83,9 +84,10 @@ preview = K.Options.Preview("UnitFrames")(pane)
 K.Options.Write("UnitFrames", "edit", "target")
 preview:Refresh()
 local holder = preview.holders.target
-local element = K.Layout.Get("unitframes.target")
+local element = frames and K.Setup.Layouts.Element("unitframes.target") or K.Layout.Get("unitframes.target")
+local what = frames and "sigil" or "target"
 local w, scale = holder:GetWidth(), holder:GetScale()
-assert(math.abs(w - element.width) < 0.5, "the sample target is laid out at its HUD width " .. element.width .. ": " .. w)
+assert(math.abs(w - element.width) < 0.5, "the sample " .. what .. " is laid out at its " .. (frames and "real" or "HUD") .. " width " .. element.width .. ": " .. w)
 assert(scale < 1 and scale >= 0.5 - 1e-6, "and scaled down to the pane, no smaller than half: " .. scale)
 
 -- Round 6 (Opus #2, Fable #3): the preview fills its pane's width, and the cast bar is as wide, for the frame, as on
@@ -110,10 +112,10 @@ local function Span()
 	return r - l
 end
 local narrowShare, span = CastShare(), Span()
-assert(span >= 0.85 * PANE_W, "the sample target fills the pane's width: " .. string.format("%.0f of %d", span, PANE_W))
+assert(span >= 0.85 * PANE_W, "the sample " .. what .. " fills the pane's width: " .. string.format("%.0f of %d", span, PANE_W))
 pane:SetSize(900, PANE_H)
 preview:Refresh()
-assert(math.abs(preview.holders.target:GetWidth() - element.width) < 0.5 and preview.holders.target:GetScale() >= 1, "a pane wide enough draws the target at its HUD width")
+assert(math.abs(preview.holders.target:GetWidth() - element.width) < 0.5 and preview.holders.target:GetScale() >= 1, "a pane wide enough draws the " .. what .. " at its HUD width")
 local hudShare = CastShare()
 assert(narrowShare >= 0.85 * hudShare, string.format("the sample cast bar keeps the HUD's share of the health bar: %.2f against %.2f", narrowShare, hudShare))
 pane:SetSize(PANE_W, PANE_H)
@@ -125,18 +127,20 @@ local focusScale = preview.holders.focus:GetScale()
 assert(focusScale > 1 and focusScale <= 1.5 + 1e-6, "the 200-unit focus card grows towards the pane's width, at most 1.5: " .. focusScale)
 
 -- The Medallions target's cast sample shows under the frame, so its spell target and important outline rows show.
-K.Options.Write("UnitFrames", "target.castbarTarget", true)
-K.Options.Write("UnitFrames", "target.castbarImportant", true)
-K.Options.Write("UnitFrames", "edit", "target")
-preview:Refresh()
-local tcb = preview.casts.target
-assert(tcb and tcb.frame:IsShown(), "the target preview shows a cast sample")
-assert(tostring(tcb.text:GetText()):find(K.L["Valerin"], 1, true), "with the spell target: " .. tostring(tcb.text:GetText()))
-assert(tcb.important and tcb.important:IsShown(), "and the important cast outline")
-K.Options.Write("UnitFrames", "castbarOnFrame", false)
-preview:Refresh()
-assert(tcb.frame:IsShown(), "a detached target cast bar keeps its sample, so its spell target and outline rows still show")
-K.Options.Write("UnitFrames", "castbarOnFrame", true)
+if not frames then
+	K.Options.Write("UnitFrames", "target.castbarTarget", true)
+	K.Options.Write("UnitFrames", "target.castbarImportant", true)
+	K.Options.Write("UnitFrames", "edit", "target")
+	preview:Refresh()
+	local tcb = preview.casts.target
+	assert(tcb and tcb.frame:IsShown(), "the target preview shows a cast sample")
+	assert(tostring(tcb.text:GetText()):find(K.L["Valerin"], 1, true), "with the spell target: " .. tostring(tcb.text:GetText()))
+	assert(tcb.important and tcb.important:IsShown(), "and the important cast outline")
+	K.Options.Write("UnitFrames", "castbarOnFrame", false)
+	preview:Refresh()
+	assert(tcb.frame:IsShown(), "a detached target cast bar keeps its sample, so its spell target and outline rows still show")
+	K.Options.Write("UnitFrames", "castbarOnFrame", true)
+end
 
 assert(#env._errors == 0, tostring(env._errors[1]))
 assert(K.ErrorCount() == 0, "KstyleUI caught no errors")

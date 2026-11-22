@@ -1,4 +1,4 @@
--- test-unitframes-parity-r3b-review.lua: the PR #629 review's probe as checks: a saved class crop survives the upgrade, the PvP timer starts on PVP_TIMER_UPDATE, Medallions keeps explicit threat places, enlarged icons keep their gap, reaction swatches reach power and skip custom bars, the non-tank glow needs a known role in a dungeon or raid, a reload target plays the lost sound, threat hides on restriction without repeat writes, swords follow a palette change, and the preview matches live.
+-- test-unitframes-parity-r3b-review.lua: the PR #629 review's probe as checks: a saved class crop survives the upgrade and shows on the Frames portrait, the PvP timer starts on PVP_TIMER_UPDATE, Medallions keeps explicit threat places and Frames its own, enlarged icons keep their gap, reaction swatches reach power and skip custom bars, the non-tank glow needs a known role in a dungeon or raid, a reload target plays the lost sound, threat hides on restriction without repeat writes, swords follow a palette change, and the preview matches live.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -37,6 +37,25 @@ local ne, NK, nn = U.New({ saved = fresh, setup = function(e)
 end })
 assert(nn.Settings.Value("player", "classZoom") == 0, "a profile saved after the upgrade keeps the default whole class icon")
 clean(ne, NK)
+
+-- 1, Frames: the saved class crop shows on the portrait; an explicit 0 then shows all of it, and Portrait zoom no longer crops it.
+do
+	local frames = { version = 42, profiles = { Default = { UnitFrames = { enabled = true, player = { portraitStyle = "class", portraitZoom = 0.2 } }, HudStyle = { style = "frames" } } }, characters = {} }
+	local fe, FK, fns = U.New({ saved = frames, setup = function(e)
+		e.C_Texture = { GetAtlasInfo = function() return { leftTexCoord = 0.1, rightTexCoord = 0.3, topTexCoord = 0.5, bottomTexCoord = 0.7 } end }
+	end })
+	local portrait = fns.Frames.Get("player").views[1].portrait
+	local coords = W.LastCall(portrait, "SetTexCoord")
+	assert(near(coords[1], 0.12) and near(coords[2], 0.28) and near(coords[3], 0.52) and near(coords[4], 0.68), "a saved class portrait keeps its crop: " .. table.concat(coords, ","))
+	FK.Options.Write("UnitFrames", "player.classZoom", 0)
+	fe.RunTimers()
+	coords = W.LastCall(portrait, "SetTexCoord")
+	assert(coords[1] == 0 and coords[2] == 1 and coords[3] == 0 and coords[4] == 1, "an explicit 0 shows the whole class icon")
+	FK.Options.Write("UnitFrames", "player.portraitZoom", 0.3)
+	fe.RunTimers()
+	assert(W.LastCall(portrait, "SetTexCoord")[1] == 0, "Portrait zoom no longer crops the class icon")
+	clean(fe, FK)
+end
 
 -- 8. A target held across the reload plays the lost sound when it is cleared.
 U.SetUnit(env, "target", nil)
@@ -217,6 +236,12 @@ for kind, place in pairs({ target = "RIGHT", focus = "OUTRIGHT" }) do
 	M.Options.Write("UnitFrames", kind .. ".slabThreatPercentPosition", place)
 	m.RunTimers()
 	assert(mn.Settings.Value(kind, "threatPercentPosition") == place, kind .. " keeps the chosen " .. place)
+	M.Options.Write("HudStyle", "style", "frames")
+	m.RunTimers()
+	assert(frames.showWhen(module) and not slabs.showWhen(module), kind .. ": Frames shows the generic row again")
+	assert(mn.Settings.Value(kind, "threatPercentPosition") == (kind == "target" and "RIGHT" or "OUTRIGHT"), kind .. ": Frames keeps its own place")
+	M.Options.Write("HudStyle", "style", "medallions")
+	m.RunTimers()
 	M.Options.Write("UnitFrames", kind .. ".threatPercent", false)
 end
 clean(m, M)

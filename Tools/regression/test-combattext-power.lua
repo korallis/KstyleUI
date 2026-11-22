@@ -169,6 +169,13 @@ assert(ns.Module.cfg.rise == 48, "48 can be chosen under Medallions")
 K.Options.Write("CombatText", key, 24)
 assert(ns.Module.cfg.rise == 24, "a chosen travel distance stays under Medallions")
 assert(ns.Settings.Snapshot({ [key] = env.Secret(80) }).rise == 40, "a secret saved distance falls back to Medallions' default")
+K.Options.Write("HudStyle", "style", "frames")
+env.RunTimers()
+key = Travel()
+assert(ns.Module.cfg.rise == 48 and K.Options.Read("CombatText", key) == 48, "Frames' slider is the distance its field uses")
+assert(ns.Settings.Snapshot({ [key] = env.Secret(80) }).rise == 48, "a secret saved distance falls back to Frames' default")
+K.Options.Write("HudStyle", "style", "medallions")
+env.RunTimers()
 
 -- Power gains show only in your own place: never on a party button that shows you, with You on or off.
 local buttons

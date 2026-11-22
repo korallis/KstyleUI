@@ -206,6 +206,33 @@ K.Options.Write("UnitFrames", "edit", "boss")
 settle()
 assert(preview.views.boss.geometry.form == "slab", "the boss sample is a Medallions slab")
 
+-- The Frames Lumen preview: the vitals line with its sample values and cast line, the sigil with its level line and
+-- its sockets centred under it, and the boss card with its section cap.
+K.Options.Write("HudStyle", "style", "frames")
+K.Options.Write("UnitFrames", "player.style", "lumen")
+K.Options.Write("UnitFrames", "edit", "player")
+settle()
+local vitals = preview.views.player
+assert(vitals.geometry.form == "vitals", "the preview draws the vitals line")
+assert(U.Shown(env, vitals.healthText) == "3.1K" and U.Shown(env, vitals.healthSub) == "/ 3.9K", "current, then the max: " .. U.Shown(env, vitals.healthText) .. " " .. U.Shown(env, vitals.healthSub))
+assert(U.Shown(env, vitals.levelText) == "60" and vitals.disc:IsShown(), "the level in its disc")
+assert(U.Shown(env, vitals.caption) == K.L["Battle Stance"], "a sample stance follows the name")
+local line = preview.casts.player
+assert(line and line.frame:IsShown() and line.line and U.Shown(env, line.label) == K.L["Casting"], "the sample cast is the vitals line's own cast line")
+assert(line.frame:GetParent() == preview.holders.player, "inside the sample frame")
+K.Options.Write("UnitFrames", "target.style", "lumen")
+K.Options.Write("UnitFrames", "target.castbar", true)
+K.Options.Write("UnitFrames", "edit", "target")
+settle()
+local sigil = preview.views.target
+assert(sigil.geometry.form == "sigil" and U.Shown(env, sigil.caption) == "Level 61 elite \194\183 Beast", "the sigil sample with its level line: " .. U.Shown(env, sigil.caption))
+cp, crel, crp = preview.auraHosts.target:GetPoint(1)
+assert(cp == "TOP" and crel == preview.holders.target and crp == "BOTTOM", "the sample sockets hang centred under the sigil")
+K.Options.Write("UnitFrames", "edit", "boss")
+settle()
+local card = preview.views.boss
+assert(card.geometry.form == "card" and U.Shown(env, card.capLabel) == K.L["Boss"] and U.Shown(env, card.caption) == K.L["Boss"], "the boss sample is a card with its section cap")
+
 assert(uf.Frames.Get("player"), "the live frames exist alongside the preview")
 assert(#env._errors == 0, "no errors: " .. tostring(env._errors[1]))
 assert(K.ErrorCount() == 0, "KstyleUI caught no errors")

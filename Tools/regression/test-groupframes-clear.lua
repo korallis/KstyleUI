@@ -1,5 +1,7 @@
--- test-groupframes-clear.lua: no helpful aura paints on a group frame's health bar outside the tidy Medallions indicator lane, and the Medallions raid tile keeps its own lanes (KSTY-57): a name lane in caps with the percent at the bar's end, a row of debuff pips over the bar's right end (rank R5: harmful auras may overlay a raid bar, as Cell draws them), none of your heals by default, the indicators covering only the name's tail and a status ("Dead") in the percent's place, off the name, at the KSTY-47 mock-ups' 10, 20 and 40-player sizes and the Healer layout's.
+-- test-groupframes-clear.lua: no helpful aura paints on a group frame's health bar outside the tidy Medallions indicator lane, and the Medallions raid tile keeps its own lanes (KSTY-57): a name lane in caps with the percent at the bar's end, a row of debuff pips over the bar's right end (rank R5: harmful auras may overlay a raid bar, as Cell draws them), none of your heals by default, the indicators covering only the name's tail and a status ("Dead") in the percent's place, off the name, at the KSTY-47 mock-ups' 10, 20 and 40-player sizes and the Healer layout's. test-groupframes-clear-frames.lua passes "frames" to check Frames' own lanes.
+local isFrames = ... == "frames"
 local G = dofile("Tools/regression/group_env.lua")
+if isFrames then dofile("Tools/regression/groupframes_frames.lua")(G) end
 local Scene = dofile("Tools/render/scene.lua")
 
 
@@ -77,10 +79,10 @@ local function Clear(env, f, what)
 	assert(bar[1], what .. ": the bar resolves")
 	local auras = Auras(env, f)
 	assert(#auras > 0, what .. ": the frame shows auras to check")
-	local overlay = f.parts and (f.parts.overlay or f.parts.tile)
+	local overlay = f.parts and (f.parts.overlay or not isFrames and f.parts.tile)
 	-- KSTY-57: the indicator lane sits on the name row's end, off the bar, so a helpful indicator in it never meets
 	-- the bar either. The tidy Medallions lane may sit on the bar; an indicator inside it is in its place.
-	local lane = overlay and f.parts.lane or f.parts and f.parts.indicatorLane
+	local lane = overlay and f.parts.lane or not isFrames and f.parts and f.parts.indicatorLane
 	if lane then
 		local fx, fy = Scene.Rect(env, f)
 		lane = { fx + lane.left, fy + lane.top, lane.width, lane.height }
@@ -156,27 +158,36 @@ for _, case in ipairs({ { members = 10 }, { members = 20 }, { members = 40 }, { 
 	local k = ns.Settings.current.raid
 	local auras, bar = Clear(env, f, what)
 	eq(f.chrome.shadowOn, false, what .. ": a raid row casts no drop shadow")
-	-- Three debuffs in a row, boss and dispellable ones first; the 40-player tile's quarter of the bar holds two.
+	-- Three debuffs in a row, boss and dispellable ones first; the 40-player Medallions tile's quarter of the bar holds two.
 	local block = ns.Auras.Block(f, k)
-	local wide = case.members == 40 and 2 or 3
-	eq(block.columns, wide, what .. ": the debuff block's width")
+	local wide = case.members == 40 and not isFrames and 2 or 3
+	eq(block.columns, wide, what .. (isFrames and ": the debuff block is three wide" or ": the debuff block's width"))
 	eq(block.rows, 1, what .. ": and one high")
-	eq(block.cells, wide, what .. ": the debuffs that show")
+	eq(block.cells, wide, what .. (isFrames and ": three debuffs show" or ": the debuffs that show"))
 	local order = ns.Auras.Order()
 	assert(order.dispels < order.debuffs and order.boss < order.debuffs, what .. ": dispellable and boss debuffs come first")
 	local _, heals = ns.Auras.HealIcons(f, k)
-	eq(heals, 0, what .. ": a Medallions raid tile shows none of your heals")
+	if isFrames then
+		-- Your heals keep their place on the name line.
+		assert(heals >= 1, what .. ": your heals have room, got " .. heals)
+	else
+		eq(heals, 0, what .. ": a Medallions raid tile shows none of your heals")
+	end
 	local scene = Scene.Build(env)
 	local name = find(scene, f.name)
 	assert(name, what .. ": the name draws")
 	local fx = Scene.Rect(env, f)
 	local head = f.parts.lane and fx + f.parts.lane.left or bar[1] + bar[3]
 	if k.healthText ~= "NONE" then
-		-- The percent ends at the bar's end, on the Medallions tile's fill, and the name never competes with it.
+		-- The percent ends at the bar's end, on the Medallions tile's fill or Frames' name row, and the name never competes with it.
 		local percent = find(scene, f.healthText)
 		assert(percent, what .. ": the percent draws")
 		assert(not intersects(name.rect, percent.rect), what .. ": the name " .. describe(name.rect) .. " never competes with the percent " .. describe(percent.rect))
-		assert(percent.rect[2] >= bar[2] - 0.01 and percent.rect[2] + percent.rect[4] <= bar[2] + bar[4] + 0.01, what .. ": the percent sits on the tile's fill " .. describe(percent.rect))
+		if isFrames then
+			assert(percent.rect[2] + percent.rect[4] <= bar[2] + 0.01, what .. ": the percent sits above the bar " .. describe(percent.rect))
+		else
+			assert(percent.rect[2] >= bar[2] - 0.01 and percent.rect[2] + percent.rect[4] <= bar[2] + bar[4] + 0.01, what .. ": the percent sits on the tile's fill " .. describe(percent.rect))
+		end
 		assert(math.abs(percent.rect[1] + percent.rect[3] - (bar[1] + bar[3])) <= 1, what .. ": and ends at the bar's end")
 		for _, aura in ipairs(auras) do
 			assert(not intersects(aura[2], percent.rect), what .. ": " .. aura[1] .. " stays off the percent")
@@ -192,18 +203,29 @@ for _, case in ipairs({ { members = 10 }, { members = 20 }, { members = 40 }, { 
 	local text, floor = f.name:GetText(), K.Scale.TextFloor()
 	local _, nameSize = f.name:GetFont()
 	assert(nameSize * K.Widgets.ScaleFactor(f) / K.Scale.Pixel(1) >= floor - 0.01, what .. ": the name is at least " .. floor .. " px")
-	local whole = K.Locale.Upper("Thaldrenwick")
+	local whole = isFrames and "Thaldrenwick" or K.Locale.Upper("Thaldrenwick")
 	if text ~= whole then
-		assert(#text > 0 and whole:sub(1, #text) == text, what .. ": a twelve-letter name keeps its head in the tile's caps, got " .. tostring(text))
+		if isFrames then
+			assert(text:match("^Thaldren"), what .. ": a twelve-letter name keeps its head, got " .. tostring(text))
+		else
+			assert(#text > 0 and whole:sub(1, #text) == text, what .. ": a twelve-letter name keeps its head in the tile's caps, got " .. tostring(text))
+		end
 		assert(nameSize * K.Widgets.ScaleFactor(f) / K.Scale.Pixel(1) <= floor + 0.01, what .. ": and shortens only at the floor")
 	end
 	assert(name.rect[3] <= f.nameWidth + 0.5, what .. ": and fits its lane")
-	-- "Dead" takes the percent's place at the tile's end, with or without a percent (over 25 members), off the name.
+	-- "Dead" takes the percent's place at the tile's end, with or without a percent (over 25 members), off the name. On
+	-- Frames it sits at the row's end, off the bar, or centres on the emptied bar when there is no percent.
 	local dead = content(ns, ns.Headers.raid[1], "raid2")
 	local status = find(scene, dead.healthText)
 	eq(dead.healthText:GetText(), "Dead", what .. ": the dead member says so")
 	local deadBar = { Scene.Rect(env, dead.health) }
-	assert(math.abs(status.rect[1] + status.rect[3] - (deadBar[1] + deadBar[3])) <= 1, what .. ": Dead " .. describe(status.rect) .. " ends at the tile's end")
+	if not isFrames then
+		assert(math.abs(status.rect[1] + status.rect[3] - (deadBar[1] + deadBar[3])) <= 1, what .. ": Dead " .. describe(status.rect) .. " ends at the tile's end")
+	elseif k.healthText ~= "NONE" then
+		assert(not intersects(status.rect, deadBar), what .. ": Dead " .. describe(status.rect) .. " stays off the bar")
+	else
+		assert(math.abs(status.rect[1] + status.rect[3] / 2 - (deadBar[1] + deadBar[3] / 2)) < 1, what .. ": Dead centres on the emptied bar")
+	end
 	assert(not intersects(status.rect, find(scene, dead.name).rect), what .. ": and off the name")
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
@@ -277,13 +299,13 @@ do
 	for _, f in ipairs(samples) do
 		if f:IsShown() then
 			local bar = { Scene.Rect(env, f.health) }
-			local overlay = f.parts.overlay or f.parts.tile
+			local overlay = f.parts.overlay or not isFrames and f.parts.tile
 			for which, list in ipairs({ f.sampleAuras, f.sampleBuffs, f.sampleSlots }) do
 				for i, icon in ipairs(list or {}) do
 					if icon:IsShown() then
 						local r = { Scene.Rect(env, icon) }
 						local harmful = which == 1 or (which == 3 and not ns.Slots.Helpful(ns.Settings.current["indicator" .. i].category))
-						local lane = which == 3 and (f.parts.overlay and f.parts.lane or f.parts.indicatorLane)
+						local lane = which == 3 and (f.parts.overlay and f.parts.lane or not isFrames and f.parts.indicatorLane)
 						if lane then
 							local fx, fy = Scene.Rect(env, f)
 							lane = r[1] >= fx + lane.left - 0.01 and r[2] >= fy + lane.top - 0.01

@@ -393,7 +393,7 @@ end
 
 function D.Entry(K, index, id)
 	local s = K.Store.Module("DataBars").strip
-	local key = s.placement == "rail" and "railModules" or "dockModules"
+	local key = s.placement == "rail" and "railModules" or K.Widgets.Medallions() and "dockModules" or "modules"
 	local modules = s[key]
 	modules[index] = { id = id, shown = id ~= "none", zone = "right" }
 	K.Callbacks.Fire("SettingChanged", "DataBars", "strip." .. key, modules)

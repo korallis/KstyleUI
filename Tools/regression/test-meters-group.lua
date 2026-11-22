@@ -1,5 +1,7 @@
--- test-meters-group.lua: the group meter as Details! draws it (LEE-430): a party of five and a raid of twenty each get a row per member with the class colour, the class icon, the name, the amount and the share, sorted; rows refresh at most every 0.5 s and the client eases the bars; the cap switches between damage and healing; a click opens that player's spells; a raid scrolls and keeps the player's own row in view; and in combat secret values reach only widget setters.
+-- test-meters-group.lua: the group meter as Details! draws it (LEE-430): a party of five and a raid of twenty each get a row per member with the class colour, the class icon, the name, the amount and the share, sorted; rows refresh at most every 0.5 s and the client eases the bars; the cap switches between damage and healing; a click opens that player's spells; a raid scrolls and keeps the player's own row in view; and in combat secret values reach only widget setters; given "frames" it checks the Frames HUD style, which keeps names as the game writes them.
+local isFrames = ... == "frames"
 local M = dofile("Tools/regression/meters_env.lua")
+if isFrames then M = dofile("Tools/regression/frames_lib.lua")(M) end
 local W = M.W
 
 local EASE = 7
@@ -111,7 +113,11 @@ assert(list.count == 5, "every member of a party of five gets a row: " .. tostri
 for i = 1, 5 do
 	local row = list.rows[i]
 	assert(row.frame:IsShown(), i .. ": the row shows")
-	assert(Text(row.name) == K.Locale.Upper(order[i]), i .. ": rows sort by amount, highest first, in the Medallions capitals: " .. tostring(Text(row.name)))
+	if isFrames then
+		assert(Text(row.name) == order[i], i .. ": rows sort by amount, highest first: " .. tostring(Text(row.name)))
+	else
+		assert(Text(row.name) == K.Locale.Upper(order[i]), i .. ": rows sort by amount, highest first, in the Medallions capitals: " .. tostring(Text(row.name)))
+	end
 	assert(Text(row.value) == amounts[i], i .. ": the amount: " .. tostring(Text(row.value)))
 	assert(Text(row.percent) == shares[i] and row.dot:IsShown(), i .. ": the share: " .. tostring(Text(row.percent)))
 	local cr, cg, cb = K.Theme.ClassColor(classes[i])
@@ -165,7 +171,7 @@ do
 	assert(ns.Get("damage.meter") == "HealingDone", "a click on the title shows healing")
 	assert(env._lastSession[2] == M.METER.HealingDone, "the window reads healing done")
 	assert(Plain(Text(list.title)) == "DAMAGE  HEALING" and Text(list.title):find("HEALING|r", 1, true), "healing is lit")
-	assert(Text(list.rows[1].name) == "SYLAEN", "the healers lead the healing list: " .. tostring(Text(list.rows[1].name)))
+	assert(Text(list.rows[1].name) == (isFrames and "Sylaen" or "SYLAEN"), "the healers lead the healing list: " .. tostring(Text(list.rows[1].name)))
 	assert(Text(list.column):find("hps", 1, true), "the rate's unit follows: " .. tostring(Text(list.column)))
 	hit._scripts.OnMouseUp(hit, "LeftButton")
 	env.RunTimers()
@@ -202,7 +208,7 @@ do
 	list.rows[2].frame._scripts.OnMouseUp(list.rows[2].frame, "LeftButton")
 	env.RunTimers()
 	assert(env._lastSource[4] == "Player-4", "the click asks for Brannoc's spells by his GUID")
-	assert(list.count == 2 and Text(list.rows[1].name) == "SPELL 2", "his spells list: " .. tostring(Text(list.rows[1].name)))
+	assert(list.count == 2 and Text(list.rows[1].name) == (isFrames and "Spell 2" or "SPELL 2"), "his spells list: " .. tostring(Text(list.rows[1].name)))
 	assert(M.Last(list.rows[1].icon, "SetTexture")[1] == 502, "each with its spell icon")
 	assert(tostring(Text(list.title)):upper():find("BRANNOC", 1, true), "the card is titled by him")
 	list.rows[1].frame._scripts.OnMouseUp(list.rows[1].frame, "LeftButton")
@@ -257,7 +263,7 @@ do
 	card.rows[3].frame._scripts.OnMouseUp(card.rows[3].frame, "LeftButton")
 	envS.RunTimers()
 	assert(envS._lastSource[4] == "Player-3", "the player's own row opens with the player's own GUID")
-	assert(card.count == 1 and Text(card.rows[1].name) == "SPELL 3" and envS.issecretvalue(Text(card.rows[1].value)), "and lists the player's spells in combat")
+	assert(card.count == 1 and Text(card.rows[1].name) == (isFrames and "Spell 3" or "SPELL 3") and envS.issecretvalue(Text(card.rows[1].value)), "and lists the player's spells in combat")
 	assert(#envS._errors == 0, "no Lua error: " .. tostring(envS._errors[1]))
 end
 
@@ -266,6 +272,7 @@ do
 	local envR, KR, nsR = New({ raid = true, size = 20 }, Raid)
 	M.Enable(envR, KR)
 	KR.Layout.Update("meters.damage", { height = 208 })
+	local Caps = isFrames and function(names) return names end or KR.Locale.Upper
 	envR.RunTimers()
 	local raid = nsR.Damage.list
 	assert(raid.capacity == 5, "the resized card holds five rows: " .. tostring(raid.capacity))
@@ -276,25 +283,25 @@ do
 		end
 		return table.concat(out, ",")
 	end
-	assert(Names() == KR.Locale.Upper("Raider1,Raider2,Raider3,Raider4,14. Tester"), "the top four, then the player's own row with the rank: " .. Names())
+	assert(Names() == Caps("Raider1,Raider2,Raider3,Raider4,14. Tester"), "the top four, then the player's own row with the rank: " .. Names())
 	assert(M.Last(raid.rows[5].icon, "SetAtlas")[1] == "classicon-" .. CLASSES[(14 - 1) % #CLASSES + 1], "the pinned row keeps the player's class icon")
 	local wheel = raid.panel._scripts.OnMouseWheel
 	assert(wheel, "the card scrolls")
 	wheel(raid.panel, -1)
 	wheel(raid.panel, -1)
-	assert(Names() == KR.Locale.Upper("Raider3,Raider4,Raider5,Raider6,14. Tester"), "scrolling down moves the list and keeps the player's row: " .. Names())
+	assert(Names() == Caps("Raider3,Raider4,Raider5,Raider6,14. Tester"), "scrolling down moves the list and keeps the player's row: " .. Names())
 	for _ = 1, 8 do
 		wheel(raid.panel, -1)
 	end
-	assert(Names() == KR.Locale.Upper("Raider11,Raider12,Raider13,Tester,Raider15"), "the player's row in view is not pinned twice: " .. Names())
+	assert(Names() == Caps("Raider11,Raider12,Raider13,Tester,Raider15"), "the player's row in view is not pinned twice: " .. Names())
 	for _ = 1, 20 do
 		wheel(raid.panel, -1)
 	end
-	assert(Names() == KR.Locale.Upper("Raider17,Raider18,Raider19,Raider20,14. Tester"), "the last member is reachable with the player pinned: " .. Names())
+	assert(Names() == Caps("Raider17,Raider18,Raider19,Raider20,14. Tester"), "the last member is reachable with the player pinned: " .. Names())
 	for _ = 1, 40 do
 		wheel(raid.panel, 1)
 	end
-	assert(Names() == KR.Locale.Upper("Raider1,Raider2,Raider3,Raider4,14. Tester"), "scrolling up returns to the top: " .. Names())
+	assert(Names() == Caps("Raider1,Raider2,Raider3,Raider4,14. Tester"), "scrolling up returns to the top: " .. Names())
 
 	-- The raid shrinks while scrolled to its end: the window clamps to the shorter list.
 	for _ = 1, 20 do
@@ -308,7 +315,7 @@ do
 	short[8] = full[14]
 	envR._session.combatSources = short
 	Refresh(envR)
-	assert(Names() == KR.Locale.Upper("Raider4,Raider5,Raider6,Raider7,Tester"), "a shorter list ends at its last row: " .. Names())
+	assert(Names() == Caps("Raider4,Raider5,Raider6,Raider7,Tester"), "a shorter list ends at its last row: " .. Names())
 	envR._session.combatSources = full
 	for _ = 1, 40 do
 		wheel(raid.panel, 1)
@@ -316,15 +323,15 @@ do
 	Refresh(envR)
 
 	-- A taller card shows more of the raid: the Medallions 27-unit rows hold 19 in 620 units and all twenty in 680.
-	raid.holder:SetHeight(620)
+	raid.holder:SetHeight(isFrames and 700 or 620)
 	envR.RunTimers()
 	Refresh(envR)
 	assert(raid.capacity >= 19, "a taller card holds more rows: " .. tostring(raid.capacity))
 	assert(raid.count == raid.capacity, "and fills them")
-	raid.holder:SetHeight(680)
+	raid.holder:SetHeight(isFrames and 740 or 680)
 	envR.RunTimers()
 	Refresh(envR)
-	assert(raid.count == 20 and Plain(Text(raid.rows[14].name)) == "TESTER", "with room for all twenty nothing is pinned: " .. raid.count)
+	assert(raid.count == 20 and Plain(Text(raid.rows[14].name)) == (isFrames and "Tester" or "TESTER"), "with room for all twenty nothing is pinned: " .. raid.count)
 	raid.holder:SetHeight(208)
 	envR.RunTimers()
 
@@ -332,7 +339,7 @@ do
 	wheel(raid.panel, -1)
 	M.Write(envR, KR, "damage.meter", "HealingDone")
 	Refresh(envR)
-	assert(Plain(Text(raid.rows[1].name)) == "RAIDER1", "a new view starts from the top")
+	assert(Plain(Text(raid.rows[1].name)) == (isFrames and "Raider1" or "RAIDER1"), "a new view starts from the top")
 	M.Write(envR, KR, "damage.meter", "DamageDone")
 
 	-- In combat: twenty secret rows, the player's still found by isLocalPlayer, which is never secret.
@@ -358,7 +365,7 @@ do
 	KA.Layout.Update("meters.damage", { height = 208 })
 	envA.RunTimers()
 	local solo = nsA.Damage.list
-	assert(solo.count == 2 and Text(solo.rows[1].name) == "SPELL 1", "alone, the card lists the player's spells")
+	assert(solo.count == 2 and Text(solo.rows[1].name) == (isFrames and "Spell 1" or "SPELL 1"), "alone, the card lists the player's spells")
 	assert(M.Last(solo.rows[1].icon, "SetTexture")[1] == 501, "led by the spell's icon")
 	solo.titleHit._scripts.OnMouseUp(solo.titleHit, "LeftButton")
 	envA.RunTimers()

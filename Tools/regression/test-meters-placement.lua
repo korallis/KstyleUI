@@ -3,11 +3,12 @@ local M = dofile("Tools/regression/meters_env.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
 
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
-	for _, style in ipairs({ "medallions" }) do
+	for _, style in ipairs({ "frames", "medallions" }) do
 		for _, size in ipairs({ "auto", 16 / 19 }) do
 			local env, K, ns = M.New({ width = screen[1], height = screen[2], followRole = true,
 				setup = function(e) e._fitScale, e._size = true, size end,
 			})
+			K.Options.Write("HudStyle", "style", style)
 			assert(K.Setup.Apply({ layout = "DPS", modules = { Meters = true } }))
 			env.RunTimers()
 			local root, layouts = K.Scale.Root(), K.Setup.Layouts

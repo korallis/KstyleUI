@@ -861,4 +861,37 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- Under Frames the chat is a forged card with brackets, a faint gilt rule runs under the tabs, and the selected tab
+-- reads in gilt with a gilt underline, never the class accent.
+do
+	local env, K, ns = C.New()
+	K.Options.Write("HudStyle", "style", "frames")
+	C.Enable(env, K)
+	env.RunTimers()
+	local g = ns.Panel.Geometry(env.ChatFrame1)
+	local glass = ns.Panel.Glass()
+	local divider = glass.divider
+	assert(divider:IsShown(), "the mock-up draws a rule under the tabs")
+	local dp, drel, _, dx, dy = divider:GetPoint(1)
+	assert(dp == "TOPLEFT" and drel == glass and near(dx, g.left) and near(dy, -g.divider), "across the card at the tab row's foot, inside the padding")
+	local dr, dg, db, da = divider:GetVertexColor()
+	local gr, gg, gb = K.Tokens.Color("gilt")
+	assert(near(dr, gr) and near(dg, gg) and near(db, gb) and near(da, 0.35), "a faint gilt hairline")
+	assert(K.Widgets.Setting("cardMaterial") == "ForgedBrackets", "chat inherits the forged default")
+	K.Options.Write("Chat", "panelOpacity", 0.4)
+	local chrome = glass.chrome
+	local r, g2, b, a = K.Tokens.Color("materialForged")
+	assert(W.SameColor(chrome.fill[5], r, g2, b, math.min(1, a * 0.4 / 0.75)), "chat opacity scales the forged fill relative to its authored strength")
+	assert(chrome.grain:IsShown() and chrome.materialFrame[1]:IsShown() and chrome.materialBrackets[1]:IsShown(), "chat keeps the forged grain, frame and brackets")
+	local tab = env.ChatFrame1Tab
+	env.FCFTab_UpdateColors(tab, true)
+	local tr, tg, tb = tab.Text:GetTextColor()
+	local cr, cg, cb = K.Tokens.Color("capsGold")
+	assert(near(tr, cr) and near(tg, cg) and near(tb, cb), "the selected tab is gilt")
+	local lr, lg, lb = K.Skin.Parts(tab).underline:GetVertexColor()
+	local ur, ug, ub = K.Widgets.LumenColor("gilt")
+	assert(near(lr, ur) and near(lg, ug) and near(lb, ub), "the underline is gilt: the Lumen punctuation on the active tab")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 print("chat panel ok")

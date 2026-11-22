@@ -1,0 +1,2 @@
+-- test-unitframes-kit-frames.lua: on Frames, unit frames and cast bars wear the kit's chrome, in Lumen's rounded material until the unit frame slice restyles them: one glass panel under a square portrait in the accent, a level badge, a round portrait as a setting, and cast bars with their spell icon in its own square beside a glass bar.
+assert(loadfile("Tools/regression/test-unitframes-kit.lua"))("frames")

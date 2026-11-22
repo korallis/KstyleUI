@@ -7,7 +7,8 @@ These are the **Clean bars**, **Cast bars**, **Wide target bar**, **Action bars 
 - Player, target, target of target, focus, focus target, pet and boss bars.
 - Health and power fills, the held loss band, and low-health warning.
 - Player and target cast bars.
-- The wide target bar under the Orbs style.
+- The wide target bar (Unit Frames > Target > Style) under Frames.
+- The Frames tray behind bars 1 and 2.
 - Action bars and the shared action slot, with keybind text.
 - The Medallions action slab: recessed sockets, the crest hub, the experience strip along its lower edge, and the pet and stance slabs beside it.
 
@@ -20,7 +21,7 @@ The frames and bars are the centre of the HUD in play. The player tunes them und
 The owner's-case render already frames the centre cluster. Its PNG must show the player slab with health and mana, a running Shadow Bolt cast bar, the pet slab under it, the target slab with its own cast, and the action slab with icons and keybinds around the crest:
 
 ```bash
-RENDER_SCREEN=5120x1440 RENDER_SIZE=auto RENDER_LAYOUT=DPS \
+RENDER_SCREEN=5120x1440 RENDER_SIZE=auto RENDER_HUD_STYLE=Medallions RENDER_LAYOUT=DPS \
   bash Tools/render/shoot.sh hud_warlock_mac --ppu 1.3333333333 --strict \
   --out "$HOME/.cache/kstyleui-verify/hud_warlock_medallions_5120x1440.png"
 echo "exit=$?"

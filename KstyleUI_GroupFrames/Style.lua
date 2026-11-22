@@ -556,7 +556,7 @@ function Style.Apply(f, width, height)
 	f.width, f.height = width, height
 	local overlay = k.textLayout == "ABOVE" and (f.kind == "raid" or not k.portrait)
 	local reserve = 0
-	if (overlay or cfg.layout.tidyLanes) and k.healthText ~= "NONE" then
+	if (overlay or K.HudStyle.Current() == "medallions" and cfg.layout.tidyLanes) and k.healthText ~= "NONE" then
 		SetFont(f.healthText, cfg.text.healthFont, k.healthTextSize, cfg.text.healthOutline)
 		reserve = Style.Reserve(f, k, nil, true) or 0
 	end
@@ -682,7 +682,7 @@ Style.painters = {}
 
 Style.appliers[1] = function(f, parts)
 	local cfg = Settings.current.names
-	local on = cfg.divider and not parts.nameInside and not parts.tile
+	local on = cfg.divider and not parts.nameInside and not (parts.tile and ns.Medallions and ns.Medallions.Active())
 	if not on then
 		if f.nameDivider then f.nameDivider:Hide() end
 		return
@@ -696,7 +696,7 @@ Style.appliers[1] = function(f, parts)
 	if cfg.dividerAccent then
 		line:SetColorTexture(Style.Accent())
 	else
-		line:SetColorTexture(Widgets.Rgba("steel", 0.5))
+		line:SetColorTexture(Widgets.Rgba(Widgets.Medallions() and "steel" or "capsGold", 0.5))
 	end
 	line:Show()
 end

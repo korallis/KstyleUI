@@ -161,6 +161,29 @@ do
 end
 collectgarbage()
 
+-- Frames: a ready check size alone keeps the automatic place, and a default raid frame reads its role once.
+do
+	local env, K, ns = G.New()
+	G.SetRoster(env, "raid", G.Members(12, function(_, m) m.role = "TANK" end))
+	K.Modules.Enable(MODULE)
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	local f = frame(ns, "raid1")
+	local at = point(f.ready)
+	write(env, K, "icons.readySize", 8)
+	assert(point(f.ready) == at and size(f.ready) == 8, "a Frames size alone keeps the automatic place: " .. point(f.ready))
+	local roles, reads = env.UnitGroupRolesAssigned, 0
+	env.UnitGroupRolesAssigned = function(unit)
+		reads = reads + 1
+		return roles(unit)
+	end
+	ns.Indicators.Role(f)
+	assert(reads == 1, "a default Frames raid frame reads its role once: " .. reads)
+	env.UnitGroupRolesAssigned = roles
+	noErrors(env, K)
+end
+collectgarbage()
+
 -- Options and preview follow the live behaviour.
 do
 	local env, K = G.New()
@@ -201,7 +224,7 @@ do
 	env.RunTimers()
 	assert(frame(ns, "party1").showPortrait, "Medallions shows party portraits")
 	local row = K.Options.Row(MODULE, "party.portraitRingAlpha")
-	assert(row and row.showWhen == nil, "so the ring opacity row always shows")
+	assert(row.showWhen(K.Store.Module(MODULE)), "so the ring opacity row shows")
 	G.SetRoster(env, "raid", G.Members(20, function(_, m) m.role = "TANK" end))
 	write(env, K, "icons.roleText", true)
 	local tile = frame(ns, "raid1")

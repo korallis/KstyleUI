@@ -50,6 +50,7 @@ local defaults = {
 	combatColor = TokenColor("neutral"),
 	powerColor = TokenColor("rare"),
 	playerPlacement = "field",
+	fieldDistance = 48,
 	fieldDistanceMedallions = 40,
 	clearLanes = true,
 	calmNumbers = true,
@@ -125,6 +126,8 @@ end
 local BLIZZARD, STYLES, OUTLINES, FORMATS, COLOR_MODES = Set(BLIZZARD_OPTIONS), Set(STYLE_OPTIONS), Set(OUTLINE_OPTIONS), Set(FORMAT_OPTIONS), Set(COLOR_MODE_OPTIONS)
 local PLACEMENTS, POINTS = Set(PLACEMENT_OPTIONS), Set(POINT_OPTIONS)
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
+
+local Medallions = K.Widgets.Medallions
 
 function Settings.Schema()
 	local function WorldFontOn(settings)
@@ -252,9 +255,14 @@ function Settings.Schema()
 			options = PLACEMENT_OPTIONS,
 		},
 		{
+			type = "slider", key = "fieldDistance", label = L["Travel above you"],
+			help = L["How far your numbers move in their field above your character, up to the field's height."],
+			min = DISTANCE_MIN, max = DISTANCE_MAX, step = DISTANCE_STEP, showWhen = function() return not Medallions() end,
+		},
+		{
 			type = "slider", key = "fieldDistanceMedallions", label = L["Travel above you"],
 			help = L["How far your numbers move in their field above your character, up to the field's height."],
-			min = DISTANCE_MIN, max = DISTANCE_MAX, step = DISTANCE_STEP,
+			min = DISTANCE_MIN, max = DISTANCE_MAX, step = DISTANCE_STEP, showWhen = Medallions,
 		},
 		{ type = "toggle", key = "units.target", label = L["Target frame"], help = L["Shows numbers on your KstyleUI target frame."] },
 		{
@@ -363,9 +371,9 @@ local function Same(a, b)
 	return a == b
 end
 
-local function Styled(values, key)
+local function Styled(values, key, medallions)
 	local value = values[key]
-	if not IsSecret(value) and (value == nil or Same(value, defaults[key])) then
+	if medallions and not IsSecret(value) and (value == nil or Same(value, defaults[key])) then
 		return MEDALLIONS[key]
 	end
 	return value
@@ -383,6 +391,7 @@ function Settings.Snapshot(values, cfg)
 	cfg = cfg or {}
 	values = type(values) == "table" and values or defaults
 	local d = defaults
+	local medallions = Medallions()
 	cfg.blizzardSelf = Choice(values.blizzardSelf, BLIZZARD, d.blizzardSelf)
 	cfg.blizzardTargets = Choice(values.blizzardTargets, BLIZZARD, d.blizzardTargets)
 	cfg.worldFont = Bool(values.worldFont, d.worldFont)
@@ -399,24 +408,25 @@ function Settings.Snapshot(values, cfg)
 	cfg.neutral = cfg.damage or cfg.heals
 	cfg.format = Choice(values.format, FORMATS, d.format)
 	cfg.formatter = Formatter(cfg.format)
-	cfg.duration = Number(Styled(values, "duration"), DURATION_MIN, DURATION_MAX, d.duration)
-	cfg.maxPerFrame = Number(Styled(values, "maxPerFrame"), PER_FRAME_MIN, PER_FRAME_MAX, d.maxPerFrame, true)
-	cfg.fontPath = FontPath(values.font, Tokens.FontPath("BarlowBold"))
-	cfg.size = Number(Styled(values, "size"), SIZE_MIN, SIZE_MAX, d.size)
-	cfg.fadeTime = MEDALLIONS_FADE
-	cfg.rise = Number(values.fieldDistanceMedallions, DISTANCE_MIN, DISTANCE_MAX, d.fieldDistanceMedallions)
+	cfg.duration = Number(Styled(values, "duration", medallions), DURATION_MIN, DURATION_MAX, d.duration)
+	cfg.maxPerFrame = Number(Styled(values, "maxPerFrame", medallions), PER_FRAME_MIN, PER_FRAME_MAX, d.maxPerFrame, true)
+	cfg.fontPath = FontPath(values.font, medallions and Tokens.FontPath("BarlowBold") or (Tokens.Font("number")))
+	cfg.size = Number(Styled(values, "size", medallions), SIZE_MIN, SIZE_MAX, d.size)
+	cfg.fadeTime = medallions and MEDALLIONS_FADE or nil
+	local travel = medallions and "fieldDistanceMedallions" or "fieldDistance"
+	cfg.rise = Number(values[travel], DISTANCE_MIN, DISTANCE_MAX, d[travel])
 	local outline = Choice(values.outline, OUTLINES, d.outline)
 	cfg.flags = OUTLINE_FLAGS[outline]
 	cfg.shadow = outline == "NONE"
 	local shadow = Choice(values.shadow, { style = true, show = true, hide = true }, d.shadow)
 	if shadow ~= "style" then cfg.shadow = shadow == "show" end
 	cfg.colorMode = Choice(values.colorMode, COLOR_MODES, d.colorMode)
-	cfg.damageR, cfg.damageG, cfg.damageB = Color(Styled(values, "damageColor"), d.damageColor)
-	cfg.healR, cfg.healG, cfg.healB = Color(Styled(values, "healColor"), d.healColor)
+	cfg.damageR, cfg.damageG, cfg.damageB = Color(Styled(values, "damageColor", medallions), d.damageColor)
+	cfg.healR, cfg.healG, cfg.healB = Color(Styled(values, "healColor", medallions), d.healColor)
 	cfg.missR, cfg.missG, cfg.missB = Color(values.missColor, d.missColor)
-	cfg.critScale = Number(Styled(values, "critScale"), CRIT_MIN, CRIT_MAX, d.critScale)
+	cfg.critScale = Number(Styled(values, "critScale", medallions), CRIT_MIN, CRIT_MAX, d.critScale)
 	cfg.critColor = Bool(values.critColor, d.critColor)
-	cfg.critR, cfg.critG, cfg.critB = Color(Styled(values, "critTint"), d.critTint)
+	cfg.critR, cfg.critG, cfg.critB = Color(Styled(values, "critTint", medallions), d.critTint)
 	cfg.playerPlacement = Choice(values.playerPlacement, PLACEMENTS, d.playerPlacement)
 	cfg.clearLanes = Bool(values.clearLanes, d.clearLanes)
 	cfg.calmNumbers = Bool(values.calmNumbers, d.calmNumbers)

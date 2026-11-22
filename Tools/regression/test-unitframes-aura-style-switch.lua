@@ -2,9 +2,16 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 local LAYERS = { BACKGROUND = 1, BORDER = 2, ARTWORK = 3, OVERLAY = 4, HIGHLIGHT = 5 }
 
+-- A style is a Medallions aura layout ("rows" or "fan") or the Frames HUD style ("frames").
+local function Switch(K, style)
+	if style ~= "frames" then K.Options.Write("UnitFrames", "auraLayout", style) end
+	K.Options.Write("HudStyle", "style", style == "frames" and "frames" or "medallions")
+end
+
 local function New(style)
 	local env, K, ns = U.New({ saved = { version = U.DbVersion(), characters = {}, profiles = { Default = {
-		UnitFrames = { enabled = true, auraLayout = style, target = { auraFilter = "both" } },
+		UnitFrames = { enabled = true, auraLayout = style ~= "frames" and style or nil, target = { auraFilter = "both" } },
+		HudStyle = { style = style == "frames" and "frames" or "medallions" },
 	} } } })
 	U.SetUnit(env, "target", { name = "Wolf", level = 10, health = 50, healthMax = 100, reaction = 2 })
 	env.SetTarget(true)
@@ -121,10 +128,11 @@ end
 
 for _, pair in ipairs({
 	{ "rows", "fan", combat = "rows", gateLast = false }, { "fan", "rows", combat = "fan", gateLast = true },
+	{ "rows", "frames", combat = "rows", gateLast = true }, { "frames", "fan", combat = "frames", gateLast = false },
 }) do
 	local env, K, view = New(pair[1])
 	local before, old = view.auras.container, Entry(view, "debuffs")
-	K.Options.Write("UnitFrames", "auraLayout", pair[2])
+	Switch(K, pair[2])
 	env.RunTimers()
 	W.Settle(env)
 	local control = Control(pair[2])
@@ -144,9 +152,9 @@ for _, pair in ipairs({
 		assert(not before._groups[group].enabled, "disable both old groups so the engine releases their active frames")
 	end
 	local targetPool = view.auras.container
-	K.Options.Write("UnitFrames", "auraLayout", pair[1])
+	Switch(K, pair[1])
 	env.RunTimers()
-	K.Options.Write("UnitFrames", "auraLayout", pair[2])
+	Switch(K, pair[2])
 	env.RunTimers()
 	assert(view.auras.container == targetPool, "reuse only a pool born in the same target style, rather than leaking containers on repeated switches")
 	assert(Signature(Entry(view, "debuffs")) == Signature(Entry(control, "debuffs")), "a reused style pool still matches fresh tiles")
@@ -161,8 +169,10 @@ for _, pair in ipairs({
 		end
 		env.SetCombat(true)
 		env._restricted = true
-		K.Options.Write("UnitFrames", "auraLayout", third)
+		Switch(K, third)
 		env.RunTimers()
+		local held = K.HudStyle.Current()
+		assert((held == "frames") == (pair[2] == "frames"), label .. ": a HUD style picked in combat lockdown is held until combat ends")
 		assert(view.auras.container == targetPool and targetPool._enabled ~= false and targetPool:IsShown(), label .. ": combat lockdown keeps the old style's live tiles")
 		if not gateLast then
 			OpenGate()
@@ -170,6 +180,7 @@ for _, pair in ipairs({
 		end
 		env.SetCombat(false)
 		env.RunTimers()
+		assert((K.HudStyle.Current() == "frames") == (third == "frames"), label .. ": the queued HUD style applies when combat ends")
 		if gateLast then
 			assert(view.auras.container == targetPool and targetPool._enabled ~= false, label .. ": the old tiles stay until aura buttons are readable")
 			OpenGate()
@@ -217,4 +228,4 @@ do
 		"drain a snapshot of pending aura restyles so a nested Apply cannot invalidate its iterator: " .. table.concat(env._errors, "\n"))
 end
 
-print("ok aura layout switches match fresh tiles and keep icons above dispel tint")
+print("ok aura layout and HUD style switches match fresh tiles and keep icons above dispel tint")

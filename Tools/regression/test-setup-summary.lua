@@ -50,7 +50,7 @@ local function check(env, K, panel, what)
 		return { left = x, right = x + w, top = y, bottom = y + h }
 	end
 	assert(panel.summaryChoices and panel.summaryLayout and panel.summaryStatus, what .. ": the summary is three cards")
-	local page = box(panel.pages[4])
+	local page = box(panel.pages[5])
 	local left, right, low = box(panel.summaryChoices), box(panel.summaryLayout), box(panel.summaryStatus)
 	local width = right.right - right.left
 	assert(near(left.right - left.left, width), what .. ": the two columns are even, " .. (left.right - left.left) .. " and " .. width)
@@ -94,7 +94,7 @@ do
 	local env, K = Boot()
 	K.Setup.Open()
 	W.Settle(env)
-	K.Setup.Go(4)
+	K.Setup.Go(5)
 	W.Settle(env)
 	check(env, K, K.Setup.window, "before Apply")
 end
@@ -116,7 +116,7 @@ for _, off in ipairs({ false, true }) do
 			K.Setup.Choice().modules[name] = i == 1
 		end
 	end
-	K.Setup.Go(4)
+	K.Setup.Go(5)
 	W.Settle(env)
 	local panel = K.Setup.window
 	W.Click(panel.apply)

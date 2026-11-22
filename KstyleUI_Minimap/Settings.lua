@@ -48,7 +48,7 @@ function Settings.BarClock()
 	if K.Store.IsLoaded() and K.Modules.IsEnabled("DataBars") then
 		local strip = K.Store.Module("DataBars").strip or {}
 		if strip.enabled ~= false then
-			for _, entry in ipairs((strip.placement == "rail" and strip.railModules or strip.dockModules) or {}) do
+			for _, entry in ipairs((strip.placement == "rail" and strip.railModules or K.HudStyle.Current() == "medallions" and strip.dockModules or strip.modules) or {}) do
 				if entry.id == "time" and entry.shown then
 					local element = K.Layout.Get("databars.strip")
 					if not element or element.shown ~= "never" then return true end

@@ -1,4 +1,4 @@
--- Rest.lua: the Medallions leave-combat fade: three seconds after combat ends the secondary unit frames (target of target, focus, its target and the pet) dim to 60% over 0.6 s and return the moment combat starts; alpha only, through Layout, only where the player kept full alpha.
+-- Rest.lua: the Medallions leave-combat fade: three seconds after combat ends the secondary unit frames (target of target, focus, its target and the pet) dim to 60% over 0.6 s and return the moment combat starts; alpha only, through Layout, only where the player kept full alpha, and only under the Medallions style.
 local _, ns = ...
 
 local Layout, Effects, Tokens = ns.Layout, ns.Effects, ns.Tokens
@@ -46,7 +46,7 @@ end
 
 local function Settle()
 	waiting = waiting - 1
-	if waiting > 0 or resting or InCombatLockdown() then
+	if waiting > 0 or resting or InCombatLockdown() or not Effects.Active() then
 		return
 	end
 	resting = true
@@ -54,6 +54,9 @@ local function Settle()
 end
 
 local function Later()
+	if not Effects.Active() then
+		return
+	end
 	waiting = waiting + 1
 	C_Timer.After(Rest.DELAY, Settle)
 end
@@ -65,10 +68,17 @@ end
 local listening = false
 
 function Rest.Update()
-	if listening then
+	local active = Effects.Active()
+	if active == listening then
 		return
 	end
-	listening = true
+	listening = active
+	if not active then
+		ns.Events.Unregister(OWNER, "PLAYER_REGEN_ENABLED")
+		ns.Events.Unregister(OWNER, "PLAYER_REGEN_DISABLED")
+		Wake(0)
+		return
+	end
 	ns.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", Later)
 	ns.Events.Register(OWNER, "PLAYER_REGEN_DISABLED", Woken)
 	if not InCombatLockdown() then
@@ -77,3 +87,5 @@ function Rest.Update()
 end
 
 ns.Events.Register(OWNER, "PLAYER_LOGIN", Rest.Update)
+ns.Callbacks.Register("HudStyleChanged", OWNER, Rest.Update)
+ns.Callbacks.Register("ProfileChanged", OWNER, Rest.Update)

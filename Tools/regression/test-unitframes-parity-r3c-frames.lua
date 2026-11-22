@@ -1,0 +1,2 @@
+-- test-unitframes-parity-r3c-frames.lua: on Frames, round 3c's text offsets, health bar height, power bar above health, power text position and colour, prediction textures and placement, overshield glow, absorb bar, lost maximum health, spell cost, five-second spark, mana in forms, druid bar text, extra text width and colour tags keep v0.2.8 looks and regions, then work switched on, follow their events and restore when off.
+assert(loadfile("Tools/regression/test-unitframes-parity-r3c.lua"))("frames")

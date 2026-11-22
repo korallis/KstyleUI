@@ -1,0 +1,2 @@
+-- test-groupframes-depth-frames.lua: on Frames, the round-2 healer depth: party debuffs inside the card, one dead state, short deficits, distinct short names, heal absorbs, the debuff priority list and glow, the indicator slots, the automatic layout, the click casting panel, the preview fixture and many auras kept inside the tile.
+assert(loadfile("Tools/regression/test-groupframes-depth.lua"))("frames")

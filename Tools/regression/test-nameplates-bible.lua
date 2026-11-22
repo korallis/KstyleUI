@@ -1,6 +1,7 @@
--- test-nameplates-bible.lua: the KSTY-44 bible's plate. A plate on a nameplate the game restricts for measurement builds, takes a target, a cast, effects and a setting change with no measuring and no error; nothing moves a plate or its pieces after it builds (Lee saw plates "dart around"), so a target change only shows or hides the brackets; the brackets close in once at full motion and never on a restyle; the level diamond and the right-hand raid marker stay clear of the brackets on every screen.
+-- test-nameplates-bible.lua: the KSTY-44 bible's plate. No ornament on or around the Frames bar at Off, Subtle or Full; a plate on a nameplate the game restricts for measurement builds, takes a target, a cast, effects and a setting change with no measuring and no error; nothing moves a plate or its pieces after it builds (Lee saw plates "dart around"), so a target change only shows or hides the brackets; the brackets close in once at full motion and never on a restyle; the level diamond and the right-hand raid marker stay clear of the brackets on every screen.
 local N = dofile("Tools/regression/nameplates_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
+local A = dofile("Tools/regression/auras_env.lua")
 
 local MEASURE = "Can't measure restricted regions"
 local UNIT = { name = "Bloodtalon Matriarch", health = 29800, maxHealth = 48000, level = 40, classification = "elite", reaction = 2, canAttack = true, raid = 8 }
@@ -15,6 +16,33 @@ end
 
 local function errors(env, K, label)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, label .. ": no error, got " .. tostring(env._errors[1]))
+end
+
+-- No ornament on a Frames plate, at Off, Subtle or Full -----------------------------------------------------------
+
+for _, level in ipairs({ "Off", "Subtle", "Full" }) do
+	for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
+		local env, K, ns = N.New({ frames = true, width = screen[1], height = screen[2] })
+		local widgets = K.Store.Module("Widgets")
+		widgets.cardMaterial, widgets.ornaments = "ForgedBrackets", level
+		K.Callbacks.Fire("SettingChanged", "Widgets", "ornaments")
+		N.Add(env, "nameplate1", UNIT)
+		N.Target(env, "nameplate1")
+		N.Cast(env, "nameplate1", CAST)
+		local plate = ns.Plates.Get("nameplate1")
+		local where = level .. " " .. screen[1] .. "x" .. screen[2]
+		assert(plate.ornament == nil, where .. ": a plate owns no ornament handle")
+		local seen = 0
+		for _, object in ipairs(A.Descendants(plate)) do
+			if object:GetObjectType() == "Texture" then
+				seen = seen + 1
+				local file = object:GetTexture()
+				assert(not (type(file) == "string" and file:find("Ornament")), where .. ": no ornament art anywhere on the plate, got " .. tostring(file))
+			end
+		end
+		assert(seen > 10, where .. ": the check saw the plate's textures, got " .. seen)
+		errors(env, K, where)
+	end
 end
 
 local function counts(frames)

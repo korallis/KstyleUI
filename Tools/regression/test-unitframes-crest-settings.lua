@@ -11,8 +11,8 @@ local base = { mine = { 1 }, debuffs = { 1, 2 }, buffs = { 3, 4 }, both = { 1, 2
 local function Same(actual, expected, label)
 	assert(table.concat(actual, ",") == table.concat(expected, ","), label .. ": " .. table.concat(actual, ","))
 end
-do
-	local env, K, ns = U.New({ before = function(_, core)
+for _, style in ipairs({ "frames", "medallions" }) do
+	local env, K, ns = U.New({ frames = style == "frames", before = function(_, core)
 		core.Store.Module("UnitFrames").auraLayout = "fan"
 	end })
 	U.SetUnit(env, "target", { name = "Target", health = 100, healthMax = 100, reaction = 2, auras = fixtures })
@@ -29,7 +29,7 @@ do
 				for _, filter in ipairs({ "mine", "debuffs", "buffs", "both" }) do
 					K.Options.Write("UnitFrames", "target.auraFilter", filter)
 					env.FireEvent("UNIT_AURA", "target", { isFullUpdate = true })
-					local fan = fanOn
+					local fan = fanOn and style == "medallions"
 					local expected, actual = {}, {}
 					for _, id in ipairs(base[filter]) do
 						if enabled and not (fan and id == 1) then expected[#expected + 1] = id end
@@ -38,7 +38,7 @@ do
 						for _, id in ipairs(a.container._groups[group].assigned) do actual[#actual + 1] = id end
 					end
 					table.sort(actual)
-					local label = filter .. "/auras=" .. tostring(enabled) .. "/fan=" .. tostring(fanOn)
+					local label = style .. "/" .. filter .. "/auras=" .. tostring(enabled) .. "/fan=" .. tostring(fanOn)
 					Same(actual, expected, label .. " keeps the base aura selection minus the fan")
 					if a.fan then
 						Same(a.fan.containers[ns.Fan.MAX]._groups.debuffs.assigned, fan and { 1 } or {}, label .. " fan assignments")
@@ -71,4 +71,4 @@ assert(view.auras.container._enabled == false, "the medallion aura engine remain
 K.Modules.Disable("UnitFrames")
 assert(not view.auras.fan.enabled and view.auras.fan.content._shown == false, "disabling the module stops the independent fan")
 assert(#env._errors == 0 and K.ErrorCount() == 0, "independent construction has no errors")
-print("ok crest aura settings: 32 combinations preserve the base selection minus the independent fan")
+print("ok crest aura settings: 64 combinations preserve the base selection minus the independent fan")

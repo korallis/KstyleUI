@@ -4,7 +4,7 @@
 
 ## Running it
 
-1. Get into the scene you care about: the layout you want, the modules on, and preferably something moving (a target, a fight, the quest card filling and emptying).
+1. Get into the scene you care about: the layout and HUD style you want, the modules on, and preferably something moving (a target, a fight, the quest card filling and emptying).
 2. `/kstyle perf 30` starts a 30-second window (`/kstyle perf` alone uses 20; anything under 1 is raised to 1, and a length that is not a finite number is refused). The chat prints that it is recording.
 3. Play the scene normally. Do not open the options or `/reload` mid-window: either hides the addon you wanted to measure.
 4. `/kstyle perf` again stops it early, or it stops itself at the end of the window. The report lands in the devlog. A window stopped before its first frame has nothing to measure, so it writes no report and says so.
@@ -47,7 +47,7 @@ That is a real result, not a failure. None of the timed paths ran, so a frame ra
 - **The frame budget.** At 60 frames per second one frame is 16.7 ms, and a full second of frames is 1000 ms. So the millisecond-per-second figure is directly comparable with that budget: 10 ms per second is 1% of the time, 16.7 ms per second is one 60 Hz frame's worth every second, and 167 ms per second is about ten such frames, a sixth of all the time.
 - **Rough bands.** Under 10 ms/s (under 1%) is noise; 10 to 50 ms/s is small enough that only the weakest scenes would show it; 50 to 150 ms/s is worth naming in a pull request; above 150 ms/s is worth fixing before it ships. These bands are judgement, not a gate — pair them with the lowest frame rate, which is what players notice.
 - **Read it as a sample.** Two 30-second runs of the same scene can differ by 10–20%. Run it two or three times and keep the middle result before you claim a difference, and use the same window length on both sides of a before/after.
-- **Only compare like with like.** Same client, same resolution, same layout and modules, same activity. A number from one machine, character or settings file says nothing about another.
+- **Only compare like with like.** Same client, same resolution, same HUD style, layout and modules, same activity. A number from one machine, character or settings file says nothing about another.
 - **A row at the top does not mean a bug.** Movement and combat dispatch a lot of events; `Motion step` and event owners are expected to lead a busy scene. What matters is whether the rate climbs without a change in what you did.
 
 ## What is and is not counted
@@ -71,4 +71,4 @@ Keep names stable, unique and descriptive — a name is how a row in the devlog 
 
 ## What to put in a pull request
 
-The two summary lines and the top rows, with the scene described (resolution, layout, modules, what you did in the window), and a before/after pair measured the same way with the same window length. That is enough for a reviewer to see whether a change moved the cost and where.
+The two summary lines and the top rows, with the scene described (resolution, HUD style, layout, modules, what you did in the window), and a before/after pair measured the same way with the same window length. That is enough for a reviewer to see whether a change moved the cost and where.

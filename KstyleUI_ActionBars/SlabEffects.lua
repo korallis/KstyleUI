@@ -84,6 +84,9 @@ local function ReadyParts(b)
 end
 
 function Fx.Ready(b)
+	if not Effects.Active() then
+		return false
+	end
 	if not Effects.Allows("flare") or b.proc then
 		return true
 	end
@@ -195,7 +198,7 @@ function Fx.UpdateCap()
 	local hub = slab and slab.hub
 	local curve = CapCurve()
 	local power = Fx.PowerType()
-	if not (hub and hub:IsShown() and curve and power) then
+	if not (hub and hub:IsShown() and Effects.Active() and curve and power) then
 		HideCap()
 		return
 	end
@@ -239,7 +242,7 @@ local function ClassFile()
 end
 
 function Fx.Proc(hub)
-	if not hub then
+	if not (hub and Effects.Active()) then
 		return false
 	end
 	local class = ClassFile()
@@ -247,7 +250,7 @@ function Fx.Proc(hub)
 end
 
 function Fx.LevelUp(hub, play2D, stop2D)
-	if not hub then
+	if not (hub and Effects.Active()) then
 		if play2D then
 			play2D()
 		end

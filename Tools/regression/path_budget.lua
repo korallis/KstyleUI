@@ -1,7 +1,8 @@
--- path_budget.lua: sample addon VM instructions and count widget method calls for one complete user path.
+-- path_budget.lua: sample addon VM instructions (every step-th, 100 unless given; 1 counts a short path exactly) and count widget method calls for one complete user path.
 local Budget = {}
 
-function Budget.Count(env, run)
+function Budget.Count(env, run, step)
+	step = step or 100
 	local meta = getmetatable(env.UIParent)
 	local index, wrappers = meta.__index, {}
 	local result = { instructions = 0, calls = 0 }
@@ -21,9 +22,9 @@ function Budget.Count(env, run)
 	debug.sethook(function()
 		local source = debug.getinfo(2, "S").source
 		if source:match("^@Core/") or source:match("^@KstyleUI_") then
-			result.instructions = result.instructions + 100
+			result.instructions = result.instructions + step
 		end
-	end, "", 100)
+	end, "", step)
 	local ok, err = pcall(run)
 	debug.sethook()
 	meta.__index = index

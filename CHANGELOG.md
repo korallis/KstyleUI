@@ -1,5 +1,48 @@
 # KstyleUI changelog
 
+## v0.2.13 (2026-11-22)
+
+Frames returns alongside Medallions. RestedXP and Zygor guides move to a card of their own in the top left corner, the quest log keeps the story rail and raid warnings fit MacBook screens.
+
+Highlights:
+
+- Frames is back alongside Medallions, with class crowns, Spirit Poles, Ghost Wolf and Lightning Shield storm orbs.
+- RestedXP and Zygor guides move to a card in the top left corner, above the party frames, where a whole step fits.
+- The quest log keeps the story rail under the minimap to itself, at its own height.
+- The threat meter keeps its own place instead of following the guide card.
+- Raid and boss warnings sit in the upper part of MacBook and other 3:2 screens, clear of the boss frames.
+- Setup's Apply fits 16 tracked buff icons and a Tank's 6 tracked bars in Edit Mode at Interface size 1.
+
+### Added
+
+- Added: Frames returns as a HUD style. Shamans get a Spirit Poles row with Ghost Wolf, and the player's resource row shows class crowns or Lightning Shield charges as storm orbs.
+
+### Changed
+
+- The RestedXP and Zygor guide card moves to the top left corner, above the party frames, where a whole step fits on every screen. Window Skins > RestedXP or Zygor > Guide card, on by default.
+- The quest log keeps its column on the story rail under the minimap and its own height; it no longer stretches to the guide's height.
+- Zygor Guides Viewer, contributed by Baine, sizes its guide to its steps but never past its card. Window Skins > Zygor > Fit guide to its steps, on by default.
+- A RestedXP step that grows in combat grows the card up, so the whole step stays on the screen.
+- In a raid the guide card shares the corner with the raid frames; close the guide or drag either one away.
+- Story rail is now Guide card under Window Skins > RestedXP and Zygor, and RestedXP's Align story cards is now Trim the guide card. Your choices stay.
+- The threat meter no longer follows the guide card: Follow the guide card leaves Meters > Threat meter, and the threat card keeps its own place.
+
+### Fixed
+
+- Raid and boss warnings sit in the upper part of the screen on MacBook and other 3:2 screens instead of under the boss frames.
+- The warnings keep clear of the boss frames' debuffs, and after an Interface size change they move with the HUD.
+- With the Cooldowns module off, Apply in `/kstyle setup` fits 16 tracked buff icons over your casts and a Tank's 6 tracked bars beside the threat card in Edit Mode at Interface size 1.
+- With Zygor's guide open, KstyleUI no longer repaints its waypoint arrow every frame or checks its tabs a hundred times a second.
+- Action bars and cooldown icons update only the spell that changed on a cooldown, and only the icons on a form change, so shapeshifting and fast fights cost far less.
+
+### Upgrading
+
+- If v0.2.12 moved you to Medallions, pick Frames again in `/kstyle setup` or in Options > General > HUD style.
+- Profiles saved on Frames before v0.2.12 stay on Frames if they haven't already moved to Medallions.
+- The guide card moves to the top left corner at your next login; a place you saved in Layout Mode stays.
+- A threat card that followed the guide goes back to its own place, and Follow the guide card is gone.
+- On a MacBook or other 3:2 screen, the raid warnings move up the next time you press Apply in `/kstyle setup`.
+
 ## v0.2.12.1 (2026-11-22)
 
 A fix release.

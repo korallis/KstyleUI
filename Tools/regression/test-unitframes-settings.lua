@@ -174,6 +174,11 @@ assert(row("player.name").showWhen(settings) == false, "other frames' rows hide"
 assert(row("target.style").showWhen(settings) == true, "each frame picks the slab or the classic plate")
 local styles = values(row("target.style", "dropdown"))
 assert(styles.column and styles.plate and not styles.lumen and not styles.bar, "the player's and target's style is the slab (stored as column) or the classic plate")
+K.Options.Write("HudStyle", "style", "frames")
+styles = values(row("target.style", "dropdown"))
+assert(styles.column and styles.bar and styles.lumen and styles.plate, "Frames offers the target the column, the wide bar, the sigil or the classic plate")
+assert(values(row("player.style", "dropdown")).lumen, "and the player the older vitals line")
+K.Options.Write("HudStyle", "style", "medallions")
 assert(not values(row("focus.style", "dropdown")).column, "the other frames have no column style to choose")
 assert(row("hideBlizzard").showWhen == nil, "module-wide rows always show")
 settings.edit = "player"

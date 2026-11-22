@@ -1,5 +1,7 @@
--- test-minimap-header.lua: the zone in capitals keeps clear of the Medallions north badge and the N stays inside its badge (KSTY-77, the owner's live Shen'dar Highlands at 3456x2234), at every screen, zone length, zone size and font scale.
+-- test-minimap-header.lua: the zone in capitals keeps clear of the Medallions north badge and the N stays inside its badge (KSTY-77, the owner's live Shen'dar Highlands at 3456x2234), at every screen, zone length, zone size and font scale; given "frames" it checks the Frames north diamond and card instead.
+local isFrames = ... == "frames"
 local M = dofile("Tools/regression/minimap_env.lua")
+if isFrames then M = dofile("Tools/regression/frames_lib.lua")(M) end
 local Scene = dofile("Tools/render/scene.lua")
 
 local SCREENS = {
@@ -12,11 +14,17 @@ local function Measure(text, path, size)
 	return Scene.TextWidth(Scene.PlainText(text), size, path)
 end
 
+local function Marks(face)
+	if isFrames then return face.plate.diamond.black, face.fill end
+	return face.gem, face.plaques[1].chrome.fill[5]
+end
+
 local function Rects(env, face)
 	local scene = Scene.Build(env, {})
 	local found = {}
+	local badge, plaque = Marks(face)
 	for _, item in ipairs(scene.items) do
-		if item.object == face.zone or item.object == face.north or item.object == face.gem or item.object == face.plaques[1].chrome.fill[5] then
+		if item.object == face.zone or item.object == face.north or item.object == badge or item.object == plaque then
 			local x, y, w, h = unpack(item.rect)
 			found[item.object] = { left = x, right = x + w, top = y, bottom = y + h }
 		end
@@ -50,13 +58,23 @@ for _, screen in ipairs(SCREENS) do
 				M.Settle(env)
 				local what = string.format("%dx%d, font scale %.2f, zone size %d, %q", screen[1], screen[2], scale, size, zone)
 				local r = Rects(env, face)
-				local zoneRect, north, badge, plaque = r[face.zone], r[face.north], r[face.gem], r[face.plaques[1].chrome.fill[5]]
-				assert(zoneRect and north and badge and plaque, what .. ": the zone, the N, the badge and the zone plaque all draw")
-				assert(north.left >= badge.left - EPS and north.right <= badge.right + EPS and north.top >= badge.top - EPS and north.bottom <= badge.bottom + EPS,
-					string.format("%s: the N stays inside its badge, N %.1f..%.1f against %.1f..%.1f", what, north.top, north.bottom, badge.top, badge.bottom))
-				assert(not Overlap(zoneRect, badge) and not Overlap(zoneRect, north),
-					string.format("%s: the zone (bottom %.1f) keeps clear of the north badge (top %.1f) and its N (top %.1f)", what, zoneRect.bottom, badge.top, north.top))
-				assert(zoneRect.left >= plaque.left - 1 and zoneRect.right - zoneRect.left <= plaque.right - plaque.left + 1, string.format("%s: the zone stays over its plaque, truncating a long name, zone %.1f..%.1f plaque %.1f..%.1f", what, zoneRect.left, zoneRect.right, plaque.left, plaque.right))
+				local badgeMark, plaqueMark = Marks(face)
+				local zoneRect, north, badge, plaque = r[face.zone], r[face.north], r[badgeMark], r[plaqueMark]
+				if isFrames then
+					assert(zoneRect and north and badge and plaque, what .. ": the zone, the N, the diamond and the card all draw")
+					assert(north.left >= badge.left - EPS and north.right <= badge.right + EPS and north.top >= badge.top - EPS and north.bottom <= badge.bottom + EPS,
+						string.format("%s: the N stays inside its diamond, N %.1f..%.1f against %.1f..%.1f", what, north.top, north.bottom, badge.top, badge.bottom))
+					assert(not Overlap(zoneRect, badge) and not Overlap(zoneRect, north),
+						string.format("%s: the zone (bottom %.1f) keeps clear of the north diamond (top %.1f) and its N (top %.1f)", what, zoneRect.bottom, badge.top, north.top))
+					assert(zoneRect.left >= plaque.left - 1 and zoneRect.right - zoneRect.left <= plaque.right - plaque.left + 1, string.format("%s: the zone stays over the card, truncating a long name, zone %.1f..%.1f card %.1f..%.1f", what, zoneRect.left, zoneRect.right, plaque.left, plaque.right))
+				else
+					assert(zoneRect and north and badge and plaque, what .. ": the zone, the N, the badge and the zone plaque all draw")
+					assert(north.left >= badge.left - EPS and north.right <= badge.right + EPS and north.top >= badge.top - EPS and north.bottom <= badge.bottom + EPS,
+						string.format("%s: the N stays inside its badge, N %.1f..%.1f against %.1f..%.1f", what, north.top, north.bottom, badge.top, badge.bottom))
+					assert(not Overlap(zoneRect, badge) and not Overlap(zoneRect, north),
+						string.format("%s: the zone (bottom %.1f) keeps clear of the north badge (top %.1f) and its N (top %.1f)", what, zoneRect.bottom, badge.top, north.top))
+					assert(zoneRect.left >= plaque.left - 1 and zoneRect.right - zoneRect.left <= plaque.right - plaque.left + 1, string.format("%s: the zone stays over its plaque, truncating a long name, zone %.1f..%.1f plaque %.1f..%.1f", what, zoneRect.left, zoneRect.right, plaque.left, plaque.right))
+				end
 				cases = cases + 1
 			end
 		end

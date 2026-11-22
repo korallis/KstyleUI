@@ -1,7 +1,9 @@
 -- test-actionbars-lumen.lua: the Lumen socket on the action buttons: a quiet rim at rest, the keybind at the top left,
 -- a centred cooldown timer, a gilt proc rim with the Medallions loop inside the socket, a red out-of-range tint, a cool
--- desaturated tint without resource, quiet empty sockets, and bar 1 as one floating row.
+-- desaturated tint without resource, quiet empty sockets, and bar 1 as one floating row. test-actionbars-lumen-frames.lua runs them on Frames.
+local frames = ... == "frames"
 local AB = dofile("Tools/regression/actionbars_env.lua")
+if frames then dofile("Tools/regression/frames_lib.lua")(AB) end
 local W = AB.W
 
 local function new(opts)
@@ -111,13 +113,49 @@ do
 	assert(b.proc, "the button procs")
 	local gr, gg, gb = color(K, ns.Socket.TOKENS.gilt)
 	assert(W.SameRGB(rim(b), gr, gg, gb), "the proc rim is gilt")
-	assert(b.chrome.proc and W.SameRGB(b.chrome.line[1], K.Widgets.Rgba("giltLit")), "the shared kit draws the outer proc edge in giltLit's Medallions steel")
-	assert(not (b.lumenGlow and b.lumenGlow:IsShown()) and b.medProc and b.medProc:IsShown(), "the Medallions loop replaces the socket's own glow")
+	local glow, breath
+	if frames then
+		assert(b.chrome.proc and W.SameRGB(b.chrome.line[1], gr, gg, gb), "the shared kit draws the outer proc edge in giltLit")
+		glow = assert(b.lumenGlow, "the proc shows the socket's own glow")
+		assert(glow:IsShown(), "the glow shows")
+		assert(b.procGlow == nil, "the kit's glow, with its halo past the button, is not used")
+		local inside = glow._points[1]
+		assert(inside and inside[2] == b.icon, "the glow is laid over the icon, inside the socket")
+		assert(#glow.texture._masks > 0, "the glow is masked to the icon's shape")
+		breath = glow.breath
+		assert(breath and breath:IsPlaying(), "the glow breathes")
+		assert(W.LastCall(breath, "SetLooping")[1] == "BOUNCE", "in and out")
+		local alpha = breath._anims[1]
+		assert(W.Near(W.LastCall(alpha, "SetDuration")[1], K.Tokens.Duration("glowBreath")), "at glowBreath seconds per leg")
+	else
+		assert(b.chrome.proc and W.SameRGB(b.chrome.line[1], K.Widgets.Rgba("giltLit")), "the shared kit draws the outer proc edge in giltLit's Medallions steel")
+		assert(not (b.lumenGlow and b.lumenGlow:IsShown()) and b.medProc and b.medProc:IsShown(), "the Medallions loop replaces the socket's own glow")
+	end
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
-	assert(not b.proc, "the hide event ends the proc")
+	if frames then
+		assert(not b.proc and not breath:IsPlaying(), "the hide event stops the breath")
+	else
+		assert(not b.proc, "the hide event ends the proc")
+	end
 	assert(not b.chrome.proc and W.SameColor(b.chrome.line[1], K.Tokens.Color("socketEdge")), "ending the proc restores the black outer socket edge")
+	if frames then
+		W.Settle(env)
+		assert(not glow:IsShown() or glow:GetAlpha() == 0, "and the glow goes")
+	end
 	local qr, qg, qb, qa = color(K, ns.Socket.TOKENS.quietRim)
 	assert(W.SameColor(rim(b), qr, qg, qb, qa), "the rim returns to quiet")
+	assert(#env._errors == 0, AB.Errors(env))
+end
+
+-- On Frames, with reduced motion the proc glow holds still instead of breathing.
+if frames then
+	local env, K, ns = new()
+	K.Motion.SetReducedMotion(true)
+	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
+	local b = AB.Button(ns, "bar1", 1)
+	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
+	assert(b.lumenGlow:IsShown() and not b.lumenGlow.breath:IsPlaying(), "a still glow under reduced motion")
+	K.Motion.SetReducedMotion(false)
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
@@ -172,20 +210,21 @@ end
 do
 	local env, K, ns = new()
 	local b = AB.Button(ns, "bar1", 7)
-	assert(b:GetAlpha() == 0.4, "an empty tile stays visible at rest, as a quiet socket")
+	local quiet = frames and 1 or 0.4
+	assert(b:GetAlpha() == quiet, "an empty tile stays visible at rest" .. (frames and "" or ", as a quiet socket"))
 	env.SetCombat(true)
-	assert(b:GetAlpha() == 0.4, "an empty tile stays visible in combat")
+	assert(b:GetAlpha() == quiet, "an empty tile stays visible in combat")
 	assert(#env._blocked == 0, "only alpha changes in combat: " .. table.concat(env._blocked, ", "))
 	K.Widgets.Hover(b, true)
 	W.Settle(env)
-	assert(b:GetAlpha() == 0.4, "hovering keeps the quiet socket visible")
+	assert(b:GetAlpha() == quiet, frames and "hovering still lights it in full" or "hovering keeps the quiet socket visible")
 	K.Widgets.Hover(b, false)
 	W.Settle(env)
 	env.FireEvent("ACTIONBAR_SHOWGRID")
 	assert(b:GetAlpha() == 1, "dragging an action shows it in full")
 	env.FireEvent("ACTIONBAR_HIDEGRID")
 	env.SetCombat(false)
-	assert(b:GetAlpha() == 0.4, "after combat it keeps its quiet opacity")
+	assert(b:GetAlpha() == quiet, "after combat it keeps its " .. (frames and "full" or "quiet") .. " opacity")
 	assert(#env._errors == 0, AB.Errors(env))
 end
 

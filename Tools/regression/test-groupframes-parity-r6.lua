@@ -182,6 +182,16 @@ do
 	assert(current.party.nameSize == 13 and current.party.auraCount == 6 and current.party.buffCount == 3 and current.party.iconSize == 14 and current.party.powerHeight == 3, "off restores the party's own")
 	assert(shown(K, "party.nameSize"), "and their rows")
 	for key, value in pairs({ nameSize = 12, auraCount = 3, buffCount = 3, iconSize = 10, powerHeight = 2 }) do write(env, K, "raid." .. key, value) end
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	write(env, K, "raid.powerHeight", 5)
+	write(env, K, "follow.power", true)
+	assert(f.parts.power and near(f.parts.power.height, 5), "on Frames the party follows the raid's power line")
+	assert(near(H.preview(env, K).partyFrames[1].parts.power.height, 5), "and so does the preview")
+	write(env, K, "follow.power", false)
+	write(env, K, "raid.powerHeight", 2)
+	K.Options.Write("HudStyle", "style", "medallions")
+	env.RunTimers()
 	noErrors(env, K)
 end
 

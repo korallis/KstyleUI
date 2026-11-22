@@ -2,6 +2,18 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.2.13: Frames and guides (2026-11-22)
+
+Added: Frames returns as a HUD style alongside Medallions. Shamans get a Spirit Poles row with Ghost Wolf, and the player's resource row shows class crowns or Lightning Shield charges as storm orbs.
+
+**Upgrading:** If v0.2.12 moved you to Medallions, pick Frames again in `/kstyle setup` or in Options > General > HUD style. Profiles saved on Frames before v0.2.12 stay on Frames if they haven't already moved to Medallions.
+
+RestedXP and Zygor guides move to a card of their own in the top left corner, one screen margin in and down to the party frames' top, the only room on the left that holds a whole step on every screen. The quest log keeps its column on the story rail under the minimap at its own height and no longer stretches to the guide's height. Zygor Guides Viewer, contributed by Baine, still sizes its guide to its steps but never past the card, and a RestedXP step that grows in combat grows the card up, so the whole step stays on the screen. In a raid the guide card shares the corner with the raid frames: close the guide or drag either one away. The RestedXP and Zygor switch is now Guide card under Window Skins, and RestedXP's Align story cards is now Trim the guide card; your choices stay. The guide card moves at your next login, and a place you saved for it in Layout Mode stays.
+
+The threat meter no longer follows the guide card. Follow the guide card leaves Meters > Threat meter, and a threat card that followed the guide goes back to its own place.
+
+Raid and boss warnings now sit in the upper part of the screen on MacBook and other 3:2 screens instead of under the boss frames, keep clear of the boss frames' debuffs and move with the HUD after an Interface size change. With the Cooldowns module off, Apply in `/kstyle setup` fits 16 tracked buff icons over your casts and a Tank's 6 tracked bars beside the threat card in Edit Mode at Interface size 1. On a 3:2 screen the warnings move up the next time you press Apply. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.2.12.1: fixes (2026-11-22)
 
 Medallions unit frames honour their bar textures and the experience bar its settings, and focus and boss aura timers no longer sit under the stack count. Raid tiles and party rows honour Icon zoom, Time left, Name font and Portrait zoom, keep names whole and no longer draw the leader, marker or indicators over heals or names; to make room, party rows show two of your three heal icons on the Default preset and raid tiles show no role icon on their own. Party rows gain a boss debuff slot, nameplates honour the level font, Readable bag headings draw their full title band, and the cast bar texture setting is gone because every cast bar draws the flat fill. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).

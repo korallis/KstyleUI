@@ -1,15 +1,17 @@
--- test-groupframes-indicators-layout.lua: the role icon (KSTY-57: the role pip), the leader icon, the raid marker and the health text never overlap on a group frame, resolved by the renderer's anchor solver at the default, smallest and largest party and raid frame sizes.
+-- test-groupframes-indicators-layout.lua: the role icon (KSTY-57: the role pip), the leader icon, the raid marker and the health text never overlap on a group frame, resolved by the renderer's anchor solver at the default, smallest and largest party and raid frame sizes. test-groupframes-indicators-layout-frames.lua passes "frames" to check the same on Frames at the three sizes.
+local isFrames = ... == "frames"
 local G = dofile("Tools/regression/group_env.lua")
+if isFrames then dofile("Tools/regression/groupframes_frames.lua")(G) end
 local Scene = dofile("Tools/render/scene.lua")
 
 local SCREEN = { width = 2383, height = 1540, uiScale = 768 / 1080 }
 local SIZES = {
 	{ label = "default", party = { width = 259, height = 39 }, raid = { width = 116, height = 36 } },
-	{ label = "smallest", party = { width = 40, height = 16, spacing = 0 }, raid = { width = 40, height = 16, spacing = 0 } },
+	{ label = "smallest", party = { width = 40, height = 16, spacing = not isFrames and 0 or nil }, raid = { width = 40, height = 16, spacing = not isFrames and 0 or nil } },
 	{ label = "largest", party = { width = 400, height = 120 }, raid = { width = 400, height = 120 } },
 }
--- The smallest frames, with no spacing, on the four owner screens: a portrait there leaves no room for the lane.
-for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+-- On Medallions, the smallest frames, with no spacing, on the four owner screens: a portrait there leaves no room for the lane.
+for _, screen in ipairs(isFrames and {} or { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	SIZES[#SIZES + 1] = { label = "smallest at " .. screen[1] .. "x" .. screen[2], screen = screen, party = SIZES[2].party, raid = SIZES[2].raid }
 end
 local INDICATORS = { "role", "leader", "marker", "healthText" }
@@ -84,7 +86,11 @@ for _, size in ipairs(SIZES) do
 		-- hidden and its corner holds your heals.
 		local list = INDICATORS
 		if f.roleInRing then
-			assert(not f.role:IsShown() and (f.parts.tile ~= nil or f.ring:IsShown() and f.roleText:IsShown()), what .. ": the ring carries the role, and a Medallions raid tile draws none")
+			if isFrames then
+				assert(f.ring:IsShown() and f.roleText:IsShown() and not f.role:IsShown(), what .. ": the ring carries the role")
+			else
+				assert(not f.role:IsShown() and (f.parts.tile ~= nil or f.ring:IsShown() and f.roleText:IsShown()), what .. ": the ring carries the role, and a Medallions raid tile draws none")
+			end
 			list = { "leader", "marker", "healthText" }
 		end
 		for _, name in ipairs(list) do
@@ -111,7 +117,7 @@ for _, size in ipairs(SIZES) do
 			end
 		end
 		-- The party's boss debuff slot keeps off the crown, the ready check and the skull, or the badge lays out none.
-		if f.parts.boss then
+		if f.parts.boss and not isFrames then
 			local boss = { Scene.Rect(env, f.highlights:GetAuraSlotFrame("boss")) }
 			for _, name in ipairs({ "leader", "ready", "marker" }) do
 				local r = { Scene.Rect(env, f[name]) }
@@ -126,7 +132,7 @@ for _, size in ipairs(SIZES) do
 				assert(r[1] >= frameRect[1] - 0.01 and r[1] + r[3] <= frameRect[1] + frameRect[3] + 0.01, what .. ": the " .. name .. " " .. describe(r) .. " stays inside the frame's width " .. describe(frameRect))
 			end
 			-- With no spacing, a skull or crown outside its frame lands on the next member (the portrait's crown rises by design).
-			if name == "marker" or name == "leader" and not f.parts.portrait then
+			if not isFrames and (name == "marker" or name == "leader" and not f.parts.portrait) then
 				assert(r[1] >= frameRect[1] - 0.01 and r[2] >= frameRect[2] - 0.01 and r[1] + r[3] <= frameRect[1] + frameRect[3] + 0.01 and r[2] + r[4] <= frameRect[2] + frameRect[4] + 0.01, what .. ": the " .. name .. " " .. describe(r) .. " stays inside its frame " .. describe(frameRect))
 			end
 		end

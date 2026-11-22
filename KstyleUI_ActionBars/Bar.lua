@@ -100,7 +100,7 @@ function ns.NewBar(def)
 			scalable = true,
 		})
 		bar.registered = true
-		bar.groupedWidth = ns.Slab.Grouped(def) and Layouts.ActionBarFootprint(K.Scale.Aspect(), def.element) or nil
+		bar.groupedWidth = ns.Slab.Grouped(def) and Layouts.ActionBarFootprint(K.Scale.Aspect(), def.element, K.HudStyle.Current()) or nil
 		if def.key == "bar3" then bar.finished = Layouts.ThirdBarFinished() end
 		if Widgets.ScaleFactor(header) ~= bar.factor then
 			bar:Layout()
@@ -218,6 +218,8 @@ function Bar:Layout()
 	end
 	self.count = count
 	local _, rows, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), def.element, cfg)
+	local wide, wideGap = cell, spacing
+	cell, spacing = ns.Tray.Grid(def, cell, spacing)
 	local size, gap = Widgets.Snap(header, cell), Widgets.Snap(header, spacing)
 	local width, height = ns.GridSize(count, rows, size, gap)
 	local pitch, drop = size + gap, 0
@@ -226,6 +228,10 @@ function Bar:Layout()
 		pitch = cell + spacing
 		width = Widgets.Snap(header, (columns - 1) * pitch) + size
 		height = Widgets.Snap(header, (used - 1) * pitch) + size
+		if cell ~= wide then
+			local tall = Widgets.Snap(header, (used - 1) * (wide + wideGap)) + Widgets.Snap(header, wide)
+			drop, height = def.key == "bar2" and tall - height or 0, tall
+		end
 	end
 	local cols, used
 	if def.kind == "stance" and (rows or 1) > 1 then
@@ -306,7 +312,7 @@ function Bar:Apply(geometryOnly)
 		self:Register()
 	end
 	self:Layout()
-	local groupedWidth = ns.Slab.Grouped(self.def) and K.Setup.Layouts.ActionBarFootprint(K.Scale.Aspect(), self.def.element) or nil
+	local groupedWidth = ns.Slab.Grouped(self.def) and K.Setup.Layouts.ActionBarFootprint(K.Scale.Aspect(), self.def.element, K.HudStyle.Current()) or nil
 	if self.registered and self.groupedWidth ~= groupedWidth then
 		self:Register()
 		local strip = K.Layout.Element("databars.xp")
@@ -347,7 +353,7 @@ function Bar:Apply(geometryOnly)
 	end
 	if geometryOnly then
 		for _, button in ipairs(self.buttons) do ns.Button.StyleTexts(button) end
-		self:RefreshSlab()
+		self:RefreshSlab(true)
 	else
 		self:UpdateSlots()
 		self:Refresh()
@@ -373,20 +379,36 @@ function Bar:Update()
 	end
 end
 
-function Bar:RefreshSlab()
+local function Steady(bar)
+	local Layout = K.Layout
+	local el = bar.registered and Layout and type(Layout.Element) == "function" and Layout.Element(bar.def.element)
+	local s = el and el.settings
+	if not s then
+		return true, 1, 1
+	end
+	return s.shown ~= "mouseover", s.alphaCombat, s.alphaIdle
+end
+
+function Bar:RefreshSlab(force)
 	local bars = ns.bars
 	if not bars or ns.slabHeld then
 		return
 	end
 	local main = self.def.key == "bar1" and self or bars.bar1
 	local second = self.def.key == "bar2" and self or bars.bar2
-	if main and second then
-		ns.Slab.Refresh()
+	if not (main and second) then
+		return
 	end
+	if ns.Tray.card or K.HudStyle.Current() == "frames" then
+		local mainSteady, mainCombat, mainIdle = Steady(main)
+		local secondSteady, secondCombat, secondIdle = Steady(second)
+		ns.Tray.Refresh(main, second, mainSteady and secondSteady and mainCombat == secondCombat and mainIdle == secondIdle, force)
+	end
+	ns.Slab.Refresh()
 end
 
 function Bar:Refresh()
-	self:RefreshSlab()
+	self:RefreshSlab(true)
 	for _, b in ipairs(self.buttons) do
 		ns.Button.StyleTexts(b)
 		ns.Button.Update(b)

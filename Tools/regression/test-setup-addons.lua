@@ -15,7 +15,7 @@ end
 do
 	local _, K = Boot({1920, 1080}, { { name = "FishingBuddy", loaded = true, enabled = 2 } })
 	assert(K.Setup.Open(true))
-	assert(#K.Setup.window.steps.items == 4, "skip Your addons when only an unsupported addon is installed")
+	assert(#K.Setup.window.steps.items == 5, "skip Your addons when only an unsupported addon is installed")
 end
 
 for _, screen in ipairs({ {1920, 1080}, {2560, 1440}, {5120, 1440}, {3840, 2160} }) do
@@ -29,10 +29,10 @@ for _, screen in ipairs({ {1920, 1080}, {2560, 1440}, {5120, 1440}, {3840, 2160}
 	W.Settle(env)
 	local panel = K.Setup.window
 	assert(panel.pages[1].branded.list:GetText():find("your addons", 1, true), "the welcome includes the detected-addon choice")
-	assert(#panel.steps.items == 5 and panel.steps.items[4].label == "Your addons", "detected addons insert a step after Modules")
+	assert(#panel.steps.items == 6 and panel.steps.items[5].label == "Your addons", "detected addons insert a step after Modules")
 	assert(#K.Setup.Choice().addons == 4, "include only enabled supported addons")
 	assert(K.Setup.Choice().modules.Skins, "Questie must not disable the whole Skins module")
-	assert(K.Setup.Go(4))
+	assert(K.Setup.Go(5))
 	W.Settle(env)
 	assert(Item(panel, "RXPGuides", "Skins.restedXP.enabled"):GetValue(), "Skin it starts ticked")
 	assert(Item(panel, "Questie", "Skins.questie.enabled"):GetValue(), "new registry addon skins appear automatically and start ticked")
@@ -71,7 +71,7 @@ for _, screen in ipairs({ {1920, 1080}, {2560, 1440}, {5120, 1440}, {3840, 2160}
 	tracker:SetValue("both")
 	assert(K.Store.Export() == before and writes == 0, "editing setup only changes its pending choices")
 	assert(panel.toggles.ActionBars:GetValue(), "same-job edits also update Modules")
-	assert(K.Setup.Go(5) and K.Setup.Apply(K.Setup.Choice()))
+	assert(K.Setup.Go(6) and K.Setup.Apply(K.Setup.Choice()))
 	assert(not K.Options.Read("Skins", "restedXP.enabled") and not K.Options.Read("Skins", "questie.enabled"), "apply every skin choice")
 	assert(K.Options.Read("ActionBars", "enabled") and K.Options.Read("DataBars", "micro.enabled") and not K.Options.Read("DataBars", "bags.enabled"), "apply bars and each menu independently")
 	assert(K.Options.Read("Meters", "damage.shown") and K.Options.Read("Integrations", "questTracker") == "both", "addon choices win over the layout preset")
@@ -87,7 +87,7 @@ for _, screen in ipairs({ {1920, 1080}, {2560, 1440}, {5120, 1440}, {3840, 2160}
 	assert(K.Store.Export() == before and writes == 0, "Keep my UI leaves every pending addon choice untouched")
 	Fake.Install(env, {})
 	assert(K.Setup.Open())
-	assert(#panel.steps.items == 4 and panel.pages[4] == panel.summaryPage, "reopening skips the addons step when the live list is empty")
+	assert(#panel.steps.items == 5 and panel.pages[5] == panel.summaryPage, "reopening skips the addons step when the live list is empty")
 	assert(not panel.pages[1].branded.list:GetText():find("your addons", 1, true), "the welcome updates when no addons remain")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 	print("setup addons " .. screen[1] .. "x" .. screen[2] .. ": defaults, detection, choices, reopen, Keep")
@@ -120,7 +120,7 @@ end
 do
 	local _, K = W.New({ setup = function(env) Fake.Install(env, { { name = "RXPGuides", loaded = true, enabled = 2 } }) end })
 	assert(K.Setup.Open(true))
-	assert(#K.Setup.window.steps.items == 4, "skip registry-only addons when Skins is not loaded")
+	assert(#K.Setup.window.steps.items == 5, "skip registry-only addons when Skins is not loaded")
 end
 
 print("setup addons ok")

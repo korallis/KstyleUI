@@ -44,14 +44,13 @@ do
 	within(assert(find(questing, "QUESTS"), "the quests' caption draws"), column, "the quests' caption")
 	within(assert(find(questing, "[8] Break a Few Eggs"), "the second quest draws, with Forever's level"), column, "the second quest")
 	assert(not find(questing, "RestedXP Guides v4.11.35") and not find(questing, "Speedrun Guide 1-22"), "the guide's version footer and its group line, which repeat the head, are hushed")
-	within(assert(find(questing, "2/10 Kul Tiras Sailor slain"), "the guide's active step draws"), slot, "the guide's active step")
 	assert(find(questing, "DAMAGE  HEALING").rect[2] >= slot.top + slot.height, "the damage meter's cap sits under the slot")
 	assert(math.abs(column.top - slot.top) < 0.01 and math.abs(slot.left - (column.left + column.width) - 16 * 16 / 19) < 0.02, "the quests' column stands a rail gap left of the slot, at its top")
 end
 
 -- Two rails. The left holds the party and chat on one left edge, the party over chat; since KSTY-57 the party stands
--- bare, its rows no wider than chat. On the right the guide's card holds the story slot and the quest card wears its own
--- glass in the column on its edge and width; neither card's words leave it.
+-- bare, its rows no wider than chat, and the guide's card stands over the party on the same edge. On the right the quest
+-- card wears its own glass in the column on its edge and width; neither card's words leave it.
 for _, scene in ipairs({ questing, combat }) do
 	local seen = {}
 	for _, card in ipairs(scene.rail) do
@@ -65,7 +64,8 @@ for _, scene in ipairs({ questing, combat }) do
 	assert(chat.top >= party.top + party.height - 0.5, scene.state .. ": chat starts under the party")
 	assert(math.abs(quests.left - column.left) <= 0.5 and math.abs(quests.width - column.width) <= 1, scene.state .. ": the quest card is on the column's edge and width, got " .. quests.left .. " by " .. quests.width)
 	assert(quests.top >= column.top - 0.75 and quests.top + quests.height <= column.top + column.height + 0.75, scene.state .. ": the quest card stays inside the column")
-	assert(math.abs(guide.left - slot.left + 8 * 16 / 19) <= 0.75 and guide.top >= slot.top - 0.75 and guide.top + guide.height <= slot.top + slot.height + 0.75, scene.state .. ": the guide stands in the story slot, eight units in toward the quest card, got " .. guide.left .. ", " .. guide.top .. ", " .. guide.height .. " for " .. slot.left .. ", " .. slot.top .. ", " .. slot.height)
+	if scene == questing then within(assert(find(scene, "2/10 Kul Tiras Sailor slain"), "the guide's active step draws"), guide, "the guide's active step") end
+	assert(math.abs(guide.left - party.left) <= 0.75 and guide.top + guide.height <= party.top, scene.state .. ": the guide stands over the party on the left rail's edge, got " .. guide.left .. ", " .. guide.top .. ", " .. guide.height .. " for the party at " .. party.left .. ", " .. party.top)
 	for _, text in ipairs({ "QUESTS", "Bloodtalon Scythemaw" }) do
 		local item = assert(find(scene, text), scene.state .. ": " .. text .. " draws")
 		within(item, quests, scene.state .. ": '" .. text .. "'")

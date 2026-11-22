@@ -121,7 +121,7 @@ A module that fades or shows and hides its own frame, such as a cast bar, a unit
 
 Every element has these settings, saved per profile in `KstyleUIDB.layouts[profile][key]`. Only the fields that differ from the defaults are saved, with one exception: a place is saved whole. Once any of `anchor`, `x` and `y` differs from the default, all three are saved, so a layout class (`Scale.Aspect()`, whose places can differ) never moves an element the player placed; when all three are back at the default, none is saved and the element follows its class again. Store migration 30 made older partial places whole against the defaults they were saved against.
 
-The defaults themselves are layered: the element's registered position, then the layout class's place (`Setup.Layouts.Aspect`), then the Medallions place and its place for the class (the 21:9 and 32:9 classes have their own, where the slab is one row). A class change (a display change or the arrangement, out of combat) resolves them again and fires `LayoutChanged(key, "scale")` for elements whose resolved geometry changed. Modules already handling `ScaleChanged` can skip that geometry notification.
+The defaults themselves are layered: the element's registered position, then the layout class's place (`Setup.Layouts.Aspect`), then, under Medallions, the Medallions place and its place for the class (the 21:9 and 32:9 classes have their own, where the slab is one row); Frames keeps the class's place. A class change (a display change or the arrangement, out of combat) resolves them again and fires `LayoutChanged(key, "scale")` for elements whose resolved geometry changed. Modules already handling `ScaleChanged` can skip that geometry notification.
 
 | Field | Values | Default |
 | --- | --- | --- |
@@ -245,7 +245,7 @@ Party-only drivers test raid first because `group:party` also matches raids. The
 | Guides | An accent line on each axis while a drag is snapped. |
 | Grid | Lines every `gridSize` units from the centre, in the `BACKGROUND` strata, while `grid` is on. The centre lines are the accent. |
 | Toolbar | A glass panel in the `FULLSCREEN_DIALOG` strata with the Grid and Snap switches and the Undo, Redo, Reset and Done buttons. It registers as the element `Layout.Toolbar` (scalable, no plate) and moves by its title bar. With Elements > Fade the toolbar until pointed at, it rests at 25%, shows when pointed at and hides while Shift is held. |
-| Story slot | An accent outline under the plates, at the story slot of the layout last applied (the `preset` setting): `Setup.Layouts.Slot(preset)`, the right rail under the map and the aura rows. It shows the slot's label, **Story rail**, and a one-line hint: Apply places the quest tracker there through Edit Mode, and Window skins put the RestedXP guide above it. The outline takes no mouse. `Mode.Slot()` returns it. |
+| Story slot | An accent outline under the plates, at the story slot of the layout last applied (the `preset` setting): `Setup.Layouts.Slot(preset)`, the right rail under the map and the aura rows. It shows the slot's label, **Story rail**, and a one-line hint: Apply places the quest tracker beside this space through Edit Mode. The outline takes no mouse. `Mode.Slot()` returns it. |
 
 | Input | Effect |
 | --- | --- |

@@ -1,15 +1,15 @@
 -- _lumen.lua: the Lumen Rails HUD in the two states the mockup boards draw (handoff/arena2/parent: hud-questing.png
 -- and hud-combat.png), on top of hud.lua. Every module renders where the Lumen layout puts it, with the module
 -- settings Layout > Apply writes for the layout (Setup.Layouts.Settings): bar 1 alone, the pet and stance sockets in
--- two rows, the threat card in Tank only. The story slot (Setup.Layouts.Slot) holds the RestedXP guide's card where
--- the skin's story rail puts it, and the quests stand in their own column beside it, the tracker at the anchor Apply
--- writes into the "KstyleUI <layout>" Edit Mode layout (Hud.StoryTracker), with RestedXP loaded.
+-- two rows, the threat card in Tank only. The quests stand in their own column beside the story slot
+-- (Setup.Layouts.Slot), the tracker at the anchor Apply writes into the "KstyleUI <layout>" Edit Mode layout
+-- (Hud.StoryTracker), and the RestedXP guide's card in the top left corner, with RestedXP loaded.
 --
 --   local Lumen = dofile("Tools/render/scenes/_lumen.lua")
 --   local scene = Lumen.Build("questing")     -- or "combat"; Lumen.Build(state, { layout = "Tank" })
 --
--- questing: out of combat with no target, three quests and the guide in the story slot, a party of three, the last
--- fight's meter. The guide's step list is folded on the rail, by RestedXP's own rule, so the rail reads path, quests.
+-- questing: out of combat with no target, three quests, the guide in its corner, a party of three, the last fight's
+-- meter. The guide's step list is folded in its card, by RestedXP's own rule, so the card reads the path.
 -- combat: in combat with a party of five, the boss card, and the boss as the target, casting; the combat calm has
 -- faded the slow cards (chat, the lens, the readout and menu, the XP line, the guide and the tracker) to 30%; the boss
 -- emote that announces the cast shows on the encounter warnings lane above the target (_encounter.lua).
@@ -66,7 +66,7 @@ Lumen.BOSS = {
 }
 
 -- Preset(layout) -> the layout's module settings as saved sections ({ [module] = { nested } }), its story slot and the
--- quest card's column beside the guide's card
+-- quest card's column beside it
 -- in screen units ({ left, top, width, height }, y down from the top), from the addon's own Setup.Layouts. The scenes
 -- render at the Interface size KstyleUI ships, where the root is Layouts.HEIGHT units tall on the screen's 1080.
 function Lumen.Preset(layout)
@@ -76,10 +76,14 @@ function Lumen.Preset(layout)
 	local settings = Hud.PresetSettings(layout)
 	local rootHeight = Layouts.HEIGHT
 	local width = K.Scale.CanvasWidth(Common.SCREEN.width, Common.SCREEN.height)
+	if Hud.Style() then K.Options.Write("HudStyle", "style", Hud.Style():lower()) end
 	K.Store.Module("Minimap").enabled = true
 	K.Store.Module("Minimap").frame = os.getenv("RENDER_MINIMAP_FRAME")
 	local story = Layouts.Story(layout, rootHeight, true, rootHeight * width / Common.SCREEN.height)
-	local slot = Layouts.MinimapCrest() and story.guide or Layouts.Slot(layout, rootHeight)
+	local slot = Layouts.Slot(layout, rootHeight)
+	if Layouts.MinimapCrest() then
+		slot.y, slot.height = story.quests.y, story.slot
+	end
 	local column = story.quests
 	local k = HEIGHT / rootHeight
 	local origin = (Common.SCREEN.width - width) / 2 / Common.SCREEN.height * HEIGHT
@@ -202,8 +206,8 @@ function Lumen.Build(state, opts)
 	end
 	local scenes, log = {}, {}
 	base.trackerAnchor = Hud.StoryTracker(layout, true)
-	-- RestedXP is loaded, so the guide's card holds the story slot and the quests stand in their own column beside
-	-- it (KSTY-33): the two cards render in separate environments and need nothing from each other.
+	-- RestedXP is loaded, so the guide's card holds the top left corner and the quests stand in their own column beside
+	-- the story slot (KSTY-33): the two cards render in separate environments and need nothing from each other.
 	base.withGuide = true
 	local names = { "chat", "minimap", "auras", "databars", "tracker", "groupframes", "meters", "unitframes", "actionbars", "cooldowns" }
 	if state == "combat" then
@@ -218,6 +222,11 @@ function Lumen.Build(state, opts)
 			local _, kit = D.New({ enable = false })
 			base.dataBar = D.CoreEnv.DeepCopy(kit.Store.Defaults("DataBars"))
 			base.dataBar.enabled = true
+			-- The copy saves every default, so a Frames profile keeps the look Frames writes over them.
+			for key, value in pairs(Hud.Style() == "Frames" and kit.HudStyle.FRAMES_LOOK.DataBars or {}) do
+				local section, field = key:match("^(%w+)%.(%w+)$")
+				base.dataBar[section][field] = value
+			end
 		end
 	end
 	local built, at = {}, {}
@@ -227,6 +236,50 @@ function Lumen.Build(state, opts)
 		built[name] = { scene = scene, ns = ns, extra = extra }
 		at[name] = #scenes
 	end
+	-- The minimap's corners and the data bars keep clear of the Layout elements beside them, which the game finds in
+	-- its one Layout registry; each module builds in its own environment here, so a module is drawn again with every
+	-- module's elements in reach when they change its pieces.
+	Hud.layoutElements = {}
+	for _, name in ipairs(names) do
+		local env = Hud.envs[built[name].scene]
+		local Layout = env and env.KstyleUI and env.KstyleUI.Layout
+		if Layout then
+			for _, element in ipairs(env.KstyleUI.Setup.Layouts.ELEMENTS) do
+				local el = Layout.Element(element.key)
+				if el and el.frame and not Hud.layoutElements[element.key] then
+					Hud.layoutElements[element.key] = { el = el, live = Layout.Live(element.key) }
+				end
+			end
+		end
+	end
+	for _, name in ipairs(names) do
+		local env = Hud.envs[built[name].scene]
+		local handles = env and env._ornamentHandles or {}
+		local function placed()
+			local out = {}
+			for _, handle in ipairs(handles) do
+				if handle.neighbours then
+					handle:Restyle()
+					for i = 1, handle.used do
+						local t = handle.textures[i]
+						out[#out + 1] = table.concat({ tostring(t:GetTexture()), tostring(t:GetLeft()), tostring(t:GetTop()), tostring(t:GetWidth()) }, " ")
+					end
+				end
+			end
+			return table.concat(out, "\n")
+		end
+		local before = placed()
+		if before ~= "" then
+			Hud.ShareLayout(env)
+			if placed() ~= before then
+				local scene, ns, extra = Hud.Module(name, base)
+				scenes[at[name]] = scene
+				built[name] = { scene = scene, ns = ns, extra = extra }
+				log[#log + 1] = "ornaments: " .. name .. " is drawn again with every module's Layout elements in reach, as the game's one Layout registry holds them"
+			end
+		end
+	end
+	Hud.layoutElements = nil
 	-- opts.seat(built, plates, rect) -> the fixture plates seated clear of a card the HUD drew over them, or nil to keep
 	-- them; rect(name, object) is Scene.Rect in that module's environment. The plates are then drawn again.
 	if opts.seat and built.nameplates and base.plates then
@@ -269,7 +322,7 @@ function Lumen.Build(state, opts)
 	merged.layout = layout
 	merged.log[#merged.log + 1] = "lumen: the " .. layout .. " layout " .. (state == "combat" and "in combat, the combat calm on" or "out of combat")
 		.. "; the story slot (" .. math.floor(slot.left) .. ", " .. math.floor(slot.top) .. ", " .. math.floor(slot.width) .. " by "
-		.. math.floor(slot.height) .. ") holds the guide's card where the skin's rail puts it, and the quests stand in their own column beside it"
+		.. math.floor(slot.height) .. ") stays free, the quests stand in their own column beside it and the guide's card in the top left corner"
 	for _, line in ipairs(log) do
 		merged.log[#merged.log + 1] = line
 	end

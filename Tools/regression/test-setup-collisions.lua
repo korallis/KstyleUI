@@ -20,7 +20,7 @@ local function apart(a, c)
 		return false
 	end
 	pair = { [a] = true, [c] = true }
-	if pair["groupframes.party"] and pair["groupframes.raid"] then
+	if pair["groupframes.raid"] and (pair["groupframes.party"] or pair["skins.guide"]) then
 		return false
 	end
 	if Layouts.Dock(a) == c or Layouts.Dock(c) == a then
@@ -33,17 +33,17 @@ local function overlap(r, s)
 	return r[1] < s[3] and s[1] < r[3] and r[2] < s[4] and s[2] < r[4]
 end
 
--- The story slot (the quest card, under the RestedXP guide when it is loaded) is a card too: on the right rail under the
--- map and the aura rows, it overlaps no element, and the damage card and the readout stand clear under it.
+-- The story slot stays free on the right rail under the map and the aura rows: it overlaps no element, and the damage
+-- card and the readout stand clear under it.
 local function Story(name, width)
 	local slot = assert(Layouts.Slot(name), name .. " has a story slot")
 	return { Layouts.Rect(slot, slot, width, HEIGHT) }
 end
 
--- The quest card's column beside the RestedXP guide's card (KSTY-33): with RestedXP loaded the guide's card holds the
--- slot and the quests stand a rail gap to its left, so their column must keep clear of everything too.
-local function Quests(name, width)
-	local column = Layouts.Story(name, HEIGHT, true, width).quests
+-- The quest card's column a rail gap left of the story slot (KSTY-33) and the guide card in the top left corner above
+-- the party frames keep clear of everything too; the guide shares its corner with the raid frames.
+local function Quests(name, width, part)
+	local column = Layouts.Story(name, HEIGHT, true, width)[part or "quests"]
 	return { Layouts.Rect(column, column, width, HEIGHT) }
 end
 
@@ -239,6 +239,20 @@ for _, screen in ipairs({ { 2383, 1540 }, { 2642, 1651 }, { 1366, 768 } }) do
 		assert(math.abs(with - without) < 1e-9, label .. ": the second data bar shrinks the HUD from " .. without .. " to " .. with)
 		assert(without >= K.Scale.DEFAULT_USER_SCALE, label .. ": caps at " .. without .. ", under the shipped size")
 	end
+end
+
+-- The boss cards hang their debuff row left of the column (the aura room the layouts reserve), so Fits counts it: the
+-- tooltip anchor 40 units left of the cards meets the row; clear of the row it fits.
+do
+	local positions = Layouts.Positions("DPS", "medallions", "16:9")
+	local base, boss = Layouts.Element("unitframes.boss"), positions["unitframes.boss"]
+	local cards = Layouts.Style("DPS", "unitframes.boss").width
+	local enabled = Layouts.Enabled("DPS")
+	enabled["consumables.bar"] = false
+	positions["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = boss.x - cards - 40, y = boss.y + 100 }
+	assert(not Layouts.Fits("DPS", 1920, 1080, K.Scale.DEFAULT_USER_SCALE, enabled, positions), "an element in the boss debuff row's room collides")
+	positions["tooltips.anchor"].x = boss.x - cards - (base.reserve[1] - base.width) - 4
+	assert(Layouts.Fits("DPS", 1920, 1080, K.Scale.DEFAULT_USER_SCALE, enabled, positions), "clear of the debuff row it fits")
 end
 
 -- The boss frames tighten the Healer cap at 1080p; compare enabled sets on either side of that boundary.
@@ -472,6 +486,8 @@ for _, name in ipairs(Layouts.Names()) do
 		keys[#keys + 1] = "story"
 		rects["story.quests"] = Quests(name, width)
 		keys[#keys + 1] = "story.quests"
+		rects["skins.guide"] = Quests(name, width, "guide")
+		keys[#keys + 1] = "skins.guide"
 		local story = rects.story
 		assert(story[1] >= -1e-6 and story[2] >= -1e-6 and story[3] <= width + 1e-6 and story[4] <= HEIGHT + 1e-6, label .. ": the story slot is on screen")
 		for _, key in ipairs({ "meters.damage", "databars.strip" }) do

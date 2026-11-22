@@ -1,4 +1,4 @@
--- test-skins-restedxp-rail.lua: the RestedXP guide hangs from the top of its own Layout element, the story slot, on the rail's edge and width as one card (cap, steps, route row), with the quests in a column of their own beside it, RestedXP's window folded to its floor and its list folded by RestedXP's own rule; it follows the steps out of combat, comes back on entering the world, lets a player's drag win, never reaches into the quests, and keeps the rail's placement out of RestedXP's saved settings.
+-- test-skins-restedxp-rail.lua: the RestedXP guide stands on the foot of its own Layout element, the card in the top left corner above the party frames, with room above to grow into, on its edge and width as one card (cap, steps, route row), with the quests in their column on the story rail, RestedXP's window folded to its floor and its list folded by RestedXP's own rule; it follows the steps out of combat, comes back on entering the world, lets a player's drag win, never reaches into the quests, and keeps the rail's placement out of RestedXP's saved settings.
 local S = dofile("Tools/regression/skins_env.lua")
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
@@ -83,20 +83,21 @@ do
 	env.RunTimers()
 	local story = K.Setup.Story("DPS", true)
 	local rw, rh = K.Layout.RootSize()
-	local slot = K.Setup.Layouts.Slot("DPS", rh)
-	local sl, sb, sr, st = K.Setup.Layouts.Rect(slot, slot, rw, rh)
+	local corner = K.Setup.Layouts.Story("DPS", rh, true, rw).guide
+	local sl, sb, sr, st = K.Setup.Layouts.Rect(corner, corner, rw, rh)
 	local band = story.guide
 	local px = K.Scale.Pixel(1) + 0.01
-	assert(near(band.left, sl, px) and near(band.right, sr, px) and near(band.top, st - K.Setup.Layouts.GAP, px) and near(band.bottom, sb, px), "the guide's element is the story slot, a rail gap under its top")
+	assert(near(band.left, sl, px) and near(band.right, sr, px) and near(band.top, st, px) and near(band.bottom, sb, px), "the guide's element is the top left corner card")
+	assert(near(sl, K.Tokens.Size("screenMargin"), px) and near(st, rh - K.Tokens.Size("screenMargin"), px), "one screen margin in from the top left corner")
 	assert(K.Layout.Get("skins.guide") ~= nil, "a Layout element of its own, with its own mover")
-	assert(near(story.tracker.right, band.left - 16, px) and near(story.tracker.top, band.top, px), "the quests' column stands a rail gap to its left, at the same top")
-	assert(ns.RestedXP.Rail.Placed(), "the guide is placed in the story rail")
+	assert(story.tracker.left > rw / 2, "the quests' column stays on the story rail at the right")
+	assert(ns.RestedXP.Rail.Placed(), "the guide is placed in its card")
 	local point = { f:GetPoint(1) }
 	assert(point[1] == "TOPLEFT" and point[2] == env.UIParent and point[3] == "BOTTOMLEFT", "from the screen's bottom left, so a UI scale change keeps it")
 	local card = Rect(K, Glass(K, f))
 	assert(near(card.left, band.left, 0.01) and near(card.right, band.right, 0.01), "the card's glass shares the rail's left edge and width to the pixel, got " .. card.left .. " to " .. card.right .. " for " .. band.left .. " to " .. band.right)
-	assert(near(card.top, band.top, 0.01), "the card hangs from the slot's top, to the pixel, got " .. card.top .. " for " .. band.top)
-	assert(card.bottom >= band.bottom - 0.5, "and ends inside the slot, got " .. card.bottom .. " for " .. band.bottom)
+	local foot = ns.RestedXP.Rail.Band().bottom
+	assert(near(card.bottom, foot, K.Scale.Pixel(1) + 0.01) and card.top <= band.top + 0.5, "the card stands on its element's foot with the room above it to grow into, got " .. card.bottom .. " to " .. card.top .. " for " .. foot .. " to " .. band.top)
 	local path = ns.RestedXP.Chrome.Path(f)
 	local cap = Rect(K, path.cap)
 	local steps = Rect(K, f.CurrentStepFrame)
@@ -120,11 +121,11 @@ do
 	rxp.SetStep(3, 2)
 	env.RunTimers()
 	card = Rect(K, Glass(K, f))
-	assert(near(card.top, band.top) and card.bottom >= band.bottom - 0.5, "more steps grow downward inside the slot, got " .. card.top .. " to " .. card.bottom)
+	assert(near(card.bottom, foot, K.Scale.Pixel(1) + 0.01) and card.top <= band.top + 0.5, "more steps grow upward inside the element, got " .. card.bottom .. " to " .. card.top)
 	Clean(env, K, rxp)
 end
 
--- Every layout: the card hangs from that layout's slot top, on its edges, and ends inside it (the Captain's rule,
+-- Every layout: the card stands on that layout's element foot, on its edges, inside it (the Captain's rule,
 -- 2026-11-10: nothing leaves the slot in any preset).
 
 for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
@@ -135,8 +136,8 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 	assert(K.Layout.Setting("preset") == preset and ns.RestedXP.Rail.Placed(), preset .. ": the rail places the guide for the layout")
 	local slot = K.Setup.Story(preset, true).guide
 	local card = Rect(K, Glass(K, f))
-	assert(near(card.top, slot.top, 0.01) and near(card.left, slot.left, 0.01) and near(card.right, slot.right, 0.01), preset .. ": the card is on the slot's top and edges, got " .. card.left .. " to " .. card.right .. " at " .. card.top)
-	assert(card.bottom >= slot.bottom - 0.5, preset .. ": and ends inside the slot, got " .. card.bottom .. " for " .. slot.bottom)
+	assert(near(card.bottom, ns.RestedXP.Rail.Band().bottom, K.Scale.Pixel(1) + 0.01) and near(card.left, slot.left, 0.01) and near(card.right, slot.right, 0.01), preset .. ": the card is on the element's foot and edges, got " .. card.left .. " to " .. card.right .. " at " .. card.bottom)
+	assert(card.top <= slot.top + 0.5, preset .. ": and stays inside the element, got " .. card.top .. " for " .. slot.top)
 	Clean(env, K, rxp)
 end
 
@@ -148,10 +149,10 @@ do
 	local f = rxp.RXPFrame
 	rxp.SetStep(1)
 	env.RunTimers()
-	local band = K.Setup.Story("DPS", true).guide
 	rxp.SetStep(3, 2)
 	env.RunTimers()
-	assert(near(Rect(K, Glass(K, f)).top, band.top), "more steps keep the card's top on the slot's top")
+	local foot = ns.RestedXP.Rail.Band().bottom
+	assert(near(Rect(K, Glass(K, f)).bottom, foot, K.Scale.Pixel(1) + 0.01), "more steps keep the card on the element's foot")
 	assert(Rect(K, f.CurrentStepFrame).bottom > Rect(K, f.GuideName).top, "and stack over the route row")
 	f:ClearAllPoints()
 	f:SetPoint("LEFT", env.UIParent, "LEFT", 0, 35)
@@ -161,7 +162,7 @@ do
 	assert(select(1, f:GetPoint(1)) == "LEFT", "nothing moves in combat")
 	env.SetCombat(false)
 	env.RunTimers()
-	assert(select(1, f:GetPoint(1)) == "TOPLEFT" and near(Rect(K, Glass(K, f)).top, band.top), "after combat, entering the world's re-place runs")
+	assert(select(1, f:GetPoint(1)) == "TOPLEFT" and near(Rect(K, Glass(K, f)).bottom, foot, K.Scale.Pixel(1) + 0.01), "after combat, entering the world's re-place runs")
 	assert(ns.RestedXP.Rail.Placed(), "and the guide is placed")
 	Clean(env, K, rxp)
 end
@@ -177,8 +178,8 @@ do
 	f:SetPoint("CENTER", env.UIParent, "CENTER", 120, 0)
 	f:GetScript("OnMouseUp")(f, "LeftButton")
 	env.RunTimers()
-	assert(ns.Skins.Setting("restedXP", "rail") == false, "a drag turns the story rail off")
-	assert(S.W.CoreEnv.Printed(env, "Story rail"), "and tells the player how to turn it back on")
+	assert(ns.Skins.Setting("restedXP", "rail") == false, "a drag turns the guide card off")
+	assert(S.W.CoreEnv.Printed(env, "Guide card"), "and tells the player how to turn it back on")
 	env.FireEvent("PLAYER_ENTERING_WORLD")
 	env.RunTimers()
 	assert(select(1, f:GetPoint(1)) == "CENTER", "and the guide stays where the player put it")

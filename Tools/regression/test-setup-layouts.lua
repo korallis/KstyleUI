@@ -346,7 +346,7 @@ for _, name in ipairs(names) do
 		assert(head.left == chat.left, label .. ": the left rail's head and chat share the left edge")
 		-- Apply places the quest tracker itself, so the hint names Apply and Edit Mode (round 3: Opus #4, the carry
 		-- list); a refusal gets Try again on the setup summary, so the hint gives no manual move (round 4, Muse #4).
-		assert(slot.hint:find("Apply places the quest tracker here", 1, true) and slot.hint:find("Edit Mode", 1, true), name .. ": the slot hint says Apply places the tracker: " .. slot.hint)
+		assert(slot.hint:find("Apply places the quest tracker beside this space", 1, true) and slot.hint:find("Edit Mode", 1, true), name .. ": the slot hint says Apply places the tracker: " .. slot.hint)
 		assert(not slot.hint:find("yourself", 1, true), name .. ": and gives no drag instruction")
 		assert(slot.raid == nil and slot.raidHint == nil, label .. ": no raid card reaches the right rail's story slot")
 

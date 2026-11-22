@@ -153,7 +153,7 @@ local function FrameGeometry(emitter, cfg)
 	end
 	local point = cfg.framePoint
 	local y = point == "TOP" and size * TOP_START or 0
-	if cfg.clearLanes and emitter.kind == "unit" and emitter.unit == "target" then
+	if cfg.clearLanes and emitter.kind == "unit" and emitter.unit == "target" and K.HudStyle.Current() == "medallions" then
 		point = "TOP"
 		local pop = math.max(POP_FROM, CRIT_POP_FROM, 1)
 		local fall = cfg.style == "arc" and travel * (ARC_FALL - ARC_RISE) or 0

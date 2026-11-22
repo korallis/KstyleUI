@@ -102,6 +102,19 @@ local function run(case)
 		same("Medallions restyle " .. i)
 	end
 	blizzardKept(env, label .. ", Medallions restyle", blizzard)
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	local frames = shape(plate)
+	for i = 1, 3 do
+		ns.Plates.RestyleAll()
+		K.Callbacks.Fire("ThemeChanged")
+		env.RunTimers()
+		assert(shape(plate) == frames, label .. ", Frames restyle " .. i .. ": the plate moved\n  was " .. frames .. "\n  now " .. shape(plate))
+	end
+	blizzardKept(env, label .. ", HUD style frames", blizzard)
+	K.Options.Write("HudStyle", "style", "medallions")
+	env.RunTimers()
+	same("back to Medallions")
 
 	for i = 1, 3 do
 		K.Callbacks.Fire("ThemeChanged")

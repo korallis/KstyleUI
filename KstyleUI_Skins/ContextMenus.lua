@@ -25,7 +25,7 @@ local function Writable(region)
 end
 
 local function Wanted()
-	return enabled and not InCombatLockdown()
+	return enabled and not InCombatLockdown() and (Widgets.Medallions() or Widgets.Setting("cardMaterial") ~= "Glass")
 end
 
 local function CloseMenus()

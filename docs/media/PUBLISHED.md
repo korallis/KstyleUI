@@ -1,55 +1,21 @@
 # Published picture inventory
 
-Before: `de9665838ee35b384ad4730444b7dd6075eac145`. After: this branch.
-All filenames below are relative to their group. The same master description generates README, CurseForge and Wago.
+The same master description ([docs/store/description.md](../store/description.md)) generates the README, CurseForge and Wago pages. Every picture on them is listed here. Filenames are relative to `docs/media/`.
 
-| Group / picture | Before | After / pipeline input |
+| Picture | What it is | Made by |
 | --- | --- | --- |
-| readme / crop_meter.jpg | AI mockup scenery | Test render over real forest plate |
-| readme / crop_nameplates.jpg | AI mockup scenery | Test render over real forest plate |
-| readme / crop_rail.jpg | AI mockup scenery | Test render over real forest plate |
-| readme / crop_unitframes.jpg | AI mockup scenery | Test render over real forest plate |
-| readme / frame_raid.jpg | No backdrop (flat gallery render) | Test render over real forest-mac plate |
-| readme / frame_setup.jpg | No backdrop (flat gallery render) | Test render over real forest-mac plate |
-| readme / frame_skins.jpg | No backdrop (flat gallery render) | Test render over real forest-mac plate |
-| readme / game_medallions_16x9.jpg | Real in-game capture (preserved) | Real in-game screenshot (preserved) |
-| readme / game_medallions_cast.gif | Real in-game capture (preserved) | Real in-game screenshot (preserved) |
-| readme / game_medallions_closeup.jpg | Real in-game capture (preserved) | Real in-game screenshot (preserved) |
-| readme / game_medallions_hero.jpg | Real in-game capture (preserved) | Real in-game screenshot (preserved) |
-| readme / game_medallions_interrupt.gif | Real in-game capture (preserved) | Real in-game screenshot (preserved) |
-| readme / game_medallions_target.gif | Real in-game capture (preserved) | Real in-game screenshot (preserved) |
-| readme / hud_1080.jpg | AI mockup scenery | Test render over real forest plate |
-| readme / ultrawide_centred.jpg | AI mockup scenery | Test render over real forest plate |
-| readme / ultrawide_spread.jpg | AI mockup scenery | Test render over real forest plate |
-| marketing / banner.jpg | Real Medallions capture, darkened and branded | Same real capture; source label added |
-| marketing / header-medallions.jpg | No backdrop; procedural logo, gradient and text | Same; no scene depicted |
-| marketing / header-every-screen.jpg | No backdrop; procedural logo, gradient and text | Same; no scene depicted |
-| marketing / header-set-up.jpg | No backdrop; procedural logo, gradient and text | Same; no scene depicted |
-| marketing / header-rest-of-your-ui.jpg | No backdrop; procedural logo, gradient and text | Same; no scene depicted |
-| marketing / card-medallions.jpg | Real in-game capture (preserved) via game_medallions_closeup.jpg | Real in-game screenshot (preserved) via game_medallions_closeup.jpg |
-| marketing / card-pixel-perfect.jpg | AI mockup scenery via hud_1080.jpg | Test render over real forest plate via hud_1080.jpg |
-| marketing / card-ultrawide.jpg | AI mockup scenery via ultrawide_spread.jpg | Test render over real forest plate via ultrawide_spread.jpg |
-| marketing / card-ready-in-minutes.jpg | No backdrop (flat gallery render) via frame_setup.jpg | Test render over real forest-mac plate via frame_setup.jpg |
-| marketing / card-full-kit.jpg | AI mockup scenery via crop_meter.jpg | Test render over real forest plate via crop_meter.jpg |
-| marketing / card-nothing-extra.jpg | No backdrop (flat gallery render) via frame_skins.jpg | Test render over real forest-mac plate via frame_skins.jpg |
-| marketing / show_crop_unitframes.jpg | AI mockup scenery via crop_unitframes.jpg | Test render over real forest plate via crop_unitframes.jpg |
-| marketing / show_frame_setup.jpg | No backdrop (flat gallery render) via frame_setup.jpg | Test render over real forest-mac plate via frame_setup.jpg |
-| marketing / show_frame_raid.jpg | No backdrop (flat gallery render) via frame_raid.jpg | Test render over real forest-mac plate via frame_raid.jpg |
-| marketing / show_crop_nameplates.jpg | AI mockup scenery via crop_nameplates.jpg | Test render over real forest plate via crop_nameplates.jpg |
-| marketing / show_crop_meter.jpg | AI mockup scenery via crop_meter.jpg | Test render over real forest plate via crop_meter.jpg |
-| marketing / show_crop_rail.jpg | AI mockup scenery via crop_rail.jpg | Test render over real forest plate via crop_rail.jpg |
-| marketing / show_frame_skins.jpg | No backdrop (flat gallery render) via frame_skins.jpg | Test render over real forest-mac plate via frame_skins.jpg |
-| store/gallery / 01-medallions-hero.jpg | Real in-game capture (preserved) via game_medallions_hero.jpg | Real in-game screenshot (preserved) via game_medallions_hero.jpg |
-| store/gallery / 02-medallions-combat.jpg | Real in-game capture (preserved) via game_medallions_16x9.jpg | Real in-game screenshot (preserved) via game_medallions_16x9.jpg |
-| store/gallery / 03-ultrawide-spread.jpg | AI mockup scenery via ultrawide_spread.jpg | Test render over real forest plate via ultrawide_spread.jpg |
-| store/gallery / 04-setup.jpg | No backdrop (flat gallery render) via frame_setup.jpg | Test render over real forest-mac plate via frame_setup.jpg |
-| store/gallery / 05-nameplates.jpg | AI mockup scenery via crop_nameplates.jpg | Test render over real forest plate via crop_nameplates.jpg |
-| store/gallery / 06-meter.jpg | AI mockup scenery via crop_meter.jpg | Test render over real forest plate via crop_meter.jpg |
-| store/gallery / 07-quests.jpg | AI mockup scenery via crop_rail.jpg | Test render over real forest plate via crop_rail.jpg |
-| store/gallery / 08-medallion-closeup.gif | Real in-game capture (preserved) via game_medallions_target.gif | Real in-game screenshot (preserved) via game_medallions_target.gif |
+| marketing/banner.jpg | Real in-game screenshot (readme/game_medallions_hero.jpg), darkened, with the logo and wordmark | `marketing.py` |
+| marketing/classes.gif | Test render over the real forest plate: the Medallions HUD for nine classes | `marketing.py --clips` |
+| marketing/crowns.gif | Test render over the real forest plate: rogue blades and cat druid claws with the ring's jewels, gain to spend | `marketing.py --clips` |
+| marketing/crowns-more.gif | Test render over the real forest plate: warrior, priest, mage, hunter and bear crowns | `marketing.py --clips` |
+| marketing/shaman.gif | Test render over the real forest plate: Spirit Poles, then Lightning Shield's storm orbs | `marketing.py --clips` |
+| marketing/hawks.gif | Test render over the real forest plate: the hunter's hawk perches | `marketing.py --clips` |
+| marketing/show_hud_1080.jpg | Test render over the real forest plate (readme/hud_1080.jpg): the whole HUD at 1920 by 1080 | `readme.py`, `marketing.py` |
+| marketing/show_hud_frames_1080.jpg | Test render over the real forest plate (readme/hud_frames_1080.jpg): the Frames look at 1920 by 1080. Until the Frames restore lands, this is the last Frames render, from `37c066152` (2026-11-20); `readme.py --only hud_frames_1080` retakes it after | `readme.py`, `marketing.py` |
+| marketing/show_frame_raid.jpg | Test render over the real forest-mac plate (readme/frame_raid.jpg): the raid frames | `readme.py`, `marketing.py` |
 
-All derived images are rebuilt by `python Tools/render/readme.py && python Tools/media/marketing.py --pages`.
-The three real Medallions stills and three clips remain real captures; the target GIF is recompressed below 1 MB without dropping frames or changing timing.
-Pictures with repainted ability or item icons also disclose the optional AI-made icon pack in their captions; the setup diagram and procedural headers show none.
-Source labels appear in alt text and captions, with an additional visible label on marketing cards and showcases.
-Plate crops and the prioritized in-game capture wish list are in [PROVENANCE.md](plates/PROVENANCE.md).
+The store gallery (`docs/store/gallery/`) holds copies of the hero, the clips and the HUD picture, in upload order.
+
+Rebuild everything with `python Tools/render/readme.py && python Tools/media/marketing.py --clips --pages`. The clips need LuaJIT and Chrome; every run renders every frame fresh from the tree it runs in, so nothing stale is reused.
+Every test render carries a visible source label inside the picture and in its alt text. The page's note above the clips and every gallery caption disclose the optional AI-made icon pack.
+Plate crops and the in-game capture wish list are in [PROVENANCE.md](plates/PROVENANCE.md).

@@ -59,15 +59,6 @@ local function Build(hub, class, count)
 	state.pips = pips
 end
 
-local function Open()
-	local secrets = C_Secrets
-	if not (secrets and type(secrets.ShouldAurasBeSecret) == "function") then
-		return true
-	end
-	local ok, secret = pcall(secrets.ShouldAurasBeSecret)
-	return ok and not IsSecret(secret) and secret ~= true
-end
-
 local function Ring(fed, hub)
 	local ring = {}
 	for _, part in ipairs({ { "medRuneGlyphs", 1, hub:GetFrameLevel() + 1 }, { "glow", RING_HALO, math.max(0, hub:GetFrameLevel() - 1) } }) do
@@ -86,7 +77,7 @@ end
 
 local function Fed(hub, kind)
 	local fed = state.crowns[kind]
-	if fed == nil and Open() then
+	if fed == nil and Widgets.CrownOpen() then
 		local angles = kind == "HUNTER" and ARROWS or FANS[Widgets.CrownCount(kind)]
 		fed = Widgets.FedCrown(hub.top, kind, angles, LENGTH * ART, Effects.Allows("flare")) or false
 		if fed then

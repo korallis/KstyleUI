@@ -255,7 +255,7 @@ function Button.Style(entry, ctx)
 	skin:SetPoint("TOP", button, "TOP", 0, 0)
 	skin:SetSize(ctx.icon, ctx.icon)
 	local edge = ctx.edge
-	if K.Store.Module(ns.Model.MODULE).medallionsIcons then edge = { Tokens.Color("medSocketRim") } end
+	if K.HudStyle.Current() == "medallions" and K.Store.Module(ns.Model.MODULE).medallionsIcons then edge = { Tokens.Color("medSocketRim") } end
 	Widgets.ColorSlice(entry.rim, edge[1], edge[2], edge[3], edge[4])
 	Widgets.ShowSlice(entry.rim, true)
 	local inset = Widgets.Border(skin) * ICON_INSET_LINES

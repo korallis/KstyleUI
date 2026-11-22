@@ -279,6 +279,12 @@ do
 	assert(ns.Panel.UndockedInsets(frame3).top > undocked, "an undocked window's glass starts under its tab too")
 	write(env, K, "tabsAbove", false)
 	assert(near(glass:GetTop(), holder:GetTop()) and near(glass.chrome.headerUnits, g.divider + K.Widgets.Border(glass)) and select(2, plus:GetPoint(1)) == glass, "off restores the card, the header band and the glyphs")
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	assert(glass.divider:IsShown() and glass.chrome.headerUnits == nil, "Frames draws the rule under the tabs in place of the header band")
+	write(env, K, "tabsAbove", true)
+	assert(not glass.divider:IsShown(), "the card's edge replaces the rule")
+	write(env, K, "tabsAbove", false)
 	clean(env, K)
 end
 

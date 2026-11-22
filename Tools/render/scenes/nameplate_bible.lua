@@ -6,6 +6,7 @@
 -- units. The target has just taken a hit from 77 to 71 percent, so its pale loss band shows as the mock-up's does, after its 0.18 s white flash has faded (the
 -- still cannot play the animation, so the scene hides the flash).
 -- RENDER_COMBAT=1 puts the player in combat with a group, so threat shows on the plates that carry it.
+-- RENDER_HUD_STYLE picks the HUD style the plates are drawn in.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -58,6 +59,10 @@ end
 
 local function saved()
 	local out = Gallery.Saved({ "Nameplates" })
+	local style = Hud.Style()
+	if style then
+		out.profiles.Default.HudStyle = { style = style:lower() }
+	end
 	return out
 end
 

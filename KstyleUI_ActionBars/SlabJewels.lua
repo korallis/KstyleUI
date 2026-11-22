@@ -327,11 +327,15 @@ local function Listen(class, kind)
 	end
 end
 
-function Jewels.Update()
+function Jewels.Update(event)
 	local class = Class()
 	local kind = class and Kind(class)
+	local count = kind and Count(kind) or 0
+	if event == "UPDATE_SHAPESHIFT_FORM" and class == state.class and kind == state.kind and count == state.count then
+		return
+	end
 	Listen(class, kind)
-	Place(ns.Slab and ns.Slab.hub, kind and Count(kind) or 0)
+	Place(ns.Slab and ns.Slab.hub, count)
 	if kind then
 		Paint(kind)
 		Points()

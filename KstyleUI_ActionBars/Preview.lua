@@ -39,6 +39,7 @@ function Preview:Refresh()
 	local rowCount, cell, spacing
 	if def.kind == "consumable" then rowCount, cell, spacing = K.Setup.Layouts.ConsumableGrid()
 	else local _; _, rowCount, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), def.element, cfg) end
+	cell, spacing = ns.Tray.Grid(def, cell, spacing)
 	local size, gap = Widgets.Snap(self, cell), Widgets.Snap(self, spacing)
 	local centre = def.key == "bar1" or def.key == "bar2"
 	local count = Fits(self.parentFrame, centre and cell or size, centre and spacing or gap, min(def.max, cfg.buttons or def.max))

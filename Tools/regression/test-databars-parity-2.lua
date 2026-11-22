@@ -1,5 +1,11 @@
--- test-databars-parity-2.lua: round 2 of the data bar's EllesmereUI parity keeps today's defaults, and each option applies when on, restores when off, follows its events and reaches the preview.
+-- test-databars-parity-2.lua: round 2 of the data bar's EllesmereUI parity keeps today's defaults, and each option applies when on, restores when off, follows its events and reaches the preview; given "frames" it checks the Frames HUD style, whose main and line readout lists are one list.
+local isFrames = ... == "frames"
+local MAIN, LINE = "dockModules", "railModules"
 local D = dofile("Tools/regression/databars_env.lua")
+if isFrames then
+	D = dofile("Tools/regression/frames_lib.lua")(D)
+	MAIN, LINE = "modules", "modules"
+end
 local Fixture = dofile("Tools/regression/databars_readouts_fixture.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
@@ -12,7 +18,7 @@ for i, id in ipairs(OLD) do old[i] = { id = id, shown = i <= 10, zone = id == "t
 
 local x, game = {}, nil
 local env, K, ns = D.New({
-	saved = { version = 42, profiles = { Default = { DataBars = { enabled = true, strip = { dockModules = old }, micro = { rows = 1 } } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
+	saved = { version = 42, profiles = { Default = { HudStyle = isFrames and { style = "frames" } or nil, DataBars = { enabled = true, strip = { [MAIN] = old }, micro = { rows = 1 } } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
 	setup = function(e)
 		D.Menus(e)
 		game = Fixture(e)
@@ -66,7 +72,7 @@ local function tint(texture) return rgb(texture:GetVertexColor()) end
 local function rect(region) return Scene.Rect(env, region) end
 local function show(ids, key)
 	local s, want = K.Store.Module("DataBars").strip, {}
-	key = key or "dockModules"
+	key = key or MAIN
 	for i, id in ipairs(ids) do want[id] = i end
 	table.sort(s[key], function(a, b) return (want[a.id] or 99) < (want[b.id] or 99) end)
 	for _, entry in ipairs(s[key]) do entry.shown = want[entry.id] ~= nil end
@@ -91,13 +97,13 @@ end
 eq(K.Store.Module("DataBars").micro.align, "LEFT", "micro align")
 eq(K.Store.Module("DataBars").bags.align, "LEFT", "bag align")
 eq(K.Store.Module("DataBars").xp.questXP, false, "quest experience")
-eq(s.dockModules[1].id, "gold", "the saved order survives")
-for _, entry in ipairs(s.dockModules) do if entry.id == "reagents" then eq(entry.shown, false, "Class resources joins switched off") end end
+eq(s[MAIN][1].id, "gold", "the saved order survives")
+for _, entry in ipairs(s[MAIN]) do if entry.id == "reagents" then eq(entry.shown, false, "Class resources joins switched off") end end
 assert(K.Options.Get("DataBars"), "the schema builds with every new row")
 
 -- Icons: on the rail's one line each readout's own glyph sits before its value, tinted like its label; icons only hides the value; off restores the widths.
-write("strip.placement", "rail")
-show({ "fps", "latency", "gold", "coords", "spacer", "time" }, "railModules")
+if not isFrames then write("strip.placement", "rail") end
+show({ "fps", "latency", "gold", "coords", "spacer", "time" }, LINE)
 local widths = {}
 for _, id in ipairs({ "fps", "latency", "gold", "coords" }) do widths[id] = item(id).button:GetWidth() end
 write("strip.icons", "beside")
@@ -116,7 +122,7 @@ for i = 1, #order do
 	for j = i + 1, #order do
 		local ax, _, aw = rect(item(order[i]).button)
 		local bx, _, bw = rect(item(order[j]).button)
-		local drawn = item(order[i]).button:IsShown() and item(order[j]).button:IsShown()
+		local drawn = isFrames or item(order[i]).button:IsShown() and item(order[j]).button:IsShown()
 		assert(not drawn or ax + aw <= bx + 0.01 or bx + bw <= ax + 0.01, order[i] .. " overlaps " .. order[j])
 	end
 end
@@ -147,6 +153,7 @@ end
 assert(not disabled("strip.icons") and disabled("strip.iconColor"), "icon colour waits for icons, visibly")
 
 -- Fill the rest: in cells one readout takes the room the others leave; off restores the even split.
+if isFrames then write("strip.placement", "rail") end
 write("strip.line", false)
 show({ "fps", "latency", "gold" }, "railModules")
 assert(disabled("strip.icons") and not disabled("strip.fill"), "icons are a one-line option; fill is a cells option")
@@ -163,7 +170,7 @@ assert(item("latency").button:GetWidth() > item("gold").button:GetWidth(), "the 
 write("strip.fill", "none")
 for _, id in ipairs({ "fps", "latency", "gold" }) do eq(select(4, item(id).button:GetPoint()), lefts[id], id .. " left restores") end
 write("strip.line", true)
-write("strip.placement", "dock")
+write("strip.placement", isFrames and "top" or "dock")
 assert(disabled("strip.fill"), "fill is off on one line")
 
 -- Currency icons replace each name after its amount; off restores the names.
@@ -379,6 +386,7 @@ assert(not bar.quest:IsShown(), "and stops following the quest log")
 K.Events.Register = register
 
 -- The Medallions dock gives round 1's readouts and Class resources their own glyphs, and keeps them with icons off.
+if isFrames then K.Options.Write("HudStyle", "style", "medallions") end
 env.RunTimers()
 show({ "coords", "combat", "played", "audio", "prof1", "broker", "reagents", "fps" }, "dockModules")
 write("strip.brokerPlugin", "")
@@ -399,11 +407,12 @@ local l1, _, t1 = item("prof1").icon:GetTexCoord()
 local l2, _, t2 = item("prof2").icon:GetTexCoord()
 assert(item("prof1").icon:IsShown() and item("prof2").icon:IsShown() and (l1 ~= l2 or t1 ~= t2), "each profession wears its own glyph")
 assert(disabled("strip.icons") and disabled("strip.iconColor"), "the dock always draws its own glyphs")
+if isFrames then K.Options.Write("HudStyle", "style", "frames") end
 env.RunTimers()
 
 -- The rail's preview reflects each new option.
-write("strip.placement", "rail")
-show({ "fps", "currencies", "hearth", "reagents", "guild" }, "railModules")
+if not isFrames then write("strip.placement", "rail") end
+show({ "fps", "currencies", "hearth", "reagents", "guild" }, LINE)
 write("strip.socialList", 1)
 write("strip.icons", "beside")
 write("strip.currencyIcons", true)

@@ -1,4 +1,4 @@
--- test-skins-restedxp-whole-current.lua: when the rail's band cannot hold even one whole step, the guide's card still shows every line of the current step with its tick box taking the mouse, so the player can skip it (RestedXP completes a step only once every line is ticked); only later steps rest under the "more" line. After the hidden steps RestedXP keeps in its stack at height 1 (GuideWindow.lua sets a hidden step's height to 1 and anchors the next 5 under it), the current step still ends inside the steps' frame.
+-- test-skins-restedxp-whole-current.lua: when the guide's band cannot hold every step, the guide's card still shows every line of the current step with its tick box taking the mouse, so the player can skip it (RestedXP completes a step only once every line is ticked); only later steps rest under the "more" line. After the hidden steps RestedXP keeps in its stack at height 1 (GuideWindow.lua sets a hidden step's height to 1 and anchors the next 5 under it), the current step still ends inside the steps' frame.
 local S = dofile("Tools/regression/skins_env.lua")
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local Quests = dofile("Tools/regression/quests_fake.lua")
@@ -49,7 +49,7 @@ do
 	K.Modules.Enable("Skins")
 	local current = rxp.RXPFrame.CurrentStepFrame
 	for _, hidden in ipairs({ 0, 1, 3, 5 }) do
-		rxp.SetStep(hidden + 2, 2)
+		rxp.SetStep(hidden + 2, 14)
 		env.RunTimers()
 		for i = 1, hidden do
 			local step = current.framePool[i]

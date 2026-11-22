@@ -2,7 +2,8 @@
 -- then priority, then time left), the rows sit beside their frames, and past rows by columns a "+N" chip shows,
 -- after the last socket on the Medallions target. The chip is counted by a hidden AuraContainer's own flow layout
 -- through anchors alone, so the module never reads a count, a size or an aura; here the stub plays the engine's
--- layout pass.
+-- layout pass. test-unitframes-aura-overflow-frames.lua runs them on Frames.
+local frames = ... == "frames"
 local U = dofile("Tools/regression/unitframes_env.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
 local W = U.W
@@ -13,6 +14,10 @@ local function overlap(r, s)
 	return r.left < s.right - EPS and s.left < r.right - EPS and r.bottom < s.top - EPS and s.bottom < r.top - EPS
 end
 
+local function inside(r, s)
+	return r.left >= s.left - EPS and r.right <= s.right + EPS and r.bottom >= s.bottom - EPS and r.top <= s.top + EPS
+end
+
 local function same(r, s)
 	return math.abs(r.left - s.left) < EPS and math.abs(r.right - s.right) < EPS and math.abs(r.bottom - s.bottom) < EPS and math.abs(r.top - s.top) < EPS
 end
@@ -21,7 +26,7 @@ local function fmt(r)
 	return string.format("(%.1f,%.1f-%.1f,%.1f)", r.left, r.bottom, r.right, r.top)
 end
 
-local env, K, ns = U.New({ lumen = true })
+local env, K, ns = U.New({ frames = frames, lumen = true })
 local Frames, Overflow, Settings = ns.Frames, ns.Overflow, ns.Settings
 local root = K.Scale.Root()
 
@@ -63,10 +68,18 @@ for _, view in ipairs({ target, focus, bosses[1] }) do
 end
 
 -- The Medallions target rows hold the profile's fourteen 28-unit sockets twice over, above the frame: a row count at
--- its default of one reads the rows' two, so 28 of your debuffs show before the chip.
-assert(Settings.Value("target", "auraRows") == 2 and Settings.Value("target", "auraColumns") == 14 and Settings.Value("target", "auraSize") == 28,
-	"the target's debuffs are two rows of fourteen 28-unit sockets")
-assert(target.auras.container._groups.debuffs.max == 28, "twenty-eight sockets, then the chip")
+-- its default of one reads the rows' two, so 28 of your debuffs show before the chip. The Frames sigil holds one row
+-- of fourteen, each timer in its own lane under the tile: two rows of 28 would need 60 units under the sigil, past the
+-- 52 the layouts keep there (round 4: Fable #3).
+if frames then
+	assert(Settings.Value("target", "auraRows") == 1 and Settings.Value("target", "auraColumns") == 14 and Settings.Value("target", "auraSize") == 28,
+		"the sigil's debuffs are one row of fourteen 28-unit sockets")
+	assert(target.auras.container._groups.debuffs.max == 14, "fourteen sockets, then the chip")
+else
+	assert(Settings.Value("target", "auraRows") == 2 and Settings.Value("target", "auraColumns") == 14 and Settings.Value("target", "auraSize") == 28,
+		"the target's debuffs are two rows of fourteen 28-unit sockets")
+	assert(target.auras.container._groups.debuffs.max == 28, "twenty-eight sockets, then the chip")
+end
 -- A boss card holds one row of four 22-unit sockets beside it: three of your debuffs and the chip, big enough to
 -- tell which is which, the timer in a corner badge instead of across the icon (round 3: Opus #5, Grok #1).
 assert(Settings.Value("boss", "auraRows") == 1 and Settings.Value("boss", "auraColumns") == 4, "a boss card holds one row of four sockets")
@@ -76,6 +89,17 @@ assert(bosses[1].auras.container._groups.debuffs.max == 4, "four on each boss ca
 -- Every aura row sits beside its frame, at its full rows by columns. Known: the layouts' reserves for the focus and
 -- boss frames do not cover the Medallions frames and their rows.
 do
+	local footprint
+	if frames then
+		local Layouts = K.Setup.Layouts
+		local rw, rh = root:GetWidth(), root:GetHeight()
+		local layout = Layouts.Get("DPS", rh)
+		function footprint(key)
+			local w, h = Layouts.Footprint("DPS", key)
+			local l, b, r, t = Layouts.Rect({ width = w, height = h }, layout[key], rw, rh)
+			return { left = l, bottom = b, right = r, top = t }
+		end
+	end
 	local checks = { focus }
 	for i = 1, 5 do
 		checks[#checks + 1] = bosses[i]
@@ -83,6 +107,11 @@ do
 	for _, view in ipairs(checks) do
 		assert(view.auras.host:IsShown(), view.unit .. "'s aura row shows")
 		local host = rect(view.auras.host)
+		if frames then
+			local key = view == focus and "unitframes.focus" or "unitframes.boss"
+			local room = footprint(key)
+			assert(inside(host, room), view.unit .. "'s aura rows " .. fmt(host) .. " stay inside " .. key .. "'s footprint " .. fmt(room))
+		end
 		assert(not overlap(host, rect(view.button)), view.unit .. "'s aura rows sit beside the frame, not on it")
 	end
 	-- The boss row hangs beside its own card, never into the next one, and never over the card's name or bar.
@@ -152,12 +181,21 @@ do
 		assert(not face and not touch and #shown == 0, n .. " debuffs fit the rows: no chip, no sliver of it")
 	end
 	-- The Medallions rows keep their timers under the tiles, so the chip stands after the last socket and covers none.
-	for _, case in ipairs({ { cap + 1, "+1" }, { cap + 4, "+4" }, { cap + Overflow.LABELS, "+" .. Overflow.LABELS } }) do
+	-- On Frames the chip covers the last socket, so it counts that aura too.
+	local extra = frames and 1 or 0
+	for _, case in ipairs({ { cap + 1, "+" .. (1 + extra) }, { cap + 4, "+" .. (4 + extra) }, { cap + Overflow.LABELS, "+" .. (Overflow.LABELS + extra) } }) do
 		Engine(chip, case[1])
 		local face, _, shown, win = Read(chip)
-		assert(face, case[1] .. " debuffs: the chip's glass shows")
+		assert(face, case[1] .. (frames and " debuffs: the chip's glass covers the last socket" or " debuffs: the chip's glass shows"))
 		assert(#shown == 1 and shown[1] == case[2], case[1] .. " debuffs read " .. case[2] .. ", got " .. tostring(shown[1]) .. " of " .. #shown)
-		assert(win.left >= host.right - EPS, "the chip stands after the last socket " .. fmt(win) .. " " .. fmt(host))
+		if frames then
+			assert(inside(win, host), "the chip sits on the last socket, inside the row " .. fmt(win) .. " " .. fmt(host))
+			local cell = chip.window._width
+			assert(math.abs(win.right - host.right) < EPS and math.abs(win.bottom - (host.top - 2 * cell - K.Widgets.Snap(a.host, 2))) < EPS,
+				"on the second row's last socket " .. fmt(win))
+		else
+			assert(win.left >= host.right - EPS, "the chip stands after the last socket " .. fmt(win) .. " " .. fmt(host))
+		end
 	end
 	assert(chip.window:GetFrameLevel() > a.host:GetFrameLevel() + 5, "the chip draws over the sockets and their text")
 	assert(chip.chrome.ownFill and chip.chrome.fillColor[4] == 1, "the chip's glass is opaque, so the socket under it never shows through")
@@ -178,6 +216,106 @@ do
 	K.Options.Write("UnitFrames", "target.auraColumns", 14)
 end
 noErrors("chip")
+
+if frames then
+	-- The sigil's chip owns no aura's timer lane -----------------------------------------------------------------------
+	-- Round 5 (Astra #2, Opus #3): the sigil's timers sit in a lane under each tile, outside the cell, so a chip that
+	-- covered only the cell left the covered aura's "44s" under "+11", as if the count had a duration. KSTY-69 (the
+	-- Captain, 2026-11-13): the chip is one tile tall, so where timers sit under the tiles it stands after the last
+	-- socket and covers none. Past the cap, no visible timer may sit within one cell below the chip; at every count,
+	-- every shown socket's timer shows.
+	do
+		local Scene = dofile("Tools/render/scene.lua")
+		local function box(object)
+			if object._type == "FontString" then
+				-- The page sizes a one-point text by its drawn words, as the game does.
+				local path, fontSize = Scene.Font(env, object)
+				object._naturalW = Scene.TextWidth(object:GetText() or "", fontSize, path)
+				object._naturalH = fontSize * 1.2
+				object._naturalSideW, object._naturalSideH = "center", "top"
+			end
+			local x, y, w, h = Scene.Rect(env, object)
+			assert(x, "the region resolves")
+			return { left = x, right = x + w, top = y, bottom = y + h }
+		end
+		local function hits(r, s)
+			return r.left < s.right - EPS and s.left < r.right - EPS and r.top < s.bottom - EPS and s.top < r.bottom - EPS
+		end
+		local function within(r, s)
+			return r.left >= s.left - EPS and r.right <= s.right + EPS and r.top >= s.top - EPS and r.bottom <= s.bottom + EPS
+		end
+		local a = target.auras
+		local c, chip = a.container, a.overflow.debuffs
+		local cap = c._groups.debuffs.max
+		assert(Settings.Value("target", "auraTimer") == true and cap == 14, "the sigil keeps its timers, fourteen sockets")
+		local size = K.Widgets.Snap(a.host, Settings.Value("target", "auraSize"))
+		local spacing = c._groups.debuffs.layout.elementSpacing
+		local byButton = {}
+		for _, entry in ipairs(a.buttons) do
+			byButton[entry.button] = entry
+		end
+		local function Lay(n)
+			local shown = math.min(n, cap)
+			local buttons = c:_Acquire("debuffs", cap)
+			for _, entry in ipairs(a.buttons) do
+				byButton[entry.button] = entry
+			end
+			c:SetSize(math.max(1, shown * size + (shown - 1) * spacing), size)
+			for i, button in ipairs(buttons) do
+				button:ClearAllPoints()
+				button:SetSize(size, size)
+				button:SetPoint("TOPLEFT", c, "TOPLEFT", (i - 1) * (size + spacing), 0)
+				button:SetShown(i <= shown)
+				K.Widgets.SetText(byButton[button].timer, (2 + i * 3) .. "s")
+			end
+			-- The counting container's own layout: one element per line, as tall as its group's layout says.
+			chip.ghost:SetSize(1, math.max(1, n * chip.ghost._groups.count.layout.elementHeight))
+			return buttons, shown
+		end
+		for _, n in ipairs({ cap - 1, cap, cap + 1, 16, 24 }) do
+			local buttons, shown = Lay(n)
+			local win = box(chip.window)
+			local strip = box(chip.strip)
+			local face = strip.bottom >= win.bottom - EPS and strip.top <= win.top + EPS
+			local timers = 0
+			local cell = { left = win.left, right = win.left + size, top = win.top, bottom = win.top + size }
+			local below = { left = cell.left, right = cell.right, top = cell.bottom, bottom = cell.bottom + size }
+			local cover = face and box(chip.face) or nil
+			for i = 1, shown do
+				local timer = byButton[buttons[i]].timer
+				assert(timer:IsVisible(), n .. " debuffs: socket " .. i .. "'s timer shows")
+				local r = box(timer)
+				local hidden = cover ~= nil and within(r, cover)
+				if not hidden then
+					timers = timers + 1
+					if face then
+						assert(not hits(r, below), n .. " debuffs: socket " .. i .. "'s timer shows under the chip")
+					end
+				end
+			end
+			if n <= cap then
+				assert(not face, n .. " debuffs fit: no chip")
+				assert(timers == shown, n .. " debuffs fit: all " .. shown .. " timers show, got " .. timers)
+			else
+				assert(face, n .. " debuffs: the chip shows")
+				assert(timers == cap, n .. " debuffs: all " .. cap .. " sockets keep their timers, got " .. timers)
+				assert(math.abs((win.bottom - win.top) - (box(buttons[cap]).bottom - box(buttons[cap]).top)) < EPS, n .. " debuffs: the chip is one tile tall")
+				assert(win.left >= box(buttons[cap]).right - EPS, n .. " debuffs: after the last socket")
+				local shownLabels = 0
+				for i, label in ipairs(chip.labels) do
+					if hits(box(label), win) then
+						shownLabels = shownLabels + 1
+						assert(chip.texts[i]:GetText() == "+" .. (n - cap), n .. " debuffs read +" .. (n - cap) .. ", got " .. tostring(chip.texts[i]:GetText()))
+						assert(within(box(label), win), "the count stays inside the chip")
+					end
+				end
+				assert(shownLabels == 1, n .. " debuffs: one count shows, got " .. shownLabels)
+			end
+		end
+		Lay(0)
+	end
+	noErrors("chip lane")
+end
 
 -- Debuffs and buffs: the buffs' last row ends on the container's far edge, wherever the debuffs stopped -----------
 do
@@ -256,7 +394,7 @@ noErrors("module")
 -- Without a second engine container, the row still works and the devlog says why --------------------------------
 do
 	local made = 0
-	local nenv, NK, nns = U.New({ setup = function(e)
+	local nenv, NK, nns = U.New({ frames = frames, setup = function(e)
 		local create = e.CreateFrame
 		e.CreateFrame = function(frameType, ...)
 			if frameType == "AuraContainer" then

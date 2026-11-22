@@ -159,6 +159,7 @@ end
 local MAX_LEVEL = 3
 
 local SYNONYMS = {
+	{ "HudStyle", "style", K.L["change hud look style frames medallions portraits"] },
 	{ "Readability", "preset", K.L["readable text bigger letters tiny small hard to read"] },
 	{ "Appearance", "fontScale", K.L["readable text bigger letters tiny small hard to read"] },
 	{ "GroupFrames", "auto.role", K.L["choose role tank healer dps damage"] },

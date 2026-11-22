@@ -1,4 +1,4 @@
--- test-databars-dock.lua: queued dock transitions, slab caption anchors, the docked bar's forged plate and glyph segments, and the dock-only hub exemption.
+-- test-databars-dock.lua: the Frames top bar's inline secure menu, queued dock transitions, slab caption anchors, the docked bar's forged plate and glyph segments, and the dock-only hub exemption.
 local D = dofile("Tools/regression/databars_env.lua")
 local W = D.W
 local Scene = dofile("Tools/render/scene.lua")
@@ -42,6 +42,38 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		env.SetCombat(false)
 		settle()
 	end
+	K.Options.Write("HudStyle", "style", "frames")
+	settle()
+	assert(artwork.showWhen(ns.Settings()), "artwork is available on the Frames top bar")
+	assert(micro:GetParent() == view.frame and bags:GetParent() == Menus.Holder("bags"))
+	assert(not Menus.Glass("micro"):IsShown() and not Menus.Holder("micro"):IsShown())
+	assert(micro:GetAlpha() == 1, "the top menu is always visible")
+	K.Options.Write("DataBars", "strip.enabled", false)
+	settle()
+	assert(micro:GetParent() == Menus.Holder("micro"), "turning off the bar restores the standalone menu")
+	K.Options.Write("DataBars", "strip.enabled", true)
+	settle()
+	assert(micro:GetParent() == view.frame)
+	for _, button in ipairs(Menus.Shown("micro")) do
+		near(button:GetWidth(), K.Widgets.Snap(button, math.min(15, view.frame:GetHeight())))
+		near(button:GetHeight(), K.Widgets.Snap(button, math.min(15, view.frame:GetHeight())))
+		local target = button:GetAttribute("clickbutton")
+		assert(target and env[target:GetName()] == target, "the secure proxy still targets Blizzard's button")
+		if target ~= env.MainMenuMicroButton then assert(button:GetAttribute("type") == "click") end
+	end
+	changeInCombat(false, view.frame, "strip.menus")
+	assert(micro:GetParent() == Menus.Holder("micro") and micro:GetAlpha() == 0, "menu docking off restores standalone hover")
+	changeInCombat("rail", Menus.Holder("micro"))
+	assert(micro:GetParent() == Menus.Holder("micro") and micro:GetAlpha() == 0)
+	changeInCombat("top", Menus.Holder("micro"))
+	assert(micro:GetParent() == Menus.Holder("micro") and micro:GetAlpha() == 0)
+	changeInCombat(true, Menus.Holder("micro"), "strip.menus")
+	assert(micro:GetParent() == view.frame and micro:GetAlpha() == 1)
+	changeInCombat(false, view.frame, "strip.enabled")
+	assert(micro:GetParent() == Menus.Holder("micro"))
+	K.Options.Write("DataBars", "strip.enabled", true)
+	K.Options.Write("HudStyle", "style", "medallions")
+	settle()
 	local xp = ns.Bars.views.xp
 	assert(artwork.showWhen(ns.Settings()), "artwork applies to the docked plate")
 	assert(view.slab == xp and not view.topBar and view.chrome.visible and view.chrome.materialOn, "the dock wears the forged plate")

@@ -1,4 +1,4 @@
--- test-unitframes-parity-r3b.lua: parity round 3b options keep v0.2.8 looks and regions, then turn on, follow their events and turn off again: aura tooltips, boss two decimals, power percent sign, icon sizes, elite in instances, combat icon class colour, PvP flag timer, non-tank threat glow, threat percent, reaction colours and the target-lost sound.
+-- test-unitframes-parity-r3b.lua: parity round 3b options keep v0.2.8 looks and regions, then turn on, follow their events and turn off again: aura tooltips, boss two decimals (the Frames column widening), power percent sign, Frames' class icon zoom, icon sizes, elite in instances, combat icon class colour, PvP flag timer, non-tank threat glow, threat percent (inside the Frames column's bar), reaction colours and the target-lost sound.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -433,4 +433,51 @@ local slab = mns.Frames.Get("target").views[1]
 spot = W.LastCall(assert(slab.threatText, "the slab shows threat percent"), "SetPoint")
 assert(spot[1] == "RIGHT" and spot[2] == slab.health and spot[3] == "LEFT", "the slab's threat percent sits left of its bar")
 assert(#menv._errors == 0 and MK.ErrorCount() == 0, tostring(menv._errors[1]))
+
+-- Frames: the boss percent column widens for two decimals, class icon zoom crops only the class icon, and the column's
+-- threat percent sits inside its bar.
+local fenv, FK, fns = U.New({ frames = true, saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {}, layouts = {} },
+	setup = function(e)
+		e.UnitDetailedThreatSituation = function() return false, 2, 64.4, 70, 1000 end
+		e.C_Texture = { GetAtlasInfo = function() return { leftTexCoord = 0.1, rightTexCoord = 0.3, topTexCoord = 0.5, bottomTexCoord = 0.7 } end }
+	end })
+local function fwrite(key, value)
+	FK.Options.Write("UnitFrames", key, value)
+	fenv.RunTimers()
+end
+U.SetUnit(fenv, "boss1", { name = "Magmatus", level = -1, classification = "worldboss", health = 41270, healthMax = 100000, reaction = 2, canAttack = true })
+fenv.FireEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
+local fboss = fns.Frames.Get("boss").views[1]
+assert(U.Shown(fenv, fboss.healthText):find("41%", 1, true), "Frames boss health keeps its whole percent: " .. U.Shown(fenv, fboss.healthText))
+local width = fboss.geometry.healthText and fboss.geometry.healthText.w
+fwrite("healthDecimalBoss", true)
+assert(U.Shown(fenv, fboss.healthText):find("41.27%", 1, true), "Frames boss health shows two decimals: " .. U.Shown(fenv, fboss.healthText))
+assert(width and fboss.geometry.healthText.w > width, "the boss percent column widens")
+fwrite("healthDecimalBoss", false)
+local portrait = fns.Frames.Get("player").views[1].portrait
+fwrite("player.portraitZoom", 0.2)
+fwrite("player.portraitStyle", "class")
+local coords = W.LastCall(portrait, "SetTexCoord")
+assert(coords[1] == 0 and coords[2] == 1, "portrait zoom leaves the class icon whole")
+fwrite("player.classZoom", 0.2)
+coords = W.LastCall(portrait, "SetTexCoord")
+assert(near(coords[1], 0.12) and near(coords[2], 0.28) and near(coords[3], 0.52) and near(coords[4], 0.68), "class icon zoom crops inside the atlas")
+fenv.FireEvent("UNIT_PORTRAIT_UPDATE", "player")
+assert(near(W.LastCall(portrait, "SetTexCoord")[1], 0.12), "a portrait update keeps the crop")
+fwrite("player.portraitStyle", "portrait")
+coords = W.LastCall(portrait, "SetTexCoord")
+assert(near(coords[1], 0.1) and near(coords[2], 0.9), "the portrait takes its own zoom")
+U.SetUnit(fenv, "target", { name = "Wolf", level = 10, health = 50, healthMax = 100, reaction = 2, canAttack = true })
+fenv.SetTarget(true)
+fwrite("target.threatPercent", true)
+local column = fns.Frames.Get("target").views[1]
+spot = W.LastCall(assert(column.threatText, "the column shows threat percent"), "SetPoint")
+assert(spot[1] == "RIGHT" and spot[2] == column.health and spot[3] == "RIGHT" and spot[4] < 0, "it sits inside the health bar's right edge, clear of the column's text")
+assert(fns.Settings.Value("focus", "threatPercentPosition") == "OUTRIGHT", "the thin focus bar starts with it beside the bar")
+fwrite("target.threatPercentPosition", "OUTLEFT")
+spot = W.LastCall(column.threatText, "SetPoint")
+assert(spot[1] == "RIGHT" and spot[2] == column.health and spot[3] == "LEFT" and spot[4] < 0, "Left of the bar moves it outside the bar")
+fwrite("target.threatPercentPosition", "TOPRIGHT")
+assert(fns.Settings.Value("target", "threatPercentPosition") == "RIGHT", "an unknown place falls back to the default")
+assert(#fenv._errors == 0 and FK.ErrorCount() == 0, tostring(fenv._errors[1]))
 print("test-unitframes-parity-r3b: ok")

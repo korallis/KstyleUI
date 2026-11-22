@@ -1,0 +1,2 @@
+-- test-unitframes-parity-r2-frames.lua: on Frames, parity round 2 options keep a v0.2.8 profile's look and regions, then write and apply pet auras, aura offsets, stack and timer text, dispel edges, power fill opacity and gradient, boss spacing, cast icon, name and timer offsets, spell targets and important cast outlines, after their events, in combat, off again and in the preview.
+assert(loadfile("Tools/regression/test-unitframes-parity-r2.lua"))("frames")

@@ -1,5 +1,7 @@
--- test-groupframes-parity-r3b.lua: EllesmereUI parity round 3b: v0.2.8 profiles keep every default and build nothing new; debuff offsets, text above icons, aura tooltips in combat, important debuffs, icon text outline, indicator Show on and party targets each apply when on, follow their events and combat, reach the preview and switch back exactly.
+-- test-groupframes-parity-r3b.lua: EllesmereUI parity round 3b: v0.2.8 profiles keep every default and build nothing new; debuff offsets, text above icons, aura tooltips in combat, important debuffs, icon text outline, indicator Show on and party targets each apply when on, follow their events and combat, reach the preview and switch back exactly. test-groupframes-parity-r3b-frames.lua passes "frames" to check the same on Frames' raid rows.
+local isFrames = ... == "frames"
 local G = dofile("Tools/regression/group_env.lua")
+if isFrames then dofile("Tools/regression/groupframes_frames.lua")(G) end
 local A = dofile("Tools/regression/auras_env.lua")
 
 local MODULE = "GroupFrames"
@@ -139,8 +141,8 @@ end
 collectgarbage()
 
 -- Aura tooltips in combat reach debuff and heal icons through the engine's own switch; Icon text outline restyles
--- counts and timers, on a party frame and a Medallions raid tile, which has no heal row.
-for _, kind in ipairs({ "party", "raid" }) do
+-- counts and timers, on a party frame and a Medallions raid tile, which has no heal row (on Frames, a raid row).
+for _, kind in ipairs(isFrames and { "raid" } or { "party", "raid" }) do
 	local env, K, ns = G.New({ setup = setup })
 	G.SetRoster(env, kind, G.Members(kind == "raid" and 10 or 2))
 	K.Modules.Enable(MODULE)
@@ -159,26 +161,28 @@ for _, kind in ipairs({ "party", "raid" }) do
 	write(env, K, "auras.tooltips", true)
 	write(env, K, "auras.tipCombat", true)
 	assert(debuff._aura.hideTooltipInCombat == false and heal._aura.hideTooltipInCombat == false, "on restores the engine's default")
-	write(env, K, "auras.timers", true)
-	local p = ns.Auras.Parts(debuff)
-	local function flags(region) return select(3, region:GetFont()) end
-	assert(flags(p.count) == "OUTLINE" and flags(p.timer) == "OUTLINE", "counts and timers keep the thin outline by default")
-	write(env, K, "auras.textOutline", "THICKOUTLINE")
-	assert(flags(p.count) == "THICKOUTLINE" and flags(p.timer) == "THICKOUTLINE", "a thick outline reaches both")
-	write(env, K, "auras.textOutline", "NONE")
-	assert(flags(p.count) == "" and flags(p.timer) == "", "a soft shadow drops the outline")
-	write(env, K, "auras.textOutline", "OUTLINE")
-	assert(flags(p.count) == "OUTLINE", "and back")
-	write(env, K, "auras.zoom", 0.15)
-	assert(near(p.icon:GetTexCoord(), 0.15), "icon zoom crops further")
-	write(env, K, "auras.tooltips", false)
-	write(env, K, "buffs.tooltips", false)
-	assert(A.W.LastCall(debuff, "SetMouseMotionEnabled")[1] == false and A.W.LastCall(heal, "SetMouseMotionEnabled")[1] == false, "tooltips off stop the pointer reaching debuff and heal icons")
+	if not isFrames then
+		write(env, K, "auras.timers", true)
+		local p = ns.Auras.Parts(debuff)
+		local function flags(region) return select(3, region:GetFont()) end
+		assert(flags(p.count) == "OUTLINE" and flags(p.timer) == "OUTLINE", "counts and timers keep the thin outline by default")
+		write(env, K, "auras.textOutline", "THICKOUTLINE")
+		assert(flags(p.count) == "THICKOUTLINE" and flags(p.timer) == "THICKOUTLINE", "a thick outline reaches both")
+		write(env, K, "auras.textOutline", "NONE")
+		assert(flags(p.count) == "" and flags(p.timer) == "", "a soft shadow drops the outline")
+		write(env, K, "auras.textOutline", "OUTLINE")
+		assert(flags(p.count) == "OUTLINE", "and back")
+		write(env, K, "auras.zoom", 0.15)
+		assert(near(p.icon:GetTexCoord(), 0.15), "icon zoom crops further")
+		write(env, K, "auras.tooltips", false)
+		write(env, K, "buffs.tooltips", false)
+		assert(A.W.LastCall(debuff, "SetMouseMotionEnabled")[1] == false and A.W.LastCall(heal, "SetMouseMotionEnabled")[1] == false, "tooltips off stop the pointer reaching debuff and heal icons")
+	end
 	noErrors(env, K)
 end
 collectgarbage()
 
--- Important debuffs narrow every debuff lane and the boss slot.
+-- Important debuffs narrow every debuff lane and the boss slot; on Frames, Icon text outline restyles counts and timers.
 do
 	local env, K, ns = G.New({ setup = setup })
 	G.SetRoster(env, "raid", G.Members(10))
@@ -214,6 +218,20 @@ do
 	assert(f.highlights._slots.boss.candidateFilters.isPriorityAura == true, "so does the boss slot")
 	write(env, K, "auras.filter", "ALL")
 	assert(f.auras._groups.debuffs.candidateFilters.isPriorityAura == false and f.highlights._slots.boss.candidateFilters.isPriorityAura == nil, "All debuffs restores the lanes")
+	if isFrames then
+		write(env, K, "auras.timers", true)
+		A.Assign(env, f.auras, "debuffs", 1)
+		env.RunTimers()
+		local p = ns.Auras.Parts(f.auras._groups.debuffs.active[1])
+		local function flags(region) return select(3, region:GetFont()) end
+		assert(flags(p.count) == "OUTLINE" and flags(p.timer) == "OUTLINE", "counts and timers keep the thin outline by default")
+		write(env, K, "auras.textOutline", "THICKOUTLINE")
+		assert(flags(p.count) == "THICKOUTLINE" and flags(p.timer) == "THICKOUTLINE", "a thick outline reaches both")
+		write(env, K, "auras.textOutline", "NONE")
+		assert(flags(p.count) == "" and flags(p.timer) == "", "a soft shadow drops the outline")
+		write(env, K, "auras.textOutline", "OUTLINE")
+		assert(flags(p.count) == "OUTLINE", "and back")
+	end
 	noErrors(env, K)
 end
 collectgarbage()

@@ -222,6 +222,35 @@ do
 	NoErrors(env, "styled")
 end
 
+-- Under Frames each card material styles the menus its own way, and Glass leaves Blizzard's.
+do
+	local env, K, ns, nm = E.New()
+	K.Options.Write("HudStyle", "style", "frames")
+	local seen = {}
+	for _, material in ipairs({ "Flat", "Slate", "ForgedTicks", "ForgedBrackets" }) do
+		K.Options.Write("Widgets", "cardMaterial", material)
+		for _, name in ipairs(ORDER) do
+			local menu = Open(name, env, nm)
+			CheckStyled(name, menu, env, K, ns, nm, material)
+			local snapshot = nm.Snapshot(menu)
+			assert(snapshot ~= BASE[name].snapshot, name .. " in " .. material .. " differs from Blizzard's")
+			seen[name] = seen[name] or {}
+			for other, previous in pairs(seen[name]) do
+				assert(snapshot ~= previous, name .. ": " .. material .. " and " .. other .. " look the same")
+			end
+			seen[name][material] = snapshot
+			nm.Close(menu)
+		end
+	end
+	K.Options.Write("Widgets", "cardMaterial", "Glass")
+	for _, name in ipairs(ORDER) do
+		local menu = Open(name, env, nm)
+		SameAsBase(name, menu, nm, "Frames on Glass")
+		nm.Close(menu)
+	end
+	NoErrors(env, "Frames materials")
+end
+
 -- Wider faces and larger sizes: the label is refitted after the face changes, so no row clips and the menu grows -----------------
 
 do

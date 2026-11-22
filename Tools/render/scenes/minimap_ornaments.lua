@@ -1,4 +1,4 @@
--- minimap_ornaments.lua: the minimap face on the whole screen in the state RENDER_STATE names: rest (the face alone), hover (the pointer over the map, its button column showing) and open (the addon drawer opened from the column with six LibDBIcon buttons). The default is open.
+-- minimap_ornaments.lua: the minimap face on the whole screen in the state RENDER_STATE names, for the ornament before and after pairs: rest (the face alone), hover (the pointer over the map, its button column showing) and open (the addon drawer opened from the column with six LibDBIcon buttons). The default is open.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local I = Hud.ICONS

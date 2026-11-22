@@ -1,14 +1,15 @@
--- test-unitframes-parity-r4b-review.lua: the round 4b review's probes: the dispel retry while auras are restricted, intermediate batch crafts, the dispel icon after a resize and totems beside a portrait at four screen sizes, a Bleed and the engine's icon tint, partial dispel APIs, the idle cast preview, chained spell ID lists and one-slot totem updates.
+-- test-unitframes-parity-r4b-review.lua: the round 4b review's probes: the dispel retry while auras are restricted, intermediate batch crafts, the dispel icon after a resize and totems beside a portrait at four screen sizes, a Bleed and the engine's icon tint, partial dispel APIs, the idle cast preview, chained spell ID lists and one-slot totem updates. test-unitframes-parity-r4b-review-frames.lua runs them on Frames.
+local frames = ... == "frames"
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
 local function Boot(width, height)
 	local reads = {}
-	local env, K, ns = U.New({
+	local env, K, ns = U.New({ frames = frames,
 		width = width,
 		height = height,
 		-- The dispel display and the totems beside a portrait are the plate's: the Medallions slab draws neither.
-		saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true, player = { style = "plate" } } } }, characters = {}, layouts = {} },
+		saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true, player = not frames and { style = "plate" } or nil } } }, characters = {}, layouts = {} },
 		setup = function(e)
 			e._recasts = 2
 			e.C_TradeSkillUI = { GetRemainingRecasts = function() return e._recasts end }
@@ -79,6 +80,7 @@ for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 
 	ns.Frames.Relayout(uf)
 	write("player.dispelIcon", "")
 	env._totems[1] = { name = "Searing Totem", start = 1, duration = 60, icon = 135824 }
+	if frames then write("player.style", "column") end
 	write("player.portrait", true)
 	write("player.totems", true)
 	local row
@@ -207,8 +209,8 @@ end)
 
 -- Chained spell ID lists resolve through each link and refresh every reader; a loop keeps each frame's own list.
 check("lists", function()
-	write("player.medallionsAuras", true)
-	write("player.medallionsAuraFilter", "both")
+	write(frames and "player.auras" or "player.medallionsAuras", true)
+	write(frames and "player.auraFilter" or "player.medallionsAuraFilter", "both")
 	write("focus.auraHidden", "333")
 	write("target.auraHidden", "222")
 	write("target.auraLists", "focus")
@@ -233,7 +235,7 @@ end)
 
 -- A merged batch keeps running through an intermediate craft's stop, lands on the last, and runs on a native span.
 check("craft batch", function()
-	local pcb = ns.CastBars.Inline("player")[1]
+	local pcb = (frames and ns.CastBars.Get or ns.CastBars.Inline)("player")[1]
 	local function craft(start, left)
 		env._recasts, env._time = left, start / 1000
 		env._units.player.cast = { name = "Bolt of Linen", texture = 135846, start = start, finish = start + 3000, spellID = 116 }

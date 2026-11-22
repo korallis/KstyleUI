@@ -66,4 +66,26 @@ for _, style in ipairs({ "medallions" }) do
 end
 Run("orbs", 1920, 1080, true)
 
+-- The card grows up in combat, where the guide cannot move, so it stands on its element's foot with the room above it
+-- (the review of #713: hung from the screen's top, a nine-line step in combat put the step's first line above the screen).
+for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 5120, height = 1440 }, { width = 3456, height = 2234, uiScale = 768 / 1080 } }) do
+	local R = dofile("Tools/regression/questcard_guide_env.lua")(screen)
+	local root = R.K.Scale.Root()
+	local function Rect(region) return Geometry.ScaledRect(region, R.env.UIParent, root) end
+	local top = Rect(root).top
+	R.env.SetCombat(true)
+	local lines = {}
+	for i = 1, 9 do lines[i] = { text = "Objective " .. i } end
+	R.rxp.fake.guide({ { index = 12, elements = lines } })
+	R.rxp.SetStep(1)
+	R.settle()
+	local what = screen.width .. "x" .. screen.height .. ", a nine-line step in combat: "
+	assert(Rect(R.ns.RestedXP.Chrome.Path(R.rxp.RXPFrame).cap).top <= top, what .. "the cap stays on the screen")
+	for e, row in ipairs(R.rxp.RXPFrame.CurrentStepFrame.framePool[1].elements) do
+		assert(Rect(row).top <= top, what .. "line " .. e .. " stays on the screen, its top " .. Rect(row).top .. " over " .. top)
+	end
+	R.env.SetCombat(false)
+	assert(#R.env._errors == 0 and R.K.ErrorCount() == 0, tostring(R.env._errors[1]))
+end
+
 print("skins restedxp combat grow ok")

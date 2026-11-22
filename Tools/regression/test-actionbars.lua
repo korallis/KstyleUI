@@ -357,4 +357,25 @@ do
 	assert(#ns.actionButtons > 0)
 end
 
+-- Under Frames bars 1 and 2 are twelve tray tiles at the KSTY-44 tray's pitch, the pet bar is three rows of four
+-- and the page keeps every tray control in one Tray section.
+do
+	local env, K, ns = AB.New()
+	AB.Enable(env, K)
+	K.Options.Write("HudStyle", "style", "frames")
+	K.Options.Write("ActionBars", "trayColumn", false)
+	local bar1 = ns.bars.bar1
+	local grid = K.Setup.Layouts.Grid("actionbars.bar1")
+	local size = K.Widgets.Snap(bar1.header, grid.size)
+	assert(near(bar1.holder:GetWidth(), K.Widgets.Snap(bar1.header, 11 * (grid.size + grid.spacing)) + size) and near(bar1.holder:GetHeight(), size), "bar 1 encloses twelve tray tiles at the KSTY-44 tray's pitch")
+	assert(near(ns.bars.pet.holder:GetWidth(), 129) and near(ns.bars.pet.holder:GetHeight(), 96), "the pet bar is three rows of four beside the tray")
+	local section, trays = nil, 0
+	for _, row in ipairs(K.Options.Get("ActionBars")) do
+		if row.type == "header" then section = row.label; if section == K.L["Tray"] then trays = trays + 1 end end
+		if row.key == "useTray" or row.key == "tray" or row.key == "trayColumn" then assert(section == K.L["Tray"], "keep every tray control in the same Tray section") end
+	end
+	assert(trays == 1, "the Action Bars page has one Tray section")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 print("action bars ok")

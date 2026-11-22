@@ -1,8 +1,9 @@
--- test-unitframes-parity-r3a.lua: parity round 3a (mini frames) keeps v0.2.8 looks and makes no pet cast bar until asked, then writes and applies raid marker size, happiness position, the pet cast bar with its width and height, hide when idle, copy auras from, buff icon zoom and the boss simple aura display, each on after its events, off back to the original state, and in the preview.
+-- test-unitframes-parity-r3a.lua: parity round 3a (mini frames) keeps v0.2.8 looks and makes no pet cast bar until asked, then writes and applies raid marker size, happiness position, the pet cast bar with its width and height, hide when idle, copy auras from, buff icon zoom and the boss simple aura display, each on after its events, off back to the original state, and in the preview. test-unitframes-parity-r3a-frames.lua runs them on Frames.
+local frames = ... == "frames"
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
-local env, K, ns = U.New({
+local env, K, ns = U.New({ frames = frames,
 	saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {}, layouts = {} },
 	setup = function(e)
 		e.C_PetInfo = { GetPetHappiness = function() return 3 end }
@@ -74,10 +75,17 @@ U.SetUnit(env, "pet", { name = "Wolf", level = 58, health = 1460, healthMax = 20
 write("pet.happiness", true)
 local badge = assert(pet.extraIcon, "happiness on makes the badge")
 local function resting() return select(2, badge:GetPoint(1)) == pet.icons.resting end
-assert(resting(), "the badge sits in the resting slot")
+local spot, gap
+if frames then
+	spot = W.LastCall(badge, "SetPoint")
+	assert(spot[1] == "BOTTOMRIGHT" and spot[3] == "TOPRIGHT" and spot[4] == 0 and spot[5] > 0, "the badge sits above the right end")
+	gap = spot[5]
+else
+	assert(resting(), "the badge sits in the resting slot")
+end
 write("pet.happinessPosition", "LEFT")
-local spot = W.LastCall(badge, "SetPoint")
-assert(spot[1] == "RIGHT" and spot[2] == pet.parent and spot[3] == "LEFT" and spot[5] == 0, "Left puts it beside the frame's left edge")
+spot = W.LastCall(badge, "SetPoint")
+assert(spot[1] == "RIGHT" and spot[2] == pet.parent and spot[3] == "LEFT" and (not frames or near(spot[4], -gap)) and spot[5] == 0, "Left puts it beside the frame's left edge")
 write("pet.happinessPosition", "TOPLEFT")
 spot = W.LastCall(badge, "SetPoint")
 assert(spot[1] == "BOTTOMLEFT" and spot[3] == "TOPLEFT", "Above the left end")
@@ -86,9 +94,18 @@ assert(badge:IsShown() and W.LastCall(badge, "SetPoint")[1] == "BOTTOMLEFT", "a 
 write("pet.style", "plate")
 assert(W.LastCall(badge, "SetPoint")[1] == "BOTTOMLEFT", "a plate keeps the chosen place")
 write("pet.happinessPosition", "")
-assert(resting(), "Standard on a plate restores the resting slot")
+if frames then
+	assert(W.LastCall(badge, "SetAllPoints")[1] == pet.icons.resting, "Standard on a plate restores the resting slot")
+else
+	assert(resting(), "Standard on a plate restores the resting slot")
+end
 write("pet.style", "lumen")
-assert(resting(), "Standard on a slab restores the resting slot")
+if frames then
+	spot = W.LastCall(badge, "SetPoint")
+	assert(spot[1] == "BOTTOMRIGHT" and spot[3] == "TOPRIGHT", "Standard on a row restores the spot above the right end")
+else
+	assert(resting(), "Standard on a slab restores the resting slot")
+end
 write("pet.happiness", false)
 clean("happiness")
 
@@ -143,7 +160,7 @@ assert(cb.active and U.Shown(env, cb.text):find("BITE", 1, true), "a cast fills 
 env._units.pet.cast = nil
 env.FireEvent("UNIT_SPELLCAST_FAILED", "pet", "Cast-3", 17253)
 env.RunTimers()
-assert(cb.frame:IsShown() and U.Shown(env, cb.text) == "", "after the failed flash the empty track returns")
+assert(cb.frame:IsShown() and U.Shown(env, cb.text) == "" and (not frames or not cb.label:IsShown()), "after the failed flash the empty track returns")
 env.FireEvent("UNIT_PET", "player")
 assert(cb.frame:IsShown() and not cb.active, "a pet change keeps the idle track")
 ns.CastBars.Disable()
@@ -157,11 +174,20 @@ U.SetUnit(env, "boss1", { name = "Magmatus", level = -1, classification = "world
 env.FireEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
 env.RunTimers()
 local boss = Frames.Get("boss").views[1]
-assert(not boss.castbar.frame:IsShown(), "an idle boss bar hides")
-write("boss.castbarHideIdle", false)
-assert(boss.castbar.frame:IsShown(), "an idle boss bar shows its track")
-write("boss.castbarHideIdle", true)
-assert(not boss.castbar.frame:IsShown(), "on hides the idle boss bar again")
+if frames then
+	local rest = boss.panel:GetHeight()
+	assert(not boss.castbar.frame:IsShown() and near(rest, K.Widgets.Snap(boss.parent, boss.geometry.rest)), "an idle boss card folds to its resting height")
+	write("boss.castbarHideIdle", false)
+	assert(boss.castbar.frame:IsShown() and near(boss.panel:GetHeight(), K.Widgets.Snap(boss.parent, boss.geometry.glass.h)), "an idle boss bar keeps the card open")
+	write("boss.castbarHideIdle", true)
+	assert(not boss.castbar.frame:IsShown() and near(boss.panel:GetHeight(), rest), "on folds the card again")
+else
+	assert(not boss.castbar.frame:IsShown(), "an idle boss bar hides")
+	write("boss.castbarHideIdle", false)
+	assert(boss.castbar.frame:IsShown(), "an idle boss bar shows its track")
+	write("boss.castbarHideIdle", true)
+	assert(not boss.castbar.frame:IsShown(), "on hides the idle boss bar again")
+end
 clean("idle")
 
 -- Copy auras from: the boss takes the target's look, follows its changes, keeps its own place; no loop.
@@ -176,7 +202,7 @@ assert(near(sizes(entries), K.Widgets.Snap(boss.auras.host, Settings.Value("targ
 write("target.auraSize", 32)
 assert(near(sizes(entries), K.Widgets.Snap(boss.auras.host, 32), 0.01), "a change on the target reaches the boss")
 write("target.auraColumns", 5)
-assert(Settings.Value("boss", "auraColumns") == 5 and boss.auras.container._groups.debuffs.max == 5 * Settings.Value("target", "auraRows"), "any target aura change restyles the copying boss")
+assert(Settings.Value("boss", "auraColumns") == 5 and boss.auras.container._groups.debuffs.max == 5 * (frames and 1 or Settings.Value("target", "auraRows")), "any target aura change restyles the copying boss")
 write("target.auraColumns", 4)
 write("target.auraCopy", "boss")
 assert(Settings.Value("target", "auraSize") == 22 and Settings.Value("boss", "auraSize") == 32, "copying both ways reads each frame's own look once")
@@ -264,6 +290,7 @@ assert(near(select(2, tile:GetSize()), K.Widgets.Snap(tile, Settings.Value("targ
 clean("preview")
 
 -- Medallions: the pet's medallion reaches below its slab, so the pet cast bar starts under the medallion.
+if frames then K.Options.Write("HudStyle", "style", "medallions") end
 env.RunTimers()
 local medal = pet.geometry.medal
 assert(medal and medal.y + medal.h > select(2, pet.button:GetSize()), "the pet medallion hangs below the slab")
@@ -289,6 +316,7 @@ spot = W.LastCall(pet.extraIcon, "SetPoint")
 assert(spot[1] == "BOTTOMLEFT" and spot[5] >= -medal.y + 1.5, "Above the left end clears the medallion's top")
 write("pet.happinessPosition", "")
 write("pet.happiness", false)
+if frames then K.Options.Write("HudStyle", "style", "frames") end
 env.RunTimers()
 clean("medallions")
 print("test-unitframes-parity-r3a: ok")

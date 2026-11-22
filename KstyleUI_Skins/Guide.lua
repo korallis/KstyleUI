@@ -1,4 +1,4 @@
--- Guide.lua: the guide slot of the story rail, shared by every addon that draws a guide window: each skin offers its guide here, and the guide shown last holds the slot.
+-- Guide.lua: the guide card in the top left corner, shared by every addon that draws a guide window: each skin offers its guide here, and the guide shown last holds the card.
 local _, ns = ...
 
 local K = KstyleUI

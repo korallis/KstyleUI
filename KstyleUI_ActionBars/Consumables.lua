@@ -46,16 +46,17 @@ end
 
 function C.Dock()
 	if not holder or InCombatLockdown() or not Config().attached then return end
+	local style = K.HudStyle.Current()
 	local key = "unitframes.player"
 	local player = K.Layout.Element(key)
 	if not player then return end
 	local layouts, class, name = K.Setup.Layouts, K.Scale.Aspect(), K.Layout.Setting("preset")
-	local position = layouts.Attached(name, KEY, class)
-	local reference = layouts.Place(name, "medallions", class, key)
+	local position = layouts.Attached(name, KEY, class, style)
+	local reference = layouts.Place(name, style, class, key)
 	if not position or not reference then return end
-	local width = layouts.ConsumableFootprint(class)
+	local width = layouts.ConsumableFootprint(class, style)
 	local frame = player.frame
-	local defaultWidth = (layouts.Aspect(class, "medallions", name, key) or layouts.Style(name, key) or layouts.Element(key)).width
+	local defaultWidth = (layouts.Aspect(class, style, name, key) or layouts.Style(name, key, style) or layouts.Element(key)).width
 	holder:ClearAllPoints()
 	holder:SetPoint("BOTTOMRIGHT", frame, "BOTTOMLEFT", position.x + width / 2 - reference.x + defaultWidth / 2, position.y - reference.y)
 end
@@ -105,6 +106,10 @@ local function Build()
 end
 
 function C.Apply()
+	local on = ns.running and Config().enabled
+	for _, event in ipairs({ "BAG_UPDATE_DELAYED", "SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN" }) do
+		if on then K.Events.Register(OWNER, event, event == "BAG_UPDATE_DELAYED" and C.Refresh or C.Update) else K.Events.Unregister(OWNER, event) end
+	end
 	if InCombatLockdown() then
 		if not queued then queued = true; K.Combat.Queue(C.Apply) end
 		return
@@ -118,8 +123,8 @@ function C.Apply()
 	C.selected, C.counts = selected, counts
 	if not holder and #selected == 0 and cfg.hideEmpty then applying = false; return end
 	Build()
-	local layouts = K.Setup.Layouts
-	local rows, size, gap = layouts.ConsumableGrid()
+	local style, layouts = K.HudStyle.Current(), K.Setup.Layouts
+	local rows, size, gap = layouts.ConsumableGrid(nil, style)
 	local capacity = cfg.buttons or 12
 	local width, height, columns, used = ns.GridSize(capacity, rows, size, gap)
 	holder:SetSize(width, height)
@@ -144,7 +149,7 @@ function C.Apply()
 		ns.StyleTextsFor(b, "consumables")
 		b:Restyle()
 		b:SetAccent(ns.AccentRGB())
-		K.Widgets.MedallionsIcon(b, true)
+		K.Widgets.MedallionsIcon(b, style == "medallions")
 		local col, row
 		local position = cfg.reverse and occupied + 1 - i or i
 		if cfg.orientation == "VERTICAL" then row, col = (position - 1) % used, math.floor((position - 1) / used)
@@ -185,15 +190,13 @@ end
 
 function C.Enable()
 	dirty = true
-	K.Events.Register(OWNER, "BAG_UPDATE_DELAYED", C.Refresh)
-	for _, event in ipairs({ "SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN" }) do K.Events.Register(OWNER, event, C.Update) end
 	K.Events.Register(OWNER, "UPDATE_BINDINGS", C.Bindings)
 	K.Events.Register(OWNER, "GET_ITEM_INFO_RECEIVED", C.TravelChanged)
 	K.Events.Register(OWNER, "SPELLS_CHANGED", C.TravelChanged)
 	K.Callbacks.Register("ModuleChanged", OWNER, function(_, name) if name == "UnitFrames" then C.Apply() end end)
 	K.Callbacks.Register("SettingChanged", OWNER, function(_, module) if module == "ActionBars" then C.Refresh() end end)
 	K.Callbacks.Register("ProfileChanged", OWNER, C.Refresh)
-	for _, event in ipairs({ "ScaleChanged", "ThemeChanged" }) do K.Callbacks.Register(event, OWNER, C.Apply) end
+	for _, event in ipairs({ "HudStyleChanged", "ScaleChanged", "ThemeChanged" }) do K.Callbacks.Register(event, OWNER, C.Apply) end
 	K.Callbacks.Register("LayoutChanged", OWNER, function(_, key)
 		if key == "unitframes.player" or key == "actionbars.bar1" or key == KEY then K.Combat.Queue(C.Dock) end
 	end)

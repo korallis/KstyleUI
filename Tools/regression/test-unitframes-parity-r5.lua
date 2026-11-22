@@ -1,8 +1,9 @@
--- test-unitframes-parity-r5.lua: parity round 5 keeps v0.2.8 frames and makes nothing new, then turns on, probes after events and turns off the spell target's own text, the global cooldown fill, the detached power bar and the buff block apart, with its fallbacks, and checks the preview.
+-- test-unitframes-parity-r5.lua: parity round 5 keeps v0.2.8 frames and makes nothing new, then turns on, probes after events and turns off the spell target's own text, the global cooldown fill, the detached power bar and the buff block apart, with its fallbacks, and checks the preview. test-unitframes-parity-r5-frames.lua runs them on Frames.
+local frames = ... == "frames"
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
-local env, K, ns = U.New({
+local env, K, ns = U.New({ frames = frames,
 	saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {}, layouts = {} },
 	setup = function(e)
 		e.UnitShouldDisplaySpellTargetName = function() return e._castTarget ~= nil end
@@ -51,7 +52,7 @@ for _, key in ipairs({ "target.castbarTargetPlace", "target.castbarTargetSize", 
 	assert(schema[key], key .. " has a row")
 end
 assert(not schema["target.castbarGcd"], "the global cooldown fill is the player's")
-local pcb, tcb = CastBars.Inline("player")[1], CastBars.Inline("target")[1]
+local pcb, tcb = (frames and CastBars.Get or CastBars.Inline)("player")[1], CastBars.Inline("target")[1]
 assert(pcb.targetText == nil and tcb.targetText == nil, "no spell target text exists by default")
 local focus = Frames.Get("focus").views[1]
 for _, cached in pairs(focus.auras.styles) do
@@ -120,9 +121,18 @@ write("target.castbarTargetPlace", "")
 cast()
 assert(not t:IsShown() and near(tcb.text:GetWidth(), full) and U.Shown(env, tcb.text):find(" - Valerin", 1, true), "back with the spell name, the name's room restored")
 write("target.castbarTarget", false)
+local fcb = frames and Frames.Get("focus").views[1].castbar
 write("edit", "focus")
 write("focus.castbarTarget", true)
-assert(schema["focus.castbarTargetPlace"].showWhen(K.Store.Module("UnitFrames")), "the focus slab's cast bar offers the place row")
+if frames then
+	local placeRow = schema["focus.castbarTargetPlace"]
+	assert(fcb.line and not placeRow.showWhen(K.Store.Module("UnitFrames")), "the focus card's thin cast line hides the place row")
+	write("focus.style", "plate")
+	assert(not fcb.line and placeRow.showWhen(K.Store.Module("UnitFrames")), "a plate cast bar offers it")
+	write("focus.style", "lumen")
+else
+	assert(schema["focus.castbarTargetPlace"].showWhen(K.Store.Module("UnitFrames")), "the focus slab's cast bar offers the place row")
+end
 write("edit", "player")
 write("focus.castbarTarget", false)
 clean("spell target")
@@ -183,8 +193,8 @@ env.FireEvent("SPELL_UPDATE_COOLDOWN")
 assert(env._cooldownReads == reads and not pcb.gcd and not pcb.frame:IsShown(), "off stops hearing the cooldowns")
 clean("global cooldown")
 
--- Detached power bar on the plate: apart below or above the bars at its own width, the frame's size and everything around it unchanged.
-write("player.style", "plate")
+-- Detached power bar on the plate (on Frames, the column): apart below or above the bars at its own width, the frame's size and everything around it unchanged.
+if not frames then write("player.style", "plate") end
 local player = Frames.Get("player").views[1]
 local holder = Frames.Get("player").holder
 local w0, h0 = holder:GetSize()
@@ -222,6 +232,7 @@ assert(near(g.power.y, -5) and g.health.y >= ph + 4 - 1e-6, "above: on top, the 
 write("player.style", "plate")
 g = player.geometry
 assert(g.form == "plate" and near(g.power.y, -5) and g.glass.y >= ph + 4 - 1e-6, "a plate frame detaches it too")
+if frames then write("player.style", "column") end
 for _, key in ipairs({ "powerDetachWidth", "powerDetachX", "powerDetachY" }) do write("player." .. key, 0) end
 write("player.powerDetach", "")
 assert(W.LastCall(player.power, "SetFrameStrata")[1] == player.power:GetParent():GetFrameStrata(), "off returns the bar to the frame's strata")
@@ -234,7 +245,7 @@ local after = rects(player.geometry)
 for key, r in pairs(before) do
 	for i = 1, 4 do assert(near(after[key][i], r[i]), "off restores the frame's " .. key) end
 end
-write("player.style", "lumen")
+if not frames then write("player.style", "lumen") end
 local slab = Geometry.Frame({ form = "slab", kind = "player", power = true, powerHeight = 7, powerDetach = "BELOW", powerDetachWidth = 0, powerDetachX = 0, powerDetachY = 0, name = true, healthText = "none", powerText = "none" }, 200, 58)
 assert(not slab.power or slab.power.y < 58 - 7, "Medallions slabs keep their own power bar")
 clean("detached power")
@@ -293,8 +304,13 @@ env._restricted = false
 env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED")
 env.RunTimers()
 assert(target.auras.buff and not target.auras.buffWait, "it is made when they are readable")
-write("target.auraBuffPlace", "ABOVE")
-assert(not target.auras.buff, "the target's debuffs above its slab count as the side above")
+if frames then
+	write("target.auraBuffPlace", "RIGHT")
+	assert(not target.auras.buff, "the target's debuffs right of its portrait count as the right side")
+else
+	write("target.auraBuffPlace", "ABOVE")
+	assert(not target.auras.buff, "the target's debuffs above its slab count as the side above")
+end
 write("target.auraBuffPlace", "")
 write("target.auraFilter", "mine")
 write("focus.auraBuffPlace", "")
@@ -307,10 +323,15 @@ write("edit", "player")
 write("player.style", "plate")
 local pane = ns.Preview.Build(env.UIParent)
 local pview, pc = pane.views.player, pane.casts.player
-assert(not pview.geometry.power, "the compact plate preview has no power bar of its own")
+local plain = frames and pview.geometry.power.y
+if not frames then assert(not pview.geometry.power, "the compact plate preview has no power bar of its own") end
 write("player.powerDetach", "ABOVE")
 pane:Refresh()
-assert(pview.geometry.power and pview.geometry.power.y <= 0 + 1e-6, "the preview detaches the power bar")
+if frames then
+	assert(pview.geometry.power.y < plain and pview.geometry.power.y <= 0 + 1e-6, "the preview detaches the power bar")
+else
+	assert(pview.geometry.power and pview.geometry.power.y <= 0 + 1e-6, "the preview detaches the power bar")
+end
 write("player.powerDetach", "")
 write("player.castbarGcd", true)
 pane:Refresh()

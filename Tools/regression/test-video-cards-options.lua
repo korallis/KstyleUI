@@ -49,7 +49,7 @@ local function Options(screen)
 				assert(type(item.help) == "string" and item.help ~= "", "issue 11: explain each task's destination")
 			end
 		end
-		assert(tasks == 5, "issue 11: keep the five existing shortcuts")
+		assert(tasks == 6, "issue 11: keep the six existing shortcuts")
 	end
 	K.Options.Open("General"); Settle()
 	for i, item in ipairs(ns.Window.State().items) do

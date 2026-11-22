@@ -1,4 +1,4 @@
--- test-rails-composed.lua: story cards keep independent heights and an eight-unit gutter, and a quest can continue under the viewport's lower fade.
+-- test-rails-composed.lua: the guide card in the top left corner and the quest card on the story rail keep independent heights, aligning the story cards leaves the quest card alone, and a quest can continue under the viewport's lower fade.
 local Boot = dofile("Tools/regression/questcard_guide_env.lua")
 local G = dofile("Tools/regression/geometry.lua")
 local Minimap = dofile("Tools/regression/minimap_env.lua")
@@ -25,13 +25,12 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 5120, heigh
 	local q, g = Rect(quest), Rect(guide)
 	local pixel = K.Scale.Pixel(1) + 0.01
 	local composed = ns.QuestCard.Parts()
-	assert(composed.cap:IsShown() and ns.QuestCard.Rows()[2]:IsShown(), "lay quests out again at the composed height, with the cap and next quest visible")
-	assert(g.bottom > q.bottom + pixel, "the short guide ends above the taller quest card's foot")
-	assert(math.abs(g.left - q.right - 8) <= pixel, "the tall quest column stands left of the guide with one eight-unit gutter")
+	assert(composed.cap:IsShown() and ns.QuestCard.Rows()[2]:IsShown(), "lay quests out with the cap and next quest visible")
+	assert(g.right < q.left, "the guide card stands left of the quest card")
 	K.Options.Write("Skins", "restedXP.compose", false)
 	R.settle()
-	local oldQuest, oldGuide = Rect(quest), Rect(guide)
-	assert(math.abs(oldGuide.left - oldQuest.right - K.Setup.Layouts.STORY_GAP) <= pixel, "turning story alignment off restores the previous gutter")
+	local oldQuest = Rect(quest)
+	assert(math.abs(oldQuest.left - q.left) <= pixel and math.abs(oldQuest.bottom - q.bottom) <= pixel, "aligning the story cards leaves the quest card where and as tall as it was")
 	K.Options.Write("Skins", "restedXP.compose", true)
 	R.settle()
 	ns.QuestCard.Place(root, q.left, q.top, q.right - q.left, 125)

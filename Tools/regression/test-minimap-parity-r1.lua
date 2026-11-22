@@ -1,5 +1,7 @@
--- test-minimap-parity-r1.lua: the first EllesmereUI parity round for the minimap: each new option keeps today's default, applies switched on, refreshes on its events and restores when switched off.
+-- test-minimap-parity-r1.lua: the first EllesmereUI parity round for the minimap: each new option keeps today's default, applies switched on, refreshes on its events and restores when switched off; given "frames" it checks the Frames HUD style.
+local isFrames = ... == "frames"
 local M = dofile("Tools/regression/minimap_env.lua")
+if isFrames then M = dofile("Tools/regression/frames_lib.lua")(M) end
 local Scene = dofile("Tools/render/scene.lua")
 local W = M.W
 
@@ -219,16 +221,20 @@ K.Options.Write("Minimap", "column.hover", true)
 local zp3, zrel3, zrelp3, zx3, zy3 = point(face.zone)
 assert(zp3 == zp and zrel3 == zrel and zrelp3 == zrelp and zx3 == zx and zy3 == zy, "the usual place comes back exactly")
 local cp, crel, crelp = point(face.clock)
-assert(cp == "RIGHT" and crel == face.plaques[2] and crelp == "RIGHT", "and the clock returns to its seat on the row plaque")
+if isFrames then
+	assert(cp == "RIGHT" and crel == face.card and crelp == "BOTTOMRIGHT", "and the clock returns under the card")
+else
+	assert(cp == "RIGHT" and crel == face.plaques[2] and crelp == "RIGHT", "and the clock returns to its seat on the row plaque")
 
--- Medallions: a moved caption takes its plaque away; back home the plaque returns.
-M.Settle(env)
-assert(face.plaques[1].chrome.fill[5]:IsShown(), "the zone plaque shows at its usual place")
-K.Options.Write("Minimap", "zone.position", "TOP")
-assert(not face.plaques[1].chrome.fill[5]:IsShown(), "a zone inside the map leaves no empty plaque")
-K.Options.Write("Minimap", "zone.position", "")
-assert(face.plaques[1].chrome.fill[5]:IsShown(), "and the plaque comes back with it")
-M.Settle(env)
+	-- Medallions: a moved caption takes its plaque away; back home the plaque returns.
+	M.Settle(env)
+	assert(face.plaques[1].chrome.fill[5]:IsShown(), "the zone plaque shows at its usual place")
+	K.Options.Write("Minimap", "zone.position", "TOP")
+	assert(not face.plaques[1].chrome.fill[5]:IsShown(), "a zone inside the map leaves no empty plaque")
+	K.Options.Write("Minimap", "zone.position", "")
+	assert(face.plaques[1].chrome.fill[5]:IsShown(), "and the plaque comes back with it")
+	M.Settle(env)
+end
 
 -- Clock accent and lockouts in the clock tooltip.
 K.Options.Write("Minimap", "clock.mode", "local12")
@@ -352,15 +358,17 @@ assert(env._cvarWrites[1] == "rotateMinimap=0", "disabling turns rotation off")
 assert(perfTicker.cancelled, "and stops the readout's ticker")
 clean(env, K, "disable")
 -- A profile saved with every caption moved loads cleanly on each Medallions frame.
-for _, frame in ipairs({ "medallion", "ring", "classic" }) do
-	local fresh = { version = 42, profiles = { Default = { Minimap = { enabled = true, frame = frame,
-		zone = { position = "TOP" }, clock = { position = "BOTTOMRIGHT" }, coords = { position = "BOTTOMRIGHT" } } } },
-		characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
-	local fenv, fK, fns = M.New({ saved = fresh, position = { 0.4532, 0.6218 }, setup = instance })
-	M.Settle(fenv)
-	clean(fenv, fK, "moved captions on the " .. frame .. " frame")
-	assert(point(fns.Map.face.zone) == "TOP" and not fns.Map.face.plaques[1].chrome.fill[5]:IsShown(), "the " .. frame .. " zone loads inside the map")
-	assert(not fns.Map.face.plaques[2].chrome.fill[5]:IsShown(), "and the " .. frame .. " row plaque hides with the clock and coordinates moved")
+if not isFrames then
+	for _, frame in ipairs({ "medallion", "ring", "classic" }) do
+		local fresh = { version = 42, profiles = { Default = { Minimap = { enabled = true, frame = frame,
+			zone = { position = "TOP" }, clock = { position = "BOTTOMRIGHT" }, coords = { position = "BOTTOMRIGHT" } } } },
+			characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+		local fenv, fK, fns = M.New({ saved = fresh, position = { 0.4532, 0.6218 }, setup = instance })
+		M.Settle(fenv)
+		clean(fenv, fK, "moved captions on the " .. frame .. " frame")
+		assert(point(fns.Map.face.zone) == "TOP" and not fns.Map.face.plaques[1].chrome.fill[5]:IsShown(), "the " .. frame .. " zone loads inside the map")
+		assert(not fns.Map.face.plaques[2].chrome.fill[5]:IsShown(), "and the " .. frame .. " row plaque hides with the clock and coordinates moved")
+	end
 end
 
 -- Review of a6c2c482: each probe below failed before its fix.

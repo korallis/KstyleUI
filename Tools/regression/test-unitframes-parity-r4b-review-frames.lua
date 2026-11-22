@@ -1,0 +1,2 @@
+-- test-unitframes-parity-r4b-review-frames.lua: on Frames, the round 4b review's probes: the dispel retry while auras are restricted, intermediate batch crafts, the dispel icon after a resize and totems beside a portrait at four screen sizes, a Bleed and the engine's icon tint, partial dispel APIs, the idle cast preview, chained spell ID lists and one-slot totem updates.
+assert(loadfile("Tools/regression/test-unitframes-parity-r4b-review.lua"))("frames")

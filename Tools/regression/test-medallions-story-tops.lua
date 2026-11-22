@@ -1,4 +1,4 @@
--- test-medallions-story-tops.lua: sibling story cards align below the minimap plaque at the standard gap, with saved positions left alone.
+-- test-medallions-story-tops.lua: the quest card aligns below the minimap plaque at the standard gap and the guide card stands in the top left corner above the party frames, with saved positions left alone.
 local Boot = dofile("Tools/regression/questcard_guide_env.lua")
 local G = dofile("Tools/regression/geometry.lua")
 local M = dofile("Tools/regression/minimap_env.lua")
@@ -18,12 +18,14 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 		local plaque = Rect(env._addons.KstyleUI_Minimap.Map.face.plaques[2])
 		local pixel, gap = K.Scale.Pixel(1) + 0.01, K.Setup.Layouts.STORY_GAP
 		local label = frame .. " " .. screen[1] .. "x" .. screen[2]
-		assert(math.abs(quest.top - guide.top) <= pixel, label .. ": top-align the sibling story cards")
-		for _, card in ipairs({ quest, guide }) do
-			local clearance = plaque.bottom - card.top
-			assert(clearance >= gap - 2 * pixel and clearance <= gap + 4,
-				label .. ": leave the standard sixteen-unit gap below the coordinates plaque, got " .. clearance)
-		end
+		local clearance = plaque.bottom - quest.top
+		assert(clearance >= gap - 2 * pixel and clearance <= gap + 4,
+			label .. ": leave the standard sixteen-unit gap below the coordinates plaque, got " .. clearance)
+		local rw, rh = K.Layout.RootSize()
+		local left, bottom, width, height = K.Layout.Rect("skins.guide")
+		local margin = K.Tokens.Size("screenMargin")
+		assert(left >= margin - pixel and left + width < rw / 2 and math.abs(bottom + height - (rh - margin)) <= pixel and guide.right < quest.left,
+			label .. ": the guide card stands in the top left corner, got " .. left .. ", " .. bottom + height)
 		R.rxp.RXPFrame:Hide()
 		env._loaded.RXPGuides = nil
 		K.Callbacks.Fire("SettingChanged", "Skins", "restedXP.rail")
@@ -44,4 +46,4 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 		assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 	end
 end
-print("Medallions story tops ok: 24 frame/screen/guide cases and saved positions")
+print("Medallions story tops ok: 12 frame/screen cases and saved positions")

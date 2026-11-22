@@ -441,11 +441,12 @@ end
 function Profiles.FromPreset(layout, name)
 	local setup = K.Setup
 	if not (setup and setup.Layouts.Get(layout)) then return false, L["Choose a preset."] end
+	local style = K.HudStyle.Current()
 	local ok, result = Store.CreateProfile(name)
 	if not ok then return false, result end
 	Store.SetProfile(result)
 	local choice = setup.NewChoice(true)
-	choice.layout = layout
+	choice.layout, choice.hudStyle = layout, style
 	return setup.Apply(choice), result
 end
 
@@ -467,19 +468,24 @@ function HotkeyButton(i)
 	end)
 end
 
+local function Keys()
+	local keys = Store.IsLoaded() and Store.Account().profileKeys
+	return type(keys) == "table" and keys or {}
+end
+
 function Profiles.Hotkey(i)
-	return Store.IsLoaded() and (Store.Account().profileKeys or {})[i] or ""
+	return Keys()[i] or ""
 end
 
 function Profiles.SetHotkey(i, name)
-	local keys = Store.Account().profileKeys or {}
+	local keys = Keys()
 	keys[i] = name ~= "" and name or nil
 	Store.Account().profileKeys = next(keys) and keys or nil
 	if keys[i] then HotkeyButton(i) end
 end
 
 K.Events.Register("ProfileKeys", "PLAYER_LOGIN", function()
-	for i in pairs(Store.IsLoaded() and Store.Account().profileKeys or {}) do HotkeyButton(i) end
+	for i in pairs(Keys()) do HotkeyButton(i) end
 end)
 
 K.API = {}
