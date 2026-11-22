@@ -4,6 +4,7 @@ local Fake = dofile("Tools/regression/zygor_fake.lua")
 local Quests = dofile("Tools/regression/quests_fake.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
 local Measure = dofile("Tools/regression/databars_env.lua")
+local Budget = dofile("Tools/regression/path_budget.lua")
 
 local function Boot(opts)
 	opts = opts or {}
@@ -113,6 +114,15 @@ do
 	local ar, ag = arrow.arrow.arr:GetVertexColor()
 	assert(math.abs(ar - (K.Tokens.Color("textEmphasis"))) < 0.01 and ag > 0.5, "the waypoint arrow is drawn in the theme's ink, not Zygor's red-to-green")
 	assert(arrow.arrow.arrspecular:GetAlpha() == 0, "Zygor's arrow sheen is off")
+	-- Zygor recolours the arrow every frame (ArrowSkin.lua:43): neither addon writes its colour or sheen again.
+	local arr, sheen = arrow.arrow.arr, arrow.arrow.arrspecular
+	local calls = #arr._calls + #sheen._calls
+	for _ = 1, 60 do
+		arrow:ShowTraveling()
+	end
+	local writes = #arr._calls + #sheen._calls - calls
+	assert(writes == 0, string.format("60 ShowTraveling frames made %d arrow colour and alpha writes; pin the theme's colour once (Pin in KstyleUI_Skins/Addons/Zygor.lua) instead of answering every frame", writes))
+	assert(math.abs(arr:GetVertexColor() - (K.Tokens.Color("textEmphasis"))) < 0.01 and sheen:GetAlpha() == 0, "the arrow stays in the theme's ink without its sheen")
 	env.ZygorGuidesViewer.Pointer:SetFontSize(14)
 	local face, height = arrow.title:GetFont()
 	assert(face == ns.Style.Font("body") and math.abs(height - 14) < 0.5, "the arrow's text keeps Zygor's size in the theme's face")
@@ -150,15 +160,28 @@ do
 	env.RunTimers()
 	assert(zygor.writes.font == fonts, string.format("a repaint sets no font again, %d new", zygor.writes.font - fonts))
 	assert(zygor.writes.text == texts, string.format("a repaint rewrites no text, %d new", zygor.writes.text - texts))
-	-- Zygor re-anchors its tabs on a 0.01 s timer (Tabs.lua:19): a hundred passes write no font.
-	local tab = env.ZygorGuidesViewer.Tabs.Pool[1].Text
-	local tabFont = tab:GetFont()
-	assert(tabFont == path, "a guide tab takes KstyleUI's face")
+	-- Zygor re-anchors its tabs on a 0.01 s timer (Tabs.lua:19): a hundred passes write no font and cost next to nothing.
+	local tabs = env.ZygorGuidesViewer.Tabs
+	local tab = tabs.Pool[1].Text
+	assert(tab:GetFont() == path, "a guide tab takes KstyleUI's face")
 	local before = tab._fontWrites
-	for _ = 1, 100 do
-		env.ZygorGuidesViewer.Tabs:ReanchorTabs()
-	end
+	local cost = Budget.Count(env, function()
+		for _ = 1, 100 do
+			tabs:ReanchorTabs()
+		end
+	end)
 	assert(tab._fontWrites == before, string.format("Zygor's tab timer causes no font writes, %d new", tab._fontWrites - before))
+	Budget.Check(cost, 15000, 0, "100 ticks of Zygor's tab timer: return from the ReanchorTabs hook unless a tab is new (NewTabs in KstyleUI_Skins/Addons/Zygor.lua)")
+	-- A tab Zygor adds takes the face on its next pass; a font change reaches every tab without one.
+	local added = zygor.frame:CreateFontString(nil, "OVERLAY")
+	added:SetFont("Fonts\\FRIZQT__.TTF", 12)
+	tabs.Pool[2] = { Text = added }
+	tabs:ReanchorTabs()
+	assert(added:GetFont() == path, "a tab Zygor adds takes KstyleUI's face")
+	local face = K.Tokens.FontPath("CinzelSemiBold")
+	K.Options.Write("Skins", "text.font", face)
+	env.RunTimers()
+	assert(tab:GetFont() == face and added:GetFont() == face, string.format("the tabs follow the skins' font, %s", tostring(tab:GetFont())))
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
@@ -202,6 +225,14 @@ do
 	env.RunTimers()
 	assert(not K.Skin.Parts(zygor.frame.Border).backdrop:IsShown(), "the KstyleUI card goes when the skin is switched off")
 	assert(zygor.style.WindowBackdropColor[1] == 1, "Zygor's own window colour is put back")
+	local arrow = zygor.arrow.arrow
+	zygor.arrow:ShowTraveling()
+	local r, g = arrow.arr:GetVertexColor()
+	assert(r == 1 and g == 0 and arrow.arrspecular:GetAlpha() == 0.7, "Zygor's own arrow colour and sheen come back")
+	K.Options.Write("Skins", "zygor.enabled", true)
+	env.RunTimers()
+	zygor.arrow:ShowTraveling()
+	assert(math.abs(arrow.arr:GetVertexColor() - (K.Tokens.Color("textEmphasis"))) < 0.01 and arrow.arrspecular:GetAlpha() == 0, "switched back on, the arrow is in the theme's ink again")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 

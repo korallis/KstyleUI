@@ -527,6 +527,8 @@ local function Caption(z, panel)
 	caption:Show()
 end
 
+local facedTabs = setmetatable({}, { __mode = "k" })
+
 local function Fonts(z)
 	if not state.saved then
 		return
@@ -535,7 +537,23 @@ local function Fonts(z)
 	Face(IsTable(controls) and IsTable(controls.StepNum) and controls.StepNum.Step)
 	local pool = IsTable(z.Tabs) and z.Tabs.Pool
 	for _, tab in pairs(IsTable(pool) and pool or {}) do
-		Face(IsTable(tab) and tab.Text)
+		local text = IsTable(tab) and tab.Text
+		Face(text)
+		if IsTable(text) then
+			facedTabs[text] = true
+		end
+	end
+end
+
+local function NewTabs(z)
+	local pool = z.Tabs.Pool
+	if not IsTable(pool) then
+		return
+	end
+	for _, tab in pairs(pool) do
+		if IsTable(tab) and IsTable(tab.Text) and not facedTabs[tab.Text] then
+			return Fonts(z)
+		end
 	end
 end
 
@@ -599,13 +617,24 @@ local function ArrowText(arrow)
 	end
 end
 
-local function FlatArrow(frame)
-	local arrow = state.saved and IsTable(frame) and frame.arrow
-	if IsTable(arrow) and IsTable(arrow.arr) then
-		arrow.arr:SetVertexColor(Tokens.Color("textEmphasis"))
+local function Quiet() end
+
+local function Pin(texture, method, ...)
+	if not IsTable(texture) then
+		return
 	end
-	if IsTable(arrow) and IsTable(arrow.arrspecular) then
-		arrow.arrspecular:SetAlpha(0)
+	texture.SetVertexColor, texture.SetAlpha = nil, nil
+	if state.saved then
+		texture[method](texture, ...)
+		texture.SetVertexColor, texture.SetAlpha = Quiet, Quiet
+	end
+end
+
+local function FlatArrow(frame)
+	local arrow = IsTable(frame) and frame.arrow
+	if IsTable(arrow) then
+		Pin(arrow.arr, "SetVertexColor", Tokens.Color("textEmphasis"))
+		Pin(arrow.arrspecular, "SetAlpha", 0)
 	end
 end
 
@@ -615,12 +644,7 @@ local function Arrow(z)
 	if not IsTable(frame) then
 		return
 	end
-	if frame ~= state.arrow then
-		state.arrow = frame
-		if type(frame.ShowTraveling) == "function" then
-			hooksecurefunc(frame, "ShowTraveling", T("ShowTraveling", FlatArrow))
-		end
-	end
+	state.arrow = frame
 	if not state.arrowFonts and type(pointer.SetFontSize) == "function" then
 		state.arrowFonts = true
 		hooksecurefunc(pointer, "SetFontSize", T("SetFontSize", function() ArrowText(state.arrow) end))
@@ -691,8 +715,9 @@ local function Paint(z)
 			hooksecurefunc(z.Frame, "ApplySkin", T("ApplySkin", function() Fonts(z) end))
 		end
 		if IsTable(z.Tabs) and type(z.Tabs.ReanchorTabs) == "function" then
-			hooksecurefunc(z.Tabs, "ReanchorTabs", T("ReanchorTabs", function() Fonts(z) end))
+			hooksecurefunc(z.Tabs, "ReanchorTabs", T("ReanchorTabs", function() NewTabs(z) end))
 		end
+		state.restyle = ns.Style.Track({ Restyle = function() Fonts(z) end })
 		local bar = z.ProgressBar
 		if IsTable(bar) and type(bar.SetColor) == "function" then
 			hooksecurefunc(bar, "SetColor", T("SetColor", AccentBar))
@@ -712,6 +737,7 @@ local function Unpaint(z)
 		style[name] = value[1]
 	end
 	state.saved = nil
+	FlatArrow(state.arrow)
 	if type(z.ApplySkin) == "function" then
 		K.Call(z.ApplySkin, z)
 	end
