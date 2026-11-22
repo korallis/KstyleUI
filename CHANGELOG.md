@@ -1,5 +1,45 @@
 # KstyleUI changelog
 
+## v0.2.14 (2026-11-22)
+
+Raid night gets new reminders: flasks, low mana at ready checks and paladin blessings on party and raid frames, which also get pets beside their owners, your own place in the party and more. Your unit frame aura settings now stick in every layout, the Options previews fit their pane and RestedXP's boxes stop twitching.
+
+Highlights:
+
+- Flask reminder: in a raid, the reminder card names a flask in your bags while no flask is on you. Off by default.
+- Low mana at ready checks: the card warns while your mana is under 80 percent. Off by default.
+- Party and raid frames: paladin blessing reminders, pets beside their owners, your own place in the party and more.
+- Player and target aura settings stay as you set them in every aura layout.
+- RestedXP's Active Targets and Active Items boxes stay still when the guide updates.
+- Shapeshifting, target changes, RestedXP, Zygor and opening windows do less work, with no change in look.
+
+### Added
+
+- Flask reminder: in a raid and out of combat, the reminder card names a flask you carry and how many you have, while no flask is on you. Auras > Missing buff reminder > Flask reminder, off by default.
+- Low mana at ready checks: during a ready check the card says Low mana while your mana is under 80 percent, and goes once you drink past it. Auras > Missing buff reminder, off by default.
+- Both work without the class buff reminder, and Reminder font, Reminder text size and Reminder outline style all three.
+- Paladins: Missing buffs can remind you of a blessing for tanks, healers and damage dealers, and each class can take its own blessing or none. Party and Raid > Missing buffs, all off by default.
+- Indicators can show only while you play a role or a class, so one profile suits every character. Party and Raid > Indicators > While you are and Only for your class.
+- Your own party frame can sit at the start or the end of the party, whatever the sort. Party and Raid > Party frames > Your frame's place.
+- Pet, tank and friendly boss frames can grow their debuff, heal and indicator icons with their extra height: Resize icons with the frames under each, off by default.
+- Key Bindings > KstyleUI > Add your target to tank frames puts your target in the tank frames, and a second press takes them out.
+- Party pets can show beside their owners instead of in the pet frames. Party and Raid > Pet frames > Party pets beside their owners.
+- The dispel highlight can sit under heal absorbs, shields and incoming heals, so they read through it. Party and Raid > Debuffs > Highlight under the bar's fills.
+
+### Fixed
+
+- Player and target aura position, growth, size, spacing, rows and columns stay as you set them in each aura layout, even when you pick another layout's default. Unit Frames > Player and Target.
+- The aura settings on those pages show what the current layout draws, so Rows above frames no longer shows the Frames numbers.
+- The unit frame preview in Options no longer cuts off the top of the target's auras on ultrawide screens, and its names and labels draw at crisp whole-pixel sizes.
+- The target preview hangs its cast bar at the same distance under the frame as in game, and thin 5-pixel bars, like the Frames target's cast bar, keep their dark edge.
+- RestedXP's Active Targets and Active Items boxes under the guide card no longer shift by a pixel each time the guide updates.
+- KstyleUI does less work each time RestedXP, Zygor, minimap buttons or Blizzard's windows redraw, and a window's header is set up once when it opens.
+- Shapeshifting, loading screens and target changes no longer redo work on the crest, its crowns and jewels or the pet bar.
+
+### Upgrading
+
+- Aura settings you changed carry over to every aura layout, so each one looks as it did before.
+
 ## v0.2.13.1 (2026-11-22)
 
 A small KstyleUI hotfix for frame rate. It should feel smoother with your other addons running and do less work while you stand around.

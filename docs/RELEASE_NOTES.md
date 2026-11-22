@@ -2,6 +2,16 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.2.14: raid reminders (2026-11-22)
+
+The reminder card under Auras > Missing buff reminder gets two new switches, both off by default and each working without the class buff reminder. Flask reminder names a flask you carry and how many you have while you are in a raid, out of combat, with no flask on you. Low mana at ready checks says Low mana during a ready check while your mana is under 80 percent, and goes once you drink past it. The card shows one message at a time: low mana first, then a missing class buff, then a flask. Reminder font, Reminder text size and Reminder outline style all three.
+
+Party and raid frames get a big round too. Paladins can be reminded of a blessing for tanks, healers and damage dealers under Party and Raid > Missing buffs, and each class can take its own blessing or none; all of it starts off. Indicators can show only while you play a role or a class, so one profile suits every character, and your own party frame can sit at the start or the end of the party whatever the sort. Pet, tank and friendly boss frames can grow their icons with their extra height, party pets can sit beside their owners instead of in the pet frames, and the dispel highlight can sit under heal absorbs, shields and incoming heals so they read through it. Key Bindings > KstyleUI > Add your target to tank frames puts your target in the tank frames, and a second press takes them out.
+
+Player and target aura settings now stay as you set them in each aura layout. Frames, Rows above frames and the Crest fan each keep their own position, growth, size, spacing, rows and columns, even when you pick another layout's default, and the settings page shows what the current layout draws. Settings you changed carry over, so every layout looks as it did before. The unit frame preview in Options no longer cuts off the top of the target's auras on ultrawide screens, draws its names and labels at crisp whole-pixel sizes and hangs the target's cast bar at the same distance as in game, and thin 5-pixel bars keep their dark edge.
+
+RestedXP's Active Targets and Active Items boxes under the guide card stop shifting by a pixel each time the guide updates. KstyleUI also does less work when RestedXP, Zygor, minimap buttons or Blizzard's windows redraw, when you open a window, and when you shapeshift, change target or load in, with no change in look. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## v0.2.13.1 (2026-11-22)
 
 A small KstyleUI hotfix for frame rate. It should feel smoother with your other addons running and do less work while you stand around.
