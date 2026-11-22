@@ -1,4 +1,5 @@
--- test-unitframes-parity-r2.lua: parity round 2 options keep a v0.2.8 profile's look and regions, then write and apply pet auras, aura offsets, stack and timer text, dispel edges, power fill opacity and gradient, boss spacing, cast icon, name and timer offsets, spell targets and important cast outlines, after their events, in combat, off again and in the preview.
+-- test-unitframes-parity-r2.lua: parity round 2 options keep a v0.2.8 profile's look and regions, then write and apply pet auras, aura offsets, stack and timer text, dispel edges, power fill opacity and gradient, boss spacing, cast icon, name and timer offsets, spell targets and important cast outlines, after their events, in combat, off again and in the preview. test-unitframes-parity-r2-frames.lua runs them on Frames.
+local frames = ... == "frames"
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -6,7 +7,7 @@ local function near(a, b)
 	return math.abs(a - b) < 1e-6
 end
 
-local env, K, ns = U.New({
+local env, K, ns = U.New({ frames = frames,
 	saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true, target = { auraSize = 24, auraColumns = 6 } } } }, characters = {}, layouts = {} },
 	setup = function(e)
 		e._important = false
@@ -38,6 +39,7 @@ local DEFAULTS = {
 	castbarTextX = 0, castbarTextY = 0, castbarTimerX = 0, castbarTimerY = 0,
 	castbarTarget = false, castbarImportant = false,
 }
+if frames then DEFAULTS.castbarIconX, DEFAULTS.castbarIconY = 0, 0 end
 for _, kind in ipairs(U.KINDS) do
 	for key, value in pairs(DEFAULTS) do
 		assert(Settings.Value(kind, key) == value, kind .. "." .. key .. " keeps its default")
@@ -181,16 +183,34 @@ env.RunTimers()
 slots = ns.Geometry.Slots(5, 6, w, h)
 assert(near(-W.LastCall(boss.views[2].button, "SetPoint")[5], snap(boss.views[2].button, slots[2].y)), "combat's end restores the gap")
 
--- Cast offsets: the Medallions player cast bar's name and timer.
-local cb = ns.CastBars.Inline("player")[1]
+-- Cast offsets: the Medallions player cast bar's name and timer (on Frames, the caption bar's icon too; a line bar keeps its track still).
+local cb = (frames and ns.CastBars.Get or ns.CastBars.Inline)("player")[1]
 local text0, timer0 = W.LastCall(cb.text, "SetPoint"), W.LastCall(cb.timer, "SetPoint")
+local icon0 = frames and W.LastCall(cb.iconFrame, "SetPoint")
 write("player.castbarTextX", 6)
 write("player.castbarTimerY", 2)
+if frames then write("player.castbarIconX", 4) end
 assert(near(W.LastCall(cb.text, "SetPoint")[4] - text0[4], snap(cb.frame, 6)), "the name moves")
 assert(near(W.LastCall(cb.timer, "SetPoint")[5] - timer0[5], snap(cb.frame, 2)), "the timer moves")
+if frames then assert(near(W.LastCall(cb.iconFrame, "SetPoint")[4] - icon0[4], snap(cb.frame, 4)), "the icon moves") end
 write("player.castbarTextX", 0)
 write("player.castbarTimerY", 0)
-assert(W.LastCall(cb.text, "SetPoint")[4] == text0[4] and W.LastCall(cb.timer, "SetPoint")[5] == timer0[5], "zero offsets restore them")
+if frames then
+	write("player.castbarIconX", 0)
+	assert(W.LastCall(cb.text, "SetPoint")[4] == text0[4] and W.LastCall(cb.timer, "SetPoint")[5] == timer0[5] and W.LastCall(cb.iconFrame, "SetPoint")[4] == icon0[4], "zero offsets restore them")
+	local line = ns.Frames.Get("focus").views[1].castbar
+	assert(line.line, "the focus cast bar is a line")
+	local bar0 = W.LastCall(line.bar, "SetPoint", 1)
+	write("focus.castbarTextY", 5)
+	local barNow = W.Calls(line.bar, "SetPoint")
+	local left
+	for i = #barNow, 1, -1 do if barNow[i][1] == "LEFT" then left = barNow[i] break end end
+	assert(near(W.LastCall(line.text, "SetPoint")[5], snap(line.frame, 5)) and near(left[5], -snap(line.frame, 5)), "a line's name moves while its track stays put")
+	assert(bar0, "the line bar was placed")
+	write("focus.castbarTextY", 0)
+else
+	assert(W.LastCall(cb.text, "SetPoint")[4] == text0[4] and W.LastCall(cb.timer, "SetPoint")[5] == timer0[5], "zero offsets restore them")
+end
 
 -- Spell target after the name, including a secret name; off removes it.
 local tcb = ns.CastBars.Inline("target")[1]
@@ -252,8 +272,22 @@ write("pet.auras", true)
 pane:Refresh()
 assert(pane.auraCount > 0 and pane.auraHosts.pet:IsShown(), "the pet preview shows its auras")
 write("edit", "target")
+if frames then
+	write("target.castbarImportant", true)
+	write("target.castbarTarget", true)
+end
 write("target.auraCountPoint", "TOPLEFT")
 pane:Refresh()
+local sample = frames and pane.casts.target
+if frames then
+	assert(sample.important and sample.important:IsShown(), "the preview shows the important outline")
+	assert(U.Shown(env, sample.text):find(" - ", 1, true), "the preview shows a spell target")
+end
 assert(W.LastCall(pane.auraTiles.target[2].count, "SetPoint")[1] == "TOPLEFT", "the preview stacks take their corner")
+if frames then
+	write("target.castbarImportant", false)
+	pane:Refresh()
+	assert(not sample.important:IsShown(), "the preview clears the outline when off")
+end
 clean()
 print("test-unitframes-parity-r2: ok")

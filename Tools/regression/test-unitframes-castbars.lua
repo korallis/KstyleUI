@@ -1,10 +1,12 @@
--- test-unitframes-castbars.lua: cast bars run on duration objects through SetTimerDuration, pass secret cast data only to setters, and follow their settings.
+-- test-unitframes-castbars.lua: cast bars run on duration objects through SetTimerDuration, pass secret cast data only to setters, and follow their settings. test-unitframes-castbars-frames.lua runs them on Frames.
+local frames = ... == "frames"
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
 -- These checks run the Medallions cast bars, with every frame in the classic plate style.
-local env, K, ns = U.New({ plate = true })
+local env, K, ns = U.New({ frames = frames, plate = true })
 local CastBars = ns.CastBars
+local inline = frames and "Get" or "Inline"
 assert(type(CastBars) == "table" and type(CastBars.Get) == "function", "ns.CastBars.Get is missing")
 
 local function noErrors(where)
@@ -36,7 +38,7 @@ assert(#CastBars.Get("player") == 1 and #CastBars.Get("target") == 1 and #CastBa
 assert(CastBars.Get("targettarget") == nil and CastBars.Get("pet") == nil, "small frames have no cast bar")
 
 -- A player cast: the duration object drives the bar; the icon is the spell's file ID.
-local player = CastBars.Inline("player")[1]
+local player = CastBars[inline]("player")[1]
 assert(not player.frame:IsShown(), "no cast, no bar")
 env._time = 1
 env._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1000, finish = 3500, spellID = 116 }
@@ -46,10 +48,15 @@ local timer = W.LastCall(player.bar, "SetTimerDuration")
 assert(timer and timer[1].finish == 3.5, "the bar runs on the cast's duration object")
 assert(timer[3] == env.Enum.StatusBarTimerDirection.ElapsedTime, "a cast fills up")
 assert(U.Shown(env, player.text) == "Frostbolt", "the spell name shows as the game writes it, like the mockup's Slam: " .. U.Shown(env, player.text))
+if frames then assert(player.geometry.icon ~= nil and player.iconFrame:IsShown(), "the player cast bar has its icon tile, as the KSTY-44 mock-up draws it") end
 assert(W.LastCall(player.icon, "SetTexture")[1] == 135846, "the icon shows the spell's file ID")
 env._time = 2
 W.Tick(env, 0.1)
-assert(U.Shown(env, player.timer) == "1.5", "the timer counts down: " .. U.Shown(env, player.timer))
+if frames then
+	assert(U.Shown(env, player.timer) == "1.5s", "the timer counts down with the design's s suffix: " .. U.Shown(env, player.timer))
+else
+	assert(U.Shown(env, player.timer) == "1.5", "the timer counts down: " .. U.Shown(env, player.timer))
+end
 env._units.player.cast = nil
 env.FireEvent("UNIT_SPELLCAST_STOP", "player", "Cast-1", 116)
 settle()
@@ -99,7 +106,7 @@ settle()
 noErrors("channel")
 
 -- A target's cast can be secret: every value reaches a widget setter untouched.
-local target = CastBars.Inline("target")[1]
+local target = CastBars[inline]("target")[1]
 U.SetUnit(env, "target", { name = "Summoner", level = 51, health = 50, healthMax = 100, reaction = 2, canAttack = true, secretCast = true,
 	cast = { name = "Molten Pulse", texture = 135808, start = 1000, finish = 3800, notInterruptible = true, spellID = 999 } })
 env.SetTarget(true)
@@ -110,7 +117,7 @@ local locked = W.LastCall(target.bar:GetStatusBarTexture(), "SetVertexColorFromB
 assert(locked and env.issecretvalue(locked[1]), "a secret interruptible flag colours the bar from a boolean")
 env._time = 2
 W.Tick(env, 0.1)
-assert(U.Shown(env, target.timer) == "1.8", "the timer shows a secret remaining time: " .. U.Shown(env, target.timer))
+assert(U.Shown(env, target.timer) == (frames and "1.8s" or "1.8"), "the timer shows a secret remaining time: " .. U.Shown(env, target.timer))
 stopTimer(target)
 U.SetUnit(env, "target", { name = "Wolf", level = 10, health = 1, healthMax = 2, reaction = 2 })
 env.SetTarget(true)
@@ -141,8 +148,9 @@ local focusView = ns.Frames.Get("focus").views[1]
 local focusBar = CastBars.Get("focus")[1]
 local _, frameH = focusView.button:GetSize()
 -- The Medallions HUD places the elements at its own sizes.
-local focusH = K.Layout.Get("unitframes.focus").height
-local bossSlot = ns.Geometry.Slots(ns.Geometry.BOSS_COUNT, ns.Geometry.BOSS_GAP, 1, K.Layout.Get("unitframes.boss").height)[1].h
+local element = frames and K.Setup.Layouts.Element or K.Layout.Get
+local focusH = element("unitframes.focus").height
+local bossSlot = ns.Geometry.Slots(ns.Geometry.BOSS_COUNT, ns.Geometry.BOSS_GAP, 1, element("unitframes.boss").height)[1].h
 assert(math.abs(focusView.geometry.panel.h - (focusH - 16 - 4)) < 1, "the focus frame leaves room for its 16-unit cast bar: " .. focusView.geometry.panel.h)
 local _, _, _, _, y = focusBar.frame:GetPoint(1)
 assert(y < -40, "the focus cast bar sits under the frame")
@@ -190,6 +198,15 @@ K.Layout.Reset("unitframes.focus")
 -- Settings.
 K.Options.Write("UnitFrames", "player.castbarIcon", false)
 assert(not player.iconFrame:IsShown(), "the icon can be switched off")
+if frames then
+	local _, _, _, px = player.panel:GetPoint(1)
+	assert(math.abs(px) < 1e-6 and player.geometry.icon == nil, "and the glass bar takes its room")
+	local _, _, _, bx = player.bar:GetPoint(1)
+	local playerCastH = K.Setup.Layouts.Element("unitframes.castbar.player").height
+	assert(math.abs(bx - player.geometry.bar.x) < 1 and player.geometry.bar.x - player.geometry.panel.x == math.floor(0.5 * playerCastH + 0.5), "with the bar inside the glass at the mockup's 0.5 H inset (Slam's bar starts 18 units in on a 37-unit bar; 15 on the 30-unit bar)")
+	local narrowTall = CastBars.Geometry(200, 120, true, true, 14)
+	assert(narrowTall.stacked and narrowTall.bar.w >= 0.5 * narrowTall.panel.w and narrowTall.text.w > 0, "a tall, narrow bar beside its icon keeps at least half its glass for the fill: the insets never eat the panel, got " .. narrowTall.bar.w)
+end
 K.Options.Write("UnitFrames", "player.castbarTimer", false)
 K.Options.Write("UnitFrames", "player.castbarText", false)
 assert(not player.timer:IsShown() and not player.text:IsShown(), "the timer and the spell name can be switched off")
@@ -236,7 +253,7 @@ end
 
 -- A focus frame switched on after login listens for its casts.
 do
-	local lenv, LK, lns = U.New({ saved = { version = 2, profiles = { Default = { UnitFrames = { enabled = true, focus = { enabled = false } } } }, characters = {} } })
+	local lenv, LK, lns = U.New({ frames = frames, saved = { version = 2, profiles = { Default = { UnitFrames = { enabled = true, focus = { enabled = false } } } }, characters = {} } })
 	U.SetUnit(lenv, "focus", { name = "Elunara", level = 60, health = 1, healthMax = 2, reaction = 2 })
 	LK.Options.Write("UnitFrames", "focus.enabled", true)
 	lenv._units.focus.cast = { name = "Greater Heal", texture = 135913, start = 1000, finish = 3500, spellID = 2060 }
@@ -247,7 +264,7 @@ end
 
 -- Saved cast bar sizes apply at login, while Layout resizes the holder during registration.
 do
-	local senv = U.New({
+	local senv = U.New({ frames = frames,
 		saved = { version = 2, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {},
 			layouts = { Default = { ["unitframes.castbar.player"] = { width = 300, height = 24 } } } },
 		setup = U.SizeEvents,
@@ -256,10 +273,10 @@ do
 end
 
 -- Without duration objects the bar falls back to the cast times when they are plain, and logs the path.
-local fenv, FK, fns = U.New({ plate = true, setup = function(e)
+local fenv, FK, fns = U.New({ frames = frames, plate = true, setup = function(e)
 	e.UnitCastingDuration, e.UnitChannelDuration = nil, nil
 end })
-local fallback = fns.CastBars.Inline("player")[1]
+local fallback = fns.CastBars[inline]("player")[1]
 fenv._time = 1
 fenv._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1000, finish = 3000, spellID = 116 }
 fenv.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116)

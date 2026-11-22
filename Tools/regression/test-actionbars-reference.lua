@@ -1,5 +1,7 @@
--- test-actionbars-reference.lua: the reference action bars have square dark tiles, a physical-pixel border, bright bold keys and quiet empty sockets; Frames keeps full-strength empty tiles.
+-- test-actionbars-reference.lua: the reference action bars have square dark tiles, a physical-pixel border, bright bold keys and quiet empty sockets; Frames keeps full-strength empty tiles. test-actionbars-reference-frames.lua runs them on Frames.
+local frames = ... == "frames"
 local AB = dofile("Tools/regression/actionbars_env.lua")
+if frames then dofile("Tools/regression/frames_lib.lua")(AB) end
 local W = AB.W
 
 local function check(env, K, b, ns)
@@ -34,6 +36,7 @@ do
 		e._game.bindings.ACTIONBUTTON8 = { "8" }
 	end })
 	AB.Enable(env, K)
+	if frames then K.Options.Write("ActionBars", "trayColumn", false) end
 	local schema = K.Options.Get("ActionBars")
 	for _, row in ipairs(schema) do
 		if row.key == "bar1.size" or row.key == "bar1.spacing" or row.key == "bar2.size" or row.key == "bar2.spacing" then
@@ -46,8 +49,9 @@ do
 		assert(W.Near(cfg.size, 38 * 19 / 16) and W.Near(cfg.spacing, 3 * 19 / 16) and W.Near(cfg.size, grid.size), key .. " uses the KSTY-44 tray's tiles: 38 px at a 41 px pitch at 1080p")
 		local bar = ns.bars[key]
 		local _, _, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), "actionbars." .. key)
+		if frames then cell, spacing = grid.size, grid.spacing end
 		local x = select(4, bar.buttons[12]:GetPoint())
-		assert(W.Near(x, K.Widgets.Snap(bar.header, 11 * (cell + spacing))), "the twelfth slab socket does not accumulate individually rounded gaps")
+		assert(W.Near(x, K.Widgets.Snap(bar.header, 11 * (cell + spacing))), "the twelfth " .. (frames and "tile" or "slab socket") .. " does not accumulate individually rounded gaps")
 		assert(W.Near(bar.holder:GetWidth(), x + bar.buttons[12]:GetWidth()), "the holder encloses the final snapped tile")
 	end
 	for _, key in ipairs({ "bar3", "bar4", "bar5", "bar6" }) do
@@ -55,10 +59,11 @@ do
 		assert(ns.Config(key).size == grid.size and ns.Config(key).spacing == (grid.spacing or K.Tokens.Size("actionGap")), key .. " keeps its layout grid")
 	end
 	local b = AB.Button(ns, "bar1", 8)
-	assert(b:GetAlpha() == 0.4 and b.hotkey:GetText() == "8", "an empty slot keeps its quiet socket and its bright key")
+	local quiet = frames and 1 or 0.4
+	assert(b:GetAlpha() == quiet and b.hotkey:GetText() == "8", "an empty slot keeps its " .. (frames and "tile" or "quiet socket") .. " and its bright key")
 	check(env, K, b, ns)
 	env.SetCombat(true)
-	assert(b:GetAlpha() == 0.4, "empty sockets do not disappear in combat")
+	assert(b:GetAlpha() == quiet, frames and "empty tiles do not disappear in combat" or "empty sockets do not disappear in combat")
 	assert(#env._blocked == 0, table.concat(env._blocked, ", "))
 	env.SetCombat(false)
 	AB.Slot(env, 8, { texture = 1, type = "spell", id = 1 })
@@ -66,7 +71,7 @@ do
 	check(env, K, b, ns)
 	K.Options.Write("ActionBars", "bar1.size", 44)
 	check(env, K, b, ns)
-	K.Options.Write("ActionBars", "slab", false)
+	if not frames then K.Options.Write("ActionBars", "slab", false) end
 	K.Options.Write("ActionBars", "bar1.showEmpty", false)
 	AB.Slot(env, 8, nil)
 	assert(b:GetAlpha() == 0, "the explicit hide-empty setting still works")
@@ -92,7 +97,7 @@ do
 		for _, button in ipairs(ns.bars[key].buttons) do
 			if not button.hasAction then
 				empty = empty + 1
-				assert(button:GetAlpha() == 0.4, key .. " keeps empty sockets at the quiet socket opacity")
+				assert(button:GetAlpha() == (frames and 1 or 0.4), key .. " keeps empty sockets at " .. (frames and "full" or "the quiet socket") .. " opacity")
 				assert(W.SameColor(button.chrome.fill[5], K.Tokens.Color("slotFill")), key .. " uses the slot's opaque empty fill without further dimming (KSTY-44: empty slots opaque where shown)")
 				assert(W.SameColor(button.chrome.line[1], K.Tokens.Color("socketEdge")), key .. " keeps the visible black socket edge")
 				check(env, K, button, ns)
@@ -103,7 +108,7 @@ do
 end
 
 -- Under Frames the tray keeps full-strength empty tiles, the kit's icon inset and the grid's own pitch.
-do
+if not frames then
 	local env, K, ns = AB.New({ setup = function(e)
 		e._game.bindings.ACTIONBUTTON8 = { "8" }
 	end })
