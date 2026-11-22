@@ -1,4 +1,4 @@
--- test-unitframes-marker.lua: a raid marker never covers its unit's name, on every frame kind in both styles, for short and long names (round 4: Opus #2, the skull centred on the sigil's "FROST HOWLER").
+-- test-unitframes-marker.lua: a raid marker never covers its unit's name, on every frame kind on the Medallions slab and the plate, for short and long names (round 4: Opus #2).
 local U = dofile("Tools/regression/unitframes_env.lua")
 local D = dofile("Tools/regression/databars_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
@@ -44,7 +44,7 @@ local function unit(name)
 end
 
 local function Check(style)
-	local env, K, ns = U.New({ plate = style == "plate", lumen = style == "lumen" })
+	local env, K, ns = U.New({ plate = style == "plate" })
 	env._textWidth = D.TextWidth
 	for _, name in ipairs(NAMES) do
 		for _, token in pairs(TOKENS) do
@@ -71,29 +71,19 @@ local function Check(style)
 	end
 	env.FireEvent("RAID_TARGET_UPDATE")
 	local target = ns.Frames.Get("target").views[1]
-	local lane = target.geometry.name
-	local _, _, w = Scene.Rect(env, target.name)
-	assert(math.abs(w - lane.w) < 1, style .. ": a target with no marker keeps its whole name lane: " .. w .. " of " .. lane.w)
+	local g = target.geometry
+	if g.form == "slab" then
+		assert(g.markedName == nil, style .. ": the Medallions marker sits beside the medallion, so it never narrows the name")
+	else
+		local _, _, w = Scene.Rect(env, target.name)
+		assert(math.abs(w - g.name.w) < 1, style .. ": a target with no marker keeps its whole name lane: " .. w .. " of " .. g.name.w)
+	end
 	assert(#env._errors == 0, tostring(env._errors[1]))
 	assert(K.ErrorCount() == 0, "KstyleUI caught no errors")
 end
 
-Check("lumen")
+Check("slab")
 Check("plate")
-
--- The sigil's marker sits beside the name, not out at the lane's end.
-do
-	local env, _, ns = U.New({ lumen = true })
-	env._textWidth = D.TextWidth
-	U.SetUnit(env, "target", unit("Frost Howler"))
-	env.SetTarget(true)
-	local view = ns.Frames.Get("target").views[1]
-	local m = { Scene.Rect(env, view.marker) }
-	local n = inked(env, view.name)
-	local gap = n[1] - (m[1] + m[3])
-	assert(gap >= 0 and gap <= 8, "the sigil's skull sits just left of the name: gap " .. gap)
-	assert(math.abs((m[2] + m[4] / 2) - (n[2] + n[4] / 2)) <= 1, "level with the name")
-end
 
 -- A marker that arrives after the name narrows the lane, and the name fits itself to the narrower lane at once:
 -- it drops to the body face before it truncates (codex review of round 4).
