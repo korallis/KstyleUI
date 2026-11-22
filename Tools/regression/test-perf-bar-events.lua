@@ -1,4 +1,4 @@
--- test-perf-bar-events.lua: SPELL_UPDATE_COOLDOWN and UPDATE_SHAPESHIFT_FORM touch only what changed on the action bars, the crest jewels and the cooldown mirror, under Medallions and Frames, within exact instruction and widget-call ceilings.
+-- test-perf-bar-events.lua: SPELL_UPDATE_COOLDOWN, UPDATE_SHAPESHIFT_FORM, PLAYER_TARGET_CHANGED and a loading screen touch only what changed on the action bars, the crest, its jewels and crown and the cooldown mirror, under Medallions and Frames, within exact instruction and widget-call ceilings.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local C = dofile("Tools/regression/cooldowns_env.lua")
 local Budget = dofile("Tools/regression/path_budget.lua")
@@ -51,15 +51,22 @@ for _, case in ipairs({ { "WARRIOR" }, { "ROGUE" }, { "WARRIOR", "frames" } }) d
 		label .. ": an off-GCD SPELL_UPDATE_COOLDOWN updates the filled buttons holding that spell, as OnUsableChanged does per slot, and skips empty slots (staging: 6556 instructions, 73 widget calls)")
 	assert(#W.Calls(button.cooldown, "SetCooldownFromDurationObject") == bound + 2, label .. ": the spell's own button takes its cooldown")
 	assert(#W.Calls(other.cooldown, "SetCooldownFromDurationObject") == untouched, label .. ": another spell's button is left alone")
-	local form = Cost(env, function() env.FireEvent("UPDATE_SHAPESHIFT_FORM") end, 3500, 10,
-		label .. ": UPDATE_SHAPESHIFT_FORM re-sets action icons as Blizzard's ActionButton does and leaves unchanged jewels alone (staging: 30017 instructions and 358 widget calls for a warrior, 36214 and 636 for a rogue)")
+	local form = Cost(env, function() env.FireEvent("UPDATE_SHAPESHIFT_FORM") end, 3500, 2,
+		label .. ": UPDATE_SHAPESHIFT_FORM re-sets action icons as Blizzard's ActionButton does and leaves unchanged jewels and crown pips alone; Crown.Update returns early as Jewels.Update does (staging: 7 widget calls for a rogue)")
+	local target = Cost(env, function() env.FireEvent("PLAYER_TARGET_CHANGED") end, 3100, 0,
+		label .. ": PLAYER_TARGET_CHANGED with the combo points and pet actions unchanged rewrites no crest jewel and no pet button; Points(event) returns on the same count and UpdatePet(b, nil, true) writes only what changed (staging: 167 widget calls for a rogue, 40 for a warrior)")
+	local pips, shown = ns.SlabCrown.state.pips, 0
+	for _, p in ipairs(pips) do shown = shown - #W.Calls(p.frame, "SetShown") end
+	env.FireEvent("PLAYER_ENTERING_WORLD")
+	for _, p in ipairs(pips) do shown = shown + #W.Calls(p.frame, "SetShown") end
+	assert(shown == 0, label .. ": a loading screen re-shows no crown pip; SlabCrown shows the pips only when they or their set change (staging: 5)")
 	env._game.slots[3].texture = 136000
 	env._game.slots[4] = { texture = 135004, type = "macro", id = 999, subType = "spell" }
 	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
 	assert(AB.Button(ns, "bar1", 3).icon:GetTexture() == 136000, label .. ": a form change re-sets the icon")
 	assert(AB.Button(ns, "bar1", 4).spellID == 999, label .. ": a form change that swaps a macro's spell updates the whole button")
 	assert(#env._errors == 0, AB.Errors(env))
-	results[#results + 1] = string.format("%s %d/%d, %d/%d, %d/%d", label, sweep.instructions, sweep.calls, spell.instructions, spell.calls, form.instructions, form.calls)
+	results[#results + 1] = string.format("%s %d/%d, %d/%d, %d/%d, %d/%d", label, sweep.instructions, sweep.calls, spell.instructions, spell.calls, form.instructions, form.calls, target.instructions, target.calls)
 end
 
 do
@@ -90,17 +97,33 @@ do
 	env.FireEvent("UNIT_PET", "player")
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	assert(#W.Calls(ns.petButtons[1].cooldown, "SetCooldown") == 0, "a pet button without GetPetActionCooldown never takes a stance timer")
+	env._game.pet[1].usable = false
+	env.FireEvent("PLAYER_TARGET_CHANGED")
+	assert(ns.petButtons[1].usable == false, "a target change still greys a pet action it makes unusable, as Blizzard's PetActionBar does")
 	K.Options.Write("ActionBars", "consumables.enabled", false)
 	local potion = ns.Consumables.buttons[1].cooldown
 	local timers = #W.Calls(potion, "SetCooldown")
 	env.FireEvent("SPELL_UPDATE_COOLDOWN", 9999, nil, nil, 0)
 	assert(#W.Calls(potion, "SetCooldown") == timers, "a consumables bar that is off listens for no cooldown")
 	local hub = ns.Slab.hub
-	local art, writes = { hub.crest, hub.bloom, unpack(hub.particles) }, 0
-	for _, t in ipairs(art) do writes = writes - #W.Calls(t, "SetTexture") end
+	local art, writes = { hub.crest, unpack(hub.particles) }, 0
+	for _, t in ipairs(hub.tinted) do art[#art + 1] = t end
+	for _, t in ipairs(ns.Slab.frame.sweeps) do art[#art + 1] = t end
+	local function Count(sign)
+		for _, t in ipairs(art) do
+			for _, method in ipairs({ "SetTexture", "SetVertexColor", "SetTexCoord" }) do writes = writes + sign * #W.Calls(t, method) end
+		end
+	end
+	Count(-1)
+	env.FireEvent("PLAYER_ENTERING_WORLD")
+	Count(1)
+	assert(writes == 0, "a loading screen that changes no art repaints no crest, bloom, tint, sweep or particle; Paint in Slab.lua returns when its inputs match (staging: 29)")
+	local classColor = K.Theme.ClassColor
+	K.Theme.ClassColor = function() return 0.1, 0.2, 0.3 end
 	ns.Slab.Refresh()
-	for _, t in ipairs(art) do writes = writes + #W.Calls(t, "SetTexture") end
-	assert(writes == 0, "a slab refresh that changes no art writes no crest, bloom or particle texture (staging: 12)")
+	K.Theme.ClassColor = classColor
+	local tint = W.LastCall(hub.glow, "SetVertexColor")
+	assert(tint[1] == 0.1 and tint[2] == 0.2 and tint[3] == 0.3, "a new class colour still repaints the crest")
 	assert(#env._errors == 0, AB.Errors(env))
 end
 

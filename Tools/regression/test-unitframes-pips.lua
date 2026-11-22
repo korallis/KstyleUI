@@ -169,6 +169,14 @@ env._restricted = true
 Points(env, 2)
 assert(calls > 0, "a secret count is never compared with the one before")
 env._restricted = false
+Points(env, 2)
+local writes = 0
+for _, p in ipairs(P.pips) do writes = writes - #W.Calls(p.frame, "SetShown") - #W.Calls(p.blade, "SetValue") end
+calls = 0
+env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+env.FireEvent("PLAYER_TARGET_CHANGED")
+for _, p in ipairs(P.pips) do writes = writes + #W.Calls(p.frame, "SetShown") + #W.Calls(p.blade, "SetValue") end
+assert(writes == 0 and calls == 0, "a stance or target change that leaves the count alone rewrites no pip; Pips.Apply shows the row only when that changes and Pips.Set returns on the same count and motion (staging: 15 writes, 84 animation calls)")
 noErrors(env, K, "settle")
 
 -- A secret count never meets a truth test: choose the fed value with an explicit if (review 678 #1).

@@ -329,7 +329,10 @@ end
 
 local function OnTarget()
 	ForActions(ns.Button.UpdateRange)
-	UpdatePets()
+	local list = ns.petButtons
+	for i = 1, #list do
+		ns.Button.Update(list[i], nil, true)
+	end
 end
 
 local function OnForms()

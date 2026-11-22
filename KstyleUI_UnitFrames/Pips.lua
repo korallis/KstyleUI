@@ -49,11 +49,14 @@ function Pips.Apply(class, parent, count)
 		end
 		state.row = BuildRow(set, count)
 	end
-	for _, p in ipairs(state.pips) do
-		p.frame:SetShown(set ~= nil)
-	end
-	if state.row then
-		state.row:SetShown(set ~= nil)
+	if state.shown ~= (set ~= nil) then
+		state.shown = set ~= nil
+		for _, p in ipairs(state.pips) do
+			p.frame:SetShown(state.shown)
+		end
+		if state.row then
+			state.row:SetShown(state.shown)
+		end
 	end
 	return set ~= nil
 end
@@ -159,15 +162,16 @@ function Pips.Set(points, animate)
 	if not state.theme then
 		return
 	end
+	local flare = Effects.Allows("flare")
 	local was = points
 	if state.seen then
 		was = state.points
-		if animate and not IsSecret(points) and not IsSecret(was) and points == was then
+		if (animate or flare == state.flare) and not IsSecret(points) and not IsSecret(was) and points == was then
 			return
 		end
 	end
-	state.points, state.seen = points, true
-	local moving = animate and Effects.Allows("flare")
+	state.points, state.seen, state.flare = points, true, flare
+	local moving = animate and flare
 	for _, p in ipairs(state.pips) do
 		p:Set(points, was, moving, false)
 	end

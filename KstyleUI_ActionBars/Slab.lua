@@ -599,11 +599,15 @@ local function Paint()
 	local hub = Slab.hub
 	local crest, glow = Crest()
 	glow = glow or Slab.Texture("glow", "medProc")
+	local r, g, b = ClassRGB()
+	local rgb = r .. " " .. g .. " " .. b
+	if hub.crestPath == crest and hub.bloomPath == glow and hub.rgb == rgb then
+		return
+	end
 	if hub.crestPath ~= crest then hub.crest:SetTexture(crest) end
 	hub.crest:SetVertexColor(CREST_REST, CREST_REST, CREST_REST, 1)
 	if hub.bloomPath ~= glow then hub.bloom:SetTexture(glow) end
-	hub.crestPath, hub.bloomPath = crest, glow
-	local r, g, b = ClassRGB()
+	hub.crestPath, hub.bloomPath, hub.rgb = crest, glow, rgb
 	hub.tinted = hub.tinted or { hub.glow, hub.bloom, hub.glyphs, hub.runes, hub.shock, hub.flash }
 	for _, region in ipairs(hub.tinted) do
 		region:SetVertexColor(r, g, b, region:GetAlpha())

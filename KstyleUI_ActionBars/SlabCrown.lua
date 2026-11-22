@@ -140,22 +140,28 @@ local function Listen(class, combo, pending)
 	end
 end
 
-function Crown.Update()
+function Crown.Update(event)
 	local class = Class()
 	local kind = class and Widgets.CrownKind(class)
+	local combo = kind and not Widgets.CrownCount(kind) and Saved("comboPoints")
+	local count = combo and math.min(#FANS, ns.SlabJewels.Count("combo")) or 0
+	if event == "UPDATE_SHAPESHIFT_FORM" and class == state.class and kind == state.kind and count == state.count and not state.pending then
+		return
+	end
+	state.kind, state.count = kind, count
 	local hub = ns.Slab.hub
 	local want = kind and Widgets.CrownCount(kind) and kind or class == "DRUID" and "BEAR" or nil
 	local built = want and Fed(hub, want)
 	local fed = kind == want and built or nil
-	local combo = kind and not Widgets.CrownCount(kind) and Saved("comboPoints")
-	local count = combo and math.min(#FANS, ns.SlabJewels.Count("combo")) or 0
 	local key, was = state.key, state.shown
 	state.shown = count > 0
 	if state.shown and state.key ~= class .. count then
 		Build(hub, class, count)
 	end
-	for _, p in ipairs(state.pips) do
-		p.frame:SetShown(state.shown)
+	if state.key ~= key or state.shown ~= was then
+		for _, p in ipairs(state.pips) do
+			p.frame:SetShown(state.shown)
+		end
 	end
 	local moving, pending = Effects.Allows("flare"), want ~= nil and state.crowns[want] == nil
 	for name, c in pairs(state.crowns) do
