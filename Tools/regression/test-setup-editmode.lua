@@ -256,10 +256,10 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 		local notes = K.Setup.EditMode.Last().notes
 		local note = notes[1]
 		if note then
-			-- Only 2560 x 1440 at this harness's automatic size (0.98; the game's 15/16 fits both) is too short for both:
-			-- the icons' row over the focus frame takes the room the bars would stack in there, 4 of the 6 bars fit, so that
-			-- viewer keeps its place and the summary names the count.
-			assert(#notes == 1 and screen.label == "2560 x 1440" and note.group == "bars" and note.fits >= 4, where .. ": every icon and bar fits, got " .. note.group .. " " .. note.fits .. " of " .. note.count)
+			-- Only 2560 x 1440 at its automatic size (0.98 at UIParent scale 1) is too short for both: the bars keep the room
+			-- over the focus frame they had before the icons' raised row, 14 of the 16 icons fit, so that viewer keeps its
+			-- place and the summary names the count.
+			assert(#notes == 1 and screen.label == "2560 x 1440" and note.group == "buffs" and note.fits >= 13, where .. ": every icon and bar fits, got " .. note.group .. " " .. note.fits .. " of " .. note.count)
 		else
 			local icon, bar, iconBox, barBox, k = Viewers(K, env, state, name, 16, 6)
 			local hits = Everything(K, name, iconBox)

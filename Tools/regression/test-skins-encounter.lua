@@ -1,6 +1,7 @@
 -- test-skins-encounter.lua: the encounter warnings skin narrows Forever's RaidWarningFrame (boss emotes, boss whispers, raid warnings) to the combat lane, sets its messages in the Lumen face and puts a glass plate behind them that grows with the messages, fades with them and stays inside the lane, through hooks only.
 local S = dofile("Tools/regression/skins_env.lua")
 local Warnings = dofile("Tools/regression/encounter_warnings.lua")
+local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
 
 local SCREAM = "Bloodtalon Matriarch begins to cast Terrifying Screech!"
 local HOOKED = { UpdateLayout = true }
@@ -137,6 +138,31 @@ do
 	K.Options.Write("Skins", "text.outline", "outline")
 	local _, _, flags = text:GetFont()
 	assert(flags == select(3, ns.Style.Font("world")) and flags ~= "", "the shared outline setting reaches a warning on screen: " .. tostring(flags))
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- A new Interface size resizes the lane; the warnings anchor Apply owns follows it, so the warnings keep clear of the
+-- boss column and its debuff row (review of 875a06f7: 16/19 to 15/16 at 1920 x 1080 left it 104 units into them).
+for _, case in ipairs({ { 1920, 1080, 15 / 16 }, { 2383, 1540, 0.875 } }) do
+	local state = { saved = {}, active = 1 }
+	local frame
+	local env, K = S.New({
+		width = case[1], height = case[2], uiScale = 768 / 1080, size = "default",
+		loaded = { Blizzard_RaidWarning = true },
+		setup = function(e) EditModeFake.Install(e, state) end,
+		before = function(e) frame = Warnings.Build(e, S.Blizzard(e)) end,
+	})
+	assert(K.Setup.Apply({ layout = "DPS", modules = { Skins = true } }))
+	K.Scale.SetUserScale(case[3])
+	env.RunTimers()
+	local L, k = K.Setup.Layouts, K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
+	local rw, rh = K.Layout.RootSize()
+	local a = EditModeFake.Find(EditModeFake.Named(state, "KstyleUI DPS"), EditModeFake.RAID_WARNING).anchorInfo
+	local half, x, t = frame:GetWidth() / k / 2, a.offsetX / k - K.Scale.Origin(), a.offsetY / k
+	local key = "unitframes.boss"
+	local l, b, r, top = L.Rect({ width = L.Style("DPS", key).width + L.BOSS_AURAS, height = L.Style("DPS", key).height }, L.Place("DPS", "medallions", K.Scale.Aspect(), key, K.Scale.Band()), rw, rh)
+	local where = case[1] .. "x" .. case[2] .. " at size " .. case[3]
+	assert(x + half <= l or x - half >= r or t - 100 / k >= top or t <= b, where .. ": the warnings keep clear of the boss column and its debuff row")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

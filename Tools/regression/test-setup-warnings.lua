@@ -158,4 +158,16 @@ do
 	assert(Find(Named(state, "KstyleUI DPS"), RAID_WARNING).isInDefaultPosition == true, "without the enum the warnings keep the copied place")
 end
 
+-- The lane resolves only the three cards it measures in each preset, not every element (review of 875a06f7: 405).
+do
+	local _, K = Boot({ saved = {}, active = 1 }, SCREENS[4])
+	local place, count = K.Setup.Layouts.Place, 0
+	K.Setup.Layouts.Place = function(...)
+		count = count + 1
+		return place(...)
+	end
+	assert(K.Setup.EditMode.WarningLane() == 443 and count <= 9, "the 3:2 lane takes " .. count .. " element lookups")
+	K.Setup.Layouts.Place = place
+end
+
 print("test-setup-warnings: ok")
