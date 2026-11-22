@@ -41,8 +41,8 @@ do
 	assert(#on == 1, "a hit on the target shows on the target frame, got " .. #on)
 	local number = on[1]
 	assert(number.frame:GetParent() == ns.Module.layer, "numbers on frames live in the module's own layer")
-	local point, _, relPoint = number.frame:GetPoint(1)
-	assert(point == "CENTER" and relPoint == "CENTER", "numbers start at the frame's centre by default")
+	local point, _, relPoint, _, startY = number.frame:GetPoint(1)
+	assert(point == "CENTER" and relPoint == "TOP" and startY > 0, "the Medallions clear lanes start the target's numbers above its debuffs")
 	assert(near(Anim(number, "move").offsetY, 40), "numbers on frames travel the distance setting, got " .. tostring(Anim(number, "move").offsetY))
 	assert(CT.Text(env, number) == "secret:short(300)", "the amount is untouched")
 	assert(#On(ns, ns.Module.field) == 0, "the target's numbers stay off your field")
@@ -123,7 +123,7 @@ do
 	Hit(env, "party2", "WOUND", "", env.Secret(70), 1)
 	local on = On(ns, buttons[3])
 	assert(#on == 1, "a hit on party2 shows on party2's frame")
-	assert(near(on[1].frame:GetScale(), 14 / 18), "numbers on group frames use the group size, got " .. tostring(on[1].frame:GetScale()))
+	assert(near(on[1].frame:GetScale(), 14 / ns.Module.cfg.size), "numbers on group frames use the group size, got " .. tostring(on[1].frame:GetScale()))
 
 	Hit(env, "player", "HEAL", "", env.Secret(70), 2)
 	assert(#On(ns, buttons[1]) == 1 and #On(ns, ns.Module.field) == 1, "your party frame and your field both show your numbers")
@@ -186,7 +186,7 @@ do
 	K.Options.Write("CombatText", "groupSize", 20)
 	Hit(env, "party3", "WOUND", "", env.Secret(70), 1)
 	local bigger = On(ns, buttons[3])
-	assert(near(bigger[#bigger].frame:GetScale(), 20 / 18), "the group size setting applies")
+	assert(near(bigger[#bigger].frame:GetScale(), 20 / ns.Module.cfg.size), "the group size setting applies")
 
 	buttons[2]:Show()
 	local function storm()
