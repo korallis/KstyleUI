@@ -120,11 +120,6 @@ size, flags = select(2, face(enemy.name))
 assert(near(size, 16, 0.6) and flags == "", "the name draws the chosen size and no outline: " .. tostring(size) .. " " .. tostring(flags))
 size, flags = select(2, face(enemy.levelText))
 assert(near(size, 13, 0.6) and flags == "", "the level draws the chosen size and no outline: " .. tostring(size) .. " " .. tostring(flags))
-for key in pairs(chosen) do
-	local section, name = key:match("^(%a+)%.(%a+)$")
-	K.Options.Write("Nameplates", key, ns.Settings.defaults[section][name])
-end
-env.RunTimers()
 
 -- The friendly player's badge: painted, unmasked, centred over the name.
 local badge = friend.medBadge

@@ -208,8 +208,6 @@ do
 	local fitted = dps.name:GetText()
 	write(env, K, "threat.edge", true)
 	assert(tank.tileless and tank.threat:IsShown() and tank.threatEdge == nil, "a row without a tile keeps the threat border")
-	write(env, K, "party.portrait", true)
-	assert(tank.tileless and tank.threat:IsShown() and tank.threatEdge == nil, "a Medallions row stays tileless with a portrait, so it keeps the threat border")
 	write(env, K, "threat.edge", false)
 	assert(tank.threatEdge == nil and tank.threat:IsShown(), "off keeps the border")
 

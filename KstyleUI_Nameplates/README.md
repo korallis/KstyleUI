@@ -238,9 +238,9 @@ Every setting is on the module's page. Text sizes run from 6 to 20 units; outlin
 | `types.elite`, `types.eliteColor` | off, `neutral` | toggle, colour |
 | `types.caster`, `types.casterColor` | off, `epic` | toggle, colour |
 | `types.boss`, `types.miniBoss`, `types.neutral`, `types.minor`, `types.normal` and their `...Color` | off; `hostile`, `legendary`, `neutral`, `poor`, `plateHostile` | toggle, colour |
-| `name.show`, `name.size`, `name.outline`, `name.upper`, `name.classColor` | on, 12, none, on, off | toggle, slider, dropdown, toggle, toggle |
+| `name.show`, `name.size`, `name.outline`, `name.upper`, `name.classColor` | on, 11, thin, on, off | toggle, slider, dropdown, toggle, toggle |
 | `name.afk`, `name.dnd` | off, off | toggle, toggle |
-| `level.show`, `level.size`, `level.outline` | off, 16, thin | toggle, slider, dropdown |
+| `level.show`, `level.size`, `level.outline` | on, 12, thin | toggle, slider, dropdown |
 | `level.colorMode`, `level.color` | current style, `giltLit` | dropdown: current, difficulty, custom; colour |
 | `healthText.show`, `healthText.size`, `healthText.outline`, `healthText.format` | off, 9, thin, percent | toggle, slider, dropdown, dropdown |
 | `cast.enabled`, `cast.height` | on, 6 | toggle, slider 6 to 24 |
@@ -251,10 +251,10 @@ Every setting is on the module's page. Text sizes run from 6 to 20 units; outlin
 | `cast.showIcon`, `cast.showName`, `cast.showTime`, `cast.textSize`, `cast.outline` | off, off, off, 10, thin | toggle, toggle, toggle, slider, dropdown |
 | `cast.iconRight`, `cast.offsetY`, `cast.inFront`, `cast.nameAlign`, `cast.showTarget` | off, 0, off, left, off | toggle, slider 0 to 20, toggle, dropdown, toggle |
 | `debuffs.enabled`, `debuffs.includePlateOnly` | on, on | toggle, toggle |
-| `debuffs.size`, `debuffs.spacing`, `debuffs.columns`, `debuffs.rows` | 26, 2, 5, 1 | sliders: 10 to 40, 0 to 10, 1 to 10, 1 to 4 |
+| `debuffs.size`, `debuffs.spacing`, `debuffs.columns`, `debuffs.rows` | 22, 2, 5, 1 | sliders: 10 to 40, 0 to 10, 1 to 10, 1 to 4 |
 | `debuffs.order` | important | dropdown: important, longest, expiring, default |
 | `debuffs.growthX`, `debuffs.growthY` | right, up | dropdown, dropdown |
-| `debuffs.showTime`, `debuffs.showCount`, `debuffs.textSize`, `debuffs.outline` | on, on, 12, thin | toggle, toggle, slider, dropdown |
+| `debuffs.showTime`, `debuffs.showCount`, `debuffs.textSize`, `debuffs.outline` | on, on, 11, thin | toggle, toggle, slider, dropdown |
 | `threat.display`, `threat.role`, `threat.groupOnly` | glow, auto, on | dropdown, dropdown, toggle |
 | `threat.safe`, `threat.warning`, `threat.danger` | `friendly`, `neutral`, `hostile` | colour |
 | `threat.name`, `threat.calm`, `threat.overTypes` | off, off, on | toggle |
