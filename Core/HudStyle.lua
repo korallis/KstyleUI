@@ -46,10 +46,11 @@ local function Look(style)
 	for module, values in pairs(FRAMES_LOOK) do
 		if Store.Defaults(module) then
 			for key, frames in pairs(values) do
-				local value, default = Options.Read(module, key), Options.Default(module, key)
-				if style == "frames" and value == default then
+				local known, default = pcall(Options.Default, module, key)
+				local value = known and Options.Read(module, key)
+				if known and style == "frames" and value == default then
 					Options.Write(module, key, frames)
-				elseif style == "medallions" and value == frames then
+				elseif known and style == "medallions" and value == frames then
 					Options.Write(module, key, default)
 				end
 			end

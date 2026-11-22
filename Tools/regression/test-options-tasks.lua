@@ -63,6 +63,15 @@ assert(not hits("make kicks obvious", "Nameplates", "cast.showName"), "G9: Off r
 assert(hits("Spell name", "Nameplates", "cast.showName"), "literal setting names still work")
 K.Options.Open("General")
 settle()
+for _, item in ipairs(ns.Window.State().items) do
+	assert(not (item.module == "Widgets" and item.key == "ornaments"), "Medallions hides the ornament row: only Frames draws ornaments")
+end
+K.Options.Write("HudStyle", "style", "frames")
+K.Options.Open("Tasks")
+settle()
+assert(K.HudStyle.Current() == "frames", "Frames is current")
+K.Options.Open("General")
+settle()
 local function ornamentRow()
 	for i, item in ipairs(ns.Window.State().items) do
 		if item.module == "Widgets" and item.key == "ornaments" then return rowAt(i) end

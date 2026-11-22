@@ -214,14 +214,15 @@ function Widgets.Setting(key)
 end
 
 function Widgets.Schema()
+	local function Frames() return ns.HudStyle.Current() == "frames" end
 	Widgets.schema = {
 		{ type = "header", label = L["First-run setup"] },
 		{ type = "toggle", key = "general.brandedWelcome", label = L["Branded welcome page"], help = L["Logo, HUD previews and highlights in setup. Turn off for the original welcome page."] },
-		{ type = "header", label = L["Ornaments"] },
-		{ type = "segmented", key = "ornaments", label = L["Ornaments"], help = L["Adds forged trim without changing the HUD layout or its colours."], options = { { value = "Off", label = L["Off"] }, { value = "Subtle", label = L["Subtle"] }, { value = "Full", label = L["Full"] } } },
-		{ type = "header", label = L["Card material"] },
+		{ type = "header", label = L["Ornaments"], showWhen = Frames },
+		{ type = "segmented", key = "ornaments", label = L["Ornaments"], help = L["Adds forged trim without changing the HUD layout or its colours."], showWhen = Frames, options = { { value = "Off", label = L["Off"] }, { value = "Subtle", label = L["Subtle"] }, { value = "Full", label = L["Full"] } } },
+		{ type = "header", label = L["Card material"], showWhen = Frames },
 		{
-			type = "dropdown", key = "cardMaterial", label = L["Material"],
+			type = "dropdown", key = "cardMaterial", label = L["Material"], showWhen = Frames,
 			help = L["Choose the surface of KstyleUI's cards and windows. Glass keeps the original smoked glass."],
 			options = {
 				{ value = "Glass", label = L["Glass"] },
