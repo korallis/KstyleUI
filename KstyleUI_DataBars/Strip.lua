@@ -828,7 +828,7 @@ function Strip.Paint(view, s, values)
 		local on = inOrder[id] == true
 		item.button:SetShown(on and not item.overflow)
 		if not on then
-			item.grade = nil
+			item.grade, item.overflow = nil, nil
 			ns.Click.Release(item)
 			item.separator:Hide()
 			item.dot:Hide()
