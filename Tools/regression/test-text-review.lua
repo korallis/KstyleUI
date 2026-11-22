@@ -99,9 +99,10 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		check(level and level.type == name.type and level.label == name.label and level.help == name.help,
 			"level: use the shared text rows for font, size and outline")
 	end
-	-- The Font row's live apply is not checked: Medallions plates ignore level.font (StyleType applies the number font unguarded), a possible bug.
-	check(pcall(P.Options.Write, "Nameplates", "level.font", P.Tokens.FontPath("InterSemiBold")), "level: the shared Font row takes a font")
+	local path = P.Tokens.FontPath("InterSemiBold")
+	local wrote = pcall(P.Options.Write, "Nameplates", "level.font", path)
 	e.RunTimers()
+	check(wrote and U.W.LastCall(plate.levelText, "SetFont")[1] == path, "level: the shared Font row must apply live")
 	P.Options.Write("Nameplates", "healthText.textFormat", "[pp]")
 	e.RunTimers()
 	N.Remove(e, "nameplate1")

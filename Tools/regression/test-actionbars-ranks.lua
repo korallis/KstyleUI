@@ -393,6 +393,14 @@ do
 	assert(Has(Shown(env, K), "No free slots") and #g.placed == 1)
 end
 
+-- The slab lays its bars out right then down whatever growth is saved, and the first free slot follows the slab.
+do
+	local env, K, g = NewSpells("auto")
+	K.Options.Write("ActionBars", "bar1.growth", "LEFTDOWN")
+	Learn(env, 200)
+	assert(Holds(g, 1, 200) and #g.placed == 1, "the slab's first free slot takes the spell, got " .. table.concat(g.placed, ","))
+end
+
 -- Physical left-to-right order follows reversed growth and vertical layouts too, which only a bar off the slab takes.
 do
 	local env, K, g = NewSpells("auto")
