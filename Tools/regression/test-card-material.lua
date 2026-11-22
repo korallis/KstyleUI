@@ -1,17 +1,7 @@
--- test-card-material.lua: cards take the Medallions steel whatever card material is saved, custom silhouettes keep their own surface, and geometry holds on nine screens.
+-- test-card-material.lua: cards take the Medallions steel, custom silhouettes keep their own surface, and geometry holds on nine screens.
 local W = dofile("Tools/regression/widget_env.lua")
 local screens = { { 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 1440 }, { 3440, 1440 }, { 5120, 1440 }, { 3840, 2160 }, { 2383, 1540 }, { 3456, 2234 } }
-local MATERIALS = { "Flat", "Slate", "ForgedTicks", "ForgedBrackets", "Glass" }
 local total = 0
-for _, material in ipairs({ "Steel", "RemovedMaterial" }) do
-	local saved = { version = 35, profiles = { Default = { Widgets = { cardMaterial = material } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
-	local env, K = W.New({ saved = saved })
-	assert(K.Tokens.Material(material) == nil, "removed materials have no registry entry")
-	assert(K.Widgets.Setting("cardMaterial") == K.Widgets.defaults.cardMaterial, "a saved removed material falls back to the schema default")
-	local panel = K.Widgets.Panel(K.Scale.Root(), { width = 320, height = 200, title = "Material" })
-	assert(panel.chrome:Material() == K.Widgets.SteelMaterial(), "cards render the steel after loading a removed name")
-	assert(#env._errors == 0, tostring(env._errors[1]))
-end
 do
 	local env, K = W.New()
 	for _, opts in ipairs({ { radius = 10.5 }, { chamfer = 10.5 }, { share = 0.5 }, { grain = false } }) do
@@ -37,19 +27,16 @@ for _, screen in ipairs(screens) do
 		local tile = K.Widgets.Chrome(panel, { shape = "tile" })
 		local bar = K.Widgets.Chrome(panel, { shape = "bar" })
 		local tileColor, barColor = tile.fill[5]._state.VertexColor, bar.fill[5]._state.VertexColor
-		for _, material in ipairs(MATERIALS) do
-			K.Store.Module("Widgets").cardMaterial = material
-			K.Widgets.RestyleAll()
-			assert(chrome:Material() == K.Widgets.SteelMaterial(), material .. " leaves the card in the steel")
-			assert(chrome:Radius() == radius and panel.titleText._points[1][4] == titleX)
-			assert(panel:GetWidth() == K.Scale.Snap(320) and panel:GetHeight() == K.Scale.Snap(200))
-			assert(not chrome.gilt[1]:IsShown() and not chrome.gilt[4]:IsShown())
-			for i = 1, 4 do
-				assert(tile.fill[5]._state.VertexColor[i] == tileColor[i])
-				assert(bar.fill[5]._state.VertexColor[i] == barColor[i])
-			end
-			total = total + 1
+		K.Widgets.RestyleAll()
+		assert(chrome:Material() == K.Widgets.SteelMaterial(), "a restyle leaves the card in the steel")
+		assert(chrome:Radius() == radius and panel.titleText._points[1][4] == titleX)
+		assert(panel:GetWidth() == K.Scale.Snap(320) and panel:GetHeight() == K.Scale.Snap(200))
+		assert(not chrome.gilt[1]:IsShown() and not chrome.gilt[4]:IsShown())
+		for i = 1, 4 do
+			assert(tile.fill[5]._state.VertexColor[i] == tileColor[i])
+			assert(bar.fill[5]._state.VertexColor[i] == barColor[i])
 		end
+		total = total + 1
 		assert(#env._errors == 0)
 		collectgarbage("collect")
 	end
@@ -78,12 +65,9 @@ do
 	local env, K = W.New()
 	local cap = K.Widgets.SectionCap(K.Scale.Root(), { text = "Quests" })
 	local width, height = cap.gem:GetSize()
-	for _, material in ipairs({ "ForgedBrackets", "Glass" }) do
-		K.Store.Module("Widgets").cardMaterial = material
-		cap:Restyle()
-		assert(cap.gem:GetTexture() == K.Tokens.Texture("diamond"), material .. ": the cap keeps its diamond")
-		assert(cap.gem:GetWidth() == width and cap.gem:GetHeight() == height)
-	end
+	cap:Restyle()
+	assert(cap.gem:GetTexture() == K.Tokens.Texture("diamond"), "the cap keeps its diamond")
+	assert(cap.gem:GetWidth() == width and cap.gem:GetHeight() == height)
 	assert(#env._errors == 0)
 end
-print("card materials: " .. total .. " screen/size/material cases passed")
+print("card materials: " .. total .. " screen/size cases passed")

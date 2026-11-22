@@ -1,10 +1,10 @@
--- Setup.lua: the first-run setup's choices, Apply (positions, the layout's module settings, the layout's name, the ornament level and its Edit Mode write, which Try again repeats), and when the setup window opens.
+-- Setup.lua: the first-run setup's choices, Apply (positions, the layout's module settings, the layout's name and its Edit Mode write, which Try again repeats), and when the setup window opens.
 local _, ns = ...
 
 local Setup = ns.Setup
 local Layouts = Setup.Layouts
 local L = ns.L
-ns.Store.RegisterDefaults("OptionsPresentation", { tasks = true, synonyms = true, preview = true, switches = true, samples = true, columns = true, readableText = true })
+ns.Store.RegisterDefaults("OptionsPresentation", { tasks = true, synonyms = true, preview = true, switches = true, columns = true, readableText = true })
 ns.Options.Register("OptionsPresentation", function() return {
 	{ type = "header", label = L["Settings window"] },
 	{ type = "toggle", key = "tasks", label = L["Start with tasks"], help = L["Open settings on six common tasks. Off opens the last module page, as before."] },
@@ -29,7 +29,6 @@ ns.Options.Register("Setup", function() return {
 local OWNER = "Setup"
 local OPEN_DELAY = 2
 local DEFAULT_LAYOUT = "DPS"
-local DEFAULT_ORNAMENTS = "Full"
 local GUIDE_ADDONS = { RXPGuides = true }
 
 local PICKER = {
@@ -50,25 +49,11 @@ local PICKER = {
 	{ name = "QoL", label = L["Quality of life"], note = L["Fast loot, repairs, quest turn-ins and zoom."] },
 }
 
-local ORNAMENTS = {
-	{ value = "Off", label = L["Off"], note = L["No forged trim. The HUD exactly as it ships."] },
-	{ value = "Subtle", label = L["Subtle"], note = L["Thin gilt rails and plain pointed ends on frames, bars and nameplates, with small arrow caps beside the action bars."] },
-	{ value = "Full", label = L["Full"], note = L["Forged frames with claws, wings and crests, the portrait band with its pendants and the full action bar tray."] },
-}
-
 local choice
 local firstRun, kept = false, false
 
 Setup.PICKER = PICKER
-Setup.ORNAMENTS = ORNAMENTS
 
-function Setup.Ornament(value)
-	for _, entry in ipairs(ORNAMENTS) do
-		if entry.value == value then
-			return entry
-		end
-	end
-end
 
 local function log(message)
 	ns.DevTest.Log(OWNER, message)
@@ -108,7 +93,7 @@ function Setup.NewChoice(current)
 			end
 		end
 	end
-	return { layout = DEFAULT_LAYOUT, modules = modules, ornaments = DEFAULT_ORNAMENTS, addons = addons, addonSettings = settings }
+	return { layout = DEFAULT_LAYOUT, modules = modules, addons = addons, addonSettings = settings }
 end
 
 function Setup.Choice()
@@ -339,10 +324,6 @@ function Setup.Apply(picked)
 		local module, key = path:match("^([^%.]+)%.(.+)$")
 		ns.Options.Write(module, key, value)
 	end
-	local ornaments = Setup.Ornament(picked.ornaments) and picked.ornaments
-	if ornaments then
-		ns.Options.Write("Widgets", "ornaments", ornaments)
-	end
 	WriteEditMode(picked.layout, picked.replaceLayout)
 	local nameplates = Store.Defaults("Nameplates")
 	if nameplates and type(nameplates.personalResource) == "boolean" then
@@ -350,7 +331,7 @@ function Setup.Apply(picked)
 	end
 	Setup.MarkSeen()
 	log("applied layout " .. picked.layout .. ": " .. moved .. " elements moved now, " .. saved .. " saved for the reload, "
-		.. written .. " module settings written, " .. skipped .. " skipped for modules that did not load; ornaments: " .. (ornaments or "unchanged") .. "; on: "
+		.. written .. " module settings written, " .. skipped .. " skipped for modules that did not load; on: "
 		.. (#on > 0 and table.concat(on, ", ") or "none") .. "; off: " .. (#off > 0 and table.concat(off, ", ") or "none"))
 	return true
 end

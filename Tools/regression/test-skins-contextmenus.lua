@@ -1,11 +1,10 @@
--- test-skins-contextmenus.lua: KstyleUI's tracking, addon compartment and quest menus wear the card material through Forever's native menu pipeline without a single write to a secure, forbidden or unrelated object.
+-- test-skins-contextmenus.lua: KstyleUI's tracking, addon compartment and quest menus wear the Medallions steel through Forever's native menu pipeline without a single write to a secure, forbidden or unrelated object.
 local E = dofile("Tools/regression/native_menu_env.lua")
 local W = E.W
 
 local OPEN = { tracking = E.Tracking, compartment = E.Compartment, quest = E.Quest }
 local ORDER = { "tracking", "compartment", "quest" }
 local TAGS = { tracking = "KSTYLEUI_TRACKING", compartment = "KSTYLEUI_COMPARTMENT", quest = "KSTYLEUI_QUEST" }
-local STYLED = { "Flat", "Slate", "ForgedTicks", "ForgedBrackets" }
 local KINDS = { "protected", "forbidden", "secretprotected", "secretforbidden" }
 
 local function NoErrors(env, what)
@@ -62,7 +61,7 @@ end
 -- What is registered: three tags, no hook, no replacement ----------------------------------------------------------------
 
 do
-	local env, K, _, nm = E.New({ material = "Flat" })
+	local env, K, _, nm = E.New()
 	local tags = {}
 	for tag, callbacks in pairs(nm.registry) do
 		tags[#tags + 1] = tag
@@ -114,7 +113,7 @@ do
 end
 
 do
-	local env, K, _, nm = E.New({ material = "ForgedBrackets", skin = false })
+	local env, K, _, nm = E.New({ skin = false })
 	for _, name in ipairs(ORDER) do
 		local menu = Open(name, env, nm)
 		SameAsBase(name, menu, nm, "the skin switched off in the saved data")
@@ -134,7 +133,7 @@ do
 end
 
 do
-	local env, _, _, nm = E.New({ material = "Slate" })
+	local env, _, _, nm = E.New()
 	env.SetCombat(true)
 	for _, name in ipairs(ORDER) do
 		local menu = Open(name, env, nm)
@@ -148,7 +147,7 @@ do
 	NoErrors(env, "combat")
 end
 
--- Each material, each generator ---------------------------------------------------------------------------------------------
+-- Each generator ---------------------------------------------------------------------------------------------
 
 local function CheckStyled(name, menu, env, K, ns, nm, material)
 	local what = name .. " in " .. material
@@ -212,24 +211,21 @@ local function CheckStyled(name, menu, env, K, ns, nm, material)
 end
 
 do
-	local env, K, ns, nm = E.New({ material = "Flat" })
-	for _, material in ipairs(STYLED) do
-		K.Options.Write("Widgets", "cardMaterial", material)
-		for _, name in ipairs(ORDER) do
-			local menu = Open(name, env, nm)
-			CheckStyled(name, menu, env, K, ns, nm, material)
-			assert(nm.Snapshot(menu) ~= BASE[name].snapshot, name .. " in " .. material .. " differs from Blizzard's")
-			assert(Counts(menu) ~= BASE[name].counts, name .. " in " .. material .. ": one initializer is added to each element")
-			nm.Close(menu)
-		end
+	local env, K, ns, nm = E.New()
+	for _, name in ipairs(ORDER) do
+		local menu = Open(name, env, nm)
+		CheckStyled(name, menu, env, K, ns, nm, "the steel")
+		assert(nm.Snapshot(menu) ~= BASE[name].snapshot, name .. " differs from Blizzard's")
+		assert(Counts(menu) ~= BASE[name].counts, name .. ": one initializer is added to each element")
+		nm.Close(menu)
 	end
-	NoErrors(env, "materials")
+	NoErrors(env, "styled")
 end
 
 -- Wider faces and larger sizes: the label is refitted after the face changes, so no row clips and the menu grows -----------------
 
 do
-	local env, K, ns, nm = E.New({ material = "Slate" })
+	local env, K, ns, nm = E.New()
 	local default = {}
 	for _, name in ipairs(ORDER) do
 		local menu = Open(name, env, nm)
@@ -262,7 +258,7 @@ end
 -- Row initializer order, the native final initializer, hover, disabled rows, actions, refresh --------------------------
 
 do
-	local env, K, _, nm = E.New({ material = "Slate" })
+	local env, K, _, nm = E.New()
 	local probe = {}
 	env.Menu.ModifyMenu(TAGS.tracking, function(_, root)
 		root:AddMenuAcquiredCallback(function(frame)
@@ -329,7 +325,7 @@ do
 end
 
 do
-	local env, _, _, nm = E.New({ material = "ForgedTicks" })
+	local env, _, _, nm = E.New()
 	local ran = {}
 	env.AddonCompartmentFrame.registeredAddons = { { text = "Zeta", func = function() ran.Zeta = true end }, { text = "echo", func = function() ran.echo = true end } }
 	local menu = Open("compartment", env, nm)
@@ -346,7 +342,7 @@ end
 -- Protected, forbidden and secret objects get no write ----------------------------------------------------------------------
 
 do
-	local env, _, _, nm = E.New({ material = "Flat" })
+	local env, _, _, nm = E.New()
 	for _, kind in ipairs(KINDS) do
 		for _, name in ipairs(ORDER) do
 			local _, owner = Open(name, env, nm)
@@ -392,7 +388,7 @@ do
 end
 
 do
-	local env, _, _, nm = E.New({ material = "Flat" })
+	local env, _, _, nm = E.New()
 	local probe = {}
 	for _, tag in ipairs({ TAGS.tracking, TAGS.compartment }) do
 		env.Menu.ModifyMenu(tag, function(_, root)
@@ -434,7 +430,7 @@ end
 -- A secret label or a secret string height is never compared or formatted --------------------------------------------------------
 
 do
-	local env, _, _, nm = E.New({ material = "Slate" })
+	local env, _, _, nm = E.New()
 	local util = env.MenuUtil
 	local getText = util.GetElementText
 	util.GetElementText = function()
@@ -481,7 +477,7 @@ end
 -- A background that is not one of Blizzard's two patterns is left alone ------------------------------------------------------
 
 do
-	local env, _, _, nm = E.New({ material = "Slate", variant = "classic" })
+	local env, _, _, nm = E.New({ variant = "classic" })
 	local menu = Open("tracking", env, nm)
 	local regions = Regions(menu)
 	assert(#regions > 3 and not regions[1]:IsShown() and not regions[2]:IsShown(), "the classic style's atlas and its inner black fill are both hidden")
@@ -492,7 +488,7 @@ end
 
 for _, variant in ipairs({ "unknown", "foreign", "twobackgrounds", "threeregions" }) do
 	local base = Baseline({ variant = variant }).tracking
-	local env, _, _, nm = E.New({ material = "Slate", variant = variant })
+	local env, _, _, nm = E.New({ variant = variant })
 	local menu = Open("tracking", env, nm)
 	assert(nm.Snapshot(menu) == base.snapshot, variant .. " background: the menu keeps Blizzard's look")
 	assert(#Regions(menu) == base.regions, variant .. " background: no chrome")
@@ -503,7 +499,7 @@ end
 -- Pooled regions come back clean, and nothing restyles them ----------------------------------------------------------------
 
 do
-	local env, K, _, nm = E.New({ material = "Flat" })
+	local env, K, _, nm = E.New()
 	local styled = Open("tracking", env, nm)
 	local used = {}
 	for _, region in ipairs(Regions(styled)) do
@@ -548,16 +544,14 @@ do
 		calls[region] = #region._calls
 	end
 	K.Widgets.RestyleAll()
-	K.Options.Write("Widgets", "cardMaterial", "Slate")
 	K.Options.Write("Widgets", "panelOpacity", 0.8)
 	K.Callbacks.Fire("ThemeChanged")
 	K.Callbacks.Fire("ScaleChanged")
 	env.RunTimers()
 	W.Settle(env)
-	assert(plain.open, "a material change does not close a native menu that took the styled menu's frame")
+	assert(plain.open, "a setting change does not close a native menu that took the styled menu's frame")
 	assert(nm.Snapshot(plain) == before, "RestyleAll and every setting change leave the reused regions as Blizzard set them")
 	frame:SetSize(333, 222)
-	assert(not nm.Snapshot(plain):find("MaterialSlate", 1, true), "a size change reaches no stale chrome")
 	for _, region in ipairs(used) do
 		assert(#region._calls == calls[region], "no call reached a pooled region")
 	end
@@ -566,11 +560,11 @@ do
 end
 
 do
-	local env, K, _, nm = E.New({ material = "Slate" })
+	local env, K, _, nm = E.New()
 	local menu = Open("tracking", env, nm)
 	local first = nm.Snapshot(menu)
-	K.Options.Write("Widgets", "cardMaterial", "ForgedBrackets")
-	assert(not menu.open, "a material change closes the styled menu")
+	K.Options.Write("Widgets", "panelOpacity", 0.8)
+	assert(not menu.open, "a Widgets setting change closes the styled menu")
 	menu = Open("tracking", env, nm)
 	assert(nm.Snapshot(menu) == first, "and the next one wears the same steel")
 	for _, change in ipairs({
@@ -593,7 +587,7 @@ end
 
 do
 	for _, name in ipairs(ORDER) do
-		local env, _, _, nm = E.New({ material = "Slate" })
+		local env, _, _, nm = E.New()
 		local menu, owner = Open(name, env, nm)
 		local native = env.MenuUtil.CreateContextMenu(owner, function(_, root)
 			root:CreateButton("Unrelated", function() end)
@@ -613,7 +607,7 @@ end
 -- The Chrome change in Core/Widgets/Base.lua ------------------------------------------------------------------------------------
 
 do
-	local env, K, _, nm = E.New({ material = "Flat" })
+	local env, K, _, nm = E.New()
 	local function Spy(chrome)
 		local count = { n = 0 }
 		local restyle = chrome.Restyle
@@ -650,7 +644,7 @@ end
 -- The fixture holds the compositor's rules -----------------------------------------------------------------------------------------
 
 do
-	local env, _, _, nm = E.New({ material = "Flat" })
+	local env, _, _, nm = E.New()
 	local menu = Open("compartment", env, nm)
 	local row = menu.rows[2]
 	assert(not pcall(function() return row.CreateFontString(row, nil, "OVERLAY") end), "CreateFontString on a menu element raises")
@@ -664,7 +658,7 @@ end
 -- A width that was not refitted is caught: the fixture keeps the fitted width when only the face changes ---------------------------
 
 do
-	local env, K, ns, nm = E.New({ material = "Slate" })
+	local env, K, ns, nm = E.New()
 	K.Options.Write("Skins", "text.font", K.Tokens.FontPath("CinzelSemiBold"))
 	K.Options.Write("Skins", "text.size", 1.5)
 	nm.staleFit = true
@@ -693,7 +687,7 @@ do
 			hit = hit + 1
 		end)
 	end
-	local env, K, ns, nm = E.New({ material = "Slate", modify = { KSTYLEUI_TRACKING = More } })
+	local env, K, ns, nm = E.New({ modify = { KSTYLEUI_TRACKING = More } })
 
 	local function Parent()
 		local menu = Open("tracking", env, nm)
@@ -711,8 +705,8 @@ do
 	W.Click(row)
 	local child = parent.child
 	assert(child and child.open and child.parent == parent and child.frame ~= parent.frame, "a click opens the submenu as a second menu")
-	CheckStyled("tracking", parent, env, K, ns, nm, "Slate with a submenu open")
-	CheckStyled("tracking submenu", child, env, K, ns, nm, "Slate")
+	CheckStyled("tracking", parent, env, K, ns, nm, "the steel with a submenu open")
+	CheckStyled("tracking submenu", child, env, K, ns, nm, "the steel")
 	assert(#child.shared.acquired == #parent.shared.acquired and child.shared == parent.shared, "the child shares the root's callbacks, so it is styled by the same skin")
 
 	nm.Close(parent)
@@ -723,16 +717,16 @@ do
 	W.Click(row)
 	W.Click(parent.child.rows[1])
 	assert(hit == 1 and not parent.open and not parent.child, "a leaf answered in the submenu runs and closes every menu")
-	CheckStyled("tracking", Parent(), env, K, ns, nm, "Slate again on the pooled frames")
+	CheckStyled("tracking", Parent(), env, K, ns, nm, "the steel again on the pooled frames")
 	nm.Close(nm.last)
 
 	parent, row = Parent()
 	W.Click(row)
 	child = parent.child
-	K.Options.Write("Widgets", "cardMaterial", "Flat")
-	assert(not parent.open and not child.open, "a material change closes the parent and the submenu")
+	K.Options.Write("Widgets", "panelOpacity", 0.8)
+	assert(not parent.open and not child.open, "a Widgets setting change closes the parent and the submenu")
 	assert(nm.staleCloses == 0, "the submenu was not asked to close again after its parent had released it: " .. nm.staleCloses)
-	K.Options.Write("Widgets", "cardMaterial", "Slate")
+	K.Options.Write("Widgets", "panelOpacity", K.Widgets.defaults.panelOpacity)
 
 	parent, row = Parent()
 	W.Click(row)
@@ -747,7 +741,7 @@ end
 -- A pooled menu frame that wore the card is later a native menu: nothing asks it to close ---------------------------------------
 
 do
-	local env, K, ns, nm = E.New({ material = "Slate" })
+	local env, K, ns, nm = E.New()
 	local styled = Open("compartment", env, nm)
 	local frame = styled.frame
 	nm.Close(styled)
@@ -763,7 +757,7 @@ do
 	K.Options.Write("Skins", "contextMenus.enabled", true)
 	local again = Open("compartment", env, nm)
 	assert(again.frame == frame, "and the frame is styled again when the switch is back on")
-	CheckStyled("compartment", again, env, K, ns, nm, "Flat on the reused frame")
+	CheckStyled("compartment", again, env, K, ns, nm, "the steel on the reused frame")
 	nm.Close(again)
 	NoErrors(env, "pooled frame")
 end
@@ -771,7 +765,7 @@ end
 -- A chrome that outlives its menu is inert: the callbacks it left behind reach no pooled region ----------------------------------
 
 do
-	local env, K, _, nm = E.New({ material = "Slate" })
+	local env, K, _, nm = E.New()
 	local made, queued, starve = {}, {}, false
 	local chrome, mayMove, queue = K.Widgets.Chrome, K.Widgets.MayMove, K.Combat.Queue
 	K.Widgets.Chrome = function(...)
@@ -846,7 +840,7 @@ end
 -- A chrome that cannot be made leaves the native menu alone -------------------------------------------------------------------
 
 do
-	local env, K, ns, nm = E.New({ material = "Slate" })
+	local env, K, ns, nm = E.New()
 	local chrome = K.Widgets.Chrome
 	K.Widgets.Chrome = function()
 		error("no chrome today")
@@ -913,7 +907,7 @@ do
 	nm.Close(menu)
 
 	local again = Open("tracking", env, nm)
-	CheckStyled("tracking", again, env, K, ns, nm, "Slate after the failures")
+	CheckStyled("tracking", again, env, K, ns, nm, "the steel after the failures")
 	nm.Close(again)
 end
 

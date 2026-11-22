@@ -308,16 +308,11 @@ local function New(parent, kind, unit)
 	cb.bar = Widgets.StatusBar(cb.panel, { sheen = true, spark = true, background = TRACK })
 	cb.bar.edgeMax = 1
 	cb.bar:SetLitShade(LIT_ALPHA, SHADE_ALPHA)
-	cb.ornament = Widgets.Ornament(cb.panel, "bar", cb.bar)
-	cb.ornament.light = true
-	cb.ornament.bare = true
-	cb.ornament.avoid = { cb.iconFrame }
 	local over = CreateFrame("Frame", nil, cb.bar)
 	over:SetAllPoints(cb.bar)
 	over:SetFrameLevel(cb.bar:GetFrameLevel() + 3)
 	cb.text = NewText(over, "LEFT")
 	cb.timer = NewText(over, "RIGHT")
-	cb.ornament.texts = { cb.text, cb.timer }
 	NewFlash(cb)
 	return cb
 end
@@ -506,7 +501,6 @@ local function PlaceTarget(cb)
 	if not t then
 		t = NewText(text:GetParent(), place)
 		cb.targetText = t
-		cb.ornament.texts[#cb.ornament.texts + 1] = t
 		StyleTarget(cb)
 	end
 	cb.targetOn = place
@@ -584,11 +578,6 @@ function CastBars.SetName(cb, text, target)
 		cb.text:SetText(shown)
 	end
 	Fit(cb)
-	secret = secret or named
-	if not cb.ornament.joined and (secret or text ~= cb.ornamentText) then
-		cb.ornamentText = not secret and text or nil
-		cb.ornament:Restyle()
-	end
 end
 
 local function Orient(cb)
@@ -1222,25 +1211,6 @@ function CastBars.Attach(view)
 	local cb = New(kind == "target" and view.button or view.body or view.button, kind, view.unit)
 	cb.attached, cb.noRoom = true, true
 	view.castbar = cb
-	local block = view.health and view.health.ornament
-	if block then
-		cb.ornament.card = block.card
-		for _, text in ipairs(cb.ornament.texts) do
-			block.texts[#block.texts + 1] = text
-		end
-		block.avoid[#block.avoid + 1] = cb.iconFrame
-		block.reserve = block.reserve or {}
-		block.reserve[cb.text], block.reserve[cb.timer] = true, true
-		cb.frame:HookScript("OnShow", function() block:Restyle() end)
-		cb.frame:HookScript("OnHide", function() block:Restyle() end)
-		if view.power and Settings.CAST_ELEMENTS[kind] then
-			block.spans = { view.power, cb.bar }
-			cb.ornament.joined = true
-			cb.ornament:Restyle()
-		else
-			block.near = { cb.bar }
-		end
-	end
 	local list = bars
 	if Settings.CAST_ELEMENTS[kind] then
 		cb.inline = true

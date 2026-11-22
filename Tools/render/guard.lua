@@ -27,7 +27,7 @@
 -- sockets and bars fill with LumenShape). The glass is the union of the card's fill slices, as drawn. A card's
 -- content is everything drawn under the frame the glass clothes: the card frame itself, or, for a backdrop (a glass
 -- frame with no text and no frames of its own, as Skin.Backdrop makes), its target or parent. Text whose centre
--- sits on a card's glass is that card's content too, wherever it hangs in the frame tree. Shadows, glows and forged ornaments (a window's crest is seated on its edge under the crest seat exemption, ORNAMENT-SPEC.md Clearance) bleed past
+-- sits on a card's glass is that card's content too, wherever it hangs in the frame tree. Shadows and glows bleed past
 -- the glass by design and are never content; an item the page draws through a clip rect is
 -- checked as clipped. A text inside a nested card is held to the innermost card.
 --
@@ -49,7 +49,7 @@ Guard.ALLOW = "Tools/render/guard_allow.tsv"
 Guard.OWNERS = { R1 = true, R2 = true, R3 = true, R4a = true, R4b = true, R5 = true, R6 = true, R7 = true, S1 = true, S2 = true, S3 = true, S4 = true, S5 = true, S6 = true, ["KSTY-7"] = true, ["medallions-followup"] = true, design = true }
 Guard.KINDS = { ellipsis = true, outside = true, clipped = true, overlap = true }
 
-local DECOR = { "LumenShadow", "Shadow.png", "Glow.png", "Noise.png", "ForgedOrnaments" }
+local DECOR = { "LumenShadow", "Shadow.png", "Glow.png", "Noise.png" }
 
 local function isDecor(item)
 	local file = item.file or item.path
@@ -262,9 +262,6 @@ local function ownBorder(item, card, rect)
 	if item.kind ~= "texture" or object._parent ~= card.frame or not card.border
 		or Geometry.Outside(bounds(rect), bounds(card.border)) > 0.001 then
 		return false
-	end
-	if file:match("/ForgedFrame[123]%.png$") or file:match("/ForgedBracket[123]%.png$") then
-		return true
 	end
 	local layer = object._state and object._state.DrawLayer
 	if file ~= "" or not layer or layer[1] ~= "BORDER" or layer[2] ~= -3 or #object._points ~= 2 then

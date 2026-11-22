@@ -9,7 +9,6 @@ end
 -- A plain panel: snapped size, panel chrome with a shadow, a content frame inside the padding.
 do
 	local env, K, panel = panelWith({ width = 300.3, height = 180 })
-	K.Options.Write("Widgets", "cardMaterial", "Glass")
 	env.RunTimers()
 	local Scale = K.Scale
 	assert(panel:GetObjectType() == "Frame" and panel:GetParent() == Scale.Root())
@@ -43,7 +42,6 @@ do
 		end,
 	})
 	local Tokens = K.Tokens
-	K.Options.Write("Widgets", "cardMaterial", "Glass")
 	assert(panel.titleText:GetText() == "PANEL TITLE", "the title is upper case")
 	local font = W.LastCall(panel.titleText, "SetFont")
 	assert(font[1] == (Tokens.Font("caps")) and font[2] == K.Widgets.FontSize(panel.titleText, 10 * K.Theme.FontScale()), "the title is a gold caps caption at the shared section size")
@@ -62,7 +60,6 @@ do
 	assert(W.Near(gx, K.Widgets.WindowInset(panel)) and gy < 0, "the cap sits one padding in from the left, inside the top padding")
 	local closeY = select(5, panel.closeButton:GetPoint(1))
 	assert(W.Near(closeY, gy), "the close glyph sits on the cap's line")
-	assert(panel.chrome.ornament == nil, "a window carries no crest: the bible allows ornament on card corners and the heading rule only")
 	local closers = 0
 	for _, kid in ipairs({ panel:GetChildren() }) do
 		if kid == panel.closeButton then closers = closers + 1 end

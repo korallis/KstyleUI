@@ -98,12 +98,11 @@ do
 	eq(shownTicks, 9, "the Medallions strip keeps its ten segments whatever the setting")
 	K.Options.Write("DataBars", "xp.segments", 10)
 	-- The overhaul's strip: the mock-up's 7 px at 1080 (KSTY-60 item 28; 7 mock-up px, 8.3125 units), square ends with
-	-- no pill caps, and no ornament around it.
+	-- no pill caps.
 	eq(K.Setup.Layouts.Element("databars.xp").height, 7 * 19 / 16, "the experience strip is the mock-up's 7 px, 8.3125 units tall")
 	eq(xp.fill.caps, nil, "the fill has square ends")
 	eq(xp.track.caps, nil, "and so does the track")
-	eq(xp.ornament, nil, "no ornament frames the strip")
-	eq(xp.rim, nil, "and no rim frame waits for one")
+	eq(xp.rim, nil, "and no rim frame")
 
 	eq(xp.text:IsShown(), true, "the experience caption shows without the pointer, as the Lumen XP line's does")
 	eq(xp.text:GetText(), "25% \194\183 rested 16%", "the Medallions caption reads the percent and the rested share")

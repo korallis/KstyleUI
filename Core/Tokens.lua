@@ -17,11 +17,8 @@ local COLORS = {
 	visionBYDanger = { "cc79a7", 1 },
 	visionBYWarning = { "e69f00", 1 },
 	materialFlat = { "13171b", 0.98 },
-	materialSlate = { "171716", 0.98 },
 	materialForged = { "101211", 1 },
-	materialGold = { "af9865", 1 },
 	materialFlatEdge = { "74808b", 0.20 },
-	materialSlateEdge = { "746551", 0.38 },
 	steel = { "b9c1cc", 1 },
 	steelLit = { "e6ecf3", 1 },
 	steelDim = { "6b7380", 1 },
@@ -336,16 +333,7 @@ local STATUSBARS = {
 }
 
 local TEXTURES = {
-	materialSlate = { file = "Textures\\MaterialSlate.png" },
-	materialForged = { file = "Textures\\MaterialForged.png" },
-	forgedFrame1 = { file = "Textures\\ForgedFrame1.png", slice = 8, density = 4 },
-	forgedFrame2 = { file = "Textures\\ForgedFrame2.png", slice = 16, density = 4 },
-	forgedFrame3 = { file = "Textures\\ForgedFrame3.png", slice = 24, density = 4 },
-	forgedBracket1 = { file = "Textures\\ForgedBracket1.png" },
-	forgedBracket2 = { file = "Textures\\ForgedBracket2.png" },
-	forgedBracket3 = { file = "Textures\\ForgedBracket3.png" },
 	forgedDiamond = { file = "Textures\\ForgedDiamond.png" },
-	forgedRule = { file = "Textures\\ForgedRule.png" },
 	lumenShape = { file = "Textures\\LumenShape.png", slice = 56, density = 4 },
 	cardShape = { file = "Textures\\CardShape.png", slice = 56, density = 4 },
 	ringLine2 = { file = "Textures\\RingLine2.png", slice = 64, density = 4 },
@@ -718,15 +706,3 @@ function Tokens.Flipbook(name)
 end
 
 Tokens.DEFAULT_FONT_FACE = DEFAULT_FACE
-
-local MATERIALS = {
-	Glass = {},
-	Flat = { fill = "materialFlat", edge = "materialFlatEdge" },
-	Slate = { fill = "materialSlate", edge = "materialSlateEdge", texture = "materialSlate", texels = 256, grain = 0.12 },
-	ForgedTicks = { fill = "materialForged", texture = "materialForged", texels = 256, grain = 0.055, frame = true, gem = "forgedDiamond", rule = "forgedRule" },
-	ForgedBrackets = { fill = "materialForged", texture = "materialForged", texels = 256, grain = 0.055, frame = true, brackets = true, gem = "forgedDiamond", rule = "forgedRule" },
-}
-
-function Tokens.Material(name)
-	return MATERIALS[name]
-end

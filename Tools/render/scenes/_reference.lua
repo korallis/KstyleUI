@@ -63,7 +63,7 @@ Reference.STATE = {
 	position = { 0.462, 0.618 },
 	clock = { hour = 21, minute = 20, realmHour = 21, realmMinute = 20 },
 	cvars = { timeMgrUseMilitaryTime = false },
-	-- RENDER_XP fills the experience bar and RENDER_FACTION=1 watches Stormwind, for the ornament strips; the picture
+	-- RENDER_XP fills the experience bar and RENDER_FACTION=1 watches Stormwind, for the strips; the picture
 	-- has 0 experience and no watched faction.
 	game = {
 		level = 11, xp = tonumber(os.getenv("RENDER_XP") or "") or 0, xpMax = 8800, rested = 440, fps = 162, latencyHome = 15, latencyWorld = 15, money = 2616,

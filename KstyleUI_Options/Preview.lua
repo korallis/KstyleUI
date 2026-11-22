@@ -67,7 +67,7 @@ local function Edge(value)
 	return value
 end
 
-local DECOR = { "Glow", "Shadow", "Gilt", "Noise", "ForgedOrnaments" }
+local DECOR = { "Glow", "Shadow", "Gilt", "Noise" }
 
 local function IsDecor(region)
 	if region.GetObjectType and region:GetObjectType() ~= "Texture" or not region.GetTexture then
@@ -214,17 +214,12 @@ local function Build(pane, id, builder)
 end
 
 local function Overflow(holder, frame)
-	local l, r, t, b = Widgets.OrnamentExtent({ [frame] = true })
-	local margin = 2 * K.Scale.Pixel(1)
-	if l then
-		l, r, t, b = l - margin, r + margin, t + margin, b - margin
-	end
+	local l, r, t, b
 	if frame.Reserve then
 		local cl, cr, ct, cb = Bounds(frame)
 		local root = Edge(K.Scale.Root():GetEffectiveScale())
 		if cl and Known(root) then
-			l, r = math.min(l or cl / root, cl / root), math.max(r or cr / root, cr / root)
-			t, b = math.max(t or ct / root, ct / root), math.min(b or cb / root, cb / root)
+			l, r, t, b = cl / root, cr / root, ct / root, cb / root
 		end
 	end
 	local hl, hr, ht, hb, f = Edge(holder:GetLeft()), Edge(holder:GetRight()), Edge(holder:GetTop()), Edge(holder:GetBottom()), Widgets.ScaleFactor(holder)
@@ -280,7 +275,6 @@ function Reserve(pane, frame)
 		end
 		Rescale(frame, lo)
 	end
-	Widgets.RestyleUnder({ [frame] = true }, Widgets.IsOrnament)
 end
 
 local function Choose(pane, frame)
@@ -328,7 +322,6 @@ local function Choose(pane, frame)
 			if not ok then
 				Rescale(frame, lo)
 			end
-			Widgets.RestyleUnder({ [frame] = true }, Widgets.IsOrnament)
 			return
 		end
 	end
@@ -369,7 +362,7 @@ local function Settle(pane)
 		MovePreview(frame, -frame.previewOffset)
 		frame.previewOffset = nil
 	end
-	local wide = frame.Choose ~= nil and Widgets.Setting("ornaments") ~= "Off" and Widgets.Setting("cardMaterial") ~= "Glass"
+	local wide = frame.Choose ~= nil
 	if (pane.wide or false) ~= wide then
 		pane.wide = wide
 		pane:Place()
@@ -390,26 +383,17 @@ local function Settle(pane)
 	if frame.Reserve then FitLabels(frame) end
 	if not frame.sized and K.Store.Module("OptionsPresentation").preview then
 		local _, _, top = Bounds(frame)
-		local _, _, ornamentTop = Widgets.OrnamentExtent({ [frame] = true })
-		local root = Edge(K.Scale.Root():GetEffectiveScale())
-		if top and ornamentTop and Known(root) then top = math.max(top, ornamentTop * root) end
 		local holderTop, eff = Edge(pane.holder:GetTop()), Edge(pane.holder:GetEffectiveScale())
 		local own = Edge(frame:GetEffectiveScale())
 		if top and holderTop and Known(eff) and Known(own) then
 			frame.previewOffset = (holderTop * eff - top) / own
 			MovePreview(frame, frame.previewOffset)
-			Widgets.RestyleUnder({ [frame] = true }, Widgets.IsOrnament)
 		end
 	end
 end
 
 local function Span(pane, frame)
 	local _, _, top, bottom = Bounds(frame)
-	local _, _, ornamentTop, ornamentBottom = Widgets.OrnamentExtent({ [frame] = true })
-	local root = K.Store.Module("OptionsPresentation").preview and Edge(K.Scale.Root():GetEffectiveScale()) or 1
-	if ornamentTop and top and Known(root) then
-		top, bottom = math.max(top, ornamentTop * root), math.min(bottom, ornamentBottom * root)
-	end
 	local eff = Edge(pane.holder:GetEffectiveScale())
 	local holderTop, holderBottom = Edge(pane.holder:GetTop()), Edge(pane.holder:GetBottom())
 	if not (top and eff and eff > 0 and holderTop and holderBottom) then

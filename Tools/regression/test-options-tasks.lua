@@ -1,4 +1,4 @@
--- test-options-tasks.lua: the five task links reach existing settings, player-word search finds the right rows, and ornament samples keep the existing level choices.
+-- test-options-tasks.lua: the five task links reach existing settings and player-word search finds the right rows.
 local O = dofile("Tools/regression/options_env.lua")
 local W = O.W
 local env, K, ns = O.New({ before = function(_, K)

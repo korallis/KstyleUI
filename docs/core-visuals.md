@@ -44,7 +44,7 @@ The core's visual service files carry one comment each, their first line, so the
 
 ### Grades
 
-Every chrome wears one of the kit's grades: the card (panel, card, window and rail), the socket (tile and socket) and the bar (a pill track, which no bar wears since KSTY-60 item 10: status bars use the square `Widgets.BarEdge`). Cards default to `ForgedBrackets`, the owner's choice on 2026-11-10 (LEE-106): opaque charcoal, a forged frame and four corner brackets. `Glass` retains the picture's original surface tokens and gilt L-ticks; `Flat`, `Slate` and `ForgedTicks` are also selectable. [Card materials](card-materials.md) describes profile inheritance and relative opacity. The socket and bar grades are unchanged. [Chrome](../Core/Widgets/README.md#chrome) lists the layers; `test-lumen-material.lua` preserves the explicit Glass recipe, while the material tests cover the default and switching. Rows in the options window have no chrome of their own: they sit on the selected window surface and light their text on hover.
+Every chrome wears one of the kit's grades: the card (panel, card, window and rail), the socket (tile and socket) and the bar (a pill track, which no bar wears since KSTY-60 item 10: status bars use the square `Widgets.BarEdge`). Cards wear the Medallions steel (`Widgets.SteelMaterial()`); the socket and bar grades are unchanged. [Chrome](../Core/Widgets/README.md#chrome) lists the layers; `test-lumen-material.lua` and `test-card-material.lua` hold them. Rows in the options window have no chrome of their own: they sit on the selected window surface and light their text on hover.
 
 ### Sizes, durations and easings
 

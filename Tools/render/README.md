@@ -23,26 +23,6 @@ Gallery fixtures hide aura buttons that the fake engine allocated without placin
 `RENDER_RESTING=1` has the player rest in an inn in the HUD scenes, so the player frame shows its Zz. The page draws a wrapping text wider than its box whole, where the game ends it in "...", so read the Zz's rect in the JSON as well as the picture.
 `RENDER_CAST_ON_FRAME=off` turns Unit Frames > Cast bars on unit frames off in every profile a scene loads, so Medallions draws the player and target cast bars above the crest as before; unset, they sit on their frames.
 `RENDER_STANCE_BACKING=1` turns the stance bar's backing strip on after the preset; under Medallions the strip replaces the stance plate.
-`RENDER_CARD_MATERIAL=Glass|Flat|Slate|ForgedTicks|ForgedBrackets` selects the real
-saved setting before modules build. With these variables unset, the reference
-uses its usual owner-screen state and the shipped material default.
-
-Material paint runs after anchored dimensions resolve, before regions are
-collected. Render environments record the chrome constructed by the widget kit;
-the renderer supplies the resolved width/height only while calling its material
-painter, then restores the original getter fields even on error. It does not run
-layout, restyle text or change stored frame sizes. Glass takes no extra paint
-path. This models the size-dependent paint the client requests after layout,
-which the lightweight stubs do not propagate for arbitrary anchors.
-
-LEE-122 fixed a discrepancy in the old phase-2 evidence: its private launcher
-did this repaint, while the normal command did not. The ordinary command now
-owns that stage; no private repaint wrapper is required. For example:
-
-```bash
-RENDER_CARD_MATERIAL=ForgedBrackets RENDER_SCREEN=1280x720 RENDER_LAYOUT=Healer \
-  bash Tools/render/shoot.sh hud_reference --ppu 0.6666666667 --strict
-```
 
 From the repository root, with `luajit` and Google Chrome installed:
 
@@ -140,7 +120,7 @@ retake through `readme.py`; do not repaint the fixture to hide it.
 
 ### Native context-menu fixtures
 
-`native_menus_tracking`, `native_menus_compartment` and `native_menus_quest` open the actual KstyleUI menu generators over `Tools/regression/native_menu_fixture.lua`. Set `RENDER_MATERIAL` to `Native`, `Glass`, `Flat`, `Slate`, `ForgedTicks` or `ForgedBrackets`; `Native` disables this skin. `RENDER_TEXT_SIZE` and `RENDER_TEXT_FACE` exercise the Skins text controls.
+`native_menus_tracking`, `native_menus_compartment` and `native_menus_quest` open the actual KstyleUI menu generators over `Tools/regression/native_menu_fixture.lua`. Set `RENDER_MATERIAL` to `Native` (this skin off, the default) or `Steel` (the skin on). `RENDER_TEXT_SIZE` and `RENDER_TEXT_FACE` exercise the Skins text controls.
 
 These are simulated menu acquisitions, not screenshots from the client. The fixture models callback ordering, compositor attachment/release, pooled reuse, initializers, actions and submenus. It deliberately does not model native taint, scrolling, grids, narration or gamepad focus. Text widths use the repository's glyph estimates and row padding is approximate. Native client fonts may use the renderer's documented fallback; read each render log. Missing atlas/path textures drawn as gray boxes are not acceptable before/after art evidence: populate the read-only client cache first. Security and restoration evidence comes from the focused regression test and the 70862 source audit in `docs/native-context-menus.md`, not these images.
 
@@ -240,7 +220,7 @@ python3 Tools/render/readme.py --no-render          # recut from the last render
 
 In the HUD scenes, `RENDER_PIPS=from,to` moves the player's combo points from one count to the other `RENDER_PIPS_T` seconds before the scene's clock through the addon's own power event, so the class-themed pips, the crest's crown of blades and the jewels show that moment of their gain, spend or maximum (equal counts settle there, with the idle loops at the maximum under Medallions starting `RENDER_PIPS_T` seconds before), and a druid is in cat form. `RENDER_PIPS_MOTION` sets Medallions motion (`off` shows the end states) and `RENDER_PIPS=off` turns the class-themed pips off. `RENDER_PLAYER_CAST=off` draws a player who is not casting. A clip is a run of `RENDER_PIPS_T` frames joined with ffmpeg. For a warrior, priest, mage or hunter, and a druid with `RENDER_FORM=bear`, `RENDER_PIPS` drives the class crown the game feeds instead: the player knows its spell, and the counts are the stacks of its aura on the target or player, fed through the scene's own aura slots (`Tools/regression/aura_slots.lua`). `RENDER_PIPS=off` turns the crown off with its spell still known, so only the setting changes. A bar the slots fed with `ExponentialEaseOut` closes half its gap every 0.05 s from the change (the harness's stand-in for the client's easing, `scene.lua`, `BarFraction`).
 
-`readme.py` retakes the README test renders over explicit committed real screenshot plates, including the gallery detail crops. It preserves `game_*` in-game captures, uses Full ornaments, keeps the Healer Centred/Spread pair, and enforces a 4 MB render budget. Gallery crops read the scene frame rectangles directly and do not need mockup reference images. Every picture uses the current-build forest. Captions and alt text identify test renders over in-game screenshots. See [plate provenance and the in-game capture wish list](../../docs/media/plates/PROVENANCE.md).
+`readme.py` retakes the README test renders over explicit committed real screenshot plates, including the gallery detail crops. It preserves `game_*` in-game captures, keeps the Healer Centred/Spread pair, and enforces a 4 MB render budget. Gallery crops read the scene frame rectangles directly and do not need mockup reference images. Every picture uses the current-build forest. Captions and alt text identify test renders over in-game screenshots. See [plate provenance and the in-game capture wish list](../../docs/media/plates/PROVENANCE.md).
 
 ## Classes
 

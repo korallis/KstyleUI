@@ -63,7 +63,7 @@ local done = setmetatable({}, WEAK)
 local tips = setmetatable({}, WEAK)
 local hooks = {}
 local menu = { active = false, hooked = setmetatable({}, WEAK) }
-local dress = { panels = setmetatable({}, WEAK), veiled = setmetatable({}, WEAK), hooked = setmetatable({}, WEAK), dropped = setmetatable({}, WEAK) }
+local dress = { panels = setmetatable({}, WEAK), veiled = setmetatable({}, WEAK), hooked = setmetatable({}, WEAK) }
 local state = { rxp = nil, tracked = false, guide = nil }
 
 local function Active()
@@ -153,23 +153,7 @@ local function Glass(frame, opts)
 		inset = inset or {}
 		inset.top = -Tokens.Size(opts.rise)
 	end
-	local ornament = opts.ornament
-	local inside
-	if opts.inside then
-		inside = {}
-		for _, region in pairs(opts.inside) do
-			if IsTable(region) and type(region.GetLeft) == "function" then
-				inside[#inside + 1] = region
-			end
-		end
-	end
-	local panel = Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = inset, target = opts.target, gilt = opts.gilt, popup = opts.popup, ornament = ornament or nil, inside = inside, snapEdges = opts.target ~= nil and Skins.Setting(KEY, "rail") == true })
-	if ornament == "crest" and panel and panel.chrome then
-		Hook(frame, "StopMovingOrSizing", "crest drop " .. tostring(frame), function()
-			panel.chrome:RestyleOrnament()
-		end)
-	end
-	return panel
+	return Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = inset, target = opts.target, gilt = opts.gilt, popup = opts.popup, snapEdges = opts.target ~= nil and Skins.Setting(KEY, "rail") == true })
 end
 
 
@@ -1116,7 +1100,7 @@ local function GuideWindow(rxp)
 	if name then
 		Skin.Strip(name, { children = RXP_ART })
 	end
-	local glass = path and Glass(f, { reach = true, target = path.card, ornament = false })
+	local glass = path and Glass(f, { reach = true, target = path.card })
 	if path then
 		path.OnHead = function()
 			if state.guide then
@@ -1178,16 +1162,8 @@ local function GuideWindowV2(rxp)
 	if not window then
 		return
 	end
-	local upper = Glass(window.upperFrame, { inside = { window.title, window.subtitle, window.closebutton, window.iconLogo } })
-	Glass(window.guideStepsFrame, { ornament = false })
-	local crest = upper and upper.chrome and upper.chrome.ornament
-	if crest and IsTable(window.guideStepsFrame) then
-		crest.body = window.guideStepsFrame
-		upper.chrome:RestyleOrnament()
-		Hook(window.frame, "StopMovingOrSizing", "guideWindow.frame.StopMovingOrSizing", function()
-			upper.chrome:RestyleOrnament()
-		end)
-	end
+	local upper = Glass(window.upperFrame)
+	Glass(window.guideStepsFrame)
 	Parts.Hush(window.banner)
 	CloseButton(window.closebutton)
 	local scroll = IsTable(window.guideSteps) and window.guideSteps.scroll
@@ -1205,13 +1181,13 @@ local function RestyleDressPanel(panel)
 	panel:SetFrameLevel(math.max(0, panel:GetParent():GetFrameLevel() - 1))
 end
 
-local function DressPanel(frame, rise, crest)
+local function DressPanel(frame, rise)
 	local panel = dress.panels[frame]
 	if not panel then
 		panel = CreateFrame("Frame", nil, frame)
 		panel:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, rise and Widgets.Snap(panel, Tokens.Size(rise)) or 0)
 		panel:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
-		panel.chrome = Widgets.Chrome(panel, { shape = "panel", fill = "surface", popup = true, ornament = crest and "crest" or nil, inside = crest and {} or nil })
+		panel.chrome = Widgets.Chrome(panel, { shape = "panel", fill = "surface", popup = true })
 		panel.Restyle = RestyleDressPanel
 		RestyleDressPanel(panel)
 		dress.panels[frame] = panel
@@ -1475,7 +1451,7 @@ local function IconFrame(f, hide)
 	local skinned = Skin.IsSkinned(f, "Backdrop")
 	local title = f.title
 	if not skinned then
-		Glass(f, { inside = { title } })
+		Glass(f)
 	elseif not InCombatLockdown() then
 		Skin.Strip(f, { children = RXP_ART })
 	end
@@ -1569,7 +1545,7 @@ local function Report(tracker, labels)
 	for _, ui in pairs(reports) do
 		if IsTable(ui) and IsTable(ui.frame) then
 			local frame = ui.frame
-			Glass(frame, { rise = TITLE_RISE, inside = { ui.titletext } })
+			Glass(frame, { rise = TITLE_RISE })
 			CaptionFor(ui.titletext, nil, nil, { panel = Panel(frame) })
 			local status = IsTable(ui.statustext) and ui.statustext:GetParent()
 			for _, child in ipairs({ frame:GetChildren() }) do
@@ -1647,16 +1623,6 @@ local function Splits(tracker)
 			cog:ClearAllPoints()
 			cog:SetPoint("TOPRIGHT", splits, "TOPRIGHT", -SPLITS_SIDE, TitleRise(splits, title) - (height - own) / 2)
 		end
-	end
-	local panel = Panel(splits)
-	local crest = panel and panel.chrome and panel.chrome.ornament
-	if crest and crest.inside and #crest.inside == 0 and IsTable(title) then
-		for _, region in ipairs({ title.text or false, cog or false }) do
-			if IsTable(region) and type(region.GetLeft) == "function" then
-				crest.inside[#crest.inside + 1] = region
-			end
-		end
-		panel.chrome:RestyleOrnament()
 	end
 end
 
@@ -2079,7 +2045,7 @@ local function Configurator(configurator)
 		return
 	end
 	if not Skin.IsSkinned(ui.frame, "Backdrop") then
-		Glass(ui.frame, { rise = TITLE_RISE, inside = { ui.titletext, ui.closebutton } })
+		Glass(ui.frame, { rise = TITLE_RISE })
 	end
 	CaptionFor(ui.titletext, nil, nil, { panel = Panel(ui.frame), close = ui.closebutton })
 	Label(Find(ui, "description"), "body", "text")
@@ -2129,7 +2095,7 @@ local function Importer(importer)
 		return
 	end
 	if not Skin.IsSkinned(window.frame, "Backdrop") then
-		Glass(window.frame, { rise = TITLE_RISE, inside = { window.title, window.closebutton } })
+		Glass(window.frame, { rise = TITLE_RISE })
 	end
 	CloseButton(window.closebutton)
 	CaptionFor(window.title, nil, nil, { panel = Panel(window.frame), close = window.closebutton })
@@ -2167,7 +2133,7 @@ local function Importer(importer)
 		local popup = widgets[key]
 		if IsTable(popup) and IsTable(popup.frame) then
 			if not Skin.IsSkinned(popup.frame, "Backdrop") then
-				Glass(popup.frame, { popup = true, inside = { popup.title } })
+				Glass(popup.frame, { popup = true })
 			end
 			CaptionFor(popup.title, nil, nil, { panel = Panel(popup.frame), close = popup.closebutton })
 			Label(Find(popup, "message"), "body", "text")
@@ -2261,27 +2227,6 @@ local function DressDialog(global)
 	local titled = IsTable(frame.obj) and temporary[frame] and temporary[frame].controls[frame.obj.titletext]
 	if titled and titled.label then
 		Parts.Heading(panel, titled.label, { row = frame.obj.titletext })
-	end
-	local crest = panel.chrome.ornament
-	if crest and crest.inside then
-		local entry = temporary[frame]
-		local holder = entry and IsTable(frame.obj) and entry.controls[frame.obj.titletext]
-		for i = #crest.inside, 1, -1 do
-			crest.inside[i] = nil
-		end
-		if holder and holder.label then
-			crest.inside[1] = holder.label
-		end
-		if not dress.dropped[frame] then
-			dress.dropped[frame] = true
-			Hook(frame, "StopMovingOrSizing", "dialog drop " .. tostring(frame), function()
-				local shown = dress.panels[frame]
-				if shown and shown:IsShown() then
-					shown.chrome:RestyleOrnament()
-				end
-			end)
-		end
-		panel.chrome:RestyleOrnament()
 	end
 	UndressOnHide(frame)
 end

@@ -47,12 +47,12 @@ do
 	env.RunTimers()
 	for i, view in ipairs(ns.Frames.Get("boss").views) do
 		if i <= 2 then
-			assert(not view.chrome.visible and view.chrome.ornament.enabled == false, "boss " .. i .. " shows no card and no corner brackets")
+			assert(not view.chrome.visible, "boss " .. i .. " shows no card")
 			assert(view.scrim:IsShown(), "boss " .. i .. " reads on the world over the soft scrim")
 		end
 	end
 	local chip = ns.Frames.Get("boss").views[1].chip
-	assert(not chip.chrome.visible and chip.chrome.ornament.enabled == false, "the Targeted chip has no card or brackets")
+	assert(not chip.chrome.visible, "the Targeted chip has no card")
 	noErrors(env, K, "boss")
 end
 

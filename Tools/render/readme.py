@@ -5,7 +5,7 @@
 
 Run it from the repository root with luajit and Google Chrome installed. It renders the scenes into DIR (default
 ~/.capy/work/readme-renders), cuts them and writes the finished JPEGs to docs/media/readme/, where README.md reads them.
-Every render draws at the shipped ornament level, Full. In-game Medallions media uses the game_ prefix and is preserved.
+In-game Medallions media uses the game_ prefix and is preserved.
 
 The pictures:
 
@@ -38,7 +38,6 @@ GALLERY_PPU = 2.0
 BUDGET_BYTES = 4 * 1024 * 1024
 QUALITY = 86
 
-FULL = {"RENDER_ORNAMENTS": "Full"}
 COMBAT = {"RENDER_LAYOUT": "DPS", "RENDER_LOSS": "1", "RENDER_METER_SECRET": "1"}
 ULTRAWIDE = {"RENDER_SIZE": "auto", "RENDER_SCREEN": "5120x1440"}
 HD = {"RENDER_SIZE": "0.9375", "RENDER_SCREEN": "1920x1080"}
@@ -140,12 +139,12 @@ def render_all(work, wanted):
     for key, (scene, ppu, env, guard) in RENDERS.items():
         if "render:" + key in sources:
             run(["bash", "Tools/render/shoot.sh", scene, guard, "--backdrop", bash_path(scenery_plate(env)), "--ppu", repr(ppu), "--out", os.path.join(work, key + ".png")],
-                dict(FULL, **env, KSTYLEUI_PLATE=str(scenery_plate(env))))
+                dict(env, KSTYLEUI_PLATE=str(scenery_plate(env))))
     if any(source.startswith("frame:") for source in sources):
         for scene in GALLERIES:
             run(["bash", "Tools/render/shoot.sh", scene, "--backdrop", bash_path(scenery_plate({})), "--ppu", str(GALLERY_PPU),
                  "--out", os.path.join(work, scene + ".png")],
-                dict(FULL, KSTYLEUI_PLATE=str(scenery_plate({}))))
+                dict(KSTYLEUI_PLATE=str(scenery_plate({}))))
 
 
 def cut_all(work, wanted):

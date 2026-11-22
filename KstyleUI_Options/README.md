@@ -183,7 +183,7 @@ General uses the live typography sample for Text and the other appearance sectio
 
 ## Layout of the window
 
-General > Settings window contains the presentation choices, all on by default: player-word search, readable settings text, larger top-aligned previews (maximum 1.6), slim bright switches (20 units, 65% accent mix), aligned headings and 180x90 ornament samples. Turning each off restores its previous presentation. The reading floor is reapplied when a window opens at a saved scale or changes scale; `test-options-polish` reproduces the old 7.8 px label at 0.65 and checks the fix. Search synonyms are translated along with labels and help.
+General > Settings window contains the presentation choices, all on by default: player-word search, readable settings text, larger top-aligned previews (maximum 1.6), slim bright switches (20 units, 65% accent mix) and aligned headings. Turning each off restores its previous presentation. The reading floor is reapplied when a window opens at a saved scale or changes scale; `test-options-polish` reproduces the old 7.8 px label at 0.65 and checks the fix. Search synonyms are translated along with labels and help.
 
 | Part | What it is |
 | --- | --- |
@@ -220,7 +220,7 @@ Each schema row becomes a row bound to `Options.Read` and `Options.Write`, so ev
 | `slider` | `Widgets.Slider` with the row's `min`, `max` and `step`; a row with `shown` paints `shown(stored)` instead of the stored value |
 | `dropdown` | `Widgets.Dropdown`. A stored value that no option holds is listed under its raw value, so it still shows. |
 | `order` | One row per ordered entry, with a toggle, Left / Centre / Right dropdown and up/down buttons built from the kit. The end buttons are disabled; moving past either end does nothing. |
-| `segmented` | `Widgets.Tabs` at the control width: one tab per option, the stored value's tab underlined. For a short list of choices that should all show at once, such as the Widgets **Ornaments** level (Off, Subtle, Full). A disabled row disables every tab. |
+| `segmented` | `Widgets.Tabs` at the control width: one tab per option, the stored value's tab underlined. For a short list of choices that should all show at once. A disabled row disables every tab. |
 | `pictures` | Up to three picture cards, as many to a row as keep each picture 200 units wide and the rest on a second row, at the control width on the button body, each its option's `picture` (a 2:1 texture) over its label; the stored value's card has the `accent` edge and its label in `textEmphasis`, a click saves that option. For a choice that reads best as a picture. A disabled row disables both cards. |
 | `color` | `Widgets.ColorSwatch` and the colour as `#RRGGBB`. Rows with `hasAlpha` keep the alpha. |
 | `font`, `texture` | `Widgets.FontPicker`, `Widgets.TexturePicker`: KstyleUI's media, then LibSharedMedia's |

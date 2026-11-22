@@ -1,6 +1,6 @@
 # Setup
 
-`KstyleUI.Setup` is the first-run setup: four steps, or five with detected addons, that pick a layout, the modules and addon choices, then apply them and offer a reload. Medallions draws no ornaments, so the setup no longer asks for an ornament level; Apply still writes a choice's `ornaments` when it has one. The spec's [Settings and first-run setup](../../docs/superpowers/specs/2026-11-07-kstyleui-design.md#settings-and-first-run-setup) section is binding. `Core/Setup/Setup.xml` loads the files in this order:
+`KstyleUI.Setup` is the first-run setup: four steps, or five with detected addons, that pick a layout, the modules and addon choices, then apply them and offer a reload. The spec's [Settings and first-run setup](../../docs/superpowers/specs/2026-11-07-kstyleui-design.md#settings-and-first-run-setup) section is binding. `Core/Setup/Setup.xml` loads the files in this order:
 
 | File | What it holds |
 | --- | --- |
@@ -19,7 +19,7 @@ Tests: `Tools/regression/test-setup.lua`, `test-setup-addons.lua`, `test-setup-e
 
 - At `PLAYER_LOGIN`, when the account switch `Features.account.setupSeen` is off, the setup opens 2 seconds later. The switch is account-wide, so the setup opens once per account, not once per character.
 - Applying or closing the setup turns the switch on.
-- On the first run, closing the window without Apply (the close button, Escape or **Later**) applies the choice as it stands: DPS, every loaded module and Full ornaments unless the player changed them. A skipped setup never leaves an empty screen. The welcome step says so, and **Keep my UI** is the opt-out: it closes the setup and changes nothing.
+- On the first run, closing the window without Apply (the close button, Escape or **Later**) applies the choice as it stands: DPS and every loaded module unless the player changed them. A skipped setup never leaves an empty screen. The welcome step says so, and **Keep my UI** is the opt-out: it closes the setup and changes nothing.
 - A setup opened later with `/kstyle setup` changes nothing when it closes without Apply; it prints how to run it again.
 - `/kstyle setup` opens it at any time, on the welcome step with current addon choices and a fresh live addon list.
 
@@ -36,7 +36,7 @@ The window is a titled `Widgets.Panel` (760 by 540 units, `DIALOG` strata, Escap
 
 ## Apply
 
-`Setup.Apply(choice)` with `choice = { layout, modules = { [name] = boolean }, ornaments }`:
+`Setup.Apply(choice)` with `choice = { layout, modules = { [name] = boolean } }`:
 
 1. For each module in the picker whose addon loaded, `Options.Write(name, "enabled", value)`. Writing through `Options` starts or stops the module through `Modules`, waiting for the end of combat if needed, and fires `SettingChanged`, so an open settings window refreshes.
 2. For each element key, the layout's `{ anchor, x, y }`:
@@ -44,9 +44,8 @@ The window is a titled `Widgets.Panel` (760 by 540 units, `DIALOG` strata, Escap
    - Every other element, and any that `Layout.Update` refuses, is written into the profile's layout table (`Store.Layout()[key]`). Other fields, such as a size or a shown rule, stay as they are. The modules place these elements after the reload.
 3. For each `{ module, key, value }` in `Layouts.Settings(layout)` whose module loaded and has that setting, `Options.Write(module, key, value)`: bars 1 and 2 on in one row with empty tiles shown (LEE-20), bars 3 to 6 off with empty tiles hidden, bars 4 and 5 (the rail's two columns) on with their empty tiles hidden at rest (KSTY-34; a dragged action or Layout Mode shows them), the pet and stance sockets in two rows of five (the stance sockets growing up from their unchanged baseline), the threat card on in Tank only, the menu and bags docked in the readout card, the raid in four groups a row at 77 units wide, and the party and raid row heights (Healer's are larger, with two dispellable debuffs first). The positions carry `Layouts.Sizes(layout)` too: the meters' heights. Settings of a module that did not load are skipped and counted.
 4. `Options.Write("Layout", "preset", layout)`, so Layout Mode outlines that layout's story slot.
-5. `Options.Write("Widgets", "ornaments", ornaments)` when `ornaments` is `Off`, `Subtle` or `Full`. Every ornament handle reads the setting on Restyle, so it applies without a reload. A choice without a valid level leaves the setting as it is.
-6. Out of combat (queued through `Combat.Queue` in combat), `EditMode.Write(layout, Story(layout, guide))` writes the story rail into Edit Mode. See [Edit Mode](#edit-mode).
-7. It turns `setupSeen` on and logs the layout, the counts, the ornament level and the modules switched on and off to the devlog.
+5. Out of combat (queued through `Combat.Queue` in combat), `EditMode.Write(layout, Story(layout, guide))` writes the story rail into Edit Mode. See [Edit Mode](#edit-mode).
+6. It turns `setupSeen` on and logs the layout, the counts and the modules switched on and off to the devlog.
 
 It returns `false` for an unknown layout, or before the saved data loads.
 
@@ -89,13 +88,12 @@ While the Cooldowns module mirrors the essential and utility rows, Blizzard's `E
 | `EditMode.NativeRows(fn)`, `EditMode.PlaceRows()` | Which cooldown rows show Blizzard's own viewer, and placing them after a later fallback; see [the fallback](#blizzards-essential-and-utility-rows-the-fallback-lee-107) |
 | `EditMode.Last() -> { state, name, layout, why, notes }`, `EditMode.Note(note) -> string`, `RetryEditMode() -> boolean` | The last write for the summary: `state` is `none`, `waiting` (combat), `written` or `failed`; `notes` lists `{ group, count, fits }` for tracked viewers no place held. `RetryEditMode` writes the last layout again. |
 | `Apply(choice) -> boolean` | See above |
-| `Choice()`, `NewChoice()` | The window's current choice, and a fresh one: DPS, every available module on and Full ornaments |
+| `Choice()`, `NewChoice()` | The window's current choice, and a fresh one: DPS and every available module on |
 | `Available(name) -> boolean` | The module's addon loaded and registered. |
 | `Go(step)`, `Step()` | Moves to a step, 1 to 5, and reports the current one |
 | `IsShown() -> boolean` | True from `Open` until the window starts to close, so a reopen during the closing fade shows it again and the first-login timer never resets a setup the player opened |
 | `MarkSeen()`, `Closed(applied)` | Turn the account switch on. On the first run `Closed` applies the choice unless the player chose **Keep my UI**; otherwise it prints the `/kstyle setup` hint. |
 | `PICKER` | `{ { name, label, note }, ... }` in the picker's order |
-| `ORNAMENTS`, `Ornament(value) -> entry` | `{ { value, label, note }, ... }` for Off, Subtle and Full, and the entry for a level (`nil` for any other value) |
 | `window` | The panel, once it has been built. Fields: `steps`, `pages`, `cards`, `preview`, `layoutHint`, `toggles`, `summary`, `editMode`, `retry`, `manager`, `back`, `skip`, `next`, `apply`, `reload` and `later`. |
 
 ## Why

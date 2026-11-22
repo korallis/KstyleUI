@@ -1,26 +1,21 @@
--- test-popup-material-consumers.lua: the existing tooltip, Blizzard popup and RestedXP overlays opt into the opaque steel at runtime, and the meter's hover split, rows of its card with no chrome of its own, keeps its rows across material changes.
+-- test-popup-material-consumers.lua: the existing tooltip, Blizzard popup and RestedXP overlays opt into the opaque steel at runtime, and the meter's hover split, rows of its card with no chrome of its own, keeps its rows across opacity changes.
 local W = dofile("Tools/regression/widget_env.lua")
-local materials = { "Glass", "Flat", "Slate", "ForgedTicks", "ForgedBrackets" }
 
-local function Painted(K, chromes, material)
+local function Painted(K, chromes, opacity)
 	local r, g, b = K.Widgets.Rgba("medCardFill")
 	for _, chrome in ipairs(chromes) do
-		assert(chrome:Material() == K.Widgets.SteelMaterial(), "the existing popup consumer takes the steel under " .. material)
+		assert(chrome:Material() == K.Widgets.SteelMaterial(), "the existing popup consumer takes the steel at opacity " .. opacity)
 		for _, piece in ipairs(chrome.fill) do
-			assert(W.SameColor(piece, r, g, b, 1), "the existing popup consumer has an opaque steel fill under " .. material)
+			assert(W.SameColor(piece, r, g, b, 1), "the existing popup consumer has an opaque steel fill at opacity " .. opacity)
 		end
-		assert(chrome.grain == nil and chrome.materialFrame == nil, "no grain or forged frame")
 	end
 end
 
 local function Cycle(K, chromes, refresh)
-	for _, material in ipairs(materials) do
-		K.Options.Write("Widgets", "cardMaterial", material)
-		for _, opacity in ipairs({ 0.5, 0.75, 1 }) do
-			K.Options.Write("Widgets", "panelOpacity", opacity)
-			if refresh then refresh() end
-			Painted(K, chromes, material)
-		end
+	for _, opacity in ipairs({ 0.5, 0.75, 1 }) do
+		K.Options.Write("Widgets", "panelOpacity", opacity)
+		if refresh then refresh() end
+		Painted(K, chromes, opacity)
 	end
 	K.Options.Write("Widgets", "panelOpacity", 0.75)
 end
@@ -251,7 +246,7 @@ do
 		return rect.right - rect.left
 	end
 	-- The split is rows of the card (KSTY-60 item 24), with no popup chrome of its own: the card's material shows
-	-- behind it, so cycling the card's material keeps the split open, its size and its spells.
+	-- behind it, so cycling the panel opacity keeps the split open, its size and its spells.
 	assert(split.chrome == nil, "the split carries no popup chrome")
 	local width, height = split.frame:GetSize()
 	assert(type(width) == "number" and type(height) == "number", "the hovered split has measured dimensions")

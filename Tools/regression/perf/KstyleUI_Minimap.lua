@@ -3,14 +3,14 @@ local Perf = ...
 local M = dofile("Tools/regression/minimap_env.lua")
 
 local function Map()
-	local env, K, ns = M.New({ enabled = true })
+	local env, _, ns = M.New({ enabled = true })
 	M.Settle(env)
 	local face = ns.Map.face
 	function face.zone.GetStringWidth(self)
 		return #(self:GetText() or "") * 7
 	end
 	face:SetZone(face.zoneText, face.pvpType)
-	assert(K.Widgets.Setting("ornaments") == "Full" and face.ornament == nil and face.ring:IsShown(), "the minimap draws its Medallions ring and no ornament at Full")
+	assert(face.ring:IsShown(), "the minimap draws its Medallions ring")
 	return env, face
 end
 

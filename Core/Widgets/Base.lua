@@ -8,7 +8,6 @@ local Tokens, Scale, Motion, L = ns.Tokens, ns.Scale, ns.Motion, ns.L
 local abs, ceil, floor, log, max, min = math.abs, math.ceil, math.floor, math.log, math.max, math.min
 
 local SECTION = "Widgets"
-local DEFAULT_CARD_MATERIAL = "ForgedBrackets"
 local FALLBACK_FONT = "GameFontHighlight"
 local PANEL_OPACITY_MIN, PANEL_OPACITY_MAX, PANEL_OPACITY_STEP = 0.5, 1, 0.01
 local TOOLTIP_SCALE_MIN, TOOLTIP_SCALE_MAX, TOOLTIP_SCALE_STEP = 0.75, 1.5, 0.05
@@ -24,9 +23,6 @@ local LINE_HEIGHT_SHARE = 1.2
 local CHAR_WIDTH_SHARE = 0.5
 
 Widgets.TEXTURE_TEXELS = {
-	forgedFrame1 = 32,
-	forgedFrame2 = 64,
-	forgedFrame3 = 128,
 	lumenShape = 128,
 	cardShape = 128,
 	lumenOutline = 128,
@@ -171,8 +167,6 @@ local _, _, _, SURFACE_ALPHA = Tokens.Color("surface")
 
 Widgets.defaults = {
 	general = { brandedWelcome = true },
-	cardMaterial = DEFAULT_CARD_MATERIAL,
-	ornaments = "Full",
 	panelOpacity = SURFACE_ALPHA,
 	shadows = false,
 	sounds = true,
@@ -181,12 +175,6 @@ Widgets.defaults = {
 }
 
 local VALID = {
-	ornaments = function(v)
-		return not IsSecret(v) and (v == "Off" or v == "Subtle" or v == "Full")
-	end,
-	cardMaterial = function(v)
-		return not IsSecret(v) and type(v) == "string" and Tokens.Material(v) ~= nil
-	end,
 	panelOpacity = function(v)
 		return IsNumberIn(v, PANEL_OPACITY_MIN, PANEL_OPACITY_MAX)
 	end,
@@ -308,7 +296,7 @@ function Widgets.RestyleUnder(roots, only)
 	end
 end
 
-local STEEL_NAMES = { gilt = "steel", giltLit = "steelLit", giltDim = "steelDim", capsGold = "steelLit", materialGold = "steel" }
+local STEEL_NAMES = { gilt = "steel", giltLit = "steelLit", giltDim = "steelDim", capsGold = "steelLit" }
 local STEEL_STANDINS = { steel = "muted", steelLit = "textEmphasis", steelDim = "dim", steelFill = "materialFlat", steelEdge = "materialFlatEdge" }
 local steelKnown = {}
 
@@ -1319,7 +1307,7 @@ end
 local SOFT = { lumenShadow = true, shadow = true }
 local RUN_PIECES = { 2, 4, 6, 8 }
 local RUNS = { lumenOutline = true }
-Widgets.HOLLOW = { lumenOutline = true, lumenShadow = true, forgedFrame1 = true, forgedFrame2 = true, forgedFrame3 = true, medAuraBorder = true, medGroupTargetRing = true }
+Widgets.HOLLOW = { lumenOutline = true, lumenShadow = true, medAuraBorder = true, medGroupTargetRing = true }
 for _, lines in ipairs(RINGS) do
 	RUNS["ringLine" .. lines] = true
 	Widgets.HOLLOW["ringLine" .. lines] = true
@@ -1643,18 +1631,6 @@ function Widgets.Chrome(owner, opts)
 		Widgets.Cards[c] = true
 		cardOf[owner] = c
 	end
-	if opts.ornament == "crest" and Widgets.Ornament and type(owner.AttachTexture) ~= "function" then
-		c.ornament = Widgets.Ornament(owner, "crest", nil, true)
-		c.ornament.chrome, c.ornament.inside, c.ornament.avoid, c.ornament.span = c, opts.inside, opts.avoid, opts.span
-		owner:HookScript("OnHide", function()
-			c.ornament.stale = true
-		end)
-		if type(owner.StopMovingOrSizing) == "function" then
-			hooksecurefunc(owner, "StopMovingOrSizing", function()
-				c:RestyleOrnament()
-			end)
-		end
-	end
 	c:Restyle()
 	if type(owner.HookScript) == "function" then
 		owner:HookScript("OnShow", function()
@@ -1792,9 +1768,6 @@ function Chrome:OnSizeChanged()
 	if self.released then
 		return
 	end
-	if self.ornament and not Widgets.MayMove(self.owner) then
-		self.ornament:Yield()
-	end
 	local farX, farY = Widgets.Remainder(self.owner)
 	if self:Radius() ~= self.laidRadius or self:TicksWanted() ~= self.ticksShown then
 		self:Restyle()
@@ -1803,7 +1776,6 @@ function Chrome:OnSizeChanged()
 			self:Layout()
 		end
 		self:PaintMaterial()
-		self:RestyleOrnament()
 	end
 	self:MeasureHeader()
 end
@@ -2269,32 +2241,9 @@ function Chrome:Restyle()
 	end
 	if self.fill then
 		self:Paint()
-		self:RestyleOrnament()
 		if self.fill.preparing then self:DrawSlices() end
 	end
 	return self.fill ~= nil
-end
-
-function Chrome:RestyleOrnament()
-	if not self.ornament or self.ornamentQueued then
-		return
-	end
-	if self.ornament.kind == "crest" or not (C_Timer and C_Timer.After) then
-		if not self.released then
-			self.ornament:Restyle()
-		end
-		return
-	end
-	self.ornamentQueued = true
-	if not self.ornamentRun then
-		self.ornamentRun = function()
-			self.ornamentQueued = false
-			if not self.released then
-				self.ornament:Restyle()
-			end
-		end
-	end
-	C_Timer.After(0, self.ornamentRun)
 end
 
 function Chrome:Release()
@@ -2360,9 +2309,6 @@ end
 
 function Chrome:SetShown(shown)
 	self.visible = shown and true or false
-	if self.ornament then
-		self.ornament.enabled = self.visible
-	end
 	if not self.fill then
 		if shown then
 			Chrome.Restyle(self)
@@ -2370,9 +2316,6 @@ function Chrome:SetShown(shown)
 		if not self.fill then
 			return
 		end
-	end
-	if self.ornament then
-		self:RestyleOrnament()
 	end
 	Widgets.ShowSlice(self.fill, shown)
 	Widgets.ShowSlice(self.rim, shown)

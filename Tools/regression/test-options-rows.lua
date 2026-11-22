@@ -173,7 +173,5 @@ do
 	K.Theme.SetFontScale(1)
 end
 
--- The Widgets ornament level is a segmented row: one tab per level, a click writes it, and a write from anywhere
--- else (the first-run setup) moves the selection (KSTY-23).
 assert(#env._errors == 0, "errors: " .. table.concat(env._errors, "\n"))
 print("options rows ok")

@@ -212,7 +212,6 @@ do
 	assert(win:GetAlpha() == 1, "the window fades in to full alpha")
 	assert(win:GetFrameStrata() == "HIGH", "the window sits in the HIGH strata")
 	assert(win.chrome and win.chrome.shapeName == "window", "the settings window, a titled window, wears the window grade's 12-unit chamfer, not the panel's 8")
-	assert(win.chrome.ornament == nil, "the settings window carries no crest: the bible allows ornament on card corners and the heading rule only")
 	local rp, rto, rtoPoint = win.rule:GetPoint(1)
 	local ep, eto, etoPoint = win.rule:GetPoint(2)
 	assert(rp == "LEFT" and rto == win.title and rtoPoint == "RIGHT" and ep == "RIGHT" and eto == ns.Window.Parts().search and etoPoint == "LEFT", "the quest card's heading rule runs from the title to the search box")

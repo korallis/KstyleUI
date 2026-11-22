@@ -851,36 +851,20 @@ def _medallions(name, width, height, draw, about, slice_=None):
     return Asset(f"{MEDALLIONS}/{name}.png", width, height, draw, about, slice=slice_, drawn=MEDALLIONS_DRAWN)
 
 
-def material_pixels(name, width=256, height=256):
+def material_pixels(name, width, height):
     actual_width, actual_height, pixels = decode_png((ROOT / "Tools" / "media" / "materials" / f"{name}.png").read_bytes())
     if (actual_width, actual_height) != (width, height):
         raise ValueError(f"{name}: expected a prepared {width}x{height} RGBA source")
     return pixels
 
 
-for material_name in ("Slate", "Forged"):
-    ASSETS.append(Asset(
-        f"Media/Textures/Material{material_name}.png", 256, 256,
-        lambda name=material_name: material_pixels(name),
-        f"Prepared {material_name.lower()} grain for the optional card-material study.",
-        "Prepared source in Tools/media/materials; lighting removed, 16px seam repair; prompt below",
-        drawn="2026-11-10", maker="Higgsfield `gpt_image_2_6`; source-backed export by `Tools/media/make_media.py`",
-    ))
-
-for art_name, width, height, margin in (
-    ("ForgedFrame1", 32, 32, 8), ("ForgedFrame2", 64, 64, 16),
-	("ForgedFrame3", 128, 128, 24),
-    ("ForgedBracket1", 8, 8, None), ("ForgedBracket2", 16, 16, None),
-	("ForgedBracket3", 32, 32, None),
-    ("ForgedDiamond", 64, 64, None), ("ForgedRule", 256, 4, None),
-):
-    ASSETS.append(Asset(
-        f"Media/Textures/{art_name}.png", width, height,
-        lambda name=art_name, w=width, h=height: material_pixels(name, w, h),
-        "Original pixel-aligned forged-frame or header finish for the forged-material study.",
-        "Prepared source in Tools/media/materials; source palette and pixel construction recorded below",
-        slice=margin, drawn="2026-11-10", maker="Python/Pillow construction using original Higgsfield reference palettes",
-    ))
+ASSETS.append(Asset(
+    "Media/Textures/ForgedDiamond.png", 64, 64,
+    lambda: material_pixels("ForgedDiamond", 64, 64),
+    "Original pixel-aligned forged-frame or header finish for the forged-material study.",
+    "Prepared source in Tools/media/materials; source palette and pixel construction recorded below",
+    drawn="2026-11-10", maker="Python/Pillow construction using original Higgsfield reference palettes",
+))
 
 
 ORB_DRAWN = "2026-11-12"

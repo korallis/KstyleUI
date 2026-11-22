@@ -1,8 +1,7 @@
--- test-medallions-only-choices.lua: Options offers only choices that draw something different under Medallions: no Orbs split, one docked data bar position beside the rail, a slab or a plate per unit frame, and no ornament or card material picker.
+-- test-medallions-only-choices.lua: Options offers only choices that draw something different under Medallions: no Orbs split, one docked data bar position beside the rail, a slab or a plate per unit frame.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local D = dofile("Tools/regression/databars_env.lua")
 local U = dofile("Tools/regression/unitframes_env.lua")
-local CoreEnv = dofile("Tools/regression/core_env.lua")
 
 local function Values(K, module, key)
 	local row = assert(K.Options.Row(module, key), module .. " has a " .. key .. " row")
@@ -37,11 +36,4 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
-do
-	local env, K = CoreEnv.New()
-	CoreEnv.Boot(env)
-	assert(K.Options.Row("Widgets", "ornaments") == nil, "General offers no ornament level: Medallions draws no ornaments")
-	assert(K.Options.Row("Widgets", "cardMaterial") == nil, "General offers no card material: Medallions cards are steel")
-	assert(#env._errors == 0, tostring(env._errors[1]))
-end
 print("medallions only choices ok")

@@ -22,8 +22,7 @@ The kit registers the `Widgets` settings page with `Store.RegisterDefaults` and 
 
 | Key | Default | Row | Effect |
 | --- | --- | --- | --- |
-| `cardMaterial` | `ForgedBrackets`, the owner's choice of 2026-11-10 | no control: Medallions cards are steel | Kept for saved profiles; Glass ones keep Blizzard's context menus through Skins > Context menus |
-| `panelOpacity` | the `surface` token's alpha, 0.75 | slider, 0.5 to 1 in steps of 0.01 | Absolute Glass alpha; other materials scale their authored fill and grain opacity relative to 0.75 |
+| `panelOpacity` | the `surface` token's alpha, 0.75 | slider, 0.5 to 1 in steps of 0.01 | Scales the steel fill's opacity relative to 0.75 |
 | `shadows` | `true` | toggle | Shows the shadow of panels, windows and tooltips |
 | `sounds` | `true` | toggle | Plays the kit's click and open sounds |
 | `tooltipScale` | `1` | slider, 0.75 to 1.5 in steps of 0.05 | The scale of `Widgets.Tooltip()` |
@@ -75,9 +74,9 @@ The kit registers the `Widgets` settings page with `Store.RegisterDefaults` and 
 
 ## Chrome
 
-`opts.popup = true` marks an existing floating surface at construction: non-Glass materials paint an opaque fill even on a tile, while a tile retains its small edge dimensions and never receives the card's forged frame/brackets. Flat and Slate apply their material rim tint. The flag is forwarded by Panel and Skin backdrop/window helpers. Glass stays unchanged; ordinary embedded tiles are not opted in. See [Popup surfaces](../../docs/popup-materials.md) for consumers and deliberate exceptions.
+`opts.popup = true` marks an existing floating surface at construction: it paints the opaque steel even on a tile, while a tile retains its small edge dimensions. The flag is forwarded by Panel and Skin backdrop/window helpers; ordinary embedded tiles are not opted in. See [Popup surfaces](../../docs/popup-materials.md) for consumers and deliberate exceptions.
 
-The layer and corner recipes below describe the retained Glass treatment. Since the owner's 2026-11-10 choice (LEE-106), card-grade chrome defaults to `ForgedBrackets`: the fill keeps its geometry but uses opaque charcoal, a repeating interior grain and a pixel-density-specific forged frame. Four brackets replace the gilt ticks. `ForgedTicks` keeps the ticks; Flat and Slate keep the legacy borders. Explicit edges and proc rims remain above the forged frame. Deferred or too-small frames keep their legacy border until the forged frame can be placed. [Card materials](../../docs/card-materials.md) covers the five choices, profile inheritance and native checks. This does not alter socket or bar chrome, content insets or typography.
+Card-grade chrome and popups wear the Medallions steel (`Widgets.SteelMaterial()`) unless they pin a radius or share, set an authored fill or pass `grain = false`; the layer and corner recipes below are the shapes it draws on. This does not alter socket or bar chrome, content insets or typography.
 
 `Chrome(owner, opts) -> chrome` draws a component's material on `owner`'s own layers, the owner's picture of 2026-11-09: baked textures from `Tools/media/make_media.py`, white with their coverage in alpha and tinted with tokens, so nothing is blurred live.
 
@@ -140,8 +139,6 @@ A corner is a whole number of border lines, so the edge line, its arc and the st
 Content padding does not follow the drawn corner: `PadRadius()` keeps `Size("radius")` (14) for cards and `Size("radiusTile")` (8) for tiles and sockets, at most half the shorter side. `test-pixels.lua` checks every corner on the four screens at sizes 0.75 to 1.5: the edge line, the fill, the rim and every tick piece are whole pixels, and a tick reaches the nearest whole pixel to the token.
 
 ## Section cap
-
-With either forged material, `PaintCapMaterial` substitutes the original forged diamond and tapered rule in `materialGold`; their rectangles, the caption's font and the count's position do not change. The owner's LEE-106 material ruling permits that finish change. The following solid-diamond/flat-rule recipe remains the Glass, Flat and Slate treatment.
 
 `SectionCap(parent, opts) -> Frame` heads a rail section as the owner's picture draws it (LEE-70, the picture wins over the faceted gem and the fading rule): the card's solid flat diamond (the kit's `diamond` texture, `capsGold`, 8 root units from point to point, 14 pixels on the reference panel: the one mark the Skins caption bullet draws too; `test-widgets-sectioncap.lua` holds it within a pixel on nine screens), the caption in the `caps` role at 12 units (Cinzel Medium spaced by its own font file, upper case, `capsGold`, the rule starting one gap after the last letter), a flat rule one border line thick in `capsGold` at half strength that does not fade, and an optional count at the right end in the `number` role, muted. Options: `text`, `count`, `width` (default 278, a rail's width inside its padding), `name`. `SetText(text)` and `SetCount(value)` (nil hides it; a secret reaches the font string untouched) change them; the rule runs from the caption to the count, or to the cap's right end. For a count another frame draws at the right end, `MeasureCount(text)` returns the text's width in the count's font, measured on a ruler font string that is never shown, and `SetReserve(width)` (nil clears it) stops the rule that width and a gap short of the right end; the cap's own count stays hidden and empty. Never park placeholder text in `count` and hide it with alpha: the client can draw it again on a later `SetTextColor`. `test-widgets-sectioncap.lua` holds it.
 

@@ -478,9 +478,6 @@ local function GeneralItems()
 		end
 	end
 	for _, item in ipairs(items) do
-		if item.module == "Widgets" and item.key == "ornaments" and K.Store.Module("OptionsPresentation").samples then
-			item.kind = "ornaments"
-		end
 		if item.module and item.key and APPLY_ON_RELEASE[item.module .. "." .. item.key] then
 			item.defer = true
 		end

@@ -26,10 +26,4 @@ return {
 			["node:SetShown"] = 1,
 		},
 	},
-	["Core/Widgets/Rects.lua"] = {
-		why = "KstyleUI layout and widget builders call SetPoint on recorded, unprotected regions at construction, resize and layout changes. The hook records anchor arguments without measuring or placing frames; Blizzard and other addons do not animate these private regions.",
-		calls = {
-			["region:SetPoint"] = 1,
-		},
-	},
 }
