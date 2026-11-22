@@ -155,15 +155,14 @@ local function Members(s, growth, count)
 	local w, h = Block(growth, count, memberWidth, s.height, spacing)
 	local heal, side = Geometry.HealLane(s)
 	if side == "TOP" then h = h + heal else w = w + heal end
-	return w + lane, h, memberWidth, spacing, lane
+	return w + lane, h, memberWidth, spacing, lane, heal, side
 end
 
 function Geometry.Party(s)
 	local growth = Clean(s.growth)
 	local count = s.showPlayer == false and PARTY_MAX - 1 or PARTY_MAX
-	local w, h, memberWidth, spacing, lane = Members(s, growth, count)
+	local w, h, memberWidth, spacing, lane, heal, healSide = Members(s, growth, count)
 	local point, x, y = Geometry.Grow(growth, spacing)
-	local heal, healSide = Geometry.HealLane(s)
 	return {
 		width = w, height = h, count = count, corner = Geometry.Corner(growth), point = point, xOffset = x, yOffset = y,
 		memberWidth = memberWidth, lane = lane, laneSide = AURA_SIDES[s.auraPosition] and (s.auraPosition == "OUTSIDE_LEFT" and "LEFT" or "RIGHT") or nil,
