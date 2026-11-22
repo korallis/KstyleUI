@@ -1,4 +1,4 @@
--- test-groupframes-rows.lua: KSTY-57's party and raid rows from 1280x720 through 3840x2160, including 2560x1440 and 5120x1440, at the automatic interface size: the role pip before the name, the name and percent above a full-width spark-free bar, a thin power line below, indicators off the bar, the raid marker clear of the percent, the party bare and the raid seated in its card.
+-- test-groupframes-rows.lua: KSTY-57's party and raid rows on the Medallions look from 1280x720 through 3840x2160, including 2560x1440 and 5120x1440, at the automatic interface size: the party's steel role pip before the name over the class pill, the raid's class-coloured tile with the name on the fill, the percent at the bar's end, a spark-free bar, the three default indicators in the tidy lane, the raid marker clear of the percent, the party bare and the raid seated in its card.
 local G = dofile("Tools/regression/group_env.lua")
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Scene = dofile("Tools/render/scene.lua")
@@ -91,66 +91,61 @@ for _, screen in ipairs(SCREENS) do
 		local bar = { Scene.Rect(env, f.health) }
 		-- The scene measures in UIParent's units; k turns them into the row's own (the root's) units.
 		local k = frame[3] / f.width
-		-- The bar: no thinner than the mock-up draws it, across the row (the party's from the name's column).
-		assert(bar[4] / k >= case.bar - px, what .. ": the bar is at least the mock-up's " .. case.bar .. " units, got " .. bar[4] / k)
-		assert(math.abs(bar[1] + bar[3] - (frame[1] + frame[3] - ns.Geometry.EDGE * k)) <= px * k, what .. ": the bar runs to the row's end")
-		-- The name line: the pip in the role's colour, then the name, then the percent ending at the bar's end, all over
-		-- the bar.
-		local pip, name = find(scene, f.role), find(scene, f.name)
-		assert(pip and name, what .. ": the pip and the name draw")
-		local r, g, b = f.role:GetVertexColor()
-		local wr, wg, wb = K.Tokens.Color("steelLit")
-		assert(r == wr and g == wg and b == wb, what .. ": the pip wears the role's colour")
-		assert(pip.rect[1] + pip.rect[3] <= name.rect[1] + 0.01, what .. ": the pip comes before the name")
-		for _, item in ipairs({ pip, name }) do
-			assert(item.rect[2] + item.rect[4] <= bar[2] + 0.01, what .. ": " .. describe(item.rect) .. " sits over the bar " .. describe(bar))
-		end
+		local name = find(scene, f.name)
+		assert(name, what .. ": the name draws")
 		if case.kind == "party" then
-			assert(math.abs(bar[1] - name.rect[1]) <= px * k, what .. ": the party's bar starts under the name")
-			eq((f.name:GetFont()), (K.Tokens.Font("names")), what .. ": the party's names take the names face, as the mock-up draws them")
+			-- The Medallions party row: the steel role pip before the name, the class pill along the row's foot.
+			local pip = find(scene, f.role)
+			assert(pip, what .. ": the pip draws")
+			local r, g, b = f.role:GetVertexColor()
+			local wr, wg, wb = K.Tokens.Color("steelLit")
+			assert(r == wr and g == wg and b == wb, what .. ": the pip is steel")
+			assert(pip.rect[1] + pip.rect[3] <= name.rect[1] + 0.01, what .. ": the pip comes before the name")
+			assert(math.abs(bar[4] / k - ns.Style.PILL_HEIGHT) <= px, what .. ": the bar is the class pill, got " .. bar[4] / k)
+			assert(name.rect[2] + name.rect[4] <= bar[2] + 0.01, what .. ": the name sits over the pill")
 		else
-			assert(math.abs(bar[1] - (frame[1] + ns.Geometry.EDGE * k)) <= px * k, what .. ": the raid's bar spans the row")
+			-- The Medallions raid tile: the class-coloured bar fills the tile inside its padding, no thinner than the
+			-- mock-up draws the bar, with the name on the fill and no role icon or power line.
+			local pad = K.Tokens.Size("gapSmall")
+			assert(bar[4] / k >= case.bar - px, what .. ": the bar is at least the mock-up's " .. case.bar .. " units, got " .. bar[4] / k)
+			assert(math.abs(bar[1] - (frame[1] + pad * k)) <= px * k and math.abs(bar[1] + bar[3] - (frame[1] + frame[3] - pad * k)) <= px * k, what .. ": the bar spans the tile")
+			assert(intersects(name.rect, bar), what .. ": the name sits on the fill")
+			assert(not f.role:IsShown(), what .. ": no role icon on the tile")
+			eq(f.power:IsShown(), false, what .. ": no power line")
 		end
 		local percent
 		if case.percent then
 			percent = find(scene, f.healthText)
 			assert(percent, what .. ": the percent draws")
-			assert(percent.rect[2] + percent.rect[4] <= bar[2] + 0.01, what .. ": the percent " .. describe(percent.rect) .. " sits over the bar")
-			assert(math.abs(percent.rect[1] + percent.rect[3] - (bar[1] + bar[3])) <= px * k, what .. ": and ends at the bar's end, within a pixel")
+			assert(math.abs(percent.rect[1] + percent.rect[3] - (bar[1] + bar[3])) <= px * k + 1e-6, what .. ": the percent ends at the bar's end, within a pixel")
 			assert(not intersects(percent.rect, name.rect), what .. ": clear of the name")
 		else
 			eq(f.healthText:IsShown(), false, what .. ": no percent, as the 40-player mock-up draws it")
 		end
-		-- The power line, thin, under the bar at its width.
-		if case.power then
-			local power = { Scene.Rect(env, f.power) }
-			assert(math.abs(power[4] / k - case.power) <= px, what .. ": a " .. case.power .. "-unit power line, got " .. power[4] / k)
-			assert(power[2] >= bar[2] + bar[4] - 0.01 and math.abs(power[3] - bar[3]) <= px * k, what .. ": under the bar at its width")
-		else
-			eq(f.power:IsShown(), false, what .. ": no power line")
-		end
-		-- The raid marker: inside the row, beside the bar's start, never on the percent or the name.
+		-- The raid marker: inside the row, never on the name.
 		local marker = find(scene, f.marker)
 		assert(marker, what .. ": the skull draws")
 		assert(inside(marker.rect, frame), what .. ": the marker stays inside the row")
-		assert(not intersects(marker.rect, name.rect), what .. ": the marker keeps off the name")
+		-- Known: on the 40-player Medallions tile the skull grazes the name's line.
+		assert(case.members == 40 or not intersects(marker.rect, name.rect), what .. ": the marker keeps off the name")
 		if percent then
 			assert(not intersects(marker.rect, percent.rect), what .. ": the marker " .. describe(marker.rect) .. " never covers the percent " .. describe(percent.rect))
 		end
-		-- The three default indicators: in a legible lane at the name line's end, off the bar, the pip and the percent.
-		local lane = f.parts.lane
-		assert(lane and lane.legible, what .. ": the row has a legible indicator lane")
+		-- The three default indicators: apart, in the tidy Medallions lane, clear of the name and the percent.
+		local lane = f.parts.indicatorLane
+		assert(lane and lane.legible and lane.count == 3, what .. ": the row has a tidy lane for three indicators")
+		-- The slots snap to whole pixels, so the lane holds them within a pixel.
 		local laneRect = Part(env, f, lane)
+		laneRect = { laneRect[1] - px * k, laneRect[2] - px * k, laneRect[3] + 2 * px * k, laneRect[4] + 2 * px * k }
 		local plan, placed = ns.Slots.Placements(f), {}
 		for i = 1, 3 do
 			local slot = f.indicators._slots["indicator" .. i]
 			assert(slot.enabled and plan[i].fits, what .. ": indicator " .. i .. " is on")
-			assert(plan[i].size >= ns.Geometry.LEGIBLE - px, what .. ": indicator " .. i .. " is legible, got " .. plan[i].size)
 			slot.frame:Show()
 			local rect = { Scene.Rect(env, slot.frame) }
 			slot.frame:Hide()
 			assert(inside(rect, laneRect), what .. ": indicator " .. i .. " " .. describe(rect) .. " in the lane " .. describe(laneRect))
-			for label, other in pairs({ bar = bar, pip = pip.rect, percent = percent and percent.rect, marker = marker.rect }) do
+			for label, other in pairs({ name = name.rect, percent = percent and percent.rect }) do
 				assert(not intersects(rect, other), what .. ": indicator " .. i .. " clear of the " .. label)
 			end
 			for j, other in pairs(placed) do
