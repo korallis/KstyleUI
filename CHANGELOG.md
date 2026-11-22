@@ -1,5 +1,18 @@
 # KstyleUI changelog
 
+## v0.2.11.1 (2026-11-22)
+
+A small fix release.
+
+Highlights:
+
+- With Blizzard's Cooldown Manager switched off, KstyleUI no longer shows its own cooldown icons.
+
+### Fixed
+
+- With Blizzard's Cooldown Manager switched off under Options > Gameplay > Advanced Options, KstyleUI no longer draws its own essential and utility cooldown rows.
+- Switching the Cooldown Manager off or on takes effect at once, without a reload or a reminder in chat. While it is off, Layout Mode offers no movers for those rows.
+
 ## v0.2.11 (2026-11-21)
 
 The guides and crest release: Zygor Guides Viewer joins RestedXP on the story rail in the KstyleUI theme, the Medallions crest jewels flare, drain and light the whole ring at the maximum, and Summon Hawk's hawks perch on the crest.
