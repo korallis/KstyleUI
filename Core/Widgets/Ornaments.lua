@@ -1008,49 +1008,7 @@ local function Draw(self)
 		return
 	end
 	self.used = 0
-	local level = W.Setting("ornaments")
-	if level == "Off" or W.Setting("cardMaterial") == "Glass" or true or self.enabled == false or self.joined or self.bare then
-		for _, texture in ipairs(self.textures) do texture:Hide() end
-		return
-	end
-	self:Begin()
-	local width, height = self.target:GetWidth(), self.target:GetHeight()
-	if not (Plain(width) and Plain(height)) then
-		local root, l, r, t, b = W.LocalRect(self.target)
-		local scale = root and self.target:GetEffectiveScale()
-		if Plain(scale) then width, height = (r - l) / scale, (t - b) / scale end
-	end
-	local factor = W.ScaleFactor(self.owner)
-	local done = false
-	if Plain(width) and Plain(height) and Plain(factor) then
-		self.pixel, self.factor = Scale.Pixel(1) / factor, factor
-		if Plain(self.pixel) then
-			self.width, self.height = floor(width / self.pixel + 0.5), floor(height / self.pixel + 0.5)
-			local full = level == "Full"
-			done = true
-			if self.kind == "bar" then done = self:Frame(full)
-			elseif self.kind == "ring" then self:Ring(full)
-			elseif self.kind == "crest" then self:Crest(full)
-			elseif self.kind == "corners" then self:Corners(full)
-			end
-		end
-	end
-	for i = self.used + 1, #self.textures do self.textures[i]:Hide() end
-	self.textures.epoch = done and self.epoch or nil
-	if self.swaps then
-		if done then
-			self.tries = nil
-		elseif (self.tries or 0) < 3 then
-			self.tries = (self.tries or 0) + 1
-			if not self.retry then
-				self.retry = function()
-					if self.textures.epoch ~= self.epoch and Spanned(self) == self.key then Draw(self) end
-				end
-			end
-			C_Timer.After(0, self.retry)
-		end
-	end
-	for _, dependent in ipairs(self.dependents or EMPTY) do dependent:Restyle() end
+	for _, texture in ipairs(self.textures) do texture:Hide() end
 end
 
 function Handle:Restyle()
@@ -1091,22 +1049,6 @@ function Handle:Yield(frame)
 				or (tl * own < r * f + gap and l * f < tr * own + gap and tb * own < t * f + gap and b * f < tt * own + gap)
 		end
 		if hide then texture:Hide() end
-	end
-end
-
-function Handle:Follow()
-	if self.enabled == false or W.Setting("ornaments") == "Off" or W.Setting("cardMaterial") == "Glass" or true or not W.MayMove(self.owner) then return end
-	if not Plain(self.pixel) then self:Restyle() return end
-	local x, _, y = self:Edges(self.target)
-	if W.IsSecret(x) or W.IsSecret(y) or type(x) ~= "number" or type(y) ~= "number" then
-		self.lastX, self.lastY = nil, nil
-		if self.used > 0 then self:Restyle() end
-		return
-	end
-	x, y = floor(x / self.pixel + 0.5), floor(y / self.pixel + 0.5)
-	if x ~= self.lastX or y ~= self.lastY then
-		self.lastX, self.lastY = x, y
-		self:Restyle()
 	end
 end
 

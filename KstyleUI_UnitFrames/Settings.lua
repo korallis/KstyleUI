@@ -986,7 +986,7 @@ CastRows = function(schema, kind)
 	end
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarTarget", label = L["Spell target"],
 		help = L["Adds who the spell is cast on after its name, when the game shows it."] }, named)
-	local function targeted(s) return named(s) and s.castbarTarget == true and not ns.CastBars.Lined(kind) end
+	local function targeted(s) return named(s) and s.castbarTarget == true end
 	local function apart(s) return targeted(s) and (s.castbarTargetPlace or "") ~= "" end
 	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "castbarTargetPlace", label = L["Spell target place"], options = CHOICES.targetPlace,
 		help = L["After the spell name, or its own text on one half of the name's line."] }, targeted)
