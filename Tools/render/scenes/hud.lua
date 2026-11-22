@@ -188,7 +188,6 @@ local function saved(opts, module, settings, more)
 		merge(profile[name], opts.settings and opts.settings[name])
 	end
 	Common.FinishSettings(profile)
-	if module == "UnitFrames" and os.getenv("RENDER_AURA_LAYOUT") then section.auraLayout = os.getenv("RENDER_AURA_LAYOUT") end
 	profile.Minimap = profile.Minimap or { enabled = true }
 	profile.Minimap.frame = os.getenv("RENDER_MINIMAP_FRAME")
 	return {
