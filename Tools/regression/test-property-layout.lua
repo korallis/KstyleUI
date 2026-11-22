@@ -132,7 +132,7 @@ local function Place(c)
 			Layout.Register(frame, key, Layouts.Default(key), { label = key, module = element.module, scalable = true })
 			Widgets.Size(frame, bodyW, bodyH)
 			if key == "meters.threat" and enabled["meters.damage"] ~= false then
-				local paired = Layouts.PrepareFits(c.preset, Scale.CanvasWidth(c.width, c.height), c.height, enabled, nil, c.style).layout[key]
+				local paired = Layouts.PrepareFits(c.preset, Scale.CanvasWidth(c.width, c.height), c.height, enabled, nil).layout[key]
 				assert(Layout.Update(key, paired))
 				h = select(2, Layouts.Footprint(c.preset, "meters.damage"))
 				bodyH = h
@@ -173,8 +173,8 @@ local function Place(c)
 	Add(spec.key, left, bottom, fw, fh)
 	assert(#env._errors == 0, "the boot raised: " .. tostring(env._errors[1]))
 	local canvas, style = Scale.CanvasWidth(c.width, c.height), K.HudStyle.Current()
-	c.fitsAtCap = Layouts.Fits(c.preset, canvas, c.height, Scale.MaxUserScale(), enabled, nil, style)
-	c.fitsApplied = Layouts.Fits(c.preset, canvas, c.height, Scale.AppliedUserScale(), enabled, nil, style)
+	c.fitsAtCap = Layouts.Fits(c.preset, canvas, c.height, Scale.MaxUserScale(), enabled, nil)
+	c.fitsApplied = Layouts.Fits(c.preset, canvas, c.height, Scale.AppliedUserScale(), enabled, nil)
 	return rects, orbs, Scale.AppliedUserScale(), Scale.MaxUserScale()
 end
 

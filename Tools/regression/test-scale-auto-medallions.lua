@@ -49,8 +49,8 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3440, 1440 }, { 3840, 1080 }, { 2560
 	local canvas = Scale.CanvasWidth(screen[1], screen[2])
 	for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 		local enabled = Layouts.Enabled(preset, profile)
-		local auto = Scale.Auto(screen[2], Layouts.ScaleLimit(canvas, screen[2], preset, enabled, "medallions"))
-		assert(Layouts.Fits(preset, canvas, screen[2], auto, enabled, Layouts.Positions(preset, "medallions", Scale.AspectClass(canvas, screen[2])), "medallions"), label .. " " .. preset .. ": the Medallions layout fits at its automatic size")
+		local auto = Scale.Auto(screen[2], Layouts.ScaleLimit(canvas, screen[2], preset, enabled))
+		assert(Layouts.Fits(preset, canvas, screen[2], auto, enabled, Layouts.Positions(preset, "medallions", Scale.AspectClass(canvas, screen[2]))), label .. " " .. preset .. ": the Medallions layout fits at its automatic size")
 	end
 	assert(#env._errors == 0, label .. ": " .. tostring(env._errors[1]))
 end

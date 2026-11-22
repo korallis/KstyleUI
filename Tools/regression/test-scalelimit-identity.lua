@@ -35,8 +35,8 @@ local function Check(name, style, screen, enabled)
 	enabled = enabled or Layouts.Enabled(name)
 	enabled["consumables.bar"] = false
 	local width, height = screen[1], screen[2]
-	local old, oldFits = Before.ScaleLimit(width, height, name, enabled, style)
-	local new, newFits = Layouts.ScaleLimit(width, height, name, enabled, style)
+	local old, oldFits = Before.ScaleLimit(width, height, name, enabled)
+	local new, newFits = Layouts.ScaleLimit(width, height, name, enabled)
 	local label = name .. " " .. style .. " " .. width .. "x" .. height
 	assert(string.format("%.17g", new) == string.format("%.17g", old),
 		label .. ": preserve the exact search result, got " .. string.format("%.17g", new) .. " expected " .. string.format("%.17g", old))
@@ -51,7 +51,7 @@ local function Check(name, style, screen, enabled)
 				Layouts.Story(name, rootHeight, guide, style, rootWidth, shown)), label .. ": preserve every public Story card field")
 		end
 	end
-	local cached, fits = Layouts.ScaleLimit(width, height, name, enabled, style)
+	local cached, fits = Layouts.ScaleLimit(width, height, name, enabled)
 	assert(cached == new and fits == newFits, label .. ": the cached result retains its predicate")
 	cases = cases + 1
 	return oldFits, newFits
@@ -138,8 +138,8 @@ do
 		end
 		local positions = Layouts.Positions("DPS", "medallions", "16:9")
 		positions[key] = { anchor = key == "unitframes.target" and "BOTTOMRIGHT" or "BOTTOMLEFT", x = 0, y = 200 }
-		assert(Before.Fits("DPS", 1920, 1080, 1, enabled, positions, "medallions") ==
-			Layouts.Fits("DPS", 1920, 1080, 1, enabled, positions, "medallions"), "keep the medallion overhang inside the screen: " .. key)
+		assert(Before.Fits("DPS", 1920, 1080, 1, enabled, positions) ==
+			Layouts.Fits("DPS", 1920, 1080, 1, enabled, positions), "keep the medallion overhang inside the screen: " .. key)
 	end
 end
 do
@@ -154,7 +154,7 @@ do
 end
 do
 	Layouts.MEDALLIONS_MEDALS["unitframes.focus"] = { side = 1, d = 86 }
-	local state = Layouts.PrepareFits("DPS", 1920, 1080, Layouts.Enabled("DPS"), nil, "medallions")
+	local state = Layouts.PrepareFits("DPS", 1920, 1080, Layouts.Enabled("DPS"), nil)
 	Layouts.MEDALLIONS_MEDALS["unitframes.focus"] = nil
 	assert(state.rects[#Layouts.ELEMENTS + 6], "size the rect buffer for every medallion entry, including a fourth medal")
 end
@@ -164,7 +164,7 @@ Layouts.Footprint = function(name, key)
 	reads[key] = (reads[key] or 0) + 1
 	return footprint(name, key)
 end
-Layouts.ScaleLimit(1922, 1080, "DPS", nil, "frames")
+Layouts.ScaleLimit(1922, 1080, "DPS", nil)
 Layouts.Footprint = footprint
 for _, element in ipairs(Layouts.ELEMENTS) do
 	assert(reads[element.key] == 1, element.key .. ": hoist the footprint once per search, including Story and the search span")
@@ -175,7 +175,7 @@ Layouts.Story = function(...)
 	calls = calls + 1
 	return story(...)
 end
-local _, fits = Layouts.ScaleLimit(1921, 1080, "DPS", nil, "frames")
+local _, fits = Layouts.ScaleLimit(1921, 1080, "DPS", nil)
 fits(0.8)
 local first = calls
 fits(0.8)

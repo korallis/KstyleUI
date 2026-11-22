@@ -40,8 +40,8 @@ local function Clear()
 	assert(#CT.Shown(ns) == 0, "the numbers finish")
 end
 
--- Defaults are v0.2.8's: no power gains, no COMBAT_TEXT_UPDATE work, and a 48-unit rise in Frames.
-assert(cfg.power == false and cfg.rise == 48, "power gains start off and the field keeps its 48-unit rise")
+-- Defaults: no power gains, no COMBAT_TEXT_UPDATE work, and Medallions' 40-unit rise.
+assert(cfg.power == false and cfg.rise == 40, "power gains start off and the field keeps its 40-unit rise")
 assert(Gain("ENERGIZE", 25, "ENERGY") == nil and stats.combatText == 0, "power gains off registers no COMBAT_TEXT_UPDATE")
 
 -- The game's combat text unit is the only proof a gain is yours: with none, a vehicle or a secret, nothing shows,
@@ -141,19 +141,19 @@ local function Rise()
 	Clear()
 	return move.offsetY
 end
-assert(math.abs(Rise() - math.min(48, room)) < 1e-6, "the default rise is unchanged")
-K.Options.Write("CombatText", "fieldDistance", 80)
-assert(math.abs(Rise() - math.min(80, room)) < 1e-6 and math.min(80, room) > 48, "a longer travel distance moves numbers further")
-K.Options.Write("CombatText", "fieldDistance", 120)
+assert(math.abs(Rise() - math.min(40, room)) < 1e-6, "the default rise is unchanged")
+K.Options.Write("CombatText", "fieldDistanceMedallions", 80)
+assert(math.abs(Rise() - math.min(80, room)) < 1e-6 and math.min(80, room) > 40, "a longer travel distance moves numbers further")
+K.Options.Write("CombatText", "fieldDistanceMedallions", 120)
 assert(math.abs(Rise() - room) < 1e-6, "the field's height caps the travel distance")
-K.Options.Write("CombatText", "fieldDistance", 16)
+K.Options.Write("CombatText", "fieldDistanceMedallions", 16)
 assert(math.abs(Rise() - 16) < 1e-6, "a shorter travel distance applies")
 K.Options.Write("CombatText", "direction", "down")
 assert(math.abs(Rise() + 16) < 1e-6, "the travel distance applies downward")
 K.Options.Write("CombatText", "direction", "up")
-K.Options.Write("CombatText", "fieldDistance", 48)
+K.Options.Write("CombatText", "fieldDistanceMedallions", 40)
 
--- Each HUD style keeps its own travel: the slider shown is the distance the field uses, so 48 can be chosen under Medallions.
+-- The travel slider shown is the distance the field uses, so 48 can be chosen.
 local function Travel()
 	for _, row in ipairs(ns.Settings.Schema()) do
 		if row.label == K.L["Travel above you"] and (not row.showWhen or row.showWhen(ns.Settings.Values())) then
@@ -169,10 +169,6 @@ assert(ns.Module.cfg.rise == 48, "48 can be chosen under Medallions")
 K.Options.Write("CombatText", key, 24)
 assert(ns.Module.cfg.rise == 24, "a chosen travel distance stays under Medallions")
 assert(ns.Settings.Snapshot({ [key] = env.Secret(80) }).rise == 40, "a secret saved distance falls back to Medallions' default")
-env.RunTimers()
-key = Travel()
-assert(ns.Module.cfg.rise == 48 and K.Options.Read("CombatText", key) == 48, "Frames' slider is the distance its field uses")
-assert(ns.Settings.Snapshot({ [key] = env.Secret(80) }).rise == 48, "a secret saved distance falls back to the default")
 
 -- Power gains show only in your own place: never on a party button that shows you, with You on or off.
 local buttons
@@ -208,7 +204,7 @@ do
 	end
 	assert(Power() == nil, "the preview shows no power gains while they are off")
 	PK.Options.Write("CombatText", "power", true)
-	PK.Options.Write("CombatText", "fieldDistance", 24)
+	PK.Options.Write("CombatText", "fieldDistanceMedallions", 24)
 	preview:Refresh()
 	assert(Power() == "+short(25)", "the preview shows a power gain while they are on")
 	assert(preview.cfg.rise == 24, "the preview travels the chosen distance")

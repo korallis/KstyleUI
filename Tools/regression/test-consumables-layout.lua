@@ -20,22 +20,22 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 					assert(CoreEnv.DeepEqual(position, current[key]), label .. ": shrinking consumables must not move " .. key)
 				end
 			end
-			local cap, fits = L.ScaleLimit(screen[1], screen[2], name, enabled, style)
+			local cap, fits = L.ScaleLimit(screen[1], screen[2], name, enabled)
 			local auto = K.Scale.Auto(screen[2], cap, fits)
 			assert(fits(auto), label .. ": the default bar fits at the automatic pixel step")
-			local places = L.PrepareFits(name, screen[1], screen[2], enabled, nil, style).layout
+			local places = L.PrepareFits(name, screen[1], screen[2], enabled, nil).layout
 			local baseline = {}
 			for key, value in pairs(enabled) do baseline[key] = value end
 			baseline["consumables.bar"] = false
-			if L.Fits(name, screen[1], screen[2], K.Scale.DEFAULT_USER_SCALE, baseline, nil, style) then
-				assert(L.Fits(name, screen[1], screen[2], K.Scale.DEFAULT_USER_SCALE, enabled, nil, style), label .. ": adding the default footprint keeps the whole HUD clear")
+			if L.Fits(name, screen[1], screen[2], K.Scale.DEFAULT_USER_SCALE, baseline, nil) then
+				assert(L.Fits(name, screen[1], screen[2], K.Scale.DEFAULT_USER_SCALE, enabled, nil), label .. ": adding the default footprint keeps the whole HUD clear")
 			end
 			for _, element in ipairs(L.ELEMENTS) do
 				if element.key ~= "consumables.bar" and enabled[element.key] ~= false then
 					local pair = {}
 					for _, other in ipairs(L.ELEMENTS) do pair[other.key] = false end
 					pair["consumables.bar"], pair[element.key] = true, true
-					assert(L.Fits(name, screen[1], screen[2], K.Scale.DEFAULT_USER_SCALE, pair, places, style), label .. ": the maximum footprint must clear " .. element.key)
+					assert(L.Fits(name, screen[1], screen[2], K.Scale.DEFAULT_USER_SCALE, pair, places), label .. ": the maximum footprint must clear " .. element.key)
 				end
 			end
 		end
@@ -51,8 +51,8 @@ for _, rows in ipairs({ 1, 2, 3 }) do
 			local free = {}
 			for key, value in pairs(enabled) do free[key] = value end
 			free["consumables.bar"] = false
-			local maximum = L.ScaleLimit(screen[1], screen[2], "DPS", enabled, style)
-			assert(maximum == L.ScaleLimit(screen[1], screen[2], "DPS", free, style), "consumables never limit the HUD scale")
+			local maximum = L.ScaleLimit(screen[1], screen[2], "DPS", enabled)
+			assert(maximum == L.ScaleLimit(screen[1], screen[2], "DPS", free), "consumables never limit the HUD scale")
 		end
 	end
 end

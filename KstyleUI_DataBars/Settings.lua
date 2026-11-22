@@ -70,7 +70,7 @@ defaults.rep.rewardMarker = true
 defaults.honor = BarDefaults("custom", "epic", "labelPercent")
 defaults.honor.show = "pvp"
 defaults.strip = {
-	enabled = true, placement = "top", height = 14, background = 85, artwork = "forged",
+	enabled = true, placement = "top", background = 85, artwork = "forged",
 	dockMeter = true,
 	line = true, labels = "inline", menus = true, valueColor = "plain", accentEdge = false, backdrop = false, separators = false,
 	spacing = STRIP_SPACING, orientation = "HORIZONTAL",
@@ -119,9 +119,8 @@ local MODULES = {
 	{ "spacer", L["Spacer"], "right", L["Adds room between readouts."] },
 	{ "reagents", L["Class resources"], "right", L["Shows the class reagents and ammunition you carry."] },
 }
-defaults.strip.modules, defaults.strip.secondModules = {}, {}
-for i, def in ipairs(MODULES) do
-	defaults.strip.modules[i] = { id = def[1], shown = i <= 12, zone = def[3] }
+defaults.strip.secondModules = {}
+for _, def in ipairs(MODULES) do
 	if def[1] ~= "micro" then defaults.strip.secondModules[#defaults.strip.secondModules + 1] = { id = def[1], shown = false, zone = "right" } end
 end
 
@@ -137,7 +136,7 @@ for i, entry in ipairs(defaults.strip.dockModules) do
 end
 
 function ns.FillModules(s)
-	for _, key in ipairs({ "modules", "dockModules", "railModules", "secondModules" }) do
+	for _, key in ipairs({ "dockModules", "railModules", "secondModules" }) do
 		local list, seen = s[key], {}
 		for _, entry in ipairs(list) do seen[entry.id] = true end
 		for _, entry in ipairs(defaults.strip[key]) do

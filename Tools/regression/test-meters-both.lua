@@ -21,7 +21,7 @@ local function Pair(env, K, ns)
 	assert(enabled["cooldowns.bars"] ~= false and layouts.Element("cooldowns.bars").height >= 27, "Both collision checks must include the CDM tracked-bar footprint")
 	enabled["meters.damage"], enabled["meters.threat"] = true, true
 	local width, height = env.GetPhysicalScreenSize()
-	assert(layouts.Fits(preset, width, height, K.Scale.AppliedUserScale(), enabled, nil, style), "the pair must also clear the story cards and Orbs circles")
+	assert(layouts.Fits(preset, width, height, K.Scale.AppliedUserScale(), enabled, nil), "the pair must also clear the story cards and Orbs circles")
 	for _, element in ipairs(layouts.ELEMENTS) do
 		local key = element.key
 		if key ~= "meters.damage" and key ~= "meters.threat" and layouts.Enabled(preset)[key] ~= false and not (style == "orbs" and key == "unitframes.player") then

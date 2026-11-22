@@ -45,7 +45,7 @@ local function PhysicalRects(name, width, height, user, enabled)
 	local rh = 1080 / user
 	local k = height / rh
 	local rw = width / k
-	local positions = Layouts.PrepareFits(name, width, height, enabled or Layouts.Enabled(name), nil, "frames").layout
+	local positions = Layouts.PrepareFits(name, width, height, enabled or Layouts.Enabled(name), nil).layout
 	local rects, keys = {}, {}
 	local function add(key, w, h, position, offsetX)
 		local fx = position.anchor:find("LEFT") and 0 or position.anchor:find("RIGHT") and 1 or 0.5
@@ -609,9 +609,9 @@ for _, name in ipairs(Layouts.Names()) do
 		for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 			local width, enabled = K.Scale.CanvasWidth(size[1], size[2]), Layouts.Enabled(name)
 			assert(enabled["auras.extraBuffs"] == false and enabled["auras.extraDebuffs"] == false and enabled["databars.strip2"] == false, name .. ": the extra aura rows and the second data bar start off")
-			assert(Layouts.Fits(name, width, size[2], K.Scale.DEFAULT_USER_SCALE, enabled, nil, style), string.format("%s %s at %dx%d: the preset fits", name, style, size[1], size[2]))
+			assert(Layouts.Fits(name, width, size[2], K.Scale.DEFAULT_USER_SCALE, enabled, nil), string.format("%s %s at %dx%d: the preset fits", name, style, size[1], size[2]))
 			enabled["auras.extraBuffs"], enabled["auras.extraDebuffs"], enabled["databars.strip2"] = true, true, true
-			assert(Layouts.Fits(name, width, size[2], K.Scale.DEFAULT_USER_SCALE, enabled, nil, style), string.format("%s %s at %dx%d: the extra aura rows and the second data bar fit", name, style, size[1], size[2]))
+			assert(Layouts.Fits(name, width, size[2], K.Scale.DEFAULT_USER_SCALE, enabled, nil), string.format("%s %s at %dx%d: the extra aura rows and the second data bar fit", name, style, size[1], size[2]))
 			extraFits = extraFits + 1
 		end
 	end

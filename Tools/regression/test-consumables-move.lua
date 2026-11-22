@@ -36,15 +36,12 @@ overlay:GetScript("OnKeyDown")(overlay, "RIGHT")
 C.Apply()
 assert(not cfg.attached and select(2, C.holder:GetPoint()) == K.Scale.Root(), "a keyboard nudge releases the dock")
 K.Layout.Exit(true)
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-	K.Options.Write("ActionBars", "consumables.attached", true)
-	local target = style == "orbs" and ns.bars.bar1.holder or player
-	assert(select(2, C.holder:GetPoint()) == target, style .. ": Attach restores the current HUD dock")
-	assert(K.Layout.Set(key, "x", 450))
-	assert(not cfg.attached and select(2, C.holder:GetPoint()) == K.Scale.Root(), style .. ": numeric positions release the dock")
-	C.Apply()
-	assert(math.abs(select(4, C.holder:GetPoint()) - 450) < 0.02, style .. ": numeric position survives Apply")
-end
+K.Options.Write("ActionBars", "consumables.attached", true)
+assert(select(2, C.holder:GetPoint()) == player, "Attach restores the player frame dock")
+assert(K.Layout.Set(key, "x", 450))
+assert(not cfg.attached and select(2, C.holder:GetPoint()) == K.Scale.Root(), "numeric positions release the dock")
+C.Apply()
+assert(math.abs(select(4, C.holder:GetPoint()) - 450) < 0.02, "numeric position survives Apply")
 K.Options.Write("ActionBars", "consumables.attached", true)
 local before = { C.holder:GetPoint() }
 env._combat = true

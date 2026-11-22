@@ -73,22 +73,19 @@ K.Options.Write("ActionBars", "consumables.backing", false)
 assert(not backing:IsShown(), "the backing toggle hides the tile")
 K.Options.Write("ActionBars", "consumables.backing", true)
 assert(backing:IsShown(), "the backing toggle restores the tile")
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-	for _, class in ipairs(K.Setup.Layouts.ASPECTS) do
-		local _, size, gap = K.Setup.Layouts.ConsumableGrid(style, class)
-		local slot = K.Setup.Layouts.MEDALLIONS_SLOT
-		local actionSize = style == "medallions" and (slot[class] or slot.size) or ns.defaults.bar3.size
-		local actionGap = style == "medallions" and slot.gap * actionSize / slot.size or 3
-		assert(near(size, actionSize / 2) and near(gap, actionGap / 2), style .. ": buttons and default gaps stay half-size")
-	end
-	button:Restyle()
-	assert(button.countdown:GetPoint() == "CENTER", style .. ": restyling keeps the compact countdown centered")
-	for _, key in ipairs({ "hotkey", "count", "cooldown" }) do
-		local fs = key == "cooldown" and button.cooldown:GetCountdownFontString() or button[key]
-		local _, size = fs:GetFont()
-		assert(size <= button.opts.size and size < ns.Config("text")[key].size, style .. ": consumable " .. key .. " text scales with its button")
-		assert(size * K.Widgets.ScaleFactor(fs) / K.Scale.Pixel(1) >= 9 - 0.01 and select(3, fs:GetFont()) == "OUTLINE", style .. ": compact text keeps a nine-pixel outlined floor")
-	end
+for _, class in ipairs(K.Setup.Layouts.ASPECTS) do
+	local _, size, gap = K.Setup.Layouts.ConsumableGrid(class)
+	local slot = K.Setup.Layouts.MEDALLIONS_SLOT
+	local actionSize = slot[class] or slot.size
+	assert(near(size, actionSize / 2) and near(gap, slot.gap * actionSize / slot.size / 2), class .. ": buttons and default gaps stay half-size")
+end
+button:Restyle()
+assert(button.countdown:GetPoint() == "CENTER", "restyling keeps the compact countdown centered")
+for _, key in ipairs({ "hotkey", "count", "cooldown" }) do
+	local fs = key == "cooldown" and button.cooldown:GetCountdownFontString() or button[key]
+	local _, size = fs:GetFont()
+	assert(size <= button.opts.size and size < ns.Config("text")[key].size, "consumable " .. key .. " text scales with its button")
+	assert(size * K.Widgets.ScaleFactor(fs) / K.Scale.Pixel(1) >= 9 - 0.01 and select(3, fs:GetFont()) == "OUTLINE", "compact text keeps a nine-pixel outlined floor")
 end
 K.Options.Write("ActionBars", "consumables.hotkey", true)
 assert(not button.hotkey:IsShown(), "compact counts win over optional keys")
@@ -176,7 +173,7 @@ K.Options.Write("ActionBars", "consumables.buttons", 12)
 assert(#C.selected == 12, "raising the limit restores the remaining carried kinds")
 for _, rows in ipairs({ 1, 2, 3 }) do
 	K.Options.Write("ActionBars", "consumables.rows", rows)
-	local w, h = K.Setup.Layouts.ConsumableFootprint(K.HudStyle.Current())
+	local w, h = K.Setup.Layouts.ConsumableFootprint()
 	assert(near(C.holder:GetWidth(), K.Widgets.Snap(C.holder, w)) and near(C.holder:GetHeight(), K.Widgets.Snap(C.holder, h)), "mover reserves all 12 at " .. rows .. " rows, snapped to physical pixels")
 	local x, y, _, dx, dy = C.buttons[math.min(12, math.ceil(12 / rows) + 1)]:GetPoint()
 	assert(x == "BOTTOMRIGHT" and y == C.header and near(dx, 0) and dy > 0 or rows == 1, "row-major fill starts a new row from the attached edge")
@@ -196,25 +193,24 @@ K.Options.Write("ActionBars", "consumables.growth", "RIGHTDOWN")
 assert(C.buttons[1]:GetPoint() == "TOPLEFT", "custom growth")
 K.Options.Write("ActionBars", "consumables.size", 48)
 K.Options.Write("ActionBars", "consumables.spacing", 8)
-assert(C.holder:GetWidth() == 328 and C.holder:GetHeight() == 104, "custom size and gap reach both mover and live buttons")
+-- Medallions scales the 48 size by the 33.5/38 slot of this screen; the 8 gap stays.
+assert(C.holder:GetWidth() == 294 and C.holder:GetHeight() == 93, "custom size and gap reach both mover and live buttons")
 
-for _, style in ipairs({ "Frames", "Medallions", "Orbs" }) do
-	K.Options.Write("HudStyle", "style", style:lower())
+do
 	local player = env.CreateFrame("Frame", nil, K.Scale.Root())
 	player:SetSize(491, 77.5)
 	K.Layout.Register(player, "unitframes.player", K.Setup.Layouts.Default("unitframes.player"))
 	K.Callbacks.Fire("LayoutChanged", "unitframes.player")
 	C.Apply()
-	local expected = K.HudStyle.Current() == "orbs" and ns.bars.bar1.holder or player
 	local _, relative = C.holder:GetPoint()
-	assert(relative == expected, style .. " physically follows the player frame or orb assembly")
+	assert(relative == player, "the bar physically follows the player frame")
 	K.Options.Write("ActionBars", "consumables.attached", false)
 	local _, free = C.holder:GetPoint()
 	assert(free == K.Scale.Root() and K.Layout.Element("consumables.bar").opts.plate ~= false, "detached bar has a free mover")
 	K.Layout.Set("consumables.bar", "x", 500)
 	K.Options.Write("ActionBars", "consumables.attached", true)
 	local _, docked = C.holder:GetPoint()
-	assert(docked == expected, "reattaching overrides a free saved position")
+	assert(docked == player, "reattaching overrides a free saved position")
 end
 
 K.Options.Write("ActionBars", "consumables.hotkey", true)
@@ -270,7 +266,8 @@ K.Options.Write("ActionBars", "consumables.other", false)
 assert(#C.selected == 0, "Other off")
 K.Options.Write("ActionBars", "consumables.hideEmpty", false)
 assert(C.header:IsShown() and C.buttons[1]:IsShown(), "hide empty off keeps the empty bar")
-assert(near(C.header:GetWidth(), C.holder:GetWidth()) and near(C.header:GetHeight(), C.holder:GetHeight()), "an empty visible bar and its backing use the complete chosen grid")
+-- The holder snaps the Medallions grid to physical pixels; the header keeps the exact grid inside that pixel.
+assert(math.abs(C.header:GetWidth() - C.holder:GetWidth()) < K.Scale.Pixel(1) and math.abs(C.header:GetHeight() - C.holder:GetHeight()) < K.Scale.Pixel(1), "an empty visible bar and its backing use the complete chosen grid")
 K.Options.Write("ActionBars", "consumables.hideEmpty", true)
 assert(not C.header:IsShown(), "hide empty on")
 

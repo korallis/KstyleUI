@@ -51,14 +51,14 @@ for _, name in ipairs(Layouts.Names()) do
 			end
 		end
 		local enabled = Layouts.Enabled(name)
-		local maximum, fits = Layouts.ScaleLimit(width, height, name, enabled, "medallions")
+		local maximum, fits = Layouts.ScaleLimit(width, height, name, enabled)
 		assert(maximum > 0 and fits(maximum), label .. ": the scale limit is a size that fits the slab and its hub")
 		local moved = Layouts.Positions(name, "medallions", class)
 		moved["actionbars.bar2"].x = moved["actionbars.bar2"].x - (GAP - RING) / 2 - 20
-		assert(not Layouts.Fits(name, width, height, maximum, enabled, moved, "medallions"), label .. ": a group moved into the hub does not fit")
+		assert(not Layouts.Fits(name, width, height, maximum, enabled, moved), label .. ": a group moved into the hub does not fit")
 		local crowded = Layouts.Positions(name, "medallions", class)
 		crowded["unitframes.player"].x, crowded["unitframes.player"].y = 0, one.y + groupHeight
-		assert(not Layouts.Fits(name, width, height, maximum, enabled, crowded, "medallions"), label .. ": a unit frame placed on the hub does not fit")
+		assert(not Layouts.Fits(name, width, height, maximum, enabled, crowded), label .. ": a unit frame placed on the hub does not fit")
 	end
 end
 do
@@ -70,17 +70,17 @@ do
 		local at = Layouts.Positions("DPS", "medallions", "16:9")
 		local right = key == "unitframes.target"
 		at[key] = { anchor = right and "BOTTOMRIGHT" or "BOTTOMLEFT", x = 0, y = 200 }
-		assert(not Layouts.Fits("DPS", 1920, 1080, 1, Only(key), at, "medallions"), key .. ": Fits must count the square medallion overhang at the screen edge")
+		assert(not Layouts.Fits("DPS", 1920, 1080, 1, Only(key), at), key .. ": Fits must count the square medallion overhang at the screen edge")
 		at[key].x = right and -50 or 50
-		assert(Layouts.Fits("DPS", 1920, 1080, 1, Only(key), at, "medallions"), key .. ": moving the whole medallion on screen must fit")
+		assert(Layouts.Fits("DPS", 1920, 1080, 1, Only(key), at), key .. ": moving the whole medallion on screen must fit")
 	end
 	local at = Layouts.Positions("DPS", "medallions", "16:9")
 	at["unitframes.player"] = { anchor = "BOTTOMLEFT", x = 300, y = 200 }
 	at["unitframes.targettarget"] = { anchor = "BOTTOMLEFT", x = 90, y = 205 }
 	local enabled = Only("unitframes.player", "unitframes.targettarget")
-	assert(not Layouts.Fits("DPS", 1920, 1080, 1, enabled, at, "medallions"), "Fits must reject another slab on the medallion's square, even when the unit slabs are clear")
+	assert(not Layouts.Fits("DPS", 1920, 1080, 1, enabled, at), "Fits must reject another slab on the medallion's square, even when the unit slabs are clear")
 	at["unitframes.targettarget"].x = 80
-	assert(Layouts.Fits("DPS", 1920, 1080, 1, enabled, at, "medallions"), "Fits must accept the same slabs once the medallion is clear")
+	assert(Layouts.Fits("DPS", 1920, 1080, 1, enabled, at), "Fits must accept the same slabs once the medallion is clear")
 end
 assert(slots > 0, "the test checked slots")
 print("ok layout medallions hub: " .. slots .. " slot rects, " .. #SCREENS .. " screens, 3 presets")

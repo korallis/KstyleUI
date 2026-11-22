@@ -1014,6 +1014,8 @@ Store.migrations[45] = function(data)
 				for _, key in ipairs(keys) do section[key] = nil end
 			end
 			if type(profile.Chat) == "table" and profile.Chat.framing == "auto" then profile.Chat.framing = nil end
+			local strip = type(profile.DataBars) == "table" and type(profile.DataBars.strip) == "table" and profile.DataBars.strip or {}
+			strip.modules, strip.height = nil, nil
 		end
 	end
 	for _, layout in pairs(data.layouts) do

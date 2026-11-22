@@ -1937,7 +1937,7 @@ ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
 			Restyle()
 		end
 	end
-	if module == "DataBars" and (key == "strip.placement" or key == "strip.height" or key == "strip.enabled") then
+	if module == "DataBars" and (key == "strip.placement" or key == "strip.enabled") then
 		Restyle()
 	end
 	if module == SECTION and state.active then

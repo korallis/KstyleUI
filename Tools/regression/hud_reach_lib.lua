@@ -319,7 +319,7 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 							end
 							-- Disabled/empty slots keep a reservation too, so enabling a spare never hides another control.
 							local L=K.Setup.Layouts
-							local state=L.PrepareFits(layout,w,h,{},nil,style)
+							local state=L.PrepareFits(layout,w,h,{},nil)
 							local rx,ry,_,rh=Scene.RectIn(solver,K.Scale.Root())
 							local scale=K.Scale.AppliedUserScale()
 							local rw,rootHeight=K.Layout.RootSize()

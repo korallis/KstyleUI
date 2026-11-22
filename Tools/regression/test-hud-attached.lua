@@ -39,7 +39,7 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		end
 	end
 	for _, screen in ipairs({ {1920,1080}, {2560,1440}, {3440,1440}, {3456,2234}, {3840,2160}, {5120,1440} }) do
-		assert(L.Fits("DPS", screen[1], screen[2], 0.6, nil, nil, style), style .. ": attached defaults fit at " .. screen[1] .. "x" .. screen[2])
+		assert(L.Fits("DPS", screen[1], screen[2], 0.6, nil, nil), style .. ": attached defaults fit at " .. screen[1] .. "x" .. screen[2])
 	end
 end
 K.Options.Write("Cooldowns", "essential.columns", 6)

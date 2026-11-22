@@ -1499,7 +1499,7 @@ function Strip.Setting(key)
 	end
 	Strip.Refresh()
 	if field and field:find("^hearth") then ns.Click.Refresh() end
-	if field == "modules" or field == "dockModules" or field == "railModules" or field == "secondModules" or field == "second" or field == "enabled" or field == "placement" then
+	if field == "dockModules" or field == "railModules" or field == "secondModules" or field == "second" or field == "enabled" or field == "placement" then
 		StartTicker()
 	end
 end

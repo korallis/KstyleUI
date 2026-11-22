@@ -70,7 +70,7 @@ for _, style in ipairs({ "medallions" }) do
 					env.FireEvent("DISPLAY_SIZE_CHANGED")
 					limits[side] = K.Scale.AppliedUserScale()
 				else
-					limits[side] = layouts.ScaleLimit(screen[1], screen[2], "DPS", nil, style)
+					limits[side] = layouts.ScaleLimit(screen[1], screen[2], "DPS", nil)
 				end
 				times[side][round] = (os.clock() - start) * 1000
 				garbage[side][round] = (collectgarbage("count") - kb) * 1024

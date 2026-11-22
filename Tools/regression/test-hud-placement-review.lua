@@ -14,7 +14,7 @@ if not pick or pick == "grid" then
 			local width, height = ns.Grid.Size(ns.Settings.current[group])
 			local w, h = K.Setup.Layouts.Footprint("DPS", key)
 			assert(math.abs(w-width)<0.01 and math.abs(h-height)<0.01, style .. " " .. group .. ": footprint must equal the real mirror grid, not the old six-icon box")
-			local fit = K.Setup.Layouts.PrepareFits("DPS",1920,1080,K.Setup.Layouts.Enabled("DPS"),nil,style)
+			local fit = K.Setup.Layouts.PrepareFits("DPS",1920,1080,K.Setup.Layouts.Enabled("DPS"),nil)
 			for i, element in ipairs(K.Setup.Layouts.ELEMENTS) do
 				if element.key == key then assert(math.abs(fit.sizes[i][1]-width)<0.01 and math.abs(fit.sizes[i][2]-height)<0.01, "Fits must measure the full mirror grid") end
 			end

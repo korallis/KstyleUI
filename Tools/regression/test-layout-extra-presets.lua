@@ -18,7 +18,7 @@ for _, screen in ipairs(screens) do
 				enabled["consumables.bar"] = false
 				enabled["actionbars.bar4"], enabled["actionbars.bar5"] = true, true
 				local width = arrangement == "centred" and math.min(screen[1], screen[2] * 21 / 9) or screen[1]
-				local cap, fits = L.ScaleLimit(width, screen[2], name, enabled, "medallions")
+				local cap, fits = L.ScaleLimit(width, screen[2], name, enabled)
 				local label = name .. " " .. kind .. " " .. screen[1] .. "x" .. screen[2] .. " " .. arrangement
 				assert(fits(cap), label .. ": default overlap guard must fit")
 				if kind == "beside" and name == "DPS" then assert(fits(0.9375), label .. ": D must not shrink the usual DPS HUD") end
@@ -29,7 +29,7 @@ for _, screen in ipairs(screens) do
 					positions["medallions:" .. key] = { anchor = p.anchor, x = p.x, y = p.y + 1 }
 					at[key] = positions["medallions:" .. key]
 				end
-				assert(L.Fits(name, width, screen[2], cap * 0.99, enabled, at, "medallions"), label .. ": safe saved positions must fit")
+				assert(L.Fits(name, width, screen[2], cap * 0.99, enabled, at), label .. ": safe saved positions must fit")
 				local oldChat = { anchor = "TOPLEFT", x = 24, y = -200 }
 				positions["chat.main"] = oldChat
 				K.Callbacks.Fire("ProfileChanged")
@@ -38,7 +38,7 @@ for _, screen in ipairs(screens) do
 				assert(not styled, "a saved chat position keeps its usual layout scope")
 				positions["chat.main"] = nil
 				at["actionbars.bar4"] = { anchor = "BOTTOM", x = 0, y = at["actionbars.bar1"].y }
-				assert(not L.Fits(name, width, screen[2], cap, enabled, at, "medallions"), label .. ": saved bar on the hub must fail")
+				assert(not L.Fits(name, width, screen[2], cap, enabled, at), label .. ": saved bar on the hub must fail")
 				cfg.extraBarsApplied = "off"
 				positions["medallions:actionbars.bar4"], positions["medallions:actionbars.bar5"] = nil, nil
 				checked = checked + 1
