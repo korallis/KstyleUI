@@ -113,7 +113,7 @@ check(bg.layout.elementWidth == K.Scale.Snap(27.6) and bg.layout.elementHeight =
 check(bg.maxFrameCount == 10 and dg.maxFrameCount == 10, "ten buffs and ten debuffs at most")
 check(#harmful._order == 1 and harmful._groups.debuffs and harmful._groups.debuffs.candidateFilters == nil, "the debuff container runs one group with no dispel split")
 
--- A tile: the icon, inset one border inside a square rim plate in the dark edge colour (under the engine's dispel
+-- A tile: the icon, inset one border inside a square rim plate in the Medallions dark metal (under the engine's dispel
 -- plate on debuffs), no mask, no chamfer, no body, no bezel, no shadow; the timer under the icon in white in the body face;
 -- the stack count in the tile's top right corner as world text, an outline and a soft shadow with no plate behind it
 -- (KSTY-60 item 26: the plate poked out of the icon), on a badge that is a StatusBar the engine shows only from two
@@ -125,9 +125,9 @@ check(#textures(entry.skin, chamfer) == 0, "a tile draws no chamfered plate: its
 check(#entry.rim == 1 and entry.rim[1]:GetParent() == entry.skin and entry.rim[1]:IsShown(), "a buff tile carries one square rim plate")
 local rp = entry.rim[1]._points
 check(#rp == 2 and rp[1][2] == entry.skin and rp[2][2] == entry.skin, "covering the whole tile, so the icon one border inside leaves a one-pixel ring")
-local er, eg, eb = Tokens.Color("black")
+local er, eg, eb = Tokens.Color("medSocketRim")
 local fr, fg, fb = Tokens.Color("buttonFill")
-check(sameRGB(entry.rim[1], er, eg, eb), "the rim is the dark edge colour")
+check(sameRGB(entry.rim[1], er, eg, eb), "the rim is the Medallions dark metal")
 check(not sameRGB(entry.rim[1], fr, fg, fb), "and never the button body")
 local _, _, _, ra = entry.rim[1]:GetVertexColor()
 check(ra == 1, "at full strength: " .. tostring(ra))

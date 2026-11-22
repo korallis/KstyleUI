@@ -95,7 +95,7 @@ local function Case(layout, class, form, screen)
 				Require(view[part], kind .. "." .. part)
 			end
 		end
-		local cast = kind == "player" and U.CastBars.Get(kind)[1] or U.CastBars.Inline(kind)[1]
+		local cast = U.CastBars.Inline(kind)[1]
 		roots[cast.frame] = kind .. ".cast"
 		assert(cast.active, label .. ": " .. kind .. " casts during the measurement")
 		for _, part in ipairs({ "bar", "text", "timer" }) do
