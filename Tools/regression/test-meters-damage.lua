@@ -94,7 +94,7 @@ end
 -- Rows mirror the current session.
 assert(env._lastSession[1] == M.SESSION.Current and env._lastSession[2] == M.METER.DamageDone, "the window reads the current fight's damage done")
 assert(list.count == 2, "two sources show")
-assert(Text(list.rows[1].name) == "Kragar", "the first source is named")
+assert(Text(list.rows[1].name) == "KRAGAR", "the first source is named, in the Medallions capitals")
 assert(Text(list.rows[1].value) == "2.8K", "the value is abbreviated")
 assert(Text(list.rows[1].percent) == "57%" and Text(list.rows[1].dot) == "\194\183", "the share is the percentage and the dot is its own piece")
 local range = M.Last(list.rows[1].bar, "SetMinMaxValues")
@@ -249,7 +249,7 @@ for i = 1, 3 do
 	assert(Plain(envR, Text(cardR.rows[i].value)) == ({ "2.8K", "2.1K", "900" })[i], "row " .. i .. ": the amount reads as a short number, got " .. tostring(Plain(envR, Text(cardR.rows[i].value))))
 	assert(Plain(envR, M.Last(cardR.rows[i].bar, "SetValue")[1]) == ({ 2840, 2160, 900 })[i], "row " .. i .. ": the bar takes the secret amount")
 end
-assert(names[1] == "Kragar" and names[2] == "Tester" and names[3] == "Lunara", "the rows keep the order the game sorted them in")
+assert(names[1] == "Kragar" and names[2] == "Tester" and names[3] == "Lunara", "the rows keep the order the game sorted them in, secret names as the game gave them")
 assert(M.Last(cardR.rows[1].bar, "SetMinMaxValues")[2] ~= nil and envR.issecretvalue(M.Last(cardR.rows[1].bar, "SetMinMaxValues")[2]), "the bar's range is the game's secret top amount")
 assert(Text(cardR.rows[1].percent) == "", "no share is worked out from secret amounts")
 envR._locked[envR._session] = true
