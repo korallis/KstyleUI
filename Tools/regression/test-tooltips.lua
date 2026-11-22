@@ -77,8 +77,8 @@ do
 		assert(heading.chrome and heading.chrome.shapeName == "window" and heading.chrome.fillName == "surface" and heading.chrome.popup, name .. ": on the card's own material, as the tooltip under it")
 		assert(heading.gem:GetAlpha() ~= 0 and heading:GetParent() == header, name .. ": a frame of its own, so stripping Blizzard's art never hides the diamond")
 		local cr, cg, cb = heading.caption:GetTextColor()
-		local gr, gg, gb = K.Tokens.Color("capsGold")
-		assert(math.abs(cr - gr) < 1e-6 and math.abs(cg - gg) < 1e-6 and math.abs(cb - gb) < 1e-6 and heading.caption:GetFont() == (K.Tokens.Font("caps")), name .. ": in the caps face and the heading gold")
+		local gr, gg, gb = K.Widgets.Rgba("capsGold")
+		assert(math.abs(cr - gr) < 1e-6 and math.abs(cg - gg) < 1e-6 and math.abs(cb - gb) < 1e-6 and heading.caption:GetFont() == (K.Tokens.Font("caps")), name .. ": in the caps face and the heading gold's Medallions steel")
 		assert(ns.Style.Glass(env[name]).chrome.shadowOn == false, name .. ": no shadow over the compare label")
 	end
 	assert(ns.Style.Glass(env.GameTooltip).chrome.shadowOn == true, "GameTooltip casts the panel shadow")
@@ -274,7 +274,7 @@ do
 	assert(ns.Settings.Get("iconSize") == 44, "the icon tile is the design's 44 units")
 	local chrome = ns.Style.Glass(env.GameTooltip).chrome
 	assert(chrome.shapeName == "window", "the glass is the window grade, the Lumen card with gilt tips")
-	assert(chrome:Chamfer() == 6 * K.Widgets.Border(chrome.owner), "at the card grade's six border lines (the owner's picture, 2026-11-09)")
+	assert(chrome:Chamfer() == 4, "at the Medallions bevel's four units")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -301,15 +301,13 @@ do
 	K.Options.Write("Tooltips", "qualityEdge", true)
 	T.PostCall(env, tip, { type = Item, id = 19019 })
 	assert(SameEdge(glass, K.Theme.QualityColor(3)), "a rare item lights the edge in the rare colour")
-	assert(glass.divider:IsShown(), "an item with stats shows the gilt rule")
+	assert(glass.divider:IsShown(), "an item with stats shows the heading rule")
 	local _, relative = glass.divider:GetPoint(1)
 	assert(relative == tip:GetLeftLine(1), "the rule sits under the header, the title and its caption line, as the mockup draws it")
 	local rpoint2, rrelative2 = glass.divider:GetPoint(2)
 	assert(rpoint2 == "RIGHT" and rrelative2 == glass, "and runs to the panel's right edge")
-	local material = K.Tokens.Material(K.Widgets.Setting("cardMaterial"))
-	assert(material and material.rule, "the default card material carries the quest card's rule")
-	assert(W.LastCall(glass.divider, "SetTexture")[1] == K.Tokens.Texture(material.rule), "the rule is the quest card's heading rule, which fades to the right")
-	assert(W.SameColor(glass.divider, K.Widgets.Rgba("materialGold", 0.5)), "in the quest card's gold at half strength")
+	assert(W.LastCall(glass.divider, "SetTexture")[1] == K.Tokens.Texture("ruleFade"), "the rule is the Medallions heading rule, which fades to the right")
+	assert(W.SameColor(glass.divider, K.Widgets.Rgba("medCardDivider")), "in the Medallions card divider's ink")
 	assert(glass.footer == nil, "a tooltip has one heading rule and no footer divider (KSTY-44 bible, 4 row 13)")
 	local shown = 0
 	for _, region in ipairs({ glass:GetRegions() }) do
@@ -405,7 +403,7 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- Accent: the rule stays gold whatever the accent, which colours the You target and spell icon rims ---------
+-- Accent: the rule keeps its divider ink whatever the accent, which colours the You target and spell icon rims ---
 
 do
 	local env, K, ns = Enabled()
@@ -416,7 +414,7 @@ do
 	tip:AddLine("Title", 1, 1, 1)
 	tip:AddLine("Line", 1, 1, 1)
 	T.PostCall(env, tip, { type = env.Enum.TooltipDataType.Spell, id = 133 })
-	assert(W.SameColor(glass.divider, K.Widgets.Rgba("materialGold", 0.5)), "a custom accent leaves the gold heading rule alone")
+	assert(W.SameColor(glass.divider, K.Widgets.Rgba("medCardDivider")), "a custom accent leaves the heading rule alone")
 	local ar, ag, ab = ns.Settings.Accent()
 	assert(Near(ar, 0.2) and Near(ag, 0.4) and Near(ab, 0.6), "and still reaches Settings.Accent for the parts that use it")
 	assert(#env._errors == 0, tostring(env._errors[1]))
