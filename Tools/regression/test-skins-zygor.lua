@@ -116,13 +116,40 @@ do
 	assert(arrow.arrow.arrspecular:GetAlpha() == 0, "Zygor's arrow sheen is off")
 	-- Zygor recolours the arrow every frame (ArrowSkin.lua:43): neither addon writes its colour or sheen again.
 	local arr, sheen = arrow.arrow.arr, arrow.arrow.arrspecular
-	local calls = #arr._calls + #sheen._calls
-	for _ = 1, 60 do
-		arrow:ShowTraveling()
+	local function Writes()
+		local n = 0
+		for _, texture in ipairs({ arr, sheen }) do
+			for _, call in ipairs(texture._calls) do
+				n = n + (call.method:match("^Set") and 1 or 0)
+			end
+		end
+		return n
 	end
-	local writes = #arr._calls + #sheen._calls - calls
-	assert(writes == 0, string.format("60 ShowTraveling frames made %d arrow colour and alpha writes; pin the theme's colour once (Pin in KstyleUI_Skins/Addons/Zygor.lua) instead of answering every frame", writes))
+	local calls = Writes()
+	local cost = Budget.Count(env, function()
+		for _ = 1, 60 do
+			arrow:ShowTraveling()
+		end
+	end)
+	Budget.Check(cost, 20000, 240, "60 ShowTraveling frames: compare the arrow's colour and the sheen's alpha with one read each (FlatArrow in KstyleUI_Skins/Addons/Zygor.lua)")
+	local writes = Writes() - calls
+	assert(writes == 0, string.format("60 ShowTraveling frames made %d arrow colour and alpha writes; write the theme's colour only when the arrow's differs (FlatArrow in KstyleUI_Skins/Addons/Zygor.lua) instead of answering every frame", writes))
 	assert(math.abs(arr:GetVertexColor() - (K.Tokens.Color("textEmphasis"))) < 0.01 and sheen:GetAlpha() == 0, "the arrow stays in the theme's ink without its sheen")
+	-- The skin keeps only the arrow's colour and the sheen's alpha: Zygor's other arrow writes land, and its next frame looks as before.
+	arr:SetAlpha(0.25)
+	sheen:SetVertexColor(0.125, 0.25, 0.5)
+	assert(arr:GetAlpha() == 0.25 and sheen:GetVertexColor() == 0.125, string.format("Zygor's arrow alpha and sheen colour land, %s and %s", tostring(arr:GetAlpha()), tostring((sheen:GetVertexColor()))))
+	arrow:ShowTraveling()
+	assert(arr:GetAlpha() == 1 and sheen:GetAlpha() == 0, "after Zygor's next frame the arrow is opaque ink and the sheen hidden again")
+	-- Zygor swaps the arrow texture: the new one takes the ink on its first frame and the old one is Zygor's again.
+	local swapped = arrow.arrow:CreateTexture(nil, "ARTWORK")
+	arrow.arrow.arr = swapped
+	arrow:ShowTraveling()
+	assert(math.abs(swapped:GetVertexColor() - (K.Tokens.Color("textEmphasis"))) < 0.01, string.format("a texture Zygor swaps in takes the ink, %s", tostring((swapped:GetVertexColor()))))
+	arr:SetVertexColor(0.25, 0.5, 0.75)
+	assert(arr:GetVertexColor() == 0.25, "the texture Zygor swapped out takes its colours again")
+	arrow.arrow.arr = arr
+	arrow:ShowTraveling()
 	env.ZygorGuidesViewer.Pointer:SetFontSize(14)
 	local face, height = arrow.title:GetFont()
 	assert(face == ns.Style.Font("body") and math.abs(height - 14) < 0.5, "the arrow's text keeps Zygor's size in the theme's face")
@@ -171,7 +198,11 @@ do
 		end
 	end)
 	assert(tab._fontWrites == before, string.format("Zygor's tab timer causes no font writes, %d new", tab._fontWrites - before))
-	Budget.Check(cost, 15000, 0, "100 ticks of Zygor's tab timer: return from the ReanchorTabs hook unless a tab is new (NewTabs in KstyleUI_Skins/Addons/Zygor.lua)")
+	Budget.Check(cost, 15000, 0, "100 ticks of Zygor's tab timer: return from the ReanchorTabs hook unless a tab is new (KstyleUI_Skins/Addons/Zygor.lua)")
+	-- Zygor gives a pooled title its own font again: it takes the theme's face back.
+	tab:SetFont("Fonts\\FRIZQT__.TTF", 12)
+	tabs:ReanchorTabs()
+	assert(tab:GetFont() == path, string.format("a reset tab title takes KstyleUI's face back, %s", tostring(tab:GetFont())))
 	-- A tab Zygor adds takes the face on its next pass; a font change reaches every tab without one.
 	local added = zygor.frame:CreateFontString(nil, "OVERLAY")
 	added:SetFont("Fonts\\FRIZQT__.TTF", 12)
@@ -182,6 +213,20 @@ do
 	K.Options.Write("Skins", "text.font", face)
 	env.RunTimers()
 	assert(tab:GetFont() == face and added:GetFont() == face, string.format("the tabs follow the skins' font, %s", tostring(tab:GetFont())))
+	-- With the skin off the tab timer does nothing, however many tabs Zygor has.
+	for i = 3, 10 do
+		tabs.Pool[i] = { Text = zygor.frame:CreateFontString(nil, "OVERLAY") }
+		tabs.Pool[i].Text:SetFont(face, 12)
+	end
+	tabs:ReanchorTabs()
+	K.Options.Write("Skins", "zygor.enabled", false)
+	env.RunTimers()
+	local off = Budget.Count(env, function()
+		for _ = 1, 100 do
+			tabs:ReanchorTabs()
+		end
+	end)
+	Budget.Check(off, 4000, 0, "100 ticks of Zygor's tab timer with the skin off and ten tabs: return before scanning the tabs (KstyleUI_Skins/Addons/Zygor.lua)")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
@@ -229,10 +274,20 @@ do
 	zygor.arrow:ShowTraveling()
 	local r, g = arrow.arr:GetVertexColor()
 	assert(r == 1 and g == 0 and arrow.arrspecular:GetAlpha() == 0.7, "Zygor's own arrow colour and sheen come back")
+	-- Another addon's wrapper on the arrow survives a step while the skin is off, and the skin switched on and off again.
+	local native = arrow.arr.SetVertexColor
+	local function wrapper(self, ...) return native(self, ...) end
+	arrow.arr.SetVertexColor = wrapper
+	zygor.Step()
+	env.RunTimers()
+	assert(arrow.arr.SetVertexColor == wrapper, "a step with the skin off keeps another addon's arrow wrapper")
 	K.Options.Write("Skins", "zygor.enabled", true)
 	env.RunTimers()
 	zygor.arrow:ShowTraveling()
 	assert(math.abs(arrow.arr:GetVertexColor() - (K.Tokens.Color("textEmphasis"))) < 0.01 and arrow.arrspecular:GetAlpha() == 0, "switched back on, the arrow is in the theme's ink again")
+	K.Options.Write("Skins", "zygor.enabled", false)
+	env.RunTimers()
+	assert(arrow.arr.SetVertexColor == wrapper, "switched off again, the skin hands back the wrapper it found")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
