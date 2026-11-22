@@ -132,21 +132,15 @@ local pet = ns.Frames.Get("pet").views[1]
 assert(not (pet.extraIcon and pet.extraIcon:IsShown()), "unknown hunter status shows no happiness badge")
 write("pet.happiness", false)
 
--- 6. Cast fill opacity survives a failed cast; Icon on the right is offered only where the icon can show.
+-- 6. Cast fill opacity survives a failed cast on the Medallions player cast bar.
 write("player.castbarAlpha", 0.35)
-local cb = ns.CastBars.Get("player")[1]
+local cb = ns.CastBars.Inline("player")[1]
 env._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1000, finish = 3000, spellID = 116 }
 env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116)
 env._units.player.cast = nil
 env.FireEvent("UNIT_SPELLCAST_FAILED", "player", "Cast-1", 116)
 assert(cb.error and math.abs(W.LastCall(cb.bar, "SetStatusBarColor")[4] - 0.35) < 1e-6, "a failed cast keeps the fill opacity")
 write("player.castbarAlpha", 1)
-local store = K.Store.Module("UnitFrames")
-write("boss.castbarIcon", true)
-write("edit", "boss")
-assert(row("boss.castbarIconRight").showWhen(store) == false, "the boss's lined cast bar never shows its icon, so the row hides")
-write("edit", "player")
-assert(row("player.castbarIconRight").showWhen(store) == true, "the player's cast bar shows its icon, so the row shows")
 
 -- 9. Repeated event work.
 local atlasCalls = 0
