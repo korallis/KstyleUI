@@ -275,7 +275,7 @@ local function Points(event)
 	local was = points
 	if state.seen then
 		was = state.points
-		if event and not IsSecret(points) and not IsSecret(was) and points == was then
+		if event and issecretvalue and not issecretvalue(points) and not issecretvalue(was) and points == was then
 			return
 		end
 	end
