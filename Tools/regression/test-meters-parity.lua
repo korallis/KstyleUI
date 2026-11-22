@@ -21,7 +21,7 @@ assert(list.rowSplits(list, 1), "hover breakdowns return")
 local function pinned()
  for _, row in ipairs(list.rows) do
   local call = M.Last(row.name, "SetText")
-  if call and type(call[1]) == "string" and call[1]:find("Player 12", 1, true) then return true end
+  if call and type(call[1]) == "string" and call[1]:find("PLAYER 12", 1, true) then return true end
  end
  return false
 end
