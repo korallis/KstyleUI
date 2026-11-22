@@ -118,7 +118,8 @@ local function BuildSchema()
 	end
 
 	local function reminderOff(settings)
-		return settings.reminder.enabled ~= true
+		local s = settings.reminder
+		return s.enabled ~= true and s.flasks ~= true and s.mana ~= true
 	end
 
 	local function colorRows(section, label, hidden)
@@ -187,6 +188,8 @@ local function BuildSchema()
 		countToggle, countColor,
 		{ type = "header", label = L["Missing buff reminder"] },
 		{ type = "toggle", key = "reminder.enabled", label = L["Missing buff reminder"], help = L["Out of combat, a card names a class buff of yours that is missing."] },
+		{ type = "toggle", key = "reminder.flasks", label = L["Flask reminder"], help = L["In a raid, out of combat, the card names a flask you carry, and how many, while no flask is on you."] },
+		{ type = "toggle", key = "reminder.mana", label = L["Low mana at ready checks"], help = L["During a ready check, the card warns while your mana is under 80 percent."] },
 		{ type = "font", key = "reminder.font", label = L["Reminder font"], help = L["The typeface of the reminder text."], options = K.Widgets.InheritedFontOptions, disableWhen = reminderOff },
 		slider("reminder.size", L["Reminder text size"], L["The text size of the reminder."], LIMITS.timerSize, reminderOff),
 		{ type = "dropdown", key = "reminder.outline", label = L["Reminder outline"], options = Model.OUTLINES, help = L["A soft shadow, or an outline that reads well over bright scenes."], disableWhen = reminderOff },

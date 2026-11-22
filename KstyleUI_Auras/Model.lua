@@ -76,7 +76,7 @@ Model.defaults = {
 	},
 	count = { shown = true, font = "", size = 10, outline = "OUTLINE", x = 0, y = 0, position = "TOPRIGHT", customColor = false, color = rgb("textEmphasis") },
 	accent = { source = "class", color = rgb("accentDefault") },
-	reminder = { enabled = false, font = "", size = 13, outline = "INHERIT" },
+	reminder = { enabled = false, flasks = false, mana = false, font = "", size = 13, outline = "INHERIT" },
 }
 local defaults = Model.defaults
 
