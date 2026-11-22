@@ -1,5 +1,11 @@
--- test-databars-parity-3.lua: round 3 of the data bar's EllesmereUI parity (per-readout icons, text and icon colour, the second data bar, per-click travel text) keeps today's defaults, applies when on, restores when off, follows its events and reaches the preview.
+-- test-databars-parity-3.lua: round 3 of the data bar's EllesmereUI parity (per-readout icons, text and icon colour, the second data bar, per-click travel text) keeps today's defaults, applies when on, restores when off, follows its events and reaches the preview; given "frames" it checks the Frames HUD style, whose main and line readout lists are one list.
+local isFrames = ... == "frames"
+local MAIN, LINE = "dockModules", "railModules"
 local D = dofile("Tools/regression/databars_env.lua")
+if isFrames then
+	D = dofile("Tools/regression/frames_lib.lua")(D)
+	MAIN, LINE = "modules", "modules"
+end
 local Fixture = dofile("Tools/regression/databars_readouts_fixture.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
@@ -11,7 +17,7 @@ for i, id in ipairs(OLD) do old[i] = { id = id, shown = i <= 10, zone = id == "t
 
 local spells, readouts = {}, nil
 local env, K, ns = D.New({
-	saved = { version = 42, profiles = { Default = { DataBars = { enabled = true, strip = { dockModules = old } } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
+	saved = { version = 42, profiles = { Default = { HudStyle = isFrames and { style = "frames" } or nil, DataBars = { enabled = true, strip = { [MAIN] = old } } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
 	setup = function(e)
 		D.Menus(e)
 		readouts = Fixture(e)
@@ -38,7 +44,7 @@ local function tint(texture) return rgb(texture:GetVertexColor()) end
 local function rect(region) return Scene.Rect(env, region) end
 local function show(ids, key)
 	local s, want = settings().strip, {}
-	key = key or "dockModules"
+	key = key or MAIN
 	for i, id in ipairs(ids) do want[id] = i end
 	table.sort(s[key], function(a, b) return (want[a.id] or 99) < (want[b.id] or 99) end)
 	for _, entry in ipairs(s[key]) do entry.shown = want[entry.id] ~= nil end
@@ -72,16 +78,16 @@ eq(s.second, false, "second bar")
 eq(s.hearthLeftText, "none", "left click text")
 eq(s.hearthRightText, "none", "right click text")
 eq(s.hearthMiddleText, "none", "middle click text")
-eq(s.dockModules[1].id, "gold", "the saved order survives")
-eq(#s.secondModules, #s.dockModules - 1, "the second list holds every readout but the micro menu")
+eq(s[MAIN][1].id, "gold", "the saved order survives")
+eq(#s.secondModules, #s[MAIN] - 1, "the second list holds every readout but the micro menu")
 for _, entry in ipairs(s.secondModules) do assert(not entry.shown and entry.id ~= "micro", entry.id .. " starts off in the second list") end
 eq(ns.Strip.second, nil, "the second bar builds nothing until it is turned on")
 eq(K.Layout.Element("databars.strip2"), nil, "nor registers its Layout element")
 assert(K.Options.Get("DataBars"), "the schema builds with every new row")
 
 -- Per-readout Shows on the rail's line: Icon and value gives one readout its glyph with the bar's icons off; Data bar's choice restores.
-write("strip.placement", "rail")
-show({ "fps", "latency", "gold", "coords", "time" }, "railModules")
+if not isFrames then write("strip.placement", "rail") end
+show({ "fps", "latency", "gold", "coords", "time" }, LINE)
 local widths = {}
 for _, id in ipairs({ "fps", "latency", "gold" }) do widths[id] = item(id).button:GetWidth() end
 assert(hidden("strip.blocks.durability.show") and not hidden("strip.blocks.latency.show"), "a readout's rows show while it is on")
@@ -127,10 +133,11 @@ write("strip.iconColor", "label")
 write("strip.blocks.latency.show", "bar")
 
 -- Cells have no icons, so the per-readout rows turn off there; the dock keeps its own glyphs.
+if isFrames then write("strip.placement", "rail") end
 write("strip.line", false)
 assert(disabled("strip.blocks.fps.show") and disabled("strip.blocks.fps.iconColor"), "cells turn the rows off")
 write("strip.line", true)
-write("strip.placement", "dock")
+write("strip.placement", isFrames and "top" or "dock")
 
 -- Travel text: the Hearthstone keeps its text; each click with its own spell or item adds its text after a middle dot.
 show({ "hearth", "fps" })
@@ -178,6 +185,18 @@ local second = ns.Strip.second
 assert(second and second.frame:IsVisible(), "turning it on builds and shows the second bar")
 assert(K.Layout.Element("databars.strip2") and K.Layout.Live("databars.strip2"), "it is live in Layout Mode")
 eq(table.concat(second.order, ","), "fps,gold,time", "it starts as a copy of the main bar's readouts")
+if isFrames then
+	local sx, sy, sw, sh = rect(second.frame)
+	local crest = 0
+	for _, art in ipairs(ns.Strip.view.art) do
+		local ax, ay, aw, ah = rect(art)
+		if art:IsShown() and ax then
+			crest = crest + 1
+			assert(ax + aw <= sx or sx + sw <= ax or ay + ah <= sy or sy + sh <= ay, "the second bar's default place clears the top bar's crest and brackets")
+		end
+	end
+	assert(crest > 0, "the forged top bar shows its crest")
+end
 assert(not hidden("strip.secondModules"), "its module list shows")
 eq(row("strip.secondModules").options.zones, false, "the second bar packs right like the rail, so its list offers no zones")
 eq(text("gold", second), text("gold"), "the same values")
@@ -193,7 +212,7 @@ for _, id in ipairs(second.order) do
 	assert(bx >= hx - 0.01 and by >= hy - 0.01 and bx + bw <= hx + hw + 0.01 and by + bh <= hy + hh + 0.01, id .. " stays inside the second bar's Layout Mode footprint while the main bar is a column")
 end
 write("strip.orientation", "HORIZONTAL")
-write("strip.placement", "dock")
+write("strip.placement", isFrames and "top" or "dock")
 show({ "currencies" }, "secondModules")
 local refresh, refreshes = ns.Strip.Refresh, 0
 ns.Strip.Refresh = function(...) refreshes = refreshes + 1 return refresh(...) end
@@ -265,6 +284,7 @@ local Layouts = K.Setup.Layouts
 eq(Layouts.Enabled("DPS")["databars.strip2"], false, "every setup preset starts with the second bar off")
 
 -- The Medallions dock keeps its own glyphs; a second bar's line takes the icon rows there.
+if isFrames then K.Options.Write("HudStyle", "style", "medallions") end
 env.RunTimers()
 assert(ns.Strip.view.deco and disabled("strip.icons") and disabled("strip.blocks.fps.show") and disabled("strip.blocks.fps.iconColor"), "the dock keeps its own glyphs")
 write("strip.second", true)
@@ -274,11 +294,12 @@ assert(item("coords", second).icon:IsShown() and not disabled("strip.blocks.coor
 apart(second)
 write("strip.blocks.coords.show", "bar")
 write("strip.second", false)
+if isFrames then K.Options.Write("HudStyle", "style", "frames") end
 env.RunTimers()
 
 -- The rail's preview reflects the new options.
-write("strip.placement", "rail")
-show({ "fps", "latency", "hearth" }, "railModules")
+if not isFrames then write("strip.placement", "rail") end
+show({ "fps", "latency", "hearth" }, LINE)
 write("strip.blocks.latency.show", "both")
 write("strip.hearthRight", "spell:556")
 write("strip.hearthRightText", "location")

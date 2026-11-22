@@ -1,5 +1,7 @@
--- test-databars-bars.lua: KstyleUI_DataBars' experience, reputation and honour bars against the stub game: lifecycle, Layout, values, text, settings, preview and Blizzard's faded bars.
+-- test-databars-bars.lua: KstyleUI_DataBars' experience, reputation and honour bars against the stub game: lifecycle, Layout, values, text, settings, preview and Blizzard's faded bars; given "frames" it checks the Frames HUD style.
+local isFrames = ... == "frames"
 local D = dofile("Tools/regression/databars_env.lua")
+if isFrames then D = dofile("Tools/regression/frames_lib.lua")(D) end
 local W = D.W
 
 local KEYS = { xp = "databars.xp", rep = "databars.rep", honor = "databars.honor" }
@@ -58,13 +60,18 @@ do
 		eq(el.module, "DataBars", key .. " belongs to the module")
 		eq(el.label, K.Setup.Layouts.Element(key).label, key .. " uses the setup's label")
 		eq(el.opts.resizable, true, key .. " is resizable")
-		local default, got = K.Setup.Layouts.Place("DPS", "medallions", K.Scale.Aspect(), key, K.Scale.Band()), K.Layout.Get(key)
+		local default, got = isFrames and K.Setup.Layouts.Default(key) or K.Setup.Layouts.Place("DPS", "medallions", K.Scale.Aspect(), key, K.Scale.Band()), K.Layout.Get(key)
 		eq(got.anchor, default.anchor, key .. " anchor")
 		eq(got.x, default.x, key .. " x")
 		eq(got.y, default.y, key .. " y")
 		local styled, footprint = K.Setup.Layouts.Style("DPS", key) or {}, K.Setup.Layouts.Element(key)
-		eq(got.width, styled.width or footprint.width, key .. " starts at its Medallions width")
-		eq(got.height, styled.height or footprint.height, key .. " starts at its Medallions height")
+		if isFrames then
+			eq(got.width, footprint.width, key .. " starts at its footprint's width")
+			eq(got.height, footprint.height, key .. " starts at its footprint's height")
+		else
+			eq(got.width, styled.width or footprint.width, key .. " starts at its Medallions width")
+			eq(got.height, styled.height or footprint.height, key .. " starts at its Medallions height")
+		end
 		eq(view(ns, id).holder:IsShown(), true, key .. " is shown")
 	end
 	noErrors(env, K)
@@ -95,23 +102,35 @@ do
 			shownTicks = shownTicks + 1
 		end
 	end
-	eq(shownTicks, 0, "the segments setting applies: 0 draws none")
+	eq(shownTicks, 0, isFrames and "no segments, no ticks" or "the segments setting applies: 0 draws none")
 	K.Options.Write("DataBars", "xp.segments", 10)
 	-- The overhaul's strip: the mock-up's 7 px at 1080 (KSTY-60 item 28; 7 mock-up px, 8.3125 units), square ends with
 	-- no pill caps.
 	eq(K.Setup.Layouts.Element("databars.xp").height, 7 * 19 / 16, "the experience strip is the mock-up's 7 px, 8.3125 units tall")
 	eq(xp.fill.caps, nil, "the fill has square ends")
 	eq(xp.track.caps, nil, "and so does the track")
-	eq(xp.rim, nil, "and no rim frame")
+	if isFrames then
+		eq(xp.ornament, nil, "no ornament frames the strip")
+		eq(xp.rim, nil, "and no rim frame waits for one")
+	else
+		eq(xp.rim, nil, "and no rim frame")
+	end
 
 	eq(xp.text:IsShown(), true, "the experience caption shows without the pointer, as the Lumen XP line's does")
-	eq(xp.text:GetText(), "25% \194\183 rested 16%", "the Medallions caption reads the percent and the rested share")
 	local cp, crel, crelp = xp.text:GetPoint(1)
-	eq(cp .. ">" .. tostring(crel == xp.holder) .. ">" .. crelp, "TOPRIGHT>true>BOTTOMRIGHT", "the Medallions caption sits under the line's right end")
-	eq(xp.plate:IsShown(), false, "a caption under the line needs no plate")
-	local mr, mg, mb = K.Tokens.Color("medTextMuted")
+	local mr, mg, mb = K.Tokens.Color(isFrames and "text" or "medTextMuted")
 	local tr, tg, tb = xp.text:GetTextColor()
-	assert(near(tr, mr) and near(tg, mg) and near(tb, mb), "the XP caption uses the Medallions muted instrument text")
+	if isFrames then
+		eq(xp.text:GetText(), "Level 38 \194\183 25% \194\183 rested 16%", "the reference caption restores the level under LEE-20")
+		eq(cp .. ">" .. tostring(crel == xp.holder) .. ">" .. crelp, "TOP>true>BOTTOM", "the caption is centred under the line")
+		eq(xp.plate:IsShown(), false, "a caption under the line needs no plate")
+		assert(near(tr, mr) and near(tg, mg) and near(tb, mb), "the XP caption uses the reference's grey-white body text")
+	else
+		eq(xp.text:GetText(), "25% \194\183 rested 16%", "the Medallions caption reads the percent and the rested share")
+		eq(cp .. ">" .. tostring(crel == xp.holder) .. ">" .. crelp, "TOPRIGHT>true>BOTTOMRIGHT", "the Medallions caption sits under the line's right end")
+		eq(xp.plate:IsShown(), false, "a caption under the line needs no plate")
+		assert(near(tr, mr) and near(tg, mg) and near(tb, mb), "the XP caption uses the Medallions muted instrument text")
+	end
 	local _, _, captionFlags = xp.text:GetFont()
 	local captionShadow = W.LastCall(xp.text, "SetShadowOffset")
 	assert(captionFlags == "OUTLINE" and captionShadow and captionShadow[1] > 0, "the caption stands on the world: an outline and the kit's shadow")
@@ -131,14 +150,30 @@ do
 	K.Options.Write("DataBars", "xp.colorSource", "custom")
 	-- Medallions keeps the experience caption under its line; the honour bar's label on the line keeps #151's plate:
 	-- a label on a 5-unit line collided with the fill in ingame-18.
-	local honor = view(ns, "honor")
-	K.Options.Write("DataBars", "honor.show", "always")
-	W.Enter(honor.holder)
+	-- Frames puts the label on the experience line itself, as a player who chooses a label on the line.
+	local honor = xp
+	if isFrames then
+		K.Options.Write("DataBars", "xp.textPosition", "CENTER")
+		K.Options.Write("DataBars", "xp.text", "shortPercent")
+		eq(xp.text:GetText(), "XP 25%", "the short name and the percent")
+	else
+		honor = view(ns, "honor")
+		K.Options.Write("DataBars", "honor.show", "always")
+		W.Enter(honor.holder)
+	end
 	local er, eg, eb = K.Tokens.Color("textEmphasis")
 	tr, tg, tb = honor.text:GetTextColor()
 	assert(near(tr, er) and near(tg, eg) and near(tb, eb), "a label on the line reads in full white")
+	if isFrames then
+		W.Enter(xp.holder)
+		eq(xp.text:IsShown(), true, "hovering keeps the caption")
+	end
 	local _, labelSize = honor.text:GetFont()
-	eq(labelSize, K.Options.Read("DataBars", "honor").fontSize * K.Theme.FontScale(), "the label reads at its font size")
+	if isFrames then
+		eq(labelSize, 12 * K.Theme.FontScale(), "the label reads at 12, the mockup's XP 32% cap height")
+	else
+		eq(labelSize, K.Options.Read("DataBars", "honor").fontSize * K.Theme.FontScale(), "the label reads at its font size")
+	end
 	eq(honor.text:GetPoint(1), "CENTER", "the label is centred on the bar")
 	local plate = assert(honor.plate, "the bar has a plate for its label")
 	eq(plate:IsShown(), true, "the plate shows under a label on the line")
@@ -149,9 +184,11 @@ do
 	assert(math.abs(plate:GetWidth() - (textWidth + 2 * gap)) <= 1, "the plate leaves a medium gap each side of the label: " .. plate:GetWidth() .. " for " .. textWidth)
 	assert(plate:GetHeight() >= labelSize and plate:GetHeight() > honor.holder:GetHeight(), "the plate is taller than the label and the line")
 	assert(honor.text:GetParent():GetFrameLevel() > plate:GetFrameLevel(), "the label draws over its plate")
-	W.Leave(honor.holder)
-	W.Enter(xp.holder)
-	eq(xp.text:IsShown(), true, "hovering keeps the caption")
+	if not isFrames then
+		W.Leave(honor.holder)
+		W.Enter(xp.holder)
+		eq(xp.text:IsShown(), true, "hovering keeps the caption")
+	end
 	local tip = K.Widgets.Tooltip()
 	eq(tip:IsShown(), true, "hovering shows the KstyleUI tooltip")
 	eq(tip:IsOwned(xp.holder), true, "the tooltip belongs to the bar")
@@ -279,7 +316,7 @@ do
 
 	local soft = K.Tokens.MediaList("statusbar")[3].path
 	Options.Write("DataBars", "xp.texture", soft)
-	eq(xp.fill:GetStatusBarTexture():GetTexture(), soft, "the strip takes its texture setting")
+	eq(xp.fill:GetStatusBarTexture():GetTexture(), soft, isFrames and "the fill uses the chosen texture" or "the strip takes its texture setting")
 	eq(xp.track:GetStatusBarTexture():GetTexture(), soft, "so does the rested overlay")
 
 	Options.Write("DataBars", "xp.segments", 4)
@@ -293,7 +330,7 @@ do
 	for _, tick in ipairs(xp.ticks) do
 		shown = shown + (tick:IsShown() and 1 or 0)
 	end
-	eq(shown, 0, "and 0 draws none")
+	eq(shown, 0, isFrames and "no segments draw no ticks" or "and 0 draws none")
 
 	Options.Write("DataBars", "xp.border", false)
 	eq(xp.track.barEdge.hard:IsShown(), false, "the frame around the bar can be turned off")
@@ -307,14 +344,18 @@ do
 	Options.Write("DataBars", "xp.orientation", "VERTICAL")
 	eq(xp.fill:GetOrientation(), "VERTICAL", "the bar can stand upright")
 	local size = K.Layout.Get("databars.xp")
-	local footprint = K.Setup.Layouts.Style("DPS", "databars.xp")
-	eq(size.width .. "x" .. size.height, footprint.height .. "x" .. footprint.width, "an upright bar swaps its Medallions footprint's width and height")
+	local footprint = isFrames and K.Setup.Layouts.Element("databars.xp") or K.Setup.Layouts.Style("DPS", "databars.xp")
+	eq(size.width .. "x" .. size.height, footprint.height .. "x" .. footprint.width, isFrames and "an upright bar swaps its footprint's width and height" or "an upright bar swaps its Medallions footprint's width and height")
 	Options.Write("DataBars", "xp.orientation", "HORIZONTAL")
 	size = K.Layout.Get("databars.xp")
 	eq(size.width .. "x" .. size.height, footprint.width .. "x" .. footprint.height, "and swaps back")
 
 	Options.Write("DataBars", "xp.textHover", true)
-	eq(xp.text:IsShown(), true, "the Medallions caption never waits for the pointer")
+	if isFrames then
+		eq(xp.text:IsShown(), false, "with the hover setting the text waits for the pointer")
+	else
+		eq(xp.text:IsShown(), true, "the Medallions caption never waits for the pointer")
+	end
 	Options.Write("DataBars", "xp.text", "percent")
 	Options.Write("DataBars", "xp.textHover", false)
 	eq(xp.text:IsShown(), true, "the text can always show")
@@ -334,11 +375,19 @@ do
 	eq(flags, "THICKOUTLINE", "the chosen outline")
 	Options.Write("DataBars", "xp.font", "default")
 	path = xp.text:GetFont()
-	eq(path, (K.Tokens.Font("caps")), "the default font follows the interface font, in the caps face of the Medallions instrument caption")
+	if isFrames then
+		eq(path, (K.Tokens.Font("prose")), "the default font follows the interface font, in its proportional prose face for a caption that does not tick")
+	else
+		eq(path, (K.Tokens.Font("caps")), "the default font follows the interface font, in the caps face of the Medallions instrument caption")
+	end
 
 	Options.Write("DataBars", "xp.textPosition", "TOP")
 	local point, relative, relativePoint = xp.text:GetPoint(1)
-	eq(point .. ">" .. relativePoint, "TOPRIGHT>BOTTOMRIGHT", "the Medallions caption stays under the bar's right end")
+	if isFrames then
+		eq(point .. ">" .. relativePoint, "BOTTOM>TOP", "text above the bar")
+	else
+		eq(point .. ">" .. relativePoint, "TOPRIGHT>BOTTOMRIGHT", "the Medallions caption stays under the bar's right end")
+	end
 	eq(relative, xp.holder, "anchored to the bar")
 	eq(xp.plate:IsShown(), false, "text off the line needs no plate")
 	noErrors(env, K)
