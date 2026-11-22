@@ -49,11 +49,9 @@ function def.Enable()
 	K.Callbacks.Register("ScaleChanged", NAME, function()
 		Refresh("scale")
 	end)
-	if K.HudStyle and type(K.HudStyle.Current) == "function" then
-		K.Callbacks.Register("HudStyleChanged", NAME, function()
-			Refresh("framing")
-		end)
-	end
+	K.Callbacks.Register("HudStyleChanged", NAME, function()
+		Refresh("framing")
+	end)
 end
 
 function def.Disable()

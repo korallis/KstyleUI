@@ -217,7 +217,7 @@ function Bar:Layout()
 		count = min(count, NumForms())
 	end
 	self.count = count
-	local _, rows, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), def.element, cfg, K.HudStyle.Current())
+	local _, rows, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), def.element, cfg)
 	local wide, wideGap = cell, spacing
 	cell, spacing = ns.Tray.Grid(def, cell, spacing)
 	local size, gap = Widgets.Snap(header, cell), Widgets.Snap(header, spacing)

@@ -1,5 +1,5 @@
 -- Base.lua: the widget kit's shared parts: settings, the restyle registry, text, chrome, motion, Escape, placement and sound.
-local addonName, ns = ...
+local _, ns = ...
 
 local Widgets = {}
 ns.Widgets = Widgets
@@ -328,8 +328,7 @@ local STEEL_STANDINS = { steel = "muted", steelLit = "textEmphasis", steelDim = 
 local steelKnown = {}
 
 function Widgets.Medallions()
-	local hud = ns.HudStyle
-	return hud ~= nil and hud.Current() == "medallions"
+	return ns.HudStyle.Current() == "medallions"
 end
 
 function Widgets.ColorName(name)
@@ -2728,19 +2727,8 @@ ns.Callbacks.Register("ScaleChanged", SECTION, function()
 end)
 ns.Callbacks.Register("ProfileChanged", SECTION, Widgets.RestyleAll)
 
-local painted = Widgets.Medallions()
-ns.Events.Register("Widgets.Steel", "ADDON_LOADED", function(_, name)
-	if name == addonName and ns.Store.IsLoaded() then
-		ns.Events.Unregister("Widgets.Steel", "ADDON_LOADED")
-		painted = Widgets.Medallions()
-	end
-end)
 ns.Callbacks.Register("HudStyleChanged", SECTION, function()
-	local medallions = Widgets.Medallions()
-	if medallions ~= painted then
-		painted = medallions
-		ns.Callbacks.Fire("ThemeChanged")
-	end
+	ns.Callbacks.Fire("ThemeChanged")
 end)
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
 	if module == SECTION or (module == "Appearance" and key == "motion") then

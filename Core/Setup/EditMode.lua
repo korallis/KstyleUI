@@ -127,7 +127,7 @@ end
 local function Box(name, key, rw, rh)
 	local position = Layouts.Place(name, ns.HudStyle.Current(), ns.Scale.Aspect(), key, ns.Scale.Band())
 	local w, h, offsetX = Layouts.Footprint(name, key)
-	local styled = ns.HudStyle and Layouts.Style(name, key, ns.HudStyle.Current())
+	local styled = Layouts.Style(name, key)
 	if styled and styled.width then
 		w, h, offsetX = styled.width + (key == "unitframes.boss" and Layouts.BOSS_AURAS or 0), styled.height, nil
 	end
@@ -479,7 +479,7 @@ local function Warning(name, k, rw, rh, others, chosen)
 	end
 	local high = sigil.b > rh / 2
 	if high then
-		local place, own = Positions(name)["unitframes.target"], Layouts.Style(name, "unitframes.target", ns.HudStyle and ns.HudStyle.Current())
+		local place, own = Positions(name)["unitframes.target"], Layouts.Style(name, "unitframes.target")
 		if own and own.width and own.height then
 			local l, b, r, t = Layouts.Rect({ width = own.width, height = own.height }, place, rw, rh)
 			rects[#rects + 1] = { l = l, b = b, r = r, t = t }

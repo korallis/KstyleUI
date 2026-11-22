@@ -79,17 +79,17 @@ end
 
 function Slab.Rows(def, cfg)
 	if not Grouped(def) and cfg.rows ~= 0 then return cfg.rows end
-	return select(2, Layouts().ActionBarGrid(K.Scale.Aspect(), def.element, cfg, K.HudStyle.Current()))
+	return select(2, Layouts().ActionBarGrid(K.Scale.Aspect(), def.element, cfg))
 end
 
 function Slab.Size(def, cfg)
 	if not Grouped(def) then return cfg.size end
-	return select(3, Layouts().ActionBarGrid(K.Scale.Aspect(), def.element, cfg, K.HudStyle.Current()))
+	return select(3, Layouts().ActionBarGrid(K.Scale.Aspect(), def.element, cfg))
 end
 
 function Slab.Spacing(def, cfg)
 	if not Grouped(def) and cfg.spacing >= 0 then return cfg.spacing end
-	return select(4, Layouts().ActionBarGrid(K.Scale.Aspect(), def.element, cfg, K.HudStyle.Current()))
+	return select(4, Layouts().ActionBarGrid(K.Scale.Aspect(), def.element, cfg))
 end
 
 function Slab.TextSize(key, cfg, size, text)

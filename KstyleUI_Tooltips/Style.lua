@@ -173,10 +173,10 @@ end
 Style.Reset = Reset
 
 function Style.PaintGem(gem)
-	local material = Tokens.Material(Widgets.Setting("cardMaterial"))
+	local medallions = Widgets.Medallions()
+	local material = not medallions and Tokens.Material(Widgets.Setting("cardMaterial"))
 	gem:SetTexture((Tokens.Texture(material and material.gem or "diamond")))
-	if Widgets.Medallions() then
-		gem:SetTexture((Tokens.Texture("diamond")))
+	if medallions then
 		gem:SetVertexColor(Tokens.Color("accent"))
 	elseif material and material.rule then
 		gem:SetVertexColor(Tokens.Color("materialGold"))

@@ -124,9 +124,7 @@ local function writeLayout(name)
 	local live = Layout and type(Layout.Get) == "function" and type(Layout.Update) == "function"
 	local moved, saved = 0, 0
 	for key, position in pairs(positions) do
-		for _, style in ipairs(Layouts.STYLES) do
-			stored[style .. ":" .. key] = nil
-		end
+		stored["medallions:" .. key] = nil
 		local done = false
 		if live and Layout.Get(key) ~= nil then
 			local ok, updated = pcall(Layout.Update, key, position, "setup", true)

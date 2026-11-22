@@ -835,7 +835,6 @@ Layouts.GAP = GAP
 Layouts.METER_SLOT = 180
 Layouts.BOSS_AURAS = byKey["unitframes.boss"].reserve[1] - byKey["unitframes.boss"].width
 Layouts.SPLIT_GAP = 198.55
-Layouts.STYLES = { "medallions" }
 
 function Layouts.DataBarBelowDock(name, key, class, style)
 	style = style or ns.HudStyle.Current()
@@ -1151,8 +1150,7 @@ function Layouts.Attached(name, key, class, style)
 	end
 	local places = STYLES[style] and STYLES[style][name] or layouts[name]
 	local cast = PLACES[class] and PLACES[class][style] and PLACES[class][style]["unitframes.castbar.player"] or places["unitframes.castbar.player"]
-	local y = cast.y + (cast.height or 30) + 8
-	local x = 0
+	local x, y = 0
 	if style == "medallions" then
 		local player = Layouts.ExtraBarsPlace(class, name, "unitframes.player") or PLACES[class] and PLACES[class][style]["unitframes.player"] or places["unitframes.player"]
 		local base = player.y + player.height + Layouts.MEDALLIONS_UNITS.stack + Layouts.MEDALLIONS_UNITS.mini[2] + 24
@@ -1164,7 +1162,7 @@ function Layouts.Attached(name, key, class, style)
 			x = -((cast.width or 300) / 2 + 220 / 2 + 8)
 		end
 	else
-		if style == "frames" then y = cast.y - CENTRE_BUTTON - 12 end
+		y = cast.y - CENTRE_BUTTON - 12
 		if key == "cooldowns.utility" then x = (12 * CENTRE_BUTTON + 11 * CENTRE_GAP + UTILITY) / 2 + 8 end
 		if key == "cooldowns.buffs" then x = -(12 * CENTRE_BUTTON + 11 * CENTRE_GAP + 182.6) / 2 - 8 end
 		if key == "cooldowns.bars" then x = -(12 * CENTRE_BUTTON + 11 * CENTRE_GAP + TRACKED) / 2 - 182.6 - 64 end

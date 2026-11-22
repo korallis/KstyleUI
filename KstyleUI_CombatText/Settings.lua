@@ -127,10 +127,7 @@ local BLIZZARD, STYLES, OUTLINES, FORMATS, COLOR_MODES = Set(BLIZZARD_OPTIONS), 
 local PLACEMENTS, POINTS = Set(PLACEMENT_OPTIONS), Set(POINT_OPTIONS)
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 
-local function Medallions()
-	local hud = K.HudStyle
-	return hud ~= nil and hud.Current() == "medallions"
-end
+local Medallions = K.Widgets.Medallions
 
 function Settings.Schema()
 	local function WorldFontOn(settings)

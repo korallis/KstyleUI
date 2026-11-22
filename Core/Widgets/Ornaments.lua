@@ -1094,22 +1094,6 @@ function Handle:Yield(frame)
 	end
 end
 
-function Handle:Follow()
-	if self.enabled == false or W.Setting("ornaments") == "Off" or W.Setting("cardMaterial") == "Glass" or W.Medallions() or not W.MayMove(self.owner) then return end
-	if not Plain(self.pixel) then self:Restyle() return end
-	local x, _, y = self:Edges(self.target)
-	if W.IsSecret(x) or W.IsSecret(y) or type(x) ~= "number" or type(y) ~= "number" then
-		self.lastX, self.lastY = nil, nil
-		if self.used > 0 then self:Restyle() end
-		return
-	end
-	x, y = floor(x / self.pixel + 0.5), floor(y / self.pixel + 0.5)
-	if x ~= self.lastX or y ~= self.lastY then
-		self.lastX, self.lastY = x, y
-		self:Restyle()
-	end
-end
-
 function W.IsOrnament(widget)
 	return getmetatable(widget) == Handle
 end

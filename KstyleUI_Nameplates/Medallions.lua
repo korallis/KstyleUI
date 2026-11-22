@@ -9,7 +9,6 @@ local IsSecret = Logic.IsSecret
 local Medallions = {}
 ns.Medallions = Medallions
 
-local STYLE = "medallions"
 local OWNER = "Nameplates.Medallions"
 local WIDTH, HEIGHT = 120, 9
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
@@ -24,9 +23,7 @@ Medallions.BADGE = BADGE
 Medallions.WIDTH, Medallions.HEIGHT = WIDTH, HEIGHT
 Medallions.GUNMETAL = GUNMETAL
 
-function Medallions.Active()
-	return K.HudStyle.Current() == STYLE
-end
+Medallions.Active = K.Widgets.Medallions
 
 local readSize = Plates.ReadSize
 function Plates.ReadSize()

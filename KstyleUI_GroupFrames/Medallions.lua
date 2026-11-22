@@ -8,7 +8,6 @@ local Settings, Style, Unit, Frames, Geometry = ns.Settings, ns.Style, ns.Unit, 
 local Medallions = {}
 ns.Medallions = Medallions
 
-local STYLE = "medallions"
 local OWNER = "GroupFrames.Medallions"
 local STEEL_LIT = { Tokens.Color("steelLit") }
 local TILE_INSET = 2
@@ -24,9 +23,7 @@ local LOW_STEP = 0.001
 local CHIP_ALPHA = 0.55
 local CHIP_WIDTH = 30
 local LABEL_FACE = Tokens.FontPath("InterSemiBold")
-function Medallions.Active()
-	return K.HudStyle.Current() == STYLE
-end
+Medallions.Active = K.Widgets.Medallions
 
 local colorSources = Unit.ColorSources
 function Unit.ColorSources(f)
