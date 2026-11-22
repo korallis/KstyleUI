@@ -1,5 +1,8 @@
--- test-meters-threat.lua: the threat meter lists the group's threat on the target, highest first, passes secret values only to widget setters, and warns on readable values.
+-- test-meters-threat.lua: the threat meter lists the group's threat on the target, highest first, passes secret values only to widget setters, and warns on readable values; given "frames" it checks the Frames HUD style, which keeps names as the game writes them.
+local isFrames = ... == "frames"
+local RIM = isFrames and "edgeInner" or "medRimLit"
 local M = dofile("Tools/regression/meters_env.lua")
+if isFrames then M = dofile("Tools/regression/frames_lib.lua")(M) end
 
 local env, K, ns = M.New()
 local S = env.Secret
@@ -32,9 +35,13 @@ env.RunTimers()
 
 assert(list.panel:IsShown(), "the meter shows in a group")
 assert(list.count == 3, "three members are on the threat list, got " .. tostring(list.count))
-assert(Text(list.rows[1].name) == "KRAGAR", "the tank is first, in the Medallions capitals")
-assert(Text(list.rows[2].name) == "TESTER", "the player is second")
-assert(Text(list.rows[3].name) == "SYLAEN", "the healer is last")
+if isFrames then
+	assert(Text(list.rows[1].name) == "Kragar", "the tank is first")
+else
+	assert(Text(list.rows[1].name) == "KRAGAR", "the tank is first, in the Medallions capitals")
+end
+assert(Text(list.rows[2].name) == (isFrames and "Tester" or "TESTER"), "the player is second")
+assert(Text(list.rows[3].name) == (isFrames and "Sylaen" or "SYLAEN"), "the healer is last")
 local range = M.Last(list.rows[1].bar, "SetMinMaxValues")
 assert(range[1] == 0 and range[2] == 100, "bars run from 0 to 100% of aggro")
 assert(M.Last(list.rows[1].bar, "SetValue")[1] == 100, "the tank's bar is full")
@@ -52,7 +59,7 @@ local function rimIs(name)
 	return math.abs(got[1] - want[1]) < 1e-3 and math.abs(got[2] - want[2]) < 1e-3 and math.abs(got[3] - want[3]) < 1e-3
 end
 assert(list.panel.chrome.shapeName == "panel" and list.panel.chrome.fillName == "surface", "the threat card is the shared card")
-assert(rimIs("medRimLit"), "at rest the rim is the Medallions bevel's lit rim")
+assert(rimIs(RIM), isFrames and "at rest the rim is the card's muted rim" or "at rest the rim is the Medallions bevel's lit rim")
 local function countIs(text, colour)
 	local shown = Text(list.column)
 	local want = { K.Tokens.Color(colour) }
@@ -79,13 +86,13 @@ env._threat.player = { false, 2, 85, 80, 850000 }
 env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
 env.RunTimers()
 assert(list.warning == 1, "85% warns")
-assert(rimIs("medRimLit") and list.panel.chrome.shapeName == "panel", "a warning leaves the card's rim alone")
+assert(rimIs(RIM) and list.panel.chrome.shapeName == "panel", "a warning leaves the card's rim alone")
 assert(countIs("85%", "neutral"), "a warning colours the count neutral: " .. tostring(Text(list.column)))
 env._threat.player = { false, 3, 97, 90, 970000 }
 env.FireEvent("UNIT_THREAT_SITUATION_UPDATE", "player")
 env.RunTimers()
 assert(list.warning == 2, "97% is danger")
-assert(rimIs("medRimLit") and list.panel.chrome.shapeName == "panel", "danger leaves the card's rim alone")
+assert(rimIs(RIM) and list.panel.chrome.shapeName == "panel", "danger leaves the card's rim alone")
 assert(countIs("97%", "hostile"), "danger colours the count hostile")
 assert(list.glow == nil, "no glow rides on the card")
 M.Write(env, K, "threat.warnings", false)
@@ -111,7 +118,7 @@ env._threat.party2 = { S(false), S(1), secretScaled, S(65), S(700000) }
 env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
 env.RunTimers()
 assert(#env._errors == 0, "secret threat raises no error: " .. tostring(env._errors[1]))
-assert(Text(list.rows[3].name) == "SYLAEN", "with a secret value the group keeps its order")
+assert(Text(list.rows[3].name) == (isFrames and "Sylaen" or "SYLAEN"), "with a secret value the group keeps its order")
 assert(M.Last(list.rows[3].bar, "SetValue")[1] == secretScaled, "the secret percentage goes straight to the bar")
 assert(env.issecretvalue(Text(list.rows[3].percent)), "the secret percentage text passes through whole")
 assert(M.Logged(env, "secret"), "the secret path is logged")
