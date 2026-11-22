@@ -207,7 +207,7 @@ do
 	assert(W.Near(previewSize(), original), "the real roster does not shrink the preview group")
 	local last = preview.partyFrames[1]
 	local name = last.sample.name
-	last.sample.name = "Mhaldrenwick"
+	last.sample.name = "Wormwoodmama"
 	preview:Refresh()
 	assert(previewSize() < original, "one longer preview member steps down the entire group")
 	last.sample.name = name

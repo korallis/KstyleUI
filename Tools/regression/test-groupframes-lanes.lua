@@ -208,7 +208,8 @@ do
 	assert(not intersects(heals, Part(env, tank, tank.parts.name)), "party: nor the name text's lane")
 	assert(heals[2] + heals[4] <= bar[2] - 0.01, "party: the lane sits above the pill, not in its row")
 	local _, count = ns.Auras.HealIcons(tank, ns.Settings.current.party)
-	eq(count, ns.Settings.current.party.buffCount, "party: every heal you may show has room")
+	-- A wide twelve-letter name keeps 6.5 em at its floor size, so the row gives up its third heal.
+	eq(count, ns.Settings.current.party.buffCount - 1, "party: every heal but the one the name needs has room")
 end
 Sweep(env, K, ns, tank, "party", 3)
 eq(#env._errors, 0, tostring(env._errors[1]))
