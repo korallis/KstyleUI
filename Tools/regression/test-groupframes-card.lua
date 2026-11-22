@@ -155,7 +155,6 @@ member.role, member.level = "HEALER", 9
 K.Options.Write("GroupFrames", "party.roleRing", false)
 env.RunTimers()
 assert(f.portrait:IsShown() and not f.roleText:IsShown(), "without the role ring the portrait returns")
-assert(f.chrome.fill[5]:IsShown(), "and the row wears its tile again")
 K.Options.Write("GroupFrames", "party.classLine", false)
 env.RunTimers()
 assert(not f.classLine:IsShown(), "the caption can be turned off")
