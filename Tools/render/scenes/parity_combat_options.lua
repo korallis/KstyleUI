@@ -56,7 +56,7 @@ return Common.Run(function()
    Auras3 = { ["reminder.enabled"] = true },
    Meters3 = { ["damage2.shown"] = true, ["damage.report"] = true, ["damage.englishUnits"] = false },
   }
-  for key, value in pairs(values[enabled == "1" and module or module .. enabled]) do K.Options.Write(module, key, value) end
+  for key, value in pairs(assert(values[enabled == "1" and module or module .. enabled], "RENDER_PARITY_ENABLED=" .. enabled .. " has no " .. module .. " options")) do K.Options.Write(module, key, value) end
  end
  assert(K.Options.Open(module))
  settle()

@@ -99,14 +99,18 @@ function Presets.OnSetting(_, module, key)
 		return
 	end
 	Settings.Invalidate()
+	local slim = key ~= "health.height" and ns.state.height == ns.Medallions.HEIGHT and Settings.Get("health.height") == ns.Plate.DEFAULT_HEIGHT
 	if key == "preset" then
 		local name = Settings.Get("preset")
 		if name ~= "custom" then
 			Presets.Apply(name)
+		elseif slim then
+			K.Options.Write(MODULE, "health.height", ns.Medallions.HEIGHT)
 		end
 	elseif key ~= "enabled" and key ~= "personalResource" and not key:find("^cvars%.") and Settings.Get("preset") ~= "custom" then
-		local slim = Settings.Get("preset") == "lumen" and key ~= "health.height" and Settings.Get("health.height") == ns.Plate.DEFAULT_HEIGHT
+		Presets.applying = true
 		K.Options.Write(MODULE, "preset", "custom")
+		Presets.applying = false
 		if slim then
 			K.Options.Write(MODULE, "health.height", ns.Medallions.HEIGHT)
 		end
