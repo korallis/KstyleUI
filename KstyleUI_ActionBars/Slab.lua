@@ -142,7 +142,10 @@ local function ClassTexture(prefix)
 	return class and Known(prefix .. class) or Slab.Texture(prefix)
 end
 
+local CELLS = {}
+
 local function Cells(name, default)
+	if CELLS[name] then return CELLS[name] end
 	if type(Tokens.Flipbook) ~= "function" then
 		return default
 	end
@@ -150,7 +153,8 @@ local function Cells(name, default)
 	if not ok or not (Plain(rows) and Plain(columns) and Plain(frames)) then
 		return default
 	end
-	return { rows = rows, columns = columns, frames = frames, seconds = Plain(seconds) and seconds or default.seconds }
+	CELLS[name] = { rows = rows, columns = columns, frames = frames, seconds = Plain(seconds) and seconds or default.seconds }
+	return CELLS[name]
 end
 
 local function ClassRGB()
@@ -519,7 +523,8 @@ end
 
 local function Loops()
 	local hub = Slab.hub
-	return { hub.glow.breath, hub.bloom.breath, hub.runes.turn, hub.sheen.run }
+	hub.loops = hub.loops or { hub.glow.breath, hub.bloom.breath, hub.runes.turn, hub.sheen.run }
+	return hub.loops
 end
 
 local function SizeBadge(hub)
@@ -593,7 +598,8 @@ local function Paint()
 	hub.crestPath = crest
 	hub.bloom:SetTexture(glow or Slab.Texture("glow", "medProc"))
 	local r, g, b = ClassRGB()
-	for _, region in ipairs({ hub.glow, hub.bloom, hub.glyphs, hub.runes, hub.shock, hub.flash }) do
+	hub.tinted = hub.tinted or { hub.glow, hub.bloom, hub.glyphs, hub.runes, hub.shock, hub.flash }
+	for _, region in ipairs(hub.tinted) do
 		region:SetVertexColor(r, g, b, region:GetAlpha())
 	end
 	for _, sweep in ipairs(Slab.frame.sweeps) do
@@ -742,7 +748,8 @@ function Slab.Refresh()
 	local spec = Slab.Spec()
 	local pad = Widgets.Snap(slab, spec.pad)
 	local rise = 0
-	Slab.joined = {}
+	Slab.joined = Slab.joined or {}
+	for key in pairs(Slab.joined) do Slab.joined[key] = nil end
 	if cfg.extraBarsApplied == "rows" then
 		for i, key in ipairs({ "bar4", "bar5" }) do
 			local bar, base = ns.bars[key], i == 1 and left or right

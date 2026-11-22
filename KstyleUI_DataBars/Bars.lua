@@ -373,7 +373,8 @@ local function Settings(view)
 	if view.def.id == "honor" then
 		return s
 	end
-	local medal = {}
+	local medal = view.medalSettings or {}
+	view.medalSettings = medal
 	for key, value in pairs(s) do
 		medal[key] = value
 	end
