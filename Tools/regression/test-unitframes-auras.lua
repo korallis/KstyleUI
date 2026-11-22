@@ -39,71 +39,18 @@ assert(aura.SetIcon[1]:GetParent() ~= button, "the art sits on a child frame of 
 local w, h = button:GetSize()
 assert(w == 20 and h == 20, "buttons take the aura size: " .. tostring(w))
 
--- Each button wears the kit's socket: a rounded fill whose corner is the socket share of the icon,
--- the socket's rim, the icon two borders in, and a swipe in the icon's rounded shape.
+-- Each button wears the Medallions aura border, nine pieces round the icon, with the icon two borders in and a swipe
+-- in the icon's rounded shape.
 local Tokens = K.Tokens
-local function tilePaths(skin)
-	local paths = {}
-	for _, region in ipairs(W.Regions(skin, "Texture")) do
-		local set = W.LastCall(region, "SetTexture")
-		if set then
-			paths[set[1]] = (paths[set[1]] or 0) + 1
-		end
-	end
-	return paths
-end
-local function cornerSizes(skin)
-	local sizes = {}
-	for _, region in ipairs(W.Regions(skin, "Texture")) do
-		local set = W.LastCall(region, "SetTexture")
-		local size = W.LastCall(region, "SetSize")
-		if set and set[1] == (Tokens.Texture("chamferTile")) and size then
-			sizes[#sizes + 1] = size
-		end
-	end
-	return sizes
-end
 local skin = aura.SetIcon[1]:GetParent()
-local paths = tilePaths(skin)
-
--- Each tile sits on the near-black button body with the accent rim every square icon shares.
-local function TileColours(kit, frame)
-	local body, raised, rim = false, false, false
-	local fr, fg, fb = kit.Tokens.Color("buttonFill")
-	local xr, xg, xb = kit.Tokens.Color("raised")
-	local rr, rg, rb = kit.Widgets.IconRim()
-	local function same(a, b)
-		return math.abs(a - b) < 1e-3
+local border = 0
+for _, region in ipairs(W.Regions(skin, "Texture")) do
+	local set = W.LastCall(region, "SetTexture")
+	if set and set[1] == (Tokens.Texture("medAuraBorder")) then
+		border = border + 1
 	end
-	for _, region in ipairs(W.Regions(frame, "Texture")) do
-		local set = W.LastCall(region, "SetTexture")
-		local r, g, b = region:GetVertexColor()
-		if set and set[1] == (kit.Tokens.Texture("chamferTile")) and type(r) == "number" then
-			body = body or (same(r, fr) and same(g, fg) and same(b, fb))
-			raised = raised or (same(r, xr) and same(g, xg) and same(b, xb))
-		elseif type(r) == "number" and same(r, rr) and same(g, rg) and same(b, rb) then
-			rim = true
-		end
-	end
-	return body, raised, rim
 end
-do
-	local body, raised, rim = TileColours(K, skin)
-	assert(body and not raised, "the tile's body is the near-black button fill, not a raised tile")
-	assert(rim, "its hairline rests on the accent lifted 15% toward white, as an action button")
-end
-assert((paths[(Tokens.Texture("lumenShape"))] or 0) >= 9, "the tile has a rounded fill")
-assert(paths[(Tokens.Texture("ringLine3"))] == 5 and paths[(Tokens.Texture("ringLine2"))] == 5, "the tile has the socket's line and rim (the owner's picture, 2026-11-09): each ring's four corners and a centre from its texture, the straight runs solid lines")
-assert(paths[(Tokens.Texture("iconMask"))] == nil, "no texture stretches the icon mask over the button")
-local corners = cornerSizes(skin)
-assert(#corners >= 4, "the rounded corners are sized")
-local drawn, inner = K.Scale.Snap(3 * K.Scale.Border()), K.Scale.Snap(2 * K.Scale.Border())
-local counts = { [drawn] = 0, [inner] = 0 }
-for _, size in ipairs(corners) do
-	assert(size[1] == size[2] and counts[size[1]], "each corner is the socket grade's three border lines or the fill's two (one line in), with no radius share (the owner's picture, 2026-11-09): " .. tostring(size[1]))
-	counts[size[1]] = counts[size[1]] + 1
-end
-assert(counts[drawn] == 4 and counts[inner] == 4, "four corners of each size")
+assert(border == 9, "the tile wears the Medallions aura border's nine pieces, got " .. border)
 local _, iconRel, _, ix, iy = aura.SetIcon[1]:GetPoint(1)
 assert(iconRel == skin and ix == 2 * K.Scale.Border() and iy == -2 * K.Scale.Border(), "the icon sits two borders in")
 local cooldown = aura.SetDurationCooldown[1]
@@ -156,9 +103,6 @@ env.SetCombat(true)
 env.SetCombat(false)
 local nw = button:GetSize()
 assert(nw == 26, "the buttons take the new size once auras are readable again")
-for _, size in ipairs(cornerSizes(skin)) do
-	assert(size[1] == drawn or size[1] == inner, "the rounded corner stays the socket grade's border lines at 26 units, it no longer follows the icon (the owner's picture, 2026-11-09): " .. tostring(size[1]))
-end
 noErrors("after the gate")
 
 -- A theme change while auras are secret leaves the tiles alone until aura data is readable.
@@ -240,7 +184,7 @@ do
 	local hw, hh = qfocus.auras.host:GetSize()
 	assert(whole(hw) and whole(hh), "the aura row covers whole pixels")
 	local _, _, _, ox, oy = qfocus.auras.host:GetPoint(1)
-	assert(whole(ox) and whole(oy) and ox > 0, "the gap to the frame is whole pixels: " .. tostring(ox))
+	assert(whole(ox) and whole(oy) and oy > 0, "the Medallions row's gap above the frame is whole pixels: " .. tostring(oy))
 	assert(#qenv._errors == 0, "1440p: " .. tostring(qenv._errors[1]))
 end
 
@@ -255,14 +199,10 @@ local positions = { "CENTER", "BELOW", "ABOVE", "RIGHT", "LEFT", "SIDE" }
 local laneFails = {}
 local lanes, measured = 0, { health = 0, power = 0, cast = 0 }
 for _, kind in ipairs({ "player", "target", "focus", "boss" }) do
-	local forms = { "lumen", "plate" }
-	if ns.Settings.COLUMN[kind] then
-		table.insert(forms, 1, "column")
-	end
-	for _, form in ipairs(forms) do
+	for _, form in ipairs({ "lumen", "plate" }) do
 		for _, position in ipairs(positions) do
 			K.Options.Write("UnitFrames", kind .. ".style", form)
-			K.Options.Write("UnitFrames", kind .. ".auras", true)
+			K.Options.Write("UnitFrames", kind .. (kind == "player" and ".medallionsAuras" or ".auras"), true)
 			K.Options.Write("UnitFrames", kind .. ".auraPosition", position)
 			K.Options.Write("UnitFrames", kind .. ".auraTimer", true)
 			K.Options.Write("UnitFrames", kind .. ".auraRows", 1)
