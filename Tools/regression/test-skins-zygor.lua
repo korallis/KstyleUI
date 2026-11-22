@@ -16,6 +16,7 @@ local function Boot(opts)
 	local env, K, ns = S.New({
 		width = opts.width or 1920, height = opts.height or 1080, size = opts.size, saved = saved,
 		setup = function(e)
+			if opts.auto then e._size, e._fitScale = "auto", true end
 			e._textWidth = Measure.TextWidth
 			Quests.Install(e, Quests.List(8))
 			zygor = Fake.Install(e, { natural = opts.natural, allsteps = opts.allsteps, late = opts.late })
@@ -204,23 +205,26 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
--- A step taller than the card grows the window below it rather than clipping the step.
+-- Steps taller than the card leave the window the card's height, so it never runs over the party frames under the
+-- card (the review of #713: at 1920x1080 and the automatic size the fixture's window covered 115 units of them).
 do
-	local env, K, _, zygor = Boot({ natural = 600 })
+	local env, K, _, zygor = Boot({ natural = 600, auto = true })
 	local px = K.Scale.Pixel(1) + 0.01
-	local steps = (600 + 91.5) * K.Widgets.ScaleFactor(zygor.frame)
 	local band = K.Setup.Story("DPS", true).guide
-	local room = band.top - band.bottom
-	local window = Rect(K, zygor.frame)
-	assert((window.top - window.bottom) > room + 2 * px, string.format("a step taller than the card pushes the window past it: %s in %s", Describe(window), Describe(band)))
-	assert(math.abs((window.top - window.bottom) - steps) <= 2 * px, string.format("and the window is the whole step tall, %s", Describe(window)))
-	assert(math.abs(window.top - band.top) <= 2 * px, string.format("the window still hangs from the card's top, %s in %s", Describe(window), Describe(band)))
+	local rw, rh = K.Layout.RootSize()
+	local _, partyHeight = K.Setup.Layouts.Footprint("DPS", "groupframes.party")
+	local _, _, _, partyTop = K.Setup.Layouts.Rect({ width = 1, height = partyHeight }, K.Setup.Layouts.Get("DPS")["groupframes.party"], rw, rh)
+	local function Check(what)
+		local window = Rect(K, zygor.frame)
+		assert(math.abs(window.top - band.top) <= 2 * px and math.abs(window.bottom - band.bottom) <= 2 * px, string.format("%s: the window fills the card and stops at its foot, %s in %s", what, Describe(window), Describe(band)))
+		assert(window.bottom > partyTop, string.format("%s: clear of the party frames' top %.1f, %s", what, partyTop, Describe(window)))
+	end
+	Check("a tall step")
 	for i = 1, 3 do
 		zygor.Step()
 		env.RunTimers()
 		S.W.Settle(env)
-		local again = Rect(K, zygor.frame)
-		assert(math.abs((again.top - again.bottom) - steps) <= 2 * px, string.format("after step %d the window is still the whole step tall, %s", i, Describe(again)))
+		Check("after step " .. i)
 	end
 	local parts = K.Skin.Parts(zygor.frame)
 	assert(not (parts and parts.backdrop), "the rail draws no panel of its own over Zygor's border")
