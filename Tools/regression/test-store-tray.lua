@@ -29,7 +29,10 @@ do
 	C.Boot(probe)
 	Layouts = PK.Setup.Layouts
 	local healer = Layouts.Get("Healer")["groupframes.party"]
-	env.KstyleUIDB.layouts.Healer["groupframes.party"] = { anchor = healer.anchor, x = healer.x, y = healer.y - Layouts.TRAY_LIFT }
+	-- The base placement's tray lift, as Core/Setup/Layouts.lua builds it from the mock-up's pixel (19 / 16 units).
+	local tile, gap, pad, bottom = 38 * 19 / 16, 3 * 19 / 16, 9 * 19 / 16, 40 * 19 / 16 + 4
+	local lift = math.ceil(bottom + 2 * pad + 2 * tile + gap - 132)
+	env.KstyleUIDB.layouts.Healer["groupframes.party"] = { anchor = healer.anchor, x = healer.x, y = healer.y - lift }
 end
 C.Boot(env)
 local db = env.KstyleUIDB
