@@ -25,15 +25,14 @@ MASTER = ROOT / "docs" / "store" / "description.md"
 PLATES = ROOT / "docs/media/plates"
 GALLERY = [
     ("01-medallions-hero.jpg", "game_medallions_hero.jpg", 2560),
-    ("02-style-medallions.jpg", "game_medallions_16x9.jpg", None),
-    ("03-style-frames.jpg", "hud_frames_1080.jpg", None),
-    ("04-style-orbs.jpg", "hud_orbs_1080.jpg", None),
-    ("05-ultrawide-spread.jpg", "ultrawide_spread.jpg", None),
-    ("06-setup.jpg", "frame_setup.jpg", None),
-    ("07-nameplates.jpg", "crop_nameplates.jpg", None),
-    ("08-meter.jpg", "crop_meter.jpg", None),
-    ("09-quests.jpg", "crop_rail.jpg", None),
-    ("10-medallion-closeup.gif", "game_medallions_target.gif", None),
+    ("02-medallions-combat.jpg", "game_medallions_16x9.jpg", None),
+    ("03-ultrawide-spread.jpg", "ultrawide_spread.jpg", None),
+    ("04-setup.jpg", "frame_setup.jpg", None),
+    ("05-nameplates.jpg", "crop_nameplates.jpg", None),
+    ("06-meter.jpg", "crop_meter.jpg", None),
+    ("07-quests.jpg", "crop_rail.jpg", None),
+    ("08-medallion-closeup.gif", "game_medallions_target.gif", None),
+    ("09-frames-combat.jpg", "hud_frames_1080.jpg", None),
 ]
 
 # Core/Tokens.lua colours.
@@ -54,11 +53,11 @@ BODY = "AlegreyaSans-Regular.ttf"
 BODY_BOLD = "AlegreyaSansTabular-Bold.ttf"
 
 PITCH = "Dark forged chrome for the whole game."
-PITCH2 = "Three HUDs. One setup. Every screen."
+PITCH2 = "One HUD. One setup. Every screen."
 
 HEADERS = [
     ("header-discord.jpg", "JOIN THE DISCORD", "Help, bug reports, release news and UI sharing - discord.gg/A5qqGZEXyN"),
-    ("header-three-huds.jpg", "THREE HUDS", "Medallions, Frames or Orbs - pick yours, change it any time"),
+    ("header-medallions.jpg", "MEDALLIONS", "Painted portraits, your class crest and one forged slab"),
     ("header-every-screen.jpg", "EVERY SCREEN", "Pixel-perfect from a laptop to a 32:9 ultrawide"),
     ("header-set-up.jpg", "SET UP IN ONE WINDOW", "One short setup, then you are playing"),
     ("header-rest-of-your-ui.jpg", "THE REST OF YOUR UI", "Nameplates, meter, map, bags, tooltips and window skins"),
@@ -67,14 +66,14 @@ HEADERS = [
 
 # One image per card, stacked in the markdown, so each stays readable on a phone.
 CARDS = [
-    ("card-three-huds.jpg", "game_medallions_closeup.jpg", "Three HUD styles",
-     "Medallions, Frames or Orbs.", "Pick at setup, switch any time."),
-    ("card-pixel-perfect.jpg", "hud_frames_1080.jpg", "Pixel-perfect sizing",
+    ("card-medallions.jpg", "game_medallions_closeup.jpg", "Medallions",
+     "Painted portraits and your class crest.", "One forged slab for your bars."),
+    ("card-pixel-perfect.jpg", "hud_1080.jpg", "Pixel-perfect sizing",
      "Every edge lands on whole pixels.", "A readable text floor from 1080 lines up."),
     ("card-ultrawide.jpg", "ultrawide_spread.jpg", "Ultrawide ready",
      "Centred or Spread on 21:9 and 32:9.", "Nothing stranded at the edges."),
     ("card-ready-in-minutes.jpg", "frame_setup.jpg", "Ready in minutes",
-     "One setup: HUD, layout, modules.", "DPS, Tank and Healer layouts built in."),
+     "One setup: layout and modules.", "DPS, Tank and Healer layouts built in."),
     ("card-full-kit.jpg", "crop_meter.jpg", "The full kit",
      "Meter, nameplates, bags, tooltips.", "One style across the whole game."),
     ("card-nothing-extra.jpg", "frame_skins.jpg", "Nothing you don't want",
@@ -337,7 +336,7 @@ def make_icons_compare():
         y += 56
         rounded_paste(img, row, (64, y))
         y += row.height
-    source_label(draw, (x, y + 28), "hud_frames_1080.jpg")
+    source_label(draw, (x, y + 28), "hud_1080.jpg")
     return save(img, COMPARE[0], quality=84)
 
 

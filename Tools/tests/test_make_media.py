@@ -56,7 +56,7 @@ class ManifestTest(unittest.TestCase):
     def test_hud_style_pictures_are_renders(self):
         # KSTY-60 item 27: the HUD style picker shows a picture of each style, cropped from the hud_reference render
         # (Tools/media/hud_pictures.py), not the flat schematic drawing of a handful of colours it showed before.
-        for name in ("HudStyleFrames", "HudStyleOrbs", "HudStyleMedallions"):
+        for name in ("HudStyleFrames", "HudStyleMedallions"):
             asset = next(a for a in self.mm.ASSETS if Path(a.path).stem == name)
             self.assertEqual((asset.width, asset.height), (1024, 512), name)
             width, height, pixels = self.mm.decode_png((ROOT / asset.path).read_bytes())

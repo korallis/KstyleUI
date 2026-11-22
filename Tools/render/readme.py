@@ -46,6 +46,8 @@ HUD = dict(HD, **COMBAT)
 RENDERS = {
     "hud_1080": ("hud_reference", 1.0, HUD, "--strict"),
     "hud_1080_2x": ("hud_reference", 2.0, HUD, "--strict"),
+    "frames_5120": ("hud_reference", 1440 / 1080, {**ULTRAWIDE, **COMBAT, "RENDER_HUD_STYLE": "Frames", "RENDER_ARRANGEMENT": "spread"}, "--strict"),
+    "frames_1080": ("hud_reference", 1.0, dict(HUD, RENDER_HUD_STYLE="Frames"), "--strict"),
     "healer_centred": ("hud_reference", 1440 / 1080, {**ULTRAWIDE, **COMBAT, "RENDER_LAYOUT": "Healer", "RENDER_ARRANGEMENT": "centred"}, "--strict"),
     "healer_spread": ("hud_reference", 1440 / 1080, {**ULTRAWIDE, **COMBAT, "RENDER_LAYOUT": "Healer", "RENDER_ARRANGEMENT": "spread"}, "--strict"),
     "meter_party": ("hud_reference", 2.0, dict(HUD, RENDER_METER_GROUP="party"), "--strict"),
@@ -61,6 +63,8 @@ GALLERIES = ("gallery_setup", "gallery_groupframes", "gallery_skins_character")
 # "WxH+X+Y" in the source's pixels or None. A picture narrower than its width stays as it is.
 IMAGES = [
     ("hud_1080", "render:hud_1080", None, 1200),
+    ("hud_frames_5120", "render:frames_5120", None, 1600),
+    ("hud_frames_1080", "render:frames_1080", None, 1200),
     ("crop_unitframes", "render:hud_1080_2x", "1640x270+1100+1695", 1400),
     ("crop_nameplates", "render:plates", "1340x780+400+300", 800),
     ("crop_meter", "render:meter_party", "490x320+3328+1820", 540),
