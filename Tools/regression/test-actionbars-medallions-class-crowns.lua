@@ -12,6 +12,7 @@ local SPEC = {
 	DRUID = { art = "PipTalon", count = 5, unit = "target", angles = { 130, 110, 90, 70, 50 } },
 }
 local ORDER = { "WARRIOR", "PRIEST", "MAGE", "HUNTER", "DRUID" }
+local EXTRA = { "UNIT_MAXPOWER", "UNIT_DISPLAYPOWER", "UPDATE_SHAPESHIFT_FORM", "PLAYER_REGEN_ENABLED" }
 
 local function New(class, opts)
 	opts = opts or {}
@@ -126,11 +127,16 @@ for _, class in ipairs(ORDER) do
 	end
 
 	-- The setting off hides the crown, disables the game's feed and stops listening; on again brings it back.
-	local listening = Listening(env, "PLAYER_TARGET_CHANGED")
+	local listening, extra = Listening(env, "PLAYER_TARGET_CHANGED"), {}
+	for i, event in ipairs(EXTRA) do extra[i] = Listening(env, event) end
 	K.Store.Profile().UnitFrames = { resource = { classPips = false } }
 	K.Callbacks.Fire("SettingChanged", "UnitFrames", "resource.classPips", false)
 	assert(not crown.holder:IsShown() and crown.container._enabled == false and not K.Widgets.ClassCrown(), class .. ": off hides it, stops the feed and gives the row back")
 	assert(spec.unit ~= "target" or Listening(env, "PLAYER_TARGET_CHANGED") == listening - 1, class .. ": off stops following the target")
+	for i, event in ipairs(EXTRA) do
+		local want = class == "DRUID" and event ~= "PLAYER_REGEN_ENABLED" and 1 or 0
+		assert(extra[i] - Listening(env, event) == want, class .. "'s crown listens for " .. event .. " only when it needs it")
+	end
 	K.Store.Profile().UnitFrames.resource.classPips = true
 	K.Callbacks.Fire("SettingChanged", "UnitFrames", "resource.classPips", true)
 	assert(crown.holder:IsShown() and crown.container._enabled == true, class .. ": on again")
@@ -162,6 +168,75 @@ do
 	assert(S.crown and S.crown.holder:IsShown(), "bear form: the talons again")
 	assert(S.line and K.Widgets.ClassCrown() == S.line, "and seats the druid bar above them")
 	Clean(env, K, "druid forms")
+end
+
+-- A druid who starts in caster form and first shifts to bear while the game guards its aura buttons finds the talons bound.
+do
+	local lock = false
+	local env, K, ns = New("DRUID", { setup = function(e)
+		e._powerType = 0
+		e.C_Secrets = e.C_Secrets or {}
+		e.C_Secrets.ShouldAurasBeSecret = function() return lock end
+	end })
+	local bear = ns.SlabCrown.state.crowns.BEAR
+	lock = true
+	env._powerType = 1
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	Slots.Set(env, "target", { { id = AURAS.DRUID, count = 5, harmful = true, mine = true } })
+	for _, f in ipairs(bear.feeds) do
+		assert(f.button._applicationBar, "the talons were bound while the game allowed it")
+	end
+	bear.pips[5].env = env
+	assert(bear.holder:IsShown() and Lit(bear.pips[5]) and bear.max:IsShown(), "so five Lacerate stacks light every talon and the ring")
+	Clean(env, K, "first bear form")
+end
+
+-- A spellbook update or the end of combat leaves a gain playing on the combo crowns.
+for _, class in ipairs({ "ROGUE", "DRUID" }) do
+	local env, K, ns = New(class)
+	env._powerType = 3
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	env.GetComboPoints = function() return 1 end
+	env.FireEvent("UNIT_POWER_FREQUENT", "player", "COMBO_POINTS")
+	local rise = ns.SlabCrown.state.pips[1].rise
+	for _, event in ipairs({ "SPELLS_CHANGED", "PLAYER_REGEN_ENABLED" }) do
+		env.FireEvent(event)
+		assert(rise:IsShown() and rise.anim:IsPlaying(), class .. ": " .. event .. " leaves the gain playing")
+	end
+	Clean(env, K, class .. " combo motion")
+end
+
+-- A palette edit recolours the full ring as it does the crest's other class colours.
+do
+	local env, K, ns = New("MAGE")
+	K.Theme.SetPalette({ MAGE = { r = 0.77, g = 0.12, b = 0.33 } }, 0)
+	env.RunTimers()
+	for _, frame in ipairs(ns.SlabCrown.state.crown.max._kids) do
+		local r, g, b = unpack(Last(frame._regions[1], "SetVertexColor"))
+		assert(r == 0.77 and g == 0.12 and b == 0.33, "the ring takes the edited class colour")
+	end
+	Clean(env, K, "palette")
+end
+
+-- Aura slots without the application bar cannot be fed: no crown, and the unit frames keep the seat.
+do
+	local env, K, ns = New("MAGE", { setup = function(e)
+		local create = e.CreateFrame
+		e.CreateFrame = function(kind, ...)
+			local frame = create(kind, ...)
+			if kind == "AuraContainer" then
+				local add = frame.AddAuraSlot
+				frame.AddAuraSlot = function(self, ...)
+					local button = add(self, ...)
+					button.SetApplicationBar = false
+					return button
+				end
+			end
+			return frame
+		end
+	end })
+	assert(not ns.SlabCrown.state.crown and not K.Widgets.ClassCrown(), "no application bar: nothing shows and the seat stays free")
+	Clean(env, K, "no application bar")
 end
 
 -- A priest without Shadow Weaving gets nothing, and learning it brings the candles.
@@ -216,17 +291,17 @@ do
 end
 
 
--- Classes with no crown create no slots and listen for nothing new.
-for _, class in ipairs({ "PALADIN", "WARLOCK", "ROGUE", "SHAMAN" }) do
-	local env, K, ns = New(class)
+-- Classes with no crown, and a priest without Shadow Weaving, create no slots and listen for nothing new.
+for _, class in ipairs({ "PALADIN", "WARLOCK", "ROGUE", "SHAMAN", "PRIEST" }) do
+	local env, K, ns = New(class, { known = class ~= "PRIEST" })
 	assert(not ns.SlabCrown.state.crown and #env._slotContainers == 0, class .. " has no fed crown")
-	local events = { "PLAYER_TOTEM_UPDATE", "PLAYER_REGEN_ENABLED", "PLAYER_TARGET_CHANGED", "UPDATE_SHAPESHIFT_FORM" }
+	local events = { "PLAYER_TOTEM_UPDATE", "PLAYER_TARGET_CHANGED", unpack(EXTRA) }
 	local on = {}
 	for i, event in ipairs(events) do on[i] = Listening(env, event) end
 	K.Store.Profile().UnitFrames = { resource = { classPips = false } }
 	K.Callbacks.Fire("SettingChanged", "UnitFrames", "resource.classPips", false)
 	for i, event in ipairs(events) do
-		local crowned = class == "ROGUE" and (event == "PLAYER_TARGET_CHANGED" or event == "UPDATE_SHAPESHIFT_FORM") and 1 or 0
+		local crowned = class == "ROGUE" and event ~= "PLAYER_TOTEM_UPDATE" and event ~= "PLAYER_REGEN_ENABLED" and 1 or 0
 		assert(on[i] == Listening(env, event) + crowned, class .. " listens for " .. event .. " only for its own crown")
 	end
 	Clean(env, K, class)
