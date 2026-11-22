@@ -229,7 +229,7 @@ Fields: `icon`, `mask`, `cooldown`, `countdown` (the cooldown's countdown font s
 
 ## Slot
 
-`Slot(parent, opts) -> Button`: the action slot every tray shares, the Frames tray, the Orbs forged tray and the cooldown rows alike. It is an [`IconButton`](#iconbutton) with the KSTY-44 bible's slot (section 3.9 and the mock-ups' `.slot`), and takes the same options plus `rim` (the token of the resting rim, `slotRim` by default; a module with its own accent sets `button.rimToken` to `nil` and paints the rim itself).
+`Slot(parent, opts) -> Button`: the action slot the action bars, the Medallions slab and the cooldown rows share. It is an [`IconButton`](#iconbutton) with the KSTY-44 bible's slot (section 3.9 and the mock-ups' `.slot`), and takes the same options plus `rim` (the token of the resting rim, `slotRim` by default; a module with its own accent sets `button.rimToken` to `nil` and paints the rim itself).
 
 | Part | What it is |
 | --- | --- |
@@ -432,7 +432,7 @@ Timings are tokens: `hitFlash` 0.18 s, `lossHold` 0.5 s, `sparkHold` 0.25 s then
 
 ## ClassPip
 
-`Widgets.ClassPip(parent, set, i, count) -> pip` is one class-themed resource pip, shared by the unit frames' row (Frames and Orbs) and the Medallions crest's crown of blades. `set` names the art: `lit`, `steel` (the dormant art an empty pip shows), `shape` (white; the mask and the flare) and `glow` texture tokens, the `glowColor` and `coreColor` colour tokens, and `axis`, the direction in degrees the art slides and glints along. The caller places `pip.frame` and calls `pip:Layout(size)` with its square side in units.
+`Widgets.ClassPip(parent, set, i, count) -> pip` is one class-themed resource pip, shared by the unit frames' pip row and the Medallions crest's crown of blades. `set` names the art: `lit`, `steel` (the dormant art an empty pip shows), `shape` (white; the mask and the flare) and `glow` texture tokens, the `glowColor` and `coreColor` colour tokens, and `axis`, the direction in degrees the art slides and glints along. The caller places `pip.frame` and calls `pip:Layout(size)` with its square side in units.
 
 `pip:Set(now, was, moving, idle)` feeds the raw count to every layer. Each lit layer is a one-point status bar: `now` and `was` light pip `i` from `i - 1` to `i`, the glint lights from `count - 1` to `count`, so the engine compares and Lua never reads a secret. Their order makes a change right for every pip: a gained pip's art slides out along the axis, cut to its shape, under a flare (0.03 s up, 0.09 s down) while the copy fed `was` covers the pips that were already lit; that copy then drains over 0.18 s, so a spent pip holds, a slash cut to its shape flashes and it cools to the dormant art; the halo fades in or out over 0.2 s and stays steady on an unchanged pip; at the maximum a glint runs up each pip's axis, 0.05 s after the one before. `moving` plays these (false shows the end states); `idle` returns the glint after a 3.5 s rest, the first one 0.05 s after the pip before and every later one on the same period, and is the caller's to give only at a known maximum. Transient layers hide between changes and nothing runs `OnUpdate`.
 
@@ -440,7 +440,7 @@ Timings are tokens: `hitFlash` 0.18 s, `lossHold` 0.5 s, `sparkHold` 0.25 s then
 
 ## Medallion
 
-`Widgets.Medallion(parent) -> medallion` (`Medallion.lua`) is the round unit medallion that the Medallions HUD style puts on unit frames; other modules can reuse it. The caller places and sizes the frame, then calls `Layout`. From back to front: the portrait (masked to a circle, 0.8 of the medallion, which is the `medRing` bezel's hole), the `medPortraitSheen` sheen, the `medEnamel` accent ring tinted by `SetRingColor`, the `medRing` steel bezel, the `medLowHealthRing` in its own frame, and the `medLevelPlaque` diamond with the level in the `number` font, coloured `steelLit`.
+`Widgets.Medallion(parent) -> medallion` (`Medallion.lua`) is the round unit medallion that the Medallions HUD puts on unit frames; other modules can reuse it. The caller places and sizes the frame, then calls `Layout`. From back to front: the portrait (masked to a circle, 0.8 of the medallion, which is the `medRing` bezel's hole), the `medPortraitSheen` sheen, the `medEnamel` accent ring tinted by `SetRingColor`, the `medRing` steel bezel, the `medLowHealthRing` in its own frame, and the `medLevelPlaque` diamond with the level in the `number` font, coloured `steelLit`.
 
 | Method | Behaviour |
 | --- | --- |
