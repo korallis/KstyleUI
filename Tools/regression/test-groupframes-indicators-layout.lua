@@ -110,6 +110,14 @@ for _, size in ipairs(SIZES) do
 				end
 			end
 		end
+		-- The party's boss debuff slot keeps off the crown, the ready check and the skull, or the badge lays out none.
+		if f.parts.boss then
+			local boss = { Scene.Rect(env, f.highlights:GetAuraSlotFrame("boss")) }
+			for _, name in ipairs({ "leader", "ready", "marker" }) do
+				local r = { Scene.Rect(env, f[name]) }
+				assert(not intersects(boss, r), what .. ": the boss debuff slot " .. describe(boss) .. " overlaps the " .. name .. " " .. describe(r))
+			end
+		end
 		local frameRect = { Scene.Rect(env, f) }
 		assert(frameRect[1], what .. ": the frame resolves")
 		for _, name in ipairs(list) do
