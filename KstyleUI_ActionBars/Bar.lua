@@ -49,23 +49,23 @@ function ns.NewBar(def)
 	header:SetAllPoints(holder)
 	bar.holder, bar.header = holder, header
 	bar.gateHidden = bar.gate:GetAttribute("toggle-hidden") == true
-	bar.gate:HookScript("OnShow", function() bar.gateHidden = nil; bar:RefreshTray() end)
-	bar.gate:HookScript("OnHide", function() bar.gateHidden = true; bar:RefreshTray() end)
+	bar.gate:HookScript("OnShow", function() bar.gateHidden = nil; bar:RefreshSlab() end)
+	bar.gate:HookScript("OnHide", function() bar.gateHidden = true; bar:RefreshSlab() end)
 	holder:HookScript("OnShow", function()
 		bar.holderHidden = nil
-		bar:RefreshTray()
+		bar:RefreshSlab()
 	end)
 	holder:HookScript("OnHide", function()
 		bar.holderHidden = true
-		bar:RefreshTray()
+		bar:RefreshSlab()
 	end)
 	header:HookScript("OnShow", function()
 		bar.headerHidden = nil
-		bar:RefreshTray()
+		bar:RefreshSlab()
 	end)
 	header:HookScript("OnHide", function()
 		bar.headerHidden = true
-		bar:RefreshTray()
+		bar:RefreshSlab()
 	end)
 	local backing = CreateFrame("Frame", nil, header)
 	backing:SetFrameLevel(header:GetFrameLevel())
@@ -203,14 +203,6 @@ function Bar:FormsChanged()
 	return false
 end
 
-local function SplitGap(cfg)
-	local split = cfg.split
-	if split == "on" then
-		return K.Setup.Layouts.SPLIT_GAP
-	end
-	return 0
-end
-
 local CUMULATIVE = { bar1 = true, bar2 = true, bar3 = true, bar4 = true, bar5 = true, bar6 = true }
 
 function Bar:Layout()
@@ -247,7 +239,7 @@ function Bar:Layout()
 		cols, used = full, max(1, ceil(count / full))
 		width, height = cols * size + (cols - 1) * gap, used * size + (used - 1) * gap
 	end
-	local split = grouped and 0 or SplitGap(cfg)
+	local split = not grouped and cfg.split == "on" and K.Setup.Layouts.SPLIT_GAP or 0
 	local half = math.huge
 	if split > 0 and def.kind == "action" then
 		local _, _, columns = ns.GridSize(count, rows, 1, 0)
@@ -361,7 +353,7 @@ function Bar:Apply(geometryOnly)
 	end
 	if geometryOnly then
 		for _, button in ipairs(self.buttons) do ns.Button.StyleTexts(button) end
-		self:RefreshTray(true)
+		self:RefreshSlab(true)
 	else
 		self:UpdateSlots()
 		self:Refresh()
@@ -397,9 +389,9 @@ local function Steady(bar)
 	return s.shown ~= "mouseover", s.alphaCombat, s.alphaIdle
 end
 
-function Bar:RefreshTray(force)
+function Bar:RefreshSlab(force)
 	local bars = ns.bars
-	if not bars or ns.trayHeld then
+	if not bars or ns.slabHeld then
 		return
 	end
 	local main = self.def.key == "bar1" and self or bars.bar1
@@ -407,14 +399,16 @@ function Bar:RefreshTray(force)
 	if not (main and second) then
 		return
 	end
-	local mainSteady, mainCombat, mainIdle = Steady(main)
-	local secondSteady, secondCombat, secondIdle = Steady(second)
-	ns.Tray.Refresh(main, second, mainSteady and secondSteady and mainCombat == secondCombat and mainIdle == secondIdle, force)
+	if ns.Tray.card or K.HudStyle.Current() == "frames" then
+		local mainSteady, mainCombat, mainIdle = Steady(main)
+		local secondSteady, secondCombat, secondIdle = Steady(second)
+		ns.Tray.Refresh(main, second, mainSteady and secondSteady and mainCombat == secondCombat and mainIdle == secondIdle, force)
+	end
 	ns.Slab.Refresh()
 end
 
 function Bar:Refresh()
-	self:RefreshTray(true)
+	self:RefreshSlab(true)
 	for _, b in ipairs(self.buttons) do
 		ns.Button.StyleTexts(b)
 		ns.Button.Update(b)

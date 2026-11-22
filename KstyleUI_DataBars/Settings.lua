@@ -306,14 +306,15 @@ function ns.Schema()
 		fillOptions[i + 1] = { value = def[1], label = def[2] }
 		if def[1] ~= "micro" then secondOptions[#secondOptions + 1] = moduleOptions[i] end
 	end
+	local placements = { { value = "top", label = L["Top"] }, { value = "dock", label = L["Docked under the action bars"] }, { value = "rail", label = L["Right rail"] } }
 	local stripRows = {
 		{ type = "header", label = L["Data bar"] },
 		{ type = "toggle", key = "strip.enabled", label = L["Show the data bar"], help = L["Show the data bar and its readouts."] },
-		{ type = "dropdown", key = "strip.placement", label = L["Position"], help = L["Top docks to the slab in Medallions. Dock follows the action bars. Rail is the old readout."], options = {
-			{ value = "top", label = L["Top"] }, { value = "dock", label = L["Docked under the action bars"] }, { value = "rail", label = L["Right rail"] },
-		} },
-		{ type = "slider", key = "strip.height", label = L["Height"], help = L["The height of the top data bar."], min = 12, max = 32, step = 1 },
-		{ type = "dropdown", key = "strip.artwork", label = L["Data bar artwork"], help = L["Forged trim and a crest gem, or a plain glass plate."], showWhen = function(settings) return settings.strip.placement == "top" or settings.strip.placement == "dock" and Widgets.Medallions() end, options = {
+		{ type = "dropdown", key = "strip.placement", label = L["Position"], help = L["Docked sits under the action bars. Right rail is the old readout."], options = function()
+			return Widgets.Medallions() and { placements[2], placements[3] } or placements
+		end },
+		{ type = "slider", key = "strip.height", label = L["Height"], help = L["The height of the top data bar."], min = 12, max = 32, step = 1, showWhen = function() return not Widgets.Medallions() end },
+		{ type = "dropdown", key = "strip.artwork", label = L["Data bar artwork"], help = L["Forged trim and a crest gem, or a plain glass plate."], showWhen = function(settings) return settings.strip.placement == "top" or Widgets.Medallions() and settings.strip.placement ~= "rail" end, options = {
 			{ value = "forged", label = L["Forged"] }, { value = "plain", label = L["Plain"] },
 		} },
 		{ type = "slider", key = "strip.background", label = L["Background"], help = L["The opacity of the top bar's background and the Medallions dock's plates."], min = 0, max = 100, step = 1 },
