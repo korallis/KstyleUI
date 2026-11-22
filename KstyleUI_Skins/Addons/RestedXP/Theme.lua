@@ -393,6 +393,7 @@ function Theme.Start(rxp)
 		return false
 	end
 	Forget()
+	tracker.frame = rxp.RXPFrame
 	Style.Track(tracker)
 	Widgets.Track(tracker)
 	HookTheme(rxp)

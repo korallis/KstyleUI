@@ -346,7 +346,7 @@ local function Build()
 	K.Events.Register(OWNER .. ".Questie", "ADDON_LOADED", function(_, name) if name == "Questie" then SyncQuestie() end end)
 	K.Callbacks.Register("SettingChanged", OWNER, OnSettingChanged)
 	K.Callbacks.Register("HudStyleChanged", OWNER, Replace)
-	K.Widgets.Track({ Restyle = Replace })
+	K.Widgets.Track({ Restyle = Replace, holder = holder })
 	state.built = true
 	K.DevTest.AddCheck("quest card diagnostics", Card.Diagnose)
 	K.Events.Register(OWNER .. ".Diagnostics", "PLAYER_REGEN_DISABLED", function()

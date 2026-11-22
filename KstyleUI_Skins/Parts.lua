@@ -384,7 +384,7 @@ function Parts.Dock(window, frames, opts)
 				base[edge] = inset or 0
 			end
 		end
-		dock = { window = window, panel = panel, frames = {}, seams = {}, watched = {}, base = base, reach = { LEFT = 0, RIGHT = 0, TOP = 0, BOTTOM = 0 } }
+		dock = { window = window, frame = window, panel = panel, frames = {}, seams = {}, watched = {}, base = base, reach = { LEFT = 0, RIGHT = 0, TOP = 0, BOTTOM = 0 } }
 		dock.Refresh = function()
 			PlaceDock(dock)
 		end
@@ -910,7 +910,7 @@ function Parts.Dropdown(drop)
 	overlay:SetFrameLevel(drop:GetFrameLevel() + LEVEL_BELOW)
 	local chevron = overlay:CreateTexture(nil, "OVERLAY")
 	chevron:SetTexture((Tokens.Texture("glyphChevron")))
-	local state = { drop = drop, overlay = overlay, chevron = chevron, hover = false, Restyle = LayoutChevron }
+	local state = { drop = drop, frame = overlay, overlay = overlay, chevron = chevron, hover = false, Restyle = LayoutChevron }
 	drop:HookScript("OnEnter", function()
 		state.hover = true
 		PaintChevron(state)

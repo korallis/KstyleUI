@@ -92,8 +92,8 @@ local function WatchFont(name, role, fallback)
 	end
 end
 
-local function Rehush(text)
-	if rehushing then
+local function Rehush(text, alpha)
+	if rehushing or not IsSecret(alpha) and alpha == 0 then
 		return
 	end
 	rehushing = true
@@ -290,7 +290,7 @@ local function CountState(line)
 	local holder = CreateFrame("Frame", nil, line)
 	holder:SetAllPoints(line)
 	holder:SetFrameLevel(line:GetFrameLevel() + 1)
-	state = { line = line, text = line.Text, label = Widgets.FontString(holder, "OVERLAY"), Restyle = RestyleCount }
+	state = { line = line, holder = holder, text = line.Text, label = Widgets.FontString(holder, "OVERLAY"), Restyle = RestyleCount }
 	RestyleCount(state)
 	Style.Track(state)
 	Widgets.Track(state)

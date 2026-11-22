@@ -391,7 +391,7 @@ local function RestAlpha(region, on)
 				return
 			end
 			entry.wanted = alpha
-			if entry.on then
+			if entry.on and not (Plain(alpha) and alpha == 0) then
 				entry.busy = true
 				region:SetAlpha(0)
 				entry.busy = false
@@ -421,8 +421,8 @@ local function RestMouse(frame, on)
 end
 
 local function Rehush(text)
-	local entry = hushed[text]
-	if entry and not entry.busy then
+	local entry, alpha = hushed[text], text:GetAlpha()
+	if entry and not entry.busy and not (Plain(alpha) and alpha == 0) then
 		entry.busy = true
 		text:SetAlpha(0)
 		entry.busy = false
