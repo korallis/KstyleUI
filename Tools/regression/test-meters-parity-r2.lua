@@ -207,8 +207,18 @@ set("threat.shown", true); set("threat.group", false); Refresh()
 local s2, t2 = Rect(ns.Damage2.holder), Rect(ns.Threat.holder)
 assert(not ns.Threat.paired and ns.Threat.list.panel:IsVisible() and second.panel:IsVisible(), "Both keeps threat in its own place while the second window is on")
 assert(s2.right <= t2.left or t2.right <= s2.left or s2.top <= t2.bottom or t2.top <= s2.bottom, "the second window starts clear of the threat card")
+local function Planned(label)
+	local L = K.Setup.Layouts
+	for _, size in ipairs(L.PrepareFits("Tank", 1920, 1080, L.Enabled("Tank", K.Store.Profile())).sizes) do
+		if size[6] == "meters.threat" then
+			assert(size[1] == ns.Threat.holder:GetWidth(), label .. ": the HUD fit plans the threat card " .. size[1] .. " wide, it draws " .. ns.Threat.holder:GetWidth())
+		end
+	end
+end
+Planned("second window on")
 set("damage2.shown", false)
 assert(ns.Threat.paired, "turning the second window off docks threat beside the damage meter again")
+Planned("docked")
 set("damage2.shown", true)
 assert(not ns.Threat.paired, "and on again moves it back to its own place")
 set("damage.report", true); set("damage.resetButton", true)
