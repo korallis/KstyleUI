@@ -262,8 +262,8 @@ do
 	clean(env, K)
 end
 
--- Tabs above the card: the card starts at the tab row's foot, the rule goes and the glyphs leave the glass; off
--- restores the card, the rule and the glyphs' parent.
+-- Tabs above the card: the card starts at the tab row's foot, the header band goes and the glyphs leave the glass; off
+-- restores the card, the header band and the glyphs' parent.
 do
 	local env, K, ns = boot({ enabled = true })
 	local holder, glass, plus = ns.Panel.Holder(), ns.Panel.Glass(), ns.Panel.MenuButton()
@@ -274,11 +274,11 @@ do
 	local undocked = ns.Panel.UndockedInsets(frame3).top
 	write(env, K, "tabsAbove", true)
 	assert(near(glass:GetTop(), holder:GetTop() - g.divider), "the card starts under the tabs")
-	assert(not glass.divider:IsShown(), "the card's edge replaces the rule")
+	assert(glass.chrome.headerUnits == nil, "the card's edge replaces the header band")
 	assert(select(2, plus:GetPoint(1)) == holder and plus:GetBottom() >= glass:GetTop() - 0.01, "the glyphs sit in the tab row, off the card")
 	assert(ns.Panel.UndockedInsets(frame3).top > undocked, "an undocked window's glass starts under its tab too")
 	write(env, K, "tabsAbove", false)
-	assert(near(glass:GetTop(), holder:GetTop()) and glass.divider:IsShown() and select(2, plus:GetPoint(1)) == glass, "off restores the card, the rule and the glyphs")
+	assert(near(glass:GetTop(), holder:GetTop()) and near(glass.chrome.headerUnits, g.divider + K.Widgets.Border(glass)) and select(2, plus:GetPoint(1)) == glass, "off restores the card, the header band and the glyphs")
 	clean(env, K)
 end
 
