@@ -219,7 +219,7 @@ K.Options.Write("Minimap", "column.hover", true)
 local zp3, zrel3, zrelp3, zx3, zy3 = point(face.zone)
 assert(zp3 == zp and zrel3 == zrel and zrelp3 == zrelp and zx3 == zx and zy3 == zy, "the usual place comes back exactly")
 local cp, crel, crelp = point(face.clock)
-assert(cp == "RIGHT" and crel == face.card and crelp == "BOTTOMRIGHT", "and the clock returns under the card")
+assert(cp == "RIGHT" and crel == face.plaques[2] and crelp == "RIGHT", "and the clock returns to its seat on the row plaque")
 
 -- Medallions: a moved caption takes its plaque away; back home the plaque returns.
 M.Settle(env)

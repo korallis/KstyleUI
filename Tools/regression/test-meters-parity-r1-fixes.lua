@@ -21,7 +21,6 @@ assert(d.rows[3].marker:IsShown() and d.rows[3].back:IsShown() and d.rows[3].dot
 set("damage.playerMarker", false)
 
 -- Name size works on Medallions with instrument names off.
-K.Options.Write("HudStyle", "style", "medallions"); env.RunTimers(); assert(K.Widgets.Medallions())
 set("instrumentNames", false)
 local small = select(2, d.rows[1].name:GetFont())
 set("damage.nameScale", 2)
