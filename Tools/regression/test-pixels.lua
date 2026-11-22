@@ -81,8 +81,8 @@ local SIZE_NAMES = {
 	"gapTiny", "gapSmall", "gapMedium", "gapLarge", "gapHuge", "rowHeight", "chamferWindow", "lootTile", "lootText",
 }
 local SLICED = { "lumenShape", "cardShape", "lumenOutline", "ringLine2", "ringLine3", "ringLine4", "ringLine5", "ringLine6", "shadow" }
--- The owner's picture (2026-11-09) draws every edge in border lines: a card's corner is six lines round and a socket's
--- three, its dark edge line and its rim are each one line thick, the rim and the fill one line in, and the gilt L-ticks
+-- Every edge is drawn in border lines: a steel card's corner is 4 units snapped to whole pixels and a socket's three
+-- lines, its dark edge line and its rim are each one line thick, the rim and the fill one line in, and the gilt L-ticks
 -- ride on the rim. So every corner piece, run and tick is a whole number of physical pixels at every screen, UI scale,
 -- size and frame scale. Frame scales: a frame on the root, and a tooltip-sized frame.
 local FRAME_SCALES = { 1, 1.25 }
@@ -105,9 +105,10 @@ local function checkChrome(ns, c, shapeName, ppu, frameScale, where)
 	where = where .. ", " .. shapeName .. " at frame scale " .. frameScale
 	local linePx = border
 	local radiusPx = c.line[1]:GetWidth() * px
-	local wantPx = c.shape.lines * linePx
+	-- A steel card rounds 4 units, snapped to whole pixels; a tile or socket its lines.
+	local wantPx = c:Bevelled() and ns.Scale.Snap(4 * frameScale) * ppu or c.shape.lines * linePx
 	assert(whole(linePx), where .. ": the line is " .. linePx .. " px, a whole number")
-	assert(math.abs(radiusPx - wantPx) < 1e-6, where .. ": the corner is " .. radiusPx .. " px, " .. c.shape.lines .. " lines of " .. linePx)
+	assert(whole(radiusPx) and math.abs(radiusPx - wantPx) < 1e-6, where .. ": the corner is " .. radiusPx .. " px, want " .. wantPx)
 	local function square(slice, want, what)
 		for i = 1, 9, 2 do
 			if i ~= 5 then
