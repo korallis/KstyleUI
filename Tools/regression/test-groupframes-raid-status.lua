@@ -105,8 +105,10 @@ do
 		local row = assert(notes[i][kind], "indicator " .. i .. " has a " .. kind .. " note")
 		return row.showWhen(settings) == true, row
 	end
-	-- Known: the tidy Medallions lane runs off a 30 by 20 tile's left edge and reports room, so no note shows there.
-	local _, row = shown(1, "raid")
+	local f = Content(ns, ns.Headers.raid[1], "raid1")
+	assert(f.parts.indicatorLane.left >= f.parts.health.left, "the tidy lane stays on a 30 by 20 tile")
+	local on, row = shown(3, "raid")
+	assert(on, "a 30 by 20 tile has room for one indicator, so the third's note shows")
 	assert(row.label:find("raid", 1, true), "the note names raid frames: " .. row.label)
 	assert(not shown(4, "raid"), "an indicator that is off raises no note")
 	Batch(env, K, { { "raid.width", 116 }, { "raid.height", 36 } })

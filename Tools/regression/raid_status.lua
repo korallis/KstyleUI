@@ -228,9 +228,8 @@ local BOSS_CASES = {
 }
 
 -- The indicator lane -----------------------------------------------------------------------------------------------
--- The three default indicators take the tidy Medallions lane on the tile's fill, left of the percent: clear of the
--- name's head, the percent and your heals, each at the lane's 10 units. Known: the lane grazes the debuff pips by a
--- unit on the 116 by 36 tile.
+-- The three default indicators take the tidy Medallions lane on the tile's fill: clear of the name's head, the percent,
+-- the debuff pips and your heals, each at the lane's 10 units.
 local LANE = 10
 local function Statuses(env, ns, f, what)
 	local parts = f.parts
@@ -241,6 +240,9 @@ local function Statuses(env, ns, f, what)
 	}
 	if f.healthText:IsShown() then
 		reserved.percent = { Scene.Rect(env, f.healthText) }
+	end
+	if f.auraClip:IsShown() then
+		reserved.debuffs = { Scene.Rect(env, f.auraClip) }
 	end
 	if f.buffs and f.buffs:IsShown() and select(2, ns.Auras.HealIcons(f, ns.Settings.current.raid)) > 0 then
 		reserved.heals = { Scene.Rect(env, f.buffClip) }
