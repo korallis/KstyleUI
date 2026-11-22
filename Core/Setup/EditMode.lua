@@ -1,4 +1,4 @@
--- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker where the quest card stands (the story slot, or the column beside the RestedXP guide's card), Blizzard's damage meter on the damage card, Blizzard's own essential and utility rows on KstyleUI's rows when the Cooldowns module falls back to them (centred, else growing away from the other row, in one or two lines that fit clear, leaving a row the player placed or that fits nowhere where it was, and again in the active KstyleUI layout when the fallback comes later), its tracked buff icon and bar viewers where every tracked item fits whole (the slots beside the hands, else a column beside the cluster or the rail or a row over the focus frame, and the bars under the target of target, over the focus frame or beside the right rail or the threat card, keeping bar 2's column free when anything else fits) or leaves a viewer that fits nowhere where it was, the raid warnings, in a lane no wider than the room between the chat card and the boss column, in the highest free band between the rails from 15% under the top, over a low target or, when the target heads the screen as Orbs puts it, under or beside it in the upper half (a cluster gap from every card, else a tight gap at the sides, else across the right end of the group cards), and again on a HUD style switch while they stand where Apply put them, saves the layouts and activates that one, out of combat, and keeps the result for the setup summary.
+-- EditMode.lua: Apply's Edit Mode writer: it copies the active Edit Mode layout into a "KstyleUI <layout>" account layout, puts the objective tracker where the quest card stands (the story slot, or the column beside the RestedXP guide's card), Blizzard's damage meter on the damage card, Blizzard's own essential and utility rows on KstyleUI's rows when the Cooldowns module falls back to them (centred, else growing away from the other row, in one or two lines that fit clear, leaving a row the player placed or that fits nowhere where it was, and again in the active KstyleUI layout when the fallback comes later), its tracked buff icon and bar viewers where every tracked item fits whole (the slots beside the hands, else a column beside the cluster or the rail or a row over the focus frame, and the bars under the target of target, over the focus frame or beside the right rail or the threat card, keeping bar 2's column free when anything else fits) or leaves a viewer that fits nowhere where it was, the raid warnings, in a lane no wider than the room left of the boss column (beside the raid frames, else from the chat card), in the highest free band between the rails from 15% under the top, over a low target or, when the target heads the screen as Orbs puts it, under or beside it in the upper half (a cluster gap from every card, else a tight gap at the sides, else across the right end of the group cards), and again on a HUD style switch while they stand where Apply put them, saves the layouts and activates that one, out of combat, and keeps the result for the setup summary.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -140,13 +140,14 @@ end
 
 function EditMode.WarningLane()
 	local rw, rh = Setup.RootSize()
-	local room = math.huge
+	local clear, top, under = Layouts.SIGIL_CLEAR, math.huge, math.huge
 	for _, name in ipairs(Layouts.Names()) do
-		local chat, boss = Box(name, "chat.main", rw, rh), Box(name, "unitframes.boss", rw, rh)
-		if chat and boss then
-			room = min(room, floor(boss.l - Layouts.SIGIL_CLEAR - chat.r))
+		local chat, raid, boss = Box(name, "chat.main", rw, rh), Box(name, "groupframes.raid", rw, rh), Box(name, "unitframes.boss", rw, rh)
+		if chat and raid and boss then
+			top, under = min(top, floor(boss.l - raid.r - 2 * clear)), min(under, floor(boss.l - clear - chat.r))
 		end
 	end
+	local room = top >= WARNING_MIN and top or under
 	return room >= WARNING_MIN and min(room, EditMode.WARNING_LANE) or EditMode.WARNING_LANE
 end
 
