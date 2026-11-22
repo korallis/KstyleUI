@@ -60,7 +60,7 @@ local function TileParts(out, w, h, o)
 	local full = (out.power and out.power.top - gap or h - pad) - pad
 	local width = w - 2 * pad
 	local heal = o.healRow and math.min(o.healRow, full - nameLine - 2 * inset) or nil
-	local stacked = full >= nameLine + math.max(line, heal or 0) + 2 * inset
+	local stacked = full + (o.pixel or 0) >= nameLine + math.max(line, heal or 0) + 2 * inset
 	if not stacked then
 		heal = o.healRow
 	end

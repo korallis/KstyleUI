@@ -146,15 +146,30 @@ local function Layout(f, parts, k)
 		local portrait = parts.portrait
 		local left = portrait and portrait.left or health.left
 		local top = portrait and portrait.top + portrait.height - laneSize or health.top + health.height - laneSize
-		local lane = own or laneSize
-		local rect = { left = left, top = top + laneSize - lane }
-		statusLeft, statusTop = left + (lane - status) / 2, rect.top + (lane - status) / 2
-		PlaceIcon(f, f.ready, rect, Widgets.Snap(f, lane))
-		rect = { left = left + laneSize + 4, top = top }
+		local heal, tile, block = not portrait and parts.healRow, parts.tile, parts.block
+		if tile and tile.stacked then
+			local px = K.Scale.Pixel(1) / Widgets.ScaleFactor(f)
+			top = math.max(top, math.ceil((Widgets.Snap(f, health.top + tile.inset) + 1.2 * Widgets.FontSize(f.name, f.nameFit.size)) / px) * px)
+		end
+		if heal and heal.top < top + laneSize then
+			local _, count, healSize, spacing = ns.Auras.HealIcons(f, k)
+			left = heal.left + ns.Geometry.Line(count, healSize, spacing) + 4
+		end
+		local stop = block and block.top < top + laneSize and block.left - 4 or health.left + health.width
+		if not portrait and (top < health.top or stop - left < 2 * laneSize + 4) then
+			left, top = health.left, -laneSize
+		elseif portrait or left + 3 * laneSize + 8 <= stop then
+			local lane = own or laneSize
+			local rect = { left = left, top = top + laneSize - lane }
+			statusLeft, statusTop = left + (lane - status) / 2, rect.top + (lane - status) / 2
+			PlaceIcon(f, f.ready, rect, Widgets.Snap(f, lane))
+			left = left + laneSize + 4
+		end
+		local rect = { left = left, top = top }
 		markerSize = Widgets.Snap(f, laneSize)
 		PlaceIcon(f, f.marker, rect, markerSize)
 		if not portrait then
-			rect.left = left + 2 * (laneSize + 4)
+			rect.left = left + laneSize + 4
 			PlaceIcon(f, f.leader, rect, Widgets.Snap(f, laneSize), cfg.leaderX, cfg.leaderY)
 		end
 	end
