@@ -49,6 +49,9 @@ for i, view in ipairs(uf.views) do
 	local _, _, _, x, y = view.button:GetPoint(1)
 	local bw, bh = view.button:GetSize()
 	assert(x >= 0 and -y >= 0 and x + bw <= hw + 0.5 and -y + bh <= hh + 0.5, "boss" .. i .. " sits inside the column")
+	-- Fits, Edit Mode and the warnings lane count the debuff row the cards hang to their left (Layouts.BOSS_AURAS).
+	local host = view.auras.host
+	assert(host:GetLeft() >= uf.holder:GetLeft() - Layouts.BOSS_AURAS - 0.5 and host:GetRight() <= uf.holder:GetLeft(), "boss" .. i .. "'s debuff row stands in the room the layouts count: " .. host:GetLeft() .. " for a column at " .. uf.holder:GetLeft())
 end
 noErrors("column")
 

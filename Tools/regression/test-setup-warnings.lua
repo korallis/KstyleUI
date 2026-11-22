@@ -12,12 +12,12 @@ local UPPER, MARGIN = 0.35, 28
 -- Your combat text is passing text like the warnings, so the warnings may cross it, as they cross the quest card
 -- (Captain, KSTY-64): it holds the centre beside the cast since the Frames quest column runs to the cluster top.
 local PASSING = { ["combattext.player"] = true }
--- On the owner's 3:2 Mac the DPS and Tank Medallions layouts leave no free lane in the upper band, so the warnings hang
--- in the upper half (a recorded limit, as staging's Medallions placed them).
-local LOW = { ["the owner's Mac"] = { DPS = true, Tank = true } }
 local SCREENS = {
 	{ name = "default" },
 	{ name = "the owner's Mac", width = 2383, height = 1540, uiScale = 768 / 1080, size = "default" },
+	{ name = "3456x2234", width = 3456, height = 2234, uiScale = 768 / 1080, size = "default" },
+	{ name = "3024x1964", width = 3024, height = 1964, uiScale = 768 / 1080, size = "default" },
+	{ name = "2560x1600", width = 2560, height = 1600, uiScale = 768 / 1080, size = "default" },
 	{ name = "21:9", width = 3440, height = 1440, uiScale = 0.8 },
 	{ name = "1080p", width = 1920, height = 1080, uiScale = 1 },
 	{ name = "5120x1440", width = 5120, height = 1440, uiScale = 1 },
@@ -40,7 +40,7 @@ local function Boot(state, screen, width)
 	local k = K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
 	local frame = env.CreateFrame("Frame", "RaidWarningFrame", env.UIParent)
 	env.RaidWarningFrame = frame
-	frame:SetSize(width and width(k) or K.Setup.EditMode.WARNING_LANE * k, HEIGHT)
+	frame:SetSize(width and width(k) or K.Setup.EditMode.WarningLane() * k, HEIGHT)
 	if screen.arrangement then
 		K.Options.Write("Layout", "arrangement", screen.arrangement)
 	end
@@ -48,6 +48,7 @@ local function Boot(state, screen, width)
 end
 
 -- Rects(K, name) -> the root rect of every element the Medallions layout places, as Edit Mode measures it, and its story cards.
+-- The boss column counts the debuff row its cards hang to their left: the aura room the layouts reserve for it.
 local function Rects(K, name)
 	local Layouts = K.Setup.Layouts
 	local rw, rh = K.Layout.RootSize()
@@ -57,7 +58,8 @@ local function Rects(K, name)
 		local w, h, offsetX = Layouts.Footprint(name, key)
 		local styled = Layouts.Style(name, key)
 		if styled and styled.width then
-			w, h, offsetX = styled.width, styled.height, nil
+			local boss = key == "unitframes.boss" and Layouts.Element(key)
+			w, h, offsetX = styled.width + (boss and boss.reserve[1] - boss.width or 0), styled.height, nil
 		end
 		if w and Layouts.Shown(name, key) ~= false then
 			local l, b, r, t = Layouts.Rect({ width = w, height = h, offsetX = offsetX }, place, rw, rh)
@@ -86,7 +88,7 @@ for _, screen in ipairs(SCREENS) do
 		assert(entry.isInDefaultPosition == false, where .. ": they leave Blizzard's default place")
 		local k = K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
 		local rw, rh = K.Layout.RootSize()
-		local half = K.Setup.EditMode.WARNING_LANE / 2
+		local half = env.RaidWarningFrame:GetWidth() / k / 2
 		local x = (a.offsetX - K.Scale.Origin() * k) / k
 		local lane = { l = x - half, r = x + half, t = a.offsetY / k }
 		lane.b = lane.t - HEIGHT / k
@@ -111,8 +113,7 @@ for _, screen in ipairs(SCREENS) do
 				assert(not Overlap(lane, box), where .. ": the warnings clear " .. key)
 			end
 		end
-		local band = LOW[screen.name] and LOW[screen.name][name] and 0.5 or UPPER
-		assert(lane.t >= rh * (1 - band), where .. ": the warnings sit in the upper band, their top " .. math.floor(rh - lane.t) .. " units under the screen's top of " .. rh)
+		assert(lane.t >= rh * (1 - UPPER), where .. ": the warnings sit in the upper band, their top " .. math.floor(rh - lane.t) .. " units under the screen's top of " .. rh)
 		assert(lane.t <= rh - MARGIN, where .. ": the warnings keep the top margin")
 		assert(#env._errors == 0, tostring(env._errors[1]))
 	end

@@ -10,6 +10,7 @@ local function New(opts)
 	local B, frame, snap
 	local env, K, ns = S.New({
 		enabled = false,
+		width = opts.width, height = opts.height, uiScale = opts.uiScale, size = opts.size,
 		loaded = { Blizzard_RaidWarning = opts.loaded ~= false },
 		before = function(env)
 			B = S.Blizzard(env)
@@ -39,7 +40,7 @@ do
 	assert(K.Options.Row("Skins", "encounterWarnings.enabled"), "the encounter warnings have a switch")
 	assert(ns.Skins.IsApplied("encounterWarnings"), "the skin applies when the module starts, before any warning shows")
 	local lane = frame:GetWidth()
-	Near(lane, K.Setup.EditMode.WARNING_LANE / K.Widgets.ScaleFactor(frame), "the warnings narrow to the lane setup places them in, in the frame's own units")
+	Near(lane, K.Setup.EditMode.WarningLane() / K.Widgets.ScaleFactor(frame), "the warnings narrow to the lane setup places them in, in the frame's own units")
 	assert(lane < Warnings.WIDTH, "narrower than Blizzard's 800 units")
 	local plate = Plate(ns)
 	assert(plate, "the skin keeps a glass plate behind the warnings")
@@ -106,6 +107,18 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- On a 3:2 MacBook at the shipped size the lane narrows to the room between the chat card and the boss column's debuff
+-- row (443 units at 3456 x 2234), so setup can stand the warnings beside the boss frames in the upper band; at 16:9
+-- the 580-unit lane fits as it is.
+do
+	local _, K, _, frame = New({ width = 3456, height = 2234, uiScale = 768 / 1080, size = "default" })
+	local lane = K.Setup.EditMode.WarningLane()
+	assert(lane == 443, "the 3:2 lane is the room beside the boss frames, got " .. lane)
+	Near(frame:GetWidth(), lane / K.Widgets.ScaleFactor(frame), "the warnings narrow to it")
+	local _, K169 = New({ width = 1920, height = 1080, uiScale = 768 / 1080, size = "default" })
+	assert(K169.Setup.EditMode.WarningLane() == K169.Setup.EditMode.WARNING_LANE, "16:9 keeps the full lane")
+end
+
 -- A scale change resizes the lane and every string the pool already made; a change to the skins' shared text settings
 -- reaches the warnings already on screen.
 do
@@ -115,7 +128,7 @@ do
 	local before = frame:GetWidth()
 	K.Scale.Root():SetScale(0.5)
 	K.Widgets.RestyleAll()
-	local lane = K.Setup.EditMode.WARNING_LANE / K.Widgets.ScaleFactor(frame)
+	local lane = K.Setup.EditMode.WarningLane() / K.Widgets.ScaleFactor(frame)
 	assert(math.abs(lane - before) > 20, "the scale change moves the lane: " .. before .. " to " .. lane)
 	Near(frame:GetWidth(), lane, "the lane follows the scale")
 	Near(text:GetWidth(), lane, "a string the pool made before the change follows the lane")

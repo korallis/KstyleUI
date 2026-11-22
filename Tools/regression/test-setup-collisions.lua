@@ -241,6 +241,20 @@ for _, screen in ipairs({ { 2383, 1540 }, { 2642, 1651 }, { 1366, 768 } }) do
 	end
 end
 
+-- The boss cards hang their debuff row left of the column (the aura room the layouts reserve), so Fits counts it: the
+-- tooltip anchor 40 units left of the cards meets the row; clear of the row it fits.
+do
+	local positions = Layouts.Positions("DPS", "medallions", "16:9")
+	local base, boss = Layouts.Element("unitframes.boss"), positions["unitframes.boss"]
+	local cards = Layouts.Style("DPS", "unitframes.boss").width
+	local enabled = Layouts.Enabled("DPS")
+	enabled["consumables.bar"] = false
+	positions["tooltips.anchor"] = { anchor = "BOTTOMRIGHT", x = boss.x - cards - 40, y = boss.y + 100 }
+	assert(not Layouts.Fits("DPS", 1920, 1080, K.Scale.DEFAULT_USER_SCALE, enabled, positions), "an element in the boss debuff row's room collides")
+	positions["tooltips.anchor"].x = boss.x - cards - (base.reserve[1] - base.width) - 4
+	assert(Layouts.Fits("DPS", 1920, 1080, K.Scale.DEFAULT_USER_SCALE, enabled, positions), "clear of the debuff row it fits")
+end
+
 -- The boss frames tighten the Healer cap at 1080p; compare enabled sets on either side of that boundary.
 do
 	local enabled = Layouts.Enabled("Healer")
