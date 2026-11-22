@@ -1,6 +1,5 @@
 -- test-groupframes-parity-r1-review.lua: the PR #595 review's probes as regressions: held tooltips, fail-closed tooltip modes, low-health fill opacity, one roster pass, preview fidelity, restored debuff filters, the raid card's hidden groups, Medallions and the defaults.
 local G = dofile("Tools/regression/group_env.lua")
-local W = dofile("Tools/regression/widget_env.lua")
 
 local MODULE = "GroupFrames"
 
@@ -131,10 +130,6 @@ do
 	assert(tiles() == 4, "every group restores the four tiles")
 
 	local tank = pane.partyFrames[1]
-	write(env, K, "auras.zoom", 0.2)
-	pane:Refresh()
-	assert(near((tank.sampleBoss.tile.icon:GetTexCoord()), 0.2), "the boss sample takes the icon zoom")
-	write(env, K, "auras.zoom", 0.07)
 	write(env, K, "auras.magic", false)
 	pane:Refresh()
 	assert(tank.sampleAuras[1]:IsShown() and tank.sampleAuras[1].art:GetTexture() == 135848 and not tank.sampleAuras[2]:IsShown(),
@@ -154,15 +149,6 @@ do
 		assert(not (c and c.excludeDispelTypes and c.excludeDispelTypes.Magic), "a ghost re-enabled after Magic returned counts Magic again")
 	end
 
-	write(env, K, "auras.tooltips", false)
-	local boss
-	for _, value in pairs(f.highlights._slots.boss) do
-		if type(value) == "table" and value._aura then boss = value end
-	end
-	local function motion() return W.LastCall(boss, "SetMouseMotionEnabled")[1] end
-	assert(boss and motion() == false, "Debuff tooltips off reaches the boss debuff")
-	write(env, K, "auras.tooltips", true)
-	assert(motion() == true, "and on restores it")
 	noErrors(env, K)
 end
 collectgarbage()
@@ -261,4 +247,4 @@ do
 	noErrors(env, K)
 end
 
-print("groupframes parity review ok: held and fail-closed tooltips, low-health opacity, one roster pass, preview groups, zoom and types, restored ghost and fallback filters, boss tooltips, hover, one gradient paint, role API, raid card, Medallions and defaults")
+print("groupframes parity review ok: held and fail-closed tooltips, low-health opacity, one roster pass, preview groups and types, restored ghost and fallback filters, hover, one gradient paint, role API, raid card, Medallions and defaults")

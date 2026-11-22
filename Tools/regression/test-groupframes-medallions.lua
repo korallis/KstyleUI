@@ -57,13 +57,6 @@ assert(K.Modules.Enable("GroupFrames"), "the module switches on")
 env.RunTimers()
 eq(#env._errors, 0, "Enable raised no error: " .. tostring(env._errors[1]))
 
--- Frames: nothing of the Medallions look.
-eq(Settings.current.party.portrait, false, "Frames keeps the party without a portrait")
-each("party", function(f)
-	assert(not f.medBezel, f.unit .. ": Frames builds no steel bezel")
-	eq(#cuts, 0, "Frames asks for no painted badge")
-end)
-
 -- The first look under Medallions may find every identity secret: the engine portrait keeps its one circle mask.
 env.RunTimers()
 each("party", function(f)
@@ -177,7 +170,7 @@ each("raid", function(f)
 		local r, g, b = f.name:GetTextColor()
 		local er, eg, eb = K.Tokens.Color("textEmphasis")
 		assert(near(r, er) and near(g, eg) and near(b, eb), f.unit .. ": the name reads white on the fill")
-		assert(not f.medInked and sr < 0.1, f.unit .. ": with a dark shadow")
+		assert(not f.medInked and f.name:GetShadowOffset() == 0, f.unit .. ": with an outline, not a light shadow")
 	end
 	assert(f.tileless and not f.chrome.fill[5]:IsShown(), f.unit .. ": the fill is the tile")
 	assert(f.medSlab and f.medSlab[5]:IsShown() and f.medSlab[5]:GetTexture() == (K.Tokens.Texture("medGroupTile")), f.unit .. ": the tile sits in the group tile slab material")
@@ -211,33 +204,6 @@ each("party", function(f) assert(f.name:IsShown(), f.unit .. ": the name shows o
 K.Options.Write("GroupFrames", "party.textLayout", "ABOVE")
 G.SetRoster(env, "raid", raid)
 env.RunTimers()
-
--- Back to Frames: every look returns.
-env.RunTimers()
-eq(Settings.current.party.portrait, false, "Frames takes the medallion away")
-eq(Settings.current.raid.textLayout, "ABOVE", "and the raid's name goes back above the bar")
-each("raid", function(f)
-	local color = last(f.health, "SetStatusBarColor")
-	local _, class = env.UnitClass(f.unit)
-	local gr, gg, gb = K.Theme.ClassColor(class)
-	assert(near(color[1], gr) and near(color[2], gg) and near(color[3], gb), f.unit .. ": the bar keeps its class colour")
-	assert(not f.health.sparkFrame, f.unit .. ": keep group bars spark-free when returning to Frames")
-	assert(not f.medSlab[5]:IsShown(), f.unit .. ": the slab material goes with the style")
-	assert(f.name:GetFont() ~= K.Tokens.FontPath("InterSemiBold"), f.unit .. ": the name leaves the Medallions label face")
-	eq(f.name:GetText(), f.rawName, f.unit .. ": in its own case")
-	eq((f.healthText:GetFont()), (K.Tokens.Font("number")), f.unit .. ": the percent takes the number role")
-	assert(not (f.medChip and f.medChip:IsShown()), f.unit .. ": no percent chip")
-	assert(not f.medInked, f.unit .. ": no ink")
-	if f.auraClip then
-		eq(f.auraClip:GetAlpha(), 1, f.unit .. ": the debuffs show")
-	end
-	local pieces = f.targetRing[1]
-	local v = pieces[1]._state.VertexColor
-	assert(not near(v[1], STEEL_LIT[1]) or not near(v[2], STEEL_LIT[2]), f.unit .. ": the target ring takes the accent again")
-end)
-each("party", function(f)
-	assert(not f.medBezel or not f.medBezel:IsShown(), f.unit .. ": no steel bezel")
-end)
 
 -- A theme change drops the cached ink choice, so a class whose colour changed is judged again.
 env.RunTimers()

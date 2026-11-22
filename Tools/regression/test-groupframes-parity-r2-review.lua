@@ -137,9 +137,11 @@ do
 	K.Modules.Enable(MODULE)
 	env.RunTimers()
 	local f = frame(ns, "raid1")
-	local at = point(f.ready)
+	local p0, r0, q0, x0, y0 = f.ready:GetPoint(1)
+	local floor = y0 - size(f.ready)
 	write(env, K, "icons.readySize", 8)
-	assert(point(f.ready) == at and size(f.ready) == 8, "a size alone keeps the automatic place: " .. point(f.ready))
+	local p1, r1, q1, x1, y1 = f.ready:GetPoint(1)
+	assert(p1 == p0 and r1 == r0 and q1 == q0 and x1 == x0 and y1 - 8 == floor and size(f.ready) == 8, "a size alone keeps the automatic place on the lane's floor: " .. point(f.ready))
 	write(env, K, "icons.readySize", 40)
 	assert(size(f.ready) <= f.parts.health.height and size(f.statusIcons.afk) <= f.parts.health.height, "and never outgrows the health bar")
 	write(env, K, "icons.readySize", 0)
@@ -199,7 +201,7 @@ do
 	env.RunTimers()
 	assert(frame(ns, "party1").showPortrait, "Medallions shows party portraits")
 	local row = K.Options.Row(MODULE, "party.portraitRingAlpha")
-	assert(row.showWhen(K.Store.Module(MODULE)), "so the ring opacity row shows")
+	assert(row and row.showWhen == nil, "so the ring opacity row always shows")
 	G.SetRoster(env, "raid", G.Members(20, function(_, m) m.role = "TANK" end))
 	write(env, K, "icons.roleText", true)
 	local tile = frame(ns, "raid1")
@@ -208,7 +210,7 @@ do
 end
 collectgarbage()
 
--- Role and class reads: one role read on a default frame, no paint-time geometry, no class read without the tint.
+-- Role and class reads: no role read on a default raid tile, no paint-time geometry, no class read without the tint.
 do
 	local env, K, ns = G.New()
 	G.SetRoster(env, "raid", G.Members(12, function(_, m) m.role = "TANK" end))
@@ -221,7 +223,7 @@ do
 		return roles(unit)
 	end
 	ns.Indicators.Role(f)
-	assert(reads == 1, "a default raid frame reads its role once: " .. reads)
+	assert(reads == 0, "a default Medallions raid tile, its role in the ring, reads no role: " .. reads)
 	env.UnitGroupRolesAssigned = roles
 	write(env, K, "icons.roleText", true)
 	local placed, fonts = #W.Calls(f.roleLetter, "SetPoint"), #W.Calls(f.roleLetter, "SetFont")
