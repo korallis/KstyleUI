@@ -163,7 +163,7 @@ local function Limit(width, height, screen, user, auto)
 	local store = ns.Store
 	local preset = store and store.IsLoaded() and store.Module("Layout").preset or "DPS"
 	local enabled = layouts.Enabled(preset, store and store.IsLoaded() and store.Profile() or nil)
-	local style = ns.HudStyle and ns.HudStyle.Current and ns.HudStyle.Current() or nil
+	local style = ns.HudStyle.Current()
 	local cache, key, entry
 	if store and store.IsLoaded() and ns.VERSION ~= DEVELOPMENT_VERSION then
 		cache = KstyleUIDB.scaleCache
@@ -175,7 +175,7 @@ local function Limit(width, height, screen, user, auto)
 		for i, element in ipairs(layouts.ELEMENTS) do
 			flags[i] = enabled[element.key] and "1" or "0"
 		end
-		key = table.concat({ preset, screen, height, style or "frames", layouts.ThirdBarFinished() and "finished" or "legacy", ArrangementSetting(), CanvasSetting(), table.concat(flags), layouts.ActionBarSignature(), ns.Appearance and not ns.Appearance.Readability("textFloor") and "legacy-text" or "scaled-text-v2" }, ":")
+		key = table.concat({ preset, screen, height, layouts.ThirdBarFinished() and "finished" or "legacy", ArrangementSetting(), CanvasSetting(), table.concat(flags), layouts.ActionBarSignature(style), style == "frames" and style or layouts.CrestKey(), ns.Appearance and not ns.Appearance.Readability("textFloor") and "legacy-text" or "scaled-text-v2" }, ":")
 		local requested = string.format("%.17g", user)
 		for i, saved in ipairs(cache.entries) do
 			local maximum = type(saved) == "table" and type(saved.maximum) == "string" and tonumber(saved.maximum)

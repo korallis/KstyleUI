@@ -194,7 +194,7 @@ local function Refresh()
 	for _, key in ipairs({ "unitframes.castbar.player", "unitframes.castbar.target" }) do
 		local element = K.Layout.Element(key)
 		local frame = element and element.frame
-		local place = K.Setup.Layouts.Style("medallions", "DPS", key)
+		local place = K.Setup.Layouts.Style("DPS", key, "medallions")
 		local edge = frame and ns.TravelData.Plain(frame:GetTop(), "number")
 		local scale = frame and ns.TravelData.Plain(frame:GetEffectiveScale(), "number")
 		local own = ns.TravelData.Plain(menu:GetEffectiveScale(), "number")

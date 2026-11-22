@@ -418,7 +418,8 @@ function Layouts.Grid(key)
 	return { buttons = grid.buttons, rows = grid.rows, growth = grid.growth, size = grid.size, spacing = grid.spacing }
 end
 
-function Layouts.ActionBarGrid(style, class, key, cfg)
+function Layouts.ActionBarGrid(class, key, cfg, style)
+	style = style or ns.HudStyle.Current()
 	local grid = GRIDS[key]
 	if not grid then return end
 	local saved = ns.Store and ns.Store.IsLoaded() and ns.Store.Module("ActionBars") or {}
@@ -438,8 +439,9 @@ function Layouts.ActionBarGrid(style, class, key, cfg)
 	return count, rows, size, gap, saved, cfg, grid, side
 end
 
-function Layouts.ActionBarFootprint(style, class, key)
-	local count, rows, size, gap, saved, cfg, grid, side = Layouts.ActionBarGrid(style, class, key)
+function Layouts.ActionBarFootprint(class, key, style)
+	style = style or ns.HudStyle.Current()
+	local count, rows, size, gap, saved, cfg, grid, side = Layouts.ActionBarGrid(class, key, style)
 	if not count then return end
 	local defaultRows, defaultGap = side and 0 or grid.rows, side and -1 or grid.spacing or PITCH
 	local defaultSplit = "off"
@@ -504,7 +506,8 @@ function Layouts.Get(name)
 	return out
 end
 
-function Layouts.CooldownGrid(style, key)
+function Layouts.CooldownGrid(key, style)
+	style = style or ns.HudStyle.Current()
 	local group = key == "cooldowns.essential" and "essential" or key == "cooldowns.utility" and "utility"
 	if not group then return end
 	local saved = ns.Store and ns.Store.IsLoaded() and ns.Store.Module("Cooldowns") or {}
@@ -536,21 +539,22 @@ function Layouts.MinimapCrest()
 	return not (issecretvalue and issecretvalue(frame)) and (frame == nil or frame == "medallion" or frame == "ring")
 end
 
-function Layouts.ConsumableGrid(style, class)
+function Layouts.ConsumableGrid(class, style)
+	style = style or ns.HudStyle.Current()
 	local cfg = ns.Store.IsLoaded() and ns.Store.Module("ActionBars").consumables or {}
 	local size = (cfg.size or BUTTON / 2) * (style == "medallions" and (Layouts.MEDALLIONS_SLOT[class or ns.Scale.Aspect()] or Layouts.MEDALLIONS_SLOT.size) / BUTTON or 1)
 	local gap = cfg.spacing and cfg.spacing >= 0 and cfg.spacing or (style == "medallions" and Layouts.MEDALLIONS_SLOT.gap * size / Layouts.MEDALLIONS_SLOT.size or PITCH * size / BUTTON)
 	return math.min(12, math.max(1, math.floor(cfg.rows or 2))), size, gap
 end
 
-function Layouts.ConsumableFootprint(style, class)
-	local rows, size, gap = Layouts.ConsumableGrid(style, class)
+function Layouts.ConsumableFootprint(class, style)
+	local rows, size, gap = Layouts.ConsumableGrid(class, style)
 	local columns = math.ceil(12 / rows)
 	rows = math.ceil(12 / columns)
 	return columns * (size + gap) - gap, rows * (size + gap) - gap
 end
 
-function Layouts.Footprint(name, key, style, class)
+function Layouts.Footprint(name, key, class, style)
 	local element = byKey[key]
 	if not element or not layouts[name] then
 		return nil
@@ -560,11 +564,11 @@ function Layouts.Footprint(name, key, style, class)
 		local overhang = Layouts.CREST_GROW / 2
 		return MAP + 2 * overhang, MAP + 2 * overhang + 40, overhang, overhang + 20
 	end
-	if key == "consumables.bar" then return Layouts.ConsumableFootprint(style, class) end
-	if GRIDS[key] then return Layouts.ActionBarFootprint(style, class or ns.Scale.Aspect(), key) end
-	local size, gap, columns, rows = Layouts.CooldownGrid(style, key)
+	if key == "consumables.bar" then return Layouts.ConsumableFootprint(class, style) end
+	if GRIDS[key] then return Layouts.ActionBarFootprint(class or ns.Scale.Aspect(), key, style) end
+	local size, gap, columns, rows = Layouts.CooldownGrid(key, style)
 	if size then return columns * size + (columns - 1) * gap, rows * size + (rows - 1) * gap end
-	local place = Layouts.Attached(style, name, key, ns.Scale.Aspect())
+	local place = Layouts.Attached(name, key, ns.Scale.Aspect(), style)
 	if place and place.width then return place.width, place.height end
 	local reserve = SIZES[name][key] or element.reserve
 	if reserve then
@@ -833,11 +837,13 @@ Layouts.BOSS_AURAS = byKey["unitframes.boss"].reserve[1] - byKey["unitframes.bos
 Layouts.SPLIT_GAP = 198.55
 Layouts.STYLES = { "medallions" }
 
-function Layouts.DataBarBelowDock(style, name, key, class)
-	return style == "medallions" and (key == "databars.rep" or key == "databars.honor") and Layouts.DataBarDock(style, name, class)
+function Layouts.DataBarBelowDock(name, key, class, style)
+	style = style or ns.HudStyle.Current()
+	return style == "medallions" and (key == "databars.rep" or key == "databars.honor") and Layouts.DataBarDock(name, class, style)
 end
 
-function Layouts.Style(style, name, key)
+function Layouts.Style(name, key, style)
+	style = style or ns.HudStyle.Current()
 	if style == "medallions" and (key == "meters.damage" or key == "meters.threat") and ns.Store.IsLoaded() and ns.Store.Layout()["medallions:" .. key] then
 		return layouts[name] and layouts[name][key]
 	end
@@ -848,12 +854,12 @@ function Layouts.Style(style, name, key)
 	local extra = style == "medallions" and key ~= "chat.main" and key ~= "qol.lootfeed" and key ~= "unitframes.resource" and Layouts.ExtraBarsPlace(ns.Scale.Aspect(), name, key)
 	if extra then return extra end
 	if key == "databars.strip" and style == "medallions" then
-		local dock = Layouts.DataBarDock(style, name, ns.Scale.Aspect())
+		local dock = Layouts.DataBarDock(name, ns.Scale.Aspect(), style)
 		if dock then return dock end
 		local position = layouts[name][key]
 		return { anchor = position.anchor, x = position.x, y = position.y, width = STORY_W, height = READOUT_H }
 	end
-	local bar = (key == "actionbars.bar1" or key == "actionbars.bar2" or key == "databars.xp") and Layouts.ActionBarPlace(ns.Scale.Aspect(), style, name, key)
+	local bar = (key == "actionbars.bar1" or key == "actionbars.bar2" or key == "databars.xp") and Layouts.ActionBarPlace(ns.Scale.Aspect(), name, key, style)
 	if bar then return bar end
 	if style == "medallions" and key == "combattext.player" and ns.Store.IsLoaded() and ns.Store.Defaults("CombatText")
 		and ns.Store.Module("CombatText").clearLanes == false then
@@ -861,14 +867,14 @@ function Layouts.Style(style, name, key)
 	end
 	if key == "actionbars.bar3" and not Layouts.ThirdBarFinished() then return Layouts.LegacyThirdBar() end
 	if not STYLES[style] then return nil end
-	local attached = Layouts.Attached(style, name, key, ns.Scale.Aspect())
+	local attached = Layouts.Attached(name, key, ns.Scale.Aspect(), style)
 	if attached then
 		return attached
 	end
 	local set = STYLES[style][name]
 	local position = set and set[key]
 	if position then
-		local drop = Layouts.DataBarBelowDock(style, name, key) and 15 or 0
+		local drop = Layouts.DataBarBelowDock(name, key, style) and 15 or 0
 		return { anchor = position.anchor, x = position.x, y = position.y - drop, scale = position.scale, width = position.width, height = position.height }
 	end
 end
@@ -896,7 +902,7 @@ end
 
 function Layouts.ExtraBarsPreset(kind, class)
 	if kind ~= "rows" and kind ~= "beside" then return end
-	local _, _, size, gap = Layouts.ActionBarGrid("medallions", class, "actionbars.bar1")
+	local _, _, size, gap = Layouts.ActionBarGrid(class, "actionbars.bar1", "medallions")
 	if kind == "beside" then size, gap = size * 0.75, gap * 0.75 end
 	return { enabled = true, buttons = kind == "rows" and 12 or 8, rows = kind == "rows" and 1 or 2,
 		size = size, spacing = gap, orientation = "HORIZONTAL", growth = "RIGHTDOWN", split = "off", showEmpty = true, backing = false }
@@ -922,12 +928,12 @@ function Layouts.ExtraBarsPlace(class, name, key)
 	local places = PLACES[class] and PLACES[class].medallions or {}
 	local function Base(id) return places[id] or STYLES.medallions[name][id] or layouts[name][id] end
 	local left, right = Base("actionbars.bar1"), Base("actionbars.bar2")
-	local width, height = Layouts.ActionBarFootprint("medallions", class, "actionbars.bar1")
-	local _, _, _, gap = Layouts.ActionBarGrid("medallions", class, "actionbars.bar1")
+	local width, height = Layouts.ActionBarFootprint(class, "actionbars.bar1", "medallions")
+	local _, _, _, gap = Layouts.ActionBarGrid(class, "actionbars.bar1", "medallions")
 	local slab, side = Layouts.MEDALLIONS_SLAB, Layouts.MEDALLIONS_SIDE
 	if group == "bars" then
 		local parent = key == "actionbars.bar4" and left or right
-		local w, h = Layouts.ActionBarFootprint("medallions", class, key)
+		local w, h = Layouts.ActionBarFootprint(class, key, "medallions")
 		if kind == "rows" then return { anchor = "BOTTOM", x = parent.x, y = parent.y + height + gap } end
 		local sign = key == "actionbars.bar4" and -1 or 1
 		return { anchor = "BOTTOM", x = parent.x + sign * (width / 2 + 2 * slab.pad + gap + w / 2), y = parent.y + height - h }
@@ -938,7 +944,7 @@ function Layouts.ExtraBarsPlace(class, name, key)
 	elseif kind == "rows" and group == "casts" then
 		return { anchor = base.anchor, x = base.x, y = base.y + height + gap, width = base.width, height = base.height }
 	elseif kind == "beside" and group == "sides" then
-		local _, h = Layouts.ActionBarFootprint("medallions", class, "actionbars.bar5")
+		local _, h = Layouts.ActionBarFootprint(class, "actionbars.bar5", "medallions")
 		if class == ASPECTS[1] then
 			local lift = math.max(h + side.pad, left.y + height + slab.pad + gap - layouts[name]["chat.main"].y)
 			return { anchor = base.anchor, x = base.x - 12, y = base.y + lift }
@@ -957,7 +963,8 @@ function Layouts.MedallionsSide(_, key)
 	return side.rows, columns * grid.size + (columns - 1) * side.gap, side.rows * grid.size + (side.rows - 1) * side.gap
 end
 
-function Layouts.ActionBarPlace(class, style, name, key)
+function Layouts.ActionBarPlace(class, name, key, style)
+	style = style or ns.HudStyle.Current()
 	if style ~= "medallions" or not (key == "actionbars.bar1" or key == "actionbars.bar2" or key == "databars.xp") then return end
 	local bars = ns.Store.IsLoaded() and ns.Store.Module("ActionBars") or {}
 	if bars.slab == false then return end
@@ -965,17 +972,17 @@ function Layouts.ActionBarPlace(class, style, name, key)
 	if (leftBar.buttons or 12) == 12 and (rightBar.buttons or 12) == 12 and (leftBar.size or TRAY_BUTTON) == TRAY_BUTTON then return end
 	local place = PLACES[class] and PLACES[class].medallions[key] or STYLES[style][name] and STYLES[style][name][key]
 	if not place then return end
-	local left = Layouts.ActionBarFootprint(style, class, "actionbars.bar1")
-	local right = Layouts.ActionBarFootprint(style, class, "actionbars.bar2")
+	local left = Layouts.ActionBarFootprint(class, "actionbars.bar1", style)
+	local right = Layouts.ActionBarFootprint(class, "actionbars.bar2", style)
 	local hub = Layouts.MEDALLIONS_HUB_GAP
 	local x = key == "actionbars.bar1" and -(hub + left) / 2 or (hub + right) / 2
 	if key == "databars.xp" then return { anchor = place.anchor, x = (right - left) / 2, y = place.y, width = left + right + hub, height = place.height } end
 	return { anchor = place.anchor, x = x, y = place.y }
 end
 
-function Layouts.StyleSize(style, class, key)
-	if key == "consumables.bar" then return Layouts.ConsumableFootprint(style, class) end
-	if GRIDS[key] then return Layouts.ActionBarFootprint(style, class, key) end
+function Layouts.StyleSize(class, key, style)
+	if key == "consumables.bar" then return Layouts.ConsumableFootprint(class, style) end
+	if GRIDS[key] then return Layouts.ActionBarFootprint(class, key, style) end
 end
 
 function Layouts.BuildMedallions()
@@ -1063,7 +1070,7 @@ function Layouts.DisplayInsets(key, height, anchor)
 	place = place or STYLES[style] and STYLES[style][name] and STYLES[style][name][key]
 	local inset = place and place.insets or element.insets
 	local l, r, b, t = inset and inset[1] or 0, inset and inset[2] or 0, inset and inset[3] or 0, inset and inset[4] or 0
-	if Layouts.DataBarBelowDock(style, name, key, class) then b = math.max(0, b - 15) end
+	if Layouts.DataBarBelowDock(name, key, class, style) then b = math.max(0, b - 15) end
 	if place and place.height then t = math.max(0, t + (place.height - height) / 2) end
 	local reserve = not (place and place.width) and element.reserve
 	if reserve then
@@ -1085,7 +1092,7 @@ function Layouts.Aspect(class, style, name, key)
 	end
 	if (key == "minimap.main" or key:match("^auras%."))
 		and (style == "medallions" or style == "frames" and ns.HudStyle and ns.HudStyle.Current() == "medallions") and Layouts.MinimapCrest() then
-		if style == "medallions" and key == "minimap.main" then return Layouts.Style(style, name, key) end
+		if style == "medallions" and key == "minimap.main" then return Layouts.Style(name, key, style) end
 		local base = key:match("^auras%.") and layouts[name][key]
 		if base then
 			return { anchor = base.anchor, x = base.x - math.ceil(Layouts.CREST_GROW - AURA_MAP_GAP), y = base.y }
@@ -1093,29 +1100,30 @@ function Layouts.Aspect(class, style, name, key)
 	end
 	local extra = style == "medallions" and Layouts.ExtraBarsPlace(class, name, key)
 	if extra then return extra end
-	local bar = (key == "actionbars.bar1" or key == "actionbars.bar2" or key == "databars.xp") and Layouts.ActionBarPlace(class, style, name, key)
+	local bar = (key == "actionbars.bar1" or key == "actionbars.bar2" or key == "databars.xp") and Layouts.ActionBarPlace(class, name, key, style)
 	if bar then return bar end
 	if key == "actionbars.bar3" and not Layouts.ThirdBarFinished() then return Layouts.LegacyThirdBar() end
-	local attached = Layouts.Attached(style, name, key, class)
+	local attached = Layouts.Attached(name, key, class, style)
 	if attached then
 		return attached
 	end
-	local styled = style ~= "frames" and Layouts.Style(style, name, key) ~= nil
+	local styled = style ~= "frames" and Layouts.Style(name, key, style) ~= nil
 	local set = PLACES[class] and PLACES[class][styled and style or "frames"]
 	local position = set and set[key]
 	if position and position.anchor and position.x and position.y then
 		local place = copy(position)
 		place.width, place.height = position.width, position.height
-		if Layouts.DataBarBelowDock(style, name, key, class) then place.y = place.y - 15 end
+		if Layouts.DataBarBelowDock(name, key, class, style) then place.y = place.y - 15 end
 		return place
 	end
 end
 
-function Layouts.Attached(style, name, key, class)
+function Layouts.Attached(name, key, class, style)
+	style = style or ns.HudStyle.Current()
 	if not layouts[name] or not byKey[key] or not (style == "frames" or STYLES[style]) then return nil end
 	if key == "consumables.bar" then
-		local w, h = Layouts.ConsumableFootprint(style, class)
-		local player = Layouts.Aspect(class, style, name, "unitframes.player") or Layouts.Style(style, name, "unitframes.player") or layouts[name]["unitframes.player"]
+		local w, h = Layouts.ConsumableFootprint(class, style)
+		local player = Layouts.Aspect(class, style, name, "unitframes.player") or Layouts.Style(name, "unitframes.player", style) or layouts[name]["unitframes.player"]
 		local pw, ph = player.width or COLUMN, player.height or 77.5
 		local reserve = style == "medallions" and 43 or 131.5
 		local x, y = player.x - pw / 2 - reserve - 8 - w / 2, math.max(219, player.y + (ph - h) / 2)
@@ -1219,7 +1227,7 @@ function Layouts.Place(name, style, class, key, band)
 	if not base then
 		return nil
 	end
-	local place = Layouts.Aspect(class, style, name, key) or Layouts.Style(style, name, key) or base
+	local place = Layouts.Aspect(class, style, name, key) or Layouts.Style(name, key, style) or base
 	return { anchor = place.anchor, x = Layouts.Band(key, place.anchor, place.x, band), y = place.y }
 end
 
@@ -1230,12 +1238,13 @@ function Layouts.Positions(name, style, class, band)
 		position.anchor, position.x, position.y = place.anchor, place.x, place.y
 	end
 	if out and Layouts.DataBarHeight(style) then out["databars.strip"] = { anchor = "TOP", x = 0, y = 0 } end
-	local dock = out and Layouts.DataBarDock(style, name, class)
+	local dock = out and Layouts.DataBarDock(name, class, style)
 	if dock then out["databars.strip"] = dock end
 	return out
 end
 
-function Layouts.StyleKeys(style, name)
+function Layouts.StyleKeys(name, style)
+	style = style or ns.HudStyle.Current()
 	local out = {}
 	for key in pairs(STYLES[style] and STYLES[style][name] or {}) do
 		out[#out + 1] = key
@@ -1379,13 +1388,13 @@ function Layouts.UpgradeCentre(saved, rootHeight)
 	end
 end
 
-function Layouts.DataBarDock(style, name, class)
+function Layouts.DataBarDock(name, class, style)
 	style = style or (ns.HudStyle and ns.HudStyle.Current() or "frames")
 	local strip = ns.Store.IsLoaded() and ns.Store.Module("DataBars").strip
 	if not strip or strip.enabled == false then return nil end
 	if strip.placement ~= "dock" and not (style == "medallions" and strip.placement == "top") then return nil end
 	name = name or ns.Layout.Setting("preset")
-	local xp = Layouts.Aspect(class or ns.Scale.Aspect(), style, name, "databars.xp") or Layouts.Style(style, name, "databars.xp") or layouts[name]["databars.xp"]
+	local xp = Layouts.Aspect(class or ns.Scale.Aspect(), style, name, "databars.xp") or Layouts.Style(name, "databars.xp", style) or layouts[name]["databars.xp"]
 	return { anchor = xp.anchor, x = xp.x, y = xp.y - 15, width = xp.width or COLUMN, height = 12 }
 end
 
@@ -1500,7 +1509,7 @@ local function Apart(a, b)
 end
 
 do
-function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, positions, style, search)
+function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, positions, search, style)
 	style = style or ns.HudStyle.Current()
 	local class = ns.Scale.AspectClass(physicalWidth, physicalHeight)
 	local layout = positions or Layouts.Positions(name, style, class)
@@ -1530,7 +1539,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 	for i, element in ipairs(ELEMENTS) do
 		local key = element.key
 		if state.stripHeight and key == "databars.strip" then state.stripIndex = i end
-		local width, height, offsetX, offsetY = Layouts.Footprint(name, key, style, class)
+		local width, height, offsetX, offsetY = Layouts.Footprint(name, key, class, style)
 		if search and key ~= "consumables.bar" then
 			local position = layout[key]
 			state.span = math.max(state.span, math.abs(position.x) + width, math.abs(position.y) + height)
@@ -1540,12 +1549,12 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 		elseif key == "unitframes.targettarget" then
 			state.targetWidth = width
 		end
-		local styled = not GRIDS[key] and style and (Layouts.Aspect(class, style, name, key) or Layouts.Style(style, name, key))
+		local styled = not GRIDS[key] and style and (Layouts.Aspect(class, style, name, key) or Layouts.Style(name, key, style))
 		if styled and styled.width then
 			width, height, offsetX, offsetY = styled.width + (key == "unitframes.boss" and Layouts.BOSS_AURAS or 0), styled.height, nil, nil
 		end
 		if key == "databars.strip" then
-			local dock = Layouts.DataBarDock(style, name, class)
+			local dock = Layouts.DataBarDock(name, class, style)
 			if dock then width, height = dock.width, dock.height end
 		end
 		if style == "medallions" and key == "unitframes.player" then
@@ -1567,14 +1576,14 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 	for i = 1, rectCount do
 		state.rects[i] = {}
 	end
-	local _, groupHeight = Layouts.ActionBarFootprint("medallions", class, "actionbars.bar1")
+	local _, groupHeight = Layouts.ActionBarFootprint(class, "actionbars.bar1", "medallions")
 	state.hubLift = 0
 	if style == "medallions" and bars.extraBarsApplied == "rows" then
-		local _, _, _, gap = Layouts.ActionBarGrid(style, class, "actionbars.bar1")
+		local _, _, _, gap = Layouts.ActionBarGrid(class, "actionbars.bar1", style)
 		for _, key in ipairs({ "actionbars.bar4", "actionbars.bar5" }) do
 			local base, extra = layout[key == "actionbars.bar4" and "actionbars.bar1" or "actionbars.bar2"], layout[key]
-			local w, h = Layouts.ActionBarFootprint(style, class, key)
-			local bw = Layouts.ActionBarFootprint(style, class, key == "actionbars.bar4" and "actionbars.bar1" or "actionbars.bar2")
+			local w, h = Layouts.ActionBarFootprint(class, key, style)
+			local bw = Layouts.ActionBarFootprint(class, key == "actionbars.bar4" and "actionbars.bar1" or "actionbars.bar2", style)
 			if enabled[key] ~= false and extra.anchor == "BOTTOM" and base.anchor == "BOTTOM" and math.abs(extra.x - base.x) < 2 and math.abs(w - bw) < 2 and math.abs(extra.y - base.y - groupHeight - gap) < 2 then
 				state.hubLift = math.max(state.hubLift, (extra.y + h - base.y) / 2 - groupHeight)
 			end
@@ -1601,7 +1610,8 @@ function Layouts.FitStory(state, name, physicalWidth, physicalHeight, user, styl
 	return memo.value
 end
 
-function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positions, style, state)
+function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positions, state, style)
+	style = style or ns.HudStyle.Current()
 	if not Positive(physicalWidth) or not Positive(physicalHeight) or not Positive(user) then
 		return false
 	end
@@ -1697,7 +1707,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 		end
 		for index = 1, count do
 			local rect = rects[index]
-			local dock = rect.key == "databars.strip" and Layouts.DataBarDock(style, name, ns.Scale.AspectClass(physicalWidth, physicalHeight))
+			local dock = rect.key == "databars.strip" and Layouts.DataBarDock(name, ns.Scale.AspectClass(physicalWidth, physicalHeight), style)
 			local position = layout[rect.key]
 			local docked = dock and position.anchor == dock.anchor and position.x == dock.x and position.y == dock.y
 			if rect.key ~= "databars.xp" and not docked and left < rect[3] and rect[1] < left + ring and bottom < rect[4] and rect[2] < bottom + ring then
@@ -1733,9 +1743,9 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, styl
 	free["consumables.bar"], enabled = false, free
 	local positions = Layouts.Positions(preset, style, ns.Scale.AspectClass(physicalWidth, physicalHeight))
 	if Layouts.DataBarHeight(style) then positions["databars.strip"] = Layouts.DataBarPosition(style) end
-	local state = Layouts.PrepareFits(preset, physicalWidth, physicalHeight, enabled, positions, style, true)
+	local state = Layouts.PrepareFits(preset, physicalWidth, physicalHeight, enabled, positions, true, style)
 	local function fits(size)
-		return Layouts.Fits(preset, physicalWidth, physicalHeight, size, enabled, positions, style, state)
+		return Layouts.Fits(preset, physicalWidth, physicalHeight, size, enabled, positions, state, style)
 	end
 	if fits(high) then
 		limits[preset] = { width = physicalWidth, height = physicalHeight, signature = signature, scale = high, fits = fits }

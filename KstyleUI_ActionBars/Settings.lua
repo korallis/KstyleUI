@@ -158,12 +158,12 @@ function ns.ApplyExtraBars()
 	settings.extraBarsApplied = wanted
 	if preset then
 		local layouts, rootWidth = K.Setup.Layouts, K.Layout.RootSize()
-		local _, _, _, gap = layouts.ActionBarGrid("medallions", K.Scale.Aspect(), "actionbars.bar1")
+		local _, _, _, gap = layouts.ActionBarGrid(K.Scale.Aspect(), "actionbars.bar1", "medallions")
 		for i, key in ipairs({ "bar4", "bar5" }) do
 			local parent = i == 1 and "actionbars.bar1" or "actionbars.bar2"
 			local x, y, w, h = K.Layout.Rect(parent)
 			if x then
-				local bw, bh = layouts.ActionBarFootprint("medallions", K.Scale.Aspect(), "actionbars." .. key)
+				local bw, bh = layouts.ActionBarFootprint(K.Scale.Aspect(), "actionbars." .. key, "medallions")
 				local scale = wanted == "rows" and K.Layout.Get(parent).scale or 1
 				local center = x + w / 2 - rootWidth / 2
 				if wanted == "beside" then center = center + (i == 1 and -1 or 1) * (w / 2 + 2 * layouts.MEDALLIONS_SLAB.pad + gap + bw / 2) end
@@ -185,7 +185,7 @@ function ns.ClearExtraChat()
 	local pad = K.Setup.Layouts.MEDALLIONS_SLAB.pad
 	if x - pad < l + w and l < x + bw + pad and y - pad < b + h and b < y + bh + pad then
 		local position = K.Layout.Get("actionbars.bar4")
-		local _, _, _, gap = K.Setup.Layouts.ActionBarGrid("medallions", K.Scale.Aspect(), "actionbars.bar1")
+		local _, _, _, gap = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), "actionbars.bar1", "medallions")
 		K.Layout.Set("actionbars.bar4", "y", position.y + b + h + pad + gap - y)
 	end
 end

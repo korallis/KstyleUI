@@ -1025,21 +1025,26 @@ Store.migrations[45] = function(data, live)
 	for _, profile in pairs(data.profiles) do
 		if type(profile) == "table" then
 			local hud = type(profile.HudStyle) == "table" and profile.HudStyle.style
-			moved = moved or hud ~= "medallions"
-			profile.HudStyle = nil
+			local frames = hud == "frames"
+			moved = moved or not frames and hud ~= "medallions"
+			if not frames then profile.HudStyle = nil end
 			for module, keys in pairs(RETIRED) do
-				local section = Table(profile[module])
-				for _, key in ipairs(keys) do section[key] = nil end
+				if not frames or module == "UnitFrames" then
+					local section = Table(profile[module])
+					for _, key in ipairs(keys) do section[key] = nil end
+				end
 			end
 			if type(profile.Chat) == "table" and profile.Chat.framing == "auto" then profile.Chat.framing = nil end
 			local strip = Table(Table(profile.DataBars).strip)
-			strip.modules, strip.height = nil, nil
-			if strip.placement == "top" then strip.placement = "dock" end
+			if not frames then
+				strip.modules, strip.height = nil, nil
+				if strip.placement == "top" then strip.placement = "dock" end
+			end
 			for _, bar in pairs(Table(profile.ActionBars)) do
 				if type(bar) == "table" and bar.split == "auto" then bar.split = nil end
 			end
 			for kind, unit in pairs(Table(profile.UnitFrames)) do
-				if type(unit) == "table" then
+				if type(unit) == "table" and not frames then
 					for _, key in ipairs(RETIRED_UNIT) do unit[key] = nil end
 					local slab = (kind == "player" or kind == "target") and "column" or "lumen"
 					if unit.style ~= nil and unit.style ~= "plate" and unit.style ~= slab then unit.style = nil end

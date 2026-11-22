@@ -51,12 +51,12 @@ function C.Dock()
 	local player = K.Layout.Element(key)
 	if not player then return end
 	local layouts, class, name = K.Setup.Layouts, K.Scale.Aspect(), K.Layout.Setting("preset")
-	local position = layouts.Attached(style, name, KEY, class)
+	local position = layouts.Attached(name, KEY, class, style)
 	local reference = layouts.Place(name, style, class, key)
 	if not position or not reference then return end
-	local width = layouts.ConsumableFootprint(style, class)
+	local width = layouts.ConsumableFootprint(class, style)
 	local frame = player.frame
-	local defaultWidth = (layouts.Aspect(class, style, name, key) or layouts.Style(style, name, key) or layouts.Element(key)).width
+	local defaultWidth = (layouts.Aspect(class, style, name, key) or layouts.Style(name, key, style) or layouts.Element(key)).width
 	holder:ClearAllPoints()
 	holder:SetPoint("BOTTOMRIGHT", frame, "BOTTOMLEFT", position.x + width / 2 - reference.x + defaultWidth / 2, position.y - reference.y)
 end

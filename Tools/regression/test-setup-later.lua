@@ -25,7 +25,7 @@ for _, close in ipairs({ "close", "escape", "later" }) do
 	K.Options.Write("Setup", "closeBehaviour", "later")
 	local before, writes = K.Store.Export(), 0
 	K.Callbacks.Register("SettingChanged", "test", function() writes = writes + 1 end)
-	K.Setup.Go(2)
+	K.Setup.Go(3)
 	W.Click(K.Setup.window.cards.Healer)
 	if close == "escape" then W.Key(K.Setup.window, "ESCAPE")
 	elseif close == "later" then W.Click(K.Setup.window.skip)

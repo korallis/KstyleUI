@@ -573,8 +573,8 @@ local function PlaceLine(view, s)
 	local captionGap = LABEL_GAP
 	if view.slab then
 		local layouts = K.Setup.Layouts
-		local left = layouts.ActionBarFootprint("medallions", K.Scale.Aspect(), "actionbars.bar1")
-		local right = layouts.ActionBarFootprint("medallions", K.Scale.Aspect(), "actionbars.bar2")
+		local left = layouts.ActionBarFootprint(K.Scale.Aspect(), "actionbars.bar1", "medallions")
+		local right = layouts.ActionBarFootprint(K.Scale.Aspect(), "actionbars.bar2", "medallions")
 		local ratio = frame:GetWidth() / (left + right + layouts.MEDALLIONS_HUB_GAP)
 		view.wingLeft, view.wingRight = left * ratio, right * ratio
 		limits.left = max(0, view.wingLeft - LABEL_GAP)

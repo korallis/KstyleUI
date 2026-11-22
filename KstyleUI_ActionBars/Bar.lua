@@ -100,7 +100,7 @@ function ns.NewBar(def)
 			scalable = true,
 		})
 		bar.registered = true
-		bar.groupedWidth = ns.Slab.Grouped(def) and Layouts.ActionBarFootprint(K.HudStyle.Current(), K.Scale.Aspect(), def.element) or nil
+		bar.groupedWidth = ns.Slab.Grouped(def) and Layouts.ActionBarFootprint(K.Scale.Aspect(), def.element, K.HudStyle.Current()) or nil
 		if def.key == "bar3" then bar.finished = Layouts.ThirdBarFinished() end
 		if Widgets.ScaleFactor(header) ~= bar.factor then
 			bar:Layout()
@@ -225,7 +225,7 @@ function Bar:Layout()
 		count = min(count, NumForms())
 	end
 	self.count = count
-	local _, rows, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.HudStyle.Current(), K.Scale.Aspect(), def.element, cfg)
+	local _, rows, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), def.element, cfg, K.HudStyle.Current())
 	local wide, wideGap = cell, spacing
 	cell, spacing = ns.Tray.Grid(def, cell, spacing)
 	local size, gap = Widgets.Snap(header, cell), Widgets.Snap(header, spacing)
@@ -320,7 +320,7 @@ function Bar:Apply(geometryOnly)
 		self:Register()
 	end
 	self:Layout()
-	local groupedWidth = ns.Slab.Grouped(self.def) and K.Setup.Layouts.ActionBarFootprint(K.HudStyle.Current(), K.Scale.Aspect(), self.def.element) or nil
+	local groupedWidth = ns.Slab.Grouped(self.def) and K.Setup.Layouts.ActionBarFootprint(K.Scale.Aspect(), self.def.element, K.HudStyle.Current()) or nil
 	if self.registered and self.groupedWidth ~= groupedWidth then
 		self:Register()
 		local strip = K.Layout.Element("databars.xp")

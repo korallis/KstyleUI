@@ -127,7 +127,7 @@ end
 local function Box(name, key, rw, rh)
 	local position = Layouts.Place(name, ns.HudStyle.Current(), ns.Scale.Aspect(), key, ns.Scale.Band())
 	local w, h, offsetX = Layouts.Footprint(name, key)
-	local styled = ns.HudStyle and Layouts.Style(ns.HudStyle.Current(), name, key)
+	local styled = ns.HudStyle and Layouts.Style(name, key, ns.HudStyle.Current())
 	if styled and styled.width then
 		w, h, offsetX = styled.width + (key == "unitframes.boss" and Layouts.BOSS_AURAS or 0), styled.height, nil
 	end
@@ -373,7 +373,7 @@ local function RowRect(point, slot, n, lines, item, pad)
 end
 
 local function RowFit(row, slot, n, k, others, rw, rh)
-	local height, gap = Layouts.CooldownGrid(ns.HudStyle.Current(), row.key)
+	local height, gap = Layouts.CooldownGrid(row.key, ns.HudStyle.Current())
 	for lines = 1, ROW_LINES do
 		for _, point in ipairs(row.spots) do
 			for step = VIEWER_SIZE_MAX, VIEWER_SIZE_MIN, -VIEWER_SIZE_STEP do
@@ -479,7 +479,7 @@ local function Warning(name, k, rw, rh, others, chosen)
 	end
 	local high = sigil.b > rh / 2
 	if high then
-		local place, own = Positions(name)["unitframes.target"], Layouts.Style(ns.HudStyle and ns.HudStyle.Current(), name, "unitframes.target")
+		local place, own = Positions(name)["unitframes.target"], Layouts.Style(name, "unitframes.target", ns.HudStyle and ns.HudStyle.Current())
 		if own and own.width and own.height then
 			local l, b, r, t = Layouts.Rect({ width = own.width, height = own.height }, place, rw, rh)
 			rects[#rects + 1] = { l = l, b = b, r = r, t = t }
