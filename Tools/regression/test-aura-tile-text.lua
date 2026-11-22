@@ -83,6 +83,26 @@ do
 			assert(flags ~= "", "the target's timer is outlined")
 		end
 	end
+	-- A larger stack count (the slider at 12) leaves the corner timer its own line; with the timer off the count keeps its size.
+	for _, kind in ipairs({ "target", "focus", "boss" }) do
+		K.Options.Write("UnitFrames", kind .. ".auraCountSize", 12)
+		env.RunTimers()
+		local entry = ns.Frames.Get(kind).views[1].auras.buttons[1]
+		entry.button:ClearAllPoints()
+		entry.button:SetPoint("CENTER", env.UIParent, "CENTER")
+		entry.count:SetText("3")
+		entry.timer:SetText("18s")
+		local count, timer = TextBox(env, entry.count), TextBox(env, entry.timer)
+		assert(not intersects(count, timer), string.format("%s: a 12-unit stack count %s and the timer %s overlap", kind, fmt(count), fmt(timer)))
+		K.Options.Write("UnitFrames", kind .. ".auraCountSize", 0)
+		K.Options.Write("UnitFrames", kind .. ".auraTimer", false)
+		env.RunTimers()
+		local _, size = ns.Settings.Font(kind, "aura")
+		local _, got = entry.count:GetFont()
+		assert(got >= size - 0.01, string.format("%s: with the timer off the stack count keeps its %s-unit size, not %s", kind, size, got))
+		K.Options.Write("UnitFrames", kind .. ".auraTimer", true)
+		env.RunTimers()
+	end
 	-- A full row of 28-unit tiles stays within the target's health bar.
 	local columns = ns.Settings.Value("target", "auraColumns")
 	local line = ns.Auras.Footprint("target")
