@@ -5,6 +5,8 @@ import os
 import re
 import unittest
 from pathlib import Path
+from subprocess import CompletedProcess
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -13,6 +15,7 @@ MASTER = ROOT / "docs" / "store" / "description.md"
 RAW = "https://raw.githubusercontent.com/korallis/KstyleUI/main/"
 DISCORD = "https://discord.gg/A5qqGZEXyN"
 ICON_RELEASES = "https://github.com/korallis/KstyleUI/releases/latest"  # the one allowed releases link: the icon pack's page, never a file
+GIF_CAP = 1_500_000  # the brief's ceiling; CurseForge refuses big images
 SUMMARY = ("A complete, pixel-perfect interface for World of Warcraft: Forever "
            "\u2014 one dark forged style, the Medallions HUD, set up in one window.")
 
@@ -42,16 +45,38 @@ def fenced_description(path):
 
 class MarketingImages(unittest.TestCase):
     def expected(self):
-        return ({"banner.jpg"} | {name for name, _, _ in M.HEADERS} | set(M.COMPARE)
-                | {name for name, *_ in M.CARDS} | {name for name, _ in M.SHOWCASES})
+        return {"banner.jpg"} | {name for name, _ in M.SHOWCASES} | set(M.CLIPS)
 
     def test_folder_holds_exactly_the_script_outputs(self):
         self.assertEqual({p.name for p in MARKETING.glob("*") if p.is_file()}, self.expected())
 
-    def test_images_are_web_light_and_wide_enough(self):
-        for name in self.expected():
+    def test_clips_are_small_smooth_and_one_width(self):
+        for name in M.CLIPS:
             path = MARKETING / name
-            self.assertLessEqual(path.stat().st_size, 400 * 1024, name)
+            self.assertLessEqual(path.stat().st_size, GIF_CAP, name + ": fix: trim its shots in CLIPS or narrow its box")
+            if Image is not None:
+                with Image.open(path) as image:
+                    self.assertEqual(image.width, M.CLIP_WIDTH + 32, name)
+                    for frame in range(image.n_frames):
+                        image.seek(frame)
+                        self.assertGreaterEqual(image.info["duration"], M.FRAME_MS, name)
+
+    def test_clip_frames_render_strict_over_a_real_plate(self):
+        with TemporaryDirectory() as work, \
+                patch.object(M.subprocess, "run", return_value=CompletedProcess([], 3, "", "")) as run:
+            with self.assertRaises(SystemExit):
+                M.clip_frame(Path(work), "hud_rogue_mac", {}, M.CREST, False)
+        cmd, env = run.call_args.args[0], run.call_args.kwargs["env"]
+        self.assertIn("--strict", cmd)
+        backdrop = cmd[cmd.index("--backdrop") + 1]
+        self.assertEqual(Path(backdrop), M.PLATES / "forest-1080.jpg",
+                         "Fix: clips render over a real docs/media/plates crop, never the mockup plate")
+        self.assertEqual(env["KSTYLEUI_PLATE"], backdrop)
+
+    def test_images_are_web_light_and_wide_enough(self):
+        for name in self.expected() - set(M.CLIPS):
+            path = MARKETING / name
+            self.assertLessEqual(path.stat().st_size, 512 * 1024, name)
             if Image is not None:
                 with Image.open(path) as image:
                     self.assertEqual(image.format, "JPEG", name)
@@ -90,9 +115,10 @@ class MarketingImages(unittest.TestCase):
             self.assertEqual(hashlib.sha256((M.PLATES / name).read_bytes()).hexdigest(), entry["sha256"], name)
             self.assertIn(entry["source"], ("game_03.png", "game_09.png"))
         # Every derivative must resolve to either one of those renders or a preserved game capture.
-        known = {name + ".jpg" for name in readme.picture_names()} | {p.name for p in M.README_MEDIA.glob("game_*")}
-        inputs = [source for _, source, *_ in M.CARDS + M.SHOWCASES + M.GALLERY]
-        self.assertTrue(set(inputs) <= known, set(inputs) - known)
+        known = ({"readme/" + name + ".jpg" for name in readme.picture_names()}
+                 | {"readme/" + p.name for p in M.README_MEDIA.glob("game_*")} | {"marketing/" + name for name in M.CLIPS})
+        inputs = {"readme/" + source for _, source in M.SHOWCASES} | {source for _, source, _ in M.GALLERY}
+        self.assertTrue(inputs <= known, inputs - known)
 
     def test_scenery_plate_crops_avoid_recorded_source_ui(self):
         spec = importlib.util.spec_from_file_location("plates", ROOT / "Tools/media/plates.py")
@@ -112,36 +138,32 @@ class MarketingImages(unittest.TestCase):
                                  f"{name} includes {entry['source']} {label}; fix: recrop outside the recorded UI regions and run python Tools/media/plates.py")
 
     def test_gallery_matches_current_readme_media(self):
+        self.assertEqual({p.name for p in (ROOT / "docs/store/gallery").glob("*.*")}, {name for name, _, _ in M.GALLERY})
         for name, source, width in M.GALLERY:
             path = ROOT / "docs/store/gallery" / name
             if width is None:
-                self.assertEqual(path.read_bytes(), (M.README_MEDIA / source).read_bytes(), name)
+                self.assertEqual(path.read_bytes(), (M.README_MEDIA.parent / source).read_bytes(), name)
             if path.suffix == ".gif":
-                self.assertLessEqual(path.stat().st_size, 1_000_000, name)
+                self.assertLessEqual(path.stat().st_size, GIF_CAP, name)
 
     def test_picture_alt_text_names_the_source(self):
         master = MASTER.read_text(encoding="utf-8")
         for alt, rel in re.findall(r"!\[([^\]]+)\]\(" + re.escape(RAW) + r"([^)]+)\)", master):
             if "/header-" in rel:
                 continue
-            label = "in-game screenshot" if "/game_" in rel or rel.endswith(("banner.jpg", "card-medallions.jpg")) else "test render over an in-game screenshot"
+            label = "in-game screenshot" if "/game_" in rel or rel.endswith("banner.jpg") else "test render over an in-game screenshot"
             self.assertIn(label, alt.lower(), rel)
 
     def test_pictured_icon_pack_is_disclosed(self):
-        notice = "Icons in this picture are the optional AI-made icon pack, not art shipped in the addon."
+        notice = "Icons in {} are the optional AI-made icon pack, not art shipped in the addon."
         master = MASTER.read_text(encoding="utf-8")
-        for match in re.finditer(r"!\[[^\]]+\]\(([^)]+)\)", master):
-            name = match[1].rsplit("/", 1)[-1]
-            if name.startswith("header-") or name in ("show_frame_setup.jpg", "card-ready-in-minutes.jpg", "show_crop_route.jpg"):
-                continue
-            window = master[match.end():].split("![", 1)[0]
-            caption = re.search(r"\*([^*]+)\*", window)
-            self.assertIsNotNone(caption, name)
-            self.assertIn(notice, caption[1], name)
+        pictures = master.split("![")
+        self.assertIn(notice.format("this picture"), pictures[1], "Fix: caption the banner with the notice")
+        self.assertIn(notice.format("these pictures"), pictures[1], "Fix: put the notice in the note above the first clip")
         for store in ("curseforge.md", "wago.md"):
             for line in (MASTER.parent / store).read_text(encoding="utf-8").splitlines():
-                if line.startswith("| `gallery/") and "04-setup.jpg" not in line:
-                    self.assertIn(notice, line, store + ": " + line)
+                if line.startswith("| `gallery/"):
+                    self.assertIn(notice.format("this picture"), line, store + ": " + line)
 
 
 class MasterDescription(unittest.TestCase):
@@ -157,18 +179,18 @@ class MasterDescription(unittest.TestCase):
             for marker in ("\u00c3\u2014", "\u00e2\u20ac", "\u00c2\u00a0"):
                 self.assertNotIn(marker, text, str(path) + ": read and write these docs with encoding='utf-8', not Windows cp1252")
 
-    def test_optional_icon_pack_note_follows_install_without_a_download_url(self):
-        paragraph = ("An optional icon pack repaints ability and item icons everywhere, including buffs. "
-                     "The icons were made with AI image tools. The pack is not an addon and is not part of "
-                     "this download: it is available from this project's GitHub page. Quit the game, copy "
-                     "the Icons folder from inside its Interface folder into your game's _forever_/Interface "
-                     "folder, then start the game again. The KstyleUI Icons section above has the Windows "
-                     "and Mac steps.")
+    def test_icon_pack_line_sits_in_install(self):
         master = MASTER.read_text(encoding="utf-8")
-        self.assertIn(paragraph, master)
-        self.assertLess(master.index("4. Type `/kstyle`"), master.index(paragraph))
-        self.assertLess(master.index(paragraph), master.index("## FAQ"))
-        self.assertNotRegex(paragraph, r"https?://")
+        self.assertLess(master.index("## Install"), master.index(ICON_RELEASES))
+        self.assertLess(master.index(ICON_RELEASES), master.index("## Links"))
+
+    def test_page_stays_short_and_in_the_owners_voice(self):
+        master = MASTER.read_text(encoding="utf-8")
+        prose = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", master)
+        self.assertLessEqual(len(prose.split()), 800, "Fix: the owner asked for a short page; link GitHub for detail")
+        self.assertLessEqual(master.count("!["), 12, "Fix: one picture or clip per feature")
+        for tell in ("\u2014", "Elevate", "Seamless", "Unleash", "Whether you"):
+            self.assertNotIn(tell, master, "Fix: write it the way the owner talks, without " + repr(tell))
 
     def test_curseforge_and_wago_blocks_equal_the_master(self):
         master = MASTER.read_text(encoding="utf-8").strip("\n")
@@ -190,14 +212,12 @@ class MasterDescription(unittest.TestCase):
 
     def test_readme_is_the_master_plus_github_extras(self):
         master = MASTER.read_text(encoding="utf-8").strip("\n")
-        expected = M.README_HEADER + master.replace(
-            "\n## FAQ\n", M.ICON_NOTE + "\n## FAQ\n", 1) + "\n"
+        expected = M.README_HEADER + master + "\n" + M.README_FOOTER
         self.assertEqual((ROOT / "README.md").read_text(encoding="utf-8"), expected)
 
     def test_links_and_credits_come_last(self):
         master = MASTER.read_text(encoding="utf-8")
-        self.assertLess(master.index("## Install"), master.index("## FAQ"))
-        self.assertLess(master.index("## FAQ"), master.index("## Links"))
+        self.assertLess(master.index("## Install"), master.index("## Links"))
         self.assertLess(master.index("## Links"), master.index("## Credits"))
 
 

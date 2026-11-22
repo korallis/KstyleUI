@@ -9,14 +9,9 @@ In-game Medallions media uses the game_ prefix and is preserved.
 
 The pictures:
 
-  hud_1080                             the whole HUD in combat on a 1920x1080 screen at the 15/16 size the game picks
-  hud_frames_5120, hud_frames_1080     the whole Frames HUD in combat at the shipped ornament level, Full: 5120x1440 in
-                                       the Spread arrangement at Interface size Auto, and 1920x1080 at 15/16
-  ultrawide_centred, ultrawide_spread  the Healer layout on 5120x1440 in each ultrawide arrangement
-  crop_*                               close crops of the 1080 HUD drawn at twice the density: the unit frames, the
-                                       right rail, the group meter, and the nameplate scene; a rogue's crest jewels
-                                       and forged data dock; a world map road and flight route
-  frame_*                              frames cut directly from the gallery scenes
+  hud_1080         the whole HUD in combat on a 1920x1080 screen at the 15/16 size the game picks
+  hud_frames_1080  the same in the Frames look
+  frame_raid       the raid frames with their heading, cut from the group frames gallery scene at twice the density
 
 --no-render reuses the renders a previous run left in DIR. --only redoes the named pictures. Pillow is needed; the script
 runs itself again with the wow-dev virtual environment's Python when this one has none.
@@ -41,45 +36,23 @@ BUDGET_BYTES = 4 * 1024 * 1024
 QUALITY = 86
 
 COMBAT = {"RENDER_LAYOUT": "DPS", "RENDER_LOSS": "1", "RENDER_METER_SECRET": "1"}
-ULTRAWIDE = {"RENDER_SIZE": "auto", "RENDER_SCREEN": "5120x1440"}
 HD = {"RENDER_SIZE": "0.9375", "RENDER_SCREEN": "1920x1080"}
 HUD = dict(HD, **COMBAT)
 
 RENDERS = {
     "hud_1080": ("hud_reference", 1.0, HUD, "--strict"),
-    "hud_1080_2x": ("hud_reference", 2.0, HUD, "--strict"),
-    "frames_5120": ("hud_reference", 1440 / 1080, {**ULTRAWIDE, **COMBAT, "RENDER_HUD_STYLE": "Frames", "RENDER_ORNAMENTS": "Full", "RENDER_ARRANGEMENT": "spread"}, "--strict"),
-    "frames_1080": ("hud_reference", 1.0, dict(HUD, RENDER_HUD_STYLE="Frames", RENDER_ORNAMENTS="Full"), "--strict"),
-    "healer_centred": ("hud_reference", 1440 / 1080, {**ULTRAWIDE, **COMBAT, "RENDER_LAYOUT": "Healer", "RENDER_ARRANGEMENT": "centred"}, "--strict"),
-    "healer_spread": ("hud_reference", 1440 / 1080, {**ULTRAWIDE, **COMBAT, "RENDER_LAYOUT": "Healer", "RENDER_ARRANGEMENT": "spread"}, "--strict"),
-    "meter_party": ("hud_reference", 2.0, dict(HUD, RENDER_METER_GROUP="party"), "--strict"),
-    "meter_both_2x": ("hud_reference", 2.0, dict(HUD, RENDER_METER_GROUP="party", RENDER_METER_CHOICE="both"), "--strict"),
-    "plates": ("nameplate_bible", 2.0, {"RENDER_COMBAT": "1"}, "--strict"),
-    "rogue_1080_2x": ("hud_rogue_mac", 2.0, HUD, "--strict"),
-    "route_flight": ("worldmap_roads", 2.0, dict(HD, RENDER_MAP_TRIP="flight"), "--strict"),
+    "frames_1080": ("hud_reference", 1.0, dict(HUD, RENDER_HUD_STYLE="Frames"), "--strict"),
+    "groupframes": ("gallery_groupframes", 2.0, {}, "--strict"),
 }
 
-GALLERIES = ("gallery_setup", "gallery_groupframes", "gallery_skins_character")
+GALLERIES = ()
 
 # name, source, crop, width. A source is "render:<RENDERS key>" or "frame:<gallery frame name>"; a crop is
 # "WxH+X+Y" in the source's pixels or None. A picture narrower than its width stays as it is.
 IMAGES = [
-    ("hud_1080", "render:hud_1080", None, 1200),
-    ("hud_frames_5120", "render:frames_5120", None, 1600),
+    ("hud_1080", "render:hud_1080", None, 1920),
     ("hud_frames_1080", "render:frames_1080", None, 1200),
-    ("crop_unitframes", "render:hud_1080_2x", "1640x270+1100+1695", 1400),
-    ("crop_nameplates", "render:plates", "1340x780+400+300", 800),
-    ("crop_meter", "render:meter_party", "490x320+3328+1820", 540),
-    ("crop_meters_both", "render:meter_both_2x", "845x314+2975+1826", 1120),
-    ("crop_rail", "render:hud_1080_2x", "1100x1130+2720+10", 660),
-    ("crop_crest", "render:rogue_1080_2x", "330x420+1755+1735", 540),
-    ("crop_dock", "render:rogue_1080_2x", "1960x420+940+1740", 1400),
-    ("crop_route", "render:route_flight", "1385x968+900+640", 1000),
-    ("ultrawide_centred", "render:healer_centred", None, 1600),
-    ("ultrawide_spread", "render:healer_spread", None, 1600),
-    ("frame_setup", "frame:setup_layouts", None, 720),
-    ("frame_raid", "frame:groupframes_raid", None, 720),
-    ("frame_skins", "frame:skins_character", None, 560),
+    ("frame_raid", "render:groupframes", "904x442+106+724", 720),
 ]
 
 Image = None
