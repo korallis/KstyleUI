@@ -1,4 +1,4 @@
--- test-unitframes-parity-r3b.lua: parity round 3b options keep v0.2.8 looks and regions, then turn on, follow their events and turn off again: aura tooltips, boss two decimals, power percent sign, class icon zoom, icon sizes, elite in instances, combat icon class colour, PvP flag timer, non-tank threat glow, threat percent, reaction colours and the target-lost sound.
+-- test-unitframes-parity-r3b.lua: parity round 3b options keep v0.2.8 looks and regions, then turn on, follow their events and turn off again: aura tooltips, boss two decimals, power percent sign, icon sizes, elite in instances, combat icon class colour, PvP flag timer, non-tank threat glow, threat percent, reaction colours and the target-lost sound.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -62,7 +62,7 @@ for _, row in ipairs(Settings.Schema()) do
 end
 for _, key in ipairs({ "healthDecimalBoss", "targetSounds", "reactionColors", "hostileColor", "tappedColor", "target.threatPercent", "focus.threatPercentPosition",
 	"player.pvpTimer", "player.pvpTimerSize", "player.threatNonTank", "target.eliteSize", "boss.eliteInstances", "player.leaderSize", "pet.pvpSize",
-	"player.combatClassColor", "player.classZoom", "player.powerPercentSign", "boss.auraTooltips", "player.combatSize", "player.leaderY", "target.eliteX" }) do
+	"player.combatClassColor", "player.powerPercentSign", "boss.auraTooltips", "player.combatSize", "player.leaderY", "target.eliteX" }) do
 	assert(rows[key] and rows[key].help, key .. " has a row with help")
 end
 assert(not rows["player.threatPercent"] and not rows["target.pvpTimer"] and not rows["player.eliteSize"] and not rows["target.threatNonTank"], "rows show only on the frames they serve")
@@ -96,27 +96,25 @@ end
 write("boss.auraTooltips", true)
 clean()
 
--- Boss health with two decimals, on its own and with the one-decimal switch, wider column, queued in combat.
+-- Boss health with two decimals, on its own and with the one-decimal switch, queued in combat; the slab shows the percent under its values.
 U.SetUnit(env, "boss1", { name = "Magmatus", level = -1, classification = "worldboss", health = 41270, healthMax = 100000, reaction = 2, canAttack = true })
 env.FireEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
-assert(U.Shown(env, boss.healthText):find("41%", 1, true), "boss health keeps its whole percent: " .. U.Shown(env, boss.healthText))
-local width = boss.geometry.healthText and boss.geometry.healthText.w
+assert(U.Shown(env, boss.healthSub):find("41%", 1, true), "boss health keeps its whole percent: " .. U.Shown(env, boss.healthSub))
 write("healthDecimalBoss", true)
-assert(U.Shown(env, boss.healthText):find("41.27%", 1, true), "boss health shows two decimals: " .. U.Shown(env, boss.healthText))
-assert(width and boss.geometry.healthText.w > width, "the boss percent column widens")
+assert(U.Shown(env, boss.healthSub):find("41.27%", 1, true), "boss health shows two decimals: " .. U.Shown(env, boss.healthSub))
 assert(not U.Shown(env, target.healthText):find("%.%d%d%%"), "other frames keep their percent")
 env._units.boss1.health = 50005
 env.FireEvent("UNIT_HEALTH", "boss1")
-assert(U.Shown(env, boss.healthText):find("50.01%", 1, true) or U.Shown(env, boss.healthText):find("50.00%", 1, true), "health updates keep two decimals")
+assert(U.Shown(env, boss.healthSub):find("50.01%", 1, true) or U.Shown(env, boss.healthSub):find("50.00%", 1, true), "health updates keep two decimals")
 write("healthDecimal", true)
-assert(U.Shown(env, boss.healthText):find("%d%.%d%d%%"), "two decimals win over one on bosses")
+assert(U.Shown(env, boss.healthSub):find("%d%.%d%d%%"), "two decimals win over one on bosses")
 write("healthDecimal", false)
 env.SetCombat(true)
 write("healthDecimalBoss", false)
-assert(U.Shown(env, boss.healthText):find("%d%.%d%d%%"), "a combat change waits")
+assert(U.Shown(env, boss.healthSub):find("%d%.%d%d%%"), "a combat change waits")
 env.SetCombat(false)
 env.RunTimers()
-assert(not U.Shown(env, boss.healthText):find("%.%d"), "off restores the whole percent: " .. U.Shown(env, boss.healthText))
+assert(not U.Shown(env, boss.healthSub):find("%.%d"), "off restores the whole percent: " .. U.Shown(env, boss.healthSub))
 clean()
 
 -- Power percent sign.
@@ -134,24 +132,6 @@ assert(not U.Shown(env, player.powerText):find("%", 1, true), "current, max and 
 write("player.powerPercentSign", true)
 assert(U.Shown(env, player.powerText):find("25%", 1, true), "on restores the sign")
 write("player.powerText", "auto")
-clean()
-
--- Class icon zoom crops only the class icon; portrait zoom only the portrait.
-local portrait = player.portrait
-write("player.portraitZoom", 0.2)
-write("player.portraitStyle", "class")
-local coords = W.LastCall(portrait, "SetTexCoord")
-assert(coords[1] == 0 and coords[2] == 1, "portrait zoom leaves the class icon whole")
-write("player.classZoom", 0.2)
-coords = W.LastCall(portrait, "SetTexCoord")
-assert(near(coords[1], 0.12) and near(coords[2], 0.28) and near(coords[3], 0.52) and near(coords[4], 0.68), "class icon zoom crops inside the atlas")
-env.FireEvent("UNIT_PORTRAIT_UPDATE", "player")
-assert(near(W.LastCall(portrait, "SetTexCoord")[1], 0.12), "a portrait update keeps the crop")
-write("player.portraitStyle", "portrait")
-coords = W.LastCall(portrait, "SetTexCoord")
-assert(near(coords[1], 0.1) and near(coords[2], 0.9), "the portrait takes its own zoom")
-write("player.portraitZoom", 0)
-write("player.classZoom", 0)
 clean()
 
 -- Leader, PvP and combat sizes (0 follows Icon size) and offsets (0 keeps the slot).
@@ -308,8 +288,8 @@ r, g, b = pct:GetTextColor()
 cr, cg, cb = K.Theme.ThreatColor(2)
 assert(near(r, cr) and near(g, cg) and near(b, cb), "it takes the threat colour")
 spot = W.LastCall(pct, "SetPoint")
-assert(spot[1] == "RIGHT" and spot[2] == target.health and spot[3] == "RIGHT" and spot[4] < 0, "it sits inside the health bar's right edge, clear of the column's text")
-assert(Settings.Value("focus", "threatPercentPosition") == "OUTRIGHT", "the thin focus bar starts with it beside the bar")
+assert(spot[1] == "RIGHT" and spot[2] == target.health and spot[3] == "LEFT" and spot[4] < 0, "it starts left of the slab's bar, clear of the values inside it")
+assert(Settings.Value("focus", "threatPercentPosition") == "OUTLEFT", "the focus slab starts with it left of the bar")
 env._units.target.detail = { true, 3, 100, 100, 2000 }
 env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
 assert(U.Shown(env, pct) == "100%", "threat updates refresh it")
@@ -325,12 +305,13 @@ env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
 assert(count(pct, "Hide") == hides, "a hidden percentage is not hidden again")
 env._units.target.detail = { false, 1, 30, 30, 10 }
 env.FireEvent("PLAYER_TARGET_CHANGED")
+W.Tick(env, 0.06)
 assert(pct:IsShown() and U.Shown(env, pct) == "30%", "a target change reads it again")
-write("target.threatPercentPosition", "OUTLEFT")
+write("target.slabThreatPercentPosition", "RIGHT")
 spot = W.LastCall(pct, "SetPoint")
-assert(spot[1] == "RIGHT" and spot[2] == target.health and spot[3] == "LEFT" and spot[4] < 0, "Left of the bar moves it outside the bar")
-write("target.threatPercentPosition", "TOPRIGHT")
-assert(Settings.Value("target", "threatPercentPosition") == "RIGHT", "an unknown place falls back to the default")
+assert(spot[1] == "RIGHT" and spot[2] == target.health and spot[3] == "RIGHT" and spot[4] < 0, "Right moves it inside the bar's right edge")
+write("target.slabThreatPercentPosition", "TOPRIGHT")
+assert(Settings.Value("target", "threatPercentPosition") == "OUTLEFT", "an unknown place falls back to the default")
 env._units.target.detail = nil
 env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
 assert(not pct:IsShown(), "no threat entry hides it")
