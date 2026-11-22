@@ -237,6 +237,7 @@
  "test-hud-caith-tank-off.lua": 15.3,
  "test-hud-caith-tank-rows-screens-3-4.lua": 11.8,
  "test-hud-caith-tank-rows.lua": 8.1,
+ "test-hud-material-alt.lua": 9.9,
  "test-hud-material-dps.lua": 10.0,
  "test-hud-material-healer.lua": 6.5,
  "test-hud-material-paint.lua": 1.1,
