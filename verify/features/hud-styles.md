@@ -10,7 +10,8 @@ The style switch is the **HUD style** row in [the feature map](../../docs/featur
 - The action slab and crest hub: one row of sockets each side of the class crest.
 - Frames: the player and target cards, the tray behind bars 1 and 2, the square minimap, the card material and the forged ornaments.
 - Medallions effects: the action slab at calm, combat, proc and level-up, and the ready, cast and vignette effects.
-- Migration: store migration 45 moves every profile to Medallions except one explicitly saved on Frames; a player whose v0.2.12 or v0.2.13 update moved it picks Frames again and gets their saved Frames positions back.
+- Migration: store migration 45 keeps a pre-v0.2.12 profile on Frames (saved Frames or no saved style, the old default) with its ornaments, card material and Frames look, and moves only Orbs to Medallions; a player whose v0.2.12 or v0.2.13 update moved it picks Frames again and gets their saved Frames positions back.
+- Round trip: set a Medallions value that matches the Frames look (party portraits off), switch to Frames and back: it stays off.
 
 ## How to get to it (user POV)
 
