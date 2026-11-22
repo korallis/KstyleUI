@@ -6,7 +6,7 @@
 
 **Join the KstyleUI Discord: [discord.gg/A5qqGZEXyN](https://discord.gg/A5qqGZEXyN)** - get help, report a bug, hear about every release first and show off your UI.
 
-**Your whole interface, forged as one piece.** Run one short setup and play - every bar, plate, bag and window in the same dark gunmetal and gold.
+**Your whole interface, forged as one piece.** Pick a HUD, run one short setup, and play - every bar, plate, bag and window in the same dark gunmetal and gold.
 
 **Install in a minute:** the CurseForge app, the Wago app or WowUp, or unzip by hand into your AddOns folder - full steps are at the bottom.
 
@@ -38,7 +38,7 @@ Good to know: the pack works with or without the KstyleUI addon. It loads only a
 
 **Why players switch**
 
-- **One forged HUD.** Medallions puts painted portraits on your unit frames and your class crest between your action bars, on one dark slab.
+- **Two HUDs, one choice at setup.** Medallions puts painted portraits on your unit frames and your class crest between your action bars, on one dark slab; Frames is the classic layout, cleaned up. Pick yours on first login, change it any time.
 - **The whole game in one style.** Bars, nameplates, bags, tooltips, windows and the damage meter all wear the same dark forged chrome.
 - **Make every part yours.** Deep settings for unit, party and raid frames, nameplates, cooldowns, auras, chat, the minimap, bags, tooltips and meters, each with a live preview.
 - **A map that plans the trip.** Search the world map and get a route along real roads, flights and boats, with every step and its travel time.
@@ -71,6 +71,10 @@ Good to know: the pack works with or without the KstyleUI addon. It loads only a
 *KstyleUI test render over an in-game screenshot. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
 ![KstyleUI section: Medallions - painted portraits, your class crest and one forged slab](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-medallions.jpg)
+
+KstyleUI has two HUD styles: **Medallions**, the default, and **Frames**. Pick yours in the first-run setup. Switch later in **Options, General, HUD style**, which shows a picture of each; out of combat the change applies at once, in combat it waits for the fight to end. Played Frames before? Pick it again: your Frames positions are still saved.
+
+### Medallions
 
 ![In-game screenshot of KstyleUI's Medallions HUD on a 5120 by 1440 screen: Korallis casting Shadow Bolt at a Decrepit Darkhound, with a warlock crest between the action bars and the map and quest cards at the right edge](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/game_medallions_hero.jpg)
 
@@ -120,6 +124,18 @@ Medallions also answers what happens in a fight: a slot flashes when its cooldow
 
 The bars read at a glance: a hit flashes, the health you just lost holds as a pale band before it drains, and cast bars are tall enough to read in a pull.
 
+### Frames
+
+![KstyleUI test render over an in-game screenshot of the addon in its Frames HUD style on a 5120 by 1440 screen in the Spread arrangement, in combat](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/hud_frames_5120.jpg)
+
+*KstyleUI test render over an in-game screenshot: the Frames HUD in combat on a 5120 by 1440 screen, in the Spread arrangement. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
+
+**Frames** is the classic layout, cleaned up: your health and resource on a player card above the action bars, your target's card stacked over it with its portrait on the far side.
+
+![KstyleUI test render over an in-game screenshot of the addon's Frames HUD on a 1920 by 1080 screen in combat](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/hud_frames_1080.jpg)
+
+*KstyleUI test render over an in-game screenshot: the Frames HUD on a 1920 by 1080 screen, in combat. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
+
 ![KstyleUI section: Every screen - pixel-perfect from a laptop to a 32:9 ultrawide](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-every-screen.jpg)
 
 On a 21:9 or 32:9 monitor, you choose how the HUD uses the width. **Centred** (the default) keeps everything in a band in the middle, so nothing is stranded at the far edges. **Spread** moves the side columns out to the screen edges and keeps your group frames close to your character.
@@ -142,7 +158,7 @@ With **Interface size: Auto (pixel perfect)**, the default, KstyleUI picks the s
 
 ![KstyleUI section: Set up in one window - one short setup, then you are playing](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-set-up.jpg)
 
-The first time you log in, one short setup does it all: pick the DPS, Tank or Healer layout from a picture of each, choose your modules and which of your other addons KstyleUI skins, then apply. Close it early and you get the DPS layout with every module on; **Keep my UI** leaves the game's interface untouched. Run it again any time with `/kstyle setup`.
+The first time you log in, one short setup does it all: pick Medallions or Frames, pick the DPS, Tank or Healer layout from a picture of each, choose your modules and which of your other addons KstyleUI skins, then apply. Close it early and you get the DPS layout with every module on; **Keep my UI** leaves the game's interface untouched. Run it again any time with `/kstyle setup`.
 
 ![KstyleUI test render over an in-game screenshot of the addon's first-run setup on its layout step: DPS, Tank and Healer cards, each with a picture of its layout](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frame_setup.jpg)
 
@@ -231,7 +247,7 @@ KstyleUI runs on the World of Warcraft: Forever client.
 
 1. Install KstyleUI with the CurseForge app or the Wago app (or WowUp) on your Forever installation. By hand, unzip the download into `World of Warcraft/_forever_/Interface/AddOns`, so that `KstyleUI` and the `KstyleUI_*` module folders sit there.
 2. Start the game. If the addons are not ticked in the AddOns list on the character screen, tick them.
-3. Log in. The setup opens: pick your layout and modules, then click **Apply** and **Reload**.
+3. Log in. The setup opens: pick your HUD style, layout and modules, then click **Apply** and **Reload**.
 4. Type `/kstyle` for the settings, or `/kstyle layout` to move things.
 
 An optional icon pack repaints ability and item icons everywhere, including buffs. The icons were made with AI image tools. The pack is not an addon and is not part of this download: it is available from this project's GitHub page. Quit the game, copy the Icons folder from inside its Interface folder into your game's _forever_/Interface folder, then start the game again. The KstyleUI Icons section above has the Windows and Mac steps.
@@ -249,11 +265,14 @@ Yes. The guide sits in the top left corner like RestedXP's, in KstyleUI's forged
 
 **Does it work with Questie?** Yes. KstyleUI keeps Questie's map pins and uses its own quest card by default; choose your tracker under **Options, General, Existing addons**.
 
+**How do I switch HUD style?**
+In **Options, General, HUD style**, or by running the setup again with `/kstyle setup`. Out of combat the change applies at once; picked in combat, it waits for the fight to end.
+
 **My HUD sits in the middle of my ultrawide. How do I spread it out?**
 On 21:9 and 32:9 screens KstyleUI keeps everything in a centred band by default. In **Options, Elements**, set **Ultrawide arrangement** to **Spread**: the chat, minimap, quest tracker and the other side columns move out to the screen edges, and your group frames stay close to your character. **HUD width**, just above it, sets how wide the centred band is.
 
 **How do I get an action bar into the slab?**
-The slab holds Action bars 1 and 2, twelve buttons each side of the crest. Action bar 3, the pet bar and the stance bar get their own small slabs beside it: turn on Action bar 3 in **Options, Action Bars** and set its buttons, and it sits beside the left slab. You can move any bar with Layout Mode (below).
+In Medallions the slab holds Action bars 1 and 2, twelve buttons each side of the crest. Action bar 3, the pet bar and the stance bar get their own small slabs beside it: turn on Action bar 3 in **Options, Action Bars** and set its buttons, and it sits beside the left slab. In Frames the first two bars sit in the main tray. You can move any bar with Layout Mode (below).
 
 **What is the bar of items like Healthstones that shows up?**
 That is RestedXP's **Active Items** box: RestedXP shows the items your current guide step uses, such as Healthstones, quest items or your hearthstone. KstyleUI docks it under the RestedXP guide card. If you drag it away it stays where you put it; to change what it shows, use RestedXP's own settings.

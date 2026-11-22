@@ -19,6 +19,8 @@ All filenames below are relative to their group. The same master description gen
 | readme / game_medallions_interrupt.gif | Real in-game capture (preserved) | Real in-game screenshot (preserved) |
 | readme / game_medallions_target.gif | Real in-game capture (preserved) | Real in-game screenshot (preserved) |
 | readme / hud_1080.jpg | AI mockup scenery | Test render over real forest plate |
+| readme / hud_frames_1080.jpg | AI mockup scenery | Test render over real forest plate |
+| readme / hud_frames_5120.jpg | AI mockup scenery | Test render over real forest plate |
 | readme / ultrawide_centred.jpg | AI mockup scenery | Test render over real forest plate |
 | readme / ultrawide_spread.jpg | AI mockup scenery | Test render over real forest plate |
 | marketing / banner.jpg | Real Medallions capture, darkened and branded | Same real capture; source label added |
@@ -47,6 +49,7 @@ All filenames below are relative to their group. The same master description gen
 | store/gallery / 06-meter.jpg | AI mockup scenery via crop_meter.jpg | Test render over real forest plate via crop_meter.jpg |
 | store/gallery / 07-quests.jpg | AI mockup scenery via crop_rail.jpg | Test render over real forest plate via crop_rail.jpg |
 | store/gallery / 08-medallion-closeup.gif | Real in-game capture (preserved) via game_medallions_target.gif | Real in-game screenshot (preserved) via game_medallions_target.gif |
+| store/gallery / 09-frames-combat.jpg | AI mockup scenery via hud_frames_1080.jpg | Test render over real forest plate via hud_frames_1080.jpg |
 
 All derived images are rebuilt by `python Tools/render/readme.py && python Tools/media/marketing.py --pages`.
 The three real Medallions stills and three clips remain real captures; the target GIF is recompressed below 1 MB without dropping frames or changing timing.
