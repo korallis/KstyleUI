@@ -42,58 +42,26 @@ local function whole(v)
 end
 
 -- Auto picks, per screen, the sixteenth-of-a-pixel step nearest the KSTY-44 mock-ups' size (one unit per mock-up pixel at
--- 1080 lines, Scale.MOCKUP_SIZE) that fits the active HUD style (KSTY-60 item 2, the Captain's ruling of 2026-11-13).
--- In Frames the boss column caps every screen at 0.995, so 1080 lines take 15/16 and 2160 lines 31/16.
--- Orbs reaches at least Frames' step on the seven screens of the matrix and on 1366x768 (KSTY-60 item 2, the Captain's
--- ruling of 2026-11-13), and on 3840x1080 one step more, the mock-ups' own size; on 3:2 screens the left aura row meets
--- the loot feed a step earlier (three in Healer, where its raid meets the target), a recorded limit.
-local SAME = { "5120x1440", "3440x1440", "3840x1080", "2560x1440", "1920x1080", "3840x2160", "1280x720", "1366x768" }
-local WANT = {
-	frames = {
-		["5120x1440"] = 21 / 16, ["3440x1440"] = 21 / 16, ["2560x1440"] = 21 / 16, ["3840x1080"] = 15 / 16, ["1920x1080"] = 15 / 16,
-		["3840x2160"] = 31 / 16, ["1280x720"] = 10 / 16, ["1366x768"] = 11 / 16, ["2383x1540"] = 21 / 16, ["3456x2234"] = 30 / 16,
-	},
-	orbs = {
-		["5120x1440"] = 21 / 16, ["3440x1440"] = 21 / 16, ["2560x1440"] = 21 / 16, ["3840x1080"] = 16 / 16, ["1920x1080"] = 15 / 16,
-		["3840x2160"] = 31 / 16, ["1280x720"] = 10 / 16, ["1366x768"] = 11 / 16, ["2383x1540"] = 19 / 16, ["3456x2234"] = 28 / 16,
-	},
-}
+-- 1080 lines, Scale.MOCKUP_SIZE) that fits the Medallions HUD (KSTY-60 item 2, the Captain's ruling of 2026-11-13).
 for _, screen in ipairs({ { 5120, 1440 }, { 3440, 1440 }, { 3840, 1080 }, { 2560, 1440 }, { 1920, 1080 }, { 3840, 2160 }, { 1280, 720 }, { 2383, 1540 }, { 3456, 2234 }, { 1366, 768 } }) do
 	local env, K = New(screen[1], screen[2])
 	local Scale = K.Scale
 	local name = screen[1] .. "x" .. screen[2]
 	assert(Scale.IsAuto() and K.Appearance.Get("uiScaleAuto") == true, name .. ": a new profile is on the automatic size")
 	local profile = K.Store.Profile()
-	for _, style in ipairs({ "frames", "orbs" }) do
-		env.RunTimers()
-		local label = name .. " " .. style
-		local ppu = perUnit(env, K)
-		local size, step, cap = Scale.AppliedUserScale(), Scale.Step(), Scale.MaxUserScale()
-		assert(whole(ppu * Scale.STEPS_PER_PIXEL), label .. ": one unit is a whole number of sixteenths of a pixel, got " .. ppu)
-		assert(size <= cap + 1e-9, label .. ": the automatic size fits the screen")
-		assert(math.abs(size - Scale.MOCKUP_SIZE) <= step / 2 + 1e-9 or size + step > cap + 1e-9, label .. ": the step nearest the mock-ups' size that fits, got " .. size)
-		assert(near(Scale.Border() * ppu, 1) and near(Scale.Pixel(1) * ppu, 1), label .. ": the border is exactly one physical pixel")
-		local Layouts = K.Setup.Layouts
-		local canvas = Scale.CanvasWidth(screen[1], screen[2])
-		for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
-			local presetCap = Layouts.ScaleLimit(canvas, screen[2], preset, Layouts.Enabled(preset, profile), style)
-			local auto = Scale.Auto(screen[2], presetCap)
-			assert(Layouts.Fits(preset, canvas, screen[2], auto, Layouts.Enabled(preset, profile), Layouts.Positions(preset, style, Scale.AspectClass(canvas, screen[2])), style), label .. " " .. preset .. ": the style's layout fits at its automatic size")
-		end
-		if WANT[style][name] then
-			assert(near(ppu, WANT[style][name]), label .. ": " .. WANT[style][name] .. " px per unit, got " .. ppu)
-		end
-	end
-	for _, same in ipairs(SAME) do
-		if same == name then
-			for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
-				local Layouts = K.Setup.Layouts
-				local canvas, enabled = Scale.CanvasWidth(screen[1], screen[2]), Layouts.Enabled(preset, profile)
-				local frames = Scale.Auto(screen[2], Layouts.ScaleLimit(canvas, screen[2], preset, enabled, "frames"))
-				local orbs = Scale.Auto(screen[2], Layouts.ScaleLimit(canvas, screen[2], preset, enabled, "orbs"))
-				assert(orbs >= frames - 1e-9, name .. " " .. preset .. ": Orbs reaches Frames' automatic step, " .. frames .. " against " .. orbs)
-			end
-		end
+	env.RunTimers()
+	local ppu = perUnit(env, K)
+	local size, step, cap = Scale.AppliedUserScale(), Scale.Step(), Scale.MaxUserScale()
+	assert(whole(ppu * Scale.STEPS_PER_PIXEL), name .. ": one unit is a whole number of sixteenths of a pixel, got " .. ppu)
+	assert(size <= cap + 1e-9, name .. ": the automatic size fits the screen")
+	assert(math.abs(size - Scale.MOCKUP_SIZE) <= step / 2 + 1e-9 or size + step > cap + 1e-9, name .. ": the step nearest the mock-ups' size that fits, got " .. size)
+	assert(near(Scale.Border() * ppu, 1) and near(Scale.Pixel(1) * ppu, 1), name .. ": the border is exactly one physical pixel")
+	local Layouts = K.Setup.Layouts
+	local canvas = Scale.CanvasWidth(screen[1], screen[2])
+	for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
+		local enabled = Layouts.Enabled(preset, profile)
+		local auto = Scale.Auto(screen[2], Layouts.ScaleLimit(canvas, screen[2], preset, enabled))
+		assert(Layouts.Fits(preset, canvas, screen[2], auto, enabled, Layouts.Positions(preset, "medallions", Scale.AspectClass(canvas, screen[2]))), name .. " " .. preset .. ": the Medallions layout fits at its automatic size")
 	end
 	assert(#env._errors == 0, name .. ": " .. tostring(env._errors[1]))
 end
@@ -141,24 +109,24 @@ do
 end
 
 -- The display, the window, the game's UI scale and its CVars rescale the root; a CVar of something else does not.
--- In combat the rescale waits.
+-- In combat the rescale waits. With every module on, the Medallions HUD fits 20/16 at 1440 lines and 30/16 at 2160.
 do
 	local env, K = New(1920, 1080)
 	local root = K.Scale.Root()
 	env._physical = { 5120, 1440 }
 	env.FireEvent("DISPLAY_SIZE_CHANGED")
 	env.RunTimers()
-	assert(near(perUnit(env, K), 21 / 16), "a new display size rescales to its automatic size")
+	assert(near(perUnit(env, K), 20 / 16), "a new display size rescales to its automatic size")
 	env.UIParent._scale = 0.65
 	env.FireEvent("CVAR_UPDATE", "Sound_MasterVolume", "0.5")
-	assert(not near(perUnit(env, K), 21 / 16), "a CVar that is not the UI scale leaves the root alone")
+	assert(not near(perUnit(env, K), 20 / 16), "a CVar that is not the UI scale leaves the root alone")
 	env.FireEvent("CVAR_UPDATE", "uiScale", "0.65")
 	env.RunTimers()
-	assert(near(perUnit(env, K), 21 / 16), "the game's UI scale CVar rescales the root to stay pixel perfect")
+	assert(near(perUnit(env, K), 20 / 16), "the game's UI scale CVar rescales the root to stay pixel perfect")
 	env.UIParent._scale = 0.8
 	env.FireEvent("UI_SCALE_CHANGED")
 	env.RunTimers()
-	assert(near(perUnit(env, K), 21 / 16), "UI_SCALE_CHANGED rescales the root")
+	assert(near(perUnit(env, K), 20 / 16), "UI_SCALE_CHANGED rescales the root")
 	env._physical = { 1920, 1080 }
 	root._scripts.OnSizeChanged(root)
 	env.RunTimers()
@@ -173,7 +141,7 @@ do
 	assert(root:GetScale() == rootScale, "no SetScale on the root in combat")
 	env.SetCombat(false)
 	env.RunTimers()
-	assert(near(perUnit(env, K), 31 / 16), "leaving combat applies the waiting rescale")
+	assert(near(perUnit(env, K), 30 / 16), "leaving combat applies the waiting rescale")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
