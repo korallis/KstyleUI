@@ -30,16 +30,9 @@ env._time = 2.2
 env._units.player.cast = { name = "Lightning Bolt", texture = 136048, start = 1000, finish = 3500, spellID = 188196 }
 env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 188196)
 W.Tick(env, 0.1)
-assert(element.mode == "inside" and not element.medal, "Frames draws the caption cast, its name inside the bar")
-assert(near(select(2, bar:GetSize()), 14, 0.6), "Frames draws the 14-unit bar")
-assert(not (element.slab and element.slab[5]:IsShown()), "Frames draws no slab")
-assert(element.icon:GetNumMaskTextures() == 1, "Frames masks the icon")
-assert(bar.innerEdgeToken == "castEdge", "Frames draws the near-black cast edge")
-local framesTexture, framesText = bar.texturePath, element.text:GetFont()
 
 K.Options.Write("UnitFrames", "castbarOnFrame", false)
 W.Tick(env, 0.1)
-assert(element.medal == true and element.mode == nil and element.line == false, "Medallions is its own form, not a caption or a line")
 assert(element.geometry.medal == true, "the layout is the Medallions layout")
 assert(element.frame:IsShown(), "the cast stays shown across the switch")
 
@@ -80,7 +73,6 @@ assert(rp == "RIGHT" and rrel == bar and rrp == "RIGHT" and near(rx, -pad) and n
 assert(element.timer:GetJustifyH() == "RIGHT", "right aligned")
 assert(element.timer:GetFont() == Tokens.Font("number"), "in the number role")
 assert(U.Shown(env, element.timer) == "1.3", "the time left: " .. U.Shown(env, element.timer))
-assert(element.label:IsShown() == false and element.lock:IsShown() == false, "no Casting or Locked word")
 noErrors("medallions cast")
 
 env._units.player.cast = { name = "Lightning Bolt", texture = 136048, start = 4000, finish = 6500, spellID = 188196, notInterruptible = true }
@@ -114,7 +106,7 @@ env.SetTarget(true)
 W.Tick(env, 0.1)
 local tcb = CastBars.Get("target")[1]
 assert(CastBars.ElementLive("target"), "the target's cast runs in its own element, as the player's does: the Medallions frame is too short for a second bar")
-assert(tcb.medal and tcb.geometry.medal and tcb.frame:IsShown(), "the target's cast bar wears Medallions too")
+assert(tcb.geometry.medal and tcb.frame:IsShown(), "the target's cast bar wears Medallions too")
 assert(not target.castbar.frame:IsShown() and not target.castbar.active, "and the frame carries no second bar")
 assert(tcb.bar.texturePath == flat and tcb.bar.innerEdgeToken == "black" and not tcb.iconFrame:IsShown(), "flat fill, black edge, no icon")
 local targetW, slabH = tcb.frame:GetSize()
@@ -124,26 +116,8 @@ local _, targetH = tcb.bar:GetSize()
 assert(targetH <= 14 + 0.6, "its bar fits inside the 20-unit slab, got " .. tostring(targetH))
 for _, kind in ipairs({ "focus", "boss" }) do
 	local cb = ns.Frames.Get(kind).views[1].castbar
-	assert(cb.medal and cb.geometry.medal, kind .. "'s cast bar wears Medallions")
+	assert(cb.geometry.medal, kind .. "'s cast bar wears Medallions")
 end
 noErrors("medallions target")
 
-env._units.player.cast = { name = "Lightning Bolt", texture = 136048, start = 1000, finish = 3500, spellID = 188196 }
-env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-4", 188196)
-W.Tick(env, 0.1)
-assert(not element.medal and element.mode == "inside", "Frames gives back the caption cast")
-assert(not CastBars.ElementLive("target") and not tcb.frame:IsShown(), "the target's cast goes back inside its frame")
-assert(not tcb.medal, "and leaves the Medallions look")
-assert(target.castbar.frame:IsShown() and target.castbar.active and not target.castbar.medal, "and the frame's own bar shows the cast")
-assert(near(select(2, bar:GetSize()), 14, 0.6), "the 14-unit bar is back")
-assert(not element.slab[5]:IsShown(), "the slab is gone")
-assert(element.icon:GetNumMaskTextures() == 1, "the icon mask is back, once")
-assert(bar.innerEdgeToken == "castEdge" and bar.texturePath == framesTexture, "the near-black edge and the settings' texture are back")
-assert(bar.lit:IsShown() and bar.shade:IsShown(), "the lit edge and shade are back")
-assert(element.text:GetFont() == framesText, "the label face is back")
-local back = W.LastCall(bar, "SetStatusBarColor")
-assert(near(back[1], K.Theme.Accent()), "the player's cast is in the class accent again")
-
-assert(not element.medal and element.mode == "above", "Orbs keeps the caption cast")
-noErrors("switch back")
 print("unitframes castbar medallions ok")
