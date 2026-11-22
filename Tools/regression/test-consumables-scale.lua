@@ -10,7 +10,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		enabled["consumables.bar"] = false
 		local cap, fits = L.ScaleLimit(screen[1], screen[2], name, enabled)
 		local baseline = K.Scale.Auto(screen[2], cap, fits)
-		assert(baseline == 15 / 16, "preserve origin/staging 10a5c811 auto scale for " .. name .. " " .. screen[1])
+		assert(baseline == 15 / 16, "every preset keeps DPS's 15/16 auto scale for " .. name .. " " .. screen[1])
 		for _, rows in ipairs({ 2, 1, 3 }) do
 			K.Store.Module("ActionBars").consumables = { rows = rows }
 			enabled["consumables.bar"] = true

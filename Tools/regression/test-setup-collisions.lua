@@ -165,8 +165,7 @@ for _, mode in ipairs({ { bar3 = false }, { bar3 = true }, { bar3 = false, threa
 		local width, height = screen[1], screen[2]
 		local record = { string.format("fit cap %dx%d bar3=%s threat=%s:", width, height, tostring(bar3), tostring(threat)) }
 		for _, name in ipairs(Layouts.Names()) do
-			local enabled = {}
-			for _, element in ipairs(Layouts.ELEMENTS) do enabled[element.key] = Layouts.Shown(name, element.key) ~= false end
+			local enabled = Layouts.Enabled(name)
 			enabled["consumables.bar"] = false
 			enabled["actionbars.bar3"] = bar3
 			if threat ~= nil then enabled["meters.threat"] = threat end
@@ -223,11 +222,8 @@ end
 -- Tank's threat card docks beside the damage card at the 180-unit slot width (KstyleUI_Meters/Threat.lua), so Tank fits
 -- the MacBook and 3:2 screens at the size DPS does; a 250-unit plan once capped it at 0.80 at 2383 x 1540.
 for _, screen in ipairs({ { 3456, 2234 }, { 3024, 1964 }, { 2560, 1600 }, { 2383, 1540 }, { 1920, 1200 } }) do
-	local enabled = {}
-	for _, element in ipairs(Layouts.ELEMENTS) do enabled[element.key] = Layouts.Shown("Tank", element.key) ~= false end
-	enabled["consumables.bar"] = false
 	local dps = Layouts.ScaleLimit(screen[1], screen[2], "DPS")
-	local tank = Layouts.ScaleLimit(screen[1], screen[2], "Tank", enabled)
+	local tank = Layouts.ScaleLimit(screen[1], screen[2], "Tank")
 	assert(math.abs(tank - dps) < 1e-9, string.format("Tank with both meter cards caps at %.4f at %dx%d, under DPS's %.4f", tank, screen[1], screen[2], dps))
 end
 
@@ -236,7 +232,6 @@ end
 for _, screen in ipairs({ { 2383, 1540 }, { 2642, 1651 }, { 1366, 768 } }) do
 	for _, name in ipairs(Layouts.Names()) do
 		local enabled = Layouts.Enabled(name)
-		enabled["consumables.bar"] = false
 		local without = Layouts.ScaleLimit(screen[1], screen[2], name, enabled)
 		enabled["databars.strip2"] = true
 		local with = Layouts.ScaleLimit(screen[1], screen[2], name, enabled)
@@ -286,7 +281,7 @@ do
 			Default = Boss(1.5, false), WithBoss = Boss(1.5, true), Small = Boss(0.7, true),
 		} },
 	})
-	local defaults = CoreEnv.DeepCopy(Boss(1.5, false).UnitFrames)
+	local defaults = Boss(1.5, false).UnitFrames
 	defaults.enabled = nil
 	MK.Modules.Register(CoreEnv.Module("UnitFrames", { defaults = defaults }))
 	CoreEnv.Boot(menv)

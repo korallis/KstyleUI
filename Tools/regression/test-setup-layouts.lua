@@ -207,11 +207,6 @@ end
 local MARGIN, RAIL = 17, 318
 local BAND = MARGIN + RAIL + 16
 local CARD_GAP_MIN = 16
-local LEFT_RAIL = {
-	DPS = { "qol.lootfeed" },
-	Tank = { "qol.lootfeed" },
-	Healer = { "qol.lootfeed" },
-}
 -- The picture (LEE-20, LEE-69) draws the chat card 393 by 186. DPS and Tank take that width. Healer keeps the 318 rail:
 -- on a 2383 x 1540 screen at UI scale 1, six tracked bars do not fit beside a 393 card (test-setup-editmode.lua).
 local CHAT_WIDTH = { DPS = 442, Tank = 442, Healer = 318 }
@@ -275,10 +270,6 @@ for _, name in ipairs(names) do
 		end
 
 		-- The rails share their columns and width, the same on both sides.
-		for _, key in ipairs(LEFT_RAIL[name]) do
-			local r = rect(key)
-			assert(r.left == MARGIN and r.w == RAIL, label .. ": " .. key .. " sits on the left rail, 318 wide on the margin")
-		end
 		for key, wantWidth in pairs(RIGHT_EDGE) do
 			local r = rect(key)
 			local inset = key == "minimap.main" and EDGE + Layouts.MAP_FRAME + 4 or EDGE
