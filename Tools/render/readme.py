@@ -15,7 +15,7 @@ The pictures:
   ultrawide_centred, ultrawide_spread  the Healer layout on 5120x1440 in each ultrawide arrangement
   crop_*                               close crops of the 1080 HUD drawn at twice the density: the orbs and tray, the
                                        unit frames, the right rail, the group meter,
-                                       and the nameplate scene; a rogue's Medallions crest jewels and forged data
+                                       and the nameplate scene; a warlock's Medallions crest jewels and forged data
                                        dock; a world map road and flight route
   frame_*                              frames cut directly from the gallery scenes
 
@@ -68,7 +68,7 @@ for _arrangement in ("centred", "spread"):
 RENDERS["meter_party"] = ("hud_reference", 2.0, dict(HD, **dict(style_env("Frames"), RENDER_METER_GROUP="party")), "--strict")
 RENDERS["meter_both_2x"] = ("hud_reference", 2.0, dict(HD, **dict(style_env("Frames"), RENDER_METER_GROUP="party", RENDER_METER_CHOICE="both")), "--strict")
 RENDERS["plates"] = ("nameplate_bible", 2.0, {"RENDER_COMBAT": "1"}, "--strict")
-RENDERS["rogue_1080_2x"] = ("hud_rogue_mac", 2.0, dict(HD, **style_env("Medallions")), "--strict")
+RENDERS["warlock_1080_2x"] = ("hud_warlock_mac", 2.0, dict(HD, **style_env("Medallions")), "--strict")
 RENDERS["route_flight"] = ("worldmap_roads", 2.0, dict(HD, RENDER_MAP_TRIP="flight"), "--strict")
 
 GALLERIES = ("gallery_setup", "gallery_groupframes", "gallery_skins_character")
@@ -86,8 +86,8 @@ IMAGES = [
     ("crop_meter", "render:meter_party", "470x330+3340+1825", 540),
     ("crop_meters_both", "render:meter_both_2x", "980x330+2830+1825", 1120),
     ("crop_rail", "render:frames_1080_2x", "1100x1040+2720+20", 660),
-    ("crop_crest", "render:rogue_1080_2x", "330x420+1755+1735", 540),
-    ("crop_dock", "render:rogue_1080_2x", "1960x420+940+1740", 1400),
+    ("crop_crest", "render:warlock_1080_2x", "328x320+1756+1822", 540),
+    ("crop_dock", "render:warlock_1080_2x", "1960x420+940+1740", 1400),
     ("crop_route", "render:route_flight", "1385x968+900+640", 1000),
     ("ultrawide_centred", "render:healer_centred", None, 1600),
     ("ultrawide_spread", "render:healer_spread", None, 1600),

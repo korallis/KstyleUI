@@ -81,6 +81,30 @@ function Hud.Pips()
 	return tonumber(from), tonumber(to), value == "off"
 end
 
+-- Crown(opts) -> under RENDER_PIPS (off too, so the setting is the only change), the crown the game feeds for the
+-- scene's class (a druid's in bear form with RENDER_FORM=bear), whose spell the player then knows; nil for the combo
+-- point classes and the rest.
+local CROWN_AURAS = { WARRIOR = 7386, PRIEST = 15258, MAGE = 400573, HUNTER = 1310687, BEAR = 1328617 }
+local CROWN_KNOWN = { WARRIOR = { 7386 }, PRIEST = { 15257 }, MAGE = { 400574 }, HUNTER = { 1310687 }, BEAR = { 1328617 } }
+function Hud.Crown(opts)
+	local class = Hud.Class(opts)
+	local kind = class == "DRUID" and os.getenv("RENDER_FORM") == "bear" and "BEAR" or class
+	local from, _, off = Hud.Pips()
+	return (from or off) and CROWN_KNOWN[kind] and kind or nil
+end
+
+-- SetCrown(env, kind, n) gives the crown's aura n stacks through the game's own feed (the same aura while it stays,
+-- so the slots ease; a new one is assigned at once).
+local function SetCrown(env, kind, n)
+	local unit = (kind == "MAGE" or kind == "HUNTER") and "player" or "target"
+	local aura = n > 0 and (env._crownAura or { id = CROWN_AURAS[kind], harmful = unit == "target", mine = true }) or nil
+	if aura then
+		aura.count = n
+	end
+	env._crownAura = aura
+	dofile("Tools/regression/aura_slots.lua").Set(env, unit, aura and { aura } or nil)
+end
+
 -- PlayPips(env, K, set) -> note: RENDER_PIPS=from,to moves the combo points from one count to the other RENDER_PIPS_T
 -- seconds before the scene's clock through the addon's own power event (set(n) gives the stubs the count); equal
 -- counts settle there with no change. RENDER_PIPS_MOTION sets Medallions motion (off shows the end states).
@@ -105,7 +129,8 @@ end
 -- Player(opts) -> the player unit for the scene's class, as unitframes_env takes it.
 function Hud.Player(opts)
 	local class, spec = Hud.Class(opts)
-	local power = class == "DRUID" and Hud.Pips() and { type = 3, token = "ENERGY", value = 80, max = 100 } or spec.power
+	local bear = Hud.Crown(opts) == "BEAR"
+	local power = class == "DRUID" and (Hud.Pips() or bear) and (bear and { type = 1, token = "RAGE", value = 40, max = 100 } or { type = 3, token = "ENERGY", value = 80, max = 100 }) or spec.power
 	local player = {
 		name = spec.name, class = class, level = 38, health = 2750, healthMax = 3350,
 		power = power.value, powerMax = power.max, powerType = power.type, powerToken = power.token,
@@ -633,6 +658,20 @@ function modules.actionbars(opts)
 		saved = saved(opts, "ActionBars"),
 		setup = function(env)
 			shared(env, opts)
+			local kind = Hud.Crown(opts)
+			if kind then
+				dofile("Tools/regression/aura_slots.lua").Install(env)
+				local known = {}
+				for _, id in ipairs(CROWN_KNOWN[kind]) do
+					known[id] = true
+				end
+				-- A hunter's crown is drawn with its Summon Hawk perches (1293241), which share the crest.
+				known[1293241] = kind == "HUNTER" and Hud.Pips() ~= nil
+				env.C_SpellBook = env.C_SpellBook or {}
+				env.C_SpellBook.IsSpellKnown = function(id) return known[id] == true end
+				env.GetTotemInfo = function() return false, "", 0, 0, 0, 1, 0 end
+				env.GetTotemDuration = function() return { start = 0, finish = 0 } end
+			end
 			if opts.vehicle then
 				env.UnitHasVehicleUI = function() return true end
 				env.CanExitVehicle = function() return true end
@@ -674,7 +713,7 @@ function modules.actionbars(opts)
 			env.GetComboPoints = env.GetComboPoints or function()
 				return env._pips or spec.combo or 0
 			end
-			if Hud.Pips() then
+			if Hud.Pips() or Hud.Crown(opts) then
 				env.UnitPowerType = function()
 					return Hud.Player(opts).powerType
 				end
@@ -812,7 +851,11 @@ function modules.actionbars(opts)
 		end
 		env._now = clock
 	end
-	local notes = { PlayPips(env, K, function(n) env._pips = n end) }
+	local crown = Hud.Crown(opts)
+	local notes = { PlayPips(env, K, function(n)
+		env._pips = n
+		if crown then SetCrown(env, crown, n) end
+	end) }
 	local scene = build(env, opts, { time = env._time }, function()
 		Fx.Apply(env, "actionbars", ns, notes)
 		if class == "SHAMAN" and TotemScene.Story() then TotemScene.Play(env, K, ns, AB, notes) end

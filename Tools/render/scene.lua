@@ -906,6 +906,8 @@ function Solver:barFill(texture, bar)
 	return { l, b, l + w, t }
 end
 
+local EASE_HALF = 0.05
+
 -- BarFraction(env, bar, now) -> the share of the bar that is filled, from SetValue over SetMinMaxValues or
 -- from a timer duration ({ start, finish } in seconds) against the clock.
 function Scene.BarFraction(env, bar, now)
@@ -928,6 +930,11 @@ function Scene.BarFraction(env, bar, now)
 	local low, high = state(bar, "MinMaxValues")
 	low, high = num(env, low, 0), num(env, high, 1)
 	local value = num(env, (state(bar, "Value")), low)
+	-- An aura slot's bar eased by the game (Tools/regression/aura_slots.lua) closes half its gap every EASE_HALF seconds.
+	local ease = bar._ease
+	if ease and ease.at and now and now >= ease.at then
+		value = ease.to + (ease.from - ease.to) * 0.5 ^ ((now - ease.at) / EASE_HALF)
+	end
 	if high <= low then
 		return 0
 	end
