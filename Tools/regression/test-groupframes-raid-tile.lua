@@ -113,6 +113,9 @@ for _, size in ipairs(SIZES) do
 		local text, whole = member.name:GetText(), K.Locale.Upper(LONG[i])
 		assert(#text > 0 and whole:sub(1, #text) == text, what .. ": " .. LONG[i] .. " keeps its head, got " .. text)
 	end
+	if size.percent then
+		eq(content(ns, ns.Headers.raid[2], "raid7").name:GetText(), "MEMBER7", what .. ": a short name stays whole")
+	end
 
 	-- The percent at the bar's end, on the fill, clear of the name and the debuffs; over 25 members there is none.
 	if size.percent then
