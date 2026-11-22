@@ -109,8 +109,10 @@ CLIPS = {
         ("hud_warrior_mac", {"RENDER_PIPS": "5,5", "RENDER_PIPS_T": "1"}),
         ("hud_druid_mac", {"RENDER_PIPS": "5,5", "RENDER_PIPS_T": "1"}),
         ("hud_hunter_mac", {"RENDER_FX": "hawks", "RENDER_FX_T": "10"}),
+        ("hud_paladin_mac", {"RENDER_FOREVER_POWERS": "1"}),
         ("hud_mage_mac", {"RENDER_PIPS": "4,4", "RENDER_PIPS_T": "1"}),
         ("hud_priest_mac", {"RENDER_PIPS": "5,5", "RENDER_PIPS_T": "1"}),
+        ("hud_warlock_mac", {"RENDER_FOREVER_POWERS": "1"}),
     )]),
     "crowns.gif": (CREST, climb("hud_rogue_mac", 5) + climb("hud_druid_mac", 5)),
     "crowns-more.gif": (CREST, [shot for scene, top, env in (

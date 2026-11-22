@@ -5,7 +5,7 @@ The same master description ([docs/store/description.md](../store/description.md
 | Picture | What it is | Made by |
 | --- | --- | --- |
 | marketing/banner.jpg | Real in-game screenshot (readme/game_medallions_hero.jpg), darkened, with the logo and wordmark | `marketing.py` |
-| marketing/classes.gif | Test render over the real forest plate: the Medallions HUD for seven classes | `marketing.py --clips` |
+| marketing/classes.gif | Test render over the real forest plate: the Medallions HUD for nine classes | `marketing.py --clips` |
 | marketing/crowns.gif | Test render over the real forest plate: rogue blades and cat druid claws with the ring's jewels, gain to spend | `marketing.py --clips` |
 | marketing/crowns-more.gif | Test render over the real forest plate: warrior, priest, mage, hunter and bear crowns | `marketing.py --clips` |
 | marketing/shaman.gif | Test render over the real forest plate: Spirit Poles, then Lightning Shield's storm orbs | `marketing.py --clips` |
