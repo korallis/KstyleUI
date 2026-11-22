@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor, huge = string.format, string.sub, math.floor, math.huge
 
-Store.DB_VERSION = 43
+Store.DB_VERSION = 44
 Store.migrations = {}
 
 Store.migrations[38] = function(data)
@@ -1026,6 +1026,13 @@ Store.migrations[43] = function(data)
 		for _, kind in pairs(frames) do
 			if type(kind) == "table" and type(kind.portraitZoom) == "number" and kind.classZoom == nil then kind.classZoom = kind.portraitZoom end
 		end
+	end
+end
+
+Store.migrations[44] = function(data)
+	for _, profile in pairs(data.profiles) do
+		local player = type(profile) == "table" and type(profile.UnitFrames) == "table" and profile.UnitFrames.player
+		if type(player) == "table" and player.medallionsAuras == true then player.medallionsAuras = nil end
 	end
 end
 
