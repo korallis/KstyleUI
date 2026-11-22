@@ -13,7 +13,7 @@ end
 
 local function textIs(text, name)
 	local r, g, b = text:GetTextColor()
-	local wr, wg, wb = Tokens.Color(name)
+	local wr, wg, wb = Widgets.Rgba(name)
 	return W.Near(r, wr) and W.Near(g, wg) and W.Near(b, wb)
 end
 
@@ -29,10 +29,9 @@ assert(type(Widgets.SectionCap) == "function", "Widgets.SectionCap exists")
 K.Options.Write("Widgets", "cardMaterial", "Glass")
 local cap = Widgets.SectionCap(root, { text = "Party", width = 278 })
 
--- The diamond leads, the head follows it in the caps role, in the picture's gold.
+-- The diamond leads in the accent, the head follows it in the caps role, in the Medallions lit steel.
 assert(file(cap.gem) == "Diamond.png", "the diamond leads the cap")
-assert(W.SameRGB(cap.gem, Tokens.Color("capsGold")), "the diamond is the caption's gold, not the lit gilt")
-assert(W.SameColor(cap.gem, select(1, Tokens.Color("capsGold")), select(2, Tokens.Color("capsGold")), select(3, Tokens.Color("capsGold")), 1), "and solid")
+assert(W.SameColor(cap.gem, Tokens.Color("accent")), "the diamond is the solid accent")
 local gemAt = point(cap.gem, "CENTER")
 assert(gemAt and gemAt[2] == cap and gemAt[3] == "LEFT" and gemAt[4] > 0, "centred a little in from the cap's left edge, on its midline")
 local _, headSize = cap.label:GetFont()
@@ -41,16 +40,16 @@ local path = cap.label:GetFont()
 assert(path == (Tokens.Font("caps")), "the head is in the caps role")
 assert(path:match("FolioCaps%-SemiBold%.ttf$") and Tokens.FaceTracking(path) == 0.045, "the default head uses tracked Folio caps")
 assert(cap.label:GetText() == "PARTY", "and uppercase, got " .. tostring(cap.label:GetText()))
-assert(textIs(cap.label, "capsGold"), "in the picture's muted gold")
+assert(textIs(cap.label, "capsGold"), "in the caption colour, the lit steel")
 local lp = point(cap.label, "LEFT")
 assert(lp and lp[2] == cap.gem and lp[3] == "CENTER" and lp[4] > 0, "the caption is set off the diamond's centre")
 
--- The rule is one flat half-strength line in the caption's gold, from the caption to the cap's right end when there is no count: the picture's does not fade.
+-- The rule is a flat steel line the Medallions card keeps clear (zero alpha), from the caption to the cap's right end when there is no count.
 assert(file(cap.rule) == nil, "the rule is a flat colour, not a fading strip")
 local flat = W.LastCall(cap.rule, "SetColorTexture")
 assert(flat, "the rule is a colour texture")
-local cr, cg, cb = Tokens.Color("capsGold")
-assert(W.Near(flat[1], cr) and W.Near(flat[2], cg) and W.Near(flat[3], cb) and W.Near(flat[4], 0.5), "in the caption's gold at half strength")
+local cr, cg, cb = Widgets.Rgba("steel")
+assert(W.Near(flat[1], cr) and W.Near(flat[2], cg) and W.Near(flat[3], cb) and W.Near(flat[4], 0), "in steel at zero alpha")
 local rl, rr = point(cap.rule, "LEFT"), point(cap.rule, "RIGHT")
 assert(rl and rl[2] == cap.label and rl[3] == "RIGHT", "the rule starts after the caption")
 assert(rr and rr[2] == cap and rr[3] == "RIGHT", "with no count the rule runs to the cap's right end")
