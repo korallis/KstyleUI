@@ -15,3 +15,4 @@ design	gallery_layout	overlap	MINIMAP & Minimap	a glass stand-in's centred label
 design	gallery_layout	overlap	PLAYER & Player	a glass stand-in's centred label sits under the mover plate's title
 design	gallery_layout	overlap	TARGET & Target	a glass stand-in's centred label sits under the mover plate's title
 design	shell_parity*	outside	GameTooltip.?.buffs.	player buff icons sit beside the tooltip card on purpose, as the Position option places them; they hang under it so they fade and scale with it
+medallions-followup	gallery_unitframes*	ellipsis	=ELUNARA FROSTWEAVER	only at the owner's 2383x1540, where the name is at its 13-pixel floor and the 200-unit gallery focus is 9 units short (needs 115.6, has 106.6) though the slab no longer keeps level room; it fits at 1920x1080, 2560x1440, 5120x1440 and 3840x2160. A glob because the Lua sweep names no screen

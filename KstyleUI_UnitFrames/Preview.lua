@@ -590,13 +590,15 @@ local function Fit(frame, holder, kind, width, height)
 	local l, t, r, b = 0, 0, width, height
 	local view = frame.views[kind]
 	local regions = { frame.auraHosts[kind], frame.casts[kind] and frame.casts[kind].frame, view.portraitFrame, frame.resource, kind == "player" and frame.totems or nil, frame.buffHosts[kind],
-		view.s.powerDetach ~= "" and view.power or nil, view.marker }
-	for i = 1, 8 do
+		view.s.powerDetach ~= "" and view.power or nil }
+	for i = 1, 7 do
 		local rl, rt, rr, rb = Box(regions[i], holder, width, height)
 		if rl then
 			l, t, r, b = math.min(l, rl), math.min(t, rt), math.max(r, rr), math.max(b, rb)
 		end
 	end
+	local m = view.marker:IsShown() and view.geometry.marker
+	if m then l, t, r, b = math.min(l, m.x), math.min(t, m.y), math.max(r, m.x + m.w), math.max(b, m.y + m.h) end
 	local scale = MAX_SCALE
 	local reserve = frame.reserve
 	local rl, rr, rt, rb = reserve and reserve[1] or 0, reserve and reserve[2] or 0, reserve and reserve[3] or 0, reserve and reserve[4] or 0
