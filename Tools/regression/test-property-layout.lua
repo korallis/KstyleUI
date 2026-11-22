@@ -124,8 +124,8 @@ local function Place(c)
 			if key == "meters.threat" and enabled["meters.damage"] ~= false then
 				local paired = Layouts.PrepareFits(c.preset, Scale.CanvasWidth(c.width, c.height), c.height, enabled, nil).layout[key]
 				assert(Layout.Update(key, paired))
-				h = select(2, Layouts.Footprint(c.preset, "meters.damage"))
-				bodyH = h
+				w, h = Layouts.METER_SLOT, select(2, Layouts.Footprint(c.preset, "meters.damage"))
+				bodyW, bodyH = w, h
 				Widgets.Size(frame, bodyW, bodyH)
 			end
 			local left, bottom, fw, fh = Layout.Rect(key)
