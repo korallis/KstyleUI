@@ -4,7 +4,7 @@ local Scene = dofile("Tools/render/scene.lua")
 
 local Effects = {}
 
-local STATES = { ready = true, cap = true, levelup = true, cast = true, stopped = true, vignette = true, burst = true, rest = true, jewels = true, hawks = true }
+local STATES = { ready = true, cap = true, levelup = true, cast = true, stopped = true, vignette = true, burst = true, rest = true, jewels = true, hawks = true, storm = true }
 
 -- The hawk story RENDER_FX=hawks plays, as totem updates in order: Summon Hawk at 1, 9, 20.5 and 26.5 s, at least
 -- its 6 s category recovery apart, fills a free slot (2, then 3) or the oldest hawk's, and each hawk leaves
@@ -20,6 +20,15 @@ local HAWKS = {
 	{ at = 44.5, slot = 3 },
 }
 
+-- The Lightning Shield story RENDER_FX=storm plays, as the shield's charges and the player's casts in order: a cast at
+-- 1 s, then three strikes at least the shield's 3.5 s proc recovery apart, the last ending the shield.
+local STORM = {
+	{ at = 1, spell = 10432, charges = 3 },
+	{ at = 4.5, spell = 26363, charges = 2 },
+	{ at = 8, spell = 26363, charges = 1 },
+	{ at = 11.5, spell = 26363 },
+}
+
 local MANA = { MAGE = true, PRIEST = true, WARLOCK = true, PALADIN = true, SHAMAN = true, DRUID = true }
 
 function Effects.State()
@@ -27,7 +36,7 @@ function Effects.State()
 	if not state or state == "" then
 		return nil
 	end
-	assert(STATES[state], "RENDER_FX must be one of ready, cap, levelup, cast, stopped, vignette, burst, rest, jewels or hawks")
+	assert(STATES[state], "RENDER_FX must be one of ready, cap, levelup, cast, stopped, vignette, burst, rest, jewels, hawks or storm")
 	local t = tonumber(rawget(_G, "RENDER_FX_T") or os.getenv("RENDER_FX_T") or "")
 	return state, t
 end
@@ -139,6 +148,45 @@ function Effects.Apply(env, module, ns, notes)
 				end
 			end
 			notes[#notes + 1] = "fx: the hawk perches " .. at .. " s into the story"
+		elseif state == "storm" then
+			-- A shaman who knows Lightning Shield, RENDER_FX_T seconds into the STORM story (2.5 when unset): the aura
+			-- slots take each charge count and the addon's own handler each cast, at its own time on the clock.
+			-- RENDER_STORM=off turns the setting off and plays nothing, for a pixel diff against a build without it.
+			local at = t or 2.5
+			env.C_SpellBook = env.C_SpellBook or {}
+			local known = env.C_SpellBook.IsSpellKnown
+			env.C_SpellBook.IsSpellKnown = function(id) return id == 10432 or (known ~= nil and known(id)) end
+			if os.getenv("RENDER_STORM") == "off" then
+				K.Options.Write("ActionBars", "crestStorm", false)
+				ns.SlabStorm.Update()
+				env._now = now
+				notes[#notes + 1] = "fx: Lightning Shield on the crest off"
+				return
+			end
+			local Slots = dofile("Tools/regression/aura_slots.lua")
+			Slots.Install(env)
+			local aura
+			env.C_UnitAuras = env.C_UnitAuras or {}
+			env.C_UnitAuras.GetPlayerAuraBySpellID = function(id)
+				return aura and id == aura.id and { spellId = id, applications = aura.count } or nil
+			end
+			ns.SlabStorm.Update()
+			local clock = env.GetTime
+			env.GetTime = function() return env._now end
+			for _, e in ipairs(STORM) do
+				if e.at <= at then
+					env._now = env._time - (at - e.at)
+					aura = e.charges and (aura or { id = 10432 }) or nil
+					if aura then
+						aura.count = e.charges
+					end
+					Slots.Set(env, "player", aura and { aura } or nil)
+					env.FireEvent("UNIT_AURA", "player", {})
+					env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-storm", e.spell)
+				end
+			end
+			env.GetTime = clock
+			notes[#notes + 1] = "fx: the storm orbs " .. at .. " s into the story"
 		elseif state == "levelup" then
 			K.Options.Write("Medallions", "motion", "calm")
 			env.FireEvent("PLAYER_LEVEL_UP", 12)

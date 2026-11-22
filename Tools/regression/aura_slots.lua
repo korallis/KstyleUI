@@ -1,10 +1,11 @@
--- aura_slots.lua: Blizzard's aura slots at the test boundary, for the class crowns. A CustomAuraContainerTemplate
+-- aura_slots.lua: Blizzard's aura slots at the test boundary, for the class crowns and the crest's storm orbs. A CustomAuraContainerTemplate
 -- container's AddAuraSlot button shows the first aura on the container's unit that passes the slot's filter string
 -- and includeSpellIDs map (Blizzard_AuraContainerUtil.lua:89-111), and feeds the status bar SetApplicationBar gave it
 -- as Blizzard_CustomAuraButton.lua:419-431 does: SetMinMaxValues(min, max(max, 1)), the secret count with the bar's
 -- interpolation when the same aura changes and Immediate when one is assigned or cleared, and shown from min. The
 -- button must own the bar (Blizzard_AuraContainerUtil.lua:311-333) and refuses addon calls while auras are secret
--- (DenyTaintedAccessWhenAurasAreSecret). A container feeds nothing until SetEnabled(true).
+-- (DenyTaintedAccessWhenAurasAreSecret). A container feeds nothing until SetEnabled(true). A button plays the groups
+-- AddAuraShownAnimation gave it when its aura appears and stops them when it goes.
 --
 --   local Slots = dofile("Tools/regression/aura_slots.lua")
 --   Slots.Install(env)                                   -- in an env's setup, before the addon loads
@@ -59,15 +60,44 @@ function Slots.Feed(env, c)
 			bar:SetValue(env.Secret(count), update and o.interpolation or 0)
 			bar:SetShown(count >= o.minApplications)
 		end
+		local was = slot.frame:IsShown()
 		slot.frame:SetShown(aura ~= nil)
+		for _, group in ipairs(slot.frame._shownAnimations or {}) do
+			if aura and not was then
+				group:Play()
+			elseif not aura then
+				group:Stop()
+			end
+		end
+	end
+end
+
+local function Restricted(env)
+	if env.C_Secrets and env.C_Secrets.ShouldAurasBeSecret and env.C_Secrets.ShouldAurasBeSecret() then
+		error("attempt to access a restricted aura button", 3)
 	end
 end
 
 local function Button(env, c, button)
-	function button.SetApplicationBar(_, bar, options)
-		if env.C_Secrets and env.C_Secrets.ShouldAurasBeSecret and env.C_Secrets.ShouldAurasBeSecret() then
-			error("attempt to access a restricted aura button")
+	-- AddAuraShownAnimation: the engine plays the group when the slot's aura appears and stops it when it goes
+	-- (Blizzard_CustomAuraButton.lua:327-337, 694-705); its animations must target the button or a descendant.
+	button._shownAnimations = {}
+	function button.AddAuraShownAnimation(_, group)
+		Restricted(env)
+		assert(Owns(button, group:GetParent()), "bad object in function call (must be the owner or a direct or indirect descendant of owner)")
+		table.insert(button._shownAnimations, group)
+	end
+	function button.RemoveAuraShownAnimation(_, group)
+		Restricted(env)
+		for i, added in ipairs(button._shownAnimations) do
+			if added == group then
+				table.remove(button._shownAnimations, i)
+				return
+			end
 		end
+	end
+	function button.SetApplicationBar(_, bar, options)
+		Restricted(env)
 		assert(Owns(button, bar), "bad object in function call (must be the owner or a direct or indirect descendant of owner)")
 		assert(type(options.maxApplications) == "number", "maxApplications must be a number")
 		button._applicationBar = { bar, options }

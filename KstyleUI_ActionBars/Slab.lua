@@ -199,6 +199,7 @@ local function Fade(g, from, to, duration, order, delay)
 	end
 	return a
 end
+Slab.Fade = Fade
 
 local function Grow(g, from, to, duration, order)
 	local s = g:CreateAnimation("Scale")
@@ -711,6 +712,7 @@ local function Hide()
 	ns.SlabEffects.UpdateCap()
 	ns.SlabJewels.Update()
 	ns.SlabHawks.Update()
+	ns.SlabStorm.Update()
 	ns.SlabCrown.Update()
 	ns.Totems.Update()
 end
@@ -801,6 +803,7 @@ function Slab.Refresh()
 	ns.SlabEffects.UpdateCap()
 	ns.SlabJewels.Update()
 	ns.SlabHawks.Update()
+	ns.SlabStorm.Update()
 	ns.SlabCrown.Update()
 	ns.Totems.Update()
 	if ns.Travel then ns.Travel.Refresh() end
