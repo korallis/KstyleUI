@@ -536,6 +536,7 @@ local function SizeBadge(hub)
 	local path, size, flags = Tokens.Font(numbered and "number" or "caption")
 	Widgets.ApplyFont(hub.level, path, numbered and 10 * K.Theme.FontScale() or size, flags)
 	if not numbered then hub:SetScale(scale) end
+	Widgets.StyleText(hub.caption)
 end
 
 function Slab.PaintPlaque(gold)
