@@ -495,7 +495,7 @@ for _, set in ipairs({ "Blade", "Claw" }) do
 	end
 end
 for _, kind in ipairs({ "", "Steel", "Core", "Glow" }) do
-	for _, angle in ipairs({ 126, 102, 90, 78, 54 }) do
+	for _, angle in ipairs({ 126, 102, 78, 54 }) do
 		TEXTURES["pipSpire" .. kind .. angle] = { file = "Textures\\Pips\\PipSpire" .. kind .. angle .. ".png" }
 	end
 end

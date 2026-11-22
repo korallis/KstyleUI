@@ -85,7 +85,7 @@ for _, class in ipairs({ "WARRIOR", "HUNTER", "DRUID" }) do
 	local state = ns.Totems.state
 	assert(state.header == nil and not state.shown and next(env._events) == nil, class .. ": no totem frame or event for another class")
 	assert(env.MultiCastActionBarFrame:GetParent() == env.UIParent, class .. ": Blizzard's totem bar is untouched")
-	assert(not ns.Totems.TakesStance(), class .. ": the stance bar stays")
+	assert(not ns.Totems.state.shown, class .. ": the stance bar stays")
 	Drop(env, 1, 10)
 	assert(state.header == nil, class .. ": a totem update builds nothing")
 	Clean(env, K, class)
@@ -122,7 +122,7 @@ do
 	assert(fire.fan:IsShown() and fire.fan._autoHide, "right click opens the fan, which hides itself when the mouse leaves")
 	local first, magma = fire.fan.buttons[1], fire.fan.buttons[3]
 	assert(first:GetAttribute("spell") == 0 and first:IsShown() and first.rune, "the first choice clears the slot and shows the element's rune")
-	assert(fire.fan.buttons[4]:IsShown() and not fire.fan.buttons[5]:IsShown(), "the fan holds none and every known totem of the element")
+	assert(fire.fan.buttons[4]:IsShown() and not (fire.fan.buttons[5] and fire.fan.buttons[5]:IsShown()), "the fan holds none and every known totem of the element")
 	assert(fire.fan.buttons[2].selected and not magma.selected, "the chosen totem is selected in the fan")
 	assert(magma:GetAttribute("type") == "multispell" and magma:GetAttribute("action") == 133 and magma:GetAttribute("spell") == 8190, "each choice is a secure multispell button")
 	AB.Click(env, magma, "LeftButton", false)
@@ -213,7 +213,10 @@ do
 end
 
 -- The crest at four screen sizes: sockets on the arc above the hub, medals on its shoulders, none overlapping
--- another, every spire under the cooldown row and the crest debuff fan.
+-- another, every spire under the cooldown row and the crest debuff fan; each open fan, Earth's with all six earth
+-- totems, clear of the cooldown row, the debuff fan, the ring and the unit frames.
+local EARTH = KNOWN[2]
+KNOWN[2] = { 8075, 8071, 2484, 5730, 8143, 2062 }
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("SHAMAN", { size = size })
 	env._resolveRects = true
@@ -282,6 +285,7 @@ for _, size in ipairs(SIZES) do
 	end
 	Clean(env, K, "ring " .. size[1])
 end
+KNOWN[2] = EARTH
 
 -- Review of 5f5ee15a: the secure actions as the client resolves modified attributes, Recall's key and medal.
 do

@@ -131,7 +131,7 @@ end
 
 function Bar:Visibility()
 	local kind = self.def.kind
-	if not self:Shown() or kind == "stance" and ns.Totems.TakesStance() then
+	if not self:Shown() or kind == "stance" and ns.Totems.state.shown then
 		return "hide"
 	end
 	local custom = self:Config().visibility

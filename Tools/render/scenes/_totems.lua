@@ -1,4 +1,4 @@
--- _totems.lua: under Medallions, RENDER_TOTEMS=story plays a shaman's Spirit Poles story through the action bars' own secure buttons and events, RENDER_TOTEMS_T seconds in (the end when unset): the four chosen totems at rest, Fire's fan open, Magma Totem chosen and dropped, its spire burning down, Call of the Elements dropping all four, Ghost Wolf, and expiry; RENDER_TOTEM_BAR=off turns the Shaman totem bar setting off first.
+-- _totems.lua: under Medallions, RENDER_TOTEMS=story plays a shaman's Spirit Poles story through the action bars' own secure buttons and events, RENDER_TOTEMS_T seconds in (the end when unset): the four chosen totems at rest, Fire's fan open, Magma Totem chosen and dropped, its spire burning down, Call of the Elements dropping all four, Ghost Wolf, and expiry, each drop following the action its secure button took; RENDER_TOTEM_BAR=off turns the Shaman totem bar setting off first.
 local Totems = {}
 
 -- The shaman's known totems by totem slot (fire 1, earth 2, water 3, air 4), spell ID and icon file ID.
@@ -14,8 +14,8 @@ local CALL, RECALL, WOLF = { 66842, 310730, "Call of the Elements" }, { 36936, 3
 local BAR = 12
 
 -- The story's beats, in seconds: Fire's fan opens, Magma Totem is chosen and dropped, Call drops all four, the
--- shaman takes Ghost Wolf, and Magma (20 s) expires; the other three outlast the story.
-Totems.FAN, Totems.PICK, Totems.DROP, Totems.CALL, Totems.WOLF, Totems.END = 0.5, 1.5, 2, 6, 9, 24
+-- shaman takes Ghost Wolf, and Magma (20 s from Call) expires; the other three outlast the story.
+Totems.FAN, Totems.PICK, Totems.DROP, Totems.CALL, Totems.WOLF, Totems.END = 0.5, 1.5, 2, 6, 9, 28
 
 function Totems.Story()
 	local story = os.getenv("RENDER_TOTEMS")
@@ -92,23 +92,27 @@ function Totems.Play(env, K, ns, AB, notes)
 		return
 	end
 	local fire, earth = state.sockets[2], state.sockets[1]
-	if now >= Totems.FAN and now < Totems.PICK then
+	if now >= Totems.FAN then
 		AB.Click(env, fire, "RightButton", false)
-	end
-	if now >= Totems.PICK then
-		AB.Click(env, fire, "RightButton", false)
-		local magma
-		for _, f in ipairs(fire.fan.buttons) do
-			if f:GetAttribute("spell") == 8190 then magma = f end
+		if now >= Totems.PICK then
+			local magma
+			for _, f in ipairs(fire.fan.buttons) do
+				if f:GetAttribute("spell") == 8190 then magma = f end
+			end
+			AB.Click(env, magma, "LeftButton", false)
+			env.FireEvent("ACTIONBAR_SLOT_CHANGED", fire.slot)
 		end
-		AB.Click(env, magma, "LeftButton", false)
-		env.FireEvent("ACTIONBAR_SLOT_CHANGED", fire.action)
 	end
-	local drops = {}
-	if now >= Totems.DROP then drops[1] = { 8190, Totems.DROP } end
+	local drops, chosen = {}, env._game.slots[fire.slot]
+	if now >= Totems.DROP then
+		AB.Click(env, fire, "LeftButton", false)
+		if AB.Used(env) == fire.slot then drops[1] = { chosen.id, Totems.DROP } end
+	end
 	if now >= Totems.CALL then
 		AB.Click(env, state.call, "LeftButton", false)
-		for slot = 2, 4 do drops[slot] = { CHOSEN[slot], Totems.CALL } end
+		if AB.Used(env) == "spell" .. CALL[1] then
+			for slot = 1, 4 do drops[slot] = { slot == 1 and chosen.id or CHOSEN[slot], Totems.CALL } end
+		end
 	end
 	for slot, d in pairs(drops) do
 		Drop(env, slot, d[1], d[2], now)

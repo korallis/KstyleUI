@@ -1,15 +1,15 @@
--- Totems.lua: the shaman's Spirit Poles, KstyleUI's own secure totem bar in place of Blizzard's MultiCastActionBarFrame: four element sockets in the game's bar order (earth, fire, water, air) drop the chosen totem from its multi-cast action slot, right click fans out that element's totems to choose one (shift right click dismisses the totem), and each socket carries a crown spire that lights and burns down over the totem's life from the slot's own boolean and duration object, so Lua never reads a secret; Ghost Wolf and Call of the Elements (right click: Totemic Recall) ride as medals on the Medallions crest ring's shoulders, and the lone Ghost Wolf stance bar hides; without the crest Blizzard's bar stays.
+-- Totems.lua: the shaman's Spirit Poles, KstyleUI's own secure totem bar in place of Blizzard's MultiCastActionBarFrame: four element sockets in the game's bar order (earth, fire, water, air) drop the chosen totem from its multi-cast action slot, right click fans out that element's totems on a shallow arc between the crest's sockets and the cooldown row to choose one, one fan at a time (shift right click dismisses the totem), and each socket carries a crown spire that lights and burns down over the totem's life from the slot's own boolean and duration object, so Lua never reads a secret; Ghost Wolf and Call of the Elements (right click: Totemic Recall) ride as medals on the Medallions crest ring's shoulders, the lone Ghost Wolf stance bar hides, and a vehicle or override bar hides the bar as it hides Blizzard's; without the crest Blizzard's bar stays.
 local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens, Effects, L = K.Widgets, K.Tokens, K.Effects, K.L
-local cos, sin, rad, max, min = math.cos, math.sin, math.rad, math.max, math.min
+local cos, sin, rad, deg, acos, max, min = math.cos, math.sin, math.rad, math.deg, math.acos, math.max, math.min
 local IsSecret = Widgets.IsSecret
 
 local Totems = {}
 ns.Totems = Totems
 
-local OWNER = "ActionBars.Totems"
+local OWNER, LEARN = "ActionBars.Totems", "ActionBars.TotemsLearn"
 local ELEMENTS = {
 	{ slot = 2, name = "Earth", angle = 126, label = L["Earth totem"] },
 	{ slot = 1, name = "Fire", angle = 102, label = L["Fire totem"] },
@@ -19,14 +19,15 @@ local ELEMENTS = {
 local CALL, RECALLS = 66842, { 36936, 437009 }
 local SOCKET, RADIUS, SPIRE, SPIRE_LIFT, HALO = 26, 98, 34, 3, 1.5
 local MEDAL, MEDAL_RADIUS, MEDAL_RISE, ICON = 26, 84, 32, 0.74
-local FAN, FAN_STEP, FAN_SPAN, FAN_MAX = 26, 26, 150, 10
+local FAN, FAN_RADIUS, FAN_DROP, FAN_STEP, FAN_SPAN = 26, 330, 200, 5.2, 32
 local FLARE_RISE, FLARE_FALL, IGNITE = 0.05, 0.4, 0.3
+local OVERRIDDEN = "[vehicleui][overridebar] hide; show"
 
 local OPEN = [[
 	if button ~= "RightButton" or IsShiftKeyDown() then return nil end
-	if control:IsShown() then
-		control:Hide()
-	else
+	local open = control:IsShown()
+	for i = 1, 4 do control:GetFrameRef("fan" .. i):Hide() end
+	if not open then
 		control:Show()
 		control:RegisterAutoHide(1.5)
 		control:AddToAutoHide(self)
@@ -37,15 +38,11 @@ local OPEN = [[
 local state = { sockets = {} }
 Totems.state = state
 
-local function Flag(v, secret)
-	if IsSecret(v) then return secret end
-	return v == true or v == 1
-end
-
 local function Supported()
 	local index = C_ActionBar ~= nil and type(C_ActionBar.GetMultiCastBarIndex) == "function" and C_ActionBar.GetMultiCastBarIndex()
 	return type(index) == "number" and not IsSecret(index) and index > 0 and type(GetMultiCastTotemSpells) == "function"
-		and type(GetTotemInfo) == "function" and type(SecureHandlerWrapScript) == "function"
+		and type(GetTotemInfo) == "function" and type(SecureHandlerWrapScript) == "function" and type(SecureHandlerSetFrameRef) == "function"
+		and type(RegisterStateDriver) == "function"
 end
 
 local function Spells(slot)
@@ -103,13 +100,14 @@ local function Art(parent, layer, name, color, blend)
 	return t
 end
 
-local function Bar(parent, color, blend)
+local function Bar(parent, color, texture, blend)
 	local bar = CreateFrame("StatusBar", nil, parent)
 	bar:SetOrientation("VERTICAL")
 	bar:SetMinMaxValues(0, 1)
 	bar:SetValue(1)
+	bar:SetStatusBarTexture((Tokens.Texture(texture)))
+	if blend then bar:GetStatusBarTexture():SetBlendMode(blend) end
 	bar:SetStatusBarColor(Tokens.Color(color))
-	bar.blend = blend
 	return bar
 end
 
@@ -121,58 +119,43 @@ local function Fade(target, from, to, duration, order)
 	a:SetDuration(duration)
 	a:SetOrder(order or 1)
 	target.anim = group
-	return a
 end
 
 local function Spire(parent, e)
 	local s = CreateFrame("Frame", nil, parent)
-	local color = "totem" .. e.name
+	local color, angle = "totem" .. e.name, e.angle
 	s.steel = s:CreateTexture(nil, "BACKGROUND")
+	s.steel:SetTexture((Tokens.Texture("pipSpireSteel" .. angle)))
 	s.steel:SetAllPoints(s)
 	s.gate = CreateFrame("Frame", nil, s)
 	s.gate:SetAllPoints(s)
-	s.glow = Bar(s.gate, color, "ADD")
-	s.lit = Bar(s.gate, "white")
+	s.glow = Bar(s.gate, color, "pipSpireGlow" .. angle, "ADD")
+	s.glow:SetPoint("CENTER", s, "CENTER", 0, 0)
+	s.lit = Bar(s.gate, "white", "pipSpire" .. angle)
 	local r, g, b = Tokens.Color(color)
 	s.lit:SetStatusBarColor(0.55 + 0.45 * r, 0.55 + 0.45 * g, 0.55 + 0.45 * b)
 	s.lit:SetAllPoints(s)
-	s.core = Bar(s.gate, color, "ADD")
+	s.core = Bar(s.gate, color, "pipSpireCore" .. angle, "ADD")
 	s.core:SetAllPoints(s)
-	local grow = s.gate:CreateAnimationGroup()
-	local scale = grow:CreateAnimation("Scale")
+	s.ignite = s.gate:CreateAnimationGroup()
+	local scale = s.ignite:CreateAnimation("Scale")
 	scale:SetScaleFrom(1, 0.1)
 	scale:SetScaleTo(1, 1)
 	scale:SetOrigin("BOTTOM", 0, 0)
 	scale:SetDuration(IGNITE)
 	scale:SetSmoothing("OUT")
-	s.ignite = grow
 	s.flareGate = CreateFrame("Frame", nil, s)
 	s.flareGate:SetAllPoints(s)
 	s.flareGate:SetFrameLevel(s.gate:GetFrameLevel() + 3)
 	s.flare = CreateFrame("Frame", nil, s.flareGate)
 	s.flare:SetAllPoints(s)
-	s.flareArt = Art(s.flare, "ARTWORK", "glow", "totemCore", "ADD")
-	s.flareArt:SetAllPoints(s.flare)
+	Art(s.flare, "ARTWORK", "pipSpireCore" .. angle, "totemCore", "ADD"):SetAllPoints(s.flare)
 	Fade(s.flare, 0, 1, FLARE_RISE)
 	Fade(s.flare, 1, 0, FLARE_FALL, 2)
 	s.flare.anim:SetScript("OnFinished", function() s.flare:Hide() end)
 	s.flare:Hide()
 	s.rim = Art(s.gate, "OVERLAY", "medSlotChecked", color, "ADD")
 	return s
-end
-
-local function SetSpireAngle(s, angle, size)
-	for key, kind in pairs({ steel = "Steel", flareArt = "Core" }) do
-		s[key]:SetTexture((Tokens.Texture("pipSpire" .. kind .. angle)))
-	end
-	for key, kind in pairs({ lit = "", core = "Core", glow = "Glow" }) do
-		s[key]:SetStatusBarTexture((Tokens.Texture("pipSpire" .. kind .. angle)))
-		if s[key].blend then s[key]:GetStatusBarTexture():SetBlendMode(s[key].blend) end
-	end
-	s:SetSize(size, size)
-	s.glow:ClearAllPoints()
-	s.glow:SetPoint("CENTER", s, "CENTER", 0, 0)
-	s.glow:SetSize(size * HALO, size * HALO)
 end
 
 local function PaintSpire(b, moving)
@@ -193,7 +176,7 @@ local function PaintSpire(b, moving)
 	s.flare.anim:Stop()
 	s.flare:Hide()
 	s.ignite:Stop()
-	if moving then
+	if moving and (IsSecret(have) or have == true) then
 		Gate(s.flareGate, have)
 		s.flare:Show()
 		s.flare.anim:Play()
@@ -202,27 +185,23 @@ local function PaintSpire(b, moving)
 end
 
 local function PaintSocket(b)
-	local api, slot = C_ActionBar, b.action
-	local has = slot ~= nil and ns.SlotValid(slot) and Flag(api.HasAction(slot), true)
+	local api, slot = C_ActionBar, b.slot
+	local action = slot ~= nil and ns.SlotValid(slot) and api.HasAction(slot)
+	local has = IsSecret(action) or action == true or action == 1
 	b.hasAction = has
-	b:SetIcon(has and api.GetActionTexture(slot) or nil)
-	b.rune:SetShown(not has)
-	local duration = has and type(api.GetActionCooldownDuration) == "function" and api.GetActionCooldownDuration(slot)
-	if duration then
-		local info = type(api.GetActionCooldown) == "function" and api.GetActionCooldown(slot)
-		b:SetCooldownFromDuration(duration, type(info) == "table" and Flag(info.isOnGCD, false))
+	if has then
+		b:SetIcon(api.GetActionTexture(slot))
 	else
-		b:ClearCooldown()
+		b:SetIcon(nil)
 	end
-	local usable, noMana = true, false
-	if has and type(api.IsUsableAction) == "function" then usable, noMana = api.IsUsableAction(slot) end
-	usable, noMana = Flag(usable, true), Flag(noMana, false)
-	b.lacksPower = not usable and noMana
-	b:SetUsable(usable or noMana)
-	ns.Button.ApplyTint(b)
+	b.rune:SetShown(not has)
 	local kind, id
 	if has and type(GetActionInfo) == "function" then kind, id = GetActionInfo(slot) end
 	local chosen = not IsSecret(kind) and kind == "spell" and not IsSecret(id) and id or nil
+	if chosen ~= b.chosen then b.gcd = nil end
+	b.chosen = chosen
+	ns.Button.UpdateCooldown(b)
+	ns.Button.UpdateUsable(b)
 	for _, f in ipairs(b.fan.buttons) do
 		f:SetSelected(chosen ~= nil and f:GetAttribute("spell") == chosen)
 	end
@@ -236,21 +215,13 @@ local function PaintMedals()
 		wolf.icon:SetTexture(texture)
 		Gate(wolf.spirit, active)
 	end
-	if state.call then
-		state.call.icon:SetTexture(C_Spell and type(C_Spell.GetSpellTexture) == "function" and C_Spell.GetSpellTexture(CALL) or nil)
+	if state.call and state.call.known then
+		state.call.icon:SetTexture(C_Spell and type(C_Spell.GetSpellTexture) == "function" and C_Spell.GetSpellTexture(state.call.known) or nil)
 	end
-end
-
-local function PaintAll()
-	for _, b in ipairs(state.sockets) do
-		PaintSocket(b)
-		PaintSpire(b, false)
-	end
-	PaintMedals()
 end
 
 local function SocketTooltip(tip, b)
-	local _, id = GetActionInfo(b.action)
+	local _, id = GetActionInfo(b.slot)
 	local name = b.hasAction and not IsSecret(id) and C_Spell and type(C_Spell.GetSpellName) == "function" and C_Spell.GetSpellName(id)
 	tip:AddTitle(type(name) == "string" and name or b.element.label)
 	tip:AddLine(L["Left click: drop this totem"])
@@ -263,30 +234,22 @@ local function FanTooltip(tip, f)
 	tip:AddTitle(type(name) == "string" and name or L["No totem"])
 end
 
-local function Fan(header, b)
-	local fan = CreateFrame("Frame", nil, header, "SecureHandlerBaseTemplate")
-	fan:SetFrameStrata("HIGH")
-	fan:Hide()
-	fan.buttons = {}
-	for n = 1, FAN_MAX do
-		local f = Widgets.Slot(fan, { template = "SecureActionButtonTemplate", size = FAN, silent = true })
-		f.kind = "totem"
-		f:RegisterForClicks("AnyUp")
-		f:SetAttribute("useOnKeyDown", false)
-		f:SetAttribute("type", "multispell")
-		SecureHandlerWrapScript(f, "OnClick", fan, [[ return nil, true ]], [[ control:Hide() ]])
-		Widgets.AttachTooltip(f, FanTooltip, "ANCHOR_TOP")
-		f.shade = Art(f, "BACKGROUND", "glow", "black")
-		f.shade:SetPoint("CENTER", f, "CENTER", 0, 0)
-		f.shade:SetAlpha(0.85)
-		if n == 1 then
-			f.rune = Art(f.overlay, "OVERLAY", "totemRune" .. b.element.name, "totem" .. b.element.name)
-			f.rune:SetAllPoints(f.icon)
-		end
-		fan.buttons[n] = ns.Socket.Decorate(f)
+local function Choice(fan, e, first)
+	local f = Widgets.Slot(fan, { template = "SecureActionButtonTemplate", size = FAN, silent = true })
+	f.kind = "totem"
+	f:RegisterForClicks("AnyUp")
+	f:SetAttribute("useOnKeyDown", false)
+	f:SetAttribute("type", "multispell")
+	SecureHandlerWrapScript(f, "OnClick", fan, [[ return nil, true ]], [[ control:Hide() ]])
+	Widgets.AttachTooltip(f, FanTooltip, "ANCHOR_TOP")
+	f.shade = Art(f, "BACKGROUND", "glow", "black")
+	f.shade:SetPoint("CENTER", f, "CENTER", 0, 0)
+	f.shade:SetAlpha(0.85)
+	if first then
+		f.rune = Art(f.overlay, "OVERLAY", "totemRune" .. e.name, "totem" .. e.name)
+		f.rune:SetAllPoints(f.icon)
 	end
-	SecureHandlerWrapScript(b, "OnClick", fan, OPEN)
-	return fan
+	return ns.Socket.Decorate(f)
 end
 
 local function Socket(header, i, e)
@@ -294,14 +257,17 @@ local function Socket(header, i, e)
 	b.kind, b.element = "totem", e
 	b:RegisterForClicks("AnyUp")
 	b:SetAttribute("useOnKeyDown", false)
-	b:SetAttribute("type", "action")
-	b:SetAttribute("type2", "destroytotem")
+	b:SetAttribute("*type2", "destroytotem")
 	b:SetAttribute("totem-slot", e.slot)
 	b.rune = Art(b.overlay, "OVERLAY", "totemRune" .. e.name, "totem" .. e.name)
 	b.rune:SetAllPoints(b.icon)
 	b.rune:SetAlpha(0.55)
 	b.tab = Art(b, "OVERLAY", "dot", "totem" .. e.name)
-	b.fan = Fan(header, b)
+	b.fan = CreateFrame("Frame", nil, header, "SecureHandlerBaseTemplate")
+	b.fan:SetFrameStrata("HIGH")
+	b.fan:Hide()
+	b.fan.buttons = {}
+	SecureHandlerWrapScript(b, "OnClick", b.fan, OPEN)
 	b.spire = Spire(header, e)
 	Widgets.AttachTooltip(b, SocketTooltip, "ANCHOR_TOP")
 	return ns.Socket.Decorate(b)
@@ -318,16 +284,11 @@ local function Medal(header, name, tooltip)
 	mask:SetTexture((Tokens.Texture("dot")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 	mask:SetAllPoints(m.icon)
 	m.icon:AddMaskTexture(mask)
-	m.enamel = Art(m, "OVERLAY", "medEnamel", "steel")
-	m.ring = Art(m, "OVERLAY", "medRing", "white")
-	m.spirit = CreateFrame("Frame", nil, m)
-	m.spirit:SetAllPoints(m)
-	Art(m.spirit, "OVERLAY", "medEnamel", "totemSpirit", "ADD"):SetAllPoints(m.spirit)
-	m.spirit:Hide()
+	Art(m, "OVERLAY", "medEnamel", "steel"):SetAllPoints(m)
+	Art(m, "OVERLAY", "medRing", "white"):SetAllPoints(m)
 	local hover = Art(m, "HIGHLIGHT", "glow", "white", "ADD")
 	hover:SetAllPoints(m)
 	hover:SetAlpha(0.35)
-	for _, t in ipairs({ m.enamel, m.ring }) do t:SetAllPoints(m) end
 	Widgets.AttachTooltip(m, tooltip, "ANCHOR_TOP")
 	return m
 end
@@ -350,35 +311,48 @@ local function Build()
 	for i, e in ipairs(ELEMENTS) do
 		state.sockets[i] = Socket(header, i, e)
 	end
+	for _, a in ipairs(state.sockets) do
+		for i, b in ipairs(state.sockets) do SecureHandlerSetFrameRef(a.fan, "fan" .. i, b.fan) end
+	end
 	state.call = Medal(header, "KstyleUI_TotemCall", CallTooltip)
-	state.call:SetAttribute("type", "spell")
 	state.call:SetAttribute("spell", CALL)
-	state.wolf = Medal(header, "KstyleUI_TotemWolf", WolfTooltip)
-	state.wolf:SetAttribute("type", "spell")
+	local wolf = Medal(header, "KstyleUI_TotemWolf", WolfTooltip)
+	wolf:SetAttribute("type", "spell")
+	wolf.spirit = CreateFrame("Frame", nil, wolf)
+	wolf.spirit:SetAllPoints(wolf)
+	Art(wolf.spirit, "OVERLAY", "medEnamel", "totemSpirit", "ADD"):SetAllPoints(wolf.spirit)
+	wolf.spirit:Hide()
+	state.wolf = wolf
 end
 
 local function Fill()
 	local base = (C_ActionBar.GetMultiCastBarIndex() - 1) * ns.BUTTONS_PER_PAGE
 	for _, b in ipairs(state.sockets) do
-		local slot, spells = b.element.slot, Spells(b.element.slot)
-		b.action, b.known = base + slot, #spells > 0
-		b:SetAttribute("action", b.action)
-		local count = min(FAN_MAX, #spells + 1)
+		local e, fan = b.element, b.fan
+		local spells = Spells(e.slot)
+		b.slot, b.known = base + e.slot, #spells > 0
+		b:SetAttribute("type", "action")
+		b:SetAttribute("action", b.slot)
+		local count = #spells + 1
+		for n = #fan.buttons + 1, count do fan.buttons[n] = Choice(fan, e, n == 1) end
 		local step = min(FAN_STEP, FAN_SPAN / max(1, count - 1))
-		b.fan.radius = (FAN + 4) / (2 * sin(rad(max(step, 1) / 2)))
-		for n, f in ipairs(b.fan.buttons) do
+		local half = (count - 1) * step / 2
+		local aim = deg(acos(RADIUS * cos(rad(e.angle)) / FAN_RADIUS))
+		local centre = max(90 - FAN_SPAN / 2 + half, min(90 + FAN_SPAN / 2 - half, aim))
+		for n, f in ipairs(fan.buttons) do
 			local spell = n == 1 and 0 or spells[n - 1]
-			f:SetAttribute("action", b.action)
+			f:SetAttribute("action", b.slot)
 			f:SetAttribute("spell", spell)
 			f:SetIcon(spell and spell ~= 0 and C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(spell) or nil)
-			f.angle = 90 + ((count - 1) / 2 - (n - 1)) * step
+			f.angle = centre + half - (n - 1) * step
 			f:SetShown(n <= count)
 		end
 	end
-	local recall = Known(RECALLS)
-	state.call:SetAttribute("type2", recall and "spell" or nil)
-	state.call:SetAttribute("spell2", recall)
-	state.call.known = Known({ CALL }) ~= nil
+	local call, recall = Known({ CALL }), Known(RECALLS)
+	state.call:SetAttribute("*type1", call and "spell")
+	state.call:SetAttribute("*type2", recall and "spell")
+	state.call:SetAttribute("*spell2", recall)
+	state.call.known = call or recall
 	local form, spell = Wolf()
 	state.wolf.form = form
 	state.wolf:SetAttribute("spell", spell)
@@ -403,28 +377,27 @@ local function Place()
 		local angle = b.element.angle
 		local x, y = RADIUS * cos(rad(angle)), RADIUS * sin(rad(angle))
 		Put(b, hub, x, y, SOCKET)
-		b.opts.size = SOCKET
 		b:Restyle()
 		ns.Slab.Dress(b)
-		local reach = half + SPIRE_LIFT + SPIRE / 2
-		SetSpireAngle(b.spire, angle, Widgets.Snap(b.spire, SPIRE))
+		local reach, size = half + SPIRE_LIFT + SPIRE / 2, Widgets.Snap(b.spire, SPIRE)
+		b.spire:SetSize(size, size)
+		b.spire.glow:SetSize(size * HALO, size * HALO)
 		Put(b.spire, hub, x + reach * cos(rad(angle)), y + reach * sin(rad(angle)))
 		b.spire.rim:ClearAllPoints()
 		b.spire.rim:SetAllPoints(b)
 		b.tab:ClearAllPoints()
 		b.tab:SetPoint("TOP", b, "BOTTOM", 0, -1)
 		Widgets.Size(b.tab, SOCKET * 0.6, 3)
-		local fan = b.fan
-		Put(fan, b, 0, 0, 2 * fan.radius + FAN)
-		for _, f in ipairs(fan.buttons) do
-			Put(f, b, fan.radius * cos(rad(f.angle)), fan.radius * sin(rad(f.angle)), FAN)
-			f.opts.size = FAN
+		Put(b.fan, hub, 0, FAN_RADIUS - FAN_DROP - FAN)
+		Widgets.Size(b.fan, 2 * FAN_RADIUS * sin(rad(FAN_SPAN / 2)) + 2 * FAN, 3 * FAN)
+		for _, f in ipairs(b.fan.buttons) do
+			Put(f, hub, FAN_RADIUS * cos(rad(f.angle)), FAN_RADIUS * sin(rad(f.angle)) - FAN_DROP, FAN)
 			f:Restyle()
 			ns.Slab.Dress(f)
 			Widgets.Size(f.shade, FAN * 2.6, FAN * 2.6)
 		end
 	end
-	state.call:SetShown(state.call.known)
+	state.call:SetShown(state.call.known ~= nil)
 	state.wolf:SetShown(state.wolf.form ~= nil)
 	for side, m in pairs({ [-1] = state.wolf, [1] = state.call }) do
 		Put(m, hub, side * MEDAL_RADIUS * cos(rad(MEDAL_RISE)), MEDAL_RADIUS * sin(rad(MEDAL_RISE)), MEDAL)
@@ -453,9 +426,21 @@ end
 
 local function OnSlot(_, slot)
 	for _, b in ipairs(state.sockets) do
-		if IsSecret(slot) or slot == nil or slot == 0 or b.action == slot then
+		if IsSecret(slot) or slot == nil or slot == 0 or b.slot == slot then
 			PaintSocket(b)
 		end
+	end
+end
+
+local function OnCooldown(event)
+	for _, b in ipairs(state.sockets) do
+		ns.Button.UpdateCooldown(b, event == "SPELL_UPDATE_COOLDOWN")
+	end
+end
+
+local function OnUsable()
+	for _, b in ipairs(state.sockets) do
+		ns.Button.UpdateUsable(b)
 	end
 end
 
@@ -467,16 +452,13 @@ local function Listen(on)
 	if not on then return end
 	Events.Register(OWNER, "PLAYER_TOTEM_UPDATE", OnTotem)
 	Events.Register(OWNER, "ACTIONBAR_SLOT_CHANGED", OnSlot)
-	for _, event in ipairs({ "ACTIONBAR_UPDATE_COOLDOWN", "SPELL_UPDATE_COOLDOWN", "ACTIONBAR_UPDATE_USABLE" }) do
-		Events.Register(OWNER, event, OnSlot)
-	end
+	Events.Register(OWNER, "ACTIONBAR_UPDATE_COOLDOWN", OnCooldown)
+	Events.Register(OWNER, "SPELL_UPDATE_COOLDOWN", OnCooldown)
+	Events.Register(OWNER, "ACTIONBAR_UPDATE_USABLE", OnUsable)
 	for _, event in ipairs({ "UPDATE_SHAPESHIFT_FORM", "UPDATE_SHAPESHIFT_USABLE" }) do
 		Events.Register(OWNER, event, PaintMedals)
 	end
 	Events.Register(OWNER, "UPDATE_BINDINGS", Hotkeys)
-	for _, event in ipairs({ "UPDATE_MULTI_CAST_ACTIONBAR", "SPELLS_CHANGED", "UPDATE_SHAPESHIFT_FORMS", "PLAYER_ENTERING_WORLD" }) do
-		Events.Register(OWNER, event, Totems.Update)
-	end
 end
 
 local function Blizzard(on)
@@ -491,25 +473,35 @@ local function Apply()
 	local on, was = Wanted(), state.shown
 	state.shown = on
 	if not on then
-		if state.header then state.header:Hide() end
+		local header = state.header
+		if header then
+			UnregisterStateDriver(header, "visibility")
+			header:Hide()
+			for _, b in ipairs(state.sockets) do
+				b.fan:Hide()
+				b:SetAttribute("type", nil)
+			end
+			state.call:SetAttribute("*type1", nil)
+			state.call:SetAttribute("*type2", nil)
+		end
 		Listen(false)
 	else
 		if not state.header then Build() end
 		Fill()
 		Place()
-		state.header:Show()
+		RegisterStateDriver(state.header, "visibility", OVERRIDDEN)
 		Listen(true)
 		Hotkeys()
-		PaintAll()
+		for _, b in ipairs(state.sockets) do
+			PaintSocket(b)
+			PaintSpire(b, false)
+		end
+		PaintMedals()
 	end
 	Blizzard(on)
 	if on ~= (was == true) and ns.bars.stance then
 		ns.bars.stance:Apply()
 	end
-end
-
-function Totems.TakesStance()
-	return state.shown == true
 end
 
 function Totems.Update()
@@ -525,8 +517,12 @@ end
 function Totems.SetEnabled(on)
 	state.enabled = on
 	if ns.class ~= "SHAMAN" then return end
+	K.Events.UnregisterAll(LEARN)
 	if on then
 		K.Callbacks.Register("SettingChanged", OWNER, OnSetting)
+		for _, event in ipairs({ "UPDATE_MULTI_CAST_ACTIONBAR", "SPELLS_CHANGED", "UPDATE_SHAPESHIFT_FORMS", "PLAYER_ENTERING_WORLD" }) do
+			K.Events.Register(LEARN, event, Totems.Update)
+		end
 	else
 		K.Callbacks.Unregister("SettingChanged", OWNER)
 	end
