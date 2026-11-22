@@ -20,7 +20,8 @@ do
 	assert(line <= ns.Plate.DEFAULT_WIDTH, "a full row of " .. d.columns .. " fits the plate's width: " .. line .. " > " .. ns.Plate.DEFAULT_WIDTH)
 	local distant = d.size * ns.Settings.defaults.cvars.minScale
 	assert(distant >= MIN_DISTANT_ICON, "a far plate's debuffs still read at " .. MIN_DISTANT_ICON .. " units or more, not " .. distant)
-	assert(ns.Settings.Get("debuffs.size") == d.size and ns.Settings.Get("debuffs.textSize") == d.textSize, "a new profile reads the defaults")
+	local look = ns.Medallions.LOOK
+	assert(ns.Settings.Get("debuffs.size") == look["debuffs.size"] and ns.Settings.Get("debuffs.textSize") == look["debuffs.textSize"], "a new profile reads the Medallions look over the defaults")
 end
 
 -- The size slider has room above the default ------------------------------------------------------------
@@ -41,13 +42,13 @@ do
 	assert(text.min <= ns.Settings.defaults.debuffs.textSize and text.max > ns.Settings.defaults.debuffs.textSize, "the text size slider holds the default")
 end
 
--- A live plate draws the debuffs at the default size, with the text at the default size and outlined ------
+-- A live plate draws the debuffs at the Medallions size, with the text at the Medallions size and outlined ------
 
 do
 	local env, K, ns = N.New()
 	N.Add(env, "nameplate1")
 	local plate = ns.Plates.Get("nameplate1")
-	local d = ns.Settings.defaults.debuffs
+	local d = { size = ns.Medallions.LOOK["debuffs.size"], textSize = ns.Medallions.LOOK["debuffs.textSize"] }
 	local button = plate.auras._groups.debuffs.frames[1]
 	local w, h = button:GetSize()
 	assert(w == d.size and h == d.size, "the debuff button is " .. d.size .. " units square, not " .. w .. " by " .. h)

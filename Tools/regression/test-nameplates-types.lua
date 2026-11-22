@@ -72,7 +72,7 @@ do
 	local caster = ns.Plates.Get("nameplate1")
 	assert(barIs(caster.health, setting(ns, "types.casterColor")), "a caster's bar takes the optional caster colour")
 	local er, eg, eb = caster.level.rim:GetVertexColor()
-	assert(caster.rimWeight == 1 and SameColor(er, eg, eb, token(K, "gilt")), "the level diamond keeps its plain gilt rim: its rim carries rank, never the type colour")
+	assert(caster.rimWeight == 1 and SameColor(er, eg, eb, token(K, "steel")), "the level diamond keeps its plain steel rim: its rim carries rank, never the type colour")
 
 	N.Add(env, "nameplate2", { powerType = 0, powerMax = 0 })
 	assert(barIs(ns.Plates.Get("nameplate2").health, hr, hg, hb), "a melee mob with the mana type and no mana keeps the reaction colour")

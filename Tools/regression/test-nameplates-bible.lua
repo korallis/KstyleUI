@@ -166,7 +166,9 @@ for _, screen in ipairs(SCREENS) do
 	local _, _, _, rx = plate.raid:GetPoint(1)
 	assert(rx >= reach - 1e-6, where .. ": the raid marker starts beyond the right bracket")
 	local _, _, _, bx = plate.brackets.sides[2]:GetPoint(1)
-	assert(N.Same(bx + env.Look(plate.brackets.sides[2]:GetWidth()), reach), where .. ": the right bracket's outer edge is at its reach")
+	local tick = math.max(ns.Plate.Pixel(plate), K.Widgets.Snap(plate, 2))
+	assert(N.Same(bx, K.Widgets.Snap(plate, 3)) and N.Same(env.Look(plate.brackets.sides[2]:GetWidth()), tick), where .. ": the right Medallions tick is 2 units wide, 3 units off the bar")
+	assert(bx + tick <= reach + 1e-6, where .. ": the right tick stays inside the bracket's reach")
 	errors(env, K, where)
 end
 

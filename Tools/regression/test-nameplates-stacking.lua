@@ -46,6 +46,7 @@ do
 
 	-- A size change in combat waits.
 	local writes = #env._plateSizeWrites
+	local debuffSize = ns.Settings.Get("debuffs.size")
 	env.SetCombat(true)
 	K.Options.Write("Nameplates", "debuffs.size", 34)
 	assert(#env._plateSizeWrites == writes, "no write in combat: the API is restricted then")
@@ -53,7 +54,7 @@ do
 	assert(#env._plateSizeWrites == writes + 1, "the write runs when combat ends")
 	local auraWidth, taller = size(env)
 	assert(auraWidth > NAMED, "a wide aura row and its overflow chip grow the horizontal footprint too")
-	assert(taller > h and taller <= h + math.ceil(8 * ratio), "larger debuffs make a taller footprint, got " .. tostring(taller) .. " from " .. tostring(h))
+	assert(taller > h and taller <= h + math.ceil((34 - debuffSize) * ratio), "larger debuffs make a taller footprint, got " .. tostring(taller) .. " from " .. tostring(h))
 
 	-- Every row of debuffs counts, so a second row never runs into the plate above (the owner's rule).
 	K.Options.Write("Nameplates", "debuffs.rows", 3)
