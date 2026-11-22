@@ -1485,13 +1485,19 @@ local EVENTS = {
 	COOLDOWN_VIEWER_TABLE_HOTFIXED = Mirror.Schedule,
 }
 
+local function Restart()
+	if running then
+		Mirror.Stop()
+		Mirror.Start()
+	end
+end
+
 local function OnSetting(_, module, key)
 	if module ~= MODULE or not running then
 		return
 	end
 	if key == "path" then
-		Mirror.Stop()
-		Mirror.Start()
+		Restart()
 	else
 		ApplySettings(key)
 		if type(key) == "string" and key:find("trinkets$") then Mirror.Schedule() end
@@ -1511,13 +1517,6 @@ local function OnScale()
 	end
 end
 
-local function OnProfile()
-	if running then
-		Mirror.Stop()
-		Mirror.Start()
-	end
-end
-
 local function OnLayout(_, key)
 	for group, row in pairs(rows) do
 		if KEYS[group] == key then
@@ -1530,9 +1529,10 @@ end
 local viewerOff
 
 local function OnViewer(event, name)
-	if running and (event == "VARIABLES_LOADED" or name == "cooldownViewerEnabled") and Path.ViewerOff() ~= viewerOff then
-		Mirror.Stop()
-		Mirror.Start()
+	if (event == "VARIABLES_LOADED" or name == "cooldownViewerEnabled") and Path.ViewerOff() ~= viewerOff then
+		Reskin.quiet = event == "CVAR_UPDATE"
+		Restart()
+		Reskin.quiet = nil
 	end
 end
 
@@ -1558,6 +1558,7 @@ function Mirror.Start()
 		elseif path == "reskin" then
 			Native(group)
 		end
+		if rows[group] then K.Layout.SetLive(KEYS[group], path == "mirror") end
 	end
 	if mirrored then
 		for event, fn in pairs(EVENTS) do
@@ -1575,7 +1576,7 @@ function Mirror.Start()
 	K.Events.Register(MODULE, "CVAR_UPDATE", OnViewer)
 	K.Events.Register(MODULE, "VARIABLES_LOADED", OnViewer)
 	K.Callbacks.Register("SettingChanged", MODULE, OnSetting)
-	K.Callbacks.Register("ProfileChanged", MODULE, OnProfile)
+	K.Callbacks.Register("ProfileChanged", MODULE, Restart)
 	K.Callbacks.Register("ThemeChanged", MODULE, OnTheme)
 	K.Callbacks.Register("HudStyleChanged", MODULE, OnTheme)
 	K.Callbacks.Register("ScaleChanged", MODULE, OnScale)

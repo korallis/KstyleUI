@@ -280,7 +280,7 @@ end
 
 local function Hint()
 	local account = K.Store.Account()
-	if not account.cooldownViewerHinted and ns.Path.ViewerOff() then
+	if not (account.cooldownViewerHinted or Reskin.quiet) and ns.Path.ViewerOff() then
 		account.cooldownViewerHinted = true
 		ns.Log("Blizzard's Cooldown Manager is switched off, so the restyled viewers show nothing")
 		local path = K.Locale.Path(GAMEMENU_OPTIONS, "Options", SETTING_GROUP_GAMEPLAY, "Gameplay", ADVANCED_OPTIONS_LABEL, "Advanced Options")
