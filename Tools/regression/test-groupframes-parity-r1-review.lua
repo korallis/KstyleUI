@@ -130,6 +130,14 @@ do
 	assert(tiles() == 4, "every group restores the four tiles")
 
 	local tank = pane.partyFrames[1]
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	write(env, K, "auras.zoom", 0.2)
+	pane:Refresh()
+	assert(near((tank.sampleBoss.tile.icon:GetTexCoord()), 0.2), "the Frames boss sample takes the icon zoom")
+	write(env, K, "auras.zoom", 0.07)
+	K.Options.Write("HudStyle", "style", "medallions")
+	env.RunTimers()
 	write(env, K, "auras.magic", false)
 	pane:Refresh()
 	assert(tank.sampleAuras[1]:IsShown() and tank.sampleAuras[1].art:GetTexture() == 135848 and not tank.sampleAuras[2]:IsShown(),
