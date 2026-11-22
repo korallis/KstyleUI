@@ -11,17 +11,11 @@ local E = dofile("Tools/regression/native_menu_env.lua")
 
 local Native = {}
 
-Native.MATERIALS = { "Native", "Steel" }
-
 local ADDONS = { "Details!", "BugSack", "Plater", "WeakAuras", "Questie", "RestedXP" }
 
 function Native.Scene(name)
 	local material = os.getenv("RENDER_MATERIAL") or "Native"
-	local valid = false
-	for _, candidate in ipairs(Native.MATERIALS) do
-		valid = valid or candidate == material
-	end
-	assert(valid, "RENDER_MATERIAL must be one of " .. table.concat(Native.MATERIALS, ", ") .. ", not " .. material)
+	assert(material == "Native" or material == "Steel", "RENDER_MATERIAL must be one of Native, Steel, not " .. material)
 	local env, K, _, nm = E.New({
 		skin = material ~= "Native",
 		at = { 700, 330 },

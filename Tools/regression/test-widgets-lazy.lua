@@ -160,7 +160,7 @@ local function snapshot(owner, chrome, glow)
 	return out
 end
 
-local function exercise(lazy, style)
+local function exercise(lazy)
 	local env, K = W.New()
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
 	if lazy then parent:Hide() end
@@ -187,7 +187,7 @@ local function exercise(lazy, style)
 	return final
 end
 
-local function card(lazy, style)
+local function card(lazy)
 	local env, K = W.New({ setup = function(e)
 		e.CreateColor = function(r, g, b, a) return { r = r, g = g, b = b, a = a } end
 	end })
@@ -206,7 +206,7 @@ local function card(lazy, style)
 	owner:SetSize(260, 170)
 	chrome:SetHeader(35)
 	chrome:Restyle(); glow:Restyle()
-	if style == "medallions" then assert(chrome.bevel and chrome.headerSplit, "the card comparison must include the steel bevel and header") end
+	assert(chrome.bevel and chrome.headerSplit, "the card comparison must include the steel bevel and header")
 	assert(#env._errors == 0, table.concat(env._errors, "\n"))
 	return snapshot(owner, chrome, glow)
 end
@@ -233,10 +233,8 @@ for _, kind in ipairs({ "proc", "selection" }) do
 	same(firstGlow(false, kind), firstGlow(true, kind), kind .. " first Start before a later restyle")
 end
 
-for _, style in ipairs({ "medallions" }) do
-	same(exercise(false, style), exercise(true, style), style .. " slot")
-	same(card(false, style), card(true, style), style .. " card")
-end
+same(exercise(false), exercise(true), "medallions slot")
+same(card(false), card(true), "medallions card")
 
 do
 	local env, K = W.New()

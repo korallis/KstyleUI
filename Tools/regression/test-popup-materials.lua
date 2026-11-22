@@ -1,11 +1,11 @@
 -- test-popup-materials.lua: floating surfaces take the opaque Medallions steel, without changing embedded tiles, popup geometry or authored fills.
 local W = dofile("Tools/regression/widget_env.lua")
 
-local function Painted(K, chrome, material)
-	assert(chrome:Material() == K.Widgets.SteelMaterial(), material .. ": the popup takes the steel")
+local function Painted(K, chrome)
+	assert(chrome:Material() == K.Widgets.SteelMaterial(), "steel: the popup takes the steel")
 	local r, g, b = K.Widgets.Rgba("medCardFill")
 	for _, piece in ipairs(chrome.fill) do
-		assert(W.SameColor(piece, r, g, b, 1), material .. ": every popup fill piece is opaque steel")
+		assert(W.SameColor(piece, r, g, b, 1), "steel: every popup fill piece is opaque steel")
 	end
 	if chrome.shapeName == "tile" then
 		assert(chrome.line[1]:IsShown() and chrome.rim[1]:IsShown(), "tile popups retain the small legacy edge")
@@ -66,11 +66,11 @@ do
 	local tipSize, hostSize = Size(tip), Size(host)
 	local title = tip.used[1].left:GetText()
 	local buttonColor = { K.Tokens.Color("buttonFill") }
-	Painted(K, menu.chrome, "steel")
+	Painted(K, menu.chrome)
 	for _, opacity in ipairs({ 0.5, 0.75, 1 }) do
 		K.Options.Write("Widgets", "panelOpacity", opacity)
 		for _, chrome in ipairs({ menu.chrome, tip.chrome, host.chrome, popupPanel.chrome, backdrop.chrome, window.chrome }) do
-			Painted(K, chrome, "steel")
+			Painted(K, chrome)
 		end
 		assert(dropdown:IsOpen() and menu.owner == dropdown and menu:IsShown(), "an open menu repaints without closing")
 		SameSize(menu, menuSize)
@@ -99,7 +99,7 @@ do
 	end
 	K.Options.Write("Widgets", "panelOpacity", 0.75)
 	for _, chrome in ipairs({ menu.chrome, tip.chrome, host.chrome, popupPanel.chrome, backdrop.chrome, window.chrome }) do
-		Painted(K, chrome, "steel")
+		Painted(K, chrome)
 	end
 	assert(menu.chrome:Radius() == radius and menu.chrome.rim[1]:GetTexture() == edgeTexture)
 	SameSize(menu, menuSize)
@@ -110,10 +110,10 @@ do
 	assert(K.Store.SetProfile("Opaque popup"))
 	K.Options.Write("Widgets", "panelOpacity", 0.5)
 	assert(K.Store.SetProfile(original))
-	Painted(K, menu.chrome, "steel")
+	Painted(K, menu.chrome)
 	assert(K.Store.SetProfile("Opaque popup"))
 	for _, chrome in ipairs({ menu.chrome, tip.chrome, host.chrome, backdrop.chrome, window.chrome }) do
-		Painted(K, chrome, "steel")
+		Painted(K, chrome)
 	end
 	assert(dropdown:IsOpen() and menu.owner == dropdown)
 	SameSize(menu, menuSize)
@@ -135,7 +135,7 @@ do
 		local selected = picker:GetValue()
 		for _, opacity in ipairs({ 0.5, 0.75, 1 }) do
 			K.Options.Write("Widgets", "panelOpacity", opacity)
-			Painted(K, menu.chrome, "steel")
+			Painted(K, menu.chrome)
 			SameSize(menu, size)
 			assert(menu.owner == picker and picker:IsOpen() and picker:GetValue() == selected)
 			assert(W.SameColor(picker.chrome.fill[5], K.Tokens.Color("buttonFill")), "media picker controls remain buttonFill")
@@ -152,7 +152,7 @@ do
 			end
 		end
 		K.Options.Write("Widgets", "panelOpacity", 0.75)
-		Painted(K, menu.chrome, "steel")
+		Painted(K, menu.chrome)
 		SameSize(menu, size)
 		picker:Close()
 		W.Settle(env)
@@ -170,10 +170,10 @@ do
 		for _, alpha in ipairs({ 0, 0.15, 0.75, 1 }) do
 			local r, g, b = K.Tokens.Color("surface")
 			chrome:SetFillRGBA(r, g, b, alpha)
-			Painted(K, chrome, "steel")
+			Painted(K, chrome)
 		end
 		chrome:SetFill("surface", 0.25)
-		Painted(K, chrome, "steel")
+		Painted(K, chrome)
 		chrome:SetFillRGBA(K.Widgets.Rgba("hostile", 0.4))
 		assert(chrome:Material() == nil and W.SameColor(chrome.fill[5], K.Widgets.Rgba("hostile", 0.4)), "a popup's authored RGB and alpha are not replaced")
 		chrome:SetFill("buttonFill")
@@ -181,7 +181,7 @@ do
 		chrome:SetFill("surface")
 	end
 	card:SetFillRGBA(K.Widgets.Rgba("surface", 0.2))
-	Painted(K, card, "steel")
+	Painted(K, card)
 	local schema = K.Options.Get("Widgets")
 	local header
 	for _, row in ipairs(schema) do

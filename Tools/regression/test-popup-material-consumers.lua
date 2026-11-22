@@ -14,7 +14,7 @@ end
 local function Cycle(K, chromes, refresh)
 	for _, opacity in ipairs({ 0.5, 0.75, 1 }) do
 		K.Options.Write("Widgets", "panelOpacity", opacity)
-		if refresh then refresh() end
+		refresh()
 		Painted(K, chromes, opacity)
 	end
 	K.Options.Write("Widgets", "panelOpacity", 0.75)

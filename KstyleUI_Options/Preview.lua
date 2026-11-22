@@ -215,12 +215,10 @@ end
 
 local function Overflow(holder, frame)
 	local l, r, t, b
-	if frame.Reserve then
-		local cl, cr, ct, cb = Bounds(frame)
-		local root = Edge(K.Scale.Root():GetEffectiveScale())
-		if cl and Known(root) then
-			l, r, t, b = cl / root, cr / root, ct / root, cb / root
-		end
+	local cl, cr, ct, cb = Bounds(frame)
+	local root = Edge(K.Scale.Root():GetEffectiveScale())
+	if cl and Known(root) then
+		l, r, t, b = cl / root, cr / root, ct / root, cb / root
 	end
 	local hl, hr, ht, hb, f = Edge(holder:GetLeft()), Edge(holder:GetRight()), Edge(holder:GetTop()), Edge(holder:GetBottom()), Widgets.ScaleFactor(holder)
 	if not (l and hl and hr and ht and hb and Known(f)) then
@@ -228,100 +226,26 @@ local function Overflow(holder, frame)
 	end
 	hl, hr, ht, hb = hl * f, hr * f, ht * f, hb * f
 	local left, right, top, bottom = math.max(0, hl - l), math.max(0, r - hr), math.max(0, t - ht), math.max(0, hb - b)
-	local fit = math.min((hr - hl) / (math.max(r, hr) - math.min(l, hl)), (ht - hb) / (math.max(t, ht) - math.min(b, hb)))
-	return left, right, top, bottom, left + right + top + bottom < 0.5, fit
+	return left, right, top, bottom, left + right + top + bottom < 0.5
 end
 
 function Reserve(pane, frame)
+	if not frame.Reserve then
+		return
+	end
 	local holder = pane.holder
-	local left, right, top, bottom, fits, fit = Overflow(holder, frame)
+	local left, right, top, bottom, fits = Overflow(holder, frame)
 	if not left or fits then
 		return
 	end
-	if frame.Reserve then
-		for _ = 1, 6 do
-			local own = Widgets.ScaleFactor(frame)
-			if not Known(own) then
-				return
-			end
-			frame:Reserve(left / own, right / own, top / own, bottom / own)
-			left, right, top, bottom, fits = Overflow(holder, frame)
-			if not left or fits then
-				return
-			end
+	for _ = 1, 6 do
+		local own = Widgets.ScaleFactor(frame)
+		if not Known(own) then
+			return
 		end
-	else
-		local hi = frame:GetScale()
-		local lo = hi * fit * 0.98
-		for _ = 1, 4 do
-			Rescale(frame, lo)
-			left, _, _, _, fits, fit = Overflow(holder, frame)
-			if not left then
-				return
-			end
-			if fits then
-				break
-			end
-			hi, lo = lo, lo * fit * 0.98
-		end
-		for _ = 1, 5 do
-			local mid = (lo + hi) / 2
-			Rescale(frame, mid)
-			left, _, _, _, fits = Overflow(holder, frame)
-			if not left then
-				return
-			end
-			if fits then lo = mid else hi = mid end
-		end
-		Rescale(frame, lo)
-	end
-end
-
-local function Choose(pane, frame)
-	local _, body = pane.ruler:GetFont()
-	local bodyEff = Widgets.ScaleFactor(pane.ruler)
-	if not (Known(body) and Known(bodyEff)) then
-		return
-	end
-	local floor = body * bodyEff
-	local function drawn(i)
-		local name = frame:Name(i)
-		local _, size = name:GetFont()
-		local eff = Widgets.ScaleFactor(name)
-		return Known(size) and Known(eff) and size * eff or nil
-	end
-	local function good(i, scale)
-		Rescale(frame, scale)
-		local _, _, _, _, fits = Overflow(pane.holder, frame)
-		return fits and frame:Whole(i)
-	end
-	for i = 1, frame.choices do
-		frame:Choose(i)
-		local lo = MaxScale()
-		for _ = 1, 4 do
-			Rescale(frame, lo)
-			local size = drawn(i)
-			if not size then
-				return
-			end
-			if size >= floor and lo < MaxScale() then
-				break
-			end
-			lo = lo * floor / size * (size >= floor and 1 or 1.001)
-		end
-		local hi = math.max(MaxScale(), lo)
-		local ok = good(i, hi)
-		if not ok and good(i, lo) then
-			for _ = 1, 6 do
-				local mid = (lo + hi) / 2
-				if good(i, mid) then lo = mid else hi = mid end
-			end
-			ok = good(i, lo)
-		end
-		if ok or i == frame.choices then
-			if not ok then
-				Rescale(frame, lo)
-			end
+		frame:Reserve(left / own, right / own, top / own, bottom / own)
+		left, right, top, bottom, fits = Overflow(holder, frame)
+		if not left or fits then
 			return
 		end
 	end
@@ -362,24 +286,12 @@ local function Settle(pane)
 		MovePreview(frame, -frame.previewOffset)
 		frame.previewOffset = nil
 	end
-	local wide = frame.Choose ~= nil
-	if (pane.wide or false) ~= wide then
-		pane.wide = wide
-		pane:Place()
-	end
-	if frame.Choose and not wide then
-		frame:Choose(nil)
-	end
 	frame.reserve = nil
 	if frame.Refresh then
 		K.Call(frame.Refresh, frame)
 	end
 	Fit(pane, frame)
-	if wide then
-		Choose(pane, frame)
-	else
-		Reserve(pane, frame)
-	end
+	Reserve(pane, frame)
 	if frame.Reserve then FitLabels(frame) end
 	if not frame.sized and K.Store.Module("OptionsPresentation").preview then
 		local _, _, top = Bounds(frame)
@@ -474,7 +386,7 @@ function RefreshCurrent(pane)
 		return
 	end
 	local held = pane.held[frame]
-	local again = held and held.room == pane.room and held.wide == pane.wide
+	local again = held and held.room == pane.room
 	pane:Place(again and held.height or nil)
 	Settle(pane)
 	if again and math.abs(frame:GetScale() - held.scale) <= SCALE_SAME and Holds(pane, frame, held.height) then
@@ -485,7 +397,7 @@ function RefreshCurrent(pane)
 		Settle(pane)
 	end
 	local height = Snug(pane, frame)
-	pane.held[frame] = { room = pane.room, wide = pane.wide, height = height, scale = frame:GetScale() }
+	pane.held[frame] = { room = pane.room, height = height, scale = frame:GetScale() }
 end
 
 function Preview.Show(pane, page, section)
@@ -540,28 +452,25 @@ function Preview.Create(parent)
 	pane.holder:SetClipsChildren(true)
 	pane.built = {}
 	pane.held = {}
-	pane.ruler = Widgets.Text(pane, "body", "text")
-	pane.ruler:Hide()
 	pane.Place = function(self, holderHeight)
 		local pad = Widgets.WindowInset(self)
 		local gap = Widgets.Snap(self, Tokens.Size("gapMedium"))
-		local side = self.wide and pad or 0
 		self.caption:ClearAllPoints()
 		Widgets.Point(self.caption, "TOPLEFT", self, "TOPLEFT", pad, -pad)
 		Widgets.Point(self.caption, "TOPRIGHT", self, "TOPRIGHT", -pad, -pad)
 		self.holder:ClearAllPoints()
-		Widgets.Point(self.holder, "TOPLEFT", self.caption, "BOTTOMLEFT", -side, -gap)
+		Widgets.Point(self.holder, "TOPLEFT", self.caption, "BOTTOMLEFT", 0, -gap)
 		local width, height = self:GetWidth(), self.room or self:GetHeight()
 		if Known(width) and Known(height) then
 			local top = pad + self.caption:SetWrapWidth(math.max(1, width - 2 * pad)) + gap
 			local holder = math.max(1, math.min(holderHeight or math.huge, height - top - pad))
-			Widgets.Size(self.holder, math.max(1, width - 2 * (pad - side)), holder)
+			Widgets.Size(self.holder, math.max(1, width - 2 * pad), holder)
 			if self.room then
 				Widgets.Size(self, width, top + holder + pad)
 			end
 			return true
 		end
-		Widgets.Point(self.holder, "BOTTOMRIGHT", self, "BOTTOMRIGHT", -(pad - side), pad)
+		Widgets.Point(self.holder, "BOTTOMRIGHT", self, "BOTTOMRIGHT", -pad, pad)
 		return false
 	end
 	pane.SetRoom = function(self, width, height)
