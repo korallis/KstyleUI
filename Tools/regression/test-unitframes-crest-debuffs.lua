@@ -1,4 +1,4 @@
--- test-unitframes-crest-debuffs.lua: your target debuffs move into a bounded native-engine fan only under Medallions, including control effects and restricted combat updates.
+-- test-unitframes-crest-debuffs.lua: your target debuffs move into a bounded native-engine fan, including control effects and restricted combat updates.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local Engine = dofile("Tools/regression/aura_fixture_engine.lua")
 local Scene = dofile("Tools/render/scene.lua")
@@ -140,11 +140,6 @@ settings.target.crestDebuffs = true
 K.Callbacks.Fire("SettingChanged", "UnitFrames", "target.crestDebuffs", true)
 refresh()
 assert(fan.content._shown ~= false, "switching on restores the fan")
-for _, style in ipairs({ "orbs", "frames", "medallions" }) do
-	env.RunTimers()
-	refresh()
-	assert(fan.content._shown == (style == "medallions"), "only Medallions has a fan")
-end
 K.Modules.Disable("UnitFrames")
 for _, container in ipairs(fan.containers) do assert(container._enabled == false, "off modules stop every fan engine") end
 assert(#env._errors == 0 and K.ErrorCount() == 0, "no errors across the lifecycle")
@@ -153,7 +148,6 @@ assert(#env._errors == 0 and K.ErrorCount() == 0, "no errors across the lifecycl
 local Hud = dofile("Tools/render/scenes/hud.lua")
 for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 	rawset(_G, "RENDER_SCREEN", { width = screen[1], height = screen[2], size = "auto" })
-	rawset(_G, "RENDER_HUD_STYLE", "Medallions")
 	local entries = {}
 	for i = 1, 7 do entries[i] = { 135813, i * 3 .. "s" } end
 	local rendered, units = Hud.Module("unitframes", { class = "SHAMAN", layout = "DPS", applyPreset = true, targetAuras = entries, settings = { UnitFrames = { auraLayout = "fan" } } })
@@ -182,7 +176,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 	end
 end
 rawset(_G, "RENDER_SCREEN", nil)
-rawset(_G, "RENDER_HUD_STYLE", nil)
 
 -- An unsupported native sort is a construction failure, so the original target display must survive.
 local fallbackEnv, fallbackK, fallback = U.New({ before = function(game, core)
