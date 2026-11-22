@@ -353,7 +353,7 @@ ns.Locale.Add({
 	["An outline instead of the soft shadow, for busy backgrounds."] = "Ein Umriss statt des weichen Schattens, f\195\188r unruhige Hintergr\195\188nde.",
 	["An outline keeps text readable over the game world."] = "Ein Umriss h\195\164lt Text \195\188ber der Spielwelt lesbar.",
 	["Anchor"] = "Anker",
-	["Animated daggers for a rogue and claws for a druid. Off restores the plain pips."] = "Animierte Dolche f\195\188r Schurken und Krallen f\195\188r Druiden. Aus stellt die schlichten Punkte wieder her.",
+	["Animated class marks, from a rogue's daggers to a hunter's arrows. Off restores the plain pips."] = "Animierte Klassenzeichen, von Schurkendolchen bis zu J\195\164gerpfeilen. Aus stellt die schlichten Punkte wieder her.",
 	["Animation"] = "Animation",
 	["Announce instance resets"] = "Instanz-Zur\195\188cksetzung melden",
 	["Announcement lane"] = "Ansagebereich",

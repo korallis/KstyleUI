@@ -353,7 +353,7 @@ ns.Locale.Add({
 	["An outline instead of the soft shadow, for busy backgrounds."] = "Un contorno en lugar de la sombra suave, para fondos recargados.",
 	["An outline keeps text readable over the game world."] = "Un contorno mantiene el texto legible sobre el mundo del juego.",
 	["Anchor"] = "Anclaje",
-	["Animated daggers for a rogue and claws for a druid. Off restores the plain pips."] = "Dagas animadas para el p\195\173caro y garras para el druida. Desactivado restaura los puntos simples.",
+	["Animated class marks, from a rogue's daggers to a hunter's arrows. Off restores the plain pips."] = "Marcas de clase animadas, de las dagas del p\195\173caro a las flechas del cazador. Desactivado restaura los puntos simples.",
 	["Animation"] = "Animaci\195\179n",
 	["Announce instance resets"] = "Anunciar reinicios de instancia",
 	["Announcement lane"] = "Zona de anuncios",

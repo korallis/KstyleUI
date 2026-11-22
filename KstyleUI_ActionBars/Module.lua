@@ -188,6 +188,7 @@ end
 local function OnSpells()
 	ns.Flyout.QueueRefresh()
 	ns.SlabHawks.Recheck()
+	ns.SlabCrown.Update()
 end
 
 local function OnLearned(_, spellID)
