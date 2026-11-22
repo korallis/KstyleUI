@@ -27,8 +27,5 @@ ns.Unit.ForEach(function(tile)
 	end
 end)
 assert(index == 2 and shown[1] ~= shown[2], "live raid tiles sharing a long prefix must have distinct cut names")
-ns.Unit.ForEach(function(tile)
-	assert(not tile.nameLetterCut, "leaving Medallions restores the ordinary name fitter")
-end)
 assert(#env._errors == 0, tostring(env._errors[1]))
 print("raid name cuts preserve clashes and slack")

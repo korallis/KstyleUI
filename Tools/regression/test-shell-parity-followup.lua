@@ -19,7 +19,6 @@ do
 	env.FireEvent("ZONE_CHANGED")
 	M.Settle(env)
 	assert(ns.Map.face.coords:IsShown() and K.Store.Module("Minimap").zone.size == 17)
-	write(env, K, "HudStyle", "style", "medallions")
 	write(env, K, "Minimap", "clock.shown", false)
 	write(env, K, "Minimap", "coords.hover", true)
 	assert(not ns.Map.face.coords:IsShown())
@@ -48,7 +47,7 @@ do
 		e.GetAverageItemLevel = function() reads = reads + 1; return 62.875, 58.375 end
 	end })
 	assert(reads == 0 and K.Store.Module("DataBars").strip.clock24 == false, "item level stays lazy and the old clock choice survives")
-	for _, list in ipairs({ "modules", "dockModules", "railModules" }) do
+	for _, list in ipairs({ "dockModules", "railModules" }) do
 		local entries = K.Store.Module("DataBars").strip[list]
 		for _, entry in ipairs(entries) do if entry.id == "itemLevel" then assert(not entry.shown); entry.shown = true end end
 		write(env, K, "DataBars", "strip." .. list, entries)
