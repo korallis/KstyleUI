@@ -1,4 +1,4 @@
--- test-unitframes-parity-r5-review.lua: the round 5 review's probes: the global cooldown fill over a cast's fade and after a second instant with a secret time left, one cooldown read per spell, a secret name anchor, the spell target matching the name's type, the plate's detached power text on the bar's strata and back on a slab, buffs kept with the debuffs until their block exists, buff offsets only for a block, one enable per apply, and the preview's slab cooldown, detached bar room and per-group aura capacity.
+-- test-unitframes-parity-r5-review.lua: the round 5 review's probes: the global cooldown fill over a cast's fade and after a second instant with a secret time left, one cooldown read per spell, a secret name anchor, the spell target matching the name's type, the plate's and Frames column's detached power text on the bar's strata and back on a slab, buffs kept with the debuffs until their block exists, Frames' wide bar's right buffs, buff offsets only for a block, one enable per apply, and the preview's slab and column cooldown, detached bar room and per-group aura capacity.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -19,6 +19,11 @@ local env, K, ns = U.New({
 
 local function set(key, value)
 	K.Options.Write("UnitFrames", key, value)
+	env.RunTimers()
+end
+
+local function hud(style)
+	K.Options.Write("HudStyle", "style", style)
 	env.RunTimers()
 end
 
@@ -132,6 +137,17 @@ set("player.powerDetach", "")
 assert(pv.powerText:GetParent() == pv.top and pv.powerFillClip:GetParent() == pv.top and pv.powerFillClip:GetFrameLevel() == pv.top:GetFrameLevel() + 1, "in the frame the text and clip go home")
 set("player.powerDetachStrata", "")
 set("player.style", "lumen")
+hud("frames")
+set("player.powerDetach", "BELOW")
+set("player.powerDetachStrata", "HIGH")
+assert(pv.power:GetFrameStrata() == "HIGH" and pv.powerText:GetParent():GetFrameStrata() == "HIGH", "the Frames column's detached text draws on the bar's strata")
+hud("medallions")
+assert(pv.form == "slab" and pv.power:GetFrameStrata() == pv.power:GetParent():GetFrameStrata() and pv.powerText:GetParent() == pv.top, "a Medallions slab inherits again")
+hud("frames")
+assert(pv.power:GetFrameStrata() == "HIGH" and pv.powerText:GetParent():GetFrameStrata() == "HIGH", "back on Frames it is raised again")
+set("player.powerDetach", "")
+set("player.powerDetachStrata", "")
+hud("medallions")
 clean("detached power")
 
 -- 5 and 9c. Until the buff block exists the buffs keep their own line under the debuffs; its offsets show only for a block.
@@ -170,6 +186,22 @@ set("focus.auraBuffPlace", "")
 set("focus.auraFilter", "mine")
 clean("buffs apart")
 
+-- 6. Frames' wide target bar's debuffs sit centred below, so Right is a side of their own and Below is theirs.
+hud("frames")
+local tv = ns.Frames.Get("target").views[1]
+set("edit", "target")
+set("target.style", "bar")
+set("target.auraFilter", "both")
+set("target.auraBuffPlace", "RIGHT")
+assert(tv.geometry.aura.centred and tv.auras.buff and W.LastCall(tv.auras.buff.host, "SetPoint")[3] == "TOPRIGHT", "right buffs get their own block")
+set("target.auraBuffPlace", "BELOW")
+assert(not tv.auras.buff and not row("target.auraBuffX").showWhen(db), "below stays with the centred debuffs")
+set("target.auraBuffPlace", "")
+set("target.auraFilter", "mine")
+set("target.style", "column")
+hud("medallions")
+clean("wide bar")
+
 -- 7. The preview: the slab cooldown, the detached bar inside its pane and each aura group's own capacity.
 set("edit", "player")
 local pane = ns.Preview.Build(env.UIParent)
@@ -179,6 +211,14 @@ assert(ns.Settings.Form("player") == "slab" and pane.casts.player.frame:IsShown(
 set("player.castbarGcd", false)
 pane:Refresh()
 assert(not pane.casts.player.frame:IsShown(), "off, the slab preview has no cast bar again")
+hud("frames")
+set("player.castbarGcd", true)
+pane:Refresh()
+assert(ns.Settings.Form("player") == "column" and pane.casts.player.frame:IsShown(), "the Frames column preview shows the cooldown fill")
+set("player.castbarGcd", false)
+pane:Refresh()
+assert(not pane.casts.player.frame:IsShown(), "off, the column preview has no cast bar again")
+hud("medallions")
 set("player.style", "plate")
 set("player.powerDetach", "BELOW")
 set("player.powerDetachWidth", 600)
