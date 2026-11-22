@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor, huge = string.format, string.sub, math.floor, math.huge
 
-Store.DB_VERSION = 45
+Store.DB_VERSION = 46
 Store.migrations = {}
 
 Store.migrations[38] = function(data)
@@ -1007,8 +1007,7 @@ Store.migrations[44] = function(data)
 	end
 end
 
-local RETIRED = { ActionBars = { "useTray", "tray", "trayColumn" }, UnitFrames = { "orbGlass", "orbLedge", "orbCastRoom" }, CombatText = { "fieldDistance" },
-	Widgets = { "ornaments", "cardMaterial" }, OptionsPresentation = { "samples" } }
+local RETIRED = { ActionBars = { "useTray", "tray", "trayColumn" }, UnitFrames = { "orbGlass", "orbLedge", "orbCastRoom" }, CombatText = { "fieldDistance" } }
 local RETIRED_UNIT = { "castbarIconRight", "castbarIconSize", "castbarIconX", "castbarIconY", "castbarInside" }
 
 local function Table(value)
@@ -1028,11 +1027,6 @@ Store.migrations[45] = function(data, live)
 			local hud = type(profile.HudStyle) == "table" and profile.HudStyle.style
 			moved = moved or hud ~= "medallions"
 			profile.HudStyle = nil
-			if Table(profile.Widgets).cardMaterial == "Glass" then
-				profile.Skins = Table(profile.Skins)
-				profile.Skins.contextMenus = Table(profile.Skins.contextMenus)
-				profile.Skins.contextMenus.enabled = false
-			end
 			for module, keys in pairs(RETIRED) do
 				local section = Table(profile[module])
 				for _, key in ipairs(keys) do section[key] = nil end
@@ -1051,6 +1045,11 @@ Store.migrations[45] = function(data, live)
 					if unit.style ~= nil and unit.style ~= "plate" and unit.style ~= slab then unit.style = nil end
 				end
 			end
+			if Table(profile.Widgets).cardMaterial == "Glass" then
+				profile.Skins = Table(profile.Skins)
+				profile.Skins.contextMenus = Table(profile.Skins.contextMenus)
+				profile.Skins.contextMenus.enabled = false
+			end
 		end
 	end
 	for _, layout in pairs(data.layouts) do
@@ -1060,6 +1059,15 @@ Store.migrations[45] = function(data, live)
 		DropStyledPositions(positions)
 	end
 	if moved and live then ns.Print(L["KstyleUI is now Medallions only; your HUD moved to Medallions."]) end
+end
+
+Store.migrations[46] = function(data)
+	for _, profile in pairs(data.profiles) do
+		if type(profile) == "table" then
+			local widgets, options = Table(profile.Widgets), Table(profile.OptionsPresentation)
+			widgets.ornaments, widgets.cardMaterial, options.samples = nil, nil, nil
+		end
+	end
 end
 
 local PREFIX = "KSUI1:"

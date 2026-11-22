@@ -35,7 +35,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		for name, profile in pairs(env.KstyleUIDB.profiles) do
 			assert(profile.Skins.restedXP.boxes == true, what .. ": migration restores docking for profile " .. name)
 		end
-		assert(K.Store.DB_VERSION == 45 and env.KstyleUIDB.version == 45, what .. ": migration reaches version 45")
+		assert(env.KstyleUIDB.version == K.Store.DB_VERSION, what .. ": migration reaches the current version")
 		assert(env.KstyleUIDB.profiles.Other.Skins.restedXP.compose == false, what .. ": migration preserves other settings")
 		local function Docked()
 			assert(ns.Skins.Setting("restedXP", "boxes"), what .. ": a stationary click must not disable docking")
