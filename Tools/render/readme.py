@@ -39,7 +39,7 @@ HUD = dict(HD, **COMBAT)
 
 RENDERS = {
     "hud_1080": ("hud_reference", 1.0, HUD, "--strict"),
-    "frames_1080": ("hud_reference", 1.0, dict(HUD, RENDER_HUD_STYLE="Frames"), "--strict"),
+    "frames_1080": ("hud_reference", 1.0, dict(HUD, RENDER_HUD_STYLE="Frames", RENDER_ORNAMENTS="Full"), "--strict"),
     "groupframes": ("gallery_groupframes", 2.0, {}, "--strict"),
 }
 

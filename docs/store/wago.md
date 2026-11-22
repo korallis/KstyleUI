@@ -57,7 +57,7 @@ Every picture below is a test render of the addon over my own in-game screenshot
 
 ![KstyleUI test render over an in-game screenshot of the Frames look on a 1920 by 1080 screen: the target's card stacked over the player's above the action bars](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_hud_frames_1080.jpg)
 
-*If the crest isn't your thing, Frames is the other look: big plain cards for you and your target, same forged style.*
+*If the crest isn't your thing, Frames is the other look: big plain cards for you and your target, same forged style. Pick it in the setup, or switch any time under HUD style on the General page of `/kstyle`.*
 
 ![KstyleUI test render over an in-game screenshot of the raid frames: twenty tiles with missing health, debuffs, a dead and an offline member](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frame_raid.jpg)
 
@@ -68,7 +68,7 @@ There's a lot more in there than fits here: nameplates, a damage and threat mete
 ## Install
 
 1. Install it with the CurseForge app, the Wago app or WowUp. By hand, unzip it into `World of Warcraft/_forever_/Interface/AddOns`.
-2. Log in, pick DPS, Tank or Healer in the setup window, then click **Apply** and **Reload**.
+2. Log in, pick Medallions or Frames and then DPS, Tank or Healer in the setup window, then click **Apply** and **Reload**.
 3. `/kstyle` opens the settings, `/kstyle layout` lets you move stuff and `/kb` binds your keys.
 
 The icon pack is optional and isn't an addon, so it's only on [GitHub](https://github.com/korallis/KstyleUI/releases/latest). The [icon pack guide](https://github.com/korallis/KstyleUI/blob/main/docs/icons.md) has the steps.
