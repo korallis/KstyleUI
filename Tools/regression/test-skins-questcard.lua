@@ -402,6 +402,23 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 	end
 end
 
+-- Under Frames the quest card holds the story slot itself, under the map and the aura rows, with the guide or without.
+for _, withGuide in ipairs({ false, true }) do
+	local env, K, ns = Boot({ screen = OWNER, quests = Quests.List(15, 5), rxp = withGuide })
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	local Layouts = K.Setup.Layouts
+	local rw, rh = K.Layout.RootSize()
+	local slot = Layouts.Slot("DPS", rh)
+	local sl, _, sr, st = Layouts.Rect(slot, slot, rw, rh)
+	local card = RootRect(K, ns.Quests.Card())
+	local px = K.Scale.Pixel(1) + 0.01
+	local what = "Frames" .. (withGuide and " with the guide" or " without the guide")
+	assert(math.abs(card.left - sl) <= px and math.abs(card.right - sr) <= px, what .. ": the quest card holds the story slot, got " .. card.left .. ".." .. card.right .. " for " .. sl .. ".." .. sr)
+	assert(math.abs(card.top - st) <= px, what .. ": at the slot's top, got " .. card.top .. " for " .. st)
+	assert(#env._errors == 0 and K.ErrorCount() == 0, what .. ": " .. tostring(env._errors[1]))
+end
+
 -- Item buttons: a quest's item is a secure item button set out of combat; in combat nothing protected changes on
 -- it, whatever happens to the quests, and the changes land when combat ends ------------------------------------------
 

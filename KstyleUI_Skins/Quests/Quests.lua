@@ -114,8 +114,9 @@ local function Place()
 		return
 	end
 	holder:SetSize(spec.width, spec.height)
-	if state.guide ~= guide or state.shown ~= shown then
-		state.guide, state.shown = guide, shown
+	local style = K.HudStyle.Current()
+	if state.guide ~= guide or state.shown ~= shown or state.style ~= style then
+		state.guide, state.shown, state.style = guide, shown, style
 		Register(spec)
 	end
 	Card.Place(holder, 0, spec.height, spec.width, spec.height)
