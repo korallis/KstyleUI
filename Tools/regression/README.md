@@ -283,7 +283,7 @@ LuaJIT `-joff` prints `not budgeted` for CPU; memory and hangs remain checked. T
 
 ### Allowance inputs
 
-These worst observed Mac CPU values include calibration runs, full run 43953802560, and the latest merged-staging run 43972698741. The 16-second inclusion threshold and 25% allowance apply to all rows; LEE-5827 owns reducing them. The pixel-grid matrix runs as 28 parts of under 16 CPU seconds each, so they carry no allowance.
+These worst observed Mac CPU values include calibration runs, full run 43953802560, and the latest merged-staging run 43972698741. The 16-second inclusion threshold and 25% allowance apply to all rows; LEE-5827 owns reducing them. The pixel-grid matrix runs as 32 parts of under 16 CPU seconds each, so they carry no allowance.
 
 | File | Worst Mac CPU s | Allowance s | Source |
 | --- | ---: | ---: | --- |
