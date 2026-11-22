@@ -1,5 +1,8 @@
--- test-minimap.lua: the Medallions minimap: off until enabled, its Layout element, the round mask, the caption on its plaques, the buttons at rest, the hover group, the Blizzard pieces it hides, wheel zoom, coordinates, the migration from the lens card, the accent and turning it off.
+-- test-minimap.lua: the Medallions minimap: off until enabled, its Layout element, the round mask, the caption on its plaques, the buttons at rest, the hover group, the Blizzard pieces it hides, wheel zoom, coordinates, the migration from the lens card, the accent and turning it off; given "frames" it checks the Frames HUD style's square map on its forged card.
+local isFrames = ... == "frames"
+local SHAPE = isFrames and "square" or "round"
 local M = dofile("Tools/regression/minimap_env.lua")
+if isFrames then M = dofile("Tools/regression/frames_lib.lua")(M) end
 local W = M.W
 
 local function NoErrors(env, what)
@@ -84,25 +87,101 @@ assert(env._zoom == 2 and (env._zoomCalls or 0) == 0, "fitting the map leaves th
 local Format = ns.Format
 assert(W.Near(face.mapArea:GetWidth(), holder:GetWidth()) and W.Near(face.mapArea:GetHeight(), holder:GetHeight()), "the map fills the element")
 assert(W.Near(mw, 208, 0.5), "the map is the element, 208 units: " .. tostring(mw))
+if isFrames then
+	-- The card: the map is the element, seated in a forged card 3 units wider on every side, under the map. The card's
+	-- frame is the kit's forged nine-slice and its corners the kit's forged brackets, drawn over the map's corners so
+	-- they read whole; a dark pixel line edges the map and a soft dark fall-off sits inside it.
+	assert(face.rim == nil and face.ornament == nil and face.plaqueOrnament == nil, "no gilt rim and no forged ornament pieces: the card's brackets are the only ornament")
+	local card = face.card
+	assert(card:GetFrameLevel() < minimap:GetFrameLevel() and card:GetFrameLevel() > holder:GetFrameLevel(), "the card lies under the map")
+	assert(W.Near(card:GetWidth(), 208 + 2 * Format.FRAME, 1) and W.Near(card:GetHeight(), 208 + 2 * Format.FRAME, 1), "the card is 3 units wider than the map on every side: " .. tostring(card:GetWidth()))
+	local cardPoint, cardRel, cardRelPoint, cardX, cardY = card:GetPoint(1)
+	assert(cardPoint == "TOPLEFT" and cardRel == face.mapArea and cardRelPoint == "TOPLEFT" and W.Near(cardX, -Format.FRAME) and W.Near(cardY, Format.FRAME), "centred on the map")
+	assert(Format.FRAME == K.Setup.Layouts.MAP_FRAME, "the layouts set the map in by the card's frame, so the card's edge, not the square's, stands on the card margin (KSTY-60 item 28)")
+	do
+		local Geometry = dofile("Tools/regression/geometry.lua")
+		local root = K.Scale.Root()
+		local cardBox = assert(Geometry.ScaledRect(card, env.UIParent, root))
+		local rootBox = assert(Geometry.ScaledRect(root, env.UIParent, root))
+		assert(W.Near(rootBox.right - cardBox.right, K.Tokens.Size("screenMargin") + 4, 0.5), "the card reserves four units inside the margin for the caption, got " .. tostring(rootBox.right - cardBox.right))
+	end
+	assert(W.SameRGB(face.fill, K.Tokens.Color("materialForged")) and face.fill:IsShown(), "its fill is the forged iron")
+	local pixel = K.Widgets.Border(face.mapArea)
+	local frameSlice
+	for name, slice in pairs(face.frames) do
+		if slice[1]:IsShown() then
+			frameSlice = name
+		end
+	end
+	assert(frameSlice and frameSlice:find("^forgedFrame") and face.frames[frameSlice][1]:GetParent() == card, "its frame is the kit's forged nine-slice: " .. tostring(frameSlice))
+	for i, corner in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
+		local bracket = face.brackets[i]
+		for _, arm in ipairs({ bracket.across, bracket.down }) do
+			local point, relative = arm:GetPoint(1)
+			assert(arm:IsShown() and point == corner and relative == card, "a gilt bracket arm on the card's " .. corner .. " corner")
+			assert(W.SameRGB(arm, K.Tokens.Color("gilt")), "in the kit's gilt, as the mock-up's brackets")
+			assert(arm:GetParent() == face.overlay, "over the map, so the map does not cover it")
+		end
+		assert(W.Near(bracket.across:GetWidth(), 8, 1) and W.Near(bracket.across:GetHeight(), 2 * pixel, 1e-6), "the arm across is 8 units long and two physical pixels thick")
+		assert(W.Near(bracket.down:GetHeight(), 8, 1) and W.Near(bracket.down:GetWidth(), 2 * pixel, 1e-6), "and so is the arm down")
+	end
+	for _, edge in ipairs({ "top", "bottom", "left", "right" }) do
+		local shade = face.shade[edge]
+		assert(shade and shade:IsShown() and W.SameRGB(shade, K.Tokens.Color("black")), "a dark line edges the map's " .. edge)
+		local thickness = (edge == "top" or edge == "bottom") and shade:GetHeight() or shade:GetWidth()
+		assert(W.Near(thickness, pixel, 1e-6), "one physical pixel thick")
+		assert(face.vignette[edge]:GetParent() == face.overlay, "and a soft dark fall-off lies inside the " .. edge .. " edge")
+	end
+	local sp, srel, _, sx, sy = face.shade.top:GetPoint(1)
+	assert(sp == "TOPLEFT" and srel == face.mapArea and sx == 0 and sy == 0, "the dark line sits on the map's own edge")
+end
 -- The round mask: the Medallions ring's mask on the Minimap frame and on the face's own mask (the preview's terrain).
 local mask = face.mask
-local roundMask = ns.Face.MaskPath()
-assert(mask and W.LastCall(mask, "SetTexture")[1] == roundMask, "the face owns a mask texture with the round mask")
+local mapMask = isFrames and (K.Tokens.Texture("minimapMask")) or ns.Face.MaskPath()
+assert(mask and W.LastCall(mask, "SetTexture")[1] == mapMask, "the face owns a mask texture with the " .. SHAPE .. " mask")
 assert(LastArg(mask, "SetAllPoints") == face.mapArea, "the mask covers the map square")
-assert(LastArg(minimap, "SetMaskTexture") == roundMask, "the minimap wears the round mask")
--- The zone in capitals above the card on its plaque; the coordinates and the clock on the row plaque under the ring,
--- at its left and right ends (the plaques' 6-unit pad). The texts stand on the world, so they take an outline and the
--- kit's shadow (the world layer).
-local row = face.plaques[2]
-local zp1, zrel1, zrelp1, zx, zy = face.zone:GetPoint(1)
-assert(zp1 == "LEFT" and zrel1 == face.card and zrelp1 == "TOPLEFT" and W.Near(zx, Format.CAPTION_X + 6, 1) and zy >= Format.ZONE_CENTER, "the zone name stands above the card on its plaque, a pad in: " .. tostring(zx) .. ", " .. tostring(zy))
-assert(Format.ZONE_CENTER - Format.FRAME > Format.NORTH / 2, "clear of the north badge")
-assert(W.LastCall(face.zone, "SetJustifyH")[1] == "CENTER", "and centred on its plaque")
-assert(W.Near(face.zone:GetWidth(), 208 + 2 * Format.FRAME - 2 * (Format.CAPTION_X + 6), 1), "its width is the card's less the pads, so a long name truncates")
-local cp1, crel1, crelp1, cx1, cy1 = face.coords:GetPoint(1)
-assert(cp1 == "LEFT" and crel1 == row and crelp1 == "LEFT" and W.Near(cx1, 6, 1) and W.Near(cy1, 0, 1), "the coordinates sit on the row plaque under the ring, at its left")
-local kp1, krel1, krelp1, _, ky1 = face.clock:GetPoint(1)
-assert(kp1 == "RIGHT" and krel1 == row and krelp1 == "RIGHT" and W.Near(ky1, 0, 1), "the clock sits at the row plaque's right end, on the coordinates' line")
+assert(LastArg(minimap, "SetMaskTexture") == mapMask, "the minimap wears the " .. SHAPE .. " mask")
+local plate = face.plate
+if isFrames then
+	-- The N plate: the mock-up's small diamond, gilt-edged dark iron with a black outer edge, centred on the map's top
+	-- edge, with a gilt-lit N in the number face.
+	assert(plate and W.Near(plate:GetWidth(), Format.NORTH, 1) and W.Near(plate:GetHeight(), Format.NORTH, 1), "the north plate is " .. Format.NORTH .. " units across: " .. tostring(plate and plate:GetWidth()))
+	local pp, prel, prelp, px, py = plate:GetPoint(1)
+	assert(pp == "CENTER" and prel == face.mapArea and prelp == "TOP" and px == 0 and py == 0, "centred on the middle of the map's top edge")
+	local diamond = plate.diamond
+	assert(diamond and W.LastCall(diamond.gilt, "SetTexture")[1] == (K.Tokens.Texture("diamond")), "a diamond")
+	assert(W.SameRGB(diamond.gilt, K.Tokens.Color("gilt")) and W.SameRGB(diamond.fill, K.Tokens.Color("materialForged")) and W.SameRGB(diamond.black, K.Tokens.Color("black")), "gilt-edged forged iron with a black edge")
+	assert(diamond.black:GetWidth() > diamond.gilt:GetWidth() and diamond.gilt:GetWidth() > diamond.fill:GetWidth(), "nested from the black edge in")
+	assert(face.north:GetText() == K.L["N"] and face.north:GetParent() == plate, "its letter is the N the locale gives")
+	assert(TextIs(face.north, K.Tokens.Color("giltLit")), "in lit gilt")
+	assert(select(1, face.north:GetFont()) == (K.Tokens.Font("number")), "in the number face")
+	assert(plate:GetFrameLevel() > face.overlay:GetFrameLevel(), "the plate lies over the map's edge")
+	-- The zone in capitals above the card, from its left edge; the coordinates and the clock under it, at its left and
+	-- right edges. The texts stand on the world, so they take an outline and the kit's shadow (the world layer).
+	local zp1, zrel1, zrelp1, zx, zy = face.zone:GetPoint(1)
+	assert(zp1 == "LEFT" and zrel1 == face.card and zrelp1 == "TOPLEFT" and W.Near(zx, Format.CAPTION_X, 1) and W.Near(zy, Format.ZONE_CENTER, 1), "the zone name stands above the card from its left edge: " .. tostring(zx) .. ", " .. tostring(zy))
+	assert(Format.ZONE_CENTER - Format.FRAME > Format.NORTH / 2, "clear of the north diamond")
+	assert(W.LastCall(face.zone, "SetJustifyH")[1] == "LEFT", "and reads from the left")
+	assert(W.Near(face.zone:GetWidth(), 208 + 2 * Format.FRAME - 2 * Format.CAPTION_X, 1), "its width is the card's, so a long name truncates")
+	local cp1, crel1, crelp1, cx1, cy1 = face.coords:GetPoint(1)
+	assert(cp1 == "LEFT" and crel1 == face.card and crelp1 == "BOTTOMLEFT" and W.Near(cx1, Format.CAPTION_X, 1) and W.Near(cy1, -Format.ROW_CENTER, 1), "the coordinates sit under the card, at the left")
+	local kp1, krel1, krelp1, _, ky1 = face.clock:GetPoint(1)
+	assert(kp1 == "RIGHT" and krel1 == face.card and krelp1 == "BOTTOMRIGHT" and W.Near(ky1, -Format.ROW_CENTER, 1), "the clock sits under the card's right edge, on the coordinates' line")
+else
+	-- The zone in capitals above the card on its plaque; the coordinates and the clock on the row plaque under the ring,
+	-- at its left and right ends (the plaques' 6-unit pad). The texts stand on the world, so they take an outline and the
+	-- kit's shadow (the world layer).
+	local row = face.plaques[2]
+	local zp1, zrel1, zrelp1, zx, zy = face.zone:GetPoint(1)
+	assert(zp1 == "LEFT" and zrel1 == face.card and zrelp1 == "TOPLEFT" and W.Near(zx, Format.CAPTION_X + 6, 1) and zy >= Format.ZONE_CENTER, "the zone name stands above the card on its plaque, a pad in: " .. tostring(zx) .. ", " .. tostring(zy))
+	assert(Format.ZONE_CENTER - Format.FRAME > Format.NORTH / 2, "clear of the north badge")
+	assert(W.LastCall(face.zone, "SetJustifyH")[1] == "CENTER", "and centred on its plaque")
+	assert(W.Near(face.zone:GetWidth(), 208 + 2 * Format.FRAME - 2 * (Format.CAPTION_X + 6), 1), "its width is the card's less the pads, so a long name truncates")
+	local cp1, crel1, crelp1, cx1, cy1 = face.coords:GetPoint(1)
+	assert(cp1 == "LEFT" and crel1 == row and crelp1 == "LEFT" and W.Near(cx1, 6, 1) and W.Near(cy1, 0, 1), "the coordinates sit on the row plaque under the ring, at its left")
+	local kp1, krel1, krelp1, _, ky1 = face.clock:GetPoint(1)
+	assert(kp1 == "RIGHT" and krel1 == row and krelp1 == "RIGHT" and W.Near(ky1, 0, 1), "the clock sits at the row plaque's right end, on the coordinates' line")
+end
 assert(W.LastCall(face.clock, "SetJustifyH")[1] == "RIGHT", "reading from the right")
 assert(face.zone:GetParent() == face.caption and face.caption:GetFrameLevel() > 100, "the caption lies over the map and the hybrid map")
 local _, zoneSize = face.zone:GetFont()
@@ -115,7 +194,7 @@ for _, text in ipairs({ face.zone, face.clock, face.coords }) do
 	local shadow = W.LastCall(text, "SetShadowOffset")
 	assert(shadow and shadow[1] > 0 and shadow[2] < 0, "and the kit's shadow under it")
 end
-assert(TextIs(face.zone, K.Widgets.Rgba("giltLit")), "the zone is giltLit's Medallions steel")
+assert(TextIs(face.zone, (isFrames and K.Tokens.Color or K.Widgets.Rgba)("giltLit")), isFrames and "the zone is lit gilt, as the mock-up draws it" or "the zone is giltLit's Medallions steel")
 assert(select(1, face.clock:GetFont()) == (K.Tokens.Font("time")), "the clock reads in the time role")
 assert(select(1, face.coords:GetFont()) == (K.Tokens.Font("number")), "the coordinates read in the number face")
 assert(TextIs(face.coords, K.Tokens.Color("text")), "the coordinates are the light text colour")
@@ -244,23 +323,28 @@ K.Options.Write("Minimap", "zoom.slider", false)
 assert(not zoom:IsShown(), "the slider can be turned off")
 K.Options.Write("Minimap", "zoom.slider", true)
 assert(zoom:IsShown(), "and on again")
-assert(LastArg(minimap, "SetMaskTexture") == roundMask, "the minimap uses the round mask")
+assert(LastArg(minimap, "SetMaskTexture") == mapMask, isFrames and "the minimap uses the chamfered square mask" or "the minimap uses the round mask")
 for _, method in ipairs({ "SetArchBlobRingScalar", "SetQuestBlobRingScalar", "SetTaskBlobRingScalar" }) do
 	assert(LastArg(minimap, method) == 0, method .. "(0) drops the round blob ring, which would cut across a square map's corners")
 end
 for _, frame in ipairs({ env.MinimapCluster, env.MinimapBackdrop, minimap.ZoomIn, minimap.ZoomOut, minimap.ZoomHitArea }) do
 	assert(K.Safe.IsHidden(frame), "Blizzard's cluster, border and zoom buttons are hidden through Safe")
 end
-assert(env.GetMinimapShape and env.GetMinimapShape() == "ROUND", "minimap button libraries see a round map")
+assert(env.GetMinimapShape and env.GetMinimapShape() == (isFrames and "SQUARE" or "ROUND"), "minimap button libraries see a " .. SHAPE .. " map")
 
 env.MinimapCluster.UpdateMinimapConfig()
-assert(LastArg(minimap, "SetMaskTexture") == roundMask, "a Blizzard minimap refresh keeps the round mask")
+assert(LastArg(minimap, "SetMaskTexture") == mapMask, "a Blizzard minimap refresh keeps the " .. SHAPE .. " mask")
 
 M.Resize(holder, 200, 200)
 mw, mh = face.mapArea:GetSize()
 assert(mw == mh and W.Near(mw, 200, 0.5), "a 200 element gives a 200 map: " .. tostring(mw))
-assert(W.Near(face.zone:GetWidth(), 200 + 2 * Format.FRAME - 2 * (Format.CAPTION_X + 6), 1), "and the zone name's room grows with the card")
-assert(W.Near(face.plate:GetWidth(), 16, 1) and select(3, face.plate:GetPoint(1)) == "TOP", "while the north badge keeps its 16 units on the top edge")
+if isFrames then
+	assert(W.Near(face.zone:GetWidth(), 200 + 2 * Format.FRAME - 2 * Format.CAPTION_X, 1), "and the zone name's room grows with the card")
+	assert(W.Near(face.plate:GetWidth(), Format.NORTH, 1) and select(3, face.plate:GetPoint(1)) == "TOP", "while the north plate keeps its size on the top edge")
+else
+	assert(W.Near(face.zone:GetWidth(), 200 + 2 * Format.FRAME - 2 * (Format.CAPTION_X + 6), 1), "and the zone name's room grows with the card")
+	assert(W.Near(face.plate:GetWidth(), 16, 1) and select(3, face.plate:GetPoint(1)) == "TOP", "while the north badge keeps its 16 units on the top edge")
+end
 Fits("resized")
 M.Resize(holder, 168, 166)
 Fits("shrunk")
@@ -269,7 +353,7 @@ M.Resize(holder, 188, 188)
 -- Wheel zoom ----------------------------------------------------------------------------------------
 
 local wheel = face.wheel
-assert(wheel and W.LastCall(wheel, "EnableMouseWheel")[1] == true, "a wheel catcher covers the map")
+assert(wheel and W.LastCall(wheel, "EnableMouseWheel")[1] == true, isFrames and "a wheel catcher covers the square map" or "a wheel catcher covers the map")
 env._zoom = 2
 M.Wheel(wheel, 1)
 assert(env._zoom == 3, "wheel up zooms in")
@@ -305,7 +389,7 @@ env.FireEvent("ZONE_CHANGED_NEW_AREA")
 assert(face.zone:GetText() == "FOR\195\138T D'\195\137LWYNN", "accented capitals: " .. tostring(face.zone:GetText()))
 env._zone.text = "Hall of Thanes"
 env.FireEvent("ZONE_CHANGED_NEW_AREA")
-assert(TextIs(face.zone, K.Widgets.Rgba("giltLit")), "plain zone text is giltLit's Medallions steel")
+assert(TextIs(face.zone, (isFrames and K.Tokens.Color or K.Widgets.Rgba)("giltLit")), isFrames and "plain zone text is lit gilt" or "plain zone text is giltLit's Medallions steel")
 env._zone.pvp = "hostile"
 K.Options.Write("Minimap", "zone.color", "pvp")
 local hr, hg, hb = K.Tokens.Color("hostile")
@@ -361,9 +445,14 @@ assert(K.Store.Defaults("Minimap").coords.shown == true, "coordinates are on by 
 assert(face.coords:GetText() == "45.3, 62.2", "coordinates show in tenths: " .. tostring(face.coords:GetText()))
 assert(face.coords:IsShown(), "and show")
 local xp, xrel, xrelp = face.coords:GetPoint(1)
-assert(xp == "LEFT" and xrel == face.plaques[2] and xrelp == "LEFT", "the coordinates sit on the row plaque, at the left")
 local cpoint, crel, crelp = face.clock:GetPoint(1)
-assert(cpoint == "RIGHT" and crel == face.plaques[2] and crelp == "RIGHT", "and the clock at the right")
+if isFrames then
+	assert(xp == "LEFT" and xrel == face.card and xrelp == "BOTTOMLEFT", "the coordinates sit under the card, at the left")
+	assert(cpoint == "RIGHT" and crel == face.card and crelp == "BOTTOMRIGHT", "and the clock at the right")
+else
+	assert(xp == "LEFT" and xrel == face.plaques[2] and xrelp == "LEFT", "the coordinates sit on the row plaque, at the left")
+	assert(cpoint == "RIGHT" and crel == face.plaques[2] and crelp == "RIGHT", "and the clock at the right")
+end
 assert(K.Store.Defaults("Minimap").coords.position == "", "the coordinates keep their usual place by default")
 K.Options.Write("Minimap", "coords.precision", 0)
 assert(face.coords:GetText() == "45, 62", "the coordinate format follows the setting")
@@ -424,7 +513,7 @@ assert(K.Store.Defaults("Minimap").compass == nil, "the north mark setting is go
 env._cvars.rotateMinimap = true
 env.FireEvent("CVAR_UPDATE", "rotateMinimap", "1")
 env.MinimapCluster.UpdateMinimapConfig()
-assert(LastArg(minimap, "SetMaskTexture") == roundMask, "a rotating map keeps the round mask")
+assert(LastArg(minimap, "SetMaskTexture") == mapMask, "a rotating map keeps the " .. SHAPE .. " mask")
 env._cvars.rotateMinimap = false
 env.FireEvent("CVAR_UPDATE", "rotateMinimap", "0")
 NoErrors(env, "rotation")
@@ -433,6 +522,7 @@ NoErrors(env, "rotation")
 -- BACKGROUND under that level and the overlay above it: the hybrid map draws between the map and the rim.
 
 K.Widgets.RestyleAll()
+if isFrames then assert(face.brackets[1].across:IsShown() and face.shade.top:IsShown(), "a restyle keeps the brackets and the map's edge") end
 assert(holder:GetFrameStrata() == "BACKGROUND", "the element sits on the BACKGROUND strata, where the hybrid map is fixed")
 assert(face.card:GetFrameLevel() < 100 and minimap:GetFrameLevel() < 100, "the card and the map sit under the hybrid map's fixed level 100")
 assert(face.overlay:GetFrameLevel() > 100 and face.wheel:GetFrameLevel() > face.reveal:GetFrameLevel(), "the overlay and the wheel catcher sit above it")
@@ -443,6 +533,7 @@ assert(W.SameRGB(zoom.fill, K.Theme.Accent()), "the zoom fill follows the class 
 K.Options.Write("Minimap", "accent.source", "custom")
 K.Options.Write("Minimap", "accent.color", { r = 1, g = 0, b = 0 })
 assert(W.SameRGB(zoom.fill, 1, 0, 0), "a custom accent colours the zoom fill")
+if isFrames then assert(W.SameRGB(plate.diamond.gilt, K.Tokens.Color("gilt")), "and leaves the north diamond alone") end
 K.Options.Write("Minimap", "accent.source", "class")
 assert(W.SameRGB(zoom.fill, K.Theme.Accent()), "the class colour comes back")
 
@@ -450,7 +541,7 @@ assert(W.SameRGB(zoom.fill, K.Theme.Accent()), "the class colour comes back")
 
 env.HybridMinimap = { CircleMask = env.CreateFrame("Frame", nil, env.UIParent):CreateMaskTexture() }
 env.FireEvent("ADDON_LOADED", "Blizzard_HybridMinimap")
-assert(LastArg(env.HybridMinimap.CircleMask, "SetTexture") == roundMask, "the hybrid minimap wears the round mask")
+assert(LastArg(env.HybridMinimap.CircleMask, "SetTexture") == mapMask, "the hybrid minimap wears the " .. SHAPE .. " mask")
 
 NoErrors(env, "enabled")
 
