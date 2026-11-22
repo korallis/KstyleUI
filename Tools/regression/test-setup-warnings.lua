@@ -12,8 +12,6 @@ local UPPER, MARGIN = 0.35, 28
 -- Your combat text is passing text like the warnings, so the warnings may cross it, as they cross the quest card
 -- (Captain, KSTY-64): it holds the centre beside the cast since the Frames quest column runs to the cluster top.
 local PASSING = { ["combattext.player"] = true }
--- At 16:9 and the shipped size every preset's warnings stand at the top of the band, beside the raid frames.
-local TOP = { ["1920x1080 shipped"] = true }
 local SCREENS = {
 	{ name = "default" },
 	{ name = "1920x1080 shipped", width = 1920, height = 1080, uiScale = 768 / 1080, size = "default" },
@@ -118,7 +116,7 @@ for _, screen in ipairs(SCREENS) do
 		end
 		assert(lane.t >= rh * (1 - UPPER), where .. ": the warnings sit in the upper band, their top " .. math.floor(rh - lane.t) .. " units under the screen's top of " .. rh)
 		assert(lane.t <= rh - MARGIN, where .. ": the warnings keep the top margin")
-		assert(not TOP[screen.name] or lane.t >= rh * 0.85 - 0.5, where .. ": the warnings stand at the top of the band, " .. math.floor(rh - lane.t) .. " units under the screen's top")
+		assert(screen.name ~= "1920x1080 shipped" or lane.t >= rh * 0.85 - 0.5, where .. ": at 16:9 and the shipped size the warnings stand at the top of the band, beside the raid frames, " .. math.floor(rh - lane.t) .. " units under the screen's top")
 		assert(#env._errors == 0, tostring(env._errors[1]))
 	end
 end

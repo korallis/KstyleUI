@@ -1444,8 +1444,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 		end
 		local styled = not GRIDS[key] and (Layouts.Aspect(class, "medallions", name, key) or Layouts.Style(name, key))
 		if styled and styled.width then
-			width, height, offsetX, offsetY = styled.width, styled.height, nil, nil
-			if key == "unitframes.boss" then width = width + Layouts.BOSS_AURAS end
+			width, height, offsetX, offsetY = styled.width + (key == "unitframes.boss" and Layouts.BOSS_AURAS or 0), styled.height, nil, nil
 		end
 		if key == "databars.strip" then
 			local dock = Layouts.DataBarDock(name, class)

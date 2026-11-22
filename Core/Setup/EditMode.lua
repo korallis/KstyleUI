@@ -125,7 +125,7 @@ local function Positions(name)
 end
 
 local function Box(name, key, rw, rh)
-	local position = Positions(name)[key]
+	local position = Layouts.Place(name, "medallions", ns.Scale.Aspect(), key, ns.Scale.Band())
 	local w, h, offsetX = Layouts.Footprint(name, key)
 	local styled = Layouts.Style(name, key)
 	if styled and styled.width then
@@ -593,7 +593,8 @@ local function Places(name, story, notes)
 			end
 		end
 		if not viewers then
-			viewers, told, chosen = Arrange(false, { "buffs", "bars" })
+			viewers, told, chosen = Arrange(false, { "bars", "buffs" })
+			table.sort(told, function(a, b) return a.group > b.group end)
 		end
 		for _, place in ipairs(viewers) do
 			places[#places + 1] = place
