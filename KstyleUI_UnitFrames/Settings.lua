@@ -319,6 +319,7 @@ Settings.CHOICES = {
 	}),
 	style = Options({ { "column", L["Column"] }, { "lumen", L["Vitals line"] }, { "plate", L["Plate"] } }),
 	styleLumen = Options({ { "lumen", L["Standard"] }, { "plate", L["Plate"] } }),
+	styleMedallions = Options({ { "column", L["Standard"] }, { "plate", L["Plate"] } }),
 	styleTarget = Options({ { "column", L["Column"] }, { "bar", L["Wide bar"] }, { "lumen", L["Sigil"] }, { "plate", L["Plate"] } }),
 	portraitStyle = Options({ { "portrait", L["Character portrait"] }, { "class", L["Class icon"] } }),
 	portraitShape = Options({ { "chamfered", L["Chamfered"] }, { "round", L["Round"] } }),
@@ -1328,7 +1329,10 @@ local function KindRows(schema, kind)
 	schema[#schema + 1] = Row(kind, {
 		type = "dropdown", key = "style", label = L["Style"],
 		help = STYLE_HELP[kind == "target" and "target" or Settings.COLUMN[kind] and "column" or Settings.FORMS[kind]],
-		options = kind == "target" and CHOICES.styleTarget or Settings.COLUMN[kind] and CHOICES.style or CHOICES.styleLumen,
+		options = function()
+			local column = K.HudStyle.Current() == "medallions" and CHOICES.styleMedallions or kind == "target" and CHOICES.styleTarget or CHOICES.style
+			return Settings.COLUMN[kind] and column or CHOICES.styleLumen
+		end,
 	})
 	if kind == "boss" then
 		schema[#schema + 1] = Row(kind, {
