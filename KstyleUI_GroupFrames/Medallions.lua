@@ -131,6 +131,8 @@ local function TidyParts(out, kind, o)
 	if heal then
 		heal.left = endName - heal.width
 		endName = heal.left - gap
+	else
+		count = math.max(0, math.min(count, math.floor((endName - name.left + 1) / (size + 1))))
 	end
 	local width = count > 0 and count * size + (count - 1) * 1 or 0
 	out.indicatorLane = { left = endName - width, top = top, width = width, height = size, size = size, count = count, step = size + 1, fromRight = true, legible = true }
