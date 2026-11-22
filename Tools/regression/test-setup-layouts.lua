@@ -277,8 +277,7 @@ for _, name in ipairs(names) do
 		-- The rails share their columns and width, the same on both sides.
 		for _, key in ipairs(LEFT_RAIL[name]) do
 			local r = rect(key)
-			-- 311, not the 318 rail: the pet and stance bars' slab plates reach its right edge at 1366 x 768.
-			assert(r.left == MARGIN and r.w == 311, label .. ": " .. key .. " sits on the left rail, 311 wide on the margin")
+			assert(r.left == MARGIN and r.w == RAIL, label .. ": " .. key .. " sits on the left rail, 318 wide on the margin")
 		end
 		for key, wantWidth in pairs(RIGHT_EDGE) do
 			local r = rect(key)
@@ -315,7 +314,7 @@ for _, name in ipairs(names) do
 		local margin = K.Tokens.Size("screenMargin")
 		assert(chat.bottom == margin and chat.left == margin and chat.w == CHAT_WIDTH[name] and chat.h == 186, label .. ": chat sits on the screenMargin token, " .. CHAT_WIDTH[name] .. " by 186, got " .. chat.w .. " by " .. tostring(chat.h))
 		local feed = rect("qol.lootfeed")
-		assert(feed.left == chat.left and feed.w == 311 and feed.bottom - chat.top == CARD_GAP_MIN, label .. ": the loot feed stands " .. CARD_GAP_MIN .. " over the chat card on its left edge, got " .. (feed.bottom - chat.top))
+		assert(feed.left == chat.left and feed.w == RAIL and feed.bottom - chat.top == CARD_GAP_MIN, label .. ": the loot feed stands " .. CARD_GAP_MIN .. " over the chat card on its left edge, got " .. (feed.bottom - chat.top))
 		for _, key in ipairs(KEYS) do
 			local r = rect(key)
 			if key ~= "chat.main" and r.bottom < chat.top + CARD_GAP_MIN and r.top > chat.bottom - CARD_GAP_MIN then
