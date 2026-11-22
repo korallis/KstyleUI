@@ -508,21 +508,36 @@ RANGES.auraRowGap, RANGES.auraPrecise = { 0, AURA_SPACING_MAX }, { 0, PRECISE_MA
 CHOICES.lane = Options({ { "", L["Show all"] }, { "only", L["Only these"] }, { "hide", L["Hide these"] } })
 CHOICE_OF.buffStealable, CHOICE_OF.buffDefensive, CHOICE_OF.buffDispellable = "lane", "lane", "lane"
 
-local SLAB_DEFAULTS = { target = { auraSize = 22, auraSpacing = 2, auraColumns = 6, auraGrowth = "LEFT_DOWN" } }
-local ROW_DEFAULTS = {
-	player = { auraPosition = "ABOVE", auraGrowth = "RIGHT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
-	target = { auraPosition = "ABOVE", auraGrowth = "LEFT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
+local LAYOUT_KEYS = {
+	rows = {
+		player = { auraPosition = "ABOVE", auraGrowth = "RIGHT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
+		target = { auraPosition = "ABOVE", auraGrowth = "LEFT_UP", auraSize = 28, auraSpacing = 2, auraColumns = 6, auraRows = 2 },
+	},
+	slab = { target = { auraSize = 22, auraSpacing = 2, auraColumns = 6, auraGrowth = "LEFT_DOWN" } },
 }
+local ROWS, SLAB = LAYOUT_KEYS.rows, LAYOUT_KEYS.slab
 
 local DERIVED = { auras = true, auraFilter = true, threatPercentPosition = true }
-for _, list in pairs({ SLAB_DEFAULTS, ROW_DEFAULTS }) do
-	for _, keys in pairs(list) do
-		for key in pairs(keys) do DERIVED[key] = true end
+Settings.LAYOUT_KEY = {}
+for layout, kinds in pairs(LAYOUT_KEYS) do
+	for kind, keys in pairs(kinds) do
+		for key, value in pairs(keys) do
+			local name = layout .. key:gsub("^a", "A")
+			Settings.defaults[kind][name], keys[key], DERIVED[key], Settings.LAYOUT_KEY[name] = value, name, true, true
+			RANGES[name], CHOICE_OF[name] = RANGES[key], CHOICE_OF[key]
+		end
 	end
 end
 
 function Settings.AuraRows(kind)
-	return ROW_DEFAULTS[kind] ~= nil and K.HudStyle.Current() == "medallions" and Settings.Module().auraLayout ~= "fan"
+	return ROWS[kind] ~= nil and K.HudStyle.Current() == "medallions" and Settings.Module().auraLayout ~= "fan"
+end
+
+function Settings.AuraKey(kind, key)
+	local rows, slab = ROWS[kind], SLAB[kind]
+	if not (rows and rows[key]) then return key end
+	if Settings.AuraRows(kind) and not (kind == "target" and key == "auraRows" and Settings.Value(kind, "auraFilter") == "both") then return rows[key] end
+	return slab and slab[key] and Settings.Form(kind) == "slab" and slab[key] or key
 end
 
 local AURA_LOOK = { auraSize = "simple", auraPosition = false, auraSpacing = true, auraRows = "simple", auraColumns = true,
@@ -543,20 +558,13 @@ end
 local function Value(kind, key)
 	if kind == "player" and (key == "auras" or key == "auraFilter") and Settings.AuraRows(kind) then key = key == "auras" and "medallionsAuras" or "medallionsAuraFilter" end
 	if key == "threatPercentPosition" and Settings.Form(kind) == "slab" then key = "slabThreatPercentPosition" end
+	key = Settings.AuraKey(kind, key)
 	local own, d = Kinds(kind)
 	local default = d[key]
 	if default == nil then
 		error("UnitFrames.Settings.Value: unknown setting " .. tostring(key), 2)
 	end
 	local value = own[key]
-	local rows = ROW_DEFAULTS[kind]
-	if rows and rows[key] ~= nil and (value == nil or value == default) and Settings.AuraRows(kind) then
-		return key == "auraRows" and kind == "target" and Value(kind, "auraFilter") == "both" and default or rows[key]
-	end
-	local slab = SLAB_DEFAULTS[kind] and SLAB_DEFAULTS[kind][key]
-	if slab ~= nil and (value == nil or value == default) and Settings.Form(kind) == "slab" then
-		return slab
-	end
 	if value == default or type(value) ~= type(default) then
 		return default
 	end
@@ -1149,12 +1157,21 @@ AuraRows = function(schema, kind)
 	local function own(s) return on() and (s.auraCopy == nil or s.auraCopy == "" or s.auraCopy == kind) end
 	local function placed(s) return on() and not simple(s) end
 	local function sized(s) return own(s) and not simple(s) end
+	local function Layouts(row, show)
+		local key = row.key
+		for _, name in ipairs({ key, ROWS[kind] and ROWS[kind][key], SLAB[kind] and SLAB[kind][key] }) do
+			local each = {}
+			for field, value in pairs(row) do each[field] = value end
+			each.key = name
+			schema[#schema + 1] = Row(kind, each, function(s) return Settings.AuraKey(kind, key) == name and show(s) end)
+		end
+	end
 	if kind == "boss" then
 		schema[#schema + 1] = Row(kind, { type = "dropdown", key = "auraSimple", label = L["Simple aura display"], options = CHOICES.auraSimple,
 			help = L["Large icons beside each boss frame, filling its height: one row, or one each for debuffs and buffs."] }, on)
 	end
 	FilterRows(schema, kind, on, own)
-	schema[#schema + 1] = Row(kind, {
+	Layouts({
 		type = "dropdown", key = "auraPosition", label = L["Aura position"],
 		help = L["Which side of the frame the auras sit on."], options = CHOICES.auraPosition,
 	}, placed)
@@ -1163,23 +1180,23 @@ AuraRows = function(schema, kind)
 	schema[#schema + 1] = Row(kind, { type = "dropdown", key = "auraBuffPlace", label = L["Buff position"], options = CHOICES.buffPlace,
 		help = L["With the debuffs, or in their own block on another side of the frame."] }, both)
 	Nudges(schema, kind, "auraBuff", L["Buffs"], function(s) return both(s) and ns.Auras.Apart(kind) end)
-	schema[#schema + 1] = Row(kind, {
+	Layouts({
 		type = "dropdown", key = "auraGrowth", label = L["Aura growth"],
 		help = L["Which way new aura icons are added."], options = CHOICES.auraGrowth,
 	}, own)
-	schema[#schema + 1] = Row(kind, {
+	Layouts({
 		type = "slider", key = "auraSize", label = L["Aura icon size"],
 		help = L["The size of each aura icon in units."], min = AURA_SIZE_MIN, max = AURA_SIZE_MAX, step = 1,
 	}, sized)
-	schema[#schema + 1] = Row(kind, {
+	Layouts({
 		type = "slider", key = "auraSpacing", label = L["Aura spacing"],
 		help = L["The gap between aura icons in units."], min = 0, max = AURA_SPACING_MAX, step = 1,
 	}, own)
-	schema[#schema + 1] = Row(kind, {
+	Layouts({
 		type = "slider", key = "auraRows", label = L["Aura rows"],
 		help = L["How many rows of each kind of aura show."], min = 1, max = AURA_ROWS_MAX, step = 1,
 	}, sized)
-	schema[#schema + 1] = Row(kind, {
+	Layouts({
 		type = "slider", key = "auraColumns", label = L["Aura columns"],
 		help = L["How many aura icons fit in a row."], min = 1, max = AURA_COLUMNS_MAX, step = 1,
 	}, own)

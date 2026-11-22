@@ -743,6 +743,7 @@ end
 -- Older(kind) -> the player's and target's settings before the column style became their default: the glass-texture
 -- bars, class and reaction colours, the sigil's centred sockets, the plain cast lines. The classic plate and Lumen
 -- tests pin these so they keep exercising the styles the column style left selectable.
+-- The target's aura values sit in the Medallions rows and fan keys too, as migration 48 copies them for an older profile.
 local GLASS = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\BarGlass.png"
 function U.Older(kind)
 	if kind == "player" then
@@ -752,6 +753,7 @@ function U.Older(kind)
 		return {
 			castbarCaps = false, castbarIcon = true, healthColor = "reaction", healthOrientation = "RIGHT", powerOrientation = "RIGHT",
 			healthTexture = GLASS, powerTexture = GLASS, auraSize = 28, auraColumns = 14, auraSpacing = 2, auraPosition = "CENTER",
+			rowsAuraSize = 28, rowsAuraColumns = 14, rowsAuraSpacing = 2, rowsAuraPosition = "CENTER", slabAuraSize = 28, slabAuraColumns = 14, slabAuraSpacing = 2,
 			fonts = { name = { size = 17 }, cast = { size = 13 } },
 		}
 	end

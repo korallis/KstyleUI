@@ -67,8 +67,8 @@ for _, view in ipairs({ target, focus, bosses[1] }) do
 	end
 end
 
--- The Medallions target rows hold the profile's fourteen 28-unit sockets twice over, above the frame: a row count at
--- its default of one reads the rows' two, so 28 of your debuffs show before the chip. The Frames sigil holds one row
+-- The Medallions target rows hold the profile's fourteen 28-unit sockets twice over, above the frame: the rows
+-- layout's own row count is two, so 28 of your debuffs show before the chip. The Frames sigil holds one row
 -- of fourteen, each timer in its own lane under the tile: two rows of 28 would need 60 units under the sigil, past the
 -- 52 the layouts keep there (round 4: Fable #3).
 if frames then
@@ -166,8 +166,8 @@ end
 
 do
 	-- The two-row case, as a player sets it: two rows of ten.
-	K.Options.Write("UnitFrames", "target.auraRows", 2)
-	K.Options.Write("UnitFrames", "target.auraColumns", 10)
+	K.Options.Write("UnitFrames", "target." .. Settings.AuraKey("target", "auraRows"), 2)
+	K.Options.Write("UnitFrames", "target." .. Settings.AuraKey("target", "auraColumns"), 10)
 	local a = target.auras
 	local chip = a.overflow.debuffs
 	assert(chip and chip.window:IsShown(), "the sigil's debuffs carry an overflow chip")
@@ -212,8 +212,8 @@ do
 	end
 	assert(chip.ghost._unit == "target" and chip.ghost._groups.count.filter == "HARMFUL|PLAYER", "it counts what the row shows")
 	assert(chip.ghost._line == 1, "one element per line, so its height is the count")
-	K.Options.Write("UnitFrames", "target.auraRows", 1)
-	K.Options.Write("UnitFrames", "target.auraColumns", 14)
+	K.Options.Write("UnitFrames", "target." .. Settings.AuraKey("target", "auraRows"), K.Options.Default("UnitFrames", "target." .. Settings.AuraKey("target", "auraRows")))
+	K.Options.Write("UnitFrames", "target." .. Settings.AuraKey("target", "auraColumns"), 14)
 end
 noErrors("chip")
 
@@ -354,14 +354,14 @@ do
 			end
 		end
 	end
-	K.Options.Write("UnitFrames", "target.auraColumns", 8)
+	K.Options.Write("UnitFrames", "target." .. Settings.AuraKey("target", "auraColumns"), 8)
 	K.Options.Write("UnitFrames", "boss.auraSize", 20)
 	K.Options.Write("UnitFrames", "focus.auraRows", 2)
 	env.FireEvent("PLAYER_TARGET_CHANGED")
 	env.RunTimers()
 	noErrors("no reads")
 	assert(target.auras.overflow.debuffs.ghost._groups.count.max == 8 * Settings.Value("target", "auraRows") + Overflow.LABELS, "a new cap reaches the counting container")
-	K.Options.Write("UnitFrames", "target.auraColumns", 14)
+	K.Options.Write("UnitFrames", "target." .. Settings.AuraKey("target", "auraColumns"), 14)
 	K.Options.Write("UnitFrames", "boss.auraSize", 22)
 	K.Options.Write("UnitFrames", "focus.auraRows", 1)
 end

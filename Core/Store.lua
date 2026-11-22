@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor, huge = string.format, string.sub, math.floor, math.huge
 
-Store.DB_VERSION = 47
+Store.DB_VERSION = 48
 Store.migrations = {}
 
 Store.migrations[38] = function(data)
@@ -1089,6 +1089,27 @@ Store.migrations[47] = function(data)
 	for _, profile in pairs(data.profiles) do
 		if type(profile) == "table" then
 			Table(Table(profile.Meters).threat).followGuide = nil
+		end
+	end
+end
+
+local AURA_BASE = {
+	player = { auraPosition = "BELOW", auraGrowth = "RIGHT_DOWN", auraSize = 22, auraSpacing = 2, auraColumns = 8, auraRows = 1 },
+	target = { auraPosition = "SIDE", auraGrowth = "RIGHT_DOWN", auraSize = 27.6, auraSpacing = 4, auraColumns = 4, auraRows = 1 },
+}
+local SLAB_AURA = { auraGrowth = true, auraSize = true, auraSpacing = true, auraColumns = true }
+
+Store.migrations[48] = function(data)
+	for _, profile in pairs(data.profiles) do
+		for kind, base in pairs(AURA_BASE) do
+			local unit = Table(Table(Table(profile).UnitFrames)[kind])
+			for key, default in pairs(base) do
+				local value, name = unit[key], key:gsub("^a", "A")
+				if value ~= nil and value ~= default then
+					if unit["rows" .. name] == nil then unit["rows" .. name] = value end
+					if kind == "target" and SLAB_AURA[key] and unit["slab" .. name] == nil then unit["slab" .. name] = value end
+				end
+			end
 		end
 	end
 end
