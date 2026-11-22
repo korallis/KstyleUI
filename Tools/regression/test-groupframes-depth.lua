@@ -1,5 +1,7 @@
--- test-groupframes-depth.lua: the round-2 healer depth: party debuffs inside the card, one dead state, short deficits, distinct short names, heal absorbs, the debuff priority list and glow, the indicator slots, the automatic layout, the click casting panel, the preview fixture and many auras kept inside the tile.
+-- test-groupframes-depth.lua: the round-2 healer depth: party debuffs inside the card, one dead state, short deficits, distinct short names, heal absorbs, the debuff priority list and glow, the indicator slots, the automatic layout, the click casting panel, the preview fixture and many auras kept inside the tile. test-groupframes-depth-frames.lua passes "frames" to check the same on Frames.
+local isFrames = ... == "frames"
 local G = dofile("Tools/regression/group_env.lua")
+if isFrames then dofile("Tools/regression/groupframes_frames.lua")(G) end
 local Looks = dofile("Tools/regression/group_looks.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
@@ -401,7 +403,7 @@ do
 	eq(slots.indicator3.filter, "HELPFUL|BIG_DEFENSIVE", "slot 3: big defensives")
 	eq(slots.indicator4.enabled, false, "slot 4 is off")
 	-- The tidy Medallions lane holds three indicators at fixed spots; off, each slot takes its own position.
-	Batch(env, K, { { "indicator4.category", "SPELLS" }, { "layout.tidyLanes", false } })
+	Batch(env, K, { { "indicator4.category", "SPELLS" }, not isFrames and { "layout.tidyLanes", false } or nil })
 	eq(slots.indicator4.enabled, false, "chosen spells with no IDs stay off")
 	Batch(env, K, { { "indicator4.spells", "774, 139 x" }, { "indicator4.mine", true }, { "indicator5.category", "BOSS" }, { "indicator1.position", "TOPRIGHT" } })
 	eq(slots.indicator4.enabled, true, "with IDs the slot turns on")
@@ -424,7 +426,7 @@ do
 	local plan = ns.Slots.Plan({ category = "HOTS", mine = true, spells = "" })
 	eq(plan.filter, "HELPFUL|PLAYER|RAID_IN_COMBAT", "your heals over time are already yours")
 	eq(ns.Slots.Plan({ category = "OFF" }), nil, "an off slot has no plan")
-	Batch(env, K, { { "layout.tidyLanes", true } })
+	if not isFrames then Batch(env, K, { { "layout.tidyLanes", true } }) end
 end
 
 -- Muse #4, Opus #7: the layout switches by raid size and role; a healer gets two dispellable debuffs first and three
@@ -562,7 +564,7 @@ local function ManyAuras(e, k8, nsx, f, box, what)
 	-- Your heals: more than fit, clipped along the bar with the same mark. A Medallions raid tile shows none of them.
 	local side, count, size, spacing = Auras.HealIcons(f, k)
 	local tile = { Scene.Rect(e, f) }
-	if f.kind == "raid" then
+	if f.kind == "raid" and not isFrames then
 		eq(count, 0, what .. ": a Medallions raid tile shows none of your heals")
 	else
 		local healPlaced = Flow(e, f.buffs, { "buffs" }, { buffs = 6 }, size + spacing, math.max(1, count))
@@ -620,7 +622,7 @@ eq(#env._errors, 0, tostring(env._errors[1]))
 -- The raid environment: the size switch out of combat, then many auras on a raid tile and the owner's extreme
 -- debuff settings.
 -- KSTY-57: the switch is checked on 50-unit rows (a size migration 29 leaves alone), which drop 3 units over 25 members (one off the name line, two
--- off the bar; the Medallions tile has no power line to drop).
+-- off the bar; the Medallions tile has no power line to drop; Frames drops 8, five with the power line).
 do
 	local renv, RK, rns = G.New({ saved = { version = 2, profiles = { Default = { GroupFrames = { raid = { height = 50 } } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} } })
 	G.SetRoster(renv, "raid", G.Members(20))
@@ -634,7 +636,7 @@ do
 	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 50, "and the size waits for combat to end")
 	renv.SetCombat(false)
 	renv.RunTimers()
-	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 47, "thirty members get compact frames after combat")
+	eq(rns.Headers.raid[1]._attributes["kstyle-height"], isFrames and 42 or 47, "thirty members get compact frames after combat")
 	Batch(renv, RK, { { "auto.size", false } })
 	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 50, "the switch can be turned off")
 	Batch(renv, RK, { { "raid.height", 40 } })

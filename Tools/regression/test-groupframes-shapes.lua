@@ -1,5 +1,7 @@
--- test-groupframes-shapes.lua: everything drawn on a group frame keeps the kit's rounded tile. The target highlight, the threat glow and the dispel highlight use the kit's rounded shape, outline and shadow textures, never a square colour box; debuff icons are the kit's rounded sockets, masked and sized in whole pixels; and their chrome waits while aura data is secret.
+-- test-groupframes-shapes.lua: everything drawn on a group frame keeps the kit's rounded tile. The target highlight, the threat glow and the dispel highlight use the kit's rounded shape, outline and shadow textures, never a square colour box; debuff icons are the kit's rounded sockets, masked and sized in whole pixels; and their chrome waits while aura data is secret. test-groupframes-shapes-frames.lua passes "frames" to check the same on Frames, where the target highlight takes the accent.
+local isFrames = ... == "frames"
 local G = dofile("Tools/regression/group_env.lua")
+if isFrames then dofile("Tools/regression/groupframes_frames.lua")(G) end
 local A = dofile("Tools/regression/auras_env.lua")
 
 local function eq(got, want, what)
@@ -109,7 +111,7 @@ local function color(texture)
 	return c and c[1], c and c[2], c and c[3], c and c[4]
 end
 
-local env, K, _, party, content = setup({ width = 2560, height = 1440 })
+local env, K, ns, party, content = setup({ width = 2560, height = 1440 })
 local px = K.Scale.Pixel(1)
 local function whole(units, what)
 	local pixels = units / px
@@ -118,7 +120,8 @@ end
 
 local tank, healer = content("party1"), content("party2")
 
--- The target highlight: the kit's tile bevel lines in the Medallions lit steel, faded in by the secret target flag.
+-- The target highlight: the kit's tile bevel lines in the Medallions lit steel (on Frames the accent), faded in by the
+-- secret target flag.
 env._target = true
 env.UnitIsUnit = function(a, b)
 	return env.Secret(a == "party2" and b == "target")
@@ -132,9 +135,12 @@ eq(runs, 8, "and four straight runs each, solid lines one border thick")
 eq(lines, 0, "with no straight pieces of its own")
 whole(K.Widgets.Border(healer.target), "a line's step")
 local ar, ag, ab = K.Tokens.Color("steelLit")
+if isFrames then
+	ar, ag, ab = ns.Style.Accent()
+end
 for _, texture in ipairs(textures(healer.target)) do
 	local r, g, b, a = color(texture)
-	assert(near(r, ar) and near(g, ag) and near(b, ab) and near(a, 1), "the target highlight is the Medallions lit steel")
+	assert(near(r, ar) and near(g, ag) and near(b, ab) and near(a, 1), isFrames and "the target highlight is the accent" or "the target highlight is the Medallions lit steel")
 end
 local corner = textures(healer.target)[1]
 local cw = corner:GetSize()

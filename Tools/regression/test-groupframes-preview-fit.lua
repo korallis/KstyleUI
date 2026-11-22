@@ -1,5 +1,7 @@
--- test-groupframes-preview-fit.lua: the options live preview stacks the party block, the raid block and the click casting panel, each with a measured height, inside the 280-unit pane, with nothing overlapping the click casting panel; it fits again when the pane resizes, and threat draws as an edge, not a wash over the row.
+-- test-groupframes-preview-fit.lua: the options live preview stacks the party block, the raid block and the click casting panel, each with a measured height, inside the 280-unit pane, with nothing overlapping the click casting panel; it fits again when the pane resizes, and threat draws as an edge, not a wash over the row. test-groupframes-preview-fit-frames.lua passes "frames" to check it on Frames.
+local isFrames = ... == "frames"
 local G = dofile("Tools/regression/group_env.lua")
+if isFrames then dofile("Tools/regression/groupframes_frames.lua")(G) end
 local Scene = dofile("Tools/render/scene.lua")
 local Guard = dofile("Tools/render/guard.lua")
 
@@ -88,12 +90,16 @@ for _, height in ipairs({ 720, 560 }) do
 	-- bleed past a tile's edge by design, as the render guard treats them; they still stay off the click casting panel.
 	local scene = Scene.Build(env)
 	-- Opus R5 #1, Fable R5 #5: four raid tiles at true scale, never scaled down, every sample name keeping its head in
-	-- the Medallions tile's caps.
+	-- the Medallions tile's caps, or whole on Frames.
 	eq(#preview.raidFrames, 4, what .. ": four raid tiles")
 	eq(preview.raidCanvas:GetScale(), 1, what .. ": the raid tiles keep true scale")
 	for _, f in ipairs(preview.raidFrames) do
 		local text, whole = f.name:GetText(), K.Locale.Upper(f.sample.name)
-		assert(#text > 0 and whole:sub(1, #text) == text, what .. ": the raid sample " .. f.sample.name .. " keeps its head, got " .. text)
+		if isFrames then
+			eq(text, f.sample.name, what .. ": the raid sample " .. f.sample.name .. " is whole")
+		else
+			assert(#text > 0 and whole:sub(1, #text) == text, what .. ": the raid sample " .. f.sample.name .. " keeps its head, got " .. text)
+		end
 	end
 	-- The render guard's "LumenShape.png & Orrin": no raid sample's indicator covers its name's glyphs.
 	for _, f in ipairs(preview.raidFrames) do

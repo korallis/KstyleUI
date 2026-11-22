@@ -1,7 +1,9 @@
--- test-groupframes-parity-r5-review.lua: the PR #654 review of EllesmereUI parity round 5: friendly bosses that follow their faction in combat, pet, tank and friendly boss frames in the raid's card (their default places are in test-groupframes-parity-r5-places.lua), every raid pet, the boss debuff zoom, the time left inside its clip, switched-off groups at rest, a refused boss group and the extra groups' preview.
+-- test-groupframes-parity-r5-review.lua: the PR #654 review of EllesmereUI parity round 5: friendly bosses that follow their faction in combat, pet, tank and friendly boss frames in the raid's card (their default places are in test-groupframes-parity-r5-places.lua), every raid pet, the boss debuff zoom, the time left inside its clip, switched-off groups at rest, a refused boss group and the extra groups' preview. test-groupframes-parity-r5-review-frames.lua passes "frames" to check the same on Frames.
+local isFrames = ... == "frames"
 local H = dofile("Tools/regression/groupframes_r3a.lua")
 local A = dofile("Tools/regression/auras_env.lua")
 local G, MODULE = H.G, H.MODULE
+if isFrames then dofile("Tools/regression/groupframes_frames.lua")(G) end
 local write, frame, noErrors, boot, offset, near = H.write, H.frame, H.noErrors, H.boot, H.offset, H.near
 local Scene = dofile("Tools/render/scene.lua")
 
@@ -90,13 +92,15 @@ do
 end
 collectgarbage()
 
--- Boss debuff zoom reaches the live boss debuff icon over the party's badge; the time left stays inside its clip; and the preview follows the group number offsets and shows pet, tank and friendly boss samples with their own size, colour and wrap.
+-- Boss debuff zoom reaches the live boss debuff icon over the Medallions party's badge; the time left stays inside its clip; and the preview follows the group number offsets and shows pet, tank and friendly boss samples with their own size, colour and wrap.
 do
 	local env, K, ns = boot()
 	do
 		local f = frame(ns, "party1")
-		local boss, badge = f.parts.boss, f.parts.portrait
-		assert(boss and boss.left >= badge.left and boss.left + boss.width <= badge.left + badge.width, "the Medallions party row lays its boss debuff slot over the badge")
+		if not isFrames then
+			local boss, badge = f.parts.boss, f.parts.portrait
+			assert(boss and boss.left >= badge.left and boss.left + boss.width <= badge.left + badge.width, "the Medallions party row lays its boss debuff slot over the badge")
+		end
 		write(env, K, "auras.zoomEach", true)
 		write(env, K, "auras.bossZoom", 0.19)
 		local p = ns.Auras.Parts(f.highlights:GetAuraSlotFrame("boss"))
@@ -149,8 +153,11 @@ do
 		preview:Refresh()
 		assert(select(1, pet.name:GetTextColor()) == 1 and select(2, pet.name:GetTextColor()) == 0, "the pet sample's name takes the custom colour")
 		local fr, fg, fb = ns.Unit.ClassColor(boss.sample.class)
+		if isFrames then
+			fr, fg, fb = K.Tokens.Color("friendly")
+		end
 		local c = boss.health.colorRGBA
-		assert(near(c[1], fr) and near(c[2], fg) and near(c[3], fb), "the boss sample's tile takes its class colour, as Medallions raid tiles do")
+		assert(near(c[1], fr) and near(c[2], fg) and near(c[3], fb), isFrames and "the boss sample's bar takes the friendly colour" or "the boss sample's tile takes its class colour, as Medallions raid tiles do")
 		write(env, K, "pets.enabled", false)
 		preview:Refresh()
 		assert(not preview.extras.pets.holder:IsShown(), "off hides the pet samples")

@@ -1,5 +1,7 @@
--- test-groupframes-grid.lua: KSTY-67 items 3, 4 and 21 on the screens Lee judges by (1920x1080 at the 15/16 the game picks there, 3440x1440 and 5120x1440 at the automatic size): party and raid rows, their bars and the raid card on whole physical pixels; the party's percents and the raid's names and percents at the 11 px text floor or over; class-coloured party names lifted to a luminance of 0.62 so the dark class colours read on the card; Medallions raid tiles take the class colour, so their names read light unless a light tile inks them dark.
+-- test-groupframes-grid.lua: KSTY-67 items 3, 4 and 21 on the screens Lee judges by (1920x1080 at the 15/16 the game picks there, 3440x1440 and 5120x1440 at the automatic size): party and raid rows, their bars and the raid card on whole physical pixels; the party's percents and the raid's names and percents at the 11 px text floor or over; class-coloured party names lifted to a luminance of 0.62 so the dark class colours read on the card; Medallions raid tiles take the class colour, so their names read light unless a light tile inks them dark. test-groupframes-grid-frames.lua passes "frames" to check the same on Frames, where every name is lifted.
+local isFrames = ... == "frames"
 local G = dofile("Tools/regression/group_env.lua")
+if isFrames then dofile("Tools/regression/groupframes_frames.lua")(G) end
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
@@ -71,13 +73,13 @@ for _, screen in ipairs(SCREENS) do
 				assert(px(f.name) >= floor - TOLERANCE, string.format("%s: %s's name is %.2f px, under the %d px floor", what, label, px(f.name), floor))
 			end
 			local _, class = env.UnitClass(f.unit)
-			assert((f.medInked == true) == (kind == "raid" and ns.Medallions.Inked(class)), what .. ": " .. label .. " inks its name only on a light raid tile")
-			if not f.medInked then
+			assert(isFrames or (f.medInked == true) == (kind == "raid" and ns.Medallions.Inked(class)), what .. ": " .. label .. " inks its name only on a light raid tile")
+			if isFrames or not f.medInked then
 				local r, g, b = f.name:GetTextColor()
 				local cr, cg, cb = K.Theme.ClassColorForWidget(class)
 				local luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
 				assert(luminance >= NAME_LUMINANCE - 1e-6, string.format("%s: %s's %s name reads on the card, luminance %.3f", what, label, class, luminance))
-				assert(kind == "raid" or r >= cr - 1e-6 and g >= cg - 1e-6 and b >= cb - 1e-6, what .. ": " .. class .. " only moves towards white")
+				assert(kind == "raid" and not isFrames or r >= cr - 1e-6 and g >= cg - 1e-6 and b >= cb - 1e-6, what .. ": " .. class .. " only moves towards white")
 			end
 		end
 		if kind == "raid" then
