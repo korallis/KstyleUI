@@ -1072,7 +1072,9 @@ end
 
 Store.migrations[47] = function(data)
 	for _, profile in pairs(data.profiles) do
-		Table(Table(Table(profile).Meters).threat).followGuide = nil
+		if type(profile) == "table" then
+			Table(Table(profile.Meters).threat).followGuide = nil
+		end
 	end
 end
 

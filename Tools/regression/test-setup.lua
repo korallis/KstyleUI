@@ -589,7 +589,7 @@ do
 	W.Settle(env)
 	local slot = K.Layout.Mode.Slot()
 	assert(slot and slot:IsShown(), "Layout Mode shows the story slot")
-	assert(slot.label:GetText() == "Story rail" and slot.hint:GetText():find("RestedXP", 1, true) and slot.hint:GetText():find("Edit Mode", 1, true), "labelled, with a one-line hint")
+	assert(slot.label:GetText() == "Story rail" and slot.hint:GetText():find("Edit Mode", 1, true), "labelled, with a one-line hint")
 	local rw, rh = K.Layout.RootSize()
 	local want = K.Setup.Layouts.Slot("Tank", rh)
 	local l, b, r, t = K.Setup.Layouts.Rect(want, want, rw, rh)

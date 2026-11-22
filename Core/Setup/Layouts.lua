@@ -1516,7 +1516,7 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	local rects, boxes, count = state.rects, state.boxes, 0
 	local elements, medals = #ELEMENTS, Layouts.MEDALLIONS_MEDALS
 	local story = Layouts.FitStory(state, name, physicalWidth, physicalHeight, user)
-	if story.slot < STORY_FLOOR then
+	if enabled[STORY_KEYS.guide] ~= false and story.slot < STORY_FLOOR then
 		return false
 	end
 	for i = 1, 2 do

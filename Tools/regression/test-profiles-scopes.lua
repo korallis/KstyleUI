@@ -53,4 +53,16 @@ assert(K.Store.ResetProfile())
 assert(#K.Store.ListProfiles() == count, "Recovery backups off resets directly")
 assert(#env._errors == 0, tostring(env._errors[1]))
 
+-- test-property-migrations (seed 20261114, case 55) saved a number as account.profileKeys and login raised in pairs:
+-- profile hotkeys treat anything but a table as no keys.
+do
+	local CoreEnv = dofile("Tools/regression/core_env.lua")
+	local kenv, KK = CoreEnv.New({ saved = { version = K.Store.DB_VERSION, account = { profileKeys = 5 } } })
+	CoreEnv.Boot(kenv)
+	assert(#kenv._errors == 0 and KK.ErrorCount() == 0, "a number in profileKeys does not stop login: " .. tostring(kenv._errors[1]))
+	assert(KK.Profiles.Hotkey(1) == "", "and reads as no hotkey")
+	KK.Profiles.SetHotkey(1, "Default")
+	assert(KK.Profiles.Hotkey(1) == "Default", "and a new hotkey replaces it")
+end
+
 print("profile scopes ok")
