@@ -2,6 +2,9 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.2.11.1 (2026-11-22)", {
+		L["With Blizzard's Cooldown Manager switched off, KstyleUI no longer shows its own cooldown icons."],
+	} },
 	{ "v0.2.11 (2026-11-21)", {
 		L["Thanks to Baine, Zygor Guides Viewer sits on the story rail like RestedXP, under Window Skins > Zygor."],
 		L["Zygor takes the KstyleUI theme: the forged window card and a themed header, controls, progress bar and waypoint arrow."],
@@ -15,8 +18,5 @@ ns.NOTES = {
 		L["Thanks to Baine, /kstyle perf records your frame rate and KstyleUI's Lua time for frame-rate reports."],
 		L["Party frames can follow the raid's settings, and indicators can be coloured squares or bars that drain."],
 		L["Party and raid frames gain a shield edge, a raid size of your own and tank frames that can leave you out."],
-	} },
-	{ "v0.2.9.2 (2026-11-21)", {
-		L["Tooltips on the top data bar open clear of the bar, so every button stays reachable."],
 	} },
 }
