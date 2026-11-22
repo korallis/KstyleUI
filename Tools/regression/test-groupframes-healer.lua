@@ -115,9 +115,7 @@ do
 		local r = rects[names[i]]
 		assert(r[1] >= tileRect[1] - 0.01 and r[1] + r[3] <= tileRect[1] + tileRect[3] + 0.01, "the " .. names[i] .. " stays within the tile's width")
 		for j = i + 1, #names do
-			-- The Medallions tile lays the leader crown and the raid marker over your heals' row: a known collision.
-			local known = names[j] == "heals" and (names[i] == "leader" or names[i] == "marker")
-			if names[j] ~= "bar" and not known then
+			if names[j] ~= "bar" then
 				assert(not intersects(r, rects[names[j]]), "the " .. names[i] .. " and the " .. names[j] .. " do not overlap")
 			end
 		end

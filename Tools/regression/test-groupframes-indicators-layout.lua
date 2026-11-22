@@ -101,9 +101,7 @@ for _, size in ipairs(SIZES) do
 			for j = i + 1, #list do
 				local a, b = list[i], list[j]
 				local pair = (a == "role" and b == "leader") or (a == "leader" and b == "role")
-				-- Known: at 40 by 16 the Medallions party pip and raid tile text collide with the marker and leader.
-				local known = size.label == "smallest" and (b == "healthText" and (a == "marker" or kind == "raid" and a == "leader") or kind == "party" and a == "role" and b == "marker")
-				if not (badge and pair) and not known then
+				if not (badge and pair) then
 					assert(not intersects(rects[a], rects[b]), what .. ": the " .. a .. " " .. describe(rects[a]) .. " overlaps the " .. b .. " " .. describe(rects[b]))
 				end
 			end

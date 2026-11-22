@@ -126,8 +126,7 @@ for _, screen in ipairs(SCREENS) do
 		local marker = find(scene, f.marker)
 		assert(marker, what .. ": the skull draws")
 		assert(inside(marker.rect, frame), what .. ": the marker stays inside the row")
-		-- Known: on the 40-player Medallions tile the skull grazes the name's line.
-		assert(case.members == 40 or not intersects(marker.rect, name.rect), what .. ": the marker keeps off the name")
+		assert(not intersects(marker.rect, name.rect), what .. ": the marker " .. describe(marker.rect) .. " keeps off the name " .. describe(name.rect))
 		if percent then
 			assert(not intersects(marker.rect, percent.rect), what .. ": the marker " .. describe(marker.rect) .. " never covers the percent " .. describe(percent.rect))
 		end
