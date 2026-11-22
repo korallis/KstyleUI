@@ -130,4 +130,20 @@ for _, triple in ipairs({ { scenes[#scenes], "Vanquisher", "Item Level" }, { Too
 	assert(second.rect[2] >= title.rect[2] + title.rect[4] - 0.01, name .. ": the next line sits under the title's second line")
 end
 
+-- Under Frames the column reads its cast with the total and the target's sigil its creature type, and the minimap's
+-- terrain draws through the module's chamfered square mask.
+rawset(_G, "RENDER_HUD_STYLE", "Frames")
+local frameTexts = collect(check("hud.frames.unitframes", (Hud.Module("unitframes"))))
+for _, want in ipairs({ "VALERIN", "SLAM", "0.7 / 1.5", "RIVERGLADE CROCOLISK", "38", "Beast", "56%", "2.7K", "/ 3.3K" }) do
+	assert(frameTexts[want], "the Frames HUD shows " .. want)
+end
+masked = false
+for _, item in ipairs(check("hud.frames.minimap", (Hud.Module("minimap"))).items) do
+	for _, mask in ipairs(item.kind == "texture" and item.masks or {}) do
+		masked = masked or (mask.file or ""):find("MinimapMask", 1, true) ~= nil
+	end
+end
+rawset(_G, "RENDER_HUD_STYLE", nil)
+assert(masked, "the Frames minimap's terrain draws through the chamfered square mask")
+
 print("ok")

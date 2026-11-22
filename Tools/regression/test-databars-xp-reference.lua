@@ -1,4 +1,4 @@
--- test-databars-xp-reference.lua: the Medallions experience strip (the slab's line, square ends, ten segments, a 55% rested shade, the caption on the world) over an unframed dark trough with a percent caption under its right end.
+-- test-databars-xp-reference.lua: the Medallions experience strip (the slab's line, square ends, ten segments, a 55% rested shade, the caption on the world) over an unframed dark trough with a percent caption under its right end; under Frames the overhaul's 7 px strip with a level caption below it.
 local D = dofile("Tools/regression/databars_env.lua")
 local W = D.W
 
@@ -78,5 +78,20 @@ W.Settle(env)
 eq(xp.fill:GetHeight(), xp.holder:GetHeight() - 2 * K.Widgets.Border(xp.holder), "the fill inherits the layout height inside its one-pixel edge")
 eq(#env._errors, 0, "no game errors")
 eq(K.ErrorCount(), 0, "no caught errors")
+
+-- Frames keeps the overhaul's strip (KSTY-44): the mock-up's 7 px across the reference's centre column, with the
+-- prose caption centred under the bar, the level in it when the player picks it (LEE-20).
+env, K, ns = D.New({ game = { level = 11, xp = 0, xpMax = 10000, rested = 500 } })
+K.Options.Write("HudStyle", "style", "frames")
+K.Options.Write("DataBars", "xp.text", "levelRested")
+W.Settle(env)
+xp = ns.Bars.views.xp
+eq(xp.holder:GetWidth(), 491, "the Frames XP line spans the reference's centre column")
+assert(math.abs(xp.holder:GetHeight() - 7 * 19 / 16) <= K.Widgets.Border(xp.holder) / 2 + 1e-6, "the Frames strip is the mock-up's 7 px, got " .. tostring(xp.holder:GetHeight()))
+eq(xp.text:GetText(), "Level 11 \194\183 0% \194\183 rested 5%", "the Frames caption reads the level")
+eq((xp.text:GetPoint(1)), "TOP", "the Frames caption starts below the bar's centre")
+eq((xp.text:GetFont()), (K.Tokens.Font("prose")), "the Frames caption uses the interface prose face")
+eq(#env._errors, 0, "no game errors under Frames")
+eq(K.ErrorCount(), 0, "no caught errors under Frames")
 
 print("databars XP reference ok")

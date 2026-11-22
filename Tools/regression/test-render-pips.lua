@@ -1,4 +1,4 @@
--- test-render-pips.lua: the class-themed pips in the HUD scenes: RENDER_PIPS=off turns them off in the unit frames' and the action bars' scenes alike, the unit frames' scene gives a rogue's points to the crest's crown as the game does, a cat-form druid's bar sits above the crown in the unit frames' scene as in the game, and the crown's lit points draw claws.
+-- test-render-pips.lua: the class-themed pips in the HUD scenes: RENDER_PIPS=off turns them off in the unit frames' and the action bars' scenes alike, the unit frames' scene gives a rogue's points to the crest's crown as the game does, a cat-form druid's bar sits above the crown in the unit frames' scene as in the game, and the crown's lit points draw claws, as the Frames unit frames' own row does.
 local L = dofile("Tools/regression/render_scenes_lib.lua")
 local Hud, check, near = L.Hud, L.check, L.near
 
@@ -53,5 +53,11 @@ rawset(_G, "RENDER_PIPS", nil)
 -- The cat-form druid's three points draw lit claws on the crown.
 local claws = Lit(check("druid", scene), "PipClaw")
 assert(claws == 3, "a cat-form druid's three points draw lit claws, got " .. claws)
+
+-- Under Frames the unit frames' own pips row draws them.
+rawset(_G, "RENDER_HUD_STYLE", "Frames")
+claws = Lit(check("druid frames", (Hud.Module("unitframes", { class = "DRUID", combo = 3, player = { powerType = 3, powerToken = "ENERGY", power = 80, powerMax = 100 } }))), "PipClaw")
+rawset(_G, "RENDER_HUD_STYLE", nil)
+assert(claws == 3, "under Frames a cat-form druid's three points draw lit claws in the unit frames' row, got " .. claws)
 
 print("render pips ok")

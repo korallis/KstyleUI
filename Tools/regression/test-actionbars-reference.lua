@@ -1,4 +1,4 @@
--- test-actionbars-reference.lua: the reference action bars have square dark tiles, a physical-pixel border, bright bold keys and quiet empty sockets.
+-- test-actionbars-reference.lua: the reference action bars have square dark tiles, a physical-pixel border, bright bold keys and quiet empty sockets; Frames keeps full-strength empty tiles.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local W = AB.W
 
@@ -100,6 +100,26 @@ do
 		end
 		assert(empty > 0, key .. " exercises empty sockets")
 	end
+end
+
+-- Under Frames the tray keeps full-strength empty tiles, the kit's icon inset and the grid's own pitch.
+do
+	local env, K, ns = AB.New({ setup = function(e)
+		e._game.bindings.ACTIONBUTTON8 = { "8" }
+	end })
+	K.Options.Write("HudStyle", "style", "frames")
+	AB.Enable(env, K)
+	K.Options.Write("ActionBars", "trayColumn", false)
+	for _, key in ipairs({ "bar1", "bar2" }) do
+		local grid, bar = K.Setup.Layouts.Grid("actionbars." .. key), ns.bars[key]
+		assert(W.Near(select(4, bar.buttons[12]:GetPoint()), K.Widgets.Snap(bar.header, 11 * (grid.size + grid.spacing))), key .. ": the twelfth Frames tile does not accumulate individually rounded gaps")
+	end
+	local b = AB.Button(ns, "bar1", 8)
+	assert(not b.medSocketOn and b:GetAlpha() == 1 and b.hotkey:GetText() == "8", "a Frames empty slot keeps its tile and its bright key")
+	check(env, K, b, ns)
+	env.SetCombat(true)
+	assert(b:GetAlpha() == 1, "Frames empty tiles do not disappear in combat")
+	env.SetCombat(false)
 end
 
 -- The rail's bars stand on whole pixels from one cumulative pitch, as bars 1 and 2 do, so a column of twelve tiles at a

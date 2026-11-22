@@ -136,6 +136,17 @@ for _, want in ipairs({ "32%", "fps", "144", "34", "ms", "143g 82s 17c", "armour
 end
 assert(seen["14:32"], "the data bar owns the clock alongside its other four default readouts")
 
+-- Under Frames the plate draws the KSTY-44 bible's 156.75 by 11.875 fill.
+rawset(_G, "RENDER_HUD_STYLE", "Frames")
+fill = nil
+for _, item in ipairs(check("nameplate frames", dofile("Tools/render/scenes/nameplate.lua")()).items) do
+	if item.kind == "texture" and item.fraction and math.abs(item.fraction - 864 / 1540) < 0.001 then
+		fill = item
+	end
+end
+rawset(_G, "RENDER_HUD_STYLE", nil)
+assert(fill and math.abs(fill.rect[3] - 156.75 * SIZE * 864 / 1540) < 1 and math.abs(fill.rect[4] - 11.875 * SIZE) < 1, "the Frames bar is the bible's fill on a 0.58 base")
+
 -- The chat scene shows the mockup's four tabs on Blizzard's dock, the plus glyph and five lines.
 local chat = check("chat", (dofile("Tools/render/scenes/chat.lua"))())
 local chatTexts, plus, lines = {}, 0, 0

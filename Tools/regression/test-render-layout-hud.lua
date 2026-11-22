@@ -2,6 +2,7 @@
 rawset(_G, "RENDER_SCENE_LIB", true)
 rawset(_G, "RENDER_SCREEN", { width = 5120, height = 1440, size = "auto", uiScale = 768 / 1080 })
 local scene = dofile("Tools/render/scenes/layout_hud.lua")()
+assert(scene.style == "medallions", "exercise the video's Medallions style")
 local Guard = dofile("Tools/render/guard.lua")
 local findings = Guard.Check(scene)
 assert(#findings == 0, table.concat(Guard.Lines(findings, {}, {}, "default"), "\n"))

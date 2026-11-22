@@ -21,17 +21,19 @@ do
 	assert(own.settings.ActionBars.bar2.enabled == false, "a scene's explicit bar 2 opt-out wins")
 end
 
--- Every class: the player's slab health fill uses the class colour, the power fill reads the class's power at its
+-- Every class: the player's health fill uses the class colour (Medallions) or hudPlayerHealth (Frames), the power fill reads the class's power at its
 -- fraction, the cast bar names the class's cast (none for the rogue), the bars, the cluster, the buff bars and
 -- the buff row show that class's spells from set B, the warrior and the druid get a stance bar, the hunter and
--- the warlock a pet frame and a pet bar, the rogue combo points.
+-- the warlock a pet frame and a pet bar, the rogue combo points. test-render-scenes-classes-frames.lua runs it under Frames.
+local frames = Hud.Style() == "Frames"
 assert(#Classes.ORDER == 9, "nine classes")
 for _, class in ipairs(Classes.ORDER) do
 	local spec = Classes[class]
 	local tag = "hud." .. class
 	local uf = check(tag .. ".unitframes", (Hud.Module("unitframes", { class = class, settings = { UnitFrames = { player = { powerSeparate = false } } } })))
 	local Kuf = Hud.envs[uf].KstyleUI
-	local healthColour = { Kuf.Theme.ClassColorForWidget(class) }
+	local healthColour = frames and { Kuf.Tokens.Color("hudPlayerHealth") } or { Kuf.Theme.ClassColorForWidget(class) }
+	local manaColour = { Kuf.Tokens.Color("hudMana") }
 	local function rampOf(item, r, g, b, kind)
 		local painted = item.gradient
 		if not (painted and painted.orientation == "VERTICAL" and painted.to and painted.from) then
@@ -41,7 +43,14 @@ for _, class in ipairs(Classes.ORDER) do
 		if not topR then
 			return false
 		end
-		return sameColour(painted.to, { topR, topG, topB }) and sameColour(painted.from, { botR, botG, botB })
+		if sameColour(painted.to, { topR, topG, topB }) and sameColour(painted.from, { botR, botG, botB }) then
+			return true
+		end
+		if kind ~= "power" or sameColour(painted.to, painted.from) then
+			return false
+		end
+		local mid = { (painted.to[1] + painted.from[1]) / 2, (painted.to[2] + painted.from[2]) / 2, (painted.to[3] + painted.from[3]) / 2 }
+		return sameColour(mid, { (topR + botR) / 2, (topG + botG) / 2, (topB + botB) / 2 })
 	end
 	-- The player frame paints its power bar in the power type's colour (the owner's ruling of 2026-11-08: mana
 	-- blue, rage red, energy yellow, PowerBarColor lifted by Theme.Brighten, so every channel is at least the
@@ -77,6 +86,9 @@ for _, class in ipairs(Classes.ORDER) do
 				and brightened(painted.to, powerColour)
 				and painted.from[1] <= painted.to[1] + 1e-3 and painted.from[2] <= painted.to[2] + 1e-3 and painted.from[3] <= painted.to[3] + 1e-3
 			local powerMatch = brightened(item.vertex, powerColour) or rampedOther
+			if frames and spec.power.token == "MANA" then
+				powerMatch = sameColour(item.vertex, manaColour) or rampOf(item, manaColour[1], manaColour[2], manaColour[3], "power")
+			end
 			local classFill = item.gradient and item.gradient.to or item.vertex
 			if near(item.fraction, spec.power.value / spec.power.max) and item.rect[4] < 10 and powerMatch and not sameColour(classFill, spec.colour) then
 				power = true
@@ -86,7 +98,7 @@ for _, class in ipairs(Classes.ORDER) do
 			end
 		end
 	end
-	assert(health, tag .. ": the player's slab health fill uses the class colour at the player's health fraction")
+	assert(health, tag .. ": the player's health fill uses " .. (frames and "hudPlayerHealth" or "the class colour") .. " at the player's health fraction")
 	assert(power, tag .. ": the power fill reads " .. spec.power.token .. " at " .. spec.power.value .. "/" .. spec.power.max .. " in the power type's colour")
 	local ufTexts = collect(uf)
 	assert(ufTexts[spec.name:upper()], tag .. ": the player's name reads " .. spec.name:upper())
@@ -105,8 +117,8 @@ for _, class in ipairs(Classes.ORDER) do
 	local _, abFiles = collect(ab)
 	if spec.combo then
 		local pips = 0
-		for _, item in ipairs(ab.items) do
-			-- The Medallions crest's crown: a lit class-themed pip draws its class's art (PipBlade90.png, PipClaw90.png) on a full one-point bar.
+		for _, item in ipairs((frames and uf or ab).items) do
+			-- The Medallions crest's crown, or the Frames unit frames' pips row: a lit class-themed pip draws its class's art (PipBlade90.png, PipClaw90.png) on a full one-point bar.
 			local file = tostring(item.file)
 			if item.kind == "texture" and item.bar and near(item.fraction, 1) and (file:find("/PipBlade%d+%.png$") or file:find("/PipClaw%d+%.png$")) then
 				pips = pips + 1
