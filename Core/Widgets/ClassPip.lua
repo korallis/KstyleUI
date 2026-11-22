@@ -1,4 +1,4 @@
--- ClassPip.lua: one class-themed resource pip, an art set (lit, dormant, shape, glow) seen along an axis; every lit layer is a one-point status bar fed the raw count now, before, or at the maximum, so the engine compares and Lua never reads a secret: a gain slides the art out along its axis under a flare, a spend holds, slashes and cools to the dormant art, and the maximum runs a glint up the axis. Widgets.FedCrown builds the crowns the game feeds instead: an aura's stacks through Blizzard's aura slots, each piece's glow and lit art an application bar (the art sweeping up from its base on a gain and draining on a loss), with a gate shown only at the maximum. While the crest's crown shows a class's points it hands SetClassCrown a seat just above its tips, so the unit frames hand the points over only then and seat the druid bar there.
+-- ClassPip.lua: one class-themed resource pip, an art set (lit, dormant, shape, glow) seen along an axis; every lit layer is a one-point status bar fed the raw count now, before, or at the maximum, so the engine compares and Lua never reads a secret: a gain slides the art out along its axis under a flare, a spend holds, slashes and cools to the dormant art, and the maximum runs a glint up the axis. Widgets.FedCrown builds the crowns the game feeds instead: an aura's stacks through Blizzard's aura slots, each piece's glow and lit art an application bar (the art sweeping up from its base on a gain and draining on a loss), with a gate shown only at the maximum; STORM is a shaman's Lightning Shield charges as storm orbs, a kind no class maps to, so only the Frames row asks for it. While the crest's crown shows a class's points it hands SetClassCrown a seat just above its tips, so the unit frames hand the points over only then and seat the druid bar there.
 local _, ns = ...
 
 local Widgets, Tokens = ns.Widgets, ns.Tokens
@@ -32,6 +32,7 @@ local CLASSES = {
 	},
 	HUNTER = { art = "pipArrow", glowColor = "jewelHawk", count = 3, unit = "player", filter = "HELPFUL", spells = { 1310687, 1310785, 1310786 } },
 	BEAR = { art = "pipTalon", glowColor = "pipBearGlow", count = 5, unit = "target", filter = "HARMFUL|PLAYER", spells = { 1328617, 1328616, 414644, 1235826, 1235827 } },
+	STORM = { art = "pipStorm", glowColor = "pipStormGlow", count = 3, unit = "player", filter = "HELPFUL", spells = { 10432, 10431, 8134, 945, 905, 325, 324 } },
 }
 
 local Pip = {}
@@ -117,12 +118,23 @@ function Widgets.ClassCrown(follow)
 	return crown
 end
 
+local sets = {}
+
 function Widgets.ClassPipSet(kind, angle)
 	local c = CLASSES[kind]
-	return c and {
-		lit = c.art .. angle, steel = c.art .. "Steel" .. angle, shape = c.art .. "Shape" .. angle, glow = c.art .. "Glow" .. angle,
-		glowColor = c.glowColor, coreColor = c.coreColor, axis = angle,
-	}
+	if not c then
+		return nil
+	end
+	sets[kind] = sets[kind] or {}
+	local set = sets[kind][angle]
+	if not set then
+		set = {
+			lit = c.art .. angle, steel = c.art .. "Steel" .. angle, shape = c.art .. "Shape" .. angle, glow = c.art .. "Glow" .. angle,
+			glowColor = c.glowColor, coreColor = c.coreColor, axis = angle,
+		}
+		sets[kind][angle] = set
+	end
+	return set
 end
 
 function Widgets.ClassPip(parent, set, i, count)
@@ -230,6 +242,15 @@ function Widgets.CrownCount(kind)
 	return CLASSES[kind] and CLASSES[kind].count
 end
 
+function Widgets.CrownOpen()
+	local secrets = C_Secrets
+	if not (secrets and type(secrets.ShouldAurasBeSecret) == "function") then
+		return true
+	end
+	local ok, secret = pcall(secrets.ShouldAurasBeSecret)
+	return ok and not IsSecret(secret) and secret ~= true
+end
+
 local Crown = {}
 
 local function Interpolation(moving)
@@ -281,6 +302,15 @@ function Crown:Listen(owner, on)
 	end
 end
 
+function Crown:Layout(size)
+	for _, p in ipairs(self.pips) do
+		local px = Widgets.Snap(p.frame, size)
+		p.frame:SetSize(px, px)
+		local halo = Widgets.Snap(p.frame, px * HALO)
+		p.haloFrame:SetSize(halo, halo)
+	end
+end
+
 function Crown:SetShown(on)
 	self.holder:SetShown(on)
 	self.container:SetEnabled(on)
@@ -308,21 +338,18 @@ function Widgets.FedCrown(parent, kind, angles, size, moving)
 		local set = Widgets.ClassPipSet(kind, angle)
 		local frame = CreateFrame("Frame", nil, holder)
 		frame:SetFrameLevel(level)
-		local px = Widgets.Snap(frame, size)
-		frame:SetSize(px, px)
 		local p = { frame = frame, i = i, axis = angle }
 		p.steel = frame:CreateTexture(nil, "BACKGROUND")
 		p.steel:SetTexture((Tokens.Texture(set.steel)))
 		p.steel:SetAllPoints(frame)
 		p.haloFrame = CreateFrame("Frame", nil, frame)
 		p.haloFrame:SetPoint("CENTER", frame, "CENTER", 0, 0)
-		local halo = Widgets.Snap(frame, px * HALO)
-		p.haloFrame:SetSize(halo, halo)
 		p.halo = Slot(fed, "halo" .. i, p.haloFrame, level + 2, i - 1, false, set.glow, set.glowColor, true)
 		p.blade = Slot(fed, "lit" .. i, frame, level + 3, i - 1, true, set.lit, "white")
 		fed.pips[i] = p
 	end
 	fed.max = Slot(fed, "max", holder, level + 1, #angles)
+	fed:Layout(size)
 	if not fed:SetMotion(moving) then
 		holder:Hide()
 		return nil

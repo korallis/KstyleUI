@@ -1,4 +1,4 @@
--- Pips.lua: the class-themed combo point row over the plain pips' places for Frames, Widgets.ClassPip daggers for a rogue and claws for a cat-form druid, with a glow under the full row; while the Medallions crest's crown shows them the row hides.
+-- Pips.lua: the class-themed combo point row over the plain pips' places for Frames, Widgets.ClassPip daggers for a rogue and claws for a cat-form druid, with a glow under the full row; while the Medallions crest's crown shows them the row hides. Under Frames the same row holds the crowns the game feeds, upright Widgets.FedCrown pieces centred on the pips' places (a warrior's banners, a priest's candles, a mage's shards, a hunter's arrows, a bear's talons, a shaman's Lightning Shield charges as storm orbs) with the same glow at the maximum; a build or rebind that meets secret auras waits for the end of combat.
 local _, ns = ...
 
 local K = KstyleUI
@@ -9,8 +9,9 @@ local Pips = {}
 ns.Pips = Pips
 
 local ART, ROW, FADE = 1.6, 0.35, 0.2
+local OWNER = "UnitFrames:pips"
 
-local state = { pips = {}, count = 0 }
+local state = { pips = {}, count = 0, fed = {} }
 Pips.state = state
 
 local function Glow(row, set, count, from, to)
@@ -57,11 +58,95 @@ function Pips.Apply(class, parent, count)
 	return set ~= nil
 end
 
-function Pips.Layout(cells, size)
+local function Fed(class)
+	return class == "SHAMAN" and "STORM" or class == "DRUID" and "BEAR" or class
+end
+
+local function Kind(class)
+	local kind = class and Widgets.CrownKind(class == "SHAMAN" and "STORM" or class)
+	return kind and Widgets.CrownCount(kind) and kind or nil
+end
+
+local function Refresh()
+	ns.Resource.Visibility()
+end
+
+local function Watch(on)
+	if on == state.watching then
+		return
+	end
+	state.watching = on
+	if on then
+		K.Events.Register(OWNER, "SPELLS_CHANGED", Refresh)
+		K.Callbacks.Register("EffectsLevelChanged", OWNER, Refresh)
+	else
+		K.Events.Unregister(OWNER, "SPELLS_CHANGED")
+		K.Callbacks.Unregister("EffectsLevelChanged", OWNER)
+	end
+end
+
+local function Build(kind, parent, moving)
+	local angles = {}
+	for i = 1, Widgets.CrownCount(kind) do
+		angles[i] = 90
+	end
+	local crown = Widgets.FedCrown(parent, kind, angles, 1, moving)
+	if not crown then
+		return false
+	end
+	local frame = CreateFrame("Frame", nil, crown.max)
+	frame:SetFrameLevel(parent:GetFrameLevel() + 1)
+	crown.glow = frame:CreateTexture(nil, "ARTWORK")
+	crown.glow:SetAllPoints(frame)
+	crown.glow:SetTexture((Tokens.Texture("glow")))
+	crown.glow:SetBlendMode("ADD")
+	crown.glow:SetVertexColor(Tokens.Color(Widgets.ClassPipSet(kind, 90).glowColor))
+	crown:SetShown(false)
+	return crown
+end
+
+function Pips.Fed(class, parent)
+	local kind, moving = Kind(class), Effects.Allows("flare")
+	if kind and state.fed[kind] == nil and Widgets.CrownOpen() then
+		state.fed[kind] = Build(kind, parent, moving)
+	end
+	local pending = kind ~= nil and state.fed[kind] == nil
+	for name, crown in pairs(state.fed) do
+		if crown then
+			crown:SetShown(name == kind)
+			crown:Listen(OWNER .. ":" .. name, name == kind)
+			pending = not crown:SetMotion(moving) or pending
+		end
+	end
+	K.Events.Unregister(OWNER, "PLAYER_REGEN_ENABLED")
+	if pending then
+		K.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", Refresh)
+	end
+	Watch(class ~= nil and Widgets.CrownCount(Fed(class)) ~= nil)
+	state.crown = kind and state.fed[kind] or nil
+	return state.crown ~= nil
+end
+
+function Pips.Layout(cells, size, spacing)
+	local parent = cells[1]:GetParent()
+	local art = Widgets.Snap(parent, size) + 2 * Widgets.Snap(parent, size * (ART - 1) / 2)
+	local crown = state.crown
+	if crown then
+		local n, half = #crown.pips, size / 2 + size * ROW
+		for i, p in ipairs(crown.pips) do
+			local x = (i - (n + 1) / 2) * (size + spacing)
+			p.frame:ClearAllPoints()
+			p.frame:SetPoint("CENTER", cells[3], "CENTER", x < 0 and -Widgets.Snap(parent, -x) or Widgets.Snap(parent, x), 0)
+		end
+		crown:Layout(art)
+		local glow = crown.glow:GetParent()
+		glow:ClearAllPoints()
+		glow:SetPoint("TOPLEFT", crown.pips[1].frame, "CENTER", -Widgets.Snap(parent, half), Widgets.Snap(parent, half))
+		glow:SetPoint("BOTTOMRIGHT", crown.pips[n].frame, "CENTER", Widgets.Snap(parent, half), -Widgets.Snap(parent, half))
+	end
 	if not state.theme then
 		return
 	end
-	local art = Widgets.Snap(state.parent, size) + 2 * Widgets.Snap(state.parent, size * (ART - 1) / 2)
 	for i, p in ipairs(state.pips) do
 		p.frame:ClearAllPoints()
 		p.frame:SetPoint("CENTER", cells[i], "CENTER", 0, 0)
