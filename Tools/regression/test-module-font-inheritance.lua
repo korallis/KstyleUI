@@ -60,7 +60,7 @@ collectgarbage("collect")
 do
 	local G = dofile("Tools/regression/group_env.lua")
 	local Looks = dofile("Tools/regression/group_looks.lua")
-	-- The captioned rows of KSTY-31's party card keep the compact kit face; KSTY-57's bare rows take names.
+	-- The captioned rows of KSTY-31's party card fit their Medallions lanes in the names face, as KSTY-57's bare rows do.
 	local env, K, ns = G.New({ saved = Looks.Saved(Looks.PARTY_CARD) })
 	G.SetRoster(env, "party", { { name = "Tester", class = "WARRIOR", health = 80, maxHealth = 100 } })
 	assert(K.Modules.Enable("GroupFrames"))
@@ -81,7 +81,7 @@ do
 	eq(ns.Settings.defaults.text.healthFont, healthDefault, "group health retains the theme sentinel")
 	for _, key in ipairs({ "Folio", "Lumen", "SourceSans3Regular" }) do
 		face(env, K, key)
-		font(member.name, K.Tokens.IsFontSet(key) and compact or (K.Tokens.Font("names")), "group names retain the compact kit face or explicit global override")
+		font(member.name, (K.Tokens.Font("names")), "group names fit their Medallions lanes in the kit's names face or the explicit global override")
 		font(member.healthText, (K.Tokens.Font("number")), "group health follows the number role")
 	end
 	write(K, "GroupFrames", "text.nameFont", explicit)
@@ -95,7 +95,7 @@ do
 	write(K, "GroupFrames", "text.healthFont", "")
 	for _, key in ipairs({ "Folio", "Lumen", "SourceSans3Regular" }) do
 		face(env, K, key)
-		font(member.name, K.Tokens.IsFontSet(key) and compact or (K.Tokens.Font("names")), "reset group name restores the staging theme treatment")
+		font(member.name, (K.Tokens.Font("names")), "reset group name restores the staging theme treatment")
 		font(member.healthText, (K.Tokens.Font("number")), "reset group health restores the number role")
 	end
 	for _, word in ipairs({ "theme", "kit" }) do
@@ -103,7 +103,7 @@ do
 		write(K, "GroupFrames", "text.nameFont", word)
 		for _, key in ipairs({ "Folio", "Lumen" }) do
 			face(env, K, key)
-			font(member.name, compact, "the saved word " .. word .. " still follows the kit for group names")
+			font(member.name, (K.Tokens.Font("names")), "the saved word " .. word .. " still follows the kit for group names")
 		end
 	end
 end
@@ -174,7 +174,7 @@ do
 	local explicit = K.Tokens.FontPath("InterSemiBold")
 	for _, key in ipairs({ "SourceSans3Regular", "Lumen" }) do
 		face(env, K, key)
-		font(number.text, (K.Tokens.Font("number")), "active combat numbers inherit the number role")
+		font(number.text, K.Tokens.FontPath("BarlowBold"), "active combat numbers take the Medallions Barlow Bold")
 		eq(env.DAMAGE_TEXT_FONT, (K.Tokens.Font("world")), "world numbers inherit the world combat role")
 	end
 	write(K, "CombatText", "font", explicit)
@@ -187,14 +187,14 @@ do
 	write(K, "CombatText", "font", "")
 	write(K, "CombatText", "worldFace", "")
 	face(env, K, "SourceSans3Regular")
-	font(number.text, (K.Tokens.Font("number")), "reset combat font inherits again")
+	font(number.text, K.Tokens.FontPath("BarlowBold"), "reset combat font takes it again")
 	eq(env.DAMAGE_TEXT_FONT, (K.Tokens.Font("world")), "reset world font inherits again")
 	for _, word in ipairs({ "theme", "kit" }) do
 		write(K, "CombatText", "font", explicit)
 		write(K, "CombatText", "font", word)
 		write(K, "CombatText", "worldFace", word)
 		face(env, K, "Lumen")
-		font(number.text, (K.Tokens.Font("number")), "the saved word " .. word .. " still follows the kit for combat numbers")
+		font(number.text, K.Tokens.FontPath("BarlowBold"), "the saved word " .. word .. " still takes the Medallions face for combat numbers")
 		eq(env.DAMAGE_TEXT_FONT, (K.Tokens.Font("world")), "the saved word " .. word .. " still follows the kit for world numbers")
 	end
 	write(K, "CombatText", "worldFont", false)
@@ -239,7 +239,7 @@ do
 	local explicit = K.Tokens.FontPath("InterSemiBold")
 	for _, key in ipairs({ "SourceSans3Regular", "Lumen" }) do
 		face(env, K, key)
-		font(xp.text, (K.Tokens.Font("prose")), "the experience text inherits the prose role")
+		font(xp.text, (K.Tokens.Font("caps")), "the experience text is a Medallions instrument in the caps role")
 	end
 	write(K, "DataBars", "xp.font", explicit)
 	for _, key in ipairs({ "SourceSans3Regular", "Lumen" }) do
@@ -248,12 +248,12 @@ do
 	end
 	write(K, "DataBars", "xp.font", "default")
 	face(env, K, "SourceSans3Regular")
-	font(xp.text, (K.Tokens.Font("prose")), "the saved default inherits again")
+	font(xp.text, (K.Tokens.Font("caps")), "the saved default inherits again")
 	for _, word in ipairs({ "", "theme", "kit" }) do
 		write(K, "DataBars", "xp.font", explicit)
 		write(K, "DataBars", "xp.font", word)
 		face(env, K, "Lumen")
-		font(xp.text, (K.Tokens.Font("prose")), "the saved word " .. string.format("%q", word) .. " still follows the kit for the experience bar")
+		font(xp.text, (K.Tokens.Font("caps")), "the saved word " .. string.format("%q", word) .. " still follows the kit for the experience bar")
 	end
 end
 collectgarbage("collect")

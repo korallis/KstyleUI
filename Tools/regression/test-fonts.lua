@@ -42,6 +42,7 @@ end
 -- Every bundled face, and every font path in the saved profile, is asked for while the game loads, once each.
 do
 	local env, K = booted({
+		HudStyle = { style = "medallions" },
 		Appearance = { font = "InterSemiBold" },
 		Nameplates = { font = SHARED, bar = TEXTURE },
 		Bags = { font = SHARED },

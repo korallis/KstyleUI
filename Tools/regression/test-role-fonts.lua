@@ -9,15 +9,15 @@ local FOLIO = {
 	title = { "FolioCaps-SemiBold.ttf", 12 }, caps = { "FolioCaps-SemiBold.ttf", 10 },
 	names = { "CinzelNames-SemiBold.ttf", 10 }, unit = { "CinzelUnit-SemiBold.ttf", 18 },
 	body = { "PTSerif-Regular.ttf", 12 }, prose = { "PTSerif-Regular.ttf", 12 }, caption = { "PTSerif-Regular.ttf", 11 },
-	number = { "PTSerif-Bold.ttf", 12 }, time = { "PTSerif-Bold.ttf", 12 }, timer = { "PTSerif-Regular.ttf", 11 },
-	world = { "PTSerif-Regular.ttf", 13, "OUTLINE" },
+	number = { "BarlowSemiCondensedTabular-SemiBold.ttf", 12 }, time = { "BarlowSemiCondensedTabular-SemiBold.ttf", 12 }, timer = { "BarlowSemiCondensedTabular-SemiBold.ttf", 11 },
+	world = { "BarlowSemiCondensedTabular-Bold.ttf", 13, "OUTLINE" },
 }
 local LUMEN = {
 	display = "Cinzel-SemiBold.ttf", heading = "Cinzel-SemiBold.ttf", title = "Cinzel-SemiBold.ttf",
 	caps = "CinzelCaps-Medium.ttf", names = "CinzelNames-Medium.ttf", unit = "CinzelUnit-Medium.ttf",
 	body = "AlegreyaSansTabular-Regular.ttf", prose = "AlegreyaSans-Regular.ttf", caption = "AlegreyaSansTabular-Medium.ttf",
-	number = "AlegreyaSansTabular-ExtraBold.ttf", time = "AlegreyaSansTabular-Bold.ttf", timer = "AlegreyaSansTabular-Medium.ttf",
-	world = "AlegreyaSansTabular-Medium.ttf",
+	number = "BarlowSemiCondensedTabular-SemiBold.ttf", time = "BarlowSemiCondensedTabular-SemiBold.ttf", timer = "BarlowSemiCondensedTabular-SemiBold.ttf",
+	world = "BarlowSemiCondensedTabular-Bold.ttf",
 }
 local SHIPPED = {
 	"AlegreyaSans-Regular.ttf", "AlegreyaSansTabular-Bold.ttf", "AlegreyaSansTabular-ExtraBold.ttf", "AlegreyaSansTabular-Medium.ttf",
@@ -83,7 +83,7 @@ do
 	assert(appearance == nil or next(appearance) == nil, "an inherited role writes no Appearance record")
 end
 
--- Precedence: explicit role font > whole-interface font > type set, and number roles keep Source Sans 3 only under a whole-interface font.
+-- Precedence: explicit role font > whole-interface font > type set; number, time, timer and world roles keep the Medallions Barlow faces under any but an explicit role font.
 do
 	local env, K = W.New()
 	local Tokens, Theme = K.Tokens, K.Theme
@@ -95,14 +95,14 @@ do
 	K.Options.Write("Appearance", "font", "SourceSans3Regular")
 	assert(file((Tokens.Font("body"))) == "Inter-SemiBold.ttf", "an explicit role font beats a whole-interface font")
 	assert(file((Tokens.Font("caps"))) == "SourceSans3-Regular.ttf", "other roles follow the whole-interface font")
-	assert(file((Tokens.Font("number"))) == "SourceSans3-Semibold.ttf", "numbers keep Source Sans 3 Semibold under a whole-interface font")
-	assert(file((Tokens.Font("world"))) == "SourceSans3-Regular.ttf" and select(3, Tokens.Font("world")) == "OUTLINE", "world text follows it and keeps its outline")
+	assert(file((Tokens.Font("number"))) == "BarlowSemiCondensedTabular-SemiBold.ttf", "numbers keep the Medallions face under a whole-interface font")
+	assert(file((Tokens.Font("world"))) == "BarlowSemiCondensedTabular-Bold.ttf" and select(3, Tokens.Font("world")) == "OUTLINE", "world text keeps the Medallions face and its outline")
 
 	K.Options.Write("Appearance", "roleFontNumber", "CinzelCaps")
 	K.Options.Write("Appearance", "roleFontTimer", CUSTOM)
-	assert(file((Tokens.Font("number"))) == "CinzelCaps-Medium.ttf", "an explicit number role beats the numeric Source Sans 3 rule")
+	assert(file((Tokens.Font("number"))) == "CinzelCaps-Medium.ttf", "an explicit number role beats the Medallions numeric face")
 	assert(Tokens.Font("timer") == CUSTOM, "an explicit custom path wins on a numeric role")
-	assert(file((Tokens.Font("time"))) == "SourceSans3-Semibold.ttf", "a sibling numeric role keeps the whole-interface rule")
+	assert(file((Tokens.Font("time"))) == "BarlowSemiCondensedTabular-SemiBold.ttf", "a sibling numeric role keeps the Medallions face")
 
 	K.Options.Write("Appearance", "roleFontBody", "")
 	assert(file((Tokens.Font("body"))) == "SourceSans3-Regular.ttf", "clearing a role inherits the whole-interface font")

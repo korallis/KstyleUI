@@ -286,7 +286,7 @@ do
 	assert(ns.Theme.SetFontFace("InterSemiBold") == true, "Inter is a valid face")
 	assert(events(fired) == "ThemeChanged", "a new face fires ThemeChanged")
 	assert(ns.Tokens.Font("body"):match("Inter%-SemiBold%.ttf$"), "body text uses the chosen face")
-	assert(ns.Tokens.Font("number"):match("SourceSans3%-Semibold%.ttf$"), "numbers keep the tabular face")
+	assert(ns.Tokens.Font("number"):match("BarlowSemiCondensedTabular%-SemiBold%.ttf$"), "numbers keep the Medallions tabular face")
 	assert(ns.Theme.SetFontFace("Comic") == false, "an unknown face is refused")
 	assert(ns.Theme.SetFontFace("InterSemiBold") == true and #fired == 1, "the same face again fires nothing")
 end
