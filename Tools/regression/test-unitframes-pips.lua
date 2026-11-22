@@ -200,6 +200,17 @@ K.Options.Write("UnitFrames", "resource.classPips", true)
 assert(R.themed and P.pips[1].frame:IsShown() and not R.pips[1]:IsShown(), "on again: the daggers")
 noErrors(env, K, "switch")
 
+-- Frames keeps the daggers' row and its mover; off brings the plain row back there too.
+K.Options.Write("HudStyle", "style", "frames")
+assert(R.showCombo and R.themed and P.pips[1].frame:IsShown() and not R.pips[1]:IsShown() and K.Layout.Live("unitframes.resource"), "Frames keeps the daggers' row and its mover")
+K.Options.Write("UnitFrames", "resource.classPips", false)
+for i, pip in ipairs(R.pips) do
+	assert(pip:IsShown() and not P.pips[i].frame:IsShown(), "Frames off: plain pip " .. i .. " shows")
+end
+K.Options.Write("UnitFrames", "resource.classPips", true)
+K.Options.Write("HudStyle", "style", "medallions")
+noErrors(env, K, "frames")
+
 -- The combo colour paints the plain pips only, so it shows while Class-themed pips is off (review 678 #3).
 for _, key in ipairs({ "resource.comboColor", "resource.comboCustom" }) do
 	local row = K.Options.Row("UnitFrames", key)

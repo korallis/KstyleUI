@@ -1,9 +1,10 @@
--- test-unitframes-text-above-spark.lua: the health hit spark stays a frame level under the unit's text, so "2.7K / 3.3K" reads above it.
+-- test-unitframes-text-above-spark.lua: in Frames and Medallions the health hit spark stays a frame level under the unit's text, so "2.7K / 3.3K" reads above it.
 local U = dofile("Tools/regression/unitframes_env.lua")
 
 local env, K, ns = U.New()
 local checked = 0
-for _, style in ipairs({ "medallions" }) do
+for _, style in ipairs({ "frames", "medallions" }) do
+	K.Options.Write("HudStyle", "style", style)
 	env.RunTimers()
 	for _, kind in ipairs({ "player", "target", "focus" }) do
 		for _, view in ipairs(ns.Frames.Get(kind).views) do
@@ -17,6 +18,6 @@ for _, style in ipairs({ "medallions" }) do
 		end
 	end
 end
-assert(checked >= 3, "the player, target and focus health bars were checked, got " .. checked)
+assert(checked >= 6, "each style's player, target and focus health bar was checked, got " .. checked)
 assert(#env._errors == 0 and K.ErrorCount() == 0, "no errors")
 print("ok")
