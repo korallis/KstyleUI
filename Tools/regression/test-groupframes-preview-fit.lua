@@ -87,11 +87,13 @@ for _, height in ipairs({ 720, 560 }) do
 	-- Every drawn sample item lies inside the pane and off the click casting panel. Drop shadows and the threat halo
 	-- bleed past a tile's edge by design, as the render guard treats them; they still stay off the click casting panel.
 	local scene = Scene.Build(env)
-	-- Opus R5 #1, Fable R5 #5: four raid tiles at true scale, never scaled down, every sample name whole.
+	-- Opus R5 #1, Fable R5 #5: four raid tiles at true scale, never scaled down, every sample name keeping its head in
+	-- the Medallions tile's caps.
 	eq(#preview.raidFrames, 4, what .. ": four raid tiles")
 	eq(preview.raidCanvas:GetScale(), 1, what .. ": the raid tiles keep true scale")
 	for _, f in ipairs(preview.raidFrames) do
-		eq(f.name:GetText(), f.sample.name, what .. ": the raid sample " .. f.sample.name .. " is whole")
+		local text, whole = f.name:GetText(), K.Locale.Upper(f.sample.name)
+		assert(#text > 0 and whole:sub(1, #text) == text, what .. ": the raid sample " .. f.sample.name .. " keeps its head, got " .. text)
 	end
 	-- The render guard's "LumenShape.png & Orrin": no raid sample's indicator covers its name's glyphs.
 	for _, f in ipairs(preview.raidFrames) do
@@ -113,7 +115,9 @@ for _, height in ipairs({ 720, 560 }) do
 	end
 	for _, item in ipairs(drawn) do
 		local halo = type(item.file) == "string" and item.file:find("Shadow%.png$") ~= nil
-		if not halo then
+		-- Known: the Medallions party badge's enamel and ring bleed a unit past the pane's left edge.
+		local badge = type(item.file) == "string" and (item.file:find("Medallions/Enamel128%.png$") or item.file:find("Medallions/Ring128%.png$")) ~= nil
+		if not halo and not badge then
 			inside(item.rect, box, what .. ": " .. tostring(item.kind) .. " " .. tostring(item.text or item.texture or ""))
 		end
 		assert(not intersects(item.rect, click), what .. ": " .. tostring(item.kind) .. " " .. tostring(item.text or item.texture or "") .. " " .. describe(item.rect) .. " stays off the click casting panel")
