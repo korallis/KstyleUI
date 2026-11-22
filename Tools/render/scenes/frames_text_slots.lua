@@ -91,7 +91,7 @@ return Common.Run(function()
 		for _, pair in ipairs({
 			{ "pet.auras", true }, { "pet.auraFilter", "both" }, { "target.auraCountSize", 12 }, { "target.auraCountPoint", "TOPLEFT" },
 			{ "target.auraFilter", "buffs" }, { "target.auraBuffDispel", true }, { "target.auraStealable", true }, { "target.auraTimerY", 1 }, { "player.powerAlpha", 0.6 }, { "player.powerGradient", "HORIZONTAL" },
-			{ "target.castbarTarget", true }, { "target.castbarImportant", true }, { "player.castbarIconX", 2 }, { "boss.gap", 12 },
+			{ "target.castbarTarget", true }, { "target.castbarImportant", true }, { "boss.gap", 12 },
 		}) do
 			K.Options.Write(module, pair[1], pair[2])
 		end

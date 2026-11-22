@@ -35,7 +35,7 @@ end
 local DEFAULTS = {
 	powerAlpha = 1, powerGradient = "", auraX = 0, auraY = 0, auraTimerX = 0, auraTimerY = 0, auraCountSize = 0,
 	auraCountPoint = "TOPRIGHT", auraCountX = 0, auraCountY = 0, auraDispel = true, auraBuffDispel = false, auraStealable = false,
-	castbarIconX = 0, castbarIconY = 0, castbarTextX = 0, castbarTextY = 0, castbarTimerX = 0, castbarTimerY = 0,
+	castbarTextX = 0, castbarTextY = 0, castbarTimerX = 0, castbarTimerY = 0,
 	castbarTarget = false, castbarImportant = false,
 }
 for _, kind in ipairs(U.KINDS) do
