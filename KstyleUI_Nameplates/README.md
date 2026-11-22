@@ -2,7 +2,7 @@
 
 A KstyleUI plate on each nameplate: a clean health bar, name, the level diamond, cast bar, the player's debuffs, threat colour, target brackets and the focus edge, raid, elite and rare marks, in a friendly and an enemy style. Enemy plates can colour quest mobs, rares, elites and casters by type, cast bars can colour by whether the player can interrupt right now, the game stacks plates by the plate's own footprint, and one dropdown applies a preset.
 
-Minimal keeps the shipped slim plate (120 by 9 under Medallions). Dungeon keeps each style's width (120 under Medallions, 156.75 under Frames and Orbs), with a 12-unit bar and an optional 11-unit health percent. Both keep 22-unit debuffs under Medallions (the existing larger 29-unit icons in Frames and Orbs); the Icon size slider still wins. Existing explicit Layout Mode sizes still win. The preset's stored `lumen` key remains compatible with saved profiles; its label is now Minimal.
+Minimal keeps the shipped slim plate (120 by 9). Dungeon keeps its 120-unit width, with a 12-unit bar and an optional 11-unit health percent. Both keep 22-unit debuffs; the Icon size slider still wins. Existing explicit Layout Mode sizes still win. The preset's stored `lumen` key remains compatible with saved profiles; its label is now Minimal.
 
 Debuff timers show by default, centred under each icon in outlined number-role text (11 units under Medallions). Stacks keep their corner badge. The engine's duration binding turns time red below five seconds without reading aura durations in Lua. The Nameplates page offers the number-font switch, time and stacks switches, size sliders, and an expiring-colour threshold (zero disables it). Choosing the previous size, plate font and hidden time restores the old appearance.
 
@@ -49,7 +49,7 @@ LEE-94 retains the name's core-matched 3.5-unit lift and size 12: acceptance-2's
 
 Personal resource display controls Blizzard's separate health and power display near the character (`nameplateShowSelf`). It defaults off; enabling the module applies the saved choice out of combat, and setup Apply turns it off only when the Nameplates addon is loaded. Keep my UI leaves it untouched. Changing this option writes the CVar too, including with the skin off. Presets and profile refreshes never reapply it. The player's own nameplate is not skinned, and a caster druid has no UnitFrames class-resource bars. `test-personal-resource-display` covers the boundary.
 
-Combat cast cues can return to the previous single cast colour and no shield glyph. Spell name, selection-only names and names below the track are separate choices. UnitFrames > Player > Power bar > Text > Previous display restores hidden power figures in Frames/Medallions and the old centred percent in Orbs; None hides the readout. UnitFrames > Target > Lead with target percent restores current/max first when off. CombatText > Keep combat text clear restores the inherited player field and the ordinary target anchor when off.
+Combat cast cues can return to the previous single cast colour and no shield glyph. Spell name, selection-only names and names below the track are separate choices. UnitFrames > Player > Power bar > Text > Previous display restores hidden power figures; None hides the readout. UnitFrames > Target > Lead with target percent restores current/max first when off. CombatText > Keep combat text clear restores the inherited player field and the ordinary target anchor when off.
 
 These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-design.md). The roadmap's Global Constraints and [AGENTS.md](../AGENTS.md) apply too.
 
@@ -77,7 +77,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Plates.lua` | `ns.Plates`: attach and detach, the Blizzard fade, events, target and focus tracking |
 | `CVars.lua` | `ns.CVars`: the nameplate CVars |
 | `Stacking.lua` | `ns.Stacking`: the nameplate size the game stacks and clicks by |
-| `Medallions.lua` | `ns.Medallions`: the Medallions HUD style's plate: its size, type and level, the gunmetal target ticks and the friendly player's badge |
+| `Medallions.lua` | `ns.Medallions`: the Medallions plate: its size, type and level, the gunmetal target ticks and the friendly player's badge |
 | `Preview.lua` | `ns.Preview`: the settings window's live preview and the Layout Mode sample |
 | `Presets.lua` | `ns.Presets`: the presets one dropdown applies |
 | `Module.lua` | `Modules.Register`, `Options.Register`, `Enable` and `Disable` |
@@ -193,7 +193,7 @@ The target's plate gets a glow and an edge in the accent, or a custom colour. Th
 
 ## Medallions
 
-Under the Medallions HUD style, `Medallions.lua` adds a component, wraps five plate methods, `Plates.ReadSize` and `Settings.Get`, and on `HudStyleChanged` reads the size again and restyles every plate. The look is KSTY-110's (section 3, nameplates). The game keeps Blizzard's own nameplate size and the plate still hangs from its base as `Plate:PlaceOnBase` puts it (#373); `test-nameplates-restyle.lua` checks that the Medallions plate holds its place through restyles, and that Frames gets its own back.
+`Medallions.lua` adds a component and wraps five plate methods, `Plates.ReadSize` and `Settings.Get`. The look is KSTY-110's (section 3, nameplates). The game keeps Blizzard's own nameplate size and the plate still hangs from its base as `Plate:PlaceOnBase` puts it (#373); `test-nameplates-restyle.lua` checks that the Medallions plate holds its place through restyles.
 
 - **Size.** The plate is 120 by 9 units unless the player resized it in Edit Mode, whose size always wins.
 - **Settings the player left alone.** `Medallions.LOOK` gives the name 11 units with an outline (the spec's 9 is under the kit's 11 px text floor, #361), the level 12 units with an outline, and debuffs 22 units with 11-unit timers. A setting the player changed keeps the player's value.
