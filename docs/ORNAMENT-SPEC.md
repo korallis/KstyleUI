@@ -134,7 +134,7 @@ Each surface's pull request adds its section here.
 | --- | --- | --- |
 | Setup step and Options control | foundation | shipped |
 | Unit frames and their cast bars | 2 | shipped |
-| Action-bar tray | 3 | removed (KSTY-49): the Frames tray card replaces it |
+| Action-bar tray | 3 | removed (KSTY-49); the Medallions slab holds bars 1 and 2 |
 | Nameplates | 4 | shipped |
 | Minimap and data bars | 5 | shipped |
 | Window and card crests | 6 | shipped |
@@ -164,7 +164,7 @@ The level badge and its number are measured as one circle (ruling A). The block 
 
 ### Action-bar tray
 
-Removed (KSTY-49, 2026-11-12). The KSTY-44 design bible (section 3.3) allows ornament only at card corners, heading rules, portrait rings and the level diamond, never around a bar, so bar 1 no longer owns a `row` handle and no `Tray` finial or `Keystone` draws. The Frames tray card behind bars 1 and 2 (`KstyleUI_ActionBars/Tray.lua`, the quest card's material and its corner brackets) replaces it at every ornament level.
+Removed (KSTY-49, 2026-11-12). The KSTY-44 design bible (section 3.3) allows ornament only at card corners, heading rules, portrait rings and the level diamond, never around a bar, so bar 1 no longer owns a `row` handle and no `Tray` finial or `Keystone` draws. The Medallions slab holds bars 1 and 2 at every ornament level.
 
 ### Nameplates
 
