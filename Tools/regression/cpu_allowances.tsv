@@ -1,13 +1,4 @@
 test-actionbars-vehicle.lua	25	LEE-5827
-test-centre-clearance-dps-cat.lua	21	LEE-5827
-test-centre-clearance-healer-bear.lua	22	LEE-5827
-test-centre-clearance-healer-cat.lua	23	LEE-5827
-test-centre-clearance-healer-paladin.lua	23	LEE-5827
-test-centre-clearance-healer-rogue.lua	23	LEE-5827
-test-centre-clearance-tank-bear.lua	22	LEE-5827
-test-centre-clearance-tank-cat.lua	23	LEE-5827
-test-centre-clearance-tank-paladin.lua	23	LEE-5827
-test-centre-clearance-tank-rogue.lua	22	LEE-5827
 test-groupframes-grid.lua	22	LEE-5827
 test-groupframes-medallions-tiles-wide.lua	24	LEE-5827
 test-groupframes-medallions-tiles.lua	23	LEE-5827
