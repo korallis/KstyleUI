@@ -419,4 +419,14 @@ do
 	assert(ns.Feed.Backdrop():GetAlpha() == 1, "the feed fade ends within 150 ms")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
+
+-- A long item name gets the rail's full width: the feed is the left rail's 318 units, the card and the name with it.
+do
+	local env, K, ns = New()
+	env._textWidth = function(text, _, size) return #text * size * 0.53 end
+	Loot(env, "You receive loot: " .. EPIC:gsub("Thunderfury", "Thunderfury, Blessed Blade of the Windseeker"))
+	local rail = K.Tokens.Size("railWidth")
+	assert(ns.Feed.Holder():GetWidth() == rail and ns.Feed.Backdrop():GetWidth() == rail, "the long name's card spans the " .. rail .. "-unit rail, got " .. ns.Feed.Backdrop():GetWidth())
+	assert(ns.Feed.lines[1].name:GetWidth() == 242, "the long name keeps 242 units, got " .. ns.Feed.lines[1].name:GetWidth())
+end
 print("qol feed ok")
