@@ -96,6 +96,9 @@ do
 	local base = N.Add(env, "nameplate1")
 	base.UnitFrame:SetAlpha(1)
 	assert(base.UnitFrame:GetAlpha() == 0, "a hook fades the UnitFrame again")
+	local fades = #base.UnitFrame._calls
+	for _ = 1, 10 do base.UnitFrame:SetAlpha(0) end
+	assert(#base.UnitFrame._calls - fades == 10, "Blizzard fading its own plate ten times made " .. (#base.UnitFrame._calls - fades - 10) .. " more writes; fade again only when the new alpha is not 0 (KstyleUI_Nameplates/Plates.lua OnBlizzardAlpha)")
 	local highlight = base.UnitFrame.selectionHighlight
 	assert(highlight:GetAlpha() == 0, "the selection highlight, which ignores its parent's alpha, is faded too")
 	K.Modules.Disable("Nameplates")

@@ -281,7 +281,7 @@ function Widgets.RestyleAll()
 	end
 end
 
-local REGION_FIELDS = { "owner", "holder", "frame", "bar", "button" }
+local REGION_FIELDS = { "owner", "holder", "frame", "bar", "button", "target" }
 
 local function Region(widget)
 	if type(widget.GetParent) == "function" then
@@ -454,21 +454,30 @@ local function SnapSize(size, f, text)
 	return least
 end
 
+local function SetShadow(text, x, y, r, g, b, a)
+	if r then
+		local cr, cg, cb, ca = text:GetShadowColor()
+		if cr ~= r or cg ~= g or cb ~= b or ca ~= a then
+			text:SetShadowColor(r, g, b, a)
+		end
+	end
+	local cx, cy = text:GetShadowOffset()
+	if cx ~= x or cy ~= y then
+		text:SetShadowOffset(x, y)
+	end
+end
+
 local function Shadow(text, flags, f)
 	local face = Tokens.FaceShadow((text:GetFont()))
 	if flags ~= "" or face == false then
-		text:SetShadowOffset(0, 0)
-		return
+		return SetShadow(text, 0, 0)
 	end
 	local offset = Scale.Border() / f
 	local r, g, b, a = Tokens.Color("textShadow")
 	if face == true then
-		text:SetShadowColor(r, g, b, a)
-		text:SetShadowOffset(offset, -offset)
-		return
+		return SetShadow(text, offset, -offset, r, g, b, a)
 	end
-	text:SetShadowColor(r, g, b, face.alpha)
-	text:SetShadowOffset(face.x * offset, -face.y * offset)
+	return SetShadow(text, face.x * offset, -face.y * offset, r, g, b, face.alpha)
 end
 
 function Widgets.FontSize(text, size)
@@ -633,6 +642,8 @@ function Widgets.SyncTracking(text)
 	end
 end
 
+local unset = setmetatable({}, { __mode = "k" })
+
 function Widgets.ApplyFont(text, path, size, flags, plain)
 	if IsSecret(size) or type(size) ~= "number" or size ~= size or size <= 0 or size == math.huge then
 		return false
@@ -646,12 +657,18 @@ function Widgets.ApplyFont(text, path, size, flags, plain)
 	if IsSecret(height) or type(height) ~= "number" or height ~= height or height == math.huge or height == -math.huge then
 		return false
 	end
-	local ok = text:SetFont(path, max(1, height), flags) ~= false
+	height = max(1, height)
+	local current, currentHeight, currentFlags = text:GetFont()
+	local same = not unset[text] and current == path and currentHeight == height and currentFlags == flags
+	local ok = same or text:SetFont(path, height, flags) ~= false
+	unset[text] = not ok or nil
 	Shadow(text, flags, f)
 	if not plain then
 		Widgets.SyncTracking(text)
 	end
-	Widgets.Refollow(text)
+	if not same then
+		Widgets.Refollow(text)
+	end
 	return ok
 end
 
@@ -2549,9 +2566,13 @@ function Chrome:SetShadow(on)
 end
 
 function Chrome:SetShown(shown)
-	self.visible = shown and true or false
+	shown = shown and true or false
+	if self.fill and self.visible == shown then
+		return
+	end
+	self.visible = shown
 	if self.ornament then
-		self.ornament.enabled = self.visible
+		self.ornament.enabled = shown
 	end
 	if not self.fill then
 		if shown then

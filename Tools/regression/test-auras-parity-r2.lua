@@ -162,6 +162,34 @@ ns.Tracked.Set = function(...) reads = reads + 1; return readSet(...) end
 env.FireEvent("SPELLS_CHANGED")
 ns.Tracked.Set = readSet
 assert(reads == 1, "both buff rows share one read of the tracked buffs, not " .. reads)
+-- SPELLS_CHANGED fires on every spell, talent and form change; with the tracked buffs unchanged no row applies again.
+local cost = dofile("Tools/regression/path_budget.lua").Count(env, function() env.FireEvent("SPELLS_CHANGED") end)
+dofile("Tools/regression/path_budget.lua").Check(cost, 2000, 0, "an unchanged SPELLS_CHANGED applied the buff rows again; apply only a row whose tracked buffs changed (KstyleUI_Auras/Panel.lua OnTracked)")
+-- A Layout fade sets a row's alpha every frame; the engine's host follows with its alpha and shown state only.
+local host, wrote = buffs.host, {}
+local seen = #host._calls
+buffs.holder:SetAlpha(0.5)
+for i = seen + 1, #host._calls do
+	local method = host._calls[i].method
+	if not method:find("^Get") and not method:find("^Is") then wrote[#wrote + 1] = method end
+end
+assert(#wrote <= 2 and host:GetAlpha() == 0.5, "one alpha step of the buff row wrote " .. table.concat(wrote, ", ") .. " to its host; follow the alpha and shown state only (KstyleUI_Auras/Panel.lua Fade)")
+buffs.holder:SetAlpha(1)
+-- Rows that keep every buff, and a module that is off, never ask the Cooldown Manager.
+local function Reads(fire)
+	local n = 0
+	ns.Tracked.Set = function(...) n = n + 1; return readSet(...) end
+	fire()
+	ns.Tracked.Set = readSet
+	return n
+end
+write("buffs.tracked", "both"); write("extraBuffs.tracked", "both")
+local optedOut = Reads(function() env.FireEvent("SPELLS_CHANGED") end)
+write("buffs.tracked", "cdm"); write("extraBuffs.tracked", "cdm")
+K.Modules.Disable("Auras"); env.RunTimers()
+local off = Reads(function() A.Trigger(env, "CooldownViewerSettings.OnDataChanged") end)
+K.Modules.Enable("Auras"); env.RunTimers()
+assert(optedOut == 0 and off == 0, "rows that keep every buff read the tracked buffs " .. optedOut .. " times and the module off " .. off .. " times; read them only for a running row that leaves them out (KstyleUI_Auras/Panel.lua OnTracked)")
 
 -- The preview follows the row's filter and order: Dispellable by you drops the crowd control sample, Reverse order reverses.
 write("extraDebuffs.enabled", true); write("extraDebuffs.show", "all")

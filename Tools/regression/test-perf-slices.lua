@@ -1,4 +1,4 @@
--- test-perf-slices.lua: unchanged owned slices skip mutations; bevel corners stay correct and public slices repaint after engine recolouring.
+-- test-perf-slices.lua: unchanged owned slices skip mutations; bevel corners stay correct and public slices repaint after engine recolouring; an unchanged font and an unchanged chrome visibility write nothing.
 local W = dofile("Tools/regression/widget_env.lua")
 local env, K = W.New()
 local owner = env.CreateFrame("Frame", nil, K.Scale.Root())
@@ -32,5 +32,51 @@ local panel = K.Widgets.Chrome(owner)
 panel:Restyle()
 local r, g, b, a = K.Widgets.Rgba("medRimLit")
 assert(W.SameColor(panel.rim[1], r, g, b, a), "P7: retain bevel corner colours when the base rim colour was unchanged")
+local function Writes(run)
+	local before = {}
+	for _, frame in ipairs(env._frames) do
+		before[frame] = #frame._calls
+		for _, region in ipairs(frame._regions) do
+			before[region] = #region._calls
+		end
+	end
+	run()
+	local writes = {}
+	for object, start in pairs(before) do
+		for i = start + 1, #object._calls do
+			local method = object._calls[i].method
+			if not (method:find("^Get") or method:find("^Is")) then
+				writes[#writes + 1] = method
+			end
+		end
+	end
+	return table.concat(writes, ", ")
+end
+local text = K.Widgets.FontString(owner, "OVERLAY")
+K.Widgets.StyleText(text, "body")
+local wrote = Writes(function() K.Widgets.StyleText(text, "body") end)
+assert(wrote == "", "fights audit: Widgets.ApplyFont must not set an unchanged font or shadow again (it wrote " .. wrote .. "); compare GetFont, GetShadowColor and GetShadowOffset first, so a hook answering another addon's SetFont settles")
+chrome:SetShown(true)
+wrote = Writes(function() chrome:SetShown(true) end)
+assert(wrote == "", "fights audit: Chrome:SetShown with an unchanged visibility must write nothing (it wrote " .. wrote .. "); the minimap's coordinate ticker shows its plaques five times a second")
+local host = env.CreateFrame("Frame", nil, env.UIParent)
+local art = host:CreateTexture(nil, "ARTWORK")
+K.Skin.Strip(host)
+local before = #art._calls
+art:SetAlpha(0)
+art:SetVertexColor(1, 1, 1, 0)
+art:SetAlpha(1)
+local calls = {}
+for i = before + 1, #art._calls do
+	local method = art._calls[i].method
+	if not method:find("^Get") then
+		calls[#calls + 1] = method
+	end
+end
+assert(table.concat(calls, ", ") == "SetAlpha, SetVertexColor, SetAlpha, SetAlpha" and art:GetAlpha() == 0, "fights audit: a hushed texture answers only an owner write that shows it (" .. table.concat(calls, ", ") .. "); Rehush returns when the alpha is already 0")
+chrome:SetShown(false)
+assert(not chrome.fill[1]:IsShown(), "a hidden chrome hides its slices")
+chrome:SetShown(true)
+assert(chrome.fill[1]:IsShown(), "and shows them again")
 assert(#env._errors == 0, table.concat(env._errors, "\n"))
 print("perf slices ok")

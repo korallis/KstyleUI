@@ -240,6 +240,15 @@ do
 	assert(label:IsShown() and formatted(env, label.text) == "Group 1", "your group with the word Group")
 	write(env, K, "label.format", "NUMBER")
 	assert(tostring(text(env, label.text)) == "1", "or the number alone")
+	-- A raid sends GROUP_ROSTER_UPDATE in bursts; the readouts refresh once per frame, with the roster.
+	local labelled = #label.text._calls
+	for _ = 1, 10 do env.FireEvent("GROUP_ROSTER_UPDATE") end
+	env.RunTimers()
+	local refreshes = 0
+	for i = labelled + 1, #label.text._calls do
+		if label.text._calls[i].method:find("^Set.*Text$") then refreshes = refreshes + 1 end
+	end
+	assert(refreshes == 1 and tostring(text(env, label.text)) == "1", "a burst of 10 roster updates refreshed the group label " .. refreshes .. " times; refresh the readouts with the roster flush, once a frame (KstyleUI_GroupFrames/Readouts.lua)")
 	G.SetRoster(env, "party", { members[1] })
 	env.RunTimers()
 	assert(not label:IsShown(), "no label outside a raid")

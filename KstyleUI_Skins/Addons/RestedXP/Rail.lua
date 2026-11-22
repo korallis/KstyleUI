@@ -26,9 +26,9 @@ local BOXES = { "targets", "items" }
 local BOX_GAP = "gapSmall"
 local BOX_PAD = 4
 
-local state = { rxp = nil, placed = nil, original = nil, queued = false, hooked = false, tracked = false, holder = nil, cut = setmetatable({}, { __mode = "k" }), hidden = 0, boxes = {} }
+local state = { rxp = nil, placed = nil, original = nil, queued = false, hooked = false, holder = nil, cut = setmetatable({}, { __mode = "k" }), hidden = 0, boxes = {} }
 
-local Dock, ReleaseBoxes, Need, Restore
+local Dock, ReleaseBoxes, Need, Restore, Schedule
 
 local function Log(message)
 	K.DevTest.Log(MODULE, "restedXP rail: " .. message)
@@ -92,7 +92,8 @@ end
 
 local function Size()
 	local holder, spec = state.holder, Spec()
-	if holder and spec then
+	if holder and spec and (spec.width ~= state.width or spec.height ~= state.height) then
+		state.width, state.height = spec.width, spec.height
 		holder:SetSize(spec.width, spec.height)
 	end
 	return spec
@@ -131,6 +132,7 @@ local function Holder()
 	state.holder = holder
 	Size()
 	Register(spec)
+	Widgets.Track({ Restyle = Schedule, holder = holder })
 	return holder
 end
 
@@ -538,6 +540,22 @@ function Rail.Hidden()
 	return state.hidden
 end
 
+local function Bit(value)
+	return Widgets.IsSecret(value) and "?" or tostring(value)
+end
+
+local function Key(f, band, path)
+	local current = f.CurrentStepFrame
+	local point, relative, relativePoint, x, y = f:GetPoint(1)
+	local held = path and Rail.CardHeight(path, true)
+	path = path or {}
+	local key = { band.left, band.top, band.bottom, band.right, Widgets.ScaleFactor(f), RestedXP.Chrome.Reach(f.GuideName), Bit(f:GetWidth()), Bit(f:GetHeight()), f:GetNumPoints(), Bit(point), Bit(relative), Bit(relativePoint), Bit(x), Bit(y), Height(current), Bit(current.anchor), Bit(current:IsShown()), Bit(Bars(f)), Bit(Docking()), Bit(Widgets.Readability("snapEdges")), Bit(ns.Skins.Setting(KEY, "compose")), Bit(held), Bit(path.height), Bit(path.capHeight), Bit(path.cardHeight), Bit(path.metaShown), Bit(path.rest) }
+	for _, step in ipairs(IsTable(current.framePool) and current.framePool or {}) do
+		key[#key + 1] = IsTable(step) and step:IsShown() and Height(step) .. "/" .. Alpha(step) or 0
+	end
+	return table.concat(key, " ")
+end
+
 function Rail.Place()
 	state.queued = false
 	if not On() then
@@ -557,6 +575,12 @@ function Rail.Place()
 		return false
 	end
 	local path = RestedXP.Chrome.Path(f)
+	if state.placed and state.key == Key(f, band, path) then
+		if Docking() then
+			Dock(f, path, band)
+		end
+		return true
+	end
 	local scale = Widgets.ScaleFactor(f)
 	local reach = Widgets.Snap(f, RestedXP.Chrome.Reach(f.GuideName))
 	local width = (band.right - band.left) / scale + 2 * SIDE - 2 * reach
@@ -599,10 +623,11 @@ function Rail.Place()
 		end
 	end
 	Live()
+	state.key = Key(f, Rail.Band(), path)
 	return true
 end
 
-local function Schedule()
+function Schedule()
 	if state.queued or not On() then
 		return
 	end
@@ -800,14 +825,22 @@ function Dock(f, path, band)
 		local width
 		for _ = 1, 2 do
 			width = math.max(icons, slot.width / scale - reach.left - reach.right)
-			box:SetWidth(width)
+			local current = box:GetWidth()
+			if not (Plain(current) and current == width) then
+				box:SetWidth(width)
+			end
 			RestedXP.Chrome.IconInset(box)
 			reach = Reach(box)
 		end
 		local left = (slot.left + slot.width) / scale - reach.right - width
 		local y = (top - slot.drop) / scale - reach.top
-		box:ClearAllPoints()
-		box:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left + K.Scale.Origin() / scale, y)
+		local x = left + K.Scale.Origin() / scale
+		local point, relative, relativePoint, px, py = box:GetPoint(1)
+		local secret = Widgets.IsSecret(point) or Widgets.IsSecret(relative) or Widgets.IsSecret(relativePoint) or not (Plain(px) and Plain(py))
+		if secret or box:GetNumPoints() ~= 1 or point ~= "TOPLEFT" or relative ~= UIParent or relativePoint ~= "BOTTOMLEFT" or px ~= x or py ~= y then
+			box:ClearAllPoints()
+			box:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x, y)
+		end
 		entry.placed, entry.shown = { left = left, top = y, width = width }, true
 	end
 end
@@ -887,10 +920,6 @@ function Rail.Start(rxp)
 		end
 	end
 	RestedXP.Chrome.OnHead = OnHead
-	if not state.tracked then
-		state.tracked = { Restyle = Schedule }
-		Widgets.Track(state.tracked)
-	end
 	K.Combat.Queue(Rail.Place)
 end
 

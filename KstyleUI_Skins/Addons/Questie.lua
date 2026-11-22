@@ -12,15 +12,18 @@ local function PaintFont(text, path, size, flags)
 	if painting then return end
 	fonts[text] = { path, size, flags }
 	if not active or K.Store.Module("Skins").restyleAddons == false then return end
+	local body = ns.Style.Font("body")
+	if path == body then return end
 	painting = true
-	text:SetFont(ns.Style.Font("body"), size, flags)
+	text:SetFont(body, size, flags)
 	painting = false
 end
 
 local function PaintArt(texture)
 	if painting then return end
-	art[texture] = texture:GetAlpha()
-	if not active then return end
+	local alpha = texture:GetAlpha()
+	art[texture] = alpha
+	if not active or not K.Widgets.IsSecret(alpha) and alpha == 0 then return end
 	painting = true
 	texture:SetAlpha(0)
 	painting = false

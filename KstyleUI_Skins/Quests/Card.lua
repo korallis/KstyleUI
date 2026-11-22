@@ -771,7 +771,7 @@ function Card.Build(root)
 	for i = 1, MAX_SHOWN + 1 do
 		rows[i] = NewRow(i)
 	end
-	local restyler = { Restyle = Restyle }
+	local restyler = { Restyle = Restyle, frame = card }
 	Style.Track(restyler)
 	Widgets.Track(restyler)
 	Restyle()

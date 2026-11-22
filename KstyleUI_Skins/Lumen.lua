@@ -170,7 +170,7 @@ function Lumen.Ring(host, checked)
 	ringTexture:SetTexture((Lumen.Texture("checkRing")))
 	local fill = box:CreateTexture(nil, "OVERLAY")
 	fill:SetTexture((Lumen.Texture("gemFill")))
-	ring = { check = host, box = box, ring = ringTexture, fill = fill, hoverT = 0, checked = Checked(checked), Paint = PaintRing, Restyle = RestyleRing, SetChecked = SetRingChecked }
+	ring = { check = host, box = box, holder = box, ring = ringTexture, fill = fill, hoverT = 0, checked = Checked(checked), Paint = PaintRing, Restyle = RestyleRing, SetChecked = SetRingChecked }
 	RestyleRing(ring)
 	Style.Track(ring)
 	Widgets.Track(ring)

@@ -33,7 +33,7 @@ local function Dispatch(event, ...)
 	depth = depth - 1
 end
 
-function ns.Watch(part, event)
+function ns.Watch(part, event, unit)
 	if not running then
 		return
 	end
@@ -48,7 +48,9 @@ function ns.Watch(part, event)
 		end
 	end
 	list[#list + 1] = part
-	if #list == 1 then
+	if #list == 1 and unit then
+		K.Events.RegisterUnit(MODULE, event, Dispatch, unit)
+	elseif #list == 1 then
 		K.Events.Register(MODULE, event, Dispatch)
 	end
 end

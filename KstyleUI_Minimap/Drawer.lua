@@ -320,6 +320,9 @@ end
 function Drawer:Place(button)
 	local state = self.adopted[button]
 	local point, relative, x, y, size
+	if state then
+		state.anchor = nil
+	end
 	if not (state and Movable(button)) then
 		return
 	elseif state.place == "column" and state.spot then
@@ -339,16 +342,44 @@ function Drawer:Place(button)
 	local compact = Settings.Get("compactIcons")
 	local scale = compact and 1 or button:GetScale()
 	if not Format.IsNumber(scale) or scale <= 0 then return end
+	local fill = state.place == "column" and ns.Column.GLYPH_SHARE or ICON_FILL
+	state.anchor = { point, relative, point, x / scale, y / scale, size = size / scale, fill = size * fill / scale, scale = not compact and scale or nil }
+	self:Fit(button)
+end
+
+local function Near(value, want)
+	return not IsSecret(value) and type(value) == "number" and math.abs(value - want) < 0.01
+end
+
+local function Holds(region, point, relative, x, y)
+	if not Near(region:GetNumPoints(), 1) then
+		return false
+	end
+	local own, to, toPoint, ox, oy = region:GetPoint(1)
+	return not (IsSecret(own) or IsSecret(to) or IsSecret(toPoint)) and own == point and to == relative and toPoint == point and Near(ox or 0, x) and Near(oy or 0, y)
+end
+
+function Drawer:Fit(button)
+	local state = self.adopted[button]
+	local anchor, icon = state.anchor, state.icon
 	self.placing = true
-	button:ClearAllPoints()
-	button:SetPoint(point, relative, point, x / scale, y / scale)
-	button:SetSize(size / scale, size / scale)
-	local icon = state.icon
+	if not Holds(button, anchor[1], anchor[2], anchor[4], anchor[5]) then
+		button:ClearAllPoints()
+		button:SetPoint(unpack(anchor))
+	end
+	if not (Near(button:GetWidth(), anchor.size) and Near(button:GetHeight(), anchor.size)) then
+		button:SetSize(anchor.size, anchor.size)
+	end
 	if type(icon) == "table" and type(icon.SetPoint) == "function" then
-		icon:ClearAllPoints()
-		icon:SetPoint("CENTER", button, "CENTER")
-		local fill = state.place == "column" and ns.Column.GLYPH_SHARE or ICON_FILL
-		Widgets.Size(icon, size * fill / scale, size * fill / scale)
+		if not Holds(icon, "CENTER", button, 0, 0) then
+			icon:ClearAllPoints()
+			icon:SetPoint("CENTER", button, "CENTER")
+		end
+		if not (anchor.icon and Near(icon:GetWidth(), anchor.icon) and Near(icon:GetHeight(), anchor.icon)) then
+			Widgets.Size(icon, anchor.fill, anchor.fill)
+			local width = icon:GetWidth()
+			anchor.icon = Format.IsNumber(width) and width or nil
+		end
 	end
 	self.placing = false
 end
@@ -449,7 +480,12 @@ local function OnMoved(button)
 			state.points = asked
 		end
 	end
-	drawer:Place(button)
+	local anchor, scale = state.anchor, button:GetScale()
+	if anchor and Widgets.MayMove(button) and (anchor.scale == nil or Format.IsNumber(scale) and scale == anchor.scale) then
+		drawer:Fit(button)
+	else
+		drawer:Place(button)
+	end
 end
 
 local function KeepOpaque(button, alpha)

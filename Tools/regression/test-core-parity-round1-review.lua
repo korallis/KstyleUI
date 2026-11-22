@@ -35,7 +35,7 @@ local setFont, calls = text.SetFont, 0
 text.SetFont = function(...) calls = calls + 1; return setFont(...) end
 K.Widgets.StyleText(text, "body")
 text.SetFont = setFont
-assert(calls == 1 and select(3, text:GetFont()) == "OUTLINE", "one StyleText makes one SetFont call with the outline, not " .. calls)
+assert(calls <= 1 and select(3, text:GetFont()) == "OUTLINE", "one StyleText makes at most one SetFont call with the outline, not " .. calls)
 K.Options.Write("Appearance", "outline", "")
 assert(select(3, text:GetFont()) == "", "Current style restores the role flags")
 

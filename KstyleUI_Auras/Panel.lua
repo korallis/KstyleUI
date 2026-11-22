@@ -323,11 +323,24 @@ end
 local TIMED = 2147483647
 local shared
 
+local function Key(read)
+	if not read[1] then
+		return read[2]
+	end
+	local ids = {}
+	for id in pairs(read[1]) do
+		ids[#ids + 1] = id
+	end
+	table.sort(ids)
+	return table.concat(ids, ",")
+end
+
 local function Candidates(desc)
 	local group, base = desc.ctx.group, nil
+	desc.tracked = false
 	if group.tracked == "cdm" then
 		local read = shared or { Tracked.Set() }
-		if shared == false then shared = read end
+		desc.tracked = Key(read)
 		local set, why = read[1], read[2]
 		if set then
 			base = { excludeSpellIDs = set }
@@ -469,24 +482,29 @@ local function LayoutFrame(parent)
 	return CreateFrame("Frame", nil, parent)
 end
 
+local function Fade(desc)
+	desc.host:SetAlpha(desc.holder:GetAlpha())
+	ShowHost(desc)
+end
+
 local function Follow(desc)
+	local host, holder = desc.host, desc.holder
+	host:SetScale(holder:GetScale())
+	host:SetFrameStrata(holder:GetFrameStrata())
+	host:SetFrameLevel(holder:GetFrameLevel() + HOST_LEVEL)
+	Fade(desc)
+end
+
+local function Mirror(desc)
 	local host, holder = desc.host, desc.holder
 	host:ClearAllPoints()
 	host:SetPoint("TOPLEFT", holder, "TOPLEFT", 0, 0)
 	host:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", 0, 0)
-	host:SetScale(holder:GetScale())
-	host:SetAlpha(holder:GetAlpha())
-	host:SetFrameStrata(holder:GetFrameStrata())
-	host:SetFrameLevel(holder:GetFrameLevel() + HOST_LEVEL)
-	ShowHost(desc)
-end
-
-local function Mirror(desc)
 	Follow(desc)
-	for _, method in ipairs({ "SetScale", "SetAlpha", "SetFrameStrata", "Show", "Hide", "SetShown" }) do
-		hooksecurefunc(desc.holder, method, function()
-			Follow(desc)
-		end)
+	hooksecurefunc(holder, "SetScale", function() Follow(desc) end)
+	hooksecurefunc(holder, "SetFrameStrata", function() Follow(desc) end)
+	for _, method in ipairs({ "SetAlpha", "Show", "Hide", "SetShown" }) do
+		hooksecurefunc(holder, method, function() Fade(desc) end)
 	end
 end
 
@@ -717,10 +735,14 @@ local function OnEnchant()
 end
 
 local function OnTracked()
-	shared = false
+	local key
 	for name, desc in pairs(groups) do
-		if running and KIND[name] == "buffs" and not desc.failed and not desc.off then
-			K.Call(ApplyGroup, desc)
+		if running and KIND[name] == "buffs" and not desc.failed and not desc.off and desc.tracked ~= false then
+			if not shared then
+				shared = { Tracked.Set() }
+				key = Key(shared)
+			end
+			if desc.tracked ~= key then K.Call(ApplyGroup, desc) end
 		end
 	end
 	shared = nil

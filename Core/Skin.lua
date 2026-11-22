@@ -112,7 +112,8 @@ local function Restyle(parts)
 end
 
 local function Rehush(texture)
-	if busy then
+	local ok, alpha = pcall(texture.GetAlpha, texture)
+	if busy or ok and not W().IsSecret(alpha) and alpha == 0 then
 		return
 	end
 	busy = true

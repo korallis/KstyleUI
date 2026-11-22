@@ -1,5 +1,21 @@
 # KstyleUI changelog
 
+## v0.2.13.1 (2026-11-22)
+
+A small KstyleUI hotfix for frame rate. It should feel smoother with your other addons running and do less work while you stand around.
+
+Highlights:
+
+- Smoother frame rate with RestedXP and Questie.
+- Minimap buttons stay put in the drawer with less work when other addons move them.
+- The minimap, auras, chat and meters do less work while you stand still.
+
+### Fixed
+
+- KstyleUI stops redoing the same work on RestedXP's guide, Questie's text and hidden Blizzard frames.
+- The minimap drawer only fixes what moved, and the coordinates only update when the numbers change.
+- Auras, chat and the damage meter skip repeat updates. The low-health warning stops checking your health when you turn it off.
+
 ## v0.2.13 (2026-11-22)
 
 Frames returns alongside Medallions. RestedXP and Zygor guides move to a card of their own in the top left corner, the quest log keeps the story rail and raid warnings fit MacBook screens.

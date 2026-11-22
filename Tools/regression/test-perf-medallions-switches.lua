@@ -1,4 +1,4 @@
--- test-perf-medallions-switches.lua: in the idle Medallions suite at full health, the Medallions page's Low-health vignette and Ambient hub effects switches (on by default) take their art out of the draw when off, hidden rather than alpha 0, with no loop or OnUpdate left running for them (the vignette's breath runs on only for the portrait ring that breathes on it), switching them back on restores the counts, and a fresh load saved with both off matches the switched-off counts.
+-- test-perf-medallions-switches.lua: in the idle Medallions suite at full health, the Medallions page's Low-health vignette and Ambient hub effects switches (on by default) take their art out of the draw when off, hidden rather than alpha 0, with no loop or OnUpdate left running for them (the vignette's breath runs on only for the portrait ring that breathes on it) and no player health event reaching the vignette, switching them back on restores the counts, and a fresh load saved with both off matches the switched-off counts.
 local Suite = dofile("Tools/regression/suite_env.lua")
 local FX = dofile("Tools/regression/effects_env.lua")
 local SETTLE = 600
@@ -45,6 +45,17 @@ local function Switch(on)
 	K.Options.Write("Medallions", "ambient", on)
 end
 
+-- Health(e, vignette) -> the SetAlpha calls the vignette makes for ten player health changes.
+local function Health(e, vignette)
+	local before = #vignette.frame._calls
+	for _ = 1, 10 do e.FireEvent("UNIT_HEALTH", "player") end
+	local writes = 0
+	for k = before + 1, #vignette.frame._calls do
+		if vignette.frame._calls[k].method == "SetAlpha" then writes = writes + 1 end
+	end
+	return writes
+end
+
 local function Edge()
 	for _, t in ipairs({ V.frame.layer:GetRegions() }) do
 		if t:IsShown() then return true end
@@ -61,10 +72,13 @@ probe:SetScript("OnUpdate", nil)
 Switch(false)
 local shownOff, loopsOff = Census(env)
 assert(not Edge() and V.frame.breath:IsPlaying(), "the vignette switch off hides the edge textures and keeps the breath the portrait ring breathes on")
+local healthOff = Health(env, V)
+assert(healthOff == 0, "the vignette switch off still set the vignette's alpha " .. healthOff .. " times for 10 health changes; unregister UNIT_HEALTH while it is off (Core/Vignette.lua Listen)")
 assert(loops - loopsOff == 9, string.format("the switches off stop the hub's 9 ambient loops: %d loops before, %d after", loops, loopsOff))
 assert(shown - shownOff >= 22, string.format("the switches off hide the vignette's 16 edge slices and the hub's sheen and live particles: %d shown before, %d after", shown, shownOff))
 Switch(true)
 local shownOn, loopsOn = Census(env)
+assert(Health(env, V) == 10, "switched back on, every health change sets the vignette's alpha again")
 assert(shownOn == shown and loopsOn == loops, string.format("switching back on restores %d shown and %d loops, got %d and %d", shown, loops, shownOn, loopsOn))
 assert(#env._errors == 0 and K.ErrorCount() == 0, "the switches raised " .. tostring(env._errors[1]))
 
@@ -74,6 +88,8 @@ local fresh = Suite.New(env.KstyleUIDB, 1920, 1080)
 FX.Install(fresh)
 fresh.FireEvent("PLAYER_ENTERING_WORLD", false, true)
 local shownFresh, loopsFresh = Census(fresh)
+local VF = fresh.KstyleUI.Effects.Vignette
+assert(VF.frame.body == nil and Health(fresh, VF) == 0, "a fresh load saved off builds no edge slices and leaves player health alone")
 assert(shownFresh == shownOff and loopsFresh == loopsOff, string.format("a fresh load saved off gives %d shown and %d loops, got %d and %d", shownOff, loopsOff, shownFresh, loopsFresh))
 assert(#fresh._errors == 0 and fresh.KstyleUI.ErrorCount() == 0, "the fresh load raised " .. tostring(fresh._errors[1]))
 print(string.format("medallions switches ok: %d shown and %d loops on, %d and %d off", shown, loops, shownOff, loopsOff))

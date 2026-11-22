@@ -239,7 +239,7 @@ local function Shown(frame)
 end
 
 local function Reaches(dock)
-	local window = dock.window
+	local window = dock.frame
 	local scale = Plain(window:GetEffectiveScale())
 	local box = Edges(window, scale)
 	if not box then
@@ -283,7 +283,7 @@ local function Seam(dock, edge)
 end
 
 local function PlaceSeam(dock, edge, reach, straddle, head)
-	local window = dock.window
+	local window = dock.frame
 	if reach <= 0 and not dock.seams[edge] then
 		return
 	end
@@ -384,7 +384,7 @@ function Parts.Dock(window, frames, opts)
 				base[edge] = inset or 0
 			end
 		end
-		dock = { window = window, panel = panel, frames = {}, seams = {}, watched = {}, base = base, reach = { LEFT = 0, RIGHT = 0, TOP = 0, BOTTOM = 0 } }
+		dock = { frame = window, panel = panel, frames = {}, seams = {}, watched = {}, base = base, reach = { LEFT = 0, RIGHT = 0, TOP = 0, BOTTOM = 0 } }
 		dock.Refresh = function()
 			PlaceDock(dock)
 		end
@@ -889,7 +889,7 @@ local function LayoutChevron(state)
 	local chevron = state.chevron
 	Widgets.Size(chevron, CHEVRON_UNITS, CHEVRON_UNITS)
 	chevron:ClearAllPoints()
-	Widgets.Point(chevron, "RIGHT", state.overlay, "RIGHT", -Tokens.Size("gapMedium"), 0)
+	Widgets.Point(chevron, "RIGHT", state.frame, "RIGHT", -Tokens.Size("gapMedium"), 0)
 	PaintChevron(state)
 end
 
@@ -910,7 +910,7 @@ function Parts.Dropdown(drop)
 	overlay:SetFrameLevel(drop:GetFrameLevel() + LEVEL_BELOW)
 	local chevron = overlay:CreateTexture(nil, "OVERLAY")
 	chevron:SetTexture((Tokens.Texture("glyphChevron")))
-	local state = { drop = drop, overlay = overlay, chevron = chevron, hover = false, Restyle = LayoutChevron }
+	local state = { drop = drop, frame = overlay, chevron = chevron, hover = false, Restyle = LayoutChevron }
 	drop:HookScript("OnEnter", function()
 		state.hover = true
 		PaintChevron(state)

@@ -1,4 +1,4 @@
--- test-chat-alignment.lua: native resize constraints, dock scale and optional side buttons stay inside the card at every supported screen.
+-- test-chat-alignment.lua: native resize constraints, dock scale and optional side buttons stay inside the card at every supported screen, and ChatFrame1 given its own anchor again is not placed again.
 local C = dofile("Tools/regression/chat_env.lua")
 local G = dofile("Tools/regression/geometry.lua")
 
@@ -50,6 +50,25 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {3440,1440}, {3456,2234}, {3
 		env.ChatFrame1._rect = nil
 		env.RunTimers()
 		assert(K.Layout.Get("chat.main").x ~= 70, "a native chat move updates the card's saved position")
+		check()
+		-- Blizzard setting the anchor the card already gave ChatFrame1 queues no placement; another anchor is put back.
+		local chat, held, before = env.ChatFrame1, { env.ChatFrame1:GetPoint(1) }, {}
+		for _, f in ipairs(env._frames) do
+			before[f] = #f._calls
+			for _, r in ipairs(f._regions) do before[r] = #r._calls end
+		end
+		chat:SetPoint(unpack(held))
+		env.RunTimers()
+		local writes = -1
+		for o, start in pairs(before) do
+			for i = start + 1, #o._calls do
+				local method = o._calls[i].method
+				if not (method:find("^Get") or method:find("^Is") or method:find("^Has") or method:find("^Can")) then writes = writes + 1 end
+			end
+		end
+		assert(writes == 0, screen[1] .. "x" .. screen[2] .. " " .. style .. ": ChatFrame1 given its own anchor again made " .. writes .. " writes; return before scheduling a placement when the anchor is the one Place set (KstyleUI_Chat/Panel.lua OnSetPoint)")
+		chat:SetPoint("TOPLEFT", env.UIParent, "TOPLEFT", 5, -5)
+		env.RunTimers()
 		check()
 		K.Modules.Disable("Chat")
 		assert(select(2, env.ChatFrame1:GetResizeBounds()) == 120, "restore Blizzard's minimum when Chat is disabled")

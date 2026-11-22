@@ -2,6 +2,22 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## v0.2.13.1 (2026-11-22)
+
+A small KstyleUI hotfix for frame rate. It should feel smoother with your other addons running and do less work while you stand around.
+
+Highlights:
+
+- Smoother frame rate with RestedXP and Questie.
+- Minimap buttons stay put in the drawer with less work when other addons move them.
+- The minimap, auras, chat and meters do less work while you stand still.
+
+### Fixed
+
+- KstyleUI stops redoing the same work on RestedXP's guide, Questie's text and hidden Blizzard frames.
+- The minimap drawer only fixes what moved, and the coordinates only update when the numbers change.
+- Auras, chat and the damage meter skip repeat updates. The low-health warning stops checking your health when you turn it off.
+
 ## 0.2.13: Frames and guides (2026-11-22)
 
 Added: Frames returns as a HUD style alongside Medallions. Shamans get a Spirit Poles row with Ghost Wolf, and the player's resource row shows class crowns or Lightning Shield charges as storm orbs.
