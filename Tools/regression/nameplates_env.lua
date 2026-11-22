@@ -590,6 +590,7 @@ end
 -- login (false: stop before PLAYER_LOGIN), enable (false: leave the module off), width and height
 -- (the physical screen, default 1920x1080). VARIABLES_LOADED fires before PLAYER_LOGIN, as on a reload;
 -- opts.lateVariables holds it back for the test to fire, as a first login can send it after the modules start.
+-- opts.frames picks the Frames HUD style as the Options row does, which writes its plate look (Medallions is the default).
 function N.New(opts)
 	opts = opts or {}
 	local env, K = CoreEnv.New({
@@ -607,6 +608,9 @@ function N.New(opts)
 	})
 	CoreEnv.LoadSaved(env)
 	Load(N.Files(), env)
+	if opts.frames then
+		K.Options.Write("HudStyle", "style", "frames")
+	end
 	env.FireEvent("ADDON_LOADED", "KstyleUI_Nameplates", false)
 	if not opts.lateVariables then
 		env.FireEvent("VARIABLES_LOADED")

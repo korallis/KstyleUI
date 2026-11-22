@@ -61,6 +61,10 @@ for name, values in pairs(Presets.VALUES) do
 	end
 end
 
+local function Default(key)
+	return K.HudStyle.Current() == "frames" and K.HudStyle.FRAMES_LOOK[MODULE][key] or lookup(Settings.defaults, key)
+end
+
 local function Write(key, value)
 	if type(value) == "table" then
 		value = { r = value.r, g = value.g, b = value.b }
@@ -77,7 +81,7 @@ function Presets.Apply(name)
 	for key in pairs(touched) do
 		local value = values[key]
 		if value == nil then
-			value = lookup(Settings.defaults, key)
+			value = Default(key)
 		end
 		Write(key, value)
 	end
@@ -85,7 +89,7 @@ function Presets.Apply(name)
 		Settings.Schema()
 		for key in pairs(Settings.rows) do
 			if key ~= "preset" and key ~= "personalResource" and not touched[key] and not key:find("^cvars%.") then
-				Write(key, lookup(Settings.defaults, key))
+				Write(key, Default(key))
 			end
 		end
 	end
@@ -107,7 +111,8 @@ function Presets.OnSetting(_, module, key)
 		elseif slim then
 			K.Options.Write(MODULE, "health.height", ns.Medallions.HEIGHT)
 		end
-	elseif key ~= "enabled" and key ~= "personalResource" and not key:find("^cvars%.") and Settings.Get("preset") ~= "custom" then
+	elseif key ~= "enabled" and key ~= "personalResource" and not key:find("^cvars%.") and Settings.Get("preset") ~= "custom"
+		and K.HudStyle.Saved() == K.HudStyle.Current() then
 		Presets.applying = true
 		K.Options.Write(MODULE, "preset", "custom")
 		Presets.applying = false

@@ -983,13 +983,14 @@ CastRows = function(schema, kind)
 		help = L["Shows the seconds left on the cast bar."],
 	}, on)
 	K.Widgets.BarRows(schema, "", {
-		keys = { colorSource = "castbarColor", color = "castbarCustom" }, texture = false,
+		keys = { texture = "castbarTexture", colorSource = "castbarColor", color = "castbarCustom" },
 		options = CHOICES.castbarColor,
 		height = not Settings.CAST_ELEMENTS[kind] and { CAST_HEIGHT_MIN, CAST_HEIGHT_MAX, 1, key = "castbarHeight" } or nil,
 		row = function(row)
 			if kind == "boss" and row.type == "slider" then
 				row.shown = function(value) return Settings.Form(kind) == "card" and value + CARD_CAST - Settings.defaults.boss.castbarHeight or value end
 			end
+			if row.type == "texture" then return Row(kind, row, function(s) return on(s) and K.HudStyle.Current() ~= "medallions" end) end
 			return Row(kind, row, row.type == "color" and function(s) return on(s) and s.castbarColor == "custom" end or on)
 		end,
 	})
