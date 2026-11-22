@@ -222,6 +222,11 @@ function Lumen.Build(state, opts)
 			local _, kit = D.New({ enable = false })
 			base.dataBar = D.CoreEnv.DeepCopy(kit.Store.Defaults("DataBars"))
 			base.dataBar.enabled = true
+			-- The copy saves every default, so a Frames profile keeps the look Frames writes over them.
+			for key, value in pairs(Hud.Style() == "Frames" and kit.HudStyle.FRAMES_LOOK.DataBars or {}) do
+				local section, field = key:match("^(%w+)%.(%w+)$")
+				base.dataBar[section][field] = value
+			end
 		end
 	end
 	local built, at = {}, {}
