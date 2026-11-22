@@ -83,6 +83,11 @@ local function TileParts(out, w, h, o)
 end
 
 local function PartyParts(out, o)
+	local badge = out.portrait
+	if Settings.current.auras.enabled then
+		local size = math.min(Style.BOSS_SLOT, badge.width - 2 * Geometry.EDGE)
+		out.boss = { left = badge.left + (badge.width - size) / 2, top = badge.top + Geometry.EDGE, width = size, height = size }
+	end
 	local icons, name, spot = out.icons, out.name, out.healthText
 	if not (icons and name and spot and spot.right and icons.role and o.role and not icons.roleInRing) then
 		return out
