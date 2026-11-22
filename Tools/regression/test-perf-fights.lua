@@ -108,12 +108,39 @@ end
 
 -- Watch(env) -> w: w.owned[object][method] keeps the arguments of the last call not made by KstyleUI, w.hooks lists
 -- every hooksecurefunc and HookScript KstyleUI installs, and w.count(method), while set, sees each widget call other
--- than a read made while KstyleUI code is on the stack (directly, or through another addon's function or a hook).
+-- than a read made while KstyleUI code is on the stack (directly, or through another addon's function or a hook). The
+-- stub's shared method lookup is wrapped once, from the first environment's first line, so a method hooked later
+-- still passes through the watch.
+local watches, wrapped = setmetatable({}, { __mode = "k" }), {}
 local function Watch(env)
 	local w = { owned = setmetatable({}, { __mode = "k" }), hooks = {} }
-	env._onCall = function(object, method, args)
+	watches[env] = w
+	local meta = getmetatable(env.UIParent)
+	if not wrapped[meta] then
+		local index = meta.__index
+		wrapped[meta] = true
+		meta.__index = function(object, key)
+			local fn = index(object, key)
+			if type(fn) ~= "function" or key:find("^Get") or key:find("^Is") or key:find("^Has") or key:find("^Can") then
+				return fn
+			end
+			local watched = wrapped[fn]
+			if not watched then
+				watched = function(self, ...)
+					local watch = watches[rawget(self, "_env")]
+					if watch then
+						watch.call(self, key, { n = select("#", ...), ... })
+					end
+					return fn(self, ...)
+				end
+				wrapped[fn] = watched
+			end
+			return watched
+		end
+	end
+	w.call = function(object, method, args)
 		if w.count then
-			for level = 2, 80 do
+			for level = 3, 80 do
 				local info = debug.getinfo(level, "S")
 				if not info then
 					break
@@ -124,7 +151,7 @@ local function Watch(env)
 				end
 			end
 		end
-		local info = Caller(2)
+		local info = Caller(3)
 		if info and Addon(info.source) then
 			if method == "HookScript" then
 				local file, site = Site(info)

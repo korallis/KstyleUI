@@ -33,12 +33,23 @@ panel:Restyle()
 local r, g, b, a = K.Widgets.Rgba("medRimLit")
 assert(W.SameColor(panel.rim[1], r, g, b, a), "P7: retain bevel corner colours when the base rim colour was unchanged")
 local function Writes(run)
-	local writes = {}
-	env._onCall = function(_, method)
-		writes[#writes + 1] = method
+	local before = {}
+	for _, frame in ipairs(env._frames) do
+		before[frame] = #frame._calls
+		for _, region in ipairs(frame._regions) do
+			before[region] = #region._calls
+		end
 	end
 	run()
-	env._onCall = nil
+	local writes = {}
+	for object, start in pairs(before) do
+		for i = start + 1, #object._calls do
+			local method = object._calls[i].method
+			if not (method:find("^Get") or method:find("^Is")) then
+				writes[#writes + 1] = method
+			end
+		end
+	end
 	return table.concat(writes, ", ")
 end
 local text = K.Widgets.FontString(owner, "OVERLAY")

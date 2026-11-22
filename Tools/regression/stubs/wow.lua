@@ -6,7 +6,6 @@
 -- Frames answer only the widget methods Forever documents (widget_methods.lua) and record every call
 -- in frame._calls, unless env.SetQuiet(true) has made them quiet for the performance check. Any other
 -- key reads as nil, so a call to a method Forever lacks fails the test.
--- env._onCall(object, method, args), when a test sets it, sees every call other than a read (test-perf-fights.lua).
 -- Give a method real behaviour by adding it to Object below. Lua mixins from templates, such as
 -- BackdropTemplate's SetBackdrop, are not stubbed.
 
@@ -1296,9 +1295,6 @@ ObjectMeta.__index = function(object, key)
 			local env = self._env
 			if env then
 				env._generation = (env._generation or 0) + 1
-				if env._onCall then
-					env._onCall(self, key, call.args)
-				end
 			end
 		end
 		return impl(self, ...)
