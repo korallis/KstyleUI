@@ -18,14 +18,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 3456, 2234 } }) do
 	assert(point == "BOTTOMRIGHT" and relative == slot.button and on == "BOTTOMRIGHT" and x == -inset and y == inset,
 		"stack counts belong at BOTTOMRIGHT with a 2-unit inset")
 	local panel = ns.Inventory.window.panel
-	local reach = math.huge
-	for gem in pairs(panel.chrome.headerGems) do
-		if gem:IsVisible() then
-			reach = math.min(reach, panel:GetTop() - (gem:GetTop() + gem:GetBottom()) / 2 * gem:GetParent():GetEffectiveScale() / panel:GetEffectiveScale())
-		end
-	end
-	-- Medallions' heading-gem band wins over the readable title-bar band, so the band follows the gem.
-	assert(math.abs(panel.chrome.headerUnits - (reach + 11)) < 0.01, "the Medallions header band ends 11 units under the nearest heading gem, got " .. tostring(panel.chrome.headerUnits))
+	panel.chrome:MeasureHeader()
+	assert(panel.chrome.headerUnits == panel.titleBar:GetHeight(), "the readable band covers the whole title bar, though the title's gem measures a shallower one, got " .. tostring(panel.chrome.headerUnits))
 	assert(select(2, panel.titleText:GetFont()) == K.Widgets.FontSize(panel.titleText, 14), "the bag window title uses 14 units")
 	K.Options.Write("Bags", "separateFigures", false)
 	assert(slot.level:GetPoint(1) == "BOTTOMLEFT", "turning separate figures off restores the previous item-level corner")
