@@ -1,7 +1,6 @@
 -- test-unitframes-target-cast-wiring.lua: changing targets never detaches the live health ornament from its cast bar, including across HUD styles.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local env, K, ns = U.New()
-K.Options.Write("HudStyle", "style", "medallions")
 local view = ns.Frames.Get("target").views[1]
 local function target(name)
 	U.SetUnit(env, "target", { name = name, level = 10, health = 80, healthMax = 100, reaction = 2, canAttack = true })
@@ -25,7 +24,6 @@ wired()
 for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 	U.SetUnit(env, "target", { name = style, level = 10, health = 50, healthMax = 100, reaction = 2 })
 	env.SetTarget(true)
-	K.Options.Write("HudStyle", "style", style)
 	U.W.Tick(env, 0.12)
 	assert(view.body:GetAlpha() == 1, "E5: a HUD style switch settles any pending target fade")
 	wired()

@@ -2,7 +2,6 @@
 local N = dofile("Tools/regression/nameplates_env.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 local env, K, ns = N.New()
-K.Options.Write("HudStyle", "style", "medallions")
 K.Options.Write("Nameplates", "threat.groupOnly", false)
 N.Add(env, "nameplate1", { threat = 3 })
 N.Add(env, "nameplate2", { threat = 0 })

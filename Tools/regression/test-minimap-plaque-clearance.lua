@@ -4,7 +4,7 @@ local G = dofile("Tools/regression/geometry.lua")
 
 for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 }, { 3456, 2234 } }) do
 	local env, K, ns = M.New({ enabled = true, width = screen[1], height = screen[2], saved = {
-		version = 12, profiles = { Default = { HudStyle = { style = "medallions" }, Minimap = { enabled = true, frame = "classic" } } },
+		version = 12, profiles = { Default = { Minimap = { enabled = true, frame = "classic" } } },
 		characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {},
 	} })
 	M.Settle(env)

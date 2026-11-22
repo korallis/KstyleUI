@@ -226,9 +226,7 @@ write("target.healPrediction", true)
 -- 6. Medallions: the level offset moves the plaque, also when saved before the slab is first built.
 local function medallions(level)
 	return U.New({ before = function(_, core)
-		core.Store.Module("HudStyle").style = "medallions"
 		if level then core.Store.Module("UnitFrames").player = { fonts = { level = { y = level } } } end
-		core.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 	end })
 end
 local medEnv, medK, med = medallions()

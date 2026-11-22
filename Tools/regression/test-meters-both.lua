@@ -50,8 +50,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		for _, layout in ipairs({ "DPS", "Tank", "Healer" }) do
 			local env, K, ns = M.New({ width = screen[1], height = screen[2], followRole = true,
-				saved = { version = 38, account = { setupSeen = true }, profiles = { Default = {
-					HudStyle = { style = style }, Layout = { arrangement = "spread" },
+				saved = { version = 38, account = { setupSeen = true }, profiles = { Default = { Layout = { arrangement = "spread" },
 				} } },
 				setup = function(e)
 					e._fitScale, e._size = true, "auto"

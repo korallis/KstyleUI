@@ -39,9 +39,7 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3440, 1440 }, { 3840, 1080 }, { 2560
 	local label = screen[1] .. "x" .. screen[2] .. " medallions"
 	local profile = K.Store.Profile()
 	profile.Minimap.frame = frame
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
-	assert(K.HudStyle.Current() == "medallions", label .. ": the style applies")
 	local ppu = env._physical[2] * Scale.Root():GetEffectiveScale() / UI_HEIGHT
 	local size, step, cap = Scale.AppliedUserScale(), Scale.Step(), Scale.MaxUserScale()
 	assert(whole(ppu * Scale.STEPS_PER_PIXEL), label .. ": one unit is a whole number of sixteenths of a pixel, got " .. ppu)

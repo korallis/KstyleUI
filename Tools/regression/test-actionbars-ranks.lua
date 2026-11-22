@@ -400,7 +400,6 @@ do
 	Learn(env, 200)
 	assert(Holds(g, 12, 200) and #g.placed == 1)
 	env, K, g = NewSpells("auto")
-	K.Options.Write("HudStyle", "style", "frames")
 	K.Options.Write("ActionBars", "bar1.growth", "RIGHTDOWN")
 	K.Options.Write("ActionBars", "bar1.rows", 2)
 	K.Options.Write("ActionBars", "bar1.orientation", "VERTICAL")

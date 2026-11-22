@@ -181,8 +181,6 @@ end
 
 -- Under Medallions the row stays until the crest's crown shows the points (Action Bars off, the slab off or unpaired:
 -- no crown, review 678 #2); while it does, a rogue's row hides and has no mover; off brings the plain row back.
-K.Options.Write("HudStyle", "style", "medallions")
-assert(K.HudStyle.Current() == "medallions" and R.showCombo and R.content:IsShown() and K.Layout.Live("unitframes.resource"), "with no crown a rogue keeps its row under Medallions")
 local crest = env.CreateFrame("Frame", nil, env.UIParent)
 K.Widgets.SetClassCrown(crest)
 assert(not R.showCombo and not R.content:IsShown(), "the crown takes a rogue's points")
@@ -192,7 +190,6 @@ assert(R.showCombo and R.content:IsShown(), "the row comes back when the crown g
 K.Widgets.SetClassCrown(crest)
 K.Options.Write("UnitFrames", "resource.classPips", false)
 assert(R.showCombo and not R.themed and R.pips[1]:IsShown(), "Class-themed pips off: the plain pips come back under Medallions")
-K.Options.Write("HudStyle", "style", "frames")
 for i, pip in ipairs(R.pips) do
 	assert(pip:IsShown() and not P.pips[i].frame:IsShown(), "off: plain pip " .. i .. " shows")
 end
@@ -227,7 +224,6 @@ assert(File(DP.pips[1].steel, "SetTexture"):find("PipClawSteel90.png", 1, true),
 assert(W.LastCall(DP.pips[1].halo, "SetStatusBarColor")[1] == DK.Tokens.Color("pipDruidGlow"), "glowing pipDruidGlow")
 Points(denv, 5)
 assert(Loops(DP) == 0, "the row loops nothing, even at the maximum")
-DK.Options.Write("HudStyle", "style", "medallions")
 local dcrest = denv.CreateFrame("Frame", nil, denv.UIParent)
 DK.Widgets.SetClassCrown(dcrest)
 assert(not DR.showCombo and DR.showMana and DR.content:IsShown(), "under Medallions the crown takes the claws and the druid bar stays")

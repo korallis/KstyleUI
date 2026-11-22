@@ -60,9 +60,7 @@ local beforeBracket = N.Last(enemy.brackets.sides[1], "SetSize")
 assert(enemy.level.rim:IsShown() and enemy.brackets.sides[1].top:IsShown(), "Frames draws the diamond and the bracket arms")
 assert(not tostring(beforeLevel[1]):find("Barlow", 1, true), "Frames' level is not Barlow")
 
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
-eq(K.HudStyle.Current(), "medallions", "the style switches out of combat")
 eq(#env._errors, 0, "the switch raised no error: " .. tostring(env._errors[1]))
 
 -- The bar: 120 by 9 units, snapped to the plate's pixels.
@@ -188,7 +186,6 @@ local er, eg, eb = K.Tokens.Color("medText")
 assert(near(r, er) and near(g, eg) and near(b, eb), "a friendly level takes the Medallions label colour, not a difficulty")
 
 -- Back to Frames.
-K.Options.Write("HudStyle", "style", "frames")
 env.RunTimers()
 assert(not badge:IsShown() and not badge.ring:IsShown(), "Frames takes the badge away")
 eq(geometry(enemy), before[1], "the enemy's plate is Frames' size and anchor again")

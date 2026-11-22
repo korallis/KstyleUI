@@ -65,9 +65,7 @@ each("party", function(f)
 end)
 
 -- The first look under Medallions may find every identity secret: the engine portrait keeps its one circle mask.
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
-eq(K.HudStyle.Current(), "medallions", "the style switches out of combat")
 each("party", function(f)
 	eq(f.portrait:GetNumMaskTextures(), 1, f.unit .. ": a secret identity keeps one circle mask")
 end)
@@ -215,7 +213,6 @@ G.SetRoster(env, "raid", raid)
 env.RunTimers()
 
 -- Back to Frames: every look returns.
-K.Options.Write("HudStyle", "style", "frames")
 env.RunTimers()
 eq(Settings.current.party.portrait, false, "Frames takes the medallion away")
 eq(Settings.current.raid.textLayout, "ABOVE", "and the raid's name goes back above the bar")
@@ -243,7 +240,6 @@ each("party", function(f)
 end)
 
 -- A theme change drops the cached ink choice, so a class whose colour changed is judged again.
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
 eq(ns.Medallions.Inked("PRIEST"), true, "white priest tiles take dark ink")
 local classColor = env.C_ClassColor and env.C_ClassColor.GetClassColor

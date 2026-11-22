@@ -43,7 +43,6 @@ for _, screen in ipairs(SCREENS) do
 	AB.Enable(env, K)
 	local strip = env.CreateFrame("Frame", nil, K.Scale.Root())
 	K.Layout.Register(strip, "databars.xp", K.Setup.Layouts.Default("databars.xp"), { label = "Experience", module = "DataBars", resizable = true })
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	local Slab, Layouts = ns.Slab, K.Setup.Layouts
 	local slab, hub = Slab.frame, Slab.hub

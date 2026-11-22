@@ -38,15 +38,13 @@ assert(bar.innerEdgeToken == "castEdge", "Frames draws the near-black cast edge"
 local framesTexture, framesText = bar.texturePath, element.text:GetFont()
 
 K.Options.Write("UnitFrames", "castbarOnFrame", false)
-K.Options.Write("HudStyle", "style", "medallions")
-assert(K.HudStyle.Current() == "medallions", "the style switched")
 W.Tick(env, 0.1)
 assert(element.medal == true and element.mode == nil and element.line == false, "Medallions is its own form, not a caption or a line")
 assert(element.geometry.medal == true, "the layout is the Medallions layout")
 assert(element.frame:IsShown(), "the cast stays shown across the switch")
 
 local frameW, frameH = element.frame:GetSize()
-local styled = K.Setup.Layouts.Style("medallions", "DPS", "unitframes.castbar.player")
+local styled = K.Setup.Layouts.Style("DPS", "unitframes.castbar.player")
 assert(near(frameH, 20) and near(frameW, 300, 1) and near(styled.width, 300) and styled.x == 0, "the cast element is the 300 by 20 slab centred over the hub, got " .. tostring(frameW) .. "x" .. tostring(frameH))
 assert(element.slab and element.slab[5]:IsShown() and element.slab[5]:GetTexture() == (Tokens.Texture("medUnitSlab")), "it wears the unit slab material")
 assert(not element.iconFrame:IsShown(), "no spell icon: the slab holds the bar and its two texts")
@@ -132,7 +130,6 @@ noErrors("medallions target")
 
 env._units.player.cast = { name = "Lightning Bolt", texture = 136048, start = 1000, finish = 3500, spellID = 188196 }
 env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-4", 188196)
-K.Options.Write("HudStyle", "style", "frames")
 W.Tick(env, 0.1)
 assert(not element.medal and element.mode == "inside", "Frames gives back the caption cast")
 assert(not CastBars.ElementLive("target") and not tcb.frame:IsShown(), "the target's cast goes back inside its frame")
@@ -147,7 +144,6 @@ assert(element.text:GetFont() == framesText, "the label face is back")
 local back = W.LastCall(bar, "SetStatusBarColor")
 assert(near(back[1], K.Theme.Accent()), "the player's cast is in the class accent again")
 
-K.Options.Write("HudStyle", "style", "orbs")
 assert(not element.medal and element.mode == "above", "Orbs keeps the caption cast")
 noErrors("switch back")
 print("unitframes castbar medallions ok")

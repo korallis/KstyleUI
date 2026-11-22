@@ -9,9 +9,7 @@ local function New()
 end
 
 local function Medallions(env, K)
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
-	assert(K.HudStyle.Current() == "medallions", "the style switches to Medallions")
 end
 
 local function Errors(env, K)

@@ -8,7 +8,6 @@ do
 		do
 			local env, K, ns = H.boot(H.screen(screen))
 			for _, style in ipairs({ "frames", "medallions" }) do
-				K.Options.Write("HudStyle", "style", style)
 				env.RunTimers()
 				for _, unit in ipairs({ "player", "party1" }) do
 					local f = frame(ns, unit)

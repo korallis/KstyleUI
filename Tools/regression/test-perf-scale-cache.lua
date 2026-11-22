@@ -55,7 +55,6 @@ width, height = 5120, 1440
 warm.FireEvent("DISPLAY_SIZE_CHANGED")
 warm.RunTimers()
 before = hits()
-W.Options.Write("HudStyle", "style", "orbs")
 assert(hits() > before, "P1: a HUD style change must invalidate the scale answer")
 for _, setting in ipairs({ { "preset", "Tank" }, { "canvas", "16:9" }, { "arrangement", "spread" } }) do
 	local n = hits()
@@ -75,7 +74,6 @@ assert(string.format("%.17g", reloaded.Scale.AppliedUserScale()) == manual, "P1:
 for _, preset in ipairs({ "DPS", "Healer", "Tank" }) do
 	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		W.Options.Write("Layout", "preset", preset)
-		W.Options.Write("HudStyle", "style", style)
 	end
 end
 assert(#warm.KstyleUIDB.scaleCache.entries <= 6, "P1: keep only the six most recently used scale keys")

@@ -8,10 +8,7 @@ local function LastArg(frame, method)
 end
 
 local function SetStyle(env, K, style)
-	K.Store.Module("HudStyle").style = style
-	K.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 	M.Settle(env)
-	assert(K.HudStyle.Current() == style)
 end
 
 local env, K, ns = M.New({ enabled = true })

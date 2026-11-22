@@ -2,7 +2,6 @@
 local C = dofile("Tools/regression/cooldowns_env.lua")
 local env, K, ns = C.New({ setup = C.Game })
 C.Enable(env, K)
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
 local icon = ns.Mirror.Row("essential").icons[1]
 env._cdm.cooldown[1001] = { active = true, gcd = false }

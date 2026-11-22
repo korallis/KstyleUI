@@ -99,7 +99,6 @@ assert(bar.hovered > 0, "hover still works with click-through off")
 AB.W.Leave(bar.buttons[1])
 assert(bar.hovered == 0)
 
-K.Options.Write("HudStyle", "style", "medallions")
 assert(not K.Options.Row("ActionBars", "bar1.reverse").showWhen(K.Store.Module("ActionBars")), "the slab hides fixed order controls")
 assert(bar.buttons[1]:GetLeft() < bar.buttons[12]:GetLeft(), "the connected slab fixes button order")
 env._combat = true

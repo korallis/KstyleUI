@@ -21,7 +21,6 @@ local function New(class, size, setup)
 		end,
 	})
 	AB.Enable(env, K)
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	return env, K, ns
 end
@@ -175,7 +174,6 @@ for _, key in ipairs({ "enabled", "comboPoints" }) do
 end
 
 -- Frames hides it with the hub.
-K.Options.Write("HudStyle", "style", "frames")
 assert(not C.shown and not C.pips[1].frame:IsShown() and not K.Widgets.ClassCrown(), "Frames has no crown")
 assert(#env._errors == 0 and K.ErrorCount() == 0, "rogue: " .. tostring(env._errors[1]))
 

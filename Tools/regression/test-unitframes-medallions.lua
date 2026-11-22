@@ -53,8 +53,6 @@ for _, kind in ipairs(Settings.KINDS) do
 end
 assert(frames.player.views[1].form ~= "slab", "Frames has no slabs")
 
-K.Options.Write("HudStyle", "style", "medallions")
-assert(K.HudStyle.Current() == "medallions", "the style switched")
 noErrors("switch")
 
 for _, kind in ipairs(Settings.KINDS) do
@@ -169,7 +167,6 @@ er, eg, eb = m.enamel:GetVertexColor()
 assert(near(er, cr) and near(eg, cg) and near(eb, cb), "the class ring returns")
 noErrors("effects")
 
-K.Options.Write("HudStyle", "style", "frames")
 assert(view.form ~= "slab" and not m:IsShown() and not view.slab[5]:IsShown(), "Frames hides the slab and the medallion")
 assert(view.health.finish == nil and view.health.under.edgeSoft:IsShown(), "Frames takes its own bar finish and soft edge back")
 assert(not m.sheenAnim:IsPlaying() and not m.pulse:IsPlaying(), "the medallion's animations stop")

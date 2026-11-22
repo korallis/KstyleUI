@@ -35,9 +35,7 @@ local function New(class, power, size)
 	local profile = K.Store.Profile()
 	profile.UnitFrames = profile.UnitFrames or {}
 	profile.UnitFrames.resource = { classPips = false }
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
-	assert(K.HudStyle.Current() == "medallions")
 	return env, K, ns
 end
 
@@ -140,7 +138,6 @@ for _, size in ipairs(SIZES) do
 	K.Options.Write("ActionBars", "crestJewels", true)
 	env.RunTimers()
 	assert(Shown(ns) == 10 and Frequent(env) == 1, at .. "turning them back on restores the jewels")
-	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
 	assert(Shown(ns) == 0, at .. "Frames has no hub and no jewels")
 	assert(Frequent(env) == 0, at .. "the jewels stop listening without the hub")

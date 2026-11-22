@@ -11,7 +11,7 @@ local function Orbs()
 	return U.New({
 		saved = {
 			version = 2,
-			profiles = { Default = { UnitFrames = { enabled = true }, HudStyle = { style = "orbs" } } },
+			profiles = { Default = { UnitFrames = { enabled = true } } },
 			characters = {},
 		},
 		setup = function(env)
@@ -138,7 +138,6 @@ return {
 		budget = 200,
 		setup = function()
 			local env, K, ns = U.New()
-			K.Options.Write("HudStyle", "style", "medallions")
 			env.RunTimers()
 			local cb = ns.CastBars.NewBar(env.UIParent, "player", false)
 			cb.frame:SetSize(240, 20)

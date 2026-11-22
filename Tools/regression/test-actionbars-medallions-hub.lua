@@ -69,8 +69,6 @@ local function Columns(bar)
 end
 
 local function Medallions(K)
-	K.Options.Write("HudStyle", "style", "medallions")
-	assert(K.HudStyle.Current() == "medallions", "the HUD style is Medallions")
 end
 
 local checked = 0
@@ -174,7 +172,6 @@ for _, screen in ipairs(SCREENS) do
 	assert(math.abs((hubRect[2] + hubRect[4]) / 2 - top) < 1, what .. ": the hub's centre sits on the slots' top edge")
 	assert(not (ns.Tray.card and ns.Tray.card:IsShown()), what .. ": the Frames tray is hidden under Medallions")
 
-	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
 	assert(not slab:IsShown() and not hub:IsShown(), what .. ": back to Frames the slab and hub hide")
 	assert(Columns(bar1) == 1, what .. ": back to Frames bar 1 is one row again")

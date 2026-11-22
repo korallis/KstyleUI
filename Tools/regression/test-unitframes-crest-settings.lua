@@ -14,8 +14,6 @@ end
 for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 	local env, K, ns = U.New({ before = function(_, core)
 		core.Store.Module("UnitFrames").auraLayout = "fan"
-		core.Store.Module("HudStyle").style = style
-		core.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 	end })
 	U.SetUnit(env, "target", { name = "Target", health = 100, healthMax = 100, reaction = 2, auras = fixtures })
 	env.SetTarget(true)
@@ -57,9 +55,7 @@ end
 
 local env, K, ns = U.New({ before = function(_, core)
 	core.Store.Module("UnitFrames").auraLayout = "fan"
-	core.Store.Module("HudStyle").style = "medallions"
 	core.Store.Module("UnitFrames").target = { auras = false, crestDebuffs = false }
-	core.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 end })
 local view = ns.Frames.Get("target").views[1]
 assert(not view.auras, "both features disabled at login allocate no aura engines")

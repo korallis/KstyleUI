@@ -1,7 +1,6 @@
 -- test-nameplates-debuff-readability.lua: readable debuffs in both plate presets, engine-owned expiring colour, and the previous text appearance as an option.
 local N = dofile("Tools/regression/nameplates_env.lua")
 local env, K, ns = N.New()
-K.Options.Write("HudStyle", "style", "medallions")
 for _, preset in ipairs({ "lumen", "dungeon" }) do
 	K.Options.Write("Nameplates", "preset", preset)
 	assert(ns.Settings.Get("debuffs.size") == 22, "both presets keep 22-unit Medallions debuffs")

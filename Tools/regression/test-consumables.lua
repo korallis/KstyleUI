@@ -74,7 +74,6 @@ assert(not backing:IsShown(), "the backing toggle hides the tile")
 K.Options.Write("ActionBars", "consumables.backing", true)
 assert(backing:IsShown(), "the backing toggle restores the tile")
 for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-	K.Options.Write("HudStyle", "style", style)
 	for _, class in ipairs(K.Setup.Layouts.ASPECTS) do
 		local _, size, gap = K.Setup.Layouts.ConsumableGrid(style, class)
 		local slot = K.Setup.Layouts.MEDALLIONS_SLOT
@@ -91,7 +90,6 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		assert(size * K.Widgets.ScaleFactor(fs) / K.Scale.Pixel(1) >= 9 - 0.01 and select(3, fs:GetFont()) == "OUTLINE", style .. ": compact text keeps a nine-pixel outlined floor")
 	end
 end
-K.Options.Write("HudStyle", "style", "frames")
 K.Options.Write("ActionBars", "consumables.hotkey", true)
 assert(not button.hotkey:IsShown(), "compact counts win over optional keys")
 K.Options.Write("ActionBars", "consumables.count", false)

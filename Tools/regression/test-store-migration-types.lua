@@ -32,7 +32,6 @@ local function fixture()
 				Auras = { card = true, buffs = { rows = 1, iconSize = 28 }, debuffs = { dispelFirst = true, spacing = 3 } },
 				Nameplates = { name = { size = 12 }, target = { color = { r = 1, g = 1, b = 1 } } },
 				Cooldowns = { accent = "class", essential = { size = 38 } },
-				HudStyle = { style = "bogus" },
 				QoL = {},
 				Icons = {},
 			},

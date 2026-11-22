@@ -96,7 +96,6 @@ return {
 		budget = 120,
 		setup = function()
 			local env, K = W.New()
-			K.Options.Write("HudStyle", "style", "medallions")
 			env.RunTimers()
 			local E = K.Effects
 			local anchor = env.CreateFrame("Frame", nil, env.UIParent)
@@ -112,7 +111,6 @@ return {
 		budget = 20,
 		setup = function()
 			local env, K = W.New({ setup = FX.Install })
-			K.Options.Write("HudStyle", "style", "medallions")
 			env.RunTimers()
 			env._health = 0.2
 			env.FireEvent("PLAYER_ENTERING_WORLD")

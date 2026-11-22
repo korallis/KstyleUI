@@ -21,7 +21,7 @@ local STEP = { index = 11, elements = {
 
 local function Boot(screen, style, opts)
 	local rxp
-	local saved = { version = 12, profiles = { Default = { Layout = { preset = "DPS" }, HudStyle = { style = style } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+	local saved = { version = 12, profiles = { Default = { Layout = { preset = "DPS" } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
 	local env, K, ns = S.New({
 		width = screen[1], height = screen[2], uiScale = screen[3], saved = saved,
 		setup = function(e)

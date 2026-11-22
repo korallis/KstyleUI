@@ -16,8 +16,6 @@ local env, K, ns = U.New({
 	end,
 	before = function(_, core)
 		core.Store.Module("UnitFrames").auraLayout = "fan"
-		core.Store.Module("HudStyle").style = "medallions"
-		core.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 	end,
 })
 

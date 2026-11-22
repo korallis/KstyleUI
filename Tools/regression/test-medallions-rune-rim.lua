@@ -33,12 +33,10 @@ for _, unit in ipairs({ "target", "pet", "focus" }) do
 	U.SetUnit(env, unit, { name = unit, level = 60, health = 100, healthMax = 100, reaction = 2 })
 end
 env.SetTarget(true)
-K.Options.Write("HudStyle", "style", "medallions")
 for _, kind in ipairs({ "player", "target", "pet", "focus" }) do
 	local m = ns.Frames.Get(kind).views[1].medallion
 	assert(m and m:IsShown() and m.ring:GetTexture() == K.Tokens.Texture("medRing"), kind .. " must draw the registered engraved rim")
 end
-K.Options.Write("HudStyle", "style", "frames")
 for _, kind in ipairs({ "player", "target", "pet", "focus" }) do
 	assert(not ns.Frames.Get(kind).views[1].medallion:IsShown(), "Frames must hide " .. kind .. "'s engraved rim")
 end
@@ -48,7 +46,6 @@ local G = dofile("Tools/regression/group_env.lua")
 local ge, GK, group = G.New()
 G.SetRoster(ge, "party", { { name = "Warlock", class = "WARLOCK", health = 100, maxHealth = 100 } })
 assert(GK.Modules.Enable("GroupFrames"))
-GK.Options.Write("HudStyle", "style", "medallions")
 ge.RunTimers()
 local party = 0
 group.Unit.ForEach(function(f)

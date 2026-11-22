@@ -378,7 +378,6 @@ assert(not bar.quest:IsShown(), "and stops following the quest log")
 K.Events.Register = register
 
 -- The Medallions dock gives round 1's readouts and Class resources their own glyphs, and keeps them with icons off.
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
 show({ "coords", "combat", "played", "audio", "prof1", "broker", "reagents", "fps" }, "dockModules")
 write("strip.brokerPlugin", "")
@@ -399,7 +398,6 @@ local l1, _, t1 = item("prof1").icon:GetTexCoord()
 local l2, _, t2 = item("prof2").icon:GetTexCoord()
 assert(item("prof1").icon:IsShown() and item("prof2").icon:IsShown() and (l1 ~= l2 or t1 ~= t2), "each profession wears its own glyph")
 assert(disabled("strip.icons") and disabled("strip.iconColor"), "the dock always draws its own glyphs")
-K.Options.Write("HudStyle", "style", "frames")
 env.RunTimers()
 
 -- The preview reflects each new option.

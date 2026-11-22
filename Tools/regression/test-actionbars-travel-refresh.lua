@@ -8,7 +8,6 @@ env._resolveRects = true
 local read, reads = ns.TravelData.Read, 0
 ns.TravelData.Read = function(...) reads = reads + 1; return read(...) end
 AB.Enable(env, K)
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
 local function Tray() ns.bars.bar1:RefreshTray() end
 local base = Budget.Count(env, Tray)

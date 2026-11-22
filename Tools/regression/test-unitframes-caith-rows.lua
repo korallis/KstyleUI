@@ -5,8 +5,6 @@ local Scene = dofile("Tools/render/scene.lua")
 local function Near(a, b, why) assert(math.abs(a - b) < 1.1, why .. ": " .. a .. " / " .. b) end
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	local env, K, ns = U.New({ width = screen[1], height = screen[2], size = "auto", fit = true, before = function(_, core)
-		core.Store.Module("HudStyle").style = "medallions"
-		core.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 	end })
 	local fixtures = {}
 	for i = 1, 9 do fixtures[i] = { id = i, icon = 135813, left = i * 3, count = i, mine = true, harmful = true } end
@@ -49,7 +47,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local standard = K.Options.Row("UnitFrames", "player.auras")
 	local medallions = K.Options.Row("UnitFrames", "player.medallionsAuras")
 	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-		K.Options.Write("HudStyle", "style", style)
 		env.RunTimers()
 		assert(standard.showWhen(settings) == (style ~= "medallions") and medallions.showWhen(settings) == (style == "medallions"), "cached Options rows follow the current HUD style")
 	end

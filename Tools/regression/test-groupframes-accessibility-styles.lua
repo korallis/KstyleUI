@@ -4,7 +4,6 @@ local function Check(style)
 	G.SetRoster(env, "raid", G.Members(40))
 	K.Modules.Enable("GroupFrames")
 	env.RunTimers()
-	K.Options.Write("HudStyle", "style", style)
 	G.SetRoster(env, "party", { { name = "Tank", role = "TANK", class = "WARRIOR" } })
 	env.RunTimers()
 	if style == "medallions" then

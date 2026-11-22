@@ -248,7 +248,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		for _, layout in ipairs({ "DPS", "Tank", "Healer" }) do
 			local e, k, n = M.New({ width = screen[1], height = screen[2], followRole = true,
-				saved = { version = 42, account = { setupSeen = true }, profiles = { Default = { HudStyle = { style = style },
+				saved = { version = 42, account = { setupSeen = true }, profiles = { Default = {
 					Meters = { timer = { shown = true }, history = { icons = true, bars = true }, damage2 = { shown = true },
 						roles = { TANK = "both", HEALER = "both", DAMAGER = "both" }, threat = { group = false } } } } },
 				setup = function(x) x._fitScale, x._size = true, "auto" end })

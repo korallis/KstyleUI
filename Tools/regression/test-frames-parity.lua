@@ -80,9 +80,7 @@ end
 collectgarbage()
 do
 	local env, K, ns = U.New({ before = function(_, core)
-		core.Store.Module("HudStyle").style = "medallions"
 		core.Store.Module("UnitFrames").auraLayout = "fan"
-		core.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 	end })
 	local cb = ns.CastBars.Get("player")[1]
 	write(env, K, "UnitFrames", "player.castbarSpark", false)

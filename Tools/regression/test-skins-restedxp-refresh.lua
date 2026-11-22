@@ -8,7 +8,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local rxp
 	local env, K, ns = S.New({
 		width = screen[1], height = screen[2],
-		saved = { version = 12, profiles = { Default = { Appearance = { uiScale = 16 / 19 }, HudStyle = { style = "Medallions" } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
+		saved = { version = 12, profiles = { Default = { Appearance = { uiScale = 16 / 19 } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
 		setup = function(e)
 			Quests.Install(e, Quests.List(3))
 			rxp = Fake.Install(e, {})

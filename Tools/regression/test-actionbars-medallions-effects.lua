@@ -8,9 +8,7 @@ local function New(opts)
 end
 
 local function Medallions(K, env)
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
-	assert(K.HudStyle.Current() == "medallions")
 end
 
 local function Kinds(group)
@@ -224,7 +222,6 @@ do
 	local kinds = Kinds(b.medProc.anim)
 	assert(kinds.FlipBook == 1 and b.medProc.anim._anims[1]:GetFlipBookFrames() == 16, "the class flipbook runs as a FlipBook of 16 frames")
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
-	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
 	assert(b.lumenGlow:IsShown() and not b.medProc:IsShown(), "back to Frames the slot's own proc glow returns")
@@ -280,7 +277,6 @@ do
 	assert(b.medChecked:IsShown(), "a checked action shows the checked frame")
 	b:SetSelected(false)
 	assert(not b.medChecked:IsShown(), "and hides it again")
-	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
 	assert(not b.medFrame:IsShown() and not b.medWell:IsShown() and not b.medHover:IsShown() and not b.medPushed:IsShown(), "back to Frames the slot frames hide")
 	assert(b.chrome.visible and b.hotkey:IsShown(), "back to Frames the slot's own chrome and keybind return")

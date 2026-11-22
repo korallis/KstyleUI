@@ -5,7 +5,6 @@ local checked = 0
 for _, screen in ipairs(screens) do
 	local env, K = C.New({ width = screen[1], height = screen[2], fit = true })
 	C.Boot(env)
-	K.Options.Write("HudStyle", "style", "medallions")
 	local L = K.Setup.Layouts
 	for _, arrangement in ipairs({ "centred", "spread" }) do
 		K.Options.Write("Layout", "arrangement", arrangement)
@@ -35,7 +34,7 @@ for _, screen in ipairs(screens) do
 				positions["chat.main"] = oldChat
 				K.Callbacks.Fire("ProfileChanged")
 				assert(positions["chat.main"] == oldChat, "a saved chat position is never written")
-				local styled = L.Style("medallions", name, "chat.main")
+				local styled = L.Style(name, "chat.main")
 				assert(not styled, "a saved chat position keeps its usual layout scope")
 				positions["chat.main"] = nil
 				at["actionbars.bar4"] = { anchor = "BOTTOM", x = 0, y = at["actionbars.bar1"].y }

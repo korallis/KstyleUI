@@ -722,15 +722,12 @@ do
 	K.Modules.Enable("Skins")
 	K.Widgets.MarkPreview(env.CreateFrame("Frame", nil, env.UIParent))
 	K.Options.Write("Skins", "text.size", 0.8)
-	K.Options.Write("HudStyle", "style", "orbs")
-	K.Options.Write("HudStyle", "style", "frames")
 	local lineFont = env.ObjectiveTrackerLineFont
 	assert(lineFont.GetParent == nil, "the stub's Font object has no GetParent, as the game's has none")
 	assert(FontPath(lineFont):find("KstyleUI", 1, true), "the line font still takes the skin face, got " .. tostring(FontPath(lineFont)))
 	local caps = K.Tokens.FontPath("CinzelCaps")
 	assert(caps and K.Tokens.FaceTracking(caps) ~= 0, "the test needs a tracked face, got " .. tostring(caps))
 	K.Options.Write("Skins", "text.font", caps)
-	K.Options.Write("HudStyle", "style", "orbs")
 	assert(FontPath(lineFont) == caps, "a tracked face reaches the Font object without the kit's letter tracking, got " .. tostring(FontPath(lineFont)))
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end

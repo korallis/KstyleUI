@@ -17,8 +17,6 @@ local function Split(bar)
 end
 
 local function Style(K, style)
-	K.Options.Write("HudStyle", "style", style)
-	assert(K.HudStyle.Current() == style, "the HUD style is " .. style)
 end
 
 do
@@ -56,7 +54,6 @@ do
 	AB.Enable(env, K)
 	local bar2 = ns.bars.bar2
 	env.SetCombat(true)
-	K.Options.Write("HudStyle", "style", "orbs")
 	assert(K.HudStyle.Current() == "frames", "the style waits for combat to end")
 	assert(near(Split(bar2), 0), "bar 2 is not re-laid in combat")
 	env.SetCombat(false)

@@ -6,7 +6,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 3456, 2234 }, { 5120, 1440 }, { 3840
 	env.UnitRace = function() return "Undead", "Scourge" end
 	env.UnitSex = function() return 2 end
 	AB.Enable(env, K)
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	local hub = ns.Slab.hub
 	assert(hub.crestPath:find("Crests\\scourge_warlock.png", 1, true), "exercise the shipped undead warlock crest")

@@ -10,7 +10,6 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {3440,1440}, {3456,2234}, {3
 			e.ChatFrame1.GetResizeBounds = function(self) return unpack(self._bounds) end
 			e.ChatFrame1:SetResizeBounds(250, 120, 800, 800)
 		end })
-		K.Options.Write("HudStyle", "style", style)
 		C.Enable(env, K)
 		local function check()
 			local root, chat = K.Scale.Root(), env.ChatFrame1

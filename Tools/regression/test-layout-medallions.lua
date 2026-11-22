@@ -18,8 +18,6 @@ local function New()
 end
 
 local function Style(K, style)
-	K.Options.Write("HudStyle", "style", style)
-	assert(K.HudStyle.Current() == style, "the HUD style is now " .. style)
 end
 
 local function At(K, key, position, label)
@@ -36,15 +34,15 @@ do
 		assert(#keys >= 11, name .. ": Medallions places the surfaces it moves, got " .. #keys)
 		for _, key in ipairs(keys) do
 			assert(Layouts.Element(key), name .. ": " .. key .. " is an element")
-			local position = Layouts.Style("medallions", name, key)
+			local position = Layouts.Style(name, key)
 			assert(position.anchor and position.x and position.y, name .. ": " .. key .. " has a whole position")
 		end
 		for _, key in ipairs({ BAR1, BAR2, PLAYER, "unitframes.target", "actionbars.pet", "actionbars.stance", "unitframes.targettarget", "unitframes.focus", "unitframes.boss" }) do
-			assert(Layouts.Style("medallions", name, key), name .. ": Medallions places " .. key)
+			assert(Layouts.Style(name, key), name .. ": Medallions places " .. key)
 		end
-		assert(Layouts.Style("medallions", name, "chat.main") == nil, name .. ": the rails keep their Frames places")
+		assert(Layouts.Style(name, "chat.main") == nil, name .. ": the rails keep their Frames places")
 	end
-	local one, two = Layouts.Style("medallions", "DPS", BAR1), Layouts.Style("medallions", "DPS", BAR2)
+	local one, two = Layouts.Style("DPS", BAR1), Layouts.Style("DPS", BAR2)
 	assert(near(one.x, -two.x) and near(one.y, two.y), "bar 1 is the slab's left group and bar 2 its right, on one baseline")
 	local mock = 1 / K.Scale.DEFAULT_USER_SCALE
 	local ring, pad = Layouts.MEDALLIONS_RING, Layouts.MEDALLIONS_SLAB.pad
@@ -53,7 +51,7 @@ do
 		local _, _, _, groupHeight = Layouts.MedallionsGroup(class)
 		local top, label = at[BAR1].y + groupHeight, "DPS " .. class
 		local function Place(key)
-			local place, styled = at[key], Layouts.Style("medallions", "DPS", key)
+			local place, styled = at[key], Layouts.Style("DPS", key)
 			return { x = place.x, y = place.y, width = place.width or styled.width, height = place.height or styled.height }
 		end
 		local player, target = Place(PLAYER), Place("unitframes.target")
@@ -73,7 +71,7 @@ do
 		assert(cast.x == 0 and near(cast.width, 300) and near(cast.height, 20) and near(cast.y, top + ring / 2 + 27), label .. ": the player's cast bar is 300 by 20 and clears the raised unit slabs")
 		assert(targetCast.x == 0 and near(targetCast.width, 300) and near(targetCast.height, 20) and near(targetCast.y - (cast.y + cast.height), 9), label .. ": the target cast must be 300 by 20 with a nine-unit gap above the player cast")
 	end
-	local boss = Layouts.Style("medallions", "DPS", "unitframes.boss")
+	local boss = Layouts.Style("DPS", "unitframes.boss")
 	assert(near(boss.width, 280 * mock) and near(boss.height, 324 * mock), "the boss column is 280 wide and five 60-tall rows and four 6-unit gaps tall")
 	local wide = Layouts.Positions("DPS", "medallions", "21:9")
 	local narrow = Layouts.Positions("DPS", "medallions", "16:9")
@@ -97,8 +95,8 @@ do
 	end)
 	Style(K, "medallions")
 	assert(fired == 1 and last == "medallions", "HudStyleChanged fires once with medallions")
-	At(K, BAR1, Layouts.Style("medallions", "DPS", BAR1), "Medallions default")
-	At(K, PLAYER, Layouts.Style("medallions", "DPS", PLAYER), "Medallions default")
+	At(K, BAR1, Layouts.Style("DPS", BAR1), "Medallions default")
+	At(K, PLAYER, Layouts.Style("DPS", PLAYER), "Medallions default")
 	assert(Layout.Set(BAR1, "x", -999), "a position under Medallions saves")
 	local saved = env.KstyleUIDB.layouts.Default
 	assert(near(saved["medallions:" .. BAR1].x, -999) and saved[BAR1] == nil, "it is saved under the medallions: key")
@@ -107,7 +105,7 @@ do
 	At(K, BAR1, frames1, "Frames after Medallions")
 	At(K, PLAYER, frames2, "Frames after Medallions")
 	Style(K, "medallions")
-	At(K, BAR1, { anchor = "BOTTOM", x = -999, y = Layouts.Style("medallions", "DPS", BAR1).y }, "the saved Medallions position returns")
+	At(K, BAR1, { anchor = "BOTTOM", x = -999, y = Layouts.Style("DPS", BAR1).y }, "the saved Medallions position returns")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -122,7 +120,7 @@ do
 			local at = Layouts.Positions(name, "medallions", "16:9")
 			local function Box(key, grow)
 				local p = at[key]
-				local w, h = Layouts.StyleSize("medallions", "16:9", key)
+				local w, h = Layouts.StyleSize("16:9", key)
 				if not w then
 					w, h = Layouts.Footprint(name, key)
 				end
@@ -153,7 +151,6 @@ do
 			env._game.forms[i] = { texture = 135036, spellID = 15473 + i }
 		end
 		AB.Enable(env, K)
-		K.Options.Write("HudStyle", "style", "medallions")
 		env.RunTimers()
 		local pet, stance = ns.Slab.sides.pet, ns.Slab.sides.stance
 		assert(pet and stance and pet:IsVisible() and stance:IsVisible(), "the pet and stance plates must both show")

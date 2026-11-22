@@ -5,7 +5,7 @@ local W = M.W
 
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	local env, K = M.New({ enabled = false, settings = {}, width = screen[1], height = screen[2], size = "auto",
-		setup = function(e) e.KstyleUIDB.profiles.Default.HudStyle = { style = "medallions" } end })
+		setup = function() end })
 	local layouts, section = K.Setup.Layouts, K.Store.Module("Minimap")
 	local rw, rh = K.Layout.RootSize()
 	section.frame = "classic"
@@ -46,7 +46,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		local env, K, ns = M.New({ enabled = true, width = screen[1], height = screen[2], size = "auto",
 			position = { 0.616, 0.579 }, setup = function(e)
 				e._fitScale = true
-				e.KstyleUIDB.profiles.Default.HudStyle = { style = "medallions" }
 				if owner then e.KstyleUIDB.layouts.Default = { ["medallions:minimap.main"] = { anchor = "TOPRIGHT", x = -0.00008, y = -6.4 } } end
 			end,
 		})
@@ -139,7 +138,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			assert(W.Near(tint[1], r) and W.Near(tint[2], g) and W.Near(tint[3], b), "the crest follows the player class, independently of a custom accent")
 		end
 		for _, style in ipairs({ "frames", "orbs" }) do
-			K.Options.Write("HudStyle", "style", style)
 			M.Settle(env)
 			assert(not face.ring:IsShown() and not face.enamel:IsShown() and not face.runes:IsShown() and not face.gem:IsShown(), "only Medallions has a crest minimap")
 			assert(face.plate.diamond.black:IsShown(), "Frames and Orbs restore their north diamond")

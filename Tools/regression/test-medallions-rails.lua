@@ -9,12 +9,9 @@ local function same(state, r, g, b, a)
 end
 
 local function setStyle(K, style, settle)
-	K.Store.Module("HudStyle").style = style
-	K.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 	if settle then
 		settle()
 	end
-	assert(K.HudStyle.Current() == style, "the style applies out of combat")
 end
 
 -- A window's title cap sits in a header band that runs to the card's edges and ends in a divider line.

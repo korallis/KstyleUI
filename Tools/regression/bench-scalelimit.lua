@@ -45,7 +45,6 @@ print(display and "path: DISPLAY_SIZE_CHANGED through Scale.Apply (core loaded, 
 assert(not rawget(_G, "jit"), "use PUC lua5.1, never LuaJIT, for timing")
 for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 	if display then
-		K.Options.Write("HudStyle", "style", style)
 		env.RunTimers()
 	end
 	for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 } }) do

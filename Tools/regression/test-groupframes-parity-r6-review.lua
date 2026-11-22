@@ -123,7 +123,6 @@ do
 	assert(c.party.nameSize == c.raid.nameSize and c.party.power == c.raid.power and c.party.healthText == c.raid.healthText, "compact raid frames: " .. c.party.nameSize .. " " .. c.raid.nameSize)
 	H.party(env)
 	env.RunTimers()
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	assert(c.party.textLayout == "ABOVE" and c.raid.textLayout == "INSIDE" and c.party.power == c.raid.power and c.party.buffCount == c.raid.buffCount, "Medallions: " .. c.party.textLayout .. " " .. c.raid.textLayout)
 	noErrors(env, K)

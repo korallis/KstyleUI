@@ -2,7 +2,7 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
 local env, K, ns = U.New({
-	saved = { version = 2, characters = {}, profiles = { Default = { UnitFrames = { enabled = true, auraLayout = "fan" }, HudStyle = { style = "medallions" } } } },
+	saved = { version = 2, characters = {}, profiles = { Default = { UnitFrames = { enabled = true, auraLayout = "fan" } } } },
 })
 local Tokens, Settings = K.Tokens, ns.Settings
 
@@ -11,7 +11,6 @@ local function noErrors(where)
 	assert(K.ErrorCount() == 0, where .. ": KstyleUI caught an error")
 end
 
-assert(K.HudStyle.Current() == "medallions", "the profile starts in Medallions")
 U.SetUnit(env, "target", { name = "Decrepit Darkhound", level = 6, health = 99, healthMax = 120, reaction = 2, canAttack = true, creature = "Demon" })
 env.SetTarget(true)
 noErrors("login")
@@ -54,7 +53,6 @@ K.Options.Write("UnitFrames", "target.auraSize", 27.6)
 
 for _, style in ipairs({ "frames", "medallions", "orbs", "medallions", "frames" }) do
 	local old = view.auras.container
-	K.Options.Write("HudStyle", "style", style)
 	env.RunTimers()
 	W.Settle(env)
 	assert(view.auras.container ~= old and not old:IsShown(), style .. ": replace the old style's tile pool")

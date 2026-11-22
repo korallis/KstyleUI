@@ -5,7 +5,6 @@ local function duration(animation)
 end
 for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 	local env, K = W.New()
-	K.Options.Write("HudStyle", "style", style)
 	env.RunTimers()
 	local M, T = K.Motion, K.Tokens
 	assert(M.Fades() and M.Slides(), "Full permits fades and slides in " .. style)

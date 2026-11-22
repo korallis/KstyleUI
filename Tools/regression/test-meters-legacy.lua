@@ -3,7 +3,7 @@ local M = dofile("Tools/regression/meters_env.lua")
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		local env, K, ns = M.New({ width = screen[1], height = screen[2], saved = { version = 38,
-			profiles = { Default = { HudStyle = { style = style }, Meters = { nameplateRows = false } } },
+			profiles = { Default = { Meters = { nameplateRows = false } } },
 		}, setup = function(e)
 			e._group.size = 5
 			e._units.target = { name = "Boss", hostile = true }

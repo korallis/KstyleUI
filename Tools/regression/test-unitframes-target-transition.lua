@@ -2,7 +2,6 @@
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 local env, K, ns = U.New()
-K.Options.Write("HudStyle", "style", "medallions")
 local view = ns.Frames.Get("target").views[1]
 local function target(name)
 	U.SetUnit(env, "target", { name = name, level = 10, health = 80, healthMax = 100, reaction = 2, canAttack = true })
@@ -120,7 +119,6 @@ do
 	local e, kit, frames = U.New({ setup = function(client)
 		U.SetUnit(client, "target", { name = "Wolf", level = 10, health = 80, healthMax = 100, reaction = 2 })
 	end })
-	kit.Options.Write("HudStyle", "style", "medallions")
 	local targetView = frames.Frames.Get("target").views[1]
 	local previous = targetView.body
 	U.SetUnit(e, "target", { name = "Boar", level = 10, health = 60, healthMax = 100, reaction = 2 })

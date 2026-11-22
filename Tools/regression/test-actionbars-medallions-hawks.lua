@@ -39,7 +39,6 @@ local function New(class, known, size)
 		return unregister(event, owner)
 	end
 	AB.Enable(env, K)
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	return env, K, ns
 end
@@ -180,7 +179,6 @@ do
 	K.Options.Write("ActionBars", "crestHawks", true)
 	env.RunTimers()
 	assert(left.holder:IsShown() and Seen(env, left.lit) and state.listening, "turning it back on reads the slots again")
-	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
 	assert(not left.holder:IsShown() and not state.listening, "only the Medallions crest has perches")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))

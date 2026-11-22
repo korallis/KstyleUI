@@ -6,7 +6,6 @@ local mode = arg and arg[1]
 if not mode or mode == "refresh" then
     local env, K, ns = AB.New({ class = "WARLOCK" })
     AB.Enable(env, K)
-    K.Options.Write("HudStyle", "style", "medallions")
     env.RunTimers()
     AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
     env._game.procs[100] = true
@@ -67,7 +66,6 @@ if not mode or mode == "input" then
     W.Enter(b); W.Leave(b)
     assert(not b.hoverLayer:IsShown(), "F5: disabling continuity restores the immediate early hover exit")
     assert(W.Near(b.statePressSpread, K.Widgets.Snap(b, 6)), "F5: disabling continuity restores the six-unit press halo")
-    K.Options.Write("HudStyle", "style", "medallions")
     env.RunTimers()
     K.Options.Write("ActionBars", "inputContinuity", true)
     W.Enter(b)
@@ -97,7 +95,6 @@ if not mode or mode == "proc" then
     b.lumenGlow.leave:Finish()
     b.lumenGlow.leave:GetScript("OnFinished")()
     assert(not b.lumenGlow:IsShown() and not b.lumenGlow.breath:IsPlaying(), "F3: the hidden proc stops breathing")
-    K.Options.Write("HudStyle", "style", "medallions")
     env.RunTimers()
     ns.Button.SetProc(b, true)
     local start = b.medProcStart.anim
@@ -128,7 +125,6 @@ end
 if not mode or mode == "model" then
     local env, K, ns = AB.New()
     AB.Enable(env, K)
-    K.Options.Write("HudStyle", "style", "medallions")
     env.RunTimers()
     env.FireEvent("PLAYER_ENTERING_WORLD")
     local warmed = 0

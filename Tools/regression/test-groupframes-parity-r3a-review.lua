@@ -232,7 +232,6 @@ do
 	r, g, b = plate.text:GetTextColor()
 	assert(r == 0 and g == 1 and b == 0, "in its colour")
 
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	write(env, K, "status.size", 24)
 	local f = frame(ns, "raid1")

@@ -8,7 +8,7 @@ return Common.Run(function()
 	local N = dofile("Tools/regression/nameplates_env.lua")
 	local env, K, ns = U.New(Common.ScreenOpts({
 		login = false,
-		saved = Gallery.Saved({ "UnitFrames", HudStyle = { style = "medallions" } }),
+		saved = Gallery.Saved({ "UnitFrames" }),
 		setup = function(e)
 			Common.ForceScreen(e, true)
 			CT.CVars(e)

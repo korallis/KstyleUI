@@ -222,14 +222,12 @@ local cp, crel, crelp = point(face.clock)
 assert(cp == "RIGHT" and crel == face.card and crelp == "BOTTOMRIGHT", "and the clock returns under the card")
 
 -- Medallions: a moved caption takes its plaque away; back home the plaque returns.
-K.Options.Write("HudStyle", "style", "medallions")
 M.Settle(env)
 assert(face.plaques[1].chrome.fill[5]:IsShown(), "the zone plaque shows at its usual place")
 K.Options.Write("Minimap", "zone.position", "TOP")
 assert(not face.plaques[1].chrome.fill[5]:IsShown(), "a zone inside the map leaves no empty plaque")
 K.Options.Write("Minimap", "zone.position", "")
 assert(face.plaques[1].chrome.fill[5]:IsShown(), "and the plaque comes back with it")
-K.Options.Write("HudStyle", "style", "frames")
 M.Settle(env)
 
 -- Clock accent and lockouts in the clock tooltip.
@@ -355,7 +353,7 @@ assert(perfTicker.cancelled, "and stops the readout's ticker")
 clean(env, K, "disable")
 -- A profile saved with every caption moved loads cleanly on each Medallions frame.
 for _, frame in ipairs({ "medallion", "ring", "classic" }) do
-	local fresh = { version = 42, profiles = { Default = { HudStyle = { style = "medallions" }, Minimap = { enabled = true, frame = frame,
+	local fresh = { version = 42, profiles = { Default = { Minimap = { enabled = true, frame = frame,
 		zone = { position = "TOP" }, clock = { position = "BOTTOMRIGHT" }, coords = { position = "BOTTOMRIGHT" } } } },
 		characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
 	local fenv, fK, fns = M.New({ saved = fresh, position = { 0.4532, 0.6218 }, setup = instance })

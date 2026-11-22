@@ -441,7 +441,7 @@ assert(U.Shown(env, pane.views.boss.healthText):find("72.00%", 1, true), "the bo
 write("healthDecimalBoss", false)
 clean()
 -- Medallions slabs carry health text inside the bar, so threat percent starts left of the bar there.
-local menv, MK, mns = U.New({ saved = { version = U.DbVersion(), characters = {}, profiles = { Default = { UnitFrames = { enabled = true }, HudStyle = { style = "medallions" } } } },
+local menv, MK, mns = U.New({ saved = { version = U.DbVersion(), characters = {}, profiles = { Default = { UnitFrames = { enabled = true } } } },
 	setup = function(e) e.UnitDetailedThreatSituation = function() return false, 2, 64, 64, 10 end end })
 U.SetUnit(menv, "target", { name = "Wolf", level = 10, health = 50, healthMax = 100, reaction = 2, canAttack = true })
 menv.SetTarget(true)

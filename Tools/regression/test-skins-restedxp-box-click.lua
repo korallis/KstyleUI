@@ -13,7 +13,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			local env, K, ns = S.New({
 				width = screen[1], height = screen[2],
 				saved = { version = 39, profiles = {
-					Default = { HudStyle = { style = style }, Layout = { arrangement = arrangement }, Skins = { restedXP = { boxes = false } } },
+					Default = { Layout = { arrangement = arrangement }, Skins = { restedXP = { boxes = false } } },
 					Other = { Skins = { restedXP = { boxes = false, compose = false } } }, Empty = {},
 				}, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
 				setup = function(e)

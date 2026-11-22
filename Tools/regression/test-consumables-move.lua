@@ -37,7 +37,6 @@ C.Apply()
 assert(not cfg.attached and select(2, C.holder:GetPoint()) == K.Scale.Root(), "a keyboard nudge releases the dock")
 K.Layout.Exit(true)
 for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-	K.Options.Write("HudStyle", "style", style)
 	K.Options.Write("ActionBars", "consumables.attached", true)
 	local target = style == "orbs" and ns.bars.bar1.holder or player
 	assert(select(2, C.holder:GetPoint()) == target, style .. ": Attach restores the current HUD dock")

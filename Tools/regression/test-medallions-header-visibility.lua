@@ -1,6 +1,6 @@
 -- test-medallions-header-visibility.lua: wanted header state controls the band without reading region visibility.
 local W = dofile("Tools/regression/widget_env.lua")
-local saved = { version = 12, profiles = { Default = { HudStyle = { style = "medallions" } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+local saved = { version = 12, profiles = { Default = { } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
 local env, K = W.New({ width = 1920, height = 1080, saved = saved })
 local panel = K.Widgets.Panel(K.Scale.Root(), { width = 320, height = 200, title = "Header" })
 K.Widgets.Point(panel, "TOPLEFT", K.Scale.Root(), "TOPLEFT", 100, -100)
@@ -36,12 +36,10 @@ assert(chrome.headerUnits == nil, "restricted parents still stop measurement")
 env.RestrictAnchoring(panel.cap, false)
 chrome:MeasureHeader()
 assert(chrome.header[3]:IsVisible(), "an unrestricted public header paints normally again")
-K.Options.Write("HudStyle", "style", "frames")
 local other = K.Widgets.Panel(K.Scale.Root(), { width = 320, height = 200, title = "Hidden before Medallions" })
 K.Widgets.Point(other, "TOPLEFT", K.Scale.Root(), "TOPLEFT", 450, -100)
 other.cap:Hide()
 assert(other.cap.gem.headerHidden == true, "wanted state is recorded before the Medallions style is selected")
-K.Options.Write("HudStyle", "style", "medallions")
 W.Settle(env)
 assert(other.chrome.headerUnits == nil, "entering Medallions preserves a header's wanted hidden state")
 other.cap:Show()

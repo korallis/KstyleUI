@@ -9,10 +9,8 @@ end
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	local env, K, ns = U.New({ width = screen[1], height = screen[2], plate = true })
 	K.Options.Write("UnitFrames", "player.healthText", "none")
-	K.Options.Write("HudStyle", "style", "orbs")
 	env.FireEvent("UNIT_HEALTH", "player")
 	check(U.Shown(env, ns.Orbs.Get("health").value) == "3.1K / 3.9K", "orb: a saved Frames None must preserve the blank-format orb preset")
-	K.Options.Write("HudStyle", "style", "frames")
 	K.Options.Write("UnitFrames", "player.healthText", "both")
 	K.Options.Write("UnitFrames", "player.fonts.health.textFormat", "[hp:abr]")
 	env.RunTimers()

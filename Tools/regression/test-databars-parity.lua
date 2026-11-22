@@ -455,7 +455,6 @@ env.SetCombat(false)
 write("strip.combatOnly", false)
 
 -- The Medallions dock keeps its muted ink, says so by turning the custom colours off, keeps the low-space warning and draws no dot by a spacer.
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
 for _, entry in ipairs(s.dockModules) do entry.shown = entry.id == "bags" or entry.id == "spacer"; entry.zone = "right" end
 write("strip.dockModules", s.dockModules)
@@ -465,7 +464,6 @@ eq(color(item("bags").value), token("hostile"), "the low-space warning shows in 
 assert(not item("spacer").dot:IsShown(), "no dot beside a spacer in the dock")
 assert(disabled("strip.labelCustom") and disabled("strip.labelColor") and disabled("strip.valueCustom"), "the dock's custom colours are off, not silently ignored")
 write("strip.bagsLow", 0)
-K.Options.Write("HudStyle", "style", "frames")
 env.RunTimers()
 assert(not disabled("strip.labelCustom"), "the top bar takes custom colours")
 

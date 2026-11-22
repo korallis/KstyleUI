@@ -55,7 +55,6 @@ case("a vertical essential grid keeps clear of the utility row at every screen s
 		local env, K = C.W.New({ boot = false, width = screen[1], height = screen[2], size = "auto", fit = true, setup = function(e) C.Install(e) end })
 		Load(C.Files(), env)
 		C.CoreEnv.Boot(env)
-		K.Options.Write("HudStyle", "style", "medallions")
 		C.Enable(env, K)
 		env.RunTimers()
 		local ns = env._addons.KstyleUI_Cooldowns

@@ -3,7 +3,6 @@ local AB = dofile("Tools/regression/actionbars_env.lua")
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	local env, K, ns = AB.New({ width = screen[1], height = screen[2] })
 	AB.Enable(env, K)
-	K.Options.Write("HudStyle", "style", "medallions")
 	local strip = env.CreateFrame("Frame", nil, K.Scale.Root())
 	K.Layout.Register(strip, "databars.xp", K.Setup.Layouts.Default("databars.xp"), { resizable = true })
 	for _, size in ipairs({ 16, 40, 64 }) do

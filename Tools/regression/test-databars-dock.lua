@@ -71,7 +71,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(micro:GetParent() == Menus.Holder("micro"))
 	K.Options.Write("DataBars", "strip.enabled", true)
 	settle()
-	K.Options.Write("HudStyle", "style", "orbs")
 	settle()
 	assert(micro:GetParent() == view.frame)
 	K.Options.Write("DataBars", "strip.menus", false)
@@ -80,7 +79,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	K.Options.Write("DataBars", "strip.menus", true)
 	settle()
 	assert(micro:GetParent() == view.frame)
-	K.Options.Write("HudStyle", "style", "medallions")
 	settle()
 	local xp = ns.Bars.views.xp
 	assert(artwork.showWhen(ns.Settings()), "artwork applies to the docked plate")

@@ -126,7 +126,6 @@ end
 
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	local env, K, ns = U.New({ width = screen[1], height = screen[2] })
-	K.Options.Write("HudStyle", "style", "orbs")
 	local orb = assert(ns.Orbs.Get("health"), "the health orb is built")
 	K.Options.Write("UnitFrames", "player.fonts.health.textFormat", "[pp] [absorb]")
 	env._units.player.power, env._units.player.absorb = 42, 100

@@ -5,7 +5,7 @@ local W = U.W
 local function new(layout)
 	return U.New({
 		saved = { version = 2, characters = {}, layouts = { Default = layout or {} },
-			profiles = { Default = { UnitFrames = { enabled = true }, HudStyle = { style = "medallions" } } } },
+			profiles = { Default = { UnitFrames = { enabled = true } } } },
 		setup = function(e)
 			e.GetNetStats = function() return 0, 0, 20, 200 end
 			e._gcd = {}
@@ -112,10 +112,8 @@ write("castbarOnFrame", true)
 assert(not CastBars.ElementLive("player") and ns.Frames.Get("player").views[1].s.inlineCast, "on again puts it back on the frame")
 clean("toggle")
 
-K.Options.Write("HudStyle", "style", "frames")
 W.Tick(env, 0.1)
 assert(CastBars.ElementLive("player") and not CastBars.ElementLive("target") and Settings.Snapshot("player").inlineCast == false, "Frames keeps its own placement")
-K.Options.Write("HudStyle", "style", "orbs")
 assert(CastBars.ElementLive("player") and CastBars.ElementLive("target"), "Orbs keeps its own placement")
 clean("styles")
 

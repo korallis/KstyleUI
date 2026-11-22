@@ -8,7 +8,6 @@ if not pick or pick == "grid" then
 	local env, K, ns = C.New({cooldowns=C.Sample()})
 	C.Enable(env, K)
 	for _, style in ipairs({"frames", "orbs", "medallions"}) do
-		K.Options.Write("HudStyle", "style", style)
 		env.RunTimers()
 		for _, group in ipairs({"essential", "utility"}) do
 			local key = "cooldowns." .. group
@@ -44,7 +43,6 @@ end
 
 if not pick or pick == "rim" then
 	local env, K, ns = M.New()
-	K.Options.Write("HudStyle", "style", "medallions")
 	M.Enable(env,K)
 	env.FireEvent("PLAYER_SWING",2.6,M.SWING.MainHand)
 	env.FireEvent("PLAYER_SWING",2.4,M.SWING.OffHand)
@@ -64,7 +62,6 @@ if not pick or pick == "resource" then
 	M.Enable(env,K)
 	local L = K.Setup.Layouts
 	for _,style in ipairs({"frames","orbs","medallions"}) do
-		K.Options.Write("HudStyle","style",style)
 		local old=L.Previous(style,"DPS","unitframes.resource",K.Scale.Aspect())
 		for _,on in ipairs({true,false}) do
 			M.Write(env,K,"swing.attached",on)

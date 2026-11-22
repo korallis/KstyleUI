@@ -267,7 +267,6 @@ assert(near(select(2, tile:GetSize()), K.Widgets.Snap(tile, Settings.Value("targ
 clean("preview")
 
 -- Medallions: the pet's medallion reaches below its slab, so the pet cast bar starts under the medallion.
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
 local medal = pet.geometry.medal
 assert(medal and medal.y + medal.h > select(2, pet.button:GetSize()), "the pet medallion hangs below the slab")
@@ -293,7 +292,6 @@ spot = W.LastCall(pet.extraIcon, "SetPoint")
 assert(spot[1] == "BOTTOMLEFT" and spot[5] >= -medal.y + 1.5, "Above the left end clears the medallion's top")
 write("pet.happinessPosition", "")
 write("pet.happiness", false)
-K.Options.Write("HudStyle", "style", "frames")
 env.RunTimers()
 clean("medallions")
 print("test-unitframes-parity-r3a: ok")

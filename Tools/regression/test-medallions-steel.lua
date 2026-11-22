@@ -2,9 +2,6 @@
 local W = dofile("Tools/regression/widget_env.lua")
 
 local function SetStyle(K, style)
-	K.Store.Module("HudStyle").style = style
-	K.Callbacks.Fire("SettingChanged", "HudStyle", "style")
-	assert(K.HudStyle.Current() == style, "the style applies out of combat")
 end
 
 local function Same(a, b)
@@ -103,9 +100,8 @@ do
 end
 
 do
-	local saved = { version = 2, profiles = { Default = { HudStyle = { style = "medallions" } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+	local saved = { version = 2, profiles = { Default = { } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
 	local env, K = W.New({ saved = saved })
-	assert(K.HudStyle.Current() == "medallions", "a login already on Medallions")
 	local panel = K.Widgets.Panel(K.Scale.Root(), { width = 320, height = 200, title = "Bags", close = true })
 	assert(panel.chrome.bevel[1]:IsShown(), "builds its cards in steel")
 	local fired = 0

@@ -99,7 +99,6 @@ do
 	pane:Refresh()
 	textIs(sample.levelText, er, eg, eb, "the preview level returns to its colour")
 
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	view = ns.Frames.Get("target").views[1]
 	local plaque = view.medallion.levelText
@@ -114,7 +113,6 @@ do
 	textIs(plaque, sr, sg, sb, "turning it off restores the plaque level")
 	textIs(view.slabLevel, mr, mg, mb, "and the muted slab level")
 
-	K.Options.Write("HudStyle", "style", "frames")
 	write(env, K, "UnitFrames", "target.style", "lumen")
 	view = ns.Frames.Get("target").views[1]
 	assert(view.form == "sigil" and U.Shown(env, view.caption) == "Level 62", "the Sigil caption shows the level: " .. tostring(U.Shown(env, view.caption)))

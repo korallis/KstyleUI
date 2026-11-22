@@ -33,7 +33,6 @@ local rx, ry = UK.Widgets.Remainder(name)
 local pixel = UK.Scale.Pixel(1) / UK.Widgets.ScaleFactor(name)
 assert(bottom == name and math.abs(bx - UK.Widgets.Snap(name, 6) - rx * pixel) < 1e-6
 	and math.abs(by + UK.Widgets.Snap(name, 4) + ry * pixel) < 1e-6, "bottom and right padding preserve the exact snapped text box")
-UK.Options.Write("HudStyle", "style", "medallions")
 assert(not name.inkScrim[5]:IsShown(), "the scrim leaves the backed Medallions slab alone")
 local A = dofile("Tools/regression/auras_env.lua")
 local _, _, an = A.New()

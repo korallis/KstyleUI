@@ -41,7 +41,6 @@ pet.holder:SetSize(180, 42)
 assert(not cb.label:IsShown() and not cb.lock:IsShown(), "a resize keeps the idle track empty")
 write("pet.castbarColor", "gold")
 assert(not cb.label:IsShown(), "a restyle keeps the idle track empty")
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
 assert(not (cb.bar.fillCursor and cb.bar.fillCursor:IsShown()), "the Medallions idle track shows no progress edge")
 pet.holder:SetSize(200, 46)
@@ -66,7 +65,6 @@ local function clear(where)
 	assert(icon:IsShown() and v.marker:IsShown() and (ow <= 0.01 or oh <= 0.01), where .. ": the badge overlaps the marker by " .. ow .. " x " .. oh)
 end
 for _, style in ipairs({ "medallions", "frames" }) do
-	K.Options.Write("HudStyle", "style", style)
 	env.RunTimers()
 	for _, look in ipairs({ "lumen", "plate" }) do
 		write("pet.style", look)
@@ -96,10 +94,8 @@ env._units.pet.cast = nil
 env.FireEvent("UNIT_SPELLCAST_STOP", "pet", "Cast-1", 17253)
 env.RunTimers()
 write("pet.castbarWidth", 0)
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
 assert(not rowShown("pet.castbarIcon"), "a Medallions cast bar draws no icon, so its row hides")
-K.Options.Write("HudStyle", "style", "frames")
 env.RunTimers()
 write("pet.style", "lumen")
 

@@ -118,7 +118,6 @@ function Suite.Prepare(style, W, H)
 		local reloaded, kit = Start(CoreEnv.DeepCopy(saved), W, H)
 		reloaded.FireEvent("PLAYER_ENTERING_WORLD", false, true)
 		reloaded.RunTimers()
-		assert(kit.HudStyle.Current() == style, "the reload runs " .. tostring(kit.HudStyle.Current()))
 		assert(#reloaded._errors == 0 and kit.ErrorCount() == 0, "the reload raised: " .. tostring(reloaded._errors[1]))
 		return reloaded, kit
 	end, initial

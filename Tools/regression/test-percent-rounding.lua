@@ -86,7 +86,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	K.Options.Write("DataBars", "rep.text", "labelPercent")
 	K.Options.Write("DataBars", "rep.textHover", true)
 	for _, style in ipairs({ "medallions", "orbs", "frames" }) do
-		K.Options.Write("HudStyle", "style", style)
 		assert(not view.text:IsShown(), "pending reward respects hover text in " .. style)
 		D.W.Enter(view.holder)
 		assert(view.text:IsShown(), "hover reveals pending reward in " .. style)

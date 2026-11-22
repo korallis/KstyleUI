@@ -34,8 +34,6 @@ eq(rep.track.lit:IsShown(), true, "the Frames reputation track keeps its lit edg
 local repPoint = rep.text:GetPoint(1)
 xp.holder:SetFrameStrata("HIGH")
 
-K.Options.Write("HudStyle", "style", "medallions")
-eq(K.HudStyle.Current(), "medallions", "the style switched")
 W.Settle(env)
 
 eq(xp.fill:GetValue(), 3400, "the strip fills with the earned share, 34%")
@@ -110,7 +108,6 @@ K.Options.Write("DataBars", "xp.text", "levelRested")
 noErrors("medallions strips")
 eq(xp.holder:GetFrameStrata(), "LOW", "under Medallions the experience strip sits at the slab's strata, under the hub")
 
-K.Options.Write("HudStyle", "style", "frames")
 eq(xp.text:GetText(), "Level 11" .. DOT .. "34%" .. DOT .. RESTED, "Frames gets the level caption back")
 eq(select(1, xp.text:GetPoint(1)), "TOP", "centred under the bar again")
 local backPath, backSize = xp.text:GetFont()
@@ -125,7 +122,6 @@ eq(select(1, rep.text:GetPoint(1)), repPoint, "the reputation caption is where i
 eq(rep.fill.texturePath, K.Options.Read("DataBars", "rep.texture"), "with the texture its settings name")
 eq(xp.holder:GetFrameStrata(), "HIGH", "back in Frames the experience strip gets the strata it had before Medallions")
 
-K.Options.Write("HudStyle", "style", "orbs")
 eq(select(1, xp.text:GetPoint(1)), "TOP", "Orbs keeps the Frames caption")
 eq(shownTicks(rep), 0, "and the Orbs reputation bar has no ticks")
 noErrors("switch back")

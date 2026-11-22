@@ -45,7 +45,6 @@ local function Profile(c)
 	local profile = {
 		Appearance = { uiScale = c.size or 1, uiScaleAuto = c.size == nil },
 		Layout = { preset = c.preset, arrangement = c.arrangement, canvas = c.canvas },
-		HudStyle = { style = c.style },
 	}
 	for _, element in ipairs(ELEMENTS) do
 		profile[element.module] = { enabled = true }

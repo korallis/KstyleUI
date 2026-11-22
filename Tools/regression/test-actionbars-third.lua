@@ -22,7 +22,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 		}
 		env.FireEvent("BAG_UPDATE_DELAYED")
 		assert(#ns.Consumables.selected == 12 and ns.Consumables.header:IsShown(), "check bar 3 against the occupied consumables grid")
-		K.Options.Write("HudStyle", "style", style)
 		local plannedScales = {}
 		do
 			local fitEnv, fitK = CoreEnv.New({ width = screen[1], height = screen[2], fit = true, size = "auto" })
@@ -129,7 +128,7 @@ print("third action bar ok")
 
 for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 	local key = style .. ":actionbars.bar3"
-	local env, K = CoreEnv.New({ saved = { version = 36, profiles = { Default = { HudStyle = { style = style } }, Custom = {} }, layouts = {
+	local env, K = CoreEnv.New({ saved = { version = 36, profiles = { Default = { }, Custom = {} }, layouts = {
 		Default = { ["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = 17, y = 462.5 }, [key] = { anchor = "BOTTOMLEFT", x = 17, y = style == "orbs" and 475 or 462.5 } },
 		Custom = { [key] = { anchor = "BOTTOMLEFT", x = 19, y = 462.5 } },
 	} } })

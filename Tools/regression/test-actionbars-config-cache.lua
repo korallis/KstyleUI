@@ -7,7 +7,6 @@ AB.Enable(env, K)
 local calls, fits = 0, K.Setup.Layouts.Fits
 K.Setup.Layouts.Fits = function(...) calls = calls + 1; return fits(...) end
 for index, style in ipairs({ "frames", "orbs", "medallions" }) do
-	K.Options.Write("HudStyle", "style", style)
 	K.Options.Write("ActionBars", "bar1.size", 30 + index)
 	local before = calls
 	K.Options.Write("ActionBars", "bar1.size", 50 + index)

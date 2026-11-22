@@ -7,7 +7,6 @@ local swing = ns.Swing
 local main, off = swing.bars[M.SWING.MainHand], swing.bars[M.SWING.OffHand]
 assert(K.Store.Module("Meters").swing.attached, "the HUD swing look starts on")
 for _, style in ipairs({"frames", "orbs", "medallions"}) do
-	K.Options.Write("HudStyle", "style", style)
 	M.Write(env, K, "swing.hideIdle", true)
 	assert(not swing.content:IsShown(), "idle swings stay hidden")
 	env.SetTime(100)

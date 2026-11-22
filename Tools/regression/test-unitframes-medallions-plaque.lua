@@ -26,7 +26,6 @@ for _, screen in ipairs(SCREENS) do
 	U.SetUnit(env, "focus", { name = "Mirefin Oracle", level = 39, health = 980, healthMax = 1210, reaction = 2 })
 	U.SetUnit(env, "pet", { name = "Zabnik", level = 38, health = 920, healthMax = 1500, reaction = 5 })
 	env.SetTarget(true)
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	local least = math.ceil(FLOOR * height / REFERENCE - 1e-6)
 	for _, kind in ipairs(KINDS) do

@@ -248,7 +248,6 @@ do
 	G.SetRoster(env, "raid", G.Members(5))
 	K.Modules.Enable(MODULE)
 	env.RunTimers()
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	write(env, K, "health.colorSource", "gradient")
 	assert(ns.Unit.ColorSources(frame(ns, "raid1")) == "gradient", "Medallions raid tiles take the By health colour")

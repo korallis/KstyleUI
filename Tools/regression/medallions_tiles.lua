@@ -23,7 +23,7 @@ local CLASSES = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "
 local EPS = 0.01
 local function Saved()
 	return {
-		version = 2, profiles = { Default = { GroupFrames = { enabled = true }, HudStyle = { style = "medallions" } } },
+		version = 2, profiles = { Default = { GroupFrames = { enabled = true } } },
 		characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {},
 	}
 end
@@ -82,7 +82,6 @@ function T.Run(screens, file)
 				K.Options.Write("GroupFrames", "raid.height", case.height)
 			end
 			env.RunTimers()
-			assert(K.HudStyle.Current() == "medallions", what .. ": the profile opens on Medallions")
 			local floor = K.Scale.TextFloor()
 			local function px(text)
 				local _, size = text:GetFont()

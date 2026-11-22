@@ -37,13 +37,12 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 			return ({ buffs = 5, bars = 2 })[group]
 		end)
 		assert(K.Setup.Apply({ layout = name, modules = {}, hudStyle = "medallions" }), "Apply " .. name .. " under Medallions")
-		assert(K.HudStyle.Current() == "medallions", "the style is Medallions")
 		local Layouts = K.Setup.Layouts
 		local rw, rh = K.Layout.RootSize()
 		local positions = Layouts.Positions(name, "medallions", K.Scale.Aspect(), K.Scale.Band())
 		local function Box(key)
 			local w, h, offsetX = Layouts.Footprint(name, key)
-			local styled = Layouts.Aspect(K.Scale.Aspect(), "medallions", name, key) or Layouts.Style("medallions", name, key)
+			local styled = Layouts.Aspect(K.Scale.Aspect(), "medallions", name, key) or Layouts.Style(name, key)
 			if styled and styled.width then
 				w, h, offsetX = styled.width, styled.height, nil
 			end
@@ -64,7 +63,7 @@ for _, name in ipairs({ "DPS", "Tank", "Healer" }) do
 		local focus = Box("unitframes.focus")
 		assert(screen.label == "1280x1024" or barBox[4] <= focus[2] + 0.5, where .. ": the bars stay under the focus frame, out of the nameplates over it")
 		for _, key in ipairs({ "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs" }) do
-			local place = Layouts.Aspect(K.Scale.Aspect(), "medallions", name, key) or Layouts.Style("medallions", name, key)
+			local place = Layouts.Aspect(K.Scale.Aspect(), "medallions", name, key) or Layouts.Style(name, key)
 			assert(place.x == 0, where .. ": " .. key .. " defaults to the screen centre")
 		end
 		local icons = Box("cooldowns.buffs")

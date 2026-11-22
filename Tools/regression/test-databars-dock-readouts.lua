@@ -7,7 +7,6 @@ local Load = dofile("Tools/regression/load_files.lua")
 for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) do
 	local env, K, ns = D.New({ width = screen[1], height = screen[2], size = "auto", setup = function(e) D.Menus(e); Fixture(e) end })
 	Load({ "KstyleUI_ActionBars/TravelData.lua" }, env)
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	local s, view = ns.Settings().strip, ns.Strip.view
 	assert(table.concat(view.order, ",") == "fps,latency,gold,durability,time", "the Medallions dock defaults to the original five readouts")
@@ -41,8 +40,8 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 		local x, _, width = Scene.Rect(env, view.frame)
 		local scale = width / view.frame:GetWidth()
 		local layouts = K.Setup.Layouts
-		local left = layouts.ActionBarFootprint("medallions", K.Scale.Aspect(), "actionbars.bar1")
-		local right = layouts.ActionBarFootprint("medallions", K.Scale.Aspect(), "actionbars.bar2")
+		local left = layouts.ActionBarFootprint(K.Scale.Aspect(), "actionbars.bar1")
+		local right = layouts.ActionBarFootprint(K.Scale.Aspect(), "actionbars.bar2")
 		local unit = width / (left + right + layouts.MEDALLIONS_HUB_GAP)
 		local bounds = { left = { x, x + left * unit }, right = { x + (left + layouts.MEDALLIONS_HUB_GAP) * unit, x + width } }
 		local captionX = Scene.Rect(env, view.slab.text)
@@ -97,7 +96,6 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 	K.Options.Write("DataBars", "strip.dockModules", s.dockModules)
 	check()
 	assert(not view.xpRule:IsShown() and view.xpGlyph:IsShown() == view.slab.text:IsVisible(), "a caption with no readout before it keeps its glyph but no rule")
-	K.Options.Write("HudStyle", "style", "frames")
 	for i, entry in ipairs(s.modules) do assert(entry.shown == (i <= 12), "the top bar retains its independent defaults; XP and the optional readouts after it stay off") end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end

@@ -165,13 +165,12 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	}) do
 		local e, _, n = N.New({ width = screen[1], height = screen[2], size = "auto", saved = {
 			version = 40, characters = {}, account = { setupSeen = true }, devlog = {}, layouts = {},
-			profiles = { Default = { HudStyle = { style = "medallions" }, Nameplates = settings } },
+			profiles = { Default = { Nameplates = settings } },
 		} })
 		assert(n.state.width == 120 and n.state.height == 12, "saved custom Dungeon and hand-set 12-unit heights survive under Medallions")
 		assert(#e._errors == 0, tostring(e._errors[1]))
 	end
 	local env, K, ns = N.New({ width = screen[1], height = screen[2], size = "auto" })
-	K.Options.Write("HudStyle", "style", "medallions")
 	K.Options.Write("Nameplates", "preset", "dungeon")
 	assert(ns.state.width == 120 and ns.state.height == K.Tokens.Size("barHeight"), "Dungeon keeps the shared height under Medallions")
 	K.Options.Write("Nameplates", "healthText.show", false)

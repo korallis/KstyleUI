@@ -14,7 +14,7 @@ local LEE = {
 
 local function Boot(screen, style)
 	local rxp
-	local saved = { version = 12, profiles = { Default = { Appearance = { uiScale = 16 / 19 }, Layout = { preset = "DPS" }, HudStyle = { style = style } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+	local saved = { version = 12, profiles = { Default = { Appearance = { uiScale = 16 / 19 }, Layout = { preset = "DPS" } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
 	local env, K, ns = S.New({
 		width = screen[1], height = screen[2], uiScale = screen[3], saved = saved,
 		setup = function(e)

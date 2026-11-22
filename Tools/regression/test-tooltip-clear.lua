@@ -27,7 +27,6 @@ end
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		local env, K, ns = D.New({ width = screen[1], height = screen[2], size = "auto", setup = function(e) D.Menus(e) end })
-		K.Options.Write("HudStyle", "style", style)
 		local view, tip = ns.Strip.view, K.Widgets.Tooltip()
 		local where = style .. " " .. screen[1] .. "x" .. screen[2]
 		assert(view.topBar == (style ~= "medallions"), where .. ": Frames and Orbs put the data bar along the top")

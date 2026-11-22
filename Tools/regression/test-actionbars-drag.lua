@@ -8,7 +8,6 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		e._game.pet[1] = { name = "Attack", texture = 132152 }
 		e._game.bindings.ACTIONBUTTON1 = { "1" }
 	end })
-	K.Options.Write("HudStyle", "style", style)
 	K.Options.Write("ActionBars", "bar3.enabled", true)
 	AB.Enable(env, K)
 	local stance = AB.Button(ns, "stance", 1)

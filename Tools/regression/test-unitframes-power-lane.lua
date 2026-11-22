@@ -3,7 +3,6 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 local function near(a, b) return math.abs(a - b) < 0.02 end
 for _, style in ipairs({ "frames", "medallions" }) do
 	local env, K, ns = U.New()
-	K.Options.Write("HudStyle", "style", style)
 	local view = ns.Frames.Get("player").views[1]
 	local g = view.geometry
 	assert(view.powerText:IsShown() and g.powerText, "H2: " .. style .. " must display the power number")
@@ -51,7 +50,6 @@ end
 
 do
 	local env, K, ns = U.New()
-	K.Options.Write("HudStyle", "style", "orbs")
 	local power = ns.Orbs.Get("power")
 	assert(power.value:GetJustifyH() == "CENTER", "the resource number keeps its existing centred position")
 	assert(U.Shown(env, power.value) == "50%", "Orbs keeps mana in its existing resource orb")
@@ -109,7 +107,6 @@ assert(near(r, 0) and near(g, 0) and near(b, 1) and not view.powerTypeLine:IsSho
 ir, ig, ib = K.Widgets.InkFor(0, 0, 1)
 tr, tg, tb = view.powerFillText:GetTextColor()
 assert(near(tr, ir) and near(tg, ig) and near(tb, ib), "a dark fill restores light ink")
-K.Options.Write("HudStyle", "style", "medallions")
 K.Options.Write("UnitFrames", "player.powerCustom", { r = 1, g = 0.9, b = 0 })
 tr, tg, tb = view.powerText:GetTextColor()
 ir, ig, ib = K.Tokens.Color("labelMuted")

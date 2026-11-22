@@ -4,7 +4,7 @@ local LAYERS = { BACKGROUND = 1, BORDER = 2, ARTWORK = 3, OVERLAY = 4, HIGHLIGHT
 
 local function New(style)
 	local env, K, ns = U.New({ saved = { version = U.DbVersion(), characters = {}, profiles = { Default = {
-		UnitFrames = { enabled = true, target = { auraFilter = "both" } }, HudStyle = { style = style },
+		UnitFrames = { enabled = true, target = { auraFilter = "both" } },
 	} } } })
 	U.SetUnit(env, "target", { name = "Wolf", level = 10, health = 50, healthMax = 100, reaction = 2 })
 	env.SetTarget(true)
@@ -125,7 +125,6 @@ for _, pair in ipairs({
 }) do
 	local env, K, view = New(pair[1])
 	local before, old = view.auras.container, Entry(view, "debuffs")
-	K.Options.Write("HudStyle", "style", pair[2])
 	env.RunTimers()
 	W.Settle(env)
 	local control = Control(pair[2])
@@ -145,9 +144,7 @@ for _, pair in ipairs({
 		assert(not before._groups[group].enabled, "disable both old groups so the engine releases their active frames")
 	end
 	local targetPool = view.auras.container
-	K.Options.Write("HudStyle", "style", pair[1])
 	env.RunTimers()
-	K.Options.Write("HudStyle", "style", pair[2])
 	env.RunTimers()
 	assert(view.auras.container == targetPool, "reuse only a pool born in the same target style, rather than leaking containers on repeated switches")
 	assert(Signature(Entry(view, "debuffs")) == Signature(Entry(control, "debuffs")), "a reused style pool still matches fresh tiles")
@@ -162,7 +159,6 @@ for _, pair in ipairs({
 		end
 		env.SetCombat(true)
 		env._restricted = true
-		K.Options.Write("HudStyle", "style", third)
 		env.RunTimers()
 		assert(K.HudStyle.Current() == pair[2], label .. ": a style picked in combat lockdown is held until combat ends")
 		assert(view.auras.container == targetPool and targetPool._enabled ~= false and targetPool:IsShown(), label .. ": combat lockdown keeps the old style's live tiles")
@@ -192,7 +188,6 @@ do
 	local env, K, view = New("medallions")
 	local old = view.auras.container
 	env._restricted = true
-	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
 	assert(view.auras.container == old, "release/rebuild waits until the engine's aura buttons are readable")
 	env._restricted = false

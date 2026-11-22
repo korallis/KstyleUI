@@ -19,9 +19,7 @@ local health = K.Widgets.Text(parent, "number")
 local label = K.Widgets.Text(parent, "body")
 assert(file((health:GetFont())) == file(frames.number[1]), "a number on screen starts in the type set's face")
 
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
-assert(K.HudStyle.Current() == "medallions", "the style switched")
 for _, role in ipairs(ROLES) do
 	local path, size, flags = K.Tokens.Font(role)
 	if BARLOW[role] then
@@ -48,7 +46,6 @@ K.Options.Write("Appearance", "typeSet", "Folio")
 env.RunTimers()
 
 for _, style in ipairs({ "orbs", "frames" }) do
-	K.Options.Write("HudStyle", "style", style)
 	env.RunTimers()
 	for _, role in ipairs(ROLES) do
 		local path, size, flags = K.Tokens.Font(role)

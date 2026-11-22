@@ -12,7 +12,6 @@ local function New(saved)
 		profile[element.module] = profile[element.module] or {}
 		profile[element.module].enabled = true
 	end
-	K.Options.Write("HudStyle", "style", "orbs")
 	K.Callbacks.Fire("ModuleChanged")
 	return env, K, function() return calls end
 end

@@ -9,7 +9,7 @@ return Common.Run(function()
 	local rogue = os.getenv("RENDER_POWER_CLASS") == "ROGUE"
 	local env, K, ns = U.New(Common.ScreenOpts({
 		login = false,
-		saved = Gallery.Saved({ "UnitFrames", "CombatText", HudStyle = { style = (os.getenv("RENDER_HUD_STYLE") or "Medallions"):lower() } }),
+		saved = Gallery.Saved({ "UnitFrames", "CombatText" }),
 		setup = function(env)
 			Common.ForceScreen(env, true)
 			CT.Fakes(env)

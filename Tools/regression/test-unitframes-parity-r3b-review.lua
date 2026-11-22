@@ -212,7 +212,7 @@ assert(not pane.views.player.glowFrame:IsShown(), "off clears it")
 clean(env, K)
 
 -- 3. Medallions keeps an explicit threat place equal to the frame's generic default, through its own row.
-local m, M, mn = U.New({ saved = { version = U.DbVersion(), characters = {}, profiles = { Default = { UnitFrames = { enabled = true }, HudStyle = { style = "medallions" } } } } })
+local m, M, mn = U.New({ saved = { version = U.DbVersion(), characters = {}, profiles = { Default = { UnitFrames = { enabled = true } } } } })
 local module = M.Store.Module("UnitFrames")
 for kind, place in pairs({ target = "RIGHT", focus = "OUTRIGHT" }) do
 	assert(mn.Settings.Value(kind, "threatPercentPosition") == "OUTLEFT", kind .. " slabs start left of the bar")
@@ -223,18 +223,16 @@ for kind, place in pairs({ target = "RIGHT", focus = "OUTRIGHT" }) do
 	M.Options.Write("UnitFrames", kind .. ".slabThreatPercentPosition", place)
 	m.RunTimers()
 	assert(mn.Settings.Value(kind, "threatPercentPosition") == place, kind .. " keeps the chosen " .. place)
-	M.Options.Write("HudStyle", "style", "frames")
 	m.RunTimers()
 	assert(frames.showWhen(module) and not slabs.showWhen(module), kind .. ": Frames shows the generic row again")
 	assert(mn.Settings.Value(kind, "threatPercentPosition") == (kind == "target" and "RIGHT" or "OUTRIGHT"), kind .. ": Frames keeps its own place")
-	M.Options.Write("HudStyle", "style", "medallions")
 	m.RunTimers()
 	M.Options.Write("UnitFrames", kind .. ".threatPercent", false)
 end
 clean(m, M)
 
 -- 7. Orbs drops the percent sign when it is off, and keeps it by default.
-local o, O, on = U.New({ saved = { version = U.DbVersion(), characters = {}, profiles = { Default = { UnitFrames = { enabled = true }, HudStyle = { style = "orbs" } } } } })
+local o, O, on = U.New({ saved = { version = U.DbVersion(), characters = {}, profiles = { Default = { UnitFrames = { enabled = true } } } } })
 local orb = on.Orbs.Get("power").value
 assert(on.Orbs.Active() and U.Shown(o, orb) == "50%", "the power orb keeps its sign by default: " .. U.Shown(o, orb))
 O.Options.Write("UnitFrames", "player.powerPercentSign", false)

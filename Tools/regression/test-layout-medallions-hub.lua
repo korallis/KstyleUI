@@ -37,7 +37,7 @@ for _, name in ipairs(Layouts.Names()) do
 		assert(size >= Layouts.MEDALLIONS_SLOT.floor, label .. ": the slots keep the slot floor")
 		assert(two.x - groupWidth / 2 - (one.x + groupWidth / 2) >= GAP - 1e-9, label .. ": the groups stand at least the hub gap apart")
 		local hub = { -RING / 2, one.y + groupHeight - RING / 2, RING / 2, one.y + groupHeight + RING / 2 }
-		local xp, slab = Layouts.Aspect(class, "medallions", name, "databars.xp") or Layouts.Style("medallions", name, "databars.xp"), Layouts.MEDALLIONS_SLAB
+		local xp, slab = Layouts.Aspect(class, "medallions", name, "databars.xp") or Layouts.Style(name, "databars.xp"), Layouts.MEDALLIONS_SLAB
 		assert(xp.anchor == "BOTTOM" and xp.x == 0 and math.abs(xp.width - (two.x + groupWidth / 2 - (one.x - groupWidth / 2))) < 1e-9, label .. ": the experience strip spans both groups and the gap")
 		assert(math.abs(xp.y + xp.height + slab.stripGap - one.y) < 1e-9, label .. ": the experience strip runs along the slab's lower edge, under the slots")
 		for _, bar in ipairs({ one, two }) do

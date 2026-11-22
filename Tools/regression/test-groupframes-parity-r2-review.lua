@@ -149,7 +149,6 @@ do
 	write(env, K, "icons.combatSize", 40)
 	assert(size(f.combatIcon) <= f.parts.health.height, "the combat icon fits the health bar: " .. size(f.combatIcon))
 
-	K.Options.Write("HudStyle", "style", "medallions")
 	write(env, K, "icons.readyPlace", "AUTO")
 	f = frame(ns, "raid1")
 	write(env, K, "icons.readySize", 18)
@@ -197,7 +196,6 @@ do
 	local env, K, ns = G.New()
 	G.SetRoster(env, "party", { { name = "Tank", role = "TANK" } })
 	K.Modules.Enable(MODULE)
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	assert(frame(ns, "party1").showPortrait, "Medallions shows party portraits")
 	local row = K.Options.Row(MODULE, "party.portraitRingAlpha")

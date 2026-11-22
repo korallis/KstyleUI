@@ -5,7 +5,6 @@ local Scene = dofile("Tools/render/scene.lua")
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	for _, style in ipairs({ "frames", "orbs" }) do
 		local env, K, ns = D.New({ width = screen[1], height = screen[2], size = "auto" })
-		K.Options.Write("HudStyle", "style", style)
 		local view = ns.Strip.view
 		for _, height in ipairs({ 14, 20 }) do
 			K.Options.Write("DataBars", "strip.height", height)

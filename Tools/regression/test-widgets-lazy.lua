@@ -181,8 +181,6 @@ end
 
 local function exercise(lazy, style)
 	local env, K = W.New()
-	K.Options.Write("HudStyle", "style", style)
-	assert(K.HudStyle.Current() == style, "the state comparison must exercise its requested HUD style")
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
 	if lazy then parent:Hide() end
 	local slot = K.Widgets.Slot(parent, { size = 36, icon = 135489 })
@@ -213,7 +211,6 @@ local function card(lazy, style, material)
 	local env, K = W.New({ setup = function(e)
 		e.CreateColor = function(r, g, b, a) return { r = r, g = g, b = b, a = a } end
 	end })
-	K.Options.Write("HudStyle", "style", style)
 	K.Options.Write("Widgets", "cardMaterial", material)
 	local owner = env.CreateFrame("Frame", nil, K.Scale.Root())
 	owner:SetSize(240, 150)

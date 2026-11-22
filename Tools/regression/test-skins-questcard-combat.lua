@@ -26,7 +26,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 			local env, K, ns = S.New({
 				width = screen[1], height = screen[2],
 				saved = {
-					version = 12, profiles = { Default = { HudStyle = { style = style } } },
+					version = 12, profiles = { Default = { } },
 					characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {},
 				},
 				setup = function(env)

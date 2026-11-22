@@ -10,9 +10,7 @@ local function New(class)
 end
 
 local function Medallions(K, env)
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
-	assert(K.HudStyle.Current() == "medallions")
 end
 
 local function Updating(env)
@@ -107,7 +105,6 @@ do
 	assert(capped.breath:IsPlaying(), "the ring breathes at Full")
 	K.Options.Write("Medallions", "motion", "calm")
 	assert(not capped.breath:IsPlaying() and capped:IsShown(), "the ring holds still at Calm")
-	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
 	assert(not capped:IsShown() and not Listening(env, "UNIT_POWER_UPDATE"), "leaving Medallions hides the ring and stops listening")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))

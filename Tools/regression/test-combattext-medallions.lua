@@ -22,7 +22,6 @@ local frames = { size = cfg.size, critScale = cfg.critScale, duration = cfg.dura
 assert(not cfg.fontPath:find("Barlow", 1, true), "Frames' numbers are not Barlow")
 assert(cfg.fadeTime == nil and cfg.rise == 48, "Frames keeps its own fade and rise")
 
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
 cfg = ns.Module.cfg
 assert(cfg.fontPath == K.Tokens.FontPath("BarlowBold"), "numbers are Barlow Semi Condensed Bold: " .. tostring(cfg.fontPath))
@@ -63,7 +62,6 @@ K.Options.Write("CombatText", "size", 18)
 K.Options.Write("CombatText", "damageColor", ns.Settings.defaults.damageColor)
 env.RunTimers()
 
-K.Options.Write("HudStyle", "style", "frames")
 env.RunTimers()
 cfg = ns.Module.cfg
 for key, value in pairs(frames) do

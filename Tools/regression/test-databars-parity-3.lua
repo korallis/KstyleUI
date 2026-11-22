@@ -275,7 +275,6 @@ local Layouts = K.Setup.Layouts
 eq(Layouts.Enabled("DPS")["databars.strip2"], false, "every setup preset starts with the second bar off")
 
 -- The Medallions dock keeps its own glyphs; a second bar's line takes the icon rows there.
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
 assert(ns.Strip.view.deco and disabled("strip.icons") and disabled("strip.blocks.fps.show") and disabled("strip.blocks.fps.iconColor"), "the dock keeps its own glyphs")
 write("strip.second", true)
@@ -285,7 +284,6 @@ assert(item("coords", second).icon:IsShown() and not disabled("strip.blocks.coor
 apart(second)
 write("strip.blocks.coords.show", "bar")
 write("strip.second", false)
-K.Options.Write("HudStyle", "style", "frames")
 env.RunTimers()
 
 -- The preview reflects the new options.

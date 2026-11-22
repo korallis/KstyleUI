@@ -65,12 +65,10 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3440, 1440 }, { 3840, 1080 }, { 2560
 	assert(Scale.IsAuto() and K.Appearance.Get("uiScaleAuto") == true, name .. ": a new profile is on the automatic size")
 	local profile = K.Store.Profile()
 	for _, style in ipairs({ "frames", "orbs" }) do
-		K.Options.Write("HudStyle", "style", style)
 		env.RunTimers()
 		local label = name .. " " .. style
 		local ppu = perUnit(env, K)
 		local size, step, cap = Scale.AppliedUserScale(), Scale.Step(), Scale.MaxUserScale()
-		assert(K.HudStyle.Current() == style, label .. ": the style applies")
 		assert(whole(ppu * Scale.STEPS_PER_PIXEL), label .. ": one unit is a whole number of sixteenths of a pixel, got " .. ppu)
 		assert(size <= cap + 1e-9, label .. ": the automatic size fits the screen")
 		assert(math.abs(size - Scale.MOCKUP_SIZE) <= step / 2 + 1e-9 or size + step > cap + 1e-9, label .. ": the step nearest the mock-ups' size that fits, got " .. size)

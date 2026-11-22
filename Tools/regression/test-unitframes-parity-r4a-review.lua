@@ -14,7 +14,6 @@ local function set(key, value)
 end
 
 local function hud(style)
-	K.Options.Write("HudStyle", "style", style)
 	env.RunTimers()
 end
 

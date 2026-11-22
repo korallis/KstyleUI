@@ -24,7 +24,6 @@ Widgets.LowHealthText(text, "player", "textEmphasis")
 local ink = W.LastCall(text, "SetTextColor")
 assert(near(env.Reveal(ink[1]), Tokens.Color("healthLowText")), "low-health text uses healthLowText, leaving bar red alone")
 assert(select(3, ns.Settings.Font("player", "name")) == "OUTLINE", "bare unit text defaults to a thin outline")
-K.Options.Write("HudStyle", "style", "medallions")
 local cb = ns.CastBars.Get("player")[1]
 env._units.player.cast = { name = "Terrifying Screech", texture = 136048, start = 0, finish = 3500, spellID = 188196 }
 env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-Ink", 188196)

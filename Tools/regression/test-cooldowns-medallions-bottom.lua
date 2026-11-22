@@ -8,7 +8,6 @@ for _, screen in ipairs({ {1920,1080}, {2560,1440}, {5120,1440}, {3840,2160} }) 
 	end })
 	Load(C.Files(), env)
 	C.CoreEnv.Boot(env)
-	K.Options.Write("HudStyle", "style", "medallions")
 	C.Enable(env, K)
 	env.RunTimers()
 	local ns = env._addons.KstyleUI_Cooldowns

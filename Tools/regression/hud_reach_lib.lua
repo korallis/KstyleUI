@@ -402,7 +402,6 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 	if wantedStyle=="frames" and wantedLayout=="DPS" and wantedScreen==nil then
 		K.Options.Write("Layout","arrangement","centred")
 		env.RunTimers()
-		K.Options.Write("HudStyle","style","frames")
 		for _,key in ipairs({"chat.main","minimap.main","unitframes.player","unitframes.target"}) do
 			assert(K.Layout.Update(key,{anchor="BOTTOMLEFT",x=-5000,y=-5000},true))
 			env.RunTimers()

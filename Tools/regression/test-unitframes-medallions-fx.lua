@@ -54,9 +54,7 @@ assert(cb.flash.group:IsPlaying() and near("giltLit", 0.6) and not cb.medStreak,
 env.RunTimers()
 W.Settle(env)
 
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
-assert(K.HudStyle.Current() == "medallions", "the style switched")
 noErrors("switch")
 
 local view = frames.player.views[1]
@@ -125,7 +123,6 @@ assert(Fx.Flash(cb, "giltLit", 0.6) == true and not cb.flash.group:IsPlaying() a
 for _, frame in ipairs(env._frames) do
 	assert(not (frame == cb.flash or frame == cb.medStreak) or not frame:GetScript("OnUpdate"), "the flash runs no OnUpdate")
 end
-K.Options.Write("HudStyle", "style", "frames")
 env.RunTimers()
 assert(Fx.Flash(cb, "giltLit", 0.6) == false, "Frames keeps CastBar's own flash")
 noErrors("cast")
@@ -139,7 +136,6 @@ do
 	for _, kind in ipairs(wns.Settings.KINDS) do
 		wframes[kind] = wns.Frames.Get(kind)
 	end
-	WK.Options.Write("HudStyle", "style", "medallions")
 	wenv.RunTimers()
 	local wm = wframes.player.views[1].medallion
 	assert(wm and wm:IsShown() and WK.Effects.playerMedallion == wm, "Lee's undead warlock has a player medallion")

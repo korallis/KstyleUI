@@ -3,7 +3,6 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 
 for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 	local env, K, ns = U.New()
-	K.Options.Write("HudStyle", "style", style)
 	env.RunTimers()
 	local views = ns.Frames.Get("boss").views
 	for i = 1, #views do

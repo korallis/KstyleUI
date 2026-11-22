@@ -15,7 +15,6 @@ for _, screen in ipairs(screens) do
 		env._game.petExists = true
 		for i = 1, 10 do env._game.forms[i] = { texture = 132355, spellID = 2457 + i } end
 		AB.Enable(env, K)
-		K.Options.Write("HudStyle", "style", style)
 		local function Write(key, value) K.Options.Write("ActionBars", key, value) end
 		assert(ns.Config("slab") == true and ns.Config("useTray") == true, "slab and tray keep the shipped look by default")
 		Write("tray", false)

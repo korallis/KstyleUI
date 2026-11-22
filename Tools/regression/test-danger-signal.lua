@@ -6,7 +6,6 @@ local function alpha(region)
 	local value = U.W.LastCall(region, "SetAlpha")[1]
 	return env.issecretvalue(value) and env.Reveal(value) or value
 end
-K.Options.Write("HudStyle", "style", "medallions")
 U.SetUnit(env, "target", { name = "Enemy", health = 8, healthMax = 100, reaction = 2, canAttack = true })
 env.SetTarget(true)
 local player = env._units.player

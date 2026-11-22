@@ -4,8 +4,6 @@ local Engine = dofile("Tools/regression/aura_fixture_engine.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local env, K, ns = U.New({ before = function(_, core)
 	core.Store.Module("UnitFrames").auraLayout = "fan"
-	core.Store.Module("HudStyle").style = "medallions"
-	core.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 end })
 local view = ns.Frames.Get("target").views[1]
 local fan = assert(view.auras.fan, "Medallions builds the crest fan")
@@ -143,8 +141,6 @@ K.Callbacks.Fire("SettingChanged", "UnitFrames", "target.crestDebuffs", true)
 refresh()
 assert(fan.content._shown ~= false, "switching on restores the fan")
 for _, style in ipairs({ "orbs", "frames", "medallions" }) do
-	K.Store.Module("HudStyle").style = style
-	K.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 	env.RunTimers()
 	refresh()
 	assert(fan.content._shown == (style == "medallions"), "only Medallions has a fan")
@@ -191,8 +187,6 @@ rawset(_G, "RENDER_HUD_STYLE", nil)
 -- An unsupported native sort is a construction failure, so the original target display must survive.
 local fallbackEnv, fallbackK, fallback = U.New({ before = function(game, core)
 	core.Store.Module("UnitFrames").auraLayout = "fan"
-	core.Store.Module("HudStyle").style = "medallions"
-	core.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 	game.AuraContainerSortMethod = nil
 end })
 local original = fallback.Frames.Get("target").views[1].auras
@@ -201,9 +195,7 @@ assert(original.fan.content._shown == false and #fallbackEnv._errors == 0 and fa
 
 local delayedEnv, delayedK, delayed = U.New({ before = function(_, core)
 	core.Store.Module("UnitFrames").auraLayout = "fan"
-	core.Store.Module("HudStyle").style = "medallions"
 	core.Store.Module("UnitFrames").target = { crestDebuffs = false }
-	core.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 end })
 local delayedView = delayed.Frames.Get("target").views[1]
 assert(not delayedView.auras.fan, "disabled fans allocate no engines")

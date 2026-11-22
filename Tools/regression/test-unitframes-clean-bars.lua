@@ -11,7 +11,7 @@ local function withEnum(env)
 end
 
 local function saved(style, frames)
-	local profile = { UnitFrames = frames or { enabled = true }, HudStyle = { style = style } }
+	local profile = { UnitFrames = frames or { enabled = true } }
 	return { version = 32, profiles = { Default = profile }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
 end
 
@@ -126,7 +126,6 @@ do
 		end
 		return restyle(self, ...)
 	end
-	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
 	ring.Restyle = restyle
 	assert(view.button:IsShown() and view.portraitFrame:IsVisible(), "Frames shows the player frame")

@@ -3,7 +3,6 @@ local AB = dofile("Tools/regression/actionbars_env.lua")
 local env, K, ns = AB.New({ class = "WARLOCK" })
 K.Store.Module("ActionBars").hubAlpha = true
 AB.Enable(env, K)
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
 local hub = ns.Slab.hub
 local function check()

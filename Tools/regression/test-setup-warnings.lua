@@ -170,15 +170,12 @@ for _, screen in ipairs({ SCREENS[4], SCREENS[5] }) do
 		local a = Find(Named(state, "KstyleUI DPS"), RAID_WARNING).anchorInfo
 		return a.offsetX, a.offsetY
 	end
-	K.Options.Write("HudStyle", "style", "orbs")
 	local x, y = Now()
 	assert(math.abs(x - ox) < 0.01 and math.abs(y - oy) < 0.01, screen.name .. ": a switch to Orbs moves the warnings to the Orbs lane, got " .. x .. ", " .. y .. " for " .. ox .. ", " .. oy)
-	K.Options.Write("HudStyle", "style", "frames")
 	x, y = Now()
 	assert(math.abs(x - fx) < 0.01 and math.abs(y - fy) < 0.01, screen.name .. ": and back to the Frames lane")
 	local entry = Find(Named(state, "KstyleUI DPS"), RAID_WARNING)
 	entry.anchorInfo.offsetY = entry.anchorInfo.offsetY - 40
-	K.Options.Write("HudStyle", "style", "orbs")
 	x, y = Now()
 	assert(math.abs(x - fx) < 0.01 and math.abs(y - (fy - 40)) < 0.01, screen.name .. ": warnings the player moved stay where they put them")
 	assert(#env._errors == 0, tostring(env._errors[1]))

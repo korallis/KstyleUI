@@ -7,7 +7,6 @@ return Common.Run(function()
 	local scenes = {}
 	for row, state in ipairs({ "loss", "death", "change" }) do
 		local env, K, ns = U.New(Common.ScreenOpts({ saved = Gallery.Saved({ "UnitFrames" }), setup = Gallery.Setup }))
-		K.Options.Write("HudStyle", "style", "medallions")
 		if os.getenv("RENDER_CUES") == "previous" and ns.Settings.defaults.target.transitions ~= nil then
 			K.Options.Write("UnitFrames", "target.transitions", false)
 		end

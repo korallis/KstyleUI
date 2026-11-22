@@ -1,12 +1,10 @@
 local U = dofile("Tools/regression/unitframes_env.lua")
 local env, K, ns = U.New()
-K.Options.Write("HudStyle", "style", "medallions")
 K.Options.Write("Appearance", "readableBars", false)
 K.Options.Write("Appearance", "worldText", false)
 local cb = ns.CastBars.Get("player")[1]
 assert(cb.text:GetFont() == K.Tokens.Font("caps"), "off restores the original cast caption face")
 assert(select(3, cb.timer:GetFont()) == "", "off restores the original cast timer without an outline")
-K.Options.Write("HudStyle", "style", "frames")
 assert(select(3, ns.Settings.Font("player", "health")) == "", "world text off restores the soft-shadow unit default")
 K.Options.Write("Appearance", "worldText", true)
 K.Options.Write("UnitFrames", "player.fonts.health.outline", "NONE")

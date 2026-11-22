@@ -37,8 +37,6 @@ K.Options.Write("Minimap", "zone.size", 20)
 M.Settle(env)
 assert(calls > 0, "a minimap font change must rebuild snapped geometry")
 Reuse()
-K.Store.Module("HudStyle").style = "medallions"
-K.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 M.Settle(env)
 assert(calls > 0 and face.ring:IsShown(), "a minimap style change must rebuild snapped geometry")
 Reuse()

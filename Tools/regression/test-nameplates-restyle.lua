@@ -97,7 +97,6 @@ local function run(case)
 	end
 
 	for _, style in ipairs({ "orbs", "medallions", "frames" }) do
-		K.Options.Write("HudStyle", "style", style)
 		env.RunTimers()
 		if style == "medallions" then
 			local medallions = shape(plate)

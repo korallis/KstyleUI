@@ -36,7 +36,6 @@ local function Check(screen)
 	for _, style in ipairs({ "medallions", "frames", "orbs" }) do
 		env.CanExitVehicle = function() return true end
 		local label = style .. " " .. screen[1] .. "x" .. screen[2]
-		K.Options.Write("HudStyle", "style", style)
 		assert(K.Setup.Apply({ layout = "DPS", modules = { ActionBars = true, UnitFrames = true, DataBars = true } }))
 		env.RunTimers()
 		env.FireEvent("UNIT_ENTERED_VEHICLE", "player")

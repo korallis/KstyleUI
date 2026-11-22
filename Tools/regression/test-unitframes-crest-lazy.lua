@@ -4,8 +4,6 @@ local Engine = dofile("Tools/regression/aura_fixture_engine.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local env, K, ns = U.New({ before = function(_, core)
 	core.Store.Module("UnitFrames").auraLayout = "fan"
-	core.Store.Module("HudStyle").style = "medallions"
-	core.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 end })
 local fan = ns.Frames.Get("target").views[1].auras.fan
 local chromes = {}

@@ -115,7 +115,6 @@ return {
 		setup = function()
 			local env, K, ns = AB.New()
 			AB.Enable(env, K)
-			K.Options.Write("HudStyle", "style", "medallions")
 			env.RunTimers()
 			AB.Slot(env, 1, { texture = 135001, type = "spell", id = 101 })
 			local b = AB.Button(ns, "bar1", 1)
@@ -133,7 +132,6 @@ return {
 		setup = function()
 			local env, K = AB.New({ setup = FX.Install })
 			AB.Enable(env, K)
-			K.Options.Write("HudStyle", "style", "medallions")
 			env.RunTimers()
 			return env, Perf.Event(env, "UNIT_POWER_UPDATE", "player", "RAGE")
 		end,

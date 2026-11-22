@@ -4,8 +4,6 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 local env, K, ns = U.New()
 local checked = 0
 for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-	K.Store.Module("HudStyle").style = style
-	K.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 	env.RunTimers()
 	for _, kind in ipairs({ "player", "target", "focus" }) do
 		for _, view in ipairs(ns.Frames.Get(kind).views) do
