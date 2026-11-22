@@ -55,5 +55,5 @@ end
 
 function Font.Caption(text, s, medal)
 	local instrument = medal and s.instrumentText ~= false
-	Font.Apply(text, s.font, instrument and 11 or s.fontSize, s.outline, instrument and "caps" or "prose")
+	Font.Apply(text, s.font, s.fontSize, s.outline, instrument and "caps" or "prose")
 end

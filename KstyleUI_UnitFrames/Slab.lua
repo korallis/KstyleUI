@@ -213,8 +213,6 @@ function Slab.Restyle(view, form)
 	if form ~= "slab" then
 		return
 	end
-	view.health:SetBarTexture("Flat")
-	view.power:SetBarTexture("Flat")
 	Muted(view, view.healthSub)
 	if view.kind == "target" and view.s.percentLead then
 		Widgets.ApplyFont(view.healthSub, (Tokens.Font("number")), 10 * K.Theme.FontScale(), "OUTLINE")

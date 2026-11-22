@@ -379,11 +379,11 @@ local function Settings(view)
 		medal[key] = value
 	end
 	medal.medal, medal.border, medal.textPosition = true, false, "BOTTOM"
-	medal.texture, medal.segments, medal.fontSize = Tokens.Texture("barFlat"), MEDAL_SEGMENTS, MEDAL_FONT_SIZE
-	if view.def.id == "xp" and s.text ~= "none" then
-		medal.text = "percentRested"
+	if view.def.id == "xp" then
+		medal.textHover = false
+	else
+		medal.texture, medal.segments, medal.fontSize = Tokens.Texture("barFlat"), MEDAL_SEGMENTS, MEDAL_FONT_SIZE
 	end
-	if view.def.id == "xp" then medal.textHover = false end
 	return medal
 end
 Bars.Settings = Settings

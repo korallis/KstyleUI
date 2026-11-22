@@ -745,6 +745,7 @@ function Settings.Snapshot(kind)
 	s.healthDecimal = kind == "boss" and m.healthDecimalBoss == true and 2 or m.healthDecimal == true
 	if s.healthDecimal and m.healthDecimalTrim == true then s.healthDecimal = s.healthDecimal == 2 and -2 or -1 end
 	s.healthValues = kind == "boss" and m.healthDecimalBoss == true and m.healthDecimalPercentOnly == false
+	s.singleSlabLevel = m.singleSlabLevel ~= false
 	s.textOptions = fonts.name.textFormat ~= "" or fonts.health.textFormat ~= "" or fonts.name.colorMode ~= "" or fonts.health.colorMode ~= ""
 	for key, default in pairs(d) do
 		if key ~= "fonts" and not LIVE[key] then
@@ -962,7 +963,7 @@ CastRows = function(schema, kind)
 		help = L["Shows the seconds left on the cast bar."],
 	}, on)
 	K.Widgets.BarRows(schema, "", {
-		keys = { texture = "castbarTexture", colorSource = "castbarColor", color = "castbarCustom" },
+		keys = { colorSource = "castbarColor", color = "castbarCustom" }, texture = false,
 		options = CHOICES.castbarColor,
 		height = not Settings.CAST_ELEMENTS[kind] and { CAST_HEIGHT_MIN, CAST_HEIGHT_MAX, 1, key = "castbarHeight" } or nil,
 		row = function(row)

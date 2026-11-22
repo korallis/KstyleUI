@@ -100,10 +100,13 @@ local function Value(view, key)
 	return Settings.Value(view.kind, key)
 end
 
+local TimerBelow
+
 local function TextSize(kind, size)
 	local tile = Settings.Value(kind, "auraSize")
 	local room = math.floor((tile - 2 * COUNT_INSET) / (2 * TEXT_LINE))
-	return math.max(size, math.min(TEXT_FLOOR, room))
+	local fit = math.max(size, math.min(TEXT_FLOOR, room))
+	return TimerBelow(kind) and fit or math.min(fit, room)
 end
 
 local STYLE_KEYS = { "auraCountSize", "auraCountPoint", "auraCountX", "auraCountY", "auraTimerX", "auraTimerY", "auraDispel", "auraBuffDispel", "auraStealable" }
@@ -243,7 +246,7 @@ local function Centred(kind)
 	return position ~= nil and position.centred == true
 end
 
-local function TimerBelow(kind)
+function TimerBelow(kind)
 	if Settings.AuraRows(kind) then return Settings.Value(kind, "auraTimer") == true end
 	local position = POSITION[Settings.Value(kind, "auraPosition")]
 	local centred = Centred(kind)

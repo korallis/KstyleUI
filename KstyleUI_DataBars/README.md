@@ -76,12 +76,12 @@ LEE-20 (2026-11-09, "let the picture win") replaced the old four-unit segmented 
 | `<bar>.border` | `true` | The chamfered frame around the bar |
 | `xp.rested`, `xp.restedColor` | `true`, `hudRested` at 55% | The rested overlay and its colour |
 | `honor.show` | `pvp` | `pvp` or `always` |
-| `<bar>.text` | `levelRested` for XP, `labelPercent` for the others | `none`, `percent`, `value`, `valuePercent`, `short`, `remaining`, `label`, `labelPercent`, `labelValue`, `shortPercent`, `levelRested` (the level, the percent and the rested share, joined by middle dots; the rested part only while there is rested experience), `percentRested` (the same without the level) |
+| `<bar>.text` | `percentRested` for XP, `labelPercent` for the others | `none`, `percent`, `value`, `valuePercent`, `short`, `remaining`, `label`, `labelPercent`, `labelValue`, `shortPercent`, `levelRested` (the level, the percent and the rested share, joined by middle dots; the rested part only while there is rested experience), `percentRested` (the same without the level) |
 | `<bar>.textHover` | `false` for XP, `true` for the others | Show the text only under the pointer |
 | `rep.rewardMarker` | `true` | Append a compact asterisk when a paragon reward waits; keeps the chosen caption and text-on-hover setting |
 | `<bar>.textPosition` | `BOTTOM` for XP, `CENTER` for the others | On, above, below, left or right of the bar. On the line, the label keeps its glass plate. |
 | `<bar>.font` | `default` | The interface font, or any bundled or LibSharedMedia font; `default`, `""`, `theme` and `kit` all follow the interface font (`Theme.FollowsKit`). The default draws a bar's caption in the `prose` role (PT Serif in Folio; in Lumen Alegreya Sans with its own proportional oldstyle figures: the experience caption is 189 px wide on the owner's screen as the picture draws it, 195 on the tabular files), and the readout and every ticking number in the tabular faces |
-| `<bar>.fontSize` | 12 for experience (the mockup's "XP 32%"), 9 (the `caption` size) for the others | 6 to 24, times the Appearance page's text size |
+| `<bar>.fontSize` | 11 for experience (the Medallions instrument caption), 9 (the `caption` size) for the others | 6 to 24, times the Appearance page's text size |
 | `<bar>.outline` | `WORLD` for XP, `OUTLINE` for the others | `WORLD` (an outline with the kit's shadow, the world layer), `NONE` (a soft shadow), `OUTLINE` or `THICKOUTLINE` |
 
 Layout gives each bar its shown rule, position, size, opacity and strata.

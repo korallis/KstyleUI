@@ -7,7 +7,7 @@ local Format, Font, Bars, Strip = ns.Format, ns.Font, ns.Bars, ns.Strip
 local max, format = math.max, string.format
 
 local FONT_SIZE = Tokens.Size("caption")
-local XP_FONT_SIZE = 12
+local XP_FONT_SIZE = 11
 local SEGMENTS = 0
 local XP_SEGMENTS = 10
 local XP_RESTED_ALPHA = 0.55
@@ -53,7 +53,7 @@ local defaults = ns.defaults
 defaults.fadeBlizzard = true
 defaults.accentSource = "class"
 defaults.accentColor = Rgb("accentDefault")
-defaults.xp = BarDefaults("custom", "epic", "levelRested")
+defaults.xp = BarDefaults("custom", "epic", "percentRested")
 defaults.xp.border = false
 defaults.xp.textHover = false
 defaults.xp.textPosition = "BOTTOM"

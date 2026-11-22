@@ -599,7 +599,8 @@ local function PlaceScrim(view, g)
 	scrim:SetVertexColor(r, gg, b, pad[3])
 	scrim:ClearAllPoints()
 	scrim:SetPoint("CENTER", view.parent, "TOPLEFT", Snap(view, g.glass.x + g.glass.w / 2), -Snap(view, g.glass.y + g.glass.h / 2))
-	scrim:SetSize(Snap(view, g.glass.w + 2 * pad[1]), Snap(view, g.glass.h + 2 * pad[2]))
+	local padY = view.kind == "boss" and math.min(pad[2], Settings.Value("boss", "gap") / 2) or pad[2]
+	scrim:SetSize(Snap(view, g.glass.w + 2 * pad[1]), Snap(view, g.glass.h + 2 * padY))
 	scrim:Show()
 end
 
@@ -762,6 +763,7 @@ function Style.Layout(view, s, width, height)
 	local g = Geometry.Frame(s, width, bodyH, K.Theme.FontScale())
 	view.barRect = nil
 	if barH > 0 then
+		local full = Geometry.Frame(s, width, height, K.Theme.FontScale())
 		local w = gap > 0 and s.textBarWidth > 0 and math.min(s.textBarWidth, width) or width
 		local x0, x1, m = (width - w) / 2, (width + w) / 2, g.medal
 		if m and m.x + m.w / 2 < width / 2 then x0 = math.max(x0, m.x + m.w) elseif m then x1 = math.min(x1, m.x) end
@@ -774,8 +776,9 @@ function Style.Layout(view, s, width, height)
 			for key, r in pairs(g) do
 				if top and type(r) == "table" and type(r.y) == "number" and (key ~= "aura" or r.centred) then r.y = r.y + barH + gap end
 			end
+			if g.aura and not g.aura.centred then g.aura = full.aura end
 		else
-			g = Geometry.Frame(s, width, height, K.Theme.FontScale())
+			g = full
 		end
 	end
 	view.geometry = g

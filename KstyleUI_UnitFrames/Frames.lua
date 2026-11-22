@@ -707,6 +707,9 @@ function Frames.Relayout(uf)
 			Unit.HealthColor(view, view.unit)
 			Unit.Health(view, view.unit, true)
 		end
+		if (before.power == nil) ~= (g.power == nil) and Active(view) and UnitExists(view.unit) then
+			Unit.Power(view, view.unit, true)
+		end
 		if view.tagged and Active(view) and UnitExists(view.unit) then
 			Unit.TextTags(view, view.unit)
 			Unit.BarIcon(view, view.unit)
