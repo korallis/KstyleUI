@@ -1505,6 +1505,7 @@ ns.Locale.Add({
 	["Frames bar 1 and bar 2 in one card while bar 2 stands straight above bar 1."] = "Rahmt Leiste 1 und Leiste 2 in einer Karte ein, solange Leiste 2 direkt \195\188ber Leiste 1 steht.",
 	["Frames bars 1 and 2 in their HUD tray. Off frees the bars and removes the tray's button sizing."] = "Fasst Leiste 1 und 2 im HUD-Rahmen ein. Aus gibt die Leisten frei und entfernt die Gr\195\182\195\159enanpassung des Rahmens.",
 	["Frames for bosses you can help, such as one to heal, in a raid. Place them in Layout Mode."] = "Rahmen f\195\188r Bosse, denen Ihr helfen k\195\182nnt, etwa einen zu heilenden, im Schlachtzug. Platziert sie im Layoutmodus.",
+	["Frames is back alongside Medallions, with class crowns, Spirit Poles, Ghost Wolf and Lightning Shield storm orbs."] = "Rahmen ist wieder neben Medaillons verf\195\188gbar, mit Klassenkronen, Geisterpf\195\164hlen, Geisterwolf und Sturmkugeln f\195\188r Blitzschlagschild.",
 	["Frames per column"] = "Rahmen pro Spalte",
 	["Frames the cast bar with the dark bar edge. Off draws it without one."] = "Rahmt die Zauberleiste mit dem dunklen Leistenrand. Aus zeichnet sie ohne.",
 	["Frames the health bar with its dark edge. Off drops it; threat and focus edges still show."] = "Rahmt den Gesundheitsbalken mit seiner dunklen Kante. Aus entfernt sie; Bedrohungs- und Fokuskanten bleiben.",

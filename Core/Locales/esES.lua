@@ -1505,6 +1505,7 @@ ns.Locale.Add({
 	["Frames bar 1 and bar 2 in one card while bar 2 stands straight above bar 1."] = "Enmarca las barras 1 y 2 en una sola tarjeta mientras la barra 2 est\195\169 justo encima de la barra 1.",
 	["Frames bars 1 and 2 in their HUD tray. Off frees the bars and removes the tray's button sizing."] = "Enmarca las barras 1 y 2 en el soporte del HUD. Desactivado, libera las barras y elimina el ajuste de tama\195\177o del soporte.",
 	["Frames for bosses you can help, such as one to heal, in a raid. Place them in Layout Mode."] = "Marcos para jefes a los que puedes ayudar, como uno al que sanar, en banda. Col\195\179calos en el modo de dise\195\177o.",
+	["Frames is back alongside Medallions, with class crowns, Spirit Poles, Ghost Wolf and Lightning Shield storm orbs."] = "Marcos vuelve junto a Medallones, con coronas de clase, Postes espirituales, Lobo fantasmal y orbes de tormenta para Escudo de rel\195\161mpagos.",
 	["Frames per column"] = "Marcos por columna",
 	["Frames the cast bar with the dark bar edge. Off draws it without one."] = "Enmarca la barra de lanzamiento con el borde oscuro. Desactivado, se dibuja sin \195\169l.",
 	["Frames the health bar with its dark edge. Off drops it; threat and focus edges still show."] = "Enmarca la barra de salud con su borde oscuro. Desactivado lo quita; los bordes de amenaza y enfoque siguen.",

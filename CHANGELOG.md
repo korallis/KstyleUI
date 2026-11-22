@@ -2,15 +2,20 @@
 
 ## v0.2.13 (2026-11-22)
 
-The guides release: RestedXP and Zygor guides move to a card of their own in the top left corner, where a whole step fits, the quest log keeps the story rail and raid warnings fit MacBook screens.
+Frames returns alongside Medallions. RestedXP and Zygor guides move to a card of their own in the top left corner, the quest log keeps the story rail and raid warnings fit MacBook screens.
 
 Highlights:
 
+- Frames is back alongside Medallions, with class crowns, Spirit Poles, Ghost Wolf and Lightning Shield storm orbs.
 - RestedXP and Zygor guides move to a card in the top left corner, above the party frames, where a whole step fits.
 - The quest log keeps the story rail under the minimap to itself, at its own height.
 - The threat meter keeps its own place instead of following the guide card.
 - Raid and boss warnings sit in the upper part of MacBook and other 3:2 screens, clear of the boss frames.
 - Setup's Apply fits 16 tracked buff icons and a Tank's 6 tracked bars in Edit Mode at Interface size 1.
+
+### Added
+
+- Added: Frames returns as a HUD style. Shamans get a Spirit Poles row with Ghost Wolf, and the player's resource row shows class crowns or Lightning Shield charges as storm orbs.
 
 ### Changed
 
@@ -30,6 +35,8 @@ Highlights:
 
 ### Upgrading
 
+- If v0.2.12 moved you to Medallions, pick Frames again in `/kstyle setup` or in Options > General > HUD style.
+- Profiles saved on Frames before v0.2.12 stay on Frames if they haven't already moved to Medallions.
 - The guide card moves to the top left corner at your next login; a place you saved in Layout Mode stays.
 - A threat card that followed the guide goes back to its own place, and Follow the guide card is gone.
 - On a MacBook or other 3:2 screen, the raid warnings move up the next time you press Apply in `/kstyle setup`.

@@ -2,7 +2,11 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
-## 0.2.13: the guides release (2026-11-22)
+## 0.2.13: Frames and guides (2026-11-22)
+
+Added: Frames returns as a HUD style alongside Medallions. Shamans get a Spirit Poles row with Ghost Wolf, and the player's resource row shows class crowns or Lightning Shield charges as storm orbs.
+
+**Upgrading:** If v0.2.12 moved you to Medallions, pick Frames again in `/kstyle setup` or in Options > General > HUD style. Profiles saved on Frames before v0.2.12 stay on Frames if they haven't already moved to Medallions.
 
 RestedXP and Zygor guides move to a card of their own in the top left corner, one screen margin in and down to the party frames' top, the only room on the left that holds a whole step on every screen. The quest log keeps its column on the story rail under the minimap at its own height and no longer stretches to the guide's height. Zygor Guides Viewer, contributed by Baine, still sizes its guide to its steps but never past the card, and a RestedXP step that grows in combat grows the card up, so the whole step stays on the screen. In a raid the guide card shares the corner with the raid frames: close the guide or drag either one away. The RestedXP and Zygor switch is now Guide card under Window Skins, and RestedXP's Align story cards is now Trim the guide card; your choices stay. The guide card moves at your next login, and a place you saved for it in Layout Mode stays.
 

@@ -3,6 +3,7 @@ local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
 	{ "v0.2.13 (2026-11-22)", {
+		L["Frames is back alongside Medallions, with class crowns, Spirit Poles, Ghost Wolf and Lightning Shield storm orbs."],
 		L["RestedXP and Zygor guides move to a card in the top left corner, above the party frames, where a whole step fits."],
 		L["The quest log keeps the story rail under the minimap to itself, at its own height."],
 		L["The threat meter keeps its own place instead of following the guide card."],

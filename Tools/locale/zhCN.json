@@ -1498,6 +1498,7 @@
 	"Frames bar 1 and bar 2 in one card while bar 2 stands straight above bar 1.": "当动作条2正好位于动作条1上方时，将两条动作条框在同一张卡片中。",
 	"Frames bars 1 and 2 in their HUD tray. Off frees the bars and removes the tray's button sizing.": "将动作条1和2置于HUD托盘中。关闭后可自由排列动作条，并取消托盘的按钮尺寸调整。",
 	"Frames for bosses you can help, such as one to heal, in a raid. Place them in Layout Mode.": "在团队中为你可以协助的首领（例如需要治疗的首领）显示框体。在布局模式中放置。",
+	"Frames is back alongside Medallions, with class crowns, Spirit Poles, Ghost Wolf and Lightning Shield storm orbs.": "框体风格回归，与徽章风格并列，带来职业王冠、灵魂图腾柱、幽魂之狼和闪电之盾的风暴光球。",
 	"Frames per column": "每列框体数",
 	"Frames the cast bar with the dark bar edge. Off draws it without one.": "用深色边缘框住施法条。关闭则不绘制边缘。",
 	"Frames the health bar with its dark edge. Off drops it; threat and focus edges still show.": "用深色边缘框住生命条。关闭后移除；仇恨和焦点边缘仍会显示。",
