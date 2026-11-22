@@ -906,7 +906,8 @@ function Window:Layout(force)
 		end
 	end
 	Widgets.Size(panel, contentWidth + 2 * pad + listWidth, contentTop + top + pad)
-	panel.chrome:SetHeader(Settings.Get("readableHeaders") and panel.titleBar:GetHeight() or self.originalHeader)
+	local readable = Settings.Get("readableHeaders")
+	panel.chrome:SetHeader(readable and panel.titleBar:GetHeight() or self.originalHeader, readable)
 	if self.open then
 		self.held = self.held or {}
 		self.held[1], self.held[2] = contentWidth + 2 * pad + listWidth, contentTop + top + pad

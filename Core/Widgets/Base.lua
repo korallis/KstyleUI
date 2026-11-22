@@ -2033,7 +2033,7 @@ end
 
 function Chrome:MeasureHeader()
 	local gems = self.headerGems
-	if not gems then
+	if not gems or self.headerFixed then
 		return
 	end
 	local nearest
@@ -2043,7 +2043,7 @@ function Chrome:MeasureHeader()
 			nearest = reach
 		end
 	end
-	self:SetHeader(nearest and floor((nearest + HEADER_BELOW) * 100 + 0.5) / 100)
+	self:ShowHeader(nearest and floor((nearest + HEADER_BELOW) * 100 + 0.5) / 100 or self.headerBand)
 end
 
 local function Watch(chrome, frame)
@@ -2118,7 +2118,12 @@ function Chrome:SetSteelFill(name)
 	end
 end
 
-function Chrome:SetHeader(units)
+function Chrome:SetHeader(units, fixed)
+	self.headerBand, self.headerFixed = units, fixed
+	self:ShowHeader(units)
+end
+
+function Chrome:ShowHeader(units)
 	if self.headerUnits ~= units then
 		self.headerUnits = units
 		self:Restyle()
