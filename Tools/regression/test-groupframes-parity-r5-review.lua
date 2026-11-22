@@ -90,19 +90,13 @@ do
 end
 collectgarbage()
 
--- Boss debuff zoom reaches the live boss debuff icon, as it does the preview's; the time left stays inside its clip; and the preview follows the group number offsets and shows pet, tank and friendly boss samples with their own size, colour and wrap.
+-- The time left stays inside its clip, and the preview follows the group number offsets and shows pet, tank and friendly boss samples with their own size, colour and wrap.
 do
 	local env, K, ns = boot()
-	-- Boss debuff zoom reaches the live boss debuff icon, as it does the preview's, and the time left stays inside its clip.
+	-- The Medallions party row has no boss debuff slot; the time left stays inside its clip.
 	do
 		local f = frame(ns, "party1")
-		write(env, K, "auras.zoomEach", true)
-		write(env, K, "auras.bossZoom", 0.19)
-		local p = ns.Auras.Parts(f.highlights:GetAuraSlotFrame("boss"))
-		assert(near((p.icon:GetTexCoord()), 0.19), "the boss debuff crops at its own zoom: " .. p.icon:GetTexCoord())
-		write(env, K, "auras.zoomEach", false)
-		assert(near((p.icon:GetTexCoord()), 0.07), "off restores the shared zoom")
-
+		assert(f.parts.boss == nil, "the Medallions party row lays out no boss debuff slot")
 		-- The time left stays inside the heal icons' clip at every offset the sliders allow; at no offset, "12s" is a twentieth
 		-- of a unit wider than its 11-unit icon, so the sides allow a tenth.
 		write(env, K, "auras.timers", true)
@@ -148,9 +142,9 @@ do
 		write(env, K, "pets.color", { r = 1, g = 0, b = 0 })
 		preview:Refresh()
 		assert(select(1, pet.name:GetTextColor()) == 1 and select(2, pet.name:GetTextColor()) == 0, "the pet sample's name takes the custom colour")
-		local fr, fg, fb = K.Tokens.Color("friendly")
+		local fr, fg, fb = ns.Unit.ClassColor(boss.sample.class)
 		local c = boss.health.colorRGBA
-		assert(near(c[1], fr) and near(c[2], fg) and near(c[3], fb), "the boss sample's bar takes the friendly colour")
+		assert(near(c[1], fr) and near(c[2], fg) and near(c[3], fb), "the boss sample's tile takes its class colour, as Medallions raid tiles do")
 		write(env, K, "pets.enabled", false)
 		preview:Refresh()
 		assert(not preview.extras.pets.holder:IsShown(), "off hides the pet samples")

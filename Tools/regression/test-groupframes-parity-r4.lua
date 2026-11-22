@@ -131,7 +131,7 @@ do
 	local r = frame(ns, "raid1")
 	local raidBar = r.parts.health.top
 	write(env, K, "names.height", 20)
-	assert(r.parts.health.top > raidBar and r.parts.name.height > 12, "raid frames take it too")
+	assert(r.parts.health.top == raidBar and r.parts.name.height == r.parts.health.height, "a Medallions raid tile keeps its name on the fill, so the line height leaves its bar")
 	write(env, K, "names.height", 0)
 	noErrors(env, K)
 end
@@ -238,7 +238,7 @@ do
 	preview:Refresh()
 	assert(tank.role:GetPoint(1) == "BOTTOMRIGHT" and select(2, tank.role:GetPoint(1)) == tank.health, "the sample role icon moves onto the bar")
 	assert(healer.reminder:IsShown() and healer.reminder.glow.holder:IsShown(), "the sample missing buff glows")
-	assert(near(tank.parts.name.height, 24), "the sample name line grows")
+	assert(tank.parts.name.height > nameHeight and tank.parts.name.height <= 24, "the sample name line grows, up to the room above the Medallions pill")
 	assert(near(select(4, healer.sampleBuffs[1]:GetPoint(1)) - bx, -8), "the sample heals move")
 	for key, value in pairs({ ["icons.rolePlace"] = "AUTO", ["reminders.place"] = "NONE", ["reminders.glow"] = false, ["names.height"] = 0, ["party.buffX"] = 0 }) do
 		write(env, K, key, value)

@@ -168,7 +168,7 @@ do
 	assert(tank.absorbs.stripes:IsShown(), "striped shields")
 	assert(tank.shieldGlow:IsShown() and plain(env, tank.shieldGlow:GetAlpha()) == 1, "the overshielded tank glows")
 	assert(kragar.maxLoss:IsShown() and value(env, kragar.maxLoss) == 0.15, "Kragar shows lost maximum health")
-	assert(tank.threatEdge and not tank.threat:IsShown(), "the portrait tank's tile edge takes the threat colour")
+	assert(not tank.threatEdge and tank.threat:IsShown(), "the tileless Medallions portrait tank keeps the threat border")
 	local raid = preview.raidFrames
 	local _, _, _, x1 = raid[1]:GetPoint(1)
 	local _, _, _, x3, y3 = raid[3]:GetPoint(1)
