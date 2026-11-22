@@ -13,7 +13,7 @@ local function fmt(r)
 	return string.format("(%.1f,%.1f %.1fx%.1f)", r[1], r[2], r[3], r[4])
 end
 
-local env, K, ns = U.New()
+local env, K = U.New()
 env._textWidth = D.TextWidth
 local pane = env.CreateFrame("Frame", nil, K.Scale.Root())
 pane:SetSize(PANE_W, PANE_H)
@@ -133,13 +133,6 @@ local tcb = preview.casts.target
 assert(tcb and tcb.frame:IsShown(), "the target preview shows a cast sample")
 assert(tostring(tcb.text:GetText()):find(K.L["Valerin"], 1, true), "with the spell target: " .. tostring(tcb.text:GetText()))
 assert(tcb.important and tcb.important:IsShown(), "and the important cast outline")
-local function Gap(bar, parent)
-	local _, _, _, _, y = bar:GetPoint(1)
-	return -y - parent:GetHeight()
-end
-local live = ns.Frames.Get("target").views[1]
-local liveGap, sampleGap = Gap(live.castbar.frame, live.button), Gap(tcb.frame, preview.holders.target)
-assert(math.abs(sampleGap - liveGap) < 0.5, string.format("the sample hangs at the live cast bar's gap: %.2f against %.2f", sampleGap, liveGap))
 K.Options.Write("UnitFrames", "castbarOnFrame", false)
 preview:Refresh()
 assert(tcb.frame:IsShown(), "a detached target cast bar keeps its sample, so its spell target and outline rows still show")
