@@ -66,7 +66,7 @@ end
 
 local function Lit(p)
 	local bar = p.blade
-	local _, low = nil, bar:GetMinMaxValues()
+	local low = bar:GetMinMaxValues()
 	return bar:IsShown() and bar:GetParent():IsShown() and Reveal(p.env, Last(bar, "SetValue")[1]) > low
 end
 
