@@ -1,0 +1,316 @@
+-- test-groupframes-clear-frames.lua: on Frames, no helpful aura ever paints on a group frame's health bar, and the raid tile keeps its own lanes (KSTY-57): a whole name lane with the percent at its end over the bar's end, a row of three debuffs over the bar's right end (rank R5: harmful auras may overlay a raid bar's end, as Cell draws them), your heals on the name line, the indicators covering only the name's tail and a status ("Dead") in the percent's place, off the bar and the name, at the KSTY-47 mock-ups' 10, 20 and 40-player sizes and the Healer layout's.
+local G = dofile("Tools/regression/group_env.lua")
+local New = G.New
+function G.New(opts)
+	if opts and opts.saved then opts.saved.profiles.Default.HudStyle = { style = "frames" } end
+	local env, K, ns = New(opts)
+	if not (opts and (opts.saved or opts.boot == false)) then K.Options.Write("HudStyle", "style", "frames") end
+	return env, K, ns
+end
+local Scene = dofile("Tools/render/scene.lua")
+
+
+local function eq(got, want, what)
+	assert(got == want, what .. ": want " .. tostring(want) .. ", got " .. tostring(got))
+end
+
+local function intersects(a, b)
+	return a[1] < b[1] + b[3] - 0.01 and b[1] < a[1] + a[3] - 0.01 and a[2] < b[2] + b[4] - 0.01 and b[2] < a[2] + a[4] - 0.01
+end
+
+local function describe(r)
+	return string.format("[x %.1f to %.1f, y %.1f to %.1f]", r[1], r[1] + r[3], r[2], r[2] + r[4])
+end
+
+local function content(ns, header, unit)
+	local i = 1
+	while header._attributes["child" .. i] do
+		local button = header._attributes["child" .. i]
+		if button._attributes.unit == unit and button._shown then
+			return ns.Button.Content(button)
+		end
+		i = i + 1
+	end
+end
+
+local function find(scene, object)
+	for _, item in ipairs(scene.items) do
+		if item.object == object then
+			return item
+		end
+	end
+end
+
+local function saved(settings)
+	return { version = 2, profiles = { Default = { GroupFrames = settings } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+end
+
+-- The checks read state, not the stubs' call log, so every environment runs quiet (the documented perf mode): the
+-- 40-player raid's log alone held about 2 GB under Lua 5.1.
+local function quiet(e)
+	e.SetQuiet(true)
+end
+
+-- Every aura rect on the frame that shows: the debuff block, your heals, the six indicator slots. The third field
+-- says whether it is harmful, so it may overlay a raid tile's bar.
+local function Auras(env, f)
+	local out = {}
+	local ns = env._addons.KstyleUI_GroupFrames
+	if f.auraClip and f.auraClip:IsShown() then
+		out[#out + 1] = { "the debuff block", { Scene.Rect(env, f.auraClip) }, true }
+	end
+	if f.buffClip and f.buffs and f.buffs:IsShown() then
+		local k = f.kind and env._addons.KstyleUI_GroupFrames.Settings.current[f.kind]
+		local _, count = env._addons.KstyleUI_GroupFrames.Auras.HealIcons(f, k)
+		if count > 0 then
+			out[#out + 1] = { "your heals", { Scene.Rect(env, f.buffClip) } }
+		end
+	end
+	if f.indicators then
+		for i = 1, 6 do
+			local slot = f.indicators._slots["indicator" .. i]
+			if slot and slot.enabled then
+				slot.frame:Show()
+				local category = ns.Settings.current["indicator" .. i].category
+				out[#out + 1] = { "indicator " .. i, { Scene.Rect(env, slot.frame) }, not ns.Slots.Helpful(category) }
+			end
+		end
+	end
+	return out
+end
+
+local function Clear(env, f, what)
+	local bar = { Scene.Rect(env, f.health) }
+	assert(bar[1], what .. ": the bar resolves")
+	local auras = Auras(env, f)
+	assert(#auras > 0, what .. ": the frame shows auras to check")
+	local overlay = f.parts and f.parts.overlay
+	-- KSTY-57: the indicator lane sits on the name row's end, off the bar, so a helpful indicator in it never meets
+	-- the bar either.
+	local lane = overlay and f.parts.lane
+	if lane then
+		local fx, fy = Scene.Rect(env, f)
+		lane = { fx + lane.left, fy + lane.top, lane.width, lane.height }
+	end
+	for _, aura in ipairs(auras) do
+		assert(aura[2][1], what .. ": " .. aura[1] .. " resolves")
+		local inLane = lane and aura[1]:find("^indicator") and aura[2][1] >= lane[1] - 0.01 and aura[2][2] >= lane[2] - 0.01
+			and aura[2][1] + aura[2][3] <= lane[1] + lane[3] + 0.01 and aura[2][2] + aura[2][4] <= lane[2] + lane[4] + 0.01
+		if not (overlay and aura[3]) and not inLane then
+			assert(not intersects(aura[2], bar), what .. ": " .. aura[1] .. " " .. describe(aura[2]) .. " stays off the health bar " .. describe(bar))
+		end
+	end
+	return auras, bar
+end
+
+-- A raid of five in its own environment at one tile size, the first member a long-named tank, the second dead.
+local function Raid(size, members)
+	local settings = { enabled = true, raid = { width = size.width, height = size.height } }
+	local env, K, ns = G.New({ saved = saved(settings), setup = quiet })
+	G.SetRoster(env, "raid", G.Members(members or 5, function(i, m)
+		if i == 1 then
+			m.name, m.role, m.health = "Thaldrenwick", "TANK", 60
+		elseif i == 2 then
+			m.name, m.dead, m.health = "Maela", true, 0
+		end
+	end))
+	assert(K.Modules.Enable("GroupFrames"))
+	env.RunTimers()
+	return env, K, ns
+end
+
+-- Grok R4 #1: party helpful auras crossed Thaldren's bar. Every aura on the party tank stays off the bar.
+do
+	local env, K, ns = G.New()
+	G.SetRoster(env, "party", {
+		{ name = "Thaldren", class = "WARRIOR", role = "TANK", health = 72 },
+		{ name = "Kragar", class = "SHAMAN", role = "DAMAGER", dead = true, health = 0 },
+	})
+	assert(K.Modules.Enable("GroupFrames"))
+	env.RunTimers()
+	local tank = content(ns, ns.Headers.party, "party1")
+	local auras = Clear(env, tank, "party tank")
+	local indicators = 0
+	for _, aura in ipairs(auras) do
+		indicators = indicators + (aura[1]:find("^indicator") and 1 or 0)
+	end
+	eq(indicators, 3, "party tank: the three default indicators stay on, off the bar")
+	-- Muse R4 D9: the dead member's "Dead" is a status in the row, never drawn over the empty bar.
+	local dead = content(ns, ns.Headers.party, "party2")
+	local scene = Scene.Build(env)
+	local text = find(scene, dead.healthText)
+	eq(dead.healthText:GetText(), "Dead", "party: the dead member says so")
+	assert(text, "party: the renderer draws the status")
+	assert(not intersects(text.rect, { Scene.Rect(env, dead.health) }), "party: \"Dead\" " .. describe(text.rect) .. " stays off the bar")
+	-- The status takes the class caption's place, so the dead member's name keeps its whole width.
+	local nameItem = find(scene, dead.name)
+	local path, size = dead.name:GetFont()
+	assert(nameItem and nameItem.rect[3] + 0.01 >= Scene.TextWidth("Kragar", size, path), "party: the dead member's name stays whole beside \"Dead\"")
+	-- Codex review, round 4: risen again, the percent comes back in the status's place.
+	env._member("party2").dead, env._member("party2").health = false, 60
+	env.FireEvent("UNIT_HEALTH", "party2")
+	local formatted = dead.healthText._state.FormattedText
+	assert(formatted and env.Reveal(formatted[2]) == 60, "party: risen, the percent shows again")
+	eq(#env._errors, 0, tostring(env._errors[1]))
+end
+
+-- Muse R4 #2, Grok R4 #4: the raid tile at the KSTY-47 mock-ups' three sizes (10, 20 and 40 players) and the Healer
+-- layout's 40-unit rows.
+for _, case in ipairs({ { members = 10 }, { members = 20 }, { members = 40 }, { members = 20, height = 40 } }) do
+	local what = "raid of " .. case.members .. (case.height and (" at " .. case.height .. " tall") or "")
+	local env, _, ns = Raid({ height = case.height }, case.members)
+	local f = content(ns, ns.Headers.raid[1], "raid1")
+	local k = ns.Settings.current.raid
+	local auras, bar = Clear(env, f, what)
+	eq(f.chrome.shadowOn, false, what .. ": a raid row casts no drop shadow")
+	-- Three debuffs in a row, boss and dispellable ones first.
+	local block = ns.Auras.Block(f, k)
+	eq(block.columns, 3, what .. ": the debuff block is three wide")
+	eq(block.rows, 1, what .. ": and one high")
+	eq(block.cells, 3, what .. ": three debuffs show")
+	local order = ns.Auras.Order()
+	assert(order.dispels < order.debuffs and order.boss < order.debuffs, what .. ": dispellable and boss debuffs come first")
+	-- Your heals keep their place on the name line.
+	local _, heals = ns.Auras.HealIcons(f, k)
+	assert(heals >= 1, what .. ": your heals have room, got " .. heals)
+	local scene = Scene.Build(env)
+	local name = find(scene, f.name)
+	assert(name, what .. ": the name draws")
+	local fx = Scene.Rect(env, f)
+	local head = f.parts.lane and fx + f.parts.lane.left or bar[1] + bar[3]
+	if k.healthText ~= "NONE" then
+		-- The percent ends at the bar's end, on the name row above it, and the name never competes with it.
+		local percent = find(scene, f.healthText)
+		assert(percent, what .. ": the percent draws")
+		assert(not intersects(name.rect, percent.rect), what .. ": the name " .. describe(name.rect) .. " never competes with the percent " .. describe(percent.rect))
+		assert(percent.rect[2] + percent.rect[4] <= bar[2] + 0.01, what .. ": the percent sits above the bar " .. describe(percent.rect))
+		assert(math.abs(percent.rect[1] + percent.rect[3] - (bar[1] + bar[3])) <= 1, what .. ": and ends at the bar's end")
+		for _, aura in ipairs(auras) do
+			assert(not intersects(aura[2], percent.rect), what .. ": " .. aura[1] .. " stays off the percent")
+		end
+	end
+	for _, aura in ipairs(auras) do
+		local nameHead = { name.rect[1], name.rect[2], math.min(name.rect[3], head - name.rect[1]), name.rect[4] }
+		assert(not intersects(aura[2], nameHead), what .. ": " .. aura[1] .. " " .. describe(aura[2]) .. " stays off the name's head " .. describe(nameHead))
+	end
+	-- Rank R5 (Grok #2, Muse #1): a twelve-letter name steps its size down and stays whole, down to the 11 px text
+	-- floor (KSTY-69); where the floor cannot hold it, it keeps its head and shortens, never under the floor.
+	local K = f._env.KstyleUI
+	local text, floor = f.name:GetText(), K.Scale.TextFloor()
+	local _, nameSize = f.name:GetFont()
+	assert(nameSize * K.Widgets.ScaleFactor(f) / K.Scale.Pixel(1) >= floor - 0.01, what .. ": the name is at least " .. floor .. " px")
+	if text ~= "Thaldrenwick" then
+		assert(text:match("^Thaldren"), what .. ": a twelve-letter name keeps its head, got " .. tostring(text))
+		assert(nameSize * K.Widgets.ScaleFactor(f) / K.Scale.Pixel(1) <= floor + 0.01, what .. ": and shortens only at the floor")
+	end
+	assert(name.rect[3] <= f.nameWidth + 0.5, what .. ": and fits its lane")
+	-- "Dead" takes the percent's place at the row's end, off the bar; with no percent (over 25 members) it centres on
+	-- the emptied bar. Either way it stays off the name.
+	local dead = content(ns, ns.Headers.raid[1], "raid2")
+	local status = find(scene, dead.healthText)
+	eq(dead.healthText:GetText(), "Dead", what .. ": the dead member says so")
+	local deadBar = { Scene.Rect(env, dead.health) }
+	if k.healthText ~= "NONE" then
+		assert(not intersects(status.rect, deadBar), what .. ": Dead " .. describe(status.rect) .. " stays off the bar")
+	else
+		assert(math.abs(status.rect[1] + status.rect[3] / 2 - (deadBar[1] + deadBar[3] / 2)) < 1, what .. ": Dead centres on the emptied bar")
+	end
+	assert(not intersects(status.rect, find(scene, dead.name).rect), what .. ": and off the name")
+	eq(#env._errors, 0, tostring(env._errors[1]))
+end
+
+-- Every debuff position a player can choose keeps the debuffs, your heals and the indicators off the bar.
+for _, position in ipairs({ "BOTTOMLEFT", "BOTTOMRIGHT", "TOPLEFT", "TOPRIGHT", "OUTSIDE_RIGHT", "OUTSIDE_LEFT" }) do
+	for _, kind in ipairs({ "party", "raid" }) do
+		local settings = { enabled = true, [kind] = { auraPosition = position } }
+		local env, K, ns = G.New({ saved = saved(settings), setup = quiet })
+		if kind == "party" then
+			G.SetRoster(env, "party", { { name = "Thaldren", class = "WARRIOR", role = "TANK", health = 72 } })
+		else
+			G.SetRoster(env, "raid", G.Members(5))
+		end
+		assert(K.Modules.Enable("GroupFrames"))
+		env.RunTimers()
+		local f = content(ns, kind == "party" and ns.Headers.party or ns.Headers.raid[1], kind .. "1")
+		Clear(env, f, kind .. " with debuffs " .. position)
+		eq(#env._errors, 0, tostring(env._errors[1]))
+	end
+end
+
+-- Codex review, round 4: a party frame with the name on the bar has no side lane, so your heals take a row under the
+-- bar instead of vanishing.
+do
+	local env, K, ns = G.New({ saved = saved({ enabled = true, party = { textLayout = "INSIDE" } }), setup = quiet })
+	G.SetRoster(env, "party", { { name = "Thaldren", class = "WARRIOR", role = "TANK", health = 72 } })
+	assert(K.Modules.Enable("GroupFrames"))
+	env.RunTimers()
+	local f = content(ns, ns.Headers.party, "party1")
+	local _, heals = ns.Auras.HealIcons(f, ns.Settings.current.party)
+	assert(heals >= 2, "party, name on the bar: your heals keep a place, got " .. heals)
+	Clear(env, f, "party, name on the bar")
+	eq(#env._errors, 0, tostring(env._errors[1]))
+end
+
+-- Codex review, round 4: at fractional pixel scales the fitted icon sizes are whole pixels, so the engine lays the
+-- icons out at the size their buttons are drawn and the clips hold them whole.
+for _, screen in ipairs({ { 2560, 1600 }, { 3456, 2234 } }) do
+	local what = "raid at " .. screen[1] .. " by " .. screen[2]
+	local env, K, ns = G.New({ width = screen[1], height = screen[2], setup = quiet })
+	G.SetRoster(env, "raid", G.Members(5))
+	assert(K.Modules.Enable("GroupFrames"))
+	env.RunTimers()
+	local f = content(ns, ns.Headers.raid[1], "raid1")
+	for _, pair in ipairs({ { "debuffs", f.auras._groups.debuffs, f.auraClip }, { "your heals", f.buffs._groups.buffs, f.buffClip } }) do
+		local group, clip = pair[2], pair[3]
+		local laid, drawn = group.layout.elementWidth, group.frames[1]:GetWidth()
+		assert(math.abs(laid - drawn) < 1e-6, what .. ": " .. pair[1] .. " are laid out at the size they are drawn, " .. laid .. " and " .. drawn)
+		assert(clip:GetHeight() + 1e-6 >= drawn, what .. ": and their clip holds a whole icon")
+	end
+	eq(#env._errors, 0, tostring(env._errors[1]))
+end
+
+-- The options preview's sample frames draw the same lanes: no helpful sample aura on a sample bar; on a raid tile the
+-- sample debuffs and harmful indicators may overlay the bar's end, as the live tiles do.
+do
+	local env, K, ns = G.New()
+	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
+	parent:SetSize(280, 700)
+	parent:SetPoint("TOPLEFT", K.Scale.Root(), "TOPLEFT", 40, -40)
+	local preview = K.Options.Preview("GroupFrames")(parent)
+	local samples = {}
+	for _, f in ipairs(preview.partyFrames) do
+		samples[#samples + 1] = f
+	end
+	for _, f in ipairs(preview.raidFrames) do
+		samples[#samples + 1] = f
+	end
+	local checked = 0
+	for _, f in ipairs(samples) do
+		if f:IsShown() then
+			local bar = { Scene.Rect(env, f.health) }
+			local overlay = f.parts.overlay
+			for which, list in ipairs({ f.sampleAuras, f.sampleBuffs, f.sampleSlots }) do
+				for i, icon in ipairs(list or {}) do
+					if icon:IsShown() then
+						local r = { Scene.Rect(env, icon) }
+						local harmful = which == 1 or (which == 3 and not ns.Slots.Helpful(ns.Settings.current["indicator" .. i].category))
+						local lane = overlay and which == 3 and f.parts.lane
+						if lane then
+							local fx, fy = Scene.Rect(env, f)
+							lane = r[1] >= fx + lane.left - 0.01 and r[2] >= fy + lane.top - 0.01
+								and r[1] + r[3] <= fx + lane.left + lane.width + 0.01 and r[2] + r[4] <= fy + lane.top + lane.height + 0.01
+						end
+						if not (overlay and harmful) and not lane then
+							assert(not intersects(r, bar), "preview " .. f.kind .. " " .. f.sample.name .. ": sample aura " .. i .. " " .. describe(r) .. " stays off the bar " .. describe(bar))
+						end
+						checked = checked + 1
+					end
+				end
+			end
+		end
+	end
+	assert(checked >= 10, "the preview shows sample auras to check, got " .. checked)
+	eq(#env._errors, 0, tostring(env._errors[1]))
+end
+
+print("groupframes clear ok")
