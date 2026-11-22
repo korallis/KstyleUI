@@ -597,8 +597,6 @@ local function Fit(frame, holder, kind, width, height)
 			l, t, r, b = math.min(l, rl), math.min(t, rt), math.max(r, rr), math.max(b, rb)
 		end
 	end
-	local m = view.marker:IsShown() and view.geometry.marker
-	if m then l, t, r, b = math.min(l, m.x), math.min(t, m.y), math.max(r, m.x + m.w), math.max(b, m.y + m.h) end
 	local scale = MAX_SCALE
 	local reserve = frame.reserve
 	local rl, rr, rt, rb = reserve and reserve[1] or 0, reserve and reserve[2] or 0, reserve and reserve[3] or 0, reserve and reserve[4] or 0
