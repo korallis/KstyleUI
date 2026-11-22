@@ -990,7 +990,7 @@ function Layouts.BuildMedallions()
 			["auras.debuffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = -DEBUFFS_Y },
 			["auras.extraBuffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = DPS["auras.extraBuffs"].y },
 			["auras.extraDebuffs"] = { anchor = "TOPRIGHT", x = -(AURAS_X + 16), y = DPS["auras.extraDebuffs"].y },
-			["actionbars.bar3"] = { anchor = "BOTTOM", x = -692, y = 378 + side.clear },
+			["actionbars.bar3"] = { anchor = "BOTTOM", x = -(0.2 * HEIGHT * class:match("%d+") / 9 + GridSize("actionbars.bar3") / 2), y = 378 + side.clear },
 			["actionbars.bar1"] = { anchor = "BOTTOM", x = -(hub / 2 + width / 2), y = baseline },
 			["actionbars.bar2"] = { anchor = "BOTTOM", x = hub / 2 + width / 2, y = baseline },
 			["actionbars.pet"] = petBar,
