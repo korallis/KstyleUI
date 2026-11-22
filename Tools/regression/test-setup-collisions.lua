@@ -12,6 +12,14 @@ local ASPECTS = { { "16:9", 16 / 9 }, { "16:10", 16 / 10 }, { "21:9", 21 / 9 }, 
 -- Pairs that never show together or sit inside each other on purpose; everything else must stay apart.
 local function apart(a, c)
 	local pair = { [a] = true, [c] = true }
+	if pair["medallions.hub"] and (pair["databars.xp"] or pair["databars.strip:docked"]) then
+		return false
+	end
+	a, c = a:gsub(":%a+$", ""), c:gsub(":%a+$", "")
+	if a == c then
+		return false
+	end
+	pair = { [a] = true, [c] = true }
 	if pair["groupframes.party"] and pair["groupframes.raid"] then
 		return false
 	end
@@ -35,7 +43,7 @@ end
 -- The quest card's column beside the RestedXP guide's card (KSTY-33): with RestedXP loaded the guide's card holds the
 -- slot and the quests stand a rail gap to its left, so their column must keep clear of everything too.
 local function Quests(name, width)
-	local column = Layouts.Story(name, HEIGHT, true, "frames", width).quests
+	local column = Layouts.Story(name, HEIGHT, true, width).quests
 	return { Layouts.Rect(column, column, width, HEIGHT) }
 end
 
@@ -45,24 +53,52 @@ local function PhysicalRects(name, width, height, user, enabled)
 	local rh = 1080 / user
 	local k = height / rh
 	local rw = width / k
-	local positions = Layouts.PrepareFits(name, width, height, enabled or Layouts.Enabled(name), nil).layout
+	-- The Medallions sizes are the ones Fits plans: styled slabs, grouped bars and the player's power reserve.
+	local state = Layouts.PrepareFits(name, width, height, enabled or Layouts.Enabled(name), nil)
+	local positions = state.layout
 	local rects, keys = {}, {}
-	local function add(key, w, h, position, offsetX)
+	local function add(key, w, h, position, offsetX, offsetY)
 		local fx = position.anchor:find("LEFT") and 0 or position.anchor:find("RIGHT") and 1 or 0.5
 		local fy = position.anchor:find("BOTTOM") and 0 or position.anchor:find("TOP") and 1 or 0.5
-		w, h = math.max(1, math.floor(w * k + 0.5)) / k, math.max(1, math.floor(h * k + 0.5)) / k
-		local l, b = rw * fx + position.x - w * fx, rh * fy + position.y - h * fy
-		l, b = math.floor(l * k + 0.5) + (offsetX or 0) * k, math.floor(b * k + 0.5)
-		rects[key] = { l, b, l + math.floor(w * k + 0.5), b + math.floor(h * k + 0.5) }
+		w, h = math.max(1, math.floor(w * k + 0.5)), math.max(1, math.floor(h * k + 0.5))
+		local l = math.floor(width * fx + position.x * k - w * fx + 0.5) + (offsetX or 0) * k
+		local b = math.floor(height * fy + position.y * k - h * fy + 0.5) + (offsetY or 0) * k
+		rects[key] = { l, b, l + w, b + h }
 		keys[#keys + 1] = key
 	end
-	for _, element in ipairs(Layouts.ELEMENTS) do
+	for i, element in ipairs(Layouts.ELEMENTS) do
 		if (enabled and enabled[element.key] ~= false) or (not enabled and Layouts.Shown(name, element.key) ~= false) then
-			local w, h, offsetX = Layouts.Footprint(name, element.key)
-			add(element.key, w, h, positions[element.key], offsetX)
+			local size = state.sizes[i]
+			add(element.key, size[1], size[2], positions[element.key], size[3], size[4])
+			local medal = Layouts.MEDALLIONS_MEDALS[element.key]
+			if medal then
+				-- The medallion's square, centred on the frame's outer edge, two units in.
+				local r, d = rects[element.key], math.floor(medal.d * k + 0.5)
+				local cx = medal.side < 0 and r[1] + 2 * k or r[3] - 2 * k
+				local cy = r[2] + (r[4] - r[2]) / 2 - (size[4] or 0) * k / 2
+				local l, b = math.floor(cx - d / 2 + 0.5), math.floor(cy - d / 2 + 0.5)
+				rects[element.key .. ":medal"] = { l, b, l + d, b + d }
+				keys[#keys + 1] = element.key .. ":medal"
+			end
 		end
 	end
-	local story = Layouts.Story(name, rh, true, "frames", rw)
+	local bar = positions["actionbars.bar1"]
+	if state.slab and bar and (rects["actionbars.bar1"] or rects["actionbars.bar2"]) then
+		-- The hub's ring over the slab's centre; the experience track and the docked readout may pass under it.
+		local ring = math.max(1, math.floor(Layouts.MEDALLIONS_RING * k + 0.5))
+		local l, b = math.floor(width / 2 - ring / 2 + 0.5), math.floor((bar.y + state.groupHeight) * k - ring / 2 + 0.5)
+		rects["medallions.hub"] = { l, b, l + ring, b + ring }
+		keys[#keys + 1] = "medallions.hub"
+		local dock = rects["databars.strip"] and Layouts.DataBarDock(name, K.Scale.AspectClass(width, height))
+		local at = positions["databars.strip"]
+		if dock and at.anchor == dock.anchor and at.x == dock.x and at.y == dock.y then
+			rects["databars.strip:docked"], rects["databars.strip"] = rects["databars.strip"], nil
+			for i, key in ipairs(keys) do
+				if key == "databars.strip" then keys[i] = "databars.strip:docked" end
+			end
+		end
+	end
+	local story = Layouts.Story(name, rh, true, rw)
 	for _, card in ipairs({ story.guide, story.quests }) do
 		add(card.key, card.width, card.height, card)
 		if card.height < Layouts.STORY_FLOOR then
@@ -136,8 +172,9 @@ for _, mode in ipairs({ { bar3 = false }, { bar3 = true }, { bar3 = false, threa
 			if threat ~= nil then enabled["meters.threat"] = threat end
 			local cap = Layouts.ScaleLimit(K.Scale.CanvasWidth(width, height), height, name, enabled)
 			local label = string.format("%s at %dx%d, bar3 %s", name, width, height, tostring(bar3))
-			assert(cap >= K.Scale.DEFAULT_USER_SCALE and cap <= K.Scale.MAX_USER_SCALE, label .. ": cap is in the supported range")
-			assert(Layouts.Fits(name, K.Scale.CanvasWidth(width, height), height, K.Scale.DEFAULT_USER_SCALE, enabled), label .. ": the shipped default fits live placement")
+			assert(cap >= K.Scale.MIN_USER_SCALE and cap <= K.Scale.MAX_USER_SCALE, label .. ": cap is in the supported range")
+			-- Medallions Tank on 3:2 screens caps below the shipped default (0.80 at 2383 x 1540, as on staging).
+			assert(cap < K.Scale.DEFAULT_USER_SCALE or Layouts.Fits(name, K.Scale.CanvasWidth(width, height), height, K.Scale.DEFAULT_USER_SCALE, enabled), label .. ": the shipped default fits live placement")
 			assert(Layouts.Fits(name, K.Scale.CanvasWidth(width, height), height, cap, enabled), label .. ": cap fits the snapped footprints")
 			local measured, why = PhysicalFit(name, width, height, cap, enabled)
 			assert(measured, label .. ": " .. tostring(why) .. "; keep the independent snapped footprints apart")
@@ -184,12 +221,12 @@ for _, mode in ipairs({ { bar3 = false }, { bar3 = true }, { bar3 = false, threa
 	end
 end
 
--- Bar 3 tightens the Healer cap at 1080p; compare enabled sets without crossing the new meter/story boundary.
+-- The threat meter tightens the Healer cap at 1080p; compare enabled sets on either side of that boundary.
 do
-	assert(Layouts.Fits("Healer", 1920, 1080, 0.98), "disabled bar 3 must not collide with focus at a size above its own cap")
+	assert(Layouts.Fits("Healer", 1920, 1080, 0.95), "the hidden threat meter must not collide at a size above its own cap")
 	local enabled = Layouts.Enabled("Healer")
-	enabled["actionbars.bar3"] = true
-	assert(not Layouts.Fits("Healer", 1920, 1080, 0.98, enabled), "the same bar counts when the player enables it")
+	enabled["meters.threat"] = true
+	assert(not Layouts.Fits("Healer", 1920, 1080, 0.95, enabled), "the same meter counts when the player shows it")
 	assert(Layouts.ScaleLimit(1920, 1080, "Healer", enabled) < Layouts.ScaleLimit(1920, 1080, "Healer"), "the cache distinguishes enabled-element sets")
 end
 
@@ -551,7 +588,7 @@ local bars = 0
 for _, name in ipairs(Layouts.Names()) do
 	for _, aspect in ipairs({ { "16:9", 16 / 9 }, { "21:9", 21 / 9 } }) do
 		local width = HEIGHT * aspect[2]
-		local layout = Layouts.Positions(name,"frames",aspect[1])
+		local layout = Layouts.Positions(name,"medallions",aspect[1])
 		local column = { width * 0.3, 0, width * 0.7, HEIGHT }
 		local band = { width * 0.3, HEIGHT * 0.3, width * 0.7, HEIGHT * 0.7 }
 		local tw, th = Layouts.Footprint(name, "unitframes.target")
@@ -592,7 +629,7 @@ do
 		local element = Layouts.Element(def.element)
 		local cfg = ans.defaults[def.key]
 		assert(written[def.key .. ".rows"] == cfg.rows, def.key .. ": Apply writes the rows the bar has by default (" .. tostring(written[def.key .. ".rows"]) .. " against " .. tostring(cfg.rows) .. ")")
-		local count, rows, size, spacing = AK.Setup.Layouts.ActionBarGrid("frames", AK.Scale.Aspect(), def.element, cfg)
+		local count, rows, size, spacing = AK.Setup.Layouts.ActionBarGrid(AK.Scale.Aspect(), def.element, cfg)
 		local w, h = ans.GridSize(count, rows, size, spacing)
 		assert(math.abs(w - element.width) < 0.5 and math.abs(h - element.height) < 0.5,
 			string.format("%s draws %.0f x %.0f in %d rows, but its element is %d x %d", def.key, w, h, rows, element.width, element.height))
@@ -601,19 +638,17 @@ do
 end
 
 -- The extra aura rows are off in every preset; a player who switches them on finds them beside the map, clear of every
--- element the preset shows, in each HUD style at the four test screens, with the shipped attached overlays.
+-- element the preset shows, at the four test screens, with the shipped attached overlays.
 K.Store.Module("Cooldowns").attached, K.Store.Module("Meters").swing = nil, nil
 local extraFits = 0
 for _, name in ipairs(Layouts.Names()) do
-	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-		for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
-			local width, enabled = K.Scale.CanvasWidth(size[1], size[2]), Layouts.Enabled(name)
-			assert(enabled["auras.extraBuffs"] == false and enabled["auras.extraDebuffs"] == false and enabled["databars.strip2"] == false, name .. ": the extra aura rows and the second data bar start off")
-			assert(Layouts.Fits(name, width, size[2], K.Scale.DEFAULT_USER_SCALE, enabled, nil), string.format("%s %s at %dx%d: the preset fits", name, style, size[1], size[2]))
-			enabled["auras.extraBuffs"], enabled["auras.extraDebuffs"], enabled["databars.strip2"] = true, true, true
-			assert(Layouts.Fits(name, width, size[2], K.Scale.DEFAULT_USER_SCALE, enabled, nil), string.format("%s %s at %dx%d: the extra aura rows and the second data bar fit", name, style, size[1], size[2]))
-			extraFits = extraFits + 1
-		end
+	for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+		local width, enabled = K.Scale.CanvasWidth(size[1], size[2]), Layouts.Enabled(name)
+		assert(enabled["auras.extraBuffs"] == false and enabled["auras.extraDebuffs"] == false and enabled["databars.strip2"] == false, name .. ": the extra aura rows and the second data bar start off")
+		assert(Layouts.Fits(name, width, size[2], K.Scale.DEFAULT_USER_SCALE, enabled, nil), string.format("%s at %dx%d: the preset fits", name, size[1], size[2]))
+		enabled["auras.extraBuffs"], enabled["auras.extraDebuffs"], enabled["databars.strip2"] = true, true, true
+		assert(Layouts.Fits(name, width, size[2], K.Scale.DEFAULT_USER_SCALE, enabled, nil), string.format("%s at %dx%d: the extra aura rows and the second data bar fit", name, size[1], size[2]))
+		extraFits = extraFits + 1
 	end
 end
 

@@ -1598,7 +1598,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled)
 		flags[i] = element.key ~= "consumables.bar" and enabled[element.key] ~= false and "1" or "0"
 	end
 	local signature = (Layouts.ThirdBarFinished() and "finished" or "legacy") .. table.concat(flags) .. Layouts.ActionBarSignature()
-		.. tostring(Layouts.MinimapCrest())
+		.. tostring(Layouts.MinimapCrest() and ns.Store.Module("Minimap").frame)
 	local cached = limits[preset]
 	if cached and cached.width == physicalWidth and cached.height == physicalHeight and cached.signature == signature then
 		return cached.scale, cached.fits
