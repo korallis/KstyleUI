@@ -126,7 +126,7 @@ Options > General > HUD style (the `HudStyle` section's `style`, saved per profi
 
 ## Medallions (HUD style)
 
-Under the Medallions HUD style (`HudStyle.Current() == "medallions"`), `Settings.Form` returns `slab` for every frame whose `style` is not `plate`, so a frame set to plate stays a plate. `Slab.lua` draws the slab. `Geometry.lua` (`SlabFrame`) lays it out from the KSTY-110 spec's numbers (section 4.3), scaled by the element's height over the mock's height for that kind, so a resized element keeps its proportions.
+Under the Medallions HUD style (`HudStyle.Current() == "medallions"`), `Settings.Form` returns `slab` for every frame whose `style` is not `plate`, so a frame set to plate stays a plate. The Style dropdown offers Standard and Plate under Medallions, and the column, wide bar, sigil and plate under Frames; the cast bar texture row shows under Frames only. `Slab.lua` draws the slab. `Geometry.lua` (`SlabFrame`) lays it out from the KSTY-110 spec's numbers (section 4.3), scaled by the element's height over the mock's height for that kind, so a resized element keeps its proportions.
 
 | Kind | Size (units) | Medallion |
 | --- | --- | --- |
