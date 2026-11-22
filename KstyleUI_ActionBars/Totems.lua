@@ -1,4 +1,4 @@
--- Totems.lua: the shaman's Spirit Poles, KstyleUI's own secure totem bar in place of Blizzard's MultiCastActionBarFrame: four element sockets in the game's bar order (earth, fire, water, air) drop the chosen totem from its multi-cast action slot, right click fans out that element's totems on a shallow arc between the crest's sockets and the cooldown row to choose one, one fan at a time (shift right click dismisses the totem), and each socket carries a crown spire that lights and burns down over the totem's life from the slot's own boolean and duration object, so Lua never reads a secret, and flickers through its last fifth at Full while the slot is readable; a chosen totem's icon rests at 82% until that totem is up, a fan unfolds from its socket over 0.12 s at Full and Calm, and with all four totems up the rune ring catches the shaman's class colour, a halo under the crest and the glyphs over it as on the hawks' ring, and breathes at Full; Ghost Wolf and Call of the Elements (right click: Totemic Recall) ride as medals on the Medallions crest ring's shoulders, the lone Ghost Wolf stance bar hides, and a vehicle or override bar hides the bar as it hides Blizzard's; without the crest Blizzard's bar stays.
+-- Totems.lua: the shaman's Spirit Poles, KstyleUI's own secure totem bar in place of Blizzard's MultiCastActionBarFrame: four element sockets in the game's bar order (earth, fire, water, air) drop the chosen totem from its multi-cast action slot, right click fans out that element's totems on a shallow arc between the crest's sockets and the cooldown row to choose one, one fan at a time (shift right click dismisses the totem), and each socket carries a crown spire that lights and burns down over the totem's life from the slot's own boolean and duration object, so Lua never reads a secret, and flickers through its last fifth at Full while the slot is readable; a chosen totem's icon rests at 82% until that totem is up, a fan unfolds from its socket over 0.12 s at Full and Calm, and with all four totems up the rune ring catches the shaman's class colour, a halo under the crest and the glyphs over it as on the hawks' ring, and breathes at Full; Ghost Wolf and Call of the Elements (right click: Totemic Recall) ride as medals on the Medallions crest ring's shoulders, the lone Ghost Wolf stance bar hides, and a vehicle or override bar hides the bar as it hides Blizzard's. Under Frames the same pieces stand upright in a row at the stance bar's place beside the tray, sized as its buttons, the medals after the sockets and each fan a column rising from its socket, with no rune ring; under Medallions without the crest Blizzard's bar stays.
 local _, ns = ...
 
 local K = KstyleUI
@@ -22,6 +22,7 @@ local MEDAL, MEDAL_RADIUS, MEDAL_RISE, ICON = 26, 84, 32, 0.74
 local FAN, FAN_RADIUS, FAN_DROP, FAN_STEP, FAN_SPAN = 26, 330, 200, 5.2, 32
 local FLARE_RISE, FLARE_FALL, IGNITE = 0.05, 0.4, 0.3
 local UNFOLD, FIFTH, IDLE_ICON, RING_HALO = 0.12, 0.2, 0.82, 1.6
+local ROW_GAP = 8
 local OVERRIDDEN = "[vehicleui][overridebar] hide; show"
 
 local OPEN = [[
@@ -70,9 +71,15 @@ local function Wolf()
 	end
 end
 
-local function Wanted()
+local function Seat()
 	local hub = ns.Slab.hub
-	if not (state.enabled and ns.running and not ns.gamepad and ns.Config("totemBar") ~= false and ns.class == "SHAMAN" and hub and hub:IsShown() and Supported()) then
+	if hub and hub:IsShown() then return hub end
+	local stance = K.HudStyle.Current() == "frames" and ns.bars.stance
+	return stance and stance.holder or nil
+end
+
+local function Wanted()
+	if not (state.enabled and ns.running and not ns.gamepad and ns.Config("totemBar") ~= false and ns.class == "SHAMAN" and Seat() and Supported()) then
 		return false
 	end
 	for _, e in ipairs(ELEMENTS) do
@@ -125,6 +132,7 @@ end
 local function Spire(parent, e)
 	local s = CreateFrame("Frame", nil, parent)
 	local color, angle = "totem" .. e.name, e.angle
+	s.angle = angle
 	s.steel = s:CreateTexture(nil, "BACKGROUND")
 	s.steel:SetTexture((Tokens.Texture("pipSpireSteel" .. angle)))
 	s.steel:SetAllPoints(s)
@@ -157,13 +165,25 @@ local function Spire(parent, e)
 	s.flareGate:SetFrameLevel(s.gate:GetFrameLevel() + 3)
 	s.flare = CreateFrame("Frame", nil, s.flareGate)
 	s.flare:SetAllPoints(s)
-	Art(s.flare, "ARTWORK", "pipSpireCore" .. angle, "totemCore", "ADD"):SetAllPoints(s.flare)
+	s.flareArt = Art(s.flare, "ARTWORK", "pipSpireCore" .. angle, "totemCore", "ADD")
+	s.flareArt:SetAllPoints(s.flare)
 	Fade(s.flare, 0, 1, FLARE_RISE)
 	Fade(s.flare, 1, 0, FLARE_FALL, 2)
 	s.flare.anim:SetScript("OnFinished", function() s.flare:Hide() end)
 	s.flare:Hide()
 	s.rim = Art(s.gate, "OVERLAY", "medSlotChecked", color, "ADD")
 	return s
+end
+
+local function Skin(s, angle)
+	if s.angle == angle then return end
+	s.angle = angle
+	s.steel:SetTexture((Tokens.Texture("pipSpireSteel" .. angle)))
+	s.flareArt:SetTexture((Tokens.Texture("pipSpireCore" .. angle)))
+	for bar, art in pairs({ [s.glow] = "pipSpireGlow", [s.lit] = "pipSpire", [s.core] = "pipSpireCore" }) do
+		bar:SetStatusBarTexture((Tokens.Texture(art .. angle)))
+		if bar ~= s.lit then bar:GetStatusBarTexture():SetBlendMode("ADD") end
+	end
 end
 
 local function Flicker(s, slot, have, start, duration)
@@ -421,6 +441,7 @@ local function Fill()
 		b:SetAttribute("type", "action")
 		b:SetAttribute("action", b.slot)
 		local count = #spells + 1
+		fan.count = count
 		for n = #fan.buttons + 1, count do fan.buttons[n] = Choice(fan, e, n == 1) end
 		local step = min(FAN_STEP, FAN_SPAN / max(1, count - 1))
 		local half = (count - 1) * step / 2
@@ -452,50 +473,70 @@ local function Put(frame, anchor, x, y, size)
 end
 
 local function Place()
-	local header, hub = state.header, ns.Slab.hub
+	local header, seat, hub = state.header, Seat(), ns.Slab.hub
+	local crest = seat == hub
 	local own = header:GetParent():GetEffectiveScale()
-	header:SetScale(own > 0 and hub:GetEffectiveScale() / own or 1)
+	header:SetScale(own > 0 and seat:GetEffectiveScale() / own * (crest and 1 or K.Setup.Layouts.Grid("actionbars.stance").size / SOCKET) or 1)
 	header:ClearAllPoints()
-	header:SetAllPoints(hub)
-	local half = SOCKET / 2
-	for _, b in ipairs(state.sockets) do
+	local half, pitch, w, h = SOCKET / 2, SOCKET + ROW_GAP, 4 * (SOCKET + ROW_GAP) + 2 * MEDAL + 2 * ROW_GAP, SOCKET + SPIRE_LIFT + SPIRE
+	if crest then
+		header:SetAllPoints(hub)
+	else
+		header:SetPoint("BOTTOMLEFT", seat, "BOTTOMLEFT", 0, 0)
+		header:SetSize(w, h)
+	end
+	local anchor, step = crest and hub or header, FAN + ROW_GAP / 2
+	for i, b in ipairs(state.sockets) do
 		b:SetShown(b.known)
 		b.spire:SetShown(b.known)
-		local angle = b.element.angle
+		local angle = crest and b.element.angle or 90
 		local x, y = RADIUS * cos(rad(angle)), RADIUS * sin(rad(angle))
-		Put(b, hub, x, y, SOCKET)
+		if not crest then x, y = half + (i - 1) * pitch - w / 2, half - h / 2 end
+		Put(b, anchor, x, y, SOCKET)
 		b:Restyle()
 		ns.Slab.Dress(b)
+		Skin(b.spire, angle)
 		local reach, size = half + SPIRE_LIFT + SPIRE / 2, Widgets.Snap(b.spire, SPIRE)
 		b.spire:SetSize(size, size)
 		b.spire.glow:SetSize(size * HALO, size * HALO)
-		Put(b.spire, hub, x + reach * cos(rad(angle)), y + reach * sin(rad(angle)))
+		Put(b.spire, anchor, x + reach * cos(rad(angle)), y + reach * sin(rad(angle)))
 		b.spire.rim:ClearAllPoints()
 		b.spire.rim:SetAllPoints(b)
 		b.tab:ClearAllPoints()
 		b.tab:SetPoint("TOP", b, "BOTTOM", 0, -1)
 		Widgets.Size(b.tab, SOCKET * 0.6, 3)
-		Put(b.fan, hub, 0, FAN_RADIUS - FAN_DROP - FAN)
-		Widgets.Size(b.fan, 2 * FAN_RADIUS * sin(rad(FAN_SPAN / 2)) + 2 * FAN, 3 * FAN)
-		for _, f in ipairs(b.fan.buttons) do
+		if crest then
+			Put(b.fan, hub, 0, FAN_RADIUS - FAN_DROP - FAN)
+			Widgets.Size(b.fan, 2 * FAN_RADIUS * sin(rad(FAN_SPAN / 2)) + 2 * FAN, 3 * FAN)
+		else
+			Put(b.fan, header, x, y + half + b.fan.count * step / 2)
+			Widgets.Size(b.fan, FAN, b.fan.count * step)
+		end
+		for n, f in ipairs(b.fan.buttons) do
 			local fx, fy = FAN_RADIUS * cos(rad(f.angle)), FAN_RADIUS * sin(rad(f.angle)) - FAN_DROP
+			if not crest then fx, fy = x, y + half + (n - 0.5) * step end
 			f.from:SetOffset(x - fx, y - fy)
 			f.to:SetOffset(fx - x, fy - y)
-			Put(f, hub, fx, fy, FAN)
+			Put(f, anchor, fx, fy, FAN)
 			f:Restyle()
 			ns.Slab.Dress(f)
 			Widgets.Size(f.shade, FAN * 2.6, FAN * 2.6)
 		end
 	end
-	for i = 1, 5 do state.ring[i]:SetFrameLevel(max(0, hub:GetFrameLevel() - 1)) end
-	state.ring.glyphs:SetFrameLevel(hub:GetFrameLevel() + 1)
-	Widgets.Size(state.ring.halo, ns.Slab.RING * RING_HALO, ns.Slab.RING * RING_HALO)
+	state.ring[5]:SetShown(crest)
+	if crest then
+		for i = 1, 5 do state.ring[i]:SetFrameLevel(max(0, hub:GetFrameLevel() - 1)) end
+		state.ring.glyphs:SetFrameLevel(hub:GetFrameLevel() + 1)
+		Widgets.Size(state.ring.halo, ns.Slab.RING * RING_HALO, ns.Slab.RING * RING_HALO)
+	end
 	local c = K.Theme.Palette("SHAMAN")
 	for _, t in ipairs(c and { state.ring.halo, state.ring.art } or {}) do t:SetVertexColor(c.r, c.g, c.b) end
 	state.call:SetShown(state.call.known ~= nil)
 	state.wolf:SetShown(state.wolf.form ~= nil)
 	for side, m in pairs({ [-1] = state.wolf, [1] = state.call }) do
-		Put(m, hub, side * MEDAL_RADIUS * cos(rad(MEDAL_RISE)), MEDAL_RADIUS * sin(rad(MEDAL_RISE)), MEDAL)
+		local mx, my = side * MEDAL_RADIUS * cos(rad(MEDAL_RISE)), MEDAL_RADIUS * sin(rad(MEDAL_RISE))
+		if not crest then mx, my = w / 2 - half - (side < 0 and MEDAL + ROW_GAP or 0), half - h / 2 end
+		Put(m, anchor, mx, my, MEDAL)
 		Widgets.Size(m.icon, MEDAL * ICON, MEDAL * ICON)
 		m.icon:ClearAllPoints()
 		m.icon:SetPoint("CENTER", m, "CENTER", 0, 0)
