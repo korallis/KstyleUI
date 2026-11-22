@@ -1,4 +1,4 @@
--- _totems.lua: under Medallions, RENDER_TOTEMS=story plays a shaman's Spirit Poles story through the action bars' own secure buttons and events, RENDER_TOTEMS_T seconds in (the end when unset): the four chosen totems at rest, Fire's fan open, Magma Totem chosen and dropped, its spire burning down, Call of the Elements dropping all four, Ghost Wolf, and expiry, each drop following the action its secure button took; RENDER_TOTEM_BAR=off turns the Shaman totem bar setting off first.
+-- _totems.lua: under Medallions, RENDER_TOTEMS=story plays a shaman's Spirit Poles story through the action bars' own secure buttons and events, RENDER_TOTEMS_T seconds in (the end when unset): the four chosen totems at rest, Fire's fan unfolding and open, Magma Totem chosen and dropped, its spire burning down, Call of the Elements dropping all four and the ring breathing, Ghost Wolf, Magma's last fifth flickering, and expiry, each drop following the action its secure button took; RENDER_TOTEM_BAR=off turns the Shaman totem bar setting off first.
 local Totems = {}
 
 -- The shaman's known totems by totem slot (fire 1, earth 2, water 3, air 4), spell ID and icon file ID.
@@ -94,6 +94,7 @@ function Totems.Play(env, K, ns, AB, notes)
 	local fire, earth = state.sockets[2], state.sockets[1]
 	if now >= Totems.FAN then
 		AB.Click(env, fire, "RightButton", false)
+		for _, f in ipairs(fire.fan.buttons) do Sample(env, f.anim, now - Totems.FAN) end
 		if now >= Totems.PICK then
 			local magma
 			for _, f in ipairs(fire.fan.buttons) do
@@ -119,7 +120,12 @@ function Totems.Play(env, K, ns, AB, notes)
 		local s = state.sockets[slot == 1 and 2 or slot == 2 and 1 or slot].spire
 		Sample(env, s.flare.anim, now - d[2])
 		Sample(env, s.ignite, now - d[2])
+		Sample(env, s.flicker and s.flicker.anim, now - d[2] - 0.8 * LIFE[slot])
 	end
+	-- The ring breathes back and forth; the scene folds the time since all four went up into one breath.
+	local breath, t = ns.SlabEffects.CAP_BREATH, now - Totems.CALL
+	t = t % (2 * breath)
+	Sample(env, state.ring.breath, t <= breath and t or 2 * breath - t)
 	if now >= Totems.WOLF then
 		AB.Click(env, state.wolf, "LeftButton", false)
 		env._game.forms[1].isActive = true

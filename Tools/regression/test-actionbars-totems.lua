@@ -415,3 +415,77 @@ do
 	assert(#used == n, "with the bar off the Fire totem key does nothing: " .. tostring(AB.Used(env)))
 	Clean(env, K, "keys")
 end
+
+-- Polish: a fan unfolds from its socket over 0.12 s at Full and Calm and opens at once at Off; a chosen totem's icon
+-- rests at 82% until it is up; a readable spire flickers through its last fifth at Full and holds steady at Calm, Off
+-- or while secret; all four up lights the rune ring in the shaman's colour, breathing at Full and still otherwise.
+do
+	local env, K, ns = New("SHAMAN")
+	env._resolveRects = true
+	local st = ns.Totems.state
+	local fire, now = st.sockets[2], 100
+	env.GetTime = function() return now end
+	local function Near(a, b) return math.abs(a - b) < 1e-6 end
+	local function Motion(level)
+		K.Options.Write("Medallions", "motion", level)
+		env.RunTimers()
+	end
+
+	AB.Click(env, fire, "RightButton", false)
+	local choice = fire.fan.buttons[2]
+	assert(choice.anim:IsPlaying() and Near(choice.to:GetDuration(), 0.12), "the fan unfolds over 0.12 s at Full")
+	local fx, fy = choice:GetCenter()
+	local sx, sy = fire:GetCenter()
+	local ox, oy = choice.from:GetOffset()
+	assert(math.abs(fx + ox - sx) < 1 and math.abs(fy + oy - sy) < 1, "each choice unfolds from its socket")
+	AB.Click(env, fire, "RightButton", false)
+	choice.anim:Stop()
+	Motion("calm")
+	AB.Click(env, fire, "RightButton", false)
+	assert(choice.anim:IsPlaying(), "Calm unfolds the fan too")
+	AB.Click(env, fire, "RightButton", false)
+	choice.anim:Stop()
+	Motion("off")
+	AB.Click(env, fire, "RightButton", false)
+	assert(fire.fan:IsShown() and not choice.anim:IsPlaying(), "Off opens the fan at once")
+	AB.Click(env, fire, "RightButton", false)
+	Motion("full")
+
+	local s = fire.spire
+	assert(Near(fire.icon:GetAlpha(), 0.82), "a chosen totem's icon rests at 82% until it is up")
+	Drop(env, 1, 100)
+	assert(Near(fire.icon:GetAlpha(), 1) and not s.flicker.anim:IsPlaying(), "a fresh totem lifts its icon to full and burns steady")
+	env.RunTimers()
+	assert(s.flicker.anim:IsPlaying(), "its last fifth flickers at Full, timed from the readable start and duration")
+	now = 117
+	Drop(env, 1, 100)
+	assert(s.flicker.anim:IsPlaying(), "a repaint inside the last fifth flickers at once")
+	Motion("calm")
+	assert(not s.flicker.anim:IsPlaying(), "Calm holds the stub steady")
+	Motion("full")
+	assert(s.flicker.anim:IsPlaying(), "Full brings the flicker back")
+	Expire(env, 1)
+	assert(not s.flicker.anim:IsPlaying() and Near(fire.icon:GetAlpha(), 0.82), "an expiry stops it and rests the icon")
+	Drop(env, 1, 100, true)
+	env.RunTimers()
+	assert(not s.flicker.anim:IsPlaying(), "a secret slot holds steady: Lua cannot read when its last fifth starts")
+	assert(AB.W.LastCall(fire.icon, "SetAlphaFromBoolean"), "a secret slot lifts the icon through SetAlphaFromBoolean")
+	Expire(env, 1)
+
+	local ring = st.ring
+	assert(not ring[4]:IsVisible(), "no totem, no ring")
+	now = 100
+	for slot = 1, 4 do Drop(env, slot, 100) end
+	assert(ring[4]:IsVisible() and ring.breath:IsPlaying(), "all four up lights the ring, breathing at Full")
+	local level = ns.Slab.hub:GetFrameLevel()
+	assert(ring[1]:GetFrameStrata() == ns.Slab.hub:GetFrameStrata() and ring[5]:GetFrameLevel() < level and ring.glyphs:GetFrameLevel() > level, "the halo sits under the crest and the glyphs over it, as on the hawks' ring")
+	Motion("calm")
+	assert(ring[4]:IsVisible() and not ring.breath:IsPlaying(), "Calm: lit and still")
+	Motion("full")
+	Expire(env, 3)
+	assert(not ring[4]:IsVisible() and not ring.breath:IsPlaying(), "three up leaves the ring dark")
+	Drop(env, 3, 100, true)
+	assert(Seen(env, ring[3]) and not ring.breath:IsPlaying(), "a secret slot lights the ring through its alpha and holds it still")
+	assert(Updating(st) == 0, "no totem frame runs OnUpdate")
+	Clean(env, K, "polish")
+end
