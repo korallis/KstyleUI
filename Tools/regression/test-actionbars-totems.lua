@@ -18,7 +18,7 @@ local function New(class, opts)
 			e.GetTotemInfo = function(slot)
 				local t = e._totems[slot]
 				if not t then return false, "", 0, 0, 0 end
-				return t.have, "Totem", t.start, t.duration, 135825, 1, 3599
+				return t.have, "Totem", t.start, t.duration, 135825, 1, t.spell or 3599
 			end
 			e.GetTotemDuration = function(slot)
 				local t = e._totems[slot]
@@ -488,4 +488,62 @@ do
 	assert(Seen(env, ring[3]) and not ring.breath:IsPlaying(), "a secret slot lights the ring through its alpha and holds it still")
 	assert(Updating(st) == 0, "no totem frame runs OnUpdate")
 	Clean(env, K, "polish")
+end
+
+-- Review of 1d4af6de: a chosen totem rests until that totem, not another of its element, is up; one GetTotemInfo read
+-- per slot update; one last-fifth deadline per spire, rechecked when it fires and dropped with the bar; the ring takes
+-- a live class colour edit.
+do
+	local env, K, ns = New("SHAMAN")
+	local st = ns.Totems.state
+	local fire, s = st.sockets[2], st.sockets[2].spire
+	env.GetTime = function() return 100 end
+	local function Near(a, b) return math.abs(a - b) < 1e-6 end
+
+	Drop(env, 1, 100)
+	AB.Click(env, fire, "RightButton", false)
+	AB.Click(env, fire.fan.buttons[3], "LeftButton", false)
+	env.FireEvent("ACTIONBAR_SLOT_CHANGED", fire.slot)
+	assert(fire.chosen == 8190 and Near(fire.icon:GetAlpha(), 0.82), "Magma chosen while Searing is up rests at 82%")
+	env._totems[1].spell = 8190
+	env.FireEvent("PLAYER_TOTEM_UPDATE", 1)
+	assert(Near(fire.icon:GetAlpha(), 1), "Magma up lifts its icon to full")
+	Expire(env, 1)
+
+	local pending, after, get, reads = {}, env.C_Timer.After, env.GetTotemInfo, 0
+	env.C_Timer.After = function(t, fn)
+		if t > 1 then pending[#pending + 1] = fn else return after(t, fn) end
+	end
+	env.GetTotemInfo = function(slot) reads = reads + 1; return get(slot) end
+	Drop(env, 1, 100)
+	assert(reads == 1, "one slot update reads GetTotemInfo once (" .. reads .. ")")
+	env.GetTotemInfo = get
+	for _ = 1, 10 do ns.Totems.Update(); env.RunTimers() end
+	assert(#pending == 1, "refreshes keep one last-fifth deadline per spire (" .. #pending .. ")")
+	local t = env._totems[1]
+	t.have, t.start, t.duration = env.Secret(true), env.Secret(100), env.Secret(20)
+	env.FireEvent("PLAYER_TOTEM_UPDATE", 2)
+	pending[#pending]()
+	assert(not s.flicker.anim:IsPlaying(), "a deadline rechecks its slot: secret by then, the spire holds steady")
+	Drop(env, 1, 100)
+	pending[#pending]()
+	assert(s.flicker.anim:IsPlaying(), "a readable deadline flickers")
+	Expire(env, 1)
+	Drop(env, 1, 100)
+	K.Options.Write("ActionBars", "totemBar", false)
+	env.RunTimers()
+	pending[#pending]()
+	assert(not st.listening and not s.flicker.anim:IsPlaying(), "turning the bar off drops its deadline")
+	env.C_Timer.After = after
+	K.Options.Write("ActionBars", "totemBar", true)
+	env.RunTimers()
+
+	K.Theme.SetPalette({ SHAMAN = { r = 0.9, g = 0.1, b = 0.2 } }, 0)
+	env.RunTimers()
+	local c = K.Theme.Palette("SHAMAN")
+	for _, art in ipairs({ st.ring.halo, (st.ring.glyphs:GetRegions()) }) do
+		local v = AB.W.LastCall(art, "SetVertexColor")
+		assert(v and Near(v[1], c.r) and Near(v[2], c.g) and Near(v[3], c.b), "the ring takes a live class colour edit")
+	end
+	Clean(env, K, "review 1d4af6de")
 end
