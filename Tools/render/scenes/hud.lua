@@ -84,8 +84,8 @@ end
 -- Crown(opts) -> under RENDER_PIPS (off too, so the setting is the only change), the crown the game feeds for the
 -- scene's class (a druid's in bear form with RENDER_FORM=bear), whose spell the player then knows; nil for the combo
 -- point classes and the rest.
-local CROWN_AURAS = { WARRIOR = 7386, PRIEST = 15258, MAGE = 400573, HUNTER = 1310687, BEAR = 1328617 }
-local CROWN_KNOWN = { WARRIOR = 7386, PRIEST = 15257, MAGE = 400574, HUNTER = 1310687, BEAR = 1328617 }
+local CROWN_AURAS = { WARRIOR = 7386, PRIEST = 15258, MAGE = 400573, HUNTER = 1310687, BEAR = 1328617, SHAMAN = 10432 }
+local CROWN_KNOWN = { WARRIOR = 7386, PRIEST = 15257, MAGE = 400574, HUNTER = 1310687, BEAR = 1328617, SHAMAN = 10432 }
 function Hud.Crown(opts)
 	local class = Hud.Class(opts)
 	local kind = class == "DRUID" and os.getenv("RENDER_FORM") == "bear" and "BEAR" or class
@@ -96,7 +96,7 @@ end
 -- SetCrown(env, kind, n) gives the crown's aura n stacks through the game's own feed (the same aura while it stays,
 -- so the slots ease; a new one is assigned at once).
 local function SetCrown(env, kind, n)
-	local unit = (kind == "MAGE" or kind == "HUNTER") and "player" or "target"
+	local unit = (kind == "MAGE" or kind == "HUNTER" or kind == "SHAMAN") and "player" or "target"
 	local aura = n > 0 and (env._crownAura or { id = CROWN_AURAS[kind], harmful = unit == "target", mine = true }) or nil
 	if aura then
 		aura.count = n
@@ -506,6 +506,8 @@ function modules.unitframes(opts)
 	if spec.pet then
 		pet = { name = spec.pet.name, level = spec.pet.level, health = spec.pet.health, healthMax = spec.pet.healthMax, power = spec.pet.power, powerMax = spec.pet.powerMax, powerType = spec.pet.powerType, powerToken = spec.pet.powerToken, reaction = 5 }
 	end
+	-- Under Frames the player frame's own row shows the crown the game feeds, as the action bars' crest does under Medallions.
+	local crown = Hud.Style() == "Frames" and Hud.Crown(opts)
 	-- Round portraits: the owner chose the mockup's round shape as the default on 2026-11-08.
 	local env, K, ns = U.New(Common.ScreenOpts({
 		saved = saved(opts, "UnitFrames", {
@@ -523,6 +525,11 @@ function modules.unitframes(opts)
 			env._units.targettarget = opts.boss and target and player or nil
 			env._comboPoints = opts.combo or spec.combo or 0
 			env._resting = os.getenv("RENDER_RESTING") == "1"
+			if crown then
+				dofile("Tools/regression/aura_slots.lua").Install(env)
+				env.C_SpellBook = env.C_SpellBook or {}
+				env.C_SpellBook.IsSpellKnown = function(id) return id == CROWN_KNOWN[crown] end
+			end
 			env.UnitClass = function(token)
 				local u = env._units[token]
 				if u and u.class then
@@ -607,7 +614,10 @@ function modules.unitframes(opts)
 		end
 		K.Widgets.SetClassCrown(seat)
 	end
-	notes[#notes + 1] = PlayPips(env, K, function(n) env._comboPoints = n end)
+	notes[#notes + 1] = PlayPips(env, K, function(n)
+		env._comboPoints = n
+		if crown then SetCrown(env, crown, n) end
+	end)
 	local scene = build(env, opts, { time = env._time }, function()
 		Fx.Apply(env, "unitframes", ns, notes)
 	end)
