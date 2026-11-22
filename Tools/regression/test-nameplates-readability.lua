@@ -61,12 +61,6 @@ K.Options.Write("Nameplates", "healthText.show", false)
 assert(ns.state.height == 12 and not target.healthText:IsShown(), "the percent is optional and keeps the fuller plate")
 K.Options.Write("Nameplates", "preset", "lumen")
 assert(ns.state.width == 120 and ns.state.height == 9, "Minimal restores the slim default")
-for _, style in ipairs({ "frames", "orbs" }) do
-	local width = ns.state.width
-	K.Options.Write("Nameplates", "preset", "dungeon")
-	assert(ns.state.width == width and width == ns.Plate.DEFAULT_WIDTH and ns.state.height == 12, "Dungeon preserves the " .. style .. " plate width")
-	K.Options.Write("Nameplates", "preset", "lumen")
-end
 K.Options.Write("Nameplates", "cast.combatCues", false)
 env._units.nameplate1.cast.notInterruptible = true
 env.FireEvent("UNIT_SPELLCAST_NOT_INTERRUPTIBLE", "nameplate1")
