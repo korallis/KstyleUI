@@ -100,12 +100,12 @@ If Doctor is green but a regression file fails with a nil global, Failure 1 is b
 
 Pick the scene and variables from the feature's row in [the feature map](../docs/feature-map.md), then read the matching file in `features/`. `--ppu` is pixels per unit. Set it to the screen height over 1080, so the PNG carries the screen's own pixels: `--ppu 1` at 1920x1080, `--ppu 1.3333333333` at 5120x1440. Always pass `--strict` for evidence. It fails the run, exit 3 after the PNG is written, on truncated text, content spilled past its card, a grey-box texture log, or a stale `Tools/render/guard_allow.tsv` line for the scene.
 
-The owner's case comes first: the 5120x1440 screen, the Medallions HUD, a warlock. The scene `hud_warlock_mac` pins the warlock class. Send the PNG outside the repository:
+The owner's case comes first: the 5120x1440 screen, the Medallions HUD style, a warlock. The scene `hud_warlock_mac` pins the warlock class. `RENDER_HUD_STYLE=Medallions` selects the style. Send the PNG outside the repository:
 
 ```bash
 mkdir -p /c/dev ~/.cache/kstyleui-verify
 export CHROME="$HOME/.cache/kstyleui-verify/chrome-shim.sh"
-RENDER_SCREEN=5120x1440 RENDER_SIZE=auto RENDER_LAYOUT=DPS \
+RENDER_SCREEN=5120x1440 RENDER_SIZE=auto RENDER_HUD_STYLE=Medallions RENDER_LAYOUT=DPS \
   bash Tools/render/shoot.sh hud_warlock_mac --ppu 1.3333333333 --strict \
   --out "$HOME/.cache/kstyleui-verify/hud_warlock_medallions_5120x1440.png"
 echo "exit=$?"
