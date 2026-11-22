@@ -47,8 +47,8 @@ for _, case in ipairs({ { "WARRIOR" }, { "ROGUE" }, { "WARRIOR", "frames" } }) d
 		label .. ": SPELL_UPDATE_COOLDOWN gives pet and stance buttons Button.UpdateCooldown, never a full Button.Update (staging: 6556 instructions, 73 widget calls)")
 	local button, other = AB.Button(ns, "bar1", 5), AB.Button(ns, "bar1", 6)
 	local bound, untouched = #W.Calls(button.cooldown, "SetCooldownFromDurationObject"), #W.Calls(other.cooldown, "SetCooldownFromDurationObject")
-	local spell = Cost(env, function() env.FireEvent("SPELL_UPDATE_COOLDOWN", 105, 105, nil, 0) end, 2300, 5,
-		label .. ": an off-GCD SPELL_UPDATE_COOLDOWN updates the buttons holding that spell, as OnUsableChanged does per slot (staging: 6556 instructions, 73 widget calls)")
+	local spell = Cost(env, function() env.FireEvent("SPELL_UPDATE_COOLDOWN", 105, 105, nil, 0) end, 1500, 5,
+		label .. ": an off-GCD SPELL_UPDATE_COOLDOWN updates the filled buttons holding that spell, as OnUsableChanged does per slot, and skips empty slots (staging: 6556 instructions, 73 widget calls)")
 	assert(#W.Calls(button.cooldown, "SetCooldownFromDurationObject") == bound + 2, label .. ": the spell's own button takes its cooldown")
 	assert(#W.Calls(other.cooldown, "SetCooldownFromDurationObject") == untouched, label .. ": another spell's button is left alone")
 	local form = Cost(env, function() env.FireEvent("UPDATE_SHAPESHIFT_FORM") end, 3500, 10,
@@ -60,6 +60,48 @@ for _, case in ipairs({ { "WARRIOR" }, { "ROGUE" }, { "WARRIOR", "frames" } }) d
 	assert(AB.Button(ns, "bar1", 4).spellID == 999, label .. ": a form change that swaps a macro's spell updates the whole button")
 	assert(#env._errors == 0, AB.Errors(env))
 	results[#results + 1] = string.format("%s %d/%d, %d/%d, %d/%d", label, sweep.instructions, sweep.calls, spell.instructions, spell.calls, form.instructions, form.calls)
+end
+
+do
+	local env, K, ns = AB.New({ setup = function(e)
+		e.C_Item = e.C_Item or {}
+		e.C_Item.GetItemQualityByID = function(id) return id == 100 and 3 or 4 end
+		e.C_Item.GetItemQualityColor = function(q) return q / 5, 0.4, 0.8 end
+		e.C_Item.GetItemCooldown = function() return 1, 30 end
+		e.C_Container = {
+			GetContainerNumSlots = function(bag) return bag == 0 and 1 or 0 end,
+			GetContainerItemInfo = function() return { itemID = 118, stackCount = 2, iconFileID = 134829 } end,
+		}
+	end })
+	AB.Enable(env, K)
+	env.RunTimers()
+	env.C_ActionBar.GetActionCooldown = function() return { isOnGCD = false } end
+	local b = AB.Button(ns, "bar1", 1)
+	AB.Slot(env, 1, { type = "macro", subType = "item", id = 100, texture = 100, count = "3" })
+	env._game.slots[1] = { type = "macro", subType = "item", id = 200, texture = 200, count = "8" }
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	assert(b.rarityItemID == 200 and b.itemQuality == 4 and b.count:GetText() == "8", "a form change that swaps an item macro's item updates its count and quality border")
+	AB.Slot(env, 1, { type = "spell", id = 1003, texture = 123, cooldown = { name = "before" } })
+	env._game.slots[1].cooldown = { name = "after" }
+	env.FireEvent("SPELL_UPDATE_COOLDOWN", 1033, nil, nil, 0)
+	assert(W.LastCall(b.cooldown, "SetCooldownFromDurationObject")[1].name == "after", "an event naming a spell no button holds, such as a just-removed override, refreshes every action button")
+	env._game.petExists, env._game.pet[1] = true, { name = "command", texture = 999 }
+	env.GetPetActionCooldown, env.GetShapeshiftFormCooldown = nil, function() return 5, 30 end
+	env.FireEvent("UNIT_PET", "player")
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(#W.Calls(ns.petButtons[1].cooldown, "SetCooldown") == 0, "a pet button without GetPetActionCooldown never takes a stance timer")
+	K.Options.Write("ActionBars", "consumables.enabled", false)
+	local potion = ns.Consumables.buttons[1].cooldown
+	local timers = #W.Calls(potion, "SetCooldown")
+	env.FireEvent("SPELL_UPDATE_COOLDOWN", 9999, nil, nil, 0)
+	assert(#W.Calls(potion, "SetCooldown") == timers, "a consumables bar that is off listens for no cooldown")
+	local hub = ns.Slab.hub
+	local art, writes = { hub.crest, hub.bloom, unpack(hub.particles) }, 0
+	for _, t in ipairs(art) do writes = writes - #W.Calls(t, "SetTexture") end
+	ns.Slab.Refresh()
+	for _, t in ipairs(art) do writes = writes + #W.Calls(t, "SetTexture") end
+	assert(writes == 0, "a slab refresh that changes no art writes no crest, bloom or particle texture (staging: 12)")
+	assert(#env._errors == 0, AB.Errors(env))
 end
 
 local env, K = C.New({ setup = C.Game })
@@ -86,4 +128,8 @@ asked = Asked(1003)
 env.FireEvent("SPELL_UPDATE_COOLDOWN", 1033, nil, nil, 0)
 assert(Asked(1003) == asked + 1, "cooldown mirror: an event naming a just-removed override refreshes its base spell, as Blizzard's previousOverrideSpellID does")
 assert(#env._errors == 0, tostring(env._errors[1]))
+env.Constants.InventoryConstants = { NumBagSlots = 4 }
+AB.InstallGame(env, {})
+C.Install(env)
+assert(env.Constants.InventoryConstants and env.Constants.SpellCooldownConsts, "the fixtures add SpellCooldownConsts to Constants and keep what is there")
 print("perf bar events ok: " .. table.concat(results, "; ") .. "; mirror untracked " .. untracked.instructions .. "/" .. untracked.calls .. ", tracked " .. tracked.instructions .. "/" .. tracked.calls .. ", retexture " .. icon.instructions .. "/" .. icon.calls)

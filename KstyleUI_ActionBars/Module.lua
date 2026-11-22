@@ -283,17 +283,28 @@ local function UpdateTrustedCooldown(button)
 	ns.Button.UpdateCooldown(button, true)
 end
 
+local function Holds(spellID, baseSpellID)
+	local list = ns.actionButtons
+	for i = 1, #list do
+		local id = list[i].spellID
+		if id ~= nil and (id == spellID or id == baseSpellID) then
+			return true
+		end
+	end
+end
+
 local function OnSpellCooldown(_, spellID, baseSpellID, category, recovery)
 	local IsSecret, consts = ns.IsSecret, Constants and Constants.SpellCooldownConsts
 	local gcd = consts and consts.GLOBAL_RECOVERY_CATEGORY
-	if type(gcd) ~= "number" or IsSecret(spellID) or type(spellID) ~= "number" or IsSecret(baseSpellID) or IsSecret(category) or category ~= nil or IsSecret(recovery) or recovery == gcd then
+	if type(gcd) ~= "number" or IsSecret(spellID) or type(spellID) ~= "number" or IsSecret(baseSpellID) or IsSecret(category) or category ~= nil
+		or IsSecret(recovery) or recovery == gcd or not Holds(spellID, baseSpellID) then
 		ForActions(UpdateTrustedCooldown)
 	else
 		local list = ns.actionButtons
 		for i = 1, #list do
 			local button = list[i]
 			local id = button.spellID
-			if id == nil or id == spellID or id == baseSpellID or button.gcd == true then
+			if button.hasAction and (id == nil or id == spellID or id == baseSpellID or button.gcd == true) then
 				UpdateTrustedCooldown(button)
 			end
 		end

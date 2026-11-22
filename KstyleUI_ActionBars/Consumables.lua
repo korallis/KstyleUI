@@ -106,6 +106,10 @@ local function Build()
 end
 
 function C.Apply()
+	local on = ns.running and Config().enabled
+	for _, event in ipairs({ "BAG_UPDATE_DELAYED", "SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN" }) do
+		if on then K.Events.Register(OWNER, event, event == "BAG_UPDATE_DELAYED" and C.Refresh or C.Update) else K.Events.Unregister(OWNER, event) end
+	end
 	if InCombatLockdown() then
 		if not queued then queued = true; K.Combat.Queue(C.Apply) end
 		return
@@ -186,8 +190,6 @@ end
 
 function C.Enable()
 	dirty = true
-	K.Events.Register(OWNER, "BAG_UPDATE_DELAYED", C.Refresh)
-	for _, event in ipairs({ "SPELL_UPDATE_COOLDOWN", "BAG_UPDATE_COOLDOWN" }) do K.Events.Register(OWNER, event, C.Update) end
 	K.Events.Register(OWNER, "UPDATE_BINDINGS", C.Bindings)
 	K.Events.Register(OWNER, "GET_ITEM_INFO_RECEIVED", C.TravelChanged)
 	K.Events.Register(OWNER, "SPELLS_CHANGED", C.TravelChanged)

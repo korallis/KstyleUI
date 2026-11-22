@@ -583,8 +583,10 @@ local function PaintParticles(r, g, b)
 	local path = ClassTexture("medParticle")
 	local cells = ClassName() and Known("medParticle" .. ClassName()) and Cells("medParticle" .. ClassName(), PARTICLE_CELLS)
 	if cells then r, g, b = Tokens.Color("white") end
+	local fresh = Slab.hub.particlePath ~= path
+	Slab.hub.particlePath = path
 	for _, p in ipairs(Slab.hub.particles) do
-		p:SetTexture(path)
+		if fresh then p:SetTexture(path) end
 		if cells then
 			local col, row = p.cell % cells.columns, floor(p.cell / cells.columns) % cells.rows
 			p:SetTexCoord(col / cells.columns, (col + 1) / cells.columns, row / cells.rows, (row + 1) / cells.rows)
@@ -596,10 +598,11 @@ end
 local function Paint()
 	local hub = Slab.hub
 	local crest, glow = Crest()
-	hub.crest:SetTexture(crest)
+	glow = glow or Slab.Texture("glow", "medProc")
+	if hub.crestPath ~= crest then hub.crest:SetTexture(crest) end
 	hub.crest:SetVertexColor(CREST_REST, CREST_REST, CREST_REST, 1)
-	hub.crestPath = crest
-	hub.bloom:SetTexture(glow or Slab.Texture("glow", "medProc"))
+	if hub.bloomPath ~= glow then hub.bloom:SetTexture(glow) end
+	hub.crestPath, hub.bloomPath = crest, glow
 	local r, g, b = ClassRGB()
 	hub.tinted = hub.tinted or { hub.glow, hub.bloom, hub.glyphs, hub.runes, hub.shock, hub.flash }
 	for _, region in ipairs(hub.tinted) do

@@ -138,7 +138,51 @@ local function ClearChargeCooldown(b)
 	end
 end
 
-local PetOrStanceCooldown
+local function SpellOnGlobalCooldown(b, spell, spellID, trusted)
+	if b.gcdSpell ~= spellID then
+		b.gcdSpell, b.gcd = spellID, nil
+	end
+	if trusted and type(spell.GetSpellCooldown) == "function" then
+		local info = spell.GetSpellCooldown(spellID)
+		b.gcd = type(info) == "table" and Flag(info.isOnGCD, false)
+	end
+	return b.gcd == true
+end
+Button.SpellOnGlobalCooldown = SpellOnGlobalCooldown
+
+local function SpellCooldown(b, spellID, start, duration, trusted)
+	local spell = C_Spell
+	if spellID and not IsSecret(spellID) and spell and type(spell.GetSpellCooldownDuration) == "function" then
+		local object = spell.GetSpellCooldownDuration(spellID)
+		if object then
+			b:SetCooldownFromDuration(object, SpellOnGlobalCooldown(b, spell, spellID, trusted))
+		else
+			ClearCooldown(b)
+		end
+		return
+	end
+	start, duration = Plain(start), Plain(duration)
+	if type(start) == "number" and type(duration) == "number" and duration > 0 then
+		b:SetCooldown(start, duration)
+	else
+		ClearCooldown(b)
+	end
+end
+
+local function PetOrStanceCooldown(b, trusted)
+	if not b.hasAction then
+		return ClearCooldown(b)
+	end
+	local pet, start, duration = b.kind == "pet"
+	local get = GetShapeshiftFormCooldown
+	if pet then
+		get = GetPetActionCooldown
+	end
+	if type(get) == "function" then
+		start, duration = get(b.index)
+	end
+	SpellCooldown(b, pet and b.petSpell or b.formSpell, start, duration, trusted)
+end
 
 function Button.UpdateCooldown(b, trusted)
 	if not b.hasAction then
@@ -380,50 +424,12 @@ end
 function Button.UpdateForm(b)
 	if not b.hasAction then
 		return
-	elseif SpellOf(b.slot) ~= b.spellID then
+	end
+	local spellID = SpellOf(b.slot)
+	if spellID == nil or spellID ~= b.spellID then
 		return UpdateAction(b)
 	end
 	SetIcon(b, C_ActionBar.GetActionTexture(b.slot))
-end
-
-local function SpellOnGlobalCooldown(b, spell, spellID, trusted)
-	if b.gcdSpell ~= spellID then
-		b.gcdSpell, b.gcd = spellID, nil
-	end
-	if trusted and type(spell.GetSpellCooldown) == "function" then
-		local info = spell.GetSpellCooldown(spellID)
-		b.gcd = type(info) == "table" and Flag(info.isOnGCD, false)
-	end
-	return b.gcd == true
-end
-Button.SpellOnGlobalCooldown = SpellOnGlobalCooldown
-
-local function SpellCooldown(b, spellID, start, duration, trusted)
-	local spell = C_Spell
-	if spellID and not IsSecret(spellID) and spell and type(spell.GetSpellCooldownDuration) == "function" then
-		local object = spell.GetSpellCooldownDuration(spellID)
-		if object then
-			b:SetCooldownFromDuration(object, SpellOnGlobalCooldown(b, spell, spellID, trusted))
-		else
-			ClearCooldown(b)
-		end
-		return
-	end
-	start, duration = Plain(start), Plain(duration)
-	if type(start) == "number" and type(duration) == "number" and duration > 0 then
-		b:SetCooldown(start, duration)
-	else
-		ClearCooldown(b)
-	end
-end
-
-function PetOrStanceCooldown(b, trusted)
-	local pet = b.kind == "pet"
-	local get, start, duration = pet and GetPetActionCooldown or GetShapeshiftFormCooldown
-	if type(get) == "function" then
-		start, duration = get(b.index)
-	end
-	SpellCooldown(b, pet and b.petSpell or b.formSpell, start, duration, trusted)
 end
 
 local function UpdatePet(b, trusted)
@@ -436,11 +442,10 @@ local function UpdatePet(b, trusted)
 	if Flag(isToken, false) and not IsSecret(texture) and type(texture) == "string" then
 		texture = _G[texture]
 	end
-	if b.hasAction then
-		SetIcon(b, texture)
-	else
-		SetIcon(b, nil)
+	if not b.hasAction then
+		texture = nil
 	end
+	SetIcon(b, texture)
 	b.petSpell = Plain(spellID)
 	b.autoCastAllowed = Flag(autoCastAllowed, false)
 	b.autocast:SetShown(b.hasAction and Flag(autoCastEnabled, false))
@@ -453,11 +458,7 @@ local function UpdatePet(b, trusted)
 		usable = Flag(GetPetActionSlotUsable(i), true)
 	end
 	SetUsable(b, usable)
-	if b.hasAction then
-		PetOrStanceCooldown(b, trusted)
-	else
-		ClearCooldown(b)
-	end
+	PetOrStanceCooldown(b, trusted)
 	Button.UpdateAlpha(b)
 end
 
@@ -475,11 +476,7 @@ local function UpdateStance(b, trusted)
 		b:SetSelected(selected)
 	end
 	SetUsable(b, not b.hasAction or Flag(isCastable, true))
-	if b.hasAction then
-		PetOrStanceCooldown(b, trusted)
-	else
-		ClearCooldown(b)
-	end
+	PetOrStanceCooldown(b, trusted)
 end
 
 function Button.Update(b, trusted)

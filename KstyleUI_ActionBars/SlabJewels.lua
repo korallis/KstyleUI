@@ -306,14 +306,6 @@ local function OnPower(_, _, token)
 	end
 end
 
-local function OnForm()
-	local class = Class()
-	local kind = class and Kind(class)
-	if class ~= state.class or kind ~= state.kind or (kind and Count(kind) or 0) ~= state.count then
-		Jewels.Update()
-	end
-end
-
 local function Listen(class, kind)
 	if class == state.class and kind == state.kind then
 		return
@@ -324,7 +316,7 @@ local function Listen(class, kind)
 	if class then
 		Events.RegisterUnit(OWNER, "UNIT_MAXPOWER", Jewels.Update, "player")
 		Events.RegisterUnit(OWNER, "UNIT_DISPLAYPOWER", Jewels.Update, "player")
-		Events.Register(OWNER, "UPDATE_SHAPESHIFT_FORM", OnForm)
+		Events.Register(OWNER, "UPDATE_SHAPESHIFT_FORM", Jewels.Update)
 	end
 	if kind then
 		Events.RegisterUnit(OWNER, "UNIT_POWER_FREQUENT", OnPower, "player")
@@ -335,11 +327,15 @@ local function Listen(class, kind)
 	end
 end
 
-function Jewels.Update()
+function Jewels.Update(event)
 	local class = Class()
 	local kind = class and Kind(class)
+	local count = kind and Count(kind) or 0
+	if event == "UPDATE_SHAPESHIFT_FORM" and class == state.class and kind == state.kind and count == state.count then
+		return
+	end
 	Listen(class, kind)
-	Place(ns.Slab and ns.Slab.hub, kind and Count(kind) or 0)
+	Place(ns.Slab and ns.Slab.hub, count)
 	if kind then
 		Paint(kind)
 		Points()
