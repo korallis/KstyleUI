@@ -12,7 +12,7 @@ local TEMPLATE = "DisableUntrustedLayoutScriptsTemplate"
 local ANGLES = { 0, -18, 18, -36, 36, -54, 54 }
 
 function Fan.Wanted(view)
-	return view.kind == "target" and K.HudStyle.Current() == "medallions" and Settings.Module().auraLayout == "fan" and Settings.Value("target", "crestDebuffs")
+	return view.kind == "target" and Settings.Module().auraLayout == "fan" and Settings.Value("target", "crestDebuffs")
 end
 
 local function TextStyle(fan)

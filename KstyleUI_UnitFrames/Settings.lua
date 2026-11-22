@@ -223,9 +223,6 @@ Settings.defaults = {
 	accentColor = Color("accentDefault"),
 	dangerEdge = true,
 	cleanLowRing = true,
-	orbGlass = true,
-	orbLedge = true,
-	orbCastRoom = true,
 	castbarOnFrame = true,
 	edit = "player",
 	player = Kind(true, {
@@ -524,7 +521,7 @@ for _, list in pairs({ SLAB_DEFAULTS, ROW_DEFAULTS }) do
 end
 
 function Settings.AuraRows(kind)
-	return ROW_DEFAULTS[kind] ~= nil and K.HudStyle.Current() == "medallions" and Settings.Module().auraLayout ~= "fan"
+	return ROW_DEFAULTS[kind] ~= nil and Settings.Module().auraLayout ~= "fan"
 end
 
 local AURA_LOOK = { auraSize = "simple", auraPosition = false, auraSpacing = true, auraRows = "simple", auraColumns = true,
@@ -723,25 +720,12 @@ function Settings.Accent()
 end
 
 function Settings.Form(kind)
-	local style = Settings.Value(kind, "style")
-	if style == "plate" then
-		return "plate"
-	end
-	if K.HudStyle.Current() == "medallions" then
-		return "slab"
-	end
-	if kind == "target" and (style == "bar" or style == "column" and K.HudStyle.Current() == "orbs") then
-		return "bar"
-	end
-	if style == "column" and Settings.COLUMN[kind] then
-		return "column"
-	end
-	return Settings.FORMS[kind]
+	return Settings.Value(kind, "style") == "plate" and "plate" or "slab"
 end
 
 function Settings.CastOnFrame(kind)
 	local key = Settings.CAST_ELEMENTS[kind]
-	if not (key and K.HudStyle.Current() == "medallions" and Settings.Module().castbarOnFrame ~= false) then return false end
+	if not (key and Settings.Module().castbarOnFrame ~= false) then return false end
 	local el = K.Layout.Element(key)
 	local s, d = el and el.settings, el and el.default
 	return not (s and d and (s.anchor ~= d.anchor or s.x ~= d.x or s.y ~= d.y or s.attachTo ~= d.attachTo or s.shown ~= d.shown or s.link ~= nil))
@@ -962,16 +946,12 @@ CastRows = function(schema, kind)
 		type = "toggle", key = "castbar", label = L["Cast bar"],
 		help = L["Shows the unit's casts and channels."],
 	})
-	if Settings.CAST_ELEMENTS[kind] then
+	if kind ~= "pet" then
 		schema[#schema + 1] = Row(kind, {
-			type = "toggle", key = "castbarInside", label = L["Spell name inside the bar"],
-			help = L["Frames: the spell name and timer sit inside the cast bar. Off puts them on their own line."],
+			type = "toggle", key = "castbarIcon", label = L["Spell icon"],
+			help = L["Shows the spell's icon beside the cast bar."],
 		}, on)
 	end
-	schema[#schema + 1] = Row(kind, {
-		type = "toggle", key = "castbarIcon", label = L["Spell icon"],
-		help = L["Shows the spell's icon beside the cast bar."],
-	}, kind == "pet" and function(s) return on(s) and Settings.Form(kind) == "plate" and K.HudStyle.Current() ~= "medallions" end or on)
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "castbarText", label = L["Spell name"],
 		help = L["Shows the spell's name on the cast bar."],
@@ -1000,17 +980,9 @@ CastRows = function(schema, kind)
 		help = L["Which way the cast bar fills. A bar taller than it is wide stacks its icon on top."],
 		options = CHOICES.orientation,
 	}, on)
-	local function iconShown(s)
-		local form = Settings.Form(kind)
-		return on(s) and Settings.Value(kind, "castbarIcon") and K.HudStyle.Current() ~= "medallions" and (form == "plate" or form == "column" or form == "bar" and Settings.CAST_ELEMENTS[kind] ~= nil)
-	end
-	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarIconRight", label = L["Icon on the right"],
-		help = L["Put the spell icon at the right end of the cast bar."] }, iconShown)
-	schema[#schema + 1] = Row(kind, { type = "slider", key = "castbarIconSize", label = L["Spell icon size"], min = 0, max = 64, step = 1,
-		help = L["The spell icon's size in units, up to the bar's height. 0 matches the bar's height."] }, iconShown)
-	for _, spec in ipairs({ { "castbarIcon", L["Spell icon"] }, { "castbarText", L["Spell name"] }, { "castbarTimer", L["Timer"] } }) do
+	for _, spec in ipairs({ { "castbarText", L["Spell name"] }, { "castbarTimer", L["Timer"] } }) do
 		local part = spec[1]
-		Nudges(schema, kind, part, spec[2], part == "castbarIcon" and iconShown or function(s) return on(s) and s[part] ~= false end)
+		Nudges(schema, kind, part, spec[2], function(s) return on(s) and s[part] ~= false end)
 	end
 	schema[#schema + 1] = Row(kind, { type = "toggle", key = "castbarTarget", label = L["Spell target"],
 		help = L["Adds who the spell is cast on after its name, when the game shows it."] }, named)
@@ -1116,7 +1088,7 @@ AuraRows = function(schema, kind)
 		schema[#schema + 1] = Row(kind, {
 			type = "toggle", key = "crestDebuffs", label = L["Your target debuffs above the crest"],
 			help = L["Medallions: fans your debuffs above the crest, with the rest on the target frame."],
-		}, function() return K.HudStyle.Current() == "medallions" and Settings.Module().auraLayout == "fan" end)
+		}, function() return Settings.Module().auraLayout == "fan" end)
 	end
 	for _, medallions in ipairs(kind == "player" and { false, true } or { false }) do
 		local function visible(filter)
@@ -1357,15 +1329,6 @@ local function KindRows(schema, kind)
 		type = "dropdown", key = "portraitSide", label = L["Portrait side"],
 		help = L["Which side of the bars the portrait sits on."], options = CHOICES.portraitSide,
 	}, portraitOn)
-	local function flatPortrait(s)
-		return portraitOn(s) and K.HudStyle.Current() ~= "medallions"
-	end
-	schema[#schema + 1] = Row(kind, { type = "toggle", key = "portraitMirror", label = L["Mirror portrait"],
-		help = L["Flips the portrait or class icon to face the other way."] }, flatPortrait)
-	schema[#schema + 1] = Row(kind, { type = "slider", key = "portraitZoom", label = L["Portrait zoom"],
-		help = L["Crops into the portrait. 0 shows all of it."], min = 0, max = ZOOM_MAX, step = ZOOM_STEP }, function(s) return flatPortrait(s) and s.portraitStyle ~= "class" end)
-	schema[#schema + 1] = Row(kind, { type = "slider", key = "classZoom", label = L["Class icon zoom"],
-		help = L["Crops into the class icon. 0 shows all of it."], min = 0, max = ZOOM_MAX, step = ZOOM_STEP }, function(s) return flatPortrait(s) and s.portraitStyle == "class" end)
 	schema[#schema + 1] = Row(kind, {
 		type = "toggle", key = "name", label = L["Name"],
 		help = L["Shows the unit's name."],
@@ -1527,11 +1490,9 @@ function Settings.Schema()
 	local schema = {
 		{ type = "header", label = L["Unit frames"] },
 		{ type = "dropdown", key = "auraLayout", label = L["Aura layout"], help = L["Place auras above their frames or restore the crest fan."],
-			options = Options({ { "rows", L["Rows above frames"] }, { "fan", L["Crest fan"] } }),
-			showWhen = function() return K.HudStyle.Current() == "medallions" end },
+			options = Options({ { "rows", L["Rows above frames"] }, { "fan", L["Crest fan"] } }) },
 		{ type = "toggle", key = "castbarOnFrame", label = L["Cast bars on unit frames"],
-			help = L["Puts each cast bar on its frame. Off restores both bars above the crest."],
-			showWhen = function() return K.HudStyle.Current() == "medallions" end },
+			help = L["Puts each cast bar on its frame. Off restores both bars above the crest."] },
 		{ type = "toggle", key = "castOutcomes", label = L["Readable cast outcomes"],
 			help = L["Keeps failed casts readable and acknowledges channels. Off restores the original cast effects."] },
 		{ type = "toggle", key = "castbarRaise", label = L["Cast bars above other frames"],
@@ -1588,19 +1549,6 @@ function Settings.Schema()
 		{
 			type = "toggle", key = "cleanLowRing", label = L["Clean player danger ring"],
 			help = L["A smooth ring on you, a still red rim on enemies. Off restores every portrait's smoky pulse."],
-		},
-		{ type = "header", label = L["Orbs"] },
-		{
-			type = "toggle", key = "orbGlass", label = L["Sharp orb glass"],
-			help = L["A crisper glass with a hard glint and a clearer band for health just lost."],
-		},
-		{
-			type = "toggle", key = "orbLedge", label = L["Ledge under bar 2"],
-			help = L["Seats the split bar 2 on a metal ledge across the tray."],
-		},
-		{
-			type = "toggle", key = "orbCastRoom", label = L["Room for long spell names"],
-			help = L["Widens the target's cast bar so long spell names show in full."],
 		},
 		{ type = "header", label = L["Customise"] },
 	}

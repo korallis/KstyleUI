@@ -183,7 +183,7 @@ function Panel:Restyle()
 		cap.label:SetSize(0, heading)
 		cap.rule:SetHeight(Widgets.Border(self))
 		cap.gem:SetVertexColor(Widgets.Rgba("capsGold", 1))
-		Widgets.PaintCapMaterial(cap.gem, cap.rule, RULE_ALPHA)
+		Widgets.PaintCapMaterial(cap.gem, cap.rule)
 		Widgets.TextColor(cap.label, "capsGold")
 		if Widgets.Readability("sectionHeadings") then
 			cap.label:SetTextColor(Tokens.Color("capsGold"))

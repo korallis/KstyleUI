@@ -1009,7 +1009,7 @@ local function Draw(self)
 	end
 	self.used = 0
 	local level = W.Setting("ornaments")
-	if level == "Off" or W.Setting("cardMaterial") == "Glass" or W.Medallions() or self.enabled == false or self.joined or self.bare then
+	if level == "Off" or W.Setting("cardMaterial") == "Glass" or true or self.enabled == false or self.joined or self.bare then
 		for _, texture in ipairs(self.textures) do texture:Hide() end
 		return
 	end
@@ -1095,7 +1095,7 @@ function Handle:Yield(frame)
 end
 
 function Handle:Follow()
-	if self.enabled == false or W.Setting("ornaments") == "Off" or W.Setting("cardMaterial") == "Glass" or W.Medallions() or not W.MayMove(self.owner) then return end
+	if self.enabled == false or W.Setting("ornaments") == "Off" or W.Setting("cardMaterial") == "Glass" or true or not W.MayMove(self.owner) then return end
 	if not Plain(self.pixel) then self:Restyle() return end
 	local x, _, y = self:Edges(self.target)
 	if W.IsSecret(x) or W.IsSecret(y) or type(x) ~= "number" or type(y) ~= "number" then

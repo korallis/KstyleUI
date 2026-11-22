@@ -141,7 +141,7 @@ local function PlaceTags(first, second)
 	if not partial then
 		tagBodies, tagOrder = { { Layout.Rect(TOOLBAR_KEY) } }, Layout.Elements()
 		for _, plate in pairs(plates) do plate.tagRect, plate.tagBody = nil, nil end
-		if ns.HudStyle.Current() == "medallions" and ns.Store.Module("ActionBars").slab ~= false then
+		if ns.Store.Module("ActionBars").slab ~= false then
 			local l, b, w, h = Layout.Rect("actionbars.bar1")
 			local r = Layout.Rect("actionbars.bar2")
 			if l and r and r > l + w then

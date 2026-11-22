@@ -29,15 +29,7 @@ local holder, backdrop, listening
 
 function Feed.Bare()
 	local ok, chat = pcall(K.Store.Module, "Chat")
-	local framing = ok and type(chat) == "table" and chat.framing or "auto"
-	if framing == "bare" then
-		return true
-	end
-	if framing == "card" then
-		return false
-	end
-	local hud = K.HudStyle
-	return hud ~= nil and type(hud.Current) == "function" and hud.Current() == "orbs"
+	return ok and type(chat) == "table" and chat.framing == "bare"
 end
 
 local function Inset()
@@ -397,18 +389,10 @@ local function Listen(on)
 		return
 	end
 	listening = on
-	local Callbacks = K.Callbacks
-	local styled = K.HudStyle and type(K.HudStyle.Current) == "function"
 	if on then
-		Callbacks.Register("SettingChanged", OWNER, Reframe)
-		if styled then
-			Callbacks.Register("HudStyleChanged", OWNER, Restyle)
-		end
-		return
-	end
-	Callbacks.Unregister("SettingChanged", OWNER)
-	if styled then
-		Callbacks.Unregister("HudStyleChanged", OWNER)
+		K.Callbacks.Register("SettingChanged", OWNER, Reframe)
+	else
+		K.Callbacks.Unregister("SettingChanged", OWNER)
 	end
 end
 

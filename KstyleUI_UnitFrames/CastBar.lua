@@ -119,7 +119,7 @@ end
 local function Caption(cb)
 	local form = Settings.Form(cb.kind)
 	if form == "column" then
-		if Settings.Value(cb.kind, "castbarInside") and (cb.attached or K.HudStyle.Current() == "frames") then
+		if Settings.Value(cb.kind, "castbarInside") and cb.attached then
 			return "inside"
 		end
 		return cb.attached and "below" or "above"
@@ -464,7 +464,7 @@ local function Lined(cb)
 end
 
 local function Form(cb)
-	cb.medal = K.HudStyle.Current() == "medallions"
+	cb.medal = true
 	cb.line = not cb.medal and Lined(cb)
 	cb.mode = not cb.medal and Caption(cb) or nil
 	cb.iconRight, cb.showTotal = Settings.Value(cb.kind, "castbarIconRight"), cb.kind == "player" and Settings.Value(cb.kind, "castbarTotal")
@@ -563,7 +563,7 @@ local function LayoutLine(cb, width, height, column)
 end
 
 local function Roomy(cb)
-	return cb.kind == "target" and not cb.attached and K.HudStyle.Current() == "orbs" and Settings.Module().orbCastRoom ~= false
+	return false
 end
 
 local function LayoutCaption(cb, width, height)

@@ -109,7 +109,7 @@ function Setup.NewChoice(current)
 			end
 		end
 	end
-	return { hudStyle = ns.HudStyle.Saved(), layout = DEFAULT_LAYOUT, modules = modules, ornaments = DEFAULT_ORNAMENTS, addons = addons, addonSettings = settings }
+	return { layout = DEFAULT_LAYOUT, modules = modules, ornaments = DEFAULT_ORNAMENTS, addons = addons, addonSettings = settings }
 end
 
 function Setup.Choice()
@@ -127,8 +127,8 @@ function Setup.MarkSeen()
 end
 
 local function writeLayout(name)
-	local positions = Layouts.Positions(name, "frames", ns.Scale.Aspect(), ns.Scale.Band())
-	local defaults = Layouts.Positions("DPS", "frames", ns.Scale.Aspect(), ns.Scale.Band())
+	local positions = Layouts.Positions(name, nil, ns.Scale.Aspect(), ns.Scale.Band())
+	local defaults = Layouts.Positions("DPS", nil, ns.Scale.Aspect(), ns.Scale.Band())
 	positions["databars.strip"] = Layouts.Default("databars.strip")
 	defaults["databars.strip"] = Layouts.Default("databars.strip")
 	for key, size in pairs(Layouts.Sizes(name)) do
@@ -140,9 +140,7 @@ local function writeLayout(name)
 	local live = Layout and type(Layout.Get) == "function" and type(Layout.Update) == "function"
 	local moved, saved = 0, 0
 	for key, position in pairs(positions) do
-		for _, style in ipairs(Layouts.STYLES) do
-			stored[style .. ":" .. key] = nil
-		end
+		stored["medallions:" .. key] = nil
 		local done = false
 		if live and Layout.Get(key) ~= nil then
 			local ok, updated = pcall(Layout.Update, key, position, "setup", true)
@@ -258,13 +256,13 @@ local function Band(spec, rw, rh)
 	return { left = left, bottom = bottom, right = left + width, top = bottom + height }
 end
 
-function Setup.Story(name, guide, shown)
+function Setup.Story(name, guide)
 	local rw, rh = Setup.RootSize()
-	local story = Layouts.Story(name, rh, guide, ns.HudStyle.Current(), rw, shown)
+	local story = Layouts.Story(name, rh, guide, rw)
 	if not story then
 		return nil
 	end
-	return { guide = story.guide and Band(story.guide, rw, rh), tracker = Band(story.quests, rw, rh), stacked = story.stacked }
+	return { guide = story.guide and Band(story.guide, rw, rh), tracker = Band(story.quests, rw, rh) }
 end
 
 local function EditModeChanged()
@@ -291,20 +289,16 @@ function Setup.RetryEditMode()
 	return true
 end
 
-local applying = false
-
 local function Restyle()
 	local layout = ns.Layout
 	local name = layout and layout.Setting and layout.Setting("preset")
-	if applying or not name or Setup.EditMode.ActiveName() ~= name then
+	if not name or Setup.EditMode.ActiveName() ~= name then
 		return
 	end
 	ns.Combat.Queue(function()
 		Setup.EditMode.Restyle(name, Setup.Story(name, GuideLoaded()))
 	end)
 end
-
-ns.Callbacks.Register("HudStyleChanged", "Setup", Restyle)
 
 local aspect, band = ns.Scale.Aspect(), ns.Scale.Band()
 ns.Callbacks.Register("ScaleChanged", "Setup", function()
@@ -350,12 +344,6 @@ function Setup.Apply(picked)
 	if ornaments then
 		ns.Options.Write("Widgets", "ornaments", ornaments)
 	end
-	local hudStyle = ns.HudStyle.Offered(picked.hudStyle) and picked.hudStyle
-	if hudStyle then
-		applying = true
-		ns.Call(ns.Options.Write, "HudStyle", "style", hudStyle)
-		applying = false
-	end
 	WriteEditMode(picked.layout, picked.replaceLayout)
 	local nameplates = Store.Defaults("Nameplates")
 	if nameplates and type(nameplates.personalResource) == "boolean" then
@@ -363,7 +351,7 @@ function Setup.Apply(picked)
 	end
 	Setup.MarkSeen()
 	log("applied layout " .. picked.layout .. ": " .. moved .. " elements moved now, " .. saved .. " saved for the reload, "
-		.. written .. " module settings written, " .. skipped .. " skipped for modules that did not load; ornaments: " .. (ornaments or "unchanged") .. "; HUD style: " .. (hudStyle or "unchanged") .. "; on: "
+		.. written .. " module settings written, " .. skipped .. " skipped for modules that did not load; ornaments: " .. (ornaments or "unchanged") .. "; on: "
 		.. (#on > 0 and table.concat(on, ", ") or "none") .. "; off: " .. (#off > 0 and table.concat(off, ", ") or "none"))
 	return true
 end

@@ -197,7 +197,7 @@ local function TextWidth(text, fontSize)
 end
 
 function Strip.Modules(s)
-	return s.placement == "rail" and s.railModules or Widgets.Medallions() and s.dockModules or s.modules
+	return s.placement == "rail" and s.railModules or s.dockModules
 end
 
 local function Order(s)
@@ -573,8 +573,8 @@ local function PlaceLine(view, s)
 	local captionGap = LABEL_GAP
 	if view.slab then
 		local layouts = K.Setup.Layouts
-		local left = layouts.ActionBarFootprint("medallions", K.Scale.Aspect(), "actionbars.bar1")
-		local right = layouts.ActionBarFootprint("medallions", K.Scale.Aspect(), "actionbars.bar2")
+		local left = layouts.ActionBarFootprint(K.Scale.Aspect(), "actionbars.bar1")
+		local right = layouts.ActionBarFootprint(K.Scale.Aspect(), "actionbars.bar2")
 		local ratio = frame:GetWidth() / (left + right + layouts.MEDALLIONS_HUB_GAP)
 		view.wingLeft, view.wingRight = left * ratio, right * ratio
 		limits.left = max(0, view.wingLeft - LABEL_GAP)
@@ -811,7 +811,7 @@ end
 function Strip.Paint(view, s, values)
 	local order = Order(s)
 	view.order, view.s = order, s
-	view.topBar = s.placement == "top" and not Widgets.Medallions()
+	view.topBar = false
 	view.rail = s.placement == "rail" and not view.docked
 	local plate, wings = view.topBar or view.deco, view.deco and view.slab ~= nil
 	if wings and not view.wing then
@@ -1261,7 +1261,7 @@ local function DockMeter(view, s)
 	local layout = K.Layout.Get(KEY)
 	local element = K.Layout.Element(KEY)
 	local default = element and element.default
-	local on = not K.Setup.Layouts.DataBarDock() and not (s.placement == "top" and not Widgets.Medallions()) and s.enabled ~= false and s.dockMeter ~= false and LineMode(s) and not s.menus and meter and meter.holder:IsVisible() and meter.cap.frame:IsShown() and layout and default and layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
+	local on = not K.Setup.Layouts.DataBarDock() and s.enabled ~= false and s.dockMeter ~= false and LineMode(s) and not s.menus and meter and meter.holder:IsVisible() and meter.cap.frame:IsShown() and layout and default and layout.anchor == default.anchor and layout.x == default.x and layout.y == default.y and not K.Layout.IsActive()
 	if on then
 		meter:ReserveTitle((view.contentWidth or 0) + Widgets.Snap(view.frame, LABEL_GAP))
 		local width = math.max(1, view.contentWidth or 1)
@@ -1358,7 +1358,7 @@ local function RefreshMain()
 	local dock = K.Setup.Layouts.DataBarDock()
 	K.Layout.SetLive(KEY, s.enabled ~= false and not dock)
 	view.slab = dock and xp or nil
-	view.deco = view.slab ~= nil and Widgets.Medallions()
+	view.deco = view.slab ~= nil
 	if view.slab then
 		TopBar(view)
 		view.frame:ClearAllPoints()
@@ -1463,7 +1463,7 @@ end
 
 local function MatchOrientation(s, changed)
 	local layout = K.Layout.Get(KEY)
-	if not layout or s.placement == "top" and not Widgets.Medallions() then
+	if not layout then
 		return
 	end
 	local vertical = s.orientation == "VERTICAL"
@@ -1478,7 +1478,7 @@ end
 
 local function MatchLine(s)
 	local layout = K.Layout.Get(KEY)
-	if not layout or s.orientation == "VERTICAL" or s.placement == "top" and not Widgets.Medallions() then
+	if not layout or s.orientation == "VERTICAL" then
 		return
 	end
 	local _, height = Footprint(KEY)
@@ -1566,8 +1566,6 @@ ns.Subscribe("LayoutChanged", function(key)
 		Strip.Refresh()
 	end
 end)
-
-ns.Subscribe("HudStyleChanged", Strip.Refresh)
 
 ns.Subscribe("ModuleChanged", function(module)
 	if module == "Meters" and running then

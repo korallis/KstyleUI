@@ -268,15 +268,7 @@ end
 
 function Panel.Bare(settings)
 	settings = settings or state.settings
-	local framing = settings and settings.framing
-	if framing == "bare" then
-		return true
-	end
-	if framing == "card" then
-		return false
-	end
-	local hud = K.HudStyle
-	return hud ~= nil and type(hud.Current) == "function" and hud.Current() == "orbs"
+	return settings ~= nil and settings.framing == "bare"
 end
 
 function Panel.Holder()
@@ -551,9 +543,9 @@ end
 
 local function SyncHeader()
 	local glass = state.glass
-	local banded, above = Widgets.Medallions(), state.settings and state.settings.tabsAbove
-	glass.divider:SetShown(not state.bare and not banded and not above)
-	glass.chrome:SetHeader(banded and not above and state.headerUnits or nil)
+	local above = state.settings and state.settings.tabsAbove
+	glass.divider:SetShown(false)
+	glass.chrome:SetHeader(not above and state.headerUnits or nil)
 end
 
 local function PlaceGlass(g)

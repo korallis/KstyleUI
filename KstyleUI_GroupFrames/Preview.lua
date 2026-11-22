@@ -140,8 +140,7 @@ function Preview.Build(...)
 		end
 		if f.showPortrait then
 			f.portrait:SetTexture((Tokens.Texture("logo")))
-			local zoom = not ns.Medallions.Active() and cfg[f.kind].portraitZoom or 0
-			f.portrait:SetTexCoord(zoom, 1 - zoom, zoom, 1 - zoom)
+			f.portrait:SetTexCoord(0, 1, 0, 1)
 			f.level:SetText(SAMPLE_LEVEL)
 		elseif f.showRoleRing then
 			f.roleText:SetText(Style.ROLE_LETTERS[sample.role] or "")

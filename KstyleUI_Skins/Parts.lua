@@ -502,7 +502,7 @@ end
 
 local function PaintCap(cap)
 	cap.gem:SetVertexColor(Widgets.Rgba("capsGold", 1))
-	Widgets.PaintCapMaterial(cap.gem, cap.rule, CAP_ALPHA)
+	Widgets.PaintCapMaterial(cap.gem, cap.rule)
 end
 
 local function RestyleCap(cap)
@@ -765,7 +765,7 @@ local function RestyleHeading(h)
 	end
 	PlaceHeading(h)
 	h.gem:SetVertexColor(Widgets.Rgba("capsGold", 1))
-	Widgets.PaintCapMaterial(h.gem, h.rule, CAP_ALPHA)
+	Widgets.PaintCapMaterial(h.gem, h.rule)
 	if Widgets.Readability("sectionHeadings") then
 		h.gem:SetVertexColor(Tokens.Color("capsGold"))
 		local r, g, b = Tokens.Color("capsGold")

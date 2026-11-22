@@ -1,4 +1,4 @@
--- Medallions.lua: the Medallions HUD style on the plates: a 120 by 9 bar under an 11-unit Inter caps name, the level in Barlow at the bar's left in its difficulty colour, 22-unit debuffs, two gunmetal ticks on the target, and a painted badge over a friendly player's name; a setting the player changed keeps the player's value.
+-- Medallions.lua: the Medallions look on the plates: a 120 by 9 bar under an 11-unit Inter caps name, the level in Barlow at the bar's left in its difficulty colour, 22-unit debuffs, two gunmetal ticks on the target, and a painted badge over a friendly player's name; a setting the player changed keeps the player's value.
 local _, ns = ...
 
 local K = KstyleUI
@@ -9,8 +9,6 @@ local IsSecret = Logic.IsSecret
 local Medallions = {}
 ns.Medallions = Medallions
 
-local STYLE = "medallions"
-local OWNER = "Nameplates.Medallions"
 local WIDTH, HEIGHT = 120, 9
 local LOOK = {
 	["name.size"] = 11,
@@ -33,11 +31,6 @@ Medallions.WIDTH, Medallions.HEIGHT = WIDTH, HEIGHT
 Medallions.LOOK = LOOK
 Medallions.GUNMETAL = GUNMETAL
 
-function Medallions.Active()
-	local hud = K.HudStyle
-	return hud ~= nil and type(hud.Current) == "function" and hud.Current() == STYLE
-end
-
 local function Default(key)
 	local node = Settings.defaults
 	for part in key:gmatch("[^%.]+") do
@@ -53,7 +46,7 @@ local get = Settings.Get
 function Settings.Get(key, role)
 	local value = get(key, role)
 	local look = LOOK[key]
-	if look ~= nil and value == Default(key) and Medallions.Active() then
+	if look ~= nil and value == Default(key) then
 		return look
 	end
 	return value
@@ -63,7 +56,7 @@ local readSize = Plates.ReadSize
 function Plates.ReadSize()
 	readSize()
 	local state = ns.state
-	if Medallions.Active() and state.width == Plate.DEFAULT_WIDTH then
+	if state.width == Plate.DEFAULT_WIDTH then
 		state.width = WIDTH
 		if state.height == Plate.DEFAULT_HEIGHT and Settings.Get("preset") == "lumen" then state.height = HEIGHT end
 	end
@@ -119,10 +112,6 @@ local function StyleType(plate)
 end
 
 function Component.Restyle(plate)
-	local on = Medallions.Active()
-	if not on and not plate.medBadge then
-		return
-	end
 	if not plate.medBadge then
 		Build(plate)
 	end
@@ -135,10 +124,6 @@ function Component.Restyle(plate)
 	badge.ring:ClearAllPoints()
 	badge.ring:SetPoint("TOPLEFT", badge, "TOPLEFT", -outset, outset)
 	badge.ring:SetPoint("BOTTOMRIGHT", badge, "BOTTOMRIGHT", outset, -outset)
-	if not on then
-		ShowBadge(badge, false)
-		return
-	end
 	badge.ring:SetTexture((Tokens.Texture("medRing")))
 	StyleType(plate)
 end
@@ -173,7 +158,7 @@ function Component.Refresh(plate)
 		return
 	end
 	local isPlayer = plate:Is("isPlayer", UnitIsPlayer, plate.unit)
-	local shown = Medallions.Active() and plate.kind == "friendly" and not IsSecret(isPlayer) and isPlayer == true
+	local shown = plate.kind == "friendly" and not IsSecret(isPlayer) and isPlayer == true
 		and plate.name:IsShown() and Portrait(plate)
 	ShowBadge(badge, shown and true or false)
 end
@@ -191,12 +176,8 @@ ns.Components[#ns.Components + 1] = Component
 local layoutDiamond = Plate.LayoutDiamond
 function Plate:LayoutDiamond()
 	layoutDiamond(self)
-	local on = Medallions.Active()
 	for _, layer in ipairs(self.level.layers) do
-		layer:SetShown(not on)
-	end
-	if not on then
-		return
+		layer:SetShown(false)
 	end
 	self.levelText:ClearAllPoints()
 	Plate.Place(self.levelText, "RIGHT", self.health, "LEFT", -Widgets.Snap(self, LEVEL_GAP + (Settings.Get("target.readableTicks") and 2 or 0)) + Settings.Get("level.x"),
@@ -206,14 +187,10 @@ end
 local layoutBrackets = Plate.LayoutBrackets
 function Plate:LayoutBrackets()
 	layoutBrackets(self)
-	local on = Medallions.Active()
 	for _, frame in ipairs(self.brackets.sides) do
-		if frame.keyline then frame.keyline:SetShown(on and Settings.Get("target.readableTicks")) end
-		frame.top:SetShown(not on)
-		frame.bottom:SetShown(not on)
-	end
-	if not on then
-		return
+		if frame.keyline then frame.keyline:SetShown(Settings.Get("target.readableTicks")) end
+		frame.top:SetShown(false)
+		frame.bottom:SetShown(false)
 	end
 	local width = math.max(Plate.Pixel(self), Widgets.Snap(self, TICK_WIDTH))
 	local height = self.barH + Widgets.Snap(self, TICK_OVERHANG) * 2
@@ -249,9 +226,6 @@ end
 local paintBrackets = Plate.PaintBrackets
 function Plate:PaintBrackets()
 	paintBrackets(self)
-	if not Medallions.Active() then
-		return
-	end
 	for _, frame in ipairs(self.brackets.sides) do
 		if Settings.Get("target.readableTicks") then
 			frame.stroke:SetVertexColor(Tokens.Color("medText"))
@@ -285,26 +259,11 @@ end
 local updateLevel = Plate.UpdateLevel
 function Plate:UpdateLevel()
 	updateLevel(self)
-	if not Medallions.Active() or not self.level:IsShown() or Settings.Get("level.colorMode") ~= "" then
+	if not self.level:IsShown() or Settings.Get("level.colorMode") ~= "" then
 		return
 	end
 	self.levelText:SetTextColor(LevelColor(self, self:Is("level", UnitEffectiveLevel or UnitLevel, self.unit)))
 end
 Plate.UpdateMarker = Plate.UpdateLevel
 
-local function OnHudStyle()
-	Plates.ReadSize()
-	Plates.RestyleAll()
-	ns.Stacking.Schedule()
-end
 
-local start, stop = Plates.Start, Plates.Stop
-function Plates.Start(...)
-	K.Callbacks.Register("HudStyleChanged", OWNER, OnHudStyle)
-	return start(...)
-end
-
-function Plates.Stop(...)
-	K.Callbacks.Unregister("HudStyleChanged", OWNER)
-	return stop(...)
-end

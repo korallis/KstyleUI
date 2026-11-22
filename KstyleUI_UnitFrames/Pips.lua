@@ -1,4 +1,4 @@
--- Pips.lua: the class-themed combo point row over the plain pips' places for Frames and Orbs, Widgets.ClassPip daggers for a rogue and claws for a cat-form druid, with a glow under the full row; while the Medallions crest's crown shows them the row hides.
+-- Pips.lua: the class-themed combo point row over the plain pips' places, Widgets.ClassPip daggers for a rogue and claws for a cat-form druid, with a glow under the full row; while the Medallions crest's crown shows them the row hides.
 local _, ns = ...
 
 local K = KstyleUI

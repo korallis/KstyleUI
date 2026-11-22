@@ -1,5 +1,5 @@
 -- Base.lua: the widget kit's shared parts: settings, the restyle registry, text, chrome, motion, Escape, placement and sound.
-local addonName, ns = ...
+local _, ns = ...
 
 local Widgets = {}
 ns.Widgets = Widgets
@@ -326,15 +326,8 @@ local STEEL_NAMES = { gilt = "steel", giltLit = "steelLit", giltDim = "steelDim"
 local STEEL_STANDINS = { steel = "muted", steelLit = "textEmphasis", steelDim = "dim", steelFill = "materialFlat", steelEdge = "materialFlatEdge" }
 local steelKnown = {}
 
-function Widgets.Medallions()
-	local hud = ns.HudStyle
-	return hud ~= nil and hud.Current() == "medallions"
-end
-
 function Widgets.ColorName(name)
-	if STEEL_NAMES[name] and Widgets.Medallions() then
-		name = STEEL_NAMES[name]
-	end
+	name = STEEL_NAMES[name] or name
 	local standin = STEEL_STANDINS[name]
 	if standin then
 		local known = steelKnown[name]
@@ -1305,8 +1298,6 @@ function Widgets.InsetUnits(radius, gap)
 	return radius / 2 + BORDER_UNITS + Tokens.Size(gap or INSET_GAP)
 end
 
-local BRACKET_CORNERS = { "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }
-
 local SHAPES = {
 	panel = { radius = "radius", lines = 6, card = true, line = "edgeOuter", shadow = true },
 	card = { radius = "radius", lines = 6, card = true, line = "edgeOuter", shadow = true },
@@ -1928,10 +1919,7 @@ function Chrome:Material()
 				return nil
 			end
 		end
-		if Widgets.Medallions() then
-			return Widgets.SteelMaterial()
-		end
-		return Tokens.Material(Widgets.Setting("cardMaterial"))
+		return Widgets.SteelMaterial()
 	end
 end
 
@@ -1944,37 +1932,13 @@ function Chrome:MaterialOpacity()
 end
 
 function Chrome:SyncMaterialFrame()
-	if not self.fill then
-		return
-	end
-	if not self.frameWanted and not self.materialFrame then
-		if self.gilt and self.steel then
-			ShowOnce(self, "giltState", self.gilt, false)
-		end
-		return
-	end
-	local active = self.frameWanted and self.frameReady
-	local accent = active and (self.ownEdge or self.proc)
-	if self.line then
-		Widgets.ShowSlice(self.line, self.visible and not active)
-	end
-	Widgets.ShowSlice(self.rim, self.visible and not active)
-	if self.materialEdge then
-		Widgets.ShowSlice(self.materialEdge, self.visible and accent and true or false)
-	end
-	if self.materialFrame then
-		Widgets.ShowSlice(self.materialFrame, self.visible and active)
-	end
-	if self.materialBrackets then
-		Widgets.ShowSlice(self.materialBrackets, self.visible and active and self.bracketsWanted)
-	end
-	if self.gilt then
-		ShowOnce(self, "giltState", self.gilt, self.visible and self.ticksShown and not self.steel and not (active and self.bracketsWanted))
+	if self.fill and self.gilt and self.steel then
+		ShowOnce(self, "giltState", self.gilt, false)
 	end
 end
 
 function Chrome:Bevelled()
-	return Widgets.Medallions() and self:Material() ~= nil
+	return self:Material() ~= nil
 end
 
 local function Fade(texture, orientation, r, g, b, from, to)
@@ -2161,9 +2125,6 @@ function Widgets.CardHeader(gem, shown)
 		hooksecurefunc(node, "Hide", function() Widgets.CardHeader(gem, false) end)
 		hooksecurefunc(node, "SetShown", function(_, wanted) Widgets.CardHeader(gem, wanted) end)
 	end
-	if not Widgets.Medallions() then
-		return
-	end
 	for _ = 1, HEADER_DEPTH do
 		if not node then
 			return
@@ -2207,136 +2168,10 @@ function Chrome:SetHeader(units)
 end
 
 function Chrome:PaintMaterial()
-	if not self.fill then
-		return
-	end
-	if self.released then
-		return
-	end
-	local material = self:Material()
-	local steel = material ~= nil and Widgets.Medallions()
-	local framed = self.shape.card and material and material.frame and not steel
-	self.steel = steel
-	self.frameWanted = framed
-	self.bracketsWanted = material and material.brackets and not steel
-	if not framed then
-		self.frameReady = false
-	end
-	self:SyncMaterialFrame()
-	if not material or not material.texture then
-		if self.grain then
-			self.grain:Hide()
-		end
-		return
-	end
-	if self.grain then
-		self.grain:SetShown(self.visible)
-	end
-	if not Widgets.MayMove(self.owner) then
-		if not self.materialQueued then
-			self.materialQueued = true
-			ns.Combat.Queue(function()
-				self.materialQueued = false
-				self:PaintMaterial()
-			end)
-		end
-		return
-	end
-	local owner = self.owner
-	local w, h = owner:GetWidth(), owner:GetHeight()
-	if IsSecret(w) or IsSecret(h) or type(w) ~= "number" or type(h) ~= "number" then
-		return
-	end
-	local inset = Widgets.Snap(owner, self:Radius())
-	local pixel = Scale.Pixel(1) / Widgets.ScaleFactor(owner)
-	local insetY = h < 10 * inset and w > 10 * inset and pixel or inset
-	if framed then
-		local pixels = min(3, max(1, floor(Widgets.Border(owner) / pixel + 0.5)))
-		local name = "forgedFrame" .. pixels
-		if not self.materialFrame then
-			self.materialFrame = NewSlice(owner, name, "BORDER", SUBLEVEL_RIM)
-			for i = 1, #self.materialFrame do
-				Widgets.Crisp(self.materialFrame[i])
-			end
-		elseif self.materialFrame.texture ~= name then
-			PaintSlice(self.materialFrame, name)
-		end
-		self.frameReady = min(w, h) >= 16 * pixels * pixel
-		if self.frameReady then
-			Widgets.LayoutSlice(self.materialFrame, owner, 8 * pixels * pixel, 0)
-			Widgets.ColorSlice(self.materialFrame, Widgets.Rgba("white", min(1, self:MaterialOpacity())))
-			local edge, fresh = self.materialEdge, not self.materialEdge
-			if fresh then
-				edge = {}
-				for i = 1, 4 do
-					edge[i] = Widgets.Crisp(NewTexture(owner, "BORDER", SUBLEVEL_RIM))
-				end
-				self.materialEdge = edge
-			end
-			local band, line = 3 * pixels * pixel, pixels * pixel
-			local top, bottom, left, right = edge[1], edge[2], edge[3], edge[4]
-			for i = 1, 4 do
-				edge[i]:ClearAllPoints()
-			end
-			top:SetPoint("TOPLEFT", owner, "TOPLEFT", band, -band)
-			top:SetPoint("TOPRIGHT", owner, "TOPRIGHT", -band, -band)
-			top:SetHeight(line)
-			bottom:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", band, band)
-			bottom:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -band, band)
-			bottom:SetHeight(line)
-			left:SetPoint("TOPLEFT", owner, "TOPLEFT", band, -band - line)
-			left:SetPoint("BOTTOMLEFT", owner, "BOTTOMLEFT", band, band + line)
-			left:SetWidth(line)
-			right:SetPoint("TOPRIGHT", owner, "TOPRIGHT", -band, -band - line)
-			right:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -band, band + line)
-			right:SetWidth(line)
-			if fresh then
-				self:PaintEdge()
-			end
-		end
-		if material.brackets then
-			if not self.materialBrackets then
-				self.materialBrackets = {}
-				for i = 1, 4 do
-					self.materialBrackets[i] = Widgets.Crisp(NewTexture(owner, "BORDER", SUBLEVEL_GILT))
-				end
-			end
-			for i, corner in ipairs(BRACKET_CORNERS) do
-				local bracket = self.materialBrackets[i]
-				bracket:SetTexture(Tokens.Texture("forgedBracket" .. pixels))
-				bracket:SetVertexColor(Widgets.Rgba("white", min(1, self:MaterialOpacity())))
-				local share = pixels == 3 and 0.75 or 1
-				local left, right = i % 2 == 1 and 0 or share, i % 2 == 1 and share or 0
-				local top, bottom = i <= 2 and 0 or share, i <= 2 and share or 0
-				bracket:SetTexCoord(left, right, top, bottom)
-				bracket:ClearAllPoints()
-				bracket:SetPoint(corner, owner, corner)
-				bracket:SetSize(8 * pixels * pixel, 8 * pixels * pixel)
-				bracket:SetShown(self.visible and min(w, h) >= 16 * pixels * pixel)
-			end
-		end
+	if self.fill and not self.released then
+		self.steel = self:Material() ~= nil
 		self:SyncMaterialFrame()
 	end
-	if w <= 2 * inset or h <= 2 * inset or pixel <= 0 then
-		if self.grain then
-			self.grain:Hide()
-		end
-		return
-	end
-	if not self.grain then
-		self.grain = NewTexture(owner, "BACKGROUND", SUBLEVEL_FILL + 1)
-		self.grain:SetBlendMode("BLEND")
-	end
-	self.grain:ClearAllPoints()
-	self.grain:SetPoint("TOPLEFT", owner, "TOPLEFT", inset, -insetY)
-	self.grain:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", -inset, insetY)
-	if self.grain:SetTexture(Tokens.Texture((Widgets.TextureName(material.texture))), "REPEAT", "REPEAT") == false then
-		self.grain:Hide()
-		return
-	end
-	self.grain:SetTexCoord(0, (w - 2 * inset) / pixel / material.texels, 0, (h - 2 * insetY) / pixel / material.texels)
-	self.grain:SetVertexColor(Widgets.Rgba("white", min(1, material.grain * self:MaterialOpacity())))
-	self.grain:SetShown(self.visible)
 end
 
 function Chrome:Paint(skipEdge)
@@ -2355,7 +2190,7 @@ function Chrome:Paint(skipEdge)
 	end
 	local material = self:Material()
 	if material and material.fill then
-		r, g, b, a = Widgets.Rgba(Widgets.Medallions() and self.steelFill or material.fill)
+		r, g, b, a = Widgets.Rgba(self.steelFill or material.fill)
 		a = self.popup and 1 or min(1, a * self:MaterialOpacity())
 	end
 	self.fillAlpha = a
@@ -2365,7 +2200,7 @@ function Chrome:Paint(skipEdge)
 		ShowOnce(self, "shadowState", self.shadow, self.visible and self.shadowOn and Widgets.Setting("shadows"))
 	end
 	if self.gilt then
-		ShowOnce(self, "giltState", self.gilt, self.visible and self.ticksShown and not self.steel and not (self.frameReady and material and material.brackets))
+		ShowOnce(self, "giltState", self.gilt, self.visible and self.ticksShown and not self.steel)
 	end
 	if not skipEdge then
 		self:PaintEdge()
@@ -2395,9 +2230,6 @@ function Chrome:PaintEdge()
 		return
 	end
 	local r, g, b, a = e[1], e[2], e[3], e[4]
-	if self.frameWanted and self.frameReady and self.proc then
-		r, g, b, a = Widgets.Rgba("giltLit")
-	end
 	Widgets.ColorSlice(self.rim, r, g, b, a)
 	if bevelled and not self.ownEdge and not self.proc then
 		local lr, lg, lb, la = Widgets.Rgba("medRimLit")
@@ -2412,9 +2244,6 @@ function Chrome:PaintEdge()
 		local mr, mg, mb, ma = (lr + dr) / 2, (lg + dg) / 2, (lb + db) / 2, (la + da) / 2
 		rim[4]:SetVertexColor(mr, mg, mb, ma)
 		rim[6]:SetVertexColor(mr, mg, mb, ma)
-	end
-	if self.materialEdge then
-		Widgets.ColorSlice(self.materialEdge, r, g, b, a)
 	end
 	self:PaintBevel()
 end
@@ -2557,9 +2386,6 @@ function Chrome:SetShown(shown)
 	if self.ornament then
 		self:RestyleOrnament()
 	end
-	if self.grain then
-		self:PaintMaterial()
-	end
 	Widgets.ShowSlice(self.fill, shown)
 	Widgets.ShowSlice(self.rim, shown)
 	if self.line then
@@ -2573,10 +2399,6 @@ function Chrome:SetShown(shown)
 		ShowOnce(self, "shadowState", self.shadow, self.visible and self.shadowOn and Widgets.Setting("shadows"))
 	end
 	self:PaintMaterial()
-	local material = self:Material()
-	if self.gilt and self.frameReady and material and material.brackets then
-		ShowOnce(self, "giltState", self.gilt, false)
-	end
 end
 
 local function SetHover(widget, t)
@@ -2720,20 +2542,6 @@ ns.Callbacks.Register("ScaleChanged", SECTION, function()
 end)
 ns.Callbacks.Register("ProfileChanged", SECTION, Widgets.RestyleAll)
 
-local painted = Widgets.Medallions()
-ns.Events.Register("Widgets.Steel", "ADDON_LOADED", function(_, name)
-	if name == addonName and ns.Store.IsLoaded() then
-		ns.Events.Unregister("Widgets.Steel", "ADDON_LOADED")
-		painted = Widgets.Medallions()
-	end
-end)
-ns.Callbacks.Register("HudStyleChanged", SECTION, function()
-	local medallions = Widgets.Medallions()
-	if medallions ~= painted then
-		painted = medallions
-		ns.Callbacks.Fire("ThemeChanged")
-	end
-end)
 ns.Callbacks.Register("SettingChanged", SECTION, function(_, module, key)
 	if module == SECTION or (module == "Appearance" and key == "motion") then
 		Widgets.RestyleAll()

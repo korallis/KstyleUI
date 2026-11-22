@@ -313,17 +313,15 @@ function ns.Schema()
 		{ type = "dropdown", key = "strip.placement", label = L["Position"], help = L["Top docks to the slab in Medallions. Dock follows the action bars. Rail is the old readout."], options = {
 			{ value = "top", label = L["Top"] }, { value = "dock", label = L["Docked under the action bars"] }, { value = "rail", label = L["Right rail"] },
 		} },
-		{ type = "slider", key = "strip.height", label = L["Height"], help = L["The height of the top data bar."], min = 12, max = 32, step = 1 },
-		{ type = "dropdown", key = "strip.artwork", label = L["Data bar artwork"], help = L["Forged trim and a crest gem, or a plain glass plate."], showWhen = function(settings) return settings.strip.placement == "top" or settings.strip.placement == "dock" and Widgets.Medallions() end, options = {
+		{ type = "dropdown", key = "strip.artwork", label = L["Data bar artwork"], help = L["Forged trim and a crest gem, or a plain glass plate."], showWhen = function(settings) return settings.strip.placement ~= "rail" end, options = {
 			{ value = "forged", label = L["Forged"] }, { value = "plain", label = L["Plain"] },
 		} },
 		{ type = "slider", key = "strip.background", label = L["Background"], help = L["The opacity of the top bar's background and the Medallions dock's plates."], min = 0, max = 100, step = 1 },
 	}
 	stripRows[#stripRows + 1] = { type = "toggle", key = "strip.dockMeter", label = L["Dock readouts to the meter"], help = L["Place the data strip beside the damage meter title. Off returns it to its own position."] }
-	for _, key in ipairs({ "modules", "dockModules", "railModules" }) do
-		local dock = key == "dockModules"
+	for _, key in ipairs({ "dockModules", "railModules" }) do
 		stripRows[#stripRows + 1] = { type = "order", key = "strip." .. key, label = L["Modules"], help = L["Switch modules on, choose their zones and move them up or down."], options = moduleOptions, showWhen = function(settings)
-			return settings.strip.placement == "rail" and key == "railModules" or settings.strip.placement ~= "rail" and key ~= "railModules" and dock == Widgets.Medallions()
+			return (settings.strip.placement == "rail") == (key == "railModules")
 		end }
 	end
 	for _, row in ipairs({
@@ -626,12 +624,12 @@ function ns.Preview(...)
 			end
 			local s = setmetatable({ orientation = "HORIZONTAL" }, { __index = settings.strip })
 			local sample, samples = self.strip, StripSamples(s)
-			local height = s.placement == "top" and not Widgets.Medallions() and s.height or PREVIEW_STRIP
+			local height = PREVIEW_STRIP
 			local available = Width(self) or Width(parent) or PREVIEW_FALLBACK_WIDTH
 			sample.paintColor = nil
 			sample.frame:SetScale(1)
 			sample.frame:SetSize(available, height)
-			sample.deco = Widgets.Medallions() and K.Setup.Layouts.DataBarDock() ~= nil
+			sample.deco = K.Setup.Layouts.DataBarDock() ~= nil
 			Strip.Paint(sample, s, samples)
 			local needed = Widgets.Snap(sample.frame, (sample.contentWidth or 0) + 2 * PREVIEW_STRIP_PAD)
 			local scale = needed > available and available / needed or 1

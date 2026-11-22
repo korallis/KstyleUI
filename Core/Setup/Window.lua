@@ -8,12 +8,11 @@ local L = ns.L
 local max, min = math.max, math.min
 
 local WIDTH, HEIGHT = 760, 540
-local STEPS = 6
+local STEPS = 5
 local STRIP_HEIGHT = 32
 local FOOTER_HEIGHT = 28
 local CARD_HEIGHT = 120
 local ORNAMENT_CARD_HEIGHT = 64
-local STYLE_PICTURE_SHARE = 0.5
 local REFERENCE_HEIGHT = ns.Setup.Layouts.HEIGHT
 local REFERENCE_WIDTH = REFERENCE_HEIGHT * 16 / 9
 local LABEL_ROOM = 2
@@ -22,7 +21,7 @@ local PREVIEW_FALLBACK, LEGEND_WIDTH = 260, 240
 local ROW_HEIGHT = 44
 local NOTE_SIZE = 11
 local LAYOUT_PICTURE_WIDTH, LAYOUT_PICTURE_HEIGHT = 180, 90
-local LAYOUT_PICTURE_PATH = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Layout"
+local LAYOUT_PICTURE_PATH = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\LayoutMedallions"
 local ROWS_PER_COLUMN = 8
 local HEADER_HEIGHT = 32
 local ELEMENT_ALPHA, ROLE_ALPHA = 0.22, 0.5
@@ -32,17 +31,7 @@ local WINDOW_KEY = "setup.window"
 local WINDOW_POSITION = { anchor = "CENTER", x = 0, y = 40 }
 local SKIP_IN_PREVIEW = { ["groupframes.raid"] = true }
 local STORY = { label = L["Story rail"], short = L["Quests"] }
-local STEP_LABELS = { L["Welcome"], L["HUD style"], L["Layout"], L["Modules"], L["Ornaments"], L["Summary"] }
-local STYLES = {
-	{ value = "frames", label = L["Frames"], note = L["Your health and resource on the player frame above the action bars."], picture = "hudStyleFrames" },
-	{ value = "orbs", label = L["Orbs"], note = L["Your health and resource in two orbs either side of the action bars."], picture = "hudStyleOrbs" },
-	{ value = "medallions", label = L["Medallions"], note = L["Round portraits on your unit frames and a hub in the middle of one long action slab."], picture = "hudStyleMedallions" },
-}
-for i = #STYLES, 1, -1 do
-	if not ns.HudStyle.Offered(STYLES[i].value) then
-		table.remove(STYLES, i)
-	end
-end
+local STEP_LABELS = { L["Welcome"], L["Layout"], L["Modules"], L["Ornaments"], L["Summary"] }
 
 local panel
 local step, reached, applied, open = 0, 1, false, false
@@ -155,7 +144,7 @@ local function Select(cards, value)
 	end
 end
 
-local FitStyles, PlaceSummary, PlaceLayouts, PlaceModules
+local PlaceSummary, PlaceLayouts, PlaceModules
 
 function Setup.RestyleText(frame, skip)
 	if frame == skip then return end
@@ -178,8 +167,6 @@ local function Refresh()
 	panel.later:SetShown(step == STEPS and applied)
 	Select(panel.cards, choice.layout)
 	Select(panel.ornamentCards, choice.ornaments)
-	Select(panel.styleCards, choice.hudStyle)
-	FitStyles()
 	PlaceLayouts()
 	if not panel.preview.hovered then
 		panel.preview:Draw(choice.layout)
@@ -193,13 +180,7 @@ local function Refresh()
 			end
 		end
 		local ornaments = Setup.Ornament(choice.ornaments)
-		local style = STYLES[1].label
-		for _, entry in ipairs(STYLES) do
-			if entry.value == choice.hudStyle then
-				style = entry.label
-			end
-		end
-		local lead = string.format(L["HUD style: %s."], style) .. "\n" .. string.format(L["Layout: %s."], Layouts.Label(choice.layout))
+		local lead = string.format(L["Layout: %s."], Layouts.Label(choice.layout))
 		local head = lead .. "\n" .. string.format(L["Ornaments: %s. %s"], ornaments.label, ornaments.note) .. "\n\n"
 		local tail = #off > 0 and "\n" .. L["Off: "] .. table.concat(off, ", ") or ""
 		local modules = string.format(L["Modules on: %d of %d."], #on, #on + #off)
@@ -296,11 +277,10 @@ end
 
 local function WelcomeSteps(page)
 	local addons = #Setup.Choice().addons > 0
-	Widgets.SetText(page.caption, addons and L["Six steps"] or L["Five steps"])
-	page.list:SetText((ns.HudStyle.Offered("medallions") and L["1. Pick a HUD style: Frames, Orbs or Medallions."] or L["1. Pick a HUD style: Frames or Orbs."])
-		.. "\n" .. L["2. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["3. Choose the modules you want."]
-		.. "\n" .. (addons and L["4. Choose how KstyleUI works with your addons."] .. "\n" .. L["5. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["6. Apply, then reload."]
-			or L["4. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["5. Apply, then reload."]))
+	Widgets.SetText(page.caption, addons and L["Five steps"] or L["Four steps"])
+	page.list:SetText(L["1. Pick a layout: DPS, Tank or Healer."] .. "\n" .. L["2. Choose the modules you want."]
+		.. "\n" .. (addons and L["3. Choose how KstyleUI works with your addons."] .. "\n" .. L["4. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["5. Apply, then reload."]
+			or L["3. Pick the ornaments: Off, Subtle or Full."] .. "\n" .. L["4. Apply, then reload."]))
 end
 
 local function BuildClassicWelcome(page)
@@ -346,29 +326,11 @@ local function BuildBrandedWelcome(page)
 	version:SetText(type(ns.VERSION) == "string" and not ns.VERSION:find("@", 1, true) and ns.VERSION or "")
 	local body = Paragraph(hero, "body", "text", width - 112)
 	Widgets.Point(body, "TOPLEFT", title, "BOTTOMLEFT", 0, -gutter)
-	body:SetText(L["Dark forged chrome for the whole game."] .. "\n" .. L["Three HUDs. One setup. Every screen."])
-	local pictures = CreateFrame("Frame", nil, page)
-	Widgets.Point(pictures, "TOPLEFT", hero, "BOTTOMLEFT", 0, -gutter)
-	Widgets.Size(pictures, width, 104)
-	for i, style in ipairs(STYLES) do
-		local card = CreateFrame("Frame", nil, pictures)
-		local cardWidth = (width - gutter * (#STYLES - 1)) / #STYLES
-		Widgets.Size(card, cardWidth, 104)
-		Widgets.Point(card, "TOPLEFT", pictures, "TOPLEFT", (i - 1) * (cardWidth + gutter), 0)
-		card.chrome = Widgets.Chrome(card, { shape = "tile", fill = "buttonFill", shadow = false })
-		local picture = card:CreateTexture(nil, "ARTWORK")
-		picture:SetTexture((Tokens.Texture(style.picture)))
-		Widgets.Size(picture, 152, 76)
-		Widgets.Point(picture, "TOP", card, "TOP", 0, -2)
-		local label = Widgets.Text(card, "caps", "capsGold")
-		Widgets.CapsSize(label)
-		Widgets.Point(label, "BOTTOM", card, "BOTTOM", 0, gutter)
-		Widgets.SetText(label, style.label)
-	end
+	body:SetText(L["Dark forged chrome for the whole game."] .. "\n" .. L["One HUD. One setup. Every screen."])
 	local features = Paragraph(page, "body", "text", width * 0.51 - pad)
-	Widgets.Point(features, "TOPLEFT", pictures, "BOTTOMLEFT", pad, -gap("gapLarge"))
+	Widgets.Point(features, "TOPLEFT", hero, "BOTTOMLEFT", pad, -gap("gapLarge"))
 	features:SetText(L["Pixel-perfect from laptop to ultrawide."] .. "\n"
-		.. L["Three HUDs. DPS, Tank and Healer layouts."] .. "\n"
+		.. L["DPS, Tank and Healer layouts."] .. "\n"
 		.. L["Unit frames, nameplates, raids, bags, tooltips, meter and skins."] .. "\n"
 		.. L["/kb: bind keys by hovering over a button."] .. "\n"
 		.. L["Layout Mode and shareable profiles."] .. "\n"
@@ -376,13 +338,13 @@ local function BuildBrandedWelcome(page)
 	features:SetSpacing(Widgets.Snap(page, 3))
 	local caption = Widgets.Text(page, "caps", "capsGold")
 	Widgets.CapsSize(caption)
-	Widgets.Point(caption, "TOPLEFT", pictures, "BOTTOMLEFT", width * 0.53, -gap("gapLarge"))
+	Widgets.Point(caption, "TOPLEFT", hero, "BOTTOMLEFT", width * 0.53, -gap("gapLarge"))
 	local list = Paragraph(page, "body", "textEmphasis", width * 0.47 - pad)
 	Widgets.Point(list, "TOPLEFT", caption, "BOTTOMLEFT", 0, -gutter)
 	local note = Paragraph(page, "body", "text", width - pad * 2)
 	Widgets.Point(note, "BOTTOMLEFT", page, "BOTTOMLEFT", pad, gutter)
 	note:SetText(L["Close this window and KstyleUI applies the DPS layout with every module on and Full ornaments. Keep my UI leaves the game's own interface as it is."])
-	page.hero, page.pictures, page.features, page.caption, page.list = hero, pictures, features, caption, list
+	page.hero, page.features, page.caption, page.list = hero, features, caption, list
 	WelcomeSteps(page)
 	page.title, page.note, page.body, page.version = title, note, body, version
 	return title, note
@@ -440,7 +402,7 @@ local function BuildWelcome(page)
 		local cap = Widgets.LineHeight(branded.caption)
 		Widgets.Size(branded.hero, branded.hero:GetWidth(), max(92, pad * 2 + Widgets.LineHeight(branded.title) + gutter + Widgets.WrappedHeight(branded.body, branded.body:GetWidth())))
 		local lower = max(Widgets.WrappedHeight(branded.features, branded.features:GetWidth()), cap + gutter + Widgets.WrappedHeight(branded.list, branded.list:GetWidth()))
-		local height = branded.hero:GetHeight() + gutter + branded.pictures:GetHeight() + pad + lower + pad
+		local height = branded.hero:GetHeight() + pad + lower + pad
 		if branded.note:IsShown() then
 			height = height + Widgets.WrappedHeight(branded.note, branded.note:GetWidth()) + gutter
 		end
@@ -751,12 +713,11 @@ end
 
 PlaceLayouts = function()
 	local pictures = ns.Store.Module("Setup").layoutPictures
-	local style = Setup.Choice().hudStyle
 	local pad, spacing = gap("gapLarge"), gap("gapSmall")
 	local height = CARD_HEIGHT
 	for name, card in pairs(panel.cards) do
 		card.picture:SetShown(pictures)
-		card.picture:SetTexture(LAYOUT_PICTURE_PATH .. style:sub(1, 1):upper() .. style:sub(2) .. name .. ".tga")
+		card.picture:SetTexture(LAYOUT_PICTURE_PATH .. name .. ".tga")
 		card.title:ClearAllPoints()
 		Widgets.Point(card.title, "TOPLEFT", card, "TOPLEFT", pad, -(pictures and pad + LAYOUT_PICTURE_HEIGHT + spacing or pad))
 		height = max(height, (pictures and LAYOUT_PICTURE_HEIGHT + spacing or 0) + 2 * pad + Widgets.LineHeight(card.title) + spacing + Widgets.WrappedHeight(card.note, card:GetWidth() - 2 * pad))
@@ -766,9 +727,9 @@ PlaceLayouts = function()
 	panel.previewName:SetShown(not pictures)
 	panel.layoutHint:ClearAllPoints()
 	if pictures then
-		Widgets.Point(panel.layoutHint, "TOPLEFT", panel.pages[3], "TOPLEFT", 0, -(height + gap("gapLarge")))
+		Widgets.Point(panel.layoutHint, "TOPLEFT", panel.pages[2], "TOPLEFT", 0, -(height + gap("gapLarge")))
 		panel.layoutHint:SetWidth(panel.preview.pageWidth)
-		panel.layoutHint:SetText(L["Choose DPS, Tank or Healer. Each picture shows your chosen HUD style; you can move and resize everything later in Layout Mode."])
+		panel.layoutHint:SetText(L["Choose DPS, Tank or Healer. You can move and resize everything later in Layout Mode."])
 	else
 		Widgets.Point(panel.layoutHint, "TOPLEFT", panel.previewName, "BOTTOMLEFT", 0, -gap("gapMedium"))
 		panel.layoutHint:SetText(L["The bright blocks change with the role. The outlined space on the right rail, under the map, is the Story rail: Apply places the quest tracker there through Edit Mode, and Window skins put the RestedXP guide above it."]
@@ -834,7 +795,7 @@ end
 PlaceModules = function()
 	local column = panel.moduleBody:GetWidth() / 2
 	local top = ns.Store.Module("Setup").readableNotes and max(HEADER_HEIGHT, Widgets.WrappedHeight(panel.moduleNote, panel.moduleNote:GetWidth())) or HEADER_HEIGHT
-	Widgets.Fill(panel.moduleScroll, panel.pages[4], 0, top + gap("gapMedium"), 0, 0)
+	Widgets.Fill(panel.moduleScroll, panel.pages[3], 0, top + gap("gapMedium"), 0, 0)
 	local function Place(least)
 		local heights = { 0, 0 }
 		for i, entry in ipairs(Setup.PICKER) do
@@ -857,47 +818,6 @@ PlaceModules = function()
 	panel.moduleBody:SetHeight(height)
 	panel.moduleScroll:SetVerticalScroll(max(0, min(panel.moduleScroll:GetVerticalScroll() or 0, panel.moduleBody:GetHeight() - panel.moduleScroll:GetHeight())))
 	panel.moduleBar.Place()
-end
-
-local function BuildStyles(page, width)
-	local spacing = gap("gapLarge")
-	local cardWidth = math.floor((width - spacing * (#STYLES - 1)) / #STYLES)
-	local pad = gap("gapLarge")
-	local pictureWidth = cardWidth - 2 * pad
-	local pictureHeight = Widgets.Snap(page, pictureWidth * STYLE_PICTURE_SHARE)
-	panel.styleCards = {}
-	for i, entry in ipairs(STYLES) do
-		local value = entry.value
-		local card = NewCard(page, cardWidth, pictureHeight + 2 * pad, entry.label, entry.note, function()
-			Setup.Choice().hudStyle = value
-		end)
-		card.hudStyle = value
-		card.picture = card:CreateTexture(nil, "ARTWORK")
-		card.picture:SetTexture((Tokens.Texture(entry.picture)))
-		card.picture:SetSize(Widgets.Snap(card, pictureWidth), pictureHeight)
-		Widgets.Point(card.picture, "TOP", card.note, "BOTTOM", 0, -gap("gapMedium"))
-		Widgets.Point(card.picture, "LEFT", card, "LEFT", pad, 0)
-		Widgets.Point(card, "TOPLEFT", page, "TOPLEFT", (i - 1) * (cardWidth + spacing), 0)
-		panel.styleCards[value] = card
-	end
-	local hint = Paragraph(page, "body", "text", width, "body")
-	hint:SetText(L["Change it at any time in the settings window, at the top of the General page. A change made in combat waits until combat ends."])
-	panel.styleHint = hint
-	panel.styleFit = { width = cardWidth, picture = pictureHeight, pad = pad, spacing = spacing }
-end
-
-FitStyles = function()
-	local fit, page = panel.styleFit, panel.pages[2]
-	local height = 0
-	for _, card in pairs(panel.styleCards) do
-		local text = Widgets.LineHeight(card.title) + gap("gapSmall") + Widgets.WrappedHeight(card.note, fit.width - 2 * fit.pad)
-		height = max(height, fit.pad + text + gap("gapMedium") + fit.picture + fit.pad)
-	end
-	for _, card in pairs(panel.styleCards) do
-		Widgets.Size(card, fit.width, height)
-	end
-	panel.styleHint:ClearAllPoints()
-	Widgets.Point(panel.styleHint, "TOPLEFT", page, "TOPLEFT", 0, -(Widgets.Snap(page, height) + fit.spacing))
 end
 
 local function BuildOrnaments(page, width)
@@ -1101,14 +1021,13 @@ local function Build()
 		panel.pages[i] = page
 	end
 	BuildWelcome(panel.pages[1])
-	BuildStyles(panel.pages[2], width)
-	BuildLayouts(panel.pages[3], width)
-	BuildModules(panel.pages[4], width)
-	BuildOrnaments(panel.pages[5], width)
-	BuildSummary(panel.pages[6], width)
-	panel.ornamentPage, panel.summaryPage = panel.pages[5], panel.pages[6]
+	BuildLayouts(panel.pages[2], width)
+	BuildModules(panel.pages[3], width)
+	BuildOrnaments(panel.pages[4], width)
+	BuildSummary(panel.pages[5], width)
+	panel.ornamentPage, panel.summaryPage = panel.pages[4], panel.pages[5]
 	panel.addonsPage = CreateFrame("Frame", nil, content)
-	Widgets.Fill(panel.addonsPage, panel.pages[4])
+	Widgets.Fill(panel.addonsPage, panel.pages[3])
 	panel.addonsPage:Hide()
 	panel.addons = Setup.AddonsPage(panel.addonsPage, width, Changed)
 	panel.back = Widgets.Button(content, { text = L["Back"], onClick = function() Setup.Go(step - 1) end })
@@ -1156,13 +1075,13 @@ function Setup.ShowWindow()
 		panel.pages[i]:Hide()
 	end
 	local addons = #Setup.Choice().addons > 0
-	STEPS = addons and 7 or 6
-	panel.pages[5] = addons and panel.addonsPage or panel.ornamentPage
-	panel.pages[6] = addons and panel.ornamentPage or panel.summaryPage
-	panel.pages[7] = addons and panel.summaryPage or nil
+	STEPS = addons and 6 or 5
+	panel.pages[4] = addons and panel.addonsPage or panel.ornamentPage
+	panel.pages[5] = addons and panel.ornamentPage or panel.summaryPage
+	panel.pages[6] = addons and panel.summaryPage or nil
 	local tabs = {}
 	for i, label in ipairs(STEP_LABELS) do
-		if addons and i == 5 then tabs[#tabs + 1] = { value = 5, label = L["Your addons"], disabled = true } end
+		if addons and i == 4 then tabs[#tabs + 1] = { value = 4, label = L["Your addons"], disabled = true } end
 		tabs[#tabs + 1] = { value = #tabs + 1, label = label, disabled = i > 1 }
 	end
 	panel.steps:SetTabs(tabs, 1)
