@@ -24,7 +24,7 @@ for _, item in ipairs(scene.items) do
 	end
 end
 assert(buffX["8s"] and buffX["14s"] and buffX["8s"] < buffX["14s"], "the configured tracked buffs read 8s then 14s from left to right beside the portrait")
-for _, text in ipairs({ "Windfield Orchard", "[11] Unnerving Silence", "[9] Crab Season", "Lightning Bolt", "203", "Korallis", "Shadowgale Poacher" }) do
+for _, text in ipairs({ "Windfield Orchard", "[11] Unnerving Silence", "[9] Crab Season", "Lightning Bolt", "203 / 237", "Korallis", "Shadowgale Poacher" }) do
 	local found = texts[text]
 	if not found then
 		for seen in pairs(texts) do
@@ -112,13 +112,14 @@ do
 	assert(math.abs(tall - 469) <= 1.5, "the quest card's own glass is 469 pixels tall, within a pixel, got " .. tall)
 end
 
--- The picture's bars are on: bar 2 over bar 1 and bars 4 and 5 as the right-hand columns; the Layout rects are kept for
+-- The picture's bars are on: bar 2 beside bar 1 and bars 4 and 5 as the right-hand columns; the Layout rects are kept for
 -- handoffs/reference-diff/DIFF.md's measurements.
 local elements = assert(scene.elements, "the scene keeps the Layout elements' rects")
 for _, key in ipairs({ "actionbars.bar1", "actionbars.bar2", "actionbars.bar4", "actionbars.bar5", "unitframes.player", "unitframes.target", "minimap.main", "meters.damage", "chat.main", "databars.xp" }) do
 	assert(elements[key], "the scene measures " .. key)
 end
-assert(elements["actionbars.bar2"].bottom > elements["actionbars.bar1"].bottom, "bar 2 stands over bar 1")
+local bar1, bar2 = elements["actionbars.bar1"], elements["actionbars.bar2"]
+assert(bar2.left > bar1.left + bar1.width and math.abs(bar2.bottom - bar1.bottom) < 0.01, "bar 2 stands beside bar 1, either side of the Medallions hub")
 
 dofile("Tools/regression/render_reference_lib.lua")("DPS", scene)
 rawset(_G, "RENDER_SCREEN", { width = 1280, height = 720, size = 0.6 })
@@ -158,8 +159,18 @@ end
 do
 	local card = scene.elements["chat.main"]
 	local right = (card.left + card.width) * 16 / 19
+	-- The steel card's own edge line, rim and bevel are a pixel or two wide: they are the card, not a line on it.
+	local own = {}
+	for _, drawn in ipairs(dofile("Tools/regression/hud_material_lib.lua").Cards(scene)) do
+		if drawn.role == "chat.main" then
+			for _, items in pairs(drawn.drawn) do
+				for _, item in ipairs(items) do own[item] = true end
+			end
+		end
+	end
+	assert(next(own), "the chat card's steel chrome is found")
 	for _, item in ipairs(scene.items) do
-		if item.kind == "texture" and (item.alpha or 1) > 0 then
+		if item.kind == "texture" and (item.alpha or 1) > 0 and not own[item] then
 			local x, y, w, h = item.rect[1], item.rect[2], item.rect[3], item.rect[4]
 			local inside = x >= right - 60 and x + w <= right + 1 and y >= scene.screen.height - (card.bottom + card.height) * 16 / 19 and y + h <= scene.screen.height - card.bottom * 16 / 19 + 1
 			-- A line is at most 2 units wide here; the card's own side pieces, 5 pixels with one-pixel borders, are wider.

@@ -21,7 +21,7 @@ do
 	assert(own.settings.ActionBars.bar2.enabled == false, "a scene's explicit bar 2 opt-out wins")
 end
 
--- Every class: the player's health fill uses the reference's fixed blue, the power fill reads the class's power at its
+-- Every class: the player's slab health fill uses the class colour, the power fill reads the class's power at its
 -- fraction, the cast bar names the class's cast (none for the rogue), the bars, the cluster, the buff bars and
 -- the buff row show that class's spells from set B, the warrior and the druid get a stance bar, the hunter and
 -- the warlock a pet frame and a pet bar, the rogue combo points.
@@ -31,8 +31,7 @@ for _, class in ipairs(Classes.ORDER) do
 	local tag = "hud." .. class
 	local uf = check(tag .. ".unitframes", (Hud.Module("unitframes", { class = class, settings = { UnitFrames = { player = { powerSeparate = false } } } })))
 	local Kuf = Hud.envs[uf].KstyleUI
-	local healthColour = { Kuf.Tokens.Color("hudPlayerHealth") }
-	local manaColour = { Kuf.Tokens.Color("hudMana") }
+	local healthColour = { Kuf.Theme.ClassColorForWidget(class) }
 	local function rampOf(item, r, g, b, kind)
 		local painted = item.gradient
 		if not (painted and painted.orientation == "VERTICAL" and painted.to and painted.from) then
@@ -42,14 +41,7 @@ for _, class in ipairs(Classes.ORDER) do
 		if not topR then
 			return false
 		end
-		if sameColour(painted.to, { topR, topG, topB }) and sameColour(painted.from, { botR, botG, botB }) then
-			return true
-		end
-		if kind ~= "power" or sameColour(painted.to, painted.from) then
-			return false
-		end
-		local mid = { (painted.to[1] + painted.from[1]) / 2, (painted.to[2] + painted.from[2]) / 2, (painted.to[3] + painted.from[3]) / 2 }
-		return sameColour(mid, { (topR + botR) / 2, (topG + botG) / 2, (topB + botB) / 2 })
+		return sameColour(painted.to, { topR, topG, topB }) and sameColour(painted.from, { botR, botG, botB })
 	end
 	-- The player frame paints its power bar in the power type's colour (the owner's ruling of 2026-11-08: mana
 	-- blue, rage red, energy yellow, PowerBarColor lifted by Theme.Brighten, so every channel is at least the
@@ -84,8 +76,7 @@ for _, class in ipairs(Classes.ORDER) do
 			local rampedOther = painted and painted.orientation == "VERTICAL" and painted.to and painted.from
 				and brightened(painted.to, powerColour)
 				and painted.from[1] <= painted.to[1] + 1e-3 and painted.from[2] <= painted.to[2] + 1e-3 and painted.from[3] <= painted.to[3] + 1e-3
-			local powerMatch = spec.power.token == "MANA" and (sameColour(item.vertex, manaColour) or rampOf(item, manaColour[1], manaColour[2], manaColour[3], "power"))
-				or (spec.power.token ~= "MANA" and (brightened(item.vertex, powerColour) or rampedOther))
+			local powerMatch = brightened(item.vertex, powerColour) or rampedOther
 			local classFill = item.gradient and item.gradient.to or item.vertex
 			if near(item.fraction, spec.power.value / spec.power.max) and item.rect[4] < 10 and powerMatch and not sameColour(classFill, spec.colour) then
 				power = true
@@ -95,7 +86,7 @@ for _, class in ipairs(Classes.ORDER) do
 			end
 		end
 	end
-	assert(health, tag .. ": the player's health fill uses hudPlayerHealth at the player's health fraction")
+	assert(health, tag .. ": the player's slab health fill uses the class colour at the player's health fraction")
 	assert(power, tag .. ": the power fill reads " .. spec.power.token .. " at " .. spec.power.value .. "/" .. spec.power.max .. " in the power type's colour")
 	local ufTexts = collect(uf)
 	assert(ufTexts[spec.name:upper()], tag .. ": the player's name reads " .. spec.name:upper())
@@ -109,10 +100,13 @@ for _, class in ipairs(Classes.ORDER) do
 		assert(ufTexts[spec.pet.name:upper()] or ufTexts[spec.pet.name], tag .. ": the pet frame reads " .. spec.pet.name .. " whole")
 		assert(petHealth, tag .. ": the pet frame fills its health at " .. spec.pet.health .. "/" .. spec.pet.healthMax .. " in the reaction colour")
 	end
+
+	local ab = check(tag .. ".actionbars", (Hud.Module("actionbars", { class = class })))
+	local _, abFiles = collect(ab)
 	if spec.combo then
 		local pips = 0
-		for _, item in ipairs(uf.items) do
-			-- A lit class-themed pip draws its class's art (PipBlade90.png, PipClaw90.png) on a full one-point bar.
+		for _, item in ipairs(ab.items) do
+			-- The Medallions crest's crown: a lit class-themed pip draws its class's art (PipBlade90.png, PipClaw90.png) on a full one-point bar.
 			local file = tostring(item.file)
 			if item.kind == "texture" and item.bar and near(item.fraction, 1) and (file:find("/PipBlade%d+%.png$") or file:find("/PipClaw%d+%.png$")) then
 				pips = pips + 1
@@ -120,9 +114,6 @@ for _, class in ipairs(Classes.ORDER) do
 		end
 		assert(pips == spec.combo, tag .. ": " .. spec.combo .. " combo points lit, got " .. pips)
 	end
-
-	local ab = check(tag .. ".actionbars", (Hud.Module("actionbars", { class = class })))
-	local _, abFiles = collect(ab)
 	for _, slot in ipairs({ spec.bar1[1], spec.bar1[#spec.bar1], spec.bar2[1], spec.bar2[#spec.bar2] }) do
 		assert(abFiles[setB(slot[2])], tag .. ": the bars show " .. slot[1])
 	end
