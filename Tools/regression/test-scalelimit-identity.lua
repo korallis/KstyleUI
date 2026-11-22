@@ -50,8 +50,9 @@ local function Check(name, screen, enabled)
 		for _, shown in ipairs({ false, true }) do
 			local rootHeight = 1080 / old
 			local rootWidth = width / (height / rootHeight)
-			assert(Same(Before.Story(name, rootHeight, guide, "medallions", rootWidth, shown),
-				Layouts.Story(name, rootHeight, guide, rootWidth)), label .. ": preserve every public Story card field")
+			local was, now = Before.Story(name, rootHeight, guide, "medallions", rootWidth, shown), Layouts.Story(name, rootHeight, guide, rootWidth)
+			assert(Same(was.quests, now.quests), label .. ": preserve every public quest card field")
+			assert(not guide or now.slot == was.guide.height, label .. ": the free story slot keeps the height the guide card had there")
 		end
 	end
 	local cached, fits = Layouts.ScaleLimit(width, height, name, enabled)
@@ -79,10 +80,10 @@ for _, name in ipairs(Layouts.Names()) do
 			for _, guide in ipairs({ false, true }) do
 				local old = Before.Story(name, rootHeight, guide, "medallions", rootWidth or nil)
 				local new = Layouts.Story(name, rootHeight, guide, rootWidth or nil)
-				assert(Same(old, new), name .. ": preserve Story with nil width and at the rail threshold " .. tostring(rootWidth))
+				assert(Same(old.quests, new.quests) and (not guide or new.slot == old.guide.height), name .. ": preserve Story with nil width and at the rail threshold " .. tostring(rootWidth))
 				local snapshot = Before.Story(name, rootHeight, guide, "medallions", rootWidth or nil)
 				local again = Layouts.Story(name, rootHeight, not guide, rootWidth or nil)
-				assert(new ~= again and new.quests ~= again.quests and Same(new, snapshot),
+				assert(new ~= again and new.quests ~= again.quests and Same(new.quests, snapshot.quests),
 					"public Story calls return independent cards and leave earlier results unchanged")
 			end
 		end

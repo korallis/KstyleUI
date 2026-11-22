@@ -24,7 +24,6 @@ return Common.Run(function()
 	if Common.PreviousFinish() then
 		K.Options.Write("DataBars", "strip.dockMeter", false)
 		K.Options.Write("Meters", "fitCards", false)
-		K.Options.Write("Meters", "threat.followGuide", false)
 	end
 	K.Modules.Enable("DataBars")
 	K.Modules.Enable("Meters")

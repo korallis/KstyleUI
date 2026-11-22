@@ -322,7 +322,7 @@ do
 				local glass = RootRect(K, assert(K.Skin.Parts(rxp.RXPFrame).backdrop, "the guide wears its glass"))
 				local card = RootRect(K, ns.Quests.Card())
 				local px = K.Scale.Pixel(1) + 0.01
-				assert(math.abs(card.top - glass.top) <= px and math.abs(story.tracker.top - story.guide.top) <= px, what .. ": the quest card's top is level with the guide's, got " .. card.top .. " for " .. glass.top)
+				assert(math.abs(card.top - column.top) <= px and glass.right < card.left, what .. ": the quest card starts on its column's top, right of the guide's card, got " .. card.top .. " for " .. column.top)
 				local w, h = Layouts.Footprint(preset, "meters.threat")
 				local _, _, _, threatTop = Layouts.Rect({ width = w, height = h }, Layouts.Get(preset, rh)["meters.threat"], rw, rh)
 				local tw, th = Layouts.Footprint(preset, "unitframes.targettarget")
@@ -343,11 +343,10 @@ do
 end
 
 -- The card fits its own element at the owner's screen (2383 by 1540 at UI scale 768/1080) with fifteen quests of five
--- objectives each, with and without RestedXP, in every preset. Without the guide it takes the story slot on the right
--- rail under the map and the aura rows, over the tooltip anchor, the damage card and the readout. With the guide the
--- guide's card holds the slot and the quests stand in a column of their own a rail gap to its left, at the same top
--- (KSTY-33, the Captain's ruling on the Fable audit: two cards, two Layout elements, each with its own glass); neither
--- card reaches past its element, and the guide's glass never covers the quests ----------------------------------------
+-- objectives each, with and without RestedXP, in every preset. The quests stand in a column of their own a rail gap
+-- left of the story slot on the right rail, under the map and the aura rows; with the guide its card holds the top left
+-- corner (KSTY-33, the Captain's ruling on the Fable audit: two cards, two Layout elements, each with its own glass);
+-- neither card reaches past its element, and the guide's glass never covers the quests --------------------------------
 
 for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 	for _, withGuide in ipairs({ false, true }) do
@@ -364,7 +363,7 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 			return { left = l, bottom = b, right = r, top = t }
 		end
 		local slot = Layouts.Slot(preset, rh)
-		local sl, sb, sr, st = Layouts.Rect(slot, slot, rw, rh)
+		local sl, _, _, st = Layouts.Rect(slot, slot, rw, rh)
 		local shown = withGuide and ns.RestedXP.Rail.Shown()
 		local story = K.Setup.Story(preset, withGuide, shown)
 		local band = story.tracker
@@ -394,9 +393,10 @@ for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 			assert(ns.RestedXP.Rail.Placed(), what .. ": the guide is placed")
 			local glass = assert(K.Skin.Parts(rxp.RXPFrame).backdrop, "the guide wears its glass")
 			local g = RootRect(K, glass)
-			assert(g.top <= over - 15 + 0.5 and g.top >= st - Layouts.GAP - px, what .. ": the guide's card starts a rail gap under the slot's top, under the map and the aura rows, got " .. g.top)
-			assert(g.bottom >= sb - px and g.left >= sl - 8 - px and g.right <= sr - 8 + px, what .. ": and stays in the slot's column, composed 8 units toward the quests, got " .. g.left .. ".." .. g.right .. " by " .. g.bottom)
-			assert(g.left >= card.right + 8 - px, what .. ": an eight-unit gutter right of the quests")
+			local guide = Layouts.Story(preset, rh, true, rw).guide
+			local gl, gb, gr, gt = Layouts.Rect(guide, guide, rw, rh)
+			assert(g.top <= gt + px and g.left >= gl - px and g.right <= gr + px and g.bottom >= gb - px, what .. ": the guide's card stays in its top left corner, got " .. g.left .. ".." .. g.right .. " by " .. g.bottom .. ".." .. g.top)
+			assert(g.right < card.left, what .. ": left of the quests")
 		end
 		Clean(env, K)
 	end

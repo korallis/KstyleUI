@@ -84,7 +84,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 				assert(W.Near(left, rw + K.Scale.Origin() - K.Tokens.Size("screenMargin") - overhang - w), "Classic retains the base screen margin without a one-pixel shift")
 				local slot = layouts.Slot("DPS", rh)
 				local cards = layouts.Story("DPS", rh, true, rw)
-				assert(cards.guide.y == slot.y - 16 and cards.quests.y == slot.y - 16, "Classic retains the base story inset")
+				assert(cards.quests.y == slot.y - 16, "Classic retains the base story inset")
 			end
 			local _, fit = layouts.ScaleLimit(screen[1], screen[2], "DPS", enabled)
 			assert(previousCrest == crest or fit ~= previousFit, "invalidate layout-fit cache when the minimap footprint changes")

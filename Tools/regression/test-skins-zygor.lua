@@ -1,4 +1,4 @@
--- test-skins-zygor.lua: Zygor Guides Viewer's guide window hung in the story rail's card, sized to it or to its steps, painted without writing Zygor's settings, handed back where the player left it, and beaten by the guide shown last when RestedXP is loaded too.
+-- test-skins-zygor.lua: Zygor Guides Viewer's guide window hung in the guide card in the top left corner, sized to it or to its steps, painted without writing Zygor's settings, handed back where the player left it, and beaten by the guide shown last when RestedXP is loaded too.
 local S = dofile("Tools/regression/skins_env.lua")
 local Fake = dofile("Tools/regression/zygor_fake.lua")
 local Quests = dofile("Tools/regression/quests_fake.lua")

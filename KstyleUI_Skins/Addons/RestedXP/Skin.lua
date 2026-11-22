@@ -1,4 +1,4 @@
--- Skin.lua: the RestedXP switch: once RestedXP Guides has loaded it draws RestedXP's guide in the KstyleUI theme without touching RestedXP's settings, restyles RestedXP's windows as they appear and puts the guide in a card of its own on the story rail.
+-- Skin.lua: the RestedXP switch: once RestedXP Guides has loaded it draws RestedXP's guide in the KstyleUI theme without touching RestedXP's settings, restyles RestedXP's windows as they appear and puts the guide in a card of its own in the top left corner.
 local _, ns = ...
 
 local K = KstyleUI
@@ -26,8 +26,8 @@ ns.Skins.Add({
 		{ type = "toggle", key = "compose", label = L["Align story cards"], help = L["Align the story cards. Off restores their previous spacing."] },
 		{ type = "toggle", key = "fit", label = L["Fit guide to its steps"], help = L["Size the guide card to its active steps. Off keeps it as tall as the quest card."] },
 		{
-			type = "toggle", key = "rail", label = L["Story rail"],
-			help = L["Puts the guide in its own card on the story rail. Drag the guide away to keep your spot."],
+			type = "toggle", key = "rail", label = L["Guide card"],
+			help = L["Puts the guide in its own card in the top left corner. Drag the guide away to keep your spot."],
 		},
 		{
 			type = "toggle", key = "boxes", label = L["Dock RestedXP's boxes"],

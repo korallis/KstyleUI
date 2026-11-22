@@ -1,4 +1,4 @@
--- Zygor.lua: the Zygor switch: once Zygor Guides Viewer has loaded it restyles the guide window in the KstyleUI theme without touching Zygor's settings, and hangs the window in a card of its own on the story rail, its own mover in Layout Mode, re-placed after each step and after a layout change, out of combat, and kept out of Zygor's saved anchor while the rail holds it.
+-- Zygor.lua: the Zygor switch: once Zygor Guides Viewer has loaded it restyles the guide window in the KstyleUI theme without touching Zygor's settings, and hangs the window in a card of its own in the top left corner above the party frames, its own mover in Layout Mode, re-placed after each step and after a layout change, out of combat, and kept out of Zygor's saved anchor while the rail holds it.
 local _, ns = ...
 
 local K = KstyleUI
@@ -283,8 +283,8 @@ function Place()
 		state.placed = nil
 		Restore()
 		K.Options.Write(MODULE, KEY .. "." .. RAIL, false)
-		Log("the player moved the guide; the story rail lets it be")
-		K.Print(L["KstyleUI leaves the Zygor guide where you put it. Turn Story rail back on in the Zygor skin's settings."])
+		Log("the player moved the guide; the guide card lets it be")
+		K.Print(L["KstyleUI leaves the Zygor guide where you put it. Turn Guide card back on in the Zygor skin's settings."])
 		return false
 	end
 	state.why = nil
@@ -790,14 +790,14 @@ ns.Guide.Add(KEY, {
 ns.Skins.Add({
 	key = KEY,
 	label = L["Zygor"],
-	help = L["Gives Zygor Guides Viewer the KstyleUI theme and puts its guide on the story rail."],
+	help = L["Gives Zygor Guides Viewer the KstyleUI theme and puts its guide in a card in the top left corner."],
 	addon = ADDON,
 	defaults = { rail = true, fit = true },
 	rows = {
-		{ type = "toggle", key = FIT, label = L["Fit guide to its steps"], help = L["Size the guide to its steps. Off stretches it over the story slot."] },
+		{ type = "toggle", key = FIT, label = L["Fit guide to its steps"], help = L["Size the guide to its steps. Off stretches it over its card."] },
 		{
-			type = "toggle", key = RAIL, label = L["Story rail"],
-			help = L["Puts the guide in its own card on the story rail. Drag the guide away to keep your spot."],
+			type = "toggle", key = RAIL, label = L["Guide card"],
+			help = L["Puts the guide in its own card in the top left corner. Drag the guide away to keep your spot."],
 		},
 	},
 	Apply = function()

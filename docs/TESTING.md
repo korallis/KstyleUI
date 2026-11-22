@@ -355,11 +355,11 @@ Needs RestedXP Guides installed and on. Before you start, note your RestedXP the
 Needs Zygor Guides Viewer installed. Before you start, note where the guide window sits and its size (drag it and resize it once if it has never been moved).
 
 - [ ] Load a guide. The window has no Zygor artwork: dark glass with a KstyleUI edge, the tab bar and title bar on the same glass, the step text in KstyleUI's face and body size with monsters and items in the theme's hues rather than Zygor's red and blue, and the progress bar in your class colour.
-- [ ] The window sits in the story rail's tall card beside the quest card: the same width, hanging from the card's top, with the quest card keeping its own height.
+- [ ] The window sits in the guide card in the top left corner, above the party frames: the card's width, hanging from its top, with the quest card keeping its own column and height on the right rail.
 - [ ] With **Fit guide to its steps** on, the window is as tall as its steps, and a step with more lines than the card has runs past the card's foot rather than clipping; turn Fit off in **Skins** and the window fills the card.
 - [ ] The window's action bar (`ZygorGuidesViewer_ActionBar`) still sits above it and still takes its icons from the current step; drag it, and it keeps the place you drop it.
 - [ ] Wheel over the step list, click a step, take the next step: the window stays in the card and keeps the card's width.
-- [ ] Drag the window away: it stays where you drop it, a printed line says the story rail has let go, and the window is clamped to the screen again. **Story rail** in the Skins settings now reads off. Turn it back on: the window returns to the card.
+- [ ] Drag the window away: it stays where you drop it, a printed line says KstyleUI leaves the guide where you put it, and the window is clamped to the screen again. **Guide card** in the Skins settings now reads off. Turn it back on: the window returns to the card.
 - [ ] Close and reopen the guide, switch guides from the tab bar, then reload the game: the window comes back to the card each time.
 - [ ] Switch **Zygor** off in the Skins settings: the window's own colours and its glass come back where you last had it. Turn it on again.
 - [ ] With RestedXP Guides loaded too, show one guide and then the other: the one shown last takes the card, and the other goes back where it was.

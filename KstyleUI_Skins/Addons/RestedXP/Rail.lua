@@ -1,4 +1,4 @@
--- Rail.lua: puts RestedXP's guide window in a card of its own on the story rail: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, above the quest card's by default) and the guide hangs from the element's top on its left edge and width, the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the current step always shows whole (RestedXP completes a step only once every line is ticked) and the later steps that would run past the element's foot rest unseen behind a muted "N more" line; in combat a step that grows grows the card up, clear of the docked boxes, the card holding the whole step; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window. RestedXP's Active Targets and Active Items boxes dock under the guide's card: side by side at half its width with compact headers, or one at its full width (stacked when an icon row does not fit half; a box with more icons keeps the card's right edge and grows toward the middle), the guide's room cut to leave them space, until the player drags one away. While the rail holds the window it keeps RestedXP's active steps above its header, where RestedXP's "top" orientation puts them, after RestedXP anchors them under its window (its "bottom" orientation, or its own flip when the steps' top passes the screen's top), so the card never shows RestedXP's hushed header and folded window between its cap and the step; letting the window go hands the anchoring back to RestedXP.
+-- Rail.lua: puts RestedXP's guide window in a card of its own: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, in the top left corner above the party frames by default) and the guide hangs from the element's top on its left edge and width, the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the current step always shows whole (RestedXP completes a step only once every line is ticked) and the later steps that would run past the element's foot rest unseen behind a muted "N more" line; in combat a step that grows grows the card up, clear of the docked boxes, the card holding the whole step; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window. RestedXP's Active Targets and Active Items boxes dock under the guide's card: side by side at half its width with compact headers, or one at its full width (stacked when an icon row does not fit half; a box with more icons keeps the card's right edge and grows toward the middle), the guide's room cut to leave them space, until the player drags one away. While the rail holds the window it keeps RestedXP's active steps above its header, where RestedXP's "top" orientation puts them, after RestedXP anchors them under its window (its "bottom" orientation, or its own flip when the steps' top passes the screen's top), so the card never shows RestedXP's hushed header and folded window between its cap and the step; letting the window go hands the anchoring back to RestedXP.
 local _, ns = ...
 
 local K = KstyleUI
@@ -55,7 +55,7 @@ local function Frame()
 	if IsTable(rxp.v2) and type(rxp.v2.IsGuideWindowEnabled) == "function" then
 		local ok, v2 = pcall(rxp.v2.IsGuideWindowEnabled, rxp.v2)
 		if ok and v2 == true then
-			LogOnce("rail v2", "RestedXP's v2 guide window is on; the story rail places only the v1 guide window")
+			LogOnce("rail v2", "RestedXP's v2 guide window is on; the guide card places only the v1 guide window")
 			return nil
 		end
 	end
@@ -248,11 +248,6 @@ function Rail.Band()
 		return band
 	end
 	local _, reserve = Plan(band)
-	local quest = ns.QuestCard and ns.QuestCard.Frame()
-	if ns.Skins.Setting(KEY, "compose") and quest and quest:IsShown() then
-		local shift = story.tracker.left < band.left and -8 or 8
-		band.left, band.right = band.left + shift, band.right + shift
-	end
 	band.bottom = band.bottom + math.min(reserve, math.max(0, band.top - band.bottom - Need()))
 	return band, story
 end
@@ -585,35 +580,12 @@ function Rail.Place()
 		state.placed = { left = left, top = top, width = width, height = shape.height }
 		RestedXP.Chrome.Rest(f, true, shape.folded)
 	end
-	local quest = ns.QuestCard and ns.QuestCard.Frame()
-	local height = path and Rail.CardHeight(path, true)
-	if height and quest and not InCombatLockdown() then
-		ns.QuestCard.Resize(math.max(ns.QuestCard.NaturalHeight(), Widgets.Snap(quest, height * scale / Widgets.ScaleFactor(quest))))
-	end
 	if Docking() then
 		Dock(f, path, band)
 	else
 		ReleaseBoxes(true)
 	end
 	Refresh(f)
-	local side = K.Safe.Side(K.Scale.Root())
-	local skin = K.Skin.Parts(f)
-	side.storyGuide = skin and skin.backdrop
-	side.storyGuideBottom = side.storyGuide
-	local guideFoot = side.storyGuide and side.storyGuide:GetBottom()
-	guideFoot = Plain(guideFoot) and guideFoot * Widgets.ScaleFactor(side.storyGuide) or nil
-	for _, box in ipairs(Boxes()) do
-		local parts = K.Skin.Parts(box)
-		local glass = parts and parts.backdrop
-		local foot = glass and glass:GetBottom()
-		foot = Plain(foot) and foot * Widgets.ScaleFactor(glass) or nil
-		if foot and guideFoot and foot < guideFoot then
-			side.storyGuideBottom, guideFoot = glass, foot
-		end
-	end
-	if side.dockThreat then
-		K.Call(side.dockThreat)
-	end
 	if shape.height - SIDE - (FOOTER - 6) >= LIST_SHOWN then
 		LogOnce("rail list", "the guide's head is tall enough that RestedXP keeps a sliver of its step list")
 	end
@@ -623,7 +595,7 @@ function Rail.Place()
 		state.foot = bottom * scale - rb
 		local reached = band.bottom - state.foot
 		if reached > 0.5 then
-			Log(string.format("the guide's card reaches %.0f units under its element on the story rail", reached))
+			Log(string.format("the guide's card reaches %.0f units under its element", reached))
 		end
 	end
 	Live()
@@ -702,8 +674,8 @@ local function Moved(f)
 		RestedXP.Chrome.Rest(f, false)
 		Fit(f, nil, nil)
 		K.Options.Write(MODULE, KEY .. "." .. FIELD, false)
-		Log("the player moved the guide; the story rail lets it be")
-		K.Print(L["KstyleUI leaves the RestedXP guide where you put it. Turn Story rail back on in the RestedXP skin's settings."])
+		Log("the player moved the guide; the guide card lets it be")
+		K.Print(L["KstyleUI leaves the RestedXP guide where you put it. Turn Guide card back on in the RestedXP skin's settings."])
 	end
 end
 

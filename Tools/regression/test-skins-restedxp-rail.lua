@@ -1,4 +1,4 @@
--- test-skins-restedxp-rail.lua: the RestedXP guide hangs from the top of its own Layout element, the story slot, on the rail's edge and width as one card (cap, steps, route row), with the quests in a column of their own beside it, RestedXP's window folded to its floor and its list folded by RestedXP's own rule; it follows the steps out of combat, comes back on entering the world, lets a player's drag win, never reaches into the quests, and keeps the rail's placement out of RestedXP's saved settings.
+-- test-skins-restedxp-rail.lua: the RestedXP guide hangs from the top of its own Layout element, the card in the top left corner, on its edge and width as one card (cap, steps, route row), with the quests in their column on the story rail, RestedXP's window folded to its floor and its list folded by RestedXP's own rule; it follows the steps out of combat, comes back on entering the world, lets a player's drag win, never reaches into the quests, and keeps the rail's placement out of RestedXP's saved settings.
 local S = dofile("Tools/regression/skins_env.lua")
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
@@ -83,14 +83,15 @@ do
 	env.RunTimers()
 	local story = K.Setup.Story("DPS", true)
 	local rw, rh = K.Layout.RootSize()
-	local slot = K.Setup.Layouts.Slot("DPS", rh)
-	local sl, sb, sr, st = K.Setup.Layouts.Rect(slot, slot, rw, rh)
+	local corner = K.Setup.Layouts.Story("DPS", rh, true, rw).guide
+	local sl, sb, sr, st = K.Setup.Layouts.Rect(corner, corner, rw, rh)
 	local band = story.guide
 	local px = K.Scale.Pixel(1) + 0.01
-	assert(near(band.left, sl, px) and near(band.right, sr, px) and near(band.top, st - K.Setup.Layouts.GAP, px) and near(band.bottom, sb, px), "the guide's element is the story slot, a rail gap under its top")
+	assert(near(band.left, sl, px) and near(band.right, sr, px) and near(band.top, st, px) and near(band.bottom, sb, px), "the guide's element is the top left corner card")
+	assert(near(sl, K.Tokens.Size("screenMargin"), px) and near(st, rh - K.Tokens.Size("screenMargin"), px), "one screen margin in from the top left corner")
 	assert(K.Layout.Get("skins.guide") ~= nil, "a Layout element of its own, with its own mover")
-	assert(near(story.tracker.right, band.left - 16, px) and near(story.tracker.top, band.top, px), "the quests' column stands a rail gap to its left, at the same top")
-	assert(ns.RestedXP.Rail.Placed(), "the guide is placed in the story rail")
+	assert(story.tracker.left > rw / 2, "the quests' column stays on the story rail at the right")
+	assert(ns.RestedXP.Rail.Placed(), "the guide is placed in its card")
 	local point = { f:GetPoint(1) }
 	assert(point[1] == "TOPLEFT" and point[2] == env.UIParent and point[3] == "BOTTOMLEFT", "from the screen's bottom left, so a UI scale change keeps it")
 	local card = Rect(K, Glass(K, f))
@@ -177,8 +178,8 @@ do
 	f:SetPoint("CENTER", env.UIParent, "CENTER", 120, 0)
 	f:GetScript("OnMouseUp")(f, "LeftButton")
 	env.RunTimers()
-	assert(ns.Skins.Setting("restedXP", "rail") == false, "a drag turns the story rail off")
-	assert(S.W.CoreEnv.Printed(env, "Story rail"), "and tells the player how to turn it back on")
+	assert(ns.Skins.Setting("restedXP", "rail") == false, "a drag turns the guide card off")
+	assert(S.W.CoreEnv.Printed(env, "Guide card"), "and tells the player how to turn it back on")
 	env.FireEvent("PLAYER_ENTERING_WORLD")
 	env.RunTimers()
 	assert(select(1, f:GetPoint(1)) == "CENTER", "and the guide stays where the player put it")

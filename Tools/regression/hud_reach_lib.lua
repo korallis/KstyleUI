@@ -147,6 +147,8 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 	local allowed = {
 		-- The secure party and raid headers are mutually exclusive in the game.
 		["groupframes.party/groupframes.raid"] = true,
+		-- The guide card holds the top left corner above the party frames, where the raid frames stand in a raid.
+		["groupframes.raid/skins.guide"] = true,
 		-- Bar 1 owns the common tray behind both action rows; its art cannot intercept clicks.
 		["actionbars.bar1/actionbars.bar2"] = true,
 		-- The Medallions crest and XP track sit on the common slab, and XP continues behind the crest.

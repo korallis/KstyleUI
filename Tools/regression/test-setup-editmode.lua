@@ -486,8 +486,8 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- With RestedXP loaded, the guide's card holds the slot and the tracker stands in the quest card's column, a rail gap
--- to its left at the same top (KSTY-33; KSTY-67 item 1 put it back under the map after KSTY-64 raised it)
+-- With RestedXP loaded, the guide's card takes the top left corner and the tracker stands in the quest card's column, a
+-- rail gap left of the free story slot under the map (KSTY-33; KSTY-67 item 1 put it back under the map after KSTY-64 raised it)
 
 do
 	local state = { saved = {}, active = 1 }
@@ -501,8 +501,9 @@ do
 	local alone = K.Setup.Story("DPS", false).tracker
 	local rw, rh = K.Layout.RootSize()
 	local slot = K.Setup.Layouts.Slot("DPS", rh)
-	assert(story.guide and near(story.guide.right, rw + slot.x) and near(story.guide.right - story.guide.left, slot.width), "the guide takes the story slot on the right rail")
-	assert(near(story.tracker.top, story.guide.top) and near(story.guide.left - story.tracker.right, 16), "the tracker stands a rail gap to its left, at the same top")
+	local margin = K.Tokens.Size("screenMargin")
+	assert(story.guide and near(story.guide.left, margin) and near(story.guide.top, rh - margin) and near(story.guide.right - story.guide.left, slot.width), "the guide takes the top left corner")
+	assert(near(rw + slot.x - slot.width - story.tracker.right, 16), "the tracker stands a rail gap left of the free story slot")
 	assert(near(alone.left, story.tracker.left) and near(alone.top, story.tracker.top), "the Medallions quest column is the same without RestedXP")
 	local k = K.Scale.Root():GetEffectiveScale() / env.UIParent:GetEffectiveScale()
 	local a = Find(Named(state, "KstyleUI DPS"), TRACKER).anchorInfo

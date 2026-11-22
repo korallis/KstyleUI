@@ -245,7 +245,7 @@ Party-only drivers test raid first because `group:party` also matches raids. The
 | Guides | An accent line on each axis while a drag is snapped. |
 | Grid | Lines every `gridSize` units from the centre, in the `BACKGROUND` strata, while `grid` is on. The centre lines are the accent. |
 | Toolbar | A glass panel in the `FULLSCREEN_DIALOG` strata with the Grid and Snap switches and the Undo, Redo, Reset and Done buttons. It registers as the element `Layout.Toolbar` (scalable, no plate) and moves by its title bar. With Elements > Fade the toolbar until pointed at, it rests at 25%, shows when pointed at and hides while Shift is held. |
-| Story slot | An accent outline under the plates, at the story slot of the layout last applied (the `preset` setting): `Setup.Layouts.Slot(preset)`, the right rail under the map and the aura rows. It shows the slot's label, **Story rail**, and a one-line hint: Apply places the quest tracker there through Edit Mode, and Window skins put the RestedXP guide above it. The outline takes no mouse. `Mode.Slot()` returns it. |
+| Story slot | An accent outline under the plates, at the story slot of the layout last applied (the `preset` setting): `Setup.Layouts.Slot(preset)`, the right rail under the map and the aura rows. It shows the slot's label, **Story rail**, and a one-line hint: Apply places the quest tracker here through Edit Mode. The outline takes no mouse. `Mode.Slot()` returns it. |
 
 | Input | Effect |
 | --- | --- |

@@ -1,4 +1,4 @@
--- Layouts.lua: the element keys modules register with Layout, and the Lumen DPS, Tank and Healer layouts the first-run setup writes: positions, footprints, the bars and meters each switches on, and the story slot on the right rail under the map, which the RestedXP guide card and the quest card share as two elements of their own, and each layout class's own places.
+-- Layouts.lua: the element keys modules register with Layout, and the Lumen DPS, Tank and Healer layouts the first-run setup writes: positions, footprints, the bars and meters each switches on, the story slot on the right rail under the map, which stays free yet still sets how large the automatic size may grow, with the quest card in the column beside it, the guide card (RestedXP or Zygor) in the top left corner above the party frames, a place it shares with the raid frames, and each layout class's own places.
 local _, ns = ...
 
 local Setup = ns.Setup or {}
@@ -368,7 +368,7 @@ for _, name in ipairs(NAMES) do
 		anchor = "TOPRIGHT", x = -EDGE, y = -STORY_TOP,
 		width = STORY_W, height = HEIGHT - STORY_TOP - STORY_BOTTOM,
 		label = L["Story rail"],
-		hint = L["Apply places the quest tracker here through Edit Mode; Window skins put the RestedXP guide above it."],
+		hint = L["Apply places the quest tracker here through Edit Mode."],
 	}
 end
 
@@ -619,9 +619,9 @@ function Layouts.Slot(name, rootHeight)
 end
 
 do
-local function Card(out, key, x, height, slot, inset)
+local function Card(out, key, anchor, x, y, width, height)
 	out = out or {}
-	out.key, out.anchor, out.x, out.y, out.width, out.height = key, slot.anchor, x, slot.y - inset, slot.width, height
+	out.key, out.anchor, out.x, out.y, out.width, out.height = key, anchor, x, y, width, height
 	return out
 end
 
@@ -633,7 +633,8 @@ function Layouts.Story(name, rootHeight, guide, rootWidth, out, targetWidth, cre
 	crest = (crest or crest == nil and Layouts.MinimapCrest()) and (ns.Store.Module("Minimap").frame == "ring" and 36 or 26) or 0
 	local offset = GAP + crest
 	inset = offset + (inset or 0)
-	local slotHeight = slot.height - Lift(rootHeight) - inset
+	local rh, party, size = HEIGHT - Lift(rootHeight), layouts[name]["groupframes.party"], SIZES[name]["groupframes.party"]
+	local partyTop = rh / 2 + party.y + (size and size[2] or PARTY.height) / 2
 	out = out or {}
 	local x, foot = slot.x - slot.width - GAP, CLUSTER_TOP
 	local tot = rootWidth and layouts[name]["unitframes.targettarget"]
@@ -645,9 +646,10 @@ function Layouts.Story(name, rootHeight, guide, rootWidth, out, targetWidth, cre
 			foot = DPS["meters.threat"].y + THREAT_H
 		end
 	end
-	local column = math.max(0, HEIGHT - Lift(rootHeight) - STORY_TOP - foot - GAP - inset)
-	out.guide = guide and Card(out.guide, STORY_KEYS.guide, slot.x, slotHeight, slot, offset) or nil
-	out.quests = Card(out.quests, STORY_KEYS.quests, x, column, slot, offset)
+	local column = math.max(0, rh - STORY_TOP - foot - GAP - inset)
+	out.guide = guide and Card(out.guide, STORY_KEYS.guide, "TOPLEFT", MARGIN, -MARGIN, STORY_W, rh - MARGIN - GAP - partyTop) or nil
+	out.quests = Card(out.quests, STORY_KEYS.quests, slot.anchor, x, slot.y - offset, slot.width, column)
+	out.slot = slot.height - Lift(rootHeight) - inset
 	return out
 end
 end
@@ -1053,9 +1055,9 @@ function Layouts.Aspect(class, style, name, key)
 	if key == "unitframes.resource" then
 		return Layouts.ExtraBarsPlace(class, name, key) or PLACES[class].medallions[key] or STYLES.medallions[name][key]
 	end
-	if key == STORY_KEYS.quests or key == STORY_KEYS.guide then
+	if key == STORY_KEYS.quests then
 		local slot = slots[name]
-		return { anchor = slot.anchor, x = slot.x - (key == STORY_KEYS.quests and slot.width + GAP or 0), y = slot.y - GAP - (Layouts.MinimapCrest() and (ns.Store.Module("Minimap").frame == "ring" and 36 or 26) or 0) }
+		return { anchor = slot.anchor, x = slot.x - slot.width - GAP, y = slot.y - GAP - (Layouts.MinimapCrest() and (ns.Store.Module("Minimap").frame == "ring" and 36 or 26) or 0) }
 	end
 	if (key == "minimap.main" or key:match("^auras%.")) and Layouts.MinimapCrest() then
 		if style and key == "minimap.main" then return Layouts.Style(name, key) end
@@ -1146,7 +1148,7 @@ ns.Callbacks.Register("SettingChanged", "AttachedHUD", function(_, module, key)
 		end
 		if module == "Minimap" then
 			KstyleUIDB.scaleCache = nil
-			for _, affected in ipairs({ "minimap.main", "auras.buffs", "auras.debuffs", "auras.extraBuffs", "auras.extraDebuffs", STORY_KEYS.quests, STORY_KEYS.guide }) do
+			for _, affected in ipairs({ "minimap.main", "auras.buffs", "auras.debuffs", "auras.extraBuffs", "auras.extraDebuffs", STORY_KEYS.quests }) do
 				local el = ns.Layout.Element(affected)
 				if el then ns.Layout.Register(el.frame, el.key, el.base, el.opts) end
 			end
@@ -1160,7 +1162,7 @@ ns.Callbacks.Register("SettingChanged", "AttachedHUD", function(_, module, key)
 end)
 
 do
-local BANDED = { ["groupframes.party"] = true, ["groupframes.raid"] = true, ["unitframes.boss"] = true, ["actionbars.possess"] = true }
+local BANDED = { ["groupframes.party"] = true, ["groupframes.raid"] = true, ["unitframes.boss"] = true, ["actionbars.possess"] = true, [STORY_KEYS.guide] = true }
 local SIDES = { TOPLEFT = 1, LEFT = 1, BOTTOMLEFT = 1, TOPRIGHT = -1, RIGHT = -1, BOTTOMRIGHT = -1 }
 
 function Layouts.Band(key, anchor, x, band)
@@ -1405,7 +1407,8 @@ function Layouts.Enabled(name, profile)
 end
 
 local function Apart(a, b)
-	if (a == "groupframes.party" and b == "groupframes.raid") or (b == "groupframes.party" and a == "groupframes.raid") then
+	local other = a == "groupframes.raid" and b or b == "groupframes.raid" and a
+	if other == "groupframes.party" or other == STORY_KEYS.guide then
 		return false
 	end
 	if DOCKS[a] == b or DOCKS[b] == a then
@@ -1513,6 +1516,9 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 	local rects, boxes, count = state.rects, state.boxes, 0
 	local elements, medals = #ELEMENTS, Layouts.MEDALLIONS_MEDALS
 	local story = Layouts.FitStory(state, name, physicalWidth, physicalHeight, user)
+	if story.slot < STORY_FLOOR then
+		return false
+	end
 	for i = 1, 2 do
 		local card = i == 1 and story.guide or story.quests
 		if enabled[card.key] ~= false and (card.width <= 0 or card.height < STORY_FLOOR) then

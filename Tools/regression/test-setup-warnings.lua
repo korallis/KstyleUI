@@ -93,8 +93,8 @@ for _, screen in ipairs(SCREENS) do
 		assert(lane.t <= rh, where .. ": the warnings stay on the screen")
 		local boxes, guide = Rects(K, name)
 		assert(lane.b > boxes["unitframes.target"].t, where .. ": the warnings sit above the target, never on it")
-		-- The left rail's widest card is the chat card (owner pass 1); the right rail's column is the guide card's.
-		assert(lane.l > boxes["chat.main"].r and lane.r < guide.l, where .. ": the warnings stay between the rails")
+		-- The left rail's widest card is the chat card (owner pass 1); the right rail starts at the minimap.
+		assert(lane.l > boxes["chat.main"].r and lane.r < boxes["minimap.main"].l, where .. ": the warnings stay between the rails")
 		local centred = { l = rw / 2 - half, r = rw / 2 + half, b = lane.b, t = lane.t }
 		local free = true
 		for key, box in pairs(boxes) do

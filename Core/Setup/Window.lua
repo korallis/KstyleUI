@@ -81,7 +81,7 @@ local function EditModeText()
 		end
 	end
 	if GuideStep() then
-		lines[#lines + 1] = L["RestedXP: drag its guide onto the story rail yourself; Window skins place it only with their RestedXP story rail on."]
+		lines[#lines + 1] = L["RestedXP: drag its guide where you want it; Window skins place it only with their RestedXP guide card on."]
 	end
 	return #lines > 0 and table.concat(lines, "\n") or nil
 end
@@ -728,7 +728,7 @@ PlaceLayouts = function()
 		panel.layoutHint:SetText(L["Choose DPS, Tank or Healer. You can move and resize everything later in Layout Mode."])
 	else
 		Widgets.Point(panel.layoutHint, "TOPLEFT", panel.previewName, "BOTTOMLEFT", 0, -gap("gapMedium"))
-		panel.layoutHint:SetText(L["The bright blocks change with the role. The outlined space on the right rail, under the map, is the Story rail: Apply places the quest tracker there through Edit Mode, and Window skins put the RestedXP guide above it."]
+		panel.layoutHint:SetText(L["The bright blocks change with the role. The outlined space on the right rail, under the map, is the Story rail: Apply places the quest tracker there through Edit Mode. Window skins put the RestedXP or Zygor guide in the top left corner."]
 			.. "\n\n" .. L["Point at a layout to preview it."] .. "\n\n" .. L["You can move and resize every element later in Layout Mode: type /kstyle layout."])
 	end
 end

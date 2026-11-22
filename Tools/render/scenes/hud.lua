@@ -1513,7 +1513,7 @@ function modules.tracker(opts)
 	-- The quest card stands in for Blizzard's tracker, four quests at a time, in its own Layout element: the story slot.
 	local card = ns.Quests.Active()
 	local scene = build(env, opts)
-	local place = opts.withGuide and "in the story slot, the shown RestedXP guide's card in the column beside it" or "in the layout's story slot"
+	local place = opts.withGuide and "in the column beside the story slot, the shown RestedXP guide's card in the top left corner" or "in the column beside the layout's story slot"
 	if card then
 		scene.log[#scene.log + 1] = "the quest card shows " .. #(opts.quests or Tracker.QUESTS) .. " tracked quests from a stand-in quest log, four at a time, " .. place .. "; Blizzard's tracker is hidden while it holds only quests"
 	else
@@ -1870,7 +1870,7 @@ function modules.meters(opts)
 	return finish(env, K, scene, "meters"), ns
 end
 
--- RestedXP: the guide window and its active step, skinned, where the skin's story rail puts it for opts.layout.
+-- RestedXP: the guide window and its active step, skinned, where the skin's guide card puts it for opts.layout.
 -- RestedXP's other windows stay closed.
 
 function modules.restedxp(opts)
@@ -1901,7 +1901,7 @@ function modules.restedxp(opts)
 		standin:SetPoint("BOTTOMLEFT", root, "BOTTOMLEFT", card[1], card[2])
 		standin:SetSize(card[3], card[4])
 		standin:SetAlpha(0)
-		R.ns.QuestCard = setmetatable({ Frame = function() return standin end, Resize = function(height) standin:SetHeight(height) end }, { __index = R.ns.QuestCard })
+		R.ns.QuestCard = setmetatable({ Frame = function() return standin end }, { __index = R.ns.QuestCard })
 		R.ns.RestedXP.Rail.Place()
 	end
 	for _, name in ipairs({ "items", "v2", "configurator" }) do
@@ -1955,7 +1955,7 @@ function modules.restedxp(opts)
 	for _, line in ipairs(R.log) do
 		scene.log[#scene.log + 1] = line
 	end
-	scene.log[#scene.log + 1] = "restedxp: the guide is in its own card where the skin's story rail puts it for the " .. tostring(opts.layout) .. " layout, its step list folded by RestedXP's own rule" .. (R.ns.RestedXP.Rail.Hidden() > 0 and ("; " .. R.ns.RestedXP.Rail.Hidden() .. " steps rest under its more line") or "")
+	scene.log[#scene.log + 1] = "restedxp: the guide is in its own card in the top left corner for the " .. tostring(opts.layout) .. " layout, its step list folded by RestedXP's own rule" .. (R.ns.RestedXP.Rail.Hidden() > 0 and ("; " .. R.ns.RestedXP.Rail.Hidden() .. " steps rest under its more line") or "")
 	return finish(R.env, R.K, scene, "restedxp"), R
 end
 

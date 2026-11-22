@@ -35,7 +35,7 @@ function Common.FinishSettings(profile)
 	if not Common.PreviousFinish() then return profile end
 	local previous = {
 		Skins = { steelButtons = false, windowMetrics = false, quests = { continuation = false }, restedXP = { compose = false } },
-		Meters = { fitCards = false, threat = { followGuide = false } },
+		Meters = { fitCards = false },
 		DataBars = { strip = { dockMeter = false } },
 		Minimap = { clearPlaques = false },
 		Bags = { separateFigures = false, readableHeaders = false },
