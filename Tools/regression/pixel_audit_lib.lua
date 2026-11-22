@@ -420,10 +420,15 @@ end
 
 -- The matrix: every gallery and hud_reference (DPS), each at every screen. Jobs() lists one { scene, screen } per pair,
 -- in a fixed order, and Part(index, parts) deals them into parts of about equal cost (WEIGHTS, in tenths of a second
--- under Lua 5.1), so each test-pixel-grid-<n>.lua stays inside its time and memory budget.
+-- per job under Windows Lua 5.1, about twice the Mac's; remeasure when a part drifts), so each test-pixel-grid-<n>.lua
+-- stays inside its time and memory budget.
 Audit.PARTS = 16
 Audit.ALLOW = "Tools/regression/pixel_allow.tsv"
-local WEIGHTS = { hud_reference = 26, gallery_groupframes = 44, gallery_options_modules = 15, gallery_options = 13 }
+local WEIGHTS = {
+	gallery_options = 124, hud_reference = 119, gallery_groupframes = 73, gallery_auracounts = 63, gallery_options_modules = 59,
+	gallery_meters = 33, gallery_tracked = 29, gallery_auras_counts = 29, gallery_tooltips = 23, gallery_unitframes = 20,
+	gallery_setup = 16, gallery_qol = 13, gallery_cooldowns = 12, gallery_actionbars = 11,
+}
 
 function Audit.Jobs()
 	local jobs = {}
@@ -431,7 +436,7 @@ function Audit.Jobs()
 	table.insert(scenes, 1, "hud_reference")
 	for _, sceneName in ipairs(scenes) do
 		for _, screen in ipairs(Audit.SCREENS) do
-			jobs[#jobs + 1] = { scene = sceneName, screen = screen, weight = WEIGHTS[sceneName] or 3 }
+			jobs[#jobs + 1] = { scene = sceneName, screen = screen, weight = WEIGHTS[sceneName] or 6 }
 		end
 	end
 	for _, screen in ipairs(Audit.REFERENCE_SCREENS) do
