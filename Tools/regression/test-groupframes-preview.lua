@@ -89,6 +89,13 @@ K.Options.Write("GroupFrames", "party.portrait", true)
 K.Options.Write("GroupFrames", "party.roleRing", false)
 preview:Refresh()
 eq(preview.partyFrames[1].portrait:IsShown(), true, "portraits follow the setting")
+K.Options.Write("HudStyle", "style", "frames")
+K.Options.Write("GroupFrames", "party.portrait", false)
+preview:Refresh()
+eq(preview.partyFrames[1].portrait:IsShown(), false, "on Frames they go with it")
+K.Options.Write("GroupFrames", "party.portrait", true)
+K.Options.Write("HudStyle", "style", "medallions")
+preview:Refresh()
 
 -- With no spacing, sample frames still sit edge to edge.
 K.Options.Write("GroupFrames", "party.spacing", 0)

@@ -133,6 +133,15 @@ do
 	write(env, K, "names.height", 20)
 	assert(r.parts.health.top == raidBar and r.parts.name.height == r.parts.health.height, "a Medallions raid tile keeps its name on the fill, so the line height leaves its bar")
 	write(env, K, "names.height", 0)
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	r = frame(ns, "raid1")
+	raidBar = r.parts.health.top
+	write(env, K, "names.height", 20)
+	assert(r.parts.health.top > raidBar and r.parts.name.height > 12, "Frames raid frames take it too")
+	write(env, K, "names.height", 0)
+	K.Options.Write("HudStyle", "style", "medallions")
+	env.RunTimers()
 	noErrors(env, K)
 end
 collectgarbage()
