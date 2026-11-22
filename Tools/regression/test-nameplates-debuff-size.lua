@@ -2,9 +2,9 @@
 local N = dofile("Tools/regression/nameplates_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
-local MIN_ICON = 26
+local MIN_ICON = 22
 local MIN_TEXT = 11
-local MIN_DISTANT_ICON = 20
+local MIN_DISTANT_ICON = 17
 local SLIDER_HEADROOM = 10
 
 -- The defaults: big icons, readable outlined text, a full row inside the plate ---------------------------
@@ -20,8 +20,6 @@ do
 	assert(line <= ns.Plate.DEFAULT_WIDTH, "a full row of " .. d.columns .. " fits the plate's width: " .. line .. " > " .. ns.Plate.DEFAULT_WIDTH)
 	local distant = d.size * ns.Settings.defaults.cvars.minScale
 	assert(distant >= MIN_DISTANT_ICON, "a far plate's debuffs still read at " .. MIN_DISTANT_ICON .. " units or more, not " .. distant)
-	local look = ns.Medallions.LOOK
-	assert(ns.Settings.Get("debuffs.size") == look["debuffs.size"] and ns.Settings.Get("debuffs.textSize") == look["debuffs.textSize"], "a new profile reads the Medallions look over the defaults")
 end
 
 -- The size slider has room above the default ------------------------------------------------------------
@@ -48,7 +46,7 @@ do
 	local env, K, ns = N.New()
 	N.Add(env, "nameplate1")
 	local plate = ns.Plates.Get("nameplate1")
-	local d = { size = ns.Medallions.LOOK["debuffs.size"], textSize = ns.Medallions.LOOK["debuffs.textSize"] }
+	local d = ns.Settings.defaults.debuffs
 	local button = plate.auras._groups.debuffs.frames[1]
 	local w, h = button:GetSize()
 	assert(w == d.size and h == d.size, "the debuff button is " .. d.size .. " units square, not " .. w .. " by " .. h)

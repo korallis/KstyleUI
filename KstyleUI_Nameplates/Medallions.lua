@@ -1,4 +1,4 @@
--- Medallions.lua: the Medallions look on the plates: a 120 by 9 bar under an 11-unit Inter caps name, the level in Barlow at the bar's left in its difficulty colour, 22-unit debuffs, two gunmetal ticks on the target, and a painted badge over a friendly player's name; a setting the player changed keeps the player's value.
+-- Medallions.lua: the Medallions look on the plates: a 120 by 9 bar under an 11-unit Inter caps name, the level in Barlow at the bar's left in its difficulty colour, 22-unit debuffs, two gunmetal ticks on the target, and a painted badge over a friendly player's name.
 local _, ns = ...
 
 local K = KstyleUI
@@ -10,14 +10,6 @@ local Medallions = {}
 ns.Medallions = Medallions
 
 local WIDTH, HEIGHT = 120, 9
-local LOOK = {
-	["name.size"] = 11,
-	["name.outline"] = "OUTLINE",
-	["level.size"] = 12,
-	["level.outline"] = "OUTLINE",
-	["debuffs.size"] = 22,
-	["debuffs.textSize"] = 11,
-}
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
 local NAME_FACE = "InterSemiBold"
 local TICK_WIDTH, TICK_GAP, TICK_OVERHANG = 2, 3, 2
@@ -28,29 +20,7 @@ local BADGE_GAP = 2
 local SKULL_LEVEL = -1
 Medallions.BADGE = BADGE
 Medallions.WIDTH, Medallions.HEIGHT = WIDTH, HEIGHT
-Medallions.LOOK = LOOK
 Medallions.GUNMETAL = GUNMETAL
-
-local function Default(key)
-	local node = Settings.defaults
-	for part in key:gmatch("[^%.]+") do
-		if type(node) ~= "table" then
-			return nil
-		end
-		node = node[part]
-	end
-	return node
-end
-
-local get = Settings.Get
-function Settings.Get(key, role)
-	local value = get(key, role)
-	local look = LOOK[key]
-	if look ~= nil and value == Default(key) then
-		return look
-	end
-	return value
-end
 
 local readSize = Plates.ReadSize
 function Plates.ReadSize()

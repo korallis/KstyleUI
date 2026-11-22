@@ -82,16 +82,13 @@ do
 	K.Options.Write("Nameplates", "preset", "lumen")
 	for key in pairs(Presets.VALUES.compact) do
 		local got, default = ns.Settings.Get(key), lookup(ns.Settings.defaults, key)
-		if ns.Medallions.LOOK[key] ~= nil then
-			default = ns.Medallions.LOOK[key]
-		end
 		if type(default) == "table" then
 			assert(got.r == default.r and got.g == default.g and got.b == default.b, "Lumen restores " .. key)
 		else
 			assert(got == default, "Lumen restores " .. key .. ", got " .. tostring(got))
 		end
 	end
-	assert(ns.Settings.Get("name.size") == ns.Medallions.LOOK["name.size"], "Lumen puts the hand-changed name size back too, read through the Medallions look")
+	assert(ns.Settings.Get("name.size") == ns.Settings.defaults.name.size, "Lumen puts the hand-changed name size back too")
 	assert(ns.Settings.Get("preset") == "lumen", "and reads as Lumen")
 
 	K.Options.Write("Nameplates", "preset", "tank")

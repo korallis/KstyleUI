@@ -1,4 +1,4 @@
--- Medallions.lua: the Medallions look on the group frames: painted badge medallions in a steel ring on the party, class-coloured raid tiles with the name on the fill, and a steel target ring, laid over the saved settings.
+-- Medallions.lua: the Medallions look on the group frames: painted badge medallions in a steel ring on the party, class-coloured raid tiles with the name on the fill, and a steel target ring.
 local _, ns = ...
 
 local K = KstyleUI
@@ -21,30 +21,6 @@ local LOW_STEP = 0.001
 local CHIP_ALPHA = 0.55
 local CHIP_WIDTH = 30
 local LABEL_FACE = Tokens.FontPath("InterSemiBold")
-local LOOK = {
-	party = { portrait = true, roleRing = false },
-	raid = { textLayout = "INSIDE", power = false, buffCount = 0 },
-}
-Medallions.LOOK = LOOK
-
-local function Overlay(cfg)
-	for section, values in pairs(LOOK) do
-		local out, defaults = cfg[section], Settings.defaults[section]
-		for name, value in pairs(values) do
-			if Settings.Get(section .. "." .. name) == defaults[name] then
-				out[name] = value
-			end
-		end
-	end
-	return cfg
-end
-Medallions.Overlay = Overlay
-
-local refresh = Settings.Refresh
-function Settings.Refresh()
-	return Overlay(refresh())
-end
-
 local colorSources = Unit.ColorSources
 function Unit.ColorSources(f)
 	if f and f.kind == "raid" then

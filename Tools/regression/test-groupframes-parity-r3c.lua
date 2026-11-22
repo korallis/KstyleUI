@@ -212,7 +212,6 @@ do
 	assert(tank.tileless and tank.threat:IsShown() and tank.threatEdge == nil, "a Medallions row stays tileless with a portrait, so it keeps the threat border")
 	write(env, K, "threat.edge", false)
 	assert(tank.threatEdge == nil and tank.threat:IsShown(), "off keeps the border")
-	write(env, K, "party.portrait", false)
 
 	write(env, K, "accent.hoverLines", 2)
 	assert(tank.hoverLine and tank.hoverLine[1]:IsShown() ~= false, "two hover lines make the inner line")

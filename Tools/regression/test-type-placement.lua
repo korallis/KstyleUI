@@ -50,7 +50,7 @@ for _, screen in ipairs(screens) do
 	local plate = nn.Plates.Get("nameplate1")
 	local _, _, _, _, lift = plate.name:GetPoint(1)
 	assert(math.abs(lift - NK.Widgets.Snap(plate, nn.Plate.NAME_GAP)) < 1e-6, label .. ": the plate name keeps the bible's lift, snapped")
-	assert(nn.Settings.Get("name.size") == nn.Medallions.LOOK["name.size"], label .. ": the Medallions name size")
+	assert(nn.Settings.Get("name.size") == 11, label .. ": the Medallions name size")
 	snapped(NK, plate.name, label .. " plate name")
 	assert(#ne._errors == 0, tostring(ne._errors[1]))
 

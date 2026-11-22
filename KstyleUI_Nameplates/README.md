@@ -193,10 +193,10 @@ The target's plate gets a glow and an edge in the accent, or a custom colour. Th
 
 ## Medallions
 
-`Medallions.lua` adds a component and wraps five plate methods, `Plates.ReadSize` and `Settings.Get`. The look is KSTY-110's (section 3, nameplates). The game keeps Blizzard's own nameplate size and the plate still hangs from its base as `Plate:PlaceOnBase` puts it (#373); `test-nameplates-restyle.lua` checks that the Medallions plate holds its place through restyles.
+`Medallions.lua` adds a component and wraps five plate methods and `Plates.ReadSize`. The look is KSTY-110's (section 3, nameplates). The game keeps Blizzard's own nameplate size and the plate still hangs from its base as `Plate:PlaceOnBase` puts it (#373); `test-nameplates-restyle.lua` checks that the Medallions plate holds its place through restyles.
 
 - **Size.** The plate is 120 by 9 units unless the player resized it in Edit Mode, whose size always wins.
-- **Settings the player left alone.** `Medallions.LOOK` gives the name 11 units with an outline (the spec's 9 is under the kit's 11 px text floor, #361), the level 12 units with an outline, and debuffs 22 units with 11-unit timers. A setting the player changed keeps the player's value.
+- **Defaults.** The module's defaults are the look: the name 11 units with an outline (the spec's 9 is under the kit's 11 px text floor, #361), the level 12 units with an outline, and debuffs 22 units with 11-unit timers. Any value the player saves, including the 2026-11-09 sizes and no outline, is kept.
 - **Type.** With the module's font following the kit, the name is Inter SemiBold in capitals and the level and health text are the Medallions number face, Barlow Semi Condensed (`Tokens.Font("number")`).
 - **Level.** No diamond: the number stands 7 units off the bar's left end, clear of the target tick so it never moves when the target changes, in the classification marker's colour when there is one, else the creature's difficulty colour (`GetCreatureDifficultyColor`, defined in `Blizzard_FrameXMLUtil/Mainline/DifficultyUtil.lua`, which Forever loads: its camelot-only `Camelot/DifficultyUtilOverrides.lua` writes into the `DifficultyUtil` table that only the mainline-tagged `Mainline/DifficultyUtil_Base.lua` creates; lifted by `Theme.Brighten`) for an enemy, red for the skull and `medText` otherwise. A secret level reads in `medText`.
 - **Target.** Two gunmetal (`medGunLit`) ticks, 2 units wide, 3 units off each end of the bar and 2 units past it above and below. No arms, no glow and no slide: they appear in place.
