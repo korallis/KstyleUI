@@ -292,7 +292,6 @@ def make_showcase(name, picture):
 
 def clip_frame(work, scene, env, box, standins):
     """One clip frame cut to box, rendered once and kept in work under a key of everything that drew it."""
-    from PIL import Image
     key = hashlib.sha1(json.dumps([scene, CLIP_ENV, env, box, CLIP_PPU], sort_keys=True).encode()).hexdigest()[:16]
     path = work / (key + ".png")
     if path.is_file():
@@ -305,6 +304,7 @@ def clip_frame(work, scene, env, box, standins):
                          env={**os.environ, **CLIP_ENV, **env, "RENDER_OUTDIR": full.as_posix(), "KSTYLEUI_PLATE": plate})
     if run.returncode:
         raise SystemExit(f"{scene} {env}: shoot.sh exited {run.returncode}\n{run.stdout[-3000:]}{run.stderr[-3000:]}")
+    from PIL import Image
     x, y, w, h = (round(v * CLIP_PPU) for v in box)
     with Image.open(full / "frame.png") as image:
         image.crop((x, y, x + w, y + h)).save(path)
