@@ -237,10 +237,8 @@ write("strip.padding", 6)
 assert(select(4, item("latency").dot:GetPoint()) < gap - 5, "padding widens the room around the dots")
 write("strip.padding", 0)
 eq(select(4, item("latency").dot:GetPoint()), gap, "no padding restores the dots")
-write("strip.placement", "top")
 
 -- Cells: text alignment.
-write("strip.placement", "rail")
 write("strip.line", false)
 write("strip.labels", "full")
 for _, align in ipairs({ "LEFT", "RIGHT", "CENTER" }) do
