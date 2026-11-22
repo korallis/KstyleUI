@@ -1,4 +1,4 @@
--- test-unitframes-parity-r5-review.lua: the round 5 review's probes: the global cooldown fill over a cast's fade and after a second instant with a secret time left, one cooldown read per spell, a secret name anchor, the spell target matching the name's type, the detached power text on the bar's strata and back on Medallions, buffs kept with the debuffs until their block exists, the wide bar's right buffs, buff offsets only for a block, one enable per apply, and the preview's column cooldown, detached bar room and per-group aura capacity.
+-- test-unitframes-parity-r5-review.lua: the round 5 review's probes: the global cooldown fill over a cast's fade and after a second instant with a secret time left, one cooldown read per spell, a secret name anchor, the spell target matching the name's type, the plate's detached power text on the bar's strata and back on a slab, buffs kept with the debuffs until their block exists, buff offsets only for a block, one enable per apply, and the preview's slab cooldown, detached bar room and per-group aura capacity.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -22,11 +22,6 @@ local function set(key, value)
 	env.RunTimers()
 end
 
-local function hud(style)
-	K.Options.Write("HudStyle", "style", style)
-	env.RunTimers()
-end
-
 local function clean(where)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, where .. ": " .. tostring(env._errors[1]))
 end
@@ -38,7 +33,7 @@ local function row(key)
 end
 
 local db = K.Store.Module("UnitFrames")
-local cb = ns.CastBars.Get("player")[1]
+local cb = ns.CastBars.Inline("player")[1]
 
 -- 1. A cast's fade-out never hides the global cooldown that follows it.
 set("player.castbarGcd", true)
@@ -119,8 +114,9 @@ set("player.fonts.cast.size", 0)
 env._castTarget = nil
 clean("spell target")
 
--- 4 and 9b. The detached bar's strata takes its text and fill clip, is set once, and goes on a Medallions slab.
+-- 4 and 9b. The plate's detached bar strata takes its text and fill clip, is set once, and goes on a Medallions slab.
 local pv = ns.Frames.Get("player").views[1]
+set("player.style", "plate")
 set("player.powerDetach", "BELOW")
 set("player.powerDetachStrata", "HIGH")
 assert(pv.power:GetFrameStrata() == "HIGH" and pv.powerText:GetParent():GetFrameStrata() == "HIGH", "the text draws on the bar's strata")
@@ -128,13 +124,14 @@ assert(pv.powerFillClip:GetParent() == pv.powerText:GetParent(), "with its fill 
 local calls = #W.Calls(pv.power, "SetFrameStrata")
 ns.Style.Layout(pv, pv.s, pv.parent:GetWidth(), pv.parent:GetHeight())
 assert(#W.Calls(pv.power, "SetFrameStrata") == calls, "an unchanged layout sets no strata")
-hud("medallions")
+set("player.style", "lumen")
 assert(pv.form == "slab" and pv.power:GetFrameStrata() == pv.power:GetParent():GetFrameStrata() and pv.powerText:GetParent() == pv.top, "a slab inherits again")
-hud("frames")
-assert(pv.power:GetFrameStrata() == "HIGH" and pv.powerText:GetParent():GetFrameStrata() == "HIGH", "back on Frames it is raised again")
+set("player.style", "plate")
+assert(pv.power:GetFrameStrata() == "HIGH" and pv.powerText:GetParent():GetFrameStrata() == "HIGH", "back on the plate it is raised again")
 set("player.powerDetach", "")
 assert(pv.powerText:GetParent() == pv.top and pv.powerFillClip:GetParent() == pv.top and pv.powerFillClip:GetFrameLevel() == pv.top:GetFrameLevel() + 1, "in the frame the text and clip go home")
 set("player.powerDetachStrata", "")
+set("player.style", "lumen")
 clean("detached power")
 
 -- 5 and 9c. Until the buff block exists the buffs keep their own line under the debuffs; its offsets show only for a block.
@@ -164,40 +161,24 @@ a.buff.container.SetEnabled = nil
 assert(enabled == 1, "one apply enables the block once: " .. enabled)
 set("focus.auraBuffPlace", "ABOVE")
 assert(not a.buff and not row("focus.auraBuffX").showWhen(db), "the debuffs' own side keeps them together and hides the offsets")
-local secrets = env.C_Secrets
-env.C_Secrets = nil
-set("focus.auraBuffPlace", "BELOW")
-hud("orbs")
-assert(not a.buff and a.container._groups.buffs.enabled and a.container._groups.buffs.layout.forceNewLine, "without the restriction API no block is made")
-env.C_Secrets = secrets
-hud("frames")
+local bare, BK, bns = U.New({ setup = function(e) e.C_Secrets = nil end })
+for key, value in pairs({ auraFilter = "both", auraBuffPlace = "BELOW" }) do BK.Options.Write("UnitFrames", "focus." .. key, value) end
+bare.RunTimers()
+local ba = bns.Frames.Get("focus").views[1].auras
+assert(not ba.buff and ba.container._groups.buffs.enabled and ba.container._groups.buffs.layout.forceNewLine, "without the restriction API no block is made")
 set("focus.auraBuffPlace", "")
 set("focus.auraFilter", "mine")
 clean("buffs apart")
 
--- 6. The wide target bar's debuffs sit centred below, so Right is a side of their own and Below is theirs.
-local tv = ns.Frames.Get("target").views[1]
-set("edit", "target")
-set("target.style", "bar")
-set("target.auraFilter", "both")
-set("target.auraBuffPlace", "RIGHT")
-assert(tv.geometry.aura.centred and tv.auras.buff and W.LastCall(tv.auras.buff.host, "SetPoint")[3] == "TOPRIGHT", "right buffs get their own block")
-set("target.auraBuffPlace", "BELOW")
-assert(not tv.auras.buff and not row("target.auraBuffX").showWhen(db), "below stays with the centred debuffs")
-set("target.auraBuffPlace", "")
-set("target.auraFilter", "mine")
-set("target.style", "lumen")
-clean("wide bar")
-
--- 7. The preview: the column cooldown, the detached bar inside its pane and each aura group's own capacity.
+-- 7. The preview: the slab cooldown, the detached bar inside its pane and each aura group's own capacity.
 set("edit", "player")
 local pane = ns.Preview.Build(env.UIParent)
 set("player.castbarGcd", true)
 pane:Refresh()
-assert(ns.Settings.Form("player") == "column" and pane.casts.player.frame:IsShown(), "the column preview shows the cooldown fill")
+assert(ns.Settings.Form("player") == "slab" and pane.casts.player.frame:IsShown(), "the slab preview shows the cooldown fill")
 set("player.castbarGcd", false)
 pane:Refresh()
-assert(not pane.casts.player.frame:IsShown(), "off, the column preview has no cast bar again")
+assert(not pane.casts.player.frame:IsShown(), "off, the slab preview has no cast bar again")
 set("player.style", "plate")
 set("player.powerDetach", "BELOW")
 set("player.powerDetachWidth", 600)

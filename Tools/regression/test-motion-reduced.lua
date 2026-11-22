@@ -3,9 +3,8 @@ local W = dofile("Tools/regression/widget_env.lua")
 local function duration(animation)
 	return W.LastCall(animation, "SetDuration")[1]
 end
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+for _, style in ipairs({ "medallions" }) do
 	local env, K = W.New()
-	K.Options.Write("HudStyle", "style", style)
 	env.RunTimers()
 	local M, T = K.Motion, K.Tokens
 	assert(M.Fades() and M.Slides(), "Full permits fades and slides in " .. style)

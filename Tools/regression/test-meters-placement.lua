@@ -3,12 +3,11 @@ local M = dofile("Tools/regression/meters_env.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
 
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
-	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+	for _, style in ipairs({ "medallions" }) do
 		for _, size in ipairs({ "auto", 16 / 19 }) do
 			local env, K, ns = M.New({ width = screen[1], height = screen[2], followRole = true,
 				setup = function(e) e._fitScale, e._size = true, size end,
 			})
-			K.Options.Write("HudStyle", "style", style)
 			assert(K.Setup.Apply({ layout = "DPS", modules = { Meters = true } }))
 			env.RunTimers()
 			local root, layouts = K.Scale.Root(), K.Setup.Layouts
@@ -29,7 +28,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 end
 for _, key in ipairs({ "meters.damage", "medallions:meters.damage" }) do
 	local env, K, ns = M.New({ saved = { version = 38, account = { setupSeen = true },
-		profiles = { Default = { HudStyle = { style = "medallions" } } },
+		profiles = { Default = { } },
 		layouts = { Default = { [key] = { anchor = "BOTTOMRIGHT", x = -90, y = 60 } } },
 	} })
 	M.Enable(env, K)
@@ -39,7 +38,6 @@ for _, key in ipairs({ "meters.damage", "medallions:meters.damage" }) do
 end
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	local env, K, ns = M.New({ width = screen[1], height = screen[2], followRole = true })
-	K.Options.Write("HudStyle", "style", "medallions")
 	assert(K.Setup.Apply({ layout = "Tank", modules = { Meters = true } }))
 	env.RunTimers()
 	local root = K.Scale.Root()

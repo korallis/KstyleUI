@@ -10,6 +10,8 @@ end
 local env, K, ns = U.New({ setup = rogue })
 local Resource = ns.Resource
 local state = Resource.state
+-- The plain pips; test-unitframes-pips.lua covers the class-themed ones.
+K.Options.Write("UnitFrames", "resource.classPips", false)
 
 local function noErrors(where)
 	assert(#env._errors == 0, where .. ": " .. tostring(env._errors[1]))

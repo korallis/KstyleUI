@@ -286,7 +286,7 @@ do
 	assert(close(width(env, one.questIcon), 24), "its scale")
 	local _, _, _, _, y1 = one.auras:GetPoint(1)
 	local _, above1 = ns.Stacking.Extent(one)
-	assert(close(y1 - y0, 24 - 16) and close(above1 - above0, 8), "debuffs above the name rise over the taller line")
+	assert(close(y1 - y0, 24 - 12) and close(above1 - above0, 12), "debuffs above the name rise from the 12-unit icon line over the Medallions 11-unit name to the taller line")
 	assert(select(5, plain.auras:GetPoint(1)) == plainY, "a mob with no quest line keeps its debuffs where they were")
 	set("markers.questIcon", false)
 	assert(not one.questIcon:IsShown(), "off drops the icon")
@@ -294,7 +294,7 @@ do
 	assert(rel == one.name, "and the text returns to the name")
 	set("markers.questText", false)
 	local _, _, _, _, y2 = one.auras:GetPoint(1)
-	assert(close(y2, y0), "off gives the room back")
+	assert(close(y2, plainY), "off gives the room back: the debuffs sit where a plate with no quest line keeps them")
 
 	clean(env, K)
 end

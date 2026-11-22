@@ -48,7 +48,7 @@ do
 	assert(cfg.duration == 1.2 and cfg.maxPerFrame == 4 and cfg.critScale == 1.6 and cfg.colorMode == "single", "bad numbers and choices use the defaults")
 	local r, g, b = K.Tokens.Color("friendly")
 	assert(cfg.healR == r and cfg.healG == g and cfg.healB == b, "a broken colour uses the default colour")
-	assert(cfg.fontPath == (K.Tokens.Font("number")), "a font that is not a font path uses the default")
+	assert(cfg.fontPath == K.Tokens.FontPath("BarlowBold"), "a font that is not a font path uses the default Medallions face")
 	CT.Hit(env, "player", "HEAL", "", env.Secret(3), 2)
 	assert(#Shown(ns) == 1 and env._errors[1] == nil, "the module works with the repaired settings")
 end

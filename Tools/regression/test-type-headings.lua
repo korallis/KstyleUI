@@ -1,7 +1,6 @@
 -- test-type-headings.lua: tabs, section caps, card figures and option help share one hierarchy with an original-look switch.
 local O = dofile("Tools/regression/options_env.lua")
 local env, K, ns = O.New()
-K.Options.Write("HudStyle", "style", "medallions")
 local W, T = K.Widgets, K.Tokens
 local holder = env.CreateFrame("Frame", nil, K.Scale.Root())
 holder:SetSize(700, 400)
@@ -38,7 +37,6 @@ assert(#env._errors == 0, tostring(env._errors[1]))
 print("test-type-headings: caps, card figures, option hierarchy and original-look switch")
 local S = dofile("Tools/regression/skins_env.lua")
 local skinEnv, skinK, skin = S.New()
-skinK.Options.Write("HudStyle", "style", "medallions")
 skinK.Modules.Enable("Skins")
 local card = skin.Lumen.SectionCap(skinK.Scale.Root())
 card:SetSize(300, 24)
@@ -54,11 +52,8 @@ assert(card.count:GetFont() == skinK.Tokens.Font("number"), "C3 off: story-card 
 assert(select(2, card.label:GetFont()) == skinK.Widgets.FontSize(card.label, 12 * skinK.Theme.FontScale()), "C5 off: restore the original story heading size")
 assert(#skinEnv._errors == 0, tostring(skinEnv._errors[1]))
 
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-	skinK.Options.Write("HudStyle", "style", style)
-	for _, headings in ipairs({ true, false }) do
-		skinK.Options.Write("Appearance", "sectionHeadings", headings)
-		skinK.Theme.SetRoleFonts({ number = "SourceSans3Semibold" })
-		assert(card.count:GetFont() == skinK.Tokens.Font("number"), "cap asides must respect an explicit number-role font in every HUD and heading mode")
-	end
+for _, headings in ipairs({ true, false }) do
+	skinK.Options.Write("Appearance", "sectionHeadings", headings)
+	skinK.Theme.SetRoleFonts({ number = "SourceSans3Semibold" })
+	assert(card.count:GetFont() == skinK.Tokens.Font("number"), "cap asides must respect an explicit number-role font in every HUD and heading mode")
 end

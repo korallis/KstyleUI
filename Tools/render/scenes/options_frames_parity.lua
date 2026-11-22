@@ -38,7 +38,6 @@ return Common.Run(function()
 	if module == "UnitFrames" and os.getenv("RENDER_PARITY_ENABLED") == "1" then
 		K.Options.Write(module, "player.castbarSmooth", true)
 		K.Options.Write(module, "player.castbarChannelOverride", true)
-		K.Options.Write(module, "player.castbarIconRight", true)
 		K.Options.Write(module, "player.castbarTotal", true)
 	end
 	if module == "GroupFrames" then

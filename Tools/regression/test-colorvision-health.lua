@@ -60,6 +60,9 @@ for _, mode in ipairs({ "standard", "redGreen", "blueYellow" }) do
 		for _, unit in ipairs({ { "hostile", 2 }, { "neutral", 4 }, { "friendly", 5 } }) do
 			U.SetUnit(uenv, "target", { name = unit[1], health = 50, healthMax = 100, reaction = unit[2], canAttack = unit[2] < 4 })
 			uenv.SetTarget(true)
+			-- A new target flips the Medallions slab out and refreshes it when the flip ends.
+			uenv.FireEvent("PLAYER_TARGET_CHANGED")
+			U.W.Settle(uenv)
 			uenv.RunTimers()
 			local c = uns.Frames.Get("target").views[1].health.colorRGBA
 			local base = unit[1] == "hostile" and (source == "hud" and "hudTargetHealth" or "healthHostile") or unit[1]

@@ -36,14 +36,14 @@ local function Row(name)
 	end
 end
 
-local openValue, openPercent = Row("Tester")
+local openValue, openPercent = Row("TESTER")
 assert(openValue == "12.3K" and openPercent == "100%", "in the open 1,234,500 raw threat at 99.6% reads 12.3K and 100%: " .. tostring(openValue) .. ", " .. tostring(openPercent))
 
 -- The same threat against a boss (UnitDetailedThreatSituation: SecretWhenUnitThreatValuesRestricted).
 env._threat.player = { S(false), S(1), S(99.6), S(90), S(1234500) }
 env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
 env.RunTimers()
-local value, percent = Row("Tester")
+local value, percent = Row("TESTER")
 assert(value == openValue, "hidden raw threat reads in threat points: the game's value shows as " .. openValue .. ", KstyleUI shows " .. tostring(value))
 assert(percent == openPercent, "a hidden share of aggro rounds as it does in the open: " .. openPercent .. ", KstyleUI shows " .. tostring(percent))
 assert(Text(list.column) == openPercent, "and so does the count in the cap: " .. tostring(Text(list.column)))

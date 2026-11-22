@@ -9,7 +9,6 @@ end
 
 for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 }, { 2560, 1440 }, { 3840, 2160 } }) do
 	_G.RENDER_SCREEN = { width = screen[1], height = screen[2], size = "auto" }
-	_G.RENDER_HUD_STYLE = "Medallions"
 	local env, K, ns = U.New(Common.ScreenOpts({
 		saved = Hud.Saved(Hud.Options({ layout = "DPS" }), "UnitFrames", {}),
 		setup = function(e) Common.ForceScreen(e, true) end,
@@ -137,6 +136,6 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 }, { 2560
 	check(m.x >= g.medal.x + g.medal.w and m.y + m.h <= 0, tag .. ": raid marker clears the medallion and outboard unit slab")
 	check(#env._errors == 0 and K.ErrorCount() == 0, tag .. ": no errors: " .. tostring(env._errors[1]))
 end
-_G.RENDER_SCREEN, _G.RENDER_HUD_STYLE = nil, nil
+_G.RENDER_SCREEN = nil
 assert(#failures == 0, table.concat(failures, "\n"))
 print("unitframes medallions target row ok")

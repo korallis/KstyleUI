@@ -39,9 +39,7 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3440, 1440 }, { 3840, 1080 }, { 2560
 	local label = screen[1] .. "x" .. screen[2] .. " medallions"
 	local profile = K.Store.Profile()
 	profile.Minimap.frame = frame
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
-	assert(K.HudStyle.Current() == "medallions", label .. ": the style applies")
 	local ppu = env._physical[2] * Scale.Root():GetEffectiveScale() / UI_HEIGHT
 	local size, step, cap = Scale.AppliedUserScale(), Scale.Step(), Scale.MaxUserScale()
 	assert(whole(ppu * Scale.STEPS_PER_PIXEL), label .. ": one unit is a whole number of sixteenths of a pixel, got " .. ppu)
@@ -51,11 +49,32 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3440, 1440 }, { 3840, 1080 }, { 2560
 	local canvas = Scale.CanvasWidth(screen[1], screen[2])
 	for _, preset in ipairs({ "DPS", "Tank", "Healer" }) do
 		local enabled = Layouts.Enabled(preset, profile)
-		local auto = Scale.Auto(screen[2], Layouts.ScaleLimit(canvas, screen[2], preset, enabled, "medallions"))
-		assert(Layouts.Fits(preset, canvas, screen[2], auto, enabled, Layouts.Positions(preset, "medallions", Scale.AspectClass(canvas, screen[2])), "medallions"), label .. " " .. preset .. ": the Medallions layout fits at its automatic size")
+		local auto = Scale.Auto(screen[2], Layouts.ScaleLimit(canvas, screen[2], preset, enabled))
+		assert(Layouts.Fits(preset, canvas, screen[2], auto, enabled, Layouts.Positions(preset, "medallions", Scale.AspectClass(canvas, screen[2]))), label .. " " .. preset .. ": the Medallions layout fits at its automatic size")
 	end
 	assert(#env._errors == 0, label .. ": " .. tostring(env._errors[1]))
 end
 
 end
-print("scale auto medallions ok: all three minimap frames")
+-- A packaged release keeps scale answers across sessions; switching the minimap to the Ring frame, whose crest is taller,
+-- must not reuse the Medallion frame's answer (review of #695: 1366x768 DPS applied 0.967 where the Ring fits 0.879).
+for _, screen in ipairs({ { 1366, 768 }, { 1920, 1080 } }) do
+	local env, K = CoreEnv.New({ width = screen[1], height = screen[2], fit = true, size = "auto" })
+	K.VERSION = "release-test"
+	CoreEnv.Boot(env)
+	local Layouts, Scale, profile = K.Setup.Layouts, K.Scale, K.Store.Profile()
+	for _, element in ipairs(Layouts.ELEMENTS) do
+		profile[element.module] = profile[element.module] or {}
+		profile[element.module].enabled = true
+	end
+	profile.Minimap.frame = "medallion"
+	K.Callbacks.Fire("ModuleChanged")
+	profile.Minimap.frame = "ring"
+	K.Callbacks.Fire("SettingChanged", "Minimap", "frame")
+	env.RunTimers()
+	local cold, fits = Layouts.ScaleLimit(Scale.CanvasWidth(screen[1], screen[2]), screen[2], "DPS", Layouts.Enabled("DPS", profile))
+	local label = screen[1] .. "x" .. screen[2] .. " release"
+	assert(math.abs(Scale.MaxUserScale() - cold) < 1e-9, label .. ": the Ring frame's cap is " .. cold .. ", not the cached " .. Scale.MaxUserScale())
+	assert(Scale.AppliedUserScale() == Scale.Auto(screen[2], cold, fits), label .. ": the applied size is the Ring frame's automatic size")
+end
+print("scale auto medallions ok: all three minimap frames, and a release re-fits when the frame changes")

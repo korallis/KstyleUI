@@ -12,7 +12,7 @@ local function Apart(a, b)
 	return a[1] >= b[3] or b[1] >= a[3] or a[2] >= b[4] or b[2] >= a[4]
 end
 for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
-	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+	for _, style in ipairs({ "medallions" }) do
 		local env, K, ns = AB.New({ width = screen[1], height = screen[2] })
 		root, base = K.Scale.Root(), env.UIParent
 		AB.Enable(env, K)
@@ -22,29 +22,28 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 		}
 		env.FireEvent("BAG_UPDATE_DELAYED")
 		assert(#ns.Consumables.selected == 12 and ns.Consumables.header:IsShown(), "check bar 3 against the occupied consumables grid")
-		K.Options.Write("HudStyle", "style", style)
 		local plannedScales = {}
 		do
 			local fitEnv, fitK = CoreEnv.New({ width = screen[1], height = screen[2], fit = true, size = "auto" })
 			CoreEnv.Boot(fitEnv)
 			fitK.Store.Module("DataBars").strip = { placement = "rail" }
-			local maximum, fits = fitK.Setup.Layouts.ScaleLimit(fitK.Scale.CanvasWidth(screen[1], screen[2]), screen[2], "DPS", nil, style)
-			local baseScale = (screen[1] == 1920 or style == "medallions") and 0.9375 or 0.984375
+			local maximum, fits = fitK.Setup.Layouts.ScaleLimit(fitK.Scale.CanvasWidth(screen[1], screen[2]), screen[2], "DPS")
+			local baseScale = 0.9375
 			assert(fitK.Scale.Auto(screen[2], maximum, fits) == baseScale, "bar 3 off must keep the base Auto scale")
 			local enabled = fitK.Setup.Layouts.Enabled("DPS")
 			enabled["actionbars.bar3"] = true
-			maximum, fits = fitK.Setup.Layouts.ScaleLimit(fitK.Scale.CanvasWidth(screen[1], screen[2]), screen[2], "DPS", enabled, style)
+			maximum, fits = fitK.Setup.Layouts.ScaleLimit(fitK.Scale.CanvasWidth(screen[1], screen[2]), screen[2], "DPS", enabled)
 			local withBar = fitK.Scale.Auto(screen[2], maximum, fits)
 			assert(withBar == baseScale, "bar 3 on fits without shrinking the default HUD")
 			print(style, screen[1], "bar 3 off/on", baseScale, withBar)
 			for _, preset in ipairs(fitK.Setup.Layouts.Names()) do
 				local active = fitK.Setup.Layouts.Enabled(preset)
 				active["actionbars.bar3"] = true
-				maximum, fits = fitK.Setup.Layouts.ScaleLimit(fitK.Scale.CanvasWidth(screen[1], screen[2]), screen[2], preset, active, style)
+				maximum, fits = fitK.Setup.Layouts.ScaleLimit(fitK.Scale.CanvasWidth(screen[1], screen[2]), screen[2], preset, active)
 				plannedScales[preset] = fitK.Scale.Auto(screen[2], maximum, fits)
 			end
 		end
-		assert(K.Setup.Apply({ layout = "DPS", modules = { ActionBars = true }, hudStyle = style }))
+		assert(K.Setup.Apply({ layout = "DPS", modules = { ActionBars = true } }))
 		K.Options.Write("ActionBars", "bar3.enabled", true)
 		AB.Slot(env, 1, { texture = 135813, type = "spell", id = 133 })
 		assert(ns.bars.bar1.buttons[1].hotkey:GetText() == "-", "a filled, unbound slot needs a dim dash")
@@ -80,7 +79,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 				end
 				for key, place in pairs(places) do
 					if key ~= "actionbars.bar3" and enabled[key] then
-						local w, h = K.Setup.Layouts.StyleSize(style, K.Scale.Aspect(), key)
+						local w, h = K.Setup.Layouts.StyleSize(K.Scale.Aspect(), key)
 						if not w then w, h = K.Setup.Layouts.Footprint(preset, key) end
 						local other = { K.Setup.Layouts.Rect({ width = w, height = h }, place, rw, rh) }
 						assert(Apart(own, other), style .. " " .. preset .. " " .. count .. ": bar 3 overlaps " .. key)
@@ -91,7 +90,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 			local rw, rh = K.Layout.RootSize()
 			for _, key in ipairs({ "unitframes.player", "unitframes.target", "unitframes.focus", "unitframes.castbar.player", "unitframes.castbar.target", "unitframes.resource", "cooldowns.essential", "cooldowns.utility", "chat.main" }) do
 				local place = positions[key]
-				local w, h = K.Setup.Layouts.StyleSize(style, K.Scale.Aspect(), key)
+				local w, h = K.Setup.Layouts.StyleSize(K.Scale.Aspect(), key)
 				if not w then w, h = K.Setup.Layouts.Footprint("DPS", key) end
 				local other = { K.Setup.Layouts.Rect({ width = w, height = h }, place, rw, rh) }
 				assert(Apart(rect, other), style .. " " .. count .. ": bar 3 overlaps " .. key)
@@ -103,8 +102,8 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 		K.Options.Write("ActionBars", "bar3.finished", false)
 		env.RunTimers()
 		local old = K.Layout.Get("actionbars.bar3")
-		assert(old.anchor == "BOTTOMLEFT" and old.x == 17 and old.y == (style == "orbs" and 475 or 462.5), "Finished third bar off restores the previous style position")
-		if style == "medallions" then assert(not ns.Slab.sides.bar3:IsShown(), "Finished third bar off restores the previous slab treatment") end
+		assert(old.anchor == "BOTTOMLEFT" and old.x == 17 and old.y == 462.5, "Finished third bar off restores the previous style position")
+		assert(not ns.Slab.sides.bar3:IsShown(), "Finished third bar off restores the previous slab treatment")
 		K.Layout.Set("actionbars.bar3", "x", 19)
 		K.Layout.Set("actionbars.bar3", "scale", 1.1)
 		K.Options.Write("ActionBars", "bar3.finished", true)
@@ -125,12 +124,25 @@ for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
 		collectgarbage()
 	end
 end
+-- At the shipped size, bar 3's visible slab, not only its button grid, ends before the central play band.
+for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
+	local env, K, ns = AB.New({ width = screen[1], height = screen[2], size = "default" })
+	root, base = K.Scale.Root(), env.UIParent
+	AB.Enable(env, K)
+	assert(K.Setup.Apply({ layout = "DPS", modules = { ActionBars = true } }))
+	K.Scale.SetUserScale(K.Scale.DEFAULT_USER_SCALE)
+	K.Options.Write("ActionBars", "bar3.enabled", true)
+	env.RunTimers()
+	AB.W.Settle(env)
+	local plate, band = Rect(ns.Slab.sides.bar3), K.Layout.RootSize() * 0.3
+	assert(plate[3] <= band, string.format("%dx%d: bar 3's slab ends at %.1f, inside the central play band from %.1f", screen[1], screen[2], plate[3], band))
+end
 print("third action bar ok")
 
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+for _, style in ipairs({ "medallions" }) do
 	local key = style .. ":actionbars.bar3"
-	local env, K = CoreEnv.New({ saved = { version = 36, profiles = { Default = { HudStyle = { style = style } }, Custom = {} }, layouts = {
-		Default = { ["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = 17, y = 462.5 }, [key] = { anchor = "BOTTOMLEFT", x = 17, y = style == "orbs" and 475 or 462.5 } },
+	local env, K = CoreEnv.New({ saved = { version = 36, profiles = { Default = { }, Custom = {} }, layouts = {
+		Default = { ["actionbars.bar3"] = { anchor = "BOTTOMLEFT", x = 17, y = 462.5 }, [key] = { anchor = "BOTTOMLEFT", x = 17, y = 462.5 } },
 		Custom = { [key] = { anchor = "BOTTOMLEFT", x = 19, y = 462.5 } },
 	} } })
 	CoreEnv.Boot(env)
@@ -141,5 +153,5 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 	assert(K.Store.CreateProfile("Fresh") and K.Store.SetProfile("Fresh"))
 	assert(K.Store.Layout()[key] == nil, "a fresh profile inherits the new style default")
 	local position = K.Setup.Layouts.Positions("DPS", style, "16:9")["actionbars.bar3"]
-	assert(position.anchor == (style == "orbs" and "TOP" or "BOTTOM") and position.x == (style == "medallions" and -692 or style == "frames" and -460 or 0))
+	assert(position.anchor == "BOTTOM" and position.x == -717.5, "bar 3's slab ends 8 units before the central play band")
 end

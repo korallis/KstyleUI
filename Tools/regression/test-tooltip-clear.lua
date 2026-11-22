@@ -1,5 +1,5 @@
 -- test-tooltip-clear.lua: a kit tooltip opens on the side of its owner with room on the screen, so it never comes
--- down over the bar the pointer is on: the data bar readouts and micro menu in every HUD style at four screen
+-- down over the bar the pointer is on: the data bar readouts and micro menu at four screen
 -- sizes, and an owner flush against each screen edge. The render solver clamps to the screen as the client does.
 local D = dofile("Tools/regression/databars_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
@@ -25,31 +25,26 @@ local function clear(env, tip, owner, rows, what)
 end
 
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
-	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-		local env, K, ns = D.New({ width = screen[1], height = screen[2], size = "auto", setup = function(e) D.Menus(e) end })
-		K.Options.Write("HudStyle", "style", style)
-		local view, tip = ns.Strip.view, K.Widgets.Tooltip()
-		local where = style .. " " .. screen[1] .. "x" .. screen[2]
-		assert(view.topBar == (style ~= "medallions"), where .. ": Frames and Orbs put the data bar along the top")
-		for _, id in ipairs(ns.Strip.order) do
-			local button = view.items[id].button
-			D.W.Enter(button)
-			assert(tip:IsOwned(button), where .. ": the " .. id .. " readout shows the kit tooltip")
-			clear(env, tip, button, { view.frame }, where .. " " .. id)
-			D.W.Leave(button)
-		end
-		local micro = ns.Menus.Shown("micro")
-		assert(#micro > 0, where .. ": the micro menu has buttons")
-		local rows = { ns.Menus.Content("micro") }
-		if view.topBar then rows[2] = view.frame end
-		for _, button in ipairs(micro) do
-			D.W.Enter(button)
-			assert(tip:IsOwned(button), where .. ": a micro button shows the kit tooltip")
-			clear(env, tip, button, rows, where .. " micro")
-			D.W.Leave(button)
-		end
-		assert(#env._errors == 0, tostring(env._errors[1]))
+	local env, K, ns = D.New({ width = screen[1], height = screen[2], size = "auto", setup = function(e) D.Menus(e) end })
+	local view, tip = ns.Strip.view, K.Widgets.Tooltip()
+	local where = screen[1] .. "x" .. screen[2]
+	for _, id in ipairs(ns.Strip.order) do
+		local button = view.items[id].button
+		D.W.Enter(button)
+		assert(tip:IsOwned(button), where .. ": the " .. id .. " readout shows the kit tooltip")
+		clear(env, tip, button, { view.frame }, where .. " " .. id)
+		D.W.Leave(button)
 	end
+	local micro = ns.Menus.Shown("micro")
+	assert(#micro > 0, where .. ": the micro menu has buttons")
+	local rows = { ns.Menus.Content("micro") }
+	for _, button in ipairs(micro) do
+		D.W.Enter(button)
+		assert(tip:IsOwned(button), where .. ": a micro button shows the kit tooltip")
+		clear(env, tip, button, rows, where .. " micro")
+		D.W.Leave(button)
+	end
+	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
 -- Any owner against a screen edge: the tooltip asked toward that edge opens on the other side; in open space it
@@ -122,4 +117,4 @@ do
 	tip:Show()
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
-print("tooltip clear ok: data bar readouts and micro menu in every style at four sizes, owners on every edge, a two-row bottom menu, restricted, secret, tall and offset owners")
+print("tooltip clear ok: data bar readouts and micro menu at four sizes, owners on every edge, a two-row bottom menu, restricted, secret, tall and offset owners")

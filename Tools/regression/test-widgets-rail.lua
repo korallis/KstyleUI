@@ -14,7 +14,8 @@ for name, alias in pairs(Widgets.LUMEN_FALLBACK) do
 	assert(pcall(Tokens.Color, alias[1]), name .. " falls back to an existing token")
 end
 local gr0, gg0, gb0 = Widgets.LumenColor("gilt")
-assert(gr0 > gb0, "gilt is warm: more red than blue")
+local sr, sg, sb = Tokens.Color("steel")
+assert(W.Near(gr0, sr) and W.Near(gg0, sg) and W.Near(gb0, sb), "gilt reads the Medallions steel")
 local r, g, b, a = Widgets.LumenColor("gilt", 0.5)
 assert(W.Near(a, 0.5) and r == gr0 and g == gg0 and b == gb0, "an alpha scale scales only the alpha")
 assert(select(1, Widgets.LumenColor("rimLight")) == select(1, Tokens.Color("rim")), "rimLight reads the kit's rim token")
@@ -22,7 +23,6 @@ assert(not pcall(Widgets.LumenColor, "noSuchLumenName"), "an unknown name is an 
 assert(pcall(Widgets.LumenColor, "hostile"), "a plain token name passes straight through")
 
 -- The rail cap adapter: a thin wrapper over the kit's SectionCap, so the rail cards keep one call shape.
-K.Options.Write("Widgets", "cardMaterial", "Glass")
 local card = env.CreateFrame("Frame", nil, root)
 card:SetSize(318, 120)
 local cap = Widgets.RailCap(card, { title = "Blessings" })
@@ -31,8 +31,7 @@ assert(cap.frame:GetParent() == card, "the cap frame sits on the card")
 assert(cap.title == cap.frame.label and cap.aside == cap.frame.count and cap.gem == cap.frame.gem, "its parts are the kit cap's own")
 assert(cap.title:GetText() == "BLESSINGS", "the title is set in tracked caps through the caption role")
 assert(W.Near(cap.frame:GetHeight(), Widgets.SECTION_CAP_HEIGHT), "the cap frame is the shared cap height: " .. tostring(cap.frame:GetHeight()))
-local gr, gg, gb = Widgets.LumenColor("capsGold")
-assert(W.SameRGB(cap.gem, gr, gg, gb), "the diamond is the caption's gold")
+assert(W.SameRGB(cap.gem, Tokens.Color("capsGold")), "the diamond is the readable heading's gold")
 assert(not cap.aside:IsShown(), "no aside until one is set")
 cap:SetAside("Last fight")
 assert(cap.aside:GetText() == "Last fight" and cap.aside:IsShown(), "SetAside shows the kit cap's count text at the right")

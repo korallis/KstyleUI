@@ -400,7 +400,8 @@ do
 	eq(slots.indicator2.filter, "HARMFUL|CROWD_CONTROL", "slot 2: crowd control")
 	eq(slots.indicator3.filter, "HELPFUL|BIG_DEFENSIVE", "slot 3: big defensives")
 	eq(slots.indicator4.enabled, false, "slot 4 is off")
-	Batch(env, K, { { "indicator4.category", "SPELLS" } })
+	-- The tidy Medallions lane holds three indicators at fixed spots; off, each slot takes its own position.
+	Batch(env, K, { { "indicator4.category", "SPELLS" }, { "layout.tidyLanes", false } })
 	eq(slots.indicator4.enabled, false, "chosen spells with no IDs stay off")
 	Batch(env, K, { { "indicator4.spells", "774, 139 x" }, { "indicator4.mine", true }, { "indicator5.category", "BOSS" }, { "indicator1.position", "TOPRIGHT" } })
 	eq(slots.indicator4.enabled, true, "with IDs the slot turns on")
@@ -423,6 +424,7 @@ do
 	local plan = ns.Slots.Plan({ category = "HOTS", mine = true, spells = "" })
 	eq(plan.filter, "HELPFUL|PLAYER|RAID_IN_COMBAT", "your heals over time are already yours")
 	eq(ns.Slots.Plan({ category = "OFF" }), nil, "an off slot has no plan")
+	Batch(env, K, { { "layout.tidyLanes", true } })
 end
 
 -- Muse #4, Opus #7: the layout switches by raid size and role; a healer gets two dispellable debuffs first and three
@@ -557,21 +559,25 @@ local function ManyAuras(e, k8, nsx, f, box, what)
 	inside({ Scene.Rect(e, chip.window) }, clipRect, what .. ": the chip sits on the debuff block")
 	eq(placed[1]:GetParent(), f.auras, what .. ": the first cell holds the top category")
 	eq(placed[1], f.auras._groups[order[1]].frames[1], what .. ": " .. order[1] .. " first")
-	-- Your heals: more than fit, clipped along the bar with the same mark.
+	-- Your heals: more than fit, clipped along the bar with the same mark. A Medallions raid tile shows none of them.
 	local side, count, size, spacing = Auras.HealIcons(f, k)
-	local healPlaced = Flow(e, f.buffs, { "buffs" }, { buffs = 6 }, size + spacing, math.max(1, count))
-	local healClip = { Scene.Rect(e, f.buffClip) }
 	local tile = { Scene.Rect(e, f) }
-	inside(healClip, tile, what .. ": your heals")
-	for i, button in ipairs(healPlaced) do
-		local icon = { Scene.Rect(e, Auras.Parts(button).icon) }
-		if i <= count then
-			inside(icon, healClip, what .. ": heal " .. i)
-		else
-			assert(not intersects(icon, healClip), what .. ": heal " .. i .. " past the bar is clipped")
+	if f.kind == "raid" then
+		eq(count, 0, what .. ": a Medallions raid tile shows none of your heals")
+	else
+		local healPlaced = Flow(e, f.buffs, { "buffs" }, { buffs = 6 }, size + spacing, math.max(1, count))
+		local healClip = { Scene.Rect(e, f.buffClip) }
+		inside(healClip, tile, what .. ": your heals")
+		for i, button in ipairs(healPlaced) do
+			local icon = { Scene.Rect(e, Auras.Parts(button).icon) }
+			if i <= count then
+				inside(icon, healClip, what .. ": heal " .. i)
+			else
+				assert(not intersects(icon, healClip), what .. ": heal " .. i .. " past the bar is clipped")
+			end
 		end
+		inside({ Scene.Rect(e, Auras.Parts(healPlaced[count + 1]).markBack) }, healClip, what .. ": the hidden heal raises the + mark (" .. side .. ")")
 	end
-	inside({ Scene.Rect(e, Auras.Parts(healPlaced[count + 1]).markBack) }, healClip, what .. ": the hidden heal raises the + mark (" .. side .. ")")
 	-- Indicators: every slot on, the largest size, all inside the tile.
 	local settings = {}
 	for i = 1, 6 do
@@ -613,8 +619,8 @@ eq(#env._errors, 0, tostring(env._errors[1]))
 
 -- The raid environment: the size switch out of combat, then many auras on a raid tile and the owner's extreme
 -- debuff settings.
--- KSTY-57: the switch is checked on 50-unit rows (a size migration 29 leaves alone), which drop 8 units over 25 members (one off the name line, two
--- off the bar, five with the power line).
+-- KSTY-57: the switch is checked on 50-unit rows (a size migration 29 leaves alone), which drop 3 units over 25 members (one off the name line, two
+-- off the bar; the Medallions tile has no power line to drop).
 do
 	local renv, RK, rns = G.New({ saved = { version = 2, profiles = { Default = { GroupFrames = { raid = { height = 50 } } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} } })
 	G.SetRoster(renv, "raid", G.Members(20))
@@ -628,7 +634,7 @@ do
 	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 50, "and the size waits for combat to end")
 	renv.SetCombat(false)
 	renv.RunTimers()
-	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 42, "thirty members get compact frames after combat")
+	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 47, "thirty members get compact frames after combat")
 	Batch(renv, RK, { { "auto.size", false } })
 	eq(rns.Headers.raid[1]._attributes["kstyle-height"], 50, "the switch can be turned off")
 	Batch(renv, RK, { { "raid.height", 40 } })

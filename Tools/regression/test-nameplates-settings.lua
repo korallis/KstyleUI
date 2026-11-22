@@ -146,7 +146,7 @@ do
 	N.Add(env, "nameplate1")
 	local plate = ns.Plates.Get("nameplate1")
 	local width = K.Layout.Get("nameplates.plate").width
-	assert(plate.health.opts.width == width, "plates take the sample's width")
+	assert(width == ns.Plate.DEFAULT_WIDTH and plate.health.opts.width == ns.Medallions.WIDTH, "at the sample's default width, plates take the Medallions width")
 	assert(K.Layout.Set("nameplates.plate", "width", 180))
 	assert(plate.health.opts.width == K.Layout.Get("nameplates.plate").width and plate.health.opts.width ~= width, "resizing the sample resizes every plate")
 	assert(K.Layout.Set("nameplates.plate", "height", 16))

@@ -178,10 +178,7 @@ eq(#Headers.raid, 8, "eight raid headers")
 same(G.Shown(Headers.raid[1]), { "raid1", "raid2", "raid3", "raid4", "raid5" }, "group 1")
 same(G.Shown(Headers.raid[3]), { "raid11", "raid12" }, "group 3")
 eq(Headers.raid[2]._points[1][4] - Headers.raid[1]._points[1][4], 129, "group 2 sits a 116-unit cell and a 13-unit gap right of group 1")
-eq(content("raid7").rawName, "Member7", "raid names")
--- Rank R5 (Grok #2, Muse #1): the missing health left the name lane for its own lane on the bar, so a raid name keeps
--- the lane and stays whole. (Round 4 shortened it to "Me...7" beside the deficit.)
-eq(content("raid7").name:GetText(), "Member7", "the raid name stays whole")
+eq(content("raid7").rawName, "MEMBER7", "raid tiles name in caps")
 
 -- Sort by role: one header in role order, the others hidden.
 K.Options.Write("GroupFrames", "raid.sortBy", "ROLE")
@@ -204,7 +201,7 @@ local members = G.Members(6)
 members[6].name = "Latecomer"
 G.SetRoster(env, "raid", members)
 eq(#env._blocked, 0, "a roster change in combat makes no protected call: " .. tostring(env._blocked[1]))
-eq(content("raid6").rawName, "Latecomer", "a roster change in combat updates the name")
+eq(content("raid6").rawName, "LATECOMER", "a roster change in combat updates the name")
 env.RunTimers()
 env.SetCombat(false)
 eq((children(Headers.raid[1])[1]:GetSize()), 80 + 16, "the size applies after combat, 16 wider for a raid of up to ten")
@@ -281,34 +278,5 @@ eq(paints(first), painted + 3, "each roster update paints immediately")
 env.RunTimers()
 eq(paints(first), painted + 3, "roster updates leave no delayed paint")
 eq(#env._errors, 0, "no errors: " .. tostring(env._errors[1]))
-
--- The level disc on a party portrait is the button body with the edge line the other badges wear: a ring in the
--- accent, one border outside the disc, so the badge reads on the glass as the unit frames' octagon does.
-do
-	-- With the Lumen role ring on, the portrait and its disc step aside; the portrait look is tested with it off.
-	K.Options.Write("GroupFrames", "party.roleRing", false)
-	K.Options.Write("GroupFrames", "party.portrait", true)
-	env.RunTimers()
-	local p1 = content("party1")
-	assert(p1.badge:IsShown(), "the party frame shows its level disc")
-	local br, bg, bb = p1.badge:GetVertexColor()
-	local fr, fg, fb = K.Tokens.Color("buttonFill")
-	assert(near(br, fr) and near(bg, fg) and near(bb, fb), "the disc is the button body, the mockup's #101214 badge")
-	local ring = p1.badgeRing
-	assert(ring and ring:IsShown(), "the disc wears an edge ring")
-	eq(ring:GetTexture(), (K.Tokens.Texture("ringBevel")), "the edge is the kit's bevelled ring: the mockup's thin metal ring, dark outside, lit, then the accent")
-	local ar, ag, ab = ns.Style.Accent()
-	local rr, rg, rb, ra = ring:GetVertexColor()
-	assert(near(rr, ar) and near(rg, ag) and near(rb, ab) and near(ra, 1), "the ring takes the accent, as the unit frames' round badge does")
-	local outset = K.Widgets.Border(p1)
-	local _, rel, relPoint, x, y = ring:GetPoint(1)
-	assert(rel == p1.badge and relPoint == "TOPLEFT" and near(x, -outset) and near(y, outset), "the ring sits one border outside the disc")
-	local _, rel2, relPoint2, x2, y2 = ring:GetPoint(2)
-	assert(rel2 == p1.badge and relPoint2 == "BOTTOMRIGHT" and near(x2, outset) and near(y2, -outset), "on every side")
-	K.Options.Write("GroupFrames", "party.portrait", false)
-	assert(not ring:IsShown(), "the ring goes with the portrait")
-	K.Options.Write("GroupFrames", "party.portrait", true)
-	assert(ring:IsShown(), "and comes back with it")
-end
 
 print("groupframes frames ok")

@@ -17,9 +17,7 @@ local QUALITY_RARE, QUALITY_EPIC = 3, 4
 local QUALITY_TOKENS = { [0] = "poor", [1] = "common", [2] = "uncommon", [5] = "legendary" }
 
 local SOURCES = { class = true, custom = true }
-local STYLE_FACES = {
-	medallions = { number = "BarlowSemiBold", time = "BarlowSemiBold", timer = "BarlowSemiBold", world = "BarlowBold" },
-}
+local STYLE_FACES = { number = "BarlowSemiBold", time = "BarlowSemiBold", timer = "BarlowSemiBold", world = "BarlowBold" }
 local MIN_FONT_SCALE, MAX_FONT_SCALE = 0.8, 1.3
 local MAX_PATH = 260
 Theme.MIN_FONT_SCALE, Theme.MAX_FONT_SCALE = MIN_FONT_SCALE, MAX_FONT_SCALE
@@ -228,9 +226,7 @@ function Theme.SetFontFace(key)
 end
 
 function Theme.StyleFace(role)
-	local hud = ns.HudStyle
-	local faces = hud and STYLE_FACES[hud.Current()]
-	return faces and faces[role]
+	return STYLE_FACES[role]
 end
 
 function Theme.RoleFont(role)

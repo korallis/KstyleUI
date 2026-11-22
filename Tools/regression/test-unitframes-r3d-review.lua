@@ -16,8 +16,6 @@ local env, K, ns = U.New({
 	end,
 	before = function(_, core)
 		core.Store.Module("UnitFrames").auraLayout = "fan"
-		core.Store.Module("HudStyle").style = "medallions"
-		core.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 	end,
 })
 
@@ -119,7 +117,7 @@ assert(icons() == before, "show all restores it")
 -- Cast bars.
 write("player.castbarFit", true)
 write("player.castbarRank", true)
-local cb = ns.CastBars.Get("player")[1]
+local cb = ns.CastBars.Inline("player")[1]
 local function cast(name)
 	env._units.player.cast = { name = name, texture = 135846, start = 1000, finish = 4000, spellID = 116 }
 	env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116)

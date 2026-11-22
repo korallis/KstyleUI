@@ -4,18 +4,14 @@ local D = dofile("Tools/regression/databars_env.lua")
 local function near(a, b) return math.abs(a - b) < 1e-6 end
 
 for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
-	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-		local _, K = U.New({ width = screen[1], height = screen[2] })
-		K.Options.Write("HudStyle", "style", style)
-		assert(K.Scale.TextFloor() == math.floor(11 * screen[2] / 1080 + 0.5), "retain the ordinary-screen reading floor in every HUD style")
-	end
+	local _, K = U.New({ width = screen[1], height = screen[2] })
+	assert(K.Scale.TextFloor() == math.floor(11 * screen[2] / 1080 + 0.5), "retain the ordinary-screen reading floor in every HUD style")
 end
 
 for _, screen in ipairs({ { 1920, 1080 }, { 3456, 2234 }, { 5120, 1440 } }) do
 	for _, locale in ipairs({ "enUS", "deDE", "zhCN" }) do
 		local env, K, ns = U.New({ width = screen[1], height = screen[2], locale = locale })
 		env._textWidth = D.TextWidth
-		K.Options.Write("HudStyle", "style", "medallions")
 		local name = locale == "zhCN" and "暗影峡谷的游荡者和古老森林守卫" or locale == "deDE" and "Ödlandwilderer Aus Dem Schattenwald" or "Shadowgale Poacher With A Very Long Name"
 		U.SetUnit(env, "target", { name = name, level = 12, health = 118, healthMax = 236, reaction = 2, creature = "Humanoid" })
 		env.SetTarget(true)

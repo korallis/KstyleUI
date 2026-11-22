@@ -1,4 +1,4 @@
--- test-groupframes-raid-tile.lua: the raid row at the KSTY-47 mock-ups' three sizes (KSTY-57): a name line with the role pip, a whole name and the percent at the bar's end, a full-width bar no thinner than the mock-up draws it (12, 11 and 9 units), a thin power line under it at 10 and 20, debuffs over the bar's right end, a centred boss slot where the bar holds one, Dead and Offline in the percent's place or on the emptied bar, your heals never on the fill; and the party tank's heals on the name line, clear of its bar.
+-- test-groupframes-raid-tile.lua: the Medallions raid tile at the KSTY-47 mock-ups' three sizes (KSTY-57): a class-coloured bar filling the tile no thinner than the mock-up draws it (12, 11 and 9 units), the name on the fill in caps keeping its head, the percent at the bar's end, a row of debuff pips over the bar, no power line, role icon, boss slot or heals on the tile, Dead and Offline in the percent's place; and the party tank's heals on the name line, clear of its bar.
 local G = dofile("Tools/regression/group_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
@@ -13,19 +13,19 @@ local function eq(got, want, what)
 	assert(got == want, what .. ": want " .. tostring(want) .. ", got " .. tostring(got))
 end
 
--- ShortOrWhole: the name is whole, or, when even the text floor cannot hold it, its head and an ellipsis; never under
--- the floor.
+-- ShortOrWhole: the name is whole in the Medallions tile's caps, or, when even the text floor cannot hold it, its head;
+-- never under the floor.
 local function ShortOrWhole(f, full, what)
 	local K = f._env.KstyleUI
 	local text = f.name:GetText()
+	full = K.Locale.Upper(full)
 	local _, size = f.name:GetFont()
 	local px = size * K.Widgets.ScaleFactor(f) / K.Scale.Pixel(1)
 	assert(px >= K.Scale.TextFloor() - 0.01, what .. ": " .. full .. " is at least the " .. K.Scale.TextFloor() .. " px floor, got " .. px)
 	if text == full then
 		return
 	end
-	local head = text:match("^(.-)%.%.%.$")
-	assert(head and #head >= 4 and full:sub(1, #head) == head, what .. ": " .. full .. " is whole or keeps its head, got " .. tostring(text))
+	assert(#text >= 4 and full:sub(1, #text) == text, what .. ": " .. full .. " is whole or keeps its head, got " .. tostring(text))
 	assert(size <= f.nameFit.min + 1e-6 or px <= K.Scale.TextFloor() + 0.01, what .. ": " .. full .. " shortens only at its smallest size")
 end
 
@@ -82,79 +82,42 @@ for _, size in ipairs(SIZES) do
 	local k = ns.Settings.current.raid
 	local frame = { Scene.Rect(env, f) }
 	local bar = { Scene.Rect(env, f.health) }
-	local px, edge = K.Scale.Pixel(1), ns.Geometry.EDGE
+	local px, pad = K.Scale.Pixel(1), K.Tokens.Size("gapSmall")
 
-	-- The bar spans the row inside its rim's room and is never thinner than the mock-up draws it.
+	-- The Medallions tile: the class-coloured bar fills the tile inside its padding, never thinner than the mock-up
+	-- draws the bar, with no power line and no role icon.
 	assert(bar[4] >= size.bar - px, what .. ": the bar is at least the mock-up's " .. size.bar .. " units tall, got " .. bar[4])
-	assert(math.abs(bar[1] - (frame[1] + edge)) <= px and math.abs(bar[1] + bar[3] - (frame[1] + frame[3] - edge)) <= px, what .. ": the bar spans the row " .. describe(bar))
-	-- The name line sits over the bar: the pip, the name and the percent.
+	assert(math.abs(bar[1] - (frame[1] + pad)) <= px and math.abs(bar[1] + bar[3] - (frame[1] + frame[3] - pad)) <= px, what .. ": the bar spans the tile " .. describe(bar))
+	eq(f.power:IsShown(), false, what .. ": no power line")
+	assert(f.roleInRing and not f.role:IsShown(), what .. ": no role icon on the tile")
 	local scene = Scene.Build(env)
-	local pip, name = find(scene, f.role), find(scene, f.name)
-	assert(pip and name, what .. ": the pip and the name draw")
-	for _, item in ipairs({ pip, name }) do
-		assert(item.rect[2] + item.rect[4] <= bar[2] + 0.01, what .. ": " .. describe(item.rect) .. " sits on the name line over the bar")
-	end
-	assert(pip.rect[1] + pip.rect[3] <= name.rect[1] + 0.01, what .. ": the pip comes before the name")
-	-- The power line: under the bar at its width at 10 and 20, none at 40.
-	if size.power then
-		eq(k.power, true, what .. ": a power line")
-		local power = { Scene.Rect(env, f.power) }
-		assert(math.abs(power[4] - size.power) <= px, what .. ": " .. size.power .. " units thin, got " .. power[4])
-		assert(power[2] >= bar[2] + bar[4] - 0.01 and math.abs(power[3] - bar[3]) <= px, what .. ": under the bar, at its width")
-	else
-		eq(f.power:IsShown(), false, what .. ": no power line")
-	end
+	local name = find(scene, f.name)
+	assert(name and intersects(name.rect, bar), what .. ": the name draws on the fill")
 
-	-- Debuffs: three of them at 12 units over the bar's right end.
+	-- Debuffs: a row of pips over the bar's right end.
 	local block = ns.Auras.Block(f, k)
-	assert(block.size >= 12, what .. ": debuff icons are at least 12 units, got " .. block.size)
-	eq(block.cells, 3, what .. ": three debuffs show")
+	assert(block.cells >= 1 and block.rows == 1, what .. ": one row of debuff pips")
 	local clip = { Scene.Rect(env, f.auraClip) }
 	assert(intersects(clip, bar), what .. ": the debuffs " .. describe(clip) .. " overlay the bar " .. describe(bar))
-	assert(math.abs(clip[1] + clip[3] - (bar[1] + bar[3])) <= px, what .. ": at the bar's right end")
-	assert(clip[2] >= name.rect[2] + name.rect[4] - 0.01, what .. ": below the name line")
+	assert(not intersects(clip, name.rect), what .. ": clear of the name")
 
-	-- A centred boss slot where the bar holds one, with the boss glow kept.
-	local slot = f.highlights and f.highlights:GetAuraSlotFrame("boss")
-	assert(slot, what .. ": a boss debuff slot exists")
+	-- The boss glow stays on; a Medallions raid tile shows none of your heals.
+	assert(f.highlights and f.highlights:GetAuraSlotFrame("boss"), what .. ": a boss debuff slot exists")
 	assert(f.highlights._slots.glowBoss and f.highlights._slots.glowBoss.enabled, what .. ": the boss glow stays on")
-	if f.parts.boss then
-		slot:Show()
-		local boss = { Scene.Rect(env, slot) }
-		assert(boss[3] >= ns.Geometry.MIN_ICON - px, what .. ": the boss slot is at least " .. ns.Geometry.MIN_ICON .. " units, got " .. boss[3])
-		assert(math.abs(boss[1] + boss[3] / 2 - (bar[1] + bar[3] / 2)) < 1, what .. ": centred on the bar " .. describe(boss))
-		assert(math.abs(boss[2] + boss[4] / 2 - (bar[2] + bar[4] / 2)) < 1, what .. ": vertically too")
-		assert(not intersects(boss, clip), what .. ": the boss slot and the debuffs keep apart")
-		slot:Hide()
-	else
-		assert(size.bar < 2 * 1 + ns.Geometry.MIN_ICON, what .. ": only a bar too thin for a legible boss icon goes without the slot")
-	end
-
-	-- Your heals keep off the fill: on the name line, never on the bar.
 	local _, heals = ns.Auras.HealIcons(f, k)
-	assert(heals >= 1, what .. ": your heals have room, got " .. heals)
-	local healRect = { Scene.Rect(env, f.buffClip) }
-	assert(not intersects(healRect, bar), what .. ": your heals " .. describe(healRect) .. " never paint on the bar " .. describe(bar))
+	eq(heals, 0, what .. ": no heals on the tile")
 
-	-- Grok #2, Muse #1: names up to 12 letters stay whole, stepping the size down before any ellipsis, down to the
-	-- 11 px text floor (KSTY-69: the Captain's 2026-11-13 ruling puts size over wholeness on 20 and 40-player rows),
-	-- where a name the lane cannot hold keeps its head and shortens.
+	-- Long names keep their head in the tile's caps.
 	for i = 1, #LONG do
 		local member = content(ns, ns.Headers.raid[1], "raid" .. i)
-		ShortOrWhole(member, LONG[i], what)
-		local item = find(scene, member.name)
-		local own = { Scene.Rect(env, member.buffClip) }
-		assert(item and not intersects(item.rect, own), what .. ": " .. LONG[i] .. " " .. describe(item.rect) .. " keeps clear of the heals " .. describe(own))
+		local text, whole = member.name:GetText(), K.Locale.Upper(LONG[i])
+		assert(#text > 0 and whole:sub(1, #text) == text, what .. ": " .. LONG[i] .. " keeps its head, got " .. text)
 	end
-	local _, nameSize = f.name:GetFont()
-	assert(nameSize >= 8, what .. ": a long name steps down no further than 8, got " .. tostring(nameSize))
 
-	-- The percent: at the name line's end, ending at the bar's end, clear of the name, the debuffs and the boss slot.
-	-- Over 25 members there is none, as the 40-player mock-up draws it.
+	-- The percent at the bar's end, on the fill, clear of the name and the debuffs; over 25 members there is none.
 	if size.percent then
 		local percent = find(scene, f.healthText)
 		assert(percent, what .. ": the percent draws")
-		assert(percent.rect[2] + percent.rect[4] <= bar[2] + 0.01, what .. ": the percent " .. describe(percent.rect) .. " sits on the name line")
 		assert(math.abs(percent.rect[1] + percent.rect[3] - (bar[1] + bar[3])) <= 1, what .. ": at the bar's end")
 		assert(not intersects(percent.rect, name.rect) and not intersects(percent.rect, clip), what .. ": clear of the name and the debuffs")
 	else
@@ -186,8 +149,8 @@ for _, size in ipairs(SIZES) do
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
--- Codex review: the boss slot follows the player's debuff filter; the health text keeps clear of the boss slot in
--- either place setting (KSTY-57's lanes keep it on the name line); a wide health format is never cut to its lane.
+-- Codex review: the boss slot follows the player's debuff filter, though the Medallions tile lays it out nowhere; a
+-- wide health format is never cut to its lane.
 do
 	local settings = { enabled = true, auras = { filter = "DISPELLABLE" }, raid = { healthTextPlace = "BAR" } }
 	local env, K, ns = G.New({ saved = saved(settings) })
@@ -198,12 +161,7 @@ do
 	env.RunTimers()
 	local f = content(ns, ns.Headers.raid[1], "raid1")
 	eq(f.highlights._slots.boss.filter, "HARMFUL|RAID", "the boss slot takes the selected filter")
-	local slot = f.highlights:GetAuraSlotFrame("boss")
-	slot:Show()
-	local scene = Scene.Build(env)
-	local text = find(scene, f.healthText)
-	assert(text and not intersects(text.rect, { Scene.Rect(env, slot) }), "on the bar, the health text " .. describe(text.rect) .. " keeps clear of the boss slot")
-	slot:Hide()
+	assert(f.parts.boss == nil, "the Medallions tile lays out no boss slot")
 	for _, case in ipairs({ { "CURRENT_MAX", "88.8k / 88.8k" }, { "CURRENT_PERCENT", "88.8k  100%" } }) do
 		K.Options.Write("GroupFrames", "raid.healthText", case[1])
 		env.RunTimers()

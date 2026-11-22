@@ -258,18 +258,20 @@ do
 end
 collectgarbage()
 
--- Level offsets move the level.
+-- Level offsets move the level, which Medallions draws as bare text.
 do
 	local env, K, ns, set = boot({ nameplate1 = {} })
 	local plate = ns.Plates.Get("nameplate1")
-	local _, _, _, x0, y0 = plate.level:GetPoint(1)
+	-- Any write leaves the lumen preset, whose 9-unit Medallions bar then takes the 12-unit default, so measure that bar.
+	set("preset", "custom")
+	local _, _, _, x0, y0 = plate.levelText:GetPoint(1)
 	set("level.x", -6)
 	set("level.y", 3)
-	local _, _, _, x1, y1 = plate.level:GetPoint(1)
+	local _, _, _, x1, y1 = plate.levelText:GetPoint(1)
 	assert(x1 < x0 and y1 > y0, "the level moves")
 	set("level.x", 0)
 	set("level.y", 0)
-	local _, _, _, x2, y2 = plate.level:GetPoint(1)
+	local _, _, _, x2, y2 = plate.levelText:GetPoint(1)
 	assert(near(x2, x0) and near(y2, y0), "zero restores it")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
@@ -351,6 +353,7 @@ do
 		return plain(token, kind)
 	end
 	local p1, p2 = ns.Plates.Get("nameplate1"), ns.Plates.Get("nameplate2")
+	set("preset", "custom")
 	local y0 = select(5, p1:GetPoint(1))
 	set("resource.show", true)
 	assert(math.abs(select(5, p1:GetPoint(1)) - y0) < 0.5, "no plate moves before a target carries the points, beyond pixel alignment")

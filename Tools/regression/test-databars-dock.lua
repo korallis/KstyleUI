@@ -1,4 +1,4 @@
--- test-databars-dock.lua: the inline secure menu, queued dock transitions, slab caption anchors, the docked bar's forged plate and glyph segments, and the dock-only hub exemption.
+-- test-databars-dock.lua: queued dock transitions, slab caption anchors, the docked bar's forged plate and glyph segments, and the dock-only hub exemption.
 local D = dofile("Tools/regression/databars_env.lua")
 local W = D.W
 local Scene = dofile("Tools/render/scene.lua")
@@ -26,24 +26,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	local micro, bags = Menus.Content("micro"), Menus.Content("bags")
 	local function settle() env.RunTimers() W.Settle(env) end
 	local artwork = K.Options.Row("DataBars", "strip.artwork")
-	assert(artwork.showWhen(ns.Settings()), "artwork is available on the top bar")
 	settle()
-	assert(micro:GetParent() == view.frame and bags:GetParent() == Menus.Holder("bags"))
-	assert(not Menus.Glass("micro"):IsShown() and not Menus.Holder("micro"):IsShown())
-	assert(micro:GetAlpha() == 1, "the top menu is always visible")
-	K.Options.Write("DataBars", "strip.enabled", false)
-	settle()
-	assert(micro:GetParent() == Menus.Holder("micro"), "turning off the bar restores the standalone menu")
-	K.Options.Write("DataBars", "strip.enabled", true)
-	settle()
-	assert(micro:GetParent() == view.frame)
-	for _, button in ipairs(Menus.Shown("micro")) do
-		near(button:GetWidth(), K.Widgets.Snap(button, math.min(15, view.frame:GetHeight())))
-		near(button:GetHeight(), K.Widgets.Snap(button, math.min(15, view.frame:GetHeight())))
-		local target = button:GetAttribute("clickbutton")
-		assert(target and env[target:GetName()] == target, "the secure proxy still targets Blizzard's button")
-		if target ~= env.MainMenuMicroButton then assert(button:GetAttribute("type") == "click") end
-	end
 	local frames = { view.frame, micro, Menus.Holder("micro") }
 	for _, button in ipairs(Menus.All("micro")) do frames[#frames + 1] = button end
 	for _, frame in ipairs(frames) do rawset(frame, "IsProtected", function() return true, true end) end
@@ -59,29 +42,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		env.SetCombat(false)
 		settle()
 	end
-	changeInCombat(false, view.frame, "strip.menus")
-	assert(micro:GetParent() == Menus.Holder("micro") and micro:GetAlpha() == 0, "menu docking off restores standalone hover")
-	changeInCombat("rail", Menus.Holder("micro"))
-	assert(micro:GetParent() == Menus.Holder("micro") and micro:GetAlpha() == 0)
-	changeInCombat("top", Menus.Holder("micro"))
-	assert(micro:GetParent() == Menus.Holder("micro") and micro:GetAlpha() == 0)
-	changeInCombat(true, Menus.Holder("micro"), "strip.menus")
-	assert(micro:GetParent() == view.frame and micro:GetAlpha() == 1)
-	changeInCombat(false, view.frame, "strip.enabled")
-	assert(micro:GetParent() == Menus.Holder("micro"))
-	K.Options.Write("DataBars", "strip.enabled", true)
-	settle()
-	K.Options.Write("HudStyle", "style", "orbs")
-	settle()
-	assert(micro:GetParent() == view.frame)
-	K.Options.Write("DataBars", "strip.menus", false)
-	settle()
-	assert(micro:GetParent() == Menus.Holder("micro") and micro:GetAlpha() == 0, "Orbs honours menu docking off")
-	K.Options.Write("DataBars", "strip.menus", true)
-	settle()
-	assert(micro:GetParent() == view.frame)
-	K.Options.Write("HudStyle", "style", "medallions")
-	settle()
 	local xp = ns.Bars.views.xp
 	assert(artwork.showWhen(ns.Settings()), "artwork applies to the docked plate")
 	assert(view.slab == xp and not view.topBar and view.chrome.visible and view.chrome.materialOn, "the dock wears the forged plate")
@@ -191,14 +151,14 @@ do
 			for _, name in ipairs(Layouts.Names()) do
 				local on = Layouts.Enabled(name)
 				on["meters.damage"], on["meters.threat"] = name ~= "Tank", name == "Tank"
-				local cap, fits = Layouts.ScaleLimit(width, height, name, on, "medallions")
+				local cap, fits = Layouts.ScaleLimit(width, height, name, on)
 				local scale = Scale.Auto(height, cap, fits)
 				assert(fits(scale), name .. " dock must fit " .. screen[1] .. " " .. arrangement)
 				local positions = Layouts.Positions(name, "medallions", Scale.AspectClass(width, height))
-				assert(Layouts.Fits(name, width, height, scale, on, positions, "medallions"))
+				assert(Layouts.Fits(name, width, height, scale, on, positions))
 				local moved = positions["databars.strip"]
 				moved.x, moved.y = 0, positions["actionbars.bar1"].y + 40
-				assert(not Layouts.Fits(name, width, height, scale, on, positions, "medallions"), "a moved readout must not gain the dock's hub exemption")
+				assert(not Layouts.Fits(name, width, height, scale, on, positions), "a moved readout must not gain the dock's hub exemption")
 			end
 		end
 	end

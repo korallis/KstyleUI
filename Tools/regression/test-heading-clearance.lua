@@ -3,7 +3,6 @@ local S = dofile("Tools/regression/skins_env.lua")
 
 for _, locale in ipairs({ "enUS", "deDE", "zhCN" }) do
 	local env, K, skin = S.New({ locale = locale })
-	K.Options.Write("HudStyle", "style", "medallions")
 	K.Modules.Enable("Skins")
 	local W = K.Widgets
 	local cap = W.SectionCap(K.Scale.Root(), { text = K.L["Feedback"] })

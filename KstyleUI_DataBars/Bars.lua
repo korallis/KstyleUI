@@ -370,10 +370,11 @@ end
 
 local function Settings(view)
 	local s = ns.Settings()[view.def.id]
-	if K.HudStyle.Current() ~= "medallions" or view.def.id == "honor" then
+	if view.def.id == "honor" then
 		return s
 	end
-	local medal = {}
+	local medal = view.medalSettings or {}
+	view.medalSettings = medal
 	for key, value in pairs(s) do
 		medal[key] = value
 	end
@@ -604,10 +605,6 @@ ns.Subscribe("LayoutChanged", function(key)
 	if running and def then
 		Bars.Update(def.id, true)
 	end
-end)
-
-ns.Subscribe("HudStyleChanged", function()
-	Bars.UpdateAll(true)
 end)
 
 ns.AddPart({ Enable = Bars.Enable, Disable = Bars.Disable, Setting = Bars.Setting, Refresh = function()

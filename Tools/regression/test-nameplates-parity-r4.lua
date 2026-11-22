@@ -285,6 +285,7 @@ collectgarbage()
 do
 	local env, K, ns, set = boot({ nameplate1 = {} }, { stackingBounds = true })
 	local plate = ns.Plates.Get("nameplate1")
+	set("preset", "custom")
 	local _, h0 = plate.stackBounds:GetSize()
 	set("stacking.spacing", 1.5)
 	local _, h1 = plate.stackBounds:GetSize()

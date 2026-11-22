@@ -22,7 +22,7 @@ for _, path in ipairs(fs.tracked("Tools/regression/*.lua")) do
 	local source = file:read("*a")
 	file:close()
 	if source:find("math%s*%.%s*random%s*%(") then
-		assert(path == "Tools/regression/test-lua-runtime.lua" or path == "Tools/regression/test-ornament-tiers.lua",
+		assert(path == "Tools/regression/test-lua-runtime.lua",
 			path .. ": math.random sequences differ across C runtimes; use property_lib.lua's portable generator for new fixtures")
 	end
 end

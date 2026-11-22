@@ -1,4 +1,4 @@
--- Callbacks.lua: the dispatcher for ThemeChanged, ClassChanged, ScaleChanged, ProfileChanged, PlayerRoleChanged, SettingChanged, ReloadNeeded, LayoutChanged, ModuleChanged, HudStyleChanged, ReadabilityChanged and EffectsLevelChanged.
+-- Callbacks.lua: the dispatcher for ThemeChanged, ClassChanged, ScaleChanged, ProfileChanged, PlayerRoleChanged, SettingChanged, ReloadNeeded, LayoutChanged, ModuleChanged, ReadabilityChanged and EffectsLevelChanged.
 local _, ns = ...
 
 local Callbacks = {}
@@ -15,7 +15,6 @@ local EVENTS = {
 	ReloadNeeded = true,
 	LayoutChanged = true,
 	ModuleChanged = true,
-	HudStyleChanged = true,
 	EffectsLevelChanged = true,
 }
 

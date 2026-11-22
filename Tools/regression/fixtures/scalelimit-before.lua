@@ -1204,7 +1204,8 @@ function Layouts.Fits(name, physicalWidth, physicalHeight, user, enabled, positi
 			if style == "medallions" and key == "unitframes.player" then
 				height, offsetY = height + Layouts.MEDALLIONS_UNITS.powerReserve, -Layouts.MEDALLIONS_UNITS.powerReserve
 			end
-			if key == "meters.threat" and enabled["meters.damage"] ~= false then height = 158 end
+			if key == "meters.threat" and enabled["meters.damage"] ~= false then width, height = 180, 158 end
+			if style == "medallions" and (key == "actionbars.pet" or key == "actionbars.stance") then width, offsetX = width + 12, (2 * (OFFSETS[layout[key].anchor] or OFFSETS.CENTER)[1] - 1) * 6 end
 			position = layout[key]
 		else
 			position = cards[i - #ELEMENTS]

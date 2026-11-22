@@ -85,7 +85,11 @@ end
 local function Slot(K, name, key)
 	local rw, rh = K.Layout.RootSize()
 	local w, h, offsetX = K.Setup.Layouts.Footprint(name, key)
-	return { K.Setup.Layouts.Rect({ width = w, height = h, offsetX = offsetX }, K.Setup.Layouts.Place(name, K.HudStyle.Current(), K.Scale.Aspect(), key), rw, rh) }
+	local styled = K.Setup.Layouts.Style(name, key)
+	if styled and styled.width then
+		w, h, offsetX = styled.width, styled.height, nil
+	end
+	return { K.Setup.Layouts.Rect({ width = w, height = h, offsetX = offsetX }, K.Setup.Layouts.Place(name, "medallions", K.Scale.Aspect(), key), rw, rh) }
 end
 
 -- Hits(K, name, box, own, extra) -> what the box touches: every shown Layout element but its own row, the story slot,

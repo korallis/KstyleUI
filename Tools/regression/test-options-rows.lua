@@ -67,9 +67,6 @@ end
 
 -- Check every row the list shows wholly inside its view.
 local function check(page, width, height)
-	K.Options.Open(page)
-	settle()
-	resize(width, height)
 	local content = ns.Window.Parts().content
 	local view = rect(content.view)
 	local scene = Scene.Build(env)
@@ -131,9 +128,13 @@ end
 
 for _, size in ipairs({ minimum and { 880, 520 } or { 1040, 680 } }) do
 	for _, page in ipairs({ "UnitFrames", "General" }) do
+		-- Open the page once: opening it again scrolls it back to the top, so the walk never left the first view.
+		K.Options.Open(page)
+		settle()
+		resize(size[1], size[2])
 		check(page, size[1], size[2])
 		local content = ns.Window.Parts().content
-		for _ = 1, 40 do
+		for _ = 1, 60 do
 			content:ScrollTo(content:GetOffset() + 120, true)
 			settle()
 			check(page, size[1], size[2])
@@ -170,41 +171,6 @@ do
 	assert(tall and tall > ns.Rows.HEIGHT, "the long help's row grows, got " .. tostring(tall))
 	assert(short == ns.Rows.HEIGHT, "a one-line help keeps the standard row, got " .. tostring(short))
 	K.Theme.SetFontScale(1)
-end
-
--- The Widgets ornament level is a segmented row: one tab per level, a click writes it, and a write from anywhere
--- else (the first-run setup) moves the selection (KSTY-23).
-do
-	K.Options.Write("OptionsPresentation", "samples", false)
-	K.Options.Open("General")
-	settle()
-	resize(1040, 680)
-	local content = ns.Window.Parts().content
-	local index
-	for i, item in ipairs(ns.Window.State().items) do
-		if item.module == "Widgets" and item.key == "ornaments" then
-			index = i
-		end
-	end
-	assert(index and ns.Window.State().items[index].kind == "segmented", "General lists the ornament level as a segmented row")
-	content:ScrollToIndex(index, true)
-	settle()
-	local row
-	for _, shown in ipairs(content.rows) do
-		if shown:IsShown() and shown.item and shown.item.key == "ornaments" then
-			row = shown
-		end
-	end
-	local tabs = assert(row and row.controls.segmented, "the ornament row shows a tab strip")
-	assert(tabs:IsShown() and #tabs.items == 3 and tabs:GetValue() == "Full", "three levels, the default Full picked")
-	W.Click(tabs.buttons[1])
-	settle()
-	assert(K.Widgets.Setting("ornaments") == "Off" and tabs:GetValue() == "Off", "a click on Off writes the level")
-	K.Options.Write("Widgets", "ornaments", "Subtle")
-	settle()
-	assert(tabs:GetValue() == "Subtle", "a write from elsewhere moves the selection")
-	K.Options.Write("Widgets", "ornaments", "Off")
-	settle()
 end
 
 assert(#env._errors == 0, "errors: " .. table.concat(env._errors, "\n"))

@@ -1,5 +1,53 @@
 # KstyleUI changelog
 
+## v0.2.12 (2026-11-22)
+
+The Medallions release: KstyleUI is now Medallions only, class crowns rise over the crest, shamans get Spirit Poles and Storm Orbs, and cast bars move onto the player and target frames.
+
+Highlights:
+
+- KstyleUI is now Medallions only: Frames and Orbs are gone, your HUD moves over on update and setup is shorter.
+- Class crowns rise over the crest for rogues, druids, warriors, priests, mages and hunters, on by default.
+- Shamans get Spirit Poles, a totem bar on the crest with Ghost Wolf and Call, and Storm Orbs for Lightning Shield.
+- Cast bars sit on their frames: yours under the player frame and your target's under the target frame.
+- Your own settings now win over the Medallions look, and your buffs no longer show twice on the player frame.
+- Key presses, pet cooldowns, target changes and currency updates do less work, with no change in look.
+
+### Added
+
+- Class crowns on the crest: a rogue's daggers and a cat-form druid's claws slide out with each combo point, slash away when you spend them and shine at five.
+- More crowns light as your stacks build: a warrior's war-banners (Sunder Armor), a priest's candles (Shadow Weaving), a mage's arcane shards (Arcane Blast), a bear's talons (Lacerate) and a hunter's arrows (Sniper Shot).
+- At the maximum the crest's rune ring glows in your class colour. Switch the crowns under Unit Frames > Player > Class resource > Class-themed pips, on by default.
+- Spirit Poles for shamans: a totem bar set into the crest, with four element sockets whose spires burn down with each totem's time left. Action Bars > Slab and cooldowns > Shaman totem bar, on by default.
+- Right-click a socket to unfold its flyout and pick that element's totem; Shift right-click dismisses the totem. A chosen totem stays dimmed until you drop it, and a spire flickers as its totem runs out.
+- Ghost Wolf and Call of the Elements medals sit on the crest; right-click Call for Totemic Recall. The rune ring lights in the shaman colour while all four totems are up.
+- Key Bindings > KstyleUI lists the four totem sockets, Call of the Elements and Totemic Recall.
+- Storm Orbs: each Lightning Shield charge circles the crest as an orb under a storm halo. Action Bars > Slab and cooldowns > Lightning Shield on the crest, on by default.
+- A cast ignites the orbs, each strike throws a bolt from the spent orb, the last charge dims the halo and flickers its orb, and the halo crackles out when the shield ends.
+
+### Changed
+
+- KstyleUI is now Medallions only: the Frames and Orbs HUD styles are gone. A HUD on Frames or Orbs moves to Medallions at your next login, keeps your other settings and says so once in chat.
+- The first-run setup is shorter: welcome, layout, modules and summary, with Your addons when it finds supported addons. The HUD style and ornaments steps are gone.
+- General loses the HUD style, ornament and card material choices, Data Bars > Position offers Docked under the action bars or Right rail, and Action Bars > Split in two offers Always or Never.
+- Cast bars sit on their frames: yours under the player frame and your target's under the target frame, clearing the space above the crest. Unit Frames > Cast bars on unit frames, on by default.
+
+### Fixed
+
+- Your choices now win over the Medallions look: party portraits off, raid names above the bar, the raid power bar, raid heal icons, and nameplate name, level and debuff sizes and outlines.
+- Your buffs no longer show twice: the player frame's buff row is off by default because your buffs already show by the minimap. Turn it back on under Unit Frames > Player > Auras.
+- Action bar key presses, pet cooldowns, target changes, tooltips and experience updates do less work, and the data dock no longer rebuilds itself on every currency change.
+- Switching the minimap frame between Crest medallion and Crest ring re-fits the HUD to the ring's taller crest.
+- On Right rail, the minimap clock steps aside only when the rail itself shows the time.
+- The Tank layout fits MacBook and 3:2 screens at the normal Interface size instead of shrinking the HUD, action bar 3 stays out of the middle of the screen, and the second data bar starts clear of the target frame.
+
+### Upgrading
+
+- A HUD on Frames or Orbs moves to Medallions at your next login, with one line in chat; your other settings stay.
+- Class-themed pips, Shaman totem bar, Lightning Shield on the crest and Cast bars on unit frames start on.
+- The player frame's buff row turns off; turn it back on under Unit Frames > Player > Auras.
+- If you used the Glass card material, Window Skins > Context menus turns off, so Blizzard's menus stay as they were.
+
 ## v0.2.11.1 (2026-11-22)
 
 A small fix release.

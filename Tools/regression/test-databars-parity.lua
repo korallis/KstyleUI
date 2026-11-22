@@ -10,7 +10,7 @@ for i, id in ipairs(OLD) do old[i] = { id = id, shown = i <= 10, zone = id == "t
 
 local game, x = nil, {}
 local env, K, ns = D.New({
-	saved = { version = 42, profiles = { Default = { DataBars = { enabled = true, strip = { modules = old } } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
+	saved = { version = 42, profiles = { Default = { DataBars = { enabled = true, strip = { dockModules = old } } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
 	setup = function(e)
 		D.Menus(e)
 		game = Fixture(e)
@@ -44,10 +44,10 @@ local function color(region) local r, g, b = region:GetTextColor(); return strin
 local function token(name) local r, g, b = K.Widgets.Rgba(name, 1); return string.format("%.3f %.3f %.3f", r, g, b) end
 local function disabled(key) local row = K.Options.Row("DataBars", key); return row.disableWhen ~= nil and row.disableWhen(K.Store.Module("DataBars")) == true end
 local function show(ids)
-	local list, want = K.Store.Module("DataBars").strip.modules, {}
+	local list, want = K.Store.Module("DataBars").strip.dockModules, {}
 	for _, id in ipairs(ids) do want[id] = true end
 	for _, entry in ipairs(list) do entry.shown = want[entry.id] == true end
-	write("strip.modules", list)
+	write("strip.dockModules", list)
 end
 local function tooltip(id)
 	ns.Strip.ShowTooltip(item(id))
@@ -62,9 +62,9 @@ end
 -- A v0.2.8 profile with a saved, reordered module list gains every absent readout switched off, as an absent entry was before;
 -- an absent micro menu stays shown, as the menu treated it. The Great Vault waits for live Forever evidence.
 local s = K.Store.Module("DataBars").strip
-eq(#s.modules, #K.Options.Default("DataBars", "strip.modules"), "saved list gains the absent readouts")
-eq(s.modules[1].id, "gold", "the saved order survives")
-for i = #OLD + 1, #s.modules do eq(s.modules[i].shown, s.modules[i].id == "micro", s.modules[i].id .. " keeps its absent state") end
+eq(#s.dockModules, #K.Options.Default("DataBars", "strip.dockModules"), "saved list gains the absent readouts")
+eq(s.dockModules[1].id, "gold", "the saved order survives")
+for i = #OLD + 1, #s.dockModules do eq(s.dockModules[i].shown, s.dockModules[i].id == "micro", s.dockModules[i].id .. " keeps its absent state") end
 eq(ns.Strip.VALUES.vault, nil, "no Great Vault readout")
 for _, key in ipairs({ "hover", "goldSession", "goldCharacters", "brokerLabel" }) do eq(s[key], true, key) end
 for _, key in ipairs({ "labelCustom", "goldHistory", "specUpper", "specLoadout", "hearthOthers", "clockMail", "clockRest", "bagsReagent", "combatOnly", "playedTotal" }) do eq(s[key], false, key) end
@@ -134,7 +134,7 @@ eq(color(item("bags").value), token("hostile"), "low space turns the count red i
 env.C_Container.GetContainerNumFreeSlots = function(bag) return bag == 5 and 12 or 6 end
 env.FireEvent("BAG_UPDATE_DELAYED")
 eq(text("bags"), "42/92", "a bag update refreshes the count")
-eq(color(item("bags").value), token("text"), "enough room clears the warning")
+eq(color(item("bags").value), token("medTextMuted"), "enough room clears the warning")
 write("strip.bagsLow", 0)
 write("strip.bagsReagent", false)
 write("strip.bagsDisplay", "free")
@@ -206,8 +206,9 @@ assert(tooltip("hearth"):find("Alt %- Realm=Ironforge"), "other homes listed whe
 eq(account.databarHearth[K.Store.CharacterKey()], "Stormwind", "this character's home is kept")
 write("strip.hearthOthers", false)
 
--- Strip-wide: hover highlight, custom label and value colours, padding.
-local label, plain = item("fps").label, color(item("latency").value)
+-- Strip-wide on the rail line, where the dock's muted ink and segments give way: hover highlight, custom label and value colours, padding.
+write("strip.placement", "rail")
+local label, plain = item("fps").label, token("text")
 item("fps").button.Paint()
 local base = color(label)
 item("fps").button.hoverT = 1
@@ -238,7 +239,6 @@ write("strip.padding", 0)
 eq(select(4, item("latency").dot:GetPoint()), gap, "no padding restores the dots")
 
 -- Cells: text alignment.
-write("strip.placement", "rail")
 write("strip.line", false)
 write("strip.labels", "full")
 for _, align in ipairs({ "LEFT", "RIGHT", "CENTER" }) do
@@ -263,7 +263,7 @@ write("strip.orientation", "HORIZONTAL")
 for _, entry in ipairs(s.railModules) do if entry.id == "spacer" then entry.shown = false end end
 write("strip.railModules", s.railModules)
 write("strip.line", true)
-write("strip.placement", "top")
+write("strip.placement", "dock")
 
 -- New readouts: coordinates, combat, time played, audio, professions, DataBroker and spacer.
 show({ "fps", "latency", "coords", "combat", "played", "audio", "prof1", "prof2", "broker", "time" })
@@ -286,7 +286,7 @@ write("strip.placement", "rail")
 x.px = 0.8
 env.RunTickers()
 eq(text("coords"), "80.0, 62.2", "a placement change starts the ticker its readouts need")
-write("strip.placement", "top")
+write("strip.placement", "dock")
 x.px = 0.5
 show({ "fps", "latency", "coords", "combat", "played", "audio", "prof1", "prof2", "broker", "time" })
 
@@ -394,14 +394,16 @@ eq(x.clicked, nil, "a plugin click waits for combat to end")
 write("strip.brokerLabel", true)
 write("strip.brokerPlugin", "")
 
-local list = K.Store.Module("DataBars").strip.modules
+write("strip.placement", "rail")
+local list = s.railModules
 for _, entry in ipairs(list) do entry.shown = entry.id == "fps" or entry.id == "spacer" or entry.id == "latency" end
 local fps, spacer
 for i, entry in ipairs(list) do if entry.id == "fps" then fps = i elseif entry.id == "spacer" then spacer = i end end
 table.insert(list, fps + 1, table.remove(list, spacer))
-write("strip.modules", list)
+write("strip.railModules", list)
 assert(shown("spacer") and not item("spacer").dot:IsShown(), "the spacer draws no dot")
 assert(not item(list[fps + 2].id).dot:IsShown(), "the readout after a spacer draws no dot")
+write("strip.placement", "dock")
 
 -- Missing APIs take the safe path.
 env.C_Map, env.C_CVar, env.GetProfessions = nil, nil, nil
@@ -455,7 +457,6 @@ env.SetCombat(false)
 write("strip.combatOnly", false)
 
 -- The Medallions dock keeps its muted ink, says so by turning the custom colours off, keeps the low-space warning and draws no dot by a spacer.
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
 for _, entry in ipairs(s.dockModules) do entry.shown = entry.id == "bags" or entry.id == "spacer"; entry.zone = "right" end
 write("strip.dockModules", s.dockModules)
@@ -465,30 +466,8 @@ eq(color(item("bags").value), token("hostile"), "the low-space warning shows in 
 assert(not item("spacer").dot:IsShown(), "no dot beside a spacer in the dock")
 assert(disabled("strip.labelCustom") and disabled("strip.labelColor") and disabled("strip.valueCustom"), "the dock's custom colours are off, not silently ignored")
 write("strip.bagsLow", 0)
-K.Options.Write("HudStyle", "style", "frames")
-env.RunTimers()
-assert(not disabled("strip.labelCustom"), "the top bar takes custom colours")
-
--- The top bar keeps every side readout clear of the centre clock at fixed and automatic widths; what does not fit waits in a tooltip.
-local Scene = dofile("Tools/render/scene.lua")
-write("strip.brokerPlugin", "Bagnon")
-for _, entry in ipairs(s.modules) do entry.shown = entry.id ~= "reagents"; entry.zone = entry.id == "time" and "centre" or (entry.id == "spec" or entry.id == "location") and "left" or "right" end
-write("strip.modules", s.modules)
-for _, width in ipairs({ 400, 0 }) do
-	write("strip.locationWidth", width > 0 and "manual" or "auto")
-	write("strip.locationMaxWidth", math.max(60, width))
-	write("strip.brokerWidth", width)
-	local cx, _, cw = Scene.Rect(env, item("time").button)
-	for _, entry in ipairs(s.modules) do
-		if entry.zone ~= "centre" and shown(entry.id) then
-			local left, _, w = Scene.Rect(env, item(entry.id).button)
-			assert(left + w <= cx or left >= cx + cw, entry.id .. " overlaps the centre clock at width " .. width .. ": " .. left .. " to " .. left + w)
-		end
-	end
-	local waiting = false
-	for _, readout in pairs(ns.Strip.view.items) do waiting = waiting or readout.hiddenReadouts ~= nil end
-	assert(waiting == (width > 0), "only the readouts that do not fit wait in a tooltip")
-end
+write("strip.placement", "rail")
+assert(not disabled("strip.labelCustom"), "the rail takes custom colours")
 
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("databars parity ok: new readouts and options keep defaults, apply, restore, follow events and reach the preview")

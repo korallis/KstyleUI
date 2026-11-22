@@ -14,7 +14,7 @@ local function Run(style, width, height, item)
 	quests[1].item = item and { link = "item:5179", icon = 134339 } or nil
 	local env, K, ns = S.New({
 		width = width, height = height,
-		saved = { version = 42, profiles = { Default = { HudStyle = { style = style } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
+		saved = { version = 42, profiles = { Default = { } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} },
 		setup = function(e)
 			e._size, e._fitScale, e._resolveRects = "auto", true, true
 			Quests.Install(e, quests)
@@ -59,7 +59,7 @@ local function Run(style, width, height, item)
 	end
 end
 
-for _, style in ipairs({ "orbs", "frames", "medallions" }) do
+for _, style in ipairs({ "medallions" }) do
 	for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 		Run(style, screen[1], screen[2])
 	end

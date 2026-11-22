@@ -17,11 +17,8 @@ local COLORS = {
 	visionBYDanger = { "cc79a7", 1 },
 	visionBYWarning = { "e69f00", 1 },
 	materialFlat = { "13171b", 0.98 },
-	materialSlate = { "171716", 0.98 },
 	materialForged = { "101211", 1 },
-	materialGold = { "af9865", 1 },
 	materialFlatEdge = { "74808b", 0.20 },
-	materialSlateEdge = { "746551", 0.38 },
 	steel = { "b9c1cc", 1 },
 	steelLit = { "e6ecf3", 1 },
 	steelDim = { "6b7380", 1 },
@@ -110,11 +107,6 @@ local COLORS = {
 	hudTargetHealth = { "c5443e", 1 },
 	hudMana = { "2a3fa8", 1 },
 	hudRested = { "5a9cca", 1 },
-	orbHealth = { "c0302b", 1 },
-	orbMana = { "2a64c8", 1 },
-	orbLoss = { "f6aa92", 0.42 },
-	orbLossGlaze = { "f6aa92", 0.75 },
-	orbRage = { "d9782a", 1 },
 	meterPhysical = { "7a6a52", 1 },
 	meterNature = { "2e7d4f", 1 },
 	meterFire = { "b4501f", 1 },
@@ -141,10 +133,23 @@ local COLORS = {
 	jewelShard = { "a46bff", 1 },
 	jewelShardRim = { "4a2380", 1 },
 	jewelShardCore = { "e6d4ff", 1 },
+	pipDruidGlow = { "ffa62e", 1 },
+	pipDruidCore = { "fff0b8", 1 },
+	pipWarriorGlow = { "ff7a2e", 1 },
+	pipPriestGlow = { "ffd36e", 1 },
+	pipMageGlow = { "8f6bff", 1 },
+	pipBearGlow = { "ff5a2a", 1 },
 	jewelSetting = { "7a5a2b", 1 },
 	jewelSocket = { "4a505a", 1 },
 	jewelHawk = { "aad372", 1 },
 	jewelHawkCore = { "f1ffd9", 1 },
+	totemEarth = { "8cc152", 1 },
+	totemFire = { "ff8a3d", 1 },
+	totemWater = { "4aa8ff", 1 },
+	totemAir = { "b79cff", 1 },
+	totemCore = { "fff4dc", 1 },
+	totemSpirit = { "8fd8ff", 1 },
+	jewelStormCore = { "e3f3ff", 1 },
 	medGunLit = { "50555d", 1 },
 	medGunDark = { "0e0f12", 1 },
 	medGunHair = { "6b7380", 0.4 },
@@ -328,16 +333,7 @@ local STATUSBARS = {
 }
 
 local TEXTURES = {
-	materialSlate = { file = "Textures\\MaterialSlate.png" },
-	materialForged = { file = "Textures\\MaterialForged.png" },
-	forgedFrame1 = { file = "Textures\\ForgedFrame1.png", slice = 8, density = 4 },
-	forgedFrame2 = { file = "Textures\\ForgedFrame2.png", slice = 16, density = 4 },
-	forgedFrame3 = { file = "Textures\\ForgedFrame3.png", slice = 24, density = 4 },
-	forgedBracket1 = { file = "Textures\\ForgedBracket1.png" },
-	forgedBracket2 = { file = "Textures\\ForgedBracket2.png" },
-	forgedBracket3 = { file = "Textures\\ForgedBracket3.png" },
 	forgedDiamond = { file = "Textures\\ForgedDiamond.png" },
-	forgedRule = { file = "Textures\\ForgedRule.png" },
 	lumenShape = { file = "Textures\\LumenShape.png", slice = 56, density = 4 },
 	cardShape = { file = "Textures\\CardShape.png", slice = 56, density = 4 },
 	ringLine2 = { file = "Textures\\RingLine2.png", slice = 64, density = 4 },
@@ -366,6 +362,9 @@ local TEXTURES = {
 	shadow = { file = "Textures\\Shadow.png", slice = 24, density = 2 },
 	glow = { file = "Textures\\Glow.png" },
 	hawkSigil = { file = "Textures\\Medallions\\Hawks\\HawkSigil.png" },
+	stormOrb = { file = "Textures\\Medallions\\Storm\\StormOrb.png" },
+	stormOrbSpark = { file = "Textures\\Medallions\\Storm\\StormOrbSpark.png" },
+	stormBolt = { file = "Textures\\Medallions\\Storm\\StormBolt.png" },
 	divider = { file = "Textures\\Divider.png" },
 	noise = { file = "Textures\\Noise.png" },
 	ring = { file = "Textures\\Ring.png" },
@@ -373,26 +372,12 @@ local TEXTURES = {
 	barFlat = { file = "Textures\\BarFlat.png" },
 	barSoft = { file = "Textures\\BarSoft.png" },
 	barGlass = { file = "Textures\\BarGlass.png" },
-	minimapMask = { file = "Textures\\MinimapMask.png" },
 	dot = { file = "Textures\\Dot.png" },
 	pill = { file = "Textures\\Pill.png" },
 	glyphChevron = { file = "Textures\\GlyphChevron.png" },
 	glyphClose = { file = "Textures\\GlyphClose.png" },
 	orbRing = { file = "Textures\\OrbRing.png" },
-	orbArm = { file = "Textures\\OrbArm.png" },
-	orbCrest = { file = "Textures\\OrbCrest.png" },
-	orbRail = { file = "Textures\\OrbRail.png" },
-	orbRailBottom = { file = "Textures\\OrbRailBottom.png" },
 	orbMask = { file = "Textures\\OrbMask.png" },
-	orbBack = { file = "Textures\\OrbBack.png" },
-	orbGlass = { file = "Textures\\OrbGlass.png" },
-	orbBackSoft = { file = "Textures\\OrbBackSoft.png" },
-	orbGlassSoft = { file = "Textures\\OrbGlassSoft.png" },
-	orbLiquid = { file = "Textures\\OrbLiquid.png" },
-	orbSurface = { file = "Textures\\OrbSurface.png" },
-	orbSurfaceLight = { file = "Textures\\OrbSurfaceLight.png" },
-	hudStyleFrames = { file = "Textures\\HudStyleFrames.tga" },
-	hudStyleOrbs = { file = "Textures\\HudStyleOrbs.tga" },
 	dispelM = { file = "Textures\\Accessibility\\DispelM.png" },
 	dispelC = { file = "Textures\\Accessibility\\DispelC.png" },
 	dispelD = { file = "Textures\\Accessibility\\DispelD.png" },
@@ -475,10 +460,29 @@ local TEXTURES = {
 	medTargetBrackets = { file = "Textures\\Medallions\\TargetBrackets.png" },
 	medUnitSlab = { file = "Textures\\Medallions\\UnitSlab.png", slice = 16, density = 2 },
 	medVignette = { file = "Textures\\Medallions\\Vignette.png" },
-	hudStyleMedallions = { file = "Textures\\HudStyleMedallions.tga" },
 	logo = { file = "Logo\\Logo64.png" },
 	logoLarge = { file = "Logo\\Logo256.tga" },
 }
+local FAN, ALL, FED = { 130, 110, 90, 70, 50 }, { "", "Steel", "Shape", "Glow" }, { "", "Steel", "Glow" }
+local PIPS = {
+	Blade = { FAN, ALL }, Claw = { FAN, ALL }, Banner = { FAN, FED }, Candle = { FAN, FED }, Talon = { FAN, FED },
+	Shard = { { 130, 110, 70, 50 }, FED }, Arrow = { { 105, 90, 75 }, FED },
+}
+for set, pip in pairs(PIPS) do
+	for _, kind in ipairs(pip[2]) do
+		for _, angle in ipairs(pip[1]) do
+			TEXTURES["pip" .. set .. kind .. angle] = { file = "Textures\\Pips\\Pip" .. set .. kind .. angle .. ".png" }
+		end
+	end
+end
+for _, kind in ipairs({ "", "Steel", "Core", "Glow" }) do
+	for _, angle in ipairs({ 126, 102, 78, 54 }) do
+		TEXTURES["pipSpire" .. kind .. angle] = { file = "Textures\\Pips\\PipSpire" .. kind .. angle .. ".png" }
+	end
+end
+for _, element in ipairs({ "Earth", "Fire", "Water", "Air" }) do
+	TEXTURES["totemRune" .. element] = { file = "Textures\\Totems\\Rune" .. element .. ".png" }
+end
 
 local RGBA = {}
 for name, spec in pairs(COLORS) do
@@ -702,15 +706,3 @@ function Tokens.Flipbook(name)
 end
 
 Tokens.DEFAULT_FONT_FACE = DEFAULT_FACE
-
-local MATERIALS = {
-	Glass = {},
-	Flat = { fill = "materialFlat", edge = "materialFlatEdge" },
-	Slate = { fill = "materialSlate", edge = "materialSlateEdge", texture = "materialSlate", texels = 256, grain = 0.12 },
-	ForgedTicks = { fill = "materialForged", texture = "materialForged", texels = 256, grain = 0.055, frame = true, gem = "forgedDiamond", rule = "forgedRule" },
-	ForgedBrackets = { fill = "materialForged", texture = "materialForged", texels = 256, grain = 0.055, frame = true, brackets = true, gem = "forgedDiamond", rule = "forgedRule" },
-}
-
-function Tokens.Material(name)
-	return MATERIALS[name]
-end

@@ -1,4 +1,4 @@
--- databars_ornaments.lua: the experience and reputation bars in the state RENDER_STATE names, for the ornament before and after pairs: empty (level 38 at 0%), partial (32%), rested (32% with rested experience), full (99%), rep (the level cap with Stormwind watched, so the experience bar hides and the reputation bar shows), cap (the level cap with no faction watched, both bars hidden) and hover (partial, with the pointer over the reputation bar). The default is rested; a test sets the global RENDER_STATE instead.
+-- databars_ornaments.lua: the experience and reputation bars in the state RENDER_STATE names: empty (level 38 at 0%), partial (32%), rested (32% with rested experience), full (99%), rep (the level cap with Stormwind watched, so the experience bar hides and the reputation bar shows), cap (the level cap with no faction watched, both bars hidden) and hover (partial, with the pointer over the reputation bar). The default is rested; a test sets the global RENDER_STATE instead.
 local Common = dofile("Tools/render/scenes/_common.lua")
 
 local STATES = {

@@ -49,10 +49,6 @@ function Effects.Allows(kind)
 	return ALLOWS[Effects.Level()][kind] == true
 end
 
-function Effects.Active()
-	return ns.HudStyle.Current() == "medallions"
-end
-
 function Effects.Texture(name, fallback)
 	local ok, path = pcall(Tokens.Texture, name)
 	if ok and path then

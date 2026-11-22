@@ -37,7 +37,7 @@ Settings.defaults = {
 		extra1 = ExtraText(), extra2 = ExtraText(),
 		width = 259, height = 39, spacing = 13, growth = "DOWN", card = false,
 		showPlayer = true, showSolo = false, sortBy = "INDEX", centerSolo = false, smallRaid = false,
-		portrait = false, portraitZoom = 0, portraitRingAlpha = 1, roleRing = false, classLine = false, power = true, powerHeight = 3,
+		portrait = true, portraitZoom = 0, portraitRingAlpha = 1, roleRing = false, classLine = false, power = true, powerHeight = 3,
 		textLayout = "ABOVE", nameSize = 13, nameChars = 0, nameFormat = "FULL", healthText = "PERCENT", healthTextSize = 11, healthTextPlace = "ROW",
 		iconSize = 14,
 		auraSize = 18, auraCount = 6, auraDispelCount = 1, auraColumns = 3, auraRows = 2, auraSpacing = 2,
@@ -50,12 +50,12 @@ Settings.defaults = {
 		width = 116, height = 36, spacing = 9, growth = "DOWN", card = true,
 		groupGrowth = "RIGHT", groupSpacing = 13, groupsPerRow = 8,
 		sortBy = "GROUP", unitsPerColumn = 5, merge = false,
-		roleRing = false, classLine = false, power = true, powerHeight = 2,
-		textLayout = "ABOVE", nameSize = 12, nameChars = 0, nameFormat = "FULL", healthText = "PERCENT", healthTextSize = 10, healthTextPlace = "ROW",
+		roleRing = false, classLine = false, power = false, powerHeight = 2,
+		textLayout = "INSIDE", nameSize = 12, nameChars = 0, nameFormat = "FULL", healthText = "PERCENT", healthTextSize = 10, healthTextPlace = "ROW",
 		iconSize = 10,
 		auraSize = 12, auraCount = 3, auraDispelCount = 1, auraColumns = 3, auraRows = 1, auraSpacing = 1,
 		auraPosition = "BOTTOMRIGHT", auraGrowth = "RIGHT", auraWrap = "DOWN",
-		buffSize = 10, buffCount = 3,
+		buffSize = 10, buffCount = 0,
 		auraX = 0, auraY = 0, buffX = 0, buffY = 0, center = false,
 	},
 	health = {
@@ -321,7 +321,6 @@ function Settings.Schema(includeText)
 			add(Slider(p .. "portraitZoom", L["Portrait zoom"], L["Crops into each portrait so the face fills more of it."], 0, 0.3, 0.05))
 			schema[#schema].showWhen = Is(p .. "portrait", true)
 			add(Slider(p .. "portraitRingAlpha", L["Ring opacity"], L["How solid the class ring round each portrait or role ring is."], 0, 1, 0.05))
-			schema[#schema].showWhen = function(settings) return Is(p .. "portrait", true)(settings) or Is(p .. "roleRing", true)(settings) or ns.Medallions.Active() end
 		else
 			add(Dropdown(p .. "sortBy", L["Sort by"], L["Groups side by side, or everyone in role or class order."], RAID_SORT))
 			add(Toggle(p .. "merge", L["Merge groups"], L["Runs the groups on in one block, in group order, with no gap between them."], { showWhen = Is(p .. "sortBy", "GROUP") }))
@@ -364,7 +363,7 @@ function Settings.Schema(includeText)
 		add(Slider(p .. "auraX", L["Debuff offset across"], L["Moves the debuff icons left or right from their place."], -60, 60, 1))
 		add(Slider(p .. "auraY", L["Debuff offset up"], L["Moves the debuff icons up or down from their place."], -60, 60, 1))
 		add(Slider(p .. "buffSize", L["Your heal icon size"], L["The size of each of your heals over time and shields on the frame."], 6, 24, 1))
-		add(Slider(p .. "buffCount", L["Your heal icon count"], L["The most of your heals over time and shields each frame shows."], 1, 6, 1))
+		add(Slider(p .. "buffCount", L["Your heal icon count"], L["The most of your heals over time and shields each frame shows."], kind == "raid" and 0 or 1, 6, 1))
 	end
 
 	local MISFITS = {

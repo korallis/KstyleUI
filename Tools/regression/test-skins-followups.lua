@@ -96,7 +96,7 @@ end)
 for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 2560, height = 1440 }, { width = 5120, height = 1440 }, { width = 3840, height = 2160 } }) do
 Check("shared menu heading " .. screen.width, function()
 	local E = dofile("Tools/regression/native_menu_env.lua")
-	local env, _, _, nm = E.New({ material = "Slate", setup = function(e)
+	local env, _, _, nm = E.New({ setup = function(e)
 		e.GetPhysicalScreenSize = function() return screen.width, screen.height end
 		e.UIParent:SetSize(768 * screen.width / screen.height, 768)
 	end })

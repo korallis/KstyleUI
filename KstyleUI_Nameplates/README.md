@@ -2,7 +2,7 @@
 
 A KstyleUI plate on each nameplate: a clean health bar, name, the level diamond, cast bar, the player's debuffs, threat colour, target brackets and the focus edge, raid, elite and rare marks, in a friendly and an enemy style. Enemy plates can colour quest mobs, rares, elites and casters by type, cast bars can colour by whether the player can interrupt right now, the game stacks plates by the plate's own footprint, and one dropdown applies a preset.
 
-Minimal keeps the shipped slim plate (120 by 9 under Medallions). Dungeon keeps each style's width (120 under Medallions, 156.75 under Frames and Orbs), with a 12-unit bar and an optional 11-unit health percent. Both keep 22-unit debuffs under Medallions (the existing larger 29-unit icons in Frames and Orbs); the Icon size slider still wins. Existing explicit Layout Mode sizes still win. The preset's stored `lumen` key remains compatible with saved profiles; its label is now Minimal.
+Minimal keeps the shipped slim plate (120 by 9). Dungeon keeps its 120-unit width, with a 12-unit bar and an optional 11-unit health percent. Both keep 22-unit debuffs; the Icon size slider still wins. Existing explicit Layout Mode sizes still win. The preset's stored `lumen` key remains compatible with saved profiles; its label is now Minimal.
 
 Debuff timers show by default, centred under each icon in outlined number-role text (11 units under Medallions). Stacks keep their corner badge. The engine's duration binding turns time red below five seconds without reading aura durations in Lua. The Nameplates page offers the number-font switch, time and stacks switches, size sliders, and an expiring-colour threshold (zero disables it). Choosing the previous size, plate font and hidden time restores the old appearance.
 
@@ -22,7 +22,7 @@ Target and focus swaps paint only their old and new plates and read the unit-fra
 
 The KSTY-44 design bible and its mock-up (`renders/KSTY-44/detail-nameplate-and-damage-numbers.jpg` in the Captain's drive) decide the plate now; Lee approved the mock-ups ("Ohh those look good") and asked for the whole overhaul at once. This replaces the 2026-11-09 picture's plate below wherever the two differ, and the rest of that section stands.
 
-- **The bar** is the mock-up's 132 by 10 px at 1920x1080 and the shipped Interface size, **156.75 by 11.875** root units, with a one-physical-pixel black edge and one more pixel of 45 percent black outside it, and the kit's one-pixel top highlight. No ornament draws on or around it at any ornament level (`docs/ORNAMENT-SPEC.md`, Nameplates).
+- **The bar** is the mock-up's 132 by 10 px at 1920x1080 and the shipped Interface size, **156.75 by 11.875** root units, with a one-physical-pixel black edge and one more pixel of 45 percent black outside it, and the kit's one-pixel top highlight.
 - **The target** shows **gilt brackets** at both ends, lit gilt (`giltLit`, the `target.color` default), 21.375 units tall with 5.9375-unit arms and a 2.375-unit stroke (at least one physical pixel), 7.125 units off the bar. They close in from 4.75 units out over 0.12 s, easing out, when a plate becomes the target, at full motion only, and never on a restyle. The target's bar keeps its black edge and its name stays white; the old gold outline and gold name are gone.
 - **The level diamond** sits at the bar's left end, its right point one physical pixel clear of where the left bracket stands, so nothing moves when the target changes. It is a 21.375-unit square turned 45 degrees: a black outer pixel, a gilt rim, a black pixel and a dark face, with the level in lit gilt at 13 units (11 px at 1080p, the bible's floor). It shows by default.
 - **Elite and rare marks** are on the diamond's rim, so rank never rests on colour alone: an elite, rare or world boss rim is two pixels instead of one, in gold (`neutral`), blue (`rare`) or red (`hostile`). With the level off, a marked unit keeps its diamond, empty.
@@ -49,7 +49,7 @@ LEE-94 retains the name's core-matched 3.5-unit lift and size 12: acceptance-2's
 
 Personal resource display controls Blizzard's separate health and power display near the character (`nameplateShowSelf`). It defaults off; enabling the module applies the saved choice out of combat, and setup Apply turns it off only when the Nameplates addon is loaded. Keep my UI leaves it untouched. Changing this option writes the CVar too, including with the skin off. Presets and profile refreshes never reapply it. The player's own nameplate is not skinned, and a caster druid has no UnitFrames class-resource bars. `test-personal-resource-display` covers the boundary.
 
-Combat cast cues can return to the previous single cast colour and no shield glyph. Spell name, selection-only names and names below the track are separate choices. UnitFrames > Player > Power bar > Text > Previous display restores hidden power figures in Frames/Medallions and the old centred percent in Orbs; None hides the readout. UnitFrames > Target > Lead with target percent restores current/max first when off. CombatText > Keep combat text clear restores the inherited player field and the ordinary target anchor when off.
+Combat cast cues can return to the previous single cast colour and no shield glyph. Spell name, selection-only names and names below the track are separate choices. UnitFrames > Player > Power bar > Text > Previous display restores hidden power figures; None hides the readout. UnitFrames > Target > Lead with target percent restores current/max first when off. CombatText > Keep combat text clear restores the inherited player field and the ordinary target anchor when off.
 
 These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-design.md). The roadmap's Global Constraints and [AGENTS.md](../AGENTS.md) apply too.
 
@@ -77,7 +77,7 @@ These come from the [design spec](../docs/superpowers/specs/2026-11-07-kstyleui-
 | `Plates.lua` | `ns.Plates`: attach and detach, the Blizzard fade, events, target and focus tracking |
 | `CVars.lua` | `ns.CVars`: the nameplate CVars |
 | `Stacking.lua` | `ns.Stacking`: the nameplate size the game stacks and clicks by |
-| `Medallions.lua` | `ns.Medallions`: the Medallions HUD style's plate: its size, type and level, the gunmetal target ticks and the friendly player's badge |
+| `Medallions.lua` | `ns.Medallions`: the Medallions plate: its size, type and level, the gunmetal target ticks and the friendly player's badge |
 | `Preview.lua` | `ns.Preview`: the settings window's live preview and the Layout Mode sample |
 | `Presets.lua` | `ns.Presets`: the presets one dropdown applies |
 | `Module.lua` | `Modules.Register`, `Options.Register`, `Enable` and `Disable` |
@@ -193,10 +193,10 @@ The target's plate gets a glow and an edge in the accent, or a custom colour. Th
 
 ## Medallions
 
-Under the Medallions HUD style, `Medallions.lua` adds a component, wraps five plate methods, `Plates.ReadSize` and `Settings.Get`, and on `HudStyleChanged` reads the size again and restyles every plate. The look is KSTY-110's (section 3, nameplates). The game keeps Blizzard's own nameplate size and the plate still hangs from its base as `Plate:PlaceOnBase` puts it (#373); `test-nameplates-restyle.lua` checks that the Medallions plate holds its place through restyles, and that Frames gets its own back.
+`Medallions.lua` adds a component and wraps five plate methods and `Plates.ReadSize`. The look is KSTY-110's (section 3, nameplates). The game keeps Blizzard's own nameplate size and the plate still hangs from its base as `Plate:PlaceOnBase` puts it (#373); `test-nameplates-restyle.lua` checks that the Medallions plate holds its place through restyles.
 
 - **Size.** The plate is 120 by 9 units unless the player resized it in Edit Mode, whose size always wins.
-- **Settings the player left alone.** `Medallions.LOOK` gives the name 11 units with an outline (the spec's 9 is under the kit's 11 px text floor, #361), the level 12 units with an outline, and debuffs 22 units with 11-unit timers. A setting the player changed keeps the player's value.
+- **Defaults.** The module's defaults are the look: the name 11 units with an outline (the spec's 9 is under the kit's 11 px text floor, #361), the level 12 units with an outline, and debuffs 22 units with 11-unit timers. Any value the player saves, including the 2026-11-09 sizes and no outline, is kept.
 - **Type.** With the module's font following the kit, the name is Inter SemiBold in capitals and the level and health text are the Medallions number face, Barlow Semi Condensed (`Tokens.Font("number")`).
 - **Level.** No diamond: the number stands 7 units off the bar's left end, clear of the target tick so it never moves when the target changes, in the classification marker's colour when there is one, else the creature's difficulty colour (`GetCreatureDifficultyColor`, defined in `Blizzard_FrameXMLUtil/Mainline/DifficultyUtil.lua`, which Forever loads: its camelot-only `Camelot/DifficultyUtilOverrides.lua` writes into the `DifficultyUtil` table that only the mainline-tagged `Mainline/DifficultyUtil_Base.lua` creates; lifted by `Theme.Brighten`) for an enemy, red for the skull and `medText` otherwise. A secret level reads in `medText`.
 - **Target.** Two gunmetal (`medGunLit`) ticks, 2 units wide, 3 units off each end of the bar and 2 units past it above and below. No arms, no glow and no slide: they appear in place.
@@ -238,9 +238,9 @@ Every setting is on the module's page. Text sizes run from 6 to 20 units; outlin
 | `types.elite`, `types.eliteColor` | off, `neutral` | toggle, colour |
 | `types.caster`, `types.casterColor` | off, `epic` | toggle, colour |
 | `types.boss`, `types.miniBoss`, `types.neutral`, `types.minor`, `types.normal` and their `...Color` | off; `hostile`, `legendary`, `neutral`, `poor`, `plateHostile` | toggle, colour |
-| `name.show`, `name.size`, `name.outline`, `name.upper`, `name.classColor` | on, 12, none, on, off | toggle, slider, dropdown, toggle, toggle |
+| `name.show`, `name.size`, `name.outline`, `name.upper`, `name.classColor` | on, 11, thin, on, off | toggle, slider, dropdown, toggle, toggle |
 | `name.afk`, `name.dnd` | off, off | toggle, toggle |
-| `level.show`, `level.size`, `level.outline` | off, 16, thin | toggle, slider, dropdown |
+| `level.show`, `level.size`, `level.outline` | on, 12, thin | toggle, slider, dropdown |
 | `level.colorMode`, `level.color` | current style, `giltLit` | dropdown: current, difficulty, custom; colour |
 | `healthText.show`, `healthText.size`, `healthText.outline`, `healthText.format` | off, 9, thin, percent | toggle, slider, dropdown, dropdown |
 | `cast.enabled`, `cast.height` | on, 6 | toggle, slider 6 to 24 |
@@ -251,10 +251,10 @@ Every setting is on the module's page. Text sizes run from 6 to 20 units; outlin
 | `cast.showIcon`, `cast.showName`, `cast.showTime`, `cast.textSize`, `cast.outline` | off, off, off, 10, thin | toggle, toggle, toggle, slider, dropdown |
 | `cast.iconRight`, `cast.offsetY`, `cast.inFront`, `cast.nameAlign`, `cast.showTarget` | off, 0, off, left, off | toggle, slider 0 to 20, toggle, dropdown, toggle |
 | `debuffs.enabled`, `debuffs.includePlateOnly` | on, on | toggle, toggle |
-| `debuffs.size`, `debuffs.spacing`, `debuffs.columns`, `debuffs.rows` | 26, 2, 5, 1 | sliders: 10 to 40, 0 to 10, 1 to 10, 1 to 4 |
+| `debuffs.size`, `debuffs.spacing`, `debuffs.columns`, `debuffs.rows` | 22, 2, 5, 1 | sliders: 10 to 40, 0 to 10, 1 to 10, 1 to 4 |
 | `debuffs.order` | important | dropdown: important, longest, expiring, default |
 | `debuffs.growthX`, `debuffs.growthY` | right, up | dropdown, dropdown |
-| `debuffs.showTime`, `debuffs.showCount`, `debuffs.textSize`, `debuffs.outline` | on, on, 12, thin | toggle, toggle, slider, dropdown |
+| `debuffs.showTime`, `debuffs.showCount`, `debuffs.textSize`, `debuffs.outline` | on, on, 11, thin | toggle, toggle, slider, dropdown |
 | `threat.display`, `threat.role`, `threat.groupOnly` | glow, auto, on | dropdown, dropdown, toggle |
 | `threat.safe`, `threat.warning`, `threat.danger` | `friendly`, `neutral`, `hostile` | colour |
 | `threat.name`, `threat.calm`, `threat.overTypes` | off, off, on | toggle |

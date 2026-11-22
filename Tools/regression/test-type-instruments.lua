@@ -3,7 +3,6 @@ local AB = dofile("Tools/regression/actionbars_env.lua")
 do
 	local env, K, ns = AB.New()
 	AB.Enable(env, K)
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	local hub = ns.Slab.hub
 	assert(hub.level:GetFont() == K.Tokens.Font("number"), "C2: hub level uses the number role")
@@ -16,7 +15,6 @@ end
 local M = dofile("Tools/regression/meters_env.lua")
 do
 	local env, K, ns = M.New()
-	K.Options.Write("HudStyle", "style", "medallions")
 	local list = ns.BarList.New(K.Scale.Root(), "damage", { width = 269, height = 158, block = true, columns = function() return { value = true, percent = true } end })
 	list:SetRow(1, "Lightning Bolt", "SHAMAN", "friendly", 60, 100, "60", "60%")
 	local row = list.rows[1]

@@ -102,6 +102,7 @@ do
 	local chatLeft = Physical(K, "chat.main")
 	local _, playerCentre = Physical(K, "unitframes.player")
 	local _, barCentre = Physical(K, "actionbars.bar1")
+	local player = K.Setup.Layouts.Place("DPS", "medallions", K.Scale.Aspect(), "unitframes.player")
 	local column = (5120 - 3456) / 2
 	assert(near(chatLeft, column + margin, 0.5), "Centred: chat sits a margin inside the 21:9 column, got " .. chatLeft)
 	local mapLeft = Physical(K, "minimap.main")
@@ -111,7 +112,7 @@ do
 	local _, playerNow = Physical(K, "unitframes.player")
 	local _, barNow = Physical(K, "actionbars.bar1")
 	assert(near(playerNow, playerCentre, 0.5) and near(barNow, barCentre, 0.5), "Spread: the centre cluster stays put")
-	assert(near(playerCentre, 2560, 0.5), "the centre cluster is centred on the screen")
+	assert(player.anchor == "BOTTOM" and near(playerCentre, 2560 + player.x / K.Scale.Pixel(1), 0.5), "the centre cluster stands on the screen's centre line, the player frame at its Medallions offset")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -165,44 +166,45 @@ end
 do
 	local env, K, Element = New(5120, 1440)
 	local Layouts, Layout = K.Setup.Layouts, K.Layout
-	Layouts.PLACES["32:9"].frames["chat.main"] = { anchor = "BOTTOMLEFT", x = 120, y = 40 }
-	Layouts.PLACES["32:9"].frames["unitframes.player"] = { anchor = "BOTTOM", x = 0, y = 999 }
-	Element("chat.main")
+	Layouts.PLACES["32:9"].medallions["minimap.main"] = { anchor = "TOPRIGHT", x = -40, y = -60 }
+	local wide = Layouts.PLACES["32:9"].medallions["unitframes.player"]
+	Layouts.PLACES["32:9"].medallions["unitframes.player"] = { anchor = wide.anchor, x = wide.x, y = wide.y + 40, width = wide.width, height = wide.height }
+	Element("minimap.main")
 	Element("unitframes.player")
-	local default = Layouts.Default("unitframes.player")
+	local default = Layouts.Place("DPS", "medallions", K.Scale.Aspect(), "unitframes.player")
 	assert(Layout.Set("unitframes.player", "x", 50), "the player drags the player frame sideways")
-	local saved = K.Store.Layout()["unitframes.player"]
+	local saved = K.Store.Layout()["medallions:unitframes.player"]
 	assert(saved.anchor == default.anchor and saved.x == 50 and near(saved.y, default.y), "a drag saves the whole place, the untouched y included")
 	local fired = {}
 	K.Callbacks.Register("LayoutChanged", "test", function(_, key)
 		fired[key] = true
 	end)
 	K.Options.Write("Layout", "arrangement", "spread")
-	local chat, player = Layout.Get("chat.main"), Layout.Get("unitframes.player")
-	assert(chat.anchor == "BOTTOMLEFT" and chat.x == 120 and chat.y == 40, "chat, at its default, takes the 32:9 place")
-	assert(fired["chat.main"], "a class change fires LayoutChanged")
+	local map, player = Layout.Get("minimap.main"), Layout.Get("unitframes.player")
+	assert(map.anchor == "TOPRIGHT" and map.x == -40 and map.y == -60, "the map, at its default, takes the 32:9 place")
+	assert(fired["minimap.main"], "a class change fires LayoutChanged")
 	assert(player.anchor == default.anchor and player.x == 50 and near(player.y, default.y), "the placed player frame never moves")
-	assert(K.Store.Layout()["chat.main"] == nil, "nothing is saved for an element a class placed")
+	assert(K.Store.Layout()["medallions:minimap.main"] == nil, "nothing is saved for an element a class placed")
 	K.Options.Write("Layout", "arrangement", "centred")
-	assert(Layout.Get("chat.main").x == Layouts.Default("chat.main").x, "chat follows its class back")
+	assert(Layout.Get("minimap.main").x == Layouts.Place("DPS", "medallions", K.Scale.Aspect(), "minimap.main").x, "the map follows its class back")
 	Screen(env, 3840, 1080)
 	K.Options.Write("Layout", "arrangement", "spread")
 	assert(Layout.Get("unitframes.player").x == 50 and near(Layout.Get("unitframes.player").y, default.y), "a display change never moves a placement either")
 	assert(Layout.Set("unitframes.player", "x", Layout.Get("unitframes.player").x) and Layout.Reset("unitframes.player"), "Reset clears the placement")
-	assert(near(Layout.Get("unitframes.player").y, 999) and K.Store.Layout()["unitframes.player"] == nil, "a reset element follows its class again")
+	assert(near(Layout.Get("unitframes.player").y, wide.y + 40) and K.Store.Layout()["medallions:unitframes.player"] == nil, "a reset element follows its class again")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
 -- Apply on an ultrawide saves no positions for the elements it places: they sit at their class's defaults.
 do
 	local env, K, Element = New(5120, 1440)
-	K.Setup.Layouts.PLACES["32:9"].frames["minimap.main"] = { anchor = "TOPRIGHT", x = -40, y = -60 }
+	K.Setup.Layouts.PLACES["32:9"].medallions["minimap.main"] = { anchor = "TOPRIGHT", x = -40, y = -60 }
 	K.Options.Write("Layout", "arrangement", "spread")
 	Element("chat.main")
 	Element("minimap.main")
 	assert(K.Setup.Apply(K.Setup.NewChoice()), "Apply runs")
 	local stored = K.Store.Layout()
-	for _, key in ipairs({ "chat.main", "minimap.main" }) do
+	for _, key in ipairs({ "chat.main", "minimap.main", "medallions:chat.main", "medallions:minimap.main" }) do
 		local entry = stored[key]
 		assert(entry == nil or (entry.anchor == nil and entry.x == nil and entry.y == nil), key .. ": Apply saves no position at a class default")
 	end
@@ -215,16 +217,16 @@ end
 do
 	local _, K, Element = New(5120, 1440)
 	local Layouts = K.Setup.Layouts
-	Layouts.PLACES["32:9"].frames["chat.main"] = { anchor = "BOTTOMLEFT", x = 120, y = 40 }
+	Layouts.PLACES["32:9"].medallions["minimap.main"] = { anchor = "TOPRIGHT", x = -40, y = -60 }
 	K.Options.Write("Layout", "arrangement", "spread")
 	assert(K.Setup.Apply(K.Setup.NewChoice()), "Apply runs with nothing registered")
 	local stored = K.Store.Layout()
-	local chat = stored["chat.main"]
-	assert(chat == nil or (chat.anchor == nil and chat.x == nil and chat.y == nil), "chat, unregistered, gets no saved place")
-	Element("chat.main")
-	assert(K.Layout.Get("chat.main").x == 120, "chat registers at its 32:9 place")
+	local map = stored["medallions:minimap.main"]
+	assert(map == nil or (map.anchor == nil and map.x == nil and map.y == nil), "the map, unregistered, gets no saved place")
+	Element("minimap.main")
+	assert(K.Layout.Get("minimap.main").x == -40, "the map registers at its 32:9 place")
 	K.Options.Write("Layout", "arrangement", "centred")
-	assert(K.Layout.Get("chat.main").x == Layouts.Default("chat.main").x, "and follows its class back")
+	assert(K.Layout.Get("minimap.main").x == Layouts.Place("DPS", "medallions", K.Scale.Aspect(), "minimap.main").x, "and follows its class back")
 end
 
 -- The arrangement chosen in combat applies when combat ends.
@@ -242,13 +244,13 @@ end
 do
 	local _, K0 = New(1920, 1080)
 	local Layouts = K0.Setup.Layouts
-	local chat, cast = Layouts.Default("chat.main"), Layouts.Style("orbs", "DPS", "unitframes.castbar.player")
+	local chat, cast = Layouts.Default("chat.main"), Layouts.Style("DPS", "unitframes.castbar.player")
 	local env, K = New(1920, 1080, {
 		version = 29,
 		profiles = { Default = { Layout = { preset = "DPS" } } },
 		layouts = { Default = {
 			["chat.main"] = { x = 60, alphaIdle = 0.5 },
-			["orbs:unitframes.castbar.player"] = { y = 400 },
+			["medallions:unitframes.castbar.player"] = { y = 400 },
 			["minimap.main"] = { anchor = "TOPLEFT", x = 10, y = -10 },
 			["meters.damage"] = { width = 300 },
 			["Options.Window"] = { x = 5 },
@@ -258,8 +260,8 @@ do
 	assert(env.KstyleUIDB.version >= 30, "the saved data reaches version 30")
 	local c = layout["chat.main"]
 	assert(c.anchor == chat.anchor and c.x == 60 and near(c.y, chat.y) and c.alphaIdle == 0.5, "a partial chat placement is made whole")
-	local o = layout["orbs:unitframes.castbar.player"]
-	assert(o.anchor == cast.anchor and near(o.x, cast.x) and o.y == 400, "a partial Orbs placement is made whole against the Orbs default")
+	local o = layout["medallions:unitframes.castbar.player"]
+	assert(o.anchor == cast.anchor and near(o.x, cast.x) and o.y == 400, "a partial Medallions placement is made whole against the Medallions default")
 	local m = layout["minimap.main"]
 	assert(m.anchor == "TOPLEFT" and m.x == 10 and m.y == -10, "a whole placement is unchanged")
 	assert(layout["meters.damage"].width == 300 and layout["meters.damage"].anchor == nil, "a size alone stays a size")

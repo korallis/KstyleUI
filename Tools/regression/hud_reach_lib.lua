@@ -19,7 +19,7 @@ Reach.screens = {
     {1920,1200}, {2043,855}, {4236,1495}, {2266,1000}, {3247,1359},
 }
 
-function Reach.New(width, height, style, layout, saved)
+function Reach.New(width, height, layout, saved)
 	return Suite.New(saved, width or 1920, height or 1080, function(e)
 		e.SetQuiet(true)
 		e.UnitCastingInfo=function(unit)
@@ -72,7 +72,7 @@ function Reach.New(width, height, style, layout, saved)
 		if saved then return end
 		K.Setup.EditMode.CountTracked(function(group) return group=="buffs" and 6 or group=="bars" and 2 or 12 end)
 		local choice=K.Setup.NewChoice()
-		choice.hudStyle,choice.layout=style or "frames",layout or "DPS"
+		choice.layout=layout or "DPS"
 		assert(K.Setup.Apply(choice),"full HUD setup must apply before login")
 		for _,bar in ipairs({"bar1","bar2","bar3","bar4","bar5","bar6","pet","stance"}) do
 			K.Options.Write("ActionBars",bar .. ".enabled",true)
@@ -149,12 +149,10 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 		["groupframes.party/groupframes.raid"] = true,
 		-- Bar 1 owns the common tray behind both action rows; its art cannot intercept clicks.
 		["actionbars.bar1/actionbars.bar2"] = true,
-		-- The Orbs tray's arms sit behind the two health/resource rings in the same assembly.
-		["actionbars.bar1/unitframes.player"] = wantedStyle=="orbs" or nil,
 		-- The Medallions crest and XP track sit on the common slab, and XP continues behind the crest.
-		["actionbars.bar1/actionbars.hub"] = wantedStyle=="medallions" or nil,
-		["actionbars.bar1/databars.xp"] = wantedStyle=="medallions" or nil,
-		["actionbars.hub/databars.xp"] = wantedStyle=="medallions" or nil,
+		["actionbars.bar1/actionbars.hub"] = true,
+		["actionbars.bar1/databars.xp"] = true,
+		["actionbars.hub/databars.xp"] = true,
 	}
 	local failures, checked = {}, 0
 	local strata={WORLD=0,BACKGROUND=1,LOW=2,MEDIUM=3,HIGH=4,DIALOG=5,FULLSCREEN=6,FULLSCREEN_DIALOG=7,TOOLTIP=8}
@@ -185,7 +183,7 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 		return a < b and a .. "/" .. b or b .. "/" .. a
 	end
 
-	local env, K = Reach.New(nil,nil,wantedStyle,wantedLayout)
+	local env, K = Reach.New(nil,nil,wantedLayout)
 	if extra then
 		local consumables = env._addons.KstyleUI_ActionBars.Consumables
 		env.C_Container = {
@@ -196,13 +194,11 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 		assert(#consumables.selected == 12, "the overlap matrix includes every consumable kind")
 	end
 	local choice = K.Setup.NewChoice()
-	for _, style in ipairs({"frames", "orbs", "medallions"}) do
-		if not wantedStyle or wantedStyle == style then
-			allowed["actionbars.bar1/unitframes.player"]=style=="orbs"
-			allowed["actionbars.bar1/actionbars.hub"],allowed["actionbars.bar1/databars.xp"],allowed["actionbars.hub/databars.xp"]=style=="medallions",style=="medallions",style=="medallions"
+	for _, style in ipairs({"medallions"}) do
+		do
 			for _, layout in ipairs(wantedLayout and {wantedLayout} or {"DPS", "Tank", "Healer"}) do
-				choice.hudStyle, choice.layout = style, layout
-				if K.HudStyle.Current()~=style or K.Layout.Setting("preset")~=layout then assert(K.Setup.Apply(choice), "full HUD setup must apply") end
+				choice.layout = layout
+				if K.Layout.Setting("preset")~=layout then assert(K.Setup.Apply(choice), "full HUD setup must apply") end
 				K.Options.Write("Meters", "threat.shown", true)
 				env.RunTimers()
 				for _, arrangement in ipairs({"centred", "spread"}) do
@@ -254,15 +250,9 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 							owners[micro]="databars.micro"
 							allowed["actionbars.bar1/databars.strip"],allowed["actionbars.hub/databars.strip"],allowed["databars.strip/databars.xp"]=strip.slab~=nil,strip.slab~=nil,strip.slab~=nil
 							for _,name in ipairs({"buffs","debuffs"}) do owners[env._addons.KstyleUI_Auras.Panel.Group(name).host]="auras." .. name end
-							if style=="orbs" then
-								for _,kind in ipairs({"health","power"}) do owners[assert(env._addons.KstyleUI_UnitFrames.Orbs.Get(kind))]="unitframes.player" end
-								owners[assert(env._addons.KstyleUI_UnitFrames.Orbs.Tray())]="actionbars.bar1"
-							end
-							if style=="medallions" then
-								local slab=env._addons.KstyleUI_ActionBars.Slab
-								owners[assert(slab.frame)]="actionbars.bar1"
-								owners[assert(slab.hub)]="actionbars.hub"
-							end
+							local slab=env._addons.KstyleUI_ActionBars.Slab
+							owners[assert(slab.frame)]="actionbars.bar1"
+							owners[assert(slab.hub)]="actionbars.hub"
 							local function owner(object)
 								while object and not owners[object] do object=object._parent end
 								return object and owners[object]
@@ -271,18 +261,11 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 							local pixel = 1080/h
 							local margin = K.Tokens.Size("screenMargin")*K.Scale.AppliedUserScale()
 							local width = w*1080/h
-							local topMenu=strip.topBar and micro:GetParent()==strip.frame
-							allowed["databars.micro/databars.strip"]=topMenu
-							local bar=topMenu and {Scene.Rect(env,strip.frame)}
 							local dockDrop=strip.slab and 15*K.Scale.AppliedUserScale() or 0
 							local function add(key, item)
 									local r=item.rect
-									local edge = key == "databars.strip" and K.Setup.Layouts.DataBarHeight(style) and 0 or margin
-									local top=topMenu and key=="databars.micro" and 0 or edge
+									local edge, top = margin, margin
 									local bottomMargin=(key=="databars.rep" or key=="databars.honor") and math.max(0,margin-dockDrop) or edge
-									if topMenu and key=="databars.micro" then
-										assert(r[2]>=bar[2]-pixel and r[2]+r[4]<=bar[2]+bar[4]+pixel,"the docked menu must stay inside the top bar")
-									end
 									if r[1]<edge-pixel or r[2]<top-pixel or r[1]+r[3]>width-edge+pixel or r[2]+r[4]>1080-bottomMargin+pixel then
 										fail(label,key,"outside screen margin; move the default inward and reserve its full ornament/label bounds (" .. (item.text or item.file or item.kind) .. " " .. table.concat(r,",") .. ")")
 									end
@@ -336,20 +319,20 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 							end
 							-- Disabled/empty slots keep a reservation too, so enabling a spare never hides another control.
 							local L=K.Setup.Layouts
-							local state=L.PrepareFits(layout,w,h,{},nil,style)
+							local state=L.PrepareFits(layout,w,h,{},nil)
 							local rx,ry,_,rh=Scene.RectIn(solver,K.Scale.Root())
 							local scale=K.Scale.AppliedUserScale()
 							local rw,rootHeight=K.Layout.RootSize()
 							for i,element in ipairs(L.ELEMENTS) do
 								local key=element.key
-								if not groups[key] and (key~="consumables.bar" or env._addons.KstyleUI_ActionBars.Consumables.header and env._addons.KstyleUI_ActionBars.Consumables.header:IsShown()) and not (style=="orbs" and key=="unitframes.player") then
+								if not groups[key] and (key~="consumables.bar" or env._addons.KstyleUI_ActionBars.Consumables.header and env._addons.KstyleUI_ActionBars.Consumables.header:IsShown()) then
 									local size=state.sizes[i]
 									local p=L.Place(layout,style,K.Scale.Aspect(),key,K.Scale.Band())
 									local l,b,r,t=L.Rect({width=size[1],height=size[2],offsetX=size[3],offsetY=size[4]},p,rw,rootHeight)
 									add(key,{kind="reserve",rect={rx+l*scale,ry+rh-t*scale,(r-l)*scale,(t-b)*scale}})
 								end
 							end
-							local story=L.Story(layout,rootHeight,true,style,rw)
+							local story=L.Story(layout,rootHeight,true,rw)
 							for _,card in pairs(story) do
 								if type(card)=="table" and card.key and not groups[card.key] then
 									local l,b,r,t=L.Rect(card,card,rw,rootHeight)
@@ -357,7 +340,7 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 								end
 							end
 							for _,element in ipairs(L.ELEMENTS) do
-								assert(groups[element.key] or element.key=="consumables.bar" and not (env._addons.KstyleUI_ActionBars.Consumables.header and env._addons.KstyleUI_ActionBars.Consumables.header:IsShown()) or style=="orbs" and element.key=="unitframes.player",label .. ": missing HUD bounds for " .. element.key)
+								assert(groups[element.key] or element.key=="consumables.bar" and not (env._addons.KstyleUI_ActionBars.Consumables.header and env._addons.KstyleUI_ActionBars.Consumables.header:IsShown()),label .. ": missing HUD bounds for " .. element.key)
 							end
 							for i,a in ipairs(clicks) do
 								for j=i+1,#clicks do
@@ -402,7 +385,6 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 	if wantedStyle=="frames" and wantedLayout=="DPS" and wantedScreen==nil then
 		K.Options.Write("Layout","arrangement","centred")
 		env.RunTimers()
-		K.Options.Write("HudStyle","style","frames")
 		for _,key in ipairs({"chat.main","minimap.main","unitframes.player","unitframes.target"}) do
 			assert(K.Layout.Update(key,{anchor="BOTTOMLEFT",x=-5000,y=-5000},true))
 			env.RunTimers()
@@ -432,7 +414,7 @@ end
 function Reach.SavedColumns(style, index, arrangement)
 	local Core = dofile("Tools/regression/core_env.lua")
 	local screen = Reach.screens[index]
-	local env, K = Reach.New(screen[1], screen[2], style, "DPS")
+	local env, K = Reach.New(screen[1], screen[2], "DPS")
 	K.Options.Write("Layout", "arrangement", arrangement or "centred")
 	K.Options.Write("Appearance", "uiScale", 0.6)
 	for _, key in ipairs({"unitframes.player", "unitframes.target"}) do
@@ -442,14 +424,13 @@ function Reach.SavedColumns(style, index, arrangement)
 	env.FireEvent("PLAYER_LOGOUT")
 	local saved = Core.DeepCopy(env.KstyleUIDB)
 	local before = Core.DeepCopy(K.Store.Layout())
-	env, K = Reach.New(screen[1], screen[2], style, "DPS", saved)
+	env, K = Reach.New(screen[1], screen[2], "DPS", saved)
 	assert(Core.DeepEqual(K.Store.Layout(), before), "loading off-screen columns must not rewrite saved positions")
 	K.Setup.EditMode.Write("DPS", K.Setup.Story("DPS", false), true)
 	Reach.Populate(env)
 	local scene = Scene.Build(env, {paths=function(path) return type(path)=="string" and path or nil end})
 	local frames = {}
 	for _, key in ipairs({"unitframes.player", "unitframes.target"}) do frames[K.Layout.Element(key).frame]=key end
-	if style=="orbs" then for _,kind in ipairs({"health","power"}) do frames[env._addons.KstyleUI_UnitFrames.Orbs.Get(kind)]="unitframes.player" end end
 	local columns = { ["unitframes.player"]={items={},screen=scene.screen}, ["unitframes.target"]={items={},screen=scene.screen} }
 	local scale, pixel = K.Scale.AppliedUserScale(), 1080 / screen[2]
 	local margin, width = K.Tokens.Size("screenMargin") * scale, screen[1] * 1080 / screen[2]
@@ -475,7 +456,7 @@ function Reach.SavedColumns(style, index, arrangement)
 	env.RunTimers()
 	env.FireEvent("PLAYER_LOGOUT")
 	saved, before = Core.DeepCopy(env.KstyleUIDB), Core.DeepCopy(K.Store.Layout())
-	env, K = Reach.New(screen[1],screen[2],style,"DPS",saved)
+	env, K = Reach.New(screen[1],screen[2],"DPS",saved)
 	assert(Core.DeepEqual(K.Store.Layout(),before),"loading valid saved columns must preserve Store")
 	for _,key in ipairs({"unitframes.player","unitframes.target"}) do
 		local left,bottom=K.Layout.Rect(key)

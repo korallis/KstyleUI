@@ -223,7 +223,7 @@ do
 	assert(tank.health.opts.height == height and tank.power:GetFrameLevel() == level, "off restores both")
 
 	write(env, K, "power.damagers", false)
-	assert(not dps.showPower and dps.health.opts.height > height, "a damage dealer without power takes the room")
+	assert(not dps.showPower and dps.health.opts.height == height, "a damage dealer loses power and the Medallions pill keeps its height")
 	write(env, K, "power.keepRoom", true)
 	assert(not dps.showPower and not dps.power:IsShown() and dps.health.opts.height == height, "keeping the room lines the bars up")
 	env._roster.units.party3.role = "TANK"
@@ -271,7 +271,7 @@ do
 	assert(anchor(tank.ready) == "BOTTOMLEFT" and near(W.LastCall(tank.ready, "SetSize")[1], math.min(20, most)) and anchor(tank.statusIcons.afk) == "BOTTOMLEFT", "ready check and status icons move together")
 	write(env, K, "icons.readyPlace", "AUTO")
 	point, relative = anchor(tank.ready)
-	assert(point == "CENTER" and relative == tank and near(W.LastCall(tank.ready, "SetSize")[1], math.min(20, most)), "Automatic with a size keeps today's place")
+	assert(point == "TOPLEFT" and relative == tank and near(W.LastCall(tank.ready, "SetSize")[1], math.min(20, most)), "Automatic with a size keeps the tidy lane's place")
 	write(env, K, "icons.readySize", 0)
 	assert(select(3, anchor(tank.ready)) == "TOPLEFT", "0 restores today's place")
 

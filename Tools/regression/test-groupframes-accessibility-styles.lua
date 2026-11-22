@@ -4,7 +4,6 @@ local function Check(style)
 	G.SetRoster(env, "raid", G.Members(40))
 	K.Modules.Enable("GroupFrames")
 	env.RunTimers()
-	K.Options.Write("HudStyle", "style", style)
 	G.SetRoster(env, "party", { { name = "Tank", role = "TANK", class = "WARRIOR" } })
 	env.RunTimers()
 	if style == "medallions" then
@@ -35,7 +34,7 @@ local function Check(style)
 	end
 	assert(#env._errors == 0, style .. ": " .. tostring(env._errors[1]))
 end
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+for _, style in ipairs({ "medallions" }) do
 	Check(style)
 	collectgarbage("collect")
 end

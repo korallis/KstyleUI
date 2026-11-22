@@ -172,10 +172,10 @@ do
 	for _, section in ipairs({ "text", "auras", "heals", "icons", "power" }) do write(env, K, "follow." .. section, true) end
 	assert(current.party.nameSize == 15 and current.party.auraCount == 2 and current.party.buffCount == 1 and current.party.iconSize == 12 and current.party.powerHeight == 5, "the raid's values")
 	assert(current.party.width == 259 and current.party.height == 39, "sizes stay the party's own")
-	assert(select(2, f.name:GetFont()) <= 15 and f.parts.power and near(f.parts.power.height, 5), "the frames follow")
+	assert(select(2, f.name:GetFont()) <= 15 and f.parts.power == nil, "the frames follow, and the powerless Medallions raid tile takes the party's power line away")
 	assert(not shown(K, "party.nameSize") and not shown(K, "party.auraCount") and not shown(K, "party.powerHeight") and shown(K, "party.width"), "the party's own rows hide")
 	local pv = H.preview(env, K)
-	assert(near(pv.partyFrames[1].parts.power.height, 5), "the preview follows")
+	assert(pv.partyFrames[1].parts.power == nil, "the preview follows")
 	write(env, K, "raid.nameSize", 16)
 	assert(current.party.nameSize == 16, "a raid change reaches the party")
 	for _, section in ipairs({ "text", "auras", "heals", "icons", "power" }) do write(env, K, "follow." .. section, false) end

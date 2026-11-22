@@ -7,7 +7,6 @@ local read, reads = ns.TravelData.Read, 0
 ns.TravelData.Read = function(...) reads = reads + 1; return read(...) end
 env._resolveRects = true
 AB.Enable(env, K)
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
 local travel = ns.Travel
 assert(not travel.menu and reads == 0, "defer the flyout and its inventory scan until the crest is hovered or right-clicked")
@@ -91,14 +90,11 @@ groups = ns.TravelData.Read()
 assert(#groups[2] == 1 and groups[2][1].id == 18986, "keep a curated teleporter available after the secure item action equips it")
 env.C_Item.IsEquippedItem = function() return env.Secret(true) end
 assert(#ns.TravelData.Read()[2] == 0, "never test secret equipment state")
-K.Options.Write("HudStyle", "style", "frames")
-assert(not travel.crest:IsShown(), "other HUD styles stay click-through")
 assert(#env._blocked == 0 and #env._errors == 0, AB.Errors(env))
 do
 	local fresh, core, bars = AB.New()
 	Fixture.Install(fresh, false)
 	AB.Enable(fresh, core)
-	core.Options.Write("HudStyle", "style", "medallions")
 	fresh.SetCombat(true)
 	AB.W.Enter(bars.Travel.crest)
 	assert(not bars.Travel.menu and core.Combat.Pending() > 0, "first combat hover queues protected flyout preparation")

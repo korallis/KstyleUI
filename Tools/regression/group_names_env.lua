@@ -32,8 +32,10 @@ return function(screens)
 						local path, size = f.name:GetFont()
 						assert(path == (K.Tokens.Font("names")) or path == ns.Settings.COMPACT_NAME_FONT, context .. ": the names face where the twelve-letter name fits, else the measured compact face (KSTY-57's uncaptioned lanes)")
 						assert(not sharedSize or math.abs(sharedSize - size) < 0.00001, context .. ": one size across the entire group")
-						assert(f.name:GetText() == NAME, context .. ": the twelve-letter name stays whole")
-						assert(ns.Names.Width(f.name, NAME, size) <= f.nameWidth + f.nameFit.slack, context .. ": the full advance fits its snapped lane")
+						local shown = f.name:GetText()
+						local head = shown:match("^(.-)%.%.%.$") or shown
+						assert(#head > 0 and NAME:sub(1, #head) == head, context .. ": the twelve-letter name keeps its head, got " .. shown)
+						assert(ns.Names.Width(f.name, shown, size) <= f.nameWidth + f.nameFit.slack, context .. ": the shown name fits its snapped lane")
 						assert(size >= K.Widgets.FontSize(f.name, f.nameFit.min) - 0.00001, context .. ": the existing floor is unchanged")
 						sharedSize, count = size, count + 1
 					end

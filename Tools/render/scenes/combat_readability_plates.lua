@@ -6,7 +6,7 @@ local function Build(readiness, row)
 	local N = dofile("Tools/regression/nameplates_env.lua")
 	local env, K, ns = N.New(Common.ScreenOpts({
 		playerClass = os.getenv("RENDER_NO_INTERRUPT") == "1" and "HUNTER" or "WARRIOR", known = { [6552] = true },
-		saved = Gallery.Saved({ "Nameplates", HudStyle = { style = (os.getenv("RENDER_HUD_STYLE") or "Medallions"):lower() } }),
+		saved = Gallery.Saved({ "Nameplates" }),
 		setup = Common.ForceScreen,
 	}))
 	if os.getenv("RENDER_PLATE_PRESET") == "Dungeon" and ns.Presets.VALUES.dungeon then

@@ -7,7 +7,7 @@ local Logic = ns.Logic
 
 local KEY, SECOND = "meters.damage", "meters.damage2"
 local LIMITS = { minWidth = 120, maxWidth = 600, minHeight = 40, maxHeight = 800 }
-local SECOND_PLACE, SECOND_WIDTH = { anchor = "BOTTOMRIGHT", x = -283, y = 17 }, 180
+local SECOND_PLACE, SECOND_WIDTH = { anchor = "BOTTOMRIGHT", x = -283, y = 17 }, K.Setup.Layouts.METER_SLOT
 local SECONDS_PER_MINUTE = 60
 local EVENTS = {
 	"DAMAGE_METER_COMBAT_SESSION_UPDATED", "DAMAGE_METER_CURRENT_SESSION_UPDATED", "DAMAGE_METER_RESET",

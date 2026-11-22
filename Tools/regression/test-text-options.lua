@@ -124,32 +124,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(#e._errors == 0 and P.ErrorCount() == 0, tostring(e._errors[1]))
 end
 
-for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
-	local env, K, ns = U.New({ width = screen[1], height = screen[2] })
-	K.Options.Write("HudStyle", "style", "orbs")
-	local orb = assert(ns.Orbs.Get("health"), "the health orb is built")
-	K.Options.Write("UnitFrames", "player.fonts.health.textFormat", "[pp] [absorb]")
-	env._units.player.power, env._units.player.absorb = 42, 100
-	env.FireEvent("UNIT_POWER_UPDATE", "player", "MANA")
-	assert(U.Shown(env, orb.value) == "42 100", "power tags refresh on the health orb")
-	env._units.player.absorb = 200
-	env.FireEvent("UNIT_ABSORB_AMOUNT_CHANGED", "player")
-	assert(U.Shown(env, orb.value) == "42 200", "absorb tags refresh on the health orb")
-	local font = K.Tokens.FontPath("InterSemiBold")
-	K.Options.Write("UnitFrames", "player.fonts.health.font", font)
-	K.Options.Write("UnitFrames", "player.fonts.health.size", 20)
-	K.Options.Write("UnitFrames", "player.fonts.health.outline", "NONE")
-	assert(W.LastCall(orb.value, "SetFont")[1] == font and W.LastCall(orb.value, "SetFont")[3] == "", "orb text follows font, size and outline")
-	K.Options.Write("UnitFrames", "player.fonts.health.colorMode", "accent")
-	color(orb.value, { K.Theme.Accent() })
-	K.Options.Write("UnitFrames", "player.healthText", "none")
-	assert(U.Shown(env, orb.value) == "", "off hides the orb's custom health text")
-	K.Options.Write("UnitFrames", "player.healthText", "both")
-	K.Options.Write("UnitFrames", "player.fonts.health.textFormat", "")
-	assert(U.Shown(env, orb.value):find(" / ", 1, true), "blank restores the orb's existing health preset")
-	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
-end
-
 do
 	local env, K = U.New()
 	local existing = { SetTextColor = function(self, ...) self.color = { ... } end }

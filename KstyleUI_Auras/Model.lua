@@ -246,9 +246,6 @@ function Model.Group(settings, name)
 		glow = s.glow == true,
 		enabled = boolean(s.enabled, base.enabled ~= false),
 	}
-	if K.HudStyle.Current() == "orbs" and base.enabled == nil then
-		g.growth = (g.growth:gsub("_DOWN$", "_UP"))
-	end
 	if base.enchants ~= nil then
 		g.enchants = boolean(s.enchants, base.enchants)
 	end

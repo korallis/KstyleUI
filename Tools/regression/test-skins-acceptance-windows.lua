@@ -86,11 +86,12 @@ local function Check(fn)
 	end
 end
 
-Check(function() Heading("gallery_skins_gamemenu", "Game Menu", true) end)
-Check(function() Heading("gallery_skins_readycheck", "Ready Check", true) end)
-Check(function() Heading("gallery_skins_worldmap", "Map & Quest Log", true) end)
-Check(function() Heading("gallery_skins_legacy", "Legacy", true) end)
-Check(function() Heading("gallery_skins_addonlist", "AddOns", true) end)
+-- The Medallions window cap keeps its rule clear (zero alpha) and sits in the card's header band instead.
+Check(function() Heading("gallery_skins_gamemenu", "Game Menu", false) end)
+Check(function() Heading("gallery_skins_readycheck", "Ready Check", false) end)
+Check(function() Heading("gallery_skins_worldmap", "Map & Quest Log", false) end)
+Check(function() Heading("gallery_skins_legacy", "Legacy", false) end)
+Check(function() Heading("gallery_skins_addonlist", "AddOns", false) end)
 Check(function()
 for _, words in ipairs({ "RESTEDXP LEVELING REPORT", "PURGE", "REMOVE", "GUIDE CONFIGURATOR", "RESTEDXP FEEDBACK FORM", "RESTEDXP: GUIDE EXPORT", "LEVEL SPLITS", "TIP" }) do
 	Heading("gallery_restedxp", words, true)
@@ -141,9 +142,9 @@ Check(function()
 	end
 	assert(fill, "the reward track's bar draws its fill")
 	assert(not (fill.vertex[1] > 0.99 and fill.vertex[2] > 0.99 and fill.vertex[3] > 0.99), "the fill is the accent, not Blizzard's white fill art")
-	local gems = {}
+	local gems, title = {}, Text(scene, "Legacy")
 	for _, item in ipairs(scene.items) do
-		if File(item, "Diamond.png") and not File(item, "Forged") then
+		if File(item, "Diamond.png") and math.abs(Middle(item.rect) - Middle(title.rect)) >= 3 then
 			gems[#gems + 1] = item
 		end
 	end
@@ -202,7 +203,7 @@ Check(function()
 		assert(not (item.kind == "texture" and item.color and item.color[3] > 0.5 and item.color[1] < 0.2 and (item.alpha or 1) > 0.1), "no steel-blue row fill")
 	end
 	assert(Text(Scene("gallery_skins_character"), "Attributes").font.file:find("Caps", 1, true), "the character sheet's section headers are caps headings")
-	assert(Text(Scene("gallery_skins_talents"), "3").font.file:find("PTSerif-Bold", 1, true), "the unspent count is in the number face, whose figures sit on the line")
+	assert(Text(Scene("gallery_skins_talents"), "3").font.file:find("BarlowSemiCondensedTabular-SemiBold", 1, true), "the unspent count is in the number face, whose figures sit on the line")
 end)
 
 assert(#failures == 0, #failures .. " acceptance checks fail:\n" .. table.concat(failures, "\n"))

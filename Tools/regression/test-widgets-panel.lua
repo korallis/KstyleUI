@@ -9,7 +9,6 @@ end
 -- A plain panel: snapped size, panel chrome with a shadow, a content frame inside the padding.
 do
 	local env, K, panel = panelWith({ width = 300.3, height = 180 })
-	K.Options.Write("Widgets", "cardMaterial", "Glass")
 	env.RunTimers()
 	local Scale = K.Scale
 	assert(panel:GetObjectType() == "Frame" and panel:GetParent() == Scale.Root())
@@ -19,9 +18,9 @@ do
 	assert(panel.chrome.shadow[1]:IsShown(), "the Panel shadows setting still draws one")
 	K.Options.Write("Widgets", "shadows", false)
 	local line = K.Widgets.Border(panel)
-	assert(W.Near(panel.chrome:Radius(), 6 * line) and W.Near(panel.chrome.line[1]:GetWidth(), 6 * line), "corners six border lines round, the picture's card")
-	assert(W.Near(panel.chrome.fill[1]:GetWidth(), 5 * line) and W.Near(panel.chrome.fill[1]._points[1][4], line), "the fill one line in, inside the dark edge line")
-	assert(panel.chrome.gilt and panel.chrome.gilt[1]:IsShown() and panel.chrome.gilt[4]:IsShown(), "gilt L-ticks on the top left and bottom right")
+	assert(W.Near(panel.chrome:Radius(), 4) and W.Near(panel.chrome.line[1]:GetWidth(), 4), "corners the steel's 4-unit bevel")
+	assert(W.Near(panel.chrome.fill[1]:GetWidth(), 4 - line) and W.Near(panel.chrome.fill[1]._points[1][4], line), "the fill one line in, inside the dark edge line")
+	assert(panel.chrome.gilt and not panel.chrome.gilt[1]:IsShown() and not panel.chrome.gilt[4]:IsShown(), "the steel shows no gilt L-ticks")
 	assert(panel.chrome.shapeName == "panel", "a plain panel is the small-panel grade")
 	local content = panel.content
 	assert(content and content:GetParent() == panel, "a content frame")
@@ -43,13 +42,12 @@ do
 		end,
 	})
 	local Tokens = K.Tokens
-	K.Options.Write("Widgets", "cardMaterial", "Glass")
 	assert(panel.titleText:GetText() == "PANEL TITLE", "the title is upper case")
 	local font = W.LastCall(panel.titleText, "SetFont")
 	assert(font[1] == (Tokens.Font("caps")) and font[2] == K.Widgets.FontSize(panel.titleText, 10 * K.Theme.FontScale()), "the title is a gold caps caption at the shared section size")
 	assert(panel.chrome.shapeName == "window", "a titled panel is a window: the design's window-grade edge")
-	assert(W.Near(panel.chrome:Radius(), 6 * K.Scale.Border()), "the picture's card corner, six lines")
-	assert(panel.chrome.gilt and panel.chrome.gilt[1]:IsShown(), "and the card's gilt ticks")
+	assert(W.Near(panel.chrome:Radius(), 4), "the steel's 4-unit corner")
+	assert(panel.chrome.gilt and not panel.chrome.gilt[1]:IsShown(), "and no gilt ticks")
 	assert(panel.divider == nil, "no line under the title, as the kit's glass panel")
 	local cap = panel.cap
 	assert(cap and cap.label == panel.titleText, "the title is the quest card's cap: its label is the title")
@@ -62,7 +60,6 @@ do
 	assert(W.Near(gx, K.Widgets.WindowInset(panel)) and gy < 0, "the cap sits one padding in from the left, inside the top padding")
 	local closeY = select(5, panel.closeButton:GetPoint(1))
 	assert(W.Near(closeY, gy), "the close glyph sits on the cap's line")
-	assert(panel.chrome.ornament == nil, "a window carries no crest: the bible allows ornament on card corners and the heading rule only")
 	local closers = 0
 	for _, kid in ipairs({ panel:GetChildren() }) do
 		if kid == panel.closeButton then closers = closers + 1 end

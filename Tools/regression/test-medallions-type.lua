@@ -9,31 +9,21 @@ local ROLES = { "display", "heading", "title", "caps", "names", "unit", "body", 
 local BARLOW = { number = "BarlowSemiCondensedTabular-SemiBold.ttf", time = "BarlowSemiCondensedTabular-SemiBold.ttf", timer = "BarlowSemiCondensedTabular-SemiBold.ttf", world = "BarlowSemiCondensedTabular-Bold.ttf" }
 
 local env, K = W.New()
-local frames = {}
-for _, role in ipairs(ROLES) do
-	frames[role] = { K.Tokens.Font(role) }
-	assert(not file(frames[role][1]):find("Barlow", 1, true), "Frames draws " .. role .. " in its type set, not Barlow")
-end
 local parent = env.CreateFrame("Frame", nil, env.UIParent)
 local health = K.Widgets.Text(parent, "number")
 local label = K.Widgets.Text(parent, "body")
-assert(file((health:GetFont())) == file(frames.number[1]), "a number on screen starts in the type set's face")
-
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
-assert(K.HudStyle.Current() == "medallions", "the style switched")
 for _, role in ipairs(ROLES) do
-	local path, size, flags = K.Tokens.Font(role)
+	local path = K.Tokens.Font(role)
 	if BARLOW[role] then
 		assert(file(path) == BARLOW[role], "Medallions draws " .. role .. " in " .. BARLOW[role] .. ", got " .. file(path))
 	else
-		assert(path == frames[role][1], "Medallions keeps " .. role .. "'s face")
+		assert(not file(path):find("Barlow", 1, true), "Medallions keeps " .. role .. " in its type set")
 	end
-	assert(size == frames[role][2] and flags == frames[role][3], role .. " keeps its size and flags")
 end
 assert(K.Tokens.FontPath("BarlowSemiBold") == (K.Tokens.Font("number")), "the face key names the same file")
-assert(file((health:GetFont())) == BARLOW.number, "a number already on screen turns to Barlow")
-assert(file((label:GetFont())) == file(frames.body[1]), "body text already on screen keeps its face")
+assert(file((health:GetFont())) == BARLOW.number, "a number on screen is Barlow")
+assert(file((label:GetFont())) == file((K.Tokens.Font("body"))), "body text on screen keeps its type set's face")
 
 assert(K.Theme.SetRoleFonts({ number = "InterSemiBold" }))
 assert(file((K.Tokens.Font("number"))) == "Inter-SemiBold.ttf", "a per-role choice beats the style's face")
@@ -47,15 +37,6 @@ assert(file((K.Tokens.Font("body"))) == "AlegreyaSansTabular-Regular.ttf", "Lume
 K.Options.Write("Appearance", "typeSet", "Folio")
 env.RunTimers()
 
-for _, style in ipairs({ "orbs", "frames" }) do
-	K.Options.Write("HudStyle", "style", style)
-	env.RunTimers()
-	for _, role in ipairs(ROLES) do
-		local path, size, flags = K.Tokens.Font(role)
-		assert(path == frames[role][1] and size == frames[role][2] and flags == frames[role][3], style .. " draws " .. role .. " as before Medallions")
-	end
-	assert(file((health:GetFont())) == file(frames.number[1]), style .. ": the number on screen returns to the type set's face")
-end
 assert(#env._errors == 0, tostring(env._errors[1]))
 assert(K.ErrorCount() == 0, "no addon error")
 print("ok - test-medallions-type")

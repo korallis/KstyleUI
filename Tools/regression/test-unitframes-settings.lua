@@ -172,9 +172,9 @@ local settings = K.Store.Module("UnitFrames")
 settings.edit = "target"
 assert(row("target.name").showWhen(settings) == true, "the picked frame's rows show")
 assert(row("player.name").showWhen(settings) == false, "other frames' rows hide")
-assert(row("target.style").showWhen(settings) == true, "each frame picks Lumen or the classic plate")
+assert(row("target.style").showWhen(settings) == true, "each frame picks the slab or the classic plate")
 local styles = values(row("target.style", "dropdown"))
-assert(styles.lumen and styles.plate and styles.column, "the player's and target's style is the column, the older Lumen form or the classic plate")
+assert(styles.column and styles.plate and not styles.lumen and not styles.bar, "the player's and target's style is the slab (stored as column) or the classic plate")
 assert(not values(row("focus.style", "dropdown")).column, "the other frames have no column style to choose")
 assert(row("hideBlizzard").showWhen == nil, "module-wide rows always show")
 settings.edit = "player"

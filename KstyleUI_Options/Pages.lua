@@ -10,7 +10,7 @@ local Pages = {}
 ns.Pages = Pages
 
 Pages.WINDOW_KEY = "Options.Window"
-Pages.GENERAL_SECTIONS = { "HudStyle", "Appearance", "Medallions", "Widgets", "ColorVision", "Integrations", "Setup", "OptionControls", "OptionsPresentation" }
+Pages.GENERAL_SECTIONS = { "Appearance", "Medallions", "Widgets", "ColorVision", "Integrations", "Setup", "OptionControls", "OptionsPresentation" }
 Pages.ELEMENTS_SECTION = "Layout"
 local APPLY_ON_RELEASE = { ["Appearance.uiScale"] = true }
 local HIDDEN_MODULES = { Options = true, ProfileTools = true, LayoutControls = true }
@@ -37,7 +37,6 @@ local MODULE_LABELS = {
 	Skins = L["Window Skins"],
 	QoL = L["Quality of Life"],
 	Appearance = L["Appearance"],
-	HudStyle = L["HUD style"],
 	Readability = L["Readability"],
 	Widgets = L["Widgets"],
 	Layout = L["Layout"],
@@ -479,9 +478,6 @@ local function GeneralItems()
 		end
 	end
 	for _, item in ipairs(items) do
-		if item.module == "Widgets" and item.key == "ornaments" and K.Store.Module("OptionsPresentation").samples then
-			item.kind = "ornaments"
-		end
 		if item.module and item.key and APPLY_ON_RELEASE[item.module .. "." .. item.key] then
 			item.defer = true
 		end
@@ -732,7 +728,7 @@ end
 
 local function ShareModules()
 	local modules = {}
-	for _, name in ipairs({ "Appearance", "Widgets", "HudStyle", "Readability" }) do
+	for _, name in ipairs({ "Appearance", "Widgets", "Readability" }) do
 		if K.Store.Defaults(name) then modules[#modules + 1] = name end
 	end
 	for _, name in ipairs(K.Modules.List()) do
@@ -886,7 +882,7 @@ local function ProfileItems()
 			end,
 		} },
 	})
-	add({ kind = "dropdown", label = L["New profile from a preset"], help = L["Creates a profile from a role and HUD style preset, then switches to it."],
+	add({ kind = "dropdown", label = L["New profile from a preset"], help = L["Creates a profile from a role preset, then switches to it."],
 		options = function()
 			local choices = K.Profiles.Presets()
 			table.insert(choices, 1, { value = NONE, label = L["Choose a preset."] })
@@ -1212,7 +1208,6 @@ local function GeneralPreview(section)
 end
 
 Pages.TASKS = {
-	{ label = L["Change HUD"], help = L["Choose Frames, Orbs or Medallions."], page = "General", module = "HudStyle", key = "style" },
 	{ label = L["Choose role"], help = L["Open setup to choose a damage, tank or healer layout."], page = "About", labelTarget = L["First-run setup"] },
 	{ label = L["Readable text"], help = L["Grow text and its rows with the Readable preset."], page = "General", module = "Readability", key = "preset" },
 	{ label = L["Bind keys"], help = L["Open Action Bars to assign your keybinds."], page = "ActionBars", labelTarget = L["Bind keys"] },

@@ -37,11 +37,7 @@ do
 	assert(player.incoming:IsShown() and not player.absorb:IsShown(), "absorb switch leaves incoming heals visible")
 	write(env, K, "UnitFrames", "player.absorbs", true)
 	assert(player.absorb:IsShown(), "absorbs can be restored")
-	local cb = ns.CastBars.Get("player")[1]
-	write(env, K, "UnitFrames", "player.castbarSpark", false)
-	assert(not cb.bar.spark:IsShown(), "spark off hides the plate spark")
-	write(env, K, "UnitFrames", "player.castbarSpark", true)
-	assert(cb.bar.spark:IsShown(), "spark on restores the plate spark")
+	local cb = ns.CastBars.Inline("player")[1]
 	write(env, K, "UnitFrames", "player.castbarLatency", true)
 	env._units.player.cast = { name = "Frostbolt", texture = 135846, start = 1000, finish = 3000, spellID = 116 }
 	env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 116)
@@ -80,9 +76,7 @@ end
 collectgarbage()
 do
 	local env, K, ns = U.New({ before = function(_, core)
-		core.Store.Module("HudStyle").style = "medallions"
 		core.Store.Module("UnitFrames").auraLayout = "fan"
-		core.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 	end })
 	local cb = ns.CastBars.Get("player")[1]
 	write(env, K, "UnitFrames", "player.castbarSpark", false)

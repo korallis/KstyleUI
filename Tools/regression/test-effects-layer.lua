@@ -1,4 +1,4 @@
--- test-effects-layer.lua: the Medallions effects layer: the motion level is the lower of the Medallions setting and the Appearance motion setting and says what each kind of motion may do; EffectsLevelChanged fires once per change; the arbiter gives each place to the higher priority, lets an equal one replace, refuses a lower one and suspends ambient motion while any effect holds the place; the 3D pool never holds more than three live models, evicts only an equal or lower priority, plays the 2D twin when it refuses, when a file is refused or never loads, and below Full; the low-health vignette follows a health curve under Medallions only and its switch hides its edge textures and stops its breath unless the portrait ring breathes on it; and secondary frames rest three seconds after combat.
+-- test-effects-layer.lua: the Medallions effects layer: the motion level is the lower of the Medallions setting and the Appearance motion setting and says what each kind of motion may do; EffectsLevelChanged fires once per change; the arbiter gives each place to the higher priority, lets an equal one replace, refuses a lower one and suspends ambient motion while any effect holds the place; the 3D pool never holds more than three live models, evicts only an equal or lower priority, plays the 2D twin when it refuses, when a file is refused or never loads, and below Full; the low-health vignette follows a health curve and its switch hides its edge textures and stops its breath unless the portrait ring breathes on it; and secondary frames rest three seconds after combat.
 local W = dofile("Tools/regression/widget_env.lua")
 
 local FX = dofile("Tools/regression/effects_env.lua")
@@ -6,12 +6,6 @@ local FX = dofile("Tools/regression/effects_env.lua")
 local function New()
 	local env, K = W.New({ setup = FX.Install })
 	return env, K
-end
-
-local function Medallions(env, K)
-	K.Options.Write("HudStyle", "style", "medallions")
-	env.RunTimers()
-	assert(K.HudStyle.Current() == "medallions", "the style switches to Medallions")
 end
 
 local function Errors(env, K)
@@ -87,7 +81,7 @@ end
 do
 	local env, K = New()
 	local E = K.Effects
-	Medallions(env, K)
+	env.RunTimers()
 	local anchor = env.CreateFrame("Frame", nil, env.UIParent)
 	anchor:SetSize(100, 100)
 	anchor:SetFrameStrata("LOW")
@@ -166,9 +160,7 @@ end
 do
 	local env, K = New()
 	local V = K.Effects.Vignette
-	env.FireEvent("PLAYER_ENTERING_WORLD")
-	assert(not (V.frame and V.frame:IsShown()), "no vignette under Frames")
-	Medallions(env, K)
+	env.RunTimers()
 	env._health = 0.1
 	env.FireEvent("PLAYER_ENTERING_WORLD")
 	assert(V.frame and V.frame:IsShown(), "the vignette shows under Medallions")
@@ -204,11 +196,7 @@ end
 do
 	local env, K = New()
 	local Rest = K.Layout.Rest
-	env.SetCombat(true)
-	env.SetCombat(false)
 	env.RunTimers()
-	assert(not Rest.Resting(), "under Frames nothing rests after combat")
-	Medallions(env, K)
 	env.SetCombat(true)
 	assert(not Rest.Resting(), "nothing rests in combat")
 	env.SetCombat(false)
@@ -252,7 +240,7 @@ do
 	Fire(1)
 	assert(E.Holder("hub") == P.lowHealth and E.Release("hub", held), "a timer never frees a claim it did not make")
 
-	Medallions(env, K)
+	env.RunTimers()
 	local anchor = env.CreateFrame("Frame", nil, env.UIParent)
 	local twins = {}
 	local function Twin(name)

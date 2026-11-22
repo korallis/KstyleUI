@@ -26,23 +26,23 @@ do
 	local Lumen = ns.Lumen
 	assert(type(Lumen) == "table", "the skins share ns.Lumen")
 	local r, g, b, a = Lumen.Color("gilt")
-	local tr, tg, tb, ta = K.Tokens.Color("gilt")
-	assert(Near(r, tr) and Near(g, tg) and Near(b, tb) and Near(a, ta), "with S1's gilt token, Lumen reads it")
+	local tr, tg, tb, ta = K.Tokens.Color("steel")
+	assert(Near(r, tr) and Near(g, tg) and Near(b, tb) and Near(a, ta), "gilt reads the Medallions steel token")
 	local wr, wg, wb = Lumen.Color("questGold")
 	local xr, xg, xb = K.Tokens.Color("questGold")
 	assert(Near(wr, xr) and Near(wg, xg) and Near(wb, xb) and Near(wr, 0xf2 / 255) and Near(wg, 0xcf / 255) and Near(wb, 0x55 / 255), "quest gold is the questGold token, the picture's #f2cf55 quest titles")
 	local fellBack = pcall(function()
 		local real = K.Tokens.Color
 		K.Tokens.Color = function(name)
-			if name == "gilt" then
-				error("unknown name gilt")
+			if name == "steel" then
+				error("unknown name steel")
 			end
 			return real(name)
 		end
 		local fr, fg, fb, fa = Lumen.Color("gilt")
 		K.Tokens.Color = real
 		local nr, ng, nb, na = real(Lumen.FALLBACKS.gilt)
-		assert(Near(fr, nr) and Near(fg, ng) and Near(fb, nb) and Near(fa, na), "without S1's gilt token, gilt falls back to the shipped token it names")
+		assert(Near(fr, nr) and Near(fg, ng) and Near(fb, nb) and Near(fa, na), "without the steel token, gilt falls back to the shipped token it names")
 	end)
 	assert(fellBack, "the fallback still works")
 	local qr, qg, qb = Lumen.Color("questGold")
@@ -51,14 +51,14 @@ do
 	local ok = pcall(function()
 		local real = K.Tokens.Color
 		K.Tokens.Color = function(name)
-			if name == "gilt" then
+			if name == "steel" then
 				return 0.1, 0.2, 0.3, 1
 			end
 			return real(name)
 		end
 		local sr, sg, sb = Lumen.Color("gilt")
 		K.Tokens.Color = real
-		assert(Near(sr, 0.1) and Near(sg, 0.2) and Near(sb, 0.3), "once Tokens knows gilt, Lumen reads it and the fallback goes unused")
+		assert(Near(sr, 0.1) and Near(sg, 0.2) and Near(sb, 0.3), "once Tokens knows the steel, Lumen reads it and the fallback goes unused")
 	end)
 	assert(ok, "the S1 switch works")
 	assert(#env._errors == 0, tostring(env._errors[1]))

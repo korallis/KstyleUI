@@ -1,4 +1,4 @@
--- test-unitframes-aura-timer-lane.lua: with Debuffs and buffs, the buff row starts below the debuff timers under their icons, nudged down too; without a timer lane (timers off, or two rows) it starts right under the debuffs' last row, as the engine's default groupLineSpacing (0) places it.
+-- test-unitframes-aura-timer-lane.lua: with Debuffs and buffs on the Medallions target, whose aura rows grow up from the frame, the buff row sits above the debuffs with its own timers ending clear of the debuff row, nudged down too; without a timer lane (timers off) it sits right on the debuffs, and over two rows it keeps the rows' own spacing, as the engine's default groupLineSpacing (0) places it.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local Engine = dofile("Tools/regression/aura_fixture_engine.lua")
 local Scene = dofile("Tools/render/scene.lua")
@@ -18,12 +18,14 @@ local function Measure(settings)
 	Engine.Install(env)
 	local drawn, solver = {}, Scene.RectSolver(env)
 	for _, item in ipairs(Scene.Build(env).items) do drawn[item.object] = item.rect end
-	local m = { first = math.huge, last = -math.huge, low = -math.huge, timer = -math.huge, buff = math.huge }
+	local m = { first = math.huge, last = -math.huge, low = -math.huge, timer = -math.huge, buff = math.huge, buffTimer = -math.huge }
 	for _, entry in ipairs(ns.Frames.Get("target").views[1].auras.buttons) do
 		if entry.button:IsVisible() then
 			local _, top, _, height = Scene.RectIn(solver, entry.button)
 			if entry.buff then
-				m.buff = math.min(m.buff, top)
+				m.buff, m.size = math.min(m.buff, top), height
+				local t = entry.timer:IsVisible() and assert(drawn[entry.timer], "the timer is drawn")
+				if t then m.buffTimer = math.max(m.buffTimer, t[2] + t[4]) end
 			else
 				m.first, m.last, m.low = math.min(m.first, top), math.max(m.last, top), math.max(m.low, top + height)
 				local t = entry.timer:IsVisible() and assert(drawn[entry.timer], "the timer is drawn")
@@ -38,10 +40,11 @@ end
 
 for _, nudge in ipairs({ 0, -12 }) do
 	local m = Measure({ auraTimerY = nudge })
-	assert(m.timer > m.low and m.timer <= m.buff + 0.01, string.format("timers nudged %d end at %.2f, over the buff row that starts at %.2f", nudge, m.timer, m.buff))
+	assert(m.timer > m.low, string.format("timers nudged %d sit under the debuff icons", nudge))
+	assert(m.buffTimer > m.buff + m.size and m.buffTimer <= m.first + 0.01, string.format("the buff timers nudged %d end at %.2f, above the debuff row that starts at %.2f", nudge, m.buffTimer, m.first))
 end
 local off = Measure({ auraTimer = false })
-assert(math.abs(off.buff - off.low) < 0.01, string.format("with timers off the buff row starts at %.2f, not right under the debuffs at %.2f", off.buff, off.low))
+assert(math.abs(off.buff + off.size - off.first) < 0.01, string.format("with timers off the buff row ends at %.2f, right on the debuffs at %.2f", off.buff + off.size, off.first))
 local wrap = Measure({ auraColumns = 2, auraRows = 2, auraRowGap = 6 })
-assert(wrap.last > wrap.first and math.abs(wrap.buff - wrap.low) < 0.01, string.format("two rows without a timer lane: the buff row starts at %.2f, not right under the last at %.2f", wrap.buff, wrap.low))
-print("ok: the buff row clears the debuff timers, nudged or not, and without a timer lane starts right under the debuffs' last row")
+assert(wrap.last > wrap.first and math.abs((wrap.first - wrap.buff) - (wrap.last - wrap.first)) < 0.01, string.format("two rows without a timer lane: the buff row starts at %.2f, one row step above the top debuff row at %.2f", wrap.buff, wrap.first))
+print("ok: the buff row clears the debuff row with its timers, nudged or not, and without a timer lane keeps the rows' own step")

@@ -163,7 +163,6 @@ local function Limit(width, height, screen, user, auto)
 	local store = ns.Store
 	local preset = store and store.IsLoaded() and store.Module("Layout").preset or "DPS"
 	local enabled = layouts.Enabled(preset, store and store.IsLoaded() and store.Profile() or nil)
-	local style = ns.HudStyle and ns.HudStyle.Current and ns.HudStyle.Current() or nil
 	local cache, key, entry
 	if store and store.IsLoaded() and ns.VERSION ~= DEVELOPMENT_VERSION then
 		cache = KstyleUIDB.scaleCache
@@ -175,7 +174,7 @@ local function Limit(width, height, screen, user, auto)
 		for i, element in ipairs(layouts.ELEMENTS) do
 			flags[i] = enabled[element.key] and "1" or "0"
 		end
-		key = table.concat({ preset, screen, height, style or "frames", layouts.ThirdBarFinished() and "finished" or "legacy", ArrangementSetting(), CanvasSetting(), table.concat(flags), layouts.ActionBarSignature(), ns.Appearance and not ns.Appearance.Readability("textFloor") and "legacy-text" or "scaled-text-v2" }, ":")
+		key = table.concat({ preset, screen, height, layouts.ThirdBarFinished() and "finished" or "legacy", ArrangementSetting(), CanvasSetting(), table.concat(flags), layouts.ActionBarSignature(), layouts.CrestKey(), ns.Appearance and not ns.Appearance.Readability("textFloor") and "legacy-text" or "scaled-text-v2" }, ":")
 		local requested = string.format("%.17g", user)
 		for i, saved in ipairs(cache.entries) do
 			local maximum = type(saved) == "table" and type(saved.maximum) == "string" and tonumber(saved.maximum)
@@ -199,7 +198,7 @@ local function Limit(width, height, screen, user, auto)
 			end
 		end
 	end
-	local maximum, fits = layouts.ScaleLimit(width, height, preset, enabled, style)
+	local maximum, fits = layouts.ScaleLimit(width, height, preset, enabled)
 	local effective = auto and Scale.Auto(height, maximum, fits) or Scale.Nearest(user, height, maximum, fits)
 	if cache then
 		if not entry then
@@ -488,10 +487,6 @@ ns.Callbacks.Register("SettingChanged", "Scale", function(_, module, key)
 	elseif ns.Features.modules[module] ~= nil then
 		Request("an element setting")
 	end
-end)
-ns.Callbacks.Register("HudStyleChanged", "Scale", function()
-	state.dirty = true
-	Request("the HUD style")
 end)
 ns.Callbacks.Register("ReadabilityChanged", "Scale", function()
 	local textFloor = ns.Appearance.Readability("textFloor")

@@ -8,7 +8,7 @@ local L = ns.L
 local Codec = ns.Codec
 local format, sub, floor, huge = string.format, string.sub, math.floor, math.huge
 
-Store.DB_VERSION = 43
+Store.DB_VERSION = 46
 Store.migrations = {}
 
 Store.migrations[38] = function(data)
@@ -557,17 +557,6 @@ Store.migrations[20] = function(data)
 	end
 end
 
-local HUD_STYLES = { frames = true, orbs = true, medallions = true }
-
-Store.migrations[21] = function(data)
-	for _, profile in pairs(data.profiles) do
-		local section = type(profile) == "table" and profile.HudStyle
-		if type(section) == "table" and section.style ~= nil and not HUD_STYLES[section.style] then
-			section.style = nil
-		end
-	end
-end
-
 Store.migrations[22] = function(data)
 	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
 		local entry = type(layout) == "table" and layout["minimap.main"]
@@ -803,7 +792,7 @@ Store.migrations[30] = function(data)
 			if type(key) == "string" then
 				style, element = key:match("^(%a+):(.+)$")
 			end
-			local old = type(key) == "string" and type(entry) == "table" and (style and (layouts.Style(style, preset, element) or presets[element]) or presets[key])
+			local old = type(key) == "string" and type(entry) == "table" and (style and (style == "medallions" and layouts.Style(preset, element) or presets[element]) or presets[key])
 			if old and (entry.anchor ~= nil or entry.x ~= nil or entry.y ~= nil) then
 				for _, field in ipairs(PLACED) do
 					if entry[field] == nil then
@@ -888,23 +877,10 @@ Store.migrations[34] = function(data)
 						entry.width, entry.height = nil, nil
 					end
 				end
-				local styled = moves.styled[key]
-				if styled and layout[styled] == nil and (entry.anchor ~= nil or entry.width ~= nil) then
-					layout[styled] = { anchor = entry.anchor, x = entry.x, y = entry.y, width = entry.width, height = entry.height }
-				end
 				if next(entry) == nil then
 					layout[key] = nil
 				end
 			end
-		end
-	end
-end
-
-Store.migrations[35] = function(data)
-	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
-		local entry = type(layout) == "table" and layout["actionbars.bar3"]
-		if type(entry) == "table" and type(entry.anchor) == "string" and type(entry.x) == "number" and type(entry.y) == "number" and layout["orbs:actionbars.bar3"] == nil then
-			layout["orbs:actionbars.bar3"] = { anchor = entry.anchor, x = entry.x, y = entry.y }
 		end
 	end
 end
@@ -917,8 +893,8 @@ Store.migrations[36] = function(data)
 			local preset = type(profile.Layout) == "table" and profile.Layout.preset or "DPS"
 			if not layouts.Get(preset) then preset = "DPS" end
 			for _, key in ipairs({ "cooldowns.essential", "cooldowns.utility", "cooldowns.buffs", "cooldowns.bars", "meters.swing" }) do
-				for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-					local stored = style == "frames" and key or style .. ":" .. key
+				for _, style in ipairs({ false, "medallions" }) do
+					local stored = style and style .. ":" .. key or key
 					local entry = layout[stored]
 					if type(entry) == "table" then
 						for _, class in ipairs(layouts.ASPECTS) do
@@ -947,12 +923,9 @@ end
 
 Store.migrations[37] = function(data)
 	for _, layout in pairs(type(data.layouts) == "table" and data.layouts or {}) do
-		local shared = type(layout) == "table" and layout["actionbars.bar3"]
-		local copied = type(shared) == "table" and shared.anchor == "BOTTOMLEFT" and shared.x == 17 and shared.y == 462.5
-		for _, key in ipairs({ "orbs:actionbars.bar3", "actionbars.bar3", "frames:actionbars.bar3", "medallions:actionbars.bar3" }) do
+		for _, key in ipairs({ "actionbars.bar3", "medallions:actionbars.bar3" }) do
 			local entry = type(layout) == "table" and layout[key]
-			local oldY = key == "orbs:actionbars.bar3" and 475 or 462.5
-			if type(entry) == "table" and entry.anchor == "BOTTOMLEFT" and entry.x == 17 and (entry.y == oldY or key == "orbs:actionbars.bar3" and copied and entry.y == 462.5) then
+			if type(entry) == "table" and entry.anchor == "BOTTOMLEFT" and entry.x == 17 and entry.y == 462.5 then
 				entry.anchor, entry.x, entry.y = nil, nil, nil
 				if next(entry) == nil then layout[key] = nil end
 			end
@@ -995,14 +968,12 @@ Store.migrations[41] = function(data)
 				layout["medallions:databars.strip"] = {}
 				for field, value in pairs(entry) do layout["medallions:databars.strip"][field] = value end
 			end
-			for _, key in ipairs({ "databars.strip", "orbs:databars.strip" }) do
-				local old = type(layout) == "table" and layout[key]
-				if type(old) == "table" then
-					local default = ns.Setup.Layouts.Default("databars.strip")
-					if (old.anchor and old.anchor ~= default.anchor) or (old.x and old.x ~= default.x) or (old.y and old.y ~= default.y) then moved = true end
-					old.anchor, old.x, old.y, old.width, old.height = nil, nil, nil, nil, nil
-					if next(old) == nil then layout[key] = nil end
-				end
+			local old = type(layout) == "table" and layout["databars.strip"]
+			if type(old) == "table" then
+				local default = ns.Setup.Layouts.Default("databars.strip")
+				if (old.anchor and old.anchor ~= default.anchor) or (old.x and old.x ~= default.x) or (old.y and old.y ~= default.y) then moved = true end
+				old.anchor, old.x, old.y, old.width, old.height = nil, nil, nil, nil, nil
+				if next(old) == nil then layout["databars.strip"] = nil end
 			end
 		end
 	end
@@ -1025,6 +996,76 @@ Store.migrations[43] = function(data)
 		local frames = type(profile) == "table" and type(profile.UnitFrames) == "table" and profile.UnitFrames or {}
 		for _, kind in pairs(frames) do
 			if type(kind) == "table" and type(kind.portraitZoom) == "number" and kind.classZoom == nil then kind.classZoom = kind.portraitZoom end
+		end
+	end
+end
+
+Store.migrations[44] = function(data)
+	for _, profile in pairs(data.profiles) do
+		local player = type(profile) == "table" and type(profile.UnitFrames) == "table" and profile.UnitFrames.player
+		if type(player) == "table" and player.medallionsAuras == true then player.medallionsAuras = nil end
+	end
+end
+
+local RETIRED = { ActionBars = { "useTray", "tray", "trayColumn" }, UnitFrames = { "orbGlass", "orbLedge", "orbCastRoom" }, CombatText = { "fieldDistance" } }
+local RETIRED_UNIT = { "castbarIconRight", "castbarIconSize", "castbarIconX", "castbarIconY", "castbarInside" }
+
+local function Table(value)
+	return type(value) == "table" and value or {}
+end
+
+local function DropStyledPositions(positions)
+	for key in pairs(Table(positions)) do
+		if type(key) == "string" and (key:match("^orbs:") or key:match("^frames:")) then positions[key] = nil end
+	end
+end
+
+Store.migrations[45] = function(data, live)
+	local moved = false
+	for _, profile in pairs(data.profiles) do
+		if type(profile) == "table" then
+			local hud = type(profile.HudStyle) == "table" and profile.HudStyle.style
+			moved = moved or hud ~= "medallions"
+			profile.HudStyle = nil
+			for module, keys in pairs(RETIRED) do
+				local section = Table(profile[module])
+				for _, key in ipairs(keys) do section[key] = nil end
+			end
+			if type(profile.Chat) == "table" and profile.Chat.framing == "auto" then profile.Chat.framing = nil end
+			local strip = Table(Table(profile.DataBars).strip)
+			strip.modules, strip.height = nil, nil
+			if strip.placement == "top" then strip.placement = "dock" end
+			for _, bar in pairs(Table(profile.ActionBars)) do
+				if type(bar) == "table" and bar.split == "auto" then bar.split = nil end
+			end
+			for kind, unit in pairs(Table(profile.UnitFrames)) do
+				if type(unit) == "table" then
+					for _, key in ipairs(RETIRED_UNIT) do unit[key] = nil end
+					local slab = (kind == "player" or kind == "target") and "column" or "lumen"
+					if unit.style ~= nil and unit.style ~= "plate" and unit.style ~= slab then unit.style = nil end
+				end
+			end
+			if Table(profile.Widgets).cardMaterial == "Glass" then
+				profile.Skins = Table(profile.Skins)
+				profile.Skins.contextMenus = Table(profile.Skins.contextMenus)
+				profile.Skins.contextMenus.enabled = false
+			end
+		end
+	end
+	for _, layout in pairs(data.layouts) do
+		DropStyledPositions(layout)
+	end
+	for _, positions in pairs(Table(Table(data.account).namedLayouts)) do
+		DropStyledPositions(positions)
+	end
+	if moved and live then ns.Print(L["KstyleUI is now Medallions only; your HUD moved to Medallions."]) end
+end
+
+Store.migrations[46] = function(data)
+	for _, profile in pairs(data.profiles) do
+		if type(profile) == "table" then
+			local widgets, options = Table(profile.Widgets), Table(profile.OptionsPresentation)
+			widgets.ornaments, widgets.cardMaterial, options.samples = nil, nil, nil
 		end
 	end
 end
@@ -1242,9 +1283,9 @@ local function upgrade(data, report)
 			if type(step) ~= "function" then
 				ok = false
 			elseif report then
-				ok = ns.Call(step, data)
+				ok = ns.Call(step, data, true)
 			else
-				ok = pcall(step, data)
+				ok = pcall(step, data, false)
 			end
 			if not ok then
 				return false, version
@@ -2005,7 +2046,7 @@ local function checkPayload(payload)
 		profiles = { [name] = deepCopy(payload.settings) },
 		layouts = { [name] = deepCopy(layout) },
 		characters = {},
-		account = {},
+		account = { namedLayouts = deepCopy(named) },
 		devlog = {},
 	}
 	if not upgrade(data, false) or type(data.profiles[name]) ~= "table" or type(data.layouts[name]) ~= "table" then
@@ -2015,7 +2056,7 @@ local function checkPayload(payload)
 	if problem then
 		return nil, problem
 	end
-	return { kind = KIND, version = Store.DB_VERSION, name = name, settings = data.profiles[name], layout = data.layouts[name], namedLayouts = deepCopy(named),
+	return { kind = KIND, version = Store.DB_VERSION, name = name, settings = data.profiles[name], layout = data.layouts[name], namedLayouts = data.account.namedLayouts,
 		specs = deepCopy(payload.specs), editMode = deepCopy(payload.editMode) }
 end
 

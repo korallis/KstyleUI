@@ -6,7 +6,7 @@ return Common.Run(function()
 	local N = dofile("Tools/regression/nameplates_env.lua")
 	local env, K, ns = N.New(Common.ScreenOpts({
 		playerClass = "WARRIOR", known = { [6552] = true }, stackingBounds = true,
-		saved = Gallery.Saved({ "Nameplates", HudStyle = { style = "medallions" } }), setup = Common.ForceScreen,
+		saved = Gallery.Saved({ "Nameplates" }), setup = Common.ForceScreen,
 	}))
 	if os.getenv("RENDER_PLATE_PRESET") == "Dungeon" and ns.Presets.VALUES.dungeon then
 		K.Options.Write("Nameplates", "preset", "dungeon")

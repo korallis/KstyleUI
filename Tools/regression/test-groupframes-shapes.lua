@@ -109,7 +109,7 @@ local function color(texture)
 	return c and c[1], c and c[2], c and c[3], c and c[4]
 end
 
-local env, K, ns, party, content = setup({ width = 2560, height = 1440 })
+local env, K, _, party, content = setup({ width = 2560, height = 1440 })
 local px = K.Scale.Pixel(1)
 local function whole(units, what)
 	local pixels = units / px
@@ -118,7 +118,7 @@ end
 
 local tank, healer = content("party1"), content("party2")
 
--- The target highlight: the kit's tile bevel lines in the accent, faded in by the secret target flag.
+-- The target highlight: the kit's tile bevel lines in the Medallions lit steel, faded in by the secret target flag.
 env._target = true
 env.UnitIsUnit = function(a, b)
 	return env.Secret(a == "party2" and b == "target")
@@ -131,10 +131,10 @@ eq(counts.lumenOutline, 10, "the target highlight is two rounded outlines, two l
 eq(runs, 8, "and four straight runs each, solid lines one border thick")
 eq(lines, 0, "with no straight pieces of its own")
 whole(K.Widgets.Border(healer.target), "a line's step")
-local ar, ag, ab = ns.Style.Accent()
+local ar, ag, ab = K.Tokens.Color("steelLit")
 for _, texture in ipairs(textures(healer.target)) do
 	local r, g, b, a = color(texture)
-	assert(near(r, ar) and near(g, ag) and near(b, ab) and near(a, 1), "the target highlight is the accent")
+	assert(near(r, ar) and near(g, ag) and near(b, ab) and near(a, 1), "the target highlight is the Medallions lit steel")
 end
 local corner = textures(healer.target)[1]
 local cw = corner:GetSize()

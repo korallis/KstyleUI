@@ -167,7 +167,7 @@ return Common.Run(function()
 	for _, section in ipairs(state.sections) do
 		sections[#sections + 1] = section.label
 	end
-	assert(sections[1] == T(K, "Unit Frames") and sections[2] == T(K, "Medallions danger") and sections[3] == T(K, "Orbs") and sections[4] == T(K, "Customise") and sections[5] == T(K, "Target") .. ": " .. T(K, "frame"), "the page's sections start with the module, the danger and Orbs finishes, the picker and the frame: " .. table.concat(sections, "|"))
+	assert(sections[1] == T(K, "Unit Frames") and sections[2] == T(K, "Medallions danger") and sections[3] == T(K, "Customise") and sections[4] == T(K, "Target") .. ": " .. T(K, "frame"), "the page's sections start with the module, the danger finish, the picker and the frame: " .. table.concat(sections, "|"))
 	local hover = {}
 	local hovered = railRow(ns, T(K, "Target") .. ": " .. T(K, "cast bar"))
 	W.Enter(hovered)
@@ -267,7 +267,7 @@ return Common.Run(function()
 		place(K4, APPEARANCE, true)
 		settle(env4)
 		local list = O.Labels(ns4.Window.State().items)
-		assert(list[1] == T(K4, "HUD") and list[2] == T(K4, "HUD style") and list[3] == T(K4, "Accent"), "General starts with the HUD style pictures, then the Appearance rows: " .. table.concat(list, "|"))
+		assert(list[1] == T(K4, "Accent") and list[2] == T(K4, "Accent colour"), "General starts with the Appearance rows: " .. table.concat(list, "|"))
 		frames:Add(env4, ns4.Window.Frame(), {
 			name = "options_appearance", title = "General page: Appearance", grade = "window", reference = "chat",
 			caption = "The General page at its top: the core's Appearance schema (Accent colour dropdown, Font, Text size, Interface size and Motion) with the kit sample in the preview pane following them." .. SCALE_NOTE,

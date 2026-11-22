@@ -1,4 +1,4 @@
--- test-lumen-material.lua: every chrome grade draws the Lumen recipe (no chamfer texture; the picture card with its edge line, rim and gilt L-ticks; the socket with its near-black edge, gold only on a proc; a pill track for the bar grade; the status bar itself square), and the font roles resolve to Cinzel and Alegreya Sans with Source Sans still selectable.
+-- test-lumen-material.lua: every chrome grade draws the Lumen recipe (no chamfer texture; the steel card with its edge line and rim, its gilt L-ticks hidden; the socket with its near-black edge, lit only on a proc; a pill track for the bar grade; the status bar itself square), and the font roles resolve to Cinzel and Alegreya Sans, Barlow for numbers, with Source Sans still selectable.
 local W = dofile("Tools/regression/widget_env.lua")
 
 local env, K = W.New()
@@ -48,37 +48,35 @@ for _, shape in ipairs({ "panel", "card", "window", "rail", "tile", "socket", "b
 	end
 end
 
--- Cards, panels, windows and rails: the owner's picture of 2026-11-09. The card fill, a dark edge line and a muted rim
--- one line inside it, on a corner six border lines round; the shadow is drawn but off unless the setting turns it on.
-K.Options.Write("Widgets", "cardMaterial", "Glass")
+-- Cards, panels, windows and rails: the Medallions steel. The card fill, a dark edge line and a rim one line inside it,
+-- on the steel's 4-unit corner; the shadow is drawn but off unless the setting turns it on.
 for _, shape in ipairs({ "panel", "card", "window", "rail" }) do
 	local frame, chrome, textures = Build(shape)
-	for _, name in ipairs({ "CardShape.png", "RingLine6.png", "RingLine5.png" }) do
+	local line = Widgets.Border(frame)
+	for _, name in ipairs({ "CardShape.png", "RingLine" .. 4 / line .. ".png", "RingLine" .. (4 - line) / line .. ".png" }) do
 		assert(Shown(textures, name), shape .. " draws " .. name)
 	end
 	assert(not Shown(textures, "LumenShadow.png"), shape .. ": the disabled shadow is not drawn")
 	for _, name in ipairs({ "LumenFrost.png", "LumenRim.png", "LumenGilt.png", "Noise.png" }) do
 		assert(not textures[name], shape .. " draws no " .. name)
 	end
-	local line = Widgets.Border(frame)
-	assert(W.Near(chrome:Radius(), 6 * line), shape .. " rounds its corners six lines")
-	assert(W.Near(chrome.line[1]:GetWidth(), Widgets.Snap(frame, 6 * line)), shape .. ": the edge line's corner pieces are six lines square")
+	assert(W.Near(chrome:Radius(), 4), shape .. " rounds its corners 4 units")
+	assert(W.Near(chrome.line[1]:GetWidth(), Widgets.Snap(frame, 4)), shape .. ": the edge line's corner pieces are 4 units square")
 end
 
--- Gilt L-ticks on the top left and bottom right of every card shape, the picture's story, chat and damage cards.
+-- Gilt L-ticks sit on the top left and bottom right of every card shape and never show under the steel.
 for _, shape in ipairs({ "panel", "card", "window", "rail" }) do
 	local frame, chrome = Build(shape)
 	assert(chrome.gilt and #chrome.gilt == 6, shape .. ": two ticks, each an arc and two legs")
 	local p1, p2 = chrome.gilt[1]._points[1], chrome.gilt[4]._points[1]
 	assert(p1[1] == "TOPLEFT" and p1[2] == frame and p2[1] == "BOTTOMRIGHT" and p2[2] == frame, shape .. ": the ticks sit on the top left and bottom right corners")
-	local gr, gg, gb = Tokens.Color("gilt")
 	for i = 1, 6 do
-		assert(W.SameRGB(chrome.gilt[i], gr, gg, gb) and chrome.gilt[i]:IsShown(), shape .. ": the ticks are gilt")
+		assert(not chrome.gilt[i]:IsShown(), shape .. ": the steel hides the ticks")
 	end
 end
 
 -- Tiles and sockets: the button fill, a near-black edge line on a three-line corner and a rim one line in, no gilt; a
--- gold edge only on a proc.
+-- lit steel edge only on a proc.
 for _, shape in ipairs({ "tile", "socket" }) do
 	local frame, chrome, textures = Build(shape, 38, 38)
 	assert(Shown(textures, "LumenShape.png") and Shown(textures, "RingLine3.png") and Shown(textures, "RingLine2.png"), shape .. " draws the body, the edge line and the rim")
@@ -86,13 +84,13 @@ for _, shape in ipairs({ "tile", "socket" }) do
 	assert(W.Near(chrome:Radius(), 3 * Widgets.Border(frame)), shape .. " rounds its corners three lines")
 	local sr, sg, sb = Tokens.Color("socketEdge")
 	assert(W.SameRGB(chrome.line[1], sr, sg, sb), shape .. ": the edge is near black at rest")
-	local lr, lg, lb = Tokens.Color("giltLit")
+	local lr, lg, lb = Widgets.Rgba("giltLit")
 	chrome:SetProc(true)
-	assert(W.SameRGB(chrome.line[1], lr, lg, lb) and W.SameRGB(chrome.line[5], lr, lg, lb), shape .. ": a proc lights the edge gold")
+	assert(W.SameRGB(chrome.line[1], lr, lg, lb) and W.SameRGB(chrome.line[5], lr, lg, lb), shape .. ": a proc lights the edge in lit steel")
 	assert(file(W.LastCall(chrome.line[1], "SetTexture")[1]) == "RingLine3.png", shape .. ": on the same corner")
 	assert(W.LastCall(chrome.line[4], "SetColorTexture") ~= nil, shape .. ": its straight runs are solid lines")
 	chrome:SetProc(false)
-	assert(W.SameRGB(chrome.line[1], sr, sg, sb), shape .. ": the gold leaves with the proc")
+	assert(W.SameRGB(chrome.line[1], sr, sg, sb), shape .. ": the light leaves with the proc")
 end
 do
 	local r, g, b, a = Tokens.Color("buttonFill")
@@ -135,7 +133,7 @@ local function face(role)
 end
 for role, want in pairs({
 	display = "Cinzel-SemiBold.ttf", heading = "Cinzel-SemiBold.ttf", title = "Cinzel-SemiBold.ttf", caption = "AlegreyaSansTabular-Medium.ttf",
-	body = "AlegreyaSansTabular-Regular.ttf", prose = "AlegreyaSans-Regular.ttf", number = "AlegreyaSansTabular-ExtraBold.ttf", time = "AlegreyaSansTabular-Bold.ttf", timer = "AlegreyaSansTabular-Medium.ttf", world = "AlegreyaSansTabular-Medium.ttf",
+	body = "AlegreyaSansTabular-Regular.ttf", prose = "AlegreyaSans-Regular.ttf", number = "BarlowSemiCondensedTabular-SemiBold.ttf", time = "BarlowSemiCondensedTabular-SemiBold.ttf", timer = "BarlowSemiCondensedTabular-SemiBold.ttf", world = "BarlowSemiCondensedTabular-Bold.ttf",
 }) do
 	assert(face(role) == want, "the " .. role .. " role is " .. tostring(face(role)) .. ", want " .. want)
 end
@@ -144,12 +142,13 @@ local tracking = Tokens.TextStyle("caption")
 assert(tracking > 0, "captions are tracked")
 assert(Theme.FontFace() == "Lumen", "Lumen is the selected type set")
 assert(Theme.SetFontFace("SourceSans3Semibold"), "Source Sans 3 Semibold is selectable")
-for _, role in ipairs({ "display", "heading", "title", "caption", "body", "prose", "world" }) do
+for _, role in ipairs({ "display", "heading", "title", "caption", "body", "prose" }) do
 	assert(face(role) == "SourceSans3-Semibold.ttf", "with Source Sans picked, " .. role .. " is Source Sans")
 end
 for _, role in ipairs({ "number", "time", "timer" }) do
-	assert(face(role) == "SourceSans3-Semibold.ttf", "and the " .. role .. " role keeps Source Sans's tabular digits")
+	assert(face(role) == "BarlowSemiCondensedTabular-SemiBold.ttf", "and the " .. role .. " role keeps the Medallions tabular digits")
 end
+assert(face("world") == "BarlowSemiCondensedTabular-Bold.ttf", "and world text keeps the Medallions Barlow Bold")
 assert(Theme.SetFontFace("") and Theme.FontFace() == "Lumen" and face("heading") == "Cinzel-SemiBold.ttf", "clearing the override restores the selected Lumen set")
 
 assert(#env._errors == 0, tostring(env._errors[1]))

@@ -43,9 +43,8 @@ end
 print(_VERSION .. " (PUC required; Windows os.clock is wall time), 5 alternating A/B runs; all calls cold")
 print(display and "path: DISPLAY_SIZE_CHANGED through Scale.Apply (core loaded, Spread, automatic size)" or "path: Layouts.ScaleLimit")
 assert(not rawget(_G, "jit"), "use PUC lua5.1, never LuaJIT, for timing")
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+for _, style in ipairs({ "medallions" }) do
 	if display then
-		K.Options.Write("HudStyle", "style", style)
 		env.RunTimers()
 	end
 	for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 } }) do
@@ -71,7 +70,7 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 					env.FireEvent("DISPLAY_SIZE_CHANGED")
 					limits[side] = K.Scale.AppliedUserScale()
 				else
-					limits[side] = layouts.ScaleLimit(screen[1], screen[2], "DPS", nil, style)
+					limits[side] = layouts.ScaleLimit(screen[1], screen[2], "DPS", nil)
 				end
 				times[side][round] = (os.clock() - start) * 1000
 				garbage[side][round] = (collectgarbage("count") - kb) * 1024

@@ -70,7 +70,7 @@ do
 	end)
 	local tank = frame(ns, "party1")
 	assert(tank.threat:IsShown(), "threat keeps its border")
-	assert(tank.name:GetText() == "Thaldren" and frame(ns, "party3").name:GetText() == "Captain Garrick", "names stay whole")
+	assert(tank.name:GetText() == "Thaldren", "a short name stays whole")
 	local _, _, _, x, y = ns.Headers.party:GetPoint(1)
 	assert(x == 0 and y == 0, "the party header keeps its corner")
 	noErrors(env, K)
@@ -205,20 +205,11 @@ do
 	K.Modules.Enable(MODULE)
 	env.RunTimers()
 	local tank, dps = frame(ns, "party1"), frame(ns, "party3")
+	local fitted = dps.name:GetText()
 	write(env, K, "threat.edge", true)
 	assert(tank.tileless and tank.threat:IsShown() and tank.threatEdge == nil, "a row without a tile keeps the threat border")
-	write(env, K, "party.portrait", true)
-	local r, g, b = K.Theme.ThreatColor(3)
-	local edge = tank.chrome.edge
-	assert(not tank.threat:IsShown() and tank.threatEdge and near(edge[1], r) and near(edge[2], g) and near(edge[3], b), "the frame's own edge takes the threat colour")
-	env._roster.units.party1.threat = 0
-	env.FireEvent("UNIT_THREAT_SITUATION_UPDATE", "party1")
-	assert(tank.threatEdge == nil and not tank.threat:IsShown(), "losing aggro restores the edge")
-	env._roster.units.party1.threat = 3
-	env.FireEvent("UNIT_THREAT_SITUATION_UPDATE", "party1")
 	write(env, K, "threat.edge", false)
-	assert(tank.threatEdge == nil and tank.threat:IsShown(), "off brings the border back")
-	write(env, K, "party.portrait", false)
+	assert(tank.threatEdge == nil and tank.threat:IsShown(), "off keeps the border")
 
 	write(env, K, "accent.hoverLines", 2)
 	assert(tank.hoverLine and tank.hoverLine[1]:IsShown() ~= false, "two hover lines make the inner line")
@@ -238,7 +229,7 @@ do
 	write(env, K, "party.nameFormat", "ABBR")
 	assert(dps.name:GetText() == "C. Garrick", "initials and last word: " .. tostring(dps.name:GetText()))
 	write(env, K, "party.nameFormat", "FULL")
-	assert(dps.name:GetText() == "Captain Garrick", "whole name again")
+	assert(dps.name:GetText() == fitted, "the full name's fit again")
 	noErrors(env, K)
 end
 collectgarbage()

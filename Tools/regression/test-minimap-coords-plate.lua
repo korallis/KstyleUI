@@ -4,7 +4,7 @@ local G = dofile("Tools/regression/geometry.lua")
 
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	local env, K, ns = M.New({ enabled = true, width = screen[1], height = screen[2], size = "auto",
-		setup = function(e) e.KstyleUIDB.profiles.Default.HudStyle = { style = "medallions" } end })
+		setup = function() end })
 	env._textWidth = function(text, _, size) return #text * size * 0.55 end
 	M.Settle(env)
 	local face = ns.Map.face

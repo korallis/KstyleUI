@@ -140,7 +140,6 @@ Shapes are white with their coverage in alpha, so the game tints them with `SetV
 | `Media/Textures/BarFlat.png` | 256x32 | Flat status bar fill. | `Tools/media/make_media.py`, procedural, no model | solid | 2026-11-07 |
 | `Media/Textures/BarSoft.png` | 256x32 | Status bar fill with a soft top-to-bottom gradient. | `Tools/media/make_media.py`, procedural, no model | 4x supersampled gradient | 2026-11-07 |
 | `Media/Textures/BarGlass.png` | 256x32 | Status bar fill whose top is 12% brighter than its bottom, the design's near-flat health fill. | `Tools/media/make_media.py`, procedural, no model | 4x supersampled gradient | 2026-11-07 |
-| `Media/Textures/MinimapMask.png` | 64x64 | Plain square mask for Minimap:SetMaskTexture: opaque white to every edge, so the map keeps square corners, as the owner's picture draws it (LEE-20: the picture wins over #207's chamfer). | `Tools/media/make_media.py`, procedural, no model | solid | 2026-11-09 |
 | `Media/Textures/Dot.png` | 64x64 | Filled disc for toggle and slider knobs. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Textures/Pill.png` | 64x32 | Capsule for toggle and slider tracks. Each round cap is 16 texels wide, so a widget three-slices it. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Textures/GlyphChevron.png` | 32x32 | Downward chevron for dropdowns and scroll steppers. Flip the texture coordinates to point it up. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
@@ -149,35 +148,9 @@ Shapes are white with their coverage in alpha, so the game tints them with `SetV
 | `Media/Logo/Logo64.tga` | 64x64 | Logo64 as a TGA for the TOC IconTexture line, which names the file without an extension. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Logo/Logo256.png` | 256x256 | KstyleUI logo, the chamfered diamond, at 256 px. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-07 |
 | `Media/Logo/Logo256.tga` | 256x256 | Welcome logo exported as uncompressed RGBA TGA; identical pixels to Logo256.png. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-18 |
-| `Media/Textures/MaterialSlate.png` | 256x256 | Prepared slate grain for the optional card-material study. | Higgsfield `gpt_image_2_6`; source-backed export by `Tools/media/make_media.py` | Prepared source in Tools/media/materials; lighting removed, 16px seam repair; prompt below | 2026-11-10 |
-| `Media/Textures/MaterialForged.png` | 256x256 | Prepared forged grain for the optional card-material study. | Higgsfield `gpt_image_2_6`; source-backed export by `Tools/media/make_media.py` | Prepared source in Tools/media/materials; lighting removed, 16px seam repair; prompt below | 2026-11-10 |
-| `Media/Textures/ForgedFrame1.png` | 32x32 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below; slice margins 8 texels | 2026-11-10 |
-| `Media/Textures/ForgedFrame2.png` | 64x64 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below; slice margins 16 texels | 2026-11-10 |
-| `Media/Textures/ForgedFrame3.png` | 128x128 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below; slice margins 24 texels | 2026-11-10 |
-| `Media/Textures/ForgedBracket1.png` | 8x8 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below | 2026-11-10 |
-| `Media/Textures/ForgedBracket2.png` | 16x16 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below | 2026-11-10 |
-| `Media/Textures/ForgedBracket3.png` | 32x32 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below | 2026-11-10 |
 | `Media/Textures/ForgedDiamond.png` | 64x64 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below | 2026-11-10 |
-| `Media/Textures/ForgedRule.png` | 256x4 | Original pixel-aligned forged-frame or header finish for the forged-material study. | Python/Pillow construction using original Higgsfield reference palettes | Prepared source in Tools/media/materials; source palette and pixel construction recorded below | 2026-11-10 |
-| `Media/Textures/OrbMask.png` | 256x256 | Round mask for the Orbs HUD style's liquid: opaque white inside the orb's opening. | `Tools/media/make_media.py`, procedural, no model | centre sampled, disc edges 4x4 supersampled | 2026-11-12 |
-| `Media/Textures/OrbBack.png` | 256x256 | The empty orb: glass lit from 34% down, white at its lit point, so SetVertexColor gives each orb its own dark tint under the liquid. | `Tools/media/make_media.py`, procedural, no model | centre sampled, disc edges 4x4 supersampled | 2026-11-18 |
-| `Media/Textures/OrbGlass.png` | 256x256 | The orb's sharp glass over the liquid: a rim that darkens towards the ring, four glints, the upper-left one with a hard core, and a foot shade that ends at 0.22. | `Tools/media/make_media.py`, procedural, no model | centre sampled, disc edges 4x4 supersampled | 2026-11-18 |
-| `Media/Textures/OrbBackSoft.png` | 128x128 | The empty orb at 128 texels, for the softer glass when Sharp orb glass is off. | `Tools/media/make_media.py`, procedural, no model | centre sampled, disc edges 4x4 supersampled | 2026-11-13 |
-| `Media/Textures/OrbGlassSoft.png` | 128x128 | The orb's softer glass over the liquid, when Sharp orb glass is off: a rim that darkens towards the ring and four glints. | `Tools/media/make_media.py`, procedural, no model | centre sampled, disc edges 4x4 supersampled | 2026-11-12 |
-| `Media/Textures/OrbLiquid.png` | 64x64 | Liquid fill for an orb's vertical status bar, shaded as a cylinder; SetStatusBarColor tints it. | `Tools/media/make_media.py`, procedural, no model | centre sampled, disc edges 4x4 supersampled | 2026-11-12 |
-| `Media/Textures/OrbSurface.png` | 256x64 | The liquid's curved surface: an ellipse as wide as the orb and 11% as tall, lit from 35% down, centred on the fill's top edge and tinted with the liquid's colour; also the pale cap of the loss band. | `Tools/media/make_media.py`, procedural, no model | centre sampled, disc edges 4x4 supersampled | 2026-11-13 |
-| `Media/Textures/OrbSurfaceLight.png` | 256x64 | The light over the surface ellipse: a white line along its top edge, a white sheen at its lit point and a soft shadow under it, drawn untinted. | `Tools/media/make_media.py`, procedural, no model | centre sampled, disc edges 4x4 supersampled | 2026-11-13 |
-| `Media/Textures/OrbRing.png` | 512x512 | Forged ring around an orb, with its four spikes; its opening is 70.1% of the texture. | Higgsfield (KSTY-44 job 5a7af16a, the ring); production pass by `Tools/media/orbs.py` | Prepared source in Tools/media/materials by Tools/media/orbs.py (centred on its opening, premultiplied Lanczos resample, light unsharp mask); prompt below | 2026-11-12 |
-| `Media/Textures/OrbArm.png` | 128x256 | The Orbs tray's arm: the forged bracket that joins an orb's ring to the tray, the tray hole's left edge at 47.2% across. | Higgsfield (KSTY-44 job 0b133988-204e-4852-89b6-a73ce6714226, the base); production pass by `Tools/media/orbs.py` | Prepared source in Tools/media/materials by Tools/media/orbs.py (cut from the base, rails joined from three segments, the last mirrored, with 40 px cross-fades, premultiplied Lanczos resample, light unsharp mask); prompt below | 2026-11-13 |
-| `Media/Textures/OrbCrest.png` | 256x128 | The Orbs tray's centre crest over the top rail, between the two halves of action bar 2. | Higgsfield (KSTY-44 job 0b133988-204e-4852-89b6-a73ce6714226, the base); production pass by `Tools/media/orbs.py` | Prepared source in Tools/media/materials by Tools/media/orbs.py (cut from the base, rails joined from three segments, the last mirrored, with 40 px cross-fades, premultiplied Lanczos resample, light unsharp mask); prompt below | 2026-11-13 |
-| `Media/Textures/OrbRail.png` | 1024x64 | The Orbs tray's top rail, one strip with cross-faded seams, stretched between the arms. | Higgsfield (KSTY-44 job 0b133988-204e-4852-89b6-a73ce6714226, the base); production pass by `Tools/media/orbs.py` | Prepared source in Tools/media/materials by Tools/media/orbs.py (cut from the base, rails joined from three segments, the last mirrored, with 40 px cross-fades, premultiplied Lanczos resample, light unsharp mask); prompt below | 2026-11-13 |
-| `Media/Textures/OrbRailBottom.png` | 1024x64 | The Orbs tray's bottom rail, one strip with cross-faded seams, stretched between the arms. | Higgsfield (KSTY-44 job 0b133988-204e-4852-89b6-a73ce6714226, the base); production pass by `Tools/media/orbs.py` | Prepared source in Tools/media/materials by Tools/media/orbs.py (cut from the base, rails joined from three segments, the last mirrored, with 40 px cross-fades, premultiplied Lanczos resample, light unsharp mask); prompt below | 2026-11-13 |
-| `Media/Textures/HudStyleFrames.png` | 1024x512 | Frames: player and target frames, casts, cooldowns and two stacked action bars. | KstyleUI render plus owner's game screenshot; no generated scenery | Tools/media/hud_pictures.py: current hud_reference, 1920x1080, Auto, DPS, Full ornaments, 1 px/unit over a UI-free crop of the owner's game_09.png; HUD crop and Lanczos to opaque 1024x512; identical PNG/TGA pixels | 2026-11-18 |
-| `Media/Textures/HudStyleFrames.tga` | 1024x512 | Frames: player and target frames, casts, cooldowns and two stacked action bars. | KstyleUI render plus owner's game screenshot; no generated scenery | Tools/media/hud_pictures.py: current hud_reference, 1920x1080, Auto, DPS, Full ornaments, 1 px/unit over a UI-free crop of the owner's game_09.png; HUD crop and Lanczos to opaque 1024x512; identical PNG/TGA pixels | 2026-11-18 |
-| `Media/Textures/HudStyleOrbs.png` | 1024x512 | Orbs: health and resource orbs around two stacked action bars, with the cast bar above. | KstyleUI render plus owner's game screenshot; no generated scenery | Tools/media/hud_pictures.py: current hud_reference, 1920x1080, Auto, DPS, Full ornaments, 1 px/unit over a UI-free crop of the owner's game_09.png; HUD crop and Lanczos to opaque 1024x512; identical PNG/TGA pixels | 2026-11-18 |
-| `Media/Textures/HudStyleOrbs.tga` | 1024x512 | Orbs: health and resource orbs around two stacked action bars, with the cast bar above. | KstyleUI render plus owner's game screenshot; no generated scenery | Tools/media/hud_pictures.py: current hud_reference, 1920x1080, Auto, DPS, Full ornaments, 1 px/unit over a UI-free crop of the owner's game_09.png; HUD crop and Lanczos to opaque 1024x512; identical PNG/TGA pixels | 2026-11-18 |
-| `Media/Textures/HudStyleMedallions.png` | 1024x512 | Medallions: unit frames over one twelve-button row on each side of the crest. | KstyleUI render plus owner's game screenshot; no generated scenery | Tools/media/hud_pictures.py: current hud_reference, 1920x1080, Auto, DPS, Full ornaments, 1 px/unit over a UI-free crop of the owner's game_09.png; HUD crop and Lanczos to opaque 1024x512; identical PNG/TGA pixels | 2026-11-18 |
-| `Media/Textures/HudStyleMedallions.tga` | 1024x512 | Medallions: unit frames over one twelve-button row on each side of the crest. | KstyleUI render plus owner's game screenshot; no generated scenery | Tools/media/hud_pictures.py: current hud_reference, 1920x1080, Auto, DPS, Full ornaments, 1 px/unit over a UI-free crop of the owner's game_09.png; HUD crop and Lanczos to opaque 1024x512; identical PNG/TGA pixels | 2026-11-18 |
+| `Media/Textures/OrbMask.png` | 256x256 | Round mask: opaque white inside the disc; the Medallions hub's opening and the steel minimap stand-in mask with it. | `Tools/media/make_media.py`, procedural, no model | centre sampled, disc edges 4x4 supersampled | 2026-11-12 |
+| `Media/Textures/OrbRing.png` | 512x512 | Forged ring with four spikes, its opening 70.1% of the texture; the Medallions hawk timers' socket and swipe. | Higgsfield (KSTY-44 job 5a7af16a, the ring); production pass by `Tools/media/orbs.py` | Prepared source in Tools/media/materials by Tools/media/orbs.py (centred on its opening, premultiplied Lanczos resample, light unsharp mask); prompt below | 2026-11-12 |
 | `Media/Textures/Medallions/CastShield.png` | 64x16 | Uninterruptible-cast hatch: white 45-degree stripes 3 texels wide every 8, tiling both ways. Tinted over the cast bar. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-15 |
 | `Media/Textures/Medallions/CastShieldGlyph.png` | 32x32 | Small hollow shield for uninterruptible nameplate casts; a flat top, tapered sides and pointed foot. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled; 4-texel outline | 2026-11-18 |
 | `Media/Textures/Medallions/MapMask.png` | 256x256 | Round minimap mask for the Medallions map: a white disc touching the edges. | `Tools/media/make_media.py`, procedural, no model | 4x4 supersampled | 2026-11-15 |
@@ -186,254 +159,11 @@ Shapes are white with their coverage in alpha, so the game tints them with `SetV
 
 The welcome logo is available as pixel-identical 256x256 RGBA PNG and uncompressed TGA exports. The in-game captures show that this client's loose RGBA PNG addon textures load; the original welcome page's empty lower area was a layout issue, not evidence of a logo-format failure. TGA is retained as a classic WoW texture export, with its live-client check still listed in the PR. Forever source `9dc84f0` uses TGA image escapes in `Blizzard_FriendsFrame/Camelot/FriendsFrame.lua:567,580` and PNG file attributes in `Blizzard_UIPanelTemplates/Mainline/UIPanelTemplates.xml`; those built-in resources do not independently prove loose addon texture loading for either format. `python Tools/media/make_media.py --only Logo256 --check` verifies both logo exports. Chrome uses PNG companions because it cannot decode TGA.
 
-## Card materials (study sources, 2026-11-10)
+## Forged diamond (2026-11-10)
 
-The Captain generated original style sources through Higgsfield `generateImage`, model `gpt_image_2_6`, on 2026-11-10. Source files and exact prompts are retained in the Captain drive at `handoffs/material-study/` and its `diablo4/` folder. The built-in image tool had no organisation credits; Higgsfield was callable only from the Captain's thread. The owner's direction was "assets should be based around Diablo 4 for that ultimate polish feel". No actual Diablo asset was used, traced or extracted.
+The Captain generated original style sources through Higgsfield `generateImage`, model `gpt_image_2_6`, on 2026-11-10; they are retained in the Captain drive at `handoffs/material-study/`. No actual Diablo asset was used, traced or extracted.
 
-The Slate prompt below ended: "even flat scanner light, low contrast, no objects, no text, no symbols, no frame, no vignette, no lighting gradient."
-
-| Study texture | Source prompt | Processing |
-| --- | --- | --- |
-| `Media/Textures/MaterialSlate.png` | Seamless square orthographic material scan of dark charcoal worn slate, fine stone grain and shallow mineral fissures, restrained warm iron grey | 256x256, 8-bit RGBA PNG; monochrome detail; Lanczos reduction; subtract 32px Gaussian lighting field; map 2nd–98th percentiles to 64–192; blend 16px edge bands to identical opposing edges |
-| `Media/Textures/MaterialForged.png` | Seamless tileable square orthographic texture for a dark gothic action RPG interface panel background: near-black desaturated charcoal stone with faint smoky mottling and very fine grain, cold neutral tone with a trace of warm brown, low contrast, even flat light, no text, no letters, no logos, no characters, no frame, no vignette, no lighting gradient. | Same processing; one shared source for the plain-tick and forged-bracket variants |
-
-`ForgedFrame1`, `ForgedFrame2`, `ForgedFrame3`, `ForgedBracket1`, `ForgedBracket2` and `ForgedBracket3` were constructed with Python/Pillow on the same date, not cropped from a game asset. Their iron and bronze palettes are averaged from these original generated sources, then normalized to restrained highlight levels:
-
-- Iron prompt: "Seamless tileable square orthographic material scan of dark forged blackened iron, subtle hammer marks, fine pitting, faint worn edges catching dull light, desaturated gunmetal, low contrast, even flat light, no text, no letters, no logos, no characters, no frame, no vignette."
-- Bronze prompt: "Seamless tileable square orthographic material scan of aged dark bronze metal with muted antique gold highlights and darkened recesses, fine brushed wear, restrained, desaturated, low contrast, even flat light, no text, no letters, no logos, no characters, no frame, no vignette."
-
-The frame has a dark outer band, forged-iron band and narrow aged-gold inner band, constructed directly on a one-, two- or three-pixel border grid. Its nine-slice files are 32x32 with 8px margins, 64x64 with 16px margins and 128x128 with 24px margins. Corners are sampled at one physical pixel per texel; straight edge strips are constant along their length, so stretching them does not stretch any grain. The 8x8 and 16x16 brackets, plus a 24x24 bracket in the top-left of its 32x32 source, are original angular L-inlays with a diagonal iron brace, also sampled one physical pixel per texel. The original generated frame/corner sheets were visual references only.
-
-`ForgedDiamond` is a procedural dark-faced diamond in the existing diamond's exact alpha silhouette, tinted aged gold in game. `ForgedRule` is an original 256x4 alpha taper, constant vertically so a one-physical-pixel rule stays a solid pixel. Both were constructed with Python/Pillow on 2026-11-10, informed by the original generated divider/header reference, without extracting game art. The diamond and rule keep their original geometry; only their finish changes.
-
-The stone grain uses one physical pixel per texel with explicit repeating UVs. The forged fill is opaque at its default strength. A quiet flat band inside the frame keeps grain out of corner arcs. No PNG encoding or filtering claim exceeds the existing RGBA PNG assets and matching 70862 PNG path evidence. Native loading and sampler parity still require a client restart and in-game inspection. Executable preparation recipes are retained with the study handoff; `make_media.py` re-exports the prepared sources in `Tools/media/materials`.
-
-## Forged ornament study
-
-Original painted sources generated by the project Captain with Higgsfield gpt_image_2_6 on 2026-11-10. No artwork was extracted or traced from a game. The source sheets and prompts are retained in the Captain's handoffs/ornament-study folder. Tools/media/painted_ornaments.py keys and despills their magenta backgrounds; Tools/media/ornaments.py crops, premultiplies, downsamples and masks the original painted pieces to preserve existing content. Runtime placement is one physical pixel per authored texel, without stretching. Every PNG uses RGBA encoding. Ring colours are reduced to 32 entries without dithering before RGBA export; fully transparent source pixels remain exactly transparent. Other pieces retain their downsampled RGBA samples. Native loading still needs the client's in-game pass.
-
-The source SHA-256 hashes, crop sizes and PNG byte counts are recorded in `Media/Textures/ForgedOrnaments/manifest.json`. This remains a local, opt-in study.
-
-| File | Native texels | Painted source cut | PNG bytes |
-| --- | --- | --- | ---: |
-| `Media/Textures/ForgedOrnaments/Arrow10.png` | 13x10 | cap-arrow-left | 568 |
-| `Media/Textures/ForgedOrnaments/Arrow12.png` | 15x12 | cap-arrow-left | 684 |
-| `Media/Textures/ForgedOrnaments/Arrow14.png` | 18x14 | cap-arrow-left | 888 |
-| `Media/Textures/ForgedOrnaments/Arrow16.png` | 20x16 | cap-arrow-left | 1064 |
-| `Media/Textures/ForgedOrnaments/Arrow20.png` | 25x20 | cap-arrow-left | 1522 |
-| `Media/Textures/ForgedOrnaments/Arrow24.png` | 30x24 | cap-arrow-left | 1969 |
-| `Media/Textures/ForgedOrnaments/Arrow28.png` | 35x28 | cap-arrow-left | 2529 |
-| `Media/Textures/ForgedOrnaments/Arrow32.png` | 40x32 | cap-arrow-left | 3183 |
-| `Media/Textures/ForgedOrnaments/Arrow6.png` | 8x6 | cap-arrow-left | 250 |
-| `Media/Textures/ForgedOrnaments/Arrow8.png` | 10x8 | cap-arrow-left | 415 |
-| `Media/Textures/ForgedOrnaments/BossPendantR17.png` | 23x37 | portrait-boss-pendant | 2156 |
-| `Media/Textures/ForgedOrnaments/BossPendantR20.png` | 27x44 | portrait-boss-pendant | 2819 |
-| `Media/Textures/ForgedOrnaments/BossPendantR24.png` | 32x52 | portrait-boss-pendant | 3547 |
-| `Media/Textures/ForgedOrnaments/BossPendantR28.png` | 37x61 | portrait-boss-pendant | 4605 |
-| `Media/Textures/ForgedOrnaments/BossPendantR32.png` | 42x70 | portrait-boss-pendant | 5741 |
-| `Media/Textures/ForgedOrnaments/BossPendantR38.png` | 50x83 | portrait-boss-pendant | 7556 |
-| `Media/Textures/ForgedOrnaments/BossPendantR44.png` | 58x96 | portrait-boss-pendant | 9702 |
-| `Media/Textures/ForgedOrnaments/BossPendantR52.png` | 69x113 | portrait-boss-pendant | 13026 |
-| `Media/Textures/ForgedOrnaments/BossPendantR60.png` | 80x131 | portrait-boss-pendant | 17159 |
-| `Media/Textures/ForgedOrnaments/BossPendantR70.png` | 93x152 | portrait-boss-pendant | 22254 |
-| `Media/Textures/ForgedOrnaments/BossPendantR80.png` | 106x174 | portrait-boss-pendant | 27959 |
-| `Media/Textures/ForgedOrnaments/Corner12.png` | 14x12 | corner-plain | 531 |
-| `Media/Textures/ForgedOrnaments/Corner16.png` | 18x16 | corner-plain | 743 |
-| `Media/Textures/ForgedOrnaments/Corner20.png` | 23x20 | corner-plain | 1100 |
-| `Media/Textures/ForgedOrnaments/Corner24.png` | 27x24 | corner-plain | 1432 |
-| `Media/Textures/ForgedOrnaments/Crest20.png` | 25x20 | window-crest-open | 1464 |
-| `Media/Textures/ForgedOrnaments/Crest32.png` | 39x32 | window-crest-open | 3015 |
-| `Media/Textures/ForgedOrnaments/Crest48.png` | 59x48 | window-crest-open | 5965 |
-| `Media/Textures/ForgedOrnaments/Crest64.png` | 79x64 | window-crest-open | 9818 |
-| `Media/Textures/ForgedOrnaments/ElitePendantR17.png` | 13x22 | portrait-elite-pendant | 934 |
-| `Media/Textures/ForgedOrnaments/ElitePendantR20.png` | 15x26 | portrait-elite-pendant | 1171 |
-| `Media/Textures/ForgedOrnaments/ElitePendantR24.png` | 18x32 | portrait-elite-pendant | 1573 |
-| `Media/Textures/ForgedOrnaments/ElitePendantR28.png` | 21x37 | portrait-elite-pendant | 2028 |
-| `Media/Textures/ForgedOrnaments/ElitePendantR32.png` | 24x42 | portrait-elite-pendant | 2468 |
-| `Media/Textures/ForgedOrnaments/ElitePendantR38.png` | 29x50 | portrait-elite-pendant | 3318 |
-| `Media/Textures/ForgedOrnaments/ElitePendantR44.png` | 33x58 | portrait-elite-pendant | 4154 |
-| `Media/Textures/ForgedOrnaments/ElitePendantR52.png` | 39x69 | portrait-elite-pendant | 5566 |
-| `Media/Textures/ForgedOrnaments/ElitePendantR60.png` | 45x79 | portrait-elite-pendant | 6980 |
-| `Media/Textures/ForgedOrnaments/ElitePendantR70.png` | 53x93 | portrait-elite-pendant | 9176 |
-| `Media/Textures/ForgedOrnaments/ElitePendantR80.png` | 61x106 | portrait-elite-pendant | 11582 |
-| `Media/Textures/ForgedOrnaments/EndClawed10.png` | 13x18 | frame-clawed | 963 |
-| `Media/Textures/ForgedOrnaments/EndClawed11.png` | 15x19 | frame-clawed | 1121 |
-| `Media/Textures/ForgedOrnaments/EndClawed12.png` | 16x21 | frame-clawed | 1228 |
-| `Media/Textures/ForgedOrnaments/EndClawed13.png` | 17x23 | frame-clawed | 1401 |
-| `Media/Textures/ForgedOrnaments/EndClawed14.png` | 19x24 | frame-clawed | 1636 |
-| `Media/Textures/ForgedOrnaments/EndClawed15.png` | 20x26 | frame-clawed | 1830 |
-| `Media/Textures/ForgedOrnaments/EndClawed16.png` | 21x28 | frame-clawed | 1971 |
-| `Media/Textures/ForgedOrnaments/EndClawed17.png` | 23x30 | frame-clawed | 2190 |
-| `Media/Textures/ForgedOrnaments/EndClawed18.png` | 24x32 | frame-clawed | 2392 |
-| `Media/Textures/ForgedOrnaments/EndClawed19.png` | 25x33 | frame-clawed | 2524 |
-| `Media/Textures/ForgedOrnaments/EndClawed20.png` | 27x35 | frame-clawed | 2828 |
-| `Media/Textures/ForgedOrnaments/EndClawed21.png` | 28x37 | frame-clawed | 3073 |
-| `Media/Textures/ForgedOrnaments/EndClawed22.png` | 29x38 | frame-clawed | 3240 |
-| `Media/Textures/ForgedOrnaments/EndClawed23.png` | 31x40 | frame-clawed | 3495 |
-| `Media/Textures/ForgedOrnaments/EndClawed24.png` | 32x42 | frame-clawed | 3688 |
-| `Media/Textures/ForgedOrnaments/EndClawed25.png` | 33x44 | frame-clawed | 4044 |
-| `Media/Textures/ForgedOrnaments/EndClawed26.png` | 35x46 | frame-clawed | 4345 |
-| `Media/Textures/ForgedOrnaments/EndClawed27.png` | 36x47 | frame-clawed | 4498 |
-| `Media/Textures/ForgedOrnaments/EndClawed28.png` | 37x49 | frame-clawed | 4784 |
-| `Media/Textures/ForgedOrnaments/EndClawed29.png` | 39x51 | frame-clawed | 5126 |
-| `Media/Textures/ForgedOrnaments/EndClawed30.png` | 40x52 | frame-clawed | 5344 |
-| `Media/Textures/ForgedOrnaments/EndClawed31.png` | 41x54 | frame-clawed | 5596 |
-| `Media/Textures/ForgedOrnaments/EndClawed32.png` | 43x56 | frame-clawed | 6017 |
-| `Media/Textures/ForgedOrnaments/EndClawed33.png` | 44x58 | frame-clawed | 6358 |
-| `Media/Textures/ForgedOrnaments/EndClawed34.png` | 45x60 | frame-clawed | 6503 |
-| `Media/Textures/ForgedOrnaments/EndClawed35.png` | 47x61 | frame-clawed | 6862 |
-| `Media/Textures/ForgedOrnaments/EndClawed36.png` | 48x63 | frame-clawed | 7215 |
-| `Media/Textures/ForgedOrnaments/EndClawed37.png` | 49x65 | frame-clawed | 7542 |
-| `Media/Textures/ForgedOrnaments/EndClawed38.png` | 51x66 | frame-clawed | 7814 |
-| `Media/Textures/ForgedOrnaments/EndClawed39.png` | 52x68 | frame-clawed | 8176 |
-| `Media/Textures/ForgedOrnaments/EndClawed40.png` | 53x70 | frame-clawed | 8517 |
-| `Media/Textures/ForgedOrnaments/EndClawed41.png` | 55x72 | frame-clawed | 9037 |
-| `Media/Textures/ForgedOrnaments/EndClawed42.png` | 56x74 | frame-clawed | 9285 |
-| `Media/Textures/ForgedOrnaments/EndClawed43.png` | 57x75 | frame-clawed | 9598 |
-| `Media/Textures/ForgedOrnaments/EndClawed44.png` | 59x77 | frame-clawed | 10049 |
-| `Media/Textures/ForgedOrnaments/EndClawed45.png` | 60x79 | frame-clawed | 10444 |
-| `Media/Textures/ForgedOrnaments/EndClawed46.png` | 61x80 | frame-clawed | 10639 |
-| `Media/Textures/ForgedOrnaments/EndClawed47.png` | 63x82 | frame-clawed | 11196 |
-| `Media/Textures/ForgedOrnaments/EndClawed48.png` | 64x84 | frame-clawed | 11445 |
-| `Media/Textures/ForgedOrnaments/EndClawed52.png` | 69x91 | frame-clawed | 13345 |
-| `Media/Textures/ForgedOrnaments/EndClawed56.png` | 75x98 | frame-clawed | 15049 |
-| `Media/Textures/ForgedOrnaments/EndClawed60.png` | 80x105 | frame-clawed | 16869 |
-| `Media/Textures/ForgedOrnaments/EndClawed64.png` | 85x112 | frame-clawed | 18688 |
-| `Media/Textures/ForgedOrnaments/EndClawed8.png` | 11x14 | frame-clawed | 698 |
-| `Media/Textures/ForgedOrnaments/EndClawed9.png` | 12x16 | frame-clawed | 801 |
-| `Media/Textures/ForgedOrnaments/EndPointed10.png` | 12x10 | frame-pointed | 533 |
-| `Media/Textures/ForgedOrnaments/EndPointed11.png` | 14x11 | frame-pointed | 629 |
-| `Media/Textures/ForgedOrnaments/EndPointed12.png` | 15x12 | frame-pointed | 701 |
-| `Media/Textures/ForgedOrnaments/EndPointed13.png` | 16x13 | frame-pointed | 732 |
-| `Media/Textures/ForgedOrnaments/EndPointed14.png` | 17x14 | frame-pointed | 857 |
-| `Media/Textures/ForgedOrnaments/EndPointed15.png` | 18x15 | frame-pointed | 932 |
-| `Media/Textures/ForgedOrnaments/EndPointed16.png` | 20x16 | frame-pointed | 1050 |
-| `Media/Textures/ForgedOrnaments/EndPointed17.png` | 21x17 | frame-pointed | 1170 |
-| `Media/Textures/ForgedOrnaments/EndPointed18.png` | 22x18 | frame-pointed | 1241 |
-| `Media/Textures/ForgedOrnaments/EndPointed19.png` | 23x19 | frame-pointed | 1361 |
-| `Media/Textures/ForgedOrnaments/EndPointed20.png` | 25x20 | frame-pointed | 1500 |
-| `Media/Textures/ForgedOrnaments/EndPointed21.png` | 26x21 | frame-pointed | 1596 |
-| `Media/Textures/ForgedOrnaments/EndPointed22.png` | 27x22 | frame-pointed | 1686 |
-| `Media/Textures/ForgedOrnaments/EndPointed23.png` | 28x23 | frame-pointed | 1786 |
-| `Media/Textures/ForgedOrnaments/EndPointed24.png` | 30x24 | frame-pointed | 1944 |
-| `Media/Textures/ForgedOrnaments/EndPointed25.png` | 31x25 | frame-pointed | 2045 |
-| `Media/Textures/ForgedOrnaments/EndPointed26.png` | 32x26 | frame-pointed | 2104 |
-| `Media/Textures/ForgedOrnaments/EndPointed27.png` | 33x27 | frame-pointed | 2281 |
-| `Media/Textures/ForgedOrnaments/EndPointed28.png` | 35x28 | frame-pointed | 2462 |
-| `Media/Textures/ForgedOrnaments/EndPointed29.png` | 36x29 | frame-pointed | 2602 |
-| `Media/Textures/ForgedOrnaments/EndPointed30.png` | 37x30 | frame-pointed | 2751 |
-| `Media/Textures/ForgedOrnaments/EndPointed31.png` | 38x31 | frame-pointed | 2842 |
-| `Media/Textures/ForgedOrnaments/EndPointed32.png` | 39x32 | frame-pointed | 2972 |
-| `Media/Textures/ForgedOrnaments/EndPointed33.png` | 41x33 | frame-pointed | 3184 |
-| `Media/Textures/ForgedOrnaments/EndPointed34.png` | 42x34 | frame-pointed | 3339 |
-| `Media/Textures/ForgedOrnaments/EndPointed35.png` | 43x35 | frame-pointed | 3480 |
-| `Media/Textures/ForgedOrnaments/EndPointed36.png` | 44x36 | frame-pointed | 3637 |
-| `Media/Textures/ForgedOrnaments/EndPointed37.png` | 46x37 | frame-pointed | 3803 |
-| `Media/Textures/ForgedOrnaments/EndPointed38.png` | 47x38 | frame-pointed | 3984 |
-| `Media/Textures/ForgedOrnaments/EndPointed39.png` | 48x39 | frame-pointed | 4144 |
-| `Media/Textures/ForgedOrnaments/EndPointed40.png` | 49x40 | frame-pointed | 4285 |
-| `Media/Textures/ForgedOrnaments/EndPointed41.png` | 51x41 | frame-pointed | 4493 |
-| `Media/Textures/ForgedOrnaments/EndPointed42.png` | 52x42 | frame-pointed | 4695 |
-| `Media/Textures/ForgedOrnaments/EndPointed43.png` | 53x43 | frame-pointed | 4901 |
-| `Media/Textures/ForgedOrnaments/EndPointed44.png` | 54x44 | frame-pointed | 5036 |
-| `Media/Textures/ForgedOrnaments/EndPointed45.png` | 55x45 | frame-pointed | 5181 |
-| `Media/Textures/ForgedOrnaments/EndPointed46.png` | 57x46 | frame-pointed | 5411 |
-| `Media/Textures/ForgedOrnaments/EndPointed47.png` | 58x47 | frame-pointed | 5612 |
-| `Media/Textures/ForgedOrnaments/EndPointed48.png` | 59x48 | frame-pointed | 5813 |
-| `Media/Textures/ForgedOrnaments/EndPointed52.png` | 64x52 | frame-pointed | 6489 |
-| `Media/Textures/ForgedOrnaments/EndPointed56.png` | 69x56 | frame-pointed | 7524 |
-| `Media/Textures/ForgedOrnaments/EndPointed60.png` | 74x60 | frame-pointed | 8441 |
-| `Media/Textures/ForgedOrnaments/EndPointed64.png` | 79x64 | frame-pointed | 9308 |
-| `Media/Textures/ForgedOrnaments/EndPointed8.png` | 10x8 | frame-pointed | 390 |
-| `Media/Textures/ForgedOrnaments/EndPointed9.png` | 11x9 | frame-pointed | 453 |
-| `Media/Textures/ForgedOrnaments/Forge2.png` | 1020x2 | rail-riveted | 119 |
-| `Media/Textures/ForgedOrnaments/Forge3.png` | 1017x3 | rail-riveted | 211 |
-| `Media/Textures/ForgedOrnaments/Forge4.png` | 1020x4 | rail-riveted | 280 |
-| `Media/Textures/ForgedOrnaments/Forge5.png` | 1020x5 | rail-riveted | 327 |
-| `Media/Textures/ForgedOrnaments/Forge6.png` | 1008x6 | rail-riveted | 383 |
-| `Media/Textures/ForgedOrnaments/Forge7.png` | 1008x7 | rail-riveted | 433 |
-| `Media/Textures/ForgedOrnaments/Rail1.png` | 16x1 | rail-gold | 123 |
-| `Media/Textures/ForgedOrnaments/Rail10.png` | 16x10 | rail-gold | 493 |
-| `Media/Textures/ForgedOrnaments/Rail11.png` | 16x11 | rail-gold | 524 |
-| `Media/Textures/ForgedOrnaments/Rail2.png` | 16x2 | rail-gold | 165 |
-| `Media/Textures/ForgedOrnaments/Rail3.png` | 16x3 | rail-gold | 209 |
-| `Media/Textures/ForgedOrnaments/Rail4.png` | 16x4 | rail-gold | 243 |
-| `Media/Textures/ForgedOrnaments/Rail5.png` | 16x5 | rail-gold | 286 |
-| `Media/Textures/ForgedOrnaments/Rail6.png` | 16x6 | rail-gold | 326 |
-| `Media/Textures/ForgedOrnaments/Rail7.png` | 16x7 | rail-gold | 375 |
-| `Media/Textures/ForgedOrnaments/Rail8.png` | 16x8 | rail-gold | 405 |
-| `Media/Textures/ForgedOrnaments/Rail9.png` | 16x9 | rail-gold | 454 |
-| `Media/Textures/ForgedOrnaments/Ring100.png` | 128x128 | portrait-plain | 5562 |
-| `Media/Textures/ForgedOrnaments/Ring102.png` | 130x130 | portrait-plain | 6288 |
-| `Media/Textures/ForgedOrnaments/Ring104.png` | 132x132 | portrait-plain | 6264 |
-| `Media/Textures/ForgedOrnaments/Ring106.png` | 134x134 | portrait-plain | 6143 |
-| `Media/Textures/ForgedOrnaments/Ring110.png` | 140x140 | portrait-plain | 6852 |
-| `Media/Textures/ForgedOrnaments/Ring112.png` | 142x142 | portrait-plain | 6831 |
-| `Media/Textures/ForgedOrnaments/Ring116.png` | 148x148 | portrait-plain | 7125 |
-| `Media/Textures/ForgedOrnaments/Ring118.png` | 150x150 | portrait-plain | 7580 |
-| `Media/Textures/ForgedOrnaments/Ring120.png` | 152x152 | portrait-plain | 7414 |
-| `Media/Textures/ForgedOrnaments/Ring122.png` | 156x156 | portrait-plain | 8377 |
-| `Media/Textures/ForgedOrnaments/Ring124.png` | 158x158 | portrait-plain | 7905 |
-| `Media/Textures/ForgedOrnaments/Ring126.png` | 160x160 | portrait-plain | 7901 |
-| `Media/Textures/ForgedOrnaments/Ring128.png` | 162x162 | portrait-plain | 8961 |
-| `Media/Textures/ForgedOrnaments/Ring130.png` | 166x166 | portrait-plain | 8650 |
-| `Media/Textures/ForgedOrnaments/Ring134.png` | 170x170 | portrait-plain | 8704 |
-| `Media/Textures/ForgedOrnaments/Ring138.png` | 176x176 | portrait-plain | 9718 |
-| `Media/Textures/ForgedOrnaments/Ring140.png` | 178x178 | portrait-plain | 9114 |
-| `Media/Textures/ForgedOrnaments/Ring144.png` | 184x184 | portrait-plain | 10115 |
-| `Media/Textures/ForgedOrnaments/Ring146.png` | 186x186 | portrait-plain | 10197 |
-| `Media/Textures/ForgedOrnaments/Ring148.png` | 188x188 | portrait-plain | 9898 |
-| `Media/Textures/ForgedOrnaments/Ring152.png` | 194x194 | portrait-plain | 11360 |
-| `Media/Textures/ForgedOrnaments/Ring154.png` | 196x196 | portrait-plain | 10629 |
-| `Media/Textures/ForgedOrnaments/Ring158.png` | 202x202 | portrait-plain | 11686 |
-| `Media/Textures/ForgedOrnaments/Ring160.png` | 204x204 | portrait-plain | 11880 |
-| `Media/Textures/ForgedOrnaments/Ring26.png` | 34x34 | portrait-plain | 902 |
-| `Media/Textures/ForgedOrnaments/Ring28.png` | 36x36 | portrait-plain | 1148 |
-| `Media/Textures/ForgedOrnaments/Ring30.png` | 38x38 | portrait-plain | 1125 |
-| `Media/Textures/ForgedOrnaments/Ring32.png` | 40x40 | portrait-plain | 1033 |
-| `Media/Textures/ForgedOrnaments/Ring34.png` | 42x42 | portrait-plain | 1162 |
-| `Media/Textures/ForgedOrnaments/Ring36.png` | 46x46 | portrait-plain | 1483 |
-| `Media/Textures/ForgedOrnaments/Ring38.png` | 48x48 | portrait-plain | 1626 |
-| `Media/Textures/ForgedOrnaments/Ring39.png` | 49x49 | portrait-plain | 1713 |
-| `Media/Textures/ForgedOrnaments/Ring40.png` | 50x50 | portrait-plain | 1797 |
-| `Media/Textures/ForgedOrnaments/Ring42.png` | 52x52 | portrait-plain | 1801 |
-| `Media/Textures/ForgedOrnaments/Ring44.png` | 56x56 | portrait-plain | 1922 |
-| `Media/Textures/ForgedOrnaments/Ring46.png` | 58x58 | portrait-plain | 2091 |
-| `Media/Textures/ForgedOrnaments/Ring48.png` | 60x60 | portrait-plain | 2069 |
-| `Media/Textures/ForgedOrnaments/Ring50.png` | 64x64 | portrait-plain | 2494 |
-| `Media/Textures/ForgedOrnaments/Ring52.png` | 66x66 | portrait-plain | 2451 |
-| `Media/Textures/ForgedOrnaments/Ring54.png` | 68x68 | portrait-plain | 2430 |
-| `Media/Textures/ForgedOrnaments/Ring56.png` | 70x70 | portrait-plain | 3012 |
-| `Media/Textures/ForgedOrnaments/Ring58.png` | 74x74 | portrait-plain | 2919 |
-| `Media/Textures/ForgedOrnaments/Ring59.png` | 75x75 | portrait-plain | 2671 |
-| `Media/Textures/ForgedOrnaments/Ring60.png` | 76x76 | portrait-plain | 2675 |
-| `Media/Textures/ForgedOrnaments/Ring62.png` | 78x78 | portrait-plain | 2760 |
-| `Media/Textures/ForgedOrnaments/Ring64.png` | 80x80 | portrait-plain | 3171 |
-| `Media/Textures/ForgedOrnaments/Ring66.png` | 84x84 | portrait-plain | 3237 |
-| `Media/Textures/ForgedOrnaments/Ring68.png` | 86x86 | portrait-plain | 3177 |
-| `Media/Textures/ForgedOrnaments/Ring70.png` | 88x88 | portrait-plain | 3116 |
-| `Media/Textures/ForgedOrnaments/Ring72.png` | 92x92 | portrait-plain | 3640 |
-| `Media/Textures/ForgedOrnaments/Ring74.png` | 94x94 | portrait-plain | 3703 |
-| `Media/Textures/ForgedOrnaments/Ring76.png` | 96x96 | portrait-plain | 3693 |
-| `Media/Textures/ForgedOrnaments/Ring78.png` | 98x98 | portrait-plain | 3933 |
-| `Media/Textures/ForgedOrnaments/Ring79.png` | 101x101 | portrait-plain | 3932 |
-| `Media/Textures/ForgedOrnaments/Ring80.png` | 102x102 | portrait-plain | 4085 |
-| `Media/Textures/ForgedOrnaments/Ring82.png` | 104x104 | portrait-plain | 4204 |
-| `Media/Textures/ForgedOrnaments/Ring84.png` | 106x106 | portrait-plain | 4181 |
-| `Media/Textures/ForgedOrnaments/Ring86.png` | 110x110 | portrait-plain | 4419 |
-| `Media/Textures/ForgedOrnaments/Ring88.png` | 112x112 | portrait-plain | 4535 |
-| `Media/Textures/ForgedOrnaments/Ring90.png` | 114x114 | portrait-plain | 4690 |
-| `Media/Textures/ForgedOrnaments/Ring92.png` | 116x116 | portrait-plain | 4835 |
-| `Media/Textures/ForgedOrnaments/Ring94.png` | 120x120 | portrait-plain | 4950 |
-| `Media/Textures/ForgedOrnaments/Ring96.png` | 122x122 | portrait-plain | 4950 |
-| `Media/Textures/ForgedOrnaments/Ring98.png` | 124x124 | portrait-plain | 4945 |
-| `Media/Textures/ForgedOrnaments/Tip2.png` | 7x2 | rail-riveted | 93 |
-| `Media/Textures/ForgedOrnaments/Tip3.png` | 10x3 | rail-riveted | 155 |
-| `Media/Textures/ForgedOrnaments/Tip4.png` | 13x4 | rail-riveted | 228 |
-| `Media/Textures/ForgedOrnaments/Tip5.png` | 17x5 | rail-riveted | 275 |
-| `Media/Textures/ForgedOrnaments/Tip6.png` | 20x6 | rail-riveted | 292 |
-| `Media/Textures/ForgedOrnaments/Tip7.png` | 23x7 | rail-riveted | 334 |
-| `Media/Textures/ForgedOrnaments/Wing6.png` | 7x6 | cap-wing-left | 276 |
+`ForgedDiamond` is a procedural dark-faced diamond in the existing diamond's exact alpha silhouette, tinted aged gold in game. It was constructed with Python/Pillow on 2026-11-10, informed by the original generated divider/header reference, without extracting game art. It keeps the original diamond's geometry; only its finish changes.
 
 ## Ability icons
 
@@ -450,27 +180,11 @@ Media that a module ships in its own folder. Each row names the script that draw
 
 LEE-94 core-mask correction (2026-11-10): acceptance-2 uses a white core above RGB 210, while the earlier fit above used 200. At the pinned 210 mask, -0.065 em gives the target core 443 x 27 against 445 x 27 in the picture. Taking off 64 font units instead of 65 (-0.064 em) makes it 444 x 27 with its top-left within one physical pixel, and leaves KORALLIS at the same measured 164 x 27 core (picture 163 x 27). The word-space increment stays 250 units and every outline, bearing, weight, shadow and cap height stays unchanged. Only the unit file changes; the gold caps and names files are byte-identical. This corrects the core width, not the surrounding halo.
 
-## Orbs HUD style (KSTY-46, 2026-11-12)
+## Orb ring and mask (KSTY-46, 2026-11-12)
 
 `OrbRing` is the forged ring generated with Higgsfield for the KSTY-44 mock-ups on 2026-11-12 (job `5a7af16a-d840-4e86-af19-af14e99fc431`), original art made for this project, not extracted or traced from any game. Its prompt began "Game user interface asset, front-on orthographic"; KSTY-44 kept only that much of the text. The source (2028x2032 RGBA) stays on the owner's MacBook at `~/.capy/work/KSTY-44/mock/assets/ring.png` and is not committed. `Tools/media/orbs.py` is the production pass: it centres the ring on its opening (measured at 290, 304 to 1723, 1729 in the source) in a transparent square, resamples it to 512x512 with premultiplied alpha and Lanczos so the spikes carry no dark fringe, applies a light unsharp mask (radius 1.2, 60%, threshold 2) and zeroes alpha below 4. The result is the prepared source `Tools/media/materials/OrbRing.png`, which `make_media.py` exports unchanged. The opening is 70.1% of the texture.
 
-`OrbArm`, `OrbCrest`, `OrbRail` and `OrbRailBottom` are the Orbs tray, cut from the base generated with Higgsfield for the KSTY-44 mock-ups on 2026-11-12 (job `0b133988-204e-4852-89b6-a73ce6714226`), original art made for this project, not extracted or traced from any game. Its prompt began "Game user interface asset, front-on orthographic", like the ring's; KSTY-44 kept only that much of the text. The source (2663x668 RGBA) stays on the owner's MacBook at `~/.capy/work/KSTY-44/mock/assets/base.png` and is not committed. `Tools/media/orbs.py` cuts the arm (556, 185 to 736, 545) and the crest (1152, 146 to 1512, 326) from it. Each rail (rows 262 to 326 on top, 452 to 516 below) is the segment 736 to 1140, then 1530 to 1927, then 736 to 1140 mirrored, joined with 40 px cross-faded seams, so both ends meet the arm's joint the way the game draws the right arm, as the left one flipped. Each piece is resampled with premultiplied alpha and Lanczos, given the same light unsharp mask as the ring, and has alpha below 4 zeroed. `Layouts.OrbsTray` in `Core/Setup/Layouts.lua` places the pieces from the same source coordinates, fitting the tray's hole (641, 320 to 2023, 460) round action bar 1.
-
-`OrbMask`, `OrbBack`, `OrbGlass`, `OrbLiquid`, `OrbSurface` and `OrbSurfaceLight` are procedural, drawn by `make_media.py` from the KSTY-44 mock-up's CSS gradients (the orb's dark glass, its rim and four glints, the liquid's lit surface ellipse with its white top line and shadow) and a cylinder shading for the liquid. KSTY-63 (2026-11-13) redrew `OrbBack` white at its lit point so each orb tints its own glass, and replaced the surface's thin line with the mock-up's ellipse.
-
-## HUD style pictures (2026-11-18 refresh)
-
-`HudStyleFrames`, `HudStyleOrbs` and `HudStyleMedallions` are current `hud_reference` captures used by the branded welcome, the setup HUD-style step and the General settings picker. Frames and Orbs show two stacked action bars; Medallions shows one twelve-button row on each side of its crest. `Tools/media/hud_pictures.py` captures all three at 1920x1080, 1 px/unit, Auto size, DPS layout and Full ornaments, then crops and resamples to opaque 1024x512 prepared sources. `Tools/media/make_media.py --only HudStyleFrames HudStyleOrbs HudStyleMedallions` exports pixel-identical PNG/TGA pairs; the game uses TGA and the browser renderer uses the PNG companion.
-
-The background is a real owner screenshot, `~/.cache/kstyleui-backdrops/game_09.png` (5120x1440, SHA-256 `08eaf0d30611516ecbf9d203181865bb858935d2206b9bc10b29bc23386d1d28`). Its explicitly inspected UI-free forest crop `(0, 300, 1200, 975)` is resized to the render's 1920x1080 plate. No screenshot UI or generated scenery is present in that plate. The HUD itself is the addon's actual code, textures and fonts. Full captures remain outside the repository; only the prepared 2:1 crops and exported assets are committed.
-
-| Style | HUD crop, left/top/right/bottom in the 1920x1080 capture | Prepared/export size |
-| --- | --- | --- |
-| Frames | 540, 640, 1360, 1050 | 1024x512 |
-| Orbs | 416, 536, 1504, 1080 | 1024x512 |
-| Medallions | 440, 560, 1480, 1080 | 1024x512 |
-
-Reproduce with `python Tools/media/hud_pictures.py --plate PATH_TO_GAME_09_PNG --work SCRATCH_FOLDER`, then the `make_media.py --only` command above. The crop tool's docstring documents the environment requirements. TGA is the selected classic WoW export; the client already draws the addon's RGBA PNG assets in recorded in-game captures, so this choice does not diagnose a PNG loading failure. Rerun the capture after a HUD layout changes.
+`OrbMask` is procedural, a white disc drawn by `make_media.py`. The Medallions hub's opening and the steel minimap stand-in mask with it; the ring is the hawk timers' socket and swipe.
 
 
 ## Medallions style kit and effects (KSTY-90, 2026-11-15)
@@ -560,6 +274,16 @@ The sigil the crest's hawk perches draw (`KstyleUI_ActionBars/SlabHawks.lua`, to
 | File | Size | What it is | Source | Processing | Date |
 | --- | --- | --- | --- | --- | --- |
 | `Media/Textures/Medallions/Hawks/HawkSigil.png` | 128x128 | The hawk perches' sigil: a gilt hawk stooping, wings swept back and talons forward, facing right, with dark engraved feathers and a thin dark outline, on transparent. Mirrored for the right perch; desaturated and tinted steel on an empty perch. | Higgsfield `gpt_image_2_5`, job `e0e3494c-2c51-4a7c-813d-976a3fd758eb` (quality high, 1k, transparent background), with `Media/Textures/Medallions/Crests/nightelf_hunter.png` as the style reference; prompt: "A single small heraldic emblem of a hawk diving with wings swept back and talons forward, seen from the side, cast in polished antique gold with crisp dark engraved feather lines and a thin dark outline, jewellery-like metalwork matching the gold filigree of the reference shield, bold readable silhouette that stays clear at very small sizes, centred, no text, no frame, no background, isolated object on transparent background, fantasy game interface icon"; source SHA-256 `684a00cb7661b75cd8ca41ed8a25f9b8608629ed8c450627d93ec05c6764b5c1` | alpha below 24 cut to nothing, trimmed to the bird, padded to a square with a 4% margin, linear-light premultiplied Lanczos to 128x128; SHA-256 `1319419f1d8d5d1df411028b252f6068715229810cb928d0f8a3b9c7f1fc3852` | 2026-11-21 |
+
+## Medallions storm orbs (2026-11-22)
+
+The art the crest's storm orbs draw (`KstyleUI_ActionBars/SlabStorm.lua`, tokens `stormOrb`, `stormOrbSpark` and `stormBolt`), in its own folder apart from the style kit. The halo and the cast burst reuse the kit's `AmbientShaman.png` and `BurstShaman.png`.
+
+| File | Size | What it is | Source | Processing | Date |
+| --- | --- | --- | --- | --- | --- |
+| `Media/Textures/Medallions/Storm/StormOrb.png` | 64x64 | One Lightning Shield charge: a ball of blue storm lightning with a white-hot core and branching filaments, on black; drawn ADD as an orb's application bar | Higgsfield `gpt_image_2_5`, job `acdbb094-0d27-410e-8102-b2cf759c6daa` (quality high, 1k, 1:1), with `Media/Textures/Medallions/BurstShaman.png` as the style reference; prompt: "Game VFX sprite sheet on a pure black background: a 2x2 grid of four separate ball-lightning orbs, one centred in each quarter with generous black space between them. Each orb is a small dense sphere of crackling electricity: a white-hot core, an icy cyan inner glow, a deep electric-blue outer halo, and thin branching lightning filaments licking off the surface. The four orbs are the same size and brightness but have different filament arrangements, like four frames of a crackle animation. Match the blue storm lightning colours and filament style of the reference image. No text, no frame, no ground, no reflections, flat pure black background."; source SHA-256 `f7c0bcab75047c54bb941991d575fba46683e30f022d23a197da3087d25f00db` | the sheet flattened onto black, the top-left quarter cropped to a 400 px square centred on its light, linear-light Lanczos to 64x64, a radial edge fade from 80% to 98% of the radius, colour stored unpremultiplied with alpha the brightest channel (ADD alpha, as `Tools/media/medallions_kit.py` stores effects); SHA-256 `06aeec3e76ccaed154540c782113e20ccbedfa97d44631edb07e22848c33c1da` | 2026-11-22 |
+| `Media/Textures/Medallions/Storm/StormOrbSpark.png` | 64x64 | The same orb with other filaments, shimmered over `StormOrb.png` so the charge crackles | the same job and source | the sheet flattened onto black, the bottom-right quarter cropped to a 400 px square centred on its light, linear-light Lanczos to 64x64, a radial edge fade from 80% to 98% of the radius, colour stored unpremultiplied with alpha the brightest channel (ADD alpha, as `Tools/media/medallions_kit.py` stores effects); SHA-256 `aee47ea6023268cd15459062ee9ba29a3dea18787c4d1e28e129bba0eea70632` | 2026-11-22 |
+| `Media/Textures/Medallions/Storm/StormBolt.png` | 64x64 | A spent charge's bolt: a spark at the centre and a forked lightning bolt running to the right edge, white core in a blue glow, on black; turned about its centre to fly outward from the orb | procedural (a seeded midpoint-displacement bolt with two forks), no model | drawn at 8x, the core in white, a 2 px and a 4.5 px blur in blue, Lanczos to 64x64, a radial edge fade from 86% to 100%, ADD alpha; SHA-256 `9c77a3aced1130e1e2fa377ea643983bb97c8ac57974863fd6decd41af0ccce0` | 2026-11-22 |
 
 <!-- medallions:begin (written by Tools/medallions/medallions.py bake) -->
 
@@ -936,6 +660,54 @@ The Medallions HUD style's portraits and crests. Each is original art generated 
 
 <!-- medallions:end -->
 
+## Class-themed pips (2026-11-21)
+
+Original KstyleUI art in the crest's forged look (gilt and steel lit from the upper left, a thin dark outline), one piece for each class with a pip resource on Forever (a rogue and a cat-form druid), each baked to 128x128 at the five angles the Medallions crest's crown fans them at (130, 110, 90, 70 and 50 degrees, in that order below; 90 is upright and is the unit frames' row). Each piece has four textures per angle that share one silhouette, so the lit piece covers the dormant one exactly and the shape masks only the piece.
+
+| Files | Size | What it is |
+| --- | --- | --- |
+| `Media/Textures/Pips/PipBlade130.png`, `Media/Textures/Pips/PipBlade110.png`, `Media/Textures/Pips/PipBlade90.png`, `Media/Textures/Pips/PipBlade70.png`, `Media/Textures/Pips/PipBlade50.png` | 128x128 | A rogue's combo point: a dagger with a polished steel blade and a glowing crimson ember channel, a gilt crossguard with curled quillons, a dark wrapped grip and a gilt pommel set with a red gem. |
+| `Media/Textures/Pips/PipClaw130.png`, `Media/Textures/Pips/PipClaw110.png`, `Media/Textures/Pips/PipClaw90.png`, `Media/Textures/Pips/PipClaw70.png`, `Media/Textures/Pips/PipClaw50.png` | 128x128 | A cat-form druid's combo point: a curved ivory talon with a glowing amber channel along its inner curve, in a gilt cuff with green leaf filigree. |
+| `Media/Textures/Pips/PipBladeSteel130.png`, `Media/Textures/Pips/PipBladeSteel110.png`, `Media/Textures/Pips/PipBladeSteel90.png`, `Media/Textures/Pips/PipBladeSteel70.png`, `Media/Textures/Pips/PipBladeSteel50.png` | 128x128 | The dagger dormant: its luminance as cool ghost steel at 80% opacity. |
+| `Media/Textures/Pips/PipClawSteel130.png`, `Media/Textures/Pips/PipClawSteel110.png`, `Media/Textures/Pips/PipClawSteel90.png`, `Media/Textures/Pips/PipClawSteel70.png`, `Media/Textures/Pips/PipClawSteel50.png` | 128x128 | The talon dormant, likewise. |
+| `Media/Textures/Pips/PipBladeShape130.png`, `Media/Textures/Pips/PipBladeShape110.png`, `Media/Textures/Pips/PipBladeShape90.png`, `Media/Textures/Pips/PipBladeShape70.png`, `Media/Textures/Pips/PipBladeShape50.png` | 128x128 | The dagger's silhouette, white: the mask for the slide-in and slash, and the flare, tinted `jewelComboCore`. |
+| `Media/Textures/Pips/PipClawShape130.png`, `Media/Textures/Pips/PipClawShape110.png`, `Media/Textures/Pips/PipClawShape90.png`, `Media/Textures/Pips/PipClawShape70.png`, `Media/Textures/Pips/PipClawShape50.png` | 128x128 | The talon's silhouette, white; mask and flare as for the dagger, tinted `pipDruidCore`. |
+| `Media/Textures/Pips/PipBladeGlow130.png`, `Media/Textures/Pips/PipBladeGlow110.png`, `Media/Textures/Pips/PipBladeGlow90.png`, `Media/Textures/Pips/PipBladeGlow70.png`, `Media/Textures/Pips/PipBladeGlow50.png` | 128x128 | The dagger's silhouette blurred, white: the halo that hugs a lit dagger, ADD, tinted `jewelCombo`. |
+| `Media/Textures/Pips/PipClawGlow130.png`, `Media/Textures/Pips/PipClawGlow110.png`, `Media/Textures/Pips/PipClawGlow90.png`, `Media/Textures/Pips/PipClawGlow70.png`, `Media/Textures/Pips/PipClawGlow50.png` | 128x128 | The talon's silhouette blurred, white: its halo, ADD, tinted `pipDruidGlow`. |
+
+## Spirit Poles: the shaman's totem spires and element runes (2026-11-22)
+
+The crown spires of the shaman's totem bar (`KstyleUI_ActionBars/Totems.lua`, tokens `pipSpire<kind><angle>`) and the four element runes its empty sockets show (tokens `totemRune<element>`).
+
+**Spire source.** Higgsfield `gpt_image_2_5`, job `edf8a5ac-3508-4774-910c-21230d0b2779` (quality high, 1k, 9:16, transparent background), with `Media/Textures/Pips/PipBlade90.png` and `Media/Textures/Medallions/Crests/orc_shaman.png` as style references; prompt: "A single slender totem spire for a fantasy game interface, standing perfectly upright and centred: a tall narrow four-sided spike of polished antique silver steel with crisp bevelled facets lit from the upper left, a thin engraved rune channel running up its centre that glows soft white, two small gilt bands wrapped around it near the base and a short carved gilt collar at the very bottom, tapering to a sharp point at the top, thin dark outline, jewellery-like metalwork matching the gilt and steel of the reference dagger and shield, bold readable silhouette that stays clear at very small sizes, no text, no frame, no background, isolated object on transparent background"; source 752x1344, SHA-256 `1b38b8ad6f62b127a3f650586d815a8810afb5a19b97e82d57e91f693e92fd2b`. No CaithUI, MeowCactus or Blizzard image was an input.
+
+**Bake.** Alpha below 24 cut to nothing. The rune channel (luminance above 200, saturation below 0.22, within 18 px of the blade's axis, between y 262 and 1000) and the collar's gem (red above 150, green below 70, blue below 80, saturation above 0.6, below y 1150) form the core mask, softened by a 1.5 px Gaussian. Lit: the source with the core mask turned white-hot. Steel: luminance with the core darkened by 60%, as cool steel (0.74, 0.79, 0.88) at 80% opacity. Core: the core mask in white. The piece is trimmed, padded, its height scaled to 72%, rotated about its centre to each angle the crest fans it at (126, 102, 78 and 54 degrees), cut to a square whose side is the rotated piece's height (so a vertical timer bar drains it linearly), premultiplied and Lanczos-resized to 128x128. Glow: the rotated silhouette in a square 1.5 times as large on the same centre, Lanczos to 128x128, Gaussian blur of 5.76 px, alpha times 1.6.
+
+| Files | Size | What it is |
+| --- | --- | --- |
+| `Media/Textures/Pips/PipSpire126.png`, `Media/Textures/Pips/PipSpire102.png`, `Media/Textures/Pips/PipSpire78.png`, `Media/Textures/Pips/PipSpire54.png` | 128x128 | A lit spire: polished steel with a white-hot rune channel, gilt bands and collar. Drawn untinted as a timer bar that drains with the totem's time left. |
+| `Media/Textures/Pips/PipSpireSteel126.png`, `Media/Textures/Pips/PipSpireSteel102.png`, `Media/Textures/Pips/PipSpireSteel78.png`, `Media/Textures/Pips/PipSpireSteel54.png` | 128x128 | The spire dormant: cool ghost steel, its runes dark. |
+| `Media/Textures/Pips/PipSpireCore126.png`, `Media/Textures/Pips/PipSpireCore102.png`, `Media/Textures/Pips/PipSpireCore78.png`, `Media/Textures/Pips/PipSpireCore54.png` | 128x128 | The rune channel and gem, white: ADD, tinted the element's colour (`totemEarth`, `totemFire`, `totemWater`, `totemAir`) while the totem is up, and `totemCore` for the drop flare. |
+| `Media/Textures/Pips/PipSpireGlow126.png`, `Media/Textures/Pips/PipSpireGlow102.png`, `Media/Textures/Pips/PipSpireGlow78.png`, `Media/Textures/Pips/PipSpireGlow54.png` | 128x128 | The spire's silhouette blurred, white: the halo, ADD, tinted the element's colour. |
+
+**Element runes.** Original procedural art drawn with Python/Pillow; no model, prompt or external art. The four alchemical element signs (fire an upward triangle, water a downward one, air an upward triangle with a bar, earth a downward triangle with a bar), each a 30-unit equilateral triangle on a 64-unit square, drawn at 8x as a 4.5-unit white stroke with round joins over a 7.5-unit black outline (85% opacity, 0.6-unit blur), shaded 25% darker from top to bottom, Lanczos to 64x64. Tinted the element's colour in the socket.
+
+| Files | Size | What it is |
+| --- | --- | --- |
+| `Media/Textures/Totems/RuneEarth.png`, `Media/Textures/Totems/RuneFire.png`, `Media/Textures/Totems/RuneWater.png`, `Media/Textures/Totems/RuneAir.png` | 64x64 | An empty socket's element rune, and the "no totem" choice in its fan. |
+
+## Class crowns (2026-11-21)
+
+Original KstyleUI art for the crowns the game feeds, made the same way as the pips above and with the shipped `PipBlade90.png` and `PipClaw90.png` as the style reference, so every crown is forged alike. Each piece is baked to 128x128 at the angles its crown uses, 120 texels long (the talon 112, like the claw), into three of the same textures (lit, `Steel`, `Glow`; the game's feed needs no `Shape` mask); the ghost steel is lifted to the dagger's mean brightness so empty crowns read alike. Pieces with a soft background haze had their alpha cut below the object's edge first.
+
+| Files | Size | What it is |
+| --- | --- | --- |
+| `Media/Textures/Pips/PipBanner130.png`, `Media/Textures/Pips/PipBanner110.png`, `Media/Textures/Pips/PipBanner90.png`, `Media/Textures/Pips/PipBanner70.png`, `Media/Textures/Pips/PipBanner50.png`, `Media/Textures/Pips/PipBannerSteel130.png`, `Media/Textures/Pips/PipBannerSteel110.png`, `Media/Textures/Pips/PipBannerSteel90.png`, `Media/Textures/Pips/PipBannerSteel70.png`, `Media/Textures/Pips/PipBannerSteel50.png`, `Media/Textures/Pips/PipBannerGlow130.png`, `Media/Textures/Pips/PipBannerGlow110.png`, `Media/Textures/Pips/PipBannerGlow90.png`, `Media/Textures/Pips/PipBannerGlow70.png`, `Media/Textures/Pips/PipBannerGlow50.png` | 128x128 | A warrior's war-banner: a narrow swallow-tailed crimson cloth with a glowing ember chevron on a gilt crossbar and pole, topped by a gilt spearhead. Lit, `Steel` and `Glow` at 130, 110, 90, 70, 50 degrees. |
+| `Media/Textures/Pips/PipCandle130.png`, `Media/Textures/Pips/PipCandle110.png`, `Media/Textures/Pips/PipCandle90.png`, `Media/Textures/Pips/PipCandle70.png`, `Media/Textures/Pips/PipCandle50.png`, `Media/Textures/Pips/PipCandleSteel130.png`, `Media/Textures/Pips/PipCandleSteel110.png`, `Media/Textures/Pips/PipCandleSteel90.png`, `Media/Textures/Pips/PipCandleSteel70.png`, `Media/Textures/Pips/PipCandleSteel50.png`, `Media/Textures/Pips/PipCandleGlow130.png`, `Media/Textures/Pips/PipCandleGlow110.png`, `Media/Textures/Pips/PipCandleGlow90.png`, `Media/Textures/Pips/PipCandleGlow70.png`, `Media/Textures/Pips/PipCandleGlow50.png` | 128x128 | A priest's candle: a slim ivory candle in an ornate gilt holder with a golden-white flame and a faint violet heart. Lit, `Steel` and `Glow` at 130, 110, 90, 70, 50 degrees. |
+| `Media/Textures/Pips/PipShard130.png`, `Media/Textures/Pips/PipShard110.png`, `Media/Textures/Pips/PipShard70.png`, `Media/Textures/Pips/PipShard50.png`, `Media/Textures/Pips/PipShardSteel130.png`, `Media/Textures/Pips/PipShardSteel110.png`, `Media/Textures/Pips/PipShardSteel70.png`, `Media/Textures/Pips/PipShardSteel50.png`, `Media/Textures/Pips/PipShardGlow130.png`, `Media/Textures/Pips/PipShardGlow110.png`, `Media/Textures/Pips/PipShardGlow70.png`, `Media/Textures/Pips/PipShardGlow50.png` | 128x128 | A mage's arcane shard: a slender faceted violet-blue crystal lit from within, in a small gilt claw mount. Lit, `Steel` and `Glow` at 130, 110, 70, 50 degrees. |
+| `Media/Textures/Pips/PipTalon130.png`, `Media/Textures/Pips/PipTalon110.png`, `Media/Textures/Pips/PipTalon90.png`, `Media/Textures/Pips/PipTalon70.png`, `Media/Textures/Pips/PipTalon50.png`, `Media/Textures/Pips/PipTalonSteel130.png`, `Media/Textures/Pips/PipTalonSteel110.png`, `Media/Textures/Pips/PipTalonSteel90.png`, `Media/Textures/Pips/PipTalonSteel70.png`, `Media/Textures/Pips/PipTalonSteel50.png`, `Media/Textures/Pips/PipTalonGlow130.png`, `Media/Textures/Pips/PipTalonGlow110.png`, `Media/Textures/Pips/PipTalonGlow90.png`, `Media/Textures/Pips/PipTalonGlow70.png`, `Media/Textures/Pips/PipTalonGlow50.png` | 128x128 | A bear's talon: a thick curved horn-brown claw with a glowing ember-red channel along its inner curve, in a broad gilt cuff. Lit, `Steel` and `Glow` at 130, 110, 90, 70, 50 degrees. |
+| `Media/Textures/Pips/PipArrow105.png`, `Media/Textures/Pips/PipArrow90.png`, `Media/Textures/Pips/PipArrow75.png`, `Media/Textures/Pips/PipArrowSteel105.png`, `Media/Textures/Pips/PipArrowSteel90.png`, `Media/Textures/Pips/PipArrowSteel75.png`, `Media/Textures/Pips/PipArrowGlow105.png`, `Media/Textures/Pips/PipArrowGlow90.png`, `Media/Textures/Pips/PipArrowGlow75.png` | 128x128 | A hunter's arrow: a steel broadhead with a glowing green channel, a dark shaft in gilt bands and green-and-white fletching. Lit, `Steel` and `Glow` at 105, 90, 75 degrees. |
+
 ## Danger edge and portrait rings (E1/E2, 2026-11-18)
 
 Original procedural white RGBA masks, drawn with Python/Pillow; no model, prompt, external art or dependency added. Existing vignette and smoke assets remain for the previous-look settings.
@@ -948,16 +720,10 @@ Original procedural white RGBA masks, drawn with Python/Pillow; no model, prompt
 
 ### Setup layout pictures (G4)
 
-These nine 512x256 pictures are captures of `hud_reference` at 1920x1080, 1 px/unit, Auto size, the named role, Centred arrangement and Full ornaments. The backdrop is the UI-free `(0, 300, 1200, 975)` crop of the owner's `game_09.png`, resized to the screen and darkened to 65% brightness; no generated scenery is used. The full HUD capture is scaled proportionally with Lanczos and padded to 2:1 into each opaque PNG and its pixel-identical TGA companion. Frames and Orbs retain two action rows; Medallions retains one row on either side of the crest. To recapture, run `Tools/render/shoot.sh hud_reference --ppu 1 --no-standins --strict --backdrop <darkened-plate> --out <capture>` with `RENDER_SCREEN=1920x1080 RENDER_SIZE=auto RENDER_LAYOUT=<role> RENDER_HUD_STYLE=<style> RENDER_ORNAMENTS=Full RENDER_ARRANGEMENT=centred RENDER_BAR3=0`; use `RENDER_MEDALLIONS_STATE=calm` for Medallions, then scale the full capture proportionally and pad it to 512x256.
+These three 512x256 pictures are captures of `hud_reference` at 1920x1080, 1 px/unit, Auto size, the named role and Centred arrangement. The backdrop is the UI-free `(0, 300, 1200, 975)` crop of the owner's `game_09.png`, resized to the screen and darkened to 65% brightness; no generated scenery is used. The full HUD capture is scaled proportionally with Lanczos and padded to 2:1 into each opaque PNG and its pixel-identical TGA companion. Each keeps one action row on either side of the crest. To recapture, run `Tools/render/shoot.sh hud_reference --ppu 1 --no-standins --strict --backdrop <darkened-plate> --out <capture>` with `RENDER_SCREEN=1920x1080 RENDER_SIZE=auto RENDER_LAYOUT=<role> RENDER_ARRANGEMENT=centred RENDER_BAR3=0` and `RENDER_MEDALLIONS_STATE=calm`, then scale the full capture proportionally and pad it to 512x256.
 
 | Files | Size | Source | Date |
 | --- | --- | --- | --- |
-| `Media/Textures/LayoutFramesDPS.png`, `Media/Textures/LayoutFramesDPS.tga` | 512x256 | KstyleUI Frames DPS HUD and owner's screenshot | 2026-11-18 |
-| `Media/Textures/LayoutFramesTank.png`, `Media/Textures/LayoutFramesTank.tga` | 512x256 | KstyleUI Frames Tank HUD and owner's screenshot | 2026-11-18 |
-| `Media/Textures/LayoutFramesHealer.png`, `Media/Textures/LayoutFramesHealer.tga` | 512x256 | KstyleUI Frames Healer HUD and owner's screenshot | 2026-11-18 |
-| `Media/Textures/LayoutOrbsDPS.png`, `Media/Textures/LayoutOrbsDPS.tga` | 512x256 | KstyleUI Orbs DPS HUD and owner's screenshot | 2026-11-18 |
-| `Media/Textures/LayoutOrbsTank.png`, `Media/Textures/LayoutOrbsTank.tga` | 512x256 | KstyleUI Orbs Tank HUD and owner's screenshot | 2026-11-18 |
-| `Media/Textures/LayoutOrbsHealer.png`, `Media/Textures/LayoutOrbsHealer.tga` | 512x256 | KstyleUI Orbs Healer HUD and owner's screenshot | 2026-11-18 |
 | `Media/Textures/LayoutMedallionsDPS.png`, `Media/Textures/LayoutMedallionsDPS.tga` | 512x256 | KstyleUI Medallions DPS HUD and owner's screenshot | 2026-11-18 |
 | `Media/Textures/LayoutMedallionsTank.png`, `Media/Textures/LayoutMedallionsTank.tga` | 512x256 | KstyleUI Medallions Tank HUD and owner's screenshot | 2026-11-18 |
 | `Media/Textures/LayoutMedallionsHealer.png`, `Media/Textures/LayoutMedallionsHealer.tga` | 512x256 | KstyleUI Medallions Healer HUD and owner's screenshot | 2026-11-18 |

@@ -17,7 +17,6 @@ local function settle()
 	env.RunTimers()
 end
 
-K.Options.Write("HudStyle", "style", "medallions")
 assert(K.Options.Open("Profiles"))
 settle()
 local options = env._addons.KstyleUI_Options

@@ -10,7 +10,6 @@ return Common.Run(function()
 	for row, class in ipairs({ "WARRIOR", "PRIEST", "ROGUE", "GILT" }) do
 		for level, motion in ipairs({ "full", "reduced", "off" }) do
 			local env, K, ns = U.New(Common.ScreenOpts({ saved = Gallery.Saved({ "UnitFrames" }) }))
-			K.Options.Write("HudStyle", "style", "medallions")
 			K.Motion.SetLevel(motion)
 			local r, g, b
 			if class == "GILT" then

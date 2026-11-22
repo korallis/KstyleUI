@@ -5,12 +5,12 @@ local W = M.W
 
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	local env, K = M.New({ enabled = false, settings = {}, width = screen[1], height = screen[2], size = "auto",
-		setup = function(e) e.KstyleUIDB.profiles.Default.HudStyle = { style = "medallions" } end })
+		setup = function() end })
 	local layouts, section = K.Setup.Layouts, K.Store.Module("Minimap")
 	local rw, rh = K.Layout.RootSize()
 	section.frame = "classic"
 	local base = layouts.Positions("DPS", "medallions", K.Scale.Aspect(), K.Scale.Band())
-	local story = layouts.Story("DPS", rh, true, "medallions", rw)
+	local story = layouts.Story("DPS", rh, true, rw)
 	for _, frame in ipairs({ "classic", "ring", "medallion" }) do
 		section.frame = frame
 		assert(not layouts.MinimapCrest(), "a disabled Minimap must not reserve crest growth")
@@ -20,7 +20,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 				assert(positions[key][field] == value, "a disabled Minimap must preserve Classic geometry: " .. key .. "." .. field)
 			end
 		end
-		local cards = layouts.Story("DPS", rh, true, "medallions", rw)
+		local cards = layouts.Story("DPS", rh, true, rw)
 		for _, key in ipairs({ "guide", "quests" }) do
 			for field, value in pairs(story[key]) do
 				assert(cards[key][field] == value, "a disabled Minimap must preserve story geometry: " .. key .. "." .. field)
@@ -46,7 +46,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		local env, K, ns = M.New({ enabled = true, width = screen[1], height = screen[2], size = "auto",
 			position = { 0.616, 0.579 }, setup = function(e)
 				e._fitScale = true
-				e.KstyleUIDB.profiles.Default.HudStyle = { style = "medallions" }
 				if owner then e.KstyleUIDB.layouts.Default = { ["medallions:minimap.main"] = { anchor = "TOPRIGHT", x = -0.00008, y = -6.4 } } end
 			end,
 		})
@@ -63,14 +62,14 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			holder:SetSize(element.width, element.height)
 			K.Layout.Register(holder, key, layouts.Default(key))
 		end
-		local story = layouts.Story("DPS", rh, true, nil, rw, true)
+		local story = layouts.Story("DPS", rh, true, rw)
 		for _, card in ipairs({ story.guide, story.quests }) do
 			local holder = env.CreateFrame("Frame", nil, K.Scale.Root())
 			holder:SetSize(card.width, card.height)
 			K.Layout.Register(holder, card.key, card)
 		end
 		local enabled = layouts.Enabled("DPS", K.Store.Profile())
-		local _, previousFit = layouts.ScaleLimit(screen[1], screen[2], "DPS", enabled, "medallions")
+		local _, previousFit = layouts.ScaleLimit(screen[1], screen[2], "DPS", enabled)
 		local previousCrest = true
 		for _, frame in ipairs({ "classic", "ring", "medallion" }) do
 			env.KstyleUIDB.scaleCache = { oldFrame = true }
@@ -84,10 +83,10 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 				local left = face:Clamp(rw * 2, rh / 2, w, h, rw, rh)
 				assert(W.Near(left, rw + K.Scale.Origin() - K.Tokens.Size("screenMargin") - overhang - w), "Classic retains the base screen margin without a one-pixel shift")
 				local slot = layouts.Slot("DPS", rh)
-				local cards = layouts.Story("DPS", rh, true, "medallions", rw)
+				local cards = layouts.Story("DPS", rh, true, rw)
 				assert(cards.guide.y == slot.y - 16 and cards.quests.y == slot.y - 16, "Classic retains the base story inset")
 			end
-			local _, fit = layouts.ScaleLimit(screen[1], screen[2], "DPS", enabled, "medallions")
+			local _, fit = layouts.ScaleLimit(screen[1], screen[2], "DPS", enabled)
 			assert(previousCrest == crest or fit ~= previousFit, "invalidate layout-fit cache when the minimap footprint changes")
 			assert(not env.KstyleUIDB.scaleCache or not env.KstyleUIDB.scaleCache.oldFrame, "invalidate the persisted scale cache when Minimap frame changes")
 			previousFit, previousCrest = fit, crest
@@ -111,7 +110,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 					local l, b, r, t = layouts.Rect(element, positions[key], rw, rh)
 					assert(not crest or Apart(ring, { left = l, bottom = b, right = r, top = t }), frame .. ": move the default aura row clear of the wider ring")
 				end
-				local presetStory = layouts.Story(preset, rh, true, "medallions", rw)
+				local presetStory = layouts.Story(preset, rh, true, rw)
 				for _, card in ipairs({ presetStory.guide, presetStory.quests }) do
 					local l, b, r, t = layouts.Rect(card, card, rw, rh)
 					local box = { left = l, bottom = b, right = r, top = t }
@@ -138,13 +137,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			local tint = W.LastCall(face.runes, "SetVertexColor")
 			assert(W.Near(tint[1], r) and W.Near(tint[2], g) and W.Near(tint[3], b), "the crest follows the player class, independently of a custom accent")
 		end
-		for _, style in ipairs({ "frames", "orbs" }) do
-			K.Options.Write("HudStyle", "style", style)
-			M.Settle(env)
-			assert(not face.ring:IsShown() and not face.enamel:IsShown() and not face.runes:IsShown() and not face.gem:IsShown(), "only Medallions has a crest minimap")
-			assert(face.plate.diamond.black:IsShown(), "Frames and Orbs restore their north diamond")
-		end
 		assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 	end
 end
-print("minimap crest ok: three choices, four screens, defaults and saved positions, three presets, class changes and style isolation")
+print("minimap crest ok: three choices, four screens, defaults and saved positions, three presets and class changes")

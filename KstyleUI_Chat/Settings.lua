@@ -29,7 +29,7 @@ end
 local _, _, _, SURFACE_ALPHA = Tokens.Color("surface")
 
 local defaults = {
-	framing = "auto",
+	framing = "card",
 	panelOpacity = SURFACE_ALPHA,
 	shadow = true,
 	buttons = false,
@@ -244,9 +244,8 @@ function ns.Schema()
 		{ type = "header", label = L["Panel"] },
 		{
 			type = "dropdown", key = "framing", label = L["Framing"],
-			help = L["A card with tabs, or text on a soft shadow with tabs on hover. Auto: card in Frames, bare in Orbs."],
+			help = L["A card with tabs, or text on a soft shadow with tabs on hover."],
 			options = {
-				{ value = "auto", label = L["Follow the HUD style"] },
 				{ value = "card", label = L["Framed card"] },
 				{ value = "bare", label = L["Text on a soft shadow"] },
 			},

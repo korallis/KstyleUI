@@ -17,11 +17,11 @@ for _, scene in ipairs(scenes) do
 end
 assert(#hud.items == total, "the merge keeps every module's drawables")
 
--- The HUD shows the column's name, value and cast caption (SLAM), the target's name, level and percentage,
+-- The HUD shows the player's name, value and cast caption (SLAM) with its remaining time, the target's name, level and percentage,
 -- and warrior icons from set B, which
 -- the renderer draws for every file ID the pack covers, as the client does with the pack installed (docs/icons.md).
 local texts, files = collect(hud)
-for _, want in ipairs({ "VALERIN", "SLAM", "0.7 / 1.5", "SNAP", "1.5", "RIVERGLADE CROCOLISK", "38", "Beast", "56%", "2.7K", "/ 3.3K", "Battle Shout", "Enrage" }) do
+for _, want in ipairs({ "VALERIN", "SLAM", "0.8", "SNAP", "1.5", "RIVERGLADE CROCOLISK", "38", "BEAST", "56%", "2.7K / 3.3K", "Battle Shout", "Enrage" }) do
 	assert(texts[want], "the HUD shows " .. want)
 end
 assert(not texts["Casting"], "the column's cast captions omit the redundant Casting word")
@@ -62,19 +62,19 @@ for _, item in ipairs(hud.items) do
 end
 assert(hudPlus == 0, "the plus glyph waits at rest, as the picture draws no buttons, got " .. hudPlus)
 
--- The minimap's terrain stand-in draws through the chamfered square mask the module set on the Minimap frame
+-- The minimap's terrain stand-in draws through the round face's mask the module set on the Minimap frame
 -- (Minimap:SetMaskTexture), as the game clips the frame.
 local masked = false
 for _, item in ipairs(scenes[3].items) do
 	if item.kind == "texture" and item.masks then
 		for _, mask in ipairs(item.masks) do
-			if mask.file and mask.file:find("MinimapMask", 1, true) then
+			if mask.file and mask.file:find("Medallions/MapMask", 1, true) then
 				masked = true
 			end
 		end
 	end
 end
-assert(Hud.Order()[3] == "minimap" and masked, "the minimap's terrain draws through the module's chamfered square mask")
+assert(Hud.Order()[3] == "minimap" and masked, "the minimap's terrain draws through the round face's mask")
 
 -- The buff row beside the minimap: five icons with their time left, from the Auras module. The aura engine
 -- paints each tile's icon itself as a secret; the client then loads the pack's loose file for that file ID,

@@ -95,7 +95,7 @@ function Reminder.Paint(frame, entry)
 	frame.text:SetText(string.format(L["Missing: %s"], entry.name))
 	Widgets.Size(frame.tile, ICON, ICON)
 	Widgets.Point(frame.tile, "LEFT", frame, "LEFT", pad, 0)
-	if K.HudStyle.Current() == "medallions" and K.Store.Module(MODULE).medallionsIcons then
+	if K.Store.Module(MODULE).medallionsIcons then
 		frame.tile.chrome:SetRim(Tokens.Color("medSocketRim"))
 	else
 		frame.tile.chrome:SetRim()

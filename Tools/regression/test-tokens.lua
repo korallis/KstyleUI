@@ -191,12 +191,12 @@ for role, size in pairs({ display = 22, heading = 16, title = 12, body = 12, cap
 	assert(type(flags) == "string", "Tokens.Font(" .. role .. ") flags are a string")
 end
 assert(Tokens.DEFAULT_FONT_FACE == "Folio" and env.KstyleUI.Theme.FontFace() == "Folio", "Folio is the default type set")
-assert(Tokens.Font("body"):match("PTSerif%-Regular%.ttf$") and Tokens.Font("number"):match("PTSerif%-Bold%.ttf$"), "Folio uses PT Serif body text and bold numbers")
+assert(Tokens.Font("body"):match("PTSerif%-Regular%.ttf$") and Tokens.Font("number"):match("BarlowSemiCondensedTabular%-SemiBold%.ttf$"), "Folio uses PT Serif body text and Medallions Barlow numbers")
 assert(env.KstyleUI.Theme.SetTypeSet("Lumen"), "the original Lumen type set remains selectable")
 assert(Tokens.Font("body"):match("AlegreyaSansTabular%-Regular%.ttf$"), "Lumen's body face remains Alegreya Sans Tabular")
-assert(Tokens.Font("number"):match("AlegreyaSansTabular%-ExtraBold%.ttf$"), "numbers use its extra bold, whose digits are tabular")
-assert(Tokens.Font("time"):match("AlegreyaSansTabular%-Bold%.ttf$"), "the clock and cast times take the bold, which fits the picture better than the extra bold")
-assert(Tokens.Font("timer"):match("AlegreyaSansTabular%-Medium%.ttf$"), "the small timers take the medium, as the picture's do")
+for _, role in ipairs({ "number", "time", "timer" }) do
+	assert(Tokens.Font(role):match("BarlowSemiCondensedTabular%-SemiBold%.ttf$"), "the Medallions " .. role .. " face is Barlow's tabular semibold in every type set")
+end
 assert(select(3, Tokens.Font("world")) == "OUTLINE", "text over the 3D world gets a thin outline")
 assert(select(3, Tokens.Font("body")) == "", "UI text uses a shadow, not an outline")
 assert(not pcall(Tokens.Font, "nope"), "an unknown font role is an error")
@@ -228,7 +228,7 @@ assert(Tokens.FontPath(fonts[1].key) == fonts[1].path and Tokens.FontPath("nope"
 for _, name in ipairs({
 	"lumenShape", "cardShape", "ringLine2", "ringLine3", "ringLine4", "ringLine5", "ringLine6", "lumenOutline", "chamferTile", "diamond", "pillCapLeft",
 	"pillCapRight", "barSheen", "lensMask", "ruleFade", "iconMask", "portraitMask", "shadow", "glow", "divider", "noise", "ring", "ringBevel",
-	"barFlat", "barSoft", "barGlass", "minimapMask", "logo", "logoLarge", "dot", "pill", "glyphChevron", "glyphClose",
+	"barFlat", "barSoft", "barGlass", "logo", "logoLarge", "dot", "pill", "glyphChevron", "glyphClose",
 }) do
 	local path = Tokens.Texture(name)
 	assert(onDisk(path), "Tokens.Texture(" .. name .. ") names a missing file: " .. tostring(path))

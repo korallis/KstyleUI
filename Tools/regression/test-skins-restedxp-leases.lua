@@ -427,9 +427,6 @@ SURFACES[#SURFACES + 1] = {
 	end,
 	close = function(w) w.fake.close(w.importer.import.frame) end,
 	texts = function(w)
-		if w.skinned then
-			assert(w.K.Skin.Parts(w.importer.import.frame).backdrop.chrome.ornament == nil, "the guide importer's glass carries no crest (bible 3.3)")
-		end
 		return { { name = "value", text = w.importer.currentGuides.text } }
 	end,
 	controls = function(w)

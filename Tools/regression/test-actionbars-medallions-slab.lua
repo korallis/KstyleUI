@@ -43,7 +43,6 @@ for _, screen in ipairs(SCREENS) do
 	AB.Enable(env, K)
 	local strip = env.CreateFrame("Frame", nil, K.Scale.Root())
 	K.Layout.Register(strip, "databars.xp", K.Setup.Layouts.Default("databars.xp"), { label = "Experience", module = "DataBars", resizable = true })
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	local Slab, Layouts = ns.Slab, K.Setup.Layouts
 	local slab, hub = Slab.frame, Slab.hub
@@ -117,7 +116,7 @@ for _, screen in ipairs(SCREENS) do
 	end
 	local stanceRect = Rect(assert(Slab.sides.stance))
 	local apart = (slabRect[1] - petRect[3]) / unit
-	if K.Scale.Aspect() == Layouts.ASPECTS[1] then apart = apart + select(3, Layouts.MedallionsSide(K.Scale.Aspect(), "actionbars.pet")) - Layouts.GAP - K.Tokens.Size("gapSmall") end
+	if K.Scale.Aspect() == Layouts.ASPECTS[1] then apart = apart + select(3, Layouts.MedallionsSide(K.Scale.Aspect(), "actionbars.pet")) - Layouts.GAP - K.Tokens.Size("gapSmall") + Layouts.MEDALLIONS_SIDE.pad + 1 end
 	assert(math.abs(apart - Layouts.MEDALLIONS_SIDE.clear) < 2 * px, what .. ": both side bars dock to the slab's left edge")
 	assert(math.abs(petRect[1] - stanceRect[1]) < 2 * px * unit and math.abs(petRect[3] - stanceRect[3]) < 2 * px * unit,
 		what .. ": align pet and stance slab edges; derive both positions from the action slab")

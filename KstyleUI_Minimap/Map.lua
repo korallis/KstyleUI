@@ -1,4 +1,4 @@
--- Map.lua: the live minimap: Blizzard's Minimap hosted in KstyleUI's square frame behind the square mask, the Blizzard pieces it hides, wheel and slider zoom, the hover that reveals the controls, and the caption's data.
+-- Map.lua: the live minimap: Blizzard's Minimap hosted in KstyleUI's frame behind the round Medallions mask, the Blizzard pieces it hides, wheel and slider zoom, the hover that reveals the controls, and the caption's data.
 local _, ns = ...
 
 local K = KstyleUI
@@ -52,7 +52,7 @@ local function MaskPath()
 end
 
 local function MapShape()
-	return Face.Round() and "ROUND" or "SQUARE"
+	return "ROUND"
 end
 
 local function ApplyMask()
@@ -508,7 +508,7 @@ function Map.Refresh()
 	SyncRotate()
 	if not Settings.Get("microMenu") then ns.Micro.Close() end
 	face:Paint()
-	if Face.Round() then K.Layout.Restore(KEY) end
+	K.Layout.Restore(KEY)
 	face:Layout()
 	ApplyMask()
 	MaskHybrid()
@@ -571,7 +571,7 @@ local function Build()
 	hooksecurefunc(holder, "SetPoint", function(_, point, _, _, x, y)
 		if face.positionPoint ~= point or face.positionX ~= x or face.positionY ~= y then
 			face.positionPoint, face.positionX, face.positionY = point, x, y
-			if Face.Round() then Relayout() end
+			Relayout()
 		end
 	end)
 	Widgets.Place(holder, KEY, K.Setup.Layouts.Default(KEY), {

@@ -1,29 +1,22 @@
 -- _native_menus.lua: one of KstyleUI's three native context menus (tracking, addon compartment, quest) opened over the owner's plate, as the Native fixture draws Blizzard's menu pipeline with the context-menu skin on it; see Tools/render/README.md.
 --
---   RENDER_MATERIAL    Native (the skin switched off: Blizzard's own menu), Glass (the skin on, which keeps Blizzard's look), Flat, Slate, ForgedTicks or ForgedBrackets; Native when unset
+--   RENDER_MATERIAL    Native (the skin switched off: Blizzard's own menu) or Steel (the skin on); Native when unset
 --   RENDER_TEXT_SIZE   the Skins text size, 0.8 to 1.5; 1 when unset
 --   RENDER_TEXT_FACE   a kit face name (CinzelSemiBold, InterSemiBold, AlegreyaSansBold, SourceSans3Semibold); the skin's own when unset
 -- The page wraps a text it measures wider than its rect, and the scene does not export SetMaxLines, so a menu label that the glyph table measures a hair narrower than the page does wraps onto the row above. A native label is one line (the compositor's font string is SetMaxLines(1), asserted below), so its items are marked as not wrapping. That models the line cap in the renderer; it is not a runtime fix, and a label that really runs past its rect still ends in "..." and fails the guard.
 --
--- Blizzard's Fonts\\FRIZQT__.TTF is not in any local cache, so the Native and Glass states draw the client face as Source Sans 3 Semibold (scene.lua's FONT_STAND_INS) and are wider or narrower than the game's text; the scene logs it.
+-- Blizzard's Fonts\\FRIZQT__.TTF is not in any local cache, so the Native state draws the client face as Source Sans 3 Semibold (scene.lua's FONT_STAND_INS) and is wider or narrower than the game's text; the scene logs it.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local E = dofile("Tools/regression/native_menu_env.lua")
 
 local Native = {}
 
-Native.MATERIALS = { "Native", "Glass", "Flat", "Slate", "ForgedTicks", "ForgedBrackets" }
-
 local ADDONS = { "Details!", "BugSack", "Plater", "WeakAuras", "Questie", "RestedXP" }
 
 function Native.Scene(name)
 	local material = os.getenv("RENDER_MATERIAL") or "Native"
-	local valid = false
-	for _, candidate in ipairs(Native.MATERIALS) do
-		valid = valid or candidate == material
-	end
-	assert(valid, "RENDER_MATERIAL must be one of " .. table.concat(Native.MATERIALS, ", ") .. ", not " .. material)
+	assert(material == "Native" or material == "Steel", "RENDER_MATERIAL must be one of Native, Steel, not " .. material)
 	local env, K, _, nm = E.New({
-		material = material ~= "Native" and material or "Glass",
 		skin = material ~= "Native",
 		at = { 700, 330 },
 		setup = function(env)
@@ -71,7 +64,7 @@ function Native.Scene(name)
 	if err then
 		scene.log[#scene.log + 1] = "native menus error: " .. err
 	end
-	if material == "Native" or material == "Glass" then
+	if material == "Native" then
 		scene.log[#scene.log + 1] = "stand-in face: Blizzard's FRIZQT is not in a local cache, so these labels are Source Sans 3 Semibold"
 	end
 	scene.log[#scene.log + 1] = "native menu " .. name .. " in " .. material .. " at text size " .. tostring(size or 1) .. ", face " .. tostring(face or "the skin's")

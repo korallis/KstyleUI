@@ -136,22 +136,22 @@ do
 	assert(not b.selected)
 end
 
--- Empty buttons: visible tiles by default that light through the shared hover motion; hidden by alpha when
--- switched off; every slot shows in full while an action is dragged; an occupied slot is always in full.
+-- Empty buttons: visible quiet sockets by default; hidden by alpha when switched off; every slot shows in full
+-- while an action is dragged; an occupied slot is always in full.
 do
 	local env, K, ns = new()
 	local b = AB.Button(ns, "bar1", 2)
-	assert(b:GetAlpha() == 1, "an empty slot keeps its tile at full opacity")
+	assert(b:GetAlpha() == 0.4, "an empty slot keeps its quiet socket visible")
 	K.Widgets.Hover(b, true)
 	AB.W.Settle(env)
-	assert(b:GetAlpha() == 1, "hovering a quiet slot lights it in full, got " .. tostring(b:GetAlpha()))
+	assert(b:GetAlpha() == 0.4, "hovering a quiet socket keeps it visible, got " .. tostring(b:GetAlpha()))
 	K.Widgets.Hover(b, false)
 	AB.W.Settle(env)
-	assert(b:GetAlpha() == 1, "leaving an empty slot keeps the tile visible")
+	assert(b:GetAlpha() == 0.4, "leaving an empty slot keeps the socket visible")
 	env.FireEvent("ACTIONBAR_SHOWGRID")
 	assert(b:GetAlpha() == 1, "dragging an action shows every empty slot in full")
 	env.FireEvent("ACTIONBAR_HIDEGRID")
-	assert(b:GetAlpha() == 1, "the drag ends and the empty tile stays visible")
+	assert(b:GetAlpha() == 0.4, "the drag ends and the empty socket stays visible")
 	AB.Slot(env, 2, { texture = 136048, type = "spell", id = 5 })
 	assert(b:GetAlpha() == 1, "an occupied slot is in full")
 	K.Widgets.Hover(b, true)
@@ -164,8 +164,9 @@ end
 -- Empty buttons hidden by the setting stay hidden under the pointer, and show while dragging.
 do
 	local env, K, ns = new()
+	K.Options.Write("ActionBars", "slab", false)
 	local b = AB.Button(ns, "bar1", 5)
-	assert(W.LastCall(b, "SetAlpha")[1] == 1, "empty tiles remain visible by default")
+	assert(W.LastCall(b, "SetAlpha")[1] == 0.4, "empty sockets remain visible by default")
 	K.Options.Write("ActionBars", "bar1.showEmpty", false)
 	assert(W.LastCall(b, "SetAlpha")[1] == 0, "hidden empty buttons fade to nothing, which works in combat")
 	env.FireEvent("ACTIONBAR_SHOWGRID")
@@ -191,7 +192,7 @@ do
 	assert(ns.Config("bar4").showEmpty == false and ns.Config("bar5").showEmpty == false, "the rail bars start with their empty slots hidden")
 	assert(empty:GetAlpha() == 0 and other:GetAlpha() == 0, "an empty slot in the rail draws nothing at rest")
 	assert(filled:GetAlpha() == 1, "a filled slot in the rail always draws")
-	assert(centre:GetAlpha() == 1, "bar 1 keeps its empty tile")
+	assert(centre:GetAlpha() == 0.4, "bar 1 keeps its empty socket, quiet")
 	-- KSTY-60 item 7: the rail bars grow up from the rail's foot, so the first slots (the ones a player fills first)
 	-- stand on the readout beside the micro menu instead of floating at mid-height under the story cards.
 	assert(ns.Config("bar6").growth == "RIGHTUP", "bar 6, the third rail column, grows up from its foot too")
@@ -216,7 +217,7 @@ do
 	K.Layout.Exit(true)
 	assert(empty:GetAlpha() == 0 and other:GetAlpha() == 0 and filled:GetAlpha() == 1, "leaving Layout Mode hides them again")
 	K.Options.Write("ActionBars", "bar4.showEmpty", true)
-	assert(empty:GetAlpha() == 1, "the setting still brings the empty slots back")
+	assert(empty:GetAlpha() == 0.4, "the setting still brings the empty slots back, as quiet sockets")
 	K.Options.Write("ActionBars", "bar4.showEmpty", false)
 	assert(K.Layout.Enter() and empty:GetAlpha() == 1, "Layout Mode opens again")
 	assert(K.Store.CopyProfile(K.Store.ProfileName(), "Other") and K.Store.SetProfile("Other") and ns.running, "a copy of the profile keeps the module running")
@@ -286,11 +287,12 @@ do
 	assert(W.LastCall(b.cooldown, "SetHideCountdownNumbers")[1] == true, "the cooldown numbers hide")
 	K.Options.Write("ActionBars", "text.count.size", 15)
 	K.Options.Write("ActionBars", "text.count.outline", "OUTLINE")
+	local slabbed = K.Widgets.Snap(b.count, math.max(K.Scale.TEXT_FLOOR, 15 * K.Theme.FontScale() * b.opts.size / ns.Config("bar1").size))
 	local path, size, flags = b.count:GetFont()
-	assert(size == 15 * K.Theme.FontScale() and flags == "OUTLINE" and type(path) == "string", "the count font follows its settings")
+	assert(near(size, slabbed) and flags == "OUTLINE" and type(path) == "string", "the count font follows its settings, fitted to the slab's socket")
 	K.Callbacks.Fire("ThemeChanged")
 	size, flags = select(2, b.count:GetFont())
-	assert(size == 15 * K.Theme.FontScale() and flags == "OUTLINE", "a theme change keeps the text settings")
+	assert(near(size, slabbed) and flags == "OUTLINE", "a theme change keeps the text settings")
 	assert(#env._errors == 0, AB.Errors(env))
 end
 
@@ -383,8 +385,10 @@ do
 		end,
 	})
 	local bar = ns.bars.stance
+	local _, _, cell, gap = SK.Setup.Layouts.ActionBarGrid(SK.Scale.Aspect(), "actionbars.stance")
+	local pitch = cell + gap
 	assert(bar.buttons[1]:IsShown() and bar.buttons[2]:IsShown() and not bar.buttons[3]:IsShown(), "two forms, two buttons")
-	assert(near(bar.holder:GetWidth(), 4 * 30 + 3 * 3) and near(bar.holder:GetHeight(), 30), "three rows of four keep a full row's width, the two forms on one row")
+	assert(near(bar.holder:GetWidth(), 5 * cell + 4 * gap) and near(bar.holder:GetHeight(), cell), "the Medallions side grid's two rows of five keep a full row's width, the two forms on one row")
 	assert(bar.buttons[1]:GetAttribute("type") == "click" and bar.buttons[1]:GetAttribute("clickbutton") == env.StanceBar.actionButtons[1])
 	assert(bar.buttons[1].selected and not bar.buttons[2].selected, "the active form is selected")
 	assert(AB.PressKey(env, "F2") and AB.Used(env) == "form2")
@@ -404,10 +408,10 @@ do
 	SK.Options.Write("ActionBars", "stance.growth", "RIGHTUP")
 	env.RunTimers()
 	local w, h = bar.holder:GetSize()
-	assert(near(w, 5 * 30 + 4 * 3) and near(h, 30), "two rows of five: the bar is a full row wide and one row tall for three forms, got " .. w .. " x " .. h)
+	assert(near(w, 5 * cell + 4 * gap) and near(h, cell), "two rows of five: the bar is a full row wide and one row tall for three forms, got " .. w .. " x " .. h)
 	for i = 1, 3 do
 		local _, _, _, x, y = bar.buttons[i]:GetPoint(1)
-		assert(near(x, (i - 1) * 33) and near(y, 0), "form " .. i .. " sits in the one row, left to right, got " .. x .. ", " .. y)
+		assert(near(x, (i - 1) * pitch) and near(y, 0), "form " .. i .. " sits in the one row, left to right, got " .. x .. ", " .. y)
 	end
 	-- The backing strip hugs the shown forms, never the full row the bar keeps for its place.
 	local function Strip(l, t, r, b, what)
@@ -418,21 +422,21 @@ do
 	SK.Options.Write("ActionBars", "stance.backing", true)
 	env.RunTimers()
 	assert(bar.backing:IsShown(), "the stance bar's strip shows")
-	Strip(-3, 3, 3 - 2 * 33, -3, "three forms of five: the strip ends 3 units past the third")
+	Strip(-3, 3, 3 - 2 * pitch, -3, "three forms of five: the strip ends 3 units past the third")
 	local three = env._game.forms
 	env._game.forms = { three[1] }
 	env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
-	Strip(-3, 3, 3 - 4 * 33, -3, "one form: the strip shrinks to the one button")
+	Strip(-3, 3, 3 - 4 * pitch, -3, "one form: the strip shrinks to the one button")
 	env.SetCombat(true)
 	env._game.forms = three
 	env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
 	assert(#env._blocked == 0, "a new form in combat leaves the strip alone: " .. table.concat(env._blocked, ", "))
-	Strip(-3, 3, 3 - 4 * 33, -3, "in combat the strip keeps its width")
+	Strip(-3, 3, 3 - 4 * pitch, -3, "in combat the strip keeps its width")
 	env.SetCombat(false)
-	Strip(-3, 3, 3 - 2 * 33, -3, "and the strip widens when combat ends")
+	Strip(-3, 3, 3 - 2 * pitch, -3, "and the strip widens when combat ends")
 	SK.Options.Write("ActionBars", "stance.growth", "LEFTDOWN")
 	env.RunTimers()
-	Strip(2 * 33 - 3, 3, 3, -3, "growing left, the strip hugs the right end")
+	Strip(2 * pitch - 3, 3, 3, -3, "growing left, the strip hugs the right end")
 	SK.Options.Write("ActionBars", "stance.growth", "RIGHTUP")
 	env.RunTimers()
 	for i = 4, 6 do
@@ -440,23 +444,23 @@ do
 	end
 	env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
 	w, h = bar.holder:GetSize()
-	assert(near(w, 5 * 30 + 4 * 3) and near(h, 2 * 30 + 3), "six forms take a second row: " .. w .. " x " .. h)
+	assert(near(w, 5 * cell + 4 * gap) and near(h, 2 * cell + gap), "six forms take a second row: " .. w .. " x " .. h)
 	Strip(-3, 3, 3, -3, "a full row: the strip spans the whole bar")
 	local _, _, _, x1, y1 = bar.buttons[1]:GetPoint(1)
 	local _, _, _, x6, y6 = bar.buttons[6]:GetPoint(1)
-	assert(near(x1, 0) and near(y1, -33) and near(x6, 0) and near(y6, 0), "growing up, the first five stay on the foot, the sixth starts the row above")
+	assert(near(x1, 0) and near(y1, -pitch) and near(x6, 0) and near(y6, 0), "growing up, the first five stay on the foot, the sixth starts the row above")
 	-- The player's fill order and growth still apply (codex review): growing left and down, form 1 takes the top
 	-- row's right end; filling columns first, forms 1 and 2 stack in the first column.
 	SK.Options.Write("ActionBars", "stance.growth", "LEFTDOWN")
 	env.RunTimers()
 	x1, y1 = select(4, bar.buttons[1]:GetPoint(1)), select(5, bar.buttons[1]:GetPoint(1))
-	assert(near(x1, 4 * 33) and near(y1, 0), "growing left and down, form 1 sits at the top row's right end: " .. x1 .. ", " .. y1)
+	assert(near(x1, 4 * pitch) and near(y1, 0), "growing left and down, form 1 sits at the top row's right end: " .. x1 .. ", " .. y1)
 	SK.Options.Write("ActionBars", "stance.growth", "RIGHTDOWN")
 	SK.Options.Write("ActionBars", "stance.orientation", "VERTICAL")
 	env.RunTimers()
 	local _, _, _, ax, ay = bar.buttons[1]:GetPoint(1)
 	local _, _, _, bx, by = bar.buttons[2]:GetPoint(1)
-	assert(near(ax, 0) and near(ay, 0) and near(bx, 0) and near(by, -33), "filling columns first, forms 1 and 2 share the first column")
+	assert(near(ax, 0) and near(ay, 0) and near(bx, 0) and near(by, -pitch), "filling columns first, forms 1 and 2 share the first column")
 	-- Every fill order, growth and form count: the strip wraps exactly the shown forms, 3 units out.
 	local six = env._game.forms
 	for _, o in ipairs({ "HORIZONTAL", "VERTICAL" }) do

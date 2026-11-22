@@ -25,12 +25,13 @@ local function Jump(key)
 end
 Settle()
 K.Options.Write("ActionBars", "slab", false)
-K.Options.Write("ActionBars", "useTray", false)
 local choices = {}
 for _, def in ipairs(bars.BARS) do choices[#choices + 1] = def end
 choices[#choices + 1] = bars.Consumables.def
+-- test-actionbars-options-2.lua takes the second half: one window through all ten bars peaks over the 4 GB budget.
+local half = rawget(_G, "ACTIONBARS_OPTIONS_SECOND") and { unpack(choices, 6) } or { unpack(choices, 1, 5) }
 K.Options.Write("ActionBars", "consumables.hideEmpty", false)
-for _, def in ipairs(choices) do
+for _, def in ipairs(half) do
 	local selector = Jump("editBar")
 	local picker = assert(selector.controls.segmented, "use visible tabs for every bar")
 	AB.W.Click(picker.buttons[assert(picker:IndexOf(def.key))])
@@ -105,7 +106,6 @@ K.Options.Write("ActionBars", "editBar", "bar1")
 K.Options.Write("ActionBars", "bar1.enabled", true)
 K.Options.Write("ActionBars", "bar1.paging", "[mod:alt] 2; 1")
 assert(K.Options.Row("ActionBars", "bar1.pageForms").disableWhen(K.Store.Module("ActionBars")), "custom paging disables built-in paging rules")
-K.Options.Write("HudStyle", "style", "medallions")
 K.Options.Write("ActionBars", "slab", true)
 assert(not K.Options.Row("ActionBars", "bar1.rows").showWhen(K.Store.Module("ActionBars")), "slab hides fixed geometry")
 AB.W.Click(Jump("slab").controls.toggle)

@@ -57,17 +57,8 @@ assert(K.Modules.Enable("GroupFrames"), "the module switches on")
 env.RunTimers()
 eq(#env._errors, 0, "Enable raised no error: " .. tostring(env._errors[1]))
 
--- Frames: nothing of the Medallions look.
-eq(Settings.current.party.portrait, false, "Frames keeps the party without a portrait")
-each("party", function(f)
-	assert(not f.medBezel, f.unit .. ": Frames builds no steel bezel")
-	eq(#cuts, 0, "Frames asks for no painted badge")
-end)
-
 -- The first look under Medallions may find every identity secret: the engine portrait keeps its one circle mask.
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
-eq(K.HudStyle.Current(), "medallions", "the style switches out of combat")
 each("party", function(f)
 	eq(f.portrait:GetNumMaskTextures(), 1, f.unit .. ": a secret identity keeps one circle mask")
 end)
@@ -179,7 +170,7 @@ each("raid", function(f)
 		local r, g, b = f.name:GetTextColor()
 		local er, eg, eb = K.Tokens.Color("textEmphasis")
 		assert(near(r, er) and near(g, eg) and near(b, eb), f.unit .. ": the name reads white on the fill")
-		assert(not f.medInked and sr < 0.1, f.unit .. ": with a dark shadow")
+		assert(not f.medInked and f.name:GetShadowOffset() == 0, f.unit .. ": with an outline, not a light shadow")
 	end
 	assert(f.tileless and not f.chrome.fill[5]:IsShown(), f.unit .. ": the fill is the tile")
 	assert(f.medSlab and f.medSlab[5]:IsShown() and f.medSlab[5]:GetTexture() == (K.Tokens.Texture("medGroupTile")), f.unit .. ": the tile sits in the group tile slab material")
@@ -198,11 +189,33 @@ each("raid", function(f)
 	end
 end)
 
--- The style lays its look over the defaults only: a value the player changed wins.
 eq(Settings.current.raid.buffCount, 0, "the style drops the raid's own heals row")
+
+-- Each look value is the default, so the value it used to replace is a choice the player can make too.
+for key, value in pairs({ ["party.portrait"] = false, ["raid.textLayout"] = "ABOVE", ["raid.power"] = true, ["raid.buffCount"] = 3 }) do
+	local section, name = key:match("^(%a+)%.(%a+)$")
+	local look = Settings.current[section][name]
+	assert(look ~= value, key .. ": the look gives an untouched " .. key .. " its own value")
+	K.Options.Write("GroupFrames", key, value)
+	env.RunTimers()
+	eq(Settings.current[section][name], value, "the player's " .. key)
+	if key == "raid.power" then
+		each("raid", function(f)
+			local h, p = f.parts.health, f.parts.power
+			assert(p and h.top + h.height <= p.top, f.unit .. ": the raid power bar has its own room under the fill, not over it")
+		end)
+	end
+	K.Options.Write("GroupFrames", key, look)
+	env.RunTimers()
+end
 K.Options.Write("GroupFrames", "raid.buffCount", 2)
 env.RunTimers()
 eq(Settings.current.raid.buffCount, 2, "a heals count the player chose wins")
+for _, row in ipairs(Settings.Schema()) do
+	if row.key == "party.buffCount" or row.key == "raid.buffCount" then
+		eq(row.min, row.key == "raid.buffCount" and 0 or 1, row.key .. ": only the raid's heal icon count can go back to the look's 0")
+	end
+end
 
 -- Party names on the bar under Medallions lay out without an error: that layout has no health text spot to widen.
 G.SetRoster(env, "party", party)
@@ -214,36 +227,7 @@ K.Options.Write("GroupFrames", "party.textLayout", "ABOVE")
 G.SetRoster(env, "raid", raid)
 env.RunTimers()
 
--- Back to Frames: every look returns.
-K.Options.Write("HudStyle", "style", "frames")
-env.RunTimers()
-eq(Settings.current.party.portrait, false, "Frames takes the medallion away")
-eq(Settings.current.raid.textLayout, "ABOVE", "and the raid's name goes back above the bar")
-each("raid", function(f)
-	local color = last(f.health, "SetStatusBarColor")
-	local _, class = env.UnitClass(f.unit)
-	local gr, gg, gb = K.Theme.ClassColor(class)
-	assert(near(color[1], gr) and near(color[2], gg) and near(color[3], gb), f.unit .. ": the bar keeps its class colour")
-	assert(not f.health.sparkFrame, f.unit .. ": keep group bars spark-free when returning to Frames")
-	assert(not f.medSlab[5]:IsShown(), f.unit .. ": the slab material goes with the style")
-	assert(f.name:GetFont() ~= K.Tokens.FontPath("InterSemiBold"), f.unit .. ": the name leaves the Medallions label face")
-	eq(f.name:GetText(), f.rawName, f.unit .. ": in its own case")
-	eq((f.healthText:GetFont()), (K.Tokens.Font("number")), f.unit .. ": the percent takes the number role")
-	assert(not (f.medChip and f.medChip:IsShown()), f.unit .. ": no percent chip")
-	assert(not f.medInked, f.unit .. ": no ink")
-	if f.auraClip then
-		eq(f.auraClip:GetAlpha(), 1, f.unit .. ": the debuffs show")
-	end
-	local pieces = f.targetRing[1]
-	local v = pieces[1]._state.VertexColor
-	assert(not near(v[1], STEEL_LIT[1]) or not near(v[2], STEEL_LIT[2]), f.unit .. ": the target ring takes the accent again")
-end)
-each("party", function(f)
-	assert(not f.medBezel or not f.medBezel:IsShown(), f.unit .. ": no steel bezel")
-end)
-
 -- A theme change drops the cached ink choice, so a class whose colour changed is judged again.
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
 eq(ns.Medallions.Inked("PRIEST"), true, "white priest tiles take dark ink")
 local classColor = env.C_ClassColor and env.C_ClassColor.GetClassColor

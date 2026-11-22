@@ -5,10 +5,9 @@ local D = dofile("Tools/regression/databars_env.lua")
 -- Bars() -> env, ns, the experience view, its settings and two readings of it: the same label, and one whose
 -- label has no rested share and so is narrower.
 local function Bars()
-	local env, K, ns = D.New()
+	local env, _, ns = D.New()
 	D.W.Settle(env)
 	local xp = ns.Bars.views.xp
-	assert(K.Widgets.Setting("ornaments") == "Full" and xp.ornament == nil, "the experience bar draws no ornament at Full")
 	local info, plain = xp.info, {}
 	for k, v in pairs(info) do plain[k] = v end
 	plain.rested = 0

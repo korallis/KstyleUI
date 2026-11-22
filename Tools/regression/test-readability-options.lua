@@ -8,7 +8,6 @@ end
 local frame = env.CreateFrame("Frame", nil, K.Scale.Root())
 frame:SetSize(300, 20)
 K.Layout.Register(frame, "unitframes.castbar.player", K.Setup.Layouts.Default("unitframes.castbar.player"), { label = "Cast" })
-K.Options.Write("HudStyle", "style", "medallions")
 K.Layout.Update("unitframes.castbar.player", { x = 137, y = 321 })
 local function moved()
 	local place = K.Layout.Get("unitframes.castbar.player")

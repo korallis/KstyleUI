@@ -9,6 +9,7 @@
 	<Script file="Style.lua"/>
 	<Script file="Unit.lua"/>
 	<Script file="Blizzard.lua"/>
+	<Script file="Pips.lua"/>
 	<Script file="Resource.lua"/>
 	<Script file="CastEffects.lua"/>
 	<Script file="CastBar.lua"/>
@@ -17,7 +18,6 @@
 	<Script file="Overflow.lua"/>
 	<Script file="Auras.lua"/>
 	<Script file="Fan.lua"/>
-	<Script file="Orbs.lua"/>
 	<Script file="Frames.lua"/>
 	<Script file="Preview.lua"/>
 	<Script file="Module.lua"/>

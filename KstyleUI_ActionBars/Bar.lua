@@ -49,23 +49,23 @@ function ns.NewBar(def)
 	header:SetAllPoints(holder)
 	bar.holder, bar.header = holder, header
 	bar.gateHidden = bar.gate:GetAttribute("toggle-hidden") == true
-	bar.gate:HookScript("OnShow", function() bar.gateHidden = nil; bar:RefreshTray() end)
-	bar.gate:HookScript("OnHide", function() bar.gateHidden = true; bar:RefreshTray() end)
+	bar.gate:HookScript("OnShow", function() bar.gateHidden = nil; bar:RefreshSlab() end)
+	bar.gate:HookScript("OnHide", function() bar.gateHidden = true; bar:RefreshSlab() end)
 	holder:HookScript("OnShow", function()
 		bar.holderHidden = nil
-		bar:RefreshTray()
+		bar:RefreshSlab()
 	end)
 	holder:HookScript("OnHide", function()
 		bar.holderHidden = true
-		bar:RefreshTray()
+		bar:RefreshSlab()
 	end)
 	header:HookScript("OnShow", function()
 		bar.headerHidden = nil
-		bar:RefreshTray()
+		bar:RefreshSlab()
 	end)
 	header:HookScript("OnHide", function()
 		bar.headerHidden = true
-		bar:RefreshTray()
+		bar:RefreshSlab()
 	end)
 	local backing = CreateFrame("Frame", nil, header)
 	backing:SetFrameLevel(header:GetFrameLevel())
@@ -100,7 +100,7 @@ function ns.NewBar(def)
 			scalable = true,
 		})
 		bar.registered = true
-		bar.groupedWidth = ns.Slab.Grouped(def) and Layouts.ActionBarFootprint(K.HudStyle.Current(), K.Scale.Aspect(), def.element) or nil
+		bar.groupedWidth = ns.Slab.Grouped(def) and Layouts.ActionBarFootprint(K.Scale.Aspect(), def.element) or nil
 		if def.key == "bar3" then bar.finished = Layouts.ThirdBarFinished() end
 		if Widgets.ScaleFactor(header) ~= bar.factor then
 			bar:Layout()
@@ -130,10 +130,10 @@ function Bar:Shown()
 end
 
 function Bar:Visibility()
-	if not self:Shown() then
+	local kind = self.def.kind
+	if not self:Shown() or kind == "stance" and ns.Totems.state.shown then
 		return "hide"
 	end
-	local kind = self.def.kind
 	local custom = self:Config().visibility
 	if custom and custom:match("%S") and (kind ~= "stance" or self.count > 0) then
 		return (kind == "pet" and "[@pet,noexists] hide; " or "") .. custom
@@ -203,14 +203,6 @@ function Bar:FormsChanged()
 	return false
 end
 
-local function SplitGap(cfg)
-	local split = cfg.split
-	if split == "on" or split == "auto" and K.HudStyle.Current() == "orbs" then
-		return K.Setup.Layouts.SPLIT_GAP
-	end
-	return 0
-end
-
 local CUMULATIVE = { bar1 = true, bar2 = true, bar3 = true, bar4 = true, bar5 = true, bar6 = true }
 
 function Bar:Layout()
@@ -225,9 +217,7 @@ function Bar:Layout()
 		count = min(count, NumForms())
 	end
 	self.count = count
-	local _, rows, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.HudStyle.Current(), K.Scale.Aspect(), def.element, cfg)
-	local wide, wideGap = cell, spacing
-	cell, spacing = ns.Tray.Grid(def, cell, spacing)
+	local _, rows, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), def.element, cfg)
 	local size, gap = Widgets.Snap(header, cell), Widgets.Snap(header, spacing)
 	local width, height = ns.GridSize(count, rows, size, gap)
 	local pitch, drop = size + gap, 0
@@ -236,10 +226,6 @@ function Bar:Layout()
 		pitch = cell + spacing
 		width = Widgets.Snap(header, (columns - 1) * pitch) + size
 		height = Widgets.Snap(header, (used - 1) * pitch) + size
-		if cell ~= wide then
-			local tall = Widgets.Snap(header, (used - 1) * (wide + wideGap)) + Widgets.Snap(header, wide)
-			drop, height = def.key == "bar2" and tall - height or 0, tall
-		end
 	end
 	local cols, used
 	if def.kind == "stance" and (rows or 1) > 1 then
@@ -247,7 +233,7 @@ function Bar:Layout()
 		cols, used = full, max(1, ceil(count / full))
 		width, height = cols * size + (cols - 1) * gap, used * size + (used - 1) * gap
 	end
-	local split = grouped and 0 or SplitGap(cfg)
+	local split = not grouped and cfg.split == "on" and K.Setup.Layouts.SPLIT_GAP or 0
 	local half = math.huge
 	if split > 0 and def.kind == "action" then
 		local _, _, columns = ns.GridSize(count, rows, 1, 0)
@@ -320,7 +306,7 @@ function Bar:Apply(geometryOnly)
 		self:Register()
 	end
 	self:Layout()
-	local groupedWidth = ns.Slab.Grouped(self.def) and K.Setup.Layouts.ActionBarFootprint(K.HudStyle.Current(), K.Scale.Aspect(), self.def.element) or nil
+	local groupedWidth = ns.Slab.Grouped(self.def) and K.Setup.Layouts.ActionBarFootprint(K.Scale.Aspect(), self.def.element) or nil
 	if self.registered and self.groupedWidth ~= groupedWidth then
 		self:Register()
 		local strip = K.Layout.Element("databars.xp")
@@ -361,7 +347,7 @@ function Bar:Apply(geometryOnly)
 	end
 	if geometryOnly then
 		for _, button in ipairs(self.buttons) do ns.Button.StyleTexts(button) end
-		self:RefreshTray(true)
+		self:RefreshSlab()
 	else
 		self:UpdateSlots()
 		self:Refresh()
@@ -387,34 +373,20 @@ function Bar:Update()
 	end
 end
 
-local function Steady(bar)
-	local Layout = K.Layout
-	local el = bar.registered and Layout and type(Layout.Element) == "function" and Layout.Element(bar.def.element)
-	local s = el and el.settings
-	if not s then
-		return true, 1, 1
-	end
-	return s.shown ~= "mouseover", s.alphaCombat, s.alphaIdle
-end
-
-function Bar:RefreshTray(force)
+function Bar:RefreshSlab()
 	local bars = ns.bars
-	if not bars or ns.trayHeld then
+	if not bars or ns.slabHeld then
 		return
 	end
 	local main = self.def.key == "bar1" and self or bars.bar1
 	local second = self.def.key == "bar2" and self or bars.bar2
-	if not (main and second) then
-		return
+	if main and second then
+		ns.Slab.Refresh()
 	end
-	local mainSteady, mainCombat, mainIdle = Steady(main)
-	local secondSteady, secondCombat, secondIdle = Steady(second)
-	ns.Tray.Refresh(main, second, mainSteady and secondSteady and mainCombat == secondCombat and mainIdle == secondIdle, force)
-	ns.Slab.Refresh()
 end
 
 function Bar:Refresh()
-	self:RefreshTray(true)
+	self:RefreshSlab()
 	for _, b in ipairs(self.buttons) do
 		ns.Button.StyleTexts(b)
 		ns.Button.Update(b)

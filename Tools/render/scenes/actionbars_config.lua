@@ -32,9 +32,6 @@ return Common.Run(function()
 			K.Options.Write("ActionBars", key .. ".size", 40)
 			K.Options.Write("ActionBars", key .. ".spacing", 4)
 		end
-		if K.HudStyle.Current() ~= "medallions" then
-			K.Layout.Set("actionbars.bar2", "y", K.Layout.Get("actionbars.bar1").y + 120)
-		end
 	end
 	env.RunTimers()
 	AB.W.Settle(env)

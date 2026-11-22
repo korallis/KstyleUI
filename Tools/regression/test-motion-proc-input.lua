@@ -6,7 +6,6 @@ local mode = arg and arg[1]
 if not mode or mode == "refresh" then
     local env, K, ns = AB.New({ class = "WARLOCK" })
     AB.Enable(env, K)
-    K.Options.Write("HudStyle", "style", "medallions")
     env.RunTimers()
     AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
     env._game.procs[100] = true
@@ -47,10 +46,6 @@ if not mode or mode == "input" then
     assert(b.hoverOut:IsPlaying(), "F5: the completed hover-in starts hover-out")
     assert(W.Near(b.hoverOut._anims[1]:GetDuration(), 0.1), "F5: hover-out takes 100 ms")
     assert(b.hoverOut._anims[1]:GetSmoothing() == "IN", "F5: hover-out eases IN")
-    W.Down(b)
-    assert(b.heldLayer:IsShown() and b.heldLayer:GetAlpha() == 0.6, "F5: holding the button keeps a 0.6 rim")
-    W.Up(b)
-    assert(b.heldRelease:IsPlaying(), "F5: releasing fades the held rim")
     assert(W.Near(b.statePressSpread, K.Widgets.Snap(b, 4)), "F5: the press halo spreads four units")
     local tween, durations = K.Motion.Tween, {}
     K.Motion.Tween = function(_, _, _, _, duration) durations[#durations + 1] = duration end
@@ -67,7 +62,6 @@ if not mode or mode == "input" then
     W.Enter(b); W.Leave(b)
     assert(not b.hoverLayer:IsShown(), "F5: disabling continuity restores the immediate early hover exit")
     assert(W.Near(b.statePressSpread, K.Widgets.Snap(b, 6)), "F5: disabling continuity restores the six-unit press halo")
-    K.Options.Write("HudStyle", "style", "medallions")
     env.RunTimers()
     K.Options.Write("ActionBars", "inputContinuity", true)
     W.Enter(b)
@@ -84,20 +78,11 @@ if not mode or mode == "proc" then
     AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
     local b = AB.Button(ns, "bar1", 1)
     ns.Button.SetProc(b, true)
-    assert(b.lumenGlow.enter:IsPlaying(), "F3: proc glow enters over procIn")
-    assert(W.Near(b.lumenGlow.enter._anims[1]:GetDuration(), K.Tokens.Duration("procIn")), "F3: proc entry reads its token")
-    assert(W.Near(b.lumenGlow.breath._anims[1]:GetDuration(), K.Tokens.Duration("glowBreath")), "F3: proc breath reads glowBreath")
-    assert(W.Near(select(4, b.lumenGlow.texture:GetVertexColor()), 0.25), "F3: proc wash is 0.25")
     assert(W.Near(b.stateProcSpread, K.Widgets.Snap(b, 5.6)), "F3: proc halo spreads 5.6 units")
     ns.Button.SetProc(b, false)
-    assert(b.lumenGlow.leave:IsPlaying() and b.lumenGlow:IsShown(), "F3: proc glow leaves instead of snapping off")
     b:FlashReady()
     assert(b.readyAttack:GetDuration() == 0.06 and b.readyFade:GetDuration() == 0.18, "F3: ready attacks in 60 ms and decays in 180 ms")
     assert(b.readyAttack:GetToAlpha() == 0.45 and b.readyFade:GetFromAlpha() == 0.45, "F3: the steel ready wash peaks at 0.45")
-    b.lumenGlow.leave:Finish()
-    b.lumenGlow.leave:GetScript("OnFinished")()
-    assert(not b.lumenGlow:IsShown() and not b.lumenGlow.breath:IsPlaying(), "F3: the hidden proc stops breathing")
-    K.Options.Write("HudStyle", "style", "medallions")
     env.RunTimers()
     ns.Button.SetProc(b, true)
     local start = b.medProcStart.anim
@@ -128,7 +113,6 @@ end
 if not mode or mode == "model" then
     local env, K, ns = AB.New()
     AB.Enable(env, K)
-    K.Options.Write("HudStyle", "style", "medallions")
     env.RunTimers()
     env.FireEvent("PLAYER_ENTERING_WORLD")
     local warmed = 0

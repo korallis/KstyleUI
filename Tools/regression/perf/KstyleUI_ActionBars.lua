@@ -48,12 +48,13 @@ return {
 		end,
 	},
 	{
-		name = "ActionBars PET_BAR_UPDATE_COOLDOWN with a pet, tray card unchanged",
+		name = "ActionBars PET_BAR_UPDATE_COOLDOWN with a pet",
 		budget = 215,
 		setup = function()
 			local env, K = AB.New()
 			AB.Enable(env, K)
 			env._game.petExists = true
+			env._game.pet[1] = { name = "Bite", texture = 132278, spellID = 17253 }
 			env.FireEvent("UNIT_PET", "player")
 			env.SetCombat(true)
 			env.RunTimers()
@@ -61,14 +62,13 @@ return {
 		end,
 	},
 	{
-		name = "ActionBars pet appears and leaves in combat, tray card kept",
+		name = "ActionBars pet appears and leaves in combat",
 		budget = 750,
 		calls = 50,
 		setup = function()
-			local env, K, ns = AB.New()
+			local env, K = AB.New()
 			AB.Enable(env, K)
 			env.RunTimers()
-			assert(ns.Tray.card and ns.Tray.card:IsShown(), "the fixture's bars stand in the tray card")
 			local pet = Perf.Event(env, "UNIT_PET", "player")
 			return env, function()
 				env._game.petExists = not env._game.petExists
@@ -86,7 +86,7 @@ return {
 			local b = AB.Button(ns, "bar1", 1)
 			local click = b:GetScript("OnClick")
 			click(b, "LeftButton", true)
-			assert(b.press:IsPlaying(), "the fixture's press plays the slot's flash")
+			assert(b.medPushed:IsShown(), "the fixture's press shows the slot's Medallions pushed frame")
 			click(b, "LeftButton", false)
 			return env, function()
 				click(b, "LeftButton", true)
@@ -115,7 +115,6 @@ return {
 		setup = function()
 			local env, K, ns = AB.New()
 			AB.Enable(env, K)
-			K.Options.Write("HudStyle", "style", "medallions")
 			env.RunTimers()
 			AB.Slot(env, 1, { texture = 135001, type = "spell", id = 101 })
 			local b = AB.Button(ns, "bar1", 1)
@@ -133,7 +132,6 @@ return {
 		setup = function()
 			local env, K = AB.New({ setup = FX.Install })
 			AB.Enable(env, K)
-			K.Options.Write("HudStyle", "style", "medallions")
 			env.RunTimers()
 			return env, Perf.Event(env, "UNIT_POWER_UPDATE", "player", "RAGE")
 		end,

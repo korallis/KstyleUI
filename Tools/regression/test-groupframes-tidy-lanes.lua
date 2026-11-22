@@ -1,7 +1,6 @@
 -- test-groupframes-tidy-lanes.lua: Medallions keeps names, fixed-size indicators, your heals and percentages apart without reading engine aura state; with your heals on the name line, the indicators move onto the bar's end.
 local G = dofile("Tools/regression/group_env.lua")
 local env, K, ns = G.New()
-K.Options.Write("HudStyle", "style", "medallions")
 G.SetRoster(env, "party", { { name = "Thaldrenwick", class = "PALADIN", role = "TANK", health = 92, maxHealth = 100 } })
 assert(K.Modules.Enable("GroupFrames"))
 env.RunTimers()

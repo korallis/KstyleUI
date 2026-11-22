@@ -14,7 +14,7 @@ local LEE = {
 
 local function Boot(screen, style)
 	local rxp
-	local saved = { version = 12, profiles = { Default = { Appearance = { uiScale = 16 / 19 }, Layout = { preset = "DPS" }, HudStyle = { style = style } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+	local saved = { version = 12, profiles = { Default = { Appearance = { uiScale = 16 / 19 }, Layout = { preset = "DPS" } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
 	local env, K, ns = S.New({
 		width = screen[1], height = screen[2], uiScale = screen[3], saved = saved,
 		setup = function(e)
@@ -58,7 +58,7 @@ local function Clear(a, b)
 end
 
 for _, screen in ipairs(SCREENS) do
-	for _, style in ipairs({ "orbs", "frames" }) do
+	for _, style in ipairs({ "medallions" }) do
 		local what = string.format("%dx%d %s", screen[1], screen[2], style)
 		local env, K, ns, rxp = Boot(screen, style)
 		local px = K.Scale.Pixel(1) + 0.01

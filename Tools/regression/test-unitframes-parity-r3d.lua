@@ -163,7 +163,7 @@ write("target.auraPrecise", 0)
 assert(options() == nil, "zero restores the game's own timer")
 
 -- Cast bars: full spell names, rank, latency text and craft batches.
-local cb = ns.CastBars.Get("player")[1]
+local cb = ns.CastBars.Inline("player")[1]
 local function cast(name, channel)
 	env._units.player.cast, env._units.player.channel = nil, nil
 	env._units.player[channel and "channel" or "cast"] = { name = name or "Frostbolt", texture = 135846, start = 1000, finish = 4000, spellID = 116 }

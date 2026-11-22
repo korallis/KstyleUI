@@ -80,9 +80,9 @@ assert(tint and tint[1] == r and tint[2] == g and tint[3] == b, "and in white")
 assert(not Plain(Text(list.column)):find("Now", 1, true), "the fight switch does not show at rest")
 assert(list.cap.gem and list.cap.rule, "the cap carries the kit's gem and rule")
 assert(select(1, list.title:GetFont()) == K.Tokens.Font("caps"), "DAMAGE is set in the tracked caps face")
-local gr, gg, gb = K.Tokens.Color("capsGold")
+local gr, gg, gb = K.Widgets.Rgba("capsGold")
 local gold = M.Last(list.title, "SetTextColor")
-assert(gold and gold[1] == gr and gold[2] == gg and gold[3] == gb, "in the picture's caption gold")
+assert(gold and gold[1] == gr and gold[2] == gg and gold[3] == gb, "in capsGold's Medallions steel")
 assert(not Text(list.title):find("\226\128\137", 1, true), "with no thin space: the face carries the tracking")
 
 -- The switch is still there: on hover it shows the fights, a click steps to the next, and the setting is kept.
@@ -100,7 +100,7 @@ M.Write(env, K, "damage.session", "Current")
 for i, spell in ipairs(SPELLS) do
 	local row = list.rows[i]
 	local at = { row.frame:GetPoint(1) }
-	assert(W.Near(row.frame:GetHeight(), 30), i .. ": the name, number and bar share a 30-unit row, got " .. tostring(row.frame:GetHeight()))
+	assert(W.Near(row.frame:GetHeight(), 27), i .. ": the name, number and bar share the Medallions plate's 27-unit row, got " .. tostring(row.frame:GetHeight()))
 	assert(W.Near(row.bar:GetHeight(), K.Widgets.Snap(row.bar, K.Tokens.Size("barHeight"))), i .. ": the bar shares the nameplate height")
 	assert(at[1] == "TOPLEFT" and W.Near(at[4], list.pad), i .. ": the row uses the shared card inset")
 	assert(W.Near(-at[5], list:Top() + (i - 1) * (list.rowHeight + list.spacing), 0.51), i .. ": the row is " .. (list:Top() + (i - 1) * (list.rowHeight + list.spacing)) .. " units under the card's top, got " .. tostring(-at[5]))
@@ -108,7 +108,7 @@ for i, spell in ipairs(SPELLS) do
 	assert(row.icon:IsShown() and M.Last(row.icon, "SetTexture")[1] == 100 + i, i .. ": the spell's icon leads the row")
 	assert(row.back:IsShown() and W.Near(row.back:GetWidth(), list.rowHeight - K.Tokens.Size("barHeight") - 2) and W.Near(row.back:GetHeight(), row.back:GetWidth()), i .. ": in a square as tall as the row")
 	assert(W.Near(row.bar:GetWidth(), row.frame:GetWidth()), i .. ": the bar spans the whole row under its text")
-	assert(Text(row.name) == spell[2], i .. ": the name is the spell's: " .. tostring(Text(row.name)))
+	assert(Text(row.name) == K.Locale.Upper(spell[2]), i .. ": the name is the spell's, in the Medallions capitals: " .. tostring(Text(row.name)))
 	assert(Text(row.value) == tostring(spell[3]), i .. ": the amount: " .. tostring(Text(row.value)))
 	assert(Text(row.percent) == PERCENTS[i], i .. ": the share is the percentage, got " .. tostring(Text(row.percent)))
 	assert(row.dot and row.dot:IsShown() and Text(row.dot) == "\194\183", i .. ": the middle dot is its own piece")
@@ -141,12 +141,12 @@ local function DotOffsets(label)
 	return face, path
 end
 do
-	local folio = DotOffsets("Folio")
-	assert(folio == ns.BEARINGS["ptserif-bold.ttf"], "Folio's amounts use PT Serif Bold's bearings")
+	local barlow = ns.BEARINGS["barlowsemicondensedtabular-semibold.ttf"]
+	assert(DotOffsets("Folio") == barlow, "Medallions amounts use Barlow SemiBold's bearings under Folio")
 	K.Options.Write("Appearance", "typeSet", "Lumen")
 	env.RunTimers()
-	local lumen = DotOffsets("Lumen")
-	assert(lumen == ns.BEARINGS["alegreyasanstabular-extrabold.ttf"], "Lumen's amounts use Alegreya Sans ExtraBold's bearings")
+	assert(DotOffsets("Lumen") == barlow, "and under Lumen")
+	local lumen = ns.BEARINGS["alegreyasanstabular-extrabold.ttf"]
 	local kept = {
 		rsb = { ["0"] = 0.025, ["1"] = 0.141, ["2"] = 0.022, ["3"] = 0.044, ["4"] = 0.016, ["5"] = 0.037, ["6"] = 0.024, ["7"] = 0.034, ["8"] = 0.034, ["9"] = 0.023, ["%"] = 0.027 },
 		lsb = { ["0"] = 0.025, ["1"] = 0.033, ["2"] = 0.034, ["3"] = 0.029, ["4"] = 0.010, ["5"] = 0.022, ["6"] = 0.023, ["7"] = 0.021, ["8"] = 0.030, ["9"] = 0.024, ["%"] = 0.026 },
@@ -220,7 +220,7 @@ do
 	assert(M.Last(row.value, "SetFont")[1] == K.Tokens.Font("number"), "the amount is bold")
 	assert(M.Last(row.percent, "SetFont")[1] == K.Tokens.Font("number"), "and so is the share")
 	assert(M.Last(row.dot, "SetFont")[1] == K.Tokens.Font("number"), "and so is the dot")
-	assert(M.Last(row.name, "SetFont")[1] == K.Tokens.Font("names"), "the name uses the nameplate face")
+	assert(M.Last(row.name, "SetFont")[1] == K.Tokens.FontPath(K.Tokens.MEDALLIONS_PLATE_NAME_FACE), "the name uses the Medallions plate name face")
 	assert(row.name:GetParent() ~= row.frame and row.name:GetParent():GetFrameLevel() > row.bar:GetFrameLevel(), "the text is drawn above the bar")
 	local nr, ng, nb = K.Tokens.Color("textEmphasis")
 	local tnt = M.Last(row.name, "SetTextColor")

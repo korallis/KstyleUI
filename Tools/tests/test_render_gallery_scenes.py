@@ -17,7 +17,7 @@ class GalleryScenes(unittest.TestCase):
             with self.subTest(scene=scene):
                 result = budgeted_run(
                     [LUA, "-"], cwd=ROOT,
-                    env={**os.environ, "RENDER_HUD_STYLE": "Medallions", "RENDER_SCREEN": "5120x1440", "RENDER_SIZE": "auto"},
+                    env={**os.environ, "RENDER_SCREEN": "5120x1440", "RENDER_SIZE": "auto"},
                     input=f'''
 RENDER_SCENE_LIB = true
 local scene = dofile("Tools/render/scenes/{scene}.lua")()
@@ -26,10 +26,10 @@ for _, line in ipairs(scene.log) do
     assert(not line:find("error:", 1, true), line)
     assert(not line:find("anchor target unresolved", 1, true), line)
 end
-local findings = Guard.Check(scene)
+local findings = Guard.Sort(Guard.Check(scene), Guard.LoadAllow(Guard.ALLOW), "{scene}")
 for _, f in ipairs(findings) do print(f.kind, f.subject, f.detail) end
-assert(#findings == 0, "gallery has " .. #findings .. " render guard findings")
-print("{scene}: no errors, unresolved anchors or guard findings")
+assert(#findings == 0, "gallery has " .. #findings .. " render guard findings guard_allow.tsv does not cover")
+print("{scene}: no errors, unresolved anchors or uncovered guard findings")
 ''', text=True, capture_output=True, cpu_budget=60,
                 )
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

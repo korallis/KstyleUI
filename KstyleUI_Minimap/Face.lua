@@ -1,4 +1,4 @@
--- Face.lua: the minimap's face, shared by the live map and the preview: the square map seated in a forged card with gilt brackets on its corners, the north diamond on its top edge, the zone in capitals above the card, the coordinates and the clock under it, and the hover group that holds the zoom slider.
+-- Face.lua: the minimap's face, shared by the live map and the preview: the round map in its Medallions ring, the north badge on its top edge, the zone in capitals above the card, the coordinates and the clock under it, and the hover group that holds the zoom slider.
 local _, ns = ...
 
 local K = KstyleUI
@@ -20,12 +20,7 @@ local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local SLIDER_WIDTH, SLIDER_HEIGHT, SLIDER_HIT = 2, 52, 12
 local SLIDER_INSET = 11
 local NORTH_SIZE = 7
-local SHADE_ALPHA = 0.85
-local VIGNETTE, VIGNETTE_ALPHA = 14, 0.5
 local MERIDIEM_GAP = 2
-local BRACKET_ARM, BRACKET_LINES = 8, 2
-local BRACKET_CORNERS = { "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }
-local VIGNETTE_EDGES = { "top", "bottom", "left", "right" }
 local PLAQUE_HEIGHT = 18
 local PLAQUE_PAD = 6
 local RING_OUTER = 0.9189
@@ -37,12 +32,8 @@ local currentFrame
 
 Face.LEVEL_MAP = LEVEL_MAP
 
-function Face.Round()
-	return Widgets.Medallions()
-end
-
 function Face.Frame()
-	return Face.Round() and (currentFrame or Settings.Get("frame")) or "classic"
+	return currentFrame or Settings.Get("frame")
 end
 
 local function RingOuter()
@@ -50,14 +41,11 @@ local function RingOuter()
 end
 
 local function CaptionX()
-	return Format.CAPTION_X + (Face.Round() and PLAQUE_PAD or 0)
+	return Format.CAPTION_X + PLAQUE_PAD
 end
 
 function Face.MaskPath()
-	if Face.Round() then
-		return (Tokens.Texture((Widgets.TextureName("medMinimapMask"))))
-	end
-	return (Tokens.Texture("minimapMask"))
+	return (Tokens.Texture((Widgets.TextureName("medMinimapMask"))))
 end
 
 local function Level(frame, holder, offset)
@@ -72,85 +60,6 @@ local function NewText(parent)
 	local text = Widgets.FontString(parent, "OVERLAY")
 	text:SetWordWrap(false)
 	return text
-end
-
-local function NewLines(overlay, sublevel)
-	local lines = {}
-	for _, edge in ipairs({ "top", "bottom", "left", "right" }) do
-		local line = Widgets.Crisp(overlay:CreateTexture(nil, "OVERLAY", nil, sublevel))
-		line:SetColorTexture(Tokens.Color("white"))
-		lines[edge] = line
-	end
-	return lines
-end
-
-local function PlaceLines(lines, area, inset, border)
-	local top, bottom, left, right = lines.top, lines.bottom, lines.left, lines.right
-	for _, line in pairs(lines) do
-		line:ClearAllPoints()
-	end
-	Widgets.Point(top, "TOPLEFT", area, "TOPLEFT", inset, -inset)
-	Widgets.Point(top, "TOPRIGHT", area, "TOPRIGHT", -inset, -inset)
-	top:SetHeight(border)
-	Widgets.Point(bottom, "BOTTOMLEFT", area, "BOTTOMLEFT", inset, inset)
-	Widgets.Point(bottom, "BOTTOMRIGHT", area, "BOTTOMRIGHT", -inset, inset)
-	bottom:SetHeight(border)
-	Widgets.Point(left, "TOPLEFT", area, "TOPLEFT", inset, -inset)
-	Widgets.Point(left, "BOTTOMLEFT", area, "BOTTOMLEFT", inset, inset)
-	left:SetWidth(border)
-	Widgets.Point(right, "TOPRIGHT", area, "TOPRIGHT", -inset, -inset)
-	Widgets.Point(right, "BOTTOMRIGHT", area, "BOTTOMRIGHT", -inset, inset)
-	right:SetWidth(border)
-end
-
-local function NewVignette(overlay)
-	local edges = {}
-	for _, edge in ipairs(VIGNETTE_EDGES) do
-		local texture = overlay:CreateTexture(nil, "ARTWORK")
-		texture:SetColorTexture(Tokens.Color("white"))
-		edges[edge] = texture
-	end
-	return edges
-end
-
-local function Fade(texture, orientation, darkFirst)
-	local r, g, b = Tokens.Color("black")
-	if type(texture.SetGradient) == "function" and type(CreateColor) == "function" then
-		local dark, clear = CreateColor(r, g, b, VIGNETTE_ALPHA), CreateColor(r, g, b, 0)
-		if darkFirst then
-			texture:SetGradient(orientation, dark, clear)
-		else
-			texture:SetGradient(orientation, clear, dark)
-		end
-		return
-	end
-	texture:SetVertexColor(r, g, b, VIGNETTE_ALPHA / 4)
-end
-
-local function PlaceVignette(edges, area, depth)
-	local top, bottom, left, right = edges.top, edges.bottom, edges.left, edges.right
-	for _, texture in pairs(edges) do
-		texture:ClearAllPoints()
-	end
-	Widgets.Point(top, "TOPLEFT", area, "TOPLEFT")
-	Widgets.Point(top, "TOPRIGHT", area, "TOPRIGHT")
-	top:SetHeight(depth)
-	Widgets.Point(bottom, "BOTTOMLEFT", area, "BOTTOMLEFT")
-	Widgets.Point(bottom, "BOTTOMRIGHT", area, "BOTTOMRIGHT")
-	bottom:SetHeight(depth)
-	Widgets.Point(left, "TOPLEFT", area, "TOPLEFT")
-	Widgets.Point(left, "BOTTOMLEFT", area, "BOTTOMLEFT")
-	left:SetWidth(depth)
-	Widgets.Point(right, "TOPRIGHT", area, "TOPRIGHT")
-	Widgets.Point(right, "BOTTOMRIGHT", area, "BOTTOMRIGHT")
-	right:SetWidth(depth)
-end
-
-local function PaintVignette(edges)
-	Fade(edges.top, "VERTICAL", false)
-	Fade(edges.bottom, "VERTICAL", true)
-	Fade(edges.left, "HORIZONTAL", true)
-	Fade(edges.right, "HORIZONTAL", false)
 end
 
 function Face.Plain(value)
@@ -207,9 +116,6 @@ function Face.New(holder, opts)
 	local card = CreateFrame("Frame", nil, holder)
 	Level(card, holder, LEVEL_CARD)
 	face.card = card
-	face.fill = card:CreateTexture(nil, "BACKGROUND")
-	face.fill:SetAllPoints(card)
-	face.frames = {}
 
 	local mapArea = CreateFrame("Frame", nil, holder)
 	mapArea:SetAllPoints(holder)
@@ -224,18 +130,6 @@ function Face.New(holder, opts)
 	mask:SetTexture(Face.MaskPath(), MASK_WRAP, MASK_WRAP)
 	mask:SetAllPoints(mapArea)
 	face.mask = mask
-
-	face.vignette = NewVignette(overlay)
-	face.shade = NewLines(overlay, 0)
-	face.brackets = {}
-	for i = 1, #BRACKET_CORNERS do
-		local bracket = {}
-		for _, arm in ipairs({ "across", "down" }) do
-			bracket[arm] = Widgets.Crisp(overlay:CreateTexture(nil, "OVERLAY", nil, 2))
-			bracket[arm]:SetColorTexture(Tokens.Color("white"))
-		end
-		face.brackets[i] = bracket
-	end
 
 	local plate = CreateFrame("Frame", nil, holder)
 	Level(plate, holder, LEVEL_PLATE)
@@ -327,7 +221,7 @@ end
 
 local function RowCenter(face, side)
 	if Face.Frame() == "medallion" then return (side or face.mapSize) * (1 / RingOuter() - 1) / 2 - Format.FRAME end
-	if Face.Round() and Settings.Get("clearPlaques") then
+	if Settings.Get("clearPlaques") then
 		return max(Format.ROW_CENTER, (side or face.mapSize) * (1 / RingOuter() - 1) / 2 + PlaqueHeight(face) / 2 + 2 - Format.FRAME)
 	end
 	return Format.ROW_CENTER
@@ -338,13 +232,13 @@ local function ZoneCenter(face, side)
 	local mark = max(face.plate.diamond.black:GetHeight() or 0, Extent(face.north)) / 2
 	local clear = mark - Snap(card, Format.FRAME) + Widgets.Border(card)
 	local y = max(Snap(card, Format.ZONE_CENTER), Snap(card, clear + Extent(face.zone) / 2))
-	return Face.Round() and Settings.Get("clearPlaques") and max(y, Snap(card, side * (1 / RingOuter() - 1) / 2 + PlaqueHeight(face) / 2 + 2 - Format.FRAME)) or y
+	return Settings.Get("clearPlaques") and max(y, Snap(card, side * (1 / RingOuter() - 1) / 2 + PlaqueHeight(face) / 2 + 2 - Format.FRAME)) or y
 end
 
 function Face:Clamp(left, bottom, width, height, rootWidth, rootHeight)
 	local factor = Widgets.ScaleFactor(self.holder)
 	local side = min(width, height) / factor
-	local overhang = Face.Round() and side * (1 / RingOuter() - 1) / 2 or 0
+	local overhang = side * (1 / RingOuter() - 1) / 2
 	local half = PlaqueHeight(self) / 2
 	local x = max(overhang, Format.FRAME) * factor
 	local top = max(overhang, Format.FRAME + ZoneCenter(self, side) + max(half, Extent(self.zone) / 2)) * factor
@@ -361,7 +255,7 @@ function Face:PlaceZone()
 	end
 	self.zonePlaced = true
 	local y = ZoneCenter(self, side)
-	if Face.Round() and Settings.Get("clearPlaques") then
+	if Settings.Get("clearPlaques") then
 		local _, _, top = Widgets.Edges(card)
 		local _, _, screen = Widgets.Edges(Scale.Root())
 		local factor = Widgets.ScaleFactor(card)
@@ -431,7 +325,7 @@ end
 
 function Face:SyncPlaques()
 	local plaques = self.plaques
-	if not plaques or not Face.Round() then
+	if not plaques then
 		return
 	end
 	plaques[1].chrome:SetShown(Settings.Get("zone.shown") == true and not Face.Moved("zone"))
@@ -446,7 +340,7 @@ function Face:SetCoords(text)
 	self.coords:SetShown(text ~= nil and Settings.Get("coords.shown") and (not Settings.Get("coords.hover") or self.revealed))
 	self:SyncPlaques()
 	if placed then self:PlaceInside() end
-	if self.clockAnchor and (self.coords:GetStringWidth() or 0) > self.coordsFit then self:PlaceRound(true) end
+	if self.clockAnchor and (self.coords:GetStringWidth() or 0) > self.coordsFit then self:PlaceRound() end
 end
 
 function Face:SetDifficulty(text)
@@ -490,7 +384,7 @@ function Face:PlaceInside()
 		if point then
 			local h = point:find("LEFT") and 1 or point:find("RIGHT") and -1 or 0
 			local v = point:find("TOP") and -1 or point:find("BOTTOM") and 1 or 0
-			local corner = Face.Round() and h ~= 0 and v ~= 0 and Snap(area, side * ROUND_CORNER) or 0
+			local corner = h ~= 0 and v ~= 0 and Snap(area, side * ROUND_CORNER) or 0
 			local x = edge + corner + (h == column and reserve or 0) + (corners[point] or 0)
 				+ (point == "LEFT" and Snap(area, SLIDER_INSET + SLIDER_HIT) or 0)
 			local y = (v == 0 and 0 or edge + corner) + (used[point] or 0)
@@ -555,29 +449,9 @@ function Face:PlaceSlider()
 	self:PaintZoom()
 end
 
-local function FramePixels(card)
-	local pixel = Scale.Pixel(1) / Widgets.ScaleFactor(card)
-	if not Plain(pixel) or pixel <= 0 then
-		return 1, 1
-	end
-	return min(3, max(1, floor(Widgets.Border(card) / pixel + 0.5))), pixel
-end
-
-function Face:PlaceRound(round)
+function Face:PlaceRound()
 	local ring, plaques = self.ring, self.plaques
 	self.clockAnchor = nil
-	if not round then
-		if self.gem then self.gem:Hide() end
-		for _, layer in pairs(self.plate.diamond) do layer:Show() end
-		if ring then
-			ring:Hide()
-			if self.enamel then self.enamel:Hide(); self.runes:Hide() end
-			for _, plaque in ipairs(plaques) do
-				plaque.chrome:SetShown(false)
-			end
-		end
-		return
-	end
 	if not ring then
 		ring = self.overlay:CreateTexture(nil, "OVERLAY", nil, RING_SUBLEVEL)
 		self.ring = ring
@@ -652,48 +526,6 @@ function Face:PlaceRound(round)
 	self:SyncPlaques()
 end
 
-function Face:PlaceFrame()
-	local card = self.card
-	local round = Face.Round()
-	local w, h = card:GetWidth(), card:GetHeight()
-	local pixels, pixel = FramePixels(card)
-	local name = "forgedFrame" .. pixels
-	for key, slice in pairs(self.frames) do
-		Widgets.ShowSlice(slice, key == name)
-	end
-	local slice = self.frames[name]
-	if not slice then
-		slice = Widgets.NineSlice(card, name, "BORDER", 0)
-		for i = 1, #slice do
-			Widgets.Crisp(slice[i])
-		end
-		self.frames[name] = slice
-	end
-	local size = 8 * pixels * pixel
-	local shown = not round and Plain(w) and Plain(h) and min(w, h) >= 2 * size
-	Widgets.ShowSlice(slice, shown)
-	if shown then
-		Widgets.LayoutSlice(slice, card, size, 0)
-		Widgets.ColorSlice(slice, Tokens.Color("white"))
-	end
-	local arm = Snap(card, BRACKET_ARM)
-	local line = BRACKET_LINES * Widgets.Border(card)
-	for i, corner in ipairs(BRACKET_CORNERS) do
-		local bracket = self.brackets[i]
-		local across, down = bracket.across, bracket.down
-		across:SetShown(shown)
-		down:SetShown(shown)
-		if shown then
-			across:ClearAllPoints()
-			Widgets.Point(across, corner, card, corner)
-			across:SetSize(arm, line)
-			down:ClearAllPoints()
-			Widgets.Point(down, corner, card, corner)
-			down:SetSize(line, arm)
-		end
-	end
-end
-
 function Face:Paint()
 	currentFrame = Settings.Get("frame")
 	self.layoutWidth = nil
@@ -701,33 +533,18 @@ function Face:Paint()
 	Widgets.Tint(self.zoom.track, "track")
 	self.zoom.fill:SetVertexColor(r, g, b, 1)
 	self.zoom:SetShown(Settings.Get("zoom.slider"))
-	local round = Face.Round()
 	self.mask:SetTexture(Face.MaskPath(), MASK_WRAP, MASK_WRAP)
-	for _, line in pairs(self.shade) do
-		Widgets.Tint(line, "black", SHADE_ALPHA)
-		line:SetShown(not round)
-	end
-	PaintVignette(self.vignette)
-	for _, texture in pairs(self.vignette) do
-		texture:SetShown(not round)
-	end
-	Widgets.Tint(self.fill, "materialForged")
-	self.fill:SetShown(not round)
-	self.zone:SetJustifyH(round and "CENTER" or "LEFT")
-	for _, bracket in ipairs(self.brackets) do
-		Widgets.Tint(bracket.across, "gilt")
-		Widgets.Tint(bracket.down, "gilt")
-	end
+	self.zone:SetJustifyH("CENTER")
 	local diamond = self.plate.diamond
-	local mark = (Tokens.Texture(round and "dot" or "diamond"))
+	local mark = (Tokens.Texture("dot"))
 	for _, layer in pairs(diamond) do
 		layer:SetTexture(mark)
 	end
-	Widgets.Tint(diamond.black, round and "medOutline" or "black")
-	Widgets.Tint(diamond.gilt, round and "medGunLit" or "gilt")
-	Widgets.Tint(diamond.fill, round and "medFillBottom" or "materialForged")
+	Widgets.Tint(diamond.black, "medOutline")
+	Widgets.Tint(diamond.gilt, "medGunLit")
+	Widgets.Tint(diamond.fill, "medFillBottom")
 	Style.Text(self.north, NORTH_ROLE, "zone", NORTH_SIZE)
-	self.north:SetTextColor(Widgets.Rgba(round and "medText" or "giltLit"))
+	self.north:SetTextColor(Widgets.Rgba("medText"))
 
 	self.zoneSize = Style.Text(self.zone, ZONE_ROLE, "zone")
 	self.clockSize = Style.Text(self.clock, CLOCK_ROLE, "clock")
@@ -762,39 +579,27 @@ function Face:Layout()
 		return
 	end
 	local pixel = Scale.Pixel(1) / Widgets.ScaleFactor(holder)
-	local round = Face.Round()
-	if self.layoutWidth == width and self.layoutHeight == height and self.layoutPixel == pixel and self.layoutRound == round then
+	if self.layoutWidth == width and self.layoutHeight == height and self.layoutPixel == pixel then
 		return
 	end
-	self.layoutWidth, self.layoutHeight, self.layoutPixel, self.layoutRound = width, height, pixel, round
+	self.layoutWidth, self.layoutHeight, self.layoutPixel = width, height, pixel
 	self.zonePlaced = nil
 	local side = math.min(width, height)
 	self.mapSize = side
 
 	local frame = Snap(area, Format.FRAME)
 	Widgets.Fill(card, area, -frame, -frame, -frame, -frame)
-	self:PlaceFrame()
 
 	local border = Widgets.Border(area)
-	PlaceLines(self.shade, area, 0, border)
-	PlaceVignette(self.vignette, area, Snap(area, VIGNETTE))
-
-	local north = round and BADGE or Format.NORTH
-	local plateSize = Snap(area, north)
-	Widgets.Size(self.plate, north, north)
+	local plateSize = Snap(area, BADGE)
+	Widgets.Size(self.plate, BADGE, BADGE)
 	self.plate:ClearAllPoints()
 	Widgets.Point(self.plate, "CENTER", area, "TOP", 0, 0)
 	local diamond = self.plate.diamond
-	if round then
-		local band = Snap(area, BADGE_BAND)
-		diamond.black:SetSize(plateSize, plateSize)
-		diamond.gilt:SetSize(plateSize - 2 * border, plateSize - 2 * border)
-		diamond.fill:SetSize(max(0, plateSize - 2 * border - 2 * band), max(0, plateSize - 2 * border - 2 * band))
-	else
-		diamond.black:SetSize(plateSize + 3 * border, plateSize + 3 * border)
-		diamond.gilt:SetSize(plateSize, plateSize)
-		diamond.fill:SetSize(max(0, plateSize - 4 * border), max(0, plateSize - 4 * border))
-	end
+	local band = Snap(area, BADGE_BAND)
+	diamond.black:SetSize(plateSize, plateSize)
+	diamond.gilt:SetSize(plateSize - 2 * border, plateSize - 2 * border)
+	diamond.fill:SetSize(max(0, plateSize - 2 * border - 2 * band), max(0, plateSize - 2 * border - 2 * band))
 
 	for _, layer in pairs(diamond) do
 		layer:ClearAllPoints()
@@ -805,12 +610,12 @@ function Face:Layout()
 	local x, rowY = Snap(card, CaptionX()), Snap(card, RowCenter(self))
 	local coords = self.coords
 	self:PlaceZone()
-	if round and Settings.Get("clearPlaques") and Face.Frame() ~= "medallion" then
+	if Settings.Get("clearPlaques") and Face.Frame() ~= "medallion" then
 		self.plate:ClearAllPoints()
 		Widgets.Point(self.plate, "CENTER", area, "TOP", 0, frame + self.zoneY - Snap(card, PlaqueHeight(self) / 2 + BADGE / 2 + 2))
 	end
-	self.coordsAlone = round and (Settings.Get("clock.shown") ~= true or Face.Moved("clock"))
-	self:PlaceRound(round)
+	self.coordsAlone = Settings.Get("clock.shown") ~= true or Face.Moved("clock")
+	self:PlaceRound()
 	local seated = self.clockAnchor ~= nil
 	local dx, dy = Snap(card, Settings.Get("coords.x")), Snap(card, Settings.Get("coords.y"))
 	coords:ClearAllPoints()

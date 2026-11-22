@@ -162,10 +162,14 @@ function N.Install(env, opts)
 		local u = unit(token)
 		return u and u.maxHealth or 1
 	end
+	function env.UnitIsDeadOrGhost(token)
+		local u = unit(token)
+		return u ~= nil and u.dead == true
+	end
 	-- A curve from N.Curves evaluates in Lua; any other curve stands for CurveConstants.ScaleTo100.
 	function env.UnitHealthPercent(token, usePredicted, curve)
 		local u = unit(token)
-		local pct = u and u.health / u.maxHealth or 0
+		local pct = u and u.health and u.health / u.maxHealth or 0
 		if curve and curve.Evaluate then
 			return env.Secret(curve:Evaluate(pct))
 		elseif curve then

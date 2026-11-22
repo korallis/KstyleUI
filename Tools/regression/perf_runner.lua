@@ -5,7 +5,8 @@ local fs = dofile("Tools/regression/fs.lua")
 local ATTEMPTS = 3
 local HOSTED = os.getenv("CI") == "true" and os.getenv("RUNNER_ENVIRONMENT") == "github-hosted"
 local GROUPS = {
-	core = { "Core.lua", "KstyleUI_ActionBars.lua", "KstyleUI_CombatText.lua", "KstyleUI_Cooldowns.lua", "KstyleUI_GroupFrames.lua", "KstyleUI_Meters.lua", "KstyleUI_Tooltips.lua" },
+	actionbars = { "KstyleUI_ActionBars.lua" },
+	core = { "Core.lua", "KstyleUI_CombatText.lua", "KstyleUI_Cooldowns.lua", "KstyleUI_GroupFrames.lua", "KstyleUI_Meters.lua", "KstyleUI_Tooltips.lua" },
 	frames = { "KstyleUI_Nameplates.lua", "KstyleUI_UnitFrames.lua" },
 	skins = { "KstyleUI_Skins.lua" },
 	hud = { "KstyleUI_DataBars.lua", "KstyleUI_Minimap.lua" },

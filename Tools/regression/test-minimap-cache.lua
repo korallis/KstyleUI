@@ -1,4 +1,4 @@
--- test-minimap-cache.lua: repeated layout and clock updates reuse snapped geometry, while size, scale, font and style changes place it again.
+-- test-minimap-cache.lua: repeated layout and clock updates reuse snapped geometry, while size, scale and font changes place it again.
 local M = dofile("Tools/regression/minimap_env.lua")
 local env, K, ns = M.New({ enabled = true })
 M.Settle(env)
@@ -37,10 +37,6 @@ K.Options.Write("Minimap", "zone.size", 20)
 M.Settle(env)
 assert(calls > 0, "a minimap font change must rebuild snapped geometry")
 Reuse()
-K.Store.Module("HudStyle").style = "medallions"
-K.Callbacks.Fire("SettingChanged", "HudStyle", "style")
-M.Settle(env)
-assert(calls > 0 and face.ring:IsShown(), "a minimap style change must rebuild snapped geometry")
-Reuse()
+assert(face.ring:IsShown(), "the round face keeps its ring")
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("minimap geometry cache ok")

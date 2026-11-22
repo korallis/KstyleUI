@@ -2,7 +2,7 @@
 
 Paste the blocks below into the authors console. The research, the proposed TOC lines, and the owner's steps are in [RESEARCH.md](RESEARCH.md) and [CHECKLIST.md](CHECKLIST.md).
 
-The Medallions pictures and the clip are in-game. The Frames, Orbs, ultrawide, setup and detail pictures are test renders of this addon, the same ones the README shows. Say that in the gallery captions. CurseForge asks for a visible note when a showcase picture could be read as something the addon does not do. These renders are the addon. The captions say which are which.
+The Medallions pictures and the clip are in-game. The ultrawide, setup and detail pictures are test renders of this addon, the same ones the README shows. Say that in the gallery captions. CurseForge asks for a visible note when a showcase picture could be read as something the addon does not do. These renders are the addon. The captions say which are which.
 
 ## Project name
 
@@ -12,10 +12,10 @@ The [submission guide](https://support.curseforge.com/en/support/solutions/artic
 
 ## Summary
 
-Paste this one sentence. It is the README's pitch. The authors console rejects a summary longer than 256 characters (`summary.maxLength` 256 in the console). This one is 125.
+Paste this one sentence. It is the README's pitch. The authors console rejects a summary longer than 256 characters (`summary.maxLength` 256 in the console). This one is 133.
 
 ```
-A complete, pixel-perfect interface for World of Warcraft: Forever — one dark forged style, three HUDs, set up in one window.
+A complete, pixel-perfect interface for World of Warcraft: Forever — one dark forged style, the Medallions HUD, set up in one window.
 ```
 
 The [moderation policies](https://support.curseforge.com/en/support/solutions/articles/9000197279-project-and-modpack-moderation-policies) call the summary a one-sentence tldr of what the project does.
@@ -42,7 +42,7 @@ On the Description step, switch the editor to Markdown, then paste this. The blo
 
 **Join the KstyleUI Discord: [discord.gg/A5qqGZEXyN](https://discord.gg/A5qqGZEXyN)** - get help, report a bug, hear about every release first and show off your UI.
 
-**Your whole interface, forged as one piece.** Pick a HUD, run one short setup, and play - every bar, plate, bag and window in the same dark gunmetal and gold.
+**Your whole interface, forged as one piece.** Run one short setup and play - every bar, plate, bag and window in the same dark gunmetal and gold.
 
 **Install in a minute:** the CurseForge app, the Wago app or WowUp, or unzip by hand into your AddOns folder - full steps are at the bottom.
 
@@ -74,7 +74,7 @@ Good to know: the pack works with or without the KstyleUI addon. It loads only a
 
 **Why players switch**
 
-- **Three HUDs, one choice at setup.** Medallions, Frames or Orbs - pick yours on first login, change it any time.
+- **One forged HUD.** Medallions puts painted portraits on your unit frames and your class crest between your action bars, on one dark slab.
 - **The whole game in one style.** Bars, nameplates, bags, tooltips, windows and the damage meter all wear the same dark forged chrome.
 - **Make every part yours.** Deep settings for unit, party and raid frames, nameplates, cooldowns, auras, chat, the minimap, bags, tooltips and meters, each with a live preview.
 - **A map that plans the trip.** Search the world map and get a route along real roads, flights and boats, with every step and its travel time.
@@ -82,7 +82,7 @@ Good to know: the pack works with or without the KstyleUI addon. It loads only a
 - **Nothing you don't want.** Every part is its own module. Switch one off and it costs nothing, and reloads are quick.
 - **Ready in minutes.** One short setup, layouts for DPS, Tank and Healer, and profiles you can copy between characters.
 
-![In-game screenshot; KstyleUI feature card: Three HUD styles - Medallions, Frames or Orbs; pick at setup, switch any time](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/card-three-huds.jpg)
+![In-game screenshot; KstyleUI feature card: Medallions - painted portraits and your class crest, one forged slab for your bars](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/card-medallions.jpg)
 
 *In-game screenshot. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
@@ -94,7 +94,7 @@ Good to know: the pack works with or without the KstyleUI addon. It loads only a
 
 *KstyleUI test render over an in-game screenshot. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
-![KstyleUI test render over an in-game screenshot; KstyleUI feature card: Ready in minutes - one setup for HUD, layout and modules, with DPS, Tank and Healer layouts built in](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/card-ready-in-minutes.jpg)
+![KstyleUI test render over an in-game screenshot; KstyleUI feature card: Ready in minutes - one setup for layout and modules, with DPS, Tank and Healer layouts built in](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/card-ready-in-minutes.jpg)
 
 *KstyleUI test render over an in-game screenshot.*
 
@@ -106,11 +106,7 @@ Good to know: the pack works with or without the KstyleUI addon. It loads only a
 
 *KstyleUI test render over an in-game screenshot. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
-![KstyleUI section: Three HUDs - Medallions, Frames or Orbs, pick yours and change it any time](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-three-huds.jpg)
-
-Pick your style in the first-run setup. Switch later in **Options, General, HUD style**, which shows a picture of each; out of combat the change applies at once, in combat it waits for the fight to end.
-
-### Medallions
+![KstyleUI section: Medallions - painted portraits, your class crest and one forged slab](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-medallions.jpg)
 
 ![In-game screenshot of KstyleUI's Medallions HUD on a 5120 by 1440 screen: Korallis casting Shadow Bolt at a Decrepit Darkhound, with a warlock crest between the action bars and the map and quest cards at the right edge](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/game_medallions_hero.jpg)
 
@@ -120,17 +116,17 @@ Dark gunmetal with rounded, bevelled edges, like a piece of forged hardware. You
 
 Your first two action bars sit in recessed sockets on one dark slab: twelve buttons each side of a crest painted for your race and class, in a ring of runes in your class colour. Your pet and stance bars get small slabs beside it, and your experience runs along the slab's lower edge.
 
-Rogues, cat-form druids, paladins and warlocks see their class resource on the crest itself: combo points, holy power or soul shards light up as jewels round the top of the ring (**Options, Action Bars, Crest resource jewels**).
+Rogues and cat-form druids see their combo points on the crest itself, as cut jewels round the top of the ring (**Options, Action Bars, Crest resource jewels**). A jewel flares when you gain a point and drains when you spend one, and at the maximum the whole ring glows (**Glow at max**). Hunters with Summon Hawk get hawk perches on the ring, each hawk with a green timer for its time left (**Hawk perches**).
 
-![KstyleUI test render over an in-game screenshot of the Medallions crest: a warlock's three soul shards lit as purple jewels on the ring, two still dark](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_crest.jpg)
+![KstyleUI test render over an in-game screenshot of the Medallions crest: a rogue's crown of blades over the ring, three of five blades and jewels lit for three combo points](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_crest.jpg)
 
-*KstyleUI test render over an in-game screenshot: three of five soul shards lit on the crest. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
+*KstyleUI test render over an in-game screenshot: a rogue's crown of blades and jewels, three of five combo points lit. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
 Under the slab, your data bar docks on forged plates: the clock on one side; frame rate, latency, gold and experience on the other, each in its own segment with an icon and gilt dividers.
 
-![KstyleUI test render over an in-game screenshot of the Medallions slab: both medallions, the jewelled crest, two rows of sockets and the forged data dock underneath](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_dock.jpg)
+![KstyleUI test render over an in-game screenshot of the Medallions slab: both medallions, the jewelled crest under a rogue's crown of blades, two rows of sockets and the forged data dock underneath](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_dock.jpg)
 
-*KstyleUI test render over an in-game screenshot: the slab, the crest and the forged data dock under it. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
+*KstyleUI test render over an in-game screenshot: the slab, the crest with its crown of blades and the forged data dock under it. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
 ![In-game screenshot of the Medallions HUD in combat, cropped to 16:9 from the ultrawide screenshot](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/game_medallions_16x9.jpg)
 
@@ -154,39 +150,11 @@ Medallions also answers what happens in a fight: a slot flashes when its cooldow
 
 *In-game screenshot: an interrupted cast flashes, then a channel counts down as the target frame clears. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
-### Frames
+![KstyleUI test render over an in-game screenshot of the Medallions unit frames: the player and target slabs mid-cast, each with its medallion, health bar and cast bar](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_unitframes.jpg)
 
-![KstyleUI test render over an in-game screenshot of the addon in its Frames HUD style on a 5120 by 1440 screen in the Spread arrangement, in combat](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/hud_frames_5120.jpg)
+*KstyleUI test render over an in-game screenshot: you and your target, both mid-cast, a moment after a hit. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
-*KstyleUI test render over an in-game screenshot: the Frames HUD in combat on a 5120 by 1440 screen, in the Spread arrangement. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
-
-**Frames** is the classic layout, cleaned up: your health and resource on a player card above the action bars, your target's card stacked over it with its portrait on the far side.
-
-![KstyleUI test render over an in-game screenshot of the addon's Frames HUD on a 1920 by 1080 screen in combat](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/hud_frames_1080.jpg)
-
-*KstyleUI test render over an in-game screenshot: the Frames HUD on a 1920 by 1080 screen, in combat. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
-
-![KstyleUI test render over an in-game screenshot of the addon's Frames unit frames: a target's health bar and cast above the player's health and mana bars, with portraits and level badges](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_unitframes.jpg)
-
-*KstyleUI test render over an in-game screenshot: the target over the player, both mid-cast. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
-
-Whichever style you pick, the bars read the same way: a hit flashes, the health you just lost holds as a pale band before it drains, and cast bars are tall enough to read in a pull.
-
-### Orbs
-
-![KstyleUI test render over an in-game screenshot of the addon in its Orbs HUD style on a 5120 by 1440 ultrawide screen in the Spread arrangement, in combat](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/hud_orbs_5120.jpg)
-
-*KstyleUI test render over an in-game screenshot: the Orbs HUD in combat on a 5120 by 1440 screen, in the Spread arrangement. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
-
-**Orbs** puts your health and resource in two orbs either side of a forged tray round your first action bar, and moves your target to a wide bar at the top of the screen.
-
-![KstyleUI test render over an in-game screenshot of the addon's Orbs HUD on a 1920 by 1080 screen in combat](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/hud_orbs_1080.jpg)
-
-*KstyleUI test render over an in-game screenshot: the Orbs HUD on a 1920 by 1080 screen, in combat. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
-
-![KstyleUI test render over an in-game screenshot of the addon's Orbs HUD up close: a red health orb and a blue mana orb either side of a forged tray holding two action bars](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/crop_orbs.jpg)
-
-*KstyleUI test render over an in-game screenshot: the orbs and the forged tray up close, a moment after a hit. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
+The bars read at a glance: a hit flashes, the health you just lost holds as a pale band before it drains, and cast bars are tall enough to read in a pull.
 
 ![KstyleUI section: Every screen - pixel-perfect from a laptop to a 32:9 ultrawide](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-every-screen.jpg)
 
@@ -204,11 +172,15 @@ Set it in **Options, Elements, Ultrawide arrangement**, and set the band itself 
 
 With **Interface size: Auto (pixel perfect)**, the default, KstyleUI picks the size that fits your screen exactly. Every frame, bar and slot lands on whole screen pixels, so edges stay sharp instead of blurring between pixels - and at 1080 lines and above, a text floor that scales with your screen keeps type readable. Prefer to set it yourself? Turn Auto off in **Options, General, Size**.
 
+![KstyleUI test render over an in-game screenshot of the addon's DPS layout on a 1920 by 1080 screen in combat](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/readme/hud_1080.jpg)
+
+*KstyleUI test render over an in-game screenshot: the DPS layout on a 1920 by 1080 screen, in combat. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
+
 ![KstyleUI section: Set up in one window - one short setup, then you are playing](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-set-up.jpg)
 
-The first time you log in, one short setup does it all: pick Medallions, Frames or Orbs, pick the DPS, Tank or Healer layout over a live preview, choose your modules and which of your other addons KstyleUI skins, then apply. Close it early and you get the DPS layout with every module on; **Keep my UI** leaves the game's interface untouched. Run it again any time with `/kstyle setup`.
+The first time you log in, one short setup does it all: pick the DPS, Tank or Healer layout from a picture of each, choose your modules and which of your other addons KstyleUI skins, then apply. Close it early and you get the DPS layout with every module on; **Keep my UI** leaves the game's interface untouched. Run it again any time with `/kstyle setup`.
 
-![KstyleUI test render over an in-game screenshot of the addon's first-run setup on its layout step: DPS, Tank and Healer cards over a preview of the layout under the pointer](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frame_setup.jpg)
+![KstyleUI test render over an in-game screenshot of the addon's first-run setup on its layout step: DPS, Tank and Healer cards, each with a picture of its layout](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frame_setup.jpg)
 
 *KstyleUI test render over an in-game screenshot: the first-run setup on its layout step.*
 
@@ -246,11 +218,11 @@ One class-coloured bar per player. Switch between this fight, the last fight and
 
 ### Quests, guide and map on the right
 
-![KstyleUI test render over an in-game screenshot of the addon's right rail: the square minimap with the zone, coordinates and clock, the quest card under the map and the RestedXP guide card beside it](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_rail.jpg)
+![KstyleUI test render over an in-game screenshot of the addon's right rail: your buffs beside the round minimap with the zone and coordinates, the quest card under the map and the RestedXP guide card beside it](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_crop_rail.jpg)
 
 *KstyleUI test render over an in-game screenshot: the right rail - map card, quest card and guide card. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon.*
 
-Your buffs sit above a map card with the zone, your coordinates and the clock. The quest card keeps your quests in view and scrolls for the rest; in the picture the taller guide card beside it takes more of the rail, so it shows one quest and counts the others below. With a RestedXP guide open, the guide takes the tall column beside it, and RestedXP's target and item boxes dock underneath. The minimap's drawer collects every addon button cluttering the map.
+Your buffs sit beside a round map with the zone and your coordinates. The quest card keeps your quests in view and scrolls for the rest. With a RestedXP or Zygor Guides Viewer guide open, the guide takes the column beside it in the same forged card, and RestedXP's target and item boxes dock underneath. The minimap's drawer collects every addon button cluttering the map.
 
 ### A world map that plans the trip
 
@@ -268,7 +240,7 @@ Search the map for a flight master, a dungeon or raid entrance or a quest, and K
 
 - **Bags:** combined bags and bank with search, sorting, categories, quality borders and junk selling.
 - **Tooltips:** on the same dark card, with quality and class colours and a health bar.
-- **Window skins:** the character sheet, spellbook, talents, world map and quest log, mail, merchant, professions, loot, group finder, social windows and the game menu - and the RestedXP windows - all in KstyleUI's style.
+- **Window skins:** the character sheet, spellbook, talents, world map and quest log, mail, merchant, professions, loot, group finder, social windows and the game menu - and the RestedXP and Zygor windows - all in KstyleUI's style.
 - **And the rest:** unit frames, group frames to 40, action bars, cooldowns, auras, combat text, chat, data bars, a threat meter and swing timer, and quality-of-life touches such as fast auto loot and auto repair. Each is its own module, and a module you switch off costs nothing.
 
 ![KstyleUI section: Make it yours - deep settings for every part, each with a live preview](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/header-make-it-yours.jpg)
@@ -295,7 +267,7 @@ KstyleUI runs on the World of Warcraft: Forever client.
 
 1. Install KstyleUI with the CurseForge app or the Wago app (or WowUp) on your Forever installation. By hand, unzip the download into `World of Warcraft/_forever_/Interface/AddOns`, so that `KstyleUI` and the `KstyleUI_*` module folders sit there.
 2. Start the game. If the addons are not ticked in the AddOns list on the character screen, tick them.
-3. Log in. The setup opens: pick your HUD style, layout and modules, then click **Apply** and **Reload**.
+3. Log in. The setup opens: pick your layout and modules, then click **Apply** and **Reload**.
 4. Type `/kstyle` for the settings, or `/kstyle layout` to move things.
 
 An optional icon pack repaints ability and item icons everywhere, including buffs. The icons were made with AI image tools. The pack is not an addon and is not part of this download: it is available from this project's GitHub page. Quit the game, copy the Icons folder from inside its Interface folder into your game's _forever_/Interface folder, then start the game again. The KstyleUI Icons section above has the Windows and Mac steps.
@@ -308,16 +280,16 @@ World of Warcraft: Forever. It is built and tested for that client only.
 **Does it work with RestedXP?**
 Yes. The guide gets its own tall card beside your quest card, RestedXP's Active Targets and Active Items boxes dock underneath it, and the RestedXP windows are skinned to match.
 
-**Does it work with Questie?** Yes. KstyleUI keeps Questie's map pins and uses its own quest card by default; choose your tracker under **Options, General, Existing addons**.
+**Does it work with Zygor Guides Viewer?**
+Yes. The guide sits on the right rail like RestedXP's, in KstyleUI's forged card with themed controls, progress bar and waypoint arrow. Switch it under **Options, Window Skins, Zygor**.
 
-**How do I switch HUD style?**
-In **Options, General, HUD style**, or by running the setup again with `/kstyle setup`. Out of combat the change applies at once; picked in combat, it waits for the fight to end.
+**Does it work with Questie?** Yes. KstyleUI keeps Questie's map pins and uses its own quest card by default; choose your tracker under **Options, General, Existing addons**.
 
 **My HUD sits in the middle of my ultrawide. How do I spread it out?**
 On 21:9 and 32:9 screens KstyleUI keeps everything in a centred band by default. In **Options, Elements**, set **Ultrawide arrangement** to **Spread**: the chat, minimap, quest tracker and the other side columns move out to the screen edges, and your group frames stay close to your character. **HUD width**, just above it, sets how wide the centred band is.
 
 **How do I get an action bar into the slab?**
-In Medallions the slab holds Action bars 1 and 2, twelve buttons each side of the crest. Action bar 3, the pet bar and the stance bar get their own small slabs beside it: turn on Action bar 3 in **Options, Action Bars** and set its buttons, and it sits beside the left slab. In Frames and Orbs the first two bars sit in the main tray. You can move any bar with Layout Mode (below).
+The slab holds Action bars 1 and 2, twelve buttons each side of the crest. Action bar 3, the pet bar and the stance bar get their own small slabs beside it: turn on Action bar 3 in **Options, Action Bars** and set its buttons, and it sits beside the left slab. You can move any bar with Layout Mode (below).
 
 **What is the bar of items like Healthstones that shows up?**
 That is RestedXP's **Active Items** box: RestedXP shows the items your current guide step uses, such as Healthstones, quest items or your hearthstone. KstyleUI docks it under the RestedXP guide card. If you drag it away it stays where you put it; to change what it shows, use RestedXP's own settings.
@@ -353,6 +325,7 @@ Post in #bug-reports on the [KstyleUI Discord](https://discord.gg/A5qqGZEXyN). S
 
 - Fonts, all under the SIL Open Font License 1.1, with their licence files in the addon's `Media/Fonts` folder: Cinzel, Alegreya Sans, Barlow Semi Condensed, Source Sans 3, Inter, PT Serif, EB Garamond and IM Fell (the last three in KstyleUI's Folio faces). Some are adapted for the game's renderer and renamed, as the licence allows.
 - KstyleUI's painted portraits, crests and textures are original addon art: some were made with AI image tools; the rest is drawn by KstyleUI's own code. No game assets are extracted or traced. Every scenery backdrop is cropped from an owner-captured World of Warcraft: Forever screenshot; none is AI-generated. The pictures on this page are in-game screenshots and KstyleUI test renders over those screenshot crops, captioned as such. Painted portrait and model stand-ins in renders are addon art, not live game models.
+- Zygor Guides Viewer support and the hawk perches idea: Baine.
 - By the KstyleUI authors. All rights reserved.
 ```
 
@@ -389,12 +362,10 @@ Upload in this order. Title, then caption.
 | File | Pixels | Title | Caption |
 | --- | --- | --- | --- |
 | `gallery/01-medallions-hero.jpg` | 2560×720 | Medallions on an ultrawide screen | In-game screenshot: the Medallions HUD on a 5120 by 1440 screen, in Tirisfal Glades. Chat and distant player names are blurred. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/02-style-medallions.jpg` | 1280×720 | Medallions | In-game screenshot of Medallions HUD in combat, cropped to 16:9 from the ultrawide screenshot. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/03-style-frames.jpg` | 1200×675 | Frames | KstyleUI test render over an in-game screenshot of the Frames HUD in combat on a 1920 by 1080 screen. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/04-style-orbs.jpg` | 1200×675 | Orbs | KstyleUI test render over an in-game screenshot of the Orbs HUD in combat on a 1920 by 1080 screen. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/05-ultrawide-spread.jpg` | 1600×450 | Ultrawide, Spread | KstyleUI test render over an in-game screenshot of the Healer layout on a 5120 by 1440 screen, in the Spread arrangement. The side columns sit at the edges. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/06-setup.jpg` | 720×523 | First-run setup | KstyleUI test render over an in-game screenshot of the first-run setup on its layout step: DPS, Tank and Healer, with a preview under the pointer. |
-| `gallery/07-nameplates.jpg` | 800×466 | Nameplates | KstyleUI test render over an in-game screenshot of the nameplates in combat: a targeted beast, an elite, a rare, a world boss and a friendly player. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/08-meter.jpg` | 470×330 | Damage meter | KstyleUI test render over an in-game screenshot of the damage meter in a party of five, one class-coloured bar per player. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/09-quests.jpg` | 660×624 | Map, quests and guide | KstyleUI test render over an in-game screenshot of the right rail: the map card, the quest card and the guide card. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/10-medallion-closeup.gif` | 800×166 | Target medallion | In-game screenshot: selecting a target brings in the target medallion, and its red ring pulses at low health. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/02-medallions-combat.jpg` | 1280×720 | Medallions | In-game screenshot of Medallions HUD in combat, cropped to 16:9 from the ultrawide screenshot. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/03-ultrawide-spread.jpg` | 1600×450 | Ultrawide, Spread | KstyleUI test render over an in-game screenshot of the Healer layout on a 5120 by 1440 screen, in the Spread arrangement. The side columns sit at the edges. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/04-setup.jpg` | 720×523 | First-run setup | KstyleUI test render over an in-game screenshot of the first-run setup on its layout step: DPS, Tank and Healer cards, each with a picture of its layout. |
+| `gallery/05-nameplates.jpg` | 800×466 | Nameplates | KstyleUI test render over an in-game screenshot of the nameplates in combat: a targeted beast, an elite, a rare, a world boss and a friendly player. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/06-meter.jpg` | 490×320 | Damage meter | KstyleUI test render over an in-game screenshot of the damage meter in a party of five, one class-coloured bar per player. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/07-quests.jpg` | 660×678 | Map, quests and guide | KstyleUI test render over an in-game screenshot of the right rail: the map card, the quest card and the guide card. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/08-medallion-closeup.gif` | 800×166 | Target medallion | In-game screenshot: selecting a target brings in the target medallion, and its red ring pulses at low health. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |

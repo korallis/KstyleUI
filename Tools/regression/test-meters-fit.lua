@@ -106,7 +106,7 @@ do
 				assert(list.capacity == rows and list.count == rows, label .. ": the " .. name .. " card shows " .. rows .. " rows, got " .. tostring(list.count))
 				local slack = list.panel:GetHeight() - list.pad - RowsBottom(list)
 				assert(slack >= -pixel / 2, label .. ": the " .. name .. " card's last row ends inside it, " .. tostring(slack / pixel) .. " px")
-				assert(slack < list.rowHeight, label .. ": the " .. name .. " card has no empty row under its last row, " .. tostring(slack / pixel) .. " px")
+				assert(slack < list.rowHeight + list.spacing, label .. ": the " .. name .. " card has no room for another row and its gap under its last row, " .. tostring(slack / pixel) .. " px")
 				assert(list.rowHeight >= list:MinRow() - pixel - 1e-6, label .. ": a " .. name .. " row is at most a pixel under its minimum")
 			end
 			assert(K.ErrorCount() == 0 and #env._errors == 0, label .. ": " .. tostring(env._errors[1]))

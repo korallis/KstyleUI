@@ -1,6 +1,6 @@
 -- group_lanes.lua: the party and raid frames as the KSTY-44 and KSTY-47 mock-ups draw them, on the owner's screen:
 -- RENDER_GROUP is party (the player and four members, bare on the world) or 10, 20, 25 or 40 (a raid of that size in
--- groups of five, seated in its card); RENDER_HUD_STYLE picks the HUD style and RENDER_SCREEN the screen. The
+-- groups of five, seated in its card); RENDER_SCREEN picks the screen. The
 -- members, health and roles are the mock-ups' own, and the frames sit where the mock-ups put them. RENDER_PARITY_R1=1
 -- switches on the EllesmereUI parity round 1 options that show without extra state; RENDER_PARITY_R2=1 switches on round 2's,
 -- with the first member in combat, shielded past the missing health and the fourth carrying a heal absorb.
@@ -23,6 +23,7 @@
 -- indicator 1 as a bar on the health bar's foot, filling the other way and over the debuff icons, and indicator 2 as a square (both
 -- shown on the first member), party frames that take the raid's text, debuffs, heal icons, status icon size and power bar, an own
 -- raid size from 16 players and tank frames that leave you out (you are the first member).
+-- RENDER_RAID_POWER=1 switches the raid power bar on.
 -- RENDER_GROUP_DISPEL=1 shows the dispel highlight on the second member as the aura engine does for a Magic debuff: every texture
 -- registered with the slot shown in the Magic colour, keeping its own alpha as the options preview does.
 local Common = dofile("Tools/render/scenes/_common.lua")
@@ -187,6 +188,7 @@ return Common.Run(function()
 	if os.getenv("RENDER_HEALER_PRESET") == "1" and K.Options.Row("GroupFrames", "presets.raid") then
 		K.Options.Write("GroupFrames", "presets.raid", "Healer")
 	end
+	if os.getenv("RENDER_RAID_POWER") == "1" then K.Options.Write("GroupFrames", "raid.power", true) end
 	if os.getenv("RENDER_TEXT_PRESET") == "Readable" and K.Profiles then K.Profiles.Readable("Readable") end
 	if os.getenv("RENDER_PARITY_R1") == "1" then
 		for key, value in pairs({ ["health.colorSource"] = "gradient", ["health.alpha"] = 0.85, ["icons.roleDamager"] = false,

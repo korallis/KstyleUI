@@ -22,7 +22,6 @@ local function New(class, power, size)
 		end,
 	})
 	AB.Enable(env, K)
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	return env, K, ns
 end

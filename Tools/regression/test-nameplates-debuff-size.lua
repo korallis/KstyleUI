@@ -2,9 +2,9 @@
 local N = dofile("Tools/regression/nameplates_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 
-local MIN_ICON = 26
+local MIN_ICON = 22
 local MIN_TEXT = 11
-local MIN_DISTANT_ICON = 20
+local MIN_DISTANT_ICON = 17
 local SLIDER_HEADROOM = 10
 
 -- The defaults: big icons, readable outlined text, a full row inside the plate ---------------------------
@@ -20,7 +20,6 @@ do
 	assert(line <= ns.Plate.DEFAULT_WIDTH, "a full row of " .. d.columns .. " fits the plate's width: " .. line .. " > " .. ns.Plate.DEFAULT_WIDTH)
 	local distant = d.size * ns.Settings.defaults.cvars.minScale
 	assert(distant >= MIN_DISTANT_ICON, "a far plate's debuffs still read at " .. MIN_DISTANT_ICON .. " units or more, not " .. distant)
-	assert(ns.Settings.Get("debuffs.size") == d.size and ns.Settings.Get("debuffs.textSize") == d.textSize, "a new profile reads the defaults")
 end
 
 -- The size slider has room above the default ------------------------------------------------------------
@@ -41,7 +40,7 @@ do
 	assert(text.min <= ns.Settings.defaults.debuffs.textSize and text.max > ns.Settings.defaults.debuffs.textSize, "the text size slider holds the default")
 end
 
--- A live plate draws the debuffs at the default size, with the text at the default size and outlined ------
+-- A live plate draws the debuffs at the Medallions size, with the text at the Medallions size and outlined ------
 
 do
 	local env, K, ns = N.New()

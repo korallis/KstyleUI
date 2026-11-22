@@ -8,8 +8,11 @@ local Layouts = K.Setup.Layouts
 local previous = { L = K.L, Scale = K.Scale, Tokens = K.Tokens }
 assert(loadfile("Tools/regression/fixtures/scalelimit-before.lua"))("KstyleUI", previous)
 local Before = previous.Setup.Layouts
-Before.Positions, Before.Style, Before.Aspect, Before.Footprint = Layouts.Positions, Layouts.Style, Layouts.Aspect, Layouts.Footprint
-Before.MedallionsGroup, Before.StyleSize = Layouts.MedallionsGroup, Layouts.StyleSize
+-- The frozen implementation still passes a style; the shared Medallions helpers no longer take one.
+Before.Positions, Before.Aspect, Before.MedallionsGroup = Layouts.Positions, Layouts.Aspect, Layouts.MedallionsGroup
+Before.Style = function(_, name, key) return Layouts.Style(name, key) end
+Before.Footprint = function(name, key, _, class) return Layouts.Footprint(name, key, class) end
+Before.StyleSize = function(_, class, key) return Layouts.StyleSize(class, key) end
 Before.MEDALLIONS_UNITS, Before.MEDALLIONS_MEDALS = Layouts.MEDALLIONS_UNITS, Layouts.MEDALLIONS_MEDALS
 local screens = { { 5120, 1440 }, { 3440, 1440 }, { 3456, 2234 }, { 2560, 1440 }, { 1920, 1080 } }
 local cases = 0
@@ -31,13 +34,13 @@ local function Same(a, b)
 	return true
 end
 
-local function Check(name, style, screen, enabled)
+local function Check(name, screen, enabled)
 	enabled = enabled or Layouts.Enabled(name)
 	enabled["consumables.bar"] = false
 	local width, height = screen[1], screen[2]
-	local old, oldFits = Before.ScaleLimit(width, height, name, enabled, style)
-	local new, newFits = Layouts.ScaleLimit(width, height, name, enabled, style)
-	local label = name .. " " .. style .. " " .. width .. "x" .. height
+	local old, oldFits = Before.ScaleLimit(width, height, name, enabled, "medallions")
+	local new, newFits = Layouts.ScaleLimit(width, height, name, enabled)
+	local label = name .. " " .. width .. "x" .. height
 	assert(string.format("%.17g", new) == string.format("%.17g", old),
 		label .. ": preserve the exact search result, got " .. string.format("%.17g", new) .. " expected " .. string.format("%.17g", old))
 	for _, size in ipairs({ old, old - 1e-6, old + 1e-6, 0.6, 1, 1.5 }) do
@@ -47,11 +50,11 @@ local function Check(name, style, screen, enabled)
 		for _, shown in ipairs({ false, true }) do
 			local rootHeight = 1080 / old
 			local rootWidth = width / (height / rootHeight)
-			assert(Same(Before.Story(name, rootHeight, guide, style, rootWidth, shown),
-				Layouts.Story(name, rootHeight, guide, style, rootWidth, shown)), label .. ": preserve every public Story card field")
+			assert(Same(Before.Story(name, rootHeight, guide, "medallions", rootWidth, shown),
+				Layouts.Story(name, rootHeight, guide, rootWidth)), label .. ": preserve every public Story card field")
 		end
 	end
-	local cached, fits = Layouts.ScaleLimit(width, height, name, enabled, style)
+	local cached, fits = Layouts.ScaleLimit(width, height, name, enabled)
 	assert(cached == new and fits == newFits, label .. ": the cached result retains its predicate")
 	cases = cases + 1
 	return oldFits, newFits
@@ -69,34 +72,30 @@ end
 
 for _, name in ipairs(Layouts.Names()) do
 	for _, screen in ipairs({ { 800, 600 }, { 1280, 720 }, { 1920, 1080 } }) do
-		Check(name, "orbs", screen, Enabled(name, "UnitFrames", false))
+		Check(name, screen, Enabled(name, "UnitFrames", false))
 	end
-	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-		for _, rootHeight in ipairs({ 720, 1080, 1282.5 }) do
-			for _, rootWidth in ipairs({ false, 1932, 1936, 1939.75, 1940, 1940.25, 2560 }) do
-				for _, guide in ipairs({ false, true }) do
-					for _, shown in ipairs({ false, true }) do
-						local old = Before.Story(name, rootHeight, guide, style, rootWidth or nil, shown)
-						local new = Layouts.Story(name, rootHeight, guide, style, rootWidth or nil, shown)
-						assert(Same(old, new), name .. " " .. style .. ": preserve Story with nil width and at the rail threshold " .. tostring(rootWidth))
-						local snapshot = Before.Story(name, rootHeight, guide, style, rootWidth or nil, shown)
-						local again = Layouts.Story(name, rootHeight, not guide, style, rootWidth or nil, not shown)
-						assert(new ~= again and new.quests ~= again.quests and Same(new, snapshot),
-							"public Story calls return independent cards and leave earlier results unchanged")
-					end
-				end
+	for _, rootHeight in ipairs({ 720, 1080, 1282.5 }) do
+		for _, rootWidth in ipairs({ false, 1932, 1936, 1939.75, 1940, 1940.25, 2560 }) do
+			for _, guide in ipairs({ false, true }) do
+				local old = Before.Story(name, rootHeight, guide, "medallions", rootWidth or nil)
+				local new = Layouts.Story(name, rootHeight, guide, rootWidth or nil)
+				assert(Same(old, new), name .. ": preserve Story with nil width and at the rail threshold " .. tostring(rootWidth))
+				local snapshot = Before.Story(name, rootHeight, guide, "medallions", rootWidth or nil)
+				local again = Layouts.Story(name, rootHeight, not guide, rootWidth or nil)
+				assert(new ~= again and new.quests ~= again.quests and Same(new, snapshot),
+					"public Story calls return independent cards and leave earlier results unchanged")
 			end
 		end
 	end
 end
 
-Check("Healer", "frames", { 1024, 768 }, Enabled("Healer", "UnitFrames", false))
+Check("Healer", { 1024, 768 }, Enabled("Healer", "UnitFrames", false))
 do
 	local enabled = Enabled("DPS", "UnitFrames", true)
 	for _, element in ipairs(Layouts.ELEMENTS) do
 		enabled[element.key] = element.module == "UnitFrames"
 	end
-	Check("DPS", "frames", { 1280, 1024 }, enabled)
+	Check("DPS", { 1280, 1024 }, enabled)
 end
 do
 	local on = {}
@@ -107,18 +106,16 @@ do
 	for _, element in ipairs(Layouts.ELEMENTS) do
 		enabled[element.key] = on[element.key] == true
 	end
-	Check("DPS", "orbs", { 1920, 1200 }, enabled)
+	Check("DPS", { 1920, 1200 }, enabled)
 end
 do
 	local retained = {}
 	for _, name in ipairs(Layouts.Names()) do
-		for _, style in ipairs({ "orbs", "frames", "medallions" }) do
-			retained[#retained + 1] = { Check(name, style, { 1920, 1080 }) }
-		end
+		retained[#retained + 1] = { Check(name, { 1920, 1080 }) }
 	end
 	for _, size in ipairs({ 1.5, 1.3, 1, 0.6, 1.5 }) do
 		for _, pair in ipairs(retained) do
-			assert(pair[1](size) == pair[2](size), "retained predicates must keep their own preset and style Story cards")
+			assert(pair[1](size) == pair[2](size), "retained predicates must keep their own preset's Story cards")
 		end
 	end
 end
@@ -131,7 +128,7 @@ do
 	for _, element in ipairs(Layouts.ELEMENTS) do
 		enabled[element.key] = on[element.key] == true
 	end
-	Check("Tank", "medallions", { 1920, 1200 }, enabled)
+	Check("Tank", { 1920, 1200 }, enabled)
 	for _, key in ipairs({ "unitframes.player", "unitframes.target", "unitframes.pet" }) do
 		for name in pairs(enabled) do
 			enabled[name] = name == key
@@ -139,7 +136,7 @@ do
 		local positions = Layouts.Positions("DPS", "medallions", "16:9")
 		positions[key] = { anchor = key == "unitframes.target" and "BOTTOMRIGHT" or "BOTTOMLEFT", x = 0, y = 200 }
 		assert(Before.Fits("DPS", 1920, 1080, 1, enabled, positions, "medallions") ==
-			Layouts.Fits("DPS", 1920, 1080, 1, enabled, positions, "medallions"), "keep the medallion overhang inside the screen: " .. key)
+			Layouts.Fits("DPS", 1920, 1080, 1, enabled, positions), "keep the medallion overhang inside the screen: " .. key)
 	end
 end
 do
@@ -150,11 +147,11 @@ do
 	for _, element in ipairs(Layouts.ELEMENTS) do
 		enabled[element.key] = on[element.key] == true
 	end
-	Check("Tank", "orbs", { 1641, 462 }, enabled)
+	Check("Tank", { 1641, 462 }, enabled)
 end
 do
 	Layouts.MEDALLIONS_MEDALS["unitframes.focus"] = { side = 1, d = 86 }
-	local state = Layouts.PrepareFits("DPS", 1920, 1080, Layouts.Enabled("DPS"), nil, "medallions")
+	local state = Layouts.PrepareFits("DPS", 1920, 1080, Layouts.Enabled("DPS"), nil)
 	Layouts.MEDALLIONS_MEDALS["unitframes.focus"] = nil
 	assert(state.rects[#Layouts.ELEMENTS + 6], "size the rect buffer for every medallion entry, including a fourth medal")
 end
@@ -164,7 +161,7 @@ Layouts.Footprint = function(name, key)
 	reads[key] = (reads[key] or 0) + 1
 	return footprint(name, key)
 end
-Layouts.ScaleLimit(1922, 1080, "DPS", nil, "frames")
+Layouts.ScaleLimit(1922, 1080, "DPS", nil)
 Layouts.Footprint = footprint
 for _, element in ipairs(Layouts.ELEMENTS) do
 	assert(reads[element.key] == 1, element.key .. ": hoist the footprint once per search, including Story and the search span")
@@ -175,7 +172,7 @@ Layouts.Story = function(...)
 	calls = calls + 1
 	return story(...)
 end
-local _, fits = Layouts.ScaleLimit(1921, 1080, "DPS", nil, "frames")
+local _, fits = Layouts.ScaleLimit(1921, 1080, "DPS", nil)
 fits(0.8)
 local first = calls
 fits(0.8)
@@ -185,26 +182,24 @@ assert(calls == first + 1, "a different root height must refresh the reusable St
 Layouts.Story = story
 
 for _, name in ipairs(Layouts.Names()) do
-	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-		for _, screen in ipairs(screens) do
-			Check(name, style, screen)
-		end
-		local enabled = Layouts.Enabled(name)
-		enabled["actionbars.bar3"], enabled["groupframes.party"], enabled["groupframes.raid"] = true, true, true
-		Check(name, style, screens[1], enabled)
-		for key in pairs(enabled) do
-			enabled[key] = false
-		end
-		Check(name, style, screens[3], enabled)
+	for _, screen in ipairs(screens) do
+		Check(name, screen)
 	end
+	local enabled = Layouts.Enabled(name)
+	enabled["actionbars.bar3"], enabled["groupframes.party"], enabled["groupframes.raid"] = true, true, true
+	Check(name, screens[1], enabled)
+	for key in pairs(enabled) do
+		enabled[key] = false
+	end
+	Check(name, screens[3], enabled)
 end
 
-local before = Layouts.Story("DPS", 1080, true, "frames", 1920)
+local before = Layouts.Story("DPS", 1080, true, 1920)
 local copy = Layouts.Get("DPS")
 copy["unitframes.targettarget"].x = 1e9
 assert(Layouts.Get("DPS")["unitframes.targettarget"].x ~= 1e9,
 	"keep Get copying every position: a caller must not edit the stored layout")
-local after = Layouts.Story("DPS", 1080, true, "frames", 1920)
+local after = Layouts.Story("DPS", 1080, true, 1920)
 assert(after.quests.height == before.quests.height and after.guide.height == before.guide.height,
 	"keep Get copying: caller edits must not change the stored Story layout")
 assert(#env._errors == 0, "the identity fixture raised no addon errors")

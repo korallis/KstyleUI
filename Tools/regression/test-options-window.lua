@@ -212,7 +212,6 @@ do
 	assert(win:GetAlpha() == 1, "the window fades in to full alpha")
 	assert(win:GetFrameStrata() == "HIGH", "the window sits in the HIGH strata")
 	assert(win.chrome and win.chrome.shapeName == "window", "the settings window, a titled window, wears the window grade's 12-unit chamfer, not the panel's 8")
-	assert(win.chrome.ornament == nil, "the settings window carries no crest: the bible allows ornament on card corners and the heading rule only")
 	local rp, rto, rtoPoint = win.rule:GetPoint(1)
 	local ep, eto, etoPoint = win.rule:GetPoint(2)
 	assert(rp == "LEFT" and rto == win.title and rtoPoint == "RIGHT" and ep == "RIGHT" and eto == ns.Window.Parts().search and etoPoint == "LEFT", "the quest card's heading rule runs from the title to the search box")
@@ -239,9 +238,9 @@ end
 do
 	local parts = ns.Window.Parts()
 	local sections = railSections(ns)
-	assert(sections[1] == "HUD" and sections[2] == "Accent" and has(sections, "Panel appearance"), "General's level-1 headers sit under it in the rail, the HUD style first: " .. table.concat(sections, "|"))
+	assert(sections[1] == "Accent" and has(sections, "Panel appearance"), "General's level-1 headers sit under it in the rail: " .. table.concat(sections, "|"))
 	local entries = O.Labels(parts.rail:GetData())
-	assert(entries[1] == "General" and entries[2] == "HUD" and entries[#sections + 2] == "Elements", "the sections follow their page and the next page follows them: " .. table.concat(entries, "|"))
+	assert(entries[1] == "General" and entries[2] == "Accent" and entries[#sections + 2] == "Elements", "the sections follow their page and the next page follows them: " .. table.concat(entries, "|"))
 	assert(ns.Window.State().section == 1, "the first section is current while the rows sit at their top")
 
 	local function firstRow()
@@ -625,26 +624,6 @@ do
 	W.Click(ns2.Window.Parts().layoutButton)
 	assert(W.CoreEnv.Printed(env2, "Layout Mode is not available"), "the Layout Mode button says it is not available")
 	assert(#env2._errors == 0, "errors: " .. table.concat(env2._errors, "\n"))
-end
-
--- The HUD style row at the top of General: a picture card per style, the saved one edged in the accent, a click saves.
-do
-	local env3, K3, ns3 = boot(true)
-	assert(K3.Options.Open("General") == true)
-	settle(env3)
-	local pictures = rowFor(ns3, "HUD style").controls.pictures
-	assert(pictures and #pictures.cards == 3, "the HUD style row shows three picture cards")
-	local frames, orbs, medallions = pictures.cards[1], pictures.cards[2], pictures.cards[3]
-	assert(frames.value == "frames" and orbs.value == "orbs" and medallions.value == "medallions", "Frames, Orbs, then Medallions")
-	assert(medallions.picture:GetTexture() == (K3.Tokens.Texture("hudStyleMedallions")), "the Medallions card shows its picture")
-	assert(frames.picture:GetTexture() == (K3.Tokens.Texture("hudStyleFrames")) and orbs.picture:GetTexture() == (K3.Tokens.Texture("hudStyleOrbs")), "each card shows its picture")
-	W.Click(orbs)
-	settle(env3)
-	assert(K3.HudStyle.Saved() == "orbs", "a click on Orbs saves it")
-	W.Click(medallions)
-	settle(env3)
-	assert(K3.HudStyle.Saved() == "medallions", "a click on Medallions saves it")
-	assert(#env3._errors == 0, "errors: " .. table.concat(env3._errors, "\n"))
 end
 
 print("options window ok")

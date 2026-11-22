@@ -1,9 +1,9 @@
--- test-hud-material-dps.lua: the raw DPS reference HUD draws every card in the selected material, and the audit fails when a card opts out.
+-- test-hud-material-dps.lua: the raw DPS reference HUD draws every card in the Medallions steel, and the audit fails when a card opts out.
 local Lib = dofile("Tools/regression/hud_material_lib.lua")
 
-local scene = Lib.Build("DPS", "ForgedBrackets")
-local cards = Lib.Audit(scene, "ForgedBrackets", Lib.ROLES.DPS)
-assert(#cards == 7, "DPS draws its guide, quest, chat, loot, damage, data bar and action bar tray cards, got " .. #cards)
+local scene = Lib.Build("DPS")
+local cards = Lib.Audit(scene, Lib.ROLES.DPS)
+assert(#cards == #Lib.ROLES.DPS, "DPS draws its guide, data strip and wing, minimap plaques, quest, chat, loot and damage cards, got " .. #cards)
 
 local function fails(mutate, reason, role)
 	local card
@@ -11,10 +11,10 @@ local function fails(mutate, reason, role)
 		card = card or (c.role == role and c)
 	end
 	local restore = mutate(card.chrome)
-	local ok, message = pcall(Lib.Audit, scene, "ForgedBrackets", Lib.ROLES.DPS)
+	local ok, message = pcall(Lib.Audit, scene, Lib.ROLES.DPS)
 	restore()
 	assert(not ok and tostring(message):find(reason, 1, true), "a card with " .. reason .. " passes the guard: " .. tostring(message))
-	assert(Lib.Audit(scene, "ForgedBrackets", Lib.ROLES.DPS), "restoring the card restores the pass")
+	assert(Lib.Audit(scene, Lib.ROLES.DPS), "restoring the card restores the pass")
 end
 
 for _, role in ipairs({ "story", "skins.quests", "meters.damage", "chat.main", "qol.lootfeed" }) do
@@ -41,38 +41,19 @@ for _, role in ipairs({ "story", "skins.quests", "meters.damage", "chat.main", "
 	end, "its own fill colour", role)
 end
 
-for _, card in ipairs(cards) do
-	if card.role == "databars.strip" then
-		local grain = card.drawn.grain[1].rect
-		local width = grain[3]
-		grain[3] = width / 2
-		local ok, message = pcall(Lib.AuditCard, card, "ForgedBrackets")
-		grain[3] = width
-		assert(not ok and tostring(message):find("grain covers a fraction of the card", 1, true), "a cropped top-bar grain must fail the material audit")
-	end
-end
-
 local chrome = cards[1].chrome
 local ok, message = pcall(function()
 	Lib.OPT_OUTS[cards[1].role] = "too short"
-	return Lib.Audit(scene, "ForgedBrackets", Lib.ROLES.DPS)
+	return Lib.Audit(scene, Lib.ROLES.DPS)
 end)
 Lib.OPT_OUTS[cards[1].role] = nil
 assert(not ok and tostring(message):find("needs its consumer's reason", 1, true), "an opt-out without a reason fails: " .. tostring(message))
 ok, message = pcall(function()
 	Lib.OPT_OUTS[cards[1].role] = string.rep("a card the consumer draws on purpose. ", 2)
-	return Lib.Audit(scene, "ForgedBrackets", Lib.ROLES.DPS)
+	return Lib.Audit(scene, Lib.ROLES.DPS)
 end)
 Lib.OPT_OUTS[cards[1].role] = nil
 assert(not ok and tostring(message):find("lists an opt-out but takes the material", 1, true), "an opt-out for a card that takes the material fails: " .. tostring(message))
 assert(next(Lib.OPT_OUTS) == nil, "no drawn reference card opts out")
 assert(chrome:Material(), "the audit leaves the chrome as it found it")
-
-local glass = Lib.Build("DPS", "Glass")
-Lib.Audit(glass, "Glass", Lib.ROLES.DPS)
-local forged, plain = Lib.Records(scene), Lib.Records(glass)
-assert(#forged == #plain, "paint changes no text, bar fill, swipe or element record: " .. #forged .. " against " .. #plain)
-for i = 1, #forged do
-	assert(forged[i] == plain[i], "paint changed a record:\n" .. forged[i] .. "\n" .. plain[i])
-end
 print("ok test-hud-material-dps")

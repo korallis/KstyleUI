@@ -46,8 +46,8 @@ Settings.defaults = {
 		neutral = false, neutralColor = Color("neutral"), minor = false, minorColor = Color("poor"),
 		normal = false, normalColor = Color("plateHostile"),
 	},
-	name = { show = true, size = 16, outline = "NONE", upper = true, classColor = false, afk = false, dnd = false, font = "", colorMode = "", color = Color("textEmphasis"), textFormat = "" },
-	level = { show = true, size = 13, outline = "NONE", font = "", colorMode = "", color = Color("giltLit"), x = 0, y = 0, diamond = 1 },
+	name = { show = true, size = 11, outline = "OUTLINE", upper = true, classColor = false, afk = false, dnd = false, font = "", colorMode = "", color = Color("textEmphasis"), textFormat = "" },
+	level = { show = true, size = 12, outline = "OUTLINE", font = "", colorMode = "", color = Color("giltLit"), x = 0, y = 0, diamond = 1 },
 	healthText = { show = false, size = 13, outline = "OUTLINE", format = "percent", font = "", colorMode = "", color = Color("textEmphasis"), textFormat = "" },
 	cast = {
 		enabled = true, outcomes = true, combatCues = true, shieldBadge = true, height = 6, texture = BAR_TEXTURE, orientation = "HORIZONTAL", reverse = false,
@@ -60,8 +60,8 @@ Settings.defaults = {
 	buffs = { enabled = false, filter = "important", place = "RIGHT", count = 3, showTime = true, dispelGlow = false },
 	ccs = { enabled = false, place = "LEFT", count = 2, showTime = true, first = false },
 	debuffs = {
-		enabled = true, onlyMine = true, dispellable = false, allowSpells = "", blockSpells = "", includePlateOnly = true, size = 29, spacing = 2, columns = 5, rows = 1, order = "important",
-		growthX = "LEFT", growthY = "UP", showTime = true, showCount = true, textSize = 13, outline = "OUTLINE", readableText = true, expiring = 5,
+		enabled = true, onlyMine = true, dispellable = false, allowSpells = "", blockSpells = "", includePlateOnly = true, size = 22, spacing = 2, columns = 5, rows = 1, order = "important",
+		growthX = "LEFT", growthY = "UP", showTime = true, showCount = true, textSize = 11, outline = "OUTLINE", readableText = true, expiring = 5,
 		timePlace = "BELOW", timeX = 0, timeY = 0, countPlace = "TOPRIGHT", countX = 0, countY = 0,
 		border = true, cropped = false, crop = 10, raise = false, dispelColor = false, pandemic = false, tooltips = false,
 		nameGap = Tokens.Size("gapMedium"), sunder = false,

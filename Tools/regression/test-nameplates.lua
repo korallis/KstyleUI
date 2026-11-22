@@ -253,9 +253,9 @@ do
 
 	N.Add(env, "nameplate3")
 	local normal = ns.Plates.Get("nameplate3")
-	local gr, gg, gb = token(K, "gilt")
+	local gr, gg, gb = token(K, "steel")
 	r, g, b = normal.level.rim:GetVertexColor()
-	assert(normal.rimWeight == 1 and SameColor(gr, gg, gb, r, g, b), "a normal unit's diamond keeps the plain one-pixel gilt rim")
+	assert(normal.rimWeight == 1 and SameColor(gr, gg, gb, r, g, b), "a normal unit's diamond keeps the plain one-pixel steel rim")
 	assert(not normal.raid:IsShown(), "no raid marker without one")
 
 	env._units.nameplate3.raid = 8
@@ -331,8 +331,8 @@ do
 	assert(not highlighted(K, one), "no target, no highlight")
 	N.Target(env, "nameplate1")
 	assert(highlighted(K, one) and not highlighted(K, two), "the target's plate is highlighted")
-	local ar, ag, ab = K.Tokens.Color("giltLit")
-	assert(SameColor(ar, ag, ab, one.brackets.sides[1].stroke:GetVertexColor()), "the brackets are lit gilt")
+	local ar, ag, ab = K.Tokens.Color("medText")
+	assert(SameColor(ar, ag, ab, one.brackets.sides[1].stroke:GetVertexColor()), "the bright target ticks are the Medallions text colour")
 	local kr, kg, kb = K.Tokens.Color("black")
 	assert(SameColor(kr, kg, kb, edgeColor(one.health)), "the target's bar keeps its black edge")
 	assert(one:GetAlpha() == 1 and two:GetAlpha() == 1, "other plates stay opaque by default")
@@ -344,10 +344,7 @@ do
 	assert(one:GetAlpha() == 1 and two:GetAlpha() == 1, "without a target nothing dims")
 	assert(not highlighted(K, one), "clearing the target clears the highlight")
 
-	K.Options.Write("Nameplates", "target.colorSource", "custom")
-	K.Options.Write("Nameplates", "target.color", { r = 0.9, g = 0.1, b = 0.1 })
 	N.Target(env, "nameplate2")
-	assert(SameColor(0.9, 0.1, 0.1, two.brackets.sides[2].stroke:GetVertexColor()), "the brackets can use a custom colour")
 
 	N.Focus(env, "nameplate1")
 	local fr, fg, fb = token(K, "rare")
@@ -396,9 +393,7 @@ do
 	assert(Last(plate.health, "SetStatusBarTexture")[1] == path, "the bar texture follows the setting")
 	K.Options.Write("Nameplates", "name.size", 14)
 	local font = Last(plate.name, "SetFont")
-	assert(font and font[2] == 14 and font[3] == "", "the name font size follows the setting")
-	K.Options.Write("Nameplates", "name.outline", "NONE")
-	assert(Last(plate.name, "SetFont")[3] == "", "no outline gives a soft shadow instead")
+	assert(font and font[2] == 14 and font[3] == "OUTLINE", "the name font size follows the setting and keeps the Medallions outline")
 	K.Options.Write("Nameplates", "health.orientation", "VERTICAL")
 	assert(Last(plate.health, "SetOrientation")[1] == "VERTICAL", "the bar orientation follows the setting")
 	K.Options.Write("Nameplates", "health.reverse", true)
@@ -409,10 +404,10 @@ do
 	assert(env.issecretvalue(text) and env.Reveal(text) == "40", "the value format abbreviates UnitHealth")
 end
 
--- Size: the KSTY-44 bible's plate (renders/KSTY-44/detail-nameplate-and-damage-numbers.jpg, 1 px per screen unit
--- at 1920x1080, where a root unit is 16/19 of a pixel). The bar keeps its 156.75-unit width and rounds its height to the shared 12 units, with a
--- one-pixel black edge and one of 45 percent black outside it. The level diamond sits left of the bar, clear of the
--- left bracket, and reads in lit gilt; the name is Cinzel caps at 16; no health text --------------------------------
+-- Size: the Medallions plate (KSTY-110). The plate constants keep the shared 156.75 by 12 base the Medallions look
+-- replaces: the bar draws 120 by 9 units, with a one-pixel black edge and one of 45 percent black outside it. No
+-- diamond draws; the level hangs left of the bar in Barlow at 12 units and the label colour when the game gives no
+-- difficulty; the name is Inter SemiBold caps at 11; no health text --------------------------------------------------
 
 do
 	local env, K, ns = N.New()
@@ -420,23 +415,25 @@ do
 	N.Add(env, "nameplate1", { name = "Riverglade Crocolisk", health = 40, maxHealth = 100, level = 38, reaction = 2 })
 	local plate = ns.Plates.Get("nameplate1")
 	local health = plate.health
-	assert(N.Same(env.Look(health:GetWidth()), K.Widgets.Snap(health, ns.Plate.DEFAULT_WIDTH)) and N.Same(env.Look(health:GetHeight()), K.Widgets.Snap(health, ns.Plate.DEFAULT_HEIGHT)), "the bar takes the snapped default size")
+	local M = ns.Medallions
+	assert(N.Same(env.Look(health:GetWidth()), K.Widgets.Snap(health, M.WIDTH)) and N.Same(env.Look(health:GetHeight()), K.Widgets.Snap(health, M.HEIGHT)), "the bar takes the snapped Medallions size")
 	local px = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(health)
 	local kx = select(4, health.under.edgeHard:GetPoint(1))
 	local hx = select(4, health.under.edgeSoft:GetPoint(1))
 	assert(N.Same(kx, -px) and N.Same(hx, -px * 2), "a one-pixel black edge, then one of 45 percent black")
 	assert(health.unitBar, "the bar is the shared unit bar, which draws the edge, the loss band and the hit flash")
-	local diamond = plate.level
-	assert(diamond:IsShown(), "the level diamond shows by default")
-	local point, relative, relativePoint, x = diamond:GetPoint(1)
-	assert(point == "RIGHT" and relative == health and relativePoint == "LEFT" and x < 0, "the diamond sits left of the bar")
-	assert(-x >= K.Widgets.Snap(plate, ns.Plate.BRACKET_REACH), "the diamond's right point stays clear of the left bracket")
-	assert(diamond:GetFrameLevel() > health:GetFrameLevel(), "the diamond draws over the bar")
+	for _, layer in ipairs(plate.level.layers) do
+		assert(not layer:IsShown(), "no diamond draws behind the level")
+	end
+	local point, relative, relativePoint, x = plate.levelText:GetPoint(1)
+	assert(point == "RIGHT" and relative == health and relativePoint == "LEFT" and x < 0, "the level hangs left of the bar")
 	assert(plate.name:GetText() == "RIVERGLADE CROCOLISK", "the name uses caps")
-	assert(select(2, plate.name:GetFont()) == 16, "the name reads at 16 units")
-	assert(select(2, plate.levelText:GetFont()) == 13, "the level at 13, 11 px at 1080p, the bible's floor")
+	local path, size = plate.name:GetFont()
+	assert(path == K.Tokens.FontPath("InterSemiBold") and size == 11, "the name reads in Inter SemiBold at 11 units")
+	path, size = plate.levelText:GetFont()
+	assert(path == (K.Tokens.Font("number")) and size == 12, "the level reads in the number face at 12 units")
 	local lr, lg, lb = plate.levelText:GetTextColor()
-	assert(N.SameColor(lr, lg, lb, K.Tokens.Color("giltLit")), "the level reads in lit gilt, as the mock-up's 6")
+	assert(N.SameColor(lr, lg, lb, K.Tokens.Color("medText")), "without a difficulty colour the level reads in the Medallions label colour")
 	assert(not plate.healthText:IsShown(), "no health text by default: the mock-up's plate shows none")
 	assert(plate.castBar.opts.height == 6, "the cast bar is 6 units tall")
 	assert(#env._errors == 0, tostring(env._errors[1]))

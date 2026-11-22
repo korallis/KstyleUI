@@ -81,7 +81,7 @@ for _, profile in ipairs({ customSettings, customLumen, customStyle }) do
 	profile.Meters = { followRole = false }
 	profile.Skins = { restedXP = { boxes = true } }
 	profile.DataBars = profile.DataBars or {}
-	profile.DataBars.strip = { enabled = true, placement = "top" }
+	profile.DataBars.strip = { enabled = true, placement = "dock" }
 end
 customLumen.UnitFrames.player.style = nil
 CoreEnv.Boot(env)

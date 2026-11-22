@@ -1,4 +1,4 @@
--- test-unitframes-parity-r4a-review.lua: the round 4a review's probes: the text bar clear of the frame's content with outside anchors fixed, tracked debuffs on the crest fan and for an unknown reaction, the preview's class icon, tints, Medallions boss cast and debuffs-only samples, every boss card cast height and the focus card, the switched-off tag pass and static tints, and the formatter's fallbacks.
+-- test-unitframes-parity-r4a-review.lua: the round 4a review's probes: the text bar clear of the frame's content with outside anchors fixed, tracked debuffs on the crest fan and for an unknown reaction, the preview's class icon, tints, Medallions boss cast and debuffs-only samples, the switched-off tag pass and static tints, and the formatter's fallbacks.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -10,11 +10,6 @@ local env, K, ns = U.New({
 
 local function set(key, value)
 	K.Options.Write("UnitFrames", key, value)
-	env.RunTimers()
-end
-
-local function hud(style)
-	K.Options.Write("HudStyle", "style", style)
 	env.RunTimers()
 end
 
@@ -46,12 +41,7 @@ end
 local target = ns.Frames.Get("target").views[1]
 set("target.auraPosition", "SIDE")
 set("target.textBarPlace", "TOP")
-local before = W.LastCall(target.auras.host, "SetPoint")
 set("target.textBar", true)
-local after = W.LastCall(target.auras.host, "SetPoint")
-assert(after[4] == before[4] and after[5] == before[5], "a top strip leaves the side auras where they were: " .. before[5] .. " then " .. after[5])
-clear(target, "Frames target, top", true)
-hud("medallions")
 local player = ns.Frames.Get("player").views[1]
 set("player.textBar", true)
 set("player.textBarIcon", "LEFT")
@@ -62,27 +52,7 @@ set("focus.textBarPlace", "ABOVE")
 clear(ns.Frames.Get("focus").views[1], "Medallions focus, above", true)
 set("focus.textBar", false)
 set("player.textBar", false)
-hud("frames")
-set("target.style", "bar")
-set("target.textBarPlace", "BOTTOM")
-set("target.textBarHeight", 40)
-local uf = ns.Frames.Get("target")
-uf.holder:SetSize(320, 80)
-ns.Frames.Relayout(uf)
-clear(target, "a short Wide bar")
-uf.holder:SetSize(320, 103)
-ns.Frames.Relayout(uf)
-clear(target, "a Wide bar with auras under it")
-set("target.textBarHeight", 16)
-hud("orbs")
-set("target.textBarLeft.textFormat", "[name]")
-clear(target, "the Orbs Wide bar, bottom")
-assert(not target.barRect or target.barRect.h >= 12, "a strip the auras squeeze keeps room for its 12-unit text")
-set("target.textBarPlace", "TOP")
-clear(target, "the Orbs Wide bar, top", true)
-hud("frames")
 set("target.textBar", false)
-set("target.style", "column")
 clean()
 
 -- 2. Only tracked debuffs follows the crest fan without frame auras, and an unknown reaction is not an enemy.
@@ -90,7 +60,6 @@ U.SetUnit(env, "target", { name = "Ogre", level = 60, health = 50, healthMax = 1
 env.FireEvent("PLAYER_TARGET_CHANGED")
 set("target.auraTracked", "999999")
 set("target.auraTrackedDebuffs", true)
-hud("medallions")
 set("auraLayout", "fan")
 set("target.crestDebuffs", true)
 set("target.auras", false)
@@ -106,7 +75,6 @@ env.FireEvent("UNIT_FACTION", "target")
 env.RunTimers()
 assert(not crest(), "a friend's debuffs all show on the crest again")
 set("target.auras", true)
-hud("frames")
 local assist = env.UnitCanAssist
 env.UnitCanAssist = nil
 local c = ns.Auras.Candidates(target, "debuffs")
@@ -138,7 +106,6 @@ pane:Refresh()
 local tint = W.LastCall(pane.views.focus.textBarLeft, "SetTextColor")
 assert(tint[1] == 1 and tint[2] == 0 and tint[3] == 0, "the preview keeps a custom colour: " .. tint[1] .. ", " .. tint[2] .. ", " .. tint[3])
 set("focus.textBar", false)
-hud("medallions")
 set("edit", "boss")
 set("boss.castbarWidth", 150)
 pane:Refresh()
@@ -146,7 +113,6 @@ local live = W.LastCall(ns.Frames.Get("boss").views[1].castbar.frame, "SetSize")
 local cast = pane.casts.boss
 assert(cast and cast.frame:IsShown() and math.abs(W.LastCall(cast.frame, "SetSize")[1] - live[1]) < 1, "the Medallions boss preview draws the cast bar the frame draws")
 set("boss.castbarWidth", 0)
-hud("frames")
 set("edit", "target")
 set("target.auraTracked", "999999")
 set("target.auraTrackedDebuffs", true)
@@ -163,21 +129,9 @@ set("target.auraFilter", "debuffs")
 set("target.auraTracked", "")
 clean()
 
--- 5. Every boss card cast height can be picked, the default stays 16, and the focus card keeps its line.
 U.SetUnit(env, "boss1", { name = "Magmatus", level = -1, classification = "worldboss", health = 41200, healthMax = 100000, reaction = 2, canAttack = true })
 env.FireEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
 local boss = ns.Frames.Get("boss").views[1]
-local heights = {}
-for i, h in ipairs({ 9, 10, 11 }) do
-	set("boss.castbarHeight", h)
-	heights[i] = boss.geometry.cast.h
-end
-assert(heights[1] < heights[2] and heights[2] == 16 and heights[2] < heights[3], "9, 10 and 11 draw three card lines: " .. table.concat(heights, ", "))
-set("boss.castbarHeight", 10)
-set("focus.castbarHeight", 24)
-assert(ns.Frames.Get("focus").views[1].geometry.cast.h == 16, "the focus card keeps its 16-unit line")
-set("focus.castbarHeight", 16)
-clean()
 
 -- 6. A strip switched off costs the tag pass nothing, and a health event leaves a static colour alone.
 local function count()
@@ -204,7 +158,7 @@ clean()
 assert(ns.Settings.defaults.targettarget.auraTrackedDebuffs == nil and ns.Settings.defaults.focustarget.auraTrackedDebuffs == nil, "their targets have no tracked debuffs")
 
 -- 8. A curve the client cannot make keeps the fixed places, and a comma decimal mark still trims.
-local function pct(view) return U.Shown(env, view.healthText):match("[%d%.,]+%%") end
+local function pct(region) return U.Shown(env, region):match("[%d%.,]+%%") end
 U.SetUnit(env, "target", { name = "Ogre", level = 62, health = 2000, healthMax = 4000, reaction = 2, canAttack = true })
 env.FireEvent("PLAYER_TARGET_CHANGED")
 set("target.healthText", "percent")
@@ -216,10 +170,10 @@ env.C_CurveUtil.CreateCurve = function() return nil end
 set("healthDecimalTrim", true)
 env._units.target.health = 2000
 env.FireEvent("UNIT_HEALTH", "target")
-assert(pct(target) == "50.0%", "no curve keeps one fixed place: " .. tostring(pct(target)))
+assert(pct(target.healthText) == "50.0%", "no curve keeps one fixed place: " .. tostring(pct(target.healthText)))
 env.C_CurveUtil.CreateCurve = function() error("no curve") end
 set("healthDecimalBoss", true)
-assert(pct(boss) == "41.20%", "a failing curve keeps two fixed places: " .. tostring(pct(boss)))
+assert(pct(boss.healthSub) == "41.20%", "a failing curve keeps two fixed places: " .. tostring(pct(boss.healthSub)))
 env.C_CurveUtil.CreateCurve = create
 clean()
 

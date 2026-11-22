@@ -3,7 +3,6 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 local env, K, ns = U.New()
 U.SetUnit(env, "target", { name = "Bandit", level = 12, health = 118, healthMax = 236, reaction = 2, creature = "Humanoid" })
 env.SetTarget(true)
-K.Options.Write("HudStyle", "style", "medallions")
 local view = ns.Frames.Get("target").views[1]
 assert(U.Shown(env, view.healthText) == "50%", "H3: the target slab leads with the target's percent")
 assert(U.Shown(env, view.healthSub) == "118 / 236" and view.healthSub:IsShown(), "current and max remain visible")

@@ -237,7 +237,7 @@ end
 
 -- The window fills the card's inner area (KSTY-33): the card's padding on the left, right and bottom, under a 34-unit tab row.
 -- The edit box takes the bottom of the window while it is open, unless the player wants it always shown: then it keeps its own
--- strip under the messages, inside the same padding. The overhaul's mock-up rules a faint gilt line under the tabs.
+-- strip under the messages, inside the same padding. The card's header band ends at the tab row's foot.
 do
 	local env, K, ns = C.New()
 	C.Enable(env, K)
@@ -254,13 +254,8 @@ do
 	assert(near(ns.Panel.Geometry(chat).right, g.right), "the message column does not move when the copy glyph is off")
 	K.Options.Write("Chat", "copyButton", true)
 	env.RunTimers()
-	local divider = ns.Panel.Glass().divider
-	assert(divider:IsShown(), "the mock-up draws a rule under the tabs")
-	local dp, drel, _, dx, dy = divider:GetPoint(1)
-	assert(dp == "TOPLEFT" and drel == ns.Panel.Glass() and near(dx, g.left) and near(dy, -g.divider), "across the card at the tab row's foot, inside the padding")
-	local dr, dg, db, da = divider:GetVertexColor()
-	local gr0, gg0, gb0 = K.Tokens.Color("gilt")
-	assert(near(dr, gr0) and near(dg, gg0) and near(db, gb0) and near(da, 0.35), "a faint gilt hairline")
+	local glass = ns.Panel.Glass()
+	assert(near(glass.chrome.headerUnits, g.divider + K.Widgets.Border(glass)), "the card's header band ends at the tab row's foot, got " .. tostring(glass.chrome.headerUnits))
 	K.Options.Write("Chat", "editBox", "always")
 	env.RunTimers()
 	g = ns.Panel.Geometry(chat)
@@ -435,32 +430,21 @@ end
 -- Glass opacity and shadow settings repaint the panel.
 do
 	local env, K, ns = C.New()
-	K.Options.Write("Widgets", "cardMaterial", "Glass")
 	C.Enable(env, K)
 	local holder = ns.Panel.Holder()
 	K.Options.Write("Chat", "panelOpacity", 0.4)
 	local glass = ns.Panel.Glass()
 	local fill = glass.chrome.fill[5]
 	local args = lastCall(fill, "SetVertexColor")
-	assert(args and near(args[4], 0.4), "the glass is 40% opaque")
+	local _, _, _, steel = K.Tokens.Color("medChatFill")
+	local _, _, _, surface = K.Tokens.Color("surface")
+	assert(args and near(args[4], math.min(1, steel * 0.4 / surface)), "chat opacity scales the Medallions chat fill relative to its authored strength")
+	assert(not glass.chrome.gilt[1]:IsShown(), "the Medallions steel hides the glass ticks")
 	K.Options.Write("Chat", "shadow", false)
 	assert(glass.chrome.shadow[1]:IsShown() == false, "no shadow")
 	K.Layout.Set("chat.main", "strata", "HIGH")
 	assert(holder:GetFrameStrata() == "HIGH", "Layout sets the element's strata")
 	assert(glass:GetFrameStrata() == "BACKGROUND" and W.LastCall(glass, "SetFixedFrameStrata")[1] == true, "the glass stays behind Blizzard's chat")
-end
-
-do
-	local env, K, ns = C.New()
-	C.Enable(env, K)
-	assert(K.Widgets.Setting("cardMaterial") == "ForgedBrackets", "chat inherits the forged default")
-	K.Options.Write("Chat", "panelOpacity", 0.4)
-	local chrome = ns.Panel.Glass().chrome
-	local r, g, b, a = K.Tokens.Color("materialForged")
-	assert(W.SameColor(chrome.fill[5], r, g, b, math.min(1, a * 0.4 / 0.75)), "chat opacity scales the forged fill relative to its authored strength")
-	assert(chrome.grain:IsShown() and chrome.materialFrame[1]:IsShown() and chrome.materialBrackets[1]:IsShown(), "chat keeps the forged grain, frame and brackets")
-	assert(not chrome.gilt[1]:IsShown(), "brackets replace the glass ticks")
-	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
 -- The edit box shows only while the player types: at rest its alpha is 0, whatever Blizzard set, and a box being
@@ -527,23 +511,21 @@ do
 	local parts = K.Skin.Parts(tab)
 	assert(K.Store.Module("Chat").tabStyle == "underline", "the overhaul's mock-up underlines the selected tab by default")
 	local tr, tg, tb = tab.Text:GetTextColor()
-	local gr, gg, gb = K.Tokens.Color("capsGold")
-	assert(near(tr, gr) and near(tg, gg) and near(tb, gb), "the selected tab is gilt")
+	local gr, gg, gb = K.Widgets.Rgba("capsGold")
+	assert(near(tr, gr) and near(tg, gg) and near(tb, gb), "the selected tab is capsGold's Medallions steel")
 	env.FCFTab_UpdateColors(env.ChatFrame2Tab, false)
 	local ur, ug, ub = env.ChatFrame2Tab.Text:GetTextColor()
 	local dr0, dg0, db0 = K.Tokens.Color("labelMuted")
 	assert(near(ur, dr0) and near(ug, dg0) and near(ub, db0), "the other tab is the readable muted caption")
-	assert(parts.underline:IsShown(), "the underline style draws the gilt line")
+	assert(parts.underline:IsShown(), "the underline style draws the line")
 	local line = parts.underline
 	local lp, lrel, _, lx = line:GetPoint(1)
 	local rp, rrel, _, rx = line:GetPoint(2)
 	assert(lp == "BOTTOMLEFT" and lrel == tab.Text and near(lx, -K.Widgets.Snap(tab, 2)) and rp == "BOTTOMRIGHT" and rrel == tab.Text and near(rx, K.Widgets.Snap(tab, 2)), "the underline follows the ink with two units each side")
 	assert(near(line:GetHeight(), K.Widgets.Snap(line, 1)), "the underline is one unit: the mockup's thin line")
-	local ar, ag, ab = K.Widgets.LumenColor("gilt")
+	local ar, ag, ab = K.Widgets.LumenColor("accent")
 	local lr, lg, lb = line:GetVertexColor()
-	assert(near(lr, ar) and near(lg, ag) and near(lb, ab), "the underline is gilt: the Lumen punctuation on the active tab")
-	local cr, cg, cb = K.Theme.Accent()
-	assert(not (near(lr, cr) and near(lg, cg) and near(lb, cb)), "not the class colour")
+	assert(near(lr, ar) and near(lg, ag) and near(lb, ab), "the underline is the accent: the Medallions punctuation on the active tab")
 	local glow = parts.chatGlow
 	assert(glow and glow:IsShown(), "a glow rises from the underline")
 	assert(near(glow:GetHeight(), K.Widgets.Snap(glow, 5)), "the glow is 5 units tall")
@@ -809,21 +791,19 @@ do
 end
 
 
--- Framing (KSTY-50): a framed card in the Frames HUD style, bare text on a soft shadow in Orbs, and a setting that
--- overrides either. Bare hides the card's material and the rule, shows a soft dark shade reaching past the text, and
--- (KSTY-60 item 28) that shade is three overlapping radial falloffs, as the KSTY-44 mock-up's radial gradient, with no
--- flat interior or straight edge to read as a slab, and it follows the panel's size; and it
--- keeps the tabs out of sight until the pointer is on the chat. The HUD style is read through K.HudStyle.Current,
--- and without it the chat is Frames.
+-- Framing (KSTY-50): a framed card by default, and a setting that leaves the chat bare text on a soft shadow. Bare hides
+-- the card's material, shows a soft dark shade reaching past the text, and (KSTY-60 item 28) that shade is three
+-- overlapping radial falloffs, as the KSTY-44 mock-up's radial gradient, with no flat interior or straight edge to read
+-- as a slab, and it follows the panel's size; and it keeps the tabs out of sight until the pointer is on the chat.
 do
 	local env, K, ns = C.New()
 	C.Enable(env, K)
 	env.RunTimers()
 	local Panel = ns.Panel
 	local glass, holder = Panel.Glass(), Panel.Holder()
-	assert(K.Store.Module("Chat").framing == "auto", "the chat follows the HUD style by default")
+	assert(K.Store.Module("Chat").framing == "card", "the chat is a framed card by default")
 	local function bare()
-		return not glass.chrome.visible and not glass.divider:IsShown()
+		return not glass.chrome.visible
 	end
 	local function shaded()
 		local shown = 0
@@ -834,16 +814,10 @@ do
 		end
 		return shown
 	end
-	assert(not bare() and shaded() == 0, "with no HUD style the chat is the framed card")
-	local style = "frames"
-	local had = K.HudStyle
-	K.HudStyle = { Current = function()
-		return style
-	end }
-	style = "orbs"
-	K.Options.Write("Chat", "framing", "auto")
+	assert(not bare() and shaded() == 0, "by default the chat is the framed card")
+	K.Options.Write("Chat", "framing", "bare")
 	env.RunTimers()
-	assert(bare(), "in Orbs the card's material and the rule hide")
+	assert(bare(), "bare hides the card's material")
 	assert(shaded() == 3, "and a soft shade of three radial falloffs lies behind the text")
 	local function reach()
 		local hw, hh = holder:GetSize()
@@ -882,16 +856,8 @@ do
 	assert(env.GENERAL_CHAT_DOCK:GetAlpha() == 0, "and they go when it leaves the tab")
 	K.Options.Write("Chat", "framing", "card")
 	env.RunTimers()
-	assert(not bare() and shaded() == 0 and env.GENERAL_CHAT_DOCK:GetAlpha() > 0, "the setting frames the chat in Orbs too")
+	assert(not bare() and shaded() == 0 and env.GENERAL_CHAT_DOCK:GetAlpha() > 0, "the setting frames the chat again")
 	assert(select(3, env.ChatFrame1:GetFont()) == "", "framed lines keep the soft shadow alone")
-	style = "frames"
-	K.Options.Write("Chat", "framing", "bare")
-	env.RunTimers()
-	assert(bare() and shaded() == 3, "and leaves it bare in Frames")
-	K.Options.Write("Chat", "framing", "auto")
-	env.RunTimers()
-	assert(not bare(), "auto in Frames is the card again")
-	K.HudStyle = had
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

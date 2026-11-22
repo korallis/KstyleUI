@@ -17,7 +17,7 @@ local function sameText(a, b, what)
 	assert(near(ar, br) and near(ag, bg) and near(ab, bb), what .. ": " .. table.concat({ tostring(ar), tostring(ag), tostring(ab) }, ",") .. " against " .. table.concat({ tostring(br), tostring(bg), tostring(bb) }, ","))
 end
 
-local env, K, ns = C.New()
+local env, K = C.New()
 C.Enable(env, K)
 env.RunTimers()
 local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
@@ -37,7 +37,7 @@ for _, style in ipairs({ "underline", "plain", "filled", "minimal" }) do
 	assert(preview.underline:IsShown() == parts.underline:IsShown(), style .. ": the underline shows in both or in neither")
 	assert(preview.glow:IsShown() == parts.chatGlow:IsShown(), style .. ": and so does its glow")
 	if parts.underline:IsShown() then
-		same(preview.underline, parts.underline, style .. ": the underline is the live one's gilt")
+		same(preview.underline, parts.underline, style .. ": the underline is the live one's colour")
 	end
 	local tile = parts.backdrop
 	assert(preview.fill:IsShown() == (tile ~= nil and tile:IsShown()), style .. ": the filled tile shows in both or in neither")
@@ -45,10 +45,9 @@ end
 
 K.Options.Write("Chat", "tabStyle", "underline")
 preview:Refresh()
-local gr, gg, gb = K.Widgets.LumenColor("gilt")
+local gr, gg, gb = K.Widgets.LumenColor("accent")
 local ur, ug, ub = preview.underline:GetVertexColor()
-assert(near(ur, gr) and near(ug, gg) and near(ub, gb), "the preview's selected tab is underlined in gilt, never the class accent")
-same(preview.divider, ns.Panel.Glass().divider, "the rule under the preview's tabs is the panel's")
+assert(near(ur, gr) and near(ug, gg) and near(ub, gb), "the preview's selected tab is underlined in the Medallions accent")
 
 local gallery = assert(io.open("Tools/render/scenes/gallery_chat.lua", "rb"))
 local source = gallery:read("*a")

@@ -60,34 +60,6 @@ PORTRAIT_RADIUS_SHARE = 8 / 44
 # the card's own 14-unit rounded shape is cut out, so translucent glass shows the world through it, not its shadow.
 LUMEN_SHADOW_REACH, LUMEN_SHADOW_DROP, LUMEN_SHADOW_RADIUS, LUMEN_SHADOW_BLUR = 14, 3, 6, 3.5
 SHEEN_REACH = 0.55  # the bar sheen fades from the top to nothing 55% of the way down, as the mockup's .bar i
-# The Orbs HUD style's orb (KSTY-46), drawn from the KSTY-44 mock-up's CSS: the empty orb's dark glass lit from 34% down,
-# a rim that darkens from 52% of the radius out, the four glints of its glass, and liquid shaded as a cylinder whose
-# edges keep 55% of the centre's light. The game tints the glass, the liquid and its surface with SetVertexColor and
-# SetStatusBarColor, so the back keeps the mock-up's light ratios (#2b1414, #150909 at 52%, #050202) with its centre white.
-ORB_BACK_STOPS = ((0.0, 1.0), (0.52, 0.49), (1.0, 0.12))
-ORB_BACK_LIGHT = 0.34
-# The liquid's surface (KSTY-63): the mock-up's lit ellipse, as wide as the orb and 11% as tall, lit from 35% down its
-# height, its top edge a white line at 55% and a soft shadow 2 units under it at 35%. OrbSurface holds the ellipse's
-# light for the liquid's colour; OrbSurfaceLight holds the white line, the white sheen at its lit point and the shadow.
-ORB_SURFACE_SIZE = (256, 64)
-ORB_SURFACE_RY = 14
-ORB_SURFACE_STOPS = ((0.0, 1.0), (0.38, 0.92), (0.78, 0.72), (1.0, 0.58))
-ORB_SURFACE_LIT = 0.35
-ORB_SURFACE_SHEEN = ((0.0, 0.45), (0.55, 0.0))
-ORB_SURFACE_RIM = (0.86, 0.55)
-ORB_SURFACE_SHADOW = (3, 7, 0.35)
-ORB_RIM_STOPS = ((0.0, 0.0), (0.52, 0.0), (0.78, 0.55), (1.0, 0.9))
-ORB_GLINTS = (
-    (0.37, 0.15, 0.30, 0.15, ((0.0, 0.5), (0.6, 0.14), (1.0, 0.0))),
-    (0.29, 0.24, 0.20, 0.20, ((0.0, 0.62), (0.35, 0.18), (1.0, 0.0))),
-    (0.56, 0.90, 0.46, 0.22, ((0.0, 0.13), (1.0, 0.0))),
-    (0.68, 0.82, 0.22, 0.22, ((0.0, 0.14), (1.0, 0.0))),
-)
-ORB_LIQUID_EDGE = 0.55
-# The glass darkens the orb's lower half, liquid and empty glass alike, so the fill reads as a lit sphere.
-ORB_FOOT_STOPS = ((0.0, 0.0), (0.5, 0.0), (1.0, 0.38))
-ORB_GLINTS_SHARP = (ORB_GLINTS[0], (0.29, 0.24, 0.20, 0.20, ((0.0, 0.85), (0.12, 0.82), (0.18, 0.28), (0.35, 0.18), (1.0, 0.0))), *ORB_GLINTS[2:])
-ORB_FOOT_STOPS_SHARP = ((0.0, 0.0), (0.5, 0.0), (1.0, 0.22))
 # The bevelled ring: the mockup's portrait ring is a thin metal line, a dark bronze outer edge, a bright middle and
 # the accent inside (3 px on a 118 px disc at 1.348 px per unit), with the dark disc showing 2 px outside it. On the
 # 128-texel texture the line runs from radius 57 to 62; the shading sits in the colour channels so one tint, the
@@ -379,11 +351,6 @@ def chamfered_diamond(cx, cy, reach, cut):
 
 
 # Drawings ----------------------------------------------------------------------------------------
-
-
-def draw_square(size):
-    """A plain square that fills the texture: every texel opaque white."""
-    return white([1.0] * (size * size))
 
 
 def rounded_spans(x0, y0, x1, y1, radius):
@@ -682,11 +649,6 @@ def disc_spans(centre, radius):
     return spans
 
 
-def at_centres(width, height, fn):
-    """fn(u, v) at each pixel's centre, u and v from 0 to 1: for gradients too smooth to need supersampling."""
-    return [fn((px + 0.5) / width, (py + 0.5) / height) for py in range(height) for px in range(width)]
-
-
 def ramp(stops, t):
     """Linear interpolation through (position, value) stops."""
     if t <= stops[0][0]:
@@ -699,82 +661,6 @@ def ramp(stops, t):
 
 def draw_orb_mask(size):
     return white(sample_spans(size, size, disc_spans(size / 2, size / 2 - 1)))
-
-
-def draw_orb_back(size):
-    coverage = sample_spans(size, size, disc_spans(size / 2, size / 2 - 1))
-    reach = math.hypot(0.5, 1 - ORB_BACK_LIGHT)
-
-    def level(u, v):
-        return ramp(ORB_BACK_STOPS, math.hypot(u - 0.5, v - ORB_BACK_LIGHT) / reach)
-
-    return shaded(at_centres(size, size, level), coverage)
-
-
-def draw_orb_glass(size, glints=ORB_GLINTS, foot_stops=ORB_FOOT_STOPS):
-    disc = sample_spans(size, size, disc_spans(size / 2, size / 2 - 1))
-
-    def spot(cx, cy, rx, ry, stops):
-        return [c * ramp(stops, math.hypot((u - cx) / rx, (v - cy) / ry)) for c, (u, v) in zip(disc, (
-            ((px + 0.5) / size, (py + 0.5) / size) for py in range(size) for px in range(size)))]
-
-    foot = [c * ramp(foot_stops, (py + 0.5) / size) for c, py in zip(disc, (py for py in range(size) for _ in range(size)))]
-    layers = [((0, 0, 0, 1), foot), ((0, 0, 0, 1), spot(0.5, 0.5, 0.5, 0.5, ORB_RIM_STOPS))]
-    for cx, cy, rx, ry, stops in glints:
-        layers.append(((255, 255, 255, 1), spot(cx, cy, rx, ry, stops)))
-    return composite(size, size, layers)
-
-
-def draw_orb_liquid(width, height):
-    def level(x):
-        t = (x / width - 0.5) * 2
-        return ORB_LIQUID_EDGE + (1 - ORB_LIQUID_EDGE) * math.sqrt(max(0.0, 1 - t * t))
-
-    return grey(sample_columns(width, height, level))
-
-
-def ellipse_spans(cx, cy, rx, ry):
-    def spans(y):
-        t = (y - cy) / ry
-        if abs(t) > 1:
-            return []
-        half = rx * math.sqrt(1 - t * t)
-        return [(cx - half, cx + half)]
-
-    return spans
-
-
-def orb_surface_shape(width, height):
-    """The surface ellipse's coverage and its normalised radius at each pixel centre, lit point and all."""
-    cx, cy, rx, ry = width / 2, height / 2, width / 2 - 1, ORB_SURFACE_RY
-    coverage = sample_spans(width, height, ellipse_spans(cx, cy, rx, ry))
-    lit = cy - ry + 2 * ry * ORB_SURFACE_LIT
-    radius, from_lit, shadow = [], [], []
-    drop, blur, _ = ORB_SURFACE_SHADOW
-    for py in range(height):
-        for px in range(width):
-            x, y = px + 0.5, py + 0.5
-            radius.append(math.hypot((x - cx) / rx, (y - cy) / ry))
-            from_lit.append(math.hypot((x - cx) / rx, (y - lit) / ry))
-            below = math.hypot((x - cx) / rx, (y - cy - drop) / ry)
-            shadow.append(1 - smoothstep(1 - blur / ry / 2, 1 + blur / ry, below))
-    return coverage, radius, from_lit, shadow
-
-
-def draw_orb_surface(width, height):
-    coverage, _, from_lit, _ = orb_surface_shape(width, height)
-    return shaded([ramp(ORB_SURFACE_STOPS, min(1.0, t)) for t in from_lit], coverage)
-
-
-def draw_orb_surface_light(width, height):
-    coverage, radius, from_lit, shadow = orb_surface_shape(width, height)
-    cy, ry = height / 2, ORB_SURFACE_RY
-    band, rim = ORB_SURFACE_RIM
-    tops = [max(0.0, min(1.0, (cy - (py + 0.5)) / ry)) for py in range(height) for _ in range(width)]
-    shade = [s * ORB_SURFACE_SHADOW[2] * (1 - c) for s, c in zip(shadow, coverage)]
-    sheen = [c * ramp(ORB_SURFACE_SHEEN, t) for c, t in zip(coverage, from_lit)]
-    line = [c * rim * smoothstep(band, 1.0, r) * math.sqrt(top) for c, r, top in zip(coverage, radius, tops)]
-    return composite(width, height, [((0, 0, 0, 1), shade), ((255, 255, 255, 1), sheen), ((255, 255, 255, 1), line)])
 
 
 def circle_spans(cx, cy, radius):
@@ -873,7 +759,7 @@ def _texture(name, width, height, draw, about, settings="4x4 supersampled"):
 
 LUMEN_ASSETS = {
     "LumenShape", "LumenOutline", "PillCapLeft", "PillCapRight", "BarSheen", "LensMask", "RuleFade",
-    "LumenShadow", "PortraitMask", "MinimapMask",
+    "LumenShadow", "PortraitMask",
 }
 PICTURE_ASSETS = {"CardShape", "SocketMask", *(f"RingLine{n}" for n in RING_LINES)}
 PICTURE_DRAWN = "2026-11-09"
@@ -931,9 +817,6 @@ ASSETS = [
     _texture("BarGlass", 256, 32, lambda: draw_bar(256, 32, "glass"),
              "Status bar fill whose top is 12% brighter than its bottom, the design's near-flat health fill.",
              "4x supersampled gradient"),
-    _texture("MinimapMask", 64, 64, lambda: draw_square(64),
-             "Plain square mask for Minimap:SetMaskTexture: opaque white to every edge, so the map keeps square corners, as the owner's picture draws it (LEE-20: the picture wins over #207's chamfer).",
-             "solid"),
     _texture("Dot", 64, 64, lambda: draw_dot(64), "Filled disc for toggle and slider knobs."),
     _texture("Pill", 64, 32, lambda: draw_pill(64, 32),
              f"Capsule for toggle and slider tracks. Each round cap is {PILL_CAP} texels wide, so a widget three-slices it."),
@@ -968,54 +851,29 @@ def _medallions(name, width, height, draw, about, slice_=None):
     return Asset(f"{MEDALLIONS}/{name}.png", width, height, draw, about, slice=slice_, drawn=MEDALLIONS_DRAWN)
 
 
-def material_pixels(name, width=256, height=256):
+def material_pixels(name, width, height):
     actual_width, actual_height, pixels = decode_png((ROOT / "Tools" / "media" / "materials" / f"{name}.png").read_bytes())
     if (actual_width, actual_height) != (width, height):
         raise ValueError(f"{name}: expected a prepared {width}x{height} RGBA source")
     return pixels
 
 
-for material_name in ("Slate", "Forged"):
-    ASSETS.append(Asset(
-        f"Media/Textures/Material{material_name}.png", 256, 256,
-        lambda name=material_name: material_pixels(name),
-        f"Prepared {material_name.lower()} grain for the optional card-material study.",
-        "Prepared source in Tools/media/materials; lighting removed, 16px seam repair; prompt below",
-        drawn="2026-11-10", maker="Higgsfield `gpt_image_2_6`; source-backed export by `Tools/media/make_media.py`",
-    ))
-
-for art_name, width, height, margin in (
-    ("ForgedFrame1", 32, 32, 8), ("ForgedFrame2", 64, 64, 16),
-	("ForgedFrame3", 128, 128, 24),
-    ("ForgedBracket1", 8, 8, None), ("ForgedBracket2", 16, 16, None),
-	("ForgedBracket3", 32, 32, None),
-    ("ForgedDiamond", 64, 64, None), ("ForgedRule", 256, 4, None),
-):
-    ASSETS.append(Asset(
-        f"Media/Textures/{art_name}.png", width, height,
-        lambda name=art_name, w=width, h=height: material_pixels(name, w, h),
-        "Original pixel-aligned forged-frame or header finish for the forged-material study.",
-        "Prepared source in Tools/media/materials; source palette and pixel construction recorded below",
-        slice=margin, drawn="2026-11-10", maker="Python/Pillow construction using original Higgsfield reference palettes",
-    ))
+ASSETS.append(Asset(
+    "Media/Textures/ForgedDiamond.png", 64, 64,
+    lambda: material_pixels("ForgedDiamond", 64, 64),
+    "Original pixel-aligned forged-frame or header finish for the forged-material study.",
+    "Prepared source in Tools/media/materials; source palette and pixel construction recorded below",
+    drawn="2026-11-10", maker="Python/Pillow construction using original Higgsfield reference palettes",
+))
 
 
 ORB_DRAWN = "2026-11-12"
-ORB_REDRAWN = {"OrbBack": "2026-11-18", "OrbGlass": "2026-11-18", "OrbBackSoft": "2026-11-13", "OrbSurface": "2026-11-13", "OrbSurfaceLight": "2026-11-13"}
-for orb_name, width, height, draw, about in (
-    ("OrbMask", 256, 256, lambda: draw_orb_mask(256), "Round mask for the Orbs HUD style's liquid: opaque white inside the orb's opening."),
-    ("OrbBack", 256, 256, lambda: draw_orb_back(256), "The empty orb: glass lit from 34% down, white at its lit point, so SetVertexColor gives each orb its own dark tint under the liquid."),
-    ("OrbGlass", 256, 256, lambda: draw_orb_glass(256, ORB_GLINTS_SHARP, ORB_FOOT_STOPS_SHARP), "The orb's sharp glass over the liquid: a rim that darkens towards the ring, four glints, the upper-left one with a hard core, and a foot shade that ends at 0.22."),
-    ("OrbBackSoft", 128, 128, lambda: draw_orb_back(128), "The empty orb at 128 texels, for the softer glass when Sharp orb glass is off."),
-    ("OrbGlassSoft", 128, 128, lambda: draw_orb_glass(128), "The orb's softer glass over the liquid, when Sharp orb glass is off: a rim that darkens towards the ring and four glints."),
-    ("OrbLiquid", 64, 64, lambda: draw_orb_liquid(64, 64), "Liquid fill for an orb's vertical status bar, shaded as a cylinder; SetStatusBarColor tints it."),
-    ("OrbSurface", *ORB_SURFACE_SIZE, lambda: draw_orb_surface(*ORB_SURFACE_SIZE), "The liquid's curved surface: an ellipse as wide as the orb and 11% as tall, lit from 35% down, centred on the fill's top edge and tinted with the liquid's colour; also the pale cap of the loss band."),
-    ("OrbSurfaceLight", *ORB_SURFACE_SIZE, lambda: draw_orb_surface_light(*ORB_SURFACE_SIZE), "The light over the surface ellipse: a white line along its top edge, a white sheen at its lit point and a soft shadow under it, drawn untinted."),
-):
-    ASSETS.append(Asset(f"Media/Textures/{orb_name}.png", width, height, draw, about, "centre sampled, disc edges 4x4 supersampled", drawn=ORB_REDRAWN.get(orb_name, ORB_DRAWN)))
+ASSETS.append(Asset("Media/Textures/OrbMask.png", 256, 256, lambda: draw_orb_mask(256),
+                    "Round mask: opaque white inside the disc; the Medallions hub's opening and the steel minimap stand-in mask with it.",
+                    "centre sampled, disc edges 4x4 supersampled", drawn=ORB_DRAWN))
 
 for orb_name, width, height, about in (
-    ("OrbRing", 512, 512, "Forged ring around an orb, with its four spikes; its opening is 70.1% of the texture."),
+    ("OrbRing", 512, 512, "Forged ring with four spikes, its opening 70.1% of the texture; the Medallions hawk timers' socket and swipe."),
 ):
     ASSETS.append(Asset(
         f"Media/Textures/{orb_name}.png", width, height,
@@ -1024,36 +882,6 @@ for orb_name, width, height, about in (
         "Prepared source in Tools/media/materials by Tools/media/orbs.py (centred on its opening, premultiplied Lanczos resample, light unsharp mask); prompt below",
         drawn=ORB_DRAWN, maker="Higgsfield (KSTY-44 job 5a7af16a, the ring); production pass by `Tools/media/orbs.py`",
     ))
-
-for orb_name, width, height, about in (
-    ("OrbArm", 128, 256, "The Orbs tray's arm: the forged bracket that joins an orb's ring to the tray, the tray hole's left edge at 47.2% across."),
-    ("OrbCrest", 256, 128, "The Orbs tray's centre crest over the top rail, between the two halves of action bar 2."),
-    ("OrbRail", 1024, 64, "The Orbs tray's top rail, one strip with cross-faded seams, stretched between the arms."),
-    ("OrbRailBottom", 1024, 64, "The Orbs tray's bottom rail, one strip with cross-faded seams, stretched between the arms."),
-):
-    ASSETS.append(Asset(
-        f"Media/Textures/{orb_name}.png", width, height,
-        lambda name=orb_name, w=width, h=height: material_pixels(name, w, h),
-        about,
-        "Prepared source in Tools/media/materials by Tools/media/orbs.py (cut from the base, rails joined from three segments, the last mirrored, with 40 px cross-fades, premultiplied Lanczos resample, light unsharp mask); prompt below",
-        drawn="2026-11-13", maker="Higgsfield (KSTY-44 job 0b133988-204e-4852-89b6-a73ce6714226, the base); production pass by `Tools/media/orbs.py`",
-    ))
-
-
-for picture_name, about in (
-    ("HudStyleFrames", "Frames: player and target frames, casts, cooldowns and two stacked action bars."),
-    ("HudStyleOrbs", "Orbs: health and resource orbs around two stacked action bars, with the cast bar above."),
-    ("HudStyleMedallions", "Medallions: unit frames over one twelve-button row on each side of the crest."),
-):
-    for extension in ("png", "tga"):
-        ASSETS.append(Asset(
-            f"Media/Textures/{picture_name}.{extension}", 1024, 512,
-            lambda name=picture_name: material_pixels(name, 1024, 512),
-            about,
-            "Tools/media/hud_pictures.py: current hud_reference, 1920x1080, Auto, DPS, Full ornaments, 1 px/unit over a UI-free crop of the owner's game_09.png; HUD crop and Lanczos to opaque 1024x512; identical PNG/TGA pixels",
-            drawn="2026-11-18", maker="KstyleUI render plus owner's game screenshot; no generated scenery",
-        ))
-
 
 ASSETS += [
     _medallions("CastShield", 64, 16, lambda: draw_med_cast_shield(64, 16),

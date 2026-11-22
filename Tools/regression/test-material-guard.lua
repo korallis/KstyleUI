@@ -9,13 +9,9 @@ for _, screen in ipairs(screens) do
 	local panel = K.Widgets.Panel(K.Scale.Root(), { width = 320, height = 200 })
 	panel:SetPoint("CENTER", K.Scale.Root(), "CENTER")
 	panel:SetScale(0.65)
-	for _, material in ipairs({ "Glass", "Flat", "Slate", "ForgedTicks", "ForgedBrackets" }) do
-		K.Store.Module("Widgets").cardMaterial = material
-		K.Widgets.RestyleAll()
-		panel.chrome:DrawSlices()
-		local findings = Guard.Check(Scene.Build(env))
-		assert(#findings == 0, material .. " chrome is not content: " .. (#findings > 0 and findings[1].subject or ""))
-	end
+	panel.chrome:DrawSlices()
+	local findings = Guard.Check(Scene.Build(env))
+	assert(#findings == 0, "steel chrome is not content: " .. (#findings > 0 and findings[1].subject or ""))
 	local icon = panel:CreateTexture(nil, "ARTWORK")
 	icon:SetSize(10, 10)
 	icon:SetColorTexture(1, 1, 1, 1)
@@ -26,16 +22,6 @@ for _, screen in ipairs(screens) do
 	end
 	assert(found, "an ordinary texture spilling past the card must still fail")
 	icon:Hide()
-	local bracket = panel.chrome.materialBrackets[1]
-	bracket:ClearAllPoints()
-	bracket:SetPoint("TOPLEFT", panel, "TOPLEFT", -5, 5)
-	found = false
-	for _, finding in ipairs(Guard.Check(Scene.Build(env))) do
-		found = found or finding.kind == "outside" and finding.object == bracket
-	end
-	assert(found, "a forged bracket outside its frame must still fail")
-	K.Store.Module("Widgets").cardMaterial = "Glass"
-	K.Widgets.RestyleAll()
 	local line = panel.chrome.line[2]
 	line:SetPoint("TOPLEFT", panel.chrome.line[1], "TOPRIGHT", 0, 5)
 	found = false
@@ -44,4 +30,4 @@ for _, screen in ipairs(screens) do
 	end
 	assert(found, "a solid border displaced outside its frame must still fail")
 end
-print("material guard: five materials on nine screens; spilled content and displaced borders rejected")
+print("material guard: steel cards on nine screens; spilled content and displaced borders rejected")

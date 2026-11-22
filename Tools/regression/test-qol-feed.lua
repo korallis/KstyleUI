@@ -383,15 +383,13 @@ for _, uiScale in ipairs({ 0.65, 768 / 1080, 1.15 }) do
 	end
 end
 
--- Framing (KSTY-50): the loot line follows the chat's framing. Over the bare chat of the Orbs HUD style it stands on
--- the world with no card, its texts outlined with the kit's shadow; back in Frames the card returns.
+-- Framing (KSTY-50): the loot line follows the chat's framing. Over the bare chat it stands on the world with no card,
+-- its texts outlined with the kit's shadow; with the chat framed the card returns.
 do
 	local env, K, ns = New()
-	local style = "orbs"
-	local had = K.HudStyle
-	K.HudStyle = { Current = function()
-		return style
-	end }
+	K.Store.RegisterDefaults("Chat", { framing = "card" })
+	K.Store.Module("Chat").framing = "bare"
+	K.Callbacks.Fire("SettingChanged", "Chat", "framing")
 	Loot(env, "You receive loot: " .. BUG_EYE)
 	local backdrop, line = ns.Feed.Backdrop(), ns.Feed.lines[1]
 	assert(line and line:IsShown() and line.name:GetText() == "Bug Eye", "the line shows")
@@ -399,13 +397,12 @@ do
 	local _, _, flags = line.name:GetFont()
 	local shadow = Q.W.LastCall(line.name, "SetShadowOffset")
 	assert(flags == "OUTLINE" and shadow and shadow[1] > 0, "its name stands on the world: an outline and the kit's shadow")
-	style = "frames"
-	ns.Feed.Holder().Restyle()
+	K.Store.Module("Chat").framing = "card"
+	K.Callbacks.Fire("SettingChanged", "Chat", "framing")
 	Settle(env)
-	assert(backdrop:IsShown(), "in Frames the card comes back")
+	assert(backdrop:IsShown(), "with the chat framed the card comes back")
 	_, _, flags = line.name:GetFont()
 	assert(flags ~= "OUTLINE", "and the name its card style")
-	K.HudStyle = had
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -421,5 +418,15 @@ do
 	Q.W.Tick(env, 0.15)
 	assert(ns.Feed.Backdrop():GetAlpha() == 1, "the feed fade ends within 150 ms")
 	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
+-- A long item name gets the rail's full width: the feed is the left rail's 318 units, the card and the name with it.
+do
+	local env, K, ns = New()
+	env._textWidth = function(text, _, size) return #text * size * 0.53 end
+	Loot(env, "You receive loot: " .. EPIC:gsub("Thunderfury", "Thunderfury, Blessed Blade of the Windseeker"))
+	local rail = K.Tokens.Size("railWidth")
+	assert(ns.Feed.Holder():GetWidth() == rail and ns.Feed.Backdrop():GetWidth() == rail, "the long name's card spans the " .. rail .. "-unit rail, got " .. ns.Feed.Backdrop():GetWidth())
+	assert(ns.Feed.lines[1].name:GetWidth() == 242, "the long name keeps 242 units, got " .. ns.Feed.lines[1].name:GetWidth())
 end
 print("qol feed ok")

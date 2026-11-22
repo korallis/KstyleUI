@@ -4,7 +4,6 @@ local _, ns = ...
 local Widgets = ns.Widgets
 local Tokens, Scale = ns.Tokens, ns.Scale
 
-local GEM_ALPHA = 1
 local RULE_ALPHA = 0.5
 local GEM_CENTRE = 7.4
 local GEM_SIZE = 8
@@ -26,35 +25,16 @@ function Widgets.CapsSize(text, plain, factor)
 	Widgets.ApplyFont(text, path, size * (factor or 1), ns.Theme.outline or flags, plain)
 end
 
-function Widgets.PaintCapRule(rule, alpha)
-	if Widgets.Medallions() then
-		rule:SetColorTexture(Widgets.Rgba("steel", 0))
-		rule:SetVertexColor(Tokens.Color("white"))
-		return nil
-	end
-	local material = Tokens.Material(Widgets.Setting("cardMaterial"))
-	if material and material.rule then
-		rule:SetTexture((Tokens.Texture(material.rule)))
-		rule:SetVertexColor(Widgets.Rgba("materialGold", alpha))
-	else
-		rule:SetColorTexture(Widgets.Rgba("capsGold", alpha))
-		rule:SetVertexColor(Tokens.Color("white"))
-	end
-	return material
+function Widgets.PaintCapRule(rule)
+	rule:SetColorTexture(Widgets.Rgba("steel", 0))
+	rule:SetVertexColor(Tokens.Color("white"))
 end
 
-function Widgets.PaintCapMaterial(gem, rule, alpha)
-	local material = Widgets.PaintCapRule(rule, alpha)
-	gem:SetTexture((Tokens.Texture(material and material.gem or "diamond")))
-	if material and material.rule then
-		gem:SetVertexColor(Tokens.Color("materialGold"))
-	elseif Widgets.Medallions() then
-		gem:SetVertexColor(Tokens.Color("accent"))
-		Widgets.CardHeader(gem)
-	end
-	if not gem.headerTracked then
-		Widgets.CardHeader(gem)
-	end
+function Widgets.PaintCapMaterial(gem, rule)
+	Widgets.PaintCapRule(rule)
+	gem:SetTexture((Tokens.Texture("diamond")))
+	gem:SetVertexColor(Tokens.Color("accent"))
+	Widgets.CardHeader(gem)
 end
 
 function Widgets.RuleBelow(rule, cap, label, left, factor)
@@ -159,9 +139,7 @@ function Cap:MeasureCount(value)
 end
 
 function Cap:Paint()
-	self.gem:SetVertexColor(Widgets.Rgba("capsGold", GEM_ALPHA))
-	self.rule:SetColorTexture(Widgets.Rgba("capsGold", RULE_ALPHA))
-	Widgets.PaintCapMaterial(self.gem, self.rule, RULE_ALPHA)
+	Widgets.PaintCapMaterial(self.gem, self.rule)
 	Widgets.TextColor(self.label, "capsGold")
 	Widgets.TextColor(self.count, "muted")
 	if Widgets.Readability("sectionHeadings") then

@@ -54,13 +54,13 @@ for _, label in ipairs({ "Shown", "Anchor", "X offset", "Y offset", "Width", "He
 	assert(rows[label], "the element has a " .. label .. " row")
 end
 
-rows.Width.set(300)
+rows.Width.set(320)
 rows.Shown.set("combat")
 rows.Scale.set(1.2)
 rows.Strata.set("HIGH")
 local s = K.Layout.Get("unitframes.player")
-assert(s.width == 300 and s.shown == "combat" and near(s.scale, 1.2) and s.strata == "HIGH", "the rows write through Layout.Set")
-assert(K.Store.Layout()["unitframes.player"].width == 300, "and Layout saves them")
+assert(s.width == 320 and s.shown == "combat" and near(s.scale, 1.2) and s.strata == "HIGH", "the rows write through Layout.Set")
+assert(K.Store.Layout()["medallions:unitframes.player"].width == 320, "and Layout saves them under the Medallions placement")
 
 local registered = false
 for _, element in ipairs(K.Layout.Elements()) do

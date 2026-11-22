@@ -1,16 +1,18 @@
 # KstyleUI roadmap
 
-What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.2.10 is out now: KstyleUI draws less every frame, new Medallions switches trade effects for frame rate, and /kstyle perf measures what it costs. New releases now land about once a day.
+What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.2.11 is out now: Zygor Guides Viewer joins RestedXP on the story rail in KstyleUI's forged card (thanks to Baine), the Medallions crest jewels flare, drain and light the whole ring at the maximum, and Summon Hawk's hawks perch on the crest. New releases now land about once a day.
 
-## v0.2.11 — the crest and finishing touches
+## v0.2.12 — cast bars and class crowns
 
 Estimated: within a day or two.
 
-A polished Medallions crest and the last of the customisation work.
+More Medallions polish and the last of the customisation work.
 
 Highlights:
 
-- Crest jewels that light the whole ring when your resource is full, with gems that flare and drain.
+- Medallions cast bars on the player and target frames.
+- Class crowns over the crest: a crown of blades for rogues and claws for cat-form druids.
+- Crowns for warriors, priests, shamans, mages, bear-form druids and hunters.
 - The last party and raid frame options, including more indicator places and frame sorting.
 - A consumable count and low-mana text on the aura reminders.
 - Movable Blizzard windows and a Time Spiral alert, once they are checked in game.
@@ -18,7 +20,7 @@ Highlights:
 
 ## v0.3.0 — the polish release
 
-Estimated: about a week after v0.2.11.
+Estimated: about a week after v0.2.12.
 
 A full polish pass over everything you see and touch, so KstyleUI feels premium from the first minute.
 
@@ -27,7 +29,7 @@ Highlights:
 - One typeface voice across the Medallions HUD, cards, chat and tooltips, and one lit glass finish on every bar.
 - Readable everywhere: small text over the world sits on a soft backing, and names and timers stay clear in busy fights.
 - A clean screen at rest: panels fade out of combat and come straight back on hover, target or combat.
-- Casts by their caster, a target cast rail in Orbs, and interrupt states you can read at a glance.
+- Casts by their caster and interrupt states you can read at a glance.
 - Medallions finish: slab end caps and a calmer resting crest.
 - A smoother Layout Mode and Options: search that takes you there, live previews and one motion style.
 - A better first run: big HUD pictures, one-click Looks, and Medallions as the default for new profiles.

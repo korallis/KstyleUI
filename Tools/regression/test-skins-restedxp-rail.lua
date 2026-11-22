@@ -71,9 +71,9 @@ local function Clean(env, K, rxp)
 	end
 end
 
--- The guide's card is its own Layout element, the whole story slot (KSTY-33, the Captain's ruling on the Fable audit:
+-- The guide's card is its own Layout element, the story slot a rail gap under its top (KSTY-33, the Captain's ruling on the Fable audit:
 -- two cards, two Layout elements); the quests stand in a column of their own a rail gap to its left, at the same top.
--- One card on the rail's left edge and width, hanging from the slot's top, the cap over the steps and the route row
+-- One card on the rail's left edge and width, hanging from the element's top, the cap over the steps and the route row
 -- under them, RestedXP's window folded to its 28-unit floor behind them, the list folded.
 
 do
@@ -87,7 +87,7 @@ do
 	local sl, sb, sr, st = K.Setup.Layouts.Rect(slot, slot, rw, rh)
 	local band = story.guide
 	local px = K.Scale.Pixel(1) + 0.01
-	assert(near(band.left, sl, px) and near(band.right, sr, px) and near(band.top, st, px) and near(band.bottom, sb, px), "the guide's element is the whole story slot")
+	assert(near(band.left, sl, px) and near(band.right, sr, px) and near(band.top, st - K.Setup.Layouts.GAP, px) and near(band.bottom, sb, px), "the guide's element is the story slot, a rail gap under its top")
 	assert(K.Layout.Get("skins.guide") ~= nil, "a Layout element of its own, with its own mover")
 	assert(near(story.tracker.right, band.left - 16, px) and near(story.tracker.top, band.top, px), "the quests' column stands a rail gap to its left, at the same top")
 	assert(ns.RestedXP.Rail.Placed(), "the guide is placed in the story rail")

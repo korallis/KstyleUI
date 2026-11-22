@@ -4,8 +4,7 @@ local G = dofile("Tools/regression/geometry.lua")
 local env, K, ns = C.New({ cooldowns = C.Sample() })
 C.Enable(env, K)
 assert(K.Store.Module("Cooldowns").attached == true, "Cooldowns needs an attached placement setting, on by default")
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-	K.Options.Write("HudStyle", "style", style)
+for _, style in ipairs({ "medallions" }) do
 	env.RunTimers()
 	local L = K.Setup.Layouts
 	for _, count in ipairs({1,3,6,12}) do
@@ -40,13 +39,12 @@ for _, style in ipairs({ "frames", "orbs", "medallions" }) do
 		end
 	end
 	for _, screen in ipairs({ {1920,1080}, {2560,1440}, {3440,1440}, {3456,2234}, {3840,2160}, {5120,1440} }) do
-		assert(L.Fits("DPS", screen[1], screen[2], 0.6, nil, nil, style), style .. ": attached defaults fit at " .. screen[1] .. "x" .. screen[2])
+		assert(L.Fits("DPS", screen[1], screen[2], 0.6, nil, nil), style .. ": attached defaults fit at " .. screen[1] .. "x" .. screen[2])
 	end
 end
 K.Options.Write("Cooldowns", "essential.columns", 6)
 K.Options.Write("Cooldowns", "essential.rows", 1)
 assert(ns.Settings.current.essential.columns == 6 and ns.Settings.current.essential.rows == 1, "explicit grid settings override automatic placement defaults")
-K.Options.Write("HudStyle", "style", "medallions")
 K.Layout.Update("cooldowns.essential", {anchor="BOTTOM", x=-470, y=260}, true)
 K.Options.Write("Cooldowns", "attached", false)
 env.RunTimers()
@@ -57,7 +55,7 @@ assert(#env._errors == 0, tostring(env._errors[1]))
 print("attached cooldown defaults, 1/3/6/12 icons, legacy option and custom positions ok")
 
 do
-	local saved = { version=35, profiles={ Default={HudStyle={style="medallions"}} }, layouts={Default={
+	local saved = { version=35, profiles={ Default={} }, layouts={Default={
 		["cooldowns.essential"]={anchor="BOTTOM",x=0,y=K.Setup.Layouts.Default("cooldowns.essential").y},
 		["cooldowns.utility"]={anchor="BOTTOM",x=510,y=305,scale=1.2},
 	}}, account={setupSeen=true}, characters={}, devlog={} }

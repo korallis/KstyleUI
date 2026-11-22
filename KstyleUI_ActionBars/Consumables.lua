@@ -46,18 +46,16 @@ end
 
 function C.Dock()
 	if not holder or InCombatLockdown() or not Config().attached then return end
-	local style = K.HudStyle.Current()
-	local key = style == "orbs" and "actionbars.bar1" or "unitframes.player"
+	local key = "unitframes.player"
 	local player = K.Layout.Element(key)
 	if not player then return end
 	local layouts, class, name = K.Setup.Layouts, K.Scale.Aspect(), K.Layout.Setting("preset")
-	local position = layouts.Attached(style, name, KEY, class)
-	local reference = layouts.Place(name, style, class, key)
+	local position = layouts.Attached(name, KEY, class)
+	local reference = layouts.Place(name, "medallions", class, key)
 	if not position or not reference then return end
-	local width = layouts.ConsumableFootprint(style, class)
+	local width = layouts.ConsumableFootprint(class)
 	local frame = player.frame
-	local defaultWidth = style == "orbs" and layouts.ActionBarFootprint(style, class, key) or
-		(layouts.Aspect(class, style, name, key) or layouts.Style(style, name, key) or layouts.Element(key)).width
+	local defaultWidth = (layouts.Aspect(class, "medallions", name, key) or layouts.Style(name, key) or layouts.Element(key)).width
 	holder:ClearAllPoints()
 	holder:SetPoint("BOTTOMRIGHT", frame, "BOTTOMLEFT", position.x + width / 2 - reference.x + defaultWidth / 2, position.y - reference.y)
 end
@@ -120,8 +118,8 @@ function C.Apply()
 	C.selected, C.counts = selected, counts
 	if not holder and #selected == 0 and cfg.hideEmpty then applying = false; return end
 	Build()
-	local style, layouts = K.HudStyle.Current(), K.Setup.Layouts
-	local rows, size, gap = layouts.ConsumableGrid(style)
+	local layouts = K.Setup.Layouts
+	local rows, size, gap = layouts.ConsumableGrid()
 	local capacity = cfg.buttons or 12
 	local width, height, columns, used = ns.GridSize(capacity, rows, size, gap)
 	holder:SetSize(width, height)
@@ -146,7 +144,7 @@ function C.Apply()
 		ns.StyleTextsFor(b, "consumables")
 		b:Restyle()
 		b:SetAccent(ns.AccentRGB())
-		K.Widgets.MedallionsIcon(b, style == "medallions")
+		K.Widgets.MedallionsIcon(b, true)
 		local col, row
 		local position = cfg.reverse and occupied + 1 - i or i
 		if cfg.orientation == "VERTICAL" then row, col = (position - 1) % used, math.floor((position - 1) / used)
@@ -195,7 +193,7 @@ function C.Enable()
 	K.Callbacks.Register("ModuleChanged", OWNER, function(_, name) if name == "UnitFrames" then C.Apply() end end)
 	K.Callbacks.Register("SettingChanged", OWNER, function(_, module) if module == "ActionBars" then C.Refresh() end end)
 	K.Callbacks.Register("ProfileChanged", OWNER, C.Refresh)
-	for _, event in ipairs({ "HudStyleChanged", "ScaleChanged", "ThemeChanged" }) do K.Callbacks.Register(event, OWNER, C.Apply) end
+	for _, event in ipairs({ "ScaleChanged", "ThemeChanged" }) do K.Callbacks.Register(event, OWNER, C.Apply) end
 	K.Callbacks.Register("LayoutChanged", OWNER, function(_, key)
 		if key == "unitframes.player" or key == "actionbars.bar1" or key == KEY then K.Combat.Queue(C.Dock) end
 	end)

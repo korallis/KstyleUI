@@ -27,8 +27,8 @@ local checked = 0
 for _, name in ipairs(Layouts.Names()) do
 	for _, class in ipairs(Layouts.ASPECTS) do
 		local function Place(key)
-			local place = Layouts.Aspect(class, "medallions", name, key) or Layouts.Style("medallions", name, key)
-			local styled = Layouts.Style("medallions", name, key)
+			local place = Layouts.Aspect(class, "medallions", name, key) or Layouts.Style(name, key)
+			local styled = Layouts.Style(name, key)
 			assert(place and place.anchor == "BOTTOM", name .. " " .. class .. ": " .. key .. " hangs from the bottom centre")
 			place.width, place.height = place.width or styled.width, place.height or styled.height
 			return place

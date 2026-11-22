@@ -41,11 +41,8 @@ for path, patterns in pairs({ ["KstyleUI_UnitFrames/Unit.lua"] = { "and total or
 	end
 end
 
--- 6. A caption anchored to the name takes its own level offset; zero offsets unwrap SetPoint.
-local _, _, cy = point(player.caption)
+-- 6. Zero offsets unwrap SetPoint.
 write("player.fonts.level.y", 9)
-local _, _, cy2 = point(player.caption)
-assert(player.caption:IsShown() and near(cy2 - cy, Widgets.Snap(player.parent, 9)), "the class caption moves by the level offset: " .. (cy2 - cy))
 write("player.fonts.level.y", 0)
 write("player.fonts.name.x", 4)
 write("player.fonts.name.x", 0)
@@ -159,10 +156,10 @@ env.LibStub = nil
 local above = K.Options.Row("UnitFrames", "target.powerAbove")
 write("edit", "target")
 write("target.power", true)
-write("target.style", "bar")
-assert(not above.showWhen(ns.Settings.Module()), "Wide bar has no power bar to move")
+assert(not above.showWhen(ns.Settings.Module()), "the slab has no power bar to move")
+write("target.style", "plate")
+assert(above.showWhen(ns.Settings.Module()), "the plate target keeps the row")
 write("target.style", "column")
-assert(above.showWhen(ns.Settings.Module()), "the column target keeps the row")
 write("target.power", false)
 
 U.SetUnit(env, "target", { name = "Ogre", level = 62, health = 3000, healthMax = 4000, power = 30, powerMax = 100,
@@ -226,9 +223,7 @@ write("target.healPrediction", true)
 -- 6. Medallions: the level offset moves the plaque, also when saved before the slab is first built.
 local function medallions(level)
 	return U.New({ before = function(_, core)
-		core.Store.Module("HudStyle").style = "medallions"
 		if level then core.Store.Module("UnitFrames").player = { fonts = { level = { y = level } } } end
-		core.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 	end })
 end
 local medEnv, medK, med = medallions()

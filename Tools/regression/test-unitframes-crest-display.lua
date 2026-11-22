@@ -4,8 +4,6 @@ local width, height = 1920, 1080
 local env, K, ns = U.New({ width = width, height = height, uiScale = 768 / 1080, before = function(game, core)
 	game.GetPhysicalScreenSize = function() return width, height end
 	core.Store.Module("UnitFrames").auraLayout = "fan"
-	core.Store.Module("HudStyle").style = "medallions"
-	core.Callbacks.Fire("SettingChanged", "HudStyle", "style")
 end })
 local key = ns.Fan.KEY
 local narrow = K.Layout.Get(key).y

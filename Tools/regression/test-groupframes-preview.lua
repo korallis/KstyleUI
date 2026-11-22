@@ -89,9 +89,6 @@ K.Options.Write("GroupFrames", "party.portrait", true)
 K.Options.Write("GroupFrames", "party.roleRing", false)
 preview:Refresh()
 eq(preview.partyFrames[1].portrait:IsShown(), true, "portraits follow the setting")
-K.Options.Write("GroupFrames", "party.portrait", false)
-preview:Refresh()
-eq(preview.partyFrames[1].portrait:IsShown(), false, "and go with it")
 
 -- With no spacing, sample frames still sit edge to edge.
 K.Options.Write("GroupFrames", "party.spacing", 0)

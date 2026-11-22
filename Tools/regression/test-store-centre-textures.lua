@@ -23,7 +23,7 @@ env.KstyleUIDB = saved
 local custom = Core.DeepCopy(saved.profiles.Custom)
 custom.Meters = { followRole = false }
 custom.Skins = { restedXP = { boxes = true } }
-custom.DataBars.strip = { enabled = true, placement = "top" }
+custom.DataBars.strip = { enabled = true, placement = "dock" }
 local list = K.Tokens.MediaList
 K.Tokens.MediaList = function(kind)
 	local items = list(kind)
@@ -54,7 +54,7 @@ local le, LK, lns = U.New({ saved = profile({ UnitFrames = Core.DeepCopy(legacy)
 local function legacyPaint(key, module, casts)
 	for _, kind in ipairs({ "player", "target" }) do
 		assert(module[kind].castbarTexture == paths.Glass, key .. " pins the omitted old Glass default")
-		assert(casts.Get(kind)[1].bar.texturePath == paths.Glass, key .. " paints legacy Glass")
+		assert(casts.Get(kind)[1].bar.texturePath == paths.Flat, key .. ": the Medallions cast paints its flat bar whatever the saved texture")
 	end
 end
 legacyPaint("migration", LK.Store.Module("UnitFrames"), lns.CastBars)
@@ -72,20 +72,20 @@ for _, kind in ipairs({ "player", "target" }) do
 	assert(cb.bar.texturePath == paths.Flat, "the migrated caption cast paints Flat")
 	for _, choice in ipairs({ "Glass", paths.Glass }) do
 		UK.Options.Write("UnitFrames", kind .. ".castbarTexture", choice)
-		assert(cb.bar.texturePath == paths.Glass, "a post-migration Glass choice paints Glass")
+		assert(UK.Store.Module("UnitFrames")[kind].castbarTexture == choice and cb.bar.texturePath == paths.Flat, "a post-migration Glass choice is saved; the Medallions cast keeps its flat bar")
 	end
 end
 Core.Logout(ue)
 local _, UK2, uns2 = U.New({ saved = ue.KstyleUIDB })
-assert(UK2.Store.Module("UnitFrames").player.castbarTexture == paths.Glass and uns2.CastBars.Get("player")[1].bar.texturePath == paths.Glass, "a later Glass choice survives the next session")
+assert(UK2.Store.Module("UnitFrames").player.castbarTexture == paths.Glass and uns2.CastBars.Get("player")[1].bar.texturePath == paths.Flat, "a later Glass choice survives the next session")
 
 local de, DK, dns = D.New({ saved = profile({ DataBars = { xp = { texture = paths.Glass } } }) })
 assert(DK.Store.Module("DataBars").xp.texture == paths.Flat and dns.Bars.views.xp.fill.texturePath == paths.Flat, "the XP picker and paint agree after migration")
 for _, choice in ipairs({ "Glass", paths.Glass }) do
 	DK.Options.Write("DataBars", "xp.texture", choice)
-	assert(dns.Bars.views.xp.fill.texturePath == paths.Glass and dns.Bars.views.xp.track.texturePath == paths.Glass, "a post-migration Glass choice paints both XP layers")
+	assert(DK.Store.Module("DataBars").xp.texture == choice and dns.Bars.views.xp.fill.texturePath == paths.Flat and dns.Bars.views.xp.track.texturePath == paths.Flat, "a post-migration Glass choice is saved; the Medallions strip keeps both layers flat")
 end
 Core.Logout(de)
 local _, DK2, dns2 = D.New({ saved = de.KstyleUIDB })
-assert(DK2.Store.Module("DataBars").xp.texture == paths.Glass and dns2.Bars.views.xp.track.texturePath == paths.Glass, "XP does not remigrate a later Glass choice")
+assert(DK2.Store.Module("DataBars").xp.texture == paths.Glass and dns2.Bars.views.xp.track.texturePath == paths.Flat, "XP does not remigrate a later Glass choice")
 print("store centre textures ok")

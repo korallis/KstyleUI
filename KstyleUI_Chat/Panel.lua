@@ -268,15 +268,7 @@ end
 
 function Panel.Bare(settings)
 	settings = settings or state.settings
-	local framing = settings and settings.framing
-	if framing == "bare" then
-		return true
-	end
-	if framing == "card" then
-		return false
-	end
-	local hud = K.HudStyle
-	return hud ~= nil and type(hud.Current) == "function" and hud.Current() == "orbs"
+	return settings ~= nil and settings.framing == "bare"
 end
 
 function Panel.Holder()
@@ -551,14 +543,12 @@ end
 
 local function SyncHeader()
 	local glass = state.glass
-	local banded, above = Widgets.Medallions(), state.settings and state.settings.tabsAbove
-	glass.divider:SetShown(not state.bare and not banded and not above)
-	glass.chrome:SetHeader(banded and not above and state.headerUnits or nil)
+	local above = state.settings and state.settings.tabsAbove
+	glass.chrome:SetHeader(not above and state.headerUnits or nil)
 end
 
 local function PlaceGlass(g)
 	local glass, holder = state.glass, state.holder
-	local divider = glass.divider
 	local top = state.settings.tabsAbove and -g.divider or 0
 	if state.near ~= g.near or state.far ~= g.far or state.top ~= top then
 		state.near, state.far, state.top = g.near, g.far, top
@@ -566,11 +556,6 @@ local function PlaceGlass(g)
 		glass:SetPoint("TOPLEFT", holder, "TOPLEFT", g.near, top)
 		glass:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", -g.far, 0)
 	end
-	divider:ClearAllPoints()
-	divider:SetPoint("TOPLEFT", glass, "TOPLEFT", g.left - g.near, -g.divider)
-	divider:SetPoint("TOPRIGHT", glass, "TOPRIGHT", g.far - g.rule, -g.divider)
-	divider:SetHeight(Widgets.Border(divider))
-	Panel.PaintRule(divider)
 	state.headerUnits = g.divider + Widgets.Border(glass)
 	SyncHeader()
 	local y, host = -g.divider / 2, top < 0 and holder or glass
@@ -1170,8 +1155,6 @@ local function Build()
 	glass:SetAllPoints(holder)
 	state.near, state.far, state.top = 0, 0, 0
 	glass:SetFixedFrameStrata(true)
-	glass.divider = glass:CreateTexture(nil, "ARTWORK")
-	glass.divider:SetColorTexture(Tokens.Color("white"))
 	state.shade = {}
 	for i = 1, #SHADE_LOBES do
 		local lobe = holder:CreateTexture(nil, "BACKGROUND")

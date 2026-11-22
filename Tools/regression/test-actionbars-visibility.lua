@@ -9,6 +9,7 @@ local env, K, ns = AB.New({ setup = function(e)
 	e._game.petExists = true
 end })
 AB.Enable(env, K)
+K.Options.Write("ActionBars", "slab", false)
 local declarations = assert(io.open("KstyleUI_ActionBars/Bindings.xml", "rb"))
 local bindingXML = declarations:read("*a")
 declarations:close()
@@ -16,7 +17,7 @@ local bindings = 0
 for command, category in bindingXML:gmatch('<Binding name="([^"]+)" category="([^"]+)"') do
 	assert(env["BINDING_NAME_" .. command], "each declared toggle has a localized binding label")
 	assert(env[category] == "KstyleUI", "Blizzard's keybinding UI resolves the KstyleUI category")
-	bindings = bindings + 1
+	if command:find("KstyleUI_Toggle_", 1, true) then bindings = bindings + 1 end
 end
 assert(bindings == 9, "every picker bar has a declared toggle key")
 local cfg, bar = ns.Config("bar1"), ns.bars.bar1
@@ -99,7 +100,7 @@ assert(bar.hovered > 0, "hover still works with click-through off")
 AB.W.Leave(bar.buttons[1])
 assert(bar.hovered == 0)
 
-K.Options.Write("HudStyle", "style", "medallions")
+K.Options.Write("ActionBars", "slab", true)
 assert(not K.Options.Row("ActionBars", "bar1.reverse").showWhen(K.Store.Module("ActionBars")), "the slab hides fixed order controls")
 assert(bar.buttons[1]:GetLeft() < bar.buttons[12]:GetLeft(), "the connected slab fixes button order")
 env._combat = true

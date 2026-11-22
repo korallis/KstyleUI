@@ -18,7 +18,6 @@ local env, K, ns = AB.New({ setup = function(e)
 end })
 AB.Enable(env, K)
 K.Options.Write("ActionBars", "slab", false)
-K.Options.Write("ActionBars", "useTray", false)
 K.Options.Write("ActionBars", "consumables.hideEmpty", false)
 local function Write(key, value) K.Options.Write("ActionBars", key, value) end
 local function Near(a, b) return math.abs(a - b) < 0.001 end
@@ -130,9 +129,8 @@ quality[200] = env.Secret(4)
 env.FireEvent("GET_ITEM_INFO_RECEIVED", 200, true)
 assert(b.itemQuality == nil, "secret quality is never compared or used as a key")
 quality[200] = 4
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+for _, style in ipairs({ "medallions" }) do
 	Write("bar1.placement.hotkey.anchor", "RIGHT")
-	K.Options.Write("HudStyle", "style", style)
 	env.RunTimers()
 	assert(b.hotkey._points[1][1] == "RIGHT", "restyling preserves chosen position in " .. style)
 	assert(b.itemQuality == 4, "restyling restores quality")

@@ -1,4 +1,4 @@
--- test-databars-xp-reference.lua: the overhaul's experience strip (KSTY-44: the mock-up's 7 px, square ends, ten segments, a 55% rested shade, the caption on the world) over an unframed dark trough with a level caption below it, without removing player choices.
+-- test-databars-xp-reference.lua: the Medallions experience strip (the slab's line, square ends, ten segments, a 55% rested shade, the caption on the world) over an unframed dark trough with a percent caption under its right end.
 local D = dofile("Tools/regression/databars_env.lua")
 local W = D.W
 
@@ -8,8 +8,9 @@ end
 
 local env, K, ns, game = D.New({ game = { level = 11, xp = 0, xpMax = 10000, rested = 500 } })
 local xp = ns.Bars.views.xp
-eq(xp.holder:GetWidth(), 491, "the XP line spans the reference's centre column")
-assert(math.abs(xp.holder:GetHeight() - 7 * 19 / 16) <= K.Widgets.Border(xp.holder) / 2 + 1e-6, "the experience strip is the mock-up's 7 px, 8.3125 units snapped to the pixel, got " .. tostring(xp.holder:GetHeight()))
+local slab = K.Setup.Layouts.Style("DPS", "databars.xp")
+eq(xp.holder:GetWidth(), K.Widgets.Snap(xp.holder, slab.width), "the XP line spans the Medallions slab, on whole pixels")
+assert(math.abs(xp.holder:GetHeight() - slab.height) <= K.Widgets.Border(xp.holder) / 2 + 1e-6, "the experience strip is the slab's line, snapped to the pixel, got " .. tostring(xp.holder:GetHeight()))
 eq(xp.fill.caps, nil, "the fill has square ends: the bible's bars have no caps")
 -- KSTY-60 item 28, the Captain's ruling: the mock-up's strip is a one-pixel dark edge round the fill.
 do
@@ -41,34 +42,30 @@ eq(rested.r, r, "the rested fill uses the reference colour token's red")
 eq(rested.g, g, "the rested fill uses the reference colour token's green")
 eq(rested.b, b, "the rested fill uses the reference colour token's blue")
 eq(rested.a, 0.55, "the rested shade is the mock-up's 55%")
-eq(xp.text:GetText(), "Level 11 \194\183 0% \194\183 rested 5%", "the reference caption restores the level under LEE-20")
+eq(xp.text:GetText(), "0% \194\183 rested 5%", "the Medallions caption reads the percent and the rested share")
 local point, relative, relativePoint, x, y = xp.text:GetPoint(1)
-eq(point, "TOP", "the caption starts below the bar")
+eq(point, "TOPRIGHT", "the caption starts below the bar's right end")
 eq(relative, xp.holder, "the holder owns the caption")
-eq(relativePoint, "BOTTOM", "the caption follows the bottom edge")
-local pixel = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(xp.holder)
-local centre = xp.holder:GetWidth() / pixel / 2
-eq(x, (math.floor(centre + 0.5) - centre) * pixel, "the caption's centre anchor is on the nearest whole pixel")
-eq(y, -K.Widgets.Snap(xp.holder, 6) + K.Widgets.Snap(xp.holder, 1.15), "the caption's six-unit gap includes the picture's snapped optical raise")
+eq(relativePoint, "BOTTOMRIGHT", "the caption follows the bottom edge")
+eq(x, 0, "the caption ends flush with the line")
+eq(y, -K.Widgets.Snap(xp.holder, 3), "the caption hangs three units under the line")
 local ticks = 0
 for _, tick in ipairs(xp.ticks) do
 	ticks = ticks + (tick:IsShown() and 1 or 0)
 end
 eq(ticks, 9, "the strip is ticked into ten segments")
 local path, size, flags = xp.text:GetFont()
-eq(path, (K.Tokens.Font("prose")), "the caption uses the interface prose face: the picture's digits are proportional, and the caption does not tick")
-eq(size, 12 * K.Theme.FontScale(), "the caption stays at body size")
+eq(path, (K.Tokens.Font("caps")), "the caption uses the caps face of the Medallions instruments")
+eq(size, 11 * K.Theme.FontScale(), "the caption reads at the instruments' 11 units")
 eq(flags, "OUTLINE", "the caption stands on the world: an outline, with the kit's shadow")
 
 K.Options.Write("DataBars", "xp.border", true)
-eq(xp.track.barEdge.hard:IsShown(), true, "the existing border setting still works")
-eq(xp.fill.barEdge.hard:IsShown(), false, "a chosen border is drawn only once")
-K.Options.Write("DataBars", "xp.text", "percentRested")
-eq(xp.text:GetText(), "0% \194\183 rested 5%", "the old caption remains a player choice")
+eq(xp.track.barEdge.hard:IsShown(), false, "the Medallions strip keeps its one dark edge whatever the border setting")
+eq(xp.fill.barEdge.hard:IsShown(), false, "and the fill adds none")
 K.Options.Write("DataBars", "xp.text", "levelRested")
 game.level, game.xp, game.rested = 12, 2500, 0
 env.FireEvent("PLAYER_LEVEL_UP", 12)
-eq(xp.text:GetText(), "Level 12 \194\183 25%", "the level caption follows game values without a stale rested share")
+eq(xp.text:GetText(), "25%", "the caption follows game values without a stale rested share")
 
 K.Options.Write("DataBars", "xp.reverse", true)
 eq(xp.fill:GetReverseFill(), true, "the fill can reverse")

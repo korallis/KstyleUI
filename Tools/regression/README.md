@@ -99,14 +99,6 @@ Every command prints measured CPU and wall time. Failed commands include those m
 
 Reference-unit fixtures isolate the fit cap: `load_files.lua` supplies their unrestricted 1.5 maximum. Pass `fit = true` to exercise the production preset-fit calculation at a numeric size; `size = "default"` and render scenes enable it automatically. `test-setup-collisions.lua` explicitly opts into it across nine screens, three requests and all three presets. `test-pixels.lua` checks unbounded pixel arithmetic; `test-text-pixels.lua` builds modules once and drives live display/size changes through production fit and restyle callbacks. Its optional `STUB_ENVS` collector and `STUB_FONT_ORIGINS` marker distinguish addon setters from scene stand-ins: engine-sized world numbers and manually copied chat lines are not addon font setters.
 
-## Centre clearance matrix
-
-`test-centre-clearance-<preset>-<class>.lua` covers all nine screens in each DPS, Tank and Healer preset for rogue, druid cat, druid bear and paladin (108 cases). Each case builds the real UnitFrames and Cooldowns scenes through `Setup.Apply`, at the shipped Interface size, with both casts, six essential and four utility cooldowns, five tracked buffs, two tracked bars, two target debuffs and every supported secondary resource visible. Shifted druid casts and rogue First Aid are synthetic lane-stress states, not class-mechanics tests. Paladin is the no-secondary-resource control.
-
-The common `centre_clearance_lib.lua` assigns the renderer's actual visible texture/text rectangles to logical body, portrait, level, cast, aura, resource and cooldown components. It includes captions, countdowns, counts, chrome and empty tracks rather than using a Layout holder's enclosing rectangle. An unclaimed drawn asset fails, so a new screen-level asset cannot silently escape the measurement. It requires every intended item to paint with positive area, every asset to stay on screen, and every pair of different components to avoid overlap and clear both 4 root units and 3 physical pixels (0.001 rounding tolerance for the renderer's four-decimal coordinates). Internal widget composition is one component; the only cross-component exceptions are `player.level/player.portrait` and `target.level/target.portrait`, the attached level discs. The separate target cast holder is off; the test measures the target's inline cast. `test-centre-clearance.lua` proves overlap and both thresholds fail independently.
-
-The twelve matrix files split by class/form and preset, with collection between screens, so no file retains the whole matrix or approaches the Lua 5.1 time/memory budget. Measure them with `bash Tools/regression/run-all.sh --affected origin/staging --margins`. They test the normal automatic path (essential/utility mirrors, tracked buff/bar native reskins), not hand-saved layouts or native Essential/Utility fallback; those need their own native-template and managed-flow fixture.
-
 ## Property tests
 
 Three test files check properties on random cases instead of fixed ones. `property_lib.lua` makes each case from a seed and the case number with its own generator (Park and Miller's, exact in both Lua 5.1 and LuaJIT), so the same seed and case give the same case on every machine.
@@ -252,7 +244,7 @@ Reproduce sampling in a disposable clone with `for file in Tools/regression/test
 
 `test-lua-runtime.lua` records the seeded random hash, large integer formatting, infinity and NaN spelling. The measured seed-7 hashes are 708739911 on macOS and 1701382795 on Windows LuaBinaries 5.1.5; Windows also prints -2147483648 for `%d` of 2^40 and `1.#INF` / `-1.#IND`. No fixture requires those spellings or wide `%d` conversion; numeric infinity/NaN and the integer range fixtures use remain asserted.
 
-The only existing random consumer is `test-ornament-tiers.lua`: it removes random subsets of assets and asserts that every drawn piece exists and resolves to an available tier, with a coverage floor of 1000 pieces, rather than expecting any particular draw. Both platform sequences pass those assertions. The runtime probe rejects additional `math.random` callers: new fixtures must use `property_lib.lua`'s portable generator. The property tests already do. This keeps the installed, isolated Lua 5.1.5 build instead of changing its C runtime to imitate another platform.
+No fixture consumes `math.random`, and the runtime probe rejects `math.random` callers: new fixtures must use `property_lib.lua`'s portable generator. The property tests already do. This keeps the installed, isolated Lua 5.1.5 build instead of changing its C runtime to imitate another platform.
 
 ### CPU calibration (2026-11-16)
 
@@ -264,8 +256,6 @@ Windows evidence: Beast, LuaBinaries PUC 5.1.5, 21 serial files (the final slowe
 
 | File | Mac 1 CPU s | Mac 2 CPU s | Mac 3 CPU s | Windows CPU s | Mac allowance s |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `test-ornament-surfaces-minimap-subtle.lua` | — | 38.50 | 35.73 | 49.72 | 49 |
-| `test-ornament-surfaces-minimap-full.lua` | 34.50 | — | 37.13 | 44.42 | 47 |
 | `test-render-story-guard-tank.lua` | — | 26.22 | 23.38 | 29.31 | 33 |
 | `test-render-scenes-gallery.lua` | — | 26.08 | 23.84 | 40.11 | 33 |
 | `test-text-pixels-hud.lua` | 25.76 | — | 23.84 | 44.70 | 33 |
@@ -298,29 +288,12 @@ These worst observed Mac CPU values include calibration runs, full run 439538025
 | File | Worst Mac CPU s | Allowance s | Source |
 | --- | ---: | ---: | --- |
 | `test-actionbars-vehicle.lua` | 19.811575 | 25 | Mac 1, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
-| `test-centre-clearance-dps-cat.lua` | 16.530659 | 21 | Mac 3, [run 43944756619](https://github.com/korallis/KstyleUI/actions/runs/43944756619) |
-| `test-centre-clearance-healer-bear.lua` | 17.407659 | 22 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-centre-clearance-healer-cat.lua` | 18.035937 | 23 | Mac 3, [run 43944756619](https://github.com/korallis/KstyleUI/actions/runs/43944756619) |
-| `test-centre-clearance-healer-paladin.lua` | 18.073578 | 23 | Mac 3, [run 43944756619](https://github.com/korallis/KstyleUI/actions/runs/43944756619) |
-| `test-centre-clearance-healer-rogue.lua` | 18.200957 | 23 | Mac 3, [run 43944756619](https://github.com/korallis/KstyleUI/actions/runs/43944756619) |
-| `test-centre-clearance-tank-bear.lua` | 17.435912 | 22 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-centre-clearance-tank-cat.lua` | 17.872141 | 23 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-centre-clearance-tank-paladin.lua` | 17.948227 | 23 | Mac 3, [run 43944756619](https://github.com/korallis/KstyleUI/actions/runs/43944756619) |
-| `test-centre-clearance-tank-rogue.lua` | 17.489064 | 22 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
 | `test-groupframes-grid.lua` | 17.034914 | 22 | Mac 1, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
 | `test-groupframes-medallions-tiles-wide.lua` | 18.470120 | 24 | Mac 1, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
 | `test-groupframes-medallions-tiles.lua` | 18.362331 | 23 | Mac 1, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
 | `test-groupframes-raid-tile.lua` | 16.931091 | 22 | Mac 1, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
 | `test-groupframes-rows.lua` | 22.281631 | 28 | Mac 1, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
 | `test-hud-material-tank.lua` | 21.126243 | 27 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-ornament-surfaces-minimap-full.lua` | 38.294389 | 48 | Mac 3, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
-| `test-ornament-surfaces-minimap-subtle.lua` | 38.498007 | 49 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-ornament-surfaces-xp-b.lua` | 16.370179 | 21 | Mac 1, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-ornament-surfaces-xp-c.lua` | 16.431729 | 21 | Mac 3, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
-| `test-ornament-surfaces-xp-d.lua` | 16.154422 | 21 | Mac 3, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
-| `test-ornament-surfaces-xp-f.lua` | 16.128701 | 21 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-ornament-surfaces-xp-h.lua` | 16.370400 | 21 | Mac 1, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-ornament-surfaces-xp-j.lua` | 16.171037 | 21 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
 | `test-perf-frames.lua` | 16.497820 | 21 | Mac 1, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
 | `test-perf-skins.lua` | 25.667379 | 33 | Mac 1, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
 | `test-perf.lua` | 30.999676 | 39 | Mac 1, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
@@ -349,7 +322,6 @@ These worst observed Mac CPU values include calibration runs, full run 439538025
 | `test-text-floor.lua` | 20.662359 | 26 | Mac 3, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
 | `test-text-pixels-hud.lua` | 25.756223 | 33 | Mac 1, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
 | `test-type-roles.lua` | 20.670064 | 26 | Mac 2, [run 43943487980](https://github.com/korallis/KstyleUI/actions/runs/43943487980) |
-| `test-unitframes-column-keep.lua` | 18.874668 | 24 | Mac 1, [run 43972698741](https://github.com/korallis/KstyleUI/actions/runs/43972698741) |
 
 ## Files
 
@@ -375,8 +347,8 @@ Each `test-*.lua` file is one test. The other files are shared by the tests:
 | `taint_allow.lua` | Loads and merges the taint-scan allow-list from `taint_allow/`. |
 | `secret_lint.lua` | Finds unsafe uses of secret values and any use of the combat log. |
 | `color_lint.lua` | Finds colour literals, which belong only in `Core/Tokens.lua`. `test-tokens.lua` runs it. |
-| `measure.lua` | Times a call and counts the memory it allocates with the garbage collector stopped, and names the addon lines that allocate. `perf_runner.lua` runs it for `test-perf.lua`, `test-perf-frames.lua`, `test-perf-skins.lua` and `test-perf-hud.lua`. |
-| `perf/` | The combat paths `test-perf.lua`, `test-perf-frames.lua`, `test-perf-skins.lua` and `test-perf-hud.lua` measure, one file per addon folder, split between them by `perf_runner.lua`. |
+| `measure.lua` | Times a call and counts the memory it allocates with the garbage collector stopped, and names the addon lines that allocate. `perf_runner.lua` runs it for each `test-perf*.lua` group. |
+| `perf/` | The combat paths the `test-perf*.lua` groups measure, one file per addon folder, split between them by `perf_runner.lua`. |
 | `property_lib.lua` | The seeded generator and `Property.Check` for the property tests. |
 | `fixtures/` | Inputs for the tests. luacheck skips this folder. |
 
@@ -483,7 +455,7 @@ The lint follows locals within a file. It does not follow values through functio
 
 ## Performance budget
 
-`test-perf.lua`, `test-perf-frames.lua`, `test-perf-skins.lua` and `test-perf-hud.lua` measure every combat path registered in `perf/`. A path fails when:
+The `test-perf*.lua` groups measure every combat path registered in `perf/`. A path fails when:
 
 - Its average time per call is over its budget on Mac CI.
 - It allocates memory on an addon line. The spec allows no allocation in a combat path.
@@ -491,7 +463,7 @@ The lint follows locals within a file. It does not follow values through functio
 
 `measure.lua` calls the path 10 times to fill caches, then runs 5 rounds of 1,000 calls with the garbage collector stopped. The time is the CPU time per call in the fastest round, so a round that another process slowed does not set it. When the rounds allocate, it runs 1,000 more calls under a debug hook that charges each allocation to the line that ran it, so a line that allocates only on some calls is found too; the hook costs about fifty times a plain call, which is most of a perf test's time. Memory that a C function such as `string.format` allocates is charged to the Lua line that called it. Only lines in files outside `Tools/` count against the path, so memory that a stub or a fake allocates, such as a duration object from `UnitCastingDuration`, never fails it. A line that allocates less often than once in 1,000 calls can escape the trace. `measure.lua` switches LuaJIT's compiler off, because the game runs an interpreter and a compiled trace is itself an allocation.
 
-The paths run as four test files to bound each file's work; their CPU limits, including `test-perf.lua`'s measured allowance, are recorded in `cpu_allowances.tsv`: `test-perf.lua` measures the core, action bar, combat text, cooldown, group frame and meter files, `test-perf-frames.lua` the nameplate and unit frame files, `test-perf-skins.lua` the quest card's, and `test-perf-hud.lua` the data bars' and the minimap's. `perf_runner.lua` holds the lists (`GROUPS`) and fails every file when a `perf/` file sits in no group, or in two. A slow path can lower `calls` (the quest card's use 100) so its allocation trace, about fifty times a plain call, stays inside the file's time.
+The paths run as five test files to bound each file's work; their CPU limits, including `test-perf.lua`'s measured allowance, are recorded in `cpu_allowances.tsv`: `test-perf.lua` measures the core, combat text, cooldown, group frame, meter and tooltip files, `test-perf-actionbars.lua` the action bars, `test-perf-frames.lua` the nameplate and unit frame files, `test-perf-skins.lua` the quest card's, and `test-perf-hud.lua` the data bars' and the minimap's. `perf_runner.lua` holds the lists (`GROUPS`) and fails every file when a `perf/` file sits in no group, or in two. A slow path can lower `calls` (the quest card's use 100) so its allocation trace, about fifty times a plain call, stays inside the file's time.
 
 A path that fails on time alone on Mac CI (over budget, or under the headroom rule below) is measured again, up to 3 attempts in all, and its fastest attempt counts; the printed line then says `(fastest of N attempts)`. Informational timing elsewhere does not trigger retries. An allocation never clears on another attempt. When a failure stands, the report ends with the machine's load average (`KSTYLEUI_LOAD`, which the runner sets; without it the load is unknown and not printed), so a run that failed under five parallel test runs can be told from a real regression (round 3 to 5 of the ranking loop saw `test-perf` fail a different untouched path on each loaded run).
 

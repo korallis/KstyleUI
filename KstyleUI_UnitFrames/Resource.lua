@@ -1,4 +1,4 @@
--- Resource.lua: the class resource element under the player frame: combo points as one-point status bars, and the druid's mana bar.
+-- Resource.lua: the class resource element under the player frame: combo points as one-point status bars, or the class-themed pips over them (while the Medallions crest's crown shows them the row hides), and the druid's mana bar, seated above that crown in cat form.
 local _, ns = ...
 
 local K = KstyleUI
@@ -100,6 +100,13 @@ function Resource.Layout()
 	if not w then
 		return
 	end
+	state.content:ClearAllPoints()
+	if state.crown then
+		state.content:SetPoint("CENTER", state.crown, "CENTER", 0, 0)
+		state.content:SetSize(w, h)
+	else
+		state.content:SetAllPoints(state.holder)
+	end
 	local max, min = math.max, math.min
 	local manaH = 0
 	if state.showMana and state.showCombo then
@@ -116,8 +123,9 @@ function Resource.Layout()
 		x = (w - span) / 2
 		for i, pip in ipairs(state.pips) do
 			Place(pip, x + (i - 1) * (size + spacing), (pipRow - size) / 2, size, size)
-			pip:Show()
+			pip:SetShown(not state.themed)
 		end
+		ns.Pips.Layout(state.pips, size)
 	else
 		for _, pip in ipairs(state.pips) do
 			pip:Hide()
@@ -209,7 +217,7 @@ function Resource.Restyle()
 	Resource.Visibility()
 end
 
-function Resource.Points()
+function Resource.Points(event)
 	if not state.showCombo then
 		return
 	end
@@ -219,6 +227,10 @@ function Resource.Points()
 		points = GetComboPoints("player", "target")
 	else
 		points = UnitPower("player", combo)
+	end
+	if state.themed then
+		ns.Pips.Set(points, event ~= nil and event ~= "PLAYER_TARGET_CHANGED")
+		return
 	end
 	for _, pip in ipairs(state.pips) do
 		pip:SetBarValue(points)
@@ -243,15 +255,18 @@ function Resource.Visibility()
 		current = nil
 	end
 	local on = state.running and Settings.Resource("enabled")
-	state.showCombo = on and Settings.Resource("comboPoints") and (class == "ROGUE" or class == "DRUID" and current == energy) or false
+	local crown = Settings.Resource("classPips") and Widgets.ClassCrown() or nil
+	state.showCombo = on and Settings.Resource("comboPoints") and not crown and (class == "ROGUE" or class == "DRUID" and current == energy) or false
 	state.showMana = on and Settings.Resource("druidMana") and class == "DRUID" and current ~= nil and current ~= mana or false
+	state.crown = state.showMana and crown or nil
 	state.flipped = state.showMana and Settings.Value("player", "powerMana") and current or nil
+	state.themed = ns.Pips.Apply(state.showCombo and Settings.Resource("classPips") and class or nil, state.content, PIPS)
 	if state.showMana then Resource.StyleBar(state.mana, state.flipped) end
 	state.content:SetShown(state.showCombo or state.showMana)
 	local Layout = K.Layout
 	if Layout and Layout.SetLive then
 		local comboOn, manaOn = Settings.Resource("comboPoints"), Settings.Resource("druidMana")
-		local placeable = on and (class == "ROGUE" and comboOn or class == "DRUID" and (comboOn or manaOn)) or false
+		local placeable = on and not state.crown and (comboOn and not crown and (class == "ROGUE" or class == "DRUID") or class == "DRUID" and manaOn) or false
 		Layout.SetLive(KEY, placeable and true or false)
 	end
 	Resource.ListenToPower(state.running and (state.showCombo or state.showMana))
@@ -260,9 +275,9 @@ function Resource.Visibility()
 	Resource.Mana()
 end
 
-local function OnPower(_, _, token)
+local function OnPower(event, _, token)
 	if token == "COMBO_POINTS" then
-		Resource.Points()
+		Resource.Points(event)
 	elseif token == "MANA" or state.flipped then
 		Resource.Mana()
 	end
@@ -298,6 +313,8 @@ function Resource.Enable()
 	Events.Register(OWNER, "UPDATE_SHAPESHIFT_FORM", Resource.Visibility)
 	Events.Register(OWNER, "PLAYER_TARGET_CHANGED", Resource.Points)
 	Events.Register(OWNER, "COMBO_TARGET_CHANGED", Resource.Points)
+	K.Callbacks.Register("EffectsLevelChanged", OWNER, function() Resource.Points() end)
+	Widgets.ClassCrown(Resource.Visibility)
 	Resource.Restyle()
 end
 
@@ -305,6 +322,7 @@ function Resource.Disable()
 	state.running = false
 	state.listening = false
 	K.Events.UnregisterAll(OWNER)
+	K.Callbacks.Unregister("EffectsLevelChanged", OWNER)
 	if state.built then
 		state.content:Hide()
 		state.holder:Hide()

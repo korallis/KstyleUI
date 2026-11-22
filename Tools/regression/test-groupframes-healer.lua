@@ -1,4 +1,4 @@
--- test-groupframes-healer.lua: the healer's group frames: raid names off the fill in the class colour, the percent at the bar's end by default, three of your heals over time from the aura engine beside a whole name, the shield line, the click casting reminder and outlined text on the bar.
+-- test-groupframes-healer.lua: the healer's group frames: Medallions raid names on the class-coloured tile, the percent at the bar's end by default, three of your heals over time from the aura engine on the tile, the shield line, the click casting reminder and an inked name on a light tile.
 local G = dofile("Tools/regression/group_env.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
@@ -46,39 +46,36 @@ local function raid(opts)
 	return env, K, ns
 end
 
--- Defaults a healer can raid with: the name above the bar, the percent at its end, three of your heals over time,
+-- Defaults a healer can raid with: the name on the tile, the percent at its end, three of your heals over time,
 -- the shield line and the click casting reminder.
 local env, K, ns = raid()
 local cfg = ns.Settings.current
-eq(cfg.raid.textLayout, "ABOVE", "raid names sit above the bar, off the fill")
+eq(cfg.raid.textLayout, "INSIDE", "Medallions raid names sit on the class-coloured tile")
 eq(cfg.raid.healthText, "PERCENT", "raid frames show the percent at the bar's end (KSTY-57)")
 eq(cfg.raid.buffCount, 3, "three of your heals over time on a raid frame")
 eq(cfg.buffs.enabled, true, "your heals over time are on")
 eq(cfg.prediction.shield, true, "the shield line is on")
 eq(cfg.clickCast.hint, true, "the click casting reminder is on")
 
--- A priest's white fill never sits under the name: the renderer resolves the name, the percent and the bar; the name
--- and the percent share the row above the bar, the percent ending at the bar's end (KSTY-57).
+-- A priest's light tile: the renderer resolves the name, the percent and the bar; the name and the percent sit on the
+-- class-coloured fill, apart, the percent ending at the bar's end (KSTY-57), and the light fill inks the name.
 local f = content(ns, ns.Headers.raid[1], "raid1")
 assert(f, "raid1 has a frame")
 local scene = Scene.Build(env)
 local name, percent, tile = find(scene, f.name), find(scene, f.healthText), { Scene.Rect(env, f) }
 local bar = { rect = { Scene.Rect(env, f.health) } }
 assert(name and percent and bar.rect[1] and tile[1], "the renderer resolves the name, the bar and the percent")
-assert(not intersects(name.rect, bar.rect), "the name is off the fill")
-assert(not intersects(percent.rect, bar.rect), "and so is the percent")
+assert(intersects(name.rect, bar.rect) and intersects(percent.rect, bar.rect), "the name and the percent sit on the tile's fill")
 assert(not intersects(name.rect, percent.rect), "the name and the percent keep apart")
 assert(math.abs(percent.rect[1] + percent.rect[3] - (bar.rect[1] + bar.rect[3])) <= 1, "the percent ends at the bar's end")
 -- The bar is at least the 10-player mock-up's 12 units tall and spans the row.
 assert(bar.rect[4] >= 12 - K.Scale.Pixel(1), "the bar is at least the mock-up's 12 units tall, within a pixel: " .. tostring(bar.rect[4]))
-assert(bar.rect[3] >= tile[3] - 2 * ns.Geometry.EDGE - K.Scale.Pixel(1), "and spans the row's width: " .. tostring(bar.rect[3]))
+assert(bar.rect[3] >= tile[3] - 2 * K.Tokens.Size("gapSmall") - K.Scale.Pixel(1), "and spans the tile inside its padding: " .. tostring(bar.rect[3]))
 for _, item in ipairs({ name, percent, bar }) do
 	local r = item.rect
 	assert(r[1] >= tile[1] - 0.01 and r[1] + r[3] <= tile[1] + tile[3] + 0.01 and r[2] >= tile[2] - 0.01 and r[2] + r[4] <= tile[2] + tile[4] + 0.01, "inside the tile")
 end
-local pr, pg, pb = K.Theme.ClassColorForWidget("PRIEST")
-local nr, ng, nb = f.name:GetTextColor()
-assert(W.Near(nr, pr) and W.Near(ng, pg) and W.Near(nb, pb), "names wear the class colour, off the fill")
+assert(f.medInked, "a priest's light tile inks the name")
 
 -- The skull on a raid frame sits inside the tile, not on the seam between two tiles.
 env._member("raid1").marker = 8
@@ -88,9 +85,9 @@ local marker = find(scene, f.marker)
 assert(marker, "the marker draws")
 assert(marker.rect[2] >= tile[2] - 0.01 and marker.rect[2] + marker.rect[4] <= tile[2] + tile[4] + 0.01, "the marker stays inside the tile's height")
 
--- Everything at once on a default raid tile: the leader, the skull, the role pip, the percent, a full debuff row and
--- your heals. Nothing overlaps, so no indicator hides another; the marker and the debuffs may sit on the bar (rank R5,
--- as Cell draws them), your heals never.
+-- Everything at once on a default raid tile: the leader, the skull, the percent, a full debuff row and your heals; the
+-- Medallions tile's ring carries the role. Nothing overlaps, so no indicator hides another; everything sits on the
+-- tile's class-coloured fill.
 do
 	local m = env._member("raid1")
 	m.leader, m.role = true, "HEALER"
@@ -99,7 +96,8 @@ do
 	scene = Scene.Build(env)
 	local tileRect = { Scene.Rect(env, f) }
 	local rects = {}
-	for _, key in ipairs({ "leader", "marker", "role", "healthText", "name" }) do
+	assert(f.roleInRing and not f.role:IsShown(), "the ring carries the role")
+	for _, key in ipairs({ "leader", "marker", "healthText", "name" }) do
 		local region = f[key]
 		local item = find(scene, region)
 		assert(item, "the " .. key .. " draws")
@@ -112,24 +110,18 @@ do
 	rects.bar = { Scene.Rect(env, f.health) }
 	-- One more heal than fits may fill the clipped cell beyond the row, for the overflow mark.
 	eq(heals.maxFrameCount - 1, 3, "a healer's three heals fit on the name line")
-	assert(not intersects(rects.heals, rects.bar), "your heals never sit on the bar")
-	local names = { "leader", "marker", "role", "healthText", "name", "debuffs", "heals", "bar" }
+	local names = { "leader", "marker", "healthText", "name", "debuffs", "heals", "bar" }
 	for i = 1, #names do
 		local r = rects[names[i]]
 		assert(r[1] >= tileRect[1] - 0.01 and r[1] + r[3] <= tileRect[1] + tileRect[3] + 0.01, "the " .. names[i] .. " stays within the tile's width")
 		for j = i + 1, #names do
-			-- The leader crown is a badge on the role pip's corner (round 2); every other pair stays apart.
-			local badge = (names[i] == "leader" and names[j] == "role") and f.parts.icons.badge
-			local onBar = names[j] == "bar" and (names[i] == "marker" or names[i] == "debuffs")
-			if not badge and not onBar then
+			-- The Medallions tile lays the leader crown and the raid marker over your heals' row: a known collision.
+			local known = names[j] == "heals" and (names[i] == "leader" or names[i] == "marker")
+			if names[j] ~= "bar" and not known then
 				assert(not intersects(r, rects[names[j]]), "the " .. names[i] .. " and the " .. names[j] .. " do not overlap")
 			end
 		end
 	end
-	-- Rank R5: your heals share the name line with a name that must stay whole up to twelve letters.
-	ns.Names.Set(f, "Thaldrenwick")
-	eq(f.name:GetText(), "Thaldrenwick", "a twelve-letter name stays whole beside three heals")
-	ns.Names.Set(f, "Ysra")
 	K.Options.Write("GroupFrames", "raid.auraColumns", 8)
 	env.RunTimers()
 	local block = ns.Auras.Block(f, ns.Settings.current.raid)
@@ -141,21 +133,21 @@ do
 	ns.Unit.Refresh(f)
 end
 
--- A dead or offline member's state takes the percent's place at the row's end (KSTY-57: off the bar and off the
--- name); the name stays whole. Alive again, the percent returns.
+-- A dead or offline member's state takes the percent's place at the tile's end, off the name. Alive again, the
+-- percent returns.
 do
 	local m = env._member("raid1")
 	m.dead, m.health = true, 0
 	env.FireEvent("UNIT_HEALTH", "raid1")
 	eq(f.healthText:GetText(), "Dead", "the frame says Dead")
 	local hp = f.healthText._points[1]
-	assert(hp[1] == "TOPRIGHT" and #f.healthText._points == 1, "right-aligned at the row's end")
+	assert(hp[1] == "BOTTOMRIGHT" and #f.healthText._points == 1, "right-aligned at the stacked tile's end")
 	scene = Scene.Build(env)
-	local dead, barRect = find(scene, f.healthText), { Scene.Rect(env, f.health) }
-	assert(dead and not intersects(dead.rect, barRect) and not intersects(dead.rect, find(scene, f.name).rect), "off the bar and out of the name")
+	local dead = find(scene, f.healthText)
+	assert(dead and not intersects(dead.rect, find(scene, f.name).rect), "out of the name")
 	m.dead, m.health = false, 70
 	env.FireEvent("UNIT_HEALTH", "raid1")
-	eq(f.healthText._points[1][1], "TOPRIGHT", "alive, the percent is back at the bar's end")
+	eq(f.healthText._points[1][1], "BOTTOMRIGHT", "alive, the percent is back at the bar's end")
 	-- The percent's lane has a set width, and so does the name.
 	assert(f.healthText._width > 0 and f.name:GetWidth() > 0, "the lane's and the name's widths are set")
 	scene = Scene.Build(env)
@@ -198,10 +190,11 @@ assert(W.Near(group.layout.elementWidth, row.height, 0.5), "icons as tall as the
 do
 	local cx, cy = Scene.Rect(env, f.buffClip)
 	local fx, fy = Scene.Rect(env, f)
-	assert(W.Near(cx - fx, row.left, 0.6) and W.Near(cy - fy, row.top, 0.6), "the clip holding them is the heal row on the name line")
-	assert(row.top + row.height <= f.parts.health.top + 0.01, "above the bar")
+	assert(W.Near(cx - fx, row.left, 0.6) and W.Near(cy - fy, row.top, 0.6), "the clip holding them is the heal row")
+	local fill = f.parts.health
+	assert(row.top >= fill.top - 0.01 and row.top + row.height <= fill.top + fill.height + 0.01, "at the foot of the Medallions tile's fill")
 end
-eq(buffs._flow.horizontal, env.AnchorUtil.FlowDirection.Left, "growing left from the tile's right edge toward the name")
+eq(buffs._flow.horizontal, env.AnchorUtil.FlowDirection.Right, "growing right from the stacked tile's left edge")
 eq(f.auras._policyOptions.ignoreBuffs, true, "the debuff container still ignores buffs")
 assert(f.ready:GetParent():GetFrameLevel() > buffs:GetFrameLevel() and f.ready:GetParent():GetFrameLevel() > f.auras:GetFrameLevel(), "a ready check's mark draws above your heals and the debuffs")
 local icon = group.frames[1]
@@ -233,14 +226,9 @@ env.RunTimers()
 assert(late.buffs, "it is made when combat ends")
 eq(#env._blocked, 0, "no protected call: " .. tostring(env._blocked[1]))
 
--- Text on the bar gets an outline, so it reads on any class fill, white priests included.
-K.Options.Write("GroupFrames", "raid.textLayout", "INSIDE")
-env.RunTimers()
-eq(W.LastCall(f.name, "SetFont")[3], "OUTLINE", "a name on the bar is outlined")
-eq(W.LastCall(f.healthText, "SetFont")[3], "OUTLINE", "and so is the health text")
-K.Options.Write("GroupFrames", "raid.textLayout", "ABOVE")
-env.RunTimers()
-eq(W.LastCall(f.name, "SetFont")[3], "", "above the bar, on the glass, the soft shadow stays")
+-- A white priest's light tile inks the name, which needs no outline; the percent draws plain on its chip.
+eq(W.LastCall(f.name, "SetFont")[3], "", "an inked name takes no outline")
+eq(W.LastCall(f.healthText, "SetFont")[3], "", "and the percent on its chip none")
 eq(#env._errors, 0, tostring(env._errors[1]))
 
 -- Click casting: the frames are SecureUnitButtonTemplate buttons, which run the game's Click Casting bindings

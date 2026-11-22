@@ -20,7 +20,7 @@ The frames and bars are the centre of the HUD in play. The player tunes them und
 The owner's-case render already frames the centre cluster. Its PNG must show the player slab with health and mana, a running Shadow Bolt cast bar, the pet slab under it, the target slab with its own cast, and the action slab with icons and keybinds around the crest:
 
 ```bash
-RENDER_SCREEN=5120x1440 RENDER_SIZE=auto RENDER_HUD_STYLE=Medallions RENDER_LAYOUT=DPS \
+RENDER_SCREEN=5120x1440 RENDER_SIZE=auto RENDER_LAYOUT=DPS \
   bash Tools/render/shoot.sh hud_warlock_mac --ppu 1.3333333333 --strict \
   --out "$HOME/.cache/kstyleui-verify/hud_warlock_medallions_5120x1440.png"
 echo "exit=$?"

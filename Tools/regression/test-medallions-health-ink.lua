@@ -1,7 +1,6 @@
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 local env, K, ns = U.New()
-K.Options.Write("HudStyle", "style", "medallions")
 local view = ns.Frames.Get("player").views[1]
 local function Ink(text)
 	local r, g, b = text:GetTextColor()
@@ -33,7 +32,5 @@ env.SetTarget(true)
 local target = ns.Frames.Get("target").views[1]
 ns.Unit.HealthColor(target, "target")
 Light(target.healthText, "the yellow target fill")
-K.Options.Write("HudStyle", "style", "frames")
-assert(view.health.finish == nil, "Frames restores its existing shading")
 assert(#env._errors == 0, tostring(env._errors[1]))
 print("Medallions health ink passed")

@@ -42,7 +42,9 @@ do
 		assert(ns.Frames.Get(kind).views[1].healAbsorb == nil, "an old profile creates no heal-absorb bar")
 	end
 	local er, eg, eb = K.Tokens.Color("textEmphasis")
-	textIs(view.levelText, er, eg, eb, "the level keeps its colour by default")
+	local sr, sg, sb = K.Tokens.Color("steelLit")
+	local plaque = view.medallion.levelText
+	textIs(plaque, sr, sg, sb, "the level keeps its colour by default")
 
 	write(env, K, "UnitFrames", "target.healAbsorbs", true)
 	local eaten = assert(view.healAbsorb, "turning heal absorbs on creates the bar")
@@ -74,19 +76,19 @@ do
 	env.GetCreatureDifficultyColor = function() return { r = 1, g = 0.1, b = 0.1 } end
 	write(env, K, "UnitFrames", "target.levelDifficulty", true)
 	local wr, wg, wb = K.Theme.Brighten(1, 0.1, 0.1)
-	textIs(view.levelText, wr, wg, wb, "an enemy's level takes its difficulty colour")
+	textIs(plaque, wr, wg, wb, "an enemy's level takes its difficulty colour")
 	env._units.target.canAttack = false
 	env.FireEvent("UNIT_LEVEL", "target")
-	textIs(view.levelText, er, eg, eb, "a friendly level keeps the normal colour")
+	textIs(plaque, sr, sg, sb, "a friendly level keeps the normal colour")
 	env._units.target.canAttack = true
 	env.FireEvent("UNIT_FACTION", "target")
-	textIs(view.levelText, wr, wg, wb, "UNIT_FACTION colours a unit that turns hostile")
+	textIs(plaque, wr, wg, wb, "UNIT_FACTION colours a unit that turns hostile")
 	env._units.target.canAttack = false
 	env.FireEvent("UNIT_FACTION", "target")
-	textIs(view.levelText, er, eg, eb, "UNIT_FACTION restores the colour of a unit that turns friendly")
+	textIs(plaque, sr, sg, sb, "UNIT_FACTION restores the colour of a unit that turns friendly")
 	env._units.target.canAttack = true
 	write(env, K, "UnitFrames", "target.levelDifficulty", false)
-	textIs(view.levelText, er, eg, eb, "turning the colour off restores the level's colour")
+	textIs(plaque, sr, sg, sb, "turning the colour off restores the level's colour")
 
 	write(env, K, "UnitFrames", "edit", "target")
 	local pane = ns.Preview.Build(env.UIParent)
@@ -99,13 +101,10 @@ do
 	pane:Refresh()
 	textIs(sample.levelText, er, eg, eb, "the preview level returns to its colour")
 
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	view = ns.Frames.Get("target").views[1]
-	local plaque = view.medallion.levelText
 	assert(plaque:IsVisible() and not view.slabLevel:IsShown(), "Medallions shows the level on the plaque")
 	local mr, mg, mb = K.Tokens.Color("labelMuted")
-	local sr, sg, sb = K.Tokens.Color("steelLit")
 	textIs(plaque, sr, sg, sb, "the plaque level keeps its colour by default")
 	write(env, K, "UnitFrames", "target.levelDifficulty", true)
 	textIs(plaque, wr, wg, wb, "the plaque level takes the difficulty colour")
@@ -114,15 +113,6 @@ do
 	textIs(plaque, sr, sg, sb, "turning it off restores the plaque level")
 	textIs(view.slabLevel, mr, mg, mb, "and the muted slab level")
 
-	K.Options.Write("HudStyle", "style", "frames")
-	write(env, K, "UnitFrames", "target.style", "lumen")
-	view = ns.Frames.Get("target").views[1]
-	assert(view.form == "sigil" and U.Shown(env, view.caption) == "Level 62", "the Sigil caption shows the level: " .. tostring(U.Shown(env, view.caption)))
-	write(env, K, "UnitFrames", "target.levelDifficulty", true)
-	local hex = string.format("|cff%02x%02x%02x62|r", math.floor(wr * 255 + 0.5), math.floor(wg * 255 + 0.5), math.floor(wb * 255 + 0.5))
-	assert(U.Shown(env, view.caption):find(hex, 1, true), "the Sigil caption colours the level number: " .. U.Shown(env, view.caption))
-	write(env, K, "UnitFrames", "target.levelDifficulty", false)
-	assert(U.Shown(env, view.caption) == "Level 62", "turning it off restores the plain caption")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 collectgarbage()
@@ -182,7 +172,7 @@ do
 end
 collectgarbage()
 
--- Group frames: a raid tile's time left stays clear of the dispel letter and the stack count; the preview shows both.
+-- Group frames: a raid tile keeps its dispel letter and stack count inside it (Medallions' 8-unit tiles bind no time left, as on staging); the preview shows both.
 do
 	local env, K, ns = G.New()
 	G.SetRoster(env, "raid", G.Members(10))
@@ -194,19 +184,9 @@ do
 	A.Assign(env, f.auras, "debuffs", 1)
 	env.RunTimers()
 	local button = f.auras._groups.debuffs.active[1]
-	A.Remaining(env, button, 12)
 	A.Dispel(button, "Magic")
 	local aura, p = button._aura, ns.Auras.Parts(button)
 	local size = button:GetWidth()
-	assert(size == 12 and aura.timer:IsVisible(), "a raid tile is 12 units and shows its time left")
-	local point, to, toPoint, _, y = aura.timer:GetPoint()
-	assert(point == "TOP" and to == p.skin and toPoint == "BOTTOM" and y <= 0, "the time left sits below the tile: " .. tostring(point) .. " " .. tostring(toPoint))
-	local _, timerSize = aura.timer:GetFont()
-	local clipPoint, _, _, _, clipY = f.auraClip:GetPoint()
-	assert(f.auraClip:GetHeight() >= size + timerSize and clipPoint:find("^TOP"),
-		"the debuff clip grows down to hold the time left: " .. f.auraClip:GetHeight() .. " for a " .. size .. " tile at " .. tostring(clipY))
-	local buffs = f.buffs and f.buffs._groups.buffs.frames[1]
-	assert(buffs and f.buffClip:GetHeight() >= buffs:GetHeight() + timerSize, "so does the heal row's clip")
 	local cPoint, cTo, cToPoint = aura.count:GetPoint()
 	assert(cPoint == "BOTTOMRIGHT" and cTo == p.skin and cToPoint == "BOTTOMRIGHT", "the stack count stays inside the tile")
 	for _, entry in ipairs(aura.dispel) do

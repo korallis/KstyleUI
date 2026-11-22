@@ -5,14 +5,13 @@ local Common = dofile("Tools/render/scenes/_common.lua")
 local function Overlap(a, b)
 	return a[1] < b[1] + b[3] - 0.01 and b[1] < a[1] + a[3] - 0.01 and a[2] < b[2] + b[4] - 0.01 and b[2] < a[2] + a[4] - 0.01
 end
-return function(style, preset, screens)
+return function(preset, screens)
 	rawset(_G, "RENDER_CONSUMABLES", 12)
 	local env, ns
 	for _, screen in ipairs(screens) do
 		rawset(_G, "RENDER_SCREEN", { width = screen[1], height = screen[2], size = "auto" })
 		for _, arrangement in ipairs({ "centred", "spread" }) do
 			rawset(_G, "RENDER_ARRANGEMENT", arrangement)
-			rawset(_G, "RENDER_HUD_STYLE", style)
 			local opts = { class = "SHAMAN", layout = preset, applyPreset = true, spec = {
 				buffs = { { "Nature's Swiftness", 136076, { 10, 8 } }, { "Elemental Mastery", 136115, { 30, 14 } }, { "Buff 3", 136076, { 30, 14 } }, { "Buff 4", 136076, { 30, 14 } }, { "Buff 5", 136076, { 30, 14 } }, { "Buff 6", 136076, { 30, 14 } } },
 			} }
@@ -31,7 +30,7 @@ return function(style, preset, screens)
 				env.RunTimers()
 			end
 			local rect = { Scene.Rect(env, ns.Consumables.header) }
-			local label = string.format("%dx%d %s", screen[1], screen[2], style .. " " .. preset .. " " .. arrangement)
+			local label = string.format("%dx%d %s", screen[1], screen[2], preset .. " " .. arrangement)
 			assert(#ns.Consumables.selected == 12 and ns.Consumables.header:IsShown(), "exercise the maximum occupied footprint")
 			assert(rect[1] >= 0 and rect[2] >= 0 and rect[1] + rect[3] <= 1080 * screen[1] / screen[2] and rect[2] + rect[4] <= 1080, label .. ": keep consumables on screen")
 			local timers = 0
@@ -49,7 +48,6 @@ return function(style, preset, screens)
 	end
 	rawset(_G, "RENDER_CONSUMABLES", nil)
 	rawset(_G, "RENDER_SCREEN", nil)
-	rawset(_G, "RENDER_HUD_STYLE", nil)
 	rawset(_G, "RENDER_ARRANGEMENT", nil)
-	print("consumables clearance ok: maximum grid clears drawn units, auras and timers at " .. #screens .. " sizes x both arrangements: " .. style .. " " .. (preset))
+	print("consumables clearance ok: maximum grid clears drawn units, auras and timers at " .. #screens .. " sizes x both arrangements: " .. preset)
 end

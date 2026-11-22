@@ -10,7 +10,7 @@ local function Boot(opts)
 	local zygor
 	local saved = {
 		version = 12,
-		profiles = { Default = { Layout = { preset = "DPS" }, HudStyle = { style = opts.style or "frames" }, Skins = opts.skins } },
+		profiles = { Default = { Layout = { preset = "DPS" }, Skins = opts.skins } },
 		characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {},
 	}
 	local env, K, ns = S.New({
@@ -267,7 +267,7 @@ do
 	local zygor, rxp
 	local saved = {
 		version = 12,
-		profiles = { Default = { Layout = { preset = "DPS" }, HudStyle = { style = "frames" } } },
+		profiles = { Default = { Layout = { preset = "DPS" } } },
 		characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {},
 	}
 	local env, K, ns = S.New({

@@ -180,7 +180,7 @@ local function SkinIcon(group, item)
 	end
 	if backdrop and backdrop.chrome then
 		backdrop.chrome:SetShadow(false)
-		local dress = current.medallionsIcons and K.HudStyle.Current() == "medallions"
+		local dress = current.medallionsIcons
 		if dress and not backdrop.medOverlay then
 			backdrop.medOverlay = CreateFrame("Frame", nil, item)
 			backdrop.medOverlay:SetFrameLevel(item:GetFrameLevel() + 1)

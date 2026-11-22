@@ -25,9 +25,8 @@ do
 	for name in pairs(T.TOOLTIPS) do
 		local glass = ns.Style.Glass(env[name])
 		assert(glass, name .. " is restyled")
-		assert(glass.chrome.ornament == nil, name .. " carries no crest: the bible allows ornament on card corners and the heading rule only")
 		assert(glass.footer == nil, name .. " has no footer divider")
-		assert(glass.chrome.popup == true, name .. " is opaque under every material but Glass")
+		assert(glass.chrome.popup == true, name .. " is opaque")
 	end
 	local tip = env.GameTooltip
 	tip:AddLine("Ranger's Long Bow", 1, 1, 1)
@@ -41,7 +40,7 @@ do
 	for _, region in ipairs({ glass:GetRegions() }) do
 		if region:IsObjectType("Texture") and region:IsShown() and W.LastCall(region, "SetTexture") then
 			local texture = W.LastCall(region, "SetTexture")[1]
-			if texture == K.Tokens.Texture("forgedRule") or texture == K.Tokens.Texture("ruleFade") or texture == K.Tokens.Texture("divider") then
+			if texture == K.Tokens.Texture("ruleFade") or texture == K.Tokens.Texture("divider") then
 				rules = rules + 1
 			end
 		end

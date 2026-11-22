@@ -18,15 +18,14 @@ for _, screen in ipairs(SCREENS) do
 			e.GetPhysicalScreenSize = function()
 				return width, height
 			end
+			local player = e._units.player
+			player.class, player.race, player.sex, player.level = "WARLOCK", "Scourge", 2, 38
 		end,
 	})
-	local player = env._units.player
-	player.class, player.race, player.sex, player.level = "WARLOCK", "Scourge", 2, 38
 	U.SetUnit(env, "target", { name = "Riverglade Crocolisk", level = 38, health = 864, healthMax = 1540, reaction = 2, canAttack = true, creature = "Beast" })
 	U.SetUnit(env, "focus", { name = "Mirefin Oracle", level = 39, health = 980, healthMax = 1210, reaction = 2 })
 	U.SetUnit(env, "pet", { name = "Zabnik", level = 38, health = 920, healthMax = 1500, reaction = 5 })
 	env.SetTarget(true)
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	local least = math.ceil(FLOOR * height / REFERENCE - 1e-6)
 	for _, kind in ipairs(KINDS) do

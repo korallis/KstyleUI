@@ -7,7 +7,8 @@ local function Boot(width, height)
 	local env, K, ns = U.New({
 		width = width,
 		height = height,
-		saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {}, layouts = {} },
+		-- The dispel display and the totems beside a portrait are the plate's: the Medallions slab draws neither.
+		saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true, player = { style = "plate" } } } }, characters = {}, layouts = {} },
 		setup = function(e)
 			e._recasts = 2
 			e.C_TradeSkillUI = { GetRemainingRecasts = function() return e._recasts end }
@@ -78,7 +79,6 @@ for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 
 	ns.Frames.Relayout(uf)
 	write("player.dispelIcon", "")
 	env._totems[1] = { name = "Searing Totem", start = 1, duration = 60, icon = 135824 }
-	write("player.style", "column")
 	write("player.portrait", true)
 	write("player.totems", true)
 	local row
@@ -207,8 +207,8 @@ end)
 
 -- Chained spell ID lists resolve through each link and refresh every reader; a loop keeps each frame's own list.
 check("lists", function()
-	write("player.auras", true)
-	write("player.auraFilter", "both")
+	write("player.medallionsAuras", true)
+	write("player.medallionsAuraFilter", "both")
 	write("focus.auraHidden", "333")
 	write("target.auraHidden", "222")
 	write("target.auraLists", "focus")
@@ -233,7 +233,7 @@ end)
 
 -- A merged batch keeps running through an intermediate craft's stop, lands on the last, and runs on a native span.
 check("craft batch", function()
-	local pcb = ns.CastBars.Get("player")[1]
+	local pcb = ns.CastBars.Inline("player")[1]
 	local function craft(start, left)
 		env._recasts, env._time = left, start / 1000
 		env._units.player.cast = { name = "Bolt of Linen", texture = 135846, start = start, finish = start + 3000, spellID = 116 }

@@ -64,18 +64,18 @@ local function Build(def)
 	return bar
 end
 
-local function RefreshTray()
-	ns.trayHeld = false
+local function RefreshSlab()
+	ns.slabHeld = false
 	local main = ns.bars.bar1
 	if main then
-		main:RefreshTray(true)
+		main:RefreshSlab()
 	end
 end
 
-local function HoldTray(fn)
-	ns.trayHeld = true
+local function HoldSlab(fn)
+	ns.slabHeld = true
 	local ok, err = pcall(fn)
-	RefreshTray()
+	RefreshSlab()
 	if not ok then
 		error(err, 0)
 	end
@@ -99,7 +99,7 @@ local function ApplyAll(geometryOnly)
 		return
 	end
 	local extra = ns.ApplyExtraBars()
-	HoldTray(function() ApplyBars(geometryOnly) end)
+	HoldSlab(function() ApplyBars(geometryOnly) end)
 	if extra == "beside" then ns.ClearExtraChat() end
 	if ns.flyout and ns.flyout.frame then
 		local frame = ns.flyout.frame
@@ -127,7 +127,7 @@ local function RefreshBars()
 end
 
 local function RefreshVisuals()
-	HoldTray(RefreshBars)
+	HoldSlab(RefreshBars)
 	ApplyAccent()
 end
 
@@ -153,8 +153,6 @@ local function UpdatePets()
 	for i = 1, #list do
 		ns.Button.Update(list[i])
 	end
-	local main = ns.bars.bar1
-	if main then main:RefreshTray() end
 end
 
 local function UpdateStances()
@@ -188,6 +186,8 @@ end
 local function OnSpells()
 	ns.Flyout.QueueRefresh()
 	ns.SlabHawks.Recheck()
+	ns.SlabCrown.Update()
+	ns.SlabStorm.Recheck()
 end
 
 local function OnLearned(_, spellID)
@@ -361,7 +361,7 @@ local function OnSetting(_, module, key)
 		end
 		ApplyAll()
 		return
-	elseif key == "trayColumn" or key == "useTray" or key == "slab" or key == "safeDragging" then
+	elseif key == "slab" or key == "safeDragging" then
 		ApplyAll()
 		return
 	elseif barKey and ns.BAR[barKey] then
@@ -490,6 +490,9 @@ local function Enable()
 	ns.SlabEffects.Enable()
 	ns.SlabJewels.SetEnabled(true)
 	ns.SlabHawks.SetEnabled(true)
+	ns.SlabStorm.SetEnabled(true)
+	ns.SlabCrown.SetEnabled(true)
+	ns.Totems.SetEnabled(true)
 	ns.enabling = false
 	ns.Keybind.Enable()
 	ns.Consumables.Enable()
@@ -512,6 +515,9 @@ local function Disable()
 	ns.SlabEffects.Disable()
 	ns.SlabJewels.SetEnabled(false)
 	ns.SlabHawks.SetEnabled(false)
+	ns.SlabStorm.SetEnabled(false)
+	ns.SlabCrown.SetEnabled(false)
+	ns.Totems.SetEnabled(false)
 	ns.Slab.Disable()
 	ns.Travel.Disable()
 	ns.Ranks.Stop()

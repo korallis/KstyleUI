@@ -68,13 +68,11 @@ do
 	assert(d.bars.width == 6 * 38 + 5 * 3, "the optional mirrored buff bars retain their original width")
 end
 
--- LEE-20 stacks bar 2 over bar 1 and reserves bar 3 above chat; bars 4 and 5 stand in the right rail's column over
--- the readout, as the picture draws them, and bar 6's slot a third column beside them ------------------------------
+-- The action bar grids: bars 2 and 3 are rows of twelve like bar 1 at the KSTY-44 gap; bars 4 to 6 are columns -----
 do
 	local env, K = CoreEnv.New()
 	CoreEnv.Boot(env)
 	local Layouts = K.Setup.Layouts
-	local HEIGHT = Layouts.HEIGHT
 	for _, key in ipairs({ "actionbars.bar2", "actionbars.bar3" }) do
 		local grid = Layouts.Grid(key)
 		assert(grid.rows == 1, key .. " is one row of twelve, like bar 1")
@@ -82,33 +80,6 @@ do
 	assert(near(Layouts.Grid("actionbars.bar1").spacing, 3 * 19 / 16) and near(Layouts.Grid("actionbars.bar2").spacing, 3 * 19 / 16), "the central grids expose the KSTY-44 tray's gap")
 	for _, key in ipairs({ "actionbars.bar4", "actionbars.bar5", "actionbars.bar6" }) do
 		assert(Layouts.Grid(key).rows == 12, key .. " is a column of twelve")
-	end
-	for _, name in ipairs(Layouts.Names()) do
-		local layout = Layouts.Get(name)
-		for _, width in ipairs({ HEIGHT * 2383 / 1540, HEIGHT * 16 / 10, HEIGHT * 16 / 9, HEIGHT * 21 / 9 }) do
-			local function rect(key)
-				local w, h, offsetX = Layouts.Footprint(name, key)
-				local l, b, r, t = Layouts.Rect({ width = w, height = h, offsetX = offsetX }, layout[key], width, HEIGHT)
-				return { l = l, b = b, r = r, t = t }
-			end
-			local label = string.format("%s at %.0f wide", name, width)
-			local bar1, bar2, bar3 = rect("actionbars.bar1"), rect("actionbars.bar2"), rect("actionbars.bar3")
-			local row = 12 * 38 * 19 / 16 + 11 * 3 * 19 / 16
-			assert(near(bar2.l, bar1.l) and near(bar2.r - bar2.l, row) and near(bar1.r - bar1.l, row), label .. ": the two enabled rows share the KSTY-44 tray's column")
-			assert(near(bar1.b, Layouts.TRAY_BOTTOM + Layouts.TRAY_PAD) and near(bar2.t + Layouts.TRAY_PAD, Layouts.TRAY_TOP) and near(bar2.b - bar1.t, 3 * 19 / 16), label .. ": the action rows stand inside the tray at its gap")
-			assert(layout["actionbars.bar3"].anchor == "BOTTOM" and near((bar3.l + bar3.r) / 2, width / 2 - 460) and near(bar3.b, 640) and near(bar3.r - bar3.l, 489), label .. ": spare bar 3 keeps its full width in its own slot above the casts")
-			assert((bar3.r <= rect("unitframes.castbar.target").l or bar3.b >= rect("unitframes.castbar.target").t) and (bar3.r <= rect("unitframes.boss").l or bar3.t <= rect("unitframes.boss").b), label .. ": bar 3 clears the cast lane and central play field")
-			local player, target = rect("unitframes.player"), rect("unitframes.target")
-			assert(near(player.b, 138 + Layouts.TRAY_LIFT) and player.b - bar2.t - Layouts.TRAY_PAD >= 6 and near(target.b - player.t, 2), label .. ": player and target stack directly over the tray card, at least 6 clear of it")
-			local centre = (bar1.l + bar1.r) / 2
-			assert(near((player.l + 95.5 + player.r) / 2, centre) and near((target.l + target.r - 246.4) / 2, centre), label .. ": LEE-20 asymmetric reserves leave both bar columns centred over the tray")
-			local readout, damage = rect("databars.strip"), rect("meters.damage")
-			local bar4, bar5, bar6 = rect("actionbars.bar4"), rect("actionbars.bar5"), rect("actionbars.bar6")
-			local railPitch = Layouts.Grid("actionbars.bar4").spacing
-			assert(near(bar4.r, damage.r - 1.4) and near(bar4.r, readout.r - 1.4), label .. ": restore the v0.2.6 readout on the damage card's right edge, with bar 4 standing 1.4 inside both")
-			assert(near(bar4.l - bar5.r, railPitch) and near(bar5.l - bar6.r, railPitch), label .. ": bars 5 and 6 stand beside it at the rail bars' pitch")
-			assert(near(bar4.b, readout.t + 10) and near(bar5.b, bar4.b) and near(bar6.b, bar4.b), label .. ": the columns stand 10 over the readout")
-		end
 	end
 end
 

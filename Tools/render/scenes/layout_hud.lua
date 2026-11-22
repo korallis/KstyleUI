@@ -51,6 +51,5 @@ return Common.Run(function()
 	scene.movers = elements
 	scene.userScale, scene.origin = K.Scale.AppliedUserScale(), K.Scale.Origin()
 	scene.toolbar = { K.Layout.Rect("Layout.Toolbar") }
-	scene.style = K.HudStyle.Current()
 	return scene
 end)

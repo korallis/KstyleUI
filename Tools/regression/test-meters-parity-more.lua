@@ -17,11 +17,11 @@ assert(ns.Get("damage.refresh") == 0.5 and ns.Get("damage.hoverSpells") == 3 and
 local function name()
 	return M.Last(list.rows[list.count].name, "SetText")[1]
 end
-assert(name() == "12. Player 12", "pinned rank starts visible")
+assert(name() == "12. PLAYER 12", "pinned rank starts visible, in the Medallions capitals")
 M.Write(env, K, "damage.hideRank", true)
-assert(name() == "Player 12", "rank hides")
+assert(name() == "PLAYER 12", "rank hides")
 M.Write(env, K, "damage.hideRank", false)
-assert(name() == "12. Player 12", "rank restores")
+assert(name() == "12. PLAYER 12", "rank restores")
 local split = { AddRow = function(self) self.count = self.count + 1 end, SetNote = function() end }
 local function hover(count)
 	split.count = 0

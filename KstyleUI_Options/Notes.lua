@@ -2,6 +2,14 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.2.12 (2026-11-22)", {
+		L["KstyleUI is now Medallions only: Frames and Orbs are gone, your HUD moves over on update and setup is shorter."],
+		L["Class crowns rise over the crest for rogues, druids, warriors, priests, mages and hunters, on by default."],
+		L["Shamans get Spirit Poles, a totem bar on the crest with Ghost Wolf and Call, and Storm Orbs for Lightning Shield."],
+		L["Cast bars sit on their frames: yours under the player frame and your target's under the target frame."],
+		L["Your own settings now win over the Medallions look, and your buffs no longer show twice on the player frame."],
+		L["Key presses, pet cooldowns, target changes and currency updates do less work, with no change in look."],
+	} },
 	{ "v0.2.11.1 (2026-11-22)", {
 		L["With Blizzard's Cooldown Manager switched off, KstyleUI no longer shows its own cooldown icons."],
 	} },
@@ -11,12 +19,5 @@ ns.NOTES = {
 		L["Medallions crest jewels are richer cut gems that flare when you gain a point and drain when you spend one."],
 		L["At the maximum the whole crest ring glows in the resource's colour; Glow at max is on by default."],
 		L["Hawk perches show each Summon Hawk hawk and its time left on the Medallions crest, an idea from Baine."],
-	} },
-	{ "v0.2.10 (2026-11-21)", {
-		L["KstyleUI draws less every frame, up to a quarter less area, with no change in how it looks."],
-		L["Medallions switches for Low-health vignette and Ambient hub effects trade effects for frame rate, both on by default."],
-		L["Thanks to Baine, /kstyle perf records your frame rate and KstyleUI's Lua time for frame-rate reports."],
-		L["Party frames can follow the raid's settings, and indicators can be coloured squares or bars that drain."],
-		L["Party and raid frames gain a shield edge, a raid size of your own and tank frames that can leave you out."],
 	} },
 }

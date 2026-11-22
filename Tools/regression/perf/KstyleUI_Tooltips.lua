@@ -33,7 +33,7 @@ return {
 			end
 			show()
 			show()
-			assert(fade and fade:IsPlaying() and glass.chrome.ornament == nil, "the cost fixture plays the fade and places no crest")
+			assert(fade and fade:IsPlaying(), "the cost fixture plays the fade")
 			return env, show
 		end,
 	},

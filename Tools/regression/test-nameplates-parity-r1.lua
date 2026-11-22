@@ -237,8 +237,7 @@ do
 		end,
 	})
 	local p1, p2 = ns.Plates.Get("nameplate1"), ns.Plates.Get("nameplate2")
-	local gilt = { K.Tokens.Color("giltLit") }
-	same({ p1.levelText:GetTextColor() }, gilt, "levels stay gilt by default")
+	same({ p1.levelText:GetTextColor() }, { K.Theme.Brighten(0.9, 0.1, 0.1) }, "a Medallions enemy level reads in its difficulty colour by default")
 	set("level.colorMode", "difficulty")
 	same({ p1.levelText:GetTextColor() }, { K.Theme.Brighten(0.9, 0.1, 0.1) }, "a hard unit's level reads red")
 	env._units.nameplate1.level = 12
@@ -249,7 +248,7 @@ do
 	set("level.color", { r = 0.4, g = 0.5, b = 0.6 })
 	same({ p1.levelText:GetTextColor() }, { 0.4, 0.5, 0.6 }, "a custom level colour")
 	set("level.colorMode", "")
-	same({ p1.levelText:GetTextColor() }, gilt, "off restores gilt")
+	same({ p1.levelText:GetTextColor() }, { K.Theme.Brighten(0.25, 0.75, 0.25) }, "off restores the Medallions difficulty colour")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 collectgarbage()

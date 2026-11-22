@@ -7,7 +7,6 @@ return Common.Run(function()
 	local scenes = {}
 	for row, state in ipairs({ "landed", "interrupted", "channel" }) do
 		local env, K, ns = U.New(Common.ScreenOpts({ saved = Gallery.Saved({ "UnitFrames" }), setup = Gallery.Setup }))
-		K.Options.Write("HudStyle", "style", "medallions")
 		for _, kind in ipairs(ns.Settings.KINDS) do
 			for _, view in ipairs(ns.Frames.Get(kind).views) do view.button:Hide() end
 		end

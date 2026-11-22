@@ -17,7 +17,6 @@ assert(slot.lumenGlow.breath:IsPlaying(), "P11: resume a still-active visible pr
 slot.lumenGlow:Hide()
 slot:Paint()
 assert(not slot.lumenGlow.breath:IsPlaying(), "P11: paint must not play a hidden glow")
-K.Options.Write("HudStyle", "style", "medallions")
 env.FireEvent("PLAYER_ENTERING_WORLD")
 local V = K.Effects.Vignette
 assert(V.frame.breath:IsPlaying(), "secret health remains engine-driven")
@@ -42,7 +41,6 @@ env.WorldFrame:Show()
 assert(V.frame.breath:IsPlaying(), "P11: resume when its actual parent is shown again")
 assert(#env._errors == 0 and K.ErrorCount() == 0, "visibility handling must not inspect secrets")
 local fallback, kit = W.New({ setup = FX.Install })
-kit.Options.Write("HudStyle", "style", "medallions")
 fallback.FireEvent("PLAYER_ENTERING_WORLD")
 local vignette = kit.Effects.Vignette
 fallback.UIParent:Hide()

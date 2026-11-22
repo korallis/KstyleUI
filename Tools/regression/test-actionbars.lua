@@ -53,25 +53,25 @@ do
 		assert(element.module == "ActionBars" and element.opts.scalable == true, key .. " is a scalable ActionBars element")
 		assert(element.label == K.Setup.Layouts.Element(key).label, key .. " uses the setup's label")
 		local settings = K.Layout.Get(key)
-		local default = K.Setup.Layouts.Default(key)
-		assert(settings.anchor == default.anchor and settings.x == default.x and settings.y == default.y, key .. " starts at the v3 position")
+		local default = K.Setup.Layouts.Place("DPS", "medallions", K.Scale.Aspect(), key, K.Scale.Band())
+		assert(settings.anchor == default.anchor and settings.x == default.x and settings.y == default.y, key .. " starts at the Medallions position")
 	end
-	K.Options.Write("ActionBars", "trayColumn", false)
 	local bar1 = ns.bars.bar1
-	local grid = K.Setup.Layouts.Grid("actionbars.bar1")
-	local pitch = grid.size + grid.spacing
-	local size = K.Widgets.Snap(bar1.header, grid.size)
+	local _, _, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), "actionbars.bar1")
+	local pitch = cell + spacing
+	local size = K.Widgets.Snap(bar1.header, cell)
 	local width = K.Widgets.Snap(bar1.header, 11 * pitch) + size
-	assert(near(bar1.holder:GetWidth(), width) and near(bar1.holder:GetHeight(), size), "bar 1 encloses twelve tray tiles at the KSTY-44 tray's pitch")
+	assert(near(bar1.holder:GetWidth(), width) and near(bar1.holder:GetHeight(), size), "bar 1 encloses twelve slab sockets at the slab's pitch")
 	local button = bar1.buttons[3]
-	assert(near(button:GetWidth(), size), "the tray's tiles snap to physical pixels")
+	assert(near(button:GetWidth(), size), "the slab's sockets snap to physical pixels")
 	local point, relative, _, x, y = button:GetPoint(1)
-	assert(point == "TOPLEFT" and relative == bar1.header and near(x, K.Widgets.Snap(bar1.header, 2 * pitch)) and near(y, 0), "the third button sits two tray steps right")
+	assert(point == "TOPLEFT" and relative == bar1.header and near(x, K.Widgets.Snap(bar1.header, 2 * pitch)) and near(y, 0), "the third button sits two slab steps right")
 	assert(button._template == "SecureActionButtonTemplate", "buttons are KstyleUI's own secure action buttons")
 	assert(button:GetName() == "KstyleUI_ActionBar1Button3")
 	assert(button:GetAttribute("type") == "action" and button:GetAttribute("useparent-actionpage") == true and button:GetID() == 3)
 	assert(bar1.header:GetAttribute("actionpage") == 1 and ns.bars.bar2.header:GetAttribute("actionpage") == 6, "bar 2 shows page 6")
-	assert(near(ns.bars.pet.holder:GetWidth(), 129) and near(ns.bars.pet.holder:GetHeight(), 96), "the pet bar is three rows of four, the footprint the layouts plan for it beside the KSTY-44 tray")
+	local _, petWidth, petHeight = K.Setup.Layouts.MedallionsSide(K.Scale.Aspect(), "actionbars.pet")
+	assert(near(ns.bars.pet.holder:GetWidth(), petWidth) and near(ns.bars.pet.holder:GetHeight(), petHeight), "the pet bar is the Medallions side grid's two rows, the footprint the layouts plan for it")
 	local bar2 = ns.bars.bar2
 	assert(near(bar2.holder:GetWidth(), width) and near(bar2.holder:GetHeight(), size), "bar 2 uses the same measured row as bar 1")
 	assert(ns.defaults.bar3.rows == 1 and ns.defaults.bar4.rows == 12 and ns.defaults.bar5.rows == 12, "bar 3 is a row too; bars 4 and 5 are columns, as the layouts stand them in the right rail")
@@ -196,6 +196,7 @@ do
 	local bar1, pet = ns.bars.bar1, ns.bars.pet
 	local backing = bar1.backing
 	assert(backing and not backing:IsShown(), "bar 1 has no strip by default: the Lumen sockets float")
+	K.Options.Write("ActionBars", "slab", false)
 	K.Options.Write("ActionBars", "bar1.backing", true)
 	assert(backing:IsShown() and backing:GetParent() == bar1.header, "switched on, bar 1's strip sits on its header, so it fades with the bar")
 	assert(backing.chrome and backing.chrome.fillName == "buttonFill" and near(backing.chrome:Chamfer(), 3 * K.Widgets.Border(backing)), "the strip is the button body, its ends rounded by the shared rule: the socket grade's three border lines (the owner's picture, 2026-11-09)")
@@ -216,7 +217,7 @@ end
 do
 	local env, K, ns = AB.New()
 	AB.Enable(env, K)
-	K.Options.Write("ActionBars", "trayColumn", false)
+	K.Options.Write("ActionBars", "slab", false)
 	local bar1 = ns.bars.bar1
 	env.SetCombat(true)
 	K.Options.Write("ActionBars", "bar1.buttons", 6)
@@ -225,10 +226,10 @@ do
 	local grid = K.Setup.Layouts.Grid("actionbars.bar1")
 	local pitch = grid.size + grid.spacing
 	local size = K.Widgets.Snap(bar1.header, grid.size)
-	assert(near(bar1.holder:GetWidth(), K.Widgets.Snap(bar1.header, 5 * pitch) + size), "six tray tiles wide")
+	assert(near(bar1.holder:GetWidth(), K.Widgets.Snap(bar1.header, 5 * pitch) + size), "six tiles wide")
 	assert(bar1.buttons[6]:IsShown() and not bar1.buttons[7]:IsShown(), "buttons past the count hide")
 	K.Options.Write("ActionBars", "bar1.rows", 2)
-	assert(near(bar1.holder:GetWidth(), K.Widgets.Snap(bar1.header, 2 * pitch) + size) and near(bar1.holder:GetHeight(), K.Widgets.Snap(bar1.header, pitch) + size), "two rows of three tray tiles")
+	assert(near(bar1.holder:GetWidth(), K.Widgets.Snap(bar1.header, 2 * pitch) + size) and near(bar1.holder:GetHeight(), K.Widgets.Snap(bar1.header, pitch) + size), "two rows of three tiles")
 	K.Options.Write("ActionBars", "bar1.size", 40)
 	K.Options.Write("ActionBars", "bar1.spacing", 6)
 	assert(near(bar1.buttons[1]:GetWidth(), 40) and near(bar1.holder:GetWidth(), 3 * 40 + 2 * 6))
@@ -335,12 +336,6 @@ do
 	local env, K, ns = AB.New()
 	AB.Enable(env, K)
 	assert(K.Options.Open("ActionBars"), "the settings window opens on the action bars page")
-	local section, trays = nil, 0
-	for _, row in ipairs(K.Options.Get("ActionBars")) do
-		if row.type == "header" then section = row.label; if section == K.L["Tray"] then trays = trays + 1 end end
-		if row.key == "useTray" or row.key == "tray" or row.key == "trayColumn" then assert(section == K.L["Tray"], "keep every tray control in the same Tray section") end
-	end
-	assert(trays == 1, "the Action Bars page has one Tray section")
 	local Model = env._addons.KstyleUI_Options.Model
 	local function VisibleKeys()
 		local keys = {}

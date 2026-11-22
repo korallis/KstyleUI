@@ -8,7 +8,6 @@ local chrome = K.Widgets.Chrome(owner, { shape = "tile" })
 assert(#owner._regions == 0, "P3: defer each chrome nine-slice until drawn; hidden owners must not build unused regions")
 owner:Show()
 assert(#owner._regions == 27 and #chrome.shadow == 0, "P3: first show builds fill, rim and line in their existing sublevels, keeping the disabled shadow unbuilt")
-K.Options.Write("Widgets", "cardMaterial", "Glass")
 for _, shape in ipairs({ "tile", "card", "panel" }) do
 	local live = env.CreateFrame("Frame", nil, K.Scale.Root())
 	live:SetSize(200, 100)

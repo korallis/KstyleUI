@@ -26,7 +26,7 @@ bash Tools/render/shoot.sh gallery_setup --strict \
 echo "exit=$?"
 ```
 
-The observable end state: exit 0 under `--strict` for each. The options PNG shows the settings window with its pages and rows. The setup PNG shows the setup steps. `setup_ornaments` with `RENDER_SUBJECT=setup` and `gallery_setup_tracked` cover the rest the feature map names.
+The observable end state: exit 0 under `--strict` for each. The options PNG shows the settings window with its pages and rows. The setup PNG shows the setup steps. `gallery_setup_tracked` covers the rest the feature map names.
 
 Prove behaviour without pixels. The feature map rows name the full set. Start with:
 

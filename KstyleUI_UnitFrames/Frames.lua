@@ -11,6 +11,7 @@ local MODULE = Settings.MODULE
 local BOSS_COUNT, BOSS_GAP = Geometry.BOSS_COUNT, Geometry.BOSS_GAP
 local CAST_GAP = { focus = 4, boss = 2 }
 local PET_CAST_GAP = 4
+local SLAB_CAST_GAP, SLAB_CAST_H = 2, 20
 local MIN_FRAME_HEIGHT = 20
 local POLL_INTERVAL = 0.2
 local CHIP_LEVEL, CHIP_GAP, CHIP_HEIGHT, CHIP_PAD, CHIP_EM = 9, 6, 20, 10, 0.62
@@ -362,8 +363,6 @@ local function NewChip(button, shape)
 	chip.text:SetJustifyH("RIGHT")
 	chip.text:SetJustifyV("MIDDLE")
 	chip.text:SetText(K.L["Targeted"])
-	chip.chrome.ornament = K.Widgets.Ornament(chip, "corners", nil, true)
-	chip.chrome.ornament.chrome, chip.chrome.ornament.inside = chip.chrome, { chip.gem, chip.name, chip.text }
 	chip.chrome:SetShown(false)
 	chip:Hide()
 	return chip
@@ -446,14 +445,9 @@ local function ChipText(view)
 	end
 end
 
-local function ChipName(view)
-	ChipText(view)
-	view.chip.chrome:RestyleOrnament()
-end
-
 function Frames.ChipName(view)
 	if Sigil() and UnitExists(view.unit) then
-		ChipName(view)
+		ChipText(view)
 	end
 end
 
@@ -465,7 +459,7 @@ local function MarkTarget(view)
 	local same = false
 	if Sigil() and UnitExists(view.unit) then
 		same = UnitIsUnit("target", view.unit)
-		ChipName(view)
+		ChipText(view)
 	end
 	local auras = AuraParts(view) or {}
 	if issecretvalue and issecretvalue(same) then
@@ -536,7 +530,6 @@ local function PlaceChip(view, width)
 	chip.name:SetTextColor(K.Tokens.Color("textEmphasis"))
 	local label = K.Widgets.TextWidth(chip.text, #K.L["Targeted"] * size * CHIP_EM)
 	chip.room = width - 2 * CHIP_PAD - gem - 2 * CHIP_GAP - label
-	chip.chrome:RestyleOrnament()
 end
 
 local function Reach(view, g, width)
@@ -725,6 +718,8 @@ function Frames.Relayout(uf)
 		elseif cb and uf.kind == "pet" then
 			cx, cy = g.panel.x, math.max(slot.h, g.medal and g.medal.y + g.medal.h or 0) + PET_CAST_GAP
 			cw, ch = uf.s.castbarWidth > 0 and uf.s.castbarWidth or g.panel.w, uf.s.castbarHeight
+		elseif cb and uf.s.inlineCast and (g.form == "slab" or g.form == "plate") then
+			cx, cy, cw, ch = g.panel.x, slot.h + SLAB_CAST_GAP, g.panel.w, SLAB_CAST_H
 		end
 		if cx then
 			cb.frame:ClearAllPoints()
@@ -777,11 +772,12 @@ local function TargetChange(view)
 		view.targetSeen = true
 		if view.deathTween then K.Motion.Stop(view.deathTween); view.deathTween = nil end
 		if on and seen then
-			K.Motion.Tween(view.body, "SetAlpha", view.body:GetAlpha(), 0, 0.06, "inOutSine", function()
+			view.flipIn = view.flipIn or function()
 				RefreshKind("target", true)
 				ns.Slab.FlipIn(view)
 				K.Motion.FadeIn(view.body, 0.06)
-			end)
+			end
+			K.Motion.Tween(view.body, "SetAlpha", view.body:GetAlpha(), 0, 0.06, "inOutSine", view.flipIn)
 			return
 		elseif on then
 			K.Motion.FadeIn(view.body, 0.12)
@@ -878,7 +874,7 @@ local function RegisterUnitEvents(view)
 end
 
 function Frames.Apply(uf)
-	local want = running and Settings.Value(uf.kind, "enabled") and not (uf.kind == "player" and ns.Orbs.Active())
+	local want = running and Settings.Value(uf.kind, "enabled")
 	if Protected() then
 		Queue(uf, "applyQueued", Frames.Apply)
 		return
@@ -931,6 +927,13 @@ end
 
 local REACTION_KEYS = { reactionColors = true, hostileColor = true, neutralColor = true, friendlyColor = true, tappedColor = true }
 
+local function PlaceCasts()
+	for kind in pairs(Settings.CAST_ELEMENTS) do
+		if frames[kind] and frames[kind].active then Frames.Restyle(frames[kind]) end
+	end
+	ns.CastBars.Apply()
+end
+
 local function OnSettingChanged(_, module, key)
 	if module ~= MODULE then
 		return
@@ -977,8 +980,8 @@ local function OnSettingChanged(_, module, key)
 		end)
 	elseif key == "hideBlizzard" then
 		ns.Blizzard.Apply(running)
-	elseif key == "orbCastRoom" then
-		ns.CastBars.Apply()
+	elseif key == "castbarOnFrame" then
+		K.Combat.Queue(PlaceCasts)
 	elseif key == "castbarRaise" then
 		K.Combat.Queue(ns.CastBars.Apply)
 	elseif key == "unitTooltip" then
@@ -1012,15 +1015,7 @@ local function RestyleAll()
 	ns.CastBars.Apply()
 end
 
-local function OnHudStyleChanged()
-	ns.Orbs.Apply()
-	Frames.Apply(frames.player)
-	RestyleAll()
-	ns.Blizzard.Apply(running)
-end
-
 local function OnProfileChanged()
-	ns.Orbs.Apply()
 	ForEach(Frames.Apply)
 	ns.Resource.Restyle()
 	ns.CastBars.Apply()
@@ -1038,6 +1033,10 @@ local function OnLayoutChanged(_, key, reason)
 	for kind, castKey in pairs(Settings.CAST_ELEMENTS) do
 		if key == castKey then
 			ns.CastBars.LayoutElement(kind)
+			local uf = frames[kind]
+			if uf and uf.active and uf.s and uf.s.inlineCast ~= Settings.CastOnFrame(kind) then
+				K.Combat.Queue(PlaceCasts)
+			end
 		end
 	end
 	ForEach(function(uf)
@@ -1048,9 +1047,7 @@ local function OnLayoutChanged(_, key, reason)
 end
 
 local function RefreshRestricted()
-	if K.HudStyle.Current() == "medallions" then
-		EachShown(ns.Slab.Refresh)
-	end
+	EachShown(ns.Slab.Refresh)
 	EachShown(Indicators.Threat)
 end
 
@@ -1143,7 +1140,6 @@ local function RegisterEvents()
 	Callbacks.Register("ScaleChanged", MODULE, RestyleAll)
 	Callbacks.Register("ProfileChanged", MODULE, OnProfileChanged)
 	Callbacks.Register("LayoutChanged", MODULE, OnLayoutChanged)
-	Callbacks.Register("HudStyleChanged", MODULE, OnHudStyleChanged)
 end
 
 function Frames.Enable()
@@ -1152,11 +1148,11 @@ function Frames.Enable()
 		for _, kind in ipairs(Settings.KINDS) do
 			Build(kind)
 		end
+		ns.CastBars.Build()
 		Log("built " .. #order .. " unit frames")
 	end
 	RegisterEvents()
 	ns.Auras.Enable()
-	ns.Orbs.Enable()
 	ForEach(Frames.Apply)
 	ns.Resource.Enable()
 	ns.CastBars.Enable()
@@ -1165,7 +1161,6 @@ end
 
 function Frames.Disable()
 	running = false
-	ns.Orbs.Disable()
 	ForEach(function(uf)
 		Frames.Apply(uf)
 		if not Protected() then

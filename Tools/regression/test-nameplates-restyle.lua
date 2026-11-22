@@ -96,23 +96,12 @@ local function run(case)
 		same("debuff rows 3 and back " .. i)
 	end
 
-	for _, style in ipairs({ "orbs", "medallions", "frames" }) do
-		K.Options.Write("HudStyle", "style", style)
+	for i = 1, 3 do
+		ns.Plates.RestyleAll()
 		env.RunTimers()
-		if style == "medallions" then
-			local medallions = shape(plate)
-			assert(medallions ~= want, label .. ": Medallions draws its own 120 by 9 plate")
-			for i = 1, 3 do
-				ns.Plates.RestyleAll()
-				K.Callbacks.Fire("ThemeChanged")
-				env.RunTimers()
-				assert(shape(plate) == medallions, label .. ", Medallions restyle " .. i .. ": the plate moved\n  was " .. medallions .. "\n  now " .. shape(plate))
-			end
-			blizzardKept(env, label .. ", HUD style medallions", blizzard)
-		else
-			same("HUD style " .. style)
-		end
+		same("Medallions restyle " .. i)
 	end
+	blizzardKept(env, label .. ", Medallions restyle", blizzard)
 
 	for i = 1, 3 do
 		K.Callbacks.Fire("ThemeChanged")

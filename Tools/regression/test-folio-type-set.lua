@@ -7,8 +7,8 @@ local folio = {
 	title = "FolioCaps-SemiBold.ttf", caps = "FolioCaps-SemiBold.ttf",
 	names = "CinzelNames-SemiBold.ttf", unit = "CinzelUnit-SemiBold.ttf",
 	body = "PTSerif-Regular.ttf", prose = "PTSerif-Regular.ttf", caption = "PTSerif-Regular.ttf",
-	world = "PTSerif-Regular.ttf", timer = "PTSerif-Regular.ttf",
-	number = "PTSerif-Bold.ttf", time = "PTSerif-Bold.ttf",
+	world = "BarlowSemiCondensedTabular-Bold.ttf", timer = "BarlowSemiCondensedTabular-SemiBold.ttf",
+	number = "BarlowSemiCondensedTabular-SemiBold.ttf", time = "BarlowSemiCondensedTabular-SemiBold.ttf",
 }
 local function file(path)
 	return path:match("([^\\/]+)$")
@@ -24,13 +24,13 @@ assert(K.Locale.TrackMode("Interface\\AddOns\\OtherMedia\\Font.ttf") == nil, "un
 assert(K.Locale.TrackMode(K.Tokens.FontPath("AlegreyaSansRegular")) == "space", "the known legacy face keeps its tracking")
 K.Options.Write("Appearance", "typeSet", "Lumen")
 assert(file(K.Tokens.Font("caps")) == "CinzelCaps-Medium.ttf")
-assert(file(K.Tokens.Font("number")) == "AlegreyaSansTabular-ExtraBold.ttf")
+assert(file(K.Tokens.Font("number")) == "BarlowSemiCondensedTabular-SemiBold.ttf", "numbers keep the Medallions face under Lumen")
 assert(K.Tokens.TextStyle("caption") == 0.6)
 local chosen = "Interface\\AddOns\\OtherMedia\\Font.ttf"
 K.Options.Write("Appearance", "font", chosen)
 K.Options.Write("Appearance", "typeSet", "Folio")
 assert(K.Tokens.Font("body") == chosen, "an existing whole-interface override wins over a set change")
-assert(file(K.Tokens.Font("number")) == "SourceSans3-Semibold.ttf", "legacy global overrides preserve their numeric behavior")
+assert(file(K.Tokens.Font("number")) == "BarlowSemiCondensedTabular-SemiBold.ttf", "numbers keep the Medallions face under a global override")
 K.Options.Write("Appearance", "font", "")
 assert(file(K.Tokens.Font("body")) == "PTSerif-Regular.ttf")
 

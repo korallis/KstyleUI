@@ -4,7 +4,6 @@ local Scene = dofile("Tools/render/scene.lua")
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 	local env, K, ns = AB.New({ width = screen[1], height = screen[2] })
 	AB.Enable(env, K)
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.C_Container = {
 		GetContainerNumSlots = function(bag) return bag == 0 and 12 or 0 end,
 		GetContainerItemInfo = function(_, slot) return { itemID = ns.Consumables.kinds[slot].ids[1], stackCount = 1, iconFileID = 134829 } end,

@@ -4,7 +4,7 @@ local LAYERS = { BACKGROUND = 1, BORDER = 2, ARTWORK = 3, OVERLAY = 4, HIGHLIGHT
 
 local function New(style)
 	local env, K, ns = U.New({ saved = { version = U.DbVersion(), characters = {}, profiles = { Default = {
-		UnitFrames = { enabled = true, target = { auraFilter = "both" } }, HudStyle = { style = style },
+		UnitFrames = { enabled = true, auraLayout = style, target = { auraFilter = "both" } },
 	} } } })
 	U.SetUnit(env, "target", { name = "Wolf", level = 10, health = 50, healthMax = 100, reaction = 2 })
 	env.SetTarget(true)
@@ -120,12 +120,11 @@ local function Control(style)
 end
 
 for _, pair in ipairs({
-	{ "medallions", "frames", combat = "orbs", gateLast = false }, { "medallions", "orbs" }, { "frames", "medallions" },
-	{ "orbs", "medallions", combat = "frames", gateLast = true }, { "frames", "orbs", combat = "medallions", gateLast = true }, { "orbs", "frames" },
+	{ "rows", "fan", combat = "rows", gateLast = false }, { "fan", "rows", combat = "fan", gateLast = true },
 }) do
 	local env, K, view = New(pair[1])
 	local before, old = view.auras.container, Entry(view, "debuffs")
-	K.Options.Write("HudStyle", "style", pair[2])
+	K.Options.Write("UnitFrames", "auraLayout", pair[2])
 	env.RunTimers()
 	W.Settle(env)
 	local control = Control(pair[2])
@@ -145,9 +144,9 @@ for _, pair in ipairs({
 		assert(not before._groups[group].enabled, "disable both old groups so the engine releases their active frames")
 	end
 	local targetPool = view.auras.container
-	K.Options.Write("HudStyle", "style", pair[1])
+	K.Options.Write("UnitFrames", "auraLayout", pair[1])
 	env.RunTimers()
-	K.Options.Write("HudStyle", "style", pair[2])
+	K.Options.Write("UnitFrames", "auraLayout", pair[2])
 	env.RunTimers()
 	assert(view.auras.container == targetPool, "reuse only a pool born in the same target style, rather than leaking containers on repeated switches")
 	assert(Signature(Entry(view, "debuffs")) == Signature(Entry(control, "debuffs")), "a reused style pool still matches fresh tiles")
@@ -162,9 +161,8 @@ for _, pair in ipairs({
 		end
 		env.SetCombat(true)
 		env._restricted = true
-		K.Options.Write("HudStyle", "style", third)
+		K.Options.Write("UnitFrames", "auraLayout", third)
 		env.RunTimers()
-		assert(K.HudStyle.Current() == pair[2], label .. ": a style picked in combat lockdown is held until combat ends")
 		assert(view.auras.container == targetPool and targetPool._enabled ~= false and targetPool:IsShown(), label .. ": combat lockdown keeps the old style's live tiles")
 		if not gateLast then
 			OpenGate()
@@ -172,7 +170,6 @@ for _, pair in ipairs({
 		end
 		env.SetCombat(false)
 		env.RunTimers()
-		assert(K.HudStyle.Current() == third, label .. ": the queued style applies when combat ends")
 		if gateLast then
 			assert(view.auras.container == targetPool and targetPool._enabled ~= false, label .. ": the old tiles stay until aura buttons are readable")
 			OpenGate()
@@ -189,10 +186,10 @@ for style, control in pairs(controls) do
 	assert(#control.env._errors == 0 and control.K.ErrorCount() == 0, "the " .. style .. " control must stay error-free")
 end
 do
-	local env, K, view = New("medallions")
+	local env, K, view = New("rows")
 	local old = view.auras.container
 	env._restricted = true
-	K.Options.Write("HudStyle", "style", "frames")
+	K.Options.Write("UnitFrames", "auraLayout", "fan")
 	env.RunTimers()
 	assert(view.auras.container == old, "release/rebuild waits until the engine's aura buttons are readable")
 	env._restricted = false
@@ -202,7 +199,7 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, "a deferred style rebuild must stay error-free")
 end
 do
-	local env, K, view, ns = New("medallions")
+	local env, K, view, ns = New("rows")
 	local focus = ns.Frames.Get("focus").views[1]
 	local restyle, nested = ns.Fan.Restyle, false
 	ns.Fan.Restyle = function(current)
@@ -220,4 +217,4 @@ do
 		"drain a snapshot of pending aura restyles so a nested Apply cannot invalidate its iterator: " .. table.concat(env._errors, "\n"))
 end
 
-print("ok aura style switches match fresh tiles and keep icons above dispel tint")
+print("ok aura layout switches match fresh tiles and keep icons above dispel tint")

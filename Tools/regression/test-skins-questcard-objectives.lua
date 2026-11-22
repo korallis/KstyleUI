@@ -3,9 +3,8 @@ local Boot = dofile("Tools/regression/questcard_guide_env.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
 
 for _, screen in ipairs({ { width = 3456, height = 2234 }, { width = 1920, height = 1080 }, { width = 5120, height = 1440 } }) do
-	for _, style in ipairs({ "medallions", "frames", "orbs" }) do
+	for _, style in ipairs({ "medallions" }) do
 		local R = Boot(screen)
-		R.K.Options.Write("HudStyle", "style", style)
 		R.settle()
 		local ns, env, K = R.ns, R.env, R.K
 		if screen.width == 5120 and style ~= "orbs" then

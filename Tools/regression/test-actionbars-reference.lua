@@ -1,18 +1,25 @@
--- test-actionbars-reference.lua: the reference action bars have square dark tiles, a physical-pixel border, bright bold keys and full-strength empty slots.
+-- test-actionbars-reference.lua: the reference action bars have square dark tiles, a physical-pixel border, bright bold keys and quiet empty sockets.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local W = AB.W
 
-local function check(env, K, b)
+local function check(env, K, b, ns)
 	assert(W.LastCall(b.mask, "SetTexture")[1] == K.Tokens.Texture("iconMask"), "the action tile uses the shared kit's icon mask")
 	assert(W.LastCall(b.cooldown, "SetSwipeTexture")[1] == K.Tokens.Texture("iconMask"), "the cooldown uses the shared kit's mask")
 	local kit = K.Widgets.IconButton(K.Scale.Root(), { size = b.opts.size })
 	assert(b.chrome:Radius() == kit.chrome:Radius(), "the action tile keeps the shared kit's corner geometry")
 	local p = b.icon._points[1]
 	local kp = kit.icon._points[1]
-	assert(p[1] == "TOPLEFT" and W.Near(p[4], kp[4]) and W.Near(p[5], kp[5]), "the action tile keeps the shared kit's icon inset")
 	local border = K.Widgets.Border(b)
 	assert(W.Near(b.chrome:Radius(), 3 * border), "socket corners span three border lines")
-	assert(W.Near(p[4], 2 * border) and W.Near(p[5], -2 * border), "icons sit two border lines inside the socket")
+	if b.medSocketOn then
+		local slot = K.Setup.Layouts.MEDALLIONS_SLOT
+		local cell = ns.Slab.Grouped(b.kbar.def) and select(5, K.Setup.Layouts.MedallionsGroup(K.Scale.Aspect())) or slot.size
+		local inset = K.Widgets.Snap(b, 3 * cell / slot.size)
+		assert(p[1] == "TOPLEFT" and W.Near(p[4], inset) and W.Near(p[5], -inset), "the Medallions socket seats the icon three units in, scaled with the slab's socket")
+	else
+		assert(p[1] == "TOPLEFT" and W.Near(p[4], kp[4]) and W.Near(p[5], kp[5]), "the action tile keeps the shared kit's icon inset")
+		assert(W.Near(p[4], 2 * border) and W.Near(p[5], -2 * border), "icons sit two border lines inside the socket")
+	end
 	local r, g, bl, a = K.Tokens.Color("white")
 	local kr, kg, kb, ka = b.hotkey:GetTextColor()
 	assert(W.Near(kr, r) and W.Near(kg, g) and W.Near(kb, bl) and W.Near(ka, a), "keys are full-strength white")
@@ -27,7 +34,6 @@ do
 		e._game.bindings.ACTIONBUTTON8 = { "8" }
 	end })
 	AB.Enable(env, K)
-	K.Options.Write("ActionBars", "trayColumn", false)
 	local schema = K.Options.Get("ActionBars")
 	for _, row in ipairs(schema) do
 		if row.key == "bar1.size" or row.key == "bar1.spacing" or row.key == "bar2.size" or row.key == "bar2.spacing" then
@@ -39,8 +45,9 @@ do
 		local grid = K.Setup.Layouts.Grid("actionbars." .. key)
 		assert(W.Near(cfg.size, 38 * 19 / 16) and W.Near(cfg.spacing, 3 * 19 / 16) and W.Near(cfg.size, grid.size), key .. " uses the KSTY-44 tray's tiles: 38 px at a 41 px pitch at 1080p")
 		local bar = ns.bars[key]
+		local _, _, cell, spacing = K.Setup.Layouts.ActionBarGrid(K.Scale.Aspect(), "actionbars." .. key)
 		local x = select(4, bar.buttons[12]:GetPoint())
-		assert(W.Near(x, K.Widgets.Snap(bar.header, 11 * (grid.size + grid.spacing))), "the twelfth tile does not accumulate individually rounded gaps")
+		assert(W.Near(x, K.Widgets.Snap(bar.header, 11 * (cell + spacing))), "the twelfth slab socket does not accumulate individually rounded gaps")
 		assert(W.Near(bar.holder:GetWidth(), x + bar.buttons[12]:GetWidth()), "the holder encloses the final snapped tile")
 	end
 	for _, key in ipairs({ "bar3", "bar4", "bar5", "bar6" }) do
@@ -48,17 +55,18 @@ do
 		assert(ns.Config(key).size == grid.size and ns.Config(key).spacing == (grid.spacing or K.Tokens.Size("actionGap")), key .. " keeps its layout grid")
 	end
 	local b = AB.Button(ns, "bar1", 8)
-	assert(b:GetAlpha() == 1 and b.hotkey:GetText() == "8", "an empty slot keeps its tile and its bright key")
-	check(env, K, b)
+	assert(b:GetAlpha() == 0.4 and b.hotkey:GetText() == "8", "an empty slot keeps its quiet socket and its bright key")
+	check(env, K, b, ns)
 	env.SetCombat(true)
-	assert(b:GetAlpha() == 1, "empty tiles do not disappear in combat")
+	assert(b:GetAlpha() == 0.4, "empty sockets do not disappear in combat")
 	assert(#env._blocked == 0, table.concat(env._blocked, ", "))
 	env.SetCombat(false)
 	AB.Slot(env, 8, { texture = 1, type = "spell", id = 1 })
 	b:Restyle()
-	check(env, K, b)
+	check(env, K, b, ns)
 	K.Options.Write("ActionBars", "bar1.size", 44)
-	check(env, K, b)
+	check(env, K, b, ns)
+	K.Options.Write("ActionBars", "slab", false)
 	K.Options.Write("ActionBars", "bar1.showEmpty", false)
 	AB.Slot(env, 8, nil)
 	assert(b:GetAlpha() == 0, "the explicit hide-empty setting still works")
@@ -71,7 +79,7 @@ do
 	local last = preview.buttons[12]
 	assert(last:IsShown(), "the measured twelve-tile row fits in the preview's 491 units")
 	assert(W.Near(select(4, last:GetPoint()), K.Widgets.Snap(preview, 11 * (36.7 + K.Options.Read("ActionBars", "bar1").spacing))), "the preview uses the same cumulative-safe pitch as the live bar")
-	check(env, K, preview.buttons[8])
+	check(env, K, preview.buttons[8], ns)
 end
 
 do
@@ -84,10 +92,10 @@ do
 		for _, button in ipairs(ns.bars[key].buttons) do
 			if not button.hasAction then
 				empty = empty + 1
-				assert(button:GetAlpha() == 1, key .. " keeps empty sockets at full opacity")
+				assert(button:GetAlpha() == 0.4, key .. " keeps empty sockets at the quiet socket opacity")
 				assert(W.SameColor(button.chrome.fill[5], K.Tokens.Color("slotFill")), key .. " uses the slot's opaque empty fill without further dimming (KSTY-44: empty slots opaque where shown)")
 				assert(W.SameColor(button.chrome.line[1], K.Tokens.Color("socketEdge")), key .. " keeps the visible black socket edge")
-				check(env, K, button)
+				check(env, K, button, ns)
 			end
 		end
 		assert(empty > 0, key .. " exercises empty sockets")
@@ -113,7 +121,7 @@ end
 for _, height in ipairs({ 1080, 1440, 2160, 2234 }) do
 	local env, K, ns = AB.New({ width = height * 16 / 9, height = height })
 	AB.Enable(env, K)
-	check(env, K, AB.Button(ns, "bar1", 1))
+	check(env, K, AB.Button(ns, "bar1", 1), ns)
 end
 
 print("reference action tiles ok")

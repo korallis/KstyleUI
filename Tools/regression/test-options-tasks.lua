@@ -1,4 +1,4 @@
--- test-options-tasks.lua: the six task links reach existing settings, player-word search finds the right rows, and ornament samples keep the existing level choices.
+-- test-options-tasks.lua: the five task links reach existing settings and player-word search finds the right rows.
 local O = dofile("Tools/regression/options_env.lua")
 local W = O.W
 local env, K, ns = O.New({ before = function(_, K)
@@ -22,7 +22,7 @@ end
 assert(K.Options.Open())
 settle()
 assert(ns.Window.State().page == "Tasks", "G9: Options opens on common tasks")
-assert(#ns.Window.State().items == 6, "G9: exactly six task links")
+assert(#ns.Window.State().items == 5, "G9: exactly five task links")
 for i, task in ipairs(ns.Pages.TASKS) do
 	K.Options.Open("Tasks")
 	settle()
@@ -61,26 +61,6 @@ assert(hits("plater", "Integrations", "notices"), "G9: other addon names find in
 K.Options.Write("OptionsPresentation", "synonyms", false)
 assert(not hits("make kicks obvious", "Nameplates", "cast.showName"), "G9: Off restores literal search")
 assert(hits("Spell name", "Nameplates", "cast.showName"), "literal setting names still work")
-K.Options.Open("General")
-settle()
-local function ornamentRow()
-	for i, item in ipairs(ns.Window.State().items) do
-		if item.module == "Widgets" and item.key == "ornaments" then return rowAt(i) end
-	end
-	error("no ornament row")
-end
-local row = ornamentRow()
-assert(row.item.kind == "ornaments", "G9: ornament levels have samples by default")
-for i, value in ipairs({ "Off", "Subtle", "Full" }) do
-	local card = row.controls.ornaments.cards[i]
-	assert(card.sample:GetWidth() == 180 and card.sample:GetHeight() == 90, "G9: samples are 180 by 90")
-	W.Click(card)
-	settle()
-	assert(K.Options.Read("Widgets", "ornaments") == value, "the sample chooses the existing " .. value .. " level")
-end
-K.Options.Write("OptionsPresentation", "samples", false)
-settle()
-assert(ornamentRow().item.kind == "segmented", "G9: Off restores the text-only picker")
 K.Options.Write("OptionsPresentation", "tasks", false)
 K.Options.Open("General")
 ns.Window.Frame():Close()

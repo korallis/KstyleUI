@@ -310,7 +310,7 @@ do
 	assert(glass.bottom >= story.guide.bottom - 0.5, "and ends inside it")
 	assert(near(f:GetHeight(), 28, 0.01), "RestedXP's window is folded to its floor")
 	assert(glass.bottom > quests.bottom and ns.Quests.Parts().glass:IsShown(), "the guide fits its steps independently of the taller quest card")
-	assert(glass.right <= quests.left - 8 + 1, "the guide and quest glass keep an eight-unit gutter")
+	assert(glass.left >= quests.right + 8 - 1, "the guide and quest glass keep an eight-unit gutter, the quests on the left")
 	assert(near(quests.top, story.tracker.top, 1), "at the same top, got " .. quests.top .. " for " .. story.tracker.top)
 
 	-- A RestedXP timer bar draws on the footer (Timers.lua 14-16): while one runs the band is back, inside the card.

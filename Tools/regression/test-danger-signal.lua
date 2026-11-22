@@ -1,12 +1,12 @@
 -- test-danger-signal.lua: the aspect-correct danger edge and player-only annulus share an engine breath, keep health secret, and restore the previous art and behaviour through Options.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local env, K, ns = U.New()
+env.FireEvent("PLAYER_ENTERING_WORLD")
 local function near(a, b) return math.abs(a - b) < 0.001 end
 local function alpha(region)
 	local value = U.W.LastCall(region, "SetAlpha")[1]
 	return env.issecretvalue(value) and env.Reveal(value) or value
 end
-K.Options.Write("HudStyle", "style", "medallions")
 U.SetUnit(env, "target", { name = "Enemy", health = 8, healthMax = 100, reaction = 2, canAttack = true })
 env.SetTarget(true)
 local player = env._units.player

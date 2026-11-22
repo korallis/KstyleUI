@@ -1,6 +1,6 @@
--- test-nameplates-height.lua: the KSTY-44 bible sets the plate. At 1920x1080 and the shipped Interface size the
--- fill is the mock-up's 132 by 10 physical pixels, inside a one-pixel black edge and one more pixel of 45 percent
--- black, so the outer rect is 136 by 14. The edge stays one plus one physical pixels on every screen of the
+-- test-nameplates-height.lua: the Medallions look sets the plate. At 1920x1080 and the shipped Interface size the
+-- 120 by 9 unit fill snaps to 101 by 8 physical pixels, inside a one-pixel black edge and one more pixel of 45 percent
+-- black, so the outer rect is 105 by 12. The edge stays one plus one physical pixels on every screen of the
 -- nine-screen matrix. The bible's edge replaces the owner's picture's two-pixel border for plates (LEE-20's ruling
 -- still holds for layout; the bible decides the bar's look, Lee, 2026-11-12).
 local N = dofile("Tools/regression/nameplates_env.lua")
@@ -27,10 +27,10 @@ do
 	local bar = ns.Plates.Get("nameplate1").health
 	local width, height = pixels(K, bar, env.Look(bar:GetWidth())), pixels(K, bar, env.Look(bar:GetHeight()))
 	local edge, halo = borderPixels(K, bar)
-	assert(math.abs(width - 132) < 0.01, "the fill is 132 physical pixels wide, got " .. tostring(width))
-	assert(math.abs(height - 10) < 0.01, "the fill is 10 physical pixels tall, got " .. tostring(height))
+	assert(math.abs(width - 101) < 0.01, "the fill is 101 physical pixels wide, got " .. tostring(width))
+	assert(math.abs(height - 8) < 0.01, "the fill is 8 physical pixels tall, got " .. tostring(height))
 	assert(math.abs(edge - 1) < 0.01 and math.abs(halo - 2) < 0.01, "a one-pixel black edge and one more of 45 percent black, got " .. tostring(edge) .. " and " .. tostring(halo))
-	assert(math.abs(width + halo * 2 - 136) < 0.01 and math.abs(height + halo * 2 - 14) < 0.01, "the outer rect is 136 by 14")
+	assert(math.abs(width + halo * 2 - 105) < 0.01 and math.abs(height + halo * 2 - 12) < 0.01, "the outer rect is 105 by 12")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

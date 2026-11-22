@@ -1,9 +1,23 @@
--- test-unitframes-medallions.lua: under the Medallions HUD style every unit frame is a slab, the player, target, focus, pet and boss frames carry a medallion on their outer end with a class or reaction ring and a level plaque, target of target and focus target are mini slabs, the resolver picks painted art only from plain identity strings, and the flip-in, low-health ring and sheen run as engine animations; Frames comes back untouched.
+-- test-unitframes-medallions.lua: under the Medallions HUD style every unit frame is a slab, the player, target, focus, pet and boss frames carry a medallion on their outer end with a class or reaction ring and a level plaque, target of target and focus target are mini slabs, the resolver picks painted art only from plain identity strings, and the flip-in, low-health ring and sheen run as engine animations.
 local U = dofile("Tools/regression/unitframes_env.lua")
 
-local env, K, ns = U.New()
+local BUST, BADGE = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Medallions\\Bust_Dwarf_SHAMAN_2.png", "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Medallions\\Badge_Dwarf_SHAMAN_2.png"
+local CREST = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Medallions\\Crest_Dwarf_SHAMAN.png"
+local env, K, ns = U.New({
+	setup = function(e)
+		local me = e._units.player
+		me.class, me.race, me.sex = "SHAMAN", "Dwarf", 2
+	end,
+	before = function(_, core)
+		core.MedallionAssets = {
+			portraits = { Dwarf = { SHAMAN = { [2] = { bust = BUST, badge = BADGE } } } },
+			crests = { Dwarf = { SHAMAN = { crest = CREST, glow = CREST .. "g", metal = CREST .. "m" } } },
+		}
+	end,
+})
 K.Options.Write("UnitFrames", "target.transitions", false)
 local Settings, Frames, Medallions = ns.Settings, ns.Frames, K.Medallions
+local player = env._units.player
 
 local function noErrors(where)
 	assert(#env._errors == 0, where .. ": " .. tostring(env._errors[1]))
@@ -14,15 +28,6 @@ local function near(a, b, tolerance)
 	return type(a) == "number" and type(b) == "number" and math.abs(a - b) <= (tolerance or 0.02)
 end
 
-local BUST, BADGE = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Medallions\\Bust_Dwarf_SHAMAN_2.png", "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Medallions\\Badge_Dwarf_SHAMAN_2.png"
-local CREST = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Medallions\\Crest_Dwarf_SHAMAN.png"
-K.MedallionAssets = {
-	portraits = { Dwarf = { SHAMAN = { [2] = { bust = BUST, badge = BADGE } } } },
-	crests = { Dwarf = { SHAMAN = { crest = CREST, glow = CREST .. "g", metal = CREST .. "m" } } },
-}
-
-local player = env._units.player
-player.class, player.race, player.sex = "SHAMAN", "Dwarf", 2
 U.SetUnit(env, "target", { name = "Galestrider", level = 6, health = 1206, healthMax = 1698, reaction = 2, canAttack = true, creature = "Beast" })
 U.SetUnit(env, "focus", { name = "Bandit Highwayman", level = 9, health = 48, healthMax = 100, reaction = 2 })
 U.SetUnit(env, "pet", { name = "Galewing", level = 6, health = 100, healthMax = 100, reaction = 5 })
@@ -47,15 +52,12 @@ do
 end
 
 env.SetTarget(true)
+env.RunTimers()
 local frames = {}
 for _, kind in ipairs(Settings.KINDS) do
 	frames[kind] = Frames.Get(kind)
 end
-assert(frames.player.views[1].form ~= "slab", "Frames has no slabs")
-
-K.Options.Write("HudStyle", "style", "medallions")
-assert(K.HudStyle.Current() == "medallions", "the style switched")
-noErrors("switch")
+noErrors("login")
 
 for _, kind in ipairs(Settings.KINDS) do
 	assert(Settings.Form(kind) == "slab", kind .. " is a slab under Medallions, got " .. tostring(Settings.Form(kind)))
@@ -168,10 +170,4 @@ assert(U.W.LastCall(m.portrait, "SetDesaturated")[1] == false, "the portrait reg
 er, eg, eb = m.enamel:GetVertexColor()
 assert(near(er, cr) and near(eg, cg) and near(eb, cb), "the class ring returns")
 noErrors("effects")
-
-K.Options.Write("HudStyle", "style", "frames")
-assert(view.form ~= "slab" and not m:IsShown() and not view.slab[5]:IsShown(), "Frames hides the slab and the medallion")
-assert(view.health.finish == nil and view.health.under.edgeSoft:IsShown(), "Frames takes its own bar finish and soft edge back")
-assert(not m.sheenAnim:IsPlaying() and not m.pulse:IsPlaying(), "the medallion's animations stop")
-noErrors("back to Frames")
 print("ok unitframes medallions")

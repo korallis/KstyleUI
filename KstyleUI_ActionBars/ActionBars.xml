@@ -7,7 +7,6 @@
 	<Script file="Settings.lua"/>
 	<Script file="Button.lua"/>
 	<Script file="Flyout.lua"/>
-	<Script file="Tray.lua"/>
 	<Script file="Bar.lua"/>
 	<Script file="Slab.lua"/>
 	<Script file="TravelItems.lua"/>
@@ -16,6 +15,9 @@
 	<Script file="SlabEffects.lua"/>
 	<Script file="SlabJewels.lua"/>
 	<Script file="SlabHawks.lua"/>
+	<Script file="SlabStorm.lua"/>
+	<Script file="SlabCrown.lua"/>
+	<Script file="Totems.lua"/>
 	<Script file="Bindings.lua"/>
 	<Script file="Keybind.lua"/>
 	<Script file="Blizzard.lua"/>

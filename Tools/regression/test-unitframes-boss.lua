@@ -1,4 +1,4 @@
--- test-unitframes-boss.lua: the boss column holds five compact cards that keep the name, the pill and the cast line, inside the footprint the layouts reserve with the cards' aura room; the boss you target folds its card to a slim Targeted chip, because the sigil already carries its name, health and cast (round 2: Grok #2, Muse #1). A secret unit comparison goes through SetAlphaFromBoolean.
+-- test-unitframes-boss.lua: the boss column holds five Medallions slabs inside the element the HUD places, within the footprint the layouts reserve with the aura room; the boss you target folds its frame to a slim Targeted chip, because the target frame already carries its name, health and cast (round 2: Grok #2, Muse #1). A secret unit comparison goes through SetAlphaFromBoolean.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -14,9 +14,9 @@ local function near(a, b, eps)
 	return type(a) == "number" and type(b) == "number" and math.abs(a - b) <= (eps or 0.5)
 end
 
--- The column: five slots at the element's own size, each a card with a name, a pill and a cast line ------------------
+-- The column: five slots at the size the Medallions HUD gives the element, each a slab with a name and a bar ----------
 
-local element = Layouts.Element("unitframes.boss")
+local element = K.Layout.Get("unitframes.boss")
 local uf = Frames.Get("boss")
 assert(#uf.views == 5, "five boss cards, boss1 to boss5")
 local slots = Geometry.Slots(Geometry.BOSS_COUNT, Geometry.BOSS_GAP, element.width, element.height)
@@ -24,21 +24,16 @@ local last = slots[#slots]
 assert(near(last.y + last.h, element.height, 1e-6), "the fifth card ends at the column's foot")
 local s = ns.Settings.Snapshot("boss")
 local g = Geometry.Frame(s, slots[1].w, slots[1].h, 1)
-assert(g.form == "card", "each boss is a card")
-assert(g.name and g.health and g.cast, "a compact card keeps the name, the pill and the cast line")
-assert(g.cap == nil, "a compact card drops the section cap: five caps reading Boss say nothing")
-assert(g.name.h >= 14 and g.cast.h >= Geometry.CAST_LINE, "the name and cast line keep their size")
-assert(g.cast.y + g.cast.h <= slots[1].h + 1e-6 and g.name.y >= 1, "everything sits inside the card")
-assert(g.health.y >= g.name.y + g.name.h and g.cast.y >= g.health.y + g.health.h, "name, then pill, then cast line")
-local tall = Geometry.Frame(s, 318, 120, 1)
-assert(tall.cap, "a full-height card still has its cap")
+assert(g.form == "slab", "each boss is a Medallions slab")
+assert(g.name and g.health, "a slab keeps the name and the bar")
 
 -- The footprint: the layouts reserve the whole column plus the aura room the cards hang to their left -------------
+local base = Layouts.Element("unitframes.boss")
 local fw, fh = Layouts.Footprint("DPS", "unitframes.boss")
-assert(fh >= element.height, "the boss footprint holds all five cards, got " .. fh .. " for a " .. element.height .. " column")
+assert(fh >= base.height, "the boss footprint holds all five cards, got " .. fh .. " for a " .. base.height .. " column")
 assert(s.auraPosition == "LEFT", "boss auras hang to the left of the cards, towards the centre")
 local room = s.auraColumns * s.auraSize + (s.auraColumns - 1) * s.auraSpacing + 2
-assert(fw >= element.width + room, "the footprint covers the cards and their aura room: " .. fw .. " < " .. element.width .. " + " .. room)
+assert(fw >= base.width + room, "the footprint covers the cards and their aura room: " .. fw .. " < " .. base.width .. " + " .. room)
 assert(fw <= 318, "the column is a rail's width at most, got " .. fw)
 
 -- The live holder at its default size lays the five buttons inside it -------------------------------------------
@@ -54,7 +49,6 @@ for i, view in ipairs(uf.views) do
 	local _, _, _, x, y = view.button:GetPoint(1)
 	local bw, bh = view.button:GetSize()
 	assert(x >= 0 and -y >= 0 and x + bw <= hw + 0.5 and -y + bh <= hh + 0.5, "boss" .. i .. " sits inside the column")
-	assert(view.geometry.cast, "boss" .. i .. " has room for its cast line")
 end
 noErrors("column")
 
@@ -150,7 +144,7 @@ assert(mute and env.issecretvalue(mute[1]) and mute[2] == 0 and mute[3] == 1, "a
 assert(env.Reveal(mark[1]) == true, "the secret answer is boss1")
 assert(b1.chip:IsShown(), "the chip is shown so its alpha decides")
 do
-	-- A long boss name drops to the body face, mixed case, before it truncates in the chip.
+	-- A long boss name fits whole beside Targeted in the chip.
 	local D = dofile("Tools/regression/databars_env.lua")
 	env._textWidth = D.TextWidth
 	env._units.boss1.name = "Bloodtalon Matriarch"
@@ -161,7 +155,7 @@ do
 	local tw = b1.chip.text:GetUnboundedStringWidth()
 	local nw = b1.chip.name:GetUnboundedStringWidth()
 	assert(nw and tw and nw + tw + 30 < chipW, "the long name fits beside Targeted: " .. tostring(nw) .. " + " .. tostring(tw) .. " in " .. chipW)
-	assert(U.Shown(env, b1.chip.name) == "Bloodtalon Matriarch", "in mixed case: " .. U.Shown(env, b1.chip.name))
+	assert(U.Shown(env, b1.chip.name) == K.Locale.Upper("Bloodtalon Matriarch"), "whole, in the Medallions caps: " .. U.Shown(env, b1.chip.name))
 	env._textWidth = nil
 end
 -- A targeted boss renamed in place (a phase change) renames its chip without a target change.

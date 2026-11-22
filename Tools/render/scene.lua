@@ -906,6 +906,8 @@ function Solver:barFill(texture, bar)
 	return { l, b, l + w, t }
 end
 
+local EASE_HALF = 0.05
+
 -- BarFraction(env, bar, now) -> the share of the bar that is filled, from SetValue over SetMinMaxValues or
 -- from a timer duration ({ start, finish } in seconds) against the clock.
 function Scene.BarFraction(env, bar, now)
@@ -928,6 +930,11 @@ function Scene.BarFraction(env, bar, now)
 	local low, high = state(bar, "MinMaxValues")
 	low, high = num(env, low, 0), num(env, high, 1)
 	local value = num(env, (state(bar, "Value")), low)
+	-- An aura slot's bar eased by the game (Tools/regression/aura_slots.lua) closes half its gap every EASE_HALF seconds.
+	local ease = bar._ease
+	if ease and ease.at and now and now >= ease.at then
+		value = ease.to + (ease.from - ease.to) * 0.5 ^ ((now - ease.at) / EASE_HALF)
+	end
 	if high <= low then
 		return 0
 	end
@@ -1017,64 +1024,8 @@ local function round4(v)
 	return floor(v * 10000 + 0.5) / 10000
 end
 
--- Material textures depend on the final anchored size. The lightweight stubs do not propagate
--- anchor-driven size events, so refresh paint against the same resolved rect the renderer draws.
--- Do not run layout/restyle or alter stored sizes: Glass, text and bar geometry must stay untouched.
-local function paintMaterials(env, solver)
-	for _, chrome in ipairs(env._materialChromes or {}) do
-		local material = not chrome.released and chrome:Material()
-		local owner = chrome.owner
-		if material and material.texture and owner:IsVisible() then
-			local rect = solver:rect(owner)
-			local scale = effectiveScale(owner)
-			if rect and scale > 0 then
-				local oldWidth, oldHeight = rawget(owner, "GetWidth"), rawget(owner, "GetHeight")
-				owner.GetWidth = function() return (rect[3] - rect[1]) / scale end
-				owner.GetHeight = function() return (rect[4] - rect[2]) / scale end
-				local ok, err = pcall(chrome.PaintMaterial, chrome)
-				owner.GetWidth, owner.GetHeight = oldWidth, oldHeight
-				assert(ok, err)
-			end
-		end
-	end
-end
-
--- An ornament sizes its pieces to its target, and the stubs do not fire OnSizeChanged when anchors resize a frame.
--- So a scene that draws ornaments is built once, each ornament is restyled at the size the renderer solved for its
--- target, as the game restyles it on OnSizeChanged, and the scene is built again. Off draws none and skips the pass.
--- A target whose anchoring is secret answers that size as a secret, as the game does, so the ornament gets no size the
--- game would not give it.
-local function restyleOrnaments(env, opts)
-	local handles = env._ornamentHandles
-	local K = env._addons and env._addons.KstyleUI
-	if opts._ornamentPass or not handles or #handles == 0 or not K or K.Widgets.Setting("ornaments") == "Off" then
-		return
-	end
-	opts._ornamentPass = true
-	Scene.Build(env, opts)
-	opts._ornamentPass = nil
-	env._rectSolver = nil
-	local solver = Scene.RectSolver(env)
-	for _, handle in ipairs(handles) do
-		local target = handle.target
-		local _, _, w, h = Scene.RectIn(solver, target)
-		if w and h then
-			local factor = target:GetEffectiveScale() * SCREEN_UNITS / UI_HEIGHT
-			local secret = target.IsAnchoringSecret and target:IsAnchoringSecret()
-			target.GetWidth = function()
-				return secret and env.Secret(w / factor) or w / factor
-			end
-			target.GetHeight = function()
-				return secret and env.Secret(h / factor) or h / factor
-			end
-			handle:Restyle()
-		end
-	end
-end
-
 function Scene.Build(env, opts)
 	opts = opts or {}
-	restyleOrnaments(env, opts)
 	local log = {}
 	local counts = {}
 	local function logLine(line)
@@ -1583,7 +1534,6 @@ function Scene.Build(env, opts)
 		end
 	end
 
-	paintMaterials(env, solver)
 	for _, frame in ipairs(env._frames) do
 		adopt(kidsOf, frame)
 		for _, region in ipairs(frame._regions or {}) do

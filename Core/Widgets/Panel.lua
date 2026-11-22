@@ -182,8 +182,7 @@ function Panel:Restyle()
 		Widgets.Point(cap.label, "LEFT", cap.gem, "CENTER", Widgets.Snap(self, TEXT_FROM_GEM), 0)
 		cap.label:SetSize(0, heading)
 		cap.rule:SetHeight(Widgets.Border(self))
-		cap.gem:SetVertexColor(Widgets.Rgba("capsGold", 1))
-		Widgets.PaintCapMaterial(cap.gem, cap.rule, RULE_ALPHA)
+		Widgets.PaintCapMaterial(cap.gem, cap.rule)
 		Widgets.TextColor(cap.label, "capsGold")
 		if Widgets.Readability("sectionHeadings") then
 			cap.label:SetTextColor(Tokens.Color("capsGold"))
@@ -246,7 +245,7 @@ function Widgets.Panel(parent, opts)
 	end
 	local titled = opts.title or opts.close or opts.movable
 	local shape = opts.shape or (titled and "window" or "panel")
-	panel.chrome = Widgets.Chrome(panel, { shape = shape, fill = opts.fill or "surface", shadow = opts.shadow, popup = opts.popup, ornament = opts.ornament, inside = opts.inside })
+	panel.chrome = Widgets.Chrome(panel, { shape = shape, fill = opts.fill or "surface", shadow = opts.shadow, popup = opts.popup })
 	panel.content = CreateFrame("Frame", nil, panel)
 	if titled then
 		local bar = CreateFrame("Frame", nil, panel)
@@ -269,12 +268,6 @@ function Widgets.Panel(parent, opts)
 		panel.closeButton = Widgets.CloseButton(panel, function()
 			panel:Close()
 		end)
-	end
-	local crest = panel.chrome.ornament
-	if crest and not opts.inside then
-		crest.inside = { panel.content }
-		crest.inside[#crest.inside + 1] = panel.titleText
-		crest.inside[#crest.inside + 1] = panel.closeButton
 	end
 	if opts.movable then
 		panel:SetMovable(true)

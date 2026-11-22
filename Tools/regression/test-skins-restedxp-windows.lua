@@ -282,7 +282,6 @@ do
 	rxp.fake.close(list)
 	rxp.fake.close(rxp.menuLists[2])
 	assert(menuArt:GetAlpha() == 1 and not ns.RestedXP.Chrome.MenuPanel(list):IsShown(), "closing it gives the shared menu its own look back")
-	assert(ns.RestedXP.Chrome.MenuPanel(list).chrome.ornament == nil, "a dropdown menu's glass carries no crest")
 	rxp.fake.open(list)
 	assert(menuArt:GetAlpha() == 1, "another addon's menu in the same list keeps its own look")
 	rxp.fake.close(list)
@@ -534,7 +533,6 @@ do
 	NewCheck(K.Skin.IsSkinned(splits.title.cog, "Button"), "splits cog is a kit button")
 	local cogPoint, cogOn, cogOnPoint, cogX, cogY = splits.title.cog:GetPoint(1)
 	assert(cogPoint == "TOPRIGHT" and cogOn == splits and cogOnPoint == "TOPRIGHT" and cogX == -8 and W.Near(cogY, 5.5), "the cog stands at the right end of the title's row, inside the glass and clear of the gilt tick: RestedXP hangs it off the top left corner (LevelingTracker.lua 1057), got " .. tostring(cogPoint) .. " " .. tostring(cogX) .. " " .. tostring(cogY))
-	assert(K.Skin.Parts(splits).backdrop.chrome.ornament == nil, "the level splits' glass carries no crest: a card's ornament is its corners and its heading (bible 3.3)")
 	local splitsHeading = ns.Parts.HeadingOf(ns.RestedXP.Chrome.Caption(splits.title.text))
 	assert(splitsHeading and splitsHeading.gem:IsShown(), "the level splits' title is a heading: a gilt diamond before the caption (bible 3.2)")
 	rxp.settings.profile.hideSplitsBackground = true
@@ -574,10 +572,6 @@ do
 	assert(Alpha(window.banner) == 0, "and the header banner art")
 	assert(K.Skin.IsSkinned(window.closebutton, "CloseButton"), "its close button is KstyleUI's")
 	assert(K.Skin.IsSkinned(window.guideSteps.scroll.scrollbar, "ScrollBar"), "its scroll bar is KstyleUI's")
-	do
-		assert(K.Skin.Parts(window.upperFrame).backdrop.chrome.ornament == nil, "the v2 guide window's header glass carries no crest (bible 3.3)")
-		assert(K.Skin.Parts(window.guideStepsFrame).backdrop.chrome.ornament == nil, "the steps glass under the header carries no crest of its own")
-	end
 	local title, subtitle = window.title, window.subtitle
 	local caption = assert(ns.RestedXP.Chrome.Caption(title))
 	local heading = assert(ns.Parts.HeadingOf(caption), "Use the shared window heading for the Speedrun Guide")
@@ -852,7 +846,6 @@ do
 		NewCheck(select(2, edit.editBox:GetFont()) == select(2, ns.Style.Font("body")), key .. " edit text follows a text size change while leased, got " .. tostring(select(2, edit.editBox:GetFont())) .. " for " .. tostring(select(2, ns.Style.Font("body"))))
 		K.Options.Write("Skins", "text.size", 1)
 		env.RunTimers()
-		assert(panel.chrome.ornament == nil, key .. " dialog's glass carries no crest (bible 3.3)")
 		local heading = ns.Parts.HeadingOf(replacement)
 		assert(heading and heading.gem:IsShown() and heading.panel == panel, key .. " dialog's title is a heading on its glass: a gilt diamond before the caption (bible 3.2)")
 		rxp.fake.close(frame)

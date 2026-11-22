@@ -1,9 +1,9 @@
--- test-perf-idle-draw.lua: what the idle suite asks the renderer to draw stays bounded: Widgets.HOLLOW lists exactly the sliced textures whose centre texels are transparent, no such centre is shown, nothing runs every frame or writes to a widget once the login fades end (OnUpdate scripts and tickers at their intervals), no animation plays on a hidden owner, Frames and Orbs loop nothing, and shown regions stay at the counts measured after the hollow-centre cut.
+-- test-perf-idle-draw.lua: what the idle suite asks the renderer to draw stays bounded: Widgets.HOLLOW lists exactly the sliced textures whose centre texels are transparent, no such centre is shown, nothing runs every frame or writes to a widget once the login fades end (OnUpdate scripts and tickers at their intervals), no animation plays on a hidden owner, and shown regions stay at the counts measured after the hollow-centre cut.
 local Suite = dofile("Tools/regression/suite_env.lua")
 local Png = dofile("Tools/regression/png.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 -- Medallions adds 22 drawn regions to its 1710: the suite's combo points light all ten crest jewels and the full ring, so each jewel's rim and glint and the ring's glyphs and halo draw.
-local CEILING = { frames = 2761, orbs = 2676, medallions = 1732 }
+local CEILING = { medallions = 1732 }
 local SETTLE, WINDOW = 600, 120
 
 local function CheckHollow(K)
@@ -50,9 +50,9 @@ local function Frame(env)
 	return busy
 end
 
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-	local env, K = Suite.Prepare(style, 1920, 1080)()
-	if style == "frames" then CheckHollow(K) end
+for _, style in ipairs({ "medallions" }) do
+	local env, K = Suite.Prepare(1920, 1080)()
+	CheckHollow(K)
 	local hollow = {}
 	for name in pairs(K.Widgets.HOLLOW) do
 		hollow[(K.Tokens.Texture(name))] = name

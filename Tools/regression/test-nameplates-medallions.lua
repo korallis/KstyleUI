@@ -39,30 +39,12 @@ N.Target(env, "nameplate1")
 env.RunTimers()
 local enemy, friend, boss, low = ns.Plates.Get("nameplate1"), ns.Plates.Get("nameplate2"), ns.Plates.Get("nameplate3"), ns.Plates.Get("nameplate6")
 
-local function geometry(plate)
-	local w, h = plate:GetSize()
-	local point, relative, relativePoint, x, y = plate:GetPoint(1)
-	return table.concat({ w, h, point, tostring(relative), relativePoint, x, y, plate.barW, plate.barH }, " ")
-end
-
 local function face(text)
 	local path, size, flags = text:GetFont()
 	return path, size, flags
 end
 
--- Frames: a plate builds nothing for the style, and its brackets, diamond and fonts are the Frames look.
-assert(friend.medBadge == nil, "Frames builds no badge")
-eq(#cuts, 0, "Frames asks for no painted badge")
-local accent = { enemy.brackets.sides[1].stroke._state.VertexColor[1], enemy.brackets.sides[1].stroke._state.VertexColor[2], enemy.brackets.sides[1].stroke._state.VertexColor[3] }
-local before = { geometry(enemy), geometry(friend), geometry(boss) }
-local beforeName, beforeLevel = { face(enemy.name) }, { face(enemy.levelText) }
-local beforeBracket = N.Last(enemy.brackets.sides[1], "SetSize")
-assert(enemy.level.rim:IsShown() and enemy.brackets.sides[1].top:IsShown(), "Frames draws the diamond and the bracket arms")
-assert(not tostring(beforeLevel[1]):find("Barlow", 1, true), "Frames' level is not Barlow")
-
-K.Options.Write("HudStyle", "style", "medallions")
 env.RunTimers()
-eq(K.HudStyle.Current(), "medallions", "the style switches out of combat")
 eq(#env._errors, 0, "the switch raised no error: " .. tostring(env._errors[1]))
 
 -- The bar: 120 by 9 units, snapped to the plate's pixels.
@@ -125,16 +107,19 @@ assert(tx < 0, "clear of the bar")
 eq(ns.Settings.Get("debuffs.size"), 22, "debuffs are 22 units")
 eq(ns.Settings.Get("debuffs.textSize"), 11, "their timers are 11 units")
 
--- A setting the player changed keeps the player's value.
-K.Options.Write("Nameplates", "debuffs.size", 24)
-K.Options.Write("Nameplates", "name.size", 14)
+-- A setting the player changed keeps the player's value, even the value the look replaced before it became the default.
+local chosen = { ["debuffs.size"] = 29, ["debuffs.textSize"] = 13, ["name.size"] = 16, ["name.outline"] = "NONE", ["level.size"] = 13, ["level.outline"] = "NONE" }
+for key, value in pairs(chosen) do
+	K.Options.Write("Nameplates", key, value)
+end
 env.RunTimers()
-eq(ns.Settings.Get("debuffs.size"), 24, "a chosen debuff size stays")
-size = select(2, face(enemy.name))
-assert(near(size, 14, 0.6), "a chosen name size stays: " .. tostring(size))
-K.Options.Write("Nameplates", "debuffs.size", 29)
-K.Options.Write("Nameplates", "name.size", 16)
-env.RunTimers()
+for key, value in pairs(chosen) do
+	eq(ns.Settings.Get(key), value, "a chosen " .. key .. " stays")
+end
+size, flags = select(2, face(enemy.name))
+assert(near(size, 16, 0.6) and flags == "", "the name draws the chosen size and no outline: " .. tostring(size) .. " " .. tostring(flags))
+size, flags = select(2, face(enemy.levelText))
+assert(near(size, 13, 0.6) and flags == "", "the level draws the chosen size and no outline: " .. tostring(size) .. " " .. tostring(flags))
 
 -- The friendly player's badge: painted, unmasked, centred over the name.
 local badge = friend.medBadge
@@ -187,25 +172,6 @@ r, g, b = imp.levelText:GetTextColor()
 local er, eg, eb = K.Tokens.Color("medText")
 assert(near(r, er) and near(g, eg) and near(b, eb), "a friendly level takes the Medallions label colour, not a difficulty")
 
--- Back to Frames.
-K.Options.Write("HudStyle", "style", "frames")
-env.RunTimers()
-assert(not badge:IsShown() and not badge.ring:IsShown(), "Frames takes the badge away")
-eq(geometry(enemy), before[1], "the enemy's plate is Frames' size and anchor again")
-eq(geometry(friend), before[2], "the friend's too")
-eq(geometry(boss), before[3], "the boss's too")
-for _, side in ipairs(enemy.brackets.sides) do
-	assert(side.top:IsShown() and side.bottom:IsShown(), side.side .. " bracket has its arms again")
-	assert(tinted(side.stroke, accent[1], accent[2], accent[3]), side.side .. " bracket takes the accent again")
-end
-local bw, bh = unpack(N.Last(enemy.brackets.sides[1], "SetSize"))
-assert(near(bw, beforeBracket[1]) and near(bh, beforeBracket[2]), "the bracket is Frames' size again")
-for _, layer in ipairs(enemy.level.layers) do
-	assert(layer:IsShown(), "the diamond is back")
-end
-eq(face(enemy.name), beforeName[1], "the name is Frames' face again")
-eq(face(enemy.levelText), beforeLevel[1], "the level is Frames' face again")
-eq(ns.Settings.Get("debuffs.size"), 29, "debuffs are Frames' size again")
 eq(#env._errors, 0, "no error: " .. tostring(env._errors[1]))
 eq(K.ErrorCount(), 0, "no addon error")
 print("ok - test-nameplates-medallions")

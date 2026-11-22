@@ -48,8 +48,7 @@ for _, screen in ipairs(screens) do
 	for _, arrangement in ipairs({ "centred", "spread" }) do
 		for _, position in ipairs({ false, { anchor = "TOPRIGHT", x = -0.00008, y = -6.4 } }) do
 			local env, K, ns = M.New({ width = screen[1], height = screen[2], saved = {
-				version = 37, profiles = { Default = {
-					HudStyle = { style = "medallions" }, Layout = { arrangement = arrangement }, Minimap = { enabled = true, frame = frame },
+				version = 37, profiles = { Default = { Layout = { arrangement = arrangement }, Minimap = { enabled = true, frame = frame },
 				} }, characters = {}, layouts = { Default = { ["minimap.main"] = position or nil } }, account = { setupSeen = true }, devlog = {},
 			} })
 			M.Settle(env)

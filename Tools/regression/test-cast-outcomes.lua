@@ -5,6 +5,7 @@ local W = U.W
 
 for _, level in ipairs({ "full", "reduced", "off" }) do
 	local env, K, ns = U.New({ plate = true })
+	K.Options.Write("UnitFrames", "castbarOnFrame", false)
 	K.Motion.SetLevel(level)
 	local pending = {}
 	env.C_Timer.After = function(seconds, fn) pending[#pending + 1] = { seconds, fn } end
@@ -48,9 +49,8 @@ end
 
 for _, level in ipairs({ "full", "calm", "off" }) do
 	local env, K, ns = U.New()
-	K.Options.Write("HudStyle", "style", "medallions")
 	K.Options.Write("Medallions", "motion", level)
-	local cb = ns.CastBars.Get("player")[1]
+	local cb = ns.CastBars.Inline("player")[1]
 	env._units.player.cast = { name = "Fear", texture = 136183, start = 1000, finish = 4000, spellID = 5782 }
 	env.FireEvent("UNIT_SPELLCAST_START", "player")
 	local seconds

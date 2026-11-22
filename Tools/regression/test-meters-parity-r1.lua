@@ -56,7 +56,7 @@ assert(list:Top() == top and math.abs(Rect(list.rows[1].frame).top - rowRect.top
 local row = list.rows[1]
 local nameSize, valueSize, minRow = select(2, row.name:GetFont()), select(2, row.value:GetFont()), list:MinRow()
 M.Write(env, K, "damage.nameScale", 1.5); M.Write(env, K, "damage.valueScale", 2)
-assert(math.abs(select(2, row.name:GetFont()) - nameSize * 1.5) < 0.01 and math.abs(select(2, row.value:GetFont()) - valueSize * 2) < 0.01, "text sizes scale the row text")
+assert(math.abs(select(2, row.name:GetFont()) - K.Widgets.FontSize(row.name, nameSize * 1.5)) < 0.01 and math.abs(select(2, row.value:GetFont()) - valueSize * 2) < 0.01, "text sizes scale the row text")
 assert(list:MinRow() > minRow, "larger text makes taller rows")
 assert(math.abs(select(2, row.percent:GetFont()) - valueSize * 2) < 0.01, "the share follows the number size")
 M.Write(env, K, "damage.nameScale", 1); M.Write(env, K, "damage.valueScale", 1)
@@ -71,7 +71,7 @@ local function Mine()
 end
 M.Write(env, K, "damage.playerMarker", true)
 env.FireEvent("DAMAGE_METER_CURRENT_SESSION_UPDATED"); env.RunTimers()
-assert(Mine() == 3 and M.Last(list.rows[3].name, "SetText")[1] == "Player 3", "the marker shows on your own row only")
+assert(Mine() == 3 and M.Last(list.rows[3].name, "SetText")[1] == K.Locale.Upper("Player 3"), "the marker shows on your own row only")
 local stripe = Rect(list.rows[3].marker)
 assert(math.abs(stripe.left - Rect(list.rows[3].bar).left) < 1e-6 and stripe.right - stripe.left < 3, "the marker is a thin stripe at the bar's start")
 env._sources["Player-3"] = { combatSpells = { { spellID = 1, totalAmount = 10, amountPerSecond = 1 } }, maxAmount = 10, totalAmount = 10 }
@@ -204,7 +204,7 @@ env.FireEvent("PLAYER_ENTERING_WORLD")
 assert(history.strip:IsShown(), "leaving the delve shows the strip again")
 M.Write(env, K, "history.bars", true)
 local bars = history.list
-assert(bars.panel:IsShown() and M.Last(bars.rows[1].name, "SetText")[1] == "Spell 12", "bars list the newest spell first")
+assert(bars.panel:IsShown() and M.Last(bars.rows[1].name, "SetText")[1] == K.Locale.Upper("Spell 12"), "bars list the newest spell first")
 assert(M.Last(bars.rows[1].icon, "SetTexture")[1] == 112 and bars.count == math.min(bars.capacity, 5), "bars show each spell's icon, up to the card's rows")
 M.Write(env, K, "history.barCount", 1)
 assert(bars.count == 1, "most bars")
@@ -243,62 +243,60 @@ for i, part in ipairs(parts) do
 end
 Errors("preview")
 
--- The new elements' default places, and the threat card docked beside the damage card in Both, stay clear of the HUD on every owner screen, style and layout.
+-- The new elements' default places, and the threat card docked beside the damage card in Both, stay clear of the HUD on every owner screen and layout.
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
-	for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-		for _, layout in ipairs({ "DPS", "Tank", "Healer" }) do
-			local e, k, n = M.New({ width = screen[1], height = screen[2], followRole = true,
-				saved = { version = 42, account = { setupSeen = true }, profiles = { Default = { HudStyle = { style = style },
-					Meters = { timer = { shown = true }, history = { icons = true, bars = true }, damage2 = { shown = true },
-						roles = { TANK = "both", HEALER = "both", DAMAGER = "both" }, threat = { group = false } } } } },
-				setup = function(x) x._fitScale, x._size = true, "auto" end })
-			assert(k.Setup.Apply({ layout = layout, modules = { Meters = true } }))
-			e.RunTimers()
-			local r0, layouts = k.Scale.Root(), k.Setup.Layouts
-			local preset = k.Store.Module("Layout").preset
-			local places, enabled = layouts.Positions(preset, style, k.Scale.Aspect()), layouts.Enabled(preset)
-			local mine = {}
-			for name, holder in pairs({ timer = n.Timer.holder, icons = n.History.holder, bars = n.History.list.holder, second = n.Damage2.holder }) do
-				mine[name] = assert(Geometry.Rect(holder, r0))
+	for _, layout in ipairs({ "DPS", "Tank", "Healer" }) do
+		local e, k, n = M.New({ width = screen[1], height = screen[2], followRole = true,
+			saved = { version = 42, account = { setupSeen = true }, profiles = { Default = {
+				Meters = { timer = { shown = true }, history = { icons = true, bars = true }, damage2 = { shown = true },
+					roles = { TANK = "both", HEALER = "both", DAMAGER = "both" }, threat = { group = false } } } } },
+			setup = function(x) x._fitScale, x._size = true, "auto" end })
+		assert(k.Setup.Apply({ layout = layout, modules = { Meters = true } }))
+		e.RunTimers()
+		local r0, layouts = k.Scale.Root(), k.Setup.Layouts
+		local preset = k.Store.Module("Layout").preset
+		local places, enabled = layouts.Positions(preset, "medallions", k.Scale.Aspect()), layouts.Enabled(preset)
+		local mine = {}
+		for name, holder in pairs({ timer = n.Timer.holder, icons = n.History.holder, bars = n.History.list.holder, second = n.Damage2.holder }) do
+			mine[name] = assert(Geometry.Rect(holder, r0))
+		end
+		local s, t = mine.second, assert(Geometry.Rect(n.Threat.holder, r0))
+		assert(n.Threat.list.panel:IsVisible() and (s.right <= t.left or t.right <= s.left or s.top <= t.bottom or t.top <= s.bottom),
+			string.format("%dx%d %s: the second window overlaps the threat card shown with the damage meter", screen[1], screen[2], layout))
+		for p, lhs in pairs(mine) do
+			for q, second in pairs(mine) do
+				assert(p == q or lhs.right <= second.left or second.right <= lhs.left or lhs.top <= second.bottom or second.top <= lhs.bottom, p .. " overlaps " .. q)
 			end
-			local s, t = mine.second, assert(Geometry.Rect(n.Threat.holder, r0))
-			assert(n.Threat.list.panel:IsVisible() and (s.right <= t.left or t.right <= s.left or s.top <= t.bottom or t.top <= s.bottom),
-				string.format("%dx%d %s %s: the second window overlaps the threat card shown with the damage meter", screen[1], screen[2], style, layout))
-			for p, lhs in pairs(mine) do
-				for q, second in pairs(mine) do
-					assert(p == q or lhs.right <= second.left or second.right <= lhs.left or lhs.top <= second.bottom or second.top <= lhs.bottom, p .. " overlaps " .. q)
+		end
+		M.Write(e, k, "damage2.shown", false)
+		assert(n.Threat.paired, "the threat card docks beside the damage card in Both")
+		mine["docked threat"] = assert(Geometry.Rect(n.Threat.holder, r0))
+		for _, element in ipairs(layouts.ELEMENTS) do
+			local key = element.key
+			if enabled[key] ~= false and places[key] then
+				local w, h2 = layouts.StyleSize(k.Scale.Aspect(), key)
+				if not w then w, h2 = layouts.Footprint(preset, key, k.Scale.Aspect()) end
+				local styled = layouts.Aspect(k.Scale.Aspect(), "medallions", preset, key) or layouts.Style(preset, key)
+				if styled and styled.width then w, h2 = styled.width, styled.height end
+				local left, bottom, right, top2 = layouts.Rect({ width = w, height = h2 }, places[key], r0:GetWidth(), r0:GetHeight())
+				for name, rect in pairs(mine) do
+					assert(rect.right <= left + 1 or right <= rect.left + 1 or rect.top <= bottom + 1 or top2 <= rect.bottom + 1,
+						string.format("%dx%d %s: %s overlaps %s; move its default place", screen[1], screen[2], layout, name, key))
 				end
 			end
-			M.Write(e, k, "damage2.shown", false)
-			assert(n.Threat.paired, "the threat card docks beside the damage card in Both")
-			mine["docked threat"] = assert(Geometry.Rect(n.Threat.holder, r0))
-			for _, element in ipairs(layouts.ELEMENTS) do
-				local key = element.key
-				if enabled[key] ~= false and places[key] and not (style == "orbs" and key == "unitframes.player") then
-					local w, h2 = layouts.StyleSize(style, k.Scale.Aspect(), key)
-					if not w then w, h2 = layouts.Footprint(preset, key, style, k.Scale.Aspect()) end
-					local styled = layouts.Aspect(k.Scale.Aspect(), style, preset, key) or layouts.Style(style, preset, key)
-					if styled and styled.width then w, h2 = styled.width, styled.height end
-					local left, bottom, right, top2 = layouts.Rect({ width = w, height = h2 }, places[key], r0:GetWidth(), r0:GetHeight())
+		end
+		for _, guide in ipairs({ true, false }) do
+			for _, card in pairs(layouts.Story(preset, r0:GetHeight(), guide, r0:GetWidth()) or {}) do
+				if type(card) == "table" and card.anchor and card.width > 0 and card.height > 0 then
+					local left, bottom, right, top2 = layouts.Rect(card, card, r0:GetWidth(), r0:GetHeight())
 					for name, rect in pairs(mine) do
 						assert(rect.right <= left + 1 or right <= rect.left + 1 or rect.top <= bottom + 1 or top2 <= rect.bottom + 1,
-							string.format("%dx%d %s %s: %s overlaps %s; move its default place", screen[1], screen[2], style, layout, name, key))
+							string.format("%dx%d %s: %s overlaps the story rail's %s; move its default place", screen[1], screen[2], layout, name, card.key))
 					end
 				end
 			end
-			for _, guide in ipairs({ true, false }) do
-				for _, card in pairs(layouts.Story(preset, r0:GetHeight(), guide, style, r0:GetWidth()) or {}) do
-					if type(card) == "table" and card.anchor and card.width > 0 and card.height > 0 then
-						local left, bottom, right, top2 = layouts.Rect(card, card, r0:GetWidth(), r0:GetHeight())
-						for name, rect in pairs(mine) do
-							assert(rect.right <= left + 1 or right <= rect.left + 1 or rect.top <= bottom + 1 or top2 <= rect.bottom + 1,
-								string.format("%dx%d %s %s: %s overlaps the story rail's %s; move its default place", screen[1], screen[2], style, layout, name, card.key))
-						end
-					end
-				end
-			end
-			assert(#e._errors == 0 and k.ErrorCount() == 0, tostring(e._errors[1]))
 		end
+		assert(#e._errors == 0 and k.ErrorCount() == 0, tostring(e._errors[1]))
 	end
 end
 print("meters parity round 1 ok")

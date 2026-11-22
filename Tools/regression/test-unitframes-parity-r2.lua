@@ -35,7 +35,7 @@ end
 local DEFAULTS = {
 	powerAlpha = 1, powerGradient = "", auraX = 0, auraY = 0, auraTimerX = 0, auraTimerY = 0, auraCountSize = 0,
 	auraCountPoint = "TOPRIGHT", auraCountX = 0, auraCountY = 0, auraDispel = true, auraBuffDispel = false, auraStealable = false,
-	castbarIconX = 0, castbarIconY = 0, castbarTextX = 0, castbarTextY = 0, castbarTimerX = 0, castbarTimerY = 0,
+	castbarTextX = 0, castbarTextY = 0, castbarTimerX = 0, castbarTimerY = 0,
 	castbarTarget = false, castbarImportant = false,
 }
 for _, kind in ipairs(U.KINDS) do
@@ -181,30 +181,16 @@ env.RunTimers()
 slots = ns.Geometry.Slots(5, 6, w, h)
 assert(near(-W.LastCall(boss.views[2].button, "SetPoint")[5], snap(boss.views[2].button, slots[2].y)), "combat's end restores the gap")
 
--- Cast offsets: the caption bar's icon, name and timer; a line bar keeps its track still.
-local cb = ns.CastBars.Get("player")[1]
-local text0, timer0, icon0 = W.LastCall(cb.text, "SetPoint"), W.LastCall(cb.timer, "SetPoint"), W.LastCall(cb.iconFrame, "SetPoint")
+-- Cast offsets: the Medallions player cast bar's name and timer.
+local cb = ns.CastBars.Inline("player")[1]
+local text0, timer0 = W.LastCall(cb.text, "SetPoint"), W.LastCall(cb.timer, "SetPoint")
 write("player.castbarTextX", 6)
 write("player.castbarTimerY", 2)
-write("player.castbarIconX", 4)
 assert(near(W.LastCall(cb.text, "SetPoint")[4] - text0[4], snap(cb.frame, 6)), "the name moves")
 assert(near(W.LastCall(cb.timer, "SetPoint")[5] - timer0[5], snap(cb.frame, 2)), "the timer moves")
-assert(near(W.LastCall(cb.iconFrame, "SetPoint")[4] - icon0[4], snap(cb.frame, 4)), "the icon moves")
 write("player.castbarTextX", 0)
 write("player.castbarTimerY", 0)
-write("player.castbarIconX", 0)
-assert(W.LastCall(cb.text, "SetPoint")[4] == text0[4] and W.LastCall(cb.timer, "SetPoint")[5] == timer0[5] and W.LastCall(cb.iconFrame, "SetPoint")[4] == icon0[4], "zero offsets restore them")
-local focus = ns.Frames.Get("focus").views[1]
-local line = focus.castbar
-assert(line.line, "the focus cast bar is a line")
-local bar0 = W.LastCall(line.bar, "SetPoint", 1)
-write("focus.castbarTextY", 5)
-local barNow = W.Calls(line.bar, "SetPoint")
-local left
-for i = #barNow, 1, -1 do if barNow[i][1] == "LEFT" then left = barNow[i] break end end
-assert(near(W.LastCall(line.text, "SetPoint")[5], snap(line.frame, 5)) and near(left[5], -snap(line.frame, 5)), "a line's name moves while its track stays put")
-assert(bar0, "the line bar was placed")
-write("focus.castbarTextY", 0)
+assert(W.LastCall(cb.text, "SetPoint")[4] == text0[4] and W.LastCall(cb.timer, "SetPoint")[5] == timer0[5], "zero offsets restore them")
 
 -- Spell target after the name, including a secret name; off removes it.
 local tcb = ns.CastBars.Inline("target")[1]
@@ -266,16 +252,8 @@ write("pet.auras", true)
 pane:Refresh()
 assert(pane.auraCount > 0 and pane.auraHosts.pet:IsShown(), "the pet preview shows its auras")
 write("edit", "target")
-write("target.castbarImportant", true)
-write("target.castbarTarget", true)
 write("target.auraCountPoint", "TOPLEFT")
 pane:Refresh()
-local sample = pane.casts.target
-assert(sample.important and sample.important:IsShown(), "the preview shows the important outline")
-assert(U.Shown(env, sample.text):find(" - ", 1, true), "the preview shows a spell target")
 assert(W.LastCall(pane.auraTiles.target[2].count, "SetPoint")[1] == "TOPLEFT", "the preview stacks take their corner")
-write("target.castbarImportant", false)
-pane:Refresh()
-assert(not sample.important:IsShown(), "the preview clears the outline when off")
 clean()
 print("test-unitframes-parity-r2: ok")

@@ -42,7 +42,12 @@ for _, kind in ipairs({ "party", "raid" }) do
 			local call = W.LastCall(bar, "SetValue")
 			return call and env.Reveal(call[1])
 		end
+		-- The Medallions raid tile names in caps and draws no role and no power line.
+		local function named(f, name)
+			return f.rawName == (f.parts.tile and K.Locale.Upper(name) or name)
+		end
 		local function roleReady(f, role)
+			if f.parts.tile then return not f.role:IsShown() end
 			if f.showRoleRing then return f.roleText:GetText() == ns.Style.ROLE_LETTERS[role] end
 			if ns.Settings.current.icons.roleShapes then
 				return f.role:IsShown() and f.role:GetAtlas() == env.GetMicroIconForRole(role)
@@ -69,7 +74,7 @@ for _, kind in ipairs({ "party", "raid" }) do
 		print(prefix .. "client visibility rescan: frames=" .. frame .. " addon-timer-ticks=0")
 		local f = assert(content(token), "secure headers supply the new unit even in combat")
 		budget("GROUP_ROSTER_UPDATE join/show/name/health", function()
-			return f.name:GetText() == "Thaldren" and value(f.health) == 72 and (f.tileless or f.chrome.drawReady)
+			return named(f, "Thaldren") and value(f.health) == 72 and (f.tileless or f.chrome.drawReady)
 		end)
 		budget("GROUP_ROSTER_UPDATE count", function() return ns.Headers.cards[kind].members == env.GetNumGroupMembers() end)
 		env.FireEvent("PLAYER_ROLES_ASSIGNED")
@@ -78,11 +83,11 @@ for _, kind in ipairs({ "party", "raid" }) do
 		-- The header reassigns the same token and fires OnAttributeChanged for the new member.
 		members[1] = { name = "Ysra", class = "PRIEST", health = 43, power = 21, role = "HEALER" }
 		G.SetRoster(env, kind, members)
-		budget("GROUP_ROSTER_UPDATE swap", function() return f.name:GetText() == "Ysra" and value(f.health) == 43 end)
+		budget("GROUP_ROSTER_UPDATE swap", function() return named(f, "Ysra") and value(f.health) == 43 end)
 		members[2] = { name = "Kragar", class = "WARRIOR", health = 91 }
 		G.SetRoster(env, kind, members)
 		local second = assert(content(kind .. "2"))
-		budget("GROUP_ROSTER_UPDATE member joins", function() return second.name:GetText() == "Kragar" and value(second.health) == 91 end)
+		budget("GROUP_ROSTER_UPDATE member joins", function() return named(second, "Kragar") and value(second.health) == 91 end)
 		budget("GROUP_ROSTER_UPDATE member count", function() return ns.Headers.cards[kind].members == env.GetNumGroupMembers() end)
 
 		members[1].role = "TANK"
@@ -90,13 +95,15 @@ for _, kind in ipairs({ "party", "raid" }) do
 		budget("PLAYER_ROLES_ASSIGNED change", function() return roleReady(f, "TANK") end)
 		members[1].name = "Sylaen"
 		env.FireEvent("UNIT_NAME_UPDATE", token)
-		budget("UNIT_NAME_UPDATE", function() return f.name:GetText() == "Sylaen" end)
+		budget("UNIT_NAME_UPDATE", function() return named(f, "Sylaen") end)
 		members[1].health = 18
 		env.FireEvent("UNIT_HEALTH", token)
 		budget("UNIT_HEALTH", function() return value(f.health) == 18 end)
 		members[1].power = 12
 		env.FireEvent("UNIT_POWER_UPDATE", token, "MANA")
-		budget("UNIT_POWER_UPDATE", function() return value(f.power) == 12 end)
+		if f.showPower then
+			budget("UNIT_POWER_UPDATE", function() return value(f.power) == 12 end)
+		end
 		members[1].online = false
 		env.FireEvent("UNIT_CONNECTION", token)
 		budget("UNIT_CONNECTION", function() return f.healthText:GetText() == "Offline" end)

@@ -1,10 +1,10 @@
--- Setup.lua: the first-run setup's choices, Apply (positions, the layout's module settings, the layout's name, the ornament level and its Edit Mode write, which Try again repeats), and when the setup window opens.
+-- Setup.lua: the first-run setup's choices, Apply (positions, the layout's module settings, the layout's name and its Edit Mode write, which Try again repeats), and when the setup window opens.
 local _, ns = ...
 
 local Setup = ns.Setup
 local Layouts = Setup.Layouts
 local L = ns.L
-ns.Store.RegisterDefaults("OptionsPresentation", { tasks = true, synonyms = true, preview = true, switches = true, samples = true, columns = true, readableText = true })
+ns.Store.RegisterDefaults("OptionsPresentation", { tasks = true, synonyms = true, preview = true, switches = true, columns = true, readableText = true })
 ns.Options.Register("OptionsPresentation", function() return {
 	{ type = "header", label = L["Settings window"] },
 	{ type = "toggle", key = "tasks", label = L["Start with tasks"], help = L["Open settings on six common tasks. Off opens the last module page, as before."] },
@@ -13,12 +13,11 @@ ns.Options.Register("OptionsPresentation", function() return {
 	{ type = "toggle", key = "preview", label = L["Larger top-aligned previews"], help = L["Grow small previews up to 160% and place them at the top. Off keeps centred previews at 125%."] },
 	{ type = "toggle", key = "switches", label = L["Slim bright switches"], help = L["Use slimmer switches with a clearer On colour. Off restores the taller, dimmer switches."] },
 	{ type = "toggle", key = "columns", label = L["Aligned settings headings"], help = L["Line up the category, page and preview headings. Off restores the previous column layout."] },
-	{ type = "toggle", key = "samples", label = L["Show ornament samples"], help = L["Compare Off, Subtle and Full before choosing. Off keeps the text-only ornament picker."] },
 } end)
 ns.Store.RegisterDefaults("Setup", { closeBehaviour = "apply", replaceLayout = true, layoutPictures = true, readableNotes = true })
 ns.Options.Register("Setup", function() return {
 	{ type = "header", label = L["Setup"] },
-	{ type = "toggle", key = "layoutPictures", label = L["Layout pictures in setup"], help = L["Show DPS, Tank and Healer pictures for your chosen HUD. Off restores the footprint diagram."] },
+	{ type = "toggle", key = "layoutPictures", label = L["Layout pictures in setup"], help = L["Show DPS, Tank and Healer pictures of the HUD. Off restores the footprint diagram."] },
 	{ type = "toggle", key = "readableNotes", label = L["Readable setup notes"], help = L["Use wrapping 11-unit notes in setup. Off restores the smaller, single-line module notes."] },
 	{ type = "dropdown", key = "closeBehaviour", label = L["Closing the setup window"], help = L["Choose whether first-run Close or Escape leaves your UI alone or applies the setup."], options = {
 		{ value = "apply", label = L["Apply the default setup"] },
@@ -30,7 +29,6 @@ ns.Options.Register("Setup", function() return {
 local OWNER = "Setup"
 local OPEN_DELAY = 2
 local DEFAULT_LAYOUT = "DPS"
-local DEFAULT_ORNAMENTS = "Full"
 local GUIDE_ADDONS = { RXPGuides = true }
 
 local PICKER = {
@@ -41,7 +39,7 @@ local PICKER = {
 	{ name = "Auras", label = L["Buffs and debuffs"], note = L["Your buffs and debuffs on the right rail, under the map."] },
 	{ name = "Nameplates", label = L["Nameplates"], note = L["Health, cast bar, threat and debuffs on plates."] },
 	{ name = "CombatText", label = L["Combat text"], note = L["Damage and heal numbers on your frames."] },
-	{ name = "Minimap", label = L["Minimap"], note = L["A small square map with zone and clock."] },
+	{ name = "Minimap", label = L["Minimap"], note = L["A small round map with zone and clock."] },
 	{ name = "Chat", label = L["Chat"], note = L["Glass chat with tabs, copy and class colours."] },
 	{ name = "Bags", label = L["Bags"], note = L["One combined bag with search and sorting."] },
 	{ name = "Tooltips", label = L["Tooltips"], note = L["Glass tooltips with quality and class colours."] },
@@ -51,25 +49,11 @@ local PICKER = {
 	{ name = "QoL", label = L["Quality of life"], note = L["Fast loot, repairs, quest turn-ins and zoom."] },
 }
 
-local ORNAMENTS = {
-	{ value = "Off", label = L["Off"], note = L["No forged trim. The HUD exactly as it ships."] },
-	{ value = "Subtle", label = L["Subtle"], note = L["Thin gilt rails and plain pointed ends on frames, bars and nameplates, with small arrow caps beside the action bars."] },
-	{ value = "Full", label = L["Full"], note = L["Forged frames with claws, wings and crests, the portrait band with its pendants and the full action bar tray."] },
-}
-
 local choice
 local firstRun, kept = false, false
 
 Setup.PICKER = PICKER
-Setup.ORNAMENTS = ORNAMENTS
 
-function Setup.Ornament(value)
-	for _, entry in ipairs(ORNAMENTS) do
-		if entry.value == value then
-			return entry
-		end
-	end
-end
 
 local function log(message)
 	ns.DevTest.Log(OWNER, message)
@@ -109,7 +93,7 @@ function Setup.NewChoice(current)
 			end
 		end
 	end
-	return { hudStyle = ns.HudStyle.Saved(), layout = DEFAULT_LAYOUT, modules = modules, ornaments = DEFAULT_ORNAMENTS, addons = addons, addonSettings = settings }
+	return { layout = DEFAULT_LAYOUT, modules = modules, addons = addons, addonSettings = settings }
 end
 
 function Setup.Choice()
@@ -127,8 +111,8 @@ function Setup.MarkSeen()
 end
 
 local function writeLayout(name)
-	local positions = Layouts.Positions(name, "frames", ns.Scale.Aspect(), ns.Scale.Band())
-	local defaults = Layouts.Positions("DPS", "frames", ns.Scale.Aspect(), ns.Scale.Band())
+	local positions = Layouts.Positions(name, nil, ns.Scale.Aspect(), ns.Scale.Band())
+	local defaults = Layouts.Positions("DPS", nil, ns.Scale.Aspect(), ns.Scale.Band())
 	positions["databars.strip"] = Layouts.Default("databars.strip")
 	defaults["databars.strip"] = Layouts.Default("databars.strip")
 	for key, size in pairs(Layouts.Sizes(name)) do
@@ -140,9 +124,7 @@ local function writeLayout(name)
 	local live = Layout and type(Layout.Get) == "function" and type(Layout.Update) == "function"
 	local moved, saved = 0, 0
 	for key, position in pairs(positions) do
-		for _, style in ipairs(Layouts.STYLES) do
-			stored[style .. ":" .. key] = nil
-		end
+		stored["medallions:" .. key] = nil
 		local done = false
 		if live and Layout.Get(key) ~= nil then
 			local ok, updated = pcall(Layout.Update, key, position, "setup", true)
@@ -258,13 +240,13 @@ local function Band(spec, rw, rh)
 	return { left = left, bottom = bottom, right = left + width, top = bottom + height }
 end
 
-function Setup.Story(name, guide, shown)
+function Setup.Story(name, guide)
 	local rw, rh = Setup.RootSize()
-	local story = Layouts.Story(name, rh, guide, ns.HudStyle.Current(), rw, shown)
+	local story = Layouts.Story(name, rh, guide, rw)
 	if not story then
 		return nil
 	end
-	return { guide = story.guide and Band(story.guide, rw, rh), tracker = Band(story.quests, rw, rh), stacked = story.stacked }
+	return { guide = story.guide and Band(story.guide, rw, rh), tracker = Band(story.quests, rw, rh) }
 end
 
 local function EditModeChanged()
@@ -291,20 +273,16 @@ function Setup.RetryEditMode()
 	return true
 end
 
-local applying = false
-
 local function Restyle()
 	local layout = ns.Layout
 	local name = layout and layout.Setting and layout.Setting("preset")
-	if applying or not name or Setup.EditMode.ActiveName() ~= name then
+	if not name or Setup.EditMode.ActiveName() ~= name then
 		return
 	end
 	ns.Combat.Queue(function()
 		Setup.EditMode.Restyle(name, Setup.Story(name, GuideLoaded()))
 	end)
 end
-
-ns.Callbacks.Register("HudStyleChanged", "Setup", Restyle)
 
 local aspect, band = ns.Scale.Aspect(), ns.Scale.Band()
 ns.Callbacks.Register("ScaleChanged", "Setup", function()
@@ -346,16 +324,6 @@ function Setup.Apply(picked)
 		local module, key = path:match("^([^%.]+)%.(.+)$")
 		ns.Options.Write(module, key, value)
 	end
-	local ornaments = Setup.Ornament(picked.ornaments) and picked.ornaments
-	if ornaments then
-		ns.Options.Write("Widgets", "ornaments", ornaments)
-	end
-	local hudStyle = ns.HudStyle.Offered(picked.hudStyle) and picked.hudStyle
-	if hudStyle then
-		applying = true
-		ns.Call(ns.Options.Write, "HudStyle", "style", hudStyle)
-		applying = false
-	end
 	WriteEditMode(picked.layout, picked.replaceLayout)
 	local nameplates = Store.Defaults("Nameplates")
 	if nameplates and type(nameplates.personalResource) == "boolean" then
@@ -363,7 +331,7 @@ function Setup.Apply(picked)
 	end
 	Setup.MarkSeen()
 	log("applied layout " .. picked.layout .. ": " .. moved .. " elements moved now, " .. saved .. " saved for the reload, "
-		.. written .. " module settings written, " .. skipped .. " skipped for modules that did not load; ornaments: " .. (ornaments or "unchanged") .. "; HUD style: " .. (hudStyle or "unchanged") .. "; on: "
+		.. written .. " module settings written, " .. skipped .. " skipped for modules that did not load; on: "
 		.. (#on > 0 and table.concat(on, ", ") or "none") .. "; off: " .. (#off > 0 and table.concat(off, ", ") or "none"))
 	return true
 end

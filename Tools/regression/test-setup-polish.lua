@@ -1,4 +1,4 @@
--- test-setup-polish.lua: layout pictures follow the picked HUD style; wrapping notes remain readable at 0.65 and the old diagram and note style remain selectable.
+-- test-setup-polish.lua: layout pictures show the Medallions HUD; wrapping notes remain readable at 0.65 and the old diagram and note style remain selectable.
 local W = dofile("Tools/regression/widget_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local env, K = W.New({ boot = false, setup = function(e)
@@ -12,21 +12,16 @@ local panel = K.Setup.window
 local function settle()
 	env.RunTimers(); W.Settle(env); env.RunTimers()
 end
-K.Setup.Go(3)
+K.Setup.Go(2)
 settle()
 assert(not panel.preview:IsShown(), "G4: the picture choice replaces the grey footprint preview")
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
-	K.Setup.Choice().hudStyle = style
-	K.Setup.Go(3)
-	settle()
-	for _, role in ipairs({ "DPS", "Tank", "Healer" }) do
-		local card = panel.cards[role]
-		local name = "Layout" .. style:sub(1, 1):upper() .. style:sub(2) .. role .. ".tga"
-		assert(card.picture:IsShown() and card.picture:GetTexture():find(name, 1, true), "G4: each layout picture follows the chosen style: " .. name)
-		assert(card.picture:GetWidth() == 180 and card.picture:GetHeight() == 90, "layout pictures have enough room to read")
-		W.Click(card)
-		assert(K.Setup.Choice().layout == role, "the picture card chooses " .. role)
-	end
+for _, role in ipairs({ "DPS", "Tank", "Healer" }) do
+	local card = panel.cards[role]
+	local name = "LayoutMedallions" .. role .. ".tga"
+	assert(card.picture:IsShown() and card.picture:GetTexture():find(name, 1, true), "G4: each layout picture shows the Medallions HUD: " .. name)
+	assert(card.picture:GetWidth() == 180 and card.picture:GetHeight() == 90, "layout pictures have enough room to read")
+	W.Click(card)
+	assert(K.Setup.Choice().layout == role, "the picture card chooses " .. role)
 end
 K.Layout.Set("setup.window", "scale", 0.65)
 K.Theme.SetFontScale(1.3)
@@ -42,7 +37,7 @@ K.Options.Write("Setup", "layoutPictures", false)
 settle()
 assert(panel.preview:IsShown() and panel.previewName:IsShown(), "G4: Off restores the footprint diagram and legend")
 for _, card in pairs(panel.cards) do assert(not card.picture:IsShown(), "Off hides the layout pictures") end
-K.Setup.Go(4)
+K.Setup.Go(3)
 K.Layout.Set("setup.window", "scale", 0.65)
 settle()
 local long = panel.toggles.Skins.note

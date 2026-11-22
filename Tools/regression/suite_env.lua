@@ -104,11 +104,10 @@ end
 
 Suite.New = Start
 
--- Prepare(style, W, H) returns a saved-suite reload function and the initial environment.
-function Suite.Prepare(style, W, H)
+-- Prepare(W, H) returns a saved-suite reload function and the initial environment.
+function Suite.Prepare(W, H)
 	local env, K = Start(nil, W, H)
 	local choice = K.Setup.NewChoice()
-	choice.hudStyle = style
 	assert(K.Setup.Apply(choice), "Setup.Apply refused the choice")
 	env.RunTimers()
 	env.FireEvent("PLAYER_LOGOUT")
@@ -118,7 +117,6 @@ function Suite.Prepare(style, W, H)
 		local reloaded, kit = Start(CoreEnv.DeepCopy(saved), W, H)
 		reloaded.FireEvent("PLAYER_ENTERING_WORLD", false, true)
 		reloaded.RunTimers()
-		assert(kit.HudStyle.Current() == style, "the reload runs " .. tostring(kit.HudStyle.Current()))
 		assert(#reloaded._errors == 0 and kit.ErrorCount() == 0, "the reload raised: " .. tostring(reloaded._errors[1]))
 		return reloaded, kit
 	end, initial

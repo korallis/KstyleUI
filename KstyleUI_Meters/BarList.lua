@@ -453,7 +453,7 @@ function RowLeave(list, row)
 end
 
 local function NameSize(section)
-	return Tokens.Size(Widgets.Medallions() and "medallionsPlateNameSize" or "plateNameSize") * ns.Get(section .. ".fontSize") / Tokens.Size("number") * ns.Get("damage.nameScale")
+	return Tokens.Size("medallionsPlateNameSize") * ns.Get(section .. ".fontSize") / Tokens.Size("number") * ns.Get("damage.nameScale")
 end
 
 local function RowUnits(list)
@@ -504,11 +504,10 @@ local function Recolor(list, row)
 end
 
 function BarList.StyleName(text, section)
-	local medallions = Widgets.Medallions()
-	local path = medallions and Tokens.FontPath(Tokens.MEDALLIONS_PLATE_NAME_FACE) or ns.FontPath(section, "names")
+	local path = Tokens.FontPath(Tokens.MEDALLIONS_PLATE_NAME_FACE)
 	if not K.Theme.FollowsKit(ns.Get(section .. ".font")) then path = ns.FontPath(section) end
 	local size = NameSize(section)
-	if medallions and not ns.Get("instrumentNames") then path, size = ns.FontPath(section, "unit"), ns.Get(section .. ".fontSize") * ns.Get("damage.nameScale") end
+	if not ns.Get("instrumentNames") then path, size = ns.FontPath(section, "unit"), ns.Get(section .. ".fontSize") * ns.Get("damage.nameScale") end
 	Widgets.StyleText(text, "names")
 	Widgets.ApplyFont(text, path, size, ns.Get(section .. ".outline"))
 end
@@ -524,13 +523,13 @@ end
 
 function StyleRow(list, row)
 	local section = list.section
-	local figures = (list.block or Widgets.Medallions()) and "number" or nil
+	local figures = "number"
 	Widgets.TextColor(row.percent, list.block and "textEmphasis" or "text")
 	if list.plate then
 		BarList.StyleName(row.name, section)
 	else
-		ns.ApplyFont(row.name, section, nil, Widgets.Medallions() and "unit" or nil, list.nameScale)
-		if Widgets.Medallions() and ns.Get("instrumentNames") then
+		ns.ApplyFont(row.name, section, nil, "unit", list.nameScale)
+		if ns.Get("instrumentNames") then
 			Widgets.ApplyFont(row.name, K.Theme.FollowsKit(ns.Get(section .. ".font")) and Tokens.FontPath("BarlowSemiBold") or ns.FontPath(section), 11 * K.Theme.FontScale() * list.nameScale, select(3, row.name:GetFont()))
 		end
 	end
@@ -975,7 +974,7 @@ function FillRow(list, row, name, classFile, reaction, value, maxValue, valueTex
 	row.frame:Show()
 	row.bar:SetBarRange(0, maxValue)
 	row.bar:SetBarValue(value)
-	if type(name) == "string" and not Widgets.IsSecret(name) and Widgets.Medallions() then
+	if type(name) == "string" and not Widgets.IsSecret(name) then
 		name = K.Locale.Upper(name)
 	end
 	row.name:SetText(name)

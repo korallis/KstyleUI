@@ -55,23 +55,11 @@ function CoreEnv.New(opts)
 			return chrome
 		end
 	end
-	if env._ornamentHandles then
-		local attach = env.KstyleUI.Widgets.Ornament
-		env.KstyleUI.Widgets.Ornament = function(...)
-			local handle = attach(...)
-			env._ornamentHandles[#env._ornamentHandles + 1] = handle
-			return handle
-		end
-	end
 	return env, env.KstyleUI
 end
 
 function CoreEnv.LoadSaved(env)
 	env.FireEvent("ADDON_LOADED", "KstyleUI", false)
-	if env._renderCardMaterial then
-		assert(env.KstyleUI.Tokens.Material(env._renderCardMaterial), "unknown RENDER_CARD_MATERIAL: " .. env._renderCardMaterial)
-		env.KstyleUI.Options.Write("Widgets", "cardMaterial", env._renderCardMaterial)
-	end
 	if env._renderChatFraming then
 		local framing = env._renderChatFraming
 		assert(framing == "auto" or framing == "card" or framing == "bare", "unknown RENDER_CHAT_FRAMING: " .. tostring(framing))
@@ -81,11 +69,6 @@ function CoreEnv.LoadSaved(env)
 		local arrangement = env._renderArrangement
 		assert(arrangement == "centred" or arrangement == "spread", "unknown RENDER_ARRANGEMENT: " .. tostring(arrangement))
 		env.KstyleUI.Store.Module("Layout").arrangement = arrangement
-	end
-	if env._renderOrnaments then
-		local level = env._renderOrnaments
-		assert(level == "Off" or level == "Subtle" or level == "Full", "unknown RENDER_ORNAMENTS: " .. tostring(level))
-		env.KstyleUI.Store.Module("Widgets").ornaments = level
 	end
 end
 

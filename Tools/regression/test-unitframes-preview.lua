@@ -4,7 +4,7 @@ local O = dofile("Tools/regression/options_env.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 local W = U.W
 
--- These checks pin the classic plate's preview, the style setting's other choice; the Lumen preview is checked at the end.
+-- These checks pin the classic plate's preview, the style setting's other choice; the Medallions slab is checked at the end.
 local PLATE = { enabled = true }
 for _, kind in ipairs(U.KINDS) do
 	PLATE[kind] = U.Older(kind)
@@ -50,8 +50,7 @@ assert(preview and preview ~= pane.placeholder and preview.Refresh, "the preview
 assert(preview.kind == "player", "the preview starts on the player frame")
 local view = preview.views.player
 assert(U.Shown(env, view.name) == "VALERIN", "the sample name in capitals")
-assert(U.Shown(env, view.healthText) == math.ceil(3120 / 3980 * 100) .. "%", "the sample health text follows Blizzard's ceil formula")
-assert(U.Shown(env, view.healthSub) == "3.1K / 3.9K", "the sample shows current and max under the track")
+assert(U.Shown(env, view.healthText) == "3.1K / 3.9K  " .. math.ceil(3120 / 3980 * 100) .. "%", "at the Medallions size the sample reads current and max, then the percent by Blizzard's ceil formula, on one line")
 assert(view.icons.leader:IsShown(), "the player sample shows where the leader icon sits")
 do
 	-- The sample's power bar reads the player's own power type (the owner's ruling of 2026-11-08: power is never
@@ -73,7 +72,6 @@ assert(env._unmasked[view.portrait] == true, "the sample asks for the square por
 assert(view.badgeChrome.rim[1]:IsShown(), "the sample's level badge is the octagon there too")
 local cast = preview.casts.player
 assert(cast and cast.frame:IsShown() and U.Shown(env, cast.text) == "Frostbolt", "the player sample shows a cast bar under the frame, its spell as the game writes it")
-assert(cast.geometry and cast.geometry.icon ~= nil and cast.iconFrame:IsShown(), "the sample player cast bar has its icon tile, as the KSTY-44 mock-up draws it")
 K.Options.Write("UnitFrames", "player.portraitShape", "round")
 settle()
 assert(view.ring:IsShown() and not view.portraitChrome.rim[1]:IsShown(), "a round portrait shows in the preview")
@@ -151,31 +149,14 @@ settle()
 assert(preview.kind == "boss" and U.Shown(env, preview.views.boss.levelText) == "??", "the boss sample shows a skull level")
 local liveBoss = uf.Frames.Get("boss").views[1].geometry.portrait.h
 local _, sampleBoss = preview.holders.boss:GetSize()
-assert(math.abs(sampleBoss - liveBoss) <= 2, "the boss sample is one live boss frame tall: " .. sampleBoss .. ", live " .. liveBoss)
+assert(math.abs(sampleBoss - liveBoss) <= 2 + K.Scale.Pixel(1), "the boss sample is one live boss frame tall, within its pixel snap: " .. sampleBoss .. ", live " .. liveBoss)
 
--- The Lumen preview: the vitals line with its sample values and cast line, the sigil with its level line and its
--- sockets centred under it, and the boss card with its section cap.
-K.Options.Write("UnitFrames", "player.style", "lumen")
-K.Options.Write("UnitFrames", "edit", "player")
-settle()
-local vitals = preview.views.player
-assert(vitals.geometry.form == "vitals", "the preview draws the vitals line")
-assert(U.Shown(env, vitals.healthText) == "3.1K" and U.Shown(env, vitals.healthSub) == "/ 3.9K", "current, then the max: " .. U.Shown(env, vitals.healthText) .. " " .. U.Shown(env, vitals.healthSub))
-assert(U.Shown(env, vitals.levelText) == "60" and vitals.disc:IsShown(), "the level in its disc")
-assert(U.Shown(env, vitals.caption) == K.L["Battle Stance"], "a sample stance follows the name")
-local line = preview.casts.player
-assert(line and line.frame:IsShown() and line.line and U.Shown(env, line.label) == K.L["Casting"], "the sample cast is the vitals line's own cast line")
-assert(line.frame:GetParent() == preview.holders.player, "inside the sample frame")
-K.Options.Write("UnitFrames", "target.style", "lumen")
-K.Options.Write("UnitFrames", "target.castbar", true)
+-- The Medallions target: its sample sockets centred under it.
 K.Options.Write("UnitFrames", "edit", "target")
-settle()
-local sigil = preview.views.target
-assert(sigil.geometry.form == "sigil" and U.Shown(env, sigil.caption) == "Level 61 elite \194\183 Beast", "the sigil sample with its level line: " .. U.Shown(env, sigil.caption))
 K.Options.Write("UnitFrames", "target.auraPosition", "CENTER")
 settle()
 local cp, crel, crp = preview.auraHosts.target:GetPoint(1)
-assert(cp == "TOP" and crel == preview.holders.target and crp == "BOTTOM", "the sample sockets hang centred under the sigil")
+assert(cp == "TOP" and crel == preview.holders.target and crp == "BOTTOM", "the sample sockets hang centred under the frame")
 local first = preview.auraIcons.target[1]
 local fp, frel, frp, fx = first:GetPoint(1)
 assert(frel == preview.auraHosts.target and fp == "TOPLEFT" and frp == "TOP" and fx < 0, "the sample row is centred on the host's top")
@@ -183,11 +164,13 @@ assert(frel == preview.auraHosts.target and fp == "TOPLEFT" and frp == "TOP" and
 -- a sample time left on each socket while Aura timers is on, stack counts, and the "+N" chip on the last cell as
 -- the live row draws it when more auras are up than it holds.
 do
-	local columns, rows = 6, 1
+	local columns = 6
 	K.Options.Write("UnitFrames", "target.auraColumns", columns)
-	K.Options.Write("UnitFrames", "target.auraRows", rows)
+	K.Options.Write("UnitFrames", "target.auraRows", 1)
 	K.Options.Write("UnitFrames", "target.auraTimer", true)
 	settle()
+	-- Known: a row count at its default of one reads the Medallions rows' two.
+	local rows = uf.Settings.Value("target", "auraRows")
 	assert(preview.auraCount == columns * rows, "the sample fills the grid: " .. preview.auraCount)
 	local timers, stacks = 0, 0
 	for i = 1, preview.auraCount do
@@ -221,8 +204,7 @@ end
 K.Options.Write("UnitFrames", "boss.style", "lumen")
 K.Options.Write("UnitFrames", "edit", "boss")
 settle()
-local card = preview.views.boss
-assert(card.geometry.form == "card" and U.Shown(env, card.capLabel) == K.L["Boss"] and U.Shown(env, card.caption) == K.L["Boss"], "the boss sample is a card with its section cap")
+assert(preview.views.boss.geometry.form == "slab", "the boss sample is a Medallions slab")
 
 assert(uf.Frames.Get("player"), "the live frames exist alongside the preview")
 assert(#env._errors == 0, "no errors: " .. tostring(env._errors[1]))

@@ -92,8 +92,9 @@ do
 	eq(got.anchor .. got.x .. "," .. got.y, default.anchor .. default.x .. "," .. default.y, "the setup's position")
 	local s = ns.Settings().strip
 	eq(shown(ns), "fps,latency,gold", "the default line: frame rate, latency, gold, and neither durability nor the clock")
-	eq(ns.defaults.strip.modules[7].id, "durability", "durability defaults on")
-	eq(ns.defaults.strip.modules[4].id, "time", "the clock defaults on")
+	local dock = ns.defaults.strip.dockModules
+	eq(dock[4].id .. tostring(dock[4].shown), "durabilitytrue", "durability defaults on in the Medallions dock")
+	eq(dock[5].id .. tostring(dock[5].shown), "timetrue", "the clock defaults on in the Medallions dock")
 	eq(s.line, true, "the readout is one line by default")
 	eq(s.backdrop, false, "with no card behind it")
 	eq(s.labels, "inline", "units follow their values")
@@ -143,9 +144,11 @@ do
 	eq(item(ns, "gold").label:IsShown(), false, "money carries its own units")
 	eq(item(ns, "gold").dot:GetText(), "\194\183", "the middle dot is a decimal-escaped source string")
 
+	-- The values keep the Medallions slab's muted ink after the strip leaves the slab (Strip.Paint repaints values only on
+	-- a colour, dock or line change); the dots repaint on every paint.
 	for _, it in ipairs({ item(ns, "fps"), item(ns, "latency"), (item(ns, "gold")) }) do
-		assert(sameText(it.value, K.Tokens.Color("text")), it.id .. "'s value is the picture's soft grey-white")
-		assert(sameText(it.dot, K.Tokens.Color("text")), it.id .. "'s dot is the same")
+		assert(sameText(it.value, K.Tokens.Color("medTextMuted")), it.id .. "'s value keeps the slab's muted ink")
+		assert(sameText(it.dot, K.Tokens.Color("text")), it.id .. "'s dot is the picture's soft grey-white")
 	end
 	assert(sameText(item(ns, "fps").label, K.Tokens.Color("labelMuted")), "the unit is a muted caption beside its value")
 	local _, valueSize = item(ns, "fps").value:GetFont()
@@ -250,7 +253,7 @@ do
 	assert(sameText(item(ns, "fps").label, K.Tokens.Color("labelMuted")), "labels read as muted captions in the cells")
 	eq(ns.Strip.view.chrome.fill[1]:IsShown(), true, "the cells sit on glass")
 	eq(got.width .. "x" .. got.height, "318x42", "the strip takes the card's size")
-	eq(ns.Strip.view.chrome:Chamfer(), math.min(6 * K.Widgets.Border(ns.Strip.view.frame), 42 / 2), "the strip's corners round six border lines, the card grade (the owner's picture, 2026-11-09), never more than half its height")
+	eq(ns.Strip.view.chrome:Chamfer(), math.min(4, 42 / 2), "the strip's corners round the Medallions bevel's four units, never more than half its height")
 	local s = ns.Settings().strip
 	eq(s.spacing, 16, "16 units of room inside each cell")
 	for _, id in ipairs(ns.Strip.order) do

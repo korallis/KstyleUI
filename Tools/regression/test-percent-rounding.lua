@@ -71,8 +71,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(view.text:GetText() == "Stormwind 125% \194\183 *", "mark a waiting reward with a compact asterisk")
 	assert(not view.text:IsShown() and not view.plate:IsShown(), "a waiting reward respects hover-only text")
 	D.W.Enter(view.holder)
-	assert(view.text:IsShown() and view.plate:IsShown(), "hover reveals the same caption plate as the other bars")
-	assert(view.plate:GetWidth() < view.holder:GetWidth(), "the pending reward caption must leave visible fill beside its plate")
+	assert(view.text:IsShown() and not view.plate:IsShown(), "hover reveals the caption under the strip, clear of the fill")
 	K.Options.Write("DataBars", "rep.rewardMarker", false)
 	assert(view.text:GetText() == "Stormwind 125%", "turning off the reward marker preserves progress")
 	K.Options.Write("DataBars", "rep.rewardMarker", true)
@@ -85,13 +84,10 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(not view.text:IsShown() and not view.plate:IsShown(), "no text also hides the reward marker")
 	K.Options.Write("DataBars", "rep.text", "labelPercent")
 	K.Options.Write("DataBars", "rep.textHover", true)
-	for _, style in ipairs({ "medallions", "orbs", "frames" }) do
-		K.Options.Write("HudStyle", "style", style)
-		assert(not view.text:IsShown(), "pending reward respects hover text in " .. style)
-		D.W.Enter(view.holder)
-		assert(view.text:IsShown(), "hover reveals pending reward in " .. style)
-		D.W.Leave(view.holder)
-	end
+	assert(not view.text:IsShown(), "pending reward respects hover text")
+	D.W.Enter(view.holder)
+	assert(view.text:IsShown(), "hover reveals pending reward")
+	D.W.Leave(view.holder)
 	game.paragon[72].rewardPending = false
 	env.FireEvent("UPDATE_FACTION")
 	D.W.Settle(env)

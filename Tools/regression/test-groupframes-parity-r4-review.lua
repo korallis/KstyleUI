@@ -7,7 +7,6 @@ local boot, point, offset, near = H.boot, H.point, H.offset, H.near
 -- Review of #642, finding 1: a tall name line stays above a Medallions party bar, as tall as the room allows, and leaves the name-on-bar raid tile alone.
 do
 	local env, K, ns = boot()
-	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	local f = frame(ns, "party1")
 	local line = f.parts.name.height
@@ -67,7 +66,6 @@ do
 		collectgarbage()
 	end
 	local env, K, ns = boot()
-	K.Options.Write("HudStyle", "style", "medallions")
 	write(env, K, "party.buffX", -12)
 	local f = frame(ns, "party1")
 	local a = { Scene.Rect(env, f.buffClip) }
@@ -86,7 +84,6 @@ collectgarbage()
 -- Review of #642, finding 4: a placed role icon shows on Medallions raid tiles, where Automatic leaves the role to the ring.
 do
 	local env, K, ns = boot()
-	K.Options.Write("HudStyle", "style", "medallions")
 	G.SetRoster(env, "raid", G.Members(10, function(_, m) m.role = "TANK" end))
 	env.RunTimers()
 	local r = frame(ns, "raid1")

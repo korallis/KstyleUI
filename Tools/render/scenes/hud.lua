@@ -19,36 +19,12 @@ local Scene = Common.Scene
 local Tooltip = dofile("Tools/render/scenes/tooltip.lua")
 local Classes = dofile("Tools/render/scenes/_classes.lua")
 local Fx = dofile("Tools/render/scenes/_effects.lua")
+local TotemScene = dofile("Tools/render/scenes/_totems.lua")
 
 local Hud = {}
 Hud.Classes = Classes
 -- Hud.envs[scene] -> the environment a module scene was built in, for scenes that measure frames after the build.
 Hud.envs = setmetatable({}, { __mode = "k" })
--- Hud.layoutElements, while a HUD composes, holds every module's Layout elements ({ [key] = { el, live } }). The game
--- keeps one Layout registry, where the minimap's corners find the elements beside it (KstyleUI_Minimap/Map.lua);
--- build() lets each environment's Layout.Element and Layout.Live fall back to them. Nothing else crosses environments.
-Hud.layoutElements = nil
-
-function Hud.ShareLayout(env)
-	local Layout = env.KstyleUI and env.KstyleUI.Layout
-	if not (Hud.layoutElements and Layout) or Layout._shared then
-		return
-	end
-	local element, live = Layout.Element, Layout.Live
-	Layout._shared = true
-	Layout.Element = function(key)
-		local shared = Hud.layoutElements and Hud.layoutElements[key]
-		return element(key) or shared and shared.el
-	end
-	Layout.Live = function(key)
-		if element(key) then
-			return live(key)
-		end
-		local shared = Hud.layoutElements and Hud.layoutElements[key]
-		return shared ~= nil and shared.live
-	end
-end
-
 -- Class(opts) -> the scene's class token and its _classes.lua entry.
 -- opts.spec overlays the class's entry field by field (a fixture's own name, bars and buffs).
 function Hud.Class(opts)
@@ -68,15 +44,71 @@ end
 
 local TARGET = { name = "Riverglade Crocolisk", level = 38, health = 864, healthMax = 1540, power = 0, powerMax = 0, powerType = 0, powerToken = "MANA", reaction = 2, canAttack = true, classification = "normal", creature = "Beast" }
 
--- The race each class's player is drawn as, so the Medallions portrait resolver finds painted art; Frames and Orbs never read it.
+-- The race each class's player is drawn as, so the Medallions portrait resolver finds painted art.
 Hud.RACES = { WARRIOR = "Human", PALADIN = "Dwarf", HUNTER = "NightElf", ROGUE = "Human", PRIEST = "Dwarf", SHAMAN = "Dwarf", MAGE = "Gnome", WARLOCK = "Scourge", DRUID = "NightElf" }
+
+-- Pips() -> from, to, off: RENDER_PIPS=from,to, the combo points' change the unit frames' pips play; the crest jewels
+-- show the second count and a druid is in cat form. RENDER_PIPS=off turns the class-themed pips off.
+function Hud.Pips()
+	local value = rawget(_G, "RENDER_PIPS") or os.getenv("RENDER_PIPS") or ""
+	local from, to = value:match("^(%d+),(%d+)$")
+	assert(value == "" or value == "off" or from, "RENDER_PIPS must be from,to, such as 4,5, or off")
+	return tonumber(from), tonumber(to), value == "off"
+end
+
+-- Crown(opts) -> under RENDER_PIPS (off too, so the setting is the only change), the crown the game feeds for the
+-- scene's class (a druid's in bear form with RENDER_FORM=bear), whose spell the player then knows; nil for the combo
+-- point classes and the rest.
+local CROWN_AURAS = { WARRIOR = 7386, PRIEST = 15258, MAGE = 400573, HUNTER = 1310687, BEAR = 1328617 }
+local CROWN_KNOWN = { WARRIOR = 7386, PRIEST = 15257, MAGE = 400574, HUNTER = 1310687, BEAR = 1328617 }
+function Hud.Crown(opts)
+	local class = Hud.Class(opts)
+	local kind = class == "DRUID" and os.getenv("RENDER_FORM") == "bear" and "BEAR" or class
+	local from, _, off = Hud.Pips()
+	return (from or off) and CROWN_KNOWN[kind] and kind or nil
+end
+
+-- SetCrown(env, kind, n) gives the crown's aura n stacks through the game's own feed (the same aura while it stays,
+-- so the slots ease; a new one is assigned at once).
+local function SetCrown(env, kind, n)
+	local unit = (kind == "MAGE" or kind == "HUNTER") and "player" or "target"
+	local aura = n > 0 and (env._crownAura or { id = CROWN_AURAS[kind], harmful = unit == "target", mine = true }) or nil
+	if aura then
+		aura.count = n
+	end
+	env._crownAura = aura
+	dofile("Tools/regression/aura_slots.lua").Set(env, unit, aura and { aura } or nil)
+end
+
+-- PlayPips(env, K, set) -> note: RENDER_PIPS=from,to moves the combo points from one count to the other RENDER_PIPS_T
+-- seconds before the scene's clock through the addon's own power event (set(n) gives the stubs the count); equal
+-- counts settle there with no change. RENDER_PIPS_MOTION sets Medallions motion (off shows the end states).
+local function PlayPips(env, K, set)
+	local from, to = Hud.Pips()
+	if not from then
+		return nil
+	end
+	local motion, clock = os.getenv("RENDER_PIPS_MOTION"), env._now
+	if motion and motion ~= "" then
+		K.Options.Write("Medallions", "motion", motion)
+	end
+	set(from)
+	env.FireEvent("PLAYER_TARGET_CHANGED")
+	env._now = env._time - (tonumber(os.getenv("RENDER_PIPS_T") or "") or 0)
+	set(to)
+	env.FireEvent(from == to and "PLAYER_TARGET_CHANGED" or "UNIT_POWER_FREQUENT", "player", "COMBO_POINTS")
+	env._now = clock
+	return "pips: " .. from .. " to " .. to .. ", " .. (os.getenv("RENDER_PIPS_T") or "0") .. " s in"
+end
 
 -- Player(opts) -> the player unit for the scene's class, as unitframes_env takes it.
 function Hud.Player(opts)
 	local class, spec = Hud.Class(opts)
+	local bear = Hud.Crown(opts) == "BEAR"
+	local power = class == "DRUID" and (Hud.Pips() or bear) and (bear and { type = 1, token = "RAGE", value = 40, max = 100 } or { type = 3, token = "ENERGY", value = 80, max = 100 }) or spec.power
 	local player = {
 		name = spec.name, class = class, level = 38, health = 2750, healthMax = 3350,
-		power = spec.power.value, powerMax = spec.power.max, powerType = spec.power.type, powerToken = spec.power.token,
+		power = power.value, powerMax = power.max, powerType = power.type, powerToken = power.token,
 		isPlayer = true, reaction = 5, race = Hud.RACES[class], sex = 2,
 	}
 	for k, v in pairs(type(opts) == "table" and type(opts.player) == "table" and opts.player or {}) do
@@ -129,14 +161,6 @@ local function merge(into, from)
 	return into
 end
 
--- Style() -> the HUD style a scene renders: RENDER_HUD_STYLE, set as a global by a test or in the environment.
-function Hud.Style()
-	local style = rawget(_G, "RENDER_HUD_STYLE") or os.getenv("RENDER_HUD_STYLE")
-	if style and style ~= "" then
-		return style
-	end
-end
-
 local function saved(opts, module, settings, more)
 	local section = { enabled = true }
 	merge(section, opts.settings and opts.settings[module])
@@ -145,11 +169,6 @@ local function saved(opts, module, settings, more)
 	if opts.dataBar then
 		profile.DataBars = merge(merge({}, opts.dataBar), opts.settings and opts.settings.DataBars)
 		if module == "DataBars" then merge(profile.DataBars, section) end
-	end
-	local style = Hud.Style()
-	if style then
-		assert(style == "Orbs" or style == "Frames" or style == "Medallions", "RENDER_HUD_STYLE must be Frames, Orbs or Medallions")
-		profile.HudStyle = { style = style:lower() }
 	end
 	for _, name in ipairs(more or {}) do
 		profile[name] = { enabled = true }
@@ -268,7 +287,6 @@ local function build(env, opts, extra, beforeDraw)
 	for k, v in pairs(extra or {}) do
 		sceneOpts[k] = v
 	end
-	Hud.ShareLayout(env)
 	if beforeDraw then
 		beforeDraw()
 	end
@@ -384,7 +402,7 @@ local SIGIL_DEBUFFS = { { 132155, "18s" }, { 132363, "9s", "3" }, { 132316, "4s"
 local function sigilSockets(env, K, ns, view, list)
 	list = list or SIGIL_DEBUFFS
 	local a = view.auras
-	if a and K.HudStyle.Current() == "medallions" then
+	if a then
 		if ns.Fan.Wanted(view) then K.Options.Write("UnitFrames", "target.auraFilter", "debuffs") end
 		local Engine = dofile("Tools/regression/aura_fixture_engine.lua")
 		local count = tonumber(os.getenv("RENDER_CREST_DEBUFFS")) or #list
@@ -432,10 +450,10 @@ function modules.unitframes(opts)
 	for k, v in pairs(TARGET) do
 		target[k] = v
 	end
-	-- opts.playerCast == false: the player casts nothing (the questing HUD is out of combat; round 6, Opus).
+	-- opts.playerCast == false or RENDER_PLAYER_CAST=off: the player casts nothing (the questing HUD is out of combat; round 6, Opus).
 	-- opts.castLeft: the seconds the player's cast has left at the scene's clock (0.8 when absent).
 	local castEnd = opts.castLeft and (10000 + opts.castLeft * 1000) or CAST_END
-	if spec.cast and opts.playerCast ~= false then
+	if spec.cast and opts.playerCast ~= false and os.getenv("RENDER_PLAYER_CAST") ~= "off" then
 		player.cast = { name = spec.cast[1], texture = spec.cast[2], start = castEnd - spec.cast[4] * 1000, finish = castEnd, spellID = spec.cast[3] }
 	end
 	for k, v in pairs(type(opts.target) == "table" and opts.target or {}) do
@@ -464,7 +482,7 @@ function modules.unitframes(opts)
 			-- the boss targets you, so the target of target shows beside the sigil.
 			env._units.boss1 = opts.boss and opts.target == opts.boss and target or opts.boss
 			env._units.targettarget = opts.boss and target and player or nil
-			env._comboPoints = spec.combo or 0
+			env._comboPoints = opts.combo or spec.combo or 0
 			env._resting = os.getenv("RENDER_RESTING") == "1"
 			env.UnitClass = function(token)
 				local u = env._units[token]
@@ -474,6 +492,7 @@ function modules.unitframes(opts)
 			end
 		end,
 	}))
+	if os.getenv("RENDER_PLAYER_AURAS") == "on" then K.Options.Write("UnitFrames", "player.medallionsAuras", true) end
 	env._time = 10
 	env.SetTarget(target ~= nil)
 	if player.cast then
@@ -489,33 +508,10 @@ function modules.unitframes(opts)
 			env.FireEvent("UNIT_SPELLCAST_START", "boss1", "Cast-1", opts.boss.cast.spellID)
 		end
 	end
-	-- Under Orbs the tray frames action bar 1, which lives in the action bars' own scene: a stand-in of bar 1's size
-	-- registers its element here, so the orbs and the tray place from bar 1's Layout rect as they do in the game.
-	if ns.Orbs and ns.Orbs.Active() then
-		local stand = env.CreateFrame("Frame", nil, K.Scale.Root())
-		local grid = K.Setup.Layouts.Grid("actionbars.bar1")
-		stand:SetSize(grid.buttons * grid.size + (grid.buttons - 1) * grid.spacing, grid.size)
-		K.Layout.Register(stand, "actionbars.bar1", K.Setup.Layouts.Default("actionbars.bar1"), { label = "Action bar 1 stand-in", scalable = true })
-		ns.Orbs.Apply()
-	end
 	env.RunTimers()
 	-- The cast bars fade in over a tween; run the frames with the clock held, so the bars read as mid-cast.
 	for _ = 1, 40 do
 		U.W.Tick(env, 0.05)
-	end
-	-- RENDER_ORBS_HIT=1 (with RENDER_HUD_STYLE=Orbs): the player in combat at the KSTY-44 mock-up's 147 of 237 health and
-	-- 58% of the resource, a moment after a hit from the mock-up's 71% (168); the orb's own hold keeps the pale band at
-	-- the health before the hit, as it does in the game, so RENDER_LOSS leaves the player's orb to this hit.
-	local orbs = ns.Orbs and ns.Orbs.Active() and os.getenv("RENDER_ORBS_HIT") == "1"
-	if orbs then
-		env.SetCombat(true)
-		player.health, player.healthMax = 168, 237
-		env.FireEvent("UNIT_MAXHEALTH", "player")
-		player.health = 147
-		player.power = math.floor(player.powerMax * 0.58 + 0.5)
-		env.FireEvent("UNIT_HEALTH", "player")
-		env.FireEvent("UNIT_POWER_UPDATE", "player", player.powerToken)
-		env.RunTimers()
 	end
 	-- The stub draws no portraits: the class's portrait (standins.py copies scenery/portraits/<class>.png), the
 	-- mockup's faces, or a flat tone, stand in for the unit's model.
@@ -533,9 +529,6 @@ function modules.unitframes(opts)
 		end
 	end
 	table.sort(notes)
-	if orbs then
-		notes[#notes + 1] = "orbs: in combat a moment after a hit, the pale band held at the health before it"
-	end
 	-- opts.targetAuras ({ icon, "time", "count" } each): your debuffs on a target that is no boss, in the same sockets.
 	if (opts.boss or opts.targetAuras) and target then
 		notes[#notes + 1] = sigilSockets(env, K, ns, ns.Frames.Get("target").views[1], opts.targetAuras)
@@ -546,7 +539,7 @@ function modules.unitframes(opts)
 		local clock = env._now
 		env._now = env._time - LOSS_AGO
 		for _, token in ipairs({ "player", "target" }) do
-			local u = not (orbs and token == "player") and env._units[token]
+			local u = env._units[token]
 			if u and u.health and u.healthMax then
 				local now = u.health
 				u.health = math.min(u.healthMax, now + math.floor(u.healthMax * LOSS_SHARE[token]))
@@ -556,9 +549,26 @@ function modules.unitframes(opts)
 			end
 		end
 		env._now = clock
-		local who = orbs and "the target lost " or "the player lost " .. LOSS_SHARE.player * 100 .. "% and the target "
+		local who = "the player lost " .. LOSS_SHARE.player * 100 .. "% and the target "
 		notes[#notes + 1] = who .. LOSS_SHARE.target * 100 .. "% of their health " .. LOSS_AGO .. " s ago (RENDER_LOSS)"
 	end
+	if select(3, Hud.Pips()) then
+		K.Options.Write("UnitFrames", "resource.classPips", false)
+	end
+	-- The action bars' scene is its own client: its crest's crown shows the points, as in the game,
+	-- and a cat-form druid's bar sits on a stand-in of the crown's seat, placed where that scene puts it.
+	do
+		local seat = env.CreateFrame("Frame", nil, env.UIParent)
+		seat:SetSize(1, 1)
+		seat:SetPoint("CENTER")
+		if class == "DRUID" and Hud.Pips() and ns.Resource.state.showMana then
+			local line = select(2, modules.actionbars(opts)).SlabCrown.state.line
+			local r, scale = Scene.RectSolver(line._env):rect(line), env.UIParent:GetScale()
+			seat:SetPoint("CENTER", env.UIParent, "BOTTOMLEFT", (r[1] + r[3]) / 2 / scale, (r[2] + r[4]) / 2 / scale)
+		end
+		K.Widgets.SetClassCrown(seat)
+	end
+	notes[#notes + 1] = PlayPips(env, K, function(n) env._comboPoints = n end)
 	local scene = build(env, opts, { time = env._time }, function()
 		Fx.Apply(env, "unitframes", ns, notes)
 	end)
@@ -583,6 +593,15 @@ function modules.actionbars(opts)
 		saved = saved(opts, "ActionBars"),
 		setup = function(env)
 			shared(env, opts)
+			local kind = Hud.Crown(opts)
+			if kind then
+				dofile("Tools/regression/aura_slots.lua").Install(env)
+				-- A hunter's crown is drawn with its Summon Hawk perches (1293241), which share the crest, on or off.
+				env.C_SpellBook = env.C_SpellBook or {}
+				env.C_SpellBook.IsSpellKnown = function(id) return id == CROWN_KNOWN[kind] or kind == "HUNTER" and id == 1293241 end
+				env.GetTotemInfo = function() return false, "", 0, 0, 0, 1, 0 end
+				env.GetTotemDuration = function() return { start = 0, finish = 0 } end
+			end
 			if opts.vehicle then
 				env.UnitHasVehicleUI = function() return true end
 				env.CanExitVehicle = function() return true end
@@ -607,6 +626,7 @@ function modules.actionbars(opts)
 			for i, form in ipairs(spec.forms or {}) do
 				env._game.forms[i] = { texture = form[2], isActive = form[3] == true, spellID = 7000 + i }
 			end
+			if class == "SHAMAN" and TotemScene.Story() then TotemScene.Install(env) end
 			-- The player's race, which picks the Medallions crest with the class, as the unit frames draw it (Hud.RACES).
 			env.UnitRace = env.UnitRace or function()
 				local race = Hud.RACES[(Hud.Class(opts))] or "Human"
@@ -621,7 +641,12 @@ function modules.actionbars(opts)
 			end
 			-- The player's combo points, holy power or soul shards, which the Medallions hub's jewels light (spec.combo, else 3 of 5).
 			env.GetComboPoints = env.GetComboPoints or function()
-				return spec.combo or 0
+				return env._pips or spec.combo or 0
+			end
+			if Hud.Pips() or Hud.Crown(opts) then
+				env.UnitPowerType = function()
+					return Hud.Player(opts).powerType
+				end
 			end
 			env.UnitPower = env.UnitPower or function()
 				return spec.combo or 3
@@ -647,6 +672,9 @@ function modules.actionbars(opts)
 	env._time = 10
 	env.GetTime = function()
 		return env._time
+	end
+	if select(3, Hud.Pips()) then
+		K.Store.Profile().UnitFrames = { resource = { classPips = false } }
 	end
 	AB.Enable(env, K)
 	local consumables = tonumber(rawget(_G, "RENDER_CONSUMABLES") or os.getenv("RENDER_CONSUMABLES") or "")
@@ -723,7 +751,7 @@ function modules.actionbars(opts)
 	end
 	env.RunTimers()
 	AB.W.Settle(env)
-	-- RENDER_MEDALLIONS_STATE (with RENDER_HUD_STYLE=Medallions) puts the slots beside the hub to work, so a crop shows
+	-- RENDER_MEDALLIONS_STATE puts the slots beside the hub to work, so a crop shows
 	-- them over every hub layer: bar 2's first slot on an 8 s cooldown with 4 s left, then calm (nothing more), combat
 	-- (entering combat 0.3 s ago: the shockwave and the sweep halfway), proc (a fresh proc on bar 1's slot 12, beside the hub,
 	-- or the nearest filled slot before it, 0.3 s in) or levelup (level 12, 0.4 s into the burst, which spreads under the slots either side).
@@ -731,7 +759,7 @@ function modules.actionbars(opts)
 	if slabState and slabState ~= "" then
 		local ago = ({ calm = 0, combat = 0.3, proc = 0.3, levelup = 0.4 })[slabState]
 		assert(ago, "RENDER_MEDALLIONS_STATE must be calm, combat, proc or levelup")
-		assert(ns.Slab and ns.Slab.Active(), "RENDER_MEDALLIONS_STATE needs RENDER_HUD_STYLE=Medallions")
+		assert(ns.Slab and ns.Slab.Active(), "RENDER_MEDALLIONS_STATE needs the action bars' slab")
 		env._game.slots[61].cooldown = { start = 6, finish = 14, remaining = 4, total = 8 }
 		env.FireEvent("ACTIONBAR_UPDATE_COOLDOWN")
 		local charging = AB.Button(ns, "bar2", 1)
@@ -753,9 +781,14 @@ function modules.actionbars(opts)
 		end
 		env._now = clock
 	end
-	local notes = {}
+	local crown = Hud.Crown(opts)
+	local notes = { PlayPips(env, K, function(n)
+		env._pips = n
+		if crown then SetCrown(env, crown, n) end
+	end) }
 	local scene = build(env, opts, { time = env._time }, function()
 		Fx.Apply(env, "actionbars", ns, notes)
+		if class == "SHAMAN" and TotemScene.Story() then TotemScene.Play(env, K, ns, AB, notes) end
 		if travel then
 			K.Options.Write("ActionBars", "crestTravel", not travel:find("before", 1, true))
 			if ns.Travel.crest and ns.Travel.crest:IsShown() then ns.Travel.Prepare(); AB.Click(env, ns.Travel.crest, "RightButton", false) end
@@ -1468,26 +1501,19 @@ function modules.tracker(opts)
 	env.RunTimers()
 	S.W.Settle(env)
 	-- The guide renders in its own environment, so here the rail stands in for it being on screen (opts.withGuide):
-	-- in a style that does not stack the two cards, the quest card then holds the story slot and the guide the column.
+	-- the quest card then holds the story slot and the guide the column.
 	local rail = opts.withGuide and ns.RestedXP and ns.RestedXP.Rail
 	if rail then
 		function rail.Shown()
-			local story = K.Setup.Story(K.Layout.Setting("preset") or "DPS", true)
-			return story ~= nil and not story.stacked and ns.Quests.Active()
+			return K.Setup.Story(K.Layout.Setting("preset") or "DPS", true) ~= nil and ns.Quests.Active()
 		end
 		ns.Quests.Replace()
 		S.W.Settle(env)
 	end
-	if opts.questGive then
-		ns.Quests.Give(opts.questGive)
-		S.W.Settle(env)
-	end
-	-- The quest card stands in for Blizzard's tracker, four quests at a time, in its own Layout element: the story
-	-- slot, or under Orbs on top of the RestedXP guide's card (opts.withGuide).
+	-- The quest card stands in for Blizzard's tracker, four quests at a time, in its own Layout element: the story slot.
 	local card = ns.Quests.Active()
 	local scene = build(env, opts)
-	local stacked = rail and not rail.Shown() and K.Setup.Story(K.Layout.Setting("preset") or "DPS", true).stacked
-	local place = opts.withGuide and (stacked and "on top of the RestedXP guide's card in one column" or "in the story slot, the shown RestedXP guide's card in the column beside it") or "in the layout's story slot"
+	local place = opts.withGuide and "in the story slot, the shown RestedXP guide's card in the column beside it" or "in the layout's story slot"
 	if card then
 		scene.log[#scene.log + 1] = "the quest card shows " .. #(opts.quests or Tracker.QUESTS) .. " tracked quests from a stand-in quest log, four at a time, " .. place .. "; Blizzard's tracker is hidden while it holds only quests"
 	else
@@ -1991,10 +2017,6 @@ function Hud.EditModeLayout(layout, guide, counts, natives)
 	end
 	K.Store.Module("Minimap").enabled = true
 	K.Store.Module("Minimap").frame = os.getenv("RENDER_MINIMAP_FRAME")
-	local style = Hud.Style()
-	if style then
-		K.Options.Write("HudStyle", "style", style:lower())
-	end
 	if not K.Setup.Apply({ layout = layout, modules = {} }) then
 		return nil
 	end
@@ -2115,7 +2137,7 @@ function Hud.Build(opts)
 	for _, name in ipairs(opts.modules or Hud.Order()) do
 		scenes[#scenes + 1] = (Hud.Module(name, opts))
 	end
-	local merged = Scene.Merge(scenes, Hud.Style() == "Medallions")
+	local merged = Scene.Merge(scenes, true)
 	local class, spec = Hud.Class(opts)
 	-- The class the scene drew, for Tools/render/classes.py's manifest.
 	merged.class = { class = class, title = spec.title, name = spec.name, colour = { spec.colour[1], spec.colour[2], spec.colour[3] }, power = spec.power.token, cast = spec.cast and spec.cast[1] or nil }
