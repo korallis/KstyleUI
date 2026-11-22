@@ -104,11 +104,10 @@ end
 
 Suite.New = Start
 
--- Prepare(style, W, H) returns a saved-suite reload function and the initial environment.
-function Suite.Prepare(style, W, H)
+-- Prepare(W, H) returns a saved-suite reload function and the initial environment.
+function Suite.Prepare(W, H)
 	local env, K = Start(nil, W, H)
 	local choice = K.Setup.NewChoice()
-	choice.hudStyle = style
 	assert(K.Setup.Apply(choice), "Setup.Apply refused the choice")
 	env.RunTimers()
 	env.FireEvent("PLAYER_LOGOUT")

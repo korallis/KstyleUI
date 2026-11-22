@@ -1,7 +1,7 @@
 -- test-perf-path-budgets.lua: the audit's reload, resize, strip and object ceilings name the work to remove on regression.
 local Suite = dofile("Tools/regression/suite_env.lua")
 local Budget = dofile("Tools/regression/path_budget.lua")
-local reload, initial = Suite.Prepare("medallions", 5120, 1440)
+local reload, initial = Suite.Prepare(5120, 1440)
 local env, K
 local login = Budget.Count(initial, function() env, K = reload() end)
 Budget.Check(login, 13000000, 500000, "P3/P4/P5/P12: reject undersized story cards before fitting HUD rectangles; defer unused slices and skip unchanged inputs on reload")

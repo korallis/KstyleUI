@@ -8,7 +8,6 @@ local Load = dofile("Tools/regression/load_files.lua")
 return Common.Run(function()
 	local view = os.getenv("RENDER_CORE_PAGE") or "layout"
 	local saved = Gallery.Saved({ UnitFrames = {} })
-	saved.profiles.Default.HudStyle = { style = "frames" }
 	local env, K = U.New(Common.ScreenOpts({
 		saved = saved,
 		setup = function(e)

@@ -1,7 +1,7 @@
 -- test-perf-resize.lua: a saved whole-suite HUD changes resolution and back without repeating fitting and module rebuilds.
 local Suite = dofile("Tools/regression/suite_env.lua")
 local Budget = dofile("Tools/regression/path_budget.lua")
-local reload = Suite.Prepare("medallions", 5120, 1440)
+local reload = Suite.Prepare(5120, 1440)
 local env, K = reload()
 local changes = 0
 local bindings, reads = 0, 0

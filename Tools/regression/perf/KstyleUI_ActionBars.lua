@@ -48,7 +48,7 @@ return {
 		end,
 	},
 	{
-		name = "ActionBars PET_BAR_UPDATE_COOLDOWN with a pet, tray card unchanged",
+		name = "ActionBars PET_BAR_UPDATE_COOLDOWN with a pet",
 		budget = 215,
 		setup = function()
 			local env, K = AB.New()
@@ -61,14 +61,13 @@ return {
 		end,
 	},
 	{
-		name = "ActionBars pet appears and leaves in combat, tray card kept",
+		name = "ActionBars pet appears and leaves in combat",
 		budget = 750,
 		calls = 50,
 		setup = function()
-			local env, K, ns = AB.New()
+			local env, K = AB.New()
 			AB.Enable(env, K)
 			env.RunTimers()
-			assert(ns.Tray.card and ns.Tray.card:IsShown(), "the fixture's bars stand in the tray card")
 			local pet = Perf.Event(env, "UNIT_PET", "player")
 			return env, function()
 				env._game.petExists = not env._game.petExists

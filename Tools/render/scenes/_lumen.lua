@@ -76,13 +76,11 @@ function Lumen.Preset(layout)
 	local settings = Hud.PresetSettings(layout)
 	local rootHeight = Layouts.HEIGHT
 	local width = K.Scale.CanvasWidth(Common.SCREEN.width, Common.SCREEN.height)
-	local style = Hud.Style() and Hud.Style():lower() == "medallions" and "medallions" or nil
 	K.Store.Module("Minimap").enabled = true
 	K.Store.Module("Minimap").frame = os.getenv("RENDER_MINIMAP_FRAME")
-	local story = Layouts.Story(layout, rootHeight, true, style, rootHeight * width / Common.SCREEN.height)
-	local crest = style == "medallions" and Layouts.MinimapCrest()
-	local slot = crest and story.guide or Layouts.Slot(layout, rootHeight)
-	local column = crest and story.quests or Layouts.Story(layout, rootHeight, true, nil, rootHeight * width / Common.SCREEN.height).quests
+	local story = Layouts.Story(layout, rootHeight, true, rootHeight * width / Common.SCREEN.height)
+	local slot = Layouts.MinimapCrest() and story.guide or Layouts.Slot(layout, rootHeight)
+	local column = story.quests
 	local k = HEIGHT / rootHeight
 	local origin = (Common.SCREEN.width - width) / 2 / Common.SCREEN.height * HEIGHT
 	local function Screen(spec)

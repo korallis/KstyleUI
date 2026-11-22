@@ -57,16 +57,13 @@ local function Jewels()
 	return from, to
 end
 
-local function Medallions(K)
-	return K and K.HudStyle and K.HudStyle.Current() == "medallions"
-end
 
 -- Apply(env, module, ns, notes) runs the RENDER_FX state in this module's environment, with the effect started
 -- RENDER_FX_T seconds before the scene's clock (env._time); it appends what it did to notes.
 function Effects.Apply(env, module, ns, notes)
 	local state, t = Effects.State()
 	local K = env.KstyleUI
-	if not state or not Medallions(K) then
+	if not state or not K then
 		return
 	end
 	local E = K.Effects

@@ -27,7 +27,7 @@ return function(preset, built)
 	assert(#findings == 0, preset .. " has a strict finding without any allowlist: " .. table.concat(Guard.Lines(findings, {}, {}, "strict"), "\n"))
 	local rh = 1080 / K.Scale.DEFAULT_USER_SCALE
 	local rw = rh * 3456 / 2234
-	local positions = Layouts.PrepareFits(preset, 3456, 2234, Layouts.Enabled(preset), nil, "frames").layout
+	local positions = Layouts.PrepareFits(preset, 3456, 2234, Layouts.Enabled(preset)).layout
 	for _, key in ipairs({ "actionbars.bar1", "actionbars.bar2", "actionbars.bar4", "actionbars.bar5", "unitframes.player", "unitframes.target", "minimap.main", "meters.damage", "chat.main", "databars.xp" }) do
 		assert(positions[key] and built.elements[key], preset .. " compares the declared and applied position of " .. key)
 	end

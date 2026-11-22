@@ -43,7 +43,7 @@ end
 print(_VERSION .. " (PUC required; Windows os.clock is wall time), 5 alternating A/B runs; all calls cold")
 print(display and "path: DISPLAY_SIZE_CHANGED through Scale.Apply (core loaded, Spread, automatic size)" or "path: Layouts.ScaleLimit")
 assert(not rawget(_G, "jit"), "use PUC lua5.1, never LuaJIT, for timing")
-for _, style in ipairs({ "frames", "orbs", "medallions" }) do
+for _, style in ipairs({ "medallions" }) do
 	if display then
 		env.RunTimers()
 	end

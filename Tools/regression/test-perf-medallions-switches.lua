@@ -3,7 +3,7 @@ local Suite = dofile("Tools/regression/suite_env.lua")
 local FX = dofile("Tools/regression/effects_env.lua")
 local SETTLE = 600
 
-local env, K = Suite.Prepare("medallions", 1920, 1080)()
+local env, K = Suite.Prepare(1920, 1080)()
 FX.Install(env)
 env.FireEvent("PLAYER_ENTERING_WORLD", false, false)
 local V = K.Effects.Vignette
