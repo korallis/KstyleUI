@@ -14,6 +14,7 @@ local TILE_INSET = 2
 local LINE_EXTRA = 2
 local MIN_CELL = 8
 local PARTY_LANE = 14
+local NAME_EM = 6.5
 local PIP_SHARE = 0.6
 local PIP_ROOM = 0.25
 local TILE_TEXT = "NONE"
@@ -140,8 +141,8 @@ local function TidyParts(out, f, o)
 	end
 	local endName = right - reserve - (reserve > 0 and gap or 0)
 	if heal then
-		local step, keep = heal.height + (o.healSpacing or 0), Geometry.NAME_EM * Widgets.FontSize(f.name, o.nameMin) - (o.pixel or 0)
-		while heal.width > heal.height and endName - heal.width - gap - name.left < keep do
+		local step, keep = heal.height + (o.healSpacing or 0), NAME_EM * Widgets.FontSize(f.name, o.nameMin) - (o.pixel or 0)
+		while heal.width > step + heal.height and endName - heal.width - gap - name.left < keep do
 			heal.width = heal.width - step
 		end
 		heal.left = endName - heal.width
