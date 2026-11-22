@@ -1,4 +1,4 @@
--- Quests.lua: the quest card switch: the card is a Layout element of its own, the quest card (its own mover in Layout Mode; in the story rail's column beside the slot under the map), and shows the tracked quests in place of Blizzard's objective tracker, which it hides whole by reparenting out of combat and outside Edit Mode while all the tracker holds is quests and campaign quests; anything else the tracker holds (a scenario, dungeon or delve stage, world quests, bonus objectives, achievements, recipes) brings Blizzard's tracker back in place of the card until it ends, so nothing shows twice and nothing is lost; quest events mark the card dirty and one throttled read redraws it; switching it off gives Blizzard's tracker back untouched.
+-- Quests.lua: the quest card switch: the card is a Layout element of its own, the quest card (its own mover in Layout Mode; in Medallions in the story rail's column beside the slot under the map, in Frames in the slot itself), and shows the tracked quests in place of Blizzard's objective tracker, which it hides whole by reparenting out of combat and outside Edit Mode while all the tracker holds is quests and campaign quests; anything else the tracker holds (a scenario, dungeon or delve stage, world quests, bonus objectives, achievements, recipes) brings Blizzard's tracker back in place of the card until it ends, so nothing shows twice and nothing is lost; quest events mark the card dirty and one throttled read redraws it; switching it off gives Blizzard's tracker back untouched.
 local _, ns = ...
 
 local K = KstyleUI
@@ -344,6 +344,7 @@ local function Build()
 	end)
 	K.Events.Register(OWNER .. ".Questie", "ADDON_LOADED", function(_, name) if name == "Questie" then SyncQuestie() end end)
 	K.Callbacks.Register("SettingChanged", OWNER, OnSettingChanged)
+	K.Callbacks.Register("HudStyleChanged", OWNER, Replace)
 	K.Widgets.Track({ Restyle = Replace })
 	state.built = true
 	K.DevTest.AddCheck("quest card diagnostics", Card.Diagnose)
