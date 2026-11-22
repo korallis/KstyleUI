@@ -127,7 +127,7 @@ local HANDLERS = {
 		Unit.Portrait(view, unit)
 	end,
 	Colors = function(view, unit)
-		Unit.HealthColor(view, unit)
+		Unit.HealthColor(view, unit, true)
 		Unit.Health(view, unit)
 		if view.s.powerColor == "reaction" or view.s.powerColor == "class" then Unit.PowerColor(view, unit) end
 		Indicators.Combat(view, unit)

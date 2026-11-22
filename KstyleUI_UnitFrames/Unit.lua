@@ -146,12 +146,11 @@ local function UnitColor(unit, source)
 	return ReactionColor(unit)
 end
 
-function Unit.HealthColor(view, unit)
+function Unit.HealthColor(view, unit, flagsChanged)
 	local s = view.s
 	local r, g, b
 	local tapped = UnitIsTapDenied and UnitIsTapDenied(unit)
 	local grey = UnitIsConnected and not UnitIsConnected(unit) or tapped
-	view.health:SetHealthUnit(nil)
 	view.healthByShare = false
 	if grey then
 		r, g, b = Tokens.Color("textDisabled")
@@ -167,10 +166,12 @@ function Unit.HealthColor(view, unit)
 	if not view.healthByShare then SetColor(view.health, r, g, b, s.healthAlpha) end
 	local reaction = UnitReaction and UnitReaction(unit, "player")
 	local hostile = not IsSecret(reaction) and type(reaction) == "number" and reaction <= HOSTILE_MAX
-	if not (grey or hostile or view.healthByShare or s.healthAlpha < 1) then
-		view.health:SetHealthUnit(unit)
+	local healthUnit = not (grey or hostile or view.healthByShare or s.healthAlpha < 1) and unit or nil
+	if not flagsChanged or view.health.healthUnit ~= healthUnit then view.health:SetHealthUnit(healthUnit) end
+	if not flagsChanged or not view.healthR or view.gradient or IsSecret(r) or IsSecret(g) or IsSecret(b)
+		or r ~= view.healthR or g ~= view.healthG or b ~= view.healthB then
+		ns.Style.HealthTint(view, r, g, b)
 	end
-	ns.Style.HealthTint(view, r, g, b)
 	ns.Slab.Colors(view, unit)
 	if s.levelDifficulty then Unit.Level(view, unit) end
 end

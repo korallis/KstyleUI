@@ -281,7 +281,11 @@ function Slab.Colors(view, unit)
 		view.name:SetTextColor(Tokens.Color("textEmphasis"))
 	end
 	if Active(view) then
-		view.medallion:LowHealthStyle(unit, hostile, Settings.Module().cleanLowRing ~= false)
+		local clean = Settings.Module().cleanLowRing ~= false
+		if view.lowEnemy ~= hostile or view.medallion.cleanLow ~= clean then
+			view.lowEnemy = hostile
+			view.medallion:LowHealthStyle(unit, hostile, clean)
+		end
 		view.medallion:SetRingColor(RingColor(view, unit))
 	end
 end
