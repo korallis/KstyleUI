@@ -17,7 +17,7 @@ class GalleryScenes(unittest.TestCase):
             with self.subTest(scene=scene):
                 result = budgeted_run(
                     [LUA, "-"], cwd=ROOT,
-                    env={**os.environ, "RENDER_HUD_STYLE": "Medallions", "RENDER_SCREEN": "5120x1440", "RENDER_SIZE": "auto"},
+                    env={**os.environ, "RENDER_SCREEN": "5120x1440", "RENDER_SIZE": "auto"},
                     input=f'''
 RENDER_SCENE_LIB = true
 local scene = dofile("Tools/render/scenes/{scene}.lua")()
