@@ -36,7 +36,8 @@ class ReleaseProofTest(unittest.TestCase):
             self.assertIn("/actions/workflows/checks.yml/runs?branch=staging&event=push", path)
             if error:
                 raise error
-            return {"workflow_runs": runs(run) if runs else [run]}
+            page = int(path.rsplit("&page=", 1)[1])
+            return {"workflow_runs": (runs(run) if runs else [run])[(page - 1) * 100:page * 100]}
 
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "out"
@@ -50,11 +51,27 @@ class ReleaseProofTest(unittest.TestCase):
             return result, output.read_text() if output.exists() else "", log.getvalue()
 
     def test_latest_red_refuses_even_after_an_older_green(self):
-        result, output, log = self.run_proof(lambda run: [run, dict(run, id=124, conclusion="failure")])
-        self.assertEqual(result, 1)
-        self.assertEqual(output, "")
-        self.assertIn("124", log)
-        self.assertIn("failure", log)
+        for sha in ("a" * 40, "c" * 40):
+            with self.subTest(sha=sha):
+                result, output, log = self.run_proof(lambda run: [run, dict(run, id=124, head_sha=sha,
+                                                                            conclusion="failure")])
+                self.assertEqual(result, 1)
+                self.assertEqual(output, "")
+                self.assertIn("124", log)
+                self.assertIn("failure", log)
+
+    def test_proof_past_the_first_page_still_decides(self):
+        for conclusion, expected in (("failure", (1, "")), ("success", (0, "run=false\n"))):
+            with self.subTest(conclusion=conclusion):
+                self.assertEqual(self.run_proof(lambda run: [
+                    *(dict(run, id=i, head_sha="b" * 40) for i in range(1100, 1000, -1)),
+                    dict(run, conclusion=conclusion)])[:2], expected)
+
+    def test_newer_run_of_an_unknown_commit_runs_gates_instead_of_an_older_green(self):
+        result, output, log = self.run_proof(lambda run: [dict(run, id=124, head_sha="d" * 40,
+                                                               conclusion="failure"), run])
+        self.assertEqual((result, output), (0, "run=true\n"))
+        self.assertIn("API error or missing tree proof", log)
 
     def test_latest_green_allows_release_and_reuses_checks(self):
         result, output, _ = self.run_proof(lambda run: [dict(run, id=122, conclusion="failure"), run])
@@ -74,14 +91,8 @@ class ReleaseProofTest(unittest.TestCase):
         self.assertEqual((result, output), (0, "run=false\n"))
         self.assertIn("reusing checks", log)
 
-    def test_red_staging_run_of_the_same_tree_refuses(self):
-        result, output, _ = self.run_proof(lambda run: [run, dict(run, id=124, head_sha="c" * 40,
-                                                                  conclusion="failure")])
-        self.assertEqual((result, output), (1, ""))
-
     def test_tree_reads_git_and_unknown_shas_have_none(self):
-        head = subprocess.run(["git", "rev-parse", "HEAD^{tree}"], capture_output=True, text=True,
-                              check=True).stdout.strip()
+        head = subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], text=True).strip()
         self.assertEqual(proof.tree("HEAD"), head)
         self.assertIsNone(proof.tree("f" * 40))
 

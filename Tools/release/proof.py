@@ -4,14 +4,32 @@ import http.client
 import os
 import subprocess
 import time
-import urllib.parse
 
 from Tools.hooks.ci_scope import github_json
 
 
 def tree(sha):
     return subprocess.run(["git", "rev-parse", "--verify", "--quiet", sha + "^{tree}"],
-                          capture_output=True, text=True, check=False).stdout.strip() or None
+                          capture_output=True, text=True).stdout.strip() or None
+
+
+def newest_match(repo, wanted):
+    page = 1
+    while True:
+        runs = github_json(f"/repos/{repo}/actions/workflows/checks.yml/runs"
+                           f"?branch=staging&event=push&per_page=100&page={page}")["workflow_runs"]
+        for run in sorted(runs, key=lambda run: (run["created_at"], run["id"]), reverse=True):
+            if (run["path"], run["event"], run["head_repository"]["full_name"]) != (
+                    ".github/workflows/checks.yml", "push", repo):
+                continue
+            found = tree(run["head_sha"])
+            if not found:
+                raise ValueError(f"commit {run['head_sha']} of run {run['id']} is not in the checkout")
+            if found == wanted:
+                return run
+        if len(runs) < 100:
+            return None
+        page += 1
 
 
 def main():
@@ -23,15 +41,10 @@ def main():
             raise ValueError(sha)
         deadline = time.monotonic() + 900
         while True:
-            result = github_json(f"/repos/{repo}/actions/workflows/checks.yml/runs?" + urllib.parse.urlencode(
-                {"branch": "staging", "event": "push", "per_page": 100}))
-            runs = [run for run in result["workflow_runs"]
-                    if run["path"] == ".github/workflows/checks.yml" and run["event"] == "push"
-                    and run["head_repository"]["full_name"] == repo and tree(run["head_sha"]) == wanted]
-            if not runs:
+            newest = newest_match(repo, wanted)
+            if not newest:
                 print(f"No checks.yml staging run for the tree of {sha}: running release gates")
                 break
-            newest = max(runs, key=lambda run: (run["created_at"], run["id"]))
             if newest["status"] == "completed":
                 if newest["conclusion"] != "success":
                     print(f"Refusing release: checks.yml run {newest['id']} is {newest['conclusion']}")
