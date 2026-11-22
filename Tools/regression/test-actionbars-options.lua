@@ -28,8 +28,10 @@ K.Options.Write("ActionBars", "slab", false)
 local choices = {}
 for _, def in ipairs(bars.BARS) do choices[#choices + 1] = def end
 choices[#choices + 1] = bars.Consumables.def
+-- test-actionbars-options-2.lua takes the second half: one window through all ten bars peaks over the 4 GB budget.
+local half = rawget(_G, "ACTIONBARS_OPTIONS_SECOND") and { unpack(choices, 6) } or { unpack(choices, 1, 5) }
 K.Options.Write("ActionBars", "consumables.hideEmpty", false)
-for _, def in ipairs(choices) do
+for _, def in ipairs(half) do
 	local selector = Jump("editBar")
 	local picker = assert(selector.controls.segmented, "use visible tabs for every bar")
 	AB.W.Click(picker.buttons[assert(picker:IndexOf(def.key))])
