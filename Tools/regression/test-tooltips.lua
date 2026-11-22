@@ -266,7 +266,7 @@ end
 -- unit apart (the design's 13.5-unit pitch for 11-unit lines); the glass is a Lumen window card --
 
 do
-	local env, K, ns = Enabled()
+	local env, _, ns = Enabled()
 	assert(ns.Style.KIT_ROLES.title == "heading" and ns.Style.KIT_ROLES.small == "caption", "the title takes the heading role, the rarity the caption role")
 	for name in pairs(T.TOOLTIPS) do
 		assert(env[name]._lineSpacing == 0.5, name .. ": lines sit half a unit apart")
