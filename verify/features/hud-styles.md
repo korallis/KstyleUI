@@ -10,7 +10,7 @@ The style switch is the **HUD style** row in [the feature map](../../docs/featur
 - The action slab and crest hub: one row of sockets each side of the class crest.
 - Frames: the player and target cards, the tray behind bars 1 and 2, the square minimap, the card material and the forged ornaments.
 - Medallions effects: the action slab at calm, combat, proc and level-up, and the ready, cast and vignette effects.
-- Migration: store migration 45 removed every saved style, so every profile loads on Medallions; a player who used Frames picks it again and gets their saved Frames positions back.
+- Migration: store migration 45 moves every profile to Medallions except one explicitly saved on Frames; a player whose v0.2.12 or v0.2.13 update moved it picks Frames again and gets their saved Frames positions back.
 
 ## How to get to it (user POV)
 
@@ -47,7 +47,7 @@ lua5.1 Tools/regression/test-store-medallions-only.lua
 echo "exit=$?"
 ```
 
-The end state is `store medallions only ok`, exit 0. That file proves migration 45 moves a profile saved on another style to Medallions with one chat line and keeps its other settings.
+The end state is `store medallions only ok`, exit 0. That file proves migration 45 moves Orbs and implicit Frames profiles to Medallions with one chat line, leaves a saved Frames choice with its keys and keeps the other settings.
 
 ## Gotchas
 
