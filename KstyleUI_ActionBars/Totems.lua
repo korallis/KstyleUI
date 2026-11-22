@@ -382,14 +382,14 @@ local function Build()
 		if i == 1 then parent:SetFrameStrata(ns.Slab.STRATA) end
 		ring[i] = parent
 	end
-	local c = K.Theme.Palette("SHAMAN") or { r = 1, g = 1, b = 1 }
+	local c = K.Theme.Palette("SHAMAN")
 	ring.halo = Art(parent, "BACKGROUND", "glow", "white", "ADD")
 	ring.halo:SetPoint("CENTER", header, "CENTER", 0, 0)
 	ring.glyphs = CreateFrame("Frame", nil, parent)
 	ring.glyphs:SetAllPoints(header)
 	local glyphs = Art(ring.glyphs, "ARTWORK", "medRuneGlyphs", "white", "ADD")
 	glyphs:SetAllPoints(header)
-	for _, t in ipairs({ ring.halo, glyphs }) do t:SetVertexColor(c.r, c.g, c.b) end
+	for _, t in ipairs(c and { ring.halo, glyphs } or {}) do t:SetVertexColor(c.r, c.g, c.b) end
 	Fade(parent, 1, ns.SlabEffects.CAP_LOW, ns.SlabEffects.CAP_BREATH):SetSmoothing("IN_OUT")
 	ring.breath = parent.anim
 	ring.breath:SetLooping("BOUNCE")
