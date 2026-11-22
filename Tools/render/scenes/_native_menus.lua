@@ -5,7 +5,7 @@
 --   RENDER_TEXT_FACE   a kit face name (CinzelSemiBold, InterSemiBold, AlegreyaSansBold, SourceSans3Semibold); the skin's own when unset
 -- The page wraps a text it measures wider than its rect, and the scene does not export SetMaxLines, so a menu label that the glyph table measures a hair narrower than the page does wraps onto the row above. A native label is one line (the compositor's font string is SetMaxLines(1), asserted below), so its items are marked as not wrapping. That models the line cap in the renderer; it is not a runtime fix, and a label that really runs past its rect still ends in "..." and fails the guard.
 --
--- Blizzard's Fonts\\FRIZQT__.TTF is not in any local cache, so the Native state draws the client face as Source Sans 3 Semibold (scene.lua's FONT_STAND_INS) and are wider or narrower than the game's text; the scene logs it.
+-- Blizzard's Fonts\\FRIZQT__.TTF is not in any local cache, so the Native state draws the client face as Source Sans 3 Semibold (scene.lua's FONT_STAND_INS) and is wider or narrower than the game's text; the scene logs it.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local E = dofile("Tools/regression/native_menu_env.lua")
 
