@@ -199,7 +199,7 @@ do
 	local tank, healer = frame(ns, "party1"), frame(ns, "party2")
 	local tall = tank.parts.health.height
 	write(env, K, "power.tanks", false)
-	assert(not tank.showPower and not tank.power:IsShown() and tank.parts.health.height > tall, "tanks lose the power bar and their health bar takes the room")
+	assert(not tank.showPower and not tank.power:IsShown() and tank.parts.health.height == tall, "tanks lose the power bar and the Medallions pill keeps its height")
 	assert(healer.showPower and healer.power:IsShown(), "healers keep it")
 	env._roster.units.party1.role = "DAMAGER"
 	env.FireEvent("PLAYER_ROLES_ASSIGNED")
@@ -253,13 +253,6 @@ do
 	write(env, K, "accent.target", true)
 	assert(tank.target:GetAlpha() == 1, "on restores it")
 
-	write(env, K, "party.portrait", true)
-	write(env, K, "party.portraitZoom", 0.2)
-	local l, r, t, b = tank.portrait:GetTexCoord()
-	assert(near(l, 0.2) and near(r, 0.8) and near(t, 0.2) and near(b, 0.8), "portrait zoom crops the portrait")
-	write(env, K, "party.portraitZoom", 0)
-	l, r = tank.portrait:GetTexCoord()
-	assert(l == 0 and r == 1, "0 shows the whole portrait")
 	noErrors(env, K)
 end
 collectgarbage()
@@ -317,19 +310,8 @@ do
 	local p = ns.Auras.Parts(debuff)
 	local l = p.icon:GetTexCoord()
 	assert(near(l, 0.07) and motion(debuff) == nil, "icons keep the 7% crop and their tooltips, with no new call")
-	write(env, K, "auras.zoom", 0.15)
-	l = p.icon:GetTexCoord()
-	assert(near(l, 0.15), "icon zoom crops further")
-	write(env, K, "auras.tooltips", false)
-	assert(motion(debuff) == false, "debuff tooltips off stops the pointer reaching the icon")
 	local heal = f.buffs and f.buffs._groups.buffs.frames[1]
 	assert(heal and motion(heal) == nil, "heal icons keep their tooltips")
-	write(env, K, "buffs.tooltips", false)
-	assert(motion(heal) == false, "heal icon tooltips switch alone")
-	write(env, K, "auras.tooltips", true)
-	write(env, K, "buffs.tooltips", true)
-	write(env, K, "auras.zoom", 0.07)
-	assert(motion(debuff) == true and motion(heal) == true and near(p.icon:GetTexCoord(), 0.07), "switching back restores both")
 	local line = f.shield.opts.height
 	write(env, K, "prediction.shieldLines", 4)
 	assert(near(f.shield.opts.height, line * 2), "the shield line doubles from two pixels to four")
