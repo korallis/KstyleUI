@@ -182,7 +182,7 @@ Quality and reaction values outside the table come from Blizzard's colour tables
 
 ### Shape
 
-Medallions supersedes the card material in the first bullet below: every card wears the Medallions steel (`Core/Widgets/README.md`, Chrome). Every box, content inset, text rectangle and bar retains the picture's geometry.
+Under the Medallions HUD style every card wears the Medallions steel (`Core/Widgets/README.md`, Chrome), which supersedes the card material in the first bullet below. Under Frames, the owner's 2026-11-10 ruling in LEE-106 supersedes it: `ForgedBrackets` is the default, using original charcoal grain, a forged frame, four corner brackets and forged diamond/rule finishes. That bullet remains the explicit Glass recipe. Every box, content inset, text rectangle and bar retains the picture's geometry. [Card materials](../../card-materials.md) records all five choices and how saved profiles inherit the new default.
 
 - The owner's picture of 2026-11-09 (`handoffs/reference/owner-reference-2026-11-09.png`) sets the material, by his ruling "let the picture win its what i want", over the chamfers and frost glass this section described before. Cards, panels, windows, rails and tooltips are one material: a dark navy fill (`surface`, `#0e1217` at 75%), a faint dark edge line, a muted rim one line inside it, and corners six border lines round, so every line lands on whole physical pixels at every size. Every card carries two gilt L-ticks (`gilt`, `#d3b574`), at the top left and bottom right, `tick` (15) units long; the story card has them too, reversing #205. Tiles, sockets and buttons have a near-black edge line on corners three lines round, over the button fill.
 - HUD sizes at the 1080 reference: action buttons 34 units with 3-unit gaps, essential cooldown icons 40 units, utility cooldown icons 30 units, player and target frames 296 by 89 units (the kit sheet's 469 by 141 proportions), portraits as tall as the frame. Players can resize each in Layout Mode.
@@ -256,6 +256,10 @@ The root is 1920 units wide at 16:9 and about 1671 units wide on the Mac. Every 
 | UI glyphs for the minimap, rail and buttons | Drawn as simple monochrome line icons, tinted in game | Power-of-two PNG sheet with a coordinate table |
 
 Every generated asset gets an entry in `Media/PROVENANCE.md` with its model, prompt, settings and date. No asset may be copied from Narcissus, Plumber, DialogueUI, WaypointUI or any other addon.
+
+### Ornaments
+
+Forged ornaments are painted trim (end pieces, rails, rivets, corners, crests, portrait bands and pendants) in three levels: Off, Subtle and Full. Full is the default, set in Options > General. Ornaments draw only under the Frames HUD style; Medallions draws none. Off creates no ornament textures, so an Off screen is pixel-identical to a build without ornaments, and the picture tests are judged at Off. The pieces ship at their native sizes as lossless RGBA, only the tiers a player can reach, under a 1.7 MB cap (raised from 600 KB by the Captain on 2026-11-11). [`docs/ORNAMENT-SPEC.md`](../../ORNAMENT-SPEC.md) holds the levels, the pieces per surface, the omissions, the clearance and ink-shape rulings, the reach table rule and the recorded limits.
 
 ## Modules
 

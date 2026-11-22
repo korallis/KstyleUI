@@ -45,7 +45,7 @@ The core addon's service files in `Core/` carry no comments beyond their first l
 | `UnregisterAll(owner)` | Removes the owner from every event. |
 | `Fire(event, ...)` | Runs subscribers in registration order. A failing subscriber is reported through `Call`, and the rest still run. A subscriber added during a `Fire` first runs on the next `Fire`. |
 
-The events are `ThemeChanged`, `ClassChanged`, `ScaleChanged`, `ProfileChanged(new, old)`, `SettingChanged(module, key, value)`, `ReloadNeeded(module)`, `LayoutChanged(key)`, which [Layout](../Core/Layout/README.md) fires when an element's settings change, `ModuleChanged(name, running)`, which `Modules` fires after a module starts or stops. Any other name raises an error. To add an event, add its name to the `EVENTS` table in `Core/Callbacks.lua`.
+The events are `ThemeChanged`, `ClassChanged`, `ScaleChanged`, `ProfileChanged(new, old)`, `SettingChanged(module, key, value)`, `ReloadNeeded(module)`, `LayoutChanged(key)`, which [Layout](../Core/Layout/README.md) fires when an element's settings change, `ModuleChanged(name, running)`, which `Modules` fires after a module starts or stops, and `HudStyleChanged(style)`, which `HudStyle` (`Core/HudStyle.lua`) fires out of combat once a new HUD style (`"medallions"` or `"frames"`) is applied; `HudStyle.Current()` returns it, and a style chosen in combat waits for `PLAYER_REGEN_ENABLED`. If a handler raises during the switch, `HudStyle` offers a reload. Any other name raises an error. To add an event, add its name to the `EVENTS` table in `Core/Callbacks.lua`.
 
 When a module is disabled, `Modules` removes every callback whose owner is the module's name.
 
@@ -156,8 +156,8 @@ Records of other characters wait for those characters' logins. A shared (`*`) re
 | `DB_VERSION`, `migrations[v]` | `migrations[v](db)` upgrades saved data from version `v - 1` to `v`. Load runs each missing step in order, and `Import` runs the same steps on older profiles. |
 | Version 2 | `migrations[2]` replaces each profile's `Appearance.reducedMotion` switch with `Appearance.motion`: `true` becomes `"off"`, and `false` drops the key, leaving the default `"full"`. |
 | Version 4 | `migrations[4]` sets DataBars' `micro.shown` or `bags.shown` to `true` in a profile whose player had set that bar up: a bar setting changed from its version 3 default, or the bars set free of the readout card (`strip.menus` off). A bar handed back to Blizzard, or one never touched, takes the new default, hidden, so the readout card is one line. |
-| Version 21 | `migrations[21]` marked the saved data that could hold the retired `HudStyle` section. |
-| Version 45 | `migrations[45]` removes the `HudStyle` section, so every profile draws Medallions, and prints one chat line when a profile was on another style. It also drops the retired tray, orb and top data bar keys and the Chat `framing` value `auto`. |
+| Version 21 | `migrations[21]` marks the saved data that can hold the `HudStyle` section's `style` and clears a saved value no build knows. |
+| Version 45 | `migrations[45]` removed the `HudStyle` section, so every profile reads the default, Medallions, and printed one chat line when a profile was on another style; a player who used Frames picks it again, and their unprefixed Frames Layout Mode positions were kept. It also dropped the retired tray, orb and top data bar keys and the Chat `framing` value `auto`. |
 
 Profile names are 1 to 48 characters, trimmed, with no control characters and no `|`.
 
@@ -235,7 +235,7 @@ The effects that animate Medallions (motion level, priorities, the 3D model pool
 
 ## Setup
 
-`Core/Setup/` holds the first-run setup: it opens once per account, picks a DPS, Tank or Healer layout and the modules, then applies them and offers the secure reload button. `/kstyle setup` reopens it. Its steps, `Apply` and functions are in [`Core/Setup/README.md`](../Core/Setup/README.md). The account switch `Features.account.setupSeen` records that it ran.
+`Core/Setup/` holds the first-run setup: it opens once per account, picks the HUD style (Medallions or Frames), a DPS, Tank or Healer layout and the modules, then applies them and offers the secure reload button. `/kstyle setup` reopens it. Its steps, `Apply` and functions are in [`Core/Setup/README.md`](../Core/Setup/README.md). The account switch `Features.account.setupSeen` records that it ran.
 
 ## DevTest
 
