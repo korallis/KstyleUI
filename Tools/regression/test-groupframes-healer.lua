@@ -1,4 +1,4 @@
--- test-groupframes-healer.lua: the healer's group frames: Medallions raid names on the class-coloured tile, the percent at the bar's end by default, three of your heals over time from the aura engine beside a whole name, the shield line, the click casting reminder and outlined text on the bar.
+-- test-groupframes-healer.lua: the healer's group frames: Medallions raid names on the class-coloured tile, the percent at the bar's end by default, three of your heals over time from the aura engine on the tile, the shield line, the click casting reminder and an inked name on a light tile.
 local G = dofile("Tools/regression/group_env.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
