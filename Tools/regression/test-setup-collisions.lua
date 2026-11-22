@@ -607,8 +607,7 @@ for _, name in ipairs(Layouts.Names()) do
 		local tw, th = Layouts.Footprint(name, "unitframes.target")
 		local _, _, _, sigilTop = Layouts.Rect({ width = tw, height = th }, layout["unitframes.target"], width, HEIGHT)
 		for _, element in ipairs(Layouts.ELEMENTS) do
-			-- Medallions bar 3, off by default, stands left of the casts across the band (as on staging).
-			if element.key:find("^actionbars%.") and element.key ~= "actionbars.bar3" then
+			if element.key:find("^actionbars%.") then
 				local w, h = Layouts.Footprint(name, element.key, aspect[1])
 				local r = { Layouts.Rect({ width = w, height = h }, layout[element.key], width, HEIGHT) }
 				local where = string.format("%s at %s: %s (%.0f,%.0f-%.0f,%.0f)", name, aspect[1], element.key, r[1], r[2], r[3], r[4])
