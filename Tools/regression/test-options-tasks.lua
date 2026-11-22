@@ -1,4 +1,4 @@
--- test-options-tasks.lua: the six task links reach existing settings, player-word search finds the right rows, and ornament samples keep the existing level choices.
+-- test-options-tasks.lua: the five task links reach existing settings, player-word search finds the right rows, and ornament samples keep the existing level choices.
 local O = dofile("Tools/regression/options_env.lua")
 local W = O.W
 local env, K, ns = O.New({ before = function(_, K)
@@ -22,7 +22,7 @@ end
 assert(K.Options.Open())
 settle()
 assert(ns.Window.State().page == "Tasks", "G9: Options opens on common tasks")
-assert(#ns.Window.State().items == 6, "G9: exactly six task links")
+assert(#ns.Window.State().items == 5, "G9: exactly five task links")
 for i, task in ipairs(ns.Pages.TASKS) do
 	K.Options.Open("Tasks")
 	settle()

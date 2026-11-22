@@ -181,9 +181,9 @@ assert(#Store.ListProfiles() >= count * 2 - 1 and Store.Data().profiles.Other, "
 assert(not K.Profiles.ImportAccount("KSA1:bad"), "a damaged account string is refused")
 
 -- Presets make a new profile; hotkeys switch after combat.
-assert(#K.Profiles.Presets() >= 6, "the preset browser lists each role and HUD style")
-local made, preset = K.Profiles.FromPreset("Healer:orbs", "Healer orbs")
-assert(made and Store.ProfileName() == preset and K.HudStyle.Saved() == "orbs", "a preset creates and fills a new profile")
+assert(#K.Profiles.Presets() == #K.Setup.Layouts.Names() and #K.Profiles.Presets() >= 3, "the preset browser lists each role")
+local made, preset = K.Profiles.FromPreset("Healer", "Healer")
+assert(made and Store.ProfileName() == preset and K.Layout.Setting("preset") == "Healer", "a preset creates and fills a new profile")
 Store.SetProfile("Default")
 K.Profiles.SetHotkey(2, "Other")
 assert(env.KstyleUI_Profile2 and K.Profiles.Hotkey(2) == "Other", "a hotkey slot makes its binding button")

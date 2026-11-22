@@ -201,7 +201,7 @@ return Common.Run(function()
 	local Frames = ns.Frames
 
 	local player = Frames.Get("player").views[1]
-	assert(player.button:IsShown() and player.geometry.form == "vitals" and player.castbar.active, "the vitals line shows and casts")
+	assert(player.button:IsShown() and player.geometry.form == "slab", "the player slab shows; its cast is the hidden cast bar element")
 	frames:Add(env, player.button, {
 		name = "unitframes_vitals", title = "Vitals line", grade = "bar", reference = "player",
 		caption = "The player's vitals line at 490 by 80: a 62-unit round portrait in the gilt ring with the level disc on its lower right, the name in the heading face with the stance after it, the health value with its max right-aligned, the 12-unit class-coloured health pill over the 5-unit rage pill, and the cast line (Casting Slam, a thin gold-free pill) under the column.",
@@ -210,7 +210,7 @@ return Common.Run(function()
 	})
 
 	local target = Frames.Get("target").views[1]
-	assert(target.button:IsShown() and target.geometry.form == "sigil" and target.castbar.active, "the sigil shows with its cast line")
+	assert(target.button:IsShown() and target.geometry.form == "slab", "the target slab shows; its cast is the hidden cast bar element")
 	local targetTiles = sockets(env, K, ns, target, { "14s", "9s", "21s" }, false)
 	local sigilParts = { target.button }
 	for _, tile in ipairs(targetTiles) do
@@ -225,7 +225,7 @@ return Common.Run(function()
 	})
 
 	local focus = Frames.Get("focus").views[1]
-	assert(focus.button:IsShown() and focus.geometry.form == "card" and focus.castbar.active, "the focus card shows and casts")
+	assert(focus.button:IsShown() and focus.geometry.form == "slab" and focus.castbar.active, "the focus slab shows and casts")
 	frames:Add(env, focus.button, {
 		name = "unitframes_focus", title = "Focus card", grade = "panel", reference = "player",
 		caption = "The focus card at 200 by 90, beside the sigil in the combat cluster: the section cap (gem, FOCUS, a gilt rule, the level at its right), the name with the percentage on its row, the 10-unit hostile pill and the bold gold cast line inside the card, its debuffs in a row over it.",
@@ -237,7 +237,7 @@ return Common.Run(function()
 	env.FireEvent("PLAYER_TARGET_CHANGED")
 	local shown = {}
 	for i = 1, 5 do
-		assert(boss.views[i].button:IsShown() and boss.views[i].geometry.form == "card", "boss" .. i .. " shows as a card")
+		assert(boss.views[i].button:IsShown() and boss.views[i].geometry.form == "slab", "boss" .. i .. " shows as a slab")
 		shown[i] = boss.views[i].button
 	end
 	assert(boss.views[1].castbar.active, "boss1 casts")
@@ -252,7 +252,7 @@ return Common.Run(function()
 	local rows = {}
 	for _, kind in ipairs({ "focustarget", "targettarget", "pet" }) do
 		local view = Frames.Get(kind).views[1]
-		assert(view.button:IsShown() and view.geometry.form == "row", kind .. " shows as a pill row")
+		assert(view.button:IsShown() and view.geometry.form == "slab", kind .. " shows as a slab")
 		rows[#rows + 1] = view.button
 	end
 	frames:Add(env, rows[1], {
@@ -267,7 +267,7 @@ return Common.Run(function()
 	local pane = env.CreateFrame("Frame", nil, root)
 	at(pane, 560, 470, 720, 260)
 	local preview = K.Options.Preview("UnitFrames")(pane)
-	assert(preview.kind == "target" and preview.views.target.geometry.form == "sigil", "the preview shows the sigil")
+	assert(preview.kind == "target" and preview.views.target.geometry.form == "slab", "the preview shows the target slab")
 	local parts = { preview.holders.target, preview.casts.target and preview.casts.target.frame, preview.auraHosts.target }
 	local previewFrames = {}
 	for _, part in ipairs(parts) do

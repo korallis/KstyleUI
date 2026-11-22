@@ -8,7 +8,7 @@ local function read(path)
 end
 
 for _, path in ipairs({
-	"Core/Appearance.lua", "Core/Effects.lua", "Core/HudStyle.lua", "Core/Layout/Layout.lua", "Core/Widgets/Base.lua",
+	"Core/Appearance.lua", "Core/Effects.lua", "Core/Layout/Layout.lua", "Core/Widgets/Base.lua",
 	"KstyleUI_Bags/Settings.lua", "KstyleUI_CombatText/Settings.lua", "KstyleUI_Cooldowns/Settings.lua",
 	"KstyleUI_DataBars/Settings.lua", "KstyleUI_QoL/Settings.lua",
 }) do
