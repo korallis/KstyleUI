@@ -27,7 +27,7 @@ do
 
 	Queue(add("now"))
 	assert(ran[1] == "now", "out of combat, Queue runs the function at once")
-	assert(listeners(env, "PLAYER_REGEN_ENABLED") == 0, "with nothing queued, the core does not listen for PLAYER_REGEN_ENABLED")
+	assert(listeners(env, "PLAYER_REGEN_ENABLED") == 1, "with nothing queued, only the Medallions rest fade listens for PLAYER_REGEN_ENABLED")
 
 	env.SetCombat(true)
 	Queue(add("a"))
@@ -37,11 +37,11 @@ do
 	end)
 	Queue(add("c"))
 	assert(#ran == 1, "in combat, Queue holds the work")
-	assert(listeners(env, "PLAYER_REGEN_ENABLED") == 1, "queued work listens for PLAYER_REGEN_ENABLED")
+	assert(listeners(env, "PLAYER_REGEN_ENABLED") == 2, "queued work listens for PLAYER_REGEN_ENABLED")
 	env.SetCombat(false)
 	assert(table.concat(ran, ",") == "now,a,b,c", "queued work runs in order after combat, got " .. table.concat(ran, ","))
 	assert(#env._errors == 1 and tostring(env._errors[1]):find("queued failure", 1, true), "a failing entry is reported and the rest still run")
-	assert(listeners(env, "PLAYER_REGEN_ENABLED") == 0, "an empty queue stops listening")
+	assert(listeners(env, "PLAYER_REGEN_ENABLED") == 1, "an empty queue stops listening")
 
 	env.SetCombat(true)
 	env.SetCombat(false)
