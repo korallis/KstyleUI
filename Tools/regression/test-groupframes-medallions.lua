@@ -194,6 +194,20 @@ eq(Settings.current.raid.buffCount, 0, "the style drops the raid's own heals row
 K.Options.Write("GroupFrames", "raid.buffCount", 2)
 env.RunTimers()
 eq(Settings.current.raid.buffCount, 2, "a heals count the player chose wins")
+K.Options.Write("GroupFrames", "raid.buffCount", Settings.defaults.raid.buffCount)
+env.RunTimers()
+
+-- Each look value is the default, so the value it used to replace is a choice the player can make too.
+for key, value in pairs({ ["party.portrait"] = false, ["raid.textLayout"] = "ABOVE", ["raid.power"] = true, ["raid.buffCount"] = 3 }) do
+	local section, name = key:match("^(%a+)%.(%a+)$")
+	local look = Settings.current[section][name]
+	assert(look ~= value, key .. ": the look gives an untouched " .. key .. " its own value")
+	K.Options.Write("GroupFrames", key, value)
+	env.RunTimers()
+	eq(Settings.current[section][name], value, "the player's " .. key)
+	K.Options.Write("GroupFrames", key, look)
+	env.RunTimers()
+end
 
 -- Party names on the bar under Medallions lay out without an error: that layout has no health text spot to widen.
 G.SetRoster(env, "party", party)

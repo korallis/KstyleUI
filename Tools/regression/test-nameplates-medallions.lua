@@ -107,15 +107,23 @@ assert(tx < 0, "clear of the bar")
 eq(ns.Settings.Get("debuffs.size"), 22, "debuffs are 22 units")
 eq(ns.Settings.Get("debuffs.textSize"), 11, "their timers are 11 units")
 
--- A setting the player changed keeps the player's value.
-K.Options.Write("Nameplates", "debuffs.size", 24)
-K.Options.Write("Nameplates", "name.size", 14)
+-- A setting the player changed keeps the player's value, even the value the look replaced before it became the default.
+local chosen = { ["debuffs.size"] = 29, ["debuffs.textSize"] = 13, ["name.size"] = 16, ["name.outline"] = "NONE", ["level.size"] = 13, ["level.outline"] = "NONE" }
+for key, value in pairs(chosen) do
+	K.Options.Write("Nameplates", key, value)
+end
 env.RunTimers()
-eq(ns.Settings.Get("debuffs.size"), 24, "a chosen debuff size stays")
-size = select(2, face(enemy.name))
-assert(near(size, 14, 0.6), "a chosen name size stays: " .. tostring(size))
-K.Options.Write("Nameplates", "debuffs.size", 29)
-K.Options.Write("Nameplates", "name.size", 16)
+for key, value in pairs(chosen) do
+	eq(ns.Settings.Get(key), value, "a chosen " .. key .. " stays")
+end
+size, flags = select(2, face(enemy.name))
+assert(near(size, 16, 0.6) and flags == "", "the name draws the chosen size and no outline: " .. tostring(size) .. " " .. tostring(flags))
+size, flags = select(2, face(enemy.levelText))
+assert(near(size, 13, 0.6) and flags == "", "the level draws the chosen size and no outline: " .. tostring(size) .. " " .. tostring(flags))
+for key in pairs(chosen) do
+	local section, name = key:match("^(%a+)%.(%a+)$")
+	K.Options.Write("Nameplates", key, ns.Settings.defaults[section][name])
+end
 env.RunTimers()
 
 -- The friendly player's badge: painted, unmasked, centred over the name.

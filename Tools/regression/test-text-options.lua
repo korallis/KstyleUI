@@ -95,8 +95,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		local font = W.LastCall(text, "SetFont")
 		assert(font[1] == path and math.abs(font[2] - 14) <= 1 and font[3] == "THICKOUTLINE", "plate font, size and outline apply live")
 		write(key .. ".outline", "NONE")
-		-- Not for the name: Medallions plates read its base-default NONE as unset and draw their OUTLINE look, a possible bug.
-		assert(key == "name" or W.LastCall(text, "SetFont")[3] == "", "plate outline can be turned off")
+		assert(W.LastCall(text, "SetFont")[3] == "", "plate outline can be turned off")
 		write(key .. ".color", { r = 0.2, g = 0.3, b = 0.4 })
 		for _, mode in ipairs({ "custom", "accent", "class", "reaction" }) do
 			write(key .. ".colorMode", mode)
