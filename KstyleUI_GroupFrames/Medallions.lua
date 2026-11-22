@@ -182,6 +182,8 @@ function Unit.SetPortrait(f)
 	local api = K.Medallions
 	if f.kind == "party" and api and type(api.Portrait) == "function" then
 		Mask(f, not api.Portrait(f.portrait, f.unit, "badge"))
+		local zoom = Settings.current.party.portraitZoom
+		f.portrait:SetTexCoord(zoom, 1 - zoom, zoom, 1 - zoom)
 		return
 	end
 	if f.masked == false then
