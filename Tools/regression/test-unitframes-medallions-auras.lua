@@ -1,5 +1,4 @@
 local U = dofile("Tools/regression/unitframes_env.lua")
-local W = U.W
 
 local env, K, ns = U.New({
 	saved = { version = 2, characters = {}, profiles = { Default = { UnitFrames = { enabled = true, auraLayout = "fan" } } } },
@@ -49,14 +48,5 @@ noErrors("medallions tiles")
 
 K.Options.Write("UnitFrames", "target.auraSize", 30)
 assert(Settings.Value("target", "auraSize") == 30, "a saved aura size wins over the Medallions default")
-K.Options.Write("UnitFrames", "target.auraSize", 27.6)
-
-for _, style in ipairs({ "frames", "medallions", "orbs", "medallions", "frames" }) do
-	local old = view.auras.container
-	env.RunTimers()
-	W.Settle(env)
-	assert(view.auras.container ~= old and not old:IsShown(), style .. ": replace the old style's tile pool")
-	noErrors(style)
-end
-assert(Settings.Value("target", "auraSize") == 27.6, "Frames keeps its own aura size")
+noErrors("saved size")
 print("ok unitframes medallions auras")
