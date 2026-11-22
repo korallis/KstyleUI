@@ -36,10 +36,10 @@ for _, readable in ipairs({ false, true }) do
 end
 K.Options.Write("Cooldowns", "path", "auto")
 ns.Style.SetProc(icon, true)
-local r, g, b = K.Tokens.Color("giltLit")
+local r, g, b = K.Widgets.Rgba("giltLit")
 assert(icon.chrome.proc == true, "the proc rim is delegated to shared chrome, not redrawn locally")
 if icon.chrome.line then
-	assert(W.SameRGB(icon.chrome.line[1], r, g, b), "the shared chrome draws the gold outer proc rim")
+	assert(W.SameRGB(icon.chrome.line[1], r, g, b), "the shared chrome draws the lit steel outer proc rim")
 end
 icon:Restyle()
 appearance()
@@ -62,7 +62,7 @@ assert(cfg.size == 27.6 and cfg.spacing == 3.4 and ns.Grid.Capacity(cfg) == 6, "
 local x1 = ns.Grid.Offset(1, 2, cfg)
 local x2 = ns.Grid.Offset(2, 2, cfg)
 local width = ns.Grid.Size(cfg)
-assert(math.abs(x2 + cfg.size - width) < 1e-6 and math.abs(x2 - x1 - 31) < 1e-6, "a short row ends at the right edge in configured left-to-right order")
+assert(cfg.growth == "center" and math.abs(x1 - (width - 2 * cfg.size - cfg.spacing) / 2) < 1e-6 and math.abs(x2 - x1 - 31) < 1e-6, "a short Medallions row centres in configured left-to-right order")
 buffs.icons[1].countdown:SetText("8s")
 buffs.icons[2].countdown:SetText("14s")
 assert(buffs.icons[1]._points[1][4] < buffs.icons[2]._points[1][4], "configured 8s remains left of 14s without sorting by duration")

@@ -91,7 +91,7 @@ for _, screen in ipairs({
 				ns.Reskin.Refresh()
 				Figure(nativeText, native, itemScale, 16.5)
 				local path, size = buffText:GetFont()
-				assert(path == K.Tokens.Font("caption") and W.Near(size, K.Widgets.FontSize(buffText, 9 * K.Theme.FontScale() / itemScale)), "tracked captions keep the lighter face and snapped configured size across screens and item scales")
+				assert(path == K.Tokens.Font("timer") and W.Near(size, K.Widgets.FontSize(buffText, 9 * K.Theme.FontScale() / itemScale)), "tracked timers keep the Medallions timer face and snapped configured size across screens and item scales")
 				Integer(size * K.Widgets.ScaleFactor(buffText) / K.Scale.Pixel(1), "the tracked font size")
 				assert(#W.Calls(nativeText, "SetText") == writes and W.LastCall(nativeText, "SetText")[1] == value, "native secret and long countdown text passes through untouched")
 				assert(W.LastCall(nativeCount, "SetText")[1] == "3", "native charges stay intact")
