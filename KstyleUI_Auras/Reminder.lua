@@ -22,11 +22,9 @@ local BUFFS = {
 	HUNTER = { { 13165, 13163, 5118, 13159, 20043, 13161, 415423, 469145 } },
 }
 local FLASKS = { { 13510, 17626 }, { 13511, 17627 }, { 13512, 17628 }, { 13513, 17629 }, { 274273, 1293740 }, { 274274, 1293741 }, { 274275, 1293742 }, { 274276, 1293743 } }
-local DRINK, LOW = 132794, 0.8
-local EVENTS = { "ADDON_RESTRICTION_STATE_CHANGED", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD", "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST",
-	"BAG_UPDATE_DELAYED" }
+local EVENTS = { "ADDON_RESTRICTION_STATE_CHANGED", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "PLAYER_ENTERING_WORLD", "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST" }
 
-local card, known, shown, checking
+local card, known, shown, checking, ends, carried, pending, subscribed, Watch
 local on = false
 
 local function Plain(value, kind)
@@ -52,7 +50,7 @@ local function Known()
 		local names = {}
 		for _, each in ipairs(at and ids or {}) do names[#names + 1] = Plain(spell.GetSpellName(each), "string") end
 		if at and #names == #ids then
-			known[#known + 1] = { ids = ids, names = names, text = string.format(L["Missing: %s"], names[at]), icon = spell.GetSpellTexture and spell.GetSpellTexture(ids[at]) }
+			known[#known + 1] = { ids = ids, names = names, text = string.format(L["Missing: %s"], names[at]), icon = spell.GetSpellTexture and Plain(spell.GetSpellTexture(ids[at]), "number") }
 		end
 	end
 	return known
@@ -77,39 +75,53 @@ local function LowMana()
 	local mana = Enum and Enum.PowerType and Enum.PowerType.Mana
 	if not (mana and type(UnitPower) == "function" and type(UnitPowerMax) == "function") then return false end
 	local most, now = Plain(UnitPowerMax("player", mana), "number"), Plain(UnitPower("player", mana), "number")
-	return most ~= nil and now ~= nil and most > 0 and now < most * LOW
+	return most ~= nil and now ~= nil and most > 0 and now < most * 0.8
+end
+
+local function Carried()
+	if carried ~= nil then return carried end
+	local item = C_Item
+	carried, pending = false, nil
+	if not (item and type(item.GetItemCount) == "function" and type(item.GetItemNameByID) == "function") then return carried end
+	for _, flask in ipairs(FLASKS) do
+		local count = Plain(item.GetItemCount(flask[1]), "number")
+		if count and count > 0 then
+			local name, icon = Plain(item.GetItemNameByID(flask[1]), "string"), item.GetItemIconByID and Plain(item.GetItemIconByID(flask[1]), "number")
+			if not (name and icon) then
+				pending = flask[1]
+				if type(item.RequestLoadItemDataByID) == "function" then pcall(item.RequestLoadItemDataByID, flask[1]) end
+			end
+			carried = name and { text = string.format(L["Missing: %s (%d)"], name, count), icon = icon } or false
+			return carried
+		end
+	end
+	return carried
 end
 
 local function Flask()
-	local item, api, secrets = C_Item, C_UnitAuras, C_Secrets
+	local api, secrets = C_UnitAuras, C_Secrets
 	if not (type(IsInInstance) == "function" and Plain(select(2, IsInInstance()), "string") == "raid") then return nil end
-	if not (item and type(item.GetItemCount) == "function" and type(item.GetItemNameByID) == "function" and api and type(api.GetPlayerAuraBySpellID) == "function"
-		and secrets and type(secrets.ShouldSpellAuraBeSecret) == "function") then return nil end
-	local carried, count
+	local entry = Carried()
+	if not (entry and api and type(api.GetPlayerAuraBySpellID) == "function" and secrets and type(secrets.ShouldSpellAuraBeSecret) == "function") then return nil end
 	for _, flask in ipairs(FLASKS) do
 		local ok, secret = pcall(secrets.ShouldSpellAuraBeSecret, flask[2])
 		if not ok or Plain(secret, "boolean") ~= false then return nil end
 		local read, aura = pcall(api.GetPlayerAuraBySpellID, flask[2])
 		if not read or (issecretvalue and issecretvalue(aura)) or aura ~= nil then return nil end
-		if not carried then
-			count = Plain(item.GetItemCount(flask[1]), "number")
-			carried = count and count > 0 and flask[1] or nil
-		end
 	end
-	local name = carried and Plain(item.GetItemNameByID(carried), "string")
-	if name then return { text = string.format(L["Missing: %s (%d)"], name, count), icon = item.GetItemIconByID and item.GetItemIconByID(carried) } end
+	return entry
 end
 
-local MANA = { text = L["Low mana"], icon = DRINK }
+local MANA = { text = L["Low mana"], icon = 132794 }
 
 local function Missing()
 	if InCombatLockdown() or Plain(UnitIsDeadOrGhost and UnitIsDeadOrGhost("player"), "boolean") ~= false then return nil end
 	local s = K.Store.Module(MODULE).reminder
-	if checking and s.mana == true and LowMana() then return MANA end
+	if checking and (not ends or GetTime() < ends) and LowMana() then return MANA end
 	if s.enabled == true then
 		for _, entry in ipairs(Known()) do
 			local has = Has(entry)
-			if has == nil then return nil end
+			if has == nil then break end
 			if not has then return entry end
 		end
 	end
@@ -166,9 +178,9 @@ end
 local function Refresh(event)
 	if not card then return end
 	local entry = on and event ~= "PLAYER_REGEN_DISABLED" and Missing() or nil
-	local text = entry and entry.text
-	if text == shown then return end
-	shown = text
+	local key = entry and entry.text .. "|" .. tostring(entry.icon)
+	if key == shown then return end
+	shown = key
 	if entry then Reminder.Paint(card, entry) end
 	card:SetShown(entry ~= nil)
 end
@@ -178,30 +190,64 @@ local function SpellsChanged()
 	Refresh()
 end
 
-local function Watch(event)
-	if event == "READY_CHECK" or event == "READY_CHECK_FINISHED" then checking = event == "READY_CHECK" end
-	if on and checking and K.Store.Module(MODULE).reminder.mana == true then
-		K.Events.RegisterUnit(OWNER, "UNIT_POWER_UPDATE", Refresh, "player")
-	else
-		K.Events.Unregister(OWNER, "UNIT_POWER_UPDATE")
+local function Aura(_, _, info)
+	info = Plain(info, "table")
+	if info and Plain(info.isFullUpdate, "boolean") == false and type(info.addedAuras) == "nil" and type(info.removedAuraInstanceIDs) == "nil" then return end
+	Refresh()
+end
+
+local function Bags(event, id)
+	if event == "ITEM_DATA_LOAD_RESULT" and (pending == nil or Plain(id, "number") ~= pending) then return end
+	carried = nil
+	Refresh()
+end
+
+local function Power(_, _, kind)
+	kind = Plain(kind, "string")
+	if kind and kind ~= "MANA" then return end
+	if ends and GetTime() >= ends then return Watch("READY_CHECK_FINISHED") end
+	Refresh()
+end
+
+Watch = function(event)
+	if event == "READY_CHECK" or event == "READY_CHECK_FINISHED" then checking, ends = event == "READY_CHECK", nil end
+	for _, each in ipairs({ "UNIT_POWER_UPDATE", "UNIT_MAXPOWER" }) do
+		if checking then K.Events.RegisterUnit(OWNER, each, Power, "player") else K.Events.Unregister(OWNER, each) end
 	end
 	Refresh(event)
 end
 
+local function Subscribe(class, flasks, mana)
+	K.Events.UnregisterAll(OWNER)
+	known, carried, pending = nil, nil, nil
+	if not mana then checking, ends = nil, nil end
+	if not on then return end
+	for _, event in ipairs(EVENTS) do K.Events.Register(OWNER, event, Refresh) end
+	if class or flasks then K.Events.RegisterUnit(OWNER, "UNIT_AURA", Aura, "player") end
+	if class then K.Events.Register(OWNER, "SPELLS_CHANGED", SpellsChanged) end
+	if flasks then
+		K.Events.Register(OWNER, "BAG_UPDATE_DELAYED", Bags)
+		K.Events.Register(OWNER, "ITEM_DATA_LOAD_RESULT", Bags)
+	end
+	if mana then
+		K.Events.Register(OWNER, "READY_CHECK", Watch)
+		K.Events.Register(OWNER, "READY_CHECK_FINISHED", Watch)
+		if checking == nil then
+			local left = type(GetReadyCheckTimeLeft) == "function" and type(GetTime) == "function" and Plain(GetReadyCheckTimeLeft(), "number")
+			checking = (left and left > 0) == true
+			ends = checking and GetTime() + left or nil
+		end
+	end
+end
+
 function Reminder.Sync(running)
 	local s = K.Store.Module(MODULE).reminder
-	local want = running and (s.enabled == true or s.flasks == true or s.mana == true)
-	if want ~= on then
-		on, known, checking = want, nil, nil
-		if on then
-			for _, event in ipairs(EVENTS) do K.Events.Register(OWNER, event, Refresh) end
-			K.Events.Register(OWNER, "READY_CHECK", Watch)
-			K.Events.Register(OWNER, "READY_CHECK_FINISHED", Watch)
-			K.Events.Register(OWNER, "SPELLS_CHANGED", SpellsChanged)
-			K.Events.RegisterUnit(OWNER, "UNIT_AURA", Refresh, "player")
-		else
-			K.Events.UnregisterAll(OWNER)
-		end
+	local class, flasks, mana = running and s.enabled == true, running and s.flasks == true, running and s.mana == true
+	local want = tostring(class) .. tostring(flasks) .. tostring(mana)
+	on = class or flasks or mana
+	if want ~= subscribed then
+		subscribed = want
+		Subscribe(class, flasks, mana)
 	end
 	if on and not card then
 		card = Reminder.Card(K.Scale.Root())

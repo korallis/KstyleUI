@@ -1426,39 +1426,34 @@ function modules.auras(opts)
 	local class, spec = Hud.Class(opts)
 	local mode = os.getenv("RENDER_AURAS_REMINDER")
 	local reminder = mode == "1" and REMINDER[class]
+	local key = reminder and "reminder.enabled" or ({ flask = "reminder.flasks", mana = "reminder.mana" })[mode or ""]
 	local env, K, ns = A.New(Common.ScreenOpts({
 		saved = saved(opts, "Auras"),
 		setup = function(env)
 			shared(env, opts)
-			-- RENDER_AURAS_REMINDER=flask: in a raid with three Flasks of the Titans and none on; =mana: a ready check at 25 percent mana.
-			if mode == "flask" or mode == "mana" then
-				env.C_Secrets.ShouldSpellAuraBeSecret = function() return false end
-				env.C_UnitAuras = env.C_UnitAuras or {}
+			if not key then return end
+			env.C_Secrets.ShouldSpellAuraBeSecret = function() return false end
+			env.C_UnitAuras = env.C_UnitAuras or {}
+			env.UnitIsDeadOrGhost = function() return false end
+			if reminder then
+				env.C_SpellBook = { IsSpellKnown = function(id) return id == reminder[1] end }
+				env.C_Spell = env.C_Spell or {}
+				env.C_Spell.GetSpellName = function(id) return id == reminder[1] and reminder[2] or "Spell " .. id end
+				env.C_Spell.GetSpellTexture = function(id) return id == reminder[1] and reminder[3] or nil end
+				env.C_UnitAuras.GetAuraDataBySpellName = function() return nil end
+			else
+				-- RENDER_AURAS_REMINDER=flask: in a raid with three Flasks of the Titans and none on; =mana: a ready check at 25 percent mana.
 				env.C_UnitAuras.GetPlayerAuraBySpellID = function() return nil end
 				env.C_Item = { GetItemCount = function(id) return id == 13510 and 3 or 0 end, GetItemNameByID = function() return "Flask of the Titans" end, GetItemIconByID = function() return 134842 end }
 				env.IsInInstance = function() return true, "raid" end
 				env.Enum.PowerType = { Mana = 0 }
 				env.UnitPowerMax = function() return 4000 end
 				env.UnitPower = function() return 1000 end
-				env.UnitIsDeadOrGhost = function() return false end
-			end
-			if reminder then
-				env.C_SpellBook = { IsSpellKnown = function(id) return id == reminder[1] end }
-				env.C_Spell = env.C_Spell or {}
-				env.C_Spell.GetSpellName = function(id) return id == reminder[1] and reminder[2] or "Spell " .. id end
-				env.C_Spell.GetSpellTexture = function(id) return id == reminder[1] and reminder[3] or nil end
-				env.C_Secrets.ShouldSpellAuraBeSecret = function() return false end
-				env.C_UnitAuras = env.C_UnitAuras or {}
-				env.C_UnitAuras.GetAuraDataBySpellName = function() return nil end
-				env.UnitIsDeadOrGhost = function() return false end
 			end
 		end,
 	}))
-	if reminder then
-		K.Options.Write("Auras", "reminder.enabled", true)
-	end
-	if mode == "flask" or mode == "mana" then
-		K.Options.Write("Auras", mode == "flask" and "reminder.flasks" or "reminder.mana", true)
+	if key then
+		K.Options.Write("Auras", key, true)
 	end
 	if not K.Modules.IsRunning("Auras") then
 		K.Modules.Enable("Auras")
