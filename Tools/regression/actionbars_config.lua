@@ -8,16 +8,21 @@ local function XY(button)
 	local _, _, _, x, y = button:GetPoint(1)
 	return x, y
 end
-return function()
+return function(style)
 for _, screen in ipairs(screens) do
 	do
 		local env, K, ns = AB.New({ width = screen[1], height = screen[2] })
 		env._game.petExists = true
 		for i = 1, 10 do env._game.forms[i] = { texture = 132355, spellID = 2457 + i } end
 		AB.Enable(env, K)
+		K.Options.Write("HudStyle", "style", style)
 		local function Write(key, value) K.Options.Write("ActionBars", key, value) end
-		assert(ns.Config("slab") == true, "the slab keeps the shipped look by default")
+		assert(ns.Config("slab") == true and ns.Config("useTray") == true, "slab and tray keep the shipped look by default")
+		Write("tray", false)
+		if style == "frames" then assert(ns.Tray.Column(ns.BAR.bar1), "the legacy Tray card switch must preserve centre-column sizing") end
 		Write("slab", false)
+		Write("useTray", false)
+		assert(not ns.Tray.Column(ns.BAR.bar1), "Use the tray off must release the Frames size override")
 		if ns.Slab.frame then assert(not ns.Slab.frame:IsShown(), "Use the slab off hides its connected plate") end
 		local previewParent = env.CreateFrame("Frame", nil, K.Scale.Root())
 		previewParent:SetSize(600, 300)
@@ -38,7 +43,7 @@ for _, screen in ipairs(screens) do
 			assert(bar.count == 6 and bar.buttons[6]:IsShown() and not bar.buttons[7]:IsShown(), key .. " buttons apply")
 			local size = K.Widgets.Snap(bar.header, 40)
 			local pitch = def.kind == "action" and K.Widgets.Snap(bar.header, 44) or size + K.Widgets.Snap(bar.header, 4)
-			Near(bar.buttons[1]:GetWidth(), size, key .. " size")
+			Near(bar.buttons[1]:GetWidth(), size, style .. " " .. key .. " size")
 			local x1, y1 = XY(bar.buttons[1])
 			local x2, y2 = XY(bar.buttons[2])
 			Near(x2 - x1, pitch, key .. " spacing")
@@ -81,7 +86,7 @@ for _, screen in ipairs(screens) do
 				Write(key .. ".macro", true)
 				assert(bar.buttons[1].macroText:IsShown(), key .. " macro text")
 			end
-			local width, height = K.Setup.Layouts.Footprint("DPS", element)
+			local width, height = K.Setup.Layouts.Footprint("DPS", element, nil, style)
 			assert(math.abs(width - bar.holder:GetWidth()) <= 2 * K.Scale.Pixel(1) / K.Widgets.ScaleFactor(bar.header), key .. " setup width follows live bar")
 			assert(math.abs(height - bar.holder:GetHeight()) <= 2 * K.Scale.Pixel(1) / K.Widgets.ScaleFactor(bar.header), key .. " setup height follows live bar")
 			local before = bar.holder:GetWidth()
@@ -101,29 +106,31 @@ for _, screen in ipairs(screens) do
 			env.SetCombat(false)
 			assert(bar.count == 4 and bar.holder:GetWidth() ~= before, key .. " combat queue applies latest layout")
 		end
-		Write("slab", true)
-		Write("bar1.buttons", 6)
-		Write("bar2.buttons", 9)
-		Write("bar1.size", 40)
-		Near(ns.bars.bar1.buttons[1]:GetWidth(), ns.bars.bar2.buttons[1]:GetWidth(), "slab size scales both sides")
-		assert(ns.Slab.frame:IsShown(), "slab stays connected with different button counts")
-		env.SetCombat(true)
-		Write("slab", false)
-		assert(ns.Slab.frame:IsShown(), "combat keeps the slab until the queued change applies")
-		env.SetCombat(false)
-		assert(not ns.Slab.frame:IsShown(), "combat end applies the queued slab toggle")
-		Write("slab", true)
-		local cfg = K.Store.Module("ActionBars")
-		cfg.editBar = "bar1"
-		for _, option in ipairs({ "rows", "orientation", "growth", "spacing", "split", "showEmpty", "backing" }) do
-			assert(not K.Options.Row("ActionBars", "bar1." .. option).showWhen(cfg), "slab hides unsupported " .. option)
+		if style == "medallions" then
+			Write("slab", true)
+			Write("bar1.buttons", 6)
+			Write("bar2.buttons", 9)
+			Write("bar1.size", 40)
+			Near(ns.bars.bar1.buttons[1]:GetWidth(), ns.bars.bar2.buttons[1]:GetWidth(), "slab size scales both sides")
+			assert(ns.Slab.frame:IsShown(), "slab stays connected with different button counts")
+			env.SetCombat(true)
+			Write("slab", false)
+			assert(ns.Slab.frame:IsShown(), "combat keeps the slab until the queued change applies")
+			env.SetCombat(false)
+			assert(not ns.Slab.frame:IsShown(), "combat end applies the queued slab toggle")
+			Write("slab", true)
+			local cfg = K.Store.Module("ActionBars")
+			cfg.editBar = "bar1"
+			for _, option in ipairs({ "rows", "orientation", "growth", "spacing", "split", "showEmpty", "backing" }) do
+				assert(not K.Options.Row("ActionBars", "bar1." .. option).showWhen(cfg), "slab hides unsupported " .. option)
+			end
+			Write("slab", false)
+			assert(K.Options.Row("ActionBars", "bar1.rows").showWhen(cfg), "free bars show all controls")
 		end
-		Write("slab", false)
-		assert(K.Options.Row("ActionBars", "bar1.rows").showWhen(cfg), "free bars show all controls")
 		assert(#env._blocked == 0, table.concat(env._blocked, ", "))
 		assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 	end
 	collectgarbage("collect")
 end
-print("ok actionbars configurable: Medallions, all bars, four screens and combat")
+print("ok actionbars configurable: " .. style .. ", all bars, four screens and combat")
 end

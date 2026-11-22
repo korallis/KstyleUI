@@ -1,1 +1,1 @@
-dofile("Tools/regression/actionbars_config.lua")()
+dofile("Tools/regression/actionbars_config.lua")("medallions")
