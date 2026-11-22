@@ -143,6 +143,10 @@ local COLORS = {
 	jewelShardCore = { "e6d4ff", 1 },
 	pipDruidGlow = { "ffa62e", 1 },
 	pipDruidCore = { "fff0b8", 1 },
+	pipWarriorGlow = { "ff7a2e", 1 },
+	pipPriestGlow = { "ffd36e", 1 },
+	pipMageGlow = { "8f6bff", 1 },
+	pipBearGlow = { "ff5a2a", 1 },
 	jewelSetting = { "7a5a2b", 1 },
 	jewelSocket = { "4a505a", 1 },
 	jewelHawk = { "aad372", 1 },
@@ -487,9 +491,13 @@ local TEXTURES = {
 	logo = { file = "Logo\\Logo64.png" },
 	logoLarge = { file = "Logo\\Logo256.tga" },
 }
-for _, set in ipairs({ "Blade", "Claw" }) do
+local FAN = { 130, 110, 90, 70, 50 }
+local PIPS = {
+	Blade = FAN, Claw = FAN, Banner = FAN, Candle = FAN, Shard = FAN, Talon = FAN, Arrow = { 105, 90, 75 },
+}
+for set, angles in pairs(PIPS) do
 	for _, kind in ipairs({ "", "Steel", "Shape", "Glow" }) do
-		for _, angle in ipairs({ 130, 110, 90, 70, 50 }) do
+		for _, angle in ipairs(angles) do
 			TEXTURES["pip" .. set .. kind .. angle] = { file = "Textures\\Pips\\Pip" .. set .. kind .. angle .. ".png" }
 		end
 	end
