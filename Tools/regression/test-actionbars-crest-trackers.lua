@@ -375,6 +375,19 @@ do
 	Clean(env, K, "shaman frames")
 end
 
+-- Under Frames every medal in the row is the row's size; seat sizes are the crest's alone.
+do
+	local env, K, ns = New("ROGUE", { 5171, 1943, 2842, 1766, 1329283 }, { frames = true })
+	env._items = { [17] = 2092 }
+	env.FireEvent("PLAYER_EQUIPMENT_CHANGED", 17)
+	local sizes = {}
+	for _, piece in pairs(ns.SlabTrackers.state.forms.row.pieces) do
+		if piece:IsVisible() then sizes[piece.units] = true end
+	end
+	assert(sizes[ns.SlabMedals.SIZE] and next(sizes, next(sizes)) == nil, "feet and vials stand at the row's one medal size")
+	Clean(env, K, "row sizes")
+end
+
 -- Even pixels at four sizes.
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })

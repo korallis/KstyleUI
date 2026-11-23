@@ -10,7 +10,7 @@ local Trackers = {}
 ns.SlabTrackers = Trackers
 
 local OWNER = "ActionBars.SlabTrackers"
-local GAP, VIAL, RELIQUARY, OFF_HAND, LINE = 4, 20, 28, 17, 5
+local GAP, RELIQUARY, OFF_HAND, LINE = 4, 28, 17, 5
 local LUA = {
 	cooldown = { "SPELL_UPDATE_COOLDOWN" },
 	usable = { "SPELL_UPDATE_USABLE", "SPELL_UPDATE_COOLDOWN", "PLAYER_TARGET_CHANGED" },
@@ -127,7 +127,7 @@ local function Resolve(p, row)
 		return nil
 	end
 	spec.spell, spec.texture = id, p.texture or Trackers.Texture(id)
-	spec.size = row and p.feed == "enchant" and VIAL or not row and p.seat == "top" and RELIQUARY or p.size
+	spec.size = row and Medals.SIZE or p.seat == "top" and RELIQUARY or p.size
 	if row and p.families then
 		spec.feed, spec.newest, spec.spells = "aura", true, {}
 		for _, family in ipairs(spec.families) do
