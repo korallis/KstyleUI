@@ -676,3 +676,5 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - Big #chat post: everything since v0.3.2 (7 crest GIFs + UF/party/meters before-after).
 - #771 review ISSUES (cat form overlaps combo jewel, Frames loses charges/imbues, enchant timers accumulate, form/cooldown states) -> healer worker ctx_be667a8e1cc1.
 - Merged #768 (polish C). Follow-up: C35 expiring-timer red (Core Duration.ExpiringColor).
+- #chat: merged-so-far update posted.
+- #777 polish F green; review dispatched. Owner decision: A#2 tracked-buff row slot above an empty utility row.
