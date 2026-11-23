@@ -16,22 +16,22 @@ local TILE_PAD = 4
 -- The enchantment first (the module places enchantments before the aura groups), then the buffs by time left.
 local ENCHANT = { "sweepingStrikes", "28m" }
 local BUFFS = {
-	{ "battleShout", "24s" },
-	{ "berserkerRage", "17s", "3" },
-	{ "bloodrage", "12s" },
+	{ "victoryRush", "2s" },
 	{ "enrage", "9s", "5" },
-	{ "shieldBlock", "8m" },
+	{ "bloodrage", "12s" },
+	{ "berserkerRage", "17s", "3" },
+	{ "battleShout", "24s" },
 	{ "bloodFury", "3m" },
+	{ "shieldBlock", "8m" },
 	{ "retaliation", "1h" },
-	{ "victoryRush", "2.4s" },
 }
--- Debuffs with the engine's dispel-type colours: magic, curse, poison, disease and none.
+-- Debuffs with the engine's dispel-type colours (poison, curse, magic, none and disease), soonest to end first.
 local DEBUFFS = {
-	{ "rend", "18s", "MAGIC", "2" },
-	{ "hamstring", "9s", "CURSE" },
 	{ "sunderArmor", "4s", "POISON" },
-	{ "demoralizingShout", "1m", "DISEASE" },
+	{ "hamstring", "9s", "CURSE" },
+	{ "rend", "18s", "MAGIC", "2" },
 	{ "thunderClap", "26s", "NONE" },
+	{ "demoralizingShout", "1m", "DISEASE" },
 }
 
 -- RENDER_AURAS_PARITY=1 switches on the EllesmereUI parity options a player sees: the dispel-type icon in the stack
@@ -44,8 +44,8 @@ local PARITY = os.getenv("RENDER_AURAS_PARITY") == "1"
 -- corner with the stack count stepped under it, and the type icon on the debuffs' bottom edge (in the extra debuff row's
 -- top right corner, with the timer in the lane under it).
 local ROUND2 = os.getenv("RENDER_AURAS_PARITY") == "2"
-local SECONDS = { buffs = { 1680, 24, 17, 12, 9, 480, 180, 3600, 2.4 }, debuffs = { 18, 9, 4, 60, 26 } }
-local REFRESHABLE = { buffs = 9, debuffs = 3 }
+local SECONDS = { buffs = { 1680, 2.4, 9, 12, 17, 24, 180, 480, 3600 }, debuffs = { 4, 9, 18, 26, 60 } }
+local REFRESHABLE = { buffs = 2, debuffs = 1 }
 
 local function at(frame, x, y, w, h)
 	frame:ClearAllPoints()
@@ -71,6 +71,10 @@ local function fill(env, button, icon, timer, count, seconds, refresh)
 	if aura.timer then
 		local formatter = aura.timerOptions and aura.timerOptions.textFormatter
 		aura.timer:SetText(PARITY and formatter and formatter:FormatNumber(seconds) or timer)
+		-- The engine's expiring curve (Duration.ExpiringColor) turns a timer under the warning red.
+		if seconds and seconds < env.KstyleUI.Options.Read("Auras", "timer.expiring") then
+			aura.timer:SetTextColor(env.KstyleUI.Tokens.Color("hostile"))
+		end
 	end
 	if refresh and aura.pandemic and aura.pandemic[1] then
 		aura.pandemic[1]:Show()
@@ -171,7 +175,7 @@ return Common.Run(function()
 	Hud.PlaceAuras(debuffs, debuffGroup, harmful, 8)
 	frames:Add(env, K.Layout.Element("auras.debuffs").frame, {
 		name = "auras_debuffs", title = "Debuff rows", grade = "button", reference = "bufficons",
-		caption = "The debuff rows, their own element 16 under the buffs: five debuffs on the same bare tiles, the hostile rim under a nine-piece plate the engine colours magic, curse, poison, disease and none (red), timers under the icons and a stack badge on the first.",
+		caption = "The debuff rows, their own element 16 under the buffs: five debuffs on the same bare tiles, the hostile rim under a nine-piece plate the engine colours poison, curse, magic, none (red) and disease, soonest to end first, timers under the icons and a stack badge on the third.",
 		match = "Tiles as the buff rows; the rims are the dispel colours, not the mockup's neutral grey, since the mockup shows no debuffs.",
 	})
 
@@ -179,7 +183,7 @@ return Common.Run(function()
 		local top = DEBUFFS_Y + 88 + 16
 		move(K, "auras.extraBuffs", BUFFS_X, top)
 		move(K, "auras.extraDebuffs", BUFFS_X, top + 66)
-		for _, row in ipairs({ { "HELPFUL|IMPORTANT", "extraBuffs", { 2, 5 }, BUFFS }, { "HARMFUL|CROWD_CONTROL", "extraDebuffs", { 2 }, DEBUFFS } }) do
+		for _, row in ipairs({ { "HELPFUL|IMPORTANT", "extraBuffs", { 4, 7 }, BUFFS }, { "HARMFUL|CROWD_CONTROL", "extraDebuffs", { 2 }, DEBUFFS } }) do
 			local container, group = A.Container(env, row[1])
 			local list = {}
 			for i, n in ipairs(row[3]) do

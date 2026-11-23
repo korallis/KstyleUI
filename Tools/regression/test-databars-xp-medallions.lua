@@ -83,7 +83,8 @@ call = W.LastCall(rep.fill, "SetStatusBarColor")
 assert(call and call[1] == fr and call[2] == fg and call[3] == fb, "in its standing colour")
 eq(rep.text:GetText(), "Stormwind 25%", "the reputation caption keeps its text")
 eq(select(1, rep.text:GetPoint(1)), "TOPRIGHT", "under the strip, right-aligned")
-eq(select(1, ns.Bars.views.honor.text:GetPoint(1)), "CENTER", "the honour bar is not part of the Medallions strips")
+eq(select(1, ns.Bars.views.honor.text:GetPoint(1)), "TOPRIGHT", "the honour bar is a Medallions strip like its siblings, its caption under it, right-aligned")
+eq(ns.Bars.views.honor.fill.texturePath, flat, "and flat")
 
 game.xp, game.rested = 5000, 0
 env.FireEvent("PLAYER_XP_UPDATE")

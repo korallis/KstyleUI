@@ -66,7 +66,7 @@ defaults.xp.questXP = false
 defaults.xp.questColor = Rgb("friendly", XP_RESTED_ALPHA)
 defaults.rep = BarDefaults("reaction", "friendly", "labelPercent")
 defaults.rep.rewardMarker = true
-defaults.honor = BarDefaults("custom", "epic", "labelPercent")
+defaults.honor = BarDefaults("custom", "legendary", "labelPercent")
 defaults.honor.show = "pvp"
 defaults.strip = {
 	enabled = true, placement = "dock", height = 14, background = 85, artwork = "forged",
@@ -622,7 +622,9 @@ function ns.Preview(...)
 			local settings = ns.Settings()
 			for id, view in pairs(self.bars) do
 				Bars.Paint(view, PreviewSettings(settings[id]), SAMPLES[id], true)
-				Widgets.Point(self.captions[id], "BOTTOMLEFT", view.holder, "TOPLEFT", 0, (view.text:IsShown() and Widgets.LineHeight(view.text) or 0) + Tokens.Size("gapSmall"))
+				Widgets.Point(self.captions[id], "BOTTOMLEFT", view.holder, "TOPLEFT", 0, Tokens.Size("gapSmall"))
+				view.text:ClearAllPoints()
+				Widgets.Point(view.text, "BOTTOMRIGHT", view.holder, "TOPRIGHT", 0, Tokens.Size("gapSmall"))
 			end
 			local s = setmetatable({ orientation = "HORIZONTAL" }, { __index = settings.strip })
 			local sample, samples = self.strip, StripSamples(s)

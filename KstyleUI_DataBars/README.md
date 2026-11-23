@@ -68,7 +68,7 @@ LEE-20 (2026-11-09, "let the picture win") replaced the old four-unit segmented 
 | --- | --- | --- |
 | `fadeBlizzard` | `true` | Fade Blizzard's status tracking bars |
 | `<bar>.colorSource` | `custom` (the `epic` purple) for XP, `reaction` for reputation, `custom` for honour | Gilt filament (XP only), class colour, reaction colour (reputation only) or custom colour |
-| `<bar>.color` | `accentDefault`, `friendly`, `epic` | The custom colour |
+| `<bar>.color` | `epic` for XP, `friendly`, `legendary` for honour (so honour never wears the experience purple) | The custom colour |
 | `<bar>.texture` | Flat for XP, Glass for reputation/honour | Any status bar texture, LibSharedMedia's included |
 | `<bar>.orientation` | `HORIZONTAL` | `HORIZONTAL` or `VERTICAL`. A change swaps the element's width and height through `Layout.Update`. |
 | `<bar>.reverse` | `false` | Fill from the other end |

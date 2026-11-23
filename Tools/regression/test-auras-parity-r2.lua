@@ -112,7 +112,7 @@ local holder = env.CreateFrame("Frame", nil, K.Scale.Root()); holder:SetSize(280
 local preview = ns.Preview.Build(holder)
 local function shown(list) local n = 0; for _, e in ipairs(list) do if e.button:IsShown() then n = n + 1 end end; return n end
 assert(preview.extraBuffBox:IsShown() and shown(preview.extraBuffs) == 2, "the preview's extra buff row shows the two important samples")
-assert(preview.extraDebuffBox:IsShown() and shown(preview.extraDebuffs) == 1 and preview.extraDebuffs[3].glow.holder:IsShown(), "and the crowd control sample, glowing")
+assert(preview.extraDebuffBox:IsShown() and shown(preview.extraDebuffs) == 1 and preview.extraDebuffs[1].glow.holder:IsShown(), "and the crowd control sample, glowing")
 write("extraBuffs.enabled", false); write("extraDebuffs.enabled", false)
 preview:Refresh()
 assert(not preview.extraBuffBox:IsShown() and not preview.extraDebuffBox:IsShown() and shown(preview.buffs) == 7, "off leaves today's preview")
@@ -197,7 +197,7 @@ preview:Refresh()
 local samples = preview.extraDebuffs
 assert(shown(samples) == 3, "every sample shows")
 write("extraDebuffs.dispellable", true); preview:Refresh()
-assert(shown(samples) == 2 and not samples[3].button:IsShown(), "Dispellable by you leaves out the crowd control sample, as the live filter does")
+assert(shown(samples) == 2 and not samples[1].button:IsShown(), "Dispellable by you leaves out the crowd control sample, as the live filter does")
 write("extraDebuffs.dispellable", false); write("extraDebuffs.reverse", true); preview:Refresh()
 assert(samples[3].button._points[1][4] < samples[1].button._points[1][4], "Reverse order reverses the preview")
 write("extraDebuffs.reverse", false); write("extraDebuffs.show", "crowdControl")

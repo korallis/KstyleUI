@@ -47,7 +47,7 @@ local PLAIN_EDGE_ALPHA = 0.35
 local COLOR_TOLERANCE = 0.02
 local GEM_SIZE, GEM_GAP = 8, 7
 Style.GEM_ROOM = GEM_SIZE + GEM_GAP
-local HEADER_INSET, HEADER_HEIGHT, HEADER_GAP = 10, 19, 2
+local HEADER_INSET, HEADER_HEIGHT, HEADER_TUCK = 10, 19, 4
 
 local skinned = {}
 local savedFonts = {}
@@ -204,13 +204,14 @@ local function PlaceHeader(tooltip)
 	local side = Widgets.Snap(heading, GEM_SIZE)
 	gem:SetSize(side, side)
 	gem:ClearAllPoints()
-	Widgets.Point(gem, "LEFT", heading, "LEFT", HEADER_INSET, 0)
+	Widgets.Point(gem, "LEFT", heading, "LEFT", HEADER_INSET, HEADER_TUCK / 2)
 	caption:ClearAllPoints()
 	Widgets.Point(caption, "LEFT", gem, "RIGHT", GEM_GAP, 0)
 	Style.PaintGem(gem)
 	heading:ClearAllPoints()
-	Widgets.Size(heading, 2 * HEADER_INSET + Style.GEM_ROOM + Widgets.TextWidth(caption, 0), HEADER_HEIGHT)
-	heading:SetPoint("BOTTOMLEFT", tooltip, "TOPLEFT", 0, Widgets.Snap(heading, HEADER_GAP))
+	Widgets.Size(heading, 2 * HEADER_INSET + Style.GEM_ROOM + Widgets.TextWidth(caption, 0), HEADER_HEIGHT + HEADER_TUCK)
+	heading:SetPoint("BOTTOMLEFT", tooltip, "TOPLEFT", 0, -Widgets.Snap(heading, HEADER_TUCK))
+	heading:SetFrameLevel(max(0, tooltip:GetFrameLevel() - 1))
 	heading.chrome:Restyle()
 end
 

@@ -13,18 +13,18 @@ local build
 function Preview.Build(...)
 	if build then return build(...) end
 	local BUFFS = {
-		{ icon = 135987, seconds = 24, spell = 1243, cancelable = true, dispellable = true },
-		{ icon = 136078, seconds = 17, stacks = "3", spell = 1126, cancelable = true, important = true },
-		{ icon = 135932, seconds = 12, spell = 1459, cancelable = true, bigDefensive = true },
-		{ icon = 135906, seconds = 480, spell = 19740, cancelable = true, important = true },
-		{ icon = 132333, seconds = 180, spell = 6673, cancelable = true },
 		{ icon = 135953, seconds = 2.4, refresh = true, spell = 139, cancelable = true, dispellable = true },
+		{ icon = 135932, seconds = 12, spell = 1459, cancelable = true, bigDefensive = true },
+		{ icon = 136078, seconds = 17, stacks = "3", spell = 1126, cancelable = true, important = true },
+		{ icon = 135987, seconds = 24, spell = 1243, cancelable = true, dispellable = true },
+		{ icon = 132333, seconds = 180, spell = 6673, cancelable = true },
+		{ icon = 135906, seconds = 480, spell = 19740, cancelable = true, important = true },
 		{ icon = 135893, spell = 465 },
 	}
 	local DEBUFFS = {
-		{ icon = 136207, seconds = 18, kind = "MAGIC", dispellable = true },
-		{ icon = 136118, seconds = 9, kind = "CURSE", stacks = "2", dispellable = true },
 		{ icon = 135846, seconds = 4, kind = "NONE", refresh = true, crowdControl = true },
+		{ icon = 136118, seconds = 9, kind = "CURSE", stacks = "2", dispellable = true },
+		{ icon = 136207, seconds = 18, kind = "MAGIC", dispellable = true },
 	}
 	local TYPE_NAMES = { MAGIC = "Magic", CURSE = "Curse" }
 
