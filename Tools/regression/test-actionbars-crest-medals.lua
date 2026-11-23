@@ -159,5 +159,14 @@ do
 	assert(timed == Medals.FOOT + 2, "a foot's timer hugs the medal")
 end
 
+-- The shoulders sit where the study measured them (65 px out, 30 up at 1080, 0.943 px a unit) with a 28 px timed medal;
+-- the reliquary (96 out, clear of the cast bar) and the rings (clear of the emblem) are deliberate revisions (review dd9bddac #11).
+do
+	local x, y = Medals.Seat("right")
+	assert(math.abs(x * 0.943 - 65) <= 1 and math.abs(y * 0.943 - 30) <= 1, "the shoulders sit at the study's fit, below the slab's connectors")
+	local timed = Medals.Medal(parent, { feed = "aura", spells = { 1 }, color = "gilt" }, 5)
+	assert(math.abs(timed.timer.units * 0.943 - 28) <= 1.5, "a timed shoulder medal is 28 px across at 1080")
+end
+
 assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 print("actionbars crest medals ok")
