@@ -247,6 +247,37 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- Each seat follows the spec and form it is in: a shadow priest before Shadowform casts Mind Blast, not Penance; in
+-- Shadowform without Vampiric Embrace the right medal is Shadowfiend, not Shadowform again; a druid in Cat or Bear
+-- Form without that form's own effects shows no caster seed.
+do
+	local env, K, ns = New("PRIEST", { 10952, 10947, 1316995, 15334 })
+	local b = Tracker(ns, "PRIEST").built
+	assert(b.mindBlast:IsShown() and not b.penance:IsShown(), "Shadow Weaving without Shadowform: Mind Blast, not Penance")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+do
+	local env, K, ns = New("PRIEST", { 15473, 15334, 401977, 10947 })
+	env._form = 28
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	local b = Tracker(ns, "PRIEST").built
+	assert(b.shadowfiend:IsShown() and not b.shadowform:IsShown(), "in Shadowform without Vampiric Embrace: Shadowfiend, not Shadowform again")
+	env._form = nil
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	assert(b.shadowform:IsShown() and not b.shadowfiend:IsShown(), "out of the form a shadow priest sees Shadowform waiting")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+do
+	local env, K, ns = New("DRUID", { 8921, 774, 8936, 5570 })
+	local b = Tracker(ns, "DRUID").built
+	for _, form in ipairs({ 1, 8 }) do
+		env._form = form
+		env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+		assert(not b.seedLeft:IsShown() and not b.seedRight:IsShown(), "form " .. form .. " without its own effects shows no caster seed")
+	end
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 -- The shaman: element colours, the off hand, the gilt pulse, the gutter, the emblem sweep and the ankh.
 do
 	local env, K, ns = New("SHAMAN", SHAMAN)
@@ -315,7 +346,7 @@ end
 -- A stone keeps one wake-up for its last five minutes however often the enchant is re-read, and a stone that is
 -- switched off reads nothing and keeps none.
 do
-	local env, K, ns = New("SHAMAN", SHAMAN)
+	local env, K = New("SHAMAN", SHAMAN)
 	env.SetCombat(true)
 	local now, pending, reads = 100, {}, 0
 	env.GetTime = function() return now end
