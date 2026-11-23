@@ -83,7 +83,7 @@ function Roads.Snap(graph, x, y, continent)
 	return best, yards and math.sqrt(yards)
 end
 
-local function Label(graph, node)
+function Roads.Label(graph, node)
 	if node.label then return node.label end
 	local town, near = Town(graph, node.x, node.y, node.map)
 	if not near or near > 250000 then
@@ -216,15 +216,15 @@ function Roads.Solve(graph, x, y, tx, ty, mounted, flights, travel)
 	local option = via[id]
 	local near = option and 0 or first
 	local route = { graph = graph, continent = travel and travel.continent, start = start, last = last, legs = {}, yards = near + last, seconds = seconds + last / speed, dashed = near > 60 or last > 60 }
-	local function Name(node) return (node.name == "" or travel and node.kind == "dock") and Label(graph, node) or node.name end
-	local function Connector(ax, ay, bx, by, len, name, map)
-		if len > 0 or #route.legs == 0 then route.legs[#route.legs + 1] = { kind = "walk", to = name, len = len, seconds = len / speed, dashed = len > 60, pts = { ax, ay, bx, by }, map = map } end
+	local function Name(node) return travel and node.kind == "dock" and Roads.Label(graph, node) or node.name end
+	local function Connector(ax, ay, bx, by, len, node)
+		if len > 0 or #route.legs == 0 then route.legs[#route.legs + 1] = { kind = "walk", to = Name(node), node = node, len = len, seconds = len / speed, dashed = len > 60, pts = { ax, ay, bx, by }, map = node.map } end
 	end
 	if option then
 		route.option = option
-		route.legs[1] = { kind = option.kind, to = option.name, len = 0, seconds = option.seconds, pts = { option.node.x, option.node.y }, map = option.node.map, turn = true, stop = true }
+		route.legs[1] = { kind = option.kind, to = option.name, node = option.node, len = 0, seconds = option.seconds, pts = { option.node.x, option.node.y }, map = option.node.map, turn = true, stop = true }
 	else
-		Connector(x, y, start.x, start.y, first, Name(start), start.map)
+		Connector(x, y, start.x, start.y, first, start)
 	end
 	for i = #path, 1, -1 do
 		local hop = path[i]
@@ -236,10 +236,10 @@ function Roads.Solve(graph, x, y, tx, ty, mounted, flights, travel)
 		for p = a, b, step do points[#points + 1] = edge.pts[p]; points[#points + 1] = edge.pts[p + 1] end
 		if from.map ~= to.map then points = { to.x, to.y } end
 		route.legs[#route.legs + 1] = { kind = travel and edge.zeppelin and "zeppelin" or edge.kind, len = edge.len, seconds = mounted and edge.mounted or edge.cost, pts = points,
-			from = Name(from), to = Name(to), turn = true, map = to.map, stop = to.kind ~= "junction" and to.kind ~= "crossing" }
+			from = Name(from), to = Name(to), node = to, turn = true, map = to.map, stop = to.kind ~= "junction" and to.kind ~= "crossing" }
 		route.yards = route.yards + edge.len
 	end
-	Connector(goal.x, goal.y, tx, ty, last, nil, goal.map)
+	Connector(goal.x, goal.y, tx, ty, last, goal)
 	if flight and (not travel or travel.continent == travel.target) then
 		local walking = Find(graph, sources, goal.id, speed, nil, travel, true)
 		if walking and walking - seconds >= 60 then route.saved = math.floor((walking - seconds) / 60) end

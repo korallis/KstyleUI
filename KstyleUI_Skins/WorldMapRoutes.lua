@@ -316,7 +316,7 @@ end
 local function Teleports(graph)
 	local options, key = {}, {}
 	local bind = type(GetBindLocation) == "function" and Plain(GetBindLocation(), "string")
-	local home = Home(graph, bind)
+	local home = bind ~= "" and Home(graph, bind)
 	local function Offer(kind, name, node, wait, cast)
 		if node and name and wait then
 			options[#options + 1] = { kind = kind, name = name, seconds = wait + cast, node = node }
@@ -506,9 +506,9 @@ function Routes.ShowSteps(road)
 		if leg.len > 0 or leg.kind == "hearth" or leg.kind == "teleport" then
 			local last = rows[#rows]
 			if last and not last.stop and last.kind == leg.kind and (leg.kind == "walk" or leg.kind == "swim") and not leg.dashed and not last.dashed then
-				last.to, last.len, last.seconds = leg.to, last.len + leg.len, last.seconds + leg.seconds
+				last.to, last.node, last.len, last.seconds = leg.to, leg.node, last.len + leg.len, last.seconds + leg.seconds
 				last.stop = leg.stop
-			else rows[#rows + 1] = { kind = leg.kind, from = leg.from, to = leg.to, len = leg.len, seconds = leg.seconds, dashed = leg.dashed, stop = leg.stop } end
+			else rows[#rows + 1] = { kind = leg.kind, from = leg.from, to = leg.to, node = leg.node, len = leg.len, seconds = leg.seconds, dashed = leg.dashed, stop = leg.stop } end
 		end
 	end
 	local top = 0
@@ -518,15 +518,15 @@ function Routes.ShowSteps(road)
 		stepRows[i] = text
 		local amount = stepAmounts[i] or Text(stepChild, "number", 13)
 		stepAmounts[i] = amount
-		local label
-		if leg.kind == "flight" then label = string.format(L["Flight from %s to %s"], leg.from, leg.to)
-		elseif leg.kind == "boat" then label = string.format(L["Boat to %s"], leg.to)
-		elseif leg.kind == "zeppelin" then label = string.format(L["Zeppelin to %s"], leg.to)
-		elseif leg.kind == "tram" then label = string.format(L["Tram to %s"], leg.to)
-		elseif leg.kind == "hearth" or leg.kind == "teleport" then label = leg.to
-		elseif leg.kind == "lift" then label = string.format(L["Lift to %s"], leg.to)
+		local label, to = nil, leg.kind == "walk" and i == #rows and target.name ~= "" and target.name or leg.to ~= "" and leg.to or Roads.Label(road.graph, leg.node)
+		if leg.kind == "flight" then label = string.format(L["Flight from %s to %s"], leg.from, to)
+		elseif leg.kind == "boat" then label = string.format(L["Boat to %s"], to)
+		elseif leg.kind == "zeppelin" then label = string.format(L["Zeppelin to %s"], to)
+		elseif leg.kind == "tram" then label = string.format(L["Tram to %s"], to)
+		elseif leg.kind == "hearth" or leg.kind == "teleport" then label = to
+		elseif leg.kind == "lift" then label = string.format(L["Lift to %s"], to)
 		elseif leg.kind == "swim" then label = L["Swim"]
-		else label = string.format(leg.dashed and L["Off road to %s"] or L["Road to %s"], leg.to or target.name) end
+		else label = string.format(leg.dashed and L["Off road to %s"] or L["Road to %s"], to) end
 		text:ClearAllPoints()
 		text:SetPoint("TOPLEFT", 0, -top)
 		text:SetWidth(274)
