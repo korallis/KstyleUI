@@ -29,14 +29,13 @@ local function start(entry)
 		return
 	end
 	entry.running = true
-	entry.failed, entry.error = false, nil
-	local ok, err = ns.Call(entry.def.Enable, entry.def)
-	if ok then
+	entry.failed = false
+	if ns.Call(entry.def.Enable, entry.def) then
 		log(entry.name, "enabled")
 		ns.Callbacks.Fire("ModuleChanged", entry.name, true)
 		return
 	end
-	entry.failed, entry.error = true, err
+	entry.failed = true
 	ns.Call(entry.def.Disable, entry.def)
 	release(entry)
 	log(entry.name, "Enable failed; Disable ran to clean up")
@@ -114,7 +113,7 @@ end
 
 function Modules.HasFailed(name)
 	local entry = entries[name]
-	return entry ~= nil and entry.failed, entry and entry.error
+	return entry ~= nil and entry.failed
 end
 
 local function setSwitch(name, on)

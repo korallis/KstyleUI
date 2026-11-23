@@ -7,7 +7,7 @@ local O = dofile("Tools/regression/options_env.lua")
 local ON = { "UnitFrames", "ActionBars", "Cooldowns", "GroupFrames", "Auras", "Nameplates", "CombatText", "Minimap", "Chat", "Bags", "Tooltips", "DataBars", "Skins" }
 
 local function Client(env)
-	env.ADDON_DISABLED = "Disabled"
+	Gallery.Setup(env)
 	local api = env.C_AddOns
 	api.DoesAddOnExist = function(folder) return folder ~= "KstyleUI_Routes" end
 	api.IsAddOnLoaded = function(folder)
@@ -33,10 +33,7 @@ end
 return Common.Run(function()
 	local env, K, ns = O.New(Common.ScreenOpts({
 		saved = Gallery.Saved(ON),
-		setup = function(e)
-			Gallery.Setup(e)
-			Client(e)
-		end,
+		setup = Client,
 		before = Register,
 		load = about,
 	}))
