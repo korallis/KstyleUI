@@ -1,4 +1,4 @@
--- test-setup-polish.lua: layout pictures show the Medallions HUD; wrapping notes remain readable at 0.65 and the old diagram and note style remain selectable.
+-- test-setup-polish.lua: with Big pictures in setup off, layout pictures show the Medallions HUD; wrapping notes remain readable at 0.65 and the old diagram and note style remain selectable.
 local W = dofile("Tools/regression/widget_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local env, K = W.New({ boot = false, setup = function(e)
@@ -7,6 +7,7 @@ local env, K = W.New({ boot = false, setup = function(e)
 end })
 for _, entry in ipairs(K.Setup.PICKER) do K.Modules.Register(W.CoreEnv.Module(entry.name)) end
 W.CoreEnv.Boot(env)
+K.Options.Write("Setup", "bigPictures", false)
 K.Setup.Open()
 local panel = K.Setup.window
 local function settle()

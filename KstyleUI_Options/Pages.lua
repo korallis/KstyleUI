@@ -486,6 +486,18 @@ local function GeneralItems()
 			item.defer = true
 		end
 	end
+	local looks = K.Setup and K.Setup.Looks
+	for i, item in ipairs(items) do
+		if looks and K.Store.Module("Setup").looks and item.module == "HudStyle" and item.key == "style" then
+			local options = {}
+			for _, look in ipairs(looks.LIST) do options[#options + 1] = { value = look.value, label = look.label } end
+			options[#options + 1] = { value = NONE, label = L["Your own"] }
+			table.insert(items, i + 1, { kind = "segmented", page = "General", label = L["Look"], options = options,
+				help = L["Sets trim, panels, motion and text together. Forged is the look KstyleUI ships with."],
+				get = function() return looks.Current() or NONE end, set = looks.Apply })
+			break
+		end
+	end
 	local function account(key, default, apply)
 		return function()
 			local value = K.Store.Account()[key]

@@ -1,4 +1,4 @@
--- Window.lua: the setup, with HUD and role pictures, module and detected-addon choices and the Apply summary.
+-- Window.lua: the setup, with HUD and role pictures (one big picture per layout, and the arrangements on wide screens), the Looks, module and detected-addon choices and the Apply summary.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -22,6 +22,11 @@ local ROW_HEIGHT = 44
 local NOTE_SIZE = 11
 local LAYOUT_PICTURE_WIDTH, LAYOUT_PICTURE_HEIGHT = 180, 90
 local LAYOUT_PICTURE_PATH = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Layout"
+local BIG_PICTURE_PATH = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Setup\\"
+local ARRANGEMENTS = {
+	{ value = "centred", picture = "Centred", label = L["Centred"], note = L["The HUD stays in the middle, at the HUD width."] },
+	{ value = "spread", picture = "Spread", label = L["Spread"], note = L["The side columns move out to your screen's edges."] },
+}
 local ROWS_PER_COLUMN = 8
 local HEADER_HEIGHT = 32
 local ELEMENT_ALPHA, ROLE_ALPHA = 0.22, 0.5
@@ -42,6 +47,25 @@ local step, reached, applied, open = 0, 1, false, false
 
 local function gap(name)
 	return Widgets.Snap(panel, Tokens.Size(name))
+end
+
+local function Big()
+	local setup = ns.Store.Module("Setup")
+	return setup.layoutPictures and setup.bigPictures
+end
+
+local function Wide()
+	return Big() and (Scale.Origin() > 0 or Scale.Band() > 0)
+end
+
+local function BigPicture(name)
+	local style = Setup.Choice().hudStyle
+	return BIG_PICTURE_PATH .. style:sub(1, 1):upper() .. style:sub(2) .. name .. ".tga"
+end
+
+local function LookLabel(value)
+	local look = Setup.Looks.Get(value)
+	return look and look.label or L["Your own"]
 end
 
 local function GuidePlaced()
@@ -171,6 +195,13 @@ local function Refresh()
 	panel.later:SetShown(step == STEPS and applied)
 	Select(panel.cards, choice.layout)
 	Select(panel.styleCards, choice.hudStyle)
+	if Wide() then Select(panel.arrangeCards, choice.arrangement) end
+	local looks = {}
+	for _, look in ipairs(Setup.Looks.LIST) do looks[#looks + 1] = { value = look.value, label = look.label } end
+	if not Setup.Looks.Current() then looks[#looks + 1] = { value = "Custom", label = L["Your own"] } end
+	panel.lookTabs:SetTabs(looks, choice.look)
+	local look = Setup.Looks.Get(choice.look)
+	panel.lookNote:SetText(look and look.note or L["Your own settings. Apply keeps them."])
 	FitStyles()
 	PlaceLayouts()
 	if not panel.preview.hovered then
@@ -191,6 +222,8 @@ local function Refresh()
 			end
 		end
 		local lead = string.format(L["HUD style: %s."], style) .. "\n" .. string.format(L["Layout: %s."], Layouts.Label(choice.layout))
+		if ns.Store.Module("Setup").looks then lead = lead .. "\n" .. string.format(L["Look: %s."], LookLabel(choice.look)) end
+		if Wide() then lead = lead .. "\n" .. string.format(L["Arrangement: %s."], ARRANGEMENTS[choice.arrangement == "spread" and 2 or 1].label) end
 		local head = lead .. "\n\n"
 		local tail = #off > 0 and "\n" .. L["Off: "] .. table.concat(off, ", ") or ""
 		local modules = string.format(L["Modules on: %d of %d."], #on, #on + #off)
@@ -466,7 +499,7 @@ end
 function Card:Restyle()
 	local pad = Widgets.Snap(self, Tokens.Size("gapLarge"))
 	self.title:ClearAllPoints()
-	local picture = self.layout and ns.Store.Module("Setup").layoutPictures and LAYOUT_PICTURE_HEIGHT + Widgets.Snap(self, Tokens.Size("gapSmall")) or 0
+	local picture = self.layout and ns.Store.Module("Setup").layoutPictures and not Big() and LAYOUT_PICTURE_HEIGHT + Widgets.Snap(self, Tokens.Size("gapSmall")) or 0
 	Widgets.Point(self.title, "TOPLEFT", self, "TOPLEFT", pad, -(pad + picture))
 	self.note:ClearAllPoints()
 	Widgets.Point(self.note, "TOPLEFT", self.title, "BOTTOMLEFT", 0, -Widgets.Snap(self, Tokens.Size("gapSmall")))
@@ -599,6 +632,9 @@ function Preview:Draw(name)
 		self.nameText:SetText(string.format(L["Showing: %s"], Layouts.Label(name)))
 	end
 	self:Fit()
+	if self:Picture(Big() and BigPicture(name)) then
+		return
+	end
 	local s = self:GetWidth() / REFERENCE_WIDTH
 	local line = Widgets.Border(self)
 	local positions = Layouts.Get(name)
@@ -626,6 +662,26 @@ function Preview:Draw(name)
 	PlaceSlot(self, s, line)
 end
 
+function Preview:Picture(file, wide)
+	if not file then
+		self.picture:Hide()
+		return false
+	end
+	self.picture:Show()
+	self.picture:SetTexture(open and file or nil)
+	local inset = Widgets.Border(self)
+	local width = self:GetWidth() - 2 * inset
+	self.picture:ClearAllPoints()
+	Widgets.Point(self.picture, "CENTER", self, "CENTER", 0, 0)
+	self.picture:SetSize(width, wide and Widgets.Snap(self, width * 9 / 32) or self:GetHeight() - 2 * inset)
+	for _, rect in ipairs(self.rects) do
+		rect:Hide()
+		rect.label:Hide()
+	end
+	self.slot:Hide()
+	return true
+end
+
 function Preview:Restyle()
 	if self.layout then
 		self:Draw(self.layout)
@@ -647,6 +703,8 @@ local function NewPreview(page)
 		preview.slot.edges[i] = preview.slot:CreateTexture(nil, "BORDER")
 	end
 	preview.slot.label = Widgets.Text(preview.slot, "caption", "textEmphasis", "OVERLAY")
+	preview.picture = preview:CreateTexture(nil, "ARTWORK")
+	preview.picture:Hide()
 	preview.rects = {}
 	for _, element in ipairs(Layouts.ELEMENTS) do
 		if not SKIP_IN_PREVIEW[element.key] then
@@ -688,7 +746,7 @@ function Preview:Fit()
 	end
 	local page, width = self.page, self.pageWidth
 	local spacing = gap("gapLarge")
-	local top = Widgets.Snap(page, CARD_HEIGHT) + spacing
+	local top = Widgets.Snap(page, self.top or CARD_HEIGHT) + spacing
 	local height = page:GetHeight()
 	if type(height) ~= "number" or height <= top then
 		height = top + PREVIEW_FALLBACK
@@ -737,25 +795,72 @@ local function BuildLayouts(page, width)
 	local hint = Paragraph(page, "body", "text", width / 2, "body")
 	Widgets.Point(hint, "TOPLEFT", shown, "BOTTOMLEFT", 0, -gap("gapMedium"))
 	panel.layoutHint = hint
+	panel.arrangeCards = {}
+	for _, entry in ipairs(ARRANGEMENTS) do
+		local value = entry.value
+		local card = NewCard(page, LEGEND_WIDTH, CARD_HEIGHT, entry.label, entry.note, function()
+			Setup.Choice().arrangement = value
+		end)
+		card:HookScript("OnEnter", function()
+			preview.hovered = true
+			shown:SetText(string.format(L["Showing: %s"], entry.label))
+			preview:Picture(BigPicture(entry.picture), true)
+		end)
+		card:HookScript("OnLeave", function()
+			preview.hovered = false
+			preview:Draw(Setup.Choice().layout)
+		end)
+		card:Hide()
+		panel.arrangeCards[value] = card
+	end
+end
+
+local function PlaceArrangements()
+	local wide = Wide()
+	local pad, spacing = gap("gapLarge"), gap("gapSmall")
+	panel.preview:Fit()
+	local width = panel.preview.pageWidth - panel.preview:GetWidth() - gap("gapLarge")
+	local height = 0
+	for _, card in pairs(panel.arrangeCards) do
+		card:SetShown(wide)
+		Widgets.Size(card, width, card:GetHeight())
+		card:Restyle()
+		height = max(height, 2 * pad + Widgets.LineHeight(card.title) + spacing + Widgets.WrappedHeight(card.note, width - 2 * pad))
+	end
+	local below = 0
+	for i = #ARRANGEMENTS, 1, -1 do
+		local card = panel.arrangeCards[ARRANGEMENTS[i].value]
+		Widgets.Size(card, width, height)
+		card:ClearAllPoints()
+		Widgets.Point(card, "BOTTOMLEFT", panel.preview, "BOTTOMRIGHT", gap("gapLarge"), below)
+		below = below + Widgets.Snap(panel, height) + spacing
+	end
 end
 
 PlaceLayouts = function()
-	local pictures = ns.Store.Module("Setup").layoutPictures
+	local big = Big()
+	local pictures = ns.Store.Module("Setup").layoutPictures and not big
 	local style = Setup.Choice().hudStyle
 	local pad, spacing = gap("gapLarge"), gap("gapSmall")
 	local height = CARD_HEIGHT
 	for name, card in pairs(panel.cards) do
 		card.picture:SetShown(pictures)
-		card.picture:SetTexture(LAYOUT_PICTURE_PATH .. style:sub(1, 1):upper() .. style:sub(2) .. name .. ".tga")
+		card.picture:SetTexture(not big and LAYOUT_PICTURE_PATH .. style:sub(1, 1):upper() .. style:sub(2) .. name .. ".tga" or nil)
 		card.title:ClearAllPoints()
 		Widgets.Point(card.title, "TOPLEFT", card, "TOPLEFT", pad, -(pictures and pad + LAYOUT_PICTURE_HEIGHT + spacing or pad))
 		height = max(height, (pictures and LAYOUT_PICTURE_HEIGHT + spacing or 0) + 2 * pad + Widgets.LineHeight(card.title) + spacing + Widgets.WrappedHeight(card.note, card:GetWidth() - 2 * pad))
 	end
 	for _, card in pairs(panel.cards) do Widgets.Size(card, card:GetWidth(), height) end
+	panel.preview.top = big and height or nil
 	panel.preview:SetShown(not pictures)
 	panel.previewName:SetShown(not pictures)
 	panel.layoutHint:ClearAllPoints()
-	if pictures then
+	PlaceArrangements()
+	if big then
+		Widgets.Point(panel.layoutHint, "TOPLEFT", panel.previewName, "BOTTOMLEFT", 0, -gap("gapMedium"))
+		panel.layoutHint:SetText(Wide() and L["Point at a layout or an arrangement to see it."]
+			or L["Point at a layout to see it in your HUD style. You can move and resize everything later in Layout Mode: type /kstyle layout."])
+	elseif pictures then
 		Widgets.Point(panel.layoutHint, "TOPLEFT", panel.pages[3], "TOPLEFT", 0, -(height + gap("gapLarge")))
 		panel.layoutHint:SetWidth(panel.preview.pageWidth)
 		panel.layoutHint:SetText(L["Choose DPS, Tank or Healer. Each picture shows your chosen HUD style; you can move and resize everything later in Layout Mode."])
@@ -873,6 +978,14 @@ local function BuildStyles(page, width)
 	local hint = Paragraph(page, "body", "text", width, "body")
 	hint:SetText(L["Played on Frames before? Pick it here to get it back. Change it at any time in the settings window, at the top of the General page. A change made in combat waits until combat ends."])
 	panel.styleHint = hint
+	panel.lookCaption = Widgets.Text(page, "caps", "capsGold")
+	Widgets.CapsSize(panel.lookCaption)
+	Widgets.SetText(panel.lookCaption, L["Look"])
+	panel.lookTabs = Widgets.Tabs(page, { tabs = {}, width = cardWidth, height = STRIP_HEIGHT, onSelect = function(value)
+		Setup.Choice().look = value
+		Changed()
+	end })
+	panel.lookNote = Paragraph(page, "body", "text", cardWidth, "body")
 	panel.styleFit = { width = cardWidth, picture = pictureHeight, pad = pad, spacing = spacing }
 end
 
@@ -888,6 +1001,16 @@ FitStyles = function()
 	end
 	panel.styleHint:ClearAllPoints()
 	Widgets.Point(panel.styleHint, "TOPLEFT", page, "TOPLEFT", 0, -(Widgets.Snap(page, height) + fit.spacing))
+	local looks = ns.Store.Module("Setup").looks
+	panel.lookCaption:SetShown(looks)
+	panel.lookTabs:SetShown(looks)
+	panel.lookNote:SetShown(looks)
+	panel.lookCaption:ClearAllPoints()
+	Widgets.Point(panel.lookCaption, "TOPLEFT", panel.styleHint, "BOTTOMLEFT", 0, -fit.spacing)
+	panel.lookTabs:ClearAllPoints()
+	Widgets.Point(panel.lookTabs, "TOPLEFT", panel.lookCaption, "BOTTOMLEFT", 0, -gap("gapSmall"))
+	panel.lookNote:ClearAllPoints()
+	Widgets.Point(panel.lookNote, "LEFT", panel.lookTabs, "RIGHT", fit.spacing, 0)
 end
 
 local function SummaryCard(page, text)
@@ -1032,6 +1155,8 @@ end
 
 local function OnClose()
 	open = false
+	panel.preview.picture:SetTexture(nil)
+	panel.summaryPreview.picture:SetTexture(nil)
 	Setup.Closed(applied)
 end
 

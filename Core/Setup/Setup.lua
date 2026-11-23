@@ -1,4 +1,4 @@
--- Setup.lua: the first-run setup's choices, Apply (the HUD style, positions, the layout's module settings, the layout's name and its Edit Mode write, which Try again repeats), and when the setup window opens.
+-- Setup.lua: the first-run setup's choices, Apply (the HUD style, positions, the layout's module settings, the Look, the arrangement, the layout's name and its Edit Mode write, which Try again repeats), and when the setup window opens.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -15,10 +15,12 @@ ns.Options.Register("OptionsPresentation", function() return {
 	{ type = "toggle", key = "columns", label = L["Aligned settings headings"], help = L["Line up the category, page and preview headings. Off restores the previous column layout."] },
 	{ type = "toggle", key = "samples", label = L["Show ornament samples"], help = L["Compare Off, Subtle and Full before choosing. Off keeps the text-only ornament picker."], showWhen = function() return ns.HudStyle.Current() == "frames" end },
 } end)
-ns.Store.RegisterDefaults("Setup", { closeBehaviour = "apply", replaceLayout = true, layoutPictures = true, readableNotes = true })
+ns.Store.RegisterDefaults("Setup", { closeBehaviour = "apply", replaceLayout = true, layoutPictures = true, readableNotes = true, bigPictures = true, looks = true })
 ns.Options.Register("Setup", function() return {
 	{ type = "header", label = L["Setup"] },
 	{ type = "toggle", key = "layoutPictures", label = L["Layout pictures in setup"], help = L["Show DPS, Tank and Healer pictures for your chosen HUD. Off restores the footprint diagram."] },
+	{ type = "toggle", key = "bigPictures", label = L["Big pictures in setup"], help = L["One large picture of the layout you point at; arrangements on wide screens. Off: small pictures."] },
+	{ type = "toggle", key = "looks", label = L["One-click Looks"], help = L["Forged, Clean and Readable looks in setup and on this page. Off hides them; your settings stay."] },
 	{ type = "toggle", key = "readableNotes", label = L["Readable setup notes"], help = L["Use wrapping 11-unit notes in setup. Off restores the smaller, single-line module notes."] },
 	{ type = "dropdown", key = "closeBehaviour", label = L["Closing the setup window"], help = L["Choose whether first-run Close or Escape leaves your UI alone or applies the setup."], options = {
 		{ value = "apply", label = L["Apply the default setup"] },
@@ -93,7 +95,7 @@ function Setup.NewChoice(current)
 			end
 		end
 	end
-	return { hudStyle = ns.HudStyle.Saved(), layout = DEFAULT_LAYOUT, modules = modules, addons = addons, addonSettings = settings }
+	return { hudStyle = ns.HudStyle.Saved(), layout = DEFAULT_LAYOUT, modules = modules, addons = addons, addonSettings = settings, look = Setup.Looks.Current() or "Custom", arrangement = ns.Scale.Arrangement() }
 end
 
 function Setup.Choice()
@@ -330,6 +332,8 @@ function Setup.Apply(picked)
 		local module, key = path:match("^([^%.]+)%.(.+)$")
 		ns.Options.Write(module, key, value)
 	end
+	if picked.look and picked.look ~= Setup.Looks.Current() then Setup.Looks.Apply(picked.look) end
+	if ns.Scale.ARRANGEMENT[picked.arrangement] and picked.arrangement ~= ns.Scale.Arrangement() then ns.Options.Write("Layout", "arrangement", picked.arrangement) end
 	local hudStyle = ns.HudStyle.Valid(picked.hudStyle) and picked.hudStyle
 	if hudStyle then
 		applying = true

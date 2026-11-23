@@ -6,12 +6,13 @@
 | --- | --- |
 | `Layouts.lua` | `Setup.Layouts`: the element keys and the Lumen DPS, Tank and Healer layouts: positions, footprints, the module settings each writes and the story slot. See [`element-keys.md`](../../docs/superpowers/plans/element-keys.md). |
 | `EditMode.lua` | `Setup.EditMode`: Apply's Edit Mode writer, which puts the objective tracker in the story slot, Blizzard's damage meter on the damage card and Blizzard's tracked buff icon and bar viewers in their slots, plus the durability doll beside the minimap, below its buff row and above the story cards |
+| `Looks.lua` | `Setup.Looks`: the one-click Looks, named sets of existing settings, and which one the settings match |
 | `Setup.lua` | The choices, `Apply`, the story slot's split, the first run, and when the window opens |
 | `Integrations.lua` | Live addon discovery, same-job choices and integration lanes |
 | `Addons.lua` | The optional Your addons page, using the existing Options settings and skin registry |
 | `Window.lua` | The window, built from the widget kit |
 
-Tests: `Tools/regression/test-setup.lua`, `test-setup-addons.lua`, `test-setup-editmode.lua` and `test-setup-layouts.lua`.
+Tests: `Tools/regression/test-setup.lua`, `test-setup-first-run.lua`, `test-setup-addons.lua`, `test-setup-editmode.lua` and `test-setup-layouts.lua`.
 
 **Your addons** follows Modules when the client reports enabled supported addons. It offers registry skins and the existing same-job Options settings. Unsupported addons are omitted; if Skins is not loaded, only available same-job choices count. Reopening reads current addon choices; Apply writes them after the layout preset, and Keep my UI discards pending changes.
 
@@ -25,19 +26,19 @@ Tests: `Tools/regression/test-setup.lua`, `test-setup-addons.lua`, `test-setup-e
 
 ## The steps
 
-General > Layout pictures in setup defaults on: DPS, Tank and Healer cards show 512x256 HUD renders at 180x90, following the selected HUD style. Off restores the footprint diagram and hover legend. General > Readable setup notes defaults on: 11-unit body notes wrap and respect the reading floor; the module list scrolls when it needs more room. Off restores the previous small single-line module notes. `test-setup-polish` checks both choices, the 0.65 window scale and picture placement after a text-size change.
+General > Layout pictures in setup defaults on: DPS, Tank and Healer cards show 512x256 HUD renders at 180x90, following the selected HUD style. Off restores the footprint diagram and hover legend. General > Big pictures in setup defaults on: with the layout pictures on, the cards keep their name and note and the footprint diagram's place shows one large 16:9 picture (`Media/Textures/Setup/<Style><Layout>.tga`, 1024x512) of the layout picked or pointed at, in the chosen HUD style; the summary's layout card shows it too. Where the screen is wider than the HUD width (`Scale.Origin()` or `Scale.Band()` above 0), two cards beside it pick the ultrawide arrangement, Centred or Spread, and pointing at one shows its 32:9 picture (`<Style>Centred`, `<Style>Spread`, 1024x256). The pictures load only while the window is open: the preview sets its texture only then, and closing clears it. Off restores the small card pictures. General > One-click Looks defaults on: the HUD style step offers the Looks under the style cards, and the General page offers them under the HUD style. `test-setup-first-run` checks all of it at 1920x1080, 2560x1440, 5120x1440 and 3840x2160 and in every locale. General > Readable setup notes defaults on: 11-unit body notes wrap and respect the reading floor; the module list scrolls when it needs more room. Off restores the previous small single-line module notes. `test-setup-polish` checks both choices, the 0.65 window scale and picture placement after a text-size change.
 
 The window is a titled `Widgets.Panel` (760 by 540 units, `DIALOG` strata, Escape closes it) that opens with the panel motion. It registers with Layout as `setup.window`, scalable, 40 units above the centre. A `Widgets.Tabs` strip shows five steps, or six with enabled supported addons. A step the player has not reached is disabled, and each page fades in over `fade`.
 
 1. **Welcome.** The logo, a short welcome, the four or five steps ahead, on the first run the note that closing applies the DPS layout with every module on, **Keep my UI** and **Next**.
-2. **HUD style.** Two cards side by side on the layout cards' button body, **Medallions** and **Frames**, each with its one-line note and its picture (`HudStyleMedallions`, `HudStyleFrames`, the same pictures the settings window shows), with the same `accent` hairline and selection glow. The profile's saved style is picked first, Medallions for a new one. A player whose saved Frames style migration 45 removed in v0.2.12 or v0.2.13 picks it again here; their Frames Layout Mode positions were kept and come back with it. A hint under them says the style changes later at the top of the settings window's General page, and that a change made in combat waits for combat to end. Apply writes the pick to the `HudStyle` section (`Core/HudStyle.lua`), which switches it.
+2. **HUD style.** Two cards side by side on the layout cards' button body, **Medallions** and **Frames**, each with its one-line note and its picture (`HudStyleMedallions`, `HudStyleFrames`, the same pictures the settings window shows), with the same `accent` hairline and selection glow. The profile's saved style is picked first, Medallions for a new one. A player whose saved Frames style migration 45 removed in v0.2.12 or v0.2.13 picks it again here; their Frames Layout Mode positions were kept and come back with it. A hint under them says the style changes later at the top of the settings window's General page, and that a change made in combat waits for combat to end. Apply writes the pick to the `HudStyle` section (`Core/HudStyle.lua`), which switches it. Under the hint, **Look** offers Forged, Clean and Readable (see [Looks](#looks)), picked first from the settings; a profile whose settings match none shows **Your own**, which Apply keeps.
 3. **Layout.** One card per layout on the button grade's body, its name and its note, over one large 16:9 preview of the picked layout (the hovered card's while the pointer is on one): a glass panel at the tile chamfer with the drop shadow that draws each element the layout shows at its Lumen footprint (`Layouts.Footprint`, `Layouts.Shown`), names it where its label (or its `short` label) fits the block, and outlines the story slot in the accent and names it (**Story rail**, or **Quests** where that does not fit; round 6, Opus). The elements whose place or presence differs between the layouts (the group frames, the threat and boss cards, your combat text) draw in the accent over the shared hands and rails, so Tank's named threat card and Healer's group frames read at a glance. The legend beside the preview names the outline, the **Story rail**, and says Apply places the quest tracker there through Edit Mode. A click picks the card: an `accent` hairline and a selection glow. DPS is picked first. The preview takes the page's height under the cards, so the step has no empty half.
 4. **Modules.** A toggle and a one-line note for each module in `Setup.PICKER`, with **All on** and **All off**. Every module whose addon loaded starts on. A module whose addon did not load is off, disabled and says so. The settings window is not in the list: it loads on demand.
 5. **Summary.** The HUD style, the layout and the modules that will be on and off, then **Apply**. After Apply, the secure **Reload** button and **Later**, and what Edit Mode did (`EditMode.Last()`): the active "KstyleUI <layout>" layout, a write waiting for combat to end, or a refusal with its reason and **Try again** (`Setup.RetryEditMode`), never a drag instruction. When the tracked buffs overflow every arrangement, it names the counts and offers **Open the Cooldown Manager**. Changing a choice afterwards shows **Apply** again.
 
 ## Apply
 
-`Setup.Apply(choice)` with `choice = { hudStyle, layout, modules = { [name] = boolean } }`:
+`Setup.Apply(choice)` with `choice = { hudStyle, layout, modules = { [name] = boolean }, look, arrangement }`. Before the HUD style it wears `choice.look` when it differs from the Look the settings match, and writes `Layout.arrangement` when `choice.arrangement` differs from the saved one, so the default choice changes neither:
 
 1. For each module in the picker whose addon loaded, `Options.Write(name, "enabled", value)`. Writing through `Options` starts or stops the module through `Modules`, waiting for the end of combat if needed, and fires `SettingChanged`, so an open settings window refreshes.
 2. For each element key, the layout's `{ anchor, x, y }`:
@@ -50,6 +51,18 @@ The window is a titled `Widgets.Panel` (760 by 540 units, `DIALOG` strata, Escap
 7. It turns `setupSeen` on and logs the layout, the counts, the HUD style and the modules switched on and off to the devlog.
 
 It returns `false` for an unknown layout, or before the saved data loads.
+
+## Looks
+
+`Setup.Looks.LIST` names three Looks. Each sets the same seven existing settings (Widgets ornaments, card material and panel opacity; Medallions motion and ambient hub effects; the kit's motion and text outline) and the Readability text preset, every one the Look does not name at its default, so each Look is complete and picking one after another never mixes them:
+
+| Look | What it sets |
+| --- | --- |
+| Forged | Every value at its default: the look KstyleUI ships with, and the way back |
+| Clean | No ornaments, the Glass material at 0.65 opacity, Calm motion for the HUD and the kit, the hub's ambient effects off |
+| Readable | The Readable text preset, a soft text shadow, Subtle ornaments, the Slate material at 0.92 opacity |
+
+`Looks.Current()` reads the settings and returns the Look they match, or nil; nothing about a Look is saved. `Looks.Apply(name)` writes only values that differ and switches the text preset only when it changes, so your own text sizes stay under Standard Looks. The ornaments and material show on Frames; Medallions draws its own steel, so there the Looks change motion, the hub, panels and text.
 
 ## Edit Mode
 

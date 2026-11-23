@@ -1,6 +1,7 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
 	<Script file="Layouts.lua"/>
 	<Script file="EditMode.lua"/>
+	<Script file="Looks.lua"/>
 	<Script file="Setup.lua"/>
 	<Script file="Integrations.lua"/>
 	<Script file="Addons.lua"/>
