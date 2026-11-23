@@ -649,6 +649,20 @@ def draw_slab(w, h, radius, rim=SLAB_RIM, density=SLAB_DENSITY, topline=True):
     return _resolve(rgb, (d >= 0).astype(float), w, h)
 
 
+def draw_slab_cap(w, h, chamfer=5, band=5, rim=SLAB_RIM, density=SLAB_DENSITY):
+    """UnitSlab with forged ends: corners cut at 45 degrees and a gunmetal end band in Ring256's metal, lit from above."""
+    import numpy as np
+    p, u = _Palette(), density
+    x, y = _canvas(w, h)
+    end = np.minimum(x, w - x)
+    d = np.minimum(np.minimum(end, np.minimum(y, h - y)), (end + np.minimum(y, h - y) - chamfer * u) / np.sqrt(2))
+    rgb = _shape_fill(x, y, w, h, d, u, rim, p.FillTop, p.FillBottom, p)
+    rgb = _mix(rgb, p.TopLine, ((y >= u) & (y < 2 * u) & (end >= band * u)) * p.alpha("TopLine"))
+    metal = _mix(_ring_metal(d / u, 1 - y / h, band, p), p.Outline, (end >= (band - 1) * u).astype(float))
+    rgb = np.where((end < band * u)[..., None], metal, rgb)
+    return _resolve(rgb, (d >= 0).astype(float), w, h)
+
+
 def draw_plaque(n, units):
     import numpy as np
     p, u = _Palette(), n / units
@@ -871,6 +885,9 @@ CHROME = [
            "medActionSlab", 16, SLAB_DENSITY),
     Chrome("UnitSlab", 128, 128, lambda: draw_slab(128, 128, 6),
            "Unit frame slab: ActionSlab with a 6-unit radius. Nine-slice, 2 texels a unit.", "medUnitSlab", 16, SLAB_DENSITY),
+    Chrome("UnitSlabCap", 128, 128, lambda: draw_slab_cap(128, 128),
+           "Unit frame slab with forged end caps: UnitSlab's fill, rim and catch-light, its corners cut at 45 degrees 5 units along each edge, and a 5-unit end band in Ring256's gunmetal (outline, hairline, bevel peaking 40% in) lit from the top and closed by a 1-unit black groove. Nine-slice, 2 texels a unit.",
+           "medUnitSlabCap", 16, SLAB_DENSITY),
     Chrome("GroupTile", 64, 64, lambda: draw_slab(64, 64, 3, rim=2, topline=False),
            "Group and raid tile: the slab material at a 3-unit radius with a 2-unit rim. Nine-slice, 2 texels a unit.",
            "medGroupTile", 8, SLAB_DENSITY),

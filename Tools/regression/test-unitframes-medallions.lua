@@ -1,4 +1,4 @@
--- test-unitframes-medallions.lua: under the Medallions HUD style every unit frame is a slab, the player, target, focus, pet and boss frames carry a medallion on their outer end with a class or reaction ring and a level plaque, target of target and focus target are mini slabs, the resolver picks painted art only from plain identity strings, and the flip-in, low-health ring and sheen run as engine animations; Frames comes back untouched.
+-- test-unitframes-medallions.lua: under the Medallions HUD style every unit frame is a slab with forged end caps (Forged slab ends off restores the rounded slab),the player, target, focus, pet and boss frames carry a medallion on their outer end with a class or reaction ring and a level plaque, target of target and focus target are mini slabs, the resolver picks painted art only from plain identity strings, and the flip-in, low-health ring and sheen run as engine animations; Frames comes back untouched.
 local U = dofile("Tools/regression/unitframes_env.lua")
 
 local BUST, BADGE = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Medallions\\Bust_Dwarf_SHAMAN_2.png", "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Medallions\\Badge_Dwarf_SHAMAN_2.png"
@@ -66,7 +66,13 @@ end
 local view = frames.player.views[1]
 assert(view.form == "slab" and view.geometry.form == "slab", "the player is laid out as a slab")
 assert(view.slab and view.slab[5]:IsShown(), "the slab's sliced material shows")
-assert(view.slab[5]:GetTexture() == (K.Tokens.Texture("medUnitSlab")), "the slab wears the shared unit slab texture, not drawn lines")
+assert(view.slab[5]:GetTexture() == (K.Tokens.Texture("medUnitSlabCap")), "the slab wears the shared unit slab texture with its forged end caps, not drawn lines")
+K.Options.Write("UnitFrames", "slabCaps", false)
+env.RunTimers()
+assert(view.slab[5]:GetTexture() == (K.Tokens.Texture("medUnitSlab")) and view.slab[5]:IsShown() and not view.slabs.medUnitSlabCap[5]:IsShown(), "Forged slab ends off restores the rounded slab alone")
+K.Options.Write("UnitFrames", "slabCaps", true)
+env.RunTimers()
+assert(view.slab == view.slabs.medUnitSlabCap and view.slab[5]:IsShown() and not view.slabs.medUnitSlab[5]:IsShown(), "Forged slab ends on brings the caps back")
 assert(view.healthText:GetJustifyH() == "RIGHT" and select(3, view.healthText:GetFont()) == "OUTLINE", "the player's health number sits right in the bar, outlined")
 assert(view.healthText:GetFont() == K.Tokens.Font("number") and Settings.Font("player", "power") == K.Tokens.Font("number"), "the health and power numbers read in the number role")
 assert(view.health.finish == "medallions" and view.health.cleanSheen:IsShown() and view.health.cleanLit:IsShown(), "the bar wears the Medallions finish: shade, sheen and a lit fill end")

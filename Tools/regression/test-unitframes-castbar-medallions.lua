@@ -40,7 +40,7 @@ assert(element.frame:IsShown(), "the cast stays shown across the switch")
 local frameW, frameH = element.frame:GetSize()
 local styled = K.Setup.Layouts.Style("DPS", "unitframes.castbar.player")
 assert(near(frameH, 20) and near(frameW, 300, 1) and near(styled.width, 300) and styled.x == 0, "the cast element is the 300 by 20 slab centred over the hub, got " .. tostring(frameW) .. "x" .. tostring(frameH))
-assert(element.slab and element.slab[5]:IsShown() and element.slab[5]:GetTexture() == (Tokens.Texture("medUnitSlab")), "it wears the unit slab material")
+assert(element.slab and element.slab[5]:IsShown() and element.slab[5]:GetTexture() == (Tokens.Texture("medUnitSlabCap")), "it wears the unit slab material with its forged end caps")
 assert(not element.iconFrame:IsShown(), "no spell icon: the slab holds the bar and its two texts")
 
 local inset = K.Widgets.Snap(element.frame, 3)

@@ -47,6 +47,7 @@ Widgets.TEXTURE_TEXELS = {
 	lumenShadow = 128,
 	medActionSlab = 128,
 	medUnitSlab = 128,
+	medUnitSlabCap = 128,
 	medCardEdge = 128,
 	medAuraBorder = 64,
 	medGroupTile = 64,

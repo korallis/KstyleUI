@@ -223,6 +223,7 @@ Settings.defaults = {
 	accentColor = Color("accentDefault"),
 	dangerEdge = true,
 	cleanLowRing = true,
+	slabCaps = true,
 	castbarOnFrame = true,
 	edit = "player",
 	player = Kind(true, {
@@ -1583,6 +1584,8 @@ function Settings.Schema()
 			help = L["Shorten long names in the same face and capitals. Off allows the original body face."] },
 		{ type = "toggle", key = "singleSlabLevel", label = L["Show each level once"],
 			help = L["Keep the portrait level and leave room for names. Off repeats the level beside the name."] },
+		{ type = "toggle", key = "slabCaps", label = L["Forged slab ends"],
+			help = L["Ends each Medallions frame and cast bar in a cut steel cap. Off restores the rounded ends."] },
 		{
 			type = "toggle", key = "hideBlizzard", label = L["Hide Blizzard's unit frames"],
 			help = L["Hides Blizzard's player, target, focus, pet and boss frames that KstyleUI replaces."],

@@ -474,6 +474,7 @@ local TEXTURES = {
 	medSlotPushed = { file = "Textures\\Medallions\\SlotPushed.png" },
 	medTargetBrackets = { file = "Textures\\Medallions\\TargetBrackets.png" },
 	medUnitSlab = { file = "Textures\\Medallions\\UnitSlab.png", slice = 16, density = 2 },
+	medUnitSlabCap = { file = "Textures\\Medallions\\UnitSlabCap.png", slice = 16, density = 2 },
 	medVignette = { file = "Textures\\Medallions\\Vignette.png" },
 	hudStyleMedallions = { file = "Textures\\HudStyleMedallions.tga" },
 	logo = { file = "Logo\\Logo64.png" },

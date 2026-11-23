@@ -469,7 +469,8 @@ local function Form(cb)
 	cb.medalOn = cb.medal
 	cb.iconChrome:SetShown(not cb.medal)
 	if cb.medal and not cb.slab then
-		cb.slab = Widgets.NineSlice(cb.frame, "medUnitSlab", "BACKGROUND", 1)
+		cb.slabs = {}
+		cb.slab = ns.Slab.Material(cb.frame, cb.slabs)
 	end
 	if cb.slab then
 		Widgets.ShowSlice(cb.slab, cb.medal)
@@ -651,6 +652,8 @@ local function LayoutMedal(cb, width, height, column)
 	cb.chrome:SetShown(false)
 	cb.panel:ClearAllPoints()
 	cb.panel:SetAllPoints(frame)
+	cb.slab = ns.Slab.Material(frame, cb.slabs)
+	Widgets.ShowSlice(cb.slab, true)
 	Widgets.LayoutSlice(cb.slab, frame, select(3, Tokens.Texture("medUnitSlab")))
 	ShowLock(cb)
 	local inset, pad = Snap(cb, MEDAL_INSET), Snap(cb, MEDAL_TEXT_PAD)

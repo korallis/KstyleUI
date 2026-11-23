@@ -1,4 +1,4 @@
--- test-perf-medallions-switches.lua: in the idle Medallions suite at full health, the Medallions page's Low-health vignette and Ambient hub effects switches (on by default) take their art out of the draw when off, hidden rather than alpha 0, with no loop or OnUpdate left running for them (the vignette's breath runs on only for the portrait ring that breathes on it) and no player health event reaching the vignette, switching them back on restores the counts, and a fresh load saved with both off matches the switched-off counts.
+-- test-perf-medallions-switches.lua: in the idle Medallions suite at full health, the resting crest runs only its two breaths (Calm crest at rest off adds back the rune turn, the sheen and five sparks), and the Medallions page's Low-health vignette and Ambient hub effects switches (on by default) take their art out of the draw when off, hidden rather than alpha 0, with no loop or OnUpdate left running for them (the vignette's breath runs on only for the portrait ring that breathes on it) and no player health event reaching the vignette, switching them back on restores the counts, and a fresh load saved with both off matches the switched-off counts.
 local Suite = dofile("Tools/regression/suite_env.lua")
 local FX = dofile("Tools/regression/effects_env.lua")
 local SETTLE = 600
@@ -65,6 +65,11 @@ end
 
 local shown, loops = Census(env)
 assert(Edge() and V.frame.breath:IsPlaying(), "by default the vignette's edge is shown at the curve's alpha and breathes")
+K.Options.Write("Medallions", "restingCrest", false)
+local shownAwake, loopsAwake = Census(env)
+assert(loopsAwake - loops == 7 and shownAwake - shown == 5, string.format("the resting crest stops the rune turn, the sheen and 5 sparks: %d loops and %d shown awake, %d and %d at rest", loopsAwake, shownAwake, loops, shown))
+K.Options.Write("Medallions", "restingCrest", true)
+assert(select(2, Census(env)) == loops, "Calm crest at rest back on settles the crest again")
 local probe = env.CreateFrame("Frame", nil, env.UIParent)
 env.C_Timer.After(0, function() probe:SetScript("OnUpdate", function() end) end)
 assert(not pcall(Census, env), "the census must see an OnUpdate that a timer starts; run timers before scanning")
@@ -74,8 +79,8 @@ local shownOff, loopsOff = Census(env)
 assert(not Edge() and V.frame.breath:IsPlaying(), "the vignette switch off hides the edge textures and keeps the breath the portrait ring breathes on")
 local healthOff = Health(env, V)
 assert(healthOff == 0, "the vignette switch off still set the vignette's alpha " .. healthOff .. " times for 10 health changes; unregister UNIT_HEALTH while it is off (Core/Vignette.lua Listen)")
-assert(loops - loopsOff == 9, string.format("the switches off stop the hub's 9 ambient loops: %d loops before, %d after", loops, loopsOff))
-assert(shown - shownOff >= 22, string.format("the switches off hide the vignette's 16 edge slices and the hub's sheen and live particles: %d shown before, %d after", shown, shownOff))
+assert(loops - loopsOff == 2, string.format("the switches off stop the resting hub's 2 breaths: %d loops before, %d after", loops, loopsOff))
+assert(shown - shownOff >= 17, string.format("the switches off hide the vignette's 16 edge slices and the hub's sheen: %d shown before, %d after", shown, shownOff))
 Switch(true)
 local shownOn, loopsOn = Census(env)
 assert(Health(env, V) == 10, "switched back on, every health change sets the vignette's alpha again")

@@ -251,7 +251,7 @@ class ChromeTest(unittest.TestCase):
     consumers size from."""
 
     def test_the_kit_is_the_spec_list(self):
-        spec = {"UnitSlab", "ActionSlab", "Slot", "SlotHighlight", "SlotPushed", "SlotChecked", "Ring128", "Ring256",
+        spec = {"UnitSlab", "UnitSlabCap", "ActionSlab", "Slot", "SlotHighlight", "SlotPushed", "SlotChecked", "Ring128", "Ring256",
                 "HubSocket", "CardEdge", "MinimapRing", "LevelPlaque", "AuraBorder", "GroupTile",
                 "GroupTargetRing", "TargetBrackets", "Enamel128", "Enamel256", "SlotMask", "SlotSocket", "MinimapCrestRing", "MinimapCrestEnamel"}
         self.assertEqual({c.name for c in kit.CHROME}, spec)
@@ -313,8 +313,16 @@ class ChromeTest(unittest.TestCase):
                 for x in range(piece.slice, w - piece.slice):
                     self.assertIsNone(ImageChops.difference(middle, image.crop((x, 0, x + 1, h))).getbbox(), f"column {x}")
 
+    def test_the_slab_cap_ends_in_lit_steel(self):
+        image = open_rgba(f"{kit.OUT}/UnitSlabCap.png")
+        w, h = image.size
+        self.assertEqual(alpha_at(image, 3, 3), 0, "the corner is cut away at 45 degrees")
+        band, body = image.getpixel((5, h // 2)), image.getpixel((w // 2, h // 2))
+        self.assertGreater(sum(band[:3]), sum(body[:3]) + 60, "the end band is steel against the dark body")
+        self.assertGreater(sum(image.getpixel((5, 24))[:3]), sum(image.getpixel((5, h - 24))[:3]), "the band is lit from the top")
+
     def test_slabs_and_cards_have_a_black_outline_and_a_lit_top(self):
-        for name in ("ActionSlab", "UnitSlab", "CardEdge", "GroupTile", "LevelPlaque"):
+        for name in ("ActionSlab", "UnitSlab", "UnitSlabCap", "CardEdge", "GroupTile", "LevelPlaque"):
             image = open_rgba(f"{kit.OUT}/{name}.png")
             w, h = image.size
             with self.subTest(name):

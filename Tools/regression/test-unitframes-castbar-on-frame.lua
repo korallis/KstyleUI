@@ -1,4 +1,4 @@
--- test-unitframes-castbar-on-frame.lua: Medallions hangs the player and target cast bars under their frames; the setting off, a moved or hidden bar, or Frames keep the bars above the crest.
+-- test-unitframes-castbar-on-frame.lua: Medallions hangs the player and target cast bars under their frames, in a slab with forged end caps that Forged slab ends off rounds again; the setting off, a moved or hidden bar, or Frames keep the bars above the crest.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -52,6 +52,12 @@ for _, kind in ipairs({ "player", "target" }) do
 	assert(near(fw, view.button:GetWidth()) and near(fh, 20), kind .. ": the bar's frame is the frame's width, like the focus and boss bars, got " .. tostring(fw))
 	assert(near(view.button:GetBottom() - cb.frame:GetTop(), K.Widgets.Snap(cb.frame, 2)) and near(cb.frame:GetLeft(), view.button:GetLeft()), kind .. ": the bar hangs under the frame, flush with its slab")
 end
+local capped = CastBars.Inline("player")[1]
+assert(capped.slab[5]:GetTexture() == (K.Tokens.Texture("medUnitSlabCap")), "the cast slab wears the forged end caps")
+write("slabCaps", false)
+assert(capped.slab[5]:GetTexture() == (K.Tokens.Texture("medUnitSlab")) and capped.slab[5]:IsShown() and not capped.slabs.medUnitSlabCap[5]:IsShown(), "Forged slab ends off restores the rounded cast slab")
+write("slabCaps", true)
+assert(capped.slab == capped.slabs.medUnitSlabCap and capped.slab[5]:IsShown() and not capped.slabs.medUnitSlab[5]:IsShown(), "and on brings its caps back")
 write("target.castbarIcon", true)
 for _, kind in ipairs({ "player", "target" }) do
 	local view, cb = ns.Frames.Get(kind).views[1], CastBars.Inline(kind)[1]
