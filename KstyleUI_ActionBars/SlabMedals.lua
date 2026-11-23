@@ -295,7 +295,7 @@ function Medals.Medal(parent, spec, level)
 	for _, lit in ipairs(m.lits) do
 		Medals.Flare(m, lit, top + 1, spec.burst or "glow", size * BURST)
 	end
-	m.spec = spec
+	m.spec, m.texture = spec, spec.texture
 	return m
 end
 
@@ -435,6 +435,18 @@ function Medals.Emblem(parent, spec, level)
 	e.lit:SetAlpha(0)
 	e.lits, e.spec = { e.lit }, spec
 	return e
+end
+
+function Medals.Retexture(piece, texture)
+	if piece.steel and piece.texture ~= texture then
+		piece.texture, piece.usable = texture, nil
+		piece.steel:SetTexture(texture)
+		for _, lit in ipairs(piece.lits) do
+			if not lit.container and lit.icon then
+				lit.icon:SetTexture(texture)
+			end
+		end
+	end
 end
 
 function Medals.Place(piece, anchor, x, y)

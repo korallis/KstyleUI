@@ -386,6 +386,7 @@ function Trackers.Update()
 		local spec = specs[key]
 		local piece = form.pieces[key] or not restricted and Build(form, name, key, spec)
 		if piece then
+			Medals.Retexture(piece, spec.texture)
 			prepared[key] = piece
 			if active[key] then
 				shown[key] = piece
