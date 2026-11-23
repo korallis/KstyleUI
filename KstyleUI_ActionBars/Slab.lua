@@ -638,7 +638,8 @@ local function Held()
 end
 
 local function Resting(held)
-	if held or state.combat or next(state.procs) or K.Store.Module("Medallions").restingCrest == false then
+	local cfg = K.Store.Module("Medallions")
+	if held or state.combat or next(state.procs) or cfg.restingCrest == false or cfg.ambient == false or not Slab.Allows("ambient") then
 		return false
 	end
 	local target = UnitExists and UnitExists("target")
@@ -662,8 +663,9 @@ local function Animate()
 			g:Pause()
 		elseif rest and g == hub.sheen.run then
 			if g:IsPlaying() then g:Finish() end
-		elseif not g:IsPlaying() and not (held and g == hub.sheen.run) then
-			g:Play()
+		elseif not (held and g == hub.sheen.run) then
+			if g.IsPendingFinish and g:IsPendingFinish() then g:Stop() end
+			if not g:IsPlaying() then g:Play() end
 		end
 	end
 	local alive = (held or rest or not Slab.Allows("particle")) and 0 or state.combat and PARTICLES or CALM_PARTICLES
@@ -680,6 +682,10 @@ local function Animate()
 	end
 	hub.glow:SetAlpha(state.combat and min(1, BREATH_HIGH * COMBAT_GLOW) or BREATH_HIGH)
 	hub.bloom:SetAlpha(1)
+end
+
+local function Wake()
+	if state.built and Slab.hub:IsShown() and Resting(Held()) ~= state.rest then Animate() end
 end
 
 local function Edges(frame)
@@ -981,11 +987,8 @@ function Slab.SetProc(b, on, refresh)
 		return
 	end
 	local active = Slab.Active()
-	local woke = next(state.procs) ~= nil
 	state.procs[b] = on and active or nil
-	if woke ~= (next(state.procs) ~= nil) and state.built and Slab.hub:IsShown() then
-		Animate()
-	end
+	Wake()
 	ns.SlabEffects.SlotProc(b, on and active)
 	if b.lumenGlow then
 		b.slabProc = active
@@ -1194,9 +1197,7 @@ function Slab.Enable()
 	K.Events.Register(OWNER, "PLAYER_REGEN_DISABLED", OnCombat)
 	K.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", OnCombat)
 	K.Events.Register(OWNER, "PLAYER_LEVEL_UP", OnLevel)
-	K.Events.Register(OWNER, "PLAYER_TARGET_CHANGED", function()
-		if state.built and Resting(Held()) ~= state.rest and Slab.hub:IsShown() then Animate() end
-	end)
+	K.Events.Register(OWNER, "PLAYER_TARGET_CHANGED", Wake)
 	K.Events.Register(OWNER, "PLAYER_ENTERING_WORLD", OnStyle)
 	K.Callbacks.Register("HudStyleChanged", OWNER, OnStyle)
 	K.Callbacks.Register("SettingChanged", OWNER, OnMotion)
