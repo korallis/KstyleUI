@@ -2110,16 +2110,9 @@ local function Option(widget)
 	if IsTable(note) and type(note.SetTextColor) == "function" then
 		Label(note, "caption")
 		note:SetTextColor(Style.Accent())
-		local text, points, plain = widget.text, {}, true
-		for i = 1, text:GetNumPoints() do
-			local point, relative, relativePoint, x = text:GetPoint(i)
-			plain = plain and Plain(x)
-			points[i] = { point, relative, relativePoint, x, Shown(note) and -BADGE.noteDrop or 0 }
-		end
-		if plain then
-			text:ClearAllPoints()
-			for _, p in ipairs(points) do text:SetPoint(unpack(p)) end
-		end
+		local _, _, _, _, y = widget.text:GetPoint(1)
+		local want = Shown(note) and -BADGE.noteDrop or 0
+		if Plain(y) and y ~= want then widget.text:AdjustPointsOffset(0, want - y) end
 	end
 	local checkbg = widget.checkbg
 	if not IsTable(checkbg) or type(checkbg.GetRegions) ~= "function" then
