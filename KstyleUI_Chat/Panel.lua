@@ -125,6 +125,14 @@ local function ScrollWidth(frame)
 	return Number(bar:GetWidth(), SCROLLBAR_WIDTH)
 end
 
+local function Focused(box)
+	if type(box.HasFocus) ~= "function" then
+		return false
+	end
+	local focus = box:HasFocus()
+	return IsSecret(focus) or focus == true
+end
+
 local function EditAlways()
 	local settings = state.settings
 	return settings ~= nil and settings.editBox == "always"
@@ -255,7 +263,7 @@ function Panel.UndockedInsets(frame)
 	local k = Ratio(frame, nil)
 	local pad = Pad() / k
 	local bottom = -pad
-	if EditAlways() then
+	if EditAlways() or (type(frame.editBox) == "table" and Focused(frame.editBox)) then
 		bottom = -(EDIT_DROP + EDIT_HEIGHT - max(0, (EDIT_HEIGHT - Tile() / k) / 2) + EDIT_BOTTOM / k)
 	end
 	return {
@@ -366,14 +374,6 @@ local function Protected(frame)
 	end
 	local protected = frame:IsProtected()
 	return IsSecret(protected) or protected == true
-end
-
-local function Focused(box)
-	if type(box.HasFocus) ~= "function" then
-		return false
-	end
-	local focus = box:HasFocus()
-	return IsSecret(focus) or focus == true
 end
 
 local function ApplyEdit(box, info)

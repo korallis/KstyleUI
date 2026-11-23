@@ -51,6 +51,7 @@ Settings.defaults = {
 	growth = "RIGHT_DOWN",
 	showCount = true,
 	showItemLevel = true,
+	cooldownNumbers = false,
 	separateFigures = true,
 	readableHeaders = true,
 	showQuality = true,
@@ -349,6 +350,7 @@ function Settings.Schema()
 		{ type = "toggle", key = "readableHeaders", label = L["Readable bag headings"], help = L["Use a full title band and smaller category headings. Off restores the previous headings."] },
 		{ type = "toggle", key = "showCount", label = L["Stack counts"], help = L["Show how many items are in each stack."], disableWhen = isOff },
 		{ type = "toggle", key = "showItemLevel", label = L["Item levels"], help = L["Show the item level of weapons and armour."], disableWhen = isOff },
+		{ type = "toggle", key = "cooldownNumbers", label = L["Cooldown numbers"], help = L["Count an item's cooldown down in numbers over its swipe. Off shows the swipe alone."], disableWhen = isOff },
 		{ type = "font", key = "font", label = L["Font"], help = L["The font of stack counts and item levels."], options = K.Widgets.InheritedFontOptions, disableWhen = isOff },
 		{
 			type = "slider", key = "fontSize", label = L["Font size"], help = L["The size of stack counts and item levels."],

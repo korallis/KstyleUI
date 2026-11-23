@@ -80,10 +80,15 @@ return Common.Run(function()
 	W.Enter(hovered.button)
 	hover[hovered.button] = true
 
-	-- The options preview on a plain holder, as the settings window's preview pane shows it.
-	local holder = env.CreateFrame("Frame", nil, root)
+	-- The options preview in the settings window's preview pane: its buttonFill tile (KstyleUI_Options/Preview.lua:600)
+	-- with the window inset around the preview.
+	local pane = K.Widgets.Panel(root, { shape = "tile", fill = "buttonFill", shadow = false })
+	local pad = K.Widgets.WindowInset(pane)
+	pane:SetSize(320 + 2 * pad, 150 + 2 * pad)
+	at(pane, root, 1100, 60)
+	local holder = env.CreateFrame("Frame", nil, pane)
+	holder:SetPoint("TOPLEFT", pane, "TOPLEFT", pad, -pad)
 	holder:SetSize(320, 150)
-	at(holder, root, 1100, 60)
 	local preview = K.Options.Preview("Bags")(holder)
 	preview:SetAllPoints(holder)
 	preview:Refresh()
@@ -112,10 +117,10 @@ return Common.Run(function()
 		caption = "The bank window on the character bank: the Bank and Warband tab strip, the search box with the Buy tab and Sort buttons, two bank bag slots in a strip under them, three purchased tabs' 84 slots in the same fixed grid as the bags, with all 71 empty sockets visible, and the free-slot and money footer.",
 		match = "Window grade as the mockup's tracker: surface fill, two-line edge, 12-unit chamfer and shadow; the tab strip, search box and buttons are the button body with the edgeInner hairline, and the slots the button grade.",
 	})
-	frames:Add(env, holder, {
+	frames:Add(env, pane, {
 		name = "bags_preview", title = "Bags preview", grade = "button", reference = "bufficons",
-		caption = "The options page's live preview for Bags: the heading and eight sample slots drawn by the module's own slot code with the current settings (a stack, an uncommon, a new epic, a rare, junk, two commons and an empty slot); the preview draws no chrome of its own and sits in the options window's preview pane.",
-		match = "Each sample slot is the button grade's body, chamfer and rim, as the mockup's buff icons; the plate behind them is the render's backdrop, not a panel, because the preview pane belongs to the Options module.",
+		caption = "The options page's live preview for Bags: the heading and eight sample slots drawn by the module's own slot code with the current settings (a stack, an uncommon, a new epic, a rare, junk, two commons and an empty slot); the preview draws no chrome of its own; it sits on the options window's preview pane tile, as here.",
+		match = "Each sample slot is the button grade's body, chamfer and rim, as the mockup's buff icons; the plate behind them is the options window's preview pane tile (buttonFill, no shadow).",
 	})
 
 	local scene = Gallery.Build(env, { time = env._time, hover = hover })

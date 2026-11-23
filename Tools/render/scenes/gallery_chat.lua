@@ -8,7 +8,7 @@ local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Scene = Common.Scene
 local C = dofile("Tools/regression/chat_env.lua")
 
-local TABS = { "General", "Combat", "Loot", "Trade" }
+local TABS = { "General", "Combat Log", "Loot", "Trade" }
 local LINES = {
 	{ "CHAT_MSG_LOOT", "You receive loot: |cff1eff00|Hitem:4232::::::::38:::::|h[Crocolisk Hide]|h|r x2." },
 	{ "CHAT_MSG_COMBAT_XP_GAIN", "You gain 168 experience." },
@@ -24,7 +24,6 @@ local LOOT = { 0, 0.67, 0 }
 local EXPERIENCE = { 0.44, 0.44, 1 }
 local UNDOCKED = { x = 1200, y = 640, width = 300, height = 120 }
 local EDIT_HEIGHT = 32
-local EDIT_GAP = 20
 
 local function plain(word)
 	return (word:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|H.-|h", ""):gsub("|h", ""))
@@ -133,14 +132,11 @@ return Common.Run(function()
 	Lines(env, chat)
 	Lines(env, trade)
 
-	-- The undocked window's edit box, where Blizzard's FloatingChatFrame anchors it: under the window, its width.
-	-- The general window sits at the screen's bottom edge, where its box would leave the screen.
+	-- The undocked window's edit box where the module places it: over the window's foot, inside its glass, as the
+	-- docked panel's box opens. Its height is FloatingChatFrame.xml's.
 	local glass = K.Skin.Parts(trade).backdrop
 	assert(glass, "the undocked window has its glass")
 	local box = trade.editBox
-	box:ClearAllPoints()
-	box:SetPoint("TOPLEFT", glass, "BOTTOMLEFT", 0, -EDIT_GAP)
-	box:SetPoint("TOPRIGHT", glass, "BOTTOMRIGHT", 0, -EDIT_GAP)
 	box:SetHeight(EDIT_HEIGHT)
 	-- Blizzard's UpdateHeader (ChatFrameEditBox.lua) insets the text by 15 plus the header and 13 at the right.
 	box:SetTextInsets(15, 13, 0, 0)
@@ -185,7 +181,7 @@ return Common.Run(function()
 	})
 	frames:Add(env, box, {
 		name = "chat_editbox", title = "Chat edit box", grade = "button", reference = "datastrip",
-		caption = "The Trade window's edit box skinned by Skin.EditBox (Frames.lua:254) while the player types: Blizzard's art stripped, the kit's input backdrop with its hairline lit in the accent while the box has focus.",
+		caption = "The Trade window's edit box skinned by Skin.EditBox (Frames.lua:254) while the player types, over the window's foot inside its glass as the docked panel's box opens: Blizzard's art stripped, the kit's input backdrop with its hairline lit in the accent while the box has focus.",
 		match = "A one-border line as the mockup's data strip pill, but the body is Core/Skin.lua's raised tone, not the button body #101214: Skin.EditBox is the skins wave's, outside this module.",
 		pad = 6,
 	})
@@ -207,6 +203,5 @@ return Common.Run(function()
 
 	local scene = Gallery.Build(env)
 	scene.log[#scene.log + 1] = "chat lines are laid out by the scene; the game's ScrollingMessageFrame wraps and spaces them itself"
-	scene.log[#scene.log + 1] = "the edit box is anchored by the scene under its window, as FloatingChatFrame anchors it"
 	return frames:Finish(scene, env, K, "gallery chat")
 end)

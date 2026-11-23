@@ -118,6 +118,8 @@ function Slot.Style(slot)
 	local path, size, flags = Settings.Font()
 	ApplyFont(slot.count, path, size, flags)
 	ApplyFont(slot.level, path, size, flags)
+	slot.cooldown:SetHideCountdownNumbers(not Settings.Get("cooldownNumbers"))
+	if slot.countdown then ApplyFont(slot.countdown, path, size, flags) end
 	if slot.bind then ApplyFont(slot.bind, path, Settings.Get("labelSize"), flags) end
 	if slot.set then ApplyFont(slot.set, path, Settings.Get("labelSize"), flags) end
 	if slot.name then
@@ -495,6 +497,10 @@ function Slot.New(parent, id, opts)
 	cooldown:SetDrawEdge(false)
 	cooldown:SetDrawBling(false)
 	slot.cooldown = cooldown
+	slot.countdown = cooldown.GetCountdownFontString and cooldown:GetCountdownFontString()
+	if slot.countdown then
+		slot.countdown:SetTextColor(Tokens.Color("textEmphasis"))
+	end
 	local overlay = CreateFrame("Frame", nil, button)
 	overlay:SetAllPoints(button)
 	overlay:SetFrameLevel(cooldown:GetFrameLevel() + OVERLAY_LEVEL)
