@@ -198,6 +198,8 @@ do
 	assert(W.LastCall(bar.timer, "SetCountdownFormatter")[1] ~= seconds, "off restores the plain formatter")
 	Write("bars.showCount", false); Write("rules.count", "4001")
 	assert(bar.count:GetAlpha() == 1, "Show counts reaches a bar")
+	local corner, tile, _, cx, cy = bar.count:GetPoint(1)
+	assert(corner == "BOTTOMRIGHT" and tile == bar.iconTile and cx < 0 and cy > 0, "the stack count sits inside the icon tile's corner, so it stays in the bar's height")
 	Write("rules.count", ""); Write("bars.showCount", true)
 	Clean(env, K, "tracked bars")
 end
