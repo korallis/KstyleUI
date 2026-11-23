@@ -690,6 +690,24 @@ do
 	Clean(env, K, "active choice")
 end
 
+-- Under Frames threat keeps its fill and its own art, and the five-second rule does not wear a potion's icon (review dd9bddac #14).
+do
+	local env, K, ns = New("WARRIOR", { 6673 }, { frames = true })
+	local threat
+	for _, piece in pairs(ns.SlabTrackers.state.form.pieces) do
+		if piece:IsVisible() and piece.spec.key == "crestThreat" then threat = piece end
+	end
+	assert(threat and threat.bar and not threat.steel, "the Frames threat piece is a gem that fills with your threat, not a shout medal")
+	Clean(env, K, "frames threat")
+end
+
+do
+	local env, K, ns = New("PALADIN", { 20154 }, { frames = true })
+	local medal = ns.SlabTrackers.state.form.pieces["1:1"]
+	assert(medal.texture ~= 134762 and medal.texture ~= 134851, "the five-second medal wears mana regeneration's icon, not a potion's")
+	Clean(env, K, "five-second icon")
+end
+
 -- Even pixels at four sizes.
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })
