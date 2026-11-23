@@ -49,7 +49,7 @@ local function Build()
 	local dot = Tokens.Texture("dot")
 	local pips = {}
 	for i = 1, PIPS do
-		local pip = Widgets.StatusBar(content, { texture = dot, background = TRACK })
+		local pip = Widgets.StatusBar(content, { texture = dot, background = TRACK, glass = false })
 		pip:SetBarRange(i - 1, i)
 		pip:SetBarValue(0)
 		pips[i] = pip

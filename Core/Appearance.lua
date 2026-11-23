@@ -37,7 +37,7 @@ Appearance.defaults = {
 	motion = "full",
 	calmLists = true,
 	auraEndings = true,
-	readableBars = true, worldText = true, chatTabs = true, barColors = true,
+	readableBars = true, worldText = true, chatTabs = true, barColors = true, litBars = true,
 	textFloor = true, sectionHeadings = true, oneVoice = true, softBacking = true,
 }
 for _, role in ipairs(ROLES) do
@@ -129,7 +129,7 @@ for _, role in ipairs(ROLES) do
 	CLEAN[ROLE_KEY[role]] = CleanRoleFont
 end
 
-local READABILITY = { readableBars = true, worldText = true, chatTabs = true, barColors = true, snapEdges = true, textFloor = true, sectionHeadings = true, oneVoice = true, softBacking = true }
+local READABILITY = { readableBars = true, worldText = true, chatTabs = true, barColors = true, litBars = true, snapEdges = true, textFloor = true, sectionHeadings = true, oneVoice = true, softBacking = true }
 for key in pairs(READABILITY) do
 	CLEAN[key] = function(value)
 		if type(value) == "boolean" then return value end
@@ -421,6 +421,8 @@ function Appearance.Schema()
 			help = L["Keep chat tabs visible, underline their names and leave room above the first message."] },
 		{ type = "toggle", key = "barColors", label = L["Bar colour refinements"],
 			help = L["Tint lost health from its bar and make mana a darker step below health."] },
+		{ type = "toggle", key = "litBars", label = L["Lit glass bars"],
+			help = L["A soft top light, thin inner edge and depth on every bar. Off restores each bar's old finish."] },
 		{ type = "header", label = L["Motion"] },
 		{ type = "toggle", key = "auraEndings", label = L["Quiet aura endings"],
 			help = L["Round up aura timers and hide the finishing flash on aura swipes. Off restores the old endings."] },

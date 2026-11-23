@@ -954,7 +954,7 @@ function Plate:LayoutAbsorb()
 		local clip = CreateFrame("Frame", nil, health)
 		clip:SetAllPoints(health)
 		clip:SetClipsChildren(true)
-		self.absorb = Widgets.StatusBar(clip, { background = false, color = "white" })
+		self.absorb = Widgets.StatusBar(clip, { background = false, glass = false, color = "white" })
 	end
 	local bar, place = self.absorb, ABSORB[Settings.Get("health.absorbPlace")]
 	bar:GetParent():SetFrameLevel(health:GetFrameLevel() + 1)

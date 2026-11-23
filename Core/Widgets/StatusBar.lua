@@ -18,6 +18,15 @@ local LIT_SUBLEVEL = 6
 local SHADE_ALPHA = 0.28
 local SHADE_SUBLEVEL = 5
 local EDGE_SOFT_SUBLEVEL, EDGE_HARD_SUBLEVEL, EDGE_TRACK_SUBLEVEL = -8, -7, -6
+local GLASS_LIGHT, GLASS_DEPTH, GLASS_RIM_LIT, GLASS_RIM_LOW = 0.24, 0.3, 0.4, 0.45
+local GLASS_MIN_PIXELS, GLASS_RIM_PIXELS = 3, 6
+local GLASS_SUBLEVEL, GLASS_RIM_SUBLEVEL = 6, 7
+local GLASS_PINS = {
+	{ "TOPLEFT", "TOPLEFT", -1, "BOTTOMRIGHT", "RIGHT", 0 },
+	{ "TOPLEFT", "LEFT", 0, "BOTTOMRIGHT", "BOTTOMRIGHT", 1 },
+	{ "TOPLEFT", "TOPLEFT", -1, "TOPRIGHT", "TOPRIGHT", -1 },
+	{ "BOTTOMLEFT", "BOTTOMLEFT", 1, "BOTTOMRIGHT", "BOTTOMRIGHT", 1 },
+}
 
 local SPARK_EDGE = {
 	HORIZONTAL = { normal = "RIGHT", reverse = "LEFT" },
@@ -161,7 +170,7 @@ function Bar:Paint()
 		self.sheen:SetVertexColor(Widgets.Rgba("textHover", SHEEN_ALPHA))
 	end
 	if self.lit then
-		self.lit:SetVertexColor(Widgets.Rgba("white", self.litAlpha or LIT_ALPHA))
+		self.lit:SetVertexColor(Widgets.Rgba("white", self.glassOn and 0 or self.litAlpha or LIT_ALPHA))
 	end
 end
 
@@ -169,8 +178,8 @@ function Bar:SetLitShade(lit, shade)
 	if not (self.lit and self.shade) then
 		return
 	end
-	self.litAlpha = lit
-	Shade(self.shade, shade)
+	self.litAlpha, self.shadeAlpha = lit, shade
+	Shade(self.shade, self.glassOn and 0 or shade)
 	self:Paint()
 end
 
@@ -252,6 +261,71 @@ end
 
 function Bar:EdgeLine()
 	return math.min(self:EdgeThickness(), self.edgeMax or EDGE_PIXELS)
+end
+
+local glassColors
+
+local function GlassLayer(host, sublevel)
+	local texture = Widgets.Crisp(host:CreateTexture(nil, "ARTWORK", nil, sublevel))
+	texture:SetColorTexture(Tokens.Color("white"))
+	return texture
+end
+
+local function MakeGlass(host)
+	local glass = { GlassLayer(host, GLASS_SUBLEVEL), GlassLayer(host, GLASS_SUBLEVEL), GlassLayer(host, GLASS_RIM_SUBLEVEL), GlassLayer(host, GLASS_RIM_SUBLEVEL) }
+	if type(glass[1].SetGradient) ~= "function" then
+		Widgets.LogOnce("bar-glass", "Texture:SetGradient is missing; bars draw without their glass")
+		glass.broken = true
+	else
+		glass[1]:SetGradient("VERTICAL", glassColors[1], glassColors[2])
+		glass[2]:SetGradient("VERTICAL", glassColors[3], glassColors[4])
+	end
+	Widgets.Tint(glass[3], "white", GLASS_RIM_LIT)
+	Widgets.Tint(glass[4], "black", GLASS_RIM_LOW)
+	return glass
+end
+
+function Bar:PlaceGlass()
+	local fill, mode = self:GetStatusBarTexture(), not self.vertical and self.glassMode
+	local px = Widgets.Snap(self, Scale.Pixel(1) / Widgets.ScaleFactor(self))
+	local inset = self.innerEdgeOn and Widgets.Snap(self, Scale.Pixel(self:EdgeLine()) / Widgets.ScaleFactor(self)) or 0
+	local pixels = CrossPixels(self)
+	if type(CreateColor) == "function" and not glassColors then
+		local wr, wg, wb = Tokens.Color("white")
+		local kr, kg, kb = Tokens.Color("black")
+		glassColors = { CreateColor(wr, wg, wb, 0), CreateColor(wr, wg, wb, GLASS_LIGHT), CreateColor(kr, kg, kb, GLASS_DEPTH), CreateColor(kr, kg, kb, 0) }
+	end
+	local on = mode and fill and glassColors and Widgets.Readability("litBars") and (pixels or GLASS_MIN_PIXELS) >= GLASS_MIN_PIXELS
+	if on and not self.glass then
+		self.glass = MakeGlass(self.glassHost or self)
+	end
+	local glass = self.glass
+	on = glass and on and not glass.broken and true or false
+	if glass then
+		if on and (glass.fill ~= fill or glass.inset ~= inset or glass.px ~= px) then
+			glass.fill, glass.inset, glass.px = fill, inset, px
+			for i, pin in ipairs(GLASS_PINS) do
+				glass[i]:ClearAllPoints()
+				glass[i]:SetPoint(pin[1], fill, pin[2], 0, pin[3] * inset)
+				glass[i]:SetPoint(pin[4], fill, pin[5], 0, pin[6] * inset)
+			end
+			glass[3]:SetHeight(px)
+			glass[4]:SetHeight(px)
+		end
+		local full = on and mode ~= "light"
+		local rims = on and (not pixels or pixels - 2 * inset / px >= GLASS_RIM_PIXELS)
+		glass[1]:SetShown(on)
+		glass[2]:SetShown(full)
+		glass[3]:SetShown(rims)
+		glass[4]:SetShown(full and rims)
+	end
+	if on ~= self.glassOn then
+		self.glassOn = on
+		if self.shade then
+			Shade(self.shade, on and 0 or self.shadeAlpha)
+			self.lit:SetVertexColor(Widgets.Rgba("white", on and 0 or self.litAlpha or LIT_ALPHA))
+		end
+	end
 end
 
 local function Ends(visibleTop, visibleBot, tHi, tLo, span)
@@ -377,6 +451,7 @@ function Bar:SetInnerEdge(on, token)
 		self.innerEdgeToken = token
 	end
 	self:PlaceInnerEdge()
+	self:PlaceGlass()
 end
 
 function Bar:PlaceBacking()
@@ -594,6 +669,7 @@ function Bar:Restyle()
 	end
 	self:PlaceBacking()
 	self:PlaceInnerEdge()
+	self:PlaceGlass()
 	self:PlaceFillCursor()
 end
 
@@ -608,6 +684,8 @@ function Widgets.StatusBar(parent, opts)
 	bar.colorName = opts.color or "accent"
 	bar.colorRGBA = { 0, 0, 0, 0, n = 0 }
 	bar.ownColor = false
+	bar.glassMode = opts.glass == "light" and "light" or opts.glass ~= false and "full" or nil
+	bar.glassOn = false
 	Tokens.Color(bar.colorName)
 	local orientation = opts.orientation or "HORIZONTAL"
 	bar.vertical = orientation == "VERTICAL"

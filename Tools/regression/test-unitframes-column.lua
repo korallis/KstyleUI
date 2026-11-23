@@ -234,7 +234,7 @@ end
 K.Options.Write("UnitFrames", "player.healthTexture", "Glass")
 Frames.Restyle(Frames.Get("player"))
 assert(player.health.textureKey == "Glass", "a chosen texture reaches the fill")
-assert(player.health.cleanLit:IsShown() and player.health.under.edgeHard:IsShown(), "and the clean edge and highlight stay")
+assert(player.health.glass[3]:IsShown() and player.health.under.edgeHard:IsShown(), "and the clean edge and the glass's lit rim stay")
 K.Options.Write("UnitFrames", "player.healthTexture", "Flat")
 K.Options.Write("UnitFrames", "player.style", "lumen")
 Frames.Restyle(Frames.Get("player"))

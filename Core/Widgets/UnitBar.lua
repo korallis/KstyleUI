@@ -301,8 +301,9 @@ local function PlaceFill(self)
 	sheen:ClearAllPoints()
 	shade:ClearAllPoints()
 	lit:ClearAllPoints()
-	sheen:SetShown(not self.vertical)
-	shade:SetShown(not self.vertical)
+	sheen:SetShown(not self.vertical and not self.glassOn)
+	shade:SetShown(not self.vertical and not self.glassOn)
+	lit:SetShown(not self.glassOn or self.finish == "medallions")
 	if self.finish == "medallions" and not self.vertical then
 		local fill, side = self:GetStatusBarTexture(), Reversed(self) and "LEFT" or "RIGHT"
 		lit:SetPoint("TOP" .. side, fill, "TOP" .. side)
@@ -390,6 +391,7 @@ local function Wrap(bar)
 		self.under:SetOrientation(orientation, ...)
 		self.recent:SetOrientation(orientation, ...)
 		self.vertical = orientation == "VERTICAL"
+		self:PlaceGlass()
 		PlaceFill(self)
 		PlaceSpark(self)
 	end
@@ -513,7 +515,7 @@ function Widgets.UnitBar(parent, opts)
 	opts = opts or {}
 	local bar = Widgets.StatusBar(parent, {
 		name = opts.name, width = opts.width, height = opts.height, color = opts.color, orientation = opts.orientation,
-		reverse = opts.reverse, texture = opts.texture or TEXTURE, background = false, smooth = true,
+		reverse = opts.reverse, texture = opts.texture or TEXTURE, background = false, smooth = true, glass = false,
 	})
 	for key, fn in pairs(Bar) do
 		bar[key] = fn
@@ -525,6 +527,7 @@ function Widgets.UnitBar(parent, opts)
 	bar.under = Under(bar, bar:GetParent())
 	local clip = Clip(bar, bar:GetStatusBarTexture())
 	bar.fillClip = clip
+	bar.glassHost, bar.glassMode = clip, opts.glass ~= false and "full" or nil
 	bar.cleanSheen = clip:CreateTexture(nil, "ARTWORK", nil, 2)
 	bar.cleanSheen:SetColorTexture(Widgets.Rgba("white"))
 	bar.cleanShade = clip:CreateTexture(nil, "ARTWORK", nil, 2)

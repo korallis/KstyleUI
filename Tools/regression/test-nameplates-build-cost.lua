@@ -4,7 +4,7 @@ local A = dofile("Tools/regression/auras_env.lua")
 
 local UNIT = { name = "Bloodtalon Matriarch", health = 29800, maxHealth = 48000, level = 40, classification = "elite", reaction = 2, canAttack = true, raid = 8 }
 local PLATES = 40
-local MAX_FRAMES, MAX_REGIONS = 108, 172
+local MAX_FRAMES, MAX_REGIONS = 108, 177
 
 local function objects(plate)
 	local frames, regions = 0, 0

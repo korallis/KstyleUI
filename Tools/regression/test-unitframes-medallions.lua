@@ -76,7 +76,7 @@ env.RunTimers()
 assert(view.slab == slab and slab.texture == "medUnitSlabCap" and slab[5]:IsShown(), "Forged slab ends on brings the caps back")
 assert(view.healthText:GetJustifyH() == "RIGHT" and select(3, view.healthText:GetFont()) == "OUTLINE", "the player's health number sits right in the bar, outlined")
 assert(view.healthText:GetFont() == K.Tokens.Font("number") and Settings.Font("player", "power") == K.Tokens.Font("number"), "the health and power numbers read in the number role")
-assert(view.health.finish == "medallions" and view.health.cleanSheen:IsShown() and view.health.cleanLit:IsShown(), "the bar wears the Medallions finish: shade, sheen and a lit fill end")
+assert(view.health.finish == "medallions" and view.health.glassOn and view.health.cleanLit:IsShown(), "the bar wears the Medallions finish: the lit glass and a lit fill end")
 assert(not view.health.under.edgeSoft:IsShown() and view.health.under.edgeHard:IsShown(), "only the one black pixel stands round the bar")
 assert(view.geometry.chrome == false, "the glass chrome is off")
 local m = view.medallion

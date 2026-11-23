@@ -99,7 +99,7 @@ do
 	N.Add(env, "nameplate1", { reaction = 2, health = 100, maxHealth = 100 })
 	local plate = ns.Plates.Get("nameplate1")
 	K.Options.Write("Nameplates", "health.texture", "Glass")
-	assert(plate.health.unitBar and plate.health.cleanLit:IsShown(), "another bar texture keeps the unit bar's colour-free shading")
+	assert(plate.health.unitBar and plate.health.glassOn and plate.health.glass[1]:IsShown(), "another bar texture keeps the unit bar's colour-free glass")
 	K.Options.Write("Nameplates", "health.texture", "Flat")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end

@@ -128,6 +128,7 @@ local function NewRow(list, index, parent, passive)
 	local bar = Widgets.StatusBar(frame, {
 		texture = ns.Get(section .. ".texture"),
 		background = "barTrack",
+		glass = "light",
 		smooth = true,
 		min = 0,
 		max = 1,

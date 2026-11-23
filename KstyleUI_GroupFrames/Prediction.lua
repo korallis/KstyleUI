@@ -17,10 +17,10 @@ local function Build(f)
 	f.predict:SetAllPoints(f.health)
 	f.predict:SetClipsChildren(true)
 	f.predict:SetFrameLevel(f.health:GetFrameLevel() + LEVEL_ABOVE_HEALTH)
-	f.heals = Widgets.StatusBar(f.predict, { background = false, smooth = true })
-	f.absorbs = Widgets.StatusBar(f.predict, { background = false, smooth = true })
-	f.shield = Widgets.StatusBar(f.predict, { background = false, smooth = true })
-	f.healAbsorbs = Widgets.StatusBar(f.predict, { background = false, smooth = true, reverse = true })
+	f.heals = Widgets.StatusBar(f.predict, { background = false, glass = false, smooth = true })
+	f.absorbs = Widgets.StatusBar(f.predict, { background = false, glass = false, smooth = true })
+	f.shield = Widgets.StatusBar(f.predict, { background = false, glass = false, smooth = true })
+	f.healAbsorbs = Widgets.StatusBar(f.predict, { background = false, glass = false, smooth = true, reverse = true })
 end
 Button.built[#Button.built + 1] = Build
 
@@ -131,7 +131,7 @@ local function Layout(f, parts)
 	Line(f, f.shield, rect, line, p.shieldPlace, c)
 	f.shield:SetShown(p.shield)
 	if p.healAbsorbLine and not f.healAbsorbLine then
-		f.healAbsorbLine = Widgets.StatusBar(f.predict, { background = false, smooth = true })
+		f.healAbsorbLine = Widgets.StatusBar(f.predict, { background = false, glass = false, smooth = true })
 	end
 	if f.healAbsorbLine then
 		Line(f, f.healAbsorbLine, rect, p.healAbsorbLines > 0 and Widgets.Border(f) * p.healAbsorbLines or line, ACROSS[p.shieldPlace], p.healAbsorbColor)
@@ -140,7 +140,7 @@ local function Layout(f, parts)
 	if p.overshield and not f.overClip then
 		f.overClip = CreateFrame("Frame", nil, f.predict)
 		f.overClip:SetClipsChildren(true)
-		f.overshield = Widgets.StatusBar(f.overClip, { background = false, smooth = true, reverse = true })
+		f.overshield = Widgets.StatusBar(f.overClip, { background = false, glass = false, smooth = true, reverse = true })
 		f.overshield:SetPoint("TOPRIGHT", f.health, "TOPRIGHT", 0, 0)
 	end
 	if f.overClip then

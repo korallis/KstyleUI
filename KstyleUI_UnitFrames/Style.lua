@@ -79,7 +79,7 @@ local function GlassShape(kind)
 end
 
 local function Prediction(health, colorName)
-	local bar = Widgets.StatusBar(health, { background = false, color = colorName, smooth = true })
+	local bar = Widgets.StatusBar(health, { background = false, glass = false, color = colorName, smooth = true })
 	bar:Hide()
 	return bar
 end
