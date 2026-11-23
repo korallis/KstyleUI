@@ -181,6 +181,12 @@ The core's `Options.Open(page)` loads this addon with `C_AddOns.LoadAddOn` the f
 
 General uses the live typography sample for Text and the other appearance sections; only Existing addons selects the boss lane preview when a lane is enabled. Scrolling between sections updates the preview.
 
+General > Window conveniences adds three switches, all on by default; off restores the previous behaviour:
+
+- **Search takes you there**: Enter opens the first result, and a click on any result row opens it, on its own page at its row; a scoped row (one frame or bar of a picker page) picks its frame first. The row lights with an accent wash that fades over the `highlight` moment. Results start with a one-line hint. Search in player words also widens each typed word to its synonym group, so `hp` finds health rows and `color` finds colour rows.
+- **Previews on Elements and Profiles**: Elements shows a screen map with a box for every live element, the section in view in the accent; it follows `LayoutChanged` while the window is open. Profiles shows the typography sample. About changes nothing visible and has no preview.
+- **One motion style**: `Motion.Moment(name)` holds the duration and curve for `open`, `close`, `page`, `snap` and `highlight`. Windows already use `open` and `close`; with the switch on, dropdown menus and Layout Mode's overlay and grid use them too (Layout Mode closes at once when combat starts), and the toolbar closes with the panel motion.
+
 ## Layout of the window
 
 General > Settings window contains the presentation choices, all on by default: player-word search, readable settings text, larger top-aligned previews (maximum 1.6), slim bright switches (20 units, 65% accent mix), aligned headings and 180x90 ornament samples. Turning each off restores its previous presentation. The reading floor is reapplied when a window opens at a saved scale or changes scale; `test-options-polish` reproduces the old 7.8 px label at 0.65 and checks the fix. Search synonyms are translated along with labels and help.

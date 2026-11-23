@@ -38,7 +38,7 @@ K.Options.Open("General")
 assert(win:GetAlpha() == alpha and not win.closing, "reopening continues from the current alpha")
 W.Tick(env, 0.3)
 assert(win:IsShown() and win:GetAlpha() == 1, "the reopened window reaches full alpha")
-K.Options.Open("Profiles")
+K.Options.Open("About")
 K.Options.Open("General")
 local sample = parts.preview.current
 assert(sample:GetAlpha() == 0, "a changed preview starts faded")

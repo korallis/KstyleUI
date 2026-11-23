@@ -1,4 +1,4 @@
--- options_setup.lua: one real Options page or setup step at a chosen window scale for G4/G9 evidence; RENDER_LOOK wears a Look, RENDER_SETUP_FEATURES=off turns the big pictures and Looks off, and RENDER_SETUP_POINT points at a layout or arrangement card.
+-- options_setup.lua: one real Options page or setup step at a chosen window scale for G4/G9 evidence; RENDER_LOOK wears a Look, RENDER_SETUP_FEATURES=off turns the big pictures and Looks off, and RENDER_SETUP_POINT points at a layout or arrangement card; RENDER_GO=N presses Enter on RENDER_QUERY and waits N ticks, RENDER_POLISH=off switches off the v0.3.0 search, preview and motion switches.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -32,6 +32,10 @@ return Common.Run(function()
 			}
 		end,
 	}))
+	if os.getenv("RENDER_POLISH") == "off" then
+		local account = K.Store.Account()
+		account.optionsSearchJump, account.optionsPreviewAll, account.motionOneStyle = false, false, false
+	end
 	local key
 	if (os.getenv("RENDER_LOOK") or "") ~= "" then assert(K.Setup.Looks.Apply(os.getenv("RENDER_LOOK"))) end
 	if os.getenv("RENDER_SUBJECT") == "setup" then
@@ -77,6 +81,11 @@ return Common.Run(function()
 		parts.search:SetText(query)
 		parts.search:GetScript("OnTextChanged")(parts.search, true)
 		Gallery.Ticks(W, env, 40)
+		local go = tonumber(os.getenv("RENDER_GO") or "")
+		if go then
+			parts.search:GetScript("OnEnterPressed")(parts.search)
+			Gallery.Ticks(W, env, go)
+		end
 	end
 	local err = Common.Errors(env, K)
 	assert(not err, tostring(err))

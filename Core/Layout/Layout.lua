@@ -1805,7 +1805,7 @@ local function Close()
 	history:Clear()
 	UpdateEvents()
 	Layout.Rest.Listen()
-	Mode("Hide")
+	Mode("Hide", state.combat)
 end
 
 function Layout.Exit(save)

@@ -133,14 +133,41 @@ function Model.Terms(query)
 	return terms
 end
 
+local function Found(haystack, term)
+	if type(term) == "string" then
+		return find(haystack, term, 1, true)
+	end
+	for _, word in ipairs(term) do
+		if find(haystack, word, 1, true) then
+			return true
+		end
+	end
+end
+
 function Model.Matches(text, terms)
 	local haystack = lower(text or "")
 	for _, term in ipairs(terms) do
-		if not find(haystack, term, 1, true) then
+		if not Found(haystack, term) then
 			return false
 		end
 	end
 	return true
+end
+
+local words
+
+function Model.Words(term)
+	if not words then
+		words = {}
+		for group in gmatch(lower(K.L["health hp life; interrupt interrupts kick kicks; colour colours color colors; opacity alpha transparency transparent; size scale bigger larger smaller; keybind keybinds hotkey hotkeys binding bindings; buff buffs aura auras; cooldown cooldowns cd cds; power mana rage energy; castbar cast casting; nameplate nameplates plates; xp experience; rep reputation; dps damage; font fonts typeface; mouseover hover"]), "[^;]+") do
+			local list = {}
+			for word in gmatch(group, "%S+") do
+				list[#list + 1] = word
+				words[word] = list
+			end
+		end
+	end
+	return words[term] or term
 end
 
 function Model.PageItems(page)
@@ -193,6 +220,11 @@ function Model.Search(pages, query)
 	local terms = Model.Terms(query)
 	if #terms == 0 then
 		return nil
+	end
+	if K.Store.Module("OptionsPresentation").synonyms then
+		for i, term in ipairs(terms) do
+			terms[i] = Model.Words(term)
+		end
 	end
 	local out = {}
 	for _, page in ipairs(pages) do

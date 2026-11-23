@@ -276,6 +276,24 @@ function Motion.Level()
 	return level
 end
 
+local MOMENTS = {
+	open = { "panelOpen", "enter" },
+	close = { "panelClose", "exit" },
+	page = { "fade", "enter" },
+	snap = { "hover", "enter" },
+	highlight = { "combatOut", "exit" },
+}
+
+function Motion.Moment(name)
+	local moment = MOMENTS[name]
+	return Tokens.Duration(moment[1]), Tokens.Easing(moment[2])
+end
+
+function Motion.OneStyle()
+	local store = ns.Store
+	return not (store and store.IsLoaded()) or store.Account().motionOneStyle ~= false
+end
+
 local groups = setmetatable({}, { __mode = "k" })
 
 function Motion.TrackGroup(group, settle)
@@ -360,7 +378,8 @@ function Motion.FadeIn(frame, duration, alpha)
 			frame:Show()
 		end
 	end
-	return Motion.Tween(frame, "SetAlpha", from, alpha, duration or Tokens.Duration("panelOpen"), Tokens.Easing("enter"))
+	local open, ease = Motion.Moment("open")
+	return Motion.Tween(frame, "SetAlpha", from, alpha, duration or open, ease)
 end
 
 local function Hidden(frame)
@@ -379,5 +398,6 @@ function Motion.FadeOut(frame, duration)
 	elseif not shown then
 		return nil
 	end
-	return Motion.Tween(frame, "SetAlpha", frame:GetAlpha(), 0, duration or Tokens.Duration("panelClose"), Tokens.Easing("exit"), onDone)
+	local close, ease = Motion.Moment("close")
+	return Motion.Tween(frame, "SetAlpha", frame:GetAlpha(), 0, duration or close, ease, onDone)
 end

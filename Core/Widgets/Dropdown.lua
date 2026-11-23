@@ -138,7 +138,7 @@ local function CloseMenu(m)
 	local owner = m.owner
 	m.owner = nil
 	m.catcher:Hide()
-	Motion.FadeOut(m, Tokens.Duration("hover"))
+	Motion.FadeOut(m, Motion.OneStyle() and Motion.Moment("close") or Tokens.Duration("hover"))
 	if owner then
 		owner:Paint()
 	end
@@ -291,7 +291,7 @@ function Dropdown:Open()
 	m.owner = self
 	LayoutMenu(m, self)
 	m.catcher:Show()
-	Motion.FadeIn(m, Tokens.Duration("hover"))
+	Motion.FadeIn(m, Motion.OneStyle() and Motion.Moment("open") or Tokens.Duration("hover"))
 	Widgets.Sound("U_CHAT_SCROLL_BUTTON")
 	self:Paint()
 end

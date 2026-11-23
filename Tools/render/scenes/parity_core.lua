@@ -107,6 +107,7 @@ return Common.Run(function()
 		plate:GetScript("OnDragStart")(plate, "LeftButton")
 		env._cursor = { env._cursor[1] + 30 * scale, env._cursor[2] + 20 * scale }
 		layout.Mode.Overlay():GetScript("OnUpdate")(layout.Mode.Overlay(), 0.016)
+		Gallery.Ticks(O.W, env, 6)
 	end
 	assert(not Common.Errors(env, K), tostring(Common.Errors(env, K)))
 	return Gallery.Build(env)
