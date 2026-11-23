@@ -886,14 +886,14 @@ end
 
 -- The world map (Blizzard_WorldMap.lua:104, 702 by 534 minimized) widened by 333 for the quest log it holds on its
 -- right (QuestLogOwnerMixin.lua:166; WorldMapMixin:AttachQuestLog sets the log 3 in from the right, 25 down, 3 up).
--- The canvas spans the map part 2 in from the left and bottom (Blizzard_WorldMap.xml:11-17).
+-- The canvas spans the map part 2 in from the left and bottom, under the 67-unit title spacer (Blizzard_WorldMap.xml:11-17,
+-- Blizzard_WorldMap.lua:8).
 function build.worldmap(env, B)
 	local map = B.frame("Frame", nil, "WorldMapFrame")
-	map:SetSize(702 + 333, 534)
-	At(map, env.UIParent, 120, 120)
+	At(map, env.UIParent, 120, 120, 702 + 333, 534)
 	map:SetFrameLevel(5)
 	map.ScrollContainer = B.frame("ScrollFrame", map)
-	Fill(map.ScrollContainer, map, 2, TITLE_HEIGHT + 20, 3 + 333, 2)
+	Fill(map.ScrollContainer, map, 2, 67, 3 + 333, 2)
 	-- The map canvas: a flat field here; the gallery paints the mockup's terrain on it when standins.py has cut it.
 	local canvas = Colour(B, map.ScrollContainer, "BACKGROUND", 0.23, 0.29, 0.19)
 	canvas:SetAllPoints(map.ScrollContainer)
@@ -924,7 +924,8 @@ function build.worldmap(env, B)
 		border.MaximizeMinimizeFrame[key] = button
 	end
 	map.NavBar = B.frame("Frame", map)
-	At(map.NavBar, map, 4, TITLE_HEIGHT, 694, 20)
+	-- Blizzard_WorldMap.lua:332-333: the nav bar spans the spacer from 25 below its top to 9 above its bottom.
+	At(map.NavBar, map, 4, 25, 694, 67 - 25 - 9)
 	map.NavBar:SetFrameLevel(21)
 	B.texture(map.NavBar)
 	map.NavBar.overlay = B.frame("Frame", map.NavBar)
@@ -941,12 +942,13 @@ function build.worldmap(env, B)
 	log.QuestsFrame:SetAllPoints(log)
 	local scroll = B.frame("ScrollFrame", log.QuestsFrame, "QuestScrollFrame")
 	log.QuestsFrame.ScrollFrame = scroll
-	-- QuestMapFrame.xml:484-501: the list fills the quests frame 29 below its top, 22 short of its right for the bar.
+	-- QuestMapFrame.xml:484-501: the list fills the quests frame 29 below its top, 22 short of its right for the bar,
+	-- which runs from 2 above the list to 4 below it (SecureUIPanelTemplates.lua:25).
 	Fill(scroll, log, 0, 29, 22, 0)
 	scroll.Background, scroll.Edge = B.texture(scroll, "BACKGROUND"), B.texture(scroll)
 	scroll.ScrollBar = ScrollBar(B, scroll)
-	Anchor(scroll.ScrollBar, scroll, "TOPLEFT", "TOPRIGHT", 8, 0)
-	scroll.ScrollBar:SetHeight(534 - 25 - 3 - 29)
+	Anchor(scroll.ScrollBar, scroll, "TOPLEFT", "TOPRIGHT", 8, 2)
+	scroll.ScrollBar:SetPoint("BOTTOMLEFT", scroll, "BOTTOMRIGHT", 8, -4)
 	scroll.SearchBox = EditBox(B, scroll, "Search quests", 260)
 	At(scroll.SearchBox, scroll, 10, 2)
 	scroll.BorderFrame = B.frame("Frame", scroll)

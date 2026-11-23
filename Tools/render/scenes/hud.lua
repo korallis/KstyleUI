@@ -22,7 +22,8 @@ local Fx = dofile("Tools/render/scenes/_effects.lua")
 local RestScene = dofile("Tools/render/scenes/_rest.lua")
 local TotemScene = dofile("Tools/render/scenes/_totems.lua")
 
-local Hud = {}
+-- The module scenes' draw order lives in this copy of scene.lua, so merges across modules sort with it.
+local Hud = { Merge = Scene.Merge }
 Hud.Classes = Classes
 -- Hud.envs[scene] -> the environment a module scene was built in, for scenes that measure frames after the build.
 Hud.envs = setmetatable({}, { __mode = "k" })
@@ -2121,8 +2122,6 @@ function modules.restedxp(opts)
 end
 
 Hud.modules = modules
--- The module scenes' draw order lives in this copy of scene.lua, so merges across modules sort with it.
-Hud.Merge = Scene.Merge
 
 -- Order(opts) -> the module names a HUD draws, in draw order.
 function Hud.Order()
