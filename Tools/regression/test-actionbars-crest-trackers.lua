@@ -524,6 +524,24 @@ do
 	Clean(env, K, "gcd")
 end
 
+-- A free or secret-cost cast leaves the five-second rule alone, as the power bar's spark does (review dd9bddac #6).
+do
+	local env, K, ns = New("PALADIN", { 20154 })
+	local plaque = ns.SlabTrackers.state.forms.crest.pieces["1:1"]
+	local cost = 0
+	env.C_Spell.GetSpellPowerCost = function() return { { type = 0, cost = cost } } end
+	env.GetTime = function() return 100 end
+	env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-free", 20154)
+	assert(not AB.W.LastCall(plaque.timer, "SetCooldown"), "a free cast starts no five-second ring")
+	cost = env.Secret(50)
+	env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-secret", 20154)
+	assert(not AB.W.LastCall(plaque.timer, "SetCooldown"), "nor does a secret cost")
+	cost = 50
+	env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-paid", 20154)
+	assert(AB.W.LastCall(plaque.timer, "SetCooldown"), "a paid cast does")
+	Clean(env, K, "free cast")
+end
+
 -- Even pixels at four sizes.
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })
