@@ -954,20 +954,15 @@ end
 local function BuildStyles(page, width)
 	local spacing = gap("gapLarge")
 	local cardWidth = math.floor((width - spacing * (#STYLES - 1)) / #STYLES)
-	local pad = gap("gapLarge")
-	local pictureWidth = cardWidth - 2 * pad
-	local pictureHeight = Widgets.Snap(page, pictureWidth * STYLE_PICTURE_SHARE)
 	panel.styleCards = {}
 	for i, entry in ipairs(STYLES) do
 		local value = entry.value
-		local card = NewCard(page, cardWidth, pictureHeight + 2 * pad, entry.label, entry.note, function()
+		local card = NewCard(page, cardWidth, CARD_HEIGHT, entry.label, entry.note, function()
 			Setup.Choice().hudStyle = value
 		end)
 		card.hudStyle = value
 		card.picture = card:CreateTexture(nil, "ARTWORK")
 		card.picture:SetTexture((Tokens.Texture(entry.picture)))
-		card.picture:SetSize(Widgets.Snap(card, pictureWidth), pictureHeight)
-		Widgets.Point(card.picture, "BOTTOMLEFT", card, "BOTTOMLEFT", pad, pad)
 		Widgets.Point(card, "TOPLEFT", page, "TOPLEFT", (i - 1) * (cardWidth + spacing), 0)
 		panel.styleCards[value] = card
 	end
@@ -986,18 +981,24 @@ local function BuildStyles(page, width)
 	end
 	panel.lookCaption, panel.lookTabs, panel.lookNote = Choice(L["Look"], "look")
 	panel.padCaption, panel.padTabs, panel.padNote = Choice(L["Controls"], "controls")
-	panel.styleFit = { width = cardWidth, picture = pictureHeight, pad = pad, spacing = spacing }
+	panel.styleFit = { width = cardWidth, spacing = spacing }
 end
 
 FitStyles = function()
 	local fit, page = panel.styleFit, panel.pages[2]
+	local pad = gap("gapLarge")
+	local picture = Widgets.Snap(page, (fit.width - 2 * pad) * STYLE_PICTURE_SHARE)
 	local height = 0
 	for _, card in pairs(panel.styleCards) do
-		local text = Widgets.LineHeight(card.title) + gap("gapSmall") + Widgets.WrappedHeight(card.note, fit.width - 2 * fit.pad)
-		height = max(height, fit.pad + text + gap("gapMedium") + fit.picture + fit.pad)
+		local text = Widgets.LineHeight(card.title) + gap("gapSmall") + Widgets.WrappedHeight(card.note, card:GetWidth() - 2 * pad)
+		height = max(height, pad + text + gap("gapMedium") + picture + pad)
 	end
 	for _, card in pairs(panel.styleCards) do
 		Widgets.Size(card, fit.width, height)
+		card.picture:ClearAllPoints()
+		Widgets.Point(card.picture, "BOTTOMLEFT", card, "BOTTOMLEFT", pad, pad)
+		Widgets.Point(card.picture, "BOTTOMRIGHT", card, "BOTTOMRIGHT", -pad, pad)
+		card.picture:SetHeight(picture)
 	end
 	panel.styleHint:ClearAllPoints()
 	Widgets.Point(panel.styleHint, "TOPLEFT", page, "TOPLEFT", 0, -(Widgets.Snap(page, height) + fit.spacing))
@@ -1024,11 +1025,6 @@ FitStyles = function()
 	panel.padCaption:SetShown(controls)
 	panel.padTabs:SetShown(controls)
 	panel.padNote:SetShown(controls)
-	if page:IsVisible() then
-		local rise = 2 * Widgets.Border(panel)
-		panel.opts.height = HEIGHT + (controls and math.ceil((Widgets.LineHeight(panel.padCaption) + gap("gapSmall") + STRIP_HEIGHT + fit.spacing) / rise) * rise or 0)
-		Widgets.Size(panel, WIDTH, panel.opts.height)
-	end
 	if controls and page:IsVisible() then
 		local current, picked = Setup.Looks.Controls(), Setup.Choice().controls
 		panel.padTabs:SetTabs(current and Setup.Looks.CONTROLS_STATUS or Setup.Looks.CONTROLS_CUSTOM, picked or current or "Custom")
@@ -1036,6 +1032,18 @@ FitStyles = function()
 		panel.padNote:SetText(set and set.note or L["Your own settings. Apply keeps them."])
 	end
 	Place(panel.padCaption, panel.padTabs, panel.padNote, looks and panel.lookTabs or panel.styleHint)
+	if page:IsVisible() then
+		local rise = 2 * Widgets.Border(panel)
+		local height = HEIGHT + (controls and math.ceil((Widgets.LineHeight(panel.padCaption) + gap("gapSmall") + STRIP_HEIGHT + fit.spacing) / rise) * rise or 0)
+		Widgets.Size(panel, WIDTH, height)
+		local lowest = panel.styleHint:GetBottom()
+		for _, region in ipairs({ panel.lookTabs, panel.lookNote, panel.padTabs, panel.padNote }) do
+			if region:IsShown() then lowest = min(lowest, region:GetBottom()) end
+		end
+		local over = panel.next:GetTop() + fit.spacing - lowest
+		panel.opts.height = height + (over > 0 and math.ceil(over / rise) * rise or 0)
+		Widgets.Size(panel, WIDTH, panel.opts.height)
+	end
 end
 
 local function SummaryCard(page, text)
@@ -1315,6 +1323,7 @@ ns.Callbacks.Register("LayoutChanged", "SetupWindow", function(_, key)
 	if panel and key == WINDOW_KEY and ns.Store.Module("Setup").readableNotes then
 		Setup.RestyleText(panel)
 		Widgets.RestyleUnder({ [panel] = true })
+		FitStyles()
 		PlaceLayouts()
 		PlaceModules()
 		panel.addons:Restyle()
