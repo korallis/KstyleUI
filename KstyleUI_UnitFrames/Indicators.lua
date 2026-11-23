@@ -86,29 +86,36 @@ local function Snap(view, units)
 end
 
 local MIRROR = { "Show", "Hide", "SetShown", "SetAlpha", "SetAlphaFromBoolean" }
+local RIVET, RIVET_SHADE = 0.6, 0.45
 
-local function Socket(view, region, rim, size, fixed)
+local function Socket(view, region, rim, size, rivet)
 	local back = region.socket
 	if not back then
 		if not rim then return end
-		back = view.top:CreateTexture(nil, "ARTWORK")
+		back = view.top:CreateTexture(nil, "ARTWORK", nil, 1)
 		back:SetTexture((Tokens.Texture("medLevelPlaque")))
 		region.socket = back
-		if fixed == nil then
-			for _, method in ipairs(MIRROR) do
-				hooksecurefunc(region, method, function(_, ...)
-					if back.on then back[method](back, ...) end
-				end)
-			end
+		for _, method in ipairs(MIRROR) do
+			hooksecurefunc(region, method, function(_, ...)
+				if back.on then back[method](back, ...) end
+			end)
 		end
+	end
+	if rivet ~= nil and not back.rivet then
+		back.rivet = view.top:CreateTexture(nil, "ARTWORK")
+		back.rivet:SetTexture((Tokens.Texture("dot")))
+		local r, g, b = Tokens.Color("steelLit")
+		back.rivet:SetGradient("VERTICAL", CreateColor(r * RIVET_SHADE, g * RIVET_SHADE, b * RIVET_SHADE, 1), CreateColor(r, g, b, 1))
+		back.rivet:SetPoint("BOTTOM", back, "BOTTOM")
 	end
 	if rim then
 		back:SetPoint("CENTER", region, "CENTER")
 		back:SetSize(size + rim, size + rim)
+		if back.rivet then back.rivet:SetSize(Snap(view, size * RIVET), Snap(view, size * RIVET)) end
 	end
 	back.on = rim ~= nil
-	if fixed == nil then fixed = region:IsShown() end
-	back:SetShown(back.on and fixed)
+	back:SetShown(back.on and region:IsShown())
+	if back.rivet then back.rivet:SetShown(back.on and rivet == true) end
 end
 
 local function PlaceMarker(view, x)
@@ -332,9 +339,9 @@ function Indicators.Layout(view, g, s)
 	if fresh or view.rim ~= view.socketRim then
 		view.socketRim = view.rim
 		for _, key in ipairs(SLOTS) do
-			local fixed
-			if view.kind == "player" then fixed = s[key] == true end
-			Socket(view, view.icons[key], view.rim, spots[key].size, fixed)
+			local rivet
+			if view.kind == "player" then rivet = s[key] == true end
+			Socket(view, view.icons[key], view.rim, spots[key].size, rivet)
 		end
 		Socket(view, view.marker, view.rim, spot and Snap(view, spot.w) or 0)
 	end
