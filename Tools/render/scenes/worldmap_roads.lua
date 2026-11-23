@@ -102,13 +102,20 @@ return Common.Run(function()
 		R.search:SetText("")
 		R.search:GetScript("OnEditFocusGained")(R.search)
 	end
-	if os.getenv("RENDER_MAP_REOPEN") == "1" then
+	local reopen = os.getenv("RENDER_MAP_REOPEN")
+	if reopen then
 		map:SetMapID(2)
 		map:Hide()
 		R.search:GetScript("OnEditFocusLost")(R.search)
 		R.panel:GetScript("OnHide")(R.panel)
 		M.S.Show(map)
 		map:SetMapID(1)
+		map:RefreshAllDataProviders()
+	end
+	if reopen == "max" then
+		state.minZoom = 1.5
+		map:GetCanvas():SetScale(state.minZoom)
+		map:OnCanvasSizeChanged()
 		map:RefreshAllDataProviders()
 	end
 	assert(os.getenv("RENDER_MAP_BEFORE") == "1" or (quest == "none" and not off) or R.road, "the render must exercise a real connected route")
