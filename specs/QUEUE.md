@@ -665,3 +665,5 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - Lee chose A: 16:9 party percent text stays its size (names keep 12 letters).
 - #774 polish B green; review dispatched.
 - #774 review ISSUES (Target preview steals the live level-up effects anchor, microtype, blank badge, tween cues, translated row drift, overbroad guard rule, clipped footer) -> author.
+- Merged #767 (polish D). Follow-up rows needing other files: #13, #16 column, #17/B#28, A#2, A#13, B#5, B#18 stack count.
+- Polish batch F (leftover real rows) dispatched.
