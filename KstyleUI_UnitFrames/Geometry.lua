@@ -598,7 +598,7 @@ local SLAB = {
 	focustarget = { h = 34, bar = 14 },
 }
 local SLAB_PAD = { top = 5, outer = 9, inner = 6, centre = 2, power = 5, powerGap = 2, nameGap = 2, powerNameGap = 2, auraGap = 16, nameShare = 0.7, levelGap = 6, levelEm = 1.9, valuePad = 7 }
-local SLAB_FIT = { top = 6.5, cap = 10.5, tuck = 4, powerGap = 3, trim = 2.5, textPad = 6, socket = 3, rise = math.sqrt(0.5) }
+local SLAB_FIT = { top = 6.5, cap = 10.5, tuck = 4, powerGap = 3, trim = 2.5, textPad = 6, socket = 3, across = math.cos(math.rad(30)), rise = 0.5 }
 Geometry.SLAB, Geometry.SLAB_PAD, Geometry.SLAB_FIT = SLAB, SLAB_PAD, SLAB_FIT
 
 local function SlabFrame(out, s, width, height, scale)
@@ -717,7 +717,7 @@ local function Marker(out, s)
 	local size = (s.markerSize or 0) > 0 and s.markerSize or (s.iconSize or 12) + MARKER_EXTRA
 	if out.form == "slab" and out.medal and s.fittedSlabs then
 		local medal, r = out.medal, out.medal.w / 2
-		local cx, cy = medal.x + r + (out.mirror and r or -r) * SLAB_FIT.rise, medal.y + r - r * SLAB_FIT.rise
+		local cx, cy = medal.x + r + (out.mirror and r or -r) * SLAB_FIT.across, medal.y + r - r * SLAB_FIT.rise
 		out.marker = Rect(cx - size / 2, cy - size / 2, size, size)
 		return
 	elseif out.form == "slab" and out.medal then

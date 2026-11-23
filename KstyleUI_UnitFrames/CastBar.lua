@@ -45,7 +45,7 @@ local LINE_LABEL_GAP = 5
 local LINE_BAR_GAP = 8
 local LINE_BAR_MIN = 24
 local LINE_LABEL_EM = 4.2
-local LINE_NAME_EM = 12
+local LINE_NAME_EM, LINE_NAME_FLOOR = 12, 7.2
 local ORIENTATION = Style.ORIENTATION
 local LANDED_ALPHA, STOPPED_ALPHA = 0.6, 0.55
 local CAPTION_ICON_GAP = 7
@@ -552,8 +552,8 @@ local function LayoutLine(cb, width, height, column)
 		room = room - timerW - LINE_LABEL_GAP
 	end
 	cb.nameRoom, cb.nameFree = Snap(cb, math.max(0, room)), room >= LINE_NAME_EM * size
-	cb.textW = cb.nameRoom
-	cb.text:SetWidth(cb.nameFree and not cb.longName and 0 or cb.nameRoom)
+	cb.textW = cb.nameFree and cb.nameRoom or Snap(cb, math.min(cb.nameRoom, math.max(LINE_NAME_FLOOR * size, cb.nameRoom * NAME_SHARE)))
+	cb.text:SetWidth(cb.nameFree and not cb.longName and 0 or cb.textW)
 	Anchor(cb, cb.timer, "RIGHT", frame, "RIGHT", 0, mx, my)
 	cb.timer:SetSize(Snap(cb, timerW), h)
 	cb.timer:SetJustifyH("RIGHT")

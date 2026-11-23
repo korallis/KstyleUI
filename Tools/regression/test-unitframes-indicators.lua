@@ -32,8 +32,8 @@ assert(centreX(player.icons.leader) > centreX(player.icons.role), "the player's 
 assert(centreX(target.icons.leader) < centreX(target.icons.role), "the target's icons run rightward from the panel's left end")
 local _, _, _, mx = player.marker:GetPoint(1)
 local g = player.geometry
-local r = g.medal.w / 2
-assert(math.abs(mx - g.marker.x) < 1 and math.abs(g.marker.x + g.marker.w / 2 - (g.medal.x + r - r * math.sqrt(0.5))) < 0.5 and math.abs(g.marker.y + g.marker.h / 2 - (g.medal.y + r - r * math.sqrt(0.5))) < 0.5,
+local r, fit = g.medal.w / 2, ns.Geometry.SLAB_FIT
+assert(math.abs(mx - g.marker.x) < 1 and math.abs(g.marker.x + g.marker.w / 2 - (g.medal.x + r - r * fit.across)) < 0.5 and math.abs(g.marker.y + g.marker.h / 2 - (g.medal.y + r - r * fit.rise)) < 0.5,
 	"Fitted slabs: the raid marker sits in a socket on the medallion's upper outer rim, opposite the level plaque")
 local rowY = select(5, player.icons.leader:GetPoint(1))
 assert(-rowY + player.icons.leader.socket:GetHeight() / 2 <= 0.5 and player.icons.leader.socket:GetWidth() > player.icons.leader:GetWidth(),
