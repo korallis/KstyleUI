@@ -108,7 +108,7 @@ The APIs, proved in the 70862 source (`Blizzard_APIDocumentationGenerated/`): `M
 | Call | What it does |
 | --- | --- |
 | `Known(spells)` | The first spell in the list the player knows, or nil |
-| `Restricted()` | True while auras are secret; build pieces and call `Engine` only when it is false (wait for `PLAYER_REGEN_ENABLED`) |
+| `Restricted()`, `Locked()` | `Restricted()` is true while auras are secret: call `Engine` only when it is false. `Locked()` adds combat lockdown: build pieces only when it is false (wait for `PLAYER_REGEN_ENABLED`); prepared choices still swap in combat |
 | `Round(frame)`, `Texture(parent, layer, sublevel, token, color, units, blend)`, `Layer(holder, level)`, `Even(region)`, `Steps(target, steps, looping)`, `Cloud(parent, token, cell)`, `Flip(texture, token, stretch)` | The parts the hawk perches and storm orbs were built from |
 | `Dress(m, cover)` | The Ghost Wolf and Call medals' dressing: shade, round masked `m.icon`, enamel and ring (on `cover` when given) |
 | `Seat(name)` | `x, y` of a named seat: `left` and `right` (the shoulders, 75.9 at 24.8 degrees: the study's 65 px out and 30 up at 1080), `top` (96 above, the reliquary), `topGem` (60 above, on the band; not with jewels), `lowerLeft` and `lowerRight` (the band 125 degrees from the top; a hip on the same side overlaps), `leftHip` and `rightHip` (76 at 218 and 322 degrees), `footLeft` and `footRight` (67.5 at 247 and 293 degrees, on the band beside the level plaque; `Medals.FOOT` = 15 is their size, and a medal smaller than `Medals.SIZE` draws its timer ring 2 units out, so a timed foot clears the cooldown band and stays inside the rim). Seat medals draw above the rings |

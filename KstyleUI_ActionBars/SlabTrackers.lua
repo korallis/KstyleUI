@@ -413,7 +413,7 @@ function Trackers.Update()
 			f.frame:Hide()
 		end
 	end
-	local restricted = Medals.Restricted()
+	local restricted = Medals.Locked()
 	local prepared = {}
 	form.lua = {}
 	for _, key in ipairs(order) do

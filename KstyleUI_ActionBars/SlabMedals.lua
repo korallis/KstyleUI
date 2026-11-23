@@ -47,6 +47,11 @@ function Medals.Restricted()
 	return IsSecret(secret) or secret == true
 end
 
+function Medals.Locked()
+	local lock = InCombatLockdown and InCombatLockdown()
+	return Medals.Restricted() or IsSecret(lock) or lock == true
+end
+
 function Medals.Even(region)
 	local px = Widgets.Border(region)
 	local side = max(2, 2 * floor(region.units / px / 2 + 0.5)) * px

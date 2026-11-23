@@ -380,7 +380,7 @@ function Jewels.Update(event)
 	end
 	local waiting = false
 	if feed and not feed.container then
-		if ns.SlabMedals.Restricted() then
+		if ns.SlabMedals.Locked() then
 			feed, waiting = nil, true
 		else
 			local ids = {}
