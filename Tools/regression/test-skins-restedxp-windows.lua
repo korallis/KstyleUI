@@ -607,16 +607,23 @@ do
 	end
 	Roles()
 	NewCheck(ui.description:GetFont() == (ns.Style.Font("body")), "configurator description uses the body face")
-	local closeCount, headerCount = 0, 0
+	local closeCount, headerCount, badges, inset = 0, 0, {}, nil
 	for _, child in ipairs({ ui.frame:GetChildren() }) do
 		if child:GetObjectType() == "Button" and child:GetNormalTexture() then
-			if tostring(child:GetNormalTexture():GetTexture()):find("rxp%-btn%-close") then
+			local path = tostring(child:GetNormalTexture():GetTexture())
+			if path:find("rxp%-btn%-close") then
 				if K.Skin.IsSkinned(child, "CloseButton") then closeCount = closeCount + 1 end
 			elseif K.Skin.IsSkinned(child, "Button") then headerCount = headerCount + 1 end
+			if path:find("icon%-btn%-") then badges[#badges + 1] = child:GetWidth() end
+			if path:find("rxp%-icon%-cog") then inset = select(4, child:GetNormalTexture():GetPoint(1)) end
 		end
 	end
 	NewCheck(closeCount == 1, "configurator anonymous close button is skinned")
 	NewCheck(headerCount == 3, "configurator settings import and help buttons are skinned")
+	-- RestedXP makes the help and import buttons 30 with their badge 48/64 of the art and the cog 24 with art that
+	-- fills it (GuideConfigurator.lua 1023-1056): one row of three takes the cog's 24 and steps its art in to the
+	-- same badge (polish audit A #16).
+	NewCheck(#badges == 2 and badges[1] == 24 and badges[2] == 24 and inset == 3, "the configurator's icon buttons read as one row of three, got " .. tostring(badges[1]) .. " " .. tostring(inset))
 	configurator:UpdateTheme()
 	Roles()
 	assert(K.Skin.IsSkinned(ui.scrollContainer.scrollbar, "ScrollBar"))

@@ -613,6 +613,35 @@ local function Others(R, x, itemsTop)
 		-- name frame at the same place: 4 left of the button, which is 44 from the frame's right and 21 wide.
 		v2.title:SetPoint("TOPRIGHT", v2.guideNameFrame, "TOPRIGHT", -69, -6)
 		at(v2.guideSteps.scroll.scrollbar, v2.guideStepsFrame, WIDTH - 16, 6, 10, 200)
+		-- UI/V2/Core.lua 1788-1914 and 1918-2053: the steps are RXPV2GuideStepsItem rows 8 apart, each a backdrop in the
+		-- theme's common colours with its text 4 in and 5 down and a 16-unit number badge in its bottom right corner.
+		-- The fake builds none and the skin reaches them only through the theme, so the scene draws three from it, read
+		-- as Themes.lua:448-452 reads it: the v2 theme named by the run-time activeTheme the skin sets.
+		local theme = rxp.v2.themes[rxp.activeTheme and rxp.activeTheme.name] or rxp.v2:GetTheme()
+		local size = (rxp.settings.profile.guideFontSize or 9) + 2
+		local y = 6
+		for i, step in ipairs({ "Accept Your Place In The World", "Talk to Kaltunk\nAccept Cutting Teeth", "Kill Mottled Boars\nMottled Boar slain: 3/10" }) do
+			local row, h = env.CreateFrame("Frame", nil, v2.guideStepsFrame), step:find("\n") and 42 or 30
+			at(row, v2.guideStepsFrame, 6, y, WIDTH - 30, h)
+			local edge, back = row:CreateTexture(nil, "BACKGROUND"), row:CreateTexture(nil, "BORDER")
+			edge:SetAllPoints(row)
+			edge:SetColorTexture(unpack(theme.borderColors.commonEdge))
+			back:SetPoint("TOPLEFT", row, "TOPLEFT", 1, -1)
+			back:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -1, 1)
+			back:SetColorTexture(unpack(theme.backgroundColors.common))
+			local badge = row:CreateTexture(nil, "ARTWORK")
+			at(badge, row, WIDTH - 30 - 16, h - 16, 16, 16)
+			badge:SetColorTexture(unpack(theme.backgroundColors.activeStepCheckbox))
+			for _, part in ipairs({ { step, "TOPLEFT", 4, -5, size, theme.textColor.common }, { tostring(i + 11), "BOTTOMRIGHT", -4, 2, size - 1, i == 2 and theme.textColor.title or theme.textColor.common } }) do
+				local label = row:CreateFontString(nil, "OVERLAY")
+				label:SetFont(theme.font, part[5], "")
+				label:SetJustifyH("LEFT")
+				text(label, part[1], part[2], row, part[2], part[3], part[4])
+				label:SetTextColor(unpack(part[6]))
+			end
+			row:SetAlpha(i == 1 and 0.5 or 1)
+			y = y + h + 8
+		end
 	end
 	local configurator = rxp.ui.v2.configurator.ui
 	local x3 = x + WIDTH + GAP
@@ -625,7 +654,9 @@ local function Others(R, x, itemsTop)
 		at(button, configurator.frame, 16 + (i - 1) * 100, 240 - 44, 88, 26)
 		text(button.text, ({ "Back", "Reset", "Submit" })[i], "CENTER", button)
 	end
-	at(configurator.scrollContainer.scrollbar, configurator.frame, 320 - 20, 50, 10, 140)
+	-- GuideConfigurator.lua:528-530 starts the content 48 under the top and ends it 38 over the bottom; UI/V2/Core.lua
+	-- 838-846 hangs the bar one 16-unit button inside each end, so its up arrow sits under the header icons.
+	at(configurator.scrollContainer.scrollbar, configurator.frame, 320 - 20, 48 + 17, 10, 240 - 48 - 38 - 2 * 17)
 	ConfiguratorRows(env, rxp, configurator)
 end
 

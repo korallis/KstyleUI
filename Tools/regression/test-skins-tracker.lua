@@ -323,6 +323,25 @@ do
 	assert(Near(glass, story.right - story.left, 0.6), "the glass is the story rail's width, got " .. tostring(glass))
 	assert(Near(leftX, -K.Widgets.Snap(panel, PANEL_LEFT), K.Scale.Pixel()), "and still starts 16 left of the tracker, where Apply's Edit Mode anchor puts the rail's edge")
 	assert(K.Setup.EditMode.TRACKER_LEFT == PANEL_LEFT, "Apply and the skin agree on that inset")
+	-- That glass is barely wider than Blizzard's 260 units, so the right column steps in to the glass's padded edge:
+	-- objective counts and the collapse chevron sit one window inset inside the border, not on it (polish audit A #1).
+	local edge = rightX - K.Widgets.WindowInset(panel)
+	assert(edge < 0, "the glass leaves less than one inset right of Blizzard's content here, got " .. tostring(edge))
+	local quests = p.modules[1]
+	for _, line in pairs(quests.blocks[1].usedLines) do
+		for _, frame in ipairs({ line:GetChildren() }) do
+			for _, region in ipairs({ frame:GetRegions() }) do
+				if region:GetObjectType() == "FontString" and region:IsShown() then
+					local _, relative, _, x = region:GetPoint(1)
+					assert(relative == line.Text and Near(x, edge, K.Scale.Pixel()), "a count ends one inset inside the glass, got " .. tostring(x))
+				end
+			end
+		end
+	end
+	local chevron = Chevron(env, K, quests.Header.MinimizeButton)
+	local point, relative, relativePoint, x = quests.Header.MinimizeButton:GetPoint(1)
+	assert(point == "CENTER" and relative == quests.Header and relativePoint == "RIGHT", "the collapse button centres on the header's right edge")
+	assert(Near(x + chevron:GetWidth() / 2, edge, K.Scale.Pixel()), "so its chevron ends on the counts' edge, got " .. tostring(x))
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

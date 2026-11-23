@@ -24,6 +24,8 @@ local CLEANUP_BUTTON = "RXPQuestLogCleanupButton"
 local IMPORT_BUTTONS = { "importButton", "importSplicedString", "purgeButton", "reloadButton", "deleteButton" }
 local IMPORT_POPUPS = { "purgeConfirmation", "deleteConfirmation" }
 local CONFIGURATOR_BUTTONS = { "backbutton", "resetbutton", "submitbutton" }
+local BADGE_BUTTON, BADGE_INSET = 24, 3
+local BANNERS = { "ZoneTextFrame", "SubZoneTextFrame" }
 local OPTION_WIDGET = "RXPV2GuideConfiguratorOption"
 local RXP_MARGIN = 4
 local GUTTER_GAP = "gapTiny"
@@ -57,6 +59,7 @@ local rested = setmetatable({}, WEAK)
 local mice = setmetatable({}, WEAK)
 local peeked = setmetatable({}, WEAK)
 local arrows = setmetatable({}, WEAK)
+local yielding
 local washes = setmetatable({}, WEAK)
 local queued = setmetatable({}, WEAK)
 local done = setmetatable({}, WEAK)
@@ -883,8 +886,20 @@ local function PaintArrow(arrow)
 	end
 end
 
+local function Yield()
+	local text = yielding and yielding.text
+	if not IsTable(text) then return end
+	local up = false
+	for _, name in ipairs(BANNERS) do
+		local banner = rawget(_G, name)
+		up = up or IsTable(banner) and banner:IsShown() == true
+	end
+	text:SetAlpha(up and Active() and Skins.Setting(KEY, "arrowYields") == true and 0 or 1)
+end
+
 function Chrome.SwitchArrow()
 	for arrow in pairs(arrows) do PaintArrow(arrow) end
+	Yield()
 end
 
 local function Restyle()
@@ -1358,6 +1373,16 @@ local function Arrow(rxp)
 	Hook(rxp, "SetupArrow", "SetupArrow", function()
 		PaintArrow(arrow)
 	end)
+	if not yielding then
+		for _, name in ipairs(BANNERS) do
+			local banner = rawget(_G, name)
+			if IsTable(banner) and type(banner.HookScript) == "function" then
+				banner:HookScript("OnShow", Yield)
+				banner:HookScript("OnHide", Yield)
+			end
+		end
+	end
+	yielding = arrow
 end
 
 local function Highlight(button)
@@ -2009,6 +2034,13 @@ local function IconControls(frame, known)
 				if path:find("rxp%-btn%-close") then
 					CloseButton(child)
 				else
+					if path:find("icon%-btn%-") then
+						child:SetSize(BADGE_BUTTON, BADGE_BUTTON)
+					elseif path:find("rxp%-icon%-cog") then
+						normal:ClearAllPoints()
+						normal:SetPoint("TOPLEFT", child, "TOPLEFT", BADGE_INSET, -BADGE_INSET)
+						normal:SetPoint("BOTTOMRIGHT", child, "BOTTOMRIGHT", -BADGE_INSET, BADGE_INSET)
+					end
 					IconControl(child, normal)
 				end
 			end

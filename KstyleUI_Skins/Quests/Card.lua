@@ -545,7 +545,7 @@ function Card.Render()
 	local continuation = ns.Skins.Setting("quests", "continuation")
 	while k < n + (continuation and not compact and 1 or 0) and offset + k <= total and y < viewHeight do
 		local h = heights[offset + k]
-		if k > 0 and (y >= viewHeight or not continuation and not Fits(y + h, viewHeight)) then
+		if k > 0 and (continuation and viewHeight - y < TitleHeight() or not continuation and not Fits(y + h, viewHeight)) then
 			break
 		end
 		k = k + 1

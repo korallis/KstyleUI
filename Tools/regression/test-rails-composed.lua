@@ -33,12 +33,18 @@ for _, screen in ipairs({ { width = 1920, height = 1080 }, { width = 5120, heigh
 	assert(math.abs(oldQuest.left - q.left) <= pixel and math.abs(oldQuest.bottom - q.bottom) <= pixel, "aligning the story cards leaves the quest card where and as tall as it was")
 	K.Options.Write("Skins", "restedXP.compose", true)
 	R.settle()
-	ns.QuestCard.Place(root, q.left, q.top, q.right - q.left, 125)
-	ns.QuestCard.Render()
+	-- A quest continues under the lower fade only once its slice holds its title; thinner slices bind no blank row
+	-- and draw no fade (polish audit A #5), so grow the card a unit at a time until one does.
 	local parts = ns.QuestCard.Parts()
 	local clipped = false
-	for _, row in ipairs(ns.QuestCard.Rows()) do clipped = clipped or row:IsShown() and row.clipped end
-	assert(clipped and parts.fade:IsShown() and parts.cap:IsShown(), "keep the cap and bind the partial quest under the lower fade")
+	for height = 125, 170 do
+		ns.QuestCard.Place(root, q.left, q.top, q.right - q.left, height)
+		ns.QuestCard.Render()
+		for _, row in ipairs(ns.QuestCard.Rows()) do clipped = clipped or row:IsShown() and row.clipped and row.title:IsShown() end
+		if clipped then break end
+		assert(not parts.fade:IsShown(), "no lone fade over a blank slice at " .. height)
+	end
+	assert(clipped and parts.fade:IsShown() and parts.cap:IsShown(), "keep the cap and bind the partial quest, title shown, under the lower fade")
 	assert(parts.more:GetText():find("more, scroll down", 1, true), "the footer explains how to read the remaining quests")
 	K.Options.Write("Skins", "quests.continuation", false)
 	assert(not parts.fade:IsShown(), "turning quest continuation off restores complete-row pages without a fade")

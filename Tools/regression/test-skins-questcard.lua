@@ -113,7 +113,19 @@ for _, screen in ipairs({ { 1280, 720 }, { 1366, 768 }, { 1920, 1080 }, { 2560, 
 	end
 	ns.QuestCard.Place(K.Scale.Root(), 100, 500, 278, natural - 4 * pixel)
 	ns.QuestCard.Render()
-	assert(parts.fade:IsShown() and parts.more:IsShown() and parts.thumb:IsShown(), "a short card fades its partial last quest and advertises scrolling")
+	assert(parts.more:IsShown() and parts.thumb:IsShown(), "a short card advertises scrolling")
+	-- The next quest continues under the fade only when its slice holds its title; a thinner slice would be a blank
+	-- row under a lone dark fade, so the card stops at the last whole quest instead (polish audit A #5).
+	local rows = ns.Quests.Rows()
+	local chrome, second, title = card:GetHeight() - parts.view:GetHeight(), -select(5, rows[2]:GetPoint(1)), rows[2].title:GetHeight()
+	for _, case in ipairs({ { title * 1.5, 2, true }, { title / 2, 1, false } }) do
+		ns.QuestCard.Place(K.Scale.Root(), 100, 500, 278, chrome + second + case[1])
+		ns.QuestCard.Render()
+		assert(#Shown(ns) == case[2] and parts.fade:IsShown() == case[3] and parts.more:IsShown(), "a slice of " .. case[1] / title .. " titles shows " .. case[2] .. " quests, got " .. #Shown(ns))
+		assert(rows[case[2]].title:IsShown(), "and every quest it shows shows its title")
+	end
+	ns.QuestCard.Place(K.Scale.Root(), 100, 500, 278, natural - 4 * pixel)
+	ns.QuestCard.Render()
 	ns.QuestCard.Scroll(99)
 	assert(Shown(ns)[#Shown(ns)] == 304, "a short card can scroll to its last quest even with only four tracked")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, "the short-card path raises nothing")
@@ -176,7 +188,7 @@ do
 	assert(ns.Quests.Active(), "the card stands in for Blizzard's quest list")
 	assert(ns.Quests.Card():IsShown(), "and shows")
 	local shown = Shown(ns)
-	assert(Ids(shown) == "305,301,302,303,304", "the cap's four quests plus the extra bound quest, with the super-tracked quest first")
+	assert(Ids(shown) == "305,301,302,303", "the cap's four quests, with the super-tracked quest first; the sliver under them is too thin for a fifth title, so no blank row is bound there")
 	local first = ns.Quests.Rows()[1]
 	assert(first.ring == nil and first.marked == nil, "the super-tracked quest leads the list and wears no ring: the picture's discs are flat, with nothing around them")
 	local factor = K.Widgets.ScaleFactor(ns.Quests.Card())
@@ -246,9 +258,9 @@ end
 
 do
 	local env, K, ns = Boot()
-	assert(Ids(Shown(ns)) == "301,302,303,304,305", "the first page includes the extra bound quest")
+	assert(Ids(Shown(ns)) == "301,302,303,304", "the first page shows four whole quests")
 	Wheel(ns, -1)
-	assert(Ids(Shown(ns)) == "302,303,304,305,306", "one wheel step down shows the next quest and the extra bound quest")
+	assert(Ids(Shown(ns)) == "302,303,304,305", "one wheel step down shows the next quest")
 	for _ = 1, 20 do
 		Wheel(ns, -1)
 	end
@@ -260,7 +272,7 @@ do
 	for _ = 1, 20 do
 		Wheel(ns, 1)
 	end
-	assert(Ids(Shown(ns)) == "301,302,303,304,305", "scrolling stops at the top page, including its extra quest")
+	assert(Ids(Shown(ns)) == "301,302,303,304", "scrolling stops at the top page")
 	Clean(env, K)
 end
 
@@ -271,13 +283,13 @@ do
 	local env, K, ns, log = Boot({ saved = Sized(0.6) })
 	K.Options.Write("Skins", "quests.shown", 5)
 	env.RunTimers()
-	assert(#Shown(ns) == 6, "five requested quests plus one continuation quest")
+	assert(#Shown(ns) == 5, "five requested quests; the sliver under them is too thin for a continuation title")
 	K.Options.Write("Skins", "quests.shown", 1)
 	env.RunTimers()
-	assert(#Shown(ns) == 2, "one requested quest plus one continuation quest")
+	assert(#Shown(ns) == 1, "one requested quest")
 	K.Options.Write("Skins", "quests.shown", 12)
 	env.RunTimers()
-	assert(#Shown(ns) == 9, "the eight-quest limit permits one continuation quest")
+	assert(#Shown(ns) == 8, "the eight-quest limit")
 	K.Options.Write("Skins", "quests.shown", 3)
 	for _ = 1, 8 do
 		log.Untrack(log.quests[#log.quests].id)
@@ -591,7 +603,7 @@ do
 	env.RunTimers()
 	local removed = log.Called("RemoveQuestWatch")
 	assert(#removed == 1 and removed[1].args[1] == 302, "shift untracks it")
-	assert(Ids(Shown(ns)) == "301,303,304,305,306", "untracking moves the page and its continuation quest up")
+	assert(Ids(Shown(ns)) == "301,303,304,305", "untracking moves the page up, got " .. Ids(Shown(ns)))
 	W.Click(ns.Quests.Rows()[1], "RightButton")
 	assert(#log.Called("CreateContextMenu") == 1 and log.menu, "a right click opens the quest's menu")
 	local track

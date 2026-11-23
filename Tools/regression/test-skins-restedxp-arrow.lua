@@ -5,6 +5,8 @@ local Geometry = dofile("Tools/regression/geometry.lua")
 local W = S.W
 local rxp
 local env, K, ns = S.New({ setup = function(e)
+	e.ZoneTextFrame = e.CreateFrame("Frame", "ZoneTextFrame", e.UIParent)
+	e.ZoneTextFrame:Hide()
 	rxp = Fake.Install(e, { activeTheme = "DarkMode" })
 	rxp.fake.trust(function()
 		rxp.arrowFrame.texture:SetRotation(0.4)
@@ -160,6 +162,24 @@ K.Options.Write("Skins", "restedXP.enabled", true)
 env.RunTimers()
 assert(fill:IsShown() and edge:IsShown(), "switching back on reuses both layers")
 Reused()
+-- Blizzard's zone banner prints at the top centre, where players park the arrow: its step text makes way while
+-- the banner shows and comes back when it fades (polish audit A #17), unless the setting is off.
+local banner = env.ZoneTextFrame
+local function Fade()
+	banner:Hide()
+	banner:GetScript("OnHide")(banner)
+end
+banner:Show()
+assert(arrow.text:GetAlpha() == 0, "the arrow's text makes way while the zone name shows")
+Fade()
+assert(arrow.text:GetAlpha() == 1, "and comes back when it fades")
+K.Options.Write("Skins", "restedXP.arrowYields", false)
+banner:Show()
+assert(arrow.text:GetAlpha() == 1, "switched off, the text stays over the banner")
+K.Options.Write("Skins", "restedXP.arrowYields", true)
+assert(arrow.text:GetAlpha() == 0, "switched on mid-banner, it makes way at once")
+Fade()
+assert(arrow.text:GetAlpha() == 1 and #env._errors == 0, tostring(env._errors[1]))
 rawset(_G, "RENDER_SCENE_LIB", true)
 local scene = dofile("Tools/render/scenes/restedxp_arrow.lua")()
 assert(#scene.items == 4, "the focused arrow scene contains only the source, two contrast layers and distance")
