@@ -493,9 +493,9 @@ local function Applied(f, parts, k)
 				box:ClearAllPoints()
 				if Settings.current.readable.text then
 					local low, badge = parts.power or parts.health, parts.portrait
-					local bottom = math.max(low.top + low.height + 4, badge and badge.top + badge.height or 0)
+					local drop = badge and math.max(0, badge.top + badge.height - low.top - low.height - 4) or 0
 					box:SetPoint("TOPLEFT", f, "TOPLEFT", 0, math.min(0, pad - Widgets.Snap(f, parts.name.top)))
-					box:SetPoint("BOTTOMRIGHT", f, "TOPLEFT", Widgets.Snap(f, parts.health.left + parts.health.width) + pad, -Widgets.Snap(f, bottom))
+					box:SetPoint("BOTTOMRIGHT", parts.power and f.power or f.health, "BOTTOMRIGHT", pad, -pad - Widgets.Snap(f, drop))
 				else
 					box:SetPoint("TOPLEFT", f.name, "TOPLEFT", -pad, pad)
 					box:SetPoint("BOTTOMRIGHT", f.health, "BOTTOMRIGHT", pad, -pad)

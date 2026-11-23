@@ -556,10 +556,11 @@ end
 
 function Layouts.PartyScale(width, height)
 	local loaded = ns.Store.IsLoaded()
-	local saved = loaded and ns.Store.Profile().GroupFrames or {}
-	local readable, party = type(saved.readable) == "table" and saved.readable or {}, type(saved.party) == "table" and saved.party or {}
+	local saved = loaded and ns.Store.Profile().GroupFrames
+	local readable, party = type(saved) == "table" and saved.readable, type(saved) == "table" and saved.party
 	local rows = ROWS[loaded and ns.Store.Module("Layout").preset] or ROWS.DPS
-	if readable.size == false or (party.width or PARTY.width) ~= PARTY.width or (party.height or rows.party) ~= rows.party then return 1 end
+	if type(readable) == "table" and readable.size == false then return 1 end
+	if type(party) == "table" and ((party.width or PARTY.width) ~= PARTY.width or (party.height or rows.party) ~= rows.party) then return 1 end
 	return (width and height and ns.Scale.AspectClass(width, height) or ns.Scale.Aspect()) ~= "16:9" and PARTY.scale or 1
 end
 
