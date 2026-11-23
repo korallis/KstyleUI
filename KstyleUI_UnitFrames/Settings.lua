@@ -457,6 +457,10 @@ function Settings.Module()
 	return Saved() or Settings.defaults
 end
 
+function Settings.Fitted(kind)
+	return Settings.Module().fittedSlabs ~= false and (kind == "player" or kind == "target" or kind == "focus")
+end
+
 local function Kinds(kind)
 	local d = Settings.defaults[kind]
 	if not d then
@@ -767,7 +771,7 @@ function Settings.Snapshot(kind)
 	if s.healthDecimal and m.healthDecimalTrim == true then s.healthDecimal = s.healthDecimal == 2 and -2 or -1 end
 	s.healthValues = kind == "boss" and m.healthDecimalBoss == true and m.healthDecimalPercentOnly == false
 	s.singleSlabLevel = m.singleSlabLevel ~= false
-	s.fittedSlabs = m.fittedSlabs ~= false
+	s.fittedSlabs = Settings.Fitted(kind)
 	s.textOptions = fonts.name.textFormat ~= "" or fonts.health.textFormat ~= "" or fonts.name.colorMode ~= "" or fonts.health.colorMode ~= ""
 	for key, default in pairs(d) do
 		if key ~= "fonts" and not LIVE[key] then

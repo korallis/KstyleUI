@@ -983,7 +983,7 @@ function Style.Restyle(view, kind)
 	if form == "slab" then
 		local _, size, flags = Settings.Font(kind, "level")
 		Widgets.ApplyFont(view.powerText, (Settings.Font(kind, "power")), size, flags)
-		view.powerText:SetTextColor(Tokens.Color("labelMuted"))
+		view.powerText:SetTextColor(Tokens.Color(s and s.fittedSlabs and "text" or "labelMuted"))
 	end
 end
 
@@ -998,10 +998,10 @@ local function Plain(...)
 end
 
 function Style.IncomingTint(view)
-	local alpha, r = Settings.Value(view.kind, "incomingAlpha"), view.healthR
-	if r and Settings.Module().predictionTint ~= false then
+	local alpha, r, tint = Settings.Value(view.kind, "incomingAlpha"), view.healthR, Settings.Module().predictionTint ~= false
+	if r and tint then
 		view.incoming:SetBarColor(r, view.healthG, view.healthB, alpha)
-	else
+	elseif not (tint and view.healthByShare) then
 		view.incoming:SetBarColor(Widgets.Rgba("friendly", alpha))
 	end
 end

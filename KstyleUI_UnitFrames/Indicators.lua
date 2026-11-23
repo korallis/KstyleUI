@@ -87,17 +87,19 @@ end
 
 local MIRROR = { "Show", "Hide", "SetShown", "SetAlpha", "SetAlphaFromBoolean" }
 
-local function Socket(view, region, rim)
+local function Socket(view, region, rim, shown)
 	local back = region.socket
 	if not back then
 		if not rim then return end
 		back = view.top:CreateTexture(nil, "ARTWORK")
 		back:SetTexture((Tokens.Texture("medLevelPlaque")))
 		region.socket = back
-		for _, method in ipairs(MIRROR) do
-			hooksecurefunc(region, method, function(_, ...)
-				if back.on then back[method](back, ...) end
-			end)
+		if region == view.marker then
+			for _, method in ipairs(MIRROR) do
+				hooksecurefunc(region, method, function(_, ...)
+					if back.on then back[method](back, ...) end
+				end)
+			end
 		end
 	end
 	back:ClearAllPoints()
@@ -106,13 +108,7 @@ local function Socket(view, region, rim)
 		back:SetPoint("BOTTOMRIGHT", region, "BOTTOMRIGHT", rim / 2, -rim / 2)
 	end
 	back.on = rim ~= nil
-	back:SetShown(back.on and region:IsShown())
-end
-
-local function Sockets(view, rim)
-	view.socketRim = rim
-	for _, key in ipairs(SLOTS) do Socket(view, view.icons[key], rim) end
-	Socket(view, view.marker, rim)
+	back:SetShown(back.on and shown)
 end
 
 local function PlaceMarker(view, x)
@@ -219,6 +215,11 @@ local function TimerSize(s)
 end
 
 local function Put(view, s, g, spots, key, x, dir, size, gap)
+	local rim = view.rim or 0
+	if rim > 0 and not s[key] and key ~= "marker" and key ~= "resting" then
+		spots[key] = { x = x, y = g.glass.y, size = 0 }
+		return x
+	end
 	local own = key == "marker" and g.marker.w or s[key .. "Size"] or 0
 	local w, left, right = own > 0 and Snap(view, own) or size, 0, 0
 	local place = key == "pvp" and view.kind == "player" and s.pvpTimer and s.pvpTimerPlace
@@ -227,13 +228,12 @@ local function Put(view, s, g, spots, key, x, dir, size, gap)
 		if place == "LEFT" then left = room else right = room end
 	end
 	x = x + dir * (dir > 0 and left or right)
-	local rim = view.rim or 0
 	spots[key] = { x = x + dir * (w + rim) / 2, y = g.glass.y - (rim > 0 and (w + rim) / 2 or 0), size = w }
 	return x + dir * (w + rim + gap + (dir > 0 and right or left))
 end
 
 local function Corners(view, g, s, spots, dir, rowStart, size, gap)
-	local panel, glass, m = g.panel, g.glass, g.medal
+	local panel, glass, m, rim = g.panel, g.glass, g.medal, view.rim or 0
 	local lo, hi = panel.x, panel.x + panel.w
 	if m and m.x + m.w / 2 < (lo + hi) / 2 then lo = math.max(lo, m.x + m.w) elseif m then hi = math.min(hi, m.x) end
 	local high, low, bar, row = glass.y, glass.y, view.barRect, nil
@@ -253,13 +253,14 @@ local function Corners(view, g, s, spots, dir, rowStart, size, gap)
 			end
 		end
 		if run[1] then
-			local box = { x = math.min(start, x), y = edge - most / 2, w = math.abs(x - start), h = most }
+			local h = most + rim
+			local box = { x = math.min(start, x), y = edge - (top and rim > 0 and h or h / 2), w = math.abs(x - start), h = h }
 			for _ = 0, #LANES + 1 do
 				local hit = Crossed(view, g, box, not top, row)
 				if not hit then break end
-				box.y = top and hit - gap - most or hit + gap
+				box.y = top and hit - gap - h or hit + gap
 			end
-			for _, p in ipairs(run) do p.y = box.y + most / 2 end
+			for _, p in ipairs(run) do p.y = box.y + h / 2 end
 		end
 		if i == 1 then
 			local from, h = run[1] and x or rowStart, 0
@@ -270,7 +271,6 @@ local function Corners(view, g, s, spots, dir, rowStart, size, gap)
 					h = math.max(h, spots[key].size)
 				end
 			end
-			local rim = view.rim or 0
 			row = { x = math.min(from, x), y = glass.y - (rim > 0 and h + rim or h / 2), w = math.abs(x - from), h = h + rim }
 		end
 	end
@@ -296,9 +296,9 @@ function Indicators.Layout(view, g, s)
 	local gap, dir = Snap(view, ICON_GAP), fromRight and -1 or 1
 	view.iconsFromRight = fromRight
 	local spots, x = {}, fromRight and (panel.x + panel.w - ICON_INSET) or (panel.x + ICON_INSET)
-	local fit, scale = g.form == "slab" and g.medal and s.fittedSlabs, view.parent:GetEffectiveScale()
-	if fit and view.rimScale ~= scale then view.rimScale, view.rimSnap = scale, Snap(view, Geometry.SLAB_FIT.socket) end
-	view.rim = fit and view.rimSnap or nil
+	local fresh = view.socketS ~= s
+	if fresh then view.socketS, view.rimSnap = s, Snap(view, Geometry.SLAB_FIT.socket) end
+	view.rim = g.form == "slab" and g.medal and s.fittedSlabs and view.rimSnap or nil
 	if s.leaderPlace ~= "" or s.pvpPlace ~= "" or s.combatPlace ~= "" or s.markerPlace ~= "" or (s.elitePlace or "") ~= "" then Corners(view, g, s, spots, dir, x, size, gap) end
 	for _, key in ipairs(SLOTS) do
 		if not spots[key] then x = Put(view, s, g, spots, key, x, dir, size, gap) end
@@ -324,7 +324,11 @@ function Indicators.Layout(view, g, s)
 			PlaceMarker(view, spot.x)
 		end
 	end
-	if view.rim ~= view.socketRim then Sockets(view, view.rim) end
+	if fresh or view.rim ~= view.socketRim then
+		view.socketRim = view.rim
+		for _, key in ipairs(SLOTS) do Socket(view, view.icons[key], view.rim, s[key] == true and (key ~= "resting" or view.kind == "player")) end
+		Socket(view, view.marker, view.rim, view.marker:IsShown())
+	end
 	view.markerCut = false
 	if view.extraIcon then
 		PlaceExtra(view)

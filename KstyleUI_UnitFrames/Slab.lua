@@ -42,9 +42,7 @@ local function Build(view)
 	view.slabLevel:SetWordWrap(false)
 	view.slabLevel:SetJustifyV("MIDDLE")
 	Muted(view, view.slabLevel)
-	local medallion = Widgets.Medallion(view.parent)
-	medallion:SetFrameLevel(view.parent:GetFrameLevel() + LEVEL_MEDAL)
-	view.medallion = medallion
+	view.medallion = Widgets.Medallion(view.parent)
 end
 
 local function Hide(view)
@@ -174,9 +172,10 @@ function Slab.Caption(view)
 	NameLine(view, g)
 end
 
-local function Home(key)
+local function Home(key, bar)
 	local el = K.Layout and K.Layout.Element and K.Layout.Element(key)
-	if not (el and el.settings and el.default) then return false end
+	if not (el and el.settings and el.default) then return bar == true end
+	if bar and not el.frame:IsShown() then return false end
 	for _, field in ipairs(HOME) do
 		local a, b = el.settings[field], el.default[field]
 		if a ~= b and not (type(a) == "number" and type(b) == "number" and math.abs(a - b) < 0.5) then return false end
@@ -187,7 +186,7 @@ end
 local function Docked(view)
 	local bars = K.Store.Module("ActionBars") or {}
 	return DOCK[view.kind] ~= nil and view.s.fittedSlabs and K.HudStyle.Current() == "medallions" and bars.enabled ~= false
-		and bars.slab ~= false and bars.extraBarsApplied ~= "rows" and Home(Settings.ELEMENTS[view.kind]) or false
+		and bars.slab ~= false and bars.extraBarsApplied ~= "rows" and Home(Settings.ELEMENTS[view.kind]) and Home("actionbars.bar1", true) and Home("actionbars.bar2", true) or false
 end
 
 local function Dock(view, g)
@@ -253,7 +252,6 @@ function Slab.Layout(view, g)
 	view.levelText:Hide()
 	Dock(view, g)
 end
-
 
 function Slab.Restyle(view, form)
 	local finish = form == "slab" and "medallions" or nil

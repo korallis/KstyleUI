@@ -552,7 +552,7 @@ local function LayoutLine(cb, width, height, column)
 		room = room - timerW - LINE_LABEL_GAP
 	end
 	cb.nameRoom, cb.nameFree = Snap(cb, math.max(0, room)), room >= LINE_NAME_EM * size
-	cb.textW = cb.nameFree and cb.nameRoom or Snap(cb, math.min(cb.nameRoom, math.max(LINE_NAME_FLOOR * size, cb.nameRoom * NAME_SHARE)))
+	cb.textW = cb.nameFree and cb.nameRoom or Snap(cb, math.min(cb.nameRoom, LINE_NAME_FLOOR * size))
 	cb.text:SetWidth(cb.nameFree and not cb.longName and 0 or cb.textW)
 	Anchor(cb, cb.timer, "RIGHT", frame, "RIGHT", 0, mx, my)
 	cb.timer:SetSize(Snap(cb, timerW), h)
@@ -679,13 +679,13 @@ local function LayoutMedal(cb, width, height, column)
 	Widgets.LayoutSlice(cb.slab, frame, select(3, Tokens.Texture("medUnitSlab")))
 	ShowLock(cb)
 	local inset, pad = Snap(cb, MEDAL_INSET), Snap(cb, MEDAL_TEXT_PAD)
-	local fit, spec = Settings.Module().fittedSlabs ~= false, ns.Geometry.SLAB[cb.kind]
+	local fit, spec, medal = Settings.Fitted(cb.kind), ns.Geometry.SLAB[cb.kind], cb.view and cb.view.geometry and cb.view.geometry.medal
 	local edge = cb.slab.texture == "medUnitSlabCap" and (fit and ns.Geometry.SLAB_FIT.cap or MEDAL_CAP) or MEDAL_INSET
-	local clear = fit and cb.inline == true and spec and spec.d and math.max(0, spec.d * RING_CLEAR - edge) or 0
+	local clear = fit and cb.inline == true and medal and math.max(0, medal.w * RING_CLEAR - edge) or 0
 	local medalLeft = clear > 0 and spec.side == "LEFT"
 	local barW, barH = math.max(0, width - 2 * edge - clear), math.max(0, height - 2 * MEDAL_INSET)
 	local icon = cb.inline == true and Settings.Value(cb.kind, "castbarIcon") == true and barH > 0
-	local right = icon and ns.Geometry.SLAB[cb.kind].side == "LEFT"
+	local right = icon and spec.side == "LEFT"
 	if icon then
 		barW = math.max(0, barW - barH - MEDAL_INSET)
 		Place(cb, cb.iconFrame, { x = right and width - edge - barH or edge, y = MEDAL_INSET, w = barH, h = barH })
@@ -1480,7 +1480,7 @@ local function Start(cb, channel, update)
 	end
 	cb.token = (cb.token or 0) + 1
 	cb.duration = nil
-	if not update or not Outcomes() then Motion.FadeIn(cb.frame, Outcomes() and 0.08 or Tokens.Duration("fade")) end
+	if not update or not Outcomes() then Motion.FadeIn(cb.frame, cb.medal and cb.inline and Settings.Fitted(cb.kind) and 0 or Outcomes() and 0.08 or Tokens.Duration("fade")) end
 	Notify(cb)
 	if cb.empty then
 		cb.empty = false
@@ -1806,7 +1806,7 @@ end
 function CastBars.Attach(view)
 	local kind = view.kind
 	local cb = New(kind == "target" and view.button or view.body or view.button, kind, view.unit)
-	cb.attached, cb.noRoom = true, true
+	cb.attached, cb.noRoom, cb.view = true, true, view
 	view.castbar = cb
 	local block = view.health and view.health.ornament
 	if block then

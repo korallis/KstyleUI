@@ -446,6 +446,7 @@ function Unit.Health(view, unit, instant)
 	if view.healthByShare then
 		local r, g, b = ShareColor(unit)
 		SetColor(bar, r, g, b, view.s.healthAlpha)
+		if ns.Settings.Module().predictionTint ~= false then view.incoming:SetBarColor(r, g, b, view.s.incomingAlpha) end
 	end
 	local format = view.s.healthText
 	local form = view.geometry and view.geometry.form or "plate"
