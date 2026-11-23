@@ -212,7 +212,7 @@ do
 	local panel = K.Setup.window
 	for step = 1, 5 do
 		assert(K.Setup.Go(step))
-		assert(panel.pages[step]:IsShown() and panel.pages[step]:GetAlpha() == 1, "step " .. step .. ": a page change shows its page at alpha 1 with no frame run; fade it with Motion.PageIn, never from alpha 0")
+		assert(panel.pages[step]:IsShown() and panel.pages[step]:GetAlpha() == 1, "step " .. step .. ": a page change shows its page at alpha 1 with no frame run; Motion.FadeIn sets the end alpha first and only decorates it with a client fade")
 	end
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
