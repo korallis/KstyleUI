@@ -18,10 +18,10 @@ local steps, stepChild, chip
 local results, dots, startDots, zones, stepRows, stepAmounts = {}, {}, {}, {}, {}, {}
 local hooked = setmetatable({}, { __mode = "k" })
 local CVAR = "showDungeonEntrancesOnMap"
-local HEARTH, RECALL = 6948, 556
+local HEARTH = 6948
 local TELEPORTS = { [3561] = "Stormwind", [10059] = "Stormwind", [3562] = "Ironforge", [11416] = "Ironforge", [3563] = "The Undercity", [11418] = "The Undercity",
 	[3565] = "Darnassus", [11419] = "Darnassus", [3566] = "Thunder Bluff", [11420] = "Thunder Bluff", [3567] = "Orgrimmar", [11417] = "Orgrimmar",
-	[18960] = "Nighthaven", [1297659] = "Dalaran", [RECALL] = true }
+	[18960] = "Nighthaven", [1297659] = "Dalaran", [556] = true }
 
 local function Secret(value)
 	return type(issecretvalue) == "function" and issecretvalue(value)

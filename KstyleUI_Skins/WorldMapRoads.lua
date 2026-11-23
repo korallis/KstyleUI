@@ -22,7 +22,7 @@ function Roads.Graph(continent)
 	local graph = factory()
 	local function ID(id) return type(id) == "number" and id + continent * 100000 or id end
 	for _, node in ipairs(graph.nodes) do node.id, node.map = ID(node.id), node.map or continent end
-	local travel = type(data.travel) == "table" and data.travel or {}
+	local travel = data.travel or {}
 	local zeppelins = travel.zeppelins or {}
 	for _, edge in ipairs(graph.edges) do
 		edge.a, edge.b = ID(edge.a), ID(edge.b)
