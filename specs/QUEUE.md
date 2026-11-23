@@ -680,3 +680,5 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - #777 polish F green; review dispatched. Owner decision: A#2 tracked-buff row slot above an empty utility row.
 - #776 melee crests + shared system green, evidence complete; review dispatched.
 - #777 review ISSUES (minimap buttons cross rim / collide with drawer and slider, stack count hits border, action-bar glow opt-out lost, drawer and glow need a tween) -> author.
+- Merged #775 (RestedXP 4.11.39 hotfix).
+- v0.3.3 = polish + RestedXP fix (crests -> v0.3.4). Notes dispatched.

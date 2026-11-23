@@ -1,0 +1,9 @@
+# Task: release notes for v0.3.3
+
+Write the notes PR for v0.3.3 from `staging`, covering `git log v0.3.2..origin/staging`: #765 party frames readable (Party and Raid > Readability: Larger party frames on ultrawide, Readable names and numbers, Dark missing health); #772 Medallions unit frames fitted to the crest (Unit Frames: Fitted slabs, heal prediction in the bar's colour; status sockets with steel rivets; aura counts inside the corner; boss and focus cast tracks); #767, #768, #769, #773, #774 polish batches (nameplates, action bars, minimap, world map, chat, bags, tooltips, data bars incl. the new Match the other bars switch for honour, meters and the swing timer, quest tracker and card, RestedXP configurator and boxes as chips, spellbook, merchant names, Options and setup); #775 Fixed: the RestedXP skin works again with RestedXP 4.11.39 (it was skipped entirely on that version). The crest trackers for every class are NOT in this release (coming in v0.3.4); say that in one line. Docs/CI-only PRs skip.
+
+Use each PR's `## Changelog`, verify every line against the code on staging, and give the Options path for each setting. Owner's voice (`C:/Users/leeba/.cache/kstyleui-evidence/voice/lee-discord-voice.txt`), no AI tells, no em dashes. Branded style of the v0.3.2 section in `CHANGELOG.md` and `docs/RELEASE_NOTES.md`, highlights of 120 characters or fewer, Notes.lua entry with translations (`strings.py sync`, `crlf.py`). Checks: lint, python, `test-options-notes`, both `test-options-preview-content-locales*`, `Tools.tests.test_release_changelog`, embed under 6000. PR `docs(release): v0.3.3 notes`, label `no changelog`. Do not merge, tag or post.
+
+**Files it may edit**: `CHANGELOG.md`, `docs/RELEASE_NOTES.md`, `KstyleUI_Options/Notes.lua`, `Core/Locales/*`, `Tools/locale/*`.
+
+**Before worker_done**: follow `C:/Users/leeba/orca-jev-router/WORKER.md`. Report PR number, SHA and run id.
