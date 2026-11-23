@@ -146,11 +146,14 @@ local function Resolve(p, row)
 	spec.spell, spec.texture = id, p.texture or Trackers.Texture(id)
 	if row and p.families then
 		spec.feed, spec.newest, spec.spells = "aura", true, {}
+		local pet = {}
 		for _, family in ipairs(spec.families) do
-			for _, aura in ipairs(not family.unit and family.spells or {}) do
-				spec.spells[#spec.spells + 1] = aura
+			local into = family.unit == "pet" and pet or not family.unit and spec.spells or {}
+			for _, aura in ipairs(family.spells) do
+				into[#into + 1] = aura
 			end
 		end
+		spec.feeds = pet[1] and { {}, { unit = "pet", spells = pet } } or nil
 	end
 	return spec
 end
