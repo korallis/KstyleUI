@@ -119,6 +119,19 @@ local function railRow(ns, label)
 	error("no rail row labelled " .. label)
 end
 
+-- The stub draws no portraits, so the preview's medallion would be an empty disc; the mockup's face that
+-- standins.py cuts stands in, as in gallery_unitframes (a flat tone without it). The game draws the player.
+local function portraits(env)
+	local file = Common.StandIn("portrait-player.png")
+	for texture in pairs(env._portraits or {}) do
+		if file then
+			texture:SetTexture(file)
+		else
+			texture:SetColorTexture(0.33, 0.28, 0.22, 1)
+		end
+	end
+end
+
 local function count(items, fn)
 	local n = 0
 	for _, item in ipairs(items) do
@@ -214,6 +227,7 @@ return Common.Run(function()
 		match = "Only the button has chrome: body #101214, the accent hairline of a primary button, the tile chamfer, as the mockup's data strip pill. Nothing else on the canvas is a backdrop.",
 	})
 	hideHud(K)
+	portraits(env)
 	scenes[#scenes + 1] = Gallery.Build(env, { hover = hover })
 	errorsOf(scenes[#scenes], env, K, "main")
 
@@ -243,6 +257,7 @@ return Common.Run(function()
 			match = "Window grade as the chat panel: surface fill, two-line edge, drop shadow; the search field wears the button body with the hairline.",
 		})
 		hideHud(K2)
+		portraits(env2)
 		scenes[#scenes + 1] = Gallery.Build(env2)
 		errorsOf(scenes[#scenes], env2, K2, "search")
 	end
