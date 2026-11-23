@@ -542,6 +542,26 @@ do
 	Clean(env, K, "free cast")
 end
 
+-- A vial needs its weapon, and only a poison fills it: a sharpening stone or an oil leaves it empty (review dd9bddac #7).
+do
+	local env, K, ns = New("ROGUE", { 2842 })
+	local enchant = {}
+	env.C_PaperDollInfo = { GetTemporaryEnchantmentInfo = function(slot) return enchant[slot] end }
+	assert(not Pieces(ns)[3], "no main-hand weapon: no main-hand vial")
+	env._items = { [16] = 2092 }
+	env.FireEvent("PLAYER_EQUIPMENT_CHANGED", 16)
+	local vial = Pieces(ns)[3]
+	assert(vial, "a main-hand weapon brings its vial")
+	enchant[16] = { enchantID = 40, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
+	Slots.Enchant(env, 1, { start = 0, duration = 1800 })
+	env.FireEvent("UNIT_INVENTORY_CHANGED", "player")
+	assert(vial.lit:IsShown() and vial.lit.gate:GetAlpha() == 0, "a sharpening stone leaves the vial empty")
+	enchant[16].enchantID = 323
+	env.FireEvent("UNIT_INVENTORY_CHANGED", "player")
+	assert(vial.lit.gate:GetAlpha() == 1, "a poison fills it")
+	Clean(env, K, "vial identity")
+end
+
 -- Even pixels at four sizes.
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })
