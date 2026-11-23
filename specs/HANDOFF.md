@@ -8,6 +8,10 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 - **CI**: staging pushes and releases are gated on GitHub-hosted runners (8 Lua shards, `checks.yml`, PR #758). The three self-hosted Macs only run `mac-budgets.yml`, non-blocking CPU-budget monitoring.
 - **Roadmap** (`docs/ROADMAP.md`, mirrored to the Discord roadmap post): v0.3.3 = "polish and the crest for every class". Discord roadmap post updates with `gh workflow run release.yml --ref staging -f roadmap=true -f message_ids=1573443520474120352`.
 
+## Merged since v0.3.2 (for the v0.3.3 notes)
+
+- #769 meters polish (swing timer stays full, readable damage meter rows with tracks, finished empty cards).
+
 ## Open pull requests (all target staging)
 
 | PR | Branch | What | Status / next step |
@@ -15,7 +19,6 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 | #765 | korallis/fix-party-frame-readability | Party frames readable (Larger on ultrawide, readable names/numbers, dark missing health) | Fix round at 7fc7a9e3d: all 11 findings fixed (incl. one-token Core/Scale.lua key); left: adapt test-groupframes-raid-tile:34 and -healer:9 to the new tile ink, parity diff, python gate, tests-first commit order, PR body, hosted CI. Owner note: the 16:9 percent text stays its old size (bigger broke the twelve-letter name contract); fixed by a divider instead. |
 | #767 | korallis/platy-2 | Polish batch D: nameplates, action bars, cooldowns, minimap, world map | Review overturned 9 of the author's 17 'not real' dismissals and found drawer/travel regressions, hidden vehicle refresh overhead, a threat/skull collision, a world-map fixture mismatch and an unrelated XP-strip change (report: kstyleui-evidence/verify-767-1dadc386/REPORT.md). Fix round in progress; then spot-check and merge. |
 | #768 | korallis/lumpfish-2 | Polish batch C: chat, bags, tooltips, data bars, auras | Green at feab22893; in its one cross-family review (Codex). Then fix round if needed, spot-check, merge. Follow-ups outside its files: audit A#3 (UnitFrames player aura row) and A#9 (bars 3/4 unbound '-' hotkey). |
-| #769 | korallis/sander-2 | Polish batch A: meters (swing timer, damage/threat cards) | Fix round at b5d87cd75: findings 1-7 and 9 fixed with regressions; left: rerun 9 hang-guarded tests with fewer jobs, evidence in polish-meters/fix, python gate, hosted CI 45192275768, PR body. Then spot-check and merge. |
 | #771 | korallis/healer-crest-trackers | Crest trackers: priest, druid, shaman extension | d4b326c89, stacked on the melee crest branch (2d2f87d1f): registered on SlabTrackers with per-form choices, cooldown families, all research additions, generated art, 21 switches, 4 locales. Left: switch to the shared foot seats, five-second rule and threat emblem when the melee owner pushes them; evidence set; module sweep, python gate, hosted CI; PR body with the 12 in-game checks. |
 | #772 | korallis/fix-medallions-unit-frame | Medallions unit frames fitted to the crest (Fitted slabs, heal prediction tint), audit fixes | Fix round at 3c71f0171: findings 1-9 and 11 fixed with regressions; left: raise the spread player cast slot in Core/Setup/Layouts.lua (reach tests fail until then), README/PR body, gates, evidence, CI. Decisions given: both switches stay ON; zero pixel diff with both off; empty steel status sockets always shown; the player cast slot raised 7 units into the gap under the target cast (zero default diffs), or the socket row starts clear of the cast column if the two casts look cramped; one line in `KstyleUI_UnitFrames/Unit.lua` for the heal tint. |
 

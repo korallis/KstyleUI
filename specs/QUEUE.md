@@ -659,3 +659,4 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - #773 polish E green; review dispatched.
 - #767 review ISSUES (9 of 17 dismissals overturned, drawer/travel regressions, vehicle refresh overhead, threat/skull collision, world map fixture, stray XP change) -> author.
 - #773 review ISSUES (arrow ownership, tracker resize, 2 overlaps, fixture) -> author. NEW: RestedXP 4.11.39 fails the skin entry check (pre-existing) -> hotfix task dispatched.
+- Merged #769 (meters polish).
