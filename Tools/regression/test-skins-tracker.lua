@@ -43,6 +43,7 @@ local function Holder(B, parent, labelOnBar)
 	local holder = B.frame("Frame", parent)
 	local bar = B.frame("StatusBar", holder)
 	holder.Bar = bar
+	bar:SetSize(labelOnBar and 180 or 128, labelOnBar and 15 or 10)
 	bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
 	bar.BorderLeft, bar.BorderRight, bar.BorderMid = B.texture(bar), B.texture(bar), B.texture(bar)
 	local owner = labelOnBar and bar or holder
@@ -330,6 +331,7 @@ end
 do
 	local B, snap, p
 	local env, K, ns = S.New({
+		setup = S.CreateColor,
 		before = function(env)
 			B = S.Blizzard(env)
 			p = Tracker(env, B)
@@ -409,7 +411,7 @@ do
 	local kids = select("#", timer.Bar:GetRegions())
 	local timerEdge = K.Widgets.BarEdge(timer.Bar)
 	assert(select("#", timer.Bar:GetRegions()) == kids and S.W.SameColor(timerEdge.hard, K.Tokens.Color("black")), "timer and progress bars are the square bar: a black pixel round a dark track")
-	assert(timerEdge.glass, "timer and progress bars wear the lit glass (Tools/regression/test-skins-bar-glass.lua draws it)")
+	assert(timerEdge.glassOn and timerEdge.glass[4]:IsShown() and K.Widgets.BarEdge(module:GetProgressBar("q1").Bar).glassOn, "timer and progress bars wear the lit glass")
 	assert(FontPath(module:GetProgressBar("q1").Bar.Label) == Style.Font("caption"), "progress bar labels take the skin font")
 	K.Options.Write("Skins", "tracker.panel", false)
 	assert(not panel:IsShown(), "the panel switch still hides the panel")

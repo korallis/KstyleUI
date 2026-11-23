@@ -1,18 +1,11 @@
--- test-skins-bar-glass.lua: the lit glass finish on the Blizzard bars the skins dress (part B and part C kit bars, as the trainer, legacy and RestedXP bars): it rides the fill on whole pixels at every screen, survives the strip each show runs (layers made after the skin too), follows a height change, and Lit glass bars off hides it, with no glass made when the switch starts off.
-local W = dofile("Tools/regression/widget_env.lua")
+-- test-skins-bar-glass.lua: the lit glass finish on the Blizzard bars the skins dress (part B and part C kit bars, as the trainer, legacy and RestedXP bars): it rides the fill on whole pixels at every screen, survives the strip each show runs (layers made after the skin too), follows a height change, and Lit glass bars off hides it, with no glass made when the switch starts off, on a protected bar in combat, on a bar not yet shown, or on a bar without the status bar methods it reads.
 local S = dofile("Tools/regression/skins_env.lua")
 
 local SCREENS = { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
 local OFF = { version = 2, profiles = { Default = { Appearance = { litBars = false } } }, characters = {}, layouts = {}, account = {}, devlog = {} }
 
-local function withColor(e)
-	e.CreateColor = function(r, g, b, a)
-		return { r = r, g = g, b = b, a = a }
-	end
-end
-
 local function Started(screen, saved)
-	local env, K, ns = S.New({ width = screen[1], height = screen[2], size = "auto", fit = true, setup = withColor, saved = saved })
+	local env, K, ns = S.New({ width = screen[1], height = screen[2], size = "auto", fit = true, setup = S.CreateColor, saved = saved })
 	K.Modules.Enable("Skins")
 	return env, K, ns, S.Blizzard(env)
 end
@@ -22,7 +15,6 @@ local function Bar(B, height)
 	local bar = B.frame("StatusBar")
 	bar:SetSize(200, height)
 	bar:SetStatusBarTexture("Interface\\Blizzard\\Bar")
-	B.add(bar:GetStatusBarTexture())
 	return bar, B.texture(bar)
 end
 
@@ -36,7 +28,7 @@ local function pixels(K, frame, units)
 end
 
 local function whole(K, frame, units, want)
-	return W.Near(pixels(K, frame, units), want, 1e-6)
+	return S.W.Near(pixels(K, frame, units), want, 1e-6)
 end
 
 local function anchor(region, name)
@@ -71,7 +63,6 @@ for _, screen in ipairs(SCREENS) do
 			assert(glass[i]:GetAlpha() > 0, where .. ": the strip each show runs keeps the glass")
 		end
 		bar:SetHeight(6)
-		edge:Restyle()
 		assert(whole(K, bar, glass[1]:GetHeight(), math.floor(pixels(K, bar, 6) / 2 + 0.01)), where .. ": a new height re-places the light")
 
 		K.Options.Write("Appearance", "litBars", false)
@@ -93,6 +84,46 @@ do
 	K.Options.Write("Appearance", "litBars", true)
 	Restrip(bar)
 	assert(edge.glassOn and edge.glass[1]:GetAlpha() > 0 and edge.glass[4]:GetAlpha() > 0, "glass made after the skin survives the next show's strip")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, "no errors")
+end
+
+-- The glass adds regions to a Blizzard bar only out of combat on a protected bar and only once the bar is in view;
+-- a strip that names a kept layer leaves it lit; a bar without GetOrientation keeps its edge and goes without glass.
+do
+	local env, K, ns, B = Started(SCREENS[1])
+	K.Options.Write("Appearance", "readableBars", false)
+	local guarded = Bar(B, 1)
+	guarded.IsProtected = function()
+		return true
+	end
+	local edge = ns.PartBKit.Bar(guarded).edge
+	local kids = select("#", guarded:GetRegions())
+	env.SetCombat(true)
+	guarded:SetHeight(20)
+	assert(not edge.glassOn and select("#", guarded:GetRegions()) == kids, "a protected bar resized in combat makes no glass")
+	env.SetCombat(false)
+	assert(edge.glassOn and select("#", guarded:GetRegions()) == kids + 4, "it makes the glass once combat ends")
+
+	local legacy = dofile("Tools/regression/skins_windows.lua").Build("legacy", env, B)
+	local challenges = legacy.ChallengesPage
+	local points = challenges.LegacyChallengePointSummary.PointsBar
+	S.LoadAddOn(env, "Blizzard_LegacySystem")
+	S.Show(legacy)
+	local track = ns.PartC.Bar(points)
+	kids = select("#", points:GetRegions())
+	assert(not points:IsVisible() and track.glass[1] == nil, "a bar on a hidden page makes no glass")
+	challenges:Show()
+	assert(track.glassOn and select("#", points:GetRegions()) == kids + 4, "the page's first show makes it")
+
+	local lit = Bar(B, 20)
+	local light = ns.PartC.Bar(lit).glass[1]
+	K.Skin.Strip(lit, { children = { light } })
+	assert(light:GetAlpha() == 1, "a strip that names a kept glass layer leaves it lit")
+
+	local plain = Bar(B, 20)
+	plain.GetOrientation = false
+	local ok, bare = pcall(ns.PartC.Bar, plain)
+	assert(ok and not bare.glassOn and bare.glass == nil, "a bar without GetOrientation keeps its edge without the glass: " .. tostring(bare))
 	assert(#env._errors == 0 and K.ErrorCount() == 0, "no errors")
 end
 

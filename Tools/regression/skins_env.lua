@@ -73,6 +73,13 @@ function S.RimColor(ns, frame)
 	return rim:GetRimColor()
 end
 
+-- CreateColor(env) gives env the game's CreateColor (Blizzard_SharedXMLBase/Color.lua), which the lit glass needs.
+function S.CreateColor(env)
+	env.CreateColor = function(r, g, b, a)
+		return { r = r, g = g, b = b, a = a }
+	end
+end
+
 -- LoadAddOn(env, name) marks a Blizzard addon loaded and fires its ADDON_LOADED.
 function S.LoadAddOn(env, name)
 	env._loaded = env._loaded or {}
