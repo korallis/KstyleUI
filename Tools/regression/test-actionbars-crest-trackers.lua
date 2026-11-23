@@ -117,12 +117,12 @@ do
 	ns.SlabMedals.Rest()
 	assert(rim.fire:GetAlpha() == (ns.Slab.Resting() and 0 or 1), "the fire follows the crest's rest")
 	assert(Updating(ns.SlabTrackers.state.forms.crest.frame) == 0, "nothing runs OnUpdate")
-	for _, key in ipairs({ "crestShout", "crestOpening", "crestEnrage", "crestCooldowns" }) do
+	for _, key in ipairs({ "crestShout", "crestOpening", "crestEnrage", "crestCooldowns", "crestThreat", "crestHips", "crestFeet", "crestTankGlow" }) do
 		K.Options.Write("ActionBars", key, false)
 	end
 	env.RunTimers()
 	assert(next((Pieces(ns))) == nil and next(env._trackerEvents) ~= nil, "every switch off hides every piece")
-	assert(not ns.SlabTrackers.state.forms.crest.frame:IsShown() and ns.SlabTrackers.state.listening == "falsenilnil", "and stops listening")
+	assert(not ns.SlabTrackers.state.forms.crest.frame:IsShown() and ns.SlabTrackers.state.listening == "falsenil", "and stops listening")
 	K.Options.Write("ActionBars", "crestOpening", true)
 	env.RunTimers()
 	local back = Pieces(ns)
@@ -134,21 +134,21 @@ end
 do
 	local env, K, ns = New("PALADIN", { 20154, 20271, 20049 })
 	local shown = Pieces(ns)
-	assert(shown[1] and shown[2] and shown[3], "Seal, Judgement and the judged target")
-	local _, sy = Seat(ns, shown[1])
-	local jx = Seat(ns, shown[2])
-	local tx = Seat(ns, shown[3])
+	assert(shown[2] and shown[3] and shown[4], "Seal, Judgement and the judged target")
+	local _, sy = Seat(ns, shown[2])
+	local jx = Seat(ns, shown[3])
+	local tx = Seat(ns, shown[4])
 	assert(sy > 80 and jx < -40 and tx > 40, "the Seal above, Judgement left, the target right")
 	Slots.Set(env, "player", { { id = 20154, count = 0, icon = 135960, start = 0, duration = 30 } })
-	assert(Lit(shown[1]) and shown[1].lit.icon._state.Texture[1] == 135960, "the Seal lights with its own icon")
+	assert(Lit(shown[2]) and shown[2].lit.icon._state.Texture[1] == 135960, "the Seal lights with its own icon")
 	env._cooling[20271] = true
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
-	assert(AB.W.LastCall(shown[2].timer, "SetCooldownFromDurationObject"), "Judgement's cooldown sweeps")
-	assert(shown[3].lit.container._unit == "target", "the judged medal watches the target")
+	assert(AB.W.LastCall(shown[3].timer, "SetCooldownFromDurationObject"), "Judgement's cooldown sweeps")
+	assert(shown[4].lit.container._unit == "target", "the judged medal watches the target")
 	Slots.Set(env, "target", { { id = 20185, count = 0, harmful = true, mine = true, start = 0, duration = 10 } })
-	assert(Lit(shown[3]), "your Judgement on the target lights it")
+	assert(Lit(shown[4]), "your Judgement on the target lights it")
 	Slots.Set(env, "target", { { id = 20185, count = 0, harmful = true, mine = false, start = 0, duration = 10 } })
-	assert(not Lit(shown[3]), "another paladin's does not")
+	assert(not Lit(shown[4]), "another paladin's does not")
 	local jewels = ns.SlabJewels.state
 	assert(jewels.feed and #jewels.jewels == 5, "Vengeance feeds five jewels")
 	Slots.Set(env, "player", { { id = 20050, count = 3 } })
@@ -168,7 +168,7 @@ end
 do
 	local env, K, ns = New("PALADIN", { 20154, 20925 })
 	assert(ns.SlabJewels.state.feed and ns.SlabJewels.state.feed.spells[1] == 20925, "without Vengeance, Holy Shield feeds the jewels")
-	assert(not Pieces(ns)[2], "no Judgement known: no Judgement medal")
+	assert(not Pieces(ns)[3], "no Judgement known: no Judgement medal")
 	Clean(env, K, "paladin holy shield")
 end
 
@@ -231,6 +231,46 @@ do
 	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
 	assert(crest.pieces["1:2"]:IsVisible() and crest.pieces["2:2"]:IsVisible(), "out of Stealth: Slice and Dice and Rupture")
 	Clean(env, K, "stealth")
+end
+
+-- Threat, items, counts and the five-second rule.
+do
+	local env, K, ns = New("PALADIN", { 20154, 20271, 20925 })
+	env.GetShapeshiftFormID = function() return nil end
+	local tanking, scaled = env.Secret(true), env.Secret(80)
+	env.UnitDetailedThreatSituation = function() return tanking, 3, scaled end
+	env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
+	local crest = ns.SlabTrackers.state.forms.crest
+	local gem, glow
+	for _, piece in pairs(crest.pieces) do
+		if piece.spec.key == "crestFeet" and piece.spec.feed == "threat" and piece:IsVisible() then gem = piece end
+		if piece.spec.key == "crestTankGlow" then glow = piece end
+	end
+	assert(gem and AB.W.LastCall(gem.bar, "SetValue")[1] == scaled and AB.W.LastCall(gem.lit, "SetAlphaFromBoolean")[1] == tanking, "a Protection paladin's threat foot takes the secrets as they are")
+	assert(glow and glow:IsVisible() and AB.W.LastCall(glow.lit, "SetAlphaFromBoolean")[1] == tanking, "and the crest glows gold while tanking")
+	local plaque
+	for _, piece in pairs(crest.pieces) do
+		if piece.spec.feed == "fiveSecond" then plaque = piece end
+	end
+	env.C_Spell.GetSpellPowerCost = function() return { { type = 0, cost = 50 } } end
+	env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 20154)
+	print("dbg", #(plaque.timer._calls or {}), plaque.timer._calls and plaque.timer._calls[#plaque.timer._calls].method)
+	assert(plaque and AB.W.LastCall(plaque.timer, "SetCooldown")[2] == 5, "a mana spell starts the five-second ring round the level badge")
+	Clean(env, K, "threat and five seconds")
+end
+
+do
+	local env, K, ns = New("PALADIN", { 20154, 20271, 20473 })
+	env.C_Item = { GetItemCount = function(id) return id == 13444 and 2 or 0 end, GetItemCooldown = function() return 10, 120, true end,
+		GetItemIconByID = function(id) return 200000 + id end }
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	local potion
+	for key, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
+		if key:match("^9:") and piece:IsVisible() then potion = piece end
+	end
+	assert(potion and potion.lit:IsShown() and potion.lit.icon._state.Texture[1] == 213444 and AB.W.LastCall(potion.timer, "SetCooldown")[2] == 120, "a Holy paladin's right foot shows the mana potion in the bags and its cooldown")
+	assert(ns.SlabJewels.state.count == 0, "and a Holy paladin draws no jewels")
+	Clean(env, K, "holy items")
 end
 
 -- A class file registers its own rows and hooks.

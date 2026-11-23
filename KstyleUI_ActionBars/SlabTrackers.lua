@@ -11,15 +11,47 @@ ns.SlabTrackers = Trackers
 
 local OWNER = "ActionBars.SlabTrackers"
 local GAP, VIAL, RELIQUARY, OFF_HAND = 4, 20, 28, 17
-local LUA = { cooldown = true, usable = true }
-local PAINT = { "SPELL_UPDATE_USABLE", "SPELL_UPDATE_COOLDOWN", "PLAYER_TARGET_CHANGED" }
+local LUA = {
+	cooldown = { "SPELL_UPDATE_COOLDOWN" },
+	usable = { "SPELL_UPDATE_USABLE", "SPELL_UPDATE_COOLDOWN", "PLAYER_TARGET_CHANGED" },
+	item = { "BAG_UPDATE_DELAYED", "BAG_UPDATE_COOLDOWN" },
+	threat = { "UNIT_THREAT_LIST_UPDATE", "UNIT_THREAT_SITUATION_UPDATE", "PLAYER_TARGET_CHANGED" },
+	fiveSecond = { { "UNIT_SPELLCAST_SUCCEEDED", "player" } },
+}
+local MANA = { PALADIN = true, PRIEST = true, DRUID = true, SHAMAN = true, MAGE = true, WARLOCK = true, HUNTER = true }
+local SHARED = {
+	{ spells = { 20572 } }, { spells = { 20554 } }, { spells = { 20594 } }, { spells = { 20600 } }, { spells = { 7744 } },
+	{ spells = { 1299026 } }, { spells = { 1259799 } }, { spells = { 1259812 } }, { spells = { 1260270 } },
+	{ spells = { 17528, 6615, 3169, 17540, 2379, 11359, 16323 }, known = {} },
+}
 local CLASSES, HOOKS = {}, {}
 Trackers.CLASSES = CLASSES
 
 local state = { forms = {} }
 Trackers.state = state
 
+local function Always()
+	return true
+end
+
+local function PlacePlaque(piece, anchor, form, x)
+	if form == "crest" then
+		piece:ClearAllPoints()
+		piece:SetPoint("CENTER", ns.Slab.hub.plaque, "CENTER", 0, 0)
+		piece.units = ns.Slab.hub.plaque:GetWidth() + 4
+		for _, part in ipairs(piece.parts) do
+			part.units = piece.units
+			Medals.Even(part)
+		end
+	end
+	return x
+end
+
 function Trackers.Register(class, rows, hooks)
+	if not CLASSES[class] and MANA[class] then
+		CLASSES[class] = { { key = "crestFiveSecond", seat = "plaque", feed = "fiveSecond", crestOnly = true, known = Always, color = "hudMana",
+			build = Medals.Plaque, place = PlacePlaque } }
+	end
 	CLASSES[class] = CLASSES[class] or {}
 	for _, row in ipairs(rows) do
 		table.insert(CLASSES[class], row)
@@ -37,7 +69,7 @@ function Trackers.Has(key)
 end
 
 function Trackers.Texture(id)
-	local get = id and C_Spell and C_Spell.GetSpellTexture
+	local get = type(id) == "number" and C_Spell and C_Spell.GetSpellTexture
 	local texture = get and get(id)
 	return not IsSecret(texture) and texture or nil
 end
@@ -57,6 +89,9 @@ local function Form()
 end
 
 local function Resolve(p, row)
+	if row and p.crestOnly then
+		return nil
+	end
 	local spec = setmetatable({ burst = HOOKS[ns.class] and HOOKS[ns.class].burst }, { __index = p })
 	if p.groups then
 		spec.candidates = {}
@@ -69,7 +104,14 @@ local function Resolve(p, row)
 	local spells = p.known or p.spells
 	if p.families then
 		spells = {}
+		spec.families = {}
 		for _, family in ipairs(p.families) do
+			table.insert(spec.families, family)
+		end
+		for _, family in ipairs(SHARED) do
+			table.insert(spec.families, family)
+		end
+		for _, family in ipairs(spec.families) do
 			for _, id in ipairs(family.known or family.spells) do
 				spells[#spells + 1] = id
 			end
@@ -88,7 +130,7 @@ local function Resolve(p, row)
 	spec.size = row and p.feed == "enchant" and VIAL or not row and p.seat == "top" and RELIQUARY or p.size
 	if row and p.families then
 		spec.feed, spec.newest, spec.spells = "aura", true, {}
-		for _, family in ipairs(p.families) do
+		for _, family in ipairs(spec.families) do
 			for _, aura in ipairs(not family.unit and family.spells or {}) do
 				spec.spells[#spec.spells + 1] = aura
 			end
@@ -120,7 +162,7 @@ local function Build(form, name, key, spec)
 		return nil
 	end
 	local make = spec.build or name == "crest" and (spec.seat == "rim" and Medals.Rim or spec.seat == "cooldowns" and Medals.CooldownRim
-		or spec.feed == "enchant" and Medals.Socket) or Medals.Medal
+		or spec.feed == "enchant" and Medals.Socket or spec.feed == "threat" and Medals.Threat) or Medals.Medal
 	local ok, piece = pcall(make, form.frame, spec, form.frame:GetFrameLevel() + 1, name)
 	if not ok or not piece then
 		form.failed[key] = true
@@ -187,10 +229,31 @@ local function Lists(form, shown)
 	return on, off
 end
 
+local function FiveSecond(form, unit, _, spell)
+	if unit ~= "player" or IsSecret(spell) or not (C_Spell and C_Spell.GetSpellPowerCost) then
+		return
+	end
+	for _, cost in ipairs(C_Spell.GetSpellPowerCost(spell) or {}) do
+		if not IsSecret(cost.type) and cost.type == 0 then
+			for _, piece in pairs(form.pieces) do
+				if piece.spec.feed == "fiveSecond" and piece:IsShown() then
+					piece.timer:SetCooldown(GetTime(), 5)
+				end
+			end
+			return
+		end
+	end
+end
+
 local function Paint(event, ...)
 	local form = state.form
+	if form and event == "UNIT_SPELLCAST_SUCCEEDED" then
+		FiveSecond(form, ...)
+	end
 	for _, piece in ipairs(form and form.lua or {}) do
-		Medals.Refresh(piece)
+		if piece.spec.feed ~= "fiveSecond" then
+			Medals.Refresh(piece)
+		end
 	end
 	local hooks = form and HOOKS[ns.class]
 	if hooks and hooks.paint then
@@ -206,7 +269,7 @@ local function Motion()
 end
 
 local function Listen(on, lua, forms)
-	local key = tostring(on) .. tostring(lua) .. tostring(forms)
+	local key = tostring(on) .. table.concat(lua or {}, ",") .. tostring(forms)
 	if state.listening == key then
 		return
 	end
@@ -227,8 +290,14 @@ local function Listen(on, lua, forms)
 		Events.Register(OWNER, "UPDATE_SHAPESHIFT_FORM", Trackers.Update)
 	end
 	local events = {}
-	for _, event in ipairs(lua and PAINT or {}) do
-		events[event] = false
+	for _, kind in ipairs(lua or {}) do
+		for _, event in ipairs(LUA[kind]) do
+			if type(event) == "table" then
+				events[event[1]] = event[2]
+			else
+				events[event] = events[event] or false
+			end
+		end
 	end
 	for _, event in ipairs(hooks.events or {}) do
 		if type(event) == "table" then
@@ -314,7 +383,16 @@ function Trackers.Update()
 	Medals.Rest()
 	Motion()
 	Paint()
-	Listen(true, #form.lua > 0, forms)
+	local kinds, seen = {}, {}
+	for _, piece in ipairs(form.lua) do
+		local kind = piece.spec.feed
+		if not seen[kind] then
+			seen[kind] = true
+			kinds[#kinds + 1] = kind
+		end
+	end
+	table.sort(kinds)
+	Listen(true, kinds, forms)
 end
 
 function Trackers.SetEnabled(on)
@@ -331,39 +409,116 @@ local function OffHand(row)
 	return not IsSecret(item) and item and Medals.Known(row.spells)
 end
 
-local SHOUTS = { 25289, 11551, 11550, 11549, 6192, 5242, 6673, 403215 }
-local EXECUTE, REVENGE, VICTORY = { 20662, 20661, 20660, 20658, 5308 }, { 25288, 11601, 11600, 7379, 6574, 6572 }, { 402927 }
-local VANISH = { 1857, 1856 }
-local JUDGEMENT, POISONS = { 20271, 1310994 }, { 2842 }
+local function Talent(talents, spells)
+	return function()
+		return Medals.Known(talents) and Medals.Known(spells)
+	end
+end
+
+local function Joined(...)
+	local list = {}
+	for _, part in ipairs({ ... }) do
+		for _, id in ipairs(part) do
+			list[#list + 1] = id
+		end
+	end
+	return list
+end
+
+local SHOUTS = { 25289, 11551, 11550, 11549, 6192, 5242, 6673 }
+local EXECUTE, OVERPOWER = { 20662, 20661, 20660, 20658, 5308 }, { 11585, 11584, 7887, 7384 }
+local REVENGE, VICTORY = { 25288, 11601, 11600, 7379, 6574, 6572 }, { 402927 }
+local MORTAL, BLOODTHIRST, SLAM = { 21553, 21552, 21551, 12294 }, { 23894, 23893, 23892, 23881 }, { 11605, 11604, 8820, 1464, 1240193 }
+local THUNDER = { 11581, 11580, 8205, 8204, 8198, 6343 }
+local DEFENSIVE, BERSERKER = { 18 }, { 19 }
+local function Tank(spec)
+	return { key = "crestTankGlow", seat = "rim", feed = "threat", crestOnly = true, build = Medals.Emblem, color = "gilt", choices = { spec } }
+end
 
 Trackers.Register("WARRIOR", {
 	{ key = "crestShout", seat = "left", feed = "aura", spells = SHOUTS, color = "gilt" },
 	{ key = "crestOpening", seat = "right", feed = "usable", choices = {
-		{ forms = { 18 }, groups = { REVENGE, { 2565 }, { 23925, 23924, 23923, 23922 } } },
-		{ forms = { 19 }, groups = { EXECUTE, { 23894, 23893, 23892, 23881 }, { 1680 }, VICTORY } },
-		{ groups = { EXECUTE, { 11585, 11584, 7887, 7384 }, REVENGE, VICTORY } },
+		{ forms = DEFENSIVE, groups = { REVENGE, { 2565 }, { 23925, 23924, 23923, 23922 } } },
+		{ forms = BERSERKER, groups = { EXECUTE, BLOODTHIRST, { 1680 }, VICTORY } },
+		{ groups = { EXECUTE, OVERPOWER, REVENGE, VICTORY } },
+		{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", color = "plateHostile", spells = { 11574, 11573, 11572, 6548, 6547, 6546, 772 } },
 	} },
-	{ key = "crestEnrage", seat = "rim", feed = "aura", spells = { 12880, 14201, 14202, 14203, 14204, 29131, 18499 },
+	{ key = "crestEnrage", seat = "rim", feed = "aura", spells = { 12880, 29131, 18499 },
 		known = { 2687, 18499, 12317, 13045, 13046, 13047, 13048 }, color = "jewelCombo", ambient = "medAmbientWarrior" },
 	{ key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 1719 } }, { spells = { 12328 } },
 		{ spells = { 871 } }, { spells = { 12976 }, known = { 12975 } }, { spells = { 12292 } }, { spells = { 20230 } } } },
+	{ key = "crestThreat", seat = "topGem", feed = "threat", known = SHOUTS, choices = { { forms = DEFENSIVE, color = "gilt" }, { color = "plateHostile" } } },
+	{ key = "crestHips", seat = "leftHip", feed = "cooldown", choices = {
+		{ forms = DEFENSIVE, feed = "aura", unit = "target", filter = "HARMFUL", spells = THUNDER, color = "pipStormGlow" },
+		{ forms = BERSERKER, known = Joined(BLOODTHIRST, { 1680 }, SLAM) },
+		{ known = Joined(MORTAL, SLAM, THUNDER) },
+	} },
+	{ key = "crestHips", seat = "rightHip", feed = "aura", count = true, color = "gilt", choices = {
+		{ forms = DEFENSIVE, spells = { 2565 } },
+		{ spells = { 12966 }, known = { 12319, 12971, 12972, 12973, 12974 } },
+		{ spells = { 12292 } },
+		{ spells = { 1329555 } },
+	} },
+	{ key = "crestFeet", seat = "footLeft", size = 17, feed = "cooldown", choices = { { forms = BERSERKER, known = { 6554, 6552 } }, { known = { 1672, 1671, 72 } } } },
+	{ key = "crestFeet", seat = "footRight", size = 17, feed = "cooldown", choices = {
+		{ forms = DEFENSIVE, known = { 355 }, feeds = { {}, { feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", color = "plateHostile",
+			spells = { 355, 694, 7400, 7402, 20559, 20560, 1161 } } } },
+		{ forms = BERSERKER, known = { 20617, 20616, 20252 } },
+		{ known = { 11578, 6178, 100 } },
+	} },
+	Tank({ forms = DEFENSIVE, known = SHOUTS }),
 }, { burst = "medBurstWarrior" })
 
+local SEALS = { 20154, 20287, 20288, 20289, 20290, 20291, 20292, 20293, 21084, 20375, 20915, 20918, 20919, 20920, 20162, 20305, 20306,
+	20307, 20308, 21082, 20165, 20347, 20348, 20349, 20166, 20356, 20357, 20164, 20163, 1311649, 20419, 20421, 20422, 20423, 1311656 }
+local JUDGEMENT, HOLY_STRIKE = { 20271, 1310994 }, { 10333, 10332, 5569, 2495, 680, 1866, 678, 679 }
+local PROT, HOLY = { 20925, 20177, 20179, 20180, 20181, 20182 }, { 20473, 20929, 20930, 1311606, 20216 }
+local VENGEANCE = { 20049, 20056, 20057, 20058, 20059 }
+local STONES = { 9421, 5510, 5509, 5511, 5512, 19004, 19005, 19006, 19007, 19008, 19009, 19010, 19011, 19012, 19013, 12662, 20520, 11951 }
+local MANA_POTIONS = { 13444, 13443, 6149, 3827, 3385, 2455 }
+
 Trackers.Register("PALADIN", {
-	{ key = "crestSeal", seat = "top", feed = "aura", color = "jewelHoly", spells = { 20154, 20287, 20288, 20289, 20290, 20291, 20292, 20293,
-		21084, 20375, 20915, 20918, 20919, 20920, 20162, 20305, 20306, 20307, 20308, 21082, 20165, 20347, 20348, 20349, 20166, 20356,
-		20357, 20164, 20163, 1311656, 407798 } },
+	{ key = "crestSeal", seat = "top", feed = "aura", color = "jewelHoly", spells = SEALS },
 	{ key = "crestJudgement", seat = "left", feed = "cooldown", known = JUDGEMENT },
 	{ key = "crestJudged", seat = "right", feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", known = JUDGEMENT, color = "jewelHoly",
-		spells = { 20188, 20300, 20301, 20302, 20303, 21183, 20185, 20344, 20345, 20346, 20186, 20354, 20355, 20184 } },
-	{ key = "crestCooldowns", seat = "cooldowns", color = "jewelHoly", families = { { spells = { 407788 } }, { spells = { 642, 1020 } },
-		{ spells = { 498, 5573 } }, { spells = { 20216 } }, { spells = { 20925, 20927, 20928, 1239570 } }, { spells = { 1022, 5599, 10278 } } } },
+		spells = { 20188, 20300, 20301, 20302, 20303, 21183, 20185, 20344, 20345, 20346, 20186, 20354, 20355, 20184, 20232 } },
+	{ key = "crestCooldowns", seat = "cooldowns", color = "jewelHoly", families = { { spells = { 642, 1020 } }, { spells = { 498, 5573 } },
+		{ spells = { 20216 } }, { spells = { 1022, 5599, 10278 } }, { spells = { 1044 } }, { spells = { 1311015 } }, { spells = { 1310897 } } } },
+	{ key = "crestHips", seat = "leftHip", feed = "cooldown", choices = {
+		{ known = Talent(PROT, Joined({ 407632 }, HOLY_STRIKE)) },
+		{ known = Talent(HOLY, Joined({ 20930, 20929, 20473, 1311606, 20216 }, HOLY_STRIKE)) },
+		{ known = HOLY_STRIKE },
+	} },
+	{ key = "crestHips", seat = "rightHip", choices = {
+		{ known = Talent(PROT, { 25780 }), feed = "aura", spells = { 25780 }, color = "gilt" },
+		{ known = Talent(HOLY, { 1328548, 1310911, 1311590, 1311595 }), feed = "aura", filter = "HELPFUL|PLAYER", color = "jewelHoly",
+			feeds = { { unit = "focus", spells = { 1328548 } }, { unit = "target", spells = { 1328548, 1310909 } } } },
+		{ feed = "usable", groups = { { 24239, 24274, 24275 } } },
+		{ feed = "cooldown", known = { 10314, 10313, 10312, 5615, 5614, 879 } },
+	} },
+	{ key = "crestFeet", seat = "footLeft", size = 17, choices = {
+		{ known = Talent(HOLY, JUDGEMENT), feed = "item", items = STONES },
+		{ feed = "cooldown", known = { 10308, 5589, 5588, 853 } },
+	} },
+	{ key = "crestFeet", seat = "footRight", size = 17, choices = {
+		{ known = Talent(HOLY, JUDGEMENT), feed = "item", items = MANA_POTIONS },
+		{ known = Talent(PROT, JUDGEMENT), feed = "threat", color = "gilt" },
+		{ known = JUDGEMENT, feed = "threat", color = "plateHostile" },
+	} },
+	{ key = "crestRing", seat = "rim", choices = {
+		{ known = PROT, feed = "aura", spells = { 20925, 20927, 20928, 1239570 }, color = "gilt" },
+		{ known = VENGEANCE, feed = "aura", spells = { 20050 }, color = "jewelHoly" },
+	} },
+	Tank({ known = Talent(PROT, JUDGEMENT) }),
 }, { burst = "medBurstPaladin" })
+
+local VANISH, POISONS = { 1857, 1856 }, { 2842 }
+local POISON_STACKS = { 2818, 2819, 11353, 11354, 25349, 434312, 434313, 434314, 434315, 434316, 458820, 462286, 1214170 }
 
 Trackers.Register("ROGUE", {
 	{ key = "crestSlice", seat = "left", choices = {
 		{ forms = { 30 }, feed = "usable", groups = { { 11269, 11268, 11267, 8725, 8724, 8676 }, { 1833 }, { 11290, 11289, 8633, 8632, 8631, 703 } } },
-		{ feed = "aura", spells = { 6774, 5171, 400012 }, color = "pipPriestGlow" },
+		{ feed = "aura", spells = { 6774, 5171 }, color = "pipPriestGlow" },
 	} },
 	{ key = "crestRupture", seat = "right", choices = {
 		{ forms = { 30 }, feed = "cooldown", known = VANISH },
@@ -373,6 +528,18 @@ Trackers.Register("ROGUE", {
 	{ key = "crestPoisons", seat = "lowerLeft", feed = "enchant", slot = "MainHand", known = POISONS, color = "schoolNature" },
 	{ key = "crestPoisons", seat = "lowerRight", feed = "enchant", slot = "OffHand", known = OffHand, spells = POISONS, color = "schoolNature" },
 	{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", families = { { spells = { 13877 } }, { spells = { 13750 } },
-		{ spells = { 5277 } }, { spells = { 2983, 8696, 11305 } }, { spells = { 14177 } }, { spells = { 11327, 11329 }, known = { 1856, 1857 } },
+		{ spells = { 5277 } }, { spells = { 2983, 8696, 11305 } }, { spells = { 14177 } }, { spells = { 11327, 11329 }, known = VANISH },
 		{ spells = { 14278 } } } },
+	{ key = "crestFeet", seat = "footLeft", size = 17, feed = "cooldown", known = { 1769, 1768, 1767, 1766, 11286, 11285, 8629, 1777, 1776 } },
+	{ key = "crestFeet", seat = "footRight", size = 17, choices = {
+		{ known = Talent({ 16513, 14113, 14186, 14177 }, POISONS), feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = POISON_STACKS,
+			color = "schoolNature", count = true },
+		{ feed = "usable", groups = { { 14251 } } },
+		{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 16511 }, color = "plateHostile" },
+		{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 1316709, 1325756, 1325757, 1325758 }, color = "plateHostile" },
+		{ feed = "cooldown", known = { 1329549, 1329283 } },
+	} },
+	{ key = "crestRing", seat = "rim", feed = "aura", spells = { 14143, 1329326, 1328826 }, known = { 14144, 14148, 14278, 1328825 },
+		ambient = "medAmbientRogue" },
+	{ key = "crestRing", seat = "rim", feed = "aura", spells = { 1310703 }, known = { 1329328 }, color = "jewelCombo" },
 }, { burst = "medBurstRogue", update = { "PLAYER_EQUIPMENT_CHANGED" } })

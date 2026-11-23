@@ -12,12 +12,16 @@ ns.SlabMedals = Medals
 local SIZE, TRACK, ICON, SHADE, BURST, STEEL = 26, 6, 0.74, 1.9, 2.4, 0.45
 local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 104, 12, 10, 8, 2
 local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, STACK_MAX = 90, 14, 2, 30, 3
-local SEATS = { left = { -1, 84, 32 }, right = { 1, 84, 32 }, top = { 1, 96, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 } }
+local SEATS = {
+	left = { -1, 84, 32 }, right = { 1, 84, 32 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
+	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 73, 247 }, footRight = { 1, 73, 293 },
+}
+local PIP, PIP_RING, PIP_ARC = 4, 17, 22
 local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local OWNER = "ActionBars.SlabMedals"
 local refreshed, rims, watchers = {}, {}, {}
-local REFRESH = { target = { "PLAYER_TARGET_CHANGED" }, pet = { "UNIT_PET", "player" } }
-Medals.SIZE = SIZE
+local REFRESH = { target = { "PLAYER_TARGET_CHANGED" }, pet = { "UNIT_PET", "player" }, focus = { "PLAYER_FOCUS_CHANGED" } }
+Medals.SIZE, Medals.FOOT = SIZE, 17
 
 function Medals.Known(spells)
 	local book = C_SpellBook
@@ -225,7 +229,11 @@ end
 function Medals.Medal(parent, spec, level)
 	local size = spec.size or SIZE
 	local m = Piece(parent, level, size)
-	local add, timed, feeds = m.add, spec.color ~= nil, spec.feeds or { spec }
+	local feeds = spec.feeds or { spec }
+	local add, timed = m.add, spec.color ~= nil
+	for _, feed in ipairs(feeds) do
+		timed = timed or feed.color ~= nil
+	end
 	local top = level + 1 + 2 * #feeds
 	Medals.Dress(m, Medals.Layer(m, top))
 	add(m.shade, size * SHADE):SetPoint("CENTER", m, "CENTER", 0, 0)
@@ -248,17 +256,34 @@ function Medals.Medal(parent, spec, level)
 		else
 			lit.icon:SetTexture(spec.texture)
 		end
-		if timed then
+		if each.color and each.feed ~= "cooldown" then
 			lit.timer = add(Timer(lit, level + 2 + 2 * (i - 1), "orbRing", each.color), size + TRACK)
 			if lit.container then
 				lit:SetDurationCooldown(lit.timer)
 			end
-		elseif each.feed == "cooldown" then
+		elseif each.feed == "cooldown" or each.feed == "item" then
 			lit.timer = add(Timer(lit, level + 2, "dot", "black", 0.7), size * ICON)
 			lit.timer:SetScript("OnCooldownDone", function() Medals.Fire(m) end)
 		end
+		if each.count and lit.container then
+			lit.count = Widgets.FontString(lit, "OVERLAY")
+			lit.count:SetPoint("BOTTOMRIGHT", m, "BOTTOMRIGHT", 2, -2)
+			lit:SetApplicationCount(lit.count)
+		end
+		for n = 1, lit.container and each.pips or 0 do
+			local slot = lit.container:AddAuraSlot("pip" .. n, each.filter or "HELPFUL", each.options)
+			pcall(slot.EnableMouse, slot, false)
+			slot:SetAllPoints(m)
+			slot:SetFrameLevel(level + 2)
+			local pip = add(CreateFrame("StatusBar", nil, slot), PIP)
+			local a = rad(270 + (n - (each.pips + 1) / 2) * PIP_ARC)
+			pip:SetPoint("CENTER", m, "CENTER", PIP_RING * cos(a), PIP_RING * sin(a))
+			pip:SetStatusBarTexture((Tokens.Texture("dot")))
+			pip:SetStatusBarColor(Tokens.Color(each.color or "gilt"))
+			slot:SetApplicationBar(pip, { minApplications = n - 1, maxApplications = n })
+		end
 		m.timer = m.timer or lit.timer
-		if each.feed == "usable" then
+		if each.feed == "usable" or each.feed == "item" then
 			lit:Hide()
 		end
 	end
@@ -281,7 +306,9 @@ function Medals.Rim(parent, spec, level)
 	end
 	if spec.color then
 		r.timer = r.add(Timer(lit, level + 2, "ring", spec.color), INNER)
-		lit:SetDurationCooldown(r.timer)
+		if lit.container then
+			lit:SetDurationCooldown(r.timer)
+		end
 	end
 	Flare(r, lit, level + 3, spec.burst or "glow", RIM)
 	r.spec = spec
@@ -363,6 +390,46 @@ function Medals.Socket(parent, spec, level)
 	Flare(s, lit, level + 3, "glow", SETTING * BURST)
 	s.spec = spec
 	return s
+end
+
+function Medals.Threat(parent, spec, level)
+	local t = Piece(parent, level, SETTING)
+	local add = t.add
+	add(Medals.Texture(t, "ARTWORK", 0, "diamond", "gilt", SETTING))
+	add(Medals.Texture(t, "ARTWORK", 1, "diamond", "jewelSetting", LIP))
+	add(Medals.Texture(t, "ARTWORK", 2, "forgedDiamond", "jewelSocket", GEM)):SetTexCoord(1, 0, 0, 1)
+	t.bar = add(CreateFrame("StatusBar", nil, t), GEM)
+	t.bar:SetFrameLevel(level + 1)
+	t.bar:SetPoint("CENTER", t, "CENTER", 0, 0)
+	t.bar:SetOrientation("VERTICAL")
+	t.bar:SetMinMaxValues(0, 100)
+	t.bar:SetValue(0)
+	t.bar:SetStatusBarTexture((Tokens.Texture("diamond")))
+	t.bar:SetStatusBarColor(Tokens.Color(spec.color))
+	t.bar:SetAlpha(0.6)
+	t.lit = Medals.Layer(t, level + 2)
+	add(Medals.Texture(t.lit, "ARTWORK", 0, "glow", spec.color, SETTING * 2, "ADD"))
+	add(Medals.Texture(t.lit, "OVERLAY", 0, "diamond", spec.color, GEM))
+	t.lit:SetAlpha(0)
+	t.lits, t.spec = { t.lit }, spec
+	return t
+end
+
+function Medals.Plaque(parent, spec, level)
+	local p = Piece(parent, level, SIZE)
+	p.lit = Medals.Layer(p, level + 1)
+	p.timer = p.add(Timer(p.lit, level + 1, "orbRing", spec.color), SIZE)
+	p.lits, p.spec = { p.lit }, spec
+	return p
+end
+
+function Medals.Emblem(parent, spec, level)
+	local e = Piece(parent, level, RIM)
+	e.lit = Medals.Layer(e, level + 1)
+	e.add(Medals.Texture(e.lit, "OVERLAY", 0, "glow", spec.color, RIM, "ADD"))
+	e.lit:SetAlpha(0)
+	e.lits, e.spec = { e.lit }, spec
+	return e
 end
 
 function Medals.Place(piece, anchor, x, y)
@@ -456,6 +523,44 @@ function Medals.Refresh(m)
 			else
 				m.bar:SetMinMaxValues(0, 1)
 				m.bar:SetValue(1)
+			end
+		end
+		return
+	end
+	if spec.feed == "threat" then
+		local read = UnitDetailedThreatSituation
+		local tanking, _, scaled
+		if read then
+			tanking, _, scaled = read("player", "target")
+		end
+		if m.bar then
+			m.bar:SetValue(scaled or 0)
+		end
+		if IsSecret(tanking) then
+			m.lit:SetAlphaFromBoolean(tanking, 1, 0)
+		else
+			m.lit:SetAlpha(tanking and 1 or 0)
+		end
+		return
+	end
+	if spec.feed == "item" then
+		local item = C_Item
+		local id
+		for _, each in ipairs(spec.items) do
+			local count = item and item.GetItemCount and item.GetItemCount(each)
+			if not IsSecret(count) and type(count) == "number" and count > 0 then
+				id = each
+				break
+			end
+		end
+		m.lit:SetShown(id ~= nil)
+		if id then
+			m.lit.icon:SetTexture(item.GetItemIconByID and item.GetItemIconByID(id) or spec.texture)
+			local start, duration = item.GetItemCooldown(id)
+			if not (IsSecret(start) or IsSecret(duration)) and type(duration) == "number" and duration > 0 then
+				m.timer:SetCooldown(start, duration)
+			else
+				m.timer:Clear()
 			end
 		end
 		return

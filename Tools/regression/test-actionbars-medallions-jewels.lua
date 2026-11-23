@@ -183,7 +183,10 @@ end
 
 do
 	local env, K, ns = New("PALADIN", MANA)
-	assert(Shown(ns) == 5 and env._askedMax == HOLY, "a paladin's jewels count holy power")
+	assert(Shown(ns) == 0, "with Vengeance jewels on and nothing to feed them, a paladin draws no dead holy power jewels")
+	K.Options.Write("ActionBars", "crestVengeance", false)
+	env.RunTimers()
+	assert(Shown(ns) == 5 and env._askedMax == HOLY, "with it off, a paladin's jewels count holy power as before")
 	env._points = 2
 	env.FireEvent("UNIT_POWER_FREQUENT", "player", "HOLY_POWER")
 	assert(Lit(ns) == 2 and env._askedPower == HOLY, "holy power lights the jewels")

@@ -23,7 +23,11 @@ local KINDS = {
 local CLASS_KIND = { ROGUE = "combo", DRUID = "combo", PALADIN = "holy", WARLOCK = "shard" }
 local POWER_IDS = { Energy = 3, ComboPoints = 4, SoulShards = 7, HolyPower = 9 }
 local NOW = { "halo", "rim", "gem", "flare", "core", "glint" }
-local FEEDS = { { known = { 20049 }, spells = { 20050 } }, { known = { 20925, 20927, 20928, 1239570 }, spells = { 20925, 20927, 20928, 1239570 } } }
+local FEEDS = {
+	{ known = { 20049, 20056, 20057, 20058, 20059 }, spells = { 20050 } },
+	{ known = { 20925, 20927, 20928, 1239570 }, spells = { 20925, 20927, 20928, 1239570 } },
+	{ known = { 20177, 20179, 20180, 20181, 20182 }, spells = { 1326084 } },
+}
 local FED = { halo = true, rim = true, gem = true, core = true, glint = true }
 
 local state = { jewels = {}, count = 0, sets = {} }
@@ -370,7 +374,7 @@ function Jewels.Update(event)
 	local class = Class()
 	local kind = class and Kind(class)
 	local feed = Fed(class)
-	local count = feed and DEFAULT_COUNT or kind and Count(kind) or 0
+	local count = feed and DEFAULT_COUNT or class == "PALADIN" and ns.Config("crestVengeance") ~= false and 0 or kind and Count(kind) or 0
 	if event == "UPDATE_SHAPESHIFT_FORM" and class == state.class and kind == state.kind and count == state.count and feed == state.feed then
 		return
 	end

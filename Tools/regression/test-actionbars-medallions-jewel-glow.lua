@@ -22,6 +22,7 @@ local function New(class, power, size)
 		end,
 	})
 	AB.Enable(env, K)
+	if class == "PALADIN" then K.Options.Write("ActionBars", "crestVengeance", false) end
 	env.RunTimers()
 	return env, K, ns
 end
