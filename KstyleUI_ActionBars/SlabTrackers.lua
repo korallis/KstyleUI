@@ -494,7 +494,7 @@ Trackers.Register("PALADIN", {
 	{ key = "crestJudgement", seat = "left", feed = "cooldown", known = JUDGEMENT },
 	{ key = "crestJudged", seat = "right", feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", known = JUDGEMENT, color = "jewelHoly",
 		spells = { 20188, 20300, 20301, 20302, 20303, 21183, 20185, 20344, 20345, 20346, 20186, 20354, 20355, 20184, 20232 } },
-	{ key = "crestCooldowns", seat = "cooldowns", color = "jewelHoly", families = { { spells = { 642, 1020 } }, { spells = { 498, 5573 } },
+	{ key = "crestCooldowns", seat = "cooldowns", color = "white", families = { { spells = { 642, 1020 } }, { spells = { 498, 5573 } },
 		{ spells = { 20216 } }, { spells = { 1022, 5599, 10278 } }, { spells = { 1044 } }, { spells = { 1311015 } }, { spells = { 1310897 } } } },
 	{ key = "crestHips", seat = "leftHip", feed = "cooldown", choices = {
 		{ known = Talent(PROT, Joined({ 407632 }, HOLY_STRIKE)) },
