@@ -253,8 +253,8 @@ do
 		if piece.spec.feed == "fiveSecond" then plaque = piece end
 	end
 	env.C_Spell.GetSpellPowerCost = function() return { { type = 0, cost = 50 } } end
+	env.GetTime = function() return 100 end
 	env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 20154)
-	print("dbg", #(plaque.timer._calls or {}), plaque.timer._calls and plaque.timer._calls[#plaque.timer._calls].method)
 	assert(plaque and AB.W.LastCall(plaque.timer, "SetCooldown")[2] == 5, "a mana spell starts the five-second ring round the level badge")
 	Clean(env, K, "threat and five seconds")
 end
@@ -288,8 +288,9 @@ do
 	}, { events = { "BAG_UPDATE_DELAYED" }, paint = function() painted = painted + 1 end, motion = function() moved = moved + 1 end })
 	ns.SlabTrackers.Update()
 	local shown = Pieces(ns)
-	assert(shown[1] and shown[2] and shown[2].custom and shown[3], "registered rows build, a custom builder among them")
-	assert(ns.SlabTrackers.state.forms.crest.pieces["3:2"], "the first choice the priest knows takes the seat")
+	assert(shown[1] and shown[1].spec.feed == "fiveSecond", "a mana class gets the five-second ring first")
+	assert(shown[2] and shown[3] and shown[3].custom and shown[4], "registered rows build, a custom builder among them")
+	assert(ns.SlabTrackers.state.forms.crest.pieces["4:2"], "the first choice the priest knows takes the seat")
 	assert(moved > 0, "the motion hook runs")
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(painted > 0, "a class event reaches its paint hook")

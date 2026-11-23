@@ -265,7 +265,7 @@ function Medals.Medal(parent, spec, level)
 			lit.timer = add(Timer(lit, level + 2, "dot", "black", 0.7), size * ICON)
 			lit.timer:SetScript("OnCooldownDone", function() Medals.Fire(m) end)
 		end
-		if each.count and lit.container then
+		if each.count and lit.SetApplicationCount then
 			lit.count = Widgets.FontString(lit, "OVERLAY")
 			lit.count:SetPoint("BOTTOMRIGHT", m, "BOTTOMRIGHT", 2, -2)
 			lit:SetApplicationCount(lit.count)

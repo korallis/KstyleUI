@@ -1,13 +1,15 @@
--- _trackers.lua: RENDER_TRACKERS_FORM sets GetShapeshiftFormID (a warrior's 18 or 19, a rogue's 30); RENDER_TRACKERS draws a warrior's, paladin's or rogue's crest trackers through the game's own feeds (Tools/regression/aura_slots.lua): steel (every piece known, nothing up), lit (every piece up, its timer part spent) or moment, the class's moment RENDER_TRACKERS_T seconds in (Trackers.END when unset): a warrior's target dodges and Overpower lights, it is spent, Bloodrage ignites Enrage round the rim, and Execute lights; a paladin's Judgement comes off cooldown, the old Judgement falls off the target and a new one lands, the Seal draining throughout; a rogue spends five points on Slice and Dice, Rupture runs out, and the off hand carries no poison. RENDER_TRACKERS_OFF=1 turns every tracker switch off first.
+-- _trackers.lua: RENDER_TRACKERS_FORM sets GetShapeshiftFormID (a warrior's 18 or 19, a rogue's 30) and RENDER_TRACKERS_SPEC the talents a paladin (holy, prot) or rogue (assassination, combat, subtlety) knows; RENDER_TRACKERS draws a warrior's, paladin's or rogue's crest trackers through the game's own feeds (Tools/regression/aura_slots.lua): steel (every piece known, nothing up), lit (every piece up, its timer part spent) or moment, the class's moment RENDER_TRACKERS_T seconds in (Trackers.END when unset): a warrior's target dodges and Overpower lights, it is spent, Bloodrage ignites Enrage round the rim, and Execute lights; a paladin's Judgement comes off cooldown, the old Judgement falls off the target and a new one lands, the Seal draining throughout; a rogue spends five points on Slice and Dice, Rupture runs out, and the off hand carries no poison. RENDER_TRACKERS_OFF=1 turns every tracker switch off first.
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
 local Trackers = {}
 
 local KNOWN = {
-	WARRIOR = { 25289, 20662, 11585, 25288, 2565, 23894, 1680, 2687, 18499, 12317, 1719, 12328, 871, 12975, 12292, 20230 },
-	PALADIN = { 20154, 20271, 20049, 407788, 1020, 5573, 20216 },
-	ROGUE = { 6774, 11275, 2842, 11269, 1833, 1857, 13877, 13750, 5277, 11305, 14177 },
+	WARRIOR = { 25289, 20662, 11585, 25288, 2565, 23894, 1680, 2687, 18499, 12317, 1719, 12328, 871, 12975, 12292, 20230, 21553, 11605,
+		11581, 1672, 6554, 11578, 20617, 355 },
+	PALADIN = { 20154, 20271, 1020, 5573, 10333, 24239, 10314, 10308 },
+	ROGUE = { 6774, 11275, 2842, 11269, 1833, 1857, 13877, 13750, 5277, 11305, 14177, 1769, 1329549, 1316709, 1329328, 14148 },
 }
+local SPECS = { holy = { 20473, 20216 }, prot = { 20925, 407632, 25780 }, ret = { 20049 }, assassination = { 14177 }, combat = { 14251 }, subtlety = { 16511 } }
 local COOLDOWNS = { WARRIOR = { 1719, 871 }, PALADIN = { 407788, 20216 }, ROGUE = { 13877, 13750, 5277 } }
 local OPENINGS = { [18] = 25288, [19] = 23894, [30] = 11269 }
 local ICONS = {
@@ -15,6 +17,9 @@ local ICONS = {
 	[20154] = 132325, [20271] = 135959, [20185] = 135917, [6774] = 132306, [11275] = 132302, [2842] = 136242,
 	[1719] = 132109, [871] = 132362, [407788] = 135875, [20216] = 135915, [13877] = 132350, [13750] = 136206, [5277] = 136205,
 	[23894] = 136012, [2565] = 132110, [1680] = 132369, [11269] = 132282, [1833] = 132092, [1857] = 132331,
+	[21553] = 132355, [12292] = 132306, [1672] = 132357, [6554] = 132938, [11578] = 132337, [20617] = 132307, [355] = 136080,
+	[10333] = 135891, [24239] = 132326, [10308] = 135963, [20473] = 135972, [407632] = 135891, [25780] = 135962, [20050] = 132275,
+	[1769] = 132219, [1316709] = 136168, [1310703] = 132290, [14143] = 132151, [14251] = 132336, [20925] = 135880,
 }
 local KEYS = { "crestShout", "crestOpening", "crestEnrage", "crestSeal", "crestJudgement", "crestJudged", "crestVengeance", "crestSlice", "crestRupture", "crestPoisons" }
 Trackers.END = 12
@@ -30,6 +35,8 @@ function Trackers.Install(env, class)
 	if not env._slotContainers then Slots.Install(env) end
 	local known = {}
 	for _, id in ipairs(KNOWN[class]) do known[id] = true end
+	local spec = os.getenv("RENDER_TRACKERS_SPEC")
+	for _, id in ipairs(SPECS[spec and spec ~= "" and spec or class == "PALADIN" and "ret" or ""] or {}) do known[id] = true end
 	env.C_SpellBook = env.C_SpellBook or {}
 	local before = env.C_SpellBook.IsSpellKnown
 	env.C_SpellBook.IsSpellKnown = function(id, bank) return known[id] == true or before ~= nil and before(id, bank) end
@@ -43,6 +50,12 @@ function Trackers.Install(env, class)
 	spell.GetSpellCooldownDuration = function(id) return env._cooldowns[id] or { start = 0, finish = 0 } end
 	env.GetInventoryItemID = function(_, slot) return (slot == 16 or slot == 17) and 2092 or nil end
 	env.GetShapeshiftFormID = function() return tonumber(os.getenv("RENDER_TRACKERS_FORM") or "") end
+	env.UnitDetailedThreatSituation = function() if env._threat then return true, 3, env._threat, 100, 1000 end end
+	env.C_Item = env.C_Item or {}
+	env.C_Item.GetItemCount = function(id) return (id == 13444 or id == 9421) and 1 or 0 end
+	env.C_Item.GetItemCooldown = function() return (env._time or 0) - 30, 120, true end
+	env.C_Item.GetItemIconByID = function(id) return id == 13444 and 134762 or 135230 end
+	spell.GetSpellPowerCost = function() return { { type = 0, cost = 100 } } end
 end
 
 local function Sample(group, at, now, env)
@@ -52,7 +65,9 @@ end
 local function Piece(ns, key)
 	local form = ns.SlabTrackers.state.form
 	for i, p in ipairs(ns.SlabTrackers.CLASSES[ns.class]) do
-		if p.key == key and form and form.pieces[i .. ":1"] then return form.pieces[i .. ":1"], i end
+		for k, piece in pairs(p.key == key and form and form.pieces or {}) do
+			if k:match("^" .. i .. ":") and piece:IsShown() then return piece, i end
+		end
 	end
 end
 
@@ -93,12 +108,33 @@ function Trackers.Play(env, K, ns, notes)
 		end
 		local opening = OPENINGS[tonumber(os.getenv("RENDER_TRACKERS_FORM") or "")]
 		if opening then env._usable[opening] = true end
+		env._threat = 85
+		for _, id in ipairs({ 21553, 23894, 10333, 407632, 20473, 1769, 1672, 6554, 10308, 355 }) do
+			env._cooldowns[id] = { start = at(2), finish = at(8) }
+		end
+		env._usable[24239], env._usable[14251] = true, true
+		local extra = { WARRIOR = { 12292, 3, 2565, 2 }, PALADIN = { 20050, 3, 25780, 0, 20925, 3 }, ROGUE = { 14143, 0, 1310703, 0 } }
+		for i = 1, #extra[class], 2 do
+			player[#player + 1] = { id = extra[class][i], count = extra[class][i + 1], icon = ICONS[extra[class][i]], start = at(-4), duration = 30 }
+		end
+		if class == "ROGUE" then
+			target[#target + 1] = { id = 1316709, count = 0, icon = ICONS[1316709], harmful = true, start = at(2), duration = 10 }
+			target[#target + 1] = { id = 2818, count = 4, icon = 132290, harmful = true, start = at(0), duration = 12 }
+		end
 	end
 	local crown = env._slotAuras.target or {}
 	for _, a in ipairs(crown) do target[#target + 1] = a end
 	Slots.Set(env, "player", player)
 	Slots.Set(env, "target", target)
 	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	env.FireEvent("UNIT_THREAT_LIST_UPDATE", "target")
+	if story == "lit" then
+		local clock = env._now
+		env._now = env._time - 2
+		env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-mana", 20271)
+		env._now = clock
+	end
 	env.FireEvent("SPELL_UPDATE_USABLE")
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	if story == "moment" then

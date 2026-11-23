@@ -11,7 +11,7 @@
 --   Slots.Install(env)                                   -- in an env's setup, before the addon loads
 --   Slots.Set(env, "target", { { id = 7386, count = 3, harmful = true } })   -- feeds every slot; nil clears
 --
--- SetIcon, SetDurationCooldown and SetDurationBar take regions the button owns and show the aura's icon and its
+-- SetIcon, SetDurationCooldown, SetApplicationCount and SetDurationBar take regions the button owns and show the aura's icon, its stacks above one and its
 -- { start, finish } duration (an aura's start and duration, seconds); AddItemEnchantment's button shows the enchant
 -- Slots.Enchant gives its slot, as Blizzard_CustomAuraContainer.lua:488-507 does. A slot or group sorted by
 -- AuraInstanceIDOnly, Reverse takes the newest matching aura first (the last in the unit's list); AddAuraGroup makes
@@ -98,6 +98,9 @@ function Slots.Show(env, c, slot, aura)
 		if b._icon and aura then
 			b._icon:SetTexture(aura.icon)
 		end
+		if b._countText then
+			b._countText:SetText(aura and (aura.count or 0) > 1 and tostring(aura.count) or "")
+		end
 		if b._cooldown then
 			if timed then b._cooldown:SetCooldownFromDurationObject(timed) else b._cooldown:Clear() end
 		end
@@ -140,7 +143,7 @@ local function Button(env, c, button)
 			end
 		end
 	end
-	for method, field in pairs({ SetIcon = "_icon", SetDurationCooldown = "_cooldown" }) do
+	for method, field in pairs({ SetIcon = "_icon", SetDurationCooldown = "_cooldown", SetApplicationCount = "_countText" }) do
 		button[method] = function(_, region)
 			Restricted(env)
 			assert(Owns(button, region), "bad object in function call (must be the owner or a direct or indirect descendant of owner)")

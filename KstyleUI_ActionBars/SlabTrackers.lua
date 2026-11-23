@@ -230,7 +230,7 @@ local function Lists(form, shown)
 end
 
 local function FiveSecond(form, unit, _, spell)
-	if unit ~= "player" or IsSecret(spell) or not (C_Spell and C_Spell.GetSpellPowerCost) then
+	if unit ~= "player" or IsSecret(spell) or not (C_Spell and C_Spell.GetSpellPowerCost) or type(GetTime) ~= "function" then
 		return
 	end
 	for _, cost in ipairs(C_Spell.GetSpellPowerCost(spell) or {}) do
