@@ -1,4 +1,4 @@
--- Totems.lua: the shaman's Spirit Poles, KstyleUI's own secure totem bar in place of Blizzard's MultiCastActionBarFrame: four element sockets in the game's bar order (earth, fire, water, air) drop the chosen totem from its multi-cast action slot, right click fans out that element's totems on a shallow arc between the crest's sockets and the cooldown row to choose one, one fan at a time (shift right click dismisses the totem), each socket and fan choice wears its element's edge and tab, an open fan sits on a dark forged band rimmed in the element's colour, and each socket carries a crown spire that lights and burns down over the totem's life from the slot's own boolean and duration object, so Lua never reads a secret, and flickers through its last fifth at Full while the slot is readable; a chosen totem's icon rests at 82% until that totem is up, a fan unfolds from its socket over 0.12 s at Full and Calm, and with all four totems up the rune ring catches the shaman's class colour, a halo under the crest and the glyphs over it as on the hawks' ring, and breathes at Full; Ghost Wolf and Call of the Elements (right click: Totemic Recall) ride as medals on the Medallions crest ring's shoulders, the lone Ghost Wolf stance bar hides, and a vehicle or override bar hides the bar as it hides Blizzard's. Under Frames the same pieces stand upright in a row on a dark forged plate at the stance bar's place beside the tray, sized as its buttons, the medals after the sockets and each fan a column rising from its socket, with no rune ring; under Medallions without the crest Blizzard's bar stays.
+-- Totems.lua: the shaman's Spirit Poles, KstyleUI's own secure totem bar in place of Blizzard's MultiCastActionBarFrame: four element sockets in the game's bar order (earth, fire, water, air) drop the chosen totem from its multi-cast action slot, right click fans out that element's totems on a shallow arc between the crest's sockets and the cooldown row to choose one, one fan at a time (shift right click dismisses the totem), each fan choice wears its element's edge and tab, an open fan sits on a dark forged band rimmed in the element's colour, and each socket carries a crown spire that lights and burns down over the totem's life from the slot's own boolean and duration object, so Lua never reads a secret, and flickers through its last fifth at Full while the slot is readable; a chosen totem's icon rests at 82% until that totem is up, a fan unfolds from its socket over 0.12 s at Full and Calm, and with all four totems up the rune ring catches the shaman's class colour, a halo under the crest and the glyphs over it as on the hawks' ring, and breathes at Full; Ghost Wolf and Call of the Elements (right click: Totemic Recall) ride as medals on the Medallions crest ring's shoulders, the lone Ghost Wolf stance bar hides, and a vehicle or override bar hides the bar as it hides Blizzard's. Under Frames the same pieces stand upright in a row at the stance bar's place beside the tray, sized as its buttons, the medals after the sockets and each fan a column rising from its socket above its spire, with no rune ring; under Medallions without the crest Blizzard's bar stays.
 local _, ns = ...
 
 local K = KstyleUI
@@ -109,18 +109,10 @@ local function Art(parent, layer, name, color, blend)
 	return t
 end
 
-local function Atom(b, e)
-	b.edge = Art(b, "OVERLAY", "medSlotChecked", "totem" .. e.name)
-	b.edge:SetAllPoints(b)
-	b.edge:SetAlpha(EDGE)
-	b.tab = Art(b, "OVERLAY", "dot", "totem" .. e.name)
-	b.tab:SetPoint("TOP", b, "BOTTOM", 0, -1)
-end
-
 local function Band(holder, anchor, path, outer, inner)
 	local used = 0
 	for k, layer in ipairs({ { 0, 2 * BAND, "medSocket" }, { BAND - RIM / 2, RIM, outer }, { RIM / 2 - BAND, RIM, inner } }) do
-		local r, g, bl = Tokens.Color(layer[3])
+		local r, g, bl, alpha = Tokens.Color(layer[3])
 		for i = 1, #path - 1 do
 			local a, z, off = path[i], path[i + 1], layer[1]
 			local ax, ay, zx, zy = a[1] + a[3] * off, a[2] + a[4] * off, z[1] + z[3] * off, z[2] + z[4] * off
@@ -133,7 +125,7 @@ local function Band(holder, anchor, path, outer, inner)
 			line:SetStartPoint("CENTER", anchor, ax - ux, ay - uy)
 			line:SetEndPoint("CENTER", anchor, zx + ux, zy + uy)
 			line:SetThickness(layer[2])
-			line:SetColorTexture(r, g, bl)
+			line:SetColorTexture(r, g, bl, alpha)
 			line:Show()
 		end
 	end
@@ -358,7 +350,11 @@ local function Choice(fan, e, first)
 	f.to:SetOrder(2)
 	f.to:SetDuration(UNFOLD)
 	f.to:SetSmoothing("OUT")
-	Atom(f, e)
+	f.edge = Art(f, "OVERLAY", "medSlotChecked", "totem" .. e.name)
+	f.edge:SetAllPoints(f)
+	f.edge:SetAlpha(EDGE)
+	f.tab = Art(f, "OVERLAY", "dot", "totem" .. e.name)
+	f.tab:SetPoint("TOP", f, "BOTTOM", 0, -1)
 	if first then
 		f.rune = Art(f.overlay, "OVERLAY", "totemRune" .. e.name, "totem" .. e.name)
 		f.rune:SetAllPoints(f.icon)
@@ -382,7 +378,7 @@ local function Socket(header, i, e)
 	b.rune = Art(b.overlay, "OVERLAY", "totemRune" .. e.name, "totem" .. e.name)
 	b.rune:SetAllPoints(b.icon)
 	b.rune:SetAlpha(0.55)
-	Atom(b, e)
+	b.tab = Art(b, "OVERLAY", "dot", "totem" .. e.name)
 	b.fan = CreateFrame("Frame", nil, header, "SecureHandlerBaseTemplate")
 	b.fan:SetFrameStrata("HIGH")
 	b.fan:Hide()
@@ -428,7 +424,6 @@ local function Build()
 	local header = CreateFrame("Frame", "KstyleUI_Totems", K.Scale.Root(), "SecureHandlerBaseTemplate")
 	header:SetFrameStrata("MEDIUM")
 	header:Hide()
-	header.lines = {}
 	state.header = header
 	for i, e in ipairs(ELEMENTS) do
 		state.sockets[i] = Socket(header, i, e)
@@ -517,7 +512,7 @@ local function Place()
 		header:SetPoint("BOTTOMLEFT", seat, "BOTTOMLEFT", 0, 0)
 		header:SetSize(w, h)
 	end
-	local anchor, step, rise = crest and hub or header, FAN + ROW_GAP / 2, half + ROW_GAP / 2
+	local anchor, step, rise = crest and hub or header, FAN + ROW_GAP / 2, half + SPIRE_LIFT + SPIRE + ROW_GAP
 	for i, b in ipairs(state.sockets) do
 		b:SetShown(b.known)
 		b.spire:SetShown(b.known)
@@ -534,6 +529,8 @@ local function Place()
 		Put(b.spire, anchor, x + reach * cos(rad(angle)), y + reach * sin(rad(angle)))
 		b.spire.rim:ClearAllPoints()
 		b.spire.rim:SetAllPoints(b)
+		b.tab:ClearAllPoints()
+		b.tab:SetPoint("TOP", b, "BOTTOM", 0, -1)
 		Widgets.Size(b.tab, SOCKET * 0.6, 3)
 		if crest then
 			Put(b.fan, hub, 0, FAN_RADIUS - FAN_DROP - FAN)
@@ -564,7 +561,6 @@ local function Place()
 		end
 		Band(b.fan, anchor, path, colour, crest and "medSocketLip" or colour)
 	end
-	Band(header, header, crest and {} or { { -w / 2, half - h / 2, 0, 1 }, { w / 2, half - h / 2, 0, 1 } }, "medSocketLip", "medSocketLip")
 	state.ring[5]:SetShown(crest)
 	if crest then
 		for i = 1, 5 do state.ring[i]:SetFrameLevel(max(0, hub:GetFrameLevel() - 1)) end

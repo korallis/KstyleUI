@@ -739,33 +739,29 @@ function Solver:rect(object)
 	return rect
 end
 
--- line(object) -> the unturned rect of a Line around the middle of its start and end points, as long as they are
--- apart and as tall as its thickness; object._turn is the angle the page turns the whole quad by, as the game draws it.
-function Solver:line(object)
-	local env, scale, ends = self.env, effectiveScale(object), {}
-	for i, key in ipairs({ "StartPoint", "EndPoint" }) do
-		local pack = object._state[key]
-		local p = pack and POINTS[pack[1]]
-		local r = p and self:rect(self:target(object, pack[2]))
-		if not r then
-			return nil, "line end unresolved"
-		end
-		ends[i] = { r[1] + (r[3] - r[1]) * p[1] + num(env, pack[3], 0) * scale, r[2] + (r[4] - r[2]) * p[2] + num(env, pack[4], 0) * scale }
-	end
-	local dx, dy = ends[2][1] - ends[1][1], ends[2][2] - ends[1][2]
-	local half, thick = math.sqrt(dx * dx + dy * dy) / 2, num(env, state(object, "Thickness"), 1) * scale / 2
-	local cx, cy = (ends[1][1] + ends[2][1]) / 2, (ends[1][2] + ends[2][2]) / 2
-	object._turn = math.atan2(dy, dx)
-	return { cx - half, cy - thick, cx + half, cy + thick }
-end
-
 function Solver:solve(object)
 	local env = self.env
 	if object == env.UIParent then
 		return self.screen
 	end
+	-- A Line's unturned rect lies around the middle of its start and end points, as long as they are apart and as tall
+	-- as its thickness; object._turn is the angle the page turns the whole quad by, as the game draws it.
 	if object._type == "Line" then
-		return self:line(object)
+		local scale, ends = effectiveScale(object), {}
+		for i, key in ipairs({ "StartPoint", "EndPoint" }) do
+			local pack = object._state[key]
+			local p = pack and POINTS[pack[1]]
+			local r = p and self:rect(self:target(object, pack[2]))
+			if not r then
+				return nil, "line end unresolved"
+			end
+			ends[i] = { r[1] + (r[3] - r[1]) * p[1] + num(env, pack[3], 0) * scale, r[2] + (r[4] - r[2]) * p[2] + num(env, pack[4], 0) * scale }
+		end
+		local dx, dy = ends[2][1] - ends[1][1], ends[2][2] - ends[1][2]
+		local half, thick = math.sqrt(dx * dx + dy * dy) / 2, num(env, state(object, "Thickness"), 1) * scale / 2
+		local cx, cy = (ends[1][1] + ends[2][1]) / 2, (ends[1][2] + ends[2][2]) / 2
+		object._turn = math.atan2(dy, dx)
+		return { cx - half, cy - thick, cx + half, cy + thick }
 	end
 	local width, height = num(env, object._width), num(env, object._height)
 	if self.natural and object._type == "FontString" and not ((width or 0) > 0 and (height or 0) > 0) then
@@ -1163,6 +1159,7 @@ function Scene.Build(env, opts)
 		end
 		item.rect = toScreen(rect)
 		item.object = object
+		if object._turn then item.turn = round4(object._turn) end
 		-- A wrapped text's height came from the solver; the page keeps it instead of re-deriving one line, and
 		-- draws a block it measures shorter from the side the text grows from, as the game does.
 		if object._wrapped and item.natural then
@@ -1315,9 +1312,6 @@ function Scene.Build(env, opts)
 		if type(rotation) == "number" and rotation ~= 0 then
 			item.rotation = round4(rotation)
 		end
-		if region._type == "Line" and solver:rect(region) then
-			item.turn = round4(region._turn)
-		end
 		if state(region, "HorizTile") == true or state(region, "VertTile") == true then
 			item.tile = { state(region, "HorizTile") == true, state(region, "VertTile") == true }
 		end
@@ -1465,15 +1459,16 @@ function Scene.Build(env, opts)
 	local kidsOf, regionsOf = {}, {}
 
 	-- A frame that clips its children (SetClipsChildren) bounds everything drawn under it, as a scroll list's
-	-- view does; clip is that bound in screen units, or nil. An item outside it is dropped, one across it is
-	-- drawn through it by the page, and carries scroll = true when the nearest clipping frame is a scroll view
-	-- (a ScrollFrame, or a frame that takes the mouse wheel, or whose parent does), which cuts rows by design.
+	-- view does; clip is that bound in screen units, or nil. An item outside it is dropped, one across it (or a
+	-- turned line, whose rect is unturned) is drawn through it by the page, and carries scroll = true when the
+	-- nearest clipping frame is a scroll view (a ScrollFrame, or a frame that takes the mouse wheel, or whose
+	-- parent does), which cuts rows by design.
 	local function clipped(item, clip, scroll)
 		if not clip then
 			return true
 		end
 		local r = item.rect
-		if r[1] + r[3] <= clip[1] or r[1] >= clip[1] + clip[3] or r[2] + r[4] <= clip[2] or r[2] >= clip[2] + clip[4] then
+		if not item.turn and (r[1] + r[3] <= clip[1] or r[1] >= clip[1] + clip[3] or r[2] + r[4] <= clip[2] or r[2] >= clip[2] + clip[4]) then
 			skipped.clipped = (skipped.clipped or 0) + 1
 			return false
 		end

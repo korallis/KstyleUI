@@ -1,4 +1,4 @@
--- _totems.lua: under Medallions, RENDER_TOTEMS=story plays a shaman's Spirit Poles story through the action bars' own secure buttons and events, RENDER_TOTEMS_T seconds in (the end when unset): the four chosen totems at rest, Fire's fan unfolding and open, Magma Totem chosen and dropped, its spire burning down, Call of the Elements dropping all four and the ring breathing, Ghost Wolf, Magma's last fifth flickering, and expiry, each drop following the action its secure button took; RENDER_TOTEM_BAR=off turns the Shaman totem bar setting off first.
+-- _totems.lua: under Medallions, RENDER_TOTEMS=story plays a shaman's Spirit Poles story through the action bars' own secure buttons and events, RENDER_TOTEMS_T seconds in (the end when unset): the four chosen totems at rest, Fire's fan unfolding and open, Magma Totem chosen and dropped, its spire burning down, Call of the Elements dropping all four and the ring breathing, Ghost Wolf, Magma's last fifth flickering, and expiry, each drop following the action its secure button took; RENDER_TOTEMS_FAN=open opens Fire's fan again at that moment, unfolded; RENDER_TOTEM_BAR=off turns the Shaman totem bar setting off first.
 local Totems = {}
 
 -- The shaman's known totems by totem slot (fire 1, earth 2, water 3, air 4), spell ID and icon file ID.
@@ -130,6 +130,10 @@ function Totems.Play(env, K, ns, AB, notes)
 		AB.Click(env, state.wolf, "LeftButton", false)
 		env._game.forms[1].isActive = true
 		env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	end
+	if os.getenv("RENDER_TOTEMS_FAN") == "open" and not fire.fan:IsShown() then
+		AB.Click(env, fire, "RightButton", false)
+		for _, f in ipairs(fire.fan.buttons) do Sample(env, f.anim, 1) end
 	end
 	notes[#notes + 1] = string.format("totems: %s, %.2f s in; fan %s; earth %s", story, now, fire.fan:IsShown() and "open" or "shut", earth:IsShown() and "shown" or "hidden")
 end
