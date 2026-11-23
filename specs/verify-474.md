@@ -1,0 +1,11 @@
+# Verify: #474 at ccc2ab04
+
+Work only in your own worktree (your starting directory); never cd into or change `C:\Projects\KstyleUI` or any other worktree. Fetch and check out `ccc2ab04cc823b97940c2b229653f12ea08ad2e5` (draft PR https://github.com/korallis/KstyleUI/pull/474). Base is `92135ee2369fa44474f2d8cf739b8c601d4da5fc`; staging is now `1d7b6359` (also check the PR merged onto it). Edit nothing, push nothing, comment nothing.
+
+**Spec**: `C:\Projects\KstyleUI\specs\bug-party-frames-late.md`. Author report: `C:\Users\leeba\AppData\Local\Temp\orca-ctx_3278e3a547ba\report.md`. Owner rules: every change toggleable and ON by default (this is a fix, no setting); performance must not regress.
+
+**Local checks**: `bash scripts/gate.sh lint`, and with PUC `lua5.1` directly the tests the PR touches (`test-groupframes-*.lua`) plus `test-comments.lua` and `test-syntax.lua`, on the PR head and on the PR merged onto `origin/staging` (no full local suite: CI ran it). Toolchain: prepend `~/.local/bin`, `%LOCALAPPDATA%\Programs\LuaJIT\bin`, `%APPDATA%\Python\Python313\Scripts` to PATH; `KSTYLEUI_PYTHON=python`. Never stop processes you did not start. No renders needed unless you find a visual change.
+
+**Checks**: the cause holds (the #100 C_Timer roster deferral; role-ring letters ignoring role events) and the fix removes the extra tick without running roster work twice per event burst (count calls per GROUP_ROSTER_UPDATE storm of 40 raid members: no per-event full rebuild cost regression); secure header changes stay out of combat and anything queued applies at combat end; role events use the Forever events (prove against the `forever` branch of Gethe/wow-ui-source at `9dc84f0`, clone `C:\Users\leeba\.cache\wow-ui-source`); one event handler per owner (`Core/Events.lua`); the new regression test fails on the base and passes on the head; `group_env.lua` stub changes match the client. CI run 44336461203 green. Comments via `C:\Users\leeba\.claude\plugins\marketplaces\cursor-plugins\harness\pstack\claude-code\agents\comment-sicko.md` REPORT ONLY.
+
+**Report**: start with "verified ccc2ab04"; PASS / ISSUES / BLOCKED; prove every issue with file:line and a command; end with an Attention list or "No flags".

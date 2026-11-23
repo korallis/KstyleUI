@@ -1,0 +1,21 @@
+# Task: LEE-5826: put the regions the true HUD fit exposed back on the whole-pixel grid
+
+**Goal**: at the game's real HUD size, the `hud_reference` scene has no more off-grid regions than the old baseline recorded, so the addon draws crisp edges on every screen.
+
+**Target**: KstyleUI on `origin/staging` (it has #417, which runs the render harness at the addon's real fit and remeasured `Tools/regression/pixel_allow.tsv`). Linear issue LEE-5826. The `hud_reference` rows that rose belong to: `KstyleUI_Skins/Quests/Card.lua`, `KstyleUI_Minimap/Face.lua`, `KstyleUI_DataBars/Strip.lua`, `KstyleUI_DataBars/Bars.lua`, `KstyleUI_Skins/Lumen.lua`, `KstyleUI_QoL/Feed.lua`, `Core/Widgets/Base.lua` (see `git diff 0085e0ac e0a1c445 -- Tools/regression/pixel_allow.tsv`). The file's header says how: each owner adopts `Widgets.Point`, `Widgets.Fill` and `Widgets.Size` (`docs/core-visuals.md`) and reruns `lua5.1 Tools/dev/pixel_allow.lua`.
+
+**Change**: for each owner, find the regions placed or sized off the pixel grid at the true fit and move them to `Widgets.Point`/`Fill`/`Size`. Regenerate `pixel_allow.tsv` with its generator (never by hand). Every `hud_reference` row must end at or below its value before #417 (`git show 0085e0ac:Tools/regression/pixel_allow.tsv`), and no other row may rise. Renders of the owner's case (undead warlock with an imp; Frames, Orbs and Medallions; 5120x1440, 3456x2234 at the game fit, 1920x1080; `--strict`) must look the same apart from crisper edges: open them and compare with staging.
+
+**Playbook**: refactor -> Read and follow `C:\Users\leeba\.claude\plugins\marketplaces\cursor-plugins\harness\pstack\claude-code\skills\poteto-mode\playbooks\refactoring.md`, steps 1, 4, 5, 6, 8 only. Skip any delegation/subagents, model names, /loop, Bugbot, cloud agents, PR steps, and references to skills or sections not given as a path.
+
+**Constraints**: AGENTS.md rules (CRLF/ASCII addon files via `python3 Tools/dev/crlf.py`, one comment per file, `K.Widgets.FontString`/`Cover`, no secret-value comparisons, no measurement of restricted regions). Do not touch `KstyleUI_UnitFrames/`, `KstyleUI_ActionBars/`, `KstyleUI_GroupFrames/`, `Core/Widgets/Medallion.lua`, `Core/Widgets/UnitBar.lua`, `Core/Setup/` (PR #410) or `KstyleUI_Options/` (another worker). Windows machine (Beast): prepend `~/.local/bin`, `%LOCALAPPDATA%\Programs\LuaJIT\bin`, `%APPDATA%\Python\Python313\Scripts` to PATH; `KSTYLEUI_PYTHON=python`; `verify/SKILL.md` documents rendering. You may push your branch and open a **draft** PR against `staging`: title `fix(pixels): snap the regions the true HUD fit exposed (LEE-5826)`, body with `## Summary`, `## Changelog` (`Fixed: crisper edges on the quest card, minimap face, data bars and feed at fitted HUD sizes`), `## In-game checks`, and a `Baseline` section listing every changed row old -> new. Do not merge it.
+
+**Files it may edit**: the seven owner files above, `Tools/regression/pixel_allow.tsv` (generator only), `Tools/regression/**` tests that pin these owners, `docs/core-visuals.md`.
+
+**Gate**: `bash scripts/gate.sh` (the `lua` group runs natively; Windows wall-clock overruns and four known files remain for PR 7). Windows bar: `gate.sh lint` exit 0 plus the pixel-grid tests and the owners' tests under `lua5.1`; the draft PR's Mac CI proves the rest.
+
+**Evidence of done**: the baseline table (row, pre-#417, post-#417, now); the pixel-grid tests passing; before/after crops of each owner at 3840x1080 and 5120x1440, opened and described; the draft PR's green `checks` run.
+
+**Before worker_done**: run the Gate as above; clean comments in `git diff origin/staging..HEAD` by following `C:\Users\leeba\.claude\plugins\marketplaces\cursor-plugins\harness\pstack\claude-code\agents\comment-sicko.md` in worker mode. Conventional Commits subjects. If you stop before green: commit `wip: <what>` and report BLOCKED. Report SHA, base SHA, PR URL, run id, Gate output and evidence.
+
+**Do not end your turn while your own work is still running** (CI runs, background test loops, subagents, mutants): block on it in this turn (`gh run watch <id> --exit-status`, `wait <pid>`), then send worker_done. Ending a turn without worker_done makes Orca report you as stopped.

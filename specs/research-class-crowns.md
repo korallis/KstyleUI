@@ -1,0 +1,13 @@
+# Task: research — a "crown" resource for every Forever class (no PR)
+
+The owner loves the rogue "crown of blades" (PR #678, worker ctx_06ee5ccda572; GIFs in `C:/Users/leeba/.cache/kstyleui-evidence/class-pips/crown-rogue-*.gif`): themed pieces fan out of the top of the Medallions crest, dormant when empty, igniting per point, a themed spend, and at max the ring catches the class colour. That worker also does cat druid, paladin holy power and warlock soul shards. Hunters have the Summon Hawk perches (#679). The owner now wants every other class to get a crown driven by "a resource like this": a small count (2-10) that builds and is spent or expires.
+
+**1. Research per class on Forever** (warrior, priest, shaman, mage, hunter, and anything the client has beyond those; confirm the class list): which stack-like mechanics exist that a player watches, e.g. buff/debuff stacks (Maelstrom Weapon, Lightning/Water Shield charges, Arcane Blast/Charges, Sunder/Rend, Evangelism/Shadow Orbs, Frenzy, Sudden Death), charges of a key spell (`C_Spell.GetSpellCharges`), class power types (`UnitPower` with `Enum.PowerType`), totems/summons. For each candidate: the spell/aura IDs at Forever 1.60.1 (cite `Blizzard_APIDocumentationGenerated`/UI source files at 9dc84f0 and client data under `~/.cache` if present), whether it is readable in combat without comparing secrets (`C_UnitAuras` secret flags, `SecretWhenUnitAuraRestricted`, applications as an engine-fed value, charge durations via duration objects), and how it reaches max/spend. Reject anything that needs Lua to compare a secret. Note per spec if a class's best candidate is talent- or spec-dependent.
+
+**2. Pick** the best one candidate per class (instantly meaningful in combat, reliable, secret-safe), with a runner-up.
+
+**3. Concepts**: one concept sheet (crest crop, 1080, real backdrop in `~/.cache/kstyleui-backdrops`, empty / mid / max per class) in the crown family and the same forged look as the rogue crown and #671 jewels: themed piece per class (e.g. shaman lightning-spires, mage arcane shards, warrior war-banners/blades, priest light-rays/candles). You may composite Higgsfield art (higgsfield-generate) over the real crest render; no AI credit lines. No addon code or PR.
+
+**Deliver**: `C:/Users/leeba/.cache/kstyleui-evidence/class-crowns/REPORT.md` (per class: mechanic, IDs, API, secret-safety verdict with sources, max/spend behaviour, risks) and `concepts-crowns.png` in that folder. Do not post anything.
+
+**Before worker_done**: follow `C:/Users/leeba/orca-jev-router/WORKER.md`. Report the per-class picks in one line each and the file paths.

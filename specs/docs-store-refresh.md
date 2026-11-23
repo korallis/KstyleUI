@@ -1,0 +1,16 @@
+# Task: store pages and README current, Discord featured at the top
+
+The owner wants the addon description on CurseForge, Wago and GitHub to (1) feature the Discord join link at the very top so people see it immediately, and (2) always be current, with new pictures when there are new features. The master is `docs/store/description.md`; `Tools/media/marketing.py` splices it into `README.md` and the store kit (`docs/store/curseforge.md`, `docs/store/wago.md`); its images live in `docs/media/marketing/` and are referenced by raw.githubusercontent.com `main` URLs. Read `docs/store/CHECKLIST.md` and `Tools/tests/test_marketing.py` first. The master was last refreshed at v0.2.7; staging now has everything through the coming v0.2.9.
+
+**Do:**
+1. **Discord at the top**: right under the banner (before any other text), a short, branded, prominent call to join the KstyleUI Discord with the permanent invite `https://discord.gg/A5qqGZEXyN` (what you get there: help, bug reports, release news, sharing your UI). One consistent style; Markdown that renders on GitHub, CurseForge and Wago. Keep the existing footer links.
+2. **Current content**: update every feature section so it describes what is on `origin/staging` now, in player words, short and readable: e.g. world map road routes, the crest resource jewels (combo points, holy power, soul shards), the forged Medallions data dock and second data bar, the deep per-module customisation (unit, party and raid frames, nameplates, cooldowns, auras, chat, minimap, bags, tooltips, meters, QoL), live Options previews, the in-game What's new page, faster loading. Remove anything no longer true. Never name EllesmereUI, CaithUI or any other UI pack.
+3. **New pictures**: add renders for the new headline features (at least the crest jewels and the forged dock; the road route card if the scene exists), made with `Tools/render/shoot.sh` over **real game backdrops** (`~/.cache/kstyleui-backdrops`, never the AI mockup plate), `--strict`, branded like the existing marketing images (see how `docs/media/marketing/` images were made; `marketing.py` and `Tools/render/readme.py`). Keep file sizes in line with the existing ones. Caption each like the existing ones (test render over an in-game screenshot; icon pack note where it applies).
+4. **Make it stick**: extend `Tools/tests/test_marketing.py` so it fails, with a message naming the fix, if the Discord invite is not within the first lines of the master (before the first `##`), and add a line to `docs/store/CHECKLIST.md`: every feature release updates the master and pictures.
+5. Run `python3 Tools/media/marketing.py`, the Python suite and lint.
+
+**PR** to `staging`: `docs(store): Discord up top and a current description`, label `no changelog`, with before/after of the top of the page in the body. Do not merge, do not edit the live store pages (the coordinator pastes them after the next release puts the images on `main`).
+
+**Files it may edit**: `docs/store/**`, `docs/media/marketing/**`, `README.md`, `Tools/media/**`, `Tools/tests/test_marketing.py`, `Tools/render/**` (scenes only if needed for a picture).
+
+**Before worker_done**: follow `C:/Users/leeba/orca-jev-router/WORKER.md`. Report PR number, SHA and run id.

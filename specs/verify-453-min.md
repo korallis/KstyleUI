@@ -1,0 +1,7 @@
+# Minimal-code review: #453 at cca7bc18
+
+Work only in your own worktree; never change `C:\Projects\KstyleUI` or another worktree. Check out `cca7bc18a645150844681e4a99402744adf87758` (draft PR https://github.com/korallis/KstyleUI/pull/453), base `85753904a7f669e4e4e5d5dead57142b78616060`. Edit nothing, push nothing, comment nothing.
+
+**Goal**: the owner's rule is minimal code: if it can be done in a few lines, do it in a few lines; no file, helper, abstraction, dependency, option plumbing, dead branch or comment the change does not need; prefer deleting to adding. This PR was already reviewed for correctness; review only size and simplicity. Also confirm with file:line that the debuff filter in KstyleUI_UnitFrames Auras.lua matches its settings (only debuffs the player applies, on by default) and that the lazy rims keep the region budget. Read every addon-code hunk (`git diff 85753904a7f669e4e4e5d5dead57142b78616060..cca7bc18a645150844681e4a99402744adf87758 -- . ':!Tools' ':!docs' ':!**/Locales/**'`), then the tests only where they are oversized.
+
+**Report**: start with "minimal cca7bc18"; PASS (nothing material to cut) or ISSUES: each cut with file:line, why it is not needed, the smaller version (a short code sketch) and lines saved. Behaviour, defaults, settings the owner asked for (every change toggleable, ON by default) and tests stay; only flag cuts that keep behaviour identical. Run `bash scripts/gate.sh lint` only if you need to prove a claim. Total the lines saved.

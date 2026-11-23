@@ -1,0 +1,7 @@
+# Task: unit-frame aura settings stick in every aura layout (per-mode defaults)
+
+Follow-up written in PR #699's body (read it: `gh pr view 699`): UnitFrames' ROW_DEFAULTS/SLAB_DEFAULTS make a key's default depend on the aura layout (rows/fan) and filter (both), so a player who sets e.g. target auraRows to the base default gets it overridden in another mode. Implement the agreed fix: per-mode keys (like `player.medallionsAuras`) for the ~12 aura keys x 2 kinds, a Store migration (next free number; check open PRs touching Core/Store.lua) that moves saved values to the right mode, and Options rows that show the current mode's value. Defaults stay the same look. PR `fix(unitframes): aura settings stick in every layout`, `Fixed:` line.
+
+Both HUD styles exist (Medallions and Frames): fixes must hold in both. Pixel-identical unless the fix intends otherwise (prove with --strict renders or scene JSON at 1920x1080, 2560x1440, 5120x1440, 3840x2160). A regression test per fix that fails on staging. Lint, python, module tests, `test-perf*` (incl. `test-perf-fights`), `test-taint-scan`, `test-perf-path-budgets` under PUC Lua 5.1; hosted GitHub CI is the proof (no mid-task Mac runs). Minimal code. Do not merge. Before worker_done follow `C:/Users/leeba/orca-jev-router/WORKER.md`; report PR, SHA, run id.
+
+**Files it may edit**: `KstyleUI_UnitFrames/**`, `Core/Store.lua` (migration only), `Core/Locales/*`, `Tools/locale/*`, `docs/feature-map.md`, `Tools/regression/**`, `Tools/render/**`.

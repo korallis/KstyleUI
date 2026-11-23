@@ -1,0 +1,15 @@
+# Verify: #472 at 7eef7aba
+
+Work only in your own worktree (your starting directory); never cd into or change `C:\Projects\KstyleUI` or any other worktree. Fetch and check out `7eef7abaec38c50b3f9cce3bf04b87045212c97f` (draft PR https://github.com/korallis/KstyleUI/pull/472). Base is `92135ee2369fa44474f2d8cf739b8c601d4da5fc`. Edit nothing, push nothing, comment nothing.
+
+**Spec**: `C:\Projects\KstyleUI\specs$spec`. Author report: `C:\Users\leeba\AppData\Local\Temp\orca-ctx_8cd088ba7848\report.txt`. Owner rules: every change toggleable and ON by default; performance-only changes pixel-identical; never AI scenery in renders.
+
+**Local checks**: `bash scripts/gate.sh lint`, and with PUC `lua5.1` directly the tests the PR touches plus `test-comments.lua` and `test-syntax.lua` (no full local suite: CI ran it). Toolchain: prepend `~/.local/bin`, `%LOCALAPPDATA%\Programs\LuaJIT\bin`, `%APPDATA%\Python\Python313\Scripts` to PATH; `KSTYLEUI_PYTHON=python`. Never stop processes you did not start. At most 2 renders at a time.
+
+**Checks**: Chat tabs, card, messages and buttons line up at 1920x1080, 2560x1440, 3440x1440, 3456x2234, 3840x2160 and 5120x1440 in all three styles and after a move or resize (the owner's screenshot is `C:\Users\leeba\.cache\lee-shots\4k-chat-cdm.png`); Cooldown Manager rows attached to the HUD with 1, 3, 6 and 12 icons, no overlap with casts, the crest debuff fan area or bars; the migration moves only players still on the old default; the swing timer restyle matches the HUD in each style, main and off hand distinct, respects Motion settings; the protected cooldown viewer frames are never moved in combat; each new setting defaults on and off restores today's look. CI run 44328561533 green. Comments via `C:\Users\leeba\.claude\plugins\marketplaces\cursor-plugins\harness\pstack\claude-code\agents\comment-sicko.md` REPORT ONLY.
+
+**Report**: start with "verified 7eef7aba"; PASS / ISSUES / BLOCKED; prove every issue with file:line and a command; end with an Attention list or "No flags".
+
+**Do not end your turn while your own work is still running** (CI runs, background test loops, subagents, mutants): block on it in this turn (`gh run watch <id> --exit-status`, `wait <pid>`), then send worker_done. Ending a turn without worker_done makes Orca report you as stopped.
+**Poll CI slowly**: the GitHub account is shared by many agents. Poll at most once every 2 minutes (`gh run watch <id> --exit-status --interval 120`), avoid `gh api` loops, and treat an HTTP 403 rate-limit error as unknown (wait for the reset), never as a CI failure.
+**Local checks (speed rule, coordinator decision)**: do NOT run the full native Lua suite on Beast (no `bash scripts/gate.sh` or `gate.sh lua`); it starves the shared machine and CI runs the full suite in about 5 minutes. Before pushing run `bash scripts/gate.sh lint`, `bash scripts/gate.sh python`, and with PUC `lua5.1` directly the test files for the modules you changed plus `test-comments.lua` and `test-syntax.lua`; green Mac CI (`checks`) is the full proof. Render at most 2 pictures at a time, and only at the screen sizes your items need.

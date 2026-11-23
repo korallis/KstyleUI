@@ -1,0 +1,7 @@
+# Task: releases reuse the green staging run instead of re-running Lua on the Mac
+
+The owner: "use GitHub runners too, don't bottleneck on the Mac." Today a release (`release.yml` on a `v*` tag) runs `Tools/release/proof.py`, which only reuses a `checks.yml` push run for the tag's exact SHA. Feature releases tag a `git commit-tree <staging tree> -p main -p staging` merge commit, whose SHA never has a run, so every release re-runs lint, Python and all five Lua shards on the self-hosted Mac (15-25 min, and CPU-budget flakes under Mac load have blocked releases twice). Change `proof.py` minimally so it also accepts the newest completed, successful `checks.yml` push run on `staging` whose commit has the **same tree** as the tag (compare `git rev-parse <sha>^{tree}`; the run's head SHA tree must equal the tag's tree), refusing known-red runs as today. Hotfix tags without such a run keep running their own gates. Keep the Mac as the CPU budget of record for staging pushes. Tests in `Tools/tests/` for: same-tree reuse, different tree runs gates, red same-tree run refuses, API error runs gates. Lint and Python pass. PR `ci(release): reuse the staging run for the same tree`, label `no changelog`; the PR touches `Tools/release/` only (no workflow change unless strictly needed; if so, say why). Do not merge.
+
+**Files it may edit**: `Tools/release/proof.py`, `Tools/tests/**`, `.github/workflows/release.yml` (only if strictly needed).
+
+**Before worker_done**: follow `C:/Users/leeba/orca-jev-router/WORKER.md`. Report PR, SHA, run id.

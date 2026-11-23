@@ -1,0 +1,11 @@
+# Task: cooldowns still show with the Cooldown Manager disabled (hotfix)
+
+The owner (v0.2.11, shaman, Medallions, 3840x2160) has the Cooldown Manager disabled in game, yet cooldown icons still show above the crest: a row of three (fire spear, fire, lightning-mountain) and one below it (earth hammer). Screenshot and crop: `C:/Users/leeba/.cache/kstyleui-evidence/cooldowns-disabled/shot.jpg`, `crop.png`. Two more icons sit just under the crest (a Ghost Wolf-like icon and a fire totem): identify those too (likely the stance bar or Blizzard's totem bar; the totem bar is being redesigned separately, so only report them).
+
+Find exactly what draws the icons above the crest: KstyleUI's Cooldowns module (`KstyleUI_Cooldowns/`, groups from `C_CooldownViewer`) or Blizzard's own Cooldown Manager viewers (`EssentialCooldownViewer`, `UtilityCooldownViewer`, `BuffIconCooldownViewer`, `BuffBarCooldownViewer`) that KstyleUI skins, places or re-shows. Cover both meanings of "disabled": (a) Blizzard's Options > Cooldown Manager switch (CVar `cooldownViewerEnabled`, grep the 9dc84f0 source at `~/.cache/wow-ui-source/Interface` for the real name and how Blizzard hides the viewers), and (b) KstyleUI's own Cooldowns module or group switches. With either off, KstyleUI must show none of those icons and must not re-show or re-parent Blizzard's hidden viewers; honour the CVar live (CVAR_UPDATE) without a reload. Minimal change; secret-safe; nothing else changes.
+
+Evidence: a regression test per path that fails on staging; renders over a real backdrop at 1920x1080 and 3840x2160 with the switch on (unchanged, pixel-identical to staging) and off (no icons). Lint, python, Cooldowns and ActionBars tests, `test-taint-scan`, `test-perf-path-budgets` under PUC Lua 5.1; hosted CI green. PR to `staging`: `fix(cooldowns): hide them when the Cooldown Manager is off`, `Fixed:` line. Do not merge.
+
+**Files it may edit**: `KstyleUI_Cooldowns/**`, `KstyleUI_ActionBars/**` (only if the crest placement re-shows them), `Core/CVars.lua` (only if needed), `Tools/regression/**`, `Tools/render/**`.
+
+**Before worker_done**: follow `C:/Users/leeba/orca-jev-router/WORKER.md`. Report the cause in one line, PR, SHA, run id.

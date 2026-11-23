@@ -1,0 +1,30 @@
+# Arena graft: build the final KstyleUI audit page from the chosen base
+
+**Goal**: one finished, owner-facing page (scorecard, ranked 10/10 plan, before/after mockups) for the owner's request: "a full visual audit scoring our UI out of 10 for performance, visual effects, aesthetics and what a player needs, then the things you would improve to get to 10/10; finesse, elegance and polish are the top priorities; an HTML mockup showcasing the differences".
+
+**Base**: `C:\Users\leeba\.cache\kstyleui-audit\arena\candidate-claude\` (chosen by the coordinator: it has the most real before/after renders, 11 against 5, and the owner asked above all to *see* the differences). Copy it to `C:\Users\leeba\.cache\kstyleui-audit\arena\final\` and work only there. Keep its structure, voice, slider comparisons and theme toggle.
+
+**Inputs**: the other candidates `arena\candidate-codex\` and `arena\candidate-grok\` (read their scorecard, plan, rationale and index.html), the cross-judge `arena\judge.md` (read in full, especially "Corrections and remaining risks" and "What to graft into the base"), and the twelve source reports in `C:\Users\leeba\.cache\kstyleui-audit\*.md`.
+
+**Grafts and corrections** (fold each in by hand so the page stays one coherent voice; do not paste sections wholesale):
+1. From Codex: its source traceability. Copy the twelve reports into `final\sources\` (byte-for-byte) and link every score row and plan item's report codes to them. Its three-stage score line (today; with the funded in-flight fixes; after the plan) and its framing that 10/10 is the acceptance goal earned in the client, not a projection. Its "Preserve what makes it KstyleUI" panel with the owner rulings. Its feasibility findings the base lacks, at least `Style.lua:346` hiding the proposed power text (fix the base's H2 accordingly), and its fast-track list of small fixes. Compare its 23 plan cards with the base's batches and add any item the base is missing, attributed.
+2. From Grok: its BLEND vignette before/after over the bright town plate as a labelled **alternative** beside the base's danger comparison (the owner chooses the recipe), and its concise lens cards as a short overview near the top (stacked cards on phones, not a four-column table).
+3. Judge corrections to the base: fix the consensus-mapping errors (player "Distance and ultrawide" median, the contrast row's bright/dark policy stated), the performance projection arithmetic (P deltas sum to 2.60; make the table consistent), the "all three aesthetics audits" Mac face-swap claim (state the real count), label specimen mocks as specimens (not same-crop pairs) or replace them with matched crops, mark batch Z as tooling/validation (it changes artifact pixels), and state plainly that the scratch patch scripts and render logs from the candidate run were not retained (the temp folder is gone); the renders in `img/` remain.
+4. Where candidates propose mutually exclusive recipes (cast ink, nameplate size, danger), keep them as labelled alternatives for the owner, not a merge.
+5. Recent facts to reflect: PRs #445 (/kb), #447, #449 and #451 are merged into staging; #446, #448, #450 and the lazy-regions fix are in review; the crest debuff fan is being built. Do not re-propose them.
+
+**Page contract** (it will be published as a private web page): a `<title>` of two to four words; colours as custom properties on `:root`, redefined for dark under `@media (prefers-color-scheme: dark)` guarded by `:root:not([data-theme="light"])` and again under `:root[data-theme="dark"]`; the page follows the system theme by default and the toggle overrides it; `body` has an explicit background; works at phone width with a 16 px side gutter and no horizontal scroll; no external scripts; stylesheets only from Google Fonts (or local font files); any `localStorage` use wrapped in try/catch; images JPEG or WebP, each at most 400 KB, total folder at most 40 MB; relative paths only (the page and `img/`, `sources/` will be uploaded together). It should feel premium and calm, in KstyleUI's dark forged-chrome style, with finesse in its own typography and spacing.
+
+**Constraints**: read-only for the repository; no commit, no PR. Windows machine (Beast); never stop processes you did not start; at most 2 renders at a time if you render anything (use `--backdrop /c/Users/leeba/.cache/kstyleui-backdrops/game_NN.png`).
+
+**Files it may edit**: only `C:\Users\leeba\.cache\kstyleui-audit\arena\final\**`.
+
+**Gate**: none (read-only).
+
+**Evidence of done**: open `final\index.html` in headless Chrome at 1440 px and 390 px, in light and dark, screenshot the full pages into `final\evidence\`, look at every screen to the end, and fix anything broken (no horizontal scroll, no broken image, readable tables on phone). Report the folder size and a one-line list of every graft and correction with where it landed.
+
+**Before worker_done**: follow `C:\Users\leeba\orca-jev-router\WORKER.md`. Report the folder path, the final scores (today, funded, after the plan) and the top five plan items.
+
+**Do not end your turn while your own work is still running** (CI runs, background test loops, subagents, mutants): block on it in this turn (`gh run watch <id> --exit-status`, `wait <pid>`), then send worker_done. Ending a turn without worker_done makes Orca report you as stopped.
+**Poll CI slowly**: the GitHub account is shared by many agents. Poll at most once every 2 minutes (`gh run watch <id> --exit-status --interval 120`), avoid `gh api` loops, and treat an HTTP 403 rate-limit error as unknown (wait for the reset), never as a CI failure.
+**Shared machine**: Beast's test slots are shared. If your native Lua gate run makes little progress (under 10% of files in 20 minutes), stop only your own run by PID, run `bash scripts/gate.sh lint`, `bash scripts/gate.sh python` and, with PUC `lua5.1` directly, the test files for the modules you changed plus `test-comments.lua` and `test-syntax.lua`; say so in the PR body. CI's full suite is the final proof.

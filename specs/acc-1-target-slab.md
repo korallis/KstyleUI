@@ -1,0 +1,25 @@
+# Task: v0.2.3 acceptance fixes in the Medallions target slab (creature type, long names, raid marker)
+
+**Goal**: the Medallions target slab shows the full creature type, keeps long names in the caps face as the mock does, and keeps the raid marker off the debuff timers, on every screen.
+
+**Target**: KstyleUI, branch from the latest `origin/staging`. Acceptance report: `C:\Users\leeba\.capy\drive\captain-kstyle-project-lead\renders\acceptance-v023\REPORT.md`, findings 1, 4 and 5, with crops under `crops/` and `sheets/` beside it. Design: the KSTY-110 mock (linked in merged PR #410's Pictures; it draws "DECREPIT DARKHOUND" in caps beside "DEMON").
+
+**Change**:
+1. (Blocker) `KstyleUI_UnitFrames/Geometry.lua:628-641` gives the creature-type caption the bar width less a fixed 70% name share, so "ELEMENTAL"/"MECHANICAL" (66-77 units needed, 56-65 given) and "HUMANOID" on 3456x2234 are cut, even when a short name leaves the row half empty. Share the row by the measured text widths: the type gets the room it needs, the name gets the rest. Test every creature type the client can return (grep the Forever UI source for the creature type list; include "Not specified" and Dragonkin), with short and long names, at 5120x1440, 3456x2234 (game fit) and 1920x1080: no truncation of the type.
+2. (Should-fix) A long target name ("Riverglade Crocolisk") drops from the caps face to the serif body face in mixed case (`Geometry.lua:630-635` `nameRoom`, `Style.lua:319-320`, `Slab.lua:81`). Keep the caps face: shrink the caps font in steps down to a readable floor before falling back, and only then truncate. PR #410's decision 6 is superseded by this. Test it.
+3. (Should-fix) The raid marker centres on the panel when the slab has no `portrait` rect (`Geometry.lua:687-704`), so it sits across the slab's top edge over the debuff timers. Place it where the mock shows it (beside the medallion, clear of the debuff row and its timers). Test it clears the debuff row and timers at the three screens.
+
+**Playbook**: bug -> Read and follow `C:\Users\leeba\.claude\plugins\marketplaces\cursor-plugins\harness\pstack\claude-code\skills\poteto-mode\playbooks\bug-fix.md`, intro + steps 1, 2, 4, 5 only. Skip any delegation/subagents, model names, /loop, Bugbot, cloud agents, PR steps, and references to skills or sections not given as a path.
+
+**Constraints**: AGENTS.md rules (CRLF/ASCII addon files via `python3 Tools/dev/crlf.py`, one comment per file, `K.Widgets.FontString`, `KstyleUI.Locale.TrackMode` for thin spaces, no secret-value comparisons: names and creature types can be secret, so measure only what may be measured and fall back safely, Forever API grep naming the proving file). Frames and Orbs must stay pixel-identical. Do not edit `KstyleUI_ActionBars/`, `KstyleUI_Skins/` or `Core/Setup/Layouts.lua` (parallel tasks). Windows machine (Beast): prepend `~/.local/bin`, `%LOCALAPPDATA%\Programs\LuaJIT\bin`, `%APPDATA%\Python\Python313\Scripts` to PATH; `KSTYLEUI_PYTHON=python`; `verify/SKILL.md` documents rendering. You may push your branch and open a **draft** PR against `staging`: title `fix(unitframes): full creature type, caps long names and a clear raid marker in Medallions`, body with `## Summary`, `## Changelog` (`Fixed: ...`), `## In-game checks`, `## Decisions`. Do not merge it.
+
+**Files it may edit**: `KstyleUI_UnitFrames/**`, `Core/Widgets/FontString*` only if the shrink step needs a shared helper (say why), `Tools/regression/**` (tests for these), `docs/feature-map.md`.
+
+**Gate**: `bash scripts/gate.sh` (lint exit 0; touched and new tests under `lua5.1`; the draft PR's Mac CI proves the rest).
+
+**Evidence of done**: new tests red on staging and green after; before/after crops of the target slab (ELEMENTAL, MECHANICAL, HUMANOID, a long name) and the raid marker at the three screens under `C:\Users\leeba\.capy\drive\captain-kstyle-project-lead\renders\acceptance-fix-1\`, opened and described; `--strict` exit 0 for the Medallions warlock at all three; Frames/Orbs pixel diff empty; the draft PR's green `checks` run.
+
+**Before worker_done**: run the Gate as above; clean comments in `git diff origin/staging..HEAD` by following `C:\Users\leeba\.claude\plugins\marketplaces\cursor-plugins\harness\pstack\claude-code\agents\comment-sicko.md` in worker mode. Conventional Commits subjects. If you stop before green: commit `wip: <what>` and report BLOCKED. Report SHA, base SHA, PR URL, run id, Gate output and evidence.
+
+**Do not end your turn while your own work is still running** (CI runs, background test loops, subagents, mutants): block on it in this turn (`gh run watch <id> --exit-status`, `wait <pid>`), then send worker_done. Ending a turn without worker_done makes Orca report you as stopped.
+**Poll CI slowly**: the GitHub account is shared by many agents. Poll at most once every 2 minutes (`gh run watch <id> --exit-status --interval 120`), avoid `gh api` loops, and treat an HTTP 403 rate-limit error as unknown (wait for the reset), never as a CI failure.

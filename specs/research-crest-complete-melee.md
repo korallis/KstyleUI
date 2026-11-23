@@ -1,0 +1,17 @@
+# Research: everything each spec needs, built around the crest (no code, no PR)
+
+The owner (2026-11-23): "all classes should have everything they need built around the crests, so they only have one place to look. We made a good start with these mockups but there's definitely things missing, so do a full research and update the builders for all classes (and include tank and healing specs)."
+
+**Your classes and every spec of each**: Warrior (Arms, Fury, Protection tank), Paladin (Holy healer, Protection tank, Retribution), Rogue (Assassination, Combat, Subtlety).
+
+**Read first**: what's already designed and being built: `C:/Users/leeba/.cache/kstyleui-evidence/crest-trackers/{melee,ranged,healers}/REPORT.md`, the build specs `C:/Projects/KstyleUI/specs/build-crest-trackers-*.md`, the shared helper and tracker docs on branch `korallis/melee-crest-trackers` (`docs/medallions-effects.md`, `KstyleUI_ActionBars/SlabMedals.lua`, `SlabTrackers.lua`), and what the crest already shows today (crowns, hawk perches, Spirit Poles, storm orbs, jewels, the cooldown row above the crest, the player and target slabs, cast bars). Also the owner's later asks: every major cooldown and enhancement on a cooldown rim; every form, stance and spec gets a full crest with no empty seats; hunter stings tracked as any sting.
+
+**1. For each spec** (damage, tank, healer), list everything a good player of that spec watches in combat that belongs at the centre of the screen: resources and their ticks or thresholds where useful (energy tick, rage, mana and the five-second rule, combo points), procs and reactive abilities, maintenance buffs and their timers, the player's debuffs and DoTs on the target, key cooldowns (ready and active), defensives, interrupts and their readiness, taunts and threat for tanks, mitigation uptime for tanks (Shield Block, Holy Shield, Frenzied Regeneration...), healer essentials (mana, mana cooldowns like Innervate, heal cooldowns, HoTs or shields on the current target or focus, Clearcasting, Inner Focus, Nature's Swiftness), pets, totems, forms and stances, and the cross-class things (trinket and racial cooldowns, potion and Healthstone cooldowns, consumable buffs). Mark what is already covered and by which piece, and what is missing.
+
+**2. For each missing item**: spell, aura or item IDs at Forever 1.60.1 (client tables in `~/.cache`, UI source at `9dc84f0` in `C:/Users/leeba/.cache/wow-ui-source`), whether a player can actually learn it on Forever (runes and absent spells out), the route (aura slot, duration object, never-secret value, item count) and a secret-safety verdict. Reject anything that needs Lua to compare a secret.
+
+**3. A seat plan per spec** that stays readable: which seat (shoulders, hips, foot perches, top gem, inner rim, cooldown rim, crown, spire sockets) shows what in that spec and form, using only the shared helper's pieces or a small named extension. Priority order if a spec has more than fits: what must show, what can share a seat, what to leave to the cooldown row or slabs. Note what changes per level band.
+
+**Deliver** `C:/Users/leeba/.cache/kstyleui-evidence/crest-trackers/complete/melee.md`: per class, per spec, a table (item, why it matters, IDs, route, verdict, covered-by or seat), then the seat plan, then a short "add to the builder" list per class. No code, no PR, post nothing.
+
+**Before worker_done**: follow `C:/Users/leeba/orca-jev-router/WORKER.md`. Report the path and, per class, the top additions in one line.

@@ -1,0 +1,17 @@
+# Task: bring the Frames HUD style back (Orbs stays removed)
+
+The owner (2026-11-22): "someone uses the Frames layout, so we need to keep it in." Chosen: **Frames only, full**: restore Frames as a HUD style choice exactly as it was before #695, keep Orbs removed, then port the newer pieces to Frames where they make sense. v0.2.13 is held until this lands.
+
+**History**: `c3a1538f5` (#695) removed Frames and Orbs (HudStyle service, Frames tray/top strip/cast bar line+caption/square minimap, settings, setup HUD step, Options rows, tests, scenes, docs; migration 45 moved Frames/Orbs profiles to Medallions and retired their keys); `b7c5287b1` (#701) deleted the forged ornaments and card materials (migration 46) which Frames may use; later merges built on Medallions-only (#699 look overlay, #706/#707 frames settings, #708, #709, #711 UNIT_FLAGS, #712 Edit Mode/warnings, #713 guides top-left, #714 tests). Its parent `ca920ef9e`..`931bef3fb` added cast bars on frames (#686, a Medallions setting), crowns (#678/#689; they originally had Frames rows before the owner went Medallions-only), Spirit Poles (#694/#698), Storm Orbs (#697).
+
+**Do:**
+1. Restore Frames by reverting the Frames parts of #695 and whatever of #701 Frames needs (forged ornaments/card materials only if Frames drew them; prove it), resolving against today's staging. The HUD style choice returns (Medallions or Frames) in Options and first-run setup. Orbs code stays gone. Prefer `git revert` of the relevant hunks over rewriting; keep everything later merges fixed.
+2. Profiles: migration 45 moved Frames players to Medallions. Check whether any saved trace tells us who was on Frames; if so, a new migration (next free number; check open PRs touching Core/Store.lua) puts them back on Frames; if not, they choose Frames again (setup and Options say so). Do not resurrect keys 45/46 retired unless Frames reads them.
+3. Port to Frames where it makes sense, in Frames' own look: class crowns as the pips row on the player frame (#678/#689 originally had this), the Spirit Poles totem row (the design study's Frames row) and Ghost Wolf, Lightning Shield in a compact form if it fits the one-style rule (else Medallions only; say which). Cast bars on frames: Frames keeps its own placement.
+4. Tests, render scenes (`RENDER_HUD_STYLE=Frames`), docs (`docs/feature-map.md`, statecharts incl. the HUD style switch and setup, AGENTS.md App driver line), the verify pages. Medallions must stay pixel-identical to staging (prove with the hud_reference matrix at 1920x1080, 2560x1440, 5120x1440, 3840x2160 DPS/Tank/Healer). Frames renders at the four sizes compared against the pre-#695 Frames look (`ca920ef9e^` or the commit just before #695) with only intended differences.
+
+This is big: plan it, then ask me (via orchestration) for helper workers with non-overlapping file lists if the test or port work is large, as #695 did. Gate: lint, python, full Lua suite on hosted CI and a Mac run (`gh workflow run checks.yml --ref <branch>`), `test-taint-scan`, `test-perf-path-budgets`, reload budget. PR `feat(hud): bring Frames back as a HUD style`, `Added:` line. Do not merge.
+
+**Files it may edit**: any addon file, `Media/**`, `Core/**`, `KstyleUI_*/**`, `Core/Locales/*`, `Tools/locale/*`, `Tools/**`, `docs/**`, `README.md`, `AGENTS.md`, `verify/**`, `.luacheckrc`.
+
+**Before worker_done**: follow `C:/Users/leeba/orca-jev-router/WORKER.md`. Report PR, SHA, run ids, evidence paths.
