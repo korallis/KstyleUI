@@ -303,17 +303,20 @@ local function Active(info)
 	return IsSecret(name) or name ~= nil
 end
 
-local function Short()
+local function Settled()
 	if type(UnitPower) ~= "function" or type(UnitPowerMax) ~= "function" then
-		return false
+		return true
 	end
 	local power, most = UnitPower("player"), UnitPowerMax("player")
-	return IsSecret(power) or IsSecret(most) or power ~= 0 and power ~= most
+	if type(issecretvalue) ~= "function" or issecretvalue(power) or issecretvalue(most) then
+		return false
+	end
+	return power == 0 or power == most
 end
 
 local function Busy()
 	return grid or Layout.IsActive() or Yes(InCombatLockdown) or Yes(UnitExists, "target") or Yes(UnitIsDeadOrGhost, "player")
-		or Active(UnitCastingInfo) or Active(UnitChannelInfo) or Short()
+		or Active(UnitCastingInfo) or Active(UnitChannelInfo) or not Settled()
 end
 
 local function WakeAll()
