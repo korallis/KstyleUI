@@ -141,5 +141,20 @@ do
 	Slots.Set(env, "player", nil)
 end
 
+do
+	local rim = Medals.Rim(parent, { feed = "aura", spells = { 2687 }, color = "jewelCombo" }, 5)
+	local cooldowns = Medals.CooldownRim(parent, { families = { { spells = { 1719 } } }, color = "gilt" }, 5)
+	local emblem, band, inner, outer = 53, 3.5, 50, 75
+	assert(rim.timer.units / 2 - band >= emblem - 1 and cooldowns.timer.units / 2 <= 60, "the rings run in the dark between the emblem and the rune band, clear of the emblem's edge")
+	assert(AB.W.LastCall(rim.timer, "SetSwipeTexture")[1]:find("RingLine16", 1, true), "a thin ring band, not a wide arc")
+	local layout = cooldowns.lit.container._groups.stack.layout
+	assert(layout.elementSpacing >= 4 and layout.elementSpacing / layout.elementWidth >= 0.25, "the cooldown icons keep a clear gap between them at every size")
+	for _, seat in ipairs({ "footLeft", "footRight" }) do
+		local x, y = Medals.Seat(seat)
+		local r = math.sqrt(x * x + y * y)
+		assert(r - Medals.FOOT / 2 >= inner and r + Medals.FOOT / 2 <= outer, seat .. " sits wholly on the ring band, not half over its edge")
+	end
+end
+
 assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 print("actionbars crest medals ok")

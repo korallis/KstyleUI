@@ -10,11 +10,11 @@ local Medals = {}
 ns.SlabMedals = Medals
 
 local SIZE, TRACK, ICON, SHADE, BURST, STEEL = 26, 6, 0.74, 1.9, 2.4, 0.45
-local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 104, 12, 10, 8, 2
-local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, STACK_MAX = 90, 14, 2, 30, 3
+local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 112, 12, 10, 8, 2
+local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, STACK_MAX = 118, 14, 4, 30, 3
 local SEATS = {
 	left = { -1, 84, 32 }, right = { 1, 84, 32 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
-	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 73, 247 }, footRight = { 1, 73, 293 },
+	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 65, 247 }, footRight = { 1, 65, 293 },
 }
 local PIP, PIP_RING, PIP_ARC, GLOW = 4, 17, 22, 0.35
 local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
@@ -310,7 +310,7 @@ function Medals.Rim(parent, spec, level)
 		rims[#rims + 1] = r
 	end
 	if spec.color then
-		r.timer = r.add(Timer(lit, level + 2, "ring", spec.color), INNER)
+		r.timer = r.add(Timer(lit, level + 2, "ringLine16", spec.color), INNER)
 		if lit.container then
 			lit:SetDurationCooldown(r.timer)
 		end
@@ -340,7 +340,7 @@ function Medals.CooldownRim(parent, spec, level)
 		local each = units[unit]
 		local base = level + 5 * (#order - i)
 		local lit = Lit(r, each, base + 1)
-		lit.timer = r.add(Timer(lit, base + 2, "ring", spec.color), COOLDOWN_RING)
+		lit.timer = r.add(Timer(lit, base + 2, "ringLine16", spec.color), COOLDOWN_RING)
 		lit:SetDurationCooldown(lit.timer)
 		Flare(r, lit, base + 3, spec.burst or "glow", RIM)
 		local container, options = lit.container, each.options
