@@ -1,16 +1,20 @@
--- _trackers.lua: RENDER_TRACKERS draws a warrior's, paladin's or rogue's crest trackers through the game's own feeds (Tools/regression/aura_slots.lua): steel (every piece known, nothing up), lit (every piece up, its timer part spent) or moment, the class's moment RENDER_TRACKERS_T seconds in (Trackers.END when unset): a warrior's target dodges and Overpower lights, it is spent, Bloodrage ignites Enrage round the rim, and Execute lights; a paladin's Judgement comes off cooldown, the old Judgement falls off the target and a new one lands, the Seal draining throughout; a rogue spends five points on Slice and Dice, Rupture runs out, and the off hand carries no poison. RENDER_TRACKERS_OFF=1 turns every tracker switch off first.
+-- _trackers.lua: RENDER_TRACKERS_FORM sets GetShapeshiftFormID (a warrior's 18 or 19, a rogue's 30); RENDER_TRACKERS draws a warrior's, paladin's or rogue's crest trackers through the game's own feeds (Tools/regression/aura_slots.lua): steel (every piece known, nothing up), lit (every piece up, its timer part spent) or moment, the class's moment RENDER_TRACKERS_T seconds in (Trackers.END when unset): a warrior's target dodges and Overpower lights, it is spent, Bloodrage ignites Enrage round the rim, and Execute lights; a paladin's Judgement comes off cooldown, the old Judgement falls off the target and a new one lands, the Seal draining throughout; a rogue spends five points on Slice and Dice, Rupture runs out, and the off hand carries no poison. RENDER_TRACKERS_OFF=1 turns every tracker switch off first.
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
 local Trackers = {}
 
 local KNOWN = {
-	WARRIOR = { 25289, 20662, 11585, 25288, 2687, 18499, 12317 },
-	PALADIN = { 20154, 20271, 20049 },
-	ROGUE = { 6774, 11275, 2842 },
+	WARRIOR = { 25289, 20662, 11585, 25288, 2565, 23894, 1680, 2687, 18499, 12317, 1719, 12328, 871, 12975, 12292, 20230 },
+	PALADIN = { 20154, 20271, 20049, 407788, 1020, 5573, 20216 },
+	ROGUE = { 6774, 11275, 2842, 11269, 1833, 1857, 13877, 13750, 5277, 11305, 14177 },
 }
+local COOLDOWNS = { WARRIOR = { 1719, 871 }, PALADIN = { 407788, 20216 }, ROGUE = { 13877, 13750, 5277 } }
+local OPENINGS = { [18] = 25288, [19] = 23894, [30] = 11269 }
 local ICONS = {
 	[25289] = 132333, [20662] = 135358, [11585] = 132223, [25288] = 132353, [2687] = 132277, [29131] = 132277, [18499] = 136009,
 	[20154] = 132325, [20271] = 135959, [20185] = 135917, [6774] = 132306, [11275] = 132302, [2842] = 136242,
+	[1719] = 132109, [871] = 132362, [407788] = 135875, [20216] = 135915, [13877] = 132350, [13750] = 136206, [5277] = 136205,
+	[23894] = 136012, [2565] = 132110, [1680] = 132369, [11269] = 132282, [1833] = 132092, [1857] = 132331,
 }
 local KEYS = { "crestShout", "crestOpening", "crestEnrage", "crestSeal", "crestJudgement", "crestJudged", "crestVengeance", "crestSlice", "crestRupture", "crestPoisons" }
 Trackers.END = 12
@@ -38,6 +42,7 @@ function Trackers.Install(env, class)
 	spell.GetSpellCooldown = function(id) return { isActive = env._cooldowns[id] ~= nil, isOnGCD = false } end
 	spell.GetSpellCooldownDuration = function(id) return env._cooldowns[id] or { start = 0, finish = 0 } end
 	env.GetInventoryItemID = function(_, slot) return (slot == 16 or slot == 17) and 2092 or nil end
+	env.GetShapeshiftFormID = function() return tonumber(os.getenv("RENDER_TRACKERS_FORM") or "") end
 end
 
 local function Sample(group, at, now, env)
@@ -82,10 +87,18 @@ function Trackers.Play(env, K, ns, notes)
 			env.FireEvent("UNIT_POWER_FREQUENT", "player", "COMBO_POINTS")
 		end
 	end
+	if story == "lit" then
+		for i, id in ipairs(COOLDOWNS[class]) do
+			player[#player + 1] = { id = id, count = 0, icon = ICONS[id], start = at(-2 * i), duration = 20 }
+		end
+		local opening = OPENINGS[tonumber(os.getenv("RENDER_TRACKERS_FORM") or "")]
+		if opening then env._usable[opening] = true end
+	end
 	local crown = env._slotAuras.target or {}
 	for _, a in ipairs(crown) do target[#target + 1] = a end
 	Slots.Set(env, "player", player)
 	Slots.Set(env, "target", target)
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
 	env.FireEvent("SPELL_UPDATE_USABLE")
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	if story == "moment" then
