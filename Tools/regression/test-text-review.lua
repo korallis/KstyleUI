@@ -51,6 +51,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		"paint: the existing target-of-target poll must refresh custom text")
 
 	local e, P, n = N.New({ width = screen[1], height = screen[2] })
+	P.Options.Write("Rest", "enabled", false)
 	N.Add(e, "nameplate1", { name = "Kobold", health = 100, maxHealth = 200, level = 10 })
 	local plate = n.Plates.Get("nameplate1")
 	local events = { "UNIT_POWER_UPDATE", "UNIT_MAXPOWER", "UNIT_ABSORB_AMOUNT_CHANGED", "UNIT_TARGET" }

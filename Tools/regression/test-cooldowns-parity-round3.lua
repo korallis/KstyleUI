@@ -33,7 +33,7 @@ local function Setup(e)
 end
 
 local function New(path)
-	local saved = { version = 42, profiles = { Default = { Cooldowns = { enabled = true, path = path } } }, characters = {} }
+	local saved = { version = 42, profiles = { Default = { Cooldowns = { enabled = true, path = path }, Rest = { enabled = false } } }, characters = {} }
 	local env, K, ns = C.New({ saved = saved, setup = Setup })
 	env.RunTimers()
 	return env, K, ns, function(key, value) K.Options.Write("Cooldowns", key, value); env.RunTimers() end
