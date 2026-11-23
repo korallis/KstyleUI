@@ -122,7 +122,7 @@ local function TextSize(kind, size, below)
 	local fit = math.max(size, math.min(TEXT_FLOOR, math.floor(tile / (2 * TEXT_LINE))))
 	if below or Settings.Value(kind, "auraTimer") ~= true then return fit end
 	local count = Settings.Value(kind, "auraCountSize")
-	local room = count > 0 and tile / TEXT_LINE - math.max(6, count) * K.Theme.FontScale() or tile / (2 * TEXT_LINE)
+	local room = count > 0 and (tile - 2 * COUNT_INSET) / TEXT_LINE - math.max(6, count) * K.Theme.FontScale() or tile / (2 * TEXT_LINE)
 	return math.min(fit, math.max(1, math.floor(room)))
 end
 
