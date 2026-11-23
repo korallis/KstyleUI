@@ -506,6 +506,24 @@ do
 	Clean(env, K, "learn Slam")
 end
 
+-- isOnGCD is trusted only on SPELL_UPDATE_COOLDOWN: a strike usable during the global cooldown stays lit (review dd9bddac #5).
+do
+	local env, K, ns = New("WARRIOR", { 6673, 7384 })
+	local opening = Pieces(ns)[2]
+	env._usable[7384] = true
+	local gcd = true
+	env.C_Spell.GetSpellCooldown = function() return { isActive = true, isOnGCD = gcd } end
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(opening.lit:IsShown(), "on the global cooldown Overpower stays lit")
+	gcd = nil
+	env.FireEvent("SPELL_UPDATE_USABLE")
+	assert(opening.lit:IsShown(), "a later usable event, where isOnGCD means nothing, keeps it lit")
+	gcd = false
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(not opening.lit:IsShown(), "a real cooldown darkens it")
+	Clean(env, K, "gcd")
+end
+
 -- Even pixels at four sizes.
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })
