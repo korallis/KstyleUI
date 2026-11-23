@@ -136,10 +136,7 @@ local function Render(keepOffset, reselect, pageChanged)
 	content.revealLimit = calm and 0.45 or nil
 	if not keepOffset then content.flashIndex = nil end
 	content:SetData(items, keepOffset, not calm or pageChanged == true and not fade)
-	if fade then
-		content:SetAlpha(0)
-		K.Motion.FadeIn(content, (K.Motion.Moment("page")))
-	end
+	if fade then K.Motion.PageIn(content, (K.Motion.Moment("page"))) end
 	local folded = K.Store.Account().optionsRailFolded
 	local sections = K.Store.Account().optionsRailSections ~= false and not (folded and folded[state.page]) and state.sections or {}
 	if reselect then

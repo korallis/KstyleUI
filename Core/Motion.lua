@@ -208,9 +208,6 @@ end
 function Motion.Tween(obj, setter, from, to, duration, easing, onDone)
 	duration = Motion.FadeDuration(duration)
 	local ease = ResolveEase(easing)
-	if setter == "SetAlpha" and obj.kstyleFadeIn then
-		obj.kstyleFadeIn:Stop()
-	end
 	local existing = Find(obj, setter)
 	if existing then
 		Release(existing)
@@ -372,31 +369,37 @@ function Motion.FadeIn(frame, duration, alpha)
 	restAlpha[frame] = alpha
 	local from = frame:GetAlpha()
 	local shown = frame:IsShown()
-	Motion.Tween(frame, "SetAlpha", alpha, alpha, 0)
 	if IsSecret(shown) then
 		LogOnce("shown", "a fade met a frame whose visibility is secret and changed its alpha only")
 	elseif not shown then
 		from = 0
+		frame:SetAlpha(0)
 		if MayToggle(frame) then
 			frame:Show()
 		end
 	end
-	local fade = frame.kstyleFadeIn
+	local open, ease = Motion.Moment("open")
+	return Motion.Tween(frame, "SetAlpha", from, alpha, duration or open, ease)
+end
+
+function Motion.PageIn(frame, duration)
+	frame:SetAlpha(1)
+	frame:Show()
+	local fade = frame.kstylePageIn
 	if not fade then
 		fade = frame:CreateAnimationGroup()
 		fade.alpha = fade:CreateAnimation("Alpha")
+		fade.alpha:SetFromAlpha(0)
+		fade.alpha:SetToAlpha(1)
 		fade.alpha:SetSmoothing(Tokens.Smoothing.enter)
-		frame.kstyleFadeIn = fade
+		frame.kstylePageIn = fade
 	end
-	duration = Motion.FadeDuration(duration or (Motion.Moment("open")))
-	local visible = frame:IsVisible()
-	if IsSecret(from) or IsSecret(duration) or IsSecret(visible) or not visible or type(duration) ~= "number" or not (duration > 0 and from < alpha) then
-		return
+	fade:Stop()
+	duration = Motion.FadeDuration(duration)
+	if not IsSecret(duration) and type(duration) == "number" and duration > 0 and frame:IsVisible() then
+		fade.alpha:SetDuration(duration)
+		fade:Play()
 	end
-	fade.alpha:SetFromAlpha(from)
-	fade.alpha:SetToAlpha(alpha)
-	fade.alpha:SetDuration(duration)
-	fade:Play()
 end
 
 local function Hidden(frame)

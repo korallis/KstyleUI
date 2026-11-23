@@ -263,7 +263,7 @@ function Setup.Go(target)
 		panel.opts.height = HEIGHT
 		Widgets.Size(panel, WIDTH, HEIGHT)
 		step = target
-		Motion.FadeIn(panel.pages[step], Tokens.Duration("fade"))
+		Motion.PageIn(panel.pages[step], Tokens.Duration("fade"))
 	end
 	Refresh()
 	return true
