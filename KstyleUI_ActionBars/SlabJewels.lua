@@ -383,10 +383,14 @@ function Jewels.Update(event)
 			for _, id in ipairs(feed.spells) do
 				ids[id] = true
 			end
-			feed.container = CreateFrame("AuraContainer", nil, ns.Slab.hub.top, "CustomAuraContainerTemplate")
-			Widgets.KeepOut(feed.container)
-			feed.container:SetUnit("player")
-			feed.options = { candidateFilters = { includeSpellIDs = ids } }
+			local container = CreateFrame("AuraContainer", nil, ns.Slab.hub.top, "CustomAuraContainerTemplate")
+			if type(container.AddAuraSlot) ~= "function" then
+				feed = nil
+			else
+				Widgets.KeepOut(container)
+				container:SetUnit("player")
+				feed.container, feed.options = container, { candidateFilters = { includeSpellIDs = ids } }
+			end
 			K.Events.Unregister(OWNER .. ".Feed", "PLAYER_REGEN_ENABLED")
 		end
 	end

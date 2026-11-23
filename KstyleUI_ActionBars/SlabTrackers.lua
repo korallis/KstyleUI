@@ -93,14 +93,15 @@ local function Spec(p, row)
 end
 
 local function Build(form, name, i, spec)
-	local level = form.frame:GetFrameLevel() + 1
-	local piece
-	if name == "crest" and spec.seat == "rim" then
-		piece = Medals.Rim(form.frame, spec, level)
-	elseif name == "crest" and spec.feed == "enchant" then
-		piece = Medals.Socket(form.frame, spec, level)
-	else
-		piece = Medals.Medal(form.frame, spec, level)
+	if form.failed[i] then
+		return nil
+	end
+	local make = name == "crest" and (spec.seat == "rim" and Medals.Rim or spec.feed == "enchant" and Medals.Socket) or Medals.Medal
+	local ok, piece = pcall(make, form.frame, spec, form.frame:GetFrameLevel() + 1)
+	if not ok then
+		form.failed[i] = true
+		K.DevTest.Log("ActionBars", spec.key .. " on the crest unavailable: " .. tostring(piece))
+		return nil
 	end
 	form.pieces[i] = piece
 	return piece
@@ -109,7 +110,7 @@ end
 local function Shape(name, seat)
 	local form = state.forms[name]
 	if not form then
-		form = { pieces = {}, frame = CreateFrame("Frame", nil, name == "crest" and seat.top or seat) }
+		form = { pieces = {}, failed = {}, frame = CreateFrame("Frame", nil, name == "crest" and seat.top or seat) }
 		state.forms[name] = form
 	end
 	if name == "crest" then
