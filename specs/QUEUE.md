@@ -662,3 +662,4 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - Merged #769 (meters polish).
 - #768 review ISSUES (restricted shopping tooltip level throws, honour controls overridden, preview overlap, bag countdown restore) -> author. #774 polish B open.
 - Merged #765 (party readability). Owner call: 16:9 percent text size.
+- Lee chose A: 16:9 party percent text stays its size (names keep 12 letters).

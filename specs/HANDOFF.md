@@ -10,7 +10,7 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 
 ## Merged since v0.3.2 (for the v0.3.3 notes)
 
-- #765 party frames readable (larger on ultrawide, readable names and numbers, dark missing health, offline members show empty tracks, crown on the rim). Owner call pending: the 16:9 percent text size stays as is (bigger broke the twelve-letter name rule).
+- #765 party frames readable (larger on ultrawide, readable names and numbers, dark missing health, offline members show empty tracks, crown on the rim). Owner decided (A): the 16:9 percent text keeps its size so names keep 12 letters; readability comes from the divider and backing.
 - #769 meters polish (swing timer stays full, readable damage meter rows with tracks, finished empty cards).
 
 ## Open pull requests (all target staging)
