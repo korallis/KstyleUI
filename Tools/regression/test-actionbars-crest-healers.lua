@@ -248,6 +248,23 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- Clearcasting's leaves unfurl when it lights: a group the engine plays as the aura shows, at Full only. (Forever
+-- has no hidden-aura animation, so the leaves cannot scatter as it is spent.)
+do
+	local env, K, ns = New("DRUID", DRUID)
+	local bloom = Tracker(ns, "DRUID").built.bloom
+	local function Registered()
+		for _, group in ipairs(bloom.lit._shownAnimations or {}) do
+			if group == bloom.unfurl then return true end
+		end
+		return false
+	end
+	assert(bloom.unfurl and Registered(), "at Full the engine unfurls the leaves as Clearcasting shows")
+	K.Options.Write("Medallions", "motion", "calm")
+	assert(not Registered(), "Calm keeps them still")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 -- The druid's plaque and rim follow the form: the five-second rule only as a caster or moonkin; the rim watches
 -- Innervate, Nature's Swiftness, Barkskin, Dash and Nature's Grasp as a caster, Dash and Barkskin in Cat Form, and
 -- Frenzied Regeneration, Enrage, Barkskin and Dash in Bear Form; under Frames the bear's threat is a medal.
