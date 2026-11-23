@@ -53,7 +53,6 @@ defaults.fadeBlizzard = true
 defaults.accentSource = "class"
 defaults.accentColor = Rgb("accentDefault")
 defaults.xp = BarDefaults("custom", "epic", "percentRested")
-defaults.xp.border = false
 defaults.xp.textHover = false
 defaults.xp.textPosition = "BOTTOM"
 defaults.xp.outline = Font.WORLD
