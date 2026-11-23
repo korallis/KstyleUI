@@ -300,6 +300,7 @@ end
 do
 	local env, K, ns = New("PRIEST", { 10060 })
 	local painted, moved = 0, 0
+	ns.SlabTrackers.CLASSES.PRIEST = nil
 	ns.SlabTrackers.Register("PRIEST", {
 		{ key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 10060 } } } },
 		{ key = "crestTest", seat = { 0, 100 }, build = function(parent, spec, level)

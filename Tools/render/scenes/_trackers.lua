@@ -1,4 +1,5 @@
 -- _trackers.lua: RENDER_TRACKERS_FORM sets GetShapeshiftFormID (a warrior's 18 or 19, a rogue's 30) and RENDER_TRACKERS_SPEC the talents a paladin (holy, prot) or rogue (assassination, combat, subtlety) knows; RENDER_TRACKERS draws a warrior's, paladin's or rogue's crest trackers through the game's own feeds (Tools/regression/aura_slots.lua): steel (every piece known, nothing up), lit (every piece up, its timer part spent) or moment, the class's moment RENDER_TRACKERS_T seconds in (Trackers.END when unset): a warrior's target dodges and Overpower lights, it is spent, Bloodrage ignites Enrage round the rim, and Execute lights; a paladin's Judgement comes off cooldown, the old Judgement falls off the target and a new one lands, the Seal draining throughout; a rogue spends five points on Slice and Dice, Rupture runs out, and the off hand carries no poison. RENDER_TRACKERS_OFF=1 turns every tracker switch off first.
+-- _trackers.lua: RENDER_TRACKERS_FORM sets GetShapeshiftFormID (a warrior's 18 or 19, a rogue's 30); RENDER_TRACKERS draws a warrior's, paladin's or rogue's crest trackers through the game's own feeds (Tools/regression/aura_slots.lua): steel (every piece known, nothing up), lit (every piece up, its timer part spent) or moment, the class's moment RENDER_TRACKERS_T seconds in (Trackers.END when unset): a warrior's target dodges and Overpower lights, it is spent, Bloodrage ignites Enrage round the rim, and Execute lights; a paladin's Judgement comes off cooldown, the old Judgement falls off the target and a new one lands, the Seal draining throughout; a rogue spends five points on Slice and Dice, Rupture runs out, and the off hand carries no poison. A priest, druid or shaman plays its own story through the same feeds and the addon's own handlers (charge counts, casts, cooldowns, weapon enchants, forms and a queued Maul), steel showing every known piece with nothing up, lit the story at its own time and moment RENDER_TRACKERS_T seconds in; RENDER_TARGET=friend gives the druid a friendly target and RENDER_FORM chooses another crest: cat, bear or moonkin for the druid, shadowform for the priest, enhancement for the shaman. RENDER_TRACKERS_OFF=1 turns every tracker switch off first (and for a healer plays nothing, for a pixel diff).
 local Slots = dofile("Tools/regression/aura_slots.lua")
 local Ranged = dofile("Tools/render/scenes/_ranged.lua")
 
@@ -22,12 +23,187 @@ local ICONS = {
 	[10333] = 135891, [24239] = 132326, [10308] = 135963, [20473] = 135972, [407632] = 135891, [25780] = 135962, [20050] = 132275,
 	[1769] = 132219, [1316709] = 136168, [1310703] = 132290, [14143] = 132151, [14251] = 132336, [20925] = 135880,
 }
+local HEALER_ICONS = {
+	[10952] = 135926, [1316995] = 237545, [10947] = 136224, [401977] = 136199, [15473] = 136200, [10894] = 136207,
+	[10060] = 135939, [586] = 135994, [9835] = 136096, [24977] = 136045, [25299] = 136081, [9858] = 136085,
+	[9904] = 132122, [9896] = 132152, [9898] = 132121, [9907] = 136033, [9881] = 132136, [17402] = 136018,
+	[16870] = 136170, [18562] = 134914, [22812] = 136097, [22842] = 132091, [5229] = 132126, [1850] = 132120,
+	[10414] = 136026, [20608] = 136080, [16166] = 136111, [15286] = 136230, [17364] = 132314, [425336] = 136012,
+}
+local DRUID = { 9835, 24977, 25299, 9858, 9904, 9896, 9898, 9907, 9881, 17402, 24858, 16864, 18562, 22812, 22842, 5229, 1850 }
+
+-- Each story: the spells the character knows, its form (GetShapeshiftFormID and power type), the default time, and
+-- its beats in seconds: an aura on a unit ({ unit, spell, charges, seconds, harmful }; seconds nil clears it), a
+-- charge count on the player's first aura, the player's cast, a spell's cooldown ({ spell, seconds }), a queued
+-- spell (C_Spell.IsCurrentSpell) and a weapon's enchant ({ slot, enchantID, seconds left of an hour }, or { slot }).
+local HEALERS = {
+	PRIEST = { at = 4, known = { 10952, 1316995, 10947, 401977, 10894, 10060, 586 }, beats = {
+		{ 0.5, cast = 10952, aura = { "player", 10952, 20, 600 } },
+		{ 1.5, aura = { "target", 10894, 0, 18, true } },
+		{ 2, aura = { "player", 10060, 0, 15 } },
+		{ 2.5, cooldown = { 1316995, 12 } },
+		{ 3.2, charges = 15 }, { 4.6, charges = 10 }, { 5.8, charges = 4 },
+		{ 6.5, aura = { "player", 586, 0, 10 } },
+		{ 7.5, cooldown = { 401977, 300 } },
+		{ 9, aura = { "player", 10952 } },
+	} },
+	DRUID = { at = 4, known = DRUID, beats = {
+		{ 0.5, aura = { "target", 9835, 0, 12, true } },
+		{ 1, aura = { "target", 24977, 0, 12, true } },
+		{ 2, aura = { "player", 16870, 1, 15 } },
+		{ 2.5, aura = { "player", 22812, 0, 12 } },
+		{ 3, cooldown = { 18562, 15 } },
+		{ 5.5, aura = { "player", 16870 } },
+	} },
+	DRUID_friend = { at = 4, known = DRUID, beats = {
+		{ 0.5, aura = { "target", 25299, 0, 12 } },
+		{ 1, aura = { "target", 9858, 0, 21 } },
+		{ 2, aura = { "player", 16870, 1, 15 } },
+		{ 3, cooldown = { 18562, 15 } },
+	} },
+	DRUID_cat = { at = 4, form = 1, power = 3, known = DRUID, beats = {
+		{ 0.5, aura = { "target", 9907, 0, 40, true } },
+		{ 1, aura = { "target", 9904, 0, 9, true } },
+		{ 2, aura = { "target", 9896, 0, 12, true } },
+		{ 2.5, aura = { "player", 1850, 0, 15 } },
+	} },
+	DRUID_bear = { at = 4, form = 8, power = 1, known = DRUID, beats = {
+		{ 0.5, aura = { "target", 9898, 0, 30, true } },
+		{ 1, aura = { "target", 9907, 0, 40, true } },
+		{ 1.5, aura = { "player", 5229, 0, 10 } },
+		{ 2, aura = { "player", 22842, 0, 10 } },
+		{ 3, queue = 9881 },
+	} },
+	DRUID_moonkin = { at = 4, form = 31, known = DRUID, beats = {
+		{ 0.5, aura = { "target", 9835, 0, 12, true } },
+		{ 1, aura = { "target", 24977, 0, 12, true } },
+		{ 2, cooldown = { 17402, 60 } },
+		{ 2.5, aura = { "player", 16870, 1, 15 } },
+	} },
+	PRIEST_shadowform = { at = 4, form = 28, known = { 10952, 10947, 15473, 15286, 10894, 401977, 586 }, beats = {
+		{ 0.5, cast = 10952, aura = { "player", 10952, 20, 600 } },
+		{ 1, aura = { "target", 15286, 0, 60, true } },
+		{ 1.5, aura = { "target", 10894, 0, 18, true } },
+		{ 2.5, cooldown = { 10947, 8 } },
+		{ 3.2, charges = 15 },
+		{ 3.5, aura = { "player", 586, 0, 10 } },
+	} },
+	SHAMAN_enhancement = { at = 3, known = { 16362, 10414, 20608, 17364, 425336 }, offHand = true, beats = {
+		{ 0, enchant = { 16, 1669, 1800 } },
+		{ 0, enchant = { 17, 1666, 240 } },
+		{ 1, cooldown = { 17364, 8 } },
+		{ 2, aura = { "player", 425336, 0, 15 } },
+	} },
+	SHAMAN = { at = 3, known = { 16362, 10414, 20608, 16166 }, offHand = true, beats = {
+		{ 0, enchant = { 16, 1669, 1800 } },
+		{ 0, enchant = { 17, 1666, 240 } },
+		{ 1, cast = 10414, cooldown = { 10414, 6 } },
+		{ 2, aura = { "player", 16166, 0, 15 } },
+		{ 8, enchant = { 17 } },
+	} },
+}
+
+-- Healer(env, K, ns, notes, mode) plays a priest's, druid's or shaman's story: steel shows every known piece with
+-- nothing up, lit the story at its own time, moment the story RENDER_TRACKERS_T seconds in (its own time when unset);
+-- RENDER_TARGET=friend gives the druid a friendly target and RENDER_FORM another form's or spec's crest.
+local function Healer(env, K, ns, notes, mode)
+	local class = ns.class
+	local variant = os.getenv("RENDER_FORM") or os.getenv("RENDER_TARGET") == "friend" and "friend" or nil
+	local story = HEALERS[variant and class .. "_" .. variant] or HEALERS[class]
+	local at = mode == "steel" and -1 or mode == "moment" and tonumber(os.getenv("RENDER_TRACKERS_T") or "") or story.at
+	if not env._slotContainers then
+		Slots.Install(env)
+	end
+	local known, auras, cooldowns, enchants = {}, { player = {}, target = {} }, {}, {}
+	for _, id in ipairs(story.known) do known[id] = true end
+	local isKnown = env.C_SpellBook and env.C_SpellBook.IsSpellKnown
+	env.C_SpellBook = env.C_SpellBook or {}
+	env.C_SpellBook.IsSpellKnown = function(id) return known[id] == true or (isKnown ~= nil and isKnown(id)) end
+	local spell = env.C_Spell or {}
+	env.C_Spell = spell
+	local texture = spell.GetSpellTexture
+	spell.GetSpellTexture = function(id) return HEALER_ICONS[id] or texture and texture(id) end
+	spell.GetSpellCooldown = function(id)
+		local c = cooldowns[id]
+		return { isActive = c ~= nil and c.finish > env._time, isOnGCD = false, isEnabled = true }
+	end
+	spell.GetSpellCooldownDuration = function(id)
+		local c = cooldowns[id]
+		return c and c.finish > env._time and c or { start = 0, finish = 0 }
+	end
+	env.C_PaperDollInfo = env.C_PaperDollInfo or {}
+	env.C_PaperDollInfo.OffhandHasWeapon = function() return story.offHand == true end
+	env.C_PaperDollInfo.GetTemporaryEnchantmentInfo = function(slot)
+		local e = enchants[slot]
+		return e and { enchantID = e.id, remainingTimeMs = math.max(0, e.finish - env._now) * 1000, chargesRemaining = 0, hasExpirationTime = true } or nil
+	end
+	env.C_Item = env.C_Item or {}
+	env.C_Item.GetItemCount = function() return 1 end
+	local queued = {}
+	spell.IsCurrentSpell = function(id) return queued[id] == true end
+	env.GetShapeshiftFormID = function() return story.form end
+	if story.power then
+		env.UnitPowerType = function() return story.power, story.power == 3 and "ENERGY" or "RAGE" end
+	end
+	ns.SlabTrackers.Update()
+	local clock = env.GetTime
+	env.GetTime = function() return env._now end
+	for _, beat in ipairs(story.beats) do
+		if beat[1] <= at then
+			env._now = env._time - (at - beat[1])
+			local a = beat.aura
+			if a then
+				local list = auras[a[1]]
+				for i = #list, 1, -1 do
+					if list[i].id == a[2] then table.remove(list, i) end
+				end
+				if a[4] and env._now + a[4] > env._time then
+					list[#list + 1] = { id = a[2], count = a[3], harmful = a[5], icon = HEALER_ICONS[a[2]], start = env._now, duration = a[4] }
+				end
+				Slots.Set(env, a[1], list)
+			end
+			if beat.charges then
+				auras.player[1].count = beat.charges
+				Slots.Set(env, "player", auras.player)
+			end
+			if beat.cooldown then
+				cooldowns[beat.cooldown[1]] = { start = env._now, finish = env._now + beat.cooldown[2] }
+				env.FireEvent("SPELL_UPDATE_COOLDOWN")
+			end
+			if beat.enchant then
+				local slot, id, left = beat.enchant[1], beat.enchant[2], beat.enchant[3]
+				enchants[slot] = id and { id = id, finish = env._now + left } or nil
+				Slots.Enchant(env, slot - 15, id and { start = env._now + left - 3600, duration = 3600 } or nil)
+				env.FireEvent("WEAPON_ENCHANT_CHANGED")
+			end
+			env.FireEvent("UNIT_AURA", "player", {})
+			if beat.queue then
+				queued[beat.queue] = true
+				env.FireEvent("CURRENT_SPELL_CAST_CHANGED")
+			end
+			if beat.cast then
+				env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-trackers", beat.cast)
+			end
+		end
+	end
+	env._now = env._time
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	env.GetTime = clock
+	local row = ns.SlabTrackers.state.forms.row
+	if row and row.frame:IsVisible() then
+		local frame, k = row.frame, row.frame:GetEffectiveScale() / env.UIParent:GetEffectiveScale()
+		notes[#notes + 1] = string.format("trackers: the Frames row at %d,%d,%d,%d units (left, top, width, height)", frame:GetLeft() * k,
+			env.UIParent:GetHeight() - frame:GetTop() * k, frame:GetWidth() * k, frame:GetHeight() * k)
+	end
+	notes[#notes + 1] = string.format("trackers: %s, %s, %s s into the story%s", class, mode, at, variant and " (" .. variant .. ")" or "")
+end
+
 Trackers.END = 12
 
 function Trackers.Story(class)
 	if Ranged.Story(class) then return Ranged.Story(class) end
 	local story = os.getenv("RENDER_TRACKERS")
-	if not (story and story ~= "" and KNOWN[class]) then return nil end
+	if not (story and story ~= "" and (KNOWN[class] or HEALERS[class])) then return nil end
 	return story, tonumber(os.getenv("RENDER_TRACKERS_T") or "") or Trackers.END
 end
 
@@ -38,6 +214,7 @@ function Trackers.Install(env, class)
 	env.AuraContainerSortMethod = env.AuraContainerSortMethod or { Default = 0, AuraInstanceIDOnly = 8 }
 	env.AuraContainerSortDirection = env.AuraContainerSortDirection or { Normal = 0, Reverse = 1 }
 	if Ranged.Story(class) then return Ranged.Install(env, class) end
+	if not KNOWN[class] then return end
 	local known = {}
 	for _, id in ipairs(KNOWN[class]) do known[id] = true end
 	local spec = os.getenv("RENDER_TRACKERS_SPEC")
@@ -83,6 +260,14 @@ function Trackers.Play(env, K, ns, notes)
 	if os.getenv("RENDER_TRACKERS_OFF") == "1" then
 		K.Options.Write("ActionBars", "crestVengeance", false)
 		for _, row in ipairs(ns.SlabTrackers.CLASSES[ns.class]) do K.Options.Write("ActionBars", row.key, false) end
+		if HEALERS[ns.class] then
+			ns.SlabTrackers.Update()
+			notes[#notes + 1] = "trackers: every tracker switch off"
+			return
+		end
+	end
+	if HEALERS[ns.class] then
+		return Healer(env, K, ns, notes, story)
 	end
 	env.RunTimers()
 	local class, t0 = ns.class, story == "moment" and now or 6
