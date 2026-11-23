@@ -664,3 +664,4 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - Merged #765 (party readability). Owner call: 16:9 percent text size.
 - Lee chose A: 16:9 party percent text stays its size (names keep 12 letters).
 - #774 polish B green; review dispatched.
+- #774 review ISSUES (Target preview steals the live level-up effects anchor, microtype, blank badge, tween cues, translated row drift, overbroad guard rule, clipped footer) -> author.
