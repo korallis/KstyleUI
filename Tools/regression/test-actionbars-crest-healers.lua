@@ -6,7 +6,7 @@ local SIZES = { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
 local PRIEST = { 10952, 1316995, 10947, 401977, 10894, 10060 }
 local DRUID = { 9835, 24977, 25299, 9858, 9904, 9896, 16864, 18562, 9898, 9907, 9881, 17402, 22812 }
 local SHAMAN = { 16362, 10414, 20608, 16166 }
-local BUILT = { DRUID = 13 }
+local BUILT = { DRUID = 15 }
 local KEYS = { "crestInnerFire", "crestPenance", "crestShadowfiend", "crestPain", "crestSeeds", "crestClearcasting", "crestSwiftmend", "crestImbues", "crestShock", "crestAnkh",
 	"crestCooldowns" }
 -- Each class's pieces by "<row>:<choice>", the key SlabTrackers keeps them under.
@@ -17,7 +17,7 @@ local NAMES = {
 	DRUID = { ["1:1"] = "roar", ["1:2"] = "rake", ["1:3"] = "seedLeft", ["2:1"] = "faerie", ["2:2"] = "rip", ["2:3"] = "seedRight",
 		["3:1"] = "third", ["3:2"] = "thirdMoonkin", ["4:1"] = "growl", ["5:1"] = "charge", ["6:1"] = "bite", ["7:1"] = "bash", ["8:1"] = "oil",
 		["9:1"] = "bloom", ["10:1"] = "maul", ["10:2"] = "faerieGem", ["10:3"] = "swiftnessMoonkin", ["10:4"] = "innervateMoonkin",
-		["10:5"] = "swiftmend", ["10:6"] = "swiftness", ["10:7"] = "innervate", ["11:1"] = "cooldowns" },
+		["10:5"] = "swiftmend", ["10:6"] = "swiftness", ["10:7"] = "innervate", ["11:1"] = "tankGlow", ["12:1"] = "cooldowns" },
 	SHAMAN = { ["1:1"] = "mainHand", ["2:1"] = "offHand", ["3:1"] = "shock", ["4:1"] = "ankh", ["5:1"] = "flameShock", ["6:1"] = "cooldowns" },
 }
 
@@ -70,7 +70,9 @@ local function Tracker(ns, class)
 			local built = {}
 			for form, f in pairs(state.forms) do
 				for key, piece in pairs(f.pieces) do
-					built[NAMES[class][key] .. (form == "row" and "Row" or "")] = piece
+					local row, choice = key:match("^(%d+):(%d+)$")
+					local name = row == "1" and "fiveSecond" or NAMES[class][(row - 1) .. ":" .. choice]
+					built[name .. (form == "row" and "Row" or "")] = piece
 				end
 			end
 			return built
@@ -106,8 +108,9 @@ end
 -- Other classes, and healers who know none of the spells, build nothing and listen to nothing.
 for _, case in ipairs({ { "WARRIOR", PRIEST }, { "MAGE", DRUID }, { "HUNTER", SHAMAN }, { "PRIEST", {} }, { "DRUID", {} }, { "SHAMAN", {} } }) do
 	local env, K, ns = New(case[1], case[2])
-	local t = Tracker(ns, "PRIEST")
-	assert(next(t.built) == nil and not t.listening and t.row == nil, case[1] .. ": no tracker piece, row or event")
+	local built = Tracker(ns, "PRIEST").built
+	built.fiveSecond = nil
+	assert(next(built) == nil and Tracker(ns, "PRIEST").row == nil, case[1] .. ": no tracker piece or row beyond the shared five-second rule")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
@@ -117,7 +120,7 @@ do
 	local t = Tracker(ns, "PRIEST")
 	local fire, left, right, pain = t.built.innerFire, t.built.penance, t.built.shadowfiend, t.built.pain
 	local rim = t.built.cooldowns
-	assert(Count(t) == 6 and fire:IsShown() and left:IsShown() and right:IsShown() and pain:IsShown() and rim:IsShown() and t.listening, "a priest who knows them gets five pieces, Mind Blast prepared")
+	assert(Count(t) == 7 and fire:IsShown() and left:IsShown() and right:IsShown() and pain:IsShown() and rim:IsShown() and t.listening, "a priest who knows them gets five pieces and the five-second rule, Mind Blast prepared")
 	assert(not t.built.mindBlast:IsShown(), "Penance wins the left medal; Mind Blast waits")
 	assert(rim.lit.container._slots.lit.candidates.includeSpellIDs[10060] and rim.lit.container._slots.lit.candidates.includeSpellIDs[1277462], "the cooldown rim watches Power Infusion to the race spells")
 	Slots.Set(env, "player", { { id = 10060, count = 0, icon = 135939, start = 0, duration = 15 } })
@@ -168,7 +171,7 @@ do
 	assert(pain.lit:IsShown() and AB.W.LastCall(pain.bar, "SetTimerDuration"), "your Pain on the target fills the gem and drains it")
 
 	-- Each switch hides its own piece and stops its feed; turning it back shows it again.
-	for _, key in ipairs({ "crestInnerFire", "crestPenance", "crestShadowfiend", "crestPain", "crestCooldowns" }) do
+	for _, key in ipairs({ "crestInnerFire", "crestPenance", "crestShadowfiend", "crestPain", "crestCooldowns", "crestFiveSecond" }) do
 		K.Options.Write("ActionBars", key, false)
 		env.RunTimers()
 	end
@@ -185,7 +188,7 @@ end
 do
 	local env, K, ns = New("PRIEST", { 589, 8092 })
 	local t = Tracker(ns, "PRIEST")
-	assert(Count(t) == 2 and t.built.pain and t.built.mindBlast and t.built.mindBlast.spec.spell == 8092, "a level 10 priest sees the Pain gem and the Mind Blast medal only")
+	assert(Count(t) == 3 and t.built.pain and t.built.mindBlast and t.built.fiveSecond and t.built.mindBlast.spec.spell == 8092, "a level 10 priest sees the Pain gem and the Mind Blast medal only")
 	env._known[15473], env._known[1316995], env._known[15286], env._known[401977] = true, true, true, true
 	ns.SlabTrackers.Update()
 	assert(t.built.mindBlast:IsShown() and not t.built.penance and t.built.shadowform:IsShown() and not t.built.shadowfiend:IsShown(), "a shadow priest: Mind Blast left, Shadowform right")
@@ -244,7 +247,7 @@ do
 	local env, K, ns = New("SHAMAN", SHAMAN)
 	local t, Tokens = Tracker(ns, "SHAMAN"), K.Tokens
 	assert(t.built.shock and t.built.ankh, "the emblem sweeps the shock cooldown, the interrupt, and the ankh stands on the right foot")
-	assert(t.built.ankh.spec.seat[1] > 0 and t.built.ankh.spec.seat[2] < -60, "the ankh's seat is the right foot perch")
+	assert(t.built.ankh.spec.seat == "footRight", "the ankh sits on the right foot perch")
 	local main, off, shock, ankh = t.built.mainHand, t.built.offHand, t.built.shock, t.built.ankh
 	assert(main:IsShown() and off:IsShown() and shock:IsShown() and ankh:IsShown(), "a shaman gets two stones, the sweep and the ankh")
 	assert(main.rim:IsShown() and not main.pulse:IsPlaying(), "no imbue: the stone's gilt rim shows, still at rest")
@@ -316,7 +319,7 @@ do
 	env.SetCombat(true)
 	for _, id in ipairs(DRUID) do env._known[id] = true end
 	ns.SlabTrackers.Update()
-	assert(Count(t) == 0 and t.listening, "nothing is built while auras are secret, and the tracker waits")
+	assert(Count(t) == 1 and t.built.fiveSecond and t.listening, "nothing new is built while auras are secret (the plaque came at login), and the tracker waits")
 	env._aurasSecret = false
 	env.SetCombat(false)
 	assert(Count(t) == BUILT.DRUID, "combat's end builds the pieces")

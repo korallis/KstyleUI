@@ -12,7 +12,6 @@ local IMBUES = {
 local SHOCKS = { 10414, 10413, 10412, 8046, 8045, 8044, 8042, 29228, 10448, 10447, 8053, 8052, 8050, 10473, 10472, 8058, 8056 }
 local REINCARNATION, ANKH = { 20608 }, 17030
 local FLAME, STORMSTRIKE, RIPTIDE = { 29228, 10448, 10447, 8053, 8052, 8050 }, { 17364 }, { 1239243, 1239242, 408521 }
-local LEFT_FOOT, RIGHT_FOOT, PERCH = { -28.5, -67.2 }, { 28.5, -67.2 }, 17
 local ELEMENTS = {}
 for token, ids in pairs({
 	totemEarth = { 29, 6, 1, 503, 1663, 683, 1664, 7568 },
@@ -158,8 +157,8 @@ ns.SlabTrackers.Register("SHAMAN", {
 	{ key = "crestImbues", seat = "lowerLeft", feed = "enchant", slot = "MainHand", spells = IMBUES, build = Stone },
 	{ key = "crestImbues", seat = "lowerRight", feed = "enchant", slot = "OffHand", spells = IMBUES, known = OffHand, build = Stone },
 	{ key = "crestShock", seat = { 0, 0 }, feed = "cooldown", known = SHOCKS, build = Shock },
-	{ key = "crestAnkh", seat = RIGHT_FOOT, known = REINCARNATION, build = Ankh },
-	{ key = "crestFlameShock", seat = LEFT_FOOT, size = PERCH, color = "white", spells = FLAME, known = function() return Medals.Known(FLAME) or Medals.Known(RIPTIDE) end,
+	{ key = "crestAnkh", seat = "footRight", known = REINCARNATION, build = Ankh },
+	{ key = "crestFlameShock", seat = "footLeft", size = Medals.FOOT, color = "white", spells = FLAME, known = function() return Medals.Known(FLAME) or Medals.Known(RIPTIDE) end,
 		feeds = {
 			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = FLAME, color = "totemFire" },
 			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = STORMSTRIKE, color = "totemAir" },
@@ -170,9 +169,13 @@ ns.SlabTrackers.Register("SHAMAN", {
 	burst = "medBurstShaman",
 	events = { "WEAPON_ENCHANT_CHANGED", "BAG_UPDATE_DELAYED" },
 	update = { "PLAYER_EQUIPMENT_CHANGED" },
-	paint = function()
-		Stones()
-		Charm()
+	paint = function(_, event)
+		if event == nil or event == "WEAPON_ENCHANT_CHANGED" then
+			Stones()
+		end
+		if event == nil or event == "BAG_UPDATE_DELAYED" or event == "SPELL_UPDATE_COOLDOWN" then
+			Charm()
+		end
 	end,
 	motion = function() Stones() end,
 })

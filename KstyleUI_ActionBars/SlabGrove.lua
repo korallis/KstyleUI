@@ -1,4 +1,4 @@
--- SlabGrove.lua: the druid's crest trackers, registered with SlabTrackers, each on its own switch and a full crest in every form: the shoulder medals show your effects on the target with their icon and a ring that drains over their time (as a caster, moonkin or in travel and aquatic form Moonfire or Rejuvenation on the left and Insect Swarm or Regrowth on the right; Rake and Rip in Cat Form; Demoralizing Roar and Faerie Fire in Bear Form); Clearcasting blooms leaves round the inner rim over a druid glow; the gem at the top of the ring follows the form: Swiftmend's cooldown (or Nature's Swiftness's, or Innervate's) as a caster, Nature's Swiftness's (or Innervate's) as a moonkin, your Faerie Fire on the target in Cat Form and Maul queued in Bear Form; a third medal at the top shows your Faerie Fire on an enemy or Wild Growth on a friend as a caster and Faerie Fire as a moonkin; Rake shares its medal with Pounce's bleed; a bear gets Growl and Feral Charge ready on the foot perches and Primal Bite and Bash ready in the ring sockets, where a caster sees a main-hand oil socket while an oil is in the bags or on the weapon; and the major cooldowns burn on the rim. Every form's choice is built out of combat, so a shift only shows one; aura slots, cooldown duration objects and the engine's shown animations draw the timers, so Lua never reads or compares a secret.
+-- SlabGrove.lua: the druid's crest trackers, registered with SlabTrackers, each on its own switch and a full crest in every form: the shoulder medals show your effects on the target with their icon and a ring that drains over their time (as a caster, moonkin or in travel and aquatic form Moonfire or Rejuvenation on the left and Insect Swarm or Regrowth on the right; Rake and Rip in Cat Form; Demoralizing Roar and Faerie Fire in Bear Form); Clearcasting blooms leaves round the inner rim over a druid glow; the gem at the top of the ring follows the form: Swiftmend's cooldown (or Nature's Swiftness's, or Innervate's) as a caster, Nature's Swiftness's (or Innervate's) as a moonkin, your Faerie Fire on the target in Cat Form and Maul queued in Bear Form; a third medal at the top shows your Faerie Fire on an enemy or Wild Growth on a friend as a caster and Faerie Fire as a moonkin; Rake shares its medal with Pounce's bleed; a bear gets the tank glow while it holds the target's threat, Growl and Feral Charge ready on the foot perches and Primal Bite and Bash ready in the ring sockets, where a caster sees a main-hand oil socket while an oil is in the bags or on the weapon; and the major cooldowns burn on the rim. Every form's choice is built out of combat, so a shift only shows one; aura slots, cooldown duration objects and the engine's shown animations draw the timers, so Lua never reads or compares a secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -16,8 +16,7 @@ local OMEN, CLEARCASTING = { 16864 }, { 16870, 457342, 467735 }
 local GROWTH, POUNCE = { 1238215, 1238214, 408120 }, { 9826, 9824, 9007 }
 local GROWL, CHARGE, BITE, BASH = { 6795 }, { 1238122 }, { 1238070, 1238069, 407995 }, { 8983, 6798, 5211 }
 local BEAR, CAT, MOONKIN, CASTER = { 5, 8 }, { 1 }, { 31, 35 }, { 0, 3, 4 }
-local LEFT_FOOT, RIGHT_FOOT, PERCH = { -28.5, -67.2 }, { 28.5, -67.2 }, 17
-local LEAVES, LEAF, ORBIT, GEM, GAP = 8, 14, 54, 60, 4
+local LEAVES, LEAF, ORBIT, GAP = 8, 14, 54, 4
 
 local maul = {}
 local Oil, Flask = ns.SlabVigil.Oil, ns.SlabVigil.Flask
@@ -77,7 +76,10 @@ local function Maul(parent, spec, level, form)
 	return s
 end
 
-local function Queued()
+local function Queued(_, event)
+	if event ~= nil and event ~= "CURRENT_SPELL_CAST_CHANGED" then
+		return
+	end
 	local current = C_Spell and C_Spell.IsCurrentSpell
 	for _, s in ipairs(maul) do
 		local on = current and current(s.spec.spell)
@@ -104,18 +106,19 @@ ns.SlabTrackers.Register("DRUID", {
 		{ forms = CASTER, color = "white", known = Join(FAERIE, GROWTH), feeds = { Effect(FAERIE, "schoolArcane"), Effect(GROWTH, "schoolNature", "HELPFUL|PLAYER") } },
 		Effect(FAERIE, "schoolArcane", nil, MOONKIN),
 	} },
-	{ key = "crestGrowl", seat = LEFT_FOOT, size = PERCH, feed = "cooldown", known = GROWL, forms = BEAR },
-	{ key = "crestCharge", seat = RIGHT_FOOT, size = PERCH, feed = "cooldown", known = CHARGE, forms = BEAR },
+	{ key = "crestGrowl", seat = "footLeft", size = Medals.FOOT, feed = "cooldown", known = GROWL, forms = BEAR },
+	{ key = "crestCharge", seat = "footRight", size = Medals.FOOT, feed = "cooldown", known = CHARGE, forms = BEAR },
 	{ key = "crestBite", seat = "lowerLeft", feed = "cooldown", known = BITE, forms = BEAR, color = "jewelCombo", build = Gem },
 	{ key = "crestBash", seat = "lowerRight", feed = "cooldown", known = BASH, forms = BEAR, color = "jewelCombo", build = Gem },
 	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, forms = Join(CASTER, MOONKIN), color = "jewelHoly", build = Flask },
 	{ key = "crestClearcasting", seat = "rim", known = OMEN, spells = CLEARCASTING, build = Bloom, place = Ring },
-	{ key = "crestSwiftmend", seat = { 0, GEM }, feed = "cooldown", choices = {
+	{ key = "crestSwiftmend", seat = "topGem", feed = "cooldown", choices = {
 		Gems({ forms = BEAR, known = MAUL, color = "jewelCombo", build = Maul }),
 		Gems(Effect(FAERIE, "schoolArcane", nil, CAT)),
 		Gems({ forms = MOONKIN, known = { 17116 } }), Gems({ forms = MOONKIN, known = { 29166 } }),
 		Gems({ known = { 18562 } }), Gems({ known = { 17116 } }), Gems({ known = { 29166 } }),
 	} },
+	{ key = "crestTankGlow", seat = "rim", feed = "threat", crestOnly = true, build = Medals.Emblem, color = "gilt", forms = BEAR, known = MAUL },
 	{ key = "crestCooldowns", seat = "cooldowns", color = "pipDruidGlow", families = {
 		{ spells = { 22812 } }, { spells = { 17116 } }, { spells = { 22842 } }, { spells = { 1850, 9821 } }, { spells = { 5229 } },
 		{ spells = { 29166 } }, { spells = { 16689, 16810, 16811, 16812, 16813, 17329 } },

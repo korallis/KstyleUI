@@ -18,8 +18,7 @@ local WEAVING, PLAGUE = { 15334, 15333, 15332, 15331, 15257 }, { 19280, 19279, 1
 local DEATH, SILENCE = { 1309636, 1309635, 1309633, 1309595 }, { 15487 }
 local OILS = { 20744, 20745, 20746, 20747, 20748, 20749, 20750 }
 local FLAMES, PER, CHARGES, DIM = { 315, 225, 135, 45 }, 5, 20, 0.5
-local ORBIT, FLAME, STUD, WELL, PIN, GEM, GAP, PERCH = 54, 26, 12, 10, 4, 60, 4, 17
-local LEFT_FOOT, RIGHT_FOOT = { -28.5, -67.2 }, { 28.5, -67.2 }
+local ORBIT, FLAME, STUD, WELL, PIN, GAP = 54, 26, 12, 10, 4, 4
 local FLICKER = { { 1, 0.45, 0.06 }, { 0.45, 0.9, 0.05 }, { 0.9, 0.35, 0.07 }, { 0.35, 1, 0.08 } }
 
 local CAST = {}
@@ -176,7 +175,7 @@ ns.SlabTrackers.Register("PRIEST", {
 		{ feed = "aura", spells = SHADOWFORM },
 		{ feed = "cooldown", known = SHADOWFIEND },
 	} },
-	{ key = "crestPain", seat = { 0, GEM }, build = Gem, choices = {
+	{ key = "crestPain", seat = "topGem", build = Gem, choices = {
 		{ feed = "cooldown", known = Healer(MENDING), color = "white" },
 		{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = PAIN, color = "schoolShadow" },
 	} },
@@ -185,9 +184,9 @@ ns.SlabTrackers.Register("PRIEST", {
 		{ feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = RENEW, color = "schoolNature" },
 		{ feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = MENDED, color = "white" },
 	} },
-	{ key = "crestPlague", seat = LEFT_FOOT, size = PERCH, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = PLAGUE,
+	{ key = "crestPlague", seat = "footLeft", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = PLAGUE,
 		known = ShadowOnly(PLAGUE), color = "schoolShadow" },
-	{ key = "crestDeath", seat = RIGHT_FOOT, size = PERCH, feed = "cooldown", known = ShadowOnly(DEATH) },
+	{ key = "crestDeath", seat = "footRight", size = Medals.FOOT, feed = "cooldown", known = ShadowOnly(DEATH) },
 	{ key = "crestSilence", seat = "lowerLeft", feed = "cooldown", known = SILENCE, color = "schoolShadow", build = Gem },
 	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, color = "jewelHoly", build = Flask },
 	{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", families = {
