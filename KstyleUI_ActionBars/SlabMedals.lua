@@ -287,8 +287,8 @@ function Medals.Medal(parent, spec, level)
 			end)
 		end
 		if each.count and lit.SetApplicationCount then
-			lit.count = Widgets.FontString(Medals.Layer(lit, top + 2), "OVERLAY")
-			lit.count:SetPoint("BOTTOMRIGHT", m, "BOTTOMRIGHT", -1, 1)
+			lit.count = Widgets.Text(Medals.Layer(lit, top + 2), "world", "textEmphasis")
+			lit.count:SetPoint("BOTTOMRIGHT", m.steel, "BOTTOMRIGHT", 0, 0)
 			lit:SetApplicationCount(lit.count)
 		end
 		for n = 1, lit.container and each.pips or 0 do
