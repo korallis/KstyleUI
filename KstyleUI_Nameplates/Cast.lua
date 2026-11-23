@@ -243,6 +243,14 @@ local function PlaceWho(plate)
 	plate.castYou:SetTextColor(Rgb(Settings.Get("cast.targetGlowColor")))
 end
 
+local function ShowWho(plate)
+	if plate.castWho then
+		local on = Settings.Get("cast.caster") and Settings.Get("cast.nameBelow") and plate.castName:IsShown()
+		plate.castWho:SetShown(on)
+		plate.castYou:SetShown(on)
+	end
+end
+
 local function SetWho(plate, name, class, me)
 	local who = plate.castWho
 	local on = type(name) ~= "nil" and Settings.Get("cast.caster") and Settings.Get("cast.nameBelow") or false
@@ -255,7 +263,7 @@ local function SetWho(plate, name, class, me)
 		you:SetText(K.Locale.Upper(L["You"]))
 		plate.castWho, plate.castYou = who, you
 		PlaceWho(plate)
-		Cast.ShowWho(plate)
+		ShowWho(plate)
 	end
 	if not on then
 		who:SetText("")
@@ -271,14 +279,6 @@ local function SetWho(plate, name, class, me)
 		local mine = not IsSecret(me) and me == true
 		who:SetAlpha(mine and 0 or 1)
 		plate.castYou:SetAlpha(mine and 1 or 0)
-	end
-end
-
-function Cast.ShowWho(plate)
-	if plate.castWho then
-		local on = Settings.Get("cast.caster") and Settings.Get("cast.nameBelow") and plate.castName:IsShown()
-		plate.castWho:SetShown(on)
-		plate.castYou:SetShown(on)
 	end
 end
 
@@ -336,11 +336,6 @@ end
 function Cast.RepaintAll()
 	openR, openG, openB = OpenColor()
 	ns.Plates.Each(RepaintOpen)
-end
-
-function Cast.NameInterrupt()
-	K.Interrupt.Name(Settings.Get("cast.interruptSpell"))
-	K.Interrupt.Resolve()
 end
 
 function Cast.WatchInterrupt()
@@ -467,7 +462,7 @@ local function ShowTarget(plate)
 	if plate.castTarget then
 		plate.castTarget:SetShown(plate.castTargetOwn and not (plate.castName:IsShown() and not Settings.Get("cast.nameBelow")))
 	end
-	Cast.ShowWho(plate)
+	ShowWho(plate)
 end
 
 function Cast.Name(plate, spell, target)
@@ -818,7 +813,7 @@ function Component.Restyle(plate)
 	ns.Plate.Place(plate.castTime, "RIGHT", bar, "RIGHT", -TEXT_INSET, 0, nil, nil, nil, Widgets.Snap(plate, h))
 	if plate.castWho then
 		PlaceWho(plate)
-		Cast.ShowWho(plate)
+		ShowWho(plate)
 	end
 	local place = Settings.Get("cast.showTarget") and Settings.Get("cast.targetPlace") or ""
 	local own = place ~= ""
