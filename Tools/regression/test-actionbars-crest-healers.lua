@@ -309,7 +309,7 @@ do
 	env._form = 8
 	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
 	assert(b.growl:IsShown() and b.charge:IsShown() and b.bite:IsShown() and b.bash:IsShown() and not b.oil:IsShown(), "Bear Form: Growl, Feral Charge, Primal Bite and Bash")
-	assert(b.growl.spec.size == 17 and b.growl.spec.feed == "cooldown", "the feet hold small cooldown medals")
+	assert(b.growl.spec.size == ns.SlabMedals.FOOT and b.growl.spec.feed == "cooldown", "the feet hold small cooldown medals")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
