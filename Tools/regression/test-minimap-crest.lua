@@ -53,7 +53,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		local face, layouts = ns.Map.face, K.Setup.Layouts
 		local function Rect(region) return assert(G.ScaledRect(region, env.UIParent, K.Scale.Root())) end
 		assert(K.Options.Default("Minimap", "frame") == "medallion", "Crest medallion is the default")
-		assert(face.gem and face.gem:IsShown(), "the default uses the crest level-plaque gem")
 		local width = face.mapArea:GetWidth()
 		local rw, rh = K.Layout.RootSize()
 		for _, key in ipairs({ "auras.buffs", "auras.debuffs" }) do
@@ -91,7 +90,14 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			assert(not env.KstyleUIDB.scaleCache or not env.KstyleUIDB.scaleCache.oldFrame, "invalidate the persisted scale cache when Minimap frame changes")
 			previousFit, previousCrest = fit, crest
 			assert(face.enamel:IsShown() == crest and face.runes:IsShown() == crest, "Classic restores the previous ring")
-			assert(face.gem:IsShown() == (frame == "medallion"), "only the medallion uses the gem")
+			assert(face.northBand:IsShown() == crest and face.plate.diamond.black:IsShown() == not crest, "a crest draws its N on the band, with no disc behind it")
+			if crest then
+				local band, north, map = Rect(face.ring), Rect(face.plate), Rect(face.mapArea)
+				local bandY, pixel = (band.top + map.top) / 2, K.Scale.Pixel(1)
+				assert(W.Near((north.left + north.right) / 2, (band.left + band.right) / 2, pixel) and W.Near((north.top + north.bottom) / 2, bandY, pixel), frame .. ": the N sits centred on the ring band")
+				local _, size = face.north:GetFont()
+				assert(W.Near(size, face.ring:GetWidth() * 0.045 * K.Theme.FontScale(), 0.5) and size < (face.ring:GetHeight() - face.mapArea:GetHeight()) / 2, frame .. ": the N is rune-sized at the ring's scale (its font snapped to pixels), inside the band")
+			end
 			local path = W.LastCall(face.ring, "SetTexture")[1]
 			assert(path:find(crest and "MinimapCrestRing.png" or "MinimapRing.png", 1, true), "use native source exports for the crest")
 			assert(W.LastCall(face.runes, "SetBlendMode")[1] == "ADD", "the engraved runes are additive")
@@ -139,7 +145,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		end
 		K.Options.Write("HudStyle", "style", "frames")
 		M.Settle(env)
-		assert(not face.ring:IsShown() and not face.enamel:IsShown() and not face.runes:IsShown() and not face.gem:IsShown(), "only Medallions has a crest minimap")
+		assert(not face.ring:IsShown() and not face.enamel:IsShown() and not face.runes:IsShown() and not face.northBand:IsShown(), "only Medallions has a crest minimap")
 		assert(face.plate.diamond.black:IsShown(), "Frames restores its north diamond")
 		assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 	end
