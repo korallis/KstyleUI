@@ -228,6 +228,9 @@ do
 	env._aurasSecret, env._form = true, 1
 	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
 	assert(Shown("rake", "rip", "faerieGem", "bloom") and not b.seedLeft:IsShown() and not b.swiftmend:IsShown(), "Cat Form, in combat: Rake, Rip and your Faerie Fire on the target")
+	for name, piece in pairs(b) do
+		assert(not (piece:IsShown() and piece.spec.seat == "topGem"), name .. " covers the combo crown's middle jewel in Cat Form")
+	end
 	env._form = 8
 	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
 	assert(Shown("roar", "faerie", "maul") and not b.rake:IsShown(), "Bear Form: Demoralizing Roar, Faerie Fire and Maul")
