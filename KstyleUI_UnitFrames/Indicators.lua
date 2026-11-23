@@ -87,14 +87,14 @@ end
 
 local MIRROR = { "Show", "Hide", "SetShown", "SetAlpha", "SetAlphaFromBoolean" }
 
-local function Socket(view, region, rim, shown)
+local function Socket(view, region, rim, fixed)
 	local back = region.socket
 	if not back then
 		if not rim then return end
 		back = view.top:CreateTexture(nil, "ARTWORK")
 		back:SetTexture((Tokens.Texture("medLevelPlaque")))
 		region.socket = back
-		if region == view.marker then
+		if fixed == nil then
 			for _, method in ipairs(MIRROR) do
 				hooksecurefunc(region, method, function(_, ...)
 					if back.on then back[method](back, ...) end
@@ -108,7 +108,8 @@ local function Socket(view, region, rim, shown)
 		back:SetPoint("BOTTOMRIGHT", region, "BOTTOMRIGHT", rim / 2, -rim / 2)
 	end
 	back.on = rim ~= nil
-	back:SetShown(back.on and shown)
+	if fixed == nil then fixed = region:IsShown() end
+	back:SetShown(back.on and fixed)
 end
 
 local function PlaceMarker(view, x)
@@ -228,7 +229,7 @@ local function Put(view, s, g, spots, key, x, dir, size, gap)
 		if place == "LEFT" then left = room else right = room end
 	end
 	x = x + dir * (dir > 0 and left or right)
-	spots[key] = { x = x + dir * (w + rim) / 2, y = g.glass.y - (rim > 0 and (w + rim) / 2 or 0), size = w }
+	spots[key] = { x = x + dir * (w + rim) / 2, y = g.glass.y - (rim > 0 and (w - rim) / 2 or 0), size = w }
 	return x + dir * (w + rim + gap + (dir > 0 and right or left))
 end
 
@@ -254,7 +255,7 @@ local function Corners(view, g, s, spots, dir, rowStart, size, gap)
 		end
 		if run[1] then
 			local h = most + rim
-			local box = { x = math.min(start, x), y = edge - (top and rim > 0 and h or h / 2), w = math.abs(x - start), h = h }
+			local box = { x = math.min(start, x), y = edge - (top and rim > 0 and h - rim or h / 2), w = math.abs(x - start), h = h }
 			for _ = 0, #LANES + 1 do
 				local hit = Crossed(view, g, box, not top, row)
 				if not hit then break end
@@ -271,7 +272,7 @@ local function Corners(view, g, s, spots, dir, rowStart, size, gap)
 					h = math.max(h, spots[key].size)
 				end
 			end
-			row = { x = math.min(from, x), y = glass.y - (rim > 0 and h + rim or h / 2), w = math.abs(x - from), h = h + rim }
+			row = { x = math.min(from, x), y = glass.y - (rim > 0 and h or h / 2), w = math.abs(x - from), h = h + rim }
 		end
 	end
 end
@@ -331,8 +332,12 @@ function Indicators.Layout(view, g, s)
 	end
 	if fresh or view.rim ~= view.socketRim then
 		view.socketRim = view.rim
-		for _, key in ipairs(SLOTS) do Socket(view, view.icons[key], view.rim, s[key] == true and (key ~= "resting" or view.kind == "player")) end
-		Socket(view, view.marker, view.rim, view.marker:IsShown())
+		for _, key in ipairs(SLOTS) do
+			local fixed
+			if view.kind == "player" then fixed = s[key] == true end
+			Socket(view, view.icons[key], view.rim, fixed)
+		end
+		Socket(view, view.marker, view.rim)
 	end
 	view.markerCut = false
 	if view.extraIcon then

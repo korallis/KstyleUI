@@ -52,14 +52,25 @@ env.FireEvent("PLAYER_REGEN_DISABLED")
 local icon = player.icons.combat
 local socket = icon.socket
 assert(socket and socket:IsShown() and socket:GetWidth() > icon:GetWidth(), "the combat swords sit in a socket")
-assert(select(5, icon:GetPoint(1)) >= socket:GetHeight() / 2 - 0.5, "the socket rests on the slab's top edge, not across it")
+local function seated()
+	local y = select(5, icon:GetPoint(1))
+	return y > 0 and near(y - socket:GetHeight() / 2, -player.rim, 1)
+end
+assert(seated(), "the socket sits on the slab's top edge, its rim seated in the bevel, not across it or floating")
 for _, place in ipairs({ "TOPLEFT", "TOPRIGHT" }) do
 	write("player.combatPlace", place)
-	assert(select(5, icon:GetPoint(1)) >= socket:GetHeight() / 2 - 0.5, place .. ": a cornered socket rests on the top edge too")
+	assert(seated(), place .. ": a cornered socket sits on the top edge too")
 end
 write("player.combatPlace", "")
 
--- The socket row is even: every enabled slot keeps its socket, so a hidden PvP badge leaves no hole.
+-- The target and focus show a socket only with its lit icon.
+local leader = target.icons.leader
+assert(leader.socket and not leader.socket:IsShown(), "a target slot whose icon is dark draws no socket")
+leader:Show()
+assert(leader.socket:IsShown(), "and its socket follows the lit icon")
+leader:Hide()
+
+-- The player's socket row is even: every enabled slot keeps its socket, so a hidden PvP badge leaves no hole.
 env._units.player.leader, env._units.player.role = true, "DAMAGER"
 ns.Indicators.Status(player, "player")
 local xs = {}
