@@ -92,7 +92,7 @@ function Trackers.Play(env, K, ns, notes)
 			env._usable[20662] = story == "moment" and now >= 9
 		elseif class == "PALADIN" then
 			player[#player + 1] = { id = 20154, count = 0, icon = ICONS[20154], start = at(-6), duration = 30 }
-			player[#player + 1] = { id = 20050, count = 3 }
+			player[#player + 1] = { id = 20050, count = 3, icon = ICONS[20050], start = at(-4), duration = 30 }
 			local judged = story == "lit" and 2 or now >= 4 and 4 or -8
 			if story == "lit" or now < 2 or now >= 4 then target[#target + 1] = { id = 20185, count = 0, icon = ICONS[20185], harmful = true, start = at(judged), duration = 10 } end
 			if story == "lit" or now < 1 or now >= 4 then env._cooldowns[20271] = { start = at(judged - 1), finish = at(judged + 9) } end
@@ -116,7 +116,7 @@ function Trackers.Play(env, K, ns, notes)
 			env._cooldowns[id] = { start = at(2), finish = at(8) }
 		end
 		env._usable[24239], env._usable[14251] = true, true
-		local extra = { WARRIOR = { 12292, 3, 2565, 2 }, PALADIN = { 20050, 3, 25780, 0, 20925, 3 }, ROGUE = { 14143, 0, 1310703, 0 } }
+		local extra = { WARRIOR = { 12292, 3, 2565, 2 }, PALADIN = { 25780, 0, 20925, 3 }, ROGUE = { 14143, 0, 1310703, 0 } }
 		for i = 1, #extra[class], 2 do
 			player[#player + 1] = { id = extra[class][i], count = extra[class][i + 1], icon = ICONS[extra[class][i]], start = at(-4), duration = 30 }
 		end

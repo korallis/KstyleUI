@@ -16,7 +16,7 @@ local SEATS = {
 	left = { -1, 84, 32 }, right = { 1, 84, 32 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
 	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 73, 247 }, footRight = { 1, 73, 293 },
 }
-local PIP, PIP_RING, PIP_ARC = 4, 17, 22
+local PIP, PIP_RING, PIP_ARC, GLOW = 4, 17, 22, 0.35
 local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local OWNER = "ActionBars.SlabMedals"
 local refreshed, rims, watchers = {}, {}, {}
@@ -426,7 +426,7 @@ end
 function Medals.Emblem(parent, spec, level)
 	local e = Piece(parent, level, RIM)
 	e.lit = Medals.Layer(e, level + 1)
-	e.add(Medals.Texture(e.lit, "OVERLAY", 0, "glow", spec.color, RIM, "ADD"))
+	e.add(Medals.Texture(e.lit, "OVERLAY", 0, "glow", spec.color, RIM, "ADD")):SetAlpha(GLOW)
 	e.lit:SetAlpha(0)
 	e.lits, e.spec = { e.lit }, spec
 	return e
