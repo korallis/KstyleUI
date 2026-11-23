@@ -293,7 +293,7 @@ local function BarRows(schema, def)
 	add({ type = "dropdown", key = key .. ".growth", label = L["Growth"], help = L["The direction the buttons grow from the first one."], options = GROWTH_OPTIONS })
 	add({ type = "toggle", key = key .. ".reverse", label = L["Reverse button order"], help = L["Places the first slot at the other end. Each key stays bound to its original slot."] })
 	add({ type = "slider", key = key .. ".size", label = L["Button size"], help = L["The size of each button."], min = SIZE_MIN, max = SIZE_MAX, step = 0.1 })
-	add({ type = "slider", key = key .. ".spacing", label = L["Spacing"], help = (def.kind == "action" or def.kind == "consumable") and L["The gap between buttons."] or L["The gap between buttons. -1 keeps the HUD style's default spacing."], min = (def.kind == "action" or def.kind == "consumable") and 0 or -1, max = SPACING_MAX, step = 0.1 })
+	add({ type = "slider", key = key .. ".spacing", label = L["Spacing"], help = def.kind == "action" and L["The gap between buttons."] or L["The gap between buttons. -1 keeps the HUD style's default spacing."], min = def.kind == "action" and 0 or -1, max = SPACING_MAX, step = 0.1 })
 	if def.kind == "action" then
 		add({ type = "dropdown", key = key .. ".split", label = L["Split in two"], help = L["Parts each row into two halves with a gap between them."], options = SPLIT_OPTIONS })
 	end

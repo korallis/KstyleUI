@@ -123,6 +123,7 @@ explicit.profiles.Default.ActionBars.consumables = { spacing = -0.5 }
 local legacy = select(2, AB.New({ saved = explicit }))
 local imported, reason = legacy.Store.Import(assert(legacy.Store.Export("Default")))
 assert(imported, "a profile saved with an old negative spacing still exports and imports: " .. tostring(reason))
+assert(near(select(3, legacy.Setup.Layouts.ConsumableGrid(nil, "frames")), 3 * 26 / 38), "a negative saved spacing keeps the HUD style's proportional gap")
 
 Bag({ 6948 })
 assert(#C.selected == 0, "a Hearthstone in the bags never creates a slot")
