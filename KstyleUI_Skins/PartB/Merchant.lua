@@ -63,7 +63,10 @@ local function Slot(slot)
 	if type(name) ~= "table" or type(name.GetNumPoints) ~= "function" then
 		return
 	end
-	ns.Style.Text(name, "caption")
+	ns.Style.Text(name, "caption", nil, function()
+		return K.Tokens.Size("caption") * K.Theme.FontScale() * ns.Style.Setting("text", "size")
+	end)
+	ns.Style.KeepPitch(name)
 	for i = 1, name:GetNumPoints() do
 		local point, _, _, _, y = name:GetPoint(i)
 		local vertical = type(point) == "string" and point:match("^(%u*)LEFT$")
