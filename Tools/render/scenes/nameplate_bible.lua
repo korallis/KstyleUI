@@ -46,9 +46,7 @@ local function effect(env, ns, plate)
 	if aura.count then
 		aura.count:SetText("9")
 	end
-	if aura.timer then
-		aura.timer:SetText("12")
-	end
+	aura.timer:SetText("12")
 	Hud.PlaceAuras(container, group, { button }, ns.Settings.Get("debuffs.columns"))
 	return nil
 end
