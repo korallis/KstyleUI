@@ -21,6 +21,7 @@ local Classes = dofile("Tools/render/scenes/_classes.lua")
 local Fx = dofile("Tools/render/scenes/_effects.lua")
 local RestScene = dofile("Tools/render/scenes/_rest.lua")
 local TotemScene = dofile("Tools/render/scenes/_totems.lua")
+local TrackerScene = dofile("Tools/render/scenes/_trackers.lua")
 
 -- The module scenes' draw order lives in this copy of scene.lua, so merges across modules sort with it.
 local Hud = { Merge = Scene.Merge }
@@ -764,6 +765,7 @@ function modules.actionbars(opts)
 				env._game.forms[i] = { texture = form[2], isActive = form[3] == true, spellID = 7000 + i }
 			end
 			if class == "SHAMAN" and TotemScene.Story() then TotemScene.Install(env) end
+			if TrackerScene.Story(class) then TrackerScene.Install(env, class) end
 			-- The player's race, which picks the Medallions crest with the class, as the unit frames draw it (Hud.RACES).
 			env.UnitRace = env.UnitRace or function()
 				local race = Hud.RACES[(Hud.Class(opts))] or "Human"
@@ -927,6 +929,7 @@ function modules.actionbars(opts)
 	local scene = build(env, opts, { time = env._time }, function()
 		Fx.Apply(env, "actionbars", ns, notes)
 		if class == "SHAMAN" and TotemScene.Story() then TotemScene.Play(env, K, ns, AB, notes) end
+		if TrackerScene.Story(class) then TrackerScene.Play(env, K, ns, notes) end
 		if travel then
 			K.Options.Write("ActionBars", "crestTravel", not travel:find("before", 1, true))
 			if ns.Travel.crest and ns.Travel.crest:IsShown() then ns.Travel.Prepare(); AB.Click(env, ns.Travel.crest, "RightButton", false) end

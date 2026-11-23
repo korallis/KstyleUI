@@ -344,6 +344,7 @@ local function OnForms()
 	if bar and bar:FormsChanged() then
 		bar:Apply()
 		ns.ApplyBindings()
+		ns.SlabTrackers.Update()
 	end
 	UpdateStances()
 	ns.Vehicle.Update()

@@ -10,7 +10,7 @@ local Trackers = {}
 ns.SlabTrackers = Trackers
 
 local OWNER = "ActionBars.SlabTrackers"
-local GAP, VIAL, RELIQUARY, OFF_HAND = 4, 20, 30, 17
+local GAP, VIAL, RELIQUARY, OFF_HAND = 4, 20, 28, 17
 local SHOUTS = { 25289, 11551, 11550, 11549, 6192, 5242, 6673, 403215 }
 local EXECUTE, OVERPOWER = { 20662, 20661, 20660, 20658, 5308 }, { 11585, 11584, 7887, 7384 }
 local REVENGE, VICTORY = { 25288, 11601, 11600, 7379, 6574, 6572 }, { 402927 }
@@ -110,19 +110,22 @@ end
 local function Shape(name, seat)
 	local form = state.forms[name]
 	if not form then
-		form = { pieces = {}, failed = {}, frame = CreateFrame("Frame", nil, name == "crest" and seat.top or seat) }
+		form = { pieces = {}, failed = {}, frame = CreateFrame("Frame", nil, name == "crest" and seat.top or K.Scale.Root()) }
 		state.forms[name] = form
 	end
 	if name == "crest" then
 		form.frame:SetAllPoints(seat)
+		form.frame:SetFrameLevel(seat.top:GetFrameLevel() + 1)
 	else
-		local button = ns.bars.stance.buttons[1]
-		form.frame:SetScale((button and button.opts.size or Medals.SIZE) / Medals.SIZE)
+		local bar = ns.bars.stance
+		local button = bar.buttons[1]
+		local own = form.frame:GetParent():GetEffectiveScale()
+		form.frame:SetScale(own > 0 and seat:GetEffectiveScale() / own * (button and button.opts.size or Medals.SIZE) / Medals.SIZE or 1)
+		form.frame:SetFrameStrata(seat:GetFrameStrata())
 		form.frame:ClearAllPoints()
-		form.frame:SetPoint("LEFT", seat, "RIGHT", GAP, 0)
+		form.frame:SetPoint("LEFT", bar.count and bar.count > 0 and bar.buttons[bar.count] or seat, "RIGHT", GAP, 0)
 		form.frame:SetSize(Medals.SIZE, Medals.SIZE)
 	end
-	form.frame:SetFrameLevel((name == "crest" and seat.top or seat):GetFrameLevel() + 1)
 	form.frame:Show()
 	return form
 end

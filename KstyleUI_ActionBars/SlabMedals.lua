@@ -11,7 +11,7 @@ ns.SlabMedals = Medals
 
 local SIZE, TRACK, ICON, SHADE, BURST, STEEL = 26, 6, 0.74, 1.9, 2.4, 0.45
 local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 104, 12, 10, 8, 2
-local SEATS = { left = { -1, 84, 32 }, right = { 1, 84, 32 }, top = { 1, 100, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 } }
+local SEATS = { left = { -1, 84, 32 }, right = { 1, 84, 32 }, top = { 1, 96, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 } }
 local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local OWNER = "ActionBars.SlabMedals"
 local targets, rims, watchers = {}, {}, {}
