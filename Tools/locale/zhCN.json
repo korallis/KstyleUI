@@ -152,7 +152,7 @@
 	"A soft dark glow behind nameplate names and a drop shadow under outlined timers and counts.": "姓名板名字后加柔和暗色光晕，带描边的计时和层数加投影。",
 	"A soft glow around each icon in this row, so what it shows stands out.": "此行每个图标周围显示柔和光晕，让其内容更醒目。",
 	"A soft glow round the missing buff icon, so it catches the eye.": "在缺失增益图标周围显示柔和光晕，使其更醒目。",
-	"A soft light, thin inner edge and depth on KstyleUI's own bars. Off restores each bar's old finish.": "KstyleUI 自身的状态条带有柔和的光泽、细内边和纵深。关闭则恢复各条原有的外观。",
+	"A soft light, thin inner edge and depth on KstyleUI's bars and the Blizzard bars it styles. Off restores each bar's old finish.": "KstyleUI 的状态条及其美化的暴雪状态条带有柔和的光泽、细内边和纵深。关闭则恢复各条原有的外观。",
 	"A soft shadow or an outline behind skinned text.": "美化文字后的柔和阴影或轮廓。",
 	"A soft shadow or an outline behind slot text.": "格子文字后的柔和阴影或轮廓。",
 	"A soft shadow, or a thin or thick outline that reads well over the game world.": "柔和阴影，或在游戏世界上清晰可读的细或粗轮廓。",

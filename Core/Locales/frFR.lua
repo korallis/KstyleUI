@@ -159,7 +159,7 @@ ns.Locale.Add({
 	["A soft dark glow behind nameplate names and a drop shadow under outlined timers and counts."] = "Un halo sombre et doux derri\195\168re les noms des barres d\226\128\153info et une ombre sous les minuteurs et compteurs contour\195\169s.",
 	["A soft glow around each icon in this row, so what it shows stands out."] = "Une douce lueur autour de chaque ic\195\180ne de cette rang\195\169e, pour faire ressortir ce qu'elle montre.",
 	["A soft glow round the missing buff icon, so it catches the eye."] = "Une lueur douce autour de l'ic\195\180ne de l'am\195\169lioration manquante, pour attirer l'\197\147il.",
-	["A soft light, thin inner edge and depth on KstyleUI's own bars. Off restores each bar's old finish."] = "Une douce lumi\195\168re, un fin bord int\195\169rieur et de la profondeur sur les barres propres \195\160 KstyleUI. D\195\169sactiv\195\169 r\195\169tablit l'ancien rendu de chaque barre.",
+	["A soft light, thin inner edge and depth on KstyleUI's bars and the Blizzard bars it styles. Off restores each bar's old finish."] = "Une douce lumi\195\168re, un fin bord int\195\169rieur et de la profondeur sur les barres de KstyleUI et les barres Blizzard qu'il stylise. D\195\169sactiv\195\169 r\195\169tablit l'ancien rendu de chaque barre.",
 	["A soft shadow or an outline behind skinned text."] = "Une ombre douce ou un contour derri\195\168re le texte habill\195\169.",
 	["A soft shadow or an outline behind slot text."] = "Une ombre douce ou un contour derri\195\168re le texte des emplacements.",
 	["A soft shadow, or a thin or thick outline that reads well over the game world."] = "Une ombre douce, ou un contour fin ou \195\169pais qui reste lisible sur le monde du jeu.",

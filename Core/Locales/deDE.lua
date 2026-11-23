@@ -159,7 +159,7 @@ ns.Locale.Add({
 	["A soft dark glow behind nameplate names and a drop shadow under outlined timers and counts."] = "Ein weicher dunkler Schein hinter Namensplaketten-Namen und ein Schatten unter umrandeten Timern und Z\195\164hlern.",
 	["A soft glow around each icon in this row, so what it shows stands out."] = "Ein sanftes Leuchten um jedes Symbol dieser Reihe, damit hervorsticht, was sie zeigt.",
 	["A soft glow round the missing buff icon, so it catches the eye."] = "Ein sanftes Leuchten um das Symbol des fehlenden St\195\164rkungszaubers, damit es ins Auge f\195\164llt.",
-	["A soft light, thin inner edge and depth on KstyleUI's own bars. Off restores each bar's old finish."] = "Ein weiches Licht, eine feine Innenkante und Tiefe auf den eigenen Balken von KstyleUI. Aus stellt das alte Aussehen jedes Balkens wieder her.",
+	["A soft light, thin inner edge and depth on KstyleUI's bars and the Blizzard bars it styles. Off restores each bar's old finish."] = "Ein weiches Licht, eine feine Innenkante und Tiefe auf den Balken von KstyleUI und den Blizzard-Balken, die es gestaltet. Aus stellt das alte Aussehen jedes Balkens wieder her.",
 	["A soft shadow or an outline behind skinned text."] = "Ein weicher Schatten oder ein Umriss hinter gestaltetem Text.",
 	["A soft shadow or an outline behind slot text."] = "Ein weicher Schatten oder ein Umriss hinter dem Text der Pl\195\164tze.",
 	["A soft shadow, or a thin or thick outline that reads well over the game world."] = "Ein weicher Schatten oder ein d\195\188nner oder dicker Umriss, der sich \195\188ber der Spielwelt gut lesen l\195\164sst.",
