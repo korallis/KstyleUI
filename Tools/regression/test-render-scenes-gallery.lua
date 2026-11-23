@@ -8,6 +8,15 @@ local check = L.check
 -- The gallery scenes (gallery_*.lua): each lists the frames Tools/render/gallery.py crops out of its render, every
 -- frame names one of the three grades and a mockup crop to compare it with, and each rect sits on the screen.
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
+-- A friendly player's plate badge draws the race portrait, so every player stand-in names its race and sex.
+for _, file in ipairs({ "gallery_nameplates", "nameplate_bible" }) do
+	local f = assert(io.open("Tools/render/scenes/" .. file .. ".lua", "rb"))
+	local source = f:read("*a")
+	f:close()
+	for unit in source:gmatch("unit = (%b{})") do
+		assert(not unit:find("isPlayer = true", 1, true) or unit:find("race = ", 1, true) and unit:find("sex = ", 1, true), file .. ": a player stand-in names its race and sex: " .. unit)
+	end
+end
 local galleryScenes = L.galleryScenes(function(name)
 	return name:match("^gallery_skins_") == nil and name ~= "gallery_groupframes"
 end)

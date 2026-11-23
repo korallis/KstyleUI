@@ -31,6 +31,7 @@ assert(Alpha(item.Overlay) == 0, "Blizzard's icon overlay is hushed")
 assert(K.Skin.IsSkinned(item, "Backdrop"), "the item has a KstyleUI backdrop")
 assert(W.LastCall(item.Icon, "SetTexCoord"), "the icon is cropped")
 FontSize(K, item.Cooldown:GetCountdownFontString(), ns.Settings.current.essential.timerSize, "the countdown takes the snapped timer size")
+assert(item.Cooldown._countdown == item.Cooldown:GetCountdownFontString(), "the stand-in's countdown is the string the render engine draws with the reskin's font and anchors")
 assert(W.LastCall(item.ChargeCount.Current, "SetFont"), "the charge count is restyled")
 
 -- The restyled icon has the action buttons' dark body and rim: buttonFill, and the accent lifted 15% toward white.
