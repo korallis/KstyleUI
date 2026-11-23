@@ -506,7 +506,7 @@ function Routes.ShowSteps(road)
 		if leg.len > 0 or leg.kind == "hearth" or leg.kind == "teleport" then
 			local last = rows[#rows]
 			if last and not last.stop and last.kind == leg.kind and (leg.kind == "walk" or leg.kind == "swim") and not leg.dashed and not last.dashed then
-				last.to, last.len, last.seconds = leg.to or last.to, last.len + leg.len, last.seconds + leg.seconds
+				last.to, last.len, last.seconds = leg.to, last.len + leg.len, last.seconds + leg.seconds
 				last.stop = leg.stop
 			else rows[#rows + 1] = { kind = leg.kind, from = leg.from, to = leg.to, len = leg.len, seconds = leg.seconds, dashed = leg.dashed, stop = leg.stop } end
 		end

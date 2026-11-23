@@ -83,7 +83,7 @@ function Roads.Snap(graph, x, y, continent)
 	return best, yards and math.sqrt(yards)
 end
 
-local function Dock(graph, node)
+local function Label(graph, node)
 	if node.label then return node.label end
 	local town, near = Town(graph, node.x, node.y, node.map)
 	if not near or near > 250000 then
@@ -216,7 +216,7 @@ function Roads.Solve(graph, x, y, tx, ty, mounted, flights, travel)
 	local option = via[id]
 	local near = option and 0 or first
 	local route = { graph = graph, continent = travel and travel.continent, start = start, last = last, legs = {}, yards = near + last, seconds = seconds + last / speed, dashed = near > 60 or last > 60 }
-	local function Name(node) return travel and node.kind == "dock" and Dock(graph, node) or node.name end
+	local function Name(node) return (node.name == "" or travel and node.kind == "dock") and Label(graph, node) or node.name end
 	local function Connector(ax, ay, bx, by, len, name, map)
 		if len > 0 or #route.legs == 0 then route.legs[#route.legs + 1] = { kind = "walk", to = name, len = len, seconds = len / speed, dashed = len > 60, pts = { ax, ay, bx, by }, map = map } end
 	end
