@@ -373,6 +373,8 @@ do
 	-- the glass (Opus #5, R4a). The card's glass now rises over the plate, so the title sits inside one card.
 	do
 		local Scene = dofile("Tools/render/scene.lua")
+		K.Options.Write("Skins", "restedXP.boxes", false)
+		env.RunTimers()
 		items:ClearAllPoints()
 		items:SetPoint("CENTER", env.UIParent, "CENTER", 0, 0)
 		items:SetSize(100, 43)

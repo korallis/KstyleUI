@@ -419,15 +419,13 @@ local function ExtraWindows(R)
 	Bar(feedback.children[1].children[1].scrollBar)
 	Bar(env.RESTEDXP_BRANDED_EXPORT.obj.children[1].scrollBar)
 	local configurator = rxp.ui.v2.configurator.ui
-	-- GuideConfigurator.lua:478-479,1075-1106: close, settings, import and help controls.
+	-- GuideConfigurator.lua:478-479: the close control. The fake places the settings, import and help buttons itself,
+	-- before the skin resizes them, as RestedXP does.
 	for _, child in ipairs({ configurator.frame:GetChildren() }) do
 		local normal = child:GetNormalTexture()
 		local path = type(normal) == "table" and tostring(normal:GetTexture()) or ""
-		if path:find("rxp%-icon%-cog") then at(child, configurator.frame, 284, 24, 24, 24)
-		elseif path:find("icon%-btn%-import") then at(child, configurator.frame, 252, 21, 30, 30)
-		elseif path:find("icon%-btn%-help") then at(child, configurator.frame, 220, 21, 30, 30) end
 		-- The game stretches a button's normal texture over the button; the fake leaves it without points.
-		if path ~= "" and not path:find("rxp%-btn%-close") then normal:SetAllPoints(child) end
+		if path ~= "" and not path:find("rxp%-btn%-close") and normal:GetNumPoints() == 0 then normal:SetAllPoints(child) end
 	end
 	local items = rxp.activeItemFrame
 	at(items, env.UIParent, 18, 790, items:GetWidth(), items:GetHeight())

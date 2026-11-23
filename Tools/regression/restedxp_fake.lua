@@ -1824,9 +1824,20 @@ local function V2Windows(m, rxp)
 		widget.submitbutton = RxpButton(m, frame)
 		widget.buttonRow = m.frame("Frame", frame)
 		widget.content = m.frame("Frame", frame)
-		for _, art in ipairs({ "rxp-icon-cog", "icon-btn-import", "icon-btn-help" }) do
+		-- GuideConfigurator.lua:1023-1056: the settings cog is 24 square, 12 in and 24 down from the top right, the
+		-- import and help buttons 30 square, each 2 left of the last; the game stretches each normal texture over it.
+		local last
+		for i, art in ipairs({ "rxp-icon-cog", "icon-btn-import", "icon-btn-help" }) do
 			local button = m.frame("Button", frame)
 			Normal(m, button, art)
+			button:SetSize(i == 1 and 24 or 30, i == 1 and 24 or 30)
+			if last then
+				button:SetPoint("RIGHT", last, "LEFT", -2, 0)
+			else
+				button:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -12, -24)
+			end
+			button:GetNormalTexture():SetAllPoints(button)
+			last = button
 		end
 		widget.scrollContainer = AceScroll(m, widget.content, "RXPV2ScrollFrame")
 		widget.Refresh = function() self:ShowPage() end
