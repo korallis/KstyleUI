@@ -1,4 +1,4 @@
--- Window.lua: the setup, with HUD and role pictures (one big picture per layout, and the arrangements on wide screens), the Looks, module and detected-addon choices and the Apply summary.
+-- Window.lua: the setup, with HUD and role pictures (one big picture per layout, and the arrangements on wide screens), the Looks, the controls, module and detected-addon choices and the Apply summary.
 local _, ns = ...
 
 local Setup = ns.Setup
@@ -214,6 +214,8 @@ local function Refresh()
 		local lead = string.format(L["HUD style: %s."], style) .. "\n" .. string.format(L["Layout: %s."], Layouts.Label(choice.layout))
 		local look = Setup.Looks.Get(choice.look or Setup.Looks.Current())
 		if ns.Store.Module("Setup").looks then lead = lead .. "\n" .. string.format(L["Look: %s."], look and look.label or L["Your own"]) end
+		local controls = Setup.Looks.Get(choice.controls or Setup.Looks.Controls(), Setup.Looks.CONTROLS)
+		if ns.Store.Module("Setup").controls then lead = lead .. "\n" .. string.format(L["Controls: %s."], controls and controls.label or L["Your own"]) end
 		if Wide() then lead = lead .. "\n" .. string.format(L["Arrangement: %s."], ARRANGEMENTS[arrangement == "spread" and 2 or 1].label) end
 		local head = lead .. "\n\n"
 		local tail = #off > 0 and "\n" .. L["Off: "] .. table.concat(off, ", ") or ""
@@ -459,8 +461,10 @@ local function BuildWelcome(page)
 			height = height + Widgets.WrappedHeight(branded.note, branded.note:GetWidth()) + gutter
 		end
 		local rise = 2 * Widgets.Border(panel)
-		panel.opts.height = HEIGHT + (self:IsVisible() and max(0, math.ceil((panel.opts.height + (shown and height or 0) - scroll:GetHeight() - HEIGHT) / rise - 0.01) * rise) or 0)
-		Widgets.Size(panel, WIDTH, panel.opts.height)
+		if self:IsVisible() then
+			panel.opts.height = HEIGHT + max(0, math.ceil((panel.opts.height + (shown and height or 0) - scroll:GetHeight() - HEIGHT) / rise - 0.01) * rise)
+			Widgets.Size(panel, WIDTH, panel.opts.height)
+		end
 		Widgets.Size(branded, branded:GetWidth(), max(scroll:GetHeight(), height))
 		ScrollTo(0)
 	end
@@ -974,6 +978,14 @@ local function BuildStyles(page, width)
 		Changed()
 	end })
 	panel.lookNote = Paragraph(page, "body", "text", cardWidth, "body")
+	panel.padCaption = Widgets.Text(page, "caps", "capsGold")
+	Widgets.CapsSize(panel.padCaption)
+	Widgets.SetText(panel.padCaption, L["Controls"])
+	panel.padTabs = Widgets.Tabs(page, { tabs = {}, width = cardWidth, height = STRIP_HEIGHT, onSelect = function(value)
+		Setup.Choice().controls = value
+		Changed()
+	end })
+	panel.padNote = Paragraph(page, "body", "text", cardWidth, "body")
 	panel.styleFit = { width = cardWidth, picture = pictureHeight, pad = pad, spacing = spacing }
 end
 
@@ -1005,6 +1017,25 @@ FitStyles = function()
 	Widgets.Point(panel.lookTabs, "TOPLEFT", panel.lookCaption, "BOTTOMLEFT", 0, -gap("gapSmall"))
 	panel.lookNote:ClearAllPoints()
 	Widgets.Point(panel.lookNote, "LEFT", panel.lookTabs, "RIGHT", fit.spacing, 0)
+	local controls = ns.Store.Module("Setup").controls
+	panel.padCaption:SetShown(controls)
+	panel.padTabs:SetShown(controls)
+	panel.padNote:SetShown(controls)
+	if controls and page:IsVisible() then
+		local rise = 2 * Widgets.Border(panel)
+		panel.opts.height = HEIGHT + math.ceil((Widgets.LineHeight(panel.padCaption) + gap("gapSmall") + STRIP_HEIGHT + fit.spacing) / rise) * rise
+		Widgets.Size(panel, WIDTH, panel.opts.height)
+		local current, picked = Setup.Looks.Controls(), Setup.Choice().controls
+		panel.padTabs:SetTabs(current and Setup.Looks.CONTROLS_STATUS or Setup.Looks.CONTROLS_CUSTOM, picked or current or "Custom")
+		local set = Setup.Looks.Get(picked or current, Setup.Looks.CONTROLS)
+		panel.padNote:SetText(set and set.note or L["Your own settings. Apply keeps them."])
+	end
+	panel.padCaption:ClearAllPoints()
+	Widgets.Point(panel.padCaption, "TOPLEFT", looks and panel.lookTabs or panel.styleHint, "BOTTOMLEFT", 0, -fit.spacing)
+	panel.padTabs:ClearAllPoints()
+	Widgets.Point(panel.padTabs, "TOPLEFT", panel.padCaption, "BOTTOMLEFT", 0, -gap("gapSmall"))
+	panel.padNote:ClearAllPoints()
+	Widgets.Point(panel.padNote, "LEFT", panel.padTabs, "RIGHT", fit.spacing, 0)
 end
 
 local function SummaryCard(page, text)

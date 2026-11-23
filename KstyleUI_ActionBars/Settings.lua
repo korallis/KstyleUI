@@ -76,6 +76,7 @@ local defaults = {
 	hubNumber = true,
 	editBar = "bar1",
 	bindingHints = true,
+	padGlyphs = true,
 	accent = "quiet",
 	accentColor = Color("accentDefault"),
 	rangeColor = Color("hostile"),
@@ -401,6 +402,7 @@ function ns.Schema()
 		{ type = "header", label = L["Bars"] },
 		{ type = "toggle", key = "safeDragging", label = L["Safe dragging"], help = L["Clicks cast on release; keys keep their timing. Off makes clicks follow the key setting."] },
 		{ type = "toggle", key = "bindingHints", label = L["Binding helpers"], help = L["Shows Bind keys buttons and a dash on unbound actions. Off keeps the usual binding display."] },
+		{ type = "toggle", key = "padGlyphs", label = L["Controller button icons"], help = L["While a gamepad is active, keybinds show its button icons. Off shows key names."] },
 	}
 	for _, row in ipairs(shared) do schema[#schema + 1] = row end
 	schema[#schema + 1] = { type = "header", label = L["Text"] }

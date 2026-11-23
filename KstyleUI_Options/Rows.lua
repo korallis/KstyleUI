@@ -639,7 +639,7 @@ local function PlaceText(row, item, control, width)
 	local full = width - 2 * gap
 	local reserve = control and ControlWidth(row, item, control, full) + gap or 0
 	local column = full - reserve
-	local stacked = control ~= nil and (item.kind == "pictures" or item.kind == "ornaments" or item.kind == "segmented" and #item.options > 3 or Widgets.TextWidth(row.label, 0) > column)
+	local stacked = control ~= nil and (item.kind == "pictures" or item.kind == "ornaments" or item.kind == "segmented" and (#item.options > 3 or item.stacked) or Widgets.TextWidth(row.label, 0) > column)
 	if stacked and control.Fit then
 		control.count = item.options and #item.options or nil
 		control:Fit(full)

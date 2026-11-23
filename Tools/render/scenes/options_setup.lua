@@ -1,4 +1,4 @@
--- options_setup.lua: one real Options page or setup step at a chosen window scale for G4/G9 evidence; RENDER_LOOK wears a Look, RENDER_SETUP_FEATURES=off turns the big pictures and Looks off, and RENDER_SETUP_POINT points at a layout or arrangement card; RENDER_GO=N presses Enter on RENDER_QUERY and waits N ticks, RENDER_POLISH=off switches off the v0.3.0 search, preview and motion switches.
+-- options_setup.lua: one real Options page or setup step at a chosen window scale for G4/G9 evidence; RENDER_LOOK wears a Look, RENDER_SETUP_FEATURES=off turns the big pictures and Looks off, RENDER_CONTROLS_ROW=off hides the Keyboard and Gamepad choice, and RENDER_SETUP_POINT points at a layout or arrangement card; RENDER_GO=N presses Enter on RENDER_QUERY and waits N ticks, RENDER_POLISH=off switches off the v0.3.0 search, preview and motion switches.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -16,6 +16,10 @@ return Common.Run(function()
 	if os.getenv("RENDER_SETUP_FEATURES") == "off" then
 		profile.Setup = profile.Setup or {}
 		profile.Setup.bigPictures, profile.Setup.looks = false, false
+	end
+	if os.getenv("RENDER_CONTROLS_ROW") == "off" then
+		profile.Setup = profile.Setup or {}
+		profile.Setup.controls = false
 	end
 	local loader = unitFrames and dofile("Tools/regression/unitframes_env.lua") or O
 	local env, K = loader.New(Common.ScreenOpts({

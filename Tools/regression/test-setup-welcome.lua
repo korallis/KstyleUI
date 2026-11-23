@@ -129,6 +129,7 @@ end
 
 do
 	local env, K, page = boot({ 1920, 1080 }, "deDE", "default")
+	K.Options.Write("Setup", "controls", false)
 	K.Layout.Set("setup.window", "scale", 0.9)
 	W.Settle(env)
 	local panel = K.Setup.window

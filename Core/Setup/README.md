@@ -6,7 +6,7 @@
 | --- | --- |
 | `Layouts.lua` | `Setup.Layouts`: the element keys and the Lumen DPS, Tank and Healer layouts: positions, footprints, the module settings each writes and the story slot. See [`element-keys.md`](../../docs/superpowers/plans/element-keys.md). |
 | `EditMode.lua` | `Setup.EditMode`: Apply's Edit Mode writer, which puts the objective tracker in the story slot, Blizzard's damage meter on the damage card and Blizzard's tracked buff icon and bar viewers in their slots, plus the durability doll beside the minimap, below its buff row and above the story cards |
-| `Looks.lua` | `Setup.Looks`: the one-click Looks, named sets of existing settings, and which one the settings match |
+| `Looks.lua` | `Setup.Looks`: the one-click Looks and the Keyboard and Gamepad controls, named sets of existing settings, and which one the settings match |
 | `Setup.lua` | The choices, `Apply`, the story slot's split, the first run, and when the window opens |
 | `Integrations.lua` | Live addon discovery, same-job choices and integration lanes |
 | `Addons.lua` | The optional Your addons page, using the existing Options settings and skin registry |
@@ -38,7 +38,7 @@ The window is a titled `Widgets.Panel` (760 by 540 units, `DIALOG` strata, Escap
 
 ## Apply
 
-`Setup.Apply(choice)` with `choice = { hudStyle, layout, modules = { [name] = boolean }, look, arrangement }`. `look` and `arrangement` are set only by a click on a Look tab or an arrangement card, so the default choice and settings changed while setup is open are left alone. Before the HUD style Apply wears `choice.look` while One-click Looks is on, and writes `Layout.arrangement` from `choice.arrangement` while Big pictures in setup is on; a pick made before its setting was turned off is ignored:
+`Setup.Apply(choice)` with `choice = { hudStyle, layout, modules = { [name] = boolean }, look, arrangement }`. `look`, `controls` and `arrangement` are set only by a click on a Look tab, a Controls tab or an arrangement card, so the default choice and settings changed while setup is open are left alone. Before the HUD style Apply wears `choice.look` while One-click Looks is on, and writes `Layout.arrangement` from `choice.arrangement` while Big pictures in setup is on; a pick made before its setting was turned off is ignored:
 
 1. For each module in the picker whose addon loaded, `Options.Write(name, "enabled", value)`. Writing through `Options` starts or stops the module through `Modules`, waiting for the end of combat if needed, and fires `SettingChanged`, so an open settings window refreshes.
 2. For each element key, the layout's `{ anchor, x, y }`:
@@ -63,6 +63,17 @@ It returns `false` for an unknown layout, or before the saved data loads.
 | Readable | The Readable text preset, a soft text shadow, Subtle ornaments, the Slate material at 0.92 opacity, and each module text size raised to the preset's size where it is smaller (a size already larger, such as the 22-unit player name on Frames, stays) |
 
 `Looks.Current()` reads the settings and returns the Look they match, or nil, so a text size of your own reads as Your own; nothing about a Look is saved. `Looks.Apply(name)` writes only values that differ, so picking a Look again puts back every value it owns. `Looks.STATUS` is the list with a disabled Your own tab, shown while a Look matches; `Looks.CUSTOM` enables and lights it when `Current()` is nil. The ornaments and material show on Frames; Medallions draws its own steel, so there the Looks change motion, the hub, panels and text.
+
+### Controls
+
+`Looks.CONTROLS` names two sets of existing Action Bars settings, read and applied by the same code as the Looks (`Looks.Controls()`, `Looks.ApplyControls(name)`):
+
+| Set | What it sets |
+| --- | --- |
+| Keyboard | Bars 1 and 2 at their defaults: twelve buttons each, no split, the Frames tray on. The way back |
+| Gamepad | Bars 1 and 2 at eight buttons each (the controller's two groups of four), each row split in two, and the Frames tray off |
+
+On Medallions the slab keeps its socket size and seats eight sockets either side of the crest: a left and a right group. On Frames the tray goes, so bars 1 and 2 drop the tray column's smaller buttons, and each split row makes a left and a right group of four over four under the unit frames. A set touches no position. General > Keyboard or gamepad bars (on by default) shows the row in setup and on the General page; off hides it and leaves the settings alone. Bigger Medallions sockets are left out: the slab's button size also sizes the hub and the lift of the unit frames above it, which this set does not touch.
 
 ## Edit Mode
 

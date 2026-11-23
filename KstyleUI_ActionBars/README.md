@@ -344,6 +344,10 @@ Forever already auto-pushes spells: KstyleUI leaves `AutoPushSpellToActionBar` u
 
 `IsGamepad` compares `C_InputInterfaceStyle.GetCurrentStyle()` with `Enum.InputDeviceInterfaceType.Gamepad`. In gamepad mode every bar's visibility driver is `hide` and the override bindings are cleared, so Blizzard's gamepad bars own the screen and the pad's keys. `INPUT_DEVICE_INTERFACE_TRANSITION` reruns this, through `Combat.Queue` in combat. The module never names a frame or function of `Blizzard_GamepadActionBars`; `test-actionbars.lua` checks every name that addon defines against this folder's code.
 
+### Controller glyphs
+
+A player can keep the keyboard interface and still play with a gamepad, binding pad keys in Key Bindings. While the gamepad is active (`C_GamePad.IsEnabled()` at enable, then the `GAME_PAD_ACTIVE_CHANGED` payload) and Action Bars > Controller button icons is on (default), `UpdateHotkey` takes the first key `IsBindingForGamePad` accepts and writes it as inline atlas markup: the game's own normal-state glyphs from `Blizzard_SharedXML/Shared/InputIcons/InputIconTexture.lua`, Xbox for the `Generic` and `Letters` label styles, PlayStation for `Shapes` and Switch for `Reverse`, read from `C_GamePad.GetDeviceMappedState(C_GamePad.GetActiveDeviceID()).labelStyle` as `InputDeviceIconSetManager` does. Shift and Ctrl show as the left and right triggers, as `InputIconTextureSetUtility.GetInputIconNameFromBindingKey` maps them. Each glyph is 1.5 times the keybind text's size, so a trigger and a button fit one socket. A key with no glyph, a glyph `C_Texture.GetAtlasInfo` does not know, or a client without these functions keeps the key's text; keyboard-only keys never change. The markup bypasses `SetHotkey`, whose upper-casing would break the `|a` close. `GAME_PAD_CONNECTED` refreshes the glyphs for a newly connected pad. The gamepad interface still hands the screen to Blizzard's gamepad bars, as above.
+
 ## Settings
 
 The page starts with **Bar to edit**, a picker that shows one bar's rows at a time. Each bar's rows carry `scope = { key = "editBar", value = <bar> }`, so the settings search finds every bar's rows, whichever bar is picked.

@@ -278,6 +278,10 @@ local function applyPreset(env, opts)
 			K.Callbacks.Fire("SettingChanged", "ActionBars", "extraBarsApplied", extra)
 		end
 	end
+	-- RENDER_CONTROLS (Keyboard or Gamepad) applies that bar set after the preset, as setup's Controls choice does.
+	if os.getenv("RENDER_CONTROLS") and K.Modules.IsEnabled("ActionBars") then
+		assert(K.Setup.Looks.ApplyControls(os.getenv("RENDER_CONTROLS")), "RENDER_CONTROLS must be Keyboard or Gamepad")
+	end
 	local bar2Buttons = tonumber(os.getenv("RENDER_BAR2_BUTTONS") or "")
 	if bar2Buttons and K.Modules.IsEnabled("ActionBars") then K.Options.Write("ActionBars", "bar2.buttons", bar2Buttons) end
 	if (rawget(_G, "RENDER_BAR3") or os.getenv("RENDER_BAR3")) == "1" and K.Modules.IsEnabled("ActionBars") then
@@ -736,6 +740,18 @@ function modules.actionbars(opts)
 			end
 			env.GetBindingText = function(key)
 				return key
+			end
+			-- RENDER_GAMEPAD (Letters, Shapes or Reverse, the pad's labelStyle) binds bars 1 and 2 to pad keys and makes the pad active.
+			local pad = os.getenv("RENDER_GAMEPAD")
+			if pad then
+				for i, key in ipairs({ "PADDUP", "PADDRIGHT", "PADDDOWN", "PADDLEFT", "PAD4", "PAD2", "PAD1", "PAD3" }) do
+					env._game.bindings["ACTIONBUTTON" .. i] = { key }
+					env._game.bindings["MULTIACTIONBAR1BUTTON" .. i] = { "SHIFT-" .. key }
+				end
+				env.IsBindingForGamePad = function(key) return key:find("PAD", 1, true) ~= nil end
+				env.C_GamePad = { IsEnabled = function() return true end, GetActiveDeviceID = function() return 1 end, GetDeviceMappedState = function() return { labelStyle = pad } end }
+				env.C_Texture = env.C_Texture or {}
+				env.C_Texture.GetAtlasInfo = Scene.AtlasInfo
 			end
 			-- The game lists the class's forms (GetNumShapeshiftForms); the bar shows one button per form.
 			for i, form in ipairs(spec.forms or {}) do
