@@ -117,6 +117,8 @@ local function Motion()
 	if last then
 		r.fire:SetAlpha(still and 0 or DIM)
 		r.still:SetAlpha(still and DIM or 0)
+	else
+		Medals.Still(r, still)
 	end
 	if last and not resting and Effects.Allows("pulse") then
 		if not r.flicker:IsPlaying() then
@@ -147,7 +149,7 @@ local function Read()
 end
 
 local function Count(n)
-	if n and n ~= state.count then
+	if n ~= state.count then
 		state.count = n
 		Motion()
 	end
