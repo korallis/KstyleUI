@@ -656,3 +656,4 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - #767 polish D green; review dispatched (17 'not real' rows to verify).
 - Healers complete-crest research done; additions to healer builder.
 - #768 polish C green; review dispatched. Follow-up: A3 UF player aura row, A9 bars 3/4 '-' hotkey.
+- #773 polish E green; review dispatched.
