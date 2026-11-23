@@ -28,7 +28,7 @@ local state = {}
 
 local function Fire(parent, spec, level, form)
 	if form == "row" then
-		return Medals.Medal(parent, { feed = "aura", spells = INNER_FIRE, texture = spec.texture, color = "pipPriestGlow", burst = spec.burst }, level)
+		return Medals.Medal(parent, { feed = "aura", spells = INNER_FIRE, texture = spec.texture, color = "pipPriestGlow", burst = spec.burst, count = true }, level)
 	end
 	local r = Medals.Rim(parent, { feed = "aura", spells = INNER_FIRE, ambient = "medAmbientPriest", burst = spec.burst }, level)
 	local modes = Enum and Enum.StatusBarInterpolation or {}
