@@ -647,6 +647,29 @@ do
 	Clean(env, K, "rest bursts")
 end
 
+-- A class with no rows does no tracker work; a stance swap reuses the prepared seats without asking the spellbook (review dd9bddac #13).
+do
+	local env, K, ns = New("HUNTER", {})
+	local reads = 0
+	env.GetShapeshiftFormID = function() reads = reads + 1 end
+	env.FireEvent("SPELLS_CHANGED")
+	assert(reads == 0 and not ns.SlabTrackers.state.resting and ns.SlabTrackers.CLASSES.WARRIOR == nil, "a hunter reads no form, holds no rest watcher and loads no melee rows")
+	Clean(env, K, "hunter")
+end
+
+do
+	local env, K, ns = New("WARRIOR", { 6673, 20662, 25288, 11585, 23894, 21553, 11605, 11581, 1672, 6554, 11578, 20617, 355, 2687, 18499, 12317, 1719, 871, 12292, 2565 })
+	local reads, known = 0, env.C_SpellBook.IsSpellKnown
+	env.C_SpellBook.IsSpellKnown = function(...) reads = reads + 1 return known(...) end
+	env._aurasSecret = true
+	env.GetShapeshiftFormID = function() return 18 end
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	env.C_SpellBook.IsSpellKnown = known
+	assert(reads <= 8, "a stance swap reuses the prepared seats instead of asking the spellbook again, got " .. reads .. " reads")
+	assert(ns.SlabTrackers.state.forms.crest.pieces["2:1"]:IsVisible(), "and shows Defensive Stance's opening")
+	Clean(env, K, "stance swap")
+end
+
 -- Even pixels at four sizes.
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })
