@@ -4,6 +4,7 @@ local CoreEnv = M.CoreEnv
 
 local RED = { 1, 0, 0 }
 local blizzard = {}
+local rowText = {}
 
 local function Track(object)
 	blizzard[#blizzard + 1] = object
@@ -19,6 +20,7 @@ local function Entry(env, parent, class, display)
 	bar.BackgroundEdge = Track(bar:CreateTexture(nil, "OVERLAY"))
 	bar.Name = Track(bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"))
 	bar.Value = Track(bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"))
+	rowText[bar.Name], rowText[bar.Value] = true, true
 	entry.StatusBar = bar
 	entry.classFilename = class
 	entry.sourceDisplayType = display
@@ -31,6 +33,14 @@ local function Entry(env, parent, class, display)
 	end
 	entry.UpdateValue = function(self)
 		self.StatusBar.Value:SetText(env.AbbreviateLargeNumbers(self.value or 0) .. " (" .. env.AbbreviateLargeNumbers(self.valuePerSecond or 0) .. ")")
+	end
+	-- Blizzard's Default style puts the text on the bar's middle (DamageMeterEntry.lua:285-288).
+	entry.UpdateStyle = function(self)
+		local name, value = self.StatusBar.Name, self.StatusBar.Value
+		name:ClearAllPoints()
+		value:ClearAllPoints()
+		name:SetPoint("LEFT", self.StatusBar, "LEFT", 2, 0)
+		value:SetPoint("RIGHT", self.StatusBar, "RIGHT", -3, 0)
 	end
 	return entry
 end
@@ -112,12 +122,14 @@ local function Snapshot()
 	return keys
 end
 
-local HOOKED = { Update = true, SetAlpha = true, SetVertexColor = true, SetColorTexture = true, SetText = true, UpdateStatusBarColor = true, Refresh = true, SetupSessionWindow = true, InitEntry = true, SetMinMaxValues = true, SetValue = true }
+local HOOKED = { Update = true, SetAlpha = true, SetVertexColor = true, SetColorTexture = true, SetText = true, UpdateStatusBarColor = true, UpdateStyle = true, Refresh = true, SetupSessionWindow = true, InitEntry = true, SetMinMaxValues = true, SetValue = true }
 
 -- In a group, so the group-only default (on in both styles) leaves Blizzard's window where Edit Mode put it.
 local env, K, ns = M.New({
 	game = function(env)
 		env._group = { raid = false, size = 2 }
+		-- EditModeManagerConstantsDocumentation.lua's DamageMeterStyle.
+		env.Enum.DamageMeterStyle = { Default = 0, Thin = 1, Bordered = 2, FullBackground = 3 }
 		local owner = Track(env.DamageMeter)
 		owner.windows = { Window(env, owner, 1) }
 		function owner.GetSessionWindow(self, index)
@@ -192,7 +204,7 @@ local holder = Holder(entry)
 assert(holder:GetFrameLevel() < entry.StatusBar:GetFrameLevel(), "the holder sits under Blizzard's bar")
 assert(pill:GetFrameLevel() < entry.StatusBar:GetFrameLevel(), "and so does the drawn bar, so Blizzard's name and value draw over the fill")
 assert(pill.barEdge ~= nil, "no outside keyline, and the lit top edge the card's rows keep (KSTY-60 item 4)")
-assert(pill.backgroundName == "barTrack", "the pill's track is the button body, as the own meter's rows")
+assert(pill.backgroundName == "slotWell", "the pill's track is the own meter's rows' well")
 assert(pill.textureKey == ns.Get("damage.texture"), "the pill takes KstyleUI's bar texture")
 local points = {}
 for _, call in ipairs(pill._calls) do
@@ -200,7 +212,23 @@ for _, call in ipairs(pill._calls) do
 		points[call.args[1]] = call.args[2]
 	end
 end
-assert(points.TOPLEFT == holder and points.TOPRIGHT == holder and pill:GetHeight() == K.Widgets.Snap(pill, K.Tokens.Size("barHeight")), "the bar keeps Blizzard's width and shares the nameplate health height")
+assert(points.BOTTOMLEFT == holder and points.BOTTOMRIGHT == holder and pill:GetHeight() == K.Widgets.Snap(pill, K.Tokens.Size("barHeight")), "the bar keeps Blizzard's width, sits at the row's foot and shares the nameplate health height")
+-- As on the own card, the name and the value sit above the bar, never on a fill (a white name on a priest's white bar).
+do
+	local np, nrel, nrp = entry.StatusBar.Name:GetPoint(1)
+	local vp, vrel, vrp = entry.StatusBar.Value:GetPoint(1)
+	assert(np == "TOPLEFT" and nrel == entry.StatusBar and nrp == "TOPLEFT", "the name sits at the row's top")
+	assert(vp == "TOPRIGHT" and vrel == entry.StatusBar and vrp == "TOPRIGHT", "the value sits at the row's top")
+	-- Blizzard sets a row up again after acquiring it, and on a style change; the text goes back above the bar.
+	entry:UpdateStyle()
+	assert(select(1, entry.StatusBar.Name:GetPoint(1)) == "TOPLEFT", "a row Blizzard lays out again keeps its text above the bar")
+	-- Blizzard's Thin style already puts the text above its bar, which it anchors to the name: the skin leaves it.
+	entry.style = env.Enum.DamageMeterStyle.Thin
+	entry:UpdateStyle()
+	assert(select(1, entry.StatusBar.Name:GetPoint(1)) == "LEFT", "the Thin style keeps Blizzard's anchors")
+	entry.style = nil
+	entry:UpdateStyle()
+end
 local glow = Glow(entry)
 assert(glow == nil, "no lens glow draws behind the pill: the restyled rows are the own meter's flat capsule")
 assert(M.Last(entry.StatusBar.Name, "SetFont"), "names take KstyleUI's font")
@@ -321,7 +349,7 @@ do
 	end
 	assert(glass and glass.chrome.shapeName == "panel", "the spell window wears the glass panel")
 	local spellPill = Pill(source.entries[1])
-	assert(spellPill and spellPill.backgroundName == "barTrack", "a spell row gets the own meter's pill")
+	assert(spellPill and spellPill.backgroundName == "slotWell", "a spell row gets the own meter's pill")
 	local sr, sg, sb = ns.BarColor("damage", "WARRIOR", nil, nil, true)
 	local c = spellPill.colorRGBA
 	assert(c[1] == sr and c[2] == sg and c[3] == sb, "a spell row takes its source's class colour")
@@ -359,11 +387,11 @@ owner:SetupSessionWindow(2)
 local second = owner.windows[2]
 assert(second.Header:GetAlpha() == 0, "a window opened later is restyled")
 
--- Nothing scripted, hidden or reparented; no new field but the hooked methods.
+-- Nothing scripted, hidden or reparented; no new field but the hooked methods. Only a row's name and value move.
 local after = Snapshot()
 for i, object in ipairs(blizzard) do
 	for _, method in ipairs({ "SetScript", "Hide", "SetParent", "ClearAllPoints", "SetPoint" }) do
-		assert(M.Calls(object, method) == 0, "the skin called " .. method .. " on a Blizzard object")
+		assert(rowText[object] and method:find("Point") or M.Calls(object, method) == 0, "the skin called " .. method .. " on a Blizzard object")
 	end
 	for key in pairs(after[i]) do
 		if before[i] and not before[i][key] and type(key) == "string" and key:sub(1, 1) ~= "_" then

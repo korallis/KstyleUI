@@ -23,6 +23,7 @@ local pills = setmetatable({}, WEAK)
 local caps = setmetatable({}, WEAK)
 local placed = setmetatable({}, WEAK)
 local hushed = setmetatable({}, WEAK)
+local raised = setmetatable({}, WEAK)
 local busy = false
 local generation = 1
 local ownerHooked = false
@@ -68,9 +69,28 @@ local function PlacePill(pill)
 	bar.opts.height = styled and Widgets.Snap(bar, Tokens.Size("barHeight")) or math.max(1, Widgets.Snap(bar, Logic.Plain(holder:GetHeight()) or 4))
 	bar:Restyle()
 	bar:ClearAllPoints()
-	Widgets.Point(bar, "TOPLEFT", holder, "TOPLEFT", 0, 0)
-	Widgets.Point(bar, styled and "TOPRIGHT" or "BOTTOMRIGHT", holder, styled and "TOPRIGHT" or "BOTTOMRIGHT", 0, 0)
+	Widgets.Point(bar, styled and "BOTTOMLEFT" or "TOPLEFT", holder, styled and "BOTTOMLEFT" or "TOPLEFT", 0, 0)
+	Widgets.Point(bar, "BOTTOMRIGHT", holder, "BOTTOMRIGHT", 0, 0)
 	bar:SetFrameLevel(holder:GetFrameLevel())
+end
+
+local function PlaceText(entry)
+	local bar = entry.StatusBar
+	local name, value = bar.Name, bar.Value
+	local styles = Enum and Enum.DamageMeterStyle
+	if not (DamageSkin.active and pills[entry] and ns.Get("nameplateRows")) or styles and entry.style == styles.Thin then
+		if raised[entry] then
+			raised[entry] = nil
+			pcall(entry.UpdateStyle, entry)
+		end
+		return
+	end
+	raised[entry] = true
+	value:ClearAllPoints()
+	Widgets.Point(value, "TOPRIGHT", bar, "TOPRIGHT", 0, 0)
+	name:ClearAllPoints()
+	Widgets.Point(name, "TOPLEFT", bar, "TOPLEFT", 0, 0)
+	name:SetPoint("RIGHT", value, "LEFT", -Tokens.Size("gapSmall"), 0)
 end
 
 local function StylePill(pill)
@@ -79,7 +99,7 @@ local function StylePill(pill)
 	bar.barEdge = bar.barEdge or Widgets.BarEdge(bar)
 	bar.barEdge:SetShown(styled)
 	bar.keyline:Hide()
-	bar.backgroundName = styled and "barTrack" or "buttonFill"
+	bar.backgroundName = styled and "slotWell" or "buttonFill"
 	bar:SetLitShade(not styled and 0.6 or nil, not styled and 0.45 or nil)
 	bar:SetBarTexture(ns.Get("damage.texture"))
 	bar:SetReverseFill(ns.Get("damage.fill") == "right")
@@ -162,6 +182,9 @@ local function StyleEntry(entry)
 		if type(entry.UpdateValue) == "function" then
 			hooksecurefunc(entry, "UpdateValue", Revalue)
 		end
+		if type(entry.UpdateStyle) == "function" and bar.Name and bar.Value then
+			hooksecurefunc(entry, "UpdateStyle", PlaceText)
+		end
 	end
 	if styled ~= generation then
 		entries[entry] = generation
@@ -177,6 +200,9 @@ local function StyleEntry(entry)
 		if bar.Value then
 			ns.ApplyFont(bar.Value, "damage", nil, "number")
 			Widgets.TextColor(bar.Value, "textEmphasis")
+		end
+		if bar.Name and bar.Value then
+			PlaceText(entry)
 		end
 	end
 	Recolor(entry)

@@ -302,8 +302,10 @@ end
 
 -- Blizzard's Damage Meter window, restyled in place -------------------------------------------------------------
 
-local SKIN_X, SKIN_Y, SKIN_W, SKIN_H = 400, 360, 300, 180
-local SKIN_PAD, SKIN_HEADER, SKIN_ROW, SKIN_GAP = 10, 32, 16, 4
+-- Blizzard's rows are DAMAGE_METER_DEFAULT_BAR_HEIGHT (25) tall, DAMAGE_METER_DEFAULT_BAR_SPACING (4) apart (DamageMeterConstants.lua),
+-- and their names left-justified (DamageMeterEntry.xml).
+local SKIN_X, SKIN_Y, SKIN_W, SKIN_H = 400, 360, 300, 222
+local SKIN_PAD, SKIN_HEADER, SKIN_ROW, SKIN_GAP = 10, 32, 25, 4
 -- The fight dropdown's width and centre, and the room the settings and minimise buttons take at its right.
 local SKIN_SESSION_W, SKIN_SESSION_MIDDLE, SKIN_SETTINGS = 44, 13.5, 36
 
@@ -340,6 +342,7 @@ local function skin(frames)
 					bar:SetStatusBarTexture("blizzard-bar")
 					bar.Background = bar:CreateTexture(nil, "BACKGROUND")
 					bar.Name = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+					bar.Name:SetJustifyH("LEFT")
 					bar.Value = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 					entry.StatusBar = bar
 					entry.classFilename = s[2]
@@ -386,6 +389,7 @@ local function skin(frames)
 				bar:SetStatusBarTexture("blizzard-bar")
 				bar.Background = bar:CreateTexture(nil, "BACKGROUND")
 				bar.Name = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+				bar.Name:SetJustifyH("LEFT")
 				bar.Value = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 				entry.StatusBar = bar
 				entry.classFilename = "WARRIOR"
@@ -441,7 +445,7 @@ local function skin(frames)
 	window.DamageMeterTypeDropdown.TypeName:SetPoint("TOPRIGHT", window, "TOPRIGHT", -SKIN_PAD, -SKIN_PAD)
 	window.DamageMeterTypeDropdown.TypeName:SetText("Damage Done")
 	window.SessionDropdown:SetPoint("RIGHT", window, "TOPRIGHT", -SKIN_PAD - SKIN_SETTINGS, -SKIN_SESSION_MIDDLE)
-	window.SessionDropdown:SetSize(SKIN_SESSION_W, SKIN_ROW)
+	window.SessionDropdown:SetSize(SKIN_SESSION_W, SKIN_HEADER / 2)
 	window.SessionDropdown.SessionName:SetAllPoints(window.SessionDropdown)
 	window.SessionDropdown.SessionName:SetText("Current")
 	window.container:SetPoint("TOPLEFT", window, "TOPLEFT", 0, -SKIN_HEADER)
