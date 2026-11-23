@@ -299,7 +299,7 @@ function PowerColor(f)
 		return
 	end
 	if f.status and Settings.current.readable.track then
-		f.power:SetBarColor(0, 0, 0, 0)
+		f.power:SetBarColor(K.Widgets.Rgba("black", 0))
 		return
 	end
 	local power = Settings.current.power
