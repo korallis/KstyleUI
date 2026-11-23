@@ -486,9 +486,9 @@ local function GeneralItems()
 			item.defer = true
 		end
 	end
-	local looks = K.Setup and K.Setup.Looks
+	local looks = K.Setup.Looks
 	for i, item in ipairs(items) do
-		if looks and K.Store.Module("Setup").looks and item.module == "HudStyle" and item.key == "style" then
+		if K.Store.Module("Setup").looks and item.module == "HudStyle" and item.key == "style" then
 			local options = {}
 			for _, look in ipairs(looks.LIST) do options[#options + 1] = { value = look.value, label = look.label } end
 			options[#options + 1] = { value = NONE, label = L["Your own"] }

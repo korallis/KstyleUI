@@ -63,11 +63,6 @@ local function BigPicture(name)
 	return BIG_PICTURE_PATH .. style:sub(1, 1):upper() .. style:sub(2) .. name .. ".tga"
 end
 
-local function LookLabel(value)
-	local look = Setup.Looks.Get(value)
-	return look and look.label or L["Your own"]
-end
-
 local function GuidePlaced()
 	if Setup.Choice().modules.Skins ~= true then
 		return false
@@ -222,7 +217,7 @@ local function Refresh()
 			end
 		end
 		local lead = string.format(L["HUD style: %s."], style) .. "\n" .. string.format(L["Layout: %s."], Layouts.Label(choice.layout))
-		if ns.Store.Module("Setup").looks then lead = lead .. "\n" .. string.format(L["Look: %s."], LookLabel(choice.look)) end
+		if ns.Store.Module("Setup").looks then lead = lead .. "\n" .. string.format(L["Look: %s."], look and look.label or L["Your own"]) end
 		if Wide() then lead = lead .. "\n" .. string.format(L["Arrangement: %s."], ARRANGEMENTS[choice.arrangement == "spread" and 2 or 1].label) end
 		local head = lead .. "\n\n"
 		local tail = #off > 0 and "\n" .. L["Off: "] .. table.concat(off, ", ") or ""
