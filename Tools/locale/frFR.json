@@ -2972,7 +2972,7 @@
 	"Party and raid frames with roles and range fade.": "Cadres de groupe et de raid avec les rôles.",
 	"Party class %d": "Classe de groupe %d",
 	"Party frames": "Cadres de groupe",
-	"Party frames a quarter larger, unless you set their size. Off restores the earlier size.": "Cadres de groupe plus grands d'un quart, sauf taille choisie. Désactivé rétablit l'ancienne taille.",
+	"Party frames a quarter larger on ultrawide screens, unless you set their size. Off restores it.": "Cadres de groupe plus grands d'un quart sur écran ultra-large, sauf taille choisie. Désactivé la rétablit.",
 	"Party frames follow a class order of their own; off, they follow the list above.": "Les cadres de groupe suivent leur propre ordre des classes ; désactivé, ils suivent la liste ci-dessus.",
 	"Party frames in small raids": "Cadres de groupe dans les petits raids",
 	"Party frames take the raid frames' debuff icon settings.": "Les cadres de groupe reprennent les réglages des icônes d'affaiblissements des fenêtres de raid.",

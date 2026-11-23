@@ -2972,7 +2972,7 @@
 	"Party and raid frames with roles and range fade.": "Marcos de grupo y de banda con funciones.",
 	"Party class %d": "Clase de grupo %d",
 	"Party frames": "Marcos de grupo",
-	"Party frames a quarter larger, unless you set their size. Off restores the earlier size.": "Marcos de grupo un cuarto más grandes, salvo tamaño propio. Desactivado restaura el tamaño anterior.",
+	"Party frames a quarter larger on ultrawide screens, unless you set their size. Off restores it.": "Marcos de grupo un cuarto más grandes en pantallas ultrapanorámicas, salvo tamaño propio.",
 	"Party frames follow a class order of their own; off, they follow the list above.": "Los marcos de grupo siguen un orden de clases propio; desactivado, siguen la lista de arriba.",
 	"Party frames in small raids": "Marcos de grupo en bandas pequeñas",
 	"Party frames take the raid frames' debuff icon settings.": "Los marcos de grupo toman los ajustes de iconos de perjuicios de los marcos de banda.",

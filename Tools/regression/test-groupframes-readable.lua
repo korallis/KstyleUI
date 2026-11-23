@@ -43,12 +43,12 @@ end
 
 for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 }, { 2560, 1600 } }) do
 	local env, K, ns = Boot(screen)
-	local wide = screen[1] / screen[2] >= 1.7
+	local wide = screen[1] / screen[2] >= 2.05
 	for _, style in ipairs({ "medallions", "frames" }) do
 		K.Options.Write("HudStyle", "style", style)
 		env.RunTimers()
 		local at = style .. " " .. screen[1] .. "x" .. screen[2]
-		-- Size: a quarter larger where the screen is at least 1.7 wide, so 16:10 keeps bar 3's free slot.
+		-- Size: a quarter larger on ultrawide screens, where it shrinks nothing; 16:9 and 16:10 keep the HUD's size and bar 3's slot.
 		assert(H.near(Scale(K), wide and 1.25 or 1), at .. ": the party is " .. Scale(K) .. " times its size")
 		for _, f in ipairs(Frames(ns)) do
 			local who = at .. " " .. f.unit

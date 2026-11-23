@@ -2979,7 +2979,7 @@ ns.Locale.Add({
 	["Party and raid frames with roles and range fade."] = "Cadres de groupe et de raid avec les r\195\180les.",
 	["Party class %d"] = "Classe de groupe %d",
 	["Party frames"] = "Cadres de groupe",
-	["Party frames a quarter larger, unless you set their size. Off restores the earlier size."] = "Cadres de groupe plus grands d'un quart, sauf taille choisie. D\195\169sactiv\195\169 r\195\169tablit l'ancienne taille.",
+	["Party frames a quarter larger on ultrawide screens, unless you set their size. Off restores it."] = "Cadres de groupe plus grands d'un quart sur \195\169cran ultra-large, sauf taille choisie. D\195\169sactiv\195\169 la r\195\169tablit.",
 	["Party frames follow a class order of their own; off, they follow the list above."] = "Les cadres de groupe suivent leur propre ordre des classes ; d\195\169sactiv\195\169, ils suivent la liste ci-dessus.",
 	["Party frames in small raids"] = "Cadres de groupe dans les petits raids",
 	["Party frames take the raid frames' debuff icon settings."] = "Les cadres de groupe reprennent les r\195\169glages des ic\195\180nes d'affaiblissements des fen\195\170tres de raid.",

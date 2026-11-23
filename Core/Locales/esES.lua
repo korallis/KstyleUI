@@ -2979,7 +2979,7 @@ ns.Locale.Add({
 	["Party and raid frames with roles and range fade."] = "Marcos de grupo y de banda con funciones.",
 	["Party class %d"] = "Clase de grupo %d",
 	["Party frames"] = "Marcos de grupo",
-	["Party frames a quarter larger, unless you set their size. Off restores the earlier size."] = "Marcos de grupo un cuarto m\195\161s grandes, salvo tama\195\177o propio. Desactivado restaura el tama\195\177o anterior.",
+	["Party frames a quarter larger on ultrawide screens, unless you set their size. Off restores it."] = "Marcos de grupo un cuarto m\195\161s grandes en pantallas ultrapanor\195\161micas, salvo tama\195\177o propio.",
 	["Party frames follow a class order of their own; off, they follow the list above."] = "Los marcos de grupo siguen un orden de clases propio; desactivado, siguen la lista de arriba.",
 	["Party frames in small raids"] = "Marcos de grupo en bandas peque\195\177as",
 	["Party frames take the raid frames' debuff icon settings."] = "Los marcos de grupo toman los ajustes de iconos de perjuicios de los marcos de banda.",

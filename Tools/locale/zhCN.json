@@ -2972,7 +2972,7 @@
 	"Party and raid frames with roles and range fade.": "带职责显示和超出范围淡化的小队和团队框体。",
 	"Party class %d": "小队职业 %d",
 	"Party frames": "小队框体",
-	"Party frames a quarter larger, unless you set their size. Off restores the earlier size.": "小队框体放大四分之一，除非你自己设置过尺寸。关闭后恢复之前的尺寸。",
+	"Party frames a quarter larger on ultrawide screens, unless you set their size. Off restores it.": "在超宽屏上将小队框体放大四分之一，除非你自己设置过尺寸。关闭后恢复。",
 	"Party frames follow a class order of their own; off, they follow the list above.": "小队框体使用单独的职业顺序；关闭时沿用上方列表。",
 	"Party frames in small raids": "小型团队中使用小队框体",
 	"Party frames take the raid frames' debuff icon settings.": "小队框体使用团队框体的负面效果图标设置。",

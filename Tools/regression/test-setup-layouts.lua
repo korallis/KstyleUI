@@ -339,8 +339,8 @@ for _, name in ipairs(names) do
 		assert(raid.left == MARGIN and party.left == MARGIN, label .. ": the raid card and the party stand on the left margin")
 		assert(raid.top == HEIGHT - MARGIN, label .. ": the raid card heads the left rail")
 		assert(Layouts.Get(name)["groupframes.party"].anchor == "LEFT" and party.y == HEIGHT - 465 - (5 * 39 + 4 * 13) / 2, label .. ": the party stands at mid-left, centred where the DPS party's top was 465 under the top, got " .. (HEIGHT - party.top))
-		-- Readable party frames: a quarter larger on screens at least 1.7 wide, so narrower screens keep bar 3's slot free.
-		local grown = width >= 1.7 * HEIGHT and 1.25 or 1
+		-- Readable party frames: a quarter larger on ultrawide screens (2.05 wide and over); narrower ones keep bar 3's slot and the HUD's size.
+		local grown = width >= 2.05 * HEIGHT and 1.25 or 1
 		assert(same(party.w, 259 * grown), label .. ": the bare party reserves its 259-unit holder, the mock-up's 194-unit row and its debuff lane (KSTY-57), times " .. grown .. ", got " .. party.w)
 		local head = party
 
@@ -589,14 +589,14 @@ local FOOTPRINTS = {
 	["databars.strip"] = { 278, 12 },
 	["databars.micro"] = { 318, 44 },
 	["chat.main"] = { 442, 186 },
-	["groupframes.party"] = { 1.25 * 259, 1.25 * (5 * 39 + 4 * 13) },
+	["groupframes.party"] = { 259, 5 * 39 + 4 * 13 },
 	["groupframes.raid"] = { 543, 401 },
 	["databars.xp"] = { 491, 7 * 19 / 16 },
 	["databars.rep"] = { 162, 5 },
 	["databars.honor"] = { 162, 5 },
 }
 for key, size in pairs(FOOTPRINTS) do
-	local w, h = Layouts.Footprint("DPS", key, nil, nil, 1920, 1080)
+	local w, h = Layouts.Footprint("DPS", key)
 	assert(same(w, size[1]) and same(h, size[2]), key .. " is " .. size[1] .. " x " .. size[2] .. " in Lumen, got " .. w .. " x " .. h)
 end
 

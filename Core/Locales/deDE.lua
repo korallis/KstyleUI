@@ -2979,7 +2979,7 @@ ns.Locale.Add({
 	["Party and raid frames with roles and range fade."] = "Gruppen- und Schlachtzugsrahmen mit Rollenanzeige.",
 	["Party class %d"] = "Gruppenklasse %d",
 	["Party frames"] = "Gruppenrahmen",
-	["Party frames a quarter larger, unless you set their size. Off restores the earlier size."] = "Gruppenrahmen ein Viertel gr\195\182\195\159er, au\195\159er Ihr habt ihre Gr\195\182\195\159e festgelegt. Aus stellt sie wieder her.",
+	["Party frames a quarter larger on ultrawide screens, unless you set their size. Off restores it."] = "Gruppenrahmen auf Ultrawide-Bildschirmen ein Viertel gr\195\182\195\159er, au\195\159er Ihr habt ihre Gr\195\182\195\159e festgelegt.",
 	["Party frames follow a class order of their own; off, they follow the list above."] = "Gruppenrahmen folgen einer eigenen Klassenreihenfolge; aus folgen sie der Liste oben.",
 	["Party frames in small raids"] = "Gruppenrahmen in kleinen Schlachtz\195\188gen",
 	["Party frames take the raid frames' debuff icon settings."] = "Die Gruppenrahmen \195\188bernehmen die Einstellungen der Schw\195\164chungssymbole der Schlachtzugsfenster.",

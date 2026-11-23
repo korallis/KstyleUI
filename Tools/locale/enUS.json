@@ -2972,7 +2972,7 @@
 	"Party and raid frames with roles and range fade.",
 	"Party class %d",
 	"Party frames",
-	"Party frames a quarter larger, unless you set their size. Off restores the earlier size.",
+	"Party frames a quarter larger on ultrawide screens, unless you set their size. Off restores it.",
 	"Party frames follow a class order of their own; off, they follow the list above.",
 	"Party frames in small raids",
 	"Party frames take the raid frames' debuff icon settings.",

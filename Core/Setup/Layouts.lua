@@ -56,7 +56,7 @@ local DAMAGE_W, DAMAGE_H = 250, 158
 local THREAT_W, THREAT_H = DAMAGE_W, 112
 local READOUT_H, READOUT_GAP, RAIL_BARS_GAP = 12, 6, 10
 
-local PARTY = { width = 259, height = 5 * 39 + 4 * 13, healer = 5 * 43 + 4 * 13, top = 465, scale = 1.25, wide = 1.7 }
+local PARTY = { width = 259, height = 5 * 39 + 4 * 13, healer = 5 * 43 + 4 * 13, top = 465, scale = 1.25, wide = 2.05 }
 
 local FEED_LINES, FEED_PAD = 4, ns.Tokens.Size("radius") + ns.Tokens.Size("gapSmall")
 local FEED_ROW, FEED_GAP = ns.Tokens.Size("lootTile"), ns.Tokens.Size("gapSmall")
