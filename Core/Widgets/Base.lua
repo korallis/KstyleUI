@@ -477,17 +477,25 @@ local function SetShadow(text, x, y, r, g, b, a)
 	end
 end
 
-local function Shadow(text, flags, f)
-	local face = Tokens.FaceShadow((text:GetFont()))
-	if flags ~= "" or face == false then
-		return SetShadow(text, 0, 0)
+local SHADOW_R, SHADOW_G, SHADOW_B, SHADOW_A = Tokens.Color("textShadow")
+
+local function Shadow(text, flags, f, plain)
+	local face = true
+	if flags ~= "" then
+		if plain or ns.Appearance and not ns.Appearance.Readability("softBacking") then
+			return SetShadow(text, 0, 0)
+		end
+	else
+		face = Tokens.FaceShadow((text:GetFont()))
+		if face == false then
+			return SetShadow(text, 0, 0)
+		end
 	end
 	local offset = Scale.Border() / f
-	local r, g, b, a = Tokens.Color("textShadow")
 	if face == true then
-		return SetShadow(text, offset, -offset, r, g, b, a)
+		return SetShadow(text, offset, -offset, SHADOW_R, SHADOW_G, SHADOW_B, SHADOW_A)
 	end
-	return SetShadow(text, face.x * offset, -face.y * offset, r, g, b, face.alpha)
+	return SetShadow(text, face.x * offset, -face.y * offset, SHADOW_R, SHADOW_G, SHADOW_B, face.alpha)
 end
 
 function Widgets.FontSize(text, size)
@@ -672,7 +680,7 @@ function Widgets.ApplyFont(text, path, size, flags, plain)
 	local same = not unset[text] and current == path and currentHeight == height and currentFlags == flags
 	local ok = same or text:SetFont(path, height, flags) ~= false
 	unset[text] = not ok or nil
-	Shadow(text, flags, f)
+	Shadow(text, flags, f, plain)
 	if not plain then
 		Widgets.SyncTracking(text)
 	end

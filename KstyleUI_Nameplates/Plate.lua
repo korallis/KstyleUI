@@ -502,6 +502,7 @@ function Plate:Restyle()
 	Widgets.StyleText(self.name, nameRole)
 	StyleFont(self.name, Settings.Get("name.size"), Settings.Get("name.outline"), nameRole,
 		K.Theme.FollowsKit(Settings.Get("name.font")) and (Tokens.Font(nameRole)) or Settings.Get("name.font"))
+	Widgets.Halo(self.name, self.nameEnabled)
 	StyleFont(self.levelText, Settings.Get("level.size"), Settings.Get("level.outline"), "number",
 		K.Theme.FollowsKit(Settings.Get("level.font")) and Settings.Get("font", "number") or Settings.Get("level.font"))
 	StyleFont(self.healthText, Settings.Get("healthText.size"), Settings.Get("healthText.outline"), "number",

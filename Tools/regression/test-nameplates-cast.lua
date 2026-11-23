@@ -38,7 +38,7 @@ do
 	-- The time text counts down while the bar shows.
 	N.Tick(env, 0.2)
 	assert(plate.castTime:GetFont() == (K.Tokens.Font("time")), "the cast time reads in the time role, as the cast bars' times do")
-	assert(plate.castName:GetFont() == (K.Tokens.Font("caps")), "the cast name uses the shared caps font")
+	assert(plate.castName:GetFont() == (K.Tokens.Font("number")), "under Medallions the cast name shares the plate name's number face (one typeface voice)")
 	local time = Last(plate.castTime, "SetFormattedText")
 	assert(time and env.issecretvalue(time[2]) and env.Reveal(time[2]) == 1.5, "the time text formats the remaining time")
 

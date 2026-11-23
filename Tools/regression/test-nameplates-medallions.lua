@@ -1,4 +1,4 @@
--- test-nameplates-medallions.lua: under the Medallions HUD style a plate draws KSTY-110's look: a 120 by 9 bar, the name in Inter SemiBold caps at the kit's 11-unit text floor, the level in Barlow at 12 units at the bar's left in its difficulty colour with no diamond, 22-unit debuffs, two 2-unit gunmetal ticks for the target with no glow, and a painted badge over a friendly player's name; a setting the player changed keeps the player's value, and switching back to Frames restores every look.
+-- test-nameplates-medallions.lua: under the Medallions HUD style a plate draws KSTY-110's look: a 120 by 9 bar, the name in the number face's caps (one typeface voice) at the kit's 11-unit text floor, the level in Barlow at 12 units at the bar's left in its difficulty colour with no diamond, 22-unit debuffs, two 2-unit gunmetal ticks for the target with no glow, and a painted badge over a friendly player's name; a setting the player changed keeps the player's value, and switching back to Frames restores every look.
 local N = dofile("Tools/regression/nameplates_env.lua")
 
 local function eq(got, want, what)
@@ -54,9 +54,9 @@ for _, plate in ipairs({ enemy, friend, boss }) do
 	assert(near(plate.barW, 120, 1) and near(plate.barH, 9, 1), "the bar is 120 by 9: " .. plate.barW .. " by " .. plate.barH)
 end
 
--- The name: Inter SemiBold caps, outlined, at the kit's 11-unit text floor.
+-- The name: caps in the number face (one typeface voice), outlined, at the kit's 11-unit text floor.
 local path, size, flags = face(enemy.name)
-eq(path, K.Tokens.FontPath("InterSemiBold"), "the name is Inter SemiBold")
+eq(path, (K.Tokens.Font("number")), "the name shares the number face")
 assert(near(size, 11, 0.6), "the name is 11 units: " .. tostring(size))
 eq(flags, "OUTLINE", "the name is outlined over the world")
 

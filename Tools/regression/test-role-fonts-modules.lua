@@ -118,15 +118,15 @@ do
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
--- GroupFrames: raid names on the Medallions tile take its Inter SemiBold label face, whatever the names role.
+-- GroupFrames: raid names on the Medallions tile take the number face (one typeface voice), whatever the names role.
 do
 	local env, K, ns = G.New()
 	G.SetRoster(env, "raid", G.Members(5))
 	assert(K.Modules.Enable("GroupFrames"))
 	env.RunTimers()
 	local f = member(ns, "raid1")
-	local label = K.Tokens.FontPath("InterSemiBold")
-	eq((f.name:GetFont()), label, "the raid tile labels its names in Inter SemiBold")
+	local label = (K.Tokens.Font("number"))
+	eq((f.name:GetFont()), label, "the raid tile labels its names in the number face")
 	K.Options.Write("Appearance", "roleFontNames", ROLE_FACE)
 	env.RunTimers()
 	eq((f.name:GetFont()), label, "a names role does not reach the tile's label")
@@ -141,7 +141,7 @@ do
 	env._textWidth = D.TextWidth
 	local focus = ns.Frames.Get("focus").views[1]
 	assert(ns.Settings.Form("focus") == "slab", "the focus frame is a slab")
-	local label = K.Tokens.FontPath("InterSemiBold")
+	local label = (K.Tokens.Font("number"))
 	local function named(name)
 		U.SetUnit(env, "focus", { name = name, level = 39, health = 300, healthMax = 400, reaction = 2, canAttack = true })
 		env.FireEvent("UNIT_NAME_UPDATE", "focus")

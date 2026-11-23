@@ -432,7 +432,7 @@ do
 	assert(point == "RIGHT" and relative == health and relativePoint == "LEFT" and x < 0, "the level hangs left of the bar")
 	assert(plate.name:GetText() == "RIVERGLADE CROCOLISK", "the name uses caps")
 	local path, size = plate.name:GetFont()
-	assert(path == K.Tokens.FontPath("InterSemiBold") and size == 11, "the name reads in Inter SemiBold at 11 units")
+	assert(path == (K.Tokens.Font("number")) and size == 11, "the name reads in the number face at 11 units (one typeface voice)")
 	path, size = plate.levelText:GetFont()
 	assert(path == (K.Tokens.Font("number")) and size == 12, "the level reads in the number face at 12 units")
 	local lr, lg, lb = plate.levelText:GetTextColor()

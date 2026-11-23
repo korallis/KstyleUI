@@ -165,13 +165,13 @@ do
 	assert(K.Modules.Enable("GroupFrames"))
 	env.RunTimers()
 	local f = member(ns, "raid1")
-	local label, whole = K.Tokens.FontPath("InterSemiBold"), K.Locale.Upper("Thaldrenwick")
+	local label, whole = (K.Tokens.Font("number")), K.Locale.Upper("Thaldrenwick")
 	local legacy = K.Tokens.FontPath("AlegreyaSansRegular")
 	if isFrames then
 		eq(font(f), legacy, "the compact raid deliberately keeps the proven Alegreya face")
 		eq(f.name:GetText(), "Thaldrenwick", "the existing twelve-letter fixture stays whole")
 	else
-		eq(font(f), label, "the Medallions raid tile names in its Inter SemiBold label face")
+		eq(font(f), label, "the Medallions raid tile names in the number face (one typeface voice)")
 		local text = f.name:GetText()
 		assert(#text > 0 and whole:sub(1, #text) == text, "the compact tile keeps the twelve-letter name's head in caps, got " .. text)
 	end

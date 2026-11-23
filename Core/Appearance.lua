@@ -38,7 +38,7 @@ Appearance.defaults = {
 	calmLists = true,
 	auraEndings = true,
 	readableBars = true, worldText = true, chatTabs = true, barColors = true,
-	textFloor = true, sectionHeadings = true,
+	textFloor = true, sectionHeadings = true, oneVoice = true, softBacking = true,
 }
 for _, role in ipairs(ROLES) do
 	Appearance.defaults[ROLE_KEY[role]] = ""
@@ -129,7 +129,7 @@ for _, role in ipairs(ROLES) do
 	CLEAN[ROLE_KEY[role]] = CleanRoleFont
 end
 
-local READABILITY = { readableBars = true, worldText = true, chatTabs = true, barColors = true, snapEdges = true, textFloor = true, sectionHeadings = true }
+local READABILITY = { readableBars = true, worldText = true, chatTabs = true, barColors = true, snapEdges = true, textFloor = true, sectionHeadings = true, oneVoice = true, softBacking = true }
 for key in pairs(READABILITY) do
 	CLEAN[key] = function(value)
 		if type(value) == "boolean" then return value end
@@ -413,6 +413,10 @@ function Appearance.Schema()
 			help = L["Clearer bar ink, outside skin captions and spaced casts. Off restores the original look."] },
 		{ type = "toggle", key = "worldText", label = L["Backing for text over the world"],
 			help = L["Stronger name shadows, thin unit and aura outlines, and soft backing for exposed text."] },
+		{ type = "toggle", key = "softBacking", label = L["Soft glow behind world text"],
+			help = L["A soft dark glow behind nameplate names and a drop shadow under outlined timers and counts."] },
+		{ type = "toggle", key = "oneVoice", label = L["One typeface voice"],
+			help = L["Medallions names, levels and cast names share the number face. Off restores the original faces."] },
 		{ type = "toggle", key = "chatTabs", label = L["Chat tabs always readable"],
 			help = L["Keep chat tabs visible, underline their names and leave room above the first message."] },
 		{ type = "toggle", key = "barColors", label = L["Bar colour refinements"],

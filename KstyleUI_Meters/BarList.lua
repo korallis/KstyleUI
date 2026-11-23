@@ -505,7 +505,7 @@ end
 
 function BarList.StyleName(text, section)
 	local medallions = Widgets.Medallions()
-	local path = medallions and Tokens.FontPath(Tokens.MEDALLIONS_PLATE_NAME_FACE) or ns.FontPath(section, "names")
+	local path = medallions and Widgets.LabelFace() or ns.FontPath(section, "names")
 	if not K.Theme.FollowsKit(ns.Get(section .. ".font")) then path = ns.FontPath(section) end
 	local size = NameSize(section)
 	if medallions and not ns.Get("instrumentNames") then path, size = ns.FontPath(section, "unit"), ns.Get(section .. ".fontSize") * ns.Get("damage.nameScale") end

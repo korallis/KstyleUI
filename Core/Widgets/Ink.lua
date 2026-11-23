@@ -1,4 +1,4 @@
--- Ink.lua: linearised fill contrast and a feathered backing for text over the world.
+-- Ink.lua: linearised fill contrast, a feathered backing for text over the world, and a three-piece soft halo behind world names.
 local _, ns = ...
 local Widgets, Tokens = ns.Widgets, ns.Tokens
 
@@ -53,4 +53,50 @@ function Widgets.TextScrim(text, shown)
 			Widgets.LayoutSlice(slice, text, 8, 4, 0, text, 6)
 		end
 	end
+end
+
+local HALO_PAD_X, HALO_PAD_Y, HALO_CAP, HALO_ALPHA = 6, 4, 12, 0.45
+local HALO_COORDS = { { 0, 0.5 }, { 0.5, 0.5 }, { 0.5, 1 } }
+
+local function ShowHalo(halo, alpha)
+	local on = halo.shown and (Widgets.IsSecret(alpha) or alpha ~= 0)
+	for i = 1, 3 do halo[i]:SetShown(on) end
+end
+
+function Widgets.Halo(text, shown)
+	shown = shown and Widgets.Readability("softBacking") or false
+	local halo = text.halo
+	if not halo and shown then
+		local parent, path = text:GetParent(), (Tokens.Texture("shadow"))
+		halo = {}
+		for i, coords in ipairs(HALO_COORDS) do
+			local piece = parent:CreateTexture(nil, "BACKGROUND", nil, -1)
+			piece:SetTexture(path)
+			piece:SetTexCoord(coords[1], coords[2], 0, 1)
+			piece:SetVertexColor(Widgets.Rgba("black", HALO_ALPHA))
+			halo[i] = piece
+		end
+		text.halo = halo
+		local setAlpha = text.SetAlpha
+		function text.SetAlpha(self, alpha)
+			setAlpha(self, alpha)
+			ShowHalo(halo, alpha)
+		end
+	end
+	if not halo then return end
+	halo.shown = shown
+	if shown then
+		local x, y, cap = Widgets.Snap(text, HALO_PAD_X), Widgets.Snap(text, HALO_PAD_Y), Widgets.Snap(text, HALO_CAP)
+		local left, middle, right = halo[1], halo[2], halo[3]
+		left:ClearAllPoints()
+		left:SetPoint("TOPLEFT", text, "TOPLEFT", -x, y)
+		left:SetPoint("BOTTOMRIGHT", text, "BOTTOMLEFT", cap - x, -y)
+		right:ClearAllPoints()
+		right:SetPoint("TOPRIGHT", text, "TOPRIGHT", x, y)
+		right:SetPoint("BOTTOMLEFT", text, "BOTTOMRIGHT", x - cap, -y)
+		middle:ClearAllPoints()
+		middle:SetPoint("TOPLEFT", left, "TOPRIGHT")
+		middle:SetPoint("BOTTOMRIGHT", right, "BOTTOMLEFT")
+	end
+	ShowHalo(halo, text:GetAlpha())
 end

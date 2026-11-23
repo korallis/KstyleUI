@@ -22,7 +22,6 @@ local INK_SHADOW_ALPHA = 0.25
 local LOW_STEP = 0.001
 local CHIP_ALPHA = 0.55
 local CHIP_WIDTH = 30
-local LABEL_FACE = Tokens.FontPath("InterSemiBold")
 Medallions.Active = K.Widgets.Medallions
 
 local colorSources = Unit.ColorSources
@@ -433,7 +432,7 @@ local function Tile(f, parts, k)
 	Slab(f, true)
 	local fit = f.nameFit
 	if fit then
-		local face = K.Theme.FollowsKit(Settings.current.text.nameFont) and LABEL_FACE or fit.path
+		local face = K.Theme.FollowsKit(Settings.current.text.nameFont) and Widgets.LabelFace() or fit.path
 		fit.path, fit.kit = face, false
 		if Widgets.Readability("readableBars") then fit.size, fit.min = 12, 11 end
 		fit.set = function(text, size)

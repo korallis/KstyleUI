@@ -241,7 +241,7 @@ do
 	if isFrames then
 		assert(M.Last(row.name, "SetFont")[1] == K.Tokens.Font("names"), "the name uses the nameplate face")
 	else
-		assert(M.Last(row.name, "SetFont")[1] == K.Tokens.FontPath(K.Tokens.MEDALLIONS_PLATE_NAME_FACE), "the name uses the Medallions plate name face")
+		assert(M.Last(row.name, "SetFont")[1] == (K.Tokens.Font("number")), "the name shares the Medallions number face (one typeface voice)")
 	end
 	assert(row.name:GetParent() ~= row.frame and row.name:GetParent():GetFrameLevel() > row.bar:GetFrameLevel(), "the text is drawn above the bar")
 	local nr, ng, nb = K.Tokens.Color("textEmphasis")

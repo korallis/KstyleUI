@@ -105,7 +105,7 @@ assert(U.Shown(env, player.healthText) == "3.1K" and U.Shown(env, player.healthS
 assert(U.Shown(env, player.caption) == "Hunter", "the class word after the name: " .. U.Shown(env, player.caption))
 assert(player.name:GetFont() == Tokens.Font("unit"), "the name uses the picture's tight unit-name face")
 local shadowX, shadowY = player.name:GetShadowOffset()
-assert(shadowX == 0 and shadowY == 0 and select(3, player.name:GetFont()) == "OUTLINE", "world-space unit names use the thin outline by default")
+assert(shadowX > 0 and shadowY < 0 and select(3, player.name:GetFont()) == "OUTLINE", "world-space unit names use the thin outline and the soft-backing drop shadow by default")
 assert(not tostring(W.LastCall(player.name, "SetText")[1]):find("\226\128\137"), "the name carries no thin space")
 local inset = W.LastCall(player.button, "SetHitRectInsets")
 assert(inset and near(inset[1], -91.5) and near(inset[2], 0), "the portrait outside the bars takes clicks through the button's hit rect")

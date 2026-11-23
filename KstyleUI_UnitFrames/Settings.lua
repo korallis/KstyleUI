@@ -657,7 +657,7 @@ local function OutlineFlags(outline)
 end
 
 local LUMEN_ROLES = { name = "names", health = "number", power = "number", level = "number", aura = "timer" }
-local SLAB_TEXT = { name = { 10, "InterSemiBold" }, health = { 15 }, power = { 12, role = "number" }, level = { 10, "InterSemiBold" }, aura = { 10 } }
+local SLAB_TEXT = { name = { 10, label = true }, health = { 15 }, power = { 12, role = "number" }, level = { 10, label = true }, aura = { 10 } }
 local SLAB_MINI_NAME = 9
 local SLAB_MINI = { targettarget = true, focustarget = true }
 
@@ -694,8 +694,8 @@ function Settings.Font(kind, element)
 	if slab and Settings.Form(kind) == "slab" then
 		local base = SLAB_MINI[kind] and element == "name" and SLAB_MINI_NAME or slab[1]
 		size = base * size / default.size
-		if path == themePath and slab[2] then
-			path = Tokens.FontPath(slab[2]) or path
+		if path == themePath and slab.label then
+			path = K.Widgets.LabelFace()
 		elseif path == themePath and slab.role then
 			path = Tokens.Font(slab.role)
 		end

@@ -12,7 +12,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 3456, 2234 }, { 5120, 1440 } }) do
 	for _, locale in ipairs({ "enUS", "deDE", "zhCN" }) do
 		local env, K, ns = U.New({ width = screen[1], height = screen[2], locale = locale })
 		env._textWidth = D.TextWidth
-		local name = locale == "zhCN" and "暗影峡谷的游荡者和古老森林守卫" or locale == "deDE" and "Ödlandwilderer Aus Dem Schattenwald" or "Shadowgale Poacher With A Very Long Name"
+		local name = locale == "zhCN" and "暗影峡谷的游荡者和古老森林守卫" or locale == "deDE" and "Ödlandwilderer Aus Dem Schattenwald Der Westlichen Hügel" or "Shadowgale Poacher With A Very Long Name Of The Western Hills"
 		U.SetUnit(env, "target", { name = name, level = 12, health = 118, healthMax = 236, reaction = 2, creature = "Humanoid" })
 		env.SetTarget(true)
 		local view = ns.Frames.Get("target").views[1]
