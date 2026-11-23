@@ -17,7 +17,8 @@
 -- AuraInstanceIDOnly, Reverse takes the newest matching aura first (the last in the unit's list); AddAuraGroup makes
 -- maxFrameCount buttons up front through initializeFrame, shows one per match in a left-to-right row of its layout's
 -- elementWidth and elementSpacing from the container's top left, and sizes the container to the row
--- (Blizzard_CustomAuraContainer.lua:286-328).
+-- (Blizzard_CustomAuraContainer.lua:286-328). Groups exist only when env._slotGroups is set before the addon loads,
+-- so modules that fall back without them (the unit frames' auras) keep their fallback.
 --
 -- A bar fed with ExponentialEaseOut on an update keeps bar._ease = { from, to, at = env._now } so the render
 -- harness can draw the sweep (Tools/render/scene.lua, BarFraction).
@@ -170,8 +171,6 @@ end
 function Slots.Install(env)
 	env._slotAuras, env._slotContainers, env._slotEnchants = env._slotAuras or {}, {}, env._slotEnchants or {}
 	env.AuraContainerItemEnchantmentSlot = env.AuraContainerItemEnchantmentSlot or { MainHand = 1, OffHand = 2, Ranged = 3 }
-	env.AuraContainerSortMethod = env.AuraContainerSortMethod or { Default = 0, Expiration = 4, AuraInstanceIDOnly = 8 }
-	env.AuraContainerSortDirection = env.AuraContainerSortDirection or { Normal = 0, Reverse = 1 }
 	env.Enum = env.Enum or {}
 	env.Enum.StatusBarInterpolation = env.Enum.StatusBarInterpolation or { Immediate = 0, ExponentialEaseOut = 1 }
 	local create = env.CreateFrame
@@ -197,7 +196,7 @@ function Slots.Install(env)
 			Slots.Feed(env, self)
 			return button
 		end
-		function c.AddAuraGroup(self, key, filter, options)
+		c.AddAuraGroup = env._slotGroups and function(self, key, filter, options)
 			self._groups = self._groups or {}
 			assert(not self._groups[key], "aura group keys are unique")
 			local group = { filter = filter, candidates = options.candidateFilters, layout = options.layout, frames = {}, slots = {} }
@@ -209,7 +208,7 @@ function Slots.Install(env)
 			end
 			self._groups[key] = group
 			Slots.Feed(env, self)
-		end
+		end or nil
 		function c.AddItemEnchantment(self, slot)
 			local key = "enchant" .. tostring(slot)
 			assert(not self._slots[key], "item enchantment already exists with this slot.")

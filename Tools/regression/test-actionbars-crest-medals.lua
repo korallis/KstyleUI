@@ -6,7 +6,9 @@ local env, K, ns = AB.New({
 	class = "WARRIOR",
 	setup = function(e)
 		e.C_Secrets = { ShouldAurasBeSecret = function() return e._aurasSecret == true end }
+		e._slotGroups = true
 		Slots.Install(e)
+		e.AuraContainerSortMethod, e.AuraContainerSortDirection = { Default = 0, AuraInstanceIDOnly = 8 }, { Normal = 0, Reverse = 1 }
 	end,
 })
 AB.Enable(env, K)

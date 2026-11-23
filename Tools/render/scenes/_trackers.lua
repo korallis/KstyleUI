@@ -32,7 +32,10 @@ end
 
 -- Install(env, class) gives the stub game the class's spells, their icons, the aura slots and two weapons.
 function Trackers.Install(env, class)
+	env._slotGroups = true
 	if not env._slotContainers then Slots.Install(env) end
+	env.AuraContainerSortMethod = env.AuraContainerSortMethod or { Default = 0, AuraInstanceIDOnly = 8 }
+	env.AuraContainerSortDirection = env.AuraContainerSortDirection or { Normal = 0, Reverse = 1 }
 	local known = {}
 	for _, id in ipairs(KNOWN[class]) do known[id] = true end
 	local spec = os.getenv("RENDER_TRACKERS_SPEC")

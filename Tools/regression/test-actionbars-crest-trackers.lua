@@ -24,7 +24,9 @@ local function New(class, known, opts)
 			e.C_Spell.GetSpellCooldownDuration = function(id) return { start = 0, finish = e._cooling[id] and 10 or 0 } end
 			e.C_Spell.GetSpellTexture = function(id) return 100000 + id end
 			e.GetInventoryItemID = function(_, slot) return e._items and e._items[slot] end
-			Slots.Install(e)
+			e._slotGroups = true
+		Slots.Install(e)
+		e.AuraContainerSortMethod, e.AuraContainerSortDirection = { Default = 0, AuraInstanceIDOnly = 8 }, { Normal = 0, Reverse = 1 }
 			if opts.setup then opts.setup(e) end
 		end,
 	})
