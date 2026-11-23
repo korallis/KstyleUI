@@ -108,15 +108,16 @@ function M.Setup(env, map)
 	return state
 end
 
-function M.New()
+function M.New(hidden)
 	local map, state
 	local env, K, ns = S.New({ before = function(e)
 		map = Windows.Build("worldmap", e, S.Blizzard(e))
+		if hidden then map:Hide() end
 		state = M.Setup(e, map)
 	end })
 	K.Modules.Enable("Skins")
 	S.LoadAddOn(env, "Blizzard_WorldMap")
-	S.Show(map)
+	if not hidden then S.Show(map) end
 	return env, K, ns.WorldMapRoutes, state, map
 end
 
