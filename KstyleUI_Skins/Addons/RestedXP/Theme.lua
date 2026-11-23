@@ -97,6 +97,10 @@ function RestedXP.Widget(f)
 	return type(f.obj) == "table" and f.obj or f
 end
 
+function RestedXP.RedrawMethod(owner)
+	return Method(owner, "UpdateSubTheme") and "UpdateSubTheme" or "UpdateVisuals"
+end
+
 local function Shaped(rxp)
 	if not (Method(rxp, "RegisterTheme") and Method(rxp, "LoadActiveTheme") and type(rxp.themes) == "table") then
 		return false, "RegisterTheme, LoadActiveTheme or the themes table"

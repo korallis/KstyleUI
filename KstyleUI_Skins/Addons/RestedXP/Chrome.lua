@@ -126,10 +126,6 @@ local function Hook(owner, method, name, fn)
 	return true
 end
 
-local function Redraw(owner)
-	return IsTable(owner) and type(owner.UpdateSubTheme) == "function" and "UpdateSubTheme" or "UpdateVisuals"
-end
-
 local function Profile(field)
 	local rxp = state.rxp
 	local profile = rxp and rxp.settings and rxp.settings.profile
@@ -1212,7 +1208,7 @@ local function GuideWindow(rxp)
 	state.guide = f
 	PlaceGuideScroll(f)
 	Hook(f, "SetScale", "RXPFrame.SetScale", Rescaled)
-	Hook(f, Redraw(f), "RXPFrame.UpdateVisuals", function()
+	Hook(f, RestedXP.RedrawMethod(f), "RXPFrame.UpdateVisuals", function()
 		PlaceGuideScroll(f)
 		Chrome.Refit(f)
 	end)
@@ -1397,7 +1393,7 @@ local function Arrow(rxp)
 	Worded(arrow.text, Reword)
 	Readable(arrow.text, "number", Tokens.Size("caption"), nil, true)
 	PaintArrow(arrow)
-	Hook(arrow, Redraw(arrow), "arrowFrame.UpdateVisuals", function()
+	Hook(arrow, RestedXP.RedrawMethod(arrow), "arrowFrame.UpdateVisuals", function()
 		PaintArrow(arrow)
 	end)
 	Hook(rxp, "SetupArrow", "SetupArrow", function()
@@ -1596,7 +1592,7 @@ local function Items(rxp)
 		end
 	end
 	Refresh()
-	Hook(parts, Redraw(parts), "activeItemFrame.UpdateVisuals", Refresh)
+	Hook(parts, RestedXP.RedrawMethod(parts), "activeItemFrame.UpdateVisuals", Refresh)
 	Hook(rxp, "UpdateItemFrame", "UpdateItemFrame", Refresh)
 end
 
@@ -1614,7 +1610,7 @@ local function Targets(rxp)
 		IconButtons(parts.friendlyTargetButtons, false)
 	end
 	Refresh()
-	Hook(parts, Redraw(parts), "activeTargetFrame.UpdateVisuals", Refresh)
+	Hook(parts, RestedXP.RedrawMethod(parts), "activeTargetFrame.UpdateVisuals", Refresh)
 	Hook(targeting, "UpdateTargetFrame", "targeting.UpdateTargetFrame", Refresh)
 	Hook(targeting, "RenderTargetFrameBackground", "targeting.RenderTargetFrameBackground", Refresh)
 end
