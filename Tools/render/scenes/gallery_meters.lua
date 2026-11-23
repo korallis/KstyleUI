@@ -309,14 +309,12 @@ local SKIN_PAD, SKIN_HEADER, SKIN_ROW, SKIN_GAP = 10, 32, 25, 4
 -- The fight dropdown's width and centre, and the room the settings and minimise buttons take at its right.
 local SKIN_SESSION_W, SKIN_SESSION_MIDDLE, SKIN_SETTINGS = 44, 13.5, 36
 
--- layRow(entry) is Blizzard's UpdateStyle for the Default style (DamageMeterEntry.lua:272-290): the bar inset a unit
--- at the top and bottom and 4 at the right, name and value on its middle.
+-- layRow(entry) is Blizzard's UpdateStyle for the Default style (DamageMeterEntry.lua:272-290): name and value on the
+-- bar's middle. The fake bar fills its row, so the pixel-grid audit measures the skin from a row on the grid; Blizzard's
+-- one-unit insets, which are off the grid at 1440p, are test-meters-skin's.
 local function layRow(entry)
 	local bar = entry.StatusBar
-	bar:ClearAllPoints()
-	bar:SetPoint("LEFT", entry, "LEFT", 0, 0)
-	bar:SetPoint("TOP", entry, "TOP", 0, -1)
-	bar:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT", -4, 1)
+	bar:SetAllPoints(entry)
 	bar.Name:ClearAllPoints()
 	bar.Name:SetPoint("LEFT", bar, "LEFT", 2, 0)
 	bar.Name:SetPoint("RIGHT", bar.Value, "LEFT", -25, 0)
@@ -485,8 +483,7 @@ local function skin(frames)
 	for i, entry in ipairs(window.entries) do
 		local s = SOURCES[i]
 		entry:SetPoint("TOPLEFT", window.box, "TOPLEFT", 0, -(i - 1) * (SKIN_ROW + SKIN_GAP))
-		entry:SetPoint("RIGHT", window.box, "RIGHT", 0, 0)
-		entry:SetHeight(SKIN_ROW)
+		entry:SetSize(SKIN_W - 3 * SKIN_PAD, SKIN_ROW)
 		local bar = entry.StatusBar
 		bar:SetMinMaxValues(0, top)
 		bar:SetValue(s[3])
@@ -507,8 +504,7 @@ local function skin(frames)
 	for i, entry in ipairs(source.entries) do
 		local spell = entry.spell
 		entry:SetPoint("TOPLEFT", source.box, "TOPLEFT", 0, -(i - 1) * (SKIN_ROW + SKIN_GAP))
-		entry:SetPoint("RIGHT", source.box, "RIGHT", 0, 0)
-		entry:SetHeight(SKIN_ROW)
+		entry:SetSize(SKIN_W - 3 * SKIN_PAD, SKIN_ROW)
 		local bar = entry.StatusBar
 		bar:SetMinMaxValues(0, SPELLS[1][4])
 		bar:SetValue(spell[4])
