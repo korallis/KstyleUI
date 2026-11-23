@@ -455,6 +455,44 @@ do
 	Clean(env, K, "five-second frames")
 end
 
+-- A switch turned off in combat hides everything at once and the engine stops feeding it when combat ends (review dd9bddac #2).
+do
+	local env, K, ns = New("PALADIN", { 20154, 20271, 20049 })
+	local feed = ns.SlabJewels.state.feed
+	Slots.Set(env, "player", { { id = 20050, count = 3 } })
+	local function visible()
+		local n = 0
+		for _, slot in pairs(feed.container._slots) do n = n + (slot.frame:IsVisible() and 1 or 0) end
+		return n
+	end
+	assert(visible() > 0, "Vengeance lights the jewels")
+	env._aurasSecret = true
+	K.Options.Write("ActionBars", "crestVengeance", false)
+	env.RunTimers()
+	assert(visible() == 0, "Vengeance jewels off in combat: no fed layer still shows")
+	env._aurasSecret = false
+	env.FireEvent("PLAYER_REGEN_ENABLED")
+	env.RunTimers()
+	assert(not feed.container._enabled, "and once combat ends the engine stops feeding them")
+	Clean(env, K, "jewels off in combat")
+end
+
+do
+	local env, K, ns = New("ROGUE", { 5171, 1943 })
+	local target = Pieces(ns)[2].lit.container
+	env._aurasSecret = true
+	for _, row in ipairs(ns.SlabTrackers.CLASSES.ROGUE) do K.Options.Write("ActionBars", row.key, false) end
+	env.RunTimers()
+	env._aurasSecret = false
+	env.FireEvent("PLAYER_REGEN_ENABLED")
+	env.RunTimers()
+	local count, update = 0, target.UpdateAllAuras
+	target.UpdateAllAuras = function(self) count = count + 1 return update(self) end
+	env.FireEvent("PLAYER_TARGET_CHANGED")
+	assert(not target._enabled and count == 0, "every switch off in combat: after combat no hidden container feeds or refreshes")
+	Clean(env, K, "trackers off in combat")
+end
+
 -- Even pixels at four sizes.
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })
