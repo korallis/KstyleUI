@@ -275,6 +275,27 @@ do
 	Clean(env, K, "holy items")
 end
 
+-- An item medal cools as a greyed icon under a draining rim, and with no item it is an empty setting (#778 6).
+do
+	local env, K, ns = New("PALADIN", { 20154, 20271, 20473 })
+	local cooling = { 10, 120 }
+	env.C_Item = { GetItemCount = function(id) return id == 13444 and 2 or 0 end, GetItemCooldown = function() return cooling[1], cooling[2], true end,
+		GetItemIconByID = function(id) return 200000 + id end }
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	local feet = {}
+	for _, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
+		if piece:IsVisible() and piece.spec.feed == "item" then feet[piece.spec.seat] = piece end
+	end
+	local stone, potion = feet.footLeft, feet.footRight
+	assert(stone and not stone.lit:IsShown() and not stone.steel:IsShown(), "no healthstone: an empty setting, not a spell's icon")
+	assert(AB.W.LastCall(potion.lit.icon, "SetDesaturated")[1] == true, "a cooling potion is greyed")
+	assert(AB.W.LastCall(potion.timer, "SetSwipeTexture")[1] == (K.Tokens.Texture("orbRing")), "under a draining rim, not a dark pie")
+	cooling = { 0, 0 }
+	potion.timer:GetScript("OnCooldownDone")(potion.timer)
+	assert(AB.W.LastCall(potion.lit.icon, "SetDesaturated")[1] == false, "ready, its colour comes back")
+	Clean(env, K, "item cooling")
+end
+
 -- A class file registers its own rows and hooks.
 do
 	local env, K, ns = New("PRIEST", { 10060 })
