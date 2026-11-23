@@ -28,7 +28,7 @@ for _, kind in ipairs(C.kinds) do
 		assert(source:match('"id": ' .. id .. ',%s*"name": [^\n]+,%s*"classID": 0,'), "curated ids must be consumables proven by items.json")
 	end
 end
-assert(cfg.enabled and cfg.attached and cfg.rows == 2 and cfg.hideEmpty, "on, attached, two rows and hidden when empty by default")
+assert(cfg.enabled and cfg.attached and cfg.rows == 2 and cfg.size == 26 and cfg.spacing == 0 and cfg.hideEmpty, "on, attached, two rows of size 26 with no gap and hidden when empty by default")
 assert(not C.header and not C.holder, "empty inventory creates no holder or secure header")
 assert(#C.buttons == 0, "an empty inventory defers all secure slot art until the first carried consumable")
 
@@ -66,7 +66,7 @@ for _, scale in ipairs({ 0.5, 1, 1.5 }) do
 end
 C.holder:SetScale(1)
 K.Options.Write("ActionBars", "consumables.size", 26)
-assert(cfg.size == 26 and cfg.spacing == 0 and cfg.backing == true and cfg.hotkey == false, "Options starts at size 26 with no gap, backing on and keybind text off")
+assert(cfg.backing == true and cfg.hotkey == false, "Options starts with backing on and keybind text off")
 local backing = C.header:GetChildren()
 assert(backing.chrome and backing:IsShown(), "the shared Chrome tile is shown by default")
 K.Options.Write("ActionBars", "consumables.backing", false)
@@ -119,6 +119,10 @@ local savedEnv, savedK = AB.New({ saved = explicit })
 assert(savedK.Store.Module("ActionBars").consumables.size == 46 and savedK.Store.Module("ActionBars").consumables.spacing == 4 and savedK.Store.Module("ActionBars").consumables.backing == false and savedK.Store.Module("ActionBars").consumables.hotkey == true, "explicit saved size and backing survive refill")
 AB.CoreEnv.Logout(savedEnv)
 assert(savedEnv.KstyleUIDB.profiles.Default.ActionBars.consumables.size == 46 and savedEnv.KstyleUIDB.profiles.Default.ActionBars.consumables.spacing == 4 and savedEnv.KstyleUIDB.profiles.Default.ActionBars.consumables.backing == false and savedEnv.KstyleUIDB.profiles.Default.ActionBars.consumables.hotkey == true, "explicit choices survive stripping")
+explicit.profiles.Default.ActionBars.consumables = { spacing = -0.5 }
+local legacy = select(2, AB.New({ saved = explicit }))
+local imported, reason = legacy.Store.Import(assert(legacy.Store.Export("Default")))
+assert(imported, "a profile saved with an old negative spacing still exports and imports: " .. tostring(reason))
 
 Bag({ 6948 })
 assert(#C.selected == 0, "a Hearthstone in the bags never creates a slot")
