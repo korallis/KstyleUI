@@ -1,5 +1,5 @@
 -- test-groupframes-readable.lua: Party and Raid > Readability on the four test screens and a narrow one, Frames and Medallions: larger party frames that leave a player's own size alone, whole health percentages, ten-letter names, names that meet 4.5:1 in range and 3:1 out of range over a bright world, and a dark missing-health track; each switch off restores the earlier look.
-local H = dofile("Tools/regression/group_env.lua") and dofile("Tools/regression/groupframes_r3a.lua")
+local H = dofile("Tools/regression/groupframes_r3a.lua")
 local G = H.G
 
 -- A bright world behind the frames: a linear luminance of 0.1, about three times the owner's grass on 2026-11-23.
@@ -11,10 +11,10 @@ local MEMBERS = {
 	{ name = "Torvald", class = "DRUID", role = "DAMAGER", health = 23, maxHealth = 100 },
 }
 
-local function Contrast(K, f, world)
+local function Contrast(env, K, f, world)
 	local r, g, b = f.name:GetTextColor()
 	local text = K.Widgets.InkLuminance(r, g, b)
-	local a = H.reveal(f.env, f:GetAlpha())
+	local a = H.reveal(env, f:GetAlpha())
 	local scrim = f.medPartyScrim and f.medPartyScrim[1]:IsShown() and select(4, f.medPartyScrim[1]:GetVertexColor()) or 0
 	local halo = f.name.halo and f.name.halo:IsShown() and select(4, f.name.halo:GetVertexColor()) or 0
 	local back = world * (1 - scrim * a) * (1 - halo * a)
@@ -51,7 +51,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		-- Size: a quarter larger where the screen is at least 1.7 wide, so 16:10 keeps bar 3's free slot.
 		assert(H.near(Scale(K), wide and 1.25 or 1), at .. ": the party is " .. Scale(K) .. " times its size")
 		for _, f in ipairs(Frames(ns)) do
-			f.env = env
 			local who = at .. " " .. f.unit
 			-- Whole percentages: the percent takes its own width, so "100%" never shortens to "10...".
 			assert(H.width(env, f.healthText) == 0, who .. ": the percent keeps its natural width")
@@ -60,7 +59,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			end
 			-- Contrast over a bright world: 4.5:1 in range, 3:1 out of range (at least 0.7 opaque).
 			local need = f.unit == "party3" and 3 or 4.5
-			local ratio = Contrast(K, f, WORLD)
+			local ratio = Contrast(env, K, f, WORLD)
 			assert(ratio >= need, who .. ": the name reads at " .. string.format("%.2f", ratio) .. ":1, under " .. need .. ":1")
 			-- Dark missing health: no pale band for health just lost.
 			assert(f.health.lossOn == false and not f.health.under:GetStatusBarTexture():IsShown(), who .. ": the missing health stays dark")
@@ -83,12 +82,11 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(Scale(K) == 1, "off: the party keeps its earlier size")
 	local weakest = math.huge
 	for _, f in ipairs(Frames(ns)) do
-		f.env = env
 		assert(H.width(env, f.healthText) > 0, "off: the percent keeps its fixed lane")
 		assert(not (f.name.halo and f.name.halo:IsShown()), "off: no halo behind the name")
 		assert(H.near(select(4, f.medPartyScrim[1]:GetVertexColor()), 0.5), "off: the earlier 0.5 backing")
 		assert(f.health.lossOn == true, "off: the pale band for health just lost returns")
-		weakest = math.min(weakest, Contrast(K, f, WORLD) / (f.unit == "party3" and 3 or 4.5))
+		weakest = math.min(weakest, Contrast(env, K, f, WORLD) / (f.unit == "party3" and 3 or 4.5))
 	end
 	assert(weakest < 1, "the contrast check fails on the earlier look, as the owner's screenshot showed")
 	assert(H.near(H.reveal(env, H.frame(ns, "party3"):GetAlpha()), 0.4), "off: out of range fades to the saved 0.4")
