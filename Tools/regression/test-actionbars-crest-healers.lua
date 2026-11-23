@@ -310,6 +310,44 @@ do
 	assert(offRow.gutter:IsPlaying() and not mainRow.gutter:IsPlaying(), "the off hand's last five minutes gutter in the row too")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
+-- A stone keeps one wake-up for its last five minutes however often the enchant is re-read, and a stone that is
+-- switched off reads nothing and keeps none.
+do
+	local env, K, ns = New("SHAMAN", SHAMAN)
+	env.SetCombat(true)
+	local now, pending, reads = 100, {}, 0
+	env.GetTime = function() return now end
+	local after, ticker = env.C_Timer.After, env.C_Timer.NewTicker
+	env.C_Timer.After = function(delay, fn)
+		if delay > 10 then pending[#pending + 1] = { cancelled = false } end
+		return after(delay, fn)
+	end
+	env.C_Timer.NewTicker = function(delay, fn, n)
+		local made = ticker(delay, fn, n)
+		if delay > 10 then pending[#pending + 1] = made end
+		return made
+	end
+	local function Live()
+		local n = 0
+		for _, p in ipairs(pending) do n = n + (p.cancelled and 0 or 1) end
+		return n
+	end
+	for i = 1, 25 do
+		now = 100 + i * 0.01731
+		env._enchants[16] = { enchantID = 1669, remainingTimeMs = math.floor((1800 - now) * 1000), hasExpirationTime = true }
+		env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	end
+	assert(Live() == 1, "25 re-reads of one enchant leave one wake-up, not " .. Live())
+	K.Options.Write("ActionBars", "crestImbues", false)
+	local get = env.C_PaperDollInfo.GetTemporaryEnchantmentInfo
+	env.C_PaperDollInfo.GetTemporaryEnchantmentInfo = function(...)
+		reads = reads + 1
+		return get(...)
+	end
+	env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	assert(reads == 0 and Live() == 0, "switched off, the stones read no enchant and keep no wake-up: " .. reads .. " reads, " .. Live() .. " wake-ups")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
 do
 	local env, K, ns = New("PRIEST", PRIEST)
 	env._enchants[16] = { enchantID = 1669, remainingTimeMs = 600000 }
