@@ -1422,6 +1422,13 @@ local function ShowRaid(icon, shown, index)
 	end
 end
 
+local function PlaceThreat(plate)
+	local raid = plate.raid:IsShown() and plate.raid
+	local height = raid and Widgets.Snap(plate, Settings.Get("markers.raidSize")) or plate.barH
+	plate.threatShape:ClearAllPoints()
+	Widgets.Point(plate.threatShape, "TOPLEFT", raid or plate.health, "TOPRIGHT", (raid and 0 or Plate.MarkerReach()) + Tokens.Size("gapTiny"), -Widgets.Snap(plate, (height - 6) / 2))
+end
+
 function Plate:UpdateRaid()
 	local index
 	local nameRaid = Settings.Get("markers.nameRaid") and self.nameRaid
@@ -1430,6 +1437,7 @@ function Plate:UpdateRaid()
 	end
 	ShowRaid(self.raid, Settings.Get("markers.raid"), index)
 	if nameRaid then ShowRaid(nameRaid, self.nameEnabled, index) end
+	if self.threatState then PlaceThreat(self) end
 end
 
 function Plate:UpdatePvp()
@@ -1475,8 +1483,7 @@ function Plate:UpdateThreat()
 		if state == "warning" then shape:SetTexture((Tokens.Texture("diamond"))) else shape:SetColorTexture(Tokens.Color("white")) end
 		shape:SetTexCoord(0, 1, 0, state == "warning" and 0.5 or 1)
 		Widgets.Size(shape, state == "safe" and 2 or 6, 6)
-		shape:ClearAllPoints()
-		Widgets.Point(shape, "TOPLEFT", self.health, "TOPRIGHT", 8, -Widgets.Snap(self, (self.barH - 6) / 2))
+		PlaceThreat(self)
 		shape:SetVertexColor(ThreatColor(state))
 	end
 	local glow = self.threatGlow
