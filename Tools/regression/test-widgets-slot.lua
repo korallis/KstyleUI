@@ -104,6 +104,7 @@ do
 	local gr, gg, gb = K.Widgets.Rgba("giltLit")
 	assert(W.SameRGB(glow.texture, gr, gg, gb) and W.LastCall(glow.texture, "SetBlendMode")[1] == "ADD", "a lit steel light inside the icon")
 	assert(W.SameRGB(b.procHalo[1], gr, gg, gb) and W.LastCall(b.procHalo[1], "SetBlendMode")[1] == "ADD", "and a lit steel halo round the slot")
+	assert(W.Near(b.stateProcSpread, K.Widgets.Snap(b, 5.6)) and W.Near(select(4, b.procHalo[1]:GetVertexColor()), 0.6, 0.01), "the halo reaches 5.6 units at 60%, as the action bars' proc does, so the lit rim stays as wide as a resting rim")
 	assert(b.chrome.proc, "the slot's outer edge lights")
 	assert(noTween(env), "the breath is the client's, not a tween")
 	b:SetProc(false)
