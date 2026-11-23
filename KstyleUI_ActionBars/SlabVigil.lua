@@ -18,7 +18,7 @@ local WEAVING, PLAGUE = { 15334, 15333, 15332, 15331, 15257 }, { 19280, 19279, 1
 local DEATH, SILENCE = { 1309636, 1309635, 1309633, 1309595 }, { 15487 }
 local OILS = { 20744, 20745, 20746, 20747, 20748, 20749, 20750 }
 local FLAMES, PER, CHARGES, DIM = { 315, 225, 135, 45 }, 5, 20, 0.5
-local ORBIT, FLAME, STUD, WELL, PIN, GAP = 54, 26, 12, 10, 4, 4
+local ORBIT, FLAME, STUD, WELL, PIN = 54, 26, 12, 10, 4
 local FLICKER = { { 1, 0.45, 0.06 }, { 0.45, 0.9, 0.05 }, { 0.9, 0.35, 0.07 }, { 0.35, 1, 0.08 } }
 
 local CAST = {}
@@ -55,10 +55,10 @@ local function Fire(parent, spec, level, form)
 	return r
 end
 
-local function Ring(piece, anchor, form, x)
+local function Ring(piece, anchor, form, _, n)
 	if form == "row" then
-		Medals.Place(piece, anchor, x, 0)
-		return x + Medals.SIZE + GAP
+		Medals.Place(piece, anchor, Medals.Cell(n))
+		return n + 1
 	end
 	Medals.Place(piece, anchor, 0, 0)
 	for _, seat in ipairs(piece.ring) do
@@ -66,7 +66,7 @@ local function Ring(piece, anchor, form, x)
 		seat:ClearAllPoints()
 		seat:SetPoint("CENTER", anchor, "CENTER", Widgets.Snap(anchor, ORBIT * sin(a)), Widgets.Snap(anchor, ORBIT * cos(a)))
 	end
-	return x
+	return n
 end
 
 local function Gem(parent, spec, level, form)

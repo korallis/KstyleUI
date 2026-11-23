@@ -16,7 +16,7 @@ local OMEN, CLEARCASTING = { 16864 }, { 16870, 457342, 467735 }
 local GROWTH, POUNCE = { 1238215, 1238214, 408120 }, { 9826, 9824, 9007 }
 local GROWL, CHARGE, BITE, BASH = { 6795 }, { 1238122 }, { 1238070, 1238069, 407995 }, { 8983, 6798, 5211 }
 local BEAR, CAT, MOONKIN, CASTER = { 5, 8 }, { 1 }, { 31, 35 }, { 0, 3, 4 }
-local LEAVES, LEAF, ORBIT, GAP = 8, 14, 54, 4
+local LEAVES, LEAF, ORBIT = 8, 14, 54
 
 local maul = {}
 local Oil, Flask = ns.SlabVigil.Oil, ns.SlabVigil.Flask
@@ -52,10 +52,10 @@ local function Bloom(parent, spec, level, form)
 	return r
 end
 
-local function Ring(piece, anchor, form, x)
+local function Ring(piece, anchor, form, _, n)
 	if form == "row" then
-		Medals.Place(piece, anchor, x, 0)
-		return x + Medals.SIZE + GAP
+		Medals.Place(piece, anchor, Medals.Cell(n))
+		return n + 1
 	end
 	Medals.Place(piece, anchor, 0, 0)
 	for _, leaf in ipairs(piece.ring) do
@@ -63,7 +63,7 @@ local function Ring(piece, anchor, form, x)
 		leaf:ClearAllPoints()
 		leaf:SetPoint("CENTER", anchor, "CENTER", Widgets.Snap(anchor, ORBIT * math.sin(a)), Widgets.Snap(anchor, ORBIT * math.cos(a)))
 	end
-	return x
+	return n
 end
 
 local function Gem(parent, spec, level, form)
