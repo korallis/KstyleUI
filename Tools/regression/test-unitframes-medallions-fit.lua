@@ -74,16 +74,15 @@ leader:Hide()
 -- and every enabled slot keeps its place, so lit sockets stay evenly spaced.
 env._units.player.leader, env._units.player.role = true, "DAMAGER"
 ns.Indicators.Status(player, "player")
-local xs, lit = {}, 0
+local xs = {}
 for _, key in ipairs(ns.Indicators.SLOTS) do
 	local slot = player.icons[key]
 	local back = assert(slot.socket, key .. ": every enabled player slot has a socket")
 	assert(back:IsShown() == slot:IsShown(), key .. ": the player shows a socket only with its lit icon, never an empty one")
-	if back:IsShown() then lit = lit + 1 end
 	assert(near(back:GetWidth(), back:GetHeight()) and back:GetWidth() > player.icons.combat:GetWidth(), key .. ": its socket is a round disc around the slot, even around the Zz text")
 	xs[#xs + 1] = select(4, slot:GetPoint(1))
 end
-assert(lit > 0 and lit < #ns.Indicators.SLOTS and not player.icons.pvp:IsShown(), "the leader is lit and the PvP slot dark")
+assert(player.icons.leader:IsShown() and not player.icons.pvp:IsShown(), "the leader is lit and the PvP slot dark")
 local px, py = player.icons.pvp:GetCenter()
 local reach = player.icons.pvp.socket:GetHeight() / 2
 for _, region in ipairs({ player.top:GetRegions() }) do

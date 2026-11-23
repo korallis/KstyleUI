@@ -150,4 +150,23 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 	end
 end
+-- With Keep map plaques clear off the zone stays clear of the crest N on its band, and rotating the map hides the
+-- N and its rune patch together, so the twelve o'clock rune shows again.
+local Scene = dofile("Tools/render/scene.lua")
+for _, screen in ipairs({ { 1920, 1080 }, { 5120, 1440 } }) do
+	for _, frame in ipairs({ "ring", "medallion" }) do
+		local env, _, ns = M.New({ enabled = true, width = screen[1], height = screen[2], size = "auto", settings = { frame = frame, clearPlaques = false } })
+		M.Settle(env)
+		local face, zone, north = ns.Map.face, nil, nil
+		for _, item in ipairs(Scene.Build(env, {}).items) do
+			if item.object == face.zone then zone = item.rect elseif item.object == face.north then north = item.rect end
+		end
+		assert(zone and north and north[2] >= zone[2] + zone[4], frame .. " " .. screen[1] .. ": the zone keeps clear of the crest N with plaques not kept clear")
+		for _, rotate in ipairs({ true, false }) do
+			env._cvars.rotateMinimap = rotate
+			env.MinimapCluster:UpdateMinimapConfig()
+			assert(face.north:IsShown() == not rotate and face.northBand:IsShown() == not rotate and face.runes:IsShown(), frame .. ": a rotating map hides the N and its rune patch together")
+		end
+	end
+end
 print("minimap crest ok: three choices, four screens, defaults and saved positions, three presets, class changes and style isolation")
