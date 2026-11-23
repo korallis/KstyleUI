@@ -29,7 +29,7 @@ local HEALER_ICONS = {
 	[16870] = 136170, [18562] = 134914, [22812] = 136097, [22842] = 132091, [5229] = 132126, [1850] = 132120,
 	[10414] = 136026, [20608] = 136080, [16166] = 136111, [10901] = 135940, [25315] = 135953, [1240827] = 135944, [1240849] = 135944,
 	[19280] = 252997, [1309636] = 136149, [15487] = 136164, [6795] = 132270, [1238122] = 132183, [1238070] = 132278, [8983] = 132114,
-	[29228] = 135813, [1238215] = 236153, [15286] = 136230, [17364] = 132314, [425336] = 136012,
+	[29228] = 135813, [1238215] = 236153, [15286] = 136230, [17364] = 132314, [425336] = 136012, [16362] = 136018,
 }
 local DRUID = { 9835, 24977, 25299, 9858, 9904, 9896, 9898, 9907, 9881, 24858, 16864, 18562, 22812, 22842, 5229, 1850, 1238215, 6795, 1238122,
 	1238070, 8983 }
@@ -190,7 +190,7 @@ local function Healer(env, K, ns, notes, mode)
 			if beat.enchant then
 				local slot, id, left = beat.enchant[1], beat.enchant[2], beat.enchant[3]
 				enchants[slot] = id and { id = id, finish = env._now + left } or nil
-				Slots.Enchant(env, slot - 15, id and { start = env._now + left - 3600, duration = 3600, icon = slot == 16 and 133476 or 132392 } or nil)
+				Slots.Enchant(env, slot - 15, id and { start = env._now + left - 3600, duration = 3600 } or nil)
 				env.FireEvent("WEAPON_ENCHANT_CHANGED")
 			end
 			env.FireEvent("UNIT_AURA", "player", {})
