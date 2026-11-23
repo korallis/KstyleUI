@@ -995,10 +995,9 @@ FitStyles = function()
 	end
 	for _, card in pairs(panel.styleCards) do
 		Widgets.Size(card, fit.width, height)
+		card.picture:SetSize(card:GetWidth() - 2 * pad, picture)
 		card.picture:ClearAllPoints()
 		Widgets.Point(card.picture, "BOTTOMLEFT", card, "BOTTOMLEFT", pad, pad)
-		Widgets.Point(card.picture, "BOTTOMRIGHT", card, "BOTTOMRIGHT", -pad, pad)
-		card.picture:SetHeight(picture)
 	end
 	panel.styleHint:ClearAllPoints()
 	Widgets.Point(panel.styleHint, "TOPLEFT", page, "TOPLEFT", 0, -(Widgets.Snap(page, height) + fit.spacing))
