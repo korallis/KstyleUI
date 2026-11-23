@@ -580,7 +580,7 @@ Trackers.Register("ROGUE", {
 	{ key = "crestFootLeft", seat = "footLeft", size = Medals.FOOT, feed = "cooldown", known = { 1769, 1768, 1767, 1766, 11286, 11285, 8629, 1777, 1776 } },
 	{ key = "crestFootRight", seat = "footRight", size = Medals.FOOT, choices = {
 		{ known = Talent({ 16513, 14113, 14186, 14177 }, POISONS), feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = POISON_STACKS,
-			color = "schoolNature", count = true },
+			color = "schoolNature", pips = 5 },
 		{ feed = "usable", groups = { { 14251 } } },
 		{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 16511 }, color = "plateHostile" },
 		{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 1316709, 1325756, 1325757, 1325758 }, color = "plateHostile" },

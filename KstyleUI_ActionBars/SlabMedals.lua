@@ -16,7 +16,7 @@ local SEATS = {
 	left = { -1, 84, 32 }, right = { 1, 84, 32 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
 	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 67.5, 247 }, footRight = { 1, 67.5, 293 },
 }
-local PIP, PIP_RING, PIP_ARC, GLOW = 4, 17, 22, 0.35
+local PIP, PIP_ARC, GLOW = 4, 22, 0.35
 local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local OWNER = "ActionBars.SlabMedals"
 local refreshed, rims, watchers = {}, {}, {}
@@ -274,8 +274,8 @@ function Medals.Medal(parent, spec, level)
 			lit.timer:SetScript("OnCooldownDone", function() Medals.Fire(m) end)
 		end
 		if each.count and lit.SetApplicationCount then
-			lit.count = Widgets.FontString(lit, "OVERLAY")
-			lit.count:SetPoint("BOTTOMRIGHT", m, "BOTTOMRIGHT", 2, -2)
+			lit.count = Widgets.FontString(Medals.Layer(lit, top + 2), "OVERLAY")
+			lit.count:SetPoint("BOTTOMRIGHT", m, "BOTTOMRIGHT", -1, 1)
 			lit:SetApplicationCount(lit.count)
 		end
 		for n = 1, lit.container and each.pips or 0 do
@@ -285,7 +285,7 @@ function Medals.Medal(parent, spec, level)
 			slot:SetFrameLevel(level + 2)
 			local pip = add(CreateFrame("StatusBar", nil, slot), PIP)
 			local a = rad(270 + (n - (each.pips + 1) / 2) * PIP_ARC)
-			pip:SetPoint("CENTER", m, "CENTER", PIP_RING * cos(a), PIP_RING * sin(a))
+			pip:SetPoint("CENTER", m, "CENTER", (size / 2 + 4) * cos(a), (size / 2 + 4) * sin(a))
 			pip:SetStatusBarTexture((Tokens.Texture("dot")))
 			pip:SetStatusBarColor(Tokens.Color(each.color or "gilt"))
 			slot:SetApplicationBar(pip, { minApplications = n - 1, maxApplications = n })
