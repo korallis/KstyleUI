@@ -338,6 +338,22 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- The ankh is a framed foot medal like the left foot's, its sweep fed by Reincarnation's own cooldown even when no
+-- other piece watches cooldowns, and it greys without an Ankh in the bags.
+do
+	local env, K, ns = New("SHAMAN", { 20608 })
+	local ankh = Tracker(ns, "SHAMAN").built.ankh
+	assert(ankh.ring and ankh.spec.size == ns.SlabMedals.FOOT, "the ankh is a framed medal the size of the left foot's")
+	env._cooling[20608] = true
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(ankh.timer and AB.W.LastCall(ankh.timer, "SetCooldownFromDurationObject"), "Reincarnation's cooldown sweeps it")
+	assert(ankh.glyph:GetAlpha() == 1, "an Ankh in the bags keeps it bright")
+	env._ankhs = 0
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	assert(ankh.glyph:GetAlpha() < 1, "no Ankh in the bags: it greys")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 -- Imbues are imbues: another temporary enchant is no imbue, and under Frames each weapon's medal keeps its
 -- element's icon and colour, the enchant's own timer and the last five minutes' gutter. Oil is oil.
 do
