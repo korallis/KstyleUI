@@ -34,7 +34,6 @@ local ICONS = { channels = { "ChatFrameChannelButton" }, voice = { "ChatFrameTog
 
 local STRIP_HEIGHT = 32
 local EDIT_TILE = 22
-local EDIT_BOTTOM = 6
 
 local IDLE_OWNER = "ChatIdle"
 local WAKE_EVENTS = {
@@ -264,7 +263,7 @@ function Panel.UndockedInsets(frame)
 	local pad = Pad() / k
 	local bottom = -pad
 	if EditAlways() or (type(frame.editBox) == "table" and Focused(frame.editBox)) then
-		bottom = -(EDIT_DROP + EDIT_HEIGHT - max(0, (EDIT_HEIGHT - Tile() / k) / 2) + EDIT_BOTTOM / k)
+		bottom = -(EDIT_DROP + EDIT_HEIGHT - max(0, (EDIT_HEIGHT - Tile() / k) / 2) + pad)
 	end
 	return {
 		left = -pad,
