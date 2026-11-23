@@ -3585,7 +3585,7 @@ ns.Locale.Add({
 	["Sell grey items as soon as you open a merchant, out of combat only."] = "Verkauft graue Gegenst\195\164nde, sobald Ihr einen H\195\164ndler \195\182ffnet, nur au\195\159erhalb des Kampfes.",
 	["Sell junk"] = "Plunder verkaufen",
 	["Sell junk by itself"] = "Plunder von selbst verkaufen",
-	["Sends a gust across the crest and lights its rune ring while Quick Shots lasts."] = "Schickt eine B\195\182e \195\188ber das Wappen und l\195\164sst den Runenring leuchten, solange Schnelle Sch\195\188sse wirkt.",
+	["Sends a gust across the crest and lights its rune ring while Quick Shots or Rapid Fire lasts."] = "Schickt eine B\195\182e \195\188ber das Wappen und l\195\164sst den Runenring leuchten, solange Schnelle Sch\195\188sse oder Schnellfeuer wirkt.",
 	["Separate channel colour"] = "Eigene Kanalisierungsfarbe",
 	["Separate item figures"] = "Gegenstandszahlen trennen",
 	["Separate similar health and power colours"] = "\195\132hnliche Lebens- und Ressourcenfarben trennen",

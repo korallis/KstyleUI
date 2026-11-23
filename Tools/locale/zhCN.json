@@ -3578,7 +3578,7 @@
 	"Sell grey items as soon as you open a merchant, out of combat only.": "打开商人时出售灰色物品，仅限战斗外。",
 	"Sell junk": "出售垃圾",
 	"Sell junk by itself": "自动出售垃圾",
-	"Sends a gust across the crest and lights its rune ring while Quick Shots lasts.": "快速射击生效期间，一阵疾风掠过纹章并点亮其符文环。",
+	"Sends a gust across the crest and lights its rune ring while Quick Shots or Rapid Fire lasts.": "快速射击或急速射击生效期间，一阵疾风掠过纹章并点亮其符文环。",
 	"Separate channel colour": "单独设置引导颜色",
 	"Separate item figures": "分开显示物品数字",
 	"Separate similar health and power colours": "区分相近的生命值和资源颜色",

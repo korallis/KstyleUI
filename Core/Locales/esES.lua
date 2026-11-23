@@ -3585,7 +3585,7 @@ ns.Locale.Add({
 	["Sell grey items as soon as you open a merchant, out of combat only."] = "Vende los objetos grises en cuanto abres un mercader, solo fuera de combate.",
 	["Sell junk"] = "Vender chatarra",
 	["Sell junk by itself"] = "Vender chatarra autom\195\161ticamente",
-	["Sends a gust across the crest and lights its rune ring while Quick Shots lasts."] = "Env\195\173a una r\195\161faga por el emblema e ilumina su anillo de runas mientras dura Disparos r\195\161pidos.",
+	["Sends a gust across the crest and lights its rune ring while Quick Shots or Rapid Fire lasts."] = "Env\195\173a una r\195\161faga por el emblema e ilumina su anillo de runas mientras dura Disparos r\195\161pidos o Fuego r\195\161pido.",
 	["Separate channel colour"] = "Color de canalizaci\195\179n independiente",
 	["Separate item figures"] = "Separar cifras de objetos",
 	["Separate similar health and power colours"] = "Distinguir colores similares de salud y recurso",

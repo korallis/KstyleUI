@@ -6,12 +6,15 @@ local Widgets, Tokens, Effects = K.Widgets, K.Tokens, K.Effects
 local cos, sin, rad, min, max = math.cos, math.sin, math.rad, math.min, math.max
 local IsSecret = Widgets.IsSecret
 local Medals, Trackers = ns.SlabMedals, ns.SlabTrackers
+local CLASS = UnitClass and select(2, UnitClass("player"))
+if IsSecret(CLASS) or CLASS ~= "HUNTER" and CLASS ~= "MAGE" and CLASS ~= "WARLOCK" then
+	return
+end
 
 local SIZE, SOCKET, SPIRE, WISP, LIFT, BAR = 26, 17, 34, 16, 3, 3
-local SOCKETS, ORBIT, PERIOD, STEPS, WISPS, HALO, SHADE, INNER, LOW_AMMO = 82, 46, 12, 24, 5, 1.6, 0.8, 112, 200
+local SOCKETS, ORBIT, PERIOD, STEPS, WISPS, HALO, SHADE, INNER, LOW_AMMO, FAINT = 82, 46, 12, 24, 5, 1.6, 0.8, 112, 200, 0.35
 local MOODS = { "hostile", "neutral", "friendly" }
 local PULSE = { { 0.25, 1, 0.5 }, { 1, 0.25, 0.5 } }
-local GUST = { 112, 28 }
 local COME, FROM, GUST_RUN, GUST_REST = 0.45, { 46, 18 }, 0.7, 0.5
 local PET_EVENTS = { { "UNIT_HEALTH", "pet" }, { "UNIT_MAXHEALTH", "pet" }, { "UNIT_HAPPINESS", "pet" }, { "UNIT_PORTRAIT_UPDATE", "pet" } }
 local ON = {
@@ -127,6 +130,7 @@ local function Glow(parent, spec, level)
 	g.halo:SetTexture((Tokens.Texture("glow")))
 	g.halo:SetVertexColor(Tokens.Color(spec.color))
 	g.halo:SetBlendMode("ADD")
+	g.halo:SetAlpha(FAINT)
 	Medals.Flare(g, g.lit, level + 1, spec.burst or "glow", SIZE * 3)
 	if spec.ward then
 		g.bar = Bar(g.lit, "barSheen", spec.color, nil, true)
@@ -136,16 +140,12 @@ local function Glow(parent, spec, level)
 end
 
 local function Ward(parent, spec, level, form)
-	if form == "row" then
-		return Glow(parent, spec, level)
-	end
-	return Medals.Rim(parent, spec, level)
+	return (form == "row" and Glow or Medals.Rim)(parent, spec, level)
 end
 
 local function Gust(r, spec, level)
 	local feed = Medals.Feed(r, spec, level + 3)
 	local gust = Medals.Layer(feed, level + 3)
-	gust:SetAlpha(0)
 	r.gust = Medals.Texture(gust, "OVERLAY", 0, "trackerGust", spec.color, nil, "ADD")
 	local loop = gust:CreateAnimationGroup()
 	loop:SetLooping("REPEAT")
@@ -179,7 +179,7 @@ local function Ring(piece, anchor, form, _, n)
 	if form == "crest" then
 		Medals.Place(piece, anchor, 0, 0)
 		if piece.gust then
-			Widgets.Size(piece.gust, GUST[1], GUST[2])
+			Widgets.Size(piece.gust, INNER, 28)
 		end
 		return n
 	end
@@ -218,10 +218,16 @@ local function Wisps(parent, spec, level, form)
 	w.number = Widgets.FontString(w, "OVERLAY")
 	Widgets.ApplyFont(w.number, Tokens.Font("number"))
 	w.number:Hide()
+	if form == "crest" then
+		w.full = Medals.Texture(w, "BACKGROUND", 0, "ringLine16", "jewelShard", INNER)
+		w.full:SetAlpha(FAINT)
+		w.full:Hide()
+	end
 	for i = 1, WISPS do
 		local s = Medals.Piece(w, level, WISP)
 		s.angle = 90 - (i - 1) * 360 / WISPS
 		s.wisp = Medals.Layer(s, level)
+		s.add(Medals.Texture(s.wisp, "BACKGROUND", -1, "glow", "black", WISP * 1.6))
 		s.add(Medals.Texture(s.wisp, "BACKGROUND", 0, "glow", "jewelShard", WISP * 1.8, "ADD"))
 		s.art = s.add(Medals.Texture(s.wisp, "ARTWORK", 0, "trackerWisp", "white", WISP, "ADD"))
 		s.come = s.wisp:CreateAnimationGroup()
@@ -251,6 +257,11 @@ local function PlaceWisps(w, anchor, form, _, n)
 		else
 			Medals.Place(s, anchor, left + step * (i - 0.5), cy)
 		end
+	end
+	if w.full then
+		w.full:ClearAllPoints()
+		w.full:SetPoint("CENTER", anchor, "CENTER", 0, 0)
+		Medals.Even(w.full)
 	end
 	w.number:ClearAllPoints()
 	w.number:SetPoint("CENTER", anchor, "CENTER", Widgets.Snap(anchor, form == "crest" and 0 or left + 1.5 * SIZE + Medals.GAP), Widgets.Snap(anchor, form == "crest" and -ORBIT or cy))
@@ -340,6 +351,15 @@ local function PaintPet(m)
 	local dead = UnitIsDead and UnitIsDead("pet")
 	local up = Out() and not (not IsSecret(dead) and dead == true)
 	m.pet:SetShown(up)
+	if m.mood then
+		local info = C_PetInfo
+		local mood = up and info and type(info.GetPetHappiness) == "function" and info.GetPetHappiness()
+		local color = not IsSecret(mood) and MOODS[mood] or nil
+		m.mood:SetShown(color ~= nil)
+		if color then
+			m.mood:SetVertexColor(Tokens.Color(color))
+		end
+	end
 	if not up then
 		return
 	end
@@ -350,25 +370,18 @@ local function PaintPet(m)
 		m.shade:SetMinMaxValues(0, UnitHealthMax("pet"))
 		m.shade:SetValue(UnitHealthMissing("pet"))
 	end
-	if m.mood then
-		local info = C_PetInfo
-		local mood = info and type(info.GetPetHappiness) == "function" and info.GetPetHappiness()
-		local color = not IsSecret(mood) and MOODS[mood] or nil
-		m.mood:SetShown(color ~= nil)
-		if color then
-			m.mood:SetVertexColor(Tokens.Color(color))
-		end
-	end
 end
 
-local function PaintLowMana(m)
-	local item, api = Have(m.spec.items), C_Item
-	local start, duration
-	if item and type(api.GetItemCooldown) == "function" then
-		start, duration = api.GetItemCooldown(item)
+local function PaintLowMana(m, event)
+	if event ~= "UNIT_POWER_UPDATE" then
+		local item, api = Have(m.spec.items), C_Item
+		local start, duration
+		if item and type(api.GetItemCooldown) == "function" then
+			start, duration = api.GetItemCooldown(item)
+		end
+		local cooling = not (IsSecret(start) or IsSecret(duration)) and type(duration) == "number" and duration > 0
+		m.lowMana:SetShown(item ~= nil and not cooling)
 	end
-	local cooling = not (IsSecret(start) or IsSecret(duration)) and type(duration) == "number" and duration > 0
-	m.lowMana:SetShown(item ~= nil and not cooling)
 	m.lowMana:SetAlpha(UnitPowerPercent("player", Enum and Enum.PowerType and Enum.PowerType.Mana or 0, false, m.curve))
 end
 
@@ -389,15 +402,29 @@ local function PaintSwing(r, event, duration, kind)
 		return
 	end
 	local util = C_DurationUtil
-	local object = util and type(util.CreateDuration) == "function" and util.CreateDuration()
-	if object and pcall(object.SetTimeFromStart, object, GetTime(), duration) then
-		r.swing:SetCooldownFromDurationObject(object)
+	r.duration = r.duration or util and type(util.CreateDuration) == "function" and util.CreateDuration()
+	if r.duration and pcall(r.duration.SetTimeFromStart, r.duration, GetTime(), duration) then
+		r.swing:SetCooldownFromDurationObject(r.duration)
 	elseif not IsSecret(duration) and type(duration) == "number" then
 		r.swing:SetCooldown(GetTime(), duration)
 	end
 end
 
+local function Spin(w)
+	local moving = Effects.Allows("pulse") and not w.still and w.count > 0 and w:IsShown()
+	for _, s in ipairs(w.seats) do
+		if s.orbit and moving then
+			if not s.orbit:IsPlaying() then
+				s.orbit:Play()
+			end
+		elseif s.orbit then
+			s.orbit:Stop()
+		end
+	end
+end
+
 local function PaintWisps(w, moving)
+	moving = moving and not w.still
 	local total = Count(w.shard)
 	local n, was = min(WISPS, total), w.count
 	w.count = n
@@ -413,6 +440,10 @@ local function PaintWisps(w, moving)
 			s.flare.play:Play()
 		end
 	end
+	if w.full then
+		w.full:SetShown(total >= WISPS)
+	end
+	Spin(w)
 end
 
 local function Paint(form, event, ...)
@@ -424,7 +455,7 @@ local function Paint(form, event, ...)
 		elseif shown and p.portrait and (all or ON.pet[event]) then
 			PaintPet(p)
 		elseif shown and p.lowMana and (all or ON.mana[event]) then
-			PaintLowMana(p)
+			PaintLowMana(p, event)
 		elseif shown and p.seats and (all or ON.wisps[event]) then
 			PaintWisps(p, moving)
 		elseif shown and p.spires and event == "PLAYER_TARGET_CHANGED" then
@@ -434,147 +465,147 @@ local function Paint(form, event, ...)
 end
 
 local function Motion(form, _, still)
-	local moving = Effects.Allows("pulse") and not still
 	for _, p in pairs(form.pieces) do
-		for _, s in ipairs(p.seats or {}) do
-			if s.orbit and moving and p.count > 0 and p:IsShown() then
-				if not s.orbit:IsPlaying() then
-					s.orbit:Play()
-				end
-			elseif s.orbit then
-				s.orbit:Stop()
+		if p.seats then
+			p.still = still
+			Spin(p)
+		end
+	end
+end
+
+if CLASS == "HUNTER" then
+	local ASPECTS = { 13165, 14318, 14319, 14320, 14321, 14322, 25296, 13163, 5118, 13159, 20043, 20190, 13161, 1299445, 1299446, 1299447, 415423, 469145 }
+	local STINGS = { 1978, 13549, 13550, 13551, 13552, 13553, 13554, 13555, 25295, 3034, 14279, 14280, 3043, 14275, 14276, 14277, 19386, 24132, 24133, 24131, 24134, 24135,
+		24118, 24119, 24120, 1299332, 3674, 14296 }
+
+	Trackers.Register("HUNTER", {
+		{ key = "crestShot", seat = "topGem", size = Medals.FOOT, feed = "usable", groups = { { 20910, 20909, 19306, 1242634 }, { 14271, 14270, 14269, 1495 },
+			{ 20904, 20903, 20902, 20901, 20900, 19434 }, { 2643 } } },
+		{ key = "crestAspect", seat = "leftHip", choices = {
+			{ feed = "aura", spells = ASPECTS },
+			{ feed = "cooldown", known = { 14266, 14265, 14264, 14263, 14262, 14261, 14260, 2973 } },
+		} },
+		{ key = "crestPet", seat = "rightHip", choices = {
+			{ build = Pet, known = { 883 }, mood = true, mend = { 136, 3111, 3661, 3662, 13542, 13543, 13544 } },
+			{ feed = "cooldown", known = { 14287, 14286, 14285, 14284, 14283, 14282, 14281, 3044 } },
+		} },
+		{ key = "crestMark", seat = "footLeft", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL", color = "hostile", spells = { 1130, 14323, 14324, 14325 } },
+		{ key = "crestSting", seat = "footRight", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", color = "schoolNature", newest = true,
+			spells = STINGS, known = { 1978, 3034, 3043, 24118, 3674 } },
+		{ key = "crestAutoShot", seat = "rim", build = Swing, color = "steelLit", known = { 75 } },
+		{ key = "crestCooldowns", seat = "cooldowns", color = "jewelHawk", families = { { spells = { 3045 } }, { spells = { 19263 } }, { spells = { 19574 }, unit = "pet" } } },
+		{ key = "crestGust", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 6150, 1299448, 469144, 3045 }, known = { 3045, 19552, 19553, 19554, 19555, 19556 },
+			color = "jewelHawk", ambient = "medAmbientHunter", gust = true },
+	}, { burst = "medBurstHunter", events = { { "UNIT_PET", "player" }, PET_EVENTS[1], PET_EVENTS[2], PET_EVENTS[3], PET_EVENTS[4], "PLAYER_SWING", { "UNIT_INVENTORY_CHANGED", "player" } },
+		paint = Paint })
+end
+
+if CLASS == "MAGE" then
+	local GEMS, INTELLECT = { 8008, 8007, 5513, 5514 }, { 1459, 1460, 1461, 10156, 10157, 23028 }
+	local WARDS = { 11426, 13031, 13032, 13033, 1463, 8494, 8495, 10191, 10192, 10193, 543, 8457, 8458, 10223, 10225, 6143, 8461, 8462, 10177, 28609 }
+	local FROSTBOLT = { 116, 205, 837, 7322, 8406, 8407, 8408, 10179, 10180, 10181, 25304 }
+	local CHILLS = Trackers.Joined(FROSTBOLT, { 120, 8492, 10159, 10160, 10161 })
+	local NOVA = { 10230, 6131, 865, 122 }
+	local CONJURE = { 10054, 10053, 3552, 759 }
+	local IGNITE = { 11119, 11120, 12846, 12847, 12848 }
+	local FIRE = { 412538, 11366, 12505, 12522, 12523, 12524, 12525, 12526, 18809, 133, 143, 145, 3140, 8400, 8401, 8402, 10148, 10149, 10150, 10151, 25306 }
+	local WINTERS = { 11180, 28592, 28593, 28594, 28595 }
+
+	Trackers.Register("MAGE", {
+		{ key = "crestArmor", seat = "left", feed = "aura", color = "schoolFrost", spells = { 168, 7300, 7301, 7302, 7320, 10219, 10220, 6117, 22782, 22783 } },
+		{ key = "crestManaGem", seat = "right", choices = {
+			{ build = Gem, feed = "item", items = GEMS, lowMana = 0.3, known = function() return Medals.Known(CONJURE) or Have(GEMS) and CONJURE[#CONJURE] end },
+			{ feed = "aura", spells = INTELLECT, color = "schoolArcane" },
+		} },
+		{ key = "crestCounterspell", seat = "leftHip", feed = "cooldown", choices = {
+			{ known = { 2139 } },
+			{ known = { 10199, 10197, 8413, 8412, 2138, 2137, 2136 } },
+		} },
+		{ key = "crestSchool", seat = "rightHip", choices = {
+			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 22959 }, known = { 11095, 12872, 12873 }, color = "schoolFire", pips = 5 },
+			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 12579 }, known = WINTERS, color = "schoolFrost", pips = 5 },
+			{ feed = "cooldown", known = { 1326079 } },
+			{ feed = "cooldown", known = NOVA },
+		} },
+		{ key = "crestFrozen", seat = "footLeft", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", color = "schoolFrost", choices = {
+			{ spells = { 122, 865, 6131, 10230, 12494 }, known = NOVA },
+			{ spells = FROSTBOLT },
+		} },
+		{ key = "crestYourSpell", seat = "footRight", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", newest = true, choices = {
+			{ spells = FIRE, known = IGNITE, color = "schoolFire" },
+			{ spells = CHILLS, known = WINTERS, color = "schoolFrost" },
+			{ spells = { 118, 12824, 12825, 12826, 28271, 28272 }, color = "schoolArcane" },
+		} },
+		{ key = "crestCooldowns", seat = "cooldowns", color = "pipMageGlow", families = { { spells = { 12042 } }, { spells = { 12043 } },
+			{ spells = { 11129, 28682 }, known = { 11129 } }, { spells = { 12051 } }, { spells = { 11958, 27619 }, known = { 11958 } } } },
+		{ key = "crestWard", seat = "rim", build = Ward, place = Ring, feed = "aura", spells = WARDS, color = "rim", ward = true },
+		{ key = "crestClearcasting", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 12536 }, known = { 11213, 12574, 12575, 12576, 12577 },
+			color = "schoolArcane", ambient = "medAmbientMage" },
+	}, { burst = "medBurstMage", events = { "BAG_UPDATE_DELAYED", "BAG_UPDATE_COOLDOWN", { "UNIT_POWER_UPDATE", "player" } }, paint = Paint })
+end
+
+if CLASS == "WARLOCK" then
+	local DEMONS, SACRIFICE = { 688, 697, 712, 713, 691 }, { 18788 }
+	local ARMORS = { 11735, 11734, 11733, 1086, 706, 696, 687 }
+	local STONES = { 9421, 19012, 19013, 5510, 19010, 19011, 5509, 19008, 19009, 5511, 19006, 19007, 5512, 19004, 19005 }
+	local CREATE = { 11730, 11729, 5699, 6202, 6201 }
+	local CURSES = { 702, 1108, 6205, 7646, 11707, 11708, 704, 7658, 7659, 11717, 1714, 11719, 440892, 1311676, 1311677, 1311680, 18223 }
+
+	local function Demon()
+		return (Out() or Medals.Known(SACRIFICE)) and Medals.Known(DEMONS)
+	end
+
+	local function SpellLock()
+		local book, bank = C_SpellBook, Enum and Enum.SpellBookSpellBank
+		if not (Out() and book and type(book.IsSpellKnown) == "function" and bank) then
+			return nil
+		end
+		for _, id in ipairs({ 19647, 19244 }) do
+			local known = book.IsSpellKnown(id, bank.Pet)
+			if not IsSecret(known) and known == true then
+				return id
 			end
 		end
 	end
+
+	Trackers.Register("WARLOCK", {
+		{ key = "crestDemon", seat = "left", choices = {
+			{ build = Pet, known = Demon, feed = "aura", color = "jewelShard", spells = { 18789, 18790, 18791, 18792 } },
+			{ feed = "aura", color = "jewelShard", spells = ARMORS },
+		} },
+		{ key = "crestHealthstone", seat = "right", choices = {
+			{ feed = "item", items = STONES, known = function() return Medals.Known(CREATE) or Have(STONES) and CREATE[#CREATE] end },
+			{ feed = "aura", color = "jewelShard", spells = ARMORS, known = function() return Demon() and Medals.Known(ARMORS) end },
+		} },
+		{ key = "crestStone", seat = "lowerLeft", feed = "enchant", slot = "MainHand", color = "schoolFire", known = { 17728, 17727, 2362, 17953, 17952, 17951, 6366 } },
+		{ key = "crestConflagrate", seat = "lowerRight", build = Jewel, feed = "cooldown", color = "schoolFire", known = { 1293818, 1293817, 18932, 18931, 18930, 17962 } },
+		{ key = "crestCurse", seat = "footLeft", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", color = "jewelShard", spells = CURSES },
+		{ key = "crestSpellLock", seat = "footRight", size = Medals.FOOT, feed = "cooldown", choices = {
+			{ known = SpellLock },
+			{ known = { 17926, 17925, 6789 } },
+		} },
+		{ key = "crestCooldowns", seat = "cooldowns", color = "jewelShard", families = { { spells = { 18288 } }, { spells = { 18708 } },
+			{ spells = { 6229, 11739, 11740, 28610 } }, { spells = { 7812, 19438, 19440, 19441, 19442, 19443 } } } },
+		{ key = "crestWisps", seat = "rim", build = Wisps, place = PlaceWisps, items = { 6265 },
+			known = function() return Medals.Known({ 1120, 8288, 8289, 11675 }) or Count(6265) > 0 and 1120 end },
+		{ key = "crestTorments", seat = "rim", build = Spires, place = PlaceSpires, spires = {
+			{ angle = 126, color = "totemEarth", spells = { 172, 6222, 6223, 7648, 11671, 11672, 25311 } },
+			{ angle = 102, color = "jewelShard", spells = { 980, 1014, 6217, 11711, 11712, 11713, 603, 1225228 } },
+			{ angle = 78, color = "schoolFire", spells = { 348, 707, 1094, 2941, 11665, 11667, 11668, 25309 } },
+			{ angle = 54, color = "healthHostile", spells = { 18265, 18879, 18880, 18881 } },
+		}, known = function(row)
+			for _, s in ipairs(row.spires) do
+				local id = Medals.Known(s.spells)
+				if id then return id end
+			end
+		end },
+		{ key = "crestTrance", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 17941 }, known = { 18094, 18095 },
+			color = "jewelShard", ambient = "medAmbientWarlock" },
+	}, {
+		burst = "medBurstWarlock",
+		events = { PET_EVENTS[1], PET_EVENTS[2], PET_EVENTS[4], "BAG_UPDATE_DELAYED", "BAG_UPDATE_COOLDOWN", "PLAYER_TARGET_CHANGED" },
+		update = { "UNIT_PET" },
+		paint = Paint,
+		motion = Motion,
+	})
 end
-
-local ASPECTS = { 13165, 14318, 14319, 14320, 14321, 14322, 25296, 13163, 5118, 13159, 20043, 20190, 13161, 1299445, 1299446, 1299447, 415423, 469145 }
-local STINGS = { 1978, 13549, 13550, 13551, 13552, 13553, 13554, 13555, 25295, 3034, 14279, 14280, 3043, 14275, 14276, 14277, 19386, 24132, 24133, 24131, 24134, 24135,
-	24118, 24119, 24120, 1299332, 3674, 14296 }
-
-Trackers.Register("HUNTER", {
-	{ key = "crestShot", seat = "topGem", size = Medals.FOOT, feed = "usable", groups = { { 20910, 20909, 19306, 1242634 }, { 14271, 14270, 14269, 1495 },
-		{ 20904, 20903, 20902, 20901, 20900, 19434 }, { 2643 } } },
-	{ key = "crestAspect", seat = "leftHip", choices = {
-		{ feed = "aura", spells = ASPECTS },
-		{ feed = "cooldown", known = { 14266, 14265, 14264, 14263, 14262, 14261, 14260, 2973 } },
-	} },
-	{ key = "crestPet", seat = "rightHip", choices = {
-		{ build = Pet, known = { 883 }, mood = true, mend = { 136, 3111, 3661, 3662, 13542, 13543, 13544 } },
-		{ feed = "cooldown", known = { 14287, 14286, 14285, 14284, 14283, 14282, 14281, 3044 } },
-	} },
-	{ key = "crestMark", seat = "footLeft", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL", color = "hostile", spells = { 1130, 14323, 14324, 14325 } },
-	{ key = "crestSting", seat = "footRight", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", color = "schoolNature", newest = true,
-		spells = STINGS, known = { 1978, 3034, 3043, 24118, 3674 } },
-	{ key = "crestAutoShot", seat = "rim", build = Swing, color = "steelLit", known = { 75 } },
-	{ key = "crestCooldowns", seat = "cooldowns", color = "jewelHawk", families = { { spells = { 3045 } }, { spells = { 19263 } }, { spells = { 19574 }, unit = "pet" } } },
-	{ key = "crestGust", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 6150, 1299448, 469144 }, known = { 19552, 19553, 19554, 19555, 19556 },
-		color = "jewelHawk", ambient = "medAmbientHunter", gust = true },
-}, { burst = "medBurstHunter", events = { { "UNIT_PET", "player" }, PET_EVENTS[1], PET_EVENTS[2], PET_EVENTS[3], PET_EVENTS[4], "PLAYER_SWING", { "UNIT_INVENTORY_CHANGED", "player" } },
-	paint = Paint })
-
-local GEMS, INTELLECT = { 8008, 8007, 5513, 5514 }, { 1459, 1460, 1461, 10156, 10157, 23028 }
-local WARDS = { 11426, 13031, 13032, 13033, 1463, 8494, 8495, 10191, 10192, 10193, 543, 8457, 8458, 10223, 10225, 6143, 8461, 8462, 10177, 28609 }
-local FROSTBOLT = { 116, 205, 837, 7322, 8406, 8407, 8408, 10179, 10180, 10181, 25304 }
-local CHILLS = { 116, 205, 837, 7322, 8406, 8407, 8408, 10179, 10180, 10181, 25304, 120, 8492, 10159, 10160, 10161 }
-local NOVA = { 10230, 6131, 865, 122 }
-local CONJURE = { 10054, 10053, 3552, 759 }
-local IGNITE = { 11119, 11120, 12846, 12847, 12848 }
-local FIRE = { 412538, 11366, 12505, 12522, 12523, 12524, 12525, 12526, 18809, 133, 143, 145, 3140, 8400, 8401, 8402, 10148, 10149, 10150, 10151, 25306 }
-local WINTERS = { 11180, 28592, 28593, 28594, 28595 }
-
-Trackers.Register("MAGE", {
-	{ key = "crestArmor", seat = "left", feed = "aura", color = "schoolFrost", spells = { 168, 7300, 7301, 7302, 7320, 10219, 10220, 6117, 22782, 22783 } },
-	{ key = "crestManaGem", seat = "right", choices = {
-		{ build = Gem, feed = "item", items = GEMS, lowMana = 0.3, known = function() return Medals.Known(CONJURE) or Have(GEMS) and CONJURE[#CONJURE] end },
-		{ feed = "aura", spells = INTELLECT, color = "schoolArcane" },
-	} },
-	{ key = "crestCounterspell", seat = "leftHip", feed = "cooldown", choices = {
-		{ known = { 2139 } },
-		{ known = { 10199, 10197, 8413, 8412, 2138, 2137, 2136 } },
-	} },
-	{ key = "crestSchool", seat = "rightHip", choices = {
-		{ feed = "aura", unit = "target", filter = "HARMFUL", spells = { 22959 }, known = { 11095, 12872, 12873 }, color = "schoolFire", pips = 5 },
-		{ feed = "aura", unit = "target", filter = "HARMFUL", spells = { 12579 }, known = WINTERS, color = "schoolFrost", pips = 5 },
-		{ feed = "cooldown", known = { 1326079 } },
-		{ feed = "cooldown", known = NOVA },
-	} },
-	{ key = "crestFrozen", seat = "footLeft", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", color = "schoolFrost", choices = {
-		{ spells = { 122, 865, 6131, 10230, 12494 }, known = NOVA },
-		{ spells = FROSTBOLT },
-	} },
-	{ key = "crestYourSpell", seat = "footRight", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", newest = true, choices = {
-		{ spells = FIRE, known = IGNITE, color = "schoolFire" },
-		{ spells = CHILLS, known = WINTERS, color = "schoolFrost" },
-		{ spells = { 118, 12824, 12825, 12826, 28271, 28272 }, color = "schoolArcane" },
-	} },
-	{ key = "crestCooldowns", seat = "cooldowns", color = "pipMageGlow", families = { { spells = { 12042 } }, { spells = { 12043 } },
-		{ spells = { 11129, 28682 }, known = { 11129 } }, { spells = { 12051 } }, { spells = { 11958, 27619 }, known = { 11958 } } } },
-	{ key = "crestWard", seat = "rim", build = Ward, place = Ring, feed = "aura", spells = WARDS, color = "rim", ward = true },
-	{ key = "crestClearcasting", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 12536 }, known = { 11213, 12574, 12575, 12576, 12577 },
-		color = "schoolArcane", ambient = "medAmbientMage" },
-}, { burst = "medBurstMage", events = { "BAG_UPDATE_DELAYED", "BAG_UPDATE_COOLDOWN", { "UNIT_POWER_UPDATE", "player" } }, paint = Paint })
-
-local DEMONS, SACRIFICE = { 688, 697, 712, 713, 691 }, { 18788 }
-local ARMORS = { 11735, 11734, 11733, 1086, 706, 696, 687 }
-local STONES = { 9421, 19012, 19013, 5510, 19010, 19011, 5509, 19008, 19009, 5511, 19006, 19007, 5512, 19004, 19005 }
-local CREATE = { 11730, 11729, 5699, 6202, 6201 }
-local CURSES = { 702, 1108, 6205, 7646, 11707, 11708, 704, 7658, 7659, 11717, 1714, 11719, 440892, 1311676, 1311677, 1311680, 18223 }
-
-local function Demon()
-	return (Out() or Medals.Known(SACRIFICE)) and Medals.Known(DEMONS)
-end
-
-local function SpellLock()
-	local book, bank = C_SpellBook, Enum and Enum.SpellBookSpellBank
-	if not (Out() and book and type(book.IsSpellKnown) == "function" and bank) then
-		return nil
-	end
-	for _, id in ipairs({ 19647, 19244 }) do
-		local known = book.IsSpellKnown(id, bank.Pet)
-		if not IsSecret(known) and known == true then
-			return id
-		end
-	end
-end
-
-Trackers.Register("WARLOCK", {
-	{ key = "crestDemon", seat = "left", choices = {
-		{ build = Pet, known = Demon, feed = "aura", color = "jewelShard", spells = { 18789, 18790, 18791, 18792 } },
-		{ feed = "aura", color = "jewelShard", spells = ARMORS },
-	} },
-	{ key = "crestHealthstone", seat = "right", choices = {
-		{ feed = "item", items = STONES, known = function() return Medals.Known(CREATE) or Have(STONES) and CREATE[#CREATE] end },
-		{ feed = "aura", color = "jewelShard", spells = ARMORS, known = function() return Demon() and Medals.Known(ARMORS) end },
-	} },
-	{ key = "crestStone", seat = "lowerLeft", feed = "enchant", slot = "MainHand", color = "schoolFire", known = { 17728, 17727, 2362, 17953, 17952, 17951, 6366 } },
-	{ key = "crestConflagrate", seat = "lowerRight", build = Jewel, feed = "cooldown", color = "schoolFire", known = { 1293818, 1293817, 18932, 18931, 18930, 17962 } },
-	{ key = "crestCurse", seat = "footLeft", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", color = "jewelShard", spells = CURSES },
-	{ key = "crestSpellLock", seat = "footRight", size = Medals.FOOT, feed = "cooldown", choices = {
-		{ known = SpellLock },
-		{ known = { 17926, 17925, 6789 } },
-	} },
-	{ key = "crestCooldowns", seat = "cooldowns", color = "jewelShard", families = { { spells = { 18288 } }, { spells = { 18708 } },
-		{ spells = { 6229, 11739, 11740, 28610 } }, { spells = { 7812, 19438, 19440, 19441, 19442, 19443 } } } },
-	{ key = "crestWisps", seat = "rim", build = Wisps, place = PlaceWisps, items = { 6265 },
-		known = function() return Medals.Known({ 1120, 8288, 8289, 11675 }) or Count(6265) > 0 and 1120 end },
-	{ key = "crestTorments", seat = "rim", build = Spires, place = PlaceSpires, spires = {
-		{ angle = 126, color = "totemEarth", spells = { 172, 6222, 6223, 7648, 11671, 11672, 25311 } },
-		{ angle = 102, color = "jewelShard", spells = { 980, 1014, 6217, 11711, 11712, 11713, 603, 1225228 } },
-		{ angle = 78, color = "schoolFire", spells = { 348, 707, 1094, 2941, 11665, 11667, 11668, 25309 } },
-		{ angle = 54, color = "healthHostile", spells = { 18265, 18879, 18880, 18881 } },
-	}, known = function(row)
-		for _, s in ipairs(row.spires) do
-			local id = Medals.Known(s.spells)
-			if id then return id end
-		end
-	end },
-	{ key = "crestTrance", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 17941 }, known = { 18094, 18095 },
-		color = "jewelShard", ambient = "medAmbientWarlock" },
-}, {
-	burst = "medBurstWarlock",
-	events = { PET_EVENTS[1], PET_EVENTS[2], PET_EVENTS[4], "BAG_UPDATE_DELAYED", "BAG_UPDATE_COOLDOWN", "PLAYER_TARGET_CHANGED" },
-	update = { "UNIT_PET" },
-	paint = Paint,
-	motion = Motion,
-})

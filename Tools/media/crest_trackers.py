@@ -52,7 +52,6 @@ def blur(a, radius):
 
 def bake(light, size, fade):
     """light: HxWx3 linear light at 8x -> an RGBA image at size with ADD alpha and an edge fade."""
-    h, w, _ = light.shape
     img = Image.fromarray(np.uint8(np.clip(light, 0, 1) * 65535 // 257), "RGB")
     small = np.asarray(img.resize(size, Image.LANCZOS), dtype=np.float64) / 255
     small = small * fade(size)[..., None]
@@ -99,7 +98,7 @@ def wisp():
     shape = np.maximum(flame * (0.35 + 0.65 * rise), body)
     glow = blur(shape, n * 0.015) * 0.95 + blur(shape, n * 0.05) * 0.3
     hot = blur(np.maximum(core, inner * rise * 0.55), n * 0.02)
-    violet, white = np.array(to_linear(np.array(VIOLET))), np.array(to_linear(np.array(CORE)))
+    violet, white = to_linear(np.array(VIOLET)), to_linear(np.array(CORE))
     light = glow[..., None] * violet + hot[..., None] * white * 1.3
     return bake(light, (64, 64), radial_fade)
 
@@ -138,7 +137,7 @@ def main():
     for name, image in (("SoulWisp.png", wisp()), ("Gust.png", gust())):
         path = args.out / name
         image.save(path, optimize=True)
-        print(path.relative_to(ROOT).as_posix(), image.size, hashlib.sha256(path.read_bytes()).hexdigest())
+        print(path.as_posix(), image.size, hashlib.sha256(path.read_bytes()).hexdigest())
 
 
 if __name__ == "__main__":

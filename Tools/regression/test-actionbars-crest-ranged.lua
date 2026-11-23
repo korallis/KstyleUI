@@ -1,4 +1,4 @@
--- test-actionbars-crest-ranged.lua: a hunter's, mage's and warlock's crest trackers (KstyleUI_ActionBars/SlabRanged.lua) through the one tracker lifecycle: no other class registers them; every seat has a choice for each build, pet state and level band (Raptor Strike and Arcane Shot before the Aspect and the pet, a melee hunter's strike for the Mark, Arcane Intellect before the mana gem, the mage's school debuff by talent, armor for a warlock with no demon); aura pieces light through Blizzard's aura slots and Lua reads no aura; the pet and demon medals show the pet's portrait, its missing health as a bar fed the engine's values and its happiness as a rim; the gem and Healthstone are lit, cooling or empty from bag counts and item cooldowns; each spire stands alone once known and drains through duration bars; the soul wisps count Soul Shards up to five, fly in, burst, circle only at Full off rest and replace the shard jewels; cooldown rims stack the class's cooldowns, a pet's Bestial Wrath among them; moments hand the engine their flares and fires only at Full; secret auras build nothing until combat ends; each switch hides its seat alone; Frames stands the seats in the row; nothing runs OnUpdate; every crest part is an even number of pixels at four screen sizes and the spires stay under the cooldown row.
+-- test-actionbars-crest-ranged.lua: a hunter's, mage's and warlock's crest trackers (KstyleUI_ActionBars/SlabRanged.lua) through the one tracker lifecycle: no other class registers them; every seat has a choice for each build, pet state and level band (Raptor Strike and Arcane Shot before the Aspect and the pet, a melee hunter's strike for the Mark, Arcane Intellect before the mana gem, the mage's school debuff by talent, armor for a warlock with no demon); aura pieces light through Blizzard's aura slots and Lua reads no aura; the pet and demon medals show the pet's portrait, its missing health as a bar fed the engine's values and its happiness as a rim, which goes with the pet; the gem and Healthstone are lit, cooling or empty from bag counts and item cooldowns; each spire stands alone once known and drains through duration bars; the soul wisps count Soul Shards up to five with a faint rim at five or more, fly in, burst and circle only at Full off rest, the first one too, and replace the shard jewels; Rapid Fire alone gusts; your school debuff only fills the school medal; cooldown rims stack the class's cooldowns, a pet's Bestial Wrath among them; moments hand the engine their flares and fires only at Full; secret auras build nothing until combat ends; each switch hides its seat alone; Frames stands the seats in the row; a mana update asks the bags nothing and every shot reuses one duration object; nothing loads for any other class; nothing runs OnUpdate; every crest part is an even number of pixels at four screen sizes and the spires stay under the cooldown row.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
@@ -20,7 +20,6 @@ local function New(class, opts)
 			e._known = {}
 			for _, id in ipairs(opts.known or KNOWN[class] or {}) do e._known[id] = true end
 			e.C_SpellBook = e.C_SpellBook or {}
-			e.C_SpellBook.IsSpellKnown = function(id) return e._known[id] == true end
 			e.C_Secrets = { ShouldAurasBeSecret = function() return e._aurasSecret == true end }
 			e._aurasSecret = opts.secret
 			e._bags, e._cooling, e._usable = opts.bags or {}, {}, {}
@@ -116,6 +115,8 @@ for _, class in ipairs({ "WARRIOR", "SHAMAN", "ROGUE", "PRIEST", "PALADIN", "DRU
 	for _, key in ipairs({ "crestAspect", "crestManaGem", "crestTorments", "crestWisps", "crestSchool", "crestShot", "crestCurse" }) do
 		assert(not ns.SlabTrackers.Has(key), class .. ": no " .. key .. " row")
 	end
+	local rows = ns.SlabTrackers.CLASSES
+	assert(not (rows.HUNTER or rows.MAGE or rows.WARLOCK), class .. ": no ranged row is even loaded")
 	Clean(env, K)
 end
 
@@ -144,7 +145,8 @@ do
 	assert(sting.steel._state.Texture[1] == 1000000 + 1978, "the perch rests on Serpent Sting")
 	Slots.Set(env, "target", { { id = 1978, icon = 132204, harmful = true, mine = false, start = 0, duration = 15 } })
 	assert(not sting.lit:IsShown() and not mark.lit:IsShown(), "another hunter's Sting leaves your perch dark")
-	assert(not pet.pet:IsShown(), "no pet: the pet medal is grey steel")
+	assert(not pet.pet:IsShown() and not pet.mood:IsShown(), "no pet: the pet medal is grey steel with no happiness rim")
+	assert(not (ns.SlabTrackers.CLASSES.MAGE or ns.SlabTrackers.CLASSES.WARLOCK), "a hunter loads only the hunter's rows")
 	env._pet = { max = 1800, missing = 600, mood = 2 }
 	env.FireEvent("UNIT_PET", "player")
 	assert(pet.pet:IsShown() and pet.portrait._portrait == "pet", "a pet shows its portrait")
@@ -157,6 +159,11 @@ do
 	local r, g, b = K.Tokens.Color("neutral")
 	local mr, mg, mb = pet.mood:GetVertexColor()
 	assert(pet.mood:IsShown() and math.abs(mr - r) + math.abs(mg - g) + math.abs(mb - b) < 1e-3, "a content pet rims the medal amber")
+	env._pet = nil
+	env.FireEvent("UNIT_PET", "player")
+	assert(not pet.mood:IsShown(), "a dismissed pet takes its happiness rim with it")
+	env._pet = { max = 1800, missing = 600, mood = 2 }
+	env.FireEvent("UNIT_PET", "player")
 	env._pet.mood = env.Secret(3)
 	env.FireEvent("UNIT_HAPPINESS", "pet")
 	assert(not pet.mood:IsShown(), "a secret happiness hides the rim rather than guess")
@@ -173,6 +180,16 @@ do
 	assert(seen == 2, "Rapid Fire and the pet's Bestial Wrath both stand on the cooldown rim")
 	local gust = Piece(ns, "crestGust")
 	assert(Shown(gust.lits[#gust.lits], gust.lits[#gust.lits].loop), "at Full the gust is the engine's shown animation")
+	assert(gust.gust:GetParent():GetAlpha() > 0, "the gust's streaks stay visible if its tween never runs")
+	Clean(env, K)
+end
+
+do
+	local env, K, ns = New("HUNTER", { known = { 13165, 883, 3045, 75 } })
+	local gust = Piece(ns, "crestGust")
+	assert(gust, "Rapid Fire alone brings the gust, without Deadly Aspects")
+	Slots.Set(env, "player", { { id = 3045, icon = 132208, start = 0, duration = 15 } })
+	assert(gust.lit:IsShown() and gust.lits[#gust.lits]:IsShown(), "Rapid Fire up gusts across the crest with no Quick Shots")
 	Clean(env, K)
 end
 
@@ -188,7 +205,10 @@ do
 	env.FireEvent("SPELL_UPDATE_USABLE")
 	assert(shot.usable == 19306, "Counterattack after a parry comes first")
 	local ring = Piece(ns, "crestAutoShot")
-	env.FireEvent("PLAYER_SWING", env.Secret(2.8), 2)
+	local made, create = 0, env.C_DurationUtil.CreateDuration
+	env.C_DurationUtil.CreateDuration = function() made = made + 1 return create() end
+	for _ = 1, 10 do env.FireEvent("PLAYER_SWING", env.Secret(2.8), 2) end
+	assert(made == 1, "ten shots reuse one duration object, as the swing timer does (" .. made .. " made)")
 	assert(AB.W.LastCall(ring.swing, "SetCooldownFromDurationObject") or AB.W.LastCall(ring.swing, "SetCooldown"), "each Auto Shot restarts the ring, its duration secret or not")
 	local r, g, b = K.Tokens.Color("steelLit")
 	local sr, sg, sb = unpack(ring.swing._state.SwipeColor)
@@ -219,6 +239,10 @@ do
 	Learn(env, 11095, 11119)
 	local fire, fs = Piece(ns, "crestSchool", 1)
 	assert(fs and fire.spec.pips == 5 and select(2, Piece(ns, "crestYourSpell", 1)), "Improved Scorch makes it Fire Vulnerability with five stacks; Ignite makes the spell perch your fire damage")
+	Slots.Set(env, "target", { { id = 22959, icon = 135818, harmful = true, mine = false, start = 0, duration = 30, applications = 5 } })
+	assert(not fire.lit:IsShown(), "another mage's Fire Vulnerability leaves your school medal dark")
+	Slots.Set(env, "target", { { id = 22959, icon = 135818, harmful = true, mine = true, start = 0, duration = 30, applications = 5 } })
+	assert(fire.lit:IsShown(), "your own Fire Vulnerability fills it")
 	Clean(env, K)
 end
 
@@ -229,8 +253,13 @@ do
 	env._bags[5514] = 1
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(gem.lit:IsShown() and gem.lit.icon._state.Texture[1] == 5005514, "a gem in the bags lights the medal")
+	local asked, count, cooldown = 0, env.C_Item.GetItemCount, env.C_Item.GetItemCooldown
+	env.C_Item.GetItemCount = function(...) asked = asked + 1 return count(...) end
+	env.C_Item.GetItemCooldown = function(...) asked = asked + 1 return cooldown(...) end
 	env.FireEvent("UNIT_POWER_UPDATE", "player", "MANA")
 	assert(gem.lowMana:IsShown() and gem.lowMana:GetAlpha() == 0.25, "the low-mana glow takes its alpha from the engine's mana curve")
+	assert(asked == 0, "a mana update asks the bags nothing (" .. asked .. " queries)")
+	env.C_Item.GetItemCount, env.C_Item.GetItemCooldown = count, cooldown
 	env._cooling[5514] = { 100, 120 }
 	env.FireEvent("BAG_UPDATE_COOLDOWN")
 	assert(not gem.lowMana:IsShown() and AB.W.LastCall(gem.timer, "SetCooldown"), "a used gem cools under a draining swipe and drops its low-mana glow")
@@ -264,12 +293,13 @@ do
 	env._bags[6265] = 1
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(not wisps.seats[2].wisp:IsShown() and wisps.seats[2].flare.play:IsPlaying() and wisps.seats[3].flare.play:IsPlaying(), "each spent shard bursts")
-	assert(not wisps.number:IsShown(), "five or fewer shards: the wisps alone")
+	assert(not wisps.number:IsShown() and not wisps.full:IsShown(), "five or fewer shards: the wisps alone")
 	env._bags[6265] = 9
 	env.FireEvent("BAG_UPDATE_COOLDOWN")
 	assert(wisps.count == 1, "the wisps count only on BAG_UPDATE_DELAYED")
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(wisps.count == 5 and wisps.number:IsShown() and tostring(wisps.number:GetText()) == "9", "nine shards across the bags: five wisps and the exact count")
+	assert(wisps.full:IsShown(), "five or more shards: the rim keeps a faint violet light")
 	assert(select(2, Piece(ns, "crestDemon", 2)) and not Piece(ns, "crestDemon", 1), "no demon out: the left shoulder times Demon Armor")
 	env._pet = { max = 1200, missing = 0 }
 	env.FireEvent("UNIT_PET", "player")
@@ -291,6 +321,22 @@ do
 	assert(not wisps:IsShown() and ns.SlabJewels.state.class == nil, "Soul wisps off hides the wisps; no jewel ever reads a soul shard power")
 	K.Options.Write("Medallions", "motion", "calm")
 	assert(not wisps.seats[1].orbit:IsPlaying(), "Calm holds the wisps on their seats")
+	Clean(env, K)
+end
+
+do
+	local env, K, ns = New("WARLOCK")
+	local wisps = Piece(ns, "crestWisps")
+	env._bags[6265] = 1
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	assert(ns.Slab.Resting() and wisps.seats[1].wisp:IsShown() and not wisps.seats[1].come:IsPlaying(), "Calm crest at rest: a gained shard settles without flying in")
+	env._bags[6265] = 0
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	assert(not wisps.seats[1].flare.play:IsPlaying(), "Calm crest at rest: a spent shard goes without a burst")
+	env.SetTarget(true)
+	env._bags[6265] = 1
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	assert(wisps.seats[1].come:IsPlaying() and wisps.seats[1].orbit:IsPlaying(), "the first shard gained with the crest awake flies in and circles at once")
 	Clean(env, K)
 end
 
