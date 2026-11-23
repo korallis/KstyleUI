@@ -88,7 +88,7 @@ do
 	Medals.Refresh(socket)
 	assert(socket.bar:GetValue() == 1, "a ready cooldown socket stands full")
 	cooling = true
-	Medals.Refresh(socket)
+	Medals.Refresh(socket, "SPELL_UPDATE_COOLDOWN")
 	assert(AB.W.LastCall(socket.bar, "SetTimerDuration"), "a cooling one refills over the cooldown")
 	assert(socket.timer:GetScript("OnCooldownDone"), "and flares when it is ready")
 end

@@ -269,7 +269,7 @@ local function Paint(event, ...)
 	for _, piece in ipairs(form and form.lua or {}) do
 		local kind = piece.spec.feed
 		if kind ~= "fiveSecond" and piece:IsShown() and (not event or ROUTE[kind][event]) then
-			Medals.Refresh(piece)
+			Medals.Refresh(piece, event)
 		end
 	end
 	local hooks = form and HOOKS[ns.class]

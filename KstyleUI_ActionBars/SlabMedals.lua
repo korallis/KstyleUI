@@ -520,7 +520,17 @@ function Medals.Rest()
 	end
 end
 
-function Medals.Refresh(m)
+local function Cooling(m, id, event)
+	m.cooling = m.cooling or {}
+	if event == "SPELL_UPDATE_COOLDOWN" or event == nil and m.cooling[id] == nil then
+		local get = C_Spell and C_Spell.GetSpellCooldown
+		local cd = type(get) == "function" and get(id)
+		m.cooling[id] = type(cd) == "table" and cd.isActive == true and cd.isOnGCD ~= true
+	end
+	return m.cooling[id] == true
+end
+
+function Medals.Refresh(m, event)
 	local spec = m.spec
 	if spec.feed == "cooldown" then
 		local api = C_Spell
@@ -531,9 +541,8 @@ function Medals.Refresh(m)
 			m.timer:Clear()
 		end
 		if m.bar then
-			local cd = api and type(api.GetSpellCooldown) == "function" and api.GetSpellCooldown(spec.spell)
 			local modes = Enum or {}
-			if duration and m.bar.SetTimerDuration and type(cd) == "table" and cd.isActive == true and cd.isOnGCD ~= true then
+			if duration and m.bar.SetTimerDuration and Cooling(m, spec.spell, event) then
 				local interpolation = modes.StatusBarInterpolation and modes.StatusBarInterpolation.Immediate or 0
 				local direction = modes.StatusBarTimerDirection and modes.StatusBarTimerDirection.ElapsedTime or 0
 				m.bar:SetTimerDuration(duration, interpolation, direction)
@@ -593,9 +602,7 @@ function Medals.Refresh(m)
 		if IsSecret(usable) then
 			return
 		end
-		local cd = type(api.GetSpellCooldown) == "function" and api.GetSpellCooldown(id)
-		local cooling = type(cd) == "table" and cd.isActive == true and cd.isOnGCD ~= true
-		if usable == true and not cooling then
+		if usable == true and not Cooling(m, id, event) then
 			lit = id
 			break
 		end
