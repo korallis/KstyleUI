@@ -18,4 +18,10 @@ return {
 			["GameTooltip:Hide"] = 1,
 		},
 	},
+	["KstyleUI_ActionBars/SlabVigil.lua"] = {
+		why = "Inner Fire's charges are read only when Medals.Restricted() (ShouldAurasBeSecret) says auras are not secret, and the count passes Widgets.IsSecret (issecretvalue) before any comparison.",
+		calls = {
+			["C_UnitAuras.GetPlayerAuraBySpellID"] = 1,
+		},
+	},
 }
