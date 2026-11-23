@@ -221,7 +221,7 @@ do
 	panel:Close()
 end
 
--- The settings window offers Your own only as the status of custom settings.
+-- The settings window shows Your own only as the status of custom settings, and the Look row keeps its height.
 do
 	local env, K, ns = O.New()
 	local function Row()
@@ -229,12 +229,18 @@ do
 			if row:IsShown() and row.item and row.item.label == "Look" then return row end
 		end
 	end
+	local function Own(tabs)
+		local i = tabs:IndexOf("Custom")
+		return i and tabs.buttons[i]:IsEnabled()
+	end
 	K.Options.Open("General")
 	Settle(env)
-	assert(#Row().item.options == 3, "on Forged the Look row offers the three Looks only")
+	local height = Row():GetHeight()
+	assert(Row().controls.segmented:GetValue() == "Forged" and Own(Row().controls.segmented) == false, "on Forged, Your own is a status that cannot be clicked")
 	K.Options.Write("Widgets", "ornaments", "Subtle")
 	Settle(env)
-	assert(#Row().item.options == 4 and Row().controls.segmented:GetValue() == "Custom", "custom settings show Your own")
+	assert(Row().controls.segmented:GetValue() == "Custom" and Own(Row().controls.segmented) ~= false, "custom settings light Your own")
+	assert(Row():GetHeight() == height, "the Look row keeps its height, so the rows below never move under the pointer")
 end
 
 -- Big pictures load only on the step that shows them and are released when turned off; a closed setup builds no Look tabs.
