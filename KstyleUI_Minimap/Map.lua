@@ -764,6 +764,7 @@ local function OnBlizzardConfig()
 	if running then
 		ApplyMask()
 		Map.face.north:SetShown(not Data.Rotated())
+		Map.face:PlaceRound(Face.Round())
 	end
 end
 

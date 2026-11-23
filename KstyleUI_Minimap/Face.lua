@@ -346,7 +346,7 @@ local function ZoneCenter(face, side)
 	local mark = max(face.plate.diamond.black:GetHeight() or 0, Extent(face.north)) / 2
 	local clear = mark - Snap(card, Format.FRAME) + Widgets.Border(card)
 	local y = max(Snap(card, Format.ZONE_CENTER), Snap(card, clear + Extent(face.zone) / 2))
-	return Face.Round() and Settings.Get("clearPlaques") and max(y, Snap(card, side * (1 / RingOuter() - 1) / 2 + PlaqueHeight(face) / 2 + 2 - Format.FRAME)) or y
+	return Face.Round() and (Settings.Get("clearPlaques") or Face.Frame() ~= "classic") and max(y, Snap(card, side * (1 / RingOuter() - 1) / 2 + PlaqueHeight(face) / 2 + 2 - Format.FRAME)) or y
 end
 
 function Face:Clamp(left, bottom, width, height, rootWidth, rootHeight)
@@ -627,7 +627,7 @@ function Face:PlaceRound(round)
 		self.runes:SetVertexColor(r, g, b, 0.25)
 		self.enamel:SetShown(crest)
 		self.runes:SetShown(crest)
-		self.northBand:SetShown(crest)
+		self.northBand:SetShown(crest and self.north:IsShown())
 	end
 	local card, side = self.card, self.mapSize or 0
 	local outer = side / RingOuter()
@@ -638,10 +638,8 @@ function Face:PlaceRound(round)
 	if crest then
 		local band = self.northBand
 		Widgets.Size(band, outer * 2 * NORTH_GAP, outer * (NORTH_BOTTOM - NORTH_TOP))
-		band:ClearAllPoints()
 		Widgets.Point(band, "TOP", ring, "TOP", 0, -outer * NORTH_TOP)
-		self.plate:ClearAllPoints()
-		Widgets.Point(self.plate, "CENTER", self.mapArea, "TOP", 0, Snap(self.mapArea, side * (1 / RingOuter() - 1) / 4))
+		Widgets.Point(self.plate, "CENTER", self.mapArea, "TOP", 0, Snap(self.mapArea, (outer - side) / 4))
 		Style.Text(self.north, NORTH_ROLE, "zone", outer * NORTH_RUNE)
 		self.north:SetTextColor(Widgets.Rgba("steelLit"))
 	end
@@ -657,15 +655,12 @@ function Face:PlaceRound(round)
 	Widgets.Point(row, "CENTER", card, "BOTTOM", 0, -Snap(card, RowCenter(self)))
 	local seated = Face.Frame() == "medallion"
 	self.clockAnchor = seated and row or nil
-	local rowWidth = width
 	if seated then
 		local coords = Face.Moved("coords") and 0 or self.coords:GetStringWidth() or 0
 		local clock = self.coordsAlone and 0 or (self.clock:GetStringWidth() or 0) + (self.meridiem:GetStringWidth() or 0)
-		rowWidth = Snap(card, min(width, max(side * 0.6, coords + clock + 2 * PLAQUE_PAD + 12)))
+		local rowWidth = Snap(card, min(width, max(side * 0.6, coords + clock + 2 * PLAQUE_PAD + 12)))
 		self.coordsFit = (Face.Moved("coords") or rowWidth >= width) and math.huge or max(coords, rowWidth - clock - 2 * PLAQUE_PAD - 12)
-	end
-	row:SetWidth(rowWidth)
-	if seated then
+		row:SetWidth(rowWidth)
 		row:ClearAllPoints()
 		Widgets.Point(row, "CENTER", ring, "BOTTOM")
 	end
