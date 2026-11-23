@@ -3,7 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens, Effects = K.Widgets, K.Tokens, K.Effects
-local cos, sin, rad, floor, max = math.cos, math.sin, math.rad, math.floor, math.max
+local cos, sin, rad, max = math.cos, math.sin, math.rad, math.max
 local IsSecret = Widgets.IsSecret
 
 local Jewels = {}
@@ -77,11 +77,7 @@ local function Count(kind)
 end
 Jewels.Count = Count
 
-local function Even(region)
-	local px = Widgets.Border(region)
-	local side = max(2, 2 * floor(region.units / px / 2 + 0.5)) * px
-	region:SetSize(side, side)
-end
+local Even = ns.SlabMedals.Even
 
 local function Fade(target, from, to, duration, delay, order)
 	local group = target.fade or target:CreateAnimationGroup()
@@ -105,12 +101,7 @@ local function Fleeting(target)
 end
 
 local function Texture(parent, size, sublevel, texture, color)
-	local t = parent:CreateTexture(nil, "ARTWORK", nil, sublevel)
-	t:SetTexture((Tokens.Texture(texture)))
-	t:SetVertexColor(Tokens.Color(color))
-	t:SetPoint("CENTER", parent, "CENTER", 0, 0)
-	t.units = size
-	return t
+	return ns.SlabMedals.Texture(parent, "ARTWORK", sublevel, texture, color, size)
 end
 
 local function OnePoint(parent, i, size, texture, level, additive, key)

@@ -32,7 +32,7 @@ local SHARED = {
 	{ spells = { 1299026 } }, { spells = { 1259799 } }, { spells = { 1259812 } }, { spells = { 1260270 } },
 	{ spells = { 17528, 6615, 3169, 17540, 2379, 11359, 16323 }, known = {} },
 }
-local CLASSES, HOOKS = {}, {}
+local CLASSES, HOOKS, JOINED = {}, {}, {}
 Trackers.CLASSES = CLASSES
 
 local state = { forms = {} }
@@ -47,14 +47,12 @@ local function PlacePlaque(piece, anchor, form, _, n)
 		Medals.Place(piece, anchor, Medals.Cell(n))
 		return n + 1
 	end
-	do
-		piece:ClearAllPoints()
-		piece:SetPoint("CENTER", ns.Slab.hub.plaque, "CENTER", 0, 0)
-		piece.units = ns.Slab.hub.plaque:GetWidth() + 4
-		for _, part in ipairs(piece.parts) do
-			part.units = piece.units
-			Medals.Even(part)
-		end
+	piece:ClearAllPoints()
+	piece:SetPoint("CENTER", ns.Slab.hub.plaque, "CENTER", 0, 0)
+	piece.units = ns.Slab.hub.plaque:GetWidth() + 4
+	for _, part in ipairs(piece.parts) do
+		part.units = piece.units
+		Medals.Even(part)
 	end
 	return n
 end
@@ -121,13 +119,8 @@ local function Resolve(p, row)
 	local spells = p.known or p.spells
 	if p.families then
 		spells = {}
-		spec.families = {}
-		for _, family in ipairs(p.families) do
-			table.insert(spec.families, family)
-		end
-		for _, family in ipairs(SHARED) do
-			table.insert(spec.families, family)
-		end
+		JOINED[p.families] = JOINED[p.families] or Trackers.Joined(p.families, SHARED)
+		spec.families = JOINED[p.families]
 		for _, family in ipairs(spec.families) do
 			for _, id in ipairs(family.known or family.spells) do
 				spells[#spells + 1] = id
@@ -140,9 +133,7 @@ local function Resolve(p, row)
 	else
 		id = Medals.Known(spells)
 	end
-	if not id then
-		return nil
-	end
+	if not id then return nil end
 	spec.spell, spec.texture = id, p.texture or Trackers.Texture(id)
 	if row and p.families then
 		spec.feed, spec.newest, spec.spells = "aura", true, {}

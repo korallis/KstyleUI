@@ -116,11 +116,10 @@ function Medals.Seat(name)
 	return s[1] * s[2] * cos(rad(s[3])), s[2] * sin(rad(s[3]))
 end
 
-local function Art(parent, layer, name, color, blend)
+local function Art(parent, layer, name, color)
 	local t = parent:CreateTexture(nil, layer)
 	t:SetTexture((Tokens.Texture(name)))
 	t:SetVertexColor(Tokens.Color(color))
-	if blend then t:SetBlendMode(blend) end
 	return t
 end
 
@@ -308,8 +307,6 @@ function Medals.Medal(parent, spec, level)
 		if each.feed == "usable" or each.feed == "item" then
 			lit:Hide()
 		end
-	end
-	for _, lit in ipairs(m.lits) do
 		Medals.Flare(m, lit, top + 1, spec.burst or "glow", size * BURST)
 	end
 	m.spec, m.texture = spec, spec.texture
