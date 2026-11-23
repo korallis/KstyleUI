@@ -124,15 +124,17 @@ local holder = face.holder
 M.Resize(holder, 80, 80)
 assert(W.Near(face.mapArea:GetWidth(), 80, 0.5), "a small element shrinks the map, which is the element, got " .. tostring(face.mapArea:GetWidth()))
 assert(not zoom:IsShown(), "when the map is too small for the slider, the slider hides")
--- The 80 map holds two buttons between its top and bottom margins, so the third wraps into a second column
--- inward and none reaches the map's bottom edge.
+-- The 80 map holds two buttons between its top and bottom margins (on the round map from its round corner), so the
+-- third wraps into a second column one pitch inward and none reaches the map's bottom edge.
 assert(buttons.tracking:IsShown() and buttons.mail:IsShown() and buttons.calendar:IsShown(), "three buttons show")
-local perColumn = Format.PerColumn(80, size, spacing, Format.TOP)
+local small = r and math.max(Format.TOP, math.min(80 * ns.Face.ROUND_CORNER, 40 - size - spacing / 2)) or Format.TOP
+local perColumn = Format.PerColumn(80, size, spacing, small)
 assert(perColumn == 2, "two per column on the small map: " .. tostring(perColumn))
-local want, wx, wy = Format.Column(3, size, spacing, "right", false, Format.EDGE, Format.TOP, perColumn)
+local want, wx, wy = Format.Column(3, size, spacing, "right", false, Format.EDGE, small, perColumn)
+if r then wx = X(buttons.tracking) - (size + spacing) end
 assert(Anchor(buttons.calendar) == want and W.Near(X(buttons.calendar), wx, 1.5) and W.Near(Y(buttons.calendar), wy, 1.5), "the third button starts a second column inward: " .. tostring(X(buttons.calendar)) .. ", " .. tostring(Y(buttons.calendar)))
 for _, name in ipairs({ "tracking", "mail", "calendar" }) do
-	assert(-Y(buttons[name]) + size <= 80 - Format.TOP + 0.5, name .. " stays inside the map")
+	assert(-Y(buttons[name]) + size <= 80 - small + 0.5, name .. " stays inside the map")
 end
 local footprint = K.Setup.Layouts.Element("minimap.main")
 M.Resize(holder, footprint.width, footprint.height)

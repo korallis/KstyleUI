@@ -142,13 +142,14 @@ assert(S.Get("drawer.place") == "column", "picking the first button again reads 
 local slotY = select(5, point(details))
 K.Options.Write("Minimap", "drawer.button", "BugSack")
 K.Options.Write("Minimap", "drawer.place", "column")
--- A sixth button no longer fits the round map's arc, so the column stands straight and the slots move.
-local bothY = select(5, point(bugsack))
-assert(select(5, point(details)) < bothY, "a second column button takes the first slot by name and Details the next")
+-- The next slot is lower, or on the round map's arc the first slot of the next column inward.
+local _, _, _, bugX = point(bugsack)
+local _, _, _, detailsX, detailsY = point(details)
+assert(select(5, point(bugsack)) == slotY and (detailsY < slotY or detailsX < bugX), "a second column button takes the first slot by name and Details the next")
 bugsack:Hide()
 assert(select(5, point(details)) == slotY, "an addon that hides its button frees the slot")
 bugsack:Show()
-assert(select(5, point(bugsack)) == bothY and bugsack:GetParent() == column.host, "and showing it puts it back")
+assert(select(5, point(bugsack)) == slotY and bugsack:GetParent() == column.host, "and showing it puts it back")
 K.Options.Write("Minimap", "drawer.place", "hidden")
 K.Options.Write("Minimap", "drawer.button", "Details")
 K.Options.Write("Minimap", "column.hover", true)

@@ -330,6 +330,17 @@ function Column:Layout()
 	local inset = Widgets.Snap(holder, size * (1 - GLYPH_SHARE) / 2)
 	local Format = ns.Format
 	local edge, top = Widgets.Snap(holder, Format.EDGE + Settings.Get("column.offset")), Widgets.Snap(holder, Format.TOP)
+	local r, toward, reach = ns.Face.Round() and (face.mapSize or 0) / 2 or 0, side == "left" and 1 or -1, self.reach
+	if r > 0 then top = math.max(top, math.min(Widgets.Snap(holder, 2 * r * ns.Face.ROUND_CORNER), Widgets.Snap(holder, r - size - spacing / 2))) end
+	self.reach = 0
+	local function Inward(along, own, inward, near)
+		if r > 0 then
+			local dy, gap = r - along - own / 2, r - edge - own / 2
+			inward = inward - edge + Widgets.Snap(holder, r - own / 2 - math.sqrt(math.max(0, gap * gap - dy * dy)))
+		end
+		if near then self.reach = math.max(self.reach, inward + own) end
+		return inward
+	end
 	local shown, used = {}, {}
 	for _, name in ipairs(self.names) do
 		local button = self.buttons[name]
@@ -355,8 +366,9 @@ function Column:Layout()
 		elseif wanted and (name == "compartment" or name == "mail" and mail ~= "column") then
 			local corner = name == "mail" and mail or Settings.Get("compartment.position")
 			local h, v = corner:find("LEFT") and 1 or -1, corner:find("TOP") and -1 or 1
-			Put(button, own, ownInset, corner, area, h * edge + Widgets.Snap(holder, Settings.Get(name .. ".x")),
-				v * (top + (used[corner] or 0)) + Widgets.Snap(holder, Settings.Get(name .. ".y")))
+			local along = top + (used[corner] or 0)
+			Put(button, own, ownInset, corner, area, h * Inward(along, own, edge, h == toward) + Widgets.Snap(holder, Settings.Get(name .. ".x")),
+				v * along + Widgets.Snap(holder, Settings.Get(name .. ".y")))
 			used[corner] = (used[corner] or 0) + own + spacing
 		elseif wanted then
 			shown[#shown + 1] = button
@@ -364,38 +376,21 @@ function Column:Layout()
 	end
 	local start = Format.Column(1, size, spacing, side, up, edge, top)
 	local far = (up and "TOP" or "BOTTOM") .. (side == "left" and "LEFT" or "RIGHT")
-	local drawer, slots = self.drawer, #shown
+	local drawer, builtin = self.drawer, #shown
 	for _, button in ipairs(drawer and drawer.order or {}) do
-		if drawer.adopted[button].place == "column" and ns.Drawer.Shown(button) then slots = slots + 1 end
+		if drawer.adopted[button].place == "column" and ns.Drawer.Shown(button) then shown[#shown + 1] = button end
 	end
-	local r = ns.Face.Round() and not (used[start] or used[far]) and (face.mapSize or 0) / 2 or 0
-	local arcTop = math.max(top, Widgets.Snap(holder, 2 * r * ns.Face.ROUND_CORNER))
-	if r > 0 and slots <= Format.PerColumn(2 * r, size, spacing, arcTop) then top = arcTop else r = 0 end
-	local perColumn = Format.PerColumn((face.mapSize or area:GetHeight() or 0) - (used[far] or 0), size, spacing, top)
-	local skip = used[start] and math.ceil(used[start] / (size + spacing) - 0.001) or 0
-	local reach = r - edge - size / 2
-	self.reach = 0
-	local function At(slot)
-		local point, x, y = Format.Column(slot, size, spacing, side, up, edge, top, perColumn)
-		if r > 0 then
-			local dy = r - math.abs(y) - size / 2
-			local inward = Widgets.Snap(holder, r - size / 2 - math.sqrt(math.max(0, reach * reach - dy * dy)))
-			x, self.reach = side == "left" and inward or -inward, math.max(self.reach, inward + size)
-		end
-		return point, x, y
-	end
+	local perColumn = Format.PerColumn((face.mapSize or area:GetHeight() or 0) - (used[far] or 0) - (used[start] or 0), size, spacing, top)
 	for slot, button in ipairs(shown) do
-		local point, x, y = At(slot + skip)
-		Put(button, size, inset, point, area, x, y)
-	end
-	local slot = #shown + skip
-	for _, button in ipairs(drawer and drawer.order or {}) do
-		if drawer.adopted[button].place == "column" and ns.Drawer.Shown(button) then
-			slot = slot + 1
-			local point, x, y = At(slot)
+		local point, x, y = Format.Column(slot, size, spacing, side, up, edge, top + (used[start] or 0), perColumn)
+		x = toward * Inward(math.abs(y), size, toward * x, true)
+		if slot <= builtin then
+			Put(button, size, inset, point, area, x, y)
+		else
 			drawer:PutInColumn(button, Home(self, "addon"), point, area, x, y, size)
 		end
 	end
+	if drawer and drawer.active and self.reach ~= reach then drawer:Layout() end
 	local button = self.buttons.compartment
 	local counted = button ~= nil and button:IsShown() or nil
 	if counted then

@@ -37,6 +37,11 @@ local currentFrame
 
 Face.LEVEL_MAP, Face.ROUND_CORNER = LEVEL_MAP, ROUND_CORNER
 
+local function SliderSide()
+	if Settings.Get("column.side") == "left" then return "RIGHT", -1 end
+	return "LEFT", 1
+end
+
 function Face.Round()
 	return Widgets.Medallions()
 end
@@ -494,7 +499,7 @@ function Face:PlaceInside()
 			local v = point:find("TOP") and -1 or point:find("BOTTOM") and 1 or 0
 			local corner = Face.Round() and h ~= 0 and v ~= 0 and Snap(area, side * ROUND_CORNER) or 0
 			local x = edge + corner + (h == column and reserve or 0) + (corners[point] or 0)
-				+ (point == "LEFT" and Snap(area, SLIDER_INSET + SLIDER_HIT) or 0)
+				+ (point == SliderSide() and Snap(area, SLIDER_INSET + SLIDER_HIT) or 0)
 			local y = (v == 0 and 0 or edge + corner) + (used[point] or 0)
 			x = h * x + Snap(area, Settings.Get(name .. ".x"))
 			if name == "clock" and h == -1 and (self.meridiem:GetText() or "") ~= "" then
@@ -544,12 +549,13 @@ function Face:PlaceSlider()
 	local track = zoom.track
 	local fits = (self.mapSize or 0) >= 2 * (SLIDER_INSET + SLIDER_HIT) + SLIDER_HEIGHT
 	zoom:SetShown(fits and Settings.Get("zoom.slider"))
-	local inset = Snap(area, SLIDER_INSET)
+	local side, toward = SliderSide()
+	local inset = toward * Snap(area, SLIDER_INSET)
 	Widgets.Size(track, SLIDER_WIDTH, SLIDER_HEIGHT)
 	track:ClearAllPoints()
-	Widgets.Point(track, "LEFT", area, "LEFT", inset, 0)
+	Widgets.Point(track, side, area, side, inset, 0)
 	zoom:ClearAllPoints()
-	Widgets.Point(zoom, "LEFT", area, "LEFT", inset - Snap(area, (SLIDER_HIT - SLIDER_WIDTH) / 2), 0)
+	Widgets.Point(zoom, side, area, side, inset - toward * Snap(area, (SLIDER_HIT - SLIDER_WIDTH) / 2), 0)
 	Widgets.Size(zoom, SLIDER_HIT, SLIDER_HEIGHT)
 	zoom.fill:ClearAllPoints()
 	Widgets.Point(zoom.fill, "BOTTOMLEFT", track, "BOTTOMLEFT")
@@ -557,7 +563,6 @@ function Face:PlaceSlider()
 	local line = Widgets.Border(area)
 	if zoom.rimLine ~= line then
 		zoom.rimLine = line
-		zoom.rim:ClearAllPoints()
 		zoom.rim:SetPoint("TOPLEFT", track, "TOPLEFT", -line, line)
 		zoom.rim:SetPoint("BOTTOMRIGHT", track, "BOTTOMRIGHT", line, -line)
 	end
