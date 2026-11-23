@@ -409,6 +409,7 @@ do
 	local kids = select("#", timer.Bar:GetRegions())
 	local timerEdge = K.Widgets.BarEdge(timer.Bar)
 	assert(select("#", timer.Bar:GetRegions()) == kids and S.W.SameColor(timerEdge.hard, K.Tokens.Color("black")), "timer and progress bars are the square bar: a black pixel round a dark track")
+	assert(timerEdge.glass, "timer and progress bars wear the lit glass (Tools/regression/test-skins-bar-glass.lua draws it)")
 	assert(FontPath(module:GetProgressBar("q1").Bar.Label) == Style.Font("caption"), "progress bar labels take the skin font")
 	K.Options.Write("Skins", "tracker.panel", false)
 	assert(not panel:IsShown(), "the panel switch still hides the panel")
