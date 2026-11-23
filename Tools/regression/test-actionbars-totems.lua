@@ -151,6 +151,38 @@ do
 	Clean(env, K, "take-over")
 end
 
+-- The approved forged look, also for a shaman who knows only Earth and Fire: each socket and fan choice wears its
+-- element's edge and tab, and an open fan sits on a dark band rimmed in the element's colour.
+do
+	KNOWN[3], KNOWN[4] = nil, nil
+	local env, K, ns = New("SHAMAN")
+	local state, root = ns.Totems.state, K.Scale.Root():GetEffectiveScale()
+	local function Atom(b, what)
+		local name = "totem" .. b.element.name
+		assert(b.edge and b.edge:IsShown() and AB.Tinted(K, b.edge, "SetVertexColor", name), what .. " wears its element's edge")
+		assert(b.tab and b.tab:IsShown() and AB.Tinted(K, b.tab, "SetVertexColor", name), what .. " carries its element's tab")
+	end
+	for i, b in ipairs(state.sockets) do
+		assert(b:IsShown() == (i <= 2), "only Earth and Fire have sockets")
+		if i <= 2 then
+			Atom(b, b.element.name .. " socket")
+			AB.Click(env, b, "RightButton", false)
+			local fill, rim = false, false
+			for _, q in ipairs(AB.Band(b.fan, root)) do
+				fill = fill or AB.Tinted(K, q.line, "SetColorTexture", "medSocket")
+				rim = rim or AB.Tinted(K, q.line, "SetColorTexture", "totem" .. b.element.name)
+			end
+			assert(fill and rim, b.element.name .. ": the open fan sits on a dark forged band rimmed in the element's colour")
+			for n, f in ipairs(b.fan.buttons) do
+				if f:IsShown() then Atom(f, b.element.name .. " choice " .. n) end
+			end
+			AB.Click(env, b, "RightButton", false)
+		end
+	end
+	KNOWN[3], KNOWN[4] = { 5394 }, { 8512 }
+	Clean(env, K, "forged look")
+end
+
 -- The spire: the slot's own boolean and duration object, secret or not; hidden, not alpha 0, when readable.
 do
 	local env, K, ns = New("SHAMAN")
@@ -269,6 +301,21 @@ for _, size in ipairs(SIZES) do
 			end
 		end
 		assert(#choices == #KNOWN[b.element.slot] + 1, size[1] .. "x" .. size[2] .. ": the " .. b.element.name .. " fan holds none and every known totem")
+		local label, band = size[1] .. "x" .. size[2] .. ": the " .. b.element.name .. " fan's band", AB.Band(b.fan, root)
+		assert(#band > 0, label .. " is drawn")
+		for _, q in ipairs(band) do
+			for k = 1, 4 do
+				assert(q[k][2] < row - 2 and q[k][2] < fan, label .. " stays under the cooldown row and the crest debuff fan (" .. q[k][2] .. " against " .. row .. ")")
+			end
+			for _, u in ipairs(units) do
+				assert(not AB.Crosses(q, u), label .. " stays off the unit frames")
+			end
+			for _, other in ipairs(state.sockets) do
+				local l, bottom, w, h = other:GetRect()
+				local s = other:GetEffectiveScale() / root
+				assert(not AB.Crosses(q, { l * s, bottom * s, w * s, h * s }), label .. " clears the " .. other.element.name .. " socket")
+			end
+		end
 	end
 	local wx = state.wolf:GetCenter()
 	local cx = state.call:GetCenter()

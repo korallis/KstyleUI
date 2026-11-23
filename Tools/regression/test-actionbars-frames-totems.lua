@@ -204,6 +204,20 @@ for _, size in ipairs(SIZES) do
 			end
 		end
 		assert(shown == #KNOWN[2] + 1, label .. ": Earth's fan holds none and every known totem")
+		local band, rim = AB.Band(earth.fan, root), false
+		for _, q in ipairs(band) do
+			rim = rim or AB.Tinted(K, q.line, "SetColorTexture", "totemEarth")
+			for k = 1, 4 do
+				assert(q[k][2] - origin[2] <= H, label .. ": Earth's band stays on screen")
+			end
+			for _, u in ipairs(units) do
+				assert(not AB.Crosses(q, { u[1] + origin[1], u[2] + origin[2], u[3], u[4] }), label .. ": Earth's band clears the unit frames")
+			end
+			for _, b in ipairs(st.sockets) do
+				assert(not AB.Crosses(q, Rect(b, root)), label .. ": Earth's band clears the " .. b.element.name .. " socket")
+			end
+		end
+		assert(rim, label .. ": Earth's open fan sits on a band rimmed in its colour")
 		AB.Click(env, earth, "RightButton", false)
 	end
 	Clean(env, K, "clearance " .. size[1])
