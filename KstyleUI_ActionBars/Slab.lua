@@ -1065,7 +1065,7 @@ local function SlotLayer(parent, layer, sublevel, name, owner)
 	return t
 end
 
-local DRESSED = { action = true, pet = true, stance = true, travel = true, totem = true }
+local DRESSED = { action = true, pet = true, stance = true, travel = true, totem = true, vehicle = true }
 
 function Slab.Keybind(b, wanted)
 	local cfg = K.Store.Module("ActionBars")
@@ -1106,6 +1106,7 @@ local function Socket(b, on)
 	end
 	b.placedOffset = nil
 	b:Paint()
+	ns.PlaceTexts(b)
 end
 
 local function Press(b)
@@ -1166,7 +1167,7 @@ end
 
 local function OnStyle()
 	Slab.Refresh()
-	for _, list in ipairs({ ns.actionButtons, ns.petButtons, ns.stanceButtons }) do
+	for _, list in ipairs({ ns.actionButtons, ns.petButtons, ns.stanceButtons, { ns.leaveButton } }) do
 		for _, b in ipairs(list or {}) do
 			Slab.Dress(b)
 			Slab.SetProc(b, b.proc == true)

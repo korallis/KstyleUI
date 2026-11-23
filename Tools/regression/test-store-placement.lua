@@ -64,6 +64,7 @@ local margin = K.Tokens.Size("screenMargin")
 for _, name in ipairs(Layouts.Names()) do
 	local party = Layouts.Place(name, "medallions", "16:9", "groupframes.party")
 	local _, height = Layouts.Footprint("DPS", "groupframes.party")
+	height = height / Layouts.PartyScale() -- the readable party grows evenly about the place its holder had
 	assert(party.anchor == "LEFT" and party.x == margin and math.abs(Layouts.HEIGHT / 2 - party.y - height / 2 - 465) < 1e-6, name .. ": the party stands at mid-left, its top 465 under the top as the mock-ups draw it")
 	local raid = Layouts.Place(name, "medallions", "16:9", "groupframes.raid")
 	assert(raid.anchor == "TOPLEFT" and raid.x == margin and raid.y == -margin, name .. ": the raid card keeps the top-left corner")

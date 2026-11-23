@@ -884,14 +884,16 @@ function build.talents(env, B)
 	}
 end
 
--- The world map (Blizzard_WorldMap.lua:104, 702 by 534 minimized) with the quest log docked on its right (QuestMapFrame.xml:427, 330 wide).
+-- The world map (Blizzard_WorldMap.lua:104, 702 by 534 minimized) widened by 333 for the quest log it holds on its
+-- right (QuestLogOwnerMixin.lua:166; WorldMapMixin:AttachQuestLog sets the log 3 in from the right, 25 down, 3 up).
+-- The canvas spans the map part 2 in from the left and bottom, under the 67-unit title spacer (Blizzard_WorldMap.xml:11-17,
+-- Blizzard_WorldMap.lua:8).
 function build.worldmap(env, B)
 	local map = B.frame("Frame", nil, "WorldMapFrame")
-	map:SetSize(702, 534)
-	At(map, env.UIParent, 120, 120)
+	At(map, env.UIParent, 120, 120, 702 + 333, 534)
 	map:SetFrameLevel(5)
 	map.ScrollContainer = B.frame("ScrollFrame", map)
-	Fill(map.ScrollContainer, map, 0, TITLE_HEIGHT + 20, 0, 0)
+	Fill(map.ScrollContainer, map, 2, 67, 3 + 333, 2)
 	-- The map canvas: a flat field here; the gallery paints the mockup's terrain on it when standins.py has cut it.
 	local canvas = Colour(B, map.ScrollContainer, "BACKGROUND", 0.23, 0.29, 0.19)
 	canvas:SetAllPoints(map.ScrollContainer)
@@ -922,7 +924,8 @@ function build.worldmap(env, B)
 		border.MaximizeMinimizeFrame[key] = button
 	end
 	map.NavBar = B.frame("Frame", map)
-	At(map.NavBar, map, 4, TITLE_HEIGHT, 694, 20)
+	-- Blizzard_WorldMap.lua:332-333: the nav bar spans the spacer from 25 below its top to 9 above its bottom.
+	At(map.NavBar, map, 4, 25, 694, 67 - 25 - 9)
 	map.NavBar:SetFrameLevel(21)
 	B.texture(map.NavBar)
 	map.NavBar.overlay = B.frame("Frame", map.NavBar)
@@ -933,17 +936,19 @@ function build.worldmap(env, B)
 	Text(B.text(map.NavBar.home), "Kalimdor  >  Durotar", "LEFT", map.NavBar.home, "LEFT", 4, 0)
 
 	local log = B.frame("Frame", map, "QuestMapFrame")
-	Anchor(log, map, "TOPLEFT", "TOPRIGHT", 2, 0)
-	log:SetSize(330, 534)
+	Anchor(log, map, "TOPRIGHT", -3, -25)
+	log:SetSize(330, 534 - 25 - 3)
 	log.QuestsFrame = B.frame("Frame", log)
 	log.QuestsFrame:SetAllPoints(log)
 	local scroll = B.frame("ScrollFrame", log.QuestsFrame, "QuestScrollFrame")
 	log.QuestsFrame.ScrollFrame = scroll
-	Fill(scroll, log, 8, 36, 8, 8)
+	-- QuestMapFrame.xml:484-501: the list fills the quests frame 29 below its top, 22 short of its right for the bar,
+	-- which runs from 2 above the list to 4 below it (SecureUIPanelTemplates.lua:25).
+	Fill(scroll, log, 0, 29, 22, 0)
 	scroll.Background, scroll.Edge = B.texture(scroll, "BACKGROUND"), B.texture(scroll)
 	scroll.ScrollBar = ScrollBar(B, scroll)
-	Anchor(scroll.ScrollBar, scroll, "TOPRIGHT", 0, -30)
-	scroll.ScrollBar:SetHeight(440)
+	Anchor(scroll.ScrollBar, scroll, "TOPLEFT", "TOPRIGHT", 8, 2)
+	scroll.ScrollBar:SetPoint("BOTTOMLEFT", scroll, "BOTTOMRIGHT", 8, -4)
 	scroll.SearchBox = EditBox(B, scroll, "Search quests", 260)
 	At(scroll.SearchBox, scroll, 10, 2)
 	scroll.BorderFrame = B.frame("Frame", scroll)
@@ -1268,7 +1273,12 @@ function build.merchant(env, B)
 	Anchor(buyback, merchant.Inset, "BOTTOMLEFT", 8, 8)
 	buyback.ItemButton = Item(B, buyback, ICONS[15], 37)
 	Anchor(buyback.ItemButton, buyback, "LEFT", 3, 0)
-	Text(B.text(buyback), "Buyback", "LEFT", buyback, "LEFT", 46, 0)
+	-- MerchantFrame.lua:417-425: the slot shows the item sold last, its name and buyback price, as the goods do.
+	buyback.Name = Text(B.add(buyback:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")), "Linen Cloth", "TOPLEFT", buyback, "TOPLEFT", 46, -1)
+	buyback.Name:SetSize(100, 30)
+	buyback.Name:SetJustifyH("LEFT")
+	buyback.Name:SetJustifyV("TOP")
+	buyback.MoneyFrame = Text(B.text(buyback), "8c", "BOTTOMLEFT", buyback, "BOTTOMLEFT", 46, 4)
 	local x = 180
 	for _, name in ipairs({ "MerchantRepairItemButton", "MerchantRepairAllButton", "MerchantGuildBankRepairButton", "MerchantSellAllJunkButton" }) do
 		local button = B.frame("Button", merchant, name)

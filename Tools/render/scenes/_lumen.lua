@@ -309,7 +309,7 @@ function Lumen.Build(state, opts)
 	if state == "combat" then
 		scenes[#scenes + 1] = (Encounter.Build(Hud, { layout = layout, guide = true, saved = Hud.Saved(base, "Skins") }))
 	end
-	local merged = Scene.Merge(scenes)
+	local merged = Hud.Merge(scenes, Hud.Style() ~= "Frames")
 	if built.chat and built.tracker then
 		merged.rail = Lumen.Rail(built, R)
 	end

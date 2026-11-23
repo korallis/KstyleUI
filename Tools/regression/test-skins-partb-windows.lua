@@ -456,8 +456,8 @@ do
 		end
 		assert(right, "the name has a right anchor on its tile")
 		assert(right[4] <= -K.Tokens.Size("gapMedium"), "a gap in from the tile's edge, got " .. tostring(right[4]))
-		assert(W.LastCall(slot.Name, "SetWordWrap") == nil or W.LastCall(slot.Name, "SetWordWrap")[1] == true, "a long name may wrap to its second line")
 		local money = env[slot:GetName() .. "MoneyFrame"]
+		assert(W.LastCall(slot.Name, "SetWordWrap")[1] == true and W.LastCall(slot.Name, "SetSpacing")[1] == 0, "a long name wraps to its second line at its natural line pitch, not the metrics' 16-unit pitch, so two lines and the price fit the 44-unit tile without touching or truncating (polish audit B #34)")
 		assert(select(2, money.GoldButton.Text:GetFont()) == K.Widgets.FontSize(money.GoldButton.Text, 12), "native coin amounts use secondary text without a MoneyFrame parentKey")
 		local point, parent, _, _, y = money:GetPoint(1)
 		assert(point == "BOTTOMLEFT" and parent == slot and math.abs(y) < 0.5, "native prices clear two-line item names")
@@ -479,11 +479,11 @@ do
 	for _, set in ipairs({ "Folio", "Lumen" }) do
 		K.Theme.SetTypeSet(set)
 		ns.Style.RestyleAll()
-		local size = 13 * K.Theme.FontScale() * ns.Style.Setting("text", "size")
 		for _, slot in ipairs(made.slots) do
 			local path, actual = slot.Name:GetFont()
-			assert(path == ns.Style.Font("body"), "merchant names retain their body or custom face")
-			assert(math.abs(actual - K.Widgets.FontSize(slot.Name, size, true)) < 0.00001, "merchant names use the shared 13-unit reading size in both type sets")
+			local size = K.Tokens.Size("caption") * K.Theme.FontScale() * ns.Style.Setting("text", "size")
+			assert(path == ns.Style.Font("caption"), "merchant names take the caption face")
+			assert(math.abs(actual - K.Widgets.FontSize(slot.Name, size, true)) < 0.00001, "merchant names take the shared caption size in both type sets, so two lines and the price fit the tile")
 		end
 	end
 end

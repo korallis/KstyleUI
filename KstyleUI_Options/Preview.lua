@@ -578,8 +578,7 @@ function Preview.Show(pane, page, section)
 	pane:SetShown(frame ~= nil)
 	if frame then
 		if frame ~= previous and K.Appearance.Get("calmLists") then
-			frame:SetAlpha(0)
-			K.Motion.FadeIn(frame, (K.Motion.Moment("page")))
+			K.Motion.PageIn(frame, (K.Motion.Moment("page")))
 		else
 			frame:Show()
 		end

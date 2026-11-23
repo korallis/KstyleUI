@@ -99,4 +99,14 @@ do
 	assert(ok, "a restricted step frame must not stop the head refit; read its edges with Widgets.Edges (KstyleUI_Skins/Addons/RestedXP/Chrome.lua PlaceHead): " .. tostring(err))
 end
 
+-- A settled rail with one icon in each docked box scans each box's icons once per placement (review of #773,
+-- finding 9): staging at 7b544324 spent 387 widget calls on a steady Rail.Place, the first chip version 401.
+do
+	local B = dofile("Tools/regression/path_budget.lua")
+	local R = Boot({ width = 1920, height = 1080 })
+	R.settle()
+	B.Check(B.Count(R.env, function() R.ns.RestedXP.Rail.Place() end, 100), math.huge, 387, "Rail.Place: plan each docked chip's width once and keep it in its slot")
+	B.Check(B.Count(R.env, function() R.ns.RestedXP.Rail.Band() end, 100), math.huge, 129, "Rail.Band: measure each docked chip's icons once")
+end
+
 print("skins restedxp rail settle ok")

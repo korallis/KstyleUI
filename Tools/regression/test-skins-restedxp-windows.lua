@@ -373,6 +373,8 @@ do
 	-- the glass (Opus #5, R4a). The card's glass now rises over the plate, so the title sits inside one card.
 	do
 		local Scene = dofile("Tools/render/scene.lua")
+		K.Options.Write("Skins", "restedXP.boxes", false)
+		env.RunTimers()
 		items:ClearAllPoints()
 		items:SetPoint("CENTER", env.UIParent, "CENTER", 0, 0)
 		items:SetSize(100, 43)
@@ -576,6 +578,16 @@ do
 	local caption = assert(ns.RestedXP.Chrome.Caption(title))
 	local heading = assert(ns.Parts.HeadingOf(caption), "Use the shared window heading for the Speedrun Guide")
 	assert(heading.panel == K.Skin.Parts(window.upperFrame).backdrop and heading.close == window.closebutton, "The Speedrun Guide uses its window's shared gem and rule")
+	local Geometry = dofile("Tools/regression/geometry.lua")
+	window.frame:SetSize(300, 200)
+	window.upperFrame:SetPoint("TOPLEFT")
+	window.upperFrame:SetPoint("TOPRIGHT")
+	heading:Restyle()
+	caption:SetSize(100, 10)
+	local function Right(region) return assert(Geometry.Rect(region, window.frame)).right end
+	local gem = assert(Geometry.Rect(heading.gem, window.frame)).left
+	local clear = math.max(Right(window.iconLogo), Right(window.classIcon))
+	assert(gem >= clear, "the heading's gem starts right of RestedXP's logo and class icon, got " .. gem .. " against " .. clear)
 	for _, size in ipairs({ 9, 16, 9 }) do
 		rxp.settings.profile.guideFontSize = size
 		window:UpdateSubTheme()
@@ -607,16 +619,23 @@ do
 	end
 	Roles()
 	NewCheck(ui.description:GetFont() == (ns.Style.Font("body")), "configurator description uses the body face")
-	local closeCount, headerCount = 0, 0
+	local closeCount, headerCount, badges, inset = 0, 0, {}, nil
 	for _, child in ipairs({ ui.frame:GetChildren() }) do
 		if child:GetObjectType() == "Button" and child:GetNormalTexture() then
-			if tostring(child:GetNormalTexture():GetTexture()):find("rxp%-btn%-close") then
+			local path = tostring(child:GetNormalTexture():GetTexture())
+			if path:find("rxp%-btn%-close") then
 				if K.Skin.IsSkinned(child, "CloseButton") then closeCount = closeCount + 1 end
 			elseif K.Skin.IsSkinned(child, "Button") then headerCount = headerCount + 1 end
+			if path:find("icon%-btn%-") then badges[#badges + 1] = child:GetWidth() end
+			if path:find("rxp%-icon%-cog") then inset = select(4, child:GetNormalTexture():GetPoint(1)) end
 		end
 	end
 	NewCheck(closeCount == 1, "configurator anonymous close button is skinned")
 	NewCheck(headerCount == 3, "configurator settings import and help buttons are skinned")
+	-- RestedXP makes the help and import buttons 30 with their badge 48/64 of the art and the cog 24 with art that
+	-- fills it (GuideConfigurator.lua 1023-1056): one row of three takes the cog's 24 and steps its art in to the
+	-- same badge (polish audit A #16).
+	NewCheck(#badges == 2 and badges[1] == 24 and badges[2] == 24 and inset == 3, "the configurator's icon buttons read as one row of three, got " .. tostring(badges[1]) .. " " .. tostring(inset))
 	configurator:UpdateTheme()
 	Roles()
 	assert(K.Skin.IsSkinned(ui.scrollContainer.scrollbar, "ScrollBar"))
@@ -698,6 +717,16 @@ do
 	assert(again[1] ~= options[1], "the page re-rendered its rows")
 	options = again
 	Rows()
+	-- RestedXP's rows are 34 units (GuideConfigurator.lua 565-567) and its Recommended line sits 2 over the centred
+	-- 16-unit label (822-836), 5 past the row's top; the skin centres the two inside the row's tile instead (review
+	-- of #773, finding 6).
+	local first = options[1]
+	first.frame:SetSize(276, 34)
+	first.recommendation:SetWidth(80)
+	local note, label = assert(Geometry.Rect(first.recommendation, first.frame)), assert(Geometry.Rect(first.text, first.frame))
+	assert(note.top <= 34 and label.bottom >= 0 and note.bottom >= label.top, "the Recommended line and the label sit inside the row, one over the other, got " .. note.top .. " and " .. label.bottom)
+	label = assert(Geometry.Rect(options[2].text, options[2].frame:SetSize(276, 34) or options[2].frame))
+	assert(label.bottom == 9, "a row with no Recommended line keeps its label centred, got " .. label.bottom)
 
 	rxp.guideImporter:Open()
 	local widgets = rxp.guideImporter.widgets

@@ -44,7 +44,7 @@ assert(math.abs(entry.count._points[1][4] - cx + 2) < 1 and math.abs(entry.count
 assert(A.W.LastCall(entry.icon, "SetTexCoord")[1] == 0.1, "the shared icon crop applies")
 local holder = env.CreateFrame("Frame", nil, K.Scale.Root()); holder:SetSize(280, 300)
 local preview = ns.Preview.Build(holder)
-assert(preview.buffs[2].count:GetAlpha() == 0 and A.W.LastCall(preview.buffs[1].icon, "SetTexCoord")[1] == 0.1, "the preview uses the same settings")
+assert(preview.buffs[3].count:GetAlpha() == 0 and A.W.LastCall(preview.buffs[1].icon, "SetTexCoord")[1] == 0.1, "the preview uses the same settings")
 holder:SetHeight(40); preview:Refresh()
 assert(preview.canvas:GetScale() < 1, "a short Options preview scales both aura rows to fit its height")
 env.SetCombat(true); env._aurasSecret = true

@@ -54,7 +54,7 @@ for _, region in ipairs({ map:GetCanvas():GetRegions() }) do
 end
 assert(diamond, "draw diamond junction markers")
 local oldX = select(4, diamond:GetPoint(1))
-map:SetWidth(1000)
+map:SetWidth(map:GetWidth() + 300)
 R.panel:GetScript("OnUpdate")(R.panel, 0.25)
 assert(select(4, diamond:GetPoint(1)) ~= oldX, "maximizing or resizing redraws a stationary route at the new canvas size")
 assert(solves == 1, "resizing must reproject the cached road without rerunning Dijkstra")

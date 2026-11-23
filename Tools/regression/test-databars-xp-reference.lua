@@ -34,7 +34,7 @@ do
 end
 eq(xp.track.caps, nil, "and so does the rested reach")
 eq(xp.fill.barEdge.hard:IsShown(), false, "the earned fill adds no second frame")
-eq(xp.track.barEdge.hard:IsShown(), false, "the reference track is unframed by default")
+eq(xp.track.barEdge.hard:IsShown(), isFrames, "Frames frames the track like its sibling bars, so it reads over a dark scene; the Medallions strip stays unframed")
 for _, bar in ipairs({ xp.track, xp.fill }) do
 	eq(bar.sheenTop, nil, "the flat reference line has no sheen")
 	eq(bar.glow, nil, "the reference line has no glow outside its footprint")

@@ -1,4 +1,4 @@
--- hud_alignment.lua: chat and the cast/action/cooldown/swing strip on a game backdrop; RENDER_COOLDOWN_COUNT=1/3/6/12 and RENDER_SWING=idle/main/dual.
+-- hud_alignment.lua: chat and the cast/action/cooldown/swing strip on a game backdrop; RENDER_COOLDOWN_COUNT=1/3/6/12 and RENDER_SWING=idle/main/dual/linger (a swing just ended).
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Reference = dofile("Tools/render/scenes/_reference.lua")
@@ -32,7 +32,7 @@ return Common.Run(function()
 				env._speeds[2] = 2.4
 				env.FireEvent("PLAYER_SWING", 2.4, kind.OffHand)
 			end
-			env.SetTime(env.GetTime() + 1.1)
+			env.SetTime(env.GetTime() + (os.getenv("RENDER_SWING") == "linger" and 2.7 or 1.1))
 			dofile("Tools/regression/meters_env.lua").Tick(env)
 			scene = Common.Scene.Build(env, { iconDirs = Common.IconDirs() })
 		end

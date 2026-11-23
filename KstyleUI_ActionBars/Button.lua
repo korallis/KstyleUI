@@ -542,13 +542,15 @@ function ns.PlaceTexts(b)
 	for _, spec in ipairs(ns.TEXTS) do
 		local place = cfg.placement[spec.key]
 		local fs = TextFor(b, spec.key)
-		if fs and (place.anchor ~= "" or place.x ~= 0 or place.y ~= 0 or b.placedTexts and b.placedTexts[spec.key]) then
+		local corner = (spec.key == "count" or spec.key == "hotkey") and b.medSocketOn and b.opts.iconInset
+		if fs and (corner or place.anchor ~= "" or place.x ~= 0 or place.y ~= 0 or b.placedTexts and b.placedTexts[spec.key]) then
 			local anchor = place.anchor ~= "" and place.anchor or (spec.key == "hotkey" and "TOPLEFT" or spec.key == "count" and "BOTTOMRIGHT" or spec.key == "macro" and "BOTTOM" or "CENTER")
 			local left, right, top, bottom = anchor:find("LEFT"), anchor:find("RIGHT"), anchor:find("TOP"), anchor:find("BOTTOM")
 			local inset = (spec.key == "count" or spec.key == "hotkey") and not b.opts.readableCountdown and 3 or 2
+			local across = corner and math.max(inset, Widgets.Snap(fs, corner) + Widgets.Snap(fs, 1)) or inset
 			fs:ClearAllPoints()
 			fs:SetWidth(spec.key == "macro" and math.max(1, b.opts.size - 2 * TEXT_INSET) or 0)
-			fs:SetPoint(anchor, b, anchor, Widgets.Snap(fs, (left and inset or right and -inset or 0) + place.x), Widgets.Snap(fs, (top and -inset or bottom and inset or 0) + place.y))
+			fs:SetPoint(anchor, b, anchor, Widgets.Snap(fs, (left and across or right and -across or 0) + place.x), Widgets.Snap(fs, (top and -inset or bottom and inset or 0) + place.y))
 			if spec.key == "macro" and place.anchor == "" then
 				fs:ClearAllPoints()
 				Widgets.Point(fs, "BOTTOMLEFT", b, "BOTTOMLEFT", TEXT_INSET + place.x, TEXT_INSET + place.y)
@@ -598,7 +600,7 @@ function ns.StyleTextsFor(b, barKey)
 		Widgets.Size(b.autocast, AUTOCAST_SIZE, AUTOCAST_SIZE)
 		local markInset = Widgets.Snap(b.autocast, TEXT_INSET)
 		b.autocast:ClearAllPoints()
-		b.autocast:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", markInset, markInset)
+		b.autocast:SetPoint("BOTTOMLEFT", b.icon, "BOTTOMLEFT", markInset, markInset)
 	end
 	ns.Slab.Keybind(b, cfg.hotkey == true and (barKey ~= "consumables" or b.opts.size >= 30 or cfg.count == false))
 	b.count:SetShown(cfg.count ~= false)

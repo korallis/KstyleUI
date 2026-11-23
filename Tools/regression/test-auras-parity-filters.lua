@@ -162,10 +162,10 @@ write("hiddenAlpha", 0)
 for key, value in pairs({ ["debuffs.typeIcon"] = "TOPLEFT", ["buffs.refresh"] = true, ["timer.seconds"] = false, ["count.position"] = "BOTTOMLEFT" }) do write(key, value) end
 local holder = env.CreateFrame("Frame", nil, K.Scale.Root()); holder:SetSize(280, 300)
 local preview = ns.Preview.Build(holder)
-assert(preview.debuffs[1].typeIcon:IsShown() and A.W.LastCall(preview.debuffs[1].typeIcon, "SetAtlas")[1] == "RaidFrame-Icon-DebuffMagic", "the preview draws the type icon")
-assert(not preview.debuffs[3].typeIcon:IsShown(), "and none on a typeless debuff")
-assert(preview.buffs[6].cue:IsShown() and not preview.buffs[1].cue:IsShown(), "the preview marks a refreshable buff")
-assert(preview.buffs[1].timer:GetText() == "24" and preview.buffs[1].count._points[1][1] == "BOTTOMLEFT", "the preview text follows the settings")
+assert(preview.debuffs[3].typeIcon:IsShown() and A.W.LastCall(preview.debuffs[3].typeIcon, "SetAtlas")[1] == "RaidFrame-Icon-DebuffMagic", "the preview draws the type icon")
+assert(not preview.debuffs[1].typeIcon:IsShown(), "and none on a typeless debuff")
+assert(preview.buffs[1].cue:IsShown() and not preview.buffs[2].cue:IsShown(), "the preview marks a refreshable buff")
+assert(preview.buffs[4].timer:GetText() == "24" and preview.buffs[4].count._points[1][1] == "BOTTOMLEFT", "the preview text follows the settings")
 
 -- A restricted edit waits for combat to end.
 env.SetCombat(true); env._aurasSecret = true

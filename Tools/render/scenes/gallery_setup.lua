@@ -14,8 +14,9 @@ local MODULES = {
 local KEY = "setup.window"
 local SCALE = 0.9
 
--- Step(W, step, x, y, prepare) -> env, K, panel: the setup open on one step, its window's top left at x, y.
-local function Step(W, step, x, y, prepare)
+-- Step(W, step, x, y, prepare, anchor) -> env, K, panel: the setup open on one step, its window's top left at x, y, or
+-- with anchor BOTTOMLEFT its bottom left y above the screen's foot, so a taller window never runs off the screen.
+local function Step(W, step, x, y, prepare, anchor)
 	local CoreEnv = W.CoreEnv
 	local env, K = W.New(Common.ScreenOpts({
 		saved = Gallery.Saved({}),
@@ -42,9 +43,9 @@ local function Step(W, step, x, y, prepare)
 	W.Settle(env)
 	local panel = K.Setup.window
 	assert(K.Layout.Set(KEY, "scale", SCALE))
-	assert(K.Layout.Set(KEY, "anchor", "TOPLEFT"))
+	assert(K.Layout.Set(KEY, "anchor", anchor or "TOPLEFT"))
 	assert(K.Layout.Set(KEY, "x", x))
-	assert(K.Layout.Set(KEY, "y", -y))
+	assert(K.Layout.Set(KEY, "y", anchor and y or -y))
 	local hover = {}
 	if prepare then
 		prepare(env, K, panel, hover)
@@ -90,9 +91,9 @@ return Common.Run(function()
 	})
 
 	-- Step 3: the module toggles, every module on but the window skins.
-	env, K, panel, hover = Step(W, 4, 60, 560, function(_, _, modules)
+	env, K, panel, hover = Step(W, 4, 60, 16, function(_, _, modules)
 		modules.toggles.Skins:SetValue(false)
-	end)
+	end, "BOTTOMLEFT")
 	add(env, K, panel, hover, {
 		name = "setup_modules", title = "Setup: modules", grade = "window", reference = "chat",
 		caption = "The module step: fifteen toggles with a one-line note each, All on and All off, every module on but Window skins.",
@@ -100,7 +101,7 @@ return Common.Run(function()
 	})
 
 	-- Step 5: the summary after Apply, when Edit Mode refused the layout because every account slot was taken.
-	env, K, panel, hover = Step(W, 5, 880, 560, function(stepEnv, stepK, stepPanel)
+	env, K, panel, hover = Step(W, 5, 880, 16, function(stepEnv, stepK, stepPanel)
 		local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
 		local full = {}
 		for i = 1, 5 do
@@ -109,7 +110,7 @@ return Common.Run(function()
 		EditModeFake.Install(stepEnv, { saved = full, active = 3, max = 5 })
 		W.Click(stepPanel.apply)
 		W.Settle(stepEnv)
-	end)
+	end, "BOTTOMLEFT")
 	add(env, K, panel, hover, {
 		name = "setup_summary", title = "Setup: summary", grade = "window", reference = "chat",
 		caption = "The summary step after Apply, three cards on the bible's grid: Your choices (HUD style, layout, how many modules are on and which are off) beside the layout Apply built, both one height, over the status card headed with what is left to do: what Edit Mode did (here it refused, every account layout being taken, with the reason and a one-click Try again) and the reload help; Later and the primary Reload button.",

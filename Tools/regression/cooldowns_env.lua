@@ -468,10 +468,8 @@ function C.Item(env, viewer, id)
 		item.Overlay = Texture(env, item, "OVERLAY")
 		item.OutOfRange = Texture(env, item, "OVERLAY")
 		item.Cooldown = Frame(env, "Cooldown", item)
-		local countdown = FontString(env, item.Cooldown)
-		item.Cooldown.GetCountdownFontString = function()
-			return countdown
-		end
+		item.Cooldown._countdown = FontString(env, item.Cooldown)
+		item.Cooldown._countdown:SetPoint("CENTER", item.Cooldown, "CENTER", 0, 0)
 		item.ChargeCount = Frame(env, "Frame", item)
 		item.ChargeCount.Current = FontString(env, item.ChargeCount)
 		item.Applications = Frame(env, "Frame", item)

@@ -251,7 +251,8 @@ do
 			local s = preview:GetWidth() / (K.Setup.Layouts.HEIGHT * 16 / 9)
 			local _, _, _, _, bottom = rect:GetPoint(1)
 			local top = (K.Setup.Layouts.HEIGHT * s - bottom - rect:GetHeight()) / s
-			assert(rect:IsShown() and math.abs(top - 465) <= 2 * K.Widgets.Border(preview) / s, "the diagram draws the DPS party 465 under the top, at mid-left, to its snapped pixels, got " .. top)
+			local grown = 465 - (5 * 39 + 4 * 13) * (K.Setup.Layouts.PartyScale() - 1) / 2
+			assert(rect:IsShown() and math.abs(top - grown) <= 2 * K.Widgets.Border(preview) / s, "the diagram draws the DPS party, grown evenly about its centre, " .. grown .. " under the top, at mid-left, to its snapped pixels, got " .. top)
 		end
 	end
 	W.Click(cards.Healer)
@@ -340,6 +341,8 @@ do
 	assert(panel.previewName:GetText():lower():find("dps", 1, true), "the picked one: " .. tostring(panel.previewName:GetText()))
 	W.Enter(panel.cards.Tank)
 	assert(panel.previewName:GetText():lower():find("tank", 1, true), "the hovered one: " .. tostring(panel.previewName:GetText()))
+	local edge, r, g, b = panel.cards.Tank.chrome.edge, K.Widgets.Rgba("accent")
+	assert(edge[1] == r and edge[2] == g and edge[3] == b, "the card the caption names wears the accent edge with no frame run, so the cue never waits on its hover tween")
 	W.Leave(panel.cards.Tank)
 	assert(panel.previewName:GetText():lower():find("dps", 1, true), "and back")
 	assert(#env._errors == 0, tostring(env._errors[1]))

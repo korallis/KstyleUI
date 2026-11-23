@@ -1,4 +1,4 @@
--- test-skins-restedxp-step.lua: with RestedXP's Active Targets and Active Items boxes docked under the guide, the guide's current step still shows its first line at 1920x1080 and 5120x1440 at UI scale 1 and at Blizzard's default 768/1080 (KSTY-77, the Captain's ruling: the quest card gives up a row before the guide gives up its step), the boxes share one row, the "N more" line keeps off the card's title, and the header keeps its step counter.
+-- test-skins-restedxp-step.lua: with RestedXP's Active Targets and Active Items boxes docked under the guide, the guide's current step still shows its first line at 1920x1080 and 5120x1440 at UI scale 1 and at Blizzard's default 768/1080 (KSTY-77, the Captain's ruling: the quest card gives up a row before the guide gives up its step), the docked boxes show no headers (their chip placement is test-skins-restedxp-boxes.lua's), the "N more" line keeps off the card's title, and the header keeps its step counter.
 rawset(_G, "RENDER_RXP_BOXES", "1")
 local Reference = dofile("Tools/render/scenes/_reference.lua")
 local owner = Reference.SCREEN
@@ -26,15 +26,7 @@ for _, screen in ipairs({ { 1920, 1080, 1 }, { 5120, 1440, 1 }, { 1920, 1080, 76
 		return Plain(text):find("Kill Bandit Highwayman", 1, true) ~= nil
 	end)
 	assert(step, what .. ": the current step's first line shows with both boxes up")
-	local targets = Find(scene, function(text)
-		return text == "TARGETS"
-	end)
-	local items = Find(scene, function(text)
-		return text == "ITEMS"
-	end)
-	assert(targets and items, what .. ": both boxes show, in one row with compact headers")
-	assert(math.abs(targets.top - items.top) < 1 and targets.right < items.left, what .. ": the boxes sit side by side")
-	assert(step.bottom <= targets.top, what .. ": the step stands above the boxes")
+	assert(not Find(scene, function(text) return text == "TARGETS" or text == "ITEMS" or text:find("^ACTIVE ") end), what .. ": the docked boxes show no headers")
 	local cap = Find(scene, function(text)
 		return text:find("SKYBORNE", 1, true) ~= nil
 	end)

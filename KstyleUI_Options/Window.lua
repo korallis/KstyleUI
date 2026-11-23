@@ -28,6 +28,24 @@ local state = { page = "General", pages = {} }
 local refreshQueued = false
 local Relayout
 
+local function BottomFade(list)
+	if not CreateColor then return end
+	local holder = CreateFrame("Frame", nil, list)
+	holder:SetAllPoints(list.view)
+	holder:SetFrameLevel(list:GetFrameLevel() + 20)
+	local fade = holder:CreateTexture(nil, "OVERLAY")
+	local r, g, b, a = Widgets.Rgba("surface")
+	fade:SetColorTexture(Tokens.Color("white"))
+	fade:SetGradient("VERTICAL", CreateColor(r, g, b, a), CreateColor(r, g, b, 0))
+	Widgets.Point(fade, "BOTTOMLEFT", holder, "BOTTOMLEFT")
+	Widgets.Point(fade, "TOPRIGHT", holder, "BOTTOMRIGHT", 0, Tokens.Size("gapXLarge"))
+	local refresh = list.Refresh
+	list.Refresh = function(self, force)
+		refresh(self, force)
+		fade:SetShown(self:GetOffset() < self:GetMaxOffset() - 0.5)
+	end
+end
+
 local function CalmLists()
 	return K.Appearance.Get("calmLists")
 end
@@ -110,7 +128,7 @@ local function Render(keepOffset, reselect, pageChanged)
 				items = Window.Picks(items, account)
 			end
 			if Target(items) then
-				table.insert(items, 1, { kind = "note", label = L["Press Enter or click a result's name to go to it."] })
+				table.insert(items, 1, { kind = "note", label = L["Press Enter or click a name to go to it."] })
 			end
 		end
 	else
@@ -547,6 +565,8 @@ local function Build()
 		createRow = Rows.Create,
 		updateRow = Rows.Update,
 	})
+	BottomFade(rail)
+	BottomFade(content)
 	picker = Rows.Create({ view = win })
 	picker:Hide()
 	local setOffset = content.SetOffset

@@ -1,4 +1,4 @@
--- test-skins-restedxp-boxes.lua: RestedXP's Active Targets and Active Items boxes dock under the guide's card on the story rail (KSTY-77, the owner's live Orbs HUD at 3456x2234, where they overlapped the card's foot at the places he once saved): at the card's width and edges, a small gap apart, inside the guide's slot, re-docked after RestedXP resizes them, kept out of RestedXP's saved places, and let be once the player drags one.
+-- test-skins-restedxp-boxes.lua: RestedXP's Active Targets and Active Items boxes dock under the guide's card on the story rail (KSTY-77, the owner's live Orbs HUD at 3456x2234, where they overlapped the card's foot at the places he once saved): header-less chips sized to their icons at the card's outer edges (polish audit B #21: half-width boxes held one icon in mostly empty glass), a small gap under it, inside the guide's slot, re-docked after RestedXP resizes them, kept out of RestedXP's saved places, and let be once the player drags one.
 local S = dofile("Tools/regression/skins_env.lua")
 local Fake = dofile("Tools/regression/restedxp_fake.lua")
 local Quests = dofile("Tools/regression/quests_fake.lua")
@@ -73,16 +73,21 @@ for _, screen in ipairs(SCREENS) do
 			assert(Near(guide.bottom - box.top, gap, 2 * px), string.format("%s: the %s box docks a small gap under the card's foot, got %.2f", what, name, guide.bottom - box.top))
 			assert(box.bottom >= slot.bottom - px, string.format("%s: the %s box stays in the guide's slot, got %.1f for %.1f", what, name, box.bottom, slot.bottom))
 		end
-		local half = (guide.right - guide.left - gap) / 2
-		assert(Near(t.left, guide.left, edge) and Near(i.right, guide.right, edge) and Near(i.left - t.right, gap, 2 * px), string.format("%s: the two boxes share one row at the card's width within the guide's half-pixel snap, its gutter between them, got %.1f..%.1f and %.1f..%.1f for %.1f..%.1f", what, t.left, t.right, i.left, i.right, guide.left, guide.right))
-		assert(Near(t.right - t.left, half, 2 * px) and Near(i.right - i.left, half, 2 * px), what .. ": each takes half the width")
-		for name, box in pairs({ targets = targets, items = items }) do
-			local caption = ns.RestedXP.Chrome.Caption(box.title.text)
-			local glass = Glass(K, box)
-			assert(caption:GetText() == (name == "items" and "ITEMS" or "TARGETS"), what .. ": the " .. name .. " box wears a compact caps header, got " .. tostring(caption:GetText()))
-			local c = Geometry.ScaledRect(caption, env.UIParent, K.Scale.Root())
-			assert(not c or c.right <= glass.right + px, what .. ": the " .. name .. " header fits its half")
+		assert(Near(t.left, guide.left, edge) and Near(i.right, guide.right, edge) and t.right < i.left, string.format("%s: the two chips share one row at the card's outer edges, got %.1f..%.1f and %.1f..%.1f for %.1f..%.1f", what, t.left, t.right, i.left, i.right, guide.left, guide.right))
+		local function Chip(name, box, glass)
+			local margin = K.Tokens.Size("gapSmall") * K.Widgets.ScaleFactor(box)
+			for _, button in ipairs({ box:GetChildren() }) do
+				if button:GetObjectType() == "Button" and button:IsShown() then
+					local b = Geometry.ScaledRect(button, env.UIParent, K.Scale.Root())
+					for _, side in ipairs({ "left", "right", "top", "bottom" }) do
+						assert(Near(math.abs(glass[side] - b[side]), margin, 2 * px), string.format("%s: the %s chip wraps its icon one small gap out on the %s, got %.2f", what, name, side, math.abs(glass[side] - b[side])))
+					end
+				end
+			end
+			assert(not box.title:IsShown(), what .. ": the " .. name .. " chip drops its header under the guide's card")
 		end
+		Chip("targets", targets, t)
+		Chip("items", items, i)
 		if screen[1] == 3456 or style == "orbs" then
 			assert(ns.RestedXP.Rail.Hidden() == 0, what .. ": the guide keeps its step on show above the boxes")
 		end
@@ -96,8 +101,7 @@ for _, screen in ipairs(SCREENS) do
 		S.W.Settle(env)
 		env.RunTimers()
 		guide, t, i = Glass(K, rxp.RXPFrame), Glass(K, targets), Glass(K, items)
-		assert(Near(t.left, guide.left, edge) and Near(t.right, guide.right, edge) and Near(i.right, guide.right, edge) and i.left <= guide.left + edge and Near(t.bottom - i.top, gap, 2 * px), string.format("%s: overflowing items stack at full width; guide %.1f..%.1f, targets %.1f..%.1f, items %.1f..%.1f, gap %.1f", what, guide.left, guide.right, t.left, t.right, i.left, i.right, t.bottom - i.top))
-		assert(ns.RestedXP.Chrome.Caption(items.title.text):GetText() == "ACTIVE ITEMS", what .. ": a full-width box keeps RestedXP's own caption")
+		assert(Near(t.left, guide.left, edge) and Near(i.right, guide.right, edge) and i.left <= guide.left + edge and Near(t.bottom - i.top, gap, 2 * px), string.format("%s: overflowing items stack under the targets, keeping the card's right edge; guide %.1f..%.1f, targets %.1f..%.1f, items %.1f..%.1f, gap %.1f", what, guide.left, guide.right, t.left, t.right, i.left, i.right, t.bottom - i.top))
 		for n = 1, #items.buttonList do
 			local button = items.buttonList[n]
 			if button:IsShown() then
@@ -114,7 +118,14 @@ for _, screen in ipairs(SCREENS) do
 		local alone = Glass(K, targets)
 		local card = Glass(K, rxp.RXPFrame)
 		assert(Near(card.bottom - alone.top, gap, 2 * px) and alone.bottom >= slot.bottom - px, what .. ": Active Targets stays docked alone")
-		assert(Near(alone.left, card.left, edge) and Near(alone.right, card.right, edge), what .. ": and takes the card's full width within its half-pixel snap")
+		assert(Near(alone.left, card.left, edge) and alone.right < card.right, what .. ": as a chip at the card's left edge")
+		K.Options.Write("Skins", "restedXP.boxes", false)
+		env.RunTimers()
+		S.W.Settle(env)
+		assert(targets.title:IsShown(), what .. ": undocked, the box gets RestedXP's header back")
+		K.Options.Write("Skins", "restedXP.boxes", true)
+		env.RunTimers()
+		S.W.Settle(env)
 
 		rxp.fake.check(HOOKED)
 		assert(#env._errors == 0 and K.ErrorCount() == 0, what .. ": " .. tostring(env._errors[1]))

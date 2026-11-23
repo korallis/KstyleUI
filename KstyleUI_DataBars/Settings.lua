@@ -53,7 +53,6 @@ defaults.fadeBlizzard = true
 defaults.accentSource = "class"
 defaults.accentColor = Rgb("accentDefault")
 defaults.xp = BarDefaults("custom", "epic", "percentRested")
-defaults.xp.border = false
 defaults.xp.textHover = false
 defaults.xp.textPosition = "BOTTOM"
 defaults.xp.outline = Font.WORLD
@@ -66,8 +65,9 @@ defaults.xp.questXP = false
 defaults.xp.questColor = Rgb("friendly", XP_RESTED_ALPHA)
 defaults.rep = BarDefaults("reaction", "friendly", "labelPercent")
 defaults.rep.rewardMarker = true
-defaults.honor = BarDefaults("custom", "epic", "labelPercent")
+defaults.honor = BarDefaults("custom", "legendary", "labelPercent")
 defaults.honor.show = "pvp"
+defaults.honor.matchBars = true
 defaults.strip = {
 	enabled = true, placement = "dock", height = 14, background = 85, artwork = "forged",
 	dockMeter = true,
@@ -127,7 +127,7 @@ end
 defaults.strip.dockModules = {}
 for i, id in ipairs({ "fps", "latency", "gold", "durability", "time", "micro", "spec", "hearth", "guild", "friends", "bags", "currencies", "xp", "location", "itemLevel",
 	"coords", "combat", "played", "audio", "prof1", "prof2", "broker", "spacer", "reagents" }) do
-	defaults.strip.dockModules[#defaults.strip.dockModules + 1] = { id = id, shown = i <= 6, zone = id == "time" and "centre" or (id == "spec" or id == "hearth" or id == "micro") and "left" or "right" }
+	defaults.strip.dockModules[#defaults.strip.dockModules + 1] = { id = id, shown = i <= 6, zone = id == "time" and "centre" or (id == "spec" or id == "hearth" or id == "micro" or id == "fps" or id == "latency") and "left" or "right" }
 end
 
 defaults.strip.railModules = {}
@@ -236,6 +236,7 @@ function ns.Schema()
 			rows[#rows + 1] = { type = "toggle", key = "rep.rewardMarker", label = L["Paragon reward marker"], help = L["Marks a waiting paragon reward with an asterisk in the caption."] }
 		elseif id == "honor" then
 			rows[#rows + 1] = { type = "dropdown", key = "honor.show", label = L["Show"], help = L["Shows honour only in battlegrounds and world PvP, or all the time."], options = HONOR_SHOW }
+			rows[#rows + 1] = { type = "toggle", key = "honor.matchBars", label = L["Match the other bars"], help = L["Draws honour as a strip like the other bars in Medallions. Off keeps your own honour settings."] }
 		end
 		local textRows = {
 			{ type = "dropdown", key = id .. ".text", label = L["Text"], help = L["What the text on the bar says."], options = Format.BAR_TEXTS },
@@ -622,7 +623,11 @@ function ns.Preview(...)
 			local settings = ns.Settings()
 			for id, view in pairs(self.bars) do
 				Bars.Paint(view, PreviewSettings(settings[id]), SAMPLES[id], true)
-				Widgets.Point(self.captions[id], "BOTTOMLEFT", view.holder, "TOPLEFT", 0, (view.text:IsShown() and Widgets.LineHeight(view.text) or 0) + Tokens.Size("gapSmall"))
+				local label, gap = self.captions[id], Tokens.Size("gapSmall")
+				local wide = view.text:IsShown() and Widgets.TextWidth(label, 0) + gap + Widgets.TextWidth(view.text, 0) > (Width(view.holder) or PREVIEW_FALLBACK_WIDTH)
+				Widgets.Point(label, "BOTTOMLEFT", view.holder, "TOPLEFT", 0, (wide and Widgets.LineHeight(view.text) or 0) + gap)
+				view.text:ClearAllPoints()
+				Widgets.Point(view.text, "BOTTOMRIGHT", view.holder, "TOPRIGHT", 0, Tokens.Size("gapSmall"))
 			end
 			local s = setmetatable({ orientation = "HORIZONTAL" }, { __index = settings.strip })
 			local sample, samples = self.strip, StripSamples(s)

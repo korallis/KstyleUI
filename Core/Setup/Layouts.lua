@@ -56,7 +56,7 @@ local DAMAGE_W, DAMAGE_H = 250, 158
 local THREAT_W, THREAT_H = DAMAGE_W, 112
 local READOUT_H, READOUT_GAP, RAIL_BARS_GAP = 12, 6, 10
 
-local PARTY = { width = 259, height = 5 * 39 + 4 * 13, healer = 5 * 43 + 4 * 13, top = 465 }
+local PARTY = { width = 259, height = 5 * 39 + 4 * 13, healer = 5 * 43 + 4 * 13, top = 465, scale = 1.25 }
 
 local FEED_LINES, FEED_PAD = 4, ns.Tokens.Size("radius") + ns.Tokens.Size("gapSmall")
 local FEED_ROW, FEED_GAP = ns.Tokens.Size("lootTile"), ns.Tokens.Size("gapSmall")
@@ -554,7 +554,17 @@ function Layouts.ConsumableFootprint(class, style)
 	return columns * (size + gap) - gap, rows * (size + gap) - gap
 end
 
-function Layouts.Footprint(name, key, class, style)
+function Layouts.PartyScale(width, height)
+	local loaded = ns.Store.IsLoaded()
+	local saved = loaded and ns.Store.Profile().GroupFrames
+	local readable, party = type(saved) == "table" and saved.readable, type(saved) == "table" and saved.party
+	local rows = ROWS[loaded and ns.Store.Module("Layout").preset] or ROWS.DPS
+	if type(readable) == "table" and readable.size == false then return 1 end
+	if type(party) == "table" and ((party.width or PARTY.width) ~= PARTY.width or (party.height or rows.party) ~= rows.party) then return 1 end
+	return (width and height and ns.Scale.AspectClass(width, height) or ns.Scale.Aspect()) ~= "16:9" and PARTY.scale or 1
+end
+
+function Layouts.Footprint(name, key, class, style, width, height)
 	local element = byKey[key]
 	if not element or not layouts[name] then
 		return nil
@@ -571,6 +581,10 @@ function Layouts.Footprint(name, key, class, style)
 	local place = Layouts.Attached(name, key, ns.Scale.Aspect(), style)
 	if place and place.width then return place.width, place.height end
 	local reserve = SIZES[name][key] or element.reserve
+	if key == "groupframes.party" then
+		local scale = Layouts.PartyScale(width, height)
+		return (reserve and reserve[1] or element.width) * scale, (reserve and reserve[2] or element.height) * scale
+	end
 	if reserve then
 		return reserve[1], reserve[2], reserve[3], reserve[4]
 	end
@@ -656,7 +670,7 @@ function Layouts.Story(name, rootHeight, guide, rootWidth, out, targetWidth, cre
 	local offset = style == "medallions" and GAP + crest or 0
 	inset = offset + (inset or Layouts.TopInset(style))
 	local rh, party, size = HEIGHT - Lift(rootHeight), layouts[name]["groupframes.party"], SIZES[name]["groupframes.party"]
-	local partyTop = rh / 2 + party.y + (size and size[2] or PARTY.height) / 2
+	local partyTop = rh / 2 + party.y + (size and size[2] or PARTY.height) * Layouts.PartyScale(rootWidth, rootHeight) / 2
 	out = out or {}
 	out.guide = guide and Card(out.guide, STORY_KEYS.guide, "TOPLEFT", MARGIN, -MARGIN, STORY_W, rh - MARGIN - GAP - partyTop) or nil
 	out.slot = slot.height - Lift(rootHeight) - inset
@@ -1537,7 +1551,7 @@ function Layouts.PrepareFits(name, physicalWidth, physicalHeight, enabled, posit
 	for i, element in ipairs(ELEMENTS) do
 		local key = element.key
 		if state.stripHeight and key == "databars.strip" then state.stripIndex = i end
-		local width, height, offsetX, offsetY = Layouts.Footprint(name, key, class, style)
+		local width, height, offsetX, offsetY = Layouts.Footprint(name, key, class, style, physicalWidth, physicalHeight)
 		if search and key ~= "consumables.bar" then
 			local position = layout[key]
 			state.span = math.max(state.span, math.abs(position.x) + width, math.abs(position.y) + height)
@@ -1731,7 +1745,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, styl
 	end
 	style = STYLES[style] and style or style == nil and ns.HudStyle.Current() or "frames"
 	local signature = style .. (Layouts.ThirdBarFinished() and "finished" or "legacy") .. table.concat(flags) .. (enabled["meters.damage2"] and "2" or "") .. Layouts.ActionBarSignature(style)
-		.. (style == "medallions" and Layouts.CrestKey() or "")
+		.. (style == "medallions" and Layouts.CrestKey() or "") .. Layouts.PartyScale(physicalWidth, physicalHeight)
 	local cached = limits[preset]
 	if cached and cached.width == physicalWidth and cached.height == physicalHeight and cached.signature == signature then
 		return cached.scale, cached.fits

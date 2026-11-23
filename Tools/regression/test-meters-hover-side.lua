@@ -71,6 +71,12 @@ local function Hover(where, i)
 	end
 	assert(covered >= 3, "the split covers whole rows: " .. covered)
 	assert(peeking == 0, "no row peeks out half-hidden under the split's edge")
+	-- A split line's name starts after its spell icon, as the drill-down's rows do.
+	for j = 1, split.used do
+		local line = split.lines[j]
+		local x = select(4, line.name:GetPoint(1))
+		assert(line.nameInset > 0 and x == line.nameInset, "split line " .. j .. "'s name sits " .. tostring(x) .. " units in, on its icon, not after it at " .. tostring(line.nameInset) .. "; re-place the text when the icon inset changes (KstyleUI_Meters/BarList.lua PlaceBlockText)")
+	end
 	row._scripts.OnLeave(row)
 	env.RunTimers()
 	assert(not split.frame:IsShown(), "the split closes when the pointer leaves")

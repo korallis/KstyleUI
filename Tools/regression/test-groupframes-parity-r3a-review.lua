@@ -114,7 +114,7 @@ do
 	env._roster.units.party1.dead = true
 	env.FireEvent("UNIT_HEALTH", "party1")
 	assert(font(f.healthText) == 24, "Dead with the health text at its own size, got " .. tostring(font(f.healthText)))
-	assert(H.width(env, f.healthText) >= ns.Style.StatusWidth(f, 24), "with room for the whole word")
+	assert(H.width(env, f.healthText) == 0 or H.width(env, f.healthText) >= ns.Style.StatusWidth(f, 24), "with room for the whole word")
 	env._roster.units.party1.dead = false
 	env.FireEvent("UNIT_HEALTH", "party1")
 	assert(font(f.healthText) == alive, "alive again, the health text keeps its size")

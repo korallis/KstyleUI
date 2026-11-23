@@ -13,6 +13,7 @@ local STRIP_HEIGHT = 32
 local FOOTER_HEIGHT = 28
 local CARD_HEIGHT = 120
 local STYLE_PICTURE_SHARE = 0.5
+local WELCOME_LABEL_BAND = 26
 local REFERENCE_HEIGHT = ns.Setup.Layouts.HEIGHT
 local REFERENCE_WIDTH = REFERENCE_HEIGHT * 16 / 9
 local LABEL_ROOM = 2
@@ -31,7 +32,6 @@ local ROWS_PER_COLUMN = 8
 local HEADER_HEIGHT = 32
 local ELEMENT_ALPHA, ROLE_ALPHA = 0.22, 0.5
 local SLOT_FILL, SLOT_EDGE = 0.08, 0.7
-local CARD_HOVER_EDGE = 0.6
 local WINDOW_KEY = "setup.window"
 local WINDOW_POSITION = { anchor = "CENTER", x = 0, y = 40 }
 local SKIP_IN_PREVIEW = { ["groupframes.raid"] = true }
@@ -365,17 +365,19 @@ local function BuildBrandedWelcome(page)
 	body:SetText(L["Dark forged chrome for the whole game."] .. "\n" .. L["Two HUD styles. One setup. Every screen."])
 	local pictures = CreateFrame("Frame", nil, page)
 	Widgets.Point(pictures, "TOPLEFT", hero, "BOTTOMLEFT", 0, -gutter)
-	Widgets.Size(pictures, width, 104)
+	local cardWidth = (width - gutter * (#STYLES - 1)) / #STYLES
+	local pictureHeight = Widgets.Snap(page, (cardWidth - 2 * pad) * STYLE_PICTURE_SHARE)
+	local cardHeight = pad + pictureHeight + WELCOME_LABEL_BAND
+	Widgets.Size(pictures, width, cardHeight)
 	for i, style in ipairs(STYLES) do
 		local card = CreateFrame("Frame", nil, pictures)
-		local cardWidth = (width - gutter * (#STYLES - 1)) / #STYLES
-		Widgets.Size(card, cardWidth, 104)
+		Widgets.Size(card, cardWidth, cardHeight)
 		Widgets.Point(card, "TOPLEFT", pictures, "TOPLEFT", (i - 1) * (cardWidth + gutter), 0)
 		card.chrome = Widgets.Chrome(card, { shape = "tile", fill = "buttonFill", shadow = false })
 		local picture = card:CreateTexture(nil, "ARTWORK")
 		picture:SetTexture((Tokens.Texture(style.picture)))
-		Widgets.Size(picture, 152, 76)
-		Widgets.Point(picture, "TOP", card, "TOP", 0, -2)
+		Widgets.Size(picture, cardWidth - 2 * pad, pictureHeight)
+		Widgets.Point(picture, "TOP", card, "TOP", 0, -pad)
 		local label = Widgets.Text(card, "caps", "capsGold")
 		Widgets.CapsSize(label)
 		Widgets.Point(label, "BOTTOM", card, "BOTTOM", 0, gutter)
@@ -481,13 +483,8 @@ end
 local Card = {}
 
 function Card:Paint()
-	local hover = self.hoverT or 0
-	if self.selected then
-		self.chrome:SetEdge("accent", 1)
-	else
-		self.chrome:SetEdgeRGBA(Widgets.MixTokens("edgeInner", 1, "accent", CARD_HOVER_EDGE, hover))
-	end
-	local emphasis = self.selected and 1 or hover
+	local emphasis = self.selected and 1 or self.hoverT or 0
+	self.chrome:SetEdgeRGBA(Widgets.MixTokens("edgeInner", 1, "accent", 1, self.pointed and 1 or emphasis))
 	self.title:SetTextColor(Widgets.MixTokens("textEmphasis", 1, "textHover", 1, emphasis))
 end
 
@@ -728,6 +725,12 @@ local function NewCard(page, width, height, title, note, pick)
 		Changed()
 	end
 	Widgets.HookPointer(card)
+	for script, pointed in pairs({ OnEnter = true, OnLeave = false }) do
+		card:HookScript(script, function()
+			card.pointed = pointed
+			card:Paint()
+		end)
+	end
 	card:Restyle()
 	return Widgets.Track(card)
 end
@@ -923,21 +926,29 @@ PlaceModules = function()
 	local top = ns.Store.Module("Setup").readableNotes and max(HEADER_HEIGHT, Widgets.WrappedHeight(panel.moduleNote, panel.moduleNote:GetWidth())) or HEADER_HEIGHT
 	Widgets.Fill(panel.moduleScroll, panel.pages[4], 0, top + gap("gapMedium"), 0, 0)
 	local function Place(least)
-		local heights = { 0, 0 }
+		local heights, tops = {}, { 0, 0 }
 		for i, entry in ipairs(Setup.PICKER) do
-			local col = i <= ROWS_PER_COLUMN and 1 or 2
 			local toggle = panel.toggles[entry.name]
 			Setup.NoteStyle(toggle.note)
 			local indent = toggle.trackBox:GetWidth() + gap("gapMedium")
-			toggle:ClearAllPoints()
-			Widgets.Point(toggle, "TOPLEFT", panel.moduleBody, "TOPLEFT", (col - 1) * column, -heights[col])
 			toggle.note:ClearAllPoints()
 			Widgets.Point(toggle.note, "TOPLEFT", toggle, "BOTTOMLEFT", indent, -gap("gapTiny"))
 			toggle.note:SetWidth(column - indent - gap("gapLarge"))
 			local height = ns.Store.Module("Setup").readableNotes and max(least, toggle:GetHeight() + gap("gapTiny") + Widgets.WrappedHeight(toggle.note, toggle.note:GetWidth()) + gap("gapSmall")) or ROW_HEIGHT
-			heights[col] = heights[col] + Widgets.Snap(panel.moduleBody, height)
+			heights[i] = Widgets.Snap(panel.moduleBody, height)
+			if i > ROWS_PER_COLUMN then
+				heights[i] = max(heights[i], heights[i - ROWS_PER_COLUMN])
+				heights[i - ROWS_PER_COLUMN] = heights[i]
+			end
 		end
-		return max(heights[1], heights[2])
+		for i, entry in ipairs(Setup.PICKER) do
+			local col = i <= ROWS_PER_COLUMN and 1 or 2
+			local toggle = panel.toggles[entry.name]
+			toggle:ClearAllPoints()
+			Widgets.Point(toggle, "TOPLEFT", panel.moduleBody, "TOPLEFT", (col - 1) * column, -tops[col])
+			tops[col] = tops[col] + heights[i]
+		end
+		return max(tops[1], tops[2])
 	end
 	local height = Place(ROW_HEIGHT)
 	if ns.Store.Module("Setup").readableNotes and height > panel.moduleScroll:GetHeight() then height = Place(0) end

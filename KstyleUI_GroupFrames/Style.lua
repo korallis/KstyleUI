@@ -406,7 +406,7 @@ local function PlaceOverlay(f, k, parts)
 	else
 		local width = status and Style.StatusWidth(f, size) or math.max(lane, reserve or 0)
 		healthText:SetJustifyH(spot.justify)
-		healthText:SetWidth(math.max(1, Widgets.Snap(f, width)))
+		healthText:SetWidth(Settings.current.readable.text and 0 or math.max(1, Widgets.Snap(f, width)))
 		healthText:SetPoint("TOPRIGHT", f.health, "TOPRIGHT", 0, Widgets.Snap(f, parts.health.top) - Widgets.Snap(f, spot.top))
 		if status then
 			local free = spot.left - (rect.left + rect.width)
@@ -459,7 +459,7 @@ local function PlaceRow(f)
 	if status then
 		reserve = math.max(reserve or 0, Style.StatusWidth(f, size) or 0)
 	end
-	healthText:SetWidth(reserve or 0)
+	healthText:SetWidth(Settings.current.readable.text and 0 or reserve or 0)
 	local bar = parts.health
 	local cy = -Widgets.Snap(f, bar.top + bar.height / 2)
 	if inRow then
@@ -661,6 +661,7 @@ function Style.Apply(f, width, height)
 		classLine:SetHeight(Widgets.Snap(f, parts.name.height))
 	end
 	Style.PlaceRowEnd(f)
+	Widgets.Halo(f.name, cfg.readable.text and (f.kind == "party" or parts.tile ~= nil))
 	ExtraTexts(f, k)
 	if f.extra1 or f.extra2 then ns.Unit.Listen(f) end
 	Style.LayoutRing(f.targetRing, f.target, f.chrome:Chamfer())

@@ -16,7 +16,7 @@ local function eq(got, want, what)
 end
 
 -- ShortOrWhole: the name is whole in the Medallions tile's caps, or, when even the text floor cannot hold it, its head
--- (on Frames, its head and an ellipsis); never under the floor.
+-- and an ellipsis (Readable names and numbers); never under the floor.
 local function ShortOrWhole(f, full, what)
 	local K = f._env.KstyleUI
 	local text = f.name:GetText()
@@ -27,12 +27,8 @@ local function ShortOrWhole(f, full, what)
 	if text == full then
 		return
 	end
-	if isFrames then
-		local head = text:match("^(.-)%.%.%.$")
-		assert(head and #head >= 4 and full:sub(1, #head) == head, what .. ": " .. full .. " is whole or keeps its head, got " .. tostring(text))
-	else
-		assert(#text >= 4 and full:sub(1, #text) == text, what .. ": " .. full .. " is whole or keeps its head, got " .. tostring(text))
-	end
+	local head = text:match("^(.-)%.%.%.$")
+	assert(head and #head >= 4 and full:sub(1, #head) == head, what .. ": " .. full .. " is whole or keeps its head, got " .. tostring(text))
 	assert(size <= f.nameFit.min + 1e-6 or px <= K.Scale.TextFloor() + 0.01, what .. ": " .. full .. " shortens only at its smallest size")
 end
 
@@ -175,7 +171,8 @@ for _, size in ipairs(SIZES) do
 			assert(item and not intersects(item.rect, own), what .. ": " .. LONG[i] .. " " .. describe(item.rect) .. " keeps clear of the heals " .. describe(own))
 		else
 			local text, whole = member.name:GetText(), K.Locale.Upper(LONG[i])
-			assert(#text > 0 and whole:sub(1, #text) == text, what .. ": " .. LONG[i] .. " keeps its head, got " .. text)
+			local head = text:gsub("%.%.%.$", "")
+			assert(#head > 0 and whole:sub(1, #head) == head, what .. ": " .. LONG[i] .. " keeps its head, got " .. text)
 		end
 	end
 	if isFrames then
@@ -247,7 +244,7 @@ do
 		K.Options.Write("GroupFrames", "raid.healthText", case[1])
 		env.RunTimers()
 		local path, size = f.healthText:GetFont()
-		assert(env.Look(f.healthText:GetWidth()) + 0.5 >= Scene.TextWidth(case[2], size, path), case[1] .. ": the lane holds its widest value whole, width " .. env.Look(f.healthText:GetWidth()))
+		assert(env.Look(f.healthText:GetWidth()) == 0 or env.Look(f.healthText:GetWidth()) + 0.5 >= Scene.TextWidth(case[2], size, path), case[1] .. ": the lane holds its widest value whole, width " .. env.Look(f.healthText:GetWidth()))
 	end
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end

@@ -47,8 +47,9 @@ local function Missing(f, vertical)
 	if missing ~= (f.missingFill == true) then
 		f.missingFill = missing
 		f.health:SetReverseFill(missing)
-		f.health:SetLoss(not missing)
 	end
+	local loss = not (missing or Settings.current.readable.track)
+	if loss ~= f.health.lossOn then f.health:SetLoss(loss) end
 	if not missing then
 		return
 	end

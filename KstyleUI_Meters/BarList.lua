@@ -21,7 +21,7 @@ local SWITCH_GAP = "  "
 local SPLIT_LEVEL = 3
 local BLOCK_TEXT_INSET = 0
 local BLOCK_SWITCH_REACH = 120
-local BLOCK_ICON_GAP = 0
+local BLOCK_ICON_GAP = 2
 local DOT = "\194\183"
 local DOT_GAP_EM = 5 / 21
 local BEARING_DEFAULT = 0.025
@@ -268,7 +268,7 @@ local function LayoutSplit(list, split, shown, note)
 	end
 	split.note:SetShown(note)
 	if note then
-		local slot = list.blockIcons and list.rowHeight + Widgets.Snap(list.panel, list.plate and BLOCK_ICON_GAP or 2) or 0
+		local slot = list.blockIcons and list.rowHeight + Widgets.Snap(list.panel, BLOCK_ICON_GAP) or 0
 		local inset = Widgets.Snap(list.panel, list.plate and BLOCK_TEXT_INSET or 7)
 		split.note:ClearAllPoints()
 		split.note:SetPoint("TOPLEFT", frame, "TOPLEFT", slot + inset, -y)
@@ -538,7 +538,7 @@ function StyleRow(list, row)
 	row.bar.barEdge = row.bar.barEdge or Widgets.BarEdge(row.bar)
 	row.bar.barEdge:SetShown(list.plate)
 	row.bar.keyline:SetShown(not list.plate and not list.block)
-	row.bar.backgroundName = list.plate and "barTrack" or "buttonFill"
+	row.bar.backgroundName = list.plate and "slotWell" or "buttonFill"
 	row.bar:SetLitShade(not list.plate and list.block and LIT_ALPHA or nil, not list.plate and list.block and SHADE_ALPHA or nil)
 	row.back:SetShown(false)
 	row.dot:SetShown(false)
@@ -594,10 +594,10 @@ end
 
 local function PlaceBlockText(list, row)
 	local last, first = EndChar(row.amount, true), EndChar(row.share, false)
-	if row.textLayout == list.textLayout and row.textJoined == row.joined and row.textLast == last and row.textFirst == first then
+	if row.textLayout == list.textLayout and row.textJoined == row.joined and row.textLast == last and row.textFirst == first and row.textInset == row.nameInset then
 		return
 	end
-	row.textLayout, row.textJoined, row.textLast, row.textFirst = list.textLayout, row.joined, last, first
+	row.textLayout, row.textJoined, row.textLast, row.textFirst, row.textInset = list.textLayout, row.joined, last, first, row.nameInset
 	local frame = row.frame
 	local inset = Widgets.Snap(list.panel, list.plate and BLOCK_TEXT_INSET or 7)
 	local rowHeight = list.rowHeight - (list.plate and Widgets.Snap(list.panel, Tokens.Size("barHeight") + TEXT_AIR) or 0)
@@ -645,7 +645,7 @@ function PlaceBlockRow(list, row, y, parent, x)
 	frame:SetPoint("TOPLEFT", parent or panel, "TOPLEFT", x or list.pad, -y)
 	frame:SetSize(max(1, list.barWidth), list.rowHeight)
 	local slot = list.blockIcons and (list.rowHeight - (list.plate and Widgets.Snap(panel, Tokens.Size("barHeight") + TEXT_AIR) or 0)) or 0
-	local reach = slot > 0 and slot + Widgets.Snap(panel, list.plate and BLOCK_ICON_GAP or 2) or 0
+	local reach = slot > 0 and slot + Widgets.Snap(panel, BLOCK_ICON_GAP) or 0
 	row.nameInset = reach
 	bar.opts.width = max(1, list.barWidth - (list.plate and 0 or reach))
 	bar.opts.height = list.plate and Widgets.Snap(panel, Tokens.Size("barHeight")) or list.rowHeight
@@ -913,6 +913,9 @@ function List:Restyle()
 		HoldTitle(self)
 	end
 	ns.ApplyFont(self.note, section)
+	self.note:ClearAllPoints()
+	Widgets.Point(self.note, "TOPLEFT", self.panel, "TOPLEFT", self.pad, -Widgets.Snap(self.panel, self:Top()), true)
+	Widgets.Point(self.note, "BOTTOMRIGHT", self.panel, "BOTTOMRIGHT", -self.pad, self.pad, true)
 
 	local open = self.split and self.split.frame:IsShown() and self.split.row or nil
 	HideSplit(self)
@@ -938,9 +941,8 @@ function List:Fit()
 	local _, holderHeight = Size(self.holder, self.width, self.height)
 	local capacity, count = self.capacity or 0, self.count or 0
 	local height = holderHeight
-	local fit = ns.Get("fitCards")
-	if (not self.block or fit) and (capacity < 1 or count < capacity) then
-		local rows, spacing = max(self.block and fit and 3 or 1, min(count, capacity)), Spacing(self)
+	if self.block and ns.Get("fitCards") or not self.block and (capacity < 1 or count < capacity) then
+		local rows, spacing = max(self.block and count > 0 and 3 or 1, min(count, capacity)), Spacing(self)
 		height = Widgets.Snap(self.panel, self:Top()) + rows * (self.rowHeight + spacing) - spacing + self.pad
 	end
 	height = max(1, min(height, holderHeight))
@@ -1259,7 +1261,6 @@ function BarList.New(parent, section, opts)
 	list.title:SetWordWrap(false)
 	list.note = Text(panel, "CENTER")
 	list.note:SetTextColor(Tokens.Color("textDisabled"))
-	Widgets.Point(list.note, "CENTER", panel, "CENTER", 0, -floor(Tokens.Size("gapMedium") / 2), true)
 	list.note:Hide()
 	if opts.onClick then
 		panel:EnableMouse(true)

@@ -19,6 +19,7 @@ local function Bounds(env, K, ns, context, preview)
 	if ns.Face.Frame() == "medallion" then
 		assert(math.abs((row.top + row.bottom) / 2 - ring.bottom) <= pixel, context .. string.format(": seat the coordinate plaque on the rim: %.4f vs %.4f, pixel %.4f", (row.top + row.bottom) / 2, ring.bottom, pixel))
 		assert(row.right - row.left < zone.right - zone.left, context .. ": shorten the medallion coordinate plaque")
+		assert(face.plaques[2]:GetFrameLevel() > face.overlay:GetFrameLevel(), context .. ": draw the seated plaque over the ring's rim, not under it")
 	else
 		assert(row.top <= ring.bottom - pixel + 1e-6, context .. ": place the coordinate plaque below the ring")
 		assert(math.abs(zone.left - row.left) <= pixel + 1e-6 and math.abs(zone.right - row.right) <= pixel + 1e-6,

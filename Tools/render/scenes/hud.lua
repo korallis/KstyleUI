@@ -22,7 +22,8 @@ local Fx = dofile("Tools/render/scenes/_effects.lua")
 local RestScene = dofile("Tools/render/scenes/_rest.lua")
 local TotemScene = dofile("Tools/render/scenes/_totems.lua")
 
-local Hud = {}
+-- The module scenes' draw order lives in this copy of scene.lua, so merges across modules sort with it.
+local Hud = { Merge = Scene.Merge }
 Hud.Classes = Classes
 -- Hud.envs[scene] -> the environment a module scene was built in, for scenes that measure frames after the build.
 Hud.envs = setmetatable({}, { __mode = "k" })
@@ -572,7 +573,7 @@ function modules.unitframes(opts)
 		saved = saved(opts, "UnitFrames", {
 			dangerEdge = os.getenv("RENDER_DANGER") ~= "previous", cleanLowRing = os.getenv("RENDER_DANGER") ~= "previous",
 			player = { portraitShape = "round" }, target = { portraitShape = "round", style = os.getenv("RENDER_TARGET_STYLE") },
-		}),
+		}, { "ActionBars" }),
 		setup = function(env)
 			shared(env, opts)
 			env._units.player = player
@@ -584,6 +585,10 @@ function modules.unitframes(opts)
 			env._units.targettarget = opts.boss and target and player or nil
 			env._comboPoints = opts.combo or spec.combo or 0
 			env._resting = os.getenv("RENDER_RESTING") == "1"
+			if os.getenv("RENDER_UNIT_STATUS") == "1" then
+				player.combat, player.leader, player.role = true, true, "DAMAGER"
+				if target then target.combat, target.marker = true, 8 end
+			end
 			if crown then
 				dofile("Tools/regression/aura_slots.lua").Install(env)
 				env.C_SpellBook = env.C_SpellBook or {}
@@ -2086,16 +2091,17 @@ function modules.restedxp(opts)
 	local boxes = rawget(_G, "RENDER_RXP_BOXES") or os.getenv("RENDER_RXP_BOXES")
 	if boxes == "1" or boxes == "click" then
 		local rxp, UIParent = R.rxp, R.env.UIParent
-		local items, targets = rxp.activeItemFrame, rxp.targeting.activeTargetFrame
+		local items, itemParts = R.Fake.Box(rxp, "items")
+		local targets, targetParts = R.Fake.Box(rxp, "targets")
 		items:ClearAllPoints()
 		items:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -47.7, 242.5)
 		targets:ClearAllPoints()
 		targets:SetPoint("RIGHT", UIParent, "RIGHT", -191.5, -276.6)
 		rxp.targeting:UpdateTargetFrame(1, 0)
 		rxp.UpdateItemFrame(nil, 1)
-		items.buttonList[1].icon:SetTexture(135230)
-		targets.enemyTargetButtons[1].icon:SetTexture(132333)
-		for _, frame in ipairs({ items, items.title, R.K.Skin.Parts(items).backdrop }) do
+		itemParts.buttonList[1].icon:SetTexture(135230)
+		targetParts.enemyTargetButtons[1].icon:SetTexture(132333)
+		for _, frame in ipairs({ items, itemParts.title, R.K.Skin.Parts(items).backdrop }) do
 			frame:Show()
 		end
 		R.env.RunTimers()
@@ -2103,10 +2109,11 @@ function modules.restedxp(opts)
 		R.S.W.Settle(R.env)
 		if boxes == "click" then
 			rxp.settings.profile.activeTargetScale = 1.25
-			targets:UpdateVisuals()
+			-- 4.11.39's scale setting calls SetScale (SettingsPanel.lua 1859); 4.11.35's redraw applied it.
+			if rxp.targeting.SetScale then rxp.targeting:SetScale(1.25) else R.Fake.Redraw(targetParts) end
 			rxp.settings.profile.lockFrames = true
-			targets.title:GetScript("OnMouseDown")(targets.title, "LeftButton")
-			targets.title:GetScript("OnMouseUp")(targets.title, "LeftButton")
+			targetParts.title:GetScript("OnMouseDown")(targetParts.title, "LeftButton")
+			targetParts.title:GetScript("OnMouseUp")(targetParts.title, "LeftButton")
 			rxp.SetStep()
 			R.env.RunTimers()
 			R.S.W.Settle(R.env)

@@ -45,18 +45,21 @@ assert(beforeK.ColorVision.Mode() == "standard" and not beforeK.Setup.Layouts.Th
 assert(#beforeEnv._errors == 0, tostring(beforeEnv._errors[1]))
 print("previous choices start before login ok")
 
-local values = { RENDER_NEEDS_OFF = "1", RENDER_BAR3 = "1", RENDER_HUD_STYLE = "Frames", RENDER_SCREEN = "5120x1440", RENDER_SIZE = "auto" }
-local runtime = { getenv = function(key) return values[key] or os.getenv(key) end }
-local commonChunk = assert(loadfile("Tools/render/scenes/_common.lua"))
-setfenv(commonChunk, setmetatable({ os = runtime }, { __index = _G }))
-local picked = commonChunk()
-local hudChunk = assert(loadfile("Tools/render/scenes/hud.lua"))
-setfenv(hudChunk, setmetatable({ os = runtime, dofile = function(path)
-	if path == "Tools/render/scenes/_common.lua" then return picked end
-	return load(path)
-end }, { __index = _G }))
-local actual = hudChunk()
-local edit = load("Tools/regression/editmode_fake.lua")
-local native = edit.Find(assert(actual.EditModeLayout("DPS", false, { buffs = 2, bars = 0 })), edit.VIEWER, edit.BUFF_ICON)
-assert(math.abs(native.anchorInfo.offsetX - 1674.84375) < 1e-6 and math.abs(native.anchorInfo.offsetY - 348.5625) < 1e-6, "The native-viewer render copy must use the previous third-bar choice before fitting its Edit Mode layout: " .. tostring(native.anchorInfo.offsetX) .. ", " .. tostring(native.anchorInfo.offsetY))
+-- With Party and Raid > Readability off, the larger party never moves the native viewer from where staging put it.
+for readable, at in pairs({ on = { 1687.1015625, 331.134375 }, off = { 1674.84375, 348.5625 } }) do
+	local values = { RENDER_NEEDS_OFF = "1", RENDER_BAR3 = "1", RENDER_HUD_STYLE = "Frames", RENDER_SCREEN = "5120x1440", RENDER_SIZE = "auto", RENDER_READABLE_PARTY = readable }
+	local runtime = { getenv = function(key) return values[key] or os.getenv(key) end }
+	local commonChunk = assert(loadfile("Tools/render/scenes/_common.lua"))
+	setfenv(commonChunk, setmetatable({ os = runtime }, { __index = _G }))
+	local picked = commonChunk()
+	local hudChunk = assert(loadfile("Tools/render/scenes/hud.lua"))
+	setfenv(hudChunk, setmetatable({ os = runtime, dofile = function(path)
+		if path == "Tools/render/scenes/_common.lua" then return picked end
+		return load(path)
+	end }, { __index = _G }))
+	local actual = hudChunk()
+	local edit = load("Tools/regression/editmode_fake.lua")
+	local native = edit.Find(assert(actual.EditModeLayout("DPS", false, { buffs = 2, bars = 0 })), edit.VIEWER, edit.BUFF_ICON)
+	assert(math.abs(native.anchorInfo.offsetX - at[1]) < 1e-6 and math.abs(native.anchorInfo.offsetY - at[2]) < 1e-6, "The native-viewer render copy (Readability " .. readable .. ") must use the previous third-bar choice before fitting its Edit Mode layout: " .. tostring(native.anchorInfo.offsetX) .. ", " .. tostring(native.anchorInfo.offsetY))
+end
 print("previous native-viewer anchor ok")

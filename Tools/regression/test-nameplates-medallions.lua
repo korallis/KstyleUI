@@ -173,6 +173,9 @@ local er, eg, eb = K.Tokens.Color("medText")
 assert(near(r, er) and near(g, eg) and near(b, eb), "a friendly level takes the Medallions label colour, not a difficulty")
 
 -- Back to Frames: the badge goes, the plate takes Frames' width, the brackets their arms and the level its diamond.
+local Plate = ns.Plate
+eq(Plate.DiamondReach(enemy), K.Widgets.Snap(enemy, Plate.MarkerReach()) + Plate.Pixel(enemy) + Plate.DiamondSize(enemy),
+	"Medallions draws no diamond, so its left reach keeps no Frames diamond gap that would shift every plate")
 K.Options.Write("HudStyle", "style", "frames")
 env.RunTimers()
 assert(not badge:IsShown() and not badge.ring:IsShown(), "Frames takes the badge away")

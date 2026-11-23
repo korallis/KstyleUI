@@ -7,6 +7,8 @@
 --   local RestedXP = dofile("Tools/render/scenes/_restedxp.lua")
 --   local R = RestedXP.Build()        -- R.env, R.K, R.ns, R.rxp, R.windows (name -> frame list) and R.log lines
 --
+-- RENDER_RXP_RELEASE=4.11.39 builds the fake in that RestedXP release's shape (restedxp_fake.lua's opts.release).
+--
 -- With RestedXP.PRESET set to a layout name, the skin's guide card places the guide window for that layout, as it
 -- does in the game, and folds its step list; without it the window sits at RestedXP.LEFT and RestedXP.TOP, the
 -- gallery's spot, with its list at RestedXP.LIST_HEIGHT and the rail switched off.
@@ -362,8 +364,12 @@ end
 
 local function ExtraWindows(R)
 	local rxp, env = R.rxp, R.env
-	Report(R)
-	Splits(R)
+	-- 4.11.39 rebuilt the leveling report and the level splits, which keep RestedXP's look; its fake has neither.
+	local legacy = rxp.tracker.CreateLevelSplits ~= nil
+	if legacy then
+		Report(R)
+		Splits(R)
+	end
 	Importer(R)
 	rxp.comms.OpenBugReport({ arg1 = 12 })
 	local feedback = env.RESTEDXP_BUG_REPORT_WINDOW.obj
@@ -376,16 +382,16 @@ local function ExtraWindows(R)
 	R.windows.export = { env.RESTEDXP_BRANDED_EXPORT, Chrome.DressPanel(env.RESTEDXP_BRANDED_EXPORT) }
 	-- Targeting.lua:1129-1325 and map.lua:40-98,140-166 are already laid out by the fake.
 	rxp.targeting:UpdateTargetFrame(3, 1)
-	local targets = rxp.targeting.activeTargetFrame
+	local targets, parts = R.Fake.Box(rxp, "targets")
 	at(targets, env.UIParent, 18, 40, targets:GetWidth(), targets:GetHeight())
-	for i, button in ipairs(targets.enemyTargetButtons) do button.icon:SetTexture(132333 + i) end
-	for _, button in ipairs(targets.friendlyTargetButtons) do button.icon:SetTexture(135942) end
+	for i, button in ipairs(parts.enemyTargetButtons) do button.icon:SetTexture(132333 + i) end
+	for _, button in ipairs(parts.friendlyTargetButtons) do button.icon:SetTexture(135942) end
 	rxp.SetupArrow()
 	rxp.fake.arrow("Tiragarde Keep", 126, 0.35)
 	at(rxp.arrowFrame, env.UIParent, 210, 40, 32, 32)
 	rxp.arrowFrame.text:SetWidth(130)
 	rxp.arrowFrame.text:SetHeight(30)
-	R.windows.targets = { targets, targets.title, R.K.Skin.Parts(targets).backdrop }
+	R.windows.targets = { targets, parts.title, R.K.Skin.Parts(targets).backdrop }
 	R.windows.arrow = { rxp.arrowFrame, rxp.arrowFrame.text }
 	-- GuideWindow.lua:1001-1012: UpdateText's tip branch is modelled by the fake (230 wide, outside the stack).
 	local tip = rxp.RXPFrame.CurrentStepFrame.framePool[#RestedXP.STEPS + 1]
@@ -414,22 +420,20 @@ local function ExtraWindows(R)
 	-- UI/V2/Core.lua:1081-1083: the banner header sits one unit inside the upper frame.
 	at(rxp.v2.state.guideWindow.header, rxp.v2.state.guideWindow.upperFrame, 1, 1, WIDTH - 2, rxp.v2.state.guideWindow.upperFrame:GetHeight() - 2)
 	Bar(rxp.ui.v2.configurator.ui.scrollContainer.scrollbar)
-	Bar(rxp.tracker.ui.RenderRestedXPCharacter.scrollContainer.scrollbar)
+	if legacy then Bar(rxp.tracker.ui.RenderRestedXPCharacter.scrollContainer.scrollbar) end
 	Bar(feedback.scrollContainer.scrollbar)
 	Bar(feedback.children[1].children[1].scrollBar)
 	Bar(env.RESTEDXP_BRANDED_EXPORT.obj.children[1].scrollBar)
 	local configurator = rxp.ui.v2.configurator.ui
-	-- GuideConfigurator.lua:478-479,1075-1106: close, settings, import and help controls.
+	-- GuideConfigurator.lua:478-479: the close control. The fake places the settings, import and help buttons itself,
+	-- before the skin resizes them, as RestedXP does.
 	for _, child in ipairs({ configurator.frame:GetChildren() }) do
 		local normal = child:GetNormalTexture()
 		local path = type(normal) == "table" and tostring(normal:GetTexture()) or ""
-		if path:find("rxp%-icon%-cog") then at(child, configurator.frame, 284, 24, 24, 24)
-		elseif path:find("icon%-btn%-import") then at(child, configurator.frame, 252, 21, 30, 30)
-		elseif path:find("icon%-btn%-help") then at(child, configurator.frame, 220, 21, 30, 30) end
 		-- The game stretches a button's normal texture over the button; the fake leaves it without points.
-		if path ~= "" and not path:find("rxp%-btn%-close") then normal:SetAllPoints(child) end
+		if path ~= "" and not path:find("rxp%-btn%-close") and normal:GetNumPoints() == 0 then normal:SetAllPoints(child) end
 	end
-	local items = rxp.activeItemFrame
+	local items = R.Fake.Box(rxp, "items")
 	at(items, env.UIParent, 18, 790, items:GetWidth(), items:GetHeight())
 	at(button, env.QuestMapFrame.DetailsFrame, 330, 53, 200, 22)
 	-- UI/V2/Core.lua:396-420,466-468: backdrop wrappers fill their window, shadow extends two units.
@@ -441,7 +445,7 @@ local function ExtraWindows(R)
 			frame.rxpShadow:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 2, -2)
 		end
 	end
-	env.CharacterFrame:Hide()
+	if legacy then env.CharacterFrame:Hide() end
 end
 
 -- Guide(R, path, top) lays the guide window out: in the gallery with its header's top at `top`, header, step list
@@ -582,16 +586,17 @@ end
 -- guide window, as the earlier scene did; RestedXP's own layout of them is not modelled.
 local function Others(R, x, itemsTop)
 	local rxp, env = R.rxp, R.env
-	local ICON = 32
-	local items = rxp.activeItemFrame
-	at(items, env.UIParent, RestedXP.LEFT, itemsTop + 16, 3 * (ICON + 6) + 10, ICON + 16)
+	-- RestedXP's 25-unit item buttons, 27 apart (ActiveItemFrame.lua 302-312), as its target buttons.
+	local ICON = 25
+	local items, parts = R.Fake.Box(rxp, "items")
+	at(items, env.UIParent, RestedXP.LEFT, itemsTop + 16, 3 * (ICON + 2) + 10, ICON + 16)
 	-- RestedXP hangs the title plate from the frame's top edge: TOPLEFT at (5, 10), 19 tall, as its
 	-- ActiveItemFrame.lua anchors it. The skin raises the card's glass over the plate.
-	at(items.title, items, 5, -10, 90, 19)
-	text(items.title.text, "Active items", "CENTER", items.title)
-	items:UpdateVisuals()
-	for i, button in ipairs(items.buttonList) do
-		at(button, items, 8 + (i - 1) * (ICON + 6), 8, ICON, ICON)
+	at(parts.title, items, 5, -10, 90, 19)
+	text(parts.title.text, "Active items", "CENTER", parts.title)
+	R.Fake.Redraw(parts)
+	for i, button in ipairs(parts.buttonList) do
+		at(button, items, 8 + (i - 1) * (ICON + 2), 8, ICON, ICON)
 		button.icon:SetAllPoints(button)
 		button.icon:SetTexture(134400 + i)
 	end
@@ -613,6 +618,40 @@ local function Others(R, x, itemsTop)
 		-- name frame at the same place: 4 left of the button, which is 44 from the frame's right and 21 wide.
 		v2.title:SetPoint("TOPRIGHT", v2.guideNameFrame, "TOPRIGHT", -69, -6)
 		at(v2.guideSteps.scroll.scrollbar, v2.guideStepsFrame, WIDTH - 16, 6, 10, 200)
+		-- UI/V2/Core.lua 1788-1914 and 1918-2053: the steps are RXPV2GuideStepsItem rows 8 apart, each a backdrop in the
+		-- theme's common colours with its text 4 in and 5 down and, in its bottom right corner, a 16-unit number badge
+		-- (wider when the number needs it) with its own edge, the number centred in the title colour on the current
+		-- step and inactivePartyTab on the others (1841-1847, 1870-1878, 1900-1907).
+		-- The fake builds none and the skin reaches them only through the theme, so the scene draws three from it, read
+		-- as Themes.lua:448-452 reads it: the v2 theme named by the run-time activeTheme the skin sets.
+		local theme = rxp.v2.themes[rxp.activeTheme and rxp.activeTheme.name] or rxp.v2:GetTheme()
+		local size = (rxp.settings.profile.guideFontSize or 9) + 2
+		local y = 6
+		for i, step in ipairs({ "Accept Your Place In The World", "Talk to Kaltunk\nAccept Cutting Teeth", "Kill Mottled Boars\nMottled Boar slain: 3/10" }) do
+			local row, h = env.CreateFrame("Frame", nil, v2.guideStepsFrame), step:find("\n") and 42 or 30
+			at(row, v2.guideStepsFrame, 6, y, WIDTH - 30, h)
+			local badge = env.CreateFrame("Frame", nil, row)
+			for _, part in ipairs({ { row, step, "TOPLEFT", 4, -5, size, theme.textColor.common, theme.backgroundColors.common }, { badge, tostring(i + 11), "CENTER", 0, 0, size - 1, i == 2 and theme.textColor.title or theme.textColor.inactivePartyTab, theme.backgroundColors.activeStepCheckbox } }) do
+				local frame = part[1]
+				local edge, back = frame:CreateTexture(nil, "BACKGROUND"), frame:CreateTexture(nil, "BORDER")
+				edge:SetAllPoints(frame)
+				edge:SetColorTexture(unpack(theme.borderColors.commonEdge))
+				back:SetPoint("TOPLEFT", frame, "TOPLEFT", 1, -1)
+				back:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -1, 1)
+				back:SetColorTexture(unpack(part[8]))
+				local label = frame:CreateFontString(nil, "OVERLAY")
+				label:SetFont(theme.font, part[6], "")
+				label:SetJustifyH(part[3] == "CENTER" and "CENTER" or "LEFT")
+				text(label, part[2], part[3], frame, part[3], part[4], part[5])
+				label:SetTextColor(unpack(part[7]))
+				if frame == badge then
+					badge:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT")
+					badge:SetSize(math.max((label:GetStringWidth() or 0) + 6, 16), 16)
+				end
+			end
+			row:SetAlpha(i == 1 and 0.5 or 1)
+			y = y + h + 8
+		end
 	end
 	local configurator = rxp.ui.v2.configurator.ui
 	local x3 = x + WIDTH + GAP
@@ -625,14 +664,16 @@ local function Others(R, x, itemsTop)
 		at(button, configurator.frame, 16 + (i - 1) * 100, 240 - 44, 88, 26)
 		text(button.text, ({ "Back", "Reset", "Submit" })[i], "CENTER", button)
 	end
-	at(configurator.scrollContainer.scrollbar, configurator.frame, 320 - 20, 50, 10, 140)
+	-- GuideConfigurator.lua:528-530 starts the content 48 under the top and ends it 38 over the bottom; UI/V2/Core.lua
+	-- 838-846 hangs the bar one 16-unit button inside each end, so its up arrow sits under the header icons.
+	at(configurator.scrollContainer.scrollbar, configurator.frame, 320 - 20, 48 + 17, 10, 240 - 48 - 38 - 2 * 17)
 	ConfiguratorRows(env, rxp, configurator)
 end
 
 function RestedXP.Build()
 	local S = dofile("Tools/regression/skins_env.lua")
 	local Fake = dofile("Tools/regression/restedxp_fake.lua")
-	local R = {}
+	local R = { Fake = Fake }
 	local rail = RestedXP.PRESET ~= nil
 	local style = rawget(_G, "RENDER_HUD_STYLE") or os.getenv("RENDER_HUD_STYLE")
 	local env, K, ns = S.New(Common.ScreenOpts({
@@ -647,7 +688,7 @@ function RestedXP.Build()
 		setup = function(env)
 			Common.ForceScreen(env, rail)
 			S.CreateColor(env)
-			R.rxp = Fake.Install(env, { v2 = not rail, activeTheme = "DarkMode" })
+			R.rxp = Fake.Install(env, { v2 = not rail, activeTheme = "DarkMode", release = rawget(_G, "RENDER_RXP_RELEASE") or os.getenv("RENDER_RXP_RELEASE") })
 			-- RestedXP's loaded guide: its title is the name with the group appended (GuideWindow.lua).
 			R.rxp.currentGuide = { name = "6-10 Durotar", subgroup = "Speedrun Guide 1-22" }
 		end,
@@ -658,9 +699,7 @@ function RestedXP.Build()
 	-- The gallery shows the v1 guide beside the v2 window, which the game never does: with v2 on, RestedXP hides
 	-- the v1 steps and leaves the v1 window undrawn (GuideWindow.lua's UpdateText and UpdateVisuals). So the v2
 	-- window is built and skinned with v2 on, and from here v1 is laid out as if v2 were off.
-	rxp.v2.IsGuideWindowEnabled = function()
-		return false
-	end
+	rxp.v2.enabled = false
 	rxp.fake.rows(#RestedXP.ROWS)
 	Steps(R)
 	rxp.UpdateItemFrame(nil, 3)
@@ -676,17 +715,18 @@ function RestedXP.Build()
 	f.CurrentStepFrame.UpdateText()
 	local guideBottom = Guide(R, path, RestedXP.TOP + f.CurrentStepFrame:GetHeight() + 2)
 	f.CurrentStepFrame.UpdateText()
-	rxp.RXPFrame:UpdateVisuals()
+	Fake.Redraw(rxp.RXPFrame)
 	if rail then
 		ns.RestedXP.Rail.Place()
 	end
 	Others(R, RestedXP.LEFT + WIDTH + GAP, guideBottom)
 	S.W.Settle(env)
 
+	local items, itemParts = Fake.Box(rxp, "items")
 	R.windows = {
 		steps = f.CurrentStepFrame.framePool,
 		guide = { ns.RestedXP.Chrome.Card(f) or f },
-		items = { rxp.activeItemFrame, rxp.activeItemFrame.title, K.Skin.Parts(rxp.activeItemFrame).backdrop },
+		items = { items, itemParts.title, K.Skin.Parts(items).backdrop },
 		v2 = { rxp.v2.state and rxp.v2.state.guideWindow.frame or nil },
 		configurator = { rxp.ui.v2.configurator.ui.frame },
 	}

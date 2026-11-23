@@ -10,9 +10,11 @@ ns.Slab = Slab
 
 local HOSTILE_MAX = 3
 local UNKNOWN_LEVEL = "??"
-local LEVEL_MEDAL = 3
+local LEVEL_MEDAL, LEVEL_FIT = 3, 7
 local TEXT_GAP = 4
 local SHEEN = { player = true, target = true }
+local DOCK, DOCK_UNDER, DOCK_SHORT, DOCK_H = { player = 1, target = -1 }, 20, 40, 16
+local HOME = { "anchor", "x", "y", "width", "height", "scale", "attachTo" }
 
 local function IsSecret(value)
 	return issecretvalue ~= nil and issecretvalue(value) == true
@@ -22,10 +24,10 @@ local function Plain(value, kind)
 	return not IsSecret(value) and type(value) == kind
 end
 
-local function Muted(view, text)
+local function Muted(view, text, token)
 	local path, size, flags = Settings.Font(view.kind, "level")
 	Widgets.ApplyFont(text, path, size, flags)
-	text:SetTextColor(Tokens.Color("labelMuted"))
+	text:SetTextColor(Tokens.Color(view.s and view.s.fittedSlabs and (token or "muted") or "labelMuted"))
 end
 
 function Slab.Material(owner, slice)
@@ -40,13 +42,12 @@ local function Build(view)
 	view.slabLevel:SetWordWrap(false)
 	view.slabLevel:SetJustifyV("MIDDLE")
 	Muted(view, view.slabLevel)
-	local medallion = Widgets.Medallion(view.parent)
-	medallion:SetFrameLevel(view.parent:GetFrameLevel() + LEVEL_MEDAL)
-	view.medallion = medallion
+	view.medallion = Widgets.Medallion(view.parent)
 end
 
 local function Hide(view)
 	Widgets.ShowSlice(view.slab, false)
+	if view.dock then view.dock:Hide() end
 	view.slabLevel:Hide()
 	local m = view.medallion
 	m:Sheen(false)
@@ -155,7 +156,7 @@ function Slab.Caption(view)
 	if not (g and g.form == "slab" and g.caption) then
 		return
 	end
-	local text, bar, rect = view.caption, g.health, g.caption
+	local text, bar, rect = view.caption, g.lane, g.caption
 	local size = Settings.FontSize(view.kind, "level")
 	local levelWidth = Widgets.TextWidth(view.slabLevel, math.ceil(ns.Geometry.SLAB_PAD.levelEm * size))
 	local levelRoom = g.name and math.ceil(levelWidth) + g.levelGap or 0
@@ -169,6 +170,43 @@ function Slab.Caption(view)
 	end
 	Extra(view, text, rect, "LEFT")
 	NameLine(view, g)
+end
+
+local function Home(key, bar)
+	local el = K.Layout and K.Layout.Element and K.Layout.Element(key)
+	if not (el and el.settings and el.default) then return bar == true end
+	if bar and not el.frame:IsShown() then return false end
+	for _, field in ipairs(HOME) do
+		local a, b = el.settings[field], el.default[field]
+		if a ~= b and not (type(a) == "number" and type(b) == "number" and math.abs(a - b) < 0.5) then return false end
+	end
+	return true
+end
+
+local function Docked(view)
+	local bars = K.Store.Module("ActionBars") or {}
+	return DOCK[view.kind] ~= nil and view.s.fittedSlabs and K.HudStyle.Current() == "medallions" and bars.enabled ~= false
+		and bars.slab ~= false and bars.extraBarsApplied ~= "rows" and Home(Settings.ELEMENTS[view.kind]) and Home("actionbars.bar1", true) and Home("actionbars.bar2", true) or false
+end
+
+local function Dock(view, g)
+	local arm = view.dock
+	if not Docked(view) then
+		if arm then arm:Hide() end
+		return
+	end
+	if not arm then
+		arm = CreateFrame("Frame", nil, view.parent)
+		arm:SetFrameStrata("LOW")
+		arm.slice = Widgets.NineSlice(arm, "medUnitSlab", "BACKGROUND", 1)
+		view.dock = arm
+	end
+	arm:SetFrameLevel(K.Scale.Root():GetFrameLevel() + 1)
+	local layouts, w = K.Setup.Layouts, view.slabWidth
+	local reach = layouts.MEDALLIONS_RING / 2 + layouts.MEDALLIONS_UNITS.reach - DOCK_SHORT
+	Place(view, arm, { x = DOCK[view.kind] > 0 and w - DOCK_UNDER or -reach, y = g.glass.h - DOCK_H, w = reach + DOCK_UNDER, h = DOCK_H })
+	Widgets.LayoutSlice(arm.slice, arm, select(3, Tokens.Texture("medUnitSlab")))
+	arm:Show()
 end
 
 function Slab.Layout(view, g)
@@ -188,6 +226,7 @@ function Slab.Layout(view, g)
 	Widgets.LayoutSlice(view.slab, view.panel, select(3, Tokens.Texture("medUnitSlab")))
 	local m, rect = view.medallion, g.medal
 	if rect then
+		m:SetFrameLevel(view.parent:GetFrameLevel() + (view.s.fittedSlabs and LEVEL_FIT or LEVEL_MEDAL))
 		Place(view, m, rect)
 		m:Layout(rect.w, g.medalSide)
 		m:Show()
@@ -202,8 +241,8 @@ function Slab.Layout(view, g)
 	local opposite = g.mirror and "LEFT" or "RIGHT"
 	Extra(view, view.healthSub, g.healthSub, opposite)
 	if view.kind == "target" and view.s.percentLead and view.s.healthText == "both" and view.s.fonts.health.textFormat == "" and g.healthText then
-		local bar, pad = g.health, ns.Geometry.SLAB_PAD.valuePad
-		Extra(view, view.healthSub, { x = bar.x + bar.w / 2, y = bar.y, w = bar.w / 2 - pad, h = bar.h }, "RIGHT")
+		local bar, pad = g.lane, view.s.fittedSlabs and 0 or ns.Geometry.SLAB_PAD.valuePad
+		Extra(view, view.healthSub, { x = bar.x + bar.w / 2, y = g.health.y, w = bar.w / 2 - pad, h = g.health.h }, "RIGHT")
 		view.healthText:SetWidth(Widgets.Snap(view.parent, math.max(0, bar.w / 2 - pad)))
 		view.healthText:SetJustifyH("LEFT")
 	end
@@ -211,6 +250,7 @@ function Slab.Layout(view, g)
 	Slab.Caption(view)
 	if resized then ns.Unit.Refit(view) end
 	view.levelText:Hide()
+	Dock(view, g)
 end
 
 function Slab.Restyle(view, form)
@@ -220,7 +260,7 @@ function Slab.Restyle(view, form)
 	if form ~= "slab" then
 		return
 	end
-	Muted(view, view.healthSub)
+	Muted(view, view.healthSub, "text")
 	if view.kind == "target" and view.s.percentLead then
 		Widgets.ApplyFont(view.healthSub, (Tokens.Font("number")), 10 * K.Theme.FontScale(), "OUTLINE")
 	end

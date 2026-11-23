@@ -147,6 +147,11 @@ local function FillGroup(group, list, y)
 	return y + height + GROUP_GAP
 end
 
+local function Under(frame, mid, ratio)
+	local left, right = ns.TravelData.Plain(frame:GetLeft(), "number"), ns.TravelData.Plain(frame:GetRight(), "number")
+	return frame:IsVisible() and not (mid and left and right and (left * ratio > mid + WIDTH / 2 or right * ratio < mid - WIDTH / 2))
+end
+
 local function Refresh()
 	pending = false
 	local hub = ns.Slab.hub
@@ -191,15 +196,18 @@ local function Refresh()
 	menu:ClearAllPoints()
 	local top = crest:GetTop()
 	local lift = GAP
-	for _, key in ipairs({ "unitframes.castbar.player", "unitframes.castbar.target" }) do
+	local mid = ns.TravelData.Plain((crest:GetCenter()), "number")
+	for _, key in ipairs({ "unitframes.castbar.player", "unitframes.castbar.target", "cooldowns.essential" }) do
 		local element = K.Layout.Element(key)
 		local frame = element and element.frame
 		local place = K.Setup.Layouts.Style("DPS", key, "medallions")
 		local edge = frame and ns.TravelData.Plain(frame:GetTop(), "number")
 		local scale = frame and ns.TravelData.Plain(frame:GetEffectiveScale(), "number")
 		local own = ns.TravelData.Plain(menu:GetEffectiveScale(), "number")
-		if edge and scale and own and own > 0 then edge = edge * scale / own else edge = nil end
-		edge = edge or (place and place.y + place.height)
+		local ratio = scale and own and own > 0 and scale / own
+		if edge and ratio then edge = edge * ratio else edge = nil end
+		edge = edge or (place and place.y + (place.height or K.Setup.Layouts.Element(key).height))
+		if frame and key == "cooldowns.essential" and not Under(frame, mid, ratio or 1) then edge = nil end
 		if edge and ns.TravelData.Plain(top, "number") then lift = math.max(lift, edge - top + GAP + GROUP_GAP) end
 	end
 	menu:SetPoint("BOTTOM", crest, "TOP", 0, lift)

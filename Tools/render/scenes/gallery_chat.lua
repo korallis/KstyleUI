@@ -8,7 +8,7 @@ local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Scene = Common.Scene
 local C = dofile("Tools/regression/chat_env.lua")
 
-local TABS = { "General", "Combat", "Loot", "Trade" }
+local TABS = { "General", "Combat Log", "Loot", "Trade" }
 local LINES = {
 	{ "CHAT_MSG_LOOT", "You receive loot: |cff1eff00|Hitem:4232::::::::38:::::|h[Crocolisk Hide]|h|r x2." },
 	{ "CHAT_MSG_COMBAT_XP_GAIN", "You gain 168 experience." },
@@ -24,7 +24,6 @@ local LOOT = { 0, 0.67, 0 }
 local EXPERIENCE = { 0.44, 0.44, 1 }
 local UNDOCKED = { x = 1200, y = 640, width = 300, height = 120 }
 local EDIT_HEIGHT = 32
-local EDIT_GAP = 20
 
 local function plain(word)
 	return (word:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|H.-|h", ""):gsub("|h", ""))
@@ -122,7 +121,8 @@ return Common.Run(function()
 	end
 	env.FCF_UnDockFrame(trade)
 	trade:ClearAllPoints()
-	trade:SetPoint("TOPLEFT", env.UIParent, "TOPLEFT", UNDOCKED.x, -UNDOCKED.y)
+	-- On the HUD root, as the copy window and the preview are, so the three keep their places on a wide screen.
+	trade:SetPoint("TOPLEFT", K.Scale.Root(), "TOPLEFT", UNDOCKED.x, -UNDOCKED.y)
 	trade:SetSize(UNDOCKED.width, UNDOCKED.height)
 	say(env, trade, TRADE)
 	env.RunTimers()
@@ -133,14 +133,10 @@ return Common.Run(function()
 	Lines(env, chat)
 	Lines(env, trade)
 
-	-- The undocked window's edit box, where Blizzard's FloatingChatFrame anchors it: under the window, its width.
-	-- The general window sits at the screen's bottom edge, where its box would leave the screen.
-	local glass = K.Skin.Parts(trade).backdrop
-	assert(glass, "the undocked window has its glass")
+	-- The undocked window's edit box where the module places it: over the window's foot, inside its glass, as the
+	-- docked panel's box opens. Its height is FloatingChatFrame.xml's.
+	local glass = assert(K.Skin.Parts(trade).backdrop, "the undocked window has its glass")
 	local box = trade.editBox
-	box:ClearAllPoints()
-	box:SetPoint("TOPLEFT", glass, "BOTTOMLEFT", 0, -EDIT_GAP)
-	box:SetPoint("TOPRIGHT", glass, "BOTTOMRIGHT", 0, -EDIT_GAP)
 	box:SetHeight(EDIT_HEIGHT)
 	-- Blizzard's UpdateHeader (ChatFrameEditBox.lua) insets the text by 15 plus the header and 13 at the right.
 	box:SetTextInsets(15, 13, 0, 0)
@@ -172,6 +168,24 @@ return Common.Run(function()
 	env.RunTimers()
 	C.W.Settle(env)
 
+	local function overlap(a, b)
+		local ax, ay, aw, ah = Scene.Rect(env, a)
+		local bx, by, bw, bh = Scene.Rect(env, b)
+		return ax < bx + bw and bx < ax + aw and ay < by + bh and by < ay + ah
+	end
+	assert(not overlap(glass, parent) and not overlap(glass, copy), "the undocked window keeps clear of the copy window and the preview")
+	-- FCF_UpdateScrollbarAnchors (FloatingChatFrame.lua:1155-1166) hangs the scroll bar's foot on the size grip or the window when the
+	-- scroll button hides; the edit tile keeps equal side margins inside the glass in each state, ending with the game's default.
+	local tile, bar = K.Skin.Parts(box).backdrop, trade.ScrollBar
+	for _, foot in ipairs({ { "BOTTOM", trade.ResizeButton, "TOP" }, { "BOTTOMLEFT", trade, "BOTTOMRIGHT" }, { "BOTTOMLEFT", trade.ScrollToBottomButton, "TOPLEFT", 0, 2 } }) do
+		bar:ClearAllPoints()
+		bar:SetPoint("TOPLEFT", trade, "TOPRIGHT", 0, 0)
+		bar:SetPoint(foot[1], foot[2], foot[3], foot[4] or 0, foot[5] or 0)
+		local gx, _, gw = Scene.Rect(env, glass)
+		local tx, _, tw = Scene.Rect(env, tile)
+		assert(math.abs((tx - gx) - (gx + gw - tx - tw)) <= 1080 / Common.SCREEN.height, "the undocked edit tile sits evenly inside its glass, to a pixel, with the scroll bar's foot on " .. foot[3])
+	end
+
 	local frames = Gallery.Frames()
 	local tabs = {}
 	for id = 1, 3 do
@@ -185,7 +199,7 @@ return Common.Run(function()
 	})
 	frames:Add(env, box, {
 		name = "chat_editbox", title = "Chat edit box", grade = "button", reference = "datastrip",
-		caption = "The Trade window's edit box skinned by Skin.EditBox (Frames.lua:254) while the player types: Blizzard's art stripped, the kit's input backdrop with its hairline lit in the accent while the box has focus.",
+		caption = "The Trade window's edit box skinned by Skin.EditBox (Frames.lua:254) while the player types, over the window's foot inside its glass as the docked panel's box opens: Blizzard's art stripped, the kit's input backdrop with its hairline lit in the accent while the box has focus.",
 		match = "A one-border line as the mockup's data strip pill, but the body is Core/Skin.lua's raised tone, not the button body #101214: Skin.EditBox is the skins wave's, outside this module.",
 		pad = 6,
 	})
@@ -207,6 +221,5 @@ return Common.Run(function()
 
 	local scene = Gallery.Build(env)
 	scene.log[#scene.log + 1] = "chat lines are laid out by the scene; the game's ScrollingMessageFrame wraps and spaces them itself"
-	scene.log[#scene.log + 1] = "the edit box is anchored by the scene under its window, as FloatingChatFrame anchors it"
 	return frames:Finish(scene, env, K, "gallery chat")
 end)

@@ -158,11 +158,18 @@ do
 	U.SetUnit(env, "target", TARGET)
 	env.SetTarget(true)
 	local view = ns.Frames.Get("target").views[1]
-	local sr, sg, sb = K.Tokens.Color("labelMuted")
-	for _, key in ipairs({ "caption", "healthSub" }) do
-		local r, g, b = view[key]:GetTextColor()
-		assert(near(r, sr, 1e-6) and near(g, sg, 1e-6) and near(b, sb, 1e-6), key .. " takes the Medallions label token")
+	local function tokens(caption, sub, label)
+		for key, token in pairs({ caption = caption, healthSub = sub }) do
+			local r, g, b = view[key]:GetTextColor()
+			local sr, sg, sb = K.Tokens.Color(token)
+			assert(near(r, sr, 1e-6) and near(g, sg, 1e-6) and near(b, sb, 1e-6), key .. " takes the " .. label .. " token " .. token)
+		end
 	end
+	tokens("muted", "text", "Fitted slabs")
+	K.Options.Write("UnitFrames", "fittedSlabs", false)
+	env.RunTimers()
+	tokens("labelMuted", "labelMuted", "earlier Medallions")
+	local sr, _, sb = K.Tokens.Color("labelMuted")
 	assert(sr <= sb, "the caption follows the shared cool grey")
 	noErrors(env, K, "sub-label")
 end

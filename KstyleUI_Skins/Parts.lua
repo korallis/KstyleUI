@@ -342,7 +342,7 @@ local function PlaceDock(dock)
 		panel.inset = inset
 	end
 	for _, edge in ipairs(EDGES) do
-		local gap = Tokens.Size(edge == "BOTTOM" and DOCK_GAP_BOTTOM or DOCK_GAP)
+		local gap = dock.padded and (edge == "LEFT" or edge == "RIGHT") and Widgets.WindowInset(panel) or Tokens.Size(edge == "BOTTOM" and DOCK_GAP_BOTTOM or DOCK_GAP)
 		local past = reach[edge] > 0 and Widgets.Snap(panel, reach[edge] + gap) or 0
 		reach[edge] = past
 		inset[EDGE_KEY[edge]] = dock.base[edge] - past
@@ -384,7 +384,7 @@ function Parts.Dock(window, frames, opts)
 				base[edge] = inset or 0
 			end
 		end
-		dock = { frame = window, panel = panel, frames = {}, seams = {}, watched = {}, base = base, reach = { LEFT = 0, RIGHT = 0, TOP = 0, BOTTOM = 0 } }
+		dock = { frame = window, panel = panel, frames = {}, seams = {}, watched = {}, base = base, padded = opts.padded, reach = { LEFT = 0, RIGHT = 0, TOP = 0, BOTTOM = 0 } }
 		dock.Refresh = function()
 			PlaceDock(dock)
 		end

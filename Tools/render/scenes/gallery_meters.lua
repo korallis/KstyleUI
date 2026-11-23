@@ -302,10 +302,33 @@ end
 
 -- Blizzard's Damage Meter window, restyled in place -------------------------------------------------------------
 
-local SKIN_X, SKIN_Y, SKIN_W, SKIN_H = 400, 360, 300, 180
-local SKIN_PAD, SKIN_HEADER, SKIN_ROW, SKIN_GAP = 10, 32, 16, 4
+-- Blizzard's rows are DAMAGE_METER_DEFAULT_BAR_HEIGHT (25) tall, DAMAGE_METER_DEFAULT_BAR_SPACING (4) apart (DamageMeterConstants.lua),
+-- and their names left-justified (DamageMeterEntry.xml).
+local SKIN_X, SKIN_Y, SKIN_W, SKIN_H = 400, 360, 300, 222
+local SKIN_PAD, SKIN_HEADER, SKIN_ROW, SKIN_GAP = 10, 32, 25, 4
 -- The fight dropdown's width and centre, and the room the settings and minimise buttons take at its right.
 local SKIN_SESSION_W, SKIN_SESSION_MIDDLE, SKIN_SETTINGS = 44, 13.5, 36
+
+-- layRow(entry) is Blizzard's UpdateStyle for the Default style (DamageMeterEntry.lua:272-290): name and value on the
+-- bar's middle. The fake bar fills its row, so the pixel-grid audit measures the skin from a row on the grid; Blizzard's
+-- one-unit insets, which are off the grid at 1440p, are test-meters-skin's.
+local function layRow(entry)
+	local bar = entry.StatusBar
+	bar:SetAllPoints(entry)
+	bar.Name:ClearAllPoints()
+	bar.Name:SetPoint("LEFT", bar, "LEFT", 2, 0)
+	bar.Name:SetPoint("RIGHT", bar.Value, "LEFT", -25, 0)
+	bar.Value:ClearAllPoints()
+	bar.Value:SetPoint("RIGHT", bar, "RIGHT", -3, 0)
+end
+
+-- nameRow(entry) is Blizzard's UpdateName (DamageMeterEntry.lua:111-117): it writes the name only when it changes.
+local function nameRow(entry)
+	if entry.sourceName ~= entry.nameText then
+		entry.nameText = entry.sourceName
+		entry.StatusBar.Name:SetText(entry.sourceName)
+	end
+end
 
 local function skin(frames)
 	local M = dofile("Tools/regression/meters_env.lua")
@@ -340,6 +363,7 @@ local function skin(frames)
 					bar:SetStatusBarTexture("blizzard-bar")
 					bar.Background = bar:CreateTexture(nil, "BACKGROUND")
 					bar.Name = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+					bar.Name:SetJustifyH("LEFT")
 					bar.Value = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 					entry.StatusBar = bar
 					entry.classFilename = s[2]
@@ -352,6 +376,8 @@ local function skin(frames)
 						total = total + other[3]
 					end
 					entry.UpdateValue, entry.value, entry.valuePerSecond, entry.sessionTotalValue = blizzardValue(env, s[3], total)
+					entry.UpdateName = nameRow
+					entry.UpdateStyle = layRow
 					window.entries[i] = entry
 				end
 			end
@@ -386,6 +412,7 @@ local function skin(frames)
 				bar:SetStatusBarTexture("blizzard-bar")
 				bar.Background = bar:CreateTexture(nil, "BACKGROUND")
 				bar.Name = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+				bar.Name:SetJustifyH("LEFT")
 				bar.Value = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 				entry.StatusBar = bar
 				entry.classFilename = "WARRIOR"
@@ -398,6 +425,8 @@ local function skin(frames)
 					total = total + other[4]
 				end
 				entry.UpdateValue, entry.value, entry.valuePerSecond, entry.sessionTotalValue = blizzardValue(env, spell[4], total)
+				entry.UpdateName = nameRow
+				entry.UpdateStyle = layRow
 				source.entries[i] = entry
 			end
 			function spellBox.ForEachFrame(_, fn)
@@ -441,7 +470,7 @@ local function skin(frames)
 	window.DamageMeterTypeDropdown.TypeName:SetPoint("TOPRIGHT", window, "TOPRIGHT", -SKIN_PAD, -SKIN_PAD)
 	window.DamageMeterTypeDropdown.TypeName:SetText("Damage Done")
 	window.SessionDropdown:SetPoint("RIGHT", window, "TOPRIGHT", -SKIN_PAD - SKIN_SETTINGS, -SKIN_SESSION_MIDDLE)
-	window.SessionDropdown:SetSize(SKIN_SESSION_W, SKIN_ROW)
+	window.SessionDropdown:SetSize(SKIN_SESSION_W, SKIN_HEADER / 2)
 	window.SessionDropdown.SessionName:SetAllPoints(window.SessionDropdown)
 	window.SessionDropdown.SessionName:SetText("Current")
 	window.container:SetPoint("TOPLEFT", window, "TOPLEFT", 0, -SKIN_HEADER)
@@ -454,15 +483,13 @@ local function skin(frames)
 	for i, entry in ipairs(window.entries) do
 		local s = SOURCES[i]
 		entry:SetPoint("TOPLEFT", window.box, "TOPLEFT", 0, -(i - 1) * (SKIN_ROW + SKIN_GAP))
-		entry:SetPoint("RIGHT", window.box, "RIGHT", 0, 0)
-		entry:SetHeight(SKIN_ROW)
+		entry:SetSize(SKIN_W - 3 * SKIN_PAD, SKIN_ROW)
 		local bar = entry.StatusBar
-		bar:SetAllPoints(entry)
 		bar:SetMinMaxValues(0, top)
 		bar:SetValue(s[3])
-		bar.Name:SetPoint("LEFT", bar, "LEFT", SKIN_GAP, 0)
-		bar.Name:SetText(s[1])
-		bar.Value:SetPoint("RIGHT", bar, "RIGHT", -SKIN_GAP, 0)
+		entry:UpdateStyle()
+		entry.sourceName = s[1]
+		entry:UpdateName()
 		entry:UpdateValue()
 	end
 	-- Blizzard anchors the spell window to the session window's side with more room; the scene puts it right.
@@ -477,15 +504,13 @@ local function skin(frames)
 	for i, entry in ipairs(source.entries) do
 		local spell = entry.spell
 		entry:SetPoint("TOPLEFT", source.box, "TOPLEFT", 0, -(i - 1) * (SKIN_ROW + SKIN_GAP))
-		entry:SetPoint("RIGHT", source.box, "RIGHT", 0, 0)
-		entry:SetHeight(SKIN_ROW)
+		entry:SetSize(SKIN_W - 3 * SKIN_PAD, SKIN_ROW)
 		local bar = entry.StatusBar
-		bar:SetAllPoints(entry)
 		bar:SetMinMaxValues(0, SPELLS[1][4])
 		bar:SetValue(spell[4])
-		bar.Name:SetPoint("LEFT", bar, "LEFT", SKIN_GAP, 0)
-		bar.Name:SetText(spell[2])
-		bar.Value:SetPoint("RIGHT", bar, "RIGHT", -SKIN_GAP, 0)
+		entry:UpdateStyle()
+		entry.sourceName = spell[2]
+		entry:UpdateName()
 		entry:UpdateValue()
 	end
 	source:Show()

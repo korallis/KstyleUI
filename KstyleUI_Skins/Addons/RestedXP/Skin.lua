@@ -21,7 +21,7 @@ ns.Skins.Add({
 	label = L["RestedXP"],
 	help = L["Gives RestedXP Guides the KstyleUI theme and restyles its windows."],
 	addon = "RXPGuides",
-	defaults = { rail = true, boxes = true, compose = true, fit = true },
+	defaults = { rail = true, boxes = true, compose = true, fit = true, arrowYields = true },
 	rows = {
 		{ type = "toggle", key = "compose", label = L["Trim the guide card"], help = L["Ends the guide card under its steps. Off ends it at RestedXP's own window foot."] },
 		{ type = "toggle", key = "fit", label = L["Fit guide to its steps"], help = L["Lets the guide card shrink to its steps. Off keeps it at least as tall as the quest card."] },
@@ -32,6 +32,10 @@ ns.Skins.Add({
 		{
 			type = "toggle", key = "boxes", label = L["Dock RestedXP's boxes"],
 			help = L["Docks RestedXP's target and item boxes under the guide's card. Drag one away to keep your spot."],
+		},
+		{
+			type = "toggle", key = "arrowYields", label = L["Arrow text makes way for zone names"],
+			help = L["Hides the guide arrow's step text while the game shows the name of the zone you enter."],
 		},
 	},
 	Apply = function()
@@ -53,6 +57,9 @@ ns.Skins.Add({
 		RestedXP.Rail.Switch(on and ns.Skins.Setting("restedXP", "rail") == true)
 	end,
 	OnSetting = function(_, field)
+		if field == nil or field == "arrowYields" then
+			RestedXP.Chrome.SwitchArrow()
+		end
 		if field == nil or field == "rail" then
 			RestedXP.Rail.Switch(ns.Skins.Setting("restedXP", "rail") == true)
 		elseif field == "compose" or field == "fit" then

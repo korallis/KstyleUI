@@ -432,6 +432,14 @@ function Guard.Hides(item)
 	return alpha >= Guard.COVER_ALPHA
 end
 
+-- EdgeFade(cover, text) -> whether a cover is a list's edge fade over its rows: a vertical gradient that ramps up to
+-- nothing (SetGradient's first colour is its bottom), its opaque foot on the foot of the scroll view that holds the
+-- text, which cuts its rows there by design.
+local function edgeFade(cover, text)
+	local g, clip, r = cover.item.gradient, text.item.scroll and text.item.clip, cover.rect
+	return g ~= nil and clip ~= nil and g.orientation == "VERTICAL" and g.to[4] <= 0 and math.abs(r[2] + r[4] - clip[2] - clip[4]) <= slack
+end
+
 -- Top(object) -> the top-level element an object hangs in: its ancestor whose parent is a root (UIParent or an
 -- unparented frame), or the object's root itself.
 local function top(object)
@@ -528,7 +536,7 @@ function Guard.Check(scene)
 		for i = text.at, #drawn do
 			local cover = drawn[i]
 			local frame = cover.item.object._parent
-			if cover.group == text.group and frame ~= text.item.object._parent then
+			if cover.group == text.group and frame ~= text.item.object._parent and not edgeFade(cover, text) then
 				local w, h = crossing(ink, cover.rect)
 				if w > 0 and h > 0 then
 					-- A glass drawn as slices hides a text slice by slice: the slices one frame draws add up.

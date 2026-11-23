@@ -52,6 +52,9 @@ local function line(tip, index)
 		-- A line AddLine adds without the wrap flag never wraps in the game; the renderer sizes it one line tall.
 		left:SetWordWrap(false)
 		right:SetWordWrap(false)
+		-- SharedTooltipTemplates.xml:3-4: TooltipTextLeftTemplate is justified LEFT, TooltipTextRightTemplate RIGHT.
+		left:SetJustifyH("LEFT")
+		right:SetJustifyH("RIGHT")
 		tip._left[index], tip._right[index] = left, right
 		tip._made[#tip._made + 1] = left
 		tip._made[#tip._made + 1] = right

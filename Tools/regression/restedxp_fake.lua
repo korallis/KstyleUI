@@ -8,7 +8,10 @@
 --
 -- Install(env, opts) puts LibStub with AceAddon-3.0 into env, and registers the addon "RXPGuides" in it, as
 -- RestedXP's Locale.lua does. opts:
---   v2            the v2 guide window is on (addon.v2:IsGuideWindowEnabled())
+--   v2            the v2 guide window is on (addon.v2:IsGuideWindowEnabled(), or IsEnabled() in 4.11.39)
+--   release       "4.11.39" for that release's shape: v2:IsEnabled, UpdateSubTheme for UpdateVisuals, UpdateTheme for
+--                 RenderFrame, the item and target boxes as RXPV2MiniFrame widgets (rxp.activeItemWindow,
+--                 rxp.targeting.activeTargetWindow) holding their frame, and the level splits moved off the tracker
 --   activeTheme   the player's theme in the RestedXP profile (default "RXP Blue")
 --   liveReload    RestedXP's enableThemeLiveReload setting (default true)
 --   profileName   the RestedXP profile's name (default "Tester - Realm")
@@ -34,6 +37,21 @@ local function Copy(value)
 	return out
 end
 Fake.Copy = Copy
+
+-- Redraw(owner, ...) runs a window's theme redraw: UpdateVisuals, or UpdateSubTheme in 4.11.39.
+function Fake.Redraw(owner, ...)
+	local redraw = owner.UpdateSubTheme or owner.UpdateVisuals
+	if redraw then
+		return redraw(owner, ...)
+	end
+end
+
+-- Box(rxp, which) -> the "items" or "targets" box's frame and what holds its title and buttons: the frame, or in
+-- 4.11.39 the widget.
+function Fake.Box(rxp, which)
+	local f = rxp.enabledFrames[which == "items" and "activeItemFrame" or "activeTargetFrame"]
+	return f, f.obj or f
+end
 
 -- The built-in v1 themes the skin may borrow textures from. Their colours are arbitrary test values.
 local function V1Themes()
@@ -171,8 +189,10 @@ local function NewAddon(opts)
 
 	local v2 = { themes = { ["RXP Blue V2"] = V2Base() }, enabled = opts.v2 == true }
 	rxp.v2 = v2
-	function v2.IsGuideWindowEnabled(self)
-		assert(self == v2, "IsGuideWindowEnabled is a method")
+	-- 4.11.39 renamed the check IsEnabled (UI/V2/Core.lua 1498); the fake reads v2.enabled itself.
+	local new = opts.release == "4.11.39"
+	v2[new and "IsEnabled" or "IsGuideWindowEnabled"] = function(self)
+		assert(self == v2, "the v2 check is a method")
 		return v2.enabled
 	end
 	-- ConvertThemes makes a v2 theme from each v1 theme, unless a v2 theme of that name has a higher version.
@@ -192,6 +212,10 @@ local function NewAddon(opts)
 	end
 	function v2.GetTheme(self)
 		local name = rxp.settings.profile.activeTheme
+		-- 4.11.39 resolves the v2 theme from the run-time theme instead (Themes.lua 448).
+		if new then
+			name = rxp.activeTheme and rxp.activeTheme.name
+		end
 		self.activeTheme = v2.themes[name] or v2.themes["RXP Blue V2"]
 		return self.activeTheme
 	end
@@ -207,31 +231,48 @@ local function NewAddon(opts)
 			end
 		end
 		rxp.themes[theme.name] = theme
-		if v2:IsGuideWindowEnabled() then
+		if v2.enabled then
 			v2:ConvertThemes()
 		end
 	end
 	function rxp.LoadActiveTheme(self)
 		assert(self == rxp, "LoadActiveTheme is a method")
 		rxp.loads = rxp.loads + 1
+		-- 4.11.39 keeps the theme it has while live reload is off (Themes.lua 179).
+		if new and rxp.activeTheme and not rxp.settings.profile.enableThemeLiveReload then
+			return rxp.activeTheme
+		end
 		local name = rxp.settings.profile.activeTheme
-		local chosen = v2:IsGuideWindowEnabled() and v2.themes[name]
+		local chosen = v2.enabled and v2.themes[name]
 		rxp.activeTheme = rxp.themes[chosen and chosen.name or name] or rxp.themes["RXP Blue"]
 		rxp.colors = rxp.activeTheme
 		rxp.font = rxp.activeTheme.font
 		return rxp.activeTheme
 	end
-	-- RenderFrame and SetupArrow redraw the windows from the active theme, as RestedXP's own start-up does.
+	-- RenderFrame and SetupArrow redraw the windows from the active theme, as RestedXP's own start-up does; 4.11.39's
+	-- addon:UpdateTheme(skipMenu, skipGuideReload) does what RenderFrame did (GuideWindow.lua 87-103), through each
+	-- window's UpdateSubTheme, a widget's on the widget AceGUI keeps in its frame's obj, then reloads a loaded guide
+	-- (ReloadGuide, which saves its progress and rebuilds it) unless skipGuideReload; guideReloads counts those.
 	rxp.renders = 0
-	function rxp.RenderFrame(themeUpdate)
+	local function Render(themeUpdate)
 		rxp.renders = rxp.renders + 1
 		rxp.lastRender = themeUpdate
 		rxp:LoadActiveTheme()
 		for _, frame in pairs(rxp.enabledFrames) do
-			if frame.UpdateVisuals then
-				frame:UpdateVisuals(true)
+			Fake.Redraw(frame.obj or frame, true)
+		end
+	end
+	if new then
+		rxp.guideReloads = 0
+		function rxp.UpdateTheme(self, skipMenu, skipGuideReload)
+			assert(self == rxp, "UpdateTheme is a method")
+			Render(skipMenu)
+			if rxp.currentGuide and not skipGuideReload then
+				rxp.guideReloads = rxp.guideReloads + 1
 			end
 		end
+	else
+		rxp.RenderFrame = Render
 	end
 	rxp.arrows = 0
 	function rxp.SetupArrow()
@@ -243,10 +284,10 @@ local function NewAddon(opts)
 			return
 		end
 		rxp.reloads = rxp.reloads + 1
-		rxp.RenderFrame("themeReload")
+		Render("themeReload")
 		v2:ConvertThemes()
 		rxp.SetupArrow()
-		if v2:IsGuideWindowEnabled() then
+		if v2.enabled then
 			v2:GetTheme()
 		end
 	end
@@ -576,9 +617,9 @@ local function V1Window(m, rxp)
 	-- UpdateScrollBar hides the list's scroll bar when the list fits (1512).
 	function f.UpdateScrollBar() end
 	-- UpdateVisuals redraws the window from the active theme (52-82): each call sets the three backdrops again, the
-	-- header's and footer's banners, the logo, the class icon and the cog's art.
-	f.UpdateVisuals = m.trust(function(self)
-		if rxp.v2:IsGuideWindowEnabled() then
+	-- header's and footer's banners, the logo, the class icon and the cog's art. 4.11.39 names it UpdateSubTheme.
+	f[m.new and "UpdateSubTheme" or "UpdateVisuals"] = m.trust(function(self)
+		if rxp.v2.enabled then
 			return
 		end
 		list:ClearBackdrop()
@@ -600,7 +641,7 @@ local function V1Window(m, rxp)
 	-- SetupGuideWindow writes the header and footer as RestedXP's start-up does (140-181): the header at 11, the
 	-- footer at 9 with the addon's title and release.
 	rxp.SetupGuideWindow = m.trust(function()
-		if rxp.v2:IsGuideWindowEnabled() then
+		if rxp.v2.enabled then
 			return
 		end
 		name.text:SetFont(rxp.font or "Fonts\\FRIZQT__.TTF", 11, "")
@@ -609,7 +650,7 @@ local function V1Window(m, rxp)
 		footer.text:SetFont(rxp.font or "Fonts\\FRIZQT__.TTF", 9, "")
 		footer.text:SetText("RestedXP Guides v4.11.35")
 		footer.text:SetTextColor(Color("textColor"))
-		f:UpdateVisuals()
+		Fake.Redraw(f)
 	end)
 
 	-- SetStepFrameAnchor puts the active steps above the header, or under the window (353-396).
@@ -734,7 +775,7 @@ local function V1Window(m, rxp)
 	-- stack's height (1387-1391).
 	current.UpdateText = m.trust(function()
 		rxp.measured.steps = rxp.measured.steps + 1
-		if rxp.v2:IsGuideWindowEnabled() then
+		if rxp.v2.enabled then
 			current:SetHeight(0)
 			current:Hide()
 			return
@@ -1001,7 +1042,7 @@ local function V1Window(m, rxp)
 		m.trust(function()
 			rxp.settings:LoadFramePositions()
 			f.SetStepFrameAnchor()
-			if rxp.v2:IsGuideWindowEnabled() then
+			if rxp.v2.enabled then
 				return
 			end
 			local function Edge(method)
@@ -1096,14 +1137,14 @@ local function Arrow(m, rxp)
 	arrow.text:SetPoint("TOP", arrow, "BOTTOM", 0, -5)
 	arrow:SetPoint("TOP", m.env.UIParent, "TOP", 0, 0)
 	arrow:Hide()
-	arrow.UpdateVisuals = m.trust(function(self)
+	local function Paint(self)
 		local theme = rxp.activeTheme
 		local path = ((theme and theme.texturePath) or FOLDER) .. "rxp_navigation_arrow-1"
-		if rxp.v2:IsGuideWindowEnabled() then
+		if rxp.v2.enabled then
 			path = rxp.v2:GetTheme().navigationArrow
 		end
 		self.texture:SetTexture(path)
-	end)
+	end
 	arrow:SetScript("OnMouseDown", m.trust(function()
 		if not rxp.settings.profile.lockFrames then
 			arrow:StartMoving()
@@ -1113,13 +1154,25 @@ local function Arrow(m, rxp)
 		arrow:StopMovingOrSizing()
 		rxp.settings:SaveFramePositions()
 	end))
-	rxp.SetupArrow = m.trust(function()
-		rxp.arrows = rxp.arrows + 1
-		arrow.text:SetFont(rxp.font or "Fonts\\FRIZQT__.TTF", 9, "OUTLINE")
-		arrow:UpdateVisuals()
-		local theme = rxp.activeTheme
-		arrow.text:SetTextColor(unpack(theme and theme.textColor or { 1, 1, 1 }))
-	end)
+	-- 4.11.39 (map.lua 44-54, 98-100): UpdateSubTheme paints the arrow and its text at the arrowText size, and
+	-- SetupArrow only starts the arrow's OnUpdate (the addon's counting SetupArrow stands).
+	if m.new then
+		arrow.UpdateSubTheme = m.trust(function(self)
+			Paint(self)
+			self.text:SetFont(rxp.font or "Fonts\\FRIZQT__.TTF", rxp.settings.profile.arrowText or 9, "OUTLINE")
+			local theme = rxp.activeTheme
+			self.text:SetTextColor(unpack(theme and theme.textColor or { 1, 1, 1 }))
+		end)
+	else
+		arrow.UpdateVisuals = m.trust(Paint)
+		rxp.SetupArrow = m.trust(function()
+			rxp.arrows = rxp.arrows + 1
+			arrow.text:SetFont(rxp.font or "Fonts\\FRIZQT__.TTF", 9, "OUTLINE")
+			arrow:UpdateVisuals()
+			local theme = rxp.activeTheme
+			arrow.text:SetTextColor(unpack(theme and theme.textColor or { 1, 1, 1 }))
+		end)
+	end
 	-- m.arrow(title, distance, orientation) draws the arrow as DrawArrow does for a waypoint.
 	m.arrow = m.trust(function(title, distance, orientation)
 		arrow:SetAlpha(1)
@@ -1181,6 +1234,69 @@ local function IconFrame(m, rxp, key, name, rise, label)
 	return f
 end
 
+-- MiniFrame(m, rxp, key, name, label, hide) is 4.11.39's RXPV2MiniFrame widget (UI/V2/Core.lua 250-345) as
+-- ActiveItemFrame.lua 204-231 and Targeting.lua 826-862 make each box: the widget holds the frame (with the box's old
+-- global name, in addon.enabledFrames, the widget in its obj as AceGUI-3.0.lua 517 sets) and the title plate, the
+-- frame's child hanging from (5, 8), 19 tall, three levels above it. UpdateSubTheme shows both v2 backdrops, the
+-- frame's unless the hide setting, and sets the title's words at 9 in the theme's colour, the plate 10 wider.
+local function MiniFrame(m, rxp, key, name, label, hide)
+	local f = RxpBackdrop(m, m.frame("Frame", nil, name))
+	local title = RxpBackdrop(m, m.frame("Frame", f, name .. "_title"))
+	local widget = { type = "RXPV2MiniFrame", frame = f, title = title }
+	f.obj = widget
+	for _, owner in ipairs({ f, title }) do
+		owner.rxpBackground:SetAllPoints(owner)
+		owner.rxpBorder:SetAllPoints(owner)
+		owner.rxpShadow:SetPoint("TOPLEFT", owner, "TOPLEFT", -2, 2)
+		owner.rxpShadow:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", 2, -2)
+	end
+	rxp.enabledFrames[key] = f
+	f:SetClampedToScreen(true)
+	f:EnableMouse(true)
+	f:SetMovable(true)
+	f:SetPoint("CENTER", m.env.UIParent, "CENTER", 0, 0)
+	title:SetPoint("TOPLEFT", f, "TOPLEFT", 5, 8)
+	title:SetFrameLevel(f:GetFrameLevel() + 3)
+	title:SetHeight(19)
+	title:EnableMouse(true)
+	m.text(title, "text")
+	title.text:SetPoint("CENTER", title, "CENTER", 0, 0)
+	title.text:SetJustifyH("CENTER")
+	title.text:SetJustifyV("MIDDLE")
+	title.text:SetText(label)
+	local down = m.trust(function(_, button)
+		if button == "LeftButton" and not rxp.settings.profile.lockFrames then
+			f:StartMoving()
+		end
+	end)
+	local up = m.trust(function(_, button)
+		if button == "LeftButton" then
+			f:StopMovingOrSizing()
+			rxp.settings:SaveFramePositions()
+		end
+	end)
+	for _, part in ipairs({ f, title }) do
+		part:SetScript("OnMouseDown", down)
+		part:SetScript("OnMouseUp", up)
+	end
+	widget.UpdateSubTheme = m.trust(function(self)
+		for _, art in ipairs({ "rxpBackground", "rxpBorder", "rxpShadow" }) do
+			self.frame[art]:SetShown(not rxp.settings.profile[hide])
+			self.title[art]:SetShown(true)
+		end
+		local theme = rxp.activeTheme
+		self.title.text:SetFont(rxp.font or "Fonts\\FRIZQT__.TTF", 9, "")
+		self.title.text:SetTextColor(unpack(theme and theme.textColor or { 1, 1, 1 }))
+		self.title:SetWidth(StringWidth(self.title.text) + 10)
+	end)
+	-- SetScale (UI/V2/Core.lua 273) scales the frame; RestedXP's scale settings call it (SettingsPanel.lua 1859, 3240).
+	function widget.SetScale(self, scale)
+		self.frame:SetScale(scale)
+	end
+	m.add(widget)
+	return widget
+end
+
 -- IconButton(m, parent, name, cooldown) is a 25-unit secure button with its icon behind it and a square highlight;
 -- an item button also holds a cooldown frame (ActiveItemFrame.lua 414-447, Targeting.lua 1174-1211).
 local function IconButton(m, parent, name, cooldown)
@@ -1200,45 +1316,59 @@ end
 
 local function ItemsAndTargets(m, rxp)
 	local env = m.env
-	local items = IconFrame(m, rxp, "activeItemFrame", "RXPItemFrame", 10, "Active Items")
-	items.buttonList = {}
-	rxp.activeItemFrame = items
+	local items, itemParts
+	if m.new then
+		itemParts = MiniFrame(m, rxp, "activeItemFrame", "RXPItemFrame", "Active Items", "activeItemHideBG")
+		items = itemParts.frame
+		rxp.activeItemWindow = itemParts
+	else
+		items = IconFrame(m, rxp, "activeItemFrame", "RXPItemFrame", 10, "Active Items")
+		itemParts = items
+		rxp.activeItemFrame = items
+	end
+	itemParts.buttonList = {}
 	m.items = 0
 	function items.IsFeatureEnabled()
 		return not rxp.settings.profile.disableItemWindow and m.items > 0, true
 	end
 	-- UpdateVisuals (ActiveItemFrame.lua 216-234): the frame's backdrop at 0.4 unless activeItemHideBG, then the
 	-- title plate.
-	items.UpdateVisuals = m.trust(function(self, updateFrame)
-		self:ClearBackdrop()
-		if not rxp.settings.profile.activeItemHideBG then
-			self:SetBackdrop(rxp.RXPFrame.backdrop.edge)
-			local theme = rxp.activeTheme
-			local r, g, b = unpack(theme and theme.background or { 0, 0, 0 })
-			self:SetBackdropColor(r, g, b, 0.4)
-		end
-		self.Title()
-		if updateFrame and self.UpdateFrame then
-			return self:UpdateFrame()
-		end
-	end)
+	if not m.new then
+		items.UpdateVisuals = m.trust(function(self, updateFrame)
+			self:ClearBackdrop()
+			if not rxp.settings.profile.activeItemHideBG then
+				self:SetBackdrop(rxp.RXPFrame.backdrop.edge)
+				local theme = rxp.activeTheme
+				local r, g, b = unpack(theme and theme.background or { 0, 0, 0 })
+				self:SetBackdropColor(r, g, b, 0.4)
+			end
+			self.Title()
+			if updateFrame and self.UpdateFrame then
+				return self:UpdateFrame()
+			end
+		end)
+	end
 	-- UpdateItemFrame(frame, count) lists the step's items (ActiveItemFrame.lua 351-506): count is how many the
-	-- step has, kept until the next count. The first button sits at the frame's bottom left (4, 2), each next one
-	-- 27 right of the last; the frame is as wide as its buttons, or its title plus 10, and hides with no items.
+	-- step has, kept until the next count. The first button sits at the frame's bottom left (4, 2), or in 4.11.39 at
+	-- its top left (6, -15, ActiveItemFrame.lua 309), each next one 27 right of the last; the frame is as wide as its
+	-- buttons, or its title plus 10, and hides with no items.
 	rxp.UpdateItemFrame = m.trust(function(frame, count)
 		frame = frame or items
 		if env.InCombatLockdown() then
 			return
 		end
 		m.items = count or m.items
-		frame.title:SetSize(StringWidth(frame.title.text) + 10, 19)
-		local list = frame.buttonList
+		local parts = frame.obj or frame
+		parts.title:SetSize(StringWidth(parts.title.text) + 10, 19)
+		local list = parts.buttonList
 		for i = 1, m.items do
 			local button = list[i]
 			if not button then
 				button = IconButton(m, frame, "RXPItemFrameButton" .. i, true)
 				list[i] = button
-				if i == 1 then
+				if i == 1 and m.new then
+					button:SetPoint("TOPLEFT", frame, "TOPLEFT", 6, -15)
+				elseif i == 1 then
 					button:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 4, 2)
 				else
 					button:SetPoint("CENTER", list[i - 1], "CENTER", 27, 0)
@@ -1253,17 +1383,30 @@ local function ItemsAndTargets(m, rxp)
 		for i = m.items + 1, #list do
 			list[i]:Hide()
 		end
-		frame:SetWidth(math.max((frame.title:GetWidth() or 0) + 10, m.items * 27 + 8))
+		frame:SetWidth(math.max((parts.title:GetWidth() or 0) + 10, m.items * 27 + 8))
 		m.seal()
 	end)
-	items.UpdateFrame = rxp.UpdateItemFrame
-	items:UpdateVisuals()
+	if not m.new then
+		items.UpdateFrame = rxp.UpdateItemFrame
+	end
+	Fake.Redraw(itemParts)
 	items:SetHeight(43)
 	items:Hide()
 
-	local targets = IconFrame(m, rxp, "activeTargetFrame", "RXPTargetFrame", 8, "Active Targets")
-	targets.enemyTargetButtons, targets.friendlyTargetButtons = {}, {}
-	rxp.targeting = { activeTargetFrame = targets }
+	local targets, targetParts
+	if m.new then
+		targetParts = MiniFrame(m, rxp, "activeTargetFrame", "RXPTargetFrame", "Active Targets", "hideActiveTargetsBackground")
+		targets = targetParts.frame
+		rxp.targeting = { activeTargetWindow = targetParts }
+		function rxp.targeting.SetScale(self, scale)
+			self.activeTargetWindow:SetScale(scale)
+		end
+	else
+		targets = IconFrame(m, rxp, "activeTargetFrame", "RXPTargetFrame", 8, "Active Targets")
+		targetParts = targets
+		rxp.targeting = { activeTargetFrame = targets }
+	end
+	targetParts.enemyTargetButtons, targetParts.friendlyTargetButtons = {}, {}
 	targets:Hide()
 	m.targets = 0
 	function targets.IsFeatureEnabled()
@@ -1271,20 +1414,22 @@ local function ItemsAndTargets(m, rxp)
 	end
 	-- RenderTargetFrameBackground (Targeting.lua 900-923) and UpdateVisuals (806-819): the frame's scale, its
 	-- backdrop unless hideActiveTargetsBackground, then the title plate.
-	rxp.targeting.RenderTargetFrameBackground = m.trust(function(self)
-		assert(self == rxp.targeting, "RenderTargetFrameBackground is a method")
-		targets:ClearBackdrop()
-		if not rxp.settings.profile.hideActiveTargetsBackground then
-			targets:SetBackdrop(rxp.RXPFrame.backdrop.edge)
-			local theme = rxp.activeTheme
-			targets:SetBackdropColor(unpack(theme and theme.background or { 0, 0, 0 }))
-		end
-	end)
-	targets.UpdateVisuals = m.trust(function(self)
-		self:SetScale(rxp.settings.profile.activeTargetScale or 1)
-		rxp.targeting:RenderTargetFrameBackground()
-		self.Title()
-	end)
+	if not m.new then
+		rxp.targeting.RenderTargetFrameBackground = m.trust(function(self)
+			assert(self == rxp.targeting, "RenderTargetFrameBackground is a method")
+			targets:ClearBackdrop()
+			if not rxp.settings.profile.hideActiveTargetsBackground then
+				targets:SetBackdrop(rxp.RXPFrame.backdrop.edge)
+				local theme = rxp.activeTheme
+				targets:SetBackdropColor(unpack(theme and theme.background or { 0, 0, 0 }))
+			end
+		end)
+		targets.UpdateVisuals = m.trust(function(self)
+			self:SetScale(rxp.settings.profile.activeTargetScale or 1)
+			rxp.targeting:RenderTargetFrameBackground()
+			self.Title()
+		end)
+	end
 	-- UpdateTargetFrame(count, friendly) lists the step's targets (Targeting.lua 1129-1325): count enemies and
 	-- friendly friends, never in combat. The first enemy sits at the frame's top left (6, -15), the first friend
 	-- at its bottom left (6, 6), each next one 27 right of the last; the frame is 18 plus 25 a row tall, 5 more
@@ -1316,16 +1461,16 @@ local function ItemsAndTargets(m, rxp)
 				list[i]:Hide()
 			end
 		end
-		Row(targets.enemyTargetButtons, enemies, "RXPTargetFrame_EnemyButton", "TOPLEFT", -15)
-		Row(targets.friendlyTargetButtons, friends, "RXPTargetFrame_FriendlyButton", "BOTTOMLEFT", 6)
+		Row(targetParts.enemyTargetButtons, enemies, "RXPTargetFrame_EnemyButton", "TOPLEFT", -15)
+		Row(targetParts.friendlyTargetButtons, friends, "RXPTargetFrame_FriendlyButton", "BOTTOMLEFT", 6)
 		local rows = (enemies > 0 and 1 or 0) + (friends > 0 and 1 or 0)
-		targets:SetWidth(math.max((targets.title:GetWidth() or 0) + 10, math.max(enemies, friends) * 27 + 10))
+		targets:SetWidth(math.max((targetParts.title:GetWidth() or 0) + 10, math.max(enemies, friends) * 27 + 10))
 		targets:SetHeight(18 + rows * 25 + (rows == 2 and 5 or 0))
 		targets:SetShown(m.targets > 0)
 		m.seal()
 	end)
 	targets:SetHeight(40)
-	targets:UpdateVisuals()
+	Fake.Redraw(targetParts)
 end
 
 -- AceFrame(m) is the shape of an AceGUI "Frame" container: the widget table and its frame.
@@ -1535,6 +1680,16 @@ end
 
 local function Tracker(m, rxp, env)
 	rxp.tracker = { ui = {} }
+	-- 4.11.39 (LevelingTracker.lua 444-481, 990-1024) shows each report as a tab of one shared RXPV2ActivePartyStepsFrame,
+	-- its ui entry holding no frame, and moved the level splits to tracker.splits; the fake keeps only that shape.
+	if m.new then
+		rxp.tracker.CreateGui = m.trust(function(self, target)
+			if target ~= nil then
+				self.ui[target] = self.ui[target] or {}
+			end
+		end)
+		return
+	end
 	rxp.tracker.CreateGui = m.trust(function(self, attachment, target)
 		assert(self == rxp.tracker, "CreateGui is a method")
 		if not attachment or not attachment:GetName() or self.ui[attachment:GetName()] then return end
@@ -1824,9 +1979,20 @@ local function V2Windows(m, rxp)
 		widget.submitbutton = RxpButton(m, frame)
 		widget.buttonRow = m.frame("Frame", frame)
 		widget.content = m.frame("Frame", frame)
-		for _, art in ipairs({ "rxp-icon-cog", "icon-btn-import", "icon-btn-help" }) do
+		-- GuideConfigurator.lua:1023-1056: the settings cog is 24 square, 12 in and 24 down from the top right, the
+		-- import and help buttons 30 square, each 2 left of the last; the game stretches each normal texture over it.
+		local last
+		for i, art in ipairs({ "rxp-icon-cog", "icon-btn-import", "icon-btn-help" }) do
 			local button = m.frame("Button", frame)
 			Normal(m, button, art)
+			button:SetSize(i == 1 and 24 or 30, i == 1 and 24 or 30)
+			if last then
+				button:SetPoint("RIGHT", last, "LEFT", -2, 0)
+			else
+				button:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -12, -24)
+			end
+			button:GetNormalTexture():SetAllPoints(button)
+			last = button
 		end
 		widget.scrollContainer = AceScroll(m, widget.content, "RXPV2ScrollFrame")
 		widget.Refresh = function() self:ShowPage() end
@@ -2071,6 +2237,7 @@ function Fake.Windows(env, rxp, opts)
 	opts = opts or {}
 	local skip = opts.skip or {}
 	local m = Maker(env, rxp)
+	m.new = opts.release == "4.11.39"
 	rxp.ui = { v2 = {} }
 	V1Window(m, rxp)
 	rxp.menuLists = MenuLists(m, env)

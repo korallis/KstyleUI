@@ -22,6 +22,7 @@ local INK_SHADOW_ALPHA = 0.25
 local LOW_STEP = 0.001
 local CHIP_ALPHA = 0.55
 local CHIP_WIDTH = 30
+local READABLE_SCRIM, READABLE_CHIP = 0.7, 0.85
 Medallions.Active = K.Widgets.Medallions
 
 local colorSources = Unit.ColorSources
@@ -80,6 +81,10 @@ end
 
 local function PartyParts(out, o)
 	local badge, crown = out.portrait, out.icons.leader
+	if Settings.current.readable.text then
+		crown.top = math.max(crown.top, badge.top)
+		if out.power then out.power.top = out.power.top + 1 end
+	end
 	local right = badge.left + badge.width - Geometry.EDGE
 	local size = math.min(Style.BOSS_SLOT, right - crown.left - crown.width, badge.height - Geometry.EDGE - PARTY_LANE)
 	if Settings.current.auras.enabled and size >= Geometry.MIN_ICON then
@@ -301,7 +306,7 @@ function Unit.NameColored(f, class)
 		f.medInked = nil
 		return
 	end
-	local ink = not f.status and Medallions.Inked(class)
+	local ink = not (f.status or Settings.current.readable.text) and Medallions.Inked(class)
 	local refined = Widgets.Readability("readableBars")
 	local path, size = f.name:GetFont()
 	Widgets.ApplyFont(f.name, path, size, (not refined or ink) and "" or "OUTLINE")
@@ -347,12 +352,13 @@ local function Chip(f, shown)
 		return
 	end
 	local r, g, b = Tokens.Color("slabBottom")
+	local alpha = Settings.current.readable.text and READABLE_CHIP or CHIP_ALPHA
 	chip:SetColorTexture(Tokens.Color("white"))
 	if type(chip.SetGradient) == "function" and type(CreateColor) == "function" then
 		f.medChipGradient = true
-		chip:SetGradient("HORIZONTAL", CreateColor(r, g, b, 0), CreateColor(r, g, b, CHIP_ALPHA))
+		chip:SetGradient("HORIZONTAL", CreateColor(r, g, b, 0), CreateColor(r, g, b, alpha))
 	else
-		chip:SetColorTexture(r, g, b, CHIP_ALPHA)
+		chip:SetColorTexture(r, g, b, alpha)
 	end
 	chip:ClearAllPoints()
 	chip:SetPoint("TOPRIGHT", f.health, "TOPRIGHT")
@@ -386,7 +392,7 @@ local function TileText(f)
 	if block and block.left and (not refined or not tile.stacked) then
 		nameRight = math.min(nameRight, Widgets.Snap(f, block.left) - gap)
 	end
-	f.nameLetterCut = refined
+	f.nameLetterCut = refined and not Settings.current.readable.text
 	f.tileText = { left = left, nameRight = nameRight, textRight = right, reserve = reserve, stacked = tile.stacked }
 	f.nameWidth = math.max(1, nameRight - left)
 	f.name:SetWidth(f.nameWidth)
@@ -394,7 +400,7 @@ local function TileText(f)
 	f.name:SetJustifyH("LEFT")
 	f.healthText:ClearAllPoints()
 	f.healthText:SetJustifyH("RIGHT")
-	f.healthText:SetWidth(math.max(1, reserve))
+	f.healthText:SetWidth(Settings.current.readable.text and 0 or math.max(1, reserve))
 	f.healthText:SetShown(k.healthText ~= "NONE" or f.status ~= nil)
 	if tile.stacked then
 		local top, bottom = -Widgets.Snap(f, health.top + tile.inset), -Widgets.Snap(f, health.top + health.height - tile.inset)
@@ -473,19 +479,27 @@ local function Applied(f, parts, k)
 			f.chrome:SetShadow(false)
 			f.chrome:Restyle()
 		end
-		if on or f.medPartyScrim then
+		local backed = on or Settings.current.readable.text and f.tileless
+		if backed or f.medPartyScrim then
 			f.medPartyScrim = f.medPartyScrim or Widgets.NineSlice(f, "chamferTile", "BACKGROUND", -1)
-			Widgets.ShowSlice(f.medPartyScrim, on and Widgets.Readability("worldText"))
-			if on then
-				Widgets.ColorSlice(f.medPartyScrim, Widgets.Rgba("slabBottom", 0.5))
+			Widgets.ShowSlice(f.medPartyScrim, backed and Widgets.Readability("worldText"))
+			if backed then
+				Widgets.ColorSlice(f.medPartyScrim, Widgets.Rgba("slabBottom", Settings.current.readable.text and READABLE_SCRIM or 0.5))
 				if not f.medPartyInk then
 					f.medPartyInk = CreateFrame("Frame", nil, f)
 					f.medPartyInk:SetFrameLevel(f:GetFrameLevel())
 				end
 				local box, pad = f.medPartyInk, Widgets.Snap(f, 4)
 				box:ClearAllPoints()
-				box:SetPoint("TOPLEFT", f.name, "TOPLEFT", -pad, pad)
-				box:SetPoint("BOTTOMRIGHT", f.health, "BOTTOMRIGHT", pad, -pad)
+				if Settings.current.readable.text then
+					local low, badge = parts.power or parts.health, parts.portrait
+					local drop = badge and math.max(0, badge.top + badge.height - low.top - low.height - 4) or 0
+					box:SetPoint("TOPLEFT", f, "TOPLEFT", 0, math.min(0, pad - Widgets.Snap(f, parts.name.top)))
+					box:SetPoint("BOTTOMRIGHT", parts.power and f.power or f.health, "BOTTOMRIGHT", pad, -pad - Widgets.Snap(f, drop))
+				else
+					box:SetPoint("TOPLEFT", f.name, "TOPLEFT", -pad, pad)
+					box:SetPoint("BOTTOMRIGHT", f.health, "BOTTOMRIGHT", pad, -pad)
+				end
 				Widgets.LayoutSlice(f.medPartyScrim, box, Tokens.Size("radiusTile"), 0)
 			end
 		end

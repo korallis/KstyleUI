@@ -18,6 +18,7 @@ end
 local HEAL_ALPHA = 0.5
 local ABSORB_ALPHA = 0.45
 local HEAL_ABSORB_ALPHA = 0.7
+local READABLE_RANGE_ALPHA = 0.7
 local INDICATOR_SLOTS = 6
 Settings.INDICATOR_SLOTS = INDICATOR_SLOTS
 
@@ -32,6 +33,7 @@ end
 
 Settings.defaults = {
 	layout = { tidyLanes = true },
+	readable = { size = true, text = true, track = true },
 	blizzard = { party = true, raid = true, manager = false, keepManager = true },
 	party = {
 		extra1 = ExtraText(), extra2 = ExtraText(),
@@ -658,6 +660,10 @@ function Settings.Schema(includeText)
 		add({ type = "font", key = "text.healthFont", label = L["Health text font"], help = L["The font of the health text."], options = FontOptions })
 		add(Dropdown("text.healthOutline", L["Health text outline"], L["A soft shadow, or an outline for busy backgrounds."], OUTLINE))
 		add(Toggle("text.above", L["Text above icons"], L["Draws names and health text over the debuff and indicator icons, not under them."]))
+		add({ type = "header", label = L["Readability"] })
+		add(Toggle("readable.size", L["Larger party frames"], L["Party frames a quarter larger on ultrawide screens, unless you set their size. Off restores it."]))
+		add(Toggle("readable.text", L["Readable names and numbers"], L["Whole percentages and names on a darker backing, legible out of range. Off restores them."]))
+		add(Toggle("readable.track", L["Dark missing health"], L["Keeps the missing part of each health bar dark, without the just-lost band. Off restores the band."]))
 		add({ type = "header", label = L["Status icons"] })
 		add(Toggle("layout.tidyLanes", L["Tidy Medallions lanes"], L["Separates names, indicators and percentages, with metal role pips. Off restores the earlier layout."]))
 		add(Toggle("icons.role", L["Role icons"], L["Shows each member's role; raid tiles show it only as Role letters or at a chosen Role icon place."]))
@@ -972,6 +978,7 @@ function Settings.Refresh()
 			end
 		end
 	end
+	if current.readable.text then current.range.alpha = math.max(current.range.alpha, READABLE_RANGE_ALPHA) end
 	return current
 end
 

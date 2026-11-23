@@ -205,7 +205,7 @@ do
 	assert(brel == one, "the game's re-anchor does not stretch the bar to the column")
 	env.FCF_UnDockFrame(two)
 	env.RunTimers()
-	assert(select(2, point(two.ScrollToBottomButton)) == two, "an undocked window keeps its own button")
+	assert(select(2, point(two.ScrollToBottomButton)) == two.ResizeButton, "an undocked window keeps its own button")
 	env.FCF_DockFrame(two)
 	env.RunTimers()
 	assert(select(2, point(two.ScrollToBottomButton)) == column, "docking it again moves it to the column")
@@ -216,7 +216,7 @@ do
 	blizzardStack(env, 2, 1)
 	write(env, K, "sideScroll", true)
 	write(env, K, "buttons", false)
-	assert(select(2, point(one.ScrollToBottomButton)) == one, "buttons off gives it back too")
+	assert(select(2, point(one.ScrollToBottomButton)) == one.ResizeButton, "buttons off gives it back too")
 	clean(env, K)
 end
 
@@ -299,7 +299,7 @@ do
 	env.RunTimers()
 	assert(env.ChatFrameMenuButton:GetScale() == 1 and env.QuickJoinToastButton:GetScale() == 1, "scales come back")
 	assert(env.ChatFrame1.buttonFrame:GetWidth() == 29, "the column's width comes back")
-	assert(select(2, point(env.ChatFrame1.ScrollToBottomButton)) == env.ChatFrame1, "the scroll button goes home")
+	assert(select(2, point(env.ChatFrame1.ScrollToBottomButton)) == env.ChatFrame1.ResizeButton, "the scroll button goes home")
 	assert(W.LastCall(env.ChatFrameMenuButton, "RegisterForDrag")[1] == nil, "no drag stays registered")
 	blizzardStack(env, 2, 1)
 	clean(env, K)

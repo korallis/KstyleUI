@@ -19,6 +19,7 @@ local FALLBACK_FONT = "GameFontHighlight"
 
 local WEAK = { __mode = "k" }
 local roles = setmetatable({}, WEAK)
+local kept = setmetatable({}, WEAK)
 local sizes = setmetatable({}, WEAK)
 local bars = setmetatable({}, WEAK)
 local tracked = setmetatable({}, WEAK)
@@ -489,9 +490,14 @@ function Style.IsSwept(text)
 	return swept[text] ~= nil
 end
 
+function Style.KeepPitch(text)
+	kept[text] = true
+	text:SetSpacing(0)
+end
+
 function Style.MetricText(text, title)
 	local role = roles[text]
-	if not title and (role == "number" or role == "caps" or role == "display") then
+	if kept[text] or not title and (role == "number" or role == "caps" or role == "display") then
 		return
 	end
 	local units = title and 16 or role == "caption" and 12 or 13

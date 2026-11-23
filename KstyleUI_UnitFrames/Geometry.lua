@@ -598,7 +598,8 @@ local SLAB = {
 	focustarget = { h = 34, bar = 14 },
 }
 local SLAB_PAD = { top = 5, outer = 9, inner = 6, centre = 2, power = 5, powerGap = 2, nameGap = 2, powerNameGap = 2, auraGap = 16, nameShare = 0.7, levelGap = 6, levelEm = 1.9, valuePad = 7 }
-Geometry.SLAB, Geometry.SLAB_PAD = SLAB, SLAB_PAD
+local SLAB_FIT = { top = 6.5, cap = 10.5, tuck = 4, powerGap = 3, trim = 2.5, textPad = 6, socket = 3, across = math.cos(math.rad(30)), rise = 0.5 }
+Geometry.SLAB, Geometry.SLAB_PAD, Geometry.SLAB_FIT = SLAB, SLAB_PAD, SLAB_FIT
 
 local function SlabFrame(out, s, width, height, scale)
 	local spec = SLAB[s.kind] or SLAB.targettarget
@@ -613,25 +614,33 @@ local function SlabFrame(out, s, width, height, scale)
 		end
 		return
 	end
+	local fit = s.fittedSlabs and SLAB_FIT
+	if fit then
+		top, barH = fit.top * k, (spec.bar - (s.power and fit.trim or 0)) * k
+	end
 	local d = spec.d * k
 	local right = spec.side == "RIGHT"
 	local cx = right and width - SLAB_PAD.centre * k or SLAB_PAD.centre * k
 	out.medal = Rect(cx - d / 2, height / 2 - d / 2, d, d)
 	out.medalSide = spec.side
 	out.mirror = right
-	local inner, outer = d / 2 + SLAB_PAD.inner * k, SLAB_PAD.outer * k
+	local inner = fit and (SLAB_PAD.centre - fit.tuck) * k + d / 2 or d / 2 + SLAB_PAD.inner * k
+	local outer = (fit and fit.cap or SLAB_PAD.outer) * k
 	local left = right and outer or inner
 	local barW = max(0, width - inner - outer)
 	out.health = Rect(left, top, barW, barH)
+	local lead, tail = fit and (fit.tuck + fit.textPad) * k or 0, fit and SLAB_PAD.valuePad * k or 0
+	out.lane = Rect(right and left + tail or left + lead, top, barW - lead - tail, barH)
+	local tx, tw = out.lane.x, out.lane.w
 	local y = top + barH + SLAB_PAD.nameGap * k
 	if s.power then
-		local powerTop, powerH = top + barH + SLAB_PAD.powerGap * k, (spec.power or SLAB_PAD.power) * k
+		local powerTop, powerH = top + barH + (fit and fit.powerGap or SLAB_PAD.powerGap) * k, (spec.power or SLAB_PAD.power) * k
 		out.power = Rect(left, powerTop, barW, powerH)
 		y = powerTop + powerH + SLAB_PAD.powerNameGap * k
 	end
 	if (s.healthText or "none") ~= "none" then
 		local pad = SLAB_PAD.valuePad * k
-		out.healthText = Rect(left + pad, top, max(0, barW - 2 * pad), barH)
+		out.healthText = fit and Rect(tx, top, tw, barH) or Rect(left + pad, top, max(0, barW - 2 * pad), barH)
 	end
 	local rowH = max(TextH(nameSize), (spec.name or 0) * k)
 	local powerText = s.power and (s.powerText or "none") ~= "none" and s.powerText ~= "legacy"
@@ -642,14 +651,14 @@ local function SlabFrame(out, s, width, height, scale)
 		y = height - rowH
 	end
 	local extra = powerText or spec.extra == "health" and s.healthText == "both"
-	local room = extra and floor(barW * SLAB_PAD.nameShare) or barW + outer
+	local room = extra and floor(tw * SLAB_PAD.nameShare) or tw + (fit and 0 or outer)
 	if s.name then
-		out.name = Rect(right and left + barW - room or left, y, room, rowH)
+		out.name = Rect(right and tx + tw - room or tx, y, room, rowH)
 		out.nameAuto, out.levelGap = true, SLAB_PAD.levelGap
 		out.nameRoom = s.singleSlabLevel and room or max(0, room - ceil(SLAB_PAD.levelEm * Size(s, "level", scale)) - SLAB_PAD.levelGap)
 	end
-	local extraW = max(0, barW - room - TEXT_GAP)
-	local extraX = right and left or left + barW - extraW
+	local extraW = max(0, tw - room - TEXT_GAP)
+	local extraX = right and tx or tx + tw - extraW
 	if extra then
 		out[powerText and "powerText" or "healthSub"] = Rect(extraX, y, extraW, rowH)
 	elseif spec.extra == "caption" then
@@ -706,7 +715,12 @@ local function Marker(out, s)
 		return
 	end
 	local size = (s.markerSize or 0) > 0 and s.markerSize or (s.iconSize or 12) + MARKER_EXTRA
-	if out.form == "slab" and out.medal then
+	if out.form == "slab" and out.medal and s.fittedSlabs then
+		local medal, r = out.medal, out.medal.w / 2
+		local cx, cy = medal.x + r + (out.mirror and r or -r) * SLAB_FIT.across, medal.y + r - r * SLAB_FIT.rise
+		out.marker = Rect(cx - size / 2, cy - size / 2, size, size)
+		return
+	elseif out.form == "slab" and out.medal then
 		local medal = out.medal
 		local x = out.mirror and medal.x + medal.w + MARKER_GAP or medal.x - size - MARKER_GAP
 		out.marker = Rect(x, medal.y - MARKER_GAP, size, size)

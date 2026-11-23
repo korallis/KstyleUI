@@ -1,4 +1,4 @@
--- Rail.lua: puts RestedXP's guide window in a card of its own: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, in the top left corner above the party frames by default) and the guide stands on the element's foot on its left edge and width, with the element's room above it to grow into (from the element's top when the step is taller than the element), the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the current step always shows whole (RestedXP completes a step only once every line is ticked) and the later steps that would run past the element's foot rest unseen behind a muted "N more" line; in combat a step that grows grows the card up, clear of the docked boxes, the card holding the whole step; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window. RestedXP's Active Targets and Active Items boxes dock under the guide's card: side by side at half its width with compact headers, or one at its full width (stacked when an icon row does not fit half; a box with more icons keeps the card's right edge and grows toward the middle), the guide's room cut to leave them space, until the player drags one away. While the rail holds the window it keeps RestedXP's active steps above its header, where RestedXP's "top" orientation puts them, after RestedXP anchors them under its window (its "bottom" orientation, or its own flip when the steps' top passes the screen's top), so the card never shows RestedXP's hushed header and folded window between its cap and the step; letting the window go hands the anchoring back to RestedXP.
+-- Rail.lua: puts RestedXP's guide window in a card of its own: a Layout element, the RestedXP guide, holds its place (its own mover in Layout Mode, in the top left corner above the party frames by default) and the guide stands on the element's foot on its left edge and width, with the element's room above it to grow into (from the element's top when the step is taller than the element), the cap, the active steps and the route row stacked down from there with RestedXP's window folded to its floor behind them, its step list folded by RestedXP's own rule and its footer at rest (the footer comes back while a RestedXP timer bar runs); the current step always shows whole (RestedXP completes a step only once every line is ticked) and the later steps that would run past the element's foot rest unseen behind a muted "N more" line; in combat a step that grows grows the card up, clear of the docked boxes, the card holding the whole step; re-placed after each step, on entering the world and after a layout change, out of combat, and kept out of RestedXP's saved settings by RestedXP's own savePosition switch while the rail holds the window. RestedXP's Active Targets and Active Items boxes dock under the guide's card as header-less chips sized to their icons: side by side at the card's left and right edges, or stacked at its left edge when the two do not fit one row, the guide's room cut to leave them space, until the player drags one away. While the rail holds the window it keeps RestedXP's active steps above its header, where RestedXP's "top" orientation puts them, after RestedXP anchors them under its window (its "bottom" orientation, or its own flip when the steps' top passes the screen's top), so the card never shows RestedXP's hushed header and folded window between its cap and the step; letting the window go hands the anchoring back to RestedXP.
 local _, ns = ...
 
 local K = KstyleUI
@@ -52,12 +52,9 @@ local function Frame()
 	if not IsTable(f) or not IsTable(f.GuideName) or not IsTable(f.CurrentStepFrame) then
 		return nil
 	end
-	if IsTable(rxp.v2) and type(rxp.v2.IsGuideWindowEnabled) == "function" then
-		local ok, v2 = pcall(rxp.v2.IsGuideWindowEnabled, rxp.v2)
-		if ok and v2 == true then
-			LogOnce("rail v2", "RestedXP's v2 guide window is on; the guide card places only the v1 guide window")
-			return nil
-		end
+	if RestedXP.V2On(rxp) then
+		LogOnce("rail v2", "RestedXP's v2 guide window is on; the guide card places only the v1 guide window")
+		return nil
 	end
 	return f
 end
@@ -154,27 +151,13 @@ local function Docking()
 	return On() and ns.Skins.Setting(KEY, DOCK) == true
 end
 
-local function Box(which)
-	local rxp = state.rxp
-	if not IsTable(rxp) then
-		return nil
-	end
-	local box
-	if which == "items" then
-		box = rxp.activeItemFrame
-	elseif IsTable(rxp.targeting) then
-		box = rxp.targeting.activeTargetFrame
-	end
-	return IsTable(box) and type(box.GetPoint) == "function" and box or nil
-end
-
 local function Boxes()
 	local out = {}
 	if not Docking() then
 		return out
 	end
 	for _, which in ipairs(BOXES) do
-		local box = Box(which)
+		local box = RestedXP.Box(state.rxp, which)
 		if box and box:IsShown() then
 			out[#out + 1] = box
 		end
@@ -207,8 +190,10 @@ local function Icons(box)
 	if not Plain(left) then
 		return need
 	end
+	local title = RestedXP.Widget(box).title
 	for _, child in ipairs({ box:GetChildren() }) do
-		local right = child ~= box.title and child:GetObjectType() == "Button" and child:IsShown() and child:GetRight()
+		local shown = child:IsShown()
+		local right = child ~= title and child:GetObjectType() == "Button" and not Widgets.IsSecret(shown) and shown and child:GetRight()
 		if Plain(right) then
 			need = math.max(need, right - left + BOX_PAD)
 		end
@@ -219,22 +204,23 @@ end
 local function Plan(band)
 	local boxes, gap = Boxes(), Tokens.Size(BOX_GAP)
 	local span = band.right - band.left
-	local share = (span - gap) / 2
-	local row = #boxes == 2
-	for _, box in ipairs(boxes) do
-		if Icons(box) * Widgets.ScaleFactor(box) > share then
-			row = false
-		end
+	local widths, owns, sum = {}, {}, 0
+	for i, box in ipairs(boxes) do
+		RestedXP.Chrome.Chip(box, true)
+		local width, own = RestedXP.Chrome.ChipWidth(box)
+		widths[i], owns[i] = math.min(span, (width or Icons(box)) * Widgets.ScaleFactor(box)), own
+		sum = sum + widths[i]
 	end
+	local row = #boxes == 2 and sum + gap <= span
 	local plan, drop, tall = {}, 0, 0
 	for i, box in ipairs(boxes) do
 		local height = Tall(box, Reach(box))
 		if row then
-			plan[i] = { box = box, left = band.left + (i - 1) * (share + gap), width = share, drop = gap, label = box == Box("items") and L["Items"] or L["Targets"] }
+			plan[i] = { box = box, left = i == 1 and band.left or band.right - widths[i], width = widths[i], drop = gap, own = owns[i] }
 			tall = math.max(tall, gap + height)
 		else
 			drop = drop + gap
-			plan[i] = { box = box, left = band.left, width = span, drop = drop }
+			plan[i] = { box = box, left = band.left, width = widths[i], drop = drop, own = owns[i] }
 			drop = drop + height
 			tall = drop
 		end
@@ -725,7 +711,7 @@ function ReleaseBoxes(restore, save)
 			if entry.held then
 				box[SAVE] = entry.held.value
 			end
-			RestedXP.Chrome.Label(box, nil)
+			RestedXP.Chrome.Chip(box, false)
 		end
 		local settings = save and IsTable(state.rxp) and state.rxp.settings
 		if IsTable(settings) and type(settings.SaveFramePositions) == "function" then
@@ -749,7 +735,7 @@ end
 
 local function Drifted()
 	for _, which in ipairs(BOXES) do
-		local box = Box(which)
+		local box = RestedXP.Box(state.rxp, which)
 		local entry = box and state.boxes[box]
 		if box then
 			local shown = box:IsShown() == true
@@ -788,11 +774,13 @@ local function WatchBox(box)
 	end
 	box:HookScript("OnShow", Watch)
 	box:HookScript("OnHide", Watch)
+	hooksecurefunc(box, "SetScale", Schedule)
 	box:HookScript("OnMouseDown", Pressed)
 	box:HookScript("OnMouseUp", Dropped)
-	if IsTable(box.title) and type(box.title.HookScript) == "function" then
-		box.title:HookScript("OnMouseDown", Pressed)
-		box.title:HookScript("OnMouseUp", Dropped)
+	local title = RestedXP.Widget(box).title
+	if IsTable(title) and type(title.HookScript) == "function" then
+		title:HookScript("OnMouseDown", Pressed)
+		title:HookScript("OnMouseUp", Dropped)
 	end
 end
 
@@ -821,21 +809,16 @@ function Dock(f, path, band)
 		end
 		local scale = Widgets.ScaleFactor(box)
 		local pixel = K.Scale.Pixel(1) / scale
-		RestedXP.Chrome.Label(box, slot.label, slot.label and slot.width / scale - ns.Parts.CAP_INDENT - ns.Parts.CAP_PAD or nil)
-		local reach, icons = Reach(box), Icons(box)
-		local width
-		for _ = 1, 2 do
-			width = math.max(icons, slot.width / scale - reach.left - reach.right)
-			local current = box:GetWidth()
-			if Plain(current) and math.abs(current - width) < pixel then
-				width = current
-			else
-				box:SetWidth(width)
-			end
-			RestedXP.Chrome.IconInset(box)
-			reach = Reach(box)
+		local width, current = slot.own or Icons(box), box:GetWidth()
+		if Plain(current) and math.abs(current - width) < pixel then
+			width = current
+		else
+			box:SetWidth(width)
 		end
+		RestedXP.Chrome.IconInset(box)
+		local reach = Reach(box)
 		local left = (slot.left + slot.width) / scale - reach.right - width
+		if slot.left == band.left then left = math.min(left, slot.left / scale + reach.left) end
 		local y = (top - slot.drop) / scale - reach.top
 		local x = left + K.Scale.Origin() / scale
 		local point, relative, relativePoint, px, py = box:GetPoint(1)
@@ -911,7 +894,7 @@ function Rail.Start(rxp)
 	Holder()
 	Hook(f)
 	for _, which in ipairs(BOXES) do
-		local box = Box(which)
+		local box = RestedXP.Box(state.rxp, which)
 		if box then
 			WatchBox(box)
 		end

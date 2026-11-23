@@ -46,8 +46,8 @@ local CEILINGS = {
 		why = "the map puts its shape, zoom and fades back after each of Blizzard's minimap updates" },
 	["KstyleUI_Skins/Addons/Questie.lua"] = { OnShow = 4, OnSizeChanged = 3, SetColorTexture = 1, SetFont = 1, SetText = 3, SetVertexColor = 1, Update = 4,
 		why = "Questie's font and art are set back once per Questie write, and Refresh shows the card's cap again on each label SetText, resize and Update" },
-	["KstyleUI_Skins/Addons/RestedXP/Chrome.lua"] = { CreateGui = 45, CreateGuideConfigurator = 19, CreateGuideImporter = 67, CreateLevelSplits = 4, LoadGuide = 5, OnEnter = 6, OnLeave = 6, OnShow = 45, OpenBrandedExport = 1255, OpenBugReport = 1338, RenderSplitsBackground = 4, RenderTargetFrameBackground = 2, SetAlpha = 1, SetFont = 23, SetFontObject = 4, SetMinMaxValues = 1, SetRotation = 2, SetStep = 150, SetTexCoord = 2, SetText = 41, SetTexture = 4, SetValue = 5, SetupArrow = 34, ShowMenu = 3, UpdateItemFrame = 83, UpdateTargetFrame = 80, UpdateText = 32, UpdateTheme = 50, UpdateVisuals = 29,
-		why = "RestedXP re-anchors its step lines, resets a docked box's width and redraws its arrow and art, and the chrome puts them back; a caption re-fits when RestedXP sets its font or text (its same-text SetText re-snaps what is anchored to it); new windows (CreateGui, the importer, the bug report and export dialogs) are dressed when made" },
+	["KstyleUI_Skins/Addons/RestedXP/Chrome.lua"] = { CreateGui = 45, CreateGuideConfigurator = 19, CreateGuideImporter = 67, CreateLevelSplits = 4, LoadGuide = 5, OnEnter = 6, OnLeave = 6, OnShow = 45, OpenBrandedExport = 1255, OpenBugReport = 1338, RenderSplitsBackground = 4, RenderTargetFrameBackground = 2, SetAlpha = 1, SetFont = 23, SetFontObject = 4, SetMinMaxValues = 1, SetRotation = 2, SetStep = 150, SetTexCoord = 2, SetText = 41, SetTexture = 4, SetValue = 5, SetupArrow = 34, ShowMenu = 3, UpdateItemFrame = 83, UpdateTargetFrame = 80, UpdateSubTheme = 29, UpdateText = 32, UpdateTheme = 50, UpdateVisuals = 29,
+		why = "RestedXP re-anchors its step lines, resets a docked box's width and redraws its arrow and art, and the chrome puts them back; UpdateSubTheme is 4.11.39's name for UpdateVisuals at the same cost, since each call re-sets the box title's font, the arrow's font and colour and the guide's art, and the skin owes one correction; a caption re-fits when RestedXP sets its font or text (its same-text SetText re-snaps what is anchored to it); new windows (CreateGui, the importer, the bug report and export dialogs) are dressed when made" },
 	["KstyleUI_Skins/Addons/RestedXP/Rail.lua"] = { OnMouseUp = 83, SetStep = 150, UpdateItemFrame = 83, UpdateTargetFrame = 80,
 		why = "RestedXP's item and target updates reset a docked box's width; the rail docks it back and the box's glass follows both widths" },
 	["KstyleUI_Skins/Addons/Zygor.lua"] = { AssignTextures = 3, ReanchorFrame = 1, ResizeFrame = 294, SetFontSize = 4,
@@ -321,17 +321,17 @@ local function Settle(label, env, K, w)
 	print(string.format("%s: %d foreign hooks replayed", label, #order))
 end
 
--- The RestedXP guide and Questie's tracker beside the quest card and Blizzard's tracker.
-do
+-- The RestedXP guide and Questie's tracker beside the quest card and Blizzard's tracker, in both RestedXP shapes.
+for _, release in ipairs({ "4.11.35", "4.11.39" }) do
 	local w
-	local R = Boot({ width = 1920, height = 1080, uiScale = 768 / 1080, setup = function(e) w = Watch(e) end }, nil, nil, nil, Questie.Install)
+	local R = Boot({ width = 1920, height = 1080, uiScale = 768 / 1080, release = release, setup = function(e) w = Watch(e) end }, nil, nil, nil, Questie.Install)
 	R.K.Options.Write("Integrations", "questTracker", "questie")
 	R.rxp:SortTimers()
 	R.rxp:LoadGuide(R.rxp.currentGuide)
 	R.rxp.RXPFrame.ScrollChild:SetHeight(120)
 	R.rxp.RXPFrame.ScrollFrame.ScrollBar:SetValue(0)
 	R.settle()
-	Settle("RestedXP and Questie", R.env, R.K, w)
+	Settle("RestedXP " .. release .. " and Questie", R.env, R.K, w)
 end
 
 -- Zygor's guide window at 1600x900 and size 0.53, where the #685 loop showed in the stub.

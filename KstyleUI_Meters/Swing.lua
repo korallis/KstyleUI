@@ -208,14 +208,14 @@ local function Arrange()
 					Widgets.ApplyFont(text, path, math.min(fontSize, bar.opts.height - 4), flags)
 					text:SetWordWrap(false)
 				end
-				local pad = Widgets.Snap(bar, 1)
+				local pad, inset = Widgets.Snap(bar, 1), Widgets.Snap(bar, Tokens.Size("gapSmall"))
 				local textHeight = Widgets.Snap(bar, math.max(1, bar.opts.height - 2))
 				Widgets.Size(bar.time, 26, textHeight)
 				bar.time:ClearAllPoints()
-				bar.time:SetPoint("TOPRIGHT", bar, "TOPRIGHT", -pad, -pad)
-				Widgets.Size(bar.label, math.max(1, bar.opts.width - 26 - 3 * pad), textHeight)
+				bar.time:SetPoint("TOPRIGHT", bar, "TOPRIGHT", -inset, -pad)
+				Widgets.Size(bar.label, math.max(1, bar.opts.width - 26 - 2 * inset), textHeight)
 				bar.label:ClearAllPoints()
-				bar.label:SetPoint("TOPLEFT", bar, "TOPLEFT", pad, -pad)
+				bar.label:SetPoint("TOPLEFT", bar, "TOPLEFT", inset, -pad)
 			end
 			local fits = not attached or (not vertical and bar.opts.height >= 10 and bar.opts.width >= 90)
 			bar.time:SetShown(Swing.showTime and fits)
@@ -253,7 +253,7 @@ local function Clear(slot, linger)
 	st.running, st.engine = false, false
 	st.idleAt = linger and Now() or nil
 	bar:SetMinMaxValues(0, 1)
-	bar:SetValue(0)
+	bar:SetValue(linger and 1 or 0)
 	bar.time:SetText("")
 end
 
@@ -280,6 +280,7 @@ local function OnUpdate()
 			any = true
 		elseif st.idleAt then
 			st.idleAt = nil
+			Swing.bars[slot.type]:SetValue(0)
 			Swing.dirty = true
 		end
 	end
@@ -470,6 +471,11 @@ local function Style()
 		end
 		ns.ApplyFont(bar.label, "swing", nil, attached and "caps" or nil)
 		Widgets.TextColor(bar.label, "text")
+		Widgets.TextColor(bar.time, "white")
+		if attached and Widgets.Readability("readableBars") then
+			Widgets.InkText(bar.label, Tokens.Color("track"))
+			Widgets.InkText(bar.time, Tokens.Color("track"))
+		end
 		bar.label:ClearAllPoints()
 		bar.label:SetPoint("RIGHT", bar.time, "LEFT", -Widgets.Snap(bar, Tokens.Size("gapSmall")), 0)
 		bar.label:SetShown(showTime and not bar.vertical)

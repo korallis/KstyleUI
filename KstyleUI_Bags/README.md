@@ -71,11 +71,11 @@ Each slot shows:
 
 - The item's icon, masked to the kit's chamfer, inside the kit's icon chrome (`Widgets.IconChrome`): the near-black `buttonFill` body every square icon shares, at 55% alpha for an empty slot. The icon is the item's file ID through `SetTexture`; the repainted icons reach it through the loose-file icon pack the client loads ([`docs/icons.md`](../docs/icons.md)).
 - The tile's hairline in the item's quality colour (`Theme.QualityColor`) from the chosen quality up; otherwise the accent rim an action button rests on (`Widgets.IconRim`), and the plain grey hairline for an empty slot. Under the mouse the hairline eases to the accent.
-- The stack count at the bottom right and the item level of weapons and armour at the bottom left, in the item's quality colour.
+- The stack count at the bottom right and the item level of weapons and armour at the top left (`separateFigures`, 3 units in from the edge, clear of the quality rim) or, with that off, at the bottom left 2 units in, in the item's quality colour. The badges keep the 2-unit inset.
 - A gold dot at the top right on junk: a poor item that sells for money.
 - A pulsing accent glow on a new item, until the pointer touches it or the window closes. Closing the window clears the new marks, as Blizzard's bags do.
 - A dimmed icon for an item that does not match the search, and a grey icon while an item is locked.
-- The item's cooldown, as a chamfered swipe.
+- The item's cooldown, as a chamfered swipe alone (`cooldownSwipeOnly` hides the engine's countdown numbers); with it off the slot leaves the engine's countdown, its font and its colour alone.
 
 Search is a small grammar, compiled once per text by `Data.Compile` and matched by `Data.Matches`. A plain term matches part of the item's name, type or subtype, as before; spaces inside a term are literal, so `minor heal` is one phrase. `&` needs both sides, `|` needs either, `!` negates, and brackets group: `weapon | armor & !leather`. `&` binds tighter than `|`. An unfinished expression (`sword &`, `(sword`) matches what it can; an expression with no term matches nothing. Keywords, when a term is exactly the word: `junk`, `new`, `bound`, `unbound`; the quality names `poor` to `legendary`; the category words `equipment`, `gear`, `consumable(s)`, `trade`, `tradegoods`, `reagent(s)`, `quest` and `other` (the built-in category, before any custom rule). `type:` or `t:` searches the type and subtype only, `name:` or `n:` the name only. `ilvl>30`, `ilvl>=30`, `ilvl<40`, `ilvl<=40`, `ilvl=35`, `ilvl:35` and `ilvl:30-40` compare the item level of weapons and armour (`#` is short for `ilvl`: `#>30`, `#30-40`); an item without a level never matches a level search. An empty slot never matches any search. Sort asks the game to sort the bags with `C_Container.SortBags`, after `C_Container.SetSortBagsRightToLeft` sets the chosen direction. In combat the sort waits for `Combat.Queue` and says so in chat.
 
@@ -166,6 +166,7 @@ Forever's gamepad style navigates Blizzard's bags and bank with the D-pad, and i
 | `growth` | `RIGHT_DOWN` | dropdown: right then down, left then down, right then up, left then up |
 | `showCount` | `true` | toggle |
 | `showItemLevel` | `true` | toggle |
+| `cooldownSwipeOnly` | `true` | toggle: hides the engine's countdown numbers over the swipe; off leaves them to the game |
 | `font` | Interface font: the `number` role (PT Serif Bold in Folio, Alegreya Sans ExtraBold in Lumen) | font |
 | `fontSize` | 11 (`number`) | slider, 6 to 20 |
 | `fontOutline` | `NONE` | dropdown: soft shadow, thin outline, thick outline |

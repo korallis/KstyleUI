@@ -199,6 +199,10 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 	for _, style in ipairs({"frames", "medallions"}) do
 		if not wantedStyle or wantedStyle == style then
 			allowed["actionbars.bar1/actionbars.hub"],allowed["actionbars.bar1/databars.xp"],allowed["actionbars.hub/databars.xp"]=style=="medallions",style=="medallions",style=="medallions"
+			-- Fitted slabs: only each docked slab's arm slides under the crest ring and its own slab.
+			for _,kind in ipairs({"player","target"}) do
+				allowed["actionbars.hub/unitframes."..kind..".arm"],allowed["unitframes."..kind.."/unitframes."..kind..".arm"]=style=="medallions",style=="medallions"
+			end
 			for _, layout in ipairs(wantedLayout and {wantedLayout} or {"DPS", "Tank", "Healer"}) do
 				choice.hudStyle, choice.layout = style, layout
 				if K.HudStyle.Current()~=style or K.Layout.Setting("preset")~=layout then assert(K.Setup.Apply(choice), "full HUD setup must apply") end
@@ -243,8 +247,9 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 								end
 							end
 							for _, kind in ipairs({ "player", "target" }) do
-								local a = env._addons.KstyleUI_UnitFrames.Frames.Get(kind).views[1].auras
-								if a then owners[a.host] = "unitframes." .. kind end
+								local view = env._addons.KstyleUI_UnitFrames.Frames.Get(kind).views[1]
+								if view.auras then owners[view.auras.host] = "unitframes." .. kind end
+								if view.dock then owners[view.dock] = "unitframes." .. kind .. ".arm" end
 							end
 							owners[env.BuffIconCooldownViewer]="cooldowns.buffs"
 							owners[env.BuffBarCooldownViewer]="cooldowns.bars"

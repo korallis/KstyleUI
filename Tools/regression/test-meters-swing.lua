@@ -62,7 +62,7 @@ M.Tick(env)
 assert(M.Last(main, "SetValue")[1] == 0.5, "halfway through the swing the bar is half full")
 env.SetTime(102.5)
 M.Tick(env)
-assert(M.Last(main, "SetValue")[1] == 0, "a finished swing clears the bar")
+assert(M.Last(main, "SetValue")[1] == 1, "a finished swing holds its full bar, never an empty box")
 -- The next swing's PLAYER_SWING lands a frame or two after the last one ends, so the cleared bar lingers for
 -- a moment rather than blink between swings, then hides.
 assert(Swing.content:IsShown(), "a just-finished swing keeps its bar for a moment")
@@ -70,6 +70,7 @@ assert(Swing.driver:GetScript("OnUpdate"), "the OnUpdate runs on through the lin
 env.SetTime(102.5 + Swing.LINGER + 0.1)
 M.Tick(env)
 assert(not Swing.content:IsShown(), "with no new swing the bars hide after the linger")
+assert(M.Last(main, "SetValue")[1] == 0, "the bar empties for the next swing once the linger ends")
 assert(Swing.driver:GetScript("OnUpdate") == nil, "the OnUpdate stops when no swing runs")
 -- Back-to-back swings never blink: a new swing inside the linger keeps the bar up.
 env.SetTime(150)
@@ -249,5 +250,19 @@ env3.SetTime(11)
 M.Tick(env3)
 assert(M.Last(ns3.Swing.bars[MAIN], "SetValue")[1] == 0.5, "the bar fills without C_SwingTimer")
 assert(#env3._errors == 0, "no Lua error without C_SwingTimer: " .. tostring(env3._errors[1]))
+
+-- Readable text on bars inks the attached bar's labels; off, the time is its font's white again
+-- (GameFontHighlight's WHITE_FONT_COLOR, FontStyles.xml), as it is when the setting starts off.
+do
+	local env4, K4, ns4 = M.New({ saved = { version = 38, profiles = { Default = { Appearance = { readableBars = true }, Meters = { swing = { attached = true } } } } } })
+	M.Enable(env4, K4)
+	env4.FireEvent("PLAYER_SWING", 2, MAIN)
+	local time = ns4.Swing.bars[MAIN].time
+	K4.Options.Write("Appearance", "readableBars", false)
+	env4.RunTimers()
+	local r, g, b = time:GetTextColor()
+	assert(r == 1 and g == 1 and b == 1, "readable text off gives the swing time its white back: " .. tostring(r) .. "," .. tostring(g) .. "," .. tostring(b))
+	assert(#env4._errors == 0, "no Lua error: " .. tostring(env4._errors[1]))
+end
 
 print("meters swing ok")

@@ -974,7 +974,7 @@ function Style.Restyle(view, kind)
 	view.orientation = Settings.Value(kind, "healthOrientation")
 	Orient(view.health, view.orientation)
 	Orient(view.power, Settings.Value(kind, "powerOrientation"))
-	view.incoming:SetBarColor(Widgets.Rgba("friendly", Settings.Value(kind, "incomingAlpha")))
+	Style.IncomingTint(view)
 	view.absorb:SetBarColor(Widgets.Rgba("white", Settings.Value(kind, "absorbAlpha")))
 	PlaceHealAbsorb(view)
 	Widgets.Tint(view.trackLine, TRACK_LINE, TRACK_LINE_ALPHA)
@@ -983,7 +983,7 @@ function Style.Restyle(view, kind)
 	if form == "slab" then
 		local _, size, flags = Settings.Font(kind, "level")
 		Widgets.ApplyFont(view.powerText, (Settings.Font(kind, "power")), size, flags)
-		view.powerText:SetTextColor(Tokens.Color("labelMuted"))
+		view.powerText:SetTextColor(Tokens.Color(s and s.fittedSlabs and "text" or "labelMuted"))
 	end
 end
 
@@ -997,9 +997,19 @@ local function Plain(...)
 	return true
 end
 
+function Style.IncomingTint(view)
+	local alpha, r, tint = Settings.Value(view.kind, "incomingAlpha"), view.healthR, Settings.Module().predictionTint ~= false
+	if r and tint then
+		view.incoming:SetBarColor(r, view.healthG, view.healthB, alpha)
+	elseif not (tint and view.healthByShare) then
+		view.incoming:SetBarColor(Widgets.Rgba("friendly", alpha))
+	end
+end
+
 function Style.HealthTint(view, r, g, b)
 	view.healthR, view.healthG, view.healthB = nil, nil, nil
 	if Plain(r, g, b) then view.healthR, view.healthG, view.healthB = r, g, b end
+	Style.IncomingTint(view)
 	if view.s and view.s.powerSeparate and view.powerR then Style.PowerTint(view, view.powerR, view.powerG, view.powerB) end
 	if view.geometry and view.geometry.form == "plate" and not view.geometry.compact and Plain(r, g, b) then
 		view.healthText:SetTextColor(r + (1 - r) * TINT, g + (1 - g) * TINT, b + (1 - b) * TINT)
@@ -1052,7 +1062,7 @@ function Style.PowerTint(view, r, g, b)
 	local separate = false
 	if Plain(r, g, b) then
 		view.powerR, view.powerG, view.powerB = r, g, b
-		if view.s and view.s.powerSeparate and view.healthR then
+		if view.s and view.s.powerSeparate and view.healthR and not (view.form == "slab" and view.s.fittedSlabs) then
 			local health, power = Hue(view.healthR, view.healthG, view.healthB), Hue(r, g, b)
 			if health and power then
 				local gap = math.abs(health - power)

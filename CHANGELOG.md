@@ -1,5 +1,54 @@
 # KstyleUI changelog
 
+## v0.3.3 (2026-11-23)
+
+The fit and finish release. Party frames you can read at a glance, Medallions player and target frames that sit properly in the crest, and a polish pass over nearly every other part of the UI, from action bar keybinds to merchant prices. The RestedXP skin works again with RestedXP 4.11.39. The bigger changes are on by default, each with its own switch. The crest trackers for every class aren't in this one; they're coming in v0.3.4.
+
+Highlights:
+
+- Party frames are a quarter larger on ultrawide, and their names and health percentages stay readable.
+- Medallions player and target frames dock into the crest, with even bars and status icons in steel sockets.
+- Incoming heals show in the health bar's own colour instead of a green chunk.
+- A polish pass over bars, nameplates, the minimap, chat, bags, tooltips, meters, quests, skins and Options.
+- The RestedXP skin works again with RestedXP 4.11.39.
+
+### Changed
+
+- On ultrawide screens (21:9 and wider) party frames are a quarter larger, unless you set their size yourself. Party and Raid > Readability > Larger party frames.
+- Party and raid health percentages no longer cut off, party names sit on a darker backing and out-of-range members stay readable. Party and Raid > Readability > Readable names and numbers.
+- The missing part of a health bar stays dark without the just-lost band, and offline and dead members show empty bars. Party and Raid > Readability > Dark missing health.
+- Medallions player and target slabs dock into the crest ring, and their bars sit evenly inside with power in its own colour. The focus frame gets the same bars.
+- Status icons sit in steel sockets on the slab's top edge, an empty slot on the player shows a small rivet, and the raid marker sits on the portrait's rim.
+- Cast bars on these frames start clear of the portrait ring, with the cast icon inside the cap. Unit Frames > Fitted slabs.
+- Incoming heals draw in the health bar's own colour instead of a green segment. Unit Frames > Heal prediction in the bar's colour.
+
+### Fixed
+
+- The RestedXP skin works again with RestedXP 4.11.39, which it skipped entirely. The theme, guide card, arrow and docked boxes all apply, and the boxes stay docked when RestedXP's scale changes.
+- Aura stack counts sit inside their icon's corner, and boss and focus cast bars show their track instead of a stub at the far end.
+- Keybinds and stack counts on Medallions action buttons sit on the icon instead of the socket's rim, and pet autocast dots sit inside the pet icon.
+- The leave-vehicle button matches the action sockets beside it, and the crest travel menu opens above your cooldown row instead of covering Mounts.
+- The coordinates plaque under the crest minimap sits on top of the ring instead of being cut by it.
+- The nameplate threat mark is a small mark past the target brackets instead of a block, and on Frames the level diamond clears the bracket.
+- An undocked chat window's input box opens inside the window instead of hanging across its bottom edge.
+- Bag items on cooldown show the swipe alone instead of two numbers, and item levels and counts clear the quality border. Bags > Swipe-only cooldowns.
+- The "Currently equipped" label on comparison tooltips sits on its tooltip instead of floating above it.
+- The honour bar has its own colour, and in Medallions it matches the experience and reputation bars. Data Bars > Honour bar > Match the other bars.
+- The Medallions data bar spreads its readouts over both sides of the crest. On Frames the micro menu sits inside the top bar and the experience bar gets the same edge line.
+- The swing timer keeps a finished swing's full bar until it hides instead of showing an empty black box, and its labels sit inside the bar.
+- Meter cards end under their last row, an empty threat card on its own is just its heading and No target, bars show their track and row icons clear their names.
+- Blizzard's restyled damage meter puts names and numbers above the bars and keeps class colours in names, so no name vanishes on a white bar.
+- Quest tracker counts and the collapse arrow sit inside the card, and the quest card no longer ends in an empty dark bar.
+- RestedXP's target and item boxes are small icon chips instead of wide empty panels, and its guide configurator buttons form one even row.
+- RestedXP's Recommended line sits inside its option, and the v2 guide window's title clears RestedXP's logo.
+- RestedXP's arrow text makes way while the game shows the name of the zone you enter. Window Skins > RestedXP > Arrow text makes way for zone names.
+- Spellbook headings use the window title's caps, its spec tabs clear the window's edge, and merchant item names no longer run into their prices.
+- Settings lists fade out at the bottom when there is more to scroll, and search shows each heading once with its hint on one line.
+- The Unit Frames preview shows a portrait and level in the medallion instead of an empty black disc, and a changed preview always shows.
+- The Auras and Data Bars previews show their samples in order with the values in one column.
+- Setup's Welcome page shows the Medallions and Frames pictures at full size, and the Layout page outlines the card you point at straight away.
+- Setup's Modules page keeps its two columns of toggles lined up in every language.
+
 ## v0.3.2 (2026-11-23)
 
 The gamepad release. Your action bars show your controller's buttons while you play with one, and a new Controls choice sets bars 1 and 2 up for a pad in one click. Shaman totem fans get their forged backing, the consumables bar starts bigger with no gaps, and setup and Options pages stop opening blank. Everything new is on by default, with its own switch.

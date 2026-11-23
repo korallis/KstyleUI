@@ -56,7 +56,7 @@ local function Enter()
 end
 local LABEL = "Double-click the header to fold"
 Type("double-click the header")
-assert(state.items[1].kind == "note" and state.items[1].label == K.L["Press Enter or click a result's name to go to it."], "results start with how to go to one")
+assert(state.items[1].kind == "note" and state.items[1].label == K.L["Press Enter or click a name to go to it."], "results start with how to go to one")
 Enter()
 assert(state.page == "General" and state.query == nil and parts.search:GetText() == "", "Enter opens the result's page and clears the search")
 local function Lit()

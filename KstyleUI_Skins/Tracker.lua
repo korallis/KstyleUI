@@ -24,6 +24,7 @@ local titles = setmetatable({}, WEAK)
 local counts = setmetatable({}, WEAK)
 local fonts = {}
 local panel, fit, fitTop, fitBottom
+local reach = 0
 local allCap, allGlyph
 local hasContents = false
 local rehushing = false
@@ -114,13 +115,18 @@ local function CapLeft(row)
 	return Widgets.Inset(row, Tokens.Size("chamferWindow")) - PANEL_LEFT
 end
 
-local function CaptionRow(header, value)
+local function CaptionRow(header, value, chevron)
 	local cap = Lumen.SectionCap(header)
 	local restyle = cap.Restyle
 	cap.Restyle = function(self)
 		self:ClearAllPoints()
 		Widgets.Point(self, "TOPLEFT", header, "TOPLEFT", CapLeft(self), CAPTION_Y)
-		Widgets.Point(self, "BOTTOMRIGHT", header, "BOTTOMRIGHT", -CAPTION_RIGHT, CAPTION_Y)
+		Widgets.Point(self, "BOTTOMRIGHT", header, "BOTTOMRIGHT", reach - CAPTION_RIGHT, CAPTION_Y)
+		local width = chevron and PlainSize(chevron:GetWidth())
+		if width then
+			header.MinimizeButton:ClearAllPoints()
+			Widgets.Point(header.MinimizeButton, "CENTER", header, "RIGHT", reach - width / 2, 0)
+		end
 		restyle(self)
 	end
 	cap:Restyle()
@@ -146,13 +152,13 @@ local function Header(header, value)
 	if follows then
 		value = PlainText(text:GetText())
 	end
-	local cap = CaptionRow(header, value or "")
+	local chevron = Parts.Glyph(header.MinimizeButton, "glyphChevron", { flip = true })
+	local cap = CaptionRow(header, value or "", chevron)
 	if follows then
 		hooksecurefunc(text, "SetText", function(_, newValue)
 			cap:SetText(PlainText(newValue))
 		end)
 	end
-	local chevron = Parts.Glyph(header.MinimizeButton, "glyphChevron", { flip = true })
 	if chevron and type(header.SetCollapsed) == "function" then
 		local function Point(_, collapsed)
 			chevron:SetTexCoord(0, 1, collapsed and 0 or 1, collapsed and 1 or 0)
@@ -270,7 +276,7 @@ local function Fits(state)
 	if not full or not width then
 		return true
 	end
-	return full + Tokens.Size("gapMedium") <= width
+	return full + Tokens.Size("gapMedium") <= width + reach
 end
 
 local function RestyleCount(state)
@@ -278,7 +284,7 @@ local function RestyleCount(state)
 	Style.ApplyFont(state.label, "number", PlainSize(size) or LINE_DEFAULT)
 	Widgets.TextColor(state.label, "text")
 	state.label:ClearAllPoints()
-	state.label:SetPoint("TOPRIGHT", state.text, "TOPRIGHT", 0, 0)
+	state.label:SetPoint("TOPRIGHT", state.text, "TOPRIGHT", reach, 0)
 	state.label:SetJustifyH("RIGHT")
 end
 
@@ -497,8 +503,23 @@ local function Width(tracker)
 	if not fit then
 		return
 	end
+	local extra = Widgets.Snap(fit, Extra(tracker))
 	fit:SetPoint("LEFT", tracker, "LEFT", -Widgets.Snap(fit, PANEL_LEFT), 0)
-	fit:SetPoint("RIGHT", tracker, "RIGHT", Widgets.Snap(fit, Extra(tracker)), 0)
+	fit:SetPoint("RIGHT", tracker, "RIGHT", extra, 0)
+	if extra ~= reach then
+		reach = extra
+		for _, cap in pairs(captions) do
+			cap:Restyle()
+		end
+		for _, state in pairs(counts) do
+			RestyleCount(state)
+			if state.full and PlainText(state.text:GetText()) == state.words then
+				state.text:SetText(state.full)
+			end
+			state.full = nil
+			PaintCount(state)
+		end
+	end
 end
 
 local function Fit(tracker)

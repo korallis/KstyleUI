@@ -29,6 +29,7 @@
 -- RENDER_PARITY_R8=1 switches on round 8's: names under the bar (Medallions raid tiles and party rows) and party heal icons
 -- right of the frames past the debuffs, with the first member's three heals shown; =left puts the heals left of the frames, and
 -- =above gives raid frames the name above the bar first, so the row moves under the bar too.
+-- RENDER_PARTY_SIZE=3 keeps you and the first two members; RENDER_PARTY_RANGE=1 puts the second member out of range.
 -- RENDER_RAID_POWER=1 switches the raid power bar on.
 -- RENDER_GROUP_DISPEL=1 shows the dispel highlight on the second member as the aura engine does for a Magic debuff: every texture
 -- registered with the slot shown in the Magic colour, keeping its own alpha as the options preview does.
@@ -167,9 +168,11 @@ return Common.Run(function()
 	local kind, members = "party", {}
 	if group == "party" then
 		for i, m in ipairs(PARTY) do
-			members[i] = { name = m[1], class = m[2], health = m[3], maxHealth = 100, power = m[5], maxPower = 100, role = m[4] }
+			members[i] = { name = m[1], class = m[2], health = m[3], maxHealth = 100, power = m[5], maxPower = 100, role = m[4], powerType = m[2] == "WARRIOR" and "RAGE" or nil }
 		end
 		if R3A then members[4].dead = true end
+		if os.getenv("RENDER_PARTY_SIZE") == "3" then members[3], members[4] = nil, nil end
+		if os.getenv("RENDER_PARTY_RANGE") == "1" then members[2].inRange = false end
 	else
 		kind = "raid"
 		local n = tonumber(group)

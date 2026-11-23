@@ -1010,7 +1010,7 @@ function Strip.DockMenus(view, s)
 			Widgets.Point(content, "LEFT", frame, "LEFT", Tokens.Size("screenMargin"), 0)
 			Widgets.Size(content, width, height)
 		end
-		Menus.SetDock("micro", view.microDock, frame, min(15, frame:GetHeight()), 1, true)
+		Menus.SetDock("micro", view.microDock, frame, min(15, frame:GetHeight() - 2), 1, true)
 		Menus.SetDock("bags", nil)
 		local micro = Menus.Content("micro")
 		view.leftInset = Tokens.Size("screenMargin") + (micro and Menus.Visible("micro") and micro:GetWidth() + MENU_GAP or 0)

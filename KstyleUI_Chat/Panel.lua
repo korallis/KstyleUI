@@ -34,7 +34,6 @@ local ICONS = { channels = { "ChatFrameChannelButton" }, voice = { "ChatFrameTog
 
 local STRIP_HEIGHT = 32
 local EDIT_TILE = 22
-local EDIT_BOTTOM = 6
 
 local IDLE_OWNER = "ChatIdle"
 local WAKE_EVENTS = {
@@ -123,6 +122,14 @@ local function ScrollWidth(frame)
 		return SCROLLBAR_WIDTH
 	end
 	return Number(bar:GetWidth(), SCROLLBAR_WIDTH)
+end
+
+local function Focused(box)
+	if type(box.HasFocus) ~= "function" then
+		return false
+	end
+	local focus = box:HasFocus()
+	return IsSecret(focus) or focus == true
 end
 
 local function EditAlways()
@@ -255,8 +262,8 @@ function Panel.UndockedInsets(frame)
 	local k = Ratio(frame, nil)
 	local pad = Pad() / k
 	local bottom = -pad
-	if EditAlways() then
-		bottom = -(EDIT_DROP + EDIT_HEIGHT - max(0, (EDIT_HEIGHT - Tile() / k) / 2) + EDIT_BOTTOM / k)
+	if EditAlways() or (type(frame.editBox) == "table" and Focused(frame.editBox)) then
+		bottom = -(EDIT_DROP + EDIT_HEIGHT - max(0, (EDIT_HEIGHT - Tile() / k) / 2) + pad)
 	end
 	return {
 		left = -pad,
@@ -366,14 +373,6 @@ local function Protected(frame)
 	end
 	local protected = frame:IsProtected()
 	return IsSecret(protected) or protected == true
-end
-
-local function Focused(box)
-	if type(box.HasFocus) ~= "function" then
-		return false
-	end
-	local focus = box:HasFocus()
-	return IsSecret(focus) or focus == true
 end
 
 local function ApplyEdit(box, info)
@@ -600,6 +599,10 @@ local function PlaceEdit(frame, k, over, own)
 	box:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", -EDIT_LEFT, y)
 	if own then
 		box:SetPoint("TOPRIGHT", frame, "BOTTOMRIGHT", EDIT_PAST_SCROLLBAR, y)
+		return
+	end
+	if state.active then
+		Widgets.Point(box, "TOPRIGHT", frame, "BOTTOMRIGHT", EDIT_PAST_SCROLLBAR + ScrollWidth(frame), y)
 		return
 	end
 	box:SetPoint("RIGHT", bar, "RIGHT", EDIT_PAST_SCROLLBAR, 0)

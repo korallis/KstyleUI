@@ -14,7 +14,7 @@ local PLATES = {
 	{ token = "nameplate1", x = 300, y = 220, unit = { name = "Riverglade Crocolisk", health = 864, maxHealth = 1540, level = 38, reaction = 2, canAttack = true, threat = 3 } },
 	{ token = "nameplate2", x = 300, y = 400, unit = { name = "Riverglade Snapper", health = 1420, maxHealth = 1540, level = 37, reaction = 2, canAttack = true, threat = 0 } },
 	{ token = "nameplate3", x = 760, y = 220, unit = { name = "Bloodtalon Matriarch", health = 29800, maxHealth = 48000, level = 40, classification = "elite", reaction = 2, canAttack = true, threat = 2, raid = 8 } },
-	{ token = "nameplate4", x = 760, y = 400, unit = { name = "Leduc", health = 3100, maxHealth = 3400, level = 60, reaction = 5, canAttack = false, isPlayer = true, class = "PALADIN" } },
+	{ token = "nameplate4", x = 760, y = 400, unit = { name = "Leduc", health = 3100, maxHealth = 3400, level = 60, reaction = 5, canAttack = false, isPlayer = true, class = "PALADIN", race = "Human", sex = 3 } },
 }
 
 local function place(env, base, x, y)
@@ -61,6 +61,17 @@ return Common.Run(function()
 			-- The stub's UnitClass reads each unit's class (the paladin's plate); the gallery's reads the warrior's.
 			env.UnitClass = unitClass
 			env.RAID_CLASS_COLORS.PALADIN = { r = 0.96, g = 0.55, b = 0.73 }
+			-- The friendly player's badge draws the portrait its race and sex pick, as nameplate_bible.lua's does.
+			env.UnitRace = function(unit)
+				local u = env._units[unit]
+				if u and u.race then
+					return u.race, u.race, 1
+				end
+			end
+			env.UnitSex = function(unit)
+				local u = env._units[unit]
+				return u and u.sex or 2
+			end
 			env._group = { raid = false, size = 4 }
 			env.IsInGroup = function()
 				return true

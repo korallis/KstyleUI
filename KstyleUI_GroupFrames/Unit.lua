@@ -208,17 +208,22 @@ local function GradientColor(f)
 	f.health:SetBarColor(UnitHealthPercent(unit, true, curves[1]), UnitHealthPercent(unit, true, curves[2]), UnitHealthPercent(unit, true, curves[3]), alpha)
 end
 
+local PowerColor
+
 local function Colors(f)
 	local unit = f.unit
 	local _, class = UnitClass(unit)
 	local cr, cg, cb = Unit.ClassColor(class)
 	local health = Settings.current.health
-	local alpha = health.alpha
+	local idle = f.status and Settings.current.readable.track
+	local alpha = idle and 0 or health.alpha
 	local healthSource, nameSource = Unit.ColorSources(f)
 	f.health:SetHealthUnit(nil)
 	if (f.fillAlpha or 1) ~= alpha then
 		f.health.fillClip:SetAlpha(alpha)
+		f.power.fillClip:SetAlpha(idle and 0 or 1)
 		f.fillAlpha = alpha
+		PowerColor(f)
 	end
 	f.gradient = not f.status and healthSource == "gradient"
 	if f.status then
@@ -289,8 +294,12 @@ local function ClassLine(f)
 	Style.PlaceRowEnd(f)
 end
 
-local function PowerColor(f)
+function PowerColor(f)
 	if not f.showPower then
+		return
+	end
+	if f.status and Settings.current.readable.track then
+		f.power:SetBarColor(K.Widgets.Rgba("black", 0))
 		return
 	end
 	local power = Settings.current.power

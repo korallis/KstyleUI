@@ -1,17 +1,18 @@
 # KstyleUI roadmap
 
-What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.3.1 is out now: item levels on your gear, the lit glass finish on the Blizzard bars KstyleUI skins, and fixes for nameless route steps and solid party and raid frames. New releases land about once a day.
+What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.3.2 is out now: controller button icons and a gamepad bar choice, the shaman totem fan on its forged band, a bigger consumables bar and a fix for a blank setup page. New releases land about once a day.
 
-## v0.3.2 — gamepad
+## v0.3.3 — polish and the crest for every class
 
 Estimated: within a few days.
 
-KstyleUI on a controller.
+The small things you notice at a glance, and the crest tracking more for every class.
 
 Highlights:
 
-- Controller button glyphs on your action bars while a gamepad is active.
-- A one-click Gamepad layout in the setup, with a way back.
+- A polish pass across the whole UI: frames that sit flush, bars that line up and text that never gets cut off.
+- Party frames you can read at a glance, and Medallions unit frames that meet the crest cleanly.
+- Your crest tracks more for every class: buffs, procs and your effects on the target.
 
 ## Later
 

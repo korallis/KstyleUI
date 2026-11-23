@@ -132,9 +132,9 @@ local function overlap(a, b)
 	return a[1] < b[3] and b[1] < a[3] and a[2] < b[4] and b[2] < a[4]
 end
 
--- Size(name, key) -> the footprint the layout plans for: the element's, or the layout's own where it differs.
-local function Size(name, key)
-	local w, h, offsetX = Layouts.Footprint(name, key)
+-- Size(name, key, width) -> the footprint the layout plans for on a canvas that wide: the element's, or the layout's own where it differs.
+local function Size(name, key, width)
+	local w, h, offsetX = Layouts.Footprint(name, key, nil, nil, width, HEIGHT)
 	return { width = w, height = h, offsetX = offsetX }
 end
 
@@ -163,7 +163,7 @@ for _, name in ipairs(names) do
 		local label = name .. " at " .. screen[1] .. "x" .. screen[2]
 		local rects = {}
 		for _, key in ipairs(KEYS) do
-			local l, b, r, t = Layouts.Rect(Size(name, key), layout[key], width, HEIGHT)
+			local l, b, r, t = Layouts.Rect(Size(name, key, width), layout[key], width, HEIGHT)
 			assert(l >= 0 and b >= 0 and r <= width + 1e-6 and t <= HEIGHT, string.format("%s: %s is off screen (%.1f, %.1f to %.1f, %.1f on %.1f x %.1f)", label, key, l, b, r, t, width, HEIGHT))
 			rects[key] = { l, b, r, t }
 		end
@@ -262,7 +262,7 @@ for _, name in ipairs(names) do
 		local label = name .. " at " .. screen[1] .. "x" .. screen[2]
 		local mid = width / 2
 		local function rect(key)
-			local l, b, r, t = Layouts.Rect(Size(name, key), layout[key], width, HEIGHT)
+			local l, b, r, t = Layouts.Rect(Size(name, key, width), layout[key], width, HEIGHT)
 			return { left = l, bottom = b, right = r, top = t, x = (l + r) / 2, y = (b + t) / 2, w = r - l, h = t - b }
 		end
 		local function centred(r)
@@ -338,8 +338,10 @@ for _, name in ipairs(names) do
 		local party, raid = rect("groupframes.party"), rect("groupframes.raid")
 		assert(raid.left == MARGIN and party.left == MARGIN, label .. ": the raid card and the party stand on the left margin")
 		assert(raid.top == HEIGHT - MARGIN, label .. ": the raid card heads the left rail")
-		assert(Layouts.Get(name)["groupframes.party"].anchor == "LEFT" and party.y == HEIGHT - 465 - (5 * 39 + 4 * 13) / 2, label .. ": the party stands at mid-left, centred where the DPS party's top is 465 under the top, got " .. (HEIGHT - party.top))
-		assert(party.w == 259, label .. ": the bare party reserves its 259-unit holder, the mock-up's 194-unit row and its debuff lane (KSTY-57)")
+		assert(Layouts.Get(name)["groupframes.party"].anchor == "LEFT" and party.y == HEIGHT - 465 - (5 * 39 + 4 * 13) / 2, label .. ": the party stands at mid-left, centred where the DPS party's top was 465 under the top, got " .. (HEIGHT - party.top))
+		-- Readable party frames: a quarter larger on ultrawide screens (2.05 wide and over); narrower ones keep bar 3's slot and the HUD's size.
+		local grown = width >= 2.05 * HEIGHT and 1.25 or 1
+		assert(same(party.w, 259 * grown), label .. ": the bare party reserves its 259-unit holder, the mock-up's 194-unit row and its debuff lane (KSTY-57), times " .. grown .. ", got " .. party.w)
 		local head = party
 
 		-- The left rail holds only its head, the loot feed and chat, on one left edge (the story slot moved to the right rail).
@@ -623,6 +625,7 @@ do
 	for _, element in ipairs(Layouts.ELEMENTS) do
 		if not RESERVES[element.key] and not MEDALLIONS_GRIDS[element.key] then
 			local w, h = Layouts.Footprint("DPS", element.key)
+			if element.key == "groupframes.party" then w, h = w / Layouts.PartyScale(), h / Layouts.PartyScale() end
 			assert(element.width == w and element.height == h, element.key .. " builds at its DPS footprint")
 		end
 	end

@@ -208,7 +208,8 @@ for _, case in ipairs({ { members = 10 }, { members = 20 }, { members = 40 }, { 
 		if isFrames then
 			assert(text:match("^Thaldren"), what .. ": a twelve-letter name keeps its head, got " .. tostring(text))
 		else
-			assert(#text > 0 and whole:sub(1, #text) == text, what .. ": a twelve-letter name keeps its head in the tile's caps, got " .. tostring(text))
+			local kept = text:gsub("%.%.%.$", "")
+			assert(#kept > 0 and whole:sub(1, #kept) == kept, what .. ": a twelve-letter name keeps its head in the tile's caps, got " .. tostring(text))
 		end
 		assert(nameSize * K.Widgets.ScaleFactor(f) / K.Scale.Pixel(1) <= floor + 0.01, what .. ": and shortens only at the floor")
 	end

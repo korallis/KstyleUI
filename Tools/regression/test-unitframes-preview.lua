@@ -204,6 +204,10 @@ K.Options.Write("UnitFrames", "boss.style", "lumen")
 K.Options.Write("UnitFrames", "edit", "boss")
 settle()
 assert(preview.views.boss.geometry.form == "slab", "the boss sample is a Medallions slab")
+local medallion = preview.views.boss.medallion
+assert(medallion.portrait._state.Texture ~= nil or env._portraits[medallion.portrait] == "player", "the slab sample's medallion shows a portrait, not an empty disc")
+assert(K.Effects.playerMedallion ~= medallion, "the sample's medallion never takes the live player's place for the level-up burst")
+assert(not medallion.plaque:IsShown() or U.Shown(env, medallion.levelText) == "??", "the sample's level plaque shows the sample's level: " .. tostring(U.Shown(env, medallion.levelText)))
 
 -- The Frames Lumen preview: the vitals line with its sample values and cast line, the sigil with its level line and
 -- its sockets centred under it, and the boss card with its section cap.

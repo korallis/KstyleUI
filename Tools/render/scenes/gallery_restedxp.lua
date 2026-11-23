@@ -11,6 +11,7 @@ return Common.Run(function()
 	local env, K = R.env, R.K
 	local frames = Gallery.Frames()
 	local function add(name, list, spec)
+		if not list then return end
 		spec.name, spec.rect = name, Gallery.Union(env, list)
 		frames:Add(env, list[1], spec)
 	end
@@ -53,7 +54,23 @@ return Common.Run(function()
 			caption = spec[3], match = "Kit glass, controls and type on RestedXP's own window geometry.",
 		})
 	end
-	local scene = frames:Finish(Gallery.Build(env), env, K, "gallery restedxp")
+	-- RestedXP's art has no local file. RENDER_RXP_TEXTURES may name a folder of PNGs decoded from an installed
+	-- RestedXP (rxp-icon-cog.png and so on); without one the arrow, whose skin masks two layers with RestedXP's
+	-- arrow and drew a white square unmasked, takes the kit chevron stand-in of scenes/restedxp_arrow.lua.
+	local icons, art = Common.IconDirs(), os.getenv("RENDER_RXP_TEXTURES")
+	local scene = frames:Finish(Gallery.Build(env, { paths = function(path)
+		local name = type(path) == "string" and path:match("RXPGuides[/\\]Textures[/\\].-([^/\\]+)$")
+		local file = art and name and art .. "/" .. name .. ".png"
+		local found = file and io.open(file, "rb")
+		if found then
+			found:close()
+			return file
+		elseif name and name:find("rxp_navigation_arrow", 1, true) then
+			return "Media/Textures/GlyphChevron.png"
+		end
+		return Common.Scene.ResolvePath(path, icons)
+	end }), env, K, "gallery restedxp")
+	scene.log[#scene.log + 1] = art and "restedxp: RestedXP's art decoded from " .. art or "restedxp arrow: kit chevron alpha stand-in for RestedXP's arrow art"
 	for _, line in ipairs(R.log) do
 		scene.log[#scene.log + 1] = line
 	end

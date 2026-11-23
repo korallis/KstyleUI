@@ -111,4 +111,10 @@ assert(not late.bars.bar1 and late.leaveButton:IsShown(), "a disabled bar 1 does
 lateK.Options.Write("ActionBars", "bar1.enabled", true)
 late.bars.bar1.holder:SetAlpha(0)
 assert(late.leaveButton:GetEffectiveAlpha() == 1, "bar 1 enabled later must not fade the vehicle leave control")
+local Budget = dofile("Tools/regression/path_budget.lua")
+for _, shown in ipairs({ false, true }) do
+	vehicle = shown
+	ns.Vehicle.Update()
+	Budget.Check(Budget.Count(env, ns.Vehicle.Update, 1), 400, 4, "an unchanged leave button is not redressed on every vehicle event")
+end
 print("vehicle combat, opacity, visibility, scale and forms passed")

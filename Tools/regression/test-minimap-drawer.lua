@@ -275,4 +275,23 @@ do
 	assert(sns.Map.drawer and not sns.Map.drawer.active, "the drawer stays off")
 end
 
+for _, style in ipairs({ "medallions", "frames" }) do
+	local denv, dK, dns = M.New({ enabled = true, settings = { compactIcons = false }, setup = function(e)
+		local many = M.FakeLibDBIcon(e)
+		for i = 1, 24 do many:Add("Addon" .. i) end
+	end })
+	dK.Options.Write("HudStyle", "style", style)
+	M.Settle(denv)
+	W.Click(dns.Map.column.buttons.drawer)
+	local opened = dns.Map.drawer
+	for direction, want in pairs({ left = "TOPRIGHT", right = "TOPLEFT", up = "BOTTOMLEFT", down = "TOPLEFT" }) do
+		dK.Options.Write("Minimap", "drawer.direction", direction)
+		M.Settle(denv)
+		local anchor = opened.panel:GetPoint(1)
+		assert(anchor == want, style .. ": the drawer opens " .. direction .. " from its " .. want .. ", saw " .. tostring(anchor))
+		assert(opened.columns == 3, style .. ": 24 buttons keep the map's three columns, saw " .. tostring(opened.columns))
+	end
+	NoErrors(denv, style .. " drawer directions")
+end
+
 print("minimap drawer ok")

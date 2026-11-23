@@ -43,9 +43,9 @@ assert(near(frameH, 20) and near(frameW, 300, 1) and near(styled.width, 300) and
 assert(element.slab and element.slab[5]:IsShown() and element.slab[5]:GetTexture() == (Tokens.Texture("medUnitSlabCap")), "it wears the unit slab material with its forged end caps")
 assert(not element.iconFrame:IsShown(), "no spell icon: the slab holds the bar and its two texts")
 
-local inset, cap = K.Widgets.Snap(element.frame, 3), K.Widgets.Snap(element.frame, 9)
+local inset, cap = K.Widgets.Snap(element.frame, 3), K.Widgets.Snap(element.frame, ns.Geometry.SLAB_FIT.cap)
 local barW, barH = bar:GetSize()
-assert(near(barH, frameH - 2 * inset, 0.6) and near(barW, frameW - 2 * cap, 0.6), "the bar fills the slab inside its 3-unit rim, clear of the 9-unit end caps, got " .. tostring(barW) .. "x" .. tostring(barH))
+assert(near(barH, frameH - 2 * inset, 0.6) and near(barW, frameW - 2 * ns.Geometry.SLAB_FIT.cap, 0.6), "the bar fills the slab inside its 3-unit rim, clear of the fitted end caps, got " .. tostring(barW) .. "x" .. tostring(barH))
 local bp, _, _, bx, by = bar:GetPoint(1)
 assert(bp == "TOPLEFT" and near(bx, cap) and near(by, -inset), "the bar sits inside the rim and the caps")
 K.Options.Write("UnitFrames", "slabCaps", false)

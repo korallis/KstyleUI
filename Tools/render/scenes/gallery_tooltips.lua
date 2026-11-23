@@ -178,7 +178,7 @@ return Common.Run(function()
 	-- A spell: rank, cost and range, cast time, description, the icon tile with the accent rim.
 	local T3, env3, K3 = newEnv()
 	local spell = env3.GameTooltip
-	at(env3, spell, 360, 80)
+	at(env3, spell, 330, 80)
 	lines(spell, {
 		{ "Mortal Strike", "Rank 4", GOLD },
 		{ "30 Rage", "Melee Range" },
@@ -200,7 +200,7 @@ return Common.Run(function()
 	-- A quest tooltip with an embedded reward item: the item's icon on the module's border tile.
 	local T4, env4, K4 = newEnv()
 	local quest = env4.GameTooltip
-	at(env4, quest, 360, 330)
+	at(env4, quest, 330, 330)
 	lines(quest, { { "Crocolisk Hunt", nil, GOLD }, { "Riverglades", nil, GREY }, { "Collect 8 Crocolisk Hides for Riverglades." }, { "Rewards:" } })
 	T4.BlizzardShow(quest, true)
 	T4.PostCall(env4, quest, { type = env4.Enum.TooltipDataType.Object })

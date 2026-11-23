@@ -27,4 +27,24 @@ K.Options.Write("Nameplates", "cast.shieldBadge", true)
 assert(plate.threatShape:IsShown() and env.Reveal(plate.castBadge:GetAlpha()) == 1, "both shape options update the visible plate")
 assert(#env._errors == 0, tostring(env._errors[1]))
 
+local Geometry = dofile("Tools/regression/geometry.lua")
+local function Clear(one, other, root, what)
+	local ra, rb = assert(Geometry.Rect(one, root)), assert(Geometry.Rect(other, root))
+	assert(ra.right <= rb.left or rb.right <= ra.left or ra.top <= rb.bottom or rb.top <= ra.bottom,
+		what .. ": " .. ra.left .. ".." .. ra.right .. " against " .. rb.left .. ".." .. rb.right)
+end
+N.Target(env, "nameplate1")
+for i, style in ipairs({ "medallions", "frames" }) do
+	K.Options.Write("HudStyle", "style", style)
+	local unit = "nameplate" .. (i + 1)
+	N.Add(env, unit, { name = "Skull", health = 100, maxHealth = 100, reaction = 2, canAttack = true, threat = 3, raid = 8 })
+	local marked = ns.Plates.Get(unit)
+	assert(marked.raid:IsShown() and marked.threatShape:IsShown(), style .. ": the marked plate shows its skull and threat")
+	Clear(marked.threatShape, marked.raid, marked, style .. ": the threat mark stands clear of the raid marker")
+	for _, side in ipairs(plate.brackets.sides) do
+		Clear(plate.threatShape, side, plate, style .. ": the threat mark stands clear of the " .. side.side .. " target bracket")
+	end
+end
+assert(#env._errors == 0, tostring(env._errors[1]))
+
 print("nameplate accessibility ok")

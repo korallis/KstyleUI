@@ -69,6 +69,38 @@ local function Method(object, name)
 	return type(object) == "table" and type(object[name]) == "function"
 end
 
+local function V2Check(v2)
+	return Method(v2, "IsGuideWindowEnabled") and "IsGuideWindowEnabled" or Method(v2, "IsEnabled") and "IsEnabled" or nil
+end
+
+function RestedXP.V2On(rxp)
+	local check = V2Check(rxp.v2)
+	if not check then
+		return false
+	end
+	local ok, on = pcall(rxp.v2[check], rxp.v2)
+	return ok and on == true
+end
+
+function RestedXP.Box(rxp, which)
+	local owner = type(rxp) == "table" and (which == "items" and rxp or rxp.targeting)
+	if type(owner) ~= "table" then
+		return nil
+	end
+	local key = which == "items" and "activeItem" or "activeTarget"
+	local widget = owner[key .. "Window"]
+	local f = type(widget) == "table" and widget.frame or owner[key .. "Frame"]
+	return type(f) == "table" and type(f.GetPoint) == "function" and f or nil
+end
+
+function RestedXP.Widget(f)
+	return type(f.obj) == "table" and f.obj or f
+end
+
+function RestedXP.RedrawMethod(owner)
+	return Method(owner, "UpdateSubTheme") and "UpdateSubTheme" or "UpdateVisuals"
+end
+
 local function Shaped(rxp)
 	if not (Method(rxp, "RegisterTheme") and Method(rxp, "LoadActiveTheme") and type(rxp.themes) == "table") then
 		return false, "RegisterTheme, LoadActiveTheme or the themes table"
@@ -78,7 +110,7 @@ local function Shaped(rxp)
 		return false, "settings.profile"
 	end
 	local v2 = rxp.v2
-	if type(v2) ~= "table" or type(v2.themes) ~= "table" or not Method(v2, "IsGuideWindowEnabled") then
+	if type(v2) ~= "table" or type(v2.themes) ~= "table" or not V2Check(v2) then
 		return false, "the v2 themes"
 	end
 	return true
@@ -301,6 +333,10 @@ local function Redraw(rxp, startup)
 	local profile = Profile(rxp)
 	if profile and profile.enableThemeLiveReload and Method(rxp, "ReloadTheme") then
 		Try("ReloadTheme", rxp.ReloadTheme, rxp)
+		return
+	end
+	if startup and Method(rxp, "UpdateTheme") then
+		Try("UpdateTheme", rxp.UpdateTheme, rxp, true, true)
 		return
 	end
 	if startup and type(rxp.RenderFrame) == "function" then

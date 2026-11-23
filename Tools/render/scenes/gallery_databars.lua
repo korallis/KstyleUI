@@ -79,7 +79,7 @@ return Common.Run(function()
 	layout(K, "databars.honor", 60, 180, 440, 5)
 	frames:Add(env, honor.holder, {
 		name = "databars_honor", title = "Honour bar", grade = "bar", reference = "xp",
-		caption = "The honour bar set to show always, at PvP rank 3: the bar-grade track, the fill in the epic colour, four segments and the rank label.",
+		caption = "The honour bar set to show always, at PvP rank 3: the bar-grade track, the fill in the legendary orange, four segments and the rank label; Medallions draws it as its siblings' ten-segment strip unless Match the other bars is off.",
 		match = "Track, line and chamfer as the mockup's experience bar; the mockup shows no honour bar.",
 	})
 

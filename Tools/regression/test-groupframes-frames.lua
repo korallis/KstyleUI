@@ -129,7 +129,7 @@ env.RunTimers()
 -- The tracks under the fills are the button body, the mockup's one dark tone under every bar (the bar grade's
 -- #101214 track), never the kit's translucent black.
 eq(c.health.unitBar and c.power.unitBar, true, "health and power are the clean unit bar")
-eq(c.health.under.track:IsShown() and c.health.under:GetStatusBarTexture():IsShown(), true, "health draws its dark track and the pale loss band under the fill")
+eq(c.health.under.track:IsShown() and not c.health.under:GetStatusBarTexture():IsShown(), true, "health draws its dark track under the fill, without the pale loss band (Dark missing health)")
 eq(c.power.under:GetStatusBarTexture():IsShown(), false, "power draws no loss band")
 eq(c.health.lowFill ~= nil and c.power.lowFill == nil, true, "only health turns red at low health")
 -- The percent shows at the bar's end by default (KSTY-57), formatted by the engine.
@@ -147,7 +147,7 @@ eq(inRange[3], 1, "an unchecked member keeps full opacity")
 eq(env.Reveal(c:GetAlpha()), 1, "party1 is fully visible after the completed range check")
 local far = last(content("party2"), "SetAlphaFromBoolean")
 eq(env.Reveal(far[1]), true, "party2's range was checked")
-eq(env.Reveal(far[2]), 0.4, "party2's completed out-of-range check fades it")
+eq(env.Reveal(far[2]), 0.7, "party2's completed out-of-range check fades it, no further than 0.7 so the name reads")
 local me = last(content("player"), "SetAlpha")
 eq(me and me[1], 1, "the player's own frame never fades")
 

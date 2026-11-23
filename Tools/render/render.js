@@ -333,10 +333,11 @@
 		const local = { x: pad, y: pad, w: dest.w, h: dest.h };
 		const offset = { x: dest.x - pad, y: dest.y - pad };
 		let drawn = false;
+		let source = null;
 		if (item.file) {
 			const img = await loadImage(url(base, item.file));
 			if (img) {
-				const source = tinted(img, item.color ? [item.color[0] * vertex[0], item.color[1] * vertex[1], item.color[2] * vertex[2]] : vertex, item.desaturated);
+				source = tinted(img, item.color ? [item.color[0] * vertex[0], item.color[1] * vertex[1], item.color[2] * vertex[2]] : vertex, item.desaturated);
 				if (item.tile && (item.tile[0] || item.tile[1])) {
 					drawTiled(lctx, source, local, ppu, 1);
 				} else {
@@ -363,6 +364,10 @@
 				lctx.fillStyle = gradientFill(lctx, item, local, "rgb");
 				lctx.fillRect(local.x, local.y, local.w, local.h);
 				lctx.globalCompositeOperation = "destination-in";
+				if (source && !(item.tile && (item.tile[0] || item.tile[1]))) {
+					// Multiply fills the texture's transparent pixels; the game keeps the texture's alpha.
+					drawQuad(lctx, source, texCoords(item), local, item.rotation || 0, item.wrap);
+				}
 				lctx.fillStyle = gradientFill(lctx, item, local, "alpha");
 				lctx.fillRect(local.x, local.y, local.w, local.h);
 			} else {

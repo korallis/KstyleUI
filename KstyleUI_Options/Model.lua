@@ -245,7 +245,7 @@ function Model.Search(pages, query)
 						pageShown = true
 						out[#out + 1] = { kind = "header", level = 1, label = page.label, page = page.id }
 					end
-					if section ~= "" and section ~= lastSection then
+					if section ~= "" and section ~= lastSection and lower(section) ~= lower(page.label) then
 						out[#out + 1] = { kind = "header", level = 2, label = section, page = page.id }
 					end
 					lastSection = section

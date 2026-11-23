@@ -5,6 +5,8 @@ local Geometry = dofile("Tools/regression/geometry.lua")
 local W = S.W
 local rxp
 local env, K, ns = S.New({ setup = function(e)
+	e.ZoneTextFrame = e.CreateFrame("Frame", "ZoneTextFrame", e.UIParent)
+	e.ZoneTextFrame:Hide()
 	rxp = Fake.Install(e, { activeTheme = "DarkMode" })
 	rxp.fake.trust(function()
 		rxp.arrowFrame.texture:SetRotation(0.4)
@@ -160,8 +162,50 @@ K.Options.Write("Skins", "restedXP.enabled", true)
 env.RunTimers()
 assert(fill:IsShown() and edge:IsShown(), "switching back on reuses both layers")
 Reused()
+-- Blizzard's zone banner prints at the top centre, where players park the arrow: its step text makes way while
+-- the banner shows and comes back when it fades (polish audit A #17), unless the setting is off.
+local banner = env.ZoneTextFrame
+local function Fade()
+	banner:Hide()
+	banner:GetScript("OnHide")(banner)
+end
+banner:Show()
+assert(arrow.text:GetAlpha() == 0, "the arrow's text makes way while the zone name shows")
+Fade()
+assert(arrow.text:GetAlpha() == 1, "and comes back when it fades")
+K.Options.Write("Skins", "restedXP.arrowYields", false)
+banner:Show()
+assert(arrow.text:GetAlpha() == 1, "switched off, the text stays over the banner")
+K.Options.Write("Skins", "restedXP.arrowYields", true)
+assert(arrow.text:GetAlpha() == 0, "switched on mid-banner, it makes way at once")
+Fade()
+assert(arrow.text:GetAlpha() == 1 and #env._errors == 0, tostring(env._errors[1]))
 rawset(_G, "RENDER_SCENE_LIB", true)
 local scene = dofile("Tools/render/scenes/restedxp_arrow.lua")()
 assert(#scene.items == 4, "the focused arrow scene contains only the source, two contrast layers and distance")
 assert(#dofile("Tools/render/guard.lua").Check(scene) == 0, "the arrow proof scene has no truncation or overflow")
+-- A zone name already showing when the skin starts, a profile with the setting off, and an alpha RestedXP sets
+-- while the setting is off (review of #773, findings 2 and 3): the skin restores only the alpha it took.
+do
+	local other
+	local e2, K2 = S.New({ setup = function(e)
+		e.ZoneTextFrame = e.CreateFrame("Frame", "ZoneTextFrame", e.UIParent)
+		other = Fake.Install(e, { activeTheme = "DarkMode" })
+	end })
+	local text = other.arrowFrame.text
+	K2.Modules.Enable("Skins")
+	e2.RunTimers()
+	assert(e2.ZoneTextFrame:IsShown() and text:GetAlpha() == 0, "a zone name already showing when the skin starts hides the text, got " .. text:GetAlpha())
+	K2.Options.Write("Skins", "restedXP.arrowYields", false)
+	K2.Store.CopyProfile(K2.Store.ProfileName(), "No yield")
+	K2.Options.Write("Skins", "restedXP.arrowYields", true)
+	K2.Store.SetProfile("No yield")
+	e2.RunTimers()
+	assert(text:GetAlpha() == 1, "a profile with the setting off gives the text back, got " .. text:GetAlpha())
+	e2.ZoneTextFrame:Hide()
+	other.fake.trust(function() text:SetAlpha(0.35) end)()
+	e2.ZoneTextFrame:Show()
+	assert(text:GetAlpha() == 0.35, "switched off, a zone name leaves RestedXP's own alpha alone, got " .. text:GetAlpha())
+	assert(#e2._errors == 0, tostring(e2._errors[1]))
+end
 print("skins restedxp arrow ok: theme/class/dark custom; bright silhouette, dark edge, readable distance; rotation, UV, size and visibility preserved")

@@ -164,6 +164,8 @@ do
 	same(Labels(Model.Search(pages(), "percentage")), { "Nameplates", "Show health text" }, "help text matches")
 	same(Labels(Model.Search(pages(), "custom mode")), {}, "a row hidden by showWhen is not found")
 	same(Labels(Model.Search(pages(), "zzz")), {}, "no match is an empty list")
+	local named = { { id = "UnitFrames", label = "Unit Frames", items = { { kind = "header", label = "UNIT FRAMES" }, { kind = "toggle", label = "Cast bars on unit frames" } } } }
+	same(Labels(Model.Search(named, "cast")), { "Unit Frames", "Cast bars on unit frames" }, "a section named like its page adds no second, identical heading")
 end
 
 -- Search finds a scoped row whichever value its selector holds -------------------------------------

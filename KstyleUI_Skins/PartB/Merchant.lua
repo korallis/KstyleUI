@@ -13,11 +13,6 @@ local function Item(button)
 	Kit.Item(button, { window = WINDOW })
 end
 
-local function NameSize()
-	local _, size = K.Tokens.NoteFont()
-	return size * ns.Style.Setting("text", "size")
-end
-
 local function PriceText(frame)
 	if type(frame.GetObjectType) == "function" and frame:GetObjectType() == "FontString" then
 		ns.Style.Text(frame, "caption")
@@ -44,12 +39,15 @@ local function Prices(slot)
 	for _, key in ipairs({ "MoneyFrame", "AltCurrencyFrame" }) do
 		local frame = slot[key] or type(name) == "string" and _G[name .. key]
 		if type(frame) == "table" and K.Widgets.MayMove(frame) then
-			frame:ClearAllPoints()
 			local gold = money and money:IsShown()
-			if key == "AltCurrencyFrame" and not (issecretvalue and issecretvalue(gold)) and gold == true then
-				frame:SetPoint("LEFT", money, "RIGHT", -12, 0)
-			else
-				frame:SetPoint("BOTTOMLEFT", slot, "BOTTOMLEFT", K.Widgets.Snap(frame, 46), 0)
+			local beside = key == "AltCurrencyFrame" and not (issecretvalue and issecretvalue(gold)) and gold == true
+			local want = beside and { "LEFT", money, "RIGHT", -12, 0 } or { "BOTTOMLEFT", slot, "BOTTOMLEFT", K.Widgets.Snap(frame, 46), 0 }
+			local point, relative, relativePoint, x, y = frame:GetPoint(1)
+			local W = K.Widgets
+			local secret = W.IsSecret(point) or W.IsSecret(relative) or W.IsSecret(relativePoint) or W.IsSecret(x) or W.IsSecret(y)
+			if secret or frame:GetNumPoints() ~= 1 or point ~= want[1] or relative ~= want[2] or relativePoint ~= want[3] or x ~= want[4] or y ~= want[5] then
+				frame:ClearAllPoints()
+				frame:SetPoint(unpack(want))
 			end
 			PriceText(frame)
 		end
@@ -65,7 +63,10 @@ local function Slot(slot)
 	if type(name) ~= "table" or type(name.GetNumPoints) ~= "function" then
 		return
 	end
-	ns.Style.Text(name, "body", nil, NameSize)
+	ns.Style.Text(name, "caption", nil, function()
+		return K.Tokens.Size("caption") * K.Theme.FontScale() * ns.Style.Setting("text", "size")
+	end)
+	ns.Style.KeepPitch(name)
 	for i = 1, name:GetNumPoints() do
 		local point, _, _, _, y = name:GetPoint(i)
 		local vertical = type(point) == "string" and point:match("^(%u*)LEFT$")

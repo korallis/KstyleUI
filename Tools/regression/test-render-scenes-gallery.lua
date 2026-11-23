@@ -23,6 +23,13 @@ for _, name in ipairs(galleryScenes) do
 	assert(type(build) == "function", name .. ".lua returns its builder")
 	local scene = L.guard(name, check(name, build()))
 	assert(type(scene.frames) == "table" and #scene.frames > 0, name .. " lists the frames to crop")
+	if name == "gallery_nameplates" then
+		local portrait = false
+		for _, item in ipairs(scene.items) do
+			portrait = portrait or tostring(item.file):find("/Badges/", 1, true) ~= nil
+		end
+		assert(portrait, name .. ": the friendly player's badge draws its race portrait")
+	end
 	local seenNames = {}
 	for _, frame in ipairs(scene.frames) do
 		assert(not seenNames[frame.name], name .. ": two frames named " .. tostring(frame.name))
