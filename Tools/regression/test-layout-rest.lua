@@ -135,6 +135,11 @@ do
 	Rested(env)
 	assert(Rest.Quiet(), "the cast's end lets them rest")
 
+	env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+	Woke("an instant cast")
+	Rested(env)
+	assert(Rest.Quiet(), "they rest a delay after an instant cast")
+
 	env.FireEvent("UNIT_POWER_UPDATE", "player", "COMBO_POINTS")
 	assert(Rest.Quiet(), "a secondary power's slow decay does not wake them")
 	env.FireEvent("UNIT_POWER_UPDATE", "player", "MANA")

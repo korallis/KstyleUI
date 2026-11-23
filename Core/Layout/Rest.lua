@@ -97,7 +97,7 @@ Rest.PANELS = {
 Rest.defaults = { enabled = true, alpha = 0.35, panels = { actionBars = true, player = true, strip = true, cooldowns = true } }
 
 local CASTS = { "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_STOP", "UNIT_SPELLCAST_CHANNEL_START", "UNIT_SPELLCAST_CHANNEL_STOP", "UNIT_SPELLCAST_EMPOWER_START", "UNIT_SPELLCAST_EMPOWER_STOP" }
-local PULSES = { "UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_MAXPOWER" }
+local PULSES = { "UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_MAXPOWER", "UNIT_SPELLCAST_SUCCEEDED" }
 
 local panelOf = {}
 for panel, keys in pairs(Rest.PANELS) do
