@@ -250,7 +250,7 @@ local function FiveSecond(form, unit, _, spell)
 		return
 	end
 	for _, cost in ipairs(C_Spell.GetSpellPowerCost(spell) or {}) do
-		if not IsSecret(cost.type) and cost.type == 0 then
+		if not (IsSecret(cost.type) or IsSecret(cost.cost)) and cost.type == 0 and type(cost.cost) == "number" and cost.cost > 0 then
 			for _, piece in pairs(form.pieces) do
 				if piece.spec.feed == "fiveSecond" and piece:IsShown() then
 					piece.timer:SetCooldown(GetTime(), 5)
