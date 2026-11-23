@@ -136,15 +136,15 @@ local function Charm()
 	end
 end
 
-local function OffHand(row)
+local function OffHand()
 	local info = C_PaperDollInfo
 	local has = info and type(info.OffhandHasWeapon) == "function" and info.OffhandHasWeapon()
-	return not IsSecret(has) and has == true and Medals.Known(row.spells) or nil
+	return not IsSecret(has) and has == true
 end
 
 ns.SlabTrackers.Register("SHAMAN", {
 	{ key = "crestImbues", seat = "lowerLeft", feed = "enchant", slot = "MainHand", spells = IMBUES, build = Stone },
-	{ key = "crestImbues", seat = "lowerRight", feed = "enchant", slot = "OffHand", spells = IMBUES, known = OffHand, build = Stone },
+	{ key = "crestImbues", seat = "lowerRight", feed = "enchant", slot = "OffHand", spells = IMBUES, active = OffHand, build = Stone },
 	{ key = "crestShock", seat = { 0, 0 }, feed = "cooldown", known = SHOCKS, build = Shock },
 	{ key = "crestAnkh", seat = "footRight", size = Medals.FOOT, feed = "cooldown", known = REINCARNATION, build = Ankh },
 	{ key = "crestFlameShock", seat = "footLeft", size = Medals.FOOT, color = "white", spells = FLAME, known = function() return Medals.Known(FLAME) or Medals.Known(RIPTIDE) end,
