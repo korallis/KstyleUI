@@ -213,6 +213,14 @@ do
 	Clean(env, K, "frames")
 end
 
+do
+	local env, K, ns = New("PALADIN", { 20154, 20271 }, { frames = true })
+	local form = ns.SlabTrackers.state.forms.row
+	local _, relative, point = form.frame:GetPoint(1)
+	assert(relative == ns.bars.stance.holder and point == "LEFT", "no stance buttons: the row starts where the stance bar does")
+	Clean(env, K, "frames paladin")
+end
+
 -- Even pixels at four sizes.
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })

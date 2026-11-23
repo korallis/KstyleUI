@@ -123,7 +123,8 @@ local function Shape(name, seat)
 		form.frame:SetScale(own > 0 and seat:GetEffectiveScale() / own * (button and button.opts.size or Medals.SIZE) / Medals.SIZE or 1)
 		form.frame:SetFrameStrata(seat:GetFrameStrata())
 		form.frame:ClearAllPoints()
-		form.frame:SetPoint("LEFT", bar.count and bar.count > 0 and bar.buttons[bar.count] or seat, "RIGHT", GAP, 0)
+		local last = bar.count and bar.count > 0 and bar.buttons[bar.count]
+		form.frame:SetPoint("LEFT", last or seat, last and "RIGHT" or "LEFT", last and GAP or 0, 0)
 		form.frame:SetSize(Medals.SIZE, Medals.SIZE)
 	end
 	form.frame:Show()
