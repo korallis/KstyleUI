@@ -1429,6 +1429,8 @@ local function PaintSlice(p, name)
 	end
 end
 
+Widgets.PaintSlice = PaintSlice
+
 local function AnchorRuns(p, thickness)
 	thickness = thickness or false
 	if p.runThickness == thickness then

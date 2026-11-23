@@ -28,18 +28,14 @@ local function Muted(view, text)
 	text:SetTextColor(Tokens.Color("labelMuted"))
 end
 
-function Slab.Material(owner, slices)
+function Slab.Material(owner, slice)
 	local name = Settings.Module().slabCaps ~= false and "medUnitSlabCap" or "medUnitSlab"
-	for key, slice in pairs(slices) do
-		if key ~= name then Widgets.ShowSlice(slice, false) end
-	end
-	slices[name] = slices[name] or Widgets.NineSlice(owner, name, "BACKGROUND", 1)
-	return slices[name]
+	if not slice then return Widgets.NineSlice(owner, name, "BACKGROUND", 1) end
+	if slice.texture ~= name then Widgets.PaintSlice(slice, name) end
+	return slice
 end
 
 local function Build(view)
-	view.slabs = {}
-	view.slab = Slab.Material(view.panel, view.slabs)
 	view.slabLevel = Widgets.FontString(view.top, "OVERLAY")
 	view.slabLevel:SetWordWrap(false)
 	view.slabLevel:SetJustifyV("MIDDLE")
@@ -187,7 +183,7 @@ function Slab.Layout(view, g)
 	end
 	local resized = view.slabWidth ~= g.glass.w or view.slabHeight ~= g.glass.h
 	view.slabWidth, view.slabHeight = g.glass.w, g.glass.h
-	view.slab = Slab.Material(view.panel, view.slabs)
+	view.slab = Slab.Material(view.panel, view.slab)
 	Widgets.ShowSlice(view.slab, true)
 	Widgets.LayoutSlice(view.slab, view.panel, select(3, Tokens.Texture("medUnitSlab")))
 	local m, rect = view.medallion, g.medal
