@@ -1,6 +1,6 @@
 -- SlabVigil.lua: the priest's crest trackers, registered with SlabTrackers, each on its own switch: Inner Fire as a halo round the inner rim and four flames on gilt studs, five charges each, burning down from the top right as hits spend them (the last flickers and the halo dims while Lua can read the count); Penance, or Mind Blast before it and for a shadow priest, sweeping on the left shoulder medal and flaring when ready; on the right Shadowfiend for a holy or discipline priest, Shadowform for a shadow priest (steel until worn) and in Shadowform your Vampiric Embrace on the target; your Shadow Word: Pain as a shadow gem at the top of the ring (a healer's Prayer of Mending ready from level 40); a healer's shield, Renew and Prayer of Mending on the target in the top medal; a shadow priest's Devouring Plague on the target and Shadow Word: Death ready on the foot perches and Silence ready in a ring socket; a main-hand oil socket while an oil is in the bags or on the weapon; and the major cooldowns burning on the rim. Under Frames Inner Fire is a medal in the row. Aura slots, cooldown duration objects and the engine's shown animations draw every piece, so Lua never reads or compares a secret.
 local _, ns = ...
-local class = select(2, UnitClass("player"))
+local class = UnitClass and select(2, UnitClass("player"))
 if class ~= "PRIEST" and class ~= "DRUID" then
 	return
 end
