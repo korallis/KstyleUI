@@ -52,9 +52,17 @@ function Rest.Apply(env, tick)
 		return nil
 	end
 	local t = tonumber(os.getenv("RENDER_REST_T") or "")
-	local exists, casting = env.UnitExists, env.UnitCastingInfo
+	local exists, casting, power = env.UnitExists, env.UnitCastingInfo, env.UnitPower
 	env.UnitExists = function(unit)
 		return unit ~= "target" and exists(unit)
+	end
+	if power and env.UnitPowerMax then
+		env.UnitPower = function(unit, kind)
+			if unit == "player" and kind == nil then
+				return env.UnitPowerMax(unit)
+			end
+			return power(unit, kind)
+		end
 	end
 	env.UnitCastingInfo = nil
 	env.FireEvent("PLAYER_TARGET_CHANGED")
