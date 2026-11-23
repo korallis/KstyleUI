@@ -1,5 +1,40 @@
 # KstyleUI changelog
 
+## v0.3.4 (2026-11-23)
+
+Every class now has its own crest. Warriors, paladins, rogues, hunters, mages, warlocks, priests, druids and shamans each get the buffs, debuffs, procs and cooldowns they watch on the Medallions crest, one place to look, and on Frames they stand in a row above the stance bar. Every piece is on by default with its own switch and shows once you know its spell. Baine's report also brings three world map fixes.
+
+Highlights:
+
+- Every class now has its own crest: your buffs, procs, debuffs and cooldowns, one place to look.
+- Major cooldowns burn round the rim, and mana users see the five-second rule round the level badge.
+- Each piece has its own switch, on by default, and Frames shows them in a row above the stance bar.
+- Warlocks see their Soul Shards from the bags as wisps on the crest.
+- Stings and Rapid Fire on the hunter crest, thanks to the hunters in Discord.
+- World map fixes thanks to Baine: search sits top-right, clears on close, and zone labels keep their size.
+
+### Added
+
+- Warrior: Battle Shout, the strike you can use right now, Enrage, your main strike and procs, interrupt, charge or taunt and your threat, in every stance.
+- Paladin: your Seal, Judgement ready and on the target, Vengeance or Holy Shield on the jewels, Hammer of Justice and your spec's strike and buff.
+- Rogue: Slice and Dice, Rupture, a poison vial per weapon, Kick and your spec's piece, with your openers and Vanish in Stealth.
+- Hunter: your Aspect, your pet's health and happiness, Hunter's Mark, your Stings, an Auto Shot ring and a gust on Rapid Fire or Quick Shots. Thanks to the hunters in Discord.
+- Mage: your armor, mana gem, Counterspell, Fire Vulnerability or Winter's Chill, Frost Nova, a ward ring and a Clearcasting blaze.
+- Warlock: your DoTs as spires on the crown, Soul Shards from your bags as wisps, your demon, Healthstone, Curse, Spell Lock and Shadow Trance.
+- Priest: Inner Fire flames, Penance, Shadowfiend and Shadowform, Shadow Word: Pain, and your heals or shadow damage on the target.
+- Druid: a crest for every form, from Moonfire and Rejuvenation to Rake and Rip, Clearcasting leaves, and a bear's Growl, Feral Charge and tank glow.
+- Shaman: weapon imbue stones, the shock cooldown sweep, Flame Shock, Stormstrike or Riptide on the target, and Reincarnation's cooldown.
+- Every crest burns your major cooldowns round the rim and stands up to three below the emblem, newest first.
+- Mana users get the five-second rule: a blue ring round the level badge runs for five seconds after each spell that costs mana.
+- Each piece has its own switch under Action Bars > Slab and cooldowns, on by default. Frames shows them as medals in a row above the stance bar.
+- Charge and stack counts sit inside their medal, outlined and sized to fit.
+
+### Fixed
+
+- Closing the world map clears its search, so an old search list or Nearest picker no longer comes back when you reopen it. Thanks to Baine for the report.
+- The Search the map box sits in the map's top-right corner, so Blizzard's map pin button and other map addons no longer cover it. Thanks to Baine for the report.
+- Zone level ranges on continent maps keep their size whether the map is windowed or maximized, after any zone switch and reopen. Thanks to Baine for the report.
+
 ## v0.3.3.1 (2026-11-23)
 
 A small hotfix for setup's cards and tabs, the Medallions player frame and the crest minimap, plus a few polish fixes for the minimap buttons, proc glows and tracked bars.

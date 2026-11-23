@@ -168,6 +168,10 @@ local function Hide(list)
 	for _, region in ipairs(list) do region:Hide() end
 end
 
+local function Listing()
+	return results[1] ~= nil and results[1]:IsShown()
+end
+
 local function DrawRoute(x, y, tx, ty, road, continent, moving)
 	Hide(startDots)
 	if not moving then Hide(dots) end
@@ -369,7 +373,7 @@ end
 RefreshRoute = function()
 	if not card then return end
 	local show = On("routes") and target ~= nil
-	card:SetShown(show)
+	card:SetShown(show and not Listing())
 	panel:SetScript("OnUpdate", show and not target.notice and Tick or nil)
 	if not show then routeMap = nil; DrawRoute() return end
 	title:SetText(target.name)
@@ -494,7 +498,7 @@ end
 
 local function Text(parent, role, size, color)
 	local text = Widgets.FontString(parent, "OVERLAY")
-	Style.Text(text, role, nil, function() return Lumen.Size(parent, size) end)
+	Style.Text(text, role, nil, type(size) == "function" and size or function() return Lumen.Size(parent, size) end)
 	text:SetTextColor(Lumen.Color(color or "textEmphasis"))
 	text:SetJustifyH("LEFT")
 	return text
@@ -586,6 +590,7 @@ local function SearchChanged(query)
 		button:SetScript("OnClick", function() Routes.Pick(row) end)
 		button:Show()
 	end
+	RefreshRoute()
 end
 
 local function Build()
@@ -594,9 +599,9 @@ local function Build()
 	panel:SetAllPoints(map)
 	panel:SetFrameLevel(map:GetFrameLevel() + 30)
 	search = Widgets.EditBox(panel, { width = 280, height = 28, placeholder = L["Search the map"], onChange = SearchChanged,
-		onEscape = function() Hide(results) end, onEnter = function(query) if Plain(query, "string") ~= "" then Routes.Pick(Routes.Search(query)[1]) end end,
+		onEscape = function() Hide(results); RefreshRoute() end, onEnter = function(query) if Plain(query, "string") ~= "" then Routes.Pick(Routes.Search(query)[1]) end end,
 		onFocus = function(box) if On("services") then SearchChanged(box:GetText()) end end })
-	search:SetPoint("TOPLEFT", map.ScrollContainer or map, "TOPLEFT", 12, -12)
+	search:SetPoint("TOPRIGHT", map.ScrollContainer or map, "TOPRIGHT", -12, -12)
 	card = CreateFrame("Frame", nil, map)
 	card:SetFrameLevel(map:GetFrameLevel() + 25)
 	card:SetSize(280, 142)
@@ -630,9 +635,16 @@ local function Build()
 	end)
 	clear = Widgets.Button(card, { width = 80, height = 24, text = L["Clear"], onClick = Routes.Clear })
 	clear:SetPoint("BOTTOMRIGHT", -12, 10)
-	panel:SetScript("OnHide", function() panel:SetScript("OnUpdate", nil) end)
+	panel:SetScript("OnHide", function() panel:SetScript("OnUpdate", nil); search:SetText(""); Hide(results) end)
 	panel:SetScript("OnShow", RefreshRoute)
 	Routes.panel, Routes.search, Routes.card, Routes.distance, Routes.note, Routes.chip, Routes.steps = panel, search, card, distance, note, chip, stepRows
+end
+
+local sizedFor
+local function ZoneSize()
+	local low = type(map.GetScaleForMinZoom) == "function" and Number(map:GetScaleForMinZoom())
+	if low and low > 0 and map.ScrollContainer then return Lumen.Size(map.ScrollContainer, 12) / low end
+	return Lumen.Size(canvas, 12)
 end
 
 local function RefreshZones()
@@ -641,7 +653,8 @@ local function RefreshZones()
 	local info = id and Call(C_Map, "GetMapInfo", id)
 	local continent = type(Enum) == "table" and type(Enum.UIMapType) == "table" and Enum.UIMapType.Continent
 	if not On("zoneLevels") or not canvas or not continent or Field(info, "mapType", "number") ~= continent then return end
-	local count = 0
+	local count, restyle = 0, id ~= sizedFor
+	sizedFor = id
 	local zoneType = Enum.UIMapType.Zone
 	if not Number(zoneType) then return end
 	for _, child in ipairs(Plain(Call(C_Map, "GetMapChildrenInfo", id, zoneType), "table") or {}) do
@@ -651,8 +664,8 @@ local function RefreshZones()
 			local left, right, top, bottom = Call(C_Map, "GetMapRectOnMap", childID, id)
 			if Number(left) and Number(right) and Number(top) and Number(bottom) then
 				count = count + 1
-				local text = zones[count] or Text(canvas, "number", 12)
-				zones[count] = text
+				local text = zones[count]
+				if not text then text = Text(canvas, "number", ZoneSize); zones[count] = text elseif restyle then Style.Text(text) end
 				text:ClearAllPoints()
 				text:SetPoint("CENTER", canvas, "TOPLEFT", (left + right) * 0.5 * canvas:GetWidth(), -(top + bottom) * 0.5 * canvas:GetHeight())
 				text:SetText(label)
@@ -748,6 +761,7 @@ def.Apply = function(self)
 		if type(map[method]) == "function" then hooksecurefunc(map, method, function() Refresh() end) end
 	end
 	if type(map.AcquirePin) == "function" then hooksecurefunc(map, "AcquirePin", HookPins) end
+	if type(map.OnFrameSizeChanged) == "function" then hooksecurefunc(map, "OnFrameSizeChanged", function() sizedFor = nil; RefreshZones() end) end
 	map:HookScript("OnShow", Refresh)
 	Refresh()
 end

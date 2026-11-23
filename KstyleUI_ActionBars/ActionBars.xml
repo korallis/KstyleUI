@@ -13,11 +13,17 @@
 	<Script file="TravelItems.lua"/>
 	<Script file="TravelData.lua"/>
 	<Script file="Travel.lua"/>
+	<Script file="SlabMedals.lua"/>
 	<Script file="SlabEffects.lua"/>
 	<Script file="SlabJewels.lua"/>
 	<Script file="SlabHawks.lua"/>
 	<Script file="SlabStorm.lua"/>
+	<Script file="SlabTrackers.lua"/>
+	<Script file="SlabVigil.lua"/>
+	<Script file="SlabGrove.lua"/>
+	<Script file="SlabStormforged.lua"/>
 	<Script file="SlabCrown.lua"/>
+	<Script file="SlabRanged.lua"/>
 	<Script file="Totems.lua"/>
 	<Script file="Bindings.lua"/>
 	<Script file="Keybind.lua"/>

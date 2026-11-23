@@ -21,9 +21,15 @@ function M.Setup(env, map)
 	function map:SetMapID(id)
 		assert(not env.InCombatLockdown(), "skip addon SetMapID in combat: pin setup reaches protected SetPassThroughButtons")
 		state.id = id
+		self:OnCanvasSizeChanged()
 	end
 	function map:GetCanvas() return self.ScrollContainer.Child end
 	function map:RefreshAllDataProviders() state.refreshes = (state.refreshes or 0) + 1 end
+	-- Blizzard_MapCanvas.lua:73-75, 944 and MapCanvas_ScrollContainerMixin.lua:236-242, 457-478: SetMapID and a frame resize size the
+	-- canvas (OnCanvasSizeChanged) before they reset the zoom to the map's lowest scale.
+	function map:GetScaleForMinZoom() return state.minZoom or 1 end
+	function map:OnCanvasSizeChanged() end
+	function map:OnFrameSizeChanged() self:OnCanvasSizeChanged(); self:GetCanvas():SetScale(state.minZoom or 1) end
 	local dungeon = Place("Ragefire Chasm", 0.72, 0.36, { journalInstanceID = 42 })
 	local flight = Place("Razor Hill flight master", 0.35, 0.55, { faction = 1 })
 	local link = Place("Road to the Barrens", 0.14, 0.65)

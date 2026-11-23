@@ -191,4 +191,8 @@ env.C_TaxiMap.GetTaxiNodesForMap = function() return { { name = env.Secret("secr
 assert(#R.Search("secret") == 0, "secret destination names are ignored")
 env.EJ_GetInstanceInfo = nil
 assert(R.DungeonLevels(state.dungeon) == nil, "missing EJ degrades silently")
+-- Blizzard_WorldMap/Camelot/Blizzard_WorldMap.lua:8 puts Blizzard's 32-wide tracking pin button at the canvas's top-left, where map addons put their cards too.
+local box, canvas = R.search, map.ScrollContainer
+assert(box:GetLeft() > canvas:GetLeft() + 35 and math.abs(box:GetRight() - (canvas:GetRight() - 12)) < 0.01 and math.abs(box:GetTop() - (canvas:GetTop() - 12)) < 0.01,
+	"the map search sits 12 inside the canvas's top-right corner, clear of Blizzard's tracking pin button")
 print("world map destinations, ranges, routes and toggles ok")

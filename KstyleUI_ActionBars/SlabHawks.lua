@@ -3,8 +3,10 @@ local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens, Effects = K.Widgets, K.Tokens, K.Effects
-local cos, sin, rad, floor, max = math.cos, math.sin, math.rad, math.floor, math.max
+local cos, sin, rad, max = math.cos, math.sin, math.rad, math.max
 local IsSecret = Widgets.IsSecret
+local Medals = ns.SlabMedals
+local Known, Even, Texture, Layer = Medals.Known, Medals.Even, Medals.Texture, Medals.Layer
 
 local Hawks = {}
 ns.SlabHawks = Hawks
@@ -19,20 +21,6 @@ local FLARE_RISE, FLARE_FALL, FADE, POP = 0.05, 0.4, 0.35, 1.3
 local state = { perches = {} }
 Hawks.state = state
 
-local function Known(spells)
-	local book = C_SpellBook
-	if not (book and type(book.IsSpellKnown) == "function") then
-		return false
-	end
-	for _, id in ipairs(spells) do
-		local known = book.IsSpellKnown(id)
-		if not IsSecret(known) and known == true then
-			return true
-		end
-	end
-	return false
-end
-
 local function Active()
 	local hub = ns.Slab and ns.Slab.hub
 	if not (state.enabled and hub and hub:IsShown() and ns.Config("crestHawks") ~= false and UnitClass and GetTotemInfo) then
@@ -44,33 +32,6 @@ local function Active()
 	end
 	return Known(SPELLS) and hub or nil
 end
-
-local function Even(region)
-	local px = Widgets.Border(region)
-	local side = max(2, 2 * floor(region.units / px / 2 + 0.5)) * px
-	region:SetSize(side, side)
-end
-
-local function Texture(parent, layer, sublevel, texture, color, size, blend)
-	local t = parent:CreateTexture(nil, layer, nil, sublevel)
-	t:SetTexture((Tokens.Texture(texture)))
-	t:SetVertexColor(Tokens.Color(color))
-	t:SetPoint("CENTER", parent, "CENTER", 0, 0)
-	if blend then
-		t:SetBlendMode(blend)
-	end
-	t.units = size
-	return t
-end
-
-local function Layer(holder, level)
-	local frame = CreateFrame("Frame", nil, holder)
-	frame:SetAllPoints(holder)
-	frame:SetFrameLevel(level)
-	return frame
-end
-
-Hawks.Known, Hawks.Even, Hawks.Texture, Hawks.Layer = Known, Even, Texture, Layer
 
 local function Fade(target, from, to, duration, order)
 	local group = target.fade or target:CreateAnimationGroup()

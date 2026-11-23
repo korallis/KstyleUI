@@ -188,7 +188,7 @@ assert(P.row:IsShown() and not P.row.was:IsShown(), "class pips off and on durin
 noErrors(env, K, "settle")
 
 -- A secret count never meets a truth test: choose the fed value with an explicit if (review 678 #1).
-for path, pattern in pairs({ ["Core/Widgets/ClassPip.lua"] = "and was or now", ["KstyleUI_UnitFrames/Pips.lua"] = "and state.points or", ["KstyleUI_ActionBars/SlabCrown.lua"] = "and state.points or" }) do
+for path, pattern in pairs({ ["Core/Widgets/ClassPip.lua"] = "and was or now", ["KstyleUI_UnitFrames/Pips.lua"] = "and state.points or", ["KstyleUI_ActionBars/SlabCrown.lua"] = "and state.points or", ["KstyleUI_ActionBars/SlabMedals.lua"] = "scaled or 0" }) do
 	local file = assert(io.open(path, "rb"))
 	local source = file:read("*a")
 	file:close()

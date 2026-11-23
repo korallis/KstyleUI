@@ -165,10 +165,9 @@ do
 	local env, K, ns = New("WARLOCK")
 	env._powerType, env._powerToken = 0, "MANA"
 	Refresh(env)
-	assert(ns.SlabEffects.PowerType() == nil, "Lee's warlock: the crest jewels glow at full soul shards, so the cap ring leaves them to the jewels")
 	K.Options.Write("ActionBars", "crestJewels", false)
 	env.RunTimers()
-	assert(env._askedPower == 7, "Lee's warlock without the jewels: the hub ring follows soul shards, not mana")
+	assert(ns.SlabEffects.PowerType() == nil and env._askedPower ~= 7, "Lee's warlock: Soul Shards are bag items, so the cap ring reads no soul shard power")
 	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
 	local b = AB.Button(ns, "bar1", 1)
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)

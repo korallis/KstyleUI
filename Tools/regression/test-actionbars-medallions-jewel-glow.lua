@@ -1,4 +1,4 @@
--- test-actionbars-medallions-jewel-glow.lua: the crest jewels' motion and full ring: at the maximum the rune ring's glyphs and halo light in the resource's colour, fading in, and fade out on a spend; a gained jewel's core flares under the ember that keeps unchanged jewels steady, and a spent jewel's ember drains; every lit layer is a one-point status bar fed the raw value now or the value before, so secret values light them with no Lua compare; the flare, the drain and the glow before show only while they play; Calm stills the ring's breath, Off plays nothing and shows the end states, nothing runs OnUpdate, Glow at max off keeps the plain ring and lends the paladin's and warlock's cap ring back; every layer is an even number of physical pixels centred on its setting at four screen sizes.
+-- test-actionbars-medallions-jewel-glow.lua: the crest jewels' motion and full ring: at the maximum the rune ring's glyphs and halo light in the resource's colour, fading in, and fade out on a spend; a gained jewel's core flares under the ember that keeps unchanged jewels steady, and a spent jewel's ember drains; every lit layer is a one-point status bar fed the raw value now or the value before, so secret values light them with no Lua compare; the flare, the drain and the glow before show only while they play; Calm stills the ring's breath, Off plays nothing and shows the end states, nothing runs OnUpdate, Glow at max off keeps the plain ring and lends the paladin's cap ring back; every layer is an even number of physical pixels centred on its setting at four screen sizes.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local ENERGY, MANA = 3, 0
@@ -22,6 +22,7 @@ local function New(class, power, size)
 		end,
 	})
 	AB.Enable(env, K)
+	if class == "PALADIN" then K.Options.Write("ActionBars", "crestVengeance", false) end
 	env.RunTimers()
 	return env, K, ns
 end
@@ -199,9 +200,9 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
-for _, class in ipairs({ "PALADIN", "WARLOCK" }) do
+for _, class in ipairs({ "PALADIN" }) do
 	local env, K, ns = New(class, MANA)
-	local kind = class == "PALADIN" and "jewelHoly" or "jewelShard"
+	local kind = "jewelHoly"
 	local r, g, b = ns.SlabJewels.state.ring.now.halo:GetStatusBarColor()
 	local er, eg, eb = K.Tokens.Color(kind)
 	assert(math.abs(r - er) + math.abs(g - eg) + math.abs(b - eb) < 1e-3, class .. ": the ring glows in the jewels' colour")

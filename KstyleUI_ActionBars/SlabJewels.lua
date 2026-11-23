@@ -1,9 +1,9 @@
--- SlabJewels.lua: the Medallions hub's resource jewels: up to ten cut gems in gilt settings across the top arc of the rune ring, lit one per combo point (rogue, cat-form druid), holy power (paladin) or soul shard (warlock), igniting on a gain and draining on a spend, with the whole rune ring glowing in the resource's colour at the maximum; every lit layer is a one-point status bar fed the raw value, now or the value before, so the engine compares and Lua never reads a secret.
+-- SlabJewels.lua: the Medallions hub's resource jewels: up to ten cut gems in gilt settings across the top arc of the rune ring, lit one per combo point (rogue, cat-form druid) or holy power (paladin), igniting on a gain and draining on a spend, with the whole rune ring glowing in the resource's colour at the maximum; every lit layer is a one-point status bar fed the raw value, now or the value before, so the engine compares and Lua never reads a secret.
 local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens, Effects = K.Widgets, K.Tokens, K.Effects
-local cos, sin, rad, floor, max = math.cos, math.sin, math.rad, math.floor, math.max
+local cos, sin, rad, max = math.cos, math.sin, math.rad, math.max
 local IsSecret = Widgets.IsSecret
 
 local Jewels = {}
@@ -18,13 +18,18 @@ local FLARE_RISE, FLARE_FALL, DRAIN, FADE = 0.03, 0.09, 0.18, 0.2
 local KINDS = {
 	combo = { power = "ComboPoints", token = "COMBO_POINTS", color = "jewelCombo", rim = "jewelComboRim", core = "jewelComboCore" },
 	holy = { power = "HolyPower", token = "HOLY_POWER", color = "jewelHoly", rim = "jewelHolyRim", core = "jewelHolyCore" },
-	shard = { power = "SoulShards", token = "SOUL_SHARDS", color = "jewelShard", rim = "jewelShardRim", core = "jewelShardCore" },
 }
-local CLASS_KIND = { ROGUE = "combo", DRUID = "combo", PALADIN = "holy", WARLOCK = "shard" }
-local POWER_IDS = { Energy = 3, ComboPoints = 4, SoulShards = 7, HolyPower = 9 }
+local CLASS_KIND = { ROGUE = "combo", DRUID = "combo", PALADIN = "holy" }
+local POWER_IDS = { Energy = 3, ComboPoints = 4, HolyPower = 9 }
 local NOW = { "halo", "rim", "gem", "flare", "core", "glint" }
+local FEEDS = {
+	{ known = { 20049, 20056, 20057, 20058, 20059 }, spells = { 20050 } },
+	{ known = { 20925, 20927, 20928, 1239570 }, spells = { 20925, 20927, 20928, 1239570 } },
+	{ known = { 20177, 20179, 20180, 20181, 20182 }, spells = { 1326084 } },
+}
+local FED = { halo = true, rim = true, gem = true, core = true, glint = true }
 
-local state = { jewels = {}, count = 0 }
+local state = { jewels = {}, count = 0, sets = {} }
 Jewels.state = state
 
 local function PowerType(name)
@@ -39,6 +44,17 @@ local function Class()
 	end
 	local _, class = UnitClass("player")
 	return not IsSecret(class) and CLASS_KIND[class] and class or nil
+end
+
+local function Fed(class)
+	if class ~= "PALADIN" or ns.Config("crestVengeance") == false then
+		return nil
+	end
+	for _, feed in ipairs(FEEDS) do
+		if ns.SlabMedals.Known(feed.known) then
+			return feed
+		end
+	end
 end
 
 local function Kind(class)
@@ -60,11 +76,7 @@ local function Count(kind)
 end
 Jewels.Count = Count
 
-local function Even(region)
-	local px = Widgets.Border(region)
-	local side = max(2, 2 * floor(region.units / px / 2 + 0.5)) * px
-	region:SetSize(side, side)
-end
+local Even = ns.SlabMedals.Even
 
 local function Fade(target, from, to, duration, delay, order)
 	local group = target.fade or target:CreateAnimationGroup()
@@ -88,16 +100,17 @@ local function Fleeting(target)
 end
 
 local function Texture(parent, size, sublevel, texture, color)
-	local t = parent:CreateTexture(nil, "ARTWORK", nil, sublevel)
-	t:SetTexture((Tokens.Texture(texture)))
-	t:SetVertexColor(Tokens.Color(color))
-	t:SetPoint("CENTER", parent, "CENTER", 0, 0)
-	t.units = size
-	return t
+	return ns.SlabMedals.Texture(parent, "ARTWORK", sublevel, texture, color, size)
 end
 
-local function OnePoint(parent, i, size, texture, level, additive)
-	local bar = CreateFrame("StatusBar", nil, parent)
+local function OnePoint(parent, i, size, texture, level, additive, key)
+	local slot = parent.slots and FED[key] and parent.slots:AddAuraSlot(key .. i, "HELPFUL", parent.options)
+	if slot then
+		pcall(slot.EnableMouse, slot, false)
+		slot:SetAllPoints(parent)
+		slot:SetFrameLevel(level)
+	end
+	local bar = CreateFrame("StatusBar", nil, slot or parent)
 	bar:SetFrameLevel(level)
 	bar:SetStatusBarTexture((Effects.Texture(texture, "glow")))
 	if additive then
@@ -107,29 +120,36 @@ local function OnePoint(parent, i, size, texture, level, additive)
 	bar:SetValue(0)
 	bar:SetPoint("CENTER", parent, "CENTER", 0, 0)
 	bar.units = size
+	if slot then
+		slot:SetApplicationBar(bar, { minApplications = i - 1, maxApplications = i })
+	end
 	return bar
 end
 
-local function Build(hub, i)
+local function Build(hub, i, feed)
 	local holder = CreateFrame("Frame", nil, hub.top)
 	holder.units = SETTING
+	if feed then
+		holder.slots = feed.container
+		holder.options = feed.options
+	end
 	local base = hub.top:GetFrameLevel() + 1
 	holder:SetFrameLevel(base + 1)
 	local jewel = { holder = holder }
-	jewel.halo = OnePoint(holder, i, HALO, "glow", base, true)
-	jewel.haloWas = OnePoint(holder, i, HALO, "glow", base, true)
+	jewel.halo = OnePoint(holder, i, HALO, "glow", base, true, "halo")
+	jewel.haloWas = OnePoint(holder, i, HALO, "glow", base, true, "haloWas")
 	jewel.setting = {
 		Texture(holder, SETTING, 0, "diamond", "gilt"),
 		Texture(holder, LIP, 1, "diamond", "jewelSetting"),
 		Texture(holder, GEM, 2, "forgedDiamond", "jewelSocket"),
 	}
 	jewel.setting[3]:SetTexCoord(1, 0, 0, 1)
-	jewel.rim = OnePoint(holder, i, GEM, "diamond", base + 2)
-	jewel.gem = OnePoint(holder, i, BODY, "diamond", base + 3)
-	jewel.flare = OnePoint(holder, i, BODY, "diamond", base + 4, true)
-	jewel.ember = OnePoint(holder, i, BODY, "diamond", base + 5)
-	jewel.core = OnePoint(holder, i, CORE, "diamond", base + 6)
-	jewel.glint = OnePoint(holder, i, GLINT, "diamond", base + 6, true)
+	jewel.rim = OnePoint(holder, i, GEM, "diamond", base + 2, nil, "rim")
+	jewel.gem = OnePoint(holder, i, BODY, "diamond", base + 3, nil, "gem")
+	jewel.flare = OnePoint(holder, i, BODY, "diamond", base + 4, true, "flare")
+	jewel.ember = OnePoint(holder, i, BODY, "diamond", base + 5, nil, "ember")
+	jewel.core = OnePoint(holder, i, CORE, "diamond", base + 6, nil, "core")
+	jewel.glint = OnePoint(holder, i, GLINT, "diamond", base + 6, true, "glint")
 	for _, key in ipairs({ "halo", "core", "glint" }) do
 		jewel[key]:SetAlpha(ALPHA)
 	end
@@ -171,12 +191,22 @@ local function BuildRing(hub)
 	return ring
 end
 
-local function Place(hub, count)
+local function Place(hub, count, feed)
+	local set = feed or "power"
+	for key, jewels in pairs(state.sets) do
+		if key ~= set then
+			for _, jewel in ipairs(jewels) do
+				jewel.holder:Hide()
+			end
+		end
+	end
+	state.sets[set] = state.sets[set] or {}
+	state.jewels = state.sets[set]
 	local mid, step = (count + 1) / 2, count > 5 and ARC / (count - 1) or STEP
 	for i = 1, math.max(count, #state.jewels) do
 		local jewel = state.jewels[i]
 		if i <= count then
-			jewel = jewel or Build(hub, i)
+			jewel = jewel or Build(hub, i, feed)
 			state.jewels[i] = jewel
 			local a = rad(90 + (mid - i) * step)
 			local holder = jewel.holder
@@ -198,7 +228,7 @@ local function Place(hub, count)
 	end
 	state.count = count
 	local ring = state.ring
-	local glow = count > 0 and ns.Config("crestJewelGlow") ~= false
+	local glow = count > 0 and ns.Config("crestJewelGlow") ~= false and not feed
 	if glow and not ring then
 		ring = BuildRing(hub)
 	end
@@ -261,7 +291,7 @@ end
 
 local function Points(event)
 	local kind = state.kind
-	if not kind or state.count == 0 then
+	if not kind or state.count == 0 or state.feed then
 		return
 	end
 	local points
@@ -333,15 +363,61 @@ end
 function Jewels.Update(event)
 	local class = Class()
 	local kind = class and Kind(class)
-	local count = kind and Count(kind) or 0
-	if event == "UPDATE_SHAPESHIFT_FORM" and class == state.class and kind == state.kind and count == state.count then
+	local feed = Fed(class)
+	local count = feed and DEFAULT_COUNT or class == "PALADIN" and ns.Config("crestVengeance") ~= false and 0 or kind and Count(kind) or 0
+	if event == "UPDATE_SHAPESHIFT_FORM" and class == state.class and kind == state.kind and count == state.count and feed == state.feed then
 		return
 	end
+	local waiting = false
+	if feed and not feed.container then
+		if ns.SlabMedals.Locked() then
+			feed, waiting = nil, true
+		else
+			local ids = {}
+			for _, id in ipairs(feed.spells) do
+				ids[id] = true
+			end
+			feed.frame = CreateFrame("Frame", nil, ns.Slab.hub.top)
+			local container = CreateFrame("AuraContainer", nil, feed.frame, "CustomAuraContainerTemplate")
+			if type(container.AddAuraSlot) ~= "function" then
+				feed = nil
+			else
+				Widgets.KeepOut(container)
+				container:SetUnit("player")
+				feed.container, feed.options = container, { candidateFilters = { includeSpellIDs = ids } }
+			end
+		end
+	end
+	for _, f in ipairs(FEEDS) do
+		if f.frame then
+			f.frame:SetShown(f == feed)
+		end
+		if f.container and f.on ~= (f == feed) then
+			if ns.SlabMedals.Restricted() then
+				waiting = true
+			else
+				f.on = f == feed
+				f.container:SetEnabled(f.on)
+			end
+		end
+	end
+	if waiting then
+		K.Events.Register(OWNER .. ".Feed", "PLAYER_REGEN_ENABLED", Jewels.Update)
+	else
+		K.Events.Unregister(OWNER .. ".Feed", "PLAYER_REGEN_ENABLED")
+	end
+	state.feed = feed
 	Listen(class, kind)
-	Place(ns.Slab and ns.Slab.hub, count)
+	Place(ns.Slab and ns.Slab.hub, count, feed)
 	if kind then
 		Paint(kind)
 		Points()
+	end
+end
+
+function Jewels.Recheck()
+	if Fed(Class()) ~= state.feed then
+		Jewels.Update()
 	end
 end
 

@@ -32,7 +32,7 @@ local function Class()
 		return nil
 	end
 	local _, class = UnitClass("player")
-	return not IsSecret(class) and Widgets.ClassPipSet(class, 90) and class or nil
+	return not IsSecret(class) and class ~= "PALADIN" and Widgets.ClassPipSet(class, 90) and class or nil
 end
 
 local function Place(hub, frame, angle)

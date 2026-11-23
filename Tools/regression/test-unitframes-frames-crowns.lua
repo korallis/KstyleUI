@@ -10,8 +10,9 @@ local SPEC = {
 	HUNTER = { art = "PipArrow", count = 3, unit = "player", known = 1310687, aura = 1310687 },
 	DRUID = { art = "PipTalon", count = 5, unit = "target", known = 1328617, aura = 1328617 },
 	SHAMAN = { art = "PipStorm", count = 3, unit = "player", known = 10432, aura = 10432 },
+	PALADIN = { art = "PipShard", count = 5, unit = "player", known = 20049, aura = 20050 },
 }
-local ORDER = { "WARRIOR", "PRIEST", "MAGE", "HUNTER", "DRUID", "SHAMAN" }
+local ORDER = { "WARRIOR", "PRIEST", "MAGE", "HUNTER", "DRUID", "SHAMAN", "PALADIN" }
 
 local function New(class, opts)
 	opts = opts or {}
@@ -164,11 +165,16 @@ do
 	Clean(env, K, "learn")
 end
 
--- Other classes, and a caster-form druid, get no row.
-for _, class in ipairs({ "PALADIN", "WARLOCK" }) do
+-- Other classes, a paladin with none of Vengeance, Holy Shield or Reckoning, and a caster-form druid, get no row.
+for _, class in ipairs({ "WARLOCK" }) do
 	local env, K, ns = New(class)
 	assert(not ns.Resource.state.fed and next(ns.Pips.state.fed) == nil and not ns.Pips.state.watching, class .. " gets nothing and watches no spellbook")
 	Clean(env, K, class)
+end
+do
+	local env, K, ns = New("PALADIN", { known = false })
+	assert(not ns.Resource.state.fed and next(ns.Pips.state.fed) == nil, "a paladin without the talents gets no jewels")
+	Clean(env, K, "paladin without talents")
 end
 do
 	local env, K, ns = New("DRUID", { setup = function(e) e._units.player.powerType, e._units.player.powerToken = 0, "MANA" end })
