@@ -24,7 +24,7 @@ local CLEANUP_BUTTON = "RXPQuestLogCleanupButton"
 local IMPORT_BUTTONS = { "importButton", "importSplicedString", "purgeButton", "reloadButton", "deleteButton" }
 local IMPORT_POPUPS = { "purgeConfirmation", "deleteConfirmation" }
 local CONFIGURATOR_BUTTONS = { "backbutton", "resetbutton", "submitbutton" }
-local BADGE_BUTTON, BADGE_INSET = 24, 3
+local BADGE = { button = 24, inset = 3, chip = "gapSmall" }
 local BANNERS = { "ZoneTextFrame", "SubZoneTextFrame" }
 local OPTION_WIDGET = "RXPV2GuideConfiguratorOption"
 local RXP_MARGIN = 4
@@ -59,7 +59,6 @@ local rested = setmetatable({}, WEAK)
 local mice = setmetatable({}, WEAK)
 local peeked = setmetatable({}, WEAK)
 local arrows = setmetatable({}, WEAK)
-local yielding
 local washes = setmetatable({}, WEAK)
 local queued = setmetatable({}, WEAK)
 local done = setmetatable({}, WEAK)
@@ -67,7 +66,7 @@ local tips = setmetatable({}, WEAK)
 local hooks = {}
 local menu = { active = false, hooked = setmetatable({}, WEAK) }
 local dress = { panels = setmetatable({}, WEAK), veiled = setmetatable({}, WEAK), hooked = setmetatable({}, WEAK), dropped = setmetatable({}, WEAK) }
-local state = { rxp = nil, tracked = false, guide = nil }
+local state = { rxp = nil, tracked = false, guide = nil, yielding = nil, chips = setmetatable({}, WEAK) }
 
 local function Active()
 	return K.Modules.IsRunning(MODULE) and Skins.IsOn(KEY)
@@ -471,13 +470,6 @@ local function PaintCaption(text, entry)
 		Widgets.Fitted(caption, entry.room ~= nil and entry.room < size)
 		size = math.max(entry.own, math.min(size, entry.room or size))
 	end
-	if entry.compact then
-		Style.ApplyFont(caption, "caps", size)
-		local width = Widgets.TextWidth(caption, 0)
-		if Plain(width) and width > entry.compact then
-			size = size * entry.compact / width
-		end
-	end
 	Style.ApplyFont(caption, "caps", size)
 	Widgets.TextColor(caption, "capsGold")
 	if headings then caption:SetTextColor(Tokens.Color("capsGold")) end
@@ -552,7 +544,7 @@ local function CaptionFor(text, title, sized, heading)
 	end)
 	PaintCaption(text, entry)
 	local function word(value)
-		caption:SetText(K.Locale.Upper(entry.label or PlainText(value)))
+		caption:SetText(K.Locale.Upper(PlainText(value)))
 	end
 	entry.word = word
 	hooksecurefunc(text, "SetText", function(_, value)
@@ -571,15 +563,40 @@ function Chrome.Caption(text)
 	return captions[text] and captions[text].caption
 end
 
-function Chrome.Label(f, label, room)
-	local text = IsTable(f.title) and f.title.text
-	local entry = text and captions[text]
-	if not entry or entry.label == label and entry.compact == room then
+local function ChipIcons(f)
+	local l, r, t, b
+	for _, child in ipairs({ f:GetChildren() }) do
+		if child ~= f.title and child:GetObjectType() == "Button" and child:IsShown() then
+			local cl, cr, ct, cb = child:GetLeft(), child:GetRight(), child:GetTop(), child:GetBottom()
+			if Plain(cl) and Plain(cr) and Plain(ct) and Plain(cb) then
+				l, r, t, b = math.min(l or cl, cl), math.max(r or cr, cr), math.max(t or ct, ct), math.min(b or cb, cb)
+			end
+		end
+	end
+	return l, r, t, b
+end
+
+function Chrome.ChipWidth(f)
+	local l, r = ChipIcons(f)
+	local fl = f:GetLeft()
+	if not (l and Plain(fl)) then
+		return nil
+	end
+	return r - l + 2 * Tokens.Size(BADGE.chip), r - fl + l - fl
+end
+
+function Chrome.Chip(f, on)
+	on = on == true
+	if (state.chips[f] == true) == on then
 		return
 	end
-	entry.label, entry.compact = label, room
-	entry.word(text:GetText())
-	PaintCaption(text, entry)
+	state.chips[f] = on or nil
+	local title = f.title
+	if IsTable(title) then
+		title:SetShown(not on)
+		local heading = IsTable(title.text) and Parts.HeadingOf(Chrome.Caption(title.text))
+		if heading then heading.holder:SetShown(not on) end
+	end
 	Chrome.IconInset(f)
 end
 
@@ -887,7 +904,7 @@ local function PaintArrow(arrow)
 end
 
 local function Yield()
-	local text = yielding and yielding.text
+	local text = state.yielding and state.yielding.text
 	if not IsTable(text) then return end
 	local up = false
 	for _, name in ipairs(BANNERS) do
@@ -1373,7 +1390,7 @@ local function Arrow(rxp)
 	Hook(rxp, "SetupArrow", "SetupArrow", function()
 		PaintArrow(arrow)
 	end)
-	if not yielding then
+	if not state.yielding then
 		for _, name in ipairs(BANNERS) do
 			local banner = rawget(_G, name)
 			if IsTable(banner) and type(banner.HookScript) == "function" then
@@ -1382,7 +1399,7 @@ local function Arrow(rxp)
 			end
 		end
 	end
-	yielding = arrow
+	state.yielding = arrow
 end
 
 local function Highlight(button)
@@ -1487,10 +1504,6 @@ function Chrome.TipCaption(step)
 end
 
 local function CaptionReach(f, title)
-	local entry = IsTable(title) and IsTable(title.text) and captions[title.text]
-	if entry and entry.compact then
-		return nil
-	end
 	local caption = IsTable(title) and IsTable(title.text) and Chrome.Caption(title.text)
 	local x = caption and HangsLeft(title)
 	local width = f:GetWidth()
@@ -1506,12 +1519,24 @@ end
 
 function Chrome.IconInset(f)
 	local glass, title = Panel(f), f.title
-	local rise = TitleRise(f, title)
-	local top = rise > 0 and -(rise + Tokens.Size(TITLE_AIR)) or nil
-	local right = CaptionReach(f, title)
-	local inset = glass and type(glass.inset) == "table" and glass.inset or {}
-	if glass and (inset.top ~= top or inset.right ~= right) then
-		glass.inset = (top or right) and { top = top, right = right } or nil
+	local want
+	if state.chips[f] then
+		local l, _, t, b = ChipIcons(f)
+		local fl, ft, fb = f:GetLeft(), f:GetTop(), f:GetBottom()
+		local m = Tokens.Size(BADGE.chip)
+		if l and Plain(fl) and Plain(ft) and Plain(fb) then
+			local side = Widgets.Snap(f, l - fl - m)
+			want = { left = side, right = side, top = Widgets.Snap(f, ft - t - m), bottom = Widgets.Snap(f, b - fb - m) }
+		end
+	else
+		local rise = TitleRise(f, title)
+		local top = rise > 0 and -(rise + Tokens.Size(TITLE_AIR)) or nil
+		local right = CaptionReach(f, title)
+		want = (top or right) and { top = top, right = right } or nil
+	end
+	local inset, have = glass and type(glass.inset) == "table" and glass.inset or {}, want or {}
+	if glass and (inset.top ~= have.top or inset.right ~= have.right or inset.left ~= have.left or inset.bottom ~= have.bottom) then
+		glass.inset = want
 		glass:Restyle()
 	end
 end
@@ -2035,11 +2060,11 @@ local function IconControls(frame, known)
 					CloseButton(child)
 				elseif not done[child] then
 					if path:find("icon%-btn%-") then
-						child:SetSize(BADGE_BUTTON, BADGE_BUTTON)
+						child:SetSize(BADGE.button, BADGE.button)
 					elseif path:find("rxp%-icon%-cog") then
 						normal:ClearAllPoints()
-						normal:SetPoint("TOPLEFT", child, "TOPLEFT", BADGE_INSET, -BADGE_INSET)
-						normal:SetPoint("BOTTOMRIGHT", child, "BOTTOMRIGHT", -BADGE_INSET, BADGE_INSET)
+						normal:SetPoint("TOPLEFT", child, "TOPLEFT", BADGE.inset, -BADGE.inset)
+						normal:SetPoint("BOTTOMRIGHT", child, "BOTTOMRIGHT", -BADGE.inset, BADGE.inset)
 					end
 					IconControl(child, normal)
 				end

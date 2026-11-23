@@ -456,11 +456,11 @@ do
 		end
 		assert(right, "the name has a right anchor on its tile")
 		assert(right[4] <= -K.Tokens.Size("gapMedium"), "a gap in from the tile's edge, got " .. tostring(right[4]))
-		assert(W.LastCall(slot.Name, "SetWordWrap") == nil or W.LastCall(slot.Name, "SetWordWrap")[1] == true, "a long name may wrap to its second line")
+		assert(W.LastCall(slot.Name, "SetWordWrap") and W.LastCall(slot.Name, "SetWordWrap")[1] == false, "a long name keeps to one line and ends in an ellipsis: a 44-unit tile cannot hold two name lines over the price (polish audit B #34); the item tooltip carries the whole name")
 		local money = env[slot:GetName() .. "MoneyFrame"]
 		assert(select(2, money.GoldButton.Text:GetFont()) == K.Widgets.FontSize(money.GoldButton.Text, 12), "native coin amounts use secondary text without a MoneyFrame parentKey")
 		local point, parent, _, _, y = money:GetPoint(1)
-		assert(point == "BOTTOMLEFT" and parent == slot and math.abs(y) < 0.5, "native prices clear two-line item names")
+		assert(point == "BOTTOMLEFT" and parent == slot and math.abs(y) < 0.5, "native prices sit at the tile's foot, under the name")
 	end
 	assert(K.Safe.Side(made.buyback.ItemButton).partBItem, "the buyback item too")
 	assert(Hidden(made.repair.slot) and not Hidden(made.repair.Icon), "the repair button keeps its icon on a tile")

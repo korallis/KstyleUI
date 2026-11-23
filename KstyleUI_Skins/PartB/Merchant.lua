@@ -74,7 +74,7 @@ local function Slot(slot)
 		local vertical = type(point) == "string" and point:match("^(%u*)LEFT$")
 		if vertical and type(y) == "number" then
 			name:SetPoint(vertical .. "RIGHT", slot, vertical .. "RIGHT", -K.Tokens.Size("gapMedium"), y)
-			name:SetWordWrap(true)
+			name:SetWordWrap(false)
 			return
 		end
 	end
