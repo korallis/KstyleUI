@@ -187,6 +187,16 @@ class WorkflowsTest(unittest.TestCase):
         self.assertIn("gh release upload", release)
         self.assertNotIn("gh release upload", check)
         self.assertRegex(release, r"zip -r .*Interface", "the zip holds the Interface/Icons tree")
+        packager = release.index("uses: BigWigsMods/packager@")
+        for step in ("actions/setup-python@", "pip install Pillow", "Tools/icons/iconset.py pack"):
+            self.assertLess(release.index(step), packager, f"{step} can fail: run it before the packager publishes")
+        self.assertLess(packager, release.index("gh release upload"))
+
+    def test_reused_release_proof_downloads_no_lint_or_python_suite_tools(self):
+        check = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))["check"]
+        for step in check.split("\n      - "):
+            if re.search(r"luarocks|pre-commit|luajit", step):
+                self.assertIn("if: steps.proof.outputs.run != 'false'", step, "only the lint and Python checks need these")
 
     def test_release_page_shows_only_its_version_after_the_upload(self):
         release = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))["release"]
@@ -357,6 +367,10 @@ class WorkflowsTest(unittest.TestCase):
             jobs = jobs_of(text)
             self.assertTrue(jobs, path.name)
             for job, body in jobs.items():
+                runner = re.search(r"(?m)^    runs-on: (.+)$", body).group(1)
+                expected = "[self-hosted, mac-ci, KstyleUI]" if path.name == "mac-budgets.yml" else "ubuntu-latest"
+                self.assertEqual(runner, expected, f"{path.name}: {job}: gates run on GitHub-hosted runners; "
+                                 "only mac-budgets.yml uses the Macs, and nothing requires or awaits it")
                 if "self-hosted" in body:
                     self.assertNotRegex(body, r"\bsudo\b|apt(-get)?\s+(update|install)", f"{path.name}: {job} runs on the owner's Mac: no sudo or apt there")
                 guard = re.search(r"(?m)^    if: (.*)$", body)
@@ -364,14 +378,11 @@ class WorkflowsTest(unittest.TestCase):
                 expected = "github.event_name == 'workflow_dispatch'" if job == "discord-repost" else "github.event_name == 'push'"
                 self.assertEqual(guard.group(1), expected if path.name == "release.yml" else FORK_GUARD,
                                  f"{path.name}: {job}")
-
-    def test_only_the_mac_budget_monitor_runs_on_the_macs(self):
-        for path in workflows():
-            for job, body in jobs_of(path.read_text(encoding="utf-8")).items():
-                runner = re.search(r"(?m)^    runs-on: (.+)$", body).group(1)
-                expected = "[self-hosted, mac-ci, KstyleUI]" if path.name == "mac-budgets.yml" else "ubuntu-latest"
-                self.assertEqual(runner, expected, f"{path.name}: {job}: gates run on GitHub-hosted runners; "
-                                 "only mac-budgets.yml uses the Macs, and nothing requires or awaits it")
+        monitor = WORKFLOWS / "mac-budgets.yml"
+        self.assertIn(monitor, workflows(), "the Macs keep measuring CPU budgets in mac-budgets.yml")
+        text = monitor.read_text(encoding="utf-8")
+        self.assertIn("\n  push:\n    branches: [staging]\n", text)
+        self.assertIn('bash scripts/gate.sh lua --shard "$SHARD/5"', text)
 
     def test_no_workflow_runs_on_an_event_that_carries_fork_code_past_the_guard(self):
         for path in workflows():
