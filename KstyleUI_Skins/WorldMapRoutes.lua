@@ -1,4 +1,4 @@
--- WorldMapRoutes.lua: client destinations, road routes and travel steps beside the world map.
+-- WorldMapRoutes.lua: client destinations, road routes and travel steps, hearth and teleports included, beside the world map.
 local _, ns = ...
 
 local K = KstyleUI
@@ -11,13 +11,17 @@ local Roads = ns.WorldMapRoads
 local map, panel, search, card, title, distance, note, clear
 local active, previousCVar, previousWaypoint, previousTrack, ownsWaypoint
 local target, canvas, elapsed = nil, nil, 0
-local routeX, routeY, routeMap, routeTarget, routeMounted, routeRoads
+local routeX, routeY, routeMap, routeTarget, routeMounted, routeRoads, routeTravel
 local routePlayerMap, routePlayerX, routePlayerY
 local routeWidth, routeHeight, routeScale, routeContinent
 local steps, stepChild, chip
 local results, dots, startDots, zones, stepRows, stepAmounts = {}, {}, {}, {}, {}, {}
 local hooked = setmetatable({}, { __mode = "k" })
 local CVAR = "showDungeonEntrancesOnMap"
+local HEARTH, RECALL = 6948, 556
+local TELEPORTS = { [3561] = "Stormwind", [10059] = "Stormwind", [3562] = "Ironforge", [11416] = "Ironforge", [3563] = "The Undercity", [11418] = "The Undercity",
+	[3565] = "Darnassus", [11419] = "Darnassus", [3566] = "Thunder Bluff", [11420] = "Thunder Bluff", [3567] = "Orgrimmar", [11417] = "Orgrimmar",
+	[18960] = "Nighthaven", [1297659] = "Dalaran", [RECALL] = true }
 
 local function Secret(value)
 	return type(issecretvalue) == "function" and issecretvalue(value)
@@ -221,13 +225,13 @@ local function DrawRoute(x, y, tx, ty, road, continent, moving)
 		pool, count = index == 1 and startDots or dots, index <= 2 and 0 or count
 		local px, py
 		for i = 1, #leg.pts, 2 do
-			local mapID, point = Call(C_Map, "GetMapPosFromWorldPos", continent, CreateVector2D(leg.pts[i], leg.pts[i + 1]), MapID())
+			local mapID, point = Call(C_Map, "GetMapPosFromWorldPos", leg.map or continent, CreateVector2D(leg.pts[i], leg.pts[i + 1]), MapID())
 			local ax, ay
 			if Number(mapID) == MapID() and Plain(point, "table") and type(point.GetXY) == "function" then
 				ax, ay = point:GetXY()
 				ax, ay = Number(ax), Number(ay)
 			end
-			if ax and ay and px then Segment(px, py, ax, ay, leg.kind, leg.dashed or leg.kind == "flight" or leg.kind == "boat") end
+			if ax and ay and px then Segment(px, py, ax, ay, leg.kind, leg.dashed or leg.kind == "flight" or leg.kind == "boat" or leg.kind == "zeppelin" or leg.kind == "tram") end
 			px, py = ax, ay
 		end
 		if leg.turn and px then Dot(px, py, leg.kind, true) end
@@ -245,14 +249,14 @@ local function World(id, x, y)
 end
 Routes.Plain, Routes.Number, Routes.Call, Routes.Field, Routes.XY, Routes.World = Plain, Number, Call, Field, XY, World
 
-function Routes.Flights(graph, playerMap, continent)
+function Routes.Flights(graph, uiMap, continent)
 	if not graph.flights then
 		graph.flights = {}
 		for _, node in ipairs(graph.nodes) do if node.kind == "flight" then graph.flights[#graph.flights + 1] = node end end
 	end
 	local flights, faction = {}, type(UnitFactionGroup) == "function" and Plain(UnitFactionGroup("player"), "string")
 	local factions = type(Enum) == "table" and Plain(Enum.FlightPathFaction, "table")
-	local continentMap = playerMap
+	local continentMap = uiMap
 	local continentType = type(Enum) == "table" and Field(Enum.UIMapType, "Continent", "number")
 	if not continentType then continentMap = nil end
 	while continentMap do
@@ -270,11 +274,45 @@ function Routes.Flights(graph, playerMap, continent)
 			local taxiContinent, fx, fy
 			if mx then taxiContinent, fx, fy = World(continentMap, mx, my) end
 			for _, node in ipairs(graph.flights) do
-				if node.name == name or (taxiContinent == continent and (node.x - fx) ^ 2 + (node.y - fy) ^ 2 <= 3600) then flights[node.id] = true end
+				if node.name == name or (taxiContinent == (node.map or continent) and (node.x - fx) ^ 2 + (node.y - fy) ^ 2 <= 3600) then flights[node.id] = true end
 			end
 		end
 	end
 	return flights
+end
+
+local function Place(graph, name)
+	for _, node in ipairs(name and graph.nodes or {}) do
+		if node.name == name or node.name:match("^(.-),") == name then return node end
+	end
+end
+
+local function Wait(start, duration)
+	start, duration = Number(start), Number(duration)
+	local now = type(GetTime) == "function" and Number(GetTime())
+	if start and duration and now then return math.max(0, start + duration - now) end
+end
+
+local function Teleports(graph)
+	local options = {}
+	local bind = type(GetBindLocation) == "function" and Plain(GetBindLocation(), "string")
+	local home = Place(graph, bind)
+	local function Offer(kind, name, node, wait, cast)
+		if node and name and wait then options[#options + 1] = { kind = kind, name = name, seconds = wait + cast, map = node.map or graph.map, x = node.x, y = node.y } end
+	end
+	if (Number(Call(C_Item, "GetItemCount", HEARTH)) or 0) > 0 then
+		local item = Plain(Call(C_Item, "GetItemNameByID", HEARTH), "string")
+		Offer("hearth", item and string.format(L["%s to %s"], item, bind), home, Wait(Call(C_Item, "GetItemCooldown", HEARTH)), 10)
+	end
+	for id, place in pairs(TELEPORTS) do
+		if Plain(Call(C_SpellBook, "IsSpellKnown", id), "boolean") == true and Plain(Call(C_Spell, "IsSpellUsable", id), "boolean") ~= false then
+			local info, cooldown = Call(C_Spell, "GetSpellInfo", id), Call(C_Spell, "GetSpellCooldown", id)
+			local name = Field(info, "name", "string")
+			Offer(place == true and "hearth" or "teleport", place == true and name and string.format(L["%s to %s"], name, bind) or name, place == true and home or Place(graph, place),
+				Wait(Field(cooldown, "startTime", "number"), Field(cooldown, "duration", "number")), (Number(Field(info, "castTime", "number")) or 10000) / 1000)
+		end
+	end
+	return options
 end
 
 local function RoadRoute(mounted, playerMap, x, y, moving)
@@ -283,10 +321,15 @@ local function RoadRoute(mounted, playerMap, x, y, moving)
 	if moving and continent and continent == routeContinent and Roads.MoveStart(Routes.road, wx, wy, mounted) then return Routes.road, nil, continent, true end
 	local targetContinent, tx, ty = World(target.mapID, target.x, target.y)
 	if not continent or not targetContinent then return nil, L["Road coordinates unavailable."] end
-	if continent ~= targetContinent then return nil, L["Destination is on another continent."] end
-	local graph = Roads.Graph(continent)
+	local travel = On("travelStops")
+	local graph = continent == targetContinent and Roads.Graph(continent) or travel and Roads.World()
+	if not graph and continent ~= targetContinent then return nil, L["Destination is on another continent."] end
 	if not graph then return nil, L["Road data unavailable for this continent."] end
-	local route = Roads.Solve(graph, wx, wy, tx, ty, mounted, Routes.Flights(graph, playerMap, continent))
+	local flights = Routes.Flights(graph, playerMap, continent)
+	if continent ~= targetContinent then
+		for id in pairs(Routes.Flights(graph, target.mapID, targetContinent)) do flights[id] = true end
+	end
+	local route = Roads.Solve(graph, wx, wy, tx, ty, mounted, flights, travel and { continent = continent, target = targetContinent, options = Teleports(graph) } or nil)
 	return route, not route and L["No connected road route."] or nil, continent
 end
 
@@ -328,7 +371,7 @@ RefreshRoute = function()
 		if playerMap == target.mapID then x, y = playerX, playerY
 		else x, y = XY(Call(C_Map, "GetPlayerMapPosition", target.mapID, "player")) end
 	end
-	local reusable = target == routeTarget and mounted == routeMounted and On("followRoads") == routeRoads and playerMap == routePlayerMap
+	local reusable = target == routeTarget and mounted == routeMounted and On("followRoads") == routeRoads and On("travelStops") == routeTravel and playerMap == routePlayerMap
 	local moving = reusable and id == routeMap and width == routeWidth and height == routeHeight and scale == routeScale
 	if not moving or playerX ~= routePlayerX or playerY ~= routePlayerY or x ~= routeX or y ~= routeY then
 		local road, reason, continent, startOnly
@@ -344,7 +387,7 @@ RefreshRoute = function()
 			card:SetSize(280, 142)
 			title:SetWidth(250); distance:SetWidth(250); note:SetSize(250, 18)
 		end
-		routeX, routeY, routeMap, routeTarget, routeMounted, routeRoads = x, y, id, target, mounted, On("followRoads")
+		routeX, routeY, routeMap, routeTarget, routeMounted, routeRoads, routeTravel = x, y, id, target, mounted, On("followRoads"), On("travelStops")
 		routePlayerMap, routePlayerX, routePlayerY = playerMap, playerX, playerY
 		routeWidth, routeHeight, routeScale, routeContinent = width, height, scale, continent
 	end
@@ -432,7 +475,7 @@ end
 function Routes.ShowSteps(road)
 	local rows = {}
 	for _, leg in ipairs(road.legs) do
-		if leg.len > 0 then
+		if leg.len > 0 or leg.kind == "hearth" or leg.kind == "teleport" then
 			local last = rows[#rows]
 			if last and not last.stop and last.kind == leg.kind and (leg.kind == "walk" or leg.kind == "swim") and not leg.dashed and not last.dashed then
 				last.to, last.len, last.seconds = leg.to or last.to, last.len + leg.len, last.seconds + leg.seconds
@@ -450,6 +493,9 @@ function Routes.ShowSteps(road)
 		local label
 		if leg.kind == "flight" then label = string.format(L["Flight from %s to %s"], leg.from, leg.to)
 		elseif leg.kind == "boat" then label = string.format(L["Boat to %s"], leg.to)
+		elseif leg.kind == "zeppelin" then label = string.format(L["Zeppelin to %s"], leg.to)
+		elseif leg.kind == "tram" then label = string.format(L["Tram to %s"], leg.to)
+		elseif leg.kind == "hearth" or leg.kind == "teleport" then label = leg.to
 		elseif leg.kind == "lift" then label = string.format(L["Lift to %s"], leg.to)
 		elseif leg.kind == "swim" then label = L["Swim"]
 		else label = string.format(leg.dashed and L["Off road to %s"] or L["Road to %s"], leg.to or target.name) end
@@ -462,7 +508,8 @@ function Routes.ShowSteps(road)
 		amount:ClearAllPoints()
 		amount:SetPoint("TOPLEFT", 0, -top - height)
 		amount:SetSize(274, 18)
-		amount:SetText(string.format(L["%d yd - about %d min"], math.floor(leg.len + 0.5), math.max(1, math.ceil(leg.seconds / 60))))
+		local minutes = math.max(1, math.ceil(leg.seconds / 60))
+		amount:SetText(leg.len > 0 and string.format(L["%d yd - about %d min"], math.floor(leg.len + 0.5), minutes) or string.format(L["About %d min"], minutes))
 		amount:Show()
 		height = height + 26
 		text:Show()
@@ -650,6 +697,7 @@ def.rows = def.rows or {}
 for _, row in ipairs({
 	{ "routes", L["Search and routes"], L["Search client destinations and show a route with estimated travel time."] },
 	{ "followRoads", L["Follow roads"], L["Follow roads, flights and boats when connected; use a straight line otherwise."] },
+	{ "travelStops", L["Travel stops"], L["Add zeppelins, the tram, sea crossings, your hearthstone and teleports when they are faster."] },
 	{ "dungeonLevels", L["Dungeon level ranges"], L["Show the client's level range in dungeon and raid entrance tooltips."] },
 	{ "zoneLevels", L["Zone level ranges"], L["Show zone level ranges on continent maps."] },
 	{ "entrances", L["Dungeon entrances"], L["Show Blizzard's dungeon and raid entrance pins on the map."] },

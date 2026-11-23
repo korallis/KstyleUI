@@ -44,6 +44,7 @@ local solves, projections = 0, 0
 local solve, project = Roads.Solve, env.C_Map.GetMapPosFromWorldPos
 Roads.Solve = function(...) solves = solves + 1; return solve(...) end
 env.C_Map.GetMapPosFromWorldPos = function(...) projections = projections + 1; return project(...) end
+graph.adj = nil -- the loaded constructor returns this already-solved fixture, and loading renumbers it
 R.Pick({ mapID = 1, name = "Crossroads", x = 0.72, y = 0.36 })
 assert(state.loads == 1 and state.constructs == 1 and R.road, "the first route loads and constructs its continent once")
 assert(R.road.seconds == 200 and R.steps[1]:GetText():find("Road to Crossroads", 1, true), "road steps combine bends into a readable destination")

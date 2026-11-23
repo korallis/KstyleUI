@@ -17,22 +17,32 @@ return Common.Run(function()
 	}))
 	Fixture.Install(env, state)
 	local graph = assert(ns.WorldMapRoads.Graph(1))
-	local flight = os.getenv("RENDER_MAP_TRIP") == "flight"
+	local trip = os.getenv("RENDER_MAP_TRIP") or "foot"
+	local flight = trip == "flight"
+	local ends = ({ foot = { "Razor Hill", "The Crossroads" }, flight = { "Orgrimmar", "Thunder Bluff" }, hearth = { "Thunder Bluff", "Orgrimmar" }, zeppelin = { "Razor Hill", "The Undercity" } })[trip]
+	local far = trip == "zeppelin" and assert(ns.WorldMapRoads.Graph(0)) or graph
 	local from, to
 	for _, node in ipairs(graph.nodes) do
-		if node.name == (flight and "Orgrimmar" or "Razor Hill") then from = node end
-		if node.name == (flight and "Thunder Bluff" or "The Crossroads") then to = node end
+		if node.name == ends[1] then from = node end
+	end
+	for _, node in ipairs(far.nodes) do
+		if node.name == ends[2] then to = node end
 	end
 	assert(from and to)
+	if trip == "hearth" then
+		env.GetTime = function() return 1000 end
+		env.GetBindLocation = function() return "Razor Hill" end
+		env.C_Item = { GetItemCount = function() return 1 end, GetItemNameByID = function() return "Hearthstone" end, GetItemCooldown = function() return 0, 0 end }
+	end
 	local loX, hiX, loY, hiY = -4000, 3500, -10500, 500
 	local function Project(x, y) return (hiY - y) / (hiY - loY), (hiX - x) / (hiX - loX) end
 	state.playerX, state.playerY = Project(from.x, from.y)
-	env.C_Map.GetWorldPosFromMapPos = function(_, point)
+	env.C_Map.GetWorldPosFromMapPos = function(id, point)
 		local x, y = point:GetXY()
-		return 1, M.Vector(hiX - y * (hiX - loX), hiY - x * (hiY - loY))
+		return id == 2 and 0 or 1, M.Vector(hiX - y * (hiX - loX), hiY - x * (hiY - loY))
 	end
-	env.C_Map.GetMapPosFromWorldPos = function(_, point, id)
-		return id, M.Vector(Project(point:GetXY()))
+	env.C_Map.GetMapPosFromWorldPos = function(continent, point, id)
+		if continent == 1 then return id, M.Vector(Project(point:GetXY())) end
 	end
 	env.C_Map.GetMapWorldSize = function() return hiY - loY, hiX - loX end
 	env.C_TaxiMap.GetTaxiNodesForMap = function()
@@ -55,6 +65,7 @@ return Common.Run(function()
 	M.S.W.Settle(env)
 	local R = ns.WorldMapRoutes
 	if os.getenv("RENDER_MAP_BEFORE") == "1" then K.Options.Write("Skins", "worldMap.followRoads", false) end
+	if os.getenv("RENDER_MAP_TRAVEL") == "0" then K.Options.Write("Skins", "worldMap.travelStops", false) end
 	local x, y = Project(to.x, to.y)
 	local services, quest, off = os.getenv("RENDER_MAP_SERVICES") == "1", os.getenv("RENDER_MAP_QUEST"), os.getenv("RENDER_MAP_OFF") == "1"
 	if off then
@@ -84,7 +95,7 @@ return Common.Run(function()
 	elseif services and not off then
 		R.Pick({ nearest = "inn" })
 	else
-		R.Pick({ mapID = 1, name = to.name, x = x, y = y })
+		R.Pick({ mapID = trip == "zeppelin" and 2 or 1, name = to.name, x = x, y = y })
 	end
 	if services then
 		R.search:SetText("")
@@ -95,6 +106,12 @@ return Common.Run(function()
 		local found
 		for _, leg in ipairs(R.road.legs) do found = found or leg.kind == "flight" end
 		assert(found, "the capital journey must use a flight")
+	end
+	if trip == "hearth" then assert(R.road and R.road.option, "the hearth journey must start with the hearthstone") end
+	if trip == "zeppelin" then
+		local found
+		for _, leg in ipairs(R.road and R.road.legs or {}) do found = found or leg.kind == "zeppelin" end
+		assert(found, "the Undercity journey must take the zeppelin")
 	end
 	local scene = Gallery.Build(env)
 	scene.log[#scene.log + 1] = art and "Client-extracted Kalimdor art, real shipped graph; player and discovered taxi state are fixtures." or "Map art unavailable; route uses the real shipped graph on the fixture canvas."
