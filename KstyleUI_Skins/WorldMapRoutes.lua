@@ -630,7 +630,7 @@ local function Build()
 	end)
 	clear = Widgets.Button(card, { width = 80, height = 24, text = L["Clear"], onClick = Routes.Clear })
 	clear:SetPoint("BOTTOMRIGHT", -12, 10)
-	panel:SetScript("OnHide", function() panel:SetScript("OnUpdate", nil) end)
+	panel:SetScript("OnHide", function() panel:SetScript("OnUpdate", nil); search:SetText(""); Hide(results) end)
 	panel:SetScript("OnShow", RefreshRoute)
 	Routes.panel, Routes.search, Routes.card, Routes.distance, Routes.note, Routes.chip, Routes.steps = panel, search, card, distance, note, chip, stepRows
 end
