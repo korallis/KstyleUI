@@ -4,6 +4,7 @@ local vehicle = false
 env.UnitHasVehicleUI = function() return vehicle end
 env.CanExitVehicle = function() return vehicle end
 env._game.forms[1] = { texture = 132089, spellID = 7001 }
+K.Options.Write("Rest", "enabled", false)
 AB.Enable(env, K)
 local leave, bar = ns.leaveButton, ns.bars.bar1
 

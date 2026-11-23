@@ -30,8 +30,10 @@ local function New(class, power, size)
 			end
 		end,
 	})
+	K.Options.Write("Rest", "enabled", false)
 	AB.Enable(env, K)
-	-- The jewels alone: a rogue's crown of blades listens too, and test-actionbars-medallions-crown covers it.
+	-- The jewels alone: a rogue's crown of blades listens too, and test-actionbars-medallions-crown covers it; the clean
+	-- screen, off above, reads the main power, and test-layout-rest covers it.
 	local profile = K.Store.Profile()
 	profile.UnitFrames = profile.UnitFrames or {}
 	profile.UnitFrames.resource = { classPips = false }
