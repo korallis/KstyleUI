@@ -1,5 +1,9 @@
 -- SlabVigil.lua: the priest's crest trackers, registered with SlabTrackers, each on its own switch: Inner Fire as a halo round the inner rim and four flames on gilt studs, five charges each, burning down from the top right as hits spend them (the last flickers and the halo dims while Lua can read the count); Penance, or Mind Blast before it and for a shadow priest, sweeping on the left shoulder medal and flaring when ready; on the right Shadowfiend for a holy or discipline priest, Shadowform for a shadow priest (steel until worn) and in Shadowform your Vampiric Embrace on the target; your Shadow Word: Pain as a shadow gem at the top of the ring (a healer's Prayer of Mending ready from level 40); a healer's shield, Renew and Prayer of Mending on the target in the top medal; a shadow priest's Devouring Plague on the target and Shadow Word: Death ready on the foot perches and Silence ready in a ring socket; a main-hand oil socket while an oil is in the bags or on the weapon; and the major cooldowns burning on the rim. Under Frames Inner Fire is a medal in the row. Aura slots, cooldown duration objects and the engine's shown animations draw every piece, so Lua never reads or compares a secret.
 local _, ns = ...
+local class = select(2, UnitClass("player"))
+if class ~= "PRIEST" and class ~= "DRUID" then
+	return
+end
 
 local K = KstyleUI
 local Effects, Medals, Widgets = K.Effects, ns.SlabMedals, K.Widgets
@@ -131,20 +135,13 @@ end
 
 local function Read()
 	local read = C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID
-	if not (read and state.fire and state.fire:IsVisible()) or Medals.Restricted() then
+	if not (read and state.rank and state.fire and state.fire:IsVisible()) or Medals.Restricted() then
 		return nil
 	end
-	local aura = state.rank and read(state.rank)
-	if not aura then
-		for _, id in ipairs(INNER_FIRE) do
-			aura = read(id)
-			if aura then
-				state.rank = id
-				break
-			end
-		end
+	local aura, n = read(state.rank), 0
+	if aura then
+		n = aura.applications
 	end
-	local n = aura and aura.applications or 0
 	return not IsSecret(n) and type(n) == "number" and n or nil
 end
 
@@ -161,12 +158,18 @@ local function Paint(_, event, _, _, spellID)
 			Medals.Fire(state.fire)
 			Count(CHARGES)
 		end
-	else
+	elseif event == nil or event == "UNIT_AURA" then
+		if event == nil then
+			state.rank = Medals.Known(INNER_FIRE)
+		end
 		Count(Read())
 	end
 end
 
 ns.SlabVigil = { Oil = Oil, Flask = Flask }
+if class ~= "PRIEST" then
+	return
+end
 
 ns.SlabTrackers.Register("PRIEST", {
 	{ key = "crestInnerFire", seat = "rim", feed = "aura", spells = INNER_FIRE, build = Fire, place = Ring },

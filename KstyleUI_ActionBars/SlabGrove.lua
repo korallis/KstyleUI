@@ -1,5 +1,8 @@
 -- SlabGrove.lua: the druid's crest trackers, registered with SlabTrackers, each on its own switch and a full crest in every form: the shoulder medals show your effects on the target with their icon and a ring that drains over their time (as a caster, moonkin or in travel and aquatic form Moonfire or Rejuvenation on the left and Insect Swarm or Regrowth on the right; Rake and Rip in Cat Form; Demoralizing Roar and Faerie Fire in Bear Form); Clearcasting blooms leaves round the inner rim over a druid glow; the gem at the top of the ring follows the form: Swiftmend's cooldown (or Nature's Swiftness's, or Innervate's) as a caster, Nature's Swiftness's (or Innervate's) as a moonkin, your Faerie Fire on the target in Cat Form and Maul queued in Bear Form; a third medal at the top shows your Faerie Fire on an enemy or Wild Growth on a friend as a caster and Faerie Fire as a moonkin; Rake shares its medal with Pounce's bleed; a bear gets the tank glow while it holds the target's threat, Growl and Feral Charge ready on the foot perches and Primal Bite and Bash ready in the ring sockets, where a caster sees a main-hand oil socket while an oil is in the bags or on the weapon; and the major cooldowns burn on the rim. Every form's choice is built out of combat, so a shift only shows one; aura slots, cooldown duration objects and the engine's shown animations draw the timers, so Lua never reads or compares a secret.
 local _, ns = ...
+if select(2, UnitClass("player")) ~= "DRUID" then
+	return
+end
 
 local K = KstyleUI
 local Medals, Widgets = ns.SlabMedals, K.Widgets
