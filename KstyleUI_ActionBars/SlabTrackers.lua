@@ -502,7 +502,7 @@ local function Tank(spec)
 	return { key = "crestTankGlow", seat = "rim", feed = "threat", crestOnly = true, build = Medals.Emblem, color = "gilt", choices = { spec } }
 end
 
-local _, CLASS = UnitClass("player")
+local CLASS = UnitClass and select(2, UnitClass("player"))
 
 if CLASS == "WARRIOR" then
 	Trackers.Register("WARRIOR", {
