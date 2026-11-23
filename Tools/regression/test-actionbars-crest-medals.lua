@@ -109,5 +109,19 @@ do
 	assert(m.lit:IsShown(), "a secret answer keeps the last state")
 end
 
+do
+	env._slotAuras.player = nil
+	local rim = Medals.CooldownRim(parent, { spells = { 1719, 871, 12328, 20230 }, color = "gilt", burst = "medBurstWarrior" }, 5)
+	Medals.Engine({ rim }, true, true)
+	assert(#rim.stack == 3, "three stack buttons made up front")
+	Slots.Set(env, "player", { { id = 1719, count = 0, icon = 1, start = 0, duration = 15 }, { id = 871, count = 0, icon = 2, start = 0, duration = 10 } })
+	assert(rim.lit:IsShown() and rim.lit:GetParent() and AB.W.LastCall(rim.timer, "SetCooldownFromDurationObject")[1].finish == 10, "the newest cooldown burns on the rim")
+	assert(rim.stack[1]:IsShown() and rim.stack[1].icon._state.Texture[1] == 2 and rim.stack[2].icon._state.Texture[1] == 1 and not rim.stack[3]:IsShown(), "the stack shows each, newest first")
+	Slots.Set(env, "player", { { id = 1719, count = 0, icon = 1, start = 0, duration = 15 }, { id = 871, count = 0, icon = 2, start = 0, duration = 10 }, { id = 12328, count = 0, icon = 3, start = 0, duration = 30 }, { id = 20230, count = 0, icon = 4, start = 0, duration = 15 } })
+	assert(rim.stack[1].icon._state.Texture[1] == 4 and rim.stack[3]:IsShown(), "four up: the three newest show")
+	Slots.Set(env, "player", nil)
+	assert(not rim.lit:IsShown() and not rim.stack[1]:IsShown(), "none up: nothing shows")
+end
+
 assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 print("actionbars crest medals ok")

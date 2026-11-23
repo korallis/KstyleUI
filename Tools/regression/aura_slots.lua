@@ -13,7 +13,11 @@
 --
 -- SetIcon, SetDurationCooldown and SetDurationBar take regions the button owns and show the aura's icon and its
 -- { start, finish } duration (an aura's start and duration, seconds); AddItemEnchantment's button shows the enchant
--- Slots.Enchant gives its slot, as Blizzard_CustomAuraContainer.lua:488-507 does.
+-- Slots.Enchant gives its slot, as Blizzard_CustomAuraContainer.lua:488-507 does. A slot or group sorted by
+-- AuraInstanceIDOnly, Reverse takes the newest matching aura first (the last in the unit's list); AddAuraGroup makes
+-- maxFrameCount buttons up front through initializeFrame, shows one per match in a left-to-right row of its layout's
+-- elementWidth and elementSpacing from the container's top left, and sizes the container to the row
+-- (Blizzard_CustomAuraContainer.lua:286-328).
 --
 -- A bar fed with ExponentialEaseOut on an update keeps bar._ease = { from, to, at = env._now } so the render
 -- harness can draw the sweep (Tools/render/scene.lua, BarFraction).
@@ -48,8 +52,7 @@ function Slots.Feed(env, c)
 		elseif c._enabled == true then
 			for _, a in ipairs(env._slotAuras[c._unit] or {}) do
 				if Matches(a, slot.filter, slot.candidates) then
-					aura = a
-					break
+					aura = aura and not slot.newest and aura or a
 				end
 			end
 		end
@@ -66,6 +69,30 @@ function Slots.Feed(env, c)
 			bar:SetValue(env.Secret(count), update and o.interpolation or 0)
 			bar:SetShown(count >= o.minApplications)
 		end
+		Slots.Show(env, c, slot, aura)
+	end
+	for _, group in pairs(c._groups or {}) do
+		local matches = {}
+		for _, a in ipairs(c._enabled == true and env._slotAuras[c._unit] or {}) do
+			if Matches(a, group.filter, group.candidates) then table.insert(matches, 1, a) end
+		end
+		local o = group.layout or {}
+		local w, gap, shown = o.elementWidth or 30, o.elementSpacing or 0, 0
+		for i, frame in ipairs(group.frames) do
+			Slots.Show(env, c, group.slots[i], matches[i])
+			if matches[i] then
+				frame:ClearAllPoints()
+				frame:SetSize(w, o.elementHeight or w)
+				frame:SetPoint("TOPLEFT", c, "TOPLEFT", (i - 1) * (w + gap), 0)
+				shown = i
+			end
+		end
+		c:SetSize(math.max(1, shown * w + math.max(0, shown - 1) * gap), o.elementHeight or w)
+	end
+end
+
+function Slots.Show(env, c, slot, aura)
+	do
 		local b = slot.frame
 		local timed = aura and aura.duration and { start = aura.start or env._now or 0, finish = (aura.start or env._now or 0) + aura.duration }
 		if b._icon and aura then
@@ -140,6 +167,8 @@ end
 function Slots.Install(env)
 	env._slotAuras, env._slotContainers, env._slotEnchants = env._slotAuras or {}, {}, env._slotEnchants or {}
 	env.AuraContainerItemEnchantmentSlot = env.AuraContainerItemEnchantmentSlot or { MainHand = 1, OffHand = 2, Ranged = 3 }
+	env.AuraContainerSortMethod = env.AuraContainerSortMethod or { Default = 0, Expiration = 4, AuraInstanceIDOnly = 8 }
+	env.AuraContainerSortDirection = env.AuraContainerSortDirection or { Normal = 0, Reverse = 1 }
 	env.Enum = env.Enum or {}
 	env.Enum.StatusBarInterpolation = env.Enum.StatusBarInterpolation or { Immediate = 0, ExponentialEaseOut = 1 }
 	local create = env.CreateFrame
@@ -159,9 +188,24 @@ function Slots.Install(env)
 			assert(type(key) == "string" and key ~= "" and not self._slots[key], "aura slot keys are unique non-empty strings")
 			local button = Button(env, self, create("Frame", nil, self))
 			button:Hide()
-			self._slots[key] = { filter = filter, frame = button, candidates = options and options.candidateFilters }
+			local sort, direction = env.AuraContainerSortMethod, env.AuraContainerSortDirection
+			self._slots[key] = { filter = filter, frame = button, candidates = options and options.candidateFilters,
+				newest = options and sort and options.sortMethod == sort.AuraInstanceIDOnly and options.sortDirection == direction.Reverse }
 			Slots.Feed(env, self)
 			return button
+		end
+		function c.AddAuraGroup(self, key, filter, options)
+			self._groups = self._groups or {}
+			assert(not self._groups[key], "aura group keys are unique")
+			local group = { filter = filter, candidates = options.candidateFilters, layout = options.layout, frames = {}, slots = {} }
+			for i = 1, math.min(options.maxFrameCount or 8, 8) do
+				local button = Button(env, self, create("Frame", nil, self))
+				button:Hide()
+				if options.initializeFrame then options.initializeFrame(button) end
+				group.frames[i], group.slots[i] = button, { frame = button }
+			end
+			self._groups[key] = group
+			Slots.Feed(env, self)
 		end
 		function c.AddItemEnchantment(self, slot)
 			local key = "enchant" .. tostring(slot)
