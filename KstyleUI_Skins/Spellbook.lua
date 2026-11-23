@@ -111,7 +111,7 @@ local function Header(frame)
 	items[frame] = true
 	Parts.Hush(frame.Backplate)
 	Parts.Divider(frame, frame.Border)
-	Style.Text(frame.Text, "display", "textEmphasis")
+	Style.Title(frame.Text)
 end
 
 local function PageFrame(frame)

@@ -1268,7 +1268,12 @@ function build.merchant(env, B)
 	Anchor(buyback, merchant.Inset, "BOTTOMLEFT", 8, 8)
 	buyback.ItemButton = Item(B, buyback, ICONS[15], 37)
 	Anchor(buyback.ItemButton, buyback, "LEFT", 3, 0)
-	Text(B.text(buyback), "Buyback", "LEFT", buyback, "LEFT", 46, 0)
+	-- MerchantFrame.lua:417-425: the slot shows the item sold last, its name and buyback price, as the goods do.
+	buyback.Name = Text(B.add(buyback:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")), "Linen Cloth", "TOPLEFT", buyback, "TOPLEFT", 46, -1)
+	buyback.Name:SetSize(100, 30)
+	buyback.Name:SetJustifyH("LEFT")
+	buyback.Name:SetJustifyV("TOP")
+	buyback.MoneyFrame = Text(B.text(buyback), "8c", "BOTTOMLEFT", buyback, "BOTTOMLEFT", 46, 4)
 	local x = 180
 	for _, name in ipairs({ "MerchantRepairItemButton", "MerchantRepairAllButton", "MerchantGuildBankRepairButton", "MerchantSellAllJunkButton" }) do
 		local button = B.frame("Button", merchant, name)

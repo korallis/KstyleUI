@@ -2033,7 +2033,7 @@ local function IconControls(frame, known)
 			if type(path) == "string" and not Widgets.IsSecret(path) then
 				if path:find("rxp%-btn%-close") then
 					CloseButton(child)
-				else
+				elseif not done[child] then
 					if path:find("icon%-btn%-") then
 						child:SetSize(BADGE_BUTTON, BADGE_BUTTON)
 					elseif path:find("rxp%-icon%-cog") then
