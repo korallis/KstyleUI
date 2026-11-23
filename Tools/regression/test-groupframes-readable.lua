@@ -101,6 +101,7 @@ do
 	assert(Scale(K) == 1, "an own width keeps the party at scale 1")
 	H.write(env, K, "party.width", 259)
 	assert(H.near(Scale(K), 1.25), "the stock width grows again")
+	K.Options.Write("Layout", "preset", "Healer")
 	H.write(env, K, "party.height", 43)
 	assert(H.near(Scale(K), 1.25), "the Healer layout's stock rows grow too")
 	K.Layout.Set("groupframes.party", "scale", 1.1)
