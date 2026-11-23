@@ -1280,14 +1280,6 @@ local function MiniFrame(m, rxp, key, name, label, hide)
 		self.title.text:SetTextColor(unpack(theme and theme.textColor or { 1, 1, 1 }))
 		self.title:SetWidth(StringWidth(self.title.text) + 10)
 	end)
-	widget.UpdateTheme = m.trust(function(self)
-		self:UpdateSubTheme()
-	end)
-	for _, method in ipairs({ "SetWidth", "SetHeight", "SetShown", "SetAlpha", "SetScale", "Show", "Hide", "IsShown" }) do
-		widget[method] = m.trust(function(self, ...)
-			return self.frame[method](self.frame, ...)
-		end)
-	end
 	m.add(widget)
 	widget:UpdateSubTheme()
 	return widget
@@ -1391,10 +1383,6 @@ local function ItemsAndTargets(m, rxp)
 		targetParts = MiniFrame(m, rxp, "activeTargetFrame", "RXPTargetFrame", "Active Targets", "hideActiveTargetsBackground")
 		targets = targetParts.frame
 		rxp.targeting = { activeTargetWindow = targetParts }
-		rxp.targeting.UpdateTheme = m.trust(function(self)
-			assert(self == rxp.targeting, "UpdateTheme is a method")
-			targetParts:UpdateTheme()
-		end)
 	else
 		targets = IconFrame(m, rxp, "activeTargetFrame", "RXPTargetFrame", 8, "Active Targets")
 		targetParts = targets
