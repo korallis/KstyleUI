@@ -404,12 +404,13 @@ function Medals.Socket(parent, spec, level)
 end
 
 function Medals.Threat(parent, spec, level)
-	local t = Medals.Piece(parent, level, SETTING)
+	local k = (spec.size or SETTING) / SETTING
+	local t = Medals.Piece(parent, level, SETTING * k)
 	local add = t.add
-	add(Medals.Texture(t, "ARTWORK", 0, "diamond", "gilt", SETTING))
-	add(Medals.Texture(t, "ARTWORK", 1, "diamond", "jewelSetting", LIP))
-	add(Medals.Texture(t, "ARTWORK", 2, "forgedDiamond", "jewelSocket", GEM)):SetTexCoord(1, 0, 0, 1)
-	t.bar = add(CreateFrame("StatusBar", nil, t), GEM)
+	add(Medals.Texture(t, "ARTWORK", 0, "diamond", "gilt", SETTING * k))
+	add(Medals.Texture(t, "ARTWORK", 1, "diamond", "jewelSetting", LIP * k))
+	add(Medals.Texture(t, "ARTWORK", 2, "forgedDiamond", "jewelSocket", GEM * k)):SetTexCoord(1, 0, 0, 1)
+	t.bar = add(CreateFrame("StatusBar", nil, t), GEM * k)
 	t.bar:SetFrameLevel(level + 1)
 	t.bar:SetPoint("CENTER", t, "CENTER", 0, 0)
 	t.bar:SetOrientation("VERTICAL")
@@ -419,8 +420,8 @@ function Medals.Threat(parent, spec, level)
 	t.bar:SetStatusBarColor(Tokens.Color(spec.color))
 	t.bar:SetAlpha(0.6)
 	t.lit = Medals.Layer(t, level + 2)
-	add(Medals.Texture(t.lit, "ARTWORK", 0, "glow", spec.color, SETTING * 2, "ADD"))
-	add(Medals.Texture(t.lit, "OVERLAY", 0, "diamond", spec.color, GEM))
+	add(Medals.Texture(t.lit, "ARTWORK", 0, "glow", spec.color, SETTING * 2 * k, "ADD"))
+	add(Medals.Texture(t.lit, "OVERLAY", 0, "diamond", spec.color, GEM * k))
 	t.lit:SetAlpha(0)
 	t.lits, t.spec = { t.lit }, spec
 	return t

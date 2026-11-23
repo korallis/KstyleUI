@@ -65,7 +65,7 @@ end
 
 function Trackers.Register(class, rows, hooks)
 	if not CLASSES[class] and MANA[class] then
-		CLASSES[class] = { { key = "crestFiveSecond", seat = "plaque", feed = "fiveSecond", known = Always, color = "hudMana", texture = 134762,
+		CLASSES[class] = { { key = "crestFiveSecond", seat = "plaque", feed = "fiveSecond", known = Always, color = "hudMana", texture = 136053,
 			build = FiveSecondPiece, place = PlacePlaque, choices = { { forms = hooks and hooks.fiveSecondForms } } } }
 	end
 	CLASSES[class] = CLASSES[class] or {}
@@ -177,8 +177,8 @@ local function Build(form, name, key, spec)
 	if form.failed[key] then
 		return nil
 	end
-	local make = spec.build or name == "crest" and (spec.seat == "rim" and Medals.Rim or spec.seat == "cooldowns" and Medals.CooldownRim
-		or spec.feed == "enchant" and Medals.Socket or spec.feed == "threat" and Medals.Threat) or Medals.Medal
+	local make = spec.build or spec.feed == "threat" and Medals.Threat or name == "crest" and (spec.seat == "rim" and Medals.Rim
+		or spec.seat == "cooldowns" and Medals.CooldownRim or spec.feed == "enchant" and Medals.Socket) or Medals.Medal
 	local under = spec.seat == "rim" or spec.seat == "cooldowns" or spec.seat == "plaque"
 	local ok, piece = pcall(make, form.frame, spec, form.frame:GetFrameLevel() + (under and 1 or 16), name)
 	if not ok or not piece then
