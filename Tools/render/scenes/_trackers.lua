@@ -47,7 +47,7 @@ end
 local function Piece(ns, key)
 	local form = ns.SlabTrackers.state.form
 	for i, p in ipairs(ns.SlabTrackers.CLASSES[ns.class]) do
-		if p.key == key and form and form.pieces[i] then return form.pieces[i], i end
+		if p.key == key and form and form.pieces[i .. ":1"] then return form.pieces[i .. ":1"], i end
 	end
 end
 

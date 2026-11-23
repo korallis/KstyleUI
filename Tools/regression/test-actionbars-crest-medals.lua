@@ -111,7 +111,7 @@ end
 
 do
 	env._slotAuras.player = nil
-	local rim = Medals.CooldownRim(parent, { spells = { 1719, 871, 12328, 20230 }, color = "gilt", burst = "medBurstWarrior" }, 5)
+	local rim = Medals.CooldownRim(parent, { families = { { spells = { 1719 } }, { spells = { 871 } }, { spells = { 12328 } }, { spells = { 20230 } } }, color = "gilt", burst = "medBurstWarrior" }, 5)
 	Medals.Engine({ rim }, true, true)
 	assert(#rim.stack == 3, "three stack buttons made up front")
 	Slots.Set(env, "player", { { id = 1719, count = 0, icon = 1, start = 0, duration = 15 }, { id = 871, count = 0, icon = 2, start = 0, duration = 10 } })
@@ -121,6 +121,22 @@ do
 	assert(rim.stack[1].icon._state.Texture[1] == 4 and rim.stack[3]:IsShown(), "four up: the three newest show")
 	Slots.Set(env, "player", nil)
 	assert(not rim.lit:IsShown() and not rim.stack[1]:IsShown(), "none up: nothing shows")
+end
+
+do
+	local rim = Medals.CooldownRim(parent, { families = { { spells = { 19574 }, unit = "pet" }, { spells = { 3045 } } }, color = "jewelHawk" }, 5)
+	Medals.Engine({ rim }, true, true)
+	assert(#rim.lits == 2 and rim.lits[2].container._unit == "pet" and #rim.stack == 6, "a pet family gets its own slot and row")
+	local calls = 0
+	rim.lits[2].container.UpdateAllAuras = function() calls = calls + 1 end
+	env.FireEvent("UNIT_PET", "player")
+	assert(calls == 1, "a new pet refreshes the pet slot")
+	Slots.Set(env, "pet", { { id = 19574, count = 0, icon = 9, start = 0, duration = 18 } })
+	assert(rim.lits[2]:IsShown() and not rim.lits[1]:IsShown(), "the pet's cooldown burns on its own")
+	Slots.Set(env, "player", { { id = 3045, count = 0, icon = 8 } })
+	assert(rim.lits[1]:IsShown() and rim.lits[1]:GetFrameLevel() > rim.lits[2]:GetFrameLevel(), "a permanent aura shows steady over the pet's")
+	Slots.Set(env, "pet", nil)
+	Slots.Set(env, "player", nil)
 end
 
 assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))

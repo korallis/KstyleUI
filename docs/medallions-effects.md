@@ -115,7 +115,7 @@ The APIs, proved in the 70862 source (`Blizzard_APIDocumentationGenerated/`): `M
 | `Feed(parent, spec, level)` | The lit layer: an aura slot (`spec.feed = "aura"`, `unit`, `filter`, `spells`; a `target` slot refreshes itself on a new target) or a weapon enchant (`"enchant"`, `slot` = `MainHand` or `OffHand`) in its own container, else a plain frame (`"cooldown"`, `"usable"`) |
 | `Medal(parent, spec, level)` | A round medal (`spec.size`, default 26) whose steel icon is `spec.texture`; an aura lights it with its own icon, an enchant or cooldown with `spec.texture`; `spec.color` adds a timer ring the engine drains; `"cooldown"` (`spec.spell`) sweeps a dark swipe and flares when ready; `"usable"` (`spec.candidates`, in priority order) lights the first usable spell not on a real cooldown; `spec.newest` shows the most recent matching aura rather than the first; `spec.feeds = { {...}, {...} }` builds one aura layer per entry, each with its own icon and ring, under one shade, steel and cover |
 | `Rim(parent, spec, level)` | An aura shown round the inner rim: with `spec.ambient`, a cell of that flipbook that burns at Full and holds still at rest; with `spec.color`, a ring that drains with the aura; `spec.burst` flares when it appears |
-| `CooldownRim(parent, spec, level)` | Major cooldowns on the player (`spec.spells`, their buff aura IDs, `spec.filter` default `HELPFUL`): the newest one burns a `spec.color` ring just inside the inner rim (90 units) and flares in `spec.burst`, and a row of up to `spec.max` (default 3) small round icons, newest first, each with its own draining ring, sits 30 units below the centre (an aura group the engine lays out and sorts by `AuraInstanceIDOnly`, `Reverse`). A `Medal` with `spec.newest = true` shows the newest of its aura list, as the Frames row does |
+| `CooldownRim(parent, spec, level)` | Major cooldowns: `spec.families = { { spells = {...}, known = {...}?, unit = "pet"? }, ... }` (buff aura IDs, `HELPFUL`). One container per unit (player first, a pet's refreshed on `UNIT_PET`): its newest aura burns a `spec.color` ring just inside the inner rim (90 units) and flares in `spec.burst`, and a row of up to `spec.max` (default 3) small round icons, newest first, each draining, sits 30 units below the centre (an aura group sorted by `AuraInstanceIDOnly`, `Reverse`). A permanent aura shows steady with no burn. The engine draws each aura's own icon |
 | `Socket(parent, spec, level)` | A jewel setting on the ring whose `spec.color` liquid drains with an aura or enchant, or refills with `"cooldown"` (`spec.spell`) and flares when ready |
 | `Place(piece, anchor, x, y)` | Seats a piece and sizes its parts |
 | `Engine(pieces, on, full)` | Enables or disables every feed and gives the engine the flares (and a rim's fire) while `full`; returns false and changes nothing while auras are secret |
@@ -123,6 +123,38 @@ The APIs, proved in the 70862 source (`Blizzard_APIDocumentationGenerated/`): `M
 | `Fire(piece)` | Plays a piece's flare at Full |
 | `Rest()`, `OnRest(fn)` | `Slab.Resting()` is true while Calm crest at rest settles the hub; when it changes (and on a motion change) `Rest()` holds every rim's fire still or lets it burn and calls each `OnRest` function with `still` |
 | `Still(piece, still)` | Holds one rim's fire still or lets it burn |
+
+## Crest trackers
+
+`KstyleUI_ActionBars/SlabTrackers.lua` (`ns.SlabTrackers`) is the one tracker lifecycle for every class. A class file loaded after it registers its rows:
+
+```lua
+ns.SlabTrackers.Register("PRIEST", rows, hooks)
+```
+
+Each row is one seat, built only while its switch (`key`, a saved ActionBars setting that defaults on) is on and its class knows a spell, on the crest under Medallions and as a medal in a row above the stance bar under Frames.
+
+| Row field | Meaning |
+| --- | --- |
+| `key` | The Options switch; several rows may share one |
+| `seat` | A `Medals.Seat` name, `"rim"` (a `Rim`), `"cooldowns"` (a `CooldownRim`) or `{ x, y }` in hub units |
+| `feed`, `unit`, `filter`, `spells`, `slot`, `color`, `ambient`, `size`, `texture` | Passed to the default builder: `Medal`, or on the crest `Rim`, `CooldownRim` or, for `feed = "enchant"`, `Socket` |
+| `known` | Spells any one of which the player must know (default `spells`), or `function(row) -> id or nil` for items, talents or pet state |
+| `groups` | For `feed = "usable"`: lists of ranks in priority order; the first known rank of each becomes a candidate |
+| `families` | For `seat = "cooldowns"`: `{ spells, known?, unit? }` entries; under Frames the player's families feed one medal showing the newest |
+| `choices` | Alternatives for the seat, each a partial row inheriting the rest; every known choice is built and fed out of combat, and the first known choice whose `forms` holds `GetShapeshiftFormID()` (any form when `forms` is nil; no form counts as 0) shows while the others hide, on `UPDATE_SHAPESHIFT_FORM`, in combat too; a secret form keeps the last |
+| `build(parent, spec, level, form)` | A custom builder returning a piece with `.parts` (for `Medals.Place`) and `.lit` or `.lits` (for `Medals.Engine`); `form` is `"crest"` or `"row"` |
+| `place(piece, anchor, form, x)` | Custom placement: `anchor` is the hub on the crest and the row frame under Frames; return the next row `x` |
+
+| Hook | Meaning |
+| --- | --- |
+| `burst` | The class's flare texture token, such as `medBurstWarrior` |
+| `events` | Events (or `{ event, unit }`) that call `paint` while a tracker shows |
+| `update` | Events that rebuild the seats (`Trackers.Update`), such as `PLAYER_EQUIPMENT_CHANGED` |
+| `paint(form, event, ...)` | Repaints class-owned parts; `form.pieces` holds the pieces by `"<row>:<choice>"` |
+| `motion(form, full, still)` | Called on each update and when Calm crest at rest or the effects level changes |
+
+`Trackers.Has(key)` tells an Options row whether the player's class registered that switch. Builds wait while `Medals.Restricted()` and run on `PLAYER_REGEN_ENABLED`; Lua-fed pieces (`"cooldown"`, `"usable"`) repaint on `SPELL_UPDATE_COOLDOWN`, `SPELL_UPDATE_USABLE` and `PLAYER_TARGET_CHANGED`.
 
 ## The primary test character
 

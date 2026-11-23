@@ -46,8 +46,8 @@ end
 local function Pieces(ns, form)
 	local f = ns.SlabTrackers.state.forms[form or "crest"]
 	local shown = {}
-	for i, p in pairs(f and f.pieces or {}) do
-		if p:IsVisible() then shown[i] = p end
+	for key, p in pairs(f and f.pieces or {}) do
+		if p:IsVisible() then shown[tonumber(key:match("^(%d+)"))] = p end
 	end
 	return shown, f
 end
@@ -116,7 +116,7 @@ do
 	ns.SlabMedals.Rest()
 	assert(rim.fire:GetAlpha() == (ns.Slab.Resting() and 0 or 1), "the fire follows the crest's rest")
 	assert(Updating(ns.SlabTrackers.state.forms.crest.frame) == 0, "nothing runs OnUpdate")
-	for _, key in ipairs({ "crestShout", "crestOpening", "crestEnrage" }) do
+	for _, key in ipairs({ "crestShout", "crestOpening", "crestEnrage", "crestCooldowns" }) do
 		K.Options.Write("ActionBars", key, false)
 	end
 	env.RunTimers()
@@ -187,6 +187,74 @@ do
 	Clean(env, K, "rogue")
 end
 
+-- Major cooldowns: the newest burns on the rim, each running one stands as an icon; a talent nobody learned still shows when its aura appears.
+do
+	local env, K, ns = New("ROGUE", { 13877, 5277 })
+	local rim = Pieces(ns)[5]
+	assert(rim and rim.stack and #rim.stack == 3, "a rogue with Blade Flurry gets the cooldown rim")
+	Slots.Set(env, "player", { { id = 13877, count = 0, icon = 132350, start = 0, duration = 15 }, { id = 5277, count = 0, icon = 136205, start = 0, duration = 15 } })
+	assert(rim.lit:IsShown() and rim.stack[1].icon._state.Texture[1] == 136205 and rim.stack[2]:IsShown(), "Evasion, the newest, leads; Blade Flurry follows")
+	K.Options.Write("ActionBars", "crestCooldowns", false)
+	env.RunTimers()
+	assert(not Pieces(ns)[5], "its switch hides it")
+	Clean(env, K, "cooldowns")
+end
+
+-- Stances and stealth: every known choice is built out of combat, the form picks which shows, in combat too.
+do
+	local env, K, ns = New("WARRIOR", { 25289, 20662, 11585, 25288 })
+	env.GetShapeshiftFormID = function() return env._form end
+	env._form = 18
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	local crest = ns.SlabTrackers.state.forms.crest
+	assert(crest.pieces["2:1"]:IsVisible() and crest.pieces["2:2"] and crest.pieces["2:3"] and not crest.pieces["2:3"]:IsVisible(), "Defensive Stance shows its own opening; the others are built and hidden")
+	env._aurasSecret = true
+	env._form = 17
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	assert(crest.pieces["2:3"]:IsVisible() and not crest.pieces["2:1"]:IsVisible(), "Battle Stance in combat swaps the seat without the engine")
+	env._form = env.Secret(18)
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	assert(crest.pieces["2:3"]:IsVisible(), "a secret form keeps the last")
+	env._aurasSecret = false
+	Clean(env, K, "stances")
+end
+
+do
+	local env, K, ns = New("ROGUE", { 5171, 1943, 1833, 1856 })
+	env.GetShapeshiftFormID = function() return env._form end
+	env._form = 30
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	local crest = ns.SlabTrackers.state.forms.crest
+	assert(crest.pieces["1:1"]:IsVisible() and crest.pieces["2:1"]:IsVisible() and not crest.pieces["1:2"]:IsVisible(), "Stealth: the opener and Vanish take the shoulders")
+	env._form = nil
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	assert(crest.pieces["1:2"]:IsVisible() and crest.pieces["2:2"]:IsVisible(), "out of Stealth: Slice and Dice and Rupture")
+	Clean(env, K, "stealth")
+end
+
+-- A class file registers its own rows and hooks.
+do
+	local env, K, ns = New("PRIEST", { 10060 })
+	local painted, moved = 0, 0
+	ns.SlabTrackers.Register("PRIEST", {
+		{ key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 10060 } } } },
+		{ key = "crestTest", seat = { 0, 100 }, build = function(parent, spec, level)
+			local m = ns.SlabMedals.Medal(parent, { feed = "usable", candidates = { 10060 }, texture = spec.texture }, level)
+			m.custom = true
+			return m
+		end, place = function(piece, anchor, form, x) ns.SlabMedals.Place(piece, anchor, 0, 100) return x + 30 end, known = function() return 10060 end },
+		{ key = "crestChoice", seat = "left", choices = { { feed = "aura", spells = { 999 } }, { feed = "aura", spells = { 10060 }, color = "gilt" } } },
+	}, { events = { "BAG_UPDATE_DELAYED" }, paint = function() painted = painted + 1 end, motion = function() moved = moved + 1 end })
+	ns.SlabTrackers.Update()
+	local shown = Pieces(ns)
+	assert(shown[1] and shown[2] and shown[2].custom and shown[3], "registered rows build, a custom builder among them")
+	assert(ns.SlabTrackers.state.forms.crest.pieces["3:2"], "the first choice the priest knows takes the seat")
+	assert(moved > 0, "the motion hook runs")
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	assert(painted > 0, "a class event reaches its paint hook")
+	Clean(env, K, "register")
+end
+
 -- Learned while auras are secret: nothing until combat ends.
 do
 	local env, K, ns = New("ROGUE", { 5171 }, { secret = true })
@@ -201,14 +269,19 @@ end
 do
 	local env, K, ns = New("WARRIOR", { 25289, 20662, 2687 }, { frames = true })
 	env._game.forms[1] = { texture = 132349, isActive = true, spellID = 2457 }
+	env.FireEvent("UPDATE_SHAPESHIFT_FORMS")
 	env.RunTimers()
-	ns.SlabTrackers.Update()
+	env._resolveRects = true
+	assert(ns.bars.stance.count == 1, "the stance bar shows its button")
 	local shown, form = Pieces(ns, "row")
 	assert(shown[1] and shown[2] and shown[3] and form.frame:IsShown(), "three medals in the row")
 	assert(shown[3].fire == nil and shown[3].timer, "Enrage is a medal with a ring there")
 	local x1 = shown[1]:GetCenter()
 	local x3 = shown[3]:GetCenter()
 	assert(x1 < x3, "in the study's order, left to right")
+	local _, bottom = shown[1]:GetCenter()
+	local stance = ns.bars.stance.buttons[1]
+	assert(select(2, shown[1]:GetRect()) * shown[1]:GetEffectiveScale() >= (select(2, stance:GetRect()) + stance:GetHeight()) * stance:GetEffectiveScale() - 0.01 and bottom, "the row stands above the stance bar")
 	assert(not (ns.SlabTrackers.state.forms.crest and ns.SlabTrackers.state.forms.crest.frame:IsShown()), "no crest pieces under Frames")
 	Clean(env, K, "frames")
 end
@@ -217,7 +290,7 @@ do
 	local env, K, ns = New("PALADIN", { 20154, 20271 }, { frames = true })
 	local form = ns.SlabTrackers.state.forms.row
 	local _, relative, point = form.frame:GetPoint(1)
-	assert(relative == ns.bars.stance.holder and point == "LEFT", "no stance buttons: the row starts where the stance bar does")
+	assert(relative == ns.bars.stance.holder and point == "BOTTOMLEFT", "no stance buttons: the row starts where the stance bar does")
 	Clean(env, K, "frames paladin")
 end
 

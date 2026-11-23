@@ -15,7 +15,8 @@ local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, STACK_MAX = 90, 14, 2, 30, 3
 local SEATS = { left = { -1, 84, 32 }, right = { 1, 84, 32 }, top = { 1, 96, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 } }
 local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local OWNER = "ActionBars.SlabMedals"
-local targets, rims, watchers = {}, {}, {}
+local refreshed, rims, watchers = {}, {}, {}
+local REFRESH = { target = { "PLAYER_TARGET_CHANGED" }, pet = { "UNIT_PET", "player" } }
 Medals.SIZE = SIZE
 
 function Medals.Known(spells)
@@ -150,17 +151,26 @@ function Medals.Feed(parent, spec, level)
 	local container = CreateFrame("AuraContainer", nil, parent, "CustomAuraContainerTemplate")
 	Widgets.KeepOut(container)
 	container:SetUnit(spec.unit or "player")
-	if spec.unit == "target" then
-		if #targets == 0 then
-			K.Events.Register(OWNER, "PLAYER_TARGET_CHANGED", function()
-				for _, c in ipairs(targets) do
+	local refresh = REFRESH[spec.unit]
+	if refresh then
+		local list = refreshed[spec.unit]
+		if not list then
+			list = {}
+			refreshed[spec.unit] = list
+			local function update()
+				for _, c in ipairs(list) do
 					if c.on then
 						c:UpdateAllAuras()
 					end
 				end
-			end)
+			end
+			if refresh[2] then
+				K.Events.RegisterUnit(OWNER, refresh[1], update, refresh[2])
+			else
+				K.Events.Register(OWNER, refresh[1], update)
+			end
 		end
-		targets[#targets + 1] = container
+		list[#list + 1] = container
 	end
 	local button
 	if spec.feed == "aura" then
@@ -279,30 +289,52 @@ function Medals.Rim(parent, spec, level)
 end
 
 function Medals.CooldownRim(parent, spec, level)
-	spec.feed, spec.newest = "aura", true
 	local r = Piece(parent, level, RIM)
-	local lit = Lit(r, spec, level + 1)
-	r.timer = r.add(Timer(lit, level + 2, "ring", spec.color), COOLDOWN_RING)
-	lit:SetDurationCooldown(r.timer)
-	Flare(r, lit, level + 3, spec.burst or "glow", RIM)
-	local container, options = lit.container, spec.options
-	container:ClearAllPoints()
-	container:SetPoint("TOP", r, "CENTER", 0, -STACK_DROP)
-	container:SetFrameLevel(level + 4)
-	r.stack = {}
-	options.maxFrameCount = spec.max or STACK_MAX
-	options.layout = { elementWidth = STACK, elementHeight = STACK, elementSpacing = STACK_GAP }
-	options.initializeFrame = function(button)
-		pcall(button.EnableMouse, button, false)
-		button.icon = Medals.Round(button)
-		button.icon:SetAllPoints(button)
-		button:SetIcon(button.icon)
-		button.timer = Timer(button, button:GetFrameLevel() + 1, "orbRing", spec.color)
-		button.timer:SetAllPoints(button)
-		button:SetDurationCooldown(button.timer)
-		r.stack[#r.stack + 1] = button
+	local units, order = {}, {}
+	for _, family in ipairs(spec.families) do
+		local unit = family.unit or "player"
+		if not units[unit] then
+			units[unit] = { feed = "aura", unit = unit, filter = spec.filter or "HELPFUL", newest = true, spells = {} }
+			order[#order + 1] = unit
+		end
+		for _, id in ipairs(family.spells) do
+			table.insert(units[unit].spells, id)
+		end
 	end
-	container:AddAuraGroup("stack", spec.filter or "HELPFUL", options)
+	table.sort(order, function(a, b) return a == "player" and b ~= "player" end)
+	r.stack = {}
+	local previous
+	for i, unit in ipairs(order) do
+		local each = units[unit]
+		local base = level + 5 * (#order - i)
+		local lit = Lit(r, each, base + 1)
+		lit.timer = r.add(Timer(lit, base + 2, "ring", spec.color), COOLDOWN_RING)
+		lit:SetDurationCooldown(lit.timer)
+		Flare(r, lit, base + 3, spec.burst or "glow", RIM)
+		local container, options = lit.container, each.options
+		container:ClearAllPoints()
+		if previous then
+			container:SetPoint("TOPLEFT", previous, "TOPRIGHT", STACK_GAP, 0)
+		else
+			container:SetPoint("TOP", r, "CENTER", 0, -STACK_DROP)
+		end
+		container:SetFrameLevel(level + 5 * #order)
+		options.maxFrameCount = spec.max or STACK_MAX
+		options.layout = { elementWidth = STACK, elementHeight = STACK, elementSpacing = STACK_GAP }
+		options.initializeFrame = function(button)
+			pcall(button.EnableMouse, button, false)
+			button.icon = Medals.Round(button)
+			button.icon:SetAllPoints(button)
+			button:SetIcon(button.icon)
+			button.timer = Timer(button, button:GetFrameLevel() + 1, "orbRing", spec.color)
+			button.timer:SetAllPoints(button)
+			button:SetDurationCooldown(button.timer)
+			r.stack[#r.stack + 1] = button
+		end
+		container:AddAuraGroup("stack", each.filter, options)
+		previous = container
+	end
+	r.timer = r.lit.timer
 	r.spec = spec
 	return r
 end
