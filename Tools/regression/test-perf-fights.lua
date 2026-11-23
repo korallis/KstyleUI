@@ -321,17 +321,17 @@ local function Settle(label, env, K, w)
 	print(string.format("%s: %d foreign hooks replayed", label, #order))
 end
 
--- The RestedXP guide and Questie's tracker beside the quest card and Blizzard's tracker.
-do
+-- The RestedXP guide and Questie's tracker beside the quest card and Blizzard's tracker, in both RestedXP shapes.
+for _, release in ipairs({ "4.11.35", "4.11.39" }) do
 	local w
-	local R = Boot({ width = 1920, height = 1080, uiScale = 768 / 1080, setup = function(e) w = Watch(e) end }, nil, nil, nil, Questie.Install)
+	local R = Boot({ width = 1920, height = 1080, uiScale = 768 / 1080, release = release, setup = function(e) w = Watch(e) end }, nil, nil, nil, Questie.Install)
 	R.K.Options.Write("Integrations", "questTracker", "questie")
 	R.rxp:SortTimers()
 	R.rxp:LoadGuide(R.rxp.currentGuide)
 	R.rxp.RXPFrame.ScrollChild:SetHeight(120)
 	R.rxp.RXPFrame.ScrollFrame.ScrollBar:SetValue(0)
 	R.settle()
-	Settle("RestedXP and Questie", R.env, R.K, w)
+	Settle("RestedXP " .. release .. " and Questie", R.env, R.K, w)
 end
 
 -- Zygor's guide window at 1600x900 and size 0.53, where the #685 loop showed in the stub.

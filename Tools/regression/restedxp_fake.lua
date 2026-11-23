@@ -49,8 +49,7 @@ end
 -- Box(rxp, which) -> the "items" or "targets" box's frame and what holds its title and buttons: the frame, or in
 -- 4.11.39 the widget.
 function Fake.Box(rxp, which)
-	local f = which == "items" and (rxp.activeItemFrame or rxp.activeItemWindow.frame)
-		or (rxp.targeting.activeTargetFrame or rxp.targeting.activeTargetWindow.frame)
+	local f = rxp.enabledFrames[which == "items" and "activeItemFrame" or "activeTargetFrame"]
 	return f, f.obj or f
 end
 
@@ -213,6 +212,10 @@ local function NewAddon(opts)
 	end
 	function v2.GetTheme(self)
 		local name = rxp.settings.profile.activeTheme
+		-- 4.11.39 resolves the v2 theme from the run-time theme instead (Themes.lua 448).
+		if new then
+			name = rxp.activeTheme and rxp.activeTheme.name
+		end
 		self.activeTheme = v2.themes[name] or v2.themes["RXP Blue V2"]
 		return self.activeTheme
 	end
@@ -235,6 +238,10 @@ local function NewAddon(opts)
 	function rxp.LoadActiveTheme(self)
 		assert(self == rxp, "LoadActiveTheme is a method")
 		rxp.loads = rxp.loads + 1
+		-- 4.11.39 keeps the theme it has while live reload is off (Themes.lua 179).
+		if new and rxp.activeTheme and not rxp.settings.profile.enableThemeLiveReload then
+			return rxp.activeTheme
+		end
 		local name = rxp.settings.profile.activeTheme
 		local chosen = v2.enabled and v2.themes[name]
 		rxp.activeTheme = rxp.themes[chosen and chosen.name or name] or rxp.themes["RXP Blue"]
@@ -243,8 +250,9 @@ local function NewAddon(opts)
 		return rxp.activeTheme
 	end
 	-- RenderFrame and SetupArrow redraw the windows from the active theme, as RestedXP's own start-up does; 4.11.39's
-	-- addon:UpdateTheme(skipMenu) does what RenderFrame did (GuideWindow.lua 87-103), through each window's
-	-- UpdateSubTheme, a widget's on the widget AceGUI keeps in its frame's obj.
+	-- addon:UpdateTheme(skipMenu, skipGuideReload) does what RenderFrame did (GuideWindow.lua 87-103), through each
+	-- window's UpdateSubTheme, a widget's on the widget AceGUI keeps in its frame's obj, then reloads a loaded guide
+	-- (ReloadGuide, which saves its progress and rebuilds it) unless skipGuideReload; guideReloads counts those.
 	rxp.renders = 0
 	local function Render(themeUpdate)
 		rxp.renders = rxp.renders + 1
@@ -255,9 +263,13 @@ local function NewAddon(opts)
 		end
 	end
 	if new then
-		function rxp.UpdateTheme(self, skipMenu)
+		rxp.guideReloads = 0
+		function rxp.UpdateTheme(self, skipMenu, skipGuideReload)
 			assert(self == rxp, "UpdateTheme is a method")
 			Render(skipMenu)
+			if rxp.currentGuide and not skipGuideReload then
+				rxp.guideReloads = rxp.guideReloads + 1
+			end
 		end
 	else
 		rxp.RenderFrame = Render
@@ -1143,16 +1155,13 @@ local function Arrow(m, rxp)
 		rxp.settings:SaveFramePositions()
 	end))
 	-- 4.11.39 (map.lua 44-54, 98-100): UpdateSubTheme paints the arrow and its text at the arrowText size, and
-	-- SetupArrow only starts the arrow's OnUpdate.
+	-- SetupArrow only starts the arrow's OnUpdate (the addon's counting SetupArrow stands).
 	if m.new then
 		arrow.UpdateSubTheme = m.trust(function(self)
 			Paint(self)
 			self.text:SetFont(rxp.font or "Fonts\\FRIZQT__.TTF", rxp.settings.profile.arrowText or 9, "OUTLINE")
 			local theme = rxp.activeTheme
 			self.text:SetTextColor(unpack(theme and theme.textColor or { 1, 1, 1 }))
-		end)
-		rxp.SetupArrow = m.trust(function()
-			rxp.arrows = rxp.arrows + 1
 		end)
 	else
 		arrow.UpdateVisuals = m.trust(Paint)
@@ -1280,8 +1289,11 @@ local function MiniFrame(m, rxp, key, name, label, hide)
 		self.title.text:SetTextColor(unpack(theme and theme.textColor or { 1, 1, 1 }))
 		self.title:SetWidth(StringWidth(self.title.text) + 10)
 	end)
+	-- SetScale (UI/V2/Core.lua 273) scales the frame; RestedXP's scale settings call it (SettingsPanel.lua 1859, 3240).
+	function widget.SetScale(self, scale)
+		self.frame:SetScale(scale)
+	end
 	m.add(widget)
-	widget:UpdateSubTheme()
 	return widget
 end
 
@@ -1337,8 +1349,9 @@ local function ItemsAndTargets(m, rxp)
 		end)
 	end
 	-- UpdateItemFrame(frame, count) lists the step's items (ActiveItemFrame.lua 351-506): count is how many the
-	-- step has, kept until the next count. The first button sits at the frame's bottom left (4, 2), each next one
-	-- 27 right of the last; the frame is as wide as its buttons, or its title plus 10, and hides with no items.
+	-- step has, kept until the next count. The first button sits at the frame's bottom left (4, 2), or in 4.11.39 at
+	-- its top left (6, -15, ActiveItemFrame.lua 309), each next one 27 right of the last; the frame is as wide as its
+	-- buttons, or its title plus 10, and hides with no items.
 	rxp.UpdateItemFrame = m.trust(function(frame, count)
 		frame = frame or items
 		if env.InCombatLockdown() then
@@ -1353,7 +1366,9 @@ local function ItemsAndTargets(m, rxp)
 			if not button then
 				button = IconButton(m, frame, "RXPItemFrameButton" .. i, true)
 				list[i] = button
-				if i == 1 then
+				if i == 1 and m.new then
+					button:SetPoint("TOPLEFT", frame, "TOPLEFT", 6, -15)
+				elseif i == 1 then
 					button:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 4, 2)
 				else
 					button:SetPoint("CENTER", list[i - 1], "CENTER", 27, 0)
@@ -1383,6 +1398,9 @@ local function ItemsAndTargets(m, rxp)
 		targetParts = MiniFrame(m, rxp, "activeTargetFrame", "RXPTargetFrame", "Active Targets", "hideActiveTargetsBackground")
 		targets = targetParts.frame
 		rxp.targeting = { activeTargetWindow = targetParts }
+		function rxp.targeting.SetScale(self, scale)
+			self.activeTargetWindow:SetScale(scale)
+		end
 	else
 		targets = IconFrame(m, rxp, "activeTargetFrame", "RXPTargetFrame", 8, "Active Targets")
 		targetParts = targets
@@ -1666,7 +1684,9 @@ local function Tracker(m, rxp, env)
 	-- its ui entry holding no frame, and moved the level splits to tracker.splits; the fake keeps only that shape.
 	if m.new then
 		rxp.tracker.CreateGui = m.trust(function(self, target)
-			self.ui[target] = self.ui[target] or {}
+			if target ~= nil then
+				self.ui[target] = self.ui[target] or {}
+			end
 		end)
 		return
 	end

@@ -22,7 +22,7 @@ return function(screen, item, previous, nativeRects, questie)
 			e._size, e._fitScale = screen.size or "auto", true
 			e.UnitClass = function() return "Warlock", "WARLOCK", 9 end
 			log = Quests.Install(e, quests)
-			rxp = RestedXP.Install(e, {})
+			rxp = RestedXP.Install(e, { release = screen.release })
 			rxp.currentGuide = { name = "1-6 Tirisfal Glades", subgroup = "Horde Undead" }
 			e._textWidth = function(text, path, size) return Scene.TextWidth(text, size, path) end
 		end,

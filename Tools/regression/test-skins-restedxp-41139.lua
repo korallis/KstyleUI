@@ -16,6 +16,7 @@ for _, live in ipairs({ true, false }) do
 			e._textWidth = Measure.TextWidth
 			Quests.Install(e, Quests.List(3))
 			rxp = Fake.Install(e, { release = "4.11.39", liveReload = live, activeTheme = "DarkMode" })
+			rxp.currentGuide = { name = "6-10 Durotar" }
 		end,
 		before = function(e)
 			Quests.Tracker(e, S.Blizzard(e))
@@ -72,8 +73,61 @@ for _, live in ipairs({ true, false }) do
 		assert(box.savePosition == false, what .. ": and stays out of RestedXP's saved places while docked")
 	end
 
+	-- RestedXP's scale settings call SetScale on the boxes directly (SettingsPanel.lua 1859, 3240).
+	rxp.targeting:SetScale(1.25)
+	rxp.activeItemWindow:SetScale(1.25)
+	env.RunTimers()
+	S.W.Settle(env)
+	guide = assert(Geometry.ScaledRect(K.Skin.Parts(f).backdrop, env.UIParent, root))
+	for _, which in ipairs({ "items", "targets" }) do
+		local r = assert(Geometry.ScaledRect(K.Skin.Parts((Fake.Box(rxp, which))).backdrop, env.UIParent, root))
+		assert(math.abs(guide.bottom - r.top - gap) <= 2 * px, string.format("%s: the %s box docks under the guide again after RestedXP's scale setting, got %.2f", what, which, guide.bottom - r.top))
+	end
+
+	assert(rxp.guideReloads == 0, what .. ": the skin's start-up draw repaints without reloading RestedXP's guide (UpdateTheme's skipGuideReload)")
+	assert(rxp.v2:GetTheme().name == "KstyleUI", what .. ": 4.11.39's v2 lookup follows the run-time theme, so its v2 windows take the KstyleUI theme (Themes.lua 448)")
+
+	-- A box title that is not a frame, and a button whose IsShown is secret, are left alone.
+	local box, widget = Fake.Box(rxp, "targets")
+	local title, button = widget.title, widget.enemyTargetButtons[1]
+	widget.title = {}
+	local ok, err = pcall(ns.RestedXP.Rail.Band)
+	widget.title = title
+	assert(ok, what .. ": a box title that is not a frame leaves the rail working, got " .. tostring(err))
+	local function Upvalue(fn, key)
+		for i = 1, 60 do
+			local name, value = debug.getupvalue(fn, i)
+			if name == key then
+				return value
+			end
+		end
+	end
+	local Icons = Upvalue(Upvalue(ns.RestedXP.Rail.Band, "Plan"), "Icons")
+	button.IsShown = function() return false end
+	local hidden = Icons(box)
+	button.IsShown = function() return env.Secret(false) end
+	local secret = Icons(box)
+	button.IsShown = nil
+	assert(secret == hidden, string.format("%s: a button whose IsShown is secret counts as hidden in the box's width, got %s against %s", what, tostring(secret), tostring(hidden)))
+
 	rxp.fake.check(HOOKED)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, what .. ": " .. tostring(env._errors[1]))
 end
+
+-- With the skin off RestedXP's own geometry stands: 4.11.39 hangs the first item from its frame's top left (6, -15).
+do
+	local rxp
+	local env, K = S.New({ setup = function(e) rxp = Fake.Install(e, { release = "4.11.39" }) end })
+	K.Options.Write("Skins", "restedXP.enabled", false)
+	env.RunTimers()
+	rxp.UpdateItemFrame(nil, 1)
+	local point, _, _, x, y = rxp.activeItemWindow.buttonList[1]:GetPoint(1)
+	assert(point == "TOPLEFT" and x == 6 and y == -15, "with the skin off, 4.11.39's first item hangs from its frame's top left (6, -15), got " .. tostring(point))
+end
+
+-- The restedxp and gallery_restedxp scenes build in 4.11.39's shape, without the report and splits it rebuilt.
+rawset(_G, "RENDER_RXP_RELEASE", "4.11.39")
+local R = dofile("Tools/render/scenes/_restedxp.lua").Build()
+assert(R.windows.targets and R.windows.report == nil and R.windows.splits == nil, "the RestedXP gallery builds on 4.11.39")
 
 print("skins restedxp 4.11.39 ok")
