@@ -61,6 +61,17 @@ return Common.Run(function()
 			-- The stub's UnitClass reads each unit's class (the paladin's plate); the gallery's reads the warrior's.
 			env.UnitClass = unitClass
 			env.RAID_CLASS_COLORS.PALADIN = { r = 0.96, g = 0.55, b = 0.73 }
+			-- The friendly player's badge draws the portrait its race and sex pick, as nameplate_bible.lua's does.
+			env.UnitRace = function(unit)
+				local u = env._units[unit]
+				if u and u.race then
+					return u.race, u.race, 1
+				end
+			end
+			env.UnitSex = function(unit)
+				local u = env._units[unit]
+				return u and u.sex or 2
+			end
 			env._group = { raid = false, size = 4 }
 			env.IsInGroup = function()
 				return true
