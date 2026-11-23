@@ -1,7 +1,6 @@
 -- test-actionbars-crest-trackers.lua: the melee crest trackers (SlabTrackers.lua): other classes get no tracker frame, container or event; a character sees only the pieces whose spells it knows; a warrior's Battle Shout medal (anyone's shout) sits on the left shoulder, the opening on the right lights for the first usable strike, and Enrage burns round the inner rim and holds still at rest; a paladin's Seal sits above the crest, Judgement's cooldown sweeps on the left shoulder and its Judgement on the target lights the right one; the jewels light from Vengeance stacks, else Holy Shield charges; a rogue's Slice and Dice and Rupture take the shoulders and a vial per weapon (the off hand only with an off-hand item) drains on the lower ring; each switch hides its piece and with every switch off nothing shows or listens; nothing is built while auras are secret until combat ends; under Frames the pieces stand as medals in a row beside the stance bar; every part is an even number of pixels at four screen sizes and nothing runs OnUpdate.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
-local Scene = dofile("Tools/render/scene.lua")
 
 local SIZES = { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
 
@@ -625,23 +624,22 @@ do
 	Clean(env, K, "frames riposte")
 end
 
--- Stack numbers sit above the bezel and inside the medal; a foot too small for a digit shows pips (review dd9bddac #10).
-do
-	for _, size in ipairs(SIZES) do
+-- Stack numbers sit above the bezel, inside the round icon at every screen and at the smallest Interface size; a foot too small for a digit shows pips (review dd9bddac #10).
+for _, size in ipairs(SIZES) do
+	for _, ui in ipairs({ 1, 0.6 }) do
 		for _, frames in ipairs({ false, true }) do
-			local env, K, ns = New("WARRIOR", { 6673, 12292 }, { size = size, frames = frames, setup = function(e)
-				e._resolveRects = true
-				e._textWidth = function(text, path, px) return Scene.TextWidth(text, px, path) end
-			end })
-			local hip
-			for _, p in pairs(Pieces(ns, frames and "row" or "crest")) do hip = p.lit.count and p or hip end
-			local count, where = hip.lit.count, size[1] .. "x" .. size[2] .. (frames and " Frames" or " crest")
-			count:SetText("15")
-			local l, b, w, h = count:GetRect()
-			local il, ib, iw, ih = hip.steel:GetRect()
-			assert(count:GetParent():GetFrameLevel() > hip.enamel:GetParent():GetFrameLevel(), where .. ": the count draws over the bezel")
-			assert(l >= il - 0.01 and b >= ib - 0.01 and l + w <= il + iw + 0.01 and b + h <= ib + ih + 0.01,
-				where .. ": a two-digit count stays inside its medal's icon, not over the ring toward the next medal; anchor it to the icon (m.steel)")
+			local env, K, ns = New("WARRIOR", { 6673, 12292 }, { size = size, frames = frames, setup = function(e) e._size = ui end })
+			env._resolveRects = true
+			local hip, where = Pieces(ns, frames and "row")[7], size[1] .. "x" .. size[2] .. " at " .. ui .. (frames and " Frames" or " crest")
+			hip.lit.count:SetText("15")
+			local l, b, w, h = hip.lit.count:GetRect()
+			local il, ib, iw = hip.steel:GetRect()
+			assert(hip.lit.count:GetParent():GetFrameLevel() > hip.enamel:GetParent():GetFrameLevel(), where .. ": the count draws over the bezel")
+			for _, x in ipairs({ l, l + w }) do
+				for _, y in ipairs({ b, b + h }) do
+					assert((x - il - iw / 2) ^ 2 + (y - ib - iw / 2) ^ 2 <= (iw / 2) ^ 2 + 0.01, where .. ": a two-digit count stays inside the medal's round icon; inset it from the icon's centre and size its font to fit")
+				end
+			end
 			Clean(env, K, "count " .. where)
 		end
 	end
