@@ -28,7 +28,7 @@ for _, kind in ipairs(C.kinds) do
 		assert(source:match('"id": ' .. id .. ',%s*"name": [^\n]+,%s*"classID": 0,'), "curated ids must be consumables proven by items.json")
 	end
 end
-assert(cfg.enabled and cfg.attached and cfg.rows == 2 and cfg.hideEmpty, "on, attached, two rows and hidden when empty by default")
+assert(cfg.enabled and cfg.attached and cfg.rows == 2 and cfg.size == 26 and cfg.spacing == 0 and cfg.hideEmpty, "on, attached, two rows of size 26 with no gap and hidden when empty by default")
 assert(not C.header and not C.holder, "empty inventory creates no holder or secure header")
 assert(#C.buttons == 0, "an empty inventory defers all secure slot art until the first carried consumable")
 
@@ -65,8 +65,8 @@ for _, scale in ipairs({ 0.5, 1, 1.5 }) do
 	end
 end
 C.holder:SetScale(1)
-K.Options.Write("ActionBars", "consumables.size", 19)
-assert(cfg.size == 19 and cfg.backing == true and cfg.hotkey == false, "Options starts at half-size with backing on and keybind text off")
+K.Options.Write("ActionBars", "consumables.size", 26)
+assert(cfg.backing == true and cfg.hotkey == false, "Options starts with backing on and keybind text off")
 local backing = C.header:GetChildren()
 assert(backing.chrome and backing:IsShown(), "the shared Chrome tile is shown by default")
 K.Options.Write("ActionBars", "consumables.backing", false)
@@ -79,8 +79,7 @@ for _, style in ipairs({ "frames", "medallions" }) do
 		local _, size, gap = K.Setup.Layouts.ConsumableGrid(class)
 		local slot = K.Setup.Layouts.MEDALLIONS_SLOT
 		local actionSize = style == "medallions" and (slot[class] or slot.size) or ns.defaults.bar3.size
-		local actionGap = style == "medallions" and slot.gap * actionSize / slot.size or 3
-		assert(near(size, actionSize / 2) and near(gap, actionGap / 2), style .. " " .. class .. ": buttons and default gaps stay half-size")
+		assert(near(size, actionSize * 26 / 38) and gap == 0, style .. " " .. class .. ": size 26 scales with the action slot and the default gap is 0")
 	end
 	button:Restyle()
 	assert(button.countdown:GetPoint() == "CENTER", style .. ": restyling keeps the compact countdown centered")
@@ -113,13 +112,18 @@ K.Options.Write("ActionBars", "consumables.hotkey", false)
 
 AB.CoreEnv.Logout(env)
 local _, refilled = AB.New({ saved = AB.CoreEnv.DeepCopy(env.KstyleUIDB) })
-assert(refilled.Store.Module("ActionBars").consumables.size == 19 and refilled.Store.Module("ActionBars").consumables.backing and refilled.Store.Module("ActionBars").consumables.hotkey == false, "stripped defaults refill without migration")
+assert(refilled.Store.Module("ActionBars").consumables.size == 26 and refilled.Store.Module("ActionBars").consumables.spacing == 0 and refilled.Store.Module("ActionBars").consumables.backing and refilled.Store.Module("ActionBars").consumables.hotkey == false, "stripped defaults refill without migration")
 local explicit = AB.CoreEnv.DeepCopy(env.KstyleUIDB)
-explicit.profiles.Default.ActionBars.consumables = { size = 46, backing = false, hotkey = true }
+explicit.profiles.Default.ActionBars.consumables = { size = 46, spacing = 4, backing = false, hotkey = true }
 local savedEnv, savedK = AB.New({ saved = explicit })
-assert(savedK.Store.Module("ActionBars").consumables.size == 46 and savedK.Store.Module("ActionBars").consumables.backing == false and savedK.Store.Module("ActionBars").consumables.hotkey == true, "explicit saved size and backing survive refill")
+assert(savedK.Store.Module("ActionBars").consumables.size == 46 and savedK.Store.Module("ActionBars").consumables.spacing == 4 and savedK.Store.Module("ActionBars").consumables.backing == false and savedK.Store.Module("ActionBars").consumables.hotkey == true, "explicit saved size and backing survive refill")
 AB.CoreEnv.Logout(savedEnv)
-assert(savedEnv.KstyleUIDB.profiles.Default.ActionBars.consumables.size == 46 and savedEnv.KstyleUIDB.profiles.Default.ActionBars.consumables.backing == false and savedEnv.KstyleUIDB.profiles.Default.ActionBars.consumables.hotkey == true, "explicit choices survive stripping")
+assert(savedEnv.KstyleUIDB.profiles.Default.ActionBars.consumables.size == 46 and savedEnv.KstyleUIDB.profiles.Default.ActionBars.consumables.spacing == 4 and savedEnv.KstyleUIDB.profiles.Default.ActionBars.consumables.backing == false and savedEnv.KstyleUIDB.profiles.Default.ActionBars.consumables.hotkey == true, "explicit choices survive stripping")
+explicit.profiles.Default.ActionBars.consumables = { spacing = -0.5 }
+local legacy = select(2, AB.New({ saved = explicit }))
+local imported, reason = legacy.Store.Import(assert(legacy.Store.Export("Default")))
+assert(imported, "a profile saved with an old negative spacing still exports and imports: " .. tostring(reason))
+assert(near(select(3, legacy.Setup.Layouts.ConsumableGrid(nil, "frames")), 3 * 26 / 38), "a negative saved spacing keeps the HUD style's proportional gap")
 
 Bag({ 6948 })
 assert(#C.selected == 0, "a Hearthstone in the bags never creates a slot")

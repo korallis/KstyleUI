@@ -124,7 +124,7 @@ def github_json(path):
 
 def push_decision(area):
     if area == "lua":
-        return True, "staging always checks Mac CPU and cumulative instruction budgets"
+        return True, "staging always runs the full Lua suite, including cumulative instruction budgets"
     try:
         if os.environ.get("GITHUB_REF") != "refs/heads/staging":
             return True, "staging moved or no proof: running"

@@ -657,8 +657,10 @@ local function natural(env, region, log)
 		local hasW = type(region._width) == "number" and region._width > 0
 		local hasH = type(region._height) == "number" and region._height > 0
 		if not hasW and not (xs[0] and xs[1]) then
-			-- The natural width is the drawn words', without colour codes, links and textures, as the game sizes it.
+			-- The natural width is the drawn words', without colour codes, links and textures, as the game sizes it,
+			-- plus each inline atlas (|A:name:height:width|a) at its width.
 			region._naturalW = textWidthEm(plainText(text), fontPath) * size
+			for _, _, width in text:gmatch("|A:([^:|]+):(%d+):(%d+)[^|]*|a") do region._naturalW = region._naturalW + tonumber(width) end
 			region._naturalSideW = xs[1] and "right" or xs[0.5] and "center" or "left"
 		end
 		if not hasH and not (ys[0] and ys[1]) then
@@ -741,6 +743,25 @@ function Solver:solve(object)
 	local env = self.env
 	if object == env.UIParent then
 		return self.screen
+	end
+	-- A Line's unturned rect lies around the middle of its start and end points, as long as they are apart and as tall
+	-- as its thickness; object._turn is the angle the page turns the whole quad by, as the game draws it.
+	if object._type == "Line" then
+		local scale, ends = effectiveScale(object), {}
+		for i, key in ipairs({ "StartPoint", "EndPoint" }) do
+			local pack = object._state[key]
+			local p = pack and POINTS[pack[1]]
+			local r = p and self:rect(self:target(object, pack[2]))
+			if not r then
+				return nil, "line end unresolved"
+			end
+			ends[i] = { r[1] + (r[3] - r[1]) * p[1] + num(env, pack[3], 0) * scale, r[2] + (r[4] - r[2]) * p[2] + num(env, pack[4], 0) * scale }
+		end
+		local dx, dy = ends[2][1] - ends[1][1], ends[2][2] - ends[1][2]
+		local half, thick = math.sqrt(dx * dx + dy * dy) / 2, num(env, state(object, "Thickness"), 1) * scale / 2
+		local cx, cy = (ends[1][1] + ends[2][1]) / 2, (ends[1][2] + ends[2][2]) / 2
+		object._turn = math.atan2(dy, dx)
+		return { cx - half, cy - thick, cx + half, cy + thick }
 	end
 	local width, height = num(env, object._width), num(env, object._height)
 	if self.natural and object._type == "FontString" and not ((width or 0) > 0 and (height or 0) > 0) then
@@ -1138,6 +1159,7 @@ function Scene.Build(env, opts)
 		end
 		item.rect = toScreen(rect)
 		item.object = object
+		if object._turn then item.turn = round4(object._turn) end
 		-- A wrapped text's height came from the solver; the page keeps it instead of re-deriving one line, and
 		-- draws a block it measures shorter from the side the text grows from, as the game does.
 		if object._wrapped and item.natural then
@@ -1331,6 +1353,17 @@ function Scene.Build(env, opts)
 		if not item.font.file then
 			logLine("no local font for " .. tostring(path) .. "; the page falls back to Source Sans")
 		end
+		-- Inline atlases (|A:name:height:width|a, as CreateAtlasMarkup writes them) draw as images in the line.
+		for atlas, h, w in text:gmatch("|A:([^:|]+):(%d+):(%d+)[^|]*|a") do
+			local info, glyph = Scene.AtlasInfo(atlas), { atlas = atlas, height = round4(tonumber(h) * scale * k), width = round4(tonumber(w) * scale * k) }
+			if info and fileExists(info.file) then
+				glyph.file, glyph.texCoord = info.file, { round4(info.left), round4(info.right), round4(info.top), round4(info.bottom) }
+			else
+				logLine("atlas " .. atlas .. ": its sheet is not in the atlas cache, so it is drawn as a grey box; run python3 Tools/render/atlas.py fetch " .. atlas)
+			end
+			item.glyphs = item.glyphs or {}
+			item.glyphs[#item.glyphs + 1] = glyph
+		end
 		local sx, sy = state(region, "ShadowOffset")
 		if type(sx) == "number" and type(sy) == "number" and (sx ~= 0 or sy ~= 0) then
 			item.shadow = { color = color4(region._state.ShadowColor, { 0, 0, 0, 1 }), offset = { round4(sx * scale * k), round4(-sy * scale * k) } }
@@ -1426,15 +1459,16 @@ function Scene.Build(env, opts)
 	local kidsOf, regionsOf = {}, {}
 
 	-- A frame that clips its children (SetClipsChildren) bounds everything drawn under it, as a scroll list's
-	-- view does; clip is that bound in screen units, or nil. An item outside it is dropped, one across it is
-	-- drawn through it by the page, and carries scroll = true when the nearest clipping frame is a scroll view
-	-- (a ScrollFrame, or a frame that takes the mouse wheel, or whose parent does), which cuts rows by design.
+	-- view does; clip is that bound in screen units, or nil. An item outside it is dropped, one across it (or a
+	-- turned line, whose rect is unturned) is drawn through it by the page, and carries scroll = true when the
+	-- nearest clipping frame is a scroll view (a ScrollFrame, or a frame that takes the mouse wheel, or whose
+	-- parent does), which cuts rows by design.
 	local function clipped(item, clip, scroll)
 		if not clip then
 			return true
 		end
 		local r = item.rect
-		if r[1] + r[3] <= clip[1] or r[1] >= clip[1] + clip[3] or r[2] + r[4] <= clip[2] or r[2] >= clip[2] + clip[4] then
+		if not item.turn and (r[1] + r[3] <= clip[1] or r[1] >= clip[1] + clip[3] or r[2] + r[4] <= clip[2] or r[2] >= clip[2] + clip[4]) then
 			skipped.clipped = (skipped.clipped or 0) + 1
 			return false
 		end

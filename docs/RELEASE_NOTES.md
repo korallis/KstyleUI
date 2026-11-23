@@ -2,6 +2,18 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.3.2: gamepad controls (2026-11-23)
+
+This is the gamepad release. While you play with a controller, your action bar keybinds show its buttons instead of key names: Xbox, PlayStation or Switch, as the game draws them, with Shift and Ctrl as the left and right triggers. A pad key the game has no button picture for shows its own name, and with the keyboard in your hands nothing changes. Action Bars > Bars > Controller button icons turns it off; it is on by default.
+
+Setup and the General page get a Controls choice under HUD style. Gamepad puts eight buttons on bars 1 and 2, each split into a left and a right group of four to match the controller, and on Frames it also drops the tray so both bars get bigger buttons. Keyboard puts the bars back the way KstyleUI ships them. Neither one moves anything. General > Setup > Keyboard or gamepad bars hides the choice and leaves your bars alone.
+
+The shaman totem bar's choice fan finally gets the forged look from the Spirit Poles design. An open fan sits on a dark band rimmed in the element's colour, with a steel lip on the Medallions crest, and every choice wears its element's edge and tab. Under Frames each fan column now starts above its socket's spire, so the timer on the totem you have down stays in sight while you pick the next one.
+
+The consumables bar starts at button size 26 with no gap between buttons. Sizes and spacings you set yourself stay, and Spacing -1 still gives you the HUD style's gap. If you moved the bar off the player frame and never changed its size, it grows around where you left it, so check it is not sitting on another bar in Layout Mode.
+
+In v0.3.1 the setup window's pages, starting with Welcome, could stay blank in game after `/kstyle setup`, and Options pages could do the same when you switched page. Both show again. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.3.1: item levels and glass on Blizzard bars (2026-11-23)
 
 Your gear shows its item level now. The character window puts each piece's level in the top left of its slot, in its quality colour, and the inspect window does the same for the player you inspect once their gear loads. The shirt, tabard and ammo slots get no number. The numbers use the same corner, face and colours as the bags, which already had them under Bags > Item levels. Window Skins > Character sheet > Item levels turns them off on both windows; it is on by default.

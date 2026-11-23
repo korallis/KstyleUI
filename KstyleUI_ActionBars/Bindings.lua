@@ -1,4 +1,4 @@
--- Bindings.lua: mirrors the player's own Blizzard keybinds onto KstyleUI's buttons with override bindings, out of combat.
+-- Bindings.lua: mirrors the player's own Blizzard keybinds onto KstyleUI's buttons with override bindings, out of combat, and shows a gamepad key as the game's button glyph while a gamepad is active.
 local _, ns = ...
 
 local K = KstyleUI
@@ -9,7 +9,7 @@ local pending = false
 local function EachKey(fn, ...)
 	for i = 1, select("#", ...) do
 		local key = select(i, ...)
-		if type(key) == "string" and key ~= "" and not ns.IsSecret(key) then
+		if not ns.IsSecret(key) and type(key) == "string" and key ~= "" then
 			fn(key)
 		end
 	end
@@ -36,21 +36,78 @@ local function BindingText(key)
 	return key
 end
 
-function ns.UpdateHotkey(b)
-	local def = b.kbar.def
-	local text = K.Widgets.ShortKey(ns.FirstKey(def.binding .. b.index), BindingText)
+local GLYPHS = {
+	PAD1 = { "buttona", "buttoncrox", "face-b" }, PAD2 = { "buttonb", "buttoncircle", "face-a" },
+	PAD3 = { "buttonx", "buttonsquare", "face-y" }, PAD4 = { "buttony", "buttontriangle", "face-x" },
+	PADDUP = { "dpadup", "dpadup", "dpad-up" }, PADDDOWN = { "dpaddown", "dpaddown", "dpad-down" },
+	PADDLEFT = { "dpadleft", "dpadleft", "dpad-left" }, PADDRIGHT = { "dpadright", "dpadright", "dpad-right" },
+	PADLSHOULDER = { "trigger-lb", "triggerl1", "shoulder-l" }, PADRSHOULDER = { "trigger-rb", "triggerr1", "shoulder-r" },
+	PADLTRIGGER = { "trigger-lt", "triggerl2", "zl" }, PADRTRIGGER = { "trigger-rt", "triggerr2", "zr" },
+	PADLSTICK = { "stick-l3", "stickl3", "stick-l3" }, PADRSTICK = { "stick-r3", "stickr3", "stick-r3" },
+	PADBACK = { "view", "touchpad", "minus" }, PADFORWARD = { "menu", "menu", "plus" },
+	SHIFT = "PADLTRIGGER", CTRL = "PADRTRIGGER",
+}
+local XBOX, FAMILIES = { 1, "gamepad-xbox1-" }, { Shapes = { 2, "gamepad-ps-" }, Reverse = { 3, "gamepad-switch-128x-" } }
+
+local function Atlas(names, family)
+	local atlas = family[2] .. names[family[1]] .. "-normal"
+	if type(C_Texture) == "table" and type(C_Texture.GetAtlasInfo) == "function" and C_Texture.GetAtlasInfo(atlas) then return atlas end
+end
+
+local function Family()
+	local pad = C_GamePad
+	if not (ns.padActive and ns.Config("padGlyphs") ~= false and type(pad) == "table" and type(pad.GetActiveDeviceID) == "function" and type(pad.GetDeviceMappedState) == "function") then return false end
+	local id = pad.GetActiveDeviceID()
+	if ns.IsSecret(id) then return false end
+	local state = pad.GetDeviceMappedState(id)
+	if ns.IsSecret(state) or type(state) ~= "table" then return false end
+	local style = state.labelStyle
+	return not ns.IsSecret(style) and FAMILIES[style] or XBOX
+end
+
+local function Glyphs(b, key, family)
+	local atlases = {}
+	for part in key:gmatch("[^%-]+") do
+		local names = GLYPHS[GLYPHS[part]] or GLYPHS[part]
+		local atlas = type(names) == "table" and (Atlas(names, family) or family ~= XBOX and Atlas(names, XBOX)) or BindingText(part):match("^|A:([^:|]+)")
+		if not atlas then return nil end
+		atlases[#atlases + 1] = atlas
+	end
+	local size = math.floor(math.min((select(2, b.hotkey:GetFont()) or 12) * 1.5 + 0.5, (b:GetWidth() - 6) / #atlases))
+	for i, atlas in ipairs(atlases) do atlases[i] = ("|A:%s:%d:%d|a"):format(atlas, size, size) end
+	return table.concat(atlases)
+end
+
+local function PadKey(name)
+	local found
+	if type(GetBindingKey) == "function" and type(IsBindingForGamePad) == "function" then
+		EachKey(function(key)
+			local pad = IsBindingForGamePad(key)
+			if not found and not ns.IsSecret(pad) and pad then found = key end
+		end, GetBindingKey(name))
+	end
+	return found
+end
+
+function ns.UpdateHotkey(b, family)
+	if family == nil then family = Family() end
+	local name = b.kbar.def.binding .. b.index
+	local pad = family and PadKey(name)
+	local glyphs = pad and Glyphs(b, pad, family)
+	local text = glyphs or pad and K.Widgets.ShortKey(pad) or K.Widgets.ShortKey(ns.FirstKey(name), BindingText)
 	local unbound = ns.Config("bindingHints") and text == "" and b.kind == "action" and b.hasAction ~= false
 	b.keyHasAction = b.hasAction
-	b:SetHotkey(unbound and "-" or text)
+	if glyphs then K.Widgets.SetText(b.hotkey, glyphs) else b:SetHotkey(unbound and "-" or text) end
 	b.hotkey:SetAlpha(unbound and 0.4 or 1)
 end
 
 function ns.UpdateHotkeys()
+	local family = Family()
 	for _, def in ipairs(ns.BARS) do
 		local bar = ns.bars[def.key]
 		if bar then
 			for _, b in ipairs(bar.buttons) do
-				ns.UpdateHotkey(b)
+				ns.UpdateHotkey(b, family)
 			end
 		end
 	end

@@ -832,4 +832,56 @@ function AB.Errors(env)
 	return table.concat(env._errors, "\n")
 end
 
+-- Band(fan, root) -> the fan's shown lines as quads in root units: each line's four corners from its start and end
+-- points and its thickness, with its direction u, its normal n and the line itself.
+function AB.Band(fan, root)
+	local quads = {}
+	for _, line in ipairs(fan.lines or {}) do
+		if line:IsShown() then
+			local s, ends = line:GetEffectiveScale() / root, {}
+			for i, get in ipairs({ line.GetStartPoint, line.GetEndPoint }) do
+				local _, anchor, x, y = get(line)
+				local ax, ay = anchor:GetCenter()
+				local as = anchor:GetEffectiveScale() / root
+				ends[i] = { ax * as + x * s, ay * as + y * s }
+			end
+			local dx, dy = ends[2][1] - ends[1][1], ends[2][2] - ends[1][2]
+			local len, half = math.sqrt(dx * dx + dy * dy), line:GetThickness() * s / 2
+			local q = { u = { dx / len, dy / len }, n = { -dy / len, dx / len }, line = line }
+			for k, c in ipairs({ { 1, 1 }, { 1, -1 }, { 2, -1 }, { 2, 1 } }) do
+				local e = ends[c[1]]
+				q[k] = { e[1] + q.n[1] * half * c[2], e[2] + q.n[2] * half * c[2] }
+			end
+			quads[#quads + 1] = q
+		end
+	end
+	return quads
+end
+
+-- Tinted(K, region, method, token) -> true when the last call of method (SetVertexColor, SetColorTexture) on region
+-- painted the token's colour and alpha.
+function AB.Tinted(K, region, method, token)
+	local call, r, g, b, a = W.LastCall(region, method), K.Tokens.Color(token)
+	return call ~= nil and math.abs(call[1] - r) < 1e-6 and math.abs(call[2] - g) < 1e-6 and math.abs(call[3] - b) < 1e-6
+		and math.abs((call[4] or 1) - (a or 1)) < 1e-6
+end
+
+-- Crosses(quad, rect) -> true when a quad from Band overlaps a { left, bottom, width, height } rect by more than half
+-- a unit, by separating axes.
+function AB.Crosses(q, r)
+	local box = { { r[1], r[2] }, { r[1] + r[3], r[2] }, { r[1] + r[3], r[2] + r[4] }, { r[1], r[2] + r[4] } }
+	for _, axis in ipairs({ { 1, 0 }, { 0, 1 }, q.u, q.n }) do
+		local lo, hi = {}, {}
+		for i, points in ipairs({ q, box }) do
+			lo[i], hi[i] = math.huge, -math.huge
+			for k = 1, 4 do
+				local d = points[k][1] * axis[1] + points[k][2] * axis[2]
+				lo[i], hi[i] = math.min(lo[i], d), math.max(hi[i], d)
+			end
+		end
+		if hi[1] <= lo[2] + 0.5 or hi[2] <= lo[1] + 0.5 then return false end
+	end
+	return true
+end
+
 return AB

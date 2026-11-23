@@ -19,12 +19,12 @@ jobs:
   lua:
     name: lua ${{ matrix.shard }}/${{ strategy.job-total }}
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || fromJSON('["self-hosted", "mac-ci", "KstyleUI"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(github.event_name == 'pull_request' && '[1, 2, 3, 4, 5, 6, 7, 8]' || '[1, 2, 3, 4, 5]') }}
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -34,12 +34,12 @@ jobs:
         id: scope
         run: python3 Tools/hooks/ci_scope.py lua
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: github.event_name == 'pull_request' && steps.scope.outputs.run != 'false'
+        if: steps.scope.outputs.run != 'false'
         with:
           path: ~/.cache/lua51/*.deb
           key: ${{ runner.os }}-${{ runner.arch }}-lua515
       - name: Install hosted Lua 5.1
-        if: github.event_name == 'pull_request' && steps.scope.outputs.run != 'false'
+        if: steps.scope.outputs.run != 'false'
         run: |
           mkdir -p "$HOME/.cache/lua51/partial"
           sudo apt-get update -qq

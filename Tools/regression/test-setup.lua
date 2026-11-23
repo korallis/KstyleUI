@@ -204,6 +204,21 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+do
+	local env, K = Boot()
+	K.Setup.Open()
+	local panel = K.Setup.window
+	for step = 1, 5 do
+		assert(K.Setup.Go(step))
+		assert(panel.pages[step]:IsShown() and panel.pages[step]:GetAlpha() == 1, "step " .. step .. ": a page change shows its page at alpha 1 with no frame run; fade it with Motion.PageIn, never from alpha 0")
+	end
+	local fade = panel.pages[5].kstylePageIn
+	assert(fade:IsPlaying())
+	K.Motion.SetLevel("off")
+	assert(not fade:IsPlaying(), "Motion Off settles a playing page fade; register it with Motion.TrackGroup")
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 -- Layout step: three role cards over one large preview of the picked layout; a click picks one, a hover previews it
 
 local function Measured(env)

@@ -143,7 +143,7 @@ The TOC says `## X-License: All Rights Reserved`, and [LICENSE.md](../../LICENSE
 
 CurseForge's submission guide tells you to add in-game screenshots on the Images tab, and moderation requires at least one gallery image. Neither that guide nor the authors console publishes a gallery pixel size. These files are the README's own pictures and clips. The hero is half of `docs/media/readme/game_medallions_hero.jpg` (5120×1440 down to 2560×720) so the page is not handed a 5K file. Stills are JPEG and the clips are GIFs under 1.5 MB each. The console's image file control accepts `.png`, `.jpg`, `.jpeg`, `.gif` and `.webp`.
 
-Upload in this order. Title, then caption.
+Upload in this order. Title, then caption. CurseForge captions are 256 characters at most.
 
 | File | Pixels | Title | Caption |
 | --- | --- | --- | --- |
@@ -156,5 +156,5 @@ Upload in this order. Title, then caption.
 | `gallery/07-hud.jpg` | 1920×1080 | The whole HUD | KstyleUI test render over an in-game screenshot of the whole HUD on a 1920 by 1080 screen: the guide card top left, the quests on the right under the map. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/08-frames.jpg` | 1200×675 | The Frames look | KstyleUI test render over an in-game screenshot of the Frames look on a 1920 by 1080 screen: the target's card stacked over the player's above the action bars. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/09-rest.gif` | 800×261 | Clean screen at rest | KstyleUI test render over an in-game screenshot: out of combat with no target, the bars and player frame fade back, then a target brings them straight back. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/10-casts.gif` | 800×264 | Who a cast is aimed at | KstyleUI test render over an in-game screenshot: a target's cast bar names who the spell is aimed at, says YOU, shields a cast you can't interrupt, then dims with a gold mark while your interrupt recharges. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/11-map.gif` | 800×611 | Routes and nearest services | KstyleUI test render over an in-game screenshot, with the game's own map art: a route to the Undercity by road and zeppelin, then the Nearest picker for innkeepers, banks and trainers. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/10-casts.gif` | 800×264 | Who a cast is aimed at | KstyleUI test render over an in-game screenshot: the cast bar names the target or says YOU, shields casts you can't interrupt and marks your interrupt coming back. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/11-map.gif` | 800×611 | Routes and nearest services | KstyleUI test render over an in-game screenshot with the game's map art: a road and zeppelin route to the Undercity, then the Nearest picker. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |

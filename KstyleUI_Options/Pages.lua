@@ -491,6 +491,11 @@ local function GeneralItems()
 				help = L["Sets trim, panels, motion and text together. Forged is the look KstyleUI ships with."],
 				get = function() return looks.Current() or "Custom" end, set = looks.Apply })
 		end
+		if item.module == "HudStyle" and item.key == "style" and looks.ControlsShown() then
+			table.insert(items, i + (K.Store.Module("Setup").looks and 2 or 1), { kind = "segmented", page = "General", label = L["Controls"], stacked = true, options = looks.Controls() and looks.CONTROLS_STATUS or looks.CONTROLS_CUSTOM,
+				help = L["Sets bars 1 and 2 for a keyboard or a gamepad. Keyboard is how KstyleUI ships."],
+				get = function() return looks.Controls() or "Custom" end, set = looks.ApplyControls })
+		end
 	end
 	local function account(key, default, apply)
 		return function()

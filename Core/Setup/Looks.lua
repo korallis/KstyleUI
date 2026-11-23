@@ -1,4 +1,4 @@
--- Looks.lua: one-click Looks, each a named set of existing settings (Readable also raises every text size below its readable size and lowers none); Forged is the shipped look and the way back, and the current Look is read from those settings, never saved.
+-- Looks.lua: one-click Looks and controls, each a named set of existing settings (Readable also raises every text size below its readable size and lowers none); Forged and Keyboard are the shipped sets and the way back, and the current set is read from those settings, never saved.
 local _, ns = ...
 
 local L = ns.L
@@ -20,6 +20,15 @@ Looks.LIST = {
 }
 Looks.CUSTOM = { Looks.LIST[1], Looks.LIST[2], Looks.LIST[3], { value = "Custom", label = L["Your own"] } }
 Looks.STATUS = { Looks.LIST[1], Looks.LIST[2], Looks.LIST[3], { value = "Custom", label = L["Your own"], disabled = true } }
+local PAD_KEYS = { "ActionBars.bar1.buttons", "ActionBars.bar2.buttons", "ActionBars.bar1.split", "ActionBars.bar2.split", "ActionBars.useTray" }
+Looks.CONTROLS = {
+	{ value = "Keyboard", label = L["Keyboard"], note = L["Bars 1 and 2 as KstyleUI ships them: twelve buttons each. Pick it to go back."], set = {} },
+	{ value = "Gamepad", label = L["Gamepad"], note = L["Eight buttons on bars 1 and 2, in a left and a right group; Frames drops the tray for bigger buttons."], set = {
+		["ActionBars.bar1.buttons"] = 8, ["ActionBars.bar2.buttons"] = 8, ["ActionBars.bar1.split"] = "on", ["ActionBars.bar2.split"] = "on", ["ActionBars.useTray"] = false,
+	} },
+}
+Looks.CONTROLS_CUSTOM = { Looks.CONTROLS[1], Looks.CONTROLS[2], Looks.CUSTOM[4] }
+Looks.CONTROLS_STATUS = { Looks.CONTROLS[1], Looks.CONTROLS[2], Looks.STATUS[4] }
 
 local function Sizes(module, defaults, path, readable, fn)
 	for key, child in pairs(defaults) do
@@ -32,46 +41,66 @@ local function Sizes(module, defaults, path, readable, fn)
 	end
 end
 
-local function Each(look, fn)
-	for _, path in ipairs(KEYS) do
-		local module, key = path:match("^(%a+)%.(.+)$")
-		if ns.Store.Defaults(module) then
+local function Default(path)
+	local module, key = path:match("^(%a+)%.(.+)$")
+	local default = ns.Store.Defaults(module)
+	for part in key:gmatch("[^%.]+") do default = type(default) == "table" and default[part] or nil end
+	return default, module, key
+end
+
+local function Each(look, fn, keys)
+	for _, path in ipairs(keys or KEYS) do
+		local default, module, key = Default(path)
+		if default ~= nil then
 			local value = look.set[path]
-			if value == nil then value = ns.Options.Default(module, key) end
+			if value == nil then value = default end
 			fn(module, key, value)
 		end
 	end
+	if keys then return end
 	for _, module in ipairs(ns.Modules.List()) do
 		local defaults = ns.Store.Defaults(module)
 		if defaults then Sizes(module, defaults, "", look.set["Readability.preset"] == "Readable", fn) end
 	end
 end
 
-function Looks.Get(name)
-	for _, look in ipairs(Looks.LIST) do
+function Looks.Get(name, list)
+	for _, look in ipairs(list or Looks.LIST) do
 		if look.value == name then return look end
 	end
 end
 
-function Looks.Current()
+function Looks.Current(list, keys)
 	if not ns.Store.IsLoaded() then return nil end
-	for _, look in ipairs(Looks.LIST) do
+	for _, look in ipairs(list or Looks.LIST) do
 		local match = true
 		Each(look, function(module, key, value)
 			match = match and ns.Options.Equal(ns.Options.Read(module, key), value)
-		end)
+		end, keys)
 		if match then return look.value end
 	end
 end
 
-function Looks.Apply(name)
-	local look = Looks.Get(name)
+function Looks.Apply(name, list, keys)
+	local look = Looks.Get(name, list)
 	if not look or not ns.Store.IsLoaded() then return false end
 	local text = ns.Store.Module("Readability").preset
 	Each(look, function(module, key, value)
 		if not ns.Options.Equal(ns.Options.Read(module, key), value) then ns.Options.Write(module, key, value) end
-	end)
+	end, keys)
 	if ns.Store.Module("Readability").preset ~= text then ns.Callbacks.Fire("ThemeChanged") end
 	ns.DevTest.Log("Setup", "look " .. name)
 	return true
+end
+
+function Looks.Controls()
+	if Default(PAD_KEYS[1]) ~= nil then return Looks.Current(Looks.CONTROLS, PAD_KEYS) end
+end
+
+function Looks.ApplyControls(name)
+	return Default(PAD_KEYS[1]) ~= nil and Looks.Apply(name, Looks.CONTROLS, PAD_KEYS)
+end
+
+function Looks.ControlsShown()
+	return ns.Store.Module("Setup").controls and Default(PAD_KEYS[1]) ~= nil
 end

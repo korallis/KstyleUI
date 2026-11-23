@@ -1,4 +1,4 @@
--- options_setup.lua: one real Options page or setup step at a chosen window scale for G4/G9 evidence; RENDER_LOOK wears a Look, RENDER_SETUP_FEATURES=off turns the big pictures and Looks off, and RENDER_SETUP_POINT points at a layout or arrangement card; RENDER_GO=N presses Enter on RENDER_QUERY and waits N ticks, RENDER_POLISH=off switches off the v0.3.0 search, preview and motion switches.
+-- options_setup.lua: one real Options page or setup step at a chosen window scale for G4/G9 evidence; RENDER_LOOK wears a Look, RENDER_SETUP_FEATURES=off turns the big pictures and Looks off, RENDER_CONTROLS_ROW=off hides the Keyboard and Gamepad choice, and RENDER_SETUP_POINT points at a layout or arrangement card; RENDER_GO=N presses Enter on RENDER_QUERY and waits N ticks, RENDER_POLISH=off switches off the v0.3.0 search, preview and motion switches.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -16,6 +16,10 @@ return Common.Run(function()
 	if os.getenv("RENDER_SETUP_FEATURES") == "off" then
 		profile.Setup = profile.Setup or {}
 		profile.Setup.bigPictures, profile.Setup.looks = false, false
+	end
+	if os.getenv("RENDER_CONTROLS_ROW") == "off" then
+		profile.Setup = profile.Setup or {}
+		profile.Setup.controls = false
 	end
 	local loader = unitFrames and dofile("Tools/regression/unitframes_env.lua") or O
 	local env, K = loader.New(Common.ScreenOpts({
@@ -36,10 +40,13 @@ return Common.Run(function()
 		local account = K.Store.Account()
 		account.optionsSearchJump, account.optionsPreviewAll, account.motionOneStyle = false, false, false
 	end
+	-- The Controls row shows only with the Action Bars settings it writes, which this scene's modules lack.
+	local BARS = { bar1 = { buttons = 12, split = "off" }, bar2 = { buttons = 12, split = "off" }, useTray = true }
+	if os.getenv("RENDER_SUBJECT") ~= "setup" and not K.Store.Defaults("ActionBars") then K.Store.RegisterDefaults("ActionBars", BARS) end
 	local key
 	if (os.getenv("RENDER_LOOK") or "") ~= "" then assert(K.Setup.Looks.Apply(os.getenv("RENDER_LOOK"))) end
 	if os.getenv("RENDER_SUBJECT") == "setup" then
-		for _, name in ipairs(K.Setup.PICKER) do K.Modules.Register(W.CoreEnv.Module(name.name)) end
+		for _, name in ipairs(K.Setup.PICKER) do K.Modules.Register(W.CoreEnv.Module(name.name, name.name == "ActionBars" and { defaults = BARS } or nil)) end
 		assert(K.Setup.Open(true))
 		assert(K.Setup.Go(tonumber(os.getenv("RENDER_SETUP_STEP")) or 4))
 		key = "setup.window"

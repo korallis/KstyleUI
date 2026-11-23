@@ -1,4 +1,4 @@
--- test-actionbars-frames-totems.lua: the shaman's Spirit Poles under Frames: the same secure sockets, spires, fans and medals stand upright in a row at the stance bar's place beside the tray, sized as the stance bar's buttons, in the game's bar order with Ghost Wolf and Call after them and no rune ring; Blizzard's totem bar and the lone Ghost Wolf stance bar hide; each fan is a column rising from its socket that unfolds from it; the slab setting does not matter, the Shaman totem bar setting shows and works under Frames, and switching to Medallions puts the poles back on the crest; the row stays on screen and clear of every other element of the DPS, Tank and Healer layouts, centred and spread, at four screen sizes, and an open fan clears the unit frames.
+-- test-actionbars-frames-totems.lua: the shaman's Spirit Poles under Frames: the same secure sockets, spires, fans and medals stand upright in a row at the stance bar's place beside the tray, sized as the stance bar's buttons, in the game's bar order with Ghost Wolf and Call after them and no rune ring; Blizzard's totem bar and the lone Ghost Wolf stance bar hide; each fan is a column rising from its socket that unfolds from it; the slab setting does not matter, the Shaman totem bar setting shows and works under Frames, and switching to Medallions puts the poles back on the crest; the row stays on screen and clear of every other element of the DPS, Tank and Healer layouts, centred and spread, at four screen sizes, with no plate or socket edge while the fans are shut, and an open fan clears the unit frames and leaves every spire's timer in sight.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local SIZES = { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
@@ -80,6 +80,9 @@ do
 	local wolf, call = Rect(st.wolf, root), Rect(st.call, root)
 	assert(wolf[1] > last[1] + last[3] and call[1] > wolf[1] + wolf[3] and Near(wolf[2], last[2]), "Ghost Wolf then Call follow the sockets")
 	assert(st.wolf:GetAttribute("spell") == 2645 and st.call:GetAttribute("spell") == 66842, "the medals still cast Ghost Wolf and Call")
+	for _, b in ipairs(st.sockets) do
+		assert(#AB.Band(st.header, root) == 0 and not (b.edge and b.edge:IsVisible()), "Frames: the closed bar keeps its look, no plate and no socket edge")
+	end
 
 	-- Drop, fan and dismiss work as on the crest; the fan is a column rising from the socket.
 	local fire = st.sockets[2]
@@ -135,6 +138,7 @@ do
 	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	assert(st.shown and st.header:GetPoint(1) ~= "BOTTOMLEFT" and st.ring[5]:IsShown() and st.ring.breath:IsPlaying(), "Medallions: the poles on the crest, the ring back and breathing")
+	assert(#AB.Band(st.header, root) == 0 and not (fire.edge and fire.edge:IsVisible()), "Medallions: the closed bar keeps its look, no plate and no socket edge")
 	assert(tostring(AB.W.LastCall(fire.spire.steel, "SetTexture")[1]):find("PipSpireSteel102.png", 1, true), "the crest's fire spire leans at its own angle")
 	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
@@ -204,6 +208,21 @@ for _, size in ipairs(SIZES) do
 			end
 		end
 		assert(shown == #KNOWN[2] + 1, label .. ": Earth's fan holds none and every known totem")
+		local band, rim = AB.Band(earth.fan, root), false
+		for _, q in ipairs(band) do
+			rim = rim or AB.Tinted(K, q.line, "SetColorTexture", "totemEarth")
+			for k = 1, 4 do
+				assert(q[k][2] - origin[2] <= H, label .. ": Earth's band stays on screen")
+			end
+			for _, u in ipairs(units) do
+				assert(not AB.Crosses(q, { u[1] + origin[1], u[2] + origin[2], u[3], u[4] }), label .. ": Earth's band clears the unit frames")
+			end
+			for _, b in ipairs(st.sockets) do
+				assert(not AB.Crosses(q, Rect(b, root)), label .. ": Earth's band clears the " .. b.element.name .. " socket")
+				assert(not AB.Crosses(q, Rect(b.spire, root)), label .. ": Earth's band leaves the " .. b.element.name .. " spire's timer in sight")
+			end
+		end
+		assert(rim, label .. ": Earth's open fan sits on a band rimmed in its colour")
 		AB.Click(env, earth, "RightButton", false)
 	end
 	Clean(env, K, "clearance " .. size[1])

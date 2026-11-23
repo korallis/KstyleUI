@@ -1,5 +1,39 @@
 # KstyleUI changelog
 
+## v0.3.2 (2026-11-23)
+
+The gamepad release. Your action bars show your controller's buttons while you play with one, and a new Controls choice sets bars 1 and 2 up for a pad in one click. Shaman totem fans get their forged backing, the consumables bar starts bigger with no gaps, and setup and Options pages stop opening blank. Everything new is on by default, with its own switch.
+
+Highlights:
+
+- While you play with a gamepad, your keybinds show its Xbox, PlayStation or Switch buttons instead of key names.
+- Pick Keyboard or Gamepad in setup or on the General page; Gamepad sets up bars 1 and 2 for a controller.
+- Shaman totem fans open on a dark forged band in the element's colour, and each choice wears its element.
+- The consumables bar starts at button size 26 with no gap between buttons.
+- Setup and Options pages no longer open blank in game.
+
+### Added
+
+- While you play with a gamepad, your action bar keybinds show its Xbox, PlayStation or Switch buttons, as the game draws them, instead of key names.
+- Shift and Ctrl show as the left and right triggers. Action Bars > Bars > Controller button icons.
+- A Controls choice in setup and on the General page under HUD style. Gamepad puts eight buttons on bars 1 and 2, each in a left and a right group of four.
+- On Frames, Gamepad also drops the tray so both bars get bigger buttons. Keyboard puts them back as KstyleUI ships them. General > Setup > Keyboard or gamepad bars.
+
+### Changed
+
+- The consumables bar starts at button size 26 with no gap between buttons. Sizes and spacings you set yourself are kept. Action Bars > Bar to edit > Consumables bar.
+- Spacing -1 on the consumables bar still gives you the HUD style's gap.
+
+### Fixed
+
+- The shaman totem bar's choice fan opens on a dark forged band rimmed in the element's colour, and each choice wears its element's edge and tab.
+- Under Frames each fan column starts above its socket's spire, so your totem's timer stays in sight. Action Bars > Slab and cooldowns > Shaman totem bar.
+- The setup window's pages, Welcome included, show in game again instead of opening blank after `/kstyle setup`. Options pages no longer go blank when you switch page.
+
+### Upgrading
+
+- A consumables bar you moved but never resized grows from its centre. If it now overlaps a bar, move it in Layout Mode.
+
 ## v0.3.1 (2026-11-23)
 
 Your gear shows its item level on the character and inspect windows, the lit glass finish reaches the Blizzard bars KstyleUI restyles, and two v0.3.0 bugs are fixed: nameless world map route steps and solid party and raid frames. Everything new is on by default, with its own switch.

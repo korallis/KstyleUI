@@ -542,8 +542,8 @@ end
 function Layouts.ConsumableGrid(class, style)
 	style = style or ns.HudStyle.Current()
 	local cfg = ns.Store.IsLoaded() and ns.Store.Module("ActionBars").consumables or {}
-	local size = (cfg.size or BUTTON / 2) * (style == "medallions" and (Layouts.MEDALLIONS_SLOT[class or ns.Scale.Aspect()] or Layouts.MEDALLIONS_SLOT.size) / BUTTON or 1)
-	local gap = cfg.spacing and cfg.spacing >= 0 and cfg.spacing or (style == "medallions" and Layouts.MEDALLIONS_SLOT.gap * size / Layouts.MEDALLIONS_SLOT.size or PITCH * size / BUTTON)
+	local size = (cfg.size or 26) * (style == "medallions" and (Layouts.MEDALLIONS_SLOT[class or ns.Scale.Aspect()] or Layouts.MEDALLIONS_SLOT.size) / BUTTON or 1)
+	local gap = (cfg.spacing or 0) < 0 and (style == "medallions" and Layouts.MEDALLIONS_SLOT.gap * size / Layouts.MEDALLIONS_SLOT.size or PITCH * size / BUTTON) or cfg.spacing or 0
 	return math.min(12, math.max(1, math.floor(cfg.rows or 2))), size, gap
 end
 

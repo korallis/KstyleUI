@@ -181,12 +181,21 @@ class WorkflowsTest(unittest.TestCase):
         self.assertIn("Tools/icons/iconset.py pack", check)
         self.assertIn('"$KSTYLEUI_PILLOW_PYTHON" Tools/icons/iconset.py pack', check, "pack needs Pillow to read the PNGs")
         self.assertIn("Tools/icons/iconset.py verify", check)
-        self.assertIn("Tools/icons/iconset.py pack", release)
-        self.assertIn('"$KSTYLEUI_PILLOW_PYTHON" Tools/icons/iconset.py pack', release)
+        self.assertIn('python3 Tools/icons/iconset.py pack', release, "the upload job's only Python has Pillow")
         self.assertRegex(release, r"KstyleUI-Icons-\$\{GITHUB_REF_NAME#v\}\.zip")
         self.assertIn("gh release upload", release)
         self.assertNotIn("gh release upload", check)
         self.assertRegex(release, r"zip -r .*Interface", "the zip holds the Interface/Icons tree")
+        packager = release.index("uses: BigWigsMods/packager@")
+        for step in ("actions/setup-python@", "pip install Pillow", "Tools/icons/iconset.py pack"):
+            self.assertLess(release.index(step), packager, f"{step} can fail: run it before the packager publishes")
+        self.assertLess(packager, release.index("gh release upload"))
+
+    def test_reused_release_proof_downloads_no_lint_or_python_suite_tools(self):
+        check = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))["check"]
+        for step in check.split("\n      - "):
+            if re.search(r"luarocks|pre-commit|luajit", step):
+                self.assertIn("if: steps.proof.outputs.run != 'false'", step, "only the lint and Python checks need these")
 
     def test_release_page_shows_only_its_version_after_the_upload(self):
         release = jobs_of((WORKFLOWS / "release.yml").read_text(encoding="utf-8"))["release"]
@@ -357,18 +366,22 @@ class WorkflowsTest(unittest.TestCase):
             jobs = jobs_of(text)
             self.assertTrue(jobs, path.name)
             for job, body in jobs.items():
-                if path.name == "checks.yml" and job == "lua":
-                    self.assertIn("runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || fromJSON('[\"self-hosted\", \"mac-ci\", \"KstyleUI\"]') }}", body)
-                    for step in body.split("\n      - "):
-                        if re.search(r"\bsudo\b|apt(-get)?\s+(update|install)", step):
-                            self.assertIn("if: github.event_name == 'pull_request' &&", step, "Mac jobs must never run sudo or apt")
-                elif "self-hosted" in body:
+                runner = re.search(r"(?m)^    runs-on: (.+)$", body).group(1)
+                expected = "[self-hosted, mac-ci, KstyleUI]" if path.name == "mac-budgets.yml" else "ubuntu-latest"
+                self.assertEqual(runner, expected, f"{path.name}: {job}: gates run on GitHub-hosted runners; "
+                                 "only mac-budgets.yml uses the Macs, and nothing requires or awaits it")
+                if "self-hosted" in body:
                     self.assertNotRegex(body, r"\bsudo\b|apt(-get)?\s+(update|install)", f"{path.name}: {job} runs on the owner's Mac: no sudo or apt there")
                 guard = re.search(r"(?m)^    if: (.*)$", body)
                 self.assertIsNotNone(guard, f"{path.name}: {job} has no fork guard")
                 expected = "github.event_name == 'workflow_dispatch'" if job == "discord-repost" else "github.event_name == 'push'"
                 self.assertEqual(guard.group(1), expected if path.name == "release.yml" else FORK_GUARD,
                                  f"{path.name}: {job}")
+        monitor = WORKFLOWS / "mac-budgets.yml"
+        self.assertIn(monitor, workflows(), "the Macs keep measuring CPU budgets in mac-budgets.yml")
+        text = monitor.read_text(encoding="utf-8")
+        self.assertIn("\n  push:\n    branches: [staging]\n", text)
+        self.assertIn('bash scripts/gate.sh lua --shard "$SHARD/5"', text)
 
     def test_no_workflow_runs_on_an_event_that_carries_fork_code_past_the_guard(self):
         for path in workflows():

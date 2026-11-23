@@ -76,6 +76,7 @@ local defaults = {
 	hubNumber = true,
 	editBar = "bar1",
 	bindingHints = true,
+	padGlyphs = true,
 	accent = "quiet",
 	accentColor = Color("accentDefault"),
 	rangeColor = Color("hostile"),
@@ -114,7 +115,7 @@ for _, def in ipairs(ns.BARS) do
 	defaults[def.key] = BarDefaults(def)
 	if def.key == "bar3" then defaults[def.key].finished = true end
 end
-defaults.consumables = { enabled = true, attached = true, buttons = 12, visibility = "", rows = 2, size = 19, orientation = "HORIZONTAL", growth = "LEFTUP", spacing = -1, fade = false, fadeAlpha = 0, count = true, hotkey = false, cooldown = true, combat = true, idle = true, hideEmpty = true, other = true, backing = true }
+defaults.consumables = { enabled = true, attached = true, buttons = 12, visibility = "", rows = 2, size = 26, orientation = "HORIZONTAL", growth = "LEFTUP", spacing = 0, fade = false, fadeAlpha = 0, count = true, hotkey = false, cooldown = true, combat = true, idle = true, hideEmpty = true, other = true, backing = true }
 defaults.consumables.visibilityBuilder = ns.VisibilityDefaults()
 defaults.consumables.clickThrough, defaults.consumables.reverse = false, false
 TextDefaults(defaults.consumables)
@@ -401,6 +402,7 @@ function ns.Schema()
 		{ type = "header", label = L["Bars"] },
 		{ type = "toggle", key = "safeDragging", label = L["Safe dragging"], help = L["Clicks cast on release; keys keep their timing. Off makes clicks follow the key setting."] },
 		{ type = "toggle", key = "bindingHints", label = L["Binding helpers"], help = L["Shows Bind keys buttons and a dash on unbound actions. Off keeps the usual binding display."] },
+		{ type = "toggle", key = "padGlyphs", label = L["Controller button icons"], help = L["While a gamepad is active, keybinds show its button icons. Off shows key names."] },
 	}
 	for _, row in ipairs(shared) do schema[#schema + 1] = row end
 	schema[#schema + 1] = { type = "header", label = L["Text"] }

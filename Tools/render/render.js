@@ -379,6 +379,13 @@
 		ctx.save();
 		ctx.globalAlpha = Math.min(1, alpha);
 		ctx.globalCompositeOperation = item.blend === "ADD" ? "lighter" : "source-over";
+		if (item.turn) {
+			// A line's whole quad turns about its middle, unclipped, unlike a texture's rotation inside its rect.
+			const cx = dest.x + dest.w / 2, cy = dest.y + dest.h / 2;
+			ctx.translate(cx, cy);
+			ctx.rotate(-item.turn);
+			ctx.translate(-cx, -cy);
+		}
 		ctx.drawImage(layer, offset.x, offset.y);
 		ctx.restore();
 	}
@@ -524,6 +531,18 @@
 	async function drawText(ctx, item, ppu, base) {
 		const alpha = item.alpha;
 		if (alpha <= 0 || !item.text) {
+			return;
+		}
+		// A text of inline atlases only (a keybind glyph) draws its images side by side, justified in its rect.
+		if (item.glyphs && !plainText(item.text).trim()) {
+			const total = item.glyphs.reduce((sum, g) => sum + g.width, 0);
+			const r = item.rect;
+			let x = item.justifyH === "RIGHT" ? r[0] + r[2] - total : item.justifyH === "CENTER" ? r[0] + (r[2] - total) / 2 : r[0];
+			for (const g of item.glyphs) {
+				const y = item.justifyV === "TOP" ? r[1] : item.justifyV === "BOTTOM" ? r[1] + r[3] - g.height : r[1] + (r[3] - g.height) / 2;
+				await drawTexture(ctx, { rect: [x, y, g.width, g.height], file: g.file, texCoord: g.texCoord, atlas: g.atlas, alpha: alpha }, ppu, base);
+				x += g.width;
+			}
 			return;
 		}
 		const sizePx = item.font.size * ppu;

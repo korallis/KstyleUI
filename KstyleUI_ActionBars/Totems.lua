@@ -1,9 +1,9 @@
--- Totems.lua: the shaman's Spirit Poles, KstyleUI's own secure totem bar in place of Blizzard's MultiCastActionBarFrame: four element sockets in the game's bar order (earth, fire, water, air) drop the chosen totem from its multi-cast action slot, right click fans out that element's totems on a shallow arc between the crest's sockets and the cooldown row to choose one, one fan at a time (shift right click dismisses the totem), and each socket carries a crown spire that lights and burns down over the totem's life from the slot's own boolean and duration object, so Lua never reads a secret, and flickers through its last fifth at Full while the slot is readable; a chosen totem's icon rests at 82% until that totem is up, a fan unfolds from its socket over 0.12 s at Full and Calm, and with all four totems up the rune ring catches the shaman's class colour, a halo under the crest and the glyphs over it as on the hawks' ring, and breathes at Full; Ghost Wolf and Call of the Elements (right click: Totemic Recall) ride as medals on the Medallions crest ring's shoulders, the lone Ghost Wolf stance bar hides, and a vehicle or override bar hides the bar as it hides Blizzard's. Under Frames the same pieces stand upright in a row at the stance bar's place beside the tray, sized as its buttons, the medals after the sockets and each fan a column rising from its socket, with no rune ring; under Medallions without the crest Blizzard's bar stays.
+-- Totems.lua: the shaman's Spirit Poles, KstyleUI's own secure totem bar in place of Blizzard's MultiCastActionBarFrame: four element sockets in the game's bar order (earth, fire, water, air) drop the chosen totem from its multi-cast action slot, right click fans out that element's totems on a shallow arc between the crest's sockets and the cooldown row to choose one, one fan at a time (shift right click dismisses the totem), each fan choice wears its element's edge and tab, an open fan sits on a dark forged band rimmed in the element's colour, and each socket carries a crown spire that lights and burns down over the totem's life from the slot's own boolean and duration object, so Lua never reads a secret, and flickers through its last fifth at Full while the slot is readable; a chosen totem's icon rests at 82% until that totem is up, a fan unfolds from its socket over 0.12 s at Full and Calm, and with all four totems up the rune ring catches the shaman's class colour, a halo under the crest and the glyphs over it as on the hawks' ring, and breathes at Full; Ghost Wolf and Call of the Elements (right click: Totemic Recall) ride as medals on the Medallions crest ring's shoulders, the lone Ghost Wolf stance bar hides, and a vehicle or override bar hides the bar as it hides Blizzard's. Under Frames the same pieces stand upright in a row at the stance bar's place beside the tray, sized as its buttons, the medals after the sockets and each fan a column rising from its socket above its spire, with no rune ring; under Medallions without the crest Blizzard's bar stays.
 local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens, Effects, L = K.Widgets, K.Tokens, K.Effects, K.L
-local cos, sin, rad, deg, acos, max, min = math.cos, math.sin, math.rad, math.deg, math.acos, math.max, math.min
+local cos, sin, rad, deg, acos, sqrt, max, min = math.cos, math.sin, math.rad, math.deg, math.acos, math.sqrt, math.max, math.min
 local IsSecret = Widgets.IsSecret
 
 local Totems = {}
@@ -23,6 +23,7 @@ local FAN, FAN_RADIUS, FAN_DROP, FAN_STEP, FAN_SPAN = 26, 330, 200, 5.2, 32
 local FLARE_RISE, FLARE_FALL, IGNITE = 0.05, 0.4, 0.3
 local UNFOLD, FIFTH, IDLE_ICON, RING_HALO = 0.12, 0.2, 0.82, 1.6
 local ROW_GAP = 8
+local BAND, LIFT, PAD, RIM, JOIN, EDGE = 19, 2, 22, 2, 1.5, 0.6
 local OVERRIDDEN = "[vehicleui][overridebar] hide; show"
 
 local OPEN = [[
@@ -106,6 +107,29 @@ local function Art(parent, layer, name, color, blend)
 	t:SetVertexColor(Tokens.Color(color))
 	if blend then t:SetBlendMode(blend) end
 	return t
+end
+
+local function Band(holder, anchor, path, outer, inner)
+	local used = 0
+	for k, layer in ipairs({ { 0, 2 * BAND, "medSocket" }, { BAND - RIM / 2, RIM, outer }, { RIM / 2 - BAND, RIM, inner } }) do
+		local r, g, bl, alpha = Tokens.Color(layer[3])
+		for i = 1, #path - 1 do
+			local a, z, off = path[i], path[i + 1], layer[1]
+			local ax, ay, zx, zy = a[1] + a[3] * off, a[2] + a[4] * off, z[1] + z[3] * off, z[2] + z[4] * off
+			local len = sqrt((zx - ax) ^ 2 + (zy - ay) ^ 2)
+			local ux, uy = (zx - ax) / len * JOIN, (zy - ay) / len * JOIN
+			used = used + 1
+			local line = holder.lines[used] or holder:CreateLine()
+			holder.lines[used] = line
+			line:SetDrawLayer(k == 1 and "BACKGROUND" or "BORDER")
+			line:SetStartPoint("CENTER", anchor, ax - ux, ay - uy)
+			line:SetEndPoint("CENTER", anchor, zx + ux, zy + uy)
+			line:SetThickness(layer[2])
+			line:SetColorTexture(r, g, bl, alpha)
+			line:Show()
+		end
+	end
+	for i = used + 1, #holder.lines do holder.lines[i]:Hide() end
 end
 
 local function Bar(parent, color, texture, blend)
@@ -326,9 +350,11 @@ local function Choice(fan, e, first)
 	f.to:SetOrder(2)
 	f.to:SetDuration(UNFOLD)
 	f.to:SetSmoothing("OUT")
-	f.shade = Art(f, "BACKGROUND", "glow", "black")
-	f.shade:SetPoint("CENTER", f, "CENTER", 0, 0)
-	f.shade:SetAlpha(0.85)
+	f.edge = Art(f, "OVERLAY", "medSlotChecked", "totem" .. e.name)
+	f.edge:SetAllPoints(f)
+	f.edge:SetAlpha(EDGE)
+	f.tab = Art(f, "OVERLAY", "dot", "totem" .. e.name)
+	f.tab:SetPoint("TOP", f, "BOTTOM", 0, -1)
 	if first then
 		f.rune = Art(f.overlay, "OVERLAY", "totemRune" .. e.name, "totem" .. e.name)
 		f.rune:SetAllPoints(f.icon)
@@ -356,7 +382,7 @@ local function Socket(header, i, e)
 	b.fan = CreateFrame("Frame", nil, header, "SecureHandlerBaseTemplate")
 	b.fan:SetFrameStrata("HIGH")
 	b.fan:Hide()
-	b.fan.buttons = {}
+	b.fan.buttons, b.fan.lines = {}, {}
 	b.fan:HookScript("OnShow", Unfold)
 	SecureHandlerWrapScript(b, "OnClick", b.fan, OPEN)
 	b.spire = Spire(header, e)
@@ -486,7 +512,7 @@ local function Place()
 		header:SetPoint("BOTTOMLEFT", seat, "BOTTOMLEFT", 0, 0)
 		header:SetSize(w, h)
 	end
-	local anchor, step = crest and hub or header, FAN + ROW_GAP / 2
+	local anchor, step, rise = crest and hub or header, FAN + ROW_GAP / 2, half + SPIRE_LIFT + SPIRE + ROW_GAP
 	for i, b in ipairs(state.sockets) do
 		b:SetShown(b.known)
 		b.spire:SetShown(b.known)
@@ -510,19 +536,30 @@ local function Place()
 			Put(b.fan, hub, 0, FAN_RADIUS - FAN_DROP - FAN)
 			Widgets.Size(b.fan, 2 * FAN_RADIUS * sin(rad(FAN_SPAN / 2)) + 2 * FAN, 3 * FAN)
 		else
-			Put(b.fan, header, x, y + half + b.fan.count * step / 2)
+			Put(b.fan, header, x, y + rise + b.fan.count * step / 2)
 			Widgets.Size(b.fan, FAN, b.fan.count * step)
 		end
 		for n, f in ipairs(b.fan.buttons) do
 			local fx, fy = FAN_RADIUS * cos(rad(f.angle)), FAN_RADIUS * sin(rad(f.angle)) - FAN_DROP
-			if not crest then fx, fy = x, y + half + (n - 0.5) * step end
+			if not crest then fx, fy = x, y + rise + (n - 0.5) * step end
 			f.from:SetOffset(x - fx, y - fy)
 			f.to:SetOffset(fx - x, fy - y)
 			Put(f, anchor, fx, fy, FAN)
 			f:Restyle()
 			ns.Slab.Dress(f)
-			Widgets.Size(f.shade, FAN * 2.6, FAN * 2.6)
+			Widgets.Size(f.tab, FAN * 0.6, 3)
 		end
+		local count, colour, path = b.fan.count, "totem" .. b.element.name, {}
+		if crest then
+			local from, to = b.fan.buttons[1].angle + deg(PAD / FAN_RADIUS), b.fan.buttons[count].angle - deg(PAD / FAN_RADIUS)
+			for k = 0, count do
+				local a = rad(from + (to - from) * k / count)
+				path[k + 1] = { (FAN_RADIUS + LIFT) * cos(a), (FAN_RADIUS + LIFT) * sin(a) - FAN_DROP, cos(a), sin(a) }
+			end
+		else
+			path = { { x, y + rise + step / 2 - BAND + LIFT, 1, 0 }, { x, y + rise + (count - 0.5) * step + BAND + LIFT, 1, 0 } }
+		end
+		Band(b.fan, anchor, path, colour, crest and "medSocketLip" or colour)
 	end
 	state.ring[5]:SetShown(crest)
 	if crest then

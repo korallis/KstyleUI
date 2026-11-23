@@ -1,0 +1,34 @@
+# mac-budgets.yml: the Macs measure Lua CPU budgets on staging. Nothing requires or awaits this workflow; checks.yml gates.
+name: mac budgets
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency: mac-budgets-${{ github.ref }}
+
+jobs:
+  lua:
+    name: mac lua ${{ matrix.shard }}/5
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, mac-ci, KstyleUI]
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Check the runner's Lua is 5.1.5
+        run: lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
+      - name: Lua regression tests with Mac CPU budgets, one slice of the files
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: bash scripts/gate.sh lua --shard "$SHARD/5"
