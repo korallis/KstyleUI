@@ -19,7 +19,7 @@ local SEATS = {
 local PIP, PIP_ARC, GLOW = 4, 22, 0.35
 local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local OWNER = "ActionBars.SlabMedals"
-local refreshed, rims, watchers = {}, {}, {}
+local refreshed, rims, watchers, gates = {}, {}, {}, {}
 local REFRESH = { target = { "PLAYER_TARGET_CHANGED" }, pet = { "UNIT_PET", "player" }, focus = { "PLAYER_FOCUS_CHANGED" } }
 Medals.SIZE, Medals.FOOT, Medals.LINE, Medals.GAP = SIZE, 15, 5, 4
 
@@ -207,7 +207,10 @@ function Medals.Feed(parent, spec, level)
 end
 
 function Medals.Flare(piece, lit, level, token, size)
-	lit.flare = Medals.Layer(lit, level)
+	lit.flareGate = Medals.Layer(lit, level)
+	lit.flareGate:SetAlpha(ns.Slab.Resting() and 0 or 1)
+	gates[#gates + 1] = lit.flareGate
+	lit.flare = Medals.Layer(lit.flareGate, level)
 	piece.add(Medals.Texture(lit.flare, "ARTWORK", 0, token, "white", size, "ADD"))
 	lit.flare:SetAlpha(0)
 	lit.flare.play = Medals.Steps(lit.flare, FLARE)
@@ -465,7 +468,7 @@ function Medals.Place(piece, anchor, x, y)
 end
 
 function Medals.Fire(piece)
-	if piece.flare and Effects.Allows("ambient") then
+	if piece.flare and Effects.Allows("ambient") and not ns.Slab.Resting() then
 		piece.flare.play:Stop()
 		piece.flare.play:Play()
 	end
@@ -517,6 +520,9 @@ function Medals.Rest()
 	local still = not Effects.Allows("ambient") or ns.Slab.Resting()
 	for _, r in ipairs(rims) do
 		Medals.Still(r, still)
+	end
+	for _, gate in ipairs(gates) do
+		gate:SetAlpha(still and 0 or 1)
 	end
 	for _, fn in ipairs(watchers) do
 		fn(still)
