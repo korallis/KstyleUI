@@ -1,5 +1,33 @@
 # KstyleUI changelog
 
+## v0.3.3.1 (2026-11-23)
+
+A small hotfix for setup's cards and tabs, the Medallions player frame and the crest minimap, plus a few polish fixes for the minimap buttons, proc glows and tracked bars.
+
+Highlights:
+
+- Setup's picked HUD style and role cards show a clean accent edge, and picking Tank now marks its card.
+- Setup's tabs fit long German and French labels, and the HUD style pictures sit evenly in their cards.
+- No more grey dots on the Medallions player frame: a status socket shows only when its icon is lit.
+- The crest minimap's N sits on the forged ring, and the minimap buttons stay inside the round ring.
+- Proc glows match the rim of the buttons beside them and can't stay invisible.
+- Thanks to Baine for spotting the setup cards and tabs, the grey dots and the compass N.
+
+### Fixed
+
+- The card you pick on setup's HUD style and Layout steps shows a clean accent edge instead of a coloured wash with a dark square in its corner. Picking Tank now marks the Tank card too.
+- Both pictures on the HUD style step sit evenly inside their cards, and the notes stay above them when the setup window is smaller.
+- Setup's Look and Controls tabs no longer run into each other in German and French, at any window size.
+- The Medallions player frame no longer shows grey dots after the resting Zz. A status socket shows only while its icon is lit, and lit sockets keep their even spacing.
+- The crest minimap's N is lit steel engraved on the ring, the size of the runes around it, instead of sitting in a plain black disc. The zone name stays clear of it.
+- On the round minimap the tracking, mail, calendar, queue and addon buttons follow the inside of the ring instead of crossing it, at any button size.
+- The open addon drawer moves aside when you change the buttons' distance from the edge, and shows at once when you open it.
+- With the buttons on the left, the minimap zoom slider moves to the right edge. It has a light rim now, so it reads as a slider instead of a stray gold line.
+- A button that procs lights its rim at the same width as the buttons beside it, with a soft glow, instead of a thick bright border.
+- A proc glow shows even if its fade-in never plays, so it can't stay invisible. Turning off Action Bars > Motion > Soft proc and ready glow brings back the old proc glow.
+- A tracked buff bar's stack count sits inside its icon instead of spilling over the bar's top edge.
+- In Medallions on wide screens, the consumables bar sits beside your player frame instead of floating far to its left.
+
 ## v0.3.3 (2026-11-23)
 
 The fit and finish release. Party frames you can read at a glance, Medallions player and target frames that sit properly in the crest, and a polish pass over nearly every other part of the UI, from action bar keybinds to merchant prices. The RestedXP skin works again with RestedXP 4.11.39. The bigger changes are on by default, each with its own switch. The crest trackers for every class aren't in this one; they're coming in v0.3.4.
