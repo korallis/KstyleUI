@@ -211,7 +211,8 @@ local function PlaceHeader(tooltip)
 	heading:ClearAllPoints()
 	Widgets.Size(heading, 2 * HEADER_INSET + Style.GEM_ROOM + Widgets.TextWidth(caption, 0), HEADER_HEIGHT + HEADER_TUCK)
 	heading:SetPoint("BOTTOMLEFT", tooltip, "TOPLEFT", 0, -Widgets.Snap(heading, HEADER_TUCK))
-	heading:SetFrameLevel(max(0, tooltip:GetFrameLevel() - 1))
+	local level = tooltip:GetFrameLevel()
+	if not Widgets.IsSecret(level) then heading:SetFrameLevel(max(0, level - 1)) end
 	heading.chrome:Restyle()
 end
 

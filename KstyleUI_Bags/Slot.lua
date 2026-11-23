@@ -12,7 +12,8 @@ ns.Slot = Slot
 Slot.TEMPLATE = "ContainerFrameItemButtonTemplate"
 
 local ICON_INSET_LINES = 2
-local TEXT_INSET = 3
+local TEXT_INSET = 2
+local FIGURE_INSET = 3
 local DIM_ALPHA = 0.25
 local EMPTY_FILL_ALPHA = 0.55
 local JUNK_SIZE = 8
@@ -118,8 +119,11 @@ function Slot.Style(slot)
 	local path, size, flags = Settings.Font()
 	ApplyFont(slot.count, path, size, flags)
 	ApplyFont(slot.level, path, size, flags)
-	slot.cooldown:SetHideCountdownNumbers(not Settings.Get("cooldownNumbers"))
-	if slot.countdown then ApplyFont(slot.countdown, path, size, flags) end
+	local swipe = Settings.Get("cooldownSwipeOnly")
+	if swipe or slot.swipeOnly then
+		slot.cooldown:SetHideCountdownNumbers(swipe)
+		slot.swipeOnly = swipe
+	end
 	if slot.bind then ApplyFont(slot.bind, path, Settings.Get("labelSize"), flags) end
 	if slot.set then ApplyFont(slot.set, path, Settings.Get("labelSize"), flags) end
 	if slot.name then
@@ -204,6 +208,7 @@ local function Place(slot)
 	local button, list = slot.button, slot.list
 	local inset = Widgets.Snap(button, TEXT_INSET)
 	local separate = Settings.Get("separateFigures")
+	local figure = separate and Widgets.Snap(button, FIGURE_INSET) or inset
 	local corner = separate and "TOPLEFT" or "BOTTOMLEFT"
 	local edge, y = separate and "BOTTOM" or "TOP", separate and inset or -inset
 	local text = slot.bind
@@ -237,8 +242,8 @@ local function Place(slot)
 		slot.count:SetPoint("RIGHT", button, "RIGHT", -inset, 0)
 		slot.level:SetPoint("RIGHT", button, "RIGHT", -inset, 0)
 	else
-		slot.count:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -inset, inset)
-		slot.level:SetPoint(corner, button, corner, inset, separate and -inset or inset)
+		slot.count:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -figure, figure)
+		slot.level:SetPoint(corner, button, corner, figure, separate and -figure or figure)
 	end
 end
 
@@ -497,10 +502,6 @@ function Slot.New(parent, id, opts)
 	cooldown:SetDrawEdge(false)
 	cooldown:SetDrawBling(false)
 	slot.cooldown = cooldown
-	slot.countdown = cooldown.GetCountdownFontString and cooldown:GetCountdownFontString()
-	if slot.countdown then
-		slot.countdown:SetTextColor(Tokens.Color("textEmphasis"))
-	end
 	local overlay = CreateFrame("Frame", nil, button)
 	overlay:SetAllPoints(button)
 	overlay:SetFrameLevel(cooldown:GetFrameLevel() + OVERLAY_LEVEL)

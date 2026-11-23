@@ -389,11 +389,7 @@ local function Backdrop(frame)
 		end
 		local box = frame.editBox
 		if type(box) == "table" and type(box.HookScript) == "function" then
-			local function Fit()
-				if state.active then
-					Backdrop(frame)
-				end
-			end
+			local function Fit() if state.active then Backdrop(frame) end end
 			box:HookScript("OnEditFocusGained", Fit)
 			box:HookScript("OnEditFocusLost", Fit)
 		end

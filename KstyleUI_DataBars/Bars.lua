@@ -370,7 +370,7 @@ end
 
 local function Settings(view)
 	local s = ns.Settings()[view.def.id]
-	if K.HudStyle.Current() ~= "medallions" then
+	if K.HudStyle.Current() ~= "medallions" or s.matchBars == false then
 		return s
 	end
 	local medal = view.medalSettings or {}

@@ -76,6 +76,7 @@ LEE-20 (2026-11-09, "let the picture win") replaced the old four-unit segmented 
 | `<bar>.border` | `true` | The chamfered frame around the bar |
 | `xp.rested`, `xp.restedColor` | `true`, `hudRested` at 55% | The rested overlay and its colour |
 | `honor.show` | `pvp` | `pvp` or `always` |
+| `honor.matchBars` | `true` | In Medallions, draw honour as the other bars' strip (flat texture, ten segments, caption under the line, no frame); off applies the honour settings as saved |
 | `<bar>.text` | `percentRested` for XP, `labelPercent` for the others | `none`, `percent`, `value`, `valuePercent`, `short`, `remaining`, `label`, `labelPercent`, `labelValue`, `shortPercent`, `levelRested` (the level, the percent and the rested share, joined by middle dots; the rested part only while there is rested experience), `percentRested` (the same without the level) |
 | `<bar>.textHover` | `false` for XP, `true` for the others | Show the text only under the pointer |
 | `rep.rewardMarker` | `true` | Append a compact asterisk when a paragon reward waits; keeps the chosen caption and text-on-hover setting |

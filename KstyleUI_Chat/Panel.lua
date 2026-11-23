@@ -597,8 +597,8 @@ local function PlaceEdit(frame, k, over, own)
 	end
 	box:ClearAllPoints()
 	box:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", -EDIT_LEFT, y)
-	if own then
-		box:SetPoint("TOPRIGHT", frame, "BOTTOMRIGHT", EDIT_PAST_SCROLLBAR, y)
+	if own or state.active then
+		box:SetPoint("TOPRIGHT", frame, "BOTTOMRIGHT", EDIT_PAST_SCROLLBAR + (own and 0 or ScrollWidth(frame)), y)
 		return
 	end
 	box:SetPoint("RIGHT", bar, "RIGHT", EDIT_PAST_SCROLLBAR, 0)
