@@ -215,7 +215,9 @@ do
 	M.Enable(env, K)
 	local row = ns.Damage.list.rows[1]
 	assert(row and row.bar.lit and row.bar.lit:IsShown(), "a damage row's fill keeps its lit top edge")
-	assert(row.bar.shade:IsShown() or type(env.CreateColor) ~= "function", "and its shade, where the client can draw it")
+	assert(row.bar.glassOn and row.bar.glass[1]:IsShown() and not row.bar.shade:IsShown(), "with Lit glass bars on, the glass light in place of its shade, so the class colour stays full")
+	K.Options.Write("Appearance", "litBars", false)
+	assert(row.bar.lit:IsShown() and row.bar.shade:IsShown(), "and with it off, its shade")
 	noErrors(env, K, "meters")
 end
 

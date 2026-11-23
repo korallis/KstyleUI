@@ -486,8 +486,7 @@ local function Form(cb)
 	if cb.slab and not cb.medal then
 		Widgets.ShowSlice(cb.slab, false)
 	end
-	cb.bar.lit:SetShown(not cb.medal)
-	cb.bar.shade:SetShown(not cb.medal)
+	cb.bar:SetLitShade(cb.medal and 0 or LIT_ALPHA, cb.medal and 0 or SHADE_ALPHA)
 end
 
 local function Anchor(cb, region, point, relative, relPoint, x, dx, dy)

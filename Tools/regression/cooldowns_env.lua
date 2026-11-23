@@ -157,6 +157,9 @@ end
 
 function C.Install(env, opts)
 	opts = opts or {}
+	env.CreateColor = function(r, g, b, a)
+		return { r = r, g = g, b = b, a = a }
+	end
 	local cdm = {
 		cooldowns = opts.cooldowns or C.Sample(),
 		calls = {},

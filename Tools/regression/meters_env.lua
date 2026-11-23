@@ -54,6 +54,9 @@ M.Blizzard = Blizzard
 -- Game(env, opts) installs the stand-ins. opts.noSwing, opts.noMeter and opts.noThreat leave an API out.
 function M.Game(env, opts)
 	opts = opts or {}
+	env.CreateColor = function(r, g, b, a)
+		return { r = r, g = g, b = b, a = a }
+	end
 	env._time = 100
 	env.GetTime = function()
 		return env._time

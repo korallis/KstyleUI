@@ -65,7 +65,10 @@ end
 assert(textureRow and textureRow.showWhen(saved) == false, "no cast bar texture row: every Medallions cast bar paints the flat fill")
 assert(bar.innerEdgeOn == true and bar.innerEdgeToken == "black" and W.SameRGB(bar.innerEdge[1], 0, 0, 0), "a one-pixel black edge")
 assert(bar.backingOn == true and bar.keyline:IsShown() == false, "a dark flat track with no keyline round it")
-assert(bar.lit:IsShown() == false and bar.shade:IsShown() == false and bar.spark:IsShown() == false, "no lit edge, shade or glass spark")
+assert(bar.glassOn and bar.glass[3] == bar.lit and bar.glass[2] == bar.shade and bar.spark:IsShown() == false, "the lit glass stands in for the old lit edge and shade, and no glass spark")
+K.Options.Write("Appearance", "litBars", false)
+assert(not bar.glassOn and near(select(4, bar.lit:GetVertexColor()), 0) and bar.shade._state.Gradient[2].a == 0, "with Lit glass bars off, no lit edge or shade shows")
+K.Options.Write("Appearance", "litBars", true)
 assert(not element.chrome.visible and bar.sheenTop == nil, "no glass card or sheen round the bar")
 local cursor = bar.fillCursor
 assert(cursor and cursor:IsShown(), "the spark is the fill-edge cursor")

@@ -51,7 +51,7 @@ assert(band == 1000 and bandHow == nil, "the band holds the health before the hi
 assert(playing(bar.lossAnim), "the hit flash and the hold play as one animation group")
 local flashClip = bar.flash:GetParent()
 assert(W.LastCall(flashClip, "SetClipsChildren")[1] == true and select(2, flashClip:GetPoint(1)) == under:GetStatusBarTexture(), "the flash is clipped to the band's fill, so only the lost part flashes")
-assert(W.LastCall(bar.fillClip, "SetClipsChildren")[1] == true and bar.cleanSheen:GetParent() == bar.fillClip and select(2, bar.cleanSheen:GetPoint(1)) == bar, "the fill's shading spans the whole bar on whole pixels and is clipped to the fill")
+assert(W.LastCall(bar.fillClip, "SetClipsChildren")[1] == true and bar.cleanSheen:GetParent() == bar.fillClip and select(2, bar.cleanSheen:GetPoint(1)) == (bar.glassOn and bar:GetStatusBarTexture() or bar), "the fill's shading (with Lit glass bars on, the glass light riding the fill) is clipped to the fill")
 assert(bar.flash:IsShown(), "the flash shows over the lost part")
 assert(playing(bar.sparkAnim) and bar.sparkFrame:IsShown(), "the spark lights while the fill moves")
 

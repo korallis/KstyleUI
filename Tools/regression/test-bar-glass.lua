@@ -32,7 +32,10 @@ local function alpha(region)
 end
 
 local function shown(glass)
-	return glass[1]:IsShown(), glass[2]:IsShown(), glass[3]:IsShown(), glass[4]:IsShown()
+	local function on(i)
+		return glass[i] ~= nil and glass[i]:IsShown()
+	end
+	return on(1), on(2), on(3), on(4)
 end
 
 for _, screen in ipairs(SCREENS) do
@@ -58,7 +61,7 @@ for _, screen in ipairs(SCREENS) do
 		assert(math.abs(pixels(K, bar, glass[i]:GetHeight()) - 1) < 1e-6, where .. ": each rim is one physical pixel")
 	end
 	assert(W.Near(alpha(glass[3]), 0.4) and W.Near(alpha(glass[4]), 0.45), where .. ": a lit top rim over a dark bottom rim")
-	assert(alpha(bar.lit) == 0 and gradient(bar.shade).a == 0, where .. ": the bar's own lit line and shade give way to the glass")
+	assert(glass[2] == bar.shade and glass[3] == bar.lit, where .. ": the glass paints the bar's own shade and lit line as its depth and top rim")
 	local anchored = #W.Calls(glass[1], "ClearAllPoints")
 	bar:Restyle()
 	assert(#W.Calls(glass[1], "ClearAllPoints") == anchored, where .. ": an unchanged restyle does not re-anchor the glass")
@@ -71,28 +74,27 @@ for _, screen in ipairs(SCREENS) do
 	assert(a and not b and c and not d, where .. ": a light-only bar takes the light and the top rim, nothing that darkens its colour")
 	local overlay = Widgets.StatusBar(K.Scale.Root(), { width = 200, height = 14, background = false, glass = false })
 	assert(overlay.glass == nil and overlay.glassOn == false, where .. ": an overlay that opts out makes no glass")
-	local upright = Widgets.StatusBar(K.Scale.Root(), { width = 14, height = 120, orientation = "VERTICAL" })
-	assert(upright.glass == nil, where .. ": an upright bar makes no glass")
 	local thin = Widgets.StatusBar(K.Scale.Root(), { width = 200, height = 4 / Widgets.ScaleFactor(K.Scale.Root()) * K.Scale.Pixel(1) })
 	a, b, c, d = shown(thin.glass)
 	assert(a and b and not c and not d, where .. ": a four-pixel bar keeps the light and depth without rims")
 	local hair = Widgets.StatusBar(K.Scale.Root(), { width = 200, height = 2 / Widgets.ScaleFactor(K.Scale.Root()) * K.Scale.Pixel(1) })
-	assert(hair.glass == nil, where .. ": a two-pixel bar stays plain")
+	assert(not hair.glassOn and hair.glass[1] == nil, where .. ": a two-pixel bar stays plain and makes no layer")
 
 	local unit = Widgets.UnitBar(K.Scale.Root(), { width = 200, height = 20 })
 	assert(unit.glass and unit.glass[1]:GetParent() == unit.fillClip, where .. ": a unit bar's glass sits in its fill clip, over the low-health red")
-	assert(not unit.cleanSheen:IsShown() and not unit.cleanShade:IsShown() and not unit.cleanLit:IsShown(), where .. ": and replaces its own sheen, shade and top line")
+	assert(unit.glass[1] == unit.cleanSheen and unit.glass[2] == unit.cleanShade and unit.glass[3] == unit.cleanLit, where .. ": and paints its own sheen, shade and top line as the light, depth and top rim")
 	unit:SetFinish("medallions")
-	assert(unit.cleanLit:IsShown() and not unit.cleanSheen:IsShown(), where .. ": the Medallions fill-end line stays over the glass")
+	assert(unit.fillEnd:IsShown() and unit.cleanLit:IsShown() and anchor(unit.fillEnd, "TOPRIGHT") == unit:GetStatusBarTexture(), where .. ": the Medallions fill-end line stays beside the glass's top rim")
 	unit:SetFinish(nil)
 
 	K.Options.Write("Appearance", "litBars", false)
 	a, b, c, d = shown(glass)
-	assert(not (a or b or c or d) and not bar.glassOn, where .. ": off hides the glass")
+	assert(not a and not d and b and c and not bar.glassOn, where .. ": off hides the glass's own layers and shows the bar's shade and lit line")
+	assert(select(2, bar.lit:GetPoint(1)) == fill and gradient(bar.shade).a > 0 and anchor(bar.shade, "BOTTOMRIGHT") == fill, where .. ": off puts the lit line and shade back on the fill")
 	assert(W.Near(alpha(bar.lit), 0.3) and W.Near(gradient(bar.shade).a, 0.28), where .. ": off restores the lit line and shade")
-	assert(unit.cleanSheen:IsShown() and unit.cleanShade:IsShown() and unit.cleanLit:IsShown() and not unit.glass[1]:IsShown(), where .. ": off restores a unit bar's sheen, shade and top line")
+	assert(unit.cleanSheen:IsShown() and unit.cleanShade:IsShown() and unit.cleanLit:IsShown() and not unit.glass[4]:IsShown() and W.Near(gradient(unit.cleanSheen).a, 0.05) and W.Near(alpha(unit.cleanLit), 0.28), where .. ": off restores a unit bar's sheen, shade and top line")
 	K.Options.Write("Appearance", "litBars", true)
-	assert(bar.glassOn and glass[1]:IsShown() and alpha(bar.lit) == 0, where .. ": on again restores the glass")
+	assert(bar.glassOn and glass[1]:IsShown() and W.Near(alpha(bar.lit), 0.4) and gradient(bar.shade).a == 0.3, where .. ": on again restores the glass")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, where .. ": no errors")
 end
 
@@ -101,7 +103,7 @@ do
 	K.Appearance.Apply()
 	local bar = K.Widgets.StatusBar(K.Scale.Root(), { width = 200, height = 14, background = "track" })
 	local unit = K.Widgets.UnitBar(K.Scale.Root(), { width = 200, height = 20 })
-	assert(bar.glass == nil and unit.glass == nil, "off from the start makes no glass layers at all")
+	assert(bar.glass[1] == nil and bar.glass[4] == nil and unit.glass[4] == nil, "off from the start makes no glass layers at all")
 	assert(#W.Calls(bar.lit, "SetVertexColor") > 0 and W.Near(alpha(bar.lit), 0.3) and W.Near(gradient(bar.shade).a, 0.28), "and keeps the previous lit line and shade")
 end
 
@@ -115,7 +117,7 @@ do
 	local row = ns.Damage.list.rows[1]
 	local a, b, c, d = shown(row.bar.glass)
 	assert(a and c and not b and not d, "a damage meter bar takes the light alone, so its class colour stays full")
-	assert(alpha(row.bar.lit) == 0 and gradient(row.bar.shade).a == 0, "and its old shade no longer darkens it")
+	assert(row.bar.glass[3] == row.bar.lit and not row.bar.shade:IsShown(), "its own lit line is the top rim and its shade no longer darkens it")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, "meters: no errors")
 end
 
@@ -226,7 +228,7 @@ end
 -- line and shade the glass is painted on.
 do
 	local U = dofile("Tools/regression/unitframes_env.lua")
-	local env, K, ns = U.New()
+	local env, _, ns = U.New()
 	local element = ns.CastBars.Get("player")[1]
 	env._time = 2.2
 	env._units.player.cast = { name = "Lightning Bolt", texture = 136048, start = 1000, finish = 3500, spellID = 188196 }

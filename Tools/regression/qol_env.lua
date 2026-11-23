@@ -69,6 +69,9 @@ Q.Recorder = Recorder
 
 function Q.Game(env)
 	env._calls = {}
+	env.CreateColor = function(r, g, b, a)
+		return { r = r, g = g, b = b, a = a }
+	end
 	env._time = 100
 	env.GetTime = function()
 		return env._time
