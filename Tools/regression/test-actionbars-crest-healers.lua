@@ -31,7 +31,7 @@ local function New(class, spells, opts)
 		width = opts.size and opts.size[1],
 		height = opts.size and opts.size[2],
 		setup = function(e)
-			e._known, e._cooling, e._enchants, e._offHand, e._ankhs = known, {}, {}, true, 1
+			e._known, e._cooling, e._enchants, e._offHand, e._ankhs = known, {}, {}, opts.offHand ~= false, 1
 			e.GetTime = e.GetTime or function() return 100 end
 			e.GetShapeshiftFormID = function() return e._form end
 			for i, form in ipairs(opts.forms or {}) do
@@ -453,6 +453,18 @@ do
 	env._ankhs = 0
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(ankh.glyph:GetAlpha() < 1, "no Ankh in the bags: it greys")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- The off-hand stone is built whenever an imbue is known and shows while an off-hand weapon is equipped, so
+-- equipping one in combat shows it with nothing built in combat lockdown.
+do
+	local env, K, ns = New("SHAMAN", SHAMAN, { offHand = false })
+	env.SetCombat(true)
+	env._offHand = true
+	env.FireEvent("PLAYER_EQUIPMENT_CHANGED")
+	local off = Tracker(ns, "SHAMAN").built.offHand
+	assert(off and off:IsShown(), "an off hand equipped in combat shows its stone")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
