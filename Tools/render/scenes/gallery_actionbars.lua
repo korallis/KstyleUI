@@ -135,7 +135,7 @@ return Common.Run(function()
 	-- The preview on a plain frame, as the settings window shows it.
 	local parent = env.CreateFrame("Frame", nil, K.Scale.Root())
 	parent:SetSize(500, 60)
-	place(parent, 800, 100)
+	place(parent, 800, 200)
 	local preview = K.Options.Preview("ActionBars")(parent)
 	preview:Refresh()
 

@@ -1,5 +1,5 @@
 -- nameplate_bible.lua: KstyleUI_Nameplates in the KSTY-44 mock-up's state, cropped as one frame each: the target
--- (Galestrider, level 6, 71 percent, one of the player's effects with nine stacks over the bar's right end) with
+-- (Galestrider, level 6, 71 percent, one of the player's effects with nine stacks and its timer over the bar's right end) with
 -- its brackets, the same mob not targeted, an elite casting an interruptible spell, a rare, a world boss and a
 -- friendly player. The fake AuraContainer engine lays out no buttons, so the scene fills the effect tiles and places
 -- them as the engine's flow layout would (Hud.PlaceAuras). Every base sits at scale 1, so the crops read in root
@@ -45,6 +45,9 @@ local function effect(env, ns, plate)
 	end
 	if aura.count then
 		aura.count:SetText("9")
+	end
+	if aura.timer then
+		aura.timer:SetText("12")
 	end
 	Hud.PlaceAuras(container, group, { button }, ns.Settings.Get("debuffs.columns"))
 	return nil
