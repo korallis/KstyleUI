@@ -23,6 +23,7 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 ## Crests merged so far
 
 - #776 (ae54bdb0f): warrior, paladin and rogue crest trackers plus the shared crest system (SlabMedals, SlabTrackers Register API, docs/medallions-effects.md). Ships in v0.3.4 with the healer and ranged crests.
+- #778: hunter, mage and warlock crest trackers (Soul Shards from bags, old shard jewels removed).
 
 ## Open pull requests (all target staging)
 
@@ -32,12 +33,11 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 
 ## Work in progress without a PR yet
 
-- **Ranged crest trackers** (PR #778): hunter, mage, warlock; review findings fixed in its own files and the shared ones landed in #776; retargeted to staging and rebasing (worker ctx_43c54e6eb509), then evidence, green CI, spot-check, merge. Polish note: soul wisps fainter than concept A over the emblem.
 - **Crest rule set by the owner**: every class tracks everything it needs around the crest (one place to look): crown, shoulders, hips, foot perches, top gem, inner rim, a cooldown rim for every major cooldown and enhancement (racials, trinkets, potions too), every form/stance/spec gets a full crest with no empty seats, tanks and healers included. Research for all specs: `C:/Users/leeba/.cache/kstyleui-evidence/crest-trackers/complete/{melee,ranged,healers}.md` (local, not in git; summarised in the builder specs on the handoff branch). Hunter stings track any sting; Rapid Fire burns on the rim.
 
 - **v0.3.3 release in progress**: notes PR being written (`specs/notes-033.md`): polish batches, party and unit frames, and the RestedXP 4.11.39 fix (#775, merged). The crest trackers move to v0.3.4; update the roadmap after the release.
 
-- **Hotfix v0.3.3.1** (`specs/notes-0331.md`): ships #777 (merged), #781 (setup cards, in review) and the player status sockets / compass N fix (building). Credit Baine by name in the notes and the #chat post (owner's instruction).
+- **Hotfix v0.3.3.1** (`specs/notes-0331.md`): #777 and #781 merged; #782 (player sockets only when lit, compass N on the ring) fixed after review, waiting on CI, then merge, notes, tag. Credit Baine by name. Ask Baine to confirm the Medallions card title on his German client.
 
 ## Crest completeness: what "maximise the crests for every class" still needs
 

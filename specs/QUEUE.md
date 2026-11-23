@@ -701,3 +701,6 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - #781 review ISSUES (65- Merged #776 (melee crests + shared system) ae54bdb0f. #771/#778 retargeted to staging, rebasing.
 - #782 sockets/compass hotfix green; review dispatched.
 - Lee locked in A: tracked-buff row keeps its fixed slot above an empty utility row (no change).
+- #782 review ISSUES (N over zone name with clear plaques off, rotation leaves missing rune, leader test vacuous) -> author.
+- Merged #781 (setup cards hotfix). Missing Medallions title: in-game check on a German client.
+- Merged #778 (ranged crests). #771 healers rebasing onto staging (may need rebase over #778).
