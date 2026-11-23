@@ -16,7 +16,8 @@ local RENEW = { 25315, 10929, 10928, 10927, 6078, 6077, 6076, 6075, 6074, 139 }
 local MENDING, MENDED = { 1240827, 1240826, 401859 }, { 1240849, 1240848, 401877 }
 local WEAVING, PLAGUE = { 15334, 15333, 15332, 15331, 15257 }, { 19280, 19279, 19278, 19277, 19276, 2944 }
 local DEATH, SILENCE = { 1309636, 1309635, 1309633, 1309595 }, { 15487 }
-local OILS = { 20744, 20745, 20746, 20747, 20748, 20749, 20750 }
+local OILS, OILED = { 20744, 20745, 20746, 20747, 20748, 20749, 20750 }, {}
+for _, id in ipairs({ 2623, 2624, 2625, 2626, 2627, 2628, 2629, 2685 }) do OILED[id] = true end
 local FLAMES, PER, CHARGES, DIM = { 315, 225, 135, 45 }, 5, 20, 0.5
 local ORBIT, FLAME, STUD, WELL, PIN = 54, 26, 12, 10, 4
 local FLICKER = { { 1, 0.45, 0.06 }, { 0.45, 0.9, 0.05 }, { 0.9, 0.35, 0.07 }, { 0.35, 1, 0.08 } }
@@ -94,7 +95,8 @@ local function Oil()
 		end
 	end
 	local on = info and type(info.GetTemporaryEnchantmentInfo) == "function" and info.GetTemporaryEnchantmentInfo(16)
-	return on ~= nil and OILS[1] or nil
+	local id = on and on.enchantID
+	return not IsSecret(id) and OILED[id] and OILS[1] or nil
 end
 
 local function Flask(parent, spec, level, form)

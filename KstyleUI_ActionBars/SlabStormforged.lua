@@ -1,4 +1,4 @@
--- SlabStormforged.lua: the shaman's crest trackers beside the Spirit Poles and storm orbs, registered with SlabTrackers, each on its own switch: a rune stone set into the ring's lower left for the main hand's imbue and its lower right for the off hand's (only with an off-hand weapon), its rune lit in the imbue's element colour while the enchant's own frame shows, guttering through the last five minutes and dark under a pulsing gilt rim when there is none (an enchant medal under Frames, as the poison vials are); the shock cooldown, the shaman's interrupt, as a sweep that dims the class emblem until it is ready, then sparks, a cooldown medal under Frames; on the left foot perch your Flame Shock on an enemy, Stormstrike's debuff drawn over it, or Riptide on a friend; a small ankh on the right foot perch, gold while Reincarnation is ready and an Ankh is in the bags; and the major cooldowns burning on the rim. The weapon enchant's frame and the cooldown's duration object draw the timers; the enchant, the cooldown state and the item count are values the client never makes secret.
+-- SlabStormforged.lua: the shaman's crest trackers beside the Spirit Poles and storm orbs, registered with SlabTrackers, each on its own switch: a rune stone set into the ring's lower left for the main hand's imbue and its lower right for the off hand's (only with an off-hand weapon), its rune lit in the imbue's element colour while the enchant's own frame shows, guttering through the last five minutes and dark under a pulsing gilt rim when there is none or another temporary enchant (under Frames a medal with the imbue's icon, colour and timer, guttering too); the shock cooldown, the shaman's interrupt, as a sweep that dims the class emblem until it is ready, then sparks, a cooldown medal under Frames; on the left foot perch your Flame Shock on an enemy, Stormstrike's debuff drawn over it, or Riptide on a friend; a small ankh on the right foot perch, gold while Reincarnation is ready and an Ankh is in the bags; and the major cooldowns burning on the rim. The weapon enchant's frame and the cooldown's duration object draw the timers; the enchant, the cooldown state and the item count are values the client never makes secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -12,7 +12,7 @@ local IMBUES = {
 local SHOCKS = { 10414, 10413, 10412, 8046, 8045, 8044, 8042, 29228, 10448, 10447, 8053, 8052, 8050, 10473, 10472, 8058, 8056 }
 local REINCARNATION, ANKH = { 20608 }, 17030
 local FLAME, STORMSTRIKE, RIPTIDE = { 29228, 10448, 10447, 8053, 8052, 8050 }, { 17364 }, { 1239243, 1239242, 408521 }
-local ELEMENTS = {}
+local ELEMENTS, ICONS = {}, { totemEarth = 8017, totemFire = 8024, totemWater = 8033, totemAir = 8232 }
 for token, ids in pairs({
 	totemEarth = { 29, 6, 1, 503, 1663, 683, 1664, 7568 },
 	totemFire = { 5, 4, 3, 523, 1665, 1666, 7567 },
@@ -28,7 +28,6 @@ local GUTTER = { { 1, 0.4, 0.07 }, { 0.4, 0.85, 0.06 }, { 0.85, 0.3, 0.08 }, { 0
 local PULSE = { { 0.25, 1, 0.6 }, { 1, 0.25, 0.6 } }
 
 local stones, ankhs = {}, {}
-local Stones
 
 local function Piece(parent, level, units)
 	local piece = CreateFrame("Frame", nil, parent)
@@ -52,26 +51,28 @@ local function Flare(piece, parent, level, token, size)
 end
 
 local function Stone(parent, spec, level, form)
+	local s
 	if form == "row" then
-		return Medals.Medal(parent, spec, level)
+		s = Medals.Medal(parent, setmetatable({ color = "gilt" }, { __index = spec }), level)
+		s.light = s.lit.icon
+	else
+		s = Piece(parent, level, SETTING)
+		s.add(Medals.Texture(s, "BACKGROUND", 0, "glow", "black", SETTING * 1.6)):SetAlpha(0.6)
+		s.add(Medals.Texture(s, "BORDER", 0, "ring", "gilt", SETTING))
+		s.add(Medals.Texture(s, "ARTWORK", 0, "trackerStone", "white", STONE))
+		local lit = Medals.Feed(s, spec, level + 1)
+		s.lit, s.lits[1] = lit, lit
+		s.light = Medals.Layer(lit, level + 1)
+		s.glow = s.add(Medals.Texture(s.light, "ARTWORK", 0, "glow", "white", SETTING * 1.6, "ADD"))
+		s.rune = s.add(Medals.Texture(s.light, "OVERLAY", 0, "trackerRune", "white", STONE, "ADD"))
+		s.rim = Medals.Layer(s, level + 2)
+		s.add(Medals.Texture(s.rim, "OVERLAY", 0, "ring", "gilt", RIM, "ADD"))
+		s.pulse = Medals.Steps(s.rim, PULSE, true)
+		Flare(s, lit, level + 3, spec.burst, SETTING * 3)
 	end
-	local s = Piece(parent, level, SETTING)
 	s.slot = SLOTS[spec.slot]
-	s.add(Medals.Texture(s, "BACKGROUND", 0, "glow", "black", SETTING * 1.6)):SetAlpha(0.6)
-	s.add(Medals.Texture(s, "BORDER", 0, "ring", "gilt", SETTING))
-	s.add(Medals.Texture(s, "ARTWORK", 0, "trackerStone", "white", STONE))
-	local lit = Medals.Feed(s, spec, level + 1)
-	s.lit, s.lits[1] = lit, lit
-	s.light = Medals.Layer(lit, level + 1)
-	s.glow = s.add(Medals.Texture(s.light, "ARTWORK", 0, "glow", "white", SETTING * 1.6, "ADD"))
-	s.rune = s.add(Medals.Texture(s.light, "OVERLAY", 0, "trackerRune", "white", STONE, "ADD"))
 	s.gutter = Medals.Steps(s.light, GUTTER, true)
-	s.rim = Medals.Layer(s, level + 2)
-	s.add(Medals.Texture(s.rim, "OVERLAY", 0, "ring", "gilt", RIM, "ADD"))
-	s.pulse = Medals.Steps(s.rim, PULSE, true)
-	Flare(s, lit, level + 3, spec.burst, SETTING * 3)
 	stones[#stones + 1] = s
-	Stones()
 	return s
 end
 
@@ -107,39 +108,45 @@ local function Ankh(parent, spec, level, form)
 	return a
 end
 
-Stones = function()
+local function Stones()
 	local info = C_PaperDollInfo
 	local read = info and type(info.GetTemporaryEnchantmentInfo) == "function" and info.GetTemporaryEnchantmentInfo
 	local now = type(GetTime) == "function" and GetTime()
-	local moving = Effects.Allows("pulse") and not ns.Slab.Resting()
+	local pulse, calm = Effects.Allows("pulse"), ns.Slab.Resting()
 	for _, s in ipairs(stones) do
-		local enchant = read and read(s.slot)
+		local moving = pulse and not (s.rune and calm)
+		if s.wake then
+			s.wake:Cancel()
+			s.wake = nil
+		end
+		s.gutter:Stop()
+		local shown = s:IsVisible()
+		local enchant = shown and read and read(s.slot)
 		local id, left = enchant and enchant.enchantID, enchant and enchant.remainingTimeMs
 		if IsSecret(id) or IsSecret(left) then
 			id, left = nil, nil
 		end
-		local r, g, b = Tokens.Color(ELEMENTS[id] or "gilt")
-		s.rune:SetVertexColor(r, g, b)
-		s.glow:SetVertexColor(r, g, b, GLOW)
-		local missing = enchant == nil
-		s.rim:SetShown(missing)
-		if missing and moving then
-			s.pulse:Play()
-		else
-			s.pulse:Stop()
+		local element = ELEMENTS[id]
+		local r, g, b = Tokens.Color(element or "gilt")
+		s.light:SetAlpha(element and 1 or 0)
+		if s.rune then
+			s.rune:SetVertexColor(r, g, b)
+			s.glow:SetVertexColor(r, g, b, GLOW)
+			s.rim:SetShown(not element)
+			if shown and not element and moving then
+				s.pulse:Play()
+			else
+				s.pulse:Stop()
+			end
+		elseif element then
+			s.light:SetTexture(ns.SlabTrackers.Texture(ICONS[element]) or s.spec.texture)
+			s.lit.timer:SetSwipeColor(r, g, b)
 		end
-		local due = type(left) == "number" and now and now + left / 1000 - LAST
-		s.gutter:Stop()
+		local due = element and type(left) == "number" and now and now + left / 1000 - LAST
 		if due and moving and due <= now then
 			s.gutter:Play()
-		elseif due and moving and s.due ~= due and C_Timer and C_Timer.After then
-			s.due = due
-			C_Timer.After(due - now, function()
-				if s.due == due then
-					s.due = nil
-					Stones()
-				end
-			end)
+		elseif due and moving and C_Timer and C_Timer.NewTicker then
+			s.wake = C_Timer.NewTicker(due - now, Stones, 1)
 		end
 	end
 end

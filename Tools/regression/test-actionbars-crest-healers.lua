@@ -299,8 +299,10 @@ do
 	env._enchants[16] = { enchantID = 1669, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
 	env._enchants[17] = { enchantID = 1666, remainingTimeMs = 200000, chargesRemaining = 0, hasExpirationTime = true }
 	Slots.Enchant(env, 2, { start = 0, duration = 3600 })
+	env.SetCombat(false)
 	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
+	env.SetCombat(true)
 	local mainRow, offRow = t.built.mainHandRow, t.built.offHandRow
 	assert(mainRow.lit.icon:GetTexture() == 8232 and offRow.lit.icon:GetTexture() == 8024, "Windfury and Flametongue each show their own icon")
 	assert(mainRow.lit.timer and offRow.lit.timer and mainRow.lit._cooldown == mainRow.lit.timer, "each weapon's medal drains with the enchant's own timer")
