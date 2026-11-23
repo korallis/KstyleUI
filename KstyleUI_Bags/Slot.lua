@@ -12,7 +12,7 @@ ns.Slot = Slot
 Slot.TEMPLATE = "ContainerFrameItemButtonTemplate"
 
 local ICON_INSET_LINES = 2
-local TEXT_INSET = 2
+local TEXT_INSET = 3
 local DIM_ALPHA = 0.25
 local EMPTY_FILL_ALPHA = 0.55
 local JUNK_SIZE = 8

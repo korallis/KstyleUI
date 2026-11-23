@@ -10,13 +10,13 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	env.RunTimers()
 	B.W.Settle(env)
 	local slot = ns.Inventory.Slot(0, 1)
-	local inset = K.Widgets.Snap(slot.button, 2)
+	local inset = K.Widgets.Snap(slot.button, 3)
 	local point, relative, on, x, y = slot.level:GetPoint(1)
 	assert(point == "TOPLEFT" and relative == slot.button and on == "TOPLEFT" and x == inset and y == -inset,
-		"move bag item level to TOPLEFT with a 2-unit inset; reserve BOTTOMRIGHT for the stack count")
+		"move bag item level to TOPLEFT with a 3-unit inset, clear of the quality rim; reserve BOTTOMRIGHT for the stack count")
 	point, relative, on, x, y = slot.count:GetPoint(1)
 	assert(point == "BOTTOMRIGHT" and relative == slot.button and on == "BOTTOMRIGHT" and x == -inset and y == inset,
-		"stack counts belong at BOTTOMRIGHT with a 2-unit inset")
+		"stack counts belong at BOTTOMRIGHT with a 3-unit inset")
 	local panel = ns.Inventory.window.panel
 	panel.chrome:MeasureHeader()
 	assert(panel.chrome.headerUnits == panel.titleBar:GetHeight(), "the readable band covers the whole title bar, though the title's gem measures a shallower one, got " .. tostring(panel.chrome.headerUnits))
