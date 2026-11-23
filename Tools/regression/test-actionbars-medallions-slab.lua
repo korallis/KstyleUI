@@ -68,6 +68,8 @@ for _, screen in ipairs(SCREENS) do
 			local icon = Rect(b.icon)
 			assert(math.abs((icon[1] - r[1]) / unit - 3 * size / Layouts.MEDALLIONS_SLOT.size) < px, what .. ": the icon sits 3/42 of the socket inside it")
 			assert(not b.chrome.visible, what .. ": the socket replaces the slot's own chrome")
+			local _, _, _, keyX = b.hotkey:GetPoint(1)
+			assert(keyX * b:GetEffectiveScale() > icon[1] - r[1] + EPS, what .. ": the keybind starts on the icon art, not on the socket's rim")
 			if bar == bar1 then
 				assert(r[3] <= hubRect[1] + EPS, what .. ": bar 1's slot " .. i .. " stands left of the hub")
 			else
@@ -112,6 +114,10 @@ for _, screen in ipairs(SCREENS) do
 		if b:IsShown() then
 			local r = Rect(b)
 			assert(r[1] >= petRect[1] - EPS and r[3] <= petRect[3] + EPS and r[2] >= petRect[2] - EPS and r[4] <= petRect[4] + EPS, what .. ": the pet slab holds every pet slot")
+			if b.autocast then
+				local mark, art = Rect(b.autocast), Rect(b.icon)
+				assert(mark[1] >= art[1] - EPS and mark[2] >= art[2] - EPS, what .. ": the autocast mark sits on the pet icon's art, not over its socket's rim")
+			end
 		end
 	end
 	local stanceRect = Rect(assert(Slab.sides.stance))
