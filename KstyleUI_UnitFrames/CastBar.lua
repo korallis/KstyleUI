@@ -51,7 +51,7 @@ local LANDED_ALPHA, STOPPED_ALPHA = 0.6, 0.55
 local CAPTION_ICON_GAP = 7
 local FLASH_LEVEL = 2
 local LIT_ALPHA, SHADE_ALPHA = 0.6, 0.45
-local MEDAL_INSET, MEDAL_TEXT_PAD = 3, 5
+local MEDAL_INSET, MEDAL_TEXT_PAD, MEDAL_CAP = 3, 5, 9
 local SPARK = { 227 / 255, 232 / 255, 238 / 255, 1 }
 local RANGE_STEP = 0.2
 local BATCH_GAP = 2
@@ -653,12 +653,13 @@ local function LayoutMedal(cb, width, height, column)
 	Widgets.LayoutSlice(cb.slab, frame, select(3, Tokens.Texture("medUnitSlab")))
 	ShowLock(cb)
 	local inset, pad = Snap(cb, MEDAL_INSET), Snap(cb, MEDAL_TEXT_PAD)
-	local barW, barH = math.max(0, width - 2 * MEDAL_INSET), math.max(0, height - 2 * MEDAL_INSET)
+	local edge = cb.slab.texture == "medUnitSlabCap" and MEDAL_CAP or MEDAL_INSET
+	local barW, barH = math.max(0, width - 2 * edge), math.max(0, height - 2 * MEDAL_INSET)
 	local icon = cb.inline == true and Settings.Value(cb.kind, "castbarIcon") == true and barH > 0
 	local right = icon and ns.Geometry.SLAB[cb.kind].side == "LEFT"
 	if icon then
 		barW = math.max(0, barW - barH - MEDAL_INSET)
-		Place(cb, cb.iconFrame, { x = right and width - MEDAL_INSET - barH or MEDAL_INSET, y = MEDAL_INSET, w = barH, h = barH })
+		Place(cb, cb.iconFrame, { x = right and width - edge - barH or edge, y = MEDAL_INSET, w = barH, h = barH })
 		cb.icon:ClearAllPoints()
 		cb.icon:SetAllPoints(cb.iconFrame)
 	end
@@ -667,7 +668,7 @@ local function LayoutMedal(cb, width, height, column)
 	bar.opts.width, bar.opts.height = barW, barH
 	bar:Restyle()
 	bar:ClearAllPoints()
-	bar:SetPoint("TOPLEFT", frame, "TOPLEFT", Snap(cb, MEDAL_INSET + (icon and not right and barH + MEDAL_INSET or 0)), -inset)
+	bar:SetPoint("TOPLEFT", frame, "TOPLEFT", Snap(cb, edge + (icon and not right and barH + MEDAL_INSET or 0)), -inset)
 	bar:SetSparkShown(false)
 	bar.keyline:Hide()
 	bar:SetTrackBacking(true)
