@@ -370,6 +370,14 @@ class WorkflowsTest(unittest.TestCase):
                 self.assertEqual(guard.group(1), expected if path.name == "release.yml" else FORK_GUARD,
                                  f"{path.name}: {job}")
 
+    def test_only_the_mac_budget_monitor_runs_on_the_macs(self):
+        for path in workflows():
+            for job, body in jobs_of(path.read_text(encoding="utf-8")).items():
+                runner = re.search(r"(?m)^    runs-on: (.+)$", body).group(1)
+                expected = "[self-hosted, mac-ci, KstyleUI]" if path.name == "mac-budgets.yml" else "ubuntu-latest"
+                self.assertEqual(runner, expected, f"{path.name}: {job}: gates run on GitHub-hosted runners; "
+                                 "only mac-budgets.yml uses the Macs, and nothing requires or awaits it")
+
     def test_no_workflow_runs_on_an_event_that_carries_fork_code_past_the_guard(self):
         for path in workflows():
             on = path.read_text(encoding="utf-8").split("\non:\n", 1)[1].split("\n\n", 1)[0]
