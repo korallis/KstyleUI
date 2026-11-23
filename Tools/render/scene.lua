@@ -657,8 +657,10 @@ local function natural(env, region, log)
 		local hasW = type(region._width) == "number" and region._width > 0
 		local hasH = type(region._height) == "number" and region._height > 0
 		if not hasW and not (xs[0] and xs[1]) then
-			-- The natural width is the drawn words', without colour codes, links and textures, as the game sizes it.
+			-- The natural width is the drawn words', without colour codes, links and textures, as the game sizes it,
+			-- plus each inline atlas (|A:name:height:width|a) at its width.
 			region._naturalW = textWidthEm(plainText(text), fontPath) * size
+			for _, _, width in text:gmatch("|A:([^:|]+):(%d+):(%d+)[^|]*|a") do region._naturalW = region._naturalW + tonumber(width) end
 			region._naturalSideW = xs[1] and "right" or xs[0.5] and "center" or "left"
 		end
 		if not hasH and not (ys[0] and ys[1]) then
@@ -1330,6 +1332,17 @@ function Scene.Build(env, opts)
 		}
 		if not item.font.file then
 			logLine("no local font for " .. tostring(path) .. "; the page falls back to Source Sans")
+		end
+		-- Inline atlases (|A:name:height:width|a, as CreateAtlasMarkup writes them) draw as images in the line.
+		for atlas, h, w in text:gmatch("|A:([^:|]+):(%d+):(%d+)[^|]*|a") do
+			local info, glyph = Scene.AtlasInfo(atlas), { atlas = atlas, height = round4(tonumber(h) * scale * k), width = round4(tonumber(w) * scale * k) }
+			if info and fileExists(info.file) then
+				glyph.file, glyph.texCoord = info.file, { round4(info.left), round4(info.right), round4(info.top), round4(info.bottom) }
+			else
+				logLine("atlas " .. atlas .. ": its sheet is not in the atlas cache, so it is drawn as a grey box; run python3 Tools/render/atlas.py fetch " .. atlas)
+			end
+			item.glyphs = item.glyphs or {}
+			item.glyphs[#item.glyphs + 1] = glyph
 		end
 		local sx, sy = state(region, "ShadowOffset")
 		if type(sx) == "number" and type(sy) == "number" and (sx ~= 0 or sy ~= 0) then
