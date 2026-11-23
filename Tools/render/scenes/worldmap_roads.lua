@@ -92,7 +92,7 @@ return Common.Run(function()
 		env.C_QuestLog.GetNextWaypoint = function(id) if quest ~= "none" and id == 10 then return 1, x, y end end
 		env.C_QuestLog.GetQuestsOnMap = function() return {} end
 		R.Quest(10)
-	elseif services and not off then
+	elseif services and not off and not os.getenv("RENDER_MAP_TRIP") then
 		R.Pick({ nearest = "inn" })
 	else
 		R.Pick({ mapID = trip == "zeppelin" and 2 or 1, name = to.name, x = x, y = y })

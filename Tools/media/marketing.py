@@ -4,7 +4,8 @@
     python3 Tools/media/marketing.py --pages    # also regenerate README.md and the
                                                 # CurseForge/Wago description blocks
                                                 # from docs/store/description.md
-    python3 Tools/media/marketing.py --clips [NAME ...]   # also render the highlight clips (LuaJIT, Chrome)
+    python3 Tools/media/marketing.py --clips [NAME ...]   # also render the highlight clips (LuaJIT, Chrome);
+                                                          # map.gif needs RENDER_MAP_ART, the client's Kalimdor map art
 
 Images only use the addon's own OFL fonts (Media/Fonts), its procedural logo
 (Tools/media/make_media.py), the colours in Core/Tokens.lua, the in-game /
@@ -38,6 +39,9 @@ GALLERY = [
     ("06-hawks.gif", "marketing/hawks.gif", None),
     ("07-hud.jpg", "readme/hud_1080.jpg", None),
     ("08-frames.jpg", "readme/hud_frames_1080.jpg", None),
+    ("09-rest.gif", "marketing/rest.gif", None),
+    ("10-casts.gif", "marketing/casts.gif", None),
+    ("11-map.gif", "marketing/map.gif", None),
 ]
 
 # Core/Tokens.lua colours.
@@ -62,6 +66,7 @@ PITCH2 = "Run the setup once and play."
 # Narrow crops framed at banner width so every picture fills the page column.
 SHOWCASES = [
     ("show_hud_1080.jpg", "hud_1080.jpg"),
+    ("show_hud_finish.jpg", "hud_finish.jpg"),
     ("show_hud_frames_1080.jpg", "hud_frames_1080.jpg"),
     ("show_frame_raid.jpg", "frame_raid.jpg"),
 ]
@@ -125,6 +130,16 @@ CLIPS = {
     "hawks.gif": (CREST, story("hud_hunter_mac", {"RENDER_FX": "hawks"}, "RENDER_FX_T", [
         (0.5, 0.5, 300), (0.9, 1.6, 0), (8.9, 9.6, 300), (18.9, 19.45, 0), (20.4, 21.1, 700),
     ], 0.7)),
+    "rest.gif": ((468, 792, 984, 270), [
+        ("hud_reference", {"RENDER_REST": "rest"}, "RENDER_REST_T", [0], 800),
+        ("hud_reference", {"RENDER_REST": "rest"}, "RENDER_REST_T", times(0.07, 0.63), 1400),
+        ("hud_reference", {"RENDER_REST": "target"}, "RENDER_REST_T", times(0.07, 0.21), 1600),
+    ]),
+    "casts.gif": ((1036, 886, 330, 92), [("hud_rogue_mac", {"RENDER_CAST_CUES": cue}, "RENDER_CAST_CUES_T", ts, hold)
+                                         for cue, ts, hold in (("aimed", times(0, 0.28), 700), ("you", times(0, 0.28), 900),
+                                                               ("locked", times(0, 0.28), 900), ("wait", times(0, 0.63), 1100))]),
+    "map.gif": ((446, 298, 698, 510), [("worldmap_roads", env, None, [0], 2400) for env in (
+        {"RENDER_MAP_TRIP": "zeppelin"}, {"RENDER_MAP_TRIP": "zeppelin", "RENDER_MAP_SERVICES": "1"})]),
 }
 
 README_HEADER = """<p align="center">
@@ -305,7 +320,7 @@ def write_gif(path, frames, durations):
     stack = Image.new("RGB", (frames[0].width, frames[0].height * len(sample)))
     for i, frame in enumerate(sample):
         stack.paste(frame, (0, i * frame.height))
-    palette = stack.quantize(colors=255, method=Image.Quantize.MEDIANCUT)
+    palette = stack.quantize(colors=255, method=Image.Quantize.FASTOCTREE)  # median cut turns a few frames' red bar brown
     indexed = [frame.quantize(palette=palette, dither=Image.Dither.NONE) for frame in frames]
     indexed[0].save(path, save_all=True, append_images=indexed[1:], duration=durations, loop=0, optimize=True, disposal=1)
 
@@ -315,6 +330,8 @@ def make_clip(name):
     from concurrent.futures import ThreadPoolExecutor
     from PIL import Image, ImageDraw
     box, shots = CLIPS[name]
+    if name == "map.gif" and not os.environ.get("RENDER_MAP_ART"):
+        raise SystemExit("map.gif: set RENDER_MAP_ART to the client's Kalimdor map art")
     jobs = [(scene, {**env, **({clock: str(t)} if clock else {})}) for scene, env, clock, ts, _ in shots for t in ts]
     with tempfile.TemporaryDirectory() as work:
         crops = [clip_frame(work, *jobs[0], box, True)]
