@@ -563,7 +563,7 @@ local function SearchChanged(query)
 		local button = results[i]
 		if not button then
 			button = CreateFrame("Button", nil, panel)
-			button:SetSize(280, 28)
+			button:SetSize(310, 28)
 			button:SetPoint("TOPLEFT", search, "BOTTOMLEFT", 0, -(i - 1) * 28 - 3)
 			local fill = button:CreateTexture(nil, "BACKGROUND")
 			fill:SetAllPoints(button)
@@ -594,7 +594,7 @@ local function Build()
 	panel = CreateFrame("Frame", nil, map)
 	panel:SetAllPoints(map)
 	panel:SetFrameLevel(map:GetFrameLevel() + 30)
-	search = Widgets.EditBox(panel, { width = 280, height = 28, placeholder = L["Search the map"], onChange = SearchChanged,
+	search = Widgets.EditBox(panel, { width = 310, height = 28, placeholder = L["Search the map"], onChange = SearchChanged,
 		onEscape = function() Hide(results) end, onEnter = function(query) if Plain(query, "string") ~= "" then Routes.Pick(Routes.Search(query)[1]) end end,
 		onFocus = function(box) if On("services") then SearchChanged(box:GetText()) end end })
 	search:SetPoint("TOPRIGHT", map.ScrollContainer or map, "TOPRIGHT", -12, -12)
