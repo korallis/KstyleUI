@@ -432,16 +432,12 @@ function Guard.Hides(item)
 	return alpha >= Guard.COVER_ALPHA
 end
 
--- EdgeFade(cover, text) -> whether a cover is a list's edge fade over its rows: a vertical gradient that ramps to
--- nothing, its opaque end on the edge of the scroll view that holds the text, which cuts its rows there by design.
--- SetGradient's first colour is a vertical gradient's bottom.
+-- EdgeFade(cover, text) -> whether a cover is a list's edge fade over its rows: a vertical gradient that ramps up to
+-- nothing (SetGradient's first colour is its bottom), its opaque foot on the foot of the scroll view that holds the
+-- text, which cuts its rows there by design.
 local function edgeFade(cover, text)
 	local g, clip, r = cover.item.gradient, text.item.scroll and text.item.clip, cover.rect
-	if not (g and clip and g.orientation == "VERTICAL" and math.min(g.from[4], g.to[4]) <= 0) then
-		return false
-	end
-	local edge = g.from[4] > g.to[4] and r[2] + r[4] - clip[2] - clip[4] or r[2] - clip[2]
-	return math.abs(edge) <= slack
+	return g ~= nil and clip ~= nil and g.orientation == "VERTICAL" and g.to[4] <= 0 and math.abs(r[2] + r[4] - clip[2] - clip[4]) <= slack
 end
 
 -- Top(object) -> the top-level element an object hangs in: its ancestor whose parent is a root (UIParent or an
