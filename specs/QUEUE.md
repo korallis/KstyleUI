@@ -699,3 +699,5 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - #776 fixes pushed a4fc917a1 (15 + 6 shared); forwarded to ranged + healers.
 - Lee: credit the hotfixes to Baine. notes-0331.md written with credit; dispatch when #781 and the sockets/compass fix merge.
 - #781 review ISSUES (65- Merged #776 (melee crests + shared system) ae54bdb0f. #771/#778 retargeted to staging, rebasing.
+- #782 sockets/compass hotfix green; review dispatched.
+- Lee locked in A: tracked-buff row keeps its fixed slot above an empty utility row (no change).

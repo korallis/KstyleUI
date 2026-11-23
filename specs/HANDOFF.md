@@ -17,7 +17,7 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 - #774 polish batch B (Options list fade, one search heading, preview paints its own portrait so the live level-up burst stays put, Welcome pictures fill their cards, setup card accent edge, module rows aligned in every locale, guard exempts only a scroll view's bottom fade).
 - #768 polish batch C (chat edit box inside its glass, bag cooldown numbers, compare tooltip tab, data bars aligned with a new Match the other bars switch for honour, aura samples in order).
 - #775 RestedXP skin works with RestedXP 4.11.39 (renamed API and rebuilt boxes; perf ceiling UpdateSubTheme = 29 beside UpdateVisuals).
-- #777 polish batch F (minimap buttons inside the ring, drawer and zoom slider, tracked-bar counts, proc glow width and ShowProc resting at alpha 1). Owner decision still open: the tracked-buff row keeps its slot above an empty utility row (A) or closes the gap (B).
+- #777 polish batch F (minimap buttons inside the ring, drawer and zoom slider, tracked-bar counts, proc glow width and ShowProc resting at alpha 1). Owner decided A: the tracked-buff row keeps its fixed slot above an empty utility row (no shifting mid-fight).
 - #769 meters polish (swing timer stays full, readable damage meter rows with tracks, finished empty cards).
 
 ## Crests merged so far
