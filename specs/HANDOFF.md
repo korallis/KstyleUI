@@ -10,13 +10,13 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 
 ## Merged since v0.3.2 (for the v0.3.3 notes)
 
+- #765 party frames readable (larger on ultrawide, readable names and numbers, dark missing health, offline members show empty tracks, crown on the rim). Owner call pending: the 16:9 percent text size stays as is (bigger broke the twelve-letter name rule).
 - #769 meters polish (swing timer stays full, readable damage meter rows with tracks, finished empty cards).
 
 ## Open pull requests (all target staging)
 
 | PR | Branch | What | Status / next step |
 | --- | --- | --- | --- |
-| #765 | korallis/fix-party-frame-readability | Party frames readable (Larger on ultrawide, readable names/numbers, dark missing health) | Fix round at 7fc7a9e3d: all 11 findings fixed (incl. one-token Core/Scale.lua key); left: adapt test-groupframes-raid-tile:34 and -healer:9 to the new tile ink, parity diff, python gate, tests-first commit order, PR body, hosted CI. Owner note: the 16:9 percent text stays its old size (bigger broke the twelve-letter name contract); fixed by a divider instead. |
 | #767 | korallis/platy-2 | Polish batch D: nameplates, action bars, cooldowns, minimap, world map | Review overturned 9 of the author's 17 'not real' dismissals and found drawer/travel regressions, hidden vehicle refresh overhead, a threat/skull collision, a world-map fixture mismatch and an unrelated XP-strip change (report: kstyleui-evidence/verify-767-1dadc386/REPORT.md). Fix round in progress; then spot-check and merge. |
 | #768 | korallis/lumpfish-2 | Polish batch C: chat, bags, tooltips, data bars, auras | Review found: a restricted shopping-tooltip level throws, honour controls overridden, preview text overlap, bag countdown not restored (kstyleui-evidence/verify-768-feab2289/REPORT.md). Fix round in progress. Follow-ups outside its files: audit A#3 (UnitFrames player aura row), A#9 (bars 3/4 unbound '-' hotkey). |
 | #771 | korallis/healer-crest-trackers | Crest trackers: priest, druid, shaman extension | d4b326c89, stacked on the melee crest branch (2d2f87d1f): registered on SlabTrackers with per-form choices, cooldown families, all research additions, generated art, 21 switches, 4 locales. Left: switch to the shared foot seats, five-second rule and threat emblem when the melee owner pushes them; evidence set; module sweep, python gate, hosted CI; PR body with the 12 in-game checks. |
