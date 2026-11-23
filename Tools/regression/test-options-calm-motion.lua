@@ -43,11 +43,8 @@ assert(win:IsShown() and win:GetAlpha() == 1, "the reopened window reaches full 
 K.Options.Open("About")
 K.Options.Open("General")
 local sample = parts.preview.current
-assert(sample:GetAlpha() == 0, "a changed preview starts faded")
-W.Tick(env, 0.1)
-assert(sample:GetAlpha() > 0 and sample:GetAlpha() < 1, "a preview fades for 200 ms")
-W.Tick(env, 0.101)
-assert(sample:GetAlpha() == 1, "the preview fade finishes in 200 ms")
+assert(sample:IsShown() and sample:GetAlpha() == 1, "a changed preview shows at alpha 1 with no frame run, so a fade the client never steps cannot hide it; fade it with Motion.PageIn")
+assert(sample.kstylePageIn and sample.kstylePageIn:IsPlaying() and sample.kstylePageIn.alpha:GetDuration() == K.Motion.Moment("page"), "a changed preview fades in over the page moment")
 K.Options.Write("Appearance", "calmLists", false)
 env.RunTimers()
 W.Settle(env)

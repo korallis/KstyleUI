@@ -251,6 +251,29 @@ local iconArt = iconHolder:CreateTexture(nil, "ARTWORK")
 iconArt:SetAllPoints(iconHolder)
 iconArt:SetTexture("Interface\\Icons\\inv_misc_questionmark")
 
+-- A list's edge fade, a gradient from opaque to nothing with its opaque end on a scroll view's bottom edge, softens
+-- the rows at that edge by design; the same fade laid mid-list hides half a row, which is a finding.
+local list = env.CreateFrame("Frame", "GuardList", UIParent)
+list:SetSize(200, 60)
+list:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 1300, -600)
+list:EnableMouseWheel(true)
+local listView = child(list)
+listView:SetClipsChildren(true)
+list.view = listView
+text(listView, "A row half under the list's edge fade", 200, false):SetPoint("BOTTOMLEFT", listView, "BOTTOMLEFT", 0, 12)
+text(listView, "A row in the middle of the list", 200, false):SetPoint("TOPLEFT", listView, "TOPLEFT", 0, -4)
+for _, at in ipairs({ { "edge", "BOTTOM", 0 }, { "middle", "TOP", -12 } }) do
+	local band = env.CreateFrame("Frame", nil, list)
+	band:SetSize(200, 20)
+	band:SetPoint(at[2], listView, at[2], 0, at[3])
+	band:SetFrameLevel(list:GetFrameLevel() + 20)
+	list[at[1]] = band
+	local fade = band:CreateTexture(nil, "OVERLAY")
+	fade:SetAllPoints(band)
+	fade:SetColorTexture(1, 1, 1, 1)
+	fade:SetGradient("VERTICAL", { r = 0, g = 0, b = 0, a = 1 }, { r = 0, g = 0, b = 0, a = 0 })
+end
+
 -- A HUD alert line on a lower strata, half under a window on a higher one (QoL's talent line under Options): the
 -- window draws over it as the game stacks strata, so the line is not the window's content, nor covered by it.
 local alerts = env.CreateFrame("Frame", "GuardAlerts", UIParent)
@@ -308,6 +331,9 @@ assert(by["overlap|GuardShelf.icon.? inv_misc_questionmark & Page 1"] or by["ove
 	end
 	return subjects
 end)(), "; "))
+
+assert(not by["overlap|A row half under the list's edge fade & GuardList.edge.?"], "a list's edge fade over the last rows of its scroll view is the design")
+assert(by["overlap|A row in the middle of the list & GuardList.middle.?"], "a fade laid mid-list over half a row hides it")
 
 assert(not by["ellipsis|Fits"], "a text that fits its rect is not truncated")
 local cut = by["ellipsis|A label far too long for its narrow rect"]
@@ -467,10 +493,8 @@ local solid = { kind = "texture", file = "", color = { 1, 1, 1, 1 }, vertex = { 
 assert(Guard.Hides(solid), "a solid texture hides what it covers")
 solid.gradient = { from = { 1, 1, 1, 0 }, to = { 1, 1, 1, 0.24 } }
 assert(not Guard.Hides(solid), "a gradient hides only as much as its strongest end, so a bar's soft light covers nothing")
-solid.gradient = { from = { 0, 0, 0, 0.75 }, to = { 0, 0, 0, 0 } }
-assert(not Guard.Hides(solid), "a one-sided fade over a list's cut row is a fade, not a cover")
-solid.gradient = { from = { 0, 0, 0, 0.75 }, to = { 0, 0, 0, 0.6 } }
-assert(Guard.Hides(solid), "a gradient opaque at both ends still hides what it covers")
+solid.gradient = { from = { 0, 0, 0, 1 }, to = { 0, 0, 0, 0 } }
+assert(Guard.Hides(solid), "a gradient that ramps to nothing still hides what sits under its opaque end")
 
 for _, entry in ipairs(Guard.LoadAllow()) do
 	assert(Guard.OWNERS[entry.owner], "an owner for line " .. entry.line)
