@@ -74,9 +74,9 @@ for i = 3, #xs do
 end
 
 -- Secondary values read brighter: the player's power value uses text, and a chosen colour is kept.
-local tr, tg, tb = K.Tokens.Color("text")
+local xr, xg, xb = K.Tokens.Color("text")
 local pr, pg, pb = player.powerText:GetTextColor()
-assert(near(pr, tr) and near(pg, tg) and near(pb, tb), "the fitted player's power value uses text")
+assert(near(pr, xr) and near(pg, xg) and near(pb, xb), "the fitted player's power value uses text")
 write("player.powerTextColor", "custom")
 local c = player.s.powerTextCustom
 write("fittedSlabs", false)
