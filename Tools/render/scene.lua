@@ -16,7 +16,6 @@
 --   iconDirs   folders searched for <fileID>.png, in order
 
 local Scene = {}
-local RestScene = dofile("Tools/render/scenes/_rest.lua")
 
 local floor, max, min, abs = math.floor, math.max, math.min, math.abs
 local unpack = unpack
@@ -1084,7 +1083,6 @@ end
 
 function Scene.Build(env, opts)
 	opts = opts or {}
-	RestScene.Awake(env)
 	restyleOrnaments(env, opts)
 	local log = {}
 	local counts = {}

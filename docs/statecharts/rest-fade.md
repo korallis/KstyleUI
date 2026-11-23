@@ -7,18 +7,19 @@ stateDiagram-v2
     [*] --> Off: switch off, or every panel off
     Off --> Awake: switch on
     Awake --> Waiting: nothing needs the panels
-    Waiting --> Waiting: health or main power changes / wait again
-    Waiting --> Awake: target, cast, combat, drag
+    Waiting --> Waiting: health changes, entering the world / the wait ends 3 s later
+    Waiting --> Awake: target, cast, combat, grid, death, power short of full, Layout Mode
     Waiting --> Resting: 3 s pass / panels ease to the rest opacity over 0.6 s
-    Resting --> Awake: target, cast, combat, drag, health or main power change / all back in 0.12 s
+    Resting --> Awake: target, cast, combat, grid, death, power short of full, Layout Mode, a health change / all back in 0.12 s
     Resting --> Resting: pointer enters a panel / that panel back in 0.12 s
     Resting --> Resting: pointer leaves the panel / it rests again over 0.6 s
     Awake --> Off: switch off
     Resting --> Off: switch off / all back
 ```
 
-- **Nothing needs the panels**: out of combat, no target, no cast or channel, nothing on the cursor, Layout Mode closed.
-- **Waiting** is one `C_Timer.After` of 3 s (`combatOutDelay`) per change; only the last one settles. A change of health or the main power restarts it, since health is secret and a change stands for "not full".
+- **Nothing needs the panels**: out of combat, no target, no cast or channel, alive, the action bar grid closed, Layout Mode closed, and the main power full or empty.
+- **Waiting** is one `C_Timer.After` of 3 s (`combatOutDelay`); a health change or entering the world moves its end, since Forever keeps health secret and a change stands for "not full". Nothing is scheduled while something needs the panels.
+- **Resting** takes in each shown, live element of an enabled panel that the player kept at full alpha and whose alpha no other owner set; a bar on Fade until hovered keeps its own fade. A pointer already over a panel keeps it up.
 - **Hover** acts on one panel at a time and never on the shared state: the hovered panel returns while the others stay at rest.
 - **Off** unregisters every event; panels at rest return over 0.12 s and nothing is written again.
-- Layout Mode does not wake panels already at rest; no rest begins while it is open.
+- **Layout Mode** wakes the panels when it opens; closing it starts the wait again.

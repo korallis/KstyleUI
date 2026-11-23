@@ -215,6 +215,9 @@ function Common.ForceScreen(env, completePreset)
 	-- ornament the addon attaches, for Scene.Build to restyle at the rects it solves.
 	local ornaments = rawget(_G, "RENDER_ORNAMENTS") or os.getenv("RENDER_ORNAMENTS")
 	env._renderOrnaments = ornaments and ornaments ~= "" and ornaments or "Off"
+	-- RENDER_REST (rest, target or hover) leaves the clean screen on for scenes/_rest.lua to drive; unset, a scene boots
+	-- with it off, so its timers never draw a rest it did not ask for.
+	env._renderRestOff = (os.getenv("RENDER_REST") or "") == ""
 	env._ornamentHandles = env._ornamentHandles or {}
 	local width, height, uiScale = Common.SCREEN.width, Common.SCREEN.height, Common.SCREEN.uiScale
 	-- A scene shows the HUD at the Interface size KstyleUI ships, not the tests' size 1 (Stubs.NewEnv).

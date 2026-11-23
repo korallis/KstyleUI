@@ -1,4 +1,4 @@
--- Rest.lua: two alpha-only rests through Layout, only where the player kept full alpha: the Medallions leave-combat dim of the secondary unit frames, and the clean screen, which eases the chosen panels to a rest opacity while nothing needs them and brings each back at once on hover, a target, a cast, combat, a health or power change or a drag; none begins while Layout Mode is open.
+-- Rest.lua: two alpha-only rests through Layout, only where the player kept full alpha: the Medallions leave-combat dim of the secondary unit frames, and the clean screen, which eases the chosen panels to a rest opacity while nothing needs them and brings each back at once on hover, a target, a cast, combat, a health change, power short of full, death, the action bar grid or Layout Mode; it leaves alone a fade another owner set and never hooks another addon's frame.
 local _, ns = ...
 
 local Layout, Effects, Tokens, Motion, Store, L = ns.Layout, ns.Effects, ns.Tokens, ns.Motion, ns.Store, ns.L
@@ -96,8 +96,14 @@ Rest.PANELS = {
 }
 Rest.defaults = { enabled = true, alpha = 0.35, panels = { actionBars = true, player = true, strip = true, cooldowns = true } }
 
+local ROWS = {
+	actionBars = { L["Action bars"], L["Every action bar, with the Medallions slab and hub."] },
+	player = { L["Player frame"], L["Your own unit frame and class resource."] },
+	strip = { L["Data strip"], L["The readout strip, its menus and the experience line."] },
+	cooldowns = { L["Cooldowns"], L["KstyleUI's own cooldown rows; rows the game draws itself stay as they are."] },
+}
 local CASTS = { "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_STOP", "UNIT_SPELLCAST_CHANNEL_START", "UNIT_SPELLCAST_CHANNEL_STOP", "UNIT_SPELLCAST_EMPOWER_START", "UNIT_SPELLCAST_EMPOWER_STOP" }
-local PULSES = { "UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_MAXPOWER", "UNIT_SPELLCAST_SUCCEEDED" }
+local PULSES = { "UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_SPELLCAST_SUCCEEDED" }
 
 local panelOf = {}
 for panel, keys in pairs(Rest.PANELS) do
@@ -106,13 +112,10 @@ for panel, keys in pairs(Rest.PANELS) do
 	end
 end
 
-local quiet, watching, pending = false, false, 0
-local hovered, over, followers, NONE = {}, {}, {}, {}
+local quiet, watching, grid, timing, changed, due = false, false, false, false, false, 0
+local hovered, over, followers, members, NONE = {}, {}, {}, {}, {}
 local hooked = setmetatable({}, { __mode = "k" })
-
-local function IsSecret(v)
-	return issecretvalue ~= nil and issecretvalue(v) == true
-end
+local IsSecret = ns.Widgets.IsSecret
 
 local function On(panel)
 	if not Store.IsLoaded() then
@@ -138,22 +141,15 @@ function Rest.Level(key)
 	if resting and secondary[key] then
 		return Rest.ALPHA
 	end
-	local panel = panelOf[key]
-	if panel and quiet and not hovered[panel] and On(panel) then
+	if quiet and members[key] and not hovered[panelOf[key]] then
 		return Opacity()
 	end
 	return 1
 end
 
-local function Kept(key)
-	local el = Layout.Element(key)
-	local s = el and el.settings
-	return s ~= nil and s.shown ~= "mouseover" and s.alphaCombat == 1 and s.alphaIdle == 1
-end
-
 local function Follow(key, duration)
-	local level = Kept(key) and Rest.Level(key) or 1
-	for _, frame in ipairs(followers[key] or NONE) do
+	local level = Rest.Level(key)
+	for _, frame in ipairs(followers[key]) do
 		local from = frame:GetAlpha()
 		if IsSecret(from) or type(from) ~= "number" then
 			from = level
@@ -165,7 +161,9 @@ end
 local function Refresh(panel, duration)
 	for _, key in ipairs(Rest.PANELS[panel]) do
 		Layout.RefreshAlpha(key, duration)
-		Follow(key, duration)
+		if followers[key] then
+			Follow(key, duration)
+		end
 	end
 end
 
@@ -187,12 +185,14 @@ function Rest.Follow(key, ...)
 end
 
 local function Enter(frame)
-	over[frame] = true
-	local panel = hooked[frame]
-	if panel and not hovered[panel] then
-		hovered[panel] = true
-		if quiet then
-			Refresh(panel, Rest.WAKE)
+	local panel = watching and hooked[frame]
+	if panel then
+		over[frame] = true
+		if not hovered[panel] then
+			hovered[panel] = true
+			if quiet then
+				Refresh(panel, Rest.WAKE)
+			end
 		end
 	end
 end
@@ -216,10 +216,12 @@ for panel in pairs(Rest.PANELS) do
 end
 
 local function Leave(frame)
-	over[frame] = nil
-	local panel = hooked[frame]
-	if panel and hovered[panel] then
-		C_Timer.After(0, recheck[panel])
+	local panel = watching and hooked[frame]
+	if panel then
+		over[frame] = nil
+		if hovered[panel] then
+			C_Timer.After(0, recheck[panel])
+		end
 	end
 end
 
@@ -227,14 +229,21 @@ local function Children(frame)
 	return { frame:GetChildren() }
 end
 
+local function Hook(frame, script, fn)
+	local ok, done = pcall(frame.HookScript, frame, script, fn)
+	return ok and done ~= false
+end
+
 local function HookTree(frame, panel, depth)
 	if IsSecret(frame) or type(frame) ~= "table" then
-		return
+		return false
 	end
-	if not hooked[frame] then
-		if not (pcall(frame.HookScript, frame, "OnEnter", Enter) and pcall(frame.HookScript, frame, "OnLeave", Leave)) then
-			return
-		end
+	local name = frame:GetName()
+	if name ~= nil and (IsSecret(name) or name:sub(1, 8) ~= "KstyleUI") then
+		return false
+	end
+	if not hooked[frame] and not (Hook(frame, "OnEnter", Enter) and Hook(frame, "OnLeave", Leave)) then
+		return false
 	end
 	hooked[frame] = panel
 	if depth < HOOK_DEPTH then
@@ -245,22 +254,45 @@ local function HookTree(frame, panel, depth)
 			end
 		end
 	end
+	return true
 end
 
-local function HookPanels()
-	for _, panel in ipairs(Rest.ORDER) do
+local function Plain(v)
+	return not IsSecret(v) and v
+end
+
+local function Joins(el)
+	local s, alpha = el.settings, el.frame:GetAlpha()
+	local bar = el.key:match("^actionbars%.(.+)$")
+	local cfg = bar and Store.Module("ActionBars")[bar]
+	return s.shown ~= "mouseover" and s.alphaCombat == 1 and s.alphaIdle == 1 and not IsSecret(alpha)
+		and (Motion.IsPlaying(el.alphaTween) or math.abs(alpha - (el.alphaSet and el.alphaTarget or 1)) < 0.01)
+		and not (type(cfg) == "table" and cfg.fade == true)
+end
+
+local function Gather()
+	members = {}
+	for panel, keys in pairs(Rest.PANELS) do
 		if On(panel) then
-			for _, key in ipairs(Rest.PANELS[panel]) do
+			for _, key in ipairs(keys) do
 				local el = Layout.Element(key)
-				if el then
-					HookTree(el.frame, panel, 0)
-				end
-				for _, frame in ipairs(followers[key] or NONE) do
-					HookTree(frame, panel, 0)
+				if el and Layout.Live(key) and Plain(el.frame:IsShown()) == true and HookTree(el.frame, panel, 0) then
+					members[key] = Joins(el)
+					for _, frame in ipairs(followers[key] or NONE) do
+						HookTree(frame, panel, 0)
+					end
+					local ok, inside = pcall(el.frame.IsMouseOver, el.frame)
+					if ok and Plain(inside) == true then
+						hovered[panel] = true
+					end
 				end
 			end
 		end
 	end
+end
+
+local function Yes(fn, ...)
+	return type(fn) == "function" and fn(...) == true
 end
 
 local function Active(info)
@@ -271,9 +303,17 @@ local function Active(info)
 	return IsSecret(name) or name ~= nil
 end
 
+local function Short()
+	if type(UnitPower) ~= "function" or type(UnitPowerMax) ~= "function" then
+		return false
+	end
+	local power, most = UnitPower("player"), UnitPowerMax("player")
+	return IsSecret(power) or IsSecret(most) or power ~= 0 and power ~= most
+end
+
 local function Busy()
-	return InCombatLockdown() or Layout.IsActive() or UnitExists("target") == true or Active(UnitCastingInfo) or Active(UnitChannelInfo)
-		or type(GetCursorInfo) == "function" and GetCursorInfo() ~= nil
+	return grid or Layout.IsActive() or Yes(InCombatLockdown) or Yes(UnitExists, "target") or Yes(UnitIsDeadOrGhost, "player")
+		or Active(UnitCastingInfo) or Active(UnitChannelInfo) or Short()
 end
 
 local function WakeAll()
@@ -283,25 +323,35 @@ local function WakeAll()
 	end
 end
 
+local function Now()
+	return type(GetTime) == "function" and GetTime() or 0
+end
+
 local function SettleAll()
-	pending = pending - 1
-	if pending > 0 or quiet or not watching or Busy() then
+	timing = false
+	if quiet or not watching or Busy() then
+		changed = false
+		return
+	end
+	if changed then
+		changed, timing = false, true
+		C_Timer.After(math.max(due - Now(), 0), SettleAll)
 		return
 	end
 	quiet = true
-	HookPanels()
+	Gather()
 	ApplyAll(Rest.FALL)
 end
 
 local function SettleLater()
-	pending = pending + 1
-	C_Timer.After(Rest.DELAY, SettleAll)
+	due, changed = Now() + Rest.DELAY, timing
+	if not timing then
+		timing = true
+		C_Timer.After(Rest.DELAY, SettleAll)
+	end
 end
 
 local function Check()
-	if not watching then
-		return
-	end
 	if Busy() then
 		WakeAll()
 	elseif not quiet then
@@ -311,39 +361,33 @@ end
 
 local function Pulse()
 	WakeAll()
-	SettleLater()
+	Check()
 end
 
 local function Power(_, _, token)
-	local primary
-	if type(UnitPowerType) == "function" then
-		primary = select(2, UnitPowerType("player"))
-	end
-	if primary == nil or IsSecret(token) or IsSecret(primary) or token == primary then
-		Pulse()
+	local primary = type(UnitPowerType) == "function" and select(2, UnitPowerType("player")) or nil
+	if primary == nil or IsSecret(token) or token == primary then
+		Check()
 	end
 end
 
+local function Grid(event)
+	grid = event == "ACTIONBAR_SHOWGRID"
+	Check()
+end
+
 local function Watch(on)
-	if on then
-		ns.Events.Register(FADE, "PLAYER_TARGET_CHANGED", Check)
-		for _, event in ipairs(CASTS) do
-			ns.Events.RegisterUnit(FADE, event, Check, "player")
-		end
-		for _, event in ipairs(PULSES) do
-			ns.Events.RegisterUnit(FADE, event, Pulse, "player")
-		end
-		ns.Events.RegisterUnit(FADE, "UNIT_POWER_UPDATE", Power, "player")
-		return
-	end
-	ns.Events.Unregister(FADE, "PLAYER_TARGET_CHANGED")
+	local register = on and ns.Events.Register or ns.Events.Unregister
+	local unit = on and ns.Events.RegisterUnit or ns.Events.Unregister
+	register(FADE, "PLAYER_TARGET_CHANGED", Check)
 	for _, event in ipairs(CASTS) do
-		ns.Events.Unregister(FADE, event)
+		unit(FADE, event, Check, "player")
 	end
 	for _, event in ipairs(PULSES) do
-		ns.Events.Unregister(FADE, event)
+		unit(FADE, event, Pulse, "player")
 	end
-	ns.Events.Unregister(FADE, "UNIT_POWER_UPDATE")
+	unit(FADE, "UNIT_POWER_UPDATE", Power, "player")
+	unit(FADE, "UNIT_MAXPOWER", Power, "player")
 end
 
 local function Fought()
@@ -357,9 +401,6 @@ local function Calmed()
 end
 
 local function Wanted()
-	if not On() then
-		return false
-	end
 	for _, panel in ipairs(Rest.ORDER) do
 		if On(panel) then
 			return true
@@ -375,18 +416,20 @@ function Rest.Listen()
 		if want then
 			ns.Events.Register(FADE, "PLAYER_REGEN_DISABLED", Fought)
 			ns.Events.Register(FADE, "PLAYER_REGEN_ENABLED", Calmed)
-			ns.Events.Register(FADE, "ACTIONBAR_SHOWGRID", Check)
-			ns.Events.Register(FADE, "ACTIONBAR_HIDEGRID", Check)
-			Watch(not InCombatLockdown())
+			ns.Events.Register(FADE, "PLAYER_ENTERING_WORLD", Pulse)
+			ns.Events.Register(FADE, "ACTIONBAR_SHOWGRID", Grid)
+			ns.Events.Register(FADE, "ACTIONBAR_HIDEGRID", Grid)
+			Watch(not Yes(InCombatLockdown))
 		else
 			ns.Events.UnregisterAll(FADE)
+			grid, hovered, over = false, {}, {}
 			WakeAll()
 		end
 	end
 	if watching then
 		Check()
 		if quiet then
-			HookPanels()
+			Gather()
 			ApplyAll(Rest.WAKE)
 		end
 	end
@@ -396,7 +439,7 @@ function Rest.Schema()
 	local function off(s)
 		return s.enabled ~= true
 	end
-	Rest.schema = {
+	local rows = {
 		{ type = "header", label = L["Clean screen at rest"] },
 		{
 			type = "toggle", key = "enabled", label = L["Fade panels at rest"],
@@ -406,24 +449,11 @@ function Rest.Schema()
 			type = "slider", key = "alpha", label = L["Rest opacity"], min = 0.1, max = 0.9, step = 0.05, disableWhen = off,
 			help = L["How much of a resting panel still shows."],
 		},
-		{
-			type = "toggle", key = "panels.actionBars", label = L["Action bars"], disableWhen = off,
-			help = L["Every action bar, with the Medallions slab and hub."],
-		},
-		{
-			type = "toggle", key = "panels.player", label = L["Player frame"], disableWhen = off,
-			help = L["Your own unit frame and class resource."],
-		},
-		{
-			type = "toggle", key = "panels.strip", label = L["Data strip"], disableWhen = off,
-			help = L["The readout strip, its menus and the experience line."],
-		},
-		{
-			type = "toggle", key = "panels.cooldowns", label = L["Cooldowns"], disableWhen = off,
-			help = L["The cooldown and tracked buff rows."],
-		},
 	}
-	return Rest.schema
+	for _, panel in ipairs(Rest.ORDER) do
+		rows[#rows + 1] = { type = "toggle", key = "panels." .. panel, label = ROWS[panel][1], help = ROWS[panel][2], disableWhen = off }
+	end
+	return rows
 end
 
 Store.RegisterDefaults(SECTION, Rest.defaults)
@@ -432,7 +462,7 @@ ns.Options.Register(SECTION, Rest.Schema)
 ns.Events.Register(FADE, "PLAYER_LOGIN", Rest.Listen)
 ns.Callbacks.Register("ProfileChanged", FADE, Rest.Listen)
 ns.Callbacks.Register("SettingChanged", FADE, function(_, module)
-	if module == SECTION then
+	if module == SECTION or module == "ActionBars" then
 		Rest.Listen()
 	end
 end)

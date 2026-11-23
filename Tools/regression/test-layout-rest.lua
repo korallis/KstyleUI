@@ -140,11 +140,17 @@ do
 	Rested(env)
 	assert(Rest.Quiet(), "they rest a delay after an instant cast")
 
+	env.UnitPower, env.UnitPowerMax = function() return 50 end, function() return 100 end
 	env.FireEvent("UNIT_POWER_UPDATE", "player", "COMBO_POINTS")
 	assert(Rest.Quiet(), "a secondary power's slow decay does not wake them")
 	env.FireEvent("UNIT_POWER_UPDATE", "player", "MANA")
-	Woke("a change of the main power")
+	Woke("the main power short of full")
 	Rested(env)
+	assert(not Rest.Quiet(), "the main power short of full keeps them up")
+	env.UnitPower = function() return 100 end
+	env.FireEvent("UNIT_MAXPOWER", "player", "MANA")
+	Rested(env)
+	assert(Rest.Quiet(), "a full main power lets them rest")
 	env.FireEvent("UNIT_HEALTH", "player")
 	Woke("a change of health")
 	Rested(env)

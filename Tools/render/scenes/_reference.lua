@@ -286,6 +286,12 @@ function Reference.Build(opts)
 		if rest == "rest" or rest == "hover" then
 			state.target, state.targetAuras, state.playerCast = false, nil, false
 		end
+		if rest and rest ~= "" then
+			local player = {}
+			for k, v in pairs(state.player) do player[k] = v end
+			player.health, player.power = player.healthMax, player.powerMax
+			state.player = player
+		end
 		if os.getenv("RENDER_EXTRA_BARS") and os.getenv("RENDER_EXTRA_BARS") ~= "off" then
 			state.slots = {}
 			for i, action in ipairs(state.spec.bar2) do state.slots[24 + i] = action[2] end

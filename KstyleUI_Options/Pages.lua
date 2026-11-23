@@ -582,7 +582,11 @@ local function ElementsItems()
 	if schema then
 		Append(items, Model.SchemaItems(Pages.ELEMENTS_SECTION, schema, "Elements"))
 	end
-	Append(items, Model.SchemaItems("Rest", K.Options.Get("Rest"), "Elements"))
+	local rest = Model.SchemaItems("Rest", K.Options.Get("Rest"), "Elements")
+	for _, item in ipairs(rest) do
+		item.percent = item.kind == "slider"
+	end
+	Append(items, rest)
 	Append(items, Model.SchemaItems("LayoutControls", K.Options.Get("LayoutControls"), "Elements"))
 	items[#items + 1] = { kind = "toggle", page = "Elements", label = L["Double-click movers for settings"],
 		help = L["Opens element settings on double-click. Action bars keep their own shortcut setting."],
@@ -1243,6 +1247,8 @@ function Pages.List()
 			id = "Elements", label = L["Elements"], Items = ElementsItems,
 			reset = function()
 				ResetElements(nil)
+				Model.ResetSchema("Rest", K.Options.Get("Rest"))
+				K.Options.Write("Rest", "enabled", true)
 			end,
 		},
 	}
