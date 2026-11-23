@@ -1034,14 +1034,14 @@ FitStyles = function()
 	Place(panel.padCaption, panel.padTabs, panel.padNote, looks and panel.lookTabs or panel.styleHint)
 	if page:IsVisible() then
 		local rise = 2 * Widgets.Border(panel)
-		local height = HEIGHT + (controls and math.ceil((Widgets.LineHeight(panel.padCaption) + gap("gapSmall") + STRIP_HEIGHT + fit.spacing) / rise) * rise or 0)
-		Widgets.Size(panel, WIDTH, height)
+		local base = HEIGHT + (controls and math.ceil((Widgets.LineHeight(panel.padCaption) + gap("gapSmall") + STRIP_HEIGHT + fit.spacing) / rise) * rise or 0)
+		Widgets.Size(panel, WIDTH, base)
 		local lowest = panel.styleHint:GetBottom()
 		for _, region in ipairs({ panel.lookTabs, panel.lookNote, panel.padTabs, panel.padNote }) do
 			if region:IsShown() then lowest = min(lowest, region:GetBottom()) end
 		end
 		local over = panel.next:GetTop() + gap("gapSmall") - lowest
-		panel.opts.height = height + (over > 0 and math.ceil(over / rise) * rise or 0)
+		panel.opts.height = base + (over > 0 and math.ceil(over / rise) * rise or 0)
 		Widgets.Size(panel, WIDTH, panel.opts.height)
 	end
 end
