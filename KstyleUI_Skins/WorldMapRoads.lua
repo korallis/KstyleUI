@@ -70,7 +70,7 @@ function Roads.Snap(graph, x, y, continent)
 	return best, yards and math.sqrt(yards)
 end
 
-function Roads.Dock(graph, node)
+local function Dock(graph, node)
 	if node.label then return node.label end
 	local town, area, near, far
 	for _, other in ipairs(graph.nodes) do
@@ -203,7 +203,7 @@ function Roads.Solve(graph, x, y, tx, ty, mounted, flights, travel)
 	local hop = via[id]
 	local near = hop and hop.yards or first
 	local route = { graph = graph, continent = travel and travel.continent, start = start, last = last, legs = {}, yards = near + last, seconds = seconds + last / speed, dashed = near > 60 or last > 60 }
-	local function Name(node) return travel and node.kind == "dock" and Roads.Dock(graph, node) or node.name end
+	local function Name(node) return travel and node.kind == "dock" and Dock(graph, node) or node.name end
 	local function Connector(ax, ay, bx, by, len, name, map)
 		if len > 0 or #route.legs == 0 then route.legs[#route.legs + 1] = { kind = "walk", to = name, len = len, seconds = len / speed, dashed = len > 60, pts = { ax, ay, bx, by }, map = map } end
 	end
