@@ -198,7 +198,8 @@ ns.SlabTrackers.Register("PRIEST", {
 	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, color = "jewelHoly", build = Flask },
 	{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", families = {
 		{ spells = { 10060 } }, { spells = { 14751 } }, { spells = { 586, 9578, 9579, 9592, 10941, 10942 } }, { spells = { 6346 } },
-		{ spells = { 2651 } }, { spells = { 13896, 19271, 19273, 19274, 19275 } }, { spells = { 1277324 } }, { spells = { 1277462 } },
+		{ spells = { 2651 } }, { spells = { 13896, 19271, 19273, 19274, 19275 } }, { spells = { 1277328, 1277327, 1277326, 1277325, 1277324 } },
+		{ spells = { 1277640, 1277639, 1277638, 1277634, 1277462 } },
 	} },
 }, {
 	burst = "medBurstPriest",
