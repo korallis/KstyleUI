@@ -24,10 +24,10 @@ local function Plain(value, kind)
 	return not IsSecret(value) and type(value) == kind
 end
 
-local function Muted(view, text, fitted)
+local function Muted(view, text, token)
 	local path, size, flags = Settings.Font(view.kind, "level")
 	Widgets.ApplyFont(text, path, size, flags)
-	text:SetTextColor(Tokens.Color(view.s and view.s.fittedSlabs and (fitted or "muted") or "labelMuted"))
+	text:SetTextColor(Tokens.Color(view.s and view.s.fittedSlabs and (token or "muted") or "labelMuted"))
 end
 
 function Slab.Material(owner, slice)
@@ -174,6 +174,42 @@ function Slab.Caption(view)
 	NameLine(view, g)
 end
 
+local function Home(key)
+	local el = K.Layout and K.Layout.Element and K.Layout.Element(key)
+	if not (el and el.settings and el.default) then return false end
+	for _, field in ipairs(HOME) do
+		local a, b = el.settings[field], el.default[field]
+		if a ~= b and not (type(a) == "number" and type(b) == "number" and math.abs(a - b) < 0.5) then return false end
+	end
+	return true
+end
+
+local function Docked(view)
+	local bars = K.Store.Module("ActionBars") or {}
+	return DOCK[view.kind] ~= nil and view.s.fittedSlabs and K.HudStyle.Current() == "medallions" and bars.enabled ~= false
+		and bars.slab ~= false and bars.extraBarsApplied ~= "rows" and Home(Settings.ELEMENTS[view.kind]) or false
+end
+
+local function Dock(view, g)
+	local arm = view.dock
+	if not Docked(view) then
+		if arm then arm:Hide() end
+		return
+	end
+	if not arm then
+		arm = CreateFrame("Frame", nil, view.parent)
+		arm:SetFrameStrata("LOW")
+		arm.slice = Widgets.NineSlice(arm, "medUnitSlab", "BACKGROUND", 1)
+		view.dock = arm
+	end
+	arm:SetFrameLevel(K.Scale.Root():GetFrameLevel() + 1)
+	local layouts, w = K.Setup.Layouts, view.slabWidth
+	local reach = layouts.MEDALLIONS_RING / 2 + layouts.MEDALLIONS_UNITS.reach - DOCK_SHORT
+	Place(view, arm, { x = DOCK[view.kind] > 0 and w - DOCK_UNDER or -reach, y = g.glass.h - DOCK_H, w = reach + DOCK_UNDER, h = DOCK_H })
+	Widgets.LayoutSlice(arm.slice, arm, select(3, Tokens.Texture("medUnitSlab")))
+	arm:Show()
+end
+
 function Slab.Layout(view, g)
 	if g.form ~= "slab" then
 		if view.slab then
@@ -215,44 +251,9 @@ function Slab.Layout(view, g)
 	Slab.Caption(view)
 	if resized then ns.Unit.Refit(view) end
 	view.levelText:Hide()
-	Slab.Dock(view, g)
+	Dock(view, g)
 end
 
-local function Home(key)
-	local el = K.Layout and K.Layout.Element and K.Layout.Element(key)
-	if not (el and el.settings and el.default) then return false end
-	for _, field in ipairs(HOME) do
-		local a, b = el.settings[field], el.default[field]
-		if a ~= b and not (type(a) == "number" and type(b) == "number" and math.abs(a - b) < 0.5) then return false end
-	end
-	return true
-end
-
-function Slab.Docked(view)
-	local bars = K.Store.Module("ActionBars") or {}
-	return DOCK[view.kind] ~= nil and view.s.fittedSlabs and K.HudStyle.Current() == "medallions" and bars.enabled ~= false
-		and bars.slab ~= false and bars.extraBarsApplied ~= "rows" and Home(Settings.ELEMENTS[view.kind]) or false
-end
-
-function Slab.Dock(view, g)
-	local arm = view.dock
-	if not Slab.Docked(view) then
-		if arm then arm:Hide() end
-		return
-	end
-	if not arm then
-		arm = CreateFrame("Frame", nil, view.parent)
-		arm:SetFrameStrata("LOW")
-		arm.slice = Widgets.NineSlice(arm, "medUnitSlab", "BACKGROUND", 1)
-		view.dock = arm
-	end
-	arm:SetFrameLevel(K.Scale.Root():GetFrameLevel() + 1)
-	local layouts, w = K.Setup.Layouts, view.slabWidth
-	local reach = layouts.MEDALLIONS_RING / 2 + layouts.MEDALLIONS_UNITS.reach - DOCK_SHORT
-	Place(view, arm, { x = DOCK[view.kind] > 0 and w - DOCK_UNDER or -reach, y = g.glass.h - DOCK_H, w = reach + DOCK_UNDER, h = DOCK_H })
-	Widgets.LayoutSlice(arm.slice, arm, select(3, Tokens.Texture("medUnitSlab")))
-	arm:Show()
-end
 
 function Slab.Restyle(view, form)
 	local finish = form == "slab" and "medallions" or nil
