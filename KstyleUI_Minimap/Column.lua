@@ -364,13 +364,13 @@ function Column:Layout()
 	end
 	local start = Format.Column(1, size, spacing, side, up, edge, top)
 	local far = (up and "TOP" or "BOTTOM") .. (side == "left" and "LEFT" or "RIGHT")
-	local drawer, count = self.drawer, #shown
+	local drawer, slots = self.drawer, #shown
 	for _, button in ipairs(drawer and drawer.order or {}) do
-		if drawer.adopted[button].place == "column" and ns.Drawer.Shown(button) then count = count + 1 end
+		if drawer.adopted[button].place == "column" and ns.Drawer.Shown(button) then slots = slots + 1 end
 	end
 	local r = ns.Face.Round() and not (used[start] or used[far]) and (face.mapSize or 0) / 2 or 0
 	local arcTop = math.max(top, Widgets.Snap(holder, 2 * r * ns.Face.ROUND_CORNER))
-	if r > 0 and count <= Format.PerColumn(2 * r, size, spacing, arcTop) then top = arcTop else r = 0 end
+	if r > 0 and slots <= Format.PerColumn(2 * r, size, spacing, arcTop) then top = arcTop else r = 0 end
 	local perColumn = Format.PerColumn((face.mapSize or area:GetHeight() or 0) - (used[far] or 0), size, spacing, top)
 	local skip = used[start] and math.ceil(used[start] / (size + spacing) - 0.001) or 0
 	local reach = r - edge - size / 2
