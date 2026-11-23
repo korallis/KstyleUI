@@ -2,6 +2,13 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.3.3 (2026-11-23)", {
+		L["Party frames are a quarter larger on ultrawide, and their names and health percentages stay readable."],
+		L["Medallions player and target frames dock into the crest, with even bars and status icons in steel sockets."],
+		L["Incoming heals show in the health bar's own colour instead of a green chunk."],
+		L["A polish pass over bars, nameplates, the minimap, chat, bags, tooltips, meters, quests, skins and Options."],
+		L["The RestedXP skin works again with RestedXP 4.11.39."],
+	} },
 	{ "v0.3.2 (2026-11-23)", {
 		L["While you play with a gamepad, your keybinds show its Xbox, PlayStation or Switch buttons instead of key names."],
 		L["Pick Keyboard or Gamepad in setup or on the General page; Gamepad sets up bars 1 and 2 for a controller."],
@@ -14,12 +21,5 @@ ns.NOTES = {
 		L["The trainer, Legacy, RestedXP and quest tracker bars KstyleUI restyles get the same lit glass finish."],
 		L["World map routes name every step, and the last one names where you are going."],
 		L["A debuff you can dispel tints party and raid frames lightly again instead of covering the name."],
-	} },
-	{ "v0.3.0 (2026-11-23)", {
-		L["A clean screen at rest: out of combat with no target, your bars and player frame fade until you need them again."],
-		L["One lit glass finish on every bar, and Medallions names, levels and cast names in one typeface."],
-		L["Target and focus cast bars show who a spell is aimed at, and when your interrupt is back."],
-		L["The world map finds the nearest innkeeper, bank or trainer you have visited and routes by zeppelin, tram or hearth."],
-		L["Options search takes you straight to the setting, and the first run shows big pictures and one-click Looks."],
 	} },
 }
