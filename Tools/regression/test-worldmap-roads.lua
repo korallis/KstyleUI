@@ -167,6 +167,21 @@ state.playerX, state.playerY = 0.3, 0.2
 R.Pick({ mapID = 1, name = "Crossroads", x = 0.72, y = 0.36 })
 local steps = Steps()
 assert(steps[1] == "1. Off road to Razor Hill" and steps[2] == "2. Road to Crossroads", "a nameless junction takes the nearest town's name")
+R.Clear()
+state.playerX, state.playerY = 0.3, 0.7
+R.Pick({ mapID = 1, name = "Innkeeper Grosk", x = 0.3, y = 0.3 })
+assert(Steps()[1] == "1. Road to Innkeeper Grosk", "a destination exactly on a junction still names the last road step")
+K.Options.Write("Skins", "worldMap.questRoutes", true)
+env.C_QuestLog.GetTitleForQuestID = function() end
+env.C_QuestLog.GetNextWaypoint = function() return 1, 0.33, 0.3 end
+R.Clear(); R.Quest(11)
+assert(R.road and Steps()[1] == "1. Road to Razor Hill", "a quest with no title names its last step after the nearest place")
+R.Clear()
+env.GetTime, env.GetBindLocation = function() return 1000 end, function() return "" end
+env.C_Item = { GetItemCount = function() return 1 end, GetItemNameByID = function() return "Hearthstone" end, GetItemCooldown = function() return 0, 0 end }
+K.Options.Write("Skins", "worldMap.travelStops", true)
+R.Pick({ mapID = 1, name = "Innkeeper Grosk", x = 0.33, y = 0.3 })
+assert(Steps()[1] == "1. Road to Innkeeper Grosk", "an empty bind location offers no Hearthstone to a nameless junction")
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 
 env, K, R, state = M.New()
