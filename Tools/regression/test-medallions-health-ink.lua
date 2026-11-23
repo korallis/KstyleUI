@@ -20,7 +20,7 @@ for _, class in ipairs({ "WARLOCK", "PRIEST", "ROGUE", "MAGE", "DRUID", "HUNTER"
 	ns.Unit.HealthColor(view, "player")
 	local light = view.health.glass[1]
 	local g = light._state.Gradient
-	assert(view.health.finish == "medallions" and g[2].a == 0 and select(3, light:GetPoint(2)) == "RIGHT", class .. ": the glass light is clear by the fill's middle, so no white washes out the number")
+	assert(view.health.finish == "medallions" and g[2].a == 0 and select(2, view.health.glass[2]:GetPoint(1)) == light, class .. ": the glass light is clear by the fill's middle, so no white washes out the number")
 	assert(view.health.glass[2]:IsShown() and view.health.cleanLit:IsShown(), class .. ": the fill keeps its depth and lit end")
 	Light(view.healthText, class)
 	env._units.player.health = 20

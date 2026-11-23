@@ -21,12 +21,6 @@ local EDGE_SOFT_SUBLEVEL, EDGE_HARD_SUBLEVEL, EDGE_TRACK_SUBLEVEL = -8, -7, -6
 local GLASS_LIGHT, GLASS_DEPTH, GLASS_RIM_LIT, GLASS_RIM_LOW = 0.24, 0.3, 0.4, 0.45
 local GLASS_MIN_PIXELS, GLASS_RIM_PIXELS = 3, 6
 local GLASS_SUBLEVEL, GLASS_RIM_SUBLEVEL = 6, 7
-local GLASS_PINS = {
-	{ "TOPLEFT", "TOPLEFT", -1, "BOTTOMRIGHT", "RIGHT", 0 },
-	{ "TOPLEFT", "LEFT", 0, "BOTTOMRIGHT", "BOTTOMRIGHT", 1 },
-	{ "TOPLEFT", "TOPLEFT", -1, "TOPRIGHT", "TOPRIGHT", -1 },
-	{ "BOTTOMLEFT", "BOTTOMLEFT", 1, "BOTTOMRIGHT", "BOTTOMRIGHT", 1 },
-}
 
 local SPARK_EDGE = {
 	HORIZONTAL = { normal = "RIGHT", reverse = "LEFT" },
@@ -289,31 +283,40 @@ function Bar:PlaceGlass()
 	local fill, mode = self:GetStatusBarTexture(), not self.vertical and self.glassMode
 	local px = Widgets.Snap(self, Scale.Pixel(1) / Widgets.ScaleFactor(self))
 	local inset = self.innerEdgeOn and Widgets.Snap(self, Scale.Pixel(self:EdgeLine()) / Widgets.ScaleFactor(self)) or 0
-	local pixels = CrossPixels(self)
+	local pixels = CrossPixels(self) or (self.opts.height or Tokens.Size("buffBarHeight")) / px
 	if type(CreateColor) == "function" and not glassColors then
 		local wr, wg, wb = Tokens.Color("white")
 		local kr, kg, kb = Tokens.Color("black")
 		glassColors = { CreateColor(wr, wg, wb, 0), CreateColor(wr, wg, wb, GLASS_LIGHT), CreateColor(kr, kg, kb, GLASS_DEPTH), CreateColor(kr, kg, kb, 0) }
 	end
-	local on = mode and fill and glassColors and Widgets.Readability("litBars") and (pixels or GLASS_MIN_PIXELS) >= GLASS_MIN_PIXELS
+	local on = mode and fill and glassColors and Widgets.Readability("litBars") and pixels >= GLASS_MIN_PIXELS
 	if on and not self.glass then
 		self.glass = MakeGlass(self.glassHost or self)
 	end
 	local glass = self.glass
 	on = glass and on and not glass.broken and true or false
 	if glass then
-		if on and (glass.fill ~= fill or glass.inset ~= inset or glass.px ~= px) then
-			glass.fill, glass.inset, glass.px = fill, inset, px
-			for i, pin in ipairs(GLASS_PINS) do
+		local interior = on and pixels - 2 * inset / px or 0
+		local light = math.floor(interior / 2 + 0.01) * px
+		if on and (glass.fill ~= fill or glass.inset ~= inset or glass.px ~= px or glass.light ~= light) then
+			glass.fill, glass.inset, glass.px, glass.light = fill, inset, px, light
+			for i = 1, 4 do
 				glass[i]:ClearAllPoints()
-				glass[i]:SetPoint(pin[1], fill, pin[2], 0, pin[3] * inset)
-				glass[i]:SetPoint(pin[4], fill, pin[5], 0, pin[6] * inset)
 			end
+			for i = 1, 3, 2 do
+				glass[i]:SetPoint("TOPLEFT", fill, "TOPLEFT", 0, -inset)
+				glass[i]:SetPoint("TOPRIGHT", fill, "TOPRIGHT", 0, -inset)
+			end
+			glass[2]:SetPoint("TOPLEFT", glass[1], "BOTTOMLEFT")
+			glass[2]:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT", 0, inset)
+			glass[4]:SetPoint("BOTTOMLEFT", fill, "BOTTOMLEFT", 0, inset)
+			glass[4]:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT", 0, inset)
+			glass[1]:SetHeight(light)
 			glass[3]:SetHeight(px)
 			glass[4]:SetHeight(px)
 		end
 		local full = on and mode ~= "light"
-		local rims = on and (not pixels or pixels - 2 * inset / px >= GLASS_RIM_PIXELS)
+		local rims = on and interior >= GLASS_RIM_PIXELS
 		glass[1]:SetShown(on)
 		glass[2]:SetShown(full)
 		glass[3]:SetShown(rims)

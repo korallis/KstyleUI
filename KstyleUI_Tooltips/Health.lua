@@ -126,6 +126,7 @@ function Health.Build(tooltip)
 		texture = Settings.Get("bar.texture"),
 		background = "track",
 		border = true,
+		glass = false,
 		smooth = true,
 		min = 0,
 		max = 1,

@@ -22,7 +22,7 @@ Screen units: the screen is 1080 units tall, x grows right and y grows down from
 `RENDER_CREST_DEBUFFS=1|3|7` under Medallions populates the real crest fan with that many of your debuffs and leaves another player's debuff on the target frame. The shared aura fixture engine supplies native filtering, expiry sorting, duration bindings and flow layout; the addon's clipping supplies the arc. Use `RENDER_MEDALLIONS_STATE=combat` for the combat sweep and restricted unit-frame state. Higher counts exercise the fan's overflow chip.
 `RENDER_BAR3=1` turns action bar 3 on after a scene applies its preset, which leaves it off, and shows the empty slots of bar 3 and of the pet bar, so a whole-HUD scene shows bar 3's place beside them. With `RENDER_SIZE=auto`, every HUD environment includes the extra bar in the addon's fit.
 `RENDER_RESTING=1` has the player rest in an inn in the HUD scenes, so the player frame shows its Zz. The page draws a wrapping text wider than its box whole, where the game ends it in "...", so read the Zz's rect in the JSON as well as the picture.
-`RENDER_GLASS=off` turns Appearance > Lit glass bars off in every profile a scene loads, so the bars draw their previous finish. Every scene's environment gets the client's `CreateColor`, so gradients draw as they do in the game.
+`RENDER_GLASS=off` turns Appearance > Lit glass bars off in every profile a scene loads, so the bars draw their previous finish.
 
 `RENDER_CAST_ON_FRAME=off` turns Unit Frames > Cast bars on unit frames off in every profile a scene loads, so Medallions draws the player and target cast bars above the crest as before; unset, they sit on their frames.
 

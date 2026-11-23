@@ -48,13 +48,12 @@ for _, screen in ipairs(SCREENS) do
 	local a, b, c, d = shown(glass)
 	assert(a and b and c and d, where .. ": the light, the depth and both rims show")
 	local rel, relPoint = anchor(glass[1], "TOPLEFT")
-	local _, lightEnd = anchor(glass[1], "BOTTOMRIGHT")
-	assert(rel == fill and relPoint == "TOPLEFT" and lightEnd == "RIGHT", where .. ": the light rides the fill's top half, so it follows the value")
+	assert(rel == fill and relPoint == "TOPLEFT" and pixels(K, bar, glass[1]:GetHeight()) == math.floor(pixels(K, bar, bar:GetHeight()) / 2 + 0.01), where .. ": the light rides the fill's top half in whole pixels, so it follows the value")
 	local bottom, top = gradient(glass[1])
 	assert(bottom.a == 0 and top.a > 0 and top.a <= 0.25, where .. ": a soft light, clear by the fill's middle where the bar's text sits")
-	local _, depthStart = anchor(glass[2], "TOPLEFT")
+	local depthTop, depthStart = anchor(glass[2], "TOPLEFT")
 	bottom, top = gradient(glass[2])
-	assert(depthStart == "LEFT" and top.a == 0 and bottom.a > 0 and bottom.a <= 0.3, where .. ": depth darkens the lower half, never past 30%")
+	assert(depthTop == glass[1] and depthStart == "BOTTOMLEFT" and top.a == 0 and bottom.a > 0 and bottom.a <= 0.3, where .. ": depth darkens the lower half, never past 30%")
 	for i = 3, 4 do
 		assert(math.abs(pixels(K, bar, glass[i]:GetHeight()) - 1) < 1e-6, where .. ": each rim is one physical pixel")
 	end

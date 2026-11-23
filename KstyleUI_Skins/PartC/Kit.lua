@@ -367,7 +367,7 @@ function Kit.MirrorBar(source, parent, width, height, opts)
 	end
 	Skin.Strip(source)
 	Parts.Hush(source:GetStatusBarTexture())
-	local bar = Widgets.StatusBar(parent, { width = width, height = height, border = true })
+	local bar = Widgets.StatusBar(parent, { width = width, height = height, border = true, glass = false })
 	bar:SetPoint("TOPLEFT", source, "TOPLEFT")
 	bar:SetFrameLevel(parent:GetFrameLevel() + LEVEL_ABOVE)
 	state.bar = bar
