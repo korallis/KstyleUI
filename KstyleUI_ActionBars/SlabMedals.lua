@@ -287,8 +287,11 @@ function Medals.Medal(parent, spec, level)
 			end)
 		end
 		if each.count and lit.SetApplicationCount then
-			lit.count = Widgets.Text(Medals.Layer(lit, top + 2), "world", "textEmphasis")
-			lit.count:SetPoint("BOTTOMRIGHT", m.steel, "BOTTOMRIGHT", 0, 0)
+			local corner = (size * ICON / 2 - 1) / math.sqrt(2)
+			lit.count = Widgets.Fitted(Widgets.FontString(Medals.Layer(lit, top + 2), "OVERLAY"))
+			Widgets.ApplyFont(lit.count, (Tokens.Font("world")), corner * 2 / 1.2, "OUTLINE")
+			lit.count:SetTextColor(Tokens.Color("textEmphasis"))
+			lit.count:SetPoint("BOTTOMRIGHT", m.steel, "CENTER", corner, -corner)
 			lit:SetApplicationCount(lit.count)
 		end
 		for n = 1, lit.container and each.pips or 0 do
