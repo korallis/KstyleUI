@@ -126,8 +126,13 @@ calls `AuraUtil.SetAuraBorderColor`, which writes the dispel colour's RGBA with
 `customDispelColorMap` colour's RGBA (546). Both replace the wash's own alpha,
 so a Magic debuff turned Ilyra's raid row into an opaque blue tile. The group
 frames now hand the engine the wash's alpha in a colour map, and
-`gallery_groupframes` colours the dispel textures as the engine does. Retake
-`frame_raid.jpg` through `readme.py` once this is checked in game.
+`gallery_groupframes` colours the dispel textures with it. The engine passes a
+`securecopy` of the options through
+`C_AuraContainerUtil.ProcessCustomAuraButtonDispelTypeTextureOptions` (line 114),
+whose documentation types the map's values `colorRGB`
+(`AuraContainerUtilDocumentation.lua`, 300), so neither the stubs nor the render
+can show whether the client keeps that alpha. Retake `frame_raid.jpg` through
+`readme.py` once the wash is checked in game at 0, 0.16 and 1.
 
 ### Native context-menu fixtures
 
