@@ -1,4 +1,4 @@
--- test-actionbars-frames-totems.lua: the shaman's Spirit Poles under Frames: the same secure sockets, spires, fans and medals stand upright in a row at the stance bar's place beside the tray, sized as the stance bar's buttons, in the game's bar order with Ghost Wolf and Call after them and no rune ring; Blizzard's totem bar and the lone Ghost Wolf stance bar hide; each fan is a column rising from its socket that unfolds from it; the slab setting does not matter, the Shaman totem bar setting shows and works under Frames, and switching to Medallions puts the poles back on the crest; the row stays on screen and clear of every other element of the DPS, Tank and Healer layouts, centred and spread, at four screen sizes, and an open fan clears the unit frames.
+-- test-actionbars-frames-totems.lua: the shaman's Spirit Poles under Frames: the same secure sockets, spires, fans and medals stand upright in a row at the stance bar's place beside the tray, sized as the stance bar's buttons, in the game's bar order with Ghost Wolf and Call after them and no rune ring; Blizzard's totem bar and the lone Ghost Wolf stance bar hide; each fan is a column rising from its socket that unfolds from it; the slab setting does not matter, the Shaman totem bar setting shows and works under Frames, and switching to Medallions puts the poles back on the crest; the row stays on screen and clear of every other element of the DPS, Tank and Healer layouts, centred and spread, at four screen sizes, with no plate or socket edge while the fans are shut, and an open fan clears the unit frames and leaves every spire's timer in sight.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local SIZES = { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
@@ -80,6 +80,9 @@ do
 	local wolf, call = Rect(st.wolf, root), Rect(st.call, root)
 	assert(wolf[1] > last[1] + last[3] and call[1] > wolf[1] + wolf[3] and Near(wolf[2], last[2]), "Ghost Wolf then Call follow the sockets")
 	assert(st.wolf:GetAttribute("spell") == 2645 and st.call:GetAttribute("spell") == 66842, "the medals still cast Ghost Wolf and Call")
+	for _, b in ipairs(st.sockets) do
+		assert(#AB.Band(st.header, root) == 0 and not (b.edge and b.edge:IsVisible()), "Frames: the closed bar keeps its look, no plate and no socket edge")
+	end
 
 	-- Drop, fan and dismiss work as on the crest; the fan is a column rising from the socket.
 	local fire = st.sockets[2]
@@ -135,7 +138,7 @@ do
 	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	assert(st.shown and st.header:GetPoint(1) ~= "BOTTOMLEFT" and st.ring[5]:IsShown() and st.ring.breath:IsPlaying(), "Medallions: the poles on the crest, the ring back and breathing")
-	assert(#AB.Band(st.header, root) == 0, "Medallions: no row plate on the crest")
+	assert(#AB.Band(st.header, root) == 0 and not (fire.edge and fire.edge:IsVisible()), "Medallions: the closed bar keeps its look, no plate and no socket edge")
 	assert(tostring(AB.W.LastCall(fire.spire.steel, "SetTexture")[1]):find("PipSpireSteel102.png", 1, true), "the crest's fire spire leans at its own angle")
 	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
@@ -176,13 +179,12 @@ for _, size in ipairs(SIZES) do
 		pieces[#pieces + 1] = Local(st.wolf)
 		pieces[#pieces + 1] = Local(st.call)
 		local positions = Layouts.Positions(name, "frames", K.Scale.Aspect(), K.Scale.Band())
-		local units, others = {}, {}
+		local units = {}
 		for key, position in pairs(positions) do
 			local element = Layouts.Element(key)
 			if element and key ~= "actionbars.stance" and Layouts.Shown(name, key) ~= false then
 				local l, b, r, t = Layouts.Rect(element, position, W, H, "frames")
-				local rect = { l, b, r - l, t - b, key = key }
-				others[#others + 1] = rect
+				local rect = { l, b, r - l, t - b }
 				for _, p in ipairs(pieces) do
 					assert(Apart(p, rect), label .. ": the totem row overlaps " .. key)
 				end
@@ -191,17 +193,6 @@ for _, size in ipairs(SIZES) do
 		end
 		for _, p in ipairs(pieces) do
 			assert(p[1] >= 0 and p[2] >= 0 and p[1] + p[3] <= W and p[2] + p[4] <= H, label .. ": the totem row stays on screen")
-		end
-		local plate = AB.Band(st.header, root)
-		assert(#plate > 0, label .. ": the row sits on its forged plate")
-		for _, q in ipairs(plate) do
-			for k = 1, 4 do
-				local x, y = q[k][1] - origin[1], q[k][2] - origin[2]
-				assert(x >= 0 and y >= 0 and x <= W and y <= H, label .. ": the row's plate stays on screen")
-			end
-			for _, rect in ipairs(others) do
-				assert(not AB.Crosses(q, { rect[1] + origin[1], rect[2] + origin[2], rect[3], rect[4] }), label .. ": the row's plate overlaps " .. rect.key)
-			end
 		end
 		local earth = st.sockets[1]
 		AB.Click(env, earth, "RightButton", false)
@@ -228,6 +219,7 @@ for _, size in ipairs(SIZES) do
 			end
 			for _, b in ipairs(st.sockets) do
 				assert(not AB.Crosses(q, Rect(b, root)), label .. ": Earth's band clears the " .. b.element.name .. " socket")
+				assert(not AB.Crosses(q, Rect(b.spire, root)), label .. ": Earth's band leaves the " .. b.element.name .. " spire's timer in sight")
 			end
 		end
 		assert(rim, label .. ": Earth's open fan sits on a band rimmed in its colour")

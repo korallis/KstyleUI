@@ -859,10 +859,11 @@ function AB.Band(fan, root)
 end
 
 -- Tinted(K, region, method, token) -> true when the last call of method (SetVertexColor, SetColorTexture) on region
--- painted the token's colour.
+-- painted the token's colour and alpha.
 function AB.Tinted(K, region, method, token)
-	local call, r, g, b = W.LastCall(region, method), K.Tokens.Color(token)
+	local call, r, g, b, a = W.LastCall(region, method), K.Tokens.Color(token)
 	return call ~= nil and math.abs(call[1] - r) < 1e-6 and math.abs(call[2] - g) < 1e-6 and math.abs(call[3] - b) < 1e-6
+		and math.abs((call[4] or 1) - (a or 1)) < 1e-6
 end
 
 -- Crosses(quad, rect) -> true when a quad from Band overlaps a { left, bottom, width, height } rect by more than half

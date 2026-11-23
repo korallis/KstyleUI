@@ -151,8 +151,9 @@ do
 	Clean(env, K, "take-over")
 end
 
--- The approved forged look, also for a shaman who knows only Earth and Fire: each socket and fan choice wears its
--- element's edge and tab, and an open fan sits on a dark band rimmed in the element's colour.
+-- The approved forged look, also for a shaman who knows only Earth and Fire: each fan choice wears its element's
+-- edge and tab, a socket keeps its closed look (its tab, no edge), and an open fan sits on a dark band rimmed in the
+-- element's colour with a steel lip at the token's own alpha.
 do
 	KNOWN[3], KNOWN[4] = nil, nil
 	local env, K, ns = New("SHAMAN")
@@ -165,14 +166,17 @@ do
 	for i, b in ipairs(state.sockets) do
 		assert(b:IsShown() == (i <= 2), "only Earth and Fire have sockets")
 		if i <= 2 then
-			Atom(b, b.element, b.element.name .. " socket")
+			local name = "totem" .. b.element.name
+			assert(not (b.edge and b.edge:IsShown()) and AB.Tinted(K, b.tab, "SetVertexColor", name), b.element.name .. " socket keeps its closed look: its tab and no edge")
 			AB.Click(env, b, "RightButton", false)
-			local fill, rim = false, false
+			local fill, rim, lip = false, false, false
 			for _, q in ipairs(AB.Band(b.fan, root)) do
 				fill = fill or AB.Tinted(K, q.line, "SetColorTexture", "medSocket")
-				rim = rim or AB.Tinted(K, q.line, "SetColorTexture", "totem" .. b.element.name)
+				rim = rim or AB.Tinted(K, q.line, "SetColorTexture", name)
+				lip = lip or AB.Tinted(K, q.line, "SetColorTexture", "medSocketLip")
 			end
 			assert(fill and rim, b.element.name .. ": the open fan sits on a dark forged band rimmed in the element's colour")
+			assert(lip, b.element.name .. ": the band's steel lip keeps medSocketLip's alpha")
 			for n, f in ipairs(b.fan.buttons) do
 				if f:IsShown() then Atom(f, b.element, b.element.name .. " choice " .. n) end
 			end
