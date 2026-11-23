@@ -312,6 +312,13 @@ do
 	assert(registered(f.dispelWash[5]) and not centres(), HOLLOW)
 	write(env, K, "auras.dispelAlpha", 0.3)
 	assert(f.dispelWash[1]:GetAlpha() == 0.3, "the tint opacity applies")
+	-- Blizzard_CustomAuraButton.lua's ApplyDispelTypeTexture: the game's RGBA, then the option's colour map, both with alpha.
+	for _, entry in ipairs(slot._aura.dispel) do
+		entry.texture:SetVertexColor(env.DEBUFF_TYPE_MAGIC_COLOR:GetRGBA())
+		local c = entry.options.customDispelColorMap and entry.options.customDispelColorMap.Magic
+		if c then entry.texture:SetVertexColor(c:GetRGBA()) end
+	end
+	assert(near(f.dispelWash[1]:GetAlpha(), 0.3) and f.dispelRing[1][1]:GetAlpha() == 1, "the engine's dispel colour keeps the tint see-through and the outline solid")
 	write(env, K, "auras.dispelLines", 1)
 	assert(registered(f.dispelRing[1][1]) and not registered(f.dispelRing[2][1]) and not f.dispelRing[2][1]:IsShown(), "one line leaves the inner line out")
 	write(env, K, "auras.dispelLines", 0)
