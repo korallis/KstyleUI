@@ -144,11 +144,9 @@ local list = parts.content
 local duration = K.Motion.Moment("page")
 K.Options.Open("About")
 K.Options.Open("General")
-assert(list:GetAlpha() == 0 and list.rows[1]:GetAlpha() == 1, "a page change fades the whole list")
-W.Tick(env, duration / 2)
-assert(list:GetAlpha() > 0 and list:GetAlpha() < 1, "over the page moment")
-W.Tick(env, duration / 2 + 0.001)
-assert(list:GetAlpha() == 1, "and ends with it")
+local fade = list.kstylePageIn
+assert(list:GetAlpha() == 1 and list.rows[1]:GetAlpha() == 1, "a page change keeps the list at alpha 1 with no frame run, so a fade the client never steps cannot hide it")
+assert(fade and fade:IsPlaying() and fade.alpha:GetDuration() == duration, "the whole list fades in over the page moment")
 account.motionOneStyle = false
 K.Options.Open("About")
 K.Options.Open("General")
