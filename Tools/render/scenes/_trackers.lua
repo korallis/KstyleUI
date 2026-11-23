@@ -155,6 +155,7 @@ local function Healer(env, K, ns, notes, mode)
 	end
 	env.C_Item = env.C_Item or {}
 	env.C_Item.GetItemCount = function() return 1 end
+	env.C_Item.GetItemIconByID = function(id) return id == 17030 and 133439 or id >= 20744 and id <= 20750 and 134727 or nil end
 	local queued = {}
 	spell.IsCurrentSpell = function(id) return queued[id] == true end
 	env.GetShapeshiftFormID = function() return story.form end
@@ -189,7 +190,7 @@ local function Healer(env, K, ns, notes, mode)
 			if beat.enchant then
 				local slot, id, left = beat.enchant[1], beat.enchant[2], beat.enchant[3]
 				enchants[slot] = id and { id = id, finish = env._now + left } or nil
-				Slots.Enchant(env, slot - 15, id and { start = env._now + left - 3600, duration = 3600 } or nil)
+				Slots.Enchant(env, slot - 15, id and { start = env._now + left - 3600, duration = 3600, icon = slot == 16 and 133476 or 132392 } or nil)
 				env.FireEvent("WEAPON_ENCHANT_CHANGED")
 			end
 			env.FireEvent("UNIT_AURA", "player", {})
