@@ -1143,7 +1143,6 @@ function Layouts.Attached(name, key, class, style)
 		if style == "medallions" then
 			y = player.y + ph + Layouts.MEDALLIONS_UNITS.stack + Layouts.MEDALLIONS_UNITS.mini[2] + (class == "16:9" and 158 or 22) - h
 			if class ~= "16:9" then
-				x = x - 176
 				if ns.Store.IsLoaded() and ns.Store.Module("ActionBars").extraBarsApplied == "beside" then y = y + 72 end
 			else
 				local third = ns.Store.IsLoaded() and ns.Store.Module("ActionBars").bar3

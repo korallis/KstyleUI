@@ -58,5 +58,17 @@ for _, rows in ipairs({ 1, 2, 3 }) do
 		end
 	end
 end
+-- A lone potion stays beside the player medallion on wide screens too: the bar keeps its 16:9 distance from the frame.
+K.Options.Write("HudStyle", "style", "medallions")
+for _, name in ipairs(L.Names()) do
+	local function Gap(class)
+		local bar, player = L.Attached(name, "consumables.bar", class, "medallions"), L.Place(name, "medallions", class, "unitframes.player")
+		local width = (L.Aspect(class, "medallions", name, "unitframes.player") or L.Style(name, "unitframes.player", "medallions") or L.Element("unitframes.player")).width
+		return player.x - width / 2 - (bar.x + bar.width / 2)
+	end
+	for _, class in ipairs({ "21:9", "32:9" }) do
+		assert(math.abs(Gap(class) - Gap("16:9")) < 0.01, name .. " " .. class .. ": the consumables bar stands as close to the player frame as at 16:9: " .. Gap(class) .. " vs " .. Gap("16:9"))
+	end
+end
 assert(#env._errors == 0, tostring(env._errors[1]))
 print("consumables layout ok: four owner sizes x both HUD styles x three presets, maximum 2x6 grid")
