@@ -185,4 +185,100 @@ do
 	assert(not Row(), "Off hides the Look row")
 end
 
+-- Readable never shrinks the text the player sees, in either HUD style, and owns every size it sets.
+for _, frames in ipairs({ false, true }) do
+	local _, K, uf = dofile("Tools/regression/unitframes_env.lua").New({ frames = frames })
+	local function Size(element) return select(2, uf.Settings.Font("player", element)) end
+	local name, power = Size("name"), Size("power")
+	assert(K.Setup.Looks.Apply("Readable"))
+	assert(Size("name") >= name and Size("power") > power, string.format("Readable grows text on %s: name %s -> %s, power %s -> %s", K.HudStyle.Current(), name, Size("name"), power, Size("power")))
+	local path, readable = "player.fonts.name.size", K.Options.Read("UnitFrames", "player.fonts.name.size")
+	K.Options.Write("UnitFrames", path, readable + 1)
+	assert(K.Setup.Looks.Current() == nil, "a text size of your own matches no Look")
+	assert(K.Setup.Looks.Apply("Readable") and K.Options.Read("UnitFrames", path) == readable and K.Setup.Looks.Current() == "Readable", "picking Readable again sets every size it owns")
+end
+
+-- Setup writes only what you pick: changes made while it is open survive Close, and a Look picked before the Looks are turned off is dropped.
+do
+	local env, K = O.New()
+	assert(K.Setup.Open(true))
+	K.Options.Write("Widgets", "panelOpacity", 0.31)
+	K.Options.Write("Layout", "arrangement", "spread")
+	K.Setup.window:Close()
+	Settle(env)
+	assert(K.Options.Read("Widgets", "panelOpacity") == 0.31 and K.Scale.Arrangement() == "spread", "closing setup keeps what you changed while it was open")
+	assert(K.Setup.Open())
+	local panel = K.Setup.window
+	K.Setup.Go(2)
+	Settle(env)
+	panel.lookTabs:Select("Clean")
+	K.Options.Write("Setup", "looks", false)
+	Settle(env)
+	assert(not panel.lookTabs:IsShown(), "turning the Looks off hides the row at once")
+	K.Setup.Go(5)
+	Settle(env)
+	assert(K.Setup.Apply(K.Setup.Choice()) and K.Options.Read("Widgets", "panelOpacity") == 0.31, "Apply ignores a Look picked before the Looks were turned off")
+	panel:Close()
+end
+
+-- The settings window offers Your own only as the status of custom settings.
+do
+	local env, K, ns = O.New()
+	local function Row()
+		for _, row in ipairs(ns.Window.Parts().content.rows) do
+			if row:IsShown() and row.item and row.item.label == "Look" then return row end
+		end
+	end
+	K.Options.Open("General")
+	Settle(env)
+	assert(#Row().item.options == 3, "on Forged the Look row offers the three Looks only")
+	K.Options.Write("Widgets", "ornaments", "Subtle")
+	Settle(env)
+	assert(#Row().item.options == 4 and Row().controls.segmented:GetValue() == "Custom", "custom settings show Your own")
+end
+
+-- Big pictures load only on the step that shows them and are released when turned off; a closed setup builds no Look tabs.
+do
+	local env, K = O.New()
+	assert(K.Setup.Open())
+	local panel = K.Setup.window
+	K.Setup.Go(2)
+	Settle(env)
+	assert(panel.preview.picture:GetTexture() == nil, "the layout step's picture waits for the layout step")
+	K.Setup.Go(3)
+	Settle(env)
+	assert(panel.preview.picture:GetTexture(), "the layout step loads its picture")
+	K.Options.Write("Setup", "bigPictures", false)
+	Settle(env)
+	assert(panel.preview.picture:GetTexture() == nil, "turning Big pictures off releases the picture")
+	panel:Close()
+	Settle(env)
+	local rebuilt, set = 0, panel.lookTabs.SetTabs
+	panel.lookTabs.SetTabs = function(...) rebuilt = rebuilt + 1; return set(...) end
+	K.Callbacks.Fire("ThemeChanged")
+	assert(rebuilt == 0, "a closed setup rebuilds no Look tabs")
+end
+
+-- The arrangement pictures show the DPS layout, and say so whichever layout is picked.
+do
+	local env, K = Boot({ 5120, 1440 })
+	assert(K.Setup.Open())
+	K.Setup.Choice().layout = "Healer"
+	K.Setup.Go(3)
+	Settle(env)
+	W.Enter(K.Setup.window.arrangeCards.spread)
+	local shown = K.Setup.window.previewName:GetText()
+	assert(shown:find("DPS", 1, true), "an arrangement picture names the DPS layout it shows: " .. shown)
+	K.Setup.window:Close()
+end
+
+-- Each setup picture ships once, as a full-size DXT BLP2; the render harness decodes its own copy.
+for _, name in ipairs(dofile("Tools/regression/fs.lua").list("Media/Textures/Setup")) do
+	local file = assert(io.open("Media/Textures/Setup/" .. name, "rb"))
+	local head = file:read(20)
+	file:close()
+	assert(name:match("%.blp$") and head:sub(1, 4) == "BLP2" and head:byte(9) == 2, name .. ": ship each picture once, as a DXT-compressed BLP2")
+	assert(head:byte(13) + 256 * head:byte(14) == 1024, name .. " keeps its 1024-pixel width, crisp at 3840x2160")
+end
+
 print("setup first run ok")
