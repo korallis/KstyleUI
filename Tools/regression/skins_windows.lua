@@ -1237,7 +1237,7 @@ function build.merchant(env, B)
 		slot.ItemButton = Item(B, slot, ICONS[i], 37)
 		Anchor(slot.ItemButton, slot, "LEFT", 3, 0)
 		-- MerchantFrame.xml:19: the name is GameFontNormalSmall in a 100 by 30 box from the icon's right, so a
-		-- long name wraps to its second line above the price in the game; the skin keeps it to one.
+		-- long name wraps to its second line above the price.
 		slot.Name = Text(B.add(slot:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")), good[1], "TOPLEFT", slot, "TOPLEFT", 46, -1)
 		slot.Name:SetSize(100, 30)
 		slot.Name:SetJustifyH("LEFT")

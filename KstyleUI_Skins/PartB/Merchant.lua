@@ -13,11 +13,6 @@ local function Item(button)
 	Kit.Item(button, { window = WINDOW })
 end
 
-local function NameSize()
-	local _, size = K.Tokens.NoteFont()
-	return size * ns.Style.Setting("text", "size")
-end
-
 local function PriceText(frame)
 	if type(frame.GetObjectType) == "function" and frame:GetObjectType() == "FontString" then
 		ns.Style.Text(frame, "caption")
@@ -68,13 +63,13 @@ local function Slot(slot)
 	if type(name) ~= "table" or type(name.GetNumPoints) ~= "function" then
 		return
 	end
-	ns.Style.Text(name, "body", nil, NameSize)
+	ns.Style.Text(name, "caption")
 	for i = 1, name:GetNumPoints() do
 		local point, _, _, _, y = name:GetPoint(i)
 		local vertical = type(point) == "string" and point:match("^(%u*)LEFT$")
 		if vertical and type(y) == "number" then
 			name:SetPoint(vertical .. "RIGHT", slot, vertical .. "RIGHT", -K.Tokens.Size("gapMedium"), y)
-			name:SetWordWrap(false)
+			name:SetWordWrap(true)
 			return
 		end
 	end
