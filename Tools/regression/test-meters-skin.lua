@@ -384,6 +384,14 @@ assert(#rewrites <= 4, "an unchanged window refresh wrote " .. #rewrites .. " ti
 window.DamageMeterTypeDropdown.TypeName:SetText("Damage Done")
 assert(tostring(M.Last(cap.label, "SetText")[1]):upper() == "DAMAGE DONE", "the cap's title follows Blizzard's type name")
 assert(select(1, cap.label:GetFont()) == K.Tokens.Font("caps"), "in the caps face, as the card's heading")
+-- In the own card's title colour too (BarList's TextColor "capsGold": steel in Medallions, gold in Frames).
+for _, style in ipairs({ "frames", "medallions" }) do
+	K.Options.Write("HudStyle", "style", style)
+	env.RunTimers()
+	local lr, lg, lb = cap.label:GetTextColor()
+	local cr, cg, cb = K.Widgets.Rgba("capsGold")
+	assert(lr == cr and lg == cg and lb == cb, style .. ": the cap's title is the own card's title colour, got " .. tostring(lr) .. "," .. tostring(lg) .. "," .. tostring(lb) .. "; paint it after the cap paints (KstyleUI_Meters/DamageSkin.lua NewCap)")
+end
 window.SessionTimer:SetText("1:40")
 assert(cap.counted and M.Last(cap.count, "SetText")[1] == "1:40", "the count at the right is Blizzard's fight timer")
 window.SessionTimer:SetText("")
