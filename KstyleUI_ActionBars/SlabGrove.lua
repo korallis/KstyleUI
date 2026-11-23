@@ -20,6 +20,7 @@ local GROWTH, POUNCE = { 1238215, 1238214, 408120 }, { 9826, 9824, 9007 }
 local GROWL, CHARGE, BITE, BASH = { 6795 }, { 1238122 }, { 1238070, 1238069, 407995 }, { 8983, 6798, 5211 }
 local BEAR, CAT, MOONKIN, CASTER = { 5, 8 }, { 1 }, { 31, 35 }, { 0, 3, 4 }
 local LEAVES, LEAF, ORBIT = 8, 14, 54
+local DASH, BARKSKIN = { spells = { 1850, 9821 } }, { spells = { 22812 } }
 
 local maul = {}
 local Oil, Flask = ns.SlabVigil.Oil, ns.SlabVigil.Flask
@@ -73,6 +74,10 @@ local function Gem(parent, spec, level, form)
 	return (form == "crest" and Medals.Socket or Medals.Medal)(parent, spec, level)
 end
 
+local function Emblem(parent, spec, level, form)
+	return (form == "crest" and Medals.Emblem or Medals.Medal)(parent, spec, level)
+end
+
 local function Maul(parent, spec, level, form)
 	local s = Gem(parent, spec, level, form)
 	maul[#maul + 1] = s
@@ -120,9 +125,10 @@ ns.SlabTrackers.Register("DRUID", {
 		Gems({ forms = MOONKIN, known = { 17116 } }), Gems({ forms = MOONKIN, known = { 29166 } }),
 		Gems({ forms = CASTER, known = { 18562 } }), Gems({ forms = CASTER, known = { 17116 } }), Gems({ forms = CASTER, known = { 29166 } }),
 	} },
-	{ key = "crestTankGlow", seat = "rim", feed = "threat", crestOnly = true, build = Medals.Emblem, color = "gilt", forms = BEAR, known = MAUL },
-	{ key = "crestCooldowns", seat = "cooldowns", color = "pipDruidGlow", families = {
-		{ spells = { 22812 } }, { spells = { 17116 } }, { spells = { 22842 } }, { spells = { 1850, 9821 } }, { spells = { 5229 } },
-		{ spells = { 29166 } }, { spells = { 16689, 16810, 16811, 16812, 16813, 17329 } },
+	{ key = "crestTankGlow", seat = "rim", feed = "threat", build = Emblem, color = "gilt", forms = BEAR, known = { 9634, 5487 } },
+	{ key = "crestCooldowns", seat = "cooldowns", color = "pipDruidGlow", choices = {
+		{ forms = BEAR, families = { { spells = { 22842 } }, { spells = { 5229 } }, BARKSKIN, DASH } },
+		{ forms = CAT, families = { DASH, BARKSKIN } },
+		{ families = { { spells = { 29166 } }, { spells = { 17116 } }, BARKSKIN, DASH, { spells = { 16689, 16810, 16811, 16812, 16813, 17329 } } } },
 	} },
-}, { burst = "medBurstDruid", events = { "CURRENT_SPELL_CAST_CHANGED" }, update = { "BAG_UPDATE_DELAYED", "WEAPON_ENCHANT_CHANGED" }, paint = Queued })
+}, { burst = "medBurstDruid", fiveSecondForms = Join(CASTER, MOONKIN), events = { "CURRENT_SPELL_CAST_CHANGED" }, update = { "BAG_UPDATE_DELAYED", "WEAPON_ENCHANT_CHANGED" }, paint = Queued })
