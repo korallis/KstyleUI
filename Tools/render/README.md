@@ -23,6 +23,7 @@ Screen units: the screen is 1080 units tall, x grows right and y grows down from
 `RENDER_BAR3=1` turns action bar 3 on after a scene applies its preset, which leaves it off, and shows the empty slots of bar 3 and of the pet bar, so a whole-HUD scene shows bar 3's place beside them. With `RENDER_SIZE=auto`, every HUD environment includes the extra bar in the addon's fit.
 `RENDER_RESTING=1` has the player rest in an inn in the HUD scenes, so the player frame shows its Zz. The page draws a wrapping text wider than its box whole, where the game ends it in "...", so read the Zz's rect in the JSON as well as the picture.
 `RENDER_GLASS=off` turns Appearance > Lit glass bars off in every profile a scene loads, so the bars draw their previous finish.
+`RENDER_TRACKER_BARS=1` gives the `tracker` scene's quests a progress bar and a timer bar, as Blizzard's templates size and hang them; `RENDER_LEGACY_PAGE=challenges` shows `gallery_skins_legacy` on its challenges page, with the challenge points bar. Both show the lit glass on skinned Blizzard bars; the skin scenes and `tracker` give the stubs the game's `CreateColor`, except `gallery_skins_lootrolls`, whose timer mirror's staging shade sits on Blizzard's fractional loot frame.
 
 `RENDER_CAST_ON_FRAME=off` turns Unit Frames > Cast bars on unit frames off in every profile a scene loads, so Medallions draws the player and target cast bars above the crest as before; unset, they sit on their frames.
 

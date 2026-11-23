@@ -18,9 +18,10 @@ function Tracker.Build(opts)
 		saved = Tracker.Saved(),
 		setup = function(env)
 			Tracker.Shared(env)
+			S.CreateColor(env)
 		end,
 		before = function(env)
-			Tracker.StandIn(env, S.Blizzard(env), Tracker.QUESTS)
+			Tracker.StandIn(env, S.Blizzard(env), os.getenv("RENDER_TRACKER_BARS") == "1" and Tracker.BAR_QUESTS or Tracker.QUESTS)
 		end,
 	})
 	if opts.skinned ~= false then
