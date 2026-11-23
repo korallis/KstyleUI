@@ -684,3 +684,11 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - v0.3.3 = polish + RestedXP fix (crests -> v0.3.4). Notes dispatched.
 - #776 review ISSUES (15 incl. combat-secret truth test, aura feeds survive switch-off, Frames jewels, stale icons) -> melee worker.
 - #778 ranged crests green (stacked on #776); review dispatched. Note: soul wisps faint over the emblem.
+- #779 v0.3.3 notes merged (f78e2ff3aa0adc5ce2f27d977025966b1f1e7711).
+- v0.3.3 TAGGED (main 533ec1e01).
+- Baine: setup HUD style Medallions card broken (dark square, no title, German tabs touch, green wash). Hotfix dispatched.
+- Baine: Layout role cards: Tank no selection indicator, DPS missing parts -> added to setup hotfix.
+- #778 review ISSUES (blank demon seat in restricted combat, pet/aura signals, Rapid Fire + shard motion, Frames readability/placement, warlock all-off parity) -> ranged worker.
+- v0.3.3 RELEASED.
+- v0.3.3 #chat announced.
+- #771 review fixed (57b7e3a2f, CI green); waits for #776 to merge, then rebase onto staging and merge.

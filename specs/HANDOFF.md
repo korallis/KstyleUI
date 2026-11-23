@@ -23,7 +23,7 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 
 | PR | Branch | What | Status / next step |
 | --- | --- | --- | --- |
-| #771 | korallis/healer-crest-trackers | Crest trackers: priest (Vigil), druid (Grove, full crest per form incl. bear tank), shaman (Stormforged) | d6a6ad8b7, stacked on #776's branch (197431265). Green, evidence complete (kstyleui-evidence/crest-trackers/healers/build: renders, crops, GIFs, concept-vs-build, 0 px switch-off diffs). In its one cross-family review. Merge after #776; rebase onto staging then. Three shared Medallions issues it found (crops/DEFECTS.md) are with #776's owner. |
+| #771 | korallis/healer-crest-trackers | Crest trackers: priest, druid (full crest per form incl. bear tank), shaman extension | Review fixed at 57b7e3a2f (base dd9bddac1 on #776's branch), CI green, evidence retaken (0 px switch-off diffs). Waits for #776: after #776 merges, rebase onto staging (worker ctx_be667a8e1cc1 has the context), confirm CI, merge. |
 
 ## Work in progress without a PR yet
 
