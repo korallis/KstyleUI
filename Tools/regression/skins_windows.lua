@@ -538,6 +538,16 @@ function build.character(env, B)
 	for i, entry in ipairs(DOLL_SLOTS) do
 		local slot = Item(B, items, entry[2], SLOT, entry[1])
 		slot:SetID(entry[3])
+		-- Blizzard's slot scripts (Camelot/PaperDollFrame.xml:78, PaperDollFrame.lua:2015 and :2050) update the slot
+		-- on show, on its own PLAYER_EQUIPMENT_CHANGED and on every other slot event, such as BAG_UPDATE_COOLDOWN.
+		slot:SetScript("OnShow", function(self)
+			env.PaperDollItemSlotButton_Update(self)
+		end)
+		slot:SetScript("OnEvent", function(self, event, id)
+			if event ~= "PLAYER_EQUIPMENT_CHANGED" or id == self:GetID() then
+				env.PaperDollItemSlotButton_Update(self)
+			end
+		end)
 		slot.NormalTexture = B.texture(slot)
 		slot.BorderFrame = B.frame("Frame", slot)
 		slot.BorderFrame:SetAllPoints(slot)
