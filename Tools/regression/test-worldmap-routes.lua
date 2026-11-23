@@ -55,6 +55,11 @@ for _, region in ipairs({ result:GetRegions() }) do
 	if region:GetObjectType() == "Texture" and region:GetAtlas() == "questlog-quest-glow-yellow" then highlight = region end
 end
 assert(highlight and not highlight:IsShown(), "search row uses the native quest list highlight")
+local fill
+for _, region in ipairs({ result:GetRegions() }) do
+	for _, call in ipairs(region._calls or {}) do if call.method == "SetColorTexture" then fill = call.args end end
+end
+assert(fill and fill[4] == 1, "search rows are opaque, so the list reads cleanly over the route card it can open across")
 result:GetScript("OnEnter")(result)
 assert(highlight:IsShown())
 result:GetScript("OnLeave")(result)
