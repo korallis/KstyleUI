@@ -1,9 +1,9 @@
 -- test-skins-item-levels.lua: the character sheet skin writes each worn item's level in its slot's top-left
 -- corner in the quality colour, skips the shirt, tabard and ammo, asks for a level once per new item link,
 -- waits for item data through Item:ContinueOnItemLoad (Blizzard_ObjectAPI/Mainline/Item.lua:330) without
--- polling, labels the inspect window's slots once Blizzard_InspectUI loads (InspectPaperDollItemSlotButton_Update,
--- Blizzard_InspectUI/Mainline/InspectPaperDollFrame.lua:245), and Window Skins > Character > Item levels off
--- removes every number.
+-- polling, labels the inspect window's slots once Blizzard_InspectUI loads (InspectFrame_LoadUI from its bootstrap,
+-- then InspectPaperDollItemSlotButton_Update, Blizzard_InspectUI/Mainline/InspectPaperDollFrame.lua:245) with no
+-- event frame made at load, and Window Skins > Character > Item levels off removes every number.
 local S = dofile("Tools/regression/skins_env.lua")
 local Windows = dofile("Tools/regression/skins_windows.lua")
 
@@ -25,6 +25,12 @@ local function Open(saved)
 	local B
 	local env, K, ns = S.New({
 		saved = saved,
+		setup = function(env)
+			env.InspectFrame_LoadUI = function()
+				env._loaded.Blizzard_InspectUI = true
+				return true
+			end
+		end,
 		before = function(env)
 			B = S.Blizzard(env)
 			Windows.Build("character", env, B)
@@ -119,9 +125,16 @@ end
 env.C_Item.GetDetailedItemLevelInfo = function(itemLink)
 	return itemLink == "item:700" and 60 or 1
 end
-S.LoadAddOn(env, "Blizzard_InspectUI")
+local reads = 0
+local inspectLink = env.GetInventoryItemLink
+env.GetInventoryItemLink = function(unit, id)
+	reads = reads + 1
+	return inspectLink(unit, id)
+end
+assert(env.InspectFrame_LoadUI() == true and env.InspectFrame_LoadUI() == true, "loading the inspect window keeps Blizzard's answer")
 inspect.unit = "target"
 env.InspectPaperDollItemSlotButton_Update(slot)
+assert(reads == 1, "two loads still hook the slot update once, got " .. reads .. " reads")
 env.InspectPaperDollItemSlotButton_Update(tabard)
 assert(Shown(slot) == "60", "an inspected player's slot shows the item level")
 assert(Level(tabard) == nil, "but not on the tabard")

@@ -22,7 +22,6 @@ local STAT_PANES = { "CharacterStatsPaneScrollBox", "CharacterStatsPanePetScroll
 local REP_CHECKS = { "AtWarCheckbox", "MakeInactiveCheckbox", "WatchFactionCheckbox" }
 local TOKEN_CHECKS = { "InactiveCheckbox", "BackpackCheckbox" }
 
-local INSPECT_ADDON, INSPECT_OWNER = "Blizzard_InspectUI", "Skins.inspectLevels"
 local SLOT_AMMO, SLOT_SHIRT, SLOT_TABARD = 0, 4, 19
 local NO_LEVEL = { [SLOT_AMMO] = true, [SLOT_SHIRT] = true, [SLOT_TABARD] = true }
 
@@ -143,27 +142,22 @@ local function UpdateSlot(button)
 	end
 end
 
+local inspectHooked = false
+
 local function HookInspect()
-	if type(InspectPaperDollItemSlotButton_Update) ~= "function" then
-		return false
+	if inspectHooked or type(InspectPaperDollItemSlotButton_Update) ~= "function" then
+		return
 	end
+	inspectHooked = true
 	hooksecurefunc("InspectPaperDollItemSlotButton_Update", function(button)
 		PaintLevel(button, InspectUnit())
 	end)
-	return true
 end
 
-if not HookInspect() then
-	K.Events.Register(INSPECT_OWNER, "ADDON_LOADED", function(_, name)
-		if name ~= INSPECT_ADDON then
-			return
-		end
-		K.Events.Unregister(INSPECT_OWNER, "ADDON_LOADED")
-		if not HookInspect() then
-			Log("InspectPaperDollItemSlotButton_Update is missing; inspect slots show no item levels")
-		end
-	end)
+if type(InspectFrame_LoadUI) == "function" then
+	hooksecurefunc("InspectFrame_LoadUI", HookInspect)
 end
+HookInspect()
 
 local function SkinSlot(button)
 	if slots[button] then
