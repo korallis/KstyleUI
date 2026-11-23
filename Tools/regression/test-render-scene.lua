@@ -94,6 +94,13 @@ fadedTexture:SetAllPoints(faded)
 fadedTexture:SetColorTexture(1, 1, 1, 1)
 fadedTexture:SetAlpha(0.5)
 
+-- A line runs between its points as thick as SetThickness; the page turns its whole quad, as the game draws one.
+local edge = f:CreateLine(nil, "ARTWORK")
+edge:SetStartPoint("TOPLEFT", f, 0, 0)
+edge:SetEndPoint("TOPLEFT", f, 30, -40)
+edge:SetThickness(4)
+edge:SetColorTexture(1, 1, 1, 1)
+
 local scene = Scene.Build(env)
 assert(type(scene.items) == "table" and #scene.items > 0, "the scene has drawables")
 near(scene.screen.width, 1920, "screen width in units")
@@ -104,6 +111,8 @@ rect(find(scene, stretch), 20 * K, 30 * K, 80 * K, 30 * K, "the stretched textur
 rect(find(scene, childTexture), 20 * K, 30 * K, 20 * K, 20 * K, "the scaled child")
 rect(find(scene, heldTexture), 15 * K, 25 * K, 10 * K, 10 * K, "a child ignoring its parent's 0.58 scale")
 rect(find(scene, gTexture), (10 + 50 - 5) * K, (20 + 50 - 5) * K, 10 * K, 10 * K, "relative by name")
+rect(find(scene, edge), (10 + 15 - 25) * K, (20 + 20 - 2) * K, 50 * K, 4 * K, "a line, unturned about its middle")
+near(find(scene, edge).turn, math.atan2(-40, 30), "a line's turn")
 
 local fill = find(scene, bar:GetStatusBarTexture())
 rect(fill, 10 * K, 20 * K, 25 * K, 50 * K, "the status bar fill")

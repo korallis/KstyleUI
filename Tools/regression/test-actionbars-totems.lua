@@ -157,15 +157,15 @@ do
 	KNOWN[3], KNOWN[4] = nil, nil
 	local env, K, ns = New("SHAMAN")
 	local state, root = ns.Totems.state, K.Scale.Root():GetEffectiveScale()
-	local function Atom(b, what)
-		local name = "totem" .. b.element.name
+	local function Atom(b, e, what)
+		local name = "totem" .. e.name
 		assert(b.edge and b.edge:IsShown() and AB.Tinted(K, b.edge, "SetVertexColor", name), what .. " wears its element's edge")
 		assert(b.tab and b.tab:IsShown() and AB.Tinted(K, b.tab, "SetVertexColor", name), what .. " carries its element's tab")
 	end
 	for i, b in ipairs(state.sockets) do
 		assert(b:IsShown() == (i <= 2), "only Earth and Fire have sockets")
 		if i <= 2 then
-			Atom(b, b.element.name .. " socket")
+			Atom(b, b.element, b.element.name .. " socket")
 			AB.Click(env, b, "RightButton", false)
 			local fill, rim = false, false
 			for _, q in ipairs(AB.Band(b.fan, root)) do
@@ -174,7 +174,7 @@ do
 			end
 			assert(fill and rim, b.element.name .. ": the open fan sits on a dark forged band rimmed in the element's colour")
 			for n, f in ipairs(b.fan.buttons) do
-				if f:IsShown() then Atom(f, b.element.name .. " choice " .. n) end
+				if f:IsShown() then Atom(f, b.element, b.element.name .. " choice " .. n) end
 			end
 			AB.Click(env, b, "RightButton", false)
 		end

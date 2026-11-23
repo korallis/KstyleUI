@@ -379,6 +379,13 @@
 		ctx.save();
 		ctx.globalAlpha = Math.min(1, alpha);
 		ctx.globalCompositeOperation = item.blend === "ADD" ? "lighter" : "source-over";
+		if (item.turn) {
+			// A line's whole quad turns about its middle, unclipped, unlike a texture's rotation inside its rect.
+			const cx = dest.x + dest.w / 2, cy = dest.y + dest.h / 2;
+			ctx.translate(cx, cy);
+			ctx.rotate(-item.turn);
+			ctx.translate(-cx, -cy);
+		}
 		ctx.drawImage(layer, offset.x, offset.y);
 		ctx.restore();
 	}
