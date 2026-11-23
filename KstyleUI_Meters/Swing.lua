@@ -471,6 +471,7 @@ local function Style()
 		end
 		ns.ApplyFont(bar.label, "swing", nil, attached and "caps" or nil)
 		Widgets.TextColor(bar.label, "text")
+		Widgets.TextColor(bar.time, "white")
 		if attached and Widgets.Readability("readableBars") then
 			Widgets.InkText(bar.label, Tokens.Color("track"))
 			Widgets.InkText(bar.time, Tokens.Color("track"))

@@ -594,10 +594,10 @@ end
 
 local function PlaceBlockText(list, row)
 	local last, first = EndChar(row.amount, true), EndChar(row.share, false)
-	if row.textLayout == list.textLayout and row.textJoined == row.joined and row.textLast == last and row.textFirst == first then
+	if row.textLayout == list.textLayout and row.textJoined == row.joined and row.textLast == last and row.textFirst == first and row.textInset == row.nameInset then
 		return
 	end
-	row.textLayout, row.textJoined, row.textLast, row.textFirst = list.textLayout, row.joined, last, first
+	row.textLayout, row.textJoined, row.textLast, row.textFirst, row.textInset = list.textLayout, row.joined, last, first, row.nameInset
 	local frame = row.frame
 	local inset = Widgets.Snap(list.panel, list.plate and BLOCK_TEXT_INSET or 7)
 	local rowHeight = list.rowHeight - (list.plate and Widgets.Snap(list.panel, Tokens.Size("barHeight") + TEXT_AIR) or 0)
@@ -941,9 +941,8 @@ function List:Fit()
 	local _, holderHeight = Size(self.holder, self.width, self.height)
 	local capacity, count = self.capacity or 0, self.count or 0
 	local height = holderHeight
-	local fit = ns.Get("fitCards")
-	if self.block and fit or not self.block and (capacity < 1 or count < capacity) then
-		local rows, spacing = max(self.block and fit and count > 0 and 3 or 1, min(count, capacity)), Spacing(self)
+	if self.block and ns.Get("fitCards") or not self.block and (capacity < 1 or count < capacity) then
+		local rows, spacing = max(self.block and count > 0 and 3 or 1, min(count, capacity)), Spacing(self)
 		height = Widgets.Snap(self.panel, self:Top()) + rows * (self.rowHeight + spacing) - spacing + self.pad
 	end
 	height = max(1, min(height, holderHeight))
