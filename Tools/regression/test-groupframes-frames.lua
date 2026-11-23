@@ -147,7 +147,7 @@ eq(inRange[3], 1, "an unchecked member keeps full opacity")
 eq(env.Reveal(c:GetAlpha()), 1, "party1 is fully visible after the completed range check")
 local far = last(content("party2"), "SetAlphaFromBoolean")
 eq(env.Reveal(far[1]), true, "party2's range was checked")
-eq(env.Reveal(far[2]), 0.4, "party2's completed out-of-range check fades it")
+eq(env.Reveal(far[2]), 0.7, "party2's completed out-of-range check fades it, no further than 0.7 so the name reads")
 local me = last(content("player"), "SetAlpha")
 eq(me and me[1], 1, "the player's own frame never fades")
 

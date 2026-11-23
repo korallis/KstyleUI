@@ -251,7 +251,8 @@ do
 			local s = preview:GetWidth() / (K.Setup.Layouts.HEIGHT * 16 / 9)
 			local _, _, _, _, bottom = rect:GetPoint(1)
 			local top = (K.Setup.Layouts.HEIGHT * s - bottom - rect:GetHeight()) / s
-			assert(rect:IsShown() and math.abs(top - 465) <= 2 * K.Widgets.Border(preview) / s, "the diagram draws the DPS party 465 under the top, at mid-left, to its snapped pixels, got " .. top)
+			local grown = 465 - (5 * 39 + 4 * 13) * (K.Setup.Layouts.PartyScale() - 1) / 2
+			assert(rect:IsShown() and math.abs(top - grown) <= 2 * K.Widgets.Border(preview) / s, "the diagram draws the DPS party, grown evenly about its centre, " .. grown .. " under the top, at mid-left, to its snapped pixels, got " .. top)
 		end
 	end
 	W.Click(cards.Healer)

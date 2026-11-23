@@ -475,7 +475,7 @@ for _, name in ipairs(Layouts.Names()) do
 		local label = name .. " at " .. aspect[1]
 		local rects, keys = {}, {}
 		for _, element in ipairs(Layouts.ELEMENTS) do
-			local w, h, offsetX = Layouts.Footprint(name, element.key)
+			local w, h, offsetX = Layouts.Footprint(name, element.key, nil, nil, width, HEIGHT)
 			local l, b, r, t = Layouts.Rect({ width = w, height = h, offsetX = offsetX }, layout[element.key], width, HEIGHT)
 			assert(l >= -1e-6 and b >= -1e-6 and r <= width + 1e-6 and t <= HEIGHT + 1e-6,
 				string.format("%s: %s is off screen (%.1f, %.1f to %.1f, %.1f on %.1f x %d)", label, element.key, l, b, r, t, width, HEIGHT))
