@@ -670,6 +670,26 @@ do
 	Clean(env, K, "stance swap")
 end
 
+-- A choice's active() decides only whether it shows: it is built when known, before it is needed (#778 5).
+do
+	local env, K, ns = New("PRIEST", { 10060, 586 })
+	local out = false
+	ns.SlabTrackers.Register("PRIEST", { { key = "crestCooldowns", seat = "left", feed = "cooldown", choices = {
+		{ known = { 10060 }, active = function() return out end },
+		{ known = { 586 } },
+	} } })
+	ns.SlabTrackers.Update()
+	local pieces = ns.SlabTrackers.state.forms.crest.pieces
+	local row = #ns.SlabTrackers.CLASSES.PRIEST
+	assert(pieces[row .. ":1"] and not pieces[row .. ":1"]:IsVisible() and pieces[row .. ":2"]:IsVisible(), "an inactive choice is built and hidden; the next shows")
+	out = true
+	env._aurasSecret = true
+	ns.SlabTrackers.Swap()
+	assert(pieces[row .. ":1"]:IsVisible() and not pieces[row .. ":2"]:IsVisible(), "once active it shows, in combat, without a rebuild")
+	env._aurasSecret = false
+	Clean(env, K, "active choice")
+end
+
 -- Even pixels at four sizes.
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })
