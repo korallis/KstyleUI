@@ -685,7 +685,7 @@ local function Animate()
 end
 
 local function Wake()
-	if state.built and Slab.hub:IsShown() and Resting(Held()) ~= state.rest then Animate() end
+	if state.built and Resting(Held()) ~= state.rest and Slab.hub:IsShown() then Animate() end
 end
 
 local function Edges(frame)
