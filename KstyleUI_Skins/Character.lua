@@ -136,7 +136,6 @@ local function PaintLevels()
 			PaintLevel(button, slots[button] and "player" or InspectUnit())
 		else
 			levelLinks[button] = nil
-			ShowLevel(button)
 		end
 	end
 end
