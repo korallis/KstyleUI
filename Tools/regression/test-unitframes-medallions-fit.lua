@@ -76,7 +76,10 @@ ns.Indicators.Status(player, "player")
 local xs = {}
 for _, key in ipairs(ns.Indicators.SLOTS) do
 	local back = player.icons[key].socket
-	if back and back:IsShown() then xs[#xs + 1] = select(4, player.icons[key]:GetPoint(1)) end
+	if back and back:IsShown() then
+		xs[#xs + 1] = select(4, player.icons[key]:GetPoint(1))
+		assert(near(back:GetWidth(), back:GetHeight()) and back:GetWidth() > player.icons.combat:GetWidth(), key .. ": its socket is a round disc around the slot, even around the Zz text")
+	end
 end
 table.sort(xs)
 assert(#xs == #ns.Indicators.SLOTS, "every enabled status slot shows its socket")
