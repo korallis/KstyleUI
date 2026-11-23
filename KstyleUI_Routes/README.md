@@ -51,6 +51,10 @@ cache outputs here and run `python Tools/dev/crlf.py KstyleUI_Routes`.
   their layer-0 `WorldMapOverlayTile` file ids in row-major order. One row whose
   tile count does not match its size is left out. Skins builds it only when
   Reveal unexplored areas is on and the map is open, then releases the constructor.
+  `Routes.xml` loads `Overlays.lua` with the road graphs, so the first route
+  compiles this 18 KB constructor even with Reveal off. It never runs at login,
+  since this addon loads on demand, and moving it into a separate addon would add
+  more than that one compile saves.
 - `travel.zeppelins` lists the `TaxiPath` ids of `Transport,` paths that rise
   above 30 yards between stops; boat docks whose path id is listed are zeppelin
   towers. The road graphs' dock ids are `b<TaxiPath>_<stop>`.
