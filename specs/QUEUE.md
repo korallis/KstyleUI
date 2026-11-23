@@ -673,3 +673,6 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - #775 review ISSUES (scale setter dislodges docked chip, redraws fail the fight guard, standalone renderer crash) -> author.
 - Merged #774 (polish B Options/setup).
 - #771 healer crests green, evidence complete; review dispatched. 3 shared defects -> melee owner.
+- Big #chat post: everything since v0.3.2 (7 crest GIFs + UF/party/meters before-after).
+- #771 review ISSUES (cat form overlaps combo jewel, Frames loses charges/imbues, enchant timers accumulate, form/cooldown states) -> healer worker ctx_be667a8e1cc1.
+- Merged #768 (polish C). Follow-up: C35 expiring-timer red (Core Duration.ExpiringColor).

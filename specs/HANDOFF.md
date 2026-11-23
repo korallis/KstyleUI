@@ -15,13 +15,13 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 - #772 Medallions unit frames fitted to the crest (Fitted slabs: arms under the ring, even insets, power in its colour, status sockets on the slab with steel rivets for empty player slots, raid marker on the portrait rim; heal prediction in the bar's colour; aura stacks inside the corner; boss and focus cast tracks).
 - #773 polish batch E (quest tracker counts and chevron, quest card, RestedXP configurator, arrow text yields to the zone banner, RestedXP boxes as chips, spellbook tabs, merchant names). Its RestedXP parts only show once the v4.11.39 hotfix lands.
 - #774 polish batch B (Options list fade, one search heading, preview paints its own portrait so the live level-up burst stays put, Welcome pictures fill their cards, setup card accent edge, module rows aligned in every locale, guard exempts only a scroll view's bottom fade).
+- #768 polish batch C (chat edit box inside its glass, bag cooldown numbers, compare tooltip tab, data bars aligned with a new Match the other bars switch for honour, aura samples in order).
 - #769 meters polish (swing timer stays full, readable damage meter rows with tracks, finished empty cards).
 
 ## Open pull requests (all target staging)
 
 | PR | Branch | What | Status / next step |
 | --- | --- | --- | --- |
-| #768 | korallis/lumpfish-2 | Polish batch C: chat, bags, tooltips, data bars, auras | Review found: a restricted shopping-tooltip level throws, honour controls overridden, preview text overlap, bag countdown not restored (kstyleui-evidence/verify-768-feab2289/REPORT.md). Fix round in progress. Follow-ups outside its files: audit A#3 (UnitFrames player aura row), A#9 (bars 3/4 unbound '-' hotkey). |
 | #771 | korallis/healer-crest-trackers | Crest trackers: priest (Vigil), druid (Grove, full crest per form incl. bear tank), shaman (Stormforged) | d6a6ad8b7, stacked on #776's branch (197431265). Green, evidence complete (kstyleui-evidence/crest-trackers/healers/build: renders, crops, GIFs, concept-vs-build, 0 px switch-off diffs). In its one cross-family review. Merge after #776; rebase onto staging then. Three shared Medallions issues it found (crops/DEFECTS.md) are with #776's owner. |
 
 ## Work in progress without a PR yet
@@ -53,6 +53,9 @@ The owner's rule: every class has everything it needs around the crest, so there
 
 - Dropdowns and Options preview panes: make them end visible even if their first fade is lost (same as #764 did for pages), without changing the shared fade's look; and the root cause of the lost first tween (the owner can run the alpha-write trace in `specs/hotfix-setup-blank-welcome.md` history).
 - Unit Frames Options preview redesign: the specimen is width-bound (about 6 px text at 1080); readable text needs the preview pane about 400 units wide instead of 280, a window layout change (the black disc is fixed in batch B).
+- RestedXP 4.11.39 Guide Configurator rows: RestedXP's 40-unit icon covers the skin's full-width tile hairlines by 3 units (pre-existing). Recommended fix: start the skin's tile 22 units in, where RestedXP starts its own background, so the icon reads as a badge (Chrome.lua Option).
+- Crest follow-ups: an equipped-trinket cooldown-rim family (after in-game check 7) and a Dark/Demonic Rune consumable kind.
+- Expiring aura timers turn a low-contrast red over scenery: needs Core Duration.ExpiringColor (audit C35).
 - Loot-roll window: 14 off-grid regions vs 12 allowed on staging (pre-existing).
 - Consumables spacing slider keeps the -1 "HUD default" sentinel (dropping it needs a Store migration).
 - Zygor errors seen in the owner's BugGrabber (`ZygorGuidesViewerForever/ActionBar.lua:421` nil arithmetic, ADDON_ACTION_BLOCKED): check whether KstyleUI's Zygor skin causes them.
