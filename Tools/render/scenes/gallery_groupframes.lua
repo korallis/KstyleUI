@@ -180,7 +180,6 @@ local function raid(frames, x, y)
 	assert(#shown == 20, "twenty raid frames show, got " .. #shown)
 	-- The engine lays its aura buttons out in the game; the scene places the fake engine's buttons where the
 	-- containers would: your heals from the name line's right end leftward, debuffs over the bar's right end.
-	local Tokens = K.Tokens
 	local k = ns.Settings.current.raid
 	for _, header in ipairs(ns.Headers.raid) do
 		for unit, f in pairs(contents(ns, header)) do
@@ -212,9 +211,10 @@ local function raid(frames, x, y)
 			end
 			if i == RAID_DISPEL and f.highlights then
 				local slot = f.highlights:GetAuraSlotFrame("dispel")
-				local r, g, b = Tokens.Color(MAGIC)
+				-- As the engine colours a PreserveAsset texture: the option's colour map, else the game's colour.
 				for _, entry in ipairs(slot._aura.dispel) do
-					entry.texture:SetVertexColor(r, g, b, 1)
+					local map = entry.options.customDispelColorMap
+					entry.texture:SetVertexColor((map and map.Magic or env.DEBUFF_TYPE_MAGIC_COLOR):GetRGBA())
 					entry.texture:Show()
 				end
 				slot:Show()

@@ -117,6 +117,12 @@ function Skins.Scene(key)
 		saved = Gallery.Saved(modules),
 		setup = function(env)
 			Gallery.Setup(env)
+			-- Not for the loot rolls: the game's CreateColor shows the timer mirror's shade (staging's, not the glass,
+			-- which PartC/Kit.lua's MirrorBar leaves off), placed on Blizzard's fractional loot frame where
+			-- pixel_allow.tsv may not grow.
+			if key ~= "lootrolls" then
+				S.CreateColor(env)
+			end
 			if entry.tooltip then
 				dofile("Tools/regression/tooltips_env.lua").Blizzard(env)
 			end
@@ -130,8 +136,15 @@ function Skins.Scene(key)
 		dofile("Tools/regression/load_files.lua")(dofile("Tools/regression/tooltips_env.lua").Files(), env)
 	end
 	K.Modules.Enable("Skins")
+	if key == "character" and os.getenv("RENDER_ITEM_LEVELS") == "0" then
+		pcall(K.Options.Write, "Skins", "character.itemLevels", false)
+	end
 	if spec.addon then
 		S.LoadAddOn(env, spec.addon)
+	end
+	if key == "legacy" and os.getenv("RENDER_LEGACY_PAGE") == "challenges" then
+		env.LegacySystemFrame.RewardTrackPage:Hide()
+		parts.show[#parts.show + 1] = env.LegacySystemFrame.ChallengesPage
 	end
 	for opened = 1, math.max(1, math.min(5, tonumber(os.getenv("RENDER_WINDOW_OPENS")) or 1)) do
 		for _, shown in ipairs(parts.show) do

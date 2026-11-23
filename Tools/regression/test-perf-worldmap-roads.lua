@@ -6,14 +6,14 @@ Fixture.Install(env, state)
 local Roads = env._addons.KstyleUI_Skins.WorldMapRoads
 for continent = 0, 1 do
 	local graph = assert(Roads.Graph(continent))
-	local flights, queries = {}, {}
+	local flights, queries, total, worst, instructions = {}, {}, 0, 0, 0
 	for _, node in ipairs(graph.nodes) do if node.kind == "flight" then flights[node.id] = true end end
+	Roads.Solve(graph, graph.nodes[1].x, graph.nodes[1].y, graph.nodes[1].x, graph.nodes[1].y, false)
 	for i = 1, 8 do
 		local a, b = graph.nodes[1 + i * 37], graph.nodes[#graph.nodes - i * 19]
 		queries[i] = { a.x, a.y, b.x, b.y }
-		Roads.Solve(graph, a.x, a.y, b.x, b.y, false, flights)
+		instructions = math.max(instructions, Budget.Count(env, function() Roads.Solve(graph, a.x, a.y, b.x, b.y, false, flights) end).instructions)
 	end
-	local total, worst, instructions = 0, 0, 0
 	for _, q in ipairs(queries) do
 		instructions = math.max(instructions, Budget.Count(env, function() Roads.Solve(graph, q[1], q[2], q[3], q[4], false, flights) end).instructions)
 		local best = math.huge
@@ -25,7 +25,7 @@ for continent = 0, 1 do
 		end
 		total, worst = total + best, math.max(worst, best)
 	end
-	assert(instructions <= 950000, string.format("cache graph adjacency and use the heap: continent %d costs %d addon instructions per query, budget 950000", continent, instructions))
+	assert(instructions <= 950000, string.format("cache graph adjacency, use the heap and name only the steps the card shows (a first query too): continent %d costs %d addon instructions per query, budget 950000", continent, instructions))
 	print(string.format("road queries: continent %d, %d nodes/%d edges, %d instructions worst query, %.3f ms mean/%.3f ms worst (including snaps, polylines and flight comparison; timings are information only)", continent, #graph.nodes, #graph.edges, instructions, total * 1000 / #queries, worst * 1000))
 end
 local world, places, flights, options, crossing = assert(Roads.World()), {}, {}, {}, 0

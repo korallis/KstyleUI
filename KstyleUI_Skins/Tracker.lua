@@ -382,7 +382,7 @@ local function Bar(holder)
 	if Parts.IsTexture(fill) then
 		keep[fill] = true
 	end
-	for region in pairs(Widgets.BarEdge(bar).regions) do
+	for region in pairs(Widgets.BarEdge(bar, nil, true).regions) do
 		keep[region] = true
 	end
 	Skin.Strip(bar, { keep = keep })

@@ -23,6 +23,7 @@ Screen units: the screen is 1080 units tall, x grows right and y grows down from
 `RENDER_BAR3=1` turns action bar 3 on after a scene applies its preset, which leaves it off, and shows the empty slots of bar 3 and of the pet bar, so a whole-HUD scene shows bar 3's place beside them. With `RENDER_SIZE=auto`, every HUD environment includes the extra bar in the addon's fit.
 `RENDER_RESTING=1` has the player rest in an inn in the HUD scenes, so the player frame shows its Zz. The page draws a wrapping text wider than its box whole, where the game ends it in "...", so read the Zz's rect in the JSON as well as the picture.
 `RENDER_GLASS=off` turns Appearance > Lit glass bars off in every profile a scene loads, so the bars draw their previous finish.
+`RENDER_TRACKER_BARS=1` gives the `tracker` scene's quests a progress bar and a timer bar, as Blizzard's templates size and hang them; `RENDER_LEGACY_PAGE=challenges` shows `gallery_skins_legacy` on its challenges page, with the challenge points bar. Both show the lit glass on skinned Blizzard bars; the skin scenes and `tracker` give the stubs the game's `CreateColor`, except `gallery_skins_lootrolls`, whose timer mirror's staging shade sits on Blizzard's fractional loot frame.
 
 `RENDER_CAST_ON_FRAME=off` turns Unit Frames > Cast bars on unit frames off in every profile a scene loads, so Medallions draws the player and target cast bars above the crest as before; unset, they sit on their frames.
 
@@ -119,15 +120,20 @@ the harness must therefore leave those effects absent at rest. The Options
 dispel sample explicitly passes `WASH_ALPHA` (0.16) to `ColorSlice`, because
 the vertex write replaces the wash's initial alpha.
 
-The corrected `gallery_groupframes` render exposes a separate live-aura issue:
-the fixture writes alpha 1 to every dispel texture, so Ilyra's raid row becomes
-an opaque blue tile. This matches the source path in
-`Blizzard_AuraContainer/Blizzard_CustomAuraButton.lua` (533): `PreserveAsset`
-calls `AuraUtil.SetAuraBorderColor`, which calls `SetVertexColor` with the
-dispel colour's RGBA in `Blizzard_FrameXMLUtil/AuraUtil.lua` (614). The Options
-sample fix does not change that restricted aura path. Keep the existing
-`frame_raid.jpg` until that separate issue is fixed and checked in game, then
-retake through `readme.py`; do not repaint the fixture to hide it.
+The live raid dispel wash had the same fault: in
+`Blizzard_AuraContainer/Blizzard_CustomAuraButton.lua`, `PreserveAsset` (533)
+calls `AuraUtil.SetAuraBorderColor`, which writes the dispel colour's RGBA with
+`SetVertexColor` (`Blizzard_FrameXMLUtil/AuraUtil.lua`, 614), and then a
+`customDispelColorMap` colour's RGBA (546). Both replace the wash's own alpha,
+so a Magic debuff turned Ilyra's raid row into an opaque blue tile. The group
+frames now hand the engine the wash's alpha in a colour map, and
+`gallery_groupframes` colours the dispel textures with it. The engine passes a
+`securecopy` of the options through
+`C_AuraContainerUtil.ProcessCustomAuraButtonDispelTypeTextureOptions` (line 114),
+whose documentation types the map's values `colorRGB`
+(`AuraContainerUtilDocumentation.lua`, 300), so neither the stubs nor the render
+can show whether the client keeps that alpha. Retake `frame_raid.jpg` through
+`readme.py` once the wash is checked in game at 0, 0.16 and 1.
 
 ### Native context-menu fixtures
 

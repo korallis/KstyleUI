@@ -35,6 +35,7 @@ return Common.Run(function()
 		env.C_Item = { GetItemCount = function() return 1 end, GetItemNameByID = function() return "Hearthstone" end, GetItemCooldown = function() return 0, 0 end }
 	end
 	local loX, hiX, loY, hiY = -4000, 3500, -10500, 500
+	if os.getenv("RENDER_MAP_WIDE") == "1" then loX, hiX, loY, hiY = -8465, 3065, -9560, 6965 end
 	local function Project(x, y) return (hiY - y) / (hiY - loY), (hiX - x) / (hiX - loX) end
 	state.playerX, state.playerY = Project(from.x, from.y)
 	env.C_Map.GetWorldPosFromMapPos = function(id, point)
@@ -92,7 +93,7 @@ return Common.Run(function()
 		env.C_QuestLog.GetNextWaypoint = function(id) if quest ~= "none" and id == 10 then return 1, x, y end end
 		env.C_QuestLog.GetQuestsOnMap = function() return {} end
 		R.Quest(10)
-	elseif services and not off then
+	elseif services and not off and not os.getenv("RENDER_MAP_TRIP") then
 		R.Pick({ nearest = "inn" })
 	else
 		R.Pick({ mapID = trip == "zeppelin" and 2 or 1, name = to.name, x = x, y = y })

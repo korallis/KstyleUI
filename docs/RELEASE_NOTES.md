@@ -2,6 +2,14 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.3.1: item levels and glass on Blizzard bars (2026-11-23)
+
+Your gear shows its item level now. The character window puts each piece's level in the top left of its slot, in its quality colour, and the inspect window does the same for the player you inspect once their gear loads. The shirt, tabard and ammo slots get no number. The numbers use the same corner, face and colours as the bags, which already had them under Bags > Item levels. Window Skins > Character sheet > Item levels turns them off on both windows; it is on by default.
+
+The lit glass finish from v0.3.0 now reaches the Blizzard bars KstyleUI restyles: the trainer's skill bar, the Legacy window's reward and challenge bars, RestedXP's guide import bar and the quest tracker's timer and progress bars. They follow the same switch as KstyleUI's own bars, General > Appearance > Lit glass bars, and with it off those windows look exactly as they did in v0.3.0.
+
+Two v0.3.0 bugs are fixed. World map routes name every step: a step that ends between named places takes the nearest town or area, and the last step names where you are going, so the nearest innkeeper route ends with Road to Innkeeper Grosk instead of Road to and nothing after it. Routes also stop offering a hearthstone with no place after it when the game gives no bind location. And a debuff you can dispel on a party or raid member tints their frame at your Highlight fill opacity again, under Party and Raid > Debuffs, instead of covering it in a solid colour that hid the name and health. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.3.0: polish and the explorer map (2026-11-23)
 
 This is the polish release and the explorer release shipped together. Everything new is on by default except Reveal unexplored areas, and every piece has its own switch, so turning one off gives you that part of the old look back exactly.

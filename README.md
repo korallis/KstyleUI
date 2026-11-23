@@ -38,6 +38,18 @@ Every picture below is a test render of the addon over my own in-game screenshot
 
 *The whole thing in Medallions. Your RestedXP or Zygor guide sits top left and your quests sit on the right under the map.*
 
+![KstyleUI test render over an in-game screenshot of the middle of the Medallions HUD: lit glass bars and forged steel ends on the player and target frames](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_hud_finish.jpg)
+
+*Every bar has a lit glass finish now, and the Medallions frames end in forged steel caps.*
+
+![KstyleUI test render over an in-game screenshot: the action bars and player frame fading back out of combat, then snapping back when a target is picked](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/rest.gif)
+
+*Out of combat with nothing targeted, your bars fade back so you can see the game. Target something and they're straight back.*
+
+![KstyleUI test render over an in-game screenshot: a target's cast bar naming who the spell is aimed at, then YOU, a shield on a cast you can't interrupt, and a dim bar with a gold mark while your interrupt recharges](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/casts.gif)
+
+*Enemy cast bars say who the spell is aimed at, or YOU. A shield means you can't kick it, and a gold mark shows where your kick is back.*
+
 ![KstyleUI test render over an in-game screenshot of the Frames look on a 1920 by 1080 screen: the target's card stacked over the player's above the action bars](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_hud_frames_1080.jpg)
 
 *If the crest isn't your thing, Frames is the other look: big plain cards for you and your target, same forged style. Pick it in the setup, or switch any time under HUD style on the General page of `/kstyle`.*
@@ -46,19 +58,23 @@ Every picture below is a test render of the addon over my own in-game screenshot
 
 *Party and raid frames get the same look, with the debuffs you can dispel up front.*
 
-There's a lot more in there than fits here: nameplates, a damage and threat meter, bags, tooltips, chat, skins for most of Blizzard's windows and a world map that plans your route. Every bit of it can be switched off in `/kstyle`. Each module has a README on [GitHub](https://github.com/korallis/KstyleUI) with all its settings.
+![KstyleUI test render over an in-game screenshot, with the game's own map art: a route to the Undercity by road and zeppelin, then the Nearest innkeeper, bank and trainer picker](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/map.gif)
+
+*The map plans your route, zeppelins and the tram included, and finds the nearest innkeeper, bank or trainer you've been to. The map art is the game's own.*
+
+There's a lot more in there than fits here: nameplates, a damage and threat meter, bags, tooltips, chat and skins for most of Blizzard's windows. Every bit of it can be switched off in `/kstyle`. Each module has a README on [GitHub](https://github.com/korallis/KstyleUI) with all its settings.
 
 ## Install
 
 1. Install it with the CurseForge app, the Wago app or WowUp. By hand, unzip it into `World of Warcraft/_forever_/Interface/AddOns`.
-2. Log in, pick Medallions or Frames and then DPS, Tank or Healer in the setup window, then click **Apply** and **Reload**.
+2. Log in, pick Medallions or Frames and a Look, then DPS, Tank or Healer in the setup window, then click **Apply** and **Reload**.
 3. `/kstyle` opens the settings, `/kstyle layout` lets you move stuff and `/kb` binds your keys.
 
 The icon pack is optional and isn't an addon, so it's only on [GitHub](https://github.com/korallis/KstyleUI/releases/latest). The [icon pack guide](https://github.com/korallis/KstyleUI/blob/main/docs/icons.md) has the steps.
 
 ## Links
 
-- Help, bug reports and news: [Discord](https://discord.gg/A5qqGZEXyN)
+- Help, bug reports and news: [Discord](https://discord.gg/A5qqGZEXyN). For a bug, paste the report from About > Status in `/kstyle`.
 - Source code: https://github.com/korallis/KstyleUI
 
 ## Credits

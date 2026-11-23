@@ -329,7 +329,7 @@ function Kit.Bar(bar)
 	if Parts.IsTexture(fill) then
 		keep[fill] = true
 	end
-	local track = Widgets.BarEdge(bar)
+	local track = Widgets.BarEdge(bar, nil, true)
 	for region in pairs(track.regions) do
 		keep[region] = true
 	end

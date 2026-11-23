@@ -2,6 +2,12 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.3.1 (2026-11-23)", {
+		L["Your character window and the inspect window show each piece of gear's item level, in its quality colour."],
+		L["The trainer, Legacy, RestedXP and quest tracker bars KstyleUI restyles get the same lit glass finish."],
+		L["World map routes name every step, and the last one names where you are going."],
+		L["A debuff you can dispel tints party and raid frames lightly again instead of covering the name."],
+	} },
 	{ "v0.3.0 (2026-11-23)", {
 		L["A clean screen at rest: out of combat with no target, your bars and player frame fade until you need them again."],
 		L["One lit glass finish on every bar, and Medallions names, levels and cast names in one typeface."],
@@ -13,13 +19,5 @@ ns.NOTES = {
 		L["Party and raid names can sit under the health and power bars, in Medallions and Frames. Off by default."],
 		L["Your heal icons on party frames can sit outside the frame, so the name keeps its whole line. Off by default."],
 		L["Party and raid frames can follow FrameSort's order while FrameSort is installed."],
-	} },
-	{ "v0.2.14 (2026-11-22)", {
-		L["Flask reminder: in a raid, the reminder card names a flask in your bags while no flask is on you. Off by default."],
-		L["Low mana at ready checks: the card warns while your mana is under 80 percent. Off by default."],
-		L["Party and raid frames: paladin blessing reminders, pets beside their owners, your own place in the party and more."],
-		L["Player and target aura settings stay as you set them in every aura layout."],
-		L["RestedXP's Active Targets and Active Items boxes stay still when the guide updates."],
-		L["Shapeshifting, target changes, RestedXP, Zygor and opening windows do less work, with no change in look."],
 	} },
 }

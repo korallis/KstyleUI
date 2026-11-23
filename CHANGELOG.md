@@ -1,5 +1,33 @@
 # KstyleUI changelog
 
+## v0.3.1 (2026-11-23)
+
+Your gear shows its item level on the character and inspect windows, the lit glass finish reaches the Blizzard bars KstyleUI restyles, and two v0.3.0 bugs are fixed: nameless world map route steps and solid party and raid frames. Everything new is on by default, with its own switch.
+
+Highlights:
+
+- Your character window and the inspect window show each piece of gear's item level, in its quality colour.
+- The trainer, Legacy, RestedXP and quest tracker bars KstyleUI restyles get the same lit glass finish.
+- World map routes name every step, and the last one names where you are going.
+- A debuff you can dispel tints party and raid frames lightly again instead of covering the name.
+
+### Added
+
+- Your character window shows each piece of gear's item level in the top left of its slot, in its quality colour. The shirt, tabard and ammo slots get none.
+- The inspect window shows the same numbers for the player you inspect once their gear loads. Window Skins > Character sheet > Item levels.
+- The numbers match the ones your bags already had, which stay under Bags > Item levels.
+
+### Changed
+
+- Bars in the windows KstyleUI restyles get the same lit glass finish as its own bars. Turning off General > Appearance > Lit glass bars gives them their old look back.
+- That covers the trainer's skill bar, the Legacy window's reward and challenge bars, RestedXP's guide import bar and the quest tracker's timer and progress bars.
+
+### Fixed
+
+- World map routes name every step. A step between named places takes the nearest town or area, and the last names your destination, like Road to Innkeeper Grosk.
+- Routes no longer offer a hearthstone with no place after it when the game gives no bind location.
+- A debuff you can dispel tints party and raid frames at your Party and Raid > Debuffs > Highlight fill opacity again, instead of a solid colour that hid the name.
+
 ## v0.3.0 (2026-11-23)
 
 The polish release and the explorer release in one. Every bar, name and panel gets a finishing pass, cast bars tell you who a spell is aimed at, and the world map routes you to the nearest innkeeper by road, zeppelin or hearthstone. Everything new is on by default except Reveal unexplored areas, and each one has its own switch if you prefer the old look.

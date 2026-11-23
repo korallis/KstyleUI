@@ -93,6 +93,9 @@ function Edge:Restyle()
 	Widgets.Tint(self.hard, "black")
 	Frame(self.track, target, 0, farX, farY)
 	Widgets.Tint(self.track, "barTrack")
+	if self.glass then
+		Bar.PlaceGlass(self, target)
+	end
 end
 
 function Edge:SetShown(shown)
@@ -107,14 +110,17 @@ local function EdgeTexture(target, sublevel, layer)
 	return texture
 end
 
-function Widgets.BarEdge(target, noTrack)
+function Widgets.BarEdge(target, noTrack, glass)
 	local edge = barEdges[target]
 	if edge then
 		edge:Restyle()
 		return edge
 	end
+	glass = glass and type(target.GetOrientation) == "function" and type(target.GetStatusBarTexture) == "function"
 	edge = setmetatable({
 		target = target,
+		glass = glass and {} or nil,
+		glassMode = glass and "full" or nil,
 		soft = EdgeTexture(target, EDGE_SOFT_SUBLEVEL),
 		hard = EdgeTexture(target, EDGE_HARD_SUBLEVEL),
 		track = EdgeTexture(target, EDGE_TRACK_SUBLEVEL),
@@ -265,13 +271,40 @@ end
 
 local glassColors
 
-function Bar:PlaceGlass()
+local function Waits(edge, bar)
+	if type(bar.IsProtected) == "function" and not Widgets.MayMove(bar) then
+		if not edge.queued then
+			edge.queued = true
+			ns.Combat.Queue(function()
+				edge.queued = nil
+				edge:Restyle()
+			end)
+		end
+		return true
+	end
+	local shown = bar:IsVisible()
+	if Widgets.IsSecret(shown) or shown then
+		return false
+	end
+	if not edge.hooked then
+		edge.hooked = true
+		bar:HookScript("OnShow", function()
+			if not edge.glass[1] then
+				edge:Restyle()
+			end
+		end)
+	end
+	return true
+end
+
+function Bar:PlaceGlass(bar)
+	bar = bar or self
 	local glass, on = self.glass, self.glassMode and Widgets.Readability("litBars") and type(CreateColor) == "function"
 	local vertical, px, fill, pixels
 	if on then
-		vertical, px, fill = self:GetOrientation() == "VERTICAL", Widgets.Border(self), self:GetStatusBarTexture()
-		pixels = CrossPixels(self, vertical) or (self.opts[vertical and "width" or "height"] or Tokens.Size("buffBarHeight")) / px
-		on = fill and type(fill.SetGradient) == "function" and pixels >= GLASS_MIN_PIXELS
+		vertical, px, fill = bar:GetOrientation() == "VERTICAL", Widgets.Border(bar), bar:GetStatusBarTexture()
+		pixels = CrossPixels(bar, vertical) or self.opts and (self.opts[vertical and "width" or "height"] or Tokens.Size("buffBarHeight")) / px
+		on = fill and type(fill.SetGradient) == "function" and pixels and pixels >= GLASS_MIN_PIXELS
 	end
 	if not on then
 		if self.glassOn then
@@ -292,6 +325,9 @@ function Bar:PlaceGlass()
 		end
 		return
 	end
+	if self ~= bar and not glass[1] and Waits(self, bar) then
+		return
+	end
 	if not glassColors then
 		local wr, wg, wb = Tokens.Color("white")
 		local kr, kg, kb = Tokens.Color("black")
@@ -300,7 +336,10 @@ function Bar:PlaceGlass()
 	local full, inset = self.glassMode == "full", self.innerEdgeOn and self:EdgeLine() * px or 0
 	for i = 1, 4 do
 		if not glass[i] and (full or i % 2 == 1) then
-			glass[i] = EdgeTexture(self.glassHost or self, i < 3 and GLASS_SUBLEVEL or GLASS_RIM_SUBLEVEL, "ARTWORK")
+			glass[i] = EdgeTexture(self.glassHost or bar, i < 3 and GLASS_SUBLEVEL or GLASS_RIM_SUBLEVEL, "ARTWORK")
+			if self ~= bar then
+				ns.Skin.Keep(glass[i])
+			end
 		end
 	end
 	self.glassOn = true

@@ -668,7 +668,7 @@ local function Bar(frame, opts)
 		keep[fill] = true
 	end
 	local bar = { frame = frame, rankOutside = opts.rankOutside == true, originalRankOutside = opts.rankOutside == true, height = frame:GetHeight(), SetLabel = SetBarLabel, Restyle = PlaceBarTexts }
-	bar.edge = K.Widgets.BarEdge(frame)
+	bar.edge = K.Widgets.BarEdge(frame, nil, true)
 	for region in pairs(bar.edge.regions) do
 		keep[region] = true
 	end

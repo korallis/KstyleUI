@@ -49,6 +49,12 @@ Tracker.QUESTS = {
 	{ title = "The Lost Patrol", objectives = { "Speak to Ranger Kalanna 0/1" }, questID = 102, superTracked = true },
 }
 
+-- The same quests with a progress bar under the first and a timer bar under the second, for RENDER_TRACKER_BARS=1.
+Tracker.BAR_QUESTS = {
+	{ title = "Riverglade Crocolisks", objectives = { "Crocolisk Hide 3/8" }, questID = 101, progress = 0.375, label = "38%" },
+	{ title = "The Lost Patrol", objectives = { "Speak to Ranger Kalanna 0/1" }, questID = 102, superTracked = true, timer = 0.6, label = "1:42" },
+}
+
 local function saved()
 	return {
 		version = 2,
@@ -154,6 +160,32 @@ local function Block(B, module, quest)
 		block.lines[#block.lines + 1] = line
 		anchor = line
 		height = height + LINE_SPACING + LINE_HEIGHT
+	end
+	-- Blizzard_ObjectiveTrackerShared.xml: a progress bar is a 192 by 25 holder with a 180 by 15 bar at RIGHT x 15 and
+	-- its label centred on the bar (y -1); a timer is 192 by 20 with its label at LEFT and a 128 by 10 bar at RIGHT x -4.
+	-- AddProgressBar and AddTimerBar (Blizzard_ObjectiveTrackerBlock.lua) hang it lineSpacing under the last line.
+	if quest.progress or quest.timer then
+		local progress = quest.progress ~= nil
+		local holder = B.frame("Frame", block)
+		holder:SetSize(192, progress and 25 or 20)
+		holder:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -LINE_SPACING)
+		local bar = B.frame("StatusBar", holder)
+		holder.Bar = bar
+		bar:SetSize(progress and 180 or 128, progress and 15 or 10)
+		bar:SetPoint("RIGHT", holder, "RIGHT", progress and 15 or -4, 0)
+		bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+		bar:SetStatusBarColor(0.26, 0.42, 1)
+		bar:SetMinMaxValues(0, 1)
+		bar:SetValue(quest.progress or quest.timer)
+		bar.BorderLeft, bar.BorderRight, bar.BorderMid = B.texture(bar, "ARTWORK"), B.texture(bar, "ARTWORK"), B.texture(bar, "ARTWORK")
+		local owner = progress and bar or holder
+		owner.Label = B.text(owner)
+		owner.Label:SetFontObject("GameFontHighlight")
+		owner.Label:SetPoint(progress and "CENTER" or "LEFT", owner, progress and "CENTER" or "LEFT", 0, progress and -1 or 0)
+		owner.Label:SetText(quest.label)
+		local used = progress and module.usedProgressBars or module.usedTimerBars
+		used[#used + 1] = holder
+		height = height + LINE_SPACING + holder:GetHeight()
 	end
 	block.height = height
 	block:SetHeight(height)
