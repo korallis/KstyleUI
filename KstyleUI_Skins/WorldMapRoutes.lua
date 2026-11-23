@@ -596,7 +596,7 @@ local function Build()
 	search = Widgets.EditBox(panel, { width = 280, height = 28, placeholder = L["Search the map"], onChange = SearchChanged,
 		onEscape = function() Hide(results) end, onEnter = function(query) if Plain(query, "string") ~= "" then Routes.Pick(Routes.Search(query)[1]) end end,
 		onFocus = function(box) if On("services") then SearchChanged(box:GetText()) end end })
-	search:SetPoint("TOPLEFT", map.ScrollContainer or map, "TOPLEFT", 12, -12)
+	search:SetPoint("TOPRIGHT", map.ScrollContainer or map, "TOPRIGHT", -12, -12)
 	card = CreateFrame("Frame", nil, map)
 	card:SetFrameLevel(map:GetFrameLevel() + 25)
 	card:SetSize(280, 142)
