@@ -995,7 +995,7 @@ FitStyles = function()
 	panel.lookNote:SetShown(looks)
 	if looks and page:IsVisible() then
 		local current, picked = Setup.Looks.Current(), Setup.Choice().look
-		panel.lookTabs:SetTabs(current and Setup.Looks.LIST or Setup.Looks.CUSTOM, picked or current or "Custom")
+		panel.lookTabs:SetTabs(current and Setup.Looks.STATUS or Setup.Looks.CUSTOM, picked or current or "Custom")
 		local look = Setup.Looks.Get(picked or current)
 		panel.lookNote:SetText(look and look.note or L["Your own settings. Apply keeps them."])
 	end

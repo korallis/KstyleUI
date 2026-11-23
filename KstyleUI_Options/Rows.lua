@@ -514,7 +514,7 @@ function FILL.segmented(control, item, value)
 	control:Select(value, true)
 	local enabled = not Model.IsDisabled(item)
 	for _, option in ipairs(item.options) do
-		control:SetTabEnabled(option.value, enabled)
+		control:SetTabEnabled(option.value, enabled and not option.disabled)
 	end
 	control:Paint()
 end

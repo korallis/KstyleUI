@@ -487,7 +487,7 @@ local function GeneralItems()
 			item.defer = true
 		end
 		if item.module == "HudStyle" and item.key == "style" and K.Store.Module("Setup").looks then
-			table.insert(items, i + 1, { kind = "segmented", page = "General", label = L["Look"], options = looks.Current() and looks.LIST or looks.CUSTOM,
+			table.insert(items, i + 1, { kind = "segmented", page = "General", label = L["Look"], options = looks.Current() and looks.STATUS or looks.CUSTOM,
 				help = L["Sets trim, panels, motion and text together. Forged is the look KstyleUI ships with."],
 				get = function() return looks.Current() or "Custom" end, set = looks.Apply })
 		end

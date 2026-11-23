@@ -19,6 +19,7 @@ Looks.LIST = {
 	} },
 }
 Looks.CUSTOM = { Looks.LIST[1], Looks.LIST[2], Looks.LIST[3], { value = "Custom", label = L["Your own"] } }
+Looks.STATUS = { Looks.LIST[1], Looks.LIST[2], Looks.LIST[3], { value = "Custom", label = L["Your own"], disabled = true } }
 
 local function Sizes(module, defaults, path, readable, fn)
 	for key, child in pairs(defaults) do
