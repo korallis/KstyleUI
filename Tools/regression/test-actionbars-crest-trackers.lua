@@ -493,6 +493,19 @@ do
 	Clean(env, K, "trackers off in combat")
 end
 
+-- A newly learned strike repaints the medal with its own icon, steel and lit (review dd9bddac #4).
+do
+	local env, K, ns = New("WARRIOR", { 6673, 6343 })
+	local hip = Pieces(ns)[6]
+	assert(hip.lit.icon._state.Texture[1] == 100000 + 6343, "Thunder Clap first")
+	env._known[1464] = true
+	env.FireEvent("SPELLS_CHANGED")
+	env.RunTimers()
+	hip = Pieces(ns)[6]
+	assert(hip.spec.spell == 1464 and hip.lit.icon._state.Texture[1] == 101464 and hip.steel._state.Texture[1] == 101464, "learning Slam shows Slam's icon")
+	Clean(env, K, "learn Slam")
+end
+
 -- Even pixels at four sizes.
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })
