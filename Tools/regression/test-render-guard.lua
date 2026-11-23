@@ -467,6 +467,10 @@ local solid = { kind = "texture", file = "", color = { 1, 1, 1, 1 }, vertex = { 
 assert(Guard.Hides(solid), "a solid texture hides what it covers")
 solid.gradient = { from = { 1, 1, 1, 0 }, to = { 1, 1, 1, 0.24 } }
 assert(not Guard.Hides(solid), "a gradient hides only as much as its strongest end, so a bar's soft light covers nothing")
+solid.gradient = { from = { 0, 0, 0, 0.75 }, to = { 0, 0, 0, 0 } }
+assert(not Guard.Hides(solid), "a one-sided fade over a list's cut row is a fade, not a cover")
+solid.gradient = { from = { 0, 0, 0, 0.75 }, to = { 0, 0, 0, 0.6 } }
+assert(Guard.Hides(solid), "a gradient opaque at both ends still hides what it covers")
 
 for _, entry in ipairs(Guard.LoadAllow()) do
 	assert(Guard.OWNERS[entry.owner], "an owner for line " .. entry.line)
