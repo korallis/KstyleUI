@@ -601,6 +601,15 @@ do
 	Clean(env, K, "per piece rogue")
 end
 
+-- A usable-strike medal in the Frames row is the row's size too (review dd9bddac #9).
+do
+	local env, K, ns = New("ROGUE", { 5171, 1943, 14251, 1766 }, { frames = true })
+	for _, piece in pairs(ns.SlabTrackers.state.form.pieces) do
+		if piece:IsVisible() then assert(piece.units == ns.SlabMedals.SIZE, tostring(piece.spec.key) .. ": a " .. tostring(piece.units) .. "-unit medal in the row") end
+	end
+	Clean(env, K, "frames riposte")
+end
+
 -- Even pixels at four sizes.
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })
