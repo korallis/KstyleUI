@@ -108,9 +108,11 @@ for _, case in ipairs(CASES) do
 		assert(rows[key], module .. ": the page can show " .. key .. " when its picker selects it")
 	end
 	local pages = ns.Pages.List()
-	local missing = {}
+	local missing, results = {}, {}
 	for _, key in ipairs(order) do
-		if not Found(Model.Search(pages, rows[key]), module, key) then
+		local label = rows[key]
+		results[label] = results[label] or Model.Search(pages, label)
+		if not Found(results[label], module, key) then
 			missing[#missing + 1] = key
 		end
 	end
