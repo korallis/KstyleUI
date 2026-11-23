@@ -109,6 +109,7 @@ local function Resolve(p, row)
 		return nil
 	end
 	local spec = setmetatable({ burst = HOOKS[ns.class] and HOOKS[ns.class].burst }, { __index = p })
+	spec.size = row and Medals.SIZE or p.seat == "top" and RELIQUARY or p.size
 	if p.groups then
 		spec.candidates = {}
 		for _, group in ipairs(p.groups) do
@@ -143,7 +144,6 @@ local function Resolve(p, row)
 		return nil
 	end
 	spec.spell, spec.texture = id, p.texture or Trackers.Texture(id)
-	spec.size = row and Medals.SIZE or p.seat == "top" and RELIQUARY or p.size
 	if row and p.families then
 		spec.feed, spec.newest, spec.spells = "aura", true, {}
 		for _, family in ipairs(spec.families) do
