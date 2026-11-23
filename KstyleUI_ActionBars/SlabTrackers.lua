@@ -163,7 +163,8 @@ local function Build(form, name, key, spec)
 	end
 	local make = spec.build or name == "crest" and (spec.seat == "rim" and Medals.Rim or spec.seat == "cooldowns" and Medals.CooldownRim
 		or spec.feed == "enchant" and Medals.Socket or spec.feed == "threat" and Medals.Threat) or Medals.Medal
-	local ok, piece = pcall(make, form.frame, spec, form.frame:GetFrameLevel() + 1, name)
+	local under = spec.seat == "rim" or spec.seat == "cooldowns" or spec.seat == "plaque"
+	local ok, piece = pcall(make, form.frame, spec, form.frame:GetFrameLevel() + (under and 1 or 16), name)
 	if not ok or not piece then
 		form.failed[key] = true
 		K.DevTest.Log("ActionBars", tostring(spec.key) .. " on the crest unavailable: " .. tostring(piece))
@@ -470,8 +471,8 @@ Trackers.Register("WARRIOR", {
 		{ spells = { 12292 } },
 		{ spells = { 1329555 } },
 	} },
-	{ key = "crestFeet", seat = "footLeft", size = 17, feed = "cooldown", choices = { { forms = BERSERKER, known = { 6554, 6552 } }, { known = { 1672, 1671, 72 } } } },
-	{ key = "crestFeet", seat = "footRight", size = 17, feed = "cooldown", choices = {
+	{ key = "crestFeet", seat = "footLeft", size = Medals.FOOT, feed = "cooldown", choices = { { forms = BERSERKER, known = { 6554, 6552 } }, { known = { 1672, 1671, 72 } } } },
+	{ key = "crestFeet", seat = "footRight", size = Medals.FOOT, feed = "cooldown", choices = {
 		{ forms = DEFENSIVE, known = { 355 }, feeds = { {}, { feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", color = "plateHostile",
 			spells = { 355, 694, 7400, 7402, 20559, 20560, 1161 } } } },
 		{ forms = BERSERKER, known = { 20617, 20616, 20252 } },
@@ -507,11 +508,11 @@ Trackers.Register("PALADIN", {
 		{ feed = "usable", groups = { { 24239, 24274, 24275 } } },
 		{ feed = "cooldown", known = { 10314, 10313, 10312, 5615, 5614, 879 } },
 	} },
-	{ key = "crestFeet", seat = "footLeft", size = 17, choices = {
+	{ key = "crestFeet", seat = "footLeft", size = Medals.FOOT, choices = {
 		{ known = Talent(HOLY, JUDGEMENT), feed = "item", items = STONES },
 		{ feed = "cooldown", known = { 10308, 5589, 5588, 853 } },
 	} },
-	{ key = "crestFeet", seat = "footRight", size = 17, choices = {
+	{ key = "crestFeet", seat = "footRight", size = Medals.FOOT, choices = {
 		{ known = Talent(HOLY, JUDGEMENT), feed = "item", items = MANA_POTIONS },
 		{ known = Talent(PROT, JUDGEMENT), feed = "threat", color = "gilt" },
 		{ known = JUDGEMENT, feed = "threat", color = "plateHostile" },
@@ -541,8 +542,8 @@ Trackers.Register("ROGUE", {
 	{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", families = { { spells = { 13877 } }, { spells = { 13750 } },
 		{ spells = { 5277 } }, { spells = { 2983, 8696, 11305 } }, { spells = { 14177 } }, { spells = { 11327, 11329 }, known = VANISH },
 		{ spells = { 14278 } } } },
-	{ key = "crestFeet", seat = "footLeft", size = 17, feed = "cooldown", known = { 1769, 1768, 1767, 1766, 11286, 11285, 8629, 1777, 1776 } },
-	{ key = "crestFeet", seat = "footRight", size = 17, choices = {
+	{ key = "crestFeet", seat = "footLeft", size = Medals.FOOT, feed = "cooldown", known = { 1769, 1768, 1767, 1766, 11286, 11285, 8629, 1777, 1776 } },
+	{ key = "crestFeet", seat = "footRight", size = Medals.FOOT, choices = {
 		{ known = Talent({ 16513, 14113, 14186, 14177 }, POISONS), feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = POISON_STACKS,
 			color = "schoolNature", count = true },
 		{ feed = "usable", groups = { { 14251 } } },

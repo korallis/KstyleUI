@@ -14,14 +14,14 @@ local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 112, 12, 10, 8, 2
 local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, STACK_MAX = 118, 14, 4, 30, 3
 local SEATS = {
 	left = { -1, 84, 32 }, right = { 1, 84, 32 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
-	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 65, 247 }, footRight = { 1, 65, 293 },
+	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 67.5, 247 }, footRight = { 1, 67.5, 293 },
 }
 local PIP, PIP_RING, PIP_ARC, GLOW = 4, 17, 22, 0.35
 local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local OWNER = "ActionBars.SlabMedals"
 local refreshed, rims, watchers = {}, {}, {}
 local REFRESH = { target = { "PLAYER_TARGET_CHANGED" }, pet = { "UNIT_PET", "player" }, focus = { "PLAYER_FOCUS_CHANGED" } }
-Medals.SIZE, Medals.FOOT, Medals.LINE, Medals.GAP = SIZE, 17, 5, 4
+Medals.SIZE, Medals.FOOT, Medals.LINE, Medals.GAP = SIZE, 15, 5, 4
 
 function Medals.Cell(n)
 	local pitch = SIZE + Medals.GAP
@@ -235,7 +235,7 @@ function Medals.Medal(parent, spec, level)
 	local size = spec.size or SIZE
 	local m = Piece(parent, level, size)
 	local feeds = spec.feeds or { spec }
-	local add, timed = m.add, spec.color ~= nil
+	local add, timed, track = m.add, spec.color ~= nil, size < SIZE and 2 or TRACK
 	for _, feed in ipairs(feeds) do
 		timed = timed or feed.color ~= nil
 	end
@@ -243,7 +243,7 @@ function Medals.Medal(parent, spec, level)
 	Medals.Dress(m, Medals.Layer(m, top))
 	add(m.shade, size * SHADE):SetPoint("CENTER", m, "CENTER", 0, 0)
 	if timed then
-		add(Medals.Texture(m, "BORDER", 0, "orbRing", "medSocket", size + TRACK))
+		add(Medals.Texture(m, "BORDER", 0, "orbRing", "medSocket", size + track))
 	end
 	m.steel = add(m.icon, size * ICON)
 	m.steel:SetPoint("CENTER", m, "CENTER", 0, 0)
@@ -262,7 +262,7 @@ function Medals.Medal(parent, spec, level)
 			lit.icon:SetTexture(spec.texture)
 		end
 		if each.color and each.feed ~= "cooldown" then
-			lit.timer = add(Timer(lit, level + 2 + 2 * (i - 1), "orbRing", each.color), size + TRACK)
+			lit.timer = add(Timer(lit, level + 2 + 2 * (i - 1), "orbRing", each.color), size + track)
 			if lit.container then
 				lit:SetDurationCooldown(lit.timer)
 			end
