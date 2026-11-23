@@ -1,28 +1,17 @@
 # KstyleUI roadmap
 
-What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.3.0 is out now: the polish release and the explorer release in one go. That means a clean screen at rest, lit glass bars, cast targets and interrupt states, forged Medallions slab ends, nearest services and travel stops on the world map, Options search that takes you there, and a better first run. New releases land about once a day.
-
-## v0.3.1 — gear and finish
-
-Estimated: within a few days.
-
-Gear at a glance, and the glass finish everywhere you look.
-
-Highlights:
-
-- Item levels on your equipment slots and in your bags.
-- The lit glass finish on the Blizzard windows KstyleUI skins.
-- More fixes from your reports, released as soon as they are ready.
+What's coming next, release by release. Dates are estimates; we'll keep this post up to date as each release ships. v0.3.1 is out now: item levels on your gear, the lit glass finish on the Blizzard bars KstyleUI skins, and fixes for nameless route steps and solid party and raid frames. New releases land about once a day.
 
 ## v0.3.2 — gamepad
 
-Estimated: about a week after v0.3.1.
+Estimated: within a few days.
 
 KstyleUI on a controller.
 
 Highlights:
 
-- A gamepad-friendly layout.
+- Controller button glyphs on your action bars while a gamepad is active.
+- A one-click Gamepad layout in the setup, with a way back.
 
 ## Later
 
