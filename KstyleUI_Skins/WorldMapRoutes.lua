@@ -494,7 +494,7 @@ end
 
 local function Text(parent, role, size, color)
 	local text = Widgets.FontString(parent, "OVERLAY")
-	Style.Text(text, role, nil, function() return Lumen.Size(parent, size) end)
+	Style.Text(text, role, nil, type(size) == "function" and size or function() return Lumen.Size(parent, size) end)
 	text:SetTextColor(Lumen.Color(color or "textEmphasis"))
 	text:SetJustifyH("LEFT")
 	return text
@@ -635,6 +635,12 @@ local function Build()
 	Routes.panel, Routes.search, Routes.card, Routes.distance, Routes.note, Routes.chip, Routes.steps = panel, search, card, distance, note, chip, stepRows
 end
 
+local function ZoneSize()
+	local low = type(map.GetScaleForMinZoom) == "function" and Number(map:GetScaleForMinZoom())
+	if low and low > 0 and map.ScrollContainer then return Lumen.Size(map.ScrollContainer, 12) / low end
+	return Lumen.Size(canvas, 12)
+end
+
 local function RefreshZones()
 	Hide(zones)
 	local id = MapID()
@@ -651,7 +657,8 @@ local function RefreshZones()
 			local left, right, top, bottom = Call(C_Map, "GetMapRectOnMap", childID, id)
 			if Number(left) and Number(right) and Number(top) and Number(bottom) then
 				count = count + 1
-				local text = zones[count] or Text(canvas, "number", 12)
+				local text = zones[count]
+				if text then Style.Text(text) else text = Text(canvas, "number", ZoneSize) end
 				zones[count] = text
 				text:ClearAllPoints()
 				text:SetPoint("CENTER", canvas, "TOPLEFT", (left + right) * 0.5 * canvas:GetWidth(), -(top + bottom) * 0.5 * canvas:GetHeight())
@@ -748,6 +755,7 @@ def.Apply = function(self)
 		if type(map[method]) == "function" then hooksecurefunc(map, method, function() Refresh() end) end
 	end
 	if type(map.AcquirePin) == "function" then hooksecurefunc(map, "AcquirePin", HookPins) end
+	if type(map.OnCanvasSizeChanged) == "function" then hooksecurefunc(map, "OnCanvasSizeChanged", RefreshZones) end
 	map:HookScript("OnShow", Refresh)
 	Refresh()
 end

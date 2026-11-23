@@ -24,6 +24,9 @@ function M.Setup(env, map)
 	end
 	function map:GetCanvas() return self.ScrollContainer.Child end
 	function map:RefreshAllDataProviders() state.refreshes = (state.refreshes or 0) + 1 end
+	-- Blizzard_MapCanvas.lua:944 and MapCanvas_ScrollContainerMixin.lua:236-242: the reset zoom's scale, and the canvas size callback.
+	function map:GetScaleForMinZoom() return state.minZoom or 1 end
+	function map:OnCanvasSizeChanged() end
 	local dungeon = Place("Ragefire Chasm", 0.72, 0.36, { journalInstanceID = 42 })
 	local flight = Place("Razor Hill flight master", 0.35, 0.55, { faction = 1 })
 	local link = Place("Road to the Barrens", 0.14, 0.65)
