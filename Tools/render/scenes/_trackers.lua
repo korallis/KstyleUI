@@ -107,7 +107,7 @@ local HEALERS = {
 	SHAMAN_enhancement = { at = 3, known = { 16362, 10414, 20608, 17364, 425336 }, offHand = true, beats = {
 		{ 0, enchant = { 16, 1669, 1800 } },
 		{ 0, enchant = { 17, 1666, 240 } },
-		{ 1, cooldown = { 17364, 8 } },
+		{ 1, cast = 10414, cooldown = { 10414, 6 } },
 		{ 2, aura = { "player", 425336, 0, 15 } },
 	} },
 	SHAMAN = { at = 3, known = { 16362, 10414, 20608, 16166, 29228 }, offHand = true, beats = {
