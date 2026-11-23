@@ -1,4 +1,4 @@
--- test-role-fonts-modules.lua: an explicit role font reaches the GroupFrames party, loses to an element font, never reaches the Medallions raid tile or unit slab labels, and leaves default geometry and records alone.
+-- test-role-fonts-modules.lua: an explicit role font reaches the GroupFrames party, loses to an element font, never reaches the Medallions raid tile or unit slab labels (which follow the number role and keep an element font equal to their own face), and leaves default geometry and records alone.
 local G = dofile("Tools/regression/group_env.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 local U = dofile("Tools/regression/unitframes_env.lua")
@@ -134,8 +134,8 @@ do
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
--- UnitFrames: the Medallions slab names in its Inter SemiBold label face, long names included; a names role does not
--- reach it and an element font beats it.
+-- UnitFrames: the Medallions slab names in its label face (the number role), long names included; a names role does not
+-- reach it and an element font beats it, even one equal to the role's own face.
 do
 	local env, K, ns = U.New()
 	env._textWidth = D.TextWidth
@@ -156,6 +156,17 @@ do
 	K.Options.Write("UnitFrames", "focus.fonts.name.font", ns.Settings.THEME_FONT)
 	K.Options.Write("Appearance", "roleFontNames", "")
 	eq(named("Elunara Frostweaver"), label, "clearing both returns the label face")
+	local own = (K.Tokens.Font(ns.Settings.Role("focus", "name")))
+	K.Options.Write("UnitFrames", "focus.fonts.name.font", own)
+	eq(named("Elunara Frostweaver"), own, "an element font equal to the role's own face is still the player's choice")
+	K.Options.Write("UnitFrames", "focus.fonts.name.font", ns.Settings.THEME_FONT)
+	K.Options.Write("Appearance", "roleFontNumber", "InterSemiBold")
+	eq(named("Elunara Frostweaver"), K.Tokens.FontPath("InterSemiBold"), "a chosen number face reaches the slab's label")
+	local form, forms = ns.Settings.Form, 0
+	ns.Settings.Form = function(...) forms = forms + 1; return form(...) end
+	ns.Settings.Font("focus", "name")
+	ns.Settings.Form = form
+	eq(forms, 1, "Settings.Font resolves the frame's form once")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 	assert(K.ErrorCount() == 0, "no errors caught by KstyleUI.Call")
 end
