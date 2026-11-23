@@ -17,7 +17,8 @@ local NAMES = {
 	DRUID = { ["1:1"] = "roar", ["1:2"] = "rake", ["1:3"] = "seedLeft", ["2:1"] = "faerie", ["2:2"] = "rip", ["2:3"] = "seedRight",
 		["3:1"] = "third", ["3:2"] = "thirdMoonkin", ["3:3"] = "faerieGem", ["4:1"] = "growl", ["5:1"] = "charge", ["6:1"] = "bite", ["7:1"] = "bash",
 		["8:1"] = "oil", ["9:1"] = "bloom", ["10:1"] = "maul", ["10:2"] = "swiftnessMoonkin", ["10:3"] = "innervateMoonkin",
-		["10:4"] = "swiftmend", ["10:5"] = "swiftness", ["10:6"] = "innervate", ["11:1"] = "tankGlow", ["12:1"] = "cooldowns" },
+		["10:4"] = "swiftmend", ["10:5"] = "swiftness", ["10:6"] = "innervate", ["11:1"] = "tankGlow", ["12:1"] = "cooldownsBear",
+		["12:2"] = "cooldownsCat", ["12:3"] = "cooldowns" },
 	SHAMAN = { ["1:1"] = "mainHand", ["2:1"] = "offHand", ["3:1"] = "shock", ["4:1"] = "ankh", ["5:1"] = "flameShock", ["6:1"] = "cooldowns" },
 }
 
@@ -244,6 +245,35 @@ do
 	env._form = env.Secret(8)
 	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
 	assert(b.thirdMoonkin:IsShown(), "a secret form keeps the last crest")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- The druid's plaque and rim follow the form: the five-second rule only as a caster or moonkin; the rim watches
+-- Innervate, Nature's Swiftness, Barkskin, Dash and Nature's Grasp as a caster, Dash and Barkskin in Cat Form, and
+-- Frenzied Regeneration, Enrage, Barkskin and Dash in Bear Form; under Frames the bear's threat is a medal.
+do
+	local env, K, ns = New("DRUID", { 9898, 9907, 9881, 22812, 22842, 5229, 1850, 29166, 17116, 9634 }, { forms = { 132276 } })
+	local b = Tracker(ns, "DRUID").built
+	local function Rim()
+		for name, piece in pairs(b) do
+			if name:find("^cooldowns") and piece:IsShown() then return piece.lit.container._slots.lit.candidates.includeSpellIDs end
+		end
+		return {}
+	end
+	for _, case in ipairs({ { nil, true, { 29166, 17116, 22812, 1850 }, { 5229, 22842 } }, { 1, false, { 1850, 22812 }, { 5229, 29166, 17116 } },
+		{ 8, false, { 22842, 5229, 22812, 1850 }, { 29166, 17116 } } }) do
+		env._form = case[1]
+		env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+		local form = tostring(case[1] or 0)
+		assert(b.fiveSecond:IsShown() == case[2], "form " .. form .. ": the five-second plaque " .. (case[2] and "shows" or "hides"))
+		local ids = Rim()
+		for _, id in ipairs(case[3]) do assert(ids[id], "form " .. form .. ": the rim watches " .. id) end
+		for _, id in ipairs(case[4]) do assert(not ids[id], "form " .. form .. ": the rim leaves " .. id .. " out") end
+	end
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	local glow = Tracker(ns, "DRUID").built.tankGlowRow
+	assert(glow and glow:IsShown(), "under Frames the bear's threat is a medal in the row")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
