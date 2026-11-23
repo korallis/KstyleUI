@@ -360,7 +360,7 @@ local function Pick(row, pieces, stance)
 	for _, entry in ipairs(row) do
 		local key, choice = entry[1], entry[2]
 		first = first or pieces[key] and key
-		if not want and InForm(choice, stance) then
+		if not want and InForm(choice, stance) and (not choice.active or choice.active(choice)) then
 			want = key
 		end
 	end
