@@ -817,7 +817,7 @@ function Dock(f, path, band)
 		end
 		RestedXP.Chrome.IconInset(box)
 		local reach = Reach(box)
-		local left = (slot.left + slot.width) / scale - reach.right - width
+		local left = slot.left == band.left and slot.left / scale + reach.left or (slot.left + slot.width) / scale - reach.right - width
 		local y = (top - slot.drop) / scale - reach.top
 		local x = left + K.Scale.Origin() / scale
 		local point, relative, relativePoint, px, py = box:GetPoint(1)

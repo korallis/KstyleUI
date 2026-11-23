@@ -586,16 +586,17 @@ end
 -- guide window, as the earlier scene did; RestedXP's own layout of them is not modelled.
 local function Others(R, x, itemsTop)
 	local rxp, env = R.rxp, R.env
-	local ICON = 32
+	-- RestedXP's 25-unit item buttons, 27 apart (ActiveItemFrame.lua 302-312), as its target buttons.
+	local ICON = 25
 	local items, parts = R.Fake.Box(rxp, "items")
-	at(items, env.UIParent, RestedXP.LEFT, itemsTop + 16, 3 * (ICON + 6) + 10, ICON + 16)
+	at(items, env.UIParent, RestedXP.LEFT, itemsTop + 16, 3 * (ICON + 2) + 10, ICON + 16)
 	-- RestedXP hangs the title plate from the frame's top edge: TOPLEFT at (5, 10), 19 tall, as its
 	-- ActiveItemFrame.lua anchors it. The skin raises the card's glass over the plate.
 	at(parts.title, items, 5, -10, 90, 19)
 	text(parts.title.text, "Active items", "CENTER", parts.title)
 	R.Fake.Redraw(parts)
 	for i, button in ipairs(parts.buttonList) do
-		at(button, items, 8 + (i - 1) * (ICON + 6), 8, ICON, ICON)
+		at(button, items, 8 + (i - 1) * (ICON + 2), 8, ICON, ICON)
 		button.icon:SetAllPoints(button)
 		button.icon:SetTexture(134400 + i)
 	end
