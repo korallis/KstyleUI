@@ -151,17 +151,13 @@ local function Docking()
 	return On() and ns.Skins.Setting(KEY, DOCK) == true
 end
 
-local function Box(which)
-	return RestedXP.Box(state.rxp, which)
-end
-
 local function Boxes()
 	local out = {}
 	if not Docking() then
 		return out
 	end
 	for _, which in ipairs(BOXES) do
-		local box = Box(which)
+		local box = RestedXP.Box(state.rxp, which)
 		if box and box:IsShown() then
 			out[#out + 1] = box
 		end
@@ -196,7 +192,8 @@ local function Icons(box)
 	end
 	local title = RestedXP.Widget(box).title
 	for _, child in ipairs({ box:GetChildren() }) do
-		local right = child ~= title and child:GetObjectType() == "Button" and child:IsShown() and child:GetRight()
+		local shown = child:IsShown()
+		local right = child ~= title and child:GetObjectType() == "Button" and not Widgets.IsSecret(shown) and shown and child:GetRight()
 		if Plain(right) then
 			need = math.max(need, right - left + BOX_PAD)
 		end
@@ -738,7 +735,7 @@ end
 
 local function Drifted()
 	for _, which in ipairs(BOXES) do
-		local box = Box(which)
+		local box = RestedXP.Box(state.rxp, which)
 		local entry = box and state.boxes[box]
 		if box then
 			local shown = box:IsShown() == true
@@ -777,6 +774,7 @@ local function WatchBox(box)
 	end
 	box:HookScript("OnShow", Watch)
 	box:HookScript("OnHide", Watch)
+	hooksecurefunc(box, "SetScale", Schedule)
 	box:HookScript("OnMouseDown", Pressed)
 	box:HookScript("OnMouseUp", Dropped)
 	local title = RestedXP.Widget(box).title
@@ -895,7 +893,7 @@ function Rail.Start(rxp)
 	Holder()
 	Hook(f)
 	for _, which in ipairs(BOXES) do
-		local box = Box(which)
+		local box = RestedXP.Box(state.rxp, which)
 		if box then
 			WatchBox(box)
 		end

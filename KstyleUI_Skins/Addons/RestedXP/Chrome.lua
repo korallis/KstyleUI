@@ -589,7 +589,7 @@ end
 
 function Chrome.Chip(f, on)
 	local title = RestedXP.Widget(f).title
-	title = IsTable(title) and title
+	title = IsTable(title) and type(title.IsShown) == "function" and title
 	local shown = title and title:IsShown()
 	if title and (Widgets.IsSecret(shown) or shown == on) then title:SetShown(not on) end
 	if (state.chips[f] == true) == on then

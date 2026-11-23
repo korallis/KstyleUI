@@ -364,8 +364,12 @@ end
 
 local function ExtraWindows(R)
 	local rxp, env = R.rxp, R.env
-	Report(R)
-	Splits(R)
+	-- 4.11.39 rebuilt the leveling report and the level splits, which keep RestedXP's look; its fake has neither.
+	local legacy = rxp.tracker.CreateLevelSplits ~= nil
+	if legacy then
+		Report(R)
+		Splits(R)
+	end
 	Importer(R)
 	rxp.comms.OpenBugReport({ arg1 = 12 })
 	local feedback = env.RESTEDXP_BUG_REPORT_WINDOW.obj
@@ -416,7 +420,7 @@ local function ExtraWindows(R)
 	-- UI/V2/Core.lua:1081-1083: the banner header sits one unit inside the upper frame.
 	at(rxp.v2.state.guideWindow.header, rxp.v2.state.guideWindow.upperFrame, 1, 1, WIDTH - 2, rxp.v2.state.guideWindow.upperFrame:GetHeight() - 2)
 	Bar(rxp.ui.v2.configurator.ui.scrollContainer.scrollbar)
-	Bar(rxp.tracker.ui.RenderRestedXPCharacter.scrollContainer.scrollbar)
+	if legacy then Bar(rxp.tracker.ui.RenderRestedXPCharacter.scrollContainer.scrollbar) end
 	Bar(feedback.scrollContainer.scrollbar)
 	Bar(feedback.children[1].children[1].scrollBar)
 	Bar(env.RESTEDXP_BRANDED_EXPORT.obj.children[1].scrollBar)
@@ -441,7 +445,7 @@ local function ExtraWindows(R)
 			frame.rxpShadow:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 2, -2)
 		end
 	end
-	env.CharacterFrame:Hide()
+	if legacy then env.CharacterFrame:Hide() end
 end
 
 -- Guide(R, path, top) lays the guide window out: in the gallery with its header's top at `top`, header, step list

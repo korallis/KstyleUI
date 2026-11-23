@@ -336,7 +336,7 @@ local function Redraw(rxp, startup)
 		return
 	end
 	if startup and Method(rxp, "UpdateTheme") then
-		Try("UpdateTheme", rxp.UpdateTheme, rxp, true)
+		Try("UpdateTheme", rxp.UpdateTheme, rxp, true, true)
 		return
 	end
 	if startup and type(rxp.RenderFrame) == "function" then

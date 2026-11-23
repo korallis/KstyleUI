@@ -2109,7 +2109,8 @@ function modules.restedxp(opts)
 		R.S.W.Settle(R.env)
 		if boxes == "click" then
 			rxp.settings.profile.activeTargetScale = 1.25
-			R.Fake.Redraw(targetParts)
+			-- 4.11.39's scale setting calls SetScale (SettingsPanel.lua 1859); 4.11.35's redraw applied it.
+			if rxp.targeting.SetScale then rxp.targeting:SetScale(1.25) else R.Fake.Redraw(targetParts) end
 			rxp.settings.profile.lockFrames = true
 			targetParts.title:GetScript("OnMouseDown")(targetParts.title, "LeftButton")
 			targetParts.title:GetScript("OnMouseUp")(targetParts.title, "LeftButton")

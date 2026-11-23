@@ -11,6 +11,7 @@ return Common.Run(function()
 	local env, K = R.env, R.K
 	local frames = Gallery.Frames()
 	local function add(name, list, spec)
+		if not list then return end
 		spec.name, spec.rect = name, Gallery.Union(env, list)
 		frames:Add(env, list[1], spec)
 	end
