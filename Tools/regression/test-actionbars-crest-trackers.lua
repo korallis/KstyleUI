@@ -119,7 +119,7 @@ do
 	ns.SlabMedals.Rest()
 	assert(rim.fire:GetAlpha() == (ns.Slab.Resting() and 0 or 1), "the fire follows the crest's rest")
 	assert(Updating(ns.SlabTrackers.state.forms.crest.frame) == 0, "nothing runs OnUpdate")
-	for _, key in ipairs({ "crestShout", "crestOpening", "crestEnrage", "crestCooldowns", "crestThreat", "crestHips", "crestFeet", "crestTankGlow" }) do
+	for _, key in ipairs({ "crestShout", "crestOpening", "crestEnrage", "crestCooldowns", "crestThreat", "crestHipLeft", "crestHipRight", "crestFootLeft", "crestFootRight", "crestTankGlow" }) do
 		K.Options.Write("ActionBars", key, false)
 	end
 	env.RunTimers()
@@ -245,7 +245,7 @@ do
 	local crest = ns.SlabTrackers.state.forms.crest
 	local gem, glow
 	for _, piece in pairs(crest.pieces) do
-		if piece.spec.key == "crestFeet" and piece.spec.feed == "threat" and piece:IsVisible() then gem = piece end
+		if piece.spec.key == "crestFootRight" and piece.spec.feed == "threat" and piece:IsVisible() then gem = piece end
 		if piece.spec.key == "crestTankGlow" then glow = piece end
 	end
 	assert(gem and AB.W.LastCall(gem.bar, "SetValue")[1] == scaled and AB.W.LastCall(gem.lit, "SetAlphaFromBoolean")[1] == tanking, "a Protection paladin's threat foot takes the secrets as they are")
