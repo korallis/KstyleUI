@@ -119,4 +119,124 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, "meters: no errors")
 end
 
+-- Review of #746: the glass reuses each bar's own lit line, shade and sheen, so a nameplate stays at 172 regions.
+do
+	local _, K = W.New({ setup = withColor })
+	local Widgets, root = K.Widgets, K.Scale.Root()
+	local function added(opts)
+		local plain = {}
+		for k, v in pairs(opts) do
+			plain[k] = v
+		end
+		plain.glass = false
+		local glass = Widgets.StatusBar(root, opts)
+		return select("#", glass:GetRegions()) - select("#", Widgets.StatusBar(root, plain):GetRegions()), glass
+	end
+	assert(added({ width = 200, height = 14, background = "track", border = true }) == 2, "a bordered bar adds only the light and the bottom rim; its shade and lit line are the depth and top rim")
+	assert(added({ width = 200, height = 14, background = "barTrack", glass = "light" }) == 1, "a light-only meter row adds only the light and makes no dark layer")
+	assert(added({ width = 200, height = 14, background = false }) == 4, "a bar with no finish of its own adds all four layers")
+	local unit, flat = Widgets.UnitBar(root, { width = 200, height = 20 }), Widgets.UnitBar(root, { width = 200, height = 20, glass = false })
+	assert(select("#", unit.fillClip:GetRegions()) - select("#", flat.fillClip:GetRegions()) == 1, "a unit bar paints its sheen, shade and top line as the glass and adds only the bottom rim")
+
+	local bar = Widgets.StatusBar(root, { width = 200, height = 14, glass = "light" })
+	local calls = 0
+	for i = 1, 4 do
+		local layer = bar.glass[i]
+		if layer then
+			local show = layer.SetShown
+			layer.SetShown = function(self, ...)
+				calls = calls + 1
+				return show(self, ...)
+			end
+		end
+	end
+	bar:PlaceGlass()
+	assert(calls == 0, "an unchanged placement sets no visibility, got " .. calls .. " SetShown calls")
+	local off = Widgets.StatusBar(root, { width = 200, height = 14, glass = false })
+	local reads = 0
+	for _, key in ipairs({ "GetStatusBarTexture", "GetHeight", "GetWidth" }) do
+		local read = off[key]
+		off[key] = function(self, ...)
+			reads = reads + 1
+			return read(self, ...)
+		end
+	end
+	off:PlaceGlass()
+	assert(reads == 0, "a bar that opts out reads neither its fill nor its size, got " .. reads .. " reads")
+end
+
+-- Review of #746: an upright bar wears the same glass turned on its side, whether it was built upright or turned by
+-- the engine's own SetOrientation (data bars and cooldown charges), never a light half its height tall.
+do
+	local _, K = W.New({ setup = withColor })
+	local Widgets, root = K.Widgets, K.Scale.Root()
+	local function upright(bar, where)
+		local fill, light = bar:GetStatusBarTexture(), bar.glass and bar.glass[1]
+		assert(bar.glassOn and light, where .. ": an upright bar wears the glass")
+		local rel, relPoint = anchor(light, "BOTTOMLEFT")
+		assert(rel == fill and relPoint == "BOTTOMLEFT" and anchor(light, "TOPLEFT") == fill, where .. ": the light runs up the fill's left side")
+		local across = math.floor(pixels(K, bar, bar:GetWidth()) / 2 + 0.01)
+		assert(math.abs(pixels(K, bar, light:GetWidth()) - across) < 1e-6, where .. ": the light is half the bar's width, got " .. pixels(K, bar, light:GetWidth()) .. " pixels")
+		local g = light._state.Gradient
+		assert(g[1] == "HORIZONTAL" and g[2].a > 0 and g[3].a == 0, where .. ": the light fades from the left edge")
+		g = bar.glass[2]._state.Gradient
+		assert(g[1] == "HORIZONTAL" and g[2].a == 0 and g[3].a > 0, where .. ": the depth darkens toward the right edge")
+		assert(anchor(bar.glass[4], "TOPRIGHT") == fill and math.abs(pixels(K, bar, bar.glass[4]:GetWidth()) - 1) < 1e-6, where .. ": the dark rim is one pixel down the right side")
+	end
+	upright(Widgets.StatusBar(root, { width = 14, height = 120, orientation = "VERTICAL", background = "track" }), "built upright")
+	local turned = Widgets.StatusBar(root, { width = 14, height = 120, background = false })
+	turned:SetOrientation("VERTICAL")
+	turned:Restyle()
+	upright(turned, "turned by SetOrientation")
+	upright(Widgets.UnitBar(root, { width = 14, height = 120, orientation = "VERTICAL" }), "an upright unit bar")
+end
+
+-- Review of #746: the data bar that turns upright agrees with its siblings.
+do
+	local D = dofile("Tools/regression/databars_env.lua")
+	local _, K, ns = D.New()
+	K.Options.Write("DataBars", "rep.orientation", "VERTICAL")
+	local fill = ns.Bars.views.rep.fill
+	local light = fill.glass and fill.glass[1]
+	assert(light and light._state.Gradient[1] == "HORIZONTAL" and pixels(K, fill, light:GetWidth()) <= pixels(K, fill, fill:GetWidth()) / 2 + 1e-6,
+		"an upright reputation bar wears the glass on its side, not a light " .. tostring(light and pixels(K, fill, light:GetHeight())) .. " pixels tall")
+end
+
+-- Review of #746: the tooltip preview shows the finish the live tooltip health bar has.
+do
+	local T = dofile("Tools/regression/tooltips_env.lua")
+	local env, K, ns = T.New()
+	K.Modules.Enable("Tooltips")
+	local preview = K.Options.Preview("Tooltips")(env.CreateFrame("Frame", nil, K.Scale.Root()))
+	local live = assert(ns.Health.Build(env.GameTooltip))
+	assert(preview.bar.glassMode == live.glassMode and not preview.bar.glassOn, "the preview's health bar wears the live bar's finish")
+end
+
+-- Review of #746: the stock meter fixture has the game's CreateColor, so screenshots and the pixel guard see the light.
+do
+	local env, K, ns = M.New({ game = function(e)
+		e._group = { raid = false, size = 2 }
+	end })
+	env._session = { combatSources = { { name = "Kragar", classFilename = "WARRIOR", totalAmount = 2840, amountPerSecond = 28.4, sourceDisplayType = 1, isLocalPlayer = false, deathRecapID = 0, deathTimeSeconds = 0 } }, maxAmount = 2840, totalAmount = 2840, durationSeconds = 30 }
+	M.Enable(env, K)
+	assert(type(env.CreateColor) == "function" and ns.Damage.list.rows[1].bar.glassOn, "the stock meter fixture draws the light")
+end
+
+-- Review of #746: under Medallions the player's cast bar keeps the whole glass; the module no longer hides the lit
+-- line and shade the glass is painted on.
+do
+	local U = dofile("Tools/regression/unitframes_env.lua")
+	local env, K, ns = U.New()
+	local element = ns.CastBars.Get("player")[1]
+	env._time = 2.2
+	env._units.player.cast = { name = "Lightning Bolt", texture = 136048, start = 1000, finish = 3500, spellID = 188196 }
+	env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 188196)
+	U.W.Tick(env, 0.1)
+	local bar = element.bar
+	assert(element.medal and bar.glassOn, "the Medallions cast bar wears the glass")
+	for i = 1, 4 do
+		assert(bar.glass[i]:IsShown(), "under Medallions the cast bar's glass layer " .. i .. " shows")
+	end
+end
+
 print("ok bar glass")
