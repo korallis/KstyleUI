@@ -655,3 +655,4 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - Ranged complete-crest research done; additions to ranged builder; topGem/pips/shared families to helper owner.
 - #767 polish D green; review dispatched (17 'not real' rows to verify).
 - Healers complete-crest research done; additions to healer builder.
+- #768 polish C green; review dispatched. Follow-up: A3 UF player aura row, A9 bars 3/4 '-' hotkey.
