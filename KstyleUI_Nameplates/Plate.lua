@@ -1476,7 +1476,7 @@ function Plate:UpdateThreat()
 		shape:SetTexCoord(0, 1, 0, state == "warning" and 0.5 or 1)
 		Widgets.Size(shape, state == "safe" and 2 or 6, 6)
 		shape:ClearAllPoints()
-		Widgets.Point(shape, "LEFT", self.health, "RIGHT", 8, 0)
+		Widgets.Point(shape, "TOPLEFT", self.health, "TOPRIGHT", 8, -Widgets.Snap(self, (self.barH - 6) / 2))
 		shape:SetVertexColor(ThreatColor(state))
 	end
 	local glow = self.threatGlow
