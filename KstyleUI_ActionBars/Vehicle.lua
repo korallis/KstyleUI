@@ -61,8 +61,8 @@ function Vehicle.Update()
 	if button.opts.size ~= size then
 		button.opts.size = size
 		button:Restyle()
+		ns.Slab.Dress(button)
 	end
-	ns.Slab.Dress(button)
 	button:ClearAllPoints()
 	if bar and K.HudStyle.Current() == "medallions" then
 		local right = ns.bars.bar2 and ns.bars.bar2:Shown() and ns.bars.bar2 or bar

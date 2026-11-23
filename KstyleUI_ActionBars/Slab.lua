@@ -1167,7 +1167,7 @@ end
 
 local function OnStyle()
 	Slab.Refresh()
-	for _, list in ipairs({ ns.actionButtons, ns.petButtons, ns.stanceButtons }) do
+	for _, list in ipairs({ ns.actionButtons, ns.petButtons, ns.stanceButtons, { ns.leaveButton } }) do
 		for _, b in ipairs(list or {}) do
 			Slab.Dress(b)
 			Slab.SetProc(b, b.proc == true)
