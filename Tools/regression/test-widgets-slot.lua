@@ -127,6 +127,8 @@ do
 	local _, _, polished = slot({ procTransitions = true })
 	polished:SetProc(true)
 	assert(polished.lumenGlow:IsShown() and polished.lumenGlow:GetAlpha() == 1, "a polished proc's halo shows at rest alpha before its first tick: " .. polished.lumenGlow:GetAlpha())
+	local enter = polished.lumenGlow.enter
+	assert(enter:IsPlaying() and fades(enter)[1].from == 0 and fades(enter)[1].to == 1, "and its entrance is the client's alpha animation from nothing")
 	assert(#env._errors == 0, table.concat(env._errors, "\n"))
 end
 
