@@ -5,8 +5,8 @@ if select(2, UnitClass("player")) ~= "DRUID" then
 end
 
 local K = KstyleUI
-local Medals, Widgets = ns.SlabMedals, K.Widgets
-local IsSecret = Widgets.IsSecret
+local Medals = ns.SlabMedals
+local IsSecret = K.Widgets.IsSecret
 
 local MOONFIRE = { 9835, 9834, 9833, 8929, 8928, 8927, 8926, 8925, 8924, 8921 }
 local SWARM = { 24977, 24976, 24975, 24974, 5570 }
@@ -19,21 +19,12 @@ local OMEN, CLEARCASTING = { 16864 }, { 16870, 457342, 467735 }
 local GROWTH, POUNCE = { 1238215, 1238214, 408120 }, { 9826, 9824, 9007 }
 local GROWL, CHARGE, BITE, BASH = { 6795 }, { 1238122 }, { 1238070, 1238069, 407995 }, { 8983, 6798, 5211 }
 local BEAR, CAT, MOONKIN, CASTER = { 5, 8 }, { 1 }, { 31, 35 }, { 0, 3, 4 }
-local LEAVES, LEAF, ORBIT, UNFURL = 8, 14, 54, 0.35
+local LEAVES, LEAF, UNFURL = 8, 14, 0.35
 local DASH, BARKSKIN = { spells = { 1850, 9821 } }, { spells = { 22812 } }
 
 local maul, bloom = {}, nil
-local Oil, Flask = ns.SlabVigil.Oil, ns.SlabVigil.Flask
-
-local function Join(...)
-	local all = {}
-	for _, list in ipairs({ ... }) do
-		for _, id in ipairs(list) do
-			all[#all + 1] = id
-		end
-	end
-	return all
-end
+local Oil, Flask, Ring, Gem = ns.SlabVigil.Oil, ns.SlabVigil.Flask, ns.SlabVigil.Ring, ns.SlabVigil.Gem
+local Join = ns.SlabTrackers.Joined
 
 local function Effect(spells, color, filter, forms, seat)
 	return { feed = "aura", unit = "target", filter = filter or "HARMFUL|PLAYER", spells = spells, color = color, forms = forms, seat = seat }
@@ -75,24 +66,6 @@ local function Unfurl(_, full)
 		bloom.unfurl:Stop()
 	end
 	bloom.full = full
-end
-
-local function Ring(piece, anchor, form, _, n)
-	if form == "row" then
-		Medals.Place(piece, anchor, Medals.Cell(n))
-		return n + 1
-	end
-	Medals.Place(piece, anchor, 0, 0)
-	for _, leaf in ipairs(piece.ring) do
-		local a = math.rad(leaf.angle)
-		leaf:ClearAllPoints()
-		leaf:SetPoint("CENTER", anchor, "CENTER", Widgets.Snap(anchor, ORBIT * math.sin(a)), Widgets.Snap(anchor, ORBIT * math.cos(a)))
-	end
-	return n
-end
-
-local function Gem(parent, spec, level, form)
-	return (form == "crest" and Medals.Socket or Medals.Medal)(parent, spec, level)
 end
 
 local function Emblem(parent, spec, level, form)

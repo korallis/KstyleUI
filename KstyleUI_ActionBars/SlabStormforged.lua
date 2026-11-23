@@ -26,32 +26,10 @@ for token, ids in pairs({
 end
 local STONE, SETTING, RIM, LAST, GLOW = 14, 18, 22, 300, 0.55
 local SLOTS = { MainHand = 16, OffHand = 17 }
-local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local GUTTER = { { 1, 0.4, 0.07 }, { 0.4, 0.85, 0.06 }, { 0.85, 0.3, 0.08 }, { 0.3, 1, 0.1 } }
 local PULSE = { { 0.25, 1, 0.6 }, { 1, 0.25, 0.6 } }
 
 local stones, ankhs = {}, {}
-
-local function Piece(parent, level, units)
-	local piece = CreateFrame("Frame", nil, parent)
-	piece:SetFrameLevel(level)
-	piece.units, piece.parts, piece.lits = units, {}, {}
-	piece.add = function(part, size)
-		part.units = size or part.units
-		piece.parts[#piece.parts + 1] = part
-		return part
-	end
-	piece.add(piece)
-	return piece
-end
-
-local function Flare(piece, parent, level, token, size)
-	local flare = Medals.Layer(parent, level)
-	piece.add(Medals.Texture(flare, "ARTWORK", 0, token, "white", size, "ADD"))
-	flare:SetAlpha(0)
-	flare.play = Medals.Steps(flare, FLARE)
-	parent.flare, piece.flare = flare, flare
-end
 
 local function Stone(parent, spec, level, form)
 	local s
@@ -59,7 +37,7 @@ local function Stone(parent, spec, level, form)
 		s = Medals.Medal(parent, setmetatable({ color = "gilt" }, { __index = spec }), level)
 		s.light = s.lit.icon
 	else
-		s = Piece(parent, level, SETTING)
+		s = Medals.Piece(parent, level, SETTING)
 		s.add(Medals.Texture(s, "BACKGROUND", 0, "glow", "black", SETTING * 1.6)):SetAlpha(0.6)
 		s.add(Medals.Texture(s, "BORDER", 0, "ring", "gilt", SETTING))
 		s.add(Medals.Texture(s, "ARTWORK", 0, "trackerStone", "white", STONE))
@@ -71,7 +49,7 @@ local function Stone(parent, spec, level, form)
 		s.rim = Medals.Layer(s, level + 2)
 		s.add(Medals.Texture(s.rim, "OVERLAY", 0, "ring", "gilt", RIM, "ADD"))
 		s.pulse = Medals.Steps(s.rim, PULSE, true)
-		Flare(s, lit, level + 3, spec.burst, SETTING * 3)
+		Medals.Flare(s, lit, level + 3, spec.burst, SETTING * 3)
 	end
 	s.slot = SLOTS[spec.slot]
 	s.gutter = Medals.Steps(s.light, GUTTER, true)
@@ -84,7 +62,7 @@ local function Shock(parent, spec, level, form)
 	if form == "row" then
 		return Medals.Medal(parent, spec, level)
 	end
-	local s = Piece(parent, level, 2)
+	local s = Medals.Piece(parent, level, 2)
 	s.timer = CreateFrame("Cooldown", nil, s, "CooldownFrameTemplate")
 	s.timer:SetAllPoints(hub.crest)
 	s.timer:SetSwipeTexture(hub.crestPath or (Tokens.Texture("dot")))
@@ -93,7 +71,7 @@ local function Shock(parent, spec, level, form)
 	s.timer:SetDrawBling(false)
 	s.timer:SetHideCountdownNumbers(true)
 	s.timer:SetScript("OnCooldownDone", function() Medals.Fire(s) end)
-	Flare(s, s, level + 1, spec.burst, ns.Slab.RING)
+	Medals.Flare(s, s, level + 1, spec.burst, ns.Slab.RING)
 	s.flare:SetAllPoints(hub)
 	return s
 end
@@ -188,5 +166,5 @@ ns.SlabTrackers.Register("SHAMAN", {
 			Charm()
 		end
 	end,
-	motion = function() Stones() end,
+	motion = Stones,
 })

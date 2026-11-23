@@ -83,11 +83,11 @@ local function Shadow()
 end
 
 local function Healer(spells)
-	return function() return not Shadow() and Medals.Known(spells) or nil end
+	return function() return not Shadow() and Medals.Known(spells) end
 end
 
 local function ShadowOnly(spells)
-	return function() return Shadow() and Medals.Known(spells) or nil end
+	return function() return Shadow() and Medals.Known(spells) end
 end
 
 local function Oil()
@@ -166,7 +166,7 @@ local function Paint(_, event, _, _, spellID)
 	end
 end
 
-ns.SlabVigil = { Oil = Oil, Flask = Flask }
+ns.SlabVigil = { Oil = Oil, Flask = Flask, Ring = Ring, Gem = Gem }
 if class ~= "PRIEST" then
 	return
 end
