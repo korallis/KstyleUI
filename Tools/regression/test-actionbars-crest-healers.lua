@@ -468,6 +468,18 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- The oil medal wears an oil's icon, never the oil's item ID read as a spell's.
+do
+	local env, K, ns = New("PRIEST", PRIEST)
+	env._oils = 1
+	env.FireEvent("BAG_UPDATE_DELAYED")
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	local oil = Tracker(ns, "PRIEST").built.oilRow
+	assert(oil and oil:IsShown() and oil.steel:GetTexture() ~= oil.spec.spell, "the oil medal's icon is an oil's, not spell " .. tostring(oil and oil.spec.spell))
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 -- Imbues are imbues: another temporary enchant is no imbue, and under Frames each weapon's medal keeps its
 -- element's icon and colour, the enchant's own timer and the last five minutes' gutter. Oil is oil.
 do
