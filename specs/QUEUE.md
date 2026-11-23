@@ -692,3 +692,5 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - v0.3.3 RELEASED.
 - v0.3.3 #chat announced.
 - #771 review fixed (57b7e3a2f, CI green); waits for #776 to merge, then rebase onto staging and merge.
+- Roadmap #780 merged; Discord roadmap updated.
+- Merged #777 (polish F leftovers; Glow.lua ShowProc rests at alpha 1).
