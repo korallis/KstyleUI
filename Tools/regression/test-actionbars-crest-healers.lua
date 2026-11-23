@@ -253,7 +253,7 @@ end
 do
 	local env, K, ns = New("PRIEST", { 10952, 10947, 1316995, 15334 })
 	local b = Tracker(ns, "PRIEST").built
-	assert(b.mindBlast:IsShown() and not b.penance:IsShown(), "Shadow Weaving without Shadowform: Mind Blast, not Penance")
+	assert(b.mindBlast:IsShown() and not (b.penance and b.penance:IsShown()), "Shadow Weaving without Shadowform: Mind Blast, not Penance")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 do

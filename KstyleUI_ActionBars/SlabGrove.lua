@@ -96,11 +96,11 @@ ns.SlabTrackers.Register("DRUID", {
 	{ key = "crestSeeds", seat = "left", choices = {
 		Effect(ROAR, "jewelCombo", nil, BEAR),
 		{ forms = CAT, color = "white", known = Join(RAKE, POUNCE), feeds = { Effect(POUNCE, "jewelCombo"), Effect(RAKE, "jewelCombo") } },
-		{ color = "white", known = Join(MOONFIRE, REJUVENATION), feeds = { Effect(MOONFIRE, "totemAir"), Effect(REJUVENATION, "schoolArcane", "HELPFUL|PLAYER") } },
+		{ forms = Join(CASTER, MOONKIN), color = "white", known = Join(MOONFIRE, REJUVENATION), feeds = { Effect(MOONFIRE, "totemAir"), Effect(REJUVENATION, "schoolArcane", "HELPFUL|PLAYER") } },
 	} },
 	{ key = "crestSeeds", seat = "right", choices = {
 		Effect(FAERIE, "schoolArcane", nil, BEAR), Effect(RIP, "jewelCombo", nil, CAT),
-		{ color = "white", known = Join(SWARM, REGROWTH), feeds = { Effect(SWARM, "jewelHawk"), Effect(REGROWTH, "schoolNature", "HELPFUL|PLAYER") } },
+		{ forms = Join(CASTER, MOONKIN), color = "white", known = Join(SWARM, REGROWTH), feeds = { Effect(SWARM, "jewelHawk"), Effect(REGROWTH, "schoolNature", "HELPFUL|PLAYER") } },
 	} },
 	{ key = "crestThird", seat = "top", choices = {
 		{ forms = CASTER, color = "white", known = Join(FAERIE, GROWTH), feeds = { Effect(FAERIE, "schoolArcane"), Effect(GROWTH, "schoolNature", "HELPFUL|PLAYER") } },

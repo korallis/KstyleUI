@@ -169,12 +169,12 @@ ns.SlabVigil = { Oil = Oil, Flask = Flask }
 ns.SlabTrackers.Register("PRIEST", {
 	{ key = "crestInnerFire", seat = "rim", feed = "aura", spells = INNER_FIRE, build = Fire, place = Ring },
 	{ key = "crestPenance", seat = "left", feed = "cooldown", choices = {
-		{ known = function() return not Medals.Known(SHADOWFORM) and Medals.Known(PENANCE) or nil end },
+		{ known = Healer(PENANCE) },
 		{ known = MIND_BLAST },
 	} },
 	{ key = "crestShadowfiend", seat = "right", choices = {
 		{ forms = { 28 }, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = EMBRACE, color = "schoolShadow" },
-		{ feed = "aura", spells = SHADOWFORM },
+		{ forms = { 0 }, feed = "aura", spells = SHADOWFORM },
 		{ feed = "cooldown", known = SHADOWFIEND },
 	} },
 	{ key = "crestPain", seat = "topGem", build = Gem, choices = {
