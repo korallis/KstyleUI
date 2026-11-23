@@ -163,6 +163,8 @@ local function Paint(_, event, _, _, spellID)
 	end
 end
 
+ns.SlabVigil = { Oil = Oil, Flask = Flask }
+
 ns.SlabTrackers.Register("PRIEST", {
 	{ key = "crestInnerFire", seat = "rim", feed = "aura", spells = INNER_FIRE, build = Fire, place = Ring },
 	{ key = "crestPenance", seat = "left", feed = "cooldown", choices = {

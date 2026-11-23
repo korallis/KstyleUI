@@ -15,12 +15,12 @@ local MAUL = { 9881, 9880, 9745, 8972, 6809, 6808, 6807 }
 local OMEN, CLEARCASTING = { 16864 }, { 16870, 457342, 467735 }
 local GROWTH, POUNCE = { 1238215, 1238214, 408120 }, { 9826, 9824, 9007 }
 local GROWL, CHARGE, BITE, BASH = { 6795 }, { 1238122 }, { 1238070, 1238069, 407995 }, { 8983, 6798, 5211 }
-local OILS = { 20744, 20745, 20746, 20747, 20748, 20749, 20750 }
 local BEAR, CAT, MOONKIN, CASTER = { 5, 8 }, { 1 }, { 31, 35 }, { 0, 3, 4 }
 local LEFT_FOOT, RIGHT_FOOT, PERCH = { -28.5, -67.2 }, { 28.5, -67.2 }, 17
 local LEAVES, LEAF, ORBIT, GEM, GAP = 8, 14, 54, 60, 4
 
 local maul = {}
+local Oil, Flask = ns.SlabVigil.Oil, ns.SlabVigil.Flask
 
 local function Join(...)
 	local all = {}
@@ -75,26 +75,6 @@ local function Maul(parent, spec, level, form)
 	local s = Gem(parent, spec, level, form)
 	maul[#maul + 1] = s
 	return s
-end
-
-local function Oil()
-	local item, info = C_Item, C_PaperDollInfo
-	for _, id in ipairs(OILS) do
-		local n = item and type(item.GetItemCount) == "function" and item.GetItemCount(id)
-		if not IsSecret(n) and type(n) == "number" and n > 0 then
-			return id
-		end
-	end
-	local on = info and type(info.GetTemporaryEnchantmentInfo) == "function" and info.GetTemporaryEnchantmentInfo(16)
-	return on ~= nil and OILS[1] or nil
-end
-
-local function Flask(parent, spec, level, form)
-	if form == "crest" then
-		return Medals.Socket(parent, spec, level)
-	end
-	local icon = C_Item and type(C_Item.GetItemIconByID) == "function" and C_Item.GetItemIconByID(spec.spell)
-	return Medals.Medal(parent, setmetatable({ texture = not IsSecret(icon) and icon or nil }, { __index = spec }), level)
 end
 
 local function Queued()
