@@ -180,7 +180,6 @@ local function raid(frames, x, y)
 	assert(#shown == 20, "twenty raid frames show, got " .. #shown)
 	-- The engine lays its aura buttons out in the game; the scene places the fake engine's buttons where the
 	-- containers would: your heals from the name line's right end leftward, debuffs over the bar's right end.
-	local Tokens = K.Tokens
 	local k = ns.Settings.current.raid
 	for _, header in ipairs(ns.Headers.raid) do
 		for unit, f in pairs(contents(ns, header)) do
