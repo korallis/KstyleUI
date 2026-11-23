@@ -107,6 +107,38 @@ Render `worldmap_routes` at 1080p, 1440p, ultrawide and 4K over a real game
 backdrop; the map and destinations in this harness remain stand-ins. `RENDER_MAP_BEFORE=1` turns all
 four additions off for the matching before capture.
 
+### Travel stops and unexplored areas
+
+**Travel stops** (on by default) adds every client transport to the road route.
+Boats and zeppelins between the continents join the two shipped graphs by their
+shared dock ids, so a destination on the other continent gets a route instead of
+"Destination is on another continent". A flying transport is a zeppelin; a dock
+is named after the nearest town or flight master within 500 yards, else the
+nearest named area. The Deeprun Tram joins Stormwind and Ironforge. The player's
+hearthstone (bound location from `GetBindLocation`, matched to a shipped place by
+name), Astral Recall and the mage and druid teleports and portals the player knows
+(`C_SpellBook.IsSpellKnown`, castable by `C_Spell.IsSpellUsable`) start the search
+at their arrival place, costing the cast time plus any cooldown still to run
+(`C_Item.GetItemCooldown`, `C_Spell.GetSpellCooldown`); the route takes one only
+when it is faster. Each step reads plainly ("Zeppelin to Brill", "Tram to
+Ironforge", "Hearthstone to Razor Hill") and a hearth or teleport step shows its
+time without yards. A cross-continent leg draws only where it lands. Off keeps
+today's single-continent routes, labels and card exactly.
+
+**Reveal unexplored areas** (off by default: it changes what the map shows)
+draws each overlay the client's `WorldMapOverlay` table lists for the open map but
+`C_MapExplorationInfo.GetExploredMapTextures` does not, on Blizzard's
+`MapExplorationPinTemplate` pin, one draw sublevel under the explored art, tinted
+with the `muted` token and masked by `AddMaskableTexture`. Tiles follow
+Blizzard's `MapExplorationPinMixin:RefreshOverlays` layout, and a hook on that
+method redraws after every map change, zoom layer change or exploration update.
+The overlay table loads from `KstyleUI_Routes` only when the option is on and the
+map is open; off hides every added texture.
+
+`test-worldmap-travel.lua` routes across the real shipped graphs and checks the
+hearth, teleport and cooldown choices; `test-worldmap-reveal.lua` checks the tile
+layout, dimming, loading and switching off.
+
 `Skins.xml` loads the files in this order:
 
 | File | What it holds |
