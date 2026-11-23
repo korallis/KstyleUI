@@ -73,7 +73,7 @@ It returns `false` for an unknown layout, or before the saved data loads.
 | Keyboard | Bars 1 and 2 at their defaults: twelve buttons each, no split, the Frames tray on. The way back |
 | Gamepad | Bars 1 and 2 at eight buttons each (the controller's two groups of four), each row split in two, and the Frames tray off |
 
-On Medallions the slab keeps its socket size and seats eight sockets either side of the crest: a left and a right group. On Frames the tray goes, so bars 1 and 2 drop the tray column's smaller buttons, and each split row makes a left and a right group of four over four under the unit frames. A set touches no position. General > Keyboard or gamepad bars (on by default) shows the row in setup and on the General page; off hides it and leaves the settings alone. Bigger Medallions sockets are left out: the slab's button size also sizes the hub and the lift of the unit frames above it, which this set does not touch.
+On Medallions the slab keeps its socket size and seats eight sockets either side of the crest: a left and a right group. On Frames the tray goes, so bars 1 and 2 drop the tray column's smaller buttons, and each split row makes a left and a right group of four over four under the unit frames. A set touches no position. General > Keyboard or gamepad bars (on by default) shows the row in setup and on the General page while the Action Bars settings are registered (`Looks.ControlsShown()`); off, or without Action Bars, hides it and leaves the settings alone, and without Action Bars `Looks.Controls()` is nil and `Looks.ApplyControls` refuses. Bigger Medallions sockets are left out: the slab's button size also sizes the hub and the lift of the unit frames above it, which this set does not touch.
 
 ## Edit Mode
 

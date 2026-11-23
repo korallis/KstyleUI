@@ -40,10 +40,13 @@ return Common.Run(function()
 		local account = K.Store.Account()
 		account.optionsSearchJump, account.optionsPreviewAll, account.motionOneStyle = false, false, false
 	end
+	-- The Controls row shows only with the Action Bars settings it writes, which this scene's modules lack.
+	local BARS = { bar1 = { buttons = 12, split = "off" }, bar2 = { buttons = 12, split = "off" }, useTray = true }
+	if os.getenv("RENDER_SUBJECT") ~= "setup" and not K.Store.Defaults("ActionBars") then K.Store.RegisterDefaults("ActionBars", BARS) end
 	local key
 	if (os.getenv("RENDER_LOOK") or "") ~= "" then assert(K.Setup.Looks.Apply(os.getenv("RENDER_LOOK"))) end
 	if os.getenv("RENDER_SUBJECT") == "setup" then
-		for _, name in ipairs(K.Setup.PICKER) do K.Modules.Register(W.CoreEnv.Module(name.name)) end
+		for _, name in ipairs(K.Setup.PICKER) do K.Modules.Register(W.CoreEnv.Module(name.name, name.name == "ActionBars" and { defaults = BARS } or nil)) end
 		assert(K.Setup.Open(true))
 		assert(K.Setup.Go(tonumber(os.getenv("RENDER_SETUP_STEP")) or 4))
 		key = "setup.window"

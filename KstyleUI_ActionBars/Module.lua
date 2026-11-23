@@ -126,9 +126,14 @@ local function RefreshBars()
 	end
 end
 
+local function RefreshPad()
+	if ns.padActive and ns.Config("padGlyphs") ~= false then ns.UpdateHotkeys() end
+end
+
 local function RefreshVisuals()
 	HoldSlab(RefreshBars)
 	ApplyAccent()
+	RefreshPad()
 end
 
 local function ForSlot(slot, fn, a, b2)
@@ -468,9 +473,9 @@ local EVENTS = {
 	INPUT_DEVICE_INTERFACE_TRANSITION = OnTransition,
 	GAME_PAD_ACTIVE_CHANGED = function(_, active)
 		ns.padActive = not ns.IsSecret(active) and active == true
-		ns.UpdateHotkeys()
+		if ns.Config("padGlyphs") ~= false then ns.UpdateHotkeys() end
 	end,
-	GAME_PAD_CONNECTED = function() ns.UpdateHotkeys() end,
+	GAME_PAD_CONNECTED = RefreshPad,
 	SPELLS_CHANGED = OnSpells,
 	LEARNED_SPELL_IN_SKILL_LINE = OnLearned,
 	SPELL_DATA_LOAD_RESULT = OnSpellLoaded,
@@ -486,7 +491,7 @@ local function Enable()
 	ns.running = true
 	ns.class = select(2, UnitClass("player"))
 	ns.gamepad = ns.IsGamepad()
-	local pad = type(C_GamePad) == "table" and type(C_GamePad.IsEnabled) == "function" and C_GamePad.IsEnabled()
+	local pad = type(IsUsingGamepad) == "function" and IsUsingGamepad()
 	ns.padActive = not ns.IsSecret(pad) and pad == true
 	ns.SyncVisibilities()
 	if not (C_ActionBar and type(C_ActionBar.HasAction) == "function" and type(C_ActionBar.GetActionTexture) == "function") then

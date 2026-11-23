@@ -215,7 +215,7 @@ local function Refresh()
 		local look = Setup.Looks.Get(choice.look or Setup.Looks.Current())
 		if ns.Store.Module("Setup").looks then lead = lead .. "\n" .. string.format(L["Look: %s."], look and look.label or L["Your own"]) end
 		local controls = Setup.Looks.Get(choice.controls or Setup.Looks.Controls(), Setup.Looks.CONTROLS)
-		if ns.Store.Module("Setup").controls then lead = lead .. "\n" .. string.format(L["Controls: %s."], controls and controls.label or L["Your own"]) end
+		if Setup.Looks.ControlsShown() then lead = lead .. "\n" .. string.format(L["Controls: %s."], controls and controls.label or L["Your own"]) end
 		if Wide() then lead = lead .. "\n" .. string.format(L["Arrangement: %s."], ARRANGEMENTS[arrangement == "spread" and 2 or 1].label) end
 		local head = lead .. "\n\n"
 		local tail = #off > 0 and "\n" .. L["Off: "] .. table.concat(off, ", ") or ""
@@ -970,22 +970,18 @@ local function BuildStyles(page, width)
 	local hint = Paragraph(page, "body", "text", width, "body")
 	hint:SetText(L["Played on Frames before? Pick it here to get it back. Change it at any time in the settings window, at the top of the General page. A change made in combat waits until combat ends."])
 	panel.styleHint = hint
-	panel.lookCaption = Widgets.Text(page, "caps", "capsGold")
-	Widgets.CapsSize(panel.lookCaption)
-	Widgets.SetText(panel.lookCaption, L["Look"])
-	panel.lookTabs = Widgets.Tabs(page, { tabs = {}, width = cardWidth, height = STRIP_HEIGHT, onSelect = function(value)
-		Setup.Choice().look = value
-		Changed()
-	end })
-	panel.lookNote = Paragraph(page, "body", "text", cardWidth, "body")
-	panel.padCaption = Widgets.Text(page, "caps", "capsGold")
-	Widgets.CapsSize(panel.padCaption)
-	Widgets.SetText(panel.padCaption, L["Controls"])
-	panel.padTabs = Widgets.Tabs(page, { tabs = {}, width = cardWidth, height = STRIP_HEIGHT, onSelect = function(value)
-		Setup.Choice().controls = value
-		Changed()
-	end })
-	panel.padNote = Paragraph(page, "body", "text", cardWidth, "body")
+	local function Choice(label, field)
+		local caption = Widgets.Text(page, "caps", "capsGold")
+		Widgets.CapsSize(caption)
+		Widgets.SetText(caption, label)
+		local tabs = Widgets.Tabs(page, { tabs = {}, width = cardWidth, height = STRIP_HEIGHT, onSelect = function(value)
+			Setup.Choice()[field] = value
+			Changed()
+		end })
+		return caption, tabs, Paragraph(page, "body", "text", cardWidth, "body")
+	end
+	panel.lookCaption, panel.lookTabs, panel.lookNote = Choice(L["Look"], "look")
+	panel.padCaption, panel.padTabs, panel.padNote = Choice(L["Controls"], "controls")
 	panel.styleFit = { width = cardWidth, picture = pictureHeight, pad = pad, spacing = spacing }
 end
 
@@ -1011,31 +1007,31 @@ FitStyles = function()
 		local look = Setup.Looks.Get(picked or current)
 		panel.lookNote:SetText(look and look.note or L["Your own settings. Apply keeps them."])
 	end
-	panel.lookCaption:ClearAllPoints()
-	Widgets.Point(panel.lookCaption, "TOPLEFT", panel.styleHint, "BOTTOMLEFT", 0, -fit.spacing)
-	panel.lookTabs:ClearAllPoints()
-	Widgets.Point(panel.lookTabs, "TOPLEFT", panel.lookCaption, "BOTTOMLEFT", 0, -gap("gapSmall"))
-	panel.lookNote:ClearAllPoints()
-	Widgets.Point(panel.lookNote, "LEFT", panel.lookTabs, "RIGHT", fit.spacing, 0)
-	local controls = ns.Store.Module("Setup").controls
+	local function Place(caption, tabs, note, anchor)
+		caption:ClearAllPoints()
+		Widgets.Point(caption, "TOPLEFT", anchor, "BOTTOMLEFT", 0, -fit.spacing)
+		tabs:ClearAllPoints()
+		Widgets.Point(tabs, "TOPLEFT", caption, "BOTTOMLEFT", 0, -gap("gapSmall"))
+		note:ClearAllPoints()
+		Widgets.Point(note, "LEFT", tabs, "RIGHT", fit.spacing, 0)
+	end
+	Place(panel.lookCaption, panel.lookTabs, panel.lookNote, panel.styleHint)
+	local controls = Setup.Looks.ControlsShown()
 	panel.padCaption:SetShown(controls)
 	panel.padTabs:SetShown(controls)
 	panel.padNote:SetShown(controls)
-	if controls and page:IsVisible() then
+	if page:IsVisible() then
 		local rise = 2 * Widgets.Border(panel)
-		panel.opts.height = HEIGHT + math.ceil((Widgets.LineHeight(panel.padCaption) + gap("gapSmall") + STRIP_HEIGHT + fit.spacing) / rise) * rise
+		panel.opts.height = HEIGHT + (controls and math.ceil((Widgets.LineHeight(panel.padCaption) + gap("gapSmall") + STRIP_HEIGHT + fit.spacing) / rise) * rise or 0)
 		Widgets.Size(panel, WIDTH, panel.opts.height)
+	end
+	if controls and page:IsVisible() then
 		local current, picked = Setup.Looks.Controls(), Setup.Choice().controls
 		panel.padTabs:SetTabs(current and Setup.Looks.CONTROLS_STATUS or Setup.Looks.CONTROLS_CUSTOM, picked or current or "Custom")
 		local set = Setup.Looks.Get(picked or current, Setup.Looks.CONTROLS)
 		panel.padNote:SetText(set and set.note or L["Your own settings. Apply keeps them."])
 	end
-	panel.padCaption:ClearAllPoints()
-	Widgets.Point(panel.padCaption, "TOPLEFT", looks and panel.lookTabs or panel.styleHint, "BOTTOMLEFT", 0, -fit.spacing)
-	panel.padTabs:ClearAllPoints()
-	Widgets.Point(panel.padTabs, "TOPLEFT", panel.padCaption, "BOTTOMLEFT", 0, -gap("gapSmall"))
-	panel.padNote:ClearAllPoints()
-	Widgets.Point(panel.padNote, "LEFT", panel.padTabs, "RIGHT", fit.spacing, 0)
+	Place(panel.padCaption, panel.padTabs, panel.padNote, looks and panel.lookTabs or panel.styleHint)
 end
 
 local function SummaryCard(page, text)

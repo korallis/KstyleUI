@@ -9,7 +9,7 @@ local pending = false
 local function EachKey(fn, ...)
 	for i = 1, select("#", ...) do
 		local key = select(i, ...)
-		if type(key) == "string" and key ~= "" and not ns.IsSecret(key) then
+		if not ns.IsSecret(key) and type(key) == "string" and key ~= "" then
 			fn(key)
 		end
 	end
@@ -54,21 +54,28 @@ local function Atlas(names, family)
 	if type(C_Texture) == "table" and type(C_Texture.GetAtlasInfo) == "function" and C_Texture.GetAtlasInfo(atlas) then return atlas end
 end
 
-local function Glyphs(key, size)
-	local pad, family = C_GamePad, XBOX
-	if type(pad) == "table" and type(pad.GetActiveDeviceID) == "function" and type(pad.GetDeviceMappedState) == "function" then
-		local state = pad.GetDeviceMappedState(pad.GetActiveDeviceID())
-		local style = type(state) == "table" and state.labelStyle
-		if not ns.IsSecret(style) and FAMILIES[style] then family = FAMILIES[style] end
-	end
-	local out = ""
+local function Family()
+	local pad = C_GamePad
+	if not (ns.padActive and ns.Config("padGlyphs") ~= false and type(pad) == "table" and type(pad.GetActiveDeviceID) == "function" and type(pad.GetDeviceMappedState) == "function") then return false end
+	local id = pad.GetActiveDeviceID()
+	if ns.IsSecret(id) then return false end
+	local state = pad.GetDeviceMappedState(id)
+	if ns.IsSecret(state) or type(state) ~= "table" then return false end
+	local style = state.labelStyle
+	return not ns.IsSecret(style) and FAMILIES[style] or XBOX
+end
+
+local function Glyphs(b, key, family)
+	local atlases = {}
 	for part in key:gmatch("[^%-]+") do
 		local names = GLYPHS[GLYPHS[part]] or GLYPHS[part]
-		local atlas = type(names) == "table" and (Atlas(names, family) or Atlas(names, XBOX))
+		local atlas = type(names) == "table" and (Atlas(names, family) or family ~= XBOX and Atlas(names, XBOX)) or BindingText(part):match("^|A:([^:|]+)")
 		if not atlas then return nil end
-		out = out .. ("|A:%s:%d:%d|a"):format(atlas, size, size)
+		atlases[#atlases + 1] = atlas
 	end
-	return out
+	local size = math.floor(math.min((select(2, b.hotkey:GetFont()) or 12) * 1.5 + 0.5, (b:GetWidth() - 6) / #atlases))
+	for i, atlas in ipairs(atlases) do atlases[i] = ("|A:%s:%d:%d|a"):format(atlas, size, size) end
+	return table.concat(atlases)
 end
 
 local function PadKey(name)
@@ -82,11 +89,12 @@ local function PadKey(name)
 	return found
 end
 
-function ns.UpdateHotkey(b)
+function ns.UpdateHotkey(b, family)
+	if family == nil then family = Family() end
 	local name = b.kbar.def.binding .. b.index
-	local pad = ns.padActive and ns.Config("padGlyphs") ~= false and PadKey(name)
-	local glyphs = pad and Glyphs(pad, math.floor((select(2, b.hotkey:GetFont()) or 12) * 1.5 + 0.5))
-	local text = glyphs or K.Widgets.ShortKey(ns.FirstKey(name), BindingText)
+	local pad = family and PadKey(name)
+	local glyphs = pad and Glyphs(b, pad, family)
+	local text = glyphs or pad and K.Widgets.ShortKey(pad) or K.Widgets.ShortKey(ns.FirstKey(name), BindingText)
 	local unbound = ns.Config("bindingHints") and text == "" and b.kind == "action" and b.hasAction ~= false
 	b.keyHasAction = b.hasAction
 	if glyphs then K.Widgets.SetText(b.hotkey, glyphs) else b:SetHotkey(unbound and "-" or text) end
@@ -94,11 +102,12 @@ function ns.UpdateHotkey(b)
 end
 
 function ns.UpdateHotkeys()
+	local family = Family()
 	for _, def in ipairs(ns.BARS) do
 		local bar = ns.bars[def.key]
 		if bar then
 			for _, b in ipairs(bar.buttons) do
-				ns.UpdateHotkey(b)
+				ns.UpdateHotkey(b, family)
 			end
 		end
 	end

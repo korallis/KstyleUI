@@ -749,6 +749,7 @@ function modules.actionbars(opts)
 					env._game.bindings["MULTIACTIONBAR1BUTTON" .. i] = { "SHIFT-" .. key }
 				end
 				env.IsBindingForGamePad = function(key) return key:find("PAD", 1, true) ~= nil end
+				env.IsUsingGamepad = function() return true end
 				env.C_GamePad = { IsEnabled = function() return true end, GetActiveDeviceID = function() return 1 end, GetDeviceMappedState = function() return { labelStyle = pad } end }
 				env.C_Texture = env.C_Texture or {}
 				env.C_Texture.GetAtlasInfo = Scene.AtlasInfo

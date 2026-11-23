@@ -41,14 +41,19 @@ local function Sizes(module, defaults, path, readable, fn)
 	end
 end
 
+local function Default(path)
+	local module, key = path:match("^(%a+)%.(.+)$")
+	local default = ns.Store.Defaults(module)
+	for part in key:gmatch("[^%.]+") do default = type(default) == "table" and default[part] or nil end
+	return default, module, key
+end
+
 local function Each(look, fn, keys)
 	for _, path in ipairs(keys or KEYS) do
-		local module, key = path:match("^(%a+)%.(.+)$")
-		local default = ns.Store.Defaults(module)
-		for part in key:gmatch("[^%.]+") do default = type(default) == "table" and default[part] or nil end
+		local default, module, key = Default(path)
 		if default ~= nil then
 			local value = look.set[path]
-			if value == nil then value = ns.Options.Default(module, key) end
+			if value == nil then value = default end
 			fn(module, key, value)
 		end
 	end
@@ -89,9 +94,13 @@ function Looks.Apply(name, list, keys)
 end
 
 function Looks.Controls()
-	return Looks.Current(Looks.CONTROLS, PAD_KEYS)
+	if Default(PAD_KEYS[1]) ~= nil then return Looks.Current(Looks.CONTROLS, PAD_KEYS) end
 end
 
 function Looks.ApplyControls(name)
-	return Looks.Apply(name, Looks.CONTROLS, PAD_KEYS)
+	return Default(PAD_KEYS[1]) ~= nil and Looks.Apply(name, Looks.CONTROLS, PAD_KEYS)
+end
+
+function Looks.ControlsShown()
+	return ns.Store.Module("Setup").controls and Default(PAD_KEYS[1]) ~= nil
 end
