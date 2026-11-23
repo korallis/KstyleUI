@@ -449,6 +449,7 @@ end
 
 function Plate:SetNameAlpha(alpha)
 	self.name:SetAlpha(alpha)
+	Widgets.HaloAlpha(self.name, alpha)
 	if self.subtitle then self.subtitle:SetAlpha(alpha) end
 	if self.nameRaid then self.nameRaid:SetAlpha(alpha) end
 	if self.pvpBadge then self.pvpBadge:SetAlpha(alpha) end

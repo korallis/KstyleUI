@@ -480,16 +480,9 @@ end
 local SHADOW_R, SHADOW_G, SHADOW_B, SHADOW_A = Tokens.Color("textShadow")
 
 local function Shadow(text, flags, f, plain)
-	local face = true
-	if flags ~= "" then
-		if plain or ns.Appearance and not ns.Appearance.Readability("softBacking") then
-			return SetShadow(text, 0, 0)
-		end
-	else
-		face = Tokens.FaceShadow((text:GetFont()))
-		if face == false then
-			return SetShadow(text, 0, 0)
-		end
+	local face = flags ~= "" or Tokens.FaceShadow((text:GetFont()))
+	if not face or flags ~= "" and (plain or ns.Appearance and not ns.Appearance.Readability("softBacking")) then
+		return SetShadow(text, 0, 0)
 	end
 	local offset = Scale.Border() / f
 	if face == true then
@@ -662,7 +655,7 @@ end
 
 local unset = setmetatable({}, { __mode = "k" })
 
-function Widgets.ApplyFont(text, path, size, flags, plain)
+function Widgets.ApplyFont(text, path, size, flags, plain, panel)
 	if IsSecret(size) or type(size) ~= "number" or size ~= size or size <= 0 or size == math.huge then
 		return false
 	end
@@ -680,7 +673,7 @@ function Widgets.ApplyFont(text, path, size, flags, plain)
 	local same = not unset[text] and current == path and currentHeight == height and currentFlags == flags
 	local ok = same or text:SetFont(path, height, flags) ~= false
 	unset[text] = not ok or nil
-	Shadow(text, flags, f, plain)
+	Shadow(text, flags, f, plain or panel)
 	if not plain then
 		Widgets.SyncTracking(text)
 	end
@@ -710,7 +703,7 @@ function Widgets.SetOutline(flags)
 		role = role or textRole[text] or "body"
 		textRole[text] = role
 		local path, size = Tokens.Font(role)
-		if role == "caps" and Widgets.CapsSized[text] ~= nil or not Widgets.ApplyFont(text, path, size, flags) then
+		if role == "caps" and Widgets.CapsSized[text] ~= nil or not Widgets.ApplyFont(text, path, size, flags, nil, true) then
 			return styleText(text, role)
 		end
 	end or styleText

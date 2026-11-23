@@ -86,10 +86,10 @@ local function ColorObjects()
 	return open, ColorObject(colors.shield, ShieldColor())
 end
 
-local function StyleFont(text, role, path)
+local function StyleFont(text, role)
 	local flags = OUTLINE_FLAGS[Settings.Get("cast.outline")] or "OUTLINE"
 	local size = Settings.Get("cast.textSize")
-	if not Widgets.ApplyFont(text, path or Settings.Get("font", role), size, flags) then
+	if not Widgets.ApplyFont(text, Settings.Get("font", role), size, flags) then
 		Widgets.ApplyFont(text, (Tokens.Font("world")), size, flags)
 	end
 end
@@ -686,7 +686,7 @@ function Component.Restyle(plate)
 		Widgets.ShowSlice(plate.castTargetGlow, false)
 		plate.castAtMeOn = false
 	end
-	StyleFont(plate.castName, "caps", Widgets.Medallions() and Settings.Get("font") == (Tokens.Font("body")) and Widgets.LabelFace(Settings.Get("font", "caps")))
+	StyleFont(plate.castName, Widgets.Medallions() and Widgets.Readability("oneVoice") and "number" or "caps")
 	StyleFont(plate.castTime, "time")
 	local glyph = plate.castGlyph
 	glyph:SetShown(Settings.Get("cast.combatCues"))

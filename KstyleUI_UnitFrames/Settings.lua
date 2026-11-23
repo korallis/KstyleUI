@@ -662,11 +662,11 @@ local SLAB_MINI_NAME = 9
 local SLAB_MINI = { targettarget = true, focustarget = true }
 
 function Settings.Role(kind, element)
-	local role = LUMEN_ROLES[element]
-	if role == "names" and Settings.Form(kind) == "column" then
+	local role, form = LUMEN_ROLES[element], Settings.Form(kind)
+	if role == "names" and form == "column" then
 		role = "unit"
 	end
-	return role and Settings.Form(kind) ~= "plate" and role or "body"
+	return role and form ~= "plate" and role or "body", form
 end
 
 function Settings.Font(kind, element)
@@ -676,8 +676,9 @@ function Settings.Font(kind, element)
 		error("UnitFrames.Settings.Font: unknown text " .. tostring(element), 2)
 	end
 	local style = type(own.fonts) == "table" and type(own.fonts[element]) == "table" and own.fonts[element] or default
-	local themePath = Tokens.Font(Settings.Role(kind, element))
-	local path = themePath
+	local role, form = Settings.Role(kind, element)
+	local slab = form == "slab" and SLAB_TEXT[element]
+	local path
 	local font = style.font
 	if not K.Theme.FollowsKit(font) then
 		if K.Theme.IsFontPath(font) then
@@ -686,19 +687,13 @@ function Settings.Font(kind, element)
 			LogOnce("font:" .. font, kind .. " " .. element .. " font " .. font .. " is not a font file; using KstyleUI's font")
 		end
 	end
+	path = path or slab and slab.label and K.Widgets.LabelFace() or (Tokens.Font(slab and slab.role or role))
 	local size = style.size
 	if not (IsNumber(size) and size >= FONT_SIZE_MIN and size <= FONT_SIZE_MAX) then
 		size = default.size
 	end
-	local slab = SLAB_TEXT[element]
-	if slab and Settings.Form(kind) == "slab" then
-		local base = SLAB_MINI[kind] and element == "name" and SLAB_MINI_NAME or slab[1]
-		size = base * size / default.size
-		if path == themePath and slab.label then
-			path = K.Widgets.LabelFace()
-		elseif path == themePath and slab.role then
-			path = Tokens.Font(slab.role)
-		end
+	if slab then
+		size = (SLAB_MINI[kind] and element == "name" and SLAB_MINI_NAME or slab[1]) * size / default.size
 	end
 	return path, size * K.Theme.FontScale(), OutlineFlags(style.outline == "INHERIT" and (K.Widgets.Readability("worldText") and "OUTLINE" or "NONE") or style.outline), style.outline
 end
