@@ -9,6 +9,17 @@ local function Path(id)
 	return tonumber(tostring(id):match("^b(%d+)_"))
 end
 
+local function Town(graph, x, y, map)
+	local town, near
+	for _, node in ipairs(graph.nodes) do
+		if node.map == map and (node.kind == "flight" or node.kind == "settlement" or node.kind == "hub") then
+			local d = (node.x - x) ^ 2 + (node.y - y) ^ 2
+			if not near or d < near then town, near = node, d end
+		end
+	end
+	return town, near
+end
+
 function Roads.Graph(continent)
 	if continent ~= 0 and continent ~= 1 then return end
 	if graphs[continent] then return graphs[continent] end
@@ -31,9 +42,11 @@ function Roads.Graph(continent)
 	local tram = travel.tram
 	if tram and tram.map == continent then
 		local p = tram.pts
-		local a, b = Roads.Snap(graph, p[1], p[2]), Roads.Snap(graph, p[3], p[4])
-		local len = math.sqrt((a.x - p[1]) ^ 2 + (a.y - p[2]) ^ 2) + math.sqrt((p[3] - p[1]) ^ 2 + (p[4] - p[2]) ^ 2) + math.sqrt((b.x - p[3]) ^ 2 + (b.y - p[4]) ^ 2)
-		graph.edges[#graph.edges + 1] = { a = a.id, b = b.id, kind = "tram", len = len, seconds = tram.seconds, travel = true, pts = { a.x, a.y, p[1], p[2], p[3], p[4], b.x, b.y } }
+		local a, near = Town(graph, p[1], p[2], continent)
+		local b, far = Town(graph, p[3], p[4], continent)
+		local walk = math.sqrt(near) + math.sqrt(far)
+		graph.edges[#graph.edges + 1] = { a = a.id, b = b.id, kind = "tram", len = walk + math.sqrt((p[3] - p[1]) ^ 2 + (p[4] - p[2]) ^ 2), walk = walk, seconds = tram.seconds,
+			travel = true, pts = { a.x, a.y, p[1], p[2], p[3], p[4], b.x, b.y } }
 	end
 	graphs[continent], data[continent] = graph, nil
 	return graph
@@ -72,15 +85,16 @@ end
 
 local function Dock(graph, node)
 	if node.label then return node.label end
-	local town, area, near, far
-	for _, other in ipairs(graph.nodes) do
-		if other.map == node.map then
+	local town, near = Town(graph, node.x, node.y, node.map)
+	if not near or near > 250000 then
+		local far
+		town = nil
+		for _, other in ipairs(graph.nodes) do
 			local d = (other.x - node.x) ^ 2 + (other.y - node.y) ^ 2
-			if (other.kind == "flight" or other.kind == "settlement" or other.kind == "hub") and d <= 250000 and (not near or d < near) then town, near = other, d end
-			if other.kind == "area" and (not far or d < far) then area, far = other, d end
+			if other.map == node.map and other.kind == "area" and (not far or d < far) then town, far = other, d end
 		end
 	end
-	local name = (town or area or node).name
+	local name = (town or node).name
 	node.label = name:match("^(.-),") or name
 	return node.label
 end
@@ -95,8 +109,8 @@ local function Index(graph)
 	for _, edge in ipairs(graph.edges) do
 		local a, b = graph.byID[edge.a], graph.byID[edge.b]
 		if a and b and (not graph.map or (a.map or graph.map) == graph.map and (b.map or graph.map) == graph.map) then
-			local foot = edge.kind == "walk" and edge.len / 7 or edge.kind == "swim" and edge.len / 4.7 or edge.seconds
-			local mounted = edge.kind == "walk" and foot / 2 or foot
+			local foot = edge.kind == "walk" and edge.len / 7 or edge.kind == "swim" and edge.len / 4.7 or edge.seconds + (edge.walk or 0) / 7
+			local mounted = edge.kind == "walk" and foot / 2 or edge.walk and edge.seconds + edge.walk / 14 or foot
 			edge.cost, edge.mounted = foot, mounted
 			local list = graph.adj[a.id]
 			local n = #list
@@ -188,9 +202,8 @@ function Roads.Solve(graph, x, y, tx, ty, mounted, flights, travel)
 	local speed = mounted and 14 or 7
 	local sources, via = { [start.id] = first / speed }, {}
 	for _, option in ipairs(travel and travel.options or {}) do
-		local node, yards = Roads.Snap(graph, option.x, option.y, option.map)
-		local cost = node and option.seconds + yards / speed
-		if cost and cost < (sources[node.id] or math.huge) then sources[node.id], via[node.id] = cost, { option = option, node = node, yards = yards } end
+		local id = option.node.id
+		if option.seconds < (sources[id] or math.huge) then sources[id], via[id] = option.seconds, option end
 	end
 	local seconds, previous, edges = Find(graph, sources, goal.id, speed, flights, travel)
 	if not seconds then return end
@@ -200,23 +213,21 @@ function Roads.Solve(graph, x, y, tx, ty, mounted, flights, travel)
 		flight = flight or edges[id].kind == "flight"
 		id = previous[id]
 	end
-	local hop = via[id]
-	local near = hop and hop.yards or first
+	local option = via[id]
+	local near = option and 0 or first
 	local route = { graph = graph, continent = travel and travel.continent, start = start, last = last, legs = {}, yards = near + last, seconds = seconds + last / speed, dashed = near > 60 or last > 60 }
 	local function Name(node) return travel and node.kind == "dock" and Dock(graph, node) or node.name end
 	local function Connector(ax, ay, bx, by, len, name, map)
 		if len > 0 or #route.legs == 0 then route.legs[#route.legs + 1] = { kind = "walk", to = name, len = len, seconds = len / speed, dashed = len > 60, pts = { ax, ay, bx, by }, map = map } end
 	end
-	if hop then
-		local option = hop.option
+	if option then
 		route.option = option
-		route.legs[1] = { kind = option.kind, to = option.name, len = 0, seconds = option.seconds, pts = { option.x, option.y }, map = option.map, turn = true, stop = true }
-		Connector(option.x, option.y, hop.node.x, hop.node.y, hop.yards, Name(hop.node), option.map)
+		route.legs[1] = { kind = option.kind, to = option.name, len = 0, seconds = option.seconds, pts = { option.node.x, option.node.y }, map = option.node.map, turn = true, stop = true }
 	else
 		Connector(x, y, start.x, start.y, first, Name(start), start.map)
 	end
 	for i = #path, 1, -1 do
-		hop = path[i]
+		local hop = path[i]
 		local edge, points = hop.edge, {}
 		local from, to = graph.byID[hop.from], graph.byID[hop.to]
 		local stride = edge.kind == "lift" and 3 or 2
@@ -229,7 +240,7 @@ function Roads.Solve(graph, x, y, tx, ty, mounted, flights, travel)
 		route.yards = route.yards + edge.len
 	end
 	Connector(goal.x, goal.y, tx, ty, last, nil, goal.map)
-	if flight then
+	if flight and (not travel or travel.continent == travel.target) then
 		local walking = Find(graph, sources, goal.id, speed, nil, travel, true)
 		if walking and walking - seconds >= 60 then route.saved = math.floor((walking - seconds) / 60) end
 	end

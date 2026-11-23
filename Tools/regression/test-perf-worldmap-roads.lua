@@ -28,7 +28,7 @@ for continent = 0, 1 do
 	assert(instructions <= 950000, string.format("cache graph adjacency and use the heap: continent %d costs %d addon instructions per query, budget 950000", continent, instructions))
 	print(string.format("road queries: continent %d, %d nodes/%d edges, %d instructions worst query, %.3f ms mean/%.3f ms worst (including snaps, polylines and flight comparison; timings are information only)", continent, #graph.nodes, #graph.edges, instructions, total * 1000 / #queries, worst * 1000))
 end
-local world, places, flights, options, instructions = assert(Roads.World()), {}, {}, {}, 0
+local world, places, flights, options, crossing = assert(Roads.World()), {}, {}, {}, 0
 for _, node in ipairs(world.nodes) do
 	places[node.name] = places[node.name] or node
 	if node.kind == "flight" then flights[node.id] = true end
@@ -41,11 +41,11 @@ for _, trip in ipairs({ { "Stormwind", "Thunder Bluff" }, { "Razor Hill", "Ironf
 	for _, list in ipairs({ {}, options }) do
 		local travel = { continent = a.map, target = b.map, options = list }
 		assert(Roads.Solve(world, a.x, a.y, b.x, b.y, false, flights, travel), "a cross-continent travel query finds its route")
-		instructions = math.max(instructions, Budget.Count(env, function() Roads.Solve(world, a.x, a.y, b.x, b.y, false, flights, travel) end).instructions)
+		crossing = math.max(crossing, Budget.Count(env, function() Roads.Solve(world, a.x, a.y, b.x, b.y, false, flights, travel) end).instructions)
 	end
 end
-assert(instructions <= 950000, string.format("compare flights against walking only within one continent and start travel options at their own places: a cross-continent query costs %d addon instructions, budget 950000", instructions))
-print(string.format("cross-continent travel queries: %d instructions worst query", instructions))
+assert(crossing <= 950000, string.format("compare flights against walking only within one continent and start travel options at their own places: a cross-continent query costs %d addon instructions, budget 950000", crossing))
+print(string.format("cross-continent travel queries: %d instructions worst query", crossing))
 
 local R
 env, _, R, state = Fixture.M.New()

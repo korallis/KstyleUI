@@ -5,6 +5,7 @@ from collections import defaultdict
 import math
 import os
 from pathlib import Path
+import re
 import struct
 import sys
 
@@ -13,7 +14,8 @@ import build_routes as base
 from geometry import chunks, placements, transform
 
 TABLES = ('WorldMapOverlay', 'WorldMapOverlayTile', 'UiMapXMapArt', 'UiMapArt', 'UiMapArtStyleLayer',
-          'TaxiNodes', 'TaxiPath', 'TaxiPathNode', 'TransportAnimation', 'Map', 'SpellName')
+          'TaxiNodes', 'TaxiPath', 'TaxiPathNode', 'TransportAnimation', 'Map', 'AreaTable')
+ROUTES = Path(__file__).resolve().parents[2] / 'KstyleUI_Routes'
 # Each capital's straight gnome tunnel ends at the Deeprun Tram; Stormwind's lies 55 yards from Map 369's corpse point.
 TRAM_TUNNELS = ('stormwindcity/21138.wmo', 'Straight06'), ('ironforge/20884.wmo', 'straight01')
 
@@ -44,7 +46,6 @@ def overlays(db):
         by_map[int(maps[art])].append([w, h, int(r['OffsetX']), int(r['OffsetY']), *files])
     body = ','.join(f'[{m}]={{' + ','.join('{' + ','.join(map(str, o)) + '}' for o in rows) + '}' for m, rows in sorted(by_map.items()))
     return (f'-- Overlays.lua: deferred map overlay tiles from the owner\'s Forever client, by UI map.\n'
-            f'KstyleUI_RouteData = KstyleUI_RouteData or {{}}\n'
             f'KstyleUI_RouteData.overlays = function()\nreturn {{{body}}}\nend\n'), sum(map(len, by_map.values())), skipped
 
 
@@ -60,6 +61,19 @@ def zeppelins(db):
         if node and node['Name_lang'].startswith('Transport,') and max(float(r['Loc_2']) for r in hops[path['ID']]) > 30:
             flying.append(int(path['ID']))
     return sorted(flying)
+
+
+def areas(db, graphs):
+    """Shipped road place names by AreaTable id, so a localized bind location finds its place; Stormwind City is Stormwind."""
+    names, places = set(), {}
+    for text in graphs:
+        for name in re.findall(r'name="([^"\\]*)"', text):
+            names |= {name, name.split(',')[0]}
+    for r in db['AreaTable']:
+        name = r['AreaName_lang'] if r['AreaName_lang'] in names else r['AreaName_lang'].removesuffix(' City')
+        if r['ContinentID'] in ('0', '1') and name in names:
+            places[int(r['ID'])] = name
+    return places
 
 
 def tram(client, db):
@@ -126,16 +140,17 @@ def main(argv=None):
         text, count, skipped = overlays(db)
         ends, ride = tram(client, db)
         flying = zeppelins(db)
+        places = areas(db, [(ROUTES / f).read_text(encoding='ascii') for f in ('EasternKingdoms.lua', 'Kalimdor.lua')])
         points = ','.join(number(v) for p in ends for v in p[:2])
-        travel = ('-- Travel.lua: zeppelin routes and the Deeprun Tram from the owner\'s Forever client.\n'
-                  'KstyleUI_RouteData = KstyleUI_RouteData or {}\n'
+        names = ','.join(f'[{k}]="{v}"' for k, v in sorted(places.items()))
+        travel = ('-- Travel.lua: zeppelin routes, the Deeprun Tram and road place area ids from the owner\'s Forever client.\n'
                   f'KstyleUI_RouteData.travel = {{zeppelins={{{",".join(f"[{p}]=true" for p in flying)}}},'
-                  f'tram={{map=0,pts={{{points}}},seconds={number(60 + ride)}}}}}\n')
+                  f'tram={{map=0,pts={{{points}}},seconds={number(60 + ride)}}},areas={{{names}}}}}\n')
         out = cache / 'out/travel'
         out.mkdir(parents=True, exist_ok=True)
         (out / 'Overlays.lua').write_text(text, encoding='ascii', newline='\n')
         (out / 'Travel.lua').write_text(travel, encoding='ascii', newline='\n')
-        print(f'{info["Version"]}: {count} overlays ({len(text)} bytes), skipped {skipped}; zeppelin paths {flying}; '
+        print(f'{info["Version"]}: {count} overlays ({len(text)} bytes), skipped {skipped}; zeppelin paths {flying}; {len(places)} area ids; '
               f'tram {[tuple(round(v) for v in p) for p in ends]}, ride {ride:.1f} s; written to {out}')
         return 0
     finally:

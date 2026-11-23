@@ -4,11 +4,9 @@ local _, ns = ...
 local K = KstyleUI
 local L = K.L
 local Skins, Lumen = ns.Skins, ns.Lumen
-local Reveal = {}
-ns.WorldMapReveal = Reveal
 
 local map, pin, overlays, active
-local textures = {}
+local textures, shown = {}, 0
 
 local function Plain(value, kind)
 	if not (type(issecretvalue) == "function" and issecretvalue(value)) and type(value) == kind then return value end
@@ -23,8 +21,9 @@ local function Size(total, tile, last)
 	return pixels, file
 end
 
-function Reveal.Draw()
-	for _, texture in ipairs(textures) do texture:Hide() end
+local function Draw()
+	for i = 1, shown do textures[i]:Hide() end
+	shown = 0
 	if not active or not pin or Skins.Setting("worldMap", "reveal") ~= true or not map:IsShown() then return end
 	local id = Plain(map:GetMapID(), "number")
 	if not overlays then
@@ -41,12 +40,12 @@ function Reveal.Draw()
 	if not tileWidth or not tileHeight or type(C_MapExplorationInfo) ~= "table" or type(C_MapExplorationInfo.GetExploredMapTextures) ~= "function" then return end
 	local explored = {}
 	for _, info in ipairs(Plain(C_MapExplorationInfo.GetExploredMapTextures(id), "table") or {}) do
+		info = Plain(info, "table") or {}
 		local x, y = Plain(info.offsetX, "number"), Plain(info.offsetY, "number")
 		if x and y then explored[x * 4096 + y] = true end
 	end
 	local drawLayer, subLevel = "ARTWORK", 0
 	if type(pin.dataProvider) == "table" and type(pin.dataProvider.GetDrawLayer) == "function" then drawLayer, subLevel = pin.dataProvider:GetDrawLayer() end
-	local count = 0
 	for _, overlay in ipairs(list) do
 		local width, height, x, y = overlay[1], overlay[2], overlay[3], overlay[4]
 		if not explored[x * 4096 + y] then
@@ -55,12 +54,12 @@ function Reveal.Draw()
 				local pixelHeight, fileHeight = Size(height, tileHeight, row == tall)
 				for column = 1, wide do
 					local pixelWidth, fileWidth = Size(width, tileWidth, column == wide)
-					count = count + 1
-					local texture = textures[count]
+					shown = shown + 1
+					local texture = textures[shown]
 					if not texture then
 						texture = pin:CreateTexture(nil, drawLayer, nil, math.max(-8, subLevel - 1))
 						if type(map.AddMaskableTexture) == "function" then map:AddMaskableTexture(texture) end
-						textures[count] = texture
+						textures[shown] = texture
 					end
 					texture:SetSize(pixelWidth, pixelHeight)
 					texture:SetTexCoord(0, pixelWidth / fileWidth, 0, pixelHeight / fileHeight)
@@ -80,7 +79,7 @@ local function Find()
 	for found in map:EnumeratePinsByTemplate("MapExplorationPinTemplate") do
 		if type(found.RefreshOverlays) == "function" then
 			pin = found
-			hooksecurefunc(pin, "RefreshOverlays", Reveal.Draw)
+			hooksecurefunc(pin, "RefreshOverlays", Draw)
 			return
 		end
 	end
@@ -96,16 +95,16 @@ def.Apply = function(self)
 	map = WorldMapFrame
 	if type(map.GetMapID) ~= "function" then return end
 	active = true
-	map:HookScript("OnShow", function() if not pin then Find(); Reveal.Draw() end end)
+	map:HookScript("OnShow", function() if not pin then Find(); Draw() end end)
 	Find()
-	Reveal.Draw()
+	Draw()
 end
 def.OnSetting = function(self, key, value)
 	if setting then setting(self, key, value) end
-	if key == "reveal" and map then Reveal.Draw() end
+	if key == "reveal" and map then Draw() end
 end
 def.OnSwitch = function(self, on)
 	if switch then switch(self, on) end
 	active = on
-	if map then Reveal.Draw() end
+	if map then Draw() end
 end

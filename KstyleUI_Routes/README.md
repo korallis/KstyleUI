@@ -4,7 +4,7 @@
 
 Road geometry must stay out of login. This load-on-demand data addon exports
 `KstyleUI_RouteData`, with one deferred constructor per world continent (0 is
-Eastern Kingdoms, 1 is Kalimdor), a deferred `overlays` constructor and a small
+Eastern Kingdoms, 1 is Kalimdor), a deferred `overlays` constructor and a
 `travel` table. Skins constructs and indexes each graph once
 on its first route, then releases that constructor. The other continent remains
 unconstructed. Neither file runs at login.
@@ -42,7 +42,7 @@ canvas scale, below zone labels. The movement-tick check lives in
 
 `Overlays.lua` and `Travel.lua` come from the owner's Forever 1.60.1.71037
 client (build key `0acab1e6aa41b46165d2ca66853b417b`) through
-`Tools/nav/build_travel.py` (git blob `e866dbb966f168e72bbf96d9f2e99d7612708a8d`),
+`Tools/nav/build_travel.py` (git blob `fe624428a383c480828430077b29aa55c072d948`),
 which uses the same TACTTool and DBC2CSV export as the graph tool. Copy its two
 cache outputs here and run `python Tools/dev/crlf.py KstyleUI_Routes`.
 
@@ -59,9 +59,21 @@ cache outputs here and run `python Tools/dev/crlf.py KstyleUI_Routes`.
   `straight01` in Ironforge; Stormwind's lies 55 yards from `Map.db2`'s Deeprun
   Tram corpse point, and the tool refuses more than 80), and 118.5 seconds: the
   tram car's `TransportAnimation` one-way travel of 58.6 seconds plus the fixed
-  60-second wait the boats use.
+  60-second wait the boats use. Skins joins each end to the nearest town or
+  flight master node (`Stormwind, Elwynn` and `Ironforge, Dun Morogh`, 502 and
+  230 yards away) and charges those yards at walking or riding speed on top of
+  the ride.
+- `travel.areas` maps the 855 `AreaTable` ids on continents 0 and 1 whose English
+  name, or that name without a trailing ` City` (only Stormwind City needs it), is
+  a shipped road place's name or its part before a comma, to that place name.
+  `GetBindLocation` returns the bind area's name in the client's language, so
+  Skins compares it with `C_Map.GetAreaInfo(id)` when no English place matches.
 
-The client lists no static world portal on either continent (`AreaPOI` and
-`TaxiNodes` name none), so none ship. Class teleport arrivals are shipped graph
-places named by each spell (`Teleport: Stormwind` arrives at the `Stormwind`
-AreaPOI); `SpellTargetPosition` is not in the client.
+No portal ships. The client names portal spells (`SpellName` lists `Portal to
+Darnassus` 1217949 and `Portal to Auberdine` 1330423), but a name does not prove
+a fixed endpoint in either direction: `SpellTargetPosition` is server data and
+not in the client, and DBC2CSV has no 1.60.1.71037 definition for `UiMapLink`
+(the 70959 extract held no rows). No edge is invented, so a trip that needs a
+portal, such as Darnassus to Rut'theran Village, has no connected road route.
+Class teleport arrivals are shipped graph places named by each spell
+(`Teleport: Stormwind` arrives at the `Stormwind` AreaPOI).

@@ -17,6 +17,7 @@ local routeWidth, routeHeight, routeScale, routeContinent
 local steps, stepChild, chip
 local results, dots, startDots, zones, stepRows, stepAmounts = {}, {}, {}, {}, {}, {}
 local hooked = setmetatable({}, { __mode = "k" })
+local aliases = {}
 local CVAR = "showDungeonEntrancesOnMap"
 local HEARTH = 6948
 local TELEPORTS = { [3561] = "Stormwind", [10059] = "Stormwind", [3562] = "Ironforge", [11416] = "Ironforge", [3563] = "The Undercity", [11418] = "The Undercity",
@@ -282,9 +283,28 @@ function Routes.Flights(graph, uiMap, continent)
 end
 
 local function Place(graph, name)
-	for _, node in ipairs(name and graph.nodes or {}) do
-		if node.name == name or node.name:match("^(.-),") == name then return node end
+	if type(name) ~= "string" then return end
+	graph.places = graph.places or {}
+	if graph.places[name] == nil then
+		graph.places[name] = false
+		for _, node in ipairs(graph.nodes) do
+			if node.name == name or node.name:match("^(.-),") == name then graph.places[name] = node; break end
+		end
 	end
+	return graph.places[name] or nil
+end
+
+local function Home(graph, bind)
+	local home = Place(graph, bind)
+	if home or not bind then return home end
+	if aliases[bind] == nil then
+		local data = rawget(_G, "KstyleUI_RouteData")
+		aliases[bind] = false
+		for id, name in pairs(data and data.travel and data.travel.areas or {}) do
+			if Plain(Call(C_Map, "GetAreaInfo", id), "string") == bind then aliases[bind] = name; break end
+		end
+	end
+	return Place(graph, aliases[bind])
 end
 
 local function Wait(start, duration)
@@ -294,25 +314,29 @@ local function Wait(start, duration)
 end
 
 local function Teleports(graph)
-	local options = {}
+	local options, key = {}, {}
 	local bind = type(GetBindLocation) == "function" and Plain(GetBindLocation(), "string")
-	local home = Place(graph, bind)
+	local home = Home(graph, bind)
 	local function Offer(kind, name, node, wait, cast)
-		if node and name and wait then options[#options + 1] = { kind = kind, name = name, seconds = wait + cast, map = node.map or graph.map, x = node.x, y = node.y } end
+		if node and name and wait then
+			options[#options + 1] = { kind = kind, name = name, seconds = wait + cast, node = node }
+			key[#key + 1] = name .. math.ceil((wait + cast) / 60)
+		end
 	end
-	if (Number(Call(C_Item, "GetItemCount", HEARTH)) or 0) > 0 then
+	if home and (Number(Call(C_Item, "GetItemCount", HEARTH)) or 0) > 0 then
 		local item = Plain(Call(C_Item, "GetItemNameByID", HEARTH), "string")
 		Offer("hearth", item and string.format(L["%s to %s"], item, bind), home, Wait(Call(C_Item, "GetItemCooldown", HEARTH)), 10)
 	end
 	for id, place in pairs(TELEPORTS) do
-		if Plain(Call(C_SpellBook, "IsSpellKnown", id), "boolean") == true and Plain(Call(C_Spell, "IsSpellUsable", id), "boolean") ~= false then
+		if (place ~= true or home) and Plain(Call(C_SpellBook, "IsSpellKnown", id), "boolean") == true and Plain(Call(C_Spell, "IsSpellUsable", id), "boolean") == true then
+			local node = place == true and home or Place(graph, place)
 			local info, cooldown = Call(C_Spell, "GetSpellInfo", id), Call(C_Spell, "GetSpellCooldown", id)
 			local name = Field(info, "name", "string")
-			Offer(place == true and "hearth" or "teleport", place == true and name and string.format(L["%s to %s"], name, bind) or name, place == true and home or Place(graph, place),
+			Offer(place == true and "hearth" or "teleport", place == true and name and string.format(L["%s to %s"], name, bind) or name, node,
 				Wait(Field(cooldown, "startTime", "number"), Field(cooldown, "duration", "number")), (Number(Field(info, "castTime", "number")) or 10000) / 1000)
 		end
 	end
-	return options
+	return table.concat(key, "|"), options
 end
 
 local function RoadRoute(mounted, playerMap, x, y, moving)
@@ -329,7 +353,10 @@ local function RoadRoute(mounted, playerMap, x, y, moving)
 	if continent ~= targetContinent then
 		for id in pairs(Routes.Flights(graph, target.mapID, targetContinent)) do flights[id] = true end
 	end
-	local route = Roads.Solve(graph, wx, wy, tx, ty, mounted, flights, travel and { continent = continent, target = targetContinent, options = Teleports(graph) } or nil)
+	local key, options
+	if travel then key, options = Teleports(graph) end
+	local route = Roads.Solve(graph, wx, wy, tx, ty, mounted, flights, travel and { continent = continent, target = targetContinent, options = options } or nil)
+	if route then route.key = key end
 	return route, not route and L["No connected road route."] or nil, continent
 end
 
@@ -372,6 +399,7 @@ RefreshRoute = function()
 		else x, y = XY(Call(C_Map, "GetPlayerMapPosition", target.mapID, "player")) end
 	end
 	local reusable = target == routeTarget and mounted == routeMounted and On("followRoads") == routeRoads and On("travelStops") == routeTravel and playerMap == routePlayerMap
+		and not (Routes.road and Routes.road.key and Teleports(Routes.road.graph) ~= Routes.road.key)
 	local moving = reusable and id == routeMap and width == routeWidth and height == routeHeight and scale == routeScale
 	if not moving or playerX ~= routePlayerX or playerY ~= routePlayerY or x ~= routeX or y ~= routeY then
 		local road, reason, continent, startOnly

@@ -185,9 +185,9 @@ python -I Tools/nav/build_travel.py --install 'C:/Program Files (x86)/World of W
 
 This exports `WorldMapOverlay`, `WorldMapOverlayTile`, `UiMapXMapArt`, `UiMapArt`,
 `UiMapArtStyleLayer`, `TaxiNodes`, `TaxiPath`, `TaxiPathNode`,
-`TransportAnimation`, `Map` and `SpellName` into the build directory, extracts
+`TransportAnimation`, `Map` and `AreaTable` into the build directory, extracts
 the Eastern Kingdoms WDT, its ADT object files and the Stormwind and Ironforge
-WMOs, and writes `out/travel/Overlays.lua` and `out/travel/Travel.lua` as complete
+WMOs, reads the place names of the shipped `KstyleUI_Routes` graphs, and writes `out/travel/Overlays.lua` and `out/travel/Travel.lua` as complete
 addon files under the same exclusive `build.lock`. It needs no compiler and runs
 in about two minutes. `KstyleUI_Routes/README.md` says what each table holds and
 how each value is proven.

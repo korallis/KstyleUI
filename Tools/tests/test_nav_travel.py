@@ -46,5 +46,13 @@ class TransportTests(unittest.TestCase):
         self.assertEqual(build_travel.zeppelins(rows), [20])
 
 
+class AreaTests(unittest.TestCase):
+    def test_area_ids_answer_to_road_place_names(self):
+        rows = dict(AreaTable=[dict(ID='362', AreaName_lang='Razor Hill', ContinentID='1'), dict(ID='159', AreaName_lang='Brill', ContinentID='0'),
+                               dict(ID='1519', AreaName_lang='Stormwind City', ContinentID='0'), dict(ID='3487', AreaName_lang='Eversong', ContinentID='530')])
+        graphs = ['{id=1,name="Razor Hill",x=1},{id=4,name="Stormwind",x=4}', '{id=2,name="Brill, Tirisfal Glades",x=2},{id=3,name="Eversong",x=3}']
+        self.assertEqual(build_travel.areas(rows, graphs), {362: 'Razor Hill', 159: 'Brill', 1519: 'Stormwind'})
+
+
 if __name__ == '__main__':
     unittest.main()

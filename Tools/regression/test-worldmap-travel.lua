@@ -120,9 +120,9 @@ env.GetBindLocation = function() return env.Secret("Razor Hill") end
 local ok, err = pcall(Pick, "Razor Hill", 1)
 assert(ok and not R.road.option, "a secret bind location offers no hearth or Astral Recall: " .. tostring(err))
 cooldown, known[556] = 0, nil
-env.C_Map.GetAreaInfo = function(id) return id == 362 and "Klingenhuegel" or "" end
-env.GetBindLocation = function() return "Klingenhuegel" end
-assert(Pick("Razor Hill", 1):find("^1%. Hearthstone to Klingenhuegel"), "a localized bind location finds its place through the client's area name")
+env.C_Map.GetAreaInfo = function(id) return id == 1519 and "Sturmwind" or "" end
+env.GetBindLocation = function() return "Sturmwind" end
+assert(Pick("Stormwind", 2):find("^1%. Hearthstone to Sturmwind"), "a localized bind location finds its place through the client's area name")
 env.GetBindLocation, known[556] = function() return "Razor Hill" end, true
 Pick("Razor Hill", 1)
 solves = 0

@@ -4,18 +4,17 @@ local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Fixture = dofile("Tools/regression/worldmap_roads_env.lua")
 local M = Fixture.M
 
-local function Place(frame, files, width, height, x, y, layer, sublevel, dim)
+local function Place(frame, files, width, height, x, y, layer)
 	local wide, tall = math.ceil(width / 256), math.ceil(height / 256)
 	for row = 1, tall do
 		for column = 1, wide do
-			local texture = frame:CreateTexture(nil, layer, nil, sublevel)
+			local texture = frame:CreateTexture(nil, layer, nil, 0)
 			local w = column < wide and 256 or (width - 256 * (wide - 1))
 			local h = row < tall and 256 or (height - 256 * (tall - 1))
 			texture:SetSize(w, h)
 			texture:SetTexCoord(0, w / 256, 0, h / 256)
 			texture:SetPoint("TOPLEFT", frame, "TOPLEFT", x + 256 * (column - 1), -(y + 256 * (row - 1)))
 			texture:SetTexture(files[(row - 1) * wide + column])
-			if dim then texture:SetVertexColor(dim, dim, dim) end
 		end
 	end
 end
@@ -48,13 +47,13 @@ return Common.Run(function()
 	for i, overlay in ipairs(overlays) do
 		if i % 2 == 1 then
 			explored[#explored + 1] = { offsetX = overlay[3], offsetY = overlay[4] }
-			Place(pin, { select(5, unpack(overlay)) }, overlay[1], overlay[2], overlay[3], overlay[4], "ARTWORK", 0)
+			Place(pin, { select(5, unpack(overlay)) }, overlay[1], overlay[2], overlay[3], overlay[4], "ARTWORK")
 		end
 	end
 	env.C_MapExplorationInfo = { GetExploredMapTextures = function() return explored end }
 	local tiles = {}
 	for id in (os.getenv("RENDER_MAP_TILES") or ""):gmatch("%d+") do tiles[#tiles + 1] = tonumber(id) end
-	if #tiles == 12 then Place(art, tiles, 1024, 768, 0, 0, "BACKGROUND", 0) end
+	if #tiles == 12 then Place(art, tiles, 1024, 768, 0, 0, "BACKGROUND") end
 	K.Modules.Enable("Skins")
 	M.S.LoadAddOn(env, "Blizzard_WorldMap")
 	M.S.Show(map)

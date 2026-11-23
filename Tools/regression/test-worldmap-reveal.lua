@@ -69,6 +69,6 @@ assert(hides == 0, "with reveal off, Blizzard's overlay refresh touches none of 
 K.Options.Write("Skins", "worldMap.reveal", true)
 explored = { env.Secret({ offsetX = 427, offsetY = 78 }) }
 local ok, err = pcall(pin.RefreshOverlays, pin)
-assert(ok and #Shown() == 11, "a secret exploration record is skipped, not read: " .. tostring(err))
+assert(ok and #Shown() == 12, "a secret exploration record is skipped, not read, so its overlay draws too: " .. tostring(err))
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("world map reveal ok")
