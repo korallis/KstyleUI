@@ -87,7 +87,7 @@ end
 
 local MIRROR = { "Show", "Hide", "SetShown", "SetAlpha", "SetAlphaFromBoolean" }
 
-local function Socket(view, region, rim, fixed)
+local function Socket(view, region, rim, size, fixed)
 	local back = region.socket
 	if not back then
 		if not rim then return end
@@ -102,10 +102,9 @@ local function Socket(view, region, rim, fixed)
 			end
 		end
 	end
-	back:ClearAllPoints()
 	if rim then
-		back:SetPoint("TOPLEFT", region, "TOPLEFT", -rim / 2, rim / 2)
-		back:SetPoint("BOTTOMRIGHT", region, "BOTTOMRIGHT", rim / 2, -rim / 2)
+		back:SetPoint("CENTER", region, "CENTER")
+		back:SetSize(size + rim, size + rim)
 	end
 	back.on = rim ~= nil
 	if fixed == nil then fixed = region:IsShown() end
@@ -335,9 +334,9 @@ function Indicators.Layout(view, g, s)
 		for _, key in ipairs(SLOTS) do
 			local fixed
 			if view.kind == "player" then fixed = s[key] == true end
-			Socket(view, view.icons[key], view.rim, fixed)
+			Socket(view, view.icons[key], view.rim, spots[key].size, fixed)
 		end
-		Socket(view, view.marker, view.rim)
+		Socket(view, view.marker, view.rim, spot and Snap(view, spot.w) or 0)
 	end
 	view.markerCut = false
 	if view.extraIcon then
