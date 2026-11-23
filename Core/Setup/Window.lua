@@ -484,7 +484,7 @@ local Card = {}
 
 function Card:Paint()
 	local emphasis = self.selected and 1 or self.hoverT or 0
-	self.chrome:SetEdgeRGBA(Widgets.MixTokens("edgeInner", 1, "accent", 1, emphasis))
+	self.chrome:SetEdgeRGBA(Widgets.MixTokens("edgeInner", 1, "accent", 1, self.pointed and 1 or emphasis))
 	self.title:SetTextColor(Widgets.MixTokens("textEmphasis", 1, "textHover", 1, emphasis))
 end
 
@@ -725,6 +725,12 @@ local function NewCard(page, width, height, title, note, pick)
 		Changed()
 	end
 	Widgets.HookPointer(card)
+	for script, pointed in pairs({ OnEnter = true, OnLeave = false }) do
+		card:HookScript(script, function()
+			card.pointed = pointed
+			card:Paint()
+		end)
+	end
 	card:Restyle()
 	return Widgets.Track(card)
 end
@@ -919,18 +925,19 @@ PlaceModules = function()
 	local column = panel.moduleBody:GetWidth() / 2
 	local top = ns.Store.Module("Setup").readableNotes and max(HEADER_HEIGHT, Widgets.WrappedHeight(panel.moduleNote, panel.moduleNote:GetWidth())) or HEADER_HEIGHT
 	Widgets.Fill(panel.moduleScroll, panel.pages[4], 0, top + gap("gapMedium"), 0, 0)
-	local function Place(least, aligned)
+	local function Place(least)
 		local heights, tops = {}, { 0, 0 }
 		for i, entry in ipairs(Setup.PICKER) do
 			local toggle = panel.toggles[entry.name]
 			Setup.NoteStyle(toggle.note)
 			local indent = toggle.trackBox:GetWidth() + gap("gapMedium")
+			toggle.note:ClearAllPoints()
+			Widgets.Point(toggle.note, "TOPLEFT", toggle, "BOTTOMLEFT", indent, -gap("gapTiny"))
 			toggle.note:SetWidth(column - indent - gap("gapLarge"))
 			local height = ns.Store.Module("Setup").readableNotes and max(least, toggle:GetHeight() + gap("gapTiny") + Widgets.WrappedHeight(toggle.note, toggle.note:GetWidth()) + gap("gapSmall")) or ROW_HEIGHT
 			heights[i] = Widgets.Snap(panel.moduleBody, height)
-			local beside = heights[i - ROWS_PER_COLUMN]
-			if aligned and beside then
-				heights[i] = max(heights[i], beside)
+			if i > ROWS_PER_COLUMN then
+				heights[i] = max(heights[i], heights[i - ROWS_PER_COLUMN])
 				heights[i - ROWS_PER_COLUMN] = heights[i]
 			end
 		end
@@ -939,17 +946,12 @@ PlaceModules = function()
 			local toggle = panel.toggles[entry.name]
 			toggle:ClearAllPoints()
 			Widgets.Point(toggle, "TOPLEFT", panel.moduleBody, "TOPLEFT", (col - 1) * column, -tops[col])
-			toggle.note:ClearAllPoints()
-			Widgets.Point(toggle.note, "TOPLEFT", toggle, "BOTTOMLEFT", toggle.trackBox:GetWidth() + gap("gapMedium"), -gap("gapTiny"))
 			tops[col] = tops[col] + heights[i]
 		end
 		return max(tops[1], tops[2])
 	end
-	local height
-	for _, try in ipairs({ { ROW_HEIGHT, true }, { 0, true }, { 0 } }) do
-		height = Place(try[1], try[2])
-		if not ns.Store.Module("Setup").readableNotes or height <= panel.moduleScroll:GetHeight() then break end
-	end
+	local height = Place(ROW_HEIGHT)
+	if ns.Store.Module("Setup").readableNotes and height > panel.moduleScroll:GetHeight() then height = Place(0) end
 	panel.moduleBody:SetHeight(height)
 	panel.moduleScroll:SetVerticalScroll(max(0, min(panel.moduleScroll:GetVerticalScroll() or 0, panel.moduleBody:GetHeight() - panel.moduleScroll:GetHeight())))
 	panel.moduleBar.Place()

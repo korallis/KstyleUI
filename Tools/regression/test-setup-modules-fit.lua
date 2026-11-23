@@ -6,7 +6,7 @@ rawset(os, "getenv", function(key)
 	if key == "RENDER_SETUP_STEP" then return "4" end
 	return getenv(key)
 end)
--- German notes need the list's scrollbar at 1080, as before the rows were aligned; it checks alignment only.
+-- German notes need the list's scrollbar at 1080, as before the rows were aligned; that case checks the rows in view line up.
 for _, case in ipairs({ { "enUS", 1920, 1080 }, { "frFR", 1920, 1080 }, { "frFR", 2560, 1440 }, { "esES", 5120, 1440 }, { "deDE", 1920, 1080, true }, { "enUS", 3840, 2160 } }) do
 	local locale, width, height, scrolls = unpack(case)
 	local label = locale .. " " .. width .. "x" .. height
@@ -22,7 +22,7 @@ for _, case in ipairs({ { "enUS", 1920, 1080 }, { "frFR", 1920, 1080 }, { "frFR"
 			assert(scrolls or over <= 0.5, label .. ": \"" .. item.text .. "\" is cut " .. over .. " units by the module list's edge")
 		end
 	end
-	assert(clipped == 30, label .. ": every module shows its name and note, got " .. clipped .. " lines")
+	assert(scrolls or clipped == 30, label .. ": every module shows its name and note, got " .. clipped .. " lines")
 	local rows = {}
 	for pass = 1, 2 do
 		for _, item in ipairs(scene.items) do

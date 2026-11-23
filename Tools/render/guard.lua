@@ -408,7 +408,6 @@ end
 -- Hides(item) -> whether a texture can hide a text under it: a solid colour, an icon (a file ID, or a file from an
 -- Icons folder) or a kit fill slice (LumenShape, CardShape), at an effective alpha of at least COVER_ALPHA. Any other art
 -- (rims, outlines, bar glass, gradients) carries its own transparency the guard cannot read, so it is not judged.
--- A fade (a gradient that ramps to alpha 0 at one end, as a list's edge fade over its cut row) never hides.
 function Guard.Hides(item)
 	if item.kind ~= "texture" or item.masks and #item.masks > 0 then
 		return false
@@ -428,13 +427,21 @@ function Guard.Hides(item)
 		alpha = alpha * (item.vertex[4] or 1)
 	end
 	if item.gradient then
-		local from, to = item.gradient.from[4], item.gradient.to[4]
-		if math.min(from, to) <= 0 then
-			return false
-		end
-		alpha = alpha * math.max(from, to)
+		alpha = alpha * math.max(item.gradient.from[4], item.gradient.to[4])
 	end
 	return alpha >= Guard.COVER_ALPHA
+end
+
+-- EdgeFade(cover, text) -> whether a cover is a list's edge fade over its rows: a vertical gradient that ramps to
+-- nothing, its opaque end on the edge of the scroll view that holds the text, which cuts its rows there by design.
+-- SetGradient's first colour is a vertical gradient's bottom.
+local function edgeFade(cover, text)
+	local g, clip, r = cover.item.gradient, text.item.scroll and text.item.clip, cover.rect
+	if not (g and clip and g.orientation == "VERTICAL" and math.min(g.from[4], g.to[4]) <= 0) then
+		return false
+	end
+	local edge = g.from[4] > g.to[4] and r[2] + r[4] - clip[2] - clip[4] or r[2] - clip[2]
+	return math.abs(edge) <= slack
 end
 
 -- Top(object) -> the top-level element an object hangs in: its ancestor whose parent is a root (UIParent or an
@@ -533,7 +540,7 @@ function Guard.Check(scene)
 		for i = text.at, #drawn do
 			local cover = drawn[i]
 			local frame = cover.item.object._parent
-			if cover.group == text.group and frame ~= text.item.object._parent then
+			if cover.group == text.group and frame ~= text.item.object._parent and not edgeFade(cover, text) then
 				local w, h = crossing(ink, cover.rect)
 				if w > 0 and h > 0 then
 					-- A glass drawn as slices hides a text slice by slice: the slices one frame draws add up.

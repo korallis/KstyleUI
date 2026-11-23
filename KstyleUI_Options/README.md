@@ -196,7 +196,7 @@ General > Settings window contains the presentation choices, all on by default: 
 | Header | The logo, the spaced title, the search field with its clear button, and the close button. The header is the drag handle. |
 | Rail | `Rail.lua`: a `ScrollList` of pages, and under the open page its sections. The selected page has an accent bar and an accent wash that fades to the right. A section row is shorter (26 units) and indented; the section whose header is on screen, or last scrolled past, carries a 2-unit accent tick. Clicking a section scrolls the rows so its header sits at the top. The rail lists no sections while a search is on, or when General > List page sections in the rail is off. |
 | Rows | A `ScrollList` of 48-unit rows (`Rows.lua`). Each row is a header, a note, or a label with help text and one kit control on the right, 220 units wide. The rail and the rows fade at their bottom edge while more lies below. |
-| Preview | `Preview.lua`: a `buttonFill` tile captioned "Live preview". |
+| Preview | `Preview.lua`: a `buttonFill` tile captioned "Live preview". A changed preview shows at once and fades in with a client alpha animation, so a fade that never runs cannot hide it. The Unit Frames preview fits the whole frame and its auras into the 280-unit pane at about half size, so its smallest text draws near 6 pixels at 1920x1080; a wider preview is a follow-up. |
 | Footer | **Layout Mode** (primary) and **Reset** under the preview. |
 
 ## Pages

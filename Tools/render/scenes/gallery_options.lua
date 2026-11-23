@@ -77,14 +77,24 @@ local function settle(env)
 end
 
 -- The real module's frames on the HUD (the player frame, its cast bar and class resource) are not this scene's
--- subject and would show through the other states' windows, so each state hides them before it builds.
-local function hideHud(K)
+-- subject and would show through the other states' windows, so each state hides them before it builds. The stub
+-- draws no portraits, so the preview's medallion would be an empty disc; the mockup's face that standins.py cuts
+-- stands in, as in gallery_unitframes (a flat tone without it). The game draws the player.
+local function prepare(env, K)
 	for _, element in ipairs(K.Layout.Elements()) do
 		if element.module == "UnitFrames" then
 			local el = K.Layout.Element(element.key)
 			if el and el.frame then
 				el.frame:Hide()
 			end
+		end
+	end
+	local file = Common.StandIn("portrait-player.png")
+	for texture in pairs(env._portraits or {}) do
+		if file then
+			texture:SetTexture(file)
+		else
+			texture:SetColorTexture(0.33, 0.28, 0.22, 1)
 		end
 	end
 end
@@ -117,19 +127,6 @@ local function railRow(ns, label)
 		end
 	end
 	error("no rail row labelled " .. label)
-end
-
--- The stub draws no portraits, so the preview's medallion would be an empty disc; the mockup's face that
--- standins.py cuts stands in, as in gallery_unitframes (a flat tone without it). The game draws the player.
-local function portraits(env)
-	local file = Common.StandIn("portrait-player.png")
-	for texture in pairs(env._portraits or {}) do
-		if file then
-			texture:SetTexture(file)
-		else
-			texture:SetColorTexture(0.33, 0.28, 0.22, 1)
-		end
-	end
 end
 
 local function count(items, fn)
@@ -226,8 +223,7 @@ return Common.Run(function()
 		caption = "The canvas the core registers in Blizzard's Settings panel: the logo, the KSTYLEUI display title, one line of body text, the primary Open KstyleUI settings button and the /kstyle hint. The canvas itself has no backdrop; in the game Blizzard's Settings panel is behind it, here the plate.",
 		match = "Only the button has chrome: body #101214, the accent hairline of a primary button, the tile chamfer, as the mockup's data strip pill. Nothing else on the canvas is a backdrop.",
 	})
-	hideHud(K)
-	portraits(env)
+	prepare(env, K)
 	scenes[#scenes + 1] = Gallery.Build(env, { hover = hover })
 	errorsOf(scenes[#scenes], env, K, "main")
 
@@ -256,8 +252,7 @@ return Common.Run(function()
 			caption = "The window with \"cast bar\" typed in the search field: the rail shows no selection and lists no sections, the clear glyph shows in the field, and the rows list every match under its page and section (Player: cast bar, Target: cast bar, Focus: cast bar, Boss: cast bar), whichever frame the picker holds." .. SCALE_NOTE,
 			match = "Window grade as the chat panel: surface fill, two-line edge, drop shadow; the search field wears the button body with the hairline.",
 		})
-		hideHud(K2)
-		portraits(env2)
+		prepare(env2, K2)
 		scenes[#scenes + 1] = Gallery.Build(env2)
 		errorsOf(scenes[#scenes], env2, K2, "search")
 	end

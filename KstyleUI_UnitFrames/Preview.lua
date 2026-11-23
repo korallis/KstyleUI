@@ -199,8 +199,9 @@ local function Paint(view, kind)
 	end
 	ns.Unit.TextTags(view, nil, nil, SAMPLES[kind])
 	if view.textBar then ns.Unit.BarIcon(view, nil, sample) end
-	if view.form == "slab" then
-		ns.Slab.Portrait(view, "player")
+	if view.form == "slab" and view.medallion then
+		K.Medallions.Portrait(view.medallion.portrait, "player", "bust")
+		view.medallion:SetLevel(sample.level > 0 and sample.level or "??")
 	elseif s.portraitStyle == "class" and GetClassAtlas and Theme.Class() then
 		ns.Unit.ClassArt(view.portrait, Theme.Class(), s)
 	elseif SetPortraitTexture then

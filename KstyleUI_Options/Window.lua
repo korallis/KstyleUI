@@ -128,7 +128,7 @@ local function Render(keepOffset, reselect, pageChanged)
 				items = Window.Picks(items, account)
 			end
 			if Target(items) then
-				table.insert(items, 1, { kind = "note", label = L["Press Enter or click a result to go to it."] })
+				table.insert(items, 1, { kind = "note", label = L["Press Enter or click a name to go to it."] })
 			end
 		end
 	else

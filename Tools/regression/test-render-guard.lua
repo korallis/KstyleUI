@@ -260,7 +260,7 @@ list:EnableMouseWheel(true)
 local listView = child(list)
 listView:SetClipsChildren(true)
 list.view = listView
-text(listView, "A row half under the list's edge fade", 200, false):SetPoint("BOTTOMLEFT", listView, "BOTTOMLEFT", 0, 12)
+text(listView, "A row at the faded edge", 200, false):SetPoint("BOTTOMLEFT", listView, "BOTTOMLEFT", 0, 12)
 text(listView, "A row in the middle of the list", 200, false):SetPoint("TOPLEFT", listView, "TOPLEFT", 0, -4)
 for _, at in ipairs({ { "edge", "BOTTOM", 0 }, { "middle", "TOP", -12 } }) do
 	local band = env.CreateFrame("Frame", nil, list)
@@ -332,7 +332,7 @@ assert(by["overlap|GuardShelf.icon.? inv_misc_questionmark & Page 1"] or by["ove
 	return subjects
 end)(), "; "))
 
-assert(not by["overlap|A row half under the list's edge fade & GuardList.edge.?"], "a list's edge fade over the last rows of its scroll view is the design")
+assert(not by["overlap|A row at the faded edge & GuardList.edge.?"], "a list's edge fade over the last rows of its scroll view is the design")
 assert(by["overlap|A row in the middle of the list & GuardList.middle.?"], "a fade laid mid-list over half a row hides it")
 
 assert(not by["ellipsis|Fits"], "a text that fits its rect is not truncated")
@@ -406,7 +406,7 @@ for _, f in ipairs(allowed) do
 	owners[f.entry.owner] = f.kind
 end
 assert(#allowed == 2 and owners.R4b == "outside" and owners.S3 == "clipped", "the R4b line covers the column and the S3 glob line covers the cut cast label")
-assert(#fresh == 10, "the displaced gem, the ellipsis, the tab card, the sub-panel spill, the big card, the backdrop spill, the clipped wide label and the three overlaps stay fresh (=Spills past is not the whole subject): " .. #fresh)
+assert(#fresh == 11, "the displaced gem, the ellipsis, the tab card, the sub-panel spill, the big card, the backdrop spill, the clipped wide label and the four overlaps stay fresh (=Spills past is not the whole subject): " .. #fresh)
 assert(#stale == 1 and stale[1].match == "Gone", "a line naming this scene that matched nothing is stale; a glob line is not judged by one scene")
 local _, _, again = Guard.Sort(findings, allow, "gallery_window@2560x1440")
 assert(#again == 1 and again[1].match == "Gone", "a bare scene line reads the scene name without its screen")
