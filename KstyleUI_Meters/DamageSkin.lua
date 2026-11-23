@@ -349,6 +349,9 @@ local function NewCap(window)
 	head:SetAllPoints(window)
 	head:SetFrameLevel(window:GetFrameLevel() + LEVEL_ABOVE + 1)
 	local cap = Widgets.SectionCap(head, {})
+	hooksecurefunc(cap, "Paint", function(self)
+		Widgets.TextColor(self.label, "capsGold")
+	end)
 	caps[window] = cap
 	local typeDropdown = window.DamageMeterTypeDropdown
 	local typeName = type(typeDropdown) == "table" and typeDropdown.TypeName or nil
