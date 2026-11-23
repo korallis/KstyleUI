@@ -704,3 +704,7 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - #782 review ISSUES (N over zone name with clear plaques off, rotation leaves missing rune, leader test vacuous) -> author.
 - Merged #781 (setup cards hotfix). Missing Medallions title: in-game check on a German client.
 - Merged #778 (ranged crests). #771 healers rebasing onto staging (may need rebase over #778).
+- Merged #782 (sockets only when lit, compass N). v0.3.3.1 ready for notes.
+- Baine: map wrong after open map > other zone > close > reopen (snip 1 not found in Discord). Investigation/fix dispatched.
+- v0.3.3.1 TAGGED (main 51f3d372c, hotfix branch off v0.3.3: #777 #781 #782 notes #783).
+- Merged #771 (healer crests). All 9 classes in staging. Follow-up: Frames charge count overflows medal edge (shared Medal).

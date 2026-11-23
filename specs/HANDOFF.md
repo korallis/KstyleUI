@@ -24,12 +24,12 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 
 - #776 (ae54bdb0f): warrior, paladin and rogue crest trackers plus the shared crest system (SlabMedals, SlabTrackers Register API, docs/medallions-effects.md). Ships in v0.3.4 with the healer and ranged crests.
 - #778: hunter, mage and warlock crest trackers (Soul Shards from bags, old shard jewels removed).
+- #771: priest, druid (full crest per form incl. bear tank) and shaman extension. All nine classes are now on staging for v0.3.4.
 
 ## Open pull requests (all target staging)
 
 | PR | Branch | What | Status / next step |
 | --- | --- | --- | --- |
-| #771 | korallis/healer-crest-trackers | Crest trackers: priest, druid (full crest per form incl. bear tank), shaman extension | Review fixed; #776 merged, so retargeted to staging and rebasing (worker ctx_f81d65eadd1e). Then green CI, spot-check, merge. |
 
 ## Work in progress without a PR yet
 
@@ -38,6 +38,8 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 - **v0.3.3 release in progress**: notes PR being written (`specs/notes-033.md`): polish batches, party and unit frames, and the RestedXP 4.11.39 fix (#775, merged). The crest trackers move to v0.3.4; update the roadmap after the release.
 
 - **Hotfix v0.3.3.1** (`specs/notes-0331.md`): #777 and #781 merged; #782 (player sockets only when lit, compass N on the ring) fixed after review, waiting on CI, then merge, notes, tag. Credit Baine by name. Ask Baine to confirm the Medallions card title on his German client.
+
+- **v0.3.4 prep**: a small shared fix is building (`specs/fix-frames-medal-count.md`: Frames medal counts stay inside their medal). Then v0.3.4 notes (crests for every class), release, #chat post with the crest GIFs, roadmap.
 
 ## Crest completeness: what "maximise the crests for every class" still needs
 
