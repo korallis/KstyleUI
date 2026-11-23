@@ -387,7 +387,7 @@ function Motion.PageIn(frame, duration)
 	frame:Show()
 	local fade = frame.kstylePageIn
 	if not fade then
-		fade = frame:CreateAnimationGroup()
+		fade = Motion.TrackGroup(frame:CreateAnimationGroup())
 		fade.alpha = fade:CreateAnimation("Alpha")
 		fade.alpha:SetFromAlpha(0)
 		fade.alpha:SetToAlpha(1)
