@@ -411,9 +411,7 @@ function Drawer:Layout()
 	local area = self.column.face.mapArea
 	local reserve = toggle:GetWidth() + Widgets.Snap(panel, Format.EDGE + GAP)
 	if not Settings.Get("compactIcons") then
-		local fit = math.floor((area:GetWidth() - (ns.Face.Round() and 2 or 1) * reserve - 2 * pad + spacing) / (size + spacing))
-		local rows = math.max(1, math.floor((area:GetHeight() - 2 * pad + spacing) / (size + spacing)))
-		columns = math.max(1, math.min(columns, math.max(fit, math.ceil(slot / rows))))
+		columns = math.max(1, math.min(columns, math.floor((area:GetWidth() - reserve - 2 * pad + spacing) / (size + spacing))))
 	end
 	local list = Settings.Get("drawer.list")
 	self.columns, self.rows = list and 1 or columns, nil
@@ -451,11 +449,6 @@ function Drawer:Layout()
 		local left = Settings.Get("column.side") == "left"
 		local x = point:find("RIGHT") and not left and -reserve or point:find("LEFT") and left and reserve or 0
 		local y = point:find("TOP") and -Widgets.Snap(panel, Format.NORTH) or 0
-		if ns.Face.Round() and not list then
-			point = "TOPLEFT"
-			x = Widgets.Snap(panel, (area:GetWidth() - panel:GetWidth() + (left and reserve or -reserve)) / 2)
-			y = -Widgets.Snap(panel, (area:GetHeight() - panel:GetHeight()) / 2)
-		end
 		panel:SetPoint(point, area, point, x, y)
 	end
 	if list and slot > 0 then
