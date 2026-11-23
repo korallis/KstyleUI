@@ -149,6 +149,27 @@ assert(not R.road and R.note:GetText() == "No connected road route.", "disconnec
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 
 env, K, R, state = M.New()
+Fixture.Install(env, state, Fixture.Graph())
+local function Steps()
+	local out = {}
+	for _, step in ipairs(R.steps) do
+		if step:IsShown() then
+			out[#out + 1] = step:GetText()
+			assert(not step:GetText():find("to %s*$"), "every route step names where it goes, got " .. step:GetText())
+		end
+	end
+	return out
+end
+R.Pick({ mapID = 1, name = "Innkeeper Grosk", x = 0.33, y = 0.3 })
+assert(R.road and Steps()[1] == "1. Road to Innkeeper Grosk", "the last road step ends at the destination, not at a nameless junction")
+R.Clear()
+state.playerX, state.playerY = 0.3, 0.2
+R.Pick({ mapID = 1, name = "Crossroads", x = 0.72, y = 0.36 })
+local steps = Steps()
+assert(steps[1] == "1. Off road to Razor Hill" and steps[2] == "2. Road to Crossroads", "a nameless junction takes the nearest town's name")
+assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
+
+env, K, R, state = M.New()
 Fixture.Install(env, state)
 Roads = env._addons.KstyleUI_Skins.WorldMapRoads
 local real = assert(Roads.Graph(1))

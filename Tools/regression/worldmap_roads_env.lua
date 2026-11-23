@@ -29,7 +29,7 @@ end
 function R.Graph()
 	local graph = { map = 1, nodes = {
 		{ id = 1, name = "Razor Hill", x = 300, y = 700, kind = "flight" },
-		{ id = 2, name = "Mountain pass", x = 300, y = 300, kind = "junction" },
+		{ id = 2, name = "", x = 300, y = 300, kind = "junction" },
 		{ id = 3, name = "Crossroads", x = 720, y = 360, kind = "flight" },
 	}, edges = {} }
 	graph.edges = {
