@@ -62,7 +62,7 @@ M.Tick(env)
 assert(M.Last(main, "SetValue")[1] == 0.5, "halfway through the swing the bar is half full")
 env.SetTime(102.5)
 M.Tick(env)
-assert(M.Last(main, "SetValue")[1] == 0, "a finished swing clears the bar")
+assert(M.Last(main, "SetValue")[1] == 1, "a finished swing holds its full bar, never an empty box")
 -- The next swing's PLAYER_SWING lands a frame or two after the last one ends, so the cleared bar lingers for
 -- a moment rather than blink between swings, then hides.
 assert(Swing.content:IsShown(), "a just-finished swing keeps its bar for a moment")
@@ -70,6 +70,7 @@ assert(Swing.driver:GetScript("OnUpdate"), "the OnUpdate runs on through the lin
 env.SetTime(102.5 + Swing.LINGER + 0.1)
 M.Tick(env)
 assert(not Swing.content:IsShown(), "with no new swing the bars hide after the linger")
+assert(M.Last(main, "SetValue")[1] == 0, "the bar empties for the next swing once the linger ends")
 assert(Swing.driver:GetScript("OnUpdate") == nil, "the OnUpdate stops when no swing runs")
 -- Back-to-back swings never blink: a new swing inside the linger keeps the bar up.
 env.SetTime(150)
