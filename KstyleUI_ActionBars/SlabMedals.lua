@@ -9,11 +9,11 @@ local IsSecret = Widgets.IsSecret
 local Medals = {}
 ns.SlabMedals = Medals
 
-local SIZE, TRACK, ICON, SHADE, BURST, STEEL = 26, 6, 0.74, 1.9, 2.4, 0.45
+local SIZE, TRACK, ICON, SHADE, BURST, STEEL = 26, 4, 0.74, 1.9, 2.4, 0.45
 local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 112, 12, 10, 8, 2
 local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, STACK_MAX = 118, 14, 4, 30, 3
 local SEATS = {
-	left = { -1, 84, 32 }, right = { 1, 84, 32 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
+	left = { -1, 75.9, 24.8 }, right = { 1, 75.9, 24.8 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
 	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 67.5, 247 }, footRight = { 1, 67.5, 293 },
 }
 local PIP, PIP_ARC, GLOW = 4, 22, 0.35

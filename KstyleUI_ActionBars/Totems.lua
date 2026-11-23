@@ -20,7 +20,7 @@ local ELEMENTS = {
 }
 local CALL, RECALLS = 66842, { 36936, 437009 }
 local SOCKET, RADIUS, SPIRE, SPIRE_LIFT, HALO = 26, 98, 34, 3, 1.5
-local MEDAL, ICON = Medals.SIZE, 0.74
+local MEDAL, MEDAL_RADIUS, MEDAL_RISE, ICON = Medals.SIZE, 84, 32, 0.74
 local FAN, FAN_RADIUS, FAN_DROP, FAN_STEP, FAN_SPAN = 26, 330, 200, 5.2, 32
 local FLARE_RISE, FLARE_FALL, IGNITE = 0.05, 0.4, 0.3
 local UNFOLD, FIFTH, IDLE_ICON, RING_HALO = 0.12, 0.2, 0.82, 1.6
@@ -558,7 +558,7 @@ local function Place()
 	state.call:SetShown(state.call.known ~= nil)
 	state.wolf:SetShown(state.wolf.form ~= nil)
 	for side, m in pairs({ [-1] = state.wolf, [1] = state.call }) do
-		local mx, my = Medals.Seat(side < 0 and "left" or "right")
+		local mx, my = side * MEDAL_RADIUS * cos(rad(MEDAL_RISE)), MEDAL_RADIUS * sin(rad(MEDAL_RISE))
 		if not crest then mx, my = w / 2 - half - (side < 0 and MEDAL + ROW_GAP or 0), half - h / 2 end
 		Put(m, anchor, mx, my, MEDAL)
 		Widgets.Size(m.icon, MEDAL * ICON, MEDAL * ICON)

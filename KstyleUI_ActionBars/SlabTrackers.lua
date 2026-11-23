@@ -10,7 +10,7 @@ local Trackers = {}
 ns.SlabTrackers = Trackers
 
 local OWNER = "ActionBars.SlabTrackers"
-local RELIQUARY, MAIN_HAND, OFF_HAND = 28, 16, 17
+local RELIQUARY, MAIN_HAND, OFF_HAND = 30, 16, 17
 local LUA = {
 	cooldown = { "SPELL_UPDATE_COOLDOWN" },
 	usable = { "SPELL_UPDATE_USABLE", "SPELL_UPDATE_COOLDOWN", "PLAYER_TARGET_CHANGED" },
