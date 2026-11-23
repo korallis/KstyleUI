@@ -23,6 +23,7 @@ Skin.TAB_WASH_ALPHA = TAB_WASH_ALPHA
 local WEAK = { __mode = "k" }
 local hushed = setmetatable({}, WEAK)
 local kept = setmetatable({}, WEAK)
+local always = setmetatable({}, WEAK)
 local watched = setmetatable({}, WEAK)
 local busy = false
 local panelHooks = false
@@ -141,7 +142,7 @@ local function StripRegions(keep, ...)
 	local count = 0
 	for i = 1, select("#", ...) do
 		local region = select(i, ...)
-		if IsTexture(region) and not (keep and keep[region]) and Hush(region) then
+		if IsTexture(region) and not (keep and keep[region]) and not always[region] and Hush(region) then
 			count = count + 1
 		end
 	end
@@ -173,6 +174,10 @@ local function StripAny(target)
 		return StripFrame(target)
 	end
 	return 0
+end
+
+function Skin.Keep(region)
+	always[region] = true
 end
 
 function StripFrame(frame, opts)
