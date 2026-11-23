@@ -53,11 +53,12 @@ for _, kind in ipairs({ "player", "target" }) do
 	assert(near(view.button:GetBottom() - cb.frame:GetTop(), K.Widgets.Snap(cb.frame, 2)) and near(cb.frame:GetLeft(), view.button:GetLeft()), kind .. ": the bar hangs under the frame, flush with its slab")
 end
 local capped = CastBars.Inline("player")[1]
-assert(capped.slab[5]:GetTexture() == (K.Tokens.Texture("medUnitSlabCap")), "the cast slab wears the forged end caps")
+local slab = capped.slab
+assert(slab.texture == "medUnitSlabCap" and slab[5]:GetTexture() == (K.Tokens.Texture("medUnitSlabCap")), "the cast slab wears the forged end caps")
 write("slabCaps", false)
-assert(capped.slab[5]:GetTexture() == (K.Tokens.Texture("medUnitSlab")) and capped.slab[5]:IsShown() and not capped.slabs.medUnitSlabCap[5]:IsShown(), "Forged slab ends off restores the rounded cast slab")
+assert(capped.slab == slab and slab.texture == "medUnitSlab" and slab[5]:GetTexture() == (K.Tokens.Texture("medUnitSlab")) and slab[5]:IsShown(), "Forged slab ends off repaints the same cast slab rounded")
 write("slabCaps", true)
-assert(capped.slab == capped.slabs.medUnitSlabCap and capped.slab[5]:IsShown() and not capped.slabs.medUnitSlab[5]:IsShown(), "and on brings its caps back")
+assert(capped.slab == slab and slab.texture == "medUnitSlabCap" and slab[5]:IsShown(), "and on brings its caps back")
 write("target.castbarIcon", true)
 for _, kind in ipairs({ "player", "target" }) do
 	local view, cb = ns.Frames.Get(kind).views[1], CastBars.Inline(kind)[1]
@@ -113,7 +114,13 @@ for _, kind in ipairs({ "player", "target" }) do
 	assert(CastBars.ElementLive(kind) and K.Layout.Live("unitframes.castbar." .. kind), kind .. ": off gives the bar above the crest back")
 	assert(not view.s.inlineCast and not CastBars.Inline(kind)[1].frame:IsShown(), kind .. ": and the frame carries no bar")
 end
-assert(CastBars.Get("target")[1].frame:IsShown(), "the target's cast shows above the crest again")
+local detached = CastBars.Get("target")[1]
+assert(detached.frame:IsShown(), "the target's cast shows above the crest again")
+assert(detached.slab.texture == "medUnitSlabCap", "the bar above the crest wears the caps too")
+write("slabCaps", false)
+assert(detached.slab.texture == "medUnitSlab" and detached.active and detached.frame:IsShown(), "Forged slab ends off rounds the bar above the crest mid-cast, without ending the cast")
+write("slabCaps", true)
+assert(detached.slab.texture == "medUnitSlabCap" and detached.active, "and on caps it again")
 write("castbarOnFrame", true)
 assert(not CastBars.ElementLive("player") and ns.Frames.Get("player").views[1].s.inlineCast, "on again puts it back on the frame")
 clean("toggle")

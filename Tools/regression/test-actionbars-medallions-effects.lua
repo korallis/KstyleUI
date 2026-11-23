@@ -98,6 +98,20 @@ do
 	assert(alive > 0 and alive < #hub.particles, "calm keeps a few particles alive")
 	env.SetTarget(false)
 	assert(hub.runes.turn:IsPaused() and Alive() == 0, "losing the target settles the crest again")
+	-- The client's Finish lets the sheen run out its pass (IsPendingFinish, SimpleAnimGroupAPIDocumentation.lua); the stub stops at once.
+	local sheen = hub.sheen.run
+	local finish, play = sheen.Finish, sheen.Play
+	sheen.Finish = function(self) self.pending = true end
+	sheen.IsPendingFinish = function(self) return self.pending == true end
+	sheen.Play = function(self, ...) self.pending = nil return play(self, ...) end
+	env.SetTarget(true)
+	env.SetTarget(false)
+	assert(sheen:IsPlaying() and sheen:IsPendingFinish(), "at rest the sheen runs out its last pass")
+	env.SetTarget(true)
+	if sheen:IsPendingFinish() then sheen:Stop() end
+	assert(sheen:IsPlaying(), "a target back before that pass ends keeps the sheen passing after it")
+	sheen.Finish, sheen.Play, sheen.IsPendingFinish = finish, play, nil
+	env.SetTarget(false)
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
 	assert(hub.runes.turn:IsPlaying(), "a proc wakes the crest")
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
@@ -105,6 +119,12 @@ do
 	assert(hub.runes.turn:IsPaused() and Alive() == 0, "the proc's end settles it")
 	K.Options.Write("Medallions", "restingCrest", false)
 	assert(hub.runes.turn:IsPlaying() and hub.sheen.run:IsPlaying() and Alive() == alive and hub.glow.breath:GetAnimationSpeedMultiplier() == 1, "Calm crest at rest off keeps the full idle motion")
+	local writes, speed = 0, hub.glow.breath.SetAnimationSpeedMultiplier
+	hub.glow.breath.SetAnimationSpeedMultiplier = function(self, s) writes = writes + 1 return speed(self, s) end
+	ns.Slab.SetProc(b, true, true)
+	ns.Slab.SetProc(b, false, true)
+	hub.glow.breath.SetAnimationSpeedMultiplier = speed
+	assert(writes == 0, "with Calm crest at rest off a first or last proc leaves the idle motion alone")
 	K.Options.Write("Medallions", "restingCrest", true)
 
 	env.FireEvent("PLAYER_LEVEL_UP", 12)
@@ -176,6 +196,12 @@ do
 		assert(not p:IsShown(), "the switch off hides the particles")
 	end
 	assert(hub.ring:IsShown() and hub.runes:IsShown() and hub.glow:GetAlpha() > 0, "the static hub art stays")
+	local stops, stop = 0, hub.glow.breath.Stop
+	hub.glow.breath.Stop = function(self) stops = stops + 1 return stop(self) end
+	env.SetTarget(false)
+	env.SetTarget(true)
+	hub.glow.breath.Stop = stop
+	assert(stops == 0, "with the switch off, losing or gaining a target leaves the still hub alone")
 	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
 	env.SetCombat(true)
