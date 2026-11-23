@@ -74,7 +74,6 @@ end
 
 local Edge = {}
 Edge.__index = Edge
-local PlaceGlass
 local barEdges = setmetatable({}, { __mode = "k" })
 
 local function Frame(region, target, outset, farX, farY)
@@ -95,7 +94,7 @@ function Edge:Restyle()
 	Frame(self.track, target, 0, farX, farY)
 	Widgets.Tint(self.track, "barTrack")
 	if self.glass then
-		PlaceGlass(self, target)
+		Bar.PlaceGlass(self, target)
 	end
 end
 
@@ -117,6 +116,7 @@ function Widgets.BarEdge(target, noTrack, glass)
 		edge:Restyle()
 		return edge
 	end
+	glass = glass and type(target.GetOrientation) == "function" and type(target.GetStatusBarTexture) == "function"
 	edge = setmetatable({
 		target = target,
 		glass = glass and {} or nil,
@@ -271,7 +271,33 @@ end
 
 local glassColors
 
-function PlaceGlass(self, bar)
+local function Waits(edge, bar)
+	if type(bar.IsProtected) == "function" and not Widgets.MayMove(bar) then
+		if not edge.queued then
+			edge.queued = true
+			ns.Combat.Queue(function()
+				edge.queued = nil
+				edge:Restyle()
+			end)
+		end
+		return true
+	end
+	if bar:IsVisible() then
+		return false
+	end
+	if not edge.hooked then
+		edge.hooked = true
+		bar:HookScript("OnShow", function()
+			if not edge.glass[1] then
+				edge:Restyle()
+			end
+		end)
+	end
+	return true
+end
+
+function Bar:PlaceGlass(bar)
+	bar = bar or self
 	local glass, on = self.glass, self.glassMode and Widgets.Readability("litBars") and type(CreateColor) == "function"
 	local vertical, px, fill, pixels
 	if on then
@@ -296,6 +322,9 @@ function PlaceGlass(self, bar)
 				self.lit:SetVertexColor(Widgets.Rgba("white", self.litAlpha or LIT_ALPHA))
 			end
 		end
+		return
+	end
+	if self ~= bar and not glass[1] and Waits(self, bar) then
 		return
 	end
 	if not glassColors then
@@ -349,10 +378,6 @@ function PlaceGlass(self, bar)
 		Widgets.Tint(low, "black", GLASS_RIM_LOW)
 		low:SetShown(rims)
 	end
-end
-
-function Bar:PlaceGlass()
-	PlaceGlass(self, self)
 end
 
 local function Ends(visibleTop, visibleBot, tHi, tLo, span)

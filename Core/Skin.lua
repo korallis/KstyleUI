@@ -123,7 +123,7 @@ local function Rehush(texture)
 end
 
 local function Hush(texture)
-	if hushed[texture] then
+	if hushed[texture] or always[texture] then
 		return false
 	end
 	hushed[texture] = true
@@ -142,7 +142,7 @@ local function StripRegions(keep, ...)
 	local count = 0
 	for i = 1, select("#", ...) do
 		local region = select(i, ...)
-		if IsTexture(region) and not (keep and keep[region]) and not always[region] and Hush(region) then
+		if IsTexture(region) and not (keep and keep[region]) and Hush(region) then
 			count = count + 1
 		end
 	end
