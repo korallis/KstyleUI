@@ -283,13 +283,13 @@ for _, style in ipairs({ "medallions", "frames" }) do
 	dK.Options.Write("HudStyle", "style", style)
 	M.Settle(denv)
 	W.Click(dns.Map.column.buttons.drawer)
-	local drawer = dns.Map.drawer
+	local opened = dns.Map.drawer
 	for direction, want in pairs({ left = "TOPRIGHT", right = "TOPLEFT", up = "BOTTOMLEFT", down = "TOPLEFT" }) do
 		dK.Options.Write("Minimap", "drawer.direction", direction)
 		M.Settle(denv)
-		local point = drawer.panel:GetPoint(1)
-		assert(point == want, style .. ": the drawer opens " .. direction .. " from its " .. want .. ", saw " .. tostring(point))
-		assert(drawer.columns == 3, style .. ": 24 buttons keep the map's three columns, saw " .. tostring(drawer.columns))
+		local anchor = opened.panel:GetPoint(1)
+		assert(anchor == want, style .. ": the drawer opens " .. direction .. " from its " .. want .. ", saw " .. tostring(anchor))
+		assert(opened.columns == 3, style .. ": 24 buttons keep the map's three columns, saw " .. tostring(opened.columns))
 	end
 	NoErrors(denv, style .. " drawer directions")
 end

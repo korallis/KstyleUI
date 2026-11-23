@@ -28,8 +28,8 @@ assert(plate.threatShape:IsShown() and env.Reveal(plate.castBadge:GetAlpha()) ==
 assert(#env._errors == 0, tostring(env._errors[1]))
 
 local Geometry = dofile("Tools/regression/geometry.lua")
-local function Clear(a, b, root, what)
-	local ra, rb = assert(Geometry.Rect(a, root)), assert(Geometry.Rect(b, root))
+local function Clear(one, other, root, what)
+	local ra, rb = assert(Geometry.Rect(one, root)), assert(Geometry.Rect(other, root))
 	assert(ra.right <= rb.left or rb.right <= ra.left or ra.top <= rb.bottom or rb.top <= ra.bottom,
 		what .. ": " .. ra.left .. ".." .. ra.right .. " against " .. rb.left .. ".." .. rb.right)
 end
