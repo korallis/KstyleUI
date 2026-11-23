@@ -378,16 +378,17 @@ function Jewels.Update(event)
 	if event == "UPDATE_SHAPESHIFT_FORM" and class == state.class and kind == state.kind and count == state.count and feed == state.feed then
 		return
 	end
+	local waiting = false
 	if feed and not feed.container then
 		if ns.SlabMedals.Restricted() then
-			feed = nil
-			K.Events.Register(OWNER .. ".Feed", "PLAYER_REGEN_ENABLED", Jewels.Update)
+			feed, waiting = nil, true
 		else
 			local ids = {}
 			for _, id in ipairs(feed.spells) do
 				ids[id] = true
 			end
-			local container = CreateFrame("AuraContainer", nil, ns.Slab.hub.top, "CustomAuraContainerTemplate")
+			feed.frame = CreateFrame("Frame", nil, ns.Slab.hub.top)
+			local container = CreateFrame("AuraContainer", nil, feed.frame, "CustomAuraContainerTemplate")
 			if type(container.AddAuraSlot) ~= "function" then
 				feed = nil
 			else
@@ -395,14 +396,25 @@ function Jewels.Update(event)
 				container:SetUnit("player")
 				feed.container, feed.options = container, { candidateFilters = { includeSpellIDs = ids } }
 			end
-			K.Events.Unregister(OWNER .. ".Feed", "PLAYER_REGEN_ENABLED")
 		end
 	end
 	for _, f in ipairs(FEEDS) do
-		if f.container and f.on ~= (f == feed) and not ns.SlabMedals.Restricted() then
-			f.on = f == feed
-			f.container:SetEnabled(f.on)
+		if f.frame then
+			f.frame:SetShown(f == feed)
 		end
+		if f.container and f.on ~= (f == feed) then
+			if ns.SlabMedals.Restricted() then
+				waiting = true
+			else
+				f.on = f == feed
+				f.container:SetEnabled(f.on)
+			end
+		end
+	end
+	if waiting then
+		K.Events.Register(OWNER .. ".Feed", "PLAYER_REGEN_ENABLED", Jewels.Update)
+	else
+		K.Events.Unregister(OWNER .. ".Feed", "PLAYER_REGEN_ENABLED")
 	end
 	state.feed = feed
 	Listen(class, kind)

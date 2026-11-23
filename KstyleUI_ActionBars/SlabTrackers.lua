@@ -333,12 +333,18 @@ local function Listen(on, lua, forms)
 end
 
 local function Stop()
+	local done = true
 	for _, form in pairs(state.forms) do
-		Medals.Engine(select(2, Lists(form)), false, false)
+		done = Medals.Engine(select(2, Lists(form)), false, false) and done
 		form.frame:Hide()
 	end
 	state.form = nil
 	Listen(false)
+	if not done then
+		K.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", Trackers.Update)
+	else
+		K.Events.Unregister(OWNER, "PLAYER_REGEN_ENABLED")
+	end
 end
 
 function Trackers.Update()
