@@ -269,6 +269,16 @@ The player cast bar (36 units), the focus cast bar (20 units) and the target cas
 - The timer counts down on an `OnUpdate` that runs only while a cast shows its timer, every 0.05 seconds, through `SetFormattedText` with the duration's remaining time, which may be secret.
 - Fallbacks, each logged once to the devlog: when there is no duration object or `SetTimerDuration` refuses one, the bar runs on the cast's start and end times while they are plain; when those are secret too, the bar shows full with the spell name and no timer. A secret duration object cannot be read, so it drives the bar with no timer text.
 - A light sheen crosses a horizontal bar at the start of each cast, as the spec's motion table asks. A vertical bar has no sheen, because the sheen moves sideways.
+### Cast targets and interrupts
+
+Unit Frames > Cast targets and interrupts (`castCaster`, on by default) reads the target's and focus's casts by their caster and by what the player can do about them, in both HUD styles. Off restores the earlier bars exactly; turning it on or off restyles the frames out of combat.
+
+- **Who it is aimed at.** On the right of the spell name's box, a second text names the cast's target in their class colour (`KstyleUI.Interrupt.Target`: `UnitSpellTargetName` and `UnitSpellTargetClass`, both secret, through `SetText` and `Theme.ClassColorForWidget`), or reads YOU in `hostile` when `PlayerIsSpellTarget`'s secret answer says it is the player (`SetAlphaFromBoolean` on the two texts). It shows only while `UnitShouldDisplaySpellTargetName` says so; the spell name keeps the left 58% of its box meanwhile and gets it all back after. The selected frame's own Spell target option, the Lumen cast line and a moved spell target keep their earlier text instead.
+- **Cannot be interrupted.** The locked colour as before, plus a `steelLit` shield glyph: over the darkened spell icon where the bar shows one, else in a slot before the spell name (the name moves right by the glyph and a 2-unit gap). A secret flag reaches both through `SetAlphaFromBoolean`.
+- **Interruptible while your interrupt recharges.** The fill dims to 55% of its colour while `KstyleUI.Interrupt` knows the player's interrupt and it is not ready, and a 2-unit `giltLit` ready mark stands where the interrupt comes back when the cooldown's `startTime` and `duration` and the cast's start and end are readable. The bars ask `KstyleUI.Interrupt` to watch only while the setting and a target or focus cast bar are on.
+- **Who interrupted it.** An interrupted cast's who text names who interrupted it from the `interruptedBy` GUID of `UNIT_SPELLCAST_INTERRUPTED` or `UNIT_SPELLCAST_CHANNEL_STOP` (`UnitNameFromGUID`, `UnitClassFromGUID`), or reads YOU for the player's own interrupt, through the outcome's hold.
+- The player's bar does none of this, so its cast path costs the same as before (`test-unitframes-castbar-on-frame`'s instruction budget). Tests: `test-cast-caster.lua`.
+
 - A cast start sets no fonts, textures or fill direction: settings, theme and profile changes restyle the bars. The bar colour is set only when it changes, the two colour objects for a secret `notInterruptible` are rebuilt only when a colour changes, and the hold after a failed or interrupted cast reuses one release function per bar.
 
 ## Frame auras

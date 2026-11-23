@@ -56,6 +56,8 @@ local SPARK = { 227 / 255, 232 / 255, 238 / 255, 1 }
 local RANGE_STEP = 0.2
 local BATCH_GAP = 2
 local GCD_MAX = 1.5
+local WAIT_DIM, SHIELD_SHADE, MARK_THICK, NAME_SHARE = 0.55, 0.6, 2, 0.58
+local CASTER_KINDS = { target = true, focus = true }
 
 local EVENTS = {
 	UNIT_SPELLCAST_START = "Cast",
@@ -239,13 +241,14 @@ local function StopTimer(cb)
 	cb.frame:SetScript("OnUpdate", nil)
 end
 
-local StopRange
+local StopRange, Who, Shield, PlaceGlyph
 
 local function EndTimer(cb, value)
 	cb.inkEmpty = value == 0
 	StopTimer(cb)
 	StopRange(cb)
 	if cb.latency then cb.latency:Hide() end
+	if cb.mark then cb.mark:Hide() end
 	if cb.important then cb.important:Hide() end
 	cb.duration = nil
 	cb.timer:SetText("")
@@ -292,6 +295,7 @@ local function Hide(cb, instant)
 	StopTimer(cb)
 	StopRange(cb)
 	if cb.latency then cb.latency:Hide() end
+	if cb.mark then cb.mark:Hide() end
 	if cb.important then cb.important:Hide() end
 	cb.duration = nil
 	if cb.idle then
@@ -300,6 +304,10 @@ local function Hide(cb, instant)
 		cb.bar:SetMinMaxValues(0, 1)
 		cb.bar:SetValue(0)
 		CastBars.SetName(cb, "")
+		if cb.caster then
+			Who(cb, nil)
+			Shield(cb)
+		end
 		cb.timer:SetText("")
 		cb.icon:SetTexture(nil)
 		cb.bar:SetFillCursor(false)
@@ -327,7 +335,7 @@ local function Hide(cb, instant)
 end
 
 local function New(parent, kind, unit)
-	local cb = { kind = kind, unit = unit, elapsed = 0, colors = {}, holds = 0 }
+	local cb = { kind = kind, unit = unit, elapsed = 0, colors = {}, holds = 0, caster = CASTER_KINDS[kind] == true and unit ~= nil }
 	cb.release = function()
 		cb.holds = cb.holds - 1
 		if cb.holds <= 0 and cb.token == cb.hold then
@@ -480,6 +488,13 @@ local function Anchor(cb, region, point, relative, relPoint, x, dx, dy)
 	region:SetPoint(point, relative, relPoint, Snap(cb, x) + (dx or 0), dy or 0)
 end
 
+local function Slot(cb)
+	local slot = cb.caster and not cb.line and not cb.iconFrame:IsShown() and Settings.Module().castCaster ~= false
+		and Snap(cb, Settings.FontSize(cb.kind, "cast") + GAP_MIN) or nil
+	cb.slot = slot
+	return slot and slot + Snap(cb, GAP_MIN) or 0
+end
+
 local function ShowLock(cb)
 	local label, lock, value = cb.label, cb.lock, cb.locked
 	if not cb.line or cb.empty then
@@ -615,13 +630,15 @@ local function LayoutCaption(cb, width, height)
 	end
 	local tx, ty = Nudge(cb, "castbarText")
 	local mx, my = Nudge(cb, "castbarTimer")
+	local slot = Slot(cb)
 	if inside then
-		cb.text:SetPoint("LEFT", bar, "LEFT", pad + tx, ty)
+		cb.text:SetPoint("LEFT", bar, "LEFT", pad + tx + slot, ty)
 	else
-		cb.text:SetPoint(point .. "LEFT", frame, point .. "LEFT", lead + tx, offset + ty)
+		cb.text:SetPoint(point .. "LEFT", frame, point .. "LEFT", lead + tx + slot, offset + ty)
 	end
-	local textW = math.max(0, width - timerW - 2 * pad - (timerOn and TEXT_PAD or 0))
-	cb.text:SetWidth(Snap(cb, textW))
+	local textW = math.max(0, width - timerW - 2 * pad - (timerOn and TEXT_PAD or 0) - slot)
+	cb.textW = Snap(cb, textW)
+	cb.text:SetWidth(cb.textW)
 	cb.text:SetJustifyH("LEFT")
 	cb.text:SetShown(labelOn and Settings.Value(cb.kind, "castbarText"))
 	if inside then
@@ -685,8 +702,10 @@ local function LayoutMedal(cb, width, height, column)
 	end
 	local tx, ty = Nudge(cb, "castbarText")
 	local mx, my = Nudge(cb, "castbarTimer")
-	cb.text:SetPoint("LEFT", bar, "LEFT", pad + tx, ty)
-	cb.text:SetWidth(Snap(cb, math.max(0, barW - timerW - 2 * MEDAL_TEXT_PAD - (timerOn and TEXT_PAD or 0))))
+	local slot = Slot(cb)
+	cb.text:SetPoint("LEFT", bar, "LEFT", pad + tx + slot, ty)
+	cb.textW = Snap(cb, math.max(0, barW - timerW - 2 * MEDAL_TEXT_PAD - (timerOn and TEXT_PAD or 0) - slot))
+	cb.text:SetWidth(cb.textW)
 	cb.text:SetJustifyH("LEFT")
 	cb.text:SetShown(Settings.Value(cb.kind, "castbarText"))
 	cb.timer:SetPoint("RIGHT", bar, "RIGHT", mx - pad, my)
@@ -737,7 +756,9 @@ local function LayoutParts(cb, width, height)
 	bar:ClearAllPoints()
 	bar:SetPoint("TOPLEFT", cb.frame, "TOPLEFT", Snap(cb, g.bar.x), -Snap(cb, g.bar.y))
 	bar:Restyle()
-	Place(cb, cb.text, g.text, Nudge(cb, "castbarText"))
+	local slot, tx, ty = Slot(cb), Nudge(cb, "castbarText")
+	Place(cb, cb.text, slot > 0 and Rect(g.text.x + slot, g.text.y, g.text.w - slot, g.text.h) or g.text, tx, ty)
+	cb.textW = Snap(cb, g.text.w - slot)
 	Place(cb, cb.timer, g.timer, Nudge(cb, "castbarTimer"))
 	cb.text:SetJustifyH(g.tall and "CENTER" or "LEFT")
 	cb.timer:SetJustifyH(g.tall and "CENTER" or "RIGHT")
@@ -759,6 +780,15 @@ local function Reaction(cb)
 		return nil
 	end
 	return reaction
+end
+
+local function Caster(cb)
+	return cb.caster and Settings.Module().castCaster ~= false
+end
+
+local function Waiting(cb)
+	local interrupt = K.Interrupt
+	return cb.active and interrupt.spell ~= nil and interrupt.ready ~= true and Caster(cb)
 end
 
 local function BarColor(cb)
@@ -861,9 +891,23 @@ local function PlaceTarget(cb)
 	t:SetShown(text:IsShown())
 end
 
+function PlaceGlyph(cb)
+	local glyph = cb.glyph
+	glyph:ClearAllPoints()
+	if cb.slot then
+		glyph:SetPoint("RIGHT", cb.text, "LEFT", -Snap(cb, GAP_MIN), 0)
+		glyph:SetSize(cb.slot, cb.slot)
+	else
+		glyph:SetAllPoints(cb.icon)
+	end
+end
+
 function CastBars.Layout(cb, width, height)
+	cb.whoOn = false
 	LayoutParts(cb, width, height)
 	PlaceTarget(cb)
+	if cb.glyph then PlaceGlyph(cb) end
+	if cb.whoText then Who(cb, cb.whoName, cb.whoClass, cb.whoMe) end
 end
 
 local function NameFont(cb, size)
@@ -930,6 +974,74 @@ function CastBars.SetName(cb, text, target)
 	if not cb.ornament.joined and (secret or text ~= cb.ornamentText) then
 		cb.ornamentText = not secret and text or nil
 		cb.ornament:Restyle()
+	end
+end
+
+local function StyleWho(cb)
+	local path, size, flags = cb.text:GetFont()
+	for _, t in ipairs({ cb.whoText, cb.youText }) do
+		StyleText(t, path, size, flags)
+		t:SetShadowColor(cb.text:GetShadowColor())
+		t:SetShadowOffset(cb.text:GetShadowOffset())
+	end
+	cb.youText:SetTextColor(Tokens.Color("hostile"))
+end
+
+local function ShareName(cb, on)
+	if on == (cb.whoOn == true) then
+		return on
+	end
+	local text, w = cb.text, cb.textW
+	if on then
+		if not w or w <= 2 * TEXT_PAD then
+			return false
+		end
+		cb.nameW = w
+		text:SetWidth(Snap(cb, w * NAME_SHARE))
+	else
+		text:SetWidth(cb.nameW)
+	end
+	cb.whoOn = on
+	return on
+end
+
+function Who(cb, name, class, me)
+	cb.whoName, cb.whoClass, cb.whoMe = name, class, me
+	local on = type(name) ~= "nil" and not cb.line and not cb.targetOn and cb.text:IsShown()
+	if not cb.whoText then
+		if not on then
+			return
+		end
+		local parent = cb.text:GetParent()
+		cb.whoText, cb.youText = NewText(parent, "RIGHT"), NewText(parent, "RIGHT")
+		cb.youText:SetText(K.Locale.Upper(L["You"]))
+		local texts = cb.ornament.texts
+		texts[#texts + 1], texts[#texts + 2] = cb.whoText, cb.youText
+		StyleWho(cb)
+	end
+	on = ShareName(cb, on)
+	local who, you = cb.whoText, cb.youText
+	who:SetShown(on)
+	you:SetShown(on)
+	if not on then
+		return
+	end
+	local w = math.max(1, Snap(cb, cb.nameW * (1 - NAME_SHARE)) - Snap(cb, TEXT_PAD))
+	for _, t in ipairs({ who, you }) do
+		t:ClearAllPoints()
+		t:SetPoint("TOPRIGHT", cb.text, "TOPLEFT", cb.nameW, 0)
+		t:SetPoint("BOTTOMRIGHT", cb.text, "BOTTOMLEFT", cb.nameW, 0)
+		t:SetWidth(w)
+		t:SetJustifyV(cb.text:GetJustifyV())
+	end
+	who:SetText(name)
+	who:SetTextColor(K.Theme.ClassColorForWidget(class))
+	if issecretvalue(me) then
+		who:SetAlphaFromBoolean(me, 0, 1)
+		you:SetAlphaFromBoolean(me, 1, 0)
+	else
+		who:SetAlpha(me == true and 0 or 1)
+		you:SetAlpha(me == true and 1 or 0)
 	end
 end
 
@@ -1028,6 +1140,7 @@ function CastBars.Restyle(cb)
 	Spark(cb)
 	Raise(cb)
 	StyleImportant(cb)
+	if cb.whoText then StyleWho(cb) end
 	cb.styled = true
 	cb.pr = nil
 	Paint(cb, BarColor(cb))
@@ -1053,11 +1166,78 @@ local function ColorObjects(cb, r, g, b)
 	return c.locked, c.normal
 end
 
+local function Mark(cb)
+	local interrupt, start, finish = K.Interrupt, cb.castStart, cb.castEnd
+	local at = interrupt.ready == false and interrupt.readyAt and start and finish and finish > start and Waiting(cb)
+		and (interrupt.readyAt * MS - start) / (finish - start)
+	if at and cb.channel then at = 1 - at end
+	if not (at and at > 0 and at < 1) or cb.line then
+		if cb.mark then cb.mark:Hide() end
+		return
+	end
+	local w, h = cb.bar.opts.width, cb.bar.opts.height
+	local mark = cb.mark
+	if not mark then
+		mark = cb.bar:CreateTexture(nil, "OVERLAY", nil, 2)
+		mark:SetColorTexture(Tokens.Color("giltLit"))
+		cb.mark = mark
+	end
+	local vertical, reverse = cb.bar.vertical, cb.bar:GetReverseFill() == true
+	local point = vertical and (reverse and "TOP" or "BOTTOM") or (reverse and "RIGHT" or "LEFT")
+	local step = Snap(cb, at * (vertical and h or w)) * (reverse and -1 or 1)
+	local thick = Snap(cb, MARK_THICK)
+	mark:ClearAllPoints()
+	mark:SetPoint(point, cb.bar, point, vertical and 0 or step, vertical and step or 0)
+	mark:SetSize(vertical and w or thick, vertical and thick or h)
+	if issecretvalue(cb.locked) then
+		mark:SetAlphaFromBoolean(cb.locked, 0, 1)
+	else
+		mark:SetAlpha(cb.locked == true and 0 or 1)
+	end
+	mark:Show()
+end
+
+function Shield(cb)
+	local shade = cb.shade
+	if not (cb.active and Caster(cb)) then
+		if shade then
+			shade:SetAlpha(0)
+			cb.glyph:SetAlpha(0)
+		end
+		return
+	end
+	if not shade then
+		shade = cb.iconFrame:CreateTexture(nil, "OVERLAY")
+		shade:SetColorTexture(Tokens.Color("black"))
+		shade:SetAllPoints(cb.icon)
+		shade:AddMaskTexture(cb.iconMask)
+		local glyph = cb.text:GetParent():CreateTexture(nil, "OVERLAY")
+		glyph:SetTexture((Tokens.Texture("medCastShieldGlyph")))
+		glyph:SetVertexColor(Tokens.Color("steelLit"))
+		cb.shade, cb.glyph = shade, glyph
+		PlaceGlyph(cb)
+	end
+	local flag, dark = cb.locked, not cb.slot and SHIELD_SHADE or 0
+	if issecretvalue(flag) then
+		shade:SetAlphaFromBoolean(flag, dark, 0)
+		cb.glyph:SetAlphaFromBoolean(flag, 1, 0)
+	else
+		shade:SetAlpha(flag == true and dark or 0)
+		cb.glyph:SetAlpha(flag == true and 1 or 0)
+	end
+end
+
 local function Tint(cb, notInterruptible)
+	local r, g, b = BarColor(cb)
+	if cb.caster then
+		Mark(cb)
+		Shield(cb)
+		if Waiting(cb) then r, g, b = r * WAIT_DIM, g * WAIT_DIM, b * WAIT_DIM end
+	end
 	if issecretvalue(notInterruptible) then
 		local texture = cb.bar:GetStatusBarTexture()
 		if texture and texture.SetVertexColorFromBoolean then
-			local locked, normal = ColorObjects(cb, BarColor(cb))
+			local locked, normal = ColorObjects(cb, r, g, b)
 			if locked then
 				texture:SetVertexColorFromBoolean(notInterruptible, locked, normal)
 				cb.pr = nil
@@ -1065,12 +1245,12 @@ local function Tint(cb, notInterruptible)
 			end
 		end
 		LogOnce("locked", "cast bars: no SetVertexColorFromBoolean or CreateColor; a secret uninterruptible cast keeps the normal colour")
-		Paint(cb, BarColor(cb))
+		Paint(cb, r, g, b)
 	elseif notInterruptible then
 		local color = Settings.Value(cb.kind, "castbarLockedColor")
 		Paint(cb, color.r, color.g, color.b)
 	else
-		Paint(cb, BarColor(cb))
+		Paint(cb, r, g, b)
 	end
 end
 
@@ -1299,6 +1479,15 @@ local function Start(cb, channel, update)
 	if not cb.styled then
 		CastBars.Restyle(cb)
 	end
+	if cb.caster then
+		if Caster(cb) and not Settings.Value(cb.kind, "castbarTarget") then
+			Who(cb, K.Interrupt.Target(cb.unit))
+		else
+			Who(cb, nil)
+		end
+		cb.castStart = not issecretvalue(startMs) and type(startMs) == "number" and startMs or nil
+		cb.castEnd = not issecretvalue(endMs) and type(endMs) == "number" and endMs or nil
+	end
 	WatchRange(cb, spellID)
 	Locked(cb, notInterruptible)
 	if cb.rangeID then Range(cb) end
@@ -1324,7 +1513,7 @@ local function Start(cb, channel, update)
 	end
 end
 
-local function Finish(cb, message)
+local function Finish(cb, message, by)
 	if not (cb.active or cb.landed) then
 		return
 	end
@@ -1333,6 +1522,10 @@ local function Finish(cb, message)
 	cb.locked = false
 	ShowLock(cb)
 	CastBars.SetName(cb, message)
+	if cb.caster then
+		Shield(cb)
+		if Caster(cb) then Who(cb, K.Interrupt.By(by)) else Who(cb, nil) end
+	end
 	Paint(cb, Tokens.Color("hostile"))
 	Flash(cb, "hostile", STOPPED_ALPHA)
 	HoldThen(cb, Outcomes() and Tokens.Duration("castErrorHold") or HOLD)
@@ -1430,7 +1623,7 @@ local HANDLERS = {
 			end
 			local by = event == "UNIT_SPELLCAST_CHANNEL_STOP" and select(4, ...)
 			if not issecretvalue(by) and type(by) == "string" and by ~= "" then
-				Finish(cb, L["Interrupted"])
+				Finish(cb, L["Interrupted"], by)
 			elseif Outcomes() then
 				Land(cb)
 			else
@@ -1445,7 +1638,7 @@ local HANDLERS = {
 	end,
 	Interrupted = function(cb, event, ...)
 		if Matches(cb, event, ...) then
-			Finish(cb, L["Interrupted"])
+			Finish(cb, L["Interrupted"], (select(4, ...)))
 		end
 	end,
 	Interruptible = function(cb, event)
@@ -1656,6 +1849,16 @@ function CastBars.Holder(kind)
 	return holders[kind]
 end
 
+local function RepaintOne(cb)
+	if cb.active then Tint(cb, cb.locked) end
+end
+
+local function Repaint()
+	for kind in pairs(CASTER_KINDS) do
+		Each(kind, RepaintOne)
+	end
+end
+
 function CastBars.Apply()
 	for _, kind in ipairs(Settings.KINDS) do
 		onFrame[kind] = Settings.CastOnFrame(kind)
@@ -1672,6 +1875,11 @@ function CastBars.Apply()
 		end
 		CastBars.Refresh(kind)
 	end
+	if running and Settings.Module().castCaster ~= false and (Settings.Value("target", "castbar") or Settings.Value("focus", "castbar")) then
+		K.Interrupt.Watch(MODULE, Repaint)
+	else
+		K.Interrupt.Unwatch(MODULE)
+	end
 end
 
 function CastBars.Enable()
@@ -1687,6 +1895,7 @@ end
 
 function CastBars.Disable()
 	running = false
+	K.Interrupt.Unwatch(MODULE)
 	for _, kind in ipairs(Settings.KINDS) do
 		Each(kind, function(cb)
 			K.Events.UnregisterAll(Owner(cb))

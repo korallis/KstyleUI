@@ -15,7 +15,7 @@ local function room(plate)
 		if component.Build and component.Room and component.events.UNIT_SPELLCAST_START then return component.Room(plate) end
 	end
 end
-assert(room(target) - room(other) == ns.Settings.Get("cast.textSize") + K.Tokens.Size("gapTiny"), "only selected plates reserve the spell-name lane")
+assert(room(target) - room(other) == 2 * (ns.Settings.Get("cast.textSize") + K.Tokens.Size("gapTiny")), "only selected plates reserve the spell-name lane and the spell-target line under it")
 local rise = target.rise
 assert(rise == other.rise, "spell-name room must not move the health bar")
 local selectedHeight, quietHeight = target.stackBounds:GetHeight(), other.stackBounds:GetHeight()

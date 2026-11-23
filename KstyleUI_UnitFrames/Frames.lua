@@ -998,6 +998,13 @@ local function OnSettingChanged(_, module, key)
 		K.Combat.Queue(PlaceCasts)
 	elseif key == "castbarRaise" then
 		K.Combat.Queue(ns.CastBars.Apply)
+	elseif key == "castCaster" then
+		K.Combat.Queue(function()
+			ForEach(function(each)
+				if each.active then Frames.Restyle(each) end
+			end)
+			ns.CastBars.Apply()
+		end)
 	elseif key == "unitTooltip" then
 		if hovered then Tooltip(hovered, InCombatLockdown()) end
 	elseif key == "cleanLowRing" then

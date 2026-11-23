@@ -426,6 +426,57 @@ function Hud.FillCast(plate, share)
 	end
 end
 
+-- CastCues(env, class, plates) -> RENDER_CAST_CUES: the target's cast (and on the plates the oracle's, as your focus) in one
+-- state of Cast targets and interrupts: aimed (at Valerin, a mage), you, locked (uninterruptible), wait (cast while your
+-- interrupt recharges, back about three quarters of the way through) or interrupted (by Valerin); off switches them off.
+-- RENDER_CAST_CUES_T moves the casts that many seconds on, so frames at 0, 0.2, 0.4 and 0.6 show wait's fill reach the
+-- ready mark and the interrupt come back at 0.4.
+local CUES = { aimed = true, you = true, locked = true, wait = true, interrupted = true, off = true }
+Hud.CUES_T = tonumber(os.getenv("RENDER_CAST_CUES_T") or "") or 0
+function Hud.CastCues(env, class, plates)
+	local cue = os.getenv("RENDER_CAST_CUES")
+	if not cue or cue == "off" then
+		return cue
+	end
+	assert(CUES[cue], "RENDER_CAST_CUES must be aimed, you, locked, wait, interrupted or off")
+	local me = cue == "you"
+	env.UnitShouldDisplaySpellTargetName = function() return true end
+	env.UnitSpellTargetName = function() return env.Secret(me and "Kstyle" or "Valerin") end
+	env.UnitSpellTargetClass = function() return env.Secret(me and class or "MAGE") end
+	env.PlayerIsSpellTarget = function() return env.Secret(me) end
+	env.UnitGUID = function(token) return token == "player" and "Player-1" or nil end
+	env.UnitNameFromGUID = function() return "Valerin" end
+	env.UnitClassFromGUID = function() return "Mage", "MAGE", 8 end
+	local function interrupt(id)
+		for _, each in ipairs(env.KstyleUI.Interrupt.INTERRUPTS[class] or {}) do
+			if each == id then return true end
+		end
+		return false
+	end
+	if plates then
+		-- The plates' casts run from 1 s to 3 s; the interrupt is back at 2.6 s.
+		for _, id in ipairs(cue == "wait" and Hud.CUES_T < 0.4 and env.KstyleUI.Interrupt.INTERRUPTS[class] or {}) do
+			env._cooldowns[id] = { startTime = 0.6, duration = 2, isEnabled = true, isActive = true, isOnGCD = false, modRate = 1 }
+		end
+		return cue
+	end
+	env.C_ClassColor = env.C_ClassColor or { GetClassColor = function(file)
+		local c = env.RAID_CLASS_COLORS[env.issecretvalue(file) and env.Reveal(file) or file]
+		return c and { r = c.r, g = c.g, b = c.b, GetRGB = function() return c.r, c.g, c.b end } or nil
+	end }
+	env.C_SpellBook = env.C_SpellBook or {}
+	local known, cooldown = env.C_SpellBook.IsSpellKnown, env.C_Spell.GetSpellCooldown
+	env.C_SpellBook.IsSpellKnown = function(id, bank) return interrupt(id) or known ~= nil and known(id, bank) end
+	-- The target's cast runs from 8.8 s or 9 s to 10.8 s or 11.5 s; the interrupt is back at 10.4 s.
+	env.C_Spell.GetSpellCooldown = function(id)
+		if cue == "wait" and Hud.CUES_T < 0.4 and interrupt(id) then
+			return { startTime = 0.4 - Hud.CUES_T, duration = 10, isEnabled = true, isActive = true, isOnGCD = false, modRate = 1 }
+		end
+		return cooldown and cooldown(id) or { startTime = 0, duration = 0, isEnabled = true, isActive = false, isOnGCD = false, modRate = 1 }
+	end
+	return cue
+end
+
 local modules = {}
 
 -- Unit frames: player, target, both cast bars, the target of target, the pet and the class resource ----------
@@ -508,6 +559,7 @@ function modules.unitframes(opts)
 	end
 	-- Under Frames the player frame's own row shows the crown the game feeds, as the action bars' crest does under Medallions.
 	local crown = Hud.Style() == "Frames" and Hud.Crown(opts)
+	local cue
 	-- Round portraits: the owner chose the mockup's round shape as the default on 2026-11-08.
 	local env, K, ns = U.New(Common.ScreenOpts({
 		saved = saved(opts, "UnitFrames", {
@@ -536,8 +588,14 @@ function modules.unitframes(opts)
 					return u.class:sub(1, 1) .. u.class:sub(2):lower(), u.class, 1
 				end
 			end
+			cue = Hud.CastCues(env, class)
+			if target and cue == "locked" then target.cast.notInterruptible = true end
+			if target and cue then
+				target.cast.start, target.cast.finish = target.cast.start - Hud.CUES_T * 1000, target.cast.finish - Hud.CUES_T * 1000
+			end
 		end,
 	}))
+	if cue == "off" then K.Options.Write("UnitFrames", "castCaster", false) end
 	if os.getenv("RENDER_PLAYER_AURAS") == "on" then K.Options.Write("UnitFrames", "player.medallionsAuras", true) end
 	env._time = 10
 	env.SetTarget(target ~= nil)
@@ -620,6 +678,11 @@ function modules.unitframes(opts)
 	end)
 	local scene = build(env, opts, { time = env._time }, function()
 		Fx.Apply(env, "unitframes", ns, notes)
+		if cue == "interrupted" and target then
+			local id = target.cast.spellID
+			target.cast = nil
+			env.FireEvent("UNIT_SPELLCAST_INTERRUPTED", "target", "Cast-1", id, "Player-2", 1)
+		end
 	end)
 	for _, note in ipairs(notes) do
 		scene.log[#scene.log + 1] = note
@@ -1629,6 +1692,8 @@ function modules.nameplates(opts)
 	env._time = 10
 	env._now = 10
 	local class = Hud.Class(opts)
+	local cue = Hud.CastCues(env, class, true)
+	if cue == "off" then K.Options.Write("Nameplates", "cast.caster", false) end
 	Hud.PlateCasts(env, K, ns, class)
 	local k = 768 / 1080
 	local combatText = K.Modules.IsRunning("CombatText")
@@ -1640,8 +1705,12 @@ function modules.nameplates(opts)
 		local cast = target.cast or { name = "Snap", texture = 132200 }
 		plates = {
 			{ unit = { name = target.name, health = target.health, maxHealth = target.healthMax, level = target.level, classification = target.classification, reaction = 2, canAttack = true }, x = target.plateX or PLATE_X, y = PLATE_Y, target = true, cast = { name = cast.name, text = cast.name, texture = cast.texture, notInterruptible = false, share = 0.55 } },
-			{ unit = ADD.unit, x = ADD.x, y = ADD.y, cast = { name = ADD.cast.name, text = ADD.cast.text, texture = ADD.cast.texture, notInterruptible = ADD.cast.notInterruptible, share = 0.4 } },
+			{ unit = ADD.unit, x = ADD.x, y = ADD.y, cast = { name = ADD.cast.name, text = ADD.cast.text, texture = ADD.cast.texture, notInterruptible = ADD.cast.notInterruptible or cue == "locked", share = 0.4 } },
 		}
+		if cue and cue ~= "off" then N.Focus(env, "nameplate2") end
+	end
+	for _, plate in ipairs(cue == "locked" and plates or {}) do
+		if plate.cast then plate.cast.notInterruptible = true end
 	end
 	for i, plate in ipairs(plates) do
 		local base = N.Add(env, "nameplate" .. i, plate.unit)
@@ -1659,7 +1728,7 @@ function modules.nameplates(opts)
 	end
 	for i, plate in ipairs(plates) do
 		if plate.cast then
-			Hud.FillCast(ns.Plates.Get("nameplate" .. i), plate.cast.share or 0.5)
+			Hud.FillCast(ns.Plates.Get("nameplate" .. i), (plate.cast.share or 0.5) + (cue and Hud.CUES_T / 2 or 0))
 		end
 	end
 	local base = env._bases.nameplate1
@@ -1679,7 +1748,14 @@ function modules.nameplates(opts)
 		text:SetPoint("CENTER", base, "CENTER", number[4] * k, number[5] * k)
 		text:SetText(number[1])
 	end
-	local scene = build(env, opts, { time = env._time })
+	local scene = build(env, opts, { time = env._time }, cue == "interrupted" and function()
+		for i, plate in ipairs(plates) do
+			if plate.cast then
+				env._units["nameplate" .. i].cast = nil
+				env.FireEvent("UNIT_SPELLCAST_INTERRUPTED", "nameplate" .. i, "cast-guid", 133, "Player-2")
+			end
+		end
+	end or nil)
 	if opts.plates then
 		scene.log[#scene.log + 1] = "nameplates: " .. #opts.plates .. " plates where the scene puts them; the target's plate stands its cast down while the sigil shows it (cast.hideOnTarget); cast fills stand in for the engine's timer"
 	else
