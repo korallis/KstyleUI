@@ -27,12 +27,15 @@ local function Valid(row)
 		and R.Number(row.map) and R.Number(row.x) and R.Number(row.y)
 end
 
-local function Record(kind)
+local function Here()
 	local map = R.Number(R.Call(C_Map, "GetBestMapForUnit", "player"))
 	local x, y
 	if map then x, y = R.XY(R.Call(C_Map, "GetPlayerMapPosition", map, "player")) end
-	local continent, wx, wy
-	if x then continent, wx, wy = R.World(map, x, y) end
+	if x then return map, x, y, R.World(map, x, y) end
+end
+
+local function Record(kind)
+	local map, x, y, continent, wx, wy = Here()
 	local name = type(UnitName) == "function" and R.Plain(UnitName("npc"), "string")
 	if not continent or not name or name == "" then return end
 	local guid = type(UnitGUID) == "function" and R.Plain(UnitGUID("npc"), "string")
@@ -102,11 +105,7 @@ function Services.OnMap(id)
 end
 
 function Services.Nearest(kind, roads)
-	local map = R.Number(R.Call(C_Map, "GetBestMapForUnit", "player"))
-	local x, y
-	if map then x, y = R.XY(R.Call(C_Map, "GetPlayerMapPosition", map, "player")) end
-	local continent, wx, wy
-	if x then continent, wx, wy = R.World(map, x, y) end
+	local _, _, _, continent, wx, wy = Here()
 	if not continent then return nil, L["Your position is unavailable here."] end
 	local mounted = type(IsMounted) == "function" and R.Plain(IsMounted(), "boolean") or false
 	local graph = roads and Roads.Graph(continent)
