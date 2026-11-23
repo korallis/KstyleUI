@@ -2,4 +2,6 @@
 	<Script file="Init.lua"/>
 	<Script file="EasternKingdoms.lua"/>
 	<Script file="Kalimdor.lua"/>
+	<Script file="Overlays.lua"/>
+	<Script file="Travel.lua"/>
 </Ui>

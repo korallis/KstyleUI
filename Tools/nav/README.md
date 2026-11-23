@@ -177,6 +177,21 @@ checks. No addon data, client art or meshes are written to the repository.
 Next: add WMO liquid (MLIQ) surfaces to the swim queries and split walking
 segments at interior places.
 
+## Map overlays and travel stops
+
+```powershell
+python -I Tools/nav/build_travel.py --install 'C:/Program Files (x86)/World of Warcraft'
+```
+
+This exports `WorldMapOverlay`, `WorldMapOverlayTile`, `UiMapXMapArt`, `UiMapArt`,
+`UiMapArtStyleLayer`, `TaxiNodes`, `TaxiPath`, `TaxiPathNode`,
+`TransportAnimation`, `Map` and `SpellName` into the build directory, extracts
+the Eastern Kingdoms WDT, its ADT object files and the Stormwind and Ironforge
+WMOs, and writes `out/travel/Overlays.lua` and `out/travel/Travel.lua` as complete
+addon files under the same exclusive `build.lock`. It needs no compiler and runs
+in about two minutes. `KstyleUI_Routes/README.md` says what each table holds and
+how each value is proven.
+
 ## Licences and data
 
 Recast/Detour is [zlib](https://github.com/recastnavigation/recastnavigation/blob/main/License.txt);
