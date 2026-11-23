@@ -74,10 +74,7 @@ local function ItemLevel(link)
 		return nil
 	end
 	local ok, level = pcall(item.GetDetailedItemLevelInfo, link)
-	if ok and not IsSecret(level) and type(level) == "number" and level > 0 then
-		return level
-	end
-	return nil
+	return ok and not IsSecret(level) and type(level) == "number" and level > 0 and level or nil
 end
 
 local function ShowLevel(button, unit, link)
@@ -96,20 +93,20 @@ local function ShowLevel(button, unit, link)
 		levelTexts[button] = text
 	end
 	text:SetText(level)
-	local quality = type(GetInventoryItemQuality) == "function" and GetInventoryItemQuality(unit, button:GetID()) or nil
-	text:SetTextColor(Theme.QualityColor(quality))
+	text:SetTextColor(Theme.QualityColor(type(GetInventoryItemQuality) == "function" and GetInventoryItemQuality(unit, button:GetID()), true))
 	text:Show()
 	return true
 end
 
-local function PaintLevel(button, unit, force)
+local function PaintLevel(button, unit)
 	local id = button:GetID()
-	local on = unit and not NO_LEVEL[id] and K.Modules.IsRunning("Skins") and Skins.IsOn(KEY) and Skins.Setting(KEY, "itemLevels")
+	local on = not IsSecret(id) and not IsSecret(unit) and type(unit) == "string" and not NO_LEVEL[id]
+		and K.Modules.IsRunning("Skins") and Skins.IsOn(KEY) and Skins.Setting(KEY, "itemLevels")
 	local link = on and type(GetInventoryItemLink) == "function" and GetInventoryItemLink(unit, id)
 	if IsSecret(link) or type(link) ~= "string" then
 		link = false
 	end
-	if levelLinks[button] == link and not force then
+	if levelLinks[button] == link then
 		return
 	end
 	levelLinks[button] = link
@@ -118,26 +115,42 @@ local function PaintLevel(button, unit, force)
 	end
 	local item = Item:CreateFromItemLink(link)
 	pcall(item.ContinueOnItemLoad, item, function()
-		if levelLinks[button] == link then
+		if levelLinks[button] ~= link then
+			return
+		elseif button:IsVisible() then
 			ShowLevel(button, unit, link)
+		else
+			levelLinks[button] = nil
 		end
 	end)
 end
 
 local function InspectUnit()
 	local frame = _G.InspectFrame
-	return type(frame) == "table" and frame.unit or nil
+	return type(frame) == "table" and frame.unit
 end
 
 local function PaintLevels()
 	for button in pairs(levelLinks) do
-		PaintLevel(button, slots[button] and "player" or InspectUnit(), true)
+		if button:IsVisible() then
+			PaintLevel(button, slots[button] and "player" or InspectUnit())
+		else
+			levelLinks[button] = nil
+			ShowLevel(button)
+		end
 	end
 end
 
-local function UpdateSlot(button)
-	PaintSlot(button)
-	if slots[button] then
+K.Callbacks.Register("SettingChanged", "Skins.ItemLevels", function(_, module, key)
+	if module == "Skins" and key == "character.itemLevels" then
+		PaintLevels()
+	end
+end)
+K.Callbacks.Register("ProfileChanged", "Skins.ItemLevels", PaintLevels)
+
+local function OnSlotEvent(button, event, slot)
+	local id = event == "PLAYER_EQUIPMENT_CHANGED" and button:GetID()
+	if event == nil or not IsSecret(id) and id == slot then
 		PaintLevel(button, "player")
 	end
 end
@@ -190,7 +203,10 @@ local function SkinSlot(button)
 		Style.Text(button.Count, "number", "textEmphasis")
 	end
 	slots[button] = Parts.Rim(button, { outset = Tokens.Size("gapTiny") })
-	UpdateSlot(button)
+	PaintSlot(button)
+	PaintLevel(button, "player")
+	button:HookScript("OnShow", OnSlotEvent)
+	button:HookScript("OnEvent", OnSlotEvent)
 end
 
 local function PaintSlots()
@@ -319,7 +335,7 @@ local function SkinPaperDoll()
 		end
 	end
 	if type(PaperDollItemSlotButton_Update) == "function" then
-		hooksecurefunc("PaperDollItemSlotButton_Update", UpdateSlot)
+		hooksecurefunc("PaperDollItemSlotButton_Update", PaintSlot)
 	else
 		Log("PaperDollItemSlotButton_Update is missing; slot rims show the quality at skin time only")
 	end
@@ -463,9 +479,6 @@ end
 local function OnSetting(_, field)
 	if field == nil or field == "qualityBorders" or field == "qualityFrom" then
 		PaintSlots()
-	end
-	if field == nil or field == "itemLevels" then
-		PaintLevels()
 	end
 end
 

@@ -27,7 +27,7 @@ local OWNER = {
 local SCRIPTS = {
 	OnShow = {}, OnHide = {}, OnEnter = { true }, OnLeave = { true }, OnMouseDown = { "LeftButton" }, OnMouseUp = { "LeftButton" },
 	OnClick = { "LeftButton", false }, OnEnable = {}, OnDisable = {}, OnDragStart = { "LeftButton" }, OnDragStop = {},
-	OnEditFocusGained = {}, OnEditFocusLost = {},
+	OnEditFocusGained = {}, OnEditFocusLost = {}, OnEvent = { "BAG_UPDATE_COOLDOWN" },
 }
 
 -- KstyleUI widget writes allowed per replayed call, by the file that installs the hook and the hooked method or script,
