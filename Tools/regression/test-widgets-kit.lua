@@ -343,11 +343,12 @@ do
 	end
 	collectgarbage("collect")
 	collectgarbage("stop")
-	-- Growth that happens once, right after a full collection, is not per call: the warm-up runs it before the baseline.
+	-- Reserve the baseline's stack slot so the warm-up reaches the same stack depth as the measured loop.
+	local before
 	for _ = 1, 10 do
 		work()
 	end
-	local before = collectgarbage("count")
+	before = collectgarbage("count")
 	for _ = 1, 1000 do
 		work()
 	end
