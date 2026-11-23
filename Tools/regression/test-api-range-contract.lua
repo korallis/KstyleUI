@@ -26,7 +26,7 @@ for _, checked in ipairs({ false, true }) do
 				return secret and env.Secret(inRange) or inRange, secret and env.Secret(checked) or checked
 			end
 			ns.Unit.Range(frame)
-			local expected = checked and not inRange and math.max(ns.Settings.current.range.alpha, 0.7) or 1
+			local expected = checked and not inRange and ns.Settings.current.range.alpha or 1
 			assert(plain(alpha) == expected, "unchecked units never fade, even with secret range results")
 		end
 	end

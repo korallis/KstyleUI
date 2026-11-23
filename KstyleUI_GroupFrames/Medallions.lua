@@ -81,6 +81,10 @@ end
 
 local function PartyParts(out, o)
 	local badge, crown = out.portrait, out.icons.leader
+	if Settings.current.readable.text then
+		crown.top = math.max(crown.top, badge.top)
+		if out.power then out.power.top = out.power.top + 1 end
+	end
 	local right = badge.left + badge.width - Geometry.EDGE
 	local size = math.min(Style.BOSS_SLOT, right - crown.left - crown.width, badge.height - Geometry.EDGE - PARTY_LANE)
 	if Settings.current.auras.enabled and size >= Geometry.MIN_ICON then
@@ -302,7 +306,7 @@ function Unit.NameColored(f, class)
 		f.medInked = nil
 		return
 	end
-	local ink = not f.status and Medallions.Inked(class)
+	local ink = not (f.status or Settings.current.readable.text) and Medallions.Inked(class)
 	local refined = Widgets.Readability("readableBars")
 	local path, size = f.name:GetFont()
 	Widgets.ApplyFont(f.name, path, size, (not refined or ink) and "" or "OUTLINE")
@@ -388,7 +392,7 @@ local function TileText(f)
 	if block and block.left and (not refined or not tile.stacked) then
 		nameRight = math.min(nameRight, Widgets.Snap(f, block.left) - gap)
 	end
-	f.nameLetterCut = refined
+	f.nameLetterCut = refined and not Settings.current.readable.text
 	f.tileText = { left = left, nameRight = nameRight, textRight = right, reserve = reserve, stacked = tile.stacked }
 	f.nameWidth = math.max(1, nameRight - left)
 	f.name:SetWidth(f.nameWidth)
@@ -488,11 +492,14 @@ local function Applied(f, parts, k)
 				local box, pad = f.medPartyInk, Widgets.Snap(f, 4)
 				box:ClearAllPoints()
 				if Settings.current.readable.text then
+					local low, badge = parts.power or parts.health, parts.portrait
+					local bottom = math.max(low.top + low.height + 4, badge and badge.top + badge.height or 0)
 					box:SetPoint("TOPLEFT", f, "TOPLEFT", 0, math.min(0, pad - Widgets.Snap(f, parts.name.top)))
+					box:SetPoint("BOTTOMRIGHT", f, "TOPLEFT", Widgets.Snap(f, parts.health.left + parts.health.width) + pad, -Widgets.Snap(f, bottom))
 				else
 					box:SetPoint("TOPLEFT", f.name, "TOPLEFT", -pad, pad)
+					box:SetPoint("BOTTOMRIGHT", f.health, "BOTTOMRIGHT", pad, -pad)
 				end
-				box:SetPoint("BOTTOMRIGHT", f.health, "BOTTOMRIGHT", pad, -pad)
 				Widgets.LayoutSlice(f.medPartyScrim, box, Tokens.Size("radiusTile"), 0)
 			end
 		end

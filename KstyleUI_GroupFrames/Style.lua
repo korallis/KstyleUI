@@ -661,7 +661,7 @@ function Style.Apply(f, width, height)
 		classLine:SetHeight(Widgets.Snap(f, parts.name.height))
 	end
 	Style.PlaceRowEnd(f)
-	Widgets.Halo(f.name, f.kind == "party" and cfg.readable.text)
+	Widgets.Halo(f.name, cfg.readable.text and (f.kind == "party" or parts.tile ~= nil))
 	ExtraTexts(f, k)
 	if f.extra1 or f.extra2 then ns.Unit.Listen(f) end
 	Style.LayoutRing(f.targetRing, f.target, f.chrome:Chamfer())

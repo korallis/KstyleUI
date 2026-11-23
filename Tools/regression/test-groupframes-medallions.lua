@@ -156,7 +156,8 @@ each("raid", function(f)
 	local ink = ns.Medallions.Inked(class)
 	eq(ink, class ~= "SHAMAN" and class ~= "DEATHKNIGHT", f.unit .. ": " .. class .. " takes dark ink only on a light fill")
 	local sr = f.name:GetShadowColor()
-	if ink then
+	local inked = ink and not ns.Settings.current.readable.text
+	if inked then
 		assert(f.medInked and sr > 0.9, f.unit .. ": dark ink on " .. class .. " with a soft light shadow")
 		local values = last(f.name, "SetTextColor")
 		local cr = values and values[1]
@@ -176,7 +177,7 @@ each("raid", function(f)
 	assert(f.medSlab and f.medSlab[5]:IsShown() and f.medSlab[5]:GetTexture() == (K.Tokens.Texture("medGroupTile")), f.unit .. ": the tile sits in the group tile slab material")
 	local namePath, _, nameFlags = f.name:GetFont()
 	eq(namePath, (K.Tokens.Font("number")), f.unit .. ": the name shares the Medallions number face (one typeface voice)")
-	eq(nameFlags == "OUTLINE", not ink, f.unit .. ": light ink takes an outline; dark ink takes a light shadow")
+	eq(nameFlags == "OUTLINE", not inked, f.unit .. ": light ink takes an outline; dark ink takes a light shadow")
 	eq(f.name:GetText(), K.Locale.Upper(f.name:GetText()), f.unit .. ": the fitted name stays in caps")
 	local percentPath = f.healthText:GetFont()
 	eq(percentPath, (K.Tokens.Font("number")), f.unit .. ": the percent follows the number role")

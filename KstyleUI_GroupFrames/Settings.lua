@@ -18,6 +18,7 @@ end
 local HEAL_ALPHA = 0.5
 local ABSORB_ALPHA = 0.45
 local HEAL_ABSORB_ALPHA = 0.7
+local READABLE_RANGE_ALPHA = 0.7
 local INDICATOR_SLOTS = 6
 Settings.INDICATOR_SLOTS = INDICATOR_SLOTS
 
@@ -977,18 +978,8 @@ function Settings.Refresh()
 			end
 		end
 	end
+	if current.readable.text then current.range.alpha = math.max(current.range.alpha, READABLE_RANGE_ALPHA) end
 	return current
-end
-
-function Settings.PartyScale()
-	local layouts, party = K.Setup and K.Setup.Layouts, current.party
-	if not (current.readable.size and layouts) or party.width ~= defaults.party.width then return 1 end
-	for _, name in ipairs(layouts.Names()) do
-		for _, entry in ipairs(layouts.Settings(name)) do
-			if entry.key == "party.height" and entry.value == party.height then return layouts.PartyScale() end
-		end
-	end
-	return 1
 end
 
 function Settings.ClassFirst(kind)

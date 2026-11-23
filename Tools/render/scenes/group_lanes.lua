@@ -168,7 +168,7 @@ return Common.Run(function()
 	local kind, members = "party", {}
 	if group == "party" then
 		for i, m in ipairs(PARTY) do
-			members[i] = { name = m[1], class = m[2], health = m[3], maxHealth = 100, power = m[5], maxPower = 100, role = m[4] }
+			members[i] = { name = m[1], class = m[2], health = m[3], maxHealth = 100, power = m[5], maxPower = 100, role = m[4], powerType = m[2] == "WARRIOR" and "RAGE" or nil }
 		end
 		if R3A then members[4].dead = true end
 		if os.getenv("RENDER_PARTY_SIZE") == "3" then members[3], members[4] = nil, nil end

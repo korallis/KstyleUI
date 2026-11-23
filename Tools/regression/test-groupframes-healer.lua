@@ -96,7 +96,7 @@ if isFrames then
 	local nr, ng, nb = f.name:GetTextColor()
 	assert(W.Near(nr, pr) and W.Near(ng, pg) and W.Near(nb, pb), "names wear the class colour, off the fill")
 else
-	assert(f.medInked, "a priest's light tile inks the name")
+	assert(not f.medInked and f.name.halo:IsShown(), "a priest's light tile keeps light ink on a soft halo (Readable names and numbers)")
 end
 
 -- The skull on a raid frame sits inside the tile, not on the seam between two tiles.
@@ -285,8 +285,8 @@ if isFrames then
 	env.RunTimers()
 	eq(W.LastCall(f.name, "SetFont")[3], "", "above the bar, on the glass, the soft shadow stays")
 else
-	-- A white priest's light tile inks the name, which needs no outline; the percent draws plain on its chip.
-	eq(W.LastCall(f.name, "SetFont")[3], "", "an inked name takes no outline")
+	-- A white priest's light tile keeps light ink, outlined over its halo; the percent draws plain on its chip.
+	eq(W.LastCall(f.name, "SetFont")[3], "OUTLINE", "a light-ink name takes an outline")
 	eq(W.LastCall(f.healthText, "SetFont")[3], "", "and the percent on its chip none")
 end
 eq(#env._errors, 0, tostring(env._errors[1]))

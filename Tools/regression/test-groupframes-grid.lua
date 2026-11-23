@@ -73,7 +73,7 @@ for _, screen in ipairs(SCREENS) do
 				assert(px(f.name) >= floor - TOLERANCE, string.format("%s: %s's name is %.2f px, under the %d px floor", what, label, px(f.name), floor))
 			end
 			local _, class = env.UnitClass(f.unit)
-			assert(isFrames or (f.medInked == true) == (kind == "raid" and ns.Medallions.Inked(class)), what .. ": " .. label .. " inks its name only on a light raid tile")
+			assert(isFrames or (f.medInked == true) == (kind == "raid" and not ns.Settings.current.readable.text and ns.Medallions.Inked(class)), what .. ": " .. label .. " inks its name only on a light raid tile")
 			if isFrames or not f.medInked then
 				local r, g, b = f.name:GetTextColor()
 				local cr, cg, cb = K.Theme.ClassColorForWidget(class)

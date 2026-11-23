@@ -56,7 +56,7 @@ local DAMAGE_W, DAMAGE_H = 250, 158
 local THREAT_W, THREAT_H = DAMAGE_W, 112
 local READOUT_H, READOUT_GAP, RAIL_BARS_GAP = 12, 6, 10
 
-local PARTY = { width = 259, height = 5 * 39 + 4 * 13, healer = 5 * 43 + 4 * 13, top = 465, scale = 1.25, wide = 2.05 }
+local PARTY = { width = 259, height = 5 * 39 + 4 * 13, healer = 5 * 43 + 4 * 13, top = 465, scale = 1.25 }
 
 local FEED_LINES, FEED_PAD = 4, ns.Tokens.Size("radius") + ns.Tokens.Size("gapSmall")
 local FEED_ROW, FEED_GAP = ns.Tokens.Size("lootTile"), ns.Tokens.Size("gapSmall")
@@ -555,10 +555,12 @@ function Layouts.ConsumableFootprint(class, style)
 end
 
 function Layouts.PartyScale(width, height)
-	local saved = ns.Store.IsLoaded() and ns.Store.Defaults("GroupFrames") and ns.Store.Module("GroupFrames").readable
-	if type(saved) == "table" and saved.size == false then return 1 end
-	if not (width and height) then width, height = ns.Scale.Root():GetSize() end
-	return width >= height * PARTY.wide and PARTY.scale or 1
+	local loaded = ns.Store.IsLoaded()
+	local saved = loaded and ns.Store.Profile().GroupFrames or {}
+	local readable, party = type(saved.readable) == "table" and saved.readable or {}, type(saved.party) == "table" and saved.party or {}
+	local rows = ROWS[loaded and ns.Store.Module("Layout").preset] or ROWS.DPS
+	if readable.size == false or (party.width or PARTY.width) ~= PARTY.width or (party.height or rows.party) ~= rows.party then return 1 end
+	return (width and height and ns.Scale.AspectClass(width, height) or ns.Scale.Aspect()) ~= "16:9" and PARTY.scale or 1
 end
 
 function Layouts.Footprint(name, key, class, style, width, height)
@@ -1742,7 +1744,7 @@ function Layouts.ScaleLimit(physicalWidth, physicalHeight, preset, enabled, styl
 	end
 	style = STYLES[style] and style or style == nil and ns.HudStyle.Current() or "frames"
 	local signature = style .. (Layouts.ThirdBarFinished() and "finished" or "legacy") .. table.concat(flags) .. (enabled["meters.damage2"] and "2" or "") .. Layouts.ActionBarSignature(style)
-		.. (style == "medallions" and Layouts.CrestKey() or "")
+		.. (style == "medallions" and Layouts.CrestKey() or "") .. Layouts.PartyScale(physicalWidth, physicalHeight)
 	local cached = limits[preset]
 	if cached and cached.width == physicalWidth and cached.height == physicalHeight and cached.signature == signature then
 		return cached.scale, cached.fits
