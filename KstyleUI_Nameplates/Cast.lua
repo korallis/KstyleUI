@@ -144,11 +144,12 @@ local function Shade(plate, alpha)
 	plate.castGlyph:SetAlpha(Settings.Get("cast.combatCues") and alpha > 0 and 1 or 0)
 end
 
-local function FromFlag(region, flag)
+local function FromFlag(region, flag, yes, no)
+	yes, no = yes or 1, no or 0
 	if IsSecret(flag) and region.SetAlphaFromBoolean then
-		region:SetAlphaFromBoolean(flag, 1, 0)
+		region:SetAlphaFromBoolean(flag, yes, no)
 	else
-		region:SetAlpha(not IsSecret(flag) and flag == true and 1 or 0)
+		region:SetAlpha(not IsSecret(flag) and flag == true and yes or no)
 	end
 end
 
@@ -200,60 +201,67 @@ local function PaintTarget(plate)
 end
 
 local function Mark(plate)
-	local interrupt, start, finish = ns.Interrupt, plate.castStart, plate.castEnd
-	local at = plate.casting and not plate.castInterrupted and Settings.Get("cast.caster") and Settings.Get("cast.combatCues")
-		and interrupt.spell and interrupt.ready == false and interrupt.readyAt and start and finish and finish > start
-		and (interrupt.readyAt * MS - start) / (finish - start)
-	if at and plate.castChannel then at = 1 - at end
-	local mark = plate.castMark
-	if not (at and at > 0 and at < 1) then
-		if mark then mark:Hide() end
+	local interrupt = ns.Interrupt
+	local left = interrupt.Left(plate, Mark, plate.casting and not plate.castInterrupted and Settings.Get("cast.caster") and Settings.Get("cast.combatCues"))
+	if left or plate.castWait then
+		if not plate.castWait then
+			plate.castWait = Widgets.FontString(plate.castBar, "OVERLAY")
+			plate.castWait:SetPoint("CENTER", plate.castGlyph, "CENTER")
+			StyleFont(plate.castWait, "time")
+		end
+		plate.castWait:SetText(left or "")
+		FromFlag(plate.castWait, plate.castFlag, 0, 1)
+	end
+	local at = left and interrupt.At(plate.castStart, plate.castEnd, plate.castChannel)
+	if not at then
+		if plate.castMark then plate.castMark:Hide() end
 		return
 	end
-	if not mark then
-		mark = plate.castBar:CreateTexture(nil, "OVERLAY", nil, 2)
-		mark:SetColorTexture(Tokens.Color("giltLit"))
-		plate.castMark = mark
-	end
-	local opts, reverse = plate.castBarOpts, Settings.Get("cast.reverse")
-	local vertical = Settings.Get("cast.orientation") == "VERTICAL"
-	local point = vertical and (reverse and "TOP" or "BOTTOM") or (reverse and "RIGHT" or "LEFT")
-	local step = Widgets.Snap(plate, at * (vertical and opts.height or opts.width)) * (reverse and -1 or 1)
-	local thick = Widgets.Snap(plate, 2)
-	mark:ClearAllPoints()
-	mark:SetPoint(point, plate.castBar, point, vertical and 0 or step, vertical and step or 0)
-	Widgets.Size(mark, vertical and opts.width or thick, vertical and thick or opts.height)
-	local flag = plate.castFlag
-	if IsSecret(flag) and mark.SetAlphaFromBoolean then
-		mark:SetAlphaFromBoolean(flag, 0, 1)
-	else
-		mark:SetAlpha(not IsSecret(flag) and flag == true and 0 or 1)
-	end
-	mark:Show()
+	local opts, vertical, thick = plate.castBarOpts, Settings.Get("cast.orientation") == "VERTICAL", Widgets.Snap(plate, 2)
+	plate.castMark = interrupt.Mark(plate.castMark, plate.castBar, at, opts.width, opts.height, vertical, Settings.Get("cast.reverse"), plate)
+	Widgets.Size(plate.castMark, vertical and opts.width or thick, vertical and thick or opts.height)
+	FromFlag(plate.castMark, plate.castFlag, 0, 1)
 end
 
-local function PlaceWho(plate)
-	local size = Settings.Get("cast.textSize")
-	for _, text in ipairs({ plate.castWho, plate.castYou }) do
-		StyleFont(text, "caps")
-		text:SetJustifyH(Settings.Get("cast.nameAlign"))
-		text:ClearAllPoints()
-		ns.Plate.Place(text, "TOPLEFT", plate.castBar, "BOTTOMLEFT", 0, -GAP - size - GAP, ns.state.width, size)
-	end
-	plate.castYou:SetTextColor(Rgb(Settings.Get("cast.targetGlowColor")))
+local function WhoPlace(plate)
+	return Settings.Get("cast.caster") and (plate.castTargetOwn or Settings.Get("cast.nameBelow"))
+end
+
+local function WhoRoom(plate)
+	if not WhoPlace(plate) then return false end
+	if plate.castTargetOwn then return plate.castTarget:IsShown() end
+	return plate.castName:IsShown()
 end
 
 local function ShowWho(plate)
 	if plate.castWho then
-		local on = Settings.Get("cast.caster") and Settings.Get("cast.nameBelow") and plate.castName:IsShown()
+		local on = WhoRoom(plate)
 		plate.castWho:SetShown(on)
 		plate.castYou:SetShown(on)
 	end
 end
 
+local function PlaceWho(plate)
+	local own, size = plate.castTargetOwn and plate.castTarget, Settings.Get("cast.textSize")
+	for _, text in ipairs({ plate.castWho, plate.castYou }) do
+		StyleFont(text, "caps")
+		text:ClearAllPoints()
+		if own then
+			text:SetAllPoints(own)
+			text:SetJustifyH(Settings.Get("cast.targetPlace"))
+		else
+			text:SetJustifyH(Settings.Get("cast.nameAlign"))
+			ns.Plate.Place(text, "TOPLEFT", plate.castBar, "BOTTOMLEFT", 0, -GAP - size - GAP, ns.state.width, size)
+			text:SetWidth(Widgets.Snap(plate, plate.castBarOpts.width))
+		end
+	end
+	plate.castYou:SetTextColor(Rgb(Settings.Get("cast.targetGlowColor")))
+	ShowWho(plate)
+end
+
 local function SetWho(plate, name, class, me)
 	local who = plate.castWho
-	local on = type(name) ~= "nil" and Settings.Get("cast.caster") and Settings.Get("cast.nameBelow") or false
+	local on = type(name) ~= "nil"
 	if not who then
 		if not on then return end
 		who = Widgets.FontString(plate.castBar, "OVERLAY")
@@ -263,7 +271,6 @@ local function SetWho(plate, name, class, me)
 		you:SetText(K.Locale.Upper(L["You"]))
 		plate.castWho, plate.castYou = who, you
 		PlaceWho(plate)
-		ShowWho(plate)
 	end
 	if not on then
 		who:SetText("")
@@ -272,14 +279,12 @@ local function SetWho(plate, name, class, me)
 	end
 	who:SetText(name)
 	who:SetTextColor(K.Theme.ClassColorForWidget(class))
-	if IsSecret(me) and who.SetAlphaFromBoolean then
-		who:SetAlphaFromBoolean(me, 0, 1)
-		plate.castYou:SetAlphaFromBoolean(me, 1, 0)
-	else
-		local mine = not IsSecret(me) and me == true
-		who:SetAlpha(mine and 0 or 1)
-		plate.castYou:SetAlpha(mine and 1 or 0)
-	end
+	FromFlag(who, me, 0, 1)
+	FromFlag(plate.castYou, me, 1, 0)
+end
+
+local function Aimed(plate)
+	if WhoRoom(plate) then SetWho(plate, K.Interrupt.Target(plate.unit)) else SetWho(plate, nil) end
 end
 
 local function Paint(plate, openR, openG, openB)
@@ -432,15 +437,11 @@ function Cast.Start(plate, channel, update)
 	local cast = plate.cast
 	plate.castIcon:SetTexture(texture)
 	local target
-	if Settings.Get("cast.showTarget") and type(UnitSpellTargetName) == "function" then
+	if Settings.Get("cast.showTarget") and not WhoPlace(plate) and type(UnitSpellTargetName) == "function" then
 		target = UnitSpellTargetName(plate.unit)
 	end
 	Cast.Name(plate, not IsSecret(text) and type(text) == "string" and K.Locale.Upper(text) or text, target)
-	if Settings.Get("cast.caster") and not Settings.Get("cast.showTarget") then
-		SetWho(plate, K.Interrupt.Target(plate.unit))
-	else
-		SetWho(plate, nil)
-	end
+	Aimed(plate)
 	plate.castStart, plate.castEnd = Plain(startMs), Plain(endMs)
 	Run(plate, channel, startMs, endMs)
 	plate.castClock = 0
@@ -497,7 +498,7 @@ function Cast.Stop(plate, interrupted, failed, by)
 		plate.castName:SetText(K.Locale.Upper(failed and L["Failed"] or L["Interrupted"]))
 		plate.castTime:SetText("")
 		if plate.castTargetOwn then plate.castTarget:SetText("") end
-		if Settings.Get("cast.caster") then SetWho(plate, K.Interrupt.By(by)) else SetWho(plate, nil) end
+		if WhoRoom(plate) then SetWho(plate, K.Interrupt.By(by)) else SetWho(plate, nil) end
 		Paint(plate)
 		if Settings.Get("cast.outcomes") then
 			local token = (plate.castToken or 0) + 1
@@ -604,6 +605,7 @@ function Cast.Selection(plate, isTarget, isFocus)
 	local shown = Settings.Get("cast.showName") and (not Settings.Get("cast.nameSelectedOnly") or isTarget or isFocus) and true or false
 	plate.castName:SetShown(shown)
 	ShowTarget(plate)
+	if plate.casting and not plate.castInterrupted then Aimed(plate) end
 	local below = shown and Settings.Get("cast.nameBelow") and true or false
 	if below == (plate.castNameBelow == true) then return end
 	plate.castNameBelow = below
@@ -790,6 +792,7 @@ function Component.Restyle(plate)
 	end
 	StyleFont(plate.castName, "caps")
 	StyleFont(plate.castTime, "time")
+	if plate.castWait then StyleFont(plate.castWait, "time") end
 	local glyph = plate.castGlyph
 	glyph:SetShown(Settings.Get("cast.combatCues"))
 	local glyphSize = math.max(h, 11)
@@ -811,10 +814,6 @@ function Component.Restyle(plate)
 	end
 	plate.castTime:ClearAllPoints()
 	ns.Plate.Place(plate.castTime, "RIGHT", bar, "RIGHT", -TEXT_INSET, 0, nil, nil, nil, Widgets.Snap(plate, h))
-	if plate.castWho then
-		PlaceWho(plate)
-		ShowWho(plate)
-	end
 	local place = Settings.Get("cast.showTarget") and Settings.Get("cast.targetPlace") or ""
 	local own = place ~= ""
 	plate.castTargetOwn = own
@@ -835,6 +834,7 @@ function Component.Restyle(plate)
 			end
 		end
 	end
+	if plate.castWho then PlaceWho(plate) end
 end
 
 function Component.Refresh(plate, immediate)
@@ -860,8 +860,8 @@ function Cast.Sample(plate)
 	plate.castIcon:SetTexture(sample.texture)
 	plate.castAtMe, plate.castAtMeOn = Settings.Get("cast.targetGlow") and sample.atMe or nil, nil
 	local target = plate.castAtMe and UnitName("player") or sample.target
-	Cast.Name(plate, K.Locale.Upper(sample.text), Settings.Get("cast.showTarget") and target or nil)
-	SetWho(plate, not Settings.Get("cast.showTarget") and sample.target or nil, sample.targetClass, sample.atMe)
+	Cast.Name(plate, K.Locale.Upper(sample.text), Settings.Get("cast.showTarget") and not WhoPlace(plate) and target or nil)
+	SetWho(plate, WhoRoom(plate) and sample.target or nil, sample.targetClass, sample.atMe)
 	plate.castTime:SetText(sample.time)
 	plate.castTime:SetShown(Settings.Get("cast.showTime"))
 	plate.castBar:SetBarRange(0, 1)

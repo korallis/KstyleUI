@@ -241,7 +241,13 @@ local function StopTimer(cb)
 	cb.frame:SetScript("OnUpdate", nil)
 end
 
-local StopRange, Who, Shield, PlaceGlyph
+local StopRange, Who, Cues, Repaint
+local casting = {}
+
+local function Release(cb)
+	casting[cb] = nil
+	if next(casting) == nil then K.Interrupt.Unwatch(MODULE) end
+end
 
 local function EndTimer(cb, value)
 	cb.inkEmpty = value == 0
@@ -287,6 +293,7 @@ end
 
 local function Hide(cb, instant)
 	cb.active, cb.landed, cb.gcd = false, false, nil
+	if casting[cb] then Release(cb) end
 	Notify(cb)
 	cb.token = (cb.token or 0) + 1
 	if cb.timed then
@@ -306,7 +313,7 @@ local function Hide(cb, instant)
 		CastBars.SetName(cb, "")
 		if cb.caster then
 			Who(cb, nil)
-			Shield(cb)
+			Cues(cb)
 		end
 		cb.timer:SetText("")
 		cb.icon:SetTexture(nil)
@@ -505,13 +512,13 @@ local function ShowLock(cb)
 	if issecretvalue(value) then
 		label:Show()
 		lock:Show()
-		label:SetAlphaFromBoolean(value, 0, 1)
+		label:SetAlphaFromBoolean(value, 0, cb.interruptLeft and 0 or 1)
 		lock:SetAlphaFromBoolean(value, 1, 0)
 		return
 	end
 	label:SetAlpha(1)
 	lock:SetAlpha(1)
-	label:SetShown(value ~= true)
+	label:SetShown(value ~= true and not cb.interruptLeft)
 	lock:SetShown(value == true)
 end
 
@@ -546,6 +553,7 @@ local function LayoutLine(cb, width, height, column)
 		room = room - timerW - LINE_LABEL_GAP
 	end
 	cb.nameRoom, cb.nameFree = Snap(cb, math.max(0, room)), room >= LINE_NAME_EM * size
+	cb.textW = cb.nameRoom
 	cb.text:SetWidth(cb.nameFree and not cb.longName and 0 or cb.nameRoom)
 	Anchor(cb, cb.timer, "RIGHT", frame, "RIGHT", 0, mx, my)
 	cb.timer:SetSize(Snap(cb, timerW), h)
@@ -891,7 +899,7 @@ local function PlaceTarget(cb)
 	t:SetShown(text:IsShown())
 end
 
-function PlaceGlyph(cb)
+local function PlaceGlyph(cb)
 	local glyph = cb.glyph
 	glyph:ClearAllPoints()
 	if cb.slot then
@@ -900,6 +908,8 @@ function PlaceGlyph(cb)
 	else
 		glyph:SetAllPoints(cb.icon)
 	end
+	cb.wait:ClearAllPoints()
+	cb.wait:SetPoint(cb.line and "LEFT" or "CENTER", cb.line and cb.label or glyph)
 end
 
 function CastBars.Layout(cb, width, height)
@@ -937,7 +947,7 @@ local function Fit(cb)
 		return
 	end
 	local least = math.min(size, math.max(size * FIT_FLOOR, K.Scale.TextFloor() * K.Scale.Pixel(1) / Widgets.ScaleFactor(cb.text)))
-	width = width * size / cb.fitSize
+	width = width * size / (select(2, cb.text:GetFont()) or cb.fitSize)
 	if width > room then size = math.max(least, size * room / width) end
 	if size ~= cb.fitSize then NameFont(cb, size) end
 	width = size < style.size and Advance(cb.text)
@@ -961,7 +971,7 @@ function CastBars.SetName(cb, text, target)
 	else
 		cb.text:SetText(shown)
 	end
-	if cb.line and cb.nameFree then
+	if cb.line and cb.nameFree and not cb.whoOn then
 		local width = named and not (secret or issecretvalue(target)) and cb.text:GetUnboundedStringWidth()
 		local long = named and not (not issecretvalue(width) and type(width) == "number" and width <= cb.nameRoom)
 		if long ~= (cb.longName or false) then
@@ -977,29 +987,43 @@ function CastBars.SetName(cb, text, target)
 	end
 end
 
+local function StyleLike(t, source)
+	StyleText(t, source:GetFont())
+	t:SetShadowColor(source:GetShadowColor())
+	t:SetShadowOffset(source:GetShadowOffset())
+end
+
 local function StyleWho(cb)
-	local path, size, flags = cb.text:GetFont()
-	for _, t in ipairs({ cb.whoText, cb.youText }) do
-		StyleText(t, path, size, flags)
-		t:SetShadowColor(cb.text:GetShadowColor())
-		t:SetShadowOffset(cb.text:GetShadowOffset())
+	if cb.whoText then
+		StyleLike(cb.whoText, cb.text)
+		StyleLike(cb.youText, cb.text)
+		cb.youText:SetTextColor(Tokens.Color("hostile"))
 	end
-	cb.youText:SetTextColor(Tokens.Color("hostile"))
+	if cb.wait then
+		StyleLike(cb.wait, cb.timer)
+		cb.wait:SetTextColor(cb.timer:GetTextColor())
+	end
+end
+
+local function FromFlag(region, flag, yes, no)
+	if issecretvalue(flag) and region.SetAlphaFromBoolean then
+		region:SetAlphaFromBoolean(flag, yes, no)
+	else
+		region:SetAlpha(not issecretvalue(flag) and flag == true and yes or no)
+	end
 end
 
 local function ShareName(cb, on)
-	if on == (cb.whoOn == true) then
-		return on
-	end
-	local text, w = cb.text, cb.textW
+	local w = cb.textW
+	on = on and w ~= nil and w > 2 * TEXT_PAD
 	if on then
-		if not w or w <= 2 * TEXT_PAD then
-			return false
-		end
-		cb.nameW = w
-		text:SetWidth(Snap(cb, w * NAME_SHARE))
-	else
-		text:SetWidth(cb.nameW)
+		cb.text:SetWidth(Snap(cb, w * NAME_SHARE))
+	elseif cb.whoOn then
+		cb.text:SetWidth(cb.line and cb.nameFree and not cb.longName and 0 or w)
+	end
+	if cb.line and on ~= (cb.whoOn == true) then
+		local tx, ty = Nudge(cb, "castbarText")
+		cb.bar:SetPoint("LEFT", on and cb.whoText or cb.text, "RIGHT", Snap(cb, LINE_BAR_GAP) - tx, -ty)
 	end
 	cb.whoOn = on
 	return on
@@ -1007,7 +1031,7 @@ end
 
 function Who(cb, name, class, me)
 	cb.whoName, cb.whoClass, cb.whoMe = name, class, me
-	local on = type(name) ~= "nil" and not cb.line and not cb.targetOn and cb.text:IsShown()
+	local on = type(name) ~= "nil" and cb.text:IsShown()
 	if not cb.whoText then
 		if not on then
 			return
@@ -1019,30 +1043,31 @@ function Who(cb, name, class, me)
 		texts[#texts + 1], texts[#texts + 2] = cb.whoText, cb.youText
 		StyleWho(cb)
 	end
-	on = ShareName(cb, on)
-	local who, you = cb.whoText, cb.youText
+	local own, who, you = cb.targetOn and cb.targetText, cb.whoText, cb.youText
+	if not own then on = ShareName(cb, on) end
 	who:SetShown(on)
 	you:SetShown(on)
 	if not on then
 		return
 	end
-	local w = math.max(1, Snap(cb, cb.nameW * (1 - NAME_SHARE)) - Snap(cb, TEXT_PAD))
+	local w = math.max(1, Snap(cb, cb.textW * (1 - NAME_SHARE)) - Snap(cb, TEXT_PAD))
 	for _, t in ipairs({ who, you }) do
 		t:ClearAllPoints()
-		t:SetPoint("TOPRIGHT", cb.text, "TOPLEFT", cb.nameW, 0)
-		t:SetPoint("BOTTOMRIGHT", cb.text, "BOTTOMLEFT", cb.nameW, 0)
-		t:SetWidth(w)
+		if own then
+			t:SetAllPoints(own)
+			t:SetJustifyH(cb.targetOn)
+		else
+			t:SetPoint("TOPRIGHT", cb.text, "TOPLEFT", cb.textW, 0)
+			t:SetPoint("BOTTOMRIGHT", cb.text, "BOTTOMLEFT", cb.textW, 0)
+			t:SetWidth(w)
+			t:SetJustifyH("RIGHT")
+		end
 		t:SetJustifyV(cb.text:GetJustifyV())
 	end
 	who:SetText(name)
 	who:SetTextColor(K.Theme.ClassColorForWidget(class))
-	if issecretvalue(me) then
-		who:SetAlphaFromBoolean(me, 0, 1)
-		you:SetAlphaFromBoolean(me, 1, 0)
-	else
-		who:SetAlpha(me == true and 0 or 1)
-		you:SetAlpha(me == true and 1 or 0)
-	end
+	FromFlag(who, me, 0, 1)
+	FromFlag(you, me, 1, 0)
 end
 
 local function Orient(cb)
@@ -1140,7 +1165,7 @@ function CastBars.Restyle(cb)
 	Spark(cb)
 	Raise(cb)
 	StyleImportant(cb)
-	if cb.whoText then StyleWho(cb) end
+	StyleWho(cb)
 	cb.styled = true
 	cb.pr = nil
 	Paint(cb, BarColor(cb))
@@ -1166,44 +1191,17 @@ local function ColorObjects(cb, r, g, b)
 	return c.locked, c.normal
 end
 
-local function Mark(cb)
-	local interrupt, start, finish = K.Interrupt, cb.castStart, cb.castEnd
-	local at = interrupt.ready == false and interrupt.readyAt and start and finish and finish > start and Waiting(cb)
-		and (interrupt.readyAt * MS - start) / (finish - start)
-	if at and cb.channel then at = 1 - at end
-	if not (at and at > 0 and at < 1) or cb.line then
-		if cb.mark then cb.mark:Hide() end
-		return
-	end
-	local w, h = cb.bar.opts.width, cb.bar.opts.height
-	local mark = cb.mark
-	if not mark then
-		mark = cb.bar:CreateTexture(nil, "OVERLAY", nil, 2)
-		mark:SetColorTexture(Tokens.Color("giltLit"))
-		cb.mark = mark
-	end
-	local vertical, reverse = cb.bar.vertical, cb.bar:GetReverseFill() == true
-	local point = vertical and (reverse and "TOP" or "BOTTOM") or (reverse and "RIGHT" or "LEFT")
-	local step = Snap(cb, at * (vertical and h or w)) * (reverse and -1 or 1)
-	local thick = Snap(cb, MARK_THICK)
-	mark:ClearAllPoints()
-	mark:SetPoint(point, cb.bar, point, vertical and 0 or step, vertical and step or 0)
-	mark:SetSize(vertical and w or thick, vertical and thick or h)
-	if issecretvalue(cb.locked) then
-		mark:SetAlphaFromBoolean(cb.locked, 0, 1)
-	else
-		mark:SetAlpha(cb.locked == true and 0 or 1)
-	end
-	mark:Show()
-end
-
-function Shield(cb)
-	local shade = cb.shade
+function Cues(cb)
+	local left = K.Interrupt.Left(cb, Cues, Waiting(cb))
+	if cb.line then ShowLock(cb) end
+	local shade, mark = cb.shade, cb.mark
 	if not (cb.active and Caster(cb)) then
 		if shade then
 			shade:SetAlpha(0)
 			cb.glyph:SetAlpha(0)
+			cb.wait:SetText("")
 		end
+		if mark then mark:Hide() end
 		return
 	end
 	if not shade then
@@ -1211,27 +1209,37 @@ function Shield(cb)
 		shade:SetColorTexture(Tokens.Color("black"))
 		shade:SetAllPoints(cb.icon)
 		shade:AddMaskTexture(cb.iconMask)
-		local glyph = cb.text:GetParent():CreateTexture(nil, "OVERLAY")
+		local parent = cb.text:GetParent()
+		local glyph = parent:CreateTexture(nil, "OVERLAY")
 		glyph:SetTexture((Tokens.Texture("medCastShieldGlyph")))
 		glyph:SetVertexColor(Tokens.Color("steelLit"))
-		cb.shade, cb.glyph = shade, glyph
+		cb.shade, cb.glyph, cb.wait = shade, glyph, NewText(parent, "CENTER")
+		StyleWho(cb)
 		PlaceGlyph(cb)
 	end
 	local flag, dark = cb.locked, not cb.slot and SHIELD_SHADE or 0
-	if issecretvalue(flag) then
-		shade:SetAlphaFromBoolean(flag, dark, 0)
-		cb.glyph:SetAlphaFromBoolean(flag, 1, 0)
-	else
-		shade:SetAlpha(flag == true and dark or 0)
-		cb.glyph:SetAlpha(flag == true and 1 or 0)
+	cb.wait:SetText(left or "")
+	FromFlag(cb.wait, flag, 0, 1)
+	FromFlag(shade, flag, dark, left and dark or 0)
+	FromFlag(cb.glyph, flag, cb.line and 0 or 1, 0)
+	local at = left and K.Interrupt.At(cb.castStart, cb.castEnd, cb.channel)
+	local w, h, vertical = cb.bar.opts.width, cb.bar.opts.height, cb.bar.vertical
+	if at and cb.line then w = cb.bar:GetWidth() end
+	if not (at and not issecretvalue(w) and type(w) == "number" and w > 0) then
+		if mark then mark:Hide() end
+		return
 	end
+	mark = K.Interrupt.Mark(mark, cb.bar, at, w, h, vertical, cb.bar:GetReverseFill() == true, cb.frame)
+	local thick = Snap(cb, MARK_THICK)
+	mark:SetSize(vertical and w or thick, vertical and thick or h)
+	FromFlag(mark, flag, 0, 1)
+	cb.mark = mark
 end
 
 local function Tint(cb, notInterruptible)
 	local r, g, b = BarColor(cb)
 	if cb.caster then
-		Mark(cb)
-		Shield(cb)
+		Cues(cb)
 		if Waiting(cb) then r, g, b = r * WAIT_DIM, g * WAIT_DIM, b * WAIT_DIM end
 	end
 	if issecretvalue(notInterruptible) then
@@ -1431,7 +1439,7 @@ function CastBars.Important(cb, spellID, sample)
 end
 
 local function SpellTarget(cb)
-	if not (UnitSpellTargetName and UnitShouldDisplaySpellTargetName and Settings.Value(cb.kind, "castbarTarget")) then return nil end
+	if Caster(cb) or not (UnitSpellTargetName and UnitShouldDisplaySpellTargetName and Settings.Value(cb.kind, "castbarTarget")) then return nil end
 	local show = UnitShouldDisplaySpellTargetName(cb.unit)
 	if issecretvalue(show) or show ~= true then return nil end
 	local name = UnitSpellTargetName(cb.unit)
@@ -1474,19 +1482,22 @@ local function Start(cb, channel, update)
 		cb.bar:SetFillCursor(cb.medal and Settings.Value(cb.kind, "castbarSpark"))
 		Spark(cb)
 	end
-	CastBars.SetName(cb, text, SpellTarget(cb))
-	Icon(cb, texture)
-	if not cb.styled then
-		CastBars.Restyle(cb)
-	end
 	if cb.caster then
-		if Caster(cb) and not Settings.Value(cb.kind, "castbarTarget") then
+		if Caster(cb) then
+			casting[cb] = true
+			K.Interrupt.Watch(MODULE, Repaint)
 			Who(cb, K.Interrupt.Target(cb.unit))
 		else
+			if casting[cb] then Release(cb) end
 			Who(cb, nil)
 		end
 		cb.castStart = not issecretvalue(startMs) and type(startMs) == "number" and startMs or nil
 		cb.castEnd = not issecretvalue(endMs) and type(endMs) == "number" and endMs or nil
+	end
+	CastBars.SetName(cb, text, SpellTarget(cb))
+	Icon(cb, texture)
+	if not cb.styled then
+		CastBars.Restyle(cb)
 	end
 	WatchRange(cb, spellID)
 	Locked(cb, notInterruptible)
@@ -1521,11 +1532,11 @@ local function Finish(cb, message, by)
 	EndTimer(cb, Outcomes() and 1 or 0)
 	cb.locked = false
 	ShowLock(cb)
-	CastBars.SetName(cb, message)
 	if cb.caster then
-		Shield(cb)
 		if Caster(cb) then Who(cb, K.Interrupt.By(by)) else Who(cb, nil) end
+		Cues(cb)
 	end
+	CastBars.SetName(cb, message)
 	Paint(cb, Tokens.Color("hostile"))
 	Flash(cb, "hostile", STOPPED_ALPHA)
 	HoldThen(cb, Outcomes() and Tokens.Duration("castErrorHold") or HOLD)
@@ -1622,7 +1633,7 @@ local HANDLERS = {
 				return
 			end
 			local by = event == "UNIT_SPELLCAST_CHANNEL_STOP" and select(4, ...)
-			if not issecretvalue(by) and type(by) == "string" and by ~= "" then
+			if issecretvalue(by) or type(by) == "string" and by ~= "" then
 				Finish(cb, L["Interrupted"], by)
 			elseif Outcomes() then
 				Land(cb)
@@ -1853,7 +1864,7 @@ local function RepaintOne(cb)
 	if cb.active then Tint(cb, cb.locked) end
 end
 
-local function Repaint()
+function Repaint()
 	for kind in pairs(CASTER_KINDS) do
 		Each(kind, RepaintOne)
 	end
@@ -1875,11 +1886,6 @@ function CastBars.Apply()
 		end
 		CastBars.Refresh(kind)
 	end
-	if running and Settings.Module().castCaster ~= false and (Settings.Value("target", "castbar") or Settings.Value("focus", "castbar")) then
-		K.Interrupt.Watch(MODULE, Repaint)
-	else
-		K.Interrupt.Unwatch(MODULE)
-	end
 end
 
 function CastBars.Enable()
@@ -1895,7 +1901,6 @@ end
 
 function CastBars.Disable()
 	running = false
-	K.Interrupt.Unwatch(MODULE)
 	for _, kind in ipairs(Settings.KINDS) do
 		Each(kind, function(cb)
 			K.Events.UnregisterAll(Owner(cb))

@@ -171,7 +171,7 @@ local function activeBar(ns, unit)
 	end
 end
 
-local function frames(hud)
+local function targetBar(hud)
 	local env, K, ns = U.New({ frames = hud == "frames", setup = setup })
 	U.SetUnit(env, "player", { name = "Kstyle", class = "WARRIOR", level = 60, health = 100, healthMax = 100 })
 	env.FireEvent("SPELLS_CHANGED")
@@ -186,6 +186,11 @@ local function frames(hud)
 		env.FireEvent("UNIT_SPELLCAST_START", "target", "Cast-1", 686)
 	end
 	env._castTarget = "Valerin"
+	return env, K, ns, tcb, cast
+end
+
+local function frames(hud)
+	local env, K, ns, tcb, cast = targetBar(hud)
 	cast(false)
 	assert(tcb.active, hud .. ": the target casts")
 	assert(K.Interrupt.running and K.Interrupt.spell == PUMMEL, hud .. ": a target cast asks for the interrupt")
@@ -246,7 +251,7 @@ local function frames(hud)
 	local lookups, name = 0, env.UnitNameFromGUID
 	env.UnitNameFromGUID = function(guid) lookups = lookups + 1; return name(env.Reveal(guid)) end
 	env._units.target.cast = nil
-	env._units.target.channel = { name = "Drain Life", texture = 1, start = 1000, finish = 3000, spellID = 689 }
+	env._units.target.channel = { name = "Drain Life", texture = 1, start = 1000, finish = 3000, spellID = 689, barID = 2 }
 	env.FireEvent("UNIT_SPELLCAST_CHANNEL_START", "target", "Cast-2", 689, 2)
 	env._units.target.channel = nil
 	env.FireEvent("UNIT_SPELLCAST_CHANNEL_STOP", "target", "Cast-2", 689, env.Secret("Player-2"), 2)
@@ -265,6 +270,22 @@ local function frames(hud)
 	for _, region in ipairs({ who, you, tcb.glyph, tcb.shade, tcb.wait, mark }) do region.SetAlphaFromBoolean = nil end
 	clean(env, K, hud .. " no boolean alpha")
 
+	-- Off restores the old bar: no who text, no dim, the name's full room.
+	K.Options.Write("UnitFrames", "castCaster", false)
+	env._cooldowns[PUMMEL] = { isActive = true, isOnGCD = false, startTime = 0, duration = 2, isEnabled = true }
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(K.Interrupt.ready == nil and not K.Interrupt.running, hud .. ": off stops asking for the interrupt")
+	cast(false)
+	assert(not who:IsShown() and near(tcb.pr, br) and not mark:IsShown() and tcb.glyph:GetAlpha() == 0, hud .. ": off restores the old bar")
+	assert(tcb.slot == nil and near(W.LastCall(tcb.text, "SetWidth")[1], width0 + (slotted and slotted or 0)), hud .. ": off gives the spell name its slot back")
+	clean(env, K, hud .. " off")
+end
+
+-- #747 review 8 and 7, on a target bar that never showed a secret name.
+local function legacy(hud)
+	local env, K, _, tcb, cast = targetBar(hud)
+	cast(false)
+	local who = tcb.whoText
 	-- #747 review 8: the old Spell target option's place gets the class colour and YOU too.
 	K.Options.Write("UnitFrames", "target.castbarTarget", true)
 	env.RunTimers()
@@ -299,20 +320,12 @@ local function frames(hud)
 	K.Options.Write("UnitFrames", "target.castbarFit", false)
 	env.RunTimers()
 	clean(env, K, hud .. " fit")
-
-	-- Off restores the old bar: no who text, no dim, the name's full room.
-	K.Options.Write("UnitFrames", "castCaster", false)
-	env._cooldowns[PUMMEL] = { isActive = true, isOnGCD = false, startTime = 0, duration = 2, isEnabled = true }
-	env.FireEvent("SPELL_UPDATE_COOLDOWN")
-	assert(K.Interrupt.ready == nil and not K.Interrupt.running, hud .. ": off stops asking for the interrupt")
-	cast(false)
-	assert(not who:IsShown() and near(tcb.pr, br) and not mark:IsShown() and tcb.glyph:GetAlpha() == 0, hud .. ": off restores the old bar")
-	assert(tcb.slot == nil and near(W.LastCall(tcb.text, "SetWidth")[1], width0 + (slotted and slotted or 0)), hud .. ": off gives the spell name its slot back")
-	clean(env, K, hud .. " off")
 end
 
 frames("medallions")
 frames("frames")
+legacy("medallions")
+legacy("frames")
 
 -- #747 review 1: the Frames focus line keeps its design and names the target, the ready time and the interrupter.
 do

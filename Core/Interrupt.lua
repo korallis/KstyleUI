@@ -103,10 +103,7 @@ local function Plain(value)
 	return not IsSecret(value) and type(value) == "number" and value == value
 end
 
-local function ReadyAt(info, ready)
-	if ready ~= false or IsSecret(info) or type(info) ~= "table" then
-		return nil
-	end
+local function ReadyAt(info)
 	local start, duration = info.startTime, info.duration
 	if Plain(start) and Plain(duration) and duration > 0 then
 		return start + duration
@@ -122,7 +119,7 @@ function Interrupt.Update(fromCooldownEvent, spellChanged)
 		local ok, info = pcall(api.GetSpellCooldown, spell)
 		if ok then
 			ready = Interrupt.Ready(info, fromCooldownEvent == true)
-			readyAt = ReadyAt(info, ready)
+			readyAt = ready == false and ReadyAt(info) or nil
 			if ready == nil then
 				LogOnce("interrupt-secret", "the interrupt's cooldown came back secret or empty; interruptible casts use the wait colour")
 			end
@@ -132,14 +129,15 @@ function Interrupt.Update(fromCooldownEvent, spellChanged)
 	end
 	if ready ~= Interrupt.ready or readyAt ~= Interrupt.readyAt or spellChanged then
 		Interrupt.ready, Interrupt.readyAt = ready, readyAt
-		if Interrupt.running then
-			for _, fn in pairs(watchers) do fn() end
-		end
+		for _, fn in pairs(watchers) do fn() end
 	end
 end
 
 function Interrupt.Name(text)
-	Interrupt.named = text
+	if text ~= Interrupt.named then
+		Interrupt.named = text
+		if Interrupt.running then Interrupt.Resolve() end
+	end
 end
 
 function Interrupt.Resolve()
@@ -212,8 +210,8 @@ function Interrupt.Watch(owner, fn)
 		Interrupt.running = true
 		ns.Events.Register(OWNER, "SPELL_UPDATE_COOLDOWN", OnCooldown)
 		ns.Events.Register(OWNER, "SPELLS_CHANGED", Interrupt.Resolve)
+		Interrupt.Resolve()
 	end
-	Interrupt.Resolve()
 end
 
 function Interrupt.Unwatch(owner)
@@ -223,4 +221,36 @@ function Interrupt.Unwatch(owner)
 		Interrupt.ready, Interrupt.readyAt = nil, nil
 		ns.Events.UnregisterAll(OWNER)
 	end
+end
+
+function Interrupt.At(start, finish, channel)
+	local at = Interrupt.ready == false and Interrupt.readyAt and start and finish and finish > start and (Interrupt.readyAt * 1000 - start) / (finish - start)
+	if at and channel then at = 1 - at end
+	return at and at > 0 and at < 1 and at or nil
+end
+
+function Interrupt.Mark(mark, bar, at, w, h, vertical, reverse, owner)
+	if not mark then
+		mark = bar:CreateTexture(nil, "OVERLAY", nil, 2)
+		mark:SetColorTexture(ns.Tokens.Color("giltLit"))
+	end
+	local point = vertical and (reverse and "TOP" or "BOTTOM") or (reverse and "RIGHT" or "LEFT")
+	local step = ns.Widgets.Snap(owner, at * (vertical and h or w)) * (reverse and -1 or 1)
+	mark:ClearAllPoints()
+	mark:SetPoint(point, bar, point, vertical and 0 or step, vertical and step or 0)
+	mark:Show()
+	return mark
+end
+
+function Interrupt.Left(holder, fn, on)
+	local at = on and Interrupt.ready == false and Interrupt.readyAt
+	local left = at and at - GetTime()
+	local n = left and left > 0 and math.ceil(left) or nil
+	if n and n ~= holder.interruptLeft then
+		C_Timer.After(left - n + 1.01, function()
+			if holder.interruptLeft == n then fn(holder) end
+		end)
+	end
+	holder.interruptLeft = n
+	return n
 end
