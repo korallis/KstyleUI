@@ -301,7 +301,7 @@ local DISC_UNITS = 18
 
 do
 	local B, snap, p
-	local env, K = S.New({
+	local env, K, ns = S.New({
 		width = 2383, height = 1540, uiScale = 768 / 1080,
 		before = function(env)
 			B = S.Blizzard(env)
@@ -342,6 +342,15 @@ do
 	local point, relative, relativePoint, x = quests.Header.MinimizeButton:GetPoint(1)
 	assert(point == "CENTER" and relative == quests.Header and relativePoint == "RIGHT", "the collapse button centres on the header's right edge")
 	assert(Near(x + chevron:GetWidth() / 2, edge, K.Scale.Pixel()), "so its chevron ends on the counts' edge, got " .. tostring(x))
+	-- GetWidth is SecretWhenAnchoringSecret (SimpleScriptRegionAPIDocumentation.lua): a chevron whose measurements
+	-- turn secret leaves the collapse button where it is instead of breaking the header's restyle (review of #773,
+	-- finding 8).
+	local veil = K.Widgets.FontString(quests.Header, "OVERLAY")
+	veil:SetText(env.Secret("Quests"))
+	chevron:GetParent():SetPoint("BOTTOM", veil, "BOTTOM")
+	assert(env.issecretvalue(chevron:GetWidth()), "the chevron now measures in secrets")
+	ns.Style.RestyleAll()
+	assert(select(4, quests.Header.MinimizeButton:GetPoint(1)) == x, "a secret chevron width keeps the collapse button in place")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -555,6 +564,26 @@ do
 	speak.Text._state.UnboundedStringWidth = { n = 1, 200 }
 	p.layout(tracker)
 	assert(speak.Text:GetText() == "Lake Everstill Thresher slain near the eastern shore" and Plain(CountOf(speak)) == "0/8", "once it fits on one line, the count moves right")
+	-- A rail that narrows after the split gives the count back to the words at once, without waiting for
+	-- Blizzard's next layout (review of #773, finding 4).
+	local originalStory = K.Setup.Story
+	local function Rail(width)
+		K.Setup.Story = function(...)
+			local s = originalStory(...)
+			s.tracker.right = s.tracker.left + width
+			return s
+		end
+		Style.RestyleAll()
+	end
+	tracker:SetSize(260, 600)
+	Rail(420)
+	speak.Text._state.UnboundedStringWidth = { n = 1, 238 }
+	p.layout(tracker)
+	assert(CountOf(speak):IsShown(), "a 238-unit objective splits on a wide rail")
+	Rail(230)
+	assert(not CountOf(speak):IsShown() and speak.Text:GetText() == "0/8 Lake Everstill Thresher slain near the eastern shore", "a narrower rail gives the count back to the words at once")
+	K.Setup.Story = originalStory
+	Style.RestyleAll()
 	speak.Text._state.UnboundedStringWidth = nil
 	crocolisks.objectives[2] = "Speak with Sergeant Hale"
 	p.layout(tracker)

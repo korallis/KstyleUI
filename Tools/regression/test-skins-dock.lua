@@ -158,6 +158,13 @@ do
 	-- at the first mode tab, below the header band, instead of running up between the title and the close glyph.
 	local gap = K.Widgets.Snap(f, K.Tokens.Size("gapMedium"))
 	local pane = Rect(f.RightPaneHost, root)
+	-- The mode column keeps its medium gap to the glass's right edge; only the spellbook's tabs take the window's
+	-- inset there (review of #773, finding 10).
+	local column = 0
+	for _, tab in ipairs(f.ModeTabs.Tabs) do
+		column = math.max(column, Rect(tab, root).right)
+	end
+	Same(window.right + dock.reach.RIGHT, column + gap, "the glass's gutter ends a medium gap right of the mode column")
 	local first
 	for i = 1, 3 do
 		local tab = env["PaperDollSidebarTab" .. i]

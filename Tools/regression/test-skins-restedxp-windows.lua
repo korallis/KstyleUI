@@ -578,6 +578,16 @@ do
 	local caption = assert(ns.RestedXP.Chrome.Caption(title))
 	local heading = assert(ns.Parts.HeadingOf(caption), "Use the shared window heading for the Speedrun Guide")
 	assert(heading.panel == K.Skin.Parts(window.upperFrame).backdrop and heading.close == window.closebutton, "The Speedrun Guide uses its window's shared gem and rule")
+	local Geometry = dofile("Tools/regression/geometry.lua")
+	window.frame:SetSize(300, 200)
+	window.upperFrame:SetPoint("TOPLEFT")
+	window.upperFrame:SetPoint("TOPRIGHT")
+	heading:Restyle()
+	caption:SetSize(100, 10)
+	local function Right(region) return assert(Geometry.Rect(region, window.frame)).right end
+	local gem = assert(Geometry.Rect(heading.gem, window.frame)).left
+	local clear = math.max(Right(window.iconLogo), Right(window.classIcon))
+	assert(gem >= clear, "the heading's gem starts right of RestedXP's logo and class icon, got " .. gem .. " against " .. clear)
 	for _, size in ipairs({ 9, 16, 9 }) do
 		rxp.settings.profile.guideFontSize = size
 		window:UpdateSubTheme()
@@ -707,6 +717,16 @@ do
 	assert(again[1] ~= options[1], "the page re-rendered its rows")
 	options = again
 	Rows()
+	-- RestedXP's rows are 34 units (GuideConfigurator.lua 565-567) and its Recommended line sits 2 over the centred
+	-- 16-unit label (822-836), 5 past the row's top; the skin centres the two inside the row's tile instead (review
+	-- of #773, finding 6).
+	local first = options[1]
+	first.frame:SetSize(276, 34)
+	first.recommendation:SetWidth(80)
+	local note, label = assert(Geometry.Rect(first.recommendation, first.frame)), assert(Geometry.Rect(first.text, first.frame))
+	assert(note.top <= 34 and label.bottom >= 0 and note.bottom >= label.top, "the Recommended line and the label sit inside the row, one over the other, got " .. note.top .. " and " .. label.bottom)
+	label = assert(Geometry.Rect(options[2].text, options[2].frame:SetSize(276, 34) or options[2].frame))
+	assert(label.bottom == 9, "a row with no Recommended line keeps its label centred, got " .. label.bottom)
 
 	rxp.guideImporter:Open()
 	local widgets = rxp.guideImporter.widgets
