@@ -102,6 +102,15 @@ return Common.Run(function()
 		R.search:SetText("")
 		R.search:GetScript("OnEditFocusGained")(R.search)
 	end
+	if os.getenv("RENDER_MAP_REOPEN") == "1" then
+		map:SetMapID(2)
+		map:Hide()
+		R.search:GetScript("OnEditFocusLost")(R.search)
+		R.panel:GetScript("OnHide")(R.panel)
+		M.S.Show(map)
+		map:SetMapID(1)
+		map:RefreshAllDataProviders()
+	end
 	assert(os.getenv("RENDER_MAP_BEFORE") == "1" or (quest == "none" and not off) or R.road, "the render must exercise a real connected route")
 	if flight and R.road then
 		local found
