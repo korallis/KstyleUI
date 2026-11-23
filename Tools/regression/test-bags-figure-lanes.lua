@@ -19,7 +19,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		"stack counts belong at BOTTOMRIGHT with a 3-unit inset")
 	local badge = K.Widgets.Snap(slot.button, 2)
 	point, relative, on, x, y = slot.junk:GetPoint(1)
-	assert(point == "TOPRIGHT" and relative == slot.button and x == -badge and y == -badge,
+	assert(point == "TOPRIGHT" and relative == slot.button and on == "TOPRIGHT" and x == -badge and y == -badge,
 		"only the item figures take the 3-unit inset; the junk dot and other badges keep TEXT_INSET's 2 units")
 	local panel = ns.Inventory.window.panel
 	panel.chrome:MeasureHeader()
@@ -27,7 +27,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(select(2, panel.titleText:GetFont()) == K.Widgets.FontSize(panel.titleText, 14), "the bag window title uses 14 units")
 	K.Options.Write("Bags", "separateFigures", false)
 	assert(slot.level:GetPoint(1) == "BOTTOMLEFT", "turning separate figures off restores the previous item-level corner")
-	point, relative, on, x, y = slot.count:GetPoint(1)
+	x, y = select(4, slot.count:GetPoint(1))
 	assert(x == -badge and y == badge, "turning separate figures off restores the previous 2-unit figure inset")
 	K.Options.Write("Bags", "readableHeaders", false)
 	assert(panel.chrome.headerUnits == ns.Inventory.window.originalHeader, "turning readable headings off restores the previous header band")

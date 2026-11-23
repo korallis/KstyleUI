@@ -623,9 +623,9 @@ function ns.Preview(...)
 			local settings = ns.Settings()
 			for id, view in pairs(self.bars) do
 				Bars.Paint(view, PreviewSettings(settings[id]), SAMPLES[id], true)
-				local caption, gap = self.captions[id], Tokens.Size("gapSmall")
-				local wide = view.text:IsShown() and Widgets.TextWidth(caption, 0) + gap + Widgets.TextWidth(view.text, 0) > (Width(view.holder) or PREVIEW_FALLBACK_WIDTH)
-				Widgets.Point(caption, "BOTTOMLEFT", view.holder, "TOPLEFT", 0, (wide and Widgets.LineHeight(view.text) or 0) + gap)
+				local label, gap = self.captions[id], Tokens.Size("gapSmall")
+				local wide = view.text:IsShown() and Widgets.TextWidth(label, 0) + gap + Widgets.TextWidth(view.text, 0) > (Width(view.holder) or PREVIEW_FALLBACK_WIDTH)
+				Widgets.Point(label, "BOTTOMLEFT", view.holder, "TOPLEFT", 0, (wide and Widgets.LineHeight(view.text) or 0) + gap)
 				view.text:ClearAllPoints()
 				Widgets.Point(view.text, "BOTTOMRIGHT", view.holder, "TOPRIGHT", 0, Tokens.Size("gapSmall"))
 			end
