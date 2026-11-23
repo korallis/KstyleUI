@@ -70,23 +70,24 @@ function Routes.DungeonLevels(info)
 	return Routes.Levels(area)
 end
 
-local function Add(list, kind, id, name, x, y)
+local function Add(list, kind, id, name, x, y, owner)
 	if not Number(id) or not Plain(name, "string") or name == "" then return end
 	x, y = Number(x), Number(y)
 	if not x or not y or x < 0 or x > 1 or y < 0 or y > 1 then return end
-	list[#list + 1] = { kind = kind, mapID = id, name = name, x = x, y = y }
+	list[#list + 1] = { kind = kind, mapID = id, name = name, x = x, y = y, owner = owner }
 end
 
 function Routes.Search(query)
 	local list, id = {}, MapID()
 	if not On("routes") or not id or not Plain(query, "string") then return list end
+	query = K.Locale.Lower(query)
 	local services, nearest = On("services") and ns.WorldMapServices, {}
 	for _, kind in ipairs(services and services.KINDS or {}) do
 		local name = services.NEAREST[kind]
-		if K.Locale.Lower(name):find(K.Locale.Lower(query), 1, true) then nearest[#nearest + 1] = { nearest = kind, name = name } end
+		if K.Locale.Lower(name):find(query, 1, true) then nearest[#nearest + 1] = { nearest = kind, name = name } end
 	end
 	if query == "" then return nearest end
-	for _, row in ipairs(services and services.OnMap(id) or {}) do Add(list, "service", row.map, row.name, row.x, row.y) end
+	for _, row in ipairs(services and services.OnMap(id) or {}) do Add(list, "service", row.map, row.name, row.x, row.y, "services") end
 	local factions = type(Enum) == "table" and Plain(Enum.FlightPathFaction, "table")
 	local faction = type(UnitFactionGroup) == "function" and Plain(UnitFactionGroup("player"), "string")
 	for _, source in ipairs({
@@ -142,7 +143,6 @@ function Routes.Search(query)
 		end
 	end
 	local found = {}
-	query = K.Locale.Lower(query)
 	for _, row in ipairs(list) do
 		if K.Locale.Lower(row.name):find(query, 1, true) then found[#found + 1] = row end
 	end
@@ -245,15 +245,7 @@ local function World(id, x, y)
 end
 Routes.Plain, Routes.Number, Routes.Call, Routes.Field, Routes.XY, Routes.World = Plain, Number, Call, Field, XY, World
 
-local function RoadRoute(mounted, playerMap, x, y, moving)
-	if not x then return nil, L["Player position unavailable."] end
-	local continent, wx, wy = World(playerMap, x, y)
-	if moving and continent and continent == routeContinent and Roads.MoveStart(Routes.road, wx, wy, mounted) then return Routes.road, nil, continent, true end
-	local targetContinent, tx, ty = World(target.mapID, target.x, target.y)
-	if not continent or not targetContinent then return nil, L["Road coordinates unavailable."] end
-	if continent ~= targetContinent then return nil, L["Destination is on another continent."] end
-	local graph = Roads.Graph(continent)
-	if not graph then return nil, L["Road data unavailable for this continent."] end
+function Routes.Flights(graph, playerMap, continent)
 	if not graph.flights then
 		graph.flights = {}
 		for _, node in ipairs(graph.nodes) do if node.kind == "flight" then graph.flights[#graph.flights + 1] = node end end
@@ -282,7 +274,19 @@ local function RoadRoute(mounted, playerMap, x, y, moving)
 			end
 		end
 	end
-	local route = Roads.Solve(graph, wx, wy, tx, ty, mounted, flights)
+	return flights
+end
+
+local function RoadRoute(mounted, playerMap, x, y, moving)
+	if not x then return nil, L["Player position unavailable."] end
+	local continent, wx, wy = World(playerMap, x, y)
+	if moving and continent and continent == routeContinent and Roads.MoveStart(Routes.road, wx, wy, mounted) then return Routes.road, nil, continent, true end
+	local targetContinent, tx, ty = World(target.mapID, target.x, target.y)
+	if not continent or not targetContinent then return nil, L["Road coordinates unavailable."] end
+	if continent ~= targetContinent then return nil, L["Destination is on another continent."] end
+	local graph = Roads.Graph(continent)
+	if not graph then return nil, L["Road data unavailable for this continent."] end
+	local route = Roads.Solve(graph, wx, wy, tx, ty, mounted, Routes.Flights(graph, playerMap, continent))
 	return route, not route and L["No connected road route."] or nil, continent
 end
 
@@ -368,7 +372,7 @@ end
 
 function Routes.Pick(row)
 	if On("services") and Plain(row, "table") and row.nearest then return ns.WorldMapServices.Route(row.nearest, On("followRoads")) end
-	if not On("routes") or not Plain(row, "table") or not Number(row.mapID) or not Number(row.x) or not Number(row.y) or not Plain(row.name, "string") then return end
+	if not On("routes") or not Plain(row, "table") or row.owner and not On(row.owner) or not Number(row.mapID) or not Number(row.x) or not Number(row.y) or not Plain(row.name, "string") then return end
 	if row.mapID <= 0 or row.x < 0 or row.x > 1 or row.y < 0 or row.y > 1 then return end
 	if type(C_SuperTrack) ~= "table" or type(C_SuperTrack.SetSuperTrackedUserWaypoint) ~= "function" then return end
 	if type(UiMapPoint) ~= "table" or type(UiMapPoint.CreateFromCoordinates) ~= "function" then return end
@@ -388,10 +392,10 @@ function Routes.Pick(row)
 	return true
 end
 
-function Routes.Notice(name, text)
+function Routes.Notice(name, text, owner)
 	if not On("routes") or not card then return end
 	Routes.Clear()
-	target = { name = name, notice = text }
+	target = { name = name, notice = text, owner = owner }
 	Hide(results)
 	search:ClearFocus()
 	RefreshRoute()
@@ -402,16 +406,18 @@ function Routes.Quest(id)
 	local name = Plain(Call(C_QuestLog, "GetTitleForQuestID", id), "string") or ""
 	local questMap, x, y = Call(C_QuestLog, "GetNextWaypoint", id)
 	questMap, x, y = Number(questMap), Number(x), Number(y)
-	if not y then
+	if not (questMap and x and y) then
+		y = nil
 		local maps = { type(GetQuestUiMapID) == "function" and Number(GetQuestUiMapID(id)) or 0, Number(Call(C_Map, "GetBestMapForUnit", "player")) or 0 }
 		for _, mapID in ipairs(maps) do
 			for _, info in ipairs(not y and mapID > 0 and Plain(Call(C_QuestLog, "GetQuestsOnMap", mapID), "table") or {}) do
-				if Field(info, "questID", "number") == id then questMap, x, y = Field(info, "mapID", "number") or mapID, Field(info, "x", "number"), Field(info, "y", "number") end
+				local px, py = Number(Field(info, "x", "number")), Number(Field(info, "y", "number"))
+				if px and py and Field(info, "questID", "number") == id and Field(info, "isQuestStart", "boolean") ~= true then questMap, x, y = Field(info, "mapID", "number") or mapID, px, py end
 			end
 		end
 	end
-	if not Routes.Pick({ kind = "quest", mapID = questMap, name = name, x = x, y = y }) then
-		Routes.Notice(name, L["The game gives no map position for this quest."])
+	if not Routes.Pick({ kind = "quest", owner = "questRoutes", mapID = questMap, name = name, x = x, y = y }) then
+		Routes.Notice(name, y and L["The game does not allow a waypoint there."] or L["The game gives no map position for this quest."], "questRoutes")
 	end
 end
 
@@ -512,8 +518,8 @@ local function Build()
 	panel:SetAllPoints(map)
 	panel:SetFrameLevel(map:GetFrameLevel() + 30)
 	search = Widgets.EditBox(panel, { width = 280, height = 28, placeholder = L["Search the map"], onChange = SearchChanged,
-		onEscape = function() Hide(results) end, onEnter = function(query) if query ~= "" then Routes.Pick(Routes.Search(query)[1]) end end,
-		onFocus = function(box) SearchChanged(box:GetText()) end })
+		onEscape = function() Hide(results) end, onEnter = function(query) if Plain(query, "string") ~= "" then Routes.Pick(Routes.Search(query)[1]) end end,
+		onFocus = function(box) if On("services") then SearchChanged(box:GetText()) end end })
 	search:SetPoint("TOPLEFT", map.ScrollContainer or map, "TOPLEFT", 12, -12)
 	card = CreateFrame("Frame", nil, map)
 	card:SetFrameLevel(map:GetFrameLevel() + 25)
@@ -530,7 +536,6 @@ local function Build()
 	distance:SetPoint("TOPLEFT", 14, -61)
 	distance:SetSize(250, 18)
 	note = Text(card, "body", 11, "text")
-	note:SetPoint("TOPLEFT", 14, -85)
 	note:SetSize(250, 18)
 	note:SetText(L["Straight line - terrain may block the way."])
 	chip = Text(card, "body", 11, "questGold")
@@ -621,7 +626,7 @@ local function Refresh()
 	canvas = map:GetCanvas()
 	if On("routes") then Build() end
 	if panel then panel:SetShown(On("routes")) end
-	if not On("routes") then Routes.Clear() end
+	if not On("routes") or target and target.owner and not On(target.owner) then Routes.Clear() end
 	RefreshZones()
 	HookPins()
 	ns.WorldMapServices.Draw(canvas, MapID(), On("routes") and On("services"))
@@ -672,6 +677,7 @@ end
 def.OnSetting = function(self, key, value)
 	if setting then setting(self, key, value) end
 	if key == "entrances" then EntranceFilter() end
+	if key == "services" then Hide(results) end
 	Refresh()
 end
 def.OnSwitch = function(self, on)

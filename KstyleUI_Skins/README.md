@@ -61,29 +61,45 @@ immediately. Missing client APIs and secret coordinates/ranges are ignored.
 
 The client ships no list of innkeepers, trainers, banks, auction houses, repair
 or reagent vendors (`C_Map` and `C_AreaPoiInfo` hold landmarks only), so
-`WorldMapServices.lua` records them as the player meets them. While Nearest
-services is on, `PLAYER_INTERACTION_MANAGER_FRAME_SHOW` with the `Trainer`,
-`Banker`, `Auctioneer` or `Binder` type, `CONFIRM_BINDER`, and `GOSSIP_SHOW`
-when `C_PlayerInteractionManager.IsInteractingWithNpcOfType` says `Binder`
-save the `npc` unit's name under its GUID's NPC ID, at the player's map and
-world position, in `KstyleUIDB.account.mapServices`, shared by every character.
-A merchant counts as a repair vendor when `CanMerchantRepair` says so and as a
-reagent vendor when one of its items is `Enum.ItemClass.Reagent`. Secret
-names, payloads or positions record nothing; no data is shipped or guessed.
+`WorldMapServices.lua` records them as the player meets them. While the
+Skins module, the world map skin, Search and routes and Nearest services are on
+(from login, before the map first opens), `PLAYER_INTERACTION_MANAGER_FRAME_SHOW`
+with the `Trainer`, `Banker`, `CharacterBanker`, `AccountBanker`, `Auctioneer`
+or `Binder` type, `CONFIRM_BINDER`, and `GOSSIP_SHOW` when
+`C_PlayerInteractionManager.IsInteractingWithNpcOfType` says `Binder` save the
+`npc` unit's name, the player's faction and the player's map and world position
+in `KstyleUIDB.account.mapServices`, shared by every character. Entries are
+keyed by the GUID's NPC ID: a visit within 30 yards of a saved place of the same
+NPC and faction updates it, anywhere else adds a place. A merchant counts as a
+repair vendor when `CanMerchantRepair` says so and as a reagent vendor when one
+of its items is `Enum.ItemClass.Reagent`, checked on the window's show and on
+each `MERCHANT_UPDATE`. Secret names, payloads or positions record nothing; no
+data is shipped or guessed.
 
-Recorded services on a zone or city map draw as small diamonds in the route's
-style, coloured by kind, with a tooltip; a click routes there. They redraw on map
-changes and one hook on `OnCanvasScaleChanged`. An empty search lists six
-"Nearest ..." rows; typing a service puts its row first. Nearest picks the
-recorded one on the player's continent with the least road time (one Dijkstra
-from the player, `Roads.Times`), or straight-line time with Follow roads off.
-None recorded, or no player position, says so on the route card.
+Recorded services of the player's faction on a zone or city map draw as small
+diamonds in the route's style, coloured by kind; one NPC within 30 yards that
+offers several services is one pin whose tooltip lists them; a click routes
+there. They draw on map changes while the map is shown; a visit behind the
+closed map waits for it to open, and the one hook on `OnCanvasScaleChanged`
+only resizes and re-anchors the shown pins from their saved projection. An
+empty search lists six "Nearest ..." rows; typing a service puts its row first.
+Nearest picks, of the player's faction on the player's continent, the one with
+the least road time (one Dijkstra from the player, `Roads.Times`, with the
+flights this character knows, as the route uses), built only when one is
+recorded. A service the roads reach always beats one they do not; with none
+reachable, or with Follow roads off, the straight-line time decides, and the
+route card says there is no connected road. None recorded, or no player
+position, says so on the route card.
 
 Click a quest to route: a left click on the quest card still opens the quest's
-details and then routes to `C_QuestLog.GetNextWaypoint`, else to the quest's
-`GetQuestsOnMap` POI on `GetQuestUiMapID` or the player's map. With neither,
-the card says the game gives no position. Both switches are on by default; off,
-nothing registers, records or draws, and the click is today's.
+details and then routes to `C_QuestLog.GetNextWaypoint` when it gives a whole
+public map, x and y, else to the quest's `GetQuestsOnMap` POI on
+`GetQuestUiMapID` or the player's map, skipping `isQuestStart` POIs. With
+neither, the card says the game gives no position; when the map refuses the
+waypoint (`CanSetUserWaypointOnMap`), it says so instead. Both switches are on
+by default; off, nothing registers, records or draws, the click is today's, and
+turning one off closes its picker and clears the route it made, leaving any
+other route alone.
 
 `test-worldmap-routes.lua` drives the client fixtures in `worldmap_env.lua`;
 `test-worldmap-services.lua` drives the recorder, pins, nearest picker and quest routes.

@@ -69,7 +69,7 @@ return Common.Run(function()
 					local wx, wy = node.x + 2 * #row[2], node.y + 2 * #row[2]
 					local px, py = Project(wx, wy)
 					saved[row[1]] = saved[row[1]] or {}
-					saved[row[1]][row[2]] = { name = row[2], map = 1, x = px, y = py, continent = 1, wx = wx, wy = wy }
+					saved[row[1]][row[2]] = { name = row[2], map = 1, x = px, y = py, continent = 1, wx = wx, wy = wy, faction = "Horde" }
 				end
 			end
 		end
