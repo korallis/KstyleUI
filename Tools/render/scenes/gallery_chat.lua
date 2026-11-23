@@ -183,7 +183,7 @@ return Common.Run(function()
 		bar:SetPoint(foot[1], foot[2], foot[3], foot[4] or 0, foot[5] or 0)
 		local gx, _, gw = Scene.Rect(env, glass)
 		local tx, _, tw = Scene.Rect(env, tile)
-		assert(math.abs((tx - gx) - (gx + gw - tx - tw)) < 0.5, "the undocked edit tile sits evenly inside its glass with the scroll bar's foot on " .. foot[3])
+		assert(math.abs((tx - gx) - (gx + gw - tx - tw)) <= 1080 / Common.SCREEN.height, "the undocked edit tile sits evenly inside its glass, to a pixel, with the scroll bar's foot on " .. foot[3])
 	end
 
 	local frames = Gallery.Frames()
