@@ -647,11 +647,19 @@ local function Resting(held)
 	return not IsSecret(target) and not target
 end
 
+function Slab.Resting()
+	return state.rest == true
+end
+
 local function Animate()
 	local hub = Slab.hub
 	local held = Held()
 	local rest = Resting(held)
+	local changed = rest ~= state.rest
 	state.rest = rest
+	if changed then
+		ns.SlabMedals.Rest()
+	end
 	if not (Slab.Allows("ambient") and K.Store.Module("Medallions").ambient ~= false and hub:IsShown()) then
 		Motionless()
 		return

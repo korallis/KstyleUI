@@ -1,0 +1,422 @@
+-- SlabMedals.lua: the Medallions crest's shared medals and ring sockets (docs/medallions-effects.md#crest-medals-and-sockets lists the API): the parts the hawk perches, storm orbs and Spirit Poles share, the crest's named seats, and three pieces the class trackers build: Medal, a round steel medal lit by an aura slot or a weapon enchant (with a timer ring the engine drains from the aura's own duration), by a spell's cooldown duration object or by a usable strike; Rim, an aura that burns round the crest's inner rim and drains with it; Socket, a jewel on the ring whose liquid drains with an aura or a weapon enchant. Engine enables the feeds and hands the engine the flares and the fire at Full while auras are readable; Lua never reads or compares a secret.
+local _, ns = ...
+
+local K = KstyleUI
+local Widgets, Tokens, Effects = K.Widgets, K.Tokens, K.Effects
+local cos, sin, rad, floor, max = math.cos, math.sin, math.rad, math.floor, math.max
+local IsSecret = Widgets.IsSecret
+
+local Medals = {}
+ns.SlabMedals = Medals
+
+local SIZE, TRACK, ICON, SHADE, BURST, STEEL = 26, 6, 0.74, 1.9, 2.4, 0.45
+local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 104, 12, 10, 8, 2
+local SEATS = { left = { -1, 84, 32 }, right = { 1, 84, 32 }, top = { 1, 100, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 } }
+local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
+local OWNER = "ActionBars.SlabMedals"
+local targets, rims, watchers = {}, {}, {}
+Medals.SIZE = SIZE
+
+function Medals.Known(spells)
+	local book = C_SpellBook
+	if not (book and type(book.IsSpellKnown) == "function") then
+		return nil
+	end
+	for _, id in ipairs(spells) do
+		local known = book.IsSpellKnown(id)
+		if not IsSecret(known) and known == true then
+			return id
+		end
+	end
+end
+
+function Medals.Restricted()
+	local ask = C_Secrets and C_Secrets.ShouldAurasBeSecret
+	local secret = ask and ask()
+	return IsSecret(secret) or secret == true
+end
+
+function Medals.Even(region)
+	local px = Widgets.Border(region)
+	local side = max(2, 2 * floor(region.units / px / 2 + 0.5)) * px
+	region:SetSize(side, side)
+end
+
+function Medals.Texture(parent, layer, sublevel, texture, color, size, blend)
+	local t = parent:CreateTexture(nil, layer, nil, sublevel)
+	t:SetTexture((Tokens.Texture(texture)))
+	t:SetVertexColor(Tokens.Color(color))
+	t:SetPoint("CENTER", parent, "CENTER", 0, 0)
+	if blend then
+		t:SetBlendMode(blend)
+	end
+	t.units = size
+	return t
+end
+
+function Medals.Layer(holder, level)
+	local frame = CreateFrame("Frame", nil, holder)
+	frame:SetAllPoints(holder)
+	frame:SetFrameLevel(level)
+	return frame
+end
+
+function Medals.Steps(target, steps, looping)
+	local group = target:CreateAnimationGroup()
+	for i, s in ipairs(steps) do
+		ns.Slab.Fade(group, s[1], s[2], s[3], i)
+	end
+	if looping then
+		group:SetLooping("REPEAT")
+	end
+	return group
+end
+
+function Medals.Cloud(parent, token, cell)
+	local t = parent:CreateTexture(nil, "ARTWORK")
+	t:SetTexture((Tokens.Texture(token)))
+	t:SetBlendMode("ADD")
+	t:SetAllPoints(parent)
+	local rows, columns = Tokens.Flipbook(token)
+	local x, y = cell % columns, floor(cell / columns)
+	t:SetTexCoord(x / columns, (x + 1) / columns, y / rows, (y + 1) / rows)
+	return t
+end
+
+function Medals.Flip(texture, token, stretch)
+	local rows, columns, frames, seconds = Tokens.Flipbook(token)
+	local group = texture:CreateAnimationGroup()
+	group:SetLooping("REPEAT")
+	local f = group:CreateAnimation("FlipBook")
+	f:SetFlipBookRows(rows)
+	f:SetFlipBookColumns(columns)
+	f:SetFlipBookFrames(frames)
+	f:SetDuration(seconds * stretch)
+	return group
+end
+
+function Medals.Seat(name)
+	local s = SEATS[name]
+	return s[1] * s[2] * cos(rad(s[3])), s[2] * sin(rad(s[3]))
+end
+
+local function Art(parent, layer, name, color, blend)
+	local t = parent:CreateTexture(nil, layer)
+	t:SetTexture((Tokens.Texture(name)))
+	t:SetVertexColor(Tokens.Color(color))
+	if blend then t:SetBlendMode(blend) end
+	return t
+end
+
+function Medals.Round(frame)
+	local t = frame:CreateTexture(nil, "ARTWORK")
+	local mask = frame:CreateMaskTexture()
+	mask:SetTexture((Tokens.Texture("dot")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	mask:SetAllPoints(t)
+	t:AddMaskTexture(mask)
+	return t
+end
+
+function Medals.Dress(m, cover)
+	m.shade = Art(m, "BACKGROUND", "glow", "black")
+	m.shade:SetAlpha(0.7)
+	m.icon = Medals.Round(m)
+	cover = cover or m
+	m.enamel = Art(cover, "OVERLAY", "medEnamel", "steel")
+	m.enamel:SetAllPoints(m)
+	m.ring = Art(cover, "OVERLAY", "medRing", "white")
+	m.ring:SetAllPoints(m)
+	return m
+end
+
+local function Timer(parent, level, texture, color, alpha)
+	local t = CreateFrame("Cooldown", nil, parent, "CooldownFrameTemplate")
+	t:SetFrameLevel(level)
+	t:SetPoint("CENTER", parent, "CENTER", 0, 0)
+	t:SetSwipeTexture((Tokens.Texture(texture)))
+	local r, g, b = Tokens.Color(color)
+	t:SetSwipeColor(r, g, b, alpha or 1)
+	t:SetDrawEdge(false)
+	t:SetDrawBling(false)
+	t:SetHideCountdownNumbers(true)
+	return t
+end
+
+function Medals.Feed(parent, spec, level)
+	if spec.feed ~= "aura" and spec.feed ~= "enchant" then
+		return Medals.Layer(parent, level)
+	end
+	local container = CreateFrame("AuraContainer", nil, parent, "CustomAuraContainerTemplate")
+	Widgets.KeepOut(container)
+	container:SetUnit(spec.unit or "player")
+	if spec.unit == "target" then
+		if #targets == 0 then
+			K.Events.Register(OWNER, "PLAYER_TARGET_CHANGED", function()
+				for _, c in ipairs(targets) do
+					if c.on then
+						c:UpdateAllAuras()
+					end
+				end
+			end)
+		end
+		targets[#targets + 1] = container
+	end
+	local button
+	if spec.feed == "aura" then
+		local ids = {}
+		for _, id in ipairs(spec.spells) do
+			ids[id] = true
+		end
+		button = container:AddAuraSlot("lit", spec.filter or "HELPFUL", { candidateFilters = { includeSpellIDs = ids } })
+	else
+		button = container:AddItemEnchantment(AuraContainerItemEnchantmentSlot[spec.slot])
+	end
+	pcall(button.EnableMouse, button, false)
+	button:SetAllPoints(parent)
+	button:SetFrameLevel(level)
+	button.container = container
+	return button
+end
+
+local function Flare(piece, lit, level, token, size)
+	lit.flare = Medals.Layer(lit, level)
+	piece.add(Medals.Texture(lit.flare, "ARTWORK", 0, token, "white", size, "ADD"))
+	lit.flare:SetAlpha(0)
+	lit.flare.play = Medals.Steps(lit.flare, FLARE)
+	piece.flare = piece.flare or lit.flare
+end
+
+local function Piece(parent, level, units)
+	local piece = CreateFrame("Frame", nil, parent)
+	piece:SetFrameLevel(level)
+	piece.units, piece.parts, piece.lits = units, {}, {}
+	piece.add = function(part, size)
+		part.units = size or part.units
+		piece.parts[#piece.parts + 1] = part
+		return part
+	end
+	piece.add(piece)
+	return piece
+end
+
+local function Lit(piece, spec, level)
+	local lit = Medals.Feed(piece, spec, level)
+	piece.lits[#piece.lits + 1] = lit
+	piece.lit = piece.lit or lit
+	return lit
+end
+
+function Medals.Medal(parent, spec, level)
+	local size = spec.size or SIZE
+	local m = Piece(parent, level, size)
+	local add, timed, feeds = m.add, spec.color ~= nil, spec.feeds or { spec }
+	local top = level + 1 + 2 * #feeds
+	Medals.Dress(m, Medals.Layer(m, top))
+	add(m.shade, size * SHADE):SetPoint("CENTER", m, "CENTER", 0, 0)
+	if timed then
+		add(Medals.Texture(m, "BORDER", 0, "orbRing", "medSocket", size + TRACK))
+	end
+	m.steel = add(m.icon, size * ICON)
+	m.steel:SetPoint("CENTER", m, "CENTER", 0, 0)
+	m.steel:SetTexture(spec.texture)
+	m.steel:SetDesaturated(true)
+	m.steel:SetVertexColor(Tokens.Color("steel"))
+	m.steel:SetAlpha(STEEL)
+	for i, feed in ipairs(feeds) do
+		local each = feed == spec and spec or setmetatable(feed, { __index = spec })
+		local lit = Lit(m, each, level + 1 + 2 * (i - 1))
+		lit.icon = add(Medals.Round(lit), size * ICON)
+		lit.icon:SetPoint("CENTER", m, "CENTER", 0, 0)
+		if each.feed == "aura" then
+			lit:SetIcon(lit.icon)
+		else
+			lit.icon:SetTexture(spec.texture)
+		end
+		if timed then
+			lit.timer = add(Timer(lit, level + 2 + 2 * (i - 1), "orbRing", each.color), size + TRACK)
+			if lit.container then
+				lit:SetDurationCooldown(lit.timer)
+			end
+		elseif each.feed == "cooldown" then
+			lit.timer = add(Timer(lit, level + 2, "dot", "black", 0.7), size * ICON)
+			lit.timer:SetScript("OnCooldownDone", function() Medals.Fire(m) end)
+		end
+		m.timer = m.timer or lit.timer
+		if each.feed == "usable" then
+			lit:Hide()
+		end
+	end
+	for _, lit in ipairs(m.lits) do
+		Flare(m, lit, top + 1, spec.burst or "glow", size * BURST)
+	end
+	m.spec = spec
+	return m
+end
+
+function Medals.Rim(parent, spec, level)
+	local r = Piece(parent, level, RIM)
+	local lit = Lit(r, spec, level + 1)
+	if spec.ambient then
+		r.still = Medals.Cloud(lit, spec.ambient, spec.cell or 0)
+		r.fire = Medals.Cloud(lit, spec.ambient, spec.cell or 0)
+		r.fire:SetAlpha(0)
+		lit.loop = Medals.Flip(r.fire, spec.ambient, 1)
+		rims[#rims + 1] = r
+	end
+	if spec.color then
+		r.timer = r.add(Timer(lit, level + 2, "ring", spec.color), INNER)
+		lit:SetDurationCooldown(r.timer)
+	end
+	Flare(r, lit, level + 3, spec.burst or "glow", RIM)
+	r.spec = spec
+	return r
+end
+
+function Medals.Socket(parent, spec, level)
+	local s = Piece(parent, level, SETTING)
+	local add = s.add
+	add(Medals.Texture(s, "ARTWORK", 0, "diamond", "gilt", SETTING))
+	add(Medals.Texture(s, "ARTWORK", 1, "diamond", "jewelSetting", LIP))
+	add(Medals.Texture(s, "ARTWORK", 2, "forgedDiamond", "jewelSocket", GEM)):SetTexCoord(1, 0, 0, 1)
+	local lit = Lit(s, spec, level + 1)
+	s.bar = add(CreateFrame("StatusBar", nil, lit), GEM)
+	s.bar:SetPoint("CENTER", s, "CENTER", 0, 0)
+	s.bar:SetOrientation("VERTICAL")
+	s.bar:SetStatusBarTexture((Tokens.Texture("diamond")))
+	s.bar:SetStatusBarColor(Tokens.Color(spec.color))
+	if lit.container then
+		local timer = Enum and Enum.StatusBarTimerDirection
+		lit:SetDurationBar(s.bar, { direction = timer and timer.RemainingTime or 1 })
+	elseif spec.feed == "cooldown" then
+		s.timer = Timer(lit, level + 1, "dot", "black", 0)
+		s.timer:SetDrawSwipe(false)
+		s.timer:SetScript("OnCooldownDone", function() Medals.Fire(s) end)
+	end
+	s.glint = add(Medals.Texture(s.bar, "OVERLAY", 0, "diamond", "white", GLINT, "ADD"))
+	Flare(s, lit, level + 3, "glow", SETTING * BURST)
+	s.spec = spec
+	return s
+end
+
+function Medals.Place(piece, anchor, x, y)
+	piece:ClearAllPoints()
+	piece:SetPoint("CENTER", anchor, "CENTER", Widgets.Snap(anchor, x), Widgets.Snap(anchor, y))
+	for _, part in ipairs(piece.parts) do
+		Medals.Even(part)
+	end
+	if piece.glint then
+		local at = Widgets.Snap(piece, 1)
+		piece.glint:SetPoint("CENTER", piece.bar, "CENTER", -at, at)
+	end
+end
+
+function Medals.Fire(piece)
+	if piece.flare and Effects.Allows("ambient") then
+		piece.flare.play:Stop()
+		piece.flare.play:Play()
+	end
+end
+
+function Medals.Engine(pieces, on, full)
+	if Medals.Restricted() then
+		return false
+	end
+	for _, p in ipairs(pieces) do
+		for _, button in ipairs(p.lits or { p.lit }) do
+			if button.container then
+				if button.full ~= full then
+					for _, group in pairs({ loop = button.loop, flare = button.flare and button.flare.play }) do
+						if full then
+							button:AddAuraShownAnimation(group)
+						elseif button.full then
+							button:RemoveAuraShownAnimation(group)
+							group:Stop()
+						end
+					end
+					button.full, button.fed = full, nil
+				end
+				if button.fed ~= on then
+					if button.fed == nil then
+						button.container:SetEnabled(false)
+					end
+					button.container:SetEnabled(on)
+					button.fed, button.container.on = on, on
+				end
+			end
+		end
+	end
+	return true
+end
+
+function Medals.Still(piece, still)
+	if piece.fire then
+		piece.fire:SetAlpha(still and 0 or 1)
+		piece.still:SetAlpha(still and 1 or 0)
+	end
+end
+
+function Medals.OnRest(fn)
+	watchers[#watchers + 1] = fn
+end
+
+function Medals.Rest()
+	local still = not Effects.Allows("ambient") or ns.Slab.Resting()
+	for _, r in ipairs(rims) do
+		Medals.Still(r, still)
+	end
+	for _, fn in ipairs(watchers) do
+		fn(still)
+	end
+end
+
+function Medals.Refresh(m)
+	local spec = m.spec
+	if spec.feed == "cooldown" then
+		local api = C_Spell
+		local duration = api and type(api.GetSpellCooldownDuration) == "function" and api.GetSpellCooldownDuration(spec.spell, true)
+		if duration and m.timer.SetCooldownFromDurationObject then
+			m.timer:SetCooldownFromDurationObject(duration, true)
+		else
+			m.timer:Clear()
+		end
+		if m.bar then
+			local cd = api and type(api.GetSpellCooldown) == "function" and api.GetSpellCooldown(spec.spell)
+			local modes = Enum or {}
+			if duration and m.bar.SetTimerDuration and type(cd) == "table" and cd.isActive == true and cd.isOnGCD ~= true then
+				local interpolation = modes.StatusBarInterpolation and modes.StatusBarInterpolation.Immediate or 0
+				local direction = modes.StatusBarTimerDirection and modes.StatusBarTimerDirection.ElapsedTime or 0
+				m.bar:SetTimerDuration(duration, interpolation, direction)
+			else
+				m.bar:SetMinMaxValues(0, 1)
+				m.bar:SetValue(1)
+			end
+		end
+		return
+	end
+	local api, lit = C_Spell, nil
+	if not (api and type(api.IsSpellUsable) == "function") then
+		return
+	end
+	for _, id in ipairs(spec.candidates) do
+		local usable = api.IsSpellUsable(id)
+		if IsSecret(usable) then
+			return
+		end
+		local cd = type(api.GetSpellCooldown) == "function" and api.GetSpellCooldown(id)
+		local cooling = type(cd) == "table" and cd.isActive == true and cd.isOnGCD ~= true
+		if usable == true and not cooling then
+			lit = id
+			break
+		end
+	end
+	if lit ~= m.usable then
+		if lit then
+			m.lit.icon:SetTexture(api.GetSpellTexture and api.GetSpellTexture(lit) or spec.texture)
+			if not m.usable then
+				Medals.Fire(m)
+			end
+		end
+		m.lit:SetShown(lit ~= nil)
+		m.usable = lit
+	end
+end

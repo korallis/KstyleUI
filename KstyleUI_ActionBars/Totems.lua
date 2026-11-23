@@ -5,6 +5,8 @@ local K = KstyleUI
 local Widgets, Tokens, Effects, L = K.Widgets, K.Tokens, K.Effects, K.L
 local cos, sin, rad, deg, acos, sqrt, max, min = math.cos, math.sin, math.rad, math.deg, math.acos, math.sqrt, math.max, math.min
 local IsSecret = Widgets.IsSecret
+local Medals = ns.SlabMedals
+local Known = Medals.Known
 
 local Totems = {}
 ns.Totems = Totems
@@ -18,7 +20,7 @@ local ELEMENTS = {
 }
 local CALL, RECALLS = 66842, { 36936, 437009 }
 local SOCKET, RADIUS, SPIRE, SPIRE_LIFT, HALO = 26, 98, 34, 3, 1.5
-local MEDAL, MEDAL_RADIUS, MEDAL_RISE, ICON = 26, 84, 32, 0.74
+local MEDAL, ICON = Medals.SIZE, 0.74
 local FAN, FAN_RADIUS, FAN_DROP, FAN_STEP, FAN_SPAN = 26, 330, 200, 5.2, 32
 local FLARE_RISE, FLARE_FALL, IGNITE = 0.05, 0.4, 0.3
 local UNFOLD, FIFTH, IDLE_ICON, RING_HALO = 0.12, 0.2, 0.82, 1.6
@@ -54,14 +56,6 @@ local function Spells(slot)
 		if IsSecret(list[i]) or type(list[i]) ~= "number" then table.remove(list, i) end
 	end
 	return list
-end
-
-local function Known(ids)
-	local book = C_SpellBook
-	for _, id in ipairs(ids) do
-		local known = book and type(book.IsSpellKnown) == "function" and book.IsSpellKnown(id)
-		if not IsSecret(known) and known == true then return id end
-	end
 end
 
 local function Wolf()
@@ -394,15 +388,7 @@ local function Medal(header, name, tooltip)
 	local m = CreateFrame("Button", name, header, "SecureActionButtonTemplate")
 	m:RegisterForClicks("AnyUp")
 	m:SetAttribute("useOnKeyDown", false)
-	m.shade = Art(m, "BACKGROUND", "glow", "black")
-	m.shade:SetAlpha(0.7)
-	m.icon = m:CreateTexture(nil, "ARTWORK")
-	local mask = m:CreateMaskTexture()
-	mask:SetTexture((Tokens.Texture("dot")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-	mask:SetAllPoints(m.icon)
-	m.icon:AddMaskTexture(mask)
-	Art(m, "OVERLAY", "medEnamel", "steel"):SetAllPoints(m)
-	Art(m, "OVERLAY", "medRing", "white"):SetAllPoints(m)
+	Medals.Dress(m)
 	local hover = Art(m, "HIGHLIGHT", "glow", "white", "ADD")
 	hover:SetAllPoints(m)
 	hover:SetAlpha(0.35)
@@ -572,7 +558,7 @@ local function Place()
 	state.call:SetShown(state.call.known ~= nil)
 	state.wolf:SetShown(state.wolf.form ~= nil)
 	for side, m in pairs({ [-1] = state.wolf, [1] = state.call }) do
-		local mx, my = side * MEDAL_RADIUS * cos(rad(MEDAL_RISE)), MEDAL_RADIUS * sin(rad(MEDAL_RISE))
+		local mx, my = Medals.Seat(side < 0 and "left" or "right")
 		if not crest then mx, my = w / 2 - half - (side < 0 and MEDAL + ROW_GAP or 0), half - h / 2 end
 		Put(m, anchor, mx, my, MEDAL)
 		Widgets.Size(m.icon, MEDAL * ICON, MEDAL * ICON)

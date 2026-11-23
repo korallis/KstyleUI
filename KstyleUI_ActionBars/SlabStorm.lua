@@ -3,9 +3,10 @@ local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens, Effects = K.Widgets, K.Tokens, K.Effects
-local sin, cos, rad, floor = math.sin, math.cos, math.rad, math.floor
+local sin, cos, rad = math.sin, math.cos, math.rad
 local IsSecret = Widgets.IsSecret
-local Hawks = ns.SlabHawks
+local Medals = ns.SlabMedals
+local Restricted, Steps = Medals.Restricted, Medals.Steps
 
 local Storm = {}
 ns.SlabStorm = Storm
@@ -39,28 +40,11 @@ local function Active()
 	if IsSecret(class) or class ~= "SHAMAN" then
 		return nil
 	end
-	return Hawks.Known(RANKS) and hub or nil
-end
-
-local function Restricted()
-	local ask = C_Secrets and C_Secrets.ShouldAurasBeSecret
-	local secret = ask and ask()
-	return IsSecret(secret) or secret == true
-end
-
-local function Steps(target, steps, looping)
-	local group = target:CreateAnimationGroup()
-	for i, s in ipairs(steps) do
-		ns.Slab.Fade(group, s[1], s[2], s[3], i)
-	end
-	if looping then
-		group:SetLooping("REPEAT")
-	end
-	return group
+	return Medals.Known(RANKS) and hub or nil
 end
 
 local function Layer(parent, level, steps)
-	local frame = Hawks.Layer(parent, level)
+	local frame = Medals.Layer(parent, level)
 	frame.play = Steps(frame, steps)
 	frame.play:SetScript("OnFinished", function() frame:Hide() end)
 	frame:Hide()
@@ -72,29 +56,6 @@ local function Fire(frame)
 	frame.play:Stop()
 	frame:Show()
 	frame.play:Play()
-end
-
-local function Cloud(parent, cell)
-	local t = parent:CreateTexture(nil, "ARTWORK")
-	t:SetTexture((Tokens.Texture("medAmbientShaman")))
-	t:SetBlendMode("ADD")
-	t:SetAllPoints(parent)
-	local rows, columns = Tokens.Flipbook("medAmbientShaman")
-	local x, y = cell % columns, floor(cell / columns)
-	t:SetTexCoord(x / columns, (x + 1) / columns, y / rows, (y + 1) / rows)
-	return t
-end
-
-local function Flip(texture, stretch)
-	local rows, columns, frames, seconds = Tokens.Flipbook("medAmbientShaman")
-	local group = texture:CreateAnimationGroup()
-	group:SetLooping("REPEAT")
-	local f = group:CreateAnimation("FlipBook")
-	f:SetFlipBookRows(rows)
-	f:SetFlipBookColumns(columns)
-	f:SetFlipBookFrames(frames)
-	f:SetDuration(seconds * stretch)
-	return group
 end
 
 local function Container(parent)
@@ -147,19 +108,19 @@ local function Build(hub)
 	local halo = Slot(Container(holder), "halo", ring)
 	state.crackle = Layer(ring, base + 1, CRACKLE)
 	for k, cell in ipairs(CLOUDS) do
-		state.clouds[k] = Cloud(halo, cell)
-		state.loops[#state.loops + 1] = { button = halo, group = Flip(state.clouds[k], 1 + (k - 1) / 3) }
-		Cloud(state.crackle, cell)
+		state.clouds[k] = Medals.Cloud(halo, "medAmbientShaman", cell)
+		state.loops[#state.loops + 1] = { button = halo, group = Medals.Flip(state.clouds[k], "medAmbientShaman", 1 + (k - 1) / 3) }
+		Medals.Cloud(state.crackle, "medAmbientShaman", cell)
 	end
 	state.blast = Layer(holder, base + 6, BLAST)
-	add(Hawks.Texture(state.blast, "ARTWORK", 0, "medBurstShaman", "white", BURST, "ADD"))
+	add(Medals.Texture(state.blast, "ARTWORK", 0, "medBurstShaman", "white", BURST, "ADD"))
 	for i, angle in ipairs(REST) do
 		local pin = add(CreateFrame("Frame", nil, holder))
 		pin:SetFrameLevel(base + 2)
 		pin.units, pin.angle = ORB, angle
-		add(Hawks.Texture(pin, "BACKGROUND", 0, "dot", "medSocket", WELL))
-		add(Hawks.Texture(pin, "BORDER", 0, "ring", "gilt", STUD))
-		add(Hawks.Texture(pin, "BORDER", 1, "dot", "steel", PIN)):SetAlpha(0.6)
+		add(Medals.Texture(pin, "BACKGROUND", 0, "dot", "medSocket", WELL))
+		add(Medals.Texture(pin, "BORDER", 0, "ring", "gilt", STUD))
+		add(Medals.Texture(pin, "BORDER", 1, "dot", "steel", PIN)):SetAlpha(0.6)
 		local seat = CreateFrame("Frame", nil, pin)
 		seat:SetAllPoints(pin)
 		seat:SetFrameLevel(base + 3)
@@ -169,11 +130,11 @@ local function Build(hub)
 		local spark, bar = Slot(container, "spark", seat, i - 1, "stormOrbSpark", false)
 		state.loops[#state.loops + 1] = { button = spark, group = Steps(bar, SHIMMER, true) }
 		s.ignite = Layer(seat, base + 6, IGNITE)
-		add(Hawks.Texture(s.ignite, "ARTWORK", 0, "glow", "jewelStormCore", FLARE, "ADD"))
+		add(Medals.Texture(s.ignite, "ARTWORK", 0, "glow", "jewelStormCore", FLARE, "ADD"))
 		s.strike = add(Layer(holder, base + 6, STRIKE))
 		s.strike.units, s.strike.angle = ORB, angle
-		add(Hawks.Texture(s.strike, "ARTWORK", 0, "glow", "jewelStormCore", FLARE, "ADD"))
-		s.bolt = add(Hawks.Texture(s.strike, "OVERLAY", 0, "stormBolt", "white", BOLT, "ADD"))
+		add(Medals.Texture(s.strike, "ARTWORK", 0, "glow", "jewelStormCore", FLARE, "ADD"))
+		s.bolt = add(Medals.Texture(s.strike, "OVERLAY", 0, "stormBolt", "white", BOLT, "ADD"))
 		state.seats[i] = s
 	end
 	state.flicker = Steps(state.seats[1].frame, FLICKER, true)
@@ -191,7 +152,7 @@ local function Place(hub)
 		if part.angle then
 			Seat(part, hub)
 		end
-		Hawks.Even(part)
+		Medals.Even(part)
 	end
 	state.holder:Show()
 end

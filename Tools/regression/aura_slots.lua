@@ -11,6 +11,10 @@
 --   Slots.Install(env)                                   -- in an env's setup, before the addon loads
 --   Slots.Set(env, "target", { { id = 7386, count = 3, harmful = true } })   -- feeds every slot; nil clears
 --
+-- SetIcon, SetDurationCooldown and SetDurationBar take regions the button owns and show the aura's icon and its
+-- { start, finish } duration (an aura's start and duration, seconds); AddItemEnchantment's button shows the enchant
+-- Slots.Enchant gives its slot, as Blizzard_CustomAuraContainer.lua:488-507 does.
+--
 -- A bar fed with ExponentialEaseOut on an update keeps bar._ease = { from, to, at = env._now } so the render
 -- harness can draw the sweep (Tools/render/scene.lua, BarFraction).
 local Slots = {}
@@ -39,7 +43,9 @@ end
 function Slots.Feed(env, c)
 	for _, slot in pairs(c._slots) do
 		local aura
-		if c._enabled == true then
+		if c._enabled == true and slot.enchant then
+			aura = env._slotEnchants[slot.enchant]
+		elseif c._enabled == true then
 			for _, a in ipairs(env._slotAuras[c._unit] or {}) do
 				if Matches(a, slot.filter, slot.candidates) then
 					aura = a
@@ -59,6 +65,17 @@ function Slots.Feed(env, c)
 			bar:SetMinMaxValues(o.minApplications, math.max(o.maxApplications, 1))
 			bar:SetValue(env.Secret(count), update and o.interpolation or 0)
 			bar:SetShown(count >= o.minApplications)
+		end
+		local b = slot.frame
+		local timed = aura and aura.duration and { start = aura.start or env._now or 0, finish = (aura.start or env._now or 0) + aura.duration }
+		if b._icon and aura then
+			b._icon:SetTexture(aura.icon)
+		end
+		if b._cooldown then
+			if timed then b._cooldown:SetCooldownFromDurationObject(timed) else b._cooldown:Clear() end
+		end
+		if b._durationBar then
+			b._durationBar[1]:SetTimerDuration(timed or { start = 0, finish = 0 }, 0, b._durationBar[2].direction)
 		end
 		local was = slot.frame:IsShown()
 		slot.frame:SetShown(aura ~= nil)
@@ -96,6 +113,20 @@ local function Button(env, c, button)
 			end
 		end
 	end
+	for method, field in pairs({ SetIcon = "_icon", SetDurationCooldown = "_cooldown" }) do
+		button[method] = function(_, region)
+			Restricted(env)
+			assert(Owns(button, region), "bad object in function call (must be the owner or a direct or indirect descendant of owner)")
+			button[field] = region
+			Slots.Feed(env, c)
+		end
+	end
+	function button.SetDurationBar(_, bar, options)
+		Restricted(env)
+		assert(Owns(button, bar), "bad object in function call (must be the owner or a direct or indirect descendant of owner)")
+		button._durationBar = { bar, options or {} }
+		Slots.Feed(env, c)
+	end
 	function button.SetApplicationBar(_, bar, options)
 		Restricted(env)
 		assert(Owns(button, bar), "bad object in function call (must be the owner or a direct or indirect descendant of owner)")
@@ -107,7 +138,8 @@ local function Button(env, c, button)
 end
 
 function Slots.Install(env)
-	env._slotAuras, env._slotContainers = env._slotAuras or {}, {}
+	env._slotAuras, env._slotContainers, env._slotEnchants = env._slotAuras or {}, {}, env._slotEnchants or {}
+	env.AuraContainerItemEnchantmentSlot = env.AuraContainerItemEnchantmentSlot or { MainHand = 1, OffHand = 2, Ranged = 3 }
 	env.Enum = env.Enum or {}
 	env.Enum.StatusBarInterpolation = env.Enum.StatusBarInterpolation or { Immediate = 0, ExponentialEaseOut = 1 }
 	local create = env.CreateFrame
@@ -131,6 +163,15 @@ function Slots.Install(env)
 			Slots.Feed(env, self)
 			return button
 		end
+		function c.AddItemEnchantment(self, slot)
+			local key = "enchant" .. tostring(slot)
+			assert(not self._slots[key], "item enchantment already exists with this slot.")
+			local button = Button(env, self, create("Frame", nil, self))
+			button:Hide()
+			self._slots[key] = { enchant = slot, frame = button }
+			Slots.Feed(env, self)
+			return button
+		end
 		env._slotContainers[#env._slotContainers + 1] = c
 		return c
 	end
@@ -140,6 +181,15 @@ end
 -- UNIT_AURA would. Change a count on the same table for an update; a new table is a new aura.
 function Slots.Set(env, unit, auras)
 	env._slotAuras[unit] = auras
+	for _, c in ipairs(env._slotContainers) do
+		Slots.Feed(env, c)
+	end
+end
+
+-- Enchant(env, slot, enchant) gives the weapon in slot (AuraContainerItemEnchantmentSlot) a temporary enchant
+-- ({ start, duration }), or none with nil, and feeds every enchantment button.
+function Slots.Enchant(env, slot, enchant)
+	env._slotEnchants[slot] = enchant
 	for _, c in ipairs(env._slotContainers) do
 		Slots.Feed(env, c)
 	end

@@ -13,6 +13,7 @@
 	<Script file="TravelItems.lua"/>
 	<Script file="TravelData.lua"/>
 	<Script file="Travel.lua"/>
+	<Script file="SlabMedals.lua"/>
 	<Script file="SlabEffects.lua"/>
 	<Script file="SlabJewels.lua"/>
 	<Script file="SlabHawks.lua"/>

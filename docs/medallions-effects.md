@@ -100,6 +100,28 @@ The APIs, proved in the 70862 source (`Blizzard_APIDocumentationGenerated/`): `M
 | Hub proc model | `SPELL_ACTIVATION_OVERLAY_GLOW_SHOW` (plain), through M6's `Slab.SetProc` | The class model at the hub, 0.9 s, over M6's 2D pulse | 2 | model |
 | Hub level-up model | `PLAYER_LEVEL_UP`, through M6's `Slab.LevelUp` | `levelup.m2` over M6's 2D burst, which always plays | 2 | model |
 
+## Crest medals and sockets
+
+`KstyleUI_ActionBars/SlabMedals.lua` (`ns.SlabMedals`, loaded before the hawks, storm orbs and totems) holds the crest pieces the class trackers share. Positions and sizes are in hub units (the 150-unit ring); `Place` snaps them and makes every part an even number of pixels. A piece's `lits` are its engine-driven layers; Lua never reads or compares what they show.
+
+| Call | What it does |
+| --- | --- |
+| `Known(spells)` | The first spell in the list the player knows, or nil |
+| `Restricted()` | True while auras are secret; build pieces and call `Engine` only when it is false (wait for `PLAYER_REGEN_ENABLED`) |
+| `Round(frame)`, `Texture(parent, layer, sublevel, token, color, units, blend)`, `Layer(holder, level)`, `Even(region)`, `Steps(target, steps, looping)`, `Cloud(parent, token, cell)`, `Flip(texture, token, stretch)` | The parts the hawk perches and storm orbs were built from |
+| `Dress(m, cover)` | The Ghost Wolf and Call medals' dressing: shade, round masked `m.icon`, enamel and ring (on `cover` when given) |
+| `Seat(name)` | `x, y` of a named seat: `left` and `right` (the shoulders), `top` (above the crest), `lowerLeft` and `lowerRight` (the ring band 125 degrees from the top) |
+| `Feed(parent, spec, level)` | The lit layer: an aura slot (`spec.feed = "aura"`, `unit`, `filter`, `spells`; a `target` slot refreshes itself on a new target) or a weapon enchant (`"enchant"`, `slot` = `MainHand` or `OffHand`) in its own container, else a plain frame (`"cooldown"`, `"usable"`) |
+| `Medal(parent, spec, level)` | A round medal (`spec.size`, default 26) whose steel icon is `spec.texture`; an aura lights it with its own icon, an enchant or cooldown with `spec.texture`; `spec.color` adds a timer ring the engine drains; `"cooldown"` (`spec.spell`) sweeps a dark swipe and flares when ready; `"usable"` (`spec.candidates`, in priority order) lights the first usable spell not on a real cooldown; `spec.feeds = { {...}, {...} }` builds one aura layer per entry, each with its own icon and ring, under one shade, steel and cover |
+| `Rim(parent, spec, level)` | An aura shown round the inner rim: with `spec.ambient`, a cell of that flipbook that burns at Full and holds still at rest; with `spec.color`, a ring that drains with the aura; `spec.burst` flares when it appears |
+| `Socket(parent, spec, level)` | A jewel setting on the ring whose `spec.color` liquid drains with an aura or enchant, or refills with `"cooldown"` (`spec.spell`) and flares when ready |
+| `Place(piece, anchor, x, y)` | Seats a piece and sizes its parts |
+| `Engine(pieces, on, full)` | Enables or disables every feed and gives the engine the flares (and a rim's fire) while `full`; returns false and changes nothing while auras are secret |
+| `Refresh(piece)` | Repaints a `"cooldown"` or `"usable"` piece; call it on `SPELL_UPDATE_COOLDOWN` and `SPELL_UPDATE_USABLE` |
+| `Fire(piece)` | Plays a piece's flare at Full |
+| `Rest()`, `OnRest(fn)` | `Slab.Resting()` is true while Calm crest at rest settles the hub; when it changes (and on a motion change) `Rest()` holds every rim's fire still or lets it burn and calls each `OnRest` function with `still` |
+| `Still(piece, still)` | Holds one rim's fire still or lets it burn |
+
 ## The primary test character
 
 Lee plays an undead (Forsaken) warlock, so that case is checked first: `hud_warlock_mac` under `RENDER_HUD_STYLE=Medallions` renders the undead warlock bust and crest with the imp out, and every `RENDER_FX` state above renders there too. The tests pin the warlock's effects: the hub ring follows soul shards rather than mana, a proc runs the fel flipbook (`medProcWarlock`) and the warlock's model (166071) at the hub, the level-up burst is `medBurstWarlock` (the warlock model at Full), and the imp's frame rests after combat while the warlock's own does not (`test-actionbars-medallions-fx`, `test-unitframes-medallions-fx`).
