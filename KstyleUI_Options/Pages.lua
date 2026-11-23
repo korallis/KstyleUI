@@ -1123,6 +1123,7 @@ local function AboutItems()
 	add({ kind = "header", level = 1, label = "KstyleUI" })
 	add({ kind = "note", label = format(L["Version %s"], Version()) })
 	add({ kind = "note", label = L["A complete interface for World of Warcraft: Forever, by korallis. All rights reserved."] })
+	ns.StatusItems(add, SelectLater)
 	add({ kind = "header", level = 1, label = L["Commands"] })
 	for _, command in ipairs(COMMANDS) do
 		add({ kind = "note", label = command[1] .. " - " .. command[2] })

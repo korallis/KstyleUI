@@ -36,4 +36,5 @@
 	<Include file="Widgets\Widgets.xml"/>
 	<Include file="Layout\Layout.xml"/>
 	<Include file="Setup\Setup.xml"/>
+	<Script file="Health.lua"/>
 </Ui>
