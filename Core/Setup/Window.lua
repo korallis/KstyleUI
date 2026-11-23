@@ -665,10 +665,8 @@ function Preview:Picture(file, wide)
 	self.picture:Show()
 	self.picture:SetTexture(open and file or nil)
 	local inset = Widgets.Border(self)
-	local width = self:GetWidth() - 2 * inset
-	self.picture:ClearAllPoints()
-	Widgets.Point(self.picture, "CENTER", self, "CENTER", 0, 0)
-	self.picture:SetSize(width, wide and Widgets.Snap(self, width * 9 / 32) or self:GetHeight() - 2 * inset)
+	local band = wide and Widgets.Snap(self, (self:GetHeight() - (self:GetWidth() - 2 * inset) * 9 / 32) / 2) or inset
+	Widgets.Fill(self.picture, self, inset, band, inset, band)
 	for _, rect in ipairs(self.rects) do
 		rect:Hide()
 		rect.label:Hide()
