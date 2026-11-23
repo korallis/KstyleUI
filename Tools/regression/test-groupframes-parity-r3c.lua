@@ -109,7 +109,7 @@ do
 	assert(point == "BOTTOMLEFT" and relative == f.health:GetStatusBarTexture() and relativePoint == "BOTTOMLEFT", "a vertical bar's heals start at the edge too")
 	write(env, K, "health.orientation", "HORIZONTAL")
 	write(env, K, "health.missing", false)
-	assert(not f.missingFill and f.health:GetReverseFill() == false and f.health.lossOn == true, "off restores the fill and the loss band")
+	assert(not f.missingFill and f.health:GetReverseFill() == false and f.health.lossOn == not ns.Settings.current.readable.track, "off restores the fill, and the loss band unless the missing health stays dark")
 	assert(value(env, f.health) == 30, "and the bar carries the health again")
 	assert(select(3, f.heals:GetPoint(1)) == "TOPRIGHT", "heals return after the health")
 	noErrors(env, K)

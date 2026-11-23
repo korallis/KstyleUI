@@ -113,7 +113,7 @@ for _, kind in ipairs({ "party", "raid" }) do
 		members[1].dead, members[1].inRange = false, false
 		env.FireEvent("UNIT_FLAGS", token)
 		env.FireEvent("UNIT_IN_RANGE_UPDATE", token)
-		budget("UNIT_IN_RANGE_UPDATE", function() return env.Reveal(f:GetAlpha()) == ns.Settings.current.range.alpha end)
+		budget("UNIT_IN_RANGE_UPDATE", function() return env.Reveal(f:GetAlpha()) == math.max(ns.Settings.current.range.alpha, 0.7) end)
 		members[1].ready = "ready"
 		env.FireEvent("READY_CHECK", "player", 30)
 		env.FireEvent("READY_CHECK_CONFIRM", token, true)

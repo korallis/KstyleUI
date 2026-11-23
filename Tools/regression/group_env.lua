@@ -990,6 +990,9 @@ function G.New(opts)
 	Load(moduleFiles(), env)
 	if opts.boot ~= false then
 		CoreEnv.Boot(env)
+		-- The tests measure frames in holder units at scale 1; test-groupframes-readable and the render scenes
+		-- (opts.shipped) keep the larger party scale on.
+		if not opts.shipped then K.Options.Write("GroupFrames", "readable.size", false) end
 	end
 	return env, K, env._addons[FOLDER]
 end

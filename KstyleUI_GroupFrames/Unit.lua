@@ -14,6 +14,7 @@ local CURRENT_MAX_FORMAT = "%s / %s"
 local CURRENT_PERCENT_FORMAT = "%s  %.0f%%"
 local UNKNOWN_LEVEL = "??"
 local NAME_LUMINANCE = 0.62
+local READABLE_RANGE_ALPHA = 0.7
 
 local UNIT_EVENTS = {
 	"UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_NAME_UPDATE", "UNIT_CONNECTION", "UNIT_FLAGS", "UNIT_POWER_UPDATE",
@@ -375,11 +376,12 @@ local function Range(f)
 		return
 	end
 	local inRange, checkedRange = UnitInRange(unit)
+	local alpha = Settings.current.readable.text and math.max(range.alpha, READABLE_RANGE_ALPHA) or range.alpha
 	if f.SetAlphaFromBoolean then
-		f:SetAlphaFromBoolean(inRange, 1, range.alpha)
+		f:SetAlphaFromBoolean(inRange, 1, alpha)
 		f:SetAlphaFromBoolean(checkedRange, f:GetAlpha(), 1)
 	elseif not issecretvalue(inRange) and not issecretvalue(checkedRange) then
-		f:SetAlpha(checkedRange and not inRange and range.alpha or 1)
+		f:SetAlpha(checkedRange and not inRange and alpha or 1)
 	else
 		f:SetAlpha(1)
 	end

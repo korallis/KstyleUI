@@ -24,20 +24,25 @@ function Frames.Active()
 end
 
 local function Register()
-	if registered then
+	local scale = Settings.PartyScale()
+	if registered == scale then
 		return
 	end
-	registered = true
+	local first = not registered
+	registered = scale
 	local Layouts = K.Setup and K.Setup.Layouts
 	for kind, key in pairs(KEYS) do
 		local holder = Headers.holders[kind]
 		local element = Layouts and Layouts.Element(key)
 		local position = Layouts and Layouts.Default(key) or { anchor = "TOPLEFT", x = 0, y = 0 }
-		K.Widgets.Place(holder, key, position, {
-			label = element and element.label or key,
-			module = MODULE,
-			scalable = true,
-		})
+		if kind == "party" and scale ~= (holder:GetScale() or 1) then holder:SetScale(scale) end
+		if first or kind == "party" then
+			K.Widgets.Place(holder, key, position, {
+				label = element and element.label or key,
+				module = MODULE,
+				scalable = true,
+			})
+		end
 	end
 end
 

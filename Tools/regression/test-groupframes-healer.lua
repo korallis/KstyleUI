@@ -190,7 +190,7 @@ do
 	env.FireEvent("UNIT_HEALTH", "raid1")
 	eq(f.healthText._points[1][1], isFrames and "TOPRIGHT" or "BOTTOMRIGHT", "alive, the percent is back at the bar's end")
 	-- The percent's lane has a set width, and so does the name.
-	assert(f.healthText._width > 0 and f.name:GetWidth() > 0, "the lane's and the name's widths are set")
+	assert((f.healthText._width > 0 or ns.Settings.current.readable.text) and f.name:GetWidth() > 0, "the lane's and the name's widths are set; a whole percentage takes its own")
 	scene = Scene.Build(env)
 	assert(not intersects(find(scene, f.name).rect, find(scene, f.healthText).rect), "and the name ends before it")
 end

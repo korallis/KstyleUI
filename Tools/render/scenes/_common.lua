@@ -154,7 +154,7 @@ function Common.IconDirs()
 end
 
 function Common.ScreenOpts(extra)
-	local opts = { width = Common.SCREEN.width, height = Common.SCREEN.height, uiScale = Common.SCREEN.uiScale, size = Common.SCREEN.size or "default" }
+	local opts = { width = Common.SCREEN.width, height = Common.SCREEN.height, uiScale = Common.SCREEN.uiScale, size = Common.SCREEN.size or "default", shipped = true }
 	for k, v in pairs(extra or {}) do
 		opts[k] = v
 	end
@@ -190,6 +190,13 @@ function Common.ForceScreen(env, completePreset)
 		for _, profile in pairs(db.profiles) do
 			profile.Appearance = profile.Appearance or {}
 			for _, key in ipairs({ "readableBars", "worldText", "chatTabs", "barColors" }) do profile.Appearance[key] = false end
+		end
+	end
+	-- RENDER_READABLE_PARTY=off switches Party and Raid > Readability off: the party frames before they grew and brightened.
+	if os.getenv("RENDER_READABLE_PARTY") == "off" and type(db) == "table" and type(db.profiles) == "table" then
+		for _, profile in pairs(db.profiles) do
+			profile.GroupFrames = profile.GroupFrames or {}
+			profile.GroupFrames.readable = { size = false, text = false, track = false }
 		end
 	end
 	if os.getenv("RENDER_TYPE_VOICE") == "off" and type(db) == "table" and type(db.profiles) == "table" then
