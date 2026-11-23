@@ -309,13 +309,27 @@ local SKIN_PAD, SKIN_HEADER, SKIN_ROW, SKIN_GAP = 10, 32, 25, 4
 -- The fight dropdown's width and centre, and the room the settings and minimise buttons take at its right.
 local SKIN_SESSION_W, SKIN_SESSION_MIDDLE, SKIN_SETTINGS = 44, 13.5, 36
 
--- layRow(entry) is Blizzard's UpdateStyle for the Default style (DamageMeterEntry.lua:272-290): name and value on the bar's middle.
+-- layRow(entry) is Blizzard's UpdateStyle for the Default style (DamageMeterEntry.lua:272-290): the bar inset a unit
+-- at the top and bottom and 4 at the right, name and value on its middle.
 local function layRow(entry)
 	local bar = entry.StatusBar
+	bar:ClearAllPoints()
+	bar:SetPoint("LEFT", entry, "LEFT", 0, 0)
+	bar:SetPoint("TOP", entry, "TOP", 0, -1)
+	bar:SetPoint("BOTTOMRIGHT", entry, "BOTTOMRIGHT", -4, 1)
 	bar.Name:ClearAllPoints()
-	bar.Name:SetPoint("LEFT", bar, "LEFT", SKIN_GAP, 0)
+	bar.Name:SetPoint("LEFT", bar, "LEFT", 2, 0)
+	bar.Name:SetPoint("RIGHT", bar.Value, "LEFT", -25, 0)
 	bar.Value:ClearAllPoints()
-	bar.Value:SetPoint("RIGHT", bar, "RIGHT", -SKIN_GAP, 0)
+	bar.Value:SetPoint("RIGHT", bar, "RIGHT", -3, 0)
+end
+
+-- nameRow(entry) is Blizzard's UpdateName (DamageMeterEntry.lua:111-117): it writes the name only when it changes.
+local function nameRow(entry)
+	if entry.sourceName ~= entry.nameText then
+		entry.nameText = entry.sourceName
+		entry.StatusBar.Name:SetText(entry.sourceName)
+	end
 end
 
 local function skin(frames)
@@ -364,7 +378,7 @@ local function skin(frames)
 						total = total + other[3]
 					end
 					entry.UpdateValue, entry.value, entry.valuePerSecond, entry.sessionTotalValue = blizzardValue(env, s[3], total)
-					entry.UpdateName = function(self) self.StatusBar.Name:SetText(self.nameText) end
+					entry.UpdateName = nameRow
 					entry.UpdateStyle = layRow
 					window.entries[i] = entry
 				end
@@ -413,7 +427,7 @@ local function skin(frames)
 					total = total + other[4]
 				end
 				entry.UpdateValue, entry.value, entry.valuePerSecond, entry.sessionTotalValue = blizzardValue(env, spell[4], total)
-				entry.UpdateName = function(self) self.StatusBar.Name:SetText(self.nameText) end
+				entry.UpdateName = nameRow
 				entry.UpdateStyle = layRow
 				source.entries[i] = entry
 			end
@@ -474,11 +488,10 @@ local function skin(frames)
 		entry:SetPoint("RIGHT", window.box, "RIGHT", 0, 0)
 		entry:SetHeight(SKIN_ROW)
 		local bar = entry.StatusBar
-		bar:SetAllPoints(entry)
 		bar:SetMinMaxValues(0, top)
 		bar:SetValue(s[3])
 		entry:UpdateStyle()
-		entry.nameText = s[1]
+		entry.sourceName = s[1]
 		entry:UpdateName()
 		entry:UpdateValue()
 	end
@@ -497,11 +510,10 @@ local function skin(frames)
 		entry:SetPoint("RIGHT", source.box, "RIGHT", 0, 0)
 		entry:SetHeight(SKIN_ROW)
 		local bar = entry.StatusBar
-		bar:SetAllPoints(entry)
 		bar:SetMinMaxValues(0, SPELLS[1][4])
 		bar:SetValue(spell[4])
 		entry:UpdateStyle()
-		entry.nameText = spell[2]
+		entry.sourceName = spell[2]
 		entry:UpdateName()
 		entry:UpdateValue()
 	end

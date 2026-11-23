@@ -11,6 +11,8 @@ local LEVEL_ABOVE = 1
 local CAP_LEFT = 12
 local CAP_MIDDLE = 14
 local CAP_RIGHT = 16
+local ROW_INSETS = 2
+local THIN_BAR = 4
 
 local DamageSkin = { active = false, applied = false }
 ns.DamageSkin = DamageSkin
@@ -23,7 +25,6 @@ local pills = setmetatable({}, WEAK)
 local caps = setmetatable({}, WEAK)
 local placed = setmetatable({}, WEAK)
 local hushed = setmetatable({}, WEAK)
-local raised = setmetatable({}, WEAK)
 local busy = false
 local generation = 1
 local ownerHooked = false
@@ -63,46 +64,70 @@ local function Recolor(entry)
 	end
 end
 
+local function Line(text)
+	local _, size = text:GetFont()
+	return (Logic.Plain(size) or 0) * (text.GetTextScale and Logic.Plain(text:GetTextScale()) or 1)
+end
+
 local function PlacePill(pill)
-	local bar, holder = pill.bar, pill.holder
-	local styled = ns.Get("nameplateRows")
-	bar.opts.height = styled and Widgets.Snap(bar, Tokens.Size("barHeight")) or math.max(1, Widgets.Snap(bar, Logic.Plain(holder:GetHeight()) or 4))
+	local bar, holder, entry = pill.bar, pill.holder, pill.entry
+	local row, styles = entry.StatusBar, Enum and Enum.DamageMeterStyle
+	local room = 0
+	if ns.Get("nameplateRows") and row.Name and row.Value and not (styles and entry.style == styles.Thin) then
+		room = Widgets.Snap(bar, (Logic.Plain(entry:GetHeight()) or 0) - ROW_INSETS - math.max(Line(row.Name), Line(row.Value)) - Tokens.Size("gapTiny"))
+	end
+	pill.lane = room >= THIN_BAR
+	bar.opts.height = pill.lane and math.min(Widgets.Snap(bar, Tokens.Size("barHeight")), room) or math.max(1, Widgets.Snap(bar, Logic.Plain(holder:GetHeight()) or 4))
 	bar:Restyle()
 	bar:ClearAllPoints()
-	Widgets.Point(bar, styled and "BOTTOMLEFT" or "TOPLEFT", holder, styled and "BOTTOMLEFT" or "TOPLEFT", 0, 0)
-	Widgets.Point(bar, "BOTTOMRIGHT", holder, "BOTTOMRIGHT", 0, 0)
+	Widgets.Point(bar, pill.lane and "BOTTOMLEFT" or "TOPLEFT", holder)
+	Widgets.Point(bar, "BOTTOMRIGHT", holder)
 	bar:SetFrameLevel(holder:GetFrameLevel())
 end
 
 local function PlaceText(entry)
-	local bar = entry.StatusBar
-	local name, value = bar.Name, bar.Value
-	local styles = Enum and Enum.DamageMeterStyle
-	if not (DamageSkin.active and pills[entry] and ns.Get("nameplateRows")) or styles and entry.style == styles.Thin then
-		if raised[entry] then
-			raised[entry] = nil
+	local pill, bar = pills[entry], entry.StatusBar
+	if not pill.lane then
+		if pill.raised then
+			pill.raised = nil
 			pcall(entry.UpdateStyle, entry)
 		end
 		return
 	end
-	raised[entry] = true
+	pill.raised = true
+	local name, value, lift = bar.Name, bar.Value, pill.bar.opts.height + Widgets.Snap(pill.bar, Tokens.Size("gapTiny"))
 	value:ClearAllPoints()
-	Widgets.Point(value, "TOPRIGHT", bar, "TOPRIGHT", 0, 0)
+	Widgets.Point(value, "BOTTOMRIGHT", bar, "BOTTOMRIGHT", 0, lift)
 	name:ClearAllPoints()
-	Widgets.Point(name, "TOPLEFT", bar, "TOPLEFT", 0, 0)
+	Widgets.Point(name, "BOTTOMLEFT", bar, "BOTTOMLEFT", 0, lift)
 	name:SetPoint("RIGHT", value, "LEFT", -Tokens.Size("gapSmall"), 0)
 end
 
 local function Relayout(entry)
-	PlacePill(pills[entry])
-	PlaceText(entry)
+	if DamageSkin.active then
+		PlacePill(pills[entry])
+		PlaceText(entry)
+	end
+end
+
+local function Caps(text)
+	return (text:gsub("|?[^|]*", function(part)
+		local keep = part:find("^|c") and 10 or part:find("^|[ATHK]") and #part or part:find("^|") and 2 or 0
+		return part:sub(1, keep) .. K.Locale.Upper(part:sub(keep + 1))
+	end))
 end
 
 local function Rename(entry)
-	local name = entry.StatusBar.Name
-	local text = name:GetText()
-	if DamageSkin.active and Widgets.Medallions() and not Logic.IsSecret(text) and type(text) == "string" then
-		name:SetText(K.Locale.Upper(text))
+	local text, name = entry.nameText, entry.StatusBar.Name
+	if not DamageSkin.active or Logic.IsSecret(text) or type(text) ~= "string" then
+		return
+	end
+	if Widgets.Medallions() and ns.Get("nameplateRows") then
+		text = Caps(text)
+	end
+	local shown = name:GetText()
+	if Logic.IsSecret(shown) or shown ~= text then
+		name:SetText(text)
 	end
 end
 
@@ -149,7 +174,6 @@ local function NewPill(entry, source)
 	hooksecurefunc(source, "SetValue", function(_, newValue)
 		bar:SetBarValue(newValue)
 	end)
-	StylePill(pill)
 	Widgets.Track(pill)
 	return pill
 end
@@ -195,7 +219,7 @@ local function StyleEntry(entry)
 		if type(entry.UpdateValue) == "function" then
 			hooksecurefunc(entry, "UpdateValue", Revalue)
 		end
-		if type(entry.UpdateStyle) == "function" and bar.Name and bar.Value then
+		if type(entry.UpdateStyle) == "function" then
 			hooksecurefunc(entry, "UpdateStyle", Relayout)
 		end
 		if type(entry.UpdateName) == "function" and bar.Name then
@@ -204,25 +228,19 @@ local function StyleEntry(entry)
 	end
 	if styled ~= generation then
 		entries[entry] = generation
-		local pill = pills[entry]
-		if pill then
-			pill.r, pill.g, pill.b = nil, nil, nil
-			StylePill(pill)
-		end
 		if bar.Name then
 			if ns.Get("nameplateRows") then ns.BarList.StyleName(bar.Name, "damage") else ns.ApplyFont(bar.Name, "damage") end
 			Widgets.TextColor(bar.Name, "textEmphasis")
+			Rename(entry)
 		end
 		if bar.Value then
 			ns.ApplyFont(bar.Value, "damage", nil, "number")
 			Widgets.TextColor(bar.Value, "textEmphasis")
 		end
-		if bar.Name and bar.Value then
-			PlaceText(entry)
-		end
-		if bar.Name then
-			Rename(entry)
-		end
+		local pill = pills[entry]
+		pill.r, pill.g, pill.b = nil, nil, nil
+		StylePill(pill)
+		PlaceText(entry)
 	end
 	Recolor(entry)
 end
