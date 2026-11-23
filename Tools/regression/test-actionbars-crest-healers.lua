@@ -285,6 +285,44 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- Imbues are imbues: another temporary enchant is no imbue, and under Frames each weapon's medal keeps its
+-- element's icon and colour, the enchant's own timer and the last five minutes' gutter. Oil is oil.
+do
+	local env, K, ns = New("SHAMAN", SHAMAN)
+	local t, Tokens = Tracker(ns, "SHAMAN"), K.Tokens
+	local main = t.built.mainHand
+	env.SetCombat(true)
+	env._enchants[16] = { enchantID = 9999, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
+	Slots.Enchant(env, 1, { start = 0, duration = 3600 })
+	env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	assert(main.light:GetAlpha() == 0 and main.rim:IsShown() and main.pulse:IsPlaying(), "an enchant that is no imbue leaves the stone dark under the pulsing rim")
+	env._enchants[16] = { enchantID = 1669, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
+	env._enchants[17] = { enchantID = 1666, remainingTimeMs = 200000, chargesRemaining = 0, hasExpirationTime = true }
+	Slots.Enchant(env, 2, { start = 0, duration = 3600 })
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	local mainRow, offRow = t.built.mainHandRow, t.built.offHandRow
+	assert(mainRow.lit.icon:GetTexture() == 8232 and offRow.lit.icon:GetTexture() == 8024, "Windfury and Flametongue each show their own icon")
+	assert(mainRow.lit.timer and offRow.lit.timer and mainRow.lit._cooldown == mainRow.lit.timer, "each weapon's medal drains with the enchant's own timer")
+	local sr, sg, sb = unpack(AB.W.LastCall(offRow.lit.timer, "SetSwipeColor") or {})
+	local r, g, b = Tokens.Color("totemFire")
+	assert(math.abs(sr - r) + math.abs(sg - g) + math.abs(sb - b) < 1e-6, "in its element's colour")
+	assert(offRow.gutter:IsPlaying() and not mainRow.gutter:IsPlaying(), "the off hand's last five minutes gutter in the row too")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+do
+	local env, K, ns = New("PRIEST", PRIEST)
+	env._enchants[16] = { enchantID = 1669, remainingTimeMs = 600000 }
+	env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	local oil = Tracker(ns, "PRIEST").built.oil
+	assert(not (oil and oil:IsVisible()), "Windfury on a priest's weapon with no oil in the bags is no oil socket")
+	env._enchants[16] = { enchantID = 2628, remainingTimeMs = 600000 }
+	env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	oil = Tracker(ns, "PRIEST").built.oil
+	assert(oil and oil:IsVisible(), "Brilliant Wizard Oil on the weapon is")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 -- A healer priest's top medal holds your shield, Renew and Mending; Mending takes the gem; a shadow priest gets the
 -- plague, Shadow Word: Death and Silence instead; an oil in the bags brings the oil socket.
 do
