@@ -134,4 +134,16 @@ do
 	quality("the quality edge survives an interface size change")
 end
 
+do
+	-- Forever's GetFrameLevel returns a secret on a restricted frame (SimpleFrameAPIDocumentation.lua:423).
+	local env, K, ns = boot()
+	local tip = env.ShoppingTooltip1
+	local heading = assert(K.Safe.Side(tip.CompareHeader).tooltipsHeading)
+	local level = heading:GetFrameLevel()
+	tip.GetFrameLevel = function() return env.Secret(2) end
+	local ok, err = pcall(ns.Style.ApplyFonts)
+	assert(ok, "check issecretvalue on the tooltip's frame level before the arithmetic: " .. tostring(err))
+	assert(heading:GetFrameLevel() == level, "a secret frame level keeps the compare heading's last safe level")
+end
+
 print("tooltips runtime restyle ok")

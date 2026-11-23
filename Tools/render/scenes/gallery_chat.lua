@@ -121,7 +121,8 @@ return Common.Run(function()
 	end
 	env.FCF_UnDockFrame(trade)
 	trade:ClearAllPoints()
-	trade:SetPoint("TOPLEFT", env.UIParent, "TOPLEFT", UNDOCKED.x, -UNDOCKED.y)
+	-- On the HUD root, as the copy window and the preview are, so the three keep their places on a wide screen.
+	trade:SetPoint("TOPLEFT", K.Scale.Root(), "TOPLEFT", UNDOCKED.x, -UNDOCKED.y)
 	trade:SetSize(UNDOCKED.width, UNDOCKED.height)
 	say(env, trade, TRADE)
 	env.RunTimers()
@@ -134,8 +135,7 @@ return Common.Run(function()
 
 	-- The undocked window's edit box where the module places it: over the window's foot, inside its glass, as the
 	-- docked panel's box opens. Its height is FloatingChatFrame.xml's.
-	local glass = K.Skin.Parts(trade).backdrop
-	assert(glass, "the undocked window has its glass")
+	local glass = assert(K.Skin.Parts(trade).backdrop, "the undocked window has its glass")
 	local box = trade.editBox
 	box:SetHeight(EDIT_HEIGHT)
 	-- Blizzard's UpdateHeader (ChatFrameEditBox.lua) insets the text by 15 plus the header and 13 at the right.
@@ -167,6 +167,24 @@ return Common.Run(function()
 	preview:Refresh()
 	env.RunTimers()
 	C.W.Settle(env)
+
+	local function overlap(a, b)
+		local ax, ay, aw, ah = Scene.Rect(env, a)
+		local bx, by, bw, bh = Scene.Rect(env, b)
+		return ax < bx + bw and bx < ax + aw and ay < by + bh and by < ay + ah
+	end
+	assert(not overlap(glass, parent) and not overlap(glass, copy), "the undocked window keeps clear of the copy window and the preview")
+	-- FCF_UpdateScrollbarAnchors (FloatingChatFrame.lua:1155-1166) hangs the scroll bar's foot on the size grip or the window when the
+	-- scroll button hides; the edit tile keeps equal side margins inside the glass in each state, ending with the game's default.
+	local tile, bar = K.Skin.Parts(box).backdrop, trade.ScrollBar
+	for _, foot in ipairs({ { "BOTTOM", trade.ResizeButton, "TOP" }, { "BOTTOMLEFT", trade, "BOTTOMRIGHT" }, { "BOTTOMLEFT", trade.ScrollToBottomButton, "TOPLEFT", 0, 2 } }) do
+		bar:ClearAllPoints()
+		bar:SetPoint("TOPLEFT", trade, "TOPRIGHT", 0, 0)
+		bar:SetPoint(foot[1], foot[2], foot[3], foot[4] or 0, foot[5] or 0)
+		local gx, _, gw = Scene.Rect(env, glass)
+		local tx, _, tw = Scene.Rect(env, tile)
+		assert(math.abs((tx - gx) - (gx + gw - tx - tw)) < 0.5, "the undocked edit tile sits evenly inside its glass with the scroll bar's foot on " .. foot[3])
+	end
 
 	local frames = Gallery.Frames()
 	local tabs = {}

@@ -151,36 +151,33 @@ do
 	-- Medallions draws all three bars as strips, honour too: its caption hangs under its line like reputation's, with
 	-- no plate. Frames puts the label on the experience line itself, as a player who chooses a label on the line, on
 	-- #151's plate: a label on a 5-unit line collided with the fill in ingame-18.
-	local honor = xp
 	if isFrames then
 		K.Options.Write("DataBars", "xp.textPosition", "CENTER")
 		K.Options.Write("DataBars", "xp.text", "shortPercent")
 		eq(xp.text:GetText(), "XP 25%", "the short name and the percent")
+		local er, eg, eb = K.Tokens.Color("textEmphasis")
+		tr, tg, tb = xp.text:GetTextColor()
+		assert(near(tr, er) and near(tg, eg) and near(tb, eb), "a label on the line reads in full white")
+		W.Enter(xp.holder)
+		eq(xp.text:IsShown(), true, "hovering keeps the caption")
+		local _, labelSize = xp.text:GetFont()
+		eq(labelSize, 12 * K.Theme.FontScale(), "the label reads at 12, the mockup's XP 32% cap height")
+		eq(xp.text:GetPoint(1), "CENTER", "the label is centred on the bar")
+		local plate = assert(xp.plate, "the bar has a plate for its label")
+		eq(plate:IsShown(), true, "the plate shows under a label on the line")
+		local pp, prel, prelp = plate:GetPoint(1)
+		eq(pp .. ">" .. tostring(prel == xp.text) .. ">" .. prelp, "CENTER>true>CENTER", "the plate is centred on the label")
+		local gap = K.Tokens.Size("gapMedium")
+		local textWidth = K.Widgets.TextWidth(xp.text, #xp.text:GetText() * labelSize * 0.5)
+		assert(math.abs(plate:GetWidth() - (textWidth + 2 * gap)) <= 1, "the plate leaves a medium gap each side of the label: " .. plate:GetWidth() .. " for " .. textWidth)
+		assert(plate:GetHeight() >= labelSize and plate:GetHeight() > xp.holder:GetHeight(), "the plate is taller than the label and the line")
+		assert(xp.text:GetParent():GetFrameLevel() > plate:GetFrameLevel(), "the label draws over its plate")
 	else
-		honor = view(ns, "honor")
+		local honor = view(ns, "honor")
 		K.Options.Write("DataBars", "honor.show", "always")
 		eq(honor.text:GetPoint(1), "TOPRIGHT", "the honour caption hangs under its line's right end")
 		eq(honor.plate:IsShown(), false, "with no plate")
 		W.Enter(xp.holder)
-	end
-	if isFrames then
-		local er, eg, eb = K.Tokens.Color("textEmphasis")
-		tr, tg, tb = honor.text:GetTextColor()
-		assert(near(tr, er) and near(tg, eg) and near(tb, eb), "a label on the line reads in full white")
-		W.Enter(xp.holder)
-		eq(xp.text:IsShown(), true, "hovering keeps the caption")
-		local _, labelSize = honor.text:GetFont()
-		eq(labelSize, 12 * K.Theme.FontScale(), "the label reads at 12, the mockup's XP 32% cap height")
-		eq(honor.text:GetPoint(1), "CENTER", "the label is centred on the bar")
-		local plate = assert(honor.plate, "the bar has a plate for its label")
-		eq(plate:IsShown(), true, "the plate shows under a label on the line")
-		local pp, prel, prelp = plate:GetPoint(1)
-		eq(pp .. ">" .. tostring(prel == honor.text) .. ">" .. prelp, "CENTER>true>CENTER", "the plate is centred on the label")
-		local gap = K.Tokens.Size("gapMedium")
-		local textWidth = K.Widgets.TextWidth(honor.text, #honor.text:GetText() * labelSize * 0.5)
-		assert(math.abs(plate:GetWidth() - (textWidth + 2 * gap)) <= 1, "the plate leaves a medium gap each side of the label: " .. plate:GetWidth() .. " for " .. textWidth)
-		assert(plate:GetHeight() >= labelSize and plate:GetHeight() > honor.holder:GetHeight(), "the plate is taller than the label and the line")
-		assert(honor.text:GetParent():GetFrameLevel() > plate:GetFrameLevel(), "the label draws over its plate")
 	end
 	local tip = K.Widgets.Tooltip()
 	eq(tip:IsShown(), true, "hovering shows the KstyleUI tooltip")
@@ -273,6 +270,19 @@ do
 	eq(honor.content:IsShown(), false, "leaving it hides honour")
 	K.Options.Write("DataBars", "honor.show", "always")
 	eq(honor.content:IsShown(), true, "the always setting shows honour outside PvP")
+	-- Honour takes its siblings' look by default; Match the other bars off gives back the player's own honour settings.
+	local rep = view(ns, "rep")
+	local own = { segments = 2, fontSize = 19, textPosition = "LEFT", border = true }
+	for key, value in pairs(own) do
+		K.Options.Write("DataBars", "honor." .. key, value)
+	end
+	for key in pairs(own) do
+		eq(ns.Bars.Settings(honor)[key], isFrames and own[key] or ns.Bars.Settings(rep)[key], "by default honour " .. key .. " follows its HUD style")
+	end
+	K.Options.Write("DataBars", "honor.matchBars", false)
+	for key, value in pairs(own) do
+		eq(ns.Bars.Settings(honor)[key], value, "with Match the other bars (honor.matchBars) off, the saved honour " .. key .. " applies")
+	end
 	noErrors(env, K)
 end
 
@@ -440,6 +450,21 @@ do
 		end
 		previousBottom = barTop + shown.holder:GetHeight()
 	end
+	-- A value too wide to share its caption's line takes the line under the caption, as before the column.
+	K.Options.Write("DataBars", "rep.text", "labelValue")
+	local small = K.Tokens.Size("gapSmall")
+	for _, size in ipairs({ 12, 20, 24 }) do
+		K.Options.Write("DataBars", "rep.fontSize", size)
+		frame:Refresh()
+		local caption, value = frame.captions.rep, frame.bars.rep.text
+		local lift = select(5, caption:GetPoint(1))
+		local shared = K.Widgets.TextWidth(caption, 0) + small + K.Widgets.TextWidth(value, 0) <= parent:GetWidth()
+		assert(shared and lift == small or lift >= K.Widgets.LineHeight(value) + small,
+			"reputation at font " .. size .. ": give the value its own line when caption and value overflow the bar's width")
+	end
+	K.Options.Write("DataBars", "rep.text", K.Options.Default("DataBars", "rep.text"))
+	K.Options.Write("DataBars", "rep.fontSize", K.Options.Default("DataBars", "rep.fontSize"))
+	frame:Refresh()
 	local stripCaptionTop = -select(5, frame.captions.strip:GetPoint(1))
 	assert(stripCaptionTop >= previousBottom and stripCaptionTop + captionSize <= frame.strip.top, "the strip's caption sits between the last bar and the strip")
 	noErrors(env, K)
