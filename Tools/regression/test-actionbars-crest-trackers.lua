@@ -25,6 +25,7 @@ local function New(class, known, opts)
 			e.C_Spell.GetSpellTexture = function(id) return 100000 + id end
 			e.GetInventoryItemID = function(_, slot) return e._items and e._items[slot] end
 			Slots.Install(e)
+			if opts.setup then opts.setup(e) end
 		end,
 	})
 	local register = K.Events.Register
@@ -292,6 +293,24 @@ do
 	local _, relative, point = form.frame:GetPoint(1)
 	assert(relative == ns.bars.stance.holder and point == "BOTTOMLEFT", "no stance buttons: the row starts where the stance bar does")
 	Clean(env, K, "frames paladin")
+end
+
+-- A shaman's Spirit Poles under Frames: the row stands above the poles, not on their spires.
+do
+	local env, K, ns = New("SHAMAN", { 10432 }, { frames = true, setup = function(e)
+		e.C_ActionBar.GetMultiCastBarIndex = function() return 12 end
+		e.GetMultiCastTotemSpells = function(slot) return slot == 1 and 3599 or nil end
+		e.GetTotemInfo = function() return false, "", 0, 0, 0 end
+		e.GetTotemDuration = function() return { start = 0, finish = 0 } end
+		e._game.forms[1] = { texture = 136095, isActive = false, spellID = 2645 }
+		e.CreateFrame("Frame", "MultiCastActionBarFrame", e.UIParent)
+	end })
+	ns.SlabTrackers.Register("SHAMAN", { { key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 10432 } } } } })
+	env.RunTimers()
+	ns.SlabTrackers.Update()
+	local _, relative, point = ns.SlabTrackers.state.forms.row.frame:GetPoint(1)
+	assert(ns.Totems.state.shown and relative == ns.Totems.state.header and point == "TOPLEFT", "the row stands on the Spirit Poles' top edge")
+	Clean(env, K, "shaman frames")
 end
 
 -- Even pixels at four sizes.

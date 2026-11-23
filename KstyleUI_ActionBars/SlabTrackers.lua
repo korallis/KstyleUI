@@ -142,13 +142,14 @@ local function Shape(name, seat)
 		form.frame:SetAllPoints(seat)
 		form.frame:SetFrameLevel(seat.top:GetFrameLevel() + 1)
 	else
-		local bar = ns.bars.stance
+		local bar, totems = ns.bars.stance, ns.Totems.state
 		local first = bar.count and bar.count > 0 and bar.buttons[1]
+		local over = totems.shown and totems.header or seat:IsShown() and first
 		local own = form.frame:GetParent():GetEffectiveScale()
 		form.frame:SetScale(own > 0 and seat:GetEffectiveScale() / own * (first and first.opts.size or Medals.SIZE) / Medals.SIZE or 1)
 		form.frame:SetFrameStrata(seat:GetFrameStrata())
 		form.frame:ClearAllPoints()
-		form.frame:SetPoint("BOTTOMLEFT", first or seat, first and "TOPLEFT" or "BOTTOMLEFT", 0, first and GAP or 0)
+		form.frame:SetPoint("BOTTOMLEFT", over or seat, over and "TOPLEFT" or "BOTTOMLEFT", 0, over and GAP or 0)
 		form.frame:SetSize(Medals.SIZE, Medals.SIZE)
 	end
 	form.frame:Show()

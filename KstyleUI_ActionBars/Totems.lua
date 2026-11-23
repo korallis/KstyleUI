@@ -665,6 +665,7 @@ local function Apply()
 		PaintMedals()
 	end
 	Blizzard(on)
+	ns.SlabTrackers.Update()
 	if on ~= (was == true) and ns.bars.stance then
 		ns.bars.stance:Apply()
 	end
