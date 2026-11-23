@@ -36,8 +36,8 @@ local r, fit = g.medal.w / 2, ns.Geometry.SLAB_FIT
 assert(math.abs(mx - g.marker.x) < 1 and math.abs(g.marker.x + g.marker.w / 2 - (g.medal.x + r - r * fit.across)) < 0.5 and math.abs(g.marker.y + g.marker.h / 2 - (g.medal.y + r - r * fit.rise)) < 0.5,
 	"Fitted slabs: the raid marker sits in a socket on the medallion's upper outer rim, opposite the level plaque")
 local rowY = select(5, player.icons.leader:GetPoint(1))
-assert(-rowY + player.icons.leader.socket:GetHeight() / 2 <= 0.5 and player.icons.leader.socket:GetWidth() > player.icons.leader:GetWidth(),
-	"Fitted slabs: each status icon sits in a socket resting on the slab's top edge, not across it")
+assert(rowY > 0 and math.abs(rowY - player.icons.leader.socket:GetHeight() / 2 + player.rim) <= 1 and player.icons.leader.socket:GetWidth() > player.icons.leader:GetWidth(),
+	"Fitted slabs: each status icon sits in a socket on the slab's top edge, its rim seated in the bevel, not across it")
 K.Options.Write("UnitFrames", "fittedSlabs", false)
 env.RunTimers()
 g = player.geometry
