@@ -2,6 +2,14 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.3.3.1: setup and crest fixes (2026-11-23)
+
+Thanks to Baine for spotting these. On setup's HUD style and Layout steps the card you pick now shows a clean accent edge, the same mark as the card you point at, instead of a coloured wash with a dark square in its corner, and picking Tank marks the Tank card like the others. Both HUD style pictures sit evenly inside their cards, the notes stay above them when the window is smaller, and the Look and Controls tabs no longer run into each other in German and French.
+
+The Medallions player frame loses the grey dots that followed the resting Zz. A status socket now shows only while its icon is lit, and the lit ones keep their even spacing. The crest minimap's N is lit steel engraved on the ring, the size of the runes around it, instead of sitting in a plain black disc, and the zone name stays clear of it.
+
+The rest comes from the native-size pass. On the round minimap the buttons follow the inside of the ring instead of crossing it, the open addon drawer moves aside when you change the buttons' distance from the edge, and with the buttons on the left the zoom slider moves to the right edge and gets a light rim. Proc glows match the rim of the buttons beside them and can't stay invisible, and turning off Action Bars > Motion > Soft proc and ready glow brings the old glow back. A tracked buff bar's stack count sits inside its icon, and in Medallions on wide screens the consumables bar sits beside your player frame. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.3.3: fit and finish (2026-11-23)
 
 This one is all about the finish. Party frames were hard to read on a big screen, the Medallions unit frames didn't properly fit the crest, and a native-size pass over the whole UI turned up a lot of small things sitting a few pixels off. All of that is fixed here. The crest trackers for every class aren't in this release; they're coming in v0.3.4.

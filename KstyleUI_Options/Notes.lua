@@ -2,6 +2,14 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.3.3.1 (2026-11-23)", {
+		L["Setup's picked HUD style and role cards show a clean accent edge, and picking Tank now marks its card."],
+		L["Setup's tabs fit long German and French labels, and the HUD style pictures sit evenly in their cards."],
+		L["No more grey dots on the Medallions player frame: a status socket shows only when its icon is lit."],
+		L["The crest minimap's N sits on the forged ring, and the minimap buttons stay inside the round ring."],
+		L["Proc glows match the rim of the buttons beside them and can't stay invisible."],
+		L["Thanks to Baine for spotting the setup cards and tabs, the grey dots and the compass N."],
+	} },
 	{ "v0.3.3 (2026-11-23)", {
 		L["Party frames are a quarter larger on ultrawide, and their names and health percentages stay readable."],
 		L["Medallions player and target frames dock into the crest, with even bars and status icons in steel sockets."],
@@ -15,11 +23,5 @@ ns.NOTES = {
 		L["Shaman totem fans open on a dark forged band in the element's colour, and each choice wears its element."],
 		L["The consumables bar starts at button size 26 with no gap between buttons."],
 		L["Setup and Options pages no longer open blank in game."],
-	} },
-	{ "v0.3.1 (2026-11-23)", {
-		L["Your character window and the inspect window show each piece of gear's item level, in its quality colour."],
-		L["The trainer, Legacy, RestedXP and quest tracker bars KstyleUI restyles get the same lit glass finish."],
-		L["World map routes name every step, and the last one names where you are going."],
-		L["A debuff you can dispel tints party and raid frames lightly again instead of covering the name."],
 	} },
 }
