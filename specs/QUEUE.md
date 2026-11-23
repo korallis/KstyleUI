@@ -657,3 +657,4 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - Healers complete-crest research done; additions to healer builder.
 - #768 polish C green; review dispatched. Follow-up: A3 UF player aura row, A9 bars 3/4 '-' hotkey.
 - #773 polish E green; review dispatched.
+- #767 review ISSUES (9 of 17 dismissals overturned, drawer/travel regressions, vehicle refresh overhead, threat/skull collision, world map fixture, stray XP change) -> author.
