@@ -538,14 +538,16 @@ function Medals.Refresh(m)
 		if read then
 			tanking, _, scaled = read("player", "target")
 		end
+		if not IsSecret(scaled) and scaled == nil then
+			scaled = 0
+		end
+		if not IsSecret(tanking) and tanking == nil then
+			tanking = false
+		end
 		if m.bar then
-			m.bar:SetValue(scaled or 0)
+			m.bar:SetValue(scaled)
 		end
-		if IsSecret(tanking) then
-			m.lit:SetAlphaFromBoolean(tanking, 1, 0)
-		else
-			m.lit:SetAlpha(tanking and 1 or 0)
-		end
+		m.lit:SetAlphaFromBoolean(tanking, 1, 0)
 		return
 	end
 	if spec.feed == "item" then
