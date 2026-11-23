@@ -247,6 +247,34 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- Hot paths: an unrelated aura event reads Inner Fire once and no cooldown, a cooldown event reads no aura, and
+-- another class loads no healer registration at all.
+do
+	local env, K = New("PRIEST", PRIEST)
+	local reads, cds = 0, 0
+	local read, cd = env.C_UnitAuras.GetPlayerAuraBySpellID, env.C_Spell.GetSpellCooldownDuration
+	env.C_UnitAuras.GetPlayerAuraBySpellID = function(id)
+		reads = reads + 1
+		return read(id)
+	end
+	env.C_Spell.GetSpellCooldownDuration = function(...)
+		cds = cds + 1
+		return cd(...)
+	end
+	env.FireEvent("UNIT_AURA", "player", {})
+	assert(reads <= 1 and cds == 0, "an unrelated aura event: " .. reads .. " aura reads, " .. cds .. " cooldown lookups")
+	reads = 0
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(reads == 0, "a cooldown event reads no aura: " .. reads)
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+do
+	local env, K, ns = New("WARRIOR", {})
+	local classes = ns.SlabTrackers.CLASSES
+	assert(not classes.PRIEST and not classes.DRUID and not classes.SHAMAN, "a warrior loads no healer registration")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 -- Inner Fire's halo leaves the last band's dimming when the charges come back, and an unreadable count drops the
 -- last-flame state instead of keeping the old one.
 do
