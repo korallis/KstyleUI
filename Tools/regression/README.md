@@ -18,7 +18,7 @@ To see a failing test's full output, run that test alone, for example `lua5.1 To
 
 ## Modes
 
-CI runs the whole suite on hosted `ubuntu-latest` as eight `--shard I/8` jobs for pull requests, staging pushes, manual runs and releases; these hosted shards are the gate. Staging always runs Lua, even with green PR markers, to check cumulative instruction budgets. Each staging push also starts `mac-budgets.yml`, five `--shard I/5` jobs on the self-hosted Macs that measure CPU limits and report failures; nothing requires or awaits it. Hosted per-file CPU warnings use a 2.5 factor; per-call timing is informational and CPU headroom is skipped there. Functional tests, instruction budgets, memory limits and hang guards still fail. A developer's pre-push run is `--affected`. The full run with no argument is for reproducing a CI failure.
+CI runs the whole suite on hosted `ubuntu-latest` as eight `--shard I/8` jobs for pull requests when Lua is in scope, staging pushes, manual runs, and releases without a green `checks.yml` staging run of the same tree; these hosted shards are the gate. Staging always runs Lua, even with green PR markers, to check cumulative instruction budgets. Each staging push also starts `mac-budgets.yml`, five `--shard I/5` jobs on the self-hosted Macs that measure CPU limits and report failures; nothing requires or awaits it. Hosted per-file CPU warnings use a 2.5 factor; per-call timing is informational and CPU headroom is skipped there. Functional tests, instruction budgets, memory limits and hang guards still fail. A developer's pre-push run is `--affected`. The full run with no argument is for reproducing a CI failure.
 
 | Option | What it runs | Last line |
 | --- | --- | --- |

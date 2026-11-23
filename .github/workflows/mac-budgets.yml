@@ -9,9 +9,7 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: mac-budgets-${{ github.ref }}
-  cancel-in-progress: false
+concurrency: mac-budgets-${{ github.ref }}
 
 jobs:
   lua:
