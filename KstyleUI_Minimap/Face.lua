@@ -35,7 +35,7 @@ local ROUND_CORNER = 0.146
 local INSIDE = { "zone", "clock", "coords", "difficulty", "perf" }
 local currentFrame
 
-Face.LEVEL_MAP = LEVEL_MAP
+Face.LEVEL_MAP, Face.ROUND_CORNER = LEVEL_MAP, ROUND_CORNER
 
 function Face.Round()
 	return Widgets.Medallions()
@@ -280,6 +280,8 @@ function Face.New(holder, opts)
 	local zoom = CreateFrame("Frame", nil, reveal)
 	zoom.face = face
 	zoom:EnableMouse(true)
+	zoom.rim = zoom:CreateTexture(nil, "ARTWORK", nil, -1)
+	zoom.rim:SetColorTexture(Tokens.Color("white"))
 	zoom.track = zoom:CreateTexture(nil, "ARTWORK")
 	zoom.track:SetColorTexture(Tokens.Color("white"))
 	zoom.fill = zoom:CreateTexture(nil, "ARTWORK", nil, 1)
@@ -552,6 +554,13 @@ function Face:PlaceSlider()
 	zoom.fill:ClearAllPoints()
 	Widgets.Point(zoom.fill, "BOTTOMLEFT", track, "BOTTOMLEFT")
 	Widgets.Point(zoom.fill, "BOTTOMRIGHT", track, "BOTTOMRIGHT")
+	local line = Widgets.Border(area)
+	if zoom.rimLine ~= line then
+		zoom.rimLine = line
+		zoom.rim:ClearAllPoints()
+		zoom.rim:SetPoint("TOPLEFT", track, "TOPLEFT", -line, line)
+		zoom.rim:SetPoint("BOTTOMRIGHT", track, "BOTTOMRIGHT", line, -line)
+	end
 	self:PaintZoom()
 end
 
@@ -699,6 +708,7 @@ function Face:Paint()
 	self.layoutWidth = nil
 	local r, g, b = Style.Accent()
 	Widgets.Tint(self.zoom.track, "track")
+	Widgets.LumenTint(self.zoom.rim, "rimLight", 2.5)
 	self.zoom.fill:SetVertexColor(r, g, b, 1)
 	self.zoom:SetShown(Settings.Get("zoom.slider"))
 	local round = Face.Round()

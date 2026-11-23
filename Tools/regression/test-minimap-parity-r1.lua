@@ -117,16 +117,25 @@ assert(face.north:IsShown() and #env._cvarWrites == 2, "and the option did not w
 env._mail.new = true
 env.FireEvent("UPDATE_PENDING_MAIL")
 K.Options.Write("Minimap", "column.hover", false)
+-- Inward(sns, button): the gap from the map's edge to the button, along the rim's radius on the round map.
+local function Inward(sns, button)
+	local _, _, _, x, y = point(button)
+	local r, s = sns.Face.Round() and sns.Map.face.mapSize / 2, button:GetWidth()
+	if not r then return -x end
+	local cx, cy = r - math.abs(x) - s / 2, r - math.abs(y) - s / 2
+	return r - s / 2 - math.sqrt(cx * cx + cy * cy)
+end
 local _, _, _, x0 = point(buttons.tracking)
+local in0 = Inward(ns, buttons.tracking)
 K.Options.Write("Minimap", "column.offset", 10)
-local _, _, _, x1 = point(buttons.tracking)
+local in1 = Inward(ns, buttons.tracking)
 local function moved(sK, holder, from, to)
 	local Snap, EDGE = sK.Widgets.Snap, ns.Format.EDGE
-	return W.Near(to, from - (Snap(holder, EDGE + 10) - Snap(holder, EDGE)), 0.01)
+	return W.Near(to, from + (Snap(holder, EDGE + 10) - Snap(holder, EDGE)), 1)
 end
-assert(moved(K, column.holder, x0, x1), "the column moves in from the right edge: " .. tostring(x0) .. " -> " .. tostring(x1))
+assert(moved(K, column.holder, in0, in1), "the column moves in from the edge: " .. tostring(in0) .. " -> " .. tostring(in1))
 K.Options.Write("Minimap", "column.offset", -30)
-assert(select(2, rect(buttons.tracking)) > select(2, rect(area)) + 10, "a negative distance moves the column out past the edge")
+assert(Inward(ns, buttons.tracking) < -10, "a negative distance moves the column out past the edge")
 K.Options.Write("Minimap", "column.offset", 0)
 assert(select(4, point(buttons.tracking)) == x0, "zero puts the column back")
 K.Options.Write("Minimap", "column.backgrounds", false)
@@ -378,9 +387,9 @@ for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 
 	M.Settle(senv)
 	local scol = sns.Map.column
 	sK.Options.Write("Minimap", "column.hover", false)
-	local sx0 = select(4, point(scol.buttons.tracking))
+	local sx0 = Inward(sns, scol.buttons.tracking)
 	sK.Options.Write("Minimap", "column.offset", 10)
-	local sx1 = select(4, point(scol.buttons.tracking))
+	local sx1 = Inward(sns, scol.buttons.tracking)
 	assert(moved(sK, scol.holder, sx0, sx1), size[1] .. "x" .. size[2] .. ": the column moves in by the snapped distance: " .. sx0 .. " -> " .. sx1)
 	clean(senv, sK, size[1] .. "x" .. size[2])
 end

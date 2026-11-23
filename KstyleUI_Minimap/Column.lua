@@ -364,17 +364,34 @@ function Column:Layout()
 	end
 	local start = Format.Column(1, size, spacing, side, up, edge, top)
 	local far = (up and "TOP" or "BOTTOM") .. (side == "left" and "LEFT" or "RIGHT")
+	local drawer, count = self.drawer, #shown
+	for _, button in ipairs(drawer and drawer.order or {}) do
+		if drawer.adopted[button].place == "column" and ns.Drawer.Shown(button) then count = count + 1 end
+	end
+	local r = ns.Face.Round() and not (used[start] or used[far]) and (face.mapSize or 0) / 2 or 0
+	local arcTop = math.max(top, Widgets.Snap(holder, 2 * r * ns.Face.ROUND_CORNER))
+	if r > 0 and count <= Format.PerColumn(2 * r, size, spacing, arcTop) then top = arcTop else r = 0 end
 	local perColumn = Format.PerColumn((face.mapSize or area:GetHeight() or 0) - (used[far] or 0), size, spacing, top)
 	local skip = used[start] and math.ceil(used[start] / (size + spacing) - 0.001) or 0
+	local reach = r - edge - size / 2
+	local function At(slot)
+		local point, x, y = Format.Column(slot, size, spacing, side, up, edge, top, perColumn)
+		if r > 0 then
+			local dy = r - math.abs(y) - size / 2
+			local inward = Widgets.Snap(holder, r - size / 2 - math.sqrt(math.max(0, reach * reach - dy * dy)))
+			x = side == "left" and inward or -inward
+		end
+		return point, x, y
+	end
 	for slot, button in ipairs(shown) do
-		local point, x, y = Format.Column(slot + skip, size, spacing, side, up, edge, top, perColumn)
+		local point, x, y = At(slot + skip)
 		Put(button, size, inset, point, area, x, y)
 	end
-	local drawer, slot = self.drawer, #shown + skip
+	local slot = #shown + skip
 	for _, button in ipairs(drawer and drawer.order or {}) do
 		if drawer.adopted[button].place == "column" and ns.Drawer.Shown(button) then
 			slot = slot + 1
-			local point, x, y = Format.Column(slot, size, spacing, side, up, edge, top, perColumn)
+			local point, x, y = At(slot)
 			drawer:PutInColumn(button, Home(self, "addon"), point, area, x, y, size)
 		end
 	end
