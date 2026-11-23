@@ -4010,7 +4010,6 @@ ns.Locale.Add({
 	["Shows your Power Word: Shield, Renew and Prayer of Mending on your target in the crest's top medal."] = "Zeigt dein Machtwort: Schild, Erneuerung und Gebet der Besserung auf deinem Ziel in der oberen Medaille.",
 	["Shows your Rupture or Garrote on the target and its time left on the crest's right shoulder."] = "Zeigt deine Blutung oder dein Erdrosseln auf dem Ziel und die Restzeit an der rechten Wappenschulter.",
 	["Shows your Seal and its time left in a medal above the crest."] = "Zeigt dein Siegel und seine Restzeit in einer Medaille \195\188ber dem Wappen.",
-	["Shows your Shadow Word: Pain on your target as a gem at the top of the crest ring."] = "Zeigt dein Schattenwort: Schmerz auf deinem Ziel als Edelstein oben am Wappenring.",
 	["Shows your Shadow Word: Pain on your target, or a healer's Prayer of Mending ready, as a top gem."] = "Zeigt dein Schattenwort: Schmerz auf deinem Ziel, oder f\195\188r Heiler die Bereitschaft von Gebet der Besserung, als oberen Edelstein.",
 	["Shows your charge, taunt, threat or spec piece beside the crest's level badge, on the right."] = "Zeigt Sturmangriff, Spott, Bedrohung oder dein Spezialisierungsteil rechts neben dem Stufenabzeichen des Wappens.",
 	["Shows your combo points on your target's plate, as the unit frames' pips."] = "Zeigt deine Combopunkte auf der Plakette deines Ziels, wie die Punkte der Einheitenfenster.",

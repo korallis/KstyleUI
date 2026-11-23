@@ -4010,7 +4010,6 @@ ns.Locale.Add({
 	["Shows your Power Word: Shield, Renew and Prayer of Mending on your target in the crest's top medal."] = "Affiche votre Mot de pouvoir : Bouclier, R\195\169novation et Pri\195\168re de gu\195\169rison sur votre cible dans la m\195\169daille du haut.",
 	["Shows your Rupture or Garrote on the target and its time left on the crest's right shoulder."] = "Affiche votre Rupture ou Garrot sur la cible et son temps restant sur l'\195\169paule droite du blason.",
 	["Shows your Seal and its time left in a medal above the crest."] = "Affiche votre Sceau et son temps restant dans une m\195\169daille au-dessus du blason.",
-	["Shows your Shadow Word: Pain on your target as a gem at the top of the crest ring."] = "Affiche votre Mot de l'ombre : Douleur sur votre cible comme une gemme en haut de l'anneau du blason.",
 	["Shows your Shadow Word: Pain on your target, or a healer's Prayer of Mending ready, as a top gem."] = "Affiche votre Mot de l'ombre : Douleur sur votre cible, ou la disponibilit\195\169 de Pri\195\168re de gu\195\169rison d'un soigneur, comme gemme du haut.",
 	["Shows your charge, taunt, threat or spec piece beside the crest's level badge, on the right."] = "Affiche votre charge, provocation, menace ou pi\195\168ce de sp\195\169cialisation \195\160 droite de l'insigne de niveau du blason.",
 	["Shows your combo points on your target's plate, as the unit frames' pips."] = "Affiche vos points de combo sur la barre de votre cible, comme les points des cadres d'unit\195\169.",
