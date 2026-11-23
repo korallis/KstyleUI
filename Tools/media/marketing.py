@@ -138,8 +138,8 @@ CLIPS = {
     "casts.gif": ((1036, 886, 330, 92), [("hud_rogue_mac", {"RENDER_CAST_CUES": cue}, "RENDER_CAST_CUES_T", ts, hold)
                                          for cue, ts, hold in (("aimed", times(0, 0.28), 700), ("you", times(0, 0.28), 900),
                                                                ("locked", times(0, 0.28), 900), ("wait", times(0, 0.63), 1100))]),
-    "map.gif": ((446, 298, 698, 510), [("worldmap_roads", env, None, [0], 2400) for env in (
-        {"RENDER_MAP_TRIP": "zeppelin"}, {"RENDER_MAP_TRIP": "zeppelin", "RENDER_MAP_SERVICES": "1"})]),
+    "map.gif": ((446, 298, 698, 510), [("worldmap_roads", {"RENDER_MAP_WIDE": "1", "RENDER_MAP_TRIP": "zeppelin", **env}, None, [0], 2400)
+                                       for env in ({}, {"RENDER_MAP_SERVICES": "1"})]),
 }
 
 README_HEADER = """<p align="center">

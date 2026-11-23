@@ -35,6 +35,7 @@ return Common.Run(function()
 		env.C_Item = { GetItemCount = function() return 1 end, GetItemNameByID = function() return "Hearthstone" end, GetItemCooldown = function() return 0, 0 end }
 	end
 	local loX, hiX, loY, hiY = -4000, 3500, -10500, 500
+	if os.getenv("RENDER_MAP_WIDE") == "1" then loX, hiX, loY, hiY = -8465, 3065, -9560, 6965 end
 	local function Project(x, y) return (hiY - y) / (hiY - loY), (hiX - x) / (hiX - loX) end
 	state.playerX, state.playerY = Project(from.x, from.y)
 	env.C_Map.GetWorldPosFromMapPos = function(id, point)
