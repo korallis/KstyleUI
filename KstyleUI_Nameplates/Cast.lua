@@ -202,7 +202,8 @@ end
 
 local function Mark(plate)
 	local interrupt = ns.Interrupt
-	local left = interrupt.Left(plate, Mark, plate.casting and not plate.castInterrupted and Settings.Get("cast.caster") and Settings.Get("cast.combatCues"))
+	local on = plate.casting and not plate.castInterrupted and Settings.Get("cast.caster") and Settings.Get("cast.combatCues")
+	local left = interrupt.Left(plate, Mark, on)
 	if left or plate.castWait then
 		if not plate.castWait then
 			plate.castWait = Widgets.FontString(plate.castBar, "OVERLAY")
@@ -212,7 +213,7 @@ local function Mark(plate)
 		plate.castWait:SetText(left or "")
 		FromFlag(plate.castWait, plate.castFlag, 0, 1)
 	end
-	local at = left and interrupt.At(plate.castStart, plate.castEnd, plate.castChannel)
+	local at = on and interrupt.At(plate.castStart, plate.castEnd, plate.castChannel)
 	if not at then
 		if plate.castMark then plate.castMark:Hide() end
 		return

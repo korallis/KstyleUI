@@ -1192,7 +1192,8 @@ local function ColorObjects(cb, r, g, b)
 end
 
 function Cues(cb)
-	local left = K.Interrupt.Left(cb, Cues, Waiting(cb))
+	local waiting = Waiting(cb)
+	local left = K.Interrupt.Left(cb, Cues, waiting)
 	if cb.line then ShowLock(cb) end
 	local shade, mark = cb.shade, cb.mark
 	if not (cb.active and Caster(cb)) then
@@ -1222,7 +1223,7 @@ function Cues(cb)
 	FromFlag(cb.wait, flag, 0, 1)
 	FromFlag(shade, flag, dark, left and dark or 0)
 	FromFlag(cb.glyph, flag, cb.line and 0 or 1, 0)
-	local at = left and K.Interrupt.At(cb.castStart, cb.castEnd, cb.channel)
+	local at = waiting and K.Interrupt.At(cb.castStart, cb.castEnd, cb.channel)
 	local w, h, vertical = cb.bar.opts.width, cb.bar.opts.height, cb.bar.vertical
 	if at and cb.line then w = cb.bar:GetWidth() end
 	if not (at and not issecretvalue(w) and type(w) == "number" and w > 0) then
