@@ -55,7 +55,9 @@ local function New(class, spells, opts)
 			}
 			e._oils = 0
 			e.C_Item = { GetItemCount = function(id) return id == 17030 and e._ankhs or id >= 20744 and id <= 20750 and e._oils or 0 end, GetItemIconByID = function(id) return id end }
+			e._slotGroups = true
 			Slots.Install(e)
+			e.AuraContainerSortMethod, e.AuraContainerSortDirection = { Default = 0, AuraInstanceIDOnly = 8 }, { Normal = 0, Reverse = 1 }
 		end,
 	})
 	AB.Enable(env, K)
