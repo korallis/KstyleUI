@@ -19,7 +19,7 @@ for moment, want in pairs({ open = { "panelOpen", "enter" }, close = { "panelClo
 	assert(duration == Tokens.Duration(want[1]) and ease == Tokens.Easing(want[2]), moment .. " uses the shared " .. want[1] .. " timing")
 end
 
--- Player words: hp finds health rows while Search in player words is on.
+-- Player words: hp finds health rows while Search takes you there is on.
 local page = { id = "Test", label = "Test", items = {
 	{ kind = "toggle", label = "Health text", module = "T", key = "health" },
 	{ kind = "toggle", label = "Mana colour", module = "T", key = "mana" },
@@ -34,9 +34,9 @@ end
 assert(Keys(Model.Search({ page }, "hp")) == "health", "hp finds the health row")
 assert(Keys(Model.Search({ page }, "mana color")) == "mana", "color finds colour, and every term must still match")
 assert(Keys(Model.Search({ page }, "health")) == "health", "a plain word still matches its label")
-K.Options.Write("OptionsPresentation", "synonyms", false)
+account.optionsSearchJump = false
 assert(Keys(Model.Search({ page }, "hp")) == "", "off matches labels and help only")
-K.Options.Write("OptionsPresentation", "synonyms", true)
+account.optionsSearchJump = nil
 
 -- Search takes you there: Enter opens the first result's page at its row and lights it briefly.
 local box = env.CreateFrame("Frame", nil, K.Scale.Root())
@@ -56,7 +56,7 @@ local function Enter()
 end
 local LABEL = "Double-click the header to fold"
 Type("double-click the header")
-assert(state.items[1].kind == "note" and state.items[1].label == K.L["Press Enter or click a result to go to it."], "results start with how to go to one")
+assert(state.items[1].kind == "note" and state.items[1].label == K.L["Press Enter or click a result's name to go to it."], "results start with how to go to one")
 Enter()
 assert(state.page == "General" and state.query == nil and parts.search:GetText() == "", "Enter opens the result's page and clears the search")
 local function Lit()
@@ -116,8 +116,9 @@ local function Drawn()
 end
 assert(Drawn(), "the element's box sits where the element does")
 K.Layout.Set("Test.Box", "x", 300)
+env.RunTimers()
 local drawn = Drawn()
-assert(drawn, "moving an element moves its box at once")
+assert(drawn, "moving an element moves its box on the next refresh")
 local r, g, b = drawn:GetVertexColor()
 local ar, ag, ab = Tokens.Color("accent")
 assert(not (W.Near(r, ar) and W.Near(g, ag) and W.Near(b, ab)), "boxes outside the section in view stay muted")

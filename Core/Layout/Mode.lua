@@ -56,6 +56,11 @@ local function IsNumber(v)
 	return not IsSecret(v) and type(v) == "number" and v == v
 end
 
+local function Shown(frame)
+	local shown = frame:IsShown()
+	return not IsSecret(shown) and shown
+end
+
 local function Log(message)
 	local devtest = ns.DevTest
 	if devtest and devtest.Log then
@@ -310,16 +315,16 @@ end
 local function ShowGuide(guide, at, vertical)
 	if at == nil then
 		guide:Hide()
-		guide.at = nil
 		return
 	end
 	local clear = ns.Store.Module("LayoutControls").guides
 	local pixel, border = Scale.Pixel(1), clear and Scale.Snap(GUIDE_WIDTH) or Scale.Border()
 	local pos = G.Align(at - border / 2, pixel)
-	if guide.at == pos and guide.border == border and guide:IsShown() then
+	local shown = Shown(guide)
+	if guide.at == pos and guide.border == border and shown then
 		return
 	end
-	local fade = clear and not guide:IsShown()
+	local fade = clear and not shown
 	guide.at, guide.border = pos, border
 	guide:ClearAllPoints()
 	if vertical then
@@ -933,14 +938,14 @@ local function BuildToolbar()
 		label = L["Grid"], value = Layout.Setting("grid"),
 		tooltip = L["Show the grid, and snap to its lines."],
 		onChange = function(value)
-			ns.Options.Write("Layout", "grid", value)
+			if Layout.IsActive() then ns.Options.Write("Layout", "grid", value) end
 		end,
 	})
 	panel.snapToggle = Widgets.Toggle(content, {
 		label = L["Snap"], value = Layout.Setting("snap"),
 		tooltip = L["Snap to other elements, the screen edges and the centre."],
 		onChange = function(value)
-			ns.Options.Write("Layout", "snap", value)
+			if Layout.IsActive() then ns.Options.Write("Layout", "snap", value) end
 		end,
 	})
 	panel.undo = Widgets.Button(content, {
@@ -958,7 +963,7 @@ local function BuildToolbar()
 	panel.reset = Widgets.Button(content, {
 		text = L["Reset"], tooltip = L["Move every element back to its default place and size. Undo brings them back."],
 		onClick = function()
-			Layout.ResetAll()
+			if Layout.IsActive() then Layout.ResetAll() end
 		end,
 	})
 	panel.done = Widgets.Button(content, {
@@ -968,6 +973,7 @@ local function BuildToolbar()
 		end,
 	})
 	panel.bind = Widgets.Button(content, { text = L["Bind keys"], onClick = function()
+		if not Layout.IsActive() then return end
 		Layout.Exit(true)
 		ns.Options.BindKeys()
 	end })
@@ -1098,7 +1104,8 @@ function Mode.Show()
 	Mode.hidden = {}
 	Build()
 	toolbar:Arrange()
-	local from = overlay:IsShown() and overlay:GetAlpha() or 0
+	local alpha = overlay:GetAlpha()
+	local from = Shown(overlay) and IsNumber(alpha) and alpha or 0
 	overlay:Show()
 	overlay:EnableKeyboard(true)
 	overlay:SetPropagateKeyboardInput(true)

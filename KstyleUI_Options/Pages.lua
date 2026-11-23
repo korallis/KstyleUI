@@ -541,9 +541,9 @@ local function GeneralItems()
 	add({ kind = "button", label = L["Clear search picks"], help = L["Forgets the settings remembered from your searches."],
 		buttons = { { label = L["Clear"], onClick = function() K.Store.Account().optionsSearchPicks = nil; ns.Changed() end } } })
 	add({ label = L["Double-click the header to fold"], help = L["Double-click the window's header to fold it to its header; again to open it."] }, "optionsFold", false)
-	add({ label = L["Search takes you there"], help = L["Press Enter or click a result to open its page at that setting. Off keeps results in the list."] }, "optionsSearchJump", true)
+	add({ label = L["Search takes you there"], help = L["Press Enter or click a result's name to open its page at that setting; words such as hp find health. Off restores the previous search."] }, "optionsSearchJump", true)
 	add({ label = L["Previews on Elements and Profiles"], help = L["Shows where elements sit on screen and your profile's text. Off hides the preview there."] }, "optionsPreviewAll", true)
-	add({ label = L["One motion style"], help = L["Menus, Layout Mode and highlights use the window timing. Off restores their previous motion."] }, "motionOneStyle", true)
+	add({ label = L["One motion style"], help = L["Menus, page changes and Layout Mode use the window timing. Off restores their previous motion."] }, "motionOneStyle", true)
 	add({ kind = "header", level = 1, label = L["Game menu"] })
 	add({ label = L["KstyleUI settings button"], help = L["Adds a button under the game menu that opens these settings."] }, "gameMenuOptions", false, function() K.OptionsEntry.GameMenu() end)
 	add({ label = L["Layout Mode button"], help = L["Adds a button under the game menu that opens Layout Mode."] }, "gameMenuLayout", false, function() K.OptionsEntry.GameMenu() end)
@@ -1221,10 +1221,6 @@ local function ModuleNames()
 	return names
 end
 
-local function MorePreviews()
-	return K.Store.Account().optionsPreviewAll ~= false
-end
-
 local function GeneralPreview(section)
 	local cfg = K.Store.Module("Integrations")
 	if section == L["Existing addons"] and (cfg.timerLane or cfg.announcementLane) then return K.Setup.Integrations.Preview end
@@ -1252,7 +1248,7 @@ function Pages.List()
 	local pages = {
 		{ id = "General", label = L["General"], Items = GeneralItems, reset = ResetGeneral, builtinPreview = GeneralPreview },
 		{
-			id = "Elements", label = L["Elements"], Items = ElementsItems, builtinPreview = function() return MorePreviews() and Pages.HasLayout() and ns.Preview.Screen or nil end,
+			id = "Elements", label = L["Elements"], Items = ElementsItems, builtinPreview = function() return K.Store.Account().optionsPreviewAll ~= false and Pages.HasLayout() and ns.Preview.Screen or nil end,
 			reset = function()
 				ResetElements(nil)
 				Model.ResetSchema("Rest", K.Options.Get("Rest"))
@@ -1266,7 +1262,7 @@ function Pages.List()
 	for _, module in ipairs(ModuleNames()) do
 		pages[#pages + 1] = { id = module, module = module, label = Pages.ModuleLabel(module), Items = ModuleItems, reset = ResetModule }
 	end
-	pages[#pages + 1] = { id = "Profiles", label = L["Profiles"], Items = ProfileItems, builtinPreview = function() return MorePreviews() and ns.Preview.Sample or nil end }
+	pages[#pages + 1] = { id = "Profiles", label = L["Profiles"], Items = ProfileItems, builtinPreview = function() return K.Store.Account().optionsPreviewAll ~= false and ns.Preview.Sample or nil end }
 	pages[#pages + 1] = { id = "About", label = L["About"], Items = AboutItems }
 	return pages
 end

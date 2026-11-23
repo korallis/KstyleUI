@@ -75,7 +75,8 @@ function Preview.Screen(parent)
 		local n = 0
 		for _, el in ipairs(ns.Pages.Elements()) do
 			local l, b, w, h = layout.Rect(el.key)
-			if l and not el.opts.window and el.opts.plate ~= false then
+			local s = layout.Get(el.key)
+			if l and s.shown ~= "never" and not el.opts.window and el.opts.plate ~= false then
 				n = n + 1
 				local box = self.boxes[n] or self:CreateTexture(nil, "ARTWORK")
 				self.boxes[n] = box
@@ -84,7 +85,7 @@ function Preview.Screen(parent)
 				box:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", l * k, b * k)
 				box:SetSize(math.max(1, w * k), math.max(1, h * k))
 				local current = section ~= nil and ns.Pages.ModuleLabel(el.module or "Other") == section
-				Widgets.Tint(box, current and "accent" or "text", current and CURRENT_ALPHA or SCREEN_ALPHA)
+				Widgets.Tint(box, current and "accent" or "text", (current and CURRENT_ALPHA or SCREEN_ALPHA) * s.alphaIdle)
 				box:Show()
 			end
 		end
@@ -92,7 +93,10 @@ function Preview.Screen(parent)
 			self.boxes[i]:Hide()
 		end
 	end
-	frame.Restyle = frame.Refresh
+	frame.Restyle = function(self)
+		if self:IsVisible() then self:Refresh() end
+	end
+	frame:HookScript("OnShow", frame.Refresh)
 	Widgets.Track(frame)
 	frame:Refresh()
 	return frame

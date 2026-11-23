@@ -1,4 +1,4 @@
--- parity_core.lua: actual core Options rows and two linked unit frames, with optional bright-grid Layout Mode, a fading toolbar, corner-aligned links, round 1 attach points (RENDER_CORE_POINT), the palette and outline (RENDER_CORE_PALETTE=1), the grid light mid-drag (RENDER_CORE_LIGHT=1 with mode), the game menu buttons (conveniences) and the round 1 Options rows.
+-- parity_core.lua: actual core Options rows and two linked unit frames (Frames unless RENDER_HUD_STYLE says otherwise), with optional bright-grid Layout Mode, a fading toolbar, corner-aligned links, round 1 attach points (RENDER_CORE_POINT), the palette and outline (RENDER_CORE_PALETTE=1), the grid light mid-drag (RENDER_CORE_LIGHT=1 with mode), the game menu buttons (conveniences) and the round 1 Options rows.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local U = dofile("Tools/regression/unitframes_env.lua")
@@ -8,7 +8,7 @@ local Load = dofile("Tools/regression/load_files.lua")
 return Common.Run(function()
 	local view = os.getenv("RENDER_CORE_PAGE") or "layout"
 	local saved = Gallery.Saved({ UnitFrames = {} })
-	saved.profiles.Default.HudStyle = { style = "frames" }
+	saved.profiles.Default.HudStyle = { style = (os.getenv("RENDER_HUD_STYLE") or "frames"):lower() }
 	local env, K = U.New(Common.ScreenOpts({
 		saved = saved,
 		setup = function(e)

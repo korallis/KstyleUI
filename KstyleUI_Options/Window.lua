@@ -36,6 +36,14 @@ local function Jumps()
 	return K.Store.Account().optionsSearchJump ~= false
 end
 
+local function Target(items)
+	for _, item in ipairs(items) do
+		if Window.Taking(item) and item.kind ~= "header" then
+			return item
+		end
+	end
+end
+
 local function RestyleText()
 	local scale = win:GetScale()
 	if not K.Store.Module("OptionsPresentation").readableText then win:SetScale(1) end
@@ -101,8 +109,8 @@ local function Render(keepOffset, reselect, pageChanged)
 			if account.optionsSearchMemory then
 				items = Window.Picks(items, account)
 			end
-			if Jumps() then
-				table.insert(items, 1, { kind = "note", label = L["Press Enter or click a result to go to it."] })
+			if Target(items) then
+				table.insert(items, 1, { kind = "note", label = L["Press Enter or click a result's name to go to it."] })
 			end
 		end
 	else
@@ -124,9 +132,11 @@ local function Render(keepOffset, reselect, pageChanged)
 	state.items = items
 	state.sections = state.query and {} or Model.Sections(items)
 	local calm = CalmLists()
+	local fade = calm and pageChanged == true and K.Motion.OneStyle()
 	content.revealLimit = calm and 0.45 or nil
 	if not keepOffset then content.flashIndex = nil end
-	content:SetData(items, keepOffset, not calm or pageChanged == true)
+	content:SetData(items, keepOffset, not calm or pageChanged == true and not fade)
+	if fade then K.Motion.Tween(content, "SetAlpha", 0, 1, K.Motion.Moment("page")) end
 	local folded = K.Store.Account().optionsRailFolded
 	local sections = K.Store.Account().optionsRailSections ~= false and not (folded and folded[state.page]) and state.sections or {}
 	if reselect then
@@ -207,6 +217,7 @@ end
 function Window.Refresh()
 	if win and win:IsShown() then
 		Render(true)
+		if preview.current and preview.current.boxes then preview.current:Refresh() end
 	end
 end
 
@@ -243,18 +254,22 @@ local function Select(id)
 	Render(false, true, changed)
 end
 
+local function Light(row, alpha)
+	if alpha > 0 and not row.flash then
+		row.flash = row:CreateTexture(nil, "BACKGROUND")
+		row.flash:SetAllPoints(row)
+		row.flash:SetColorTexture(Tokens.Color("white"))
+	end
+	if row.flash then
+		Widgets.Tint(row.flash, "accent", alpha)
+	end
+end
+
 local function Flash(list, alpha)
 	for _, row in ipairs(list.rows) do
-		local lit = row:IsShown() and row.index == list.flashIndex and alpha or 0
-		if lit > 0 and not row.flash then
-			row.flash = row:CreateTexture(nil, "BACKGROUND")
-			row.flash:SetAllPoints(row)
-			row.flash:SetColorTexture(Tokens.Color("white"))
-		end
-		if row.flash then
-			Widgets.Tint(row.flash, "accent", lit)
-		end
+		Light(row, row:IsShown() and row.index == list.flashIndex and alpha or 0)
 	end
+	Light(picker, list.flashIndex == 0 and alpha or 0)
 end
 
 local function Same(item, target)
@@ -268,18 +283,23 @@ end
 
 function Window.Jump(target)
 	Select(target.page)
-	if picker:IsShown() and picker.item.module == target.module and picker.item.key == target.key then return true end
-	for i, item in ipairs(state.items) do
-		if Same(item, target) then
-			content:ScrollToIndex(i, true, "TOP")
-			if Jumps() then
-				content.flashIndex = i
-				local duration, ease = K.Motion.Moment("highlight")
-				K.Motion.Tween(content, Flash, FLASH_ALPHA, 0, duration, ease)
+	local index
+	if picker:IsShown() and picker.item.module == target.module and picker.item.key == target.key then
+		index = 0
+	else
+		for i, item in ipairs(state.items) do
+			if Same(item, target) then
+				index = i
+				content:ScrollToIndex(i, true, "TOP")
+				break
 			end
-			return true
 		end
 	end
+	if index and Jumps() then
+		content.flashIndex = index
+		K.Motion.Tween(content, Flash, FLASH_ALPHA, 0, K.Motion.Moment("highlight"))
+	end
+	return index ~= nil or nil
 end
 
 function Window.Taking(item)
@@ -507,12 +527,8 @@ local function Build()
 			SetQuery(text)
 		end,
 		onEnter = function()
-			for _, item in ipairs(state.query and state.items or {}) do
-				if Window.Taking(item) and item.kind ~= "header" then
-					Window.GoTo(item)
-					return
-				end
-			end
+			local item = Target(state.items or {})
+			if item then Window.GoTo(item) end
 		end,
 	})
 	clear = Widgets.CloseButton(search, function()
@@ -588,7 +604,6 @@ local function Build()
 		ns.Changed()
 	end)
 	local ok = pcall(K.Callbacks.Register, "LayoutChanged", OWNER, function(_, key)
-		if preview.current and preview.current.boxes and win:IsShown() then preview.current:Refresh() end
 		if key == Pages.WINDOW_KEY then
 			local scale = win:GetScale()
 			if scale ~= state.scale then

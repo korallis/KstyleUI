@@ -1,9 +1,10 @@
--- test-options-calm-motion.lua: page cascades finish in 450 ms, search interrupts them, previews fade and a closing window reopens at its current alpha.
+-- test-options-calm-motion.lua: with One motion style off, page cascades finish in 450 ms, search interrupts them, previews fade and a closing window reopens at its current alpha.
 local O = dofile("Tools/regression/options_env.lua")
 local env, K, ns = O.New()
 local W = O.W
 K.Options.Open("General")
 W.Settle(env)
+K.Store.Account().motionOneStyle = false
 K.Options.Open("Profiles")
 K.Options.Open("General")
 local parts = ns.Window.Parts()
@@ -28,6 +29,7 @@ for _, row in ipairs(list.rows) do
 end
 parts.search:SetText("")
 parts.search:GetScript("OnTextChanged")(parts.search, true)
+K.Store.Account().motionOneStyle = nil
 W.Settle(env)
 local win = ns.Window.Frame()
 win:Close()

@@ -221,7 +221,7 @@ function Model.Search(pages, query)
 	if #terms == 0 then
 		return nil
 	end
-	if K.Store.Module("OptionsPresentation").synonyms then
+	if K.Store.Account().optionsSearchJump ~= false then
 		for i, term in ipairs(terms) do
 			terms[i] = Model.Words(term)
 		end
