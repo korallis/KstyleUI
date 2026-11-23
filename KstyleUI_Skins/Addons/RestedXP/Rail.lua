@@ -221,6 +221,7 @@ local function Plan(band)
 	local span = band.right - band.left
 	local widths, sum = {}, 0
 	for i, box in ipairs(boxes) do
+		RestedXP.Chrome.Chip(box, true)
 		widths[i] = math.min(span, (RestedXP.Chrome.ChipWidth(box) or Icons(box)) * Widgets.ScaleFactor(box))
 		sum = sum + widths[i]
 	end
@@ -820,7 +821,6 @@ function Dock(f, path, band)
 		end
 		local scale = Widgets.ScaleFactor(box)
 		local pixel = K.Scale.Pixel(1) / scale
-		RestedXP.Chrome.Chip(box, true)
 		local width, current = select(2, RestedXP.Chrome.ChipWidth(box)) or Icons(box), box:GetWidth()
 		if Plain(current) and math.abs(current - width) < pixel then
 			width = current

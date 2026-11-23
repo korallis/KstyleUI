@@ -587,16 +587,16 @@ end
 
 function Chrome.Chip(f, on)
 	on = on == true
+	local title = IsTable(f.title) and f.title
+	if title and title:IsShown() == on then
+		title:SetShown(not on)
+	end
 	if (state.chips[f] == true) == on then
 		return
 	end
 	state.chips[f] = on or nil
-	local title = f.title
-	if IsTable(title) then
-		title:SetShown(not on)
-		local heading = IsTable(title.text) and Parts.HeadingOf(Chrome.Caption(title.text))
-		if heading then heading.holder:SetShown(not on) end
-	end
+	local heading = title and IsTable(title.text) and Parts.HeadingOf(Chrome.Caption(title.text))
+	if heading then heading.holder:SetShown(not on) end
 	Chrome.IconInset(f)
 end
 

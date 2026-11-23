@@ -44,7 +44,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			for _, box in ipairs({ t, i }) do
 				assert(math.abs(guide.bottom - box.top - gap) <= px, what .. ": both boxes dock a small gap below the guide")
 			end
-			assert(math.abs(t.left - guide.left) <= px and math.abs(i.right - guide.right) <= px and math.abs(i.left - t.right - gap) <= px, what .. ": the boxes share the guide's edges and gutter")
+			assert(math.abs(t.left - guide.left) <= px and math.abs(i.right - guide.right) <= px and t.right < i.left, what .. ": the boxes dock as chips at the guide's outer edges")
 			assert(items.savePosition == false and targets.savePosition == false, what .. ": docked positions stay out of RestedXP's saves")
 		end
 		K.Modules.Enable("Skins")
