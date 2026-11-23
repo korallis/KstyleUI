@@ -20,6 +20,7 @@
 	<Script file="SlabStorm.lua"/>
 	<Script file="SlabTrackers.lua"/>
 	<Script file="SlabCrown.lua"/>
+	<Script file="SlabRanged.lua"/>
 	<Script file="Totems.lua"/>
 	<Script file="Bindings.lua"/>
 	<Script file="Keybind.lua"/>

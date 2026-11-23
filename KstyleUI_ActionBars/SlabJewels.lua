@@ -1,4 +1,4 @@
--- SlabJewels.lua: the Medallions hub's resource jewels: up to ten cut gems in gilt settings across the top arc of the rune ring, lit one per combo point (rogue, cat-form druid), holy power (paladin) or soul shard (warlock), igniting on a gain and draining on a spend, with the whole rune ring glowing in the resource's colour at the maximum; every lit layer is a one-point status bar fed the raw value, now or the value before, so the engine compares and Lua never reads a secret.
+-- SlabJewels.lua: the Medallions hub's resource jewels: up to ten cut gems in gilt settings across the top arc of the rune ring, lit one per combo point (rogue, cat-form druid) or holy power (paladin), igniting on a gain and draining on a spend, with the whole rune ring glowing in the resource's colour at the maximum; every lit layer is a one-point status bar fed the raw value, now or the value before, so the engine compares and Lua never reads a secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -18,10 +18,9 @@ local FLARE_RISE, FLARE_FALL, DRAIN, FADE = 0.03, 0.09, 0.18, 0.2
 local KINDS = {
 	combo = { power = "ComboPoints", token = "COMBO_POINTS", color = "jewelCombo", rim = "jewelComboRim", core = "jewelComboCore" },
 	holy = { power = "HolyPower", token = "HOLY_POWER", color = "jewelHoly", rim = "jewelHolyRim", core = "jewelHolyCore" },
-	shard = { power = "SoulShards", token = "SOUL_SHARDS", color = "jewelShard", rim = "jewelShardRim", core = "jewelShardCore" },
 }
-local CLASS_KIND = { ROGUE = "combo", DRUID = "combo", PALADIN = "holy", WARLOCK = "shard" }
-local POWER_IDS = { Energy = 3, ComboPoints = 4, SoulShards = 7, HolyPower = 9 }
+local CLASS_KIND = { ROGUE = "combo", DRUID = "combo", PALADIN = "holy" }
+local POWER_IDS = { Energy = 3, ComboPoints = 4, HolyPower = 9 }
 local NOW = { "halo", "rim", "gem", "flare", "core", "glint" }
 local FEEDS = {
 	{ known = { 20049, 20056, 20057, 20058, 20059 }, spells = { 20050 } },

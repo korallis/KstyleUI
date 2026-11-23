@@ -1,5 +1,6 @@
 -- _trackers.lua: RENDER_TRACKERS_FORM sets GetShapeshiftFormID (a warrior's 18 or 19, a rogue's 30) and RENDER_TRACKERS_SPEC the talents a paladin (holy, prot) or rogue (assassination, combat, subtlety) knows; RENDER_TRACKERS draws a warrior's, paladin's or rogue's crest trackers through the game's own feeds (Tools/regression/aura_slots.lua): steel (every piece known, nothing up), lit (every piece up, its timer part spent) or moment, the class's moment RENDER_TRACKERS_T seconds in (Trackers.END when unset): a warrior's target dodges and Overpower lights, it is spent, Bloodrage ignites Enrage round the rim, and Execute lights; a paladin's Judgement comes off cooldown, the old Judgement falls off the target and a new one lands, the Seal draining throughout; a rogue spends five points on Slice and Dice, Rupture runs out, and the off hand carries no poison. RENDER_TRACKERS_OFF=1 turns every tracker switch off first.
 local Slots = dofile("Tools/regression/aura_slots.lua")
+local Ranged = dofile("Tools/render/scenes/_ranged.lua")
 
 local Trackers = {}
 
@@ -24,6 +25,7 @@ local ICONS = {
 Trackers.END = 12
 
 function Trackers.Story(class)
+	if Ranged.Story(class) then return Ranged.Story(class) end
 	local story = os.getenv("RENDER_TRACKERS")
 	if not (story and story ~= "" and KNOWN[class]) then return nil end
 	return story, tonumber(os.getenv("RENDER_TRACKERS_T") or "") or Trackers.END
@@ -35,6 +37,7 @@ function Trackers.Install(env, class)
 	if not env._slotContainers then Slots.Install(env) end
 	env.AuraContainerSortMethod = env.AuraContainerSortMethod or { Default = 0, AuraInstanceIDOnly = 8 }
 	env.AuraContainerSortDirection = env.AuraContainerSortDirection or { Normal = 0, Reverse = 1 }
+	if Ranged.Story(class) then return Ranged.Install(env, class) end
 	local known = {}
 	for _, id in ipairs(KNOWN[class]) do known[id] = true end
 	local spec = os.getenv("RENDER_TRACKERS_SPEC")
@@ -75,6 +78,7 @@ end
 
 -- Play(env, K, ns, notes) puts the trackers in the story's state.
 function Trackers.Play(env, K, ns, notes)
+	if Ranged.Story(ns.class) then return Ranged.Play(env, K, ns, notes) end
 	local story, now = Trackers.Story(ns.class)
 	if os.getenv("RENDER_TRACKERS_OFF") == "1" then
 		K.Options.Write("ActionBars", "crestVengeance", false)

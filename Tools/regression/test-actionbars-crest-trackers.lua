@@ -71,8 +71,8 @@ local function Updating(frame)
 	return n
 end
 
--- Other classes: nothing at all.
-for _, class in ipairs({ "HUNTER", "MAGE", "SHAMAN", "PRIEST", "WARLOCK", "DRUID" }) do
+-- Other classes: nothing at all (a hunter, mage and warlock register their own rows, test-actionbars-crest-ranged).
+for _, class in ipairs({ "SHAMAN", "PRIEST", "DRUID" }) do
 	local env, K, ns = New(class, { 6673, 25289, 7384, 20271, 20154, 5171, 1943, 2842 })
 	assert(next(ns.SlabTrackers.state.forms) == nil and next(env._trackerEvents) == nil, class .. ": no tracker frame or event")
 	assert(ns.SlabJewels.state.feed == nil, class .. ": no aura-fed jewels")

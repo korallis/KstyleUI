@@ -1,4 +1,4 @@
--- test-actionbars-medallions-jewels.lua: the Medallions hub's resource jewels at 1920x1080, 2560x1440, 5120x1440 and 3840x2160: five gilt-set gems across the top of the rune ring for a rogue, a cat-form druid, a paladin and a warlock, none for other classes, a caster-form druid, under Frames or with Crest resource jewels off; each gem is a one-point status bar fed the raw value, so a secret value lights them without Lua comparing it; the count follows UnitPowerMax within the five-jewel arc, a zero max hides them, points moved to another target clear them, other powers leave them alone, and nothing listens for power without jewels to light.
+-- test-actionbars-medallions-jewels.lua: the Medallions hub's resource jewels at 1920x1080, 2560x1440, 5120x1440 and 3840x2160: five gilt-set gems across the top of the rune ring for a rogue, a cat-form druid and a paladin, none for a warlock (Soul Shards are bag items) or other classes, a caster-form druid, under Frames or with Crest resource jewels off; each gem is a one-point status bar fed the raw value, so a secret value lights them without Lua comparing it; the count follows UnitPowerMax within the five-jewel arc, a zero max hides them, points moved to another target clear them, other powers leave them alone, and nothing listens for power without jewels to light.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local COMBO, HOLY, SHARDS, ENERGY, MANA = 4, 9, 7, 3, 0
@@ -198,16 +198,10 @@ end
 
 do
 	local env, K, ns = New("WARLOCK", MANA)
-	assert(Shown(ns) == 5 and env._askedMax == SHARDS, "a warlock's jewels count soul shards")
+	K.Options.Write("ActionBars", "crestWisps", false)
 	env._points = 4
 	env.FireEvent("UNIT_POWER_FREQUENT", "player", "SOUL_SHARDS")
-	assert(Lit(ns) == 4, "soul shards light the jewels")
-	env._max = 0
-	env.FireEvent("UNIT_MAXPOWER", "player", "SOUL_SHARDS")
-	assert(Shown(ns) == 0, "a client without a soul shard power hides the jewels")
-	env._max = env.Secret(5)
-	env.FireEvent("UNIT_MAXPOWER", "player", "SOUL_SHARDS")
-	assert(Shown(ns) == 5, "a secret maximum keeps five jewels")
+	assert(Shown(ns) == 0 and env._askedMax ~= SHARDS, "Soul Shards are bag items on Forever, so a warlock's crest draws no jewel from a power")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
