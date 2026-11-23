@@ -33,6 +33,10 @@ local CLASSES = {
 	HUNTER = { art = "pipArrow", glowColor = "jewelHawk", count = 3, unit = "player", filter = "HELPFUL", spells = { 1310687, 1310785, 1310786 } },
 	BEAR = { art = "pipTalon", glowColor = "pipBearGlow", count = 5, unit = "target", filter = "HARMFUL|PLAYER", spells = { 1328617, 1328616, 414644, 1235826, 1235827 } },
 	STORM = { art = "pipStorm", glowColor = "pipStormGlow", count = 3, unit = "player", filter = "HELPFUL", spells = { 10432, 10431, 8134, 945, 905, 325, 324 } },
+	PALADIN = {
+		art = "pipShard", glowColor = "jewelHoly", count = 5, unit = "player", filter = "HELPFUL", spells = { 20050, 20925, 20927, 20928, 1239570, 1326084 },
+		known = { 20049, 20056, 20057, 20058, 20059, 20925, 20927, 20928, 1239570, 20177, 20179, 20180, 20181, 20182 },
+	},
 }
 
 local Pip = {}

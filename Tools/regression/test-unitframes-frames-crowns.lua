@@ -165,11 +165,16 @@ do
 	Clean(env, K, "learn")
 end
 
--- Other classes, and a caster-form druid, get no row.
-for _, class in ipairs({ "PALADIN", "WARLOCK" }) do
+-- Other classes, a paladin with none of Vengeance, Holy Shield or Reckoning, and a caster-form druid, get no row.
+for _, class in ipairs({ "WARLOCK" }) do
 	local env, K, ns = New(class)
 	assert(not ns.Resource.state.fed and next(ns.Pips.state.fed) == nil and not ns.Pips.state.watching, class .. " gets nothing and watches no spellbook")
 	Clean(env, K, class)
+end
+do
+	local env, K, ns = New("PALADIN", { known = false })
+	assert(not ns.Resource.state.fed and next(ns.Pips.state.fed) == nil, "a paladin without the talents gets no jewels")
+	Clean(env, K, "paladin without talents")
 end
 do
 	local env, K, ns = New("DRUID", { setup = function(e) e._units.player.powerType, e._units.player.powerToken = 0, "MANA" end })
