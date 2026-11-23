@@ -166,7 +166,7 @@ Every class's `seat = "cooldowns"` row also gets the shared families: the racial
 
 ## Ranged crest trackers
 
-`KstyleUI_ActionBars/SlabRanged.lua` registers a hunter's, mage's and warlock's rows with the [tracker lifecycle](#crest-trackers) and holds the builders SlabMedals has none for. Every seat has a choice for each build, pet state and level band; the first known choice shows, every known choice is built out of combat, and a warlock's shoulders and right foot switch on `UNIT_PET`. None of these classes has a form, stance or tank or healer spec on Forever (their kits for those are runes), so their crests change by talent, pet and level. The file returns at once for any other class, so nothing of it loads there. Every seat is a `Medals.Seat` name, and the foot perches are `Medals.FOOT` across.
+`KstyleUI_ActionBars/SlabRanged.lua` registers a hunter's, mage's and warlock's rows with the [tracker lifecycle](#crest-trackers) and holds the builders SlabMedals has none for. Every seat has a choice for each build, pet state and level band; the first known choice shows, every known choice is built out of combat, and a warlock's shoulders and right foot switch on `UNIT_PET` through `active`: the demon medal and Spell Lock are built once a summon is known, so a demon summoned in combat shows at once. None of these classes has a form, stance or tank or healer spec on Forever (their kits for those are runes), so their crests change by talent, pet and level. The file returns at once for any other class, so nothing of it loads there. Every seat is a `Medals.Seat` name, and the foot perches are `Medals.FOOT` across.
 
 | Class | Seat (switch) | Choices, first that applies | Fed by |
 | --- | --- | --- | --- |

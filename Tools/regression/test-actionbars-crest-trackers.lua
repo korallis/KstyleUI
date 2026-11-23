@@ -682,12 +682,12 @@ end
 
 -- A class with no rows does no tracker work; a stance swap reuses the prepared seats without asking the spellbook (review dd9bddac #13).
 do
-	local env, K, ns = New("HUNTER", {})
+	local env, K, ns = New("PRIEST", {})
 	local reads = 0
 	env.GetShapeshiftFormID = function() reads = reads + 1 end
 	env.FireEvent("SPELLS_CHANGED")
-	assert(reads == 0 and not ns.SlabTrackers.state.resting and ns.SlabTrackers.CLASSES.WARRIOR == nil, "a hunter reads no form, holds no rest watcher and loads no melee rows")
-	Clean(env, K, "hunter")
+	assert(reads == 0 and not ns.SlabTrackers.state.resting and ns.SlabTrackers.CLASSES.WARRIOR == nil, "a priest reads no form, holds no rest watcher and loads no melee rows")
+	Clean(env, K, "priest")
 end
 
 do

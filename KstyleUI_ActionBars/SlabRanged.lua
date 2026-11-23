@@ -552,7 +552,7 @@ if CLASS == "WARLOCK" then
 	local CURSES = { 702, 1108, 6205, 7646, 11707, 11708, 704, 7658, 7659, 11717, 1714, 11719, 440892, 1311676, 1311677, 1311680, 18223 }
 
 	local function Demon()
-		return (Out() or Medals.Known(SACRIFICE)) and Medals.Known(DEMONS)
+		return Out() or Medals.Known(SACRIFICE) ~= nil
 	end
 
 	local function SpellLock()
@@ -570,18 +570,18 @@ if CLASS == "WARLOCK" then
 
 	Trackers.Register("WARLOCK", {
 		{ key = "crestDemon", seat = "left", choices = {
-			{ build = Pet, known = Demon, feed = "aura", color = "jewelShard", spells = { 18789, 18790, 18791, 18792 } },
+			{ build = Pet, known = DEMONS, active = Demon, feed = "aura", color = "jewelShard", spells = { 18789, 18790, 18791, 18792 } },
 			{ feed = "aura", color = "jewelShard", spells = ARMORS },
 		} },
 		{ key = "crestHealthstone", seat = "right", choices = {
 			{ feed = "item", items = STONES, known = function() return Medals.Known(CREATE) or Have(STONES) and CREATE[#CREATE] end },
-			{ feed = "aura", color = "jewelShard", spells = ARMORS, known = function() return Demon() and Medals.Known(ARMORS) end },
+			{ feed = "aura", color = "jewelShard", spells = ARMORS, known = function() return Medals.Known(DEMONS) and Medals.Known(ARMORS) end, active = Demon },
 		} },
 		{ key = "crestStone", seat = "lowerLeft", feed = "enchant", slot = "MainHand", color = "schoolFire", known = { 17728, 17727, 2362, 17953, 17952, 17951, 6366 } },
 		{ key = "crestConflagrate", seat = "lowerRight", build = Jewel, feed = "cooldown", color = "schoolFire", known = { 1293818, 1293817, 18932, 18931, 18930, 17962 } },
 		{ key = "crestCurse", seat = "footLeft", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", color = "jewelShard", spells = CURSES },
 		{ key = "crestSpellLock", seat = "footRight", size = Medals.FOOT, feed = "cooldown", choices = {
-			{ known = SpellLock },
+			{ known = function() return Medals.Known({ 691 }) and (SpellLock() or 19244) end, active = SpellLock },
 			{ known = { 17926, 17925, 6789 } },
 		} },
 		{ key = "crestCooldowns", seat = "cooldowns", color = "jewelShard", families = { { spells = { 18288 } }, { spells = { 18708 } },

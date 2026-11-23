@@ -86,9 +86,12 @@ local function Seated(ns, key)
 	end
 end
 
+-- Shown(button, group) -> whether the engine plays the group, on the aura's showing or on each new aura.
 local function Shown(button, group)
-	for _, g in ipairs(button._shownAnimations or {}) do
-		if g == group then return true end
+	for _, list in ipairs({ button._shownAnimations or {}, button._assignedAnimations or {} }) do
+		for _, g in ipairs(list) do
+			if g == group then return true end
+		end
 	end
 	return false
 end
@@ -273,7 +276,7 @@ do
 end
 
 do
-	local env, K, ns = New("WARLOCK", { known = { 172, 980, 348, 18265, 688, 6201, 1120, 18094, 706, 702, 17962, 2362, 6789 }, bags = { [6265] = 2 } })
+	local env, K, ns = New("WARLOCK", { known = { 172, 980, 348, 18265, 688, 691, 6201, 1120, 18094, 706, 702, 17962, 2362, 6789 }, bags = { [6265] = 2 } })
 	local torments, wisps = Piece(ns, "crestTorments"), Piece(ns, "crestWisps")
 	assert(#torments.spires == 4 and torments.spires[4].socket:IsShown(), "Siphon Life's spire stands once the talent is known")
 	local corruption = torments.spires[1]
@@ -300,7 +303,7 @@ do
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(wisps.count == 5 and wisps.number:IsShown() and tostring(wisps.number:GetText()) == "9", "nine shards across the bags: five wisps and the exact count")
 	assert(wisps.full:IsShown(), "five or more shards: the rim keeps a faint violet light")
-	assert(select(2, Piece(ns, "crestDemon", 2)) and not Piece(ns, "crestDemon", 1), "no demon out: the left shoulder times Demon Armor")
+	assert(select(2, Piece(ns, "crestDemon", 2)) and not select(2, Piece(ns, "crestDemon", 1)), "no demon out: the left shoulder times Demon Armor, the demon medal ready behind it")
 	env._pet = { max = 1200, missing = 0 }
 	env.FireEvent("UNIT_PET", "player")
 	local demon, out = Piece(ns, "crestDemon", 1)
@@ -337,6 +340,23 @@ do
 	env._bags[6265] = 1
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(wisps.seats[1].come:IsPlaying() and wisps.seats[1].orbit:IsPlaying(), "the first shard gained with the crest awake flies in and circles at once")
+	Clean(env, K)
+end
+
+do
+	local env, K, ns = New("WARLOCK", { known = { 172, 688, 691, 706, 6201, 6789 } })
+	assert(select(2, Piece(ns, "crestDemon", 2)) and select(2, Piece(ns, "crestSpellLock", 2)), "no demon: armor on the left shoulder, Death Coil on the right foot")
+	env.SetCombat(true)
+	env._pet = { max = 1200, missing = 300 }
+	env._petSpells[19244] = true
+	env.FireEvent("UNIT_PET", "player")
+	local demon, out = Piece(ns, "crestDemon", 1)
+	assert(demon and out and demon.pet:IsShown() and demon.portrait._portrait == "pet", "a Felhunter summoned in combat shows its portrait and health at once")
+	assert(select(2, Piece(ns, "crestSpellLock", 1)), "and its Spell Lock takes the right foot in combat")
+	env._pet = nil
+	env.FireEvent("UNIT_PET", "player")
+	assert(select(2, Piece(ns, "crestDemon", 2)) and select(2, Piece(ns, "crestSpellLock", 2)), "the demon gone in combat: armor and Death Coil return")
+	env.SetCombat(false)
 	Clean(env, K)
 end
 
