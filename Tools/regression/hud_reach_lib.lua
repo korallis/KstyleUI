@@ -155,6 +155,9 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 		["actionbars.bar1/actionbars.hub"] = wantedStyle=="medallions" or nil,
 		["actionbars.bar1/databars.xp"] = wantedStyle=="medallions" or nil,
 		["actionbars.hub/databars.xp"] = wantedStyle=="medallions" or nil,
+		-- Fitted slabs: the docked player and target slabs' arms slide under the crest ring.
+		["actionbars.hub/unitframes.player"] = wantedStyle=="medallions" or nil,
+		["actionbars.hub/unitframes.target"] = wantedStyle=="medallions" or nil,
 	}
 	local failures, checked = {}, 0
 	local strata={WORLD=0,BACKGROUND=1,LOW=2,MEDIUM=3,HIGH=4,DIALOG=5,FULLSCREEN=6,FULLSCREEN_DIALOG=7,TOOLTIP=8}
@@ -199,6 +202,7 @@ function Reach.Run(wantedStyle, wantedLayout, wantedScreen, extra)
 	for _, style in ipairs({"frames", "medallions"}) do
 		if not wantedStyle or wantedStyle == style then
 			allowed["actionbars.bar1/actionbars.hub"],allowed["actionbars.bar1/databars.xp"],allowed["actionbars.hub/databars.xp"]=style=="medallions",style=="medallions",style=="medallions"
+			allowed["actionbars.hub/unitframes.player"],allowed["actionbars.hub/unitframes.target"]=style=="medallions",style=="medallions"
 			for _, layout in ipairs(wantedLayout and {wantedLayout} or {"DPS", "Tank", "Healer"}) do
 				choice.hudStyle, choice.layout = style, layout
 				if K.HudStyle.Current()~=style or K.Layout.Setting("preset")~=layout then assert(K.Setup.Apply(choice), "full HUD setup must apply") end

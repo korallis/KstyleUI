@@ -166,7 +166,7 @@ function Auras.SampleTile(parent)
 	over:SetAllPoints(tile.skin)
 	over:SetFrameLevel(tile.skin:GetFrameLevel() + 2)
 	local count = Widgets.Fitted(Widgets.FontString(over, "OVERLAY"))
-	count:SetPoint("TOPRIGHT", tile.skin, "TOPRIGHT", COUNT_INSET, COUNT_INSET)
+	count:SetPoint("TOPRIGHT", tile.skin, "TOPRIGHT", -COUNT_INSET, -COUNT_INSET)
 	count:SetJustifyH("RIGHT")
 	tile.count, tile.timer = count, Widgets.Fitted(Widgets.FontString(over, "OVERLAY"))
 	tile.badge = over:CreateTexture(nil, "BACKGROUND")
@@ -195,9 +195,9 @@ end
 local function PlaceCount(count, skin, style)
 	local point = style.auraCountPoint
 	local inset = Widgets.Snap(skin, COUNT_INSET)
-	local side = point == "TOPLEFT" and -inset or point == "TOPRIGHT" and inset or 0
+	local side = point == "TOPLEFT" and inset or point == "TOPRIGHT" and -inset or 0
 	count:ClearAllPoints()
-	count:SetPoint(point, skin, point, side + Off(skin, style.auraCountX), (point == "CENTER" and 0 or inset) + Off(skin, style.auraCountY))
+	count:SetPoint(point, skin, point, side + Off(skin, style.auraCountX), (point == "CENTER" and 0 or -inset) + Off(skin, style.auraCountY))
 	if point ~= "TOPRIGHT" or count.countPoint then
 		count.countPoint = point
 		count:SetJustifyH(point == "TOPLEFT" and "LEFT" or point == "TOPRIGHT" and "RIGHT" or "CENTER")
@@ -503,7 +503,7 @@ local function Dress(view, key, button, buttons)
 	over:SetAllPoints(skin)
 	over:SetFrameLevel(cooldown:GetFrameLevel() + 1)
 	local count = Widgets.Fitted(Widgets.FontString(over, "OVERLAY"))
-	count:SetPoint("TOPRIGHT", skin, "TOPRIGHT", COUNT_INSET, COUNT_INSET)
+	count:SetPoint("TOPRIGHT", skin, "TOPRIGHT", -COUNT_INSET, -COUNT_INSET)
 	count:SetJustifyH("RIGHT")
 	local timer = Widgets.Fitted(Widgets.FontString(over, "OVERLAY"))
 	entry.badge = over:CreateTexture(nil, "BACKGROUND")

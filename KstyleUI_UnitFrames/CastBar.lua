@@ -51,7 +51,7 @@ local LANDED_ALPHA, STOPPED_ALPHA = 0.6, 0.55
 local CAPTION_ICON_GAP = 7
 local FLASH_LEVEL = 2
 local LIT_ALPHA, SHADE_ALPHA = 0.6, 0.45
-local MEDAL_INSET, MEDAL_TEXT_PAD, MEDAL_CAP = 3, 5, 9
+local MEDAL_INSET, MEDAL_TEXT_PAD, MEDAL_CAP, RING_CLEAR = 3, 5, 9, 0.35
 local SPARK = { 227 / 255, 232 / 255, 238 / 255, 1 }
 local RANGE_STEP = 0.2
 local BATCH_GAP = 2
@@ -573,6 +573,8 @@ local function LayoutLine(cb, width, height, column)
 		bar:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
 	end
 	bar:SetSparkShown(false)
+	bar.keyline:Hide()
+	bar:SetTrackBacking(true)
 end
 
 local function LayoutCaption(cb, width, height)
@@ -677,8 +679,11 @@ local function LayoutMedal(cb, width, height, column)
 	Widgets.LayoutSlice(cb.slab, frame, select(3, Tokens.Texture("medUnitSlab")))
 	ShowLock(cb)
 	local inset, pad = Snap(cb, MEDAL_INSET), Snap(cb, MEDAL_TEXT_PAD)
-	local edge = cb.slab.texture == "medUnitSlabCap" and MEDAL_CAP or MEDAL_INSET
-	local barW, barH = math.max(0, width - 2 * edge), math.max(0, height - 2 * MEDAL_INSET)
+	local fit, spec = Settings.Module().fittedSlabs ~= false, ns.Geometry.SLAB[cb.kind]
+	local edge = cb.slab.texture == "medUnitSlabCap" and (fit and ns.Geometry.SLAB_FIT.cap or MEDAL_CAP) or MEDAL_INSET
+	local clear = fit and cb.inline == true and spec and spec.d and math.max(0, spec.d * RING_CLEAR - edge) or 0
+	local medalLeft = clear > 0 and spec.side == "LEFT"
+	local barW, barH = math.max(0, width - 2 * edge - clear), math.max(0, height - 2 * MEDAL_INSET)
 	local icon = cb.inline == true and Settings.Value(cb.kind, "castbarIcon") == true and barH > 0
 	local right = icon and ns.Geometry.SLAB[cb.kind].side == "LEFT"
 	if icon then
@@ -692,7 +697,7 @@ local function LayoutMedal(cb, width, height, column)
 	bar.opts.width, bar.opts.height = barW, barH
 	bar:Restyle()
 	bar:ClearAllPoints()
-	bar:SetPoint("TOPLEFT", frame, "TOPLEFT", Snap(cb, edge + (icon and not right and barH + MEDAL_INSET or 0)), -inset)
+	bar:SetPoint("TOPLEFT", frame, "TOPLEFT", Snap(cb, edge + (medalLeft and clear or 0) + (icon and not right and barH + MEDAL_INSET or 0)), -inset)
 	bar:SetSparkShown(false)
 	bar.keyline:Hide()
 	bar:SetTrackBacking(true)
@@ -1157,7 +1162,7 @@ function CastBars.Restyle(cb)
 		cb.bar:SetFillCursor(not cb.empty and Settings.Value(cb.kind, "castbarSpark"))
 	else
 		cb.bar:SetBarTexture(Settings.Value(cb.kind, "castbarTexture"))
-		cb.bar:SetInnerEdge(cb.mode ~= nil and cb.bar:FlatTexture(), "castEdge")
+		cb.bar:SetInnerEdge((cb.mode ~= nil or cb.line == true) and cb.bar:FlatTexture(), "castEdge")
 		cb.bar:SetFillCursor(cb.mode ~= nil and cb.kind == "player" and Settings.Value(cb.kind, "castbarSpark"))
 	end
 	Orient(cb)

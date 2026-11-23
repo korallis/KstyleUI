@@ -572,7 +572,7 @@ function modules.unitframes(opts)
 		saved = saved(opts, "UnitFrames", {
 			dangerEdge = os.getenv("RENDER_DANGER") ~= "previous", cleanLowRing = os.getenv("RENDER_DANGER") ~= "previous",
 			player = { portraitShape = "round" }, target = { portraitShape = "round", style = os.getenv("RENDER_TARGET_STYLE") },
-		}),
+		}, { "ActionBars" }),
 		setup = function(env)
 			shared(env, opts)
 			env._units.player = player
@@ -584,6 +584,10 @@ function modules.unitframes(opts)
 			env._units.targettarget = opts.boss and target and player or nil
 			env._comboPoints = opts.combo or spec.combo or 0
 			env._resting = os.getenv("RENDER_RESTING") == "1"
+			if os.getenv("RENDER_UNIT_STATUS") == "1" then
+				player.combat, player.leader, player.role = true, true, "DAMAGER"
+				if target then target.combat, target.marker = true, 8 end
+			end
 			if crown then
 				dofile("Tools/regression/aura_slots.lua").Install(env)
 				env.C_SpellBook = env.C_SpellBook or {}

@@ -979,7 +979,7 @@ local function OnSettingChanged(_, module, key)
 		ns.Resource.Restyle()
 	elseif REACTION_KEYS[key:match("^%a+")] then
 		ForEach(function(each) RefreshKind(each.kind, true) end)
-	elseif key == "auraLayout" or key == "slabCaps" or key == "stableSlabNames" or key == "singleSlabLevel" or key == "healthDecimal" or key == "healthDecimalBoss" or key == "healthDecimalTrim" or key == "healthDecimalPercentOnly" then
+	elseif key == "auraLayout" or key == "slabCaps" or key == "fittedSlabs" or key == "predictionTint" or key == "stableSlabNames" or key == "singleSlabLevel" or key == "healthDecimal" or key == "healthDecimalBoss" or key == "healthDecimalTrim" or key == "healthDecimalPercentOnly" then
 		K.Combat.Queue(function()
 			ForEach(function(each)
 				if each.active then Frames.Restyle(each) end
@@ -1066,8 +1066,9 @@ local function OnLayoutChanged(_, key, reason)
 			end
 		end
 	end
+	local bars = key == "actionbars.bar1" or key == "actionbars.bar2"
 	ForEach(function(uf)
-		if Settings.ELEMENTS[uf.kind] == key and uf.active then
+		if (Settings.ELEMENTS[uf.kind] == key or bars and (uf.kind == "player" or uf.kind == "target")) and uf.active then
 			Frames.Relayout(uf)
 		end
 	end)

@@ -133,7 +133,7 @@ for _, screen in ipairs({ { 5120, 1440 }, { 3456, 2234 }, { 1920, 1080 }, { 2560
 	end
 	local m = g.marker
 	check(m.x >= row.x + row.w + ns.Geometry.MARKER_GAP or m.x + m.w + ns.Geometry.MARKER_GAP <= row.x or m.y >= row.y + row.h or m.y + m.h <= row.y, tag .. ": raid marker clears debuffs and timers")
-	check(m.x >= g.medal.x + g.medal.w and m.y + m.h <= 0, tag .. ": raid marker clears the medallion and outboard unit slab")
+	check(m.x + m.w / 2 > g.medal.x + g.medal.w / 2 and m.y + m.h / 2 < g.medal.y + g.medal.h / 2, tag .. ": raid marker sits on the medallion's upper outer rim")
 	check(#env._errors == 0 and K.ErrorCount() == 0, tag .. ": no errors: " .. tostring(env._errors[1]))
 end
 _G.RENDER_SCREEN = nil

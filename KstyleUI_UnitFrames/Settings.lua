@@ -225,6 +225,8 @@ Settings.defaults = {
 	dangerEdge = true,
 	cleanLowRing = true,
 	slabCaps = true,
+	fittedSlabs = true,
+	predictionTint = true,
 	castbarOnFrame = true,
 	edit = "player",
 	player = Kind(true, {
@@ -765,6 +767,7 @@ function Settings.Snapshot(kind)
 	if s.healthDecimal and m.healthDecimalTrim == true then s.healthDecimal = s.healthDecimal == 2 and -2 or -1 end
 	s.healthValues = kind == "boss" and m.healthDecimalBoss == true and m.healthDecimalPercentOnly == false
 	s.singleSlabLevel = m.singleSlabLevel ~= false
+	s.fittedSlabs = m.fittedSlabs ~= false
 	s.textOptions = fonts.name.textFormat ~= "" or fonts.health.textFormat ~= "" or fonts.name.colorMode ~= "" or fonts.health.colorMode ~= ""
 	for key, default in pairs(d) do
 		if key ~= "fonts" and not LIVE[key] then
@@ -1584,6 +1587,10 @@ function Settings.Schema()
 			help = L["Keep the portrait level and leave room for names. Off repeats the level beside the name."] },
 		{ type = "toggle", key = "slabCaps", label = L["Forged slab ends"],
 			help = L["Ends each Medallions frame and cast bar in a cut steel cap. Off restores the rounded ends."] },
+		{ type = "toggle", key = "predictionTint", label = L["Heal prediction in the bar's colour"],
+			help = L["Draws incoming heals as a faint part of the health fill. Off restores the green segment."] },
+		{ type = "toggle", key = "fittedSlabs", label = L["Fitted slabs"],
+			help = L["Docks slabs into the crest, evens bars, colours power by type, sockets icons. Off: earlier slabs."] },
 		{
 			type = "toggle", key = "hideBlizzard", label = L["Hide Blizzard's unit frames"],
 			help = L["Hides Blizzard's player, target, focus, pet and boss frames that KstyleUI replaces."],

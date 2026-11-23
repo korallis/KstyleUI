@@ -248,7 +248,7 @@ assert(sample.spots.leader.x < sample.spots.role.x and sample.spots.pvp.y > samp
 assert(sample.pvpTimer and sample.pvpTimer:IsShown() and W.LastCall(sample.pvpTimer, "SetPoint")[2] == sample.icons.pvp, "the preview's timer sits by the badge")
 for _, key in ipairs({ "player.leaderPlace", "player.pvpPlace", "player.pvpTimerPlace" }) do write(key, "") end
 pane:Refresh()
-assert(sample.spots.leader.x > sample.spots.role.x and sample.spots.pvp.y == sample.geometry.glass.y and W.LastCall(sample.pvpTimer, "SetPoint")[2] == sample.icons.resting, "off restores the preview")
+assert(sample.spots.leader.x > sample.spots.role.x and sample.spots.pvp.y == sample.spots.role.y and W.LastCall(sample.pvpTimer, "SetPoint")[2] == sample.icons.resting, "off restores the preview")
 write("player.pvpTimer", false)
 assert(not player.pvpTimer:IsShown(), "the timer goes with its switch")
 for key, call in pairs(before.player) do

@@ -32,7 +32,19 @@ assert(centreX(player.icons.leader) > centreX(player.icons.role), "the player's 
 assert(centreX(target.icons.leader) < centreX(target.icons.role), "the target's icons run rightward from the panel's left end")
 local _, _, _, mx = player.marker:GetPoint(1)
 local g = player.geometry
-assert(math.abs(mx - g.marker.x) < 1 and (g.marker.x + g.marker.w <= g.medal.x or g.marker.x >= g.medal.x + g.medal.w), "the raid marker sits beside the medallion")
+local r = g.medal.w / 2
+assert(math.abs(mx - g.marker.x) < 1 and math.abs(g.marker.x + g.marker.w / 2 - (g.medal.x + r - r * math.sqrt(0.5))) < 0.5 and math.abs(g.marker.y + g.marker.h / 2 - (g.medal.y + r - r * math.sqrt(0.5))) < 0.5,
+	"Fitted slabs: the raid marker sits in a socket on the medallion's upper outer rim, opposite the level plaque")
+local rowY = select(5, player.icons.leader:GetPoint(1))
+assert(-rowY + player.icons.leader.socket:GetHeight() / 2 <= 0.5 and player.icons.leader.socket:GetWidth() > player.icons.leader:GetWidth(),
+	"Fitted slabs: each status icon sits in a socket resting on the slab's top edge, not across it")
+K.Options.Write("UnitFrames", "fittedSlabs", false)
+env.RunTimers()
+g = player.geometry
+assert(g.marker.x + g.marker.w <= g.medal.x or g.marker.x >= g.medal.x + g.medal.w, "off: the raid marker sits beside the medallion")
+assert(math.abs(select(5, player.icons.leader:GetPoint(1))) < 0.5 and not player.icons.leader.socket.on, "off: the icons centre on the top edge with no sockets")
+K.Options.Write("UnitFrames", "fittedSlabs", true)
+env.RunTimers()
 
 -- Leader: a plain answer shows or hides; a secret one goes through SetAlphaFromBoolean.
 env._units.player.leader = true
