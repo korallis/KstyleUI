@@ -708,6 +708,21 @@ do
 	Clean(env, K, "five-second icon")
 end
 
+-- In combat lockdown nothing new is built, even while auras read in the open; prepared seats still swap (review dd9bddac #15).
+do
+	local env, K, ns = New("ROGUE", { 5171 })
+	env.SetCombat(true)
+	local before = #env._slotContainers
+	env._known[1943] = true
+	env.FireEvent("SPELLS_CHANGED")
+	assert(#env._slotContainers == before and not Pieces(ns)[2], "learning Rupture in combat builds nothing yet")
+	env.SetCombat(false)
+	env.FireEvent("PLAYER_REGEN_ENABLED")
+	env.RunTimers()
+	assert(Pieces(ns)[2], "after combat Rupture's medal is built")
+	Clean(env, K, "lockdown")
+end
+
 -- Even pixels at four sizes.
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })
