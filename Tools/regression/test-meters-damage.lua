@@ -38,10 +38,10 @@ assert(blizzard:GetParent() ~= env.UIParent, "Blizzard's meter is hidden through
 assert(K.Safe.IsHidden(blizzard), "Safe holds Blizzard's meter")
 assert(M.Calls(blizzard, "Hide") == 0 and M.Calls(blizzard, "SetScript") == 0, "Blizzard's meter is never hidden or scripted directly")
 
--- Each row's track is the near-black button body, as the unit frames' tracks inside their glass.
+-- Each row's track is the empty-slot well, a shade above the card glass so a bar's length reads against it.
 do
-	local fr, fg, fb = K.Tokens.Color("barTrack")
-	assert(M.W.SameRGB(list.rows[1].bar.background, fr, fg, fb), "a meter row's track is the barTrack token")
+	local fr, fg, fb = K.Tokens.Color("slotWell")
+	assert(M.W.SameRGB(list.rows[1].bar.background, fr, fg, fb), "a meter row's track is the slotWell token")
 end
 
 -- The picture's card (test-meters-card.lua pins its numbers): a section cap (gem, tracked title, fading rule, the

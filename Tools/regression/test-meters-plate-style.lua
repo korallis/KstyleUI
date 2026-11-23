@@ -16,7 +16,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			local row = list.rows[1]
 			assert(math.abs(row.bar:GetHeight() - K.Widgets.Snap(row.bar, K.Tokens.Size("barHeight"))) < 0.01, style .. ": meter bars use the shared barHeight token without changing the nameplates")
 			assert(row.bar.texturePath == plate.health.texturePath, "use the same bar texture")
-			assert(row.bar.barEdge ~= nil and row.bar.backgroundName == "barTrack", "use the shared edge and track")
+			assert(row.bar.barEdge ~= nil and row.bar.backgroundName == "slotWell", "use the shared edge over a well that shows on the card")
 			assert(select(1, row.name:GetPoint(1)) == "TOPLEFT" and select(1, row.bar:GetPoint(1)) == "BOTTOMLEFT", "names sit above the bar")
 			local wash = M.Last(row.wash, "SetColorTexture")
 			assert(wash and wash[4] == 0.05, "the shared row hover wash uses rowHover")

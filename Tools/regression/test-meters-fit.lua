@@ -131,7 +131,8 @@ assert(minimum < list.holder:GetHeight() and RowsBottom(list) <= minimum - list.
 -- Full capacity fills the card with rows 18 units tall, 3 apart.
 Show(env, list.capacity + 3)
 assert(list.count == list.capacity and list.capacity == 3, "a long session fills three readable rows: " .. tostring(list.count))
-assert(W.Near(list.panel:GetHeight(), list.holder:GetHeight()), "a full list fills the holder: " .. tostring(list.panel:GetHeight()))
+local fitted = K.Widgets.Snap(list.panel, list:Top()) + 3 * (list.rowHeight + list.spacing) - list.spacing + list.pad
+assert(W.Near(list.panel:GetHeight(), fitted) and fitted <= list.holder:GetHeight(), "a full list ends under its last row, no empty band: " .. tostring(list.panel:GetHeight()))
 assert(RowsBottom(list) <= list.panel:GetHeight() - list.pad + 0.01, "the last row ends inside the card")
 local same = { list.title:GetPoint(1) }
 assert(same[2] == title[2] and W.Near(same[4], title[4]) and W.Near(same[5], title[5]), "the title stays put as rows come")
@@ -145,7 +146,8 @@ assert(TopAnchored(list), "still hung from the top")
 -- No source: the note sits inside the card.
 Show(env, 0)
 assert(list.count == 0 and list.note:IsShown(), "an empty session shows its note")
-assert(W.Near(list.panel:GetHeight(), minimum), "an empty meter keeps the three-row minimum")
+assert(W.Near(list.panel:GetHeight(), K.Widgets.Snap(list.panel, list:Top()) + list.rowHeight + list.pad), "an empty meter fits its note in one row, no blank box")
+assert(list.note:GetTop() <= list.panel:GetTop() - K.Widgets.Snap(list.panel, list:Top()) + 0.01, "the note sits under the heading")
 
 -- A holder too short for one row: the card never spills past it.
 local fullHeight = list.holder:GetHeight()
@@ -172,7 +174,7 @@ assert(list.capacity == 0 or RowsBottom(list) <= list.panel:GetHeight() - list.p
 assert(#env._errors == 0 and K.ErrorCount() == 0, "fitting raises no errors")
 
 -- On a high-density screen a unit is several pixels while the border stays one: a row never falls below its minimum
--- and the card still fills its holder.
+-- and the card still ends under its last row inside its holder.
 do
 	local hiEnv, hiK, hiNs = M.New({ width = 3456, height = 2234, game = function(e) e._group = { raid = false, size = 2 } end })
 	hiEnv._session = Session(30)
@@ -184,7 +186,8 @@ do
 		hi.holder:SetHeight(height)
 		Show(hiEnv, 30)
 		assert(hi.rows[1].frame:GetHeight() >= hi:MinRow() - 0.01, height .. ": a row is never shorter than its minimum, got " .. tostring(hi.rows[1].frame:GetHeight()) .. " for " .. hi:MinRow())
-		assert(W.Near(hi.panel:GetHeight(), height), height .. ": the card fills its holder")
+		local fitted = hi.panel:GetHeight()
+		assert(fitted <= height + 0.01 and height - fitted < hi.rowHeight + hi.spacing, height .. ": the card ends under its last row, inside its holder: " .. tostring(fitted))
 		assert(RowsBottom(hi) <= hi.panel:GetHeight() - hi.pad + 0.01, height .. ": the last row ends inside the card")
 	end
 end
