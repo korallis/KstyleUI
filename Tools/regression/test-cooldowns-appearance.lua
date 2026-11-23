@@ -91,7 +91,7 @@ local utilityRow = ns.Row.New(K.Scale.Root(), "utility", ns.Settings.current.uti
 utilityRow:SetCount(1)
 assert(utilityRow.icons[1].countdown:GetFont() == K.Tokens.Font("timer"), "the utility timers read in the timer role")
 assert(engine.Cooldown:GetCountdownFontString():GetFont() == K.Tokens.Font("timer") and icon.countdown:GetFont() == K.Tokens.Font("number"), "tracked timers take the medium, the essential row keeps the number role")
-assert(#W.Calls(utility, "ClearAllPoints") == 0 and #W.Calls(utility, "SetPoint") == 0, "the reskin leaves utility countdown anchors to the engine")
+assert(#W.Calls(utility, "ClearAllPoints") == 0 and #W.Calls(utility, "SetPoint") == 1, "the reskin leaves utility countdown anchors to the engine's centring")
 
 local Geometry = dofile("Tools/regression/geometry.lua")
 for _, wrap in ipairs({ "up", "down" }) do

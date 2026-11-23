@@ -14,7 +14,7 @@ local PLATES = {
 	{ token = "nameplate1", x = 300, y = 220, unit = { name = "Riverglade Crocolisk", health = 864, maxHealth = 1540, level = 38, reaction = 2, canAttack = true, threat = 3 } },
 	{ token = "nameplate2", x = 300, y = 400, unit = { name = "Riverglade Snapper", health = 1420, maxHealth = 1540, level = 37, reaction = 2, canAttack = true, threat = 0 } },
 	{ token = "nameplate3", x = 760, y = 220, unit = { name = "Bloodtalon Matriarch", health = 29800, maxHealth = 48000, level = 40, classification = "elite", reaction = 2, canAttack = true, threat = 2, raid = 8 } },
-	{ token = "nameplate4", x = 760, y = 400, unit = { name = "Leduc", health = 3100, maxHealth = 3400, level = 60, reaction = 5, canAttack = false, isPlayer = true, class = "PALADIN" } },
+	{ token = "nameplate4", x = 760, y = 400, unit = { name = "Leduc", health = 3100, maxHealth = 3400, level = 60, reaction = 5, canAttack = false, isPlayer = true, class = "PALADIN", race = "Human", sex = 3 } },
 }
 
 local function place(env, base, x, y)
