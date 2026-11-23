@@ -518,7 +518,8 @@ function Routes.ShowSteps(road)
 		stepRows[i] = text
 		local amount = stepAmounts[i] or Text(stepChild, "number", 13)
 		stepAmounts[i] = amount
-		local label, to = nil, leg.kind == "walk" and i == #rows and target.name ~= "" and target.name or leg.to ~= "" and leg.to or Roads.Label(road.graph, leg.node)
+		local label
+		local to = leg.kind == "walk" and i == #rows and target.name ~= "" and target.name or leg.to ~= "" and leg.to or Roads.Label(road.graph, leg.node)
 		if leg.kind == "flight" then label = string.format(L["Flight from %s to %s"], leg.from, to)
 		elseif leg.kind == "boat" then label = string.format(L["Boat to %s"], to)
 		elseif leg.kind == "zeppelin" then label = string.format(L["Zeppelin to %s"], to)
