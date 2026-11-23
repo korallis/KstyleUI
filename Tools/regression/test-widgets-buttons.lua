@@ -466,6 +466,19 @@ do
 	local first, last = tabs.buttons[1], tabs.buttons[4]
 	assert(W.Near(first.w, last.w), "equal widths")
 	assert(W.Near(tabs:GetWidth(), K.Scale.Snap(400)), "the strip is the given width")
+	-- A strip too narrow for its labels (at Text size 130%) shrinks them only while it lays out narrow: the Options picker lays out
+	-- at its control width, then wraps into the full row, where the labels take their own size again.
+	_, K = W.New({ setup = function(e) e._textWidth = function(text, _, points) return #text * points * 0.6 end end })
+	assert(K.Theme.SetFontScale(1.3))
+	tabs = K.Widgets.Tabs(K.Scale.Root(), { tabs = TABS, width = 400 })
+	local _, size = tabs.buttons[1].label:GetFont()
+	tabs.opts.width = 120
+	tabs:Layout()
+	tabs.opts.width, tabs.opts.wrap = 600, true
+	tabs:Layout()
+	for _, tab in ipairs(tabs.buttons) do
+		assert(select(2, tab.label:GetFont()) == size, "a wrapped strip draws " .. tab.label:GetText() .. " at its own size, not the narrow pass's")
+	end
 end
 
 print("widgets buttons ok")

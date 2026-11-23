@@ -59,14 +59,39 @@ local function Picked(K, cards, value, what)
 	end
 end
 
--- Labels(strip): the strip's shown tab labels, left to right.
-local function Labels(strip)
-	local list = {}
-	for _, tab in ipairs(strip.buttons) do
-		if tab:IsShown() then list[#list + 1] = tab.label end
+-- Styles(K, panel, what): the HUD style step's cards and its Look and Controls rows, checked as drawn.
+local function Styles(K, panel, what)
+	local bottom
+	for key, card in pairs(panel.styleCards) do
+		local pad = K.Widgets.Snap(card, K.Tokens.Size("gapLarge"))
+		for _, text in ipairs({ card.title, card.note }) do
+			assert(text:IsVisible() and (text:GetText() or "") ~= "" and Inside(text, card), what .. ": the " .. key .. " card shows its title and note inside the card")
+		end
+		local picture = card.picture
+		assert(picture:IsVisible() and picture:GetTexture() and Inside(picture, card), what .. ": the " .. key .. " card shows its picture inside the card")
+		assert(picture:GetTop() <= card.note:GetBottom() + SLACK, what .. ": the " .. key .. " picture sits under its note; refit the cards when the window resizes")
+		for side, gap in pairs({ left = picture:GetLeft() - card:GetLeft(), right = card:GetRight() - picture:GetRight(), bottom = picture:GetBottom() - card:GetBottom() }) do
+			assert(math.abs(gap - pad) <= SLACK, what .. ": the " .. key .. " picture fills its card to one pad on the " .. side .. ", got " .. gap .. " for " .. pad)
+		end
+		bottom = bottom or picture:GetBottom()
+		assert(math.abs(picture:GetBottom() - bottom) <= SLACK, what .. ": both HUD style pictures share one frame")
 	end
-	table.sort(list, function(a, b) return a:GetLeft() < b:GetLeft() end)
-	return list
+	for _, strip in ipairs({ panel.lookTabs, panel.padTabs }) do
+		assert(strip:IsVisible(), what .. ": the Look and Controls rows show")
+		local previous
+		for _, tab in ipairs(strip.buttons) do
+			if tab:IsShown() then
+				local label = tab.label
+				assert(Inside(tab, strip) and label:GetLeft() >= strip:GetLeft() - SLACK and label:GetRight() <= strip:GetRight() + SLACK,
+					what .. ": the \"" .. label:GetText() .. "\" tab stays inside its strip; fit the tabs to their labels or give them a second row")
+				if previous and math.abs(previous:GetTop() - label:GetTop()) < 1 then
+					assert(label:GetLeft() - previous:GetRight() >= K.Tokens.Size("gapSmall") - SLACK,
+						what .. ": \"" .. previous:GetText() .. "\" and \"" .. label:GetText() .. "\" keep a gap; fit the tabs to their labels or shrink them")
+				end
+				previous = label
+			end
+		end
+	end
 end
 
 for _, case in ipairs({ { "enUS", 1920, 1080 }, { "deDE", 1920, 1080 }, { "deDE", 5120, 1440 }, { "frFR", 1920, 1080 }, { "esES", 2560, 1440 }, { "zhCN", 1920, 1080 } }) do
@@ -81,32 +106,12 @@ for _, case in ipairs({ { "enUS", 1920, 1080 }, { "deDE", 1920, 1080 }, { "deDE"
 		Settle(env)
 		local what = label .. ", " .. style .. " picked"
 		Picked(K, panel.styleCards, style, what .. ", HUD style step")
-		local bottom
-		for key, card in pairs(panel.styleCards) do
-			local pad = K.Widgets.Snap(card, K.Tokens.Size("gapLarge"))
-			for _, text in ipairs({ card.title, card.note }) do
-				assert(text:IsVisible() and (text:GetText() or "") ~= "" and Inside(text, card), what .. ": the " .. key .. " card shows its title and note inside the card")
-			end
-			local picture = card.picture
-			assert(picture:IsVisible() and picture:GetTexture() and Inside(picture, card), what .. ": the " .. key .. " card shows its picture inside the card")
-			assert(picture:GetTop() <= card.note:GetBottom() + SLACK, what .. ": the " .. key .. " picture sits under its note")
-			for side, gap in pairs({ left = picture:GetLeft() - card:GetLeft(), right = card:GetRight() - picture:GetRight(), bottom = picture:GetBottom() - card:GetBottom() }) do
-				assert(math.abs(gap - pad) <= SLACK, what .. ": the " .. key .. " picture fills its card to one pad on the " .. side .. ", got " .. gap .. " for " .. pad)
-			end
-			bottom = bottom or picture:GetBottom()
-			assert(math.abs(picture:GetBottom() - bottom) <= SLACK, what .. ": both HUD style pictures share one frame")
-		end
-		for _, strip in ipairs({ panel.lookTabs, panel.padTabs }) do
-			assert(strip:IsVisible(), what .. ": the Look and Controls rows show")
-			local labels = Labels(strip)
-			assert(#labels >= 3, what .. ": every tab label draws")
-			local first, last = labels[1], labels[#labels]
-			assert(first:GetLeft() >= strip:GetLeft() - SLACK and last:GetRight() <= strip:GetRight() + SLACK,
-				what .. ": \"" .. first:GetText() .. "\" and \"" .. last:GetText() .. "\" stay inside their strip; fit the tabs to their labels")
-			for i = 2, #labels do
-				local a, b = labels[i - 1], labels[i]
-				assert(b:GetLeft() - a:GetRight() >= K.Tokens.Size("gapSmall") - SLACK, what .. ": \"" .. a:GetText() .. "\" and \"" .. b:GetText() .. "\" keep a gap; fit the tabs to their labels or shrink them")
-			end
+		Styles(K, panel, what)
+		-- The window resized on this step, to the smallest size the settings offer and back.
+		for _, scale in ipairs({ 0.65, 1 }) do
+			K.Layout.Set("setup.window", "scale", scale)
+			Settle(env)
+			Styles(K, panel, what .. ", window at " .. scale)
 		end
 		K.Setup.Go(3)
 		Settle(env)
