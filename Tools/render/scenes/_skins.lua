@@ -117,6 +117,13 @@ function Skins.Scene(key)
 		saved = Gallery.Saved(modules),
 		setup = function(env)
 			Gallery.Setup(env)
+			-- The game's CreateColor, for the lit glass on skinned bars. Not for the loot rolls: it would light the timer
+			-- mirror's shade, which sits on Blizzard's fractional loot frame where pixel_allow.tsv may not grow (LEE-5882).
+			if key ~= "lootrolls" then
+				env.CreateColor = function(r, g, b, a)
+					return { r = r, g = g, b = b, a = a }
+				end
+			end
 			if entry.tooltip then
 				dofile("Tools/regression/tooltips_env.lua").Blizzard(env)
 			end
