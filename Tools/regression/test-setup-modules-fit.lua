@@ -22,6 +22,19 @@ for _, case in ipairs({ { "enUS", 1920, 1080 }, { "frFR", 2560, 1440 }, { "enUS"
 		end
 	end
 	assert(clipped == 30, label .. ": every module shows its name and note, got " .. clipped .. " lines")
+	if locale == "enUS" then
+		local rows = {}
+		for pass = 1, 2 do
+			for _, item in ipairs(scene.items) do
+				local clip = item.kind == "text" and item.clip
+				if clip and (item.rect[1] < clip[1] + clip[3] / 2) == (pass == 1) then
+					local y = string.format("%.1f", item.rect[2])
+					rows[y] = rows[y] or pass == 1
+					assert(rows[y], label .. ": \"" .. item.text .. "\" sits in line with a row of the first column")
+				end
+			end
+		end
+	end
 	collectgarbage("collect")
 end
 print("setup modules fit ok")

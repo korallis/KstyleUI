@@ -204,6 +204,10 @@ K.Options.Write("UnitFrames", "boss.style", "lumen")
 K.Options.Write("UnitFrames", "edit", "boss")
 settle()
 assert(preview.views.boss.geometry.form == "slab", "the boss sample is a Medallions slab")
+do
+	local portrait = preview.views.boss.medallion.portrait
+	assert(portrait._state.Texture ~= nil or env._portraits[portrait] == "player", "the slab sample's medallion shows a portrait, not an empty disc")
+end
 
 -- The Frames Lumen preview: the vitals line with its sample values and cast line, the sigil with its level line and
 -- its sockets centred under it, and the boss card with its section cap.
