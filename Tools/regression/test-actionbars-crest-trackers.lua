@@ -630,6 +630,23 @@ do
 	Clean(env, K, "foot pips")
 end
 
+-- Calm crest at rest calms the trackers' bursts too, Lua's and the engine's (review dd9bddac #12, #778 4).
+do
+	local env, K, ns = New("WARRIOR", { 6673, 7384 })
+	local shout, opening = Pieces(ns)[1], Pieces(ns)[2]
+	local resting = true
+	ns.Slab.Resting = function() return resting end
+	ns.SlabMedals.Rest()
+	opening.flare.play:Stop()
+	ns.SlabMedals.Fire(opening)
+	assert(not opening.flare.play:IsPlaying(), "at rest a strike becoming usable does not burst")
+	assert(shout.lit.flareGate:GetAlpha() == 0, "and an aura's engine-played burst is held back")
+	resting = false
+	ns.SlabMedals.Rest()
+	assert(shout.lit.flareGate:GetAlpha() == 1, "awake, bursts play again")
+	Clean(env, K, "rest bursts")
+end
+
 -- Even pixels at four sizes.
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })
