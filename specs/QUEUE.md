@@ -669,3 +669,4 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - Polish batch F (leftover real rows) dispatched.
 - Merged #772 (Medallions UF fitted slabs, rivets).
 - Merged #773 (polish E). RestedXP hotfix told to rebase.
+- #775 RestedXP 4.11.39 hotfix green; review dispatched.
