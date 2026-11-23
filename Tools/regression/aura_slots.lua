@@ -5,7 +5,8 @@
 -- interpolation when the same aura changes and Immediate when one is assigned or cleared, and shown from min. The
 -- button must own the bar (Blizzard_AuraContainerUtil.lua:311-333) and refuses addon calls while auras are secret
 -- (DenyTaintedAccessWhenAurasAreSecret). A container feeds nothing until SetEnabled(true). A button plays the groups
--- AddAuraShownAnimation gave it when its aura appears and stops them when it goes.
+-- AddAuraShownAnimation gave it when its aura appears and stops them when it goes, and restarts the groups
+-- AddAuraAssignedAnimation gave it whenever a different aura is assigned (Blizzard_CustomAuraButton.lua:684-691).
 --
 --   local Slots = dofile("Tools/regression/aura_slots.lua")
 --   Slots.Install(env)                                   -- in an env's setup, before the addon loads
@@ -108,6 +109,15 @@ function Slots.Show(env, c, slot, aura)
 		if b._durationBar then
 			b._durationBar[1]:SetTimerDuration(timed or { start = 0, finish = 0 }, 0, b._durationBar[2].direction)
 		end
+		if aura ~= slot.assigned then
+			slot.assigned = aura
+			for _, group in ipairs(b._assignedAnimations or {}) do
+				group:Stop()
+				if aura then
+					group:Play()
+				end
+			end
+		end
 		local was = slot.frame:IsShown()
 		slot.frame:SetShown(aura ~= nil)
 		for _, group in ipairs(slot.frame._shownAnimations or {}) do
@@ -129,18 +139,21 @@ end
 local function Button(env, c, button)
 	-- AddAuraShownAnimation: the engine plays the group when the slot's aura appears and stops it when it goes
 	-- (Blizzard_CustomAuraButton.lua:327-337, 694-705); its animations must target the button or a descendant.
-	button._shownAnimations = {}
-	function button.AddAuraShownAnimation(_, group)
-		Restricted(env)
-		assert(Owns(button, group:GetParent()), "bad object in function call (must be the owner or a direct or indirect descendant of owner)")
-		table.insert(button._shownAnimations, group)
-	end
-	function button.RemoveAuraShownAnimation(_, group)
-		Restricted(env)
-		for i, added in ipairs(button._shownAnimations) do
-			if added == group then
-				table.remove(button._shownAnimations, i)
-				return
+	for _, kind in ipairs({ "Shown", "Assigned" }) do
+		local list = {}
+		button["_" .. kind:lower() .. "Animations"] = list
+		button["AddAura" .. kind .. "Animation"] = function(_, group)
+			Restricted(env)
+			assert(Owns(button, group:GetParent()), "bad object in function call (must be the owner or a direct or indirect descendant of owner)")
+			table.insert(list, group)
+		end
+		button["RemoveAura" .. kind .. "Animation"] = function(_, group)
+			Restricted(env)
+			for i, added in ipairs(list) do
+				if added == group then
+					table.remove(list, i)
+					return
+				end
 			end
 		end
 	end

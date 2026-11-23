@@ -630,6 +630,18 @@ do
 	Clean(env, K, "foot pips")
 end
 
+-- A different aura in a shown medal flares again, as an Aspect-to-Aspect swap does (#778 3).
+do
+	local env, K, ns = New("WARRIOR", { 6673 })
+	local lit = Pieces(ns)[1].lit
+	Slots.Set(env, "player", { { id = 6673, count = 0 } })
+	assert(lit.flare.play:IsPlaying(), "the first shout flares")
+	lit.flare.play:Stop()
+	Slots.Set(env, "player", { { id = 5242, count = 0 } })
+	assert(lit:IsShown() and lit.flare.play:IsPlaying(), "another shout in the shown medal flares again")
+	Clean(env, K, "assigned flare")
+end
+
 -- Calm crest at rest calms the trackers' bursts too, Lua's and the engine's (review dd9bddac #12, #778 4).
 do
 	local env, K, ns = New("WARRIOR", { 6673, 7384 })
