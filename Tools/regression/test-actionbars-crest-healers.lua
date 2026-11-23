@@ -248,6 +248,14 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- The priest's rim knows every rank of the race spells it lists: Dark Sacrifice's five and Contingency Plan's five.
+for _, rank in ipairs({ 1277328, 1277640 }) do
+	local env, K, ns = New("PRIEST", { rank, 10947 })
+	local rim = Tracker(ns, "PRIEST").built.cooldowns
+	assert(rim and rim.lit.container._slots.lit.candidates.includeSpellIDs[rank], "a priest knowing only rank " .. rank .. " gets the rim watching it")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 -- Clearcasting's leaves unfurl when it lights: a group the engine plays as the aura shows, at Full only. (Forever
 -- has no hidden-aura animation, so the leaves cannot scatter as it is spent.)
 do
