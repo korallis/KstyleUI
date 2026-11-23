@@ -70,6 +70,8 @@ for _, live in ipairs({ true, false }) do
 		end
 		local r = assert(Geometry.ScaledRect(glass, env.UIParent, root))
 		assert(math.abs(guide.bottom - r.top - gap) <= 2 * px, string.format("%s: the %s box docks a small gap under the guide's card, got %.2f", what, which, guide.bottom - r.top))
+		local edge = which == "targets" and r.left - guide.left or r.right - guide.right
+		assert(math.abs(edge) <= 0.01, string.format("%s: the %s chip's glass meets the guide's %s edge, got %.3f", what, which, which == "targets" and "left" or "right", edge))
 		assert(box.savePosition == false, what .. ": and stays out of RestedXP's saved places while docked")
 	end
 
@@ -129,5 +131,8 @@ end
 rawset(_G, "RENDER_RXP_RELEASE", "4.11.39")
 local R = dofile("Tools/render/scenes/_restedxp.lua").Build()
 assert(R.windows.targets and R.windows.report == nil and R.windows.splits == nil, "the RestedXP gallery builds on 4.11.39")
+local _, itemParts = Fake.Box(R.rxp, "items")
+local _, targetParts = Fake.Box(R.rxp, "targets")
+assert(itemParts.buttonList[1]:GetWidth() == targetParts.enemyTargetButtons[1]:GetWidth(), "the gallery's item buttons keep RestedXP's 25 units, as its target buttons, got " .. tostring(itemParts.buttonList[1]:GetWidth()))
 
 print("skins restedxp 4.11.39 ok")
