@@ -723,6 +723,24 @@ do
 	Clean(env, K, "lockdown")
 end
 
+-- Under Frames a pet's cooldown family keeps a slot of its own in the cooldown medal (#778 2).
+do
+	local env, K, ns = New("HUNTER", { 3045 }, { frames = true })
+	ns.SlabTrackers.Register("HUNTER", { { key = "crestCooldowns", seat = "cooldowns", color = "gilt",
+		families = { { spells = { 3045 } }, { spells = { 19574 }, unit = "pet" } } } })
+	ns.SlabTrackers.Update()
+	local medal
+	for _, piece in pairs(ns.SlabTrackers.state.form.pieces) do
+		if piece.spec.key == "crestCooldowns" then medal = piece end
+	end
+	local pet
+	for _, lit in ipairs(medal and medal.lits or {}) do
+		pet = pet or lit.container and lit.container._unit == "pet"
+	end
+	assert(pet, "Bestial Wrath's pet slot survives under Frames")
+	Clean(env, K, "frames pet family")
+end
+
 -- Even pixels at four sizes.
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })
