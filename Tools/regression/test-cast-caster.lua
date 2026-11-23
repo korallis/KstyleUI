@@ -68,9 +68,15 @@ do
 	env._cooldowns[PUMMEL] = { isActive = true, isOnGCD = false, startTime = 0, duration = 5, isEnabled = true }
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	assert(not mark:IsShown(), "an interrupt back only after the cast ends gives no mark")
+	local wait = assert(plate.castWait, "#747 review 4: an interrupt back after the cast ends still shows its time left")
+	assert(tostring(W.LastCall(wait, "SetText")[1]) == "4" and wait:GetAlpha() == 1, "the whole seconds left, 3.5 s rounded up")
+	env._time = 2.6
+	env.RunTimers()
+	assert(tostring(W.LastCall(wait, "SetText")[1]) == "3", "and it counts down")
+	env._time = 1.5
 	env._cooldowns[PUMMEL] = nil
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
-	assert(not mark:IsShown(), "Pummel ready again: the mark goes")
+	assert(not mark:IsShown() and W.LastCall(wait, "SetText")[1] == "", "Pummel ready again: the mark and the time go")
 
 	-- Who interrupted it, in their class colour; the player's own kick says YOU.
 	env.FireEvent("UNIT_SPELLCAST_INTERRUPTED", "nameplate1", "cast-guid", 133, "Player-2")
@@ -85,10 +91,16 @@ do
 	env.FireEvent("UNIT_SPELLCAST_INTERRUPTED", "nameplate1", "cast-guid", 133, env.Secret("Player-2"))
 	clean(env, K, "nameplates: a secret interrupter GUID goes through the GUID APIs")
 
-	-- The player's Spell target option keeps its own text; off clears the who text and the name's share.
+	-- #747 review 8: with the old Spell target option on too, its place gets the class colour and YOU.
 	K.Options.Write("Nameplates", "cast.showTarget", true)
 	N.Cast(env, "nameplate1", { name = "Shadow Bolt", text = "Shadow Bolt", texture = 1, notInterruptible = false })
-	assert(W.LastCall(who, "SetText")[1] == "", "Spell target on: the who text steps aside")
+	assert(W.LastCall(plate.castName, "SetText") and not W.LastCall(plate.castName, "SetFormattedText"), "Spell target with the name: the name keeps only the spell")
+	assert(plain(env, W.LastCall(who, "SetText")[1]) == "Valerin" and who:IsShown(), "and the target shows class coloured on the line under it")
+	K.Options.Write("Nameplates", "cast.targetPlace", "RIGHT")
+	N.Cast(env, "nameplate1", { name = "Shadow Bolt", text = "Shadow Bolt", texture = 1, notInterruptible = false })
+	assert(W.LastCall(plate.castTarget, "SetText")[1] == "" and W.LastCall(who, "SetAllPoints")[1] == plate.castTarget, "Spell target on the bar: who and YOU take its place")
+	assert(plain(env, W.LastCall(who, "SetText")[1]) == "Valerin" and who:IsShown() and you:IsShown(), "class coloured, with YOU")
+	K.Options.Write("Nameplates", "cast.targetPlace", "")
 	K.Options.Write("Nameplates", "cast.showTarget", false)
 	K.Options.Write("Nameplates", "cast.caster", false)
 	N.Cast(env, "nameplate1", { name = "Shadow Bolt", text = "Shadow Bolt", texture = 1, notInterruptible = false })
@@ -111,23 +123,59 @@ do
 	clean(env, K, "nameplates off")
 end
 
+-- #747 review 5, 6 and 3 on plates.
+do
+	local env, K, ns = N.New({ playerClass = "WARRIOR", known = { [PUMMEL] = true } })
+	local lookups = 0
+	env.UnitShouldDisplaySpellTargetName = function() return true end
+	env.UnitSpellTargetName = function() lookups = lookups + 1; return "Thrall" end
+	N.Add(env, "nameplate1", { name = "Ogre" })
+	N.Cast(env, "nameplate1", { name = "Spell", text = "Spell", texture = 1 })
+	local plate = ns.Plates.Get("nameplate1")
+	assert(not plate.castName:IsShown() and lookups == 0 and plate.castWho == nil, "an unselected plate with its spell name hidden asks for no target and builds no text")
+	N.Target(env, "nameplate1")
+	assert(lookups == 1 and plate.castWho and plate.castWho:IsShown(), "selecting the caster mid-cast names the target")
+	local function width(t) local c = W.LastCall(t, "SetWidth"); return c and c[1] end
+	assert(width(plate.castWho) == K.Widgets.Snap(plate, plate.castBarOpts.width) and width(plate.castYou) == width(plate.castWho), "who and YOU are bounded by the bar")
+	K.Options.Write("Nameplates", "cast.nameAlign", "RIGHT")
+	N.Cast(env, "nameplate1", { name = "Spell", text = "Spell", texture = 1 })
+	assert(width(plate.castName) == width(plate.castWho) and width(plate.castYou) == width(plate.castWho), "right aligned: the spell, who and YOU share one width")
+	assert(W.LastCall(plate.castWho, "SetJustifyH")[1] == "RIGHT" and W.LastCall(plate.castYou, "SetJustifyH")[1] == "RIGHT", "and one alignment")
+	env._cooldowns[PUMMEL] = { isActive = true, isOnGCD = true, startTime = 0, duration = 1.5, isEnabled = true }
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(K.Interrupt.ready == true, "the cooldown event proves the GCD")
+	ns.Cast.WatchInterrupt()
+	assert(K.Interrupt.ready == true, "finding the spell again keeps the event's GCD answer")
+	clean(env, K, "plates review")
+end
+
 -- Unit frames ----------------------------------------------------------------------------------------------
 
+local function setup(e)
+	guids(e)
+	e.UnitShouldDisplaySpellTargetName = function() return e._castTarget ~= nil end
+	e.UnitSpellTargetName = function() return e._castTarget end
+	e.UnitSpellTargetClass = function() return e.Secret("MAGE") end
+	e._me = false
+	e.PlayerIsSpellTarget = function() return e.Secret(e._me) end
+	e._cooldowns = {}
+	e.C_SpellBook = { IsSpellKnown = function(id) return id == PUMMEL end }
+	e.C_Spell.GetSpellCooldown = function(id) return e._cooldowns[id] or { startTime = 0, duration = 0, isEnabled = true, isActive = false } end
+end
+
+local function activeBar(ns, unit)
+	for _, list in ipairs({ ns.CastBars.Get(unit) or {}, ns.CastBars.Inline(unit) or {} }) do
+		for _, cb in ipairs(list) do
+			if cb.active then return cb end
+		end
+	end
+end
+
 local function frames(hud)
-	local env, K, ns = U.New({ frames = hud == "frames", setup = function(e)
-		guids(e)
-		e.UnitShouldDisplaySpellTargetName = function() return e._castTarget ~= nil end
-		e.UnitSpellTargetName = function() return e._castTarget end
-		e.UnitSpellTargetClass = function() return e.Secret("MAGE") end
-		e._me = false
-		e.PlayerIsSpellTarget = function() return e.Secret(e._me) end
-		e._cooldowns = {}
-		e.C_SpellBook = { IsSpellKnown = function(id) return id == PUMMEL end }
-		e.C_Spell.GetSpellCooldown = function(id) return e._cooldowns[id] or { startTime = 0, duration = 0, isEnabled = true, isActive = false } end
-	end })
+	local env, K, ns = U.New({ frames = hud == "frames", setup = setup })
 	U.SetUnit(env, "player", { name = "Kstyle", class = "WARRIOR", level = 60, health = 100, healthMax = 100 })
 	env.FireEvent("SPELLS_CHANGED")
-	assert(K.Interrupt.spell == PUMMEL, hud .. ": the unit frames ask for the interrupt")
+	assert(not K.Interrupt.running, hud .. ": idle unit frames do not listen for the interrupt")
 	U.SetUnit(env, "target", { name = "Ogre", level = 62, health = 3000, healthMax = 4000, reaction = 2, canAttack = true })
 	env.FireEvent("PLAYER_TARGET_CHANGED")
 	env.RunTimers()
@@ -140,13 +188,14 @@ local function frames(hud)
 	env._castTarget = "Valerin"
 	cast(false)
 	assert(tcb.active, hud .. ": the target casts")
+	assert(K.Interrupt.running and K.Interrupt.spell == PUMMEL, hud .. ": a target cast asks for the interrupt")
 	local who, you = tcb.whoText, tcb.youText
 	assert(who and who:IsShown() and plain(env, W.LastCall(who, "SetText")[1]) == "Valerin", hud .. ": the who text names the target")
 	assert(not U.Shown(env, tcb.text):find("Valerin", 1, true), hud .. ": the name keeps only the spell")
-	assert(near(tcb.text:GetWidth(), K.Widgets.Snap(tcb.frame, tcb.nameW * 0.58)), hud .. ": the spell name keeps the left share")
+	assert(near(tcb.text:GetWidth(), K.Widgets.Snap(tcb.frame, tcb.textW * 0.58)), hud .. ": the spell name keeps the left share")
 	assert(W.LastCall(you, "SetAlphaFromBoolean")[2] == 1, hud .. ": YOU waits on the secret answer")
 	local br, bg, bb = tcb.pr, tcb.pg, tcb.pb
-	local width0, slotted = tcb.nameW, tcb.slot and tcb.slot + K.Widgets.Snap(tcb.frame, 2)
+	local width0, slotted = tcb.textW, tcb.slot and tcb.slot + K.Widgets.Snap(tcb.frame, 2)
 
 	-- Uninterruptible: the icon darkens under a shield glyph; the colour is the locked colour.
 	cast(true)
@@ -176,12 +225,80 @@ local function frames(hud)
 	env._cooldowns[PUMMEL] = nil
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	assert(not mark:IsShown() and near(tcb.pr, br) and near(tcb.pg, bg), hud .. ": Pummel ready: full colour, no mark")
+	env._cooldowns[PUMMEL] = { isActive = true, isOnGCD = false, startTime = 0, duration = 5, isEnabled = true }
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	local wait = assert(tcb.wait, hud .. ": #747 review 4: an interrupt back after the cast ends shows its time left")
+	assert(not mark:IsShown() and tostring(W.LastCall(wait, "SetText")[1]) == "4" and wait:GetAlpha() == 1, hud .. ": the whole seconds left, in the shield's place")
+	env._cooldowns[PUMMEL] = { isActive = true, isOnGCD = true, startTime = 0, duration = 1.5, isEnabled = true }
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(K.Interrupt.ready == true and W.LastCall(wait, "SetText")[1] == "", hud .. ": the cooldown event proves the GCD; no time left")
+	ns.CastBars.Apply()
+	assert(K.Interrupt.ready == true, hud .. ": #747 review 3: a restyle keeps the event's GCD answer")
+	env._cooldowns[PUMMEL] = nil
 
 	-- Who interrupted it.
 	env.FireEvent("UNIT_SPELLCAST_INTERRUPTED", "target", "Cast-1", 686, "Player-2", 1)
 	assert(plain(env, W.LastCall(who, "SetText")[1]) == "Valerin" and who:IsShown(), hud .. ": the interrupter's name shows")
 	assert(tcb.shade:GetAlpha() == 0, hud .. ": an interrupted cast has no shield")
 	clean(env, K, hud)
+
+	-- #747 review 2: a restricted channel's secret interrupter still reads as interrupted, looked up by its GUID.
+	local lookups, name = 0, env.UnitNameFromGUID
+	env.UnitNameFromGUID = function(guid) lookups = lookups + 1; return name(env.Reveal(guid)) end
+	env._units.target.cast = nil
+	env._units.target.channel = { name = "Drain Life", texture = 1, start = 1000, finish = 3000, spellID = 689 }
+	env.FireEvent("UNIT_SPELLCAST_CHANNEL_START", "target", "Cast-2", 689, 2)
+	env._units.target.channel = nil
+	env.FireEvent("UNIT_SPELLCAST_CHANNEL_STOP", "target", "Cast-2", 689, env.Secret("Player-2"), 2)
+	assert(tcb.error and not tcb.landed and lookups == 1, hud .. ": a secret interrupter ends the channel as interrupted")
+	assert(plain(env, W.LastCall(who, "SetText")[1]) == "Valerin" and who:IsShown(), hud .. ": and names them")
+	env.UnitNameFromGUID = name
+
+	-- #747 review 9: without SetAlphaFromBoolean the secret cues fall back to their plain look.
+	for _, region in ipairs({ who, you, tcb.glyph, tcb.shade, tcb.wait, mark }) do region.SetAlphaFromBoolean = false end
+	env._units.target.secretCast = true
+	env._cooldowns[PUMMEL] = { isActive = true, isOnGCD = false, startTime = 0, duration = 2, isEnabled = true }
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	cast(false)
+	assert(who:GetAlpha() == 1 and you:GetAlpha() == 0 and tcb.glyph:GetAlpha() == 0, hud .. ": the name shows, YOU and the shield stay hidden")
+	env._units.target.secretCast, env._cooldowns[PUMMEL] = nil, nil
+	for _, region in ipairs({ who, you, tcb.glyph, tcb.shade, tcb.wait, mark }) do region.SetAlphaFromBoolean = nil end
+	clean(env, K, hud .. " no boolean alpha")
+
+	-- #747 review 8: the old Spell target option's place gets the class colour and YOU too.
+	K.Options.Write("UnitFrames", "target.castbarTarget", true)
+	env.RunTimers()
+	cast(false)
+	assert(not U.Shown(env, tcb.text):find("Valerin", 1, true) and who:IsShown() and plain(env, W.LastCall(who, "SetText")[1]) == "Valerin", hud .. ": Spell target after the name: who takes it")
+	K.Options.Write("UnitFrames", "target.castbarTargetPlace", "RIGHT")
+	env.RunTimers()
+	cast(false)
+	assert(tcb.targetOn == "RIGHT" and W.LastCall(tcb.targetText, "SetText")[1] == "" and W.LastCall(who, "SetAllPoints")[1] == tcb.targetText, hud .. ": Spell target placed apart: who and YOU take its place")
+	assert(who:IsShown() and plain(env, W.LastCall(who, "SetText")[1]) == "Valerin", hud .. ": class coloured")
+	env._units.target.cast = nil
+	env.FireEvent("UNIT_SPELLCAST_INTERRUPTED", "target", "Cast-1", 686, "Player-2", 1)
+	assert(who:IsShown() and W.LastCall(who, "SetAllPoints")[1] == tcb.targetText, hud .. ": and the interrupter shows there")
+	K.Options.Write("UnitFrames", "target.castbarTargetPlace", "")
+	K.Options.Write("UnitFrames", "target.castbarTarget", false)
+	env.RunTimers()
+	clean(env, K, hud .. " spell target")
+
+	-- #747 review 7: Show full spell name fits the first cast to the shared width, as it does the second.
+	K.Options.Write("UnitFrames", "target.castbarFit", true)
+	env.RunTimers()
+	env._castTarget = nil
+	cast(false)
+	local full, size = tcb.text:GetWidth(), tcb.nameStyle.size
+	env._textWidth = function(_, _, s) return full * 0.61 * s / size end
+	env._castTarget = "Valerin"
+	cast(false)
+	local first, cut = tcb.fitSize, tcb.text:IsTruncated()
+	cast(false)
+	assert(not cut and near(first, tcb.fitSize) and not tcb.text:IsTruncated(), hud .. ": the first cast fits as the second does")
+	env._textWidth = nil
+	K.Options.Write("UnitFrames", "target.castbarFit", false)
+	env.RunTimers()
+	clean(env, K, hud .. " fit")
 
 	-- Off restores the old bar: no who text, no dim, the name's full room.
 	K.Options.Write("UnitFrames", "castCaster", false)
@@ -196,6 +313,29 @@ end
 
 frames("medallions")
 frames("frames")
+
+-- #747 review 1: the Frames focus line keeps its design and names the target, the ready time and the interrupter.
+do
+	local env, K, ns = U.New({ frames = true, setup = setup })
+	U.SetUnit(env, "player", { name = "Kstyle", class = "WARRIOR", level = 60, health = 100, healthMax = 100 })
+	U.SetUnit(env, "focus", { name = "Ogre", level = 62, health = 3000, healthMax = 4000, reaction = 2, canAttack = true })
+	env.FireEvent("PLAYER_FOCUS_CHANGED")
+	env.RunTimers()
+	env._castTarget = "Valerin"
+	env._cooldowns[PUMMEL] = { isActive = true, isOnGCD = false, startTime = 0, duration = 2, isEnabled = true }
+	env._units.focus.channel = { name = "Drain Life", texture = 1, start = 1000, finish = 3000, spellID = 689 }
+	env.FireEvent("UNIT_SPELLCAST_CHANNEL_START", "focus", "Cast-1", 689, 1)
+	local cb = assert(activeBar(ns, "focus"), "the focus channels")
+	assert(cb.line, "Frames focus uses the line")
+	assert(cb.whoText and cb.whoText:IsShown() and plain(env, W.LastCall(cb.whoText, "SetText")[1]) == "Valerin", "the line names who the cast is aimed at")
+	assert(W.LastCall(cb.bar, "SetPoint")[2] == cb.whoText, "and its bar starts after the name")
+	assert(cb.mark and cb.mark:IsShown(), "the line marks where the interrupt is back")
+	assert(tostring(W.LastCall(cb.wait, "SetText")[1]) == "1" and cb.wait:IsShown(), "with the time left where Casting reads")
+	env._units.focus.channel = nil
+	env.FireEvent("UNIT_SPELLCAST_CHANNEL_STOP", "focus", "Cast-1", 689, "Player-2", 1)
+	assert(cb.error and cb.whoText:IsShown() and plain(env, W.LastCall(cb.whoText, "SetText")[1]) == "Valerin", "the line names who interrupted it")
+	clean(env, K, "focus line")
+end
 
 -- Off from the start builds nothing on the unit frames and registers no interrupt events.
 do
