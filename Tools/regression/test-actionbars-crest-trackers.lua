@@ -610,6 +610,26 @@ do
 	Clean(env, K, "frames riposte")
 end
 
+-- Stack numbers sit above the bezel and inside the medal; a foot too small for a digit shows pips (review dd9bddac #10).
+do
+	local env, K, ns = New("WARRIOR", { 6673, 12292 })
+	local hip = Pieces(ns)[7]
+	local count = hip.lit.count
+	local _, _, _, x, y = count:GetPoint(1)
+	assert(count:GetParent():GetFrameLevel() > hip.enamel:GetParent():GetFrameLevel() and x <= 0 and y >= 0, "the count draws over the bezel, inside the medal's corner")
+	Clean(env, K, "count")
+end
+
+do
+	local env, K, ns = New("ROGUE", { 2842, 14177 })
+	for _, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
+		if piece.spec.seat == "footRight" and piece.spec.feed == "aura" and piece.spec.unit == "target" and piece.spec.spells[1] == 2818 then
+			assert(not piece.lit.count and piece.spec.pips == 5, "the poison foot counts its stacks in pips")
+		end
+	end
+	Clean(env, K, "foot pips")
+end
+
 -- Even pixels at four sizes.
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })
