@@ -168,7 +168,7 @@ do
 	assert(ns.Parts.RimOf(item.Button), "the icon sits on a KstyleUI rim")
 	assert(FontPath(item.Name) == Style.Font("body") and FontPath(item.SubName) == Style.Font("body"), "spell names read in the body face, not Cinzel (KSTY-60 item 11)")
 	local header = p.items[2]
-	assert(Alpha(header.Border) == 0 and Alpha(header.Backplate) == 0 and FontPath(header.Text) == Style.Font("caps"), "a section header becomes a gold caps heading over an accent line, as every skinned window heads its sections (polish audit B #32)")
+	assert(Alpha(header.Border) == 0 and Alpha(header.Backplate) == 0 and FontPath(header.Text) == Style.Font("caps"), "a section header becomes a caps heading over an accent line, in the window title's style (polish audit B #32)")
 	p.shown[#p.shown + 1] = p.late
 	env.SetCombat(true)
 	p.paged:DisplayViewsForCurrentPage()

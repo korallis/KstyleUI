@@ -57,6 +57,9 @@ ns.Skins.Add({
 		RestedXP.Rail.Switch(on and ns.Skins.Setting("restedXP", "rail") == true)
 	end,
 	OnSetting = function(_, field)
+		if field == nil or field == "arrowYields" then
+			RestedXP.Chrome.SwitchArrow()
+		end
 		if field == nil or field == "rail" then
 			RestedXP.Rail.Switch(ns.Skins.Setting("restedXP", "rail") == true)
 		elseif field == "compose" or field == "fit" then
@@ -68,8 +71,6 @@ ns.Skins.Add({
 			end)
 		elseif field == "boxes" then
 			RestedXP.Rail.Schedule()
-		elseif field == "arrowYields" then
-			RestedXP.Chrome.SwitchArrow()
 		end
 	end,
 })

@@ -296,10 +296,16 @@ for _, key in ipairs({ "communities", "spellbook", "professions", "legacy" }) do
 		assert(seam and seam:IsShown(), key .. ": a seam marks the gutter on the " .. edge)
 	end
 	assert(#tabs > 0, key .. " has side tabs")
+	local column = 0
 	for i, tab in ipairs(tabs) do
 		if tab:IsShown() then
 			Inside(Rect(tab, root), glass, key .. " side tab " .. i .. " stands inside the glass")
+			column = math.max(column, Rect(tab, root).right)
 		end
+	end
+	if key == "spellbook" then
+		-- The spec tabs keep the window's content inset from the glass's edge (polish audit B #32).
+		Same(Rect(f, root).right + dock.reach.RIGHT, column + K.Widgets.Snap(f, K.Widgets.WindowInset(dock.panel)), "the spellbook's tabs keep a window inset from the glass's edge")
 	end
 	assert(#env._errors == 0, key .. ": " .. tostring(env._errors[1]))
 end

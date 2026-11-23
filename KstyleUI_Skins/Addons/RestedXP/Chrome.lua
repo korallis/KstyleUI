@@ -24,7 +24,7 @@ local CLEANUP_BUTTON = "RXPQuestLogCleanupButton"
 local IMPORT_BUTTONS = { "importButton", "importSplicedString", "purgeButton", "reloadButton", "deleteButton" }
 local IMPORT_POPUPS = { "purgeConfirmation", "deleteConfirmation" }
 local CONFIGURATOR_BUTTONS = { "backbutton", "resetbutton", "submitbutton" }
-local BADGE = { button = 24, inset = 3, chip = "gapSmall" }
+local BADGE = { button = 24, inset = 3, chip = "gapSmall", noteDrop = 7, v2Title = 43 }
 local BANNERS = { "ZoneTextFrame", "SubZoneTextFrame" }
 local OPTION_WIDGET = "RXPV2GuideConfiguratorOption"
 local RXP_MARGIN = 4
@@ -66,7 +66,7 @@ local tips = setmetatable({}, WEAK)
 local hooks = {}
 local menu = { active = false, hooked = setmetatable({}, WEAK) }
 local dress = { panels = setmetatable({}, WEAK), veiled = setmetatable({}, WEAK), hooked = setmetatable({}, WEAK), dropped = setmetatable({}, WEAK) }
-local state = { rxp = nil, tracked = false, guide = nil, yielding = nil, chips = setmetatable({}, WEAK) }
+local state = { rxp = nil, tracked = false, guide = nil, chips = setmetatable({}, WEAK) }
 
 local function Active()
 	return K.Modules.IsRunning(MODULE) and Skins.IsOn(KEY)
@@ -85,6 +85,11 @@ end
 
 local function Plain(value)
 	return type(value) == "number" and not Widgets.IsSecret(value)
+end
+
+local function Shown(frame)
+	local shown = frame:IsShown()
+	return not Widgets.IsSecret(shown) and shown == true
 end
 
 local function IsTexture(region)
@@ -546,7 +551,6 @@ local function CaptionFor(text, title, sized, heading)
 	local function word(value)
 		caption:SetText(K.Locale.Upper(PlainText(value)))
 	end
-	entry.word = word
 	hooksecurefunc(text, "SetText", function(_, value)
 		word(value)
 		if sized and Active() then
@@ -555,7 +559,7 @@ local function CaptionFor(text, title, sized, heading)
 	end)
 	word(text:GetText())
 	if heading and heading.panel then
-		Parts.Heading(heading.panel, caption, { row = entry.row or text, close = heading.close })
+		Parts.Heading(heading.panel, caption, { row = entry.row or text, close = heading.close, inset = heading.inset })
 	end
 end
 
@@ -566,7 +570,7 @@ end
 local function ChipIcons(f)
 	local l, r, t, b
 	for _, child in ipairs({ f:GetChildren() }) do
-		if child ~= f.title and child:GetObjectType() == "Button" and child:IsShown() then
+		if child ~= f.title and child:GetObjectType() == "Button" and Shown(child) then
 			local cl, cr, ct, cb = child:GetLeft(), child:GetRight(), child:GetTop(), child:GetBottom()
 			if Plain(cl) and Plain(cr) and Plain(ct) and Plain(cb) then
 				l, r, t, b = math.min(l or cl, cl), math.max(r or cr, cr), math.max(t or ct, ct), math.min(b or cb, cb)
@@ -579,18 +583,13 @@ end
 function Chrome.ChipWidth(f)
 	local l, r = ChipIcons(f)
 	local fl = f:GetLeft()
-	if not (l and Plain(fl)) then
-		return nil
-	end
-	return r - l + 2 * Tokens.Size(BADGE.chip), r - fl + l - fl
+	if l and Plain(fl) then return r - l + 2 * Tokens.Size(BADGE.chip), r - fl + l - fl end
 end
 
 function Chrome.Chip(f, on)
-	on = on == true
 	local title = IsTable(f.title) and f.title
-	if title and title:IsShown() == on then
-		title:SetShown(not on)
-	end
+	local shown = title and title:IsShown()
+	if title and (Widgets.IsSecret(shown) or shown == on) then title:SetShown(not on) end
 	if (state.chips[f] == true) == on then
 		return
 	end
@@ -909,9 +908,17 @@ local function Yield()
 	local up = false
 	for _, name in ipairs(BANNERS) do
 		local banner = rawget(_G, name)
-		up = up or IsTable(banner) and banner:IsShown() == true
+		up = up or IsTable(banner) and Shown(banner)
 	end
-	text:SetAlpha(up and Active() and Skins.Setting(KEY, "arrowYields") == true and 0 or 1)
+	local hide = up and Active() and Skins.Setting(KEY, "arrowYields") == true
+	if hide and state.alpha == nil then
+		local alpha = text:GetAlpha()
+		state.alpha = Plain(alpha) and alpha or 1
+		text:SetAlpha(0)
+	elseif not hide and state.alpha ~= nil then
+		text:SetAlpha(state.alpha)
+		state.alpha = nil
+	end
 end
 
 function Chrome.SwitchArrow()
@@ -1244,7 +1251,7 @@ local function GuideWindowV2(rxp)
 	CloseButton(window.closebutton)
 	local scroll = IsTable(window.guideSteps) and window.guideSteps.scroll
 	ScrollBar(IsTable(scroll) and scroll.scrollbar or nil)
-	CaptionFor(window.title, nil, true, { panel = upper, close = window.closebutton })
+	CaptionFor(window.title, nil, true, { panel = upper, close = window.closebutton, inset = BADGE.v2Title - Parts.CAP_PAD })
 	Readable(window.subtitle, "body", 0)
 	Hook(window.frame, "SetScale", "guideWindow.frame.SetScale", Rescaled)
 end
@@ -1400,6 +1407,7 @@ local function Arrow(rxp)
 		end
 	end
 	state.yielding = arrow
+	Yield()
 end
 
 local function Highlight(button)
@@ -2102,6 +2110,16 @@ local function Option(widget)
 	if IsTable(note) and type(note.SetTextColor) == "function" then
 		Label(note, "caption")
 		note:SetTextColor(Style.Accent())
+		local text, points, plain = widget.text, {}, true
+		for i = 1, text:GetNumPoints() do
+			local point, relative, relativePoint, x = text:GetPoint(i)
+			plain = plain and Plain(x)
+			points[i] = { point, relative, relativePoint, x, Shown(note) and -BADGE.noteDrop or 0 }
+		end
+		if plain then
+			text:ClearAllPoints()
+			for _, p in ipairs(points) do text:SetPoint(unpack(p)) end
+		end
 	end
 	local checkbg = widget.checkbg
 	if not IsTable(checkbg) or type(checkbg.GetRegions) ~= "function" then

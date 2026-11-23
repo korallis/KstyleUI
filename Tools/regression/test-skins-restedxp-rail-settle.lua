@@ -106,6 +106,7 @@ do
 	local R = Boot({ width = 1920, height = 1080 })
 	R.settle()
 	B.Check(B.Count(R.env, function() R.ns.RestedXP.Rail.Place() end, 100), math.huge, 387, "Rail.Place: plan each docked chip's width once and keep it in its slot")
+	B.Check(B.Count(R.env, function() R.ns.RestedXP.Rail.Band() end, 100), math.huge, 129, "Rail.Band: measure each docked chip's icons once")
 end
 
 print("skins restedxp rail settle ok")

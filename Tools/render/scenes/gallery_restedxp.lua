@@ -57,7 +57,7 @@ return Common.Run(function()
 	-- RestedXP (rxp-icon-cog.png and so on); without one the arrow, whose skin masks two layers with RestedXP's
 	-- arrow and drew a white square unmasked, takes the kit chevron stand-in of scenes/restedxp_arrow.lua.
 	local icons, art = Common.IconDirs(), os.getenv("RENDER_RXP_TEXTURES")
-	local scene = frames:Finish(Gallery.Build(env, { iconDirs = icons, paths = function(path)
+	local scene = frames:Finish(Gallery.Build(env, { paths = function(path)
 		local name = type(path) == "string" and path:match("RXPGuides[/\\]Textures[/\\].-([^/\\]+)$")
 		local file = art and name and art .. "/" .. name .. ".png"
 		local found = file and io.open(file, "rb")

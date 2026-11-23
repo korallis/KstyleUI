@@ -492,9 +492,7 @@ end
 
 function Style.KeepPitch(text)
 	kept[text] = true
-	if type(text.SetSpacing) == "function" then
-		text:SetSpacing(0)
-	end
+	text:SetSpacing(0)
 end
 
 function Style.MetricText(text, title)

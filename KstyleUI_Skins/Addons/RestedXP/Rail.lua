@@ -219,10 +219,11 @@ end
 local function Plan(band)
 	local boxes, gap = Boxes(), Tokens.Size(BOX_GAP)
 	local span = band.right - band.left
-	local widths, sum = {}, 0
+	local widths, owns, sum = {}, {}, 0
 	for i, box in ipairs(boxes) do
 		RestedXP.Chrome.Chip(box, true)
-		widths[i] = math.min(span, (RestedXP.Chrome.ChipWidth(box) or Icons(box)) * Widgets.ScaleFactor(box))
+		local width, own = RestedXP.Chrome.ChipWidth(box)
+		widths[i], owns[i] = math.min(span, (width or Icons(box)) * Widgets.ScaleFactor(box)), own
 		sum = sum + widths[i]
 	end
 	local row = #boxes == 2 and sum + gap <= span
@@ -230,11 +231,11 @@ local function Plan(band)
 	for i, box in ipairs(boxes) do
 		local height = Tall(box, Reach(box))
 		if row then
-			plan[i] = { box = box, left = i == 1 and band.left or band.right - widths[i], width = widths[i], drop = gap }
+			plan[i] = { box = box, left = i == 1 and band.left or band.right - widths[i], width = widths[i], drop = gap, own = owns[i] }
 			tall = math.max(tall, gap + height)
 		else
 			drop = drop + gap
-			plan[i] = { box = box, left = band.left, width = widths[i], drop = drop }
+			plan[i] = { box = box, left = band.left, width = widths[i], drop = drop, own = owns[i] }
 			drop = drop + height
 			tall = drop
 		end
@@ -821,7 +822,7 @@ function Dock(f, path, band)
 		end
 		local scale = Widgets.ScaleFactor(box)
 		local pixel = K.Scale.Pixel(1) / scale
-		local width, current = select(2, RestedXP.Chrome.ChipWidth(box)) or Icons(box), box:GetWidth()
+		local width, current = slot.own or Icons(box), box:GetWidth()
 		if Plain(current) and math.abs(current - width) < pixel then
 			width = current
 		else

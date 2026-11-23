@@ -612,7 +612,9 @@ local function Others(R, x, itemsTop)
 		v2.title:SetPoint("TOPRIGHT", v2.guideNameFrame, "TOPRIGHT", -69, -6)
 		at(v2.guideSteps.scroll.scrollbar, v2.guideStepsFrame, WIDTH - 16, 6, 10, 200)
 		-- UI/V2/Core.lua 1788-1914 and 1918-2053: the steps are RXPV2GuideStepsItem rows 8 apart, each a backdrop in the
-		-- theme's common colours with its text 4 in and 5 down and a 16-unit number badge in its bottom right corner.
+		-- theme's common colours with its text 4 in and 5 down and, in its bottom right corner, a 16-unit number badge
+		-- (wider when the number needs it) with its own edge, the number centred in the title colour on the current
+		-- step and inactivePartyTab on the others (1841-1847, 1870-1878, 1900-1907).
 		-- The fake builds none and the skin reaches them only through the theme, so the scene draws three from it, read
 		-- as Themes.lua:448-452 reads it: the v2 theme named by the run-time activeTheme the skin sets.
 		local theme = rxp.v2.themes[rxp.activeTheme and rxp.activeTheme.name] or rxp.v2:GetTheme()
@@ -621,21 +623,24 @@ local function Others(R, x, itemsTop)
 		for i, step in ipairs({ "Accept Your Place In The World", "Talk to Kaltunk\nAccept Cutting Teeth", "Kill Mottled Boars\nMottled Boar slain: 3/10" }) do
 			local row, h = env.CreateFrame("Frame", nil, v2.guideStepsFrame), step:find("\n") and 42 or 30
 			at(row, v2.guideStepsFrame, 6, y, WIDTH - 30, h)
-			local edge, back = row:CreateTexture(nil, "BACKGROUND"), row:CreateTexture(nil, "BORDER")
-			edge:SetAllPoints(row)
-			edge:SetColorTexture(unpack(theme.borderColors.commonEdge))
-			back:SetPoint("TOPLEFT", row, "TOPLEFT", 1, -1)
-			back:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -1, 1)
-			back:SetColorTexture(unpack(theme.backgroundColors.common))
-			local badge = row:CreateTexture(nil, "ARTWORK")
-			at(badge, row, WIDTH - 30 - 16, h - 16, 16, 16)
-			badge:SetColorTexture(unpack(theme.backgroundColors.activeStepCheckbox))
-			for _, part in ipairs({ { step, "TOPLEFT", 4, -5, size, theme.textColor.common }, { tostring(i + 11), "BOTTOMRIGHT", -4, 2, size - 1, i == 2 and theme.textColor.title or theme.textColor.common } }) do
-				local label = row:CreateFontString(nil, "OVERLAY")
-				label:SetFont(theme.font, part[5], "")
-				label:SetJustifyH("LEFT")
-				text(label, part[1], part[2], row, part[2], part[3], part[4])
-				label:SetTextColor(unpack(part[6]))
+			local badge = env.CreateFrame("Frame", nil, row)
+			for _, part in ipairs({ { row, step, "TOPLEFT", 4, -5, size, theme.textColor.common, theme.backgroundColors.common }, { badge, tostring(i + 11), "CENTER", 0, 0, size - 1, i == 2 and theme.textColor.title or theme.textColor.inactivePartyTab, theme.backgroundColors.activeStepCheckbox } }) do
+				local frame = part[1]
+				local edge, back = frame:CreateTexture(nil, "BACKGROUND"), frame:CreateTexture(nil, "BORDER")
+				edge:SetAllPoints(frame)
+				edge:SetColorTexture(unpack(theme.borderColors.commonEdge))
+				back:SetPoint("TOPLEFT", frame, "TOPLEFT", 1, -1)
+				back:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -1, 1)
+				back:SetColorTexture(unpack(part[8]))
+				local label = frame:CreateFontString(nil, "OVERLAY")
+				label:SetFont(theme.font, part[6], "")
+				label:SetJustifyH(part[3] == "CENTER" and "CENTER" or "LEFT")
+				text(label, part[2], part[3], frame, part[3], part[4], part[5])
+				label:SetTextColor(unpack(part[7]))
+				if frame == badge then
+					badge:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT")
+					badge:SetSize(math.max((label:GetStringWidth() or 0) + 6, 16), 16)
+				end
 			end
 			row:SetAlpha(i == 1 and 0.5 or 1)
 			y = y + h + 8

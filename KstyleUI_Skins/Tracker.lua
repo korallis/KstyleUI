@@ -122,9 +122,10 @@ local function CaptionRow(header, value, chevron)
 		self:ClearAllPoints()
 		Widgets.Point(self, "TOPLEFT", header, "TOPLEFT", CapLeft(self), CAPTION_Y)
 		Widgets.Point(self, "BOTTOMRIGHT", header, "BOTTOMRIGHT", reach - CAPTION_RIGHT, CAPTION_Y)
-		if chevron then
+		local width = chevron and PlainSize(chevron:GetWidth())
+		if width then
 			header.MinimizeButton:ClearAllPoints()
-			Widgets.Point(header.MinimizeButton, "CENTER", header, "RIGHT", reach - chevron:GetWidth() / 2, 0)
+			Widgets.Point(header.MinimizeButton, "CENTER", header, "RIGHT", reach - width / 2, 0)
 		end
 		restyle(self)
 	end
@@ -512,6 +513,11 @@ local function Width(tracker)
 		end
 		for _, state in pairs(counts) do
 			RestyleCount(state)
+			if state.full and PlainText(state.text:GetText()) == state.words then
+				state.text:SetText(state.full)
+			end
+			state.full = nil
+			PaintCount(state)
 		end
 	end
 end

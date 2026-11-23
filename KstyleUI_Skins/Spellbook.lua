@@ -64,7 +64,7 @@ local function TabSystem(system, window)
 		end
 		if window and #side > 0 then
 			local title = type(window.TitleContainer) == "table" and window.TitleContainer.TitleText or nil
-			Parts.Dock(window, side, { title = title })
+			Parts.Dock(window, side, { title = title, padded = true })
 		end
 	end
 	Each(system)
