@@ -411,7 +411,9 @@ function Drawer:Layout()
 	local area = self.column.face.mapArea
 	local reserve = toggle:GetWidth() + Widgets.Snap(panel, Format.EDGE + GAP)
 	if not Settings.Get("compactIcons") then
-		columns = math.max(1, math.min(columns, math.floor((area:GetWidth() - (ns.Face.Round() and 2 or 1) * reserve - 2 * pad + spacing) / (size + spacing))))
+		local fit = math.floor((area:GetWidth() - (ns.Face.Round() and 2 or 1) * reserve - 2 * pad + spacing) / (size + spacing))
+		local rows = math.max(1, math.floor((area:GetHeight() - 2 * pad + spacing) / (size + spacing)))
+		columns = math.max(1, math.min(columns, math.max(fit, math.ceil(slot / rows))))
 	end
 	local list = Settings.Get("drawer.list")
 	self.columns, self.rows = list and 1 or columns, nil
