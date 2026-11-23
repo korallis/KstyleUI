@@ -19,10 +19,10 @@ local OMEN, CLEARCASTING = { 16864 }, { 16870, 457342, 467735 }
 local GROWTH, POUNCE = { 1238215, 1238214, 408120 }, { 9826, 9824, 9007 }
 local GROWL, CHARGE, BITE, BASH = { 6795 }, { 1238122 }, { 1238070, 1238069, 407995 }, { 8983, 6798, 5211 }
 local BEAR, CAT, MOONKIN, CASTER = { 5, 8 }, { 1 }, { 31, 35 }, { 0, 3, 4 }
-local LEAVES, LEAF, ORBIT = 8, 14, 54
+local LEAVES, LEAF, ORBIT, UNFURL = 8, 14, 54, 0.35
 local DASH, BARKSKIN = { spells = { 1850, 9821 } }, { spells = { 22812 } }
 
-local maul = {}
+local maul, bloom = {}, nil
 local Oil, Flask = ns.SlabVigil.Oil, ns.SlabVigil.Flask
 
 local function Join(...)
@@ -44,16 +44,37 @@ local function Bloom(parent, spec, level, form)
 		return Medals.Medal(parent, { feed = "aura", spells = CLEARCASTING, texture = spec.texture, color = "pipDruidGlow", burst = spec.burst }, level)
 	end
 	local r = Medals.Rim(parent, { feed = "aura", spells = CLEARCASTING, ambient = "medAmbientDruid", burst = spec.burst }, level)
-	r.ring = {}
+	r.ring, r.leaves = {}, Medals.Layer(r.lit, level + 2)
+	r.unfurl = r.leaves:CreateAnimationGroup()
+	local grow = r.unfurl:CreateAnimation("Scale")
+	grow:SetScaleFrom(0.6, 0.6)
+	grow:SetScaleTo(1, 1)
+	grow:SetDuration(UNFURL)
+	ns.Slab.Fade(r.unfurl, 0, 1, UNFURL)
 	for k = 1, LEAVES do
-		local leaf = r.add(r.lit:CreateTexture(nil, "OVERLAY"), LEAF)
+		local leaf = r.add(r.leaves:CreateTexture(nil, "OVERLAY"), LEAF)
 		leaf:SetTexture((K.Tokens.Texture("trackerLeaf")))
 		leaf:SetBlendMode("ADD")
 		leaf.angle = (k - 0.5) * 360 / LEAVES
 		leaf:SetRotation(-math.rad(leaf.angle))
 		r.ring[k] = leaf
 	end
+	bloom = r
 	return r
+end
+
+local function Unfurl(_, full)
+	local lit = bloom and bloom.lit
+	if not (lit and lit.container) or bloom.full == full or Medals.Restricted() then
+		return
+	end
+	if full then
+		lit:AddAuraShownAnimation(bloom.unfurl)
+	elseif bloom.full then
+		lit:RemoveAuraShownAnimation(bloom.unfurl)
+		bloom.unfurl:Stop()
+	end
+	bloom.full = full
 end
 
 local function Ring(piece, anchor, form, _, n)
@@ -131,4 +152,4 @@ ns.SlabTrackers.Register("DRUID", {
 		{ forms = CAT, families = { DASH, BARKSKIN } },
 		{ families = { { spells = { 29166 } }, { spells = { 17116 } }, BARKSKIN, DASH, { spells = { 16689, 16810, 16811, 16812, 16813, 17329 } } } },
 	} },
-}, { burst = "medBurstDruid", fiveSecondForms = Join(CASTER, MOONKIN), events = { "CURRENT_SPELL_CAST_CHANGED" }, update = { "BAG_UPDATE_DELAYED", "WEAPON_ENCHANT_CHANGED" }, paint = Queued })
+}, { burst = "medBurstDruid", fiveSecondForms = Join(CASTER, MOONKIN), events = { "CURRENT_SPELL_CAST_CHANGED" }, update = { "BAG_UPDATE_DELAYED", "WEAPON_ENCHANT_CHANGED" }, paint = Queued, motion = Unfurl })
