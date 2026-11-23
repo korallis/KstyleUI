@@ -19,6 +19,13 @@ local LUA = {
 	fiveSecond = { { "UNIT_SPELLCAST_SUCCEEDED", "player" } },
 }
 local MANA = { PALADIN = true, PRIEST = true, DRUID = true, SHAMAN = true, MAGE = true, WARLOCK = true, HUNTER = true }
+local ROUTE = {}
+for kind, events in pairs(LUA) do
+	ROUTE[kind] = {}
+	for _, event in ipairs(events) do
+		ROUTE[kind][type(event) == "table" and event[1] or event] = true
+	end
+end
 local SHARED = {
 	{ spells = { 20572 } }, { spells = { 20554 } }, { spells = { 20594 } }, { spells = { 20600 } }, { spells = { 7744 } },
 	{ spells = { 1299026 } }, { spells = { 1259799 } }, { spells = { 1259812 } }, { spells = { 1260270 } },
@@ -34,8 +41,12 @@ local function Always()
 	return true
 end
 
-local function PlacePlaque(piece, _, form, _, n)
-	if form == "crest" then
+local function PlacePlaque(piece, anchor, form, _, n)
+	if form == "row" then
+		Medals.Place(piece, anchor, Medals.Cell(n))
+		return n + 1
+	end
+	do
 		piece:ClearAllPoints()
 		piece:SetPoint("CENTER", ns.Slab.hub.plaque, "CENTER", 0, 0)
 		piece.units = ns.Slab.hub.plaque:GetWidth() + 4
@@ -47,10 +58,14 @@ local function PlacePlaque(piece, _, form, _, n)
 	return n
 end
 
+local function FiveSecondPiece(parent, spec, level, form)
+	return (form == "crest" and Medals.Plaque or Medals.Medal)(parent, spec, level)
+end
+
 function Trackers.Register(class, rows, hooks)
 	if not CLASSES[class] and MANA[class] then
-		CLASSES[class] = { { key = "crestFiveSecond", seat = "plaque", feed = "fiveSecond", crestOnly = true, known = Always, color = "hudMana",
-			build = Medals.Plaque, place = PlacePlaque } }
+		CLASSES[class] = { { key = "crestFiveSecond", seat = "plaque", feed = "fiveSecond", known = Always, color = "hudMana", texture = 134762,
+			build = FiveSecondPiece, place = PlacePlaque, choices = { { forms = hooks and hooks.fiveSecondForms } } } }
 	end
 	CLASSES[class] = CLASSES[class] or {}
 	for _, row in ipairs(rows) do
@@ -252,7 +267,8 @@ local function Paint(event, ...)
 		FiveSecond(form, ...)
 	end
 	for _, piece in ipairs(form and form.lua or {}) do
-		if piece.spec.feed ~= "fiveSecond" then
+		local kind = piece.spec.feed
+		if kind ~= "fiveSecond" and piece:IsShown() and (not event or ROUTE[kind][event]) then
 			Medals.Refresh(piece)
 		end
 	end
@@ -427,7 +443,7 @@ local function Talent(talents, spells)
 	end
 end
 
-local function Joined(...)
+function Trackers.Joined(...)
 	local list = {}
 	for _, part in ipairs({ ... }) do
 		for _, id in ipairs(part) do
@@ -462,8 +478,8 @@ Trackers.Register("WARRIOR", {
 	{ key = "crestThreat", seat = "topGem", feed = "threat", known = SHOUTS, choices = { { forms = DEFENSIVE, color = "gilt" }, { color = "plateHostile" } } },
 	{ key = "crestHips", seat = "leftHip", feed = "cooldown", choices = {
 		{ forms = DEFENSIVE, feed = "aura", unit = "target", filter = "HARMFUL", spells = THUNDER, color = "pipStormGlow" },
-		{ forms = BERSERKER, known = Joined(BLOODTHIRST, { 1680 }, SLAM) },
-		{ known = Joined(MORTAL, SLAM, THUNDER) },
+		{ forms = BERSERKER, known = Trackers.Joined(BLOODTHIRST, { 1680 }, SLAM) },
+		{ known = Trackers.Joined(MORTAL, SLAM, THUNDER) },
 	} },
 	{ key = "crestHips", seat = "rightHip", feed = "aura", count = true, color = "gilt", choices = {
 		{ forms = DEFENSIVE, spells = { 2565 } },
@@ -497,8 +513,8 @@ Trackers.Register("PALADIN", {
 	{ key = "crestCooldowns", seat = "cooldowns", color = "white", families = { { spells = { 642, 1020 } }, { spells = { 498, 5573 } },
 		{ spells = { 20216 } }, { spells = { 1022, 5599, 10278 } }, { spells = { 1044 } }, { spells = { 1311015 } }, { spells = { 1310897 } } } },
 	{ key = "crestHips", seat = "leftHip", feed = "cooldown", choices = {
-		{ known = Talent(PROT, Joined({ 407632 }, HOLY_STRIKE)) },
-		{ known = Talent(HOLY, Joined({ 20930, 20929, 20473, 1311606, 20216 }, HOLY_STRIKE)) },
+		{ known = Talent(PROT, Trackers.Joined({ 407632 }, HOLY_STRIKE)) },
+		{ known = Talent(HOLY, Trackers.Joined({ 20930, 20929, 20473, 1311606, 20216 }, HOLY_STRIKE)) },
 		{ known = HOLY_STRIKE },
 	} },
 	{ key = "crestHips", seat = "rightHip", choices = {

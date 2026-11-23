@@ -411,6 +411,50 @@ do
 	Clean(env, K, "custom cells")
 end
 
+-- Repaints go only to shown pieces of the kind an event concerns.
+do
+	local env, K, ns = New("WARRIOR", { 25289, 20662, 11585, 25288, 21553, 1672, 11578 })
+	local seen = {}
+	local refresh = ns.SlabMedals.Refresh
+	ns.SlabMedals.Refresh = function(piece)
+		seen[#seen + 1] = piece
+		return refresh(piece)
+	end
+	env.FireEvent("SPELL_UPDATE_USABLE")
+	assert(#seen == 1 and seen[1].spec.feed == "usable" and seen[1]:IsShown(), "SPELL_UPDATE_USABLE repaints the shown opening alone, not cooldowns or hidden stance choices")
+	seen = {}
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	for _, piece in ipairs(seen) do assert(piece:IsShown(), "a hidden stance choice is not repainted") end
+	assert(#seen >= 3, "SPELL_UPDATE_COOLDOWN repaints the shown cooldown and usable pieces")
+	ns.SlabMedals.Refresh = refresh
+	Clean(env, K, "routing")
+end
+
+-- The five-second rule: only in the forms a class names, and as a medal under Frames.
+do
+	local env, K, ns = New("DRUID", { 5185 })
+	env.GetShapeshiftFormID = function() return env._form end
+	ns.SlabTrackers.Register("DRUID", { { key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 22812 } } } } },
+		{ fiveSecondForms = { 0, 31 } })
+	ns.SlabTrackers.Update()
+	assert(ns.SlabTrackers.state.forms.crest.pieces["1:1"]:IsVisible(), "caster form: the five-second ring shows")
+	env._form = 1
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	assert(not ns.SlabTrackers.state.forms.crest.pieces["1:1"]:IsVisible(), "cat form: it hides")
+	Clean(env, K, "five-second forms")
+end
+
+do
+	local env, K, ns = New("PALADIN", { 20154 }, { frames = true })
+	local medal = ns.SlabTrackers.state.forms.row.pieces["1:1"]
+	assert(medal and medal:IsVisible() and medal.steel, "under Frames the five-second rule is a medal in the row")
+	env.C_Spell.GetSpellPowerCost = function() return { { type = 0, cost = 50 } } end
+	env.GetTime = function() return 100 end
+	env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 20154)
+	assert(AB.W.LastCall(medal.timer, "SetCooldown")[2] == 5, "and it runs on a mana spell")
+	Clean(env, K, "five-second frames")
+end
+
 -- Even pixels at four sizes.
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })

@@ -203,7 +203,7 @@ function Medals.Feed(parent, spec, level)
 	return button
 end
 
-local function Flare(piece, lit, level, token, size)
+function Medals.Flare(piece, lit, level, token, size)
 	lit.flare = Medals.Layer(lit, level)
 	piece.add(Medals.Texture(lit.flare, "ARTWORK", 0, token, "white", size, "ADD"))
 	lit.flare:SetAlpha(0)
@@ -211,7 +211,7 @@ local function Flare(piece, lit, level, token, size)
 	piece.flare = piece.flare or lit.flare
 end
 
-local function Piece(parent, level, units)
+function Medals.Piece(parent, level, units)
 	local piece = CreateFrame("Frame", nil, parent)
 	piece:SetFrameLevel(level)
 	piece.units, piece.parts, piece.lits = units, {}, {}
@@ -233,7 +233,7 @@ end
 
 function Medals.Medal(parent, spec, level)
 	local size = spec.size or SIZE
-	local m = Piece(parent, level, size)
+	local m = Medals.Piece(parent, level, size)
 	local feeds = spec.feeds or { spec }
 	local add, timed, track = m.add, spec.color ~= nil, size < SIZE and 2 or TRACK
 	for _, feed in ipairs(feeds) do
@@ -293,14 +293,14 @@ function Medals.Medal(parent, spec, level)
 		end
 	end
 	for _, lit in ipairs(m.lits) do
-		Flare(m, lit, top + 1, spec.burst or "glow", size * BURST)
+		Medals.Flare(m, lit, top + 1, spec.burst or "glow", size * BURST)
 	end
 	m.spec = spec
 	return m
 end
 
 function Medals.Rim(parent, spec, level)
-	local r = Piece(parent, level, RIM)
+	local r = Medals.Piece(parent, level, RIM)
 	local lit = Lit(r, spec, level + 1)
 	if spec.ambient then
 		r.still = Medals.Cloud(lit, spec.ambient, spec.cell or 0)
@@ -315,13 +315,13 @@ function Medals.Rim(parent, spec, level)
 			lit:SetDurationCooldown(r.timer)
 		end
 	end
-	Flare(r, lit, level + 3, spec.burst or "glow", RIM)
+	Medals.Flare(r, lit, level + 3, spec.burst or "glow", RIM)
 	r.spec = spec
 	return r
 end
 
 function Medals.CooldownRim(parent, spec, level)
-	local r = Piece(parent, level, RIM)
+	local r = Medals.Piece(parent, level, RIM)
 	local units, order = {}, {}
 	for _, family in ipairs(spec.families) do
 		local unit = family.unit or "player"
@@ -342,7 +342,7 @@ function Medals.CooldownRim(parent, spec, level)
 		local lit = Lit(r, each, base + 1)
 		lit.timer = r.add(Timer(lit, base + 2, "ringLine16", spec.color), COOLDOWN_RING)
 		lit:SetDurationCooldown(lit.timer)
-		Flare(r, lit, base + 3, spec.burst or "glow", RIM)
+		Medals.Flare(r, lit, base + 3, spec.burst or "glow", RIM)
 		local container, options = lit.container, each.options
 		container:ClearAllPoints()
 		if previous then
@@ -372,7 +372,7 @@ function Medals.CooldownRim(parent, spec, level)
 end
 
 function Medals.Socket(parent, spec, level)
-	local s = Piece(parent, level, SETTING)
+	local s = Medals.Piece(parent, level, SETTING)
 	local add = s.add
 	add(Medals.Texture(s, "ARTWORK", 0, "diamond", "gilt", SETTING))
 	add(Medals.Texture(s, "ARTWORK", 1, "diamond", "jewelSetting", LIP))
@@ -392,13 +392,13 @@ function Medals.Socket(parent, spec, level)
 		s.timer:SetScript("OnCooldownDone", function() Medals.Fire(s) end)
 	end
 	s.glint = add(Medals.Texture(s.bar, "OVERLAY", 0, "diamond", "white", GLINT, "ADD"))
-	Flare(s, lit, level + 3, "glow", SETTING * BURST)
+	Medals.Flare(s, lit, level + 3, "glow", SETTING * BURST)
 	s.spec = spec
 	return s
 end
 
 function Medals.Threat(parent, spec, level)
-	local t = Piece(parent, level, SETTING)
+	local t = Medals.Piece(parent, level, SETTING)
 	local add = t.add
 	add(Medals.Texture(t, "ARTWORK", 0, "diamond", "gilt", SETTING))
 	add(Medals.Texture(t, "ARTWORK", 1, "diamond", "jewelSetting", LIP))
@@ -421,7 +421,7 @@ function Medals.Threat(parent, spec, level)
 end
 
 function Medals.Plaque(parent, spec, level)
-	local p = Piece(parent, level, SIZE)
+	local p = Medals.Piece(parent, level, SIZE)
 	p.lit = Medals.Layer(p, level + 1)
 	p.timer = p.add(Timer(p.lit, level + 1, "orbRing", spec.color), SIZE)
 	p.lits, p.spec = { p.lit }, spec
@@ -429,7 +429,7 @@ function Medals.Plaque(parent, spec, level)
 end
 
 function Medals.Emblem(parent, spec, level)
-	local e = Piece(parent, level, RIM)
+	local e = Medals.Piece(parent, level, RIM)
 	e.lit = Medals.Layer(e, level + 1)
 	e.add(Medals.Texture(e.lit, "OVERLAY", 0, "glow", spec.color, RIM, "ADD")):SetAlpha(GLOW)
 	e.lit:SetAlpha(0)
