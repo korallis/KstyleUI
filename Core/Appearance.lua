@@ -422,7 +422,7 @@ function Appearance.Schema()
 		{ type = "toggle", key = "barColors", label = L["Bar colour refinements"],
 			help = L["Tint lost health from its bar and make mana a darker step below health."] },
 		{ type = "toggle", key = "litBars", label = L["Lit glass bars"],
-			help = L["A soft light, thin inner edge and depth on KstyleUI's bars and the Blizzard bars it styles. Off restores each bar's old finish."] },
+			help = L["Soft light, inner edge and depth on KstyleUI and skinned Blizzard bars. Off restores the old look."] },
 		{ type = "header", label = L["Motion"] },
 		{ type = "toggle", key = "auraEndings", label = L["Quiet aura endings"],
 			help = L["Round up aura timers and hide the finishing flash on aura swipes. Off restores the old endings."] },
