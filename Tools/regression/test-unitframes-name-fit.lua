@@ -35,7 +35,7 @@ assert(K.Layout.Update("unitframes.focus", { width = w, height = h }))
 env.RunTimers()
 
 -- A name too long even at the floor truncates there; nothing shrinks further.
-U.SetUnit(env, "focus", { name = "Elunara Frostweaver the Everlasting Moonshadow", level = 39, health = 300, healthMax = 400, reaction = 2, canAttack = true })
+U.SetUnit(env, "focus", { name = "Elunara Frostweaver the Everlasting Moonshadow of the Silver Hand", level = 39, health = 300, healthMax = 400, reaction = 2, canAttack = true })
 env.FireEvent("UNIT_NAME_UPDATE", "focus")
 assert(size(focus.name) < full and size(focus.name) >= floor - 0.01 and focus.name:IsTruncated(), "a very long name steps down to the floor and truncates there: " .. tostring(size(focus.name)))
 
@@ -54,7 +54,7 @@ assert(U.Shown(env, pet.name) == "WOLF", "a short pet name keeps the row's own c
 
 local chosen = K.Tokens.FontPath("InterSemiBold")
 K.Options.Write("UnitFrames", "focus.fonts.name.font", chosen)
-U.SetUnit(env, "focus", { name = "Elunara Frostweaver the Everlasting Moonshadow", level = 39, health = 300, healthMax = 400, reaction = 2, canAttack = true })
+U.SetUnit(env, "focus", { name = "Elunara Frostweaver the Everlasting Moonshadow of the Silver Hand", level = 39, health = 300, healthMax = 400, reaction = 2, canAttack = true })
 env.FireEvent("UNIT_NAME_UPDATE", "focus")
 assert((focus.name:GetFont()) == chosen, "fitting a long name does not replace a saved face override")
 

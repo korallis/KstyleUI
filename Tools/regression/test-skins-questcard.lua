@@ -578,9 +578,13 @@ end
 do
 	local env, K, ns, log = Boot()
 	local row = ns.Quests.Rows()[2]
+	local routed, quest = {}, ns.WorldMapRoutes.Quest
+	ns.WorldMapRoutes.Quest = function(id) routed[#routed + 1] = id end
 	W.Click(row, "LeftButton")
 	local opened = log.Called("OpenToQuestDetails")
 	assert(#opened == 1 and opened[1].args[1] == 302, "a left click opens the quest's details")
+	assert(#routed == 1 and routed[1] == 302, "a left click also asks the world map to route to the quest")
+	ns.WorldMapRoutes.Quest = quest
 	log.modified.QUESTWATCHTOGGLE = true
 	W.Click(row, "LeftButton")
 	log.modified.QUESTWATCHTOGGLE = nil

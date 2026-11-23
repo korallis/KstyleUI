@@ -40,6 +40,8 @@ function Common.FinishSettings(profile)
 		Minimap = { clearPlaques = false },
 		Bags = { separateFigures = false, readableHeaders = false },
 		ActionBars = { crestJewels = false },
+		UnitFrames = { slabCaps = false },
+		Medallions = { restingCrest = false },
 	}
 	local function merge(target, values)
 		for key, value in pairs(values) do
@@ -190,6 +192,18 @@ function Common.ForceScreen(env, completePreset)
 			for _, key in ipairs({ "readableBars", "worldText", "chatTabs", "barColors" }) do profile.Appearance[key] = false end
 		end
 	end
+	if os.getenv("RENDER_TYPE_VOICE") == "off" and type(db) == "table" and type(db.profiles) == "table" then
+		for _, profile in pairs(db.profiles) do
+			profile.Appearance = profile.Appearance or {}
+			profile.Appearance.oneVoice, profile.Appearance.softBacking = false, false
+		end
+	end
+	if os.getenv("RENDER_GLASS") == "off" and type(db) == "table" and type(db.profiles) == "table" then
+		for _, profile in pairs(db.profiles) do
+			profile.Appearance = profile.Appearance or {}
+			profile.Appearance.litBars = false
+		end
+	end
 	if style and style ~= "" and type(db) == "table" and type(db.profiles) == "table" then
 		for _, profile in pairs(db.profiles) do
 			if type(profile) == "table" and profile.HudStyle == nil then
@@ -213,6 +227,9 @@ function Common.ForceScreen(env, completePreset)
 	-- ornament the addon attaches, for Scene.Build to restyle at the rects it solves.
 	local ornaments = rawget(_G, "RENDER_ORNAMENTS") or os.getenv("RENDER_ORNAMENTS")
 	env._renderOrnaments = ornaments and ornaments ~= "" and ornaments or "Off"
+	-- RENDER_REST (rest, target or hover) leaves the clean screen on for scenes/_rest.lua to drive; unset, a scene boots
+	-- with it off, so its timers never draw a rest it did not ask for.
+	env._renderRestOff = (os.getenv("RENDER_REST") or "") == ""
 	env._ornamentHandles = env._ornamentHandles or {}
 	local width, height, uiScale = Common.SCREEN.width, Common.SCREEN.height, Common.SCREEN.uiScale
 	-- A scene shows the HUD at the Interface size KstyleUI ships, not the tests' size 1 (Stubs.NewEnv).

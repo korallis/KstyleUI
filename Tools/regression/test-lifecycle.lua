@@ -291,6 +291,7 @@ do
 	assert(good.calls[1] == "Enable", "the next module still starts")
 	assert(K.Modules.IsRunning("UnitFrames") == false, "a module whose Enable failed is not running")
 	assert(Count(bad.calls, "Disable") == 1, "a failed Enable is cleaned up with Disable")
+	K.Options.Write("Rest", "enabled", false)
 	for _, frame in ipairs(env._frames) do
 		assert(not frame:IsEventRegistered("PLAYER_TARGET_CHANGED"), "a failed module keeps no events")
 	end

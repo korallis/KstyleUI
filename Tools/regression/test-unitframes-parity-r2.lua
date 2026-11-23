@@ -216,6 +216,7 @@ end
 local tcb = ns.CastBars.Inline("target")[1]
 U.SetUnit(env, "target", { name = "Ogre", level = 62, health = 3000, healthMax = 4000, reaction = 2, canAttack = true })
 env._castTarget = "Valerin"
+write("castCaster", false)
 write("target.castbarTarget", true)
 env._units.target.cast = { name = "Shadow Bolt", texture = 1, start = 1000, finish = 3000, spellID = 686 }
 env.FireEvent("UNIT_SPELLCAST_START", "target", "Cast-1", 686)

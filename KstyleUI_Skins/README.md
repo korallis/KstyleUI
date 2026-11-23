@@ -57,10 +57,98 @@ disabling the skin/module restores its earlier value. Map refreshes leave
 Blizzard's filter menu choices alone. The other switches remove their additions
 immediately. Missing client APIs and secret coordinates/ranges are ignored.
 
-`test-worldmap-routes.lua` drives the client fixtures in `worldmap_env.lua`.
+### Nearest services and quest routes
+
+The client ships no list of innkeepers, trainers, banks, auction houses, repair
+or reagent vendors (`C_Map` and `C_AreaPoiInfo` hold landmarks only), so
+`WorldMapServices.lua` records them as the player meets them. While the
+Skins module, the world map skin, Search and routes and Nearest services are on
+(from login, before the map first opens), `PLAYER_INTERACTION_MANAGER_FRAME_SHOW`
+with the `Trainer`, `Banker`, `CharacterBanker`, `AccountBanker`, `Auctioneer`
+or `Binder` type, `CONFIRM_BINDER`, and `GOSSIP_SHOW` when
+`C_PlayerInteractionManager.IsInteractingWithNpcOfType` says `Binder` save the
+`npc` unit's name, the player's faction and the player's map and world position
+in `KstyleUIDB.account.mapServices`, shared by every character. Entries are
+keyed by the GUID's NPC ID: a visit within 30 yards of a saved place of the same
+NPC and faction updates it, anywhere else adds a place. A merchant counts as a
+repair vendor when `CanMerchantRepair` says so and as a reagent vendor when one
+of its items is `Enum.ItemClass.Reagent`, checked on the window's show and on
+each `MERCHANT_UPDATE`. Secret names, payloads or positions record nothing; no
+data is shipped or guessed.
+
+Recorded services of the player's faction on a zone or city map draw as small
+diamonds in the route's style, coloured by kind; one NPC within 30 yards that
+offers several services is one pin whose tooltip lists them; a click routes
+there. They draw on map changes while the map is shown; a visit behind the
+closed map waits for it to open, and the one hook on `OnCanvasScaleChanged`
+only resizes and re-anchors the shown pins from their saved projection. An
+empty search lists six "Nearest ..." rows; typing a service puts its row first.
+Nearest picks, of the player's faction on the player's continent, the one with
+the least road time (one Dijkstra from the player, `Roads.Times`, with the
+flights this character knows, as the route uses), built only when one is
+recorded. A service the roads reach always beats one they do not; with none
+reachable, or with Follow roads off, the straight-line time decides, and the
+route card says there is no connected road. None recorded, or no player
+position, says so on the route card.
+
+Click a quest to route: a left click on the quest card still opens the quest's
+details and then routes to `C_QuestLog.GetNextWaypoint` when it gives a whole
+public map, x and y, else to the quest's `GetQuestsOnMap` POI on
+`GetQuestUiMapID` or the player's map, skipping `isQuestStart` POIs. With
+neither, the card says the game gives no position; when the map refuses the
+waypoint (`CanSetUserWaypointOnMap`), it says so instead. Both switches are on
+by default; off, nothing registers, records or draws, the click is today's, and
+turning one off closes its picker and clears the route it made, leaving any
+other route alone.
+
+`test-worldmap-routes.lua` drives the client fixtures in `worldmap_env.lua`;
+`test-worldmap-services.lua` drives the recorder, pins, nearest picker and quest routes.
 Render `worldmap_routes` at 1080p, 1440p, ultrawide and 4K over a real game
 backdrop; the map and destinations in this harness remain stand-ins. `RENDER_MAP_BEFORE=1` turns all
 four additions off for the matching before capture.
+
+### Travel stops and unexplored areas
+
+**Travel stops** (on by default) adds every client transport to the road route.
+Boats and zeppelins between the continents join the two shipped graphs by their
+shared dock ids, so a destination on the other continent gets a route instead of
+"Destination is on another continent". A flying transport is a zeppelin; a dock
+is named after the nearest town or flight master within 500 yards, else the
+nearest named area. The Deeprun Tram joins the Stormwind and Ironforge flight
+masters, counting the walk to and from its platforms at the player's speed. The
+player's hearthstone (bound location from `GetBindLocation`, matched to a
+shipped place by name, or in another language through `C_Map.GetAreaInfo` on the
+client area ids `KstyleUI_Routes` lists), Astral Recall and the mage and druid
+teleports and portals the player knows (`C_SpellBook.IsSpellKnown`, and only
+when `C_Spell.IsSpellUsable` answers a plain true) start the search at their
+arrival place, costing the cast time plus any cooldown still to run
+(`C_Item.GetItemCooldown`, `C_Spell.GetSpellCooldown`); the route takes one only
+when it is faster. A secret or missing bind location, usability or cooldown
+answer offers nothing. While the map is open, each route tick rebuilds that
+short option list and searches again only when an option appears, goes, or its
+time crosses a whole minute, so a cooldown that ends or counts down updates the
+card. A cross-continent route skips the "Flight path saves" comparison, which
+would search both continents a second time. Each step reads plainly ("Zeppelin
+to Brill", "Tram to Ironforge", "Hearthstone to Razor Hill") and a hearth or
+teleport step shows its time without yards. A cross-continent leg draws only
+where it lands. Off keeps today's single-continent routes, labels and card
+exactly.
+
+**Reveal unexplored areas** (off by default: it changes what the map shows)
+draws each overlay the client's `WorldMapOverlay` table lists for the open map but
+`C_MapExplorationInfo.GetExploredMapTextures` does not, on Blizzard's
+`MapExplorationPinTemplate` pin, one draw sublevel under the explored art, tinted
+with the `muted` token and masked by `AddMaskableTexture`. Tiles follow
+Blizzard's `MapExplorationPinMixin:RefreshOverlays` layout, and a hook on that
+method redraws after every map change, zoom layer change or exploration update.
+The overlay table loads from `KstyleUI_Routes` only when the option is on and the
+map is open; off hides every added texture once, and later refreshes touch none.
+A secret exploration record is skipped unread.
+
+`test-worldmap-travel.lua` routes across the real shipped graphs and checks the
+tram, hearth, teleport, cooldown, localized bind and secret-input choices;
+`test-worldmap-reveal.lua` checks the tile layout, dimming, loading and
+switching off.
 
 `Skins.xml` loads the files in this order:
 
@@ -297,7 +385,7 @@ The owner's first in-game test showed seven tracked quests in Blizzard's tracker
 
 - `Quests/Data.lua` reads the tracked quests from the game's own quest log: `C_QuestLog.GetNumQuestWatches` and `GetQuestIDForQuestWatchIndex` in Blizzard's watch order, skipping tasks and bounties as Blizzard's quest module does, with the super-tracked quest (`C_SuperTrack.GetSuperTrackedQuestID`) first. Each title takes Forever's level prefix as `QuestUtilsOverrides.GetQuestTitlePrefix` builds it (`[11] `, `+` for elite, from `GetQuestDifficultyLevel` and `IsEliteQuest`). Objectives come from `GetQuestObjectives`, split into words and count as the tracker skin splits them. The item is the legacy `GetQuestLogSpecialItemInfo` Blizzard's own tracker calls. None of these carries `SecretReturns` in the Forever docs; every value is still checked with `issecretvalue` before use. The reader reuses its tables, so a combat update allocates nothing on addon lines (`Tools/regression/perf/KstyleUI_Skins.lua`, 25 quests).
 - `Quests/Card.lua` draws one Lumen window card: the QUESTS section cap (`Lumen.SectionCap`, whose `caps` face spaces its own letters, and which inserts thin spaces only where `Locale.TrackMode` answers `"space"`, so no Cinzel file ever gets one) with the tracked count, then `quests.shown` quests (4 by default, 1 to 8; the owner's picture shows four, and he ruled on 2026-11-09 (LEE-20) that the picture wins over the earlier default of three): a flat `questDisc` blue disc (`#2f6ed6`, not the class accent; LEE-20, the picture wins), 16 root units across and one root unit in from the caption mark's left edge: acceptance pass 2's blue-core mask measures all four at 28 by 28 px (LEE-92), rather than the earlier 30 by 30, with the quest's place in the list in white and nothing around it (the picture's discs carry no ring, so the super-tracked quest is marked only by standing first; LEE-20); the gold title 25.5 root units in from the disc's left edge; each objective with its count in near white (`textEmphasis`) in a right column, dimmed when finished, the title and the lines all at `Lumen.TEXT_SIZE` (the picture draws them one size, the size of the guide's steps), and wrapped onto up to three lines when its words are wider than their room (the row's width less the gutter, less the item socket when the quest has one, less the count and its gap when the objective has a count; the count stays on the first line, and a fourth line would end in the engine's ellipsis). Wrapped lines stand a row apart, the height a one-line objective takes (the text size plus 4), not the font's own line height: the card gives each objective `SetSpacing` (`SimpleFontStringAPIDocumentation.lua`) of the row less the font's measured line, which is how the picture's first objective takes three lines 30 px apart (LEE-67). The card measures each objective with a hidden font string of the same face and width (`SetWidth`, `GetStringHeight` through `Widgets.TextHeight`), so a quest is as tall as its title plus the lines it really takes, on whole pixels, and the scroll window, the bar and the more line work from those heights; Blizzard's `QUEST_WATCH_QUEST_READY` in green for a quest ready to turn in, `FAILED` in red for a failed one. The wheel scrolls one quest at a time; a slim bar and a more line ("4 more, scroll down", "7 above, scroll up") stand for the quests out of view, the bar rests unseen (alpha 0) until the pointer is over the card or one of its item buttons, as the picture draws it (LEE-20), and the more line always shows, so the card says when quests wait (the Captain's ruling on KSTY-33, reversing LEE-20 for that line: a hidden overflow line hid content from the owner). The card's rhythm is the picture's, measured on its crop at 1.742 px a root unit: standing alone, the caption's row starts 11 root units under the glass's top; docked under the RestedXP guide it starts at the card's top, because the guide's glass holds it; the caption's row is 21 high, the first quest starts 6.5 under it, a title's row is the text size plus 5.5, and the card ends 12.5 under its last quest whether or not more quests wait, with the more line standing in the middle of that foot instead of adding a row. The foot grows by the text size setting above 1, as the more line does, so a larger more line stays inside the card. On the reference panel the card is the picture's 557 px tall and every row within a pixel of the picture's (handoffs/reference-diff/DIFF-acceptance-1.md section 3, LEE-67). The card's view is as tall as the tallest run of `shown` quests, clamped to the slot, so it never grows into chat and does not jump as it scrolls; where even that does not fit, it shows the whole quests that do and keeps the rest reachable with the wheel, the scroll bar and the more line even when the tracked total is no larger than the requested count. Both fit checks compare snapped heights with one physical pixel of tolerance, so a subpixel shortage cannot hide a whole row (LEE-92).
-- Clicks follow Blizzard's tracker: a left click opens the quest's details (`QuestMapFrame_OpenToQuestDetails`, out of combat only), shift (`QUESTWATCHTOGGLE`) untracks it, a chat-link click inserts its link, and a right click opens a menu (`MenuUtil.CreateContextMenu`) with Blizzard's own words for focus, show on map, stop tracking and share.
+- Clicks follow Blizzard's tracker: a left click opens the quest's details (`QuestMapFrame_OpenToQuestDetails`, out of combat only) and, with World map > Click a quest to route on, routes to it (`WorldMapRoutes.Quest`), shift (`QUESTWATCHTOGGLE`) untracks it, a chat-link click inserts its link, and a right click opens a menu (`MenuUtil.CreateContextMenu`) with Blizzard's own words for focus, show on map, stop tracking and share.
 - Quest items are KstyleUI's own `SecureActionButtonTemplate` buttons (`type` `item`, `item` the item's link), parented to `UIParent` and placed over each row's socket with `Widgets.Cover`, so no KstyleUI frame turns protected. Their attributes, visibility and place change only out of combat. While one shows in combat, the rows hold still and only their words repaint (a row repaints only while its height would not change, so wrapped lines never move the rows), so a button never sits beside the wrong quest; the wheel waits, and new quests and items land when combat ends.
 - `Quests/Quests.lua` decides who owns the slot. While the card is on and Blizzard's tracker holds only quests and campaign quests, the card shows and Blizzard's whole tracker is hidden through `Safe.HideBlizzard` (a reparent, out of combat and outside Edit Mode). Hiding only the quest and campaign modules is not safe: the container would still lay them out, so the modules after them (achievements, recipes, bonus objectives, world quests) would sit under a blank gap, and removing them from the container means calling Blizzard's tracker code from addon code, which taints it. Anything else the tracker holds (a scenario, dungeon or delve stage, UI widgets, world quests, bonus objectives, achievements, recipes, or an auto-complete quest's "click to complete" pop-up, which Blizzard's quest module draws: `GetNumAutoQuestPopUps`) brings Blizzard's tracker back in place of the card until it ends, so no quest shows twice and nothing is lost. A swap in combat waits for combat to end, and while an item button is frozen in combat the card itself does not move either (a restyle, a layout change or entering the world re-places it after combat). The card draws only while it stands in, so a restyle never brings a switched-off card back. The hook on `UpdateHeaderPosition` re-checks after every tracker layout.
 - Edit Mode: with the card on, the hidden tracker shows no selection to drag. Blizzard's `ApplySystemAnchor` puts the tracker back on `UIParent` (`BreakFromFrameManager`) whenever it applies a layout; a hook on the tracker's `SetParent` hides it again once Edit Mode closes, and `Safe` then restores it to the parent Blizzard last chose. `Tools/regression/test-skins-tracker-editmode.lua` drags the tracker frame by frame with real rects (`env._resolveRects`) and holds its selection's rect, as Edit Mode's snap preview reads it, with the card off and on.

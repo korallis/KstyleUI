@@ -2,6 +2,13 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.3.0 (2026-11-23)", {
+		L["A clean screen at rest: out of combat with no target, your bars and player frame fade until you need them again."],
+		L["One lit glass finish on every bar, and Medallions names, levels and cast names in one typeface."],
+		L["Target and focus cast bars show who a spell is aimed at, and when your interrupt is back."],
+		L["The world map finds the nearest innkeeper, bank or trainer you have visited and routes by zeppelin, tram or hearth."],
+		L["Options search takes you straight to the setting, and the first run shows big pictures and one-click Looks."],
+	} },
 	{ "v0.2.15 (2026-11-22)", {
 		L["Party and raid names can sit under the health and power bars, in Medallions and Frames. Off by default."],
 		L["Your heal icons on party frames can sit outside the frame, so the name keeps its whole line. Off by default."],
@@ -14,10 +21,5 @@ ns.NOTES = {
 		L["Player and target aura settings stay as you set them in every aura layout."],
 		L["RestedXP's Active Targets and Active Items boxes stay still when the guide updates."],
 		L["Shapeshifting, target changes, RestedXP, Zygor and opening windows do less work, with no change in look."],
-	} },
-	{ "v0.2.13.1 (2026-11-22)", {
-		L["Smoother frame rate with RestedXP and Questie."],
-		L["Minimap buttons stay put in the drawer with less work when other addons move them."],
-		L["The minimap, auras, chat and meters do less work while you stand still."],
 	} },
 }

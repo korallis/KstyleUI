@@ -170,6 +170,7 @@ local function OnClick(row, button)
 		return
 	end
 	Open(id)
+	ns.WorldMapRoutes.Quest(id)
 end
 
 local function OnWheel(_, delta)

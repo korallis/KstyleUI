@@ -3,17 +3,18 @@ local _, ns = ...
 
 local Layout = ns.Layout
 local G = Layout.Geometry
-local Widgets, Tokens, Scale, L = ns.Widgets, ns.Tokens, ns.Scale, ns.L
+local Widgets, Tokens, Scale, Motion, L = ns.Widgets, ns.Tokens, ns.Scale, ns.Motion, ns.L
 
 local floor, max, min, format = math.floor, math.max, math.min, string.format
 
 local Mode = {}
 Layout.Mode = Mode
-ns.Store.RegisterDefaults("LayoutControls", { clearMovers = true, search = true })
+ns.Store.RegisterDefaults("LayoutControls", { clearMovers = true, search = true, guides = true })
 ns.Options.Register("LayoutControls", function() return {
 	{ type = "header", label = L["Mover controls"] },
 	{ type = "toggle", key = "clearMovers", label = L["See-through movers"], help = L["Uses 35 percent opacity and label tags on movers. Off restores the old solid plates."] },
 	{ type = "toggle", key = "search", label = L["Find Layout Mode elements"], help = L["Adds a searchable element list to the toolbar. Off keeps the previous drag-only toolbar."] },
+	{ type = "toggle", key = "guides", label = L["Clear snap guides"], help = L["Thicker snap lines that fade in as an element snaps. Off restores the thin lines."] },
 } end)
 
 local TOOLBAR_KEY = "Layout.Toolbar"
@@ -29,6 +30,7 @@ local FILL_REST, FILL_HOVER, FILL_SELECTED = 0.6, 0.72, 0.85
 local EDGE_REST, EDGE_ACTIVE = 0.55, 1
 local GRID_CENTRE_ALPHA = 0.45
 local GUIDE_ALPHA = 0.9
+local GUIDE_WIDTH = 2
 local SLOT_FILL, SLOT_EDGE = 0.06, 0.6
 local HELP_LEADING, HINT_LINES = 1.3, 2
 local NUDGE_SMALL = 1
@@ -52,6 +54,11 @@ end
 
 local function IsNumber(v)
 	return not IsSecret(v) and type(v) == "number" and v == v
+end
+
+local function Shown(frame)
+	local shown = frame:IsShown()
+	return not IsSecret(shown) and shown
 end
 
 local function Log(message)
@@ -310,8 +317,15 @@ local function ShowGuide(guide, at, vertical)
 		guide:Hide()
 		return
 	end
-	local pixel, border = Scale.Pixel(1), Scale.Border()
+	local clear = ns.Store.Module("LayoutControls").guides
+	local pixel, border = Scale.Pixel(1), clear and Scale.Snap(GUIDE_WIDTH) or Scale.Border()
 	local pos = G.Align(at - border / 2, pixel)
+	local shown = Shown(guide)
+	if guide.at == pos and guide.border == border and shown then
+		return
+	end
+	local fade = clear and not shown
+	guide.at, guide.border = pos, border
 	guide:ClearAllPoints()
 	if vertical then
 		guide:SetPoint("TOPLEFT", overlay, "TOPLEFT", pos, 0)
@@ -322,8 +336,12 @@ local function ShowGuide(guide, at, vertical)
 		guide:SetPoint("BOTTOMRIGHT", overlay, "BOTTOMRIGHT", 0, pos)
 		guide:SetHeight(border)
 	end
-	Widgets.Tint(guide, "accent", GUIDE_ALPHA)
-	guide:Show()
+	Widgets.Tint(guide, "accent", clear and 1 or GUIDE_ALPHA)
+	if fade then
+		Motion.FadeIn(guide, (Motion.Moment("snap")))
+	else
+		guide:Show()
+	end
 end
 
 local function Targets(key, only)
@@ -412,10 +430,14 @@ local function UpdateDrag()
 		b = d.bottom + d.height - h
 	end
 	l, b = Layout.Clamp(d.key, l, b, w, h)
+	local el = Layout.Element(d.key)
+	if d.moved and el and el.preview and d.l == l and d.b == b and d.w == w and d.h == h and d.s == s then
+		return
+	end
 	d.moved = true
 	d.l, d.b, d.w, d.h, d.s = l, b, w, h, s
 	Layout.Preview(d.key, l, b, w, h, s)
-	local plate, el = plates[d.key], Layout.Element(d.key)
+	local plate = plates[d.key]
 	if plate and el and d.kind ~= "move" then
 		PlacePlate(plate, el.frame, w, h)
 	end
@@ -579,13 +601,15 @@ local function PlateTooltip(tip, plate)
 end
 
 local function PlateDown(plate, button)
-	if button == nil or button == "LeftButton" then
+	if Layout.IsActive() and (button == nil or button == "LeftButton") then
 		Mode.Select(plate.key)
 	end
 end
 
 local function PlateClick(plate, button)
-	if button == "MiddleButton" then
+	if not Layout.IsActive() then
+		return
+	elseif button == "MiddleButton" then
 		Mode.hidden[plate.key] = true
 		plate:Hide()
 		Mode.Select(nil)
@@ -914,14 +938,14 @@ local function BuildToolbar()
 		label = L["Grid"], value = Layout.Setting("grid"),
 		tooltip = L["Show the grid, and snap to its lines."],
 		onChange = function(value)
-			ns.Options.Write("Layout", "grid", value)
+			if Layout.IsActive() then ns.Options.Write("Layout", "grid", value) end
 		end,
 	})
 	panel.snapToggle = Widgets.Toggle(content, {
 		label = L["Snap"], value = Layout.Setting("snap"),
 		tooltip = L["Snap to other elements, the screen edges and the centre."],
 		onChange = function(value)
-			ns.Options.Write("Layout", "snap", value)
+			if Layout.IsActive() then ns.Options.Write("Layout", "snap", value) end
 		end,
 	})
 	panel.undo = Widgets.Button(content, {
@@ -939,7 +963,7 @@ local function BuildToolbar()
 	panel.reset = Widgets.Button(content, {
 		text = L["Reset"], tooltip = L["Move every element back to its default place and size. Undo brings them back."],
 		onClick = function()
-			Layout.ResetAll()
+			if Layout.IsActive() then Layout.ResetAll() end
 		end,
 	})
 	panel.done = Widgets.Button(content, {
@@ -949,6 +973,7 @@ local function BuildToolbar()
 		end,
 	})
 	panel.bind = Widgets.Button(content, { text = L["Bind keys"], onClick = function()
+		if not Layout.IsActive() then return end
 		Layout.Exit(true)
 		ns.Options.BindKeys()
 	end })
@@ -1022,6 +1047,23 @@ local function BuildToolbar()
 	Layout.Register(panel, TOOLBAR_KEY, TOOLBAR_POSITION, { label = L["Layout Mode toolbar"], scalable = true, plate = false, window = true })
 end
 
+local function Fade(_, alpha)
+	overlay:SetAlpha(alpha)
+	grid:SetAlpha(alpha)
+end
+
+local function Gone()
+	overlay:Hide()
+	grid:Hide()
+	slot:Hide()
+	Fade(nil, 1)
+end
+
+local function Smooth(moment, instant)
+	local duration, ease = Motion.Moment(moment)
+	return Motion.OneStyle() and not instant and not InCombatLockdown() and duration or 0, ease
+end
+
 local function Build()
 	if overlay then
 		return
@@ -1062,6 +1104,8 @@ function Mode.Show()
 	Mode.hidden = {}
 	Build()
 	toolbar:Arrange()
+	local alpha = overlay:GetAlpha()
+	local from = Shown(overlay) and IsNumber(alpha) and alpha or 0
 	overlay:Show()
 	overlay:EnableKeyboard(true)
 	overlay:SetPropagateKeyboardInput(true)
@@ -1077,9 +1121,10 @@ function Mode.Show()
 	toolbar:Open()
 	RevealToolbar()
 	PlaceTags()
+	Motion.Tween(overlay, Fade, from, 1, Smooth("open"))
 end
 
-function Mode.Hide()
+function Mode.Hide(instant)
 	if not overlay then
 		return
 	end
@@ -1097,10 +1142,13 @@ function Mode.Hide()
 		overlay:SetPropagateKeyboardInput(true)
 		overlay:EnableKeyboard(false)
 	end
-	overlay:Hide()
-	grid:Hide()
-	slot:Hide()
-	toolbar:Hide()
+	local duration, ease = Smooth("close", instant)
+	if duration > 0 then
+		toolbar:Close()
+	else
+		toolbar:Hide()
+	end
+	Motion.Tween(overlay, Fade, overlay:GetAlpha(), 0, duration, ease, Gone)
 end
 
 function Mode.Refresh()

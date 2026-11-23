@@ -89,6 +89,20 @@ After `Enable` succeeds, `Modules` fires `ModuleChanged(name, true)`. After `Dis
 
 `Combat.Queue(fn)` runs `fn` at once out of combat. In combat it holds `fn` and runs the queue in order on `PLAYER_REGEN_ENABLED`. A failing entry is reported and the rest still run. The core listens for `PLAYER_REGEN_ENABLED` only while the queue holds work. `Combat.Pending()` returns the number of held entries.
 
+## Interrupt
+
+`Core/Interrupt.lua` (`KstyleUI.Interrupt`) finds the player's interrupt spell and whether it is ready for the cast bars that colour casts by it: the nameplates and the unit frames' target and focus bars. It registers `SPELL_UPDATE_COOLDOWN` and `SPELLS_CHANGED` only while a module watches it.
+
+- `Interrupt.Watch(owner, fn)` starts listening on the first watcher and finds the spell; `fn()` runs whenever the spell, its readiness or its ready time changes. `Interrupt.Unwatch(owner)` drops one watcher; the last one stops the events and forgets readiness.
+- `Interrupt.Name(text)` sets the spell the player named (Nameplates > Cast bar > Interrupt spell, a name or an ID); blank uses the class table. A changed name finds the spell again while listening. `Interrupt.Resolve()` finds the spell and reads the cooldown again (`SPELLS_CHANGED` runs it); another `Watch` from a running watcher does not, so a `SPELL_UPDATE_COOLDOWN` answer about the global cooldown survives a restyle.
+- Fields: `spell` (an ID, a name handed to the cooldown API as written, or nil), `ready` (true, false, or nil while unknown or secret), `readyAt` (the `GetTime()` its cooldown ends, only from readable `startTime` and `duration`) and `running`.
+- `Interrupt.INTERRUPTS[class]` lists Forever's interrupt spell IDs, highest rank first. `Interrupt.Spell(class, known)` and `Interrupt.Ready(info, fromCooldownEvent)` are its pure rules; `isOnGCD` is trusted only inside `SPELL_UPDATE_COOLDOWN`.
+- `Interrupt.Target(unit)` returns who a unit's cast is aimed at: the name, the class file and whether it is the player, each possibly secret, or nothing when `UnitShouldDisplaySpellTargetName` says no. `Interrupt.By(guid)` returns the same for the GUID `UNIT_SPELLCAST_INTERRUPTED` and `UNIT_SPELLCAST_CHANNEL_STOP` carry, secret or not.
+- `Interrupt.At(start, finish, channel)` is where the interrupt is back as a share of a cast with readable start and end times in ms (inverted for a channel), or nil outside the cast. `Interrupt.Mark(mark, bar, at, w, h, vertical, reverse, owner)` places the 2-unit `giltLit` ready mark at that share (making it when `mark` is nil); callers size it.
+- `Interrupt.Left(holder, fn, on)` returns the whole seconds until the interrupt is back from a readable `readyAt` while `on`, else nil, and calls `fn(holder)` once when that number changes (one `C_Timer.After` per change, none while nothing shows).
+
+Tests: `test-nameplates-interrupt.lua`, `test-api-cooldown-contracts.lua` and `test-cast-caster.lua`.
+
 ## CVars
 
 A module that writes a game CVar puts the player's own value back when it stops. A module that is off at login runs no code, so without this service a character that logs in with the module off keeps what KstyleUI wrote on an earlier login, or on another character. `Core/CVars.lua` closes that gap once per login. Its one function, `KstyleUI.CVars.Loaded()`, returns true once `VARIABLES_LOADED` has fired; a module that writes a CVar from `Enable` checks it first, because before that event a CVar can read a stand-in value that looks like the player's own.

@@ -463,6 +463,11 @@ do
 end
 
 -- The repository's allowlist parses, and every line names a scope.
+local solid = { kind = "texture", file = "", color = { 1, 1, 1, 1 }, vertex = { 1, 1, 1, 1 } }
+assert(Guard.Hides(solid), "a solid texture hides what it covers")
+solid.gradient = { from = { 1, 1, 1, 0 }, to = { 1, 1, 1, 0.24 } }
+assert(not Guard.Hides(solid), "a gradient hides only as much as its strongest end, so a bar's soft light covers nothing")
+
 for _, entry in ipairs(Guard.LoadAllow()) do
 	assert(Guard.OWNERS[entry.owner], "an owner for line " .. entry.line)
 end

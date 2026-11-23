@@ -9,6 +9,8 @@ local Preview = {}
 ns.Preview = Preview
 
 local SAMPLE_WIDTH = 160
+local SCREEN_WIDTH = 240
+local SCREEN_ALPHA, CURRENT_ALPHA = 0.35, 0.9
 local SNUG_MARGIN = 4
 local SCALE_SAME = 0.0001
 Preview.MAX_SCALE = 1.6
@@ -51,6 +53,50 @@ function Preview.Sample(parent)
 		end
 	end
 	frame.Restyle = frame.Refresh
+	Widgets.Track(frame)
+	frame:Refresh()
+	return frame
+end
+
+function Preview.Screen(parent)
+	local frame = CreateFrame("Frame", nil, parent)
+	frame.chrome = Widgets.Chrome(frame, { shape = "tile", fill = "deep", shadow = false })
+	frame.boxes = {}
+	frame.Refresh = function(self)
+		local layout = K.Layout
+		if not (layout and layout.RootSize and layout.Rect) then
+			return
+		end
+		local rw, rh = layout.RootSize()
+		local width = Widgets.Snap(self, SCREEN_WIDTH)
+		local k = width / rw
+		Widgets.Size(self, width, Widgets.Snap(self, rh * k))
+		local section = parent:GetParent().section
+		local n = 0
+		for _, el in ipairs(ns.Pages.Elements()) do
+			local l, b, w, h = layout.Rect(el.key)
+			local s = layout.Get(el.key)
+			if l and s.shown ~= "never" and not el.opts.window and el.opts.plate ~= false then
+				n = n + 1
+				local box = self.boxes[n] or self:CreateTexture(nil, "ARTWORK")
+				self.boxes[n] = box
+				box:SetColorTexture(Tokens.Color("white"))
+				box:ClearAllPoints()
+				box:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", l * k, b * k)
+				box:SetSize(math.max(1, w * k), math.max(1, h * k))
+				local current = section ~= nil and ns.Pages.ModuleLabel(el.module or "Other") == section
+				Widgets.Tint(box, current and "accent" or "text", (current and CURRENT_ALPHA or SCREEN_ALPHA) * s.alphaIdle)
+				box:Show()
+			end
+		end
+		for i = n + 1, #self.boxes do
+			self.boxes[i]:Hide()
+		end
+	end
+	frame.Restyle = function(self)
+		if self:IsVisible() then self:Refresh() end
+	end
+	frame:HookScript("OnShow", frame.Refresh)
 	Widgets.Track(frame)
 	frame:Refresh()
 	return frame
@@ -533,7 +579,7 @@ function Preview.Show(pane, page, section)
 	if frame then
 		if frame ~= previous and K.Appearance.Get("calmLists") then
 			frame:SetAlpha(0)
-			K.Motion.FadeIn(frame, 0.2)
+			K.Motion.FadeIn(frame, (K.Motion.Moment("page")))
 		else
 			frame:Show()
 		end

@@ -33,6 +33,8 @@ Two switches on the same page, both on by default, let a player drop an effect's
 - **Low-health vignette** off hides the vignette's 16 edge slices, so they leave the draw (health is secret, so Lua cannot hide them by health). The portrait's low-health ring still shows and keeps breathing: it breathes on the vignette's group, so that one group runs on while the ring uses it and stops otherwise.
 - **Ambient hub effects** off stills the hub as Calm does: the rune turn, glow and bloom breaths, sheen and particles stop, and the sheen and particles are hidden. The static hub art stays, and flares (combat, proc, level-up, ready and cast flashes) still play by the motion level.
 
+**Calm crest at rest** (`Medallions.restingCrest`, on by default) settles the hub while the player is out of combat with no target, no proc and no effect holding it: the rune ring pauses where it stands, the sheen finishes its pass, the particles go, and only the glow and bloom breathe, at half speed (8.4 s a breath). Combat, a target or a proc wakes it to full at once, the runes turning on from their angle, and a wake during the sheen's last pass restarts the sheen. A target or proc repaints the hub only when ambient motion is on and its rest actually changes. It only stops loops, so the idle hub runs 2 loops instead of 9 (`test-perf-medallions-switches`). Off keeps the full idle motion.
+
 | Function | Behaviour |
 | --- | --- |
 | `Effects.Level() -> "full" \| "calm" \| "off"` | The level in force |

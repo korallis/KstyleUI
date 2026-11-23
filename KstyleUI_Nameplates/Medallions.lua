@@ -1,4 +1,4 @@
--- Medallions.lua: the Medallions HUD style on the plates: a 120 by 9 bar under an 11-unit Inter caps name, the level in Barlow at the bar's left in its difficulty colour, 22-unit debuffs, two gunmetal ticks on the target, and a painted badge over a friendly player's name.
+-- Medallions.lua: the Medallions HUD style on the plates: a 120 by 9 bar under an 11-unit caps name in the label face, the level in Barlow at the bar's left in its difficulty colour, 22-unit debuffs, two gunmetal ticks on the target, and a painted badge over a friendly player's name.
 local _, ns = ...
 
 local K = KstyleUI
@@ -12,7 +12,6 @@ ns.Medallions = Medallions
 local OWNER = "Nameplates.Medallions"
 local WIDTH, HEIGHT = 120, 9
 local OUTLINE_FLAGS = { NONE = "", OUTLINE = "OUTLINE", THICKOUTLINE = "THICKOUTLINE" }
-local NAME_FACE = "InterSemiBold"
 local TICK_WIDTH, TICK_GAP, TICK_OVERHANG = 2, 3, 2
 local LEVEL_GAP = TICK_GAP + TICK_WIDTH + 2
 local GUNMETAL = { Tokens.Color("medGunLit") }
@@ -75,7 +74,7 @@ local function StyleType(plate)
 		return
 	end
 	if K.Theme.FollowsKit(Settings.Get("name.font")) then
-		Widgets.ApplyFont(plate.name, Tokens.FontPath(NAME_FACE), Settings.Get("name.size"), OUTLINE_FLAGS[Settings.Get("name.outline")])
+		Widgets.ApplyFont(plate.name, Widgets.LabelFace(), Settings.Get("name.size"), OUTLINE_FLAGS[Settings.Get("name.outline")])
 	end
 	local number = (Tokens.Font("number"))
 	if K.Theme.FollowsKit(Settings.Get("level.font")) then

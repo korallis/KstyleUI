@@ -650,7 +650,7 @@ function Plates.Start()
 	for event, fn in pairs(GLOBAL_EVENTS) do
 		K.Events.Register(MODULE, event, fn)
 	end
-	ns.Interrupt.Start()
+	ns.Cast.WatchInterrupt()
 	for i = 1, MAX_PLATES do
 		local unit = TOKENS[i]
 		local exists = UnitExists and UnitExists(unit)
@@ -664,7 +664,7 @@ end
 function Plates.Stop()
 	Plates.running = false
 	Plates.SyncOptions()
-	ns.Interrupt.Stop()
+	K.Interrupt.Unwatch(MODULE)
 	ns.Resource.Sync()
 	for unit in pairs(byUnit) do
 		Detach(unit)

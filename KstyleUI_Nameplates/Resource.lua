@@ -58,7 +58,7 @@ local function Build(parent)
 	frame.pips = {}
 	local dot = Tokens.Texture("dot")
 	for i = 1, PIPS do
-		frame.pips[i] = Widgets.StatusBar(frame, { texture = dot, background = TRACK, min = i - 1, max = i, value = 0 })
+		frame.pips[i] = Widgets.StatusBar(frame, { texture = dot, background = TRACK, glass = false, min = i - 1, max = i, value = 0 })
 	end
 	frame.energy = Widgets.UnitBar(frame, { loss = false, spark = false })
 	return frame

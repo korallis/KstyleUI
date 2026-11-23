@@ -514,7 +514,7 @@ function FILL.segmented(control, item, value)
 	control:Select(value, true)
 	local enabled = not Model.IsDisabled(item)
 	for _, option in ipairs(item.options) do
-		control:SetTabEnabled(option.value, enabled)
+		control:SetTabEnabled(option.value, enabled and not option.disabled)
 	end
 	control:Paint()
 end
@@ -817,6 +817,7 @@ function Rows.Update(row, item, _, list)
 		if not keep or not numeric then slider.edit:Hide() end
 	end
 	row.changed:SetShown(K.Store.Module("OptionControls").changedSettings and item.key ~= nil and item.module ~= nil and K.Options.IsChanged(item.module, item.key))
+	if ns.Window.Taking(item) then row:EnableMouse(true) end
 	local disabled = Model.IsDisabled(item)
 	Widgets.TextColor(row.help, disabled and "textDisabled" or Widgets.Readability("sectionHeadings") and "muted" or "text")
 	if kind == "task" then
@@ -905,6 +906,8 @@ function Rows.Create(list)
 		if K.Store.Module("OptionControls").changedSettings and button == "RightButton" and item and item.module and item.key and not Model.IsDisabled(item) then
 			K.Options.Write(item.module, item.key, K.Options.Default(item.module, item.key))
 			ns.Changed()
+		elseif button == "LeftButton" and item and ns.Window.Taking(item) then
+			ns.Window.GoTo(item)
 		end
 	end)
 	row.Restyle = Rows.Restyle

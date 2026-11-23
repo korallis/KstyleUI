@@ -219,6 +219,8 @@ function Scene.ResolvePath(path, iconDirs)
 			local companion = rel:gsub("%.[^.]+$", ".png")
 			if rel:lower():match("%.tga$") and fileExists(companion) then
 				found = companion
+			elseif rel:lower():match("%.blp$") and fileExists(rel) then
+				found = fileExists("Tools/render/out/standins/" .. companion) and "Tools/render/out/standins/" .. companion
 			elseif fileExists(rel) then
 				found = rel
 			elseif rel:lower():match("%.tga$") or rel:lower():match("%.blp$") then
@@ -1201,7 +1203,8 @@ function Scene.Build(env, opts)
 				item.pendingLog = "texture " .. tostring(path) .. " is drawn as a grey box: the client's file is not in the texture cache; run python3 Tools/render/atlas.py paths --scan"
 				item.missing = tostring(path)
 			else
-				item.pendingLog = "no local file for texture " .. tostring(path)
+				item.pendingLog = (tostring(path):lower():match("%.blp$") and "texture %s is drawn as a grey box: run python3 Tools/render/standins.py to decode it"
+					or "no local file for texture %s"):format(tostring(path))
 				item.missing = tostring(path)
 			end
 			if type(path) == "number" then

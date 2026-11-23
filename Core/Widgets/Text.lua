@@ -9,6 +9,10 @@ function W.TextColors()
 	return textColors
 end
 
+function W.LabelFace()
+	return W.Readability("oneVoice") and (ns.Tokens.Font("number")) or ns.Tokens.FontPath(ns.Tokens.MEDALLIONS_PLATE_NAME_FACE)
+end
+
 function W.TextRows(schema, key, opts)
 	opts = opts or {}
 	local function add(row)

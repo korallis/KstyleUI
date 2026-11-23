@@ -649,6 +649,33 @@ def draw_slab(w, h, radius, rim=SLAB_RIM, density=SLAB_DENSITY, topline=True):
     return _resolve(rgb, (d >= 0).astype(float), w, h)
 
 
+def draw_slab_cap(w, h, seam=7.5, step=2, taper=5, bevel=1.5, rim=SLAB_RIM, density=SLAB_DENSITY):
+    """UnitSlab with forged steel end caps: each end steps down `step` units at a recessed seam `seam` units in, runs flat,
+    then tapers at 45 degrees from `taper` units in to a flat nose. The cap is Ring256's gunmetal: a lit upper bevel with
+    the hairline rim and one catch-light, a mid nose, a dark lower bevel."""
+    import numpy as np
+    p, u = _Palette(), density
+    x, y = _canvas(w, h)
+    e, v, upper = np.minimum(x, w - x) / u, np.minimum(y, h - y) / u, y < h / 2
+    body = np.minimum(v, np.where(v < step, e - seam, np.inf))
+    edges = np.stack([v - step, (v + e - step - taper) / np.sqrt(2), e, seam - e])
+    cap = edges.min(0)
+    d = np.where(e >= seam, body, cap)
+    rgb = _shape_fill(x, y, w, h, body * u, u, rim, p.FillTop, p.FillBottom, p)
+    rgb = _mix(rgb, p.TopLine, ((v >= 1) & (v < 2) & upper & (e >= seam + 1)) * p.alpha("TopLine"))
+    near, lit, ceiling = edges.argmin(0), 1 - y / h, np.array(CHROME_CEILING, float)
+    plate = _mix(p.GunDark, p.GunLit, 0.2 + 0.4 * lit)
+    top = np.where(upper[..., None], _mix(p.GunLit, ceiling, 0.4), p.GunDark)
+    side = np.where((near == 2)[..., None], _mix(p.GunDark, p.GunLit, 0.45 + 0.55 * lit), _mix(p.GunDark, p.Outline, 0.5))
+    facet = np.where((near <= 1)[..., None], top, side)
+    steel = _mix(plate, facet, ((cap >= 1) & (cap < 1 + bevel)).astype(float))
+    steel = np.minimum(_mix(steel, p.GunHair, ((cap >= 1) & (cap < 2) & (near <= 1) & upper) * p.alpha("GunHair")), ceiling)
+    steel = _mix(steel, ceiling, ((v >= step + 1) & (v < step + 2) & upper & (e >= taper) & (e < seam - 1)).astype(float))
+    steel = _mix(steel, p.Outline, (cap < 1).astype(float))
+    rgb = np.where((e < seam)[..., None], steel, rgb)
+    return _resolve(rgb, (d >= 0).astype(float), w, h)
+
+
 def draw_plaque(n, units):
     import numpy as np
     p, u = _Palette(), n / units
@@ -871,6 +898,9 @@ CHROME = [
            "medActionSlab", 16, SLAB_DENSITY),
     Chrome("UnitSlab", 128, 128, lambda: draw_slab(128, 128, 6),
            "Unit frame slab: ActionSlab with a 6-unit radius. Nine-slice, 2 texels a unit.", "medUnitSlab", 16, SLAB_DENSITY),
+    Chrome("UnitSlabCap", 128, 128, lambda: draw_slab_cap(128, 128),
+           "Unit frame slab with forged steel end caps: UnitSlab's fill, rim and catch-light, and at each end a 7.5-unit cap in Ring256's gunmetal behind a 1-unit black seam. The cap steps 2 units down from the body, runs flat, then tapers at 45 degrees from 5 units in to a flat nose; its upper bevel is lit, with the gunmetal hairline and one 1-unit catch-light along the flat, the nose is lit from the top and the lower bevel is dark. Nine-slice, 2 texels a unit.",
+           "medUnitSlabCap", 16, SLAB_DENSITY),
     Chrome("GroupTile", 64, 64, lambda: draw_slab(64, 64, 3, rim=2, topline=False),
            "Group and raid tile: the slab material at a 3-unit radius with a 2-unit rim. Nine-slice, 2 texels a unit.",
            "medGroupTile", 8, SLAB_DENSITY),

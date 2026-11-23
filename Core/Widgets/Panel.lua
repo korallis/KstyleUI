@@ -51,7 +51,7 @@ end
 
 local function BuildMotion(panel)
 	local rise = Tokens.Size("panelRise")
-	local duration = Tokens.Duration("panelOpen")
+	local duration = Motion.Moment("open")
 	local group = panel:CreateAnimationGroup()
 	local drop = group:CreateAnimation("Translation")
 	drop:SetOffset(0, -rise)
@@ -65,7 +65,7 @@ local function BuildMotion(panel)
 	panel.rise = group
 	panel.riseParts = { drop, up }
 	panel.fadeIn, panel.fadeInAlpha = AlphaGroup(panel, 0, 1, duration, Tokens.Smoothing.enter)
-	local fadeOut, fadeOutAlpha = AlphaGroup(panel, 1, 0, Tokens.Duration("panelClose"), Tokens.Smoothing.exit)
+	local fadeOut, fadeOutAlpha = AlphaGroup(panel, 1, 0, (Motion.Moment("close")), Tokens.Smoothing.exit)
 	panel.fadeOutAlpha = fadeOutAlpha
 	fadeOut:SetToFinalAlpha(true)
 	fadeOut:SetScript("OnFinished", function()
@@ -122,7 +122,7 @@ function Panel:Open()
 		self.rise:Stop()
 		if Motion.Slides() then self.rise:Play() end
 		self.fadeIn:Stop()
-		self.fadeInAlpha:SetDuration(Motion.FadeDuration(Tokens.Duration("panelOpen")))
+		self.fadeInAlpha:SetDuration(Motion.FadeDuration((Motion.Moment("open"))))
 		self.fadeIn:Play()
 	end
 	Widgets.Sound("IG_MAINMENU_OPEN")
@@ -139,7 +139,7 @@ function Panel:Close()
 		elseif Animated() then
 			self.closing = true
 			self.fadeOut:Stop()
-			self.fadeOutAlpha:SetDuration(Motion.FadeDuration(Tokens.Duration("panelClose")))
+			self.fadeOutAlpha:SetDuration(Motion.FadeDuration((Motion.Moment("close"))))
 			self.fadeOut:Play()
 		else
 			Hidden(self)

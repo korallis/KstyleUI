@@ -140,7 +140,7 @@ local wr, wg, wb = Tokens.Color("timerText")
 local tr, tg, tb = entry.timer:GetTextColor()
 check(near(tr, wr, 1e-3) and near(tg, wg, 1e-3) and near(tb, wb, 1e-3), "and the picture's soft grey-white, not pure white")
 local sx, sy = entry.timer:GetShadowOffset()
-check(sx == 0 and sy == 0, "the thin outline needs no second shadow")
+check(sx > 0 and sy < 0, "the thin outline casts the soft-backing drop shadow")
 local tp = entry.timer._points[1]
 check(tp[1] == "TOP" and tp[2] == entry.skin and tp[3] == "BOTTOM", "the timer hangs under the icon")
 check(near(-tp[5], Widgets.Snap(entry.skin, Model.TIMER_GAP - 0.5), 1e-3) and Model.TIMER_GAP + size == 14, "the timer is lifted half a root unit inside its unchanged 14-unit lane")

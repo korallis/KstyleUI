@@ -2,6 +2,7 @@
 	<Script file="Init.lua"/>
 	<Script file="Model.lua"/>
 	<Script file="Notes.lua"/>
+	<Script file="About.lua"/>
 	<Script file="Pages.lua"/>
 	<Script file="Rows.lua"/>
 	<Script file="Preview.lua"/>

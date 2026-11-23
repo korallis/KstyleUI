@@ -1,5 +1,61 @@
 # KstyleUI changelog
 
+## v0.3.0 (2026-11-23)
+
+The polish release and the explorer release in one. Every bar, name and panel gets a finishing pass, cast bars tell you who a spell is aimed at, and the world map routes you to the nearest innkeeper by road, zeppelin or hearthstone. Everything new is on by default except Reveal unexplored areas, and each one has its own switch if you prefer the old look.
+
+Highlights:
+
+- A clean screen at rest: out of combat with no target, your bars and player frame fade until you need them again.
+- One lit glass finish on every bar, and Medallions names, levels and cast names in one typeface.
+- Target and focus cast bars show who a spell is aimed at, and when your interrupt is back.
+- The world map finds the nearest innkeeper, bank or trainer you have visited and routes by zeppelin, tram or hearth.
+- Options search takes you straight to the setting, and the first run shows big pictures and one-click Looks.
+
+### Added
+
+- A clean screen at rest. Out of combat with no target and nothing going on, your action bars, player frame, data strip and cooldown rows fade to 35% after three seconds.
+- They come straight back when you target, cast, enter combat, open Layout Mode, drag a spell or point at them, or when your health or power changes. Elements > Clean screen at rest.
+- Under Clean screen at rest you can turn it off, set Rest opacity and pick which panels fade. A bar you set to fade until hovered keeps its own fade.
+- Target and focus cast bars, on their frames and on nameplates, show who the spell is aimed at in their class colour, or YOU when it is aimed at you.
+- Casts you cannot interrupt carry a shield. While your interrupt recharges the bar dims, counts down the seconds and shows a gold mark where it comes back.
+- An interrupted cast briefly shows who interrupted it. Unit Frames > Cast targets and interrupts, and Nameplates > Cast bar > Cast targets and interrupts.
+- Medallions unit frames and cast bars end in forged steel caps, lit like the crest's ring, and cast bars end in a blade tip. Unit Frames > Forged slab ends.
+- A soft glow behind nameplate names and a drop shadow under timers and counts keep text readable over bright ground and spell effects. General > Appearance > Soft glow behind world text.
+- The world map remembers the innkeepers, trainers, banks, auction houses, repair and reagent vendors you visit, pins them and routes you to the nearest. Window Skins > World map > Nearest services.
+- Clear the map's search box and pick Nearest innkeeper, Nearest bank or any other service. Visits are shared by every character on your account.
+- Clicking a quest on the quest card routes to it on the world map, or tells you when the game gives no position. Window Skins > World map > Click a quest to route.
+- Routes use zeppelins, the Deeprun Tram and the boats between Kalimdor and the Eastern Kingdoms, so a place on the other continent gets a full route. Window Skins > World map > Travel stops.
+- Routes take your hearthstone, Astral Recall and the teleports and portals you know when they are faster, and count any cooldown still running.
+- The world map can reveal the areas you have not explored yet, dimmed so you can still tell them apart. Window Skins > World map > Reveal unexplored areas, off by default.
+- Settings search takes you there: press Enter or click a result's name and the window opens that page at the setting and lights the row. General > Window conveniences > Search takes you there.
+- Search knows more everyday words, so "hp" finds health settings, "color" finds colour and "kick" finds interrupts.
+- The Elements page shows a small map of your screen with every element on it, and the Profiles page shows your text and colours. General > Window conveniences > Previews on Elements and Profiles.
+- Setup shows one big picture of each layout in your HUD style, and on ultrawide screens pictures of Centred and Spread to pick from. General > Setup > Big pictures in setup.
+- One-click Looks in setup and on the General page under HUD style: Forged (the usual look), Clean and Readable. General > Setup > One-click Looks.
+- KstyleUI tells you once after login if part of it is turned off, missing, out of date or failed to load, and offers the fix: turn it on and reload, reload, or a download link.
+- About > Status shows how every part of KstyleUI is doing and gives you a report to copy into Discord. About > Status > Load check.
+
+### Changed
+
+- KstyleUI's bars share one lit glass finish: a soft light along the top, a thin bright edge and depth toward the bottom. General > Appearance > Lit glass bars.
+- That covers health, power and cast bars on unit, party and raid frames and nameplates, plus experience, reputation, swing timer, tracked buff and movement bars.
+- Damage and threat meter bars only get the light, so class colours stay full strength.
+- Medallions names, levels and cast names share one clean number face with the rest of the HUD. General > Appearance > One typeface voice.
+- Out of combat with no target, the Medallions crest settles to a slow breath and wakes when you enter combat, pick a target or get a proc. General > Medallions > Calm crest at rest.
+- Menus, settings pages and Layout Mode open, close and fade with the same timing as the settings window. General > Window conveniences > One motion style.
+- Layout Mode's snap guides are thicker and fade in as an element snaps, and a snapped element holds still while you drag inside the snap. Elements > Mover controls > Clear snap guides.
+- Boat and zeppelin steps in a route are named after their town, like Boat to Booty Bay or Zeppelin to Brill.
+
+### Upgrading
+
+- Every new look is on for you too; turn any one off to get that part of the old look back.
+- Bars and text: General > Appearance > Lit glass bars, One typeface voice and Soft glow behind world text.
+- A screen that never fades: Elements > Clean screen at rest > Fade panels at rest.
+- Medallions: Unit Frames > Forged slab ends, and General > Medallions > Calm crest at rest.
+- Cast bars: Cast targets and interrupts under Unit Frames, and under Nameplates > Cast bar.
+- Options search, previews and motion: General > Window conveniences.
+
 ## v0.2.15 (2026-11-22)
 
 The last group frames round. Names can sit under the bars, your party heal icons can move off the frame so the name gets its whole line back, and party and raid frames can follow FrameSort.

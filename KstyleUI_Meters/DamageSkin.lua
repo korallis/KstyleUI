@@ -93,6 +93,7 @@ local function NewPill(entry, source)
 	local bar = Widgets.StatusBar(holder, {
 		texture = ns.Get("damage.texture"),
 		background = "barTrack",
+		glass = "light",
 		smooth = true,
 		min = 0,
 		max = 1,

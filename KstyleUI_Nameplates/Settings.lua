@@ -55,7 +55,7 @@ Settings.defaults = {
 		waitColor = Color("giltDim"), interruptSpell = "", hideOnTarget = false,
 		showIcon = false, iconRight = false, offsetY = 0, inFront = false, showTarget = false, nameAlign = "LEFT", spark = false, hideUnitName = false, fullOpacity = false, showName = true, nameSelectedOnly = true, nameBelow = true, showTime = false, textSize = 11, outline = "OUTLINE",
 		iconScale = 1, iconFull = false, iconX = 0, iconY = 0, offsetX = 0, border = true, important = false, importantGlow = false, importantColor = Color("legendary"), importantKick = false, scale = 1,
-		bgAlpha = 1, targetPlace = "", targetGlow = false, targetGlowColor = Color("hostile"),
+		bgAlpha = 1, targetPlace = "", targetGlow = false, targetGlowColor = Color("hostile"), caster = true,
 	},
 	buffs = { enabled = false, filter = "important", place = "RIGHT", count = 3, showTime = true, dispelGlow = false },
 	ccs = { enabled = false, place = "LEFT", count = 2, showTime = true, first = false },
@@ -388,6 +388,10 @@ function Settings.Schema()
 		{
 			type = "toggle", key = "cast.combatCues", label = L["Combat cast cues"],
 			help = L["Dims casts while your interrupt is unavailable and marks uninterruptible casts with a shield."],
+		},
+		{
+			type = "toggle", key = "cast.caster", label = L["Cast targets and interrupts"],
+			help = L["Shows who a cast targets in class colour or YOU, who interrupted it and when you can interrupt."],
 		},
 		{
 			type = "toggle", key = "cast.enabled", label = L["Show cast bars"],

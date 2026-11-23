@@ -47,6 +47,7 @@ Widgets.TEXTURE_TEXELS = {
 	lumenShadow = 128,
 	medActionSlab = 128,
 	medUnitSlab = 128,
+	medUnitSlabCap = 128,
 	medCardEdge = 128,
 	medAuraBorder = 64,
 	medGroupTile = 64,
@@ -476,17 +477,18 @@ local function SetShadow(text, x, y, r, g, b, a)
 	end
 end
 
-local function Shadow(text, flags, f)
-	local face = Tokens.FaceShadow((text:GetFont()))
-	if flags ~= "" or face == false then
+local SHADOW_R, SHADOW_G, SHADOW_B, SHADOW_A = Tokens.Color("textShadow")
+
+local function Shadow(text, flags, f, plain)
+	local face = flags ~= "" or Tokens.FaceShadow((text:GetFont()))
+	if not face or flags ~= "" and (plain or ns.Appearance and not ns.Appearance.Readability("softBacking")) then
 		return SetShadow(text, 0, 0)
 	end
 	local offset = Scale.Border() / f
-	local r, g, b, a = Tokens.Color("textShadow")
 	if face == true then
-		return SetShadow(text, offset, -offset, r, g, b, a)
+		return SetShadow(text, offset, -offset, SHADOW_R, SHADOW_G, SHADOW_B, SHADOW_A)
 	end
-	return SetShadow(text, face.x * offset, -face.y * offset, r, g, b, face.alpha)
+	return SetShadow(text, face.x * offset, -face.y * offset, SHADOW_R, SHADOW_G, SHADOW_B, face.alpha)
 end
 
 function Widgets.FontSize(text, size)
@@ -653,7 +655,7 @@ end
 
 local unset = setmetatable({}, { __mode = "k" })
 
-function Widgets.ApplyFont(text, path, size, flags, plain)
+function Widgets.ApplyFont(text, path, size, flags, plain, panel)
 	if IsSecret(size) or type(size) ~= "number" or size ~= size or size <= 0 or size == math.huge then
 		return false
 	end
@@ -671,7 +673,7 @@ function Widgets.ApplyFont(text, path, size, flags, plain)
 	local same = not unset[text] and current == path and currentHeight == height and currentFlags == flags
 	local ok = same or text:SetFont(path, height, flags) ~= false
 	unset[text] = not ok or nil
-	Shadow(text, flags, f)
+	Shadow(text, flags, f, plain or panel)
 	if not plain then
 		Widgets.SyncTracking(text)
 	end
@@ -701,7 +703,7 @@ function Widgets.SetOutline(flags)
 		role = role or textRole[text] or "body"
 		textRole[text] = role
 		local path, size = Tokens.Font(role)
-		if role == "caps" and Widgets.CapsSized[text] ~= nil or not Widgets.ApplyFont(text, path, size, flags) then
+		if role == "caps" and Widgets.CapsSized[text] ~= nil or not Widgets.ApplyFont(text, path, size, flags, nil, true) then
 			return styleText(text, role)
 		end
 	end or styleText
@@ -1427,6 +1429,8 @@ local function PaintSlice(p, name)
 		p[5]:Hide()
 	end
 end
+
+Widgets.PaintSlice = PaintSlice
 
 local function AnchorRuns(p, thickness)
 	thickness = thickness or false

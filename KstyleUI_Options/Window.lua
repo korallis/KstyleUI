@@ -21,6 +21,7 @@ local LOGO_SIZE = 28
 local RULE_ALPHA = 0.5
 local TITLE = "K S T Y L E U I"
 local DEFAULT_POSITION = { anchor = "CENTER", x = 0, y = 20 }
+local FLASH_ALPHA = 0.35
 
 local win, rail, content, preview, search, clear, layoutButton, resetButton, picker
 local state = { page = "General", pages = {} }
@@ -29,6 +30,18 @@ local Relayout
 
 local function CalmLists()
 	return K.Appearance.Get("calmLists")
+end
+
+local function Jumps()
+	return K.Store.Account().optionsSearchJump ~= false
+end
+
+local function Target(items)
+	for _, item in ipairs(items) do
+		if Window.Taking(item) and item.kind ~= "header" then
+			return item
+		end
+	end
 end
 
 local function RestyleText()
@@ -75,8 +88,9 @@ local function TrackSection()
 	local page = preview and preview.page
 	if page and page.builtinPreview and page.builtinPreview(label) ~= page.builtinPreview(preview.section) then
 		Preview.Show(preview, page, label)
-	elseif preview then
+	elseif preview and preview.section ~= label then
 		preview.section = label
+		if preview.current and preview.current.boxes then preview.current:Refresh() end
 	end
 end
 
@@ -91,8 +105,13 @@ local function Render(keepOffset, reselect, pageChanged)
 		items = Model.Search(account.optionsSearchPage == true and { page } or state.pages, state.query) or {}
 		if #items == 0 then
 			items = Note(format(L["No settings match \"%s\"."], state.query))
-		elseif account.optionsSearchMemory then
-			items = Window.Picks(items, account)
+		else
+			if account.optionsSearchMemory then
+				items = Window.Picks(items, account)
+			end
+			if Target(items) then
+				table.insert(items, 1, { kind = "note", label = L["Press Enter or click a result's name to go to it."] })
+			end
 		end
 	else
 		items = page and Model.Visible(Model.PageItems(page)) or {}
@@ -113,8 +132,11 @@ local function Render(keepOffset, reselect, pageChanged)
 	state.items = items
 	state.sections = state.query and {} or Model.Sections(items)
 	local calm = CalmLists()
+	local fade = calm and pageChanged == true and K.Motion.OneStyle()
 	content.revealLimit = calm and 0.45 or nil
-	content:SetData(items, keepOffset, not calm or pageChanged == true)
+	if not keepOffset then content.flashIndex = nil end
+	content:SetData(items, keepOffset, not calm or pageChanged == true and not fade)
+	if fade then K.Motion.Tween(content, "SetAlpha", 0, 1, K.Motion.Moment("page")) end
 	local folded = K.Store.Account().optionsRailFolded
 	local sections = K.Store.Account().optionsRailSections ~= false and not (folded and folded[state.page]) and state.sections or {}
 	if reselect then
@@ -195,6 +217,7 @@ end
 function Window.Refresh()
 	if win and win:IsShown() then
 		Render(true)
+		if preview.current and preview.current.boxes then preview.current:Refresh() end
 	end
 end
 
@@ -231,15 +254,63 @@ local function Select(id)
 	Render(false, true, changed)
 end
 
+local function Light(row, alpha)
+	if alpha > 0 and not row.flash then
+		row.flash = row:CreateTexture(nil, "BACKGROUND")
+		row.flash:SetAllPoints(row)
+		row.flash:SetColorTexture(Tokens.Color("white"))
+	end
+	if row.flash then
+		Widgets.Tint(row.flash, "accent", alpha)
+	end
+end
+
+local function Flash(list, alpha)
+	for _, row in ipairs(list.rows) do
+		Light(row, row:IsShown() and row.index == list.flashIndex and alpha or 0)
+	end
+	Light(picker, list.flashIndex == 0 and alpha or 0)
+end
+
+local function Same(item, target)
+	if target.element and item.element ~= target.element or target.entry and item.entry ~= target.entry then
+		return false
+	elseif target.key then
+		return item.module == target.module and item.key == target.key
+	end
+	return target.labelTarget ~= nil and item.label == target.labelTarget
+end
+
 function Window.Jump(target)
 	Select(target.page)
-	if picker:IsShown() and picker.item.module == target.module and picker.item.key == target.key then return true end
-	for i, item in ipairs(state.items) do
-		if target.key and item.module == target.module and item.key == target.key or target.labelTarget and item.label == target.labelTarget then
-			content:ScrollToIndex(i, true, "TOP")
-			return true
+	local index
+	if picker:IsShown() and picker.item.module == target.module and picker.item.key == target.key then
+		index = 0
+	else
+		for i, item in ipairs(state.items) do
+			if Same(item, target) then
+				index = i
+				content:ScrollToIndex(i, true, "TOP")
+				break
+			end
 		end
 	end
+	if index and Jumps() then
+		content.flashIndex = index
+		K.Motion.Tween(content, Flash, FLASH_ALPHA, 0, K.Motion.Moment("highlight"))
+	end
+	return index ~= nil or nil
+end
+
+function Window.Taking(item)
+	return state.query ~= nil and Jumps() and item.page ~= nil and item.kind ~= "note"
+end
+
+function Window.GoTo(item)
+	if item.scope and item.module then
+		K.Options.Write(item.module, item.scope.key, item.scope.value)
+	end
+	return Window.Jump({ page = item.page, module = item.module, key = item.key, element = item.element, entry = item.entry, labelTarget = item.label })
 end
 
 local function SetQuery(text)
@@ -454,6 +525,10 @@ local function Build()
 		placeholder = L["Search settings..."],
 		onChange = function(text)
 			SetQuery(text)
+		end,
+		onEnter = function()
+			local item = Target(state.items or {})
+			if item then Window.GoTo(item) end
 		end,
 	})
 	clear = Widgets.CloseButton(search, function()

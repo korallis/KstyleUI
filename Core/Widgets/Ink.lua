@@ -1,4 +1,4 @@
--- Ink.lua: linearised fill contrast and a feathered backing for text over the world.
+-- Ink.lua: linearised fill contrast, a feathered backing for text over the world, and a one-texture soft halo behind world names.
 local _, ns = ...
 local Widgets, Tokens = ns.Widgets, ns.Tokens
 
@@ -53,4 +53,31 @@ function Widgets.TextScrim(text, shown)
 			Widgets.LayoutSlice(slice, text, 8, 4, 0, text, 6)
 		end
 	end
+end
+
+local HALO_PAD_X, HALO_PAD_Y = 6, 4
+
+function Widgets.HaloAlpha(text, alpha)
+	local halo = text.halo
+	if halo and halo.on then halo:SetShown(Widgets.IsSecret(alpha) or alpha ~= 0) end
+end
+
+function Widgets.Halo(text, shown)
+	shown = shown and Widgets.Readability("softBacking") or false
+	local halo, parent = text.halo, text:GetParent()
+	if not halo and shown and parent and parent.CreateTexture then
+		halo = parent:CreateTexture(nil, "BACKGROUND", nil, -1)
+		halo:SetTexture((Tokens.Texture("shadow")))
+		halo:SetVertexColor(Tokens.Color("shadow"))
+		text.halo = halo
+	end
+	if not halo then return end
+	halo.on = shown
+	if shown then
+		local x, y = Widgets.Snap(text, HALO_PAD_X), Widgets.Snap(text, HALO_PAD_Y)
+		halo:SetPoint("TOPLEFT", text, "TOPLEFT", -x, y)
+		halo:SetPoint("BOTTOMRIGHT", text, "BOTTOMRIGHT", x, -y)
+		return Widgets.HaloAlpha(text, text:GetAlpha())
+	end
+	halo:Hide()
 end

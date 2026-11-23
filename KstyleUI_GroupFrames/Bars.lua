@@ -118,7 +118,7 @@ local function MaxLoss(f, rect)
 	local p = Settings.current.prediction
 	local on = p.maxLoss ~= "OFF"
 	if on and not f.maxLoss then
-		f.maxLoss = Widgets.StatusBar(f.predict, { background = false, reverse = true })
+		f.maxLoss = Widgets.StatusBar(f.predict, { background = false, glass = false, reverse = true })
 	end
 	local bar = f.maxLoss
 	if not bar then

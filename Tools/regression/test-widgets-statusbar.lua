@@ -215,9 +215,10 @@ do
 			return { r = r, g = g, b = b, a = a, GetRGBA = function(c) return c.r, c.g, c.b, c.a end }
 		end
 	end })
+	K.Options.Write("Appearance", "litBars", false)
 	local bar = K.Widgets.StatusBar(K.Scale.Root(), { width = 200, height = 13, background = "track" })
 	local fill = bar:GetStatusBarTexture()
-	assert(bar.lit and select(2, bar.lit:GetPoint(1)) == fill, "the lit line rides the fill")
+	assert(bar.lit and select(2, bar.lit:GetPoint(1)) == fill, "with Lit glass bars off, the lit line rides the fill (test-bar-glass covers the glass)")
 	assert(bar.shade, "the fill carries a shade")
 	local a, b = { bar.shade:GetPoint(1) }, { bar.shade:GetPoint(2) }
 	assert(a[2] == fill and b[2] == fill, "the shade covers the fill, so it follows the value")

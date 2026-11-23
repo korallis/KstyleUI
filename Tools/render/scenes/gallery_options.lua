@@ -254,7 +254,7 @@ return Common.Run(function()
 		settle(env3)
 		frames:Add(env3, ns3.Window.Frame(), {
 			name = "options_profiles", title = "Profiles page", grade = "window", reference = "chat",
-			caption = "The Profiles page: the active profile dropdown, New, Copy from, Rename, Delete and Reset profile, the Share section with the Export and Import buttons, and the Characters section; the page has no preview, so the pane hides and the rows take its width." .. SCALE_NOTE,
+			caption = "The Profiles page: the active profile dropdown, New, Copy from, Rename, Delete and Reset profile, the Share section with the Export and Import buttons, and the Characters section, beside the typography sample in the live preview." .. SCALE_NOTE,
 			match = "Window grade as the chat panel; the text buttons and dropdowns wear the button body with the one-border hairline, as the mockup's data strip pill.",
 		})
 		scenes[#scenes + 1] = Gallery.Build(env3)
@@ -267,7 +267,7 @@ return Common.Run(function()
 		place(K4, APPEARANCE, true)
 		settle(env4)
 		local list = O.Labels(ns4.Window.State().items)
-		assert(list[1] == T(K4, "HUD") and list[2] == T(K4, "HUD style") and list[3] == T(K4, "Accent"), "General starts with the HUD style pictures, then the Appearance rows: " .. table.concat(list, "|"))
+		assert(list[1] == T(K4, "HUD") and list[2] == T(K4, "HUD style") and list[3] == T(K4, "Look") and list[4] == T(K4, "Accent"), "General starts with the HUD style pictures and the Looks, then the Appearance rows: " .. table.concat(list, "|"))
 		frames:Add(env4, ns4.Window.Frame(), {
 			name = "options_appearance", title = "General page: Appearance", grade = "window", reference = "chat",
 			caption = "The General page at its top: the core's Appearance schema (Accent colour dropdown, Font, Text size, Interface size and Motion) with the kit sample in the preview pane following them." .. SCALE_NOTE,

@@ -15,6 +15,7 @@
 	<Script file="Modules.lua"/>
 	<Script file="Combat.lua"/>
 	<Script file="Specialization.lua"/>
+	<Script file="Interrupt.lua"/>
 	<Script file="Safe.lua"/>
 	<Script file="DevTest.lua"/>
 	<Script file="DevTestEditMode.lua"/>
@@ -36,4 +37,5 @@
 	<Include file="Widgets\Widgets.xml"/>
 	<Include file="Layout\Layout.xml"/>
 	<Include file="Setup\Setup.xml"/>
+	<Script file="Health.lua"/>
 </Ui>

@@ -1794,6 +1794,7 @@ function Layout.Enter()
 	snapshot = Copy(SavedLayout())
 	history:Clear()
 	UpdateEvents()
+	Layout.Rest.Listen()
 	Mode("Show")
 	Log(format("entered Layout Mode with %d elements", #order))
 	return true
@@ -1803,7 +1804,8 @@ local function Close()
 	state.active = false
 	history:Clear()
 	UpdateEvents()
-	Mode("Hide")
+	Layout.Rest.Listen()
+	Mode("Hide", state.combat)
 end
 
 function Layout.Exit(save)

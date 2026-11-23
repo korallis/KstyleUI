@@ -4,7 +4,13 @@ local Scene = dofile("Tools/render/scene.lua")
 
 local Effects = {}
 
-local STATES = { ready = true, cap = true, levelup = true, cast = true, stopped = true, vignette = true, burst = true, rest = true, jewels = true, hawks = true, storm = true }
+local STATES = { ready = true, cap = true, levelup = true, cast = true, stopped = true, vignette = true, burst = true, rest = true, jewels = true, hawks = true, storm = true, crest = true }
+
+-- The crest story RENDER_FX=crest plays: a target at 0 s, the target lost at 4 s (the crest settles), combat at 10 s.
+-- The hub's loops run at each phase's speed, which the harness's clock does not scale, so the story starts each loop
+-- from its own run time and turns the rune ring by hand, as the harness draws no Rotation animation.
+local CREST = { { at = 0, speed = 1 }, { at = 4, speed = 0.5, rest = true }, { at = 10, speed = 2.25 } }
+local BREATH, RUNE_TURN = 4.2, 90
 
 -- The hawk story RENDER_FX=hawks plays, as totem updates in order: Summon Hawk at 1, 9, 20.5 and 26.5 s, at least
 -- its 6 s category recovery apart, fills a free slot (2, then 3) or the oldest hawk's, and each hawk leaves
@@ -36,7 +42,7 @@ function Effects.State()
 	if not state or state == "" then
 		return nil
 	end
-	assert(STATES[state], "RENDER_FX must be one of ready, cap, levelup, cast, stopped, vignette, burst, rest, jewels, hawks or storm")
+	assert(STATES[state], "RENDER_FX must be one of ready, cap, levelup, cast, stopped, vignette, burst, rest, jewels, hawks, storm or crest")
 	local t = tonumber(rawget(_G, "RENDER_FX_T") or os.getenv("RENDER_FX_T") or "")
 	return state, t
 end
@@ -190,6 +196,22 @@ function Effects.Apply(env, module, ns, notes)
 			end
 			env.GetTime = clock
 			notes[#notes + 1] = "fx: the storm orbs " .. at .. " s into the story"
+		elseif state == "crest" then
+			local at, hub, run, turn, phase = t or 6, ns.Slab.hub, 0, 0, CREST[1]
+			for i, e in ipairs(CREST) do
+				if e.at <= at then
+					phase, env._now = e, env._time - (at - e.at)
+					if i == 1 then env.SetTarget(true) elseif e.rest then env.SetTarget(false) else env.SetCombat(true) end
+					local span = math.min(at, CREST[i + 1] and CREST[i + 1].at or at) - e.at
+					run, turn = run + span * e.speed, turn + (e.rest and 0 or span * e.speed)
+				end
+			end
+			local breath = run % BREATH
+			breath = breath > BREATH / 2 and BREATH - breath or breath
+			hub.glow.breath._playedAt, hub.bloom.breath._playedAt = env._time - breath, env._time - breath
+			if hub.sheen.run._playedAt then hub.sheen.run._playedAt = env._time - (at - phase.at) * phase.speed end
+			hub.runes:SetRotation(-math.rad(360 * turn / RUNE_TURN))
+			notes[#notes + 1] = "fx: the crest story " .. at .. " s in: " .. (phase.rest and "at rest" or at >= 10 and "in combat" or "with a target")
 		elseif state == "levelup" then
 			K.Options.Write("Medallions", "motion", "calm")
 			env.FireEvent("PLAYER_LEVEL_UP", 12)

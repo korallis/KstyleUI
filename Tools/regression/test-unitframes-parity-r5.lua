@@ -4,7 +4,7 @@ local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
 local env, K, ns = U.New({ frames = frames,
-	saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true } } }, characters = {}, layouts = {} },
+	saved = { version = 42, profiles = { Default = { UnitFrames = { enabled = true, castCaster = false } } }, characters = {}, layouts = {} },
 	setup = function(e)
 		e.UnitShouldDisplaySpellTargetName = function() return e._castTarget ~= nil end
 		e.UnitSpellTargetName = function() return e._castTarget end

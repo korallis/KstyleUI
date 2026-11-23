@@ -1,4 +1,4 @@
--- test-role-fonts-modules.lua: an explicit role font reaches the GroupFrames party, loses to an element font, never reaches the Medallions raid tile or unit slab labels, and leaves default geometry and records alone.
+-- test-role-fonts-modules.lua: an explicit role font reaches the GroupFrames party, loses to an element font, never reaches the Medallions raid tile or unit slab labels (which follow the number role and keep an element font equal to their own face), and leaves default geometry and records alone.
 local G = dofile("Tools/regression/group_env.lua")
 local W = dofile("Tools/regression/widget_env.lua")
 local U = dofile("Tools/regression/unitframes_env.lua")
@@ -118,15 +118,15 @@ do
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
--- GroupFrames: raid names on the Medallions tile take its Inter SemiBold label face, whatever the names role.
+-- GroupFrames: raid names on the Medallions tile take the number face (one typeface voice), whatever the names role.
 do
 	local env, K, ns = G.New()
 	G.SetRoster(env, "raid", G.Members(5))
 	assert(K.Modules.Enable("GroupFrames"))
 	env.RunTimers()
 	local f = member(ns, "raid1")
-	local label = K.Tokens.FontPath("InterSemiBold")
-	eq((f.name:GetFont()), label, "the raid tile labels its names in Inter SemiBold")
+	local label = (K.Tokens.Font("number"))
+	eq((f.name:GetFont()), label, "the raid tile labels its names in the number face")
 	K.Options.Write("Appearance", "roleFontNames", ROLE_FACE)
 	env.RunTimers()
 	eq((f.name:GetFont()), label, "a names role does not reach the tile's label")
@@ -134,14 +134,14 @@ do
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
--- UnitFrames: the Medallions slab names in its Inter SemiBold label face, long names included; a names role does not
--- reach it and an element font beats it.
+-- UnitFrames: the Medallions slab names in its label face (the number role), long names included; a names role does not
+-- reach it and an element font beats it, even one equal to the role's own face.
 do
 	local env, K, ns = U.New()
 	env._textWidth = D.TextWidth
 	local focus = ns.Frames.Get("focus").views[1]
 	assert(ns.Settings.Form("focus") == "slab", "the focus frame is a slab")
-	local label = K.Tokens.FontPath("InterSemiBold")
+	local label = (K.Tokens.Font("number"))
 	local function named(name)
 		U.SetUnit(env, "focus", { name = name, level = 39, health = 300, healthMax = 400, reaction = 2, canAttack = true })
 		env.FireEvent("UNIT_NAME_UPDATE", "focus")
@@ -156,6 +156,17 @@ do
 	K.Options.Write("UnitFrames", "focus.fonts.name.font", ns.Settings.THEME_FONT)
 	K.Options.Write("Appearance", "roleFontNames", "")
 	eq(named("Elunara Frostweaver"), label, "clearing both returns the label face")
+	local own = (K.Tokens.Font(ns.Settings.Role("focus", "name")))
+	K.Options.Write("UnitFrames", "focus.fonts.name.font", own)
+	eq(named("Elunara Frostweaver"), own, "an element font equal to the role's own face is still the player's choice")
+	K.Options.Write("UnitFrames", "focus.fonts.name.font", ns.Settings.THEME_FONT)
+	K.Options.Write("Appearance", "roleFontNumber", "InterSemiBold")
+	eq(named("Elunara Frostweaver"), K.Tokens.FontPath("InterSemiBold"), "a chosen number face reaches the slab's label")
+	local form, forms = ns.Settings.Form, 0
+	ns.Settings.Form = function(...) forms = forms + 1; return form(...) end
+	ns.Settings.Font("focus", "name")
+	ns.Settings.Form = form
+	eq(forms, 1, "Settings.Font resolves the frame's form once")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 	assert(K.ErrorCount() == 0, "no errors caught by KstyleUI.Call")
 end

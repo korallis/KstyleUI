@@ -1,5 +1,4 @@
 local U = dofile("Tools/regression/unitframes_env.lua")
-local W = U.W
 local env, K, ns = U.New()
 local view = ns.Frames.Get("player").views[1]
 local function Ink(text)
@@ -19,9 +18,10 @@ for _, class in ipairs({ "WARLOCK", "PRIEST", "ROGUE", "MAGE", "DRUID", "HUNTER"
 	env._units.player.class = class
 	env._units.player.health, env._units.player.healthMax = 100, 100
 	ns.Unit.HealthColor(view, "player")
-	local sheen = W.LastCall(view.health.cleanSheen, "SetGradient")
-	assert(view.health.finish == "medallions" and sheen and sheen[2].a <= 0.13 + 1e-6 and sheen[3].a <= 0.13 + 1e-6, class .. ": no white sheen washes out the fill")
-	assert(view.health.cleanShade:IsShown() and view.health.cleanLit:IsShown(), class .. ": the fill keeps its shade and lit end")
+	local light = view.health.glass[1]
+	local g = light._state.Gradient
+	assert(view.health.finish == "medallions" and g[2].a == 0 and select(2, view.health.glass[2]:GetPoint(1)) == light, class .. ": the glass light is clear by the fill's middle, so no white washes out the number")
+	assert(view.health.glass[2]:IsShown() and view.health.cleanLit:IsShown(), class .. ": the fill keeps its depth and lit end")
 	Light(view.healthText, class)
 	env._units.player.health = 20
 	ns.Slab.Health(view, "player")

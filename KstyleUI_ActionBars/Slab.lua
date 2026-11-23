@@ -20,7 +20,7 @@ local BADGE, BADGE_RISE = 18, 4
 local CREST_REST = 1
 local ICON_INSET, ICON_CROP, KEYBIND = 3, 0.08, 10
 local PARTICLES, CALM_PARTICLES, PARTICLE_SIZE, PARTICLE_RISE = 10, 5, 7, 30
-local RUNE_TURN, COMBAT_SPEED = 90, 2.25
+local RUNE_TURN, COMBAT_SPEED, REST_SPEED = 90, 2.25, 0.5
 local BREATH_LOW, BREATH_HIGH, COMBAT_GLOW, GLYPH_REST, RUNE_REST = 0.28, 0.43, 1.35, 0.35, 0.25
 local BREATH = 4.2
 local SHEEN_EVERY, SHEEN_RUN, SHEEN_W, SHEEN_ALPHA = 6, 1.2, 46, 0.5
@@ -46,7 +46,7 @@ local CLASS_NAMES = {
 
 Slab.RING, Slab.MARGIN, Slab.STRATA = RING, MARGIN, STRATA
 
-local state = { combat = false, built = false, class = nil }
+local state = { combat = false, built = false, class = nil, procs = {} }
 
 local function IsSecret(v)
 	return ns.IsSecret(v)
@@ -519,6 +519,7 @@ local function Build()
 	hub.particles = BuildParticles(hub)
 	BuildMoments(hub)
 	Slab.frame, Slab.hub = slab, hub
+	K.Layout.Rest.Follow("actionbars.bar1", slab, hub)
 	Slab.PaintPlaque(false)
 	state.built = true
 end
@@ -637,22 +638,38 @@ local function Held()
 	return effects ~= nil and effects.Holder ~= nil and effects.Holder("hub") ~= nil
 end
 
+local function Resting(held)
+	local cfg = K.Store.Module("Medallions")
+	if held or state.combat or next(state.procs) or cfg.restingCrest == false or cfg.ambient == false or not Slab.Allows("ambient") then
+		return false
+	end
+	local target = UnitExists and UnitExists("target")
+	return not IsSecret(target) and not target
+end
+
 local function Animate()
 	local hub = Slab.hub
+	local held = Held()
+	local rest = Resting(held)
+	state.rest = rest
 	if not (Slab.Allows("ambient") and K.Store.Module("Medallions").ambient ~= false and hub:IsShown()) then
 		Motionless()
 		return
 	end
-	local speed = state.combat and COMBAT_SPEED or 1
-	local held = Held()
+	local speed = state.combat and COMBAT_SPEED or rest and REST_SPEED or 1
 	hub.sheen:Show()
 	for _, g in ipairs(Loops()) do
 		g:SetAnimationSpeedMultiplier(speed)
-		if not g:IsPlaying() and not (held and g == hub.sheen.run) then
-			g:Play()
+		if rest and g == hub.runes.turn then
+			g:Pause()
+		elseif rest and g == hub.sheen.run then
+			if g:IsPlaying() then g:Finish() end
+		elseif not (held and g == hub.sheen.run) then
+			if g.IsPendingFinish and g:IsPendingFinish() then g:Stop() end
+			if not g:IsPlaying() then g:Play() end
 		end
 	end
-	local alive = (held or not Slab.Allows("particle")) and 0 or state.combat and PARTICLES or CALM_PARTICLES
+	local alive = (held or rest or not Slab.Allows("particle")) and 0 or state.combat and PARTICLES or CALM_PARTICLES
 	for i, p in ipairs(hub.particles) do
 		p:SetShown(i <= alive)
 		if i <= alive then
@@ -666,6 +683,10 @@ local function Animate()
 	end
 	hub.glow:SetAlpha(state.combat and min(1, BREATH_HIGH * COMBAT_GLOW) or BREATH_HIGH)
 	hub.bloom:SetAlpha(1)
+end
+
+local function Wake()
+	if state.built and Resting(Held()) ~= state.rest and Slab.hub:IsShown() then Animate() end
 end
 
 local function Edges(frame)
@@ -967,6 +988,8 @@ function Slab.SetProc(b, on, refresh)
 		return
 	end
 	local active = Slab.Active()
+	state.procs[b] = on and active or nil
+	Wake()
 	ns.SlabEffects.SlotProc(b, on and active)
 	if b.lumenGlow then
 		b.slabProc = active
@@ -1175,6 +1198,7 @@ function Slab.Enable()
 	K.Events.Register(OWNER, "PLAYER_REGEN_DISABLED", OnCombat)
 	K.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", OnCombat)
 	K.Events.Register(OWNER, "PLAYER_LEVEL_UP", OnLevel)
+	K.Events.Register(OWNER, "PLAYER_TARGET_CHANGED", Wake)
 	K.Events.Register(OWNER, "PLAYER_ENTERING_WORLD", OnStyle)
 	K.Callbacks.Register("HudStyleChanged", OWNER, OnStyle)
 	K.Callbacks.Register("SettingChanged", OWNER, OnMotion)

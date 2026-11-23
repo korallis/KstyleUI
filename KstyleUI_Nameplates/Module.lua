@@ -46,7 +46,7 @@ local function OnSetting(_, module, key)
 	if key == "threat.role" then
 		Plates.GLOBAL_EVENTS.PLAYER_ROLES_ASSIGNED()
 	elseif key == "cast.interruptSpell" and Plates.running then
-		ns.Interrupt.Resolve()
+		ns.Cast.WatchInterrupt()
 	end
 	Plates.ReadSize()
 	Plates.RestyleAll()
@@ -57,7 +57,7 @@ local function OnProfile()
 	Settings.Invalidate()
 	Plates.GLOBAL_EVENTS.PLAYER_ROLES_ASSIGNED()
 	if Plates.running then
-		ns.Interrupt.Resolve()
+		ns.Cast.WatchInterrupt()
 	end
 	Plates.ReadSize()
 	Plates.RestyleAll()

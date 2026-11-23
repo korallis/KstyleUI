@@ -83,6 +83,11 @@ local narrow = parts.content:GetWidth()
 local room = pane.room or pane:GetHeight()
 assert(type(room) == "number" and room > 0, "the window gives the pane its full room")
 
+-- Profiles shows the kit sample while Previews on Elements and Profiles is on; off restores no preview there.
+pane = open("Profiles")
+assert(pane:IsShown() and pane.current, "Profiles shows the sample with the extra previews on")
+K.Store.Account().optionsPreviewAll = false
+
 -- Pages with no preview hide the pane, and the rows take its width, clear of the footer buttons.
 for _, page in ipairs({ "Profiles", "About", "Elements", "Chat" }) do
 	pane, parts = open(page)

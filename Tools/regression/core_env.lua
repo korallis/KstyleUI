@@ -96,6 +96,9 @@ function CoreEnv.LoadSaved(env)
 		assert(level == "Off" or level == "Subtle" or level == "Full", "unknown RENDER_ORNAMENTS: " .. tostring(level))
 		env.KstyleUI.Store.Module("Widgets").ornaments = level
 	end
+	if env._renderRestOff then
+		env.KstyleUI.Store.Module("Rest").enabled = false
+	end
 end
 
 function CoreEnv.Login(env)

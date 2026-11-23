@@ -206,7 +206,11 @@ local function search(query)
 	box:GetScript("OnTextChanged")(box, true)
 end
 search("snap")
-local function results() return ns.Window.State().items end
+local function results()
+	local items = ns.Window.State().items
+	if items[1].kind == "note" then return { select(2, unpack(items)) } end
+	return items
+end
 local pick = O.Find(results(), function(item) return item.label == "Snap distance" end)
 pick.set(10)
 search("")

@@ -4,7 +4,8 @@ local A = dofile("Tools/regression/auras_env.lua")
 
 local UNIT = { name = "Bloodtalon Matriarch", health = 29800, maxHealth = 48000, level = 40, classification = "elite", reaction = 2, canAttack = true, raid = 8 }
 local PLATES = 40
-local MAX_FRAMES, MAX_REGIONS = 108, 172
+-- 173 regions: staging builds 170 (with #745's name halo); the lit glass adds 1 on health and 2 on the cast bar (#746).
+local MAX_FRAMES, MAX_REGIONS = 108, 173
 
 local function objects(plate)
 	local frames, regions = 0, 0

@@ -251,7 +251,7 @@ class ChromeTest(unittest.TestCase):
     consumers size from."""
 
     def test_the_kit_is_the_spec_list(self):
-        spec = {"UnitSlab", "ActionSlab", "Slot", "SlotHighlight", "SlotPushed", "SlotChecked", "Ring128", "Ring256",
+        spec = {"UnitSlab", "UnitSlabCap", "ActionSlab", "Slot", "SlotHighlight", "SlotPushed", "SlotChecked", "Ring128", "Ring256",
                 "HubSocket", "CardEdge", "MinimapRing", "LevelPlaque", "AuraBorder", "GroupTile",
                 "GroupTargetRing", "TargetBrackets", "Enamel128", "Enamel256", "SlotMask", "SlotSocket", "MinimapCrestRing", "MinimapCrestEnamel"}
         self.assertEqual({c.name for c in kit.CHROME}, spec)
@@ -313,8 +313,25 @@ class ChromeTest(unittest.TestCase):
                 for x in range(piece.slice, w - piece.slice):
                     self.assertIsNone(ImageChops.difference(middle, image.crop((x, 0, x + 1, h))).getbbox(), f"column {x}")
 
+    def test_the_slab_cap_is_a_stepped_tapered_steel_end(self):
+        image = open_rgba(f"{kit.OUT}/UnitSlabCap.png")
+        w, h = image.size
+
+        def at(e, v, bottom=False):  # e units in from the left end, v units down from the top (or up from the bottom)
+            return image.getpixel((int(2 * e), int(h - 1 - 2 * v if bottom else 2 * v)))
+
+        self.assertEqual(at(10, 0.5)[3], 255, "the body runs to the top edge")
+        self.assertEqual(at(6, 1)[3], 0, "the cap steps down from the body")
+        for e, v in ((2, 4), (0.5, 5)):
+            self.assertEqual(at(e, v)[3], 0, f"the shoulder tapers to the nose ({e}, {v})")
+        self.assertEqual(at(0.5, h / 4)[3], 255, "the nose closes the end")
+        self.assertEqual(at(7, h / 4)[:3], (0, 0, 0), "a recessed seam parts the cap from the body")
+        plate, body = at(4, h / 4), image.getpixel((w // 2, h // 2))
+        self.assertGreater(sum(plate[:3]), sum(body[:3]) + 60, "the cap is steel against the dark body")
+        self.assertGreater(sum(at(3.5, 5.5)[:3]), sum(at(3.5, 5.5, bottom=True)[:3]) + 90, "the upper bevel is lit, the lower one dark")
+
     def test_slabs_and_cards_have_a_black_outline_and_a_lit_top(self):
-        for name in ("ActionSlab", "UnitSlab", "CardEdge", "GroupTile", "LevelPlaque"):
+        for name in ("ActionSlab", "UnitSlab", "UnitSlabCap", "CardEdge", "GroupTile", "LevelPlaque"):
             image = open_rgba(f"{kit.OUT}/{name}.png")
             w, h = image.size
             with self.subTest(name):

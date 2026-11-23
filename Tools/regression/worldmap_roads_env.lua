@@ -20,7 +20,7 @@ function R.Install(env, state, graph)
 		if graph then
 			env.KstyleUI_RouteData = { [1] = function() state.constructs = (state.constructs or 0) + 1; return graph end }
 		else
-			Load({ "KstyleUI_Routes/Init.lua", "KstyleUI_Routes/EasternKingdoms.lua", "KstyleUI_Routes/Kalimdor.lua" }, env)
+			Load({ "KstyleUI_Routes/Init.lua", "KstyleUI_Routes/EasternKingdoms.lua", "KstyleUI_Routes/Kalimdor.lua", "KstyleUI_Routes/Overlays.lua", "KstyleUI_Routes/Travel.lua" }, env)
 		end
 		return true
 	end

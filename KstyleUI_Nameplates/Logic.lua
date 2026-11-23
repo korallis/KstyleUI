@@ -92,49 +92,9 @@ function Logic.IsCaster(powerType, powerMax, mana)
 	return powerMax > 0
 end
 
-local INTERRUPTS = {
-	WARRIOR = { 6554, 6552, 1672, 1671, 72 },
-	ROGUE = { 1769, 1768, 1767, 1766 },
-	MAGE = { 2139 },
-	SHAMAN = { 10414, 10413, 10412, 8046, 8045, 8044, 8042 },
-	PRIEST = { 15487 },
-	WARLOCK = { 19647, 19244 },
-	PALADIN = { 425609 },
-	DRUID = { 410176, 1238122, 16979 },
-}
-Logic.INTERRUPTS = INTERRUPTS
-
-function Logic.InterruptSpell(class, known)
-	local list = type(class) == "string" and INTERRUPTS[class]
-	if not list then
-		return nil
-	end
-	for i = 1, #list do
-		local id = list[i]
-		if known(id) == true then
-			return id
-		end
-	end
-	return nil
-end
-
-function Logic.InterruptReady(info, fromCooldownEvent)
-	if IsSecret(info) or type(info) ~= "table" then
-		return nil
-	end
-	local active = info.isActive
-	if IsSecret(active) or type(active) ~= "boolean" then
-		return nil
-	end
-	if not active or fromCooldownEvent ~= true then
-		return not active
-	end
-	local gcd = info.isOnGCD
-	if IsSecret(gcd) then
-		return nil
-	end
-	return gcd == true
-end
+Logic.INTERRUPTS = KstyleUI.Interrupt.INTERRUPTS
+Logic.InterruptSpell = KstyleUI.Interrupt.Spell
+Logic.InterruptReady = KstyleUI.Interrupt.Ready
 
 function Logic.Footprint(width, height, above, below, scale)
 	if not IsNumber(scale) or scale <= 0 then

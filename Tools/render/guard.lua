@@ -426,6 +426,9 @@ function Guard.Hides(item)
 	if item.vertex then
 		alpha = alpha * (item.vertex[4] or 1)
 	end
+	if item.gradient then
+		alpha = alpha * math.max(item.gradient.from[4], item.gradient.to[4])
+	end
 	return alpha >= Guard.COVER_ALPHA
 end
 

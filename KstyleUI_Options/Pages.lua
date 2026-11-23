@@ -13,7 +13,7 @@ Pages.WINDOW_KEY = "Options.Window"
 Pages.GENERAL_SECTIONS = { "HudStyle", "Appearance", "Medallions", "Widgets", "ColorVision", "Integrations", "Setup", "OptionControls", "OptionsPresentation" }
 Pages.ELEMENTS_SECTION = "Layout"
 local APPLY_ON_RELEASE = { ["Appearance.uiScale"] = true }
-local HIDDEN_MODULES = { Options = true, ProfileTools = true, LayoutControls = true }
+local HIDDEN_MODULES = { Options = true, ProfileTools = true, LayoutControls = true, Rest = true }
 local MODULE_ORDER = {
 	"UnitFrames", "GroupFrames", "ActionBars", "Cooldowns", "Auras", "Nameplates", "CombatText",
 	"Minimap", "Chat", "Bags", "Tooltips", "DataBars", "Meters", "Skins", "QoL",
@@ -478,12 +478,18 @@ local function GeneralItems()
 			Append(items, Model.SchemaItems(section, schema, "General"))
 		end
 	end
-	for _, item in ipairs(items) do
+	local looks = K.Setup.Looks
+	for i, item in ipairs(items) do
 		if item.module == "Widgets" and item.key == "ornaments" and K.Store.Module("OptionsPresentation").samples then
 			item.kind = "ornaments"
 		end
 		if item.module and item.key and APPLY_ON_RELEASE[item.module .. "." .. item.key] then
 			item.defer = true
+		end
+		if item.module == "HudStyle" and item.key == "style" and K.Store.Module("Setup").looks then
+			table.insert(items, i + 1, { kind = "segmented", page = "General", label = L["Look"], options = looks.Current() and looks.STATUS or looks.CUSTOM,
+				help = L["Sets trim, panels, motion and text together. Forged is the look KstyleUI ships with."],
+				get = function() return looks.Current() or "Custom" end, set = looks.Apply })
 		end
 	end
 	local function account(key, default, apply)
@@ -535,6 +541,9 @@ local function GeneralItems()
 	add({ kind = "button", label = L["Clear search picks"], help = L["Forgets the settings remembered from your searches."],
 		buttons = { { label = L["Clear"], onClick = function() K.Store.Account().optionsSearchPicks = nil; ns.Changed() end } } })
 	add({ label = L["Double-click the header to fold"], help = L["Double-click the window's header to fold it to its header; again to open it."] }, "optionsFold", false)
+	add({ label = L["Search takes you there"], help = L["Press Enter or click a result's name to open its page at that setting; words such as hp find health. Off restores the previous search."] }, "optionsSearchJump", true)
+	add({ label = L["Previews on Elements and Profiles"], help = L["Shows where elements sit on screen and your profile's text. Off hides the preview there."] }, "optionsPreviewAll", true)
+	add({ label = L["One motion style"], help = L["Menus, page changes and Layout Mode use the window timing. Off restores their previous motion."] }, "motionOneStyle", true)
 	add({ kind = "header", level = 1, label = L["Game menu"] })
 	add({ label = L["KstyleUI settings button"], help = L["Adds a button under the game menu that opens these settings."] }, "gameMenuOptions", false, function() K.OptionsEntry.GameMenu() end)
 	add({ label = L["Layout Mode button"], help = L["Adds a button under the game menu that opens Layout Mode."] }, "gameMenuLayout", false, function() K.OptionsEntry.GameMenu() end)
@@ -562,6 +571,7 @@ local function ResetGeneral()
 	account.optionsSearchPage, account.optionsRailSections, account.gameFont, account.gameTextScale, account.combatFont = nil, nil, nil, nil, nil
 	account.nameFont, account.combatTextScale, account.optionsSearchMemory, account.optionsFold = nil, nil, nil, nil
 	account.gameMenuOptions, account.gameMenuLayout, account.optionsRailFolded = nil, nil, nil
+	account.optionsSearchJump, account.optionsPreviewAll, account.motionOneStyle = nil, nil, nil
 	K.Appearance.ApplyGameText()
 	K.OptionsEntry.GameMenu()
 	for _, section in ipairs(Pages.GENERAL_SECTIONS) do
@@ -576,6 +586,11 @@ local function ElementsItems()
 	if schema then
 		Append(items, Model.SchemaItems(Pages.ELEMENTS_SECTION, schema, "Elements"))
 	end
+	local rest = Model.SchemaItems("Rest", K.Options.Get("Rest"), "Elements")
+	for _, item in ipairs(rest) do
+		item.percent = item.kind == "slider"
+	end
+	Append(items, rest)
 	Append(items, Model.SchemaItems("LayoutControls", K.Options.Get("LayoutControls"), "Elements"))
 	items[#items + 1] = { kind = "toggle", page = "Elements", label = L["Double-click movers for settings"],
 		help = L["Opens element settings on double-click. Action bars keep their own shortcut setting."],
@@ -1123,6 +1138,7 @@ local function AboutItems()
 	add({ kind = "header", level = 1, label = "KstyleUI" })
 	add({ kind = "note", label = format(L["Version %s"], Version()) })
 	add({ kind = "note", label = L["A complete interface for World of Warcraft: Forever, by korallis. All rights reserved."] })
+	ns.StatusItems(add, SelectLater)
 	add({ kind = "header", level = 1, label = L["Commands"] })
 	for _, command in ipairs(COMMANDS) do
 		add({ kind = "note", label = command[1] .. " - " .. command[2] })
@@ -1232,9 +1248,11 @@ function Pages.List()
 	local pages = {
 		{ id = "General", label = L["General"], Items = GeneralItems, reset = ResetGeneral, builtinPreview = GeneralPreview },
 		{
-			id = "Elements", label = L["Elements"], Items = ElementsItems,
+			id = "Elements", label = L["Elements"], Items = ElementsItems, builtinPreview = function() return K.Store.Account().optionsPreviewAll ~= false and Pages.HasLayout() and ns.Preview.Screen or nil end,
 			reset = function()
 				ResetElements(nil)
+				Model.ResetSchema("Rest", K.Options.Get("Rest"))
+				K.Options.Write("Rest", "enabled", true)
 			end,
 		},
 	}
@@ -1244,7 +1262,7 @@ function Pages.List()
 	for _, module in ipairs(ModuleNames()) do
 		pages[#pages + 1] = { id = module, module = module, label = Pages.ModuleLabel(module), Items = ModuleItems, reset = ResetModule }
 	end
-	pages[#pages + 1] = { id = "Profiles", label = L["Profiles"], Items = ProfileItems }
+	pages[#pages + 1] = { id = "Profiles", label = L["Profiles"], Items = ProfileItems, builtinPreview = function() return K.Store.Account().optionsPreviewAll ~= false and ns.Preview.Sample or nil end }
 	pages[#pages + 1] = { id = "About", label = L["About"], Items = AboutItems }
 	return pages
 end

@@ -1,4 +1,4 @@
--- options_setup.lua: one real Options page or setup step at a chosen window scale for G4/G9 evidence.
+-- options_setup.lua: one real Options page or setup step at a chosen window scale for G4/G9 evidence; RENDER_LOOK wears a Look, RENDER_SETUP_FEATURES=off turns the big pictures and Looks off, and RENDER_SETUP_POINT points at a layout or arrangement card; RENDER_GO=N presses Enter on RENDER_QUERY and waits N ticks, RENDER_POLISH=off switches off the v0.3.0 search, preview and motion switches.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -12,6 +12,10 @@ return Common.Run(function()
 	if os.getenv("RENDER_OPTIONS_FINISH") == "previous" then
 		profile.OptionsPresentation = { tasks = false, synonyms = false, preview = false, switches = false, samples = false, columns = false, readableText = false }
 		profile.Setup = { layoutPictures = false, readableNotes = false }
+	end
+	if os.getenv("RENDER_SETUP_FEATURES") == "off" then
+		profile.Setup = profile.Setup or {}
+		profile.Setup.bigPictures, profile.Setup.looks = false, false
 	end
 	local loader = unitFrames and dofile("Tools/regression/unitframes_env.lua") or O
 	local env, K = loader.New(Common.ScreenOpts({
@@ -28,7 +32,12 @@ return Common.Run(function()
 			}
 		end,
 	}))
+	if os.getenv("RENDER_POLISH") == "off" then
+		local account = K.Store.Account()
+		account.optionsSearchJump, account.optionsPreviewAll, account.motionOneStyle = false, false, false
+	end
 	local key
+	if (os.getenv("RENDER_LOOK") or "") ~= "" then assert(K.Setup.Looks.Apply(os.getenv("RENDER_LOOK"))) end
 	if os.getenv("RENDER_SUBJECT") == "setup" then
 		for _, name in ipairs(K.Setup.PICKER) do K.Modules.Register(W.CoreEnv.Module(name.name)) end
 		assert(K.Setup.Open(true))
@@ -48,6 +57,11 @@ return Common.Run(function()
 	env.RunTimers()
 	Gallery.Ticks(W, env, 40)
 	env.RunTimers()
+	local point = os.getenv("RENDER_SETUP_POINT")
+	if point and point ~= "" then
+		W.Enter(assert(K.Setup.window.cards[point] or K.Setup.window.arrangeCards[point], point))
+		Gallery.Ticks(W, env, 40)
+	end
 	if os.getenv("RENDER_SECTION") and env._addons.KstyleUI_Options then
 		local options = env._addons.KstyleUI_Options
 		for i, item in ipairs(options.Window.State().items) do
@@ -67,6 +81,11 @@ return Common.Run(function()
 		parts.search:SetText(query)
 		parts.search:GetScript("OnTextChanged")(parts.search, true)
 		Gallery.Ticks(W, env, 40)
+		local go = tonumber(os.getenv("RENDER_GO") or "")
+		if go then
+			parts.search:GetScript("OnEnterPressed")(parts.search)
+			Gallery.Ticks(W, env, go)
+		end
 	end
 	local err = Common.Errors(env, K)
 	assert(not err, tostring(err))

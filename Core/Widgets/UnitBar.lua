@@ -295,6 +295,22 @@ end
 
 local function PlaceFill(self)
 	local px = Widgets.Border(self)
+	local medal = self.finish == "medallions" and not self.vertical
+	if medal and not self.fillEnd then
+		self.fillEnd = Widgets.Crisp(self.fillClip:CreateTexture(nil, "ARTWORK", nil, 3))
+	end
+	if self.fillEnd then
+		local edge, fill, side = self.fillEnd, self:GetStatusBarTexture(), Reversed(self) and "LEFT" or "RIGHT"
+		edge:ClearAllPoints()
+		edge:SetPoint("TOP" .. side, fill, "TOP" .. side)
+		edge:SetPoint("BOTTOM" .. side, fill, "BOTTOM" .. side)
+		edge:SetWidth(px)
+		edge:SetColorTexture(Widgets.Rgba("white", MED_EDGE_ALPHA))
+		edge:SetShown(medal)
+	end
+	if self.glassOn then
+		return
+	end
 	local height = Span(self, "GetHeight", self.opts.height or Tokens.Size("buffBarHeight"))
 	local sheen, shade, lit = self.cleanSheen, self.cleanShade, self.cleanLit
 	local span = self.vertical and self:GetStatusBarTexture() or self
@@ -303,12 +319,8 @@ local function PlaceFill(self)
 	lit:ClearAllPoints()
 	sheen:SetShown(not self.vertical)
 	shade:SetShown(not self.vertical)
-	if self.finish == "medallions" and not self.vertical then
-		local fill, side = self:GetStatusBarTexture(), Reversed(self) and "LEFT" or "RIGHT"
-		lit:SetPoint("TOP" .. side, fill, "TOP" .. side)
-		lit:SetPoint("BOTTOM" .. side, fill, "BOTTOM" .. side)
-		lit:SetWidth(px)
-		lit:SetColorTexture(Widgets.Rgba("white", MED_EDGE_ALPHA))
+	lit:SetShown(not medal)
+	if medal then
 		sheen:SetPoint("TOPLEFT", self, "TOPLEFT", 0, -px)
 		sheen:SetPoint("TOPRIGHT", self, "TOPRIGHT", 0, -px)
 		sheen:SetHeight(Widgets.Snap(self, height * MED_SHEEN_SHARE))
@@ -318,7 +330,7 @@ local function PlaceFill(self)
 	lit:SetPoint("TOPLEFT", span, "TOPLEFT")
 	lit:SetPoint("TOPRIGHT", span, "TOPRIGHT")
 	lit:SetHeight(px)
-	lit:SetColorTexture(Widgets.Rgba("white", HIGHLIGHT_ALPHA))
+	Widgets.Tint(lit, "white", HIGHLIGHT_ALPHA)
 	sheen:SetPoint("TOPLEFT", self, "TOPLEFT")
 	sheen:SetPoint("TOPRIGHT", self, "TOPRIGHT")
 	sheen:SetHeight(Widgets.Snap(self, height * SHEEN_SHARE))
@@ -339,6 +351,9 @@ local function Paint(self)
 	local gradient = self.gradients
 	Gradient(self.under:GetStatusBarTexture(), gradient.lossBottom, gradient.lossTop)
 	Gradient(self.recent:GetStatusBarTexture(), gradient.lossBottom, gradient.lossTop)
+	if self.glassOn then
+		return
+	end
 	if self.finish == "medallions" then
 		Gradient(self.cleanSheen, gradient.medSheen, gradient.medSheen)
 		Gradient(self.cleanShade, gradient.medShade, gradient.shadeTop)
@@ -390,6 +405,7 @@ local function Wrap(bar)
 		self.under:SetOrientation(orientation, ...)
 		self.recent:SetOrientation(orientation, ...)
 		self.vertical = orientation == "VERTICAL"
+		self:PlaceGlass()
 		PlaceFill(self)
 		PlaceSpark(self)
 	end
@@ -513,7 +529,7 @@ function Widgets.UnitBar(parent, opts)
 	opts = opts or {}
 	local bar = Widgets.StatusBar(parent, {
 		name = opts.name, width = opts.width, height = opts.height, color = opts.color, orientation = opts.orientation,
-		reverse = opts.reverse, texture = opts.texture or TEXTURE, background = false, smooth = true,
+		reverse = opts.reverse, texture = opts.texture or TEXTURE, background = false, smooth = true, glass = false,
 	})
 	for key, fn in pairs(Bar) do
 		bar[key] = fn
@@ -530,6 +546,9 @@ function Widgets.UnitBar(parent, opts)
 	bar.cleanShade = clip:CreateTexture(nil, "ARTWORK", nil, 2)
 	bar.cleanShade:SetColorTexture(Widgets.Rgba("white"))
 	bar.cleanLit = Widgets.Crisp(clip:CreateTexture(nil, "ARTWORK", nil, 3))
+	bar.cleanLit:SetColorTexture(Widgets.Rgba("white"))
+	bar.glassHost, bar.glassMode = clip, opts.glass ~= false and "full" or nil
+	bar.glass = bar.glassMode and { bar.cleanSheen, bar.cleanShade, bar.cleanLit }
 	if bar.lowHealth then
 		bar.lowFill = clip:CreateTexture(nil, "ARTWORK", nil, 1)
 		bar.lowFill:SetAllPoints(bar)

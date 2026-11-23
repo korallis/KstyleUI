@@ -1,4 +1,4 @@
--- test-actionbars-medallions-effects.lua: the Medallions slab's motion: a proc draws a class-colour border inside its socket and runs a loop clipped to the socket's opening, and pulses the hub's crest and glyphs, and its hide stops all of it; entering combat fires the shockwave, crest flash and slab sweep and speeds the rune ring, and leaving settles it; a level-up paints the plaque gold, writes the caption and plays the burst; motion off places everything with no animation, the Ambient hub effects switch off stills and hides the hub's loops while flashes still fire, and the effects layer's Calm keeps the idle loops and one-shot flares but holds the slot loop and particles; the crest comes from KstyleUI.Medallions.Crest when it answers, which reads KstyleUI.MedallionAssets by the player's race and class, else a placeholder; slots wear the recessed socket, with the keybind only on a slot that holds an action; and none of it runs under Frames.
+-- test-actionbars-medallions-effects.lua: the Medallions slab's motion: a proc draws a class-colour border inside its socket and runs a loop clipped to the socket's opening, and pulses the hub's crest and glyphs, and its hide stops all of it; entering combat fires the shockwave, crest flash and slab sweep and speeds the rune ring, and leaving settles it; with no target or proc the resting crest holds its runes, drops its sheen and sparks and breathes at half speed until a target or a proc wakes it, and Calm crest at rest off keeps the full idle motion; a level-up paints the plaque gold, writes the caption and plays the burst; motion off places everything with no animation, the Ambient hub effects switch off stills and hides the hub's loops while flashes still fire, and the effects layer's Calm keeps the idle loops and one-shot flares but holds the slot loop and particles; the crest comes from KstyleUI.Medallions.Crest when it answers, which reads KstyleUI.MedallionAssets by the player's race and class, else a placeholder; slots wear the recessed socket, with the keybind only on a slot that holds an action; none of it runs under Frames; and the RENDER_FX=crest render story rests and wakes the crest through the addon's own events.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local function New(opts)
@@ -82,12 +82,50 @@ do
 	assert(hub.glow.breath:IsPlaying() and hub.glow.breath:GetLooping() == "BOUNCE", "the glow breathes")
 	env.RunTimers()
 	assert(K.Effects.Holder("hub") == nil, "the proc's hold on the hub has ended")
-	assert(hub.sheen.run:IsPlaying(), "the sheen passes")
-	local alive = 0
-	for _, p in ipairs(hub.particles) do
-		alive = alive + (p.anim:IsPlaying() and 1 or 0)
+	local function Alive()
+		local n = 0
+		for _, p in ipairs(hub.particles) do
+			n = n + ((p.anim:IsPlaying() and p:IsShown()) and 1 or 0)
+		end
+		return n
 	end
+	assert(hub.runes.turn:IsPaused() and not hub.sheen.run:IsPlaying() and Alive() == 0, "at rest with no target the crest holds its runes where they are and drops the sheen and sparks")
+	assert(hub.glow.breath:IsPlaying() and hub.bloom.breath:IsPlaying() and hub.glow.breath:GetAnimationSpeedMultiplier() == 0.5, "and only breathes, at half speed")
+	env.SetTarget(true)
+	assert(hub.runes.turn:IsPlaying() and hub.runes.turn:GetAnimationSpeedMultiplier() == 1, "a target wakes the rune ring")
+	assert(hub.sheen.run:IsPlaying(), "the sheen passes")
+	local alive = Alive()
 	assert(alive > 0 and alive < #hub.particles, "calm keeps a few particles alive")
+	env.SetTarget(false)
+	assert(hub.runes.turn:IsPaused() and Alive() == 0, "losing the target settles the crest again")
+	-- The client's Finish lets the sheen run out its pass (IsPendingFinish, SimpleAnimGroupAPIDocumentation.lua); the stub stops at once.
+	local sheen = hub.sheen.run
+	local finish, play = sheen.Finish, sheen.Play
+	sheen.Finish = function(self) self.pending = true end
+	sheen.IsPendingFinish = function(self) return self.pending == true end
+	sheen.Play = function(self, ...) self.pending = nil return play(self, ...) end
+	env.SetTarget(true)
+	env.SetTarget(false)
+	assert(sheen:IsPlaying() and sheen:IsPendingFinish(), "at rest the sheen runs out its last pass")
+	env.SetTarget(true)
+	if sheen:IsPendingFinish() then sheen:Stop() end
+	assert(sheen:IsPlaying(), "a target back before that pass ends keeps the sheen passing after it")
+	sheen.Finish, sheen.Play, sheen.IsPendingFinish = finish, play, nil
+	env.SetTarget(false)
+	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
+	assert(hub.runes.turn:IsPlaying(), "a proc wakes the crest")
+	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
+	env.RunTimers()
+	assert(hub.runes.turn:IsPaused() and Alive() == 0, "the proc's end settles it")
+	K.Options.Write("Medallions", "restingCrest", false)
+	assert(hub.runes.turn:IsPlaying() and hub.sheen.run:IsPlaying() and Alive() == alive and hub.glow.breath:GetAnimationSpeedMultiplier() == 1, "Calm crest at rest off keeps the full idle motion")
+	local writes, speed = 0, hub.glow.breath.SetAnimationSpeedMultiplier
+	hub.glow.breath.SetAnimationSpeedMultiplier = function(self, s) writes = writes + 1 return speed(self, s) end
+	ns.Slab.SetProc(b, true, true)
+	ns.Slab.SetProc(b, false, true)
+	hub.glow.breath.SetAnimationSpeedMultiplier = speed
+	assert(writes == 0, "with Calm crest at rest off a first or last proc leaves the idle motion alone")
+	K.Options.Write("Medallions", "restingCrest", true)
 
 	env.FireEvent("PLAYER_LEVEL_UP", 12)
 	assert(hub.level:GetText() == "12", "the plaque shows the new level")
@@ -138,6 +176,7 @@ end
 do
 	local env, K, ns = New()
 	Refresh(env)
+	env.SetTarget(true)
 	local hub = ns.Slab.hub
 	local function Ambient()
 		local n = 0
@@ -157,6 +196,12 @@ do
 		assert(not p:IsShown(), "the switch off hides the particles")
 	end
 	assert(hub.ring:IsShown() and hub.runes:IsShown() and hub.glow:GetAlpha() > 0, "the static hub art stays")
+	local stops, stop = 0, hub.glow.breath.Stop
+	hub.glow.breath.Stop = function(self) stops = stops + 1 return stop(self) end
+	env.SetTarget(false)
+	env.SetTarget(true)
+	hub.glow.breath.Stop = stop
+	assert(stops == 0, "with the switch off, losing or gaining a target leaves the still hub alone")
 	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
 	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
 	env.SetCombat(true)
@@ -180,6 +225,7 @@ do
 	end }
 	K.Callbacks.Fire("EffectsLevelChanged")
 	Refresh(env)
+	env.SetTarget(true)
 	local hub = ns.Slab.hub
 	assert(ns.Slab.Level() == "calm", "the effects layer's level rules the hub")
 	assert(hub.runes.turn:IsPlaying() and hub.glow.breath:IsPlaying() and hub.sheen.run:IsPlaying(), "calm keeps the idle loops")
@@ -319,6 +365,21 @@ do
 	local r, g, b = slot.medProc:GetVertexColor()
 	assert(r == 1 and g == 1 and b == 1, "the fel loop keeps its baked violet and green")
 	assert(ns.bars.pet and ns.bars.pet.buttons[1]:IsVisible(), "the imp's bar is out")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- The render story (RENDER_FX=crest) plays through the addon's own events: at rest 6 s in, in combat 11 s in.
+for _, case in ipairs({ { "6", false }, { "11", true } }) do
+	local env, K, ns = New()
+	Refresh(env)
+	rawset(_G, "RENDER_FX", "crest")
+	rawset(_G, "RENDER_FX_T", case[1])
+	env._time = env._now or 0
+	dofile("Tools/render/scenes/_effects.lua").Apply(env, "actionbars", ns, {})
+	rawset(_G, "RENDER_FX", nil)
+	rawset(_G, "RENDER_FX_T", nil)
+	local hub = ns.Slab.hub
+	assert(hub.runes.turn:IsPlaying() == case[2] and ns.Slab.InCombat() == case[2], "the crest story " .. case[1] .. " s in has the crest " .. (case[2] and "awake in combat" or "at rest"))
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

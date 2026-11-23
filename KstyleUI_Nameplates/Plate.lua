@@ -449,6 +449,7 @@ end
 
 function Plate:SetNameAlpha(alpha)
 	self.name:SetAlpha(alpha)
+	Widgets.HaloAlpha(self.name, alpha)
 	if self.subtitle then self.subtitle:SetAlpha(alpha) end
 	if self.nameRaid then self.nameRaid:SetAlpha(alpha) end
 	if self.pvpBadge then self.pvpBadge:SetAlpha(alpha) end
@@ -502,6 +503,7 @@ function Plate:Restyle()
 	Widgets.StyleText(self.name, nameRole)
 	StyleFont(self.name, Settings.Get("name.size"), Settings.Get("name.outline"), nameRole,
 		K.Theme.FollowsKit(Settings.Get("name.font")) and (Tokens.Font(nameRole)) or Settings.Get("name.font"))
+	Widgets.Halo(self.name, self.nameEnabled)
 	StyleFont(self.levelText, Settings.Get("level.size"), Settings.Get("level.outline"), "number",
 		K.Theme.FollowsKit(Settings.Get("level.font")) and Settings.Get("font", "number") or Settings.Get("level.font"))
 	StyleFont(self.healthText, Settings.Get("healthText.size"), Settings.Get("healthText.outline"), "number",
@@ -952,7 +954,7 @@ function Plate:LayoutAbsorb()
 		local clip = CreateFrame("Frame", nil, health)
 		clip:SetAllPoints(health)
 		clip:SetClipsChildren(true)
-		self.absorb = Widgets.StatusBar(clip, { background = false, color = "white" })
+		self.absorb = Widgets.StatusBar(clip, { background = false, glass = false, color = "white" })
 	end
 	local bar, place = self.absorb, ABSORB[Settings.Get("health.absorbPlace")]
 	bar:GetParent():SetFrameLevel(health:GetFrameLevel() + 1)

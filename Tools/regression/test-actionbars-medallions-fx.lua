@@ -1,4 +1,4 @@
--- test-actionbars-medallions-fx.lua: the Medallions action effects: a slot's ready flash under Medallions is the effects layer's steel flash, it yields to a proc on that slot and a proc ends it, Calm keeps it and Off drops it, and Frames keeps the old flash; the hub's ring brightens through a UnitPowerPercent curve while the resource is capped, tracks the class's secondary resource for a mana user unless the crest jewels glow at its maximum, breathes only at Full and listens to power events only under Medallions; a proc and a level-up add a 3D model at the hub inside the three-model cap while the 2D burst still plays, and the hub's ambient sheen and particles yield while an effect holds it; no effect sets an OnUpdate.
+-- test-actionbars-medallions-fx.lua: the Medallions action effects: a slot's ready flash under Medallions is the effects layer's steel flash, it yields to a proc on that slot and a proc ends it, Calm keeps it and Off drops it, and Frames keeps the old flash; the hub's ring brightens through a UnitPowerPercent curve while the resource is capped, tracks the class's secondary resource for a mana user unless the crest jewels glow at its maximum, breathes only at Full and listens to power events only under Medallions (the clean screen, which listens to the main power out of combat, is off here); a proc and a level-up add a 3D model at the hub inside the three-model cap while the 2D burst still plays, and the hub's ambient sheen and particles yield while an effect holds it; no effect sets an OnUpdate.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local FX = dofile("Tools/regression/effects_env.lua")
@@ -6,6 +6,7 @@ local FX = dofile("Tools/regression/effects_env.lua")
 local function New(class)
 	local env, K, ns = AB.New({ class = class or "WARRIOR", setup = FX.Install })
 	AB.Enable(env, K)
+	K.Options.Write("Rest", "enabled", false)
 	return env, K, ns
 end
 

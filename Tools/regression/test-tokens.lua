@@ -258,11 +258,12 @@ assert(select(2, Tokens.Texture("glow")) == nil, "an unsliced texture has no mar
 assert(not pcall(Tokens.Texture, "nope"), "an unknown texture is an error")
 
 -- Medallions (KSTY-90, KSTY-110): the style kit names files on disk, its slabs slice at 8 units, and flipbooks say their grid.
-for _, name in ipairs({ "medRing", "medRingLarge", "medEnamel", "medUnitSlab", "medActionSlab", "medProcShaman", "medLevelUp", "medHubWing", "medRuneRing", "medMinimapRing", "medMinimapMask" }) do
+for _, name in ipairs({ "medRing", "medRingLarge", "medEnamel", "medUnitSlab", "medUnitSlabCap", "medActionSlab", "medProcShaman", "medLevelUp", "medHubWing", "medRuneRing", "medMinimapRing", "medMinimapMask" }) do
 	assert(onDisk((Tokens.Texture(name))), "Tokens.Texture(" .. name .. ") names a missing file")
 end
 _, texels, units = Tokens.Texture("medUnitSlab")
 assert(texels == 16 and units == 8, "the Medallions slab's corner is 16 texels drawn at 8 units (KSTY-110: 2 texels a unit)")
+assert(select(2, Tokens.Texture("medUnitSlabCap")) == texels and select(3, Tokens.Texture("medUnitSlabCap")) == units, "the forged-end slab slices as the slab does, so either lays out with the slab's corner")
 local rows, columns, frames, seconds = Tokens.Flipbook("medProcShaman")
 assert(rows == 4 and columns == 4 and frames == 16 and seconds == 0.96, "a proc loop is 16 frames in a 4x4 grid, 0.96 s a cycle")
 rows, columns, frames, seconds = Tokens.Flipbook("medParticleMage")

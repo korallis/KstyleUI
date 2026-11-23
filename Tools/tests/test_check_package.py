@@ -68,7 +68,8 @@ class CheckPackageTest(unittest.TestCase):
             self.assertIn(needle, result.stdout + result.stderr)
 
     def test_good_package_passes(self):
-        self.make_zip(GOOD)
+        # Put the required files before more than a pipe buffer of asset names.
+        self.make_zip(GOOD + [f"KstyleUI/Media/{i:064d}.png" for i in range(2048)])
         self.assertPasses(self.run_check())
 
     def test_release_dir_argument(self):

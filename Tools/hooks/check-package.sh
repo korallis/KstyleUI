@@ -68,7 +68,7 @@ expected=$(
 problems=$(
 	comm -23 <(printf '%s\n' "$expected") <(printf '%s\n' "$entries" | sort -u) | sed 's/^/missing: /'
 	for required in LICENSE.md CHANGELOG.md; do
-		printf '%s\n' "$entries" | grep -qxF "$package/$required" || echo "missing: $package/$required"
+		grep -qxF "$package/$required" <<< "$entries" || echo "missing: $package/$required"
 	done
 	printf '%s\n' "$entries" | awk -v pkg="$package" '
 		$0 == "" { next }
