@@ -986,6 +986,7 @@
 	"Copy the selected chat window's text.": "Copie le texte de la fenêtre de discussion sélectionnée.",
 	"Copy these class and power colours to every other profile?": "Copier ces couleurs de classe et de ressource dans tous les autres profils ?",
 	"Could not save that binding. Choose another key and try again.": "Impossible d'enregistrer ce raccourci. Choisissez une autre touche et réessayez.",
+	"Count an item's cooldown down in numbers over its swipe. Off shows the swipe alone.": "Affiche le décompte du temps de recharge d'un objet en chiffres sur son balayage. Désactivé, seul le balayage s'affiche.",
 	"Count down your movement spells while they cool down. Move it in Layout Mode.": "Décompte vos sorts de déplacement pendant leur recharge. Déplacez-le en mode Disposition.",
 	"Count font": "Police du compteur",
 	"Count horizontal offset": "Décalage horizontal du compteur",

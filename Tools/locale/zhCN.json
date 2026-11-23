@@ -986,6 +986,7 @@
 	"Copy the selected chat window's text.": "复制所选聊天窗口的文字。",
 	"Copy these class and power colours to every other profile?": "将这些职业与能量颜色复制到所有其他配置文件？",
 	"Could not save that binding. Choose another key and try again.": "无法保存此按键。请选择其他按键后重试。",
+	"Count an item's cooldown down in numbers over its swipe. Off shows the swipe alone.": "在物品的冷却转圈上以数字倒数冷却时间。关闭时只显示转圈。",
 	"Count down your movement spells while they cool down. Move it in Layout Mode.": "在移动技能冷却时显示倒计时。可在布局模式中移动。",
 	"Count font": "数量字体",
 	"Count horizontal offset": "计数水平偏移",

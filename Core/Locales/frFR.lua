@@ -993,6 +993,7 @@ ns.Locale.Add({
 	["Copy the selected chat window's text."] = "Copie le texte de la fen\195\170tre de discussion s\195\169lectionn\195\169e.",
 	["Copy these class and power colours to every other profile?"] = "Copier ces couleurs de classe et de ressource dans tous les autres profils ?",
 	["Could not save that binding. Choose another key and try again."] = "Impossible d'enregistrer ce raccourci. Choisissez une autre touche et r\195\169essayez.",
+	["Count an item's cooldown down in numbers over its swipe. Off shows the swipe alone."] = "Affiche le d\195\169compte du temps de recharge d'un objet en chiffres sur son balayage. D\195\169sactiv\195\169, seul le balayage s'affiche.",
 	["Count down your movement spells while they cool down. Move it in Layout Mode."] = "D\195\169compte vos sorts de d\195\169placement pendant leur recharge. D\195\169placez-le en mode Disposition.",
 	["Count font"] = "Police du compteur",
 	["Count horizontal offset"] = "D\195\169calage horizontal du compteur",
