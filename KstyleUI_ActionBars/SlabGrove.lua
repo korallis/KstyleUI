@@ -113,7 +113,7 @@ ns.SlabTrackers.Register("DRUID", {
 	{ key = "crestBite", seat = "lowerLeft", feed = "cooldown", known = BITE, forms = BEAR, color = "jewelCombo", build = Gem },
 	{ key = "crestBash", seat = "lowerRight", feed = "cooldown", known = BASH, forms = BEAR, color = "jewelCombo", build = Gem },
 	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, forms = Join(CASTER, MOONKIN), texture = 134727, color = "jewelHoly", build = Gem },
-	{ key = "crestClearcasting", seat = "rim", known = OMEN, spells = CLEARCASTING, build = Bloom, place = Ring },
+	{ key = "crestLeaves", seat = "rim", known = OMEN, spells = CLEARCASTING, build = Bloom, place = Ring },
 	{ key = "crestSwiftmend", seat = "topGem", feed = "cooldown", choices = {
 		Gems({ forms = BEAR, known = MAUL, color = "jewelCombo", build = Maul }),
 		Gems({ forms = MOONKIN, known = { 17116 } }), Gems({ forms = MOONKIN, known = { 29166 } }),

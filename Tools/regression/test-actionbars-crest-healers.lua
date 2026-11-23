@@ -7,7 +7,7 @@ local PRIEST = { 10952, 1316995, 10947, 401977, 10894, 10060 }
 local DRUID = { 9835, 24977, 25299, 9858, 9904, 9896, 16864, 18562, 9898, 9907, 9881, 17402, 22812 }
 local SHAMAN = { 16362, 10414, 20608, 16166 }
 local BUILT = { DRUID = 16 }
-local KEYS = { "crestInnerFire", "crestPenance", "crestShadowfiend", "crestPain", "crestSeeds", "crestClearcasting", "crestSwiftmend", "crestImbues", "crestShock", "crestAnkh",
+local KEYS = { "crestInnerFire", "crestPenance", "crestShadowfiend", "crestPain", "crestSeeds", "crestLeaves", "crestSwiftmend", "crestImbues", "crestShock", "crestAnkh",
 	"crestCooldowns" }
 -- Each class's pieces by "<row>:<choice>", the key SlabTrackers keeps them under.
 local NAMES = {
