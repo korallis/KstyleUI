@@ -59,12 +59,16 @@ jobs:
       - name: Install the hosted runner tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y lua5.1 luajit luarocks
+          sudo apt-get install -y lua5.1
+          python3 -m pip install Pillow==13.0.0
+          echo "KSTYLEUI_PILLOW_PYTHON=$(command -v python3)" >> "$GITHUB_ENV"
+      - name: Install the lint and Python check tools
+        if: steps.proof.outputs.run != 'false'
+        run: |
+          sudo apt-get install -y luajit luarocks
           luarocks --local --lua-version=5.1 install luacheck 1.2.0
           python3 -m venv "$HOME/.local/share/wow-dev/venv"
           "$HOME/.local/share/wow-dev/venv/bin/python" -m pip install pre-commit==4.7.0
-          python3 -m pip install Pillow==13.0.0
-          echo "KSTYLEUI_PILLOW_PYTHON=$(command -v python3)" >> "$GITHUB_ENV"
           echo "$HOME/.luarocks/bin" >> "$GITHUB_PATH"
           echo "$HOME/.local/share/wow-dev/venv/bin" >> "$GITHUB_PATH"
           echo "LUA_PATH=$(luarocks --local --lua-version=5.1 path --lr-path)" >> "$GITHUB_ENV"
@@ -139,6 +143,15 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Install Pillow and build the icon pack before anything is published
+        run: |
+          python3 -m pip install Pillow==13.0.0
+          python3 -c 'import PIL; print("Pillow", PIL.__version__)' | grep '^Pillow 13\.0\.0$'
+          python3 Tools/icons/iconset.py pack --out "$RUNNER_TEMP/icons"
+          (cd "$RUNNER_TEMP/icons" && zip -r -q "$RUNNER_TEMP/KstyleUI-Icons-${GITHUB_REF_NAME#v}.zip" Interface)
       - name: Package and upload
         # The check job validates a deterministic dry build of this same commit with this same pinned packager.
         uses: BigWigsMods/packager@01e8631a69c69d7654c788d152630d5fed9e3812 # v2.7.0
@@ -148,23 +161,12 @@ jobs:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: '3.12'
-      - name: Install Pillow and check its version
-        run: |
-          python3 -m pip install Pillow==13.0.0
-          echo "KSTYLEUI_PILLOW_PYTHON=$(command -v python3)" >> "$GITHUB_ENV"
-          python3 -c 'import PIL; print("Pillow", PIL.__version__)' | grep '^Pillow 13\.0\.0$'
-      - name: Build the icon pack and upload it to the GitHub release
+      - name: Upload the icon pack to the GitHub release
         # The pack is a separate download: CurseForge and Wago install only into AddOns, and the pack goes
         # into _forever_/Interface/Icons (docs/icons.md). The packager made the release above; this adds the zip.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          "$KSTYLEUI_PILLOW_PYTHON" Tools/icons/iconset.py pack --out "$RUNNER_TEMP/icons"
-          (cd "$RUNNER_TEMP/icons" && zip -r -q "$RUNNER_TEMP/KstyleUI-Icons-${GITHUB_REF_NAME#v}.zip" Interface)
-          gh release upload "$GITHUB_REF_NAME" "$RUNNER_TEMP/KstyleUI-Icons-${GITHUB_REF_NAME#v}.zip" --clobber
+        run: gh release upload "$GITHUB_REF_NAME" "$RUNNER_TEMP/KstyleUI-Icons-${GITHUB_REF_NAME#v}.zip" --clobber
       - name: Show only this version's changelog on the GitHub release
         # The packager writes the whole CHANGELOG.md to the release page.
         env:

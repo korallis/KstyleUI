@@ -182,7 +182,7 @@ class WorkflowsTest(unittest.TestCase):
         self.assertIn('"$KSTYLEUI_PILLOW_PYTHON" Tools/icons/iconset.py pack', check, "pack needs Pillow to read the PNGs")
         self.assertIn("Tools/icons/iconset.py verify", check)
         self.assertIn("Tools/icons/iconset.py pack", release)
-        self.assertIn('"$KSTYLEUI_PILLOW_PYTHON" Tools/icons/iconset.py pack', release)
+        self.assertIn('python3 Tools/icons/iconset.py pack', release, "the upload job's only Python has Pillow")
         self.assertRegex(release, r"KstyleUI-Icons-\$\{GITHUB_REF_NAME#v\}\.zip")
         self.assertIn("gh release upload", release)
         self.assertNotIn("gh release upload", check)
