@@ -15,9 +15,9 @@ local NAMES = {
 		["4:1"] = "mending", ["4:2"] = "pain", ["5:1"] = "mend", ["6:1"] = "plague", ["7:1"] = "death", ["8:1"] = "silence", ["9:1"] = "oil",
 		["10:1"] = "cooldowns" },
 	DRUID = { ["1:1"] = "roar", ["1:2"] = "rake", ["1:3"] = "seedLeft", ["2:1"] = "faerie", ["2:2"] = "rip", ["2:3"] = "seedRight",
-		["3:1"] = "third", ["3:2"] = "thirdMoonkin", ["4:1"] = "growl", ["5:1"] = "charge", ["6:1"] = "bite", ["7:1"] = "bash", ["8:1"] = "oil",
-		["9:1"] = "bloom", ["10:1"] = "maul", ["10:2"] = "faerieGem", ["10:3"] = "swiftnessMoonkin", ["10:4"] = "innervateMoonkin",
-		["10:5"] = "swiftmend", ["10:6"] = "swiftness", ["10:7"] = "innervate", ["11:1"] = "tankGlow", ["12:1"] = "cooldowns" },
+		["3:1"] = "third", ["3:2"] = "thirdMoonkin", ["3:3"] = "faerieGem", ["4:1"] = "growl", ["5:1"] = "charge", ["6:1"] = "bite", ["7:1"] = "bash",
+		["8:1"] = "oil", ["9:1"] = "bloom", ["10:1"] = "maul", ["10:2"] = "swiftnessMoonkin", ["10:3"] = "innervateMoonkin",
+		["10:4"] = "swiftmend", ["10:5"] = "swiftness", ["10:6"] = "innervate", ["11:1"] = "tankGlow", ["12:1"] = "cooldowns" },
 	SHAMAN = { ["1:1"] = "mainHand", ["2:1"] = "offHand", ["3:1"] = "shock", ["4:1"] = "ankh", ["5:1"] = "flameShock", ["6:1"] = "cooldowns" },
 }
 
@@ -240,7 +240,7 @@ do
 	assert(b.maul.lit:IsShown(), "a queued Maul lights the gem")
 	env._form = 31
 	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
-	assert(Shown("seedLeft", "seedRight", "thirdMoonkin", "swiftmend") and not b.maul:IsShown() and not b.third:IsShown(), "Moonkin: the seed medals, your Faerie Fire on top and the gem")
+	assert(Shown("seedLeft", "seedRight", "thirdMoonkin") and not b.maul:IsShown() and not b.third:IsShown() and not b.swiftmend:IsShown(), "Moonkin: the seed medals and your Faerie Fire on top, no caster Swiftmend gem")
 	env._form = env.Secret(8)
 	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
 	assert(b.thirdMoonkin:IsShown(), "a secret form keeps the last crest")

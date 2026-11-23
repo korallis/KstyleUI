@@ -31,8 +31,8 @@ local function Join(...)
 	return all
 end
 
-local function Effect(spells, color, filter, forms)
-	return { feed = "aura", unit = "target", filter = filter or "HARMFUL|PLAYER", spells = spells, color = color, forms = forms }
+local function Effect(spells, color, filter, forms, seat)
+	return { feed = "aura", unit = "target", filter = filter or "HARMFUL|PLAYER", spells = spells, color = color, forms = forms, seat = seat }
 end
 
 local function Bloom(parent, spec, level, form)
@@ -104,7 +104,7 @@ ns.SlabTrackers.Register("DRUID", {
 	} },
 	{ key = "crestThird", seat = "top", choices = {
 		{ forms = CASTER, color = "white", known = Join(FAERIE, GROWTH), feeds = { Effect(FAERIE, "schoolArcane"), Effect(GROWTH, "schoolNature", "HELPFUL|PLAYER") } },
-		Effect(FAERIE, "schoolArcane", nil, MOONKIN),
+		Effect(FAERIE, "schoolArcane", nil, MOONKIN), Gems(Effect(FAERIE, "schoolArcane", nil, CAT, "lowerLeft")),
 	} },
 	{ key = "crestGrowl", seat = "footLeft", size = Medals.FOOT, feed = "cooldown", known = GROWL, forms = BEAR },
 	{ key = "crestCharge", seat = "footRight", size = Medals.FOOT, feed = "cooldown", known = CHARGE, forms = BEAR },
@@ -114,9 +114,8 @@ ns.SlabTrackers.Register("DRUID", {
 	{ key = "crestClearcasting", seat = "rim", known = OMEN, spells = CLEARCASTING, build = Bloom, place = Ring },
 	{ key = "crestSwiftmend", seat = "topGem", feed = "cooldown", choices = {
 		Gems({ forms = BEAR, known = MAUL, color = "jewelCombo", build = Maul }),
-		Gems(Effect(FAERIE, "schoolArcane", nil, CAT)),
 		Gems({ forms = MOONKIN, known = { 17116 } }), Gems({ forms = MOONKIN, known = { 29166 } }),
-		Gems({ known = { 18562 } }), Gems({ known = { 17116 } }), Gems({ known = { 29166 } }),
+		Gems({ forms = CASTER, known = { 18562 } }), Gems({ forms = CASTER, known = { 17116 } }), Gems({ forms = CASTER, known = { 29166 } }),
 	} },
 	{ key = "crestTankGlow", seat = "rim", feed = "threat", crestOnly = true, build = Medals.Emblem, color = "gilt", forms = BEAR, known = MAUL },
 	{ key = "crestCooldowns", seat = "cooldowns", color = "pipDruidGlow", families = {
