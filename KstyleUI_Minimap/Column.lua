@@ -374,12 +374,13 @@ function Column:Layout()
 	local perColumn = Format.PerColumn((face.mapSize or area:GetHeight() or 0) - (used[far] or 0), size, spacing, top)
 	local skip = used[start] and math.ceil(used[start] / (size + spacing) - 0.001) or 0
 	local reach = r - edge - size / 2
+	self.reach = 0
 	local function At(slot)
 		local point, x, y = Format.Column(slot, size, spacing, side, up, edge, top, perColumn)
 		if r > 0 then
 			local dy = r - math.abs(y) - size / 2
 			local inward = Widgets.Snap(holder, r - size / 2 - math.sqrt(math.max(0, reach * reach - dy * dy)))
-			x = side == "left" and inward or -inward
+			x, self.reach = side == "left" and inward or -inward, math.max(self.reach, inward + size)
 		end
 		return point, x, y
 	end

@@ -409,7 +409,7 @@ function Drawer:Layout()
 	local pad = Widgets.Snap(panel, PAD)
 	local columns = Settings.Get("drawer.columns")
 	local area = self.column.face.mapArea
-	local reserve = toggle:GetWidth() + Widgets.Snap(panel, Format.EDGE + GAP)
+	local reserve = math.max(toggle:GetWidth() + Widgets.Snap(panel, Format.EDGE + GAP), (self.column.reach or 0) + Widgets.Snap(panel, GAP))
 	if not Settings.Get("compactIcons") then
 		columns = math.max(1, math.min(columns, math.floor((area:GetWidth() - reserve - 2 * pad + spacing) / (size + spacing))))
 	end

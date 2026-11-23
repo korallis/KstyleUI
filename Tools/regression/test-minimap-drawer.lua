@@ -289,7 +289,8 @@ for _, style in ipairs({ "medallions", "frames" }) do
 		M.Settle(denv)
 		local anchor = opened.panel:GetPoint(1)
 		assert(anchor == want, style .. ": the drawer opens " .. direction .. " from its " .. want .. ", saw " .. tostring(anchor))
-		assert(opened.columns == 3, style .. ": 24 buttons keep the map's three columns, saw " .. tostring(opened.columns))
+		local want = style == "medallions" and 2 or 3
+		assert(opened.columns == want, style .. ": 24 buttons keep the map's " .. want .. " columns beside the button column, saw " .. tostring(opened.columns))
 	end
 	NoErrors(denv, style .. " drawer directions")
 end

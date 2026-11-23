@@ -243,5 +243,17 @@ check("8 column addon look", function()
 	clean(env, K)
 end)
 
+check("9 drawer clears the round column", function()
+	local env, K, ns, write = boot(1920, 1080)
+	local column, drawer = ns.Map.column, ns.Map.drawer
+	write("column.hover", true)
+	W.Click(column.buttons.drawer)
+	assert(drawer.panel:IsShown(), "the drawer opens")
+	for name, button in pairs(column.buttons) do
+		assert(not button:IsShown() or not overlap(drawer.panel, button), "the open drawer covers the " .. name .. " button")
+	end
+	clean(env, K)
+end)
+
 assert(#failures == 0, #failures .. " review probes fail:\n" .. table.concat(failures, "\n"))
 print("ok: minimap parity round 2 review")
