@@ -9,6 +9,7 @@ local Preview = {}
 ns.Preview = Preview
 
 local SAMPLE_WIDTH = 160
+local SAMPLE_BAR = 6
 local SCREEN_WIDTH = 240
 local SCREEN_ALPHA, CURRENT_ALPHA = 0.35, 0.9
 local SNUG_MARGIN = 4
@@ -35,17 +36,20 @@ function Preview.Sample(parent)
 	Widgets.SetText(samples[3], string.format("%d / %d", 2240, 4020))
 	Widgets.SetText(samples[4], L["Accent, font, size and motion changes show here at once."])
 	frame.body = samples[4]
+	frame.bar = Widgets.StatusBar(frame, { border = true, min = 0, max = 4020, value = 2240, height = SAMPLE_BAR })
 	frame.Refresh = function(self)
 		local width, gap = Widgets.Snap(self, SAMPLE_WIDTH), Tokens.Size("gapMedium")
-		local height = -gap
+		local height = SAMPLE_BAR
 		Widgets.Point(samples[1], "TOPLEFT", self, "TOPLEFT", Tokens.Size("gapLarge"), 0, true)
 		for i, text in ipairs(samples) do
 			Widgets.StyleText(text)
 			local row = Widgets.Snap(text, Widgets.WrappedHeight(text, width))
 			Widgets.Size(text, width, row)
-			if i > 1 then Widgets.Point(text, "TOPLEFT", samples[i - 1], "BOTTOMLEFT", 0, -gap, true) end
+			if i > 1 then Widgets.Point(text, "TOPLEFT", text == self.body and self.bar or samples[i - 1], "BOTTOMLEFT", 0, -gap, true) end
 			height = height + row + gap
 		end
+		Widgets.Size(self.bar, width, SAMPLE_BAR)
+		Widgets.Point(self.bar, "TOPLEFT", samples[3], "BOTTOMLEFT", 0, -gap, true)
 		Widgets.Size(self, width + 2 * Tokens.Size("gapLarge"), height)
 		for i, key in pairs({ [2] = K.Theme.Class() or "", [3] = "MANA" }) do
 			local c = K.Theme.Palette(key)

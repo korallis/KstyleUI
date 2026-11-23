@@ -90,7 +90,7 @@ return Common.Run(function()
 	})
 
 	-- Step 3: the module toggles, every module on but the window skins.
-	env, K, panel, hover = Step(W, 4, 60, 560, function(_, _, modules)
+	env, K, panel, hover = Step(W, 4, 60, 610, function(_, _, modules)
 		modules.toggles.Skins:SetValue(false)
 	end)
 	add(env, K, panel, hover, {
@@ -100,7 +100,7 @@ return Common.Run(function()
 	})
 
 	-- Step 5: the summary after Apply, when Edit Mode refused the layout because every account slot was taken.
-	env, K, panel, hover = Step(W, 5, 880, 560, function(stepEnv, stepK, stepPanel)
+	env, K, panel, hover = Step(W, 5, 880, 610, function(stepEnv, stepK, stepPanel)
 		local EditModeFake = dofile("Tools/regression/editmode_fake.lua")
 		local full = {}
 		for i = 1, 5 do

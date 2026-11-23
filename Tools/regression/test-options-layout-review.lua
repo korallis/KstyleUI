@@ -93,7 +93,7 @@ account.optionsPreviewAll = nil
 -- The hint names what a click opens, as a result's switch still changes its setting, and shows only when a result can open.
 K.Options.Open("Profiles")
 local state = ns.Window.State()
-local HINT = L["Press Enter or click a result's name to go to it."]
+local HINT = L["Press Enter or click a result to go to it."]
 local function Query(text)
 	parts.search:SetText(text)
 	parts.search:GetScript("OnTextChanged")(parts.search, true)
