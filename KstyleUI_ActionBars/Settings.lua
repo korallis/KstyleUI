@@ -145,6 +145,16 @@ local defaults = {
 	crestDemon = true,
 	crestHealthstone = true,
 	crestTrance = true,
+	crestInnerFire = true,
+	crestPenance = true,
+	crestShadowfiend = true,
+	crestPain = true,
+	crestSeeds = true,
+	crestClearcasting = true,
+	crestSwiftmend = true,
+	crestImbues = true,
+	crestShock = true,
+	crestAnkh = true,
 	procTransitions = true,
 	inputContinuity = true,
 	bezelModels = true,
@@ -402,6 +412,10 @@ local function BarRows(schema, def)
 	end
 end
 
+local function Crest(class, key, label, help)
+	return { type = "toggle", key = key, label = label, help = help, showWhen = function() return ns.class == class end }
+end
+
 local function EditOptions()
 	local out = {}
 	local labels = { L["Bar 1"], L["Bar 2"], L["Bar 3"], L["Bar 4"], L["Bar 5"], L["Bar 6"] }
@@ -480,6 +494,16 @@ function ns.Schema()
 		{ type = "toggle", key = "crestDemon", label = L["Demon medal"], help = L["Shows your demon's portrait and health or your Demonic Sacrifice; with no demon, your armor."], showWhen = function() return ns.class == "WARLOCK" end },
 		{ type = "toggle", key = "crestHealthstone", label = L["Healthstone medal"], help = L["Shows your Healthstone lit, cooling or gone; Demon Skin and its time before you make one."], showWhen = function() return ns.class == "WARLOCK" end },
 		{ type = "toggle", key = "crestTrance", label = L["Shadow Trance blaze"], help = L["Burns the crest's ring violet until your instant Shadow Bolt is cast."], showWhen = function() return ns.class == "WARLOCK" end },
+		Crest("SHAMAN", "crestImbues", L["Weapon imbues on the crest"], L["Shows each weapon's imbue as a rune stone in the crest ring, lit in its element's colour."]),
+		Crest("SHAMAN", "crestShock", L["Shock cooldown on the crest"], L["Dims the crest emblem under a sweep while your shocks cool down, then sparks."]),
+		Crest("SHAMAN", "crestAnkh", L["Reincarnation on the crest"], L["Shows a gold ankh by the level badge while Reincarnation is ready and you carry an Ankh."]),
+		Crest("PRIEST", "crestInnerFire", L["Inner Fire on the crest"], L["Shows Inner Fire's charges as four flames and a halo inside the crest ring."]),
+		Crest("PRIEST", "crestPenance", L["Penance on the crest"], L["Shows Penance, or Mind Blast, cooling down and ready on the crest's left medal."]),
+		Crest("PRIEST", "crestShadowfiend", L["Shadowfiend on the crest"], L["Shows Shadowfiend's cooldown, or Shadowform while you wear it, on the crest's right medal."]),
+		Crest("PRIEST", "crestPain", L["Shadow Word: Pain on the crest"], L["Shows your Shadow Word: Pain on your target as a gem at the top of the crest ring."]),
+		Crest("DRUID", "crestSeeds", L["Your effects on the crest"], L["Shows your damage and healing over time on your target as two medals on the crest."]),
+		Crest("DRUID", "crestClearcasting", L["Clearcasting on the crest"], L["Blooms leaves round the inside of the crest ring while Clearcasting is up."]),
+		Crest("DRUID", "crestSwiftmend", L["Swiftmend on the crest"], L["Shows Swiftmend, Nature's Swiftness or Innervate ready as a gem at the top of the crest ring."]),
 		{ type = "toggle", key = "hubNumber", label = L["Clear hub level"],
 			help = L["Use the number face on a larger Medallions level badge. Off restores the original badge."], showWhen = function() return K.HudStyle.Current() == "medallions" end },
 		{ type = "note", label = L["Type /kb to hover a button and press a key to bind it. Save for your account or this character, or Discard your changes."] },

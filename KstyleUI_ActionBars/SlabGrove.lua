@@ -1,0 +1,109 @@
+-- SlabGrove.lua: the druid's crest trackers, registered with SlabTrackers, each on its own switch and a full crest in every form: the shoulder medals show your effects on the target with their icon and a ring that drains over their time (as a caster, moonkin or in travel and aquatic form Moonfire or Rejuvenation on the left and Insect Swarm or Regrowth on the right; Rake and Rip in Cat Form; Demoralizing Roar and Faerie Fire in Bear Form); Clearcasting blooms leaves round the inner rim over a druid glow; the gem at the top of the ring follows the form: Swiftmend's cooldown (or Nature's Swiftness's, or Innervate's) as a caster, Hurricane's (or Innervate's) as a moonkin, your Faerie Fire on the target in Cat Form and Maul queued in Bear Form; and the major cooldowns burn on the rim. Every form's choice is built out of combat, so a shift only shows one; aura slots, cooldown duration objects and the engine's shown animations draw the timers, so Lua never reads or compares a secret.
+local _, ns = ...
+
+local K = KstyleUI
+local Medals, Widgets = ns.SlabMedals, K.Widgets
+local IsSecret = Widgets.IsSecret
+
+local MOONFIRE = { 9835, 9834, 9833, 8929, 8928, 8927, 8926, 8925, 8924, 8921 }
+local SWARM = { 24977, 24976, 24975, 24974, 5570 }
+local REJUVENATION = { 25299, 9841, 9840, 9839, 8910, 3627, 2091, 2090, 1430, 1058, 774 }
+local REGROWTH = { 9858, 9857, 9856, 9750, 8941, 8940, 8939, 8938, 8936 }
+local RAKE, RIP = { 9904, 1824, 1823, 1822 }, { 9896, 9894, 9752, 9493, 9492, 1079 }
+local ROAR, FAERIE = { 9898, 9747, 9490, 1735, 99 }, { 9907, 9749, 778, 770 }
+local MAUL, HURRICANE = { 9881, 9880, 9745, 8972, 6809, 6808, 6807 }, { 17402, 17401, 16914 }
+local OMEN, CLEARCASTING = { 16864 }, { 16870, 457342, 467735 }
+local BEAR, CAT, MOONKIN = { 5, 8 }, { 1 }, { 31, 35 }
+local LEAVES, LEAF, ORBIT, GEM, GAP = 8, 14, 54, 60, 4
+
+local maul = {}
+
+local function Join(...)
+	local all = {}
+	for _, list in ipairs({ ... }) do
+		for _, id in ipairs(list) do
+			all[#all + 1] = id
+		end
+	end
+	return all
+end
+
+local function Effect(spells, color, filter, forms)
+	return { feed = "aura", unit = "target", filter = filter or "HARMFUL|PLAYER", spells = spells, color = color, forms = forms }
+end
+
+local function Bloom(parent, spec, level, form)
+	if form == "row" then
+		return Medals.Medal(parent, { feed = "aura", spells = CLEARCASTING, texture = spec.texture, color = "pipDruidGlow", burst = spec.burst }, level)
+	end
+	local r = Medals.Rim(parent, { feed = "aura", spells = CLEARCASTING, ambient = "medAmbientDruid", burst = spec.burst }, level)
+	r.ring = {}
+	for k = 1, LEAVES do
+		local leaf = r.add(r.lit:CreateTexture(nil, "OVERLAY"), LEAF)
+		leaf:SetTexture((K.Tokens.Texture("trackerLeaf")))
+		leaf:SetBlendMode("ADD")
+		leaf.angle = (k - 0.5) * 360 / LEAVES
+		leaf:SetRotation(-math.rad(leaf.angle))
+		r.ring[k] = leaf
+	end
+	return r
+end
+
+local function Ring(piece, anchor, form, x)
+	if form == "row" then
+		Medals.Place(piece, anchor, x, 0)
+		return x + Medals.SIZE + GAP
+	end
+	Medals.Place(piece, anchor, 0, 0)
+	for _, leaf in ipairs(piece.ring) do
+		local a = math.rad(leaf.angle)
+		leaf:ClearAllPoints()
+		leaf:SetPoint("CENTER", anchor, "CENTER", Widgets.Snap(anchor, ORBIT * math.sin(a)), Widgets.Snap(anchor, ORBIT * math.cos(a)))
+	end
+	return x
+end
+
+local function Gem(parent, spec, level, form)
+	return (form == "crest" and Medals.Socket or Medals.Medal)(parent, spec, level)
+end
+
+local function Maul(parent, spec, level, form)
+	local s = Gem(parent, spec, level, form)
+	maul[#maul + 1] = s
+	return s
+end
+
+local function Queued()
+	local current = C_Spell and C_Spell.IsCurrentSpell
+	for _, s in ipairs(maul) do
+		local on = current and current(s.spec.spell)
+		s.lit:SetShown(not IsSecret(on) and on == true)
+	end
+end
+
+local function Gems(choice)
+	choice.color, choice.build = choice.color or "schoolNature", choice.build or Gem
+	return choice
+end
+
+ns.SlabTrackers.Register("DRUID", {
+	{ key = "crestSeeds", seat = "left", choices = {
+		Effect(ROAR, "jewelCombo", nil, BEAR), Effect(RAKE, "jewelCombo", nil, CAT),
+		{ color = "white", known = Join(MOONFIRE, REJUVENATION), feeds = { Effect(MOONFIRE, "totemAir"), Effect(REJUVENATION, "schoolArcane", "HELPFUL|PLAYER") } },
+	} },
+	{ key = "crestSeeds", seat = "right", choices = {
+		Effect(FAERIE, "schoolArcane", nil, BEAR), Effect(RIP, "jewelCombo", nil, CAT),
+		{ color = "white", known = Join(SWARM, REGROWTH), feeds = { Effect(SWARM, "jewelHawk"), Effect(REGROWTH, "schoolNature", "HELPFUL|PLAYER") } },
+	} },
+	{ key = "crestClearcasting", seat = "rim", known = OMEN, spells = CLEARCASTING, build = Bloom, place = Ring },
+	{ key = "crestSwiftmend", seat = { 0, GEM }, feed = "cooldown", choices = {
+		Gems({ forms = BEAR, known = MAUL, color = "jewelCombo", build = Maul }),
+		Gems(Effect(FAERIE, "schoolArcane", nil, CAT)),
+		Gems({ forms = MOONKIN, known = HURRICANE }), Gems({ forms = MOONKIN, known = { 29166 } }),
+		Gems({ known = { 18562 } }), Gems({ known = { 17116 } }), Gems({ known = { 29166 } }),
+	} },
+	{ key = "crestCooldowns", seat = "cooldowns", color = "pipDruidGlow", families = {
+		{ spells = { 22812 } }, { spells = { 17116 } }, { spells = { 22842 } }, { spells = { 1850, 9821 } }, { spells = { 5229 } },
+		{ spells = { 29166 } }, { spells = { 16689, 16810, 16811, 16812, 16813, 17329 } },
+	} },
+}, { burst = "medBurstDruid", events = { "CURRENT_SPELL_CAST_CHANGED" }, paint = Queued })

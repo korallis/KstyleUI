@@ -19,6 +19,9 @@
 	<Script file="SlabHawks.lua"/>
 	<Script file="SlabStorm.lua"/>
 	<Script file="SlabTrackers.lua"/>
+	<Script file="SlabVigil.lua"/>
+	<Script file="SlabGrove.lua"/>
+	<Script file="SlabStormforged.lua"/>
 	<Script file="SlabCrown.lua"/>
 	<Script file="SlabRanged.lua"/>
 	<Script file="Totems.lua"/>
