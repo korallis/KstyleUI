@@ -93,6 +93,11 @@ local function PlaceText(entry)
 	name:SetPoint("RIGHT", value, "LEFT", -Tokens.Size("gapSmall"), 0)
 end
 
+local function Relayout(entry)
+	PlacePill(pills[entry])
+	PlaceText(entry)
+end
+
 local function Rename(entry)
 	local name = entry.StatusBar.Name
 	local text = name:GetText()
@@ -191,7 +196,7 @@ local function StyleEntry(entry)
 			hooksecurefunc(entry, "UpdateValue", Revalue)
 		end
 		if type(entry.UpdateStyle) == "function" and bar.Name and bar.Value then
-			hooksecurefunc(entry, "UpdateStyle", PlaceText)
+			hooksecurefunc(entry, "UpdateStyle", Relayout)
 		end
 		if type(entry.UpdateName) == "function" and bar.Name then
 			hooksecurefunc(entry, "UpdateName", Rename)

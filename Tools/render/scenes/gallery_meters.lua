@@ -309,6 +309,15 @@ local SKIN_PAD, SKIN_HEADER, SKIN_ROW, SKIN_GAP = 10, 32, 25, 4
 -- The fight dropdown's width and centre, and the room the settings and minimise buttons take at its right.
 local SKIN_SESSION_W, SKIN_SESSION_MIDDLE, SKIN_SETTINGS = 44, 13.5, 36
 
+-- layRow(entry) is Blizzard's UpdateStyle for the Default style (DamageMeterEntry.lua:272-290): name and value on the bar's middle.
+local function layRow(entry)
+	local bar = entry.StatusBar
+	bar.Name:ClearAllPoints()
+	bar.Name:SetPoint("LEFT", bar, "LEFT", SKIN_GAP, 0)
+	bar.Value:ClearAllPoints()
+	bar.Value:SetPoint("RIGHT", bar, "RIGHT", -SKIN_GAP, 0)
+end
+
 local function skin(frames)
 	local M = dofile("Tools/regression/meters_env.lua")
 	local window
@@ -356,6 +365,7 @@ local function skin(frames)
 					end
 					entry.UpdateValue, entry.value, entry.valuePerSecond, entry.sessionTotalValue = blizzardValue(env, s[3], total)
 					entry.UpdateName = function(self) self.StatusBar.Name:SetText(self.nameText) end
+					entry.UpdateStyle = layRow
 					window.entries[i] = entry
 				end
 			end
@@ -404,6 +414,7 @@ local function skin(frames)
 				end
 				entry.UpdateValue, entry.value, entry.valuePerSecond, entry.sessionTotalValue = blizzardValue(env, spell[4], total)
 				entry.UpdateName = function(self) self.StatusBar.Name:SetText(self.nameText) end
+				entry.UpdateStyle = layRow
 				source.entries[i] = entry
 			end
 			function spellBox.ForEachFrame(_, fn)
@@ -466,10 +477,9 @@ local function skin(frames)
 		bar:SetAllPoints(entry)
 		bar:SetMinMaxValues(0, top)
 		bar:SetValue(s[3])
-		bar.Name:SetPoint("LEFT", bar, "LEFT", SKIN_GAP, 0)
+		entry:UpdateStyle()
 		entry.nameText = s[1]
 		entry:UpdateName()
-		bar.Value:SetPoint("RIGHT", bar, "RIGHT", -SKIN_GAP, 0)
 		entry:UpdateValue()
 	end
 	-- Blizzard anchors the spell window to the session window's side with more room; the scene puts it right.
@@ -490,10 +500,9 @@ local function skin(frames)
 		bar:SetAllPoints(entry)
 		bar:SetMinMaxValues(0, SPELLS[1][4])
 		bar:SetValue(spell[4])
-		bar.Name:SetPoint("LEFT", bar, "LEFT", SKIN_GAP, 0)
+		entry:UpdateStyle()
 		entry.nameText = spell[2]
 		entry:UpdateName()
-		bar.Value:SetPoint("RIGHT", bar, "RIGHT", -SKIN_GAP, 0)
 		entry:UpdateValue()
 	end
 	source:Show()
