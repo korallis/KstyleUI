@@ -671,3 +671,4 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - Merged #773 (polish E). RestedXP hotfix told to rebase.
 - #775 RestedXP 4.11.39 hotfix green; review dispatched.
 - #775 review ISSUES (scale setter dislodges docked chip, redraws fail the fight guard, standalone renderer crash) -> author.
+- Merged #774 (polish B Options/setup).
