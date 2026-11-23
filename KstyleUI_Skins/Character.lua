@@ -1,4 +1,4 @@
--- Character.lua: the character sheet skin: the window whose glass docks its side tabs in a gutter, the paper doll on the glass with quality-rimmed equipment slots and sidebar tabs spaced by the kit gap, the stats, reputation and currency.
+-- Character.lua: the character sheet skin: the window whose glass docks its side tabs in a gutter, the paper doll on the glass with quality-rimmed equipment slots carrying item levels (the inspect window's too) and sidebar tabs spaced by the kit gap, the stats, reputation and currency.
 local _, ns = ...
 
 local K = KstyleUI
@@ -22,9 +22,15 @@ local STAT_PANES = { "CharacterStatsPaneScrollBox", "CharacterStatsPanePetScroll
 local REP_CHECKS = { "AtWarCheckbox", "MakeInactiveCheckbox", "WatchFactionCheckbox" }
 local TOKEN_CHECKS = { "InactiveCheckbox", "BackpackCheckbox" }
 
+local INSPECT_ADDON, INSPECT_OWNER = "Blizzard_InspectUI", "Skins.inspectLevels"
+local SLOT_AMMO, SLOT_SHIRT, SLOT_TABARD = 0, 4, 19
+local NO_LEVEL = { [SLOT_AMMO] = true, [SLOT_SHIRT] = true, [SLOT_TABARD] = true }
+
 local WEAK = { __mode = "k" }
 local slots = setmetatable({}, WEAK)
 local rows = setmetatable({}, WEAK)
+local levelTexts = setmetatable({}, WEAK)
+local levelLinks = setmetatable({}, WEAK)
 
 local function Log(message)
 	K.DevTest.Log("Skins", KEY .. ": " .. message)
@@ -63,6 +69,102 @@ local function PaintSlot(button)
 	rim:SetRimColor(Theme.QualityColor(quality))
 end
 
+local function ItemLevel(link)
+	local item = C_Item
+	if not link or not item or type(item.GetDetailedItemLevelInfo) ~= "function" then
+		return nil
+	end
+	local ok, level = pcall(item.GetDetailedItemLevelInfo, link)
+	if ok and not IsSecret(level) and type(level) == "number" and level > 0 then
+		return level
+	end
+	return nil
+end
+
+local function ShowLevel(button, unit, link)
+	local level, text = ItemLevel(link), levelTexts[button]
+	if not level then
+		if text then
+			text:Hide()
+		end
+		return false
+	end
+	if not text then
+		text = K.Widgets.FontString(button, "OVERLAY")
+		Style.Text(text, "number")
+		local inset = K.Widgets.Snap(button, Tokens.Size("gapTiny"))
+		text:SetPoint("TOPLEFT", button, "TOPLEFT", inset, -inset)
+		levelTexts[button] = text
+	end
+	text:SetText(level)
+	local quality = type(GetInventoryItemQuality) == "function" and GetInventoryItemQuality(unit, button:GetID()) or nil
+	text:SetTextColor(Theme.QualityColor(quality))
+	text:Show()
+	return true
+end
+
+local function PaintLevel(button, unit, force)
+	local id = button:GetID()
+	local on = unit and not NO_LEVEL[id] and K.Modules.IsRunning("Skins") and Skins.IsOn(KEY) and Skins.Setting(KEY, "itemLevels")
+	local link = on and type(GetInventoryItemLink) == "function" and GetInventoryItemLink(unit, id)
+	if IsSecret(link) or type(link) ~= "string" then
+		link = false
+	end
+	if levelLinks[button] == link and not force then
+		return
+	end
+	levelLinks[button] = link
+	if ShowLevel(button, unit, link) or not link or type(Item) ~= "table" or type(Item.CreateFromItemLink) ~= "function" then
+		return
+	end
+	local item = Item:CreateFromItemLink(link)
+	pcall(item.ContinueOnItemLoad, item, function()
+		if levelLinks[button] == link then
+			ShowLevel(button, unit, link)
+		end
+	end)
+end
+
+local function InspectUnit()
+	local frame = _G.InspectFrame
+	return type(frame) == "table" and frame.unit or nil
+end
+
+local function PaintLevels()
+	for button in pairs(levelLinks) do
+		PaintLevel(button, slots[button] and "player" or InspectUnit(), true)
+	end
+end
+
+local function UpdateSlot(button)
+	PaintSlot(button)
+	if slots[button] then
+		PaintLevel(button, "player")
+	end
+end
+
+local function HookInspect()
+	if type(InspectPaperDollItemSlotButton_Update) ~= "function" then
+		return false
+	end
+	hooksecurefunc("InspectPaperDollItemSlotButton_Update", function(button)
+		PaintLevel(button, InspectUnit())
+	end)
+	return true
+end
+
+if not HookInspect() then
+	K.Events.Register(INSPECT_OWNER, "ADDON_LOADED", function(_, name)
+		if name ~= INSPECT_ADDON then
+			return
+		end
+		K.Events.Unregister(INSPECT_OWNER, "ADDON_LOADED")
+		if not HookInspect() then
+			Log("InspectPaperDollItemSlotButton_Update is missing; inspect slots show no item levels")
+		end
+	end)
+end
+
 local function SkinSlot(button)
 	if slots[button] then
 		return
@@ -94,7 +196,7 @@ local function SkinSlot(button)
 		Style.Text(button.Count, "number", "textEmphasis")
 	end
 	slots[button] = Parts.Rim(button, { outset = Tokens.Size("gapTiny") })
-	PaintSlot(button)
+	UpdateSlot(button)
 end
 
 local function PaintSlots()
@@ -223,7 +325,7 @@ local function SkinPaperDoll()
 		end
 	end
 	if type(PaperDollItemSlotButton_Update) == "function" then
-		hooksecurefunc("PaperDollItemSlotButton_Update", PaintSlot)
+		hooksecurefunc("PaperDollItemSlotButton_Update", UpdateSlot)
 	else
 		Log("PaperDollItemSlotButton_Update is missing; slot rims show the quality at skin time only")
 	end
@@ -368,6 +470,9 @@ local function OnSetting(_, field)
 	if field == nil or field == "qualityBorders" or field == "qualityFrom" then
 		PaintSlots()
 	end
+	if field == nil or field == "itemLevels" then
+		PaintLevels()
+	end
 end
 
 Skins.Add({
@@ -375,7 +480,7 @@ Skins.Add({
 	label = L["Character sheet"],
 	help = L["Restyles the character window: equipment, stats, reputation and currency."],
 	frame = "CharacterFrame",
-	defaults = { qualityBorders = true, qualityFrom = QUALITY_UNCOMMON },
+	defaults = { qualityBorders = true, qualityFrom = QUALITY_UNCOMMON, itemLevels = true },
 	rows = {
 		{
 			type = "toggle", key = "qualityBorders", label = L["Quality borders"],
@@ -394,6 +499,10 @@ Skins.Add({
 			disableWhen = function(settings)
 				return settings.qualityBorders ~= true
 			end,
+		},
+		{
+			type = "toggle", key = "itemLevels", label = L["Item levels"],
+			help = L["Shows each piece of gear's item level on your equipment and on players you inspect."],
 		},
 	},
 	metrics = true,

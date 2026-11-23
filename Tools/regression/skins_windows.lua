@@ -364,16 +364,17 @@ local function CharacterWindow(env, B, x, y)
 	return f
 end
 
--- The paper doll's equipment slots in Forever's order, with the Blizzard icon of a level-38 warrior's gear
+-- The paper doll's equipment slots in Forever's order, with the Blizzard icon of a level-38 warrior's gear, its
+-- inventory slot ID (INVSLOT_* in Blizzard_FrameXMLBase/Constants.lua), its quality and its item level
 -- (Camelot/PaperDollFrame.xml:781 onward anchors them; the set B pack repaints every one of these icons).
 local DOLL_SLOTS = {
-	{ "CharacterHeadSlot", 133127 }, { "CharacterNeckSlot", 133294 }, { "CharacterShoulderSlot", 135054 },
-	{ "CharacterBackSlot", 133763 }, { "CharacterChestSlot", 132739 }, { "CharacterShirtSlot", 135012 },
-	{ "CharacterTabardSlot", 135026 }, { "CharacterWristSlot", 132618 }, { "CharacterHandsSlot", 132963 },
-	{ "CharacterWaistSlot", 132516 }, { "CharacterLegsSlot", 134693 }, { "CharacterFeetSlot", 132587 },
-	{ "CharacterFinger0Slot", 133359 }, { "CharacterFinger1Slot", 133373 }, { "CharacterTrinket0Slot", 134336 },
-	{ "CharacterTrinket1Slot", 133440 }, { "CharacterMainHandSlot", 132400 }, { "CharacterSecondaryHandSlot", 134952 },
-	{ "CharacterRangedSlot", 135496 },
+	{ "CharacterHeadSlot", 133127, 1, 4, 45 }, { "CharacterNeckSlot", 133294, 2, 3, 40 }, { "CharacterShoulderSlot", 135054, 3, 2, 36 },
+	{ "CharacterBackSlot", 133763, 15, 2, 35 }, { "CharacterChestSlot", 132739, 5, 4, 44 }, { "CharacterShirtSlot", 135012, 4, 1, 1 },
+	{ "CharacterTabardSlot", 135026, 19, 1, 1 }, { "CharacterWristSlot", 132618, 9, 3, 39 }, { "CharacterHandsSlot", 132963, 10, 2, 37 },
+	{ "CharacterWaistSlot", 132516, 6, 2, 36 }, { "CharacterLegsSlot", 134693, 7, 3, 41 }, { "CharacterFeetSlot", 132587, 8, 2, 37 },
+	{ "CharacterFinger0Slot", 133359, 11, 4, 43 }, { "CharacterFinger1Slot", 133373, 12, 3, 40 }, { "CharacterTrinket0Slot", 134336, 13, 2, 35 },
+	{ "CharacterTrinket1Slot", 133440, 14, 2, 34 }, { "CharacterMainHandSlot", 132400, 16, 3, 42 }, { "CharacterSecondaryHandSlot", 134952, 17, 2, 38 },
+	{ "CharacterRangedSlot", 135496, 18, 2, 36 },
 }
 local SLOT, SLOT_GAP = 37, 6
 local STRIP_HEIGHT = 36
@@ -469,9 +470,20 @@ end
 -- the class's full-body stand-in where the game draws the model.
 function build.character(env, B)
 	local f = CharacterWindow(env, B, 120, 120)
-	local qualities = { 4, 3, 2, 2, 4, 1, 1, 3, 2, 2, 3, 2, 4, 3, 2, 2, 3, 2, 2 }
+	local worn, levels = {}, {}
+	for _, entry in ipairs(DOLL_SLOTS) do
+		worn[entry[3]] = entry
+		levels["item:" .. entry[2]] = entry[5]
+	end
 	env.GetInventoryItemQuality = function(_, id)
-		return qualities[id]
+		return worn[id] and worn[id][4]
+	end
+	env.GetInventoryItemLink = function(_, id)
+		return worn[id] and "item:" .. worn[id][2]
+	end
+	env.C_Item = env.C_Item or {}
+	env.C_Item.GetDetailedItemLevelInfo = function(link)
+		return levels[link]
 	end
 	env.PaperDollItemSlotButton_Update = function() end
 	local doll = B.frame("Frame", f, "PaperDollFrame")
@@ -525,7 +537,7 @@ function build.character(env, B)
 	items:SetAllPoints(doll)
 	for i, entry in ipairs(DOLL_SLOTS) do
 		local slot = Item(B, items, entry[2], SLOT, entry[1])
-		slot:SetID(i)
+		slot:SetID(entry[3])
 		slot.NormalTexture = B.texture(slot)
 		slot.BorderFrame = B.frame("Frame", slot)
 		slot.BorderFrame:SetAllPoints(slot)

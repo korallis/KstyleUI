@@ -3772,6 +3772,7 @@ ns.Locale.Add({
 	["Shows each member's answer during a ready check."] = "Zeigt bei einem Bereitschaftscheck die Antwort jedes Mitglieds.",
 	["Shows each member's portrait beside the bar."] = "Zeigt das Portr\195\164t jedes Mitglieds neben der Leiste.",
 	["Shows each member's role; raid tiles show it only as Role letters or at a chosen Role icon place."] = "Zeigt die Rolle jedes Mitglieds; Schlachtzugskacheln zeigen sie nur als Rollenbuchstaben oder an einer gew\195\164hlten Position des Rollensymbols.",
+	["Shows each piece of gear's item level on your equipment and on players you inspect."] = "Zeigt die Gegenstandsstufe jedes Ausr\195\188stungsteils an deiner Ausr\195\188stung und bei betrachteten Spielern.",
 	["Shows each player's class or each spell's icon at the start of its row."] = "Zeigt am Anfang jeder Zeile die Klasse des Spielers oder das Symbol des Zaubers.",
 	["Shows each share of the total, when the game lets addons read it."] = "Zeigt jeden Anteil am Gesamtwert, wenn das Spiel Addons ihn lesen l\195\164sst.",
 	["Shows elite and rare rims, quest colours and quest progress in dungeons, raids and battlegrounds."] = "Zeigt Elite- und Rare-R\195\164nder, Questfarben und Questfortschritt in Dungeons, Schlachtz\195\188gen und Schlachtfeldern.",

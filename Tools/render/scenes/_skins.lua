@@ -130,6 +130,9 @@ function Skins.Scene(key)
 		dofile("Tools/regression/load_files.lua")(dofile("Tools/regression/tooltips_env.lua").Files(), env)
 	end
 	K.Modules.Enable("Skins")
+	if key == "character" and os.getenv("RENDER_ITEM_LEVELS") == "0" then
+		pcall(K.Options.Write, "Skins", "character.itemLevels", false)
+	end
 	if spec.addon then
 		S.LoadAddOn(env, spec.addon)
 	end

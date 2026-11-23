@@ -3765,6 +3765,7 @@
 	"Shows each member's answer during a ready check.": "就位确认时显示每个成员的回答。",
 	"Shows each member's portrait beside the bar.": "在条旁边显示每个成员的头像。",
 	"Shows each member's role; raid tiles show it only as Role letters or at a chosen Role icon place.": "显示每个成员的职责；团队格子仅以职责字母或在所选的职责图标位置显示。",
+	"Shows each piece of gear's item level on your equipment and on players you inspect.": "在你的装备和你观察的玩家装备上显示每件装备的物品等级。",
 	"Shows each player's class or each spell's icon at the start of its row.": "在每行开头显示玩家的职业或法术的图标。",
 	"Shows each share of the total, when the game lets addons read it.": "在游戏允许插件读取时，显示每人占总量的比例。",
 	"Shows elite and rare rims, quest colours and quest progress in dungeons, raids and battlegrounds.": "在地下城、团队副本和战场中显示精英和稀有边框、任务颜色及任务进度。",

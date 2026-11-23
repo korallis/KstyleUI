@@ -3772,6 +3772,7 @@ ns.Locale.Add({
 	["Shows each member's answer during a ready check."] = "Affiche la r\195\169ponse de chaque membre pendant un appel.",
 	["Shows each member's portrait beside the bar."] = "Affiche le portrait de chaque membre \195\160 c\195\180t\195\169 de la barre.",
 	["Shows each member's role; raid tiles show it only as Role letters or at a chosen Role icon place."] = "Indique le r\195\180le de chaque membre ; les tuiles de raid ne l'affichent qu'en Lettres de r\195\180le ou \195\160 une Position de l'ic\195\180ne de r\195\180le choisie.",
+	["Shows each piece of gear's item level on your equipment and on players you inspect."] = "Affiche le niveau d'objet de chaque pi\195\168ce d'\195\169quipement sur le v\195\180tre et sur les joueurs que vous inspectez.",
 	["Shows each player's class or each spell's icon at the start of its row."] = "Affiche la classe de chaque joueur ou l'ic\195\180ne de chaque sort au d\195\169but de sa ligne.",
 	["Shows each share of the total, when the game lets addons read it."] = "Affiche chaque part du total, quand le jeu permet aux add-ons de la lire.",
 	["Shows elite and rare rims, quest colours and quest progress in dungeons, raids and battlegrounds."] = "Affiche les contours d'\195\169lite et de rare, les couleurs de qu\195\170te et la progression des qu\195\170tes dans les donjons, raids et champs de bataille.",

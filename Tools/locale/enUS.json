@@ -3765,6 +3765,7 @@
 	"Shows each member's answer during a ready check.",
 	"Shows each member's portrait beside the bar.",
 	"Shows each member's role; raid tiles show it only as Role letters or at a chosen Role icon place.",
+	"Shows each piece of gear's item level on your equipment and on players you inspect.",
 	"Shows each player's class or each spell's icon at the start of its row.",
 	"Shows each share of the total, when the game lets addons read it.",
 	"Shows elite and rare rims, quest colours and quest progress in dungeons, raids and battlegrounds.",

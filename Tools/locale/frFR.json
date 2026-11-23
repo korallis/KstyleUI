@@ -3765,6 +3765,7 @@
 	"Shows each member's answer during a ready check.": "Affiche la réponse de chaque membre pendant un appel.",
 	"Shows each member's portrait beside the bar.": "Affiche le portrait de chaque membre à côté de la barre.",
 	"Shows each member's role; raid tiles show it only as Role letters or at a chosen Role icon place.": "Indique le rôle de chaque membre ; les tuiles de raid ne l'affichent qu'en Lettres de rôle ou à une Position de l'icône de rôle choisie.",
+	"Shows each piece of gear's item level on your equipment and on players you inspect.": "Affiche le niveau d'objet de chaque pièce d'équipement sur le vôtre et sur les joueurs que vous inspectez.",
 	"Shows each player's class or each spell's icon at the start of its row.": "Affiche la classe de chaque joueur ou l'icône de chaque sort au début de sa ligne.",
 	"Shows each share of the total, when the game lets addons read it.": "Affiche chaque part du total, quand le jeu permet aux add-ons de la lire.",
 	"Shows elite and rare rims, quest colours and quest progress in dungeons, raids and battlegrounds.": "Affiche les contours d'élite et de rare, les couleurs de quête et la progression des quêtes dans les donjons, raids et champs de bataille.",
