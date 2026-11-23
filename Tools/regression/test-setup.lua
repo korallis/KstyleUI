@@ -204,8 +204,6 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- A page change shows its page at alpha 1 before any frame runs; the fade only decorates it, so a fade the client never
--- steps (the v0.3.1 blank Welcome page) cannot leave a page invisible.
 do
 	local env, K = Boot()
 	K.Setup.Open()
@@ -214,6 +212,10 @@ do
 		assert(K.Setup.Go(step))
 		assert(panel.pages[step]:IsShown() and panel.pages[step]:GetAlpha() == 1, "step " .. step .. ": a page change shows its page at alpha 1 with no frame run; fade it with Motion.PageIn, never from alpha 0")
 	end
+	local fade = panel.pages[5].kstylePageIn
+	assert(fade:IsPlaying())
+	K.Motion.SetLevel("off")
+	assert(not fade:IsPlaying(), "Motion Off settles a playing page fade; register it with Motion.TrackGroup")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
