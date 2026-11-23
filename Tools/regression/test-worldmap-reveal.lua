@@ -3,7 +3,6 @@ local Fixture = dofile("Tools/regression/worldmap_roads_env.lua")
 local M = Fixture.M
 local env, K, _, state, map = M.New()
 Fixture.Install(env, state)
-local Reveal = env._addons.KstyleUI_Skins.WorldMapReveal
 local explored, masks, refreshes = { { offsetX = 427, offsetY = 78 } }, 0, 0
 local pin = env.CreateFrame("Frame", nil, map:GetCanvas())
 pin.dataProvider = { GetDrawLayer = function() return "ARTWORK", 0 end }
@@ -54,11 +53,22 @@ map:SetMapID(1411)
 pin:RefreshOverlays()
 assert(#Shown() == 10 and state.loads == 1, "the overlay table loads once")
 map:Hide()
-Reveal.Draw()
+pin:RefreshOverlays()
 assert(#Shown() == 0, "a closed map draws nothing")
 M.S.Show(map)
 pin:RefreshOverlays()
 K.Options.Write("Skins", "worldMap.reveal", false)
 assert(#Shown() == 0, "switching it off removes every dimmed overlay")
+local hides = 0
+for _, region in ipairs({ pin:GetRegions() }) do
+	local hide = region.Hide
+	region.Hide = function(self) hides = hides + 1; return hide(self) end
+end
+pin:RefreshOverlays()
+assert(hides == 0, "with reveal off, Blizzard's overlay refresh touches none of the hidden overlays")
+K.Options.Write("Skins", "worldMap.reveal", true)
+explored = { env.Secret({ offsetX = 427, offsetY = 78 }) }
+local ok, err = pcall(pin.RefreshOverlays, pin)
+assert(ok and #Shown() == 11, "a secret exploration record is skipped, not read: " .. tostring(err))
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("world map reveal ok")

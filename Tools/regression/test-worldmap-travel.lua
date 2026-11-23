@@ -56,6 +56,14 @@ Stand("Stormwind", 2)
 assert(not Pick("Ironforge", 2):find("Tram", 1, true), "travel stops off keeps the tram out")
 K.Options.Write("Skins", "worldMap.travelStops", true)
 assert(Pick("Ironforge", 2):find("Tram to Ironforge", 1, true), "travel stops on takes the tram")
+Stand("Ironforge", 2)
+local back = Pick("Stormwind", 2)
+assert(back:find("Tram to Stormwind", 1, true), "the tram's Stormwind platform carries the city's name: " .. back)
+local tram, ride = env.KstyleUI_RouteData.travel.tram
+ride = math.sqrt((tram.pts[3] - tram.pts[1]) ^ 2 + (tram.pts[4] - tram.pts[2]) ^ 2)
+for _, leg in ipairs(R.road.legs) do
+	if leg.kind == "tram" then assert(leg.len - ride > 600 and math.abs(leg.seconds - tram.seconds - (leg.len - ride) / 7) < 1e-6, "the walk to and from the tram platforms costs walking time") end
+end
 
 local now, cooldown, known, usable = 1000, 0, {}, true
 env.GetTime = function() return now end
@@ -76,6 +84,25 @@ assert(amount, "a hearth step shows its time, not yards")
 cooldown = 1800
 steps = Pick("Razor Hill", 1)
 assert(not R.road.option and steps:find("Zeppelin", 1, true), "a hearth on a long cooldown loses to the zeppelin")
+local solves = 0
+local solve = Roads.Solve
+Roads.Solve = function(...) solves = solves + 1; return solve(...) end
+local function Tick() R.panel:GetScript("OnUpdate")(R.panel, 0.25) end
+Tick()
+assert(solves == 0, "an unchanged stationary tick searches nothing")
+cooldown = 0
+Tick()
+assert(R.road.option and R.road.option.kind == "hearth", "a hearthstone that becomes ready while the map stays open takes over the route")
+local itemCooldown = env.C_Item.GetItemCooldown
+env.C_Item.GetItemCooldown = function() return 1000, 120 end
+Pick("Razor Hill", 1)
+assert(R.road.option and R.road.option.seconds == 130, "a short cooldown is waited out")
+now, solves = 1060, 0
+Tick()
+assert(solves == 1 and R.road.option.seconds == 70, "the hearth's remaining wait counts down on the card")
+Tick()
+assert(solves == 1, "the countdown searches once a minute, not every tick")
+now, env.C_Item.GetItemCooldown = 1000, itemCooldown
 cooldown = 60
 assert(Pick("Razor Hill", 1):find("Hearthstone", 1, true), "waiting out a short cooldown still wins")
 cooldown = 1800
@@ -83,13 +110,24 @@ known[3567] = true
 assert(Pick("Orgrimmar", 1):find("^1%. Teleport: Orgrimmar"), "a known, ready teleport takes the player to its city")
 usable = false
 assert(not Pick("Orgrimmar", 1):find("Teleport", 1, true), "a teleport the player cannot cast is not offered")
+local isUsable = env.C_Spell.IsSpellUsable
+env.C_Spell.IsSpellUsable = nil
+assert(not Pick("Orgrimmar", 1):find("Teleport", 1, true), "a teleport whose usability the client cannot confirm is not offered")
+env.C_Spell.IsSpellUsable = isUsable
 usable, known[3567], known[556] = true, nil, true
 assert(Pick("Razor Hill", 1):find("^1%. Astral Recall to Razor Hill"), "Astral Recall goes to the bind point on its own cooldown")
-local solves = 0
-local solve = Roads.Solve
-Roads.Solve = function(...) solves = solves + 1; return solve(...) end
+env.GetBindLocation = function() return env.Secret("Razor Hill") end
+local ok, err = pcall(Pick, "Razor Hill", 1)
+assert(ok and not R.road.option, "a secret bind location offers no hearth or Astral Recall: " .. tostring(err))
+cooldown, known[556] = 0, nil
+env.C_Map.GetAreaInfo = function(id) return id == 362 and "Klingenhuegel" or "" end
+env.GetBindLocation = function() return "Klingenhuegel" end
+assert(Pick("Razor Hill", 1):find("^1%. Hearthstone to Klingenhuegel"), "a localized bind location finds its place through the client's area name")
+env.GetBindLocation, known[556] = function() return "Razor Hill" end, true
+Pick("Razor Hill", 1)
+solves = 0
 state.playerX = state.playerX + 0.00001
-R.panel:GetScript("OnUpdate")(R.panel, 0.25)
+Tick()
 assert(solves == 0 and R.road.option, "moving near the same start keeps a hearth route without another search")
 Roads.Solve = solve
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
