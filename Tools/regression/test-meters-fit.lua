@@ -186,8 +186,8 @@ do
 		hi.holder:SetHeight(height)
 		Show(hiEnv, 30)
 		assert(hi.rows[1].frame:GetHeight() >= hi:MinRow() - 0.01, height .. ": a row is never shorter than its minimum, got " .. tostring(hi.rows[1].frame:GetHeight()) .. " for " .. hi:MinRow())
-		local fitted = hi.panel:GetHeight()
-		assert(fitted <= height + 0.01 and height - fitted < hi.rowHeight + hi.spacing, height .. ": the card ends under its last row, inside its holder: " .. tostring(fitted))
+		local card = hi.panel:GetHeight()
+		assert(card <= height + 0.01 and height - card < hi.rowHeight + hi.spacing, height .. ": the card ends under its last row, inside its holder: " .. tostring(card))
 		assert(RowsBottom(hi) <= hi.panel:GetHeight() - hi.pad + 0.01, height .. ": the last row ends inside the card")
 	end
 end
