@@ -57,7 +57,10 @@ function Rest.Apply(env, tick)
 	end
 	K.Motion.Settle()
 	if mode == "target" then
-		env.UnitExists, env.UnitCastingInfo = exists, casting
+		env.UnitExists = function(unit)
+			return unit == "target" or exists(unit)
+		end
+		env.UnitCastingInfo = casting
 		env.FireEvent("PLAYER_TARGET_CHANGED")
 		Run(env, K, tick, t)
 		return "rest: a target brings the panels back" .. (t and (", " .. t .. " s in") or "")
