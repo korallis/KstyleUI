@@ -118,6 +118,18 @@ do
 	assert(#env._errors == 0, table.concat(env._errors, "\n"))
 end
 
+-- The PR #777 review: the action bars' "Soft proc and ready glow" off keeps the previous glow, apart from the
+-- plain slot's soft one, and a polished proc's halo is visible before its first animation tick.
+do
+	local env, K, old = slot({ procTransitions = false })
+	old:SetProc(true)
+	assert(W.Near(old.stateProcSpread, K.Widgets.Snap(old, 10)) and W.Near(select(4, old.procHalo[1]:GetVertexColor()), 1, 0.01), "the opt-out keeps the previous halo, 10 units at full strength: " .. old.stateProcSpread .. ", " .. select(4, old.procHalo[1]:GetVertexColor()))
+	local _, _, polished = slot({ procTransitions = true })
+	polished:SetProc(true)
+	assert(polished.lumenGlow:IsShown() and polished.lumenGlow:GetAlpha() == 1, "a polished proc's halo shows at rest alpha before its first tick: " .. polished.lumenGlow:GetAlpha())
+	assert(#env._errors == 0, table.concat(env._errors, "\n"))
+end
+
 do
 	local env, K, b = slot()
 	local f = fades(b.readyFlash)

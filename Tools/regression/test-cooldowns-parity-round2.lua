@@ -200,6 +200,7 @@ do
 	assert(bar.count:GetAlpha() == 1, "Show counts reaches a bar")
 	local corner, tile, _, cx, cy = bar.count:GetPoint(1)
 	assert(corner == "BOTTOMRIGHT" and tile == bar.iconTile and cx < 0 and cy > 0, "the stack count sits inside the icon tile's corner, so it stays in the bar's height")
+	assert(K.Widgets.LineHeight(bar.count) <= bar.iconTile:GetHeight() - 2 * K.Widgets.Border(bar) + 0.01, "and its line fits the tile inside its edge: " .. K.Widgets.LineHeight(bar.count) .. " in " .. bar.iconTile:GetHeight())
 	Write("rules.count", ""); Write("bars.showCount", true)
 	Clean(env, K, "tracked bars")
 end
