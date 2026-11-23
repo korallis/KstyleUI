@@ -166,7 +166,7 @@ class PushProofTest(unittest.TestCase):
             marker = {"name": "green-" + "a" * 40 + f"-lua-1-of-{total}"}
             output, log, calls = self.scope(area="lua", artifacts=[marker])
             self.assertEqual(output, "run=true\n")
-            self.assertIn("Mac CPU and cumulative instruction budgets", log)
+            self.assertIn("the full Lua suite, including cumulative instruction budgets", log)
             self.assertEqual(calls, [])
 
     def test_a_partial_artifact_page_cannot_prove_which_marker_is_newest(self):
