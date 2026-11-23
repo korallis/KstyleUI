@@ -51,7 +51,7 @@ assert(bp == "TOPLEFT" and near(bx, cap) and near(by, -inset), "the bar sits ins
 K.Options.Write("UnitFrames", "slabCaps", false)
 env.RunTimers()
 barW = bar:GetSize()
-bp, _, _, bx = bar:GetPoint(1)
+bx = select(4, bar:GetPoint(1))
 assert(near(barW, frameW - 2 * inset, 0.6) and near(bx, inset), "Forged slab ends off gives the bar its 3-unit rim at the ends again")
 K.Options.Write("UnitFrames", "slabCaps", true)
 env.RunTimers()

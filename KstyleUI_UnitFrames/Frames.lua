@@ -985,7 +985,7 @@ local function OnSettingChanged(_, module, key)
 				if each.active then Frames.Restyle(each) end
 			end)
 			if key == "slabCaps" then
-				for kind in pairs(Settings.CAST_ELEMENTS) do ns.CastBars.LayoutElement(kind) end
+				for cast in pairs(Settings.CAST_ELEMENTS) do ns.CastBars.LayoutElement(cast) end
 			end
 		end)
 	elseif key:find("^dispel") then
