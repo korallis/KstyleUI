@@ -212,9 +212,10 @@ local function raid(frames, x, y)
 			end
 			if i == RAID_DISPEL and f.highlights then
 				local slot = f.highlights:GetAuraSlotFrame("dispel")
-				local r, g, b = Tokens.Color(MAGIC)
+				-- As the engine colours a PreserveAsset texture: the option's colour map, else the game's colour.
 				for _, entry in ipairs(slot._aura.dispel) do
-					entry.texture:SetVertexColor(r, g, b, 1)
+					local map = entry.options.customDispelColorMap
+					entry.texture:SetVertexColor((map and map.Magic or env.DEBUFF_TYPE_MAGIC_COLOR):GetRGBA())
 					entry.texture:Show()
 				end
 				slot:Show()

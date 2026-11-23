@@ -154,7 +154,8 @@ do
 	write(env, K, "dispel.iconBorder", true)
 	write(env, K, "dispel.custom", false)
 	custom, border = tinted(button)
-	assert(border and not custom and not tinted(f.dispelFrame), "switched back, the game's colours return")
+	local magic = f.dispelFrame._aura.dispel[1].options.customDispelColorMap.Magic
+	assert(border and not custom and magic.r == env.DEBUFF_TYPE_MAGIC_COLOR.r and magic.b == env.DEBUFF_TYPE_MAGIC_COLOR.b, "switched back, the game's colours return")
 	write(env, K, "dispel.icon", "NONE")
 	assert(not slot.enabled, "off stops the type slot")
 	noErrors(env, K)

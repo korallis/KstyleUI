@@ -119,15 +119,15 @@ the harness must therefore leave those effects absent at rest. The Options
 dispel sample explicitly passes `WASH_ALPHA` (0.16) to `ColorSlice`, because
 the vertex write replaces the wash's initial alpha.
 
-The corrected `gallery_groupframes` render exposes a separate live-aura issue:
-the fixture writes alpha 1 to every dispel texture, so Ilyra's raid row becomes
-an opaque blue tile. This matches the source path in
-`Blizzard_AuraContainer/Blizzard_CustomAuraButton.lua` (533): `PreserveAsset`
-calls `AuraUtil.SetAuraBorderColor`, which calls `SetVertexColor` with the
-dispel colour's RGBA in `Blizzard_FrameXMLUtil/AuraUtil.lua` (614). The Options
-sample fix does not change that restricted aura path. Keep the existing
-`frame_raid.jpg` until that separate issue is fixed and checked in game, then
-retake through `readme.py`; do not repaint the fixture to hide it.
+The live raid dispel wash had the same fault: in
+`Blizzard_AuraContainer/Blizzard_CustomAuraButton.lua`, `PreserveAsset` (533)
+calls `AuraUtil.SetAuraBorderColor`, which writes the dispel colour's RGBA with
+`SetVertexColor` (`Blizzard_FrameXMLUtil/AuraUtil.lua`, 614), and then a
+`customDispelColorMap` colour's RGBA (546). Both replace the wash's own alpha,
+so a Magic debuff turned Ilyra's raid row into an opaque blue tile. The group
+frames now hand the engine the wash's alpha in a colour map, and
+`gallery_groupframes` colours the dispel textures as the engine does. Retake
+`frame_raid.jpg` through `readme.py` once this is checked in game.
 
 ### Native context-menu fixtures
 

@@ -362,13 +362,13 @@ local function ColorKey()
 	return colorKey
 end
 
-local function Tinted(options)
+local function Tinted(options, alpha)
 	local d = Settings.current.dispel
-	if not d.custom or type(CreateColor) ~= "function" then return options end
+	if not (d.custom or alpha) or type(CreateColor) ~= "function" then return options end
 	local map = {}
 	for key, name in pairs(DISPEL_TYPES) do
-		local c = d[key]
-		map[name] = CreateColor(c.r, c.g, c.b, 1)
+		local c = d.custom and d[key] or _G["DEBUFF_TYPE_" .. name:upper() .. "_COLOR"]
+		if c then map[name] = CreateColor(c.r, c.g, c.b, alpha or 1) end
 	end
 	options.customDispelColorMap = map
 	return options
@@ -411,10 +411,10 @@ local function LayoutDispel(wash, ring, owner, chamfer, engine)
 		end
 		wash.alpha = a.dispelAlpha
 	end
-	local key = engine and DispelStyle() and ColorKey()
+	local key = engine and DispelStyle() and ColorKey() .. a.dispelAlpha
 	if key and wash.tint ~= key then
 		local options = Tinted({ style = DispelStyle(), showWhenHarmful = true })
-		Retint(owner, wash, options)
+		Retint(owner, wash, Tinted({ style = DispelStyle(), showWhenHarmful = true }, a.dispelAlpha))
 		for _, line in ipairs(ring) do
 			if line.on ~= false then Retint(owner, line, options) end
 		end
@@ -829,15 +829,7 @@ local function BuildDispel(slot, f)
 	local wash, ring = NewDispel(slot)
 	f.dispelWash, f.dispelRing, f.dispelFrame = wash, ring, slot
 	slot.kstyleLevel = slot:GetFrameLevel()
-	local style = DispelStyle()
-	if style then
-		local options = Tinted({ style = style, showWhenHarmful = true })
-		wash.tint = ColorKey()
-		Retint(slot, wash, options)
-		for _, line in ipairs(ring) do
-			Retint(slot, line, options)
-		end
-	else
+	if not DispelStyle() then
 		Style.LogOnce("dispelStyle", "the dispel texture styles are missing; the dispel highlight stays off")
 	end
 	LayoutDispel(wash, ring, slot, f.chrome:Chamfer(), true)
