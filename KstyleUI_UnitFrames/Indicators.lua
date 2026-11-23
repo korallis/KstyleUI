@@ -295,10 +295,15 @@ function Indicators.Layout(view, g, s)
 	local fromRight = s.portrait and s.portraitSide ~= "RIGHT" or not s.portrait
 	local gap, dir = Snap(view, ICON_GAP), fromRight and -1 or 1
 	view.iconsFromRight = fromRight
-	local spots, x = {}, fromRight and (panel.x + panel.w - ICON_INSET) or (panel.x + ICON_INSET)
 	local fresh = view.socketS ~= s
-	if fresh then view.socketS, view.rimSnap = s, Snap(view, Geometry.SLAB_FIT.socket) end
+	if fresh then
+		local L = K.Setup.Layouts
+		view.socketS, view.rimSnap = s, Snap(view, Geometry.SLAB_FIT.socket)
+		view.rowClear = (view.kind == "player" or view.kind == "target") and L.MEDALLIONS_UNITS.cast[1] / 2 - L.MEDALLIONS_RING / 2 - L.MEDALLIONS_UNITS.reach or 0
+	end
 	view.rim = g.form == "slab" and g.medal and s.fittedSlabs and view.rimSnap or nil
+	local inset = ICON_INSET + (view.rim and view.rowClear or 0)
+	local spots, x = {}, fromRight and (panel.x + panel.w - inset) or (panel.x + inset)
 	if s.leaderPlace ~= "" or s.pvpPlace ~= "" or s.combatPlace ~= "" or s.markerPlace ~= "" or (s.elitePlace or "") ~= "" then Corners(view, g, s, spots, dir, x, size, gap) end
 	for _, key in ipairs(SLOTS) do
 		if not spots[key] then x = Put(view, s, g, spots, key, x, dir, size, gap) end
