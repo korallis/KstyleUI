@@ -53,6 +53,74 @@ local icon = player.icons.combat
 local socket = icon.socket
 assert(socket and socket:IsShown() and socket:GetWidth() > icon:GetWidth(), "the combat swords sit in a socket")
 assert(select(5, icon:GetPoint(1)) >= socket:GetHeight() / 2 - 0.5, "the socket rests on the slab's top edge, not across it")
+for _, place in ipairs({ "TOPLEFT", "TOPRIGHT" }) do
+	write("player.combatPlace", place)
+	assert(select(5, icon:GetPoint(1)) >= socket:GetHeight() / 2 - 0.5, place .. ": a cornered socket rests on the top edge too")
+end
+write("player.combatPlace", "")
+
+-- The socket row is even: every enabled slot keeps its socket, so a hidden PvP badge leaves no hole.
+env._units.player.leader, env._units.player.role = true, "DAMAGER"
+ns.Indicators.Status(player, "player")
+local xs = {}
+for _, key in ipairs(ns.Indicators.SLOTS) do
+	local back = player.icons[key].socket
+	if back and back:IsShown() then xs[#xs + 1] = select(4, player.icons[key]:GetPoint(1)) end
+end
+table.sort(xs)
+assert(#xs == #ns.Indicators.SLOTS, "every enabled status slot shows its socket")
+for i = 3, #xs do
+	assert(near(xs[i] - xs[i - 1], xs[2] - xs[1], 1), "the sockets are evenly spaced")
+end
+
+-- Secondary values read brighter: the player's power value uses text, and a chosen colour is kept.
+local tr, tg, tb = K.Tokens.Color("text")
+local pr, pg, pb = player.powerText:GetTextColor()
+assert(near(pr, tr) and near(pg, tg) and near(pb, tb), "the fitted player's power value uses text")
+write("player.powerTextColor", "custom")
+local c = player.s.powerTextCustom
+write("fittedSlabs", false)
+write("fittedSlabs", true)
+pr, pg, pb = player.powerText:GetTextColor()
+assert(near(pr, c.r) and near(pg, c.g) and near(pb, c.b), "an explicit power text colour survives a restyle")
+write("player.powerTextColor", "")
+
+-- An inline cast clears 35% of the actual portrait, also on a resized frame, and shows without a tween.
+local cb = player.castbar
+assert(K.Layout.Set("unitframes.player", "height", 116))
+env.RunTimers()
+assert(near(select(4, cb.bar:GetPoint(1)), 0.35 * player.geometry.medal.w, 1), "the cast clears 35% of the resized portrait")
+K.Layout.Reset("unitframes.player")
+env.RunTimers()
+env._time = 2.2
+env._units.player.cast = { name = "Lightning Bolt", texture = 136048, start = 1000, finish = 3500, spellID = 188196 }
+env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", 188196)
+assert(cb.frame:IsShown() and cb.frame:GetAlpha() == 1, "the cast on the frame shows at once, without a tween")
+
+-- A restricted effective scale never reaches a comparison.
+local scale = player.parent.GetEffectiveScale
+player.parent.GetEffectiveScale = function(self)
+	local v = scale(self)
+	return debug.getinfo(2, "S").short_src:find("Indicators.lua", 1, true) and env.Secret(v) or v
+end
+for _ = 1, 2 do ns.Indicators.Layout(player, player.geometry, player.s) end
+player.parent.GetEffectiveScale = scale
+
+-- Heal prediction follows the fill in By health left, secret channels and all.
+U.SetUnit(env, "target", { name = "Ogre", level = 62, health = 500, healthMax = 4000, reaction = 2, canAttack = true })
+write("target.healthColor", "health")
+env.FireEvent("UNIT_HEALTH", "target")
+local function plain(v) return env.issecretvalue(v) and env.Reveal(v) or v end
+local fill, sr, sg, sb = target.health.colorRGBA, target.incoming:GetStatusBarColor()
+assert(near(plain(sr), plain(fill[1])) and near(plain(sg), plain(fill[2])) and near(plain(sb), plain(fill[3])), "incoming heals wear the by-share fill colour")
+write("target.healthColor", "hud")
+
+-- Only the player, target and focus slabs are fitted; pet and boss keep the earlier slab.
+local others = {}
+for _, kind in ipairs({ "pet", "boss" }) do
+	local view = ns.Frames.Get(kind).views[1]
+	others[kind] = { view = view, health = view.geometry.health and { view.geometry.health.x, view.geometry.health.y, view.geometry.health.w }, level = view.medallion and view.medallion:GetFrameLevel() }
+end
 
 -- Heal prediction takes the health fill's colour.
 local hr, hg, hb = player.healthR, player.healthG, player.healthB
@@ -69,5 +137,10 @@ g = player.geometry
 assert(near(g.health.x, g.medal.w / 2 + G.SLAB_PAD.inner * k) and near(g.health.y, G.SLAB_PAD.top * k), "off: the bars start beside the ring again")
 assert(not arm:IsShown() and not target.dock:IsShown() and not socket:IsShown(), "off: no arms and no sockets")
 assert(near(select(5, icon:GetPoint(1)), 0, 0.5), "off: the icons centre on the top edge again")
+for kind, was in pairs(others) do
+	local h = was.view.geometry.health
+	assert(not was.health or near(h.x, was.health[1]) and near(h.y, was.health[2]) and near(h.w, was.health[3]), kind .. ": the switch leaves its bars alone")
+	assert(not was.level or was.view.medallion:GetFrameLevel() == was.level, kind .. ": the switch leaves its portrait level alone")
+end
 assert(#env._errors == 0 and K.ErrorCount() == 0, "no errors: " .. tostring(env._errors[1]))
 print("unitframes medallions fit ok")
