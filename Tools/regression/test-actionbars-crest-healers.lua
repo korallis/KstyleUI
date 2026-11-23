@@ -247,6 +247,28 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- Inner Fire's halo leaves the last band's dimming when the charges come back, and an unreadable count drops the
+-- last-flame state instead of keeping the old one.
+do
+	local env, K, ns = New("PRIEST", PRIEST)
+	local fire = Tracker(ns, "PRIEST").built.innerFire
+	local function Charges(n)
+		Slots.Set(env, "player", { { id = 10952, count = n, start = 0, duration = 600 } })
+		env.FireEvent("UNIT_AURA", "player", {})
+	end
+	Charges(4)
+	assert(fire.still:GetAlpha() == 0.5, "the last band dims the halo at rest")
+	Charges(20)
+	assert(fire.still:GetAlpha() == 1 and fire.fire:GetAlpha() == 0, "a fresh Inner Fire restores the halo")
+	Charges(4)
+	env.SetCombat(true)
+	assert(fire.flicker:IsPlaying() and fire.fire:GetAlpha() == 0.5, "awake, the last flame flickers")
+	env._aurasSecret = true
+	Charges(16)
+	assert(not fire.flicker:IsPlaying() and fire.fire:GetAlpha() == 1, "an unreadable count drops the flicker and the dimming")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 -- Each seat follows the spec and form it is in: a shadow priest before Shadowform casts Mind Blast, not Penance; in
 -- Shadowform without Vampiric Embrace the right medal is Shadowfiend, not Shadowform again; a druid in Cat or Bear
 -- Form without that form's own effects shows no caster seed.
