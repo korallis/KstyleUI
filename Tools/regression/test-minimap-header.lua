@@ -1,4 +1,4 @@
--- test-minimap-header.lua: the zone in capitals keeps clear of the Medallions north badge and the N stays inside its badge (KSTY-77, the owner's live Shen'dar Highlands at 3456x2234), at every screen, zone length, zone size and font scale; given "frames" it checks the Frames north diamond and card instead.
+-- test-minimap-header.lua: the zone in capitals keeps clear of the Medallions north mark and the N stays inside the band patch it is engraved on (KSTY-77, the owner's live Shen'dar Highlands at 3456x2234), at every screen, zone length, zone size and font scale; given "frames" it checks the Frames north diamond and card instead.
 local isFrames = ... == "frames"
 local M = dofile("Tools/regression/minimap_env.lua")
 if isFrames then M = dofile("Tools/regression/frames_lib.lua")(M) end
@@ -16,7 +16,7 @@ end
 
 local function Marks(face)
 	if isFrames then return face.plate.diamond.black, face.fill end
-	return face.gem, face.plaques[1].chrome.fill[5]
+	return face.northBand, face.plaques[1].chrome.fill[5]
 end
 
 local function Rects(env, face)

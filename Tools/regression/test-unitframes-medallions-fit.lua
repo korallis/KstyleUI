@@ -70,29 +70,29 @@ leader:Show()
 assert(leader.socket:IsShown(), "and its socket follows the lit icon")
 leader:Hide()
 
--- The player's socket row is even: every enabled slot keeps its socket, so a hidden PvP badge leaves no hole.
+-- The player, like the target, draws a socket only with its lit icon (a player read empty sockets as stray dots),
+-- and every enabled slot keeps its place, so lit sockets stay evenly spaced.
 env._units.player.leader, env._units.player.role = true, "DAMAGER"
 ns.Indicators.Status(player, "player")
 local xs = {}
 for _, key in ipairs(ns.Indicators.SLOTS) do
-	local back = player.icons[key].socket
-	if back and (back:IsShown() or back.rivet and back.rivet:IsShown()) then
-		xs[#xs + 1] = select(4, player.icons[key]:GetPoint(1))
-		assert(near(back:GetWidth(), back:GetHeight()) and back:GetWidth() > player.icons.combat:GetWidth(), key .. ": its socket is a round disc around the slot, even around the Zz text")
-	end
+	local slot = player.icons[key]
+	local back = assert(slot.socket, key .. ": every enabled player slot has a socket")
+	assert(back:IsShown() == slot:IsShown(), key .. ": the player shows a socket only with its lit icon, never an empty one")
+	assert(near(back:GetWidth(), back:GetHeight()) and back:GetWidth() > player.icons.combat:GetWidth(), key .. ": its socket is a round disc around the slot, even around the Zz text")
+	xs[#xs + 1] = select(4, slot:GetPoint(1))
+end
+assert(player.icons.leader:IsShown() and not player.icons.pvp:IsShown(), "the leader is lit and the PvP slot dark")
+local px, py = player.icons.pvp:GetCenter()
+local reach = player.icons.pvp.socket:GetHeight() / 2
+for _, region in ipairs({ player.top:GetRegions() }) do
+	local x, y = region:GetCenter()
+	assert(not (region:IsVisible() and x and near(x, px, 1) and near(y, py, reach)), "a dark player slot draws no mark at all, no socket and no rivet")
 end
 table.sort(xs)
-assert(#xs == #ns.Indicators.SLOTS, "every enabled status slot shows its socket")
 for i = 3, #xs do
-	assert(near(xs[i] - xs[i - 1], xs[2] - xs[1], 1), "the sockets are evenly spaced")
+	assert(near(xs[i] - xs[i - 1], xs[2] - xs[1], 1), "the slots keep fixed, evenly spaced places")
 end
-local pvp = player.icons.pvp.socket
-assert(not player.icons.pvp:IsShown() and not pvp:IsShown() and pvp.rivet and pvp.rivet:IsShown(), "an empty player slot shows a lit steel rivet, not a dark hole")
-local shade = U.W.LastCall(pvp.rivet, "SetGradient")
-local steelR, steelG, steelB = K.Tokens.Color("steelLit")
-assert(shade and near(shade[3].r, steelR) and near(shade[3].g, steelG) and near(shade[3].b, steelB) and shade[2].r < shade[3].r, "the rivet is lit steel, darker at its foot")
-assert(pvp.rivet:GetWidth() < pvp:GetWidth(), "the rivet is smaller than a socket")
-assert(player.icons.leader:IsShown() and player.icons.leader.socket:IsShown(), "a lit icon sits in its dark socket over the rivet")
 
 -- Secondary values read brighter: the player's power value uses text, and a chosen colour is kept.
 local xr, xg, xb = K.Tokens.Color("text")

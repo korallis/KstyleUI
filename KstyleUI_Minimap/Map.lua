@@ -763,7 +763,11 @@ end
 local function OnBlizzardConfig()
 	if running then
 		ApplyMask()
-		Map.face.north:SetShown(not Data.Rotated())
+		local face, north = Map.face, not Data.Rotated()
+		if face.north:IsShown() ~= north then
+			face.north:SetShown(north)
+			if face.northBand then face.northBand:SetShown(north and face.runes:IsShown()) end
+		end
 	end
 end
 
