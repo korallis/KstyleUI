@@ -159,11 +159,6 @@ local function Select(cards, value)
 	for key, card in pairs(cards) do
 		card.selected = key == value
 		card:Paint()
-		if card.selected then
-			card.glow:Start()
-		else
-			card.glow:Stop()
-		end
 	end
 end
 
@@ -714,7 +709,6 @@ local function NewCard(page, width, height, title, note, pick)
 	end
 	Widgets.Size(card, width, height)
 	card.chrome = Widgets.Chrome(card, { shape = "tile", fill = "buttonFill", shadow = false })
-	card.glow = Widgets.Glow(card, { kind = "selection" })
 	card.title = Widgets.Text(card, "caps", "capsGold")
 	Widgets.CapsSize(card.title)
 	card.title:SetText(title)
@@ -973,8 +967,7 @@ local function BuildStyles(page, width)
 		card.picture = card:CreateTexture(nil, "ARTWORK")
 		card.picture:SetTexture((Tokens.Texture(entry.picture)))
 		card.picture:SetSize(Widgets.Snap(card, pictureWidth), pictureHeight)
-		Widgets.Point(card.picture, "TOP", card.note, "BOTTOM", 0, -gap("gapMedium"))
-		Widgets.Point(card.picture, "LEFT", card, "LEFT", pad, 0)
+		Widgets.Point(card.picture, "BOTTOMLEFT", card, "BOTTOMLEFT", pad, pad)
 		Widgets.Point(card, "TOPLEFT", page, "TOPLEFT", (i - 1) * (cardWidth + spacing), 0)
 		panel.styleCards[value] = card
 	end

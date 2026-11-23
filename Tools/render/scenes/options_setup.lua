@@ -1,4 +1,4 @@
--- options_setup.lua: one real Options page or setup step at a chosen window scale for G4/G9 evidence; RENDER_LOOK wears a Look, RENDER_SETUP_FEATURES=off turns the big pictures and Looks off, RENDER_CONTROLS_ROW=off hides the Keyboard and Gamepad choice, and RENDER_SETUP_POINT points at a layout or arrangement card; RENDER_GO=N presses Enter on RENDER_QUERY and waits N ticks, RENDER_POLISH=off switches off the v0.3.0 search, preview and motion switches.
+-- options_setup.lua: one real Options page or setup step at a chosen window scale for G4/G9 evidence; RENDER_LOOK wears a Look, RENDER_SETUP_FEATURES=off turns the big pictures and Looks off, RENDER_CONTROLS_ROW=off hides the Keyboard and Gamepad choice, RENDER_SETUP_PICK clicks a layout card, and RENDER_SETUP_POINT points at a layout or arrangement card; RENDER_GO=N presses Enter on RENDER_QUERY and waits N ticks, RENDER_POLISH=off switches off the v0.3.0 search, preview and motion switches.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -64,6 +64,11 @@ return Common.Run(function()
 	env.RunTimers()
 	Gallery.Ticks(W, env, 40)
 	env.RunTimers()
+	local pick = os.getenv("RENDER_SETUP_PICK")
+	if pick and pick ~= "" then
+		assert(K.Setup.window.cards[pick], pick).onClick()
+		Gallery.Ticks(W, env, 40)
+	end
 	local point = os.getenv("RENDER_SETUP_POINT")
 	if point and point ~= "" then
 		W.Enter(assert(K.Setup.window.cards[point] or K.Setup.window.arrangeCards[point], point))

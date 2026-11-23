@@ -97,14 +97,31 @@ function Tabs:Layout()
 	local height = Widgets.Snap(self, self.opts.height or STRIP_HEIGHT)
 	local pad = Widgets.Snap(self, Tokens.Size("gapSmall"))
 	local count = #self.items
-	local equal
+	local equal, slack
 	if self.opts.width and count > 0 and not self.opts.wrap then
-		equal = Widgets.Snap(self, (self.opts.width - 2 * Tokens.Size("gapSmall")) / count)
+		local room, gap, need, widest = self.opts.width - 2 * Tokens.Size("gapSmall"), Tokens.Size("gapSmall"), 0, 0
+		equal = Widgets.Snap(self, room / count)
+		for i = 1, count do
+			local width = Widgets.TextWidth(self.buttons[i].label, TEXT_FALLBACK_WIDTH)
+			need, widest = need + width, max(widest, width)
+		end
+		if widest + gap > equal then
+			if need + count * gap > room then
+				for i = 1, count do
+					local label = self.buttons[i].label
+					local face, size, flags = label:GetFont()
+					Widgets.ApplyFont(label, face, size * (room - count * gap) / need, flags)
+				end
+				need = room - count * gap
+			end
+			slack = (room - need) / count
+		end
 	end
 	local x, y = pad, 0
 	for i = 1, count do
 		local tab = self.buttons[i]
-		local w = equal or Widgets.Snap(self, max(TAB_MIN_WIDTH, Widgets.TextWidth(tab.label, TEXT_FALLBACK_WIDTH) + 2 * Tokens.Size("gapLarge")))
+		local w = slack and Widgets.Snap(self, Widgets.TextWidth(tab.label, TEXT_FALLBACK_WIDTH) + slack) or equal
+			or Widgets.Snap(self, max(TAB_MIN_WIDTH, Widgets.TextWidth(tab.label, TEXT_FALLBACK_WIDTH) + 2 * Tokens.Size("gapLarge")))
 		if self.opts.wrap then
 			w = min(w, self.opts.width - 2 * pad)
 			if x > pad and x + w > self.opts.width - pad then x, y = pad, y + height end

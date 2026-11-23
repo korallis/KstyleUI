@@ -263,7 +263,7 @@ Every square icon in KstyleUI draws the same body and rim through one helper, so
 
 `Tabs(parent, opts) -> Frame`: a strip of upper-case tabs on the button grade's body. The selected tab's text is `textEmphasis`, and an underline slides to it over `fade` (0.2 s): a line one border thick on the strip's bottom edge, `accent` mixed 60% toward `textHover`, spanning the tab's full width, with a 5-unit accent glow (`underGlow`, the `shadow` falloff, additive, peaking at 25%) fading upward from it.
 
-Options: `tabs = { { value, label, disabled }, ... }`, `value` (the selected tab, default the first), `onSelect(value, tabs)`, `width` (equal tab widths that fill it; without it each tab fits its label, at least 64 units), `height` (default 32), `name`.
+Options: `tabs = { { value, label, disabled }, ... }`, `value` (the selected tab, default the first), `onSelect(value, tabs)`, `width` (equal tab widths that fill it; when a label would come within 2 units of its tab's edge, each tab instead takes its label's width plus an equal share of the room left, and when the labels and a 4-unit gap each do not fit, every label shrinks to fit; without it each tab fits its label, at least 64 units), `height` (default 32), `name`.
 
 | Method | Behaviour |
 | --- | --- |
