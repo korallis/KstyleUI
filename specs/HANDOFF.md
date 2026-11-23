@@ -20,16 +20,19 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 - #777 polish batch F (minimap buttons inside the ring, drawer and zoom slider, tracked-bar counts, proc glow width and ShowProc resting at alpha 1). Owner decision still open: the tracked-buff row keeps its slot above an empty utility row (A) or closes the gap (B).
 - #769 meters polish (swing timer stays full, readable damage meter rows with tracks, finished empty cards).
 
+## Crests merged so far
+
+- #776 (ae54bdb0f): warrior, paladin and rogue crest trackers plus the shared crest system (SlabMedals, SlabTrackers Register API, docs/medallions-effects.md). Ships in v0.3.4 with the healer and ranged crests.
+
 ## Open pull requests (all target staging)
 
 | PR | Branch | What | Status / next step |
 | --- | --- | --- | --- |
-| #771 | korallis/healer-crest-trackers | Crest trackers: priest, druid (full crest per form incl. bear tank), shaman extension | Review fixed at 57b7e3a2f (base dd9bddac1 on #776's branch), CI green, evidence retaken (0 px switch-off diffs). Waits for #776: after #776 merges, rebase onto staging (worker ctx_be667a8e1cc1 has the context), confirm CI, merge. |
+| #771 | korallis/healer-crest-trackers | Crest trackers: priest, druid (full crest per form incl. bear tank), shaman extension | Review fixed; #776 merged, so retargeted to staging and rebasing (worker ctx_f81d65eadd1e). Then green CI, spot-check, merge. |
 
 ## Work in progress without a PR yet
 
-- **Melee crest trackers + the shared crest system** (PR #776 at dd9bddac1, branch `korallis/melee-crest-trackers`): warrior, paladin, rogue with per-stance/Stealth/spec seats and cooldown rims, on SlabMedals (Medal, Rim, Socket, CooldownRim, Threat, Plaque, Emblem, Piece, Flare; seats incl. topGem, hips, feet at 67.5 with Medals.FOOT 15) and SlabTrackers (Register(class, rows, hooks), per-form choices, fiveSecondForms, Frames grid via place(..., n) and Medals.Cell, every Frames medal one size, refresh routed by kind for shown pieces only). Green, evidence complete (kstyleui-evidence/crest-trackers/melee/build, 0 px switch-off diffs). In its one cross-family review. Merge first; then rebase #771 and the ranged PR onto staging.
-- **Ranged crest trackers** (PR #778 at 3ce1fd188, stacked on #776): hunter, mage, warlock on the shared pieces and one lifecycle; Soul Shards counted from bags (item 6265); old shard jewels removed. Green, evidence complete (kstyleui-evidence/crest-trackers/ranged/build). In its one cross-family review. Polish note: soul wisps read fainter than concept A over the emblem. Merge after #776.
+- **Ranged crest trackers** (PR #778): hunter, mage, warlock; review findings fixed in its own files and the shared ones landed in #776; retargeted to staging and rebasing (worker ctx_43c54e6eb509), then evidence, green CI, spot-check, merge. Polish note: soul wisps fainter than concept A over the emblem.
 - **Crest rule set by the owner**: every class tracks everything it needs around the crest (one place to look): crown, shoulders, hips, foot perches, top gem, inner rim, a cooldown rim for every major cooldown and enhancement (racials, trinkets, potions too), every form/stance/spec gets a full crest with no empty seats, tanks and healers included. Research for all specs: `C:/Users/leeba/.cache/kstyleui-evidence/crest-trackers/complete/{melee,ranged,healers}.md` (local, not in git; summarised in the builder specs on the handoff branch). Hunter stings track any sting; Rapid Fire burns on the rim.
 
 - **v0.3.3 release in progress**: notes PR being written (`specs/notes-033.md`): polish batches, party and unit frames, and the RestedXP 4.11.39 fix (#775, merged). The crest trackers move to v0.3.4; update the roadmap after the release.

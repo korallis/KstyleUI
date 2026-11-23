@@ -698,3 +698,4 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - Baine: player rivets read as stray dots; minimap N looks off. Hotfix task dispatched.
 - #776 fixes pushed a4fc917a1 (15 + 6 shared); forwarded to ranged + healers.
 - Lee: credit the hotfixes to Baine. notes-0331.md written with credit; dispatch when #781 and the sockets/compass fix merge.
+- #781 review ISSUES (65- Merged #776 (melee crests + shared system) ae54bdb0f. #771/#778 retargeted to staging, rebasing.
