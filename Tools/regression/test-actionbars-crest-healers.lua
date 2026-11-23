@@ -359,6 +359,19 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- Frames: Inner Fire's medal keeps the quantity the flames show, its charges.
+do
+	local env, K, ns = New("PRIEST", PRIEST)
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	local row = Tracker(ns, "PRIEST").built.innerFireRow
+	Slots.Set(env, "player", { { id = 10952, count = 4, start = 0, duration = 600 } })
+	assert(row.lit.count and row.lit._countText == row.lit.count and row.lit.count:GetText() == "4", "the row's Inner Fire shows its charges, 4")
+	Slots.Set(env, "player", { { id = 10952, count = 20, start = 0, duration = 600 } })
+	assert(row.lit.count:GetText() == "20", "and 20 after a fresh cast")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 -- Every part is an even number of pixels on four screens, and every switch is on by default.
 for _, size in ipairs(SIZES) do
 	local at = size[1] .. "x" .. size[2] .. ": "
