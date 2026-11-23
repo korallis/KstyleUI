@@ -624,7 +624,6 @@ do
 		if not RESERVES[element.key] and not MEDALLIONS_GRIDS[element.key] then
 			local w, h = Layouts.Footprint("DPS", element.key)
 			local drawnW, drawnH = element.width, element.height
-			if element.key == "consumables.bar" then drawnW, drawnH = 121.5, 39.5 end
 			assert(drawnW == w and drawnH == h, element.key .. " builds at its DPS footprint")
 		end
 	end

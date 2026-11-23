@@ -12,7 +12,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 			local label = string.format("%dx%d %s %s", screen[1], screen[2], style, name)
 			local settings = K.Store.Module("ActionBars")
 			local saved = settings.consumables
-			settings.consumables = { size = 38, spacing = -1 }
+			settings.consumables = { size = 38, spacing = 0 }
 			local previous = L.Positions(name, style, K.Scale.AspectClass(screen[1], screen[2]))
 			settings.consumables = saved
 			local current = L.Positions(name, style, K.Scale.AspectClass(screen[1], screen[2]))
@@ -44,7 +44,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 end
 local signature = L.ActionBarSignature()
 for _, rows in ipairs({ 1, 2, 3 }) do
-	K.Store.Module("ActionBars").consumables = { rows = rows, size = 38, spacing = -1, attached = true }
+	K.Store.Module("ActionBars").consumables = { rows = rows, size = 38, spacing = 0, attached = true }
 	assert(L.ActionBarSignature() == signature, "consumables geometry never invalidates the HUD fit caches")
 	for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
 		for _, style in ipairs({ "frames", "medallions" }) do
