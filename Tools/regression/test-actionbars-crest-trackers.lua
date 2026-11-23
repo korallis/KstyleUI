@@ -562,6 +562,45 @@ do
 	Clean(env, K, "vial identity")
 end
 
+-- Every piece has a switch of its own: one hip, foot or rim effect off leaves its partner (review dd9bddac #8).
+do
+	local env, K, ns = New("WARRIOR", { 6673, 21553, 12292, 1672, 11578 })
+	local function seen(seat)
+		for _, p in pairs(Pieces(ns)) do
+			if p.spec.seat == seat then return true end
+		end
+		return false
+	end
+	assert(seen("leftHip") and seen("rightHip") and seen("footLeft") and seen("footRight"), "hips and feet show")
+	for _, pair in ipairs({ { "crestHipLeft", "leftHip", "rightHip" }, { "crestHipRight", "rightHip", "leftHip" }, { "crestFootLeft", "footLeft", "footRight" }, { "crestFootRight", "footRight", "footLeft" } }) do
+		K.Options.Write("ActionBars", pair[1], false)
+		env.RunTimers()
+		assert(not seen(pair[2]) and seen(pair[3]), pair[1] .. " off hides its own piece alone")
+		K.Options.Write("ActionBars", pair[1], true)
+		env.RunTimers()
+	end
+	Clean(env, K, "per piece warrior")
+end
+
+do
+	local env, K, ns = New("ROGUE", { 5171, 14148, 1329328 })
+	local function rims()
+		local fire, ring = false, false
+		for _, p in pairs(Pieces(ns)) do
+			fire = fire or p.spec.ambient ~= nil
+			ring = ring or p.spec.seat == "rim" and p.spec.ambient == nil
+		end
+		return fire, ring
+	end
+	local fire, ring = rims()
+	assert(fire and ring, "the rogue's fire and Venom ring both show")
+	K.Options.Write("ActionBars", "crestFire", false)
+	env.RunTimers()
+	fire, ring = rims()
+	assert(not fire and ring, "the fire's switch leaves Venom's ring")
+	Clean(env, K, "per piece rogue")
+end
+
 -- Even pixels at four sizes.
 for _, size in ipairs(SIZES) do
 	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })
