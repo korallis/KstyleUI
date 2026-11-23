@@ -91,9 +91,15 @@ local function Shock(parent, spec, level, form)
 	return s
 end
 
-local function Ankh(parent, _, level)
-	local a = Piece(parent, level, CHARM)
-	a.glyph = a.add(Medals.Texture(a, "OVERLAY", 0, "trackerAnkh", "capsGold", CHARM))
+local function Ankh(parent, spec, level, form)
+	local a
+	if form == "row" then
+		a = Medals.Medal(parent, spec, level)
+		a.glyph, a.icon = a.lit.icon, true
+	else
+		a = Piece(parent, level, CHARM)
+		a.glyph = a.add(Medals.Texture(a, "OVERLAY", 0, "trackerAnkh", "capsGold", CHARM))
+	end
 	ankhs[#ankhs + 1] = a
 	return a
 end
@@ -141,7 +147,7 @@ local function Charm()
 	local count = item and type(item.GetItemCount) == "function" and item.GetItemCount(ANKH)
 	local ready = type(cd) == "table" and cd.isActive == false and not IsSecret(count) and type(count) == "number" and count > 0
 	for _, a in ipairs(ankhs) do
-		a.glyph:SetVertexColor(Tokens.Color(ready and "capsGold" or "steel"))
+		a.glyph:SetVertexColor(Tokens.Color(a.icon and "white" or ready and "capsGold" or "steel"))
 		a.glyph:SetDesaturated(not ready)
 		a.glyph:SetAlpha(ready and 1 or 0.55)
 	end
