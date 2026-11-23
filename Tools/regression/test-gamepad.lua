@@ -173,7 +173,7 @@ for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 
 	local grown = panel.opts.height
 	assert(grown > 540 and panel.padTabs:IsShown(), label .. "step 2 grows for the Controls row")
 	K.Layout.Set("setup.window", "scale", 0.9)
-	assert(panel.opts.height == grown, label .. "a window restyle keeps the grown height")
+	assert(panel.opts.height > 540 and math.abs(panel.opts.height - grown) < 4, label .. "a window resize keeps the grown height, refitted to the new scale's pixels")
 	panel.padTabs:Select("Gamepad")
 	assert(K.Setup.Choice().controls == "Gamepad", label .. "a Controls tab sets the choice")
 	assert(K.Setup.Go(3) and panel.opts.height == 540, label .. "step 3 keeps the base height")

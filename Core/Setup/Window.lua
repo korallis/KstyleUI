@@ -1040,7 +1040,7 @@ FitStyles = function()
 		for _, region in ipairs({ panel.lookTabs, panel.lookNote, panel.padTabs, panel.padNote }) do
 			if region:IsShown() then lowest = min(lowest, region:GetBottom()) end
 		end
-		local over = panel.next:GetTop() + fit.spacing - lowest
+		local over = panel.next:GetTop() + gap("gapSmall") - lowest
 		panel.opts.height = height + (over > 0 and math.ceil(over / rise) * rise or 0)
 		Widgets.Size(panel, WIDTH, panel.opts.height)
 	end
