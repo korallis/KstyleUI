@@ -672,3 +672,4 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - #775 RestedXP 4.11.39 hotfix green; review dispatched.
 - #775 review ISSUES (scale setter dislodges docked chip, redraws fail the fight guard, standalone renderer crash) -> author.
 - Merged #774 (polish B Options/setup).
+- #771 healer crests green, evidence complete; review dispatched. 3 shared defects -> melee owner.

@@ -22,7 +22,7 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 | PR | Branch | What | Status / next step |
 | --- | --- | --- | --- |
 | #768 | korallis/lumpfish-2 | Polish batch C: chat, bags, tooltips, data bars, auras | Review found: a restricted shopping-tooltip level throws, honour controls overridden, preview text overlap, bag countdown not restored (kstyleui-evidence/verify-768-feab2289/REPORT.md). Fix round in progress. Follow-ups outside its files: audit A#3 (UnitFrames player aura row), A#9 (bars 3/4 unbound '-' hotkey). |
-| #771 | korallis/healer-crest-trackers | Crest trackers: priest, druid, shaman extension | d4b326c89, stacked on the melee crest branch (2d2f87d1f): registered on SlabTrackers with per-form choices, cooldown families, all research additions, generated art, 21 switches, 4 locales. Left: switch to the shared foot seats, five-second rule and threat emblem when the melee owner pushes them; evidence set; module sweep, python gate, hosted CI; PR body with the 12 in-game checks. |
+| #771 | korallis/healer-crest-trackers | Crest trackers: priest (Vigil), druid (Grove, full crest per form incl. bear tank), shaman (Stormforged) | d6a6ad8b7, stacked on #776's branch (197431265). Green, evidence complete (kstyleui-evidence/crest-trackers/healers/build: renders, crops, GIFs, concept-vs-build, 0 px switch-off diffs). In its one cross-family review. Merge after #776; rebase onto staging then. Three shared Medallions issues it found (crops/DEFECTS.md) are with #776's owner. |
 
 ## Work in progress without a PR yet
 
