@@ -4,9 +4,10 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 
 ## State of play
 
-- **Released**: v0.3.2 (2026-11-23) is the latest tag on `main`. v0.3.0, v0.3.1 and v0.3.2 all shipped today. CurseForge/Wago upload automatically from the release workflow; store descriptions and galleries (01-11) are current as of v0.3.1.
+- **Released**: v0.3.4 (2026-11-23, the crest for every class + Baine's map fixes #784) is the latest tag on `main`; v0.3.3 and hotfix v0.3.3.1 shipped the same day. Posted in #chat with one crest GIF per class. CurseForge/Wago upload automatically from the release workflow; README did not change in v0.3.4, so store descriptions and galleries (01-11) are still current as of v0.3.1.
+- **Baine (Discord)**: missing world map art (only parchment and pins after the zone dance) is unexplained; waiting on his answers (Reveal on? /reload or zone switch fixes it? world map skin off? Questie off?). His minimap double party dot is not KstyleUI (the client draws party blips; KstyleUI never touches them); asked him to test with only KstyleUI on and `/fstack` each dot.
 - **CI**: staging pushes and releases are gated on GitHub-hosted runners (8 Lua shards, `checks.yml`, PR #758). The three self-hosted Macs only run `mac-budgets.yml`, non-blocking CPU-budget monitoring.
-- **Roadmap** (`docs/ROADMAP.md`, mirrored to the Discord roadmap post): v0.3.3 = "polish and the crest for every class". Discord roadmap post updates with `gh workflow run release.yml --ref staging -f roadmap=true -f message_ids=1573443520474120352`.
+- **Roadmap** (`docs/ROADMAP.md`, mirrored to the Discord roadmap post): v0.3.5 = "the crest, tuned in game" (in-game check fixes, trinkets on the rim, energy tick spark, readable expiring aura timers; #787). Discord roadmap post updates with `gh workflow run release.yml --ref staging -f roadmap=true -f message_ids=1573443520474120352`.
 
 ## Merged since v0.3.2 (for the v0.3.3 notes)
 
@@ -35,11 +36,7 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 
 - **Crest rule set by the owner**: every class tracks everything it needs around the crest (one place to look): crown, shoulders, hips, foot perches, top gem, inner rim, a cooldown rim for every major cooldown and enhancement (racials, trinkets, potions too), every form/stance/spec gets a full crest with no empty seats, tanks and healers included. Research for all specs: `C:/Users/leeba/.cache/kstyleui-evidence/crest-trackers/complete/{melee,ranged,healers}.md` (local, not in git; summarised in the builder specs on the handoff branch). Hunter stings track any sting; Rapid Fire burns on the rim.
 
-- **v0.3.3 release in progress**: notes PR being written (`specs/notes-033.md`): polish batches, party and unit frames, and the RestedXP 4.11.39 fix (#775, merged). The crest trackers move to v0.3.4; update the roadmap after the release.
-
-- **Hotfix v0.3.3.1** (`specs/notes-0331.md`): #777 and #781 merged; #782 (player sockets only when lit, compass N on the ring) fixed after review, waiting on CI, then merge, notes, tag. Credit Baine by name. Ask Baine to confirm the Medallions card title on his German client.
-
-- **v0.3.4 prep**: a small shared fix is building (`specs/fix-frames-medal-count.md`: Frames medal counts stay inside their medal). Then v0.3.4 notes (crests for every class), release, #chat post with the crest GIFs, roadmap.
+- Nothing in flight: no open PRs, no workers running. Next is v0.3.5 (see the roadmap line above and the crest completeness list below). Still ask Baine to confirm the Medallions card title on his German client.
 
 ## Crest completeness: what "maximise the crests for every class" still needs
 
@@ -48,13 +45,13 @@ The owner's rule: every class has everything it needs around the crest, so there
 1. **Unverified in game**: 32 checks (11 melee, 9 ranged, 12 healers; section 9/10 of each `complete-*.md`) decide whether several pieces work on the live client (e.g. duration bars on a target aura slot in combat, stack pips, Frozen, PLAYER_SWING Auto Shot, energy ticks, Spell Lock cooldown on a pet spell, weapon-stone enchants, trinket buffs). Anything that fails must be fixed or replaced with a provable route.
 2. **Deferred pieces**: rogue and cat energy-tick spark (belongs on the energy bar in `KstyleUI_UnitFrames`, needs its own task after the in-game check); trinket on-use buffs on the cooldown rim (needs in-game check 7); a target-cast interrupt flare (unprovable so far); Riptide only if trainable.
 3. **Not possible on Forever** (documented in the research, keep out): rune spells (Avenging Wrath 407788, Readiness, Icy Veins, Pain Suppression, Berserk, Tiger's Fury, Earth/Water Shield, Metamorphosis...), the Holy Power and Soul Shard power types (Soul Shards are bag items, item 6265: the warlock soul wisps count them from the bags), Bloodlust/Heroism, Shamanistic Rage, Tree of Life, Feral Faerie Fire. Hunters, mages and warlocks have no tank or healer specs on Forever.
-4. **Evidence and review not done**: none of the three crest PRs has its evidence set, review or merge yet; each must show every class in every form/stance/spec at four sizes in both HUD styles, with 2x polish crops and concept-vs-build sheets, before merge.
+4. **Merged and released** in v0.3.4 (#776, #778, #771, #785) after evidence and one cross-family review each.
 5. **Final art**: the builds generate new art (flames, leaves, stones, wisps, gust, ward ring) with `Tools/media` generators; the owner should see the moment GIFs before release and post them in #chat.
 6. **Fit check**: once all nine classes are merged, run one pass at native size per class and spec to confirm the crest stays readable with everything lit (no overlapping seats with the cooldown row, cast bar or slabs, especially at 1920x1080 and in Frames).
 
 ## After the open work merges
 
-1. v0.3.3 notes PR (pattern: `specs/notes-032.md`), merge, wait for the hosted staging run on that SHA, `git commit-tree <sha>^{tree} -p origin/main -p <sha>`, push main, annotated tag, the release workflow publishes. Then #chat post in the owner's voice, roadmap PR + Discord roadmap update, and refresh the store description (CurseForge authors console textarea 1 on `#/projects/1812141/description`; Wago settings) if the README/store page changed.
+1. Release recipe (last used for v0.3.4): notes PR (pattern: `specs/notes-034.md`), merge, wait for the hosted staging run on that SHA, `git commit-tree <sha>^{tree} -p origin/main -p <sha>`, push main, annotated tag, the release workflow publishes. Then #chat post in the owner's voice, roadmap PR + Discord roadmap update, and refresh the store description (CurseForge authors console textarea 1 on `#/projects/1812141/description`; Wago settings) if the README/store page changed.
 2. README/store GIFs for the crest trackers (the owner wants previews posted in #chat for finished visual work; mockups were already posted).
 
 ## Follow-ups already identified
