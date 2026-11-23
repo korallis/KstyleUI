@@ -126,7 +126,7 @@ end
 defaults.strip.dockModules = {}
 for i, id in ipairs({ "fps", "latency", "gold", "durability", "time", "micro", "spec", "hearth", "guild", "friends", "bags", "currencies", "xp", "location", "itemLevel",
 	"coords", "combat", "played", "audio", "prof1", "prof2", "broker", "spacer", "reagents" }) do
-	defaults.strip.dockModules[#defaults.strip.dockModules + 1] = { id = id, shown = i <= 6, zone = id == "time" and "centre" or (id == "spec" or id == "hearth" or id == "micro") and "left" or "right" }
+	defaults.strip.dockModules[#defaults.strip.dockModules + 1] = { id = id, shown = i <= 6, zone = id == "time" and "centre" or (id == "spec" or id == "hearth" or id == "micro" or id == "fps" or id == "latency") and "left" or "right" }
 end
 
 defaults.strip.railModules = {}
