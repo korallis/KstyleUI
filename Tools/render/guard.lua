@@ -408,6 +408,7 @@ end
 -- Hides(item) -> whether a texture can hide a text under it: a solid colour, an icon (a file ID, or a file from an
 -- Icons folder) or a kit fill slice (LumenShape, CardShape), at an effective alpha of at least COVER_ALPHA. Any other art
 -- (rims, outlines, bar glass, gradients) carries its own transparency the guard cannot read, so it is not judged.
+-- A fade (a gradient that ramps to alpha 0 at one end, as a list's edge fade over its cut row) never hides.
 function Guard.Hides(item)
 	if item.kind ~= "texture" or item.masks and #item.masks > 0 then
 		return false
@@ -427,7 +428,11 @@ function Guard.Hides(item)
 		alpha = alpha * (item.vertex[4] or 1)
 	end
 	if item.gradient then
-		alpha = alpha * math.max(item.gradient.from[4], item.gradient.to[4])
+		local from, to = item.gradient.from[4], item.gradient.to[4]
+		if math.min(from, to) <= 0 then
+			return false
+		end
+		alpha = alpha * math.max(from, to)
 	end
 	return alpha >= Guard.COVER_ALPHA
 end
