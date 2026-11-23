@@ -21,7 +21,12 @@ local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local OWNER = "ActionBars.SlabMedals"
 local refreshed, rims, watchers = {}, {}, {}
 local REFRESH = { target = { "PLAYER_TARGET_CHANGED" }, pet = { "UNIT_PET", "player" }, focus = { "PLAYER_FOCUS_CHANGED" } }
-Medals.SIZE, Medals.FOOT = SIZE, 17
+Medals.SIZE, Medals.FOOT, Medals.LINE, Medals.GAP = SIZE, 17, 5, 4
+
+function Medals.Cell(n)
+	local pitch = SIZE + Medals.GAP
+	return n % Medals.LINE * pitch, floor(n / Medals.LINE) * pitch
+end
 
 function Medals.Known(spells)
 	local book = C_SpellBook

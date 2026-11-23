@@ -149,7 +149,7 @@ Each row is one seat, built only while its switch (`key`, a saved ActionBars set
 | `families` | For `seat = "cooldowns"`: `{ spells, known?, unit? }` entries; under Frames the player's families feed one medal showing the newest |
 | `choices` | Alternatives for the seat, each a partial row inheriting the rest; every known choice is built and fed out of combat, and the first known choice whose `forms` holds `GetShapeshiftFormID()` (any form when `forms` is nil; no form counts as 0) shows while the others hide, on `UPDATE_SHAPESHIFT_FORM`, in combat too; a secret form keeps the last |
 | `build(parent, spec, level, form)` | A custom builder returning a piece with `.parts` (for `Medals.Place`) and `.lit` or `.lits` (for `Medals.Engine`); `form` is `"crest"` or `"row"` |
-| `place(piece, anchor, form, x)` | Custom placement: `anchor` is the hub on the crest and the row frame under Frames; return the next row `x` |
+| `place(piece, anchor, form, x, n)` | Custom placement: `anchor` is the hub on the crest and the row frame under Frames, where `n` is the next free cell and `x` its left offset; return the next free cell (a piece spanning four medals returns `n + 4`; one laid over the whole grid returns `n`). `Medals.Cell(n)` gives a cell's `x, y`: the row is `Medals.LINE` (5) medals of `Medals.SIZE` a line with `Medals.GAP` (4) between, growing upward |
 
 | Hook | Meaning |
 | --- | --- |

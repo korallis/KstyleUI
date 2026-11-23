@@ -10,7 +10,7 @@ local Trackers = {}
 ns.SlabTrackers = Trackers
 
 local OWNER = "ActionBars.SlabTrackers"
-local GAP, RELIQUARY, OFF_HAND, LINE = 4, 28, 17, 5
+local RELIQUARY, OFF_HAND = 28, 17
 local LUA = {
 	cooldown = { "SPELL_UPDATE_COOLDOWN" },
 	usable = { "SPELL_UPDATE_USABLE", "SPELL_UPDATE_COOLDOWN", "PLAYER_TARGET_CHANGED" },
@@ -34,7 +34,7 @@ local function Always()
 	return true
 end
 
-local function PlacePlaque(piece, anchor, form, x)
+local function PlacePlaque(piece, _, form, _, n)
 	if form == "crest" then
 		piece:ClearAllPoints()
 		piece:SetPoint("CENTER", ns.Slab.hub.plaque, "CENTER", 0, 0)
@@ -44,7 +44,7 @@ local function PlacePlaque(piece, anchor, form, x)
 			Medals.Even(part)
 		end
 	end
-	return x
+	return n
 end
 
 function Trackers.Register(class, rows, hooks)
@@ -191,7 +191,7 @@ local function Shape(name, seat)
 		form.frame:SetScale(own > 0 and seat:GetEffectiveScale() / own * (first and first.opts.size or Medals.SIZE) / Medals.SIZE or 1)
 		form.frame:SetFrameStrata(seat:GetFrameStrata())
 		form.frame:ClearAllPoints()
-		form.frame:SetPoint("BOTTOMLEFT", over or seat, over and "TOPLEFT" or "BOTTOMLEFT", 0, over and GAP or 0)
+		form.frame:SetPoint("BOTTOMLEFT", over or seat, over and "TOPLEFT" or "BOTTOMLEFT", 0, over and Medals.GAP or 0)
 		form.frame:SetSize(Medals.SIZE, Medals.SIZE)
 	end
 	form.frame:Show()
@@ -202,15 +202,14 @@ local function Lay(form, name, seat, shown, order, specs)
 	for key, piece in pairs(form.pieces) do
 		piece:SetShown(shown[key] ~= nil)
 	end
-	local x, n, pitch = 0, 0, Medals.SIZE + GAP
+	local n = 0
 	for _, key in ipairs(order) do
 		local piece, spec = shown[key], specs[key]
 		if spec.place then
-			x = spec.place(piece, name == "crest" and seat or form.frame, name, x) or x
+			n = spec.place(piece, name == "crest" and seat or form.frame, name, Medals.Cell(n), n) or n
 		elseif name == "row" then
-			Medals.Place(piece, form.frame, n % LINE * pitch, math.floor(n / LINE) * pitch)
+			Medals.Place(piece, form.frame, Medals.Cell(n))
 			n = n + 1
-			x = math.min(n, LINE) * pitch
 		elseif type(spec.seat) == "table" then
 			Medals.Place(piece, seat, spec.seat[1], spec.seat[2])
 		elseif spec.seat == "rim" or spec.seat == "cooldowns" then

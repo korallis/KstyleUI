@@ -285,7 +285,10 @@ do
 			local m = ns.SlabMedals.Medal(parent, { feed = "usable", candidates = { 10060 }, texture = spec.texture }, level)
 			m.custom = true
 			return m
-		end, place = function(piece, anchor, form, x) ns.SlabMedals.Place(piece, anchor, 0, 100) return x + 30 end, known = function() return 10060 end },
+		end, place = function(piece, anchor, form, x, n)
+			if form == "crest" then ns.SlabMedals.Place(piece, anchor, 0, 100) else ns.SlabMedals.Place(piece, anchor, x, 0) end
+			return n + 3
+		end, known = function() return 10060 end },
 		{ key = "crestChoice", seat = "left", choices = { { feed = "aura", spells = { 999 } }, { feed = "aura", spells = { 10060 }, color = "gilt" } } },
 	}, { events = { "BAG_UPDATE_DELAYED" }, paint = function() painted = painted + 1 end, motion = function() moved = moved + 1 end })
 	ns.SlabTrackers.Update()
@@ -386,6 +389,26 @@ do
 	end
 	assert(sizes[ns.SlabMedals.SIZE] and next(sizes, next(sizes)) == nil, "feet and vials stand at the row's one medal size")
 	Clean(env, K, "row sizes")
+end
+
+-- A custom placer under Frames takes the cells it returns; the next medal lands on the grid after them.
+do
+	local env, K, ns = New("ROGUE", { 5171, 1943 }, { frames = true })
+	local n = #ns.SlabTrackers.CLASSES.ROGUE
+	ns.SlabTrackers.Register("ROGUE", {
+		{ key = "crestPoisons", seat = "left", feed = "aura", spells = { 5171 }, place = function(piece, anchor, _, x, cell)
+			ns.SlabMedals.Place(piece, anchor, x, 0)
+			return cell + 3
+		end },
+		{ key = "crestPoisons", seat = "right", feed = "aura", spells = { 1943 } },
+	})
+	ns.SlabTrackers.Update()
+	local pieces = ns.SlabTrackers.state.forms.row.pieces
+	local after = pieces[(n + 2) .. ":1"]
+	local _, _, _, x, y = after:GetPoint(1)
+	local cx, cy = ns.SlabMedals.Cell(5)
+	assert(pieces[(n + 1) .. ":1"]:IsVisible() and math.abs(x - cx) < 1 and math.abs(y - cy) < 1 and cy > 0, "after a three-cell piece at cell 2 the next medal starts the second line")
+	Clean(env, K, "custom cells")
 end
 
 -- Even pixels at four sizes.
