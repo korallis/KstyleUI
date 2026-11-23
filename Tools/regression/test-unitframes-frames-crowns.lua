@@ -10,8 +10,9 @@ local SPEC = {
 	HUNTER = { art = "PipArrow", count = 3, unit = "player", known = 1310687, aura = 1310687 },
 	DRUID = { art = "PipTalon", count = 5, unit = "target", known = 1328617, aura = 1328617 },
 	SHAMAN = { art = "PipStorm", count = 3, unit = "player", known = 10432, aura = 10432 },
+	PALADIN = { art = "PipShard", count = 5, unit = "player", known = 20049, aura = 20050 },
 }
-local ORDER = { "WARRIOR", "PRIEST", "MAGE", "HUNTER", "DRUID", "SHAMAN" }
+local ORDER = { "WARRIOR", "PRIEST", "MAGE", "HUNTER", "DRUID", "SHAMAN", "PALADIN" }
 
 local function New(class, opts)
 	opts = opts or {}
