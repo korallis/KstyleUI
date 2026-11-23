@@ -144,12 +144,13 @@ do
 		end
 	end
 	assert(fel == WK.Effects.MODELS.WARLOCK, "at Full the burst is the warlock's fel model: " .. tostring(fel))
+	WK.Options.Write("Rest", "enabled", false)
 	wenv.RunTimers()
 	wenv.SetCombat(true)
 	wenv.SetCombat(false)
 	wenv.RunTimers()
 	assert(WK.Layout.Rest.Resting() and WK.Layout.Rest.Level("unitframes.pet") == WK.Layout.Rest.ALPHA, "the imp's frame rests after combat")
-	assert(WK.Layout.Rest.Level("unitframes.player") == 1, "the warlock's own frame never rests")
+	assert(WK.Layout.Rest.Level("unitframes.player") == 1, "the warlock's own frame never takes the secondary dim")
 	assert(#wenv._errors == 0 and WK.ErrorCount() == 0, "warlock: " .. tostring(wenv._errors[1]))
 end
 

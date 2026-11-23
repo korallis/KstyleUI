@@ -17,6 +17,7 @@ end
 do
 	local env, K = CoreEnv.New()
 	CoreEnv.Boot(env)
+	K.Options.Write("Rest", "enabled", false)
 	local Queue = K.Combat.Queue
 	local ran = {}
 	local function add(name)

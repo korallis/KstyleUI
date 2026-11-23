@@ -519,6 +519,7 @@ local function Build()
 	hub.particles = BuildParticles(hub)
 	BuildMoments(hub)
 	Slab.frame, Slab.hub = slab, hub
+	K.Layout.Rest.Follow("actionbars.bar1", slab, hub)
 	Slab.PaintPlaque(false)
 	state.built = true
 end

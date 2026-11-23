@@ -282,6 +282,10 @@ function Reference.Build(opts)
 			state[k] = v
 		end
 		state.meterSecret = opts.meterSecret == true
+		local rest = os.getenv("RENDER_REST")
+		if rest == "rest" or rest == "hover" then
+			state.target, state.targetAuras, state.playerCast = false, nil, false
+		end
 		if os.getenv("RENDER_EXTRA_BARS") and os.getenv("RENDER_EXTRA_BARS") ~= "off" then
 			state.slots = {}
 			for i, action in ipairs(state.spec.bar2) do state.slots[24 + i] = action[2] end

@@ -76,8 +76,21 @@ Verification: `test-core-parity-round1`, `test-core-parity-round1-review` (the r
 | `Layout.lua` | The registry, per-profile settings, applying, sessions, undo, and Layout Mode's own settings page |
 | `Mode.lua` | `Layout.Mode`: Layout Mode's screen: plates, handles, guides, the grid, the story slot's outline, the keyboard and the toolbar. The story slot's label and hint stand on their own glass card at its top; the card hides while a mover plate covers any of it, so a plate's label is never written over and the guidance never hides half under a plate. |
 | `Calm.lua` | `Layout.Calm`: the combat calm, which rests the idle lines at 30%, the readout card at a legible 65%, dims the cards you read to 75% and the story card (tracker and guide) only to 90% in combat |
+| `Rest.lua` | `Layout.Rest`: the Medallions leave-combat dim of the secondary unit frames, and the clean screen at rest ([below](#the-clean-screen-at-rest)) |
 
-Tests: `Tools/regression/test-layout.lua` (maths, snapping, resize clamping, history, shown rules), `test-layout-service.lua` (the registry against the stubs), `test-layout-hover.lua` (the mouseover rule over content Layout cannot hook), `test-layout-mode.lua` (the screen, driven like a player) and `test-layout-calm.lua` (the combat calm).
+Tests: `Tools/regression/test-layout.lua` (maths, snapping, resize clamping, history, shown rules), `test-layout-service.lua` (the registry against the stubs), `test-layout-hover.lua` (the mouseover rule over content Layout cannot hook), `test-layout-mode.lua` (the screen, driven like a player), `test-layout-calm.lua` (the combat calm) and `test-layout-rest.lua` (the clean screen at rest).
+
+## The clean screen at rest
+
+Elements > Clean screen at rest (section `Rest`): **Fade panels at rest** (on), **Rest opacity** (35%) and one switch per panel, all on: Action bars (every bar, the consumables bar, and the Medallions slab and hub through `Rest.Follow`), Player frame (`unitframes.player`, `unitframes.resource`), Data strip (the strips, menus, bags and the experience, reputation and honour lines) and Cooldowns (the cooldown and tracked buff rows). `Rest.PANELS` lists the keys.
+
+[docs/statecharts/rest-fade.md](../../docs/statecharts/rest-fade.md) charts it.
+
+- **Nothing needs the panels** when the player is out of combat (`InCombatLockdown`), has no target (`UnitExists`), casts or channels nothing (`UnitCastingInfo`, `UnitChannelInfo`), holds nothing on the cursor (`GetCursorInfo`), and Layout Mode is closed. Health is secret in Forever (`UnitHealth` has `SecretReturns`), so a change stands for "not full": `UNIT_HEALTH`, `UNIT_MAXHEALTH`, `UNIT_MAXPOWER` and `UNIT_POWER_UPDATE` for the main power (`UnitPowerType`'s token) restart the wait. Out of combat, health and the main power move only until they settle (full, or empty for rage and its kind), so the panels rest three seconds after the last change. A secondary power (combo points, holy power) decays slowly and does not wake them.
+- **Event-driven.** One owner, `RestFade`: `PLAYER_REGEN_DISABLED` and `ENABLED`, `ACTIONBAR_SHOWGRID` and `HIDEGRID` while the switch is on; the target, cast, health and power events only while out of combat. The wait is a `C_Timer.After`; no ticker or `OnUpdate` runs except the tween itself (`Motion.Tween` through `Layout.RefreshAlpha`, the `fade` curve).
+- **Hover.** When the panels come to rest, `OnEnter` and `OnLeave` are hooked (once per frame, three levels deep) on each resting panel's element and followers. A hover lights its own panel only; leaving every frame of the panel lets it rest again.
+- **Alpha only, never hide.** `Layout.ApplyAlpha` multiplies `Rest.Level(key)` in only where the player kept the element at full alpha with no mouseover rule, so an element with its own combat or idle opacity keeps it, and a follower checks the same. Nothing is shown, hidden, moved or resized, and alpha on a protected holder is allowed in combat. Frames another addon or Blizzard owns are never faded: the panels are KstyleUI's own Layout holders.
+- **Off restores today.** With the switch off nothing listens, nothing is hooked and no alpha is written. Opening Layout Mode does not wake panels already at rest; none begins to rest while it is open.
 
 ## Registering an element
 

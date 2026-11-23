@@ -742,6 +742,7 @@ do
 		end
 		return n
 	end
+	K.Options.Write("Rest", "enabled", false)
 	Element(K, "Test.Quiet")
 	assert(listeners("PLAYER_REGEN_DISABLED") == 1 and listeners("PLAYER_REGEN_ENABLED") == 1, "an element shown always at one opacity needs no combat events: only the Medallions rest fade listens")
 	assert(listeners("PLAYER_TARGET_CHANGED") == 0, "nor the target event")

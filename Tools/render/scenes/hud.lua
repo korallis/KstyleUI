@@ -19,6 +19,7 @@ local Scene = Common.Scene
 local Tooltip = dofile("Tools/render/scenes/tooltip.lua")
 local Classes = dofile("Tools/render/scenes/_classes.lua")
 local Fx = dofile("Tools/render/scenes/_effects.lua")
+local RestScene = dofile("Tools/render/scenes/_rest.lua")
 local TotemScene = dofile("Tools/render/scenes/_totems.lua")
 
 local Hud = {}
@@ -329,7 +330,9 @@ local function build(env, opts, extra, beforeDraw)
 	if beforeDraw then
 		beforeDraw()
 	end
+	local rested = RestScene.Apply(env, tick)
 	local scene = Scene.Build(env, sceneOpts)
+	scene.log[#scene.log + 1] = rested
 	for _, line in ipairs(previewed) do
 		scene.log[#scene.log + 1] = "sizes " .. line .. ", as Layout > Apply writes it for the layout"
 	end

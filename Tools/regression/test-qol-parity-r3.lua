@@ -69,7 +69,7 @@ local function stand(env)
 end
 
 local function boot(settings)
-	local saved = { version = 42, profiles = { Default = { QoL = settings or { enabled = true } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
+	local saved = { version = 42, profiles = { Default = { QoL = settings or { enabled = true }, Rest = { enabled = false } } }, characters = {}, layouts = {}, account = { setupSeen = true }, devlog = {} }
 	local env, K, ns = Q.New({ saved = saved, setup = stand })
 	if not K.Modules.IsRunning("QoL") then Q.Enable(env, K) end
 	env.RunTimers()

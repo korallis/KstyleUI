@@ -196,6 +196,7 @@ end
 do
 	local env, K = New()
 	local Rest = K.Layout.Rest
+	K.Options.Write("Rest", "enabled", false)
 	env.RunTimers()
 	env.SetCombat(true)
 	assert(not Rest.Resting(), "nothing rests in combat")
@@ -203,7 +204,7 @@ do
 	assert(not Rest.Resting(), "secondary frames wait before they rest")
 	env.RunTimers()
 	assert(Rest.Resting() and Rest.Level("unitframes.focus") == Rest.ALPHA, "secondary frames rest after combat")
-	assert(Rest.Level("unitframes.player") == 1 and Rest.Level("actionbars.bar1") == 1, "the player frame and the action bars never rest")
+	assert(Rest.Level("unitframes.player") == 1 and Rest.Level("actionbars.bar1") == 1, "the player frame and the action bars never take the secondary dim (the clean screen, test-layout-rest, is off here)")
 	env.SetCombat(true)
 	assert(not Rest.Resting() and Rest.Level("unitframes.focus") == 1, "combat wakes them at once")
 	env.SetCombat(false)
