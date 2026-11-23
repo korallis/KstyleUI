@@ -357,12 +357,7 @@ class WorkflowsTest(unittest.TestCase):
             jobs = jobs_of(text)
             self.assertTrue(jobs, path.name)
             for job, body in jobs.items():
-                if path.name == "checks.yml" and job == "lua":
-                    self.assertIn("runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || fromJSON('[\"self-hosted\", \"mac-ci\", \"KstyleUI\"]') }}", body)
-                    for step in body.split("\n      - "):
-                        if re.search(r"\bsudo\b|apt(-get)?\s+(update|install)", step):
-                            self.assertIn("if: github.event_name == 'pull_request' &&", step, "Mac jobs must never run sudo or apt")
-                elif "self-hosted" in body:
+                if "self-hosted" in body:
                     self.assertNotRegex(body, r"\bsudo\b|apt(-get)?\s+(update|install)", f"{path.name}: {job} runs on the owner's Mac: no sudo or apt there")
                 guard = re.search(r"(?m)^    if: (.*)$", body)
                 self.assertIsNotNone(guard, f"{path.name}: {job} has no fork guard")

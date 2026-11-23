@@ -28,7 +28,7 @@ jobs:
   check:
     name: check
     if: github.event_name == 'push'
-    runs-on: [self-hosted, mac-ci, KstyleUI]
+    runs-on: ubuntu-latest
     timeout-minutes: 35
     permissions:
       contents: read
@@ -53,6 +53,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: python3 -m Tools.release.proof
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Install the hosted runner tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y lua5.1 luajit luarocks
+          luarocks --local --lua-version=5.1 install luacheck 1.2.0
+          python3 -m venv "$HOME/.local/share/wow-dev/venv"
+          "$HOME/.local/share/wow-dev/venv/bin/python" -m pip install pre-commit==4.7.0
+          python3 -m pip install Pillow==13.0.0
+          echo "KSTYLEUI_PILLOW_PYTHON=$(command -v python3)" >> "$GITHUB_ENV"
+          echo "$HOME/.luarocks/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.local/share/wow-dev/venv/bin" >> "$GITHUB_PATH"
+          echo "LUA_PATH=$(luarocks --local --lua-version=5.1 path --lr-path)" >> "$GITHUB_ENV"
+          echo "LUA_CPATH=$(luarocks --local --lua-version=5.1 path --lr-cpath)" >> "$GITHUB_ENV"
       - name: Run missing lint checks
         if: steps.proof.outputs.run != 'false'
         run: bash scripts/gate.sh lint
@@ -79,22 +95,27 @@ jobs:
         run: bash Tools/hooks/check-package.sh
 
   lua:
-    name: lua ${{ matrix.shard }}/5
+    name: lua ${{ matrix.shard }}/8
     needs: check
     if: github.event_name == 'push'
-    runs-on: [self-hosted, mac-ci, KstyleUI]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 2
           persist-credentials: false
+      - name: Install hosted Lua 5.1
+        if: needs.check.outputs.run != 'false'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y lua5.1
       - name: Check the runner's Lua is 5.1.5
         if: needs.check.outputs.run != 'false'
         run: lua5.1 -v 2>&1 | grep '^Lua 5\.1\.5 '
@@ -102,13 +123,13 @@ jobs:
         if: needs.check.outputs.run != 'false'
         env:
           SHARD: ${{ matrix.shard }}
-        run: bash scripts/gate.sh lua --shard "$SHARD/5"
+        run: bash scripts/gate.sh lua --shard "$SHARD/8"
 
   release:
     name: release
     needs: [check, lua]
     if: github.event_name == 'push'
-    runs-on: [self-hosted, mac-ci, KstyleUI]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: release
     permissions:
@@ -127,9 +148,14 @@ jobs:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
-      - name: Check the runner's Python has Pillow
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Install Pillow and check its version
         run: |
-          "$KSTYLEUI_PILLOW_PYTHON" -c 'import PIL; print("Pillow", PIL.__version__)' | grep '^Pillow 13\.0\.0$'
+          python3 -m pip install Pillow==13.0.0
+          echo "KSTYLEUI_PILLOW_PYTHON=$(command -v python3)" >> "$GITHUB_ENV"
+          python3 -c 'import PIL; print("Pillow", PIL.__version__)' | grep '^Pillow 13\.0\.0$'
       - name: Build the icon pack and upload it to the GitHub release
         # The pack is a separate download: CurseForge and Wago install only into AddOns, and the pack goes
         # into _forever_/Interface/Icons (docs/icons.md). The packager made the release above; this adds the zip.
@@ -155,7 +181,7 @@ jobs:
   discord-repost:
     name: Repost Discord announcement
     if: github.event_name == 'workflow_dispatch'
-    runs-on: [self-hosted, mac-ci, KstyleUI]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     environment: release
     permissions:
