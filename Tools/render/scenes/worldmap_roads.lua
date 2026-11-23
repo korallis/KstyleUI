@@ -114,9 +114,7 @@ return Common.Run(function()
 	end
 	if reopen == "max" then
 		state.minZoom = 1.5
-		map:GetCanvas():SetScale(state.minZoom)
-		map:OnCanvasSizeChanged()
-		map:RefreshAllDataProviders()
+		map:OnFrameSizeChanged()
 	end
 	assert(os.getenv("RENDER_MAP_BEFORE") == "1" or (quest == "none" and not off) or R.road, "the render must exercise a real connected route")
 	if flight and R.road then

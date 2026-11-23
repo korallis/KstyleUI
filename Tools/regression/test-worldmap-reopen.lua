@@ -4,7 +4,11 @@ local env, K, R, state, map = M.New(true)
 local canvas = map:GetCanvas()
 state.minZoom = 0.6
 canvas:SetScale(state.minZoom)
-env.C_Map.GetMapInfo = function(id) return { mapType = id == 3 and 3 or 2 } end
+-- Zones 1 (the player's) and 3 sit on continent 12. The dropdown, a click and the zoom-out button all end in SetMapID
+-- (Blizzard_WorldMapTemplates.lua:523-525, Blizzard_MapCanvas.lua:1045-1060).
+env.C_Map.GetMapInfo = function(id) return { mapType = id == 12 and 2 or 3 } end
+local scans, children = 0, env.C_Map.GetMapChildrenInfo
+env.C_Map.GetMapChildrenInfo = function(...) scans = scans + 1; return children(...) end
 
 -- Blizzard_WorldMap.lua:369-384: WorldMapMixin:OnShow puts the map back on the player's zone and refreshes its data.
 local function Open()
@@ -33,38 +37,43 @@ end
 local function Screen() return Size() * map.ScrollContainer:GetEffectiveScale() * state.minZoom end
 
 Open()
+R.Pick({ kind = "quest", mapID = 1, name = "Target", x = 0.6, y = 0.4 })
 R.search:SetText("")
 for _, other in ipairs({ 3, 12 }) do
 	R.search:GetScript("OnEditFocusGained")(R.search)
-	assert(Listed() == 6, "focusing the empty search opens the nearest picker")
+	assert(Listed() == 6 and not R.card:IsShown(), "focusing the empty search opens the nearest picker, which hides the route card it would cut through")
 	R.search:SetText("Chasm")
 	R.search:GetScript("OnTextChanged")(R.search, true)
 	assert(Listed() == 1, "typing lists the map's destinations")
 	map:SetMapID(other)
 	Close()
 	Open()
-	assert(state.id == 1 and map:IsVisible(), "the map reopens on the player's zone")
-	assert(Listed() == 0, "after viewing map " .. other .. ", closing and reopening, no search list from before the close is left under the box")
+	assert(state.id == 1 and map:IsVisible() and not Size(), "the map reopens on the player's zone, which shows no zone level labels")
+	assert(Listed() == 0 and R.card:IsShown(), "after viewing map " .. other .. ", closing and reopening, no old search list is left and the route card is back")
 	assert(R.search:GetText() == "", "closing the map clears its search, as Blizzard clears the quest search")
 	R.search:GetScript("OnEditFocusGained")(R.search)
 	assert(Listed() == 6, "the nearest picker still opens after the reopen")
 	R.search:GetScript("OnEscapePressed")(R.search)
+	assert(Listed() == 0 and R.card:IsShown(), "Escape closes the list and brings the route card back")
 end
 
+scans = 0
+map:SetMapID(12)
+assert(scans == 1 and Size(), "a switch to the continent reads its zones once and labels them")
 local windowed, size = Screen(), Size()
-canvas:SetScale(1.2)
+canvas:SetScale(0.73)
 map:RefreshAllDataProviders()
-assert(Size() == size, "zooming in keeps the zone labels' size on the canvas, so they grow with the map")
--- Maximizing (Blizzard_WorldMap.lua:60-74) resizes the frame; the canvas gets a new reset zoom and Blizzard calls OnCanvasSizeChanged.
+assert(Size() == size, "a refresh while zoomed in keeps the labels' size on the canvas, so they grow with the map")
+-- Maximizing (Blizzard_WorldMap.lua:60-74) calls OnFrameSizeChanged, which resets the zoom after OnCanvasSizeChanged.
 state.minZoom = 0.9
-canvas:SetScale(state.minZoom)
-map:SetSize(1600, 1000)
-map:OnCanvasSizeChanged()
+map:OnFrameSizeChanged()
 assert(math.abs(Screen() - windowed) < 1e-6, "maximized, the zone labels keep their windowed size on screen at the reset zoom: " .. Screen() .. " vs " .. windowed)
 map:SetMapID(3)
+assert(not Size(), "a sibling zone shows no zone level labels")
 map:SetMapID(12)
 Close()
 Open()
+map:SetMapID(12)
 assert(math.abs(Screen() - windowed) < 1e-6, "after a zone, the continent, a close and a reopen the labels still fit the maximized map")
 assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 print("world map reopen ok")
