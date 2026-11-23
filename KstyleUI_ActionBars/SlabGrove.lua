@@ -1,4 +1,4 @@
--- SlabGrove.lua: the druid's crest trackers, registered with SlabTrackers, each on its own switch and a full crest in every form: the shoulder medals show your effects on the target with their icon and a ring that drains over their time (as a caster, moonkin or in travel and aquatic form Moonfire or Rejuvenation on the left and Insect Swarm or Regrowth on the right; Rake and Rip in Cat Form; Demoralizing Roar and Faerie Fire in Bear Form); Clearcasting blooms leaves round the inner rim over a druid glow; the gem at the top of the ring follows the form: Swiftmend's cooldown (or Nature's Swiftness's, or Innervate's) as a caster, Hurricane's (or Innervate's) as a moonkin, your Faerie Fire on the target in Cat Form and Maul queued in Bear Form; and the major cooldowns burn on the rim. Every form's choice is built out of combat, so a shift only shows one; aura slots, cooldown duration objects and the engine's shown animations draw the timers, so Lua never reads or compares a secret.
+-- SlabGrove.lua: the druid's crest trackers, registered with SlabTrackers, each on its own switch and a full crest in every form: the shoulder medals show your effects on the target with their icon and a ring that drains over their time (as a caster, moonkin or in travel and aquatic form Moonfire or Rejuvenation on the left and Insect Swarm or Regrowth on the right; Rake and Rip in Cat Form; Demoralizing Roar and Faerie Fire in Bear Form); Clearcasting blooms leaves round the inner rim over a druid glow; the gem at the top of the ring follows the form: Swiftmend's cooldown (or Nature's Swiftness's, or Innervate's) as a caster, Nature's Swiftness's (or Innervate's) as a moonkin, your Faerie Fire on the target in Cat Form and Maul queued in Bear Form; a third medal at the top shows your Faerie Fire on an enemy or Wild Growth on a friend as a caster and Faerie Fire as a moonkin; Rake shares its medal with Pounce's bleed; a bear gets Growl and Feral Charge ready on the foot perches and Primal Bite and Bash ready in the ring sockets, where a caster sees a main-hand oil socket while an oil is in the bags or on the weapon; and the major cooldowns burn on the rim. Every form's choice is built out of combat, so a shift only shows one; aura slots, cooldown duration objects and the engine's shown animations draw the timers, so Lua never reads or compares a secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -11,9 +11,13 @@ local REJUVENATION = { 25299, 9841, 9840, 9839, 8910, 3627, 2091, 2090, 1430, 10
 local REGROWTH = { 9858, 9857, 9856, 9750, 8941, 8940, 8939, 8938, 8936 }
 local RAKE, RIP = { 9904, 1824, 1823, 1822 }, { 9896, 9894, 9752, 9493, 9492, 1079 }
 local ROAR, FAERIE = { 9898, 9747, 9490, 1735, 99 }, { 9907, 9749, 778, 770 }
-local MAUL, HURRICANE = { 9881, 9880, 9745, 8972, 6809, 6808, 6807 }, { 17402, 17401, 16914 }
+local MAUL = { 9881, 9880, 9745, 8972, 6809, 6808, 6807 }
 local OMEN, CLEARCASTING = { 16864 }, { 16870, 457342, 467735 }
-local BEAR, CAT, MOONKIN = { 5, 8 }, { 1 }, { 31, 35 }
+local GROWTH, POUNCE = { 1238215, 1238214, 408120 }, { 9826, 9824, 9007 }
+local GROWL, CHARGE, BITE, BASH = { 6795 }, { 1238122 }, { 1238070, 1238069, 407995 }, { 8983, 6798, 5211 }
+local OILS = { 20744, 20745, 20746, 20747, 20748, 20749, 20750 }
+local BEAR, CAT, MOONKIN, CASTER = { 5, 8 }, { 1 }, { 31, 35 }, { 0, 3, 4 }
+local LEFT_FOOT, RIGHT_FOOT, PERCH = { -28.5, -67.2 }, { 28.5, -67.2 }, 17
 local LEAVES, LEAF, ORBIT, GEM, GAP = 8, 14, 54, 60, 4
 
 local maul = {}
@@ -73,6 +77,26 @@ local function Maul(parent, spec, level, form)
 	return s
 end
 
+local function Oil()
+	local item, info = C_Item, C_PaperDollInfo
+	for _, id in ipairs(OILS) do
+		local n = item and type(item.GetItemCount) == "function" and item.GetItemCount(id)
+		if not IsSecret(n) and type(n) == "number" and n > 0 then
+			return id
+		end
+	end
+	local on = info and type(info.GetTemporaryEnchantmentInfo) == "function" and info.GetTemporaryEnchantmentInfo(16)
+	return on ~= nil and OILS[1] or nil
+end
+
+local function Flask(parent, spec, level, form)
+	if form == "crest" then
+		return Medals.Socket(parent, spec, level)
+	end
+	local icon = C_Item and type(C_Item.GetItemIconByID) == "function" and C_Item.GetItemIconByID(spec.spell)
+	return Medals.Medal(parent, setmetatable({ texture = not IsSecret(icon) and icon or nil }, { __index = spec }), level)
+end
+
 local function Queued()
 	local current = C_Spell and C_Spell.IsCurrentSpell
 	for _, s in ipairs(maul) do
@@ -88,22 +112,32 @@ end
 
 ns.SlabTrackers.Register("DRUID", {
 	{ key = "crestSeeds", seat = "left", choices = {
-		Effect(ROAR, "jewelCombo", nil, BEAR), Effect(RAKE, "jewelCombo", nil, CAT),
+		Effect(ROAR, "jewelCombo", nil, BEAR),
+		{ forms = CAT, color = "white", known = Join(RAKE, POUNCE), feeds = { Effect(POUNCE, "jewelCombo"), Effect(RAKE, "jewelCombo") } },
 		{ color = "white", known = Join(MOONFIRE, REJUVENATION), feeds = { Effect(MOONFIRE, "totemAir"), Effect(REJUVENATION, "schoolArcane", "HELPFUL|PLAYER") } },
 	} },
 	{ key = "crestSeeds", seat = "right", choices = {
 		Effect(FAERIE, "schoolArcane", nil, BEAR), Effect(RIP, "jewelCombo", nil, CAT),
 		{ color = "white", known = Join(SWARM, REGROWTH), feeds = { Effect(SWARM, "jewelHawk"), Effect(REGROWTH, "schoolNature", "HELPFUL|PLAYER") } },
 	} },
+	{ key = "crestThird", seat = "top", choices = {
+		{ forms = CASTER, color = "white", known = Join(FAERIE, GROWTH), feeds = { Effect(FAERIE, "schoolArcane"), Effect(GROWTH, "schoolNature", "HELPFUL|PLAYER") } },
+		Effect(FAERIE, "schoolArcane", nil, MOONKIN),
+	} },
+	{ key = "crestGrowl", seat = LEFT_FOOT, size = PERCH, feed = "cooldown", known = GROWL, forms = BEAR },
+	{ key = "crestCharge", seat = RIGHT_FOOT, size = PERCH, feed = "cooldown", known = CHARGE, forms = BEAR },
+	{ key = "crestBite", seat = "lowerLeft", feed = "cooldown", known = BITE, forms = BEAR, color = "jewelCombo", build = Gem },
+	{ key = "crestBash", seat = "lowerRight", feed = "cooldown", known = BASH, forms = BEAR, color = "jewelCombo", build = Gem },
+	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, forms = Join(CASTER, MOONKIN), color = "jewelHoly", build = Flask },
 	{ key = "crestClearcasting", seat = "rim", known = OMEN, spells = CLEARCASTING, build = Bloom, place = Ring },
 	{ key = "crestSwiftmend", seat = { 0, GEM }, feed = "cooldown", choices = {
 		Gems({ forms = BEAR, known = MAUL, color = "jewelCombo", build = Maul }),
 		Gems(Effect(FAERIE, "schoolArcane", nil, CAT)),
-		Gems({ forms = MOONKIN, known = HURRICANE }), Gems({ forms = MOONKIN, known = { 29166 } }),
+		Gems({ forms = MOONKIN, known = { 17116 } }), Gems({ forms = MOONKIN, known = { 29166 } }),
 		Gems({ known = { 18562 } }), Gems({ known = { 17116 } }), Gems({ known = { 29166 } }),
 	} },
 	{ key = "crestCooldowns", seat = "cooldowns", color = "pipDruidGlow", families = {
 		{ spells = { 22812 } }, { spells = { 17116 } }, { spells = { 22842 } }, { spells = { 1850, 9821 } }, { spells = { 5229 } },
 		{ spells = { 29166 } }, { spells = { 16689, 16810, 16811, 16812, 16813, 17329 } },
 	} },
-}, { burst = "medBurstDruid", events = { "CURRENT_SPELL_CAST_CHANGED" }, paint = Queued })
+}, { burst = "medBurstDruid", events = { "CURRENT_SPELL_CAST_CHANGED" }, update = { "BAG_UPDATE_DELAYED", "WEAPON_ENCHANT_CHANGED" }, paint = Queued })

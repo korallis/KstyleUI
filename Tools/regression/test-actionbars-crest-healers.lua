@@ -6,17 +6,19 @@ local SIZES = { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
 local PRIEST = { 10952, 1316995, 10947, 401977, 10894, 10060 }
 local DRUID = { 9835, 24977, 25299, 9858, 9904, 9896, 16864, 18562, 9898, 9907, 9881, 17402, 22812 }
 local SHAMAN = { 16362, 10414, 20608, 16166 }
-local BUILT = { DRUID = 12 }
+local BUILT = { DRUID = 13 }
 local KEYS = { "crestInnerFire", "crestPenance", "crestShadowfiend", "crestPain", "crestSeeds", "crestClearcasting", "crestSwiftmend", "crestImbues", "crestShock", "crestAnkh",
 	"crestCooldowns" }
 -- Each class's pieces by "<row>:<choice>", the key SlabTrackers keeps them under.
 local NAMES = {
 	PRIEST = { ["1:1"] = "innerFire", ["2:1"] = "penance", ["2:2"] = "mindBlast", ["3:1"] = "embrace", ["3:2"] = "shadowform", ["3:3"] = "shadowfiend",
-		["4:1"] = "pain", ["5:1"] = "cooldowns" },
-	DRUID = { ["1:1"] = "roar", ["1:2"] = "rake", ["1:3"] = "seedLeft", ["2:1"] = "faerie", ["2:2"] = "rip", ["2:3"] = "seedRight", ["3:1"] = "bloom",
-		["4:1"] = "maul", ["4:2"] = "faerieGem", ["4:3"] = "hurricane", ["4:4"] = "innervateMoonkin", ["4:5"] = "swiftmend", ["4:6"] = "swiftness",
-		["4:7"] = "innervate", ["5:1"] = "cooldowns" },
-	SHAMAN = { ["1:1"] = "mainHand", ["2:1"] = "offHand", ["3:1"] = "stormstrike", ["3:2"] = "shock", ["4:1"] = "ankh", ["5:1"] = "cooldowns" },
+		["4:1"] = "mending", ["4:2"] = "pain", ["5:1"] = "mend", ["6:1"] = "plague", ["7:1"] = "death", ["8:1"] = "silence", ["9:1"] = "oil",
+		["10:1"] = "cooldowns" },
+	DRUID = { ["1:1"] = "roar", ["1:2"] = "rake", ["1:3"] = "seedLeft", ["2:1"] = "faerie", ["2:2"] = "rip", ["2:3"] = "seedRight",
+		["3:1"] = "third", ["3:2"] = "thirdMoonkin", ["4:1"] = "growl", ["5:1"] = "charge", ["6:1"] = "bite", ["7:1"] = "bash", ["8:1"] = "oil",
+		["9:1"] = "bloom", ["10:1"] = "maul", ["10:2"] = "faerieGem", ["10:3"] = "swiftnessMoonkin", ["10:4"] = "innervateMoonkin",
+		["10:5"] = "swiftmend", ["10:6"] = "swiftness", ["10:7"] = "innervate", ["11:1"] = "cooldowns" },
+	SHAMAN = { ["1:1"] = "mainHand", ["2:1"] = "offHand", ["3:1"] = "shock", ["4:1"] = "ankh", ["5:1"] = "flameShock", ["6:1"] = "cooldowns" },
 }
 
 local function New(class, spells, opts)
@@ -51,7 +53,8 @@ local function New(class, spells, opts)
 				OffhandHasWeapon = function() return e._offHand end,
 				GetTemporaryEnchantmentInfo = function(slot) return e._enchants[slot] end,
 			}
-			e.C_Item = { GetItemCount = function() return e._ankhs end }
+			e._oils = 0
+			e.C_Item = { GetItemCount = function(id) return id == 17030 and e._ankhs or id >= 20744 and id <= 20750 and e._oils or 0 end, GetItemIconByID = function(id) return id end }
 			Slots.Install(e)
 		end,
 	})
@@ -229,10 +232,10 @@ do
 	assert(b.maul.lit:IsShown(), "a queued Maul lights the gem")
 	env._form = 31
 	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
-	assert(Shown("seedLeft", "seedRight", "hurricane") and not b.maul:IsShown(), "Moonkin: the seed medals and Hurricane's gem")
+	assert(Shown("seedLeft", "seedRight", "thirdMoonkin", "swiftmend") and not b.maul:IsShown() and not b.third:IsShown(), "Moonkin: the seed medals, your Faerie Fire on top and the gem")
 	env._form = env.Secret(8)
 	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
-	assert(b.hurricane:IsShown(), "a secret form keeps the last crest")
+	assert(b.thirdMoonkin:IsShown(), "a secret form keeps the last crest")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
@@ -240,7 +243,8 @@ end
 do
 	local env, K, ns = New("SHAMAN", SHAMAN)
 	local t, Tokens = Tracker(ns, "SHAMAN"), K.Tokens
-	assert(t.built.shock and not t.built.stormstrike, "without Stormstrike the emblem sweeps the shock cooldown")
+	assert(t.built.shock and t.built.ankh, "the emblem sweeps the shock cooldown, the interrupt, and the ankh stands on the right foot")
+	assert(t.built.ankh.spec.seat[1] > 0 and t.built.ankh.spec.seat[2] < -60, "the ankh's seat is the right foot perch")
 	local main, off, shock, ankh = t.built.mainHand, t.built.offHand, t.built.shock, t.built.ankh
 	assert(main:IsShown() and off:IsShown() and shock:IsShown() and ankh:IsShown(), "a shaman gets two stones, the sweep and the ankh")
 	assert(main.rim:IsShown() and not main.pulse:IsPlaying(), "no imbue: the stone's gilt rim shows, still at rest")
@@ -270,6 +274,37 @@ do
 	env._ankhs = 0
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	assert(ankh.glyph:GetAlpha() < 1, "no Ankh in the bags: the ankh greys")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- A healer priest's top medal holds your shield, Renew and Mending; Mending takes the gem; a shadow priest gets the
+-- plague, Shadow Word: Death and Silence instead; an oil in the bags brings the oil socket.
+do
+	local env, K, ns = New("PRIEST", { 10901, 25315, 1240827, 10894, 10947 })
+	local b = Tracker(ns, "PRIEST").built
+	assert(b.mend:IsShown() and #b.mend.lits == 3 and b.mend.lits[1].container._slots.lit.filter == "HELPFUL|PLAYER", "a healer's top medal: shield, Renew and Mending on the target")
+	assert(b.mending:IsShown() and not b.pain:IsShown(), "from level 40 Prayer of Mending takes the gem")
+	assert(not b.plague and not b.death and not b.oil, "no shadow piece and no oil socket without one")
+	env._known[15473], env._known[19280], env._known[1309636], env._known[15487] = true, true, true, true
+	env._oils = 1
+	ns.SlabTrackers.Update()
+	b = Tracker(ns, "PRIEST").built
+	assert(b.plague:IsShown() and b.death:IsShown() and b.silence:IsShown() and not b.mend:IsVisible() and b.pain:IsShown(), "a shadow priest: Devouring Plague, Shadow Word: Death and Silence, Pain on the gem, no top medal")
+	assert(b.oil:IsShown() and b.oil.lit.container, "an oil in the bags brings the main-hand socket")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- A bear's tank kit: Growl and Feral Charge on the feet, Primal Bite and Bash in the sockets, hidden in other forms.
+do
+	local env, K, ns = New("DRUID", { 9835, 9898, 6795, 1238122, 1238070, 8983 })
+	env._oils = 1
+	ns.SlabTrackers.Update()
+	local b = Tracker(ns, "DRUID").built
+	assert(b.oil:IsShown() and not b.growl:IsShown() and not b.bash:IsShown(), "as a caster: the oil socket, no tank kit")
+	env._form = 8
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	assert(b.growl:IsShown() and b.charge:IsShown() and b.bite:IsShown() and b.bash:IsShown() and not b.oil:IsShown(), "Bear Form: Growl, Feral Charge, Primal Bite and Bash")
+	assert(b.growl.spec.size == 17 and b.growl.spec.feed == "cooldown", "the feet hold small cooldown medals")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

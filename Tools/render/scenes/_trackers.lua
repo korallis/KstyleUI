@@ -1,5 +1,6 @@
 -- _trackers.lua: RENDER_TRACKERS_FORM sets GetShapeshiftFormID (a warrior's 18 or 19, a rogue's 30) and RENDER_TRACKERS_SPEC the talents a paladin (holy, prot) or rogue (assassination, combat, subtlety) knows; RENDER_TRACKERS draws a warrior's, paladin's or rogue's crest trackers through the game's own feeds (Tools/regression/aura_slots.lua): steel (every piece known, nothing up), lit (every piece up, its timer part spent) or moment, the class's moment RENDER_TRACKERS_T seconds in (Trackers.END when unset): a warrior's target dodges and Overpower lights, it is spent, Bloodrage ignites Enrage round the rim, and Execute lights; a paladin's Judgement comes off cooldown, the old Judgement falls off the target and a new one lands, the Seal draining throughout; a rogue spends five points on Slice and Dice, Rupture runs out, and the off hand carries no poison. RENDER_TRACKERS_OFF=1 turns every tracker switch off first.
 -- _trackers.lua: RENDER_TRACKERS_FORM sets GetShapeshiftFormID (a warrior's 18 or 19, a rogue's 30); RENDER_TRACKERS draws a warrior's, paladin's or rogue's crest trackers through the game's own feeds (Tools/regression/aura_slots.lua): steel (every piece known, nothing up), lit (every piece up, its timer part spent) or moment, the class's moment RENDER_TRACKERS_T seconds in (Trackers.END when unset): a warrior's target dodges and Overpower lights, it is spent, Bloodrage ignites Enrage round the rim, and Execute lights; a paladin's Judgement comes off cooldown, the old Judgement falls off the target and a new one lands, the Seal draining throughout; a rogue spends five points on Slice and Dice, Rupture runs out, and the off hand carries no poison. A priest, druid or shaman plays its own story through the same feeds and the addon's own handlers (charge counts, casts, cooldowns, weapon enchants, forms and a queued Maul), steel showing every known piece with nothing up, lit the story at its own time and moment RENDER_TRACKERS_T seconds in; RENDER_TARGET=friend gives the druid a friendly target and RENDER_FORM chooses another crest: cat, bear or moonkin for the druid, shadowform for the priest, enhancement for the shaman. RENDER_TRACKERS_OFF=1 turns every tracker switch off first (and for a healer plays nothing, for a pixel diff).
+-- _trackers.lua: RENDER_TRACKERS_FORM sets GetShapeshiftFormID (a warrior's 18 or 19, a rogue's 30); RENDER_TRACKERS draws a warrior's, paladin's or rogue's crest trackers through the game's own feeds (Tools/regression/aura_slots.lua): steel (every piece known, nothing up), lit (every piece up, its timer part spent) or moment, the class's moment RENDER_TRACKERS_T seconds in (Trackers.END when unset): a warrior's target dodges and Overpower lights, it is spent, Bloodrage ignites Enrage round the rim, and Execute lights; a paladin's Judgement comes off cooldown, the old Judgement falls off the target and a new one lands, the Seal draining throughout; a rogue spends five points on Slice and Dice, Rupture runs out, and the off hand carries no poison. A priest, druid or shaman plays its own story through the same feeds and the addon's own handlers (charge counts, casts, cooldowns, weapon enchants, forms and a queued Maul), steel showing every known piece with nothing up, lit the story at its own time and moment RENDER_TRACKERS_T seconds in; RENDER_TARGET=friend gives the druid a friendly target and RENDER_FORM chooses another crest: cat, bear or moonkin for the druid, shadowform for the priest, enhancement for the shaman, and RENDER_TARGET=friend a healer's friendly target for the priest too. RENDER_TRACKERS_OFF=1 turns every tracker switch off first (and for a healer plays nothing, for a pixel diff).
 local Slots = dofile("Tools/regression/aura_slots.lua")
 local Ranged = dofile("Tools/render/scenes/_ranged.lua")
 
@@ -28,16 +29,27 @@ local HEALER_ICONS = {
 	[10060] = 135939, [586] = 135994, [9835] = 136096, [24977] = 136045, [25299] = 136081, [9858] = 136085,
 	[9904] = 132122, [9896] = 132152, [9898] = 132121, [9907] = 136033, [9881] = 132136, [17402] = 136018,
 	[16870] = 136170, [18562] = 134914, [22812] = 136097, [22842] = 132091, [5229] = 132126, [1850] = 132120,
-	[10414] = 136026, [20608] = 136080, [16166] = 136111, [15286] = 136230, [17364] = 132314, [425336] = 136012,
+	[10414] = 136026, [20608] = 136080, [16166] = 136111, [10901] = 135940, [25315] = 135953, [1240827] = 135944, [1240849] = 135944,
+	[19280] = 252997, [1309636] = 136149, [15487] = 136164, [6795] = 132270, [1238122] = 132183, [1238070] = 132278, [8983] = 132114,
+	[29228] = 135813, [1238215] = 236153, [15286] = 136230, [17364] = 132314, [425336] = 136012,
 }
-local DRUID = { 9835, 24977, 25299, 9858, 9904, 9896, 9898, 9907, 9881, 17402, 24858, 16864, 18562, 22812, 22842, 5229, 1850 }
+local DRUID = { 9835, 24977, 25299, 9858, 9904, 9896, 9898, 9907, 9881, 24858, 16864, 18562, 22812, 22842, 5229, 1850, 1238215, 6795, 1238122,
+	1238070, 8983 }
 
 -- Each story: the spells the character knows, its form (GetShapeshiftFormID and power type), the default time, and
 -- its beats in seconds: an aura on a unit ({ unit, spell, charges, seconds, harmful }; seconds nil clears it), a
 -- charge count on the player's first aura, the player's cast, a spell's cooldown ({ spell, seconds }), a queued
 -- spell (C_Spell.IsCurrentSpell) and a weapon's enchant ({ slot, enchantID, seconds left of an hour }, or { slot }).
 local HEALERS = {
-	PRIEST = { at = 4, known = { 10952, 1316995, 10947, 401977, 10894, 10060, 586 }, beats = {
+	PRIEST_friend = { at = 4, known = { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 }, beats = {
+		{ 0.5, cast = 10952, aura = { "player", 10952, 20, 600 } },
+		{ 1, aura = { "target", 10901, 0, 30 } },
+		{ 1.5, aura = { "target", 25315, 0, 15 } },
+		{ 2, aura = { "target", 1240849, 5, 30 }, cooldown = { 1240827, 10 } },
+		{ 2.5, cooldown = { 1316995, 12 } },
+		{ 3.2, charges = 15 },
+	} },
+	PRIEST = { at = 4, known = { 10952, 1316995, 10947, 401977, 10894, 10060, 586, 10901 }, beats = {
 		{ 0.5, cast = 10952, aura = { "player", 10952, 20, 600 } },
 		{ 1.5, aura = { "target", 10894, 0, 18, true } },
 		{ 2, aura = { "player", 10060, 0, 15 } },
@@ -48,6 +60,7 @@ local HEALERS = {
 		{ 9, aura = { "player", 10952 } },
 	} },
 	DRUID = { at = 4, known = DRUID, beats = {
+		{ 0.2, aura = { "target", 9907, 0, 40, true } },
 		{ 0.5, aura = { "target", 9835, 0, 12, true } },
 		{ 1, aura = { "target", 24977, 0, 12, true } },
 		{ 2, aura = { "player", 16870, 1, 15 } },
@@ -72,6 +85,7 @@ local HEALERS = {
 		{ 1, aura = { "target", 9907, 0, 40, true } },
 		{ 1.5, aura = { "player", 5229, 0, 10 } },
 		{ 2, aura = { "player", 22842, 0, 10 } },
+		{ 2.5, cooldown = { 6795, 8 } },
 		{ 3, queue = 9881 },
 	} },
 	DRUID_moonkin = { at = 4, form = 31, known = DRUID, beats = {
@@ -80,7 +94,9 @@ local HEALERS = {
 		{ 2, cooldown = { 17402, 60 } },
 		{ 2.5, aura = { "player", 16870, 1, 15 } },
 	} },
-	PRIEST_shadowform = { at = 4, form = 28, known = { 10952, 10947, 15473, 15286, 10894, 401977, 586 }, beats = {
+	PRIEST_shadowform = { at = 4, form = 28, known = { 10952, 10947, 15473, 15286, 10894, 401977, 586, 15334, 19280, 1309636, 15487 }, beats = {
+		{ 2, aura = { "target", 19280, 0, 24, true } },
+		{ 3, cooldown = { 1309636, 18 } },
 		{ 0.5, cast = 10952, aura = { "player", 10952, 20, 600 } },
 		{ 1, aura = { "target", 15286, 0, 60, true } },
 		{ 1.5, aura = { "target", 10894, 0, 18, true } },
@@ -94,7 +110,8 @@ local HEALERS = {
 		{ 1, cooldown = { 17364, 8 } },
 		{ 2, aura = { "player", 425336, 0, 15 } },
 	} },
-	SHAMAN = { at = 3, known = { 16362, 10414, 20608, 16166 }, offHand = true, beats = {
+	SHAMAN = { at = 3, known = { 16362, 10414, 20608, 16166, 29228 }, offHand = true, beats = {
+		{ 0.5, aura = { "target", 29228, 0, 12, true } },
 		{ 0, enchant = { 16, 1669, 1800 } },
 		{ 0, enchant = { 17, 1666, 240 } },
 		{ 1, cast = 10414, cooldown = { 10414, 6 } },

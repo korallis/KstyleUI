@@ -155,6 +155,17 @@ local defaults = {
 	crestImbues = true,
 	crestShock = true,
 	crestAnkh = true,
+	crestMend = true,
+	crestPlague = true,
+	crestDeath = true,
+	crestSilence = true,
+	crestOil = true,
+	crestThird = true,
+	crestGrowl = true,
+	crestCharge = true,
+	crestBite = true,
+	crestBash = true,
+	crestFlameShock = true,
 	procTransitions = true,
 	inputContinuity = true,
 	bezelModels = true,
@@ -412,8 +423,8 @@ local function BarRows(schema, def)
 	end
 end
 
-local function Crest(class, key, label, help)
-	return { type = "toggle", key = key, label = label, help = help, showWhen = function() return ns.class == class end }
+local function Crest(key, label, help)
+	return { type = "toggle", key = key, label = label, help = help, showWhen = function() return ns.SlabTrackers.Has(key) end }
 end
 
 local function EditOptions()
@@ -504,6 +515,27 @@ function ns.Schema()
 		Crest("DRUID", "crestSeeds", L["Your effects on the crest"], L["Shows your damage and healing over time on your target as two medals on the crest."]),
 		Crest("DRUID", "crestClearcasting", L["Clearcasting on the crest"], L["Blooms leaves round the inside of the crest ring while Clearcasting is up."]),
 		Crest("DRUID", "crestSwiftmend", L["Swiftmend on the crest"], L["Shows Swiftmend, Nature's Swiftness or Innervate ready as a gem at the top of the crest ring."]),
+		Crest("crestImbues", L["Weapon imbues on the crest"], L["Shows each weapon's imbue as a rune stone in the crest ring, lit in its element's colour."]),
+		Crest("crestShock", L["Shock cooldown on the crest"], L["Dims the crest emblem under a sweep while your shocks cool down, then sparks."]),
+		Crest("crestAnkh", L["Reincarnation on the crest"], L["Shows a gold ankh by the level badge while Reincarnation is ready and you carry an Ankh."]),
+		Crest("crestInnerFire", L["Inner Fire on the crest"], L["Shows Inner Fire's charges as four flames and a halo inside the crest ring."]),
+		Crest("crestPenance", L["Penance on the crest"], L["Shows Penance, or Mind Blast, cooling down and ready on the crest's left medal."]),
+		Crest("crestShadowfiend", L["Shadowfiend on the crest"], L["Shows Shadowfiend's cooldown, or Shadowform while you wear it, on the crest's right medal."]),
+		Crest("crestPain", L["Shadow Word: Pain on the crest"], L["Shows your Shadow Word: Pain on your target as a gem at the top of the crest ring."]),
+		Crest("crestSeeds", L["Your effects on the crest"], L["Shows your damage and healing over time on your target as two medals on the crest."]),
+		Crest("crestClearcasting", L["Clearcasting on the crest"], L["Blooms leaves round the inside of the crest ring while Clearcasting is up."]),
+		Crest("crestSwiftmend", L["Swiftmend on the crest"], L["Shows Swiftmend, Nature's Swiftness or Innervate ready as a gem at the top of the crest ring."]),
+		Crest("crestMend", L["Your heals on the crest"], L["Shows your Power Word: Shield, Renew and Prayer of Mending on your target in the crest's top medal."]),
+		Crest("crestPlague", L["Devouring Plague on the crest"], L["Shows your Devouring Plague on your target on the crest's left foot."]),
+		Crest("crestDeath", L["Shadow Word: Death on the crest"], L["Shows Shadow Word: Death cooling down and ready on the crest's right foot."]),
+		Crest("crestSilence", L["Silence on the crest"], L["Shows Silence cooling down and ready in a socket on the crest ring."]),
+		Crest("crestOil", L["Weapon oil on the crest"], L["Shows your main-hand oil in a socket on the crest ring while you carry or use one."]),
+		Crest("crestThird", L["Faerie Fire and Wild Growth on the crest"], L["Shows your Faerie Fire on an enemy or Wild Growth on a friend in the crest's top medal."]),
+		Crest("crestGrowl", L["Growl on the crest"], L["Shows Growl cooling down and ready on the crest's left foot in Bear Form."]),
+		Crest("crestCharge", L["Feral Charge on the crest"], L["Shows Feral Charge cooling down and ready on the crest's right foot in Bear Form."]),
+		Crest("crestBite", L["Primal Bite on the crest"], L["Shows Primal Bite cooling down and ready in a socket on the crest ring in Bear Form."]),
+		Crest("crestBash", L["Bash on the crest"], L["Shows Bash cooling down and ready in a socket on the crest ring in Bear Form."]),
+		Crest("crestFlameShock", L["Flame Shock and Riptide on the crest"], L["Shows your Flame Shock or Stormstrike on an enemy, or Riptide on a friend, on the crest's foot."]),
 		{ type = "toggle", key = "hubNumber", label = L["Clear hub level"],
 			help = L["Use the number face on a larger Medallions level badge. Off restores the original badge."], showWhen = function() return K.HudStyle.Current() == "medallions" end },
 		{ type = "note", label = L["Type /kb to hover a button and press a key to bind it. Save for your account or this character, or Discard your changes."] },

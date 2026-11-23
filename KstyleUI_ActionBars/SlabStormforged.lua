@@ -1,4 +1,4 @@
--- SlabStormforged.lua: the shaman's crest trackers beside the Spirit Poles and storm orbs, registered with SlabTrackers, each on its own switch: a rune stone set into the ring's lower left for the main hand's imbue and its lower right for the off hand's (only with an off-hand weapon), its rune lit in the imbue's element colour while the enchant's own frame shows, guttering through the last five minutes and dark under a pulsing gilt rim when there is none; the shock cooldown (Stormstrike's for an enhancement shaman) as a sweep that dims the class emblem until it is ready, then sparks, a cooldown medal under Frames; a small ankh beside the level plaque, gold while Reincarnation is ready and an Ankh is in the bags; and the major cooldowns burning on the rim. The weapon enchant's frame and the cooldown's duration object draw the timers; the enchant, the cooldown state and the item count are values the client never makes secret.
+-- SlabStormforged.lua: the shaman's crest trackers beside the Spirit Poles and storm orbs, registered with SlabTrackers, each on its own switch: a rune stone set into the ring's lower left for the main hand's imbue and its lower right for the off hand's (only with an off-hand weapon), its rune lit in the imbue's element colour while the enchant's own frame shows, guttering through the last five minutes and dark under a pulsing gilt rim when there is none; the shock cooldown, the shaman's interrupt, as a sweep that dims the class emblem until it is ready, then sparks, a cooldown medal under Frames; on the left foot perch your Flame Shock on an enemy, Stormstrike's debuff drawn over it, or Riptide on a friend; a small ankh on the right foot perch, gold while Reincarnation is ready and an Ankh is in the bags; and the major cooldowns burning on the rim. The weapon enchant's frame and the cooldown's duration object draw the timers; the enchant, the cooldown state and the item count are values the client never makes secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -11,6 +11,8 @@ local IMBUES = {
 }
 local SHOCKS = { 10414, 10413, 10412, 8046, 8045, 8044, 8042, 29228, 10448, 10447, 8053, 8052, 8050, 10473, 10472, 8058, 8056 }
 local REINCARNATION, ANKH = { 20608 }, 17030
+local FLAME, STORMSTRIKE, RIPTIDE = { 29228, 10448, 10447, 8053, 8052, 8050 }, { 17364 }, { 1239243, 1239242, 408521 }
+local LEFT_FOOT, RIGHT_FOOT, PERCH = { -28.5, -67.2 }, { 28.5, -67.2 }, 17
 local ELEMENTS = {}
 for token, ids in pairs({
 	totemEarth = { 29, 6, 1, 503, 1663, 683, 1664, 7568 },
@@ -155,8 +157,14 @@ end
 ns.SlabTrackers.Register("SHAMAN", {
 	{ key = "crestImbues", seat = "lowerLeft", feed = "enchant", slot = "MainHand", spells = IMBUES, build = Stone },
 	{ key = "crestImbues", seat = "lowerRight", feed = "enchant", slot = "OffHand", spells = IMBUES, known = OffHand, build = Stone },
-	{ key = "crestShock", seat = { 0, 0 }, feed = "cooldown", build = Shock, choices = { { known = { 17364 } }, { known = SHOCKS } } },
-	{ key = "crestAnkh", seat = { 16, -63 }, known = REINCARNATION, build = Ankh },
+	{ key = "crestShock", seat = { 0, 0 }, feed = "cooldown", known = SHOCKS, build = Shock },
+	{ key = "crestAnkh", seat = RIGHT_FOOT, known = REINCARNATION, build = Ankh },
+	{ key = "crestFlameShock", seat = LEFT_FOOT, size = PERCH, color = "white", spells = FLAME, known = function() return Medals.Known(FLAME) or Medals.Known(RIPTIDE) end,
+		feeds = {
+			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = FLAME, color = "totemFire" },
+			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = STORMSTRIKE, color = "totemAir" },
+			{ feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = RIPTIDE, color = "totemWater" },
+		} },
 	{ key = "crestCooldowns", seat = "cooldowns", color = "pipStormGlow", families = { { spells = { 16166 } }, { spells = { 16188 } }, { spells = { 425336 } } } },
 }, {
 	burst = "medBurstShaman",
