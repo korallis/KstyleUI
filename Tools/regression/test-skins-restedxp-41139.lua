@@ -30,12 +30,12 @@ for _, live in ipairs({ true, false }) do
 	S.W.Settle(env)
 	env.RunTimers()
 
-	assert(ns.RestedXP.Addon() == rxp, what .. ": the skin's entry check takes 4.11.39's v2:IsEnabled, got " .. tostring(S.Logged(env, "restedXP:")))
+	assert(ns.RestedXP.Addon() == rxp, what .. ": the skin's entry check takes 4.11.39's v2:IsEnabled, got " .. tostring((S.Logged(env, "restedXP:"))))
 	assert(ns.RestedXP.Theme.Active(rxp), what .. ": the KstyleUI theme draws")
 	assert(ns.RestedXP.Rail.Placed(), what .. ": the guide card holds RestedXP's guide")
 
 	for _, name in ipairs({ "RXPFrame.UpdateVisuals", "arrowFrame.UpdateVisuals", "activeItemFrame", "activeTargetFrame" }) do
-		assert(not S.Logged(env, name), what .. ": the skin hooks 4.11.39's own name for " .. name .. ", got " .. tostring(S.Logged(env, name)))
+		assert(not S.Logged(env, name), what .. ": the skin hooks 4.11.39's own name for " .. name .. ", got " .. tostring((S.Logged(env, name))))
 	end
 	local f, arrow = rxp.RXPFrame, rxp.arrowFrame
 	local card = ns.RestedXP.Chrome.Card(f)
@@ -62,7 +62,11 @@ for _, live in ipairs({ true, false }) do
 		local glass = K.Skin.Parts(box) and K.Skin.Parts(box).backdrop
 		assert(glass and box:IsShown(), what .. ": the " .. which .. " box, now RestedXP's widget's frame, wears the card's glass")
 		assert(ns.RestedXP.Chrome.Caption(widget.title.text), what .. ": and its title on the widget takes the caps caption")
-		assert(not box.rxpBackground:IsVisible() or box.rxpBackground:GetAlpha() == 0, what .. ": RestedXP's own backdrop stays hidden after its UpdateSubTheme")
+		for _, art in ipairs({ box.rxpBackground, box.rxpBorder, widget.title.rxpBackground }) do
+			for _, texture in ipairs(art.textures) do
+				assert(texture:GetAlpha() == 0, what .. ": RestedXP's own v2 backdrop stays hushed under the glass after its UpdateSubTheme")
+			end
+		end
 		local r = assert(Geometry.ScaledRect(glass, env.UIParent, root))
 		assert(math.abs(guide.bottom - r.top - gap) <= 2 * px, string.format("%s: the %s box docks a small gap under the guide's card, got %.2f", what, which, guide.bottom - r.top))
 		assert(box.savePosition == false, what .. ": and stays out of RestedXP's saved places while docked")

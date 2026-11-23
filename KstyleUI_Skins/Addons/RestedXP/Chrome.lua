@@ -126,6 +126,10 @@ local function Hook(owner, method, name, fn)
 	return true
 end
 
+local function Redraw(owner)
+	return IsTable(owner) and type(owner.UpdateSubTheme) == "function" and "UpdateSubTheme" or "UpdateVisuals"
+end
+
 local function Profile(field)
 	local rxp = state.rxp
 	local profile = rxp and rxp.settings and rxp.settings.profile
@@ -569,8 +573,9 @@ end
 
 local function ChipIcons(f)
 	local l, r, t, b
+	local title = RestedXP.Widget(f).title
 	for _, child in ipairs({ f:GetChildren() }) do
-		if child ~= f.title and child:GetObjectType() == "Button" and Shown(child) then
+		if child ~= title and child:GetObjectType() == "Button" and Shown(child) then
 			local cl, cr, ct, cb = child:GetLeft(), child:GetRight(), child:GetTop(), child:GetBottom()
 			if Plain(cl) and Plain(cr) and Plain(ct) and Plain(cb) then
 				l, r, t, b = math.min(l or cl, cl), math.max(r or cr, cr), math.max(t or ct, ct), math.min(b or cb, cb)
@@ -587,7 +592,8 @@ function Chrome.ChipWidth(f)
 end
 
 function Chrome.Chip(f, on)
-	local title = IsTable(f.title) and f.title
+	local title = RestedXP.Widget(f).title
+	title = IsTable(title) and title
 	local shown = title and title:IsShown()
 	if title and (Widgets.IsSecret(shown) or shown == on) then title:SetShown(not on) end
 	if (state.chips[f] == true) == on then
@@ -1206,7 +1212,7 @@ local function GuideWindow(rxp)
 	state.guide = f
 	PlaceGuideScroll(f)
 	Hook(f, "SetScale", "RXPFrame.SetScale", Rescaled)
-	Hook(f, "UpdateVisuals", "RXPFrame.UpdateVisuals", function()
+	Hook(f, Redraw(f), "RXPFrame.UpdateVisuals", function()
 		PlaceGuideScroll(f)
 		Chrome.Refit(f)
 	end)
@@ -1391,7 +1397,7 @@ local function Arrow(rxp)
 	Worded(arrow.text, Reword)
 	Readable(arrow.text, "number", Tokens.Size("caption"), nil, true)
 	PaintArrow(arrow)
-	Hook(arrow, "UpdateVisuals", "arrowFrame.UpdateVisuals", function()
+	Hook(arrow, Redraw(arrow), "arrowFrame.UpdateVisuals", function()
 		PaintArrow(arrow)
 	end)
 	Hook(rxp, "SetupArrow", "SetupArrow", function()
@@ -1526,7 +1532,7 @@ local function CaptionReach(f, title)
 end
 
 function Chrome.IconInset(f)
-	local glass, title = Panel(f), f.title
+	local glass, title = Panel(f), RestedXP.Widget(f).title
 	local want
 	if state.chips[f] then
 		local l, _, t, b = ChipIcons(f)
@@ -1551,7 +1557,7 @@ end
 
 local function IconFrame(f, hide)
 	local skinned = Skin.IsSkinned(f, "Backdrop")
-	local title = f.title
+	local title = RestedXP.Widget(f).title
 	if not skinned then
 		Glass(f, { inside = { title } })
 	elseif not InCombatLockdown() then
@@ -1571,14 +1577,16 @@ local function IconFrame(f, hide)
 end
 
 local function Items(rxp)
-	local f = Find(rxp, "activeItemFrame")
+	local f = RestedXP.Box(rxp, "items")
 	if not f then
+		LogOnce("missing activeItemFrame", "activeItemFrame is missing in this RestedXP; skipped")
 		return
 	end
+	local parts = RestedXP.Widget(f)
 	local function Refresh()
 		IconFrame(f, "activeItemHideBG")
-		IconButtons(f.buttonList, true)
-		local first = IsTable(f.buttonList) and f.buttonList[1]
+		IconButtons(parts.buttonList, true)
+		local first = IsTable(parts.buttonList) and parts.buttonList[1]
 		if not InCombatLockdown() then
 			f:SetHeight(41)
 			if first then
@@ -1588,23 +1596,25 @@ local function Items(rxp)
 		end
 	end
 	Refresh()
-	Hook(f, "UpdateVisuals", "activeItemFrame.UpdateVisuals", Refresh)
+	Hook(parts, Redraw(parts), "activeItemFrame.UpdateVisuals", Refresh)
 	Hook(rxp, "UpdateItemFrame", "UpdateItemFrame", Refresh)
 end
 
 local function Targets(rxp)
 	local targeting = Find(rxp, "targeting")
-	local f = targeting and Find(targeting, "activeTargetFrame")
+	local f = targeting and RestedXP.Box(rxp, "targets")
 	if not f then
+		LogOnce("missing activeTargetFrame", "activeTargetFrame is missing in this RestedXP; skipped")
 		return
 	end
+	local parts = RestedXP.Widget(f)
 	local function Refresh()
 		IconFrame(f, "hideActiveTargetsBackground")
-		IconButtons(f.enemyTargetButtons, false)
-		IconButtons(f.friendlyTargetButtons, false)
+		IconButtons(parts.enemyTargetButtons, false)
+		IconButtons(parts.friendlyTargetButtons, false)
 	end
 	Refresh()
-	Hook(f, "UpdateVisuals", "activeTargetFrame.UpdateVisuals", Refresh)
+	Hook(parts, Redraw(parts), "activeTargetFrame.UpdateVisuals", Refresh)
 	Hook(targeting, "UpdateTargetFrame", "targeting.UpdateTargetFrame", Refresh)
 	Hook(targeting, "RenderTargetFrameBackground", "targeting.RenderTargetFrameBackground", Refresh)
 end
@@ -2433,10 +2443,7 @@ function Chrome.Start(rxp)
 	for _, section in ipairs(SECTIONS) do
 		Run(section[1], section[2], rxp)
 	end
-	if IsTable(rxp.v2) and type(rxp.v2.IsGuideWindowEnabled) == "function" then
-		local ok, on = pcall(rxp.v2.IsGuideWindowEnabled, rxp.v2)
-		if ok and on == true then
-			Run("v2 guide window", GuideWindowV2, rxp)
-		end
+	if RestedXP.V2On(rxp) then
+		Run("v2 guide window", GuideWindowV2, rxp)
 	end
 end

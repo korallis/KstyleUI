@@ -1235,6 +1235,12 @@ local function MiniFrame(m, rxp, key, name, label, hide)
 	local title = RxpBackdrop(m, m.frame("Frame", f, name .. "_title"))
 	local widget = { type = "RXPV2MiniFrame", frame = f, title = title }
 	f.obj = widget
+	for _, owner in ipairs({ f, title }) do
+		owner.rxpBackground:SetAllPoints(owner)
+		owner.rxpBorder:SetAllPoints(owner)
+		owner.rxpShadow:SetPoint("TOPLEFT", owner, "TOPLEFT", -2, 2)
+		owner.rxpShadow:SetPoint("BOTTOMRIGHT", owner, "BOTTOMRIGHT", 2, -2)
+	end
 	rxp.enabledFrames[key] = f
 	f:SetClampedToScreen(true)
 	f:EnableMouse(true)

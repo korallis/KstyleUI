@@ -52,12 +52,9 @@ local function Frame()
 	if not IsTable(f) or not IsTable(f.GuideName) or not IsTable(f.CurrentStepFrame) then
 		return nil
 	end
-	if IsTable(rxp.v2) and type(rxp.v2.IsGuideWindowEnabled) == "function" then
-		local ok, v2 = pcall(rxp.v2.IsGuideWindowEnabled, rxp.v2)
-		if ok and v2 == true then
-			LogOnce("rail v2", "RestedXP's v2 guide window is on; the guide card places only the v1 guide window")
-			return nil
-		end
+	if RestedXP.V2On(rxp) then
+		LogOnce("rail v2", "RestedXP's v2 guide window is on; the guide card places only the v1 guide window")
+		return nil
 	end
 	return f
 end
@@ -155,17 +152,7 @@ local function Docking()
 end
 
 local function Box(which)
-	local rxp = state.rxp
-	if not IsTable(rxp) then
-		return nil
-	end
-	local box
-	if which == "items" then
-		box = rxp.activeItemFrame
-	elseif IsTable(rxp.targeting) then
-		box = rxp.targeting.activeTargetFrame
-	end
-	return IsTable(box) and type(box.GetPoint) == "function" and box or nil
+	return RestedXP.Box(state.rxp, which)
 end
 
 local function Boxes()
@@ -207,8 +194,9 @@ local function Icons(box)
 	if not Plain(left) then
 		return need
 	end
+	local title = RestedXP.Widget(box).title
 	for _, child in ipairs({ box:GetChildren() }) do
-		local right = child ~= box.title and child:GetObjectType() == "Button" and child:IsShown() and child:GetRight()
+		local right = child ~= title and child:GetObjectType() == "Button" and child:IsShown() and child:GetRight()
 		if Plain(right) then
 			need = math.max(need, right - left + BOX_PAD)
 		end
@@ -791,9 +779,10 @@ local function WatchBox(box)
 	box:HookScript("OnHide", Watch)
 	box:HookScript("OnMouseDown", Pressed)
 	box:HookScript("OnMouseUp", Dropped)
-	if IsTable(box.title) and type(box.title.HookScript) == "function" then
-		box.title:HookScript("OnMouseDown", Pressed)
-		box.title:HookScript("OnMouseUp", Dropped)
+	local title = RestedXP.Widget(box).title
+	if IsTable(title) and type(title.HookScript) == "function" then
+		title:HookScript("OnMouseDown", Pressed)
+		title:HookScript("OnMouseUp", Dropped)
 	end
 end
 

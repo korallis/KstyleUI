@@ -10,7 +10,7 @@ return Common.Run(function()
 	local rxp
 	local env, K = S.New(Common.ScreenOpts({ setup = function(e)
 		Common.ForceScreen(e)
-		rxp = Fake.Install(e, { activeTheme = "DarkMode" })
+		rxp = Fake.Install(e, { activeTheme = "DarkMode", release = os.getenv("RENDER_RXP_RELEASE") })
 	end }))
 	K.Modules.Enable("Skins")
 	env.RunTimers()
