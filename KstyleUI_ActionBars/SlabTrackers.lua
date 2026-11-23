@@ -10,13 +10,14 @@ local Trackers = {}
 ns.SlabTrackers = Trackers
 
 local OWNER = "ActionBars.SlabTrackers"
-local RELIQUARY, OFF_HAND = 28, 17
+local RELIQUARY, MAIN_HAND, OFF_HAND = 28, 16, 17
 local LUA = {
 	cooldown = { "SPELL_UPDATE_COOLDOWN" },
 	usable = { "SPELL_UPDATE_USABLE", "SPELL_UPDATE_COOLDOWN", "PLAYER_TARGET_CHANGED" },
 	item = { "BAG_UPDATE_DELAYED", "BAG_UPDATE_COOLDOWN" },
 	threat = { "UNIT_THREAT_LIST_UPDATE", "UNIT_THREAT_SITUATION_UPDATE", "PLAYER_TARGET_CHANGED" },
 	fiveSecond = { { "UNIT_SPELLCAST_SUCCEEDED", "player" } },
+	enchant = { { "UNIT_INVENTORY_CHANGED", "player" } },
 }
 local MANA = { PALADIN = true, PRIEST = true, DRUID = true, SHAMAN = true, MAGE = true, WARLOCK = true, HUNTER = true }
 local ROUTE = {}
@@ -340,6 +341,13 @@ local function Stop()
 	end
 	state.form = nil
 	Listen(false)
+	for _, event in ipairs(HOOKS[ns.class] and HOOKS[ns.class].update or {}) do
+		if state.enabled then
+			K.Events.Register(OWNER, event, Trackers.Update)
+		else
+			K.Events.Unregister(OWNER, event)
+		end
+	end
 	if not done then
 		K.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", Trackers.Update)
 	else
@@ -439,8 +447,8 @@ function Trackers.SetEnabled(on)
 	Trackers.Update()
 end
 
-local function OffHand(row)
-	local item = GetInventoryItemID and GetInventoryItemID("player", OFF_HAND)
+local function Weapon(row)
+	local item = GetInventoryItemID and GetInventoryItemID("player", row.slot == "OffHand" and OFF_HAND or MAIN_HAND)
 	return not IsSecret(item) and item and Medals.Known(row.spells)
 end
 
@@ -548,6 +556,10 @@ Trackers.Register("PALADIN", {
 }, { burst = "medBurstPaladin" })
 
 local VANISH, POISONS = { 1857, 1856 }, { 2842 }
+local NOT_POISON = {}
+for _, id in ipairs({ 13, 14, 19, 20, 21, 25, 26, 40, 483, 484, 1643, 1703, 2506, 2623, 2624, 2625, 2626, 2627, 2628, 2629, 2684, 2685, 7098, 7327, 7896 }) do
+	NOT_POISON[id] = true
+end
 local POISON_STACKS = { 2818, 2819, 11353, 11354, 25349, 434312, 434313, 434314, 434315, 434316, 458820, 462286, 1214170 }
 
 Trackers.Register("ROGUE", {
@@ -560,8 +572,8 @@ Trackers.Register("ROGUE", {
 		{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", color = "plateHostile",
 			spells = { 11275, 11274, 11273, 8640, 8639, 1943, 11290, 11289, 8633, 8632, 8631, 703 } },
 	} },
-	{ key = "crestPoisons", seat = "lowerLeft", feed = "enchant", slot = "MainHand", known = POISONS, color = "schoolNature" },
-	{ key = "crestPoisons", seat = "lowerRight", feed = "enchant", slot = "OffHand", known = OffHand, spells = POISONS, color = "schoolNature" },
+	{ key = "crestPoisons", seat = "lowerLeft", feed = "enchant", slot = "MainHand", known = Weapon, spells = POISONS, reject = NOT_POISON, color = "schoolNature" },
+	{ key = "crestPoisons", seat = "lowerRight", feed = "enchant", slot = "OffHand", known = Weapon, spells = POISONS, reject = NOT_POISON, color = "schoolNature" },
 	{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", families = { { spells = { 13877 } }, { spells = { 13750 } },
 		{ spells = { 5277 } }, { spells = { 2983, 8696, 11305 } }, { spells = { 14177 } }, { spells = { 11327, 11329 }, known = VANISH },
 		{ spells = { 14278 } } } },

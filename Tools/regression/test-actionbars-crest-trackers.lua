@@ -176,7 +176,7 @@ end
 
 -- A rogue: Slice and Dice, Rupture and the vials.
 do
-	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 })
+	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { setup = function(e) e._items = { [16] = 2092 } end })
 	local shown = Pieces(ns)
 	assert(shown[1] and shown[2] and shown[3] and not shown[4], "Slice and Dice, Rupture and the main-hand vial; no off hand, no second vial")
 	local vx, vy = Seat(ns, shown[3])
@@ -184,7 +184,7 @@ do
 	ns.SlabMedals.Engine({ shown[3] }, true, true)
 	Slots.Enchant(env, 1, { start = 0, duration = 1800 })
 	assert(Lit(shown[3]) and AB.W.LastCall(shown[3].bar, "SetTimerDuration"), "a poison fills the vial and drains it")
-	env._items = { [17] = 2092 }
+	env._items = { [16] = 2092, [17] = 2092 }
 	env.FireEvent("PLAYER_EQUIPMENT_CHANGED", 17)
 	assert(Pieces(ns)[4], "an off-hand item brings the second vial")
 	Clean(env, K, "rogue")

@@ -200,6 +200,9 @@ function Medals.Feed(parent, spec, level)
 	button:SetAllPoints(parent)
 	button:SetFrameLevel(level)
 	button.container = container
+	if spec.feed == "enchant" then
+		button.gate = Medals.Layer(button, level)
+	end
 	return button
 end
 
@@ -254,7 +257,7 @@ function Medals.Medal(parent, spec, level)
 	for i, feed in ipairs(feeds) do
 		local each = feed == spec and spec or setmetatable(feed, { __index = spec })
 		local lit = Lit(m, each, level + 1 + 2 * (i - 1))
-		lit.icon = add(Medals.Round(lit), size * ICON)
+		lit.icon = add(Medals.Round(lit.gate or lit), size * ICON)
 		lit.icon:SetPoint("CENTER", m, "CENTER", 0, 0)
 		if each.feed == "aura" then
 			lit:SetIcon(lit.icon)
@@ -262,7 +265,7 @@ function Medals.Medal(parent, spec, level)
 			lit.icon:SetTexture(spec.texture)
 		end
 		if each.color and each.feed ~= "cooldown" then
-			lit.timer = add(Timer(lit, level + 2 + 2 * (i - 1), "orbRing", each.color), size + track)
+			lit.timer = add(Timer(lit.gate or lit, level + 2 + 2 * (i - 1), "orbRing", each.color), size + track)
 			if lit.container then
 				lit:SetDurationCooldown(lit.timer)
 			end
@@ -378,7 +381,7 @@ function Medals.Socket(parent, spec, level)
 	add(Medals.Texture(s, "ARTWORK", 1, "diamond", "jewelSetting", LIP))
 	add(Medals.Texture(s, "ARTWORK", 2, "forgedDiamond", "jewelSocket", GEM)):SetTexCoord(1, 0, 0, 1)
 	local lit = Lit(s, spec, level + 1)
-	s.bar = add(CreateFrame("StatusBar", nil, lit), GEM)
+	s.bar = add(CreateFrame("StatusBar", nil, lit.gate or lit), GEM)
 	s.bar:SetPoint("CENTER", s, "CENTER", 0, 0)
 	s.bar:SetOrientation("VERTICAL")
 	s.bar:SetStatusBarTexture((Tokens.Texture("diamond")))
@@ -551,6 +554,13 @@ function Medals.Refresh(m, event)
 				m.bar:SetValue(1)
 			end
 		end
+		return
+	end
+	if spec.feed == "enchant" then
+		local get = C_PaperDollInfo and C_PaperDollInfo.GetTemporaryEnchantmentInfo
+		local info = type(get) == "function" and get(spec.slot == "OffHand" and 17 or 16)
+		local id = type(info) == "table" and info.enchantID
+		m.lit.gate:SetAlpha(not IsSecret(id) and spec.reject and spec.reject[id] and 0 or 1)
 		return
 	end
 	if spec.feed == "threat" then
