@@ -167,7 +167,7 @@ end
 
 K.Events.Register("Health", "PLAYER_LOGIN", function()
 	K.Events.Unregister("Health", "PLAYER_LOGIN")
-	if C_Timer and C_Timer.After then C_Timer.After(5, Health.Check) else Health.Check() end
+	C_Timer.After(5, Health.Check)
 end)
 
 K.Callbacks.Register("ModuleChanged", "Health", function(_, name, on)
