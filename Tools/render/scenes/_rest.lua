@@ -1,4 +1,4 @@
--- _rest.lua: RENDER_REST draws the clean screen through the addon in each module's environment that holds a resting panel: rest (the panels RENDER_REST_T seconds into their fall, or settled), target (at rest, then a target, RENDER_REST_T seconds into the return), hover (at rest, then the pointer on bar 1, RENDER_REST_T seconds in) or off (the switch off, which must draw as staging does).
+-- _rest.lua: RENDER_REST draws the clean screen through the addon in each module's environment that holds a resting panel: rest (the panels RENDER_REST_T seconds into their fall, or settled), target (at rest, then a target, RENDER_REST_T seconds into the return), hover (at rest, then the pointer on bar 1, RENDER_REST_T seconds in) or off (the switch off, which must draw as staging does); unset, every scene draws the panels awake.
 local Rest = {}
 
 local MODES = { rest = true, target = true, hover = true, off = true }
@@ -39,7 +39,6 @@ function Rest.Apply(env, tick)
 		return nil
 	end
 	if mode == "off" then
-		K.Options.Write("Rest", "enabled", false)
 		return "rest: the clean screen is off"
 	end
 	local t = tonumber(os.getenv("RENDER_REST_T") or "")
@@ -79,6 +78,27 @@ function Rest.Apply(env, tick)
 		Run(env, K, tick, t)
 	end
 	return hovered and ("rest: the pointer on bar 1 brings the action bars back" .. (t and (", " .. t .. " s in") or "")) or nil
+end
+
+-- Awake(env): unless RENDER_REST asks for rest, target or hover, Scene.Build switches the clean screen off and lights
+-- any resting panel at once, so a scene's own timers never draw a rest it did not ask for.
+function Rest.Awake(env)
+	local mode = Rest.Mode()
+	local K = env.KstyleUI
+	local rest = K and K.Layout and K.Layout.Rest
+	if (mode and mode ~= "off") or not (rest and rest.Listen and K.Store.IsLoaded()) then
+		return
+	end
+	local wake = rest.WAKE
+	rest.WAKE = 0
+	K.Store.Module("Rest").enabled = false
+	rest.Listen()
+	rest.WAKE = wake
+	for _, keys in pairs(rest.PANELS) do
+		for _, key in ipairs(keys) do
+			K.Layout.RefreshAlpha(key, 0)
+		end
+	end
 end
 
 return Rest
