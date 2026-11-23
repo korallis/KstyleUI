@@ -248,6 +248,25 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
+-- Each switch's name and help name what it toggles.
+do
+	local env, K = New("PRIEST", PRIEST)
+	local function Says(key, ...)
+		local row = K.Options.Row("ActionBars", key)
+		local text = row.label .. " " .. row.help
+		for _, words in ipairs({ ... }) do
+			if not text:find(words, 1, true) then return false end
+		end
+		return true
+	end
+	assert(Says("crestPain", "Shadow Word: Pain", "Prayer of Mending"), "the Pain switch names the healer's Prayer of Mending too")
+	assert(Says("crestSwiftmend", "Swiftmend", "Nature's Swiftness", "Innervate", "Maul"), "the gem switch names Maul in Bear Form")
+	assert(Says("crestShadowfiend", "Shadowfiend", "Shadowform", "Vampiric Embrace"), "the right-medal switch names Vampiric Embrace")
+	assert(Says("crestThird", "Faerie Fire", "Wild Growth", "Cat Form"), "the Faerie Fire switch names its Cat Form socket")
+	assert(Says("crestAnkh", "Reincarnation", "Ankh") and not Says("crestAnkh", "gold"), "the ankh switch describes the cooldown medal")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
 -- The priest's rim knows every rank of the race spells it lists: Dark Sacrifice's five and Contingency Plan's five.
 for _, rank in ipairs({ 1277328, 1277640 }) do
 	local env, K, ns = New("PRIEST", { rank, 10947 })
