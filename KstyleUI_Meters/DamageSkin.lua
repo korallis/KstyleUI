@@ -93,6 +93,14 @@ local function PlaceText(entry)
 	name:SetPoint("RIGHT", value, "LEFT", -Tokens.Size("gapSmall"), 0)
 end
 
+local function Rename(entry)
+	local name = entry.StatusBar.Name
+	local text = name:GetText()
+	if DamageSkin.active and Widgets.Medallions() and not Logic.IsSecret(text) and type(text) == "string" then
+		name:SetText(K.Locale.Upper(text))
+	end
+end
+
 local function StylePill(pill)
 	local bar = pill.bar
 	local styled = ns.Get("nameplateRows")
@@ -185,6 +193,9 @@ local function StyleEntry(entry)
 		if type(entry.UpdateStyle) == "function" and bar.Name and bar.Value then
 			hooksecurefunc(entry, "UpdateStyle", PlaceText)
 		end
+		if type(entry.UpdateName) == "function" and bar.Name then
+			hooksecurefunc(entry, "UpdateName", Rename)
+		end
 	end
 	if styled ~= generation then
 		entries[entry] = generation
@@ -203,6 +214,9 @@ local function StyleEntry(entry)
 		end
 		if bar.Name and bar.Value then
 			PlaceText(entry)
+		end
+		if bar.Name then
+			Rename(entry)
 		end
 	end
 	Recolor(entry)

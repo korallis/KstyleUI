@@ -355,6 +355,7 @@ local function skin(frames)
 						total = total + other[3]
 					end
 					entry.UpdateValue, entry.value, entry.valuePerSecond, entry.sessionTotalValue = blizzardValue(env, s[3], total)
+					entry.UpdateName = function(self) self.StatusBar.Name:SetText(self.nameText) end
 					window.entries[i] = entry
 				end
 			end
@@ -402,6 +403,7 @@ local function skin(frames)
 					total = total + other[4]
 				end
 				entry.UpdateValue, entry.value, entry.valuePerSecond, entry.sessionTotalValue = blizzardValue(env, spell[4], total)
+				entry.UpdateName = function(self) self.StatusBar.Name:SetText(self.nameText) end
 				source.entries[i] = entry
 			end
 			function spellBox.ForEachFrame(_, fn)
@@ -465,7 +467,8 @@ local function skin(frames)
 		bar:SetMinMaxValues(0, top)
 		bar:SetValue(s[3])
 		bar.Name:SetPoint("LEFT", bar, "LEFT", SKIN_GAP, 0)
-		bar.Name:SetText(s[1])
+		entry.nameText = s[1]
+		entry:UpdateName()
 		bar.Value:SetPoint("RIGHT", bar, "RIGHT", -SKIN_GAP, 0)
 		entry:UpdateValue()
 	end
@@ -488,7 +491,8 @@ local function skin(frames)
 		bar:SetMinMaxValues(0, SPELLS[1][4])
 		bar:SetValue(spell[4])
 		bar.Name:SetPoint("LEFT", bar, "LEFT", SKIN_GAP, 0)
-		bar.Name:SetText(spell[2])
+		entry.nameText = spell[2]
+		entry:UpdateName()
 		bar.Value:SetPoint("RIGHT", bar, "RIGHT", -SKIN_GAP, 0)
 		entry:UpdateValue()
 	end

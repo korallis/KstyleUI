@@ -34,6 +34,9 @@ local function Entry(env, parent, class, display)
 	entry.UpdateValue = function(self)
 		self.StatusBar.Value:SetText(env.AbbreviateLargeNumbers(self.value or 0) .. " (" .. env.AbbreviateLargeNumbers(self.valuePerSecond or 0) .. ")")
 	end
+	entry.UpdateName = function(self)
+		self.StatusBar.Name:SetText(self.nameText)
+	end
 	-- Blizzard's Default style puts the text on the bar's middle (DamageMeterEntry.lua:285-288).
 	entry.UpdateStyle = function(self)
 		local name, value = self.StatusBar.Name, self.StatusBar.Value
@@ -122,7 +125,7 @@ local function Snapshot()
 	return keys
 end
 
-local HOOKED = { Update = true, SetAlpha = true, SetVertexColor = true, SetColorTexture = true, SetText = true, UpdateStatusBarColor = true, UpdateStyle = true, Refresh = true, SetupSessionWindow = true, InitEntry = true, SetMinMaxValues = true, SetValue = true }
+local HOOKED = { Update = true, SetAlpha = true, SetVertexColor = true, SetColorTexture = true, SetText = true, UpdateStatusBarColor = true, UpdateStyle = true, UpdateName = true, Refresh = true, SetupSessionWindow = true, InitEntry = true, SetMinMaxValues = true, SetValue = true }
 
 -- In a group, so the group-only default (on in both styles) leaves Blizzard's window where Edit Mode put it.
 local env, K, ns = M.New({
@@ -228,6 +231,14 @@ do
 	assert(select(1, entry.StatusBar.Name:GetPoint(1)) == "LEFT", "the Thin style keeps Blizzard's anchors")
 	entry.style = nil
 	entry:UpdateStyle()
+	-- Medallions names are caps, as the card's; a secret name passes untouched.
+	entry.nameText = "Kragar"
+	entry:UpdateName()
+	assert(entry.StatusBar.Name:GetText() == "KRAGAR", "a Medallions row name is caps: " .. tostring(entry.StatusBar.Name:GetText()))
+	entry.nameText = env.Secret("Kragar")
+	entry:UpdateName()
+	assert(env.issecretvalue(entry.StatusBar.Name:GetText()), "a secret name reaches the row untouched")
+	entry.nameText = nil
 end
 local glow = Glow(entry)
 assert(glow == nil, "no lens glow draws behind the pill: the restyled rows are the own meter's flat capsule")
