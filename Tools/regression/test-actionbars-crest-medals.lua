@@ -21,11 +21,19 @@ K.Events.Register = function(owner, event, fn)
 	return register(owner, event, fn)
 end
 
-local function Shown(button, group)
-	for _, g in ipairs(button._shownAnimations) do
+local function Played(list, group)
+	for _, g in ipairs(list) do
 		if g == group then return true end
 	end
 	return false
+end
+
+local function Shown(button, group)
+	return Played(button._shownAnimations, group)
+end
+
+local function Assigned(button)
+	return Played(button._assignedAnimations, button.flare.play)
 end
 
 do
@@ -36,14 +44,14 @@ do
 	assert(Medals.Engine({ m }, true, true) == false and not m.lit.fed, "nothing changes while auras are secret")
 	env._aurasSecret = false
 	assert(Medals.Engine({ m, socket, rim }, true, true), "Engine runs while auras are readable")
-	assert(Shown(m.lit, m.lit.flare.play), "a medal with no fire loop still gives the engine its flare")
-	assert(Shown(socket.lit, socket.lit.flare.play), "so does a socket")
-	assert(Shown(rim.lit, rim.lit.loop) and Shown(rim.lit, rim.lit.flare.play), "a rim gives its fire and its flare")
+	assert(Assigned(m.lit), "a medal with no fire loop still gives the engine its flare, played on each new aura")
+	assert(Assigned(socket.lit), "so does a socket")
+	assert(Shown(rim.lit, rim.lit.loop) and Assigned(rim.lit), "a rim gives its fire and its flare")
 	Slots.Set(env, "player", { { id = 6673, count = 0, icon = 132333, start = 0, duration = 120 } })
 	assert(m.lit:IsShown() and m.lit.icon._state.Texture[1] == 132333, "the aura lights the medal with its own icon")
 	assert(AB.W.LastCall(m.timer, "SetCooldownFromDurationObject"), "and drains the ring from its duration")
 	Medals.Engine({ m, socket, rim }, true, false)
-	assert(not Shown(m.lit, m.lit.flare.play) and not Shown(rim.lit, rim.lit.loop), "below Full the engine plays no flare or fire")
+	assert(not Assigned(m.lit) and not Shown(rim.lit, rim.lit.loop), "below Full the engine plays no flare or fire")
 	Slots.Enchant(env, 1, { start = 0, duration = 1800 })
 	assert(socket.lit:IsShown() and AB.W.LastCall(socket.bar, "SetTimerDuration"), "an enchant fills the socket and drains it")
 end

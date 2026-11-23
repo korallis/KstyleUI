@@ -488,11 +488,11 @@ function Medals.Engine(pieces, on, full)
 		for _, button in ipairs(p.lits or { p.lit }) do
 			if button.container then
 				if button.full ~= full then
-					for _, group in pairs({ loop = button.loop, flare = button.flare and button.flare.play }) do
+					for kind, group in pairs({ Shown = button.loop, Assigned = button.flare and button.flare.play }) do
 						if full then
-							button:AddAuraShownAnimation(group)
+							button["AddAura" .. kind .. "Animation"](button, group)
 						elseif button.full then
-							button:RemoveAuraShownAnimation(group)
+							button["RemoveAura" .. kind .. "Animation"](button, group)
 							group:Stop()
 						end
 					end
