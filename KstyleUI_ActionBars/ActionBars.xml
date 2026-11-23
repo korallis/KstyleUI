@@ -18,6 +18,7 @@
 	<Script file="SlabJewels.lua"/>
 	<Script file="SlabHawks.lua"/>
 	<Script file="SlabStorm.lua"/>
+	<Script file="SlabTrackers.lua"/>
 	<Script file="SlabCrown.lua"/>
 	<Script file="Totems.lua"/>
 	<Script file="Bindings.lua"/>
