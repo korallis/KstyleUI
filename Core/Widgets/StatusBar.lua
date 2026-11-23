@@ -282,7 +282,8 @@ local function Waits(edge, bar)
 		end
 		return true
 	end
-	if bar:IsVisible() then
+	local shown = bar:IsVisible()
+	if Widgets.IsSecret(shown) or shown then
 		return false
 	end
 	if not edge.hooked then

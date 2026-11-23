@@ -120,6 +120,12 @@ do
 	K.Skin.Strip(lit, { children = { light } })
 	assert(light:GetAlpha() == 1, "a strip that names a kept glass layer leaves it lit")
 
+	local veiled = Bar(B, 20)
+	veiled.IsVisible = function()
+		return env.Secret(false)
+	end
+	assert(ns.PartC.Bar(veiled).glassOn, "a bar whose visibility is secret counts as in view")
+
 	local plain = Bar(B, 20)
 	plain.GetOrientation = false
 	local ok, bare = pcall(ns.PartC.Bar, plain)
