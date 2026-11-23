@@ -549,7 +549,7 @@ function Plate.DiamondSize(plate)
 end
 
 function Plate.DiamondReach(plate)
-	return Widgets.Snap(plate, Plate.MarkerReach() + Tokens.Size("gapTiny")) + Pixel(plate) + Plate.DiamondSize(plate)
+	return Widgets.Snap(plate, Plate.MarkerReach() + (Widgets.Medallions() and 0 or Tokens.Size("gapTiny"))) + Pixel(plate) + Plate.DiamondSize(plate)
 end
 
 function Plate:LayoutDiamond()
