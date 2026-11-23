@@ -246,7 +246,7 @@ function Medals.Medal(parent, spec, level)
 	local size = spec.size or SIZE
 	local m = Medals.Piece(parent, level, size)
 	local feeds = spec.feeds or { spec }
-	local add, timed, track = m.add, spec.color ~= nil, size < SIZE and 2 or TRACK
+	local add, timed, track = m.add, spec.color ~= nil or spec.feed == "item", size < SIZE and 2 or TRACK
 	for _, feed in ipairs(feeds) do
 		timed = timed or feed.color ~= nil
 	end
@@ -262,6 +262,7 @@ function Medals.Medal(parent, spec, level)
 	m.steel:SetDesaturated(true)
 	m.steel:SetVertexColor(Tokens.Color("steel"))
 	m.steel:SetAlpha(STEEL)
+	m.steel:SetShown(spec.feed ~= "item")
 	for i, feed in ipairs(feeds) do
 		local each = feed == spec and spec or setmetatable(feed, { __index = spec })
 		local lit = Lit(m, each, level + 1 + 2 * (i - 1))
@@ -272,14 +273,19 @@ function Medals.Medal(parent, spec, level)
 		else
 			lit.icon:SetTexture(spec.texture)
 		end
-		if each.color and each.feed ~= "cooldown" then
-			lit.timer = add(Timer(lit.gate or lit, level + 2 + 2 * (i - 1), "orbRing", each.color), size + track)
+		if (each.color or each.feed == "item") and each.feed ~= "cooldown" then
+			lit.timer = add(Timer(lit.gate or lit, level + 2 + 2 * (i - 1), "orbRing", each.color or "gilt"), size + track)
 			if lit.container then
 				lit:SetDurationCooldown(lit.timer)
 			end
-		elseif each.feed == "cooldown" or each.feed == "item" then
+		elseif each.feed == "cooldown" then
 			lit.timer = add(Timer(lit, level + 2, "dot", "black", 0.7), size * ICON)
-			lit.timer:SetScript("OnCooldownDone", function() Medals.Fire(m) end)
+		end
+		if each.feed == "cooldown" or each.feed == "item" then
+			lit.timer:SetScript("OnCooldownDone", function()
+				lit.icon:SetDesaturated(false)
+				Medals.Fire(m)
+			end)
 		end
 		if each.count and lit.SetApplicationCount then
 			lit.count = Widgets.FontString(Medals.Layer(lit, top + 2), "OVERLAY")
@@ -607,11 +613,13 @@ function Medals.Refresh(m, event)
 		if id then
 			m.lit.icon:SetTexture(item.GetItemIconByID and item.GetItemIconByID(id) or spec.texture)
 			local start, duration = item.GetItemCooldown(id)
-			if not (IsSecret(start) or IsSecret(duration)) and type(duration) == "number" and duration > 0 then
+			local cooling = not (IsSecret(start) or IsSecret(duration)) and type(duration) == "number" and duration > 0
+			if cooling then
 				m.timer:SetCooldown(start, duration)
 			else
 				m.timer:Clear()
 			end
+			m.lit.icon:SetDesaturated(cooling)
 		end
 		return
 	end
