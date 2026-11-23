@@ -119,11 +119,7 @@ function Slot.Style(slot)
 	local path, size, flags = Settings.Font()
 	ApplyFont(slot.count, path, size, flags)
 	ApplyFont(slot.level, path, size, flags)
-	local swipe = Settings.Get("cooldownSwipeOnly")
-	if swipe or slot.swipeOnly then
-		slot.cooldown:SetHideCountdownNumbers(swipe)
-		slot.swipeOnly = swipe
-	end
+	slot.cooldown:SetHideCountdownNumbers(Settings.Get("cooldownSwipeOnly"))
 	if slot.bind then ApplyFont(slot.bind, path, Settings.Get("labelSize"), flags) end
 	if slot.set then ApplyFont(slot.set, path, Settings.Get("labelSize"), flags) end
 	if slot.name then

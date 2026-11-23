@@ -42,13 +42,11 @@ for _, hide in ipairs({ true, false }) do
 	env.RunTimers()
 	local cooldown = ns.Inventory.Slot(0, 1).cooldown
 	local last = B.W.LastCall(cooldown, "SetHideCountdownNumbers")
+	assert(last and last[1] == hide, "Swipe-only cooldowns (cooldownSwipeOnly, on by default) hides the countdown numbers; off gives them back to the engine")
 	if hide then
-		assert(last and last[1] == true, "Swipe-only cooldowns (cooldownSwipeOnly, on by default) hides the countdown numbers")
 		K.Options.Write("Bags", "cooldownSwipeOnly", false)
 		last = B.W.LastCall(cooldown, "SetHideCountdownNumbers")
 		assert(last and last[1] == false, "turning Swipe-only cooldowns off gives the numbers back to the engine")
-	else
-		assert(last == nil, "with Swipe-only cooldowns off the slot never touches the engine's countdown")
 	end
 	local text = cooldown:GetCountdownFontString()
 	assert(text:GetFont() == nil and #B.W.Calls(text, "SetTextColor") == 0, "the engine's countdown keeps its own font and colour")
