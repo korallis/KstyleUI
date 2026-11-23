@@ -13,25 +13,28 @@ local DEBUFFS_Y = BUFFS_Y + 88 + 16
 local PREVIEW_X, PREVIEW_Y, PREVIEW_W, PREVIEW_H = 400, 80, 300, 300
 local TILE_PAD = 4
 
--- The enchantment first (the module places enchantments before the aura groups), then the buffs by time left.
-local ENCHANT = { "sweepingStrikes", "28m" }
+-- Each sample: icon, timer text, stack count (debuffs: dispel type, then count), and the seconds it stands for.
+-- The enchantment first (the module places enchantments before the aura groups), then the buffs by time left, the
+-- order the default buff sort gives when every buff is the player's own.
+local ENCHANT = { "sweepingStrikes", "28m", nil, 1680 }
 local BUFFS = {
-	{ "victoryRush", "2s" },
-	{ "enrage", "9s", "5" },
-	{ "bloodrage", "12s" },
-	{ "berserkerRage", "17s", "3" },
-	{ "battleShout", "24s" },
-	{ "bloodFury", "3m" },
-	{ "shieldBlock", "8m" },
-	{ "retaliation", "1h" },
+	{ "victoryRush", "2s", nil, 2.4 },
+	{ "enrage", "9s", "5", 9 },
+	{ "bloodrage", "12s", nil, 12 },
+	{ "berserkerRage", "17s", "3", 17 },
+	{ "battleShout", "24s", nil, 24 },
+	{ "bloodFury", "3m", nil, 180 },
+	{ "shieldBlock", "8m", nil, 480 },
+	{ "retaliation", "1h", nil, 3600 },
 }
--- Debuffs with the engine's dispel-type colours (poison, curse, magic, none and disease), soonest to end first.
+-- Debuffs with the engine's dispel-type colours (poison, curse, magic, none and disease), in a sample order by time
+-- left: the live rows sort debuffs by priority by default (boss, important, then yours; KstyleUI_Auras/README.md).
 local DEBUFFS = {
-	{ "sunderArmor", "4s", "POISON" },
-	{ "hamstring", "9s", "CURSE" },
-	{ "rend", "18s", "MAGIC", "2" },
-	{ "thunderClap", "26s", "NONE" },
-	{ "demoralizingShout", "1m", "DISEASE" },
+	{ "sunderArmor", "4s", "POISON", nil, 4 },
+	{ "hamstring", "9s", "CURSE", nil, 9 },
+	{ "rend", "18s", "MAGIC", "2", 18 },
+	{ "thunderClap", "26s", "NONE", nil, 26 },
+	{ "demoralizingShout", "1m", "DISEASE", nil, 60 },
 }
 
 -- RENDER_AURAS_PARITY=1 switches on the EllesmereUI parity options a player sees: the dispel-type icon in the stack
@@ -44,7 +47,6 @@ local PARITY = os.getenv("RENDER_AURAS_PARITY") == "1"
 -- corner with the stack count stepped under it, and the type icon on the debuffs' bottom edge (in the extra debuff row's
 -- top right corner, with the timer in the lane under it).
 local ROUND2 = os.getenv("RENDER_AURAS_PARITY") == "2"
-local SECONDS = { buffs = { 1680, 2.4, 9, 12, 17, 24, 180, 480, 3600 }, debuffs = { 4, 9, 18, 26, 60 } }
 local REFRESHABLE = { buffs = 2, debuffs = 1 }
 
 local function at(frame, x, y, w, h)
@@ -72,7 +74,7 @@ local function fill(env, button, icon, timer, count, seconds, refresh)
 		local formatter = aura.timerOptions and aura.timerOptions.textFormatter
 		aura.timer:SetText(PARITY and formatter and formatter:FormatNumber(seconds) or timer)
 		-- The engine's expiring curve (Duration.ExpiringColor) turns a timer under the warning red.
-		if seconds and seconds < env.KstyleUI.Options.Read("Auras", "timer.expiring") then
+		if seconds < env.KstyleUI.Options.Read("Auras", "timer.expiring") then
 			aura.timer:SetTextColor(env.KstyleUI.Tokens.Color("hostile"))
 		end
 	end
@@ -146,12 +148,12 @@ return Common.Run(function()
 	local tiles = {}
 	local enchant = buffs._enchants[env.AuraContainerItemEnchantmentSlot.MainHand]
 	if enchant then
-		fill(env, enchant.frame, ENCHANT[1], ENCHANT[2], nil, SECONDS.buffs[1])
+		fill(env, enchant.frame, ENCHANT[1], ENCHANT[2], nil, ENCHANT[4])
 		tiles[#tiles + 1] = enchant.frame
 	end
 	for i, buff in ipairs(BUFFS) do
 		local button = buffGroup.frames[i]
-		fill(env, button, buff[1], buff[2], buff[3], SECONDS.buffs[i + 1], i + 1 == REFRESHABLE.buffs)
+		fill(env, button, buff[1], buff[2], buff[3], buff[4], i + 1 == REFRESHABLE.buffs)
 		tiles[#tiles + 1] = button
 	end
 	Hud.PlaceAuras(buffs, buffGroup, tiles, 8)
@@ -168,14 +170,14 @@ return Common.Run(function()
 	local harmful = {}
 	for i, debuff in ipairs(DEBUFFS) do
 		local button = debuffGroup.frames[i]
-		fill(env, button, debuff[1], debuff[2], debuff[4], SECONDS.debuffs[i], i == REFRESHABLE.debuffs)
+		fill(env, button, debuff[1], debuff[2], debuff[4], debuff[5], i == REFRESHABLE.debuffs)
 		dispel(env, Widgets, button, debuff[3])
 		harmful[#harmful + 1] = button
 	end
 	Hud.PlaceAuras(debuffs, debuffGroup, harmful, 8)
 	frames:Add(env, K.Layout.Element("auras.debuffs").frame, {
 		name = "auras_debuffs", title = "Debuff rows", grade = "button", reference = "bufficons",
-		caption = "The debuff rows, their own element 16 under the buffs: five debuffs on the same bare tiles, the hostile rim under a nine-piece plate the engine colours poison, curse, magic, none (red) and disease, soonest to end first, timers under the icons and a stack badge on the third.",
+		caption = "The debuff rows, their own element 16 under the buffs: five debuffs on the same bare tiles, the hostile rim under a nine-piece plate the engine colours poison, curse, magic, none (red) and disease, a sample ordered by time left (the live rows sort debuffs by priority by default), timers under the icons and a stack badge on the third.",
 		match = "Tiles as the buff rows; the rims are the dispel colours, not the mockup's neutral grey, since the mockup shows no debuffs.",
 	})
 
@@ -187,8 +189,8 @@ return Common.Run(function()
 			local container, group = A.Container(env, row[1])
 			local list = {}
 			for i, n in ipairs(row[3]) do
-				local spec, button = row[4][n], group.frames[i]
-				fill(env, button, spec[1], spec[2], row[4] == BUFFS and spec[3] or spec[4], SECONDS[row[4] == BUFFS and "buffs" or "debuffs"][n])
+				local spec, button, buff = row[4][n], group.frames[i], row[4] == BUFFS
+				fill(env, button, spec[1], spec[2], spec[buff and 3 or 4], spec[buff and 4 or 5])
 				if row[4] == DEBUFFS then dispel(env, Widgets, button, spec[3]) end
 				list[#list + 1] = button
 			end

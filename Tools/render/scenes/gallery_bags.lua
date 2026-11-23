@@ -2,7 +2,7 @@
 -- window open at a banker and a merchant with items of every quality, stacks, an empty slot, a quest item, a new
 -- item, a locked item and one on cooldown, its search box, Sort and Sell junk buttons and the free-slots and money
 -- footer; a close crop of six slots; the bank window on the character bank with its Bank and Warband tabs, its
--- bank bag strip, the Buy tab button and the bag sections; and the options page's live preview on a plain holder.
+-- bank bag strip, the Buy tab button and the bag sections; and the options page's live preview in its pane.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 
@@ -80,15 +80,19 @@ return Common.Run(function()
 	W.Enter(hovered.button)
 	hover[hovered.button] = true
 
-	-- The options preview in the settings window's preview pane: its buttonFill tile (KstyleUI_Options/Preview.lua:600)
-	-- with the window inset around the preview.
+	-- The options preview in the settings window's preview pane, as Preview.Create and its Place draw it
+	-- (KstyleUI_Options/Preview.lua:599-625): the buttonFill tile, the Live preview cap and the clipped holder under it.
 	local pane = K.Widgets.Panel(root, { shape = "tile", fill = "buttonFill", shadow = false })
-	local pad = K.Widgets.WindowInset(pane)
-	pane:SetSize(320 + 2 * pad, 150 + 2 * pad)
+	local pad, gap = K.Widgets.WindowInset(pane), K.Widgets.Snap(pane, K.Tokens.Size("gapMedium"))
+	local cap = K.Widgets.SectionCap(pane, { text = "Live preview" })
+	K.Widgets.Point(cap, "TOPLEFT", pane, "TOPLEFT", pad, -pad)
+	K.Widgets.Point(cap, "TOPRIGHT", pane, "TOPRIGHT", -pad, -pad)
+	pane:SetSize(320 + 2 * pad, 150 + 2 * pad + gap + cap:SetWrapWidth(320))
 	at(pane, root, 1100, 60)
 	local holder = env.CreateFrame("Frame", nil, pane)
-	holder:SetPoint("TOPLEFT", pane, "TOPLEFT", pad, -pad)
+	K.Widgets.Point(holder, "TOPLEFT", cap, "BOTTOMLEFT", 0, -gap)
 	holder:SetSize(320, 150)
+	holder:SetClipsChildren(true)
 	local preview = K.Options.Preview("Bags")(holder)
 	preview:SetAllPoints(holder)
 	preview:Refresh()
@@ -119,7 +123,7 @@ return Common.Run(function()
 	})
 	frames:Add(env, pane, {
 		name = "bags_preview", title = "Bags preview", grade = "button", reference = "bufficons",
-		caption = "The options page's live preview for Bags: the heading and eight sample slots drawn by the module's own slot code with the current settings (a stack, an uncommon, a new epic, a rare, junk, two commons and an empty slot); the preview draws no chrome of its own; it sits on the options window's preview pane tile, as here.",
+		caption = "The options page's live preview for Bags: the heading and eight sample slots drawn by the module's own slot code with the current settings (a stack, an uncommon, a new epic, a rare, junk, two commons and an empty slot); the preview draws no chrome of its own; it sits under the Live preview cap on the options window's preview pane tile, as here.",
 		match = "Each sample slot is the button grade's body, chamfer and rim, as the mockup's buff icons; the plate behind them is the options window's preview pane tile (buttonFill, no shadow).",
 	})
 
