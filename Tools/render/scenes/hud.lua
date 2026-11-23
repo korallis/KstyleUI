@@ -2121,6 +2121,8 @@ function modules.restedxp(opts)
 end
 
 Hud.modules = modules
+-- The module scenes' draw order lives in this copy of scene.lua, so merges across modules sort with it.
+Hud.Merge = Scene.Merge
 
 -- Order(opts) -> the module names a HUD draws, in draw order.
 function Hud.Order()

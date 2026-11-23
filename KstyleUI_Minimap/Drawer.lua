@@ -449,6 +449,9 @@ function Drawer:Layout()
 		local left = Settings.Get("column.side") == "left"
 		local x = point:find("RIGHT") and not left and -reserve or point:find("LEFT") and left and reserve or 0
 		local y = point:find("TOP") and -Widgets.Snap(panel, Format.NORTH) or 0
+		if ns.Face.Round() and not list then
+			point, x, y = "CENTER", Widgets.Snap(panel, (left and reserve or -reserve) / 2), 0
+		end
 		panel:SetPoint(point, area, point, x, y)
 	end
 	if list and slot > 0 then

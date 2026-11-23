@@ -549,7 +549,7 @@ function Plate.DiamondSize(plate)
 end
 
 function Plate.DiamondReach(plate)
-	return Widgets.Snap(plate, Plate.MarkerReach()) + Pixel(plate) + Plate.DiamondSize(plate)
+	return Widgets.Snap(plate, Plate.MarkerReach() + Tokens.Size("gapTiny")) + Pixel(plate) + Plate.DiamondSize(plate)
 end
 
 function Plate:LayoutDiamond()
@@ -1474,9 +1474,9 @@ function Plate:UpdateThreat()
 	if state then
 		if state == "warning" then shape:SetTexture((Tokens.Texture("diamond"))) else shape:SetColorTexture(Tokens.Color("white")) end
 		shape:SetTexCoord(0, 1, 0, state == "warning" and 0.5 or 1)
-		Widgets.Size(shape, state == "safe" and 2 or 8, 8)
+		Widgets.Size(shape, state == "safe" and 2 or 6, 6)
 		shape:ClearAllPoints()
-		Widgets.Point(shape, "TOPLEFT", self.health, "TOPRIGHT", 6, 0)
+		Widgets.Point(shape, "LEFT", self.health, "RIGHT", 8, 0)
 		shape:SetVertexColor(ThreatColor(state))
 	end
 	local glow = self.threatGlow

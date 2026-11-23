@@ -884,14 +884,16 @@ function build.talents(env, B)
 	}
 end
 
--- The world map (Blizzard_WorldMap.lua:104, 702 by 534 minimized) with the quest log docked on its right (QuestMapFrame.xml:427, 330 wide).
+-- The world map (Blizzard_WorldMap.lua:104, 702 by 534 minimized) widened by 333 for the quest log it holds on its
+-- right (QuestLogOwnerMixin.lua:166; WorldMapMixin:AttachQuestLog sets the log 3 in from the right, 25 down, 3 up).
+-- The canvas spans the map part 2 in from the left and bottom (Blizzard_WorldMap.xml:11-17).
 function build.worldmap(env, B)
 	local map = B.frame("Frame", nil, "WorldMapFrame")
-	map:SetSize(702, 534)
+	map:SetSize(702 + 333, 534)
 	At(map, env.UIParent, 120, 120)
 	map:SetFrameLevel(5)
 	map.ScrollContainer = B.frame("ScrollFrame", map)
-	Fill(map.ScrollContainer, map, 0, TITLE_HEIGHT + 20, 0, 0)
+	Fill(map.ScrollContainer, map, 2, TITLE_HEIGHT + 20, 3 + 333, 2)
 	-- The map canvas: a flat field here; the gallery paints the mockup's terrain on it when standins.py has cut it.
 	local canvas = Colour(B, map.ScrollContainer, "BACKGROUND", 0.23, 0.29, 0.19)
 	canvas:SetAllPoints(map.ScrollContainer)
@@ -933,17 +935,18 @@ function build.worldmap(env, B)
 	Text(B.text(map.NavBar.home), "Kalimdor  >  Durotar", "LEFT", map.NavBar.home, "LEFT", 4, 0)
 
 	local log = B.frame("Frame", map, "QuestMapFrame")
-	Anchor(log, map, "TOPLEFT", "TOPRIGHT", 2, 0)
-	log:SetSize(330, 534)
+	Anchor(log, map, "TOPRIGHT", -3, -25)
+	log:SetSize(330, 534 - 25 - 3)
 	log.QuestsFrame = B.frame("Frame", log)
 	log.QuestsFrame:SetAllPoints(log)
 	local scroll = B.frame("ScrollFrame", log.QuestsFrame, "QuestScrollFrame")
 	log.QuestsFrame.ScrollFrame = scroll
-	Fill(scroll, log, 8, 36, 8, 8)
+	-- QuestMapFrame.xml:484-501: the list fills the quests frame 29 below its top, 22 short of its right for the bar.
+	Fill(scroll, log, 0, 29, 22, 0)
 	scroll.Background, scroll.Edge = B.texture(scroll, "BACKGROUND"), B.texture(scroll)
 	scroll.ScrollBar = ScrollBar(B, scroll)
-	Anchor(scroll.ScrollBar, scroll, "TOPRIGHT", 0, -30)
-	scroll.ScrollBar:SetHeight(440)
+	Anchor(scroll.ScrollBar, scroll, "TOPLEFT", "TOPRIGHT", 8, 0)
+	scroll.ScrollBar:SetHeight(534 - 25 - 3 - 29)
 	scroll.SearchBox = EditBox(B, scroll, "Search quests", 260)
 	At(scroll.SearchBox, scroll, 10, 2)
 	scroll.BorderFrame = B.frame("Frame", scroll)

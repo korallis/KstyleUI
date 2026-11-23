@@ -191,7 +191,7 @@ local function Refresh()
 	menu:ClearAllPoints()
 	local top = crest:GetTop()
 	local lift = GAP
-	for _, key in ipairs({ "unitframes.castbar.player", "unitframes.castbar.target" }) do
+	for _, key in ipairs({ "unitframes.castbar.player", "unitframes.castbar.target", "cooldowns.essential" }) do
 		local element = K.Layout.Element(key)
 		local frame = element and element.frame
 		local place = K.Setup.Layouts.Style("DPS", key, "medallions")
@@ -199,7 +199,7 @@ local function Refresh()
 		local scale = frame and ns.TravelData.Plain(frame:GetEffectiveScale(), "number")
 		local own = ns.TravelData.Plain(menu:GetEffectiveScale(), "number")
 		if edge and scale and own and own > 0 then edge = edge * scale / own else edge = nil end
-		edge = edge or (place and place.y + place.height)
+		edge = edge or (place and place.y + (place.height or K.Setup.Layouts.Element(key).height))
 		if edge and ns.TravelData.Plain(top, "number") then lift = math.max(lift, edge - top + GAP + GROUP_GAP) end
 	end
 	menu:SetPoint("BOTTOM", crest, "TOP", 0, lift)

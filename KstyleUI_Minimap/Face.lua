@@ -584,7 +584,7 @@ function Face:PlaceRound(round)
 		plaques = {}
 		for i = 1, 2 do
 			local plaque = CreateFrame("Frame", nil, self.overlay)
-			plaque:SetFrameLevel(self.overlay:GetFrameLevel())
+			plaque:SetFrameLevel(self.overlay:GetFrameLevel() + 1)
 			plaque.chrome = Widgets.Chrome(plaque, { shape = "card", fill = "surface", shadow = false, gilt = false })
 			plaques[i] = plaque
 		end

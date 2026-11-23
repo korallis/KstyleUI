@@ -41,6 +41,7 @@ function Vehicle.Build()
 		tooltip = L["Leave vehicle"],
 		primary = true,
 	})
+	button.kind = "vehicle"
 	button:Hide()
 	ns.leaveButton = button
 	return button
@@ -61,6 +62,7 @@ function Vehicle.Update()
 		button.opts.size = size
 		button:Restyle()
 	end
+	ns.Slab.Dress(button)
 	button:ClearAllPoints()
 	if bar and K.HudStyle.Current() == "medallions" then
 		local right = ns.bars.bar2 and ns.bars.bar2:Shown() and ns.bars.bar2 or bar
