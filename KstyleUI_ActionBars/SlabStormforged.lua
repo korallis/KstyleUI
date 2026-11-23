@@ -1,4 +1,4 @@
--- SlabStormforged.lua: the shaman's crest trackers beside the Spirit Poles and storm orbs, registered with SlabTrackers, each on its own switch: a rune stone set into the ring's lower left for the main hand's imbue and its lower right for the off hand's (only with an off-hand weapon), its rune lit in the imbue's element colour while the enchant's own frame shows, guttering through the last five minutes and dark under a pulsing gilt rim when there is none; the shock cooldown, the shaman's interrupt, as a sweep that dims the class emblem until it is ready, then sparks, a cooldown medal under Frames; on the left foot perch your Flame Shock on an enemy, Stormstrike's debuff drawn over it, or Riptide on a friend; a small ankh on the right foot perch, gold while Reincarnation is ready and an Ankh is in the bags; and the major cooldowns burning on the rim. The weapon enchant's frame and the cooldown's duration object draw the timers; the enchant, the cooldown state and the item count are values the client never makes secret.
+-- SlabStormforged.lua: the shaman's crest trackers beside the Spirit Poles and storm orbs, registered with SlabTrackers, each on its own switch: a rune stone set into the ring's lower left for the main hand's imbue and its lower right for the off hand's (only with an off-hand weapon), its rune lit in the imbue's element colour while the enchant's own frame shows, guttering through the last five minutes and dark under a pulsing gilt rim when there is none (an enchant medal under Frames, as the poison vials are); the shock cooldown, the shaman's interrupt, as a sweep that dims the class emblem until it is ready, then sparks, a cooldown medal under Frames; on the left foot perch your Flame Shock on an enemy, Stormstrike's debuff drawn over it, or Riptide on a friend; a small ankh on the right foot perch, gold while Reincarnation is ready and an Ankh is in the bags; and the major cooldowns burning on the rim. The weapon enchant's frame and the cooldown's duration object draw the timers; the enchant, the cooldown state and the item count are values the client never makes secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -51,7 +51,10 @@ local function Flare(piece, parent, level, token, size)
 	parent.flare, piece.flare = flare, flare
 end
 
-local function Stone(parent, spec, level)
+local function Stone(parent, spec, level, form)
+	if form == "row" then
+		return Medals.Medal(parent, spec, level)
+	end
 	local s = Piece(parent, level, SETTING)
 	s.slot = SLOTS[spec.slot]
 	s.add(Medals.Texture(s, "BACKGROUND", 0, "glow", "black", SETTING * 1.6)):SetAlpha(0.6)

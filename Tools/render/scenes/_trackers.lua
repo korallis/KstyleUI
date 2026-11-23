@@ -86,10 +86,11 @@ local HEALERS = {
 		{ 2.5, cooldown = { 6795, 8 } },
 		{ 3, queue = 9881 },
 	} },
-	DRUID_moonkin = { at = 4, form = 31, known = DRUID, beats = {
+	DRUID_moonkin = { at = 4, form = 31, known = { 9835, 24977, 25299, 9858, 9907, 24858, 16864, 17116, 29166, 22812, 1850 }, beats = {
 		{ 0.5, aura = { "target", 9835, 0, 12, true } },
 		{ 1, aura = { "target", 24977, 0, 12, true } },
-		{ 2, cooldown = { 17402, 60 } },
+		{ 1.5, aura = { "target", 9907, 0, 40, true } },
+		{ 2, cooldown = { 17116, 180 } },
 		{ 2.5, aura = { "player", 16870, 1, 15 } },
 	} },
 	PRIEST_shadowform = { at = 4, form = 28, known = { 10952, 10947, 15473, 15286, 10894, 401977, 586, 15334, 19280, 1309636, 15487 }, beats = {
