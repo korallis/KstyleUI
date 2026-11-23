@@ -12,6 +12,7 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 
 - #765 party frames readable (larger on ultrawide, readable names and numbers, dark missing health, offline members show empty tracks, crown on the rim). Owner decided (A): the 16:9 percent text keeps its size so names keep 12 letters; readability comes from the divider and backing.
 - #767 polish batch D (keybinds on the icon art, autocast dots, vehicle button socket, travel menu on top, minimap plaque and drawer, threat mark, world map stand-in matches the game).
+- #772 Medallions unit frames fitted to the crest (Fitted slabs: arms under the ring, even insets, power in its colour, status sockets on the slab with steel rivets for empty player slots, raid marker on the portrait rim; heal prediction in the bar's colour; aura stacks inside the corner; boss and focus cast tracks).
 - #769 meters polish (swing timer stays full, readable damage meter rows with tracks, finished empty cards).
 
 ## Open pull requests (all target staging)
@@ -20,7 +21,6 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 | --- | --- | --- | --- |
 | #768 | korallis/lumpfish-2 | Polish batch C: chat, bags, tooltips, data bars, auras | Review found: a restricted shopping-tooltip level throws, honour controls overridden, preview text overlap, bag countdown not restored (kstyleui-evidence/verify-768-feab2289/REPORT.md). Fix round in progress. Follow-ups outside its files: audit A#3 (UnitFrames player aura row), A#9 (bars 3/4 unbound '-' hotkey). |
 | #771 | korallis/healer-crest-trackers | Crest trackers: priest, druid, shaman extension | d4b326c89, stacked on the melee crest branch (2d2f87d1f): registered on SlabTrackers with per-form choices, cooldown families, all research additions, generated art, 21 switches, 4 locales. Left: switch to the shared foot seats, five-second rule and threat emblem when the melee owner pushes them; evidence set; module sweep, python gate, hosted CI; PR body with the 12 in-game checks. |
-| #772 | korallis/fix-medallions-unit-frame | Medallions unit frames fitted to the crest (Fitted slabs, heal prediction tint), audit fixes | Fix round at 3c71f0171: findings 1-9 and 11 fixed with regressions; left: raise the spread player cast slot in Core/Setup/Layouts.lua (reach tests fail until then), README/PR body, gates, evidence, CI. Decisions given: both switches stay ON; zero pixel diff with both off; empty steel status sockets always shown; the player cast slot raised 7 units into the gap under the target cast (zero default diffs), or the socket row starts clear of the cast column if the two casts look cramped; one line in `KstyleUI_UnitFrames/Unit.lua` for the heal tint. |
 
 ## Work in progress without a PR yet
 
