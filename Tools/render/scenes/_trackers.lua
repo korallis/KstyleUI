@@ -21,7 +21,6 @@ local ICONS = {
 	[10333] = 135891, [24239] = 132326, [10308] = 135963, [20473] = 135972, [407632] = 135891, [25780] = 135962, [20050] = 132275,
 	[1769] = 132219, [1316709] = 136168, [1310703] = 132290, [14143] = 132151, [14251] = 132336, [20925] = 135880,
 }
-local KEYS = { "crestShout", "crestOpening", "crestEnrage", "crestSeal", "crestJudgement", "crestJudged", "crestVengeance", "crestSlice", "crestRupture", "crestPoisons" }
 Trackers.END = 12
 
 function Trackers.Story(class)
@@ -78,7 +77,8 @@ end
 function Trackers.Play(env, K, ns, notes)
 	local story, now = Trackers.Story(ns.class)
 	if os.getenv("RENDER_TRACKERS_OFF") == "1" then
-		for _, key in ipairs(KEYS) do K.Options.Write("ActionBars", key, false) end
+		K.Options.Write("ActionBars", "crestVengeance", false)
+		for _, row in ipairs(ns.SlabTrackers.CLASSES[ns.class]) do K.Options.Write("ActionBars", row.key, false) end
 	end
 	env.RunTimers()
 	local class, t0 = ns.class, story == "moment" and now or 6

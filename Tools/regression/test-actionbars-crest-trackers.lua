@@ -331,10 +331,29 @@ do
 end
 
 do
-	local env, K, ns = New("PALADIN", { 20154, 20271 }, { frames = true })
+	local env, K, ns = New("PALADIN", { 20154, 20271, 642, 10333, 24239, 10308 }, { frames = true })
 	local form = ns.SlabTrackers.state.forms.row
 	local _, relative, point = form.frame:GetPoint(1)
 	assert(relative == ns.bars.stance.holder and point == "BOTTOMLEFT", "no stance buttons: the row starts where the stance bar does")
+	local first = form.pieces["2:1"]
+	K.Options.Write("ActionBars", "crestSeal", false)
+	env.RunTimers()
+	assert(not first:IsVisible(), "under Frames a switch reaches the row without the slab")
+	K.Options.Write("ActionBars", "crestSeal", true)
+	env.RunTimers()
+	local lines = {}
+	for _, piece in pairs(form.pieces) do
+		if piece:IsVisible() then
+			local _, y = piece:GetCenter()
+			lines[math.floor(y + 0.5)] = (lines[math.floor(y + 0.5)] or 0) + 1
+		end
+	end
+	local n = 0
+	for _, count in pairs(lines) do
+		assert(count <= 5, "the row wraps at five medals a line")
+		n = n + 1
+	end
+	assert(n == 2, "eight medals stand in two lines")
 	Clean(env, K, "frames paladin")
 end
 

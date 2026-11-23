@@ -10,7 +10,7 @@ local Trackers = {}
 ns.SlabTrackers = Trackers
 
 local OWNER = "ActionBars.SlabTrackers"
-local GAP, VIAL, RELIQUARY, OFF_HAND = 4, 20, 28, 17
+local GAP, VIAL, RELIQUARY, OFF_HAND, LINE = 4, 20, 28, 17, 5
 local LUA = {
 	cooldown = { "SPELL_UPDATE_COOLDOWN" },
 	usable = { "SPELL_UPDATE_USABLE", "SPELL_UPDATE_COOLDOWN", "PLAYER_TARGET_CHANGED" },
@@ -202,14 +202,15 @@ local function Lay(form, name, seat, shown, order, specs)
 	for key, piece in pairs(form.pieces) do
 		piece:SetShown(shown[key] ~= nil)
 	end
-	local x = 0
+	local x, n, pitch = 0, 0, Medals.SIZE + GAP
 	for _, key in ipairs(order) do
 		local piece, spec = shown[key], specs[key]
 		if spec.place then
 			x = spec.place(piece, name == "crest" and seat or form.frame, name, x) or x
 		elseif name == "row" then
-			Medals.Place(piece, form.frame, x, 0)
-			x = x + Medals.SIZE + GAP
+			Medals.Place(piece, form.frame, n % LINE * pitch, math.floor(n / LINE) * pitch)
+			n = n + 1
+			x = math.min(n, LINE) * pitch
 		elseif type(spec.seat) == "table" then
 			Medals.Place(piece, seat, spec.seat[1], spec.seat[2])
 		elseif spec.seat == "rim" or spec.seat == "cooldowns" then
@@ -395,11 +396,22 @@ function Trackers.Update()
 	Listen(true, kinds, forms)
 end
 
+local function OnSetting(_, module, key)
+	if module == "ActionBars" and type(key) == "string" and key:find("^crest") then
+		Trackers.Update()
+	end
+end
+
 function Trackers.SetEnabled(on)
 	state.enabled = on
 	if on and not state.resting then
 		state.resting = true
 		Medals.OnRest(Motion)
+	end
+	if on and CLASSES[ns.class] then
+		K.Callbacks.Register("SettingChanged", OWNER, OnSetting)
+	else
+		K.Callbacks.Unregister("SettingChanged", OWNER)
 	end
 	Trackers.Update()
 end
