@@ -104,6 +104,7 @@ do
 	local gr, gg, gb = K.Widgets.Rgba("giltLit")
 	assert(W.SameRGB(glow.texture, gr, gg, gb) and W.LastCall(glow.texture, "SetBlendMode")[1] == "ADD", "a lit steel light inside the icon")
 	assert(W.SameRGB(b.procHalo[1], gr, gg, gb) and W.LastCall(b.procHalo[1], "SetBlendMode")[1] == "ADD", "and a lit steel halo round the slot")
+	assert(W.Near(b.stateProcSpread, K.Widgets.Snap(b, 5.6)) and W.Near(select(4, b.procHalo[1]:GetVertexColor()), 0.6, 0.01), "the halo reaches 5.6 units at 60%, as the action bars' proc does, so the lit rim stays as wide as a resting rim")
 	assert(b.chrome.proc, "the slot's outer edge lights")
 	assert(noTween(env), "the breath is the client's, not a tween")
 	b:SetProc(false)
@@ -114,6 +115,20 @@ do
 	K.Motion.SetReducedMotion(false)
 	b:Paint()
 	assert(glow.breath:IsPlaying(), "and full motion breathes again")
+	assert(#env._errors == 0, table.concat(env._errors, "\n"))
+end
+
+-- The PR #777 review: the action bars' "Soft proc and ready glow" off keeps the previous glow, apart from the
+-- plain slot's soft one, and a polished proc's halo is visible before its first animation tick.
+do
+	local env, K, old = slot({ procTransitions = false })
+	old:SetProc(true)
+	assert(W.Near(old.stateProcSpread, K.Widgets.Snap(old, 10)) and W.Near(select(4, old.procHalo[1]:GetVertexColor()), 1, 0.01), "the opt-out keeps the previous halo, 10 units at full strength: " .. old.stateProcSpread .. ", " .. select(4, old.procHalo[1]:GetVertexColor()))
+	local _, _, polished = slot({ procTransitions = true })
+	polished:SetProc(true)
+	assert(polished.lumenGlow:IsShown() and polished.lumenGlow:GetAlpha() == 1, "a polished proc's halo shows at rest alpha before its first tick: " .. polished.lumenGlow:GetAlpha())
+	local enter = polished.lumenGlow.enter
+	assert(enter:IsPlaying() and fades(enter)[1].from == 0 and fades(enter)[1].to == 1, "and its entrance is the client's alpha animation from nothing")
 	assert(#env._errors == 0, table.concat(env._errors, "\n"))
 end
 

@@ -10,7 +10,8 @@ local BEVEL_LIGHT, BEVEL_SHADE = 0.24, 0.6
 local INNER_ALPHA = 0.8
 local HOVER_RIM, HOVER_WASH = 0.7, 0.12
 local PRESS_WASH, PRESS_HALO, PRESS_SPREAD = 0.3, 0.6, 6
-local PROC_GLOW, PROC_HALO, PROC_SPREAD = 0.55, 1, 10
+local PROC_GLOW, PROC_HALO, PROC_SPREAD = 0.55, 0.6, 5.6
+local OLD_PROC_HALO, OLD_PROC_SPREAD = 1, 10
 local BREATH_LOW, BREATH_HIGH = 0.45, 1
 local READY_ALPHA = 0.6
 local LAYER_LEVEL = 1
@@ -318,7 +319,7 @@ end
 local function PlaceLayers(self)
 	local line = Widgets.Border(self)
 	self.stateLine, self.stateInset = line, 3 * line
-	self.statePressSpread, self.stateProcSpread = Widgets.Snap(self, self.opts.inputContinuity and 4 or PRESS_SPREAD), Widgets.Snap(self, self.opts.procTransitions and 5.6 or PROC_SPREAD)
+	self.statePressSpread, self.stateProcSpread = Widgets.Snap(self, self.opts.inputContinuity and 4 or PRESS_SPREAD), Widgets.Snap(self, self.opts.procTransitions == false and OLD_PROC_SPREAD or PROC_SPREAD)
 	local size = Height(self)
 	PlaceRing(self.innerLine, self.icon, 0, line)
 	local top, bottom = self.bevelTop, self.bevelBottom
@@ -371,7 +372,7 @@ local function PaintLayers(self)
 	StoreColor(self, "pressRimColor", Tokens.Color("slotPress"))
 	StoreColor(self, "pressHaloColor", Widgets.Rgba("slotPress", PRESS_HALO))
 	StoreColor(self, "procGlowColor", Widgets.Rgba("giltLit", self.opts.procTransitions and 0.25 or PROC_GLOW))
-	StoreColor(self, "procHaloColor", Widgets.Rgba("giltLit", PROC_HALO))
+	StoreColor(self, "procHaloColor", Widgets.Rgba("giltLit", self.opts.procTransitions == false and OLD_PROC_HALO or PROC_HALO))
 	ColorRing(self.innerLine, Widgets.Rgba("black", INNER_ALPHA))
 	if type(self.bevelTop.SetGradient) == "function" and type(CreateColor) == "function" then
 		local wr, wg, wb = Tokens.Color("white")

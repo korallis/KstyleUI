@@ -409,14 +409,14 @@ function Drawer:Layout()
 	local pad = Widgets.Snap(panel, PAD)
 	local columns = Settings.Get("drawer.columns")
 	local area = self.column.face.mapArea
-	local reserve = toggle:GetWidth() + Widgets.Snap(panel, Format.EDGE + GAP)
+	local gap = Widgets.Snap(panel, GAP)
+	local reserve = math.max(toggle:GetWidth() + Widgets.Snap(panel, Format.EDGE + GAP), (self.column.reach or 0) + gap)
 	if not Settings.Get("compactIcons") then
 		columns = math.max(1, math.min(columns, math.floor((area:GetWidth() - reserve - 2 * pad + spacing) / (size + spacing))))
 	end
 	local list = Settings.Get("drawer.list")
 	self.columns, self.rows = list and 1 or columns, nil
 	local width, height = Format.GridSize(slot, self.columns, size, spacing, pad)
-	local gap = Widgets.Snap(panel, GAP)
 	local labelWidth = 0
 	for _, button in ipairs((list or self.listed) and self.order or {}) do
 		local state, label = self.adopted[button], self.labels[button]
@@ -711,7 +711,8 @@ function Drawer:Open()
 		end
 		button:SetAlpha(1)
 	end
-	Motion.FadeIn(self.panel, Tokens.Duration("fade"))
+	Motion.Stop(self.closing)
+	Motion.PageIn(self.panel, Tokens.Duration("fade"))
 	if Settings.Get("drawer.behaviour") == "hover" then
 		self.graceLeft = HOVER_GRACE
 		self.panel:SetScript("OnUpdate", Watch)
@@ -727,7 +728,7 @@ function Drawer:Close(instant)
 	if instant then
 		self.panel:Hide()
 	else
-		Motion.FadeOut(self.panel, Tokens.Duration("fade"))
+		self.closing = Motion.FadeOut(self.panel, Tokens.Duration("fade"))
 	end
 	if ns.Map and ns.Map.CheckHover then
 		ns.Map.CheckHover()

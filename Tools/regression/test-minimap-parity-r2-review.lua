@@ -1,4 +1,4 @@
--- test-minimap-parity-r2-review.lua: the round 2 review's probes: a protected addon button stays put in combat, secret results are never compared, the micro menu stops polling while hovered and closes when switched off, a page reset clears addon places, corner buttons stay clear at every size and screen, the compartment counts late registrations without sorting, settings refresh once, and a column addon button looks like its siblings.
+-- test-minimap-parity-r2-review.lua: the round 2 review's probes: a protected addon button stays put in combat, secret results are never compared, the micro menu stops polling while hovered and closes when switched off, a page reset clears addon places, corner buttons stay clear at every size and screen, the compartment counts late registrations without sorting, settings refresh once, a column addon button looks like its siblings, and the PR #777 review's probes: the round column stays inside the ring, the open drawer and the zoom slider keep clear of it, and the drawer shows before its first tick.
 local M = dofile("Tools/regression/minimap_env.lua")
 local Load = dofile("Tools/regression/load_files.lua")
 local W = M.W
@@ -240,6 +240,85 @@ check("8 column addon look", function()
 	write("column.backgrounds", true)
 	write("drawer.place", "drawer")
 	assert(tile:IsShown() and not ring():IsShown(), "back in the drawer it has the tile again")
+	clean(env, K)
+end)
+
+check("9 drawer clears the round column", function()
+	local env, K, ns, write = boot(1920, 1080)
+	local column, drawer = ns.Map.column, ns.Map.drawer
+	write("column.hover", true)
+	W.Click(column.buttons.drawer)
+	assert(drawer.panel:IsShown(), "the drawer opens")
+	for name, button in pairs(column.buttons) do
+		assert(not button:IsShown() or not overlap(drawer.panel, button), "the open drawer covers the " .. name .. " button")
+	end
+	clean(env, K)
+end)
+
+check("10 round column stays inside the ring", function()
+	for _, size in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }) do
+		local env, K, ns, write = boot(size[1], size[2])
+		local area, column = ns.Map.face.mapArea, ns.Map.column
+		local function inside(what)
+			local ax, ay = area:GetCenter()
+			for name, button in pairs(column.buttons) do
+				local x, y = button:GetCenter()
+				local gap = area:GetWidth() / 2 - math.sqrt((x - ax) ^ 2 + (y - ay) ^ 2) - button:GetWidth() / 2
+				assert(not button:IsShown() or gap > -0.5, size[1] .. "x" .. size[2] .. " " .. what .. ": the " .. name .. " button crosses the ring by " .. -gap)
+			end
+		end
+		write("column.size", 33)
+		env._mail.new = true
+		env.FireEvent("UPDATE_PENDING_MAIL")
+		env.QueueStatusButton:Show()
+		env.EventRegistry:TriggerEvent("QueueStatusUpdate.QueuesUpdated")
+		inside("five buttons at 33")
+		write("compartment.shown", true)
+		inside("the compartment in its corner")
+		write("drawer.button", "BugSack")
+		write("drawer.place", "column")
+		write("drawer.button", "Details")
+		write("drawer.place", "column")
+		inside("two addon buttons in the column")
+		clean(env, K)
+	end
+end)
+
+local function many(e)
+	local lib = M.FakeLibDBIcon(e)
+	for i = 1, 12 do lib:Add("Addon" .. i) end
+end
+
+check("11 the open drawer follows the column's reach", function()
+	local env, K, ns = M.New({ enabled = true, setup = many })
+	M.Settle(env)
+	local column, drawer = ns.Map.column, ns.Map.drawer
+	W.Click(column.buttons.drawer)
+	M.Settle(env)
+	K.Options.Write("Minimap", "column.offset", 10)
+	M.Settle(env)
+	for name, button in pairs(column.buttons) do
+		assert(not button:IsShown() or not overlap(drawer.panel, button), "after a setting change the open drawer covers the " .. name .. " button")
+	end
+	clean(env, K)
+end)
+
+check("12 the drawer shows before its first tick", function()
+	local env, K, ns = M.New({ enabled = true, setup = many })
+	M.Settle(env)
+	W.Click(ns.Map.column.buttons.drawer)
+	local panel = ns.Map.drawer.panel
+	assert(panel:IsShown() and panel:GetAlpha() == 1, "the drawer shows at full alpha before its first tick: " .. panel:GetAlpha())
+	clean(env, K)
+end)
+
+check("13 a left column clears the zoom slider", function()
+	local env, K, ns, write = boot()
+	write("column.side", "left")
+	local zoom = ns.Map.face.zoom
+	for name, button in pairs(ns.Map.column.buttons) do
+		assert(not button:IsShown() or not overlap(zoom, button), "the " .. name .. " button sits on the zoom slider")
+	end
 	clean(env, K)
 end)
 

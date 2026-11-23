@@ -142,7 +142,10 @@ assert(S.Get("drawer.place") == "column", "picking the first button again reads 
 local slotY = select(5, point(details))
 K.Options.Write("Minimap", "drawer.button", "BugSack")
 K.Options.Write("Minimap", "drawer.place", "column")
-assert(select(5, point(bugsack)) == slotY and select(5, point(details)) < slotY, "a second column button takes the first slot by name and Details the next")
+-- The next slot is lower, or on the round map's arc the first slot of the next column inward.
+local _, _, _, bugX = point(bugsack)
+local _, _, _, detailsX, detailsY = point(details)
+assert(select(5, point(bugsack)) == slotY and (detailsY < slotY or detailsX < bugX), "a second column button takes the first slot by name and Details the next")
 bugsack:Hide()
 assert(select(5, point(details)) == slotY, "an addon that hides its button frees the slot")
 bugsack:Show()

@@ -226,7 +226,7 @@ function Widgets.ShowProc(frame, on, polished, loops)
 		frame.enter:Stop()
 		frame.leave:Stop()
 		if polished and Motion.Level() ~= "off" then
-			frame:SetAlpha(on and 0 or 1)
+			frame:SetAlpha(1)
 			frame:Show()
 			if on then frame.enter:Play() else frame.leave:Play() end
 		else

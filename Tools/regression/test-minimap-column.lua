@@ -56,15 +56,24 @@ assert(buttons.tracking:GetParent() == column.host and buttons.calendar:GetParen
 local Format = ns.Format
 local size, spacing = 19.5, 5.5
 assert(W.Near(buttons.tracking:GetWidth(), size, 1), "compact buttons are round discs 19.5 units across: " .. tostring(buttons.tracking:GetWidth()))
+-- On the round map the column starts at the face's round corner and each disc keeps the edge gap to the rim.
+local r = ns.Face.Round() and face.mapSize / 2
+local top = r and math.max(Format.TOP, 2 * r * ns.Face.ROUND_CORNER) or Format.TOP
 local function InColumn(button, slot, side, up)
 	local point, rel, relPoint = Anchor(button)
-	local want, x, y = Format.Column(slot, size, spacing, side, up, Format.EDGE, Format.TOP)
+	local want, x, y = Format.Column(slot, size, spacing, side, up, Format.EDGE, top)
 	assert(point == want and rel == face.mapArea and relPoint == want, button.minimapName .. " hangs from the map's " .. want .. " corner: " .. tostring(point))
+	if r then
+		local cx, cy = r - math.abs(X(button)) - size / 2, r - math.abs(Y(button)) - size / 2
+		local gap = r - math.sqrt(cx * cx + cy * cy) - size / 2
+		assert(W.Near(gap, Format.EDGE, 1.5) and (X(button) < 0) == (x < 0), button.minimapName .. " in slot " .. slot .. " keeps the edge gap to the round rim on its side: " .. tostring(gap))
+		x = X(button)
+	end
 	assert(W.Near(X(button), x, 1.5) and W.Near(Y(button), y, 1.5), button.minimapName .. " sits in slot " .. slot .. ": " .. tostring(X(button)) .. ", " .. tostring(Y(button)) .. " for " .. tostring(x) .. ", " .. tostring(y))
 end
 InColumn(buttons.tracking, 1, "right", false)
 InColumn(buttons.calendar, 2, "right", false)
-assert(W.Near(X(buttons.tracking), -7.75, 1) and W.Near(Y(buttons.tracking), -7, 1), "the first disc's centre is 17.5 in from the right edge and its top 7 under the map's top edge: " .. tostring(X(buttons.tracking)) .. ", " .. tostring(Y(buttons.tracking)))
+assert(W.Near(Y(buttons.tracking), -top, 1) and X(buttons.tracking) <= -7.75 + 0.5, "the first disc's top sits at the column's top, at least 7.75 in from the right edge: " .. tostring(X(buttons.tracking)) .. ", " .. tostring(Y(buttons.tracking)))
 assert(Y(buttons.calendar) < Y(buttons.tracking), "the next one is lower")
 assert(W.Near(Y(buttons.tracking) - Y(buttons.calendar), 25, 1.5), "the pitch down the column is 25 units: one button and one gap")
 assert(buttons.tracking.disc:IsShown() and buttons.tracking.ring:IsShown(), "each button is a dark disc with a light ring")
@@ -109,19 +118,23 @@ size, spacing = 19.5, 5.5
 local zoom = face.zoom
 local zp, zrel, zrelp, zx = zoom.track:GetPoint(1)
 assert(zoom:IsShown() and zp == "LEFT" and zrel == face.mapArea and zrelp == "LEFT" and W.Near(zx, 11), "the slider stands inside the map's left edge whatever the buttons do")
+local rp, rrel, _, rx, ry = zoom.rim:GetPoint(1)
+assert(zoom.rim:IsShown() and rp == "TOPLEFT" and rrel == zoom.track and rx < 0 and ry > 0, "a one-line rim cases the track, so the slider reads as a gauge on dark terrain")
 local holder = face.holder
 M.Resize(holder, 80, 80)
 assert(W.Near(face.mapArea:GetWidth(), 80, 0.5), "a small element shrinks the map, which is the element, got " .. tostring(face.mapArea:GetWidth()))
 assert(not zoom:IsShown(), "when the map is too small for the slider, the slider hides")
--- The 80 map holds two buttons between its top and bottom margins, so the third wraps into a second column
--- inward and none reaches the map's bottom edge.
+-- The 80 map holds two buttons between its top and bottom margins (on the round map from its round corner), so the
+-- third wraps into a second column one pitch inward and none reaches the map's bottom edge.
 assert(buttons.tracking:IsShown() and buttons.mail:IsShown() and buttons.calendar:IsShown(), "three buttons show")
-local perColumn = Format.PerColumn(80, size, spacing, Format.TOP)
+local small = r and math.max(Format.TOP, math.min(80 * ns.Face.ROUND_CORNER, 40 - size - spacing / 2)) or Format.TOP
+local perColumn = Format.PerColumn(80, size, spacing, small)
 assert(perColumn == 2, "two per column on the small map: " .. tostring(perColumn))
-local want, wx, wy = Format.Column(3, size, spacing, "right", false, Format.EDGE, Format.TOP, perColumn)
+local want, wx, wy = Format.Column(3, size, spacing, "right", false, Format.EDGE, small, perColumn)
+if r then wx = X(buttons.tracking) - (size + spacing) end
 assert(Anchor(buttons.calendar) == want and W.Near(X(buttons.calendar), wx, 1.5) and W.Near(Y(buttons.calendar), wy, 1.5), "the third button starts a second column inward: " .. tostring(X(buttons.calendar)) .. ", " .. tostring(Y(buttons.calendar)))
 for _, name in ipairs({ "tracking", "mail", "calendar" }) do
-	assert(-Y(buttons[name]) + size <= 80 - Format.TOP + 0.5, name .. " stays inside the map")
+	assert(-Y(buttons[name]) + size <= 80 - small + 0.5, name .. " stays inside the map")
 end
 local footprint = K.Setup.Layouts.Element("minimap.main")
 M.Resize(holder, footprint.width, footprint.height)

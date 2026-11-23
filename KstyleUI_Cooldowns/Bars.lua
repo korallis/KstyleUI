@@ -102,8 +102,10 @@ function BarRow:StyleBar(bar)
 	end
 	Style.Font(bar.name, current.nameFont, cfg.nameSize, current.nameOutline, "body")
 	Style.Font(bar.count, current.countFont, cfg.countSize, current.countOutline)
+	local fit = (height - 2 * border) / Widgets.LineHeight(bar.count)
+	if fit < 1 then Style.Font(bar.count, current.countFont, cfg.countSize * fit, current.countOutline) end
 	bar.count:ClearAllPoints()
-	bar.count:SetPoint("BOTTOMRIGHT", bar.icon, "BOTTOMRIGHT", 0, 0)
+	bar.count:SetPoint("BOTTOMRIGHT", tile, "BOTTOMRIGHT", -border, border)
 	bar.count:SetShown(cfg.icon)
 	self:ShowCount(bar)
 	Style.Mouse(bar, current.tooltips)
@@ -214,7 +216,7 @@ function BarRow:Bar(index)
 	bar.overlay = overlay
 	bar.name = Widgets.Text(overlay, "body", "textEmphasis")
 	bar.name:SetJustifyH("LEFT")
-	bar.count = Widgets.Text(overlay, "number", "textEmphasis")
+	bar.count = Widgets.Fitted(Widgets.Text(overlay, "number", "textEmphasis"))
 	Style.Tooltips(bar)
 	self.bars[index] = bar
 	self:StyleBar(bar)
