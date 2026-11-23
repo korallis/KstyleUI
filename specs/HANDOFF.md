@@ -34,6 +34,8 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 
 - **v0.3.3 release in progress**: notes PR being written (`specs/notes-033.md`): polish batches, party and unit frames, and the RestedXP 4.11.39 fix (#775, merged). The crest trackers move to v0.3.4; update the roadmap after the release.
 
+- **Hotfix v0.3.3.1** (`specs/notes-0331.md`): ships #777 (merged), #781 (setup cards, in review) and the player status sockets / compass N fix (building). Credit Baine by name in the notes and the #chat post (owner's instruction).
+
 ## Crest completeness: what "maximise the crests for every class" still needs
 
 The owner's rule: every class has everything it needs around the crest, so there is one place to look; every form, stance and spec (damage, tank, healer) gets a full crest with no empty seats; every major cooldown and enhancement (plus racials and potions) burns on a cooldown rim. The full per-spec research is in `specs/crest-research/` (`complete-melee.md`, `complete-ranged.md`, `complete-healers.md`, plus the original design reports, the healer forms plan and the cooldown research). The three builds cover the research's add-to-the-builder lists. What is NOT yet covered, so the job is not finished until these are resolved:

@@ -694,3 +694,7 @@ Router picks agent/model. Each task: dispatch -> worker_done -> cross-family ver
 - #771 review fixed (57b7e3a2f, CI green); waits for #776 to merge, then rebase onto staging and merge.
 - Roadmap #780 merged; Discord roadmap updated.
 - Merged #777 (polish F leftovers; Glow.lua ShowProc rests at alpha 1).
+- #781 setup card hotfix green; review dispatched.
+- Baine: player rivets read as stray dots; minimap N looks off. Hotfix task dispatched.
+- #776 fixes pushed a4fc917a1 (15 + 6 shared); forwarded to ranged + healers.
+- Lee: credit the hotfixes to Baine. notes-0331.md written with credit; dispatch when #781 and the sockets/compass fix merge.
