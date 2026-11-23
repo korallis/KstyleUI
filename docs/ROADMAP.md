@@ -6,6 +6,8 @@ What's coming next, release by release. Dates are estimates; we'll keep this pos
 
 Estimated: within a few days.
 
+Gear at a glance, and the glass finish everywhere you look.
+
 Highlights:
 
 - Item levels on your equipment slots and in your bags.
@@ -15,6 +17,8 @@ Highlights:
 ## v0.3.2 — gamepad
 
 Estimated: about a week after v0.3.1.
+
+KstyleUI on a controller.
 
 Highlights:
 
