@@ -567,7 +567,7 @@ The art the ranged crest trackers draw (`KstyleUI_ActionBars/SlabRanged.lua`, to
 
 ## Medallions healer crest trackers (2026-11-23)
 
-The art the priest, druid and shaman crest trackers draw (`KstyleUI_ActionBars/SlabVigil.lua`, `SlabGrove.lua` and `SlabStormforged.lua`; tokens `trackerFlame`, `trackerLeaf`, `trackerRune`, `trackerStone` and `trackerAnkh`), in its own folder apart from the style kit. Run `python3 Tools/media/healer_trackers.py` to redraw it. The halos and bursts reuse the kit's `AmbientPriest.png`, `AmbientDruid.png` and `Burst*.png`.
+The art the priest, druid and shaman crest trackers draw (`KstyleUI_ActionBars/SlabVigil.lua`, `SlabGrove.lua` and `SlabStormforged.lua`; tokens `trackerFlame`, `trackerLeaf`, `trackerRune` and `trackerStone`), in its own folder apart from the style kit. Run `python3 Tools/media/healer_trackers.py` to redraw it. The halos and bursts reuse the kit's `AmbientPriest.png`, `AmbientDruid.png` and `Burst*.png`.
 
 | File | Size | What it is | Source | Processing | Date |
 | --- | --- | --- | --- | --- | --- |
@@ -575,7 +575,6 @@ The art the priest, druid and shaman crest trackers draw (`KstyleUI_ActionBars/S
 | `Media/Textures/Medallions/Trackers/Leaf.png` | 64x64 | The druid's Clearcasting leaf, pointing up: a green blade with a gold midrib and veins in a soft glow; drawn ADD, eight round the inner rim, each turned to point outward | `Tools/media/healer_trackers.py`, procedural, no model and no input image | drawn at 8x and reduced with a linear-light Lanczos; ADD alpha (colour unpremultiplied, alpha the brightest channel); SHA-256 `7667d9322d883493b62ff1ef5b7f79dbc1bfab2b06757ec0696ac3f0e8dbdc35` | 2026-11-23 |
 | `Media/Textures/Medallions/Trackers/Rune.png` | 64x64 | The shaman's imbue rune: a forked stave with a short cross stroke, white in a soft glow, tinted by the imbue's element; drawn ADD over the stone | `Tools/media/healer_trackers.py`, procedural, no model and no input image | drawn at 8x and reduced with a linear-light Lanczos; ADD alpha (colour unpremultiplied, alpha the brightest channel); SHA-256 `ea730ea8b38cf1181f256a245a972c7cd51ed4d95ef909c264f1ad4900f5f49f` | 2026-11-23 |
 | `Media/Textures/Medallions/Trackers/Stone.png` | 64x64 | The rune stone: a rounded slate pebble lit from the top left, the rune's grooves cut dark into it, with a 1-unit dark outline; BLEND | `Tools/media/healer_trackers.py`, procedural, no model and no input image | drawn at 8x and reduced with a linear-light premultiplied Lanczos; straight alpha; SHA-256 `e4d82e157d1ef4fdbee83b571604fc56f5133da95f733eda6f74e40dc88965f3` | 2026-11-23 |
-| `Media/Textures/Medallions/Trackers/Ankh.png` | 64x64 | The shaman's ankh charm: a pale bevelled ankh with a dark outline, tinted gold while Reincarnation is ready and steel otherwise; BLEND | `Tools/media/healer_trackers.py`, procedural, no model and no input image | drawn at 8x and reduced with a linear-light premultiplied Lanczos; straight alpha; SHA-256 `3582292f0f74c67ab1dab47d5748c0ceaed6c315f6b5a611bc334039cccffc30` | 2026-11-23 |
 
 <!-- medallions:begin (written by Tools/medallions/medallions.py bake) -->
 

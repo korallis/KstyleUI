@@ -383,7 +383,6 @@ local TEXTURES = {
 	trackerLeaf = { file = "Textures\\Medallions\\Trackers\\Leaf.png" },
 	trackerRune = { file = "Textures\\Medallions\\Trackers\\Rune.png" },
 	trackerStone = { file = "Textures\\Medallions\\Trackers\\Stone.png" },
-	trackerAnkh = { file = "Textures\\Medallions\\Trackers\\Ankh.png" },
 	divider = { file = "Textures\\Divider.png" },
 	noise = { file = "Textures\\Noise.png" },
 	ring = { file = "Textures\\Ring.png" },

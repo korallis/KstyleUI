@@ -1,4 +1,4 @@
--- SlabStormforged.lua: the shaman's crest trackers beside the Spirit Poles and storm orbs, registered with SlabTrackers, each on its own switch: a rune stone set into the ring's lower left for the main hand's imbue and its lower right for the off hand's (only with an off-hand weapon), its rune lit in the imbue's element colour while the enchant's own frame shows, guttering through the last five minutes and dark under a pulsing gilt rim when there is none or another temporary enchant (under Frames a medal with the imbue's icon, colour and timer, guttering too); the shock cooldown, the shaman's interrupt, as a sweep that dims the class emblem until it is ready, then sparks, a cooldown medal under Frames; on the left foot perch your Flame Shock on an enemy, Stormstrike's debuff drawn over it, or Riptide on a friend; a small ankh on the right foot perch, gold while Reincarnation is ready and an Ankh is in the bags; and the major cooldowns burning on the rim. The weapon enchant's frame and the cooldown's duration object draw the timers; the enchant, the cooldown state and the item count are values the client never makes secret.
+-- SlabStormforged.lua: the shaman's crest trackers beside the Spirit Poles and storm orbs, registered with SlabTrackers, each on its own switch: a rune stone set into the ring's lower left for the main hand's imbue and its lower right for the off hand's (only with an off-hand weapon), its rune lit in the imbue's element colour while the enchant's own frame shows, guttering through the last five minutes and dark under a pulsing gilt rim when there is none or another temporary enchant (under Frames a medal with the imbue's icon, colour and timer, guttering too); the shock cooldown, the shaman's interrupt, as a sweep that dims the class emblem until it is ready, then sparks, a cooldown medal under Frames; on the left foot perch your Flame Shock on an enemy, Stormstrike's debuff drawn over it, or Riptide on a friend; Reincarnation's cooldown medal on the right foot perch, greyed without an Ankh in the bags; and the major cooldowns burning on the rim. The weapon enchant's frame and the cooldown's duration object draw the timers; the enchant, the cooldown state and the item count are values the client never makes secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -21,7 +21,7 @@ for token, ids in pairs({
 }) do
 	for _, id in ipairs(ids) do ELEMENTS[id] = token end
 end
-local STONE, SETTING, RIM, CHARM, LAST, GLOW = 14, 18, 22, 12, 300, 0.55
+local STONE, SETTING, RIM, LAST, GLOW = 14, 18, 22, 300, 0.55
 local SLOTS = { MainHand = 16, OffHand = 17 }
 local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local GUTTER = { { 1, 0.4, 0.07 }, { 0.4, 0.85, 0.06 }, { 0.85, 0.3, 0.08 }, { 0.3, 1, 0.1 } }
@@ -95,15 +95,9 @@ local function Shock(parent, spec, level, form)
 	return s
 end
 
-local function Ankh(parent, spec, level, form)
-	local a
-	if form == "row" then
-		a = Medals.Medal(parent, spec, level)
-		a.glyph, a.icon = a.lit.icon, true
-	else
-		a = Piece(parent, level, CHARM)
-		a.glyph = a.add(Medals.Texture(a, "OVERLAY", 0, "trackerAnkh", "capsGold", CHARM))
-	end
+local function Ankh(parent, spec, level)
+	local a = Medals.Medal(parent, spec, level)
+	a.glyph = a.lit.icon
 	ankhs[#ankhs + 1] = a
 	return a
 end
@@ -152,14 +146,12 @@ local function Stones()
 end
 
 local function Charm()
-	local api, item = C_Spell, C_Item
-	local cd = api and type(api.GetSpellCooldown) == "function" and api.GetSpellCooldown(REINCARNATION[1])
+	local item = C_Item
 	local count = item and type(item.GetItemCount) == "function" and item.GetItemCount(ANKH)
-	local ready = type(cd) == "table" and cd.isActive == false and not IsSecret(count) and type(count) == "number" and count > 0
+	local stocked = not IsSecret(count) and type(count) == "number" and count > 0
 	for _, a in ipairs(ankhs) do
-		a.glyph:SetVertexColor(Tokens.Color(a.icon and "white" or ready and "capsGold" or "steel"))
-		a.glyph:SetDesaturated(not ready)
-		a.glyph:SetAlpha(ready and 1 or 0.55)
+		a.glyph:SetDesaturated(not stocked)
+		a.glyph:SetAlpha(stocked and 1 or 0.55)
 	end
 end
 
@@ -173,7 +165,7 @@ ns.SlabTrackers.Register("SHAMAN", {
 	{ key = "crestImbues", seat = "lowerLeft", feed = "enchant", slot = "MainHand", spells = IMBUES, build = Stone },
 	{ key = "crestImbues", seat = "lowerRight", feed = "enchant", slot = "OffHand", spells = IMBUES, known = OffHand, build = Stone },
 	{ key = "crestShock", seat = { 0, 0 }, feed = "cooldown", known = SHOCKS, build = Shock },
-	{ key = "crestAnkh", seat = "footRight", known = REINCARNATION, build = Ankh },
+	{ key = "crestAnkh", seat = "footRight", size = Medals.FOOT, feed = "cooldown", known = REINCARNATION, build = Ankh },
 	{ key = "crestFlameShock", seat = "footLeft", size = Medals.FOOT, color = "white", spells = FLAME, known = function() return Medals.Known(FLAME) or Medals.Known(RIPTIDE) end,
 		feeds = {
 			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = FLAME, color = "totemFire" },
@@ -189,7 +181,7 @@ ns.SlabTrackers.Register("SHAMAN", {
 		if event == nil or event == "WEAPON_ENCHANT_CHANGED" then
 			Stones()
 		end
-		if event == nil or event == "BAG_UPDATE_DELAYED" or event == "SPELL_UPDATE_COOLDOWN" then
+		if event == nil or event == "BAG_UPDATE_DELAYED" then
 			Charm()
 		end
 	end,

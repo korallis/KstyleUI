@@ -9,10 +9,9 @@ Procedural, no model and no input image, each drawn at 8x and reduced with a lin
   imbue's element; it fills the height so a vertical StatusBar drains it from the top.
 - Stone.png: the rune stone the rune is set into, a rounded slate pebble lit from the top left with the rune's
   grooves cut dark into it and a 1-unit dark outline.
-- Ankh.png: the shaman's ankh charm, a pale bevelled ankh with a dark outline, tinted gold or steel.
 
 Flame, Leaf and Rune are drawn ADD: colour unpremultiplied, alpha the brightest channel (as medallions_kit.py stores
-effects). Stone and Ankh are BLEND art with straight alpha.
+effects). Stone is BLEND art with straight alpha.
 
     python3 Tools/media/healer_trackers.py [--out DIR]
 """
@@ -140,27 +139,7 @@ def stone():
     return blended(np.clip(rgb, 0, 1), outline)
 
 
-def ankh():
-    image = Image.new("L", (N, N), 0)
-    draw = ImageDraw.Draw(image)
-    s = N / 64
-    draw.ellipse([22 * s, 4 * s, 42 * s, 30 * s], fill=255)
-    draw.ellipse([27.5 * s, 9.5 * s, 36.5 * s, 25 * s], fill=0)
-    draw.rectangle([12 * s, 28 * s, 52 * s, 35 * s], fill=255)
-    draw.polygon([(28 * s, 28 * s), (36 * s, 28 * s), (38 * s, 60 * s), (26 * s, 60 * s)], fill=255)
-    shape = np.asarray(image, np.float64) / 255
-    outline = np.clip(blur(shape, 0.9) * 3, 0, 1)
-    inner = np.clip(blur(shape, 0.5) * 1.6 - 0.6, 0, 1)
-    x, y = grid()
-    tone = 0.72 + 0.28 * np.clip(1.2 - x - y, 0, 1)
-    edge = blur(shape, 1.2)
-    bevel = np.clip(0.75 + 0.5 * (edge - np.roll(np.roll(edge, 3 * SCALE // 2, 0), 3 * SCALE // 2, 1)), 0, 1.15)
-    grey = np.clip(tone * bevel, 0, 1) * inner
-    rgb = np.dstack([grey, grey, grey]) + np.array([0.05, 0.04, 0.03]) * (outline - inner)[..., None]
-    return blended(np.clip(rgb, 0, 1), np.maximum(outline, inner))
-
-
-ART = {"Flame.png": flame, "Leaf.png": leaf, "Rune.png": rune, "Stone.png": stone, "Ankh.png": ankh}
+ART = {"Flame.png": flame, "Leaf.png": leaf, "Rune.png": rune, "Stone.png": stone}
 
 
 def main(argv=None):
