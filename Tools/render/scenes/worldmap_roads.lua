@@ -1,4 +1,4 @@
--- worldmap_roads.lua: shipped continent routes on optional client map art and a real game backdrop.
+-- worldmap_roads.lua: shipped continent routes, recorded-service pins and quest routes on optional client map art and a real game backdrop.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local Fixture = dofile("Tools/regression/worldmap_roads_env.lua")
@@ -56,8 +56,41 @@ return Common.Run(function()
 	local R = ns.WorldMapRoutes
 	if os.getenv("RENDER_MAP_BEFORE") == "1" then K.Options.Write("Skins", "worldMap.followRoads", false) end
 	local x, y = Project(to.x, to.y)
-	R.Pick({ mapID = 1, name = to.name, x = x, y = y })
-	assert(os.getenv("RENDER_MAP_BEFORE") == "1" or R.road, "the render must exercise a real connected route")
+	local services, quest, off = os.getenv("RENDER_MAP_SERVICES") == "1", os.getenv("RENDER_MAP_QUEST"), os.getenv("RENDER_MAP_OFF") == "1"
+	if off then
+		for _, key in ipairs({ "services", "questRoutes" }) do pcall(K.Options.Write, "Skins", "worldMap." .. key, false) end
+	end
+	if services then
+		local saved = {}
+		for _, row in ipairs({ { "inn", "Innkeeper Grosk", "Sen'jin Village" }, { "inn", "Innkeeper Boorand", "The Crossroads" },
+			{ "trainer", "Shadow-Walker Zuru", "Razor Hill" }, { "repair", "Wuark", "Razor Hill" }, { "bank", "Karus", "Orgrimmar" }, { "auction", "Auctioneer Thathung", "Orgrimmar" } }) do
+			for _, node in ipairs(graph.nodes) do
+				if node.name == row[3] then
+					local wx, wy = node.x + 2 * #row[2], node.y + 2 * #row[2]
+					local px, py = Project(wx, wy)
+					saved[row[1]] = saved[row[1]] or {}
+					saved[row[1]][row[2]] = { name = row[2], map = 1, x = px, y = py, continent = 1, wx = wx, wy = wy }
+				end
+			end
+		end
+		K.Store.Account().mapServices = saved
+		env.C_Map.GetMapInfo = function() return { mapType = 3 } end
+		map:RefreshAllDataProviders()
+	end
+	if quest and not off then
+		env.C_QuestLog.GetNextWaypoint = function(id) if quest ~= "none" and id == 10 then return 1, x, y end end
+		env.C_QuestLog.GetQuestsOnMap = function() return {} end
+		R.Quest(10)
+	elseif services and not off then
+		R.Pick({ nearest = "inn" })
+	else
+		R.Pick({ mapID = 1, name = to.name, x = x, y = y })
+	end
+	if services then
+		R.search:SetText("")
+		R.search:GetScript("OnEditFocusGained")(R.search)
+	end
+	assert(os.getenv("RENDER_MAP_BEFORE") == "1" or (quest == "none" and not off) or R.road, "the render must exercise a real connected route")
 	if flight and R.road then
 		local found
 		for _, leg in ipairs(R.road.legs) do found = found or leg.kind == "flight" end

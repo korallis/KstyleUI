@@ -132,7 +132,7 @@ R.Clear()
 
 -- An addon write to the map's ID, zoom or pan taints every pin Blizzard acquires afterwards, and in combat
 -- AcquirePin's SetPassThroughButtons is then blocked. The world map files may hook them but never call them.
-for _, path in ipairs({ "KstyleUI_Skins/WorldMap.lua", "KstyleUI_Skins/WorldMapRoutes.lua", "KstyleUI_Skins/WorldMapRoads.lua" }) do
+for _, path in ipairs({ "KstyleUI_Skins/WorldMap.lua", "KstyleUI_Skins/WorldMapRoutes.lua", "KstyleUI_Skins/WorldMapRoads.lua", "KstyleUI_Skins/WorldMapServices.lua" }) do
 	local file = assert(io.open(path, "rb"))
 	local source = file:read("*a"):gsub("%-%-[^\n]*", "")
 	file:close()
