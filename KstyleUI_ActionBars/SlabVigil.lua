@@ -103,14 +103,6 @@ local function Oil()
 	return not IsSecret(id) and OILED[id] and OILS[1] or nil
 end
 
-local function Flask(parent, spec, level, form)
-	if form == "crest" then
-		return Medals.Socket(parent, spec, level)
-	end
-	local icon = C_Item and type(C_Item.GetItemIconByID) == "function" and C_Item.GetItemIconByID(spec.spell)
-	return Medals.Medal(parent, setmetatable({ texture = not IsSecret(icon) and icon or nil }, { __index = spec }), level)
-end
-
 local function Motion()
 	local r, n = state.fire, state.count
 	if not r then
@@ -166,7 +158,7 @@ local function Paint(_, event, _, _, spellID)
 	end
 end
 
-ns.SlabVigil = { Oil = Oil, Flask = Flask, Ring = Ring, Gem = Gem }
+ns.SlabVigil = { Oil = Oil, Ring = Ring, Gem = Gem }
 if class ~= "PRIEST" then
 	return
 end
@@ -195,7 +187,7 @@ ns.SlabTrackers.Register("PRIEST", {
 		known = ShadowOnly(PLAGUE), color = "schoolShadow" },
 	{ key = "crestDeath", seat = "footRight", size = Medals.FOOT, feed = "cooldown", known = ShadowOnly(DEATH) },
 	{ key = "crestSilence", seat = "lowerLeft", feed = "cooldown", known = SILENCE, color = "schoolShadow", build = Gem },
-	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, color = "jewelHoly", build = Flask },
+	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, texture = 134727, color = "jewelHoly", build = Gem },
 	{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", families = {
 		{ spells = { 10060 } }, { spells = { 14751 } }, { spells = { 586, 9578, 9579, 9592, 10941, 10942 } }, { spells = { 6346 } },
 		{ spells = { 2651 } }, { spells = { 13896, 19271, 19273, 19274, 19275 } }, { spells = { 1277328, 1277327, 1277326, 1277325, 1277324 } },

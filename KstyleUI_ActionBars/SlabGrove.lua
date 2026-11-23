@@ -23,7 +23,7 @@ local LEAVES, LEAF, UNFURL = 8, 14, 0.35
 local DASH, BARKSKIN = { spells = { 1850, 9821 } }, { spells = { 22812 } }
 
 local maul, bloom = {}, nil
-local Oil, Flask, Ring, Gem = ns.SlabVigil.Oil, ns.SlabVigil.Flask, ns.SlabVigil.Ring, ns.SlabVigil.Gem
+local Oil, Ring, Gem = ns.SlabVigil.Oil, ns.SlabVigil.Ring, ns.SlabVigil.Gem
 local Join = ns.SlabTrackers.Joined
 
 local function Effect(spells, color, filter, forms, seat)
@@ -112,7 +112,7 @@ ns.SlabTrackers.Register("DRUID", {
 	{ key = "crestCharge", seat = "footRight", size = Medals.FOOT, feed = "cooldown", known = CHARGE, forms = BEAR },
 	{ key = "crestBite", seat = "lowerLeft", feed = "cooldown", known = BITE, forms = BEAR, color = "jewelCombo", build = Gem },
 	{ key = "crestBash", seat = "lowerRight", feed = "cooldown", known = BASH, forms = BEAR, color = "jewelCombo", build = Gem },
-	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, forms = Join(CASTER, MOONKIN), color = "jewelHoly", build = Flask },
+	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, forms = Join(CASTER, MOONKIN), texture = 134727, color = "jewelHoly", build = Gem },
 	{ key = "crestClearcasting", seat = "rim", known = OMEN, spells = CLEARCASTING, build = Bloom, place = Ring },
 	{ key = "crestSwiftmend", seat = "topGem", feed = "cooldown", choices = {
 		Gems({ forms = BEAR, known = MAUL, color = "jewelCombo", build = Maul }),
