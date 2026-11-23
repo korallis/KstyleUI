@@ -217,6 +217,12 @@ def main(argv=None):
     for path in write(args.mockup, args.out, args.width, args.height, plate=plate, portraits=portraits, models=models):
         if not args.quiet:
             print("wrote " + path)
+    root = Path(__file__).resolve().parents[2]
+    for blp in sorted((root / "Media").rglob("*.blp")):  # Chrome cannot read the game's BLPs
+        png = Path(args.out, blp.relative_to(root).with_suffix(".png"))
+        if not png.exists() or png.stat().st_mtime < blp.stat().st_mtime:
+            png.parent.mkdir(parents=True, exist_ok=True)
+            Image.open(blp).convert("RGB").save(png)
     if not args.quiet:
         if write.plate_used:
             print("backdrop: " + write.plate_used)

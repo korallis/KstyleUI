@@ -3691,6 +3691,7 @@ ns.Locale.Add({
 	["Show yourself"] = "Mostrarte a ti",
 	["Show zone level ranges on continent maps."] = "Muestra los niveles de las zonas en los mapas de continentes.",
 	["Showing: %s"] = "Vista previa: %s",
+	["Showing: %s with the DPS layout"] = "Vista previa: %s con el dise\195\177o Da\195\177o",
 	["Shown"] = "Visible",
 	["Shown in place of the specialization name. Empty uses the name."] = "Se muestra en lugar del nombre de la especializaci\195\179n. Vac\195\173o usa el nombre.",
 	["Shows 14:32 instead of 2:32 PM."] = "Muestra 14:32 en lugar de 2:32 p.m.",

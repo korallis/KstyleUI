@@ -478,24 +478,18 @@ local function GeneralItems()
 			Append(items, Model.SchemaItems(section, schema, "General"))
 		end
 	end
-	for _, item in ipairs(items) do
+	local looks = K.Setup.Looks
+	for i, item in ipairs(items) do
 		if item.module == "Widgets" and item.key == "ornaments" and K.Store.Module("OptionsPresentation").samples then
 			item.kind = "ornaments"
 		end
 		if item.module and item.key and APPLY_ON_RELEASE[item.module .. "." .. item.key] then
 			item.defer = true
 		end
-	end
-	local looks = K.Setup.Looks
-	for i, item in ipairs(items) do
-		if K.Store.Module("Setup").looks and item.module == "HudStyle" and item.key == "style" then
-			local options = {}
-			for _, look in ipairs(looks.LIST) do options[#options + 1] = { value = look.value, label = look.label } end
-			options[#options + 1] = { value = NONE, label = L["Your own"] }
-			table.insert(items, i + 1, { kind = "segmented", page = "General", label = L["Look"], options = options,
+		if item.module == "HudStyle" and item.key == "style" and K.Store.Module("Setup").looks then
+			table.insert(items, i + 1, { kind = "segmented", page = "General", label = L["Look"], options = looks.Current() and looks.LIST or looks.CUSTOM,
 				help = L["Sets trim, panels, motion and text together. Forged is the look KstyleUI ships with."],
-				get = function() return looks.Current() or NONE end, set = looks.Apply })
-			break
+				get = function() return looks.Current() or "Custom" end, set = looks.Apply })
 		end
 	end
 	local function account(key, default, apply)

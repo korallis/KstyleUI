@@ -1006,17 +1006,17 @@ These six 512x256 pictures are captures of `hud_reference` at 1920x1080, 1 px/un
 
 ### Setup big pictures (v0.3.0, 2026-11-23)
 
-Ten captures of `hud_reference` for the setup's large pictures, made by `Tools/render/setup_pictures.py` from the current code: each HUD style in each layout at 1920x1080 (1 px/unit) and each HUD style's DPS layout in each ultrawide arrangement at 5120x1440 (1.333 px/unit), Auto size, Full ornaments, the third bar off and `RENDER_MEDALLIONS_STATE=calm` for Medallions. The 16:9 backdrop is the G4 layout pictures' UI-free `(0, 300, 1200, 975)` crop of the owner's `game_09.png`; the 32:9 backdrop is its UI-free treetop crop `(0, 0, 2240, 630)`; both are resized to the screen with Lanczos and darkened to 65% brightness. No generated scenery is used. Each capture is resampled with Lanczos to 1024x512 (16:9) or 1024x256 (32:9), which the setup stretches back to the screen's shape, and saved as an opaque PNG for the render harness and a pixel-identical 24-bit TGA for the game: 1.5 MB and 0.75 MB per TGA, the smallest power-of-two sizes that stay crisp at the setup's picture size on a 3840x2160 screen.
+Ten captures of `hud_reference` for the setup's large pictures, made by `Tools/render/setup_pictures.py` from the current code: each HUD style in each layout at 1920x1080 (1 px/unit) and each HUD style's DPS layout in each ultrawide arrangement at 5120x1440 (1.333 px/unit), Auto size, Full ornaments, the third bar off and `RENDER_MEDALLIONS_STATE=calm` for Medallions. The 16:9 backdrop is the G4 layout pictures' UI-free `(0, 300, 1200, 975)` crop of the owner's `game_09.png`; the 32:9 backdrop is its UI-free treetop crop `(0, 0, 2240, 630)`; both are resized to the screen with Lanczos and darkened to 65% brightness. No generated scenery is used. Each capture is resampled with Lanczos to 1024x512 (16:9) or 1024x256 (32:9), which the setup stretches back to the screen's shape, the smallest power-of-two sizes that stay crisp at the setup's picture size on a 3840x2160 screen (896x503 pixels), and saved as an opaque DXT1 BLP2 without mipmaps: 256 KB and 128 KB per file, 2.1 MB for all ten. The encoder in `setup_pictures.py` fits each 4x4 block's colours by its principal axis and least squares (35.1 to 37.2 dB PSNR against the resampled capture). The render harness decodes its own PNG copies (`Tools/render/standins.py`); none is shipped.
 
 | Files | Size | Source | Date |
 | --- | --- | --- | --- |
-| `Media/Textures/Setup/MedallionsDPS.png`, `Media/Textures/Setup/MedallionsDPS.tga` | 1024x512 | KstyleUI Medallions DPS HUD and owner's screenshot | 2026-11-23 |
-| `Media/Textures/Setup/MedallionsTank.png`, `Media/Textures/Setup/MedallionsTank.tga` | 1024x512 | KstyleUI Medallions Tank HUD and owner's screenshot | 2026-11-23 |
-| `Media/Textures/Setup/MedallionsHealer.png`, `Media/Textures/Setup/MedallionsHealer.tga` | 1024x512 | KstyleUI Medallions Healer HUD and owner's screenshot | 2026-11-23 |
-| `Media/Textures/Setup/FramesDPS.png`, `Media/Textures/Setup/FramesDPS.tga` | 1024x512 | KstyleUI Frames DPS HUD and owner's screenshot | 2026-11-23 |
-| `Media/Textures/Setup/FramesTank.png`, `Media/Textures/Setup/FramesTank.tga` | 1024x512 | KstyleUI Frames Tank HUD and owner's screenshot | 2026-11-23 |
-| `Media/Textures/Setup/FramesHealer.png`, `Media/Textures/Setup/FramesHealer.tga` | 1024x512 | KstyleUI Frames Healer HUD and owner's screenshot | 2026-11-23 |
-| `Media/Textures/Setup/MedallionsCentred.png`, `Media/Textures/Setup/MedallionsCentred.tga` | 1024x256 | KstyleUI Medallions DPS HUD at 5120x1440, Centred arrangement, and owner's screenshot | 2026-11-23 |
-| `Media/Textures/Setup/MedallionsSpread.png`, `Media/Textures/Setup/MedallionsSpread.tga` | 1024x256 | KstyleUI Medallions DPS HUD at 5120x1440, Spread arrangement, and owner's screenshot | 2026-11-23 |
-| `Media/Textures/Setup/FramesCentred.png`, `Media/Textures/Setup/FramesCentred.tga` | 1024x256 | KstyleUI Frames DPS HUD at 5120x1440, Centred arrangement, and owner's screenshot | 2026-11-23 |
-| `Media/Textures/Setup/FramesSpread.png`, `Media/Textures/Setup/FramesSpread.tga` | 1024x256 | KstyleUI Frames DPS HUD at 5120x1440, Spread arrangement, and owner's screenshot | 2026-11-23 |
+| `Media/Textures/Setup/MedallionsDPS.blp` | 1024x512 | KstyleUI Medallions DPS HUD and owner's screenshot | 2026-11-23 |
+| `Media/Textures/Setup/MedallionsTank.blp` | 1024x512 | KstyleUI Medallions Tank HUD and owner's screenshot | 2026-11-23 |
+| `Media/Textures/Setup/MedallionsHealer.blp` | 1024x512 | KstyleUI Medallions Healer HUD and owner's screenshot | 2026-11-23 |
+| `Media/Textures/Setup/FramesDPS.blp` | 1024x512 | KstyleUI Frames DPS HUD and owner's screenshot | 2026-11-23 |
+| `Media/Textures/Setup/FramesTank.blp` | 1024x512 | KstyleUI Frames Tank HUD and owner's screenshot | 2026-11-23 |
+| `Media/Textures/Setup/FramesHealer.blp` | 1024x512 | KstyleUI Frames Healer HUD and owner's screenshot | 2026-11-23 |
+| `Media/Textures/Setup/MedallionsCentred.blp` | 1024x256 | KstyleUI Medallions DPS HUD at 5120x1440, Centred arrangement, and owner's screenshot | 2026-11-23 |
+| `Media/Textures/Setup/MedallionsSpread.blp` | 1024x256 | KstyleUI Medallions DPS HUD at 5120x1440, Spread arrangement, and owner's screenshot | 2026-11-23 |
+| `Media/Textures/Setup/FramesCentred.blp` | 1024x256 | KstyleUI Frames DPS HUD at 5120x1440, Centred arrangement, and owner's screenshot | 2026-11-23 |
+| `Media/Textures/Setup/FramesSpread.blp` | 1024x256 | KstyleUI Frames DPS HUD at 5120x1440, Spread arrangement, and owner's screenshot | 2026-11-23 |

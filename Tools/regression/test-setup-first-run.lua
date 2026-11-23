@@ -29,15 +29,15 @@ local function Fits(env, what)
 end
 
 local function Picture(name)
-	return "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Setup\\" .. name .. ".tga"
+	return "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Setup\\" .. name .. ".blp"
 end
 
 -- A new profile: Medallions, the Forged look, and setup's default path is still one click.
 do
 	local env, K = Boot({ 1920, 1080 })
 	assert(K.HudStyle.Saved() == "medallions" and K.Setup.NewChoice().hudStyle == "medallions", "a new profile starts on Medallions")
-	assert(K.Setup.Looks.Current() == "Forged" and K.Setup.NewChoice().look == "Forged", "a new profile wears the Forged look")
-	assert(K.Setup.NewChoice().arrangement == "centred", "setup starts on the saved arrangement")
+	assert(K.Setup.Looks.Current() == "Forged", "a new profile wears the Forged look")
+	assert(K.Setup.NewChoice().look == nil and K.Setup.NewChoice().arrangement == nil, "setup records only what you pick")
 	local writes = {}
 	K.Callbacks.Register("SettingChanged", "test", function(_, module, key) writes[module .. "." .. key] = true end)
 	K.Store.Account().setupSeen = nil
@@ -135,7 +135,7 @@ do
 		if before[module] then assert(K.Options.Equal(K.Store.Profile()[module], before[module]), "Forged restores every " .. module .. " value a Look changed") end
 	end
 	K.Options.Write("Widgets", "ornaments", "Subtle")
-	assert(Looks.Current() == nil and K.Setup.NewChoice().look == "Custom", "a setting of your own matches no Look")
+	assert(Looks.Current() == nil, "a setting of your own matches no Look")
 	assert(not Looks.Apply("Custom") and K.Options.Read("Widgets", "ornaments") == "Subtle", "keeping your own look changes nothing")
 	for key in pairs(K.Store.Profile()) do assert(key ~= "Looks", "a Look keeps no saved state of its own") end
 	-- The setup row: picking a Look applies it with the setup; Off hides it.

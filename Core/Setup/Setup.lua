@@ -95,7 +95,7 @@ function Setup.NewChoice(current)
 			end
 		end
 	end
-	return { hudStyle = ns.HudStyle.Saved(), layout = DEFAULT_LAYOUT, modules = modules, addons = addons, addonSettings = settings, look = Setup.Looks.Current() or "Custom", arrangement = ns.Scale.Arrangement() }
+	return { hudStyle = ns.HudStyle.Saved(), layout = DEFAULT_LAYOUT, modules = modules, addons = addons, addonSettings = settings }
 end
 
 function Setup.Choice()
@@ -332,8 +332,9 @@ function Setup.Apply(picked)
 		local module, key = path:match("^([^%.]+)%.(.+)$")
 		ns.Options.Write(module, key, value)
 	end
-	if picked.look and picked.look ~= Setup.Looks.Current() then Setup.Looks.Apply(picked.look) end
-	if ns.Scale.ARRANGEMENT[picked.arrangement] and picked.arrangement ~= ns.Scale.Arrangement() then ns.Options.Write("Layout", "arrangement", picked.arrangement) end
+	local setup = ns.Store.Module("Setup")
+	if setup.looks and picked.look then Setup.Looks.Apply(picked.look) end
+	if setup.layoutPictures and setup.bigPictures and ns.Scale.ARRANGEMENT[picked.arrangement] and picked.arrangement ~= ns.Scale.Arrangement() then ns.Options.Write("Layout", "arrangement", picked.arrangement) end
 	local hudStyle = ns.HudStyle.Valid(picked.hudStyle) and picked.hudStyle
 	if hudStyle then
 		applying = true

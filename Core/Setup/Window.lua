@@ -60,7 +60,7 @@ end
 
 local function BigPicture(name)
 	local style = Setup.Choice().hudStyle
-	return BIG_PICTURE_PATH .. style:sub(1, 1):upper() .. style:sub(2) .. name .. ".tga"
+	return BIG_PICTURE_PATH .. style:sub(1, 1):upper() .. style:sub(2) .. name .. ".blp"
 end
 
 local function GuidePlaced()
@@ -190,13 +190,8 @@ local function Refresh()
 	panel.later:SetShown(step == STEPS and applied)
 	Select(panel.cards, choice.layout)
 	Select(panel.styleCards, choice.hudStyle)
-	if Wide() then Select(panel.arrangeCards, choice.arrangement) end
-	local looks = {}
-	for _, look in ipairs(Setup.Looks.LIST) do looks[#looks + 1] = { value = look.value, label = look.label } end
-	if not Setup.Looks.Current() then looks[#looks + 1] = { value = "Custom", label = L["Your own"] } end
-	panel.lookTabs:SetTabs(looks, choice.look)
-	local look = Setup.Looks.Get(choice.look)
-	panel.lookNote:SetText(look and look.note or L["Your own settings. Apply keeps them."])
+	local arrangement = choice.arrangement or Scale.Arrangement()
+	if Wide() then Select(panel.arrangeCards, arrangement) end
 	FitStyles()
 	PlaceLayouts()
 	if not panel.preview.hovered then
@@ -217,8 +212,9 @@ local function Refresh()
 			end
 		end
 		local lead = string.format(L["HUD style: %s."], style) .. "\n" .. string.format(L["Layout: %s."], Layouts.Label(choice.layout))
+		local look = Setup.Looks.Get(choice.look or Setup.Looks.Current())
 		if ns.Store.Module("Setup").looks then lead = lead .. "\n" .. string.format(L["Look: %s."], look and look.label or L["Your own"]) end
-		if Wide() then lead = lead .. "\n" .. string.format(L["Arrangement: %s."], ARRANGEMENTS[choice.arrangement == "spread" and 2 or 1].label) end
+		if Wide() then lead = lead .. "\n" .. string.format(L["Arrangement: %s."], ARRANGEMENTS[arrangement == "spread" and 2 or 1].label) end
 		local head = lead .. "\n\n"
 		local tail = #off > 0 and "\n" .. L["Off: "] .. table.concat(off, ", ") or ""
 		local modules = string.format(L["Modules on: %d of %d."], #on, #on + #off)
@@ -658,12 +654,12 @@ function Preview:Draw(name)
 end
 
 function Preview:Picture(file, wide)
+	self.picture:SetTexture(self:IsVisible() and file or nil)
 	if not file then
 		self.picture:Hide()
 		return false
 	end
 	self.picture:Show()
-	self.picture:SetTexture(open and file or nil)
 	local inset = Widgets.Border(self)
 	local band = wide and Widgets.Snap(self, (self:GetHeight() - (self:GetWidth() - 2 * inset) * 9 / 32) / 2) or inset
 	Widgets.Fill(self.picture, self, inset, band, inset, band)
@@ -790,13 +786,12 @@ local function BuildLayouts(page, width)
 	panel.layoutHint = hint
 	panel.arrangeCards = {}
 	for _, entry in ipairs(ARRANGEMENTS) do
-		local value = entry.value
 		local card = NewCard(page, LEGEND_WIDTH, CARD_HEIGHT, entry.label, entry.note, function()
-			Setup.Choice().arrangement = value
+			Setup.Choice().arrangement = entry.value
 		end)
 		card:HookScript("OnEnter", function()
 			preview.hovered = true
-			shown:SetText(string.format(L["Showing: %s"], entry.label))
+			shown:SetText(string.format(L["Showing: %s with the DPS layout"], entry.label))
 			preview:Picture(BigPicture(entry.picture), true)
 		end)
 		card:HookScript("OnLeave", function()
@@ -804,18 +799,19 @@ local function BuildLayouts(page, width)
 			preview:Draw(Setup.Choice().layout)
 		end)
 		card:Hide()
-		panel.arrangeCards[value] = card
+		panel.arrangeCards[entry.value] = card
 	end
 end
 
 local function PlaceArrangements()
 	local wide = Wide()
-	local pad, spacing = gap("gapLarge"), gap("gapSmall")
 	panel.preview:Fit()
+	for _, card in pairs(panel.arrangeCards) do card:SetShown(wide) end
+	if not wide then return end
+	local pad, spacing = gap("gapLarge"), gap("gapSmall")
 	local width = panel.preview.pageWidth - panel.preview:GetWidth() - gap("gapLarge")
 	local height = 0
 	for _, card in pairs(panel.arrangeCards) do
-		card:SetShown(wide)
 		Widgets.Size(card, width, card:GetHeight())
 		card:Restyle()
 		height = max(height, 2 * pad + Widgets.LineHeight(card.title) + spacing + Widgets.WrappedHeight(card.note, width - 2 * pad))
@@ -849,8 +845,8 @@ PlaceLayouts = function()
 	panel.previewName:SetShown(not pictures)
 	panel.layoutHint:ClearAllPoints()
 	PlaceArrangements()
+	if not pictures then Widgets.Point(panel.layoutHint, "TOPLEFT", panel.previewName, "BOTTOMLEFT", 0, -gap("gapMedium")) end
 	if big then
-		Widgets.Point(panel.layoutHint, "TOPLEFT", panel.previewName, "BOTTOMLEFT", 0, -gap("gapMedium"))
 		panel.layoutHint:SetText(Wide() and L["Point at a layout or an arrangement to see it."]
 			or L["Point at a layout to see it in your HUD style. You can move and resize everything later in Layout Mode: type /kstyle layout."])
 	elseif pictures then
@@ -858,7 +854,6 @@ PlaceLayouts = function()
 		panel.layoutHint:SetWidth(panel.preview.pageWidth)
 		panel.layoutHint:SetText(L["Choose DPS, Tank or Healer. Each picture shows your chosen HUD style; you can move and resize everything later in Layout Mode."])
 	else
-		Widgets.Point(panel.layoutHint, "TOPLEFT", panel.previewName, "BOTTOMLEFT", 0, -gap("gapMedium"))
 		panel.layoutHint:SetText(L["The bright blocks change with the role. The outlined space on the right rail, under the map, is the Story rail: Apply places the quest tracker beside it through Edit Mode. Window skins put the RestedXP or Zygor guide in the top left corner."]
 			.. "\n\n" .. L["Point at a layout to preview it."] .. "\n\n" .. L["You can move and resize every element later in Layout Mode: type /kstyle layout."])
 	end
@@ -998,6 +993,12 @@ FitStyles = function()
 	panel.lookCaption:SetShown(looks)
 	panel.lookTabs:SetShown(looks)
 	panel.lookNote:SetShown(looks)
+	if looks and page:IsVisible() then
+		local current, picked = Setup.Looks.Current(), Setup.Choice().look
+		panel.lookTabs:SetTabs(current and Setup.Looks.LIST or Setup.Looks.CUSTOM, picked or current or "Custom")
+		local look = Setup.Looks.Get(picked or current)
+		panel.lookNote:SetText(look and look.note or L["Your own settings. Apply keeps them."])
+	end
 	panel.lookCaption:ClearAllPoints()
 	Widgets.Point(panel.lookCaption, "TOPLEFT", panel.styleHint, "BOTTOMLEFT", 0, -fit.spacing)
 	panel.lookTabs:ClearAllPoints()
@@ -1272,6 +1273,7 @@ ns.Callbacks.Register("SettingChanged", "SetupWindow", function(_, module)
 	if panel and (module == "Setup" or module == "ProfileTools" or module == "OptionsPresentation") then
 		Widgets.RestyleUnder({ [panel] = true })
 		panel.pages[1]:Restyle()
+		FitStyles()
 		PlaceLayouts()
 		PlaceModules()
 		panel.addons:Restyle()

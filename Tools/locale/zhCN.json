@@ -3684,6 +3684,7 @@
 	"Show yourself": "显示你自己",
 	"Show zone level ranges on continent maps.": "在大陆地图上显示区域等级范围。",
 	"Showing: %s": "预览：%s",
+	"Showing: %s with the DPS layout": "预览：%s（伤害输出布局）",
 	"Shown": "显示",
 	"Shown in place of the specialization name. Empty uses the name.": "代替专精名称显示。留空则使用名称。",
 	"Shows 14:32 instead of 2:32 PM.": "显示 14:32 而不是 2:32 PM。",
