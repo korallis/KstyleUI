@@ -13,7 +13,11 @@ end
 
 local function Entry(env, parent, class, display)
 	local entry = Track(env.CreateFrame("Button", nil, parent))
+	-- Blizzard's default 25-unit row (DamageMeterConstants.lua), its bar inset a unit at the top and bottom in the
+	-- Default style (DamageMeterEntry.lua:282).
+	entry:SetSize(255, 25)
 	local bar = Track(env.CreateFrame("StatusBar", nil, entry))
+	bar:SetSize(251, 23)
 	bar:SetStatusBarTexture("blizzard-bar")
 	Track(bar:GetStatusBarTexture())
 	bar.Background = Track(bar:CreateTexture(nil, "BACKGROUND"))
@@ -34,8 +38,16 @@ local function Entry(env, parent, class, display)
 	entry.UpdateValue = function(self)
 		self.StatusBar.Value:SetText(env.AbbreviateLargeNumbers(self.value or 0) .. " (" .. env.AbbreviateLargeNumbers(self.valuePerSecond or 0) .. ")")
 	end
+	-- Blizzard's UpdateName writes the name only when it changes (DamageMeterEntry.lua:111-117).
+	entry.GetNameText = function(self)
+		return self.sourceName
+	end
 	entry.UpdateName = function(self)
-		self.StatusBar.Name:SetText(self.nameText)
+		local text = self:GetNameText()
+		if text ~= self.nameText then
+			self.nameText = text
+			self.StatusBar.Name:SetText(text)
+		end
 	end
 	-- Blizzard's Default style puts the text on the bar's middle (DamageMeterEntry.lua:285-288).
 	entry.UpdateStyle = function(self)
@@ -215,16 +227,29 @@ for _, call in ipairs(pill._calls) do
 		points[call.args[1]] = call.args[2]
 	end
 end
-assert(points.BOTTOMLEFT == holder and points.BOTTOMRIGHT == holder and pill:GetHeight() == K.Widgets.Snap(pill, K.Tokens.Size("barHeight")), "the bar keeps Blizzard's width, sits at the row's foot and shares the nameplate health height")
+-- What a row's text needs above its bar: its taller font and the own card's air between text and bar.
+local function Needs(row)
+	local _, name = row.StatusBar.Name:GetFont()
+	local _, value = row.StatusBar.Value:GetFont()
+	return math.max(name, value) + K.Tokens.Size("gapTiny")
+end
+local function Lane(row)
+	return row.StatusBar:GetHeight() - Pill(row):GetHeight()
+end
+-- The drawn bar snaps to whole pixels, so the lane may come up to half a pixel short.
+local half = K.Scale.Pixel(1) / K.Widgets.ScaleFactor(pill) / 2
+assert(points.BOTTOMLEFT == holder and points.BOTTOMRIGHT == holder and pill:GetHeight() <= K.Widgets.Snap(pill, K.Tokens.Size("barHeight")) + 1e-6, "the bar keeps Blizzard's width, sits at the row's foot and is at most the nameplate health height")
+assert(Lane(entry) >= Needs(entry) - half, "a default row leaves its text a lane above the bar: " .. Lane(entry) .. " units for " .. Needs(entry))
 -- As on the own card, the name and the value sit above the bar, never on a fill (a white name on a priest's white bar).
 do
-	local np, nrel, nrp = entry.StatusBar.Name:GetPoint(1)
-	local vp, vrel, vrp = entry.StatusBar.Value:GetPoint(1)
-	assert(np == "TOPLEFT" and nrel == entry.StatusBar and nrp == "TOPLEFT", "the name sits at the row's top")
-	assert(vp == "TOPRIGHT" and vrel == entry.StatusBar and vrp == "TOPRIGHT", "the value sits at the row's top")
+	local lift = pill:GetHeight() + K.Tokens.Size("gapTiny") - half
+	local np, nrel, nrp, _, ny = entry.StatusBar.Name:GetPoint(1)
+	local vp, vrel, vrp, _, vy = entry.StatusBar.Value:GetPoint(1)
+	assert(np == "BOTTOMLEFT" and nrel == entry.StatusBar and nrp == "BOTTOMLEFT" and ny >= lift, "the name sits just above the bar")
+	assert(vp == "BOTTOMRIGHT" and vrel == entry.StatusBar and vrp == "BOTTOMRIGHT" and vy >= lift, "and so does the value")
 	-- Blizzard sets a row up again after acquiring it, and on a style change; the text goes back above the bar.
 	entry:UpdateStyle()
-	assert(select(1, entry.StatusBar.Name:GetPoint(1)) == "TOPLEFT", "a row Blizzard lays out again keeps its text above the bar")
+	assert(select(1, entry.StatusBar.Name:GetPoint(1)) == "BOTTOMLEFT", "a row Blizzard lays out again keeps its text above the bar")
 	-- Blizzard's Thin style already puts the text above its bar, which it anchors to the name: the skin leaves it.
 	entry.style = env.Enum.DamageMeterStyle.Thin
 	entry:UpdateStyle()
@@ -232,13 +257,36 @@ do
 	entry.style = nil
 	entry:UpdateStyle()
 	-- Medallions names are caps, as the card's; a secret name passes untouched.
-	entry.nameText = "Kragar"
-	entry:UpdateName()
-	assert(entry.StatusBar.Name:GetText() == "KRAGAR", "a Medallions row name is caps: " .. tostring(entry.StatusBar.Name:GetText()))
-	entry.nameText = env.Secret("Kragar")
-	entry:UpdateName()
-	assert(env.issecretvalue(entry.StatusBar.Name:GetText()), "a secret name reaches the row untouched")
-	entry.nameText = nil
+	local name = entry.StatusBar.Name
+	local function Named(text)
+		entry.sourceName = text
+		entry:UpdateName()
+		return name:GetText()
+	end
+	assert(Named("Kragar") == "KRAGAR", "a Medallions row name is caps: " .. tostring(name:GetText()))
+	-- Blizzard runs UpdateName on every row update and writes only a changed name; so does the skin.
+	local writes = M.Calls(name, "SetText")
+	for _ = 1, 100 do entry:UpdateName() end
+	writes = M.Calls(name, "SetText") - writes
+	assert(writes == 0, "100 unchanged Blizzard name updates wrote the name " .. writes .. " more times; write only a changed name (KstyleUI_Meters/DamageSkin.lua Rename)")
+	-- Blizzard's names carry an atlas and colour codes (DamageMeterEntry.lua:554, :694); caps leaves the markup alone.
+	local marked = Named("1. |A:AllianceSymbol:0:0|a Kragar")
+	assert(marked == "1. |A:AllianceSymbol:0:0|a KRAGAR", "caps keeps the atlas markup: " .. marked)
+	marked = Named("Wrath (|cffc79c6eKragar|r)")
+	assert(marked == "WRATH (|cffc79c6eKRAGAR|r)", "caps keeps the colour codes: " .. marked)
+	-- Turning the row style off, or switching to Frames, gives the row Blizzard's own name back.
+	Named("Kragar")
+	M.Write(env, K, "nameplateRows", false)
+	assert(name:GetText() == "Kragar", "nameplate rows off restore Blizzard's name: " .. tostring(name:GetText()))
+	M.Write(env, K, "nameplateRows", true)
+	assert(name:GetText() == "KRAGAR", "and on caps it again: " .. tostring(name:GetText()))
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	assert(name:GetText() == "Kragar", "Frames restores Blizzard's name: " .. tostring(name:GetText()))
+	K.Options.Write("HudStyle", "style", "medallions")
+	env.RunTimers()
+	assert(env.issecretvalue(Named(env.Secret("Kragar"))), "a secret name reaches the row untouched")
+	entry.sourceName, entry.nameText = nil, nil
 end
 local glow = Glow(entry)
 assert(glow == nil, "no lens glow draws behind the pill: the restyled rows are the own meter's flat capsule")
@@ -411,8 +459,49 @@ for i, object in ipairs(blizzard) do
 	end
 end
 
+-- Edit Mode sets a row 15 to 40 units tall (EditModeSettingDisplayInfo.lua:1377), and the Default style insets the bar
+-- a unit at its top and bottom (DamageMeterEntry.lua:282). Either the text gets a lane above the bar that its font
+-- fits, or the bar fills Blizzard's bar under Blizzard's own anchors; in the Thin style the bar stays inside its rect.
+for _, style in ipairs({ "medallions", "frames" }) do
+	K.Options.Write("HudStyle", "style", style)
+	env.RunTimers()
+	local bar = entry.StatusBar
+	for _, height in ipairs({ 40, 25, 16, 15 }) do
+		entry:SetSize(255, height)
+		bar:SetSize(251, height - 2)
+		-- In combat Blizzard's bar holds a secret value, so its geometry reads secret: lay the row out so, measure plainly.
+		entry:UpdateStyle()
+		env.SecretAnchoring(false)
+		local raised = select(1, bar.Name:GetPoint(1)) == "BOTTOMLEFT"
+		local label = style .. " " .. height .. "-unit row: "
+		assert(raised or height < 25, label .. "a row at Blizzard's default height or taller keeps its text above the bar")
+		if raised then
+			assert(Lane(entry) >= Needs(entry) - half, label .. "the text lane is " .. Lane(entry) .. " units for a line of " .. Needs(entry))
+		else
+			assert(math.abs(pill:GetHeight() - bar:GetHeight()) < 1, label .. "with no lane the bar fills Blizzard's bar under its text: " .. pill:GetHeight())
+		end
+		env.SecretAnchoring(true)
+	end
+	local _, size = bar.Name:GetFont()
+	entry:SetSize(255, 25)
+	bar:SetSize(251, 25 - size - 1)
+	entry.style = env.Enum.DamageMeterStyle.Thin
+	entry:UpdateStyle()
+	env.SecretAnchoring(false)
+	assert(pill:GetHeight() <= bar:GetHeight() + 0.01, style .. " Thin row: the drawn bar stays inside Blizzard's bar, under the name: " .. pill:GetHeight() .. " in " .. bar:GetHeight())
+	env.SecretAnchoring(true)
+	entry.style = nil
+	bar:SetSize(251, 23)
+	entry:UpdateStyle()
+end
+K.Options.Write("HudStyle", "style", "medallions")
+env.RunTimers()
+
 -- Leaving the restyle style asks for a reload, and the hooks stop recolouring.
 M.Write(env, K, "damage.mode", "window")
+local placings = M.Calls(pill, "ClearAllPoints")
+entry:UpdateStyle()
+assert(M.Calls(pill, "ClearAllPoints") == placings, "with the skin off, Blizzard laying a row out places no KstyleUI bar")
 assert(CoreEnv.Printed(env, "/reload"), "leaving the restyle asks for a reload")
 local calls = M.Calls(pill, "SetStatusBarColor")
 entry:UpdateStatusBarColor()

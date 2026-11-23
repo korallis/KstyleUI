@@ -251,4 +251,18 @@ M.Tick(env3)
 assert(M.Last(ns3.Swing.bars[MAIN], "SetValue")[1] == 0.5, "the bar fills without C_SwingTimer")
 assert(#env3._errors == 0, "no Lua error without C_SwingTimer: " .. tostring(env3._errors[1]))
 
+-- Readable text on bars inks the attached bar's labels; off, the time is its font's white again
+-- (GameFontHighlight's WHITE_FONT_COLOR, FontStyles.xml), as it is when the setting starts off.
+do
+	local env4, K4, ns4 = M.New({ saved = { version = 38, profiles = { Default = { Appearance = { readableBars = true }, Meters = { swing = { attached = true } } } } } })
+	M.Enable(env4, K4)
+	env4.FireEvent("PLAYER_SWING", 2, MAIN)
+	local time = ns4.Swing.bars[MAIN].time
+	K4.Options.Write("Appearance", "readableBars", false)
+	env4.RunTimers()
+	local r, g, b = time:GetTextColor()
+	assert(r == 1 and g == 1 and b == 1, "readable text off gives the swing time its white back: " .. tostring(r) .. "," .. tostring(g) .. "," .. tostring(b))
+	assert(#env4._errors == 0, "no Lua error: " .. tostring(env4._errors[1]))
+end
+
 print("meters swing ok")

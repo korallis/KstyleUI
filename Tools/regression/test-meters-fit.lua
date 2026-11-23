@@ -114,6 +114,25 @@ do
 	end
 end
 
+-- Both, in a group with no target: the paired cards share the larger fitted height, so the empty threat card stands
+-- as tall as the damage card beside it (README "Both cards share ... while paired"); alone it fits its note.
+do
+	local env, K, ns = M.New({
+		saved = { version = 38, account = { setupSeen = true }, profiles = { Default = {
+			Layout = { preset = "DPS" }, Meters = { enabled = true, damage = { shown = true, mode = "window" }, threat = { shown = true } },
+		} } },
+		game = function(e)
+			e._group = { raid = false, size = 3 }
+			e._session = Session(3)
+		end,
+	})
+	M.Enable(env, K)
+	local threat, damage = ns.Threat.list, ns.Damage.list
+	assert(ns.Threat.paired and threat.count == 0 and damage.count == 3, "Both pairs an empty threat card with three damage rows")
+	assert(W.Near(threat.panel:GetHeight(), damage.panel:GetHeight()), "the paired empty threat card is as tall as the damage card: " .. threat.panel:GetHeight() .. " and " .. damage.panel:GetHeight())
+	assert(threat.fitHeight < damage.panel:GetHeight(), "while its own fit is one line")
+end
+
 -- In a group: the damage meter shows only in a group by default (test-meters-drill.lua).
 local env, K, ns = M.New({ game = function(e) e._group = { raid = false, size = 2 } end })
 env._session = Session(1)
