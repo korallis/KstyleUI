@@ -699,7 +699,7 @@ function modules.unitframes(opts)
 	end
 	-- RENDER_ENERGY_TICK=t: an energy user's last natural tick (20 energy at 10 a second) came t seconds before the
 	-- scene's clock, through the addon's own power event, so the player bar's tick spark shows that point of its sweep.
-	local tickAgo = tonumber(os.getenv("RENDER_ENERGY_TICK") or "")
+	local tickAgo = tonumber(os.getenv("RENDER_ENERGY_TICK"))
 	if tickAgo then
 		local me = env._units.player
 		env.GetPowerRegen = function() return 10, 10 end

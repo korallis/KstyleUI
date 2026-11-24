@@ -5,9 +5,8 @@ local K = KstyleUI
 local Widgets, Tokens = K.Widgets, K.Tokens
 local Settings, Geometry, Indicators, Lumen = ns.Settings, ns.Geometry, ns.Indicators, ns.Lumen
 
-local Style = {}
+local Style = { TICK = 2 }
 ns.Style = Style
-Style.TICK = 2
 
 local LEVEL_PORTRAIT = 3
 local LEVEL_BADGE = 5
@@ -401,14 +400,13 @@ function Style.Spark(view, key)
 		spark:Hide()
 		spark.group = spark:CreateAnimationGroup()
 		spark.move = spark.group:CreateAnimation("Translation")
+		spark.move:SetDuration(tick and Style.TICK or FIVE_SECONDS)
 		if tick then
 			Widgets.Crisp(spark):SetColorTexture(Widgets.Rgba("white"))
-			spark.move:SetDuration(Style.TICK)
 			spark.group:SetLooping("REPEAT")
 		else
 			spark:SetTexture((Tokens.Texture("glow")))
 			spark:SetBlendMode("ADD")
-			spark.move:SetDuration(FIVE_SECONDS)
 			spark.group:SetScript("OnFinished", function() spark:Hide() end)
 		end
 		view[key] = spark
@@ -417,9 +415,17 @@ function Style.Spark(view, key)
 	local w, h = view.power.opts.width, view.power.opts.height
 	local across = tick and Widgets.Border(view.power) * TICK_PIXELS or Snap(view, SPARK_W)
 	spark:ClearAllPoints()
-	spark:SetPoint("CENTER", view.power, path[1])
 	spark:SetSize(path[2] ~= 0 and across or Snap(view, w), path[2] ~= 0 and Snap(view, h) or across)
-	spark.move:SetOffset(Snap(view, path[2] * w), Snap(view, path[3] * h))
+	if tick then
+		local g = view.geometry
+		local lead = Snap(view, path[2] ~= 0 and g and g.medal and g.power and math.max(0, g.medal.x + g.medal.w - g.power.x) or 0)
+		local run = Snap(view, path[2] ~= 0 and w or h) - lead - across
+		spark:SetPoint(path[1], view.power, path[1], path[2] > 0 and lead or 0, 0)
+		spark.move:SetOffset(path[2] * run, path[3] * run)
+	else
+		spark:SetPoint("CENTER", view.power, path[1])
+		spark.move:SetOffset(Snap(view, path[2] * w), Snap(view, path[3] * h))
+	end
 	return spark
 end
 
