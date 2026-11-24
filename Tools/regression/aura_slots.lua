@@ -205,7 +205,7 @@ function Slots.Install(env)
 	env.Enum.StatusBarInterpolation = env.Enum.StatusBarInterpolation or { Immediate = 0, ExponentialEaseOut = 1 }
 	function env._auraDenied()
 		local secrets = not env._engine and env.C_Secrets
-		return secrets and secrets.ShouldAurasBeSecret and secrets.ShouldAurasBeSecret() == true or false
+		return secrets and secrets.ShouldAurasBeSecret and secrets.ShouldAurasBeSecret()
 	end
 	local create = env.CreateFrame
 	function env.CreateFrame(frameType, name, parent, template)
