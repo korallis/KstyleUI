@@ -326,6 +326,31 @@ do
 	Clean(env, K, "secret")
 end
 
+-- While auras are secret the engine's aura buttons and everything made under them refuse addon calls
+-- (DenyTaintedAccessWhenAurasAreSecret): combat starting, a spell change (the owner's SlabMedals.lua:58 SetSize on
+-- SPELLS_CHANGED), stealth and a weapon enchant changing leave them alone, and what they skipped lands once combat ends.
+do
+	local env, K, ns = New("ROGUE", { 5171, 1943, 2842, 8676, 14144 }, { setup = function(e) e._items = { [16] = 2092 } end })
+	local enchant = {}
+	env.C_PaperDollInfo = { GetTemporaryEnchantmentInfo = function(slot) return enchant[slot] end }
+	env.GetShapeshiftFormID = function() return env._form end
+	local rupture, vial = Pieces(ns)[2], Pieces(ns)[3]
+	local sized = #AB.W.Calls(rupture.lit.icon, "SetSize")
+	env._aurasSecret = true
+	env.SetCombat(true)
+	env.FireEvent("SPELLS_CHANGED")
+	enchant[16] = { enchantID = 40 }
+	env.FireEvent("UNIT_INVENTORY_CHANGED", "player")
+	env._form = 30
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	Clean(env, K, "auras secret")
+	assert(#AB.W.Calls(rupture.lit.icon, "SetSize") == sized and Pieces(ns)[1].spec.feed == "usable", "stealth still swaps the seat; nothing under an aura button is touched")
+	env._aurasSecret = false
+	env.SetCombat(false)
+	assert(#AB.W.Calls(rupture.lit.icon, "SetSize") > sized and vial.lit.gate:GetAlpha() == 0, "combat over: the skipped layout lands and the sharpening stone empties the vial")
+	Clean(env, K, "auras open again")
+end
+
 -- Frames: a row beside the stance bar.
 do
 	local env, K, ns = New("WARRIOR", { 25289, 20662, 2687 }, { frames = true })

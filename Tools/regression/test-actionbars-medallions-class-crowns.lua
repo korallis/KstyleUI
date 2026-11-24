@@ -64,9 +64,11 @@ local function Clean(env, K, where)
 end
 
 local function Lit(p)
-	local bar = p.blade
-	local low = bar:GetMinMaxValues()
-	return bar:IsShown() and bar:GetParent():IsShown() and Reveal(p.env, Last(bar, "SetValue")[1]) > low
+	return Slots.Engine(p.env, function()
+		local bar = p.blade
+		local low = bar:GetMinMaxValues()
+		return bar:IsShown() and bar:GetParent():IsShown() and Reveal(p.env, Last(bar, "SetValue")[1]) > low
+	end)
 end
 
 for _, class in ipairs(ORDER) do
@@ -184,7 +186,7 @@ do
 		assert(f.button._applicationBar, "the talons were bound while the game allowed it")
 	end
 	bear.pips[5].env = env
-	assert(bear.holder:IsShown() and Lit(bear.pips[5]) and bear.max:IsShown(), "so five Lacerate stacks light every talon and the ring")
+	assert(bear.holder:IsShown() and Lit(bear.pips[5]) and Slots.Engine(env, bear.max.IsShown, bear.max), "so five Lacerate stacks light every talon and the ring")
 	Clean(env, K, "first bear form")
 end
 

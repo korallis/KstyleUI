@@ -102,10 +102,12 @@ local function Updating(frame)
 end
 
 local function Fill(env, bar)
-	local low, high = bar:GetMinMaxValues()
-	local v = bar:GetValue()
-	v = env.issecretvalue(v) and env.Reveal(v) or v
-	return (math.max(low, math.min(high, v)) - low) / (high - low)
+	return Slots.Engine(env, function()
+		local low, high = bar:GetMinMaxValues()
+		local v = bar:GetValue()
+		v = env.issecretvalue(v) and env.Reveal(v) or v
+		return (math.max(low, math.min(high, v)) - low) / (high - low)
+	end)
 end
 
 -- Other classes, and healers who know none of the spells, build nothing and listen to nothing.
