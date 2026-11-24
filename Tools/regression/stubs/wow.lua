@@ -884,10 +884,12 @@ function Object:SetIgnoreParentAlpha(ignore) self._ignoreParentAlpha = not not i
 function Object:IsIgnoringParentAlpha() return self._ignoreParentAlpha == true end
 function Object:GetEffectiveAlpha()
 	local alpha = self:GetAlpha()
-	for _, group in ipairs(self._env._stalled and self._groups or {}) do
-		for _, animation in ipairs(group._playedAt and group._anims or {}) do
-			local from = animation._type == "Alpha" and animation._state.FromAlpha
-			alpha = from and from[1] or alpha
+	if self._env._stalled then
+		for _, group in ipairs(self._groups or {}) do
+			for _, animation in ipairs(group._playedAt and group._anims or {}) do
+				local from = animation._type == "Alpha" and animation._state.FromAlpha
+				alpha = from and from[1] or alpha
+			end
 		end
 	end
 	if self._ignoreParentAlpha or not self._parent then
