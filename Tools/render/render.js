@@ -684,13 +684,15 @@
 		const cx = dest.w / 2, cy = dest.h / 2;
 		const radius = Math.hypot(dest.w, dest.h);
 		// The dark part is what is still on cooldown. It starts at 12 o'clock and unwinds clockwise, so the
-		// remaining sector runs from the current hand back to 12 o'clock.
+		// remaining sector runs from the current hand back to 12 o'clock; reversed, the swipe is the elapsed sector
+		// from 12 o'clock to the hand, as CooldownFrame_SetDisplayAsPercentage fills a reversed progress ring.
 		const remaining = item.fraction;
 		const start = -Math.PI / 2;
+		const hand = start + Math.PI * 2 * (1 - remaining);
 		let from, to;
 		if (item.reverse) {
 			from = start;
-			to = start + Math.PI * 2 * remaining;
+			to = hand;
 		} else {
 			from = start + Math.PI * 2 * (1 - remaining);
 			to = start + Math.PI * 2;
@@ -718,9 +720,20 @@
 		ctx.globalAlpha = Math.min(1, item.alpha);
 		ctx.drawImage(layer, dest.x, dest.y);
 		ctx.restore();
-		if (item.edge && remaining > 0 && remaining < 1) {
+		const edgeArt = item.edge && remaining > 0 && remaining < 1 && item.edgeFile && await loadImage(url(base, item.edgeFile));
+		if (edgeArt) {
+			// An edge with its own art (a ring's bead head): the art centred on the ring at the hand, its x axis along
+			// the tangent, drawn additively. The client's own placement of edge art waits on an in-game check.
+			const round = Math.min(dest.w, dest.h), side = round * 0.22 * (item.edgeScale === undefined ? 1 : item.edgeScale);
+			ctx.save();
+			ctx.globalAlpha = Math.min(1, item.alpha);
+			ctx.globalCompositeOperation = "lighter";
+			ctx.translate(dest.x + cx + Math.cos(hand) * round * 0.4825, dest.y + cy + Math.sin(hand) * round * 0.4825);
+			ctx.rotate(hand + Math.PI / 2);
+			ctx.drawImage(edgeArt, -side / 2, -side / 2, side, side);
+			ctx.restore();
+		} else if (item.edge && remaining > 0 && remaining < 1) {
 			// The client draws the sweep's edge as a lit line from the centre out along the moving hand.
-			const hand = item.reverse ? to : from;
 			ctx.save();
 			ctx.beginPath();
 			ctx.rect(dest.x, dest.y, dest.w, dest.h);
@@ -731,12 +744,9 @@
 			ctx.lineWidth = Math.max(1, Math.round(1.5 * ppu * edgeScale));
 			ctx.shadowColor = rgba(item.edge, 0.8);
 			ctx.shadowBlur = 4 * ppu * edgeScale;
-			// A circular edge is a spark on the rim, the hand's last eighth of a round frame's radius.
-			const rim = Math.min(dest.w, dest.h) / 2;
-			const inner = item.circular ? rim * 0.86 : 0, outer = item.circular ? rim : radius;
 			ctx.beginPath();
-			ctx.moveTo(dest.x + cx + Math.cos(hand) * inner, dest.y + cy + Math.sin(hand) * inner);
-			ctx.lineTo(dest.x + cx + Math.cos(hand) * outer, dest.y + cy + Math.sin(hand) * outer);
+			ctx.moveTo(dest.x + cx, dest.y + cy);
+			ctx.lineTo(dest.x + cx + Math.cos(hand) * radius, dest.y + cy + Math.sin(hand) * radius);
 			ctx.stroke();
 			ctx.restore();
 		}

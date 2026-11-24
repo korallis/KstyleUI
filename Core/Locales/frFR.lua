@@ -4922,7 +4922,7 @@ ns.Locale.Add({
 	["Turned off in the AddOn list"] = "D\195\169sactiv\195\169 dans la liste des AddOns",
 	["Turning /way, /kpaste or /cd off frees its name; one you typed since the last reload stays until you reload."] = "D\195\169sactiver /way, /kpaste ou /cd lib\195\168re son nom ; une commande tap\195\169e depuis le dernier rechargement reste prise jusqu'au prochain.",
 	["Turns Blizzard's gold and white lines into KstyleUI's greys. Coloured lines stay."] = "Transforme les lignes dor\195\169es et blanches de Blizzard en gris KstyleUI. Les lignes color\195\169es restent.",
-	["Turns the last fifth of every crest timer ring amber and its last twelfth red."] = "Colore en ambre le dernier cinqui\195\168me de chaque anneau de dur\195\169e du blason, et en rouge son dernier douzi\195\168me.",
+	["Turns the last fifth of the crest's timer rings and cooldown sigils amber and the last twelfth red."] = "Colore en ambre le dernier cinqui\195\168me des anneaux de dur\195\169e et des sceaux de recharge du blason, et en rouge le dernier douzi\195\168me.",
 	["Turns the map so you always face up, and hides the N. Off leaves the game's own setting alone."] = "Fait pivoter la carte pour toujours regarder vers le haut et masque le N. D\195\169sactiv\195\169, le jeu d\195\169cide.",
 	["Turns these game plates on or off. The game's setting leaves them alone."] = "Active ou d\195\169sactive ces barres d'info du jeu. R\195\169glage du jeu n'y touche pas.",
 	["Turns this bar on or off."] = "Active ou d\195\169sactive cette barre.",

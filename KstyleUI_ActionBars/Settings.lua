@@ -536,7 +536,7 @@ function ns.Schema()
 		Crest("crestFlameShock", L["Flame Shock and Riptide on the crest"], L["Shows your Flame Shock or Stormstrike on an enemy, or Riptide on a friend, on the crest's foot."]),
 		Crest("crestKill", L["Kill window"], L["Burns the foot of the crest's inner rim red while your target is in your execute range."]),
 		{ type = "toggle", key = "crestLock", label = L["Target lock"], help = L["Closes gilt claws round the crest on a new enemy target and lights the top gem in its rank."], showWhen = function() return K.HudStyle.Current() == "medallions" end },
-		{ type = "toggle", key = "crestEmber", label = L["Expiring ember"], help = L["Turns the last fifth of every crest timer ring amber and its last twelfth red."] },
+		{ type = "toggle", key = "crestEmber", label = L["Expiring ember"], help = L["Turns the last fifth of the crest's timer rings and cooldown sigils amber and the last twelfth red."] },
 		{ type = "toggle", key = "crestCast", label = L["Cast ring"], help = L["Draws your cast round the crest's edge; it flashes when the cast lands and shakes red when stopped."], showWhen = function() return K.HudStyle.Current() == "medallions" end },
 		Crest("crestSwing", L["Swing ring"], L["Drains a steel ring inside the crest over each main-hand swing, with a white tick at the hit."]),
 		{ type = "toggle", key = "crestGcdSpark", label = L["Global cooldown spark"], help = L["Runs a small spark once round the crest's edge for each global cooldown."], showWhen = function() return K.HudStyle.Current() == "medallions" end },

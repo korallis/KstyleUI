@@ -144,11 +144,11 @@ function Medals.Dress(m, cover)
 	return m
 end
 
-local function Timer(parent, level, texture, color, alpha)
+local function Timer(parent, level, texture, color, alpha, path)
 	local t = CreateFrame("Cooldown", nil, parent, "CooldownFrameTemplate")
 	t:SetFrameLevel(level)
 	t:SetPoint("CENTER", parent, "CENTER", 0, 0)
-	t:SetSwipeTexture((Tokens.Texture(texture)))
+	t:SetSwipeTexture(path or (Tokens.Texture(texture)))
 	local r, g, b = Tokens.Color(color)
 	t:SetSwipeColor(r, g, b, alpha or 1)
 	t:SetDrawEdge(false)
@@ -291,7 +291,7 @@ function Medals.Medal(parent, spec, level)
 			if lit.container then
 				lit:SetDurationCooldown(lit.timer)
 			end
-			add(Medals.Ember(m, lit, lit.timer, "OrbRing.png", level + 3 + 2 * (i - 1), each.color))
+			add(Medals.Ember(m, lit, lit.timer, "Band", level + 3 + 2 * (i - 1), size))
 		elseif each.feed == "cooldown" then
 			lit.timer = add(Timer(lit, level + 2, "dot", "black", 0.7), size * ICON)
 		end
@@ -348,7 +348,7 @@ function Medals.Rim(parent, spec, level)
 		if lit.container then
 			lit:SetDurationCooldown(r.timer)
 		end
-		r.add(Medals.Ember(r, lit, r.timer, "RingLine16.png", level + 3, spec.color))
+		r.add(Medals.Ember(r, lit, r.timer, "RingLine16", level + 3, INNER))
 	end
 	Medals.Flare(r, lit, level + 3, spec.burst or "glow", RIM, spec.lua)
 	r.spec = spec
@@ -360,7 +360,8 @@ local function Sigil(r, container, key, family, color, size)
 	for _, id in ipairs(family.spells) do
 		ids[id] = true
 	end
-	local button = container:AddAuraSlot(key, "HELPFUL", { candidateFilters = { includeSpellIDs = ids } })
+	local options = { candidateFilters = { includeSpellIDs = ids } }
+	local button = container:AddAuraSlot(key, "HELPFUL", options)
 	pcall(button.EnableMouse, button, false)
 	button:SetPoint("CENTER", r, "CENTER", 0, 0)
 	button:SetFrameLevel(r:GetFrameLevel() + ABOVE)
@@ -372,6 +373,7 @@ local function Sigil(r, container, key, family, color, size)
 	button.timer = Timer(button, button:GetFrameLevel() + 1, "orbRing", color)
 	button.timer:SetAllPoints(button)
 	button:SetDurationCooldown(button.timer)
+	button.ember = Medals.EmberSlot(r, container, "ember" .. key, options, size, r:GetFrameLevel() + ABOVE + 2)
 	button.container, button.key, button.family = container, key, family
 	r.sigils[#r.sigils + 1] = button
 end
@@ -403,7 +405,7 @@ function Medals.CooldownRim(parent, spec, level, form)
 		if not row then
 			lit.timer = r.add(Timer(lit, base + 2, "ringLine16", spec.color), COOLDOWN_RING)
 			lit:SetDurationCooldown(lit.timer)
-			r.add(Medals.Ember(r, lit, lit.timer, "RingLine16.png", base + 3, spec.color))
+			r.add(Medals.Ember(r, lit, lit.timer, "RingLine16", base + 3, COOLDOWN_RING))
 			Medals.Flare(r, lit, base + 3, spec.burst or "glow", RIM)
 		end
 		for k, family in ipairs(each.families) do
@@ -439,6 +441,7 @@ function Medals.Socket(parent, spec, level)
 			s.timer:ClearAllPoints()
 			s.timer:SetPoint("CENTER", parent, "CENTER", 0, 0)
 			add(s.timer, COOLDOWN_RING)
+			add(Medals.Ember(s, nil, s.timer, "RingLine16", level + 2, COOLDOWN_RING))
 		end
 	end
 	s.glint = add(Medals.Texture(s.bar, "OVERLAY", 0, "diamond", "white", GLINT, "ADD"))
@@ -521,10 +524,13 @@ local function Arrange(r)
 		local f = b.family
 		local on = f.known and not f.known[1] or Medals.Known(f.known or f.spells) ~= nil
 		b.container:SetAuraSlotEnabled(b.key, on)
+		b.container:SetAuraSlotEnabled(b.ember.key, on and ns.Config("crestEmber") ~= false)
 		b.at = on and { r.left + n % r.per * r.pitch, r.first + floor(n / r.per) * r.rise } or nil
 		if b.at then
-			b:ClearAllPoints()
-			b:SetPoint("CENTER", r, "CENTER", Widgets.Snap(r, b.at[1]), Widgets.Snap(r, b.at[2]))
+			for _, slot in ipairs({ b, b.ember }) do
+				slot:ClearAllPoints()
+				slot:SetPoint("CENTER", r, "CENTER", Widgets.Snap(r, b.at[1]), Widgets.Snap(r, b.at[2]))
+			end
 			n = n + 1
 		end
 	end

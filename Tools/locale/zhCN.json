@@ -4915,7 +4915,7 @@
 	"Turned off in the AddOn list": "已在插件列表中禁用",
 	"Turning /way, /kpaste or /cd off frees its name; one you typed since the last reload stays until you reload.": "关闭 /way、/kpaste 或 /cd 会释放该命令；自上次重载后输入过的命令在重载前仍被占用。",
 	"Turns Blizzard's gold and white lines into KstyleUI's greys. Coloured lines stay.": "把暴雪的金色和白色行改为 KstyleUI 的灰色。彩色行保持不变。",
-	"Turns the last fifth of every crest timer ring amber and its last twelfth red.": "纹章上每个计时环的最后五分之一变为琥珀色，最后十二分之一变为红色。",
+	"Turns the last fifth of the crest's timer rings and cooldown sigils amber and the last twelfth red.": "纹章计时环和冷却印记的最后五分之一变为琥珀色，最后十二分之一变为红色。",
 	"Turns the map so you always face up, and hides the N. Off leaves the game's own setting alone.": "旋转地图使你始终朝上，并隐藏 N。关闭则保留游戏自身的设置。",
 	"Turns these game plates on or off. The game's setting leaves them alone.": "开启或关闭这些游戏姓名板。选择游戏设置则保持不变。",
 	"Turns this bar on or off.": "开启或关闭此动作条。",
