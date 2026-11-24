@@ -381,13 +381,14 @@ function Trackers.Play(env, K, ns, notes)
 			end
 		end
 		env.SetCombat(burn ~= nil)
-		player[#player + 1] = { id = id, count = 0, icon = ICONS[id], start = env._now - (burn or 15), duration = 15 }
+		player[#player + 1] = { id = id, auraInstanceID = 1, count = 0, icon = ICONS[id], start = env._now - (burn or 15), duration = 15 }
 		Slots.Set(env, "player", player)
+		env.FireEvent("UNIT_AURA", "player", { addedAuras = { { spellId = id, auraInstanceID = 1 } } })
 		env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-unleashed", id)
 		if ended then
 			table.remove(player)
 			Slots.Set(env, "player", player)
-			env.FireEvent("UNIT_AURA", "player", {})
+			env.FireEvent("UNIT_AURA", "player", { removedAuraInstanceIDs = { 1 } })
 		end
 		for _, set in ipairs(ns.SlabUnleashed.sets) do
 			for _, group in ipairs(set.awake.lit.loops or {}) do Sample(group, 0, t, env) end

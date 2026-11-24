@@ -16,7 +16,7 @@ local BASE, LENGTH, ART, SEAT = 76, 44, 128 / 120, 8
 local RING_HALO = 1.6
 local KEYS = { ["resource.enabled"] = true, ["resource.comboPoints"] = true, ["resource.classPips"] = true }
 
-local state = { pips = {}, built = {}, heats = {}, crowns = {} }
+local state = { pips = {}, built = {}, crowns = {} }
 Crown.state = state
 
 local function Saved(key)
@@ -54,10 +54,10 @@ local function Build(hub, class, count)
 			p:Layout(LENGTH * ART)
 			pips[i] = p
 		end
+		pips.heat = ns.SlabHeat.Combo(pips[1].frame, count)
 		state.built[state.key] = pips
-		state.heats[state.key] = ns.SlabHeat.Combo(pips[1].frame, count)
 	end
-	state.pips, state.heat = pips, state.heats[state.key]
+	state.pips = pips
 end
 
 local function Ring(fed, hub)
@@ -113,7 +113,7 @@ local function Points(event)
 	for _, p in ipairs(state.pips) do
 		p:Set(points, was, moving, idle)
 	end
-	ns.SlabHeat.Set(state.heat, points, moving)
+	ns.SlabHeat.Set(state.pips.heat, points, moving)
 end
 
 local function OnPower(event, _, token)

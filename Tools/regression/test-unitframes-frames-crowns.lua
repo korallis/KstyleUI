@@ -203,4 +203,26 @@ do
 	Clean(env, K, "caster druid")
 end
 
+-- Rising heat's switch only repaints the steps: no relayout, and a step under an aura button waits until auras are readable and combat has ended.
+do
+	local env, K, ns = New("WARRIOR", { setup = function(e) e.C_Secrets = { ShouldAurasBeSecret = function() return e._aurasSecret == true end } end })
+	local bar = ns.Pips.state.heat[1]
+	local function Alpha() return Slots.Engine(env, function() return bar:GetAlpha() end) end
+	assert(bar and bar.fed and Alpha() > 0, "the warrior's first heat step is lit by default")
+	env._aurasSecret = true
+	K.Store.Profile().ActionBars = { crestHeat = false }
+	K.Callbacks.Fire("SettingChanged", "ActionBars", "crestHeat", false)
+	assert(Alpha() > 0, "while auras are secret the step waits")
+	env.SetCombat(true)
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
+	assert(Alpha() > 0, "readable auras in combat still write nothing under an aura button")
+	env.SetCombat(false)
+	assert(Alpha() == 0, "and the step hides once combat ends")
+	K.Store.Profile().ActionBars = nil
+	K.Callbacks.Fire("ProfileChanged")
+	assert(Alpha() > 0, "a profile change paints it back")
+	Clean(env, K, "heat switch")
+end
+
 print("unitframes frames crowns ok")

@@ -68,10 +68,12 @@ end
 -- A rogue's combo points.
 do
 	local env, K, ns = New("ROGUE", {})
-	local heat, hub = ns.SlabCrown.state.heat, ns.Slab.hub
+	local heat, hub = ns.SlabCrown.state.pips.heat, ns.Slab.hub
 	assert(heat and #heat == 10, "five steps of halo and corona")
 	assert(heat[1]:GetFrameLevel() > hub:GetFrameLevel() and heat[2]:GetFrameLevel() < hub:GetFrameLevel(), "the halo draws over the band, the corona under the ring")
-	assert(math.abs(heat[1]:GetAlpha() - 0.2) < 1e-6 and math.abs(heat[2]:GetAlpha() - 0.1) < 1e-6, "each step draws a fifth of the halo and of the faint corona")
+	assert(math.abs(heat[1]:GetAlpha() - 0.2) < 1e-6 and math.abs(heat[2]:GetAlpha() - 0.16) < 1e-6, "each step draws a fifth of the halo and of a corona worth 0.8 at the maximum")
+	assert(Last(heat[1], "SetStatusBarColor") and not Last(heat[2], "SetStatusBarColor"), "the halo takes the class colour; the corona keeps the burst's own colours")
+	assert(Last(heat[2]:GetStatusBarTexture(), "AddMaskTexture") and not Last(heat[1]:GetStatusBarTexture(), "AddMaskTexture"), "the corona is masked inside the crest's footprint")
 	env._points = 3
 	env.FireEvent("UNIT_POWER_FREQUENT", "player", "COMBO_POINTS")
 	Steps(env, heat, 3, "three points")
@@ -83,8 +85,23 @@ do
 	assert(Last(heat[9], "SetValue")[2] == 0, "Off shows the end state at once")
 	K.Options.Write("ActionBars", "crestHeat", false)
 	assert(Alpha(env, heat) == 0, "the switch off hides every step")
+	local writes = 0
+	for _, bar in ipairs(heat) do writes = writes - #AB.W.Calls(bar, "SetValue") end
+	env._points = 2
+	env.FireEvent("UNIT_POWER_FREQUENT", "player", "COMBO_POINTS")
+	for _, bar in ipairs(heat) do writes = writes + #AB.W.Calls(bar, "SetValue") end
+	assert(writes == 0, "switched off, a combo point change writes no step")
 	K.Options.Write("ActionBars", "crestHeat", true)
-	assert(math.abs(Alpha(env, heat) - 1.5) < 1e-6, "and on brings them back")
+	assert(math.abs(Alpha(env, heat) - 1.8) < 1e-6, "and on brings them back")
+	Steps(env, heat, 2, "back on, the steps show the count reached while off")
+	K.Store.Module("ActionBars").crestHeat = false
+	K.Callbacks.Fire("ProfileChanged")
+	assert(Alpha(env, heat) == 0, "a profile with the switch off hides the steps")
+	K.Store.Module("ActionBars").crestHeat = true
+	K.Callbacks.Fire("ProfileChanged")
+	K.Theme.SetPalette({ ROGUE = { r = 0.1, g = 0.3, b = 0.8 } }, 0)
+	local r, g, b = heat[1]:GetStatusBarColor()
+	assert(math.abs(r - 0.1) < 1e-6 and math.abs(g - 0.3) < 1e-6 and math.abs(b - 0.8) < 1e-6, "a palette change retints the halo")
 	Clean(env, K, "rogue")
 end
 
@@ -110,10 +127,12 @@ do
 	Slots.Set(env, "target", { { id = 7386, count = 5, harmful = true } })
 	Steps(env, bars, 5, "five Sunders in combat")
 	K.Options.Write("ActionBars", "crestHeat", false)
-	assert(math.abs(Alpha(env, bars) - 1.5) < 1e-6, "while auras are secret the switch waits")
+	assert(math.abs(Alpha(env, bars) - 1.8) < 1e-6, "while auras are secret the switch waits")
 	env._aurasSecret = false
 	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
-	assert(Alpha(env, bars) == 0, "and hides the steps once the restriction ends")
+	assert(math.abs(Alpha(env, bars) - 1.8) < 1e-6, "readable auras in combat still write nothing under an aura button")
+	env.SetCombat(false)
+	assert(Alpha(env, bars) == 0, "and the steps hide once combat ends")
 	Clean(env, K, "warrior")
 end
 

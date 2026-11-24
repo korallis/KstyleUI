@@ -22,6 +22,9 @@ local function Glow(row, set, count, from, to)
 	bar:GetStatusBarTexture():SetBlendMode("ADD")
 	bar:SetStatusBarColor(Tokens.Color(set.glowColor))
 	bar:SetMinMaxValues(count - 1, count)
+	if not from then
+		return bar
+	end
 	bar.anim = bar:CreateAnimationGroup()
 	local a = bar.anim:CreateAnimation("Alpha")
 	a:SetDuration(FADE)
@@ -33,11 +36,15 @@ end
 local function Warm()
 	local profile = K.Store.IsLoaded() and K.Store.Profile()
 	local bars = type(profile) == "table" and profile.ActionBars
-	local on, open = not (type(bars) == "table" and bars.crestHeat == false), Widgets.CrownOpen()
+	local on, open = not (type(bars) == "table" and bars.crestHeat == false), Widgets.CrownOpen() and not InCombatLockdown()
 	for _, bar in ipairs(state.heat) do
 		if open or not bar.fed then
 			bar:SetAlpha(on and bar.share or 0)
 		end
+	end
+	local listen = open and K.Events.Unregister or K.Events.Register
+	for _, event in ipairs({ "PLAYER_REGEN_ENABLED", "ADDON_RESTRICTION_STATE_CHANGED" }) do
+		listen(OWNER .. ":heat", event, Warm)
 	end
 end
 
@@ -47,9 +54,10 @@ local function Heat(bar, count)
 	if #state.heat == 1 then
 		K.Callbacks.Register("SettingChanged", OWNER .. ":heat", function(_, module, key)
 			if module == "ActionBars" and key == "crestHeat" then
-				ns.Resource.Visibility()
+				Warm()
 			end
 		end)
+		K.Callbacks.Register("ProfileChanged", OWNER .. ":heat", Warm)
 	end
 	return bar
 end
@@ -60,7 +68,7 @@ local function BuildRow(set, count)
 	row.now, row.was = Glow(row, set, count, 0, 1), Glow(row, set, count, 1, 0)
 	row.heat = {}
 	for i = 1, count do
-		row.heat[i] = Heat(Glow(row, set, i, 0, 1), count)
+		row.heat[i] = Heat(Glow(row, set, i), count)
 	end
 	row.was:Hide()
 	row.was.anim:SetScript("OnFinished", function() row.was:Hide() end)
@@ -84,7 +92,6 @@ function Pips.Apply(class, parent, count)
 		end
 		state.row:SetShown(state.shown)
 	end
-	Warm()
 	return set ~= nil
 end
 
@@ -122,12 +129,13 @@ local function Build(kind, parent, moving)
 	crown.glow:SetAllPoints(frame)
 	crown.glow:SetTexture((Tokens.Texture("glow")))
 	crown.glow:SetBlendMode("ADD")
-	crown.glow:SetVertexColor(Tokens.Color(Widgets.ClassPipSet(kind, 90).glowColor))
-	for i = 1, kind ~= "PALADIN" and Widgets.CrownCount(kind) or 0 do
+	local set = Widgets.ClassPipSet(kind, 90)
+	crown.glow:SetVertexColor(Tokens.Color(set.glowColor))
+	for i = 1, kind ~= "PALADIN" and #angles or 0 do
 		local button = crown.container:AddAuraSlot("heat" .. i, crown.c.filter, crown.options)
 		pcall(button.EnableMouse, button, false)
 		button:SetAllPoints(frame)
-		local bar = Heat(Glow(button, Widgets.ClassPipSet(kind, 90), i, 0, 1), Widgets.CrownCount(kind))
+		local bar = Heat(Glow(button, set, i), #angles)
 		bar.fed = true
 		crown.feeds[#crown.feeds + 1] = { button = button, bar = bar, low = i - 1, ease = true }
 	end

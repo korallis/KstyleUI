@@ -369,6 +369,7 @@ local function Stop()
 	end
 	state.form = nil
 	Listen(false)
+	ns.SlabUnleashed.Paint()
 	for _, event in ipairs(HOOKS[ns.class] and HOOKS[ns.class].update or {}) do
 		if state.enabled then
 			K.Events.Register(OWNER, event, Trackers.Update)

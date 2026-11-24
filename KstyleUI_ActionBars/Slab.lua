@@ -202,12 +202,15 @@ local function Fade(g, from, to, duration, order, delay)
 end
 Slab.Fade = Fade
 
-local function Grow(g, from, to, duration, order)
+local function Grow(g, from, to, duration, order, smoothing)
 	local s = g:CreateAnimation("Scale")
 	s:SetScaleFrom(from, from)
 	s:SetScaleTo(to, to)
 	s:SetDuration(duration)
 	s:SetOrder(order or 1)
+	if smoothing then
+		s:SetSmoothing(smoothing)
+	end
 	return s
 end
 Slab.Grow = Grow
