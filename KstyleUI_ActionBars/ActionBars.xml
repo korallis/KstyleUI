@@ -23,6 +23,7 @@
 	<Script file="SlabGrove.lua"/>
 	<Script file="SlabStormforged.lua"/>
 	<Script file="SlabCrown.lua"/>
+	<Script file="SlabRings.lua"/>
 	<Script file="SlabRanged.lua"/>
 	<Script file="SlabTarget.lua"/>
 	<Script file="Totems.lua"/>

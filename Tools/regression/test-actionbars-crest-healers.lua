@@ -75,7 +75,7 @@ local function Tracker(ns, class)
 				for key, piece in pairs(f.pieces) do
 					local row, choice = key:match("^(%d+):(%d+)$")
 					local name = row == "1" and "fiveSecond" or NAMES[class][(row - 1) .. ":" .. choice]
-					built[name .. (form == "row" and "Row" or "")] = piece
+					if piece.spec.key ~= "crestSwing" then built[name .. (form == "row" and "Row" or "")] = piece end
 				end
 			end
 			return built

@@ -1419,6 +1419,7 @@ function Scene.Build(env, opts)
 		if state(frame, "DrawEdge") == true then
 			item.edge = color4(frame._state.EdgeColor, { 1, 1, 1, 1 })
 			item.edgeScale = num(env, state(frame, "EdgeScale"), 1)
+			item.circular = state(frame, "UseCircularEdge") == true or nil
 		end
 		local swipe = state(frame, "SwipeTexture")
 		if swipe then

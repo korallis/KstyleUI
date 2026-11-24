@@ -706,7 +706,10 @@
 		if (item.file) {
 			const img = await loadImage(url(base, item.file));
 			if (img) {
-				lctx.globalCompositeOperation = "destination-in";
+				// A white swipe shows its texture's own colours, as the client tints the swipe by its colour; other tints
+				// stay flat, the harness's long-standing reading of the ring art.
+				const white = item.color[0] === 1 && item.color[1] === 1 && item.color[2] === 1;
+				lctx.globalCompositeOperation = white && item.drawSwipe !== false ? "source-in" : "destination-in";
 				lctx.drawImage(img, 0, 0, dest.w, dest.h);
 				lctx.globalCompositeOperation = "source-over";
 			}
@@ -728,9 +731,12 @@
 			ctx.lineWidth = Math.max(1, Math.round(1.5 * ppu * edgeScale));
 			ctx.shadowColor = rgba(item.edge, 0.8);
 			ctx.shadowBlur = 4 * ppu * edgeScale;
+			// A circular edge is a spark on the rim, the hand's last eighth of a round frame's radius.
+			const rim = Math.min(dest.w, dest.h) / 2;
+			const inner = item.circular ? rim * 0.86 : 0, outer = item.circular ? rim : radius;
 			ctx.beginPath();
-			ctx.moveTo(dest.x + cx, dest.y + cy);
-			ctx.lineTo(dest.x + cx + Math.cos(hand) * radius, dest.y + cy + Math.sin(hand) * radius);
+			ctx.moveTo(dest.x + cx + Math.cos(hand) * inner, dest.y + cy + Math.sin(hand) * inner);
+			ctx.lineTo(dest.x + cx + Math.cos(hand) * outer, dest.y + cy + Math.sin(hand) * outer);
 			ctx.stroke();
 			ctx.restore();
 		}

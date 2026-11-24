@@ -291,6 +291,7 @@ function Medals.Medal(parent, spec, level)
 			if lit.container then
 				lit:SetDurationCooldown(lit.timer)
 			end
+			add(Medals.Ember(m, lit, lit.timer, "OrbRing.png", level + 3 + 2 * (i - 1), each.color))
 		elseif each.feed == "cooldown" then
 			lit.timer = add(Timer(lit, level + 2, "dot", "black", 0.7), size * ICON)
 		end
@@ -347,6 +348,7 @@ function Medals.Rim(parent, spec, level)
 		if lit.container then
 			lit:SetDurationCooldown(r.timer)
 		end
+		r.add(Medals.Ember(r, lit, r.timer, "RingLine16.png", level + 3, spec.color))
 	end
 	Medals.Flare(r, lit, level + 3, spec.burst or "glow", RIM, spec.lua)
 	r.spec = spec
@@ -401,6 +403,7 @@ function Medals.CooldownRim(parent, spec, level, form)
 		if not row then
 			lit.timer = r.add(Timer(lit, base + 2, "ringLine16", spec.color), COOLDOWN_RING)
 			lit:SetDurationCooldown(lit.timer)
+			r.add(Medals.Ember(r, lit, lit.timer, "RingLine16.png", base + 3, spec.color))
 			Medals.Flare(r, lit, base + 3, spec.burst or "glow", RIM)
 		end
 		for k, family in ipairs(each.families) do

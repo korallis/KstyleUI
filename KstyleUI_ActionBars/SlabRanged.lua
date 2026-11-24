@@ -108,20 +108,6 @@ local function Jewel(parent, spec, level, form)
 	return (form == "crest" and Medals.Socket or Medals.Medal)(parent, spec, level)
 end
 
-local function Swing(parent, spec, level, form)
-	local crest = form == "crest"
-	local r = crest and Medals.Piece(parent, level, INNER) or Medals.Medal(parent, { size = SIZE, texture = Trackers.Texture(75) }, level)
-	r.swing = CreateFrame("Cooldown", nil, r, "CooldownFrameTemplate")
-	r.swing:SetFrameLevel(level + 4)
-	r.swing:SetAllPoints(r)
-	r.swing:SetSwipeTexture((Tokens.Texture(crest and "ringLine16" or "orbRing")))
-	r.swing:SetDrawEdge(false)
-	r.swing:SetDrawBling(false)
-	r.swing:SetHideCountdownNumbers(true)
-	r.color = spec.color
-	return r
-end
-
 local function Glow(parent, spec, level)
 	local g = Medals.Piece(parent, level, SIZE)
 	g.lit = Medals.Feed(g, spec, level)
@@ -401,16 +387,8 @@ local function PaintSwing(r, event, duration, kind)
 	local n = Ammo()
 	local color = n and (n == 0 and "hostile" or n < LOW_AMMO and "neutral") or r.color
 	r.swing:SetSwipeColor(Tokens.Color(color))
-	local types = Enum and Enum.PlayerSwingType or {}
-	if event ~= "PLAYER_SWING" or type(GetTime) ~= "function" or IsSecret(kind) or kind ~= (types.Ranged or 2) and kind ~= (types.MainHand or 0) then
-		return
-	end
-	local util = C_DurationUtil
-	r.duration = r.duration or util and type(util.CreateDuration) == "function" and util.CreateDuration()
-	if r.duration and pcall(r.duration.SetTimeFromStart, r.duration, GetTime(), duration) then
-		r.swing:SetCooldownFromDurationObject(r.duration)
-	elseif not IsSecret(duration) and type(duration) == "number" then
-		r.swing:SetCooldown(GetTime(), duration)
+	if event == "PLAYER_SWING" then
+		ns.SlabRings.Start(r, duration, kind)
 	end
 end
 
@@ -496,7 +474,7 @@ if CLASS == "HUNTER" then
 		{ key = "crestMark", seat = "footLeft", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL", color = "hostile", spells = { 1130, 14323, 14324, 14325 } },
 		{ key = "crestSting", seat = "footRight", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", color = "schoolNature", newest = true,
 			spells = STINGS, known = { 1978, 3034, 3043, 24118, 3674 } },
-		{ key = "crestAutoShot", seat = "rim", build = Swing, color = "steelLit", known = { 75 } },
+		{ key = "crestAutoShot", seat = "rim", build = ns.SlabRings.Swing, color = "steelLit", known = { 75 } },
 		{ key = "crestCooldowns", seat = "cooldowns", color = "jewelHawk", families = { { spells = { 3045 }, sigil = "Volley" }, { spells = { 19263 }, sigil = "Deflect" },
 			{ spells = { 19574 }, unit = "pet", sigil = "Paw" } } },
 		{ key = "crestGust", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 6150, 1299448, 469144, 3045 }, known = { 3045, 19552, 19553, 19554, 19555, 19556 },

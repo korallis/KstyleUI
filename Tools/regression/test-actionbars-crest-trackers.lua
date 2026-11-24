@@ -111,7 +111,7 @@ do
 	ns.SlabMedals.Rest()
 	assert(rim.fire:GetAlpha() == (ns.Slab.Resting() and 0 or 1), "the fire follows the crest's rest")
 	assert(Updating(ns.SlabTrackers.state.forms.crest.frame) == 0, "nothing runs OnUpdate")
-	for _, key in ipairs({ "crestShout", "crestOpening", "crestEnrage", "crestCooldowns", "crestThreat", "crestHipLeft", "crestHipRight", "crestFootLeft", "crestFootRight", "crestTankGlow", "crestKill" }) do
+	for _, key in ipairs({ "crestShout", "crestOpening", "crestEnrage", "crestCooldowns", "crestThreat", "crestHipLeft", "crestHipRight", "crestFootLeft", "crestFootRight", "crestTankGlow", "crestKill", "crestSwing" }) do
 		K.Options.Write("ActionBars", key, false)
 	end
 	env.RunTimers()
@@ -453,6 +453,7 @@ end
 -- A custom placer under Frames takes the cells it returns; the next medal lands on the grid after them.
 do
 	local env, K, ns = New("ROGUE", { 5171, 1943 }, { frames = true })
+	K.Options.Write("ActionBars", "crestSwing", false)
 	local n = #ns.SlabTrackers.CLASSES.ROGUE
 	ns.SlabTrackers.Register("ROGUE", {
 		{ key = "crestPoisons", seat = "left", feed = "aura", spells = { 5171 }, place = function(piece, anchor, _, x, cell)
