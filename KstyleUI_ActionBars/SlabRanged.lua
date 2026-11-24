@@ -592,7 +592,7 @@ if CLASS == "WARLOCK" then
 		} },
 		{ key = "crestCooldowns", seat = "cooldowns", color = "jewelShard", families = { { spells = { 18288 }, sigil = "Curse" },
 			{ spells = { 18708 }, sigil = "Horns" }, { spells = { 6229, 11739, 11740, 28610 }, sigil = "Shade" },
-			{ spells = { 7812, 19438, 19440, 19441, 19442, 19443 }, sigil = "Void" } } },
+			{ spells = { 7812, 19438, 19440, 19441, 19442, 19443 }, known = {}, sigil = "Void" } } },
 		{ key = "crestWisps", seat = "rim", build = Wisps, place = PlaceWisps, items = { 6265 },
 			known = function() return Medals.Known({ 1120, 8288, 8289, 11675 }) or Count(6265) > 0 and 1120 end },
 		{ key = "crestTorments", seat = "rim", build = Spires, place = PlaceSpires, spires = {

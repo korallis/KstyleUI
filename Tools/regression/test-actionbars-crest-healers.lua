@@ -637,7 +637,7 @@ do
 	assert(t.row and t.row:IsShown() and not t.built.seedLeft:IsVisible(), "under Frames the crest pieces hide and the row shows")
 	assert(t.built.seedLeftRow:IsShown() and t.built.bloomRow:IsShown() and t.built.bloomRow.timer, "the row's Clearcasting is a medal with its ring")
 	local cooldowns = t.built.cooldownsRow
-	assert(cooldowns:IsShown() and cooldowns.stack[1] and cooldowns.stack[1].sigil and not cooldowns.timer, "the row's cooldowns are the crest's sigils, with no rim")
+	assert(cooldowns:IsShown() and cooldowns.sigils[1] and not cooldowns.timer, "the row's cooldowns are the crest's sigils, with no rim")
 	local point, anchor, rel = t.row:GetPoint(1)
 	assert(point == "BOTTOMLEFT" and rel == "TOPLEFT" and anchor == ns.bars.stance.buttons[1], "the row stands above the forms")
 	local cells, count = {}, 0

@@ -14,7 +14,9 @@ import math
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
+
+from healer_trackers import additive, blur
 
 SIZE, SCALE = 64, 8
 N = SIZE * SCALE
@@ -130,11 +132,11 @@ def bezier(p, a, c, b, width=WIDTH):
                        (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * c[1] + t * t * b[1]), 0, 1, width=width)
 
 
-GLYPHS = {}
+GLYPHS = {"Heart": heart, "Drop": drop, "Bolt": bolt, "Eye": eye}
 
 
 def glyph(fn):
-    GLYPHS[fn.__name__.capitalize() if fn.__name__.islower() else fn.__name__] = fn
+    GLYPHS[fn.__name__] = fn
     return fn
 
 
@@ -162,11 +164,6 @@ def Wall(p):
     p.line((0.5, 0.18), (0.5, 0.38))
     p.line((0.36, 0.38), (0.36, 0.57))
     p.line((0.64, 0.38), (0.64, 0.57))
-
-
-@glyph
-def Heart(p):
-    heart(p)
 
 
 @glyph
@@ -273,11 +270,6 @@ def Dash(p):
     arrow(p, 0.36, 0.5, 0.82, 0.5, 0.16)
     p.line((0.16, 0.34), (0.42, 0.34))
     p.line((0.16, 0.66), (0.42, 0.66))
-
-
-@glyph
-def Drop(p):
-    drop(p)
 
 
 @glyph
@@ -487,11 +479,6 @@ def Roots(p):
 
 # Shaman
 @glyph
-def Bolt(p):
-    bolt(p)
-
-
-@glyph
 def Farseer(p):
     p.poly((0.5, 0.14), (0.86, 0.8), (0.14, 0.8))
     eye(p, 0.5, 0.58, 0.18, 0.1)
@@ -516,11 +503,6 @@ def Stone(p):
     p.poly((0.32, 0.16), (0.7, 0.2), (0.84, 0.5), (0.68, 0.84), (0.3, 0.8), (0.16, 0.48))
     p.line((0.32, 0.16), (0.46, 0.5), (0.3, 0.8))
     p.line((0.46, 0.5), (0.84, 0.5))
-
-
-@glyph
-def Eye(p):
-    eye(p)
 
 
 @glyph
@@ -574,32 +556,13 @@ def Potion(p):
     wave(p, 0.62, 0.28, 0.72, 0.03, 1.5)
 
 
-def grid():
-    y, x = np.mgrid[0:N, 0:N].astype(np.float64) / (N - 1)
-    return x, y
-
-
-def blur(a, radius):
-    image = Image.fromarray(np.clip(a * 255, 0, 255).astype(np.uint8))
-    return np.asarray(image.filter(ImageFilter.GaussianBlur(radius * SCALE)), np.float64) / 255
-
-
-def additive(rgb):
-    channels = [np.asarray(Image.fromarray((rgb[..., c] ** 2.2).astype(np.float32), "F").resize((SIZE, SIZE), Image.LANCZOS))
-                for c in range(3)]
-    small = np.clip(np.dstack(channels), 0, 1) ** (1 / 2.2)
-    alpha = small.max(axis=2)
-    colour = np.where(alpha[..., None] > 0, small / np.maximum(alpha[..., None], 1e-6), 0)
-    return np.dstack([colour, alpha])
-
-
 def render(draw):
     pen = Pen()
     draw(pen)
     lines = np.asarray(pen.image, np.float64) / 255
     glow = np.clip(blur(lines, 2.5) * 1.5, 0, 1)
     light = np.clip(np.maximum(lines, 0.55 * glow), 0, 1)
-    rgb = np.ones((N, N, 3)) * np.array([0.9, 0.93, 1.0]) * glow[..., None] * (1 - lines[..., None]) + lines[..., None]
+    rgb = np.array([0.9, 0.93, 1.0]) * glow[..., None] * (1 - lines[..., None]) + lines[..., None]
     return additive(np.clip(rgb, 0, 1) * light[..., None])
 
 

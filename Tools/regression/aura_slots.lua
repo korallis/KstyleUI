@@ -14,14 +14,13 @@
 --   Slots.Install(env)                                   -- in an env's setup, before the addon loads
 --   Slots.Set(env, "target", { { id = 7386, count = 3, harmful = true } })   -- feeds every slot; nil clears
 --
--- SetIcon, SetDurationCooldown, SetApplicationCount and SetDurationBar take regions the button owns and show the aura's icon, its stacks above one and its
+-- SetAuraSlotEnabled(key, false) stops a slot reading auras. SetIcon, SetDurationCooldown, SetApplicationCount and SetDurationBar take regions the button owns and show the aura's icon, its stacks above one and its
 -- { start, finish } duration (an aura's start and duration, seconds); AddItemEnchantment's button shows the enchant
 -- Slots.Enchant gives its slot, as Blizzard_CustomAuraContainer.lua:488-507 does. A slot or group sorted by
 -- AuraInstanceIDOnly, Reverse takes the newest matching aura first (the last in the unit's list); AddAuraGroup makes
--- maxFrameCount buttons up front through initializeFrame and shows one per match; the container lays every group's
--- shown buttons out in registration order from its top left as AnchorUtil.ApplyFlowLayout does (elementWidth and
--- elementSpacing within a group, groupSpacing before a group that continues a line, a new line past
--- SetFlowLayoutMaximumLineSize) and sizes itself to them (Blizzard_CustomAuraContainer.lua:286-328, 675-754). Groups exist only when env._slotGroups is set before the addon loads,
+-- maxFrameCount buttons up front through initializeFrame, shows one per match in a left-to-right row of its layout's
+-- elementWidth and elementSpacing from the container's top left, and sizes the container to the row
+-- (Blizzard_CustomAuraContainer.lua:286-328). Groups exist only when env._slotGroups is set before the addon loads,
 -- so modules that fall back without them (the unit frames' auras) keep their fallback.
 --
 -- A bar fed with ExponentialEaseOut on an update keeps bar._ease = { from, to, at = env._now } so the render
@@ -54,7 +53,7 @@ local function Feed(env, c)
 		local aura
 		if c._enabled == true and slot.enchant then
 			aura = env._slotEnchants[slot.enchant]
-		elseif c._enabled == true then
+		elseif c._enabled == true and not slot.disabled then
 			for _, a in ipairs(env._slotAuras[c._unit] or {}) do
 				if Matches(a, slot.filter, slot.candidates) then
 					aura = aura and not slot.newest and aura or a
@@ -76,39 +75,24 @@ local function Feed(env, c)
 		end
 		Slots.Show(env, c, slot, aura)
 	end
-	if not c._order then
-		return
-	end
-	local limit, x, y, line, lineHeight, width, height = c._maxLine or math.huge, 0, 0, 0, 0, 0, 0
-	for _, group in ipairs(c._order) do
+	for _, group in pairs(c._groups or {}) do
 		local matches = {}
 		for _, a in ipairs(c._enabled == true and env._slotAuras[c._unit] or {}) do
 			if Matches(a, group.filter, group.candidates) then table.insert(matches, 1, a) end
 		end
 		local o = group.layout or {}
-		local w, h, gap = o.elementWidth or 30, o.elementHeight or o.elementWidth or 30, o.elementSpacing or 0
-		if line > 0 and matches[1] and (o.groupSpacing or 0) > 0 then
-			if line + o.groupSpacing > limit then
-				x, y, line, lineHeight = 0, y + lineHeight + (o.groupLineSpacing or o.lineSpacing or 0), 0, 0
-			else
-				x, line = x + o.groupSpacing, line + o.groupSpacing
-			end
-		end
+		local w, gap, shown = o.elementWidth or 30, o.elementSpacing or 0, 0
 		for i, frame in ipairs(group.frames) do
 			Slots.Show(env, c, group.slots[i], matches[i])
 			if matches[i] then
-				if line > 0 and line + w > limit then
-					x, y, line, lineHeight = 0, y + lineHeight + (o.lineSpacing or 0), 0, 0
-				end
 				frame:ClearAllPoints()
-				frame:SetSize(w, h)
-				frame:SetPoint("TOPLEFT", c, "TOPLEFT", x, -y)
-				x, line, lineHeight = x + w + gap, line + w + gap, math.max(lineHeight, h)
-				width, height = math.max(width, line - gap), math.max(height, y + h)
+				frame:SetSize(w, o.elementHeight or w)
+				frame:SetPoint("TOPLEFT", c, "TOPLEFT", (i - 1) * (w + gap), 0)
+				shown = i
 			end
 		end
+		c:SetSize(math.max(1, shown * w + math.max(0, shown - 1) * gap), o.elementHeight or w)
 	end
-	c:SetSize(math.max(1, width), math.max(1, height))
 end
 
 -- Engine(env, fn, ...) runs fn as the engine, past the access restriction, and returns its first value: the engine's
@@ -239,6 +223,17 @@ function Slots.Install(env)
 			Slots.Feed(env, self)
 		end
 		function c.UpdateAllAuras(self) Slots.Feed(env, self) end
+		function c.SetAuraSlotEnabled(self, key, on)
+			self._slots[key].disabled = not on
+			Slots.Feed(env, self)
+		end
+		-- A container with an aura group forbids untrusted layout scripts, so no container without one may anchor to it
+		-- (Blizzard_CustomAuraContainer.lua:317-324).
+		local point = c.SetPoint
+		function c.SetPoint(self, at, other, ...)
+			assert(not (type(other) == "table" and other._forbidLayout and not self._forbidLayout), "anchor target forbids untrusted layout scripts")
+			return point(self, at, other, ...)
+		end
 		function c.AddAuraSlot(self, key, filter, options)
 			assert(type(key) == "string" and key ~= "" and not self._slots[key], "aura slot keys are unique non-empty strings")
 			local button = Button(env, self, create("Frame", nil, self))
@@ -249,9 +244,8 @@ function Slots.Install(env)
 			Slots.Feed(env, self)
 			return button
 		end
-		c.SetFlowLayoutMaximumLineSize = env._slotGroups and function(self, size) self._maxLine = size end or nil
 		c.AddAuraGroup = env._slotGroups and function(self, key, filter, options)
-			self._groups, self._order = self._groups or {}, self._order or {}
+			self._groups = self._groups or {}
 			assert(not self._groups[key], "aura group keys are unique")
 			local group = { filter = filter, candidates = options.candidateFilters, layout = options.layout, frames = {}, slots = {} }
 			for i = 1, math.min(options.maxFrameCount or 8, 8) do
@@ -260,8 +254,7 @@ function Slots.Install(env)
 				if options.initializeFrame then options.initializeFrame(button) end
 				group.frames[i], group.slots[i] = button, { frame = button }
 			end
-			self._groups[key] = group
-			self._order[#self._order + 1] = group
+			self._groups[key], self._forbidLayout = group, true
 			Slots.Feed(env, self)
 		end or nil
 		function c.AddItemEnchantment(self, slot)

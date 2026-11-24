@@ -179,7 +179,7 @@ do
 	Slots.Set(env, "pet", { { id = 19574, icon = 132127, start = 0, duration = 18 } })
 	Slots.Set(env, "player", { { id = 3045, icon = 132208, start = 1, duration = 15 } })
 	local seen = 0
-	for _, button in ipairs(rim.stack) do seen = seen + (button:IsShown() and 1 or 0) end
+	for _, button in ipairs(rim.sigils) do seen = seen + (button:IsShown() and 1 or 0) end
 	assert(seen == 2, "Rapid Fire and the pet's Bestial Wrath both stand on the cooldown rim")
 	local gust = Piece(ns, "crestGust")
 	assert(Shown(gust.lits[#gust.lits], gust.lits[#gust.lits].loop), "at Full the gust is the engine's shown animation")

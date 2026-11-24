@@ -182,14 +182,17 @@ do
 	Clean(env, K, "rogue")
 end
 
--- Major cooldowns: the newest burns on the rim, each running one lights its family's sigil in the row below the emblem, in family order; a talent nobody learned still shows when its aura appears.
+-- Major cooldowns: the newest burns on the rim and each running family the character has lights its sigil, each in
+-- its own place below the emblem; a family it lacks (another race's racial, an unlearned talent) takes no place.
 do
 	local env, K, ns = New("ROGUE", { 13877, 5277 })
 	local rim = Pieces(ns)[5]
-	assert(rim and rim.stack and #rim.stack == 17, "a rogue with Blade Flurry gets the cooldown rim: a sigil for each of its seven families, the racials and the potions")
+	assert(rim and rim.sigils and #rim.sigils == 17, "a rogue with Blade Flurry gets the cooldown rim: one slot for each of its seven families, the racials and the potions")
+	local placed = {}
+	for _, b in ipairs(rim.sigils) do placed[#placed + 1] = b.at and b.family.sigil or nil end
+	assert(table.concat(placed, ",") == "Flurry,Evade,Potion", "only Blade Flurry, Evasion and the potions take places: " .. table.concat(placed, ","))
 	Slots.Set(env, "player", { { id = 13877, count = 0, icon = 132350, start = 0, duration = 15 }, { id = 5277, count = 0, icon = 136205, start = 0, duration = 15 } })
-	assert(rim.lit:IsShown() and rim.stack[1]:IsShown() and rim.stack[3]:IsShown() and not rim.stack[2]:IsShown(), "Blade Flurry's and Evasion's sigils light, Adrenaline Rush's stays dark")
-	assert(rim.stack[1].sigil._state.Texture[1]:find("Flurry", 1, true) and rim.stack[3].sigil._state.Texture[1]:find("Evade", 1, true), "each family wears its own sigil")
+	assert(rim.lit:IsShown() and rim.sigils[1]:IsShown() and rim.sigils[3]:IsShown() and not rim.sigils[2]:IsShown(), "Blade Flurry's and Evasion's sigils light, Adrenaline Rush's stays dark")
 	K.Options.Write("ActionBars", "crestCooldowns", false)
 	env.RunTimers()
 	assert(not Pieces(ns)[5], "its switch hides it")

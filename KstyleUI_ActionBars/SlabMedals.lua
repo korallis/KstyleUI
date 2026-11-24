@@ -11,7 +11,7 @@ ns.SlabMedals = Medals
 
 local SIZE, TRACK, ICON, SHADE, BURST, STEEL = 26, 4, 0.74, 1.9, 2.4, 0.45
 local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 112, 12, 10, 8, 2
-local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, ROW_SIGIL, SIGIL = 118, 14, 4, 30, 12, 0.86
+local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, ROW_SIGIL, SIGIL, ABOVE = 118, 14, 4, 30, 8, 0.86, 20
 local SEATS = {
 	left = { -1, 75.9, 24.8 }, right = { 1, 75.9, 24.8 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
 	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 67.5, 247 }, footRight = { 1, 67.5, 293 },
@@ -353,17 +353,24 @@ function Medals.Rim(parent, spec, level)
 	return r
 end
 
-local function Sigil(r, button, sigil, color, size)
+local function Sigil(r, container, key, family, color, size)
+	local ids = {}
+	for _, id in ipairs(family.spells) do
+		ids[id] = true
+	end
+	local button = container:AddAuraSlot(key, "HELPFUL", { candidateFilters = { includeSpellIDs = ids } })
 	pcall(button.EnableMouse, button, false)
-	button:SetPoint("TOPLEFT", button:GetParent(), "TOPLEFT", 0, 0)
+	button:SetPoint("CENTER", r, "CENTER", 0, 0)
+	button:SetFrameLevel(r:GetFrameLevel() + ABOVE)
 	r.add(button, size)
 	r.add(Medals.Texture(button, "BACKGROUND", 0, "glow", "black", size * SHADE)):SetAlpha(0.7)
 	r.add(Medals.Texture(button, "BACKGROUND", 1, "dot", "black", size)):SetAlpha(0.85)
-	button.sigil = r.add(Medals.Texture(button, "ARTWORK", 0, "sigil" .. sigil, color, size * SIGIL, "ADD"))
+	r.add(Medals.Texture(button, "ARTWORK", 0, "sigil" .. family.sigil, color, size * SIGIL, "ADD"))
 	button.timer = Timer(button, button:GetFrameLevel() + 1, "orbRing", color)
 	button.timer:SetAllPoints(button)
 	button:SetDurationCooldown(button.timer)
-	r.stack[#r.stack + 1] = button
+	button.container, button.key, button.family = container, key, family
+	r.sigils[#r.sigils + 1] = button
 end
 
 function Medals.CooldownRim(parent, spec, level, form)
@@ -382,12 +389,15 @@ function Medals.CooldownRim(parent, spec, level, form)
 		table.insert(units[unit].families, family)
 	end
 	table.sort(order, function(a, b) return a == "player" and b ~= "player" end)
-	r.stack = {}
+	r.sigils = {}
 	if row then
-		r.add(Medals.Texture(r, "BACKGROUND", 0, "dot", "medSocket", SIZE * ICON))
-		r.add(Medals.Texture(r, "BORDER", 0, "medRing", "white", SIZE))
+		r.add(Medals.Texture(r, "BACKGROUND", 0, "glow", "black", SIZE * SHADE)):SetAlpha(0.7)
+		r.add(Medals.Texture(r, "BACKGROUND", 1, "dot", "medSocket", SIZE * ICON))
+		r.add(Medals.Texture(r, "BORDER", 0, "medEnamel", "steel", SIZE))
+		r.add(Medals.Texture(r, "BORDER", 1, "medRing", "white", SIZE))
 	end
-	local size, gap, previous = row and ROW_SIGIL or STACK, row and SIZE - 2 * ROW_SIGIL or STACK_GAP, nil
+	local size = row and ROW_SIGIL or STACK
+	r.pitch, r.first, r.rise = size + (row and 1 or STACK_GAP), row and size + 1 or -STACK_DROP - size / 2, row and -size - 1 or size + STACK_GAP
 	for i, unit in ipairs(order) do
 		local each = units[unit]
 		local base = level + 5 * (#order - i)
@@ -397,29 +407,9 @@ function Medals.CooldownRim(parent, spec, level, form)
 			lit:SetDurationCooldown(lit.timer)
 			Medals.Flare(r, lit, base + 3, spec.burst or "glow", RIM)
 		end
-		local container = lit.container
-		container:ClearAllPoints()
-		if previous then
-			container:SetPoint("TOPLEFT", previous, "TOPRIGHT", gap, 0)
-		elseif row then
-			container:SetPoint("CENTER", r, "CENTER", 0, 0)
-		else
-			container:SetPoint("TOP", r, "CENTER", 0, -STACK_DROP)
-		end
-		container:SetFrameLevel(level + 5 * #order)
-		if row and container.SetFlowLayoutMaximumLineSize then
-			container:SetFlowLayoutMaximumLineSize(SIZE)
-		end
 		for k, family in ipairs(each.families) do
-			local ids = {}
-			for _, id in ipairs(family.spells) do
-				ids[id] = true
-			end
-			container:AddAuraGroup("sigil" .. k, each.filter, { candidateFilters = { includeSpellIDs = ids }, maxFrameCount = 1,
-				layout = { elementWidth = size, elementHeight = size, groupSpacing = gap, lineSpacing = gap, groupLineSpacing = gap },
-				initializeFrame = function(button) Sigil(r, button, family.sigil, spec.color, size) end })
+			Sigil(r, lit.container, "sigil" .. k, family, spec.color, size)
 		end
-		previous = container
 	end
 	r.timer = r.lit.timer
 	r.spec = spec
@@ -526,10 +516,28 @@ function Medals.Size(piece)
 	end
 end
 
+local function Arrange(r)
+	local n = 0
+	for _, b in ipairs(r.sigils) do
+		local f = b.family
+		local on = f.known and not f.known[1] or Medals.Known(f.known or f.spells) ~= nil
+		b.container:SetAuraSlotEnabled(b.key, on)
+		b.at = on and { (n % 3 - 1) * r.pitch, r.first + floor(n / 3) * r.rise } or nil
+		if b.at then
+			b:ClearAllPoints()
+			b:SetPoint("CENTER", r, "CENTER", Widgets.Snap(r, b.at[1]), Widgets.Snap(r, b.at[2]))
+			n = n + 1
+		end
+	end
+end
+
 function Medals.Place(piece, anchor, x, y)
 	piece:ClearAllPoints()
 	piece:SetPoint("CENTER", anchor, "CENTER", Widgets.Snap(anchor, x), Widgets.Snap(anchor, y))
 	Medals.Size(piece)
+	if piece.sigils and not Medals.Locked() then
+		Arrange(piece)
+	end
 end
 
 function Medals.Fire(piece)
