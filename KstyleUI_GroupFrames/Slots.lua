@@ -15,8 +15,8 @@ local SLOT_LEVEL = 8
 local BAR_BACK_ALPHA = 0.5
 local SAMPLE_FILL = 0.6
 Slots.CATEGORIES = {
-	EXTERNAL = { filter = "HELPFUL|EXTERNAL_DEFENSIVE", icon = 135936, defensive = true },
-	BIG_DEFENSIVE = { filter = "HELPFUL|BIG_DEFENSIVE", icon = 135919, defensive = true },
+	EXTERNAL = { filter = "HELPFUL|EXTERNAL_DEFENSIVE", icon = 135936 },
+	BIG_DEFENSIVE = { filter = "HELPFUL|BIG_DEFENSIVE", icon = 135919 },
 	HOTS = { filter = "HELPFUL|PLAYER|RAID_IN_COMBAT", icon = 135953 },
 	IMPORTANT = { filter = "HELPFUL|IMPORTANT", icon = 135932 },
 	CROWD_CONTROL = { filter = "HARMFUL|CROWD_CONTROL", icon = 136071 },
@@ -26,6 +26,7 @@ Slots.CATEGORIES = {
 }
 local CATEGORIES = Slots.CATEGORIES
 local NEUTRAL_FILTER = "HELPFUL"
+local SHIELD_WALL, FIND_MINERALS = 871, 2580
 
 local available = true
 local waiting = setmetatable({}, { __mode = "k" })
@@ -67,8 +68,12 @@ function Slots.Spells(text)
 end
 
 function Slots.Unavailable(category)
-	local game = CATEGORIES[category] and CATEGORIES[category].defensive and InterfaceOverrides
-	return type(game) == "table" and type(game.HasExternalDefensives) == "function" and game.HasExternalDefensives() == false
+	local game, big = InterfaceOverrides, C_UnitAuras and C_UnitAuras.AuraIsBigDefensive
+	if category == "EXTERNAL" then
+		return type(game) == "table" and type(game.HasExternalDefensives) == "function" and game.HasExternalDefensives() == false
+	end
+	return category == "BIG_DEFENSIVE" and type(big) == "function"
+		and not (Unit.Plain(big(SHIELD_WALL), "boolean") == true and Unit.Plain(big(FIND_MINERALS), "boolean") == false)
 end
 
 function Slots.Plan(slot)

@@ -38,6 +38,7 @@ ns.Locale.Add({
 	["%dh %dm"] = "%d Std. %d Min.",
 	["%dm"] = "%d Min.",
 	["%ds"] = "%ds",
+	["%s are not available on this client."] = "%s sind auf diesem Client nicht verf\195\188gbar.",
 	["%s could not be checked against its choices."] = "%s lie\195\159 sich nicht mit seinen Auswahlm\195\182glichkeiten abgleichen.",
 	["%s custom icon colour"] = "%s: eigene Symbolfarbe",
 	["%s died"] = "%s ist gestorben",

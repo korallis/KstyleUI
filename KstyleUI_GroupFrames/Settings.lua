@@ -734,7 +734,9 @@ function Settings.Schema(includeText)
 			local p = "indicator" .. i .. "."
 			local on = IsNot(p .. "category", "OFF")
 			add(Dropdown(p .. "category", L["Indicator"] .. " " .. i, L["What this indicator shows; slots sharing a place sit side by side."], INDICATOR_CATEGORY))
-			add({ type = "note", label = L["%s is not available on this client."]:format(L["Indicator"] .. " " .. i), showWhen = function(s) return ns.Slots ~= nil and ns.Slots.Unavailable(s["indicator" .. i].category) end })
+			for _, pick in ipairs({ { "EXTERNAL", L["External defensives"] }, { "BIG_DEFENSIVE", L["Big defensives"] } }) do
+				add({ type = "note", label = L["%s are not available on this client."]:format(pick[2]), showWhen = function(s) return s["indicator" .. i].category == pick[1] and ns.Slots ~= nil and ns.Slots.Unavailable(pick[1]) end })
+			end
 			add(Dropdown(p .. "position", L["Place"], L["Where on the frame the indicator sits."], INDICATOR_POSITION, { showWhen = on }))
 			add(Dropdown(p .. "show", L["Show on"], L["Shows this indicator on party and raid frames, or on one kind only."], SHOW_ON, { showWhen = on }))
 			add(Slider(p .. "size", L["Size"], L["The indicator's icon size."], 6, 32, 1))

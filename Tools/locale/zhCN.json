@@ -31,6 +31,7 @@
 	"%dh %dm": "%d小时%d分",
 	"%dm": "%d分",
 	"%ds": "%d银",
+	"%s are not available on this client.": "%s 在此客户端上不可用。",
 	"%s could not be checked against its choices.": "无法根据可选项检查 %s。",
 	"%s custom icon colour": "%s 自定义图标颜色",
 	"%s died": "%s 已死亡",
