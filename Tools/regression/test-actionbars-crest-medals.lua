@@ -130,22 +130,30 @@ end
 
 do
 	env._slotAuras.player = nil
-	local rim = Medals.CooldownRim(parent, { families = { { spells = { 1719 } }, { spells = { 871 } }, { spells = { 12328 } }, { spells = { 20230 } } }, color = "gilt", burst = "medBurstWarrior" }, 5)
+	local rim = Medals.CooldownRim(parent, { families = { { spells = { 1719 }, sigil = "Crossed" }, { spells = { 871 }, sigil = "Wall" },
+		{ spells = { 12328 }, sigil = "Skull" }, { spells = { 20230 }, sigil = "Thorns" } }, color = "gilt", burst = "medBurstWarrior" }, 5)
 	Medals.Engine({ rim }, true, true)
-	assert(#rim.stack == 3, "three stack buttons made up front")
+	assert(#rim.stack == 4, "one sigil per family, made up front")
+	for i, name in ipairs({ "Crossed", "Wall", "Skull", "Thorns" }) do
+		assert(rim.stack[i].sigil._state.Texture[1]:find("Sigils\\" .. name .. ".png", 1, true) and not rim.stack[i]._icon, name .. ": the family's own sigil, never the aura's icon")
+	end
+	local function X(i) return rim.stack[i]._points[1][4] end
 	Slots.Set(env, "player", { { id = 1719, count = 0, icon = 1, start = 0, duration = 15 }, { id = 871, count = 0, icon = 2, start = 0, duration = 10 } })
 	assert(rim.lit:IsShown() and rim.lit:GetParent() and AB.W.LastCall(rim.timer, "SetCooldownFromDurationObject")[1].finish == 10, "the newest cooldown burns on the rim")
-	assert(rim.stack[1]:IsShown() and rim.stack[1].icon._state.Texture[1] == 2 and rim.stack[2].icon._state.Texture[1] == 1 and not rim.stack[3]:IsShown(), "the stack shows each, newest first")
+	assert(rim.stack[1]:IsShown() and rim.stack[2]:IsShown() and not rim.stack[3]:IsShown() and X(1) == 0 and X(2) == 18, "each lit sigil shows, side by side in family order")
+	assert(AB.W.LastCall(rim.stack[2].timer, "SetCooldownFromDurationObject")[1].finish == 10, "each sigil's ring drains with its own aura")
+	Slots.Set(env, "player", { { id = 871, count = 0, icon = 2, start = 0, duration = 10 }, { id = 20230, count = 0, icon = 4, start = 0, duration = 15 } })
+	assert(not rim.stack[1]:IsShown() and X(2) == 0 and X(4) == 18, "the engine closes the gap a dark sigil leaves")
 	Slots.Set(env, "player", { { id = 1719, count = 0, icon = 1, start = 0, duration = 15 }, { id = 871, count = 0, icon = 2, start = 0, duration = 10 }, { id = 12328, count = 0, icon = 3, start = 0, duration = 30 }, { id = 20230, count = 0, icon = 4, start = 0, duration = 15 } })
-	assert(rim.stack[1].icon._state.Texture[1] == 4 and rim.stack[3]:IsShown(), "four up: the three newest show")
+	assert(rim.stack[4]:IsShown() and X(4) == 54, "four up: all four show")
 	Slots.Set(env, "player", nil)
 	assert(not rim.lit:IsShown() and not rim.stack[1]:IsShown(), "none up: nothing shows")
 end
 
 do
-	local rim = Medals.CooldownRim(parent, { families = { { spells = { 19574 }, unit = "pet" }, { spells = { 3045 } } }, color = "jewelHawk" }, 5)
+	local rim = Medals.CooldownRim(parent, { families = { { spells = { 19574 }, unit = "pet", sigil = "Paw" }, { spells = { 3045 }, sigil = "Volley" } }, color = "jewelHawk" }, 5)
 	Medals.Engine({ rim }, true, true)
-	assert(#rim.lits == 2 and rim.lits[2].container._unit == "pet" and #rim.stack == 6, "a pet family gets its own slot and row")
+	assert(#rim.lits == 2 and rim.lits[2].container._unit == "pet" and #rim.stack == 2, "a pet family gets its own slot and row")
 	local calls = 0
 	rim.lits[2].container.UpdateAllAuras = function() calls = calls + 1 end
 	env.FireEvent("UNIT_PET", "player")
@@ -160,12 +168,12 @@ end
 
 do
 	local rim = Medals.Rim(parent, { feed = "aura", spells = { 2687 }, color = "jewelCombo" }, 5)
-	local cooldowns = Medals.CooldownRim(parent, { families = { { spells = { 1719 } } }, color = "gilt" }, 5)
+	local cooldowns = Medals.CooldownRim(parent, { families = { { spells = { 1719 }, sigil = "Crossed" } }, color = "gilt" }, 5)
 	local emblem, band, outer = 53, 3.5, 75.6
 	assert(rim.timer.units / 2 - band >= emblem - 1 and cooldowns.timer.units / 2 <= 60, "the rings run in the dark between the emblem and the rune band, clear of the emblem's edge")
 	assert(AB.W.LastCall(rim.timer, "SetSwipeTexture")[1]:find("RingLine16", 1, true), "a thin ring band, not a wide arc")
-	local layout = cooldowns.lit.container._groups.stack.layout
-	assert(layout.elementSpacing >= 4 and layout.elementSpacing / layout.elementWidth >= 0.25, "the cooldown icons keep a clear gap between them at every size")
+	local layout = cooldowns.lit.container._groups.sigil1.layout
+	assert(layout.groupSpacing >= 4 and layout.groupSpacing / layout.elementWidth >= 0.25, "the cooldown sigils keep a clear gap between them at every size")
 	local foot = Medals.Medal(parent, { feed = "aura", spells = { 1 }, color = "gilt", size = Medals.FOOT }, 5)
 	local timed = foot.timer.units
 	for _, seat in ipairs({ "footLeft", "footRight" }) do

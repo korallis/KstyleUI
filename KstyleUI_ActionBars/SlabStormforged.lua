@@ -168,7 +168,8 @@ ns.SlabTrackers.Register("SHAMAN", {
 			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = STORMSTRIKE, color = "totemAir" },
 			{ feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = RIPTIDE, color = "totemWater" },
 		} },
-	{ key = "crestCooldowns", seat = "cooldowns", color = "pipStormGlow", families = { { spells = { 16166 } }, { spells = { 16188 } }, { spells = { 425336 } } } },
+	{ key = "crestCooldowns", seat = "cooldowns", color = "pipStormGlow", families = { { spells = { 16166 }, sigil = "Bolt" }, { spells = { 16188 }, sigil = "Swift" },
+			{ spells = { 425336 }, sigil = "Farseer" } } },
 }, {
 	burst = "medBurstShaman",
 	events = { "WEAPON_ENCHANT_CHANGED", "BAG_UPDATE_DELAYED" },

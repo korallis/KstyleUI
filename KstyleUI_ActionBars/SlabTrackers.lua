@@ -28,9 +28,10 @@ for kind, events in pairs(LUA) do
 	end
 end
 local SHARED = {
-	{ spells = { 20572 } }, { spells = { 20554 } }, { spells = { 20594 } }, { spells = { 20600 } }, { spells = { 7744 } },
-	{ spells = { 1299026 } }, { spells = { 1259799 } }, { spells = { 1259812 } }, { spells = { 1260270 } },
-	{ spells = { 17528, 6615, 3169, 17540, 2379, 11359, 16323 }, known = {} },
+	{ spells = { 20572 }, sigil = "Axe" }, { spells = { 20554 }, sigil = "Tusks" }, { spells = { 20594 }, sigil = "Stone" },
+	{ spells = { 20600 }, sigil = "Eye" }, { spells = { 7744 }, sigil = "Grave" }, { spells = { 1299026 }, sigil = "Shatter" },
+	{ spells = { 1259799 }, sigil = "Star" }, { spells = { 1259812 }, sigil = "Gear" }, { spells = { 1260270 }, sigil = "Regen" },
+	{ spells = { 17528, 6615, 3169, 17540, 2379, 11359, 16323 }, known = {}, sigil = "Potion" },
 }
 local CLASSES, HOOKS, JOINED = {}, {}, {}
 local GATES = { "PLAYER_REGEN_ENABLED", "ADDON_RESTRICTION_STATE_CHANGED" }
@@ -163,18 +164,7 @@ local function Resolve(p, row)
 	end
 	if not id then return nil end
 	spec.spell, spec.texture = id, p.texture or Trackers.Texture(id)
-	if row and p.families then
-		spec.feed, spec.newest, spec.spells = "aura", true, {}
-		local pet = {}
-		for _, family in ipairs(spec.families) do
-			local into = family.unit == "pet" and pet or not family.unit and spec.spells or {}
-			for _, aura in ipairs(family.spells) do
-				into[#into + 1] = aura
-			end
-		end
-		spec.feeds = pet[1] and { {}, { unit = "pet", spells = pet } } or nil
-	end
-	return spec
+return spec
 end
 
 local function Stance()
@@ -199,8 +189,8 @@ local function Build(form, name, key, spec)
 	if form.failed[key] then
 		return nil
 	end
-	local make = spec.build or spec.feed == "threat" and Medals.Threat or name == "crest" and (spec.seat == "rim" and Medals.Rim
-		or spec.seat == "cooldowns" and Medals.CooldownRim or spec.slot and Medals.Socket) or Medals.Medal
+	local make = spec.build or spec.feed == "threat" and Medals.Threat or spec.seat == "cooldowns" and Medals.CooldownRim
+		or name == "crest" and (spec.seat == "rim" and Medals.Rim or spec.slot and Medals.Socket) or Medals.Medal
 	local under = spec.seat == "rim" or spec.seat == "cooldowns" or spec.seat == "plaque"
 	local ok, piece = pcall(make, form.frame, spec, form.frame:GetFrameLevel() + (under and 1 or 16), name)
 	if not ok or not piece then
@@ -556,8 +546,9 @@ if CLASS == "WARRIOR" then
 		} },
 		{ key = "crestEnrage", seat = "rim", feed = "aura", spells = { 12880, 29131, 18499 },
 			known = { 2687, 18499, 12317, 13045, 13046, 13047, 13048 }, color = "jewelCombo", ambient = "medAmbientWarrior" },
-		{ key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 1719 } }, { spells = { 12328 } },
-			{ spells = { 871 } }, { spells = { 12976 }, known = { 12975 } }, { spells = { 12292 } }, { spells = { 20230 } } } },
+		{ key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 1719 }, sigil = "Crossed" }, { spells = { 12328 }, sigil = "Skull" },
+			{ spells = { 871 }, sigil = "Wall" }, { spells = { 12976 }, known = { 12975 }, sigil = "Heart" }, { spells = { 12292 }, sigil = "Sweep" },
+			{ spells = { 20230 }, sigil = "Thorns" } } },
 		{ key = "crestThreat", seat = "topGem", feed = "threat", known = SHOUTS, choices = { { forms = DEFENSIVE, color = "gilt" }, { color = "plateHostile" } } },
 		{ key = "crestHipLeft", seat = "leftHip", feed = "cooldown", choices = {
 			{ forms = DEFENSIVE, feed = "aura", unit = "target", filter = "HARMFUL", spells = THUNDER, color = "pipStormGlow" },
@@ -595,8 +586,9 @@ if CLASS == "PALADIN" then
 		{ key = "crestJudgement", seat = "left", feed = "cooldown", known = JUDGEMENT },
 		{ key = "crestJudged", seat = "right", feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", known = JUDGEMENT, color = "jewelHoly",
 			spells = { 20188, 20300, 20301, 20302, 20303, 21183, 20185, 20344, 20345, 20346, 20186, 20354, 20355, 20184, 20232 } },
-		{ key = "crestCooldowns", seat = "cooldowns", color = "white", families = { { spells = { 642, 1020 } }, { spells = { 498, 5573 } },
-			{ spells = { 20216 } }, { spells = { 1022, 5599, 10278 } }, { spells = { 1044 } }, { spells = { 1311015 } }, { spells = { 1310897 } } } },
+		{ key = "crestCooldowns", seat = "cooldowns", color = "white", families = { { spells = { 642, 1020 }, sigil = "Bubble" },
+				{ spells = { 498, 5573 }, sigil = "Aegis" }, { spells = { 20216 }, sigil = "Sun" }, { spells = { 1022, 5599, 10278 }, sigil = "Hand" },
+				{ spells = { 1044 }, sigil = "Wing" }, { spells = { 1311015 }, sigil = "Bulwark" }, { spells = { 1310897 }, sigil = "Voice" } } },
 		{ key = "crestHipLeft", seat = "leftHip", feed = "cooldown", choices = {
 			{ known = Talent(PROT, Trackers.Joined({ 407632 }, HOLY_STRIKE)) },
 			{ known = Talent(HOLY, Trackers.Joined({ 20930, 20929, 20473, 1311606, 20216 }, HOLY_STRIKE)) },
@@ -646,9 +638,9 @@ if CLASS == "ROGUE" then
 		} },
 		{ key = "crestPoisons", seat = "lowerLeft", feed = "enchant", slot = "MainHand", known = Weapon, spells = POISONS, reject = NOT_POISON, color = "schoolNature" },
 		{ key = "crestPoisons", seat = "lowerRight", feed = "enchant", slot = "OffHand", known = Weapon, spells = POISONS, reject = NOT_POISON, color = "schoolNature" },
-		{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", families = { { spells = { 13877 } }, { spells = { 13750 } },
-			{ spells = { 5277 } }, { spells = { 2983, 8696, 11305 } }, { spells = { 14177 } }, { spells = { 11327, 11329 }, known = VANISH },
-			{ spells = { 14278 } } } },
+		{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", families = { { spells = { 13877 }, sigil = "Flurry" },
+				{ spells = { 13750 }, sigil = "Rush" }, { spells = { 5277 }, sigil = "Evade" }, { spells = { 2983, 8696, 11305 }, sigil = "Dash" },
+				{ spells = { 14177 }, sigil = "Drop" }, { spells = { 11327, 11329 }, known = VANISH, sigil = "Smoke" }, { spells = { 14278 }, sigil = "Ghost" } } },
 		{ key = "crestFootLeft", seat = "footLeft", size = Medals.FOOT, feed = "cooldown", known = { 1769, 1768, 1767, 1766, 11286, 11285, 8629, 1777, 1776 } },
 		{ key = "crestFootRight", seat = "footRight", size = Medals.FOOT, choices = {
 			{ known = Talent({ 16513, 14113, 14186, 14177 }, POISONS), feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = POISON_STACKS,

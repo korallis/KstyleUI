@@ -11,7 +11,7 @@ ns.SlabMedals = Medals
 
 local SIZE, TRACK, ICON, SHADE, BURST, STEEL = 26, 4, 0.74, 1.9, 2.4, 0.45
 local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 112, 12, 10, 8, 2
-local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, STACK_MAX = 118, 14, 4, 30, 3
+local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, ROW_SIGIL = 118, 14, 4, 30, 12
 local SEATS = {
 	left = { -1, 75.9, 24.8 }, right = { 1, 75.9, 24.8 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
 	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 67.5, 247 }, footRight = { 1, 67.5, 293 },
@@ -353,50 +353,67 @@ function Medals.Rim(parent, spec, level)
 	return r
 end
 
-function Medals.CooldownRim(parent, spec, level)
-	local r = Medals.Piece(parent, level, RIM)
+local function Sigil(r, button, sigil, color, size)
+	pcall(button.EnableMouse, button, false)
+	button:SetPoint("TOPLEFT", button:GetParent(), "TOPLEFT", 0, 0)
+	r.add(button, size)
+	r.add(Medals.Texture(button, "BACKGROUND", 0, "glow", "black", size * SHADE)):SetAlpha(0.7)
+	button.sigil = r.add(Medals.Texture(button, "ARTWORK", 0, "sigil" .. sigil, color, size * ICON, "ADD"))
+	button.timer = Timer(button, button:GetFrameLevel() + 1, "orbRing", color)
+	button.timer:SetAllPoints(button)
+	button:SetDurationCooldown(button.timer)
+	r.stack[#r.stack + 1] = button
+end
+
+function Medals.CooldownRim(parent, spec, level, form)
+	local row = form == "row"
+	local r = Medals.Piece(parent, level, row and SIZE or RIM)
 	local units, order = {}, {}
 	for _, family in ipairs(spec.families) do
 		local unit = family.unit or "player"
 		if not units[unit] then
-			units[unit] = { feed = "aura", unit = unit, filter = spec.filter or "HELPFUL", newest = true, spells = {} }
+			units[unit] = { feed = "aura", unit = unit, filter = spec.filter or "HELPFUL", newest = true, spells = {}, families = {} }
 			order[#order + 1] = unit
 		end
 		for _, id in ipairs(family.spells) do
 			table.insert(units[unit].spells, id)
 		end
+		table.insert(units[unit].families, family)
 	end
 	table.sort(order, function(a, b) return a == "player" and b ~= "player" end)
 	r.stack = {}
-	local previous
+	local size, gap, previous = row and ROW_SIGIL or STACK, row and SIZE - 2 * ROW_SIGIL or STACK_GAP, nil
 	for i, unit in ipairs(order) do
 		local each = units[unit]
 		local base = level + 5 * (#order - i)
 		local lit = Lit(r, each, base + 1)
-		lit.timer = r.add(Timer(lit, base + 2, "ringLine16", spec.color), COOLDOWN_RING)
-		lit:SetDurationCooldown(lit.timer)
-		Medals.Flare(r, lit, base + 3, spec.burst or "glow", RIM)
-		local container, options = lit.container, each.options
+		if not row then
+			lit.timer = r.add(Timer(lit, base + 2, "ringLine16", spec.color), COOLDOWN_RING)
+			lit:SetDurationCooldown(lit.timer)
+			Medals.Flare(r, lit, base + 3, spec.burst or "glow", RIM)
+		end
+		local container = lit.container
 		container:ClearAllPoints()
 		if previous then
-			container:SetPoint("TOPLEFT", previous, "TOPRIGHT", STACK_GAP, 0)
+			container:SetPoint("TOPLEFT", previous, "TOPRIGHT", gap, 0)
+		elseif row then
+			container:SetPoint("TOPLEFT", r, "TOPLEFT", 0, 0)
 		else
 			container:SetPoint("TOP", r, "CENTER", 0, -STACK_DROP)
 		end
 		container:SetFrameLevel(level + 5 * #order)
-		options.maxFrameCount = spec.max or STACK_MAX
-		options.layout = { elementWidth = STACK, elementHeight = STACK, elementSpacing = STACK_GAP }
-		options.initializeFrame = function(button)
-			pcall(button.EnableMouse, button, false)
-			button.icon = Medals.Round(button)
-			button.icon:SetAllPoints(button)
-			button:SetIcon(button.icon)
-			button.timer = Timer(button, button:GetFrameLevel() + 1, "orbRing", spec.color)
-			button.timer:SetAllPoints(button)
-			button:SetDurationCooldown(button.timer)
-			r.stack[#r.stack + 1] = button
+		if row and container.SetFlowLayoutMaximumLineSize then
+			container:SetFlowLayoutMaximumLineSize(SIZE)
 		end
-		container:AddAuraGroup("stack", each.filter, options)
+		for k, family in ipairs(each.families) do
+			local ids = {}
+			for _, id in ipairs(family.spells) do
+				ids[id] = true
+			end
+			container:AddAuraGroup("sigil" .. k, each.filter, { candidateFilters = { includeSpellIDs = ids }, maxFrameCount = 1,
+				layout = { elementWidth = size, elementHeight = size, groupSpacing = gap, lineSpacing = gap, groupLineSpacing = gap },
+				initializeFrame = function(button) Sigil(r, button, family.sigil, spec.color, size) end })
+		end
 		previous = container
 	end
 	r.timer = r.lit.timer

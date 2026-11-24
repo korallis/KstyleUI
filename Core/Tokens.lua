@@ -505,6 +505,15 @@ end
 for _, element in ipairs({ "Earth", "Fire", "Water", "Air" }) do
 	TEXTURES["totemRune" .. element] = { file = "Textures\\Totems\\Rune" .. element .. ".png" }
 end
+for _, name in ipairs({
+	"Aegis", "Arcane", "Axe", "Bark", "Bolt", "Brave", "Bubble", "Bulwark", "Crossed", "Crystal", "Curse", "Dash", "Deflect",
+	"Drop", "Evade", "Eye", "Fang", "Farseer", "Feedback", "Flame", "Flurry", "Focus", "Gear", "Ghost", "Grave", "Hand", "Heart",
+	"Horns", "Hourglass", "Infusion", "Innervate", "Lifeline", "Mend", "Moon", "Paw", "Potion", "Regen", "Roots", "Rush",
+	"Sacrifice", "Shade", "Shatter", "Skull", "Smoke", "Star", "Stone", "Sun", "Sweep", "Swift", "Thorns", "Tusks", "Veil", "Voice",
+	"Void", "Volley", "Vortex", "Wall", "Wing"
+}) do
+	TEXTURES["sigil" .. name] = { file = "Textures\\Medallions\\Sigils\\" .. name .. ".png" }
+end
 
 local RGBA = {}
 for name, spec in pairs(COLORS) do

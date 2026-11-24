@@ -182,13 +182,14 @@ do
 	Clean(env, K, "rogue")
 end
 
--- Major cooldowns: the newest burns on the rim, each running one stands as an icon; a talent nobody learned still shows when its aura appears.
+-- Major cooldowns: the newest burns on the rim, each running one lights its family's sigil in the row below the emblem, in family order; a talent nobody learned still shows when its aura appears.
 do
 	local env, K, ns = New("ROGUE", { 13877, 5277 })
 	local rim = Pieces(ns)[5]
-	assert(rim and rim.stack and #rim.stack == 3, "a rogue with Blade Flurry gets the cooldown rim")
+	assert(rim and rim.stack and #rim.stack == 17, "a rogue with Blade Flurry gets the cooldown rim: a sigil for each of its seven families, the racials and the potions")
 	Slots.Set(env, "player", { { id = 13877, count = 0, icon = 132350, start = 0, duration = 15 }, { id = 5277, count = 0, icon = 136205, start = 0, duration = 15 } })
-	assert(rim.lit:IsShown() and rim.stack[1].icon._state.Texture[1] == 136205 and rim.stack[2]:IsShown(), "Evasion, the newest, leads; Blade Flurry follows")
+	assert(rim.lit:IsShown() and rim.stack[1]:IsShown() and rim.stack[3]:IsShown() and not rim.stack[2]:IsShown(), "Blade Flurry's and Evasion's sigils light, Adrenaline Rush's stays dark")
+	assert(rim.stack[1].sigil._state.Texture[1]:find("Flurry", 1, true) and rim.stack[3].sigil._state.Texture[1]:find("Evade", 1, true), "each family wears its own sigil")
 	K.Options.Write("ActionBars", "crestCooldowns", false)
 	env.RunTimers()
 	assert(not Pieces(ns)[5], "its switch hides it")
@@ -294,7 +295,7 @@ do
 	local painted, moved = 0, 0
 	ns.SlabTrackers.CLASSES.PRIEST = nil
 	ns.SlabTrackers.Register("PRIEST", {
-		{ key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 10060 } } } },
+		{ key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 10060 }, sigil = "Infusion" } } },
 		{ key = "crestTest", seat = { 0, 100 }, build = function(parent, spec, level)
 			local m = ns.SlabMedals.Medal(parent, { feed = "usable", candidates = { 10060 }, texture = spec.texture }, level)
 			m.custom = true
@@ -425,7 +426,7 @@ do
 		e._game.forms[1] = { texture = 136095, isActive = false, spellID = 2645 }
 		e.CreateFrame("Frame", "MultiCastActionBarFrame", e.UIParent)
 	end })
-	ns.SlabTrackers.Register("SHAMAN", { { key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 10432 } } } } })
+	ns.SlabTrackers.Register("SHAMAN", { { key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 10432 }, sigil = "Bolt" } } } })
 	env.RunTimers()
 	ns.SlabTrackers.Update()
 	local _, relative, point = ns.SlabTrackers.state.forms.row.frame:GetPoint(1)
@@ -489,7 +490,7 @@ end
 do
 	local env, K, ns = New("DRUID", { 5185 })
 	env.GetShapeshiftFormID = function() return env._form end
-	ns.SlabTrackers.Register("DRUID", { { key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 22812 } } } } },
+	ns.SlabTrackers.Register("DRUID", { { key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 22812 }, sigil = "Bark" } } } },
 		{ fiveSecondForms = { 0, 31 } })
 	ns.SlabTrackers.Update()
 	assert(ns.SlabTrackers.state.forms.crest.pieces["1:1"]:IsVisible(), "caster form: the five-second ring shows")
@@ -822,7 +823,7 @@ end
 do
 	local env, K, ns = New("HUNTER", { 3045 }, { frames = true })
 	ns.SlabTrackers.Register("HUNTER", { { key = "crestCooldowns", seat = "cooldowns", color = "gilt",
-		families = { { spells = { 3045 } }, { spells = { 19574 }, unit = "pet" } } } })
+		families = { { spells = { 3045 }, sigil = "Volley" }, { spells = { 19574 }, unit = "pet", sigil = "Paw" } } } })
 	ns.SlabTrackers.Update()
 	local medal
 	for _, piece in pairs(ns.SlabTrackers.state.form.pieces) do
@@ -860,6 +861,27 @@ for _, size in ipairs(SIZES) do
 		end
 	end
 	Clean(env, K, size[1] .. "x" .. size[2])
+end
+
+-- Every class's cooldown families wear a sigil that ships (the shared racials and potions are proved by the rogue's
+-- seventeen above): a family with none would drop the whole cooldown row, which the build's pcall only logs.
+for _, class in ipairs({ "WARRIOR", "PALADIN", "ROGUE", "HUNTER", "MAGE", "WARLOCK", "PRIEST", "DRUID", "SHAMAN" }) do
+	local env, K, ns = New(class, {})
+	local families = 0
+	for _, row in ipairs(ns.SlabTrackers.CLASSES[class]) do
+		for _, choice in ipairs(row.choices or { row }) do
+			for _, family in ipairs(choice.families or row.families or {}) do
+				local name = family.sigil
+				local path = name and K.Tokens.Texture("sigil" .. name):gsub("\\", "/"):gsub("^Interface/AddOns/KstyleUI/", "")
+				local file = path and io.open(path, "rb")
+				assert(file, class .. " family " .. tostring(family.spells[1]) .. " needs sigil = \"<Name>\" drawn by Tools/media/sigils.py and listed in Core/Tokens.lua")
+				file:close()
+				families = families + 1
+			end
+		end
+	end
+	assert(families > 0, class .. " registers cooldown families")
+	Clean(env, K, class .. " sigils")
 end
 
 print("actionbars crest trackers ok")
