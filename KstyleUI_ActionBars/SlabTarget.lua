@@ -53,7 +53,10 @@ local function Burn(k, event)
 		return
 	end
 	k.dark = not step
-	local value = step and UnitHealthPercent("target", true, step) or 0
+	local value = 0
+	if step then
+		value = UnitHealthPercent("target", true, step)
+	end
 	k.gate:SetAlpha(value)
 	k.feed:SetValue(value)
 	if not (step and Effects.Allows("pulse")) then
