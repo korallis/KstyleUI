@@ -72,9 +72,11 @@ local function Near(a, b) return a and b and math.abs(a - b) < 0.01 end
 local function Placed(view)
 	Check(box:IsVisible() and box:GetBottom() >= canvas:GetTop() and box:GetRight() <= spacer:GetRight() and box:GetLeft() >= filter:GetRight() and filter:GetLeft() >= nav:GetRight(),
 		view .. ": the search sits in the nav bar row, right of the breadcrumbs and the tracking button, off the map art")
-	Check(Near(box:GetTop(), nav:GetTop()) and Near(box:GetBottom(), nav:GetBottom()), view .. ": the box matches the nav bar's height")
-	Check(Near(filter:GetTop(), nav:GetTop()) and Near(filter:GetBottom(), nav:GetBottom()) and Near(filter:GetWidth(), 32),
-		view .. ": the tracking button shares the strip's top and bottom edges at its own width")
+	-- Camelot/Blizzard_WorldMap.lua:5 and Camelot/Blizzard_WorldMapTemplates.xml:10 hang the 32-square tracking button 10 right
+	-- of the nav bar, 2 below its centre; the box takes that button's top and bottom edges and leaves the button alone.
+	Check(Near(filter:GetHeight(), 32) and Near(filter:GetLeft(), nav:GetRight() + 10) and Near(filter:GetTop() + filter:GetBottom(), nav:GetTop() + nav:GetBottom() - 4),
+		view .. ": the tracking button stays where Blizzard puts it")
+	Check(Near(box:GetTop(), filter:GetTop()) and Near(box:GetBottom(), filter:GetBottom()), view .. ": the box shares the tracking button's top and bottom edges")
 	local last = nav.navList[#nav.navList]
 	Check(last:IsShown() and last:GetRight() <= nav:GetRight() + 0.01, view .. ": the breadcrumbs refit inside the nav bar, clear of the tracking button and the box")
 end
