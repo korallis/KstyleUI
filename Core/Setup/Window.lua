@@ -463,6 +463,7 @@ local function BuildWelcome(page)
 			Widgets.Size(panel, WIDTH, panel.opts.height)
 		end
 		Widgets.Size(branded, branded:GetWidth(), max(scroll:GetHeight(), height))
+		scroll:UpdateScrollChildRect()
 		ScrollTo(0)
 	end
 	page.scroll, page.branded, page.classic, page.bar, page.thumb = scroll, branded, classic, bar, thumb
@@ -947,6 +948,7 @@ PlaceModules = function()
 	local height = Place(ROW_HEIGHT)
 	if ns.Store.Module("Setup").readableNotes and height > panel.moduleScroll:GetHeight() then height = Place(0) end
 	panel.moduleBody:SetHeight(height)
+	panel.moduleScroll:UpdateScrollChildRect()
 	panel.moduleScroll:SetVerticalScroll(max(0, min(panel.moduleScroll:GetVerticalScroll() or 0, panel.moduleBody:GetHeight() - panel.moduleScroll:GetHeight())))
 	panel.moduleBar.Place()
 end

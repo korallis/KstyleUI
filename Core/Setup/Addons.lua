@@ -59,6 +59,7 @@ function Setup.AddonsPage(page, width, changed)
 			heights[col] = heights[col] + y + gap
 		end
 		body:SetHeight(math.max(heights[1], heights[2]))
+		scroll:UpdateScrollChildRect()
 		Scroll(scroll:GetVerticalScroll() or 0)
 	end
 	function view:Refresh()
