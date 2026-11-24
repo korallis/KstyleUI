@@ -2,6 +2,12 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.3.4.2 (2026-11-24)", {
+		L["The world map keeps its terrain art after you view another zone, close the map and open it again."],
+		L["The /kstyle setup window no longer shows a Lua error when you press Next on the first page."],
+		L["Setup's Welcome, Modules and Your addons lists draw every row straight away, no scroll needed."],
+		L["Thanks to Baine for finding and testing these."],
+	} },
 	{ "v0.3.4.1 (2026-11-24)", {
 		L["Party and raid frames show each buff once, so Find Minerals or a zone buff no longer turns up twice on a member."],
 		L["The External and Big defensives indicators stay empty for now, as Forever doesn't report defensives yet."],
@@ -14,13 +20,5 @@ ns.NOTES = {
 		L["Warlocks see their Soul Shards from the bags as wisps on the crest."],
 		L["Stings and Rapid Fire on the hunter crest, thanks to the hunters in Discord."],
 		L["World map fixes thanks to Baine: search sits top-right, clears on close, and zone labels keep their size."],
-	} },
-	{ "v0.3.3.1 (2026-11-23)", {
-		L["Setup's picked HUD style and role cards show a clean accent edge, and picking Tank now marks its card."],
-		L["Setup's tabs fit long German and French labels, and the HUD style pictures sit evenly in their cards."],
-		L["No more grey dots on the Medallions player frame: a status socket shows only when its icon is lit."],
-		L["The crest minimap's N sits on the forged ring, and the minimap buttons stay inside the round ring."],
-		L["Proc glows match the rim of the buttons beside them and can't stay invisible."],
-		L["Thanks to Baine for spotting the setup cards and tabs, the grey dots and the compass N."],
 	} },
 }

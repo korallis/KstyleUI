@@ -1,5 +1,22 @@
 # KstyleUI changelog
 
+## v0.3.4.2 (2026-11-24)
+
+A small hotfix for the world map and the setup window. Thanks to Baine for finding and testing these.
+
+Highlights:
+
+- The world map keeps its terrain art after you view another zone, close the map and open it again.
+- The /kstyle setup window no longer shows a Lua error when you press Next on the first page.
+- Setup's Welcome, Modules and Your addons lists draw every row straight away, no scroll needed.
+- Thanks to Baine for finding and testing these.
+
+### Fixed
+
+- The world map keeps its terrain art when you view another zone, close the map and open it again. The map now opens straight away, without its fade in. Thanks to Baine for finding and testing this.
+- `/kstyle setup` no longer shows a Lua error when you press Next on the first page; the HUD style page opens and fits as before. Thanks to Baine for finding and testing this.
+- Setup's Welcome, Modules and Your addons lists show every row as soon as they open, so you no longer have to scroll to make the toggles appear. Thanks to Baine for finding and testing this.
+
 ## v0.3.4.1 (2026-11-24)
 
 A small hotfix for party and raid frames, which showed the same buff twice on a member. Thanks to Baine for spotting this.

@@ -1,4 +1,4 @@
--- test-worldmap-reopen.lua: view another zone or the continent, resize, close and reopen; no stale search list, and zone labels sized for the map's reset zoom.
+-- test-worldmap-reopen.lua: view another zone or the continent, resize, close and reopen; no open fade, no stale search list, and zone labels sized for the map's reset zoom.
 local M = dofile("Tools/regression/worldmap_env.lua")
 local env, K, R, state, map = M.New(true)
 local canvas = map:GetCanvas()
@@ -35,6 +35,14 @@ local function Size()
 end
 -- The label's height on screen at the reset zoom, where the canvas scale is the map's lowest.
 local function Screen() return Size() * map.ScrollContainer:GetEffectiveScale() * state.minZoom end
+-- Blizzard_WorldMap.xml:67 makes WorldMapFrame a frame buffer. A reopen on another zone reloads the zone's tiles, which
+-- Blizzard_MapCanvasDetailLayer.lua:46-104 and MapExplorationDataProvider.lua:85-103 hold at alpha 0 until IsObjectLoaded;
+-- with an alpha animation on the frame buffer in game they stayed hidden, so the map opens without one.
+local function Fading()
+	for _, group in ipairs(map._groups or {}) do
+		if group:IsPlaying() then return true end
+	end
+end
 
 Open()
 R.Pick({ kind = "quest", mapID = 1, name = "Target", x = 0.6, y = 0.4 })
@@ -49,6 +57,7 @@ for _, other in ipairs({ 3, 12 }) do
 	Close()
 	Open()
 	assert(state.id == 1 and map:IsVisible() and not Size(), "the map reopens on the player's zone, which shows no zone level labels")
+	assert(not Fading(), "after viewing map " .. other .. ", the reopened map plays no animation on WorldMapFrame, whose new tiles wait at alpha 0 to load")
 	assert(Listed() == 0 and R.card:IsShown(), "after viewing map " .. other .. ", closing and reopening, no old search list is left and the route card is back")
 	assert(R.search:GetText() == "", "closing the map clears its search, as Blizzard clears the quest search")
 	R.search:GetScript("OnEditFocusGained")(R.search)

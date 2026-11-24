@@ -463,6 +463,7 @@ local function BuildWelcome(page)
 			Widgets.Size(panel, WIDTH, panel.opts.height)
 		end
 		Widgets.Size(branded, branded:GetWidth(), max(scroll:GetHeight(), height))
+		scroll:UpdateScrollChildRect()
 		ScrollTo(0)
 	end
 	page.scroll, page.branded, page.classic, page.bar, page.thumb = scroll, branded, classic, bar, thumb
@@ -947,6 +948,7 @@ PlaceModules = function()
 	local height = Place(ROW_HEIGHT)
 	if ns.Store.Module("Setup").readableNotes and height > panel.moduleScroll:GetHeight() then height = Place(0) end
 	panel.moduleBody:SetHeight(height)
+	panel.moduleScroll:UpdateScrollChildRect()
 	panel.moduleScroll:SetVerticalScroll(max(0, min(panel.moduleScroll:GetVerticalScroll() or 0, panel.moduleBody:GetHeight() - panel.moduleScroll:GetHeight())))
 	panel.moduleBar.Place()
 end
@@ -984,7 +986,7 @@ local function BuildStyles(page, width)
 	panel.styleFit = { width = cardWidth, spacing = spacing }
 end
 
-FitStyles = function()
+FitStyles = function(retried)
 	local fit, page = panel.styleFit, panel.pages[2]
 	local pad = gap("gapLarge")
 	local picture = Widgets.Snap(page, (fit.width - 2 * pad) * STYLE_PICTURE_SHARE)
@@ -1035,11 +1037,18 @@ FitStyles = function()
 		local rise = 2 * Widgets.Border(panel)
 		local base = HEIGHT + (controls and math.ceil((Widgets.LineHeight(panel.padCaption) + gap("gapSmall") + STRIP_HEIGHT + fit.spacing) / rise) * rise or 0)
 		Widgets.Size(panel, WIDTH, base)
-		local lowest = panel.styleHint:GetBottom()
+		local lowest, top = panel.styleHint:GetBottom(), panel.next:GetTop()
 		for _, region in ipairs({ panel.lookTabs, panel.lookNote, panel.padTabs, panel.padNote }) do
-			if region:IsShown() then lowest = min(lowest, region:GetBottom()) end
+			if lowest and region:IsShown() then
+				local bottom = region:GetBottom()
+				lowest = bottom and min(lowest, bottom)
+			end
 		end
-		local over = panel.next:GetTop() + gap("gapSmall") - lowest
+		if not (lowest and top) then
+			if not retried then C_Timer.After(0, function() FitStyles(true) end) end
+			return
+		end
+		local over = top + gap("gapSmall") - lowest
 		panel.opts.height = base + (over > 0 and math.ceil(over / rise) * rise or 0)
 		Widgets.Size(panel, WIDTH, panel.opts.height)
 	end

@@ -2,6 +2,10 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.3.4.2: the world map and setup fixes (2026-11-24)
+
+Thanks to Baine for finding and testing these. The world map could lose its terrain art if you looked at another zone, closed the map and opened it again, leaving only the pins. The art now stays, and the map opens straight away instead of fading in, because the fade was what kept the art hidden. `/kstyle setup` could throw a Lua error when you pressed Next on the first page; the HUD style page now opens and fits as before. And setup's Welcome, Modules and Your addons lists drew only some of their rows until you scrolled, so the toggles looked missing. They now draw every row the moment they open. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.3.4.1: party frames show each buff once (2026-11-24)
 
 Thanks to Baine for spotting this. Party and raid frames could show the same buff twice on a member, like Find Minerals on a paladin or a zone buff on a priest, because the External and Big defensives indicators each picked up the member's top buff. Those two indicators only light up for real defensives, and Forever doesn't report defensives yet, so they stay empty for now and keep their place on the frame. Pick either one under Options > Party and Raid > Indicators and a note tells you it isn't available on this client. An indicator set to the buffs you choose by spell ID still shows that buff, once. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).

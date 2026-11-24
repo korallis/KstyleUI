@@ -1148,6 +1148,29 @@ local function quietSetter(field)
 	end
 end
 
+-- A scroll frame draws its child only within the size the child had when the frame last took its scroll rect: at
+-- SetScrollChild, UpdateScrollChildRect or a scroll that moves it. Content a later resize adds stays undrawn until then,
+-- as in the client; Blizzard calls UpdateScrollChildRect after laying out a scroll child
+-- (Blizzard_UIPanels_Game/Mainline/CampaignOverview.lua). env.Undrawn(scroll) measures that content.
+function Object:UpdateScrollChildRect()
+	local child = self._state.ScrollChild
+	child = child and child[1]
+	self._scrollW, self._scrollH = child and rawSize(child, "w") or 0, child and rawSize(child, "h") or 0
+end
+local setScrollChild, setVerticalScroll = quietSetter("ScrollChild"), quietSetter("VerticalScroll")
+function Object:SetScrollChild(child)
+	setScrollChild(self, child)
+	Object.UpdateScrollChildRect(self)
+end
+function Object:SetVerticalScroll(offset)
+	local old = self._state.VerticalScroll
+	old = old and old[1] or 0
+	setVerticalScroll(self, offset)
+	if plain(offset) ~= plain(old) then
+		Object.UpdateScrollChildRect(self)
+	end
+end
+
 local Quiet = {}
 
 local setTexture = quietSetter("Texture")
@@ -1423,6 +1446,16 @@ function Stubs.NewEnv(opts)
 			quietEnvs = quietEnvs + (quiet and 1 or -1)
 		end
 		env._quiet = quiet
+	end
+
+	-- How far a scroll frame's child has grown past the rect the frame last took: content there is undrawn.
+	function env.Undrawn(scroll)
+		local child = scroll._state.ScrollChild
+		child = child and child[1]
+		if not (child and scroll._scrollH) then
+			return 0
+		end
+		return math.max(0, (rawSize(child, "w") or 0) - scroll._scrollW, (rawSize(child, "h") or 0) - scroll._scrollH)
 	end
 
 	-- Forever's xpcall passes extra arguments to the function. Lua 5.1's does not, so on Lua 5.1 the
