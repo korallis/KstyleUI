@@ -253,6 +253,7 @@ local function Lay(form, name, seat, shown, order, specs)
 	if strip then
 		Medals.Place(strip, form.frame, Medals.Cell(math.ceil(n / Medals.LINE) * Medals.LINE + over))
 	end
+	ns.SlabTarget.Seat()
 end
 
 local function Lists(form, shown)

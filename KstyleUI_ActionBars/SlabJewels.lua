@@ -411,6 +411,7 @@ function Jewels.Update(event)
 	state.feed = feed
 	Listen(class, kind)
 	Place(ns.Slab and ns.Slab.hub, count, feed, held)
+	ns.SlabTarget.Seat()
 	if kind and not held then
 		Paint(kind)
 		Points()

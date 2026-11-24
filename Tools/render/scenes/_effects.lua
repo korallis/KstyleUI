@@ -213,27 +213,32 @@ function Effects.Apply(env, module, ns, notes)
 			hub.runes:SetRotation(-math.rad(360 * turn / RUNE_TURN))
 			notes[#notes + 1] = "fx: the crest story " .. at .. " s in: " .. (phase.rest and "at rest" or at >= 10 and "in combat" or "with a target")
 		elseif state == "kill" or state == "lock" then
-			-- A hostile target (RENDER_RANK its classification, elite when unset) appears; kill then drops it from 50% to
-			-- 13%, the crossing RENDER_FX_T seconds ago (1 when unset); lock samples the claws RENDER_FX_T in (0.12 when unset).
+			-- A hostile target (RENDER_RANK its classification, elite when unset) at 30% appears 1 s before the crossing; kill
+			-- drops it to 13% RENDER_FX_T seconds ago (1 when unset; a negative time is before the crossing) and samples the
+			-- fade, the wave and the beat there; lock samples the claws RENDER_FX_T seconds after the target (0.12 when unset).
 			Fixtures(env)
 			env.C_SpellBook = env.C_SpellBook or {}
 			local known = env.C_SpellBook.IsSpellKnown or function() return false end
 			env.C_SpellBook.IsSpellKnown = function(id) return id == 20662 or id == 24239 or known(id) end
 			env.UnitCanAttack = function() return true end
 			env.UnitClassification = function() return os.getenv("RENDER_RANK") or "elite" end
-			env._health = 0.5
+			env._health = 0.3
 			ns.SlabTrackers.Update()
 			env.FireEvent("PLAYER_TARGET_CHANGED")
-			env._health = state == "kill" and 0.13 or 0.5
-			env.FireEvent("UNIT_HEALTH", "target")
-			if state == "kill" and ns.SlabTarget.lock then
-				ns.SlabTarget.lock.claws.play:Stop()
+			t = t or (state == "kill" and 1 or 0.12)
+			local lock = ns.SlabTarget.lock
+			for _, c in ipairs(lock and lock.claws or {}) do
+				if state == "kill" then c.play:Stop() else Sample(env, c.play, t) end
 			end
-			for _, p in ipairs(ns.SlabTarget.pieces) do
-				if p:IsVisible() and p.claws and state == "lock" then
-					t = Sample(env, p.claws.play, t or 0.12)
-				elseif p:IsVisible() and p.feed and state == "kill" then
-					t = Sample(env, p.fade.play, t or 1, p.ripple and p.ripple.play)
+			if state == "kill" and t >= 0 then
+				env._health = 0.13
+				env.FireEvent("UNIT_HEALTH", "target")
+			end
+			for _, k in ipairs(state == "kill" and ns.SlabTarget.kills or {}) do
+				if k:IsVisible() then
+					Sample(env, k.fade.play, math.max(t, 0), k.ripple and k.ripple.play)
+					Sample(env, k.ripple and k.ripple.grow or k.fade.play, math.max(t, 0))
+					Sample(env, k.beat.play, t + 1)
 				end
 			end
 			notes[#notes + 1] = "fx: " .. (state == "kill" and "the kill window " or "the target lock ") .. tostring(t) .. " s in"

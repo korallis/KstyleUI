@@ -210,6 +210,7 @@ local function Grow(g, from, to, duration, order)
 	s:SetOrder(order or 1)
 	return s
 end
+Slab.Grow = Grow
 
 local function Flipbook(g, cells, duration)
 	local f = g:CreateAnimation("FlipBook")

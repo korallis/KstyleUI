@@ -530,7 +530,7 @@ function ns.Schema()
 		Crest("crestBite", L["Primal Bite on the crest"], L["Shows Primal Bite cooling down and ready in a socket on the crest ring in Bear Form."]),
 		Crest("crestBash", L["Bash on the crest"], L["Shows Bash cooling down and ready in a socket on the crest ring in Bear Form."]),
 		Crest("crestFlameShock", L["Flame Shock and Riptide on the crest"], L["Shows your Flame Shock or Stormstrike on an enemy, or Riptide on a friend, on the crest's foot."]),
-		{ type = "toggle", key = "crestKill", label = L["Kill window"], help = L["Burns the foot of the crest's inner rim red while your target is in your execute range."], showWhen = function() return ns.SlabTrackers.Has("crestKill") end },
+		Crest("crestKill", L["Kill window"], L["Burns the foot of the crest's inner rim red while your target is in your execute range."]),
 		{ type = "toggle", key = "crestLock", label = L["Target lock"], help = L["Closes gilt claws round the crest on a new enemy target and lights the top gem in its rank."], showWhen = function() return K.HudStyle.Current() == "medallions" end },
 		{ type = "toggle", key = "hubNumber", label = L["Clear hub level"],
 			help = L["Use the number face on a larger Medallions level badge. Off restores the original badge."], showWhen = function() return K.HudStyle.Current() == "medallions" end },
