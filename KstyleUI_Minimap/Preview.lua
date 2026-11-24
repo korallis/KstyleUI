@@ -32,7 +32,7 @@ function Preview.Build(...)
 		if Settings.Get("column.drawer") and Settings.Get("drawer.behaviour") == "open" then
 			drawer:Refresh()
 		else
-			drawer:Close(true)
+			drawer:Close()
 			drawer:Layout()
 		end
 		face:Refresh()

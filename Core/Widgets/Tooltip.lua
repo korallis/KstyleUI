@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local Widgets = ns.Widgets
-local Tokens, Scale, Motion = ns.Tokens, ns.Scale, ns.Motion
+local Tokens, Scale = ns.Tokens, ns.Scale
 local max, min = math.max, math.min
 
 local MIN_WIDTH = 160
@@ -363,16 +363,11 @@ function Widgets.Tooltip()
 			self:Restyle()
 		end
 		Position(self, self:Layout())
-		local from = self:IsShown() and self:GetAlpha() or 0
 		nativeShow(self)
-		Motion.Tween(self, "SetAlpha", from, 1, Tokens.Duration("hover"), Tokens.Easing("hover"))
 	end
 	function tip.Hide(self)
 		self.owner = nil
-		Motion.Tween(self, "SetAlpha", self:GetAlpha(), 0, Tokens.Duration("hover"), Tokens.Easing("hover"), function()
-			nativeHide(self)
-			self:SetAlpha(1)
-		end)
+		nativeHide(self)
 	end
 	tip:ClearLines()
 	nativeHide(tip)

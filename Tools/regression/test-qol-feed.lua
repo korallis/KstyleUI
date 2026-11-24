@@ -214,14 +214,14 @@ do
 	assert(K.ErrorCount() == 0)
 end
 
--- A new gain during the backdrop's fade-out keeps the backdrop, and a row that outlives an older one moves down -----
+-- A new gain after the last line leaves brings the backdrop back whole, and a row that outlives an older one moves down -----
 do
 	local env, K, ns = New({ layout = true })
 	Loot(env, "You receive loot: " .. BUG_EYE)
 	env.Release()
 	Loot(env, "You receive loot: " .. VEST)
 	local backdrop = ns.Feed.Backdrop()
-	assert(#ns.Feed.lines == 1 and backdrop:IsShown() and backdrop:GetAlpha() == 1, "loot during the fade-out keeps the backdrop: " .. tostring(backdrop:GetAlpha()))
+	assert(#ns.Feed.lines == 1 and backdrop:IsShown() and backdrop:GetAlpha() == 1, "loot after the last line left shows the backdrop whole: " .. tostring(backdrop:GetAlpha()))
 	Settle(env)
 	assert(#ns.Feed.lines == 1 and K.ErrorCount() == 0, "the new line is still live")
 end
@@ -412,11 +412,9 @@ do
 	env.FireEvent("CHAT_MSG_LOOT", "You receive loot: " .. BUG_EYE)
 	local first = assert(ns.Feed.lines[1])
 	assert(first.y == 0, "Calm places the feed line at once")
-	assert(ns.Feed.Backdrop():GetAlpha() == 0, "Calm keeps the feed card fade")
+	assert(ns.Feed.Backdrop():IsShown() and ns.Feed.Backdrop():GetAlpha() == 1, "the feed card shows whole at once, with no fade")
 	env.FireEvent("CHAT_MSG_LOOT", "You receive loot: " .. VEST)
 	assert(first.y == K.Tokens.Size("lootTile") + K.Tokens.Size("gapSmall"), "Calm repositions existing feed lines at once")
-	Q.W.Tick(env, 0.15)
-	assert(ns.Feed.Backdrop():GetAlpha() == 1, "the feed fade ends within 150 ms")
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 

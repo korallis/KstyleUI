@@ -1,4 +1,4 @@
--- test-unitframes-target-transition.lua: target visuals outlive the secure unit watch, crossfade on changes and settle to grey on death.
+-- test-unitframes-target-transition.lua: target visuals change and leave at once with no fade, and a dying target settles to grey before it leaves.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 local env, K, ns = U.New()
@@ -14,37 +14,17 @@ end
 target("Wolf")
 W.Tick(env, 0.2)
 local body = view.body
+assert(body and body:IsShown() and body:GetAlpha() == 1, "E5: a new target shows its visual body whole")
 env._units.target = nil
 env.SetTarget(false)
-assert(body and body:IsShown() and not view.button:IsShown(), "E5: target visuals must survive the secure unit watch on loss")
-W.Tick(env, 0.075)
-assert(body:GetAlpha() > 0 and body:GetAlpha() < 1, "E5: target loss fades over 150 ms")
-W.Tick(env, 0.075)
-assert(not body:IsShown(), "E5: target loss finishes and hides the visual body")
+assert(not body:IsShown(), "E5: target loss hides the visual body at once, with no fade")
 target("Wolf")
 W.Tick(env, 0.2)
 local old = view.body
 target("Boar")
-assert(view.body == old and U.Shown(env, view.name) == "WOLF", "E5: the real slab keeps the outgoing target until it fades out")
-W.Tick(env, 0.03)
-assert(old:GetAlpha() > 0 and old:GetAlpha() < 1, "E5: the real slab fades out over the first 60 ms")
-W.Tick(env, 0.03)
-assert(old:GetAlpha() == 0 and U.Shown(env, view.name) == "BOAR", "E5: update the target while the real slab is transparent")
-W.Tick(env, 0.03)
-assert(old:GetAlpha() > 0 and old:GetAlpha() < 1, "E5: the updated slab fades in over the last 60 ms")
-W.Tick(env, 0.03)
-assert(old:GetAlpha() == 1, "E5: the target change settles after 120 ms without replacing any regions")
-target("Wolf")
-W.Tick(env, 0.03)
+assert(view.body == old and old:IsShown() and old:GetAlpha() == 1 and U.Shown(env, view.name) == "BOAR", "E5: a target change shows the new target at once on the real slab, with no fade")
 target("Fox")
-settle()
-assert(U.Shown(env, view.name) == "FOX" and old:GetAlpha() == 1, "E5: a rapid replacement cancels the previous target's pending update")
-target("Wolf")
-W.Tick(env, 0.03)
-env._units.target = nil
-env.SetTarget(false)
-W.Tick(env, 0.2)
-assert(not old:IsShown(), "E5: losing a target cancels the pending change instead of showing it again")
+assert(U.Shown(env, view.name) == "FOX" and old:GetAlpha() == 1, "E5: a rapid replacement shows the newest target")
 target("Boar")
 settle()
 env._units.target.dead = true
@@ -69,11 +49,10 @@ env.FireEvent("UNIT_HEALTH", "target")
 local dying = view.body
 env._units.target = nil
 env.SetTarget(false)
-assert(pending[#pending][1] == 0.2 and dying:GetAlpha() == 1, "E5: death finishes its 200 ms grey transition before target loss fades")
+assert(pending[#pending][1] == 0.2 and dying:IsShown() and dying:GetAlpha() == 1, "E5: death finishes its 200 ms grey transition before the target leaves")
 W.Tick(env, 0.2)
 pending[#pending][2]()
-W.Tick(env, 0.15)
-assert(not dying:IsShown(), "E5: the dying target leaves after its grey transition and loss fade")
+assert(not dying:IsShown(), "E5: the dying target leaves at once after its grey transition")
 target("Wolf")
 settle()
 local t = env._time
@@ -123,10 +102,7 @@ do
 	local previous = targetView.body
 	U.SetUnit(e, "target", { name = "Boar", level = 10, health = 60, healthMax = 100, reaction = 2 })
 	e.SetTarget(true)
-	W.Tick(e, 0.03)
-	assert(targetView.body == previous and previous:GetAlpha() < 1, "E5: fade the real slab on the first replacement when the addon starts with an existing target")
-	W.Tick(e, 0.03)
-	W.Tick(e, 0.06)
+	assert(targetView.body == previous and previous:GetAlpha() == 1 and U.Shown(e, targetView.name) == "BOAR", "E5: the first replacement shows at once when the addon starts with an existing target")
 	e.UnitInRange = function() return false, true end
 	e.FireEvent("UNIT_IN_RANGE_UPDATE", "target")
 	W.Tick(e, 0.2)

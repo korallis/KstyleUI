@@ -169,8 +169,8 @@ Fields: `chrome`, `content` (a frame one `chrome:Inset("gapMedium")` inside, bel
 
 | Method | Behaviour |
 | --- | --- |
-| `Open()` | Fades in over `panelOpen` and plays the rise: down `panelRise`, up past rest by `panelOvershoot`, then back. The three translations add up to 0, so nothing jumps when the group ends. Reduced motion skips the rise. |
-| `Close()` | Fades out over `panelClose`, hides, and runs `onClose`. |
+| `Open()` | Shows at full alpha at once and plays the rise: down `panelRise`, up past rest by `panelOvershoot`, then back. The three translations add up to 0, so nothing jumps when the group ends. Reduced motion and combat skip the rise. No window fades: in game an alpha fade on a whole window or page left its content half drawn or invisible. |
+| `Close()` | Hides at once and runs `onClose`. |
 | `Toggle()`, `SetTitle(text)`, `Restyle()` | |
 
 ## Button
@@ -373,6 +373,7 @@ A click opens the one shared menu, `DropdownMenu()`, below the box at the box's 
 
 - A `ScrollList` of 24-unit rows, up to `maxRows`, scrolled to show the chosen option.
 - The chosen row has a one-border `accent` bar on its left and an `accent` wash at 12%. Other rows wash white at 5% under the mouse.
+- The menu shows and hides at once, with no fade.
 - A row click chooses that option and closes the menu. A click anywhere else (on `menu.catcher`, a full-screen button under the menu) and Escape close it too, as does hiding the dropdown.
 - While open, the box's hairline is `accent` and its chevron points up.
 
@@ -526,7 +527,7 @@ Fields: `holder`, `slice`, for proc glows `pulse`, `sparkPulse`, `top`, `spark`,
 | `AddRule()` | The design's 56-unit rule under an item's base lines: one border thick, from the accent to transparent, 4 units of air above and below |
 | `AddDivider()` | The `divider` line that fades at both ends, `edgeFaint`, from the panel's padding on the left to its padding on the right, 6.5 units of air above and below |
 | `ClearLines()` | Returns every line to a pool, so lines are made once. |
-| `Show()`, `Hide()` | Lay out, anchor and fade in, or fade out, hide and drop the owner, over `hover`. |
+| `Show()`, `Hide()` | Lay out, anchor and show, or hide and drop the owner, at once with no fade. |
 
 `color` is a token name, or `r, g, b` as three numbers. The tooltip is 160 to 300 units wide. Lines start 9.5 units below the top and are pitched half a unit apart (the design's 13.5 units for 11-unit text), with 2 more units after a title and 4 after a caption; the string height falls back to 1.2 times the font size where the game gives none.
 

@@ -1,4 +1,4 @@
--- test-widgets-panel.lua: the card panel: chamfered chrome, the quest card's title cap, one close glyph, the open and close motion the client plays (never in combat), Escape, dragging and Layout.
+-- test-widgets-panel.lua: the card panel: chamfered chrome, the quest card's title cap, one close glyph, the open rise the client plays (never in combat) on a panel that opens and closes at once, Escape, dragging and Layout.
 local W = dofile("Tools/regression/widget_env.lua")
 
 local function panelWith(opts, envOpts)
@@ -100,11 +100,13 @@ do
 		return tween(...)
 	end
 	panel:Open()
-	assert(panel:IsShown() and panel:GetAlpha() == 1, "Open shows the panel")
-	assert(panel.fadeIn:IsPlaying() and panel.rise:IsPlaying(), "and the client plays its fade and its rise")
-	local alpha = panel.fadeIn._anims[1]
-	assert(alpha:GetObjectType() == "Alpha" and W.LastCall(alpha, "SetFromAlpha")[1] == 0 and W.LastCall(alpha, "SetToAlpha")[1] == 1, "the fade runs from clear to whole")
-	assert(W.Near(W.LastCall(alpha, "SetDuration")[1], 0.25), "over 0.25 s, the bible's card open")
+	assert(panel:IsShown() and panel:GetAlpha() == 1, "Open shows the panel whole at once")
+	assert(panel.rise:IsPlaying(), "and the client plays its rise")
+	for _, group in ipairs(panel._groups) do
+		for _, anim in ipairs(group._anims) do
+			assert(anim:GetObjectType() ~= "Alpha", "a window has no alpha fade: in game one left its content half drawn")
+		end
+	end
 	local translations, up = 0, 0
 	for _, anim in ipairs(panel.riseParts) do
 		local offset = W.LastCall(anim, "SetOffset")
@@ -113,48 +115,24 @@ do
 	end
 	assert(W.Near(translations, 0), "the rise ends where the panel rests, so nothing jumps")
 	assert(W.Near(up, 6), "a 6-unit rise")
-	W.Settle(env)
-	assert(not panel.fadeIn:IsPlaying() and panel:GetAlpha() == 1, "and settles whole")
 	panel:Close()
-	assert(panel:IsShown() and panel.fadeOut:IsPlaying(), "Close plays the fade out first")
-	assert(W.Near(W.LastCall(panel.fadeOut._anims[1], "SetDuration")[1], 0.15), "over 0.15 s, the bible's card close")
-	W.Settle(env)
-	assert(panel:IsShown() == false and panel:GetAlpha() == 1, "then hides, ready to show whole")
+	assert(panel:IsShown() == false and not panel.rise:IsPlaying(), "Close hides it at once")
 	assert(tweens == 0, "no Lua tween moves a window")
 
 	env.SetCombat(true)
 	panel:Open()
-	assert(panel:IsShown() and not panel.fadeIn:IsPlaying() and not panel.rise:IsPlaying(), "in combat a window opens at once")
+	assert(panel:IsShown() and not panel.rise:IsPlaying(), "in combat a window opens with no rise")
 	panel:Close()
-	assert(panel:IsShown() == false and not panel.fadeOut:IsPlaying(), "and closes at once")
+	assert(panel:IsShown() == false, "and closes at once")
 	env.SetCombat(false)
 	K.Motion.Tween = tween
 
 	panel:Open()
-	W.Settle(env)
-	panel:Close()
-	panel:Open()
-	W.Settle(env)
-	assert(panel:IsShown() and panel:GetAlpha() == 1 and not panel.closing, "Close then Open at once leaves the window open and whole")
-	panel:Close()
 	panel:Toggle()
-	assert(panel:IsShown() and not panel.fadeOut:IsPlaying(), "Toggle while it fades out opens it again")
-	W.Settle(env)
-	assert(panel:IsShown() and panel:GetAlpha() == 1, "and it stays open, whole")
+	assert(panel:IsShown() == false, "Toggle closes an open panel")
+	panel:Toggle()
+	assert(panel:IsShown() and panel:GetAlpha() == 1, "and opens a closed one whole")
 	panel:Close()
-	env.SetCombat(true)
-	W.Settle(env)
-	env.SetCombat(false)
-	assert(panel:IsShown() == false and panel:GetAlpha() == 1, "combat starting mid-fade still hides it, ready to show whole")
-	panel:Show()
-	assert(panel:GetAlpha() == 1, "a plain Show after a close shows it whole")
-	panel:Close()
-	panel:Hide()
-	panel:GetScript("OnHide")(panel)
-	assert(panel:GetAlpha() == 1 and not panel.closing, "a Hide during the fade out leaves it whole for the next Show")
-	panel:Show()
-	W.Settle(env)
-	assert(panel:IsShown(), "and a stale fade never hides it again")
 
 	K.Motion.SetReducedMotion(true)
 	local plays = #W.Calls(panel.rise, "Play")

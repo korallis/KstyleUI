@@ -554,7 +554,6 @@ end
 function Preview.Show(pane, page, section)
 	pane.page = page
 	pane.section = section
-	local previous = pane.current
 	local frame
 	if page then
 		local builder = page.module and K.Options.Preview(page.module)
@@ -577,11 +576,7 @@ function Preview.Show(pane, page, section)
 	pane.refit = nil
 	pane:SetShown(frame ~= nil)
 	if frame then
-		if frame ~= previous and K.Appearance.Get("calmLists") then
-			K.Motion.PageIn(frame, (K.Motion.Moment("page")))
-		else
-			frame:Show()
-		end
+		frame:Show()
 		RefreshCurrent(pane)
 	end
 	return frame ~= nil

@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local Widgets = ns.Widgets
-local Tokens, Scale, Motion, L = ns.Tokens, ns.Scale, ns.Motion, ns.L
+local Tokens, Scale, L = ns.Tokens, ns.Scale, ns.L
 local min = math.min
 
 local DEFAULT_WIDTH = 200
@@ -138,7 +138,7 @@ local function CloseMenu(m)
 	local owner = m.owner
 	m.owner = nil
 	m.catcher:Hide()
-	Motion.FadeOut(m, not Motion.OneStyle() and Tokens.Duration("hover") or nil)
+	m:Hide()
 	if owner then
 		owner:Paint()
 	end
@@ -291,7 +291,7 @@ function Dropdown:Open()
 	m.owner = self
 	LayoutMenu(m, self)
 	m.catcher:Show()
-	Motion.FadeIn(m, not Motion.OneStyle() and Tokens.Duration("hover") or nil)
+	m:Show()
 	Widgets.Sound("U_CHAT_SCROLL_BUTTON")
 	self:Paint()
 end

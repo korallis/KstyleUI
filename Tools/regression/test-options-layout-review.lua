@@ -1,4 +1,4 @@
--- test-options-layout-review.lua: the v0.3.0 Options and Layout Mode review probes: the fading toolbar ignores clicks after Layout Mode closes, a secret overlay visibility fades in from nothing, the Elements map follows Shown and opacity once per batch and rests while hidden, the search hint names what opens and shows only when a result can open, a pinned picker lights, the new player words follow Search takes you there, and a page change uses the page moment.
+-- test-options-layout-review.lua: the v0.3.0 Options and Layout Mode review probes: the toolbar hides and ignores clicks once Layout Mode closes, a secret overlay visibility shows the overlay whole, the Elements map follows Shown and opacity once per batch and rests while hidden, the search hint names what opens and shows only when a result can open, a pinned picker lights, the new player words follow Search takes you there, and a page change shows the whole list at once.
 local O = dofile("Tools/regression/options_env.lua")
 local W = O.W
 local env, K, ns = O.New({
@@ -9,7 +9,7 @@ local env, K, ns = O.New({
 })
 local layout, account, L = K.Layout, K.Store.Account(), K.L
 
--- Reset and the switches do nothing once Layout Mode has closed, while its toolbar fades out.
+-- The toolbar hides the moment Layout Mode closes, and Reset and the switches do nothing after.
 local box = env.CreateFrame("Frame", nil, K.Scale.Root())
 box:SetSize(95, 38)
 layout.Register(box, "Review.Box", { anchor = "CENTER", x = 0, y = 0 }, { label = "Review box" })
@@ -18,17 +18,17 @@ assert(layout.Enter())
 W.Settle(env)
 layout.Exit(true)
 local toolbar, grid = layout.Mode.Toolbar(), layout.Setting("grid")
-assert(not layout.IsActive() and toolbar:IsVisible() and toolbar.reset:IsEnabled(), "the toolbar is still fading out")
+assert(not layout.IsActive() and not toolbar:IsVisible(), "the toolbar hides the moment Layout Mode closes")
 W.Click(toolbar.reset)
 W.Click(toolbar.gridToggle)
 assert(layout.Get("Review.Box").x == 80, "Reset does nothing once Layout Mode has closed")
 assert(layout.Setting("grid") == grid, "nor does the Grid switch")
 W.Settle(env)
 
--- A secret overlay visibility counts as hidden, so the overlay fades in from nothing.
+-- A secret overlay visibility is never truth-tested, and the overlay shows whole.
 local overlay = layout.Mode.Overlay()
 overlay.IsShown = function() return env.Secret(false) end
-assert(layout.Enter() and overlay:GetAlpha() == 0, "a secret visibility is not truth-tested")
+assert(layout.Enter() and overlay:GetAlpha() == 1, "a secret visibility is not truth-tested")
 overlay.IsShown = nil
 W.Settle(env)
 layout.Exit(true)
@@ -134,7 +134,7 @@ K.Options.Write("OptionsPresentation", "synonyms", false)
 assert(Hits("hp") == 1 and Hits("portraits") == 0, "Search in player words off drops only its row words")
 K.Options.Write("OptionsPresentation", "synonyms", true)
 
--- One motion style names what it times: a page change fades the list with the page moment; off keeps the 450 ms cascade.
+-- One motion style names what it times: a page change shows the whole list at once; off keeps the 450 ms cascade.
 local help
 for _, item in ipairs(ns.Model.PageItems(ns.Pages.Find(ns.Pages.List(), "General"))) do
 	if item.label == L["One motion style"] then help = item.help end
@@ -143,9 +143,7 @@ assert(help == L["Menus, page changes and Layout Mode use the window timing. Off
 local list = parts.content
 K.Options.Open("About")
 K.Options.Open("General")
-local fade = list.kstylePageIn
-assert(list:GetAlpha() == 1 and list.rows[1]:GetAlpha() == 1, "a page change keeps the list at alpha 1 with no frame run, so a fade the client never steps cannot hide it")
-assert(fade and fade:IsPlaying() and fade.alpha:GetDuration() == K.Motion.Moment("page"), "the whole list fades in over the page moment")
+assert(list:GetAlpha() == 1 and list.rows[1]:GetAlpha() == 1 and not list.kstylePageIn, "a page change shows the whole list at once, with no fade")
 account.motionOneStyle = false
 K.Options.Open("About")
 K.Options.Open("General")
