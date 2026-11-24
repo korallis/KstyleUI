@@ -46,6 +46,7 @@ local DISPEL_SUBLEVEL = 7
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local COUNT_SHARE = 0.6
 local TIMER_LINE = 1.3
+local TEXT_LINE = 1.2
 local SAMPLE_ICONS = { 136207, 135848, 136139, 136071, 135894, 136207, 135848, 136139, 136071, 135894 }
 local SAMPLE_TYPES = { "magic", "curse", "poison", "disease", "bleed" }
 local SAMPLE_LASTING = 6
@@ -147,6 +148,32 @@ local function MarkLift(key)
 end
 Auras.MarkLift = MarkLift
 
+local function TimerSize(size)
+	local own = Settings.current.auras.timerSize
+	return own > 0 and own or math.max(6, math.floor(size * COUNT_SHARE + 0.5))
+end
+
+local function TimerRoom(f, size)
+	local a = Settings.current.auras
+	if not a.timers then return 0, 0, 0 end
+	local x, y = Widgets.Snap(f, a.timerX), Widgets.Snap(f, a.timerY)
+	return math.ceil(TimerSize(size) * TIMER_LINE) + Widgets.Border(f) + math.max(0, -y), math.abs(x), math.max(0, y - size)
+end
+Auras.TimerRoom = TimerRoom
+
+local function Lift(f, block)
+	local power, health = f.parts.power, f.parts.health
+	local a = Settings.current.auras
+	local timer = 2 * Widgets.Border(f) + TimerSize(block.size) * TEXT_LINE + math.max(0, -Widgets.Snap(f, a.timerY))
+	local over = a.timers and math.ceil(block.top + block.height + timer - (power and power.top or f.height)) or 0
+	if over > 0 and health and block.top - over >= health.top then
+		block.top = block.top - over
+	elseif over > 0 then
+		block.onIcon = true
+	end
+	return block
+end
+
 local function OneRow(block)
 	if Settings.current.auras.timers and block.rows > 1 then
 		block.rows, block.cells, block.height = 1, block.columns, block.size
@@ -165,10 +192,10 @@ local function Block(f, k)
 		if not b then
 			return { position = place, columns = 0, rows = 0, cells = 0, size = size, width = 0, height = 0, left = 0, top = 0, spacing = spacing, inset = inset, gap = gap }
 		end
-		return OneRow({
-			inside = true, position = b.position, columns = b.columns, rows = b.rows, cells = b.cells, size = b.size, width = b.width, height = b.height,
+		return Lift(f, OneRow({
+			position = b.position, columns = b.columns, rows = b.rows, cells = b.cells, size = b.size, width = b.width, height = b.height,
 			left = b.left + k.auraX, top = b.top - k.auraY, spacing = spacing, inset = inset, gap = gap,
-		})
+		}))
 	end
 	local block = OneRow(Geometry.AuraBlock(k, w, h, size, spacing, inset, lane - gap))
 	block.spacing, block.inset, block.gap = spacing, inset, gap
@@ -300,27 +327,9 @@ local function NewTile(holder)
 	return { skin = skin, chrome = chrome, icon = icon, mask = mask }
 end
 
-local function TimerSize(size)
-	local own = Settings.current.auras.timerSize
-	return own > 0 and own or math.max(6, math.floor(size * COUNT_SHARE + 0.5))
-end
-
-local function TimerRoom(f, size)
-	local a = Settings.current.auras
-	if not a.timers then return 0, 0, 0 end
-	local x, y = Widgets.Snap(f, a.timerX), Widgets.Snap(f, a.timerY)
-	return math.ceil(TimerSize(size) * TIMER_LINE) + Widgets.Border(f) + math.max(0, -y), math.abs(x), math.max(0, y - size)
-end
-Auras.TimerRoom = TimerRoom
-
 function Auras.TimerSpan(size)
 	local a = Settings.current.auras
 	return a.timers and math.ceil(TimerSize(size) * TIMER_LINE) + 1 + math.max(0, -a.timerY) or 0
-end
-
-local function TimerOnIcon(f, block)
-	local power = f.parts and f.parts.power
-	return block.inside and block.top + block.height + TimerRoom(f, block.size) > (power and power.top or f.height) or false
 end
 
 local function PlaceTimer(timer, skin, onIcon)
@@ -516,7 +525,7 @@ local function StyleIcon(button)
 	local columns = block and (block.columns or block.width)
 	local rows = block and (block.rows or block.height)
 	local side = p.buff and block and block.side
-	local onIcon = not p.buff and not p.size and TimerOnIcon(f, Block(f, k))
+	local onIcon = not p.buff and not p.size and Block(f, k).onIcon or false
 	local tips = Tips(p)
 	local zoom = IconZoom(p.buff and "buff" or p.group)
 	if p.styledCursor == a.tipCursor and p.styledCountX == a.countX and p.styledCountY == a.countY and p.styledTimerX == a.timerX and p.styledTimerY == a.timerY and p.styledOnIcon == onIcon
@@ -1338,7 +1347,7 @@ local function Configure(f)
 	local block = Block(f, k)
 	local point, x, y = Anchor(f, block, k)
 	local room, across, up = TimerRoom(f, block.size)
-	if TimerOnIcon(f, block) then room, across, up = 0, 0, 0 end
+	if block.onIcon then room, across, up = 0, 0, 0 end
 	local lift, rise = point:find("^BOTTOM") and room or 0, point:find("^TOP") and up or 0
 	local out = point:find("RIGHT$") and across or -across
 	local clip = f.auraClip

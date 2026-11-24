@@ -1,4 +1,4 @@
--- test-groupframes-aura-timer-room.lua: on both HUD styles and the four test screens, a party or raid debuff's time left and stack count sit inside the debuff's own space (inside the member's frame, or wholly beside it), clear of its power strip (raid power bar off and on) and health text.
+-- test-groupframes-aura-timer-room.lua: on both HUD styles and the four test screens, a party or raid debuff's time left and stack count sit inside the debuff's own space (inside the member's frame, or wholly beside it), clear of its power strip (raid power bar off and on), name and health text; Medallions keeps it under the icon by lifting the row.
 local H = dofile("Tools/regression/groupframes_r3a.lua")
 local A = dofile("Tools/regression/auras_env.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -18,10 +18,11 @@ local function crossing(r, q)
 	return math.min(r[3], q[3]) - math.max(r[1], q[1]), math.min(r[4], q[4]) - math.max(r[2], q[2])
 end
 
-local function apart(env, a, b, what)
+local function apart(env, a, b, what, slack)
 	if not (b and b:IsShown()) then return end
 	local dx, dy = crossing(box(env, a), box(env, b))
-	assert(dx <= 1e-3 or dy <= 1e-3, what .. " overlap by " .. dx .. " x " .. dy)
+	slack = slack or 1e-3
+	assert(dx <= slack or dy <= slack, what .. " overlap by " .. dx .. " x " .. dy)
 end
 
 for _, style in ipairs({ "medallions", "frames" }) do
@@ -52,10 +53,16 @@ for _, style in ipairs({ "medallions", "frames" }) do
 				apart(env, region, f.power, at .. name .. " and the power strip")
 				apart(env, region, f.healthText, at .. name .. " and the health text")
 			end
+			apart(env, aura.timer, f.name, at .. "time left and the name")
+			apart(env, debuffs.active[1], f.healthText, at .. "the debuff icon and the health text")
+			apart(env, debuffs.active[1], f.name, at .. "the debuff icon and the name (under a pixel is the name line's padding)", K.Widgets.Border(f))
+			if style == "medallions" then
+				assert(box(env, aura.timer)[2] >= box(env, debuffs.active[1])[4] - 1e-3, at .. "the time left stays under its icon")
+			end
 		end
 		H.noErrors(env, K)
 		collectgarbage()
 	end
 end
 
-print("groupframes aura timer room ok: time left and stacks inside their frame or their row beside it, clear of the power strip and health text, on both styles and four screens")
+print("groupframes aura timer room ok: time left and stacks inside their frame or their row beside it, clear of the power strip, name and health text, on both styles and four screens")
