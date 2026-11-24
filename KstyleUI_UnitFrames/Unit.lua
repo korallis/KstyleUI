@@ -541,26 +541,35 @@ function Unit.Spark(view, spellID)
 	spark.group:Play()
 end
 
-local function PollEnergy(poll)
+local function StopPoll(poll)
+	if poll then poll:SetScript("OnUpdate", nil) end
+end
+
+local function PollEnergy(poll, elapsed)
+	poll.left = poll.left - elapsed
 	local power = UnitPower("player", ENERGY)
-	if issecretvalue(power) or power ~= poll.view.energyLast then Unit.EnergyTick(poll.view) end
+	if issecretvalue(power) or power ~= poll.view.energyLast then
+		Unit.EnergyTick(poll.view)
+	elseif poll.left <= 0 then
+		StopPoll(poll)
+	end
 end
 
 function Unit.EnergyTick(view)
 	local spark, poll, tick = view.energySpark, view.energyPoll, ns.Style.TICK
 	if not (view.s.energyTick and view.s.power) or BarPower(view) ~= ENERGY then
 		view.energyLast = nil
-		Hide(poll)
+		StopPoll(poll)
 		return StopSpark(spark)
 	end
 	local power, max = UnitPower("player", ENERGY), UnitPowerMax("player", ENERGY)
 	local last, synced = view.energyLast, false
 	view.energyLast = nil
 	if issecretvalue(power) or issecretvalue(max) then
-		Hide(poll)
+		StopPoll(poll)
 	else
 		if power >= max then
-			Hide(poll)
+			StopPoll(poll)
 			return StopSpark(spark)
 		end
 		view.energyLast = power
@@ -568,13 +577,9 @@ function Unit.EnergyTick(view)
 		if last and power > last and not issecretvalue(regen) and type(regen) == "number" and power - last == math.floor(regen * tick + 0.5) then
 			view.energyTickAt, synced = GetTime(), true
 		end
-		if not poll then
-			poll = CreateFrame("Frame", nil, view.power)
-			poll.view = view
-			poll:SetScript("OnUpdate", PollEnergy)
-			view.energyPoll = poll
-		end
-		poll:Show()
+		poll = poll or CreateFrame("Frame", nil, view.power)
+		poll.view, poll.left, view.energyPoll = view, 2 * tick, poll
+		poll:SetScript("OnUpdate", PollEnergy)
 	end
 	if not view.energyTickAt or spark and spark:IsShown() and not synced then return end
 	spark = spark or ns.Style.Spark(view, "energySpark")

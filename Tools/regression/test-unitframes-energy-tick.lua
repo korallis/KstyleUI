@@ -1,4 +1,4 @@
--- test-unitframes-energy-tick.lua: the player's energy tick spark, on both HUD styles: it is on by default, polls energy only while it is readable and below its maximum, waits for a natural two-second tick, loops across the bar from that tick, ignores refunds, keeps its phase while hidden at full energy, never compares secret values, hides out of cat form and when off.
+-- test-unitframes-energy-tick.lua: the player's energy tick spark, on both HUD styles: it is on by default, polls energy only while it is readable, below its maximum and changing, waits for a natural two-second tick, loops across the bar from that tick, ignores refunds, keeps its phase while hidden at full energy, never compares secret values, hides out of cat form and when off.
 local U = dofile("Tools/regression/unitframes_env.lua")
 local W = U.W
 
@@ -20,7 +20,7 @@ for _, frames in ipairs({ false, true }) do
 		W.Tick(env, 0.016)
 	end
 	local function polling()
-		return player.energyPoll ~= nil and player.energyPoll:IsShown()
+		return player.energyPoll ~= nil and player.energyPoll:GetScript("OnUpdate") ~= nil
 	end
 
 	check(ns.Settings.Value("player", "energyTick") == true, "the energy tick is on by default")
@@ -54,6 +54,10 @@ for _, frames in ipairs({ false, true }) do
 	spend(55, 15.5)
 	check(spark:IsShown() and math.abs(plays[2] - 0.5) < 1e-9 and polling(), "spending from full shows it at the tick's phase")
 
+	for _ = 1, 300 do W.Tick(env, 0.016) end
+	check(not polling() and spark:IsShown(), "two ticks with no energy change stop the poll; the sweep runs on")
+	spend(45, 16)
+	check(polling(), "the next power event polls again")
 	env._restricted = true
 	tick(75, 17)
 	check(spark:IsShown() and spark.group:IsPlaying() and #plays == 2 and not polling(), "secret energy stops the poll and keeps the last cadence sweeping")
