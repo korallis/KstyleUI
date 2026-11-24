@@ -129,11 +129,16 @@ local function PlayPips(env, K, set)
 	return "pips: " .. from .. " to " .. to .. ", " .. (os.getenv("RENDER_PIPS_T") or "0") .. " s in"
 end
 
--- Player(opts) -> the player unit for the scene's class, as unitframes_env takes it.
+-- Form(class) -> a druid's form: RENDER_FORM, else cat form under RENDER_PIPS; nil in caster form and for the rest.
+local function Form(class)
+	return class == "DRUID" and (os.getenv("RENDER_FORM") or Hud.Pips() and "cat") or nil
+end
+
+-- Player(opts) -> the player unit for the scene's class, as unitframes_env takes it: a bear on rage, a cat on energy.
 function Hud.Player(opts)
 	local class, spec = Hud.Class(opts)
-	local bear = Hud.Crown(opts) == "BEAR"
-	local power = class == "DRUID" and (Hud.Pips() or bear) and (bear and { type = 1, token = "RAGE", value = 40, max = 100 } or { type = 3, token = "ENERGY", value = 80, max = 100 }) or spec.power
+	local form = Form(class)
+	local power = form == "bear" and { type = 1, token = "RAGE", value = 40, max = 100 } or form == "cat" and { type = 3, token = "ENERGY", value = 80, max = 100 } or spec.power
 	local player = {
 		name = spec.name, class = class, level = 38, health = 2750, healthMax = 3350,
 		power = power.value, powerMax = power.max, powerType = power.type, powerToken = power.token,
@@ -541,6 +546,11 @@ local function sigilSockets(env, K, ns, view, list)
 end
 
 local LOSS_AGO, LOSS_SHARE = 0.12, { player = 0.14, target = 0.08 }
+-- The target's health share at a tracker story's start and end, and the story's length in seconds: the warrior's
+-- target is under 20% when Execute lights at 9 s.
+local STORY_HEALTH = { WARRIOR = { 0.62, 0.15, 9 }, DRUID = { 0.97, 0.82, 3 }, PRIEST = { 0.92, 0.6, 6 }, WARLOCK = { 1, 0.55, 6 } }
+-- A humanoid target's portrait stand-in: KstyleUI's painted bust of a human caster.
+local HUMANOID_BUST = "Interface\\AddOns\\KstyleUI\\Media\\Textures\\Medallions\\Busts\\human_warlock_male.png"
 
 function modules.unitframes(opts)
 	local U = dofile("Tools/regression/unitframes_env.lua")
@@ -552,13 +562,24 @@ function modules.unitframes(opts)
 	-- opts.playerCast == false or RENDER_PLAYER_CAST=off: the player casts nothing (the questing HUD is out of combat; round 6, Opus).
 	-- opts.castLeft: the seconds the player's cast has left at the scene's clock (0.8 when absent).
 	local castEnd = opts.castLeft and (10000 + opts.castLeft * 1000) or CAST_END
-	if spec.cast and opts.playerCast ~= false and os.getenv("RENDER_PLAYER_CAST") ~= "off" then
+	local form = Form(class)
+	if spec.cast and opts.playerCast ~= false and os.getenv("RENDER_PLAYER_CAST") ~= "off" and form ~= "cat" and form ~= "bear" then
 		player.cast = { name = spec.cast[1], texture = spec.cast[2], start = castEnd - spec.cast[4] * 1000, finish = castEnd, spellID = spec.cast[3] }
 	end
 	for k, v in pairs(type(opts.target) == "table" and opts.target or {}) do
 		target[k] = v
 	end
 	target.cast = target.cast or { name = "Snap", texture = 132200, start = 9000, finish = 11500, spellID = 999 }
+	-- RENDER_TARGET_CAST=off: the target casts nothing.
+	if os.getenv("RENDER_TARGET_CAST") == "off" then
+		target.cast = nil
+	end
+	-- RENDER_TRACKERS=moment: the target loses health as the class's story runs.
+	if os.getenv("RENDER_TRACKERS") == "moment" then
+		local from, to, over = unpack(STORY_HEALTH[class] or { 0.8, 0.5, 6 })
+		local share = math.min(1, (tonumber(os.getenv("RENDER_TRACKERS_T") or "") or over) / over)
+		target.health = math.floor(target.healthMax * (from + (to - from) * share))
+	end
 	if opts.target == false then
 		target = nil
 	end
@@ -616,7 +637,9 @@ function modules.unitframes(opts)
 		env.FireEvent("UNIT_SPELLCAST_START", "player", "Cast-1", player.cast.spellID)
 	end
 	if target then
-		env.FireEvent("UNIT_SPELLCAST_START", "target", "Cast-1", target.cast.spellID)
+		if target.cast then
+			env.FireEvent("UNIT_SPELLCAST_START", "target", "Cast-1", target.cast.spellID)
+		end
 		env.FireEvent("UNIT_TARGET", "target")
 	end
 	if opts.boss then
@@ -638,9 +661,14 @@ function modules.unitframes(opts)
 		if token == "player" and Common.StandIn("portrait-player-" .. class:lower() .. ".png") then
 			name = "portrait-player-" .. class:lower() .. ".png"
 		end
+		-- The player's model stands in as KstyleUI's painted bust of its race and class, a humanoid target's as a human's.
+		local bust = token == "player" and K.Medallions.PortraitPath("player", "bust") or token == "target" and target and target.creature == "Humanoid" and HUMANOID_BUST
 		if token == "pet" and spec.pet and spec.pet.portrait then
 			texture:SetTexture(spec.pet.portrait)
 			notes[#notes + 1] = "the pet portrait is its summoning spell's icon; the game draws the pet's model"
+		elseif bust then
+			texture:SetTexture(bust)
+			notes[#notes + 1] = "the " .. token .. " portrait is KstyleUI's painted bust (" .. bust .. "); the game draws the unit's model"
 		else
 			notes[#notes + 1] = standIn(texture, name, 0.33, 0.28, 0.22, "the " .. tostring(token) .. " portrait")
 		end

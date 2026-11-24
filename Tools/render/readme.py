@@ -10,7 +10,7 @@ In-game Medallions media uses the game_ prefix and is preserved.
 The pictures:
 
   hud_1080         the whole HUD in combat on a 1920x1080 screen at the 15/16 size the game picks
-  hud_finish       the middle of the same HUD at twice the size: the lit glass bars and the forged slab ends
+  hud_finish       the middle of the same HUD at twice the size, bar end to bar end: the lit glass bars and the docked slabs
   hud_frames_1080  the same in the Frames look
   frame_raid       the raid frames with their heading, from the group frames gallery scene at twice the density
   frames_medals    a warrior's Frames HUD with every crest piece lit as medals above the stance bar, at twice the size
@@ -44,14 +44,13 @@ RENDERS = {
     "hud_2x": ("hud_reference", 2.0, HUD, "--strict"),
     "frames_1080": ("hud_reference", 1.0, dict(HUD, RENDER_HUD_STYLE="Frames", RENDER_ORNAMENTS="Full"), "--strict"),
     "groupframes": ("gallery_groupframes", 2.0, {}, "--strict"),
-    "frames_medals": ("hud_warrior_mac", 2.0, dict(HD, RENDER_LAYOUT="DPS", RENDER_HUD_STYLE="Frames", RENDER_ORNAMENTS="Full",
-                                                   RENDER_TRACKERS="lit"), "--strict"),
+    "frames_medals": ("hud_warrior_mac", 2.0, dict(HD, RENDER_HUD_STYLE="Frames", RENDER_ORNAMENTS="Full", RENDER_TRACKERS="lit"), "--strict"),
 }
 
 # name, source, crop, width. A source is "render:<RENDERS key>"; a crop is "WxH+X+Y" in the source's pixels or None. A picture narrower than its width stays as it is.
 IMAGES = [
     ("hud_1080", "render:hud_1080", None, 1920),
-    ("hud_finish", "render:hud_2x", "1856x444+992+1700", 1856),
+    ("hud_finish", "render:hud_2x", "2000x444+920+1700", 2000),
     ("hud_frames_1080", "render:frames_1080", None, 1200),
     ("frame_raid", "render:groupframes", "904x442+106+724", 720),
     ("frames_medals", "render:frames_medals", "1600x468+1240+1660", 1600),

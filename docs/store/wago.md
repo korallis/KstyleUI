@@ -35,9 +35,9 @@ Every picture below is a test render of the addon over my own in-game screenshot
 
 *Every class's crest now carries the stuff you'd normally hunt for all over the screen: your buffs, procs, your debuffs on the target, and big cooldowns burning round the rim. One place to look.*
 
-![KstyleUI test render over an in-game screenshot of the Frames look: a warrior's crest pieces as round medals in a row above the stance bar](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frames_medals.jpg)
+![KstyleUI test render over an in-game screenshot of the Frames look: a warrior's crest trackers above the stance bar](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frames_medals.jpg)
 
-*On Frames the same pieces sit as medals in a row above your stance bar. Each one has its own switch in `/kstyle`.*
+*On Frames the trackers sit above your stance bar. Choose which trackers to show in `/kstyle`.*
 
 ![KstyleUI test render over an in-game screenshot: the Medallions HUD for nine classes in turn, each with its own crest](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/classes.gif)
 
@@ -160,6 +160,6 @@ Upload in this order. The gallery description is the caption.
 | `gallery/10-casts.gif` | 800×264 | Who a cast is aimed at | KstyleUI test render over an in-game screenshot: a target's cast bar names who the spell is aimed at, says YOU, shields a cast you can't interrupt, then dims with a gold mark while your interrupt recharges. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/11-map.gif` | 800×634 | Routes and nearest services | KstyleUI test render over an in-game screenshot, with the game's own map art: a route to the Undercity by road and zeppelin, then the Nearest picker for innkeepers, banks and trainers. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/12-trackers.gif` | 800×494 | Everything on the crest | KstyleUI test render over an in-game screenshot: warrior, bear, priest and warlock crests light up with buffs, procs and debuffs while cooldowns burn round the rim. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/13-frames-medals.jpg` | 1600×468 | Crest pieces on Frames | KstyleUI test render over an in-game screenshot of the Frames look: a warrior's crest pieces as medals in a row above the stance bar. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/13-frames-medals.jpg` | 1600×468 | Crest pieces on Frames | KstyleUI test render over an in-game screenshot of the Frames look: a warrior's crest trackers above the stance bar. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 
 The upload page for a project, once it exists, is `https://addons.wago.io/developers/projects/<slug>/gallery/create`.

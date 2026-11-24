@@ -77,9 +77,12 @@ SHOWCASES = [
 # Highlight clips (--clips): 1920x1080 class HUD scenes rendered at CLIP_PPU over the real forest plate, cut to a box
 # in screen units (x, y, width, height). A shot is (scene, env, clock variable, times in seconds, hold in ms): one
 # frame per time, FRAME_MS apart, the last held hold ms longer.
-CLIP_PPU, FRAME_MS, CLIP_WIDTH = 2, 70, 768
+CLIP_PPU, FRAME_MS, CLIP_WIDTH = 2.5, 70, 768
 CLIP_ENV = {"RENDER_SCREEN": "1920x1080", "RENDER_SIZE": "auto", "RENDER_LAYOUT": "DPS"}
-CREST, STRIP = (768, 845, 384, 222), (540, 800, 840, 266)
+# The crest box ends between action buttons and clear of every readout, so it sits a button off centre; its
+# clips draw no casts, whose labels it would cut.
+CREST, STRIP = (786, 845, 314, 233), (540, 800, 840, 266)
+QUIET = {"RENDER_PLAYER_CAST": "off", "RENDER_TARGET_CAST": "off"}
 
 
 def times(start, stop, step=FRAME_MS / 1000):
@@ -344,7 +347,8 @@ def make_clip(name):
     box, shots = CLIPS[name]
     if name == "map.gif" and not os.environ.get("RENDER_MAP_ART"):
         raise SystemExit("map.gif: set RENDER_MAP_ART to the client's Kalimdor map art")
-    jobs = [(scene, {**env, **({clock: str(t)} if clock else {})}) for scene, env, clock, ts, _ in shots for t in ts]
+    jobs = [(scene, {**(QUIET if box == CREST else {}), **env, **({clock: str(t)} if clock else {})})
+            for scene, env, clock, ts, _ in shots for t in ts]
     with tempfile.TemporaryDirectory() as work:
         crops = [clip_frame(work, *jobs[0], box, True)]
         with ThreadPoolExecutor(2) as pool:
