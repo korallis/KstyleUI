@@ -512,7 +512,7 @@ for _, name in ipairs({
 	"Sacrifice", "Shade", "Shatter", "Skull", "Smoke", "Star", "Stone", "Sun", "Sweep", "Swift", "Thorns", "Tusks", "Veil", "Voice",
 	"Void", "Volley", "Vortex", "Wall", "Wing"
 }) do
-	TEXTURES["sigil" .. name] = { file = "Textures\\Medallions\\Sigils\\" .. name .. ".png" }
+	TEXTURES["sigil" .. name] = { file = "Textures\\Sigils\\" .. name .. ".png" }
 end
 
 local RGBA = {}

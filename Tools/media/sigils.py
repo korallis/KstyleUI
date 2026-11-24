@@ -1,4 +1,4 @@
-"""Draw the crest's sigils into Media/Textures/Medallions/Sigils/.
+"""Draw the crest's sigils into Media/Textures/Sigils/.
 
 A sigil is one cooldown family's mark, engraved line art in the crest's rune style (the shaman's imbue rune,
 Tools/media/healer_trackers.py): white strokes with round caps in a soft glow, tinted in the game by the class colour
@@ -19,7 +19,7 @@ from PIL import Image, ImageDraw, ImageFilter
 SIZE, SCALE = 64, 8
 N = SIZE * SCALE
 WIDTH = 0.085
-OUT = Path(__file__).resolve().parents[2] / "Media/Textures/Medallions/Sigils"
+OUT = Path(__file__).resolve().parents[2] / "Media/Textures/Sigils"
 
 
 class Pen:
@@ -634,7 +634,7 @@ def main(argv=None):
         images[name] = render(draw)
         path = args.out / f"{name}.png"
         Image.fromarray(np.clip(images[name] * 255 + 0.5, 0, 255).astype(np.uint8), "RGBA").save(path, optimize=True)
-        print(path.relative_to(args.out.parents[3]) if args.out == OUT else path, hashlib.sha256(path.read_bytes()).hexdigest())
+        print(path.relative_to(args.out.parents[2]) if args.out == OUT else path, hashlib.sha256(path.read_bytes()).hexdigest())
     if args.sheet:
         sheet(images, args.sheet)
 
