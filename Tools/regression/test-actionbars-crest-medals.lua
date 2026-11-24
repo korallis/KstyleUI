@@ -1,4 +1,4 @@
--- test-actionbars-crest-medals.lua: the crest's shared medals and sockets (SlabMedals.lua): Engine hands the engine every lit layer's flare, with or without a fire loop, and changes nothing while auras are secret; a rim builds its fire only with an ambient flipbook and its ring only with a colour; a two-feed medal keeps one icon and ring per aura slot; target slots refresh on a new target through one registration; a cooldown socket refills over the cooldown and stands full when ready; a usable medal lights the first usable strike off cooldown and keeps its state on a secret answer.
+-- test-actionbars-crest-medals.lua: the crest's shared medals and sockets (SlabMedals.lua): Engine hands the engine every lit layer's flare, with or without a fire loop, each on a second slot under the piece's own gate, and changes nothing while auras are secret; a rim builds its fire only with an ambient flipbook and its ring only with a colour; a two-feed medal keeps one icon and ring per aura slot; target slots refresh on a new target through one registration; a cooldown socket refills over the cooldown and stands full when ready; a usable medal lights the first usable strike off cooldown and keeps its state on a secret answer.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
@@ -32,8 +32,9 @@ local function Shown(button, group)
 	return Played(button._shownAnimations, group)
 end
 
-local function Assigned(button)
-	return Played(button._assignedAnimations, button.flare.play)
+local function Assigned(lit)
+	local mirror = lit.awake.lit
+	return Played(mirror._assignedAnimations, mirror.flare.play)
 end
 
 do
@@ -46,21 +47,29 @@ do
 	assert(Medals.Engine({ m, socket, rim }, true, true), "Engine runs while auras are readable")
 	assert(Assigned(m.lit), "a medal with no fire loop still gives the engine its flare, played on each new aura")
 	assert(Assigned(socket.lit), "so does a socket")
-	assert(Shown(rim.lit, rim.lit.loop) and Assigned(rim.lit), "a rim gives its fire and its flare")
+	assert(Shown(rim.fire.lit, rim.fire.lit.loop) and Assigned(rim.lit), "a rim gives its fire and its flare")
+	assert(rim.lit.awake == rim.fire and m.lit.flareGate:GetParent() == m and rim.still:GetParent() == rim, "flare and fire gates are the piece's own frames, above a second slot the engine drives")
 	Slots.Set(env, "player", { { id = 6673, count = 0, icon = 132333, start = 0, duration = 120 } })
 	assert(m.lit:IsShown() and m.lit.icon._state.Texture[1] == 132333, "the aura lights the medal with its own icon")
 	assert(AB.W.LastCall(m.timer, "SetCooldownFromDurationObject"), "and drains the ring from its duration")
 	Medals.Engine({ m, socket, rim }, true, false)
-	assert(not Assigned(m.lit) and not Shown(rim.lit, rim.lit.loop), "below Full the engine plays no flare or fire")
+	assert(not Assigned(m.lit) and not Shown(rim.fire.lit, rim.fire.lit.loop), "below Full the engine plays no flare or fire")
 	Slots.Enchant(env, 1, { start = 0, duration = 1800 })
 	assert(socket.lit:IsShown() and AB.W.LastCall(socket.bar, "SetTimerDuration"), "an enchant fills the socket and drains it")
+end
+
+do
+	local probe = Medals.Medal(parent, { feed = "aura", spells = { 6673 }, color = "gilt" }, 5)
+	env._aurasSecret = true
+	assert(not pcall(Slots.Engine, env, function() error("boom") end) and not pcall(probe.lit.icon.SetAlpha, probe.lit.icon, 1), "a failing engine call leaves the restriction in force")
+	env._aurasSecret = false
 end
 
 do
 	local plain = Medals.Rim(parent, { feed = "aura", spells = { 2687 }, color = "jewelCombo" }, 5)
 	assert(plain.fire == nil and plain.lit.loop == nil and plain.timer, "a rim with a colour and no flipbook is a ring alone")
 	local moment = Medals.Rim(parent, { feed = "aura", spells = { 2687 }, ambient = "medAmbientWarrior", burst = "medBurstWarrior" }, 5)
-	assert(moment.fire and moment.lit.loop and moment.timer == nil, "a rim with a flipbook and no colour has no ring")
+	assert(moment.fire and moment.fire.lit.loop and moment.timer == nil, "a rim with a flipbook and no colour has no ring")
 	K.Store.Module("Medallions").restingCrest = true
 	Medals.Rest()
 	assert(moment.fire:GetAlpha() == 0 and moment.still:GetAlpha() == 1, "at rest the fire holds still")

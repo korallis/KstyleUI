@@ -257,12 +257,12 @@ do
 	Shield(env, 1)
 	Cast(env, STRIKE7)
 	env.FireEvent("SPELLS_CHANGED")
-	assert(state.count == 1 and Slots.Engine(env, state.clouds[1].GetAlpha, state.clouds[1]) == 1, "the last charge leaves the halo under the aura button alone")
+	assert(state.count == 1 and state.halo:GetAlpha() == 0.5, "the last charge dims the halo in combat")
 	K.Options.Write("Medallions", "motion", "calm")
 	assert(Registered(ns) == #state.loops, "a motion change waits while auras are secret")
 	env._aurasSecret = false
 	env.SetCombat(false)
-	assert(Registered(ns) == 0 and state.clouds[1]:GetAlpha() == 0.5, "and lands when combat ends, the halo dimmed for the last charge")
+	assert(Registered(ns) == 0 and state.halo:GetAlpha() == 0.5, "and lands when combat ends")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 
 	local fresh, FK, fns = New("SHAMAN", { [RANK7] = true })
@@ -313,7 +313,7 @@ do
 	local env, K, ns = New("SHAMAN", { [RANK7] = true })
 	local state, seats = ns.SlabStorm.state, ns.SlabStorm.state.seats
 	local function Halo()
-		return state.loops[1].group:GetParent():GetAlpha()
+		return state.halo:GetAlpha()
 	end
 	Shield(env, 3)
 	Cast(env, RANK7)

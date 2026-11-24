@@ -35,7 +35,7 @@ local function Fire(parent, spec, level, form)
 	if form == "row" then
 		return Medals.Medal(parent, { feed = "aura", spells = INNER_FIRE, texture = spec.texture, color = "pipPriestGlow", burst = spec.burst, count = true }, level)
 	end
-	local r = Medals.Rim(parent, { feed = "aura", spells = INNER_FIRE, ambient = "medAmbientPriest", burst = spec.burst }, level)
+	local r = Medals.Rim(parent, { feed = "aura", spells = INNER_FIRE, ambient = "medAmbientPriest", burst = spec.burst, lua = true }, level)
 	local modes = Enum and Enum.StatusBarInterpolation or {}
 	r.ring = {}
 	for k, angle in ipairs(FLAMES) do
@@ -113,12 +113,7 @@ local function Motion()
 	end
 	local resting = ns.Slab.Resting()
 	local still, last = resting or not Effects.Allows("ambient"), n ~= nil and n > 0 and n <= PER
-	if last and not Medals.Restricted() then
-		r.fire:SetAlpha(still and 0 or DIM)
-		r.still:SetAlpha(still and DIM or 0)
-	elseif not last then
-		Medals.Still(r, still)
-	end
+	Medals.Still(r, still, last and DIM or 1)
 	if last and not resting and Effects.Allows("pulse") then
 		if not r.flicker:IsPlaying() then
 			r.flicker:Play()
@@ -150,9 +145,7 @@ end
 local function Paint(_, event, _, _, spellID)
 	if event == "UNIT_SPELLCAST_SUCCEEDED" then
 		if not IsSecret(spellID) and CAST[spellID] and state.fire and state.fire:IsVisible() then
-			if not Medals.Restricted() then
-				Medals.Fire(state.fire)
-			end
+			Medals.Fire(state.fire)
 			Count(CHARGES)
 		end
 	elseif event == nil or event == "UNIT_AURA" then

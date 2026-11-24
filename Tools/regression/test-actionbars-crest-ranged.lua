@@ -269,9 +269,10 @@ do
 	assert(AB.W.LastCall(ward.timer, "SetSwipeTexture"), "the ward drains the shared thin rim ring")
 	Slots.Set(env, "player", { { id = 11426, icon = 135988, start = 0, duration = 60 } })
 	assert(ward.lit:IsShown() and AB.W.LastCall(ward.timer, "SetCooldownFromDurationObject"), "Ice Barrier lights the ward ring and drains it")
-	assert(clear.timer == nil and Shown(clear.lit, clear.lit.flare.play) and Shown(clear.lit, clear.lit.loop), "at Full Clearcasting gives the engine its burst and fire, with no ring")
+	local mirror = clear.lit.awake.lit
+	assert(clear.timer == nil and Shown(mirror, mirror.flare.play) and Shown(mirror, mirror.loop), "at Full Clearcasting gives the engine its burst and fire, with no ring")
 	K.Options.Write("Medallions", "motion", "calm")
-	assert(not Shown(clear.lit, clear.lit.loop), "Calm holds the moment's fire still")
+	assert(not Shown(mirror, mirror.loop), "Calm holds the moment's fire still")
 	Clean(env, K)
 end
 

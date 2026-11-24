@@ -191,7 +191,7 @@ local function BuildRing(hub)
 	return ring
 end
 
-local function Place(hub, count, feed)
+local function Place(hub, count, feed, held)
 	local set = feed or "power"
 	for key, jewels in pairs(state.sets) do
 		if key ~= set then
@@ -216,11 +216,13 @@ local function Place(hub, count, feed)
 			for _, t in ipairs(jewel.setting) do
 				Even(t)
 			end
-			for _, key in ipairs({ "halo", "haloWas", "rim", "gem", "flare", "ember", "core", "glint" }) do
-				Even(jewel[key])
+			if not held then
+				for _, key in ipairs({ "halo", "haloWas", "rim", "gem", "flare", "ember", "core", "glint" }) do
+					Even(jewel[key])
+				end
+				local glint = Widgets.Snap(holder, GLINT_AT)
+				jewel.glint:SetPoint("CENTER", holder, "CENTER", -glint, glint)
 			end
-			local glint = Widgets.Snap(holder, GLINT_AT)
-			jewel.glint:SetPoint("CENTER", holder, "CENTER", -glint, glint)
 			holder:Show()
 		else
 			jewel.holder:Hide()
@@ -402,18 +404,17 @@ function Jewels.Update(event)
 		end
 	end
 	local held = feed ~= nil and ns.SlabMedals.Restricted()
-	if waiting or held then
-		K.Events.Register(OWNER .. ".Feed", "PLAYER_REGEN_ENABLED", Jewels.Update)
-	else
-		K.Events.Unregister(OWNER .. ".Feed", "PLAYER_REGEN_ENABLED")
+	for _, gate in ipairs({ "PLAYER_REGEN_ENABLED", "ADDON_RESTRICTION_STATE_CHANGED" }) do
+		if waiting or held then
+			K.Events.Register(OWNER .. ".Feed", gate, Jewels.Update)
+		else
+			K.Events.Unregister(OWNER .. ".Feed", gate)
+		end
 	end
 	state.feed = feed
 	Listen(class, kind)
-	if held then
-		return
-	end
-	Place(ns.Slab and ns.Slab.hub, count, feed)
-	if kind then
+	Place(ns.Slab and ns.Slab.hub, count, feed, held)
+	if kind and not held then
 		Paint(kind)
 		Points()
 	end

@@ -100,8 +100,11 @@ end
 function Slots.Engine(env, fn, ...)
 	local was = env._engine
 	env._engine = true
-	local value = fn(...)
+	local ok, value = pcall(fn, ...)
 	env._engine = was
+	if not ok then
+		error(value, 0)
+	end
 	return value
 end
 

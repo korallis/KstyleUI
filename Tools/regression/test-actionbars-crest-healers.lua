@@ -139,9 +139,11 @@ do
 		assert(seat.angle == ({ 315, 225, 135, 45 })[k], "flame " .. k .. " sits at its corner")
 	end
 	Slots.Set(env, "player", { { id = 10952, count = 20, start = 0, duration = 600 } })
+	env.SetCombat(true)
 	env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 10952)
 	assert(Fill(env, fire.ring[4].bar or fire.lits[5]._applicationBar[1]) == 1, "twenty charges light the top right flame")
-	assert(fire.flare.play:IsPlaying(), "a cast flares the halo")
+	assert(fire.flare.play:IsPlaying() and fire.lit.flareGate:GetAlpha() == 1, "awake, a cast flares the halo")
+	env.SetCombat(false)
 	local aura = env._slotAuras.player[1]
 	aura.count = 12
 	Slots.Set(env, "player", env._slotAuras.player)
@@ -352,7 +354,7 @@ do
 end
 
 -- Inner Fire's halo leaves the last band's dimming when the charges come back, and an unreadable count drops the
--- last-flame state instead of keeping the old one, the halo under the aura button once combat ends.
+-- last-flame state instead of keeping the old one.
 do
 	local env, K, ns = New("PRIEST", PRIEST)
 	local fire = Tracker(ns, "PRIEST").built.innerFire
@@ -369,10 +371,7 @@ do
 	assert(fire.flicker:IsPlaying() and fire.fire:GetAlpha() == 0.5, "awake, the last flame flickers")
 	env._aurasSecret = true
 	Charges(16)
-	assert(not fire.flicker:IsPlaying() and Slots.Engine(env, fire.fire.GetAlpha, fire.fire) == 0.5, "an unreadable count drops the flicker; the dimming under the aura button waits")
-	env._aurasSecret = false
-	env.SetCombat(false)
-	assert(fire.still:GetAlpha() == 1 and fire.fire:GetAlpha() == 0, "and drops once combat ends")
+	assert(not fire.flicker:IsPlaying() and fire.fire:GetAlpha() == 1, "an unreadable count drops the flicker and the dimming, in combat too")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
@@ -491,20 +490,26 @@ do
 	local env, K, ns = New("SHAMAN", SHAMAN)
 	local t, Tokens = Tracker(ns, "SHAMAN"), K.Tokens
 	local main = t.built.mainHand
+	env._aurasSecret = true
 	env.SetCombat(true)
 	env._enchants[16] = { enchantID = 9999, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
 	Slots.Enchant(env, 1, { start = 0, duration = 3600 })
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
 	assert(main.light:GetAlpha() == 0 and main.rim:IsShown() and main.pulse:IsPlaying(), "an enchant that is no imbue leaves the stone dark under the pulsing rim")
-	env._enchants[16] = { enchantID = 1669, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
+	env._enchants[16] = { enchantID = 1669, remainingTimeMs = 200000, chargesRemaining = 0, hasExpirationTime = true }
+	env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	assert(main.light:GetAlpha() == 1 and not main.rim:IsShown() and main.gutter:IsPlaying(), "Windfury in combat with auras secret lights the rune, drops the rim and gutters its last minutes")
+	env._enchants[16].remainingTimeMs = 1800000
 	env._enchants[17] = { enchantID = 1666, remainingTimeMs = 200000, chargesRemaining = 0, hasExpirationTime = true }
 	Slots.Enchant(env, 2, { start = 0, duration = 3600 })
+	env._aurasSecret = false
 	env.SetCombat(false)
 	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
+	env._aurasSecret = true
 	env.SetCombat(true)
 	local mainRow, offRow = t.built.mainHandRow, t.built.offHandRow
-	assert(mainRow.lit.icon:GetTexture() == 8232 and offRow.lit.icon:GetTexture() == 8024, "Windfury and Flametongue each show their own icon")
+	assert(mainRow.light:GetTexture() == 8232 and offRow.light:GetTexture() == 8024, "Windfury and Flametongue each show their own icon")
 	assert(mainRow.lit.timer and offRow.lit.timer and mainRow.lit._cooldown == mainRow.lit.timer, "each weapon's medal drains with the enchant's own timer")
 	local sr, sg, sb = unpack(AB.W.LastCall(offRow.lit.timer, "SetSwipeColor") or {})
 	local r, g, b = Tokens.Color("totemFire")

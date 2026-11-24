@@ -19,7 +19,7 @@ local SEATS = {
 local PIP, PIP_ARC, GLOW = 4, 22, 0.35
 local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local OWNER = "ActionBars.SlabMedals"
-local refreshed, rims, watchers, gates = {}, {}, {}, {}
+local refreshed, rims, watchers, gates, NONE = {}, {}, {}, {}, {}
 local REFRESH = { target = { "PLAYER_TARGET_CHANGED" }, pet = { "UNIT_PET", "player" }, focus = { "PLAYER_FOCUS_CHANGED" } }
 Medals.SIZE, Medals.FOOT, Medals.LINE, Medals.GAP = SIZE, 15, 5, 4
 
@@ -161,7 +161,8 @@ function Medals.Feed(parent, spec, level)
 	if spec.feed ~= "aura" and spec.feed ~= "enchant" then
 		return Medals.Layer(parent, level)
 	end
-	local container = CreateFrame("AuraContainer", nil, parent, "CustomAuraContainerTemplate")
+	local gate = spec.feed == "enchant" and Medals.Layer(parent, level) or nil
+	local container = CreateFrame("AuraContainer", nil, gate or parent, "CustomAuraContainerTemplate")
 	Widgets.KeepOut(container)
 	container:SetUnit(spec.unit or "player")
 	local refresh = REFRESH[spec.unit]
@@ -203,22 +204,34 @@ function Medals.Feed(parent, spec, level)
 	pcall(button.EnableMouse, button, false)
 	button:SetAllPoints(parent)
 	button:SetFrameLevel(level)
-	button.container = container
-	if spec.feed == "enchant" then
-		button.gate = Medals.Layer(button, level)
-	end
+	button.container, button.gate, button.spec = container, gate, spec
 	return button
 end
 
-function Medals.Flare(piece, lit, level, token, size)
-	lit.flareGate = Medals.Layer(lit, level)
-	lit.flareGate:SetAlpha(ns.Slab.Resting() and 0 or 1)
-	gates[#gates + 1] = lit.flareGate
-	lit.flare = Medals.Layer(lit.flareGate, level)
-	piece.add(Medals.Texture(lit.flare, "ARTWORK", 0, token, "white", size, "ADD"))
-	lit.flare:SetAlpha(0)
-	lit.flare.play = Medals.Steps(lit.flare, FLARE)
-	piece.flare = piece.flare or lit.flare
+local function Mirror(piece, lit, level)
+	local gate = Medals.Layer(piece, level)
+	gate.lit = Medals.Feed(gate, setmetatable({}, { __index = lit.spec }), level)
+	lit.mirrors = lit.mirrors or {}
+	lit.mirrors[#lit.mirrors + 1] = gate.lit
+	return gate
+end
+
+function Medals.Flare(piece, lit, level, token, size, lua)
+	if lit.container and not lua then
+		lit.awake = lit.awake or Mirror(piece, lit, level)
+	end
+	local gate = not lua and lit.awake or Medals.Layer(lit.container and piece or lit, level)
+	local flare = Medals.Layer(gate.lit or gate, level)
+	gate:SetAlpha(ns.Slab.Resting() and 0 or 1)
+	gates[#gates + 1] = gate
+	lit.flareGate = gate
+	piece.add(Medals.Texture(flare, "ARTWORK", 0, token, "white", size, "ADD"))
+	flare:SetAlpha(0)
+	flare.play = Medals.Steps(flare, FLARE)
+	if gate.lit or not lit.container then
+		(gate.lit or lit).flare = flare
+	end
+	piece.flare = piece.flare or flare
 end
 
 function Medals.Piece(parent, level, units)
@@ -265,7 +278,7 @@ function Medals.Medal(parent, spec, level)
 	for i, feed in ipairs(feeds) do
 		local each = feed == spec and spec or setmetatable(feed, { __index = spec })
 		local lit = Lit(m, each, level + 1 + 2 * (i - 1))
-		lit.icon = add(Medals.Round(lit.gate or lit), size * ICON)
+		lit.icon = add(Medals.Round(lit), size * ICON)
 		lit.icon:SetPoint("CENTER", m, "CENTER", 0, 0)
 		if each.feed == "aura" then
 			lit:SetIcon(lit.icon)
@@ -273,7 +286,7 @@ function Medals.Medal(parent, spec, level)
 			lit.icon:SetTexture(spec.texture)
 		end
 		if (each.color or each.feed == "item") and each.feed ~= "cooldown" then
-			lit.timer = add(Timer(lit.gate or lit, level + 2 + 2 * (i - 1), "orbRing", each.color or "gilt"), size + track)
+			lit.timer = add(Timer(lit, level + 2 + 2 * (i - 1), "orbRing", each.color or "gilt"), size + track)
 			if lit.container then
 				lit:SetDurationCooldown(lit.timer)
 			end
@@ -320,10 +333,12 @@ function Medals.Rim(parent, spec, level)
 	local r = Medals.Piece(parent, level, RIM)
 	local lit = Lit(r, spec, level + 1)
 	if spec.ambient then
-		r.still = Medals.Cloud(lit, spec.ambient, spec.cell or 0)
-		r.fire = Medals.Cloud(lit, spec.ambient, spec.cell or 0)
+		r.still = Mirror(r, lit, level + 1)
+		Medals.Cloud(r.still.lit, spec.ambient, spec.cell or 0)
+		lit.awake = Mirror(r, lit, level + 1)
+		r.fire = lit.awake
 		r.fire:SetAlpha(0)
-		lit.loop = Medals.Flip(r.fire, spec.ambient, 1)
+		r.fire.lit.loop = Medals.Flip(Medals.Cloud(r.fire.lit, spec.ambient, spec.cell or 0), spec.ambient, 1)
 		rims[#rims + 1] = r
 	end
 	if spec.color then
@@ -332,7 +347,7 @@ function Medals.Rim(parent, spec, level)
 			lit:SetDurationCooldown(r.timer)
 		end
 	end
-	Medals.Flare(r, lit, level + 3, spec.burst or "glow", RIM)
+	Medals.Flare(r, lit, level + 3, spec.burst or "glow", RIM, spec.lua)
 	r.spec = spec
 	return r
 end
@@ -395,7 +410,7 @@ function Medals.Socket(parent, spec, level)
 	add(Medals.Texture(s, "ARTWORK", 1, "diamond", "jewelSetting", LIP))
 	add(Medals.Texture(s, "ARTWORK", 2, "forgedDiamond", "jewelSocket", GEM)):SetTexCoord(1, 0, 0, 1)
 	local lit = Lit(s, spec, level + 1)
-	s.bar = add(CreateFrame("StatusBar", nil, lit.gate or lit), GEM)
+	s.bar = add(CreateFrame("StatusBar", nil, lit), GEM)
 	s.bar:SetPoint("CENTER", s, "CENTER", 0, 0)
 	s.bar:SetOrientation("VERTICAL")
 	s.bar:SetStatusBarTexture((Tokens.Texture("diamond")))
@@ -467,12 +482,12 @@ function Medals.Retexture(piece, texture)
 	end
 end
 
-function Medals.Place(piece, anchor, x, y)
-	piece:ClearAllPoints()
-	piece:SetPoint("CENTER", anchor, "CENTER", Widgets.Snap(anchor, x), Widgets.Snap(anchor, y))
-	if Medals.Restricted() then
+function Medals.Size(piece)
+	local factor = Widgets.ScaleFactor(piece)
+	if not piece.parts or piece.sized == factor or Medals.Restricted() then
 		return
 	end
+	piece.sized = factor
 	for _, part in ipairs(piece.parts) do
 		Medals.Even(part)
 	end
@@ -482,10 +497,37 @@ function Medals.Place(piece, anchor, x, y)
 	end
 end
 
+function Medals.Place(piece, anchor, x, y)
+	piece:ClearAllPoints()
+	piece:SetPoint("CENTER", anchor, "CENTER", Widgets.Snap(anchor, x), Widgets.Snap(anchor, y))
+	Medals.Size(piece)
+end
+
 function Medals.Fire(piece)
 	if piece.flare and Effects.Allows("ambient") and not ns.Slab.Resting() then
 		piece.flare.play:Stop()
 		piece.flare.play:Play()
+	end
+end
+
+local function Drive(button, on, full)
+	if button.full ~= full then
+		for kind, group in pairs({ Shown = button.loop, Assigned = button.flare and button.flare.play }) do
+			if full then
+				button["AddAura" .. kind .. "Animation"](button, group)
+			elseif button.full then
+				button["RemoveAura" .. kind .. "Animation"](button, group)
+				group:Stop()
+			end
+		end
+		button.full, button.fed = full, nil
+	end
+	if button.fed ~= on then
+		if button.fed == nil then
+			button.container:SetEnabled(false)
+		end
+		button.container:SetEnabled(on)
+		button.fed, button.container.on = on, on
 	end
 end
 
@@ -496,34 +538,20 @@ function Medals.Engine(pieces, on, full)
 	for _, p in ipairs(pieces) do
 		for _, button in ipairs(p.lits or { p.lit }) do
 			if button.container then
-				if button.full ~= full then
-					for kind, group in pairs({ Shown = button.loop, Assigned = button.flare and button.flare.play }) do
-						if full then
-							button["AddAura" .. kind .. "Animation"](button, group)
-						elseif button.full then
-							button["RemoveAura" .. kind .. "Animation"](button, group)
-							group:Stop()
-						end
-					end
-					button.full, button.fed = full, nil
-				end
-				if button.fed ~= on then
-					if button.fed == nil then
-						button.container:SetEnabled(false)
-					end
-					button.container:SetEnabled(on)
-					button.fed, button.container.on = on, on
-				end
+				Drive(button, on, full)
+			end
+			for _, mirror in ipairs(button.mirrors or NONE) do
+				Drive(mirror, on, full)
 			end
 		end
 	end
 	return true
 end
 
-function Medals.Still(piece, still)
-	if piece.fire and not Medals.Restricted() then
-		piece.fire:SetAlpha(still and 0 or 1)
-		piece.still:SetAlpha(still and 1 or 0)
+function Medals.Still(piece, still, alpha)
+	if piece.fire then
+		piece.fire:SetAlpha(still and 0 or alpha)
+		piece.still:SetAlpha(still and alpha or 0)
 	end
 end
 
@@ -532,12 +560,9 @@ function Medals.OnRest(fn)
 end
 
 function Medals.Rest()
-	if Medals.Restricted() then
-		return
-	end
 	local still = not Effects.Allows("ambient") or ns.Slab.Resting()
 	for _, r in ipairs(rims) do
-		Medals.Still(r, still)
+		Medals.Still(r, still, 1)
 	end
 	for _, gate in ipairs(gates) do
 		gate:SetAlpha(still and 0 or 1)
@@ -581,9 +606,6 @@ function Medals.Refresh(m, event)
 		return
 	end
 	if spec.feed == "enchant" then
-		if Medals.Restricted() then
-			return
-		end
 		local get = C_PaperDollInfo and C_PaperDollInfo.GetTemporaryEnchantmentInfo
 		local info = type(get) == "function" and get(spec.slot == "OffHand" and 17 or 16)
 		local id = type(info) == "table" and info.enchantID

@@ -300,6 +300,7 @@ local function Spire(p, container, i, s, angle, level)
 	end
 	Slot("glow", "pipSpireGlow", s.color, "ADD", SPIRE * 1.5, 1)
 	local lit = Slot("lit", "pipSpire", "white", nil, SPIRE, 2)
+	lit.spec = { feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = s.spells }
 	local r, g, b = Tokens.Color(s.color)
 	t.lit:SetStatusBarColor(0.55 + 0.45 * r, 0.55 + 0.45 * g, 0.55 + 0.45 * b)
 	Slot("core", "pipSpireCore", s.color, "ADD", SPIRE, 3)

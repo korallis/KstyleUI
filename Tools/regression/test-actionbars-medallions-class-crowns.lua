@@ -187,6 +187,11 @@ do
 	end
 	bear.pips[5].env = env
 	assert(bear.holder:IsShown() and Lit(bear.pips[5]) and Slots.Engine(env, bear.max.IsShown, bear.max), "so five Lacerate stacks light every talon and the ring")
+	local r, g, b = K.Theme.ClassColor("DRUID")
+	for _, t in ipairs(bear.ring) do
+		local vr, vg, vb = unpack(Last(t, "SetVertexColor") or {})
+		assert(vr == r and vg == g and vb == b, "the ring wears the druid's colour, tinted when the talons were built")
+	end
 	Clean(env, K, "first bear form")
 end
 
@@ -262,13 +267,16 @@ do
 	env.FireEvent("PLAYER_REGEN_ENABLED")
 	assert(ns.SlabCrown.state.crown, "built once auras are open")
 	local blade = ns.SlabCrown.state.crown.pips[1].blade
-	assert(blade:GetParent()._applicationBar[2].interpolation == 1, "Full eases the art in")
+	local slot = blade:GetParent()
+	assert(slot._applicationBar[2].interpolation == 1, "Full eases the art in")
+	local bind, tries = slot.SetApplicationBar, 0
+	slot.SetApplicationBar = function(...) tries = tries + 1 return bind(...) end
 	secret = true
 	K.Options.Write("Medallions", "motion", "off")
-	assert(Slots.Engine(env, blade.GetParent, blade)._applicationBar[2].interpolation == 1, "while the game guards its aura buttons the binding waits")
+	assert(tries == 0 and slot._applicationBar[2].interpolation == 1, "while the game guards its aura buttons the binding waits, untried")
 	secret = false
-	env.FireEvent("PLAYER_REGEN_ENABLED")
-	assert(blade:GetParent()._applicationBar[2].interpolation == 0, "and Off takes once it lets go")
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 0, 0)
+	assert(slot._applicationBar[2].interpolation == 0, "and Off takes once the restriction ends")
 	Clean(env, K, "secret auras")
 end
 
