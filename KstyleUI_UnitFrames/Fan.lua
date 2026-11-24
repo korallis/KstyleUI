@@ -21,12 +21,12 @@ local function TextStyle(fan)
 	return { path, math.min(12, math.max(10, size)), flags or "", 2 * Widgets.Border(fan.holder), r, g, b, a, Settings.Value("target", "auraTooltips") == false }
 end
 
-local function Style(entry, style)
+local function Style(entry, style, inked)
 	ns.Auras.LayoutTile(entry, true, style[4])
 	ns.Auras.Zoom(entry, "target", style[9])
 	for _, text in ipairs({ entry.timer, entry.count }) do
 		Widgets.ApplyFont(text, style[1], style[2], style[3])
-		text:SetTextColor(style[5], style[6], style[7], style[8])
+		if not (inked and text == entry.timer) then text:SetTextColor(style[5], style[6], style[7], style[8]) end
 	end
 end
 
@@ -149,7 +149,7 @@ function Fan.Restyle(view)
 			chrome:SetRimAccent(Settings.Accent())
 		end
 		for _, entry in ipairs(fan.buttons) do
-			Style(entry, fan.textStyle)
+			Style(entry, fan.textStyle, entry.ink and view.auras.ink)
 			ns.Auras.Precise(view, entry)
 		end
 		if fan.overflow then ns.Overflow.Apply(fan.overflow, fan.overflowOptions) end

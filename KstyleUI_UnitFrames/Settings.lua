@@ -1114,8 +1114,9 @@ local function FilterRows(schema, kind, on, own)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraPrecise", label = L["Precise timers below (minutes)"],
 		help = L["Timers under this many minutes show minutes and seconds, such as 4m 32s. 0 keeps the short form."],
 		min = 0, max = PRECISE_MAX, step = 1 }, function(s) return own(s) and s.auraTimer ~= false end)
+	local function crest(s) return ns.Fan.Wanted({ kind = kind }) and (s.auraCopy == nil or s.auraCopy == "" or s.auraCopy == kind) end
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraExpiring", label = L["Warn under"],
-		help = L["Seconds left when a timer turns red. 0 turns the warning off."], min = 0, max = 30, step = 1 }, function(s) return own(s) and s.auraTimer ~= false end)
+		help = L["Seconds left when a timer turns red. 0 turns the warning off."], min = 0, max = 30, step = 1 }, function(s) return own(s) and s.auraTimer ~= false or crest(s) end)
 end
 
 AuraRows = function(schema, kind)

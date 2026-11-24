@@ -535,7 +535,8 @@ local function StyleIcon(button)
 		PlaceTimer(timer, p.skin)
 		if not (p.timer and p.styledTimers and p.styledExpiring == a.expiring) then
 			local ink = Widgets.Duration.ExpiringColor(a.expiring, "white")
-			button:SetDurationText(timer, ink and { textColor = ink } or nil)
+			button:SetDurationText(timer, { textColor = ink })
+			if not ink then timer:SetTextColor(Tokens.Color("white")) end
 		end
 		p.timer = timer
 		timer:Show()
@@ -1591,7 +1592,10 @@ local function LayoutSamples(f, k)
 		count:SetPoint("BOTTOMRIGHT", first.tile.skin, "BOTTOMRIGHT", Widgets.Snap(first.tile.skin, a.countX) - inset, inset + Widgets.Snap(first.tile.skin, a.countY))
 	end
 	local timer = SampleLabel(first, "timer", a.timers, "12s", TimerSize(size))
-	if timer then PlaceTimer(timer, first.tile.skin) end
+	if timer then
+		PlaceTimer(timer, first.tile.skin)
+		timer:SetTextColor(Tokens.Color(12 < a.expiring and "timerExpiring" or "white"))
+	end
 	local chip = f.sampleChip
 	local last = f.sampleAuras[math.max(1, block.cells)]
 	chip:ClearAllPoints()
