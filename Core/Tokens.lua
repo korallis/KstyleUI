@@ -68,6 +68,7 @@ local COLORS = {
 	textEmphasis = { "f2f5f8", 1 },
 	textHover = { "ffffff", 1 },
 	timerText = { "e3e7ec", 1 },
+	timerExpiring = { "ff7060", 1 },
 	textDisabled = { "6f7d8a", 1 },
 	rare = { "4fc3ff", 1 },
 	epic = { "b67cff", 1 },

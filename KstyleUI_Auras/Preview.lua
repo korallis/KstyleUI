@@ -76,7 +76,7 @@ function Preview.Build(...)
 		entry.timer:SetText(ctx.rule and seconds and ctx.rule:FormatNumber(seconds) or Model.FormatTime(seconds, ctx.timer.format))
 		entry.timer:SetShown(ctx.timer.format ~= "none")
 		if seconds and seconds < ctx.timer.expiring then
-			entry.timer:SetTextColor(Tokens.Color("hostile"))
+			entry.timer:SetTextColor(Tokens.Color("timerExpiring"))
 		end
 		if seconds and entry.swipe and ctx.group.swipe and type(entry.swipe.SetCooldown) == "function" and type(GetTime) == "function" then
 			entry.swipe:SetCooldown(GetTime(), seconds)

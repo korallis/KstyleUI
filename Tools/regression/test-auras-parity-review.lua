@@ -77,11 +77,11 @@ preview:Refresh()
 check(shown(preview.debuffs) == #preview.debuffs - 1, "a debuff category filters the debuff samples: the typeless one is not dispellable")
 write("debuffs.show", "all")
 
--- 2. The preview warns as the live curve does: under Warn under a sample takes the hostile colour, above it the custom colour.
+-- 2. The preview warns as the live curve does: under Warn under a sample takes the shared expiring colour, above it the custom colour.
 write("timer.color", { r = 0, g = 1, b = 0 })
 write("timer.customColor", true)
 preview:Refresh()
-local hr, hg, hb = K.Tokens.Color("hostile")
+local hr, hg, hb = K.Tokens.Color("timerExpiring")
 for _, sample in ipairs(preview.buffs) do
 	local seconds, c = sample.spec.seconds, A.W.LastCall(sample.timer, "SetTextColor")
 	if seconds and seconds < 5 then

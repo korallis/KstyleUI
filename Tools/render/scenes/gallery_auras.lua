@@ -75,7 +75,7 @@ local function fill(env, button, icon, timer, count, seconds, refresh)
 		aura.timer:SetText(PARITY and formatter and formatter:FormatNumber(seconds) or timer)
 		-- The engine's expiring curve (Duration.ExpiringColor) turns a timer under the warning red.
 		if seconds < env.KstyleUI.Options.Read("Auras", "timer.expiring") then
-			aura.timer:SetTextColor(env.KstyleUI.Tokens.Color("hostile"))
+			aura.timer:SetTextColor(env.KstyleUI.Tokens.Color("timerExpiring"))
 		end
 	end
 	if refresh and aura.pandemic and aura.pandemic[1] then
