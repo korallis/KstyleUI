@@ -1213,6 +1213,7 @@ local function Build()
 		onClose = OnClose,
 		layout = { key = WINDOW_KEY, position = WINDOW_POSITION, options = { scalable = true, window = true, label = L["First-run setup"] } },
 	})
+	panel.fadeInAlpha:SetFromAlpha(1)
 	local content = panel.content
 	local width = WIDTH - 2 * Widgets.WindowInset(panel)
 	local tabs = {}
