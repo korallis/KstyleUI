@@ -2,6 +2,10 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.3.4.4: aura timers clear the rim (2026-11-24)
+
+On the Medallions HUD, aura rows that grow up from the player, target and focus frames sat their bottom icons right on the edge, so the timer and stack count under them dipped into the portrait rim and lost their bottom pixels. The rows now lift by the room the timers need, so every number reads in full. Focus auras set above the frame also sat lower than the portrait's top, so their first timers hid behind it; they now sit over the portrait like the player and target rows. The preview under `/kstyle` > Unit Frames gets the same fix. Frames keeps its rows exactly where they were. The store pages and README also have fresh pictures of the crest on every class. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.3.4.3: setup cards and the map search (2026-11-24)
 
 Thanks to Baine for finding and testing these. With Motion on, the setup window could draw parts of its pages wrong: the Frames card on the HUD style step showed only its picture, the Tank pick on the Layout step had no accent edge, and Your addons drew its switches and Questie's dropdown half done until you went Back and Next. The page fade was to blame, so every setup step now shows straight away, whatever your Motion setting. The world map search also moves out of the map and into the top bar, right of the zone path, so it never sits over the art; long zone paths fold into Blizzard's overflow button to make room. Its Nearest list now closes when you click away, press Escape, click the map or close it. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).

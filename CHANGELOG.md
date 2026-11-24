@@ -1,5 +1,21 @@
 # KstyleUI changelog
 
+## v0.3.4.4 (2026-11-24)
+
+A small hotfix for aura timers on the Medallions unit frames, which could get cut off at the bottom by the portrait rim.
+
+Highlights:
+
+- Aura timers and stack counts on your Medallions player, target and focus frames sit clear of the portrait rim.
+- The Options preview matches, and Frames looks just as it did.
+- The store pages and README have fresh pictures of the crest on every class.
+
+### Fixed
+
+- On Medallions, aura timers and stack counts on your player, target and focus frames sit clear of the portrait rim instead of being cut off at the bottom. Frames is unchanged.
+- Focus auras set above the frame now sit over the portrait, like the player and target rows, so their first timers no longer hide behind the rim.
+- The Unit Frames preview in Options shows its aura timers clear of the rim too.
+
 ## v0.3.4.3 (2026-11-24)
 
 A small hotfix for the setup window and the world map search. Thanks to Baine for finding and testing these.
