@@ -598,12 +598,10 @@ local function Close()
 	RefreshRoute()
 end
 
-local docked
 local function Dock(on)
 	local offset = type(WorldMapConstants) == "table" and Number(WorldMapConstants.NAVBAR_X_OFFSET)
 	if not offset or type(map.NavBar) ~= "table" or type(map.TitleCanvasSpacerFrame) ~= "table" then return end
-	if docked ~= on then map.NavBar:SetPoint("BOTTOMRIGHT", map.TitleCanvasSpacerFrame, "BOTTOMRIGHT", offset - (on and 186 or 0), 9) end
-	docked = on
+	map.NavBar:SetPoint("BOTTOMRIGHT", map.TitleCanvasSpacerFrame, "BOTTOMRIGHT", offset - (on and 186 or 0), 9)
 	return true
 end
 
