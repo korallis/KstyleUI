@@ -164,7 +164,7 @@ local function Resolve(p, row)
 	end
 	if not id then return nil end
 	spec.spell, spec.texture = id, p.texture or Trackers.Texture(id)
-return spec
+	return spec
 end
 
 local function Stance()
