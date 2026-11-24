@@ -28,7 +28,7 @@ The core's visual service files carry one comment each, their first line, so the
 | `textEmphasis` | `#f2f5f8` | Titles and values, the mockup's text colour |
 | `textHover` | `#ffffff` | Text under the mouse |
 | `timerText` | `#e3e7ec` | The aura timers under the buff and debuff icons, the picture's soft grey-white (measured: every stroke of its timers is this one colour) |
-| `timerExpiring` | `#ff7060` | Every aura timer under its warning time (buff bar and its preview, plate debuffs, unit frames and their preview, party and raid frames, through `Duration.ExpiringColor`): a light red at 7.7:1 against the black outline, so the outline keeps it readable over bright and dark scenery (`test-aura-endings.lua` holds it at 7:1 or more) |
+| `timerExpiring` | `#ff7060` | An aura timer under its warning time, where the timer has a warning (above 0 seconds): the buff bar and its preview, plate debuffs, unit frame rows, the crest fan and the unit frame preview, and party and raid frames and their preview, all through `Duration.ExpiringColor`; other timers keep `timerText` or their own colour. It is a light red at 7.7:1 against the black outline, so the outline keeps it readable over bright and dark scenery (`test-aura-endings.lua` holds it at 7:1 or more) |
 | `textDisabled`, `dim` | `#6f7d8a` | Disabled and dim text |
 | `rare`, `epic` | `#4fc3ff`, `#b67cff` | Item quality |
 | `hostile`, `neutral`, `friendly` | `#e2524f`, `#e8c14f`, `#62d58d` | Reactions; `friend` is the same green |

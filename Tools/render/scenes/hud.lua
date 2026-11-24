@@ -519,6 +519,7 @@ local function sigilSockets(env, K, ns, view, list)
 		env._units.target.auras = fixtures
 		Engine.Install(env)
 		if os.getenv("RENDER_MEDALLIONS_STATE") == "combat" then env.SetCombat(true) end
+		if not ns.Fan.Wanted(view) then return "target row debuffs: " .. count .. " of yours and one of another player's" end
 		return "crest debuffs: " .. count .. " of yours, soonest expiry at the apex, then alternating left and right; another player's debuff stays on the target"
 	end
 	local group = a and a.container and a.container._groups and a.container._groups.debuffs

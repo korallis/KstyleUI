@@ -166,7 +166,7 @@ local function Block(f, k)
 			return { position = place, columns = 0, rows = 0, cells = 0, size = size, width = 0, height = 0, left = 0, top = 0, spacing = spacing, inset = inset, gap = gap }
 		end
 		return OneRow({
-			position = b.position, columns = b.columns, rows = b.rows, cells = b.cells, size = b.size, width = b.width, height = b.height,
+			inside = true, position = b.position, columns = b.columns, rows = b.rows, cells = b.cells, size = b.size, width = b.width, height = b.height,
 			left = b.left + k.auraX, top = b.top - k.auraY, spacing = spacing, inset = inset, gap = gap,
 		})
 	end
@@ -318,10 +318,20 @@ function Auras.TimerSpan(size)
 	return a.timers and math.ceil(TimerSize(size) * TIMER_LINE) + 1 + math.max(0, -a.timerY) or 0
 end
 
-local function PlaceTimer(timer, skin)
+local function TimerOnIcon(f, block)
+	local power = f.parts and f.parts.power
+	return block.inside and block.top + block.height + TimerRoom(f, block.size) > (power and power.top or f.height) or false
+end
+
+local function PlaceTimer(timer, skin, onIcon)
 	local a = Settings.current.auras
+	local x, y = Widgets.Snap(skin, a.timerX), Widgets.Snap(skin, a.timerY)
 	timer:ClearAllPoints()
-	timer:SetPoint("TOP", skin, "BOTTOM", Widgets.Snap(skin, a.timerX), Widgets.Snap(skin, a.timerY) - Widgets.Border(skin))
+	if onIcon then
+		timer:SetPoint("CENTER", skin, "CENTER", x, y)
+	else
+		timer:SetPoint("TOP", skin, "BOTTOM", x, y - Widgets.Border(skin))
+	end
 end
 
 local function PlaceIcon(tile)
@@ -506,9 +516,10 @@ local function StyleIcon(button)
 	local columns = block and (block.columns or block.width)
 	local rows = block and (block.rows or block.height)
 	local side = p.buff and block and block.side
+	local onIcon = not p.buff and not p.size and TimerOnIcon(f, Block(f, k))
 	local tips = Tips(p)
 	local zoom = IconZoom(p.buff and "buff" or p.group)
-	if p.styledCursor == a.tipCursor and p.styledCountX == a.countX and p.styledCountY == a.countY and p.styledTimerX == a.timerX and p.styledTimerY == a.timerY
+	if p.styledCursor == a.tipCursor and p.styledCountX == a.countX and p.styledCountY == a.countY and p.styledTimerX == a.timerX and p.styledTimerY == a.timerY and p.styledOnIcon == onIcon
 		and p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and p.styledStacks == a.stacks and p.styledTimers == a.timers and p.styledExpiring == a.expiring and p.styledTimerSize == a.timerSize and p.styledZoom == zoom and p.styledTips == tips and p.styledTipCombat == a.tipCombat and p.styledOutline == a.textOutline and (not mark or p.styledPriority == MarkLift(p.group)) then
 		return
 	end
@@ -532,7 +543,7 @@ local function StyleIcon(button)
 	if a.timers and type(button.SetDurationText) == "function" then
 		local timer = p.timer or Widgets.Fitted(Widgets.FontString(p.textFrame, "OVERLAY"))
 		Style.SetFont(timer, text.healthFont, TimerSize(size), a.textOutline)
-		PlaceTimer(timer, p.skin)
+		PlaceTimer(timer, p.skin, onIcon)
 		if not (p.timer and p.styledTimers and p.styledExpiring == a.expiring) then
 			local ink = Widgets.Duration.ExpiringColor(a.expiring, "white")
 			button:SetDurationText(timer, { textColor = ink })
@@ -566,7 +577,7 @@ local function StyleIcon(button)
 	end
 	p.styledFont, p.styledSwipe, p.styledStacks, p.styledTimers, p.styledTimerSize, p.styledExpiring = text.healthFont, a.swipe, a.stacks, a.timers, a.timerSize, a.expiring
 	p.styledZoom, p.styledTips, p.styledTipCombat, p.styledOutline = zoom, tips, a.tipCombat, a.textOutline
-	p.styledCursor, p.styledCountX, p.styledCountY, p.styledTimerX, p.styledTimerY = a.tipCursor, a.countX, a.countY, a.timerX, a.timerY
+	p.styledCursor, p.styledCountX, p.styledCountY, p.styledTimerX, p.styledTimerY, p.styledOnIcon = a.tipCursor, a.countX, a.countY, a.timerX, a.timerY, onIcon
 	p.styledR, p.styledG, p.styledB = ar, ag, ab
 	p.styledMark, p.styledColumns, p.styledRows, p.styledSide = mark, columns, rows, side
 	p.styledGrowth, p.styledWrap, p.styledSpacing, p.styledBuffCount = k.auraGrowth, k.auraWrap, k.auraSpacing, k.buffCount
@@ -1327,6 +1338,7 @@ local function Configure(f)
 	local block = Block(f, k)
 	local point, x, y = Anchor(f, block, k)
 	local room, across, up = TimerRoom(f, block.size)
+	if TimerOnIcon(f, block) then room, across, up = 0, 0, 0 end
 	local lift, rise = point:find("^BOTTOM") and room or 0, point:find("^TOP") and up or 0
 	local out = point:find("RIGHT$") and across or -across
 	local clip = f.auraClip
