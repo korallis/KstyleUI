@@ -1,4 +1,4 @@
--- SlabVigil.lua: the priest's crest trackers, registered with SlabTrackers, each on its own switch: Inner Fire as a halo round the inner rim and four flames on gilt studs, five charges each, burning down from the top right as hits spend them (the last flickers and the halo dims while Lua can read the count); Penance's lance of light, or Mind Blast's orb before it and for a shadow priest, charging on the left shoulder and flaring when ready; on the right Shadowfiend's fiend charging for a holy or discipline priest, Shadowform's shroud for a shadow priest (steel until worn) and in Shadowform your Vampiric Embrace's fangs burning down; your Shadow Word: Pain as a shadow gem at the top of the ring (a healer's Prayer of Mending ready from level 40); a healer's shield, Renew and Prayer of Mending on the target as three figures above the crest, each burning down; a shadow priest's Devouring Plague cloud and Shadow Word: Death's reaper blade on the foot perches and Silence ready in a ring socket; a main-hand oil socket while an oil is in the bags or on the weapon; and the major cooldowns burning on the rim. Under Frames Inner Fire is one flame burning down with its charges, and every piece keeps its figure or jewel, never an icon. Aura slots, cooldown duration objects and the engine's shown animations draw every piece, so Lua never reads or compares a secret.
+-- SlabVigil.lua: the priest's crest trackers, registered with SlabTrackers, each on its own switch: Inner Fire as a halo round the inner rim and four flames on gilt studs, five charges each, burning down from the top right as hits spend them (the last flickers and the halo dims while Lua can read the count); Penance's lance of light, or Mind Blast's orb before it and for a shadow priest, charging on the left shoulder and flaring when ready; on the right Shadowfiend's fiend charging for a holy or discipline priest, Shadowform's shroud for a shadow priest (steel until worn) and in Shadowform the crest flooded violet and your Vampiric Embrace's fangs burning down; your Shadow Word: Pain as a shadow gem at the top of the ring (a healer's Prayer of Mending ready from level 40); a healer's shield on the target as a dome of light over the crest and Renew and Prayer of Mending at the feet, each burning down; a shadow priest's Devouring Plague cloud and Shadow Word: Death's reaper blade on the foot perches and Silence ready in a ring socket; a main-hand oil socket while an oil is in the bags or on the weapon; and the major cooldowns burning on the rim. Under Frames Inner Fire is one flame burning down with its charges, and every piece keeps its figure or jewel, never an icon. Aura slots, cooldown duration objects and the engine's shown animations draw every piece, so Lua never reads or compares a secret.
 local _, ns = ...
 local class = UnitClass and select(2, UnitClass("player"))
 if class ~= "PRIEST" and class ~= "DRUID" then
@@ -33,7 +33,7 @@ local state = {}
 
 local function Fire(parent, spec, level, form)
 	if form == "row" then
-		return Medals.Figure(parent, { feed = "aura", spells = INNER_FIRE, figure = "trackerFlame", charges = CHARGES, burst = spec.burst, bare = true, bloom = "jewelHoly" }, level)
+		return Medals.Figure(parent, { feed = "aura", spells = INNER_FIRE, figure = "trackerFlame", charges = CHARGES, burst = spec.burst, bloom = "jewelHoly" }, level)
 	end
 	local r = Medals.Rim(parent, { feed = "aura", spells = INNER_FIRE, ambient = "medAmbientPriest", burst = spec.burst, lua = true }, level)
 	local modes = Enum and Enum.StatusBarInterpolation or {}
@@ -91,17 +91,18 @@ end
 
 local function Mend(spells, figure, seat, size, bloom)
 	return { key = "crestMend", seat = seat, size = size, build = Medals.Figure, known = Healer(spells == MENDED and MENDING or spells),
-		feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = spells, figure = figure, bare = true, bloom = bloom,
+		feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = spells, figure = figure, bloom = bloom,
 		alpha = size > 60 and 0.6 or nil }
 end
 
 local function Flood(parent, spec, level, form)
 	if form == "row" then
-		return Medals.Figure(parent, { feed = "aura", spells = SHADOWFORM, figure = "figureShroud", steady = true, bare = true, bloom = "schoolShadow" }, level)
+		return Medals.Figure(parent, { feed = "aura", spells = SHADOWFORM, figure = "figureShroud", steady = true, bloom = "schoolShadow" }, level)
 	end
 	local hub = ns.Slab.hub
 	local f = Medals.Piece(parent, level, ns.Slab.RING)
 	local tint = f:CreateTexture(nil, "ARTWORK")
+	f.tint = tint
 	tint:SetTexture(hub.crestPath)
 	tint:SetAllPoints(hub.crest)
 	tint:SetVertexColor(K.Tokens.Color("schoolShadow"))
@@ -182,11 +183,11 @@ end
 
 ns.SlabTrackers.Register("PRIEST", {
 	{ key = "crestInnerFire", seat = "rim", feed = "aura", spells = INNER_FIRE, build = Fire, place = Ring },
-	{ key = "crestPenance", seat = { -62, 40 }, size = PERCH, bare = true, feed = "cooldown", build = Medals.Figure, choices = {
+	{ key = "crestPenance", seat = { -62, 40 }, size = PERCH, feed = "cooldown", build = Medals.Figure, choices = {
 		{ known = Healer(PENANCE), figure = "figureLance", bloom = "jewelHoly" },
 		{ known = MIND_BLAST, figure = "figureMindOrb", bloom = "schoolShadow" },
 	} },
-	{ key = "crestShadowfiend", seat = { 62, 40 }, size = PERCH, bare = true, build = Medals.Figure, choices = {
+	{ key = "crestShadowfiend", seat = { 62, 40 }, size = PERCH, build = Medals.Figure, choices = {
 		{ forms = { 28 }, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = EMBRACE, figure = "figureFangs", bloom = "plateHostile" },
 		{ forms = { 0 }, feed = "aura", spells = SHADOWFORM, figure = "figureShroud", steady = true, bloom = "schoolShadow" },
 		{ feed = "cooldown", known = SHADOWFIEND, figure = "figureFiend", bloom = "schoolShadow" },
@@ -198,8 +199,8 @@ ns.SlabTrackers.Register("PRIEST", {
 	} },
 	Mend(SHIELD, "figureDome", { 0, 16 }, 116), Mend(RENEW, "figureRenew", { -30, -60 }, FOOT, "schoolNature"), Mend(MENDED, "figureMending", { 30, -60 }, FOOT, "white"),
 	{ key = "crestPlague", seat = { -30, -60 }, size = FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = PLAGUE,
-		known = ShadowOnly(PLAGUE), build = Medals.Figure, figure = "figurePlague", bare = true, bloom = "schoolNature" },
-	{ key = "crestDeath", seat = { 30, -60 }, size = FOOT, feed = "cooldown", known = ShadowOnly(DEATH), build = Medals.Figure, figure = "figureReaper", bare = true,
+		known = ShadowOnly(PLAGUE), build = Medals.Figure, figure = "figurePlague", bloom = "schoolNature" },
+	{ key = "crestDeath", seat = { 30, -60 }, size = FOOT, feed = "cooldown", known = ShadowOnly(DEATH), build = Medals.Figure, figure = "figureReaper",
 		bloom = "schoolShadow" },
 	{ key = "crestSilence", seat = "lowerLeft", feed = "cooldown", known = SILENCE, color = "schoolShadow", build = Medals.Socket },
 	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, color = "jewelHoly" },

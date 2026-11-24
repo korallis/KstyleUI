@@ -12,9 +12,8 @@ local KEYS = { "crestInnerFire", "crestPenance", "crestShadowfiend", "crestPain"
 -- Each class's pieces by "<row>:<choice>", the key SlabTrackers keeps them under.
 local NAMES = {
 	PRIEST = { ["1:1"] = "innerFire", ["2:1"] = "penance", ["2:2"] = "mindBlast", ["3:1"] = "embrace", ["3:2"] = "shadowform", ["3:3"] = "shadowfiend",
-		["4:1"] = "mending", ["4:2"] = "pain", ["5:1"] = "mend", ["6:1"] = "renew", ["7:1"] = "mended", ["8:1"] = "plague", ["9:1"] = "death",
-		["10:1"] = "silence", ["11:1"] = "oil",
-		["12:1"] = "cooldowns" },
+		["4:1"] = "flood", ["5:1"] = "mending", ["5:2"] = "pain", ["6:1"] = "mend", ["7:1"] = "renew", ["8:1"] = "mended", ["9:1"] = "plague",
+		["10:1"] = "death", ["11:1"] = "silence", ["12:1"] = "oil", ["13:1"] = "cooldowns" },
 	DRUID = { ["1:1"] = "roar", ["1:2"] = "rake", ["1:3"] = "seedLeft", ["2:1"] = "faerie", ["2:2"] = "rip", ["2:3"] = "seedRight",
 		["3:1"] = "third", ["3:2"] = "thirdMoonkin", ["3:3"] = "faerieGem", ["4:1"] = "growl", ["5:1"] = "charge", ["6:1"] = "bite", ["7:1"] = "bash",
 		["8:1"] = "oil", ["9:1"] = "bloom", ["10:1"] = "maul", ["10:2"] = "swiftnessMoonkin", ["10:3"] = "innervateMoonkin",
@@ -412,7 +411,7 @@ do
 	local env, K, ns = New("SHAMAN", SHAMAN)
 	local t, Tokens = Tracker(ns, "SHAMAN"), K.Tokens
 	assert(t.built.shock and t.built.ankh, "the emblem sweeps the shock cooldown, the interrupt, and the ankh stands on the right foot")
-	assert(t.built.ankh.spec.seat == "footRight", "the ankh sits on the right foot perch")
+	assert(t.built.ankh.spec.seat[1] == 30 and t.built.ankh.spec.seat[2] == -60, "the ankh stands at the right foot, clear of the level badge")
 	local main, off, shock, ankh = t.built.mainHand, t.built.offHand, t.built.shock, t.built.ankh
 	assert(main:IsShown() and off:IsShown() and shock:IsShown() and ankh:IsShown(), "a shaman gets two stones, the sweep and the ankh")
 	assert(main.rim:IsShown() and not main.pulse:IsPlaying(), "no imbue: the stone's gilt rim shows, still at rest")
@@ -445,12 +444,12 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
--- The ankh is a framed foot figure like the left foot's, charging over Reincarnation's own cooldown even when no
+-- The ankh is a foot figure like the left foot's, charging over Reincarnation's own cooldown even when no
 -- other piece watches cooldowns, and it greys without an Ankh in the bags.
 do
 	local env, K, ns = New("SHAMAN", { 20608 })
 	local ankh = Tracker(ns, "SHAMAN").built.ankh
-	assert(ankh.bar and ankh.spec.figure == "figureAnkh" and ankh.spec.size == ns.SlabMedals.FOOT, "the ankh is a framed figure the size of the left foot's")
+	assert(ankh.bar and ankh.spec.figure == "figureAnkh" and ankh.spec.size == 22, "the ankh is a figure the size of the left foot's")
 	env._cooling[20608] = true
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	assert(ankh.timer and AB.W.LastCall(ankh.bar, "SetTimerDuration"), "Reincarnation's cooldown charges it from the base")
@@ -580,22 +579,29 @@ do
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
--- A healer priest's reliquary holds your shield, Renew and Mending, each its own figure; Mending takes the gem; a shadow
--- priest gets the plague, Shadow Word: Death and Silence instead; an oil in the bags brings the oil socket.
+-- A healer priest's shield is a ward dome over the emblem and Renew and Mending stand on the feet, each burning down
+-- with its aura; Mending takes the gem; a shadow priest gets the plague and Shadow Word: Death on the feet and Silence
+-- instead; an oil in the bags brings the oil socket.
 do
 	local env, K, ns = New("PRIEST", { 10901, 25315, 1240827, 10894, 10947 })
 	local b = Tracker(ns, "PRIEST").built
-	assert(b.mend:IsShown() and b.renew:IsShown() and b.mended:IsShown() and b.mend.lit.container._slots.lit.filter == "HELPFUL|PLAYER", "a healer's reliquary: shield, Renew and Mending on the target")
-	for name, figure in pairs({ mend = "figureShield", renew = "figureRenew", mended = "figureMending" }) do
-		assert(b[name].spec.figure == figure and b[name].lit.bar, name .. " is its own " .. figure .. " draining with the aura")
+	assert(b.mend:IsShown() and b.renew:IsShown() and b.mended:IsShown() and b.mend.lit.container._slots.lit.filter == "HELPFUL|PLAYER", "a healer's shield, Renew and Mending on the target")
+	for name, want in pairs({ mend = { "figureDome", 0, 16, 116 }, renew = { "figureRenew", -30, -60, 22 }, mended = { "figureMending", 30, -60, 22 } }) do
+		local spec = b[name].spec
+		assert(spec.figure == want[1] and spec.seat[1] == want[2] and spec.seat[2] == want[3] and spec.size == want[4] and b[name].lit.bar, name .. ": " .. want[1] .. " at " .. want[2] .. "," .. want[3])
 	end
+	Slots.Set(env, "target", { { id = 10901, count = 0, start = 0, duration = 30 } })
+	assert(b.mend.lit:IsShown() and AB.W.LastCall(b.mend.lit.bar, "SetTimerDuration") and b.mend.lit.bar:GetAlpha() < 1, "the shield raises a translucent dome that burns down with it")
+	Slots.Set(env, "target", nil)
+	assert(not b.mend.lit:IsShown(), "and the dome goes with the shield")
 	assert(b.mending:IsShown() and not b.pain:IsShown(), "from level 40 Prayer of Mending takes the gem")
 	assert(not b.plague and not b.death and not b.oil, "no shadow piece and no oil socket without one")
 	env._known[15473], env._known[19280], env._known[1309636], env._known[15487] = true, true, true, true
 	env._oils = 1
 	ns.SlabTrackers.Update()
 	b = Tracker(ns, "PRIEST").built
-	assert(b.plague:IsShown() and b.death:IsShown() and b.silence:IsShown() and not b.mend:IsVisible() and not b.renew:IsVisible() and b.pain:IsShown(), "a shadow priest: Devouring Plague, Shadow Word: Death and Silence, Pain on the gem, no reliquary")
+	assert(b.plague:IsShown() and b.death:IsShown() and b.silence:IsShown() and not b.mend:IsVisible() and not b.renew:IsVisible() and b.pain:IsShown(), "a shadow priest: Devouring Plague, Shadow Word: Death and Silence, Pain on the gem, no dome")
+	assert(b.plague.spec.seat[1] == -30 and b.death.spec.seat[1] == 30, "the plague and the reaper stand on the feet")
 	assert(b.oil:IsShown() and b.oil.lit.container, "an oil in the bags brings the main-hand socket")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
@@ -610,7 +616,7 @@ do
 	env._form = 8
 	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
 	assert(b.growl:IsShown() and b.charge:IsShown() and b.bite:IsShown() and b.bash:IsShown() and not b.oil:IsShown(), "Bear Form: Growl, Feral Charge, Primal Bite and Bash")
-	assert(b.growl.spec.size == ns.SlabMedals.FOOT and b.growl.spec.feed == "cooldown", "the feet hold small cooldown medals")
+	assert(b.growl.spec.size == 22 and b.growl.spec.feed == "cooldown" and b.growl.bar, "the feet hold small charging figures")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
@@ -707,7 +713,14 @@ end
 
 -- No crest piece of these classes draws a spell or item icon, on the crest or in the Frames row, in any form or
 -- spec: every texture is the crest's own art (a path, never a file ID) and no aura button is handed an icon region.
-local function Icons(frame, found)
+local SOCKET = { "Ring128", "Ring256", "Enamel128", "Enamel256" }
+local MINE = {}
+for _, key in ipairs({ "crestInnerFire", "crestPenance", "crestShadowfiend", "crestPain", "crestMend", "crestPlague", "crestDeath", "crestSilence",
+	"crestOil", "crestSeeds", "crestThird", "crestGrowl", "crestCharge", "crestBite", "crestBash", "crestLeaves", "crestSwiftmend", "crestTankGlow",
+	"crestImbues", "crestShock", "crestAnkh", "crestFlameShock", "crestFiveSecond" }) do
+	MINE[key] = true
+end
+local function Icons(frame, found, mine)
 	if frame._icon then
 		found[#found + 1] = "an aura button's icon"
 	end
@@ -716,9 +729,16 @@ local function Icons(frame, found)
 		if texture and type(texture[1]) == "number" then
 			found[#found + 1] = "file " .. texture[1]
 		end
+		for _, name in ipairs(mine and not frame.sigils and SOCKET or {}) do
+			if texture and type(texture[1]) == "string" and texture[1]:find(name, 1, true) then
+				found[#found + 1] = "a round medal frame (" .. name .. ")"
+			end
+		end
 	end
 	for _, child in ipairs(frame._kids or {}) do
-		Icons(child, found)
+		if not (child.sigils or frame.sigils) then
+			Icons(child, found, mine or child.spec and MINE[child.spec.key])
+		end
 	end
 	return found
 end
@@ -736,9 +756,101 @@ for _, case in ipairs({
 		env.RunTimers()
 		local form = ns.SlabTrackers.state.forms[style == "frames" and "row" or "crest"]
 		local found = Icons(form.frame, {})
-		assert(#found == 0, case[1] .. " under " .. style .. " draws icons (" .. table.concat(found, ", ") .. "): give the piece a figure, a jewel or a sigil")
+		assert(#found == 0, case[1] .. " under " .. style .. " draws icons or round medal frames (" .. table.concat(found, ", ") .. "): give the piece a free-standing figure, a jewel or a sigil")
 	end
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- Break-out: the shoulders' objects stand on the ring, the feet's beside the level badge, the crown's above it; a
+-- cat's Rake and Rip tear across the crest and a bear's roar rises over the crown; an aura's bloom breathes only at
+-- Full; Shadowform floods the crest violet in the form, in combat too, and its switch takes it away.
+do
+	local known = { 6795, 1238122 }
+	for _, id in ipairs(DRUID) do known[#known + 1] = id end
+	local env, K, ns = New("DRUID", known)
+	local b = Tracker(ns, "DRUID").built
+	local function At(piece, x, y, size)
+		return piece.spec.seat[1] == x and piece.spec.seat[2] == y and piece.spec.size == size
+	end
+	assert(At(b.seedLeft, -62, 40, 30) and At(b.seedRight, 62, 40, 30) and At(b.third, 0, 92, 30), "the moon and the swarm perch on the ring, the sparkle above the crown")
+	assert(At(b.rake, -44, 6, 60) and At(b.rip, 44, 6, 56) and At(b.roar, 0, 88, 40), "the rakes and the tear cross the crest, the roar rises over the crown")
+	assert(At(b.growl, -30, -60, 22) and At(b.charge, 30, -60, 22), "the fang and the chevrons stand at the feet")
+	local moon = b.seedLeft.lits[1]
+	local function Breathing()
+		for _, group in ipairs(moon._shownAnimations or {}) do
+			if group == moon.loop then return true end
+		end
+		return false
+	end
+	assert(moon.loop and Breathing(), "at Full the engine breathes the moon's bloom while Moonfire is up")
+	K.Options.Write("Medallions", "motion", "calm")
+	assert(not Breathing(), "Calm holds it still")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+do
+	local env, K, ns = New("PRIEST", { 10952, 10947, 15473, 15334, 15286, 401977 })
+	local b = Tracker(ns, "PRIEST").built
+	assert(b.flood and not b.flood:IsShown(), "out of Shadowform the crest is not flooded")
+	env.SetCombat(true)
+	env._aurasSecret, env._form = true, 28
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	assert(b.flood:IsShown() and b.flood.tint:GetAlpha() > 0, "in Shadowform, even in combat, the crest floods violet")
+	env._form = 0
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	assert(not b.flood:IsShown() and b.shadowform:IsShown(), "leaving the form drains the flood and the shroud waits on the right")
+	local steel
+	for _, part in ipairs(b.shadowform.parts) do
+		local st = part._state or {}
+		steel = steel or st.Desaturated and st.Desaturated[1] and tostring(st.Texture and st.Texture[1]):find("Shroud", 1, true) and part:IsVisible()
+	end
+	assert(steel, "out of the form the shroud stands in steel until it is worn")
+	env._aurasSecret = false
+	env.SetCombat(false)
+	env._form = 28
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	K.Options.Write("ActionBars", "crestShadowfiend", false)
+	env.RunTimers()
+	assert(not b.flood:IsVisible(), "the switch takes the flood away")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- Every piece stays inside the crest's footprint at four screens: within 78 units of the centre across, from 78 below
+-- to 110 above (under the cast bar), and off the level badge; blooms, sparks and flares are soft glow and may spill,
+-- and the five-second ring is the badge's own.
+for _, size in ipairs(SIZES) do
+	for _, case in ipairs({ { "PRIEST", { 10952, 1316995, 10947, 401977, 10894, 10060, 10901, 25315, 1240827 } }, { "PRIEST", { 10952, 10947, 15473, 15334, 15286, 19280, 1309636, 15487 }, 28 },
+		{ "DRUID", DRUID }, { "DRUID", DRUID, 1 }, { "DRUID", DRUID, 8 }, { "SHAMAN", { 16362, 10414, 20608, 16166, 29228 } } }) do
+		local env, K, ns = New(case[1], case[2], { size = size })
+		env._form = case[3]
+		env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+		local hub = ns.Slab.hub
+		local u = hub:GetWidth() / ns.Slab.RING
+		local cx, cy = hub:GetCenter()
+		local pl, pr, pb, pt = hub.plaque:GetLeft(), hub.plaque:GetRight(), hub.plaque:GetBottom(), hub.plaque:GetTop()
+		local at = size[1] .. "x" .. size[2] .. " " .. case[1] .. " form " .. tostring(case[3] or 0) .. ": "
+		local function Edges(part)
+			local e = { part:GetLeft(), part:GetRight(), part:GetBottom(), part:GetTop() }
+			for i = 1, 4 do
+				e[i] = env.issecretvalue(e[i]) and env.Reveal(e[i]) or e[i]
+			end
+			return unpack(e)
+		end
+		for key, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
+			if piece:IsVisible() and not piece.sigils and piece.spec.seat ~= "plaque" then
+				for n, part in ipairs(piece.parts) do
+					local texture = part._state and part._state.Texture and part._state.Texture[1]
+					local pl2, pr2, pb2, pt2 = Edges(part)
+					if not (type(texture) == "string" and (texture:find("Glow", 1, true) or texture:find("Burst", 1, true))) and pl2 then
+						local l, r, bo, t = (pl2 - cx) / u, (pr2 - cx) / u, (pb2 - cy) / u, (pt2 - cy) / u
+						assert(l >= -78.5 and r <= 78.5 and bo >= -78.5 and t <= 110.5, at .. key .. " part " .. n .. " leaves the crest's footprint: " .. string.format("%.0f %.0f %.0f %.0f", l, r, bo, t))
+						local clear = pr2 <= pl or pl2 >= pr or pt2 <= pb or pb2 >= pt or (r - l) >= 100
+						assert(clear, at .. key .. " part " .. n .. " covers the level badge")
+					end
+				end
+			end
+		end
+		assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+	end
 end
 
 print("actionbars crest healers ok")

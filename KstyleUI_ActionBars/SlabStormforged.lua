@@ -137,10 +137,10 @@ end
 ns.SlabTrackers.Register("SHAMAN", {
 	{ key = "crestImbues", seat = "lowerLeft", feed = "enchant", slot = "MainHand", spells = IMBUES, build = Stone },
 	{ key = "crestImbues", seat = "lowerRight", feed = "enchant", slot = "OffHand", spells = IMBUES, active = OffHand, build = Stone },
-	{ key = "crestShock", seat = { 0, 0 }, feed = "cooldown", known = SHOCKS, build = Shock, figure = "figureShock", bare = true, bloom = "totemEarth" },
-	{ key = "crestAnkh", seat = { 30, -60 }, size = 22, feed = "cooldown", known = REINCARNATION, build = Ankh, figure = "figureAnkh", bare = true, bloom = "gilt" },
+	{ key = "crestShock", seat = { 0, 0 }, feed = "cooldown", known = SHOCKS, build = Shock, figure = "figureShock", bloom = "totemEarth" },
+	{ key = "crestAnkh", seat = { 30, -60 }, size = 22, feed = "cooldown", known = REINCARNATION, build = Ankh, figure = "figureAnkh", bloom = "gilt" },
 	{ key = "crestFlameShock", seat = { -30, -60 }, size = 22, spells = FLAME, known = function() return Medals.Known(FLAME) or Medals.Known(RIPTIDE) end,
-		build = Medals.Figure, bare = true, feeds = {
+		build = Medals.Figure, feeds = {
 			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = FLAME, figure = "trackerFlame", color = "totemFire", bloom = "totemFire" },
 			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = STORMSTRIKE, figure = "figureStrike", bloom = "totemAir" },
 			{ feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = RIPTIDE, figure = "figureTide", bloom = "totemWater" },

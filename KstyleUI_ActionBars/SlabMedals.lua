@@ -1,4 +1,4 @@
--- SlabMedals.lua: the Medallions crest's shared medals and ring sockets (docs/medallions-effects.md#crest-medals-and-sockets lists the API): the parts the hawk perches, storm orbs and Spirit Poles share, the crest's named seats, and three pieces the class trackers build: Medal, a round steel medal lit by an aura slot or a weapon enchant (with a timer ring the engine drains from the aura's own duration), by a spell's cooldown duration object or by a usable strike; Rim, an aura that burns round the crest's inner rim and drains with it; Socket, a jewel on the ring whose liquid drains with an aura or a weapon enchant. Engine enables the feeds and hands the engine the flares and the fire at Full while auras are readable; Lua never reads or compares a secret.
+-- SlabMedals.lua: the Medallions crest's shared medals and ring sockets (docs/medallions-effects.md#crest-medals-and-sockets lists the API): the parts the hawk perches, storm orbs and Spirit Poles share, the crest's named seats, and four pieces the class trackers build: Figure, a bare figure of light in a breathing bloom that burns down with an aura or charges over a cooldown, never in a socket; Medal, a round steel medal lit by an aura slot or a weapon enchant (with a timer ring the engine drains from the aura's own duration), by a spell's cooldown duration object or by a usable strike; Rim, an aura that burns round the crest's inner rim and drains with it; Socket, a jewel on the ring whose liquid drains with an aura or a weapon enchant. Engine enables the feeds and hands the engine the flares and the fire at Full while auras are readable; Lua never reads or compares a secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -12,7 +12,8 @@ ns.SlabMedals = Medals
 local SIZE, TRACK, ICON, SHADE, BURST, STEEL = 26, 4, 0.74, 1.9, 2.4, 0.45
 local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 112, 12, 10, 8, 2
 local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, ROW_SIGIL, SIGIL, ABOVE = 118, 14, 4, 30, 12, 0.86, 20
-local FIGURE, SPARK, BLOOM, REST = 0.8, 0.3, 2.4, 0.3
+local SPARK, BLOOM, GLOW_LIT = 0.3, 2.4, 0.75
+local FLASH, BREATH = { { 0.75, 1, 0.05 }, { 1, 0.75, 0.4 } }, { { 0.75, 1, 0.8 }, { 1, 0.75, 0.8 } }
 local SEATS = {
 	left = { -1, 75.9, 24.8 }, right = { 1, 75.9, 24.8 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
 	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 67.5, 247 }, footRight = { 1, 67.5, 293 },
@@ -332,29 +333,12 @@ function Medals.Medal(parent, spec, level)
 	return m
 end
 
-local function Well(parent, layer, units, figure)
-	local well = { Medals.Texture(parent, layer, 0, "dot", "medSocket", units * ICON) }
-	if figure then
-		well[2] = Medals.Texture(parent, layer, 1, figure, "steel", units * FIGURE)
-		well[2]:SetDesaturated(true)
-		well[2]:SetAlpha(STEEL)
-	end
-	return well
-end
-
 function Medals.Figure(parent, spec, level)
 	local size = spec.size or SIZE
 	local f = Medals.Piece(parent, level, size)
 	local feeds = spec.feeds or { spec }
-	local top, bare = level + 1 + 2 * #feeds, spec.bare
-	local scale = bare and 1 or FIGURE
-	if not bare then
-		f.add(Medals.Texture(f, "BACKGROUND", 0, "glow", "black", size * SHADE)):SetAlpha(0.7)
-		for _, part in ipairs(Well(f, "BORDER", size, (feeds[1].figure or spec.figure))) do
-			f.add(part)
-		end
-		f.add(Medals.Texture(Medals.Layer(f, top), "OVERLAY", 0, "medRing", "white", size))
-	elseif #feeds == 1 and spec.feed == "cooldown" then
+	local top = level + 1 + 2 * #feeds
+	if #feeds == 1 and (spec.feed == "cooldown" or spec.steady) then
 		local steel = f.add(Medals.Texture(f, "BORDER", 0, spec.figure, "steel", size))
 		steel:SetDesaturated(true)
 		steel:SetAlpha(STEEL)
@@ -362,13 +346,12 @@ function Medals.Figure(parent, spec, level)
 	for i, feed in ipairs(feeds) do
 		local each = feed == spec and spec or setmetatable(feed, { __index = spec })
 		local lit = Lit(f, each, level + 1 + 2 * (i - 1))
-		for _, part in ipairs(i > 1 and not bare and Well(lit, "BACKGROUND", size, each.figure) or NONE) do
-			f.add(part)
+		if each.bloom then
+			local bloom = f.add(Medals.Texture(lit, "BACKGROUND", 0, "glow", each.bloom, size * BLOOM, "ADD"))
+			bloom:SetAlpha(GLOW_LIT)
+			lit.loop = lit.container and Medals.Steps(bloom, BREATH, true)
 		end
-		if bare and each.bloom then
-			f.add(Medals.Texture(lit, "BACKGROUND", 0, "glow", each.bloom, size * BLOOM, "ADD")):SetAlpha(0.75)
-		end
-		local bar = f.add(CreateFrame("StatusBar", nil, lit), size * scale)
+		local bar = f.add(CreateFrame("StatusBar", nil, lit), size)
 		bar:SetPoint("CENTER", f, "CENTER", 0, 0)
 		bar:SetOrientation("VERTICAL")
 		bar:SetStatusBarTexture((Tokens.Texture(each.figure)))
@@ -422,8 +405,8 @@ function Medals.Rim(parent, spec, level)
 	return r
 end
 
-local function Sigil(r, container, key, family, spec, size)
-	local ids, color, art = {}, spec.color, "sigil" .. family.sigil
+local function Sigil(r, container, key, family, color, size)
+	local ids = {}
 	for _, id in ipairs(family.spells) do
 		ids[id] = true
 	end
@@ -433,26 +416,18 @@ local function Sigil(r, container, key, family, spec, size)
 	button:SetPoint("CENTER", r, "CENTER", 0, 0)
 	button:SetFrameLevel(r:GetFrameLevel() + ABOVE)
 	r.add(button, size)
-	r.add(Medals.Texture(button, "BACKGROUND", 0, "glow", color, size * BLOOM, "ADD"))
+	local bloom = r.add(Medals.Texture(button, "BACKGROUND", 0, "glow", color, size * BLOOM, "ADD"))
+	bloom:SetAlpha(GLOW_LIT)
+	button.loop = Medals.Steps(bloom, FLASH)
 	r.add(Medals.Texture(button, "BACKGROUND", 1, "dot", "black", size)):SetAlpha(0.85)
-	for sub = 0, 1 do
-		r.add(Medals.Texture(button, "ARTWORK", sub, art, color, size * SIGIL, "ADD"))
-	end
+	r.add(Medals.Texture(button, "ARTWORK", 0, "sigil" .. family.sigil, color, size * SIGIL, "ADD"))
 	r.add(Medals.Texture(button, "BORDER", 0, "medRing", "white", size))
 	button.timer = Timer(button, button:GetFrameLevel() + 1, "orbRing", color)
 	button.timer:SetAllPoints(button)
 	button:SetDurationCooldown(button.timer)
 	button.ember = Medals.EmberSlot(r, container, "ember" .. key, options, size, r:GetFrameLevel() + ABOVE + 2)
-	button.flare = Medals.Layer(button, button:GetFrameLevel() + 2)
-	r.add(Medals.Texture(button.flare, "ARTWORK", 0, spec.burst or "glow", "white", size * BURST, "ADD"))
-	button.flare:SetAlpha(0)
-	button.flare.play = Medals.Steps(button.flare, FLARE)
-	button.steel = r.add(Medals.Texture(r, "ARTWORK", 0, art, "steel", size * SIGIL))
-	button.steel:SetDesaturated(true)
-	button.steel:SetAlpha(REST)
 	button.container, button.key, button.family = container, key, family
 	r.sigils[#r.sigils + 1] = button
-	r.lits[#r.lits + 1] = button
 end
 
 function Medals.CooldownRim(parent, spec, level, form)
@@ -486,7 +461,7 @@ function Medals.CooldownRim(parent, spec, level, form)
 			Medals.Flare(r, lit, base + 3, spec.burst or "glow", RIM)
 		end
 		for k, family in ipairs(each.families) do
-			Sigil(r, lit.container, "sigil" .. k, family, spec, size)
+			Sigil(r, lit.container, "sigil" .. k, family, spec.color, size)
 		end
 	end
 	r.timer = r.lit.timer
@@ -552,12 +527,8 @@ function Medals.Threat(parent, spec, level)
 	return t
 end
 
-function Medals.Plaque(parent, spec, level, form)
+function Medals.Plaque(parent, spec, level)
 	local p = Medals.Piece(parent, level, SIZE)
-	if form == "row" then
-		p.add(Well(p, "BACKGROUND", SIZE)[1])
-		p.add(Medals.Texture(p, "BORDER", 0, "medRing", "white", SIZE))
-	end
 	p.lit = Medals.Layer(p, level + 1)
 	p.timer = p.add(Timer(p.lit, level + 1, "orbRing", spec.color), SIZE)
 	p.lits, p.spec = { p.lit }, spec
@@ -608,9 +579,8 @@ local function Arrange(r)
 		b.container:SetAuraSlotEnabled(b.key, on)
 		b.container:SetAuraSlotEnabled(b.ember.key, on and ns.Config("crestEmber") ~= false)
 		b.at = on and { r.left + n % r.per * r.pitch, r.first + floor(n / r.per) * r.rise } or nil
-		b.steel:SetShown(on)
 		if b.at then
-			for _, slot in ipairs({ b, b.ember, b.steel }) do
+			for _, slot in ipairs({ b, b.ember }) do
 				slot:ClearAllPoints()
 				slot:SetPoint("CENTER", r, "CENTER", Widgets.Snap(r, b.at[1]), Widgets.Snap(r, b.at[2]))
 			end
@@ -670,6 +640,9 @@ function Medals.Engine(pieces, on, full)
 			for _, mirror in ipairs(button.mirrors or NONE) do
 				Drive(mirror, on, full)
 			end
+		end
+		for _, button in ipairs(p.sigils or NONE) do
+			Drive(button, on, full)
 		end
 	end
 	return true

@@ -20,7 +20,7 @@ local ELEMENTS = {
 }
 local CALL, RECALLS = 66842, { 36936, 437009 }
 local SOCKET, RADIUS, SPIRE, SPIRE_LIFT, HALO = 26, 98, 34, 3, 1.5
-local MEDAL, MEDAL_RADIUS, MEDAL_RISE, ICON, CALLED = Medals.SIZE, 84, 32, 0.74, { 270, 180, 0, 90 }
+local MEDAL, MEDAL_RADIUS, MEDAL_RISE, CALLED = Medals.SIZE, 84, 32, { 270, 180, 0, 90 }
 local FAN, FAN_RADIUS, FAN_DROP, FAN_STEP, FAN_SPAN = 26, 330, 200, 5.2, 32
 local FLARE_RISE, FLARE_FALL, IGNITE = 0.05, 0.4, 0.3
 local UNFOLD, FIFTH, IDLE_ICON, RING_HALO = 0.12, 0.2, 0.82, 1.6
@@ -383,7 +383,7 @@ local function Medal(header, name, tooltip)
 	local m = CreateFrame("Button", name, header, "SecureActionButtonTemplate")
 	m:RegisterForClicks("AnyUp")
 	m:SetAttribute("useOnKeyDown", false)
-	Medals.Dress(m)
+	m.icon = Medals.Round(m)
 	local hover = Art(m, "HIGHLIGHT", "glow", "white", "ADD")
 	hover:SetAllPoints(m)
 	hover:SetAlpha(0.35)
@@ -444,11 +444,6 @@ local function Build()
 	local halo = Art(wolf.spirit, "BACKGROUND", "glow", "totemSpirit", "ADD")
 	halo:SetPoint("TOPLEFT", wolf, "TOPLEFT", -10, 10)
 	halo:SetPoint("BOTTOMRIGHT", wolf, "BOTTOMRIGHT", 10, -10)
-	for _, m in ipairs({ wolf, state.call }) do
-		m.shade:Hide()
-		m.enamel:Hide()
-		m.ring:Hide()
-	end
 	wolf.spirit:Hide()
 	state.wolf = wolf
 end
@@ -569,11 +564,9 @@ local function Place()
 		local mx, my = side * MEDAL_RADIUS * cos(rad(MEDAL_RISE)), MEDAL_RADIUS * sin(rad(MEDAL_RISE))
 		if not crest then mx, my = w / 2 - half - (side < 0 and MEDAL + ROW_GAP or 0), half - h / 2 end
 		Put(m, anchor, mx, my, MEDAL)
-		Widgets.Size(m.icon, MEDAL * ICON, MEDAL * ICON)
+		Widgets.Size(m.icon, MEDAL, MEDAL)
 		m.icon:ClearAllPoints()
 		m.icon:SetPoint("CENTER", m, "CENTER", 0, 0)
-		Widgets.Size(m.shade, MEDAL * 1.9, MEDAL * 1.9)
-		m.shade:SetPoint("CENTER", m, "CENTER", 0, 0)
 	end
 	for i, t in ipairs(state.call.runes) do
 		Put(t, state.call, MEDAL * 0.2 * cos(rad(CALLED[i])), MEDAL * 0.2 * sin(rad(CALLED[i])), MEDAL * 0.34)

@@ -159,14 +159,9 @@ do
 	for i, b in ipairs(rim.sigils) do
 		assert(not b.at or math.abs(b.at[1]) + 7 <= 25 and b.at[2] - 7 >= -44, i .. ": clear of the lower Inner Fire flames (x 32.5 and out) and the feet")
 	end
-	for i, b in ipairs(rim.sigils) do
-		local _, _, _, x, y = b.steel:GetPoint(1)
-		local _, _, _, bx, by = b:GetPoint(1)
-		assert(b.steel:IsShown() == (b.at ~= nil) and (not b.at or x == bx and y == by), i .. ": a steel sigil holds each placed family's place at rest")
-	end
-	assert(Played(rim.sigils[1]._assignedAnimations, rim.sigils[1].flare.play), "at Full the engine flares a sigil as its cooldown lights")
+	assert(Played(rim.sigils[1]._shownAnimations, rim.sigils[1].loop), "at Full the engine flashes a sigil's bloom as its cooldown lights")
 	Slots.Set(env, "player", { { id = 1719, count = 0, icon = 1, start = 0, duration = 15 }, { id = 871, count = 0, icon = 2, start = 0, duration = 10 } })
-	assert(rim.sigils[1].flare.play:IsPlaying(), "and the flare plays")
+	assert(rim.sigils[1].loop:IsPlaying(), "and the flash plays")
 	assert(rim.lit:IsShown() and AB.W.LastCall(rim.timer, "SetCooldownFromDurationObject")[1].finish == 10, "the newest cooldown burns on the rim")
 	assert(rim.sigils[1]:IsShown() and rim.sigils[2]:IsShown() and not rim.sigils[3]:IsShown(), "each running family lights its sigil")
 	assert(AB.W.LastCall(rim.sigils[2].timer, "SetCooldownFromDurationObject")[1].finish == 10, "each sigil's ring drains with its own aura")

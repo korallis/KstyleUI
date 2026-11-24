@@ -1,4 +1,4 @@
--- SlabGrove.lua: the druid's crest trackers, registered with SlabTrackers, each on its own switch and a full crest in every form: the shoulder figures burn down with your effects on the target (a moon, swarm, bud, sprout, claw marks, tear, roar or sparkle) (as a caster, moonkin or in travel and aquatic form Moonfire or Rejuvenation on the left and Insect Swarm or Regrowth on the right; Rake and Rip in Cat Form; Demoralizing Roar and Faerie Fire in Bear Form); Clearcasting blooms leaves round the inner rim over a druid glow; the gem at the top of the ring follows the form: Swiftmend's cooldown (or Nature's Swiftness's, or Innervate's) as a caster, Nature's Swiftness's (or Innervate's) as a moonkin, your Faerie Fire on the target in Cat Form and Maul queued in Bear Form; a third figure at the top burns down with your Faerie Fire on an enemy or Wild Growth on a friend as a caster and Faerie Fire as a moonkin; Rake shares its medal with Pounce's bleed; a bear gets the tank glow while it holds the target's threat, Growl's fang and Feral Charge's chevrons charging on the foot perches and Primal Bite and Bash ready in the ring sockets, where a caster sees a main-hand oil socket while an oil is in the bags or on the weapon; and the major cooldowns burn on the rim. Every form's choice is built out of combat, so a shift only shows one; aura slots, cooldown duration objects and the engine's shown animations draw the timers, so Lua never reads or compares a secret.
+-- SlabGrove.lua: the druid's crest trackers, registered with SlabTrackers, each on its own switch and a full crest in every form: the shoulder figures burn down with your effects on the target (a moon, swarm, bud, sprout, claw marks, tear, roar or sparkle) (as a caster, moonkin or in travel and aquatic form Moonfire or Rejuvenation on the left and Insect Swarm or Regrowth on the right; Rake and Rip tearing across the crest in Cat Form; Demoralizing Roar over the crown and Faerie Fire in Bear Form); Clearcasting blooms leaves round the inner rim over a druid glow; the gem at the top of the ring follows the form: Swiftmend's cooldown (or Nature's Swiftness's, or Innervate's) as a caster, Nature's Swiftness's (or Innervate's) as a moonkin, your Faerie Fire on the target in Cat Form and Maul queued in Bear Form; a third figure above the crown burns down with your Faerie Fire on an enemy or Wild Growth on a friend as a caster and Faerie Fire as a moonkin; Rake shares its figure with Pounce's bleed; a bear gets the tank glow while it holds the target's threat, Growl's fang and Feral Charge's chevrons charging on the foot perches and Primal Bite and Bash ready in the ring sockets, where a caster sees a main-hand oil socket while an oil is in the bags or on the weapon; and the major cooldowns burn on the rim. Every form's choice is built out of combat, so a shift only shows one; aura slots, cooldown duration objects and the engine's shown animations draw the timers, so Lua never reads or compares a secret.
 local _, ns = ...
 if not (UnitClass and select(2, UnitClass("player")) == "DRUID") then
 	return
@@ -37,7 +37,7 @@ end
 
 local function Bloom(parent, spec, level, form)
 	if form == "row" then
-		return Medals.Figure(parent, { feed = "aura", spells = CLEARCASTING, figure = "trackerLeaf", burst = spec.burst, bare = true, bloom = "schoolNature" }, level)
+		return Medals.Figure(parent, { feed = "aura", spells = CLEARCASTING, figure = "trackerLeaf", burst = spec.burst, bloom = "schoolNature" }, level)
 	end
 	local r = Medals.Rim(parent, { feed = "aura", spells = CLEARCASTING, ambient = "medAmbientDruid", burst = spec.burst }, level)
 	r.ring, r.leaves = {}, Medals.Layer(r.lit, level + 2)
@@ -100,24 +100,24 @@ local function Gems(choice)
 end
 
 ns.SlabTrackers.Register("DRUID", {
-	{ key = "crestSeeds", seat = { -62, 40 }, size = PERCH, bare = true, build = Medals.Figure, choices = {
-		Glow(Effect(ROAR, "figureRoar", nil, BEAR), "jewelCombo", { 0, 90 }, 40),
+	{ key = "crestSeeds", seat = { -62, 40 }, size = PERCH, build = Medals.Figure, choices = {
+		Glow(Effect(ROAR, "figureRoar", nil, BEAR), "jewelCombo", { 0, 88 }, 40),
 		{ forms = CAT, known = Join(RAKE, POUNCE), seat = { -44, 6 }, size = 60, feeds = { Glow(Effect(POUNCE, "figureRake"), "jewelCombo"), Glow(Effect(RAKE, "figureRake"), "plateHostile") } },
 		{ forms = Join(CASTER, MOONKIN), known = Join(MOONFIRE, REJUVENATION), feeds = { Glow(Effect(MOONFIRE, "figureMoon"), "schoolArcane"),
 			Glow(Effect(REJUVENATION, "figureBud", "HELPFUL|PLAYER"), "schoolNature") } },
 	} },
-	{ key = "crestSeeds", seat = { 62, 40 }, size = PERCH, bare = true, build = Medals.Figure, choices = {
+	{ key = "crestSeeds", seat = { 62, 40 }, size = PERCH, build = Medals.Figure, choices = {
 		Glow(Effect(FAERIE, "figureFaerie", nil, BEAR), "schoolArcane"), Glow(Effect(RIP, "figureRip", nil, CAT), "plateHostile", { 44, 6 }, 56),
 		{ forms = Join(CASTER, MOONKIN), known = Join(SWARM, REGROWTH), feeds = { Glow(Effect(SWARM, "figureSwarm"), "jewelHawk"),
 			Glow(Effect(REGROWTH, "figureSprout", "HELPFUL|PLAYER"), "schoolNature") } },
 	} },
-	{ key = "crestThird", seat = { 0, 92 }, size = 30, bare = true, build = Medals.Figure, choices = {
+	{ key = "crestThird", seat = { 0, 92 }, size = 30, build = Medals.Figure, choices = {
 		{ forms = CASTER, known = Join(FAERIE, GROWTH), feeds = { Glow(Effect(FAERIE, "figureFaerie"), "schoolArcane"), Glow(Effect(GROWTH, "figureGrowth", "HELPFUL|PLAYER"), "schoolNature") } },
 		Glow(Effect(FAERIE, "figureFaerie", nil, MOONKIN), "schoolArcane"), Gems({ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = FAERIE, color = "schoolArcane",
 			forms = CAT, seat = "lowerLeft" }),
 	} },
-	{ key = "crestGrowl", seat = { -30, -60 }, size = FOOT, feed = "cooldown", known = GROWL, forms = BEAR, build = Medals.Figure, figure = "figureGrowl", bare = true, bloom = "jewelCombo" },
-	{ key = "crestCharge", seat = { 30, -60 }, size = FOOT, feed = "cooldown", known = CHARGE, forms = BEAR, build = Medals.Figure, figure = "figureCharge", bare = true,
+	{ key = "crestGrowl", seat = { -30, -60 }, size = FOOT, feed = "cooldown", known = GROWL, forms = BEAR, build = Medals.Figure, figure = "figureGrowl", bloom = "jewelCombo" },
+	{ key = "crestCharge", seat = { 30, -60 }, size = FOOT, feed = "cooldown", known = CHARGE, forms = BEAR, build = Medals.Figure, figure = "figureCharge",
 		bloom = "jewelCombo" },
 	{ key = "crestBite", seat = "lowerLeft", feed = "cooldown", known = BITE, forms = BEAR, color = "jewelCombo", build = Medals.Socket },
 	{ key = "crestBash", seat = "lowerRight", feed = "cooldown", known = BASH, forms = BEAR, color = "jewelCombo", build = Medals.Socket },
