@@ -3,7 +3,7 @@ local _, ns = ...
 
 local Setup = ns.Setup
 local Layouts = Setup.Layouts
-local Widgets, Tokens, Motion, Scale = ns.Widgets, ns.Tokens, ns.Motion, ns.Scale
+local Widgets, Tokens, Scale = ns.Widgets, ns.Tokens, ns.Scale
 local L = ns.L
 local max, min = math.max, math.min
 
@@ -258,7 +258,7 @@ function Setup.Go(target)
 		panel.opts.height = HEIGHT
 		Widgets.Size(panel, WIDTH, HEIGHT)
 		step = target
-		Motion.PageIn(panel.pages[step], Tokens.Duration("fade"))
+		panel.pages[step]:Show()
 	end
 	Refresh()
 	return true
