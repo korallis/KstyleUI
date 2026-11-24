@@ -178,7 +178,7 @@ end
 local function Ring(piece, anchor, form, _, n)
 	if form == "crest" then
 		Medals.Place(piece, anchor, 0, 0)
-		if piece.gust then
+		if piece.gust and not Medals.Restricted() then
 			Widgets.Size(piece.gust, INNER, 28)
 		end
 		return n
@@ -187,6 +187,9 @@ local function Ring(piece, anchor, form, _, n)
 	local w, h = min(max(n, 1), Medals.LINE) * pitch - Medals.GAP, lines * pitch - Medals.GAP
 	Medals.Place(piece, anchor, (w - SIZE) / 2, (h - SIZE) / 2)
 	Widgets.Size(piece, w + Medals.GAP, h + Medals.GAP)
+	if Medals.Restricted() then
+		return n
+	end
 	piece.halo:ClearAllPoints()
 	piece.halo:SetPoint("TOPLEFT", piece, "TOPLEFT", -SIZE, SIZE / 2)
 	piece.halo:SetPoint("BOTTOMRIGHT", piece, "BOTTOMRIGHT", SIZE, -SIZE / 2)
@@ -297,6 +300,7 @@ local function Spire(p, container, i, s, angle, level)
 	end
 	Slot("glow", "pipSpireGlow", s.color, "ADD", SPIRE * 1.5, 1)
 	local lit = Slot("lit", "pipSpire", "white", nil, SPIRE, 2)
+	lit.spec = { feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = s.spells }
 	local r, g, b = Tokens.Color(s.color)
 	t.lit:SetStatusBarColor(0.55 + 0.45 * r, 0.55 + 0.45 * g, 0.55 + 0.45 * b)
 	Slot("core", "pipSpireCore", s.color, "ADD", SPIRE, 3)

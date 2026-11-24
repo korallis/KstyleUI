@@ -33,6 +33,7 @@ local SHARED = {
 	{ spells = { 17528, 6615, 3169, 17540, 2379, 11359, 16323 }, known = {} },
 }
 local CLASSES, HOOKS, JOINED = {}, {}, {}
+local GATES = { "PLAYER_REGEN_ENABLED", "ADDON_RESTRICTION_STATE_CHANGED" }
 Trackers.CLASSES = CLASSES
 
 local state = { forms = {} }
@@ -294,6 +295,7 @@ local function Listen(on, lua, forms)
 	end
 	local hooks = HOOKS[ns.class] or {}
 	Events.Register(OWNER, "PLAYER_REGEN_ENABLED", Trackers.Update)
+	Events.Register(OWNER, "ADDON_RESTRICTION_STATE_CHANGED", Trackers.Update)
 	K.Callbacks.Register("EffectsLevelChanged", OWNER, Trackers.Update)
 	for _, event in ipairs(hooks.update or {}) do
 		Events.Register(OWNER, event, Trackers.Update)
@@ -342,10 +344,9 @@ local function Stop()
 			K.Events.Unregister(OWNER, event)
 		end
 	end
-	if not done then
-		K.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", Trackers.Update)
-	else
-		K.Events.Unregister(OWNER, "PLAYER_REGEN_ENABLED")
+	local listen = done and K.Events.Unregister or K.Events.Register
+	for _, event in ipairs(GATES) do
+		listen(OWNER, event, Trackers.Update)
 	end
 end
 
@@ -415,6 +416,7 @@ function Trackers.Update()
 		local piece = form.pieces[key] or not restricted and Build(form, name, key, spec)
 		if piece then
 			Medals.Retexture(piece, spec.texture)
+			Medals.Size(piece)
 			prepared[key] = piece
 			if LUA[spec.feed] then
 				piece.spec = spec

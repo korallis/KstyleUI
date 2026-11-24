@@ -102,10 +102,12 @@ local function Updating(frame)
 end
 
 local function Fill(env, bar)
-	local low, high = bar:GetMinMaxValues()
-	local v = bar:GetValue()
-	v = env.issecretvalue(v) and env.Reveal(v) or v
-	return (math.max(low, math.min(high, v)) - low) / (high - low)
+	return Slots.Engine(env, function()
+		local low, high = bar:GetMinMaxValues()
+		local v = bar:GetValue()
+		v = env.issecretvalue(v) and env.Reveal(v) or v
+		return (math.max(low, math.min(high, v)) - low) / (high - low)
+	end)
 end
 
 -- Other classes, and healers who know none of the spells, build nothing and listen to nothing.
@@ -137,9 +139,11 @@ do
 		assert(seat.angle == ({ 315, 225, 135, 45 })[k], "flame " .. k .. " sits at its corner")
 	end
 	Slots.Set(env, "player", { { id = 10952, count = 20, start = 0, duration = 600 } })
+	env.SetCombat(true)
 	env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 10952)
 	assert(Fill(env, fire.ring[4].bar or fire.lits[5]._applicationBar[1]) == 1, "twenty charges light the top right flame")
-	assert(fire.flare.play:IsPlaying(), "a cast flares the halo")
+	assert(fire.flare.play:IsPlaying() and fire.lit.flareGate:GetAlpha() == 1, "awake, a cast flares the halo")
+	env.SetCombat(false)
 	local aura = env._slotAuras.player[1]
 	aura.count = 12
 	Slots.Set(env, "player", env._slotAuras.player)
@@ -367,7 +371,7 @@ do
 	assert(fire.flicker:IsPlaying() and fire.fire:GetAlpha() == 0.5, "awake, the last flame flickers")
 	env._aurasSecret = true
 	Charges(16)
-	assert(not fire.flicker:IsPlaying() and fire.fire:GetAlpha() == 1, "an unreadable count drops the flicker and the dimming")
+	assert(not fire.flicker:IsPlaying() and fire.fire:GetAlpha() == 1, "an unreadable count drops the flicker and the dimming, in combat too")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
@@ -486,24 +490,44 @@ do
 	local env, K, ns = New("SHAMAN", SHAMAN)
 	local t, Tokens = Tracker(ns, "SHAMAN"), K.Tokens
 	local main = t.built.mainHand
+	env._aurasSecret = true
 	env.SetCombat(true)
 	env._enchants[16] = { enchantID = 9999, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
 	Slots.Enchant(env, 1, { start = 0, duration = 3600 })
 	env.FireEvent("WEAPON_ENCHANT_CHANGED")
 	assert(main.light:GetAlpha() == 0 and main.rim:IsShown() and main.pulse:IsPlaying(), "an enchant that is no imbue leaves the stone dark under the pulsing rim")
-	env._enchants[16] = { enchantID = 1669, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
+	env._enchants[16] = { enchantID = 1669, remainingTimeMs = 200000, chargesRemaining = 0, hasExpirationTime = true }
+	env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	assert(main.light:GetAlpha() == 1 and not main.rim:IsShown() and main.gutter:IsPlaying(), "Windfury in combat with auras secret lights the rune, drops the rim and gutters its last minutes")
+	env._enchants[16].remainingTimeMs = 1800000
 	env._enchants[17] = { enchantID = 1666, remainingTimeMs = 200000, chargesRemaining = 0, hasExpirationTime = true }
 	Slots.Enchant(env, 2, { start = 0, duration = 3600 })
+	env._aurasSecret = false
 	env.SetCombat(false)
 	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
+	env._aurasSecret = true
 	env.SetCombat(true)
 	local mainRow, offRow = t.built.mainHandRow, t.built.offHandRow
-	assert(mainRow.lit.icon:GetTexture() == 8232 and offRow.lit.icon:GetTexture() == 8024, "Windfury and Flametongue each show their own icon")
-	assert(mainRow.lit.timer and offRow.lit.timer and mainRow.lit._cooldown == mainRow.lit.timer, "each weapon's medal drains with the enchant's own timer")
-	local sr, sg, sb = unpack(AB.W.LastCall(offRow.lit.timer, "SetSwipeColor") or {})
-	local r, g, b = Tokens.Color("totemFire")
-	assert(math.abs(sr - r) + math.abs(sg - g) + math.abs(sb - b) < 1e-6, "in its element's colour")
+	assert(mainRow.light:GetTexture() == 8232 and offRow.light:GetTexture() == 8024, "Windfury and Flametongue each show their own icon")
+	local function Ring(row, token)
+		for each, ring in pairs(row.rings) do
+			if (ring:GetAlpha() == 1) ~= (each == token) then return false end
+		end
+		local timer = row.rings[token].lit._cooldown
+		local sr, sg, sb = unpack(AB.W.LastCall(timer, "SetSwipeColor") or {})
+		local r, g, b = Tokens.Color(token)
+		return math.abs(sr - r) + math.abs(sg - g) + math.abs(sb - b) < 1e-6
+	end
+	assert(Ring(mainRow, "totemAir") and Ring(offRow, "totemFire"), "each weapon's medal drains with the enchant's own timer in its element's colour")
+	env._enchants[16] = { enchantID = 1666, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
+	env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	assert(mainRow.light:GetTexture() == 8024 and Ring(mainRow, "totemFire"), "Flametongue over Windfury in combat with auras secret turns the ring to fire at once")
+	env._enchants[16] = { enchantID = 9999, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
+	env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	assert(Ring(mainRow, "gilt"), "an enchant that is no imbue drains a gilt ring")
+	env._enchants[16] = { enchantID = 1669, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
+	env.FireEvent("WEAPON_ENCHANT_CHANGED")
 	assert(offRow.gutter:IsPlaying() and not mainRow.gutter:IsPlaying(), "the off hand's last five minutes gutter in the row too")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end

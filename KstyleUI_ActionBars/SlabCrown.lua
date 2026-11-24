@@ -132,6 +132,7 @@ local function Listen(class, combo, pending)
 	end
 	if pending then
 		Events.Register(OWNER, "PLAYER_REGEN_ENABLED", Crown.Update)
+		Events.Register(OWNER, "ADDON_RESTRICTION_STATE_CHANGED", Crown.Update)
 	end
 	if combo then
 		Events.RegisterUnit(OWNER, "UNIT_POWER_FREQUENT", OnPower, "player")
@@ -163,14 +164,14 @@ function Crown.Update(event)
 			p.frame:SetShown(state.shown)
 		end
 	end
-	local moving, pending = Effects.Allows("flare"), want ~= nil and state.crowns[want] == nil
+	local open, moving, pending = Widgets.CrownOpen(), Effects.Allows("flare"), want ~= nil and state.crowns[want] == nil
 	for name, c in pairs(state.crowns) do
 		if c then
 			local on = c == fed
 			c:SetShown(on)
 			c:Listen(OWNER .. ":" .. name, on)
-			pending = not c:SetMotion(moving) or pending
-			if on then
+			pending = not (open and c:SetMotion(moving)) or pending
+			if open then
 				local r, g, b = K.Theme.ClassColor(name == "BEAR" and "DRUID" or name)
 				for _, t in ipairs(c.ring) do
 					t:SetVertexColor(r, g, b)

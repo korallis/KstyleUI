@@ -28,7 +28,7 @@ local CAST = {}
 for _, id in ipairs(RANKS) do CAST[id] = true end
 local SLOT = { candidateFilters = { includeSpellIDs = CAST } }
 
-local state = { seats = {}, parts = {}, loops = {}, containers = {}, feeds = {}, flares = {}, clouds = {} }
+local state = { seats = {}, parts = {}, loops = {}, containers = {}, feeds = {}, flares = {} }
 Storm.state = state
 
 local function Active()
@@ -105,11 +105,11 @@ local function Build(hub)
 	local ring = add(CreateFrame("Frame", nil, holder))
 	ring:SetPoint("CENTER", hub, "CENTER", 0, 0)
 	ring.units = HALO
-	local halo = Slot(Container(holder), "halo", ring)
+	state.halo = Medals.Layer(holder, base)
+	local halo = Slot(Container(state.halo), "halo", ring)
 	state.crackle = Layer(ring, base + 1, CRACKLE)
 	for k, cell in ipairs(CLOUDS) do
-		state.clouds[k] = Medals.Cloud(halo, "medAmbientShaman", cell)
-		state.loops[#state.loops + 1] = { button = halo, group = Medals.Flip(state.clouds[k], "medAmbientShaman", 1 + (k - 1) / 3) }
+		state.loops[#state.loops + 1] = { button = halo, group = Medals.Flip(Medals.Cloud(halo, "medAmbientShaman", cell), "medAmbientShaman", 1 + (k - 1) / 3) }
 		Medals.Cloud(state.crackle, "medAmbientShaman", cell)
 	end
 	state.blast = Layer(holder, base + 6, BLAST)
@@ -210,9 +210,7 @@ local function Motion()
 	else
 		state.flicker:Stop()
 	end
-	for _, cloud in ipairs(state.clouds) do
-		cloud:SetAlpha(last and DIM or 1)
-	end
+	state.halo:SetAlpha(last and DIM or 1)
 end
 
 local function Count(n)
@@ -327,6 +325,7 @@ function Storm.Update()
 	if not (state.holder or state.failed) then
 		if Restricted() then
 			state.listening = nil
+			K.Events.Register(OWNER, "ADDON_RESTRICTION_STATE_CHANGED", Storm.Update)
 			return K.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", Storm.Update)
 		end
 		local ok, err = pcall(Build, hub)
@@ -342,6 +341,7 @@ function Storm.Update()
 		K.Events.RegisterUnit(OWNER, "UNIT_SPELLCAST_SUCCEEDED", OnCast, "player")
 		K.Events.RegisterUnit(OWNER, "UNIT_AURA", OnAura, "player")
 		K.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", Storm.Update)
+		K.Events.Register(OWNER, "ADDON_RESTRICTION_STATE_CHANGED", Storm.Update)
 		K.Callbacks.Register("EffectsLevelChanged", OWNER, Storm.Update)
 		state.listening = true
 	end

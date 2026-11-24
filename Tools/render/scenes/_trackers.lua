@@ -358,7 +358,7 @@ function Trackers.Play(env, K, ns, notes)
 			if piece and now >= beat[2] then
 				if not piece.flare.play._playedAt then ns.SlabMedals.Fire(piece) end
 				Sample(piece.flare.play, beat[2], now, env)
-				Sample(piece.lit.loop, beat[2], now, env)
+				Sample(piece.fire and piece.fire.lit.loop, beat[2], now, env)
 			end
 		end
 	end

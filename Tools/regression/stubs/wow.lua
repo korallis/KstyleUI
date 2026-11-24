@@ -899,8 +899,13 @@ function Object:GetEffectiveAlpha()
 end
 
 -- A test sets frame._denied to model an object enforcing access restrictions, such as an aura button
--- while auras are secret: CanBeAccessedInContext reads false and every other method raises an error.
-function Object:CanBeAccessedInContext() return self._denied ~= true end
+-- while auras are secret: CanBeAccessedInContext reads false and every other method raises the client's
+-- forbidden-object error. A function _denied denies while it returns true, and objects made under it inherit it.
+local function denied(self)
+	local deny = self._denied
+	return deny == true or type(deny) == "function" and deny() == true
+end
+function Object:CanBeAccessedInContext() return not denied(self) end
 
 local ObjectMeta = {}
 
@@ -909,6 +914,7 @@ local function newObject(env, objectType, name, parent)
 		_env = env, _type = objectType, _name = name, _parent = parent, _calls = {}, _state = {}, _lastAlpha = false,
 		_scripts = {}, _events = {}, _attributes = {}, _points = {}, _scale = 1, _shown = true,
 		_kids = {}, _regions = {}, _enabled = true, _origin = env._trackOrigin and originFile(),
+		_denied = parent and type(rawget(parent, "_denied")) == "function" and parent._denied or nil,
 	}, ObjectMeta)
 end
 
@@ -1319,8 +1325,8 @@ ObjectMeta.__index = function(object, key)
 	end
 	wrapper = function(self, ...)
 		local impl = Object[key] or genericMethod(key)
-		if self._denied == true and key ~= "CanBeAccessedInContext" then
-			error("Attempt to access a restricted object with " .. key, 2)
+		if self._denied and key ~= "CanBeAccessedInContext" and denied(self) then
+			error("calling '" .. key .. "' on bad self (Attempt to access forbidden object from code tainted by an AddOn)", 2)
 		end
 		local call = { method = key, args = pack(...) }
 		self._calls[#self._calls + 1] = call

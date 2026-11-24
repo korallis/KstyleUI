@@ -35,7 +35,7 @@ local function Fire(parent, spec, level, form)
 	if form == "row" then
 		return Medals.Medal(parent, { feed = "aura", spells = INNER_FIRE, texture = spec.texture, color = "pipPriestGlow", burst = spec.burst, count = true }, level)
 	end
-	local r = Medals.Rim(parent, { feed = "aura", spells = INNER_FIRE, ambient = "medAmbientPriest", burst = spec.burst }, level)
+	local r = Medals.Rim(parent, { feed = "aura", spells = INNER_FIRE, ambient = "medAmbientPriest", burst = spec.burst, lua = true }, level)
 	local modes = Enum and Enum.StatusBarInterpolation or {}
 	r.ring = {}
 	for k, angle in ipairs(FLAMES) do
@@ -66,6 +66,9 @@ local function Ring(piece, anchor, form, _, n)
 		return n + 1
 	end
 	Medals.Place(piece, anchor, 0, 0)
+	if Medals.Restricted() then
+		return n
+	end
 	for _, seat in ipairs(piece.ring) do
 		local a = rad(seat.angle)
 		seat:ClearAllPoints()
@@ -110,12 +113,7 @@ local function Motion()
 	end
 	local resting = ns.Slab.Resting()
 	local still, last = resting or not Effects.Allows("ambient"), n ~= nil and n > 0 and n <= PER
-	if last then
-		r.fire:SetAlpha(still and 0 or DIM)
-		r.still:SetAlpha(still and DIM or 0)
-	else
-		Medals.Still(r, still)
-	end
+	Medals.Still(r, still, last and DIM or 1)
 	if last and not resting and Effects.Allows("pulse") then
 		if not r.flicker:IsPlaying() then
 			r.flicker:Play()

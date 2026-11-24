@@ -3,8 +3,10 @@
 -- and includeSpellIDs map (Blizzard_AuraContainerUtil.lua:89-111), and feeds the status bar SetApplicationBar gave it
 -- as Blizzard_CustomAuraButton.lua:419-431 does: SetMinMaxValues(min, max(max, 1)), the secret count with the bar's
 -- interpolation when the same aura changes and Immediate when one is assigned or cleared, and shown from min. The
--- button must own the bar (Blizzard_AuraContainerUtil.lua:311-333) and refuses addon calls while auras are secret
--- (DenyTaintedAccessWhenAurasAreSecret). A container feeds nothing until SetEnabled(true). A button plays the groups
+-- button must own the bar (Blizzard_AuraContainerUtil.lua:311-333). While auras are secret the button and every
+-- region made under it refuse addon calls with the client's forbidden-object error (DenyTaintedAccessWhenAurasAreSecret,
+-- Blizzard_AuraContainerShared.lua:108, applied by Blizzard_AuraContainerFrameProviders.lua:84); Slots.Engine still
+-- reaches them. A container feeds nothing until SetEnabled(true). A button plays the groups
 -- AddAuraShownAnimation gave it when its aura appears and stops them when it goes, and restarts the groups
 -- AddAuraAssignedAnimation gave it whenever a different aura is assigned (Blizzard_CustomAuraButton.lua:684-691).
 --
@@ -46,7 +48,7 @@ local function Owns(button, bar)
 	return false
 end
 
-function Slots.Feed(env, c)
+local function Feed(env, c)
 	for _, slot in pairs(c._slots) do
 		local aura
 		if c._enabled == true and slot.enchant then
@@ -93,6 +95,23 @@ function Slots.Feed(env, c)
 	end
 end
 
+-- Engine(env, fn, ...) runs fn as the engine, past the access restriction, and returns its first value: the engine's
+-- own updates, and a test reading what the screen shows.
+function Slots.Engine(env, fn, ...)
+	local was = env._engine
+	env._engine = true
+	local ok, value = pcall(fn, ...)
+	env._engine = was
+	if not ok then
+		error(value, 0)
+	end
+	return value
+end
+
+function Slots.Feed(env, c)
+	Slots.Engine(env, Feed, env, c)
+end
+
 function Slots.Show(env, c, slot, aura)
 	do
 		local b = slot.frame
@@ -137,6 +156,7 @@ local function Restricted(env)
 end
 
 local function Button(env, c, button)
+	button._denied = env._auraDenied
 	-- AddAuraShownAnimation: the engine plays the group when the slot's aura appears and stops it when it goes
 	-- (Blizzard_CustomAuraButton.lua:327-337, 694-705); its animations must target the button or a descendant.
 	for _, kind in ipairs({ "Shown", "Assigned" }) do
@@ -186,6 +206,10 @@ function Slots.Install(env)
 	env.AuraContainerItemEnchantmentSlot = env.AuraContainerItemEnchantmentSlot or { MainHand = 1, OffHand = 2, Ranged = 3 }
 	env.Enum = env.Enum or {}
 	env.Enum.StatusBarInterpolation = env.Enum.StatusBarInterpolation or { Immediate = 0, ExponentialEaseOut = 1 }
+	function env._auraDenied()
+		local secrets = not env._engine and env.C_Secrets
+		return secrets and secrets.ShouldAurasBeSecret and secrets.ShouldAurasBeSecret()
+	end
 	local create = env.CreateFrame
 	function env.CreateFrame(frameType, name, parent, template)
 		local c = create(frameType, name, parent, template)

@@ -1,5 +1,24 @@
 # KstyleUI changelog
 
+## v0.3.4.5 (2026-11-24)
+
+A small hotfix for the crest, which could throw Lua errors in combat.
+
+Highlights:
+
+- The crest no longer throws forbidden object Lua errors in combat, like Vanish or Stealth mid-fight.
+- Every crest piece keeps lighting, filling and counting through the fight, shaman storm clouds included.
+- Your first stance, form or Stealth switch in combat shows its crest pieces at once.
+- Medals snap back to whole pixels after you change the UI scale.
+
+### Fixed
+
+- The crest no longer throws "forbidden object" Lua errors in combat. Vanish or Stealth mid-fight, a stance or form swap, a poison, Lightning Shield, Inner Fire and the shaman storm clouds could all set it off.
+- Every crest piece keeps lighting, filling and counting through the fight: the bursts and Remorseless fire, the rogue vial, the shaman imbue runes, the storm halo, Inner Fire, the bear talons and the paladin jewels.
+- Your first stance, form or Stealth switch in combat shows its medals at once, already sized.
+- Medals snap back to whole pixels after you change the UI scale.
+- In a dungeon, the crest catches up as soon as the lock on aura data lifts, not only when combat ends.
+
 ## v0.3.4.4 (2026-11-24)
 
 A small hotfix for aura timers on the Medallions unit frames, which could get cut off at the bottom by the portrait rim.

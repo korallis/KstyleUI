@@ -64,8 +64,10 @@ end
 
 -- Lit(env, s) -> whether orb s draws: its slot button and bar shown and the bar filled.
 local function Lit(env, s)
-	local low, high = s.orb:GetMinMaxValues()
-	return s.orb:GetParent():IsShown() and s.orb:IsShown() and Reveal(env, s.orb:GetValue()) >= Reveal(env, high) and Reveal(env, low) < Reveal(env, high)
+	return Slots.Engine(env, function()
+		local low, high = s.orb:GetMinMaxValues()
+		return s.orb:GetParent():IsShown() and s.orb:IsShown() and Reveal(env, s.orb:GetValue()) >= Reveal(env, high) and Reveal(env, low) < Reveal(env, high)
+	end)
 end
 
 local function Lights(env, ns)
@@ -243,7 +245,7 @@ do
 	env._aurasSecret = true
 	env.SetCombat(true)
 	Shield(env, 3)
-	assert(env.issecretvalue(seats[1].orb:GetValue()) and Lights(env, ns) == 3, "a secret count lights the orbs through the engine")
+	assert(env.issecretvalue(Slots.Engine(env, seats[1].orb.GetValue, seats[1].orb)) and Lights(env, ns) == 3, "a secret count lights the orbs through the engine")
 	Cast(env, env.Secret(STRIKE7))
 	assert(state.count == 0, "a secret spell ID is ignored")
 	env.FireEvent("UNIT_AURA", "player", {})
@@ -252,11 +254,15 @@ do
 	Shield(env, 2)
 	Cast(env, STRIKE7)
 	assert(state.count == 2 and Fired(seats[3].strike), "in combat Lua counts the player's own casts and strikes")
+	Shield(env, 1)
+	Cast(env, STRIKE7)
+	env.FireEvent("SPELLS_CHANGED")
+	assert(state.count == 1 and state.halo:GetAlpha() == 0.5, "the last charge dims the halo in combat")
 	K.Options.Write("Medallions", "motion", "calm")
 	assert(Registered(ns) == #state.loops, "a motion change waits while auras are secret")
 	env._aurasSecret = false
 	env.SetCombat(false)
-	assert(Registered(ns) == 0, "and lands when combat ends")
+	assert(Registered(ns) == 0 and state.halo:GetAlpha() == 0.5, "and lands when combat ends")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 
 	local fresh, FK, fns = New("SHAMAN", { [RANK7] = true })
@@ -307,7 +313,7 @@ do
 	local env, K, ns = New("SHAMAN", { [RANK7] = true })
 	local state, seats = ns.SlabStorm.state, ns.SlabStorm.state.seats
 	local function Halo()
-		return state.loops[1].group:GetParent():GetAlpha()
+		return state.halo:GetAlpha()
 	end
 	Shield(env, 3)
 	Cast(env, RANK7)

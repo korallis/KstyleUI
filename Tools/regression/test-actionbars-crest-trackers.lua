@@ -326,6 +326,47 @@ do
 	Clean(env, K, "secret")
 end
 
+-- While auras are secret the engine's aura buttons and everything made under them refuse addon calls
+-- (DenyTaintedAccessWhenAurasAreSecret), so every choice is sized out of combat and all the crest changes in combat is
+-- its own: a pull from rest opens the bursts and lights Remorseless fire, a spell change raises nothing (the owner's
+-- SlabMedals.lua:58 SetSize on SPELLS_CHANGED), a sharpening stone empties the vial at once, the first Stealth shows
+-- sized Ambush and Vanish medals, and a motion change the engine must take waits for the restriction to end.
+do
+	local env, K, ns = New("ROGUE", { 5171, 1943, 2842, 8676, 1856, 14144 }, { setup = function(e) e._items = { [16] = 2092 } end })
+	local enchant = {}
+	env.C_PaperDollInfo = { GetTemporaryEnchantmentInfo = function(slot) return enchant[slot] end }
+	env.GetShapeshiftFormID = function() return env._form end
+	env._usable[8676] = true
+	local crest = ns.SlabTrackers.state.forms.crest
+	local slice, vial, fire = Pieces(ns)[1], Pieces(ns)[3], crest.pieces["8:1"]
+	assert(fire.fire:GetAlpha() == 0 and slice.lit.flareGate:GetAlpha() == 0, "at rest the fire and the bursts hold back")
+	env._aurasSecret = true
+	env.SetCombat(true)
+	assert(fire.fire:GetAlpha() == 1 and fire.still:GetAlpha() == 0 and slice.lit.flareGate:GetAlpha() == 1 and vial.lit.flareGate:GetAlpha() == 1, "a pull with auras secret wakes the fire and opens every burst")
+	env.FireEvent("SPELLS_CHANGED")
+	enchant[16] = { enchantID = 40 }
+	env.FireEvent("UNIT_INVENTORY_CHANGED", "player")
+	assert(vial.lit.gate:GetAlpha() == 0, "a sharpening stone empties the vial in combat")
+	enchant[16].enchantID = 323
+	env.FireEvent("UNIT_INVENTORY_CHANGED", "player")
+	assert(vial.lit.gate:GetAlpha() == 1, "a poison fills it again")
+	env._form = 30
+	env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+	env.FireEvent("SPELL_UPDATE_USABLE")
+	local ambush, vanish = Pieces(ns)[1], Pieces(ns)[2]
+	assert(ambush.spec.feed == "usable" and ambush.lit:IsShown() and vanish.spec.feed == "cooldown", "the first Stealth swaps both shoulders")
+	for _, p in ipairs({ ambush, vanish }) do
+		assert((p:GetWidth() or 0) > 0 and (p.lit.icon:GetWidth() or 0) > 0 and (p.steel:GetWidth() or 0) > 0, "and each is sized, its icon too")
+	end
+	local mirror = Pieces(ns)[8].lit.awake.lit
+	K.Options.Write("Medallions", "motion", "calm")
+	assert(mirror.full == true, "the engine keeps its fire while auras are secret")
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
+	assert(mirror.full == false, "and takes the change once the restriction ends, still in combat")
+	Clean(env, K, "auras secret")
+end
+
 -- Frames: a row beside the stance bar.
 do
 	local env, K, ns = New("WARRIOR", { 25289, 20662, 2687 }, { frames = true })
@@ -476,7 +517,7 @@ do
 	Slots.Set(env, "player", { { id = 20050, count = 3 } })
 	local function visible()
 		local n = 0
-		for _, slot in pairs(feed.container._slots) do n = n + (slot.frame:IsVisible() and 1 or 0) end
+		for _, slot in pairs(feed.container._slots) do n = n + (Slots.Engine(env, slot.frame.IsVisible, slot.frame) and 1 or 0) end
 		return n
 	end
 	assert(visible() > 0, "Vengeance lights the jewels")
@@ -489,6 +530,22 @@ do
 	env.RunTimers()
 	assert(not feed.container._enabled, "and once combat ends the engine stops feeding them")
 	Clean(env, K, "jewels off in combat")
+end
+
+-- With auras secret, turning the jewels off and on shows the fed Vengeance gems again at once, still fed by the engine;
+-- only their tint and geometry wait.
+do
+	local env, K, ns = New("PALADIN", { 20154, 20271, 20049 })
+	local s = ns.SlabJewels.state
+	Slots.Set(env, "player", { { id = 20050, count = 3 } })
+	env._aurasSecret = true
+	env.SetCombat(true)
+	K.Options.Write("ActionBars", "crestJewels", false)
+	env.RunTimers()
+	K.Options.Write("ActionBars", "crestJewels", true)
+	env.RunTimers()
+	assert(s.jewels[1].holder:IsShown() and s.count == 5 and s.jewels[3].gem._count == 3, "the Vengeance gems show again, three lit")
+	Clean(env, K, "jewels back in combat")
 end
 
 do
@@ -659,11 +716,12 @@ end
 do
 	local env, K, ns = New("WARRIOR", { 6673 })
 	local lit = Pieces(ns)[1].lit
+	local flare = lit.awake.lit.flare
 	Slots.Set(env, "player", { { id = 6673, count = 0 } })
-	assert(lit.flare.play:IsPlaying(), "the first shout flares")
-	lit.flare.play:Stop()
+	assert(flare.play:IsPlaying(), "the first shout flares")
+	flare.play:Stop()
 	Slots.Set(env, "player", { { id = 5242, count = 0 } })
-	assert(lit:IsShown() and lit.flare.play:IsPlaying(), "another shout in the shown medal flares again")
+	assert(lit:IsShown() and flare.play:IsPlaying(), "another shout in the shown medal flares again")
 	Clean(env, K, "assigned flare")
 end
 
@@ -778,15 +836,27 @@ do
 	Clean(env, K, "frames pet family")
 end
 
--- Even pixels at four sizes.
+-- Even pixels at four sizes, and at 1080 again after a manual UI scale for every prepared choice, the hidden Stealth ones too.
 for _, size in ipairs(SIZES) do
-	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })
+	local env, K, ns = New("ROGUE", size[2] == 1080 and { 5171, 1943, 2842, 8676, 1856 } or { 5171, 1943, 2842 }, { size = size })
 	local k = size[2] / 768
 	for _, p in pairs(Pieces(ns)) do
 		for _, part in ipairs(p.parts) do
 			local w = (part:GetRight() - part:GetLeft()) * part:GetEffectiveScale() * k
 			local n = math.floor(w + 0.5)
 			assert(math.abs(w - n) < 1e-3 and n % 2 == 0, size[1] .. "x" .. size[2] .. ": even pixels, got " .. w)
+		end
+	end
+	if size[2] == 1080 then
+		K.Scale.SetAuto(false)
+		K.Scale.SetUserScale(0.62)
+		env.RunTimers()
+		for key, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
+			for _, part in ipairs(p.parts) do
+				local w = part:GetWidth() * part:GetEffectiveScale() * k
+				local n = math.floor(w + 0.5)
+				assert(math.abs(w - n) < 1e-3 and n % 2 == 0, size[1] .. "x" .. size[2] .. " at scale 0.62: " .. key .. " even pixels, got " .. w)
+			end
 		end
 	end
 	Clean(env, K, size[1] .. "x" .. size[2])

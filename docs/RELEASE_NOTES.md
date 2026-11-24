@@ -2,6 +2,10 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.3.4.5: the crest in combat (2026-11-24)
+
+While you fight, the game locks aura data, and the crest's pieces sat under Blizzard's aura buttons, so touching one of them in that state threw a "forbidden object" Lua error. Vanish or Stealth mid-fight, a stance or form swap, a poison, Lightning Shield, Inner Fire and the shaman storm clouds could all set it off. Everything the crest changes in combat now lives on its own frames, so there are no errors and every piece keeps lighting, filling and counting through the fight. Your first stance, form or Stealth switch in combat shows its medals at once, already sized, and medals snap back to whole pixels after a UI scale change. In a dungeon the crest catches up as soon as the lock lifts, not only when combat ends. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.3.4.4: aura timers clear the rim (2026-11-24)
 
 On the Medallions HUD, aura rows that grow up from the player, target and focus frames sat their bottom icons right on the edge, so the timer and stack count under them dipped into the portrait rim and lost their bottom pixels. The rows now lift by the room the timers need, so every number reads in full. Focus auras set above the frame also sat lower than the portrait's top, so their first timers hid behind it; they now sit over the portrait like the player and target rows. The preview under `/kstyle` > Unit Frames gets the same fix. Frames keeps its rows exactly where they were. The store pages and README also have fresh pictures of the crest on every class. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).

@@ -29,13 +29,24 @@ local SLOTS = { MainHand = 16, OffHand = 17 }
 local GUTTER = { { 1, 0.4, 0.07 }, { 0.4, 0.85, 0.06 }, { 0.85, 0.3, 0.08 }, { 0.3, 1, 0.1 } }
 local PULSE = { { 0.25, 1, 0.6 }, { 1, 0.25, 0.6 } }
 
+local RINGS = { "gilt", "totemEarth", "totemFire", "totemWater", "totemAir" }
 local stones, ankhs = {}, {}
 
 local function Stone(parent, spec, level, form)
 	local s
 	if form == "row" then
 		s = Medals.Medal(parent, setmetatable({ color = "gilt" }, { __index = spec }), level)
-		s.light = s.lit.icon
+		s.lit.icon:SetAlpha(0)
+		s.light = s.add(Medals.Round(s.lit.gate), s.lit.icon.units)
+		s.light:SetPoint("CENTER", s, "CENTER", 0, 0)
+		local timer = s.lit.timer
+		timer:SetAlpha(0)
+		s.rings = {}
+		for _, token in ipairs(RINGS) do
+			local ring = Medals.Mirror(s, s.lit, timer:GetFrameLevel())
+			ring.lit:SetDurationCooldown(s.add(Medals.Timer(ring.lit, timer:GetFrameLevel(), "orbRing", token), timer.units))
+			s.rings[token] = ring
+		end
 	else
 		s = Medals.Piece(parent, level, SETTING)
 		s.add(Medals.Texture(s, "BACKGROUND", 0, "glow", "black", SETTING * 1.6)):SetAlpha(0.6)
@@ -43,7 +54,7 @@ local function Stone(parent, spec, level, form)
 		s.add(Medals.Texture(s, "ARTWORK", 0, "trackerStone", "white", STONE))
 		local lit = Medals.Feed(s, spec, level + 1)
 		s.lit, s.lits[1] = lit, lit
-		s.light = Medals.Layer(lit, level + 1)
+		s.light = Medals.Layer(s, level + 1)
 		s.glow = s.add(Medals.Texture(s.light, "ARTWORK", 0, "glow", "white", SETTING * 1.6, "ADD"))
 		s.rune = s.add(Medals.Texture(s.light, "OVERLAY", 0, "trackerRune", "white", STONE, "ADD"))
 		s.rim = Medals.Layer(s, level + 2)
@@ -113,9 +124,13 @@ local function Stones()
 			else
 				s.pulse:Stop()
 			end
-		elseif element then
-			s.light:SetTexture(ns.SlabTrackers.Texture(ICONS[element]) or s.spec.texture)
-			s.lit.timer:SetSwipeColor(r, g, b)
+		else
+			if element then
+				s.light:SetTexture(ns.SlabTrackers.Texture(ICONS[element]) or s.spec.texture)
+			end
+			for token, ring in pairs(s.rings) do
+				ring:SetAlpha(token == (element or "gilt") and 1 or 0)
+			end
 		end
 		local due = element and type(left) == "number" and now and now + left / 1000 - LAST
 		if due and moving and due <= now then
