@@ -4021,7 +4021,7 @@ ns.Locale.Add({
 	["Shows your Frost, Ice or Mage Armor and its time left on the crest, grey steel when none is up."] = "Zeigt deine Frost-, Eis- oder Magische R\195\188stung und ihre Restzeit am Wappen, grauer Stahl, wenn keine aktiv ist.",
 	["Shows your Healthstone lit, cooling or gone; Demon Skin and its time before you make one."] = "Zeigt deinen Gesundheitsstein leuchtend, abklingend oder fehlend; davor D\195\164monenhaut und ihre Restzeit.",
 	["Shows your Judgement on the target and its time left on the crest's right shoulder."] = "Zeigt dein Richturteil auf dem Ziel und seine Restzeit an der rechten Wappenschulter.",
-	["Shows your Power Word: Shield, Renew and Prayer of Mending on your target in the crest's top medal."] = "Zeigt dein Machtwort: Schild, Erneuerung und Gebet der Besserung auf deinem Ziel in der oberen Medaille.",
+	["Shows your Power Word: Shield, Renew and Prayer of Mending on your target above the crest, each burning down."] = "Zeigt dein Machtwort: Schild, Erneuerung und Gebet der Besserung auf deinem Ziel \195\188ber dem Wappen, jedes brennt herunter.",
 	["Shows your Rupture or Garrote on the target and its time left on the crest's right shoulder."] = "Zeigt deine Blutung oder dein Erdrosseln auf dem Ziel und die Restzeit an der rechten Wappenschulter.",
 	["Shows your Seal and its time left in a medal above the crest."] = "Zeigt dein Siegel und seine Restzeit in einer Medaille \195\188ber dem Wappen.",
 	["Shows your Shadow Word: Pain on your target, or a healer's Prayer of Mending ready, as a top gem."] = "Zeigt dein Schattenwort: Schmerz auf deinem Ziel, oder f\195\188r Heiler die Bereitschaft von Gebet der Besserung, als oberen Edelstein.",

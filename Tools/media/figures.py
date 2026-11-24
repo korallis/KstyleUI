@@ -17,7 +17,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageChops, ImageDraw
 
-from sigils import N, Pen, additive, bezier, blur, grid
+from healer_trackers import additive, blur, grid
+from sigils import N, Pen, bezier
 
 OUT = Path(__file__).resolve().parents[2] / "Media/Textures/Figures"
 HOLY, SHADOW, BLOOD = (1.0, 0.8, 0.38), (0.62, 0.36, 1.0), (0.95, 0.16, 0.2)
