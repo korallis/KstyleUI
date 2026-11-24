@@ -265,7 +265,7 @@ do
 	assert(blade:GetParent()._applicationBar[2].interpolation == 1, "Full eases the art in")
 	secret = true
 	K.Options.Write("Medallions", "motion", "off")
-	assert(blade:GetParent()._applicationBar[2].interpolation == 1, "while the game guards its aura buttons the binding waits")
+	assert(Slots.Engine(env, blade.GetParent, blade)._applicationBar[2].interpolation == 1, "while the game guards its aura buttons the binding waits")
 	secret = false
 	env.FireEvent("PLAYER_REGEN_ENABLED")
 	assert(blade:GetParent()._applicationBar[2].interpolation == 0, "and Off takes once it lets go")

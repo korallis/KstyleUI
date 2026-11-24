@@ -66,6 +66,9 @@ local function Ring(piece, anchor, form, _, n)
 		return n + 1
 	end
 	Medals.Place(piece, anchor, 0, 0)
+	if Medals.Restricted() then
+		return n
+	end
 	for _, seat in ipairs(piece.ring) do
 		local a = rad(seat.angle)
 		seat:ClearAllPoints()
@@ -110,10 +113,10 @@ local function Motion()
 	end
 	local resting = ns.Slab.Resting()
 	local still, last = resting or not Effects.Allows("ambient"), n ~= nil and n > 0 and n <= PER
-	if last then
+	if last and not Medals.Restricted() then
 		r.fire:SetAlpha(still and 0 or DIM)
 		r.still:SetAlpha(still and DIM or 0)
-	else
+	elseif not last then
 		Medals.Still(r, still)
 	end
 	if last and not resting and Effects.Allows("pulse") then
@@ -147,7 +150,9 @@ end
 local function Paint(_, event, _, _, spellID)
 	if event == "UNIT_SPELLCAST_SUCCEEDED" then
 		if not IsSecret(spellID) and CAST[spellID] and state.fire and state.fire:IsVisible() then
-			Medals.Fire(state.fire)
+			if not Medals.Restricted() then
+				Medals.Fire(state.fire)
+			end
 			Count(CHARGES)
 		end
 	elseif event == nil or event == "UNIT_AURA" then

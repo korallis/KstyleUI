@@ -84,6 +84,9 @@ local function Ankh(parent, spec, level)
 end
 
 local function Stones()
+	if Medals.Restricted() then
+		return
+	end
 	local info = C_PaperDollInfo
 	local read = info and type(info.GetTemporaryEnchantmentInfo) == "function" and info.GetTemporaryEnchantmentInfo
 	local now = type(GetTime) == "function" and GetTime()

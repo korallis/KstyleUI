@@ -352,7 +352,7 @@ do
 end
 
 -- Inner Fire's halo leaves the last band's dimming when the charges come back, and an unreadable count drops the
--- last-flame state instead of keeping the old one.
+-- last-flame state instead of keeping the old one, the halo under the aura button once combat ends.
 do
 	local env, K, ns = New("PRIEST", PRIEST)
 	local fire = Tracker(ns, "PRIEST").built.innerFire
@@ -369,7 +369,10 @@ do
 	assert(fire.flicker:IsPlaying() and fire.fire:GetAlpha() == 0.5, "awake, the last flame flickers")
 	env._aurasSecret = true
 	Charges(16)
-	assert(not fire.flicker:IsPlaying() and fire.fire:GetAlpha() == 1, "an unreadable count drops the flicker and the dimming")
+	assert(not fire.flicker:IsPlaying() and Slots.Engine(env, fire.fire.GetAlpha, fire.fire) == 0.5, "an unreadable count drops the flicker; the dimming under the aura button waits")
+	env._aurasSecret = false
+	env.SetCombat(false)
+	assert(fire.still:GetAlpha() == 1 and fire.fire:GetAlpha() == 0, "and drops once combat ends")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

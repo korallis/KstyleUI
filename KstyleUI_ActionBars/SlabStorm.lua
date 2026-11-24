@@ -210,8 +210,10 @@ local function Motion()
 	else
 		state.flicker:Stop()
 	end
-	for _, cloud in ipairs(state.clouds) do
-		cloud:SetAlpha(last and DIM or 1)
+	if not Restricted() then
+		for _, cloud in ipairs(state.clouds) do
+			cloud:SetAlpha(last and DIM or 1)
+		end
 	end
 end
 

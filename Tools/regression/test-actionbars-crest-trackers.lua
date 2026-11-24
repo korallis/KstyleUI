@@ -501,7 +501,7 @@ do
 	Slots.Set(env, "player", { { id = 20050, count = 3 } })
 	local function visible()
 		local n = 0
-		for _, slot in pairs(feed.container._slots) do n = n + (slot.frame:IsVisible() and 1 or 0) end
+		for _, slot in pairs(feed.container._slots) do n = n + (Slots.Engine(env, slot.frame.IsVisible, slot.frame) and 1 or 0) end
 		return n
 	end
 	assert(visible() > 0, "Vengeance lights the jewels")

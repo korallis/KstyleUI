@@ -401,13 +401,17 @@ function Jewels.Update(event)
 			end
 		end
 	end
-	if waiting then
+	local held = feed ~= nil and ns.SlabMedals.Restricted()
+	if waiting or held then
 		K.Events.Register(OWNER .. ".Feed", "PLAYER_REGEN_ENABLED", Jewels.Update)
 	else
 		K.Events.Unregister(OWNER .. ".Feed", "PLAYER_REGEN_ENABLED")
 	end
 	state.feed = feed
 	Listen(class, kind)
+	if held then
+		return
+	end
 	Place(ns.Slab and ns.Slab.hub, count, feed)
 	if kind then
 		Paint(kind)

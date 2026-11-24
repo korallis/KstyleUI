@@ -170,7 +170,9 @@ function Crown.Update(event)
 			c:SetShown(on)
 			c:Listen(OWNER .. ":" .. name, on)
 			pending = not c:SetMotion(moving) or pending
-			if on then
+			if on and not Widgets.CrownOpen() then
+				pending = true
+			elseif on then
 				local r, g, b = K.Theme.ClassColor(name == "BEAR" and "DRUID" or name)
 				for _, t in ipairs(c.ring) do
 					t:SetVertexColor(r, g, b)

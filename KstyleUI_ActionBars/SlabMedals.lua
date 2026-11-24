@@ -470,6 +470,9 @@ end
 function Medals.Place(piece, anchor, x, y)
 	piece:ClearAllPoints()
 	piece:SetPoint("CENTER", anchor, "CENTER", Widgets.Snap(anchor, x), Widgets.Snap(anchor, y))
+	if Medals.Restricted() then
+		return
+	end
 	for _, part in ipairs(piece.parts) do
 		Medals.Even(part)
 	end
@@ -518,7 +521,7 @@ function Medals.Engine(pieces, on, full)
 end
 
 function Medals.Still(piece, still)
-	if piece.fire then
+	if piece.fire and not Medals.Restricted() then
 		piece.fire:SetAlpha(still and 0 or 1)
 		piece.still:SetAlpha(still and 1 or 0)
 	end
@@ -529,6 +532,9 @@ function Medals.OnRest(fn)
 end
 
 function Medals.Rest()
+	if Medals.Restricted() then
+		return
+	end
 	local still = not Effects.Allows("ambient") or ns.Slab.Resting()
 	for _, r in ipairs(rims) do
 		Medals.Still(r, still)
@@ -575,6 +581,9 @@ function Medals.Refresh(m, event)
 		return
 	end
 	if spec.feed == "enchant" then
+		if Medals.Restricted() then
+			return
+		end
 		local get = C_PaperDollInfo and C_PaperDollInfo.GetTemporaryEnchantmentInfo
 		local info = type(get) == "function" and get(spec.slot == "OffHand" and 17 or 16)
 		local id = type(info) == "table" and info.enchantID
