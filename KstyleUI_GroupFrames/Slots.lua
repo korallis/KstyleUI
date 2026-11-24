@@ -26,8 +26,6 @@ Slots.CATEGORIES = {
 }
 local CATEGORIES = Slots.CATEGORIES
 local NEUTRAL_FILTER = "HELPFUL"
-local SHIELD_WALL, FIND_MINERALS = 871, 2580
-local issecretvalue = issecretvalue or function() return false end
 
 local available = true
 local waiting = setmetatable({}, { __mode = "k" })
@@ -69,15 +67,8 @@ function Slots.Spells(text)
 end
 
 function Slots.Unavailable(category)
-	local game, big = InterfaceOverrides, C_UnitAuras and C_UnitAuras.AuraIsBigDefensive
-	if category == "EXTERNAL" then
-		return type(game) == "table" and type(game.HasExternalDefensives) == "function" and game.HasExternalDefensives() == false
-	end
-	if category ~= "BIG_DEFENSIVE" or type(big) ~= "function" then
-		return false
-	end
-	local wall, minerals = big(SHIELD_WALL), big(FIND_MINERALS)
-	return issecretvalue(wall) or issecretvalue(minerals) or not (wall == true and minerals == false)
+	local game = (category == "EXTERNAL" or category == "BIG_DEFENSIVE") and InterfaceOverrides
+	return type(game) == "table" and type(game.HasExternalDefensives) == "function" and game.HasExternalDefensives() == false
 end
 
 function Slots.Plan(slot)

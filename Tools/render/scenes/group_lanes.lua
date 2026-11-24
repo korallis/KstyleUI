@@ -96,11 +96,7 @@ return Common.Run(function()
 		setup = function(env)
 			local unitClass = env.UnitClass
 			Common.ForceScreen(env)
-			if BUFFS then
-				env.InterfaceOverrides = { HasExternalDefensives = function() return false end }
-				env.C_UnitAuras = env.C_UnitAuras or {}
-				env.C_UnitAuras.AuraIsBigDefensive = function() return false end
-			end
+			if BUFFS then env.InterfaceOverrides = { HasExternalDefensives = function() return false end } end
 			if os.getenv("RENDER_GROUP_STATUS") == "1" then
 				env.UnitHasIncomingResurrection = function(unit) return env.Secret(unit == "party1" or unit == "raid1") end
 				env.UnitIsAFK = function(unit) return env.Secret(unit == "party3" or unit == "raid3") end

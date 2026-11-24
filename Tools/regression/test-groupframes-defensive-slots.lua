@@ -15,8 +15,6 @@ for _, forever in ipairs({ true, false }) do
 	local env, K, ns = G.New({ setup = function(e)
 		e.SetQuiet(true)
 		e.InterfaceOverrides = { HasExternalDefensives = function() return not forever end }
-		e.C_UnitAuras = e.C_UnitAuras or {}
-		e.C_UnitAuras.AuraIsBigDefensive = function(id) return not forever and id == SHIELD_WALL.id end
 		e._classifies = not forever and { EXTERNAL_DEFENSIVE = true, BIG_DEFENSIVE = true } or nil
 	end })
 	G.SetRoster(env, "party", { { name = "Xso", class = "PALADIN" }, { name = "Ninja", class = "PRIEST" } })
