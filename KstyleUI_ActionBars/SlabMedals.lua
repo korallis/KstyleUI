@@ -11,7 +11,7 @@ ns.SlabMedals = Medals
 
 local SIZE, TRACK, ICON, SHADE, BURST, STEEL = 26, 4, 0.74, 1.9, 2.4, 0.45
 local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 112, 12, 10, 8, 2
-local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, ROW_SIGIL = 118, 14, 4, 30, 12
+local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, ROW_SIGIL, SIGIL = 118, 14, 4, 30, 12, 0.86
 local SEATS = {
 	left = { -1, 75.9, 24.8 }, right = { 1, 75.9, 24.8 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
 	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 67.5, 247 }, footRight = { 1, 67.5, 293 },
@@ -358,7 +358,8 @@ local function Sigil(r, button, sigil, color, size)
 	button:SetPoint("TOPLEFT", button:GetParent(), "TOPLEFT", 0, 0)
 	r.add(button, size)
 	r.add(Medals.Texture(button, "BACKGROUND", 0, "glow", "black", size * SHADE)):SetAlpha(0.7)
-	button.sigil = r.add(Medals.Texture(button, "ARTWORK", 0, "sigil" .. sigil, color, size * ICON, "ADD"))
+	r.add(Medals.Texture(button, "BACKGROUND", 1, "dot", "black", size)):SetAlpha(0.85)
+	button.sigil = r.add(Medals.Texture(button, "ARTWORK", 0, "sigil" .. sigil, color, size * SIGIL, "ADD"))
 	button.timer = Timer(button, button:GetFrameLevel() + 1, "orbRing", color)
 	button.timer:SetAllPoints(button)
 	button:SetDurationCooldown(button.timer)
@@ -382,6 +383,10 @@ function Medals.CooldownRim(parent, spec, level, form)
 	end
 	table.sort(order, function(a, b) return a == "player" and b ~= "player" end)
 	r.stack = {}
+	if row then
+		r.add(Medals.Texture(r, "BACKGROUND", 0, "dot", "medSocket", SIZE * ICON))
+		r.add(Medals.Texture(r, "BORDER", 0, "medRing", "white", SIZE))
+	end
 	local size, gap, previous = row and ROW_SIGIL or STACK, row and SIZE - 2 * ROW_SIGIL or STACK_GAP, nil
 	for i, unit in ipairs(order) do
 		local each = units[unit]
@@ -397,7 +402,7 @@ function Medals.CooldownRim(parent, spec, level, form)
 		if previous then
 			container:SetPoint("TOPLEFT", previous, "TOPRIGHT", gap, 0)
 		elseif row then
-			container:SetPoint("TOPLEFT", r, "TOPLEFT", 0, 0)
+			container:SetPoint("CENTER", r, "CENTER", 0, 0)
 		else
 			container:SetPoint("TOP", r, "CENTER", 0, -STACK_DROP)
 		end
