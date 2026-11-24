@@ -697,6 +697,20 @@ function modules.unitframes(opts)
 		local who = "the player lost " .. LOSS_SHARE.player * 100 .. "% and the target "
 		notes[#notes + 1] = who .. LOSS_SHARE.target * 100 .. "% of their health " .. LOSS_AGO .. " s ago (RENDER_LOSS)"
 	end
+	-- RENDER_ENERGY_TICK=t: an energy user's last natural tick (20 energy at 10 a second) came t seconds before the
+	-- scene's clock, through the addon's own power event, so the player bar's tick spark shows that point of its sweep.
+	local tickAgo = tonumber(os.getenv("RENDER_ENERGY_TICK") or "")
+	if tickAgo then
+		local me = env._units.player
+		env.GetPowerRegen = function() return 10, 10 end
+		me.power = me.power - 20
+		env.FireEvent("UNIT_POWER_UPDATE", "player", "ENERGY")
+		me.power = me.power + 20
+		env.FireEvent("UNIT_POWER_UPDATE", "player", "ENERGY")
+		local spark = assert(ns.Frames.Get("player").views[1].energySpark, "RENDER_ENERGY_TICK needs a player on energy below its maximum")
+		spark.group._playedAt = env._time - tickAgo
+		notes[#notes + 1] = "the last energy tick came " .. tickAgo .. " s ago (RENDER_ENERGY_TICK)"
+	end
 	if select(3, Hud.Pips()) then
 		K.Options.Write("UnitFrames", "resource.classPips", false)
 	end

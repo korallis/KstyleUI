@@ -22,6 +22,7 @@ local CAP_WORDS = { elite = L["Elite"], rareelite = L["Rare elite"], rare = L["R
 local GLOW_POINTS = { { 0, 1 }, { 0.25, 0.9 }, { 0.5, 0.55 }, { 0.8, 0.12 }, { 1, 0 } }
 Unit.GLOW_POINTS = GLOW_POINTS
 local HEALTH_STOPS = { { 0, "hostile" }, { 0.5, "neutral" }, { 1, "friendly" } }
+local ENERGY = Enum and Enum.PowerType and Enum.PowerType.Energy or 3
 
 local issecretvalue = issecretvalue or function()
 	return false
@@ -468,6 +469,7 @@ function Unit.Health(view, unit, instant)
 end
 
 function Unit.Power(view, unit, instant)
+	if view.kind == "player" then Unit.EnergyTick(view) end
 	if not view.s.power then
 		return
 	end
@@ -520,15 +522,16 @@ function Unit.Cost(view, spellID)
 	if not bar:IsShown() then bar:Show() end
 end
 
+local function StopSpark(spark)
+	if spark and spark:IsShown() then
+		spark.group:Stop()
+		spark:Hide()
+	end
+end
+
 function Unit.Spark(view, spellID)
 	local spark = view.manaSpark
-	if not (view.s.manaSpark and view.s.power) then
-		if spark and spark:IsShown() then
-			spark.group:Stop()
-			spark:Hide()
-		end
-		return
-	end
+	if not (view.s.manaSpark and view.s.power) then return StopSpark(spark) end
 	if BarPower(view) ~= ManaType() then return end
 	local cost = CostOf(spellID, ManaType())
 	if IsSecret(cost) or type(cost) ~= "number" or cost <= 0 then return end
@@ -536,6 +539,48 @@ function Unit.Spark(view, spellID)
 	spark.group:Stop()
 	spark:Show()
 	spark.group:Play()
+end
+
+local function PollEnergy(poll)
+	local power = UnitPower("player", ENERGY)
+	if issecretvalue(power) or power ~= poll.view.energyLast then Unit.EnergyTick(poll.view) end
+end
+
+function Unit.EnergyTick(view)
+	local spark, poll, tick = view.energySpark, view.energyPoll, ns.Style.TICK
+	if not (view.s.energyTick and view.s.power) or BarPower(view) ~= ENERGY then
+		view.energyLast = nil
+		Hide(poll)
+		return StopSpark(spark)
+	end
+	local power, max = UnitPower("player", ENERGY), UnitPowerMax("player", ENERGY)
+	local last, synced = view.energyLast, false
+	view.energyLast = nil
+	if issecretvalue(power) or issecretvalue(max) then
+		Hide(poll)
+	else
+		if power >= max then
+			Hide(poll)
+			return StopSpark(spark)
+		end
+		view.energyLast = power
+		local regen = GetPowerRegen and GetPowerRegen()
+		if last and power > last and not issecretvalue(regen) and type(regen) == "number" and power - last == math.floor(regen * tick + 0.5) then
+			view.energyTickAt, synced = GetTime(), true
+		end
+		if not poll then
+			poll = CreateFrame("Frame", nil, view.power)
+			poll.view = view
+			poll:SetScript("OnUpdate", PollEnergy)
+			view.energyPoll = poll
+		end
+		poll:Show()
+	end
+	if not view.energyTickAt or spark and spark:IsShown() and not synced then return end
+	spark = spark or ns.Style.Spark(view, "energySpark")
+	spark.group:Stop()
+	spark:Show()
+	spark.group:Play(false, (GetTime() - view.energyTickAt) % tick)
 end
 
 function Unit.Name(view, unit)

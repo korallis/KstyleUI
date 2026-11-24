@@ -232,7 +232,7 @@ Settings.defaults = {
 	player = Kind(true, {
 		medallionsAuras = false, medallionsAuraFilter = "buffs",
 		castbarSmooth = false, castbarChannelOverride = false, castbarChannelColor = Color("rare"), castbarTotal = false,
-		powerCost = false, powerCostColor = Color("white"), manaSpark = false, powerMana = false,
+		powerCost = false, powerCostColor = Color("white"), manaSpark = false, energyTick = true, powerMana = false,
 		powerText = "auto",
 		style = "column", combat = true, resting = true, castbarIcon = true, castbarCaps = true, castbarColor = "gold", castbarInside = true,
 		healthColor = "hud",
@@ -1508,6 +1508,7 @@ local function KindRows(schema, kind)
 		kind == "player" and { "toggle", "powerCost", L["Spell cost"], powerOn, L["While you cast, marks the power the spell will cost at the end of the fill."] },
 		kind == "player" and { "color", "powerCostColor", L["Spell cost colour"], function(s) return powerOn(s) and s.powerCost == true end, L["The colour of the spell cost mark."] },
 		kind == "player" and { "toggle", "manaSpark", L["Five-second rule"], powerOn, L["After you spend mana, a spark crosses the bar for the five seconds before regeneration resumes."] },
+		kind == "player" and { "toggle", "energyTick", L["Energy tick"], powerOn, L["Rogues and cat druids: a spark sweeps the energy bar between the two-second energy ticks."] },
 		kind == "player" and { "toggle", "powerMana", L["Mana in forms"], function(s) return powerOn(s) and K.Theme.Class() == "DRUID" end, L["Druids: shows mana in bear and cat form; the class resource bar shows the form's power."] },
 		{ "dropdown", "powerDetach", L["Power bar place"], function(s) return powerOn(s) and Settings.Form(kind) ~= "slab" end, L["In the frame, or apart below or above its bars at its own width. The frame keeps its size."], CHOICES.powerDetach },
 		{ "slider", "powerDetachWidth", L["Power bar width"], detached, L["The detached power bar's width. 0 matches the frame."] },
