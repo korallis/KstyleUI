@@ -377,11 +377,6 @@ local function installAuras(env, opts)
 		if frameType == "AuraContainer" and template == "CustomAuraContainerTemplate" then
 			frame._slots = {}
 			env._slotHosts[#env._slotHosts + 1] = frame
-			local setUnit = frame.SetUnit
-			function frame.SetUnit(self, unit)
-				setUnit(self, unit)
-				Feed(env, self)
-			end
 			function frame.AddAuraSlot(self, key, filter, options)
 				assert(type(key) == "string" and key ~= "", "slotKey must be a non-empty string.")
 				assert(not self._slots[key], "aura slot '" .. key .. "' already exists with this key.")
