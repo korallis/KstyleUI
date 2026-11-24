@@ -31,9 +31,8 @@
 -- =above gives raid frames the name above the bar first, so the row moves under the bar too.
 -- RENDER_PARTY_SIZE=3 keeps you and the first two members; RENDER_PARTY_RANGE=1 puts the second member out of range.
 -- RENDER_RAID_POWER=1 switches the raid power bar on.
--- RENDER_GROUP_BUFFS=1 is Baine's v0.3.4 report on Forever (no external defensives, Camelot/InterfaceOverrides.lua): the first
--- member has Find Minerals and the third a zone buff, and every enabled helpful indicator not limited to your auras shows it,
--- as Forever's defensive slot filters did in game.
+-- RENDER_GROUP_BUFFS=1 is Baine's v0.3.4 report: a client with no defensive classification, whose defensive slot filters
+-- admit any buff (G.Auras), gives the first member Find Minerals and the third a zone buff.
 -- RENDER_GROUP_DISPEL=1 shows the dispel highlight on the second member as the aura engine does for a Magic debuff: every texture
 -- registered with the slot shown in the Magic colour, keeping its own alpha as the options preview does.
 local Common = dofile("Tools/render/scenes/_common.lua")
@@ -97,7 +96,11 @@ return Common.Run(function()
 		setup = function(env)
 			local unitClass = env.UnitClass
 			Common.ForceScreen(env)
-			if BUFFS then env.InterfaceOverrides = { HasExternalDefensives = function() return false end } end
+			if BUFFS then
+				env.InterfaceOverrides = { HasExternalDefensives = function() return false end }
+				env.C_UnitAuras = env.C_UnitAuras or {}
+				env.C_UnitAuras.AuraIsBigDefensive = function() return false end
+			end
 			if os.getenv("RENDER_GROUP_STATUS") == "1" then
 				env.UnitHasIncomingResurrection = function(unit) return env.Secret(unit == "party1" or unit == "raid1") end
 				env.UnitIsAFK = function(unit) return env.Secret(unit == "party3" or unit == "raid3") end
@@ -362,16 +365,8 @@ return Common.Run(function()
 		end)
 	end
 	if BUFFS then
-		ns.Unit.ForEach(function(f)
-			local icon = ({ party1 = 136025, party3 = 136106 })[f.unit]
-			for i = 1, icon and f.indicators and 6 or 0 do
-				local slot = f.indicators._slots["indicator" .. i]
-				if slot.enabled and slot.filter:find("^HELPFUL") and not slot.filter:find("PLAYER", 1, true) then
-					slot.frame:Show()
-					if slot.frame._aura then slot.frame._aura.icon:SetTexture(icon) end
-				end
-			end
-		end)
+		G.Auras(env, "party1", { { id = 2580, icon = 136025 } })
+		G.Auras(env, "party3", { { id = 1, icon = 136106 } })
 	end
 	if R6 then
 		ns.Unit.ForEach(function(f)
