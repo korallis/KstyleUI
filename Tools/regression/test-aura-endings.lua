@@ -1,4 +1,4 @@
--- test-aura-endings.lua: aura timers retain a positive final second, the buff bar, plates, unit frames (player, target, focus, boss, pet, the crest fan) and party and raid frames on both HUD styles share one cached expiring colour that survives restyles (timerExpiring, 7:1 or more against the black outline), and swipe flashes can be restored.
+-- test-aura-endings.lua: aura timers retain a positive final second, the buff bar, plates, unit frames (player, target, focus, boss, pet, the crest fan) and party and raid frames on both HUD styles (Frames raid tiles have no room for one) share one cached expiring colour that survives restyles (timerExpiring, 7:1 or more against the black outline), and swipe flashes can be restored.
 local A = dofile("Tools/regression/auras_env.lua")
 local N = dofile("Tools/regression/nameplates_env.lua")
 local bands = {}
@@ -162,15 +162,19 @@ for _, style in ipairs({ "medallions", "frames" }) do
 		A.Assign(genv, assert(f, kind .. "1 has a frame").auras, "debuffs", 1)
 		genv.RunTimers()
 		local where, debuff = style .. " " .. kind, f.auras._groups.debuffs.active[1]
-		same(debuff._aura.timerOptions.textColor, where .. " frame", "white")
-		curves()
-		GK.Options.Write("GroupFrames", "auras.expiring", 6)
-		genv.RunTimers()
-		assert(curves() <= 1, where .. ": one threshold change builds at most one colour curve")
-		GK.Options.Write("GroupFrames", "auras.expiring", 0)
-		genv.RunTimers()
-		assert(not debuff._aura.timerOptions.textColor, where .. ": zero keeps one colour")
-		painted(debuff._aura.timer, "white", where .. ": with the warning off the timer")
+		if style == "frames" and kind == "raid" then
+			assert(not debuff._aura.timer, where .. ": a Frames raid tile has no room for the time left")
+		else
+			same(debuff._aura.timerOptions.textColor, where .. " frame", "white")
+			curves()
+			GK.Options.Write("GroupFrames", "auras.expiring", 6)
+			genv.RunTimers()
+			assert(curves() <= 1, where .. ": one threshold change builds at most one colour curve")
+			GK.Options.Write("GroupFrames", "auras.expiring", 0)
+			genv.RunTimers()
+			assert(not debuff._aura.timerOptions.textColor, where .. ": zero keeps one colour")
+			painted(debuff._aura.timer, "white", where .. ": with the warning off the timer")
+		end
 		local holder = genv.CreateFrame("Frame", nil, GK.Scale.Root())
 		holder:SetSize(300, 420)
 		local preview = GK.Options.Preview("GroupFrames")(holder)

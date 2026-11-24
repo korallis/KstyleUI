@@ -223,12 +223,19 @@ do
 		A.Assign(env, f.auras, "debuffs", 1)
 		env.RunTimers()
 		local p = ns.Auras.Parts(f.auras._groups.debuffs.active[1])
+		assert(not (p.timer and p.timer:IsShown()), "a Frames raid tile has no room for the time left")
+		G.SetRoster(env, "party", G.Members(4))
+		env.RunTimers()
+		local member = frame(ns, "party1")
+		A.Assign(env, member.auras, "debuffs", 1)
+		env.RunTimers()
+		local timer = ns.Auras.Parts(member.auras._groups.debuffs.active[1]).timer
 		local function flags(region) return select(3, region:GetFont()) end
-		assert(flags(p.count) == "OUTLINE" and flags(p.timer) == "OUTLINE", "counts and timers keep the thin outline by default")
+		assert(flags(p.count) == "OUTLINE" and flags(timer) == "OUTLINE", "counts and timers keep the thin outline by default")
 		write(env, K, "auras.textOutline", "THICKOUTLINE")
-		assert(flags(p.count) == "THICKOUTLINE" and flags(p.timer) == "THICKOUTLINE", "a thick outline reaches both")
+		assert(flags(p.count) == "THICKOUTLINE" and flags(timer) == "THICKOUTLINE", "a thick outline reaches both")
 		write(env, K, "auras.textOutline", "NONE")
-		assert(flags(p.count) == "" and flags(p.timer) == "", "a soft shadow drops the outline")
+		assert(flags(p.count) == "" and flags(timer) == "", "a soft shadow drops the outline")
 		write(env, K, "auras.textOutline", "OUTLINE")
 		assert(flags(p.count) == "OUTLINE", "and back")
 	end
