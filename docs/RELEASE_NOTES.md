@@ -2,6 +2,10 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.3.4.1: party frames show each buff once (2026-11-24)
+
+Thanks to Baine for spotting this. Party and raid frames could show the same buff twice on a member, like Find Minerals on a paladin or a zone buff on a priest, because the External and Big defensives indicators each picked up the member's top buff. Those two indicators only light up for real defensives, and Forever doesn't report defensives yet, so they stay empty for now and keep their place on the frame. Pick either one under Options > Party and Raid > Indicators and a note tells you it isn't available on this client. An indicator set to the buffs you choose by spell ID still shows that buff, once. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.3.4: a crest for every class (2026-11-23)
 
 Every class now has its own crest, one place to look. The crest tracks what your class watches: your buffs, what you put on the target, your procs and your cooldowns. A piece shows once you know its spell, so a low-level character sees only what it has. Every piece is on by default with its own switch under Action Bars > Slab and cooldowns, and under Frames the same pieces stand as medals in a row above the stance bar.
