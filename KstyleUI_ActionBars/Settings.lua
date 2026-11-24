@@ -531,7 +531,7 @@ function ns.Schema()
 		Crest("crestSeeds", L["Your effects on the crest"], L["Shows your damage and healing over time on your target as two medals on the crest."]),
 		Crest("crestLeaves", L["Clearcasting on the crest"], L["Blooms leaves round the inside of the crest ring while Clearcasting is up."]),
 		Crest("crestSwiftmend", L["Swiftmend and Maul on the crest"], L["Shows Swiftmend, Nature's Swiftness or Innervate ready, or Maul queued in Bear Form, as a gem."]),
-		Crest("crestMend", L["Your heals on the crest"], L["Shows your Power Word: Shield, Renew and Prayer of Mending on your target above the crest, each burning down."]),
+		Crest("crestMend", L["Your heals on the crest"], L["Shows your shield, Renew and Prayer of Mending on your target above the crest, each burning down."]),
 		Crest("crestPlague", L["Devouring Plague on the crest"], L["Shows your Devouring Plague on your target on the crest's left foot."]),
 		Crest("crestDeath", L["Shadow Word: Death on the crest"], L["Shows Shadow Word: Death cooling down and ready on the crest's right foot."]),
 		Crest("crestSilence", L["Silence on the crest"], L["Shows Silence cooling down and ready in a socket on the crest ring."]),
