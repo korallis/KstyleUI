@@ -43,6 +43,12 @@ local function ApplyMap()
 	if type(nav) == "table" then
 		Skin.Strip(nav, { children = { "overlay" } })
 		Skin.Backdrop(nav, { shape = "tile", fill = "surface", shadow = false })
+		local filter = map.WorldMapTrackingOptionsButton
+		if type(filter) == "table" then
+			filter:ClearAllPoints()
+			filter:SetPoint("TOPLEFT", nav, "TOPRIGHT", 10, 0)
+			filter:SetPoint("BOTTOMLEFT", nav, "BOTTOMRIGHT", 10, 0)
+		end
 	else
 		Log("worldMap", "NavBar is missing; skipped")
 	end

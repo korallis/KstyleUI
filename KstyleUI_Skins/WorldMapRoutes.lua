@@ -593,16 +593,9 @@ local function SearchChanged(query)
 	RefreshRoute()
 end
 
-local function Close()
-	Hide(results)
-	RefreshRoute()
-end
-
+local navOffset
 local function Dock(on)
-	local offset = type(WorldMapConstants) == "table" and Number(WorldMapConstants.NAVBAR_X_OFFSET)
-	if not offset or type(map.NavBar) ~= "table" or type(map.TitleCanvasSpacerFrame) ~= "table" then return end
-	map.NavBar:SetPoint("BOTTOMRIGHT", map.TitleCanvasSpacerFrame, "BOTTOMRIGHT", offset - (on and 186 or 0), 9)
-	return true
+	if navOffset then map.NavBar:SetPoint("BOTTOMRIGHT", map.TitleCanvasSpacerFrame, "BOTTOMRIGHT", navOffset - (on and 186 or 0), 9) end
 end
 
 local function Build()
@@ -611,18 +604,22 @@ local function Build()
 	panel:SetAllPoints(map)
 	panel:SetFrameLevel(map:GetFrameLevel() + 30)
 	search = Widgets.EditBox(panel, { width = 180, height = 28, placeholder = L["Search the map"], onChange = SearchChanged,
-		onEscape = Close, onBlur = Close, onEnter = function(query) if Plain(query, "string") ~= "" then Routes.Pick(Routes.Search(query)[1]) end end,
+		onBlur = function() Hide(results); RefreshRoute() end, onEnter = function(query) if Plain(query, "string") ~= "" then Routes.Pick(Routes.Search(query)[1]) end end,
 		onFocus = function(box) if On("services") then SearchChanged(box:GetText()) end end })
 	search.HasStickyFocus = function()
 		for _, row in ipairs(results) do
 			if row:IsVisible() and row:IsMouseOver() then return true end
 		end
 	end
-	if Dock(true) then
-		search:SetPoint("TOPLEFT", map.NavBar, "TOPRIGHT", 48, 0)
-		search:SetPoint("BOTTOMRIGHT", map.NavBar, "BOTTOMRIGHT", 228, 0)
+	if map.ScrollContainer then map.ScrollContainer:HookScript("OnMouseDown", function() search:ClearFocus() end) end
+	local nav = map.NavBar
+	navOffset = type(nav) == "table" and type(map.TitleCanvasSpacerFrame) == "table" and type(WorldMapConstants) == "table" and Number(WorldMapConstants.NAVBAR_X_OFFSET)
+	if navOffset then
+		if type(NavBar_CheckLength) == "function" then nav:HookScript("OnSizeChanged", NavBar_CheckLength) end
+		search:SetPoint("TOPLEFT", nav, "TOPRIGHT", 48, 0)
+		search:SetPoint("BOTTOMRIGHT", nav, "BOTTOMRIGHT", 228, 0)
 	else
-		search:SetPoint("TOPRIGHT", map.ScrollContainer or map, "TOPRIGHT", -12, -12)
+		search:SetPoint("BOTTOMRIGHT", map, "TOPRIGHT", 0, 4)
 	end
 	card = CreateFrame("Frame", nil, map)
 	card:SetFrameLevel(map:GetFrameLevel() + 25)
