@@ -11,7 +11,7 @@ ns.SlabMedals = Medals
 
 local SIZE, TRACK, ICON, SHADE, BURST, STEEL = 26, 4, 0.74, 1.9, 2.4, 0.45
 local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 112, 12, 10, 8, 2
-local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, ROW_SIGIL, SIGIL, ABOVE = 118, 14, 4, 30, 8, 0.86, 20
+local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, ROW_SIGIL, SIGIL, ABOVE = 118, 14, 4, 30, 12, 0.86, 20
 local SEATS = {
 	left = { -1, 75.9, 24.8 }, right = { 1, 75.9, 24.8 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
 	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 67.5, 247 }, footRight = { 1, 67.5, 293 },
@@ -366,6 +366,7 @@ local function Sigil(r, container, key, family, color, size)
 	r.add(Medals.Texture(button, "BACKGROUND", 0, "glow", "black", size * SHADE)):SetAlpha(0.7)
 	r.add(Medals.Texture(button, "BACKGROUND", 1, "dot", "black", size)):SetAlpha(0.85)
 	r.add(Medals.Texture(button, "ARTWORK", 0, "sigil" .. family.sigil, color, size * SIGIL, "ADD"))
+	r.add(Medals.Texture(button, "BORDER", 0, "medRing", "white", size))
 	button.timer = Timer(button, button:GetFrameLevel() + 1, "orbRing", color)
 	button.timer:SetAllPoints(button)
 	button:SetDurationCooldown(button.timer)
@@ -390,14 +391,9 @@ function Medals.CooldownRim(parent, spec, level, form)
 	end
 	table.sort(order, function(a, b) return a == "player" and b ~= "player" end)
 	r.sigils = {}
-	if row then
-		r.add(Medals.Texture(r, "BACKGROUND", 0, "glow", "black", SIZE * SHADE)):SetAlpha(0.7)
-		r.add(Medals.Texture(r, "BACKGROUND", 1, "dot", "medSocket", SIZE * ICON))
-		r.add(Medals.Texture(r, "BORDER", 0, "medEnamel", "steel", SIZE))
-		r.add(Medals.Texture(r, "BORDER", 1, "medRing", "white", SIZE))
-	end
 	local size = row and ROW_SIGIL or STACK
-	r.pitch, r.first, r.rise = size + (row and 1 or STACK_GAP), row and size + 1 or -STACK_DROP - size / 2, row and -size - 1 or size + STACK_GAP
+	r.pitch, r.per = size + (row and 2 or STACK_GAP), row and 10 or 3
+	r.left, r.first, r.rise = row and 0 or -r.pitch, row and 0 or -STACK_DROP - size / 2, r.pitch
 	for i, unit in ipairs(order) do
 		local each = units[unit]
 		local base = level + 5 * (#order - i)
@@ -522,7 +518,7 @@ local function Arrange(r)
 		local f = b.family
 		local on = f.known and not f.known[1] or Medals.Known(f.known or f.spells) ~= nil
 		b.container:SetAuraSlotEnabled(b.key, on)
-		b.at = on and { (n % 3 - 1) * r.pitch, r.first + floor(n / 3) * r.rise } or nil
+		b.at = on and { r.left + n % r.per * r.pitch, r.first + floor(n / r.per) * r.rise } or nil
 		if b.at then
 			b:ClearAllPoints()
 			b:SetPoint("CENTER", r, "CENTER", Widgets.Snap(r, b.at[1]), Widgets.Snap(r, b.at[2]))

@@ -642,7 +642,7 @@ do
 	assert(point == "BOTTOMLEFT" and rel == "TOPLEFT" and anchor == ns.bars.stance.buttons[1], "the row stands above the forms")
 	local cells, count = {}, 0
 	for name, piece in pairs(t.built) do
-		if name:find("Row$") and piece:IsShown() then
+		if name:find("Row$") and piece:IsShown() and name ~= "cooldownsRow" then
 			local _, _, _, x, y = piece:GetPoint(1)
 			cells[x .. "," .. y], count = name, count + 1
 		end
@@ -651,6 +651,9 @@ do
 		local x, y = ns.SlabMedals.Cell(n)
 		assert(cells[K.Widgets.Snap(t.row, x) .. "," .. K.Widgets.Snap(t.row, y)], "row cell " .. n .. " is empty or shared: a custom place() must take cell n and return n + 1")
 	end
+	local x, y = ns.SlabMedals.Cell(math.ceil(count / ns.SlabMedals.LINE) * ns.SlabMedals.LINE)
+	local _, _, _, cx, cy = cooldowns:GetPoint(1)
+	assert(cx == K.Widgets.Snap(t.row, x) and cy == K.Widgets.Snap(t.row, y), "the cooldown sigils take a line of their own above the other pieces")
 	K.Options.Write("HudStyle", "style", "medallions")
 	env.RunTimers()
 	assert(not t.row:IsShown() and t.built.seedLeft:IsShown(), "back under Medallions the crest pieces return")

@@ -172,8 +172,8 @@ do
 	assert(rim.sigils[1]:GetFrameLevel() > shock:GetFrameLevel(), "the row draws over a medal-level piece's sweep (the shaman's Shock covers the emblem there)")
 end
 
--- Under Frames a hunter's sigils and the pet's share one medal setting: anchored to the piece, never to an aura
--- container (Forever forbids anchoring to one that has groups), nine places inside the cell.
+-- Under Frames a hunter's sigils and the pet's share one strip, a line of their own: anchored to the piece, never to
+-- an aura container (Forever forbids anchoring to one that has groups), ten to a line.
 do
 	env._known[3045], env._known[19574], env._known[19263] = true, true, true
 	local families = { { spells = { 3045 }, sigil = "Volley" }, { spells = { 19263 }, sigil = "Deflect" }, { spells = { 20572 }, sigil = "Axe" },
@@ -184,15 +184,14 @@ do
 	Medals.Engine({ rim }, true, true)
 	assert(#rim.lits == 2 and rim.lits[2].container._unit == "pet" and not rim.timer, "the pet's family has its own container, and the row has no rim")
 	for i, b in ipairs(rim.sigils) do
-		assert(b.at and math.abs(b.at[1]) + 4 <= 13 and math.abs(b.at[2]) + 4 <= 13, i .. ": inside the 26-unit cell")
+		assert(b.at and b.at[1] == 14 * (i - 1) and b.at[2] == 0, i .. ": its own place along the strip, the pet's after the player's four")
+		local ring = false
+		for _, region in ipairs(b._regions) do
+			local t = region._state.Texture and region._state.Texture[1]
+			ring = ring or type(t) == "string" and t:find("Ring", 1, true) ~= nil
+		end
+		assert(ring, i .. ": each sigil wears the medals' forged ring")
 	end
-	assert(rim.sigils[5].at[1] == 0 and rim.sigils[5].at[2] == 0, "the pet's sigil takes the next place after the player's four")
-	local dressed = {}
-	for _, region in ipairs(rim._regions) do
-		local t = region._state.Texture and region._state.Texture[1]
-		if type(t) == "string" then dressed[t:match("([%w]+)%.png$") or t] = true end
-	end
-	assert(dressed.Enamel128 or dressed.Enamel256 or dressed.MedEnamel, "the cell wears a medal's enamel")
 	Slots.Set(env, "pet", { { id = 19574, count = 0, icon = 9, start = 0, duration = 18 } })
 	Slots.Set(env, "player", { { id = 3045, count = 0, icon = 8, start = 0, duration = 15 } })
 	assert(rim.sigils[5]:IsShown() and rim.sigils[1]:IsShown(), "the pet's Bestial Wrath and Rapid Fire light together")

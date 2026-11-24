@@ -231,10 +231,13 @@ local function Lay(form, name, seat, shown, order, specs)
 	for key, piece in pairs(form.pieces) do
 		piece:SetShown(shown[key] ~= nil)
 	end
-	local n = 0
+	local n, strip, over = 0, nil, 0
 	for _, key in ipairs(order) do
 		local piece, spec = shown[key], specs[key]
-		if spec.place then
+		over = piece.spires and Medals.LINE or over
+		if name == "row" and spec.seat == "cooldowns" then
+			strip = piece
+		elseif spec.place then
 			n = spec.place(piece, name == "crest" and seat or form.frame, name, Medals.Cell(n), n) or n
 		elseif name == "row" then
 			Medals.Place(piece, form.frame, Medals.Cell(n))
@@ -246,6 +249,9 @@ local function Lay(form, name, seat, shown, order, specs)
 		else
 			Medals.Place(piece, seat, Medals.Seat(spec.seat))
 		end
+	end
+	if strip then
+		Medals.Place(strip, form.frame, Medals.Cell(math.ceil(n / Medals.LINE) * Medals.LINE + over))
 	end
 end
 

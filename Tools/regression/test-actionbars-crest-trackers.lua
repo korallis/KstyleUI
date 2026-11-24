@@ -415,7 +415,7 @@ do
 		assert(count <= 5, "the row wraps at five medals a line")
 		n = n + 1
 	end
-	assert(n == 2, "eight medals stand in two lines")
+	assert(n == 3, "seven medals stand in two lines and the cooldown sigils on a line of their own")
 	Clean(env, K, "frames paladin")
 end
 
