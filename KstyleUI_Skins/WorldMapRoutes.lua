@@ -616,8 +616,9 @@ local function Build()
 	navOffset = type(nav) == "table" and type(map.TitleCanvasSpacerFrame) == "table" and type(WorldMapConstants) == "table" and Number(WorldMapConstants.NAVBAR_X_OFFSET)
 	if navOffset then
 		if type(NavBar_CheckLength) == "function" then nav:HookScript("OnSizeChanged", NavBar_CheckLength) end
-		search:SetPoint("TOPLEFT", nav, "TOPRIGHT", 48, 0)
-		search:SetPoint("BOTTOMRIGHT", nav, "BOTTOMRIGHT", 228, 0)
+		local filter = type(map.WorldMapTrackingOptionsButton) == "table" and map.WorldMapTrackingOptionsButton
+		search:SetPoint("TOPLEFT", filter or nav, "TOPRIGHT", filter and 6 or 48, 0)
+		search:SetPoint("BOTTOMRIGHT", filter or nav, "BOTTOMRIGHT", filter and 186 or 228, 0)
 	else
 		search:SetPoint("BOTTOMRIGHT", map, "TOPRIGHT", 0, 4)
 	end
