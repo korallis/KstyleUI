@@ -264,6 +264,7 @@ local NAME_GAP = Tokens.Size("gapSmall")
 local POWER_GAP = 3
 local EDGE = Tokens.Size("gapTiny")
 Geometry.MIN_ICON = MIN_ICON
+Geometry.BLOCK_SHARE = BLOCK_SHARE
 Geometry.INSET = INSET
 Geometry.LEGIBLE = LEGIBLE
 Geometry.LANE_SLOTS = LANE_SLOTS
