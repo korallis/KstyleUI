@@ -35,6 +35,8 @@
 -- admit any buff (G.Auras), gives the first member Find Minerals and the third a zone buff.
 -- RENDER_GROUP_DISPEL=1 shows the dispel highlight on the second member as the aura engine does for a Magic debuff: every texture
 -- registered with the slot shown in the Magic colour, keeping its own alpha as the options preview does.
+-- RENDER_GROUP_TIMERS=1 turns Time left on and gives the first member a debuff with 3 seconds left, coloured as the engine's
+-- expiring curve colours it.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
 local Scene = Common.Scene
@@ -338,6 +340,21 @@ return Common.Run(function()
 				local button = f.auras._groups.debuffs.frames[1]
 				button._aura.icon:SetTexture(135813)
 				if A.Dispel then A.Dispel(button, "Magic") end
+			end
+		end)
+	end
+	if os.getenv("RENDER_GROUP_TIMERS") == "1" then
+		local A = dofile("Tools/regression/auras_env.lua")
+		K.Options.Write("GroupFrames", "auras.timers", true)
+		env.RunTimers()
+		ns.Unit.ForEach(function(f)
+			if f.unit == "party1" or f.unit == "raid1" then
+				A.Assign(env, f.auras, "debuffs", 1)
+				local aura = f.auras._groups.debuffs.active[1]._aura
+				aura.icon:SetTexture(135813)
+				aura.timer:SetText("3s")
+				local ink = aura.timerOptions.textColor
+				if ink then aura.timer:SetTextColor(ink.curve.points[3 < ink.curve.points[2].x and 1 or 2].color:GetRGBA()) end
 			end
 		end)
 	end

@@ -509,7 +509,7 @@ local function StyleIcon(button)
 	local tips = Tips(p)
 	local zoom = IconZoom(p.buff and "buff" or p.group)
 	if p.styledCursor == a.tipCursor and p.styledCountX == a.countX and p.styledCountY == a.countY and p.styledTimerX == a.timerX and p.styledTimerY == a.timerY
-		and p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and p.styledStacks == a.stacks and p.styledTimers == a.timers and p.styledTimerSize == a.timerSize and p.styledZoom == zoom and p.styledTips == tips and p.styledTipCombat == a.tipCombat and p.styledOutline == a.textOutline and (not mark or p.styledPriority == MarkLift(p.group)) then
+		and p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and p.styledStacks == a.stacks and p.styledTimers == a.timers and p.styledExpiring == a.expiring and p.styledTimerSize == a.timerSize and p.styledZoom == zoom and p.styledTips == tips and p.styledTipCombat == a.tipCombat and p.styledOutline == a.textOutline and (not mark or p.styledPriority == MarkLift(p.group)) then
 		return
 	end
 	local moved = p.styledSize ~= size or p.styledBorder ~= border or p.styledCountX ~= a.countX or p.styledCountY ~= a.countY
@@ -533,7 +533,10 @@ local function StyleIcon(button)
 		local timer = p.timer or Widgets.Fitted(Widgets.FontString(p.textFrame, "OVERLAY"))
 		Style.SetFont(timer, text.healthFont, TimerSize(size), a.textOutline)
 		PlaceTimer(timer, p.skin)
-		if not (p.timer and p.styledTimers) then button:SetDurationText(timer) end
+		if not (p.timer and p.styledTimers and p.styledExpiring == a.expiring) then
+			local ink = Widgets.Duration.ExpiringColor(a.expiring, "white")
+			button:SetDurationText(timer, ink and { textColor = ink } or nil)
+		end
 		p.timer = timer
 		timer:Show()
 	elseif p.timer and p.styledTimers then
@@ -560,7 +563,7 @@ local function StyleIcon(button)
 			p.markBack:Hide()
 		end
 	end
-	p.styledFont, p.styledSwipe, p.styledStacks, p.styledTimers, p.styledTimerSize = text.healthFont, a.swipe, a.stacks, a.timers, a.timerSize
+	p.styledFont, p.styledSwipe, p.styledStacks, p.styledTimers, p.styledTimerSize, p.styledExpiring = text.healthFont, a.swipe, a.stacks, a.timers, a.timerSize, a.expiring
 	p.styledZoom, p.styledTips, p.styledTipCombat, p.styledOutline = zoom, tips, a.tipCombat, a.textOutline
 	p.styledCursor, p.styledCountX, p.styledCountY, p.styledTimerX, p.styledTimerY = a.tipCursor, a.countX, a.countY, a.timerX, a.timerY
 	p.styledR, p.styledG, p.styledB = ar, ag, ab
@@ -607,7 +610,7 @@ local function StyleGroup(container, key)
 	local ar, ag, ab = Style.Accent()
 	local count = container:GetAuraGroupFrameCount(key)
 	local inputs = { styleGeneration, size, spacing, block.columns, block.rows, k.auraGrowth, k.auraWrap, k.buffCount, cfg.text.healthFont, cfg.auras.swipe, Widgets.Border(f), ar, ag, ab, MarkLift(key), f.debuffChip ~= nil, k.buffSize, row and row.width or false, row and row.height or false, row and row.side or false, cfg.auras.typeLetters, cfg.auras.stacks, cfg.auras.timers, cfg.auras.timerSize, cfg.auras.zoom, cfg.auras.tooltips, cfg.buffs.tooltips, cfg.auras.tipCombat, cfg.auras.textOutline, IconKey(),
-		cfg.auras.zoomEach, cfg.auras.bossZoom, cfg.buffs.zoom, cfg.auras.tipCursor, cfg.auras.countX, cfg.auras.countY, cfg.auras.timerX, cfg.auras.timerY }
+		cfg.auras.zoomEach, cfg.auras.bossZoom, cfg.buffs.zoom, cfg.auras.tipCursor, cfg.auras.countX, cfg.auras.countY, cfg.auras.timerX, cfg.auras.timerY, cfg.auras.expiring }
 	local groups = styledGroups[container]
 	local old = groups and groups[key]
 	local changed = f.auraInputsDirty or not old or old.count ~= count

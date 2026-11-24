@@ -511,6 +511,7 @@ function U.Install(env)
 		end
 	end
 	env.Enum.StatusBarTimerDirection = { ElapsedTime = 0, RemainingTime = 1 }
+	env.Enum.DurationTextBindingProperty = { RemainingDuration = 0, RemainingPercent = 1 }
 	env.Enum.CustomAuraButtonDispelTypeTextureStyle = { Border = 0, BorderWithIcon = 1, Icon = 2, PreserveAsset = 3, CustomAsset = 4 }
 	env.Enum.CustomAuraButtonDispelTypeStealableFilter = { Stealable = 0, NotStealable = 1 }
 	function env.CreateColor(r, g, b, a)

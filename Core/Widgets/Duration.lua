@@ -25,7 +25,7 @@ function Duration.ExpiringColor(expiring, base)
 		local c = util.CreateColorCurve()
 		c:SetType(E.LuaCurveType.Step)
 		c:AddPoint(0, CreateColor(ns.Tokens.Color("timerExpiring")))
-		c:AddPoint(expiring, base and CreateColor(base.r, base.g, base.b) or CreateColor(ns.Tokens.Color("timerText")))
+		c:AddPoint(expiring, type(base) == "table" and CreateColor(base.r, base.g, base.b) or CreateColor(ns.Tokens.Color(base or "timerText")))
 		return c
 	end)
 	if ok then

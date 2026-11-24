@@ -299,7 +299,7 @@ local function Live(d, values)
 end
 for _, kind in ipairs(KINDS) do
 	Live(Settings.defaults[kind], { buffStealable = "", buffDefensive = "", buffDispellable = "", auraHidden = "", auraTracked = "",
-		auraTimed = false, auraHideLockout = false, auraTrackedOnly = false, auraRowGap = 0, auraPrecise = 0, castbarFit = false, castbarIconSize = 0, auraLists = "",
+		auraTimed = false, auraHideLockout = false, auraTrackedOnly = false, auraRowGap = 0, auraPrecise = 0, auraExpiring = 5, castbarFit = false, castbarIconSize = 0, auraLists = "",
 		castbarTargetPlace = "", castbarTargetSize = 0, castbarTargetX = 0, castbarTargetY = 0, castbarTargetColor = Color("textEmphasis"), auraBuffPlace = "", auraBuffX = 0, auraBuffY = 0 })
 end
 for kind in pairs(Settings.AURAS) do Live(Settings.defaults[kind], { auraTrackedDebuffs = false }) end
@@ -512,7 +512,7 @@ local function IsNumber(v)
 	return not (issecretvalue and issecretvalue(v)) and type(v) == "number" and v == v
 end
 
-RANGES.auraRowGap, RANGES.auraPrecise = { 0, AURA_SPACING_MAX }, { 0, PRECISE_MAX }
+RANGES.auraRowGap, RANGES.auraPrecise, RANGES.auraExpiring = { 0, AURA_SPACING_MAX }, { 0, PRECISE_MAX }, { 0, 30 }
 CHOICES.lane = Options({ { "", L["Show all"] }, { "only", L["Only these"] }, { "hide", L["Hide these"] } })
 CHOICE_OF.buffStealable, CHOICE_OF.buffDefensive, CHOICE_OF.buffDispellable = "lane", "lane", "lane"
 
@@ -546,7 +546,7 @@ function Settings.AuraKey(kind, key)
 end
 
 local AURA_LOOK = { auraSize = "simple", auraPosition = false, auraSpacing = true, auraRows = "simple", auraColumns = true,
-	auraGrowth = true, auraTimer = true, auraZoom = true, auraBuffZoom = true, auraTooltipCombat = true, auraRowGap = true, auraPrecise = true }
+	auraGrowth = true, auraTimer = true, auraZoom = true, auraBuffZoom = true, auraTooltipCombat = true, auraRowGap = true, auraPrecise = true, auraExpiring = true }
 Settings.AURA_LOOK = AURA_LOOK
 local LISTS = { auraHidden = true, auraTracked = true, auraTrackedOnly = true, auraTrackedDebuffs = true }
 Settings.LISTS = LISTS
@@ -1114,6 +1114,8 @@ local function FilterRows(schema, kind, on, own)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraPrecise", label = L["Precise timers below (minutes)"],
 		help = L["Timers under this many minutes show minutes and seconds, such as 4m 32s. 0 keeps the short form."],
 		min = 0, max = PRECISE_MAX, step = 1 }, function(s) return own(s) and s.auraTimer ~= false end)
+	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraExpiring", label = L["Warn under"],
+		help = L["Seconds left when a timer turns red. 0 turns the warning off."], min = 0, max = 30, step = 1 }, function(s) return own(s) and s.auraTimer ~= false end)
 end
 
 AuraRows = function(schema, kind)

@@ -506,9 +506,9 @@ local SIGIL_DEBUFFS = { { 132155, "18s" }, { 132363, "9s", "3" }, { 132316, "4s"
 local function sigilSockets(env, K, ns, view, list)
 	list = list or SIGIL_DEBUFFS
 	local a = view.auras
+	local Engine = dofile("Tools/regression/aura_fixture_engine.lua")
 	if a and K.HudStyle.Current() == "medallions" then
 		if ns.Fan.Wanted(view) then K.Options.Write("UnitFrames", "target.auraFilter", "debuffs") end
-		local Engine = dofile("Tools/regression/aura_fixture_engine.lua")
 		local count = tonumber(os.getenv("RENDER_CREST_DEBUFFS")) or #list
 		local icons = { 135813, 136026, 136207, 136197, 136118, 136016, 136048 }
 		local fixtures = {}
@@ -538,6 +538,7 @@ local function sigilSockets(env, K, ns, view, list)
 				button:SetSize(size, size)
 				entry.icon:SetTexture(env.Secret(list[i][1]))
 				Widgets.SetText(entry.timer, list[i][2])
+				Engine.Ink(button._aura, tonumber(list[i][2]:match("^(%d+)s$")))
 				Widgets.SetText(entry.count, list[i][3] or "")
 			end
 		end

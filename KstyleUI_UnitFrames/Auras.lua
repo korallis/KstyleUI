@@ -414,10 +414,11 @@ function Auras.Spacing(kind)
 end
 
 function Auras.Precise(view, entry)
-	local f = view.auras.formatter
-	if entry.precise ~= f then
-		entry.precise = f
-		entry.button:SetDurationText(entry.timer, f and { textFormatter = f } or nil)
+	local f, warn = view.auras.formatter, view.auras.warn or 0
+	if entry.precise ~= f or entry.warn ~= warn then
+		entry.precise, entry.warn = f, warn
+		local ink = Widgets.Duration.ExpiringColor(warn, "textEmphasis")
+		entry.button:SetDurationText(entry.timer, (f or ink) and { textFormatter = f, textColor = ink } or nil)
 	end
 end
 
@@ -1018,7 +1019,7 @@ function Auras.Apply(view)
 	end
 	a.container:SetEnabled(want and true or false)
 	if a.buff and not want then a.buff.container:SetEnabled(false) end
-	a.assist, a.formatter = nil, Formatter(Value(view, "auraPrecise"))
+	a.assist, a.formatter, a.warn = nil, Formatter(Value(view, "auraPrecise")), Value(view, "auraExpiring")
 	local fan = ns.Fan.Apply(view, Active(view))
 	if want then
 		K.Call(ApplyContainer, view, fan)
