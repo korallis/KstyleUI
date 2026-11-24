@@ -53,8 +53,8 @@ for _, case in ipairs({ { "WARRIOR" }, { "ROGUE" }, { "WARRIOR", "frames" } }) d
 	assert(#W.Calls(other.cooldown, "SetCooldownFromDurationObject") == untouched, label .. ": another spell's button is left alone")
 	local form = Cost(env, function() env.FireEvent("UPDATE_SHAPESHIFT_FORM") end, 3500, 2,
 		label .. ": UPDATE_SHAPESHIFT_FORM re-sets action icons as Blizzard's ActionButton does and leaves unchanged jewels and crown pips alone; Crown.Update returns early as Jewels.Update does (staging: 7 widget calls for a rogue)")
-	local target = Cost(env, function() env.FireEvent("PLAYER_TARGET_CHANGED") end, 3100, 0,
-		label .. ": PLAYER_TARGET_CHANGED with the combo points and pet actions unchanged rewrites no crest jewel and no pet button; Points(event) returns on the same count and UpdatePet(b, nil, true) writes only what changed (staging: 167 widget calls for a rogue, 40 for a warrior)")
+	local target = Cost(env, function() env.FireEvent("PLAYER_TARGET_CHANGED") end, 3160, 0,
+		label .. ": PLAYER_TARGET_CHANGED with the combo points and pet actions unchanged rewrites no crest jewel and no pet button; Points(event) returns on the same count and UpdatePet(b, nil, true) writes only what changed, and the crest's target lock only asks whether the new target is hostile (staging: 167 widget calls for a rogue, 40 for a warrior; 3098 instructions before the target lock)")
 	local pips, shown = ns.SlabCrown.state.pips, 0
 	for _, p in ipairs(pips) do shown = shown - #W.Calls(p.frame, "SetShown") end
 	env.FireEvent("PLAYER_ENTERING_WORLD")

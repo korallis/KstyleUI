@@ -24,6 +24,7 @@
 	<Script file="SlabStormforged.lua"/>
 	<Script file="SlabCrown.lua"/>
 	<Script file="SlabRanged.lua"/>
+	<Script file="SlabTarget.lua"/>
 	<Script file="Totems.lua"/>
 	<Script file="Bindings.lua"/>
 	<Script file="Keybind.lua"/>

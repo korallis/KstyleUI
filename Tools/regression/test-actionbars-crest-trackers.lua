@@ -111,7 +111,7 @@ do
 	ns.SlabMedals.Rest()
 	assert(rim.fire:GetAlpha() == (ns.Slab.Resting() and 0 or 1), "the fire follows the crest's rest")
 	assert(Updating(ns.SlabTrackers.state.forms.crest.frame) == 0, "nothing runs OnUpdate")
-	for _, key in ipairs({ "crestShout", "crestOpening", "crestEnrage", "crestCooldowns", "crestThreat", "crestHipLeft", "crestHipRight", "crestFootLeft", "crestFootRight", "crestTankGlow" }) do
+	for _, key in ipairs({ "crestShout", "crestOpening", "crestEnrage", "crestCooldowns", "crestThreat", "crestHipLeft", "crestHipRight", "crestFootLeft", "crestFootRight", "crestTankGlow", "crestKill" }) do
 		K.Options.Write("ActionBars", key, false)
 	end
 	env.RunTimers()
@@ -405,7 +405,7 @@ do
 	env.RunTimers()
 	local lines = {}
 	for _, piece in pairs(form.pieces) do
-		if piece:IsVisible() then
+		if piece:IsVisible() and piece.spec.key ~= "crestKill" then
 			local _, y = piece:GetCenter()
 			lines[math.floor(y + 0.5)] = (lines[math.floor(y + 0.5)] or 0) + 1
 		end
