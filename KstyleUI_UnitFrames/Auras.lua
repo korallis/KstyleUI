@@ -832,7 +832,7 @@ local function Group(view, container, key, filter, slot, on, method, direction)
 end
 
 local function Flow(container, host, kind)
-	local width, height, corner, line, growth = Auras.Footprint(kind, host)
+	local width, height, corner, line, growth, lift = Auras.Footprint(kind, host)
 	local directions = AnchorUtil and AnchorUtil.FlowDirection
 	container:SetFlowLayoutAnchorPoint(corner)
 	if directions then
@@ -841,11 +841,8 @@ local function Flow(container, host, kind)
 	container:SetFlowLayoutMaximumLineSize(line)
 	host:SetSize(width, height)
 	container:ClearAllPoints()
-	if Centred(kind) then
-		container:SetPoint("TOP", host, "TOP", 0, 0)
-	else
-		container:SetPoint(corner, host, corner, 0, 0)
-	end
+	local point = Centred(kind) and "TOP" or corner
+	container:SetPoint(point, host, point, 0, lift)
 end
 
 local function BuffBlock(view)
@@ -959,15 +956,15 @@ function Auras.Footprint(kind, frame)
 	if Centred(kind) then
 		growth = GROWTH.RIGHT_DOWN
 	end
-	return math.max(1, line), math.max(1, height), growth[1], line, growth
+	return math.max(1, line), math.max(1, height), growth[1], line, growth, growth[3] == "Up" and K.HudStyle.Current() == "medallions" and timerRoom or 0
 end
 
 function Auras.Anchor(host, frame, kind, panelX, spot, buff)
 	local position = POSITION[Settings.Value(kind, buff and "auraBuffPlace" or "auraPosition")] or POSITION.BELOW
 	local dx, dy = Off(host, Settings.Value(kind, buff and "auraBuffX" or "auraX")), Off(host, Settings.Value(kind, buff and "auraBuffY" or "auraY"))
 	host:ClearAllPoints()
-	if spot and spot.outer and Settings.AuraRows(kind) and Settings.Value(kind, "auraPosition") == "ABOVE" then
-		local side = kind == "target" and "RIGHT" or "LEFT"
+	if spot and spot.outer and Settings.Value(kind, "auraPosition") == "ABOVE" then
+		local side = spot.right and "RIGHT" or "LEFT"
 		host:SetPoint("BOTTOM" .. side, frame, "TOPLEFT", Widgets.Snap(host, spot.x) + dx, dy - Widgets.Snap(host, spot.y))
 		return
 	end

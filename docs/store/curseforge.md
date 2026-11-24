@@ -2,7 +2,7 @@
 
 Paste the blocks below into the authors console. The research, the proposed TOC lines, and the owner's steps are in [RESEARCH.md](RESEARCH.md) and [CHECKLIST.md](CHECKLIST.md).
 
-The hero picture is in-game. The clips and the two HUD pictures are test renders of this addon over in-game screenshots, the same ones the README shows. Say that in the gallery captions. CurseForge asks for a visible note when a showcase picture could be read as something the addon does not do. These renders are the addon. The captions say which are which.
+The hero picture is in-game. The clips and the HUD pictures are test renders of this addon over in-game screenshots, the same ones the README shows. Say that in the gallery captions. CurseForge asks for a visible note when a showcase picture could be read as something the addon does not do. These renders are the addon. The captions say which are which.
 
 ## Project name
 
@@ -44,6 +44,14 @@ KstyleUI swaps the default UI for one dark forged style, the same on your bars, 
 
 Every picture below is a test render of the addon over my own in-game screenshots. Icons in these pictures are the optional AI-made icon pack, not art shipped in the addon.
 
+![KstyleUI test render over an in-game screenshot: warrior, bear druid, priest and warlock crests lighting up with their buffs, procs and debuffs while cooldowns burn round the rim](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/trackers.gif)
+
+*Every class's crest now carries the stuff you'd normally hunt for all over the screen: your buffs, procs, your debuffs on the target, and big cooldowns burning round the rim. One place to look.*
+
+![KstyleUI test render over an in-game screenshot of the Frames look: a warrior's crest trackers above the stance bar](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frames_medals.jpg)
+
+*On Frames the trackers sit above your stance bar. Choose which trackers to show in `/kstyle`.*
+
 ![KstyleUI test render over an in-game screenshot: the Medallions HUD for nine classes in turn, each with its own crest](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/classes.gif)
 
 *Every class gets its own crest, and most of them get a crown on top.*
@@ -68,9 +76,9 @@ Every picture below is a test render of the addon over my own in-game screenshot
 
 *The whole thing in Medallions. Your RestedXP or Zygor guide sits top left and your quests sit on the right under the map.*
 
-![KstyleUI test render over an in-game screenshot of the middle of the Medallions HUD: lit glass bars and forged steel ends on the player and target frames](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_hud_finish.jpg)
+![KstyleUI test render over an in-game screenshot of the middle of the Medallions HUD: the player and target frames with lit glass bars, docked into the crest](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_hud_finish.jpg)
 
-*Every bar has a lit glass finish now, and the Medallions frames end in forged steel caps.*
+*Every bar has a lit glass finish, and the Medallions frames dock right into the crest.*
 
 ![KstyleUI test render over an in-game screenshot: the action bars and player frame fading back out of combat, then snapping back when a target is picked](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/rest.gif)
 
@@ -141,20 +149,22 @@ The TOC says `## X-License: All Rights Reserved`, and [LICENSE.md](../../LICENSE
 
 ## Gallery
 
-CurseForge's submission guide tells you to add in-game screenshots on the Images tab, and moderation requires at least one gallery image. Neither that guide nor the authors console publishes a gallery pixel size. These files are the README's own pictures and clips. The hero is half of `docs/media/readme/game_medallions_hero.jpg` (5120×1440 down to 2560×720) so the page is not handed a 5K file. Stills are JPEG and the clips are GIFs under 1.5 MB each. The console's image file control accepts `.png`, `.jpg`, `.jpeg`, `.gif` and `.webp`.
+CurseForge's submission guide tells you to add in-game screenshots on the Images tab, and moderation requires at least one gallery image. Neither that guide nor the authors console publishes a gallery pixel size. These files are the README's own pictures and clips. The hero is half of `docs/media/readme/game_medallions_hero.jpg` (5120×1440 down to 2560×720) so the page is not handed a 5K file. Stills are JPEG and the clips are GIFs under 2.5 MB each, below the 3 MB that CurseForge accepts. The console's image file control accepts `.png`, `.jpg`, `.jpeg`, `.gif` and `.webp`.
 
 Upload in this order. Title, then caption. CurseForge captions are 256 characters at most.
 
 | File | Pixels | Title | Caption |
 | --- | --- | --- | --- |
-| `gallery/01-medallions-hero.jpg` | 2560×720 | Medallions on an ultrawide screen | In-game screenshot: the Medallions HUD on a 5120 by 1440 screen, in Tirisfal Glades. Chat and distant player names are blurred. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/01-medallions-hero.jpg` | 2560×720 | Medallions on an ultrawide screen | In-game screenshot: the Medallions HUD on a 5120 by 1440 screen, in Shen'dar Village. Other players' names and chat are blurred. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/02-classes.gif` | 800×293 | A crest for every class | KstyleUI test render over an in-game screenshot: the Medallions HUD for nine classes in turn, each with its own crest. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/03-crowns.gif` | 800×494 | Crown of blades and claws | KstyleUI test render over an in-game screenshot: a rogue's crown of blades and a cat druid's claws fill with combo points, then a finisher slashes them out. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/04-crowns-more.gif` | 800×494 | Class crowns | KstyleUI test render over an in-game screenshot: warrior banners, priest candles, mage shards, hunter arrows and bear talons fill as their stacks build. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/05-shaman.gif` | 800×494 | Totems and Lightning Shield | KstyleUI test render over an in-game screenshot: the shaman's totem bar on the crest, then Lightning Shield's storm orbs, each throwing a bolt as its charge is spent. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/06-hawks.gif` | 800×494 | Hawk perches | KstyleUI test render over an in-game screenshot: a hunter's hawk perches on the crest ring, each with a timer for its hawk. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/03-crowns.gif` | 800×620 | Crown of blades and claws | KstyleUI test render over an in-game screenshot: a rogue's crown of blades and a cat druid's claws fill with combo points, then a finisher slashes them out. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/04-crowns-more.gif` | 800×620 | Class crowns | KstyleUI test render over an in-game screenshot: warrior banners, priest candles, mage shards, hunter arrows and bear talons fill as their stacks build. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/05-shaman.gif` | 800×620 | Totems and Lightning Shield | KstyleUI test render over an in-game screenshot: the shaman's totem bar on the crest, then Lightning Shield's storm orbs, each throwing a bolt as its charge is spent. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/06-hawks.gif` | 800×620 | Hawk perches | KstyleUI test render over an in-game screenshot: a hunter's hawk perches on the crest ring, each with a timer for its hawk. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/07-hud.jpg` | 1920×1080 | The whole HUD | KstyleUI test render over an in-game screenshot of the whole HUD on a 1920 by 1080 screen: the guide card top left, the quests on the right under the map. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/08-frames.jpg` | 1200×675 | The Frames look | KstyleUI test render over an in-game screenshot of the Frames look on a 1920 by 1080 screen: the target's card stacked over the player's above the action bars. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/09-rest.gif` | 800×261 | Clean screen at rest | KstyleUI test render over an in-game screenshot: out of combat with no target, the bars and player frame fade back, then a target brings them straight back. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/10-casts.gif` | 800×264 | Who a cast is aimed at | KstyleUI test render over an in-game screenshot: the cast bar names the target or says YOU, shields casts you can't interrupt and marks your interrupt coming back. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/11-map.gif` | 800×611 | Routes and nearest services | KstyleUI test render over an in-game screenshot with the game's map art: a road and zeppelin route to the Undercity, then the Nearest picker. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/11-map.gif` | 800×634 | Routes and nearest services | KstyleUI test render over an in-game screenshot with the game's map art: a road and zeppelin route to the Undercity, then the Nearest picker. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/12-trackers.gif` | 800×620 | Everything on the crest | KstyleUI test render over an in-game screenshot: warrior, bear, priest and warlock crests light up with buffs, procs and debuffs while cooldowns burn round the rim. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/13-frames-medals.jpg` | 1600×468 | Crest pieces on Frames | KstyleUI test render over an in-game screenshot of the Frames look: a warrior's crest trackers above the stance bar. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |

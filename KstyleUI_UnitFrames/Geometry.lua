@@ -664,8 +664,9 @@ local function SlabFrame(out, s, width, height, scale)
 	elseif spec.extra == "caption" then
 		out.caption = Rect(extraX, y, extraW, rowH)
 	end
-	if s.rowsAbove and s.auraPosition == "ABOVE" then
-		out.aura = { outer = true, x = right and out.medal.x + out.medal.w or out.medal.x, y = out.medal.y - 8 }
+	if (s.rowsAbove or s.auras) and s.auraPosition == "ABOVE" then
+		local x = s.rowsAbove and (right and out.medal.x + out.medal.w or out.medal.x) or 0
+		out.aura = { outer = true, right = s.rowsAbove and right, x = x, y = out.medal.y - 8 }
 	elseif s.auras and s.auraPosition == "SIDE" then
 		local line = s.auraColumns * s.auraSize + (s.auraColumns - 1) * s.auraSpacing
 		out.aura = Rect(right and left + barW - line or left, -(s.auraSize + SLAB_PAD.auraGap), 0, 0)
