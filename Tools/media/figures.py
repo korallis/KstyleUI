@@ -118,6 +118,15 @@ def Shield(p):
     cut(p, lambda h: h.poly((0.27, 0.18), (0.73, 0.18), (0.73, 0.46), (0.64, 0.62), (0.5, 0.8), (0.36, 0.62), (0.27, 0.46), width=0.05))
 
 
+@figure(HOLY)
+def Dome(p):
+    p.arc(0.5, 0.82, 0.44, 180, 360, width=0.07)
+    p.line((0.04, 0.82), (0.96, 0.82), width=0.05)
+    p.arc(0.5, 0.82, 0.3, 200, 340, width=0.035)
+    p.curve(lambda t: (0.5 + 0.18 * math.cos(t), 0.82 - 0.44 * math.sin(t)), 0, math.pi, width=0.035)
+    p.dot(0.34, 0.5, 0.04)
+
+
 @figure(NATURE)
 def Renew(p):
     tapered(p, lambda t: (0.5 + 0.06 * math.sin(3 * t), 0.95 - 0.84 * t), 0.08, 0.02)

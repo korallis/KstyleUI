@@ -23,7 +23,7 @@ local DEATH, SILENCE = { 1309636, 1309635, 1309633, 1309595 }, { 15487 }
 local OILS, OILED = { 20744, 20745, 20746, 20747, 20748, 20749, 20750 }, {}
 for _, id in ipairs({ 2623, 2624, 2625, 2626, 2627, 2628, 2629, 2685 }) do OILED[id] = true end
 local FLAMES, PER, CHARGES, DIM = { 315, 225, 135, 45 }, 5, 20, 0.5
-local ORBIT, FLAME, STUD, WELL, PIN, MEND = 54, 26, 12, 10, 4, 20
+local ORBIT, FLAME, STUD, WELL, PIN, PERCH, FOOT = 54, 26, 12, 10, 4, 30, 22
 local FLICKER = { { 1, 0.45, 0.06 }, { 0.45, 0.9, 0.05 }, { 0.9, 0.35, 0.07 }, { 0.35, 1, 0.08 } }
 
 local CAST = {}
@@ -33,7 +33,7 @@ local state = {}
 
 local function Fire(parent, spec, level, form)
 	if form == "row" then
-		return Medals.Figure(parent, { feed = "aura", spells = INNER_FIRE, figure = "trackerFlame", charges = CHARGES, burst = spec.burst }, level)
+		return Medals.Figure(parent, { feed = "aura", spells = INNER_FIRE, figure = "trackerFlame", charges = CHARGES, burst = spec.burst, bare = true, bloom = "jewelHoly" }, level)
 	end
 	local r = Medals.Rim(parent, { feed = "aura", spells = INNER_FIRE, ambient = "medAmbientPriest", burst = spec.burst, lua = true }, level)
 	local modes = Enum and Enum.StatusBarInterpolation or {}
@@ -89,9 +89,27 @@ local function ShadowOnly(spells)
 	return function() return Shadow() and Medals.Known(spells) end
 end
 
-local function Mend(spells, figure, x, y)
-	return { key = "crestMend", seat = { x, y }, size = MEND, build = Medals.Figure, known = Healer(spells == MENDED and MENDING or spells),
-		feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = spells, figure = figure }
+local function Mend(spells, figure, seat, size, bloom)
+	return { key = "crestMend", seat = seat, size = size, build = Medals.Figure, known = Healer(spells == MENDED and MENDING or spells),
+		feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = spells, figure = figure, bare = true, bloom = bloom,
+		alpha = size > 60 and 0.6 or nil }
+end
+
+local function Flood(parent, spec, level, form)
+	if form == "row" then
+		return Medals.Figure(parent, { feed = "aura", spells = SHADOWFORM, figure = "figureShroud", steady = true, bare = true, bloom = "schoolShadow" }, level)
+	end
+	local hub = ns.Slab.hub
+	local f = Medals.Piece(parent, level, ns.Slab.RING)
+	local tint = f:CreateTexture(nil, "ARTWORK")
+	tint:SetTexture(hub.crestPath)
+	tint:SetAllPoints(hub.crest)
+	tint:SetVertexColor(K.Tokens.Color("schoolShadow"))
+	tint:SetBlendMode("BLEND")
+	tint:SetAlpha(0.45)
+	f.add(Medals.Texture(f, "BACKGROUND", 0, "glow", "schoolShadow", ns.Slab.RING * 1.5, "ADD")):SetAlpha(0.8)
+	f.add(Medals.Texture(f, "OVERLAY", 0, "medRuneGlyphs", "schoolShadow", ns.Slab.RING, "ADD"))
+	return f
 end
 
 local function Oil()
@@ -164,23 +182,25 @@ end
 
 ns.SlabTrackers.Register("PRIEST", {
 	{ key = "crestInnerFire", seat = "rim", feed = "aura", spells = INNER_FIRE, build = Fire, place = Ring },
-	{ key = "crestPenance", seat = "left", feed = "cooldown", build = Medals.Figure, choices = {
-		{ known = Healer(PENANCE), figure = "figureLance" },
-		{ known = MIND_BLAST, figure = "figureMindOrb" },
+	{ key = "crestPenance", seat = { -62, 40 }, size = PERCH, bare = true, feed = "cooldown", build = Medals.Figure, choices = {
+		{ known = Healer(PENANCE), figure = "figureLance", bloom = "jewelHoly" },
+		{ known = MIND_BLAST, figure = "figureMindOrb", bloom = "schoolShadow" },
 	} },
-	{ key = "crestShadowfiend", seat = "right", build = Medals.Figure, choices = {
-		{ forms = { 28 }, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = EMBRACE, figure = "figureFangs" },
-		{ forms = { 0 }, feed = "aura", spells = SHADOWFORM, figure = "figureShroud", steady = true },
-		{ feed = "cooldown", known = SHADOWFIEND, figure = "figureFiend" },
+	{ key = "crestShadowfiend", seat = { 62, 40 }, size = PERCH, bare = true, build = Medals.Figure, choices = {
+		{ forms = { 28 }, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = EMBRACE, figure = "figureFangs", bloom = "plateHostile" },
+		{ forms = { 0 }, feed = "aura", spells = SHADOWFORM, figure = "figureShroud", steady = true, bloom = "schoolShadow" },
+		{ feed = "cooldown", known = SHADOWFIEND, figure = "figureFiend", bloom = "schoolShadow" },
 	} },
+	{ key = "crestShadowfiend", seat = "rim", known = SHADOWFORM, choices = { { forms = { 28 }, build = Flood } } },
 	{ key = "crestPain", seat = "topGem", build = Medals.Socket, choices = {
 		{ feed = "cooldown", known = Healer(MENDING), color = "white" },
 		{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = PAIN, color = "schoolShadow" },
 	} },
-	Mend(SHIELD, "figureShield", 0, 100), Mend(RENEW, "figureRenew", -22, 92), Mend(MENDED, "figureMending", 22, 92),
-	{ key = "crestPlague", seat = "footLeft", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = PLAGUE,
-		known = ShadowOnly(PLAGUE), build = Medals.Figure, figure = "figurePlague" },
-	{ key = "crestDeath", seat = "footRight", size = Medals.FOOT, feed = "cooldown", known = ShadowOnly(DEATH), build = Medals.Figure, figure = "figureReaper" },
+	Mend(SHIELD, "figureDome", { 0, 16 }, 116), Mend(RENEW, "figureRenew", { -30, -60 }, FOOT, "schoolNature"), Mend(MENDED, "figureMending", { 30, -60 }, FOOT, "white"),
+	{ key = "crestPlague", seat = { -30, -60 }, size = FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = PLAGUE,
+		known = ShadowOnly(PLAGUE), build = Medals.Figure, figure = "figurePlague", bare = true, bloom = "schoolNature" },
+	{ key = "crestDeath", seat = { 30, -60 }, size = FOOT, feed = "cooldown", known = ShadowOnly(DEATH), build = Medals.Figure, figure = "figureReaper", bare = true,
+		bloom = "schoolShadow" },
 	{ key = "crestSilence", seat = "lowerLeft", feed = "cooldown", known = SILENCE, color = "schoolShadow", build = Medals.Socket },
 	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, color = "jewelHoly" },
 	{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", families = {

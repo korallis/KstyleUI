@@ -104,7 +104,8 @@ local HEALERS = {
 		{ 3.2, charges = 15 },
 		{ 3.5, aura = { "player", 586, 0, 10 } },
 	} },
-	SHAMAN_enhancement = { at = 3, known = { 16362, 10414, 20608, 17364, 425336 }, offHand = true, beats = {
+	SHAMAN_enhancement = { at = 3, known = { 16362, 10414, 20608, 17364, 425336, 29228 }, offHand = true, beats = {
+		{ 0.5, aura = { "target", 17364, 0, 12, true } },
 		{ 0, enchant = { 16, 1669, 1800 } },
 		{ 0, enchant = { 17, 1666, 240 } },
 		{ 1, cast = 10414, cooldown = { 10414, 6 } },

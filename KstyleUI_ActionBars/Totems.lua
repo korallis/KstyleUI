@@ -441,7 +441,14 @@ local function Build()
 	wolf:SetAttribute("type", "spell")
 	wolf.spirit = CreateFrame("Frame", nil, wolf)
 	wolf.spirit:SetAllPoints(wolf)
-	Art(wolf.spirit, "OVERLAY", "medEnamel", "totemSpirit", "ADD"):SetAllPoints(wolf.spirit)
+	local halo = Art(wolf.spirit, "BACKGROUND", "glow", "totemSpirit", "ADD")
+	halo:SetPoint("TOPLEFT", wolf, "TOPLEFT", -10, 10)
+	halo:SetPoint("BOTTOMRIGHT", wolf, "BOTTOMRIGHT", 10, -10)
+	for _, m in ipairs({ wolf, state.call }) do
+		m.shade:Hide()
+		m.enamel:Hide()
+		m.ring:Hide()
+	end
 	wolf.spirit:Hide()
 	state.wolf = wolf
 end

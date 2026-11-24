@@ -517,7 +517,7 @@ for _, name in ipairs({
 	TEXTURES["sigil" .. name] = { file = "Textures\\Sigils\\" .. name .. ".png" }
 end
 for _, name in ipairs({
-	"Ankh", "Bud", "Charge", "Faerie", "Fangs", "Fiend", "Growl", "Growth", "Lance", "Mending", "MindOrb", "Moon", "Plague",
+	"Ankh", "Bud", "Charge", "Dome", "Faerie", "Fangs", "Fiend", "Growl", "Growth", "Lance", "Mending", "MindOrb", "Moon", "Plague",
 	"Rake", "Reaper", "Renew", "Rip", "Roar", "Shield", "Shock", "Shroud", "Sprout", "Strike", "Swarm", "Tide", "Wolf"
 }) do
 	TEXTURES["figure" .. name] = { file = "Textures\\Figures\\" .. name .. ".png" }

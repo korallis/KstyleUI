@@ -19,7 +19,7 @@ local OMEN, CLEARCASTING = { 16864 }, { 16870, 457342, 467735 }
 local GROWTH, POUNCE = { 1238215, 1238214, 408120 }, { 9826, 9824, 9007 }
 local GROWL, CHARGE, BITE, BASH = { 6795 }, { 1238122 }, { 1238070, 1238069, 407995 }, { 8983, 6798, 5211 }
 local BEAR, CAT, MOONKIN, CASTER = { 5, 8 }, { 1 }, { 31, 35 }, { 0, 3, 4 }
-local LEAVES, LEAF, UNFURL = 8, 14, 0.35
+local LEAVES, LEAF, UNFURL, PERCH, FOOT = 8, 14, 0.35, 30, 22
 local DASH, BARKSKIN = { spells = { 1850, 9821 }, sigil = "Dash" }, { spells = { 22812 }, sigil = "Bark" }
 
 local maul, bloom = {}, nil
@@ -30,9 +30,14 @@ local function Effect(spells, figure, filter, forms)
 	return { feed = "aura", unit = "target", filter = filter or "HARMFUL|PLAYER", spells = spells, figure = figure, forms = forms }
 end
 
+local function Glow(effect, tint, seat, size)
+	effect.bloom, effect.seat, effect.size = tint, seat, size
+	return effect
+end
+
 local function Bloom(parent, spec, level, form)
 	if form == "row" then
-		return Medals.Figure(parent, { feed = "aura", spells = CLEARCASTING, figure = "trackerLeaf", burst = spec.burst }, level)
+		return Medals.Figure(parent, { feed = "aura", spells = CLEARCASTING, figure = "trackerLeaf", burst = spec.burst, bare = true, bloom = "schoolNature" }, level)
 	end
 	local r = Medals.Rim(parent, { feed = "aura", spells = CLEARCASTING, ambient = "medAmbientDruid", burst = spec.burst }, level)
 	r.ring, r.leaves = {}, Medals.Layer(r.lit, level + 2)
@@ -95,22 +100,25 @@ local function Gems(choice)
 end
 
 ns.SlabTrackers.Register("DRUID", {
-	{ key = "crestSeeds", seat = "left", build = Medals.Figure, choices = {
-		Effect(ROAR, "figureRoar", nil, BEAR),
-		{ forms = CAT, known = Join(RAKE, POUNCE), feeds = { Effect(POUNCE, "figureRake"), Effect(RAKE, "figureRake") } },
-		{ forms = Join(CASTER, MOONKIN), known = Join(MOONFIRE, REJUVENATION), feeds = { Effect(MOONFIRE, "figureMoon"), Effect(REJUVENATION, "figureBud", "HELPFUL|PLAYER") } },
+	{ key = "crestSeeds", seat = { -62, 40 }, size = PERCH, bare = true, build = Medals.Figure, choices = {
+		Glow(Effect(ROAR, "figureRoar", nil, BEAR), "jewelCombo", { 0, 90 }, 40),
+		{ forms = CAT, known = Join(RAKE, POUNCE), seat = { -44, 6 }, size = 60, feeds = { Glow(Effect(POUNCE, "figureRake"), "jewelCombo"), Glow(Effect(RAKE, "figureRake"), "plateHostile") } },
+		{ forms = Join(CASTER, MOONKIN), known = Join(MOONFIRE, REJUVENATION), feeds = { Glow(Effect(MOONFIRE, "figureMoon"), "schoolArcane"),
+			Glow(Effect(REJUVENATION, "figureBud", "HELPFUL|PLAYER"), "schoolNature") } },
 	} },
-	{ key = "crestSeeds", seat = "right", build = Medals.Figure, choices = {
-		Effect(FAERIE, "figureFaerie", nil, BEAR), Effect(RIP, "figureRip", nil, CAT),
-		{ forms = Join(CASTER, MOONKIN), known = Join(SWARM, REGROWTH), feeds = { Effect(SWARM, "figureSwarm"), Effect(REGROWTH, "figureSprout", "HELPFUL|PLAYER") } },
+	{ key = "crestSeeds", seat = { 62, 40 }, size = PERCH, bare = true, build = Medals.Figure, choices = {
+		Glow(Effect(FAERIE, "figureFaerie", nil, BEAR), "schoolArcane"), Glow(Effect(RIP, "figureRip", nil, CAT), "plateHostile", { 44, 6 }, 56),
+		{ forms = Join(CASTER, MOONKIN), known = Join(SWARM, REGROWTH), feeds = { Glow(Effect(SWARM, "figureSwarm"), "jewelHawk"),
+			Glow(Effect(REGROWTH, "figureSprout", "HELPFUL|PLAYER"), "schoolNature") } },
 	} },
-	{ key = "crestThird", seat = "top", build = Medals.Figure, choices = {
-		{ forms = CASTER, known = Join(FAERIE, GROWTH), feeds = { Effect(FAERIE, "figureFaerie"), Effect(GROWTH, "figureGrowth", "HELPFUL|PLAYER") } },
-		Effect(FAERIE, "figureFaerie", nil, MOONKIN), Gems({ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = FAERIE, color = "schoolArcane",
+	{ key = "crestThird", seat = { 0, 92 }, size = 30, bare = true, build = Medals.Figure, choices = {
+		{ forms = CASTER, known = Join(FAERIE, GROWTH), feeds = { Glow(Effect(FAERIE, "figureFaerie"), "schoolArcane"), Glow(Effect(GROWTH, "figureGrowth", "HELPFUL|PLAYER"), "schoolNature") } },
+		Glow(Effect(FAERIE, "figureFaerie", nil, MOONKIN), "schoolArcane"), Gems({ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = FAERIE, color = "schoolArcane",
 			forms = CAT, seat = "lowerLeft" }),
 	} },
-	{ key = "crestGrowl", seat = "footLeft", size = Medals.FOOT, feed = "cooldown", known = GROWL, forms = BEAR, build = Medals.Figure, figure = "figureGrowl" },
-	{ key = "crestCharge", seat = "footRight", size = Medals.FOOT, feed = "cooldown", known = CHARGE, forms = BEAR, build = Medals.Figure, figure = "figureCharge" },
+	{ key = "crestGrowl", seat = { -30, -60 }, size = FOOT, feed = "cooldown", known = GROWL, forms = BEAR, build = Medals.Figure, figure = "figureGrowl", bare = true, bloom = "jewelCombo" },
+	{ key = "crestCharge", seat = { 30, -60 }, size = FOOT, feed = "cooldown", known = CHARGE, forms = BEAR, build = Medals.Figure, figure = "figureCharge", bare = true,
+		bloom = "jewelCombo" },
 	{ key = "crestBite", seat = "lowerLeft", feed = "cooldown", known = BITE, forms = BEAR, color = "jewelCombo", build = Medals.Socket },
 	{ key = "crestBash", seat = "lowerRight", feed = "cooldown", known = BASH, forms = BEAR, color = "jewelCombo", build = Medals.Socket },
 	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, forms = Join(CASTER, MOONKIN), color = "jewelHoly" },

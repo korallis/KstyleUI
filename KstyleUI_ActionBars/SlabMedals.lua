@@ -346,19 +346,29 @@ function Medals.Figure(parent, spec, level)
 	local size = spec.size or SIZE
 	local f = Medals.Piece(parent, level, size)
 	local feeds = spec.feeds or { spec }
-	local top = level + 1 + 2 * #feeds
-	f.add(Medals.Texture(f, "BACKGROUND", 0, "glow", "black", size * SHADE)):SetAlpha(0.7)
-	for _, part in ipairs(Well(f, "BORDER", size, (feeds[1].figure or spec.figure))) do
-		f.add(part)
+	local top, bare = level + 1 + 2 * #feeds, spec.bare
+	local scale = bare and 1 or FIGURE
+	if not bare then
+		f.add(Medals.Texture(f, "BACKGROUND", 0, "glow", "black", size * SHADE)):SetAlpha(0.7)
+		for _, part in ipairs(Well(f, "BORDER", size, (feeds[1].figure or spec.figure))) do
+			f.add(part)
+		end
+		f.add(Medals.Texture(Medals.Layer(f, top), "OVERLAY", 0, "medRing", "white", size))
+	elseif #feeds == 1 and spec.feed == "cooldown" then
+		local steel = f.add(Medals.Texture(f, "BORDER", 0, spec.figure, "steel", size))
+		steel:SetDesaturated(true)
+		steel:SetAlpha(STEEL)
 	end
-	f.add(Medals.Texture(Medals.Layer(f, top), "OVERLAY", 0, "medRing", "white", size))
 	for i, feed in ipairs(feeds) do
 		local each = feed == spec and spec or setmetatable(feed, { __index = spec })
 		local lit = Lit(f, each, level + 1 + 2 * (i - 1))
-		for _, part in ipairs(i > 1 and Well(lit, "BACKGROUND", size, each.figure) or NONE) do
+		for _, part in ipairs(i > 1 and not bare and Well(lit, "BACKGROUND", size, each.figure) or NONE) do
 			f.add(part)
 		end
-		local bar = f.add(CreateFrame("StatusBar", nil, lit), size * FIGURE)
+		if bare and each.bloom then
+			f.add(Medals.Texture(lit, "BACKGROUND", 0, "glow", each.bloom, size * BLOOM, "ADD")):SetAlpha(0.75)
+		end
+		local bar = f.add(CreateFrame("StatusBar", nil, lit), size * scale)
 		bar:SetPoint("CENTER", f, "CENTER", 0, 0)
 		bar:SetOrientation("VERTICAL")
 		bar:SetStatusBarTexture((Tokens.Texture(each.figure)))
@@ -366,6 +376,7 @@ function Medals.Figure(parent, spec, level)
 		bar:SetStatusBarColor(Tokens.Color(each.color or "white"))
 		bar:SetMinMaxValues(0, 1)
 		bar:SetValue(1)
+		bar:SetAlpha(each.alpha or 1)
 		local spark = Medals.Texture(bar, "OVERLAY", 0, "glow", each.color or "white", nil, "ADD")
 		spark:SetSize(size * SPARK, size * SPARK)
 		spark:ClearAllPoints()
