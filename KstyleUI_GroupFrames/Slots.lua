@@ -27,6 +27,7 @@ Slots.CATEGORIES = {
 local CATEGORIES = Slots.CATEGORIES
 local NEUTRAL_FILTER = "HELPFUL"
 local SHIELD_WALL, FIND_MINERALS = 871, 2580
+local issecretvalue = issecretvalue or function() return false end
 
 local available = true
 local waiting = setmetatable({}, { __mode = "k" })
@@ -72,8 +73,11 @@ function Slots.Unavailable(category)
 	if category == "EXTERNAL" then
 		return type(game) == "table" and type(game.HasExternalDefensives) == "function" and game.HasExternalDefensives() == false
 	end
-	return category == "BIG_DEFENSIVE" and type(big) == "function"
-		and not (Unit.Plain(big(SHIELD_WALL), "boolean") == true and Unit.Plain(big(FIND_MINERALS), "boolean") == false)
+	if category ~= "BIG_DEFENSIVE" or type(big) ~= "function" then
+		return false
+	end
+	local wall, minerals = big(SHIELD_WALL), big(FIND_MINERALS)
+	return issecretvalue(wall) or issecretvalue(minerals) or not (wall == true and minerals == false)
 end
 
 function Slots.Plan(slot)
