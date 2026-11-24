@@ -1,117 +1,6 @@
 -- test-actionbars-crest-ranged.lua: a hunter's, mage's and warlock's crest trackers (KstyleUI_ActionBars/SlabRanged.lua) through the one tracker lifecycle: no other class registers them; every seat has a choice for each build, pet state and level band (Raptor Strike and Arcane Shot before the Aspect and the pet, a melee hunter's strike for the Mark, Arcane Intellect before the mana gem, the mage's school debuff by talent, armor for a warlock with no demon); aura pieces light through Blizzard's aura slots and Lua reads no aura; the pet and demon medals show the pet's portrait, its missing health as a bar fed the engine's values and its happiness as a rim, which goes with the pet; the gem and Healthstone are lit, cooling or empty from bag counts and item cooldowns; each spire stands alone once known and drains through duration bars; the soul wisps count Soul Shards up to five with a faint rim at five or more, fly in, burst and circle only at Full off rest, the first one too, and replace the shard jewels; Rapid Fire alone gusts; your school debuff only fills the school medal; cooldown rims stack the class's cooldowns, a pet's Bestial Wrath among them; moments hand the engine their flares and fires only at Full; secret auras build nothing until combat ends; each switch hides its seat alone; Frames stands the seats in the row; a mana update asks the bags nothing and every shot reuses one duration object; nothing loads for any other class; nothing runs OnUpdate; every crest part is an even number of pixels at four screen sizes and the spires stay under the cooldown row.
-local AB = dofile("Tools/regression/actionbars_env.lua")
-local Slots = dofile("Tools/regression/aura_slots.lua")
-
-local SIZES = { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
-local KNOWN = {
-	HUNTER = { 13165, 883, 1130, 1978, 19552, 3045, 19574, 75, 2643 },
-	MAGE = { 168, 759, 11426, 12574, 116, 118, 12042, 11958, 2139, 122 },
-	WARLOCK = { 172, 980, 348, 688, 6201, 1120, 18094, 18288, 706, 702, 17962, 2362, 6789 },
-}
-
-local function New(class, opts)
-	opts = opts or {}
-	local size = opts.size or SIZES[1]
-	local env, K, ns = AB.New({
-		class = class,
-		width = size[1],
-		height = size[2],
-		setup = function(e)
-			e._known = {}
-			for _, id in ipairs(opts.known or KNOWN[class] or {}) do e._known[id] = true end
-			e.C_SpellBook = e.C_SpellBook or {}
-			e.C_Secrets = { ShouldAurasBeSecret = function() return e._aurasSecret == true end }
-			e._aurasSecret = opts.secret
-			e._bags, e._cooling, e._usable = opts.bags or {}, {}, {}
-			e.C_Item = e.C_Item or {}
-			e.C_Item.GetItemCount = function(id) return e._bags[id] or 0 end
-			e.C_Item.GetItemIconByID = function(id) return 5000000 + id end
-			e.C_Item.GetItemCooldown = function(id)
-				local c = e._cooling[id]
-				if c then return c[1], c[2], true end
-				return 0, 0, true
-			end
-			e.C_Spell.IsSpellUsable = function(id) return e._usable[id] == true, false end
-			e.C_Spell.GetSpellCooldown = function() return { isActive = false, isOnGCD = false } end
-			e.C_Spell.GetSpellCooldownDuration = function() return { start = 0, finish = 0 } end
-			e._ammo = 1000
-			e.UnitUsesAmmo = function() return true end
-			e.C_PaperDollInfo = { GetInventorySlotInfo = function() return 0 end }
-			e.GetInventoryItemCount = function() return e._ammo end
-			e.Enum.PowerType = e.Enum.PowerType or { Mana = 0 }
-			e.UnitPowerPercent = function() return 0.25 end
-			e.C_CurveUtil = { CreateCurve = function() return { AddPoint = function() end, SetType = function() end } end }
-			e.C_DurationUtil = { CreateDuration = function() return { SetTimeFromStart = function(d, start, duration) d.start, d.duration = start, duration end } end }
-			e.GetTime = e.GetTime or function() return e._now or 0 end
-			e._petSpells = {}
-			e.C_SpellBook.IsSpellKnown = function(id, bank) if bank == 1 then return e._petSpells[id] == true end return e._known[id] == true end
-			e.Enum.SpellBookSpellBank = e.Enum.SpellBookSpellBank or { Player = 0, Pet = 1 }
-			e._pet = opts.pet
-			local exists = e.UnitExists
-			e.UnitExists = function(unit) if unit == "pet" then return e._pet ~= nil end return exists(unit) end
-			e.UnitIsDead = function(unit) return unit == "pet" and e._pet ~= nil and e._pet.dead == true end
-			e.UnitHealthMax = function() return e.Secret(e._pet and e._pet.max or 0) end
-			e.UnitHealthMissing = function() return e.Secret(e._pet and e._pet.missing or 0) end
-			e.C_PetInfo = { GetPetHappiness = function() return e._pet and e._pet.mood end }
-			e.SetPortraitTexture = function(texture, unit) texture._portrait = unit end
-			e._slotGroups = true
-			e.AuraContainerSortMethod = { Default = 0, AuraInstanceIDOnly = 8 }
-			e.AuraContainerSortDirection = { Normal = 0, Reverse = 1 }
-			Slots.Install(e)
-		end,
-	})
-	if opts.frames then
-		K.Options.Write("HudStyle", "style", "frames")
-	end
-	AB.Enable(env, K)
-	env.RunTimers()
-	return env, K, ns
-end
-
--- Piece(ns, key, choice) -> the piece built for the switch's row and choice (1 when unset), and whether it shows.
-local function Piece(ns, key, choice)
-	local state = ns.SlabTrackers.state
-	local form = state.form
-	for i, row in ipairs(ns.SlabTrackers.CLASSES[ns.class] or {}) do
-		local p = row.key == key and form and form.pieces[i .. ":" .. (choice or 1)]
-		if p then return p, p:IsShown() end
-	end
-end
-
--- Seated(ns, key) -> the piece showing in the switch's seat, whichever choice it is.
-local function Seated(ns, key)
-	for c = 1, 3 do
-		local p, shows = Piece(ns, key, c)
-		if shows then return p end
-	end
-end
-
--- Shown(button, group) -> whether the engine plays the group, on the aura's showing or on each new aura.
-local function Shown(button, group)
-	for _, list in ipairs({ button._shownAnimations or {}, button._assignedAnimations or {} }) do
-		for _, g in ipairs(list) do
-			if g == group then return true end
-		end
-	end
-	return false
-end
-
-local function Updating(frame)
-	local n = frame:GetScript("OnUpdate") and 1 or 0
-	for _, child in ipairs(frame._kids or {}) do
-		n = n + Updating(child)
-	end
-	return n
-end
-
-local function Clean(env, K)
-	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
-end
-
-local function Learn(env, ...)
-	for _, id in ipairs({ ... }) do env._known[id] = true end
-	env.FireEvent("SPELLS_CHANGED")
-end
+local R = dofile("Tools/regression/ranged_env.lua")
+local AB, Slots, SIZES, New, Piece, Seated, Shown, Updating, Clean, Tint, Learn = R.AB, R.Slots, R.SIZES, R.New, R.Piece, R.Seated, R.Shown, R.Updating, R.Clean, R.Tint, R.Learn
 
 for _, class in ipairs({ "WARRIOR", "SHAMAN", "ROGUE", "PRIEST", "PALADIN", "DRUID" }) do
 	local env, K, ns = New(class, { known = { 13165, 168, 172, 688 }, bags = { [6265] = 3 } })
@@ -139,15 +28,18 @@ end
 do
 	local env, K, ns = New("HUNTER")
 	local aspect, mark, sting, pet = Piece(ns, "crestAspect"), Piece(ns, "crestMark"), Piece(ns, "crestSting"), Piece(ns, "crestPet")
-	assert(aspect:IsShown() and not aspect.lit:IsShown(), "no Aspect up: the medal is grey steel")
+	assert(aspect:IsShown() and aspect.rest:IsShown() and not aspect.lit:IsShown(), "no Aspect up: a dark rune stone")
 	Slots.Set(env, "player", { { id = 14318, icon = 136076, start = 0 } })
-	assert(aspect.lit:IsShown() and aspect.lit.icon._state.Texture[1] == 136076, "an Aspect lights the medal with its own icon")
+	assert(aspect.lits[1]:IsShown() and not aspect.lits[7]:IsShown() and Tint(aspect.lits[1].glow, K, "gilt"), "Aspect of the Hawk lights the stone's hawk gilt")
+	Slots.Set(env, "player", { { id = 415423, icon = 132160, start = 0 } })
+	assert(aspect.lits[7]:IsShown() and not aspect.lits[1]:IsShown() and Tint(aspect.lits[7].glow, K, "magic"), "Aspect of the Viper lights its coil mana blue")
+	assert(Shown(aspect.lits[7], aspect.lits[7].loop), "at Full the glyph breathes as the engine's shown animation")
 	Slots.Set(env, "target", { { id = 1130, icon = 132212, harmful = true, start = 0, duration = 120 }, { id = 24131, icon = 135125, harmful = true, mine = true, start = 2, duration = 12 } })
 	assert(mark.lit:IsShown() and AB.W.LastCall(mark.timer, "SetCooldownFromDurationObject"), "the Mark lights its perch and drains its ring")
-	assert(sting.lit:IsShown() and sting.lit.icon._state.Texture[1] == 135125, "any of your Stings, Wyvern Sting's poison too, lights the perch with its own icon")
-	assert(sting.steel._state.Texture[1] == 1000000 + 1978, "the perch rests on Serpent Sting")
+	assert(sting.lits[4]:IsShown() and sting.lits[4]._durationBar[1] == sting.lits[4].art, "any of your Stings, Wyvern Sting's poison too, burns its own mark down with its time")
+	assert(sting.rest:IsShown() and mark.lit:IsShown() and mark.timer == mark.lit.timer, "the perch rests as a steel serpent; the Mark's reticle drains its ring")
 	Slots.Set(env, "target", { { id = 1978, icon = 132204, harmful = true, mine = false, start = 0, duration = 15 } })
-	assert(not sting.lit:IsShown() and not mark.lit:IsShown(), "another hunter's Sting leaves your perch dark")
+	assert(not sting.lits[1]:IsShown() and not mark.lit:IsShown(), "another hunter's Sting leaves your perch dark")
 	assert(not pet.pet:IsShown() and not pet.mood:IsShown(), "no pet: the pet medal is grey steel with no happiness rim")
 	assert(not (ns.SlabTrackers.CLASSES.MAGE or ns.SlabTrackers.CLASSES.WARLOCK), "a hunter loads only the hunter's rows")
 	env._pet = { max = 1800, missing = 600, mood = 2 }
@@ -200,13 +92,14 @@ do
 	local env, K, ns = New("HUNTER", { known = { 13163, 1130, 1978, 19306, 1495, 2643, 75 } })
 	local shot = Piece(ns, "crestShot")
 	assert(shot and shot.spec.candidates[1] == 19306 and shot.spec.candidates[3] == 2643, "the shot medal tries Counterattack, Mongoose Bite, then Multi-Shot")
-	assert(not shot.lit:IsShown(), "nothing usable: the shot medal stays steel")
+	assert(not shot.lit:IsShown() and shot.rest:IsShown(), "nothing usable: the shot glyph stays steel")
+	env.SetTarget(true)
 	env._usable[2643] = true
 	env.FireEvent("SPELL_UPDATE_USABLE")
-	assert(shot.lit:IsShown() and shot.usable == 2643, "Multi-Shot ready lights the medal")
+	assert(shot.lit:IsShown() and shot.usable == 2643 and Tint(shot.lit.glow, K, "steelLit") and shot.flare.play:IsPlaying(), "Multi-Shot ready lights its arrowheads white under a flare")
 	env._usable[19306] = true
 	env.FireEvent("SPELL_UPDATE_USABLE")
-	assert(shot.usable == 19306, "Counterattack after a parry comes first")
+	assert(shot.usable == 19306 and Tint(shot.lit.glow, K, "hostile"), "Counterattack after a parry comes first, crimson")
 	local ring = Piece(ns, "crestAutoShot")
 	local made, create = 0, env.C_DurationUtil.CreateDuration
 	env.C_DurationUtil.CreateDuration = function() made = made + 1 return create() end
@@ -241,10 +134,11 @@ do
 	assert(select(2, Piece(ns, "crestSchool", 3)), "Arcane Wrath takes the school hip at 25")
 	Learn(env, 11095, 11119)
 	local fire, fs = Piece(ns, "crestSchool", 1)
-	assert(fs and fire.spec.pips == 5 and select(2, Piece(ns, "crestYourSpell", 1)), "Improved Scorch makes it Fire Vulnerability with five stacks; Ignite makes the spell perch your fire damage")
-	Slots.Set(env, "target", { { id = 22959, icon = 135818, harmful = true, mine = false, start = 0, duration = 30, applications = 5 } })
+	assert(fs and fire.spec.stacks == 5 and select(2, Piece(ns, "crestYourSpell", 1)),
+		"Improved Scorch makes it a fire orb filling a fifth per stack of Fire Vulnerability; Ignite makes the spell perch your fire damage")
+	Slots.Set(env, "target", { { id = 22959, icon = 135818, harmful = true, mine = false, start = 0, duration = 30, count = 5 } })
 	assert(not fire.lit:IsShown(), "another mage's Fire Vulnerability leaves your school medal dark")
-	Slots.Set(env, "target", { { id = 22959, icon = 135818, harmful = true, mine = true, start = 0, duration = 30, applications = 5 } })
+	Slots.Set(env, "target", { { id = 22959, icon = 135818, harmful = true, mine = true, start = 0, duration = 30, count = 5 } })
 	assert(fire.lit:IsShown(), "your own Fire Vulnerability fills it")
 	Clean(env, K)
 end
@@ -255,7 +149,7 @@ do
 	assert(gem:IsShown() and not gem.lit:IsShown(), "no gem: an empty dark setting")
 	env._bags[5514] = 1
 	env.FireEvent("BAG_UPDATE_DELAYED")
-	assert(gem.lit:IsShown() and gem.lit.icon._state.Texture[1] == 5005514, "a gem in the bags lights the medal")
+	assert(gem.lit:IsShown() and gem.ready:IsShown(), "a gem in the bags lights the mana gem; none leaves an empty setting")
 	local asked, count, cooldown = 0, env.C_Item.GetItemCount, env.C_Item.GetItemCooldown
 	env.C_Item.GetItemCount = function(...) asked = asked + 1 return count(...) end
 	env.C_Item.GetItemCooldown = function(...) asked = asked + 1 return cooldown(...) end
@@ -265,7 +159,8 @@ do
 	env.C_Item.GetItemCount, env.C_Item.GetItemCooldown = count, cooldown
 	env._cooling[5514] = { 100, 120 }
 	env.FireEvent("BAG_UPDATE_COOLDOWN")
-	assert(not gem.lowMana:IsShown() and AB.W.LastCall(gem.timer, "SetCooldown"), "a used gem cools under a draining swipe and drops its low-mana glow")
+	assert(not gem.lowMana:IsVisible() and AB.W.LastCall(gem.timer, "SetCooldown") and not gem.ready:IsShown(),
+		"a used gem goes dark and charges again over its cooldown, without its low-mana glow")
 	assert(AB.W.LastCall(ward.timer, "SetSwipeTexture"), "the ward drains the shared thin rim ring")
 	Slots.Set(env, "player", { { id = 11426, icon = 135988, start = 0, duration = 60 } })
 	assert(ward.lit:IsShown() and AB.W.LastCall(ward.timer, "SetCooldownFromDurationObject"), "Ice Barrier lights the ward ring and drains it")
@@ -283,7 +178,7 @@ do
 	local corruption = torments.spires[1]
 	assert(corruption.lit:GetParent()._durationBar and corruption.glow:GetParent()._durationBar and corruption.core:GetParent()._durationBar, "each spire's three bars are duration bars the engine drains")
 	Slots.Set(env, "target", { { id = 25311, icon = 136118, harmful = true, start = 0, duration = 18 } })
-	assert(corruption.lit:GetParent():IsShown() and corruption.icon._state.Texture[1] == 136118, "your Corruption lights its spire and socket icon")
+	assert(corruption.lit:GetParent():IsShown() and corruption.rune:GetParent() == corruption.lit:GetParent(), "your Corruption lights its spire and its socket's rune")
 	assert(not torments.spires[2].lit:GetParent():IsShown(), "no Bane: its spire stays dark")
 	local count = 0
 	for _, s in ipairs(wisps.seats) do count = count + (s.wisp:IsShown() and 1 or 0) end

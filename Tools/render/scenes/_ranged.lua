@@ -4,7 +4,8 @@
 -- unset). Blizzard's aura slots (Tools/regression/aura_slots.lua) and the addon's own bag and pet handlers take every
 -- change at its own time, so a run of RENDER_TRACKERS_T frames is the story as a clip. RENDER_TRACKERS_BUILD picks
 -- another build or level band, whose fields replace the class's: a hunter's melee or level 8 build, a mage's arcane,
--- fire, frost or level 10 build, a warlock's nodemon or level 8 build. RENDER_TRACKERS_OFF=1 turns the class's
+-- fire (Fire Vulnerability at three stacks), frost or level 10 build, a warlock's felhunter (Spell Lock cooling), sacrifice
+-- (Demonic Sacrifice, Death Coil cooling), nodemon or level 8 build. RENDER_TRACKERS_OFF=1 turns the class's
 -- tracker switches off first, for a pixel diff against a build without them.
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
@@ -56,7 +57,7 @@ local STORIES = {
 		builds = {
 			arcane = {},
 			fire = { known = { 7302, 759, 11426, 11095, 118, 116, 11129, 2139, 122, 11119 },
-				auras = { { unit = "player", id = 7302, icon = 135843, at = 0.5, duration = 1800 }, { unit = "target", id = 22959, icon = 135818, at = 1, duration = 30, harmful = true },
+				auras = { { unit = "player", id = 7302, icon = 135843, at = 0.5, duration = 1800 }, { unit = "target", id = 22959, icon = 135818, at = 1, duration = 30, harmful = true, count = 3 },
 					{ unit = "target", id = 412538, icon = 135818, at = 2, duration = 4, harmful = true }, { unit = "target", id = 122, icon = 135848, at = 3.5, duration = 8, harmful = true },
 					{ unit = "player", id = 11129, icon = 135824, at = 4, duration = 15 } } },
 			frost = { known = { 7302, 759, 11426, 11180, 118, 116, 11958, 2139, 122 },
@@ -87,6 +88,10 @@ local STORIES = {
 			{ unit = "player", id = 17941, icon = 136200, at = 5, duration = 10 },
 		},
 		builds = {
+			felhunter = { known = { 172, 980, 348, 18265, 691, 19244, 6201, 1120, 702, 1293817 }, cooling = { [19244] = { 4, 24 } } },
+			sacrifice = { known = { 172, 980, 348, 18265, 688, 18788, 6201, 1120, 702, 6789 }, pet = false, cooling = { [6789] = { 4, 15 } }, auras = {
+				{ unit = "player", id = 18789, icon = 136218, at = 0.5, duration = 1800 }, { unit = "target", id = 348, icon = 135817, at = 1, duration = 15, harmful = true },
+				{ unit = "target", id = 702, icon = 136138, at = 1.5, duration = 120, harmful = true }, { unit = "target", id = 172, icon = 136118, at = 2, duration = 18, harmful = true } } },
 			nodemon = { pet = false, auras = {
 				{ unit = "player", id = 706, icon = 136185, at = 0.5, duration = 1800 }, { unit = "target", id = 348, icon = 135817, at = 1, duration = 15, harmful = true },
 				{ unit = "target", id = 172, icon = 136118, at = 2, duration = 18, harmful = true }, { unit = "player", id = 17941, icon = 136200, at = 5, duration = 10 } } },
@@ -119,6 +124,7 @@ function Ranged.Install(env, class)
 	local known = {}
 	for _, id in ipairs(s.known) do known[id] = true end
 	env.C_SpellBook = env.C_SpellBook or {}
+	env.Enum.SpellBookSpellBank = env.Enum.SpellBookSpellBank or { Player = 0, Pet = 1 }
 	local before = env.C_SpellBook.IsSpellKnown
 	env.C_SpellBook.IsSpellKnown = function(id, bank) return known[id] == true or before ~= nil and before(id, bank) end
 	local spell = env.C_Spell or {}
@@ -126,7 +132,10 @@ function Ranged.Install(env, class)
 	local texture = spell.GetSpellTexture
 	spell.GetSpellTexture = function(id) return s.icons[id] or texture and texture(id) end
 	spell.IsSpellUsable = function(id) local at = (s.usable or {})[id]; return at ~= nil and env._story >= at, false end
-	spell.GetSpellCooldown = function() return { isActive = false, isOnGCD = false } end
+	spell.GetSpellCooldown = function(id)
+		local c = (s.cooling or {})[id]
+		return { isActive = c ~= nil and env._story >= c[1] and env._story < c[1] + c[2], isOnGCD = false }
+	end
 	spell.GetSpellCooldownDuration = function(id)
 		local c = (s.cooling or {})[id]
 		local start = c and (env._now or 0) - (env._story - c[1])

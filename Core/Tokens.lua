@@ -522,6 +522,14 @@ for _, name in ipairs({
 }) do
 	TEXTURES["figure" .. name] = { file = "Textures\\Figures\\" .. name .. ".png" }
 end
+for _, name in ipairs({
+	"Aimed", "Arrowhead", "BlackArrow", "Burst", "ChillShard", "Claws", "Coal", "Coil", "Counter", "Crescents",
+	"Crystal", "Drop", "Edge", "Elements", "Eye", "Facet", "Fangs", "FireTongue", "Hawk", "Hook", "Horns", "Hourglass",
+	"Intellect", "Leaf", "Multi", "Pack", "Paw", "PolyCurl", "Reticle", "Serpent", "ShieldArcane", "ShieldFrost",
+	"Siphon", "Swirl", "Tear", "Tongue", "Weakness", "Wing"
+}) do
+	TEXTURES["glyph" .. name] = { file = "Textures\\Glyphs\\" .. name .. ".png" }
+end
 
 local RGBA = {}
 for name, spec in pairs(COLORS) do
