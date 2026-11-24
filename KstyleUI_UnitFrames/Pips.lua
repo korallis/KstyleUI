@@ -8,10 +8,10 @@ local IsSecret = Widgets.IsSecret
 local Pips = {}
 ns.Pips = Pips
 
-local ART, ROW, FADE = 1.6, 0.35, 0.2
+local ART, ROW, FADE, HEAT = 1.6, 0.35, 0.2, 0.6
 local OWNER = "UnitFrames:pips"
 
-local state = { pips = {}, count = 0, fed = {} }
+local state = { pips = {}, count = 0, fed = {}, heat = {} }
 Pips.state = state
 
 local function Glow(row, set, count, from, to)
@@ -30,10 +30,38 @@ local function Glow(row, set, count, from, to)
 	return bar
 end
 
+local function Warm()
+	local profile = K.Store.IsLoaded() and K.Store.Profile()
+	local bars = type(profile) == "table" and profile.ActionBars
+	local on, open = not (type(bars) == "table" and bars.crestHeat == false), Widgets.CrownOpen()
+	for _, bar in ipairs(state.heat) do
+		if open or not bar.fed then
+			bar:SetAlpha(on and bar.share or 0)
+		end
+	end
+end
+
+local function Heat(bar, count)
+	bar.share = HEAT / count
+	state.heat[#state.heat + 1] = bar
+	if #state.heat == 1 then
+		K.Callbacks.Register("SettingChanged", OWNER .. ":heat", function(_, module, key)
+			if module == "ActionBars" and key == "crestHeat" then
+				ns.Resource.Visibility()
+			end
+		end)
+	end
+	return bar
+end
+
 local function BuildRow(set, count)
 	local row = CreateFrame("Frame", nil, state.parent)
 	row:SetFrameLevel(state.parent:GetFrameLevel() + 1)
 	row.now, row.was = Glow(row, set, count, 0, 1), Glow(row, set, count, 1, 0)
+	row.heat = {}
+	for i = 1, count do
+		row.heat[i] = Heat(Glow(row, set, i, 0, 1), count)
+	end
 	row.was:Hide()
 	row.was.anim:SetScript("OnFinished", function() row.was:Hide() end)
 	return row
@@ -56,6 +84,7 @@ function Pips.Apply(class, parent, count)
 		end
 		state.row:SetShown(state.shown)
 	end
+	Warm()
 	return set ~= nil
 end
 
@@ -94,6 +123,15 @@ local function Build(kind, parent, moving)
 	crown.glow:SetTexture((Tokens.Texture("glow")))
 	crown.glow:SetBlendMode("ADD")
 	crown.glow:SetVertexColor(Tokens.Color(Widgets.ClassPipSet(kind, 90).glowColor))
+	for i = 1, kind ~= "PALADIN" and Widgets.CrownCount(kind) or 0 do
+		local button = crown.container:AddAuraSlot("heat" .. i, crown.c.filter, crown.options)
+		pcall(button.EnableMouse, button, false)
+		button:SetAllPoints(frame)
+		local bar = Heat(Glow(button, Widgets.ClassPipSet(kind, 90), i, 0, 1), Widgets.CrownCount(kind))
+		bar.fed = true
+		crown.feeds[#crown.feeds + 1] = { button = button, bar = bar, low = i - 1, ease = true }
+	end
+	crown.moving = nil
 	crown:SetShown(false)
 	return crown
 end
@@ -111,6 +149,7 @@ function Pips.Fed(class, parent)
 			pending = not crown:SetMotion(moving) or pending
 		end
 	end
+	Warm()
 	K.Events.Unregister(OWNER, "PLAYER_REGEN_ENABLED")
 	if pending then
 		K.Events.Register(OWNER, "PLAYER_REGEN_ENABLED", ns.Resource.Visibility)
@@ -178,6 +217,10 @@ function Pips.Set(points, animate)
 	row.was:Hide()
 	row.now:SetValue(points)
 	row.was:SetValue(was)
+	local modes = Enum and Enum.StatusBarInterpolation or {}
+	for _, bar in ipairs(row.heat) do
+		bar:SetValue(points, moving and (modes.ExponentialEaseOut or 1) or (modes.Immediate or 0))
+	end
 	if moving then
 		row.was:Show()
 		row.now.anim:Play()
