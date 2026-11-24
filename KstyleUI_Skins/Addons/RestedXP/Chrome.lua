@@ -2111,9 +2111,11 @@ local function Option(widget)
 		Skin.Strip(row, { children = RXP_ART })
 		Skin.Backdrop(row, { shape = "tile", fill = "surface", shadow = false })
 	end
-	local panel, back = Skin.Parts(row).backdrop, row.configuratorBackground
-	local left = IsTexture(back) and select(4, back:GetPoint(1)) or 0
-	if panel and Plain(left) and left ~= (panel.inset and panel.inset.left) then
+	local panel, back, left = Panel(row), row.configuratorBackground
+	if IsTexture(back) then
+		left = select(4, back:GetPoint(1))
+	end
+	if panel and Plain(left) and left ~= ((panel.inset and panel.inset.left) or 0) then
 		panel.inset = { left = left }
 		panel:Restyle()
 	end

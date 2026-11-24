@@ -731,6 +731,17 @@ do
 	-- background does (SetImage, 703-725), so the icon reads as a badge on its edge instead of covering its hairlines.
 	local tile = assert(Geometry.Rect(K.Skin.Parts(first.frame).backdrop, first.frame))
 	assert(math.abs(tile.left - 22) < 0.5 and math.abs(tile.right - 276) < 0.5, "the option tile, snapped to whole pixels, starts where RestedXP's background does, got " .. tile.left .. " to " .. tile.right)
+	-- A protected row in combat gets its tile only once combat ends (Core/Skin.lua Guard); until then it has no panel, and
+	-- the rows after it are still dressed (review of #806, finding 1).
+	local children = ui.scrollContainer.children
+	table.insert(children, 1, { type = "RXPV2GuideConfiguratorOption", frame = env.CreateFrame("Button", nil, env.UIParent) })
+	children[1].frame.IsProtected = function() return true end
+	first.text:SetFont("Fonts\\FRIZQT__.TTF", 12, "")
+	env.SetCombat(true)
+	ui.scrollContainer:DoLayout()
+	env.SetCombat(false)
+	table.remove(children, 1)
+	assert(first.text:GetFont() == (ns.Style.Font("body")), "a row whose tile waits for combat must not stop the rows after it (KstyleUI_Skins/Addons/RestedXP/Chrome.lua Option: use Panel(row))")
 
 	rxp.guideImporter:Open()
 	local widgets = rxp.guideImporter.widgets
