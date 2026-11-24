@@ -344,12 +344,9 @@ local function Stop()
 			K.Events.Unregister(OWNER, event)
 		end
 	end
+	local listen = done and K.Events.Unregister or K.Events.Register
 	for _, event in ipairs(GATES) do
-		if not done then
-			K.Events.Register(OWNER, event, Trackers.Update)
-		else
-			K.Events.Unregister(OWNER, event)
-		end
+		listen(OWNER, event, Trackers.Update)
 	end
 end
 

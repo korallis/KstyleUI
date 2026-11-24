@@ -215,6 +215,7 @@ local function Mirror(piece, lit, level)
 	lit.mirrors[#lit.mirrors + 1] = gate.lit
 	return gate
 end
+Medals.Mirror, Medals.Timer = Mirror, Timer
 
 function Medals.Flare(piece, lit, level, token, size, lua)
 	if lit.container and not lua then
@@ -483,11 +484,11 @@ function Medals.Retexture(piece, texture)
 end
 
 function Medals.Size(piece)
-	local factor = Widgets.ScaleFactor(piece)
-	if not piece.parts or piece.sized == factor or Medals.Restricted() then
+	local px = Widgets.Border(piece)
+	if not piece.parts or piece.sized == px or Medals.Restricted() then
 		return
 	end
-	piece.sized = factor
+	piece.sized = px
 	for _, part in ipairs(piece.parts) do
 		Medals.Even(part)
 	end
@@ -549,10 +550,8 @@ function Medals.Engine(pieces, on, full)
 end
 
 function Medals.Still(piece, still, alpha)
-	if piece.fire then
-		piece.fire:SetAlpha(still and 0 or alpha)
-		piece.still:SetAlpha(still and alpha or 0)
-	end
+	piece.fire:SetAlpha(still and 0 or alpha)
+	piece.still:SetAlpha(still and alpha or 0)
 end
 
 function Medals.OnRest(fn)

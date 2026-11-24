@@ -510,10 +510,24 @@ do
 	env.SetCombat(true)
 	local mainRow, offRow = t.built.mainHandRow, t.built.offHandRow
 	assert(mainRow.light:GetTexture() == 8232 and offRow.light:GetTexture() == 8024, "Windfury and Flametongue each show their own icon")
-	assert(mainRow.lit.timer and offRow.lit.timer and mainRow.lit._cooldown == mainRow.lit.timer, "each weapon's medal drains with the enchant's own timer")
-	local sr, sg, sb = unpack(AB.W.LastCall(offRow.lit.timer, "SetSwipeColor") or {})
-	local r, g, b = Tokens.Color("totemFire")
-	assert(math.abs(sr - r) + math.abs(sg - g) + math.abs(sb - b) < 1e-6, "in its element's colour")
+	local function Ring(row, token)
+		for each, ring in pairs(row.rings) do
+			if (ring:GetAlpha() == 1) ~= (each == token) then return false end
+		end
+		local timer = row.rings[token].lit._cooldown
+		local sr, sg, sb = unpack(AB.W.LastCall(timer, "SetSwipeColor") or {})
+		local r, g, b = Tokens.Color(token)
+		return math.abs(sr - r) + math.abs(sg - g) + math.abs(sb - b) < 1e-6
+	end
+	assert(Ring(mainRow, "totemAir") and Ring(offRow, "totemFire"), "each weapon's medal drains with the enchant's own timer in its element's colour")
+	env._enchants[16] = { enchantID = 1666, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
+	env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	assert(mainRow.light:GetTexture() == 8024 and Ring(mainRow, "totemFire"), "Flametongue over Windfury in combat with auras secret turns the ring to fire at once")
+	env._enchants[16] = { enchantID = 9999, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
+	env.FireEvent("WEAPON_ENCHANT_CHANGED")
+	assert(Ring(mainRow, "gilt"), "an enchant that is no imbue drains a gilt ring")
+	env._enchants[16] = { enchantID = 1669, remainingTimeMs = 1800000, chargesRemaining = 0, hasExpirationTime = true }
+	env.FireEvent("WEAPON_ENCHANT_CHANGED")
 	assert(offRow.gutter:IsPlaying() and not mainRow.gutter:IsPlaying(), "the off hand's last five minutes gutter in the row too")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end

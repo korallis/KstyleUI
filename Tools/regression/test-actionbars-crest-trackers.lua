@@ -836,15 +836,27 @@ do
 	Clean(env, K, "frames pet family")
 end
 
--- Even pixels at four sizes.
+-- Even pixels at four sizes, and at 1080 again after a manual UI scale for every prepared choice, the hidden Stealth ones too.
 for _, size in ipairs(SIZES) do
-	local env, K, ns = New("ROGUE", { 5171, 1943, 2842 }, { size = size })
+	local env, K, ns = New("ROGUE", size[2] == 1080 and { 5171, 1943, 2842, 8676, 1856 } or { 5171, 1943, 2842 }, { size = size })
 	local k = size[2] / 768
 	for _, p in pairs(Pieces(ns)) do
 		for _, part in ipairs(p.parts) do
 			local w = (part:GetRight() - part:GetLeft()) * part:GetEffectiveScale() * k
 			local n = math.floor(w + 0.5)
 			assert(math.abs(w - n) < 1e-3 and n % 2 == 0, size[1] .. "x" .. size[2] .. ": even pixels, got " .. w)
+		end
+	end
+	if size[2] == 1080 then
+		K.Scale.SetAuto(false)
+		K.Scale.SetUserScale(0.62)
+		env.RunTimers()
+		for key, p in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
+			for _, part in ipairs(p.parts) do
+				local w = part:GetWidth() * part:GetEffectiveScale() * k
+				local n = math.floor(w + 0.5)
+				assert(math.abs(w - n) < 1e-3 and n % 2 == 0, size[1] .. "x" .. size[2] .. " at scale 0.62: " .. key .. " even pixels, got " .. w)
+			end
 		end
 	end
 	Clean(env, K, size[1] .. "x" .. size[2])

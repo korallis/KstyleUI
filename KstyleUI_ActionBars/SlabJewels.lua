@@ -404,12 +404,9 @@ function Jewels.Update(event)
 		end
 	end
 	local held = feed ~= nil and ns.SlabMedals.Restricted()
+	local listen = (waiting or held) and K.Events.Register or K.Events.Unregister
 	for _, gate in ipairs({ "PLAYER_REGEN_ENABLED", "ADDON_RESTRICTION_STATE_CHANGED" }) do
-		if waiting or held then
-			K.Events.Register(OWNER .. ".Feed", gate, Jewels.Update)
-		else
-			K.Events.Unregister(OWNER .. ".Feed", gate)
-		end
+		listen(OWNER .. ".Feed", gate, Jewels.Update)
 	end
 	state.feed = feed
 	Listen(class, kind)
