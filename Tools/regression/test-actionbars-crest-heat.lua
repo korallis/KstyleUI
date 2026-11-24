@@ -74,9 +74,11 @@ do
 	assert(math.abs(heat[1]:GetAlpha() - 0.2) < 1e-6 and math.abs(heat[2]:GetAlpha() - 0.16) < 1e-6, "each step draws a fifth of the halo and of a corona worth 0.8 at the maximum")
 	assert(Last(heat[1], "SetStatusBarColor") and not Last(heat[2], "SetStatusBarColor"), "the halo takes the class colour; the corona keeps the burst's own colours")
 	assert(Last(heat[2]:GetStatusBarTexture(), "AddMaskTexture") and not Last(heat[1]:GetStatusBarTexture(), "AddMaskTexture"), "the corona is masked inside the crest's footprint")
+	assert(not heat.holder:IsShown(), "no combo points: the steps draw nothing and stay hidden")
 	env._points = 3
 	env.FireEvent("UNIT_POWER_FREQUENT", "player", "COMBO_POINTS")
 	Steps(env, heat, 3, "three points")
+	assert(heat.holder:IsShown(), "points show the steps")
 	assert(Last(heat[5], "SetValue")[2] == 1, "a gain eases in")
 	K.Options.Write("Medallions", "motion", "off")
 	env._points = 5

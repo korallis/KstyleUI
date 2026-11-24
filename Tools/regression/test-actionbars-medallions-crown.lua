@@ -152,7 +152,7 @@ for _, most in ipairs({ 4, 5, 4, 5, 4, 5 }) do
 	env.FireEvent("UNIT_MAXPOWER", "player", "COMBO_POINTS")
 	assert(#C.pips == most, "the crown has " .. most .. " pieces")
 end
-assert(#env._frames - before == 4 * 9 + 4 * 2, "only the four-piece crown and its four Rising heat steps are new, got " .. (#env._frames - before) .. " frames")
+assert(#env._frames - before == 4 * 9 + 4 * 2 + 1, "only the four-piece crown and its four Rising heat steps and their holder are new, got " .. (#env._frames - before) .. " frames")
 
 -- The unit frames' Class-themed pips setting turns it off and on, even with Unit Frames not loaded.
 K.Store.Profile().UnitFrames = K.Store.Profile().UnitFrames or {}

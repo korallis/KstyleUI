@@ -3,6 +3,7 @@ local _, ns = ...
 
 local K = KstyleUI
 local Tokens, Widgets = K.Tokens, K.Widgets
+local IsSecret = Widgets.IsSecret
 
 local Heat = {}
 ns.SlabHeat = Heat
@@ -42,9 +43,13 @@ function Heat.Paint()
 	end
 end
 
-local function Steps(count, make)
+local function Steps(count, holder, make)
 	local hub = ns.Slab.hub
 	local level = hub:GetFrameLevel()
+	local mask = holder:CreateMaskTexture()
+	mask:SetTexture((Tokens.Texture("orbMask")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	mask:SetPoint("CENTER", hub, "CENTER", 0, 0)
+	Widgets.Size(mask, MASK, MASK)
 	local parts = {
 		{ "halo", "ringLine16", HALO, 1, level + 1 },
 		{ "corona", "medBurst" .. ns.class:sub(1, 1) .. ns.class:sub(2):lower(), CORONA, LIGHT, math.max(0, level - 1) },
@@ -63,23 +68,22 @@ local function Steps(count, make)
 			bar:SetValue(0)
 			bar.share, bar.halo = part[4] / count, part[1] == "halo"
 			if not bar.halo then
-				local mask = bar:CreateMaskTexture()
-				mask:SetTexture((Tokens.Texture("orbMask")), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-				mask:SetPoint("CENTER", hub, "CENTER", 0, 0)
-				Widgets.Size(mask, MASK, MASK)
 				bar:GetStatusBarTexture():AddMaskTexture(mask)
 			end
 			bars[#bars + 1] = bar
 			made[#made + 1] = bar
 		end
 	end
+	made.holder = holder
 	Heat.Paint()
 	return made
 end
 
 function Heat.Combo(parent, count)
-	local steps = Steps(count, function()
-		return CreateFrame("StatusBar", nil, parent)
+	local holder = CreateFrame("Frame", nil, parent)
+	holder:Hide()
+	local steps = Steps(count, holder, function()
+		return CreateFrame("StatusBar", nil, holder)
 	end)
 	combos[#combos + 1] = steps
 	return steps
@@ -87,6 +91,7 @@ end
 
 function Heat.Set(steps, points, moving)
 	steps.points = points
+	steps.holder:SetShown(IsSecret(points) or type(points) == "number" and points > 0)
 	if On() then
 		local modes = Enum and Enum.StatusBarInterpolation or {}
 		Write(steps, points, moving and (modes.ExponentialEaseOut or 1) or (modes.Immediate or 0))
@@ -94,7 +99,7 @@ function Heat.Set(steps, points, moving)
 end
 
 function Heat.Fed(container, filter, options, count, feeds)
-	Steps(count, function(i, key)
+	Steps(count, container, function(i, key)
 		local button = container:AddAuraSlot("heat" .. key .. i, filter, options)
 		pcall(button.EnableMouse, button, false)
 		local bar = CreateFrame("StatusBar", nil, button)
