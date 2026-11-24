@@ -22,7 +22,6 @@ local function ApplyMap()
 	local map = _G[FRAME]
 	local border = map.BorderFrame
 	Skin.Backdrop(map, { shape = "window", fill = "surface", shadow = true })
-	Skin.OpenMotion(map)
 	local title
 	if type(border) == "table" then
 		Skin.Strip(border, { children = BORDER_ART })
