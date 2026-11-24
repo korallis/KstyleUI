@@ -1,4 +1,4 @@
--- test-groupframes-aura-timer-room.lua: on Medallions (or the HUD style passed in, as the -frames file does) and the four test screens, a party debuff's time left at its automatic size, or a raid debuff's at automatic, 12 and 24 and as wide as 59m, sits inside its frame (or its row beside it) and its clip, clear of its stack count, dispel letter, power strip (raid power bar off and on), name and health text, after the row has moved; Medallions keeps it under the icon by lifting the row, and the settings preview does the same.
+-- test-groupframes-aura-timer-room.lua: on Medallions (or the HUD style passed in, as the -frames file does) and the four test screens, after the debuff row has moved: a party debuff's time left at its automatic size, and a Medallions raid debuff's at automatic, 12 and 24 and as wide as 59m, sits under its icon inside its frame (or its row beside it) and its clip, clear of its stack count, dispel letter, power strip (raid power bar off and on), name and health text; a Frames raid tile keeps all its debuff icons and shows no time left, its icons and stacks clear of the power strip and health text; the settings preview matches.
 local H = dofile("Tools/regression/groupframes_r3a.lua")
 local A = dofile("Tools/regression/auras_env.lua")
 local Hud = dofile("Tools/render/scenes/hud.lua")
@@ -46,27 +46,34 @@ do
 				local button = debuffs.active[1]
 				local aura = button._aura
 				A.Remaining(env, button, 3)
-				if kind == "raid" then aura.timer:SetText("59m") end
 				aura.count:SetText("3")
 				A.Dispel(button, "Magic")
 				local letter = ns.Auras.Parts(button).dispelLetter
 				local at = style .. " " .. kind .. (power and " with power" or "") .. " " .. size[1] .. "x" .. size[2] .. " size " .. font .. ": "
 				local dx, dy = H.overlap(env, f.auraClip, f)
 				local beside = dx <= 1e-3 or dy <= 1e-3
-				within(env, aura.timer, f.auraClip, at .. "time left inside its clip")
-				for name, region in pairs({ ["time left"] = aura.timer, ["stack count"] = aura.count }) do
+				local timed = aura.timer and aura.timer:IsShown() or false
+				if kind == "raid" then
+					check(ns.Auras.Block(f, ns.Settings.current.raid).cells == f.parts.block.cells, at .. "the raid tile keeps all its debuff icons")
+					check(timed == (style == "medallions"), at .. (style == "medallions" and "Medallions shows the time left" or "a Frames raid tile shows no time left"))
+					if timed then aura.timer:SetText("59m") end
+				end
+				local texts = { ["stack count"] = aura.count, ["time left"] = timed and aura.timer or nil }
+				for name, region in pairs(texts) do
 					within(env, region, beside and f.auraClip or f, at .. name .. " inside " .. (beside and "the debuff row beside the frame" or "its frame"))
 					apart(env, region, f.power, at .. name .. " and the power strip")
 					apart(env, region, f.healthText, at .. name .. " and the health text")
 				end
-				apart(env, aura.timer, aura.count, at .. "time left and stack count")
-				apart(env, aura.timer, letter, at .. "time left and dispel letter")
-				apart(env, aura.timer, f.name, at .. "time left and the name")
-				apart(env, button, f.healthText, at .. "the debuff icon and the health text")
-				apart(env, button, f.name, at .. "the debuff icon and the name")
-				if style == "medallions" and font == 0 then
+				if timed then
+					within(env, aura.timer, f.auraClip, at .. "time left inside its clip")
+					apart(env, aura.timer, aura.count, at .. "time left and stack count")
+					apart(env, aura.timer, letter, at .. "time left and dispel letter")
+					apart(env, aura.timer, f.name, at .. "time left and the name")
 					check(box(env, aura.timer)[2] >= box(env, button)[4] - 1e-3, at .. "the time left stays under its icon")
 				end
+				apart(env, button, f.power, at .. "the debuff icon and the power strip")
+				apart(env, button, f.healthText, at .. "the debuff icon and the health text")
+				apart(env, button, f.name, at .. "the debuff icon and the name")
 			end
 		end
 		H.write(env, K, "auras.timerSize", 0)
@@ -76,8 +83,10 @@ do
 		local preview = K.Options.Preview("GroupFrames")(parent)
 		for _, pf in ipairs(preview.raidFrames) do
 			local sample = pf.sampleAuras[1]
-			if sample:IsShown() and sample.timer and sample.timer:IsShown() then
-				apart(env, sample.timer, pf.power, style .. " " .. size[1] .. "x" .. size[2] .. ": the preview's time left and power strip")
+			if sample:IsShown() then
+				local timed = sample.timer and sample.timer:IsShown() or false
+				check(timed == (style == "medallions"), style .. " " .. size[1] .. "x" .. size[2] .. ": the preview's raid sample shows the time left as live frames do")
+				if timed then apart(env, sample.timer, pf.power, style .. " " .. size[1] .. "x" .. size[2] .. ": the preview's time left and power strip") end
 				break
 			end
 		end
@@ -86,4 +95,4 @@ do
 	end
 end
 
-print("groupframes aura timer room ok on " .. style .. ": time left inside its frame and clip, clear of stacks, dispel letter, power strip, name and health text, at three sizes, four screens and the preview")
+print("groupframes aura timer room ok on " .. style .. ": time left under its icon inside its frame and clip, or none on Frames raid tiles, which keep every icon; clear of stacks, dispel letter, power strip, name and health text, at three sizes, four screens and the preview")
