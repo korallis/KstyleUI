@@ -844,7 +844,7 @@ local function Flow(container, host, kind)
 	if Centred(kind) then
 		container:SetPoint("TOP", host, "TOP", 0, 0)
 	else
-		container:SetPoint(corner, host, corner, 0, 0)
+		container:SetPoint(corner, host, corner, 0, corner:find("BOTTOM") and Widgets.Snap(host, TimerRoom(kind)) or 0)
 	end
 end
 
