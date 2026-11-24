@@ -1,4 +1,4 @@
--- test-setup-style-fit-nil-rects.lua: moving to the HUD style page before the client resolves its rects raises nothing, and the page gets the same fitted height once they resolve.
+-- test-setup-style-fit-nil-rects.lua: moving to the HUD style page before the client resolves its rects raises nothing, the page gets the same fitted height once they resolve, and the window backing, layout cards and module list still work.
 local W = dofile("Tools/regression/widget_env.lua")
 local Scene = dofile("Tools/render/scene.lua")
 local env, K = W.New({ boot = false, setup = function(e)
@@ -31,4 +31,18 @@ assert(K.Setup.Step() == 2, "Next still reaches the HUD style page")
 pending = false
 settle()
 assert(panel.opts.height == fitted, "the HUD style page fits once its rects resolve: " .. tostring(panel.opts.height) .. " vs " .. tostring(fitted))
+assert(not panel.chrome.fill.pending and panel.chrome.fill[5]:IsVisible(), "the window keeps its backing")
+W.Click(panel.next)
+settle()
+for role, card in pairs(panel.cards) do
+	W.Click(card)
+	assert(K.Setup.Choice().layout == role and card.selected, "the layout card picks " .. role)
+end
+W.Click(panel.next)
+settle()
+local floor = panel.moduleScroll:GetBottom()
+for name, toggle in pairs(panel.toggles) do
+	assert(toggle:IsVisible() and toggle:GetBottom() >= floor, "the module list shows " .. name .. " without scrolling")
+end
+assert(#env._errors == 0, tostring(env._errors[1]))
 print("ok")

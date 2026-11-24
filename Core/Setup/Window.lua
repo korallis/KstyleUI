@@ -984,7 +984,7 @@ local function BuildStyles(page, width)
 	panel.styleFit = { width = cardWidth, spacing = spacing }
 end
 
-FitStyles = function()
+FitStyles = function(retried)
 	local fit, page = panel.styleFit, panel.pages[2]
 	local pad = gap("gapLarge")
 	local picture = Widgets.Snap(page, (fit.width - 2 * pad) * STYLE_PICTURE_SHARE)
@@ -1043,7 +1043,7 @@ FitStyles = function()
 			end
 		end
 		if not (lowest and top) then
-			C_Timer.After(0, FitStyles)
+			if not retried then C_Timer.After(0, function() FitStyles(true) end) end
 			return
 		end
 		local over = top + gap("gapSmall") - lowest
