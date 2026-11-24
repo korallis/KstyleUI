@@ -204,10 +204,6 @@ gallery_skins_loot	3440x1440	Core/Skin.lua	5
 gallery_skins_loot	3440x1440	Core/Widgets/Button.lua	25
 gallery_skins_loot	5120x1440	Core/Skin.lua	5
 gallery_skins_loot	5120x1440	Core/Widgets/Button.lua	25
-gallery_skins_lootrolls	1280x720	KstyleUI_Skins/PartC/Kit.lua	12
-gallery_skins_lootrolls	2560x1440	KstyleUI_Skins/PartC/Kit.lua	12
-gallery_skins_lootrolls	3440x1440	KstyleUI_Skins/PartC/Kit.lua	12
-gallery_skins_lootrolls	5120x1440	KstyleUI_Skins/PartC/Kit.lua	12
 gallery_skins_mail	1280x720	Core/Skin.lua	33
 gallery_skins_mail	1280x720	Core/Widgets/Button.lua	50
 gallery_skins_mail	1280x720	KstyleUI_Skins/Parts.lua	4
