@@ -15,8 +15,8 @@ local SLOT_LEVEL = 8
 local BAR_BACK_ALPHA = 0.5
 local SAMPLE_FILL = 0.6
 Slots.CATEGORIES = {
-	EXTERNAL = { filter = "HELPFUL|EXTERNAL_DEFENSIVE", icon = 135936 },
-	BIG_DEFENSIVE = { filter = "HELPFUL|BIG_DEFENSIVE", icon = 135919 },
+	EXTERNAL = { filter = "HELPFUL|EXTERNAL_DEFENSIVE", icon = 135936, defensive = true },
+	BIG_DEFENSIVE = { filter = "HELPFUL|BIG_DEFENSIVE", icon = 135919, defensive = true },
 	HOTS = { filter = "HELPFUL|PLAYER|RAID_IN_COMBAT", icon = 135953 },
 	IMPORTANT = { filter = "HELPFUL|IMPORTANT", icon = 135932 },
 	CROWD_CONTROL = { filter = "HARMFUL|CROWD_CONTROL", icon = 136071 },
@@ -66,9 +66,14 @@ function Slots.Spells(text)
 	return any and set or nil
 end
 
+function Slots.Unavailable(category)
+	local game = CATEGORIES[category] and CATEGORIES[category].defensive and InterfaceOverrides
+	return type(game) == "table" and type(game.HasExternalDefensives) == "function" and game.HasExternalDefensives() == false
+end
+
 function Slots.Plan(slot)
 	local category = CATEGORIES[slot.category]
-	if not category then
+	if not category or Slots.Unavailable(slot.category) then
 		return nil
 	end
 	local filter = category.filter
@@ -702,7 +707,7 @@ local function PaintSample(f, sample)
 	for i, icon in ipairs(f.sampleSlots or {}) do
 		local slot = cfg[Key(i)]
 		local category = Category(slot, f.kind)
-		local on = category ~= nil and shows[slot.category] == true and placements[i].fits
+		local on = category ~= nil and shows[slot.category] == true and placements[i].fits and not Slots.Unavailable(slot.category)
 		if on and slot.style == "SQUARE" then
 			icon.tile.icon:SetColorTexture(slot.color.r, slot.color.g, slot.color.b, 1)
 		elseif on then

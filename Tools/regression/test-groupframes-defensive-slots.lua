@@ -47,6 +47,13 @@ for _, forever in ipairs({ true, false }) do
 	eq(f.indicators._slots.indicator2.enabled, true, what .. ": the crowd control indicator stays on")
 	eq(ns.Slots.Plan({ category = "EXTERNAL", spells = "" }) == nil, forever, what .. ": external defensives have no plan")
 	eq(ns.Slots.Plan({ category = "BIG_DEFENSIVE", spells = "" }) == nil, forever, what .. ": big defensives have no plan")
+	local notes = {}
+	for _, row in ipairs(ns.Settings.Schema()) do
+		if row.type == "note" and row.label:find("not available on this client", 1, true) and row.showWhen(ns.Settings.current) then
+			notes[#notes + 1] = row.label
+		end
+	end
+	eq(table.concat(notes, "; "), forever and "Indicator 1 is not available on this client.; Indicator 3 is not available on this client." or "", what .. ": the options say which indicators are not available")
 	eq(#env._errors, 0, tostring(env._errors[1]))
 end
 
