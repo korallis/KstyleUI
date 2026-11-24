@@ -43,6 +43,8 @@ RENDERS = {
     "hud_2x": ("hud_reference", 2.0, HUD, "--strict"),
     "frames_1080": ("hud_reference", 1.0, dict(HUD, RENDER_HUD_STYLE="Frames", RENDER_ORNAMENTS="Full"), "--strict"),
     "groupframes": ("gallery_groupframes", 2.0, {}, "--strict"),
+    "frames_medals": ("hud_warrior_mac", 2.0, dict(HD, RENDER_LAYOUT="DPS", RENDER_HUD_STYLE="Frames", RENDER_ORNAMENTS="Full",
+                                                   RENDER_TRACKERS="lit"), "--strict"),
 }
 
 # name, source, crop, width. A source is "render:<RENDERS key>"; a crop is "WxH+X+Y" in the source's pixels or None. A picture narrower than its width stays as it is.
@@ -51,6 +53,7 @@ IMAGES = [
     ("hud_finish", "render:hud_2x", "1856x444+992+1700", 1856),
     ("hud_frames_1080", "render:frames_1080", None, 1200),
     ("frame_raid", "render:groupframes", "904x442+106+724", 720),
+    ("frames_medals", "render:frames_medals", "1600x468+1240+1660", 1600),
 ]
 
 Image = None

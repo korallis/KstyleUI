@@ -4,7 +4,7 @@ Paste the blocks below on [the create-project page](https://addons.wago.io/devel
 
 Wago's public project stores a display name, a summary, a markdown description, categories, a thumbnail, gallery images with a description each, and source, website and issues URLs. [docs.wago.io](https://docs.wago.io/) documents the version-upload API, not these page fields. The description format below is the markdown Wago already renders (see [BigWigs](https://addons.wago.io/addons/bigwigs)). There is no published character limit. A page the length of this description is inside what that site already shows.
 
-The hero picture is in-game. The clips and the two HUD pictures are test renders of this addon over in-game screenshots.
+The hero picture is in-game. The clips and the HUD pictures are test renders of this addon over in-game screenshots.
 
 ## Project name
 
@@ -31,6 +31,14 @@ KstyleUI swaps the default UI for one dark forged style, the same on your bars, 
 
 Every picture below is a test render of the addon over my own in-game screenshots. Icons in these pictures are the optional AI-made icon pack, not art shipped in the addon.
 
+![KstyleUI test render over an in-game screenshot: warrior, bear druid, priest and warlock crests lighting up with their buffs, procs and debuffs while cooldowns burn round the rim](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/trackers.gif)
+
+*Every class's crest now carries the stuff you'd normally hunt for all over the screen: your buffs, procs, your debuffs on the target, and big cooldowns burning round the rim. One place to look.*
+
+![KstyleUI test render over an in-game screenshot of the Frames look: a warrior's crest pieces as round medals in a row above the stance bar](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frames_medals.jpg)
+
+*On Frames the same pieces sit as medals in a row above your stance bar. Each one has its own switch in `/kstyle`.*
+
 ![KstyleUI test render over an in-game screenshot: the Medallions HUD for nine classes in turn, each with its own crest](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/classes.gif)
 
 *Every class gets its own crest, and most of them get a crown on top.*
@@ -55,9 +63,9 @@ Every picture below is a test render of the addon over my own in-game screenshot
 
 *The whole thing in Medallions. Your RestedXP or Zygor guide sits top left and your quests sit on the right under the map.*
 
-![KstyleUI test render over an in-game screenshot of the middle of the Medallions HUD: lit glass bars and forged steel ends on the player and target frames](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_hud_finish.jpg)
+![KstyleUI test render over an in-game screenshot of the middle of the Medallions HUD: the player and target frames with lit glass bars, docked into the crest](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_hud_finish.jpg)
 
-*Every bar has a lit glass finish now, and the Medallions frames end in forged steel caps.*
+*Every bar has a lit glass finish, and the Medallions frames dock right into the crest.*
 
 ![KstyleUI test render over an in-game screenshot: the action bars and player frame fading back out of combat, then snapping back when a target is picked](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/rest.gif)
 
@@ -150,6 +158,8 @@ Upload in this order. The gallery description is the caption.
 | `gallery/08-frames.jpg` | 1200×675 | The Frames look | KstyleUI test render over an in-game screenshot of the Frames look on a 1920 by 1080 screen: the target's card stacked over the player's above the action bars. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/09-rest.gif` | 800×261 | Clean screen at rest | KstyleUI test render over an in-game screenshot: out of combat with no target, the bars and player frame fade back, then a target brings them straight back. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 | `gallery/10-casts.gif` | 800×264 | Who a cast is aimed at | KstyleUI test render over an in-game screenshot: a target's cast bar names who the spell is aimed at, says YOU, shields a cast you can't interrupt, then dims with a gold mark while your interrupt recharges. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
-| `gallery/11-map.gif` | 800×611 | Routes and nearest services | KstyleUI test render over an in-game screenshot, with the game's own map art: a route to the Undercity by road and zeppelin, then the Nearest picker for innkeepers, banks and trainers. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/11-map.gif` | 800×634 | Routes and nearest services | KstyleUI test render over an in-game screenshot, with the game's own map art: a route to the Undercity by road and zeppelin, then the Nearest picker for innkeepers, banks and trainers. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/12-trackers.gif` | 800×494 | Everything on the crest | KstyleUI test render over an in-game screenshot: warrior, bear, priest and warlock crests light up with buffs, procs and debuffs while cooldowns burn round the rim. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
+| `gallery/13-frames-medals.jpg` | 1600×468 | Crest pieces on Frames | KstyleUI test render over an in-game screenshot of the Frames look: a warrior's crest pieces as medals in a row above the stance bar. Icons in this picture are the optional AI-made icon pack, not art shipped in the addon. |
 
 The upload page for a project, once it exists, is `https://addons.wago.io/developers/projects/<slug>/gallery/create`.

@@ -186,7 +186,7 @@ class MasterDescription(unittest.TestCase):
         master = MASTER.read_text(encoding="utf-8")
         prose = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", master)
         self.assertLessEqual(len(prose.split()), 800, "Fix: the owner asked for a short page; link GitHub for detail")
-        self.assertLessEqual(master.count("!["), 13, "Fix: one picture or clip per feature")
+        self.assertLessEqual(master.count("!["), 15, "Fix: one picture or clip per feature")
         for tell in ("\u2014", "Elevate", "Seamless", "Unleash", "Whether you"):
             self.assertNotIn(tell, master, "Fix: write it the way the owner talks, without " + repr(tell))
 

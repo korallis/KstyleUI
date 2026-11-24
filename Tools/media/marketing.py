@@ -42,6 +42,8 @@ GALLERY = [
     ("09-rest.gif", "marketing/rest.gif", None),
     ("10-casts.gif", "marketing/casts.gif", None),
     ("11-map.gif", "marketing/map.gif", None),
+    ("12-trackers.gif", "marketing/trackers.gif", None),
+    ("13-frames-medals.jpg", "readme/frames_medals.jpg", None),
 ]
 
 # Core/Tokens.lua colours.
@@ -69,6 +71,7 @@ SHOWCASES = [
     ("show_hud_finish.jpg", "hud_finish.jpg"),
     ("show_hud_frames_1080.jpg", "hud_frames_1080.jpg"),
     ("show_frame_raid.jpg", "frame_raid.jpg"),
+    ("show_frames_medals.jpg", "frames_medals.jpg"),
 ]
 
 # Highlight clips (--clips): 1920x1080 class HUD scenes rendered at CLIP_PPU over the real forest plate, cut to a box
@@ -130,6 +133,15 @@ CLIPS = {
     "hawks.gif": (CREST, story("hud_hunter_mac", {"RENDER_FX": "hawks"}, "RENDER_FX_T", [
         (0.5, 0.5, 300), (0.9, 1.6, 0), (8.9, 9.6, 300), (18.9, 19.45, 0), (20.4, 21.1, 700),
     ], 0.7)),
+    "trackers.gif": (CREST, [shot for scene, env, beats in (
+        ("hud_warrior_mac", {}, [(0.1, 0.1, 300), (0.5, 0.64, 300), (3.0, 3.28, 300), (9.0, 9.21, 700)]),
+        ("hud_druid_mac", {"RENDER_FORM": "bear"}, [(0.1, 0.1, 300), (0.5, 0.57, 250), (1.0, 1.07, 250), (1.5, 1.71, 250),
+                                                     (2.0, 2.07, 250), (2.5, 2.57, 250), (3.0, 3.14, 900)]),
+        ("hud_priest_mac", {}, [(0.1, 0.1, 300), (0.5, 0.71, 250), (1.5, 1.57, 250), (2.0, 2.14, 250), (2.5, 2.57, 300),
+                                (4.6, 4.67, 300), (5.8, 5.87, 700)]),
+        ("hud_warlock_mac", {}, [(0.1, 0.1, 300), (1.0, 1.07, 250), (2.0, 2.07, 250), (3.0, 3.07, 250), (3.5, 3.57, 250),
+                                 (4.0, 4.07, 250), (5.0, 5.21, 300), (6.0, 6.14, 900)]),
+    ) for shot in story(scene, {"RENDER_TRACKERS": "moment", **env}, "RENDER_TRACKERS_T", beats, 1)]),
     "rest.gif": ((468, 792, 984, 270), [
         ("hud_reference", {"RENDER_REST": "rest"}, "RENDER_REST_T", [0], 800),
         ("hud_reference", {"RENDER_REST": "rest"}, "RENDER_REST_T", times(0.07, 0.63), 1400),
@@ -138,7 +150,7 @@ CLIPS = {
     "casts.gif": ((1036, 886, 330, 92), [("hud_rogue_mac", {"RENDER_CAST_CUES": cue}, "RENDER_CAST_CUES_T", ts, hold)
                                          for cue, ts, hold in (("aimed", times(0, 0.28), 700), ("you", times(0, 0.28), 900),
                                                                ("locked", times(0, 0.28), 900), ("wait", times(0, 0.63), 1100))]),
-    "map.gif": ((446, 298, 698, 510), [("worldmap_roads", {"RENDER_MAP_WIDE": "1", "RENDER_MAP_TRIP": "zeppelin", **env}, None, [0], 2400)
+    "map.gif": ((280, 275, 698, 531), [("worldmap_roads", {"RENDER_MAP_WIDE": "1", "RENDER_MAP_TRIP": "zeppelin", **env}, None, [0], 2400)
                                        for env in ({}, {"RENDER_MAP_SERVICES": "1"})]),
 }
 
