@@ -1,4 +1,4 @@
--- options_setup.lua: one real Options page or setup step at a chosen window scale for G4/G9 evidence; RENDER_LOOK wears a Look, RENDER_SETUP_FEATURES=off turns the big pictures and Looks off, RENDER_CONTROLS_ROW=off hides the Keyboard and Gamepad choice, RENDER_SETUP_PICK clicks a layout card, and RENDER_SETUP_POINT points at a layout or arrangement card; RENDER_GO=N presses Enter on RENDER_QUERY and waits N ticks, RENDER_POLISH=off switches off the v0.3.0 search, preview and motion switches.
+-- options_setup.lua: one real Options page or setup step at a chosen window scale for G4/G9 evidence; RENDER_LOOK wears a Look, RENDER_SETUP_FEATURES=off turns the big pictures and Looks off, RENDER_CONTROLS_ROW=off hides the Keyboard and Gamepad choice, RENDER_SETUP_PICK clicks a layout or HUD style card, RENDER_MOTION=full|reduced|off sets Motion, and RENDER_SETUP_POINT points at a layout or arrangement card; RENDER_GO=N presses Enter on RENDER_QUERY and waits N ticks, RENDER_POLISH=off switches off the v0.3.0 search, preview and motion switches.
 local Common = dofile("Tools/render/scenes/_common.lua")
 local Gallery = dofile("Tools/render/scenes/_gallery.lua")
 local O = dofile("Tools/regression/options_env.lua")
@@ -45,6 +45,7 @@ return Common.Run(function()
 	if os.getenv("RENDER_SUBJECT") ~= "setup" and not K.Store.Defaults("ActionBars") then K.Store.RegisterDefaults("ActionBars", BARS) end
 	local key
 	if (os.getenv("RENDER_LOOK") or "") ~= "" then assert(K.Setup.Looks.Apply(os.getenv("RENDER_LOOK"))) end
+	if os.getenv("RENDER_MOTION") then assert(K.Motion.SetLevel(os.getenv("RENDER_MOTION"))) end
 	if os.getenv("RENDER_SUBJECT") == "setup" then
 		for _, name in ipairs(K.Setup.PICKER) do K.Modules.Register(W.CoreEnv.Module(name.name, name.name == "ActionBars" and { defaults = BARS } or nil)) end
 		assert(K.Setup.Open(true))
@@ -66,7 +67,7 @@ return Common.Run(function()
 	env.RunTimers()
 	local pick = os.getenv("RENDER_SETUP_PICK")
 	if pick and pick ~= "" then
-		assert(K.Setup.window.cards[pick], pick).onClick()
+		assert(K.Setup.window.cards[pick] or K.Setup.window.styleCards[pick], pick).onClick()
 		Gallery.Ticks(W, env, 40)
 	end
 	local point = os.getenv("RENDER_SETUP_POINT")
