@@ -1,5 +1,20 @@
 # KstyleUI changelog
 
+## v0.3.4.1 (2026-11-24)
+
+A small hotfix for party and raid frames, which showed the same buff twice on a member. Thanks to Baine for spotting this.
+
+Highlights:
+
+- Party and raid frames show each buff once, so Find Minerals or a zone buff no longer turns up twice on a member.
+- The External and Big defensives indicators stay empty for now, as Forever doesn't report defensives yet.
+- Thanks to Baine for spotting this.
+
+### Fixed
+
+- Party and raid frames no longer show a member's buff, such as Find Minerals or a zone buff, in the External and Big defensives indicators. Thanks to Baine for spotting this.
+- Those two indicators only light up for real defensives, which Forever doesn't report yet, so they stay empty for now. Pick one under Options > Party and Raid > Indicators and a note says so.
+
 ## v0.3.4 (2026-11-23)
 
 Every class now has its own crest. Warriors, paladins, rogues, hunters, mages, warlocks, priests, druids and shamans each get the buffs, debuffs, procs and cooldowns they watch on the Medallions crest, one place to look, and on Frames they stand in a row above the stance bar. Every piece is on by default with its own switch and shows once you know its spell. Baine's report also brings three world map fixes.

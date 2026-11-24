@@ -2,6 +2,11 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.3.4.1 (2026-11-24)", {
+		L["Party and raid frames show each buff once, so Find Minerals or a zone buff no longer turns up twice on a member."],
+		L["The External and Big defensives indicators stay empty for now, as Forever doesn't report defensives yet."],
+		L["Thanks to Baine for spotting this."],
+	} },
 	{ "v0.3.4 (2026-11-23)", {
 		L["Every class now has its own crest: your buffs, procs, debuffs and cooldowns, one place to look."],
 		L["Major cooldowns burn round the rim, and mana users see the five-second rule round the level badge."],
@@ -17,12 +22,5 @@ ns.NOTES = {
 		L["The crest minimap's N sits on the forged ring, and the minimap buttons stay inside the round ring."],
 		L["Proc glows match the rim of the buttons beside them and can't stay invisible."],
 		L["Thanks to Baine for spotting the setup cards and tabs, the grey dots and the compass N."],
-	} },
-	{ "v0.3.3 (2026-11-23)", {
-		L["Party frames are a quarter larger on ultrawide, and their names and health percentages stay readable."],
-		L["Medallions player and target frames dock into the crest, with even bars and status icons in steel sockets."],
-		L["Incoming heals show in the health bar's own colour instead of a green chunk."],
-		L["A polish pass over bars, nameplates, the minimap, chat, bags, tooltips, meters, quests, skins and Options."],
-		L["The RestedXP skin works again with RestedXP 4.11.39."],
 	} },
 }

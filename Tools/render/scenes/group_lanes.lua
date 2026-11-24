@@ -31,6 +31,8 @@
 -- =above gives raid frames the name above the bar first, so the row moves under the bar too.
 -- RENDER_PARTY_SIZE=3 keeps you and the first two members; RENDER_PARTY_RANGE=1 puts the second member out of range.
 -- RENDER_RAID_POWER=1 switches the raid power bar on.
+-- RENDER_GROUP_BUFFS=1 is Baine's v0.3.4 report: a client with no defensive classification, whose defensive slot filters
+-- admit any buff (G.Auras), gives the first member Find Minerals and the third a zone buff.
 -- RENDER_GROUP_DISPEL=1 shows the dispel highlight on the second member as the aura engine does for a Magic debuff: every texture
 -- registered with the slot shown in the Magic colour, keeping its own alpha as the options preview does.
 local Common = dofile("Tools/render/scenes/_common.lua")
@@ -72,6 +74,7 @@ local EXTRAS = os.getenv("RENDER_EXTRAS") == "1"
 local R6 = os.getenv("RENDER_PARITY_R6") == "1"
 local R7 = os.getenv("RENDER_PARITY_R7") == "1"
 local R8 = os.getenv("RENDER_PARITY_R8")
+local BUFFS = os.getenv("RENDER_GROUP_BUFFS") == "1"
 local SPELLS = { [1243] = { "Power Word: Fortitude", 135987 }, [1459] = { "Arcane Intellect", 135932 }, [467] = { "Thorns", 136104 } }
 local GROUP_SPELLS = { [21562] = "Prayer of Fortitude", [23028] = "Arcane Brilliance" }
 local IDENTITY = {
@@ -93,6 +96,7 @@ return Common.Run(function()
 		setup = function(env)
 			local unitClass = env.UnitClass
 			Common.ForceScreen(env)
+			if BUFFS then env.InterfaceOverrides = { HasExternalDefensives = function() return false end } end
 			if os.getenv("RENDER_GROUP_STATUS") == "1" then
 				env.UnitHasIncomingResurrection = function(unit) return env.Secret(unit == "party1" or unit == "raid1") end
 				env.UnitIsAFK = function(unit) return env.Secret(unit == "party3" or unit == "raid3") end
@@ -355,6 +359,10 @@ return Common.Run(function()
 				end
 			end
 		end)
+	end
+	if BUFFS then
+		G.Auras(env, "party1", { { id = 2580, icon = 136025 } })
+		G.Auras(env, "party3", { { id = 1, icon = 136106 } })
 	end
 	if R6 then
 		ns.Unit.ForEach(function(f)

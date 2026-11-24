@@ -335,6 +335,33 @@ local function installPrediction(env)
 	end
 end
 
+-- A slot filter token other than HELPFUL, HARMFUL and PLAYER narrows only while env._classifies lists it, to the auras
+-- whose classes list it; otherwise it admits every aura, as Forever's EXTERNAL_DEFENSIVE and BIG_DEFENSIVE slot filters
+-- admitted Find Minerals and a zone buff on Baine's v0.3.4 screen.
+local function Admits(env, filter, aura)
+	for part in filter:gmatch("[^|]+") do
+		if part == "HELPFUL" and aura.harmful or part == "HARMFUL" and not aura.harmful or part == "PLAYER" and not aura.mine
+			or (env._classifies or {})[part] and not (aura.classes or {})[part] then
+			return false
+		end
+	end
+	return true
+end
+
+-- Once a test gives auras (G.Auras), an enabled slot shows the first of its unit's auras that passes its filter string
+-- and includeSpellIDs, with that aura's icon, and hides with none (Blizzard_AuraContainerSlots.lua).
+local function Feed(env, c)
+	if not env._slotAuras then return end
+	for _, slot in pairs(c._slots) do
+		local ids, shown = slot.candidateFilters and slot.candidateFilters.includeSpellIDs, nil
+		for _, aura in ipairs(slot.enabled and env._slotAuras[c._unit] or {}) do
+			if not shown and Admits(env, slot.filter, aura) and (not ids or ids[aura.id]) then shown = aura end
+		end
+		if shown and slot.frame._aura.icon then slot.frame._aura.icon:SetTexture(shown.icon) end
+		slot.frame:SetShown(shown ~= nil)
+	end
+end
+
 -- The AuraContainer engine: auras_env.lua's fake, plus the aura slots and the aura processing policy
 -- the group frames use. A slot's frame is made as the engine makes it: initializeFrame runs before
 -- the access restrictions apply.
@@ -343,11 +370,13 @@ local function installAuras(env, opts)
 	env.CustomAuraContainerAuraProcessingPolicy = { None = 0, ProcessAura = 1 }
 	env.AuraUtil = env.AuraUtil or {}
 	env.AuraUtil.AuraUpdateChangedType = { None = 1, Debuff = 2, Buff = 3, Dispel = 4 }
+	env._slotHosts = {}
 	local create = env.CreateFrame
 	env.CreateFrame = function(frameType, name, parent, template)
 		local frame = create(frameType, name, parent, template)
 		if frameType == "AuraContainer" and template == "CustomAuraContainerTemplate" then
 			frame._slots = {}
+			env._slotHosts[#env._slotHosts + 1] = frame
 			function frame.AddAuraSlot(self, key, filter, options)
 				assert(type(key) == "string" and key ~= "", "slotKey must be a non-empty string.")
 				assert(not self._slots[key], "aura slot '" .. key .. "' already exists with this key.")
@@ -363,15 +392,18 @@ local function installAuras(env, opts)
 				assert(self._slots[key], "aura slot '" .. tostring(key) .. "' was not found with this key.")
 				assert(filters == nil or type(filters) == "table", "candidateFilters must be a table or nil.")
 				self._slots[key].candidateFilters = filters
+				Feed(env, self)
 			end
 			function frame.SetAuraSlotFilterString(self, key, filter)
 				assert(self._slots[key], "aura slot '" .. tostring(key) .. "' was not found with this key.")
 				self._slots[key].filter = filter
+				Feed(env, self)
 			end
 			function frame.SetAuraSlotEnabled(self, key, enabled)
 				assert(type(enabled) == "boolean", "enabled must be a boolean.")
 				assert(self._slots[key], "aura slot '" .. tostring(key) .. "' was not found with this key.")
 				self._slots[key].enabled = enabled
+				Feed(env, self)
 			end
 			local addGroup = frame.AddAuraGroup
 			function frame.AddAuraGroup(self, key, filter, options)
@@ -1016,6 +1048,16 @@ function G.SetRoster(env, kind, members, player, deferEvents)
 	env.FireEvent("GROUP_ROSTER_UPDATE")
 	env.RunStateDrivers()
 	env.UpdateHeaders()
+end
+
+-- Auras(env, unit, auras) gives the unit these auras ({ id, icon, harmful, mine, classes }) and feeds every aura slot,
+-- as UNIT_AURA does.
+function G.Auras(env, unit, auras)
+	env._slotAuras = env._slotAuras or {}
+	env._slotAuras[unit] = auras
+	for _, c in ipairs(env._slotHosts) do
+		Feed(env, c)
+	end
 end
 
 -- Members(n, fn) -> n members named Member1.. with classes in turn; fn(i, member) may change each.

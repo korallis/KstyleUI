@@ -66,9 +66,14 @@ function Slots.Spells(text)
 	return any and set or nil
 end
 
+function Slots.Unavailable(category)
+	local game = (category == "EXTERNAL" or category == "BIG_DEFENSIVE") and InterfaceOverrides
+	return type(game) == "table" and type(game.HasExternalDefensives) == "function" and game.HasExternalDefensives() == false
+end
+
 function Slots.Plan(slot)
 	local category = CATEGORIES[slot.category]
-	if not category then
+	if not category or Slots.Unavailable(slot.category) then
 		return nil
 	end
 	local filter = category.filter
@@ -702,7 +707,7 @@ local function PaintSample(f, sample)
 	for i, icon in ipairs(f.sampleSlots or {}) do
 		local slot = cfg[Key(i)]
 		local category = Category(slot, f.kind)
-		local on = category ~= nil and shows[slot.category] == true and placements[i].fits
+		local on = category ~= nil and shows[slot.category] == true and placements[i].fits and not Slots.Unavailable(slot.category)
 		if on and slot.style == "SQUARE" then
 			icon.tile.icon:SetColorTexture(slot.color.r, slot.color.g, slot.color.b, 1)
 		elseif on then
