@@ -45,6 +45,8 @@ local function Fading()
 end
 
 Open()
+-- The client's ClearFocus fires OnEditFocusLost on the box that had the focus; the stub only records the call.
+rawset(R.search, "ClearFocus", function(self) if self.focused then self:GetScript("OnEditFocusLost")(self) end end)
 R.Pick({ kind = "quest", mapID = 1, name = "Target", x = 0.6, y = 0.4 })
 R.search:SetText("")
 for _, other in ipairs({ 3, 12 }) do
