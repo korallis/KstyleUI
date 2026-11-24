@@ -12,6 +12,12 @@ return {
 			["C_UnitAuras.GetPlayerAuraBySpellID"] = 1,
 		},
 	},
+	["KstyleUI_ActionBars/SlabUnleashed.lua"] = {
+		why = "Readable() asks C_UnitAuras.GetUnitAuraBySpellID only after Medals.Restricted() (C_Secrets.ShouldAurasBeSecret) says auras are readable, and passes each result through Widgets.IsSecret (issecretvalue) before it uses it.",
+		calls = {
+			["C_UnitAuras.GetUnitAuraBySpellID"] = 1,
+		},
+	},
 	["KstyleUI_ActionBars/Flyout.lua"] = {
 		why = "GameTooltip is hidden when the pointer leaves a KstyleUI flyout button that showed it, and only while that button owns it. GameTooltip is not a layout frame.",
 		calls = {

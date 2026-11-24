@@ -554,12 +554,14 @@ end
 
 local function Drive(button, on, full)
 	if button.full ~= full then
-		for kind, group in pairs({ Shown = button.loop, Assigned = button.flare and button.flare.play }) do
-			if full then
-				button["AddAura" .. kind .. "Animation"](button, group)
-			elseif button.full then
-				button["RemoveAura" .. kind .. "Animation"](button, group)
-				group:Stop()
+		for kind, groups in pairs({ Shown = button.loops or { button.loop }, Assigned = { button.flare and button.flare.play } }) do
+			for _, group in ipairs(groups) do
+				if full then
+					button["AddAura" .. kind .. "Animation"](button, group)
+				elseif button.full then
+					button["RemoveAura" .. kind .. "Animation"](button, group)
+					group:Stop()
+				end
 			end
 		end
 		button.full, button.fed = full, nil

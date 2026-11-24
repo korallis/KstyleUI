@@ -199,6 +199,9 @@ local function Build(form, name, key, spec)
 		return nil
 	end
 	piece.spec = piece.spec or spec
+	if spec.families then
+		ns.SlabUnleashed.Dress(piece, spec, name)
+	end
 	form.pieces[key] = piece
 	return piece
 end
