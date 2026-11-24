@@ -396,6 +396,12 @@ do
 	Settle()
 	assert(ns.Guide.Key() == "restedXP", "showing RestedXP again takes the card back")
 	assert(zygor.master._clamped, "Zygors window is its own again once RestedXP holds the card")
+	-- Every later placement finds RestedXP holding the card and hands Zygor's window back again; that must keep the
+	-- window's anchor, or Zygor's action bar reads a nil top (ActionBar.lua:421, the owner's BugGrabber report).
+	zygor.Step()
+	Settle()
+	local ok, err = pcall(env.ZygorGuidesViewer.ActionBar.SavePosition, env.ZygorGuidesViewer.ActionBar)
+	assert(ok and zygor.master:GetNumPoints() > 0, "a second hand-back must leave Zygor's window anchored (KstyleUI_Skins/Addons/Zygor.lua Restore): " .. tostring(err))
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 

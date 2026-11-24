@@ -232,10 +232,8 @@ function Fake.Install(env, opts)
 	z.ActionBar = {
 		Frame = bar,
 		SavePosition = function(self)
-			local top = z.Frame:GetTop()
-			if not top then
-				return
-			end
+			-- ActionBar.lua:421 multiplies the viewer's top by its scale with no nil check.
+			local top = z.Frame:GetTop() * z.Frame:GetEffectiveScale() / bar:GetEffectiveScale()
 			fake.positions = (fake.positions or 0) + 1
 			bar:ClearAllPoints()
 			bar:SetPoint("BOTTOMLEFT", env.UIParent, "BOTTOMLEFT", 100, top + 5)
