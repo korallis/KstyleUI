@@ -234,7 +234,7 @@ Trackers.END = 12
 
 function Trackers.Story(class)
 	if Ranged.Story(class) then return Ranged.Story(class) end
-	local story = os.getenv("RENDER_TRACKERS")
+	local story = rawget(_G, "RENDER_TRACKERS") or os.getenv("RENDER_TRACKERS")
 	if not (story and story ~= "" and (KNOWN[class] or HEALERS[class])) then return nil end
 	return story, tonumber(os.getenv("RENDER_TRACKERS_T") or "") or Trackers.END
 end

@@ -51,9 +51,8 @@ local function New(class, opts)
 			e.UnitExists = function(unit) if unit == "pet" then return e._pet ~= nil end return exists(unit) end
 			e.UnitIsDead = function(unit) return unit == "pet" and e._pet ~= nil and e._pet.dead == true end
 			e.UnitHealthMax = function() return e.Secret(e._pet and e._pet.max or 0) end
-			e.UnitHealthMissing = function() return e.Secret(e._pet and e._pet.missing or 0) end
+			e.UnitHealth = function() return e.Secret(e._pet and e._pet.max - e._pet.missing or 0) end
 			e.C_PetInfo = { GetPetHappiness = function() return e._pet and e._pet.mood end }
-			e.SetPortraitTexture = function(texture, unit) texture._portrait = unit end
 			e.GetInventoryItemID = function(_, slot) return opts.trinket and slot == 13 and 5002 or nil end
 			e.GetInventoryItemCooldown = function() return 0, 0, 1, false end
 			e.C_Item.GetItemSpell = function(id) if id == 5002 then return "Use", 9002 end end
@@ -83,7 +82,7 @@ end
 
 -- Seated(ns, key) -> the piece showing in the switch's seat, whichever choice it is.
 local function Seated(ns, key)
-	for c = 1, 3 do
+	for c = 1, 4 do
 		local p, shows = Piece(ns, key, c)
 		if shows then return p end
 	end

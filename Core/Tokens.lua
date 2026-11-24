@@ -523,7 +523,8 @@ for _, name in ipairs({
 	TEXTURES["figure" .. name] = { file = "Textures\\Figures\\" .. name .. ".png" }
 end
 for _, name in ipairs({
-	"Aimed", "Arrowhead", "BlackArrow", "Burst", "ChillShard", "Claws", "Coal", "Coil", "Counter", "Crescents",
+	"Aimed", "ArcLeft", "ArcPet", "ArcRight", "ArmorArcane", "ArmorFrost", "Arrowhead", "BlackArrow", "Burst", "ChillShard", "Claws", "Coal", "Coil",
+	"Counter", "Crescents", "Frost", "MarkReticle", "RimLeft",
 	"Crystal", "Drop", "Edge", "Elements", "Eye", "Facet", "Fangs", "FireTongue", "Hawk", "Hook", "Horns", "Hourglass",
 	"Intellect", "Leaf", "Multi", "Pack", "Paw", "PolyCurl", "Reticle", "Serpent", "ShieldArcane", "ShieldFrost",
 	"Siphon", "Swirl", "Tear", "Tongue", "Weakness", "Wing"

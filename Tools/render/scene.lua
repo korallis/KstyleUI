@@ -1328,8 +1328,16 @@ function Scene.Build(env, opts)
 		end
 		item.masks = masks(region)
 		if region._barOwner then
-			item.fraction = round4(Scene.BarFraction(env, region._barOwner, now))
+			local bar, f = region._barOwner, Scene.BarFraction(env, region._barOwner, now)
+			item.fraction = round4(f)
 			item.bar = true
+			-- The client crops a status bar's texture to its fill rather than squeezing it (the fill-up widgets anchor a
+			-- spark to the fill's top over shaped fill art, Blizzard_UIWidgetTemplateFillUpFrames.lua:203-205).
+			if not item.texCoord then
+				local reverse = state(bar, "ReverseFill") == true
+				item.texCoord = state(bar, "Orientation") == "VERTICAL" and { 0, 1, round4(reverse and 0 or 1 - f), round4(reverse and f or 1) }
+					or { round4(reverse and 1 - f or 0), round4(reverse and 1 or f), 0, 1 }
+			end
 		end
 		item.mark = region._renderMark or frame._renderMark
 		return item
