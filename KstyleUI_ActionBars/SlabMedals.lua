@@ -12,7 +12,7 @@ ns.SlabMedals = Medals
 local SIZE, TRACK, ICON, SHADE, BURST, STEEL = 26, 4, 0.74, 1.9, 2.4, 0.45
 local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 112, 12, 10, 8, 2
 local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, ROW_SIGIL, SIGIL, ABOVE = 118, 14, 4, 30, 12, 0.86, 20
-local FIGURE, SPARK = 0.8, 0.3
+local FIGURE, SPARK, BLOOM, REST = 0.8, 0.3, 2.4, 0.3
 local SEATS = {
 	left = { -1, 75.9, 24.8 }, right = { 1, 75.9, 24.8 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
 	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 67.5, 247 }, footRight = { 1, 67.5, 293 },
@@ -411,8 +411,8 @@ function Medals.Rim(parent, spec, level)
 	return r
 end
 
-local function Sigil(r, container, key, family, color, size)
-	local ids = {}
+local function Sigil(r, container, key, family, spec, size)
+	local ids, color, art = {}, spec.color, "sigil" .. family.sigil
 	for _, id in ipairs(family.spells) do
 		ids[id] = true
 	end
@@ -422,16 +422,26 @@ local function Sigil(r, container, key, family, color, size)
 	button:SetPoint("CENTER", r, "CENTER", 0, 0)
 	button:SetFrameLevel(r:GetFrameLevel() + ABOVE)
 	r.add(button, size)
-	r.add(Medals.Texture(button, "BACKGROUND", 0, "glow", "black", size * SHADE)):SetAlpha(0.7)
+	r.add(Medals.Texture(button, "BACKGROUND", 0, "glow", color, size * BLOOM, "ADD"))
 	r.add(Medals.Texture(button, "BACKGROUND", 1, "dot", "black", size)):SetAlpha(0.85)
-	r.add(Medals.Texture(button, "ARTWORK", 0, "sigil" .. family.sigil, color, size * SIGIL, "ADD"))
+	for sub = 0, 1 do
+		r.add(Medals.Texture(button, "ARTWORK", sub, art, color, size * SIGIL, "ADD"))
+	end
 	r.add(Medals.Texture(button, "BORDER", 0, "medRing", "white", size))
 	button.timer = Timer(button, button:GetFrameLevel() + 1, "orbRing", color)
 	button.timer:SetAllPoints(button)
 	button:SetDurationCooldown(button.timer)
 	button.ember = Medals.EmberSlot(r, container, "ember" .. key, options, size, r:GetFrameLevel() + ABOVE + 2)
+	button.flare = Medals.Layer(button, button:GetFrameLevel() + 2)
+	r.add(Medals.Texture(button.flare, "ARTWORK", 0, spec.burst or "glow", "white", size * BURST, "ADD"))
+	button.flare:SetAlpha(0)
+	button.flare.play = Medals.Steps(button.flare, FLARE)
+	button.steel = r.add(Medals.Texture(r, "ARTWORK", 0, art, "steel", size * SIGIL))
+	button.steel:SetDesaturated(true)
+	button.steel:SetAlpha(REST)
 	button.container, button.key, button.family = container, key, family
 	r.sigils[#r.sigils + 1] = button
+	r.lits[#r.lits + 1] = button
 end
 
 function Medals.CooldownRim(parent, spec, level, form)
@@ -465,7 +475,7 @@ function Medals.CooldownRim(parent, spec, level, form)
 			Medals.Flare(r, lit, base + 3, spec.burst or "glow", RIM)
 		end
 		for k, family in ipairs(each.families) do
-			Sigil(r, lit.container, "sigil" .. k, family, spec.color, size)
+			Sigil(r, lit.container, "sigil" .. k, family, spec, size)
 		end
 	end
 	r.timer = r.lit.timer
@@ -587,8 +597,9 @@ local function Arrange(r)
 		b.container:SetAuraSlotEnabled(b.key, on)
 		b.container:SetAuraSlotEnabled(b.ember.key, on and ns.Config("crestEmber") ~= false)
 		b.at = on and { r.left + n % r.per * r.pitch, r.first + floor(n / r.per) * r.rise } or nil
+		b.steel:SetShown(on)
 		if b.at then
-			for _, slot in ipairs({ b, b.ember }) do
+			for _, slot in ipairs({ b, b.ember, b.steel }) do
 				slot:ClearAllPoints()
 				slot:SetPoint("CENTER", r, "CENTER", Widgets.Snap(r, b.at[1]), Widgets.Snap(r, b.at[2]))
 			end
