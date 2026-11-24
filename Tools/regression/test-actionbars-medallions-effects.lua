@@ -78,7 +78,7 @@ do
 	assert(not Slab.InCombat(), "leaving combat is seen")
 	assert(hub.runes.turn:GetAnimationSpeedMultiplier() == 1, "the rune ring settles")
 
-	assert(Kinds(hub.runes.turn).Rotation == 1 and hub.runes.turn:GetLooping() == "REPEAT" and hub.runes.turn:IsPlaying(), "the rune ring turns")
+	assert(Kinds(hub.runes.turn).Rotation >= 1 and hub.runes.turn:GetLooping() == "REPEAT" and hub.runes.turn:IsPlaying(), "the rune ring turns (the glyph band's tide and ink layers turn in the same group, SlabGlyphs.lua)")
 	assert(hub.glow.breath:IsPlaying() and hub.glow.breath:GetLooping() == "BOUNCE", "the glow breathes")
 	env.RunTimers()
 	assert(K.Effects.Holder("hub") == nil, "the proc's hold on the hub has ended")

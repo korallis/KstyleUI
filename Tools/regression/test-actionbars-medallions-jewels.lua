@@ -32,10 +32,12 @@ local function New(class, power, size)
 	})
 	K.Options.Write("Rest", "enabled", false)
 	AB.Enable(env, K)
-	-- The jewels alone: a rogue's crown of blades listens too, and test-actionbars-medallions-crown covers it.
+	-- The jewels alone: a rogue's crown of blades listens too, and test-actionbars-medallions-crown covers it; the
+	-- glyph tide listens to the main power, and test-actionbars-medallions-glyphs covers it.
 	local profile = K.Store.Profile()
 	profile.UnitFrames = profile.UnitFrames or {}
 	profile.UnitFrames.resource = { classPips = false }
+	K.Options.Write("ActionBars", "crestTide", false)
 	env.RunTimers()
 	return env, K, ns
 end

@@ -614,6 +614,10 @@ function Button.StyleTexts(b)
 end
 
 function Button.SetAccent(b, r, g, b2)
+	local mantle = b.mantle
+	if mantle then
+		r, g, b2 = mantle[1], mantle[2], mantle[3]
+	end
 	b:SetAccent(r, g, b2)
 	if b.autocast then
 		if r then

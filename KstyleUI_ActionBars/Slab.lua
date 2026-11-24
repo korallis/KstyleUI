@@ -44,7 +44,7 @@ local CLASS_NAMES = {
 	PALADIN = "Paladin", PRIEST = "Priest", ROGUE = "Rogue", SHAMAN = "Shaman", WARLOCK = "Warlock", WARRIOR = "Warrior", EVOKER = "Evoker",
 }
 
-Slab.RING, Slab.MARGIN, Slab.STRATA = RING, MARGIN, STRATA
+Slab.RING, Slab.MARGIN, Slab.STRATA, Slab.RUNE_TURN = RING, MARGIN, STRATA, RUNE_TURN
 
 local state = { combat = false, built = false, class = nil, procs = {} }
 

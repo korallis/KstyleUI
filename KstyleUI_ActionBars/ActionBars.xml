@@ -15,6 +15,7 @@
 	<Script file="Travel.lua"/>
 	<Script file="SlabMedals.lua"/>
 	<Script file="SlabEffects.lua"/>
+	<Script file="SlabGlyphs.lua"/>
 	<Script file="SlabJewels.lua"/>
 	<Script file="SlabHawks.lua"/>
 	<Script file="SlabStorm.lua"/>

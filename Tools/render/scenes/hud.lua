@@ -827,16 +827,26 @@ function modules.actionbars(opts)
 			env.GetComboPoints = env.GetComboPoints or function()
 				return env._pips or spec.combo or 0
 			end
-			if Hud.Pips() or Hud.Crown(opts) then
+			-- The player's main power (Hud.Player) and its bar colour, which the crest's glyph tide fills with; any other
+			-- power answers the jewels' count.
+			local player = Hud.Player(opts)
+			if Hud.Pips() or Hud.Crown(opts) or not env.UnitPowerType then
 				env.UnitPowerType = function()
-					return Hud.Player(opts).powerType
+					return player.powerType, player.powerToken
 				end
 			end
-			env.UnitPower = env.UnitPower or function()
-				return spec.combo or 3
+			env.PowerBarColor = env.PowerBarColor or {}
+			for token, c in pairs(Classes.POWER_COLORS) do
+				env.PowerBarColor[token] = env.PowerBarColor[token] or { r = c[1], g = c[2], b = c[3] }
+			end
+			env.UnitPower = env.UnitPower or function(_, power)
+				return power ~= nil and power == player.powerType and player.power or spec.combo or 3
 			end
 			-- RENDER_FOREVER_POWERS=1 gives soul shards (7) and holy power (9) no maximum, as Forever does, so no jewels show.
 			env.UnitPowerMax = env.UnitPowerMax or function(_, power)
+				if power ~= nil and power == player.powerType then
+					return player.powerMax
+				end
 				return os.getenv("RENDER_FOREVER_POWERS") == "1" and (power == 7 or power == 9) and 0 or 5
 			end
 			-- The client's seconds formatter, which the sockets put on their cooldown numbers ("4s").

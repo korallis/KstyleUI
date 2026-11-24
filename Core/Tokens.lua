@@ -153,6 +153,7 @@ local COLORS = {
 	totemAir = { "b79cff", 1 },
 	totemCore = { "fff4dc", 1 },
 	totemSpirit = { "8fd8ff", 1 },
+	mantleTravel = { "2ec4b6", 1 },
 	jewelStormCore = { "e3f3ff", 1 },
 	medGunLit = { "50555d", 1 },
 	medGunDark = { "0e0f12", 1 },
