@@ -367,7 +367,7 @@ local function PaintChip(frame, kind, host, last, size, after, gap)
 	chip:Show()
 end
 
-local function PlaceTile(skin, host, kind, i, count, size, spacing, pitch, corner, growth)
+local function PlaceTile(skin, host, kind, i, count, size, spacing, pitch, corner, growth, lift)
 	local columns = Settings.Value(kind, "auraColumns")
 	local col, row = (i - 1) % columns, math.floor((i - 1) / columns)
 	skin:ClearAllPoints()
@@ -378,7 +378,7 @@ local function PlaceTile(skin, host, kind, i, count, size, spacing, pitch, corne
 	else
 		local sx = growth[2] == "Left" and -1 or 1
 		local sy = growth[3] == "Up" and 1 or -1
-		skin:SetPoint(corner, host, corner, sx * col * (size + spacing), sy * row * pitch)
+		skin:SetPoint(corner, host, corner, sx * col * (size + spacing), sy * row * pitch + lift)
 	end
 	skin:SetSize(size, size)
 end
@@ -434,7 +434,7 @@ local function PaintAuras(frame, view, kind)
 	local filter = on and Settings.Value(kind, "auraFilter")
 	local chip, more = frame.auraChips[kind], frame.auraChips[kind .. "+"]
 	if count > 0 then
-		local width, height, corner, _, growth = ns.Auras.Footprint(kind, host)
+		local width, height, corner, _, growth, lift = ns.Auras.Footprint(kind, host)
 		local size = Widgets.Snap(host, Settings.Value(kind, "auraSize"))
 		local spacing, across = Widgets.Snap(host, Settings.Value(kind, "auraSpacing")), Widgets.Snap(host, ns.Auras.Spacing(kind))
 		local room = Widgets.Snap(host, ns.Auras.TimerRoom(kind))
@@ -463,7 +463,7 @@ local function PaintAuras(frame, view, kind)
 			tile.icon:SetTexture(AURA_ICONS[(p - 1) % #AURA_ICONS + 1])
 			local into = apart and AURA_TRAITS[p].buff and 2 or 1
 			seen[into], last[into] = seen[into] + 1, tile
-			PlaceTile(tile.skin, into == 2 and apart or host, kind, seen[into], slots[into], size, across, size + room + spacing + gap, corner, growth)
+			PlaceTile(tile.skin, into == 2 and apart or host, kind, seen[into], slots[into], size, across, size + room + spacing + gap, corner, growth, lift)
 			ns.Auras.LayoutTile(tile)
 			ns.Auras.StyleSample(tile, kind, AURA_DISPEL[kept[i]])
 			local exact = AURA_PRECISE[p]

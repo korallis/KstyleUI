@@ -14,7 +14,7 @@ local function clear(text, root, rims, label)
 	text:SetSize(text:GetStringWidth(), text:GetStringHeight())
 	local r = assert(Geometry.Rect(text, root))
 	for name, rim in pairs(rims) do
-		assert(not overlaps(r, rim), string.format("%s (bottom %.1f) overlaps the %s (top %.1f): lift the row above its timer lane (Auras.Lift) and clear the portrait (Geometry slab aura spot)", label, r.bottom, name, rim.top))
+		assert(not overlaps(r, rim), string.format("%s (bottom %.1f) overlaps the %s (top %.1f): lift the row above its timer lane (Auras.Footprint lift) and clear the portrait (Geometry slab aura spot)", label, r.bottom, name, rim.top))
 	end
 end
 
@@ -45,7 +45,7 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
-local env, K, ns = U.New()
+local env, K = U.New()
 env._textWidth = function(text, path, size) return Scene.TextWidth(text, size, path) end
 for _, kind in ipairs({ "target", "focus" }) do
 	K.Options.Write("UnitFrames", "edit", kind)
@@ -67,6 +67,7 @@ for _, kind in ipairs({ "target", "focus" }) do
 end
 assert(#env._errors == 0, tostring(env._errors[1]))
 
+local ns
 env, K, ns = U.New({ frames = true })
 for _, growth in ipairs({ "LEFT_UP", "RIGHT_UP" }) do
 	K.Options.Write("UnitFrames", "target.auraGrowth", growth)
