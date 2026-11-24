@@ -1164,15 +1164,13 @@ function Object:SetScrollChild(child)
 	takeScrollRect(self)
 end
 Object.UpdateScrollChildRect = takeScrollRect
-for _, axis in ipairs({ "VerticalScroll", "HorizontalScroll" }) do
-	local set = quietSetter(axis)
-	Object["Set" .. axis] = function(self, offset)
-		local old = self._state[axis]
-		old = old and old[1] or 0
-		set(self, offset)
-		if offset ~= old then
-			takeScrollRect(self)
-		end
+local setVerticalScroll = quietSetter("VerticalScroll")
+function Object:SetVerticalScroll(offset)
+	local old = self._state.VerticalScroll
+	old = old and old[1] or 0
+	setVerticalScroll(self, offset)
+	if offset ~= old then
+		takeScrollRect(self)
 	end
 end
 
