@@ -18,9 +18,9 @@ Every picture below is a test render of the addon over my own in-game screenshot
 
 *Every class's crest now carries the stuff you'd normally hunt for all over the screen: your buffs, procs, your debuffs on the target, and big cooldowns burning round the rim. One place to look.*
 
-![KstyleUI test render over an in-game screenshot of the Frames look: a warrior's crest pieces as round medals in a row above the stance bar](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frames_medals.jpg)
+![KstyleUI test render over an in-game screenshot of the Frames look: a warrior's crest trackers above the stance bar](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frames_medals.jpg)
 
-*On Frames the same pieces sit as medals in a row above your stance bar. Each one has its own switch in `/kstyle`.*
+*On Frames the trackers sit above your stance bar. Choose which trackers to show in `/kstyle`.*
 
 ![KstyleUI test render over an in-game screenshot: the Medallions HUD for nine classes in turn, each with its own crest](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/classes.gif)
 

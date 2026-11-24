@@ -15,7 +15,7 @@ MASTER = ROOT / "docs" / "store" / "description.md"
 RAW = "https://raw.githubusercontent.com/korallis/KstyleUI/main/"
 DISCORD = "https://discord.gg/A5qqGZEXyN"
 ICON_RELEASES = "https://github.com/korallis/KstyleUI/releases/latest"  # the one allowed releases link: the icon pack's page, never a file
-GIF_CAP = 1_500_000  # the brief's ceiling; CurseForge refuses big images
+GIF_CAP = 2_500_000  # CurseForge silently rejects a 3.8 MB GIF; keep well under its 3 MB
 SUMMARY = ("One dark forged UI for World of Warcraft: Forever. Pick Medallions or Frames for your HUD, get a class crest "
            "that lights up as you fight, and set it all up in one window.")
 
