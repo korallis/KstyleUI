@@ -548,8 +548,9 @@ end
 -- fills it: the guide's title and description labels, then the option rows the fake renders on Open (its
 -- RXPV2GuideConfiguratorOption widgets, each anchored as RestedXP anchors it: a 40-unit image at the left, the
 -- label beside it, the recommendation line above the label and the 17-unit check at the right), stacked in the
--- pane, so the skin's treatment of RestedXP's rows can be judged.
-local OPTION_ROW, OPTION_GAP = 40, 4
+-- pane, so the skin's treatment of RestedXP's rows can be judged. Each row is RestedXP's 34 units (OnAcquire,
+-- GuideConfigurator.lua 565-567), so its 40-unit image hangs 3 over the row's top and bottom as in the game.
+local OPTION_ROW, OPTION_GAP = 34, 4
 local OPTION_FLOOR = 240 - 44 - 10
 
 local function ConfiguratorRows(env, rxp, configurator)

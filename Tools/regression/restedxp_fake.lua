@@ -1829,15 +1829,17 @@ Fake.CONFIGURATOR_OPTIONS = {
 -- ConfiguratorOption(m, rxp, parent, option) is an RXPV2GuideConfiguratorOption widget (GuideConfigurator.lua:579):
 -- a backdrop Button row with its own flat configuratorBackground, a 40-unit image and the "Recommended" line on
 -- the border frame, the label, and a 17-unit checkbg frame at the right holding a tick (checkShort, checkLong)
--- and the six checkedFill pieces RestedXP tints with its theme's checked colour while the option is on.
+-- and the six checkedFill pieces RestedXP tints with its theme's checked colour while the option is on. With an
+-- image, SetImage (703-725, 4.11.40) starts the background half the image's width plus 2 in: 22 units.
 local function ConfiguratorOption(m, rxp, parent, option)
 	local frame = RxpBackdrop(m, m.frame("Button", parent))
 	m.texture(frame, "BACKGROUND", "configuratorBackground")
-	frame.configuratorBackground:SetAllPoints(frame)
 	local image = m.texture(frame.rxpBorder, "OVERLAY")
 	image:SetSize(40, 40)
 	image:SetPoint("LEFT", frame, "LEFT", 2, 0)
 	image:SetTexture(option.icon)
+	frame.configuratorBackground:SetPoint("TOPLEFT", frame, "TOPLEFT", option.icon and 22 or 0, 0)
+	frame.configuratorBackground:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
 	local text = m.text(frame)
 	text:SetJustifyH("LEFT")
 	text:SetHeight(16)
