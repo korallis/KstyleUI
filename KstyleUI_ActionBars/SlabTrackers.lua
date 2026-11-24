@@ -416,8 +416,8 @@ function Trackers.Update()
 			local row = {}
 			for c, choice in ipairs(p.choices or { p }) do
 				local spec = Resolve(choice == p and p or setmetatable(choice, { __index = p }), name == "row")
-				forms = forms or choice.forms ~= nil
 				if spec then
+					forms = forms or choice.forms ~= nil
 					local key = i .. ":" .. c
 					specs[key] = spec
 					order[#order + 1] = key

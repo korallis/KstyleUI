@@ -2,8 +2,10 @@
 local _, ns = ...
 
 local K = KstyleUI
-local Widgets, Tokens, Effects = K.Widgets, K.Tokens, K.Effects
-local IsSecret = Widgets.IsSecret
+local Tokens, Effects = K.Tokens, K.Effects
+local function IsSecret(v)
+	return issecretvalue ~= nil and issecretvalue(v) == true
+end
 local Medals, Trackers = ns.SlabMedals, ns.SlabTrackers
 
 local Rings = {}
@@ -57,6 +59,9 @@ function Medals.Ember(piece, lit, timer, art, level, color)
 		piece.add(ghost)
 		state.watched[#state.watched + 1] = { piece = piece, spec = lit.spec, fade = Pop(ghost, FADE, "IN_OUT"),
 			flicker = Medals.Steps(piece, { { 1, 0.5, FLICKER }, { 0.5, 1, FLICKER } }, true) }
+		if #state.watched == 1 and state.enabled then
+			Rings.Update()
+		end
 	else
 		gate = Medals.Layer(timer:GetParent(), timer:GetFrameLevel() + 1)
 		hot = Hot(gate, gate:GetFrameLevel(), art)
@@ -283,7 +288,7 @@ local function Gcd(_, id, _, _, recovery)
 end
 
 local function Listen(cast, spark)
-	local ember, swing = state.enabled and EmberOn(), state.enabled and MELEE_FORMS and ns.Config("crestSwing") ~= false
+	local ember, swing = state.enabled and EmberOn() and #state.watched > 0, state.enabled and MELEE_FORMS and ns.Config("crestSwing") ~= false
 	local key = table.concat({ tostring(state.enabled), tostring(cast), tostring(spark), tostring(ember), tostring(swing) }, ",")
 	if state.listening == key then
 		return
@@ -323,8 +328,9 @@ function Rings.Update()
 	Listen(cast and p ~= nil, spark and p ~= nil)
 	if not p then
 		return
+	elseif hub then
+		Medals.Place(p, hub, 0, 0)
 	end
-	Medals.Place(p, hub, 0, 0)
 	p:SetShown(cast or spark)
 	p.cast:SetShown(cast)
 	p.spark:SetShown(spark)
