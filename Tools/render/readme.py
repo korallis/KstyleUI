@@ -13,6 +13,7 @@ The pictures:
   hud_finish       the middle of the same HUD at twice the size: the lit glass bars and the forged slab ends
   hud_frames_1080  the same in the Frames look
   frame_raid       the raid frames with their heading, from the group frames gallery scene at twice the density
+  frames_medals    a warrior's Frames HUD with every crest piece lit as medals above the stance bar, at twice the size
 
 --no-render reuses the renders a previous run left in DIR. --only redoes the named pictures. Pillow is needed; the script
 runs itself again with the wow-dev virtual environment's Python when this one has none.
