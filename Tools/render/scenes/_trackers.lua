@@ -1,4 +1,4 @@
--- _trackers.lua: RENDER_TRACKERS_FORM sets GetShapeshiftFormID (a warrior's 18 or 19, a rogue's 30) and RENDER_TRACKERS_SPEC the talents a paladin (holy, prot) or rogue (assassination, combat, subtlety) knows; RENDER_TRACKERS draws a warrior's, paladin's or rogue's crest trackers through the game's own feeds (Tools/regression/aura_slots.lua): steel (every piece known, nothing up), lit (every piece up, its timer part spent) or moment, the class's moment RENDER_TRACKERS_T seconds in (Trackers.END when unset): a warrior's target dodges and Overpower lights, it is spent, Bloodrage ignites Enrage round the rim, and Execute lights; a paladin's Judgement comes off cooldown, the old Judgement falls off the target and a new one lands, the Seal draining throughout; a rogue spends five points on Slice and Dice, Rupture runs out, and the off hand carries no poison. A priest, druid or shaman plays its own story through the same feeds and the addon's own handlers (charge counts, casts, cooldowns, weapon enchants, forms and a queued Maul), steel showing every known piece with nothing up, lit the story at its own time and moment RENDER_TRACKERS_T seconds in; RENDER_TARGET=friend gives the druid a friendly target and RENDER_FORM chooses another crest: cat, bear or moonkin for the druid, shadowform for the priest, enhancement for the shaman, and RENDER_TARGET=friend a healer's friendly target for the priest too. RENDER_TRACKERS_OFF=1 turns every tracker switch off first (and for a healer plays nothing, for a pixel diff).
+-- _trackers.lua: RENDER_TRACKERS_FORM sets GetShapeshiftFormID (a warrior's 18 or 19, a rogue's 30) and RENDER_TRACKERS_SPEC the talents a paladin (holy, prot) or rogue (assassination, combat, subtlety) knows; RENDER_TRACKERS draws a warrior's, paladin's or rogue's crest trackers through the game's own feeds (Tools/regression/aura_slots.lua): steel (every piece known, nothing up), lit (every piece up, its timer part spent) or moment, the class's moment RENDER_TRACKERS_T seconds in (Trackers.END when unset): a warrior's target dodges and Overpower lights, it is spent, Bloodrage ignites Enrage round the rim, and Execute lights; a paladin's Judgement comes off cooldown, the old Judgement falls off the target and a new one lands, the Seal draining throughout; a rogue spends five points on Slice and Dice, Rupture runs out, and the off hand carries no poison. A priest, druid or shaman plays its own story through the same feeds and the addon's own handlers (charge counts, casts, cooldowns, weapon enchants, forms and a queued Maul), steel showing every known piece with nothing up, lit the story at its own time and moment RENDER_TRACKERS_T seconds in; RENDER_TARGET=friend gives the druid a friendly target and RENDER_FORM chooses another crest: cat, bear or moonkin for the druid, shadowform for the priest, enhancement for the shaman, and RENDER_TARGET=friend a healer's friendly target for the priest too. RENDER_TRACKERS_OFF=1 turns every tracker switch off first (and for a healer plays nothing, for a pixel diff). RENDER_UNLEASHED_T draws a melee class's first major cooldown that many seconds after it was cast in combat (Unleashed's burst, corona and lift sampled from the cast), and RENDER_UNLEASHED_END that many seconds after it ended out of combat (the fold).
 local Slots = dofile("Tools/regression/aura_slots.lua")
 local Ranged = dofile("Tools/render/scenes/_ranged.lua")
 
@@ -370,6 +370,33 @@ function Trackers.Play(env, K, ns, notes)
 				Sample(piece.fire and piece.fire.lit.loop, beat[2], now, env)
 			end
 		end
+	end
+	local burn, ended = tonumber(os.getenv("RENDER_UNLEASHED_T") or ""), tonumber(os.getenv("RENDER_UNLEASHED_END") or "")
+	if burn or ended then
+		local id, t = COOLDOWNS[class][1], burn or ended
+		env.C_UnitAuras = env.C_UnitAuras or {}
+		env.C_UnitAuras.GetUnitAuraBySpellID = function(unit, spell)
+			for _, a in ipairs(env._slotAuras[unit] or {}) do
+				if a.id == spell then return a end
+			end
+		end
+		env.SetCombat(burn ~= nil)
+		player[#player + 1] = { id = id, count = 0, icon = ICONS[id], start = env._now - (burn or 15), duration = 15 }
+		Slots.Set(env, "player", player)
+		env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-unleashed", id)
+		if ended then
+			table.remove(player)
+			Slots.Set(env, "player", player)
+			env.FireEvent("UNIT_AURA", "player", {})
+		end
+		for _, set in ipairs(ns.SlabUnleashed.sets) do
+			for _, group in ipairs(set.awake.lit.loops or {}) do Sample(group, 0, t, env) end
+			Sample(set.awake.lit.flare and set.awake.lit.flare.play, 0, t, env)
+			Sample(set.fold and set.fold.play, 0, t, env)
+			Sample(set.cool and set.cool.play, 0, t, env)
+		end
+		Sample(ns.Slab.hub and ns.Slab.hub.crest.lift, 0, t, env)
+		notes[#notes + 1] = string.format("trackers: Unleashed %.2f s %s", t, burn and "into the cooldown, in combat" or "after it ended, out of combat")
 	end
 	notes[#notes + 1] = string.format("trackers: %s, %s%s", class, story, story == "moment" and string.format(", %.2f s in", now) or "")
 end
