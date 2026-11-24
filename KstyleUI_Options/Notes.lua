@@ -2,6 +2,13 @@
 local _, ns = ...
 local L = KstyleUI.L
 ns.NOTES = {
+	{ "v0.3.4.3 (2026-11-24)", {
+		L["With Motion on, setup's HUD style and Layout cards show their title, text, edge and your pick again."],
+		L["Setup's Your addons page draws its switches and dropdowns on first open, and every setup step shows at once."],
+		L["The world map search sits in the map's top bar next to the zone path, so it never covers the map."],
+		L["The search's Nearest list closes when you click away, press Escape, click the map or close it."],
+		L["Thanks to Baine for finding and testing these."],
+	} },
 	{ "v0.3.4.2 (2026-11-24)", {
 		L["The world map keeps its terrain art after you view another zone, close the map and open it again."],
 		L["The /kstyle setup window no longer shows a Lua error when you press Next on the first page."],
@@ -12,13 +19,5 @@ ns.NOTES = {
 		L["Party and raid frames show each buff once, so Find Minerals or a zone buff no longer turns up twice on a member."],
 		L["The External and Big defensives indicators stay empty for now, as Forever doesn't report defensives yet."],
 		L["Thanks to Baine for spotting this."],
-	} },
-	{ "v0.3.4 (2026-11-23)", {
-		L["Every class now has its own crest: your buffs, procs, debuffs and cooldowns, one place to look."],
-		L["Major cooldowns burn round the rim, and mana users see the five-second rule round the level badge."],
-		L["Each piece has its own switch, on by default, and Frames shows them in a row above the stance bar."],
-		L["Warlocks see their Soul Shards from the bags as wisps on the crest."],
-		L["Stings and Rapid Fire on the hunter crest, thanks to the hunters in Discord."],
-		L["World map fixes thanks to Baine: search sits top-right, clears on close, and zone labels keep their size."],
 	} },
 }

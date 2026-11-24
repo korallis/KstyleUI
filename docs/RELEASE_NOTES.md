@@ -2,6 +2,10 @@
 
 The player-facing notes for every release are in [`CHANGELOG.md`](../CHANGELOG.md). The packager reads that file, so the GitHub release carries the whole file. The owner tags a release on `main` after the in-game test of `staging` passes, as [`TESTING.md`](TESTING.md) describes.
 
+## 0.3.4.3: setup cards and the map search (2026-11-24)
+
+Thanks to Baine for finding and testing these. With Motion on, the setup window could draw parts of its pages wrong: the Frames card on the HUD style step showed only its picture, the Tank pick on the Layout step had no accent edge, and Your addons drew its switches and Questie's dropdown half done until you went Back and Next. The page fade was to blame, so every setup step now shows straight away, whatever your Motion setting. The world map search also moves out of the map and into the top bar, right of the zone path, so it never sits over the art; long zone paths fold into Blizzard's overflow button to make room. Its Nearest list now closes when you click away, press Escape, click the map or close it. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
+
 ## 0.3.4.2: the world map and setup fixes (2026-11-24)
 
 Thanks to Baine for finding and testing these. The world map could lose its terrain art if you looked at another zone, closed the map and opened it again, leaving only the pins. The art now stays, and the map opens straight away instead of fading in, because the fade was what kept the art hidden. `/kstyle setup` could throw a Lua error when you pressed Next on the first page; the HUD style page now opens and fits as before. And setup's Welcome, Modules and Your addons lists drew only some of their rows until you scrolled, so the toggles looked missing. They now draw every row the moment they open. The full list is in [`CHANGELOG.md`](../CHANGELOG.md).
