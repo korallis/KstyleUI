@@ -1,5 +1,24 @@
 # KstyleUI changelog
 
+## v0.3.4.3 (2026-11-24)
+
+A small hotfix for the setup window and the world map search. Thanks to Baine for finding and testing these.
+
+Highlights:
+
+- With Motion on, setup's HUD style and Layout cards show their title, text, edge and your pick again.
+- Setup's Your addons page draws its switches and dropdowns on first open, and every setup step shows at once.
+- The world map search sits in the map's top bar next to the zone path, so it never covers the map.
+- The search's Nearest list closes when you click away, press Escape, click the map or close it.
+- Thanks to Baine for finding and testing these.
+
+### Fixed
+
+- With Motion on, setup's HUD style cards show their title, text, edge and your pick, Frames included, and the Layout cards show the Tank pick. Thanks to Baine for finding and testing this.
+- Setup's Your addons page draws its switches and dropdowns on first open, and every setup step shows at once. Thanks to Baine for finding and testing this.
+- The world map search sits in the map's top bar, right of the zone path, so it never covers the map art. Thanks to Baine for finding and testing this.
+- The search's Nearest list closes when you click away, press Escape, click the map or close it. Thanks to Baine for finding and testing this.
+
 ## v0.3.4.2 (2026-11-24)
 
 A small hotfix for the world map and the setup window. Thanks to Baine for finding and testing these.

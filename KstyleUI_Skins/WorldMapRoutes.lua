@@ -562,13 +562,13 @@ end
 
 local function SearchChanged(query)
 	Hide(results)
-	for i, row in ipairs(Routes.Search(query)) do
+	for i, row in ipairs(search.focused and Routes.Search(query) or {}) do
 		if i > 6 then break end
 		local button = results[i]
 		if not button then
 			button = CreateFrame("Button", nil, panel)
 			button:SetSize(280, 28)
-			button:SetPoint("TOPLEFT", search, "BOTTOMLEFT", 0, -(i - 1) * 28 - 3)
+			button:SetPoint("TOPRIGHT", search, "BOTTOMRIGHT", 0, -(i - 1) * 28 - 3)
 			local fill = button:CreateTexture(nil, "BACKGROUND")
 			fill:SetAllPoints(button)
 			fill:SetColorTexture(Lumen.Color("surface"))
@@ -593,15 +593,35 @@ local function SearchChanged(query)
 	RefreshRoute()
 end
 
+local navOffset
+local function Dock(on)
+	if navOffset then map.NavBar:SetPoint("BOTTOMRIGHT", map.TitleCanvasSpacerFrame, "BOTTOMRIGHT", navOffset - (on and 186 or 0), 9) end
+end
+
 local function Build()
 	if panel then return end
 	panel = CreateFrame("Frame", nil, map)
 	panel:SetAllPoints(map)
 	panel:SetFrameLevel(map:GetFrameLevel() + 30)
-	search = Widgets.EditBox(panel, { width = 280, height = 28, placeholder = L["Search the map"], onChange = SearchChanged,
-		onEscape = function() Hide(results); RefreshRoute() end, onEnter = function(query) if Plain(query, "string") ~= "" then Routes.Pick(Routes.Search(query)[1]) end end,
+	search = Widgets.EditBox(panel, { width = 180, height = 28, placeholder = L["Search the map"], onChange = SearchChanged,
+		onBlur = function() Hide(results); RefreshRoute() end, onEnter = function(query) if Plain(query, "string") ~= "" then Routes.Pick(Routes.Search(query)[1]) end end,
 		onFocus = function(box) if On("services") then SearchChanged(box:GetText()) end end })
-	search:SetPoint("TOPRIGHT", map.ScrollContainer or map, "TOPRIGHT", -12, -12)
+	search.HasStickyFocus = function()
+		for _, row in ipairs(results) do
+			if row:IsVisible() and row:IsMouseOver() then return true end
+		end
+	end
+	if map.ScrollContainer then map.ScrollContainer:HookScript("OnMouseDown", function() search:ClearFocus() end) end
+	local nav = map.NavBar
+	navOffset = type(nav) == "table" and type(map.TitleCanvasSpacerFrame) == "table" and type(WorldMapConstants) == "table" and Number(WorldMapConstants.NAVBAR_X_OFFSET)
+	if navOffset then
+		if type(NavBar_CheckLength) == "function" then nav:HookScript("OnSizeChanged", NavBar_CheckLength) end
+		local filter = type(map.WorldMapTrackingOptionsButton) == "table" and map.WorldMapTrackingOptionsButton
+		search:SetPoint("TOPLEFT", filter or nav, "TOPRIGHT", filter and 6 or 48, 0)
+		search:SetPoint("BOTTOMRIGHT", filter or nav, "BOTTOMRIGHT", filter and 186 or 228, 0)
+	else
+		search:SetPoint("BOTTOMRIGHT", map, "TOPRIGHT", 0, 4)
+	end
 	card = CreateFrame("Frame", nil, map)
 	card:SetFrameLevel(map:GetFrameLevel() + 25)
 	card:SetSize(280, 142)
@@ -635,7 +655,7 @@ local function Build()
 	end)
 	clear = Widgets.Button(card, { width = 80, height = 24, text = L["Clear"], onClick = Routes.Clear })
 	clear:SetPoint("BOTTOMRIGHT", -12, 10)
-	panel:SetScript("OnHide", function() panel:SetScript("OnUpdate", nil); search:SetText(""); Hide(results) end)
+	panel:SetScript("OnHide", function() panel:SetScript("OnUpdate", nil); search:ClearFocus(); search:SetText(""); Hide(results) end)
 	panel:SetScript("OnShow", RefreshRoute)
 	Routes.panel, Routes.search, Routes.card, Routes.distance, Routes.note, Routes.chip, Routes.steps = panel, search, card, distance, note, chip, stepRows
 end
@@ -714,7 +734,7 @@ local function Refresh()
 	if not map or type(map.GetMapID) ~= "function" or type(map.GetCanvas) ~= "function" then return end
 	canvas = map:GetCanvas()
 	if On("routes") then Build() end
-	if panel then panel:SetShown(On("routes")) end
+	if panel then panel:SetShown(On("routes")); Dock(On("routes")) end
 	if not On("routes") or target and target.owner and not On(target.owner) then Routes.Clear() end
 	RefreshZones()
 	HookPins()

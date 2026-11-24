@@ -15,6 +15,26 @@ function M.Setup(env, map)
 		return extra
 	end
 
+	-- Blizzard_WorldMap.xml:6-17 and Blizzard_WorldMap.lua:8, 494-496: the title spacer spans the map part, 67 high, above
+	-- the canvas. Blizzard_WorldMap.lua:331-333 with Camelot/Blizzard_WorldMapConstants.lua:3 hangs the nav bar 64 in (8
+	-- maximized, :68), 25 down, 50 short of the spacer's right and 9 above its bottom; Camelot/Blizzard_WorldMap.lua:2-5
+	-- puts the 32-wide tracking options button 10 right of it.
+	local spacer = env.CreateFrame("Frame", nil, map)
+	spacer:SetPoint("TOPLEFT", map, "TOPLEFT", 2, 0)
+	spacer:SetPoint("BOTTOMRIGHT", map, "TOPRIGHT", -3 - 333, -67)
+	map.TitleCanvasSpacerFrame = spacer
+	env.WorldMapConstants = { NAVBAR_X_OFFSET = -50 }
+	map.NavBar:ClearAllPoints()
+	map.NavBar:SetPoint("TOPLEFT", spacer, "TOPLEFT", 64, -25)
+	map.NavBar:SetPoint("BOTTOMRIGHT", spacer, "BOTTOMRIGHT", -50, 9)
+	local filter = env.CreateFrame("Button", nil, map)
+	filter:SetSize(32, 32)
+	filter:SetPoint("LEFT", map.NavBar, "RIGHT", 10, -2)
+	filter:SetFrameLevel(map.NavBar:GetFrameLevel() + 1)
+	local art = filter:CreateTexture(nil, "ARTWORK")
+	art:SetAllPoints(filter)
+	art:SetColorTexture(0.16, 0.13, 0.08, 1)
+	map.WorldMapTrackingOptionsButton = filter
 	map.ScrollContainer.Child = env.CreateFrame("Frame", nil, map.ScrollContainer)
 	map.ScrollContainer.Child:SetAllPoints(map.ScrollContainer)
 	function map:GetMapID() return state.id end

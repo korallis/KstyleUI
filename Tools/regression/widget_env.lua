@@ -63,9 +63,10 @@ end
 
 -- FinishGroups(env) ends every animation group still playing on a shown frame that does not loop, leaves its end
 -- alpha on the frame when it is set to final alpha, and runs its OnFinished, as the client does once its animations
--- have run; it reports whether it ended any.
+-- have run; it reports whether it ended any. With env._stalled set it ends none, as a client that never steps them.
 function W.FinishGroups(env)
 	local finished = false
+	if env._stalled then return finished end
 	for _, frame in ipairs(env._frames) do
 		for _, group in ipairs(frame._groups or {}) do
 			local looping = group._state.Looping

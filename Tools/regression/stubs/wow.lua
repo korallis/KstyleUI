@@ -878,11 +878,20 @@ function Object:IsMouseOver() return self._mouseOver == true end
 function Object:EnableMouse(enabled) self._mouse = enabled == true or enabled == 1 end
 function Object:IsMouseEnabled() return self._mouse == true end
 
--- An object's own alpha times its parent's effective alpha, unless it ignores its parent's alpha.
+-- An object's own alpha times its parent's effective alpha, unless it ignores its parent's alpha. A test sets
+-- env._stalled to model animations the client never steps: a playing Alpha animation holds its frame at its start alpha.
 function Object:SetIgnoreParentAlpha(ignore) self._ignoreParentAlpha = not not ignore end
 function Object:IsIgnoringParentAlpha() return self._ignoreParentAlpha == true end
 function Object:GetEffectiveAlpha()
 	local alpha = self:GetAlpha()
+	if self._env._stalled then
+		for _, group in ipairs(self._groups or {}) do
+			for _, animation in ipairs(group._playedAt and group._anims or {}) do
+				local from = animation._type == "Alpha" and animation._state.FromAlpha
+				alpha = from and from[1] or alpha
+			end
+		end
+	end
 	if self._ignoreParentAlpha or not self._parent then
 		return alpha
 	end
