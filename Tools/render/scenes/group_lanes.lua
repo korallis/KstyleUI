@@ -350,7 +350,9 @@ return Common.Run(function()
 		ns.Unit.ForEach(function(f)
 			if f.unit == "party1" or f.unit == "raid1" then
 				A.Assign(env, f.auras, "debuffs", 1)
-				local aura = f.auras._groups.debuffs.active[1]._aura
+				local group = f.auras._groups.debuffs
+				Hud.PlaceAuras(f.auras, group, group.active, 1)
+				local aura = group.active[1]._aura
 				aura.icon:SetTexture(135813)
 				aura.timer:SetText("3s")
 				local ink = aura.timerOptions.textColor
