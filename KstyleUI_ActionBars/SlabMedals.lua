@@ -404,15 +404,6 @@ function Medals.CooldownRim(parent, spec, level)
 	return r
 end
 
-function Medals.Beside(piece, anchor, rim, left)
-	local lits, side, y = rim and rim.lits or NONE, left and -1 or 1, (piece.units - STACK) / 2
-	local beside = lits[left and 1 or #lits]
-	piece:ClearAllPoints()
-	piece:SetPoint(left and "TOPRIGHT" or "TOPLEFT", beside and beside.container or anchor, beside and (left and "TOPLEFT" or "TOPRIGHT") or "CENTER",
-		side * STACK_GAP, beside and y or y - STACK_DROP)
-	Medals.Size(piece)
-end
-
 function Medals.Socket(parent, spec, level)
 	local s = Medals.Piece(parent, level, SETTING)
 	local add = s.add
@@ -429,9 +420,15 @@ function Medals.Socket(parent, spec, level)
 		local timer = Enum and Enum.StatusBarTimerDirection
 		lit:SetDurationBar(s.bar, { direction = timer and timer.RemainingTime or 1 })
 	elseif spec.feed == "cooldown" or spec.feed == "item" then
-		s.timer = Timer(lit, level + 1, "dot", "black", 0)
-		s.timer:SetDrawSwipe(false)
+		local rim = spec.slot ~= nil
+		s.timer = Timer(lit, level + 1, rim and "ringLine16" or "dot", rim and spec.color or "black", rim and 1 or 0)
+		s.timer:SetDrawSwipe(rim)
 		s.timer:SetScript("OnCooldownDone", function() Medals.Fire(s) end)
+		if rim then
+			s.timer:ClearAllPoints()
+			s.timer:SetPoint("CENTER", parent, "CENTER", 0, 0)
+			add(s.timer, COOLDOWN_RING)
+		end
 	end
 	s.glint = add(Medals.Texture(s.bar, "OVERLAY", 0, "diamond", "white", GLINT, "ADD"))
 	Medals.Flare(s, lit, level + 3, "glow", SETTING * BURST)
@@ -494,7 +491,7 @@ end
 
 function Medals.Size(piece)
 	local px = Widgets.Border(piece)
-	if not piece.parts or piece.sized == px or Medals.Restricted() then
+	if not piece.parts or piece.sized == px or Medals.Locked() then
 		return
 	end
 	piece.sized = px
@@ -654,6 +651,7 @@ function Medals.Refresh(m, event)
 			local count = item and item.GetItemCount and item.GetItemCount(each)
 			if not IsSecret(count) and type(count) == "number" and count > 0 then
 				id = each
+				start, duration = item.GetItemCooldown(each)
 				break
 			end
 		end
@@ -662,9 +660,6 @@ function Medals.Refresh(m, event)
 			local icon = m.lit.icon
 			if icon then
 				icon:SetTexture(item.GetItemIconByID and item.GetItemIconByID(id) or spec.texture)
-			end
-			if not spec.slot then
-				start, duration = item.GetItemCooldown(id)
 			end
 			local cooling = not (IsSecret(start) or IsSecret(duration) or IsSecret(enable) or IsSecret(gcd)) and type(duration) == "number" and duration > 0
 				and enable ~= 0 and gcd ~= true

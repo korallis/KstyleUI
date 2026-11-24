@@ -10,7 +10,7 @@ local Trackers = {}
 ns.SlabTrackers = Trackers
 
 local OWNER = "ActionBars.SlabTrackers"
-local RELIQUARY, MAIN_HAND, OFF_HAND = 30, 16, 17
+local RELIQUARY, MAIN_HAND, OFF_HAND, TRINKET = 30, 16, 17, 44
 local LUA = {
 	cooldown = { "SPELL_UPDATE_COOLDOWN" },
 	usable = { "SPELL_UPDATE_USABLE", "SPELL_UPDATE_COOLDOWN", "PLAYER_TARGET_CHANGED" },
@@ -72,21 +72,16 @@ local function Trinket(p)
 	return not IsSecret(spell) and spell or nil
 end
 
-local function TrinketPiece(parent, spec, level, form)
-	return (form == "crest" and Medals.Socket or Medals.Medal)(parent, spec, level)
-end
-
-local function PlaceTrinket(piece, anchor, form, _, n)
-	if form == "row" then
-		Medals.Place(piece, anchor, Medals.Cell(n))
-		return n + 1
+local function Trinkets(event, arg)
+	if ns.Config("crestTrinkets") == false or IsSecret(arg) then
+		return
 	end
-	local rim
-	for _, p in pairs(state.form.pieces) do
-		rim = p.spec.seat == "cooldowns" and p:IsShown() and p or rim
+	for slot = 13, 14 do
+		local id = event == "PLAYER_EQUIPMENT_CHANGED" and slot or type(GetInventoryItemID) == "function" and GetInventoryItemID("player", slot)
+		if not IsSecret(id) and id == arg then
+			return Trackers.Update()
+		end
 	end
-	Medals.Beside(piece, anchor, rim, piece.spec.slot == 13)
-	return n
 end
 
 function Trackers.Register(class, rows, hooks)
@@ -101,12 +96,8 @@ function Trackers.Register(class, rows, hooks)
 		cooldowns = row.seat == "cooldowns" and row or cooldowns
 	end
 	HOOKS[class] = hooks or HOOKS[class]
-	if cooldowns then
-		for _, slot in ipairs({ 13, 14 }) do
-			table.insert(CLASSES[class], { key = "crestTrinkets", slot = slot, feed = "item", known = Trinket, color = cooldowns.color, build = TrinketPiece, place = PlaceTrinket })
-		end
-		HOOKS[class] = HOOKS[class] or {}
-		HOOKS[class].update = Trackers.Joined(HOOKS[class].update or {}, { "PLAYER_EQUIPMENT_CHANGED" })
+	for slot = 13, cooldowns and 14 or 0 do
+		table.insert(CLASSES[class], { key = "crestTrinkets", seat = { slot == 13 and -TRINKET or TRINKET, 0 }, slot = slot, feed = "item", known = Trinket, color = cooldowns.color })
 	end
 end
 
@@ -209,7 +200,7 @@ local function Build(form, name, key, spec)
 		return nil
 	end
 	local make = spec.build or spec.feed == "threat" and Medals.Threat or name == "crest" and (spec.seat == "rim" and Medals.Rim
-		or spec.seat == "cooldowns" and Medals.CooldownRim or spec.feed == "enchant" and Medals.Socket) or Medals.Medal
+		or spec.seat == "cooldowns" and Medals.CooldownRim or spec.slot and Medals.Socket) or Medals.Medal
 	local under = spec.seat == "rim" or spec.seat == "cooldowns" or spec.seat == "plaque"
 	local ok, piece = pcall(make, form.frame, spec, form.frame:GetFrameLevel() + (under and 1 or 16), name)
 	if not ok or not piece then
@@ -333,8 +324,10 @@ local function Listen(on, lua, forms)
 	Events.Register(OWNER, "PLAYER_REGEN_ENABLED", Trackers.Update)
 	Events.Register(OWNER, "ADDON_RESTRICTION_STATE_CHANGED", Trackers.Update)
 	K.Callbacks.Register("EffectsLevelChanged", OWNER, Trackers.Update)
+	local updating = {}
 	for _, event in ipairs(hooks.update or {}) do
 		Events.Register(OWNER, event, Trackers.Update)
+		updating[event] = true
 	end
 	if forms then
 		Events.Register(OWNER, "UPDATE_SHAPESHIFT_FORM", Trackers.Swap)
@@ -355,6 +348,9 @@ local function Listen(on, lua, forms)
 		else
 			events[event] = events[event] or false
 		end
+	end
+	for event in pairs(updating) do
+		events[event] = nil
 	end
 	for event, unit in pairs(events) do
 		if unit then
@@ -505,6 +501,13 @@ function Trackers.SetEnabled(on)
 		K.Callbacks.Register("SettingChanged", OWNER, OnSetting)
 	else
 		K.Callbacks.Unregister("SettingChanged", OWNER)
+	end
+	for _, event in ipairs({ "PLAYER_EQUIPMENT_CHANGED", "GET_ITEM_INFO_RECEIVED" }) do
+		if on and Trackers.Has("crestTrinkets") then
+			K.Events.Register(OWNER .. ".Trinkets", event, Trinkets)
+		else
+			K.Events.Unregister(OWNER .. ".Trinkets", event)
+		end
 	end
 	Trackers.Update()
 end

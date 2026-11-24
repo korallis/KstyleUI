@@ -847,7 +847,7 @@ function modules.actionbars(opts)
 	AB.Enable(env, K)
 	local consumables = tonumber(rawget(_G, "RENDER_CONSUMABLES") or os.getenv("RENDER_CONSUMABLES") or "")
 	if consumables and ns.Consumables then
-		local items = { { 13446, 134834 }, { 13444, 134856 }, { 5510, 135230 }, { 14530, 133682 }, { 22895, 134029 }, { 8079, 132805 }, { 18253, 134828 }, { 20452, 133971 }, { 13510, 134842 }, { 13452, 134812 }, { 20007, 134825 }, { 954, 134938 } }
+		local items = { { 13446, 134834 }, { 13444, 134856 }, { 20520, 136192 }, { 5510, 135230 }, { 14530, 133682 }, { 22895, 134029 }, { 8079, 132805 }, { 18253, 134828 }, { 20452, 133971 }, { 13510, 134842 }, { 13452, 134812 }, { 20007, 134825 }, { 954, 134938 } }
 		env.C_Container = {
 			GetContainerNumSlots = function(bag) return bag == 0 and math.min(12, consumables) or 0 end,
 			GetContainerItemInfo = function(_, slot) return { itemID = items[slot][1], iconFileID = items[slot][2], stackCount = slot + 2 } end,
