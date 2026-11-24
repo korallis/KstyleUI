@@ -1,4 +1,4 @@
--- test-container-fades.lua: with Motion on and client animations that never step, every window, page, menu, tooltip, drawer, feed card, Layout Mode screen and target body shows whole the moment it opens and is gone the moment it closes, as with Motion Off.
+-- test-container-fades.lua: with Motion on and client animations that never step, every window, page, menu, tooltip, drawer, feed card, Layout Mode screen and target body shows whole the moment it opens and is gone the moment it closes, as with Motion Off; settings rows and the target medallion stay readable, and a protected drawer waits out combat to close.
 
 local function Whole(env, frame, what)
 	local alpha = frame:GetEffectiveAlpha()
@@ -63,6 +63,12 @@ do
 	K.Options.Open("General")
 	Whole(env, parts.content, "An Options page after a page change")
 	Whole(env, parts.preview.current, "The Options live preview after a page change")
+	K.Store.Account().motionOneStyle = false
+	K.Options.Open("About")
+	K.Options.Open("General")
+	for i, row in ipairs(parts.content.rows) do
+		if row:IsShown() then Whole(env, row, "Settings row " .. i .. " in a page's row cascade") end
+	end
 	win:Close()
 	Gone(env, win, "The Options window")
 end
@@ -70,8 +76,10 @@ end
 -- Minimap: the addon-button drawer and the micro menu.
 do
 	local M = dofile("Tools/regression/minimap_env.lua")
+	local AB = dofile("Tools/regression/actionbars_env.lua")
 	local env, K, ns = M.New({ enabled = true, setup = function(e)
-		M.FakeLibDBIcon(e):Add("Bravo")
+		e._blocked = {}
+		AB.Protect(e, M.FakeLibDBIcon(e):Add("Bravo"))
 		e.CreateFrame("Button", "CharacterMicroButton", e.UIParent)
 	end })
 	Stall(env, K)
@@ -80,6 +88,13 @@ do
 	Whole(env, drawer.panel, "The minimap drawer")
 	drawer:Close()
 	Gone(env, drawer.panel, "The minimap drawer")
+	drawer:Open()
+	AB.Protect(env, drawer.panel)
+	env.SetCombat(true)
+	drawer:Close()
+	assert(#env._blocked == 0 and drawer.panel:IsShown() and drawer.open, "closing a drawer that holds a secure button in combat calls no protected Hide; wait for combat to end: " .. tostring(env._blocked[1]))
+	env.SetCombat(false)
+	Gone(env, drawer.panel, "The minimap drawer after combat")
 	K.Options.Write("Minimap", "microMenu", true)
 	ns.Micro.Toggle(env.Minimap)
 	Whole(env, ns.Micro.panel, "The micro menu")
@@ -122,6 +137,8 @@ do
 	Stall(env, K)
 	Target("Wolf")
 	Whole(env, view.body, "The target frame on a new target")
+	Whole(env, view.medallion.portrait, "The target medallion's portrait during its flip")
+	Whole(env, view.medallion.levelText, "The target medallion's level during its flip")
 	Target("Boar")
 	Whole(env, view.body, "The target frame on a target change")
 	assert(U.Shown(env, view.name) == "BOAR", "a target change shows the new target at once")
