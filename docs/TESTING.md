@@ -136,7 +136,7 @@ Check:
 
 ### Open the settings window
 
-Type `/kstyle`. The window opens with a short fade and rise. You can also open it from Esc > Options > AddOns > **KstyleUI**, or from the minimap's addon compartment.
+Type `/kstyle`. The window opens with a short rise. You can also open it from Esc > Options > AddOns > **KstyleUI**, or from the minimap's addon compartment.
 
 - [ ] The rail on the left lists General, Elements, one page per module, Profiles and About. The selected entry has an accent bar and wash in your class colour.
 - [ ] Each module page shows a live preview on the right, and changing a setting changes the preview and the real frames at once.

@@ -47,11 +47,6 @@ local function NewFlip(self)
 	scale:SetOrigin("CENTER", 0, 0)
 	scale:SetDuration(FLIP)
 	scale:SetSmoothing("OUT")
-	local alpha = group:CreateAnimation("Alpha")
-	alpha:SetFromAlpha(0)
-	alpha:SetToAlpha(1)
-	alpha:SetDuration(FLIP)
-	group:SetToFinalAlpha(true)
 	return group
 end
 

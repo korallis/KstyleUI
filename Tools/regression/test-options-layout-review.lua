@@ -139,15 +139,15 @@ local help
 for _, item in ipairs(ns.Model.PageItems(ns.Pages.Find(ns.Pages.List(), "General"))) do
 	if item.label == L["One motion style"] then help = item.help end
 end
-assert(help == L["Menus, page changes and Layout Mode use the window timing. Off restores their previous motion."], "the switch's help lists what it times")
+assert(help == L["A page change shows the whole list at once, as windows and menus open. Off lets its rows rise in one after another."], "the switch's help lists what it times")
 local list = parts.content
 K.Options.Open("About")
 K.Options.Open("General")
-assert(list:GetAlpha() == 1 and list.rows[1]:GetAlpha() == 1 and not list.kstylePageIn, "a page change shows the whole list at once, with no fade")
+assert(list:GetAlpha() == 1 and list.rows[1]:GetAlpha() == 1 and (list.rows[1].lift or 0) == 0, "a page change shows the whole list at once, in place")
 account.motionOneStyle = false
 K.Options.Open("About")
 K.Options.Open("General")
-assert(list:GetAlpha() == 1 and list.rows[1]:GetAlpha() == 0 and list.revealLimit == 0.45, "off keeps the 450 ms cascade")
+assert(list.rows[1]:GetAlpha() == 1 and list.rows[1].lift > 0 and list.revealLimit == 0.45, "off keeps the 450 ms cascade, rows rising at full alpha")
 account.motionOneStyle = nil
 W.Settle(env)
 

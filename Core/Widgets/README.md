@@ -169,7 +169,7 @@ Fields: `chrome`, `content` (a frame one `chrome:Inset("gapMedium")` inside, bel
 
 | Method | Behaviour |
 | --- | --- |
-| `Open()` | Shows at full alpha at once and plays the rise: down `panelRise`, up past rest by `panelOvershoot`, then back. The three translations add up to 0, so nothing jumps when the group ends. Reduced motion and combat skip the rise. No window fades: in game an alpha fade on a whole window or page left its content half drawn or invisible. |
+| `Open()` | Shows at full alpha at once and plays the rise: down `panelRise` (6 units), then back up over the `panelRise` duration (0.4 s) with the `enter` smoothing. The two translations add up to 0, so nothing jumps when the group ends. Reduced motion and combat skip the rise. No window fades: in game an alpha fade on a whole window or page left its content half drawn or invisible. |
 | `Close()` | Hides at once and runs `onClose`. |
 | `Toggle()`, `SetTitle(text)`, `Restyle()` | |
 
@@ -328,7 +328,7 @@ The default row is a button with a `body` label that shows `item.label`, or the 
 
 | Method | Behaviour |
 | --- | --- |
-| `SetData(items, keepOffset)` | Shows a new list from the top, or at the same offset with `keepOffset`. Rows fade in one after another, `listStagger` (0.05 s) apart, each over `fade`. |
+| `SetData(items, keepOffset)` | Shows a new list from the top, or at the same offset with `keepOffset`. With Full motion, rows rise `panelRise` into place one after another, `listStagger` (0.05 s) apart, each over `fade`, always at full alpha, so a rise that never runs leaves them readable a few units low. |
 | `Scroll(delta)` | One wheel step: three rows, eased over `fade`. A step past either end overshoots by `gapMedium` and settles back on the end over `hover`. Content that fits does not move. Reduced motion scrolls at once and skips the bounce. |
 | `ScrollTo(offset, instant)`, `ScrollToIndex(index, instant)` | `ScrollToIndex` scrolls only as far as needed to show the row. |
 | `GetOffset()`, `GetMaxOffset()`, `GetData()`, `Refresh(force)`, `SetOffset(offset)` | `SetOffset` is the tween setter: it moves the rows at once. |
@@ -455,7 +455,7 @@ Timings are tokens: `hitFlash` 0.18 s, `lossHold` 0.5 s, `sparkHold` 0.25 s then
 | `SetDead(dead)` | Desaturates and darkens the portrait. |
 | `LowHealth(unit)` | Sets the ring's alpha to `UnitHealthPercent(unit, true, Widgets.LowHealthCurve())` and pulses its frame with a 0.4 s bounce; `nil` hides the ring. Reduced motion keeps the ring still. |
 | `Sheen(on)` | A 1.75 s translation across the portrait every 5 s, off under reduced motion. |
-| `FlipIn()` | A 0.18 s scale from 5% width with a fade in; nothing when motion is off. |
+| `FlipIn()` | A 0.18 s scale from 5% width at full alpha; nothing when motion is off. |
 
 No part runs Lua per frame: the curve, the pulse, the sheen and the flip are all engine work. `Widgets.LowHealthCurve()` is the same 40% step curve `UnitBar` uses for its red fill.
 

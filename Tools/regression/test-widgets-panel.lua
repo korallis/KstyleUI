@@ -79,16 +79,14 @@ do
 	assert(close and close:GetObjectType() == "Button", "a close button")
 	assert(close:GetFrameLevel() > panel.titleBar:GetFrameLevel(), "the close glyph sits above the title bar, whose mouse covers it and would take the click at the same level")
 	panel:Open()
-	W.Settle(env)
 	assert(panel:IsShown() and panel:GetAlpha() == 1)
 	W.Click(close)
 	assert(closed == 1, "the close button closes the panel and runs onClose")
-	W.Settle(env)
-	assert(panel:IsShown() == false, "the panel fades out and hides")
+	assert(panel:IsShown() == false, "the panel hides at once")
 	assert(panel:GetAlpha() == 1, "a later Show shows it at full alpha")
 end
 
--- Opening: the client plays a 0.25 s fade and a 6-unit rise; closing a 0.15 s fade, then hides. Nothing animates in
+-- Opening: the panel shows whole and the client plays a 6-unit rise; closing hides at once. Nothing animates in
 -- combat or with motion off, and no Lua tween runs.
 do
 	local env, K, panel = panelWith({ width = 200, height = 120, hidden = true })
@@ -148,11 +146,9 @@ end
 
 -- Escape closes a panel that asks for it.
 do
-	local env, _, panel = panelWith({ width = 200, height = 120, escape = true })
+	local _, _, panel = panelWith({ width = 200, height = 120, escape = true })
 	panel:Open()
-	W.Settle(env)
 	W.Key(panel, "ESCAPE")
-	W.Settle(env)
 	assert(panel:IsShown() == false, "Escape closes the panel")
 end
 

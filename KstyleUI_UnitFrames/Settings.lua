@@ -1420,7 +1420,7 @@ local function KindRows(schema, kind)
 	if kind == "target" then
 		schema[#schema + 1] = Row(kind, {
 			type = "toggle", key = "transitions", label = L["Gentle target changes"],
-			help = L["Medallions: fades target loss and changes, and greys a dead target. Off changes it immediately."],
+			help = L["Medallions: a dead target greys over a moment before it leaves. Off changes it immediately."],
 		})
 		schema[#schema + 1] = Row(kind, {
 			type = "toggle", key = "percentLead", label = L["Lead with target percent"],

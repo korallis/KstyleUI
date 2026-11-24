@@ -9,10 +9,10 @@ K.Options.Open("Profiles")
 K.Options.Open("General")
 local parts = ns.Window.Parts()
 local list = parts.content
-assert(list.rows[1]:GetAlpha() == 0, "changing a page starts its cascade")
+assert(list.rows[1]:GetAlpha() == 1 and list.rows[1].lift > 0, "changing a page starts its cascade, its rows rising at full alpha")
 W.Tick(env, 0.451)
 for _, row in ipairs(list.rows) do
-	assert(row:GetAlpha() == 1, "finish every visible row within 450 ms")
+	assert(row.lift == 0, "finish every visible row within 450 ms")
 end
 assert(K.Appearance.Get("calmLists") == true, "calmer settings lists default on")
 K.Options.Open("Profiles")
@@ -20,12 +20,12 @@ K.Options.Open("General")
 parts.search:SetText("font")
 parts.search:GetScript("OnTextChanged")(parts.search, true)
 for _, row in ipairs(list.rows) do
-	assert(row:GetAlpha() == 1, "search cancels a running cascade and shows results at once")
+	assert(row.lift == 0, "search cancels a running cascade and shows results at once")
 end
 parts.search:SetText("motion")
 parts.search:GetScript("OnTextChanged")(parts.search, true)
 for _, row in ipairs(list.rows) do
-	assert(row:GetAlpha() == 1, "each search keystroke keeps results visible")
+	assert(row.lift == 0, "each search keystroke keeps results in place")
 end
 parts.search:SetText("")
 parts.search:GetScript("OnTextChanged")(parts.search, true)
@@ -45,9 +45,9 @@ env.RunTimers()
 W.Settle(env)
 parts.search:SetText("font")
 parts.search:GetScript("OnTextChanged")(parts.search, true)
-assert(list.rows[1]:GetAlpha() == 0 and list.revealLimit == nil, "off restores the original search cascade")
+assert(list.rows[1].lift > 0 and list.revealLimit == nil, "off restores the original search cascade")
 W.Tick(env, 0.46)
-assert(list.rows[#list.rows]:GetAlpha() < 1, "off restores the uncapped list stagger")
+assert(list.rows[#list.rows].lift > 0, "off restores the uncapped list stagger")
 assert(#env._errors == 0, tostring(env._errors[1]))
 for _, combat in ipairs({ false, true }) do
 	local e, kit, options = O.New()

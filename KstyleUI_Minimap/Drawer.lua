@@ -723,6 +723,9 @@ function Drawer:Close()
 	if not self.open then
 		return
 	end
+	if not Widgets.MayMove(self.panel) then
+		return K.Combat.Queue(function() self:Close() end)
+	end
 	self.open = false
 	self.panel:Hide()
 	if ns.Map and ns.Map.CheckHover then

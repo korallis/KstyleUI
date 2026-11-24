@@ -1047,12 +1047,6 @@ local function BuildToolbar()
 	Layout.Register(panel, TOOLBAR_KEY, TOOLBAR_POSITION, { label = L["Layout Mode toolbar"], scalable = true, plate = false, window = true })
 end
 
-local function Gone()
-	overlay:Hide()
-	grid:Hide()
-	slot:Hide()
-end
-
 local function Build()
 	if overlay then
 		return
@@ -1133,7 +1127,9 @@ function Mode.Hide(instant)
 	else
 		toolbar:Hide()
 	end
-	Gone()
+	overlay:Hide()
+	grid:Hide()
+	slot:Hide()
 end
 
 function Mode.Refresh()

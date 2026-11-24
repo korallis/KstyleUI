@@ -9,23 +9,8 @@ local Panel = {}
 local PAD_GAP = "gapMedium"
 local GEM_SIZE, GEM_CENTRE, TEXT_FROM_GEM, RULE_GAP, RULE_ALPHA = 8, 7.4, 11.1, 10, 0.5
 
-local function IsSecret(value)
-	return Widgets.IsSecret(value)
-end
-
 local function TitleBarHeight(panel)
 	return panel.chrome:Inset(PAD_GAP) + Tokens.Size("heading") + Tokens.Size("gapMedium")
-end
-
-local function MayToggle(frame)
-	if not InCombatLockdown() then
-		return true
-	end
-	local protected = frame:IsProtected()
-	if IsSecret(protected) then
-		return false
-	end
-	return not protected
 end
 
 local function BuildMotion(panel)
@@ -62,7 +47,7 @@ end
 function Panel:Open()
 	self:SetAlpha(1)
 	local shown = self:IsShown()
-	if not IsSecret(shown) and not shown and MayToggle(self) then
+	if not Widgets.IsSecret(shown) and not shown and Widgets.MayMove(self) then
 		self:Show()
 	end
 	self.rise:Stop()
@@ -74,7 +59,7 @@ end
 
 function Panel:Close()
 	self.rise:Stop()
-	if MayToggle(self) then
+	if Widgets.MayMove(self) then
 		self:Hide()
 	end
 	Widgets.Sound("IG_MAINMENU_CLOSE")
@@ -86,7 +71,7 @@ end
 
 function Panel:Toggle()
 	local shown = self:IsShown()
-	if not IsSecret(shown) and shown then
+	if not Widgets.IsSecret(shown) and shown then
 		self:Close()
 	else
 		self:Open()
