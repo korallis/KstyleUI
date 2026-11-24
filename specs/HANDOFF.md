@@ -4,7 +4,7 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 
 ## State of play
 
-- **Released**: v0.3.4.1 hotfix on v0.3.4 (2026-11-23, the crest for every class + Baine's map fixes #784) is the latest tag on `main`; v0.3.3 and hotfix v0.3.3.1 shipped the same day. Posted in #chat with one crest GIF per class. CurseForge/Wago upload automatically from the release workflow; README did not change in v0.3.4, so store descriptions and galleries (01-11) are still current as of v0.3.1.
+- **Released**: v0.3.4.2 hotfix on v0.3.4 (2026-11-23, the crest for every class + Baine's map fixes #784) is the latest tag on `main`; v0.3.3 and hotfix v0.3.3.1 shipped the same day. Posted in #chat with one crest GIF per class. CurseForge/Wago upload automatically from the release workflow; README did not change in v0.3.4, so store descriptions and galleries (01-11) are still current as of v0.3.1.
 - **Baine (Discord)**: missing world map art (only parchment and pins after the zone dance) is unexplained; waiting on his answers (Reveal on? /reload or zone switch fixes it? world map skin off? Questie off?). His minimap double party dot is not KstyleUI (the client draws party blips; KstyleUI never touches them); asked him to test with only KstyleUI on and `/fstack` each dot.
 - **CI**: staging pushes and releases are gated on GitHub-hosted runners (8 Lua shards, `checks.yml`, PR #758). The three self-hosted Macs only run `mac-budgets.yml`, non-blocking CPU-budget monitoring.
 - **Roadmap** (`docs/ROADMAP.md`, mirrored to the Discord roadmap post): v0.3.5 = "the crest, tuned in game" (in-game check fixes, trinkets on the rim, energy tick spark, readable expiring aura timers; #787). Discord roadmap post updates with `gh workflow run release.yml --ref staging -f roadmap=true -f message_ids=1573443520474120352`.
@@ -36,8 +36,8 @@ Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up
 
 - **Crest rule set by the owner**: every class tracks everything it needs around the crest (one place to look): crown, shoulders, hips, foot perches, top gem, inner rim, a cooldown rim for every major cooldown and enhancement (racials, trinkets, potions too), every form/stance/spec gets a full crest with no empty seats, tanks and healers included. Research for all specs: `C:/Users/leeba/.cache/kstyleui-evidence/crest-trackers/complete/{melee,ranged,healers}.md` (local, not in git; summarised in the builder specs on the handoff branch). Hunter stings track any sting; Rapid Fire burns on the rim.
 
-- v0.3.4.1 hotfix released 2026-11-24 (#788: party/raid External and Big defensives indicators stay empty on Forever instead of showing the top buff twice; credit Baine).
-- **PR #789 held** (`specs/fix-worldmap-art.md`): drops the world map open fade, the suspected cause of Baine's missing map art (art missing only with the World map skin on, after open, switch zone, close, reopen). Unproven: merge only once Baine or the owner confirms that with Options > Appearance > Motion Off the art stays (windowed and maximized). If it still breaks, test again with World map > Search and routes off.
+- v0.3.4.1 (2026-11-24, #788 party defensive indicators) and v0.3.4.2 (2026-11-24: #789 world map opens without its fade so the terrain art stays, #791 setup nil-rect error, #792 setup scroll lists call UpdateScrollChildRect) released; all credit Baine, who confirmed the map fix in game. Setup/Options glass stays 75% (owner decided: keep as is).
+- Baine still to check: the minimap double party dot when next in a group (KstyleUI draws no party blips).
 - Otherwise nothing in flight: no workers running. Next is v0.3.5 (see the roadmap line above and the crest completeness list below). Still ask Baine to confirm the Medallions card title on his German client.
 
 ## Crest completeness: what "maximise the crests for every class" still needs
