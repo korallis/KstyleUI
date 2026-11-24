@@ -23,7 +23,7 @@ local DEATH, SILENCE = { 1309636, 1309635, 1309633, 1309595 }, { 15487 }
 local OILS, OILED = { 20744, 20745, 20746, 20747, 20748, 20749, 20750 }, {}
 for _, id in ipairs({ 2623, 2624, 2625, 2626, 2627, 2628, 2629, 2685 }) do OILED[id] = true end
 local FLAMES, PER, CHARGES, DIM = { 315, 225, 135, 45 }, 5, 20, 0.5
-local ORBIT, FLAME, STUD, WELL, PIN = 54, 26, 12, 10, 4
+local ORBIT, FLAME, STUD, WELL, PIN, MEND = 54, 26, 12, 10, 4, 20
 local FLICKER = { { 1, 0.45, 0.06 }, { 0.45, 0.9, 0.05 }, { 0.9, 0.35, 0.07 }, { 0.35, 1, 0.08 } }
 
 local CAST = {}
@@ -33,7 +33,7 @@ local state = {}
 
 local function Fire(parent, spec, level, form)
 	if form == "row" then
-		return Medals.Medal(parent, { feed = "aura", spells = INNER_FIRE, texture = spec.texture, color = "pipPriestGlow", burst = spec.burst, count = true }, level)
+		return Medals.Figure(parent, { feed = "aura", spells = INNER_FIRE, figure = "trackerFlame", charges = CHARGES, burst = spec.burst }, level)
 	end
 	local r = Medals.Rim(parent, { feed = "aura", spells = INNER_FIRE, ambient = "medAmbientPriest", burst = spec.burst, lua = true }, level)
 	local modes = Enum and Enum.StatusBarInterpolation or {}
@@ -77,10 +77,6 @@ local function Ring(piece, anchor, form, _, n)
 	return n
 end
 
-local function Gem(parent, spec, level, form)
-	return (form == "crest" and Medals.Socket or Medals.Medal)(parent, spec, level)
-end
-
 local function Shadow()
 	return Medals.Known(WEAVING) or Medals.Known(SHADOWFORM)
 end
@@ -91,6 +87,11 @@ end
 
 local function ShadowOnly(spells)
 	return function() return Shadow() and Medals.Known(spells) end
+end
+
+local function Mend(spells, figure, x, y)
+	return { key = "crestMend", seat = { x, y }, size = MEND, build = Medals.Figure, known = Healer(spells == MENDED and MENDING or spells),
+		feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = spells, figure = figure }
 end
 
 local function Oil()
@@ -156,36 +157,32 @@ local function Paint(_, event, _, _, spellID)
 	end
 end
 
-ns.SlabVigil = { Oil = Oil, Ring = Ring, Gem = Gem }
+ns.SlabVigil = { Oil = Oil, Ring = Ring }
 if class ~= "PRIEST" then
 	return
 end
 
 ns.SlabTrackers.Register("PRIEST", {
 	{ key = "crestInnerFire", seat = "rim", feed = "aura", spells = INNER_FIRE, build = Fire, place = Ring },
-	{ key = "crestPenance", seat = "left", feed = "cooldown", choices = {
-		{ known = Healer(PENANCE) },
-		{ known = MIND_BLAST },
+	{ key = "crestPenance", seat = "left", feed = "cooldown", build = Medals.Figure, choices = {
+		{ known = Healer(PENANCE), figure = "figureLance" },
+		{ known = MIND_BLAST, figure = "figureMindOrb" },
 	} },
-	{ key = "crestShadowfiend", seat = "right", choices = {
-		{ forms = { 28 }, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = EMBRACE, color = "schoolShadow" },
-		{ forms = { 0 }, feed = "aura", spells = SHADOWFORM },
-		{ feed = "cooldown", known = SHADOWFIEND },
+	{ key = "crestShadowfiend", seat = "right", build = Medals.Figure, choices = {
+		{ forms = { 28 }, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = EMBRACE, figure = "figureFangs" },
+		{ forms = { 0 }, feed = "aura", spells = SHADOWFORM, figure = "figureShroud", steady = true },
+		{ feed = "cooldown", known = SHADOWFIEND, figure = "figureFiend" },
 	} },
-	{ key = "crestPain", seat = "topGem", build = Gem, choices = {
+	{ key = "crestPain", seat = "topGem", build = Medals.Socket, choices = {
 		{ feed = "cooldown", known = Healer(MENDING), color = "white" },
 		{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = PAIN, color = "schoolShadow" },
 	} },
-	{ key = "crestMend", seat = "top", color = "white", known = Healer(SHIELD), feeds = {
-		{ feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = SHIELD, color = "gilt" },
-		{ feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = RENEW, color = "schoolNature" },
-		{ feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = MENDED, color = "white" },
-	} },
+	Mend(SHIELD, "figureShield", 0, 100), Mend(RENEW, "figureRenew", -22, 92), Mend(MENDED, "figureMending", 22, 92),
 	{ key = "crestPlague", seat = "footLeft", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = PLAGUE,
-		known = ShadowOnly(PLAGUE), color = "schoolShadow" },
-	{ key = "crestDeath", seat = "footRight", size = Medals.FOOT, feed = "cooldown", known = ShadowOnly(DEATH) },
-	{ key = "crestSilence", seat = "lowerLeft", feed = "cooldown", known = SILENCE, color = "schoolShadow", build = Gem },
-	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, texture = 134727, color = "jewelHoly", build = Gem },
+		known = ShadowOnly(PLAGUE), build = Medals.Figure, figure = "figurePlague" },
+	{ key = "crestDeath", seat = "footRight", size = Medals.FOOT, feed = "cooldown", known = ShadowOnly(DEATH), build = Medals.Figure, figure = "figureReaper" },
+	{ key = "crestSilence", seat = "lowerLeft", feed = "cooldown", known = SILENCE, color = "schoolShadow", build = Medals.Socket },
+	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, color = "jewelHoly" },
 	{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", families = {
 		{ spells = { 10060 }, sigil = "Infusion" }, { spells = { 14751 }, sigil = "Focus" },
 		{ spells = { 586, 9578, 9579, 9592, 10941, 10942 }, sigil = "Veil" }, { spells = { 6346 }, sigil = "Brave" }, { spells = { 2651 }, sigil = "Moon" },

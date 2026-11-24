@@ -20,7 +20,7 @@ local ELEMENTS = {
 }
 local CALL, RECALLS = 66842, { 36936, 437009 }
 local SOCKET, RADIUS, SPIRE, SPIRE_LIFT, HALO = 26, 98, 34, 3, 1.5
-local MEDAL, MEDAL_RADIUS, MEDAL_RISE, ICON = Medals.SIZE, 84, 32, 0.74
+local MEDAL, MEDAL_RADIUS, MEDAL_RISE, ICON, CALLED = Medals.SIZE, 84, 32, 0.74, { 270, 180, 0, 90 }
 local FAN, FAN_RADIUS, FAN_DROP, FAN_STEP, FAN_SPAN = 26, 330, 200, 5.2, 32
 local FLARE_RISE, FLARE_FALL, IGNITE = 0.05, 0.4, 0.3
 local UNFOLD, FIFTH, IDLE_ICON, RING_HALO = 0.12, 0.2, 0.82, 1.6
@@ -307,12 +307,7 @@ local function PaintMedals()
 	local wolf = state.wolf
 	local i = wolf and wolf.form
 	if i then
-		local texture, active = GetShapeshiftFormInfo(i)
-		wolf.icon:SetTexture(texture)
-		Gate(wolf.spirit, active)
-	end
-	if state.call and state.call.known then
-		state.call.icon:SetTexture(C_Spell and type(C_Spell.GetSpellTexture) == "function" and C_Spell.GetSpellTexture(state.call.known) or nil)
+		Gate(wolf.spirit, select(2, GetShapeshiftFormInfo(i)))
 	end
 end
 
@@ -436,7 +431,13 @@ local function Build()
 	state.ring = ring
 	state.call = Medal(header, "KstyleUI_TotemCall", CallTooltip)
 	state.call:SetAttribute("spell", CALL)
+	state.call.runes = {}
+	for i, e in ipairs(ELEMENTS) do
+		state.call.runes[i] = Art(state.call, "OVERLAY", "totemRune" .. e.name, "totem" .. e.name)
+	end
 	local wolf = Medal(header, "KstyleUI_TotemWolf", WolfTooltip)
+	wolf.icon:SetTexture((Tokens.Texture("figureWolf")))
+	wolf.icon:SetBlendMode("ADD")
 	wolf:SetAttribute("type", "spell")
 	wolf.spirit = CreateFrame("Frame", nil, wolf)
 	wolf.spirit:SetAllPoints(wolf)
@@ -566,6 +567,9 @@ local function Place()
 		m.icon:SetPoint("CENTER", m, "CENTER", 0, 0)
 		Widgets.Size(m.shade, MEDAL * 1.9, MEDAL * 1.9)
 		m.shade:SetPoint("CENTER", m, "CENTER", 0, 0)
+	end
+	for i, t in ipairs(state.call.runes) do
+		Put(t, state.call, MEDAL * 0.2 * cos(rad(CALLED[i])), MEDAL * 0.2 * sin(rad(CALLED[i])), MEDAL * 0.34)
 	end
 end
 

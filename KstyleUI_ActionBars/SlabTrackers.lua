@@ -59,10 +59,6 @@ local function PlacePlaque(piece, anchor, form, _, n)
 	return n
 end
 
-local function FiveSecondPiece(parent, spec, level, form)
-	return (form == "crest" and Medals.Plaque or Medals.Medal)(parent, spec, level)
-end
-
 local function Trinket(p)
 	local item = type(GetInventoryItemID) == "function" and GetInventoryItemID("player", p.slot)
 	local get = C_Item and C_Item.GetItemSpell
@@ -87,8 +83,8 @@ end
 
 function Trackers.Register(class, rows, hooks)
 	if not CLASSES[class] and MANA[class] then
-		CLASSES[class] = { { key = "crestFiveSecond", seat = "plaque", feed = "fiveSecond", known = Always, color = "hudMana", texture = 136053,
-			build = FiveSecondPiece, place = PlacePlaque, choices = { { forms = hooks and hooks.fiveSecondForms } } } }
+		CLASSES[class] = { { key = "crestFiveSecond", seat = "plaque", feed = "fiveSecond", known = Always, color = "hudMana",
+			build = Medals.Plaque, place = PlacePlaque, choices = { { forms = hooks and hooks.fiveSecondForms } } } }
 	end
 	CLASSES[class] = CLASSES[class] or {}
 	local cooldowns
@@ -190,7 +186,7 @@ local function Build(form, name, key, spec)
 		return nil
 	end
 	local make = spec.build or spec.feed == "threat" and Medals.Threat or spec.seat == "cooldowns" and Medals.CooldownRim
-		or name == "crest" and (spec.seat == "rim" and Medals.Rim or spec.slot and Medals.Socket) or Medals.Medal
+		or spec.slot and Medals.Socket or name == "crest" and spec.seat == "rim" and Medals.Rim or Medals.Medal
 	local under = spec.seat == "rim" or spec.seat == "cooldowns" or spec.seat == "plaque"
 	local ok, piece = pcall(make, form.frame, spec, form.frame:GetFrameLevel() + (under and 1 or 16), name)
 	if not ok or not piece then

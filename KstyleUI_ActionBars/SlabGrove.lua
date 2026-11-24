@@ -23,16 +23,16 @@ local LEAVES, LEAF, UNFURL = 8, 14, 0.35
 local DASH, BARKSKIN = { spells = { 1850, 9821 }, sigil = "Dash" }, { spells = { 22812 }, sigil = "Bark" }
 
 local maul, bloom = {}, nil
-local Oil, Ring, Gem = ns.SlabVigil.Oil, ns.SlabVigil.Ring, ns.SlabVigil.Gem
+local Oil, Ring = ns.SlabVigil.Oil, ns.SlabVigil.Ring
 local Join = ns.SlabTrackers.Joined
 
-local function Effect(spells, color, filter, forms, seat)
-	return { feed = "aura", unit = "target", filter = filter or "HARMFUL|PLAYER", spells = spells, color = color, forms = forms, seat = seat }
+local function Effect(spells, figure, filter, forms)
+	return { feed = "aura", unit = "target", filter = filter or "HARMFUL|PLAYER", spells = spells, figure = figure, forms = forms }
 end
 
 local function Bloom(parent, spec, level, form)
 	if form == "row" then
-		return Medals.Medal(parent, { feed = "aura", spells = CLEARCASTING, texture = spec.texture, color = "pipDruidGlow", burst = spec.burst }, level)
+		return Medals.Figure(parent, { feed = "aura", spells = CLEARCASTING, figure = "trackerLeaf", burst = spec.burst }, level)
 	end
 	local r = Medals.Rim(parent, { feed = "aura", spells = CLEARCASTING, ambient = "medAmbientDruid", burst = spec.burst }, level)
 	r.ring, r.leaves = {}, Medals.Layer(r.lit, level + 2)
@@ -69,11 +69,11 @@ local function Unfurl(_, full)
 end
 
 local function Emblem(parent, spec, level, form)
-	return (form == "crest" and Medals.Emblem or Medals.Medal)(parent, spec, level)
+	return (form == "crest" and Medals.Emblem or Medals.Threat)(parent, spec, level)
 end
 
 local function Maul(parent, spec, level, form)
-	local s = Gem(parent, spec, level, form)
+	local s = Medals.Socket(parent, spec, level, form)
 	maul[#maul + 1] = s
 	return s
 end
@@ -90,29 +90,30 @@ local function Queued(_, event)
 end
 
 local function Gems(choice)
-	choice.color, choice.build = choice.color or "schoolNature", choice.build or Gem
+	choice.color, choice.build = choice.color or "schoolNature", choice.build or Medals.Socket
 	return choice
 end
 
 ns.SlabTrackers.Register("DRUID", {
-	{ key = "crestSeeds", seat = "left", choices = {
-		Effect(ROAR, "jewelCombo", nil, BEAR),
-		{ forms = CAT, color = "white", known = Join(RAKE, POUNCE), feeds = { Effect(POUNCE, "jewelCombo"), Effect(RAKE, "jewelCombo") } },
-		{ forms = Join(CASTER, MOONKIN), color = "white", known = Join(MOONFIRE, REJUVENATION), feeds = { Effect(MOONFIRE, "totemAir"), Effect(REJUVENATION, "schoolArcane", "HELPFUL|PLAYER") } },
+	{ key = "crestSeeds", seat = "left", build = Medals.Figure, choices = {
+		Effect(ROAR, "figureRoar", nil, BEAR),
+		{ forms = CAT, known = Join(RAKE, POUNCE), feeds = { Effect(POUNCE, "figureRake"), Effect(RAKE, "figureRake") } },
+		{ forms = Join(CASTER, MOONKIN), known = Join(MOONFIRE, REJUVENATION), feeds = { Effect(MOONFIRE, "figureMoon"), Effect(REJUVENATION, "figureBud", "HELPFUL|PLAYER") } },
 	} },
-	{ key = "crestSeeds", seat = "right", choices = {
-		Effect(FAERIE, "schoolArcane", nil, BEAR), Effect(RIP, "jewelCombo", nil, CAT),
-		{ forms = Join(CASTER, MOONKIN), color = "white", known = Join(SWARM, REGROWTH), feeds = { Effect(SWARM, "jewelHawk"), Effect(REGROWTH, "schoolNature", "HELPFUL|PLAYER") } },
+	{ key = "crestSeeds", seat = "right", build = Medals.Figure, choices = {
+		Effect(FAERIE, "figureFaerie", nil, BEAR), Effect(RIP, "figureRip", nil, CAT),
+		{ forms = Join(CASTER, MOONKIN), known = Join(SWARM, REGROWTH), feeds = { Effect(SWARM, "figureSwarm"), Effect(REGROWTH, "figureSprout", "HELPFUL|PLAYER") } },
 	} },
-	{ key = "crestThird", seat = "top", choices = {
-		{ forms = CASTER, color = "white", known = Join(FAERIE, GROWTH), feeds = { Effect(FAERIE, "schoolArcane"), Effect(GROWTH, "schoolNature", "HELPFUL|PLAYER") } },
-		Effect(FAERIE, "schoolArcane", nil, MOONKIN), Gems(Effect(FAERIE, "schoolArcane", nil, CAT, "lowerLeft")),
+	{ key = "crestThird", seat = "top", build = Medals.Figure, choices = {
+		{ forms = CASTER, known = Join(FAERIE, GROWTH), feeds = { Effect(FAERIE, "figureFaerie"), Effect(GROWTH, "figureGrowth", "HELPFUL|PLAYER") } },
+		Effect(FAERIE, "figureFaerie", nil, MOONKIN), Gems({ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = FAERIE, color = "schoolArcane",
+			forms = CAT, seat = "lowerLeft" }),
 	} },
-	{ key = "crestGrowl", seat = "footLeft", size = Medals.FOOT, feed = "cooldown", known = GROWL, forms = BEAR },
-	{ key = "crestCharge", seat = "footRight", size = Medals.FOOT, feed = "cooldown", known = CHARGE, forms = BEAR },
-	{ key = "crestBite", seat = "lowerLeft", feed = "cooldown", known = BITE, forms = BEAR, color = "jewelCombo", build = Gem },
-	{ key = "crestBash", seat = "lowerRight", feed = "cooldown", known = BASH, forms = BEAR, color = "jewelCombo", build = Gem },
-	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, forms = Join(CASTER, MOONKIN), texture = 134727, color = "jewelHoly", build = Gem },
+	{ key = "crestGrowl", seat = "footLeft", size = Medals.FOOT, feed = "cooldown", known = GROWL, forms = BEAR, build = Medals.Figure, figure = "figureGrowl" },
+	{ key = "crestCharge", seat = "footRight", size = Medals.FOOT, feed = "cooldown", known = CHARGE, forms = BEAR, build = Medals.Figure, figure = "figureCharge" },
+	{ key = "crestBite", seat = "lowerLeft", feed = "cooldown", known = BITE, forms = BEAR, color = "jewelCombo", build = Medals.Socket },
+	{ key = "crestBash", seat = "lowerRight", feed = "cooldown", known = BASH, forms = BEAR, color = "jewelCombo", build = Medals.Socket },
+	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, forms = Join(CASTER, MOONKIN), color = "jewelHoly" },
 	{ key = "crestLeaves", seat = "rim", known = OMEN, spells = CLEARCASTING, build = Bloom, place = Ring },
 	{ key = "crestSwiftmend", seat = "topGem", feed = "cooldown", choices = {
 		Gems({ forms = BEAR, known = MAUL, color = "jewelCombo", build = Maul }),

@@ -12,6 +12,7 @@ ns.SlabMedals = Medals
 local SIZE, TRACK, ICON, SHADE, BURST, STEEL = 26, 4, 0.74, 1.9, 2.4, 0.45
 local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 112, 12, 10, 8, 2
 local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, ROW_SIGIL, SIGIL, ABOVE = 118, 14, 4, 30, 12, 0.86, 20
+local FIGURE, SPARK = 0.8, 0.3
 local SEATS = {
 	left = { -1, 75.9, 24.8 }, right = { 1, 75.9, 24.8 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
 	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 67.5, 247 }, footRight = { 1, 67.5, 293 },
@@ -331,6 +332,61 @@ function Medals.Medal(parent, spec, level)
 	return m
 end
 
+local function Well(parent, layer, units, figure)
+	local well = { Medals.Texture(parent, layer, 0, "dot", "medSocket", units * ICON) }
+	if figure then
+		well[2] = Medals.Texture(parent, layer, 1, figure, "steel", units * FIGURE)
+		well[2]:SetDesaturated(true)
+		well[2]:SetAlpha(STEEL)
+	end
+	return well
+end
+
+function Medals.Figure(parent, spec, level)
+	local size = spec.size or SIZE
+	local f = Medals.Piece(parent, level, size)
+	local feeds = spec.feeds or { spec }
+	local top = level + 1 + 2 * #feeds
+	f.add(Medals.Texture(f, "BACKGROUND", 0, "glow", "black", size * SHADE)):SetAlpha(0.7)
+	for _, part in ipairs(Well(f, "BORDER", size, (feeds[1].figure or spec.figure))) do
+		f.add(part)
+	end
+	f.add(Medals.Texture(Medals.Layer(f, top), "OVERLAY", 0, "medRing", "white", size))
+	for i, feed in ipairs(feeds) do
+		local each = feed == spec and spec or setmetatable(feed, { __index = spec })
+		local lit = Lit(f, each, level + 1 + 2 * (i - 1))
+		for _, part in ipairs(i > 1 and Well(lit, "BACKGROUND", size, each.figure) or NONE) do
+			f.add(part)
+		end
+		local bar = f.add(CreateFrame("StatusBar", nil, lit), size * FIGURE)
+		bar:SetPoint("CENTER", f, "CENTER", 0, 0)
+		bar:SetOrientation("VERTICAL")
+		bar:SetStatusBarTexture((Tokens.Texture(each.figure)))
+		bar:GetStatusBarTexture():SetBlendMode("ADD")
+		bar:SetStatusBarColor(Tokens.Color(each.color or "white"))
+		bar:SetMinMaxValues(0, 1)
+		bar:SetValue(1)
+		local spark = Medals.Texture(bar, "OVERLAY", 0, "glow", each.color or "white", nil, "ADD")
+		spark:SetSize(size * SPARK, size * SPARK)
+		spark:ClearAllPoints()
+		spark:SetPoint("CENTER", bar:GetStatusBarTexture(), "TOP", 0, 0)
+		if each.charges and lit.container then
+			lit:SetApplicationBar(bar, { minApplications = 0, maxApplications = each.charges })
+		elseif lit.container and not each.steady then
+			local timer = Enum and Enum.StatusBarTimerDirection
+			lit:SetDurationBar(bar, { direction = timer and timer.RemainingTime or 1 })
+		elseif each.feed == "cooldown" then
+			f.timer, f.bar = Timer(lit, level + 1, "dot", "black", 0), bar
+			f.timer:SetDrawSwipe(false)
+			f.timer:SetScript("OnCooldownDone", function() Medals.Fire(f) end)
+		end
+		lit.bar = bar
+		Medals.Flare(f, lit, top + 1, spec.burst or "glow", size * BURST)
+	end
+	f.spec = spec
+	return f
+end
+
 function Medals.Rim(parent, spec, level)
 	local r = Medals.Piece(parent, level, RIM)
 	local lit = Lit(r, spec, level + 1)
@@ -417,14 +473,15 @@ function Medals.CooldownRim(parent, spec, level, form)
 	return r
 end
 
-function Medals.Socket(parent, spec, level)
-	local s = Medals.Piece(parent, level, SETTING)
+function Medals.Socket(parent, spec, level, form)
+	local k = (spec.size or SETTING) / SETTING
+	local s = Medals.Piece(parent, level, SETTING * k)
 	local add = s.add
-	add(Medals.Texture(s, "ARTWORK", 0, "diamond", "gilt", SETTING))
-	add(Medals.Texture(s, "ARTWORK", 1, "diamond", "jewelSetting", LIP))
-	add(Medals.Texture(s, "ARTWORK", 2, "forgedDiamond", "jewelSocket", GEM)):SetTexCoord(1, 0, 0, 1)
+	add(Medals.Texture(s, "ARTWORK", 0, "diamond", "gilt", SETTING * k))
+	add(Medals.Texture(s, "ARTWORK", 1, "diamond", "jewelSetting", LIP * k))
+	add(Medals.Texture(s, "ARTWORK", 2, "forgedDiamond", "jewelSocket", GEM * k)):SetTexCoord(1, 0, 0, 1)
 	local lit = Lit(s, spec, level + 1)
-	s.bar = add(CreateFrame("StatusBar", nil, lit), GEM)
+	s.bar = add(CreateFrame("StatusBar", nil, lit), GEM * k)
 	s.bar:SetPoint("CENTER", s, "CENTER", 0, 0)
 	s.bar:SetOrientation("VERTICAL")
 	s.bar:SetStatusBarTexture((Tokens.Texture("diamond")))
@@ -433,7 +490,7 @@ function Medals.Socket(parent, spec, level)
 		local timer = Enum and Enum.StatusBarTimerDirection
 		lit:SetDurationBar(s.bar, { direction = timer and timer.RemainingTime or 1 })
 	elseif spec.feed == "cooldown" or spec.feed == "item" then
-		local rim = spec.slot ~= nil
+		local rim = spec.slot ~= nil and form ~= "row"
 		s.timer = Timer(lit, level + 1, rim and "ringLine16" or "dot", rim and spec.color or "black", rim and 1 or 0)
 		s.timer:SetDrawSwipe(rim)
 		s.timer:SetScript("OnCooldownDone", function() Medals.Fire(s) end)
@@ -444,8 +501,8 @@ function Medals.Socket(parent, spec, level)
 			add(Medals.Ember(s, nil, s.timer, "RingLine16", level + 2, COOLDOWN_RING))
 		end
 	end
-	s.glint = add(Medals.Texture(s.bar, "OVERLAY", 0, "diamond", "white", GLINT, "ADD"))
-	Medals.Flare(s, lit, level + 3, "glow", SETTING * BURST)
+	s.glint = add(Medals.Texture(s.bar, "OVERLAY", 0, "diamond", "white", GLINT * k, "ADD"))
+	Medals.Flare(s, lit, level + 3, "glow", SETTING * k * BURST)
 	s.spec = spec
 	return s
 end
@@ -474,8 +531,12 @@ function Medals.Threat(parent, spec, level)
 	return t
 end
 
-function Medals.Plaque(parent, spec, level)
+function Medals.Plaque(parent, spec, level, form)
 	local p = Medals.Piece(parent, level, SIZE)
+	if form == "row" then
+		p.add(Well(p, "BACKGROUND", SIZE)[1])
+		p.add(Medals.Texture(p, "BORDER", 0, "medRing", "white", SIZE))
+	end
 	p.lit = Medals.Layer(p, level + 1)
 	p.timer = p.add(Timer(p.lit, level + 1, "orbRing", spec.color), SIZE)
 	p.lits, p.spec = { p.lit }, spec
