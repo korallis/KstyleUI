@@ -4,6 +4,7 @@ local _, ns = ...
 local C = { kinds = {
 	{ key = "healing", label = KstyleUI.L["Healing potion"], ids = { 13446, 223913, 3928, 288896, 1710, 223914, 287977, 929, 858, 287967, 118, 287966 } },
 	{ key = "mana", label = KstyleUI.L["Mana potion"], ids = { 13444, 13443, 288897, 6149, 3827, 3385, 287969, 2455, 287968 } },
+	{ key = "rune", label = KstyleUI.L["Dark or Demonic Rune"], ids = { 20520, 12662 } },
 	{ key = "healthstone", label = KstyleUI.L["Healthstone"], ids = { 5510, 5509, 5511, 5512 } },
 	{ key = "bandage", label = KstyleUI.L["Bandage"], ids = { 232433, 14530, 19066, 20066, 19307, 14529, 8545, 19067, 20065, 20232, 20237, 272057, 8544, 6451, 19068, 20067, 20235, 6450, 3531, 3530, 2581, 1251 } },
 	{ key = "food", label = KstyleUI.L["Food"], ids = { 22895, 8076, 8950, 8952, 287963, 8953, 8957, 8932, 8075, 4601, 3927, 4608, 1487, 4544, 1707, 4607, 1114, 4542, 422, 4606, 1113, 4541, 414, 4605, 5349, 4540, 117, 4536, 4604, 787 } },

@@ -62,16 +62,52 @@ local function FiveSecondPiece(parent, spec, level, form)
 	return (form == "crest" and Medals.Plaque or Medals.Medal)(parent, spec, level)
 end
 
+local function Trinket(p)
+	local item = type(GetInventoryItemID) == "function" and GetInventoryItemID("player", p.slot)
+	local get = C_Item and C_Item.GetItemSpell
+	if IsSecret(item) or not item or type(get) ~= "function" then
+		return nil
+	end
+	local _, spell = get(item)
+	return not IsSecret(spell) and spell or nil
+end
+
+local function TrinketPiece(parent, spec, level, form)
+	return (form == "crest" and Medals.Chip or Medals.Medal)(parent, spec, level)
+end
+
+local function PlaceTrinket(piece, anchor, form, _, n)
+	if form == "row" then
+		Medals.Place(piece, anchor, Medals.Cell(n))
+		return n + 1
+	end
+	local rim
+	for _, p in pairs(state.form.pieces) do
+		rim = p.spec.seat == "cooldowns" and p:IsShown() and p or rim
+	end
+	Medals.Beside(piece, anchor, rim, piece.spec.slot == 13)
+	return n
+end
+
 function Trackers.Register(class, rows, hooks)
 	if not CLASSES[class] and MANA[class] then
 		CLASSES[class] = { { key = "crestFiveSecond", seat = "plaque", feed = "fiveSecond", known = Always, color = "hudMana", texture = 136053,
 			build = FiveSecondPiece, place = PlacePlaque, choices = { { forms = hooks and hooks.fiveSecondForms } } } }
 	end
 	CLASSES[class] = CLASSES[class] or {}
+	local cooldowns
 	for _, row in ipairs(rows) do
 		table.insert(CLASSES[class], row)
+		cooldowns = row.seat == "cooldowns" and row or cooldowns
 	end
 	HOOKS[class] = hooks or HOOKS[class]
+	if cooldowns then
+		for _, slot in ipairs({ 13, 14 }) do
+			table.insert(CLASSES[class], { key = "crestTrinkets", slot = slot, feed = "item", known = Trinket, color = cooldowns.color, build = TrinketPiece, place = PlaceTrinket })
+		end
+		HOOKS[class] = HOOKS[class] or {}
+		HOOKS[class].update = Trackers.Joined(HOOKS[class].update or {}, { "PLAYER_EQUIPMENT_CHANGED" })
+	end
 end
 
 function Trackers.Has(key)

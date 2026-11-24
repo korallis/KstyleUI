@@ -256,6 +256,14 @@ function Trackers.Install(env, class)
 	env.C_Item.GetItemCooldown = function() return (env._time or 0) - 30, 120, true end
 	env.C_Item.GetItemIconByID = function(id) return id == 13444 and 134762 or 135230 end
 	spell.GetSpellPowerCost = function() return { { type = 0, cost = 100 } } end
+	-- RENDER_TRINKETS=1 equips two on-use trinkets (fixture items, icons and use spells): the first 30 s into its two-minute cooldown, the second ready.
+	if os.getenv("RENDER_TRINKETS") == "1" then
+		local trinkets, item, icon = { [13] = 21180, [14] = 18854 }, env.GetInventoryItemID, env.C_Item.GetItemIconByID
+		env.GetInventoryItemID = function(unit, slot) return trinkets[slot] or item(unit, slot) end
+		env.C_Item.GetItemSpell = function(id) if id == 21180 or id == 18854 then return "Use", id end end
+		env.C_Item.GetItemIconByID = function(id) return id == 21180 and 133283 or id == 18854 and 133452 or icon(id) end
+		env.GetInventoryItemCooldown = function(_, slot) if slot == 13 then return (env._time or 0) - 30, 120, 1, false end return 0, 0, 1, false end
+	end
 end
 
 local function Sample(group, at, now, env)

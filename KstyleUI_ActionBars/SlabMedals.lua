@@ -404,6 +404,31 @@ function Medals.CooldownRim(parent, spec, level)
 	return r
 end
 
+function Medals.Chip(parent, spec, level)
+	local c = Medals.Piece(parent, level, STACK)
+	c.lit = Medals.Layer(c, level + 1)
+	c.lits[1] = c.lit
+	c.lit.icon = c.add(Medals.Round(c.lit), STACK)
+	c.lit.icon:SetPoint("CENTER", c, "CENTER", 0, 0)
+	c.timer = c.add(Timer(c.lit, level + 2, "orbRing", spec.color), STACK)
+	c.timer:SetScript("OnCooldownDone", function()
+		c.lit.icon:SetDesaturated(false)
+		Medals.Fire(c)
+	end)
+	Medals.Flare(c, c.lit, level + 3, spec.burst or "glow", STACK * BURST)
+	c.spec = spec
+	return c
+end
+
+function Medals.Beside(chip, anchor, rim, left)
+	local lits, side = rim and rim.lits or NONE, left and -1 or 1
+	local beside = lits[left and 1 or #lits]
+	chip:ClearAllPoints()
+	chip:SetPoint(left and "TOPRIGHT" or "TOPLEFT", beside and beside.container or anchor, beside and (left and "TOPLEFT" or "TOPRIGHT") or "CENTER",
+		side * STACK_GAP, beside and 0 or -STACK_DROP)
+	Medals.Size(chip)
+end
+
 function Medals.Socket(parent, spec, level)
 	local s = Medals.Piece(parent, level, SETTING)
 	local add = s.add
@@ -631,8 +656,13 @@ function Medals.Refresh(m, event)
 	end
 	if spec.feed == "item" then
 		local item = C_Item
-		local id
-		for _, each in ipairs(spec.items) do
+		local id, start, duration, enable, gcd
+		if spec.slot and type(GetInventoryItemID) == "function" and type(GetInventoryItemCooldown) == "function" then
+			id = GetInventoryItemID("player", spec.slot)
+			id = not IsSecret(id) and id or nil
+			start, duration, enable, gcd = GetInventoryItemCooldown("player", spec.slot)
+		end
+		for _, each in ipairs(spec.items or NONE) do
 			local count = item and item.GetItemCount and item.GetItemCount(each)
 			if not IsSecret(count) and type(count) == "number" and count > 0 then
 				id = each
@@ -642,8 +672,11 @@ function Medals.Refresh(m, event)
 		m.lit:SetShown(id ~= nil)
 		if id then
 			m.lit.icon:SetTexture(item.GetItemIconByID and item.GetItemIconByID(id) or spec.texture)
-			local start, duration = item.GetItemCooldown(id)
-			local cooling = not (IsSecret(start) or IsSecret(duration)) and type(duration) == "number" and duration > 0
+			if not spec.slot then
+				start, duration = item.GetItemCooldown(id)
+			end
+			local cooling = not (IsSecret(start) or IsSecret(duration) or IsSecret(enable) or IsSecret(gcd)) and type(duration) == "number" and duration > 0
+				and enable ~= 0 and gcd ~= true
 			if cooling then
 				m.timer:SetCooldown(start, duration)
 			else

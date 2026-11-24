@@ -25,7 +25,7 @@ end
 local source = Read("Tools/data/items.json")
 for _, kind in ipairs(C.kinds) do
 	for _, id in ipairs(kind.ids) do
-		assert(source:match('"id": ' .. id .. ',%s*"name": [^\n]+,%s*"classID": 0,'), "curated ids must be consumables proven by items.json")
+		assert(source:match('"id": ' .. id .. ',%s*"name": [^\n]+,%s*"classID": ' .. (kind.key == "rune" and 7 or 0) .. ','), "curated ids must be consumables (the runes trade goods) proven by items.json")
 	end
 end
 assert(cfg.enabled and cfg.attached and cfg.rows == 2 and cfg.size == 26 and cfg.spacing == 0 and cfg.hideEmpty, "on, attached, two rows of size 26 with no gap and hidden when empty by default")
@@ -147,6 +147,8 @@ for _, kind in ipairs(C.kinds) do
 	K.Options.Write("ActionBars", "consumables." .. kind.key, true)
 end
 
+Bag({ 5510, 12662, 13444, 20520 })
+assert(#C.selected == 3 and C.selected[1].id == 13444 and C.selected[2].id == 20520 and C.selected[3].id == 5510, "Dark Rune, a trade good, joins the bar between mana potions and Healthstones")
 Bag({ 118, 13446, 5512, 5510, 5349, 22895, 5350, 8079 })
 assert(#C.selected == 4 and C.selected[1].id == 13446 and C.selected[2].id == 5510 and C.selected[3].id == 22895 and C.selected[4].id == 8079, "potion, Healthstone, conjured food and conjured water rank independently")
 local b = C.buttons[1]
