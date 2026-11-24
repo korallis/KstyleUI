@@ -404,29 +404,13 @@ function Medals.CooldownRim(parent, spec, level)
 	return r
 end
 
-function Medals.Chip(parent, spec, level)
-	local c = Medals.Piece(parent, level, STACK)
-	c.lit = Medals.Layer(c, level + 1)
-	c.lits[1] = c.lit
-	c.lit.icon = c.add(Medals.Round(c.lit), STACK)
-	c.lit.icon:SetPoint("CENTER", c, "CENTER", 0, 0)
-	c.timer = c.add(Timer(c.lit, level + 2, "orbRing", spec.color), STACK)
-	c.timer:SetScript("OnCooldownDone", function()
-		c.lit.icon:SetDesaturated(false)
-		Medals.Fire(c)
-	end)
-	Medals.Flare(c, c.lit, level + 3, spec.burst or "glow", STACK * BURST)
-	c.spec = spec
-	return c
-end
-
-function Medals.Beside(chip, anchor, rim, left)
-	local lits, side = rim and rim.lits or NONE, left and -1 or 1
+function Medals.Beside(piece, anchor, rim, left)
+	local lits, side, y = rim and rim.lits or NONE, left and -1 or 1, (piece.units - STACK) / 2
 	local beside = lits[left and 1 or #lits]
-	chip:ClearAllPoints()
-	chip:SetPoint(left and "TOPRIGHT" or "TOPLEFT", beside and beside.container or anchor, beside and (left and "TOPLEFT" or "TOPRIGHT") or "CENTER",
-		side * STACK_GAP, beside and 0 or -STACK_DROP)
-	Medals.Size(chip)
+	piece:ClearAllPoints()
+	piece:SetPoint(left and "TOPRIGHT" or "TOPLEFT", beside and beside.container or anchor, beside and (left and "TOPLEFT" or "TOPRIGHT") or "CENTER",
+		side * STACK_GAP, beside and y or y - STACK_DROP)
+	Medals.Size(piece)
 end
 
 function Medals.Socket(parent, spec, level)
@@ -444,7 +428,7 @@ function Medals.Socket(parent, spec, level)
 	if lit.container then
 		local timer = Enum and Enum.StatusBarTimerDirection
 		lit:SetDurationBar(s.bar, { direction = timer and timer.RemainingTime or 1 })
-	elseif spec.feed == "cooldown" then
+	elseif spec.feed == "cooldown" or spec.feed == "item" then
 		s.timer = Timer(lit, level + 1, "dot", "black", 0)
 		s.timer:SetDrawSwipe(false)
 		s.timer:SetScript("OnCooldownDone", function() Medals.Fire(s) end)
@@ -606,6 +590,18 @@ local function Cooling(m, id, event)
 	return m.cooling[id] == true
 end
 
+local function Refill(bar, duration)
+	local modes = Enum or {}
+	if duration and bar.SetTimerDuration then
+		local interpolation = modes.StatusBarInterpolation and modes.StatusBarInterpolation.Immediate or 0
+		local direction = modes.StatusBarTimerDirection and modes.StatusBarTimerDirection.ElapsedTime or 0
+		bar:SetTimerDuration(duration, interpolation, direction)
+	else
+		bar:SetMinMaxValues(0, 1)
+		bar:SetValue(1)
+	end
+end
+
 function Medals.Refresh(m, event)
 	local spec = m.spec
 	if spec.feed == "cooldown" then
@@ -617,15 +613,7 @@ function Medals.Refresh(m, event)
 			m.timer:Clear()
 		end
 		if m.bar then
-			local modes = Enum or {}
-			if duration and m.bar.SetTimerDuration and Cooling(m, spec.spell, event) then
-				local interpolation = modes.StatusBarInterpolation and modes.StatusBarInterpolation.Immediate or 0
-				local direction = modes.StatusBarTimerDirection and modes.StatusBarTimerDirection.ElapsedTime or 0
-				m.bar:SetTimerDuration(duration, interpolation, direction)
-			else
-				m.bar:SetMinMaxValues(0, 1)
-				m.bar:SetValue(1)
-			end
+			Refill(m.bar, duration and Cooling(m, spec.spell, event) and duration)
 		end
 		return
 	end
@@ -671,7 +659,10 @@ function Medals.Refresh(m, event)
 		end
 		m.lit:SetShown(id ~= nil)
 		if id then
-			m.lit.icon:SetTexture(item.GetItemIconByID and item.GetItemIconByID(id) or spec.texture)
+			local icon = m.lit.icon
+			if icon then
+				icon:SetTexture(item.GetItemIconByID and item.GetItemIconByID(id) or spec.texture)
+			end
 			if not spec.slot then
 				start, duration = item.GetItemCooldown(id)
 			end
@@ -682,7 +673,19 @@ function Medals.Refresh(m, event)
 			else
 				m.timer:Clear()
 			end
-			m.lit.icon:SetDesaturated(cooling)
+			if icon then
+				icon:SetDesaturated(cooling)
+			end
+			if m.bar then
+				local util = C_DurationUtil
+				if cooling and not m.span and util and type(util.CreateDuration) == "function" then
+					m.span = util.CreateDuration()
+				end
+				if cooling and m.span then
+					m.span:SetTimeFromStart(start, duration)
+				end
+				Refill(m.bar, cooling and m.span)
+			end
 		end
 		return
 	end

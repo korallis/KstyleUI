@@ -73,7 +73,7 @@ local function Trinket(p)
 end
 
 local function TrinketPiece(parent, spec, level, form)
-	return (form == "crest" and Medals.Chip or Medals.Medal)(parent, spec, level)
+	return (form == "crest" and Medals.Socket or Medals.Medal)(parent, spec, level)
 end
 
 local function PlaceTrinket(piece, anchor, form, _, n)
