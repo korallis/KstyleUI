@@ -14,7 +14,11 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		assert(rawequal(K.Widgets.WholePercent(secret), secret), "a secret must pass through unchanged")
 		env.UnitHealthPercent = function() return value end
 		env.UnitPowerPercent = function() return value end
+		local health, maximum = env.UnitHealth, env.UnitHealthMax
+		env.UnitHealth = function() error("percent read current health") end
+		env.UnitHealthMax = function() error("percent read maximum health") end
 		ns.Format.Health(text, "player", "percent")
+		env.UnitHealth, env.UnitHealthMax = health, maximum
 		assert(U.Shown(env, text) == expected, "health: " .. value .. " must read " .. expected)
 		ns.Format.Power(text, "player", "percent", 0)
 		assert(U.Shown(env, text) == expected, "mana: " .. value .. " must read " .. expected)

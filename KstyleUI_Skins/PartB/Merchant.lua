@@ -13,15 +13,46 @@ local function Item(button)
 	Kit.Item(button, { window = WINDOW })
 end
 
+local fonts = setmetatable({}, { __mode = "k" })
+
+local function Changed(text, key, save)
+	local path, size, flags = text:GetFont()
+	local spacing = text:GetSpacing()
+	local r, g, b, a, wrap
+	if key ~= "price" then
+		r, g, b, a = text:GetTextColor()
+		wrap = text:CanWordWrap()
+	end
+	local W = K.Widgets
+	if W.IsSecret(path) or W.IsSecret(size) or W.IsSecret(flags) or W.IsSecret(spacing)
+		or W.IsSecret(r) or W.IsSecret(g) or W.IsSecret(b) or W.IsSecret(a) or W.IsSecret(wrap) then
+		fonts[text] = nil
+		return true
+	end
+	local entry = fonts[text]
+	if save then
+		fonts[text] = { key, path, size, flags, spacing, r, g, b, a, wrap }
+	elseif not entry or entry[1] ~= key or entry[2] ~= path or entry[3] ~= size or entry[4] ~= flags or entry[5] ~= spacing
+		or entry[6] ~= r or entry[7] ~= g or entry[8] ~= b or entry[9] ~= a or entry[10] ~= wrap then
+		return true
+	end
+end
+
+local function Price(text)
+	if Changed(text, "price") then
+		ns.Style.Text(text, "caption")
+		ns.Style.MetricText(text)
+		Changed(text, "price", true)
+	end
+end
+
 local function PriceText(frame)
 	if type(frame.GetObjectType) == "function" and frame:GetObjectType() == "FontString" then
-		ns.Style.Text(frame, "caption")
-		ns.Style.MetricText(frame)
+		Price(frame)
 	elseif type(frame.GetRegions) == "function" then
 		for _, text in ipairs({ frame:GetRegions() }) do
 			if type(text.GetObjectType) == "function" and text:GetObjectType() == "FontString" then
-				ns.Style.Text(text, "caption")
-				ns.Style.MetricText(text)
+				Price(text)
 			end
 		end
 		for _, child in ipairs({ frame:GetChildren() }) do
@@ -81,10 +112,12 @@ end
 local function Title()
 	local frame = MerchantFrame
 	local tab = frame.selectedTab
-	if not (issecretvalue and issecretvalue(tab)) and tab == 2 then
-		Kit.Title(frame)
-	else
-		Kit.Title(frame, "names")
+	local buyback = not K.Widgets.IsSecret(tab) and tab == 2
+	local role = buyback and "caps" or "names"
+	local title = frame.TitleContainer and frame.TitleContainer.TitleText or frame.GetTitleText and frame:GetTitleText()
+	if not K.Widgets.IsSecret(title) and type(title) == "table" and type(title.GetFont) == "function" and Changed(title, role) then
+		Kit.Title(frame, not buyback and "names" or nil)
+		Changed(title, role, true)
 	end
 end
 
@@ -104,6 +137,7 @@ local function Apply()
 	if not Kit.Have(frame, "MerchantFrame") then
 		return false
 	end
+	K.Safe.Side(frame).merchantFonts = ns.Style.Track({ Restyle = function() wipe(fonts) end })
 	Kit.Window(frame)
 	Title()
 	for _, update in ipairs({ "MerchantFrame_UpdateMerchantInfo", "MerchantFrame_UpdateBuybackInfo" }) do

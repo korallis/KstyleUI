@@ -307,6 +307,20 @@ do
 	assert(near(t:GetWidth(), 96) and near(t:GetHeight(), 24), "at the default size")
 	assert(env.LiveTickers() == 1, "one timer reads health while a target shows")
 
+	local countWrites = dofile("Tools/regression/readout_count.lua")
+	local max1, max2 = countWrites(t.health, "SetMinMaxValues"), countWrites(t2.health, "SetMinMaxValues")
+	local hp1, hp2 = countWrites(t.health, "SetValue"), countWrites(t2.health, "SetValue")
+	for _ = 1, 5 do env.RunTickers() end
+	assert(max1() + max2() == 10 and hp1() + hp2() == 10, "restricted readings always reach the bars")
+	local oldHealth, oldMax = env.UnitHealth, env.UnitHealthMax
+	env.UnitHealth = function(unit) return env._units[unit].health end
+	env.UnitHealthMax = function(unit) return env._units[unit].maxHealth end
+	for _ = 1, 5 do env.RunTickers() end
+	assert(max1() + max2() == 12 and hp1() + hp2() == 12, "only the first readable pair writes")
+	env._units.party1target.health = 29
+	env.RunTickers()
+	assert(max1() == 6 and hp1() == 7 and t.health:GetValue() == 29)
+	env.UnitHealth, env.UnitHealthMax = oldHealth, oldMax
 	env._units.party1target.health = 12
 	env.RunTickers()
 	assert(env.Reveal(t.health:GetValue()) == 12, "the timer follows health")

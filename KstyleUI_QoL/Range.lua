@@ -81,10 +81,12 @@ end
 
 local function Update()
 	local list = Wanted() and Band()
-	local value = list and ns.RangeText(low, high) or ""
-	if holder and holder:IsShown() and value ~= holder.value then
-		holder.value = value
-		holder.text:SetText(value)
+	if holder and holder:IsShown() then
+		local value = list and ns.RangeText(low, high) or ""
+		if value ~= holder.value then
+			holder.value = value
+			holder.text:SetText(value)
+		end
 	end
 	local cutoff = list and (ns.Get("crosshairMelee") and MELEE or list[#list][1]) or nil
 	local out = cutoff ~= nil and low ~= nil and low >= cutoff

@@ -132,6 +132,18 @@ do
 	assert(cap == 6, "the native row stops at the grid's six sockets, got " .. tostring(cap))
 	Visible(viewer, Span(1, 7), "six active buffs and the inactive slot between them")
 	Folded(viewer, Span(8, 16), "past the sixth active buff")
+	local countWrites = dofile("Tools/regression/readout_count.lua")
+	local alpha, motion = {}, {}
+	for i, item in ipairs(viewer._items) do
+		alpha[i], motion[i] = countWrites(item, "SetAlpha"), countWrites(item, "SetMouseMotionEnabled")
+	end
+	for _ = 1, 10 do ns.Cap.Refresh() end
+	for i in ipairs(alpha) do assert(alpha[i]() == 0 and motion[i]() == 0) end
+	viewer._items[9]:SetAlpha(1)
+	viewer._items[9]:SetMouseMotionEnabled(true)
+	viewer._items[9]:UpdateShownState()
+	env.RunTimers()
+	assert(viewer._items[9]:GetAlpha() == 0 and Mouse(viewer._items[9]) == false)
 	-- Active past the sixth: 9 and 10.
 	local chip = Chip(ns)
 	assert(Shown(chip), "a chip counts the active buffs past the sixth")

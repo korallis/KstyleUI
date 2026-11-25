@@ -12,6 +12,30 @@ M.Write(env, K, "swing.attached", false)
 local Swing = ns.Swing
 local main, off, ranged = Swing.bars[MAIN], Swing.bars[OFF], Swing.bars[RANGED]
 
+local countWrites = dofile("Tools/regression/readout_count.lua")
+do
+	local e, k, n = M.New()
+	M.Enable(e, k)
+	M.Write(e, k, "swing.time", true)
+	local swing = n.Swing
+	local text = swing.bars[MAIN].time
+	local writes = countWrites(text, "SetText")
+	e.SetTime(10)
+	e.FireEvent("PLAYER_SWING", 2, MAIN)
+	local labels = {}
+	for i = 1, 120 do
+		e.SetTime(10 + i / 120)
+		swing.driver:GetScript("OnUpdate")()
+		labels[text:GetText()] = true
+	end
+	assert(writes() == 11)
+	for i = 10, 20 do assert(labels[string.format("%.1f", i / 10)]) end
+	M.Write(e, k, "swing.time", false)
+	assert(text:GetText() == "")
+	M.Disable(e, k)
+	assert(not swing.driver:GetScript("OnUpdate"))
+end
+
 -- Each bar is the bible's square bar (KSTY-60 item 10): a black pixel round a dark track, no capsule or grey rim.
 for _, bar in ipairs({ main, off, ranged }) do
 	local edge = bar.barEdge

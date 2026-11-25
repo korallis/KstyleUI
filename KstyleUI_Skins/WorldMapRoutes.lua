@@ -364,6 +364,7 @@ local function RoadRoute(mounted, playerMap, x, y, moving)
 	return route, not route and L["No connected road route."] or nil, continent
 end
 
+local lastTitle, lastDistance
 local RefreshRoute
 local function Tick(_, delta)
 	elapsed = elapsed + delta
@@ -375,12 +376,16 @@ RefreshRoute = function()
 	local show = On("routes") and target ~= nil
 	card:SetShown(show and not Listing())
 	panel:SetScript("OnUpdate", show and not target.notice and Tick or nil)
-	if not show then routeMap = nil; DrawRoute() return end
-	title:SetText(target.name)
+	if not show then routeMap, lastTitle, lastDistance = nil, nil, nil; DrawRoute() return end
+	if Secret(target.name) then
+		title:SetText(target.name); lastTitle = nil
+	elseif lastTitle ~= target.name then
+		title:SetText(target.name); lastTitle = target.name
+	end
 	if target.notice then
 		routeMap, routeTarget, Routes.road = nil, nil, nil
 		DrawRoute()
-		distance:SetText("")
+		if lastDistance ~= "" then distance:SetText(""); lastDistance = "" end
 		chip:SetText("")
 		note:SetText(target.notice)
 		steps:Hide(); Hide(stepRows); Hide(stepAmounts)
@@ -389,7 +394,7 @@ RefreshRoute = function()
 		note:SetPoint("TOPLEFT", 14, -61)
 		return
 	end
-	distance:SetText(L["Distance unavailable"])
+	local label = L["Distance unavailable"]
 	local mounted = type(IsMounted) == "function" and Plain(IsMounted(), "boolean") or false
 	local playerMap = Number(Call(C_Map, "GetBestMapForUnit", "player"))
 	local playerX, playerY
@@ -424,12 +429,13 @@ RefreshRoute = function()
 		routeWidth, routeHeight, routeScale, routeContinent = width, height, scale, continent
 	end
 	if Routes.road then
-		distance:SetText(string.format(L["%d yd - about %d min"], math.floor(Routes.road.yards + 0.5), math.max(1, math.ceil(Routes.road.seconds / 60))))
+		label = string.format(L["%d yd - about %d min"], math.floor(Routes.road.yards + 0.5), math.max(1, math.ceil(Routes.road.seconds / 60)))
 	elseif x then
 		local worldWidth, worldHeight = Call(C_Map, "GetMapWorldSize", target.mapID)
 		local yards, minutes = Routes.Measure(x, y, target.x, target.y, worldWidth, worldHeight, mounted)
-		if yards then distance:SetText(string.format(L["%d yd - about %d min"], math.floor(yards + 0.5), math.max(1, math.ceil(minutes)))) end
+		if yards then label = string.format(L["%d yd - about %d min"], math.floor(yards + 0.5), math.max(1, math.ceil(minutes))) end
 	end
+	if label ~= lastDistance then distance:SetText(label); lastDistance = label end
 end
 
 function Routes.Clear()
