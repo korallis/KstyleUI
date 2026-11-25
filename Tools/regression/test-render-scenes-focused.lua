@@ -1,5 +1,5 @@
 -- test-render-scenes-focused.lua: every focused render scene (components, tooltip, tracker, buttons, cooldowns,
--- nameplate, data bars, chat, the design-file unit frames, RestedXP) returns its builder and builds what it shows.
+-- nameplate, data bars, chat, the design-file unit frames, RestedXP, the material study) returns its builder and builds what it shows.
 local L = dofile("Tools/regression/render_scenes_lib.lua")
 local check = L.check
 local Components = dofile("Tools/render/scenes/components.lua")
@@ -10,6 +10,13 @@ local RestedXP = dofile("Tools/render/scenes/restedxp.lua")
 for _, script in ipairs({ "hud_dps_mac", "hud_dps_threat", "components_mac", "tooltip_design", "smoke", "buttons_mac", "buttons_toned", "nameplate", "databars", "tracker", "chat", "unitframes_design", "auras_tracker" }) do
 	local build = dofile("Tools/render/scenes/" .. script .. ".lua")
 	assert(type(build) == "function", script .. ".lua returns its builder")
+end
+
+-- The idle-work audit's finding 77: material_study drew every column in the Medallions steel, no forged or slate
+-- asset, until it chose the Frames HUD style. The scene asserts each column's assets as it builds.
+do
+	local scene = dofile("Tools/render/scenes/material_study.lua")()
+	assert(#scene.items > 0, "the material study builds its five columns")
 end
 
 do

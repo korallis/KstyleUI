@@ -4,12 +4,12 @@ local Quests = dofile("Tools/regression/quests_fake.lua")
 local Party = dofile("Tools/regression/party_quests_fake.lua")
 local Geometry = dofile("Tools/regression/geometry.lua")
 
-local function Boot(screen)
+local function Boot(screen, quests)
 	local log, party
 	local env, K, ns = S.New({
 		width = screen and screen[1], height = screen and screen[2],
 		setup = function(e)
-			log = Quests.Install(e, Quests.List(3))
+			log = Quests.Install(e, Quests.List(quests or 3))
 			log.quests[1].title = "Bloodscalp Headhunters"
 			log.quests[1].objectives = { { text = "Bloodscalp Headhunters: 1/8" }, { text = "Canvas Scraps: 0/3" } }
 			party = Party.Install(e, log)
@@ -78,6 +78,58 @@ do
 	log.Fire("QUEST_LOG_UPDATE")
 	p.Advance(10)
 	assert(#p.sent == n + 1, "off cancels queued sends and ignores quest events")
+	assert(K.ErrorCount() == 0 and #env._errors == 0)
+end
+
+-- The idle-work audit's finding 74: one quest change in a 35-quest log took three packets and read and encoded the
+-- whole log before each packet and once more after the last, 140 encodes. Each change now reads the log once and
+-- drains its differences across the packets.
+do
+	local env, K, ns, log, p = Boot(nil, 35)
+	local encodes = 0
+	local encode = ns.QuestParty.Encode
+	ns.QuestParty.Encode = function(...)
+		encodes = encodes + 1
+		return encode(...)
+	end
+	local function Packet(i)
+		local data, count = assert(ns.QuestParty.Decode(p.sent[i].message)), 0
+		for _ in pairs(data) do count = count + 1 end
+		return data, count
+	end
+	log.Fire("QUEST_LOG_UPDATE")
+	for _ = 1, 6 do p.Advance(2) end
+	assert(#p.sent > 1, "35 quests take more than one packet")
+	assert(encodes == 35, "one change encodes each of the 35 quests once across every packet, got " .. encodes)
+	local seen = {}
+	for i = 1, #p.sent do
+		for id in pairs(Packet(i)) do seen[id] = true end
+	end
+	for _, quest in ipairs(log.quests) do assert(seen[quest.id], "quest " .. quest.id .. " reaches a packet") end
+	local sent = #p.sent
+	encodes = 0
+	log.quests[2].objectives[1].text = log.quests[2].objectives[1].text:gsub(": %d+/", ": 3/")
+	log.Fire("QUEST_LOG_UPDATE")
+	for _ = 1, 3 do p.Advance(2) end
+	local data, count = Packet(sent + 1)
+	assert(#p.sent == sent + 1 and encodes == 35, "a new change reads the log again and sends one packet, got " .. encodes .. " encodes")
+	assert(count == 1 and data[302].objectives[1].numFulfilled == 3, "and that packet holds only the changed quest")
+	encodes = 0
+	p.status = 3
+	log.quests[3].complete = true
+	log.Fire("QUEST_LOG_UPDATE")
+	p.Advance(2)
+	p.Advance(2)
+	p.status = 0
+	p.Advance(2)
+	data, count = Packet(#p.sent)
+	assert(#p.sent == sent + 4 and count == 1 and data[303].complete, "throttled sends retry the queued change until one goes through")
+	assert(encodes == 35, "the retries send the queued change without reading the log again, got " .. encodes)
+	encodes = 0
+	K.Options.Write("Skins", "quests.partyProgress", false)
+	log.Fire("QUEST_LOG_UPDATE")
+	for _ = 1, 3 do p.Advance(2) end
+	assert(encodes == 0 and #p.sent == sent + 4, "off reads and sends nothing")
 	assert(K.ErrorCount() == 0 and #env._errors == 0)
 end
 

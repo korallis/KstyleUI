@@ -63,7 +63,31 @@ local function Channel(v)
 	return math.min(1, math.max(0, v))
 end
 
+local function Oldest(lines)
+	local first = lines.first
+	if type(first) == "number" and first % 1 == 0 and first > 1 and first <= #lines then
+		return first
+	end
+	return 1
+end
+
+local function Unwrap(lines)
+	local first, n = Oldest(lines), #lines
+	lines.first = nil
+	if first == 1 then
+		return
+	end
+	local ordered = {}
+	for i = 1, n do
+		ordered[i] = lines[(first + i - 2) % n + 1]
+	end
+	for i = 1, n do
+		lines[i] = ordered[i]
+	end
+end
+
 local function Trim(lines, limit)
+	Unwrap(lines)
 	local extra = #lines - limit
 	if extra <= 0 then
 		return
@@ -96,8 +120,15 @@ function History.Record(frame, text, r, g, b)
 		lines = {}
 		mine[name] = lines
 	end
-	lines[#lines + 1] = { text, Channel(r), Channel(g), Channel(b) }
-	Trim(lines, state.limit)
+	local line, n = { text, Channel(r), Channel(g), Channel(b) }, #lines
+	if n == state.limit then
+		local first = Oldest(lines)
+		lines[first] = line
+		lines.first = first < n and first + 1 or nil
+	else
+		Trim(lines, state.limit - 1)
+		lines[#lines + 1] = line
+	end
 end
 
 local function Restore()

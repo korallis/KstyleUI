@@ -103,7 +103,7 @@ Tests: `Tools/regression/test-chat-format.lua` (the text helpers), `test-chat-me
 `History.lua` keeps each chat window's newest lines in KstyleUI's own saved variables (`KstyleUIDB.account.chatHistory.characters[<character>][<window name>]`), so a reload or a relog starts with the chat the player left. Each line is saved as the player saw it: `Messages.lua` hands it the finished line (short channel names and timestamps applied) from its `AddMessage` post-hook, with the line's colour. A saved line is plain text and three colour numbers.
 
 - Never kept: a secret line, a line with a Battle.net name (`|K`, which the game encodes per session), and the combat log.
-- Bounded: `historyLines` per window (default 100, 10 to 500); the oldest line goes first. Lowering the setting trims what is saved.
+- Bounded: `historyLines` per window (default 100, 10 to 500); the oldest line goes first. Once a window's list is full, a new line takes the oldest line's place and the list's `first` field names where the oldest line now is, so one line changes one saved slot. Restoring or lowering the setting puts the list back in order, oldest first, and trims what is saved.
 - Restored once per UI load, when the chat module starts: each window gets its lines back, oldest first, through its own `AddMessage`, then one muted line, "Chat from your last session". `Messages.lua` leaves restored lines as they are, and they are not saved twice.
 - Off: `history = false` keeps and restores nothing, and turning it off forgets this character's lines.
 

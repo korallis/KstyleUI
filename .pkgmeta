@@ -20,6 +20,8 @@ ignore:
   - verify
   - README.md
   - KstyleUI_*/README.md
+  - Media/Textures/HudStyleFrames.png
+  - Media/Textures/HudStyleMedallions.png
 
 move-folders:
   KstyleUI/KstyleUI_Options: KstyleUI_Options
