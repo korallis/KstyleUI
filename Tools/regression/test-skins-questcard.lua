@@ -584,6 +584,14 @@ do
 	Clean(env, K)
 end
 
+do
+	local _, _, ns, log = Boot({ quests = Quests.List(1, 8) })
+	local row = ns.Quests.Rows()[1]
+	assert(row.title:GetText():find("+2 more", 1, true), "a quest with eight objectives discloses the two beyond its six lines")
+	W.Click(row, "LeftButton")
+	assert(log.Called("OpenToQuestDetails")[1].args[1] == 301, "the overflow row opens that quest's details")
+end
+
 -- Clicks as Blizzard's tracker: a left click opens the quest's details, shift untracks, a right click opens the
 -- quest's menu, whose first entry super-tracks it ---------------------------------------------------------------------
 

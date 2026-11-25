@@ -300,6 +300,12 @@ local function CountState(line)
 	RestyleCount(state)
 	Style.Track(state)
 	Widgets.Track(state)
+	hooksecurefunc(state.text, "SetText", function()
+		if not state.writing then
+			state.full, state.words = nil, nil
+			state.label:Hide()
+		end
+	end)
 	counts[line] = state
 	return state
 end
@@ -330,7 +336,9 @@ local function PaintCount(state)
 		return
 	end
 	state.full, state.words = current, words
+	state.writing = true
 	text:SetText(words)
+	state.writing = nil
 	state.label:SetText(count)
 	state.label:Show()
 end

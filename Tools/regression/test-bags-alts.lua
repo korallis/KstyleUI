@@ -117,6 +117,15 @@ do
 	assert(Find(lines, "Ayla") and Find(lines, "Ayla")[2]:find("40", 1, true), "bank-only counts show too")
 	local warband = Find(lines, "Warband")
 	assert(warband and warband[2]:find("3", 1, true), "the Warband bank gets its own line")
+	local inventory = K.Store.Account().inventory
+	for i = 1, 8 do
+		local realm = "Realm" .. i
+		inventory.characters[realm .. "-Ayla"] = { name = "Ayla", realm = realm, bags = { [CLOTH] = 1 } }
+	end
+	lines = B.ItemTooltip(env, CLOTH)
+	assert(Find(lines, "Ayla-Lordaeron") and Find(lines, "Ayla-Realm1"), "item owners with the same name include their realm")
+	assert(Find(lines, "1 more character")[1] == "1 more character" and Find(lines, "Warband")[2] == "3", "shared stock is separate from the omitted character")
+	for i = 1, 8 do inventory.characters["Realm" .. i .. "-Ayla"] = nil end
 	assert(#B.ItemTooltip(env, 9999) == 0, "an item nobody holds adds nothing")
 	assert(#B.ItemTooltip(env, env.Secret(POTION)) == 0, "a secret item ID adds nothing and does not error")
 	assert(K.Options.Write("Bags", "altCounts", false) ~= false, "the counts have a switch")

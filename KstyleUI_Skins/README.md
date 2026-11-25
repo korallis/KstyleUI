@@ -47,7 +47,7 @@ to avoid Blizzard's protected pin setup. The sibling route
 card uses the quest card's chrome and fonts. Its dotted straight line redraws
 when the player or map changes; distance is in yards and time is approximate at
 7 yd/s on foot or 14 yd/s mounted. Terrain may block that line; road routing comes later.
-Clear restores the prior waypoint when the route still owns the current one.
+Clear restores the most recent manual waypoint when the route still owns the current one. Scroll over search results for further matches; duplicate names include coordinates.
 
 Entrance tooltip levels come from `GetDungeonEntrancesForMap`, the seventh
 return of `EJ_GetInstanceInfo` (`dungeonAreaMapID`), then `GetMapLevels`; unknown

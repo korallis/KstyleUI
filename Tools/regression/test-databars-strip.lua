@@ -115,7 +115,7 @@ do
 	local view = ns.Strip.view
 	eq(view.lineMode, true, "the view draws the line")
 	eq(view.chrome.fill[1]:IsShown(), false, "no card fill")
-	eq(lineText(ns), "144 fps" .. MIDDLE_DOT .. "34 ms" .. MIDDLE_DOT .. "143g 82s 17c", "the line reads like the picture: values with inline units joined by middle dots")
+	eq(lineText(ns), "144 fps" .. MIDDLE_DOT .. "H34 ms" .. MIDDLE_DOT .. "143g 82s 17c", "the line reads like the picture: values with inline units joined by middle dots")
 	assert(not lineText(ns):find("armour", 1, true), "no durability on the line")
 	eq(item(ns, "fps").value:GetText(), "144", "fps rounds the frame rate")
 
@@ -173,7 +173,7 @@ do
 	local before = select(4, item(ns, "fps").button:GetPoint(1))
 	game.fps, game.latencyHome = 1444, 1234
 	env.RunTickers()
-	eq(lineText(ns), "1444 fps" .. MIDDLE_DOT .. "1234 ms" .. MIDDLE_DOT .. "143g 82s 17c", "the tick rewrites the line")
+	eq(lineText(ns), "1444 fps" .. MIDDLE_DOT .. "H1234 ms" .. MIDDLE_DOT .. "143g 82s 17c", "the tick rewrites the line")
 	assert(select(4, item(ns, "fps").button:GetPoint(1)) < before, "wider values push the earlier items left")
 	eq(select(4, item(ns, "gold").button:GetPoint(1)), -K.Widgets.Snap(frame, 3), "the line keeps its text padding at the right edge")
 	game.fps, game.latencyHome = 144.2, 34
@@ -190,18 +190,18 @@ do
 	-- Durability stays a slot choice.
 	D.Entry(K, 4, "durability")
 	eq(shown(ns), "fps,latency,gold,durability", "durability is selectable")
-	eq(lineText(ns), "144 fps" .. MIDDLE_DOT .. "34 ms" .. MIDDLE_DOT .. "143g 82s 17c" .. MIDDLE_DOT .. "96% armour", "and reads with its unit at the line's left end")
+	eq(lineText(ns), "144 fps" .. MIDDLE_DOT .. "H34 ms" .. MIDDLE_DOT .. "143g 82s 17c" .. MIDDLE_DOT .. "96% armour", "and reads with its unit at the line's left end")
 	eq(select(4, item(ns, "durability").button:GetPoint(1)), -K.Widgets.Snap(frame, 3), "now it ends the line with text padding")
 	D.Entry(K, 4, "none")
 	D.Entry(K, 5, "time")
-	eq(lineText(ns), "144 fps" .. MIDDLE_DOT .. "34 ms" .. MIDDLE_DOT .. "143g 82s 17c" .. MIDDLE_DOT .. "14:32", "the clock too")
+	eq(lineText(ns), "144 fps" .. MIDDLE_DOT .. "H34 ms" .. MIDDLE_DOT .. "143g 82s 17c" .. MIDDLE_DOT .. "14:32", "the clock too")
 	D.Entry(K, 5, "none")
 
 	-- Units: the full and short label modes use the inline unit in the line; none leaves the values alone.
 	K.Options.Write("DataBars", "strip.labels", "full")
-	eq(lineText(ns), "144 fps" .. MIDDLE_DOT .. "34 ms" .. MIDDLE_DOT .. "143g 82s 17c", "full labels are the cells' captions: the line keeps its inline units")
+	eq(lineText(ns), "144 fps" .. MIDDLE_DOT .. "H34 ms" .. MIDDLE_DOT .. "143g 82s 17c", "full labels are the cells' captions: the line keeps its inline units")
 	K.Options.Write("DataBars", "strip.labels", "none")
-	eq(lineText(ns), "144" .. MIDDLE_DOT .. "34 ms" .. MIDDLE_DOT .. "143g 82s 17c", "no labels, no units")
+	eq(lineText(ns), "144" .. MIDDLE_DOT .. "H34 ms" .. MIDDLE_DOT .. "143g 82s 17c", "no labels, no units")
 	K.Options.Write("DataBars", "strip.labels", "inline")
 
 	-- Warnings and highlights stay available as value colours.
@@ -248,7 +248,7 @@ do
 	eq(shown(ns), "fps,latency,gold,durability,time", "the fifth slot takes the clock")
 	eq(item(ns, "fps").label:GetText(), "fps", "fps unit, inline")
 	eq(item(ns, "fps").value:GetText(), "144", "fps rounds the frame rate")
-	eq(item(ns, "latency").value:GetText(), "34", "home latency, its unit inline")
+	eq(item(ns, "latency").value:GetText(), "H34", "home latency, its unit inline")
 	eq(item(ns, "latency").label:GetText(), "ms", "the latency unit")
 	eq(item(ns, "gold").value:GetText(), "143g 82s 17c", "gold")
 	eq(item(ns, "durability").label:GetText(), "armour", "durability reads as armour")
@@ -298,7 +298,7 @@ do
 	env.RunTickers()
 	eq(item(ns, "fps").value:GetText(), "25", "the ticker reads the frame rate")
 	assert(sameText(item(ns, "fps").value, K.Tokens.Color("hostile")), "a low frame rate reads hostile")
-	eq(item(ns, "latency").value:GetText(), "320", "the ticker reads latency")
+	eq(item(ns, "latency").value:GetText(), "H320", "the ticker reads latency")
 	assert(sameText(item(ns, "latency").value, K.Tokens.Color("hostile")), "high latency reads hostile")
 	eq(item(ns, "time").value:GetText(), "15:01", "the ticker reads the clock")
 
@@ -358,7 +358,7 @@ do
 	Options.Write("DataBars", "strip.labels", "short")
 	eq(item(ns, "durability").label:GetText(), "DUR", "short captions")
 	eq(item(ns, "latency").label:GetText(), "MS", "short latency caption")
-	eq(item(ns, "latency").value:GetText(), "34", "short latency drops the unit")
+	eq(item(ns, "latency").value:GetText(), "H34", "short latency drops the unit")
 	Options.Write("DataBars", "strip.labels", "none")
 	eq(item(ns, "fps").label:IsShown(), false, "no labels")
 	Options.Write("DataBars", "strip.labels", "full")
@@ -393,7 +393,7 @@ do
 	Options.Write("DataBars", "strip.money", "gold")
 	eq(item(ns, "gold").value:GetText(), "143g", "gold only")
 	Options.Write("DataBars", "strip.latency", "world")
-	eq(item(ns, "latency").value:GetText(), "41 ms", "world latency")
+	eq(item(ns, "latency").value:GetText(), "W41 ms", "world latency")
 	game.latencyWorld = nil
 	env.RunTickers()
 	eq(item(ns, "latency").value:GetText(), K.L["--"], "an unavailable World latency never borrows Home's number")
@@ -581,7 +581,7 @@ do
 	eq(opened, "DataBars", "clicking fps opens the data bar settings")
 	W.Click(item(ns, "latency").button)
 	eq(K.Options.Read("DataBars", "strip.latency"), "world", "clicking latency switches to world latency")
-	eq(item(ns, "latency").value:GetText(), "41", "and shows it")
+	eq(item(ns, "latency").value:GetText(), "W41", "and shows it")
 	W.Click(item(ns, "time").button, "RightButton")
 	eq(K.Options.Read("DataBars", "strip.clock24"), false, "right-clicking the clock switches to 12 hours")
 	noErrors(env, K)
@@ -705,7 +705,7 @@ do
 	D.Entry(K, 4, "durability")
 	frame:Refresh()
 	eq(sample.lineMode, true, "the preview draws the line by default")
-	eq(sample.items.latency.value:GetText(), "34", "with the latency's unit after it")
+	eq(sample.items.latency.value:GetText(), "H34", "with the latency's unit after it")
 	eq(sample.items.durability.label:GetText(), "armour", "and the units inline")
 	assert(sample.frame:GetWidth() >= sample.contentWidth, "the line fits its sample")
 	K.Options.Write("DataBars", "strip.line", false)
@@ -815,7 +815,7 @@ do
 		end
 	end
 	whole("at 318 with the default values")
-	eq(item(ns, "latency").value:GetText(), "34", "the latency value reads whole")
+	eq(item(ns, "latency").value:GetText(), "H34", "the latency value reads whole")
 	eq(item(ns, "durability").value:GetText(), "96%", "the durability value reads whole")
 	eq(item(ns, "time").value:GetText(), "14:32", "the clock reads whole")
 	-- The widest live values the strip meets: four-digit latency, three-digit fps, full gold, 100% durability.
@@ -826,7 +826,7 @@ do
 	env.FireEvent("PLAYER_MONEY")
 	env.FireEvent("UPDATE_INVENTORY_DURABILITY")
 	whole("at 318 with the widest values")
-	eq(item(ns, "latency").value:GetText(), "1234", "a four-digit latency reads whole")
+	eq(item(ns, "latency").value:GetText(), "H1234", "a four-digit latency reads whole")
 	-- A value and its caption never overlap: the caption starts where the value ends.
 	for _, id in ipairs(ns.Strip.order) do
 		local it = item(ns, id)
@@ -889,7 +889,7 @@ for _, screen in ipairs(screens) do
 	game.latencyHome = 15
 	game.money = 2616
 	nsS.Strip.Refresh()
-	eq(item(nsS, "latency").value:GetText(), "15", "the mock-up's latency, a value that starts with a 1")
+	eq(item(nsS, "latency").value:GetText(), "H15", "the home latency in the spacing fixture")
 	local function right(id)
 		return select(4, item(nsS, id).button:GetPoint(1))
 	end

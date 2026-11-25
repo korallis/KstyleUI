@@ -312,7 +312,7 @@ end
 local function Words(row, entry, limit)
 	local titleH = TitleHeight()
 	local right = Right(entry)
-	row.title:SetText(entry.title)
+	row.title:SetText(entry.totalObjectives and entry.totalObjectives > MAX_LINES and not entry.complete and not entry.failed and string.format(L["%s (+%d more)"], entry.title, entry.totalObjectives - MAX_LINES) or entry.title)
 	local used, cut = 0, 0
 	if entry.complete or entry.failed then
 		if not limit or titleH + LineHeight() <= limit then
