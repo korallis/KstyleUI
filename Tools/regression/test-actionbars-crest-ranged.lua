@@ -38,7 +38,7 @@ do
 	assert(mark.lit:IsShown() and Shown(mark.lit, mark.lit.loops[2]) and Shown(mark.lit, mark.lit.loops[1]), "the Mark's reticle closes in over the emblem and gleams")
 	assert(sting.lits[4]:IsShown() and sting.lits[4]._durationBar[1] == sting.lits[4].art, "any of your Stings, Wyvern Sting's poison too, burns its own mark down with its time")
 	local _, fill, at = sting.lits[4].head:GetPoint()
-	assert(fill == sting.lits[4].art:GetStatusBarTexture() and at == "TOP" and sting.lits[4].mark:GetTexture():find("Wing"), "the fuse's head, Wyvern Sting's own mark in a flame, rides the top of what is left")
+	assert(fill == sting.lits[4].art:GetStatusBarTexture() and at == "TOP" and sting.lits[4].mark:GetTexture():find("Wyvern"), "the fuse's head, Wyvern Sting's own mark in a flame, rides the top of what is left")
 	Slots.Set(env, "target", { { id = 1978, icon = 132204, harmful = true, mine = false, start = 0, duration = 15 } })
 	assert(not sting.lits[1]:IsShown() and not mark.lit:IsShown(), "another hunter's Sting leaves your fuse dark")
 	assert(not pet.pet:IsShown() and not pet.mood:IsShown(), "no pet: only the dark groove on the band, no happiness ember")

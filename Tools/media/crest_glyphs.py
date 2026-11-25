@@ -3,12 +3,11 @@
 Procedural, no model and no input image. Each glyph is a bold white silhouette or line figure drawn at 8x, given a
 soft glow and reduced with a linear-light Lanczos, so the crest tints it in the tracked spell's colour and draws it
 ADD (colour unpremultiplied, alpha the brightest channel, as medallions_kit.py stores effects). One glyph per spell
-family the hunter, mage and warlock crests track (KstyleUI_ActionBars/SlabRanged.lua), so two spells on one seat never
-share a shape: the Aspects (Hawk, Crescents, Paw, Pack, Leaf, Claws, Coil), the Stings (Serpent, Drop, Hook, Wing,
-Tear, BlackArrow), the Curses (Weakness, Burst, Tongue, Elements, Hourglass), the openings (Counter, Fangs), the torment
-spires' feet (Swirl, Eye, FireTongue, Siphon), the mage's Intellect and spells (Intellect, ChillShard, PolyCurl), a
-warlock's armor and its demons (Horns, Imp, Voidwalker, Succubus, Fangs for the Felhunter), Raptor Strike's slash (Edge),
-the bag gems (Facet) and the bail they hang from (Bail).
+family the mage and warlock crests track (KstyleUI_ActionBars/SlabRanged.lua), so two spells on one seat never share a
+shape: the Curses (Weakness, Burst, Tongue, Elements, Hourglass), the torment spires' feet (Swirl, Eye, FireTongue,
+Siphon), the mage's Intellect and spells (Intellect, ChillShard, PolyCurl), a warlock's armor and its demons (Horns, Imp,
+Voidwalker, Succubus, Fangs for the Felhunter), the bag gems (Facet) and the bail they hang from (Bail). The hunter's
+marks are forged in Blender instead (Tools/media/forge/marks.py).
 
     python3 Tools/media/crest_glyphs.py [--out DIR]
 """
@@ -86,80 +85,6 @@ def glyphs():
             return fn
         return wrap
 
-    @make("Hawk")
-    def _(p):
-        p.poly([(0.5, 0.2), (0.58, 0.3), (0.96, 0.22), (0.66, 0.48), (0.6, 0.86), (0.5, 0.74), (0.4, 0.86), (0.34, 0.48), (0.04, 0.22), (0.42, 0.3)])
-
-    @make("Crescents")
-    def _(p):
-        p.arc(0.38, 0.5, 0.3, 120, 240, 0.1)
-        p.arc(0.62, 0.5, 0.3, -60, 60, 0.1)
-        p.dot(0.5, 0.5, 0.08)
-
-    @make("Paw")
-    def _(p):
-        p.paw(0.56, 0.54, 1.35)
-        p.line([(0.06, 0.42), (0.22, 0.42)], 0.06)
-        p.line([(0.04, 0.6), (0.2, 0.6)], 0.06)
-
-    @make("Pack")
-    def _(p):
-        for cx, cy in ((0.28, 0.36), (0.72, 0.36), (0.5, 0.74)):
-            p.paw(cx, cy, 0.72)
-
-    @make("Leaf")
-    def _(p):
-        p.poly([(0.5 + 0.34 * math.sin(math.pi * t / 20) * s, 0.06 + 0.88 * t / 20) for s in (1, -1) for t in (range(21) if s == 1 else range(20, -1, -1))])
-        p.line([(0.5, 0.2), (0.5, 0.95)], 0.05, erase=True)
-        for y in (0.4, 0.58, 0.76):
-            p.line([(0.5, y), (0.36, y - 0.1)], 0.035, erase=True)
-            p.line([(0.5, y), (0.64, y - 0.1)], 0.035, erase=True)
-
-    @make("Claws")
-    def _(p):
-        for dx in (-0.22, 0.0, 0.22):
-            p.line([(0.62 + dx, 0.1), (0.56 + dx, 0.45), (0.4 + dx, 0.9)], 0.1)
-
-    @make("Coil")
-    def _(p):
-        p.spiral(0.5, 0.56, 0.06, 0.34, 1.6, 0.09)
-        p.dot(0.84, 0.5, 0.1, 0.08)
-
-    @make("Serpent")
-    def _(p):
-        p.wave(0.5, 0.5, 0.2, 0.9, 0.2, 1.0, 0.11)
-        p.dot(0.5, 0.15, 0.11, 0.1)
-        p.line([(0.5, 0.06), (0.43, 0.0)], 0.04)
-        p.line([(0.5, 0.06), (0.57, 0.0)], 0.04)
-
-    @make("Drop")
-    def _(p):
-        p.poly([(0.5, 0.04)] + [(0.5 + 0.3 * math.cos(math.radians(a)), 0.62 + 0.3 * math.sin(math.radians(a))) for a in range(-20, 201, 10)])
-        p.line([(0.34, 0.66), (0.42, 0.6), (0.5, 0.68), (0.58, 0.6), (0.66, 0.66)], 0.06, erase=True)
-
-    @make("Hook")
-    def _(p):
-        p.arc(0.46, 0.46, 0.3, 80, 360, 0.1)
-        p.poly([(0.76, 0.46), (0.9, 0.56), (0.68, 0.62)])
-        p.dot(0.46, 0.8, 0.1)
-
-    @make("Wing")
-    def _(p):
-        p.poly([(0.08, 0.3), (0.5, 0.16), (0.94, 0.3), (0.82, 0.56), (0.7, 0.46), (0.6, 0.66), (0.5, 0.52), (0.4, 0.66), (0.3, 0.46), (0.18, 0.56)])
-        p.line([(0.5, 0.16), (0.5, 0.92)], 0.08)
-
-    @make("Tear")
-    def _(p):
-        p.line([(0.2, 0.08), (0.42, 0.3), (0.3, 0.46), (0.56, 0.66), (0.46, 0.8), (0.8, 0.94)], 0.1)
-        p.line([(0.56, 0.1), (0.72, 0.28)], 0.07)
-
-    @make("BlackArrow")
-    def _(p):
-        p.line([(0.5, 0.04), (0.5, 0.6)], 0.08)
-        p.poly([(0.5, 0.96), (0.24, 0.56), (0.5, 0.66), (0.76, 0.56)])
-        p.line([(0.5, 0.06), (0.36, 0.2)], 0.06)
-        p.line([(0.5, 0.06), (0.64, 0.2)], 0.06)
-
     @make("Weakness")
     def _(p):
         p.line([(0.5, 0.06), (0.5, 0.36)], 0.1)
@@ -187,12 +112,6 @@ def glyphs():
         p.poly([(0.2, 0.06), (0.8, 0.06), (0.5, 0.48)])
         p.line([(0.5, 0.5), (0.2, 0.94), (0.8, 0.94), (0.5, 0.5)], 0.08)
         p.poly([(0.32, 0.9), (0.68, 0.9), (0.5, 0.72)])
-
-    @make("Counter")
-    def _(p):
-        for x0, x1 in ((0.12, 0.88), (0.88, 0.12)):
-            p.line([(x0, 0.06), (x1, 0.86)], 0.1)
-            p.line([(x1 - (x1 - x0) * 0.28 - 0.12, 0.66), (x1 - (x1 - x0) * 0.28 + 0.12, 0.66)], 0.07)
 
     @make("Fangs")
     def _(p):
@@ -242,13 +161,6 @@ def glyphs():
         p.arc(1.06, 0.62, 0.46, 140, 240, 0.11)
         p.line([(0.22, 0.56), (0.78, 0.56)], 0.08)
         p.line([(0.3, 0.76), (0.7, 0.76)], 0.08)
-
-    @make("Edge")
-    def _(p):
-        p.poly([(0.88, 0.04), (0.96, 0.12), (0.3, 0.78), (0.2, 0.7)])
-        p.line([(0.24, 0.84), (0.1, 0.7)], 0.09)
-        p.line([(0.18, 0.8), (0.06, 0.94)], 0.09)
-        p.dot(0.6, 0.6, 0.07, 0.1)
 
     @make("Imp")
     def _(p):

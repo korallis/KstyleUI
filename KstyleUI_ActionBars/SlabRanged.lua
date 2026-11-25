@@ -103,6 +103,7 @@ local function Light(p, each, level, look)
 	local lit = Medals.Lit(p, each, level)
 	local hold = lit.container and lit or Medals.Layer(lit, level)
 	local light = Medals.Layer(look.bar and lit or hold, level + 2)
+	local cast
 	if look.bar then
 		lit.art = p.add(Bar(light, art, "white", not look.solid and "ADD" or nil), size)
 		lit.art:GetStatusBarTexture():SetDesaturated(not look.native)
@@ -111,13 +112,13 @@ local function Light(p, each, level, look)
 			lit.art:SetStatusBarColor(Lift(each.color))
 		end
 	else
-		lit.art = p.add(Medals.Texture(light, "ARTWORK", 0, art, "white", size, "ADD"))
+		local r, g, b = Lift(each.color, look.white)
+		lit.art, cast = Medals.Mark(p, light, art, size, each.color, r, g, b, level + 2)
 		lit.art:SetDesaturated(true)
-		lit.art:SetVertexColor(Lift(each.color, look.white))
 	end
 	if lit.container then
 		lit.loop = Medals.Steps(light, look.loop, true)
-		lit.flare = Bloom(lit.art, 1.2)
+		lit.flare = Bloom(cast or lit.art, 1.2)
 		return
 	end
 	lit.glow = p.add(Medals.Texture(hold, "BACKGROUND", 1, "glow", each.color, p.units * 1.6, "ADD"))
@@ -215,10 +216,11 @@ local function Fuse(parent, spec, level, form)
 		local flame = p.add(Medals.Texture(burn, "BORDER", 0, "trackerFlame", each.color, 24 * h, "ADD"))
 		flame:SetDesaturated(true)
 		flame:SetPoint("CENTER", lit.head, "CENTER", 0, 5 * h)
-		lit.mark = p.add(Medals.Texture(burn, "ARTWORK", 0, each.glyph, "white", 16 * h, "ADD"))
-		lit.mark:SetVertexColor(Lift(each.color, 0.3))
+		local r, g, b = Lift(each.color, 0.3)
+		local mark, cast = Medals.Mark(p, burn, each.glyph, 16 * h, each.color, r, g, b, level + 3)
+		lit.mark = mark
 		lit.loop = Medals.Steps(burn, BURN, true)
-		lit.flare = Bloom(lit.mark, 1.5)
+		lit.flare = Bloom(cast, 1.5)
 	end
 	return p
 end
@@ -326,7 +328,7 @@ local function Shot(parent, spec, level, form)
 			if look.arrows then
 				p.add(Medals.Texture(layer, "ARTWORK", 0, "pipArrow" .. art, "white", p.units))
 			else
-				p.add(Medals.Texture(layer, "ARTWORK", 0, art, "white", p.units * 0.82, "ADD")):SetVertexColor(Lift(look.color, 0.2))
+				Medals.Mark(p, layer, art, p.units * 0.82, look.color, Lift(look.color, 0.2))
 			end
 		end
 		layer.play = Medals.Steps(layer, look.arrows and { { 0, 1, 0.15 } } or OPENING)
@@ -829,24 +831,24 @@ end
 if CLASS == "HUNTER" then
 	local ASPECTS = {
 		{ spells = { 13165, 14318, 14319, 14320, 14321, 14322, 25296, 469145 }, color = "gilt", glyph = "glyphHawk" },
-		{ spells = { 13163 }, color = "neutral", glyph = "glyphCrescents" },
-		{ spells = { 5118 }, color = "steelLit", glyph = "glyphPaw" },
+		{ spells = { 13163 }, color = "neutral", glyph = "glyphMonkey" },
+		{ spells = { 5118 }, color = "steelLit", glyph = "glyphCheetah" },
 		{ spells = { 13159 }, color = "steelLit", glyph = "glyphPack" },
-		{ spells = { 20043, 20190 }, color = "schoolNature", glyph = "glyphLeaf" },
-		{ spells = { 13161, 1299445, 1299446, 1299447 }, color = "hostile", glyph = "glyphClaws" },
-		{ spells = { 415423 }, color = "magic", glyph = "glyphCoil" },
+		{ spells = { 20043, 20190 }, color = "schoolNature", glyph = "glyphWild" },
+		{ spells = { 13161, 1299445, 1299446, 1299447 }, color = "hostile", glyph = "glyphBeast" },
+		{ spells = { 415423 }, color = "magic", glyph = "glyphViper" },
 	}
 	local STINGS = {
 		{ spells = { 1978, 13549, 13550, 13551, 13552, 13553, 13554, 13555, 25295 }, color = "schoolNature", glyph = "glyphSerpent" },
-		{ spells = { 3034, 14279, 14280 }, color = "magic", glyph = "glyphDrop" },
-		{ spells = { 3043, 14275, 14276, 14277 }, color = "neutral", glyph = "glyphHook" },
-		{ spells = { 19386, 24132, 24133, 24131, 24134, 24135 }, color = "jewelShard", glyph = "glyphWing" },
-		{ spells = { 24118, 24119, 24120, 1299332 }, color = "hostile", glyph = "glyphTear" },
+		{ spells = { 3034, 14279, 14280 }, color = "magic", glyph = "glyphViperSting" },
+		{ spells = { 3043, 14275, 14276, 14277 }, color = "neutral", glyph = "glyphScorpid" },
+		{ spells = { 19386, 24132, 24133, 24131, 24134, 24135 }, color = "jewelShard", glyph = "glyphWyvern" },
+		{ spells = { 24118, 24119, 24120, 1299332 }, color = "hostile", glyph = "glyphLacerate" },
 		{ spells = { 3674, 14296 }, color = "schoolShadow", glyph = "glyphBlackArrow" },
 	}
 	local COUNTER, MONGOOSE, AIMED, MULTI = { 20910, 20909, 19306, 1242634 }, { 14271, 14270, 14269, 1495 }, { 20904, 20903, 20902, 20901, 20900, 19434 }, { 2643 }
 	local SHOTS, SHOWS = {}, {}
-	for _, shot in ipairs({ { COUNTER, { glyph = "glyphCounter", color = "hostile" } }, { MONGOOSE, { glyph = "glyphFangs", color = "hostile" } },
+	for _, shot in ipairs({ { COUNTER, { glyph = "glyphCounter", color = "hostile" } }, { MONGOOSE, { glyph = "glyphMongoose", color = "hostile" } },
 		{ AIMED, { arrows = { 90 }, color = "giltLit" } }, { MULTI, { arrows = { 105, 90, 75 }, color = "steelLit" } } }) do
 		SHOWS[#SHOWS + 1] = shot[2]
 		for _, id in ipairs(shot[1]) do SHOTS[id] = shot[2] end
@@ -858,7 +860,7 @@ if CLASS == "HUNTER" then
 		{ key = "crestAspect", seat = PERCH_LEFT, size = PERCH, build = Effect, choices = {
 			{ feed = "aura", look = "glyph", glyph = "glyphHawk", spells = Trackers.Joined(ASPECTS[1].spells, ASPECTS[2].spells, ASPECTS[3].spells, ASPECTS[4].spells,
 				ASPECTS[5].spells, ASPECTS[6].spells, ASPECTS[7].spells), feeds = ASPECTS },
-			{ build = Flash, seat = EMBLEM, size = FLASH, feed = "cooldown", look = "orb", glyph = "glyphEdge", color = "gilt",
+			{ build = Flash, seat = EMBLEM, size = FLASH, feed = "cooldown", look = "orb", glyph = "glyphRaptor", color = "gilt",
 				known = { 14266, 14265, 14264, 14263, 14262, 14261, 14260, 2973 } },
 		} },
 		{ key = "crestPet", seat = At(BAND.pet), choices = {

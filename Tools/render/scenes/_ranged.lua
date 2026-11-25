@@ -8,7 +8,9 @@
 -- (Demonic Sacrifice, Death Coil cooling), nodemon or level 8 build, or each class's breakout story (and the mage's
 -- breakout_fire), timed as the break-out design's clips: an aura's warn time puts it in its pandemic window, a usable
 -- spell's window and the pet's health steps and leaving time play out on the clock. RENDER_TRACKERS_OFF=1 turns the class's
--- tracker switches off first, for a pixel diff against a build without them.
+-- tracker switches off first, for a pixel diff against a build without them. RENDER_TRACKERS_SWAP=from:to[,from:to] plays the
+-- story with other aura spell IDs, so one seat shows each of its choices: 13165:13163 perches Aspect of the Monkey for
+-- the Hawk, 1978:3034 burns Viper Sting for Serpent Sting.
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
 local Ranged = {}
@@ -133,10 +135,23 @@ local STORIES = {
 	},
 }
 
+local SWAP = {}
+for from, to in (os.getenv("RENDER_TRACKERS_SWAP") or ""):gmatch("(%d+):(%d+)") do
+	SWAP[tonumber(from)] = tonumber(to)
+end
+
 local function Of(class)
 	local s = STORIES[class]
 	local build = s and s.builds[os.getenv("RENDER_TRACKERS_BUILD") or ""]
-	return build and setmetatable(build, { __index = s }) or s
+	local story = build and setmetatable(build, { __index = s }) or s
+	if story and next(SWAP) and not rawget(story, "swapped") then
+		local auras = {}
+		for i, a in ipairs(story.auras) do
+			auras[i] = setmetatable({ id = SWAP[a.id] or a.id }, { __index = a })
+		end
+		story.auras, story.swapped = auras, true
+	end
+	return story
 end
 
 function Ranged.Story(class)

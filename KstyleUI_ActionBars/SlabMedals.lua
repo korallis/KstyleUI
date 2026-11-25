@@ -13,6 +13,7 @@ local SIZE, TRACK, ICON, SHADE, BURST, STEEL = 26, 4, 0.74, 1.9, 2.4, 0.45
 local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 112, 12, 10, 8, 2
 local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, ROW_SIGIL, SIGIL, ABOVE = 118, 14, 4, 30, 12, 0.86, 20
 local SPARK, BLOOM, GLOW_LIT, FLARE_MAX = 0.3, 2.4, 0.75, 30
+local FORGED, HALO, HALO_LIT, SHEEN, SHEEN_SMALL = 24, 1.7, 0.7, 0.15, 0.6
 local FLASH, BREATH, FADE_IN = { { 0.75, 1, 0.05 }, { 1, 0.75, 0.4 } }, { { 0.75, 1, 0.8 }, { 1, 0.75, 0.8 } }, { { 0, 1, 0.12 } }
 local SEATS = {
 	left = { -1, 75.9, 24.8 }, right = { 1, 75.9, 24.8 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
@@ -70,6 +71,28 @@ function Medals.Texture(parent, layer, sublevel, texture, color, size, blend)
 	end
 	t.units = size
 	return t
+end
+
+function Medals.Mark(piece, parent, art, size, color, r, g, b, level)
+	local forged = select(4, Tokens.Texture(art))
+	local host = forged and level and Medals.Layer(parent, level) or parent
+	local t = piece.add(Medals.Texture(host, "ARTWORK", 0, art, color, size, "ADD"))
+	if r then
+		t:SetVertexColor(r, g, b)
+	end
+	if not forged then
+		return t, t
+	end
+	local gold = size >= FORGED
+	local body = piece.add(Medals.Texture(host, "ARTWORK", -1, art, gold and "coinGold" or color, size))
+	if gold then
+		piece.add(Medals.Texture(host, "BACKGROUND", 0, "glow", "black", size * SHADE)):SetAlpha(HALO_LIT)
+		piece.add(Medals.Texture(host, "BACKGROUND", 1, "glow", color, size * HALO, "ADD")):SetAlpha(HALO_LIT)
+	elseif r then
+		body:SetVertexColor(r, g, b)
+	end
+	t:SetAlpha(gold and SHEEN or SHEEN_SMALL)
+	return t, host ~= parent and host or t
 end
 
 function Medals.Layer(holder, level)
@@ -453,7 +476,7 @@ local function Sigil(r, container, key, family, color, size, bloom)
 	back:SetAlpha(bloom and GLOW_LIT or 0.7)
 	button.loop = bloom and Medals.Steps(back, FLASH)
 	r.add(Medals.Texture(button, "BACKGROUND", 1, "dot", "black", size)):SetAlpha(0.85)
-	r.add(Medals.Texture(button, "ARTWORK", 0, "sigil" .. family.sigil, color, size * SIGIL, "ADD"))
+	Medals.Mark(r, button, "sigil" .. family.sigil, size * SIGIL, color)
 	r.add(Medals.Texture(button, "BORDER", 0, "medRing", "white", size))
 	button.timer = Timer(button, button:GetFrameLevel() + 1, "orbRing", color)
 	button.timer:SetAllPoints(button)

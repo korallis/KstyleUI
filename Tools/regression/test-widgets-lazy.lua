@@ -283,10 +283,11 @@ do
 	end
 	-- A healer, hunter, mage or warlock with every crest tracker known and lit (the render harness's RENDER_TRACKERS=lit
 	-- story) creates no more action bar regions than staging did before its crest broke out of its sockets (b4ec7887b); a
-	-- lit Rogue is 5,063, so 4,900 holds only the stock fixture above.
+	-- lit Rogue is 5,063, so 4,900 holds only the stock fixture above. A hunter's forged marks each add a solid body, and
+	-- the perched and emblem ones a shadow and a halo (49 regions), which takes its limit from 4,915 to 4,950.
 	local getenv = os.getenv
 	rawset(os, "getenv", function(name) return name == "RENDER_TRACKERS" and "lit" or getenv(name) end)
-	for class, limit in pairs({ PRIEST = 4940, DRUID = 5183, SHAMAN = 4889, HUNTER = 4915, MAGE = 4943, WARLOCK = 4978 }) do
+	for class, limit in pairs({ PRIEST = 4940, DRUID = 5183, SHAMAN = 4889, HUNTER = 4950, MAGE = 4943, WARLOCK = 4978 }) do
 		Hud.Module("actionbars", Hud.Options({ layout = "DPS", class = class, applyPreset = true }))
 		local created = count(assert(measured))
 		assert(created <= limit and #measured._errors == 0, class .. " lit creates " .. created .. " action bar regions, over " .. limit .. "; share or defer its crest pieces")

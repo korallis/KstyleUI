@@ -1,0 +1,86 @@
+"""Forge the crest marks that are Blender renders into Media/Textures/Glyphs/ and Media/Textures/Sigils/.
+
+A forged mark is a small cast-metal object, not a flat sign: a hawk's head for Aspect of the Hawk. Each is a relief
+(relief.py) raised from layered shapes, lit and rendered by Blender in bright neutral metal (forge.py), given a thin dark
+outline and reduced to 128 px (finish.py). The crest tints the neutral metal: gold when lit, steel when not
+(KstyleUI_ActionBars/SlabMedals.lua, Medals.Mark). A texture drawn this way is flagged forged in Core/Tokens.lua.
+
+The hunter's 16 glyphs are drawn in designs_hunter.py. The hunter's three cooldown sigils (Volley, Deflect, Paw) keep
+the drawing Tools/media/sigils.py gives them, with its strokes raised as ridges over a filled plate.
+
+    python3 Tools/media/forge/marks.py [--blender PATH] [--work DIR] [--only Hawk,Volley] [--glyphs DIR] [--sigils DIR]
+
+Needs Blender 5.x (BLENDER, --blender or blender on the PATH), numpy, Pillow and scipy.
+"""
+import argparse
+import hashlib
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[2]
+sys.path[:0] = [str(HERE), str(HERE.parent)]
+
+import designs_hunter  # noqa: E402
+import sigils  # noqa: E402
+from finish import load, outline, resize, save  # noqa: E402
+from relief import forge_lineart  # noqa: E402
+
+SIZE = 128
+SIGILS = ("Volley", "Deflect", "Paw")
+GLYPHS = tuple(designs_hunter.D)
+
+
+def maps(work, only):
+    """Write each mark's height, silhouette and cavity maps; returns {kind: [names]}."""
+    done = {"glyphs": [], "sigils": []}
+    for name in GLYPHS:
+        if not only or name in only:
+            designs_hunter.D[name]().save(work / "maps" / "glyphs")
+            done["glyphs"].append(name)
+    for name in SIGILS:
+        if not only or name in only:
+            pen = sigils.Pen()
+            sigils.GLYPHS[name](pen)
+            forge_lineart(name, pen.image, work / "maps" / "sigils")
+            done["sigils"].append(name)
+    return done
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--blender", default=os.environ.get("BLENDER") or shutil.which("blender"))
+    parser.add_argument("--work", type=Path, help="keep the maps and the 512 px renders here")
+    parser.add_argument("--only", default="", help="comma-separated mark names")
+    parser.add_argument("--glyphs", type=Path, default=ROOT / "Media/Textures/Glyphs")
+    parser.add_argument("--sigils", type=Path, default=ROOT / "Media/Textures/Sigils")
+    args = parser.parse_args(argv)
+    if not args.blender:
+        parser.error("no Blender found; set BLENDER or pass --blender")
+    only = set(filter(None, args.only.split(",")))
+    unknown = only - set(GLYPHS) - set(SIGILS)
+    if unknown:
+        parser.error("unknown mark: " + ", ".join(sorted(unknown)))
+    work = args.work or Path(tempfile.mkdtemp(prefix="forge-"))
+    for kind, names in maps(work, only).items():
+        if not names:
+            continue
+        renders = work / "renders" / kind
+        subprocess.run([args.blender, "-b", "--factory-startup", "--python-exit-code", "1", "-P", str(HERE / "forge.py"), "--",
+                        str(work / "maps" / kind), str(renders)], check=True, stdout=subprocess.DEVNULL)
+        out = getattr(args, kind)
+        out.mkdir(parents=True, exist_ok=True)
+        for name in names:
+            path = out / f"{name}.png"
+            save(resize(outline(load(renders / f"{name}.png")), SIZE), path)
+            print(f"{kind}/{path.name}", hashlib.sha256(path.read_bytes()).hexdigest())
+    if not args.work:
+        shutil.rmtree(work)
+
+
+if __name__ == "__main__":
+    main()

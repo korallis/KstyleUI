@@ -586,6 +586,10 @@ def sheet(images, path, cell=64):
     out.save(path)
 
 
+# Drawn here, written as Blender-forged metal by Tools/media/forge/marks.py.
+FORGED = {"Volley", "Deflect", "Paw"}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--out", type=Path, default=OUT)
@@ -594,6 +598,8 @@ def main(argv=None):
     args.out.mkdir(parents=True, exist_ok=True)
     images = {}
     for name, draw in GLYPHS.items():
+        if name in FORGED:
+            continue
         images[name] = render(draw)
         path = args.out / f"{name}.png"
         Image.fromarray(np.clip(images[name] * 255 + 0.5, 0, 255).astype(np.uint8), "RGBA").save(path, optimize=True)

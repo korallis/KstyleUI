@@ -523,12 +523,20 @@ for _, name in ipairs({
 	TEXTURES["figure" .. name] = { file = "Textures\\Figures\\" .. name .. ".png" }
 end
 for _, name in ipairs({
-	"ArcLeft", "ArcPet", "ArcRight", "ArmorArcane", "ArmorFrost", "Bail", "BlackArrow", "Burst", "ChillShard", "Claws",
-	"Coil", "Counter", "Crescents", "Drop", "Edge", "Elements", "Eye", "Facet", "Fangs", "FireTongue", "Frost", "Hawk",
-	"Hook", "Horns", "Hourglass", "Imp", "Intellect", "Leaf", "MarkReticle", "Pack", "Paw", "PolyCurl", "RimLeft",
-	"Serpent", "Siphon", "Succubus", "Swirl", "Tear", "Tongue", "Voidwalker", "Weakness", "Wing"
+	"ArcLeft", "ArcPet", "ArcRight", "ArmorArcane", "ArmorFrost", "Bail", "Beast", "BlackArrow", "Burst", "Cheetah",
+	"ChillShard", "Counter", "Elements", "Eye", "Facet", "Fangs", "FireTongue", "Frost", "Hawk", "Horns", "Hourglass",
+	"Imp", "Intellect", "Lacerate", "MarkReticle", "Mongoose", "Monkey", "Pack", "PolyCurl", "Raptor", "RimLeft",
+	"Scorpid", "Serpent", "Siphon", "Succubus", "Swirl", "Tongue", "Viper", "ViperSting", "Voidwalker", "Weakness",
+	"Wild", "Wyvern"
 }) do
 	TEXTURES["glyph" .. name] = { file = "Textures\\Glyphs\\" .. name .. ".png" }
+end
+for _, name in ipairs({
+	"glyphBeast", "glyphBlackArrow", "glyphCheetah", "glyphCounter", "glyphHawk", "glyphLacerate", "glyphMongoose",
+	"glyphMonkey", "glyphPack", "glyphRaptor", "glyphScorpid", "glyphSerpent", "glyphViper", "glyphViperSting", "glyphWild",
+	"glyphWyvern", "sigilDeflect", "sigilPaw", "sigilVolley"
+}) do
+	TEXTURES[name].forged = true
 end
 
 local RGBA = {}
@@ -741,7 +749,7 @@ function Tokens.Texture(name)
 		unknown("Texture", name)
 	end
 	local units = spec.slice and spec.slice / spec.density
-	return MEDIA .. spec.file, spec.slice, units
+	return MEDIA .. spec.file, spec.slice, units, spec.forged
 end
 
 function Tokens.Flipbook(name)
