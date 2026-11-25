@@ -1496,11 +1496,11 @@ function Stubs.NewEnv(opts)
 	-- C_Timer.NewTicker returns a ticker with Cancel and IsCancelled; RunTickers runs each live one once.
 	local tickers = {}
 	env.C_Timer = {
-		After = function(_, fn)
-			timers[#timers + 1] = fn
+		After = function(delay, fn)
+			timers[#timers + 1] = env._clip and { at = env._time + (tonumber(delay) or 0), fn = fn } or fn
 		end,
-		NewTicker = function(interval, fn)
-			local ticker = { interval = interval, fn = fn, cancelled = false }
+		NewTicker = function(interval, fn, iterations)
+			local ticker = { interval = interval, fn = fn, cancelled = false, left = iterations, at = env._clip and env._time + interval }
 			function ticker.Cancel(self)
 				self.cancelled = true
 			end
@@ -1512,10 +1512,16 @@ function Stubs.NewEnv(opts)
 		end,
 	}
 
+	-- With env._clip set (Tools/render clips) the clock drives them: a timer runs once env._time reaches its delay and a
+	-- ticker every interval, for its iterations.
 	function env.RunTickers()
 		for _, ticker in ipairs({ unpack(tickers) }) do
-			if not ticker.cancelled then
+			while not ticker.cancelled and (not env._clip or (ticker.at or env._time) <= env._time) do
 				ticker.fn(ticker)
+				if not env._clip then break end
+				ticker.at = (ticker.at or env._time) + ticker.interval
+				ticker.left = ticker.left and ticker.left - 1
+				ticker.cancelled = ticker.left == 0 or ticker.cancelled
 			end
 		end
 	end
@@ -1532,6 +1538,17 @@ function Stubs.NewEnv(opts)
 	-- A batch runs from its own list while new timers go to the other one, which the last batch freed.
 	local spareTimers = {}
 	function env.RunTimers()
+		if env._clip then
+			for _ = 1, 1000 do
+				local due
+				for i, t in ipairs(timers) do
+					if type(t) == "function" or t.at <= env._time then due = table.remove(timers, i) break end
+				end
+				if not due then return end
+				;(type(due) == "function" and due or due.fn)()
+			end
+			error("RunTimers: timers keep scheduling timers")
+		end
 		local rounds = 0
 		while #timers > 0 do
 			rounds = rounds + 1

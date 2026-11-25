@@ -855,8 +855,8 @@ function modules.actionbars(opts)
 				dofile("Tools/regression/travel_fixture.lua").Install(env, travel:find("mage", 1, true) ~= nil)
 			end
 			dofile("Tools/regression/cooldowns_env.lua").StringUtil(env)
-			-- A pet's actions fill the pet bar, which the [@pet,exists] driver shows.
-			if spec.pet then
+			-- A pet's actions fill the pet bar, which the [@pet,exists] driver shows; RENDER_PET=off has no pet out.
+			if spec.pet and os.getenv("RENDER_PET") ~= "off" then
 				env._game.petExists = true
 				for i, action in ipairs(spec.pet.actions) do
 					env._game.pet[i] = { name = action[1], texture = action[2], spellID = 8000 + i, autoCastAllowed = true, autoCastEnabled = i <= 2 }

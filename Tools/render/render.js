@@ -380,18 +380,32 @@
 		if (!drawn) {
 			return;
 		}
-		await applyMasks(layer, item, ppu, base, offset);
+		let out = layer, at = offset;
+		if (item.turn && item.masks) {
+			// A turning texture spins under its masks, which keep their own rects (Blizzard_ActionBar/Shared/
+			// ActionButtonComponentTemplate.xml:39-53 turns Glow under a fixed Mask).
+			const cx = dest.x + dest.w / 2, cy = dest.y + dest.h / 2;
+			const side = Math.ceil(Math.hypot(layer.width, layer.height));
+			out = document.createElement("canvas");
+			out.width = out.height = side;
+			at = { x: Math.round(cx - side / 2), y: Math.round(cy - side / 2) };
+			const octx = out.getContext("2d");
+			octx.translate(cx - at.x, cy - at.y);
+			octx.rotate(-item.turn);
+			octx.drawImage(layer, offset.x - cx, offset.y - cy);
+		}
+		await applyMasks(out, item, ppu, base, at);
 		ctx.save();
 		ctx.globalAlpha = Math.min(1, alpha);
 		ctx.globalCompositeOperation = item.blend === "ADD" ? "lighter" : "source-over";
-		if (item.turn) {
+		if (item.turn && out === layer) {
 			// A line's whole quad turns about its middle, unclipped, unlike a texture's rotation inside its rect.
 			const cx = dest.x + dest.w / 2, cy = dest.y + dest.h / 2;
 			ctx.translate(cx, cy);
 			ctx.rotate(-item.turn);
 			ctx.translate(-cx, -cy);
 		}
-		ctx.drawImage(layer, offset.x, offset.y);
+		ctx.drawImage(out, at.x, at.y);
 		ctx.restore();
 	}
 

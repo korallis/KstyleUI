@@ -76,6 +76,13 @@ local function Jewels()
 	return from, to
 end
 
+-- Tide() -> the two percents of RENDER_TIDE=from,to, the main power's move; the player frame shows the second.
+local function Tide()
+	local from, to = (os.getenv("RENDER_TIDE") or "40,85"):match("^(%d+),(%d+)$")
+	assert(from, "RENDER_TIDE must be from,to in percent, such as 40,85")
+	return tonumber(from), tonumber(to)
+end
+
 local function Medallions(K)
 	return K and K.HudStyle and K.HudStyle.Current() == "medallions"
 end
@@ -111,8 +118,7 @@ function Effects.Apply(env, module, ns, notes)
 			-- RENDER_TIDE=from,to: the main power moved from one share of its maximum to the other (percent) RENDER_FX_T
 			-- seconds ago (1 when unset), through the addon's own power event; a mana user is in combat, where its tide
 			-- shows. The harness eases the bar as it eases the aura slots' bars (Scene.BarFraction).
-			local from, to = (os.getenv("RENDER_TIDE") or "40,85"):match("^(%d+),(%d+)$")
-			assert(from, "RENDER_TIDE must be from,to in percent, such as 40,85")
+			local from, to = Tide()
 			t = t or 1
 			env._now = env._time - t
 			local kind, token = env.UnitPowerType("player")
@@ -306,7 +312,13 @@ function Effects.Apply(env, module, ns, notes)
 			notes[#notes + 1] = "fx: the hub's 2D level-up burst " .. t .. " s in (the 3D rays at Full are not drawn)"
 		end
 	elseif module == "unitframes" then
-		if state == "jewels" then
+		if state == "tide" then
+			local _, to = Tide()
+			local player = env._units.player
+			player.power = player.powerMax * to / 100
+			env.FireEvent("UNIT_POWER_UPDATE", "player", player.powerToken)
+			notes[#notes + 1] = "fx: the player's power at " .. to .. "%, as the glyph tide"
+		elseif state == "jewels" then
 			local _, to = Jewels()
 			env._comboPoints = tonumber(to)
 			env.FireEvent("UNIT_POWER_FREQUENT", "player", "COMBO_POINTS")

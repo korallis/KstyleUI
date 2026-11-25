@@ -4,7 +4,7 @@
     python3 Tools/media/marketing.py --pages    # also regenerate README.md and the
                                                 # CurseForge/Wago description blocks
                                                 # from docs/store/description.md
-    python3 Tools/media/marketing.py --clips [NAME ...]   # also render the highlight clips (LuaJIT, Chrome);
+    python3 Tools/media/marketing.py --clips [NAME ...]   # also render the highlight clips (LuaJIT, Chrome at CHROME);
                                                           # map.gif needs RENDER_MAP_ART, the client's Kalimdor map art
 
 Images only use the addon's own OFL fonts (Media/Fonts), its procedural logo
@@ -15,7 +15,10 @@ here; the in-game crop is the addon's own screenshot, darkened.
 """
 
 import argparse
+import base64
 import importlib.util
+import io
+import json
 import os
 import re
 import shutil
@@ -81,8 +84,9 @@ SHOWCASES = [
 CLIP_PPU, FRAME_MS, CLIP_WIDTH = 2.5, 70, 768
 CLIP_ENV = {"RENDER_SCREEN": "1920x1080", "RENDER_SIZE": "auto", "RENDER_LAYOUT": "DPS"}
 # The crest box ends between action buttons and clear of every readout, so it sits a button off centre; its
-# clips draw no casts, whose labels it would cut.
-CREST, STRIP = (786, 845, 314, 233), (540, 800, 840, 266)
+# clips draw no casts, whose labels it would cut. The strip holds the bars and the data strip end to end; its hunter
+# and warlock have no pet out, as the pet bar beside the bars' left end would cross its edge.
+CREST, STRIP = (786, 845, 314, 233), (468, 800, 984, 266)
 QUIET = {"RENDER_PLAYER_CAST": "off", "RENDER_TARGET_CAST": "off"}
 
 
@@ -118,11 +122,11 @@ CLIPS = {
         ("hud_shaman_mac", {"RENDER_TOTEMS": "story", "RENDER_TOTEMS_T": "8", "RENDER_FX": "storm", "RENDER_FX_T": "2.5"}),
         ("hud_warrior_mac", {"RENDER_PIPS": "5,5", "RENDER_PIPS_T": "1"}),
         ("hud_druid_mac", {"RENDER_PIPS": "5,5", "RENDER_PIPS_T": "1"}),
-        ("hud_hunter_mac", {"RENDER_FX": "hawks", "RENDER_FX_T": "10"}),
+        ("hud_hunter_mac", {"RENDER_FX": "hawks", "RENDER_FX_T": "10", "RENDER_PET": "off"}),
         ("hud_paladin_mac", {"RENDER_FOREVER_POWERS": "1"}),
         ("hud_mage_mac", {"RENDER_PIPS": "4,4", "RENDER_PIPS_T": "1"}),
         ("hud_priest_mac", {"RENDER_PIPS": "5,5", "RENDER_PIPS_T": "1"}),
-        ("hud_warlock_mac", {"RENDER_FOREVER_POWERS": "1"}),
+        ("hud_warlock_mac", {"RENDER_FOREVER_POWERS": "1", "RENDER_PET": "off"}),
     )]),
     "crowns.gif": (CREST, climb("hud_rogue_mac", 5) + climb("hud_druid_mac", 5)),
     "crowns-more.gif": (CREST, [shot for scene, top, env in (
@@ -149,9 +153,18 @@ CLIPS = {
                                        for env in ({}, {"RENDER_MAP_SERVICES": "1"})]),
 }
 
-# Crest clips played frame by frame on one moving clock (the addon's own animations, timers and rotations), which a
-# shoot.sh still cannot do: rendered with the local clip driver at CLIP_PPU in the crest box and framed by write_clip.
-DRIVEN = ("trackers.gif", "effects.gif")
+# Crest clips played on one moving clock by Tools/render/clip.lua, so the addon's own animations, timers and rotations
+# run between frames: a segment is (class, env, first frame, last frame, hold in ms) at DRIVE_FPS, cut to the crest box.
+DRIVE_FPS, ALONE = 10, {"CLIP_TRACKERS": "steel", "RENDER_FX_T": "0"}
+DRIVEN = {
+    "trackers.gif": [("WARRIOR", {}, 26, 46, 500), ("WARLOCK", {"RENDER_TRACKERS_BUILD": "breakout"}, 8, 40, 500),
+                     ("DRUID", {"RENDER_FORM": "cat"}, 3, 31, 700)],
+    "effects.gif": [("DRUID", {}, 23, 37, 400),
+                    ("MAGE", {**ALONE, "RENDER_FX": "tide", "RENDER_TIDE": "62,95", "CLIP_FX_AT": "0.5"}, 1, 16, 300),
+                    ("WARLOCK", {**ALONE, "RENDER_RINGS": "cast", "RENDER_RINGS_LEFT": "1", "CLIP_LAND": "2.5"}, 13, 29, 400),
+                    ("WARRIOR", {**ALONE, "RENDER_FX": "kill", "CLIP_FX_AT": "1", "CLIP_HEALTH": "0.3,0.13,1"}, 8, 22, 400),
+                    ("WARLOCK", {**ALONE, "RENDER_FX": "lock", "RENDER_RANK": "worldboss", "CLIP_FX_AT": "0.5"}, 3, 15, 700)],
+}
 
 README_HEADER = """<p align="center">
 <a href="https://github.com/korallis/KstyleUI/releases/latest"><img src="https://img.shields.io/github/v/release/korallis/KstyleUI?label=Download%20the%20latest%20release" alt="Download the latest KstyleUI release from GitHub"></a>
@@ -336,9 +349,63 @@ def write_gif(path, frames, durations):
     indexed[0].save(path, save_all=True, append_images=indexed[1:], duration=durations, loop=0, optimize=True, disposal=1)
 
 
+def driven_crops(work, cls, env, first, last):
+    """Frames first..last of a clip.lua clip, drawn by render.js in one headless Chrome page over the real forest plate
+    and cut to the crest box."""
+    out = Path(tempfile.mkdtemp(dir=work))
+    run = subprocess.run(["luajit", "Tools/render/clip.lua", cls, out.as_posix(), str(DRIVE_FPS), str(first), str(last)],
+                         cwd=ROOT, capture_output=True, text=True,
+                         env={**os.environ, **CLIP_ENV, **QUIET, "RENDER_PPU": str(CLIP_PPU), "RENDER_TRINKETS": "1", **env})
+    if run.returncode:
+        raise SystemExit(f"clip.lua {cls} {env} exited {run.returncode}\n{run.stderr[-3000:]}")
+    x, y, w, h = (round(v * CLIP_PPU) for v in CREST)
+    x0, y0 = (x - 64) / CLIP_PPU, (y - 64) / CLIP_PPU
+    x1, y1 = (x + w + 64) / CLIP_PPU, (y + h + 64) / CLIP_PPU
+
+    def reaches(item):  # a turned quad reaches half its diagonal further
+        left, top, width, height = item["rect"]
+        m = (width ** 2 + height ** 2) ** 0.5 / 2 if item.get("turn") else 0
+        return left + width + m > x0 and left - m < x1 and top + height + m > y0 and top - m < y1
+    scenes = []
+    for i in range(first, last + 1):
+        scene = json.loads((out / f"{i:04d}.json").read_text(encoding="utf-8"))
+        scenes.append({"screen": scene["screen"], "items": [item for item in scene["items"] if reaches(item)]})
+    options = {"ppu": CLIP_PPU, "base": ROOT.as_uri() + "/", "backdrop": (PLATES / "forest-1080.jpg").as_uri()}
+    page = out / "clip.html"
+    page.write_text(f"""<!doctype html><html><head><meta charset="utf-8"><title>clip</title></head><body><script>
+window.FRAMES={json.dumps(scenes)};window.RENDER_OPTIONS={json.dumps(options)};</script>
+<script src="{ROOT.as_uri()}/Tools/render/render.js"></script><script>(async () => {{
+  const full = document.createElement('canvas'), crop = document.createElement('canvas'), lines = [];
+  crop.width = {w}; crop.height = {h};
+  for (const scene of window.FRAMES) {{
+    await window.renderScene(scene, Object.assign({{ canvas: full }}, window.RENDER_OPTIONS));
+    const c = crop.getContext('2d'); c.clearRect(0, 0, {w}, {h}); c.drawImage(full, -{x}, -{y});
+    lines.push(crop.toDataURL('image/png'));
+  }}
+  const out = document.createElement('pre'); out.id = 'frames'; out.textContent = lines.join('\\n');
+  document.body.appendChild(out); document.title = 'rendered';
+}})().catch(e => {{ document.title = 'error ' + e; }});</script></body></html>""", encoding="utf-8")
+    dom = subprocess.run([os.environ.get("CHROME", "google-chrome"), "--headless=new", "--disable-gpu", "--allow-file-access-from-files",
+                          "--force-device-scale-factor=1", "--virtual-time-budget=900000", "--dump-dom", page.as_uri()],
+                         capture_output=True, text=True, timeout=1800).stdout
+    data = re.search(r'<title>rendered</title>.*<pre id="frames">(.*?)</pre>', dom, re.S)
+    if not data:
+        raise SystemExit(f"clip.lua {cls} {env}: the page did not draw: {re.search(r'<title>(.*?)</title>', dom) or dom[:300]}")
+    from PIL import Image
+    return [Image.open(io.BytesIO(base64.b64decode(line.split(",", 1)[1]))).convert("RGB") for line in data.group(1).split("\n")]
+
+
 def make_clip(name):
     """Render a clip's frames (two at a time) and write it as a GIF on the showcase's forged ground."""
     from concurrent.futures import ThreadPoolExecutor
+    if name in DRIVEN:
+        with tempfile.TemporaryDirectory() as work:
+            clip_frame(work, f"hud_{DRIVEN[name][0][0].lower()}_mac", QUIET, CREST, True)  # writes the stand-ins clips draw
+            with ThreadPoolExecutor(2) as pool:
+                parts = list(pool.map(lambda s: driven_crops(work, *s[:4]), DRIVEN[name]))
+        durations = [1000 // DRIVE_FPS + (hold if i == last else 0) for _, _, first, last, hold in DRIVEN[name]
+                     for i in range(first, last + 1)]
+        return write_clip(name, [crop for part in parts for crop in part], durations, round(CREST[3] * CLIP_WIDTH / CREST[2]))
     box, shots = CLIPS[name]
     if name == "map.gif" and not os.environ.get("RENDER_MAP_ART"):
         raise SystemExit("map.gif: set RENDER_MAP_ART to the client's Kalimdor map art")
@@ -412,7 +479,7 @@ def main(argv=None):
     parser.add_argument("--clips", nargs="*", metavar="NAME", help="render these clips (all when none is named)")
     args = parser.parse_args(argv)
     if args.clips is not None:
-        for name in args.clips or CLIPS:
+        for name in args.clips or [*CLIPS, *DRIVEN]:
             make_clip(name)
     make_banner()
     for name, picture in SHOWCASES:

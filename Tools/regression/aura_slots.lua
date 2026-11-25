@@ -51,6 +51,12 @@ local function Owns(button, bar)
 	return false
 end
 
+-- Same(env, a, b): under a clip (env._clip) a story that sets its auras again keeps each one's instance, as the engine
+-- keeps an aura's auraInstanceID: the same spell from the same start is the same aura.
+local function Same(env, a, b)
+	return a == b or env._clip == true and a ~= nil and b ~= nil and a.id == b.id and a.start == b.start
+end
+
 local function Feed(env, c)
 	for _, slot in pairs(c._slots) do
 		local aura
@@ -63,7 +69,7 @@ local function Feed(env, c)
 				end
 			end
 		end
-		local update = aura ~= nil and aura == slot.aura
+		local update = aura ~= nil and Same(env, aura, slot.aura)
 		slot.aura = aura
 		local bound = slot.frame._applicationBar
 		if bound then
@@ -131,7 +137,7 @@ function Slots.Show(env, c, slot, aura)
 		if b._durationBar then
 			b._durationBar[1]:SetTimerDuration(timed or { start = 0, finish = 0 }, 0, b._durationBar[2].direction)
 		end
-		if aura ~= slot.assigned then
+		if not Same(env, aura, slot.assigned) then
 			slot.assigned = aura
 			for _, group in ipairs(b._assignedAnimations or {}) do
 				group:Stop()

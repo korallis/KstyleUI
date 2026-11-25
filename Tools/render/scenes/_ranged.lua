@@ -238,7 +238,7 @@ function Ranged.Play(env, K, ns, notes)
 	local clock, now = env.GetTime, env._now
 	env.GetTime = function() return env._now end
 	for _, when in ipairs(times) do
-		if when <= at then
+		if when <= at and when > (env._clip and env._clipFrom or -math.huge) then
 			env._story, env._now = when, env._time - (at - when)
 			local units = { player = {}, target = {}, pet = {} }
 			for _, a in ipairs(s.auras) do

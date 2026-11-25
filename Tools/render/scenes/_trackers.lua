@@ -136,10 +136,16 @@ local function Healer(env, K, ns, notes, mode)
 	local variant = os.getenv("RENDER_FORM") or os.getenv("RENDER_TARGET") == "friend" and "friend" or nil
 	local story = HEALERS[variant and class .. "_" .. variant] or HEALERS[class]
 	local at = mode == "steel" and -1 or mode == "moment" and tonumber(os.getenv("RENDER_TRACKERS_T") or "") or story.at
+	local from = env._clip and env._clipFrom or -math.huge
+	local due = false
+	for _, beat in ipairs(story.beats) do due = due or beat[1] > from and beat[1] <= at end
+	if env._clip and not due then return end
 	if not env._slotContainers then
 		Slots.Install(env)
 	end
-	local known, auras, cooldowns, enchants = {}, { player = {}, target = {} }, {}, {}
+	local kept = env._clip and env._healer or { { player = {}, target = {} }, {}, {}, {} }
+	env._healer = kept
+	local known, auras, cooldowns, enchants = {}, kept[1], kept[2], kept[3]
 	for _, id in ipairs(story.known) do known[id] = true end
 	local isKnown = env.C_SpellBook and env.C_SpellBook.IsSpellKnown
 	env.C_SpellBook = env.C_SpellBook or {}
@@ -165,7 +171,7 @@ local function Healer(env, K, ns, notes, mode)
 	env.C_Item = env.C_Item or {}
 	env.C_Item.GetItemCount = function() return 1 end
 	env.C_Item.GetItemIconByID = function(id) return id == 17030 and 133439 or id >= 20744 and id <= 20750 and 134727 or nil end
-	local queued = {}
+	local queued = kept[4]
 	spell.IsCurrentSpell = function(id) return queued[id] == true end
 	env.GetShapeshiftFormID = function() return story.form end
 	if story.power then
@@ -175,7 +181,7 @@ local function Healer(env, K, ns, notes, mode)
 	local clock = env.GetTime
 	env.GetTime = function() return env._now end
 	for _, beat in ipairs(story.beats) do
-		if beat[1] <= at then
+		if beat[1] <= at and beat[1] > from then
 			env._now = env._time - (at - beat[1])
 			local a = beat.aura
 			if a then
@@ -378,7 +384,7 @@ function Trackers.Play(env, K, ns, notes)
 		}
 		for _, beat in ipairs(beats[class]) do
 			local piece = Piece(ns, beat[1])
-			if piece and now >= beat[2] then
+			if piece and now >= beat[2] and beat[2] > (env._clip and env._clipFrom or -math.huge) then
 				if not piece.flare.play._playedAt then ns.SlabMedals.Fire(piece) end
 				Sample(piece.flare.play, beat[2], now, env)
 				Sample(piece.fire and piece.fire.lit.loop, beat[2], now, env)

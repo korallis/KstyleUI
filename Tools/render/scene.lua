@@ -326,26 +326,54 @@ function Scene.AnimationPeak(group)
 	return 0
 end
 
--- animationState(frame, now) -> dx, dy (in the frame's own units), alpha, absolute: what the frame's playing
--- animation groups apply at the clock. A Translation moves the frame by its offset times its progress, an Alpha
+-- An animation aimed at another region (SetTarget, or an XML childKey) plays on that region, not on its group's
+-- owner (Blizzard_ActionBar/Shared/ActionButtonComponentTemplate.xml:50-53 turns its Glow child): Scene.Build lists
+-- each region's aimed animations here. Only a clip (env._clip, Tools/render/clip.lua) plays aimed, Rotation and BOUNCE
+-- animations, so every other render stays as it was.
+local aimed, clipping = {}, false
+local function targetOf(anim)
+	local target = anim._state.Target
+	return target and type(target[1]) == "table" and target[1] or nil
+end
+local function animated(object)
+	return object._groups or aimed[object]
+end
+
+-- animationState(frame, now) -> dx, dy (in the frame's own units), alpha, absolute, sx, sy, turn: what the frame's
+-- playing animation groups apply at the clock. A Translation moves the frame by its offset times its progress, an Alpha
 -- animation sets the alpha between its from and to values once its start delay has passed, in place of the
--- frame's own alpha as the game does (absolute is true then), and a finished group leaves each animation at its
--- end, as the game does until OnFinished hides the frame.
+-- frame's own alpha as the game does (absolute is true then), a Rotation turns it by its degrees or radians times its
+-- progress (SimpleAnimRotationAPIDocumentation.lua), a BOUNCE group plays forward then back, and a finished group
+-- leaves each animation at its end, as the game does until OnFinished hides the frame.
 local function animationState(frame, now)
-	local dx, dy, alpha, absolute, sx, sy = 0, 0, 1, false, 1, 1
+	local dx, dy, alpha, absolute, sx, sy, turn = 0, 0, 1, false, 1, 1, 0
 	if type(now) ~= "number" then
-		return dx, dy, alpha, absolute, sx, sy
+		return dx, dy, alpha, absolute, sx, sy, turn
 	end
+	local groups, only = {}, {}
 	for _, group in ipairs(frame._groups or {}) do
+		groups[#groups + 1] = group
+	end
+	for _, pair in ipairs(aimed[frame] or {}) do
+		groups[#groups + 1], only[pair[1]] = pair[1], only[pair[1]] or {}
+		only[pair[1]][pair[2]] = true
+	end
+	for _, group in ipairs(groups) do
 		local started = group._playedAt
 		if type(started) == "number" and now >= started then
 			local elapsed = now - started
 			local offsets, total = animationSchedule(group)
-			if state(group, "Looping") == "REPEAT" and total > 0 then
+			local looping = state(group, "Looping")
+			if looping == "REPEAT" and total > 0 then
 				elapsed = elapsed % total
+			elseif clipping and looping == "BOUNCE" and total > 0 then
+				elapsed = elapsed % (2 * total)
+				elapsed = elapsed > total and 2 * total - elapsed or elapsed
 			end
 			local alphaStart = -1
 			for _, anim in ipairs(group._anims or {}) do
+				local target = targetOf(anim)
+				local mine = not clipping or only[group] and only[group][anim] or not only[group] and (target == nil or target == frame)
 				local delay = offsets[state(anim, "Order") or 1] + (state(anim, "StartDelay") or 0)
 				local duration = state(anim, "Duration") or 0
 				local p = 0
@@ -353,27 +381,30 @@ local function animationState(frame, now)
 					p = duration > 0 and math.min(1, (elapsed - delay) / duration) or 1
 				end
 				p = eased(p, state(anim, "Smoothing"))
-				if anim._type == "Translation" then
+				if mine and anim._type == "Translation" then
 					local ox, oy = state(anim, "Offset")
 					dx = dx + (type(ox) == "number" and ox or 0) * p
 					dy = dy + (type(oy) == "number" and oy or 0) * p
-				elseif anim._type == "Alpha" and elapsed >= delay and delay >= alphaStart then
+				elseif mine and anim._type == "Alpha" and elapsed >= delay and delay >= alphaStart then
 					local from, to = state(anim, "FromAlpha"), state(anim, "ToAlpha")
 					from = type(from) == "number" and from or 1
 					to = type(to) == "number" and to or 1
 					alpha = from + (to - from) * p
 					alphaStart = delay
 					absolute = true
-				elseif anim._type == "Scale" then
+				elseif mine and anim._type == "Scale" then
 					local fx, fy = state(anim, "ScaleFrom")
 					local tx, ty = state(anim, "ScaleTo")
 					sx = sx * ((fx or 1) + ((tx or 1) - (fx or 1)) * p)
 					sy = sy * ((fy or 1) + ((ty or 1) - (fy or 1)) * p)
+				elseif clipping and mine and anim._type == "Rotation" then
+					local degrees, radians = state(anim, "Degrees"), state(anim, "Radians")
+					turn = turn + (type(degrees) == "number" and math.rad(degrees) or type(radians) == "number" and radians or 0) * p
 				end
 			end
 		end
 	end
-	return dx, dy, alpha, absolute, sx, sy
+	return dx, dy, alpha, absolute, sx, sy, turn
 end
 
 -- The stub keeps current opacity, including Texture colour writes and boolean/secret alpha writes.
@@ -398,7 +429,7 @@ local function effectiveAlpha(object)
 	local node = object
 	while node do
 		local own = ownAlpha(node)
-		if node._groups then
+		if animated(node) then
 			local _, _, scale, absolute = animationState(node, animationClock)
 			own = absolute and scale or own * scale
 		end
@@ -824,7 +855,7 @@ function Solver:solve(object)
 			ys[#ys + 1] = { p[2], ay }
 		end
 	end
-	if object._groups then
+	if animated(object) then
 		local dx, dy = animationState(object, self.opts.time)
 		if dx ~= 0 or dy ~= 0 then
 			for _, a in ipairs(xs) do
@@ -854,7 +885,7 @@ function Solver:solve(object)
 	if not bottom then
 		return nil, "height unknown"
 	end
-	if object._type == "Texture" and object._groups then
+	if object._type == "Texture" and animated(object) then
 		local _, _, _, _, sx, sy = animationState(object, self.opts.time)
 		local cx, cy = (left + right) / 2, (bottom + top) / 2
 		left, right = cx + (left - cx) * sx, cx + (right - cx) * sx
@@ -1120,6 +1151,22 @@ function Scene.Build(env, opts)
 	local solver = newSolver(env, opts, logLine)
 	animationClock = opts.time
 	ownAlphaCache = {}
+	aimed, clipping = {}, env._clip == true
+	local function aim(object)
+		for _, group in ipairs(object._groups or {}) do
+			for _, anim in ipairs(group._anims or {}) do
+				local target = targetOf(anim)
+				if target and target ~= object then
+					aimed[target] = aimed[target] or {}
+					table.insert(aimed[target], { group, anim })
+				end
+			end
+		end
+	end
+	for _, frame in ipairs(clipping and env._frames or {}) do
+		aim(frame)
+		for _, region in ipairs(frame._regions or {}) do aim(region) end
+	end
 	local width, height = env.GetPhysicalScreenSize()
 	local uiParent = env.UIParent
 	local parentScale = type(uiParent._scale) == "number" and uiParent._scale or 1
@@ -1163,7 +1210,9 @@ function Scene.Build(env, opts)
 		end
 		item.rect = toScreen(rect)
 		item.object = object
-		if object._turn then item.turn = round4(object._turn) end
+		-- A Rotation animation turns the whole quad about its middle, as a line's own turn does.
+		local turn = (object._turn or 0) + (animated(object) and select(7, animationState(object, animationClock)) or 0)
+		if turn ~= 0 then item.turn = round4(turn) end
 		-- A wrapped text's height came from the solver; the page keeps it instead of re-deriving one line, and
 		-- draws a block it measures shorter from the side the text grows from, as the game does.
 		if object._wrapped and item.natural then
