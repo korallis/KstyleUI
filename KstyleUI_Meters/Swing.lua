@@ -393,6 +393,8 @@ local function CheckRange()
 	end
 end
 
+local rangeAsked = {}
+
 local function EnableRangeChecks()
 	local timer = C_SwingTimer
 	if not (timer and type(timer.EnableRangeCheck) == "function") then
@@ -400,7 +402,8 @@ local function EnableRangeChecks()
 		return
 	end
 	for _, slot in ipairs(SLOTS) do
-		if Enabled(slot) then
+		if Enabled(slot) and not rangeAsked[slot.type] then
+			rangeAsked[slot.type] = true
 			pcall(timer.EnableRangeCheck, slot.type, true)
 		end
 	end
@@ -577,6 +580,7 @@ function Swing:Stop()
 	end
 	ns.UnwatchAll(self)
 	self.driver:SetScript("OnUpdate", nil)
+	rangeAsked = {}
 	for _, slot in ipairs(SLOTS) do
 		Clear(slot)
 		K.Motion.Stop(self.bars[slot.type].resetMotion)

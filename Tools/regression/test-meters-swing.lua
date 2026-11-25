@@ -289,4 +289,37 @@ do
 	assert(#env4._errors == 0, "no Lua error: " .. tostring(env4._errors[1]))
 end
 
+-- Idle-redundant-work finding 72: while the timer runs each enabled hand asks for its range check once, however often
+-- its settings apply; nothing switches one off, because Blizzard's own swing timer shares the client's flag
+-- (Blizzard_SwingTimer.lua, UpdateRangeCheckRegistration); a restart asks again.
+do
+	local e, k = M.New()
+	local function asked()
+		local on, released, hands = {}, 0, 0
+		for _, check in ipairs(e._rangeChecks) do
+			if check[2] then
+				hands = hands + (on[check[1]] and 0 or 1)
+				on[check[1]] = (on[check[1]] or 0) + 1
+			else
+				released = released + 1
+			end
+		end
+		return on, released, hands
+	end
+	M.Enable(e, k)
+	for i = 1, 10 do M.Write(e, k, "swing.time", i % 2 == 1) end
+	M.Write(e, k, "swing.offHand", false)
+	M.Write(e, k, "swing.offHand", true)
+	local on, released, hands = asked()
+	assert(on[MAIN] == 1 and released == 0, string.format("12 settings applies ask the main hand %d times and switch %d off", on[MAIN] or 0, released))
+	for hand, n in pairs(on) do assert(n == 1, "each hand asks once, " .. hand .. " asked " .. n) end
+	M.Disable(e, k)
+	assert(select(2, asked()) == 0, "stopping switches no check off")
+	M.Enable(e, k)
+	local again = asked()
+	for hand in pairs(on) do assert(again[hand] == 2, "a restart asks each hand again") end
+	assert(select(3, asked()) == hands, "and only the hands it asked before")
+	assert(#e._errors == 0, "no Lua error: " .. tostring(e._errors[1]))
+end
+
 print("meters swing ok")

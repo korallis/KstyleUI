@@ -126,7 +126,7 @@ The owner ruled on 2026-11-09 that where the picture contradicts an earlier deci
 - A finished swing holds its full bar while it lingers, then empties for the next. The HUD finish insets the name and the time 4 units from the bar's ends in light outlined ink (with **Readable text on bars**), so they read on the fill and the track alike.
 - `PLAYER_SWING(duration, type)` starts a bar. One `OnUpdate` on a parentless driver frame fills the bars while a swing runs or lingers, and stops when none does.
 - With **Hide when idle** on, the bars show only while a swing runs or lingers, in combat too.
-- **Dim out of range** follows `PLAYER_SWING_RANGE_UPDATE` (after `C_SwingTimer.EnableRangeCheck`) and `C_SwingTimer.IsTargetWithinSwingRange` on target changes. As in Blizzard's timer, a running swing never dims, and no answer is not out of range.
+- **Dim out of range** follows `PLAYER_SWING_RANGE_UPDATE` (after `C_SwingTimer.EnableRangeCheck`, asked once per hand each time the swing timer starts and never switched off, because Blizzard's own swing timer shares the client's flag: `Blizzard_SwingTimer.lua`, `UpdateRangeCheckRegistration`) and `C_SwingTimer.IsTargetWithinSwingRange` on target changes. As in Blizzard's timer, a running swing never dims, and no answer is not out of range.
 - While the swing timer runs, `SwingTimerMainHandFrame`, `SwingTimerOffHandFrame` and `SwingTimerRangedFrame` are held at alpha 0: a `hooksecurefunc` on each frame's `SetAlpha` sets it back to 0. The hook records the alpha Blizzard asks for, so switching the swing timer or the module off restores it.
 
 ## Settings

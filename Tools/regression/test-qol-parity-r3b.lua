@@ -604,10 +604,71 @@ do
 	Q.Write(env, K, "statsInterval", 5)
 	fps, crit, net = 0, 0, 0
 	for _ = 1, 10 do env.FireEvent("UNIT_AURA", "player") end
-	assert(fps == 0 and net == 0 and crit == 10, string.format("ten aura events read fps %d, latency %d, crit %d", fps, net, crit))
+	env.RunTimers()
+	assert(fps == 0 and net == 0 and crit == 1, string.format("ten aura events in one frame read fps %d, latency %d, crit %d", fps, net, crit))
 	fps, crit, net = 0, 0, 0
 	env.RunTickers()
 	assert(fps == 1 and net == 1 and crit == 0, string.format("one tick reads fps %d, latency %d, crit %d", fps, net, crit))
+	clean(env, K)
+end
+
+-- Idle-redundant-work finding 68: a burst of stat events reads each shown stat once on the next frame, an unchanged value is not drawn again, a changed one is, a secret one is drawn every time without being compared, and the stat events are registered only while a stat that needs them shows.
+do
+	local env, K, ns = boot()
+	local crit = 12.5
+	env.GetCritChance = function() return crit end
+	env.GetSpellCritChance = function() return 8.25 end
+	env.GetMeleeHaste = function() return 5 end
+	env.GetSpellBonusDamage = function() return 321 end
+	env.UnitArmor = function() return 900, 1000 end
+	local live = {}
+	local register, unit, unregister = K.Events.Register, K.Events.RegisterUnit, K.Events.Unregister
+	K.Events.Register = function(owner, event, ...) if owner == "QoL.stats" then live[event] = true end; return register(owner, event, ...) end
+	K.Events.RegisterUnit = function(owner, event, ...) if owner == "QoL.stats" then live[event] = true end; return unit(owner, event, ...) end
+	K.Events.Unregister = function(owner, event) if owner == "QoL.stats" then live[event] = nil end; return unregister(owner, event) end
+	Q.Write(env, K, "stats", true)
+	local frame = ns.StatsFrame()
+	local reads, read = 0, frame.read
+	frame.read = function(...) reads = reads + 1; return read(...) end
+	local function writes(line, from)
+		local n = 0
+		for i = from + 1, #line._calls do
+			local method = line._calls[i].method
+			if method == "SetText" or method == "SetFormattedText" then n = n + 1 end
+		end
+		return n
+	end
+	local function burst(events)
+		local marks = {}
+		for i, line in ipairs(frame.lines) do marks[i] = #line._calls end
+		reads = 0
+		for _ = 1, events do env.FireEvent("UNIT_AURA", "player") end
+		env.RunTimers()
+		local n = 0
+		for i, line in ipairs(frame.lines) do n = n + writes(line, marks[i]) end
+		return n
+	end
+	assert(frame.count == 5, tostring(frame.count))
+	local drawn = burst(100)
+	assert(reads == 5 and drawn == 0, string.format("100 unchanged aura events read %d stats and draw %d", reads, drawn))
+	crit = 25
+	drawn = burst(1)
+	assert(reads == 5 and drawn == 1 and shows(frame.lines[1]):find("25.00%", 1, true), "a changed value draws its own line only: " .. drawn)
+	env.GetCritChance = function() return env.Secret(30) end
+	for _ = 1, 2 do
+		drawn = burst(1)
+		local last = frame.lines[1]._calls[#frame.lines[1]._calls]
+		assert(drawn == 1 and last.method == "SetFormattedText" and env.issecretvalue(last.args[2]), "a secret value is drawn each time, never compared")
+	end
+	assert(next(live) ~= nil, "the stat events listen while a stat shows")
+	only(env, K, { fps = true, home = true })
+	assert(next(live) == nil, "the frame rate and latency alone listen to no stat event: " .. tostring(next(live)))
+	only(env, K, { fps = true, crit = true })
+	local n = 0
+	for _ in pairs(live) do n = n + 1 end
+	assert(n == 9, "a stat shown again listens again: " .. n)
+	Q.Write(env, K, "stats", false)
+	assert(next(live) == nil, "switching the stats off stops listening")
 	clean(env, K)
 end
 
