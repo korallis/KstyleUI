@@ -87,13 +87,13 @@ local function Groups(view, data)
 		byCat[key][#byCat[key] + 1] = entry
 	end
 	local index = 0
-	local function Add(label, entries)
-		if #entries == 0 then
+	local function Add(label, entries, status)
+		if #entries == 0 and not status then
 			return
 		end
 		index = index + 1
 		local group = view:Group(index, label)
-		group.entries = entries
+		group.entries, group.status = entries, status
 		list[#list + 1] = group
 	end
 	local listed = {}
@@ -113,7 +113,7 @@ local function Groups(view, data)
 		end
 	end
 	Add(L["Other"], rest)
-	Add(L["Bank"], data.bank)
+	Add(L["Bank"], data.bank, #data.bank == 0 and (data.bankTotal and string.format(L["Empty (%d slots)"], data.bankTotal) or L["Not visited"]))
 	for i = index + 1, #view.groups do
 		local group = view.groups[i]
 		group.frame:Hide()
@@ -164,7 +164,7 @@ function Remote:Layout(data, parent, top, width, geometry, capBlock, gap, room)
 		local cap = group.cap
 		cap.opts.width = width
 		cap:Restyle()
-		cap:SetCount(tostring(#group.entries))
+		cap:SetCount(group.status or tostring(#group.entries))
 		cap:ClearAllPoints()
 		cap:SetPoint("TOPLEFT", stack, "TOPLEFT", 0, -y)
 		cap:Show()

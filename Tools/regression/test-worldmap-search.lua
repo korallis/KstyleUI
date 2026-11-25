@@ -124,6 +124,28 @@ for _, how in ipairs({ "after a click on the close button", "with the box still 
 	box:GetScript("OnEditFocusLost")(box)
 end
 
+-- The map audit found eight matching POIs with only six selectable rows.
+env.C_AreaPoiInfo.GetAreaPOIForMap = function() return { 1, 2, 3, 4, 5, 6, 7, 8 } end
+env.C_AreaPoiInfo.GetAreaPOIInfo = function(_, id) return { name = "Skull Rock", position = M.Vector(id / 10, 0.4) } end
+Focus()
+box:SetText("Skull Rock")
+box:GetScript("OnTextChanged")(box, true)
+local seen = {}
+for _, found in ipairs(Rows()) do seen[found.Text:GetText()] = true end
+Rows()[1]:GetScript("OnMouseWheel")(Rows()[1], -2)
+for _, found in ipairs(Rows()) do seen[found.Text:GetText()] = true end
+local count = 0
+for _ in pairs(seen) do count = count + 1 end
+Check(count == 8, "scrolling exposes eight distinct destination labels")
+env.C_Map.CanSetUserWaypointOnMap = function() return false end
+local last = Rows()[6]
+Click(last)
+Check(last.Text:GetText() == K.L["The game does not allow a waypoint there."], "a refused search pick explains why")
+env.C_Map.CanSetUserWaypointOnMap = function() return true end
+Click(last)
+Check(R.card:IsShown(), "the last result can start a route")
+R.Clear()
+
 -- Blizzard_WorldMap.lua:60-74, 470-484: maximizing widens the map and moves the nav bar 8 in from the spacer's left.
 map:SetSize(1600 + 333, 820)
 nav:SetPoint("TOPLEFT", spacer, "TOPLEFT", 8, -25)

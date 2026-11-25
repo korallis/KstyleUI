@@ -100,7 +100,8 @@ local function Objectives(log, entry, id)
 	local list = log.GetQuestObjectives(id)
 	local n = 0
 	if type(list) == "table" then
-		for i = 1, math.min(#list, MAX_OBJECTIVES) do
+		local length = #list
+		for i = 1, math.min(length, MAX_OBJECTIVES) do
 			local info = list[i]
 			local text = type(info) == "table" and Text(info.text)
 			if text and text ~= "" then
@@ -112,6 +113,7 @@ local function Objectives(log, entry, id)
 				Set(objective, "done", Yes(info.finished))
 			end
 		end
+		if length > MAX_OBJECTIVES then n = n + length - MAX_OBJECTIVES end
 	end
 	Set(entry, "count", n)
 end

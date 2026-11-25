@@ -580,7 +580,7 @@ function ns.Preview(...)
 		local R = ns.Readouts
 		return {
 			fps = { tostring(SAMPLE_FPS), "good" },
-			latency = { (s.labels == "short" or s.labels == "inline" or (s.labels ~= "none" and Strip.LineMode(s))) and tostring(SAMPLE_MS) or string.format(L["%d ms"], SAMPLE_MS), "good" },
+			latency = { Strip.LatencyText(SAMPLE_MS, s), "good" },
 			gold = { Format.Money(SAMPLE_MONEY, s.money) },
 			durability = { SAMPLE_DURABILITY .. "%", "good" },
 			time = { R.ClockText(s, Format.Clock(SAMPLE_HOUR, SAMPLE_MINUTE, s.clock24), true, true) },

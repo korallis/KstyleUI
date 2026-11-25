@@ -190,6 +190,13 @@ do
 	assert(all:find("EXPERIENCE", 1, true), "the tooltip names the bar in the kit's capitals: " .. all)
 	assert(all:find("Level 38", 1, true), "the tooltip gives the level: " .. all)
 	assert(all:find("Rested", 1, true), "the tooltip gives rested XP: " .. all)
+	game.xp = 20000
+	env.FireEvent("PLAYER_XP_UPDATE", "player")
+	local progress
+	for _, line in ipairs(tip.used) do
+		if line.left:GetText() == K.L["Progress"] then progress = line.right:GetText() end
+	end
+	assert(progress and progress:find("40%%"), "the open tooltip follows the XP reading")
 	W.Leave(xp.holder)
 	eq(xp.text:IsShown(), true, "leaving keeps the caption")
 
@@ -241,8 +248,11 @@ do
 	game.faction.currentStanding = -4500
 	env.FireEvent("UPDATE_FACTION")
 	assert(sameColor(rep.fill, K.Tokens.Color("hostile")), "a hostile faction turns the hostile colour")
+	W.Enter(rep.holder)
 	game.faction = false
 	env.FireEvent("UPDATE_FACTION")
+	eq(W.LastCall(rep.holder, "EnableMouse")[1], false, "the absent bar releases the pointer")
+	eq(K.Widgets.Tooltip():IsShown(), false, "the absent bar closes its tooltip")
 	eq(rep.content:IsShown(), false, "no watched faction hides the bar")
 	noErrors(env, K)
 end

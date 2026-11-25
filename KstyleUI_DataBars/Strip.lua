@@ -59,7 +59,7 @@ Strip.LINE = LINE
 Strip.COMPACT = LINE
 Strip.GLYPH_CELLS = GLYPH_CELLS
 
-local CELL_WEIGHT = { fps = 0.8, latency = 0.9, gold = 1.4, durability = 1.25, time = 0.85 }
+local CELL_WEIGHT = { fps = 0.8, latency = 0.95, gold = 1.4, durability = 1.25, time = 0.85 }
 
 local TITLES = {
 	fps = L["Frame rate"], latency = L["Latency"], gold = L["Gold"], durability = L["Durability"], time = L["Time"],
@@ -147,6 +147,12 @@ local function Money()
 	return IsNumber(money) and money or nil
 end
 
+function Strip.LatencyText(ms, s)
+	local source = s.latency == "world" and L["W"] or L["H"]
+	local inline = s.labels == "short" or s.labels == "inline" or (s.labels ~= "none" and LineMode(s))
+	return source .. (inline and tostring(ms) or format(L["%d ms"], ms))
+end
+
 local VALUES = {
 	fps = function()
 		local fps = fpsReady and Call(GetFramerate) or nil
@@ -163,10 +169,7 @@ local VALUES = {
 		if not ms then
 			return nil
 		end
-		if s.labels == "short" or s.labels == "inline" or (s.labels ~= "none" and LineMode(s)) then
-			return tostring(ms), Grade(ms, MS_GOOD, MS_OK)
-		end
-		return format(L["%d ms"], ms), Grade(ms, MS_GOOD, MS_OK)
+		return Strip.LatencyText(ms, s), Grade(ms, MS_GOOD, MS_OK)
 	end,
 	gold = function(s)
 		local money = Money()

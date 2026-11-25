@@ -390,6 +390,7 @@ Bars.Settings = Settings
 
 local function OnEnter(holder)
 	local view = holder.kView
+	if not view.info then return end
 	view.hovered = true
 	if running then
 		UpdateText(view, Settings(view), view.info)
@@ -495,6 +496,11 @@ function Bars.Update(id, instant)
 	local shown = info ~= nil
 	view.shown = shown
 	view.content:SetShown(shown)
+	view.holder:EnableMouse(shown)
+	if view.hovered then
+		if not shown then OnLeave(view.holder)
+		elseif Widgets.Tooltip():IsOwned(view.holder) then OnEnter(view.holder) end
+	end
 	if instant or not view.styled then
 		Bars.Paint(view, s, info, instant)
 	else

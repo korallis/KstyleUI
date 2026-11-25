@@ -91,6 +91,10 @@ eq(F.Linkify("x https://a.com", 0, 1, 0), "x |cff00ff00" .. link("https://a.com"
 eq(F.Linkify("50%.com"), "50%.com", "a percent sign never reaches a pattern")
 eq(F.Linkify("https://a.com/%20x"), link("https://a.com/%20x"), "percent signs in a URL survive")
 
+local article = "https://en.wikipedia.org/wiki/Warcraft_(series)"
+eq(F.Linkify(article), link(article), "balanced parentheses belong to the article URL")
+eq(F.Linkify("(" .. article .. ")."), "(" .. link(article) .. ").", "prose punctuation stays outside the link")
+
 -- The URL back out of a clicked link.
 eq(F.URL(F.LINK .. "https://a.com/x:1"), "https://a.com/x:1", "the URL after the prefix, colons and all")
 eq(F.URL("item:19019"), nil, "another link is not ours")

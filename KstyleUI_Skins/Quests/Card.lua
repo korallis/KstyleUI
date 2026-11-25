@@ -312,7 +312,7 @@ end
 local function Words(row, entry, limit)
 	local titleH = TitleHeight()
 	local right = Right(entry)
-	row.title:SetText(entry.title)
+	row.title:SetText(entry.count > MAX_LINES and not entry.complete and not entry.failed and string.format(L["%s (+%d more)"], entry.title, entry.count - MAX_LINES) or entry.title)
 	local used, cut = 0, 0
 	if entry.complete or entry.failed then
 		if not limit or titleH + LineHeight() <= limit then
@@ -321,7 +321,7 @@ local function Words(row, entry, limit)
 		end
 	else
 		local y = titleH
-		for i = 1, entry.count do
+		for i = 1, math.min(entry.count, MAX_LINES) do
 			local objective = entry.objectives[i]
 			local room = Room(right, objective)
 			local lines = Lines(objective, room)
@@ -388,7 +388,7 @@ local function Height(entry)
 		height = height + LineHeight()
 	else
 		local right = Right(entry)
-		for i = 1, entry.count do
+		for i = 1, math.min(entry.count, MAX_LINES) do
 			local objective = entry.objectives[i]
 			height = height + Span(Lines(objective, Room(right, objective)))
 		end

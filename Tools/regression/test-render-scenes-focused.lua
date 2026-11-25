@@ -138,7 +138,7 @@ for _, item in ipairs(databars.items) do
 	end
 end
 -- The Medallions experience bar reads as an instrument: its share alone.
-for _, want in ipairs({ "32%", "fps", "144", "34", "ms", "143g 82s 17c", "armour", "96%" }) do
+for _, want in ipairs({ "32%", "fps", "144", "H34", "ms", "143g 82s 17c", "armour", "96%" }) do
 	assert(seen[want], "the data bars scene shows " .. want)
 end
 assert(seen["14:32"], "the data bar owns the clock alongside its other four default readouts")

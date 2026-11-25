@@ -179,7 +179,7 @@ do
 	local before = latency.value:GetWidth()
 	env._game.latencyHome, env._game.latencyWorld = 1234, 1234
 	ns.Strip.Update(true)
-	assert(latency.value:GetText() == "1234", "the tick reads the new latency: " .. tostring(latency.value:GetText()))
+	assert(latency.value:GetText() == "H1234", "the tick reads the new latency: " .. tostring(latency.value:GetText()))
 	assert(latency.value:GetWidth() > before, "and the value's width grows with its digits: " .. tostring(latency.value:GetWidth()) .. " from " .. tostring(before))
 end
 
