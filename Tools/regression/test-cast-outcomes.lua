@@ -30,7 +30,17 @@ for _, level in ipairs({ "full", "reduced", "off" }) do
 	pending[#pending][2]()
 	W.Tick(env, 0.3)
 	assert(not cb.frame:IsShown(), "E3: the bar leaves after its hold and fade")
+	for _, restricted in ipairs({ false, true }) do
+		env._time, env._units.player.secretCast = 1, restricted
+		start(true)
+		env._time = restricted and 4 or 1.5
+		env._units.player.channel = nil
+		env.FireEvent("UNIT_SPELLCAST_CHANNEL_STOP", "player")
+		assert(not cb.landed and not cb.error and not cb.active, "an early or unreadable channel stop ends without an outcome")
+	end
+	env._units.player.secretCast = false
 	start(true)
+	env._time = 4
 	env._units.player.channel = nil
 	env.FireEvent("UNIT_SPELLCAST_CHANNEL_STOP", "player")
 	assert(cb.landed and cb.frame:IsShown(), "E3: a completed channel gets the landed acknowledgement")
@@ -62,6 +72,13 @@ for _, level in ipairs({ "full", "calm", "off" }) do
 		assert(cb.medStreak.move._state.Duration[1] == 0.35, "E3: the outcome streak travels for 350 ms")
 		assert(W.LastCall(cb.medStreak.streak, "SetVertexColor")[4] == 0.6, "E3: the streak is capped at 60 percent")
 	end
+	env._units.player.channel = { name = "Arcane Missiles", texture = 136096, start = 1000, finish = 4000, spellID = 5143 }
+	env.FireEvent("UNIT_SPELLCAST_CHANNEL_START", "player")
+	env._time, env._units.player.channel = 1.5, nil
+	env.FireEvent("UNIT_SPELLCAST_CHANNEL_STOP", "player")
+	local r, g, b = cb.text:GetTextColor()
+	local ir, ig, ib = K.Widgets.InkFor(K.Tokens.Color("buttonFill"))
+	assert(r == ir and g == ig and b == ib, "a stopped channel's name must contrast with the empty track during its exit")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 

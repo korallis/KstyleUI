@@ -221,6 +221,13 @@ for _, id in ipairs({ 1001, 1002, 2002, 3002 }) do
 end
 check(candidates.excludeSpellIDs[1003] == nil, "an essential cooldown is not a tracked buff")
 check(chip.pairs[1].a._groups.count.candidateFilters.excludeSpellIDs[1001] == true, "the count leaves them out too")
+env.CDM_HIDE_INVISIBLE_ITEMS = true
+env._tracked[508] = { spellID = 6673, isInvisible = true }
+env.FireEvent("COOLDOWN_VIEWER_DATA_LOADED")
+check(not bg.candidateFilters.excludeSpellIDs[6673], "Battle Shout stays in the buff row when the viewer hides its item")
+env.CDM_HIDE_INVISIBLE_ITEMS = false
+env.FireEvent("COOLDOWN_VIEWER_DATA_LOADED")
+check(bg.candidateFilters.excludeSpellIDs[6673], "a viewer that displays the item owns Battle Shout again")
 env._tracked[504] = { spellID = 1004 }
 env.FireEvent("COOLDOWN_VIEWER_DATA_LOADED")
 check(bg.candidateFilters.excludeSpellIDs[1004] == true, "a tracked buff gained reaches the filter on COOLDOWN_VIEWER_DATA_LOADED")

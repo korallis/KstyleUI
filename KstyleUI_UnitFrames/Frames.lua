@@ -361,14 +361,27 @@ local function Sigil()
 	return running and Settings.Value("target", "enabled") and true or false
 end
 
+local AURA_RULES = { "auraHidden", "auraTimed", "auraHideLockout", "auraTrackedDebuffs", "auraTrackedOnly", "auraTracked", "buffStealable", "buffDefensive", "buffDispellable" }
+
+local function TargetCovers(kind)
+	if not Settings.Value("target", "auras") then return false end
+	local filter = Settings.Value("target", "auraFilter")
+	if filter ~= "both" and filter ~= Settings.Value(kind, "auraFilter") then return false end
+	local target, boss = Settings.Value("target", "auraFilters"), Settings.Value(kind, "auraFilters")
+	if target.onlyMine and not boss.onlyMine or target.dispellable and not boss.dispellable then return false end
+	for _, key in ipairs(AURA_RULES) do
+		if Settings.Value("target", key) ~= Settings.Value(kind, key) then return false end
+	end
+	return true
+end
+
 local function AuraParts(view)
 	local a = view.auras
 	if not (a and a.container) then
 		return nil
 	end
 	local parts = ns.Auras.Parts(view)
-	local filter = Settings.Value("target", "auraFilter")
-	if not Settings.Value("target", "auras") or (filter ~= "both" and filter ~= Settings.Value(view.kind, "auraFilter")) then
+	if not TargetCovers(view.kind) then
 		for _, part in ipairs(parts) do
 			part:SetAlpha(1)
 		end
