@@ -198,6 +198,11 @@ do
 		"a strike on cooldown runs an unseen timer, no ring round the emblem")
 	raptor.timer:GetScript("OnCooldownDone")(raptor.timer)
 	assert(raptor.ready:IsShown() and raptor.flare.play:IsPlaying(), "and flashes the moment it is ready")
+	-- The approved plan for the crest marks puts the flash under the forged rule: the flash is all a strike shows on the crest.
+	Same("Raptor Strike's flash is the gold talon, coinGold f0c75e", { Drawn(raptor.flare, "Raptor.png", false):GetVertexColor() }, 0xf0 / 255, 0xc7 / 255, 0x5e / 255)
+	Same("haloed in its colour, gilt d3b574", { Drawn(raptor.flare, "Glow.png", true):GetVertexColor() }, 0xd3 / 255, 0xb5 / 255, 0x74 / 255)
+	assert(#arcane.flare._regions == 1 and arcane.flare._regions[1]._state.BlendMode[1] == "ADD", "Arcane Shot's flat orb still flashes as one additive texture")
+	Same("in white, not its spell's colour", { arcane.flare._regions[1]:GetVertexColor() }, 1, 1, 1)
 	Clean(env, K)
 end
 
@@ -256,7 +261,8 @@ do
 	local burn = lit.mark:GetParent()
 	assert(lit:IsShown() and burn == lit.head._kids[1] and #burn._regions == 2 and #burn._kids == 0, "Polymorph's flat mark is one additive texture beside the flame, no body and no layer of its own")
 	assert(lit.mark:GetAlpha() == 1 and lit.mark._state.BlendMode[1] == "ADD" and lit.flare.play:GetParent() == lit.mark, "it keeps its full light and its own ignition")
-	assert(not Drawn(Piece(ns, "crestCooldowns").sigils[1], "Arcane.png", false), "a flat cooldown sigil has no solid body")
+	local arcane = Piece(ns, "crestCooldowns").sigils[1]
+	assert(Drawn(arcane, "Arcane.png", true):GetAlpha() == 1 and not Drawn(arcane, "Arcane.png", false), "a flat cooldown sigil is its one additive texture at full light, with no solid body")
 	Clean(env, K)
 end
 

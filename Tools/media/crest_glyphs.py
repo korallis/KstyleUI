@@ -48,11 +48,6 @@ class Pen:
         ry = rx if ry is None else ry
         self.draw.ellipse([(cx - rx) * N, (cy - ry) * N, (cx + rx) * N, (cy + ry) * N], fill=0 if erase else 255)
 
-    def paw(self, cx, cy, s):
-        self.dot(cx, cy + 0.1 * s, 0.17 * s, 0.14 * s)
-        for dx, dy in ((-0.21, -0.13), (-0.08, -0.24), (0.08, -0.24), (0.21, -0.13)):
-            self.dot(cx + dx * s, cy + dy * s, 0.07 * s)
-
     def wave(self, x0, x1, y0, y1, amp, turns, w=W, phase=0.0):
         self.line([(x0 + (x1 - x0) * t / 40 + amp * math.sin(phase + 2 * math.pi * turns * t / 40), y0 + (y1 - y0) * t / 40) for t in range(41)], w)
 

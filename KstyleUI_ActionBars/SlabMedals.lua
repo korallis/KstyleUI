@@ -249,7 +249,7 @@ local function Mirror(piece, lit, level)
 end
 Medals.Mirror, Medals.Timer = Mirror, Timer
 
-function Medals.Flare(piece, lit, level, token, size, lua)
+function Medals.Flare(piece, lit, level, token, size, lua, color)
 	if lit.container and not lua then
 		lit.awake = lit.awake or Mirror(piece, lit, level)
 	end
@@ -258,7 +258,11 @@ function Medals.Flare(piece, lit, level, token, size, lua)
 	gate:SetAlpha(ns.Slab.Resting() and 0 or 1)
 	gates[#gates + 1] = gate
 	lit.flareGate = gate
-	piece.add(Medals.Texture(flare, "ARTWORK", 0, token, "white", size, "ADD"))
+	if color and select(4, Tokens.Texture(token)) then
+		Medals.Mark(piece, flare, token, size, color)
+	else
+		piece.add(Medals.Texture(flare, "ARTWORK", 0, token, "white", size, "ADD"))
+	end
 	flare:SetAlpha(0)
 	flare.play = Medals.Steps(flare, FLARE)
 	if gate.lit or not lit.container then

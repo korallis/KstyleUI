@@ -128,8 +128,8 @@ class Emblem:
         self.H = np.zeros((N, N), np.float32)
         self.M = np.zeros((N, N), bool)
 
-    def add(self, mask, h=1.0, r=0.05, base=None, prof="round", lift=False):
-        """Raise a layer. base is the height at its edge (default: 35% of h, so the wall shows); lift stacks it on what is there."""
+    def add(self, mask, h=1.0, r=0.05, base=None, prof="round"):
+        """Raise a layer. base is the height at its edge (default: 35% of h, so the wall shows)."""
         base = 0.35 * h if base is None else base
         sh = shoulder(mask, r, prof).astype(np.float32)
         # round off the crease the distance field leaves along a shape's spine
@@ -137,27 +137,13 @@ class Emblem:
         w = ndi.gaussian_filter(mask.astype(np.float32), sig)
         sh = np.where(mask, ndi.gaussian_filter(sh * mask, sig) / np.maximum(w, 1e-4), 0)
         layer = (base + (h - base) * sh).astype(np.float32)
-        if lift:
-            under = ndi.gaussian_filter(self.H, 6)
-            self.H = np.where(mask, np.maximum(self.H, under + layer), self.H)
-        else:
-            self.H = np.where(mask, np.maximum(self.H, layer), self.H)
+        self.H = np.where(mask, np.maximum(self.H, layer), self.H)
         self.M |= mask
         return self
 
-    def cut(self, mask, depth=0.25, r=0.012, through=False):
-        """Engrave a line or a hollow; through cuts a hole in the silhouette."""
-        if through:
-            self.M &= ~mask
-            self.H = np.where(mask, 0, self.H)
-            return self
+    def cut(self, mask, depth=0.25, r=0.012):
+        """Engrave a line or a hollow."""
         self.H = np.where(mask, self.H - depth * shoulder(mask, r, "soft"), self.H)
-        return self
-
-    def dome(self, amount=0.25):
-        """Swell the whole piece towards its middle, as a cast medal swells."""
-        d = ndi.distance_transform_edt(self.M) / N
-        self.H = np.where(self.M, self.H + amount * np.sqrt(np.clip(d / max(d.max(), 1e-6), 0, 1)), self.H)
         return self
 
     def fit(self, margin=0.06):

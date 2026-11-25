@@ -5,7 +5,8 @@
 -- change at its own time, so a run of RENDER_TRACKERS_T frames is the story as a clip. RENDER_TRACKERS_BUILD picks
 -- another build or level band, whose fields replace the class's: a hunter's melee or level 8 build, a mage's arcane,
 -- fire (Fire Vulnerability at three stacks), frost or level 10 build, a warlock's felhunter (Spell Lock cooling), sacrifice
--- (Demonic Sacrifice, Death Coil cooling), nodemon or level 8 build, or each class's breakout story (and the mage's
+-- (Demonic Sacrifice, Death Coil cooling), nodemon or level 8 build, the hunter's bite (Mongoose Bite ready) or raptor
+-- (no Aspect yet; Raptor Strike's cooldown ends at 6 s, so RENDER_TRACKERS=moment RENDER_TRACKERS_T=6.05 catches its flash), or each class's breakout story (and the mage's
 -- breakout_fire), timed as the break-out design's clips: an aura's warn time puts it in its pandemic window, a usable
 -- spell's window and the pet's health steps and leaving time play out on the clock. RENDER_TRACKERS_OFF=1 turns the class's
 -- tracker switches off first, for a pixel diff against a build without them. RENDER_TRACKERS_SWAP=from:to[,from:to] plays the
@@ -43,6 +44,9 @@ local STORIES = {
 					{ unit = "target", id = 1130, icon = 132212, at = 2.5, duration = 8.4, warn = 10, harmful = true },
 					{ unit = "target", id = 1978, icon = 132204, at = 3.5, duration = 6.1, warn = 8.1, harmful = true },
 					{ unit = "pet", id = 136, icon = 132179, at = 7.3, duration = 2.1 } } },
+			bite = { usable = { [1495] = 3 } },
+			raptor = { known = { 1130, 1978, 2973, 75 }, pet = false, cooling = { [2973] = { 5, 1 } }, usable = {},
+				auras = { { unit = "target", id = 1130, icon = 132212, at = 1, duration = 120, harmful = true } } },
 			low = { known = { 13163, 1130, 1978, 2973, 3044, 75 }, pet = false, cooling = { [3044] = { 5, 6 } }, usable = {},
 				auras = { { unit = "player", id = 13163, icon = 132159, at = 0.5 }, { unit = "target", id = 1130, icon = 132212, at = 1, duration = 120, harmful = true },
 					{ unit = "target", id = 1978, icon = 132204, at = 2, duration = 15, harmful = true } } },
@@ -246,6 +250,10 @@ function Ranged.Play(env, K, ns, notes)
 		times[#times + 1] = type(when) == "table" and when[2] or nil
 	end
 	for _, when in ipairs(s.swings or {}) do times[#times + 1] = when end
+	local ends = {}
+	for _, c in pairs(s.cooling or {}) do
+		times[#times + 1], ends[c[1] + c[2]] = c[1] + c[2], true
+	end
 	if s.enchant then
 		Slots.Enchant(env, 1, { start = env._time - at - 600, duration = s.enchant })
 	end
@@ -270,6 +278,11 @@ function Ranged.Play(env, K, ns, notes)
 			env.FireEvent("BAG_UPDATE_COOLDOWN")
 			env.FireEvent("SPELL_UPDATE_USABLE")
 			env.FireEvent("SPELL_UPDATE_COOLDOWN")
+			-- A clip's engine ends each cooldown itself (Tools/render/clip.lua); a still ends the story's here.
+			for _, p in pairs(ends[when] and not env._clip and ns.SlabTrackers.state.form.pieces or {}) do
+				local done = p.timer and p.lit and not p.lit.container and p.timer._state.CooldownFromDurationObject and p.timer:GetScript("OnCooldownDone")
+				if done then done(p.timer) end
+			end
 			for _, swing in ipairs(s.swings or {}) do
 				if swing == when then env.FireEvent("PLAYER_SWING", 2.8, 2) end
 			end
