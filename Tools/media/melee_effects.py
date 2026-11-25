@@ -330,7 +330,7 @@ def cracks():
 def ward():
     """A ward over the emblem: a bright rim on a faint dome."""
     ux, uy, _, _ = units("Ward")
-    e = np.sqrt((ux / 50) ** 2 + (uy / 56) ** 2)
+    e = np.sqrt((ux / 50) ** 2 + (uy / 50) ** 2)
     light = np.clip(0.9 * np.exp(-((e - 1) / 0.035) ** 2) + 0.14 * np.sqrt(np.clip(1 - e * e, 0, 1)), 0, 1)
     return np.ones(light.shape + (3,)), light
 

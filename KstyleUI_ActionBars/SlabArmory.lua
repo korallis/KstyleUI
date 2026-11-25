@@ -123,8 +123,12 @@ local function Fill(m, lit, look, color, units, level, usable)
 	lit.glow:SetAlpha(look.halo or HALO)
 	lit.glow:ClearAllPoints()
 	lit.glow:SetSize(units * GLOW, units * GLOW)
-	lit.glow:SetPoint(lead, fill, lead, dx * units * 0.25, dy * units * 0.25)
-	lit.glow:SetPoint(tail, m, "CENTER", -dx * units * GLOW / 2, -dy * units * GLOW / 2)
+	if look.groove or look.hidden then
+		lit.glow:SetPoint("CENTER", m, "CENTER", 0, 0)
+	else
+		lit.glow:SetPoint(lead, fill, lead, dx * units * 0.25, dy * units * 0.25)
+		lit.glow:SetPoint(tail, m, "CENTER", -dx * units * GLOW / 2, -dy * units * GLOW / 2)
+	end
 	if usable then
 		m.slide = ns.Slab.Group(holder)
 		Move(m.slide, -units * SLIDE, 0, 1)
