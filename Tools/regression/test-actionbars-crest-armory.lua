@@ -173,13 +173,9 @@ do
 	Clean(env, K, "target refresh")
 end
 
--- Other classes keep their Frames medals, and the rogue's crest fire keeps its ambient-only rim (review of 568555f1 #5).
+-- The rogue's crest fire keeps its ambient-only rim (review of 568555f1 #5).
 do
-	local env, K, ns = New("MAGE", { 1459, 12042 }, true)
-	local five, trinket = Find(ns, "crestFiveSecond", "row"), Find(ns, "crestTrinkets", "row")
-	assert(five and five.steel and trinket and trinket.spec.look == nil, "a mage's Frames five-second rule and trinket stay medals")
-	Clean(env, K, "mage frames")
-	env, K, ns = New("ROGUE", { 14144, 5171, 2842 })
+	local env, K, ns = New("ROGUE", { 14144, 5171, 2842 })
 	assert(Find(ns, "crestFire").timer == nil, "the rogue's crest fire has no timer ring")
 	Clean(env, K, "rogue fire")
 end

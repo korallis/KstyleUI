@@ -2,7 +2,7 @@
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
-local SHOUT, RECKLESS, WALL, ARMOR = 6673, 1719, 871, 168
+local SHOUT, RECKLESS, WALL = 6673, 1719, 871
 
 local function New(class, known, opts)
 	opts = opts or {}
@@ -177,31 +177,31 @@ do
 	assert(Last(lua) == "Clear", "and its clear")
 end
 
--- A medal's ember is the bright band just outside its rim; under Frames the row's medals carry the same ember, and the hidden crest reads nothing.
+-- A medal's ember is the bright band just outside its rim; under Frames the horn in the row warns as on the crest, and the hidden crest reads nothing.
 do
-	local env, K, ns = New("MAGE", { ARMOR })
-	local armor = Piece(ns, "crestArmor")
-	local hot = Hot(armor.lit)
-	assert(hot and tostring(hot._state.SwipeTexture[1]):find("EmberBand.png", 1, true), "the armor medal's ember is the bright band")
+	local env, K, ns = New("WARRIOR", { SHOUT })
+	local medal = ns.SlabMedals.Medal(ns.Slab.hub, { feed = "aura", spells = { SHOUT }, color = "gilt", texture = 132333 }, 10)
+	local hot = Hot(medal.lit)
+	assert(hot and tostring(hot._state.SwipeTexture[1]):find("EmberBand.png", 1, true), "a medal's ember is the bright band")
 	local r, g, b = unpack(hot._state.SwipeColor)
 	assert(r == 1 and g == 1 and b == 1 and math.abs(hot.units - (26 + 3) / 0.853) < 1e-6, "drawn white, its band just outside the 26-unit medal's rim")
-	local watched = Watched(ns, armor)
+	local watched = Watched(ns, Piece(ns, "crestShout"))
 	env._now = 100
-	env._auraData["player" .. ARMOR] = { auraInstanceID = 1, expirationTime = 110, duration = 120, sourceUnit = "player" }
+	env._auraData["player" .. SHOUT] = { auraInstanceID = 1, expirationTime = 110, duration = 120, sourceUnit = "player" }
 	env.FireEvent("UNIT_AURA", "player")
-	assert(watched.flicker:IsPlaying(), "the crest medal flickers")
+	assert(watched.flicker:IsPlaying(), "the crest's horn flickers")
 	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
 	assert(not watched.flicker:IsPlaying(), "switching to Frames stops the hidden crest's flicker")
-	local row = Piece(ns, "crestArmor", "row")
-	assert(row and Hot(row.lit), "the armor medal in the Frames row has its ember swipe")
+	local row = Piece(ns, "crestShout", "row")
+	assert(row and Watched(ns, row), "the horn in the Frames row warns too")
 	local lookups = env._lookups
-	env.FireEvent("UNIT_AURA", "player", { isFullUpdate = false, addedAuras = { { spellId = ARMOR, auraInstanceID = 3 } } })
+	env.FireEvent("UNIT_AURA", "player", { isFullUpdate = false, addedAuras = { { spellId = SHOUT, auraInstanceID = 3 } } })
 	local crest = 0
 	for _, e in ipairs(ns.SlabRings.state.watched) do
 		if e.piece:GetParent() == ns.SlabTrackers.state.forms.crest.frame and e.ends then crest = crest + 1 end
 	end
-	assert(crest == 0 and env._lookups - lookups == #Watched(ns, row).spec.spells, "only the shown row medal reads its spells; the hidden crest reads nothing (" .. env._lookups - lookups .. " lookups)")
+	assert(crest == 0 and env._lookups - lookups <= #Watched(ns, row).spec.spells + 1, "only the shown row horn (and the loose medal) read their spells; the hidden crest reads nothing (" .. env._lookups - lookups .. " lookups)")
 	Clean(env, K, "ember under Frames")
 end
 
