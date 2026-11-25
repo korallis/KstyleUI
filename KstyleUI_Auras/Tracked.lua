@@ -122,7 +122,8 @@ local function FromLayout(data, category, set)
 	local n = 0
 	for _, id in ipairs(data.orderedCooldownIDs) do
 		local info = Id(id) and data.cooldownInfoByID[id]
-		if type(info) == "table" and not IsSecret(info) and info.category == category and info.isKnown ~= false then
+		if type(info) == "table" and not IsSecret(info) and Plain(info.category) == category and Plain(info.isKnown) == true
+			and (CDM_HIDE_INVISIBLE_ITEMS ~= true or not IsSecret(info.isInvisible) and info.isInvisible ~= true) then
 			n = n + AddInfo(set, info)
 		end
 	end

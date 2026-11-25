@@ -21,6 +21,7 @@ return Common.Run(function()
 		env._units.player[channel and "channel" or "cast"] = { name = "Terrifying Screech", texture = 136048, start = 1000, finish = 4000, spellID = 188196 }
 		env.FireEvent(channel and "UNIT_SPELLCAST_CHANNEL_START" or "UNIT_SPELLCAST_START", "player")
 		U.W.Tick(env, 0.3)
+		env._time = 4
 		env._units.player.cast, env._units.player.channel = nil, nil
 		env.FireEvent(channel and "UNIT_SPELLCAST_CHANNEL_STOP" or state == "interrupted" and "UNIT_SPELLCAST_INTERRUPTED" or "UNIT_SPELLCAST_STOP", "player")
 		local cb = ns.CastBars.Get("player")[1]

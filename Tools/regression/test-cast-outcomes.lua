@@ -30,7 +30,17 @@ for _, level in ipairs({ "full", "reduced", "off" }) do
 	pending[#pending][2]()
 	W.Tick(env, 0.3)
 	assert(not cb.frame:IsShown(), "E3: the bar leaves after its hold and fade")
+	for _, restricted in ipairs({ false, true }) do
+		env._time, env._units.player.secretCast = 1, restricted
+		start(true)
+		env._time = restricted and 4 or 1.5
+		env._units.player.channel = nil
+		env.FireEvent("UNIT_SPELLCAST_CHANNEL_STOP", "player")
+		assert(not cb.landed and not cb.error and not cb.active, "an early or unreadable channel stop ends without an outcome")
+	end
+	env._units.player.secretCast = false
 	start(true)
+	env._time = 4
 	env._units.player.channel = nil
 	env.FireEvent("UNIT_SPELLCAST_CHANNEL_STOP", "player")
 	assert(cb.landed and cb.frame:IsShown(), "E3: a completed channel gets the landed acknowledgement")

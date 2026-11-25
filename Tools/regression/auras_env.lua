@@ -499,7 +499,7 @@ function A.Engine(env, opts)
 	local function info(id, def)
 		return {
 			cooldownID = id, spellID = def.spellID, overrideSpellID = def.overrideSpellID, linkedSpellIDs = def.linkedSpellIDs or {},
-			selfAura = true, hasAura = true, flags = def.flags or 0, isKnown = def.isKnown ~= false,
+			selfAura = true, hasAura = true, isInvisible = def.isInvisible, flags = def.flags or 0, isKnown = def.isKnown ~= false,
 			category = def.category or env.Enum.CooldownViewerCategory.TrackedBuff,
 		}
 	end
