@@ -22,7 +22,7 @@ local RIM_FROM = quality.Uncommon or 2
 local OWNER = "QoL.feed"
 local WORLD_FLAGS = "OUTLINE"
 
-local Feed = { lines = {}, free = {}, pending = {} }
+local Feed = { lines = {}, free = {}, leaving = {}, pending = {} }
 ns.Feed = Feed
 
 local holder, backdrop, listening
@@ -201,9 +201,28 @@ local function NewLine()
 end
 
 local function Retire(line)
+	for i, leaving in ipairs(Feed.leaving) do
+		if leaving == line then
+			table.remove(Feed.leaving, i)
+			break
+		end
+	end
 	line.entry = nil
 	line:Hide()
 	Feed.free[#Feed.free + 1] = line
+end
+
+local function Spare()
+	local line = table.remove(Feed.free)
+	if line or #Feed.leaving <= Layouts.FEED_LINES then
+		return line
+	end
+	line = table.remove(Feed.leaving, 1)
+	Motion.Stop(line.sliding)
+	Motion.Stop(line.fading)
+	line.entry = nil
+	line:Hide()
+	return line
 end
 
 local function Leave(line)
@@ -214,9 +233,10 @@ local function Leave(line)
 		end
 	end
 	line.token = line.token + 1
+	Feed.leaving[#Feed.leaving + 1] = line
 	local duration, easing = Tokens.Duration("panelClose"), Tokens.Easing("panelClose")
-	Motion.Tween(line, Place, line.y, line.y + Tokens.Size("gapMedium"), Motion.Slides() and duration or 0, easing)
-	Motion.Tween(line, "SetAlpha", line:GetAlpha(), 0, duration, easing, Retire)
+	line.sliding = Motion.Tween(line, Place, line.y, line.y + Tokens.Size("gapMedium"), Motion.Slides() and duration or 0, easing)
+	line.fading = Motion.Tween(line, "SetAlpha", line:GetAlpha(), 0, duration, easing, Retire)
 	if #Feed.lines == 0 then
 		backdrop:Hide()
 		return
@@ -244,8 +264,10 @@ local function Resolve(entry)
 		entry.quality = found
 		return
 	end
-	Feed.pending[entry.id] = true
-	C_Item.RequestLoadItemDataByID(entry.id)
+	if not Feed.pending[entry.id] then
+		Feed.pending[entry.id] = true
+		C_Item.RequestLoadItemDataByID(entry.id)
+	end
 end
 
 local function Add(entry)
@@ -273,7 +295,7 @@ local function Add(entry)
 	for index, live in ipairs(Feed.lines) do
 		Motion.Tween(live, Place, live.y, Rest(#Feed.lines - index + 1), Motion.Slides() and Tokens.Duration("fade") or 0, Tokens.Easing("fade"))
 	end
-	local line = table.remove(Feed.free) or NewLine()
+	local line = Spare() or NewLine()
 	line.entry, line.token = entry, line.token + 1
 	Feed.lines[#Feed.lines + 1] = line
 	Arrange(line)

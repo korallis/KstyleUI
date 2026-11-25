@@ -1,6 +1,7 @@
 """Tests for Tools/media/make_media.py, which draws KstyleUI's procedural textures and logo."""
 
 import contextlib
+import fnmatch
 import importlib.util
 import io
 import re
@@ -64,6 +65,17 @@ class ManifestTest(unittest.TestCase):
                              f"{name}: client TGA and browser PNG must have identical pixels")
             colours = {bytes(pixels[i:i + 3]) for i in range(0, len(pixels), 4)}
             self.assertGreater(len(colours), 2000, f"{name} is a picture, not a schematic of {len(colours)} colours")
+
+    def test_release_leaves_out_only_the_hud_style_pngs(self):
+        # The idle-work audit's finding 77: the release zip carried each HUD style picture twice. The game loads the TGA
+        # Core/Tokens.lua names; the PNG companion serves only the browser renderer, so the zip leaves those two out.
+        ignored = [line.strip()[2:] for line in (ROOT / ".pkgmeta").read_text(encoding="utf-8").splitlines() if line.strip().startswith("- ")]
+        media = [path.relative_to(ROOT).as_posix() for path in (ROOT / "Media").rglob("*") if path.is_file()]
+        left_out = sorted(path for path in media if any(fnmatch.fnmatchcase(path, pattern) for pattern in ignored))
+        self.assertEqual(left_out, ["Media/Textures/HudStyleFrames.png", "Media/Textures/HudStyleMedallions.png"])
+        tokens = (ROOT / "Core" / "Tokens.lua").read_text(encoding="ascii")
+        for name in ("HudStyleFrames", "HudStyleMedallions"):
+            self.assertIn(f'file = "Textures\\\\{name}.tga"', tokens, f"the game loads {name} as a TGA, which the zip keeps")
 
     def test_lumen_geometry_matches_the_radius_tokens(self):
         # The fills are drawn on a 14-unit corner and the outline on 8, at TEXELS_PER_UNIT; the kit stretches them to

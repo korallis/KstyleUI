@@ -68,12 +68,12 @@ local function PlaceCap()
 	cap:SetHeight(K.Widgets.Snap(cap, 21 / factor))
 end
 
-local function Refresh()
+local function Sync(rows)
 	if painting then return end
 	if InCombatLockdown() then
 		if not queued then
 			queued = true
-			K.Combat.Queue(function() queued = false; Refresh() end)
+			K.Combat.Queue(function() queued = false; Sync(true) end)
 		end
 		return
 	end
@@ -81,18 +81,17 @@ local function Refresh()
 	if type(base) ~= "table" then return end
 	painting = true
 	if frame ~= base then
-		frame = base
+		frame, rows = base, true
 		if cap then cap:Hide() end
 		art, fonts, nodes = {}, {}, {}
 		panel = Skin.Backdrop(frame, { shape = "window", fill = "surface", shadow = true, inset = { left = -16, right = -16, bottom = -16 } })
-		frame:HookScript("OnShow", Refresh)
-		frame:HookScript("OnSizeChanged", Refresh)
+		frame:HookScript("OnShow", function() Sync(true) end)
 	end
 	local on = enabled and K.Modules.IsEnabled("Skins") and ns.Skins.IsOn("questie")
 	on = on and K.Setup.Integrations.QuestTracker() ~= "kstyleui"
 	panel:SetShown(on)
 	if active ~= on then
-		active = on
+		active, rows = on, true
 		for texture, alpha in pairs(art) do
 			if on then art[texture] = texture:GetAlpha() end
 			texture:SetAlpha(on and 0 or alpha)
@@ -117,7 +116,7 @@ local function Refresh()
 			painting = false
 		end }
 		ns.Style.Track(layout)
-		hooksecurefunc(label, "SetText", Refresh)
+		hooksecurefunc(label, "SetText", function() Sync(false) end)
 	end
 	if label then
 		label:SetAlpha(on and 0 or 1)
@@ -132,9 +131,11 @@ local function Refresh()
 		end
 		cap:SetShown(on)
 	end
-	if on then Discover(frame) end
+	if on and rows then Discover(frame) end
 	painting = false
 end
+
+local function Refresh() Sync(true) end
 
 ns.Skins.Add({
 	key = "questie",

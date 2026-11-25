@@ -79,6 +79,13 @@ do
 	end
 
 	-- The plate fades with the words, so it never outlives them.
+	Warnings.Fade(frame, 1)
+	local countWrites = dofile("Tools/regression/readout_count.lua")
+	local fades = countWrites(plate, "SetAlpha")
+	for _ = 1, 120 do Warnings.Fade(frame, 1) end
+	assert(fades() == 0)
+	Warnings.Fade(frame, 0.5)
+	assert(fades() == 1 and plate:GetAlpha() == 0.5)
 	Warnings.Fade(frame, 0.4)
 	Near(plate:GetAlpha() * 10, 4, "the plate fades with the warnings")
 	Warnings.Fade(frame, 1)

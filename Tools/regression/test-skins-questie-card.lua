@@ -96,10 +96,14 @@ Check("cost and new regions", function()
 	R.questie:Update()
 	local sweeps, sweep = 0, R.ns.Style.Sweep
 	R.ns.Style.Sweep = function(...) sweeps = sweeps + 1; return sweep(...) end
+	local frame, label = R.questie.frame, R.env.Questie_HeaderFrame.trackedQuests.label
+	local walks, children = 0, frame.GetNumChildren
+	frame.GetNumChildren = function(self) walks = walks + 1; return children(self) end
 	local cost = Budget.Count(R.env, function()
-		for _ = 1, 100 do R.questie:Update(); R.questie.frame:GetScript("OnSizeChanged")(R.questie.frame) end
+		for i = 1, 100 do R.questie:Update(); label:SetText(label:GetText()); frame:SetHeight(370 + i % 2) end
 	end)
 	assert(sweeps == 0, "Do not sweep an already styled Questie tree during a burst of updates and size changes")
+	assert(walks == 100, string.format("Walk Questie's rows once per tracker update, never again for the label text or size it sets (idle-redundant-work finding 73): %d walks for 100 redraws", walks))
 	Budget.Check(cost, 6000000, 160000, "Cache Questie's styled regions and unchanged cap text during tracker update bursts")
 	local row = R.env.CreateFrame("Frame", nil, R.questie.frame)
 	local nested = R.env.CreateFrame("Frame", nil, row)

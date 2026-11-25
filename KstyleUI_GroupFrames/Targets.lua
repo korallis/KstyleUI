@@ -101,11 +101,19 @@ local function Fill(t, name, player, class, reaction)
 end
 
 local function Health(t, unit)
-	t.health:SetMinMaxValues(0, UnitHealthMax(unit))
-	t.health:SetValue(UnitHealth(unit))
+	local max, value = UnitHealthMax(unit), UnitHealth(unit)
+	if issecretvalue(max) or max ~= t.healthMax then
+		t.health:SetMinMaxValues(0, max)
+		t.healthMax = not issecretvalue(max) and max or nil
+	end
+	if issecretvalue(value) or value ~= t.healthValue then
+		t.health:SetValue(value)
+		t.healthValue = not issecretvalue(value) and value or nil
+	end
 end
 
 local function Paint(t)
+	t.healthMax, t.healthValue = nil, nil
 	local owner = t.content.unit
 	if not owner or not t:IsVisible() then
 		return
