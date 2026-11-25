@@ -200,7 +200,7 @@ local function Fade(g, from, to, duration, order, delay)
 	end
 	return a
 end
-Slab.Fade = Fade
+Slab.Fade, Slab.Group = Fade, Group
 
 local function Grow(g, from, to, duration, order, smoothing)
 	local s = g:CreateAnimation("Scale")

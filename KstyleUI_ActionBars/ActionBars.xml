@@ -16,6 +16,7 @@
 	<Script file="SlabMedals.lua"/>
 	<Script file="SlabUnleashed.lua"/>
 	<Script file="SlabHeat.lua"/>
+	<Script file="SlabArmory.lua"/>
 	<Script file="SlabEffects.lua"/>
 	<Script file="SlabGlyphs.lua"/>
 	<Script file="SlabJewels.lua"/>

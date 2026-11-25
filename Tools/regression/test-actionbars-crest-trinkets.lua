@@ -1,4 +1,4 @@
--- test-actionbars-crest-trinkets.lua: an equipped trinket with a use effect (slots 13 and 14, C_Item.GetItemSpell) is a forged jewel inside the crest's rings at 9 and 3 o'clock (never an icon) that burns its GetInventoryItemCooldown round the central cooldown rim and refills over it (a C_DurationUtil duration object), ignoring the global cooldown and secret values; a trinket without a use effect, or none, shows nothing; only a trinket slot's equipment change or its item data arriving rebuilds, and nothing with the switch off; a class's own bag and equipment updates keep their handlers; nothing is sized in combat; under Frames it is an icon medal in the row.
+-- test-actionbars-crest-trinkets.lua: an equipped trinket with a use effect (slots 13 and 14, C_Item.GetItemSpell) is a forged jewel inside the crest's rings at 9 and 3 o'clock (never an icon) that burns its GetInventoryItemCooldown round the central cooldown rim and refills over it (a C_DurationUtil duration object), ignoring the global cooldown and secret values; a trinket without a use effect, or none, shows nothing; only a trinket slot's equipment change or its item data arriving rebuilds, and nothing with the switch off; a class's own bag and equipment updates keep their handlers; nothing is sized in combat; under Frames it is a gem in the row that charges over its cooldown.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
 local Guard = dofile("Tools/regression/event_guard.lua")
@@ -66,11 +66,6 @@ local function Seat(ns, p)
 	return x * s - hx, y * s - hy
 end
 
-local function Grey(piece)
-	local call = AB.W.LastCall(piece.lit.icon, "SetDesaturated")
-	return call ~= nil and call[1] == true
-end
-
 -- No trinket, or one without a use effect: nothing.
 do
 	local env, K, ns = New()
@@ -88,7 +83,7 @@ do
 	local left = Trinket(ns, 13)
 	assert(left and left.bar and left.lit:IsShown() and not left.lit.icon and not left.steel, "equipping an on-use trinket sets a jewel on the crest, no icon")
 	local x, y = Seat(ns, left)
-	assert(math.abs(x + 44) < 1 and math.abs(y) < 1, "the first trinket's jewel sits at 9 o'clock inside the rings, clear of the cooldown icons")
+	assert(math.abs(x + 33) < 1 and math.abs(y + 24) < 1, "a warrior's first trinket jewel sits inside the rings below the horn, clear of the cooldown sigils")
 	assert(math.sqrt(x * x + y * y) + 6 < 112 / 2 * 0.9375, "and clear of the inner ring's band")
 	assert(AB.W.LastCall(left.bar, "SetValue")[1] == 1, "a ready trinket's jewel is full")
 	local ring, point = left.timer, { left.timer:GetPoint(1) }
@@ -97,7 +92,7 @@ do
 	Equip(env, 14, 5003)
 	local right = Trinket(ns, 14)
 	x, y = Seat(ns, right)
-	assert(math.abs(x - 44) < 1 and math.abs(y) < 1, "the second sits at 3 o'clock")
+	assert(math.abs(x - 33) < 1 and math.abs(y + 24) < 1, "the second below the opening")
 	env._cd[13] = { 100, 120, 1, false }
 	env.FireEvent("BAG_UPDATE_COOLDOWN")
 	local burn, fill = AB.W.LastCall(ring, "SetCooldown"), AB.W.LastCall(left.bar, "SetTimerDuration")
@@ -155,8 +150,8 @@ do
 	local env, K, ns = New({ items = { [14] = 5003 } })
 	local shout = Find(ns, "crest", function(spec) return spec.key == "crestShout" end)
 	env.SetCombat(true)
-	local writes, size = 0, shout.lit.icon.SetSize
-	shout.lit.icon.SetSize = function(...) writes = writes + 1 return size(...) end
+	local writes, size = 0, shout.lit.bar.SetSize
+	shout.lit.bar.SetSize = function(...) writes = writes + 1 return size(...) end
 	ns.SlabTrackers.state.form.frame:SetScale(1.5)
 	ns.SlabTrackers.Update()
 	assert(writes == 0, "a new pixel size in combat waits: nothing under an engine aura button is resized")
@@ -174,14 +169,14 @@ do
 	Clean(env, K, "unlocked")
 end
 
--- Frames: an icon medal in the row above the stance bar.
+-- Frames: the crest's jewel at medal size in the row above the stance bar, no icon, as a figures class's.
 do
 	local env, K, ns = New({ frames = true, items = { [13] = 5002 } })
 	local medal = Trinket(ns, 13, "row")
-	assert(medal and medal.steel and medal.lit:IsShown() and medal.lit.icon._state.Texture[1] == 205002, "under Frames the trinket is a medal with its icon")
+	assert(medal and medal.glint and medal.lit:IsShown() and not medal.lit.icon, "under Frames the trinket is the crest's jewel, no icon")
 	env._cd[13] = { 100, 120, 1, false }
 	env.FireEvent("BAG_UPDATE_COOLDOWN")
-	assert(Grey(medal) and AB.W.LastCall(medal.timer, "SetCooldown"), "and burns its cooldown there")
+	assert(AB.W.LastCall(medal.bar, "SetTimerDuration") and AB.W.LastCall(medal.timer, "SetCooldown"), "and charges and burns its cooldown there")
 	Clean(env, K, "frames")
 end
 

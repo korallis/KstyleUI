@@ -2,7 +2,7 @@
 local AB = dofile("Tools/regression/actionbars_env.lua")
 local Slots = dofile("Tools/regression/aura_slots.lua")
 
-local SHOUT, RECKLESS, WALL = 6673, 1719, 871
+local SHOUT, RECKLESS, WALL, ARMOR = 6673, 1719, 871, 168
 
 local function New(class, known, opts)
 	opts = opts or {}
@@ -90,31 +90,29 @@ for _, file in ipairs({ "EmberBand.png", "EmberRingLine16.png", "CastRing.png", 
 	handle:close()
 end
 
--- Expiring ember on a warrior's medal, inner rim, cooldown ring and sigils.
+-- Expiring ember on a warrior's cooldown ring and sigils; Battle Shout's horn and Enrage's cracks warn through their last fifth on themselves (they drain as objects and along their own art, with no 112 line).
 do
 	local env, K, ns = New("WARRIOR", { SHOUT, 2687, RECKLESS, WALL })
 	local shout, rim, cooldowns = Piece(ns, "crestShout"), Piece(ns, "crestEnrage"), Piece(ns, "crestCooldowns")
-	local hot, gate = Hot(shout.lit)
-	assert(hot and tostring(hot._state.SwipeTexture[1]):find("EmberBand.png", 1, true), "the shout medal's ember is the bright band")
-	local r, g, b = unpack(hot._state.SwipeColor)
-	assert(r == 1 and g == 1 and b == 1 and math.abs(hot.units - (26 + 3) / 0.853) < 1e-6, "drawn white, its band just outside the 26-unit medal's rim")
-	assert(Hot(rim.lit) and tostring(Hot(rim.lit)._state.SwipeTexture[1]):find("EmberRingLine16.png", 1, true) and Hot(cooldowns.lit), "the inner rim and the cooldown ring get the thin ring's ember")
+	local hot, gate = Hot(cooldowns.lit)
+	assert(hot and tostring(hot._state.SwipeTexture[1]):find("EmberRingLine16.png", 1, true), "the cooldown ring gets the thin ring's ember")
+	assert(not Hot(rim.lit) and Watched(ns, rim), "Enrage's cracks keep no ember on the 112 line and warn on themselves")
 	for _, sigil in ipairs(cooldowns.sigils) do
 		assert(sigil.ember and tostring(sigil.ember.timer._state.SwipeTexture[1]):find("EmberBand.png", 1, true), "every cooldown sigil has its band")
 	end
-	Slots.Set(env, "player", { { id = SHOUT, start = 0, duration = 120 } })
+	Slots.Set(env, "player", { { id = RECKLESS, start = 0, duration = 120 } })
 	local d = hot._state.CooldownFromDurationObject and hot._state.CooldownFromDurationObject[1]
-	assert(d and d.start == 0 and d.finish == 120, "the ember swipe drains on the shout's own duration")
+	assert(d and d.start == 0 and d.finish == 120, "the ember swipe drains on the cooldown's own duration")
 	assert(gate:GetAlpha() == 1, "on by default")
 	K.Options.Write("ActionBars", "crestEmber", false)
 	env.RunTimers()
-	assert(gate:GetAlpha() == 0 and select(2, Hot(rim.lit)):GetAlpha() == 0, "its switch hides every ember swipe")
+	assert(gate:GetAlpha() == 0 and select(2, Hot(cooldowns.lit)):GetAlpha() == 0, "its switch hides every ember swipe")
 	local sigil = cooldowns.sigils[1]
 	assert(sigil.container._slots[sigil.ember.key].disabled, "and turns the sigil bands' slots off")
 	K.Options.Write("ActionBars", "crestEmber", true)
 	env.RunTimers()
 	assert(gate:GetAlpha() == 1 and not sigil.container._slots[sigil.ember.key].disabled, "and brings them back")
-	-- Readable: the last fifth flickers the medal, an expiry fades a gilt ring to steel.
+	-- Readable: the last fifth flickers the horn, an expiry fades its gilt glow to steel.
 	local watched = Watched(ns, shout)
 	env._now = 100
 	env._auraData["player" .. SHOUT] = { auraInstanceID = 1, expirationTime = 200, duration = 120, sourceUnit = "player" }
@@ -122,7 +120,7 @@ do
 	assert(not watched.flicker:IsPlaying(), "100 s of 120 left: no flicker")
 	env._auraData["player" .. SHOUT] = { auraInstanceID = 1, expirationTime = 110, duration = 120, sourceUnit = "player" }
 	env.FireEvent("UNIT_AURA", "player")
-	assert(watched.flicker:IsPlaying(), "10 s of 120 left: the medal flickers")
+	assert(watched.flicker:IsPlaying(), "10 s of 120 left: the horn flickers")
 	local phase, lookups = watched.flicker._playedAt, env._lookups
 	env._now = 101
 	env.FireEvent("UNIT_AURA", "player", { isFullUpdate = false, addedAuras = { { spellId = 774, auraInstanceID = 50 } } })
@@ -142,7 +140,7 @@ do
 	env._now = 110
 	env._auraData["player" .. SHOUT] = nil
 	env.FireEvent("UNIT_AURA", "player", { isFullUpdate = false, removedAuraInstanceIDs = { 1 } })
-	assert(not watched.flicker:IsPlaying() and watched.fade:IsPlaying(), "it ran out: the flicker stops and the gilt ring fades to steel")
+	assert(not watched.flicker:IsPlaying() and watched.fade:IsPlaying(), "it ran out: the flicker stops and the gilt glow fades to steel")
 	-- A start still pending when motion turns Off stays off.
 	env._now = 120
 	env._auraData["player" .. SHOUT] = { auraInstanceID = 2, expirationTime = 240, duration = 120, sourceUnit = "player" }
@@ -179,21 +177,26 @@ do
 	assert(Last(lua) == "Clear", "and its clear")
 end
 
--- Under Frames the row's medals carry the same ember, and the hidden crest reads nothing.
+-- A medal's ember is the bright band just outside its rim; under Frames the row's medals carry the same ember, and the hidden crest reads nothing.
 do
-	local env, K, ns = New("WARRIOR", { SHOUT, RECKLESS })
-	local watched = Watched(ns, Piece(ns, "crestShout"))
+	local env, K, ns = New("MAGE", { ARMOR })
+	local armor = Piece(ns, "crestArmor")
+	local hot = Hot(armor.lit)
+	assert(hot and tostring(hot._state.SwipeTexture[1]):find("EmberBand.png", 1, true), "the armor medal's ember is the bright band")
+	local r, g, b = unpack(hot._state.SwipeColor)
+	assert(r == 1 and g == 1 and b == 1 and math.abs(hot.units - (26 + 3) / 0.853) < 1e-6, "drawn white, its band just outside the 26-unit medal's rim")
+	local watched = Watched(ns, armor)
 	env._now = 100
-	env._auraData["player" .. SHOUT] = { auraInstanceID = 1, expirationTime = 110, duration = 120, sourceUnit = "player" }
+	env._auraData["player" .. ARMOR] = { auraInstanceID = 1, expirationTime = 110, duration = 120, sourceUnit = "player" }
 	env.FireEvent("UNIT_AURA", "player")
 	assert(watched.flicker:IsPlaying(), "the crest medal flickers")
 	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
 	assert(not watched.flicker:IsPlaying(), "switching to Frames stops the hidden crest's flicker")
-	local row = Piece(ns, "crestShout", "row")
-	assert(row and Hot(row.lit), "the shout medal in the Frames row has its ember swipe")
+	local row = Piece(ns, "crestArmor", "row")
+	assert(row and Hot(row.lit), "the armor medal in the Frames row has its ember swipe")
 	local lookups = env._lookups
-	env.FireEvent("UNIT_AURA", "player", { isFullUpdate = false, addedAuras = { { spellId = SHOUT, auraInstanceID = 3 } } })
+	env.FireEvent("UNIT_AURA", "player", { isFullUpdate = false, addedAuras = { { spellId = ARMOR, auraInstanceID = 3 } } })
 	local crest = 0
 	for _, e in ipairs(ns.SlabRings.state.watched) do
 		if e.piece:GetParent() == ns.SlabTrackers.state.forms.crest.frame and e.ends then crest = crest + 1 end

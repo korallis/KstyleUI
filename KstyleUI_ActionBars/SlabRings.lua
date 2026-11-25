@@ -45,6 +45,19 @@ local function Head(c, scale)
 	c:SetDrawEdge(true)
 end
 
+function Medals.Warn(piece, spec, ghost)
+	ghost:SetAlpha(0)
+	local e = { piece = piece, spec = spec, unit = spec.unit or "player", ids = {}, fade = Pop(ghost, FADE, "IN_OUT"), flicker = Medals.Steps(piece, FLICKER, true) }
+	for _, id in ipairs(spec.spells or NONE) do
+		e.ids[id] = true
+	end
+	state.watched[#state.watched + 1] = e
+	if not state.units[e.unit] then
+		state.units[e.unit], state.listening = true, nil
+		if state.enabled then Rings.Update() end
+	end
+end
+
 function Medals.Ember(piece, lit, timer, art, level, units)
 	local band = art == "Band"
 	local path, size = ART .. "Ember" .. art .. ".png", band and (units + 3) / BAND or units
@@ -53,20 +66,12 @@ function Medals.Ember(piece, lit, timer, art, level, units)
 		gate = Medals.Mirror(piece, lit, level)
 		hot = Medals.Timer(gate.lit, level, nil, "white", nil, path)
 		gate.lit:SetDurationCooldown(hot)
-		local ghost = piece.add(Medals.Texture(Medals.Layer(piece, level + 1), "OVERLAY", 0, band and "medRing" or "ringLine16", "gilt", units, "ADD"))
-		ghost:SetAlpha(0)
-		local e = { piece = piece, spec = lit.spec, unit = lit.spec.unit or "player", ids = {}, fade = Pop(ghost, FADE, "IN_OUT"), flicker = Medals.Steps(piece, FLICKER, true) }
-		for _, id in ipairs(e.spec.spells or NONE) do
-			e.ids[id] = true
-		end
-		state.watched[#state.watched + 1] = e
-		if not state.units[e.unit] then
-			state.units[e.unit], state.listening = true, nil
-			if state.enabled then Rings.Update() end
-		end
+		Medals.Warn(piece, lit.spec, piece.add(Medals.Texture(Medals.Layer(piece, level + 1), "OVERLAY", 0, band and "medRing" or "ringLine16", "gilt", units, "ADD")))
 	else
 		gate = Medals.Layer(timer:GetParent(), timer:GetFrameLevel() + 1)
 		hot = Medals.Timer(gate, gate:GetFrameLevel(), nil, "white", nil, path)
+		hot:ClearAllPoints()
+		hot:SetPoint("CENTER", timer, "CENTER", 0, 0)
 		for _, method in ipairs({ "SetCooldown", "SetCooldownFromDurationObject", "Clear" }) do
 			hooksecurefunc(timer, method, function(_, ...) hot[method](hot, ...) end)
 		end
