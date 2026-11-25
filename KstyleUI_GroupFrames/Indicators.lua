@@ -378,7 +378,7 @@ end
 local function Status(f)
 	local icons, unit = f.statusIcons, f.unit
 	if not icons then return end
-	if readyActive or not Settings.current.icons.statuses then
+	if f.ready:IsShown() or not Settings.current.icons.statuses then
 		for _, icon in pairs(icons) do icon:SetAlpha(0) end
 		return
 	end
@@ -400,22 +400,21 @@ end
 Indicators.Status = Status
 
 local function Ready(f)
+	local atlas
+	if readyActive and Settings.current.icons.readyCheck and GetReadyCheckStatus then
+		local status = GetReadyCheckStatus(f.unit)
+		if not issecretvalue(status) and type(status) == "string" then
+			if readyFinished and status == "waiting" then status = "notready" end
+			atlas = READY_ATLAS[status] and READY_ATLAS[status]()
+		end
+	end
+	if type(atlas) == "string" then
+		f.ready:SetAtlas(atlas)
+		f.ready:Show()
+	else
+		f.ready:Hide()
+	end
 	Status(f)
-	if not readyActive or not Settings.current.icons.readyCheck or not GetReadyCheckStatus then
-		f.ready:Hide()
-		return
-	end
-	local status = GetReadyCheckStatus(f.unit)
-	if readyFinished and status == "waiting" then
-		status = "notready"
-	end
-	local atlas = not issecretvalue(status) and type(status) == "string" and READY_ATLAS[status] and READY_ATLAS[status]()
-	if type(atlas) ~= "string" then
-		f.ready:Hide()
-		return
-	end
-	f.ready:SetAtlas(atlas)
-	f.ready:Show()
 end
 
 local function Edge(f, r, g, b)

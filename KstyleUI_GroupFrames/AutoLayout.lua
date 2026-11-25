@@ -93,6 +93,15 @@ function AutoLayout.Overlay(cfg, state)
 	if cfg.groups and not cfg.groups.mythicBench and Mythic() then
 		for g = 5, 8 do cfg.groups["show" .. g] = false end
 	end
+	local auto = cfg.auto
+	if auto.role and state.healer then
+		for _, kind in ipairs({ "party", "raid" }) do
+			local k = cfg[kind]
+			k.auraDispelCount = math.max(k.auraDispelCount, HEALER_DISPELS)
+			k.buffCount = math.max(k.buffCount, HEALER_HEALS)
+		end
+		cfg.raid.width = cfg.raid.width + HEALER_WIDTH
+	end
 	if cfg.presets and cfg.presets.raid == "Healer" then
 		local party, raid = cfg.party, cfg.raid
 		party.width, party.height, party.spacing = 200, 44, 6
@@ -106,18 +115,9 @@ function AutoLayout.Overlay(cfg, state)
 		for i = 1, Settings.INDICATOR_SLOTS do cfg["indicator" .. i].size = 16 end
 		return cfg
 	end
-	local auto = cfg.auto
 	if K.Store.Module("Readability").preset == "Readable" then
 		cfg.party.height, cfg.raid.height = math.max(44, cfg.party.height), math.max(44, cfg.raid.height)
 		auto.size = false
-	end
-	if auto.role and state.healer then
-		for _, kind in ipairs({ "party", "raid" }) do
-			local k = cfg[kind]
-			k.auraDispelCount = math.max(k.auraDispelCount, HEALER_DISPELS)
-			k.buffCount = math.max(k.buffCount, HEALER_HEALS)
-		end
-		cfg.raid.width = cfg.raid.width + HEALER_WIDTH
 	end
 	local bracket = state.members and AutoLayout.Bracket(Counted(cfg, state)) or state.bracket
 	local base = cfg.raid.height

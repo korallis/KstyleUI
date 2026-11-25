@@ -104,6 +104,21 @@ function Names.Short(name, fits, others, marker)
 			return first .. marker .. last
 		end
 	end
+	if marker == "" then
+		for first = 2, #chars do
+			local last = math.min(first + n - 1, #chars)
+			local part = table.concat(chars, "", first, last)
+			while last > first and not fits(part) do
+				last = last - 1
+				part = table.concat(chars, "", first, last)
+			end
+			local unique = fits(part)
+			for i = 1, #others do
+				if others[i] ~= name and others[i]:lower():find(part:lower(), 1, true) then unique = false; break end
+			end
+			if unique then return part end
+		end
+	end
 	return head .. marker
 end
 
