@@ -14,10 +14,23 @@ C.hovered, C.alpha, C.target = 0, 1, 1
 C.setAlpha = function(frame, value) frame:SetAlpha(value); C.alpha = value end
 C.checkFade = function() C:CheckFade() end
 
-function C.Bindings()
+local targets = {}
+
+local function Hint(b, family)
+	if b.binding then b.hint, b.glyphs, b.key = ns.KeyHint(b, b.binding, family)
+	else b.hint, b.glyphs, b.key = nil, nil, nil end
+end
+
+local function PaintKey(b)
+	if Config().hotkey == false or not b.binding then b:SetHotkey("")
+	elseif b.glyphs then K.Widgets.SetText(b.hotkey, b.glyphs)
+	else b:SetHotkey(b.hint) end
+end
+
+function C.Bindings(family)
 	for _, b in ipairs(buttons) do
-		b.key = ns.FirstKey(b.binding)
-		b:SetHotkey(b.itemID and Config().hotkey ~= false and K.Widgets.ShortKey(b.key) or "")
+		Hint(b, family)
+		PaintKey(b)
 	end
 end
 
@@ -88,11 +101,9 @@ local function Build()
 	backing:SetAllPoints(header)
 	backing.chrome = K.Widgets.Chrome(backing, { shape = "tile", fill = "buttonFill", shadow = false })
 	for i = 1, 12 do
-		local b = K.Widgets.Slot(header, { name = "KstyleUI_Consumable" .. i, template = "SecureActionButtonTemplate", silent = true, primary = true })
+		local b = K.Widgets.Slot(header, { template = "SecureActionButtonTemplate", silent = true, primary = true })
 		ns.Socket.Decorate(b)
 		b.kind = "consumable"
-		b.binding = "CLICK " .. b:GetName() .. ":LeftButton"
-		b.key = ns.FirstKey(b.binding)
 		b.macroText = K.Widgets.FontString(b.overlay, "OVERLAY")
 		b:RegisterForClicks("AnyUp", "AnyDown")
 		b:SetAttribute("type", "item")
@@ -141,6 +152,9 @@ function C.Apply()
 	header:ClearAllPoints()
 	header:SetPoint(corner, holder, corner)
 	header:SetSize(liveColumns * (size + gap) - gap, liveRows * (size + gap) - gap)
+	for _, b in ipairs(buttons) do
+		if b.shortcut then b.shortcut:SetAttribute("item", nil) end
+	end
 	for i, b in ipairs(buttons) do
 		b:EnableMouse(cfg.clickThrough ~= true)
 		b.opts.size = size
@@ -160,7 +174,25 @@ function C.Apply()
 		b.itemID, b.hasAction = record and record.id, record ~= nil
 		b:SetAttribute("item", record and "item:" .. record.id or nil)
 		b:SetIcon(record and record.icon)
-		b:SetHotkey(record and cfg.hotkey ~= false and K.Widgets.ShortKey(b.key) or "")
+		local target
+		if record and ns.running and cfg.enabled then
+			target = targets[record.key]
+			if not target then
+				target = CreateFrame("Button", "KstyleUI_Use_" .. record.key:gsub(":", "_"), header, "SecureActionButtonTemplate")
+				target:RegisterForClicks("AnyUp", "AnyDown")
+				target:SetAttribute("type", "item")
+				targets[record.key] = target
+			end
+			target:SetAttribute("item", "item:" .. record.id)
+		end
+		local binding = target and "CLICK " .. target:GetName() .. ":LeftButton"
+		if b.binding ~= binding then
+			if ns.Keybind.active then ns.Keybind.Exit() end
+			b.binding = binding
+			Hint(b)
+		end
+		b.shortcut = target
+		PaintKey(b)
 		if not record then b.count:SetText(""); b.hotkey:SetText(""); b:ClearCooldown(); b:SetUsable(false) end
 		b:SetShown(i <= capacity and (record ~= nil or #selected == 0 and cfg.hideEmpty == false))
 	end
@@ -190,7 +222,7 @@ end
 
 function C.Enable()
 	dirty = true
-	K.Events.Register(OWNER, "UPDATE_BINDINGS", C.Bindings)
+	K.Events.Register(OWNER, "PLAYER_LEVEL_UP", C.Refresh)
 	K.Events.Register(OWNER, "GET_ITEM_INFO_RECEIVED", C.TravelChanged)
 	K.Events.Register(OWNER, "SPELLS_CHANGED", C.TravelChanged)
 	K.Callbacks.Register("ModuleChanged", OWNER, function(_, name) if name == "UnitFrames" then C.Apply() end end)
@@ -200,7 +232,6 @@ function C.Enable()
 	K.Callbacks.Register("LayoutChanged", OWNER, function(_, key)
 		if key == "unitframes.player" or key == "actionbars.bar1" or key == KEY then K.Combat.Queue(C.Dock) end
 	end)
-	C.Bindings()
 	C.Apply()
 end
 

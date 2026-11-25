@@ -38,6 +38,7 @@ ns.Locale.Add({
 	["%dh %dm"] = "%d h %d min",
 	["%dm"] = "%d min",
 	["%ds"] = "%da",
+	["%s (replaces %s)"] = "%s (remplace %s)",
 	["%s are not available on this client."] = "%s ne sont pas disponibles sur ce client.",
 	["%s could not be checked against its choices."] = "%s n'a pas pu \195\170tre compar\195\169 \195\160 ses choix possibles.",
 	["%s custom icon colour"] = "%s : couleur d\226\128\153ic\195\180ne personnalis\195\169e",
