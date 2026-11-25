@@ -140,4 +140,21 @@ do
 	assert(Count(env, "C_GossipInfo.SelectAvailableQuest") == 1, "the pause key keeps the gossip window open")
 end
 
+do
+	local env, K = New()
+	env._quest.pvp = env.Secret(true)
+	Fire(env, "QUEST_DETAIL", 0)
+	assert(Count(env, "AcceptQuest") == 0, "an unreadable PvP flag leaves the offer open")
+	env._quest.money = nil
+	Fire(env, "QUEST_COMPLETE")
+	assert(Count(env, "GetQuestReward") == 0, "a missing price leaves the reward open")
+	Q.Write(env, K, "autoGossip", true)
+	env.C_GossipInfo.GetOptions = function() return { { gossipOptionID = 30 } } end
+	env._quest.gossipActive = env.Secret({ { questID = 5 } })
+	local selected = 0
+	env.C_GossipInfo.SelectOption = function() selected = selected + 1 end
+	Fire(env, "GOSSIP_SHOW")
+	assert(selected == 0 and K.ErrorCount() == 0, "a hidden quest list is not an empty list")
+end
+
 print("qol quests ok")

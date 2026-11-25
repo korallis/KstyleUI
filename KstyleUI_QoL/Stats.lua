@@ -86,7 +86,8 @@ local function Hex(name)
 end
 
 function ns.StyleStats(frame, read)
-	local size = Tokens.Size("lootText") * ns.Get("statsScale") / 100
+	local scale = K.Theme.FontScale() * ns.Get("statsScale") / 100
+	local size = Tokens.Size("lootText") * scale
 	local path = Tokens.Font("body")
 	local mode, short = ns.Get("statsValue"), ns.Get("statsShort")
 	local label, value = Hex("text"), Hex(ns.Get("statsColored") and "accent" or "textEmphasis")
@@ -112,7 +113,7 @@ function ns.StyleStats(frame, read)
 	end
 	frame.count = count
 	for i = count + 1, #frame.lines do frame.lines[i]:Hide() end
-	Widgets.Size(frame, WIDTH * ns.Get("statsScale") / 100, math.max(height, count * (height + GAP) - GAP))
+	Widgets.Size(frame, WIDTH * scale, math.max(height, count * (height + GAP) - GAP))
 end
 
 function ns.FillStats(frame, timed)
