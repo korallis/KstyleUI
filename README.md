@@ -10,17 +10,21 @@
 
 **Come say hi on Discord: [discord.gg/A5qqGZEXyN](https://discord.gg/A5qqGZEXyN).** That's the place for help or a bug report, and new stuff shows up there before it ships.
 
-KstyleUI swaps the default UI for one dark forged style, the same on your bars, frames, bags and windows. The HUD comes in two looks. Medallions puts you and your target in round medallions with your class crest between your action bars, doing something different for every class. Frames is the classic layout cleaned up, with your target stacked over you above the bars. It's made for World of Warcraft: Forever only, and setup is one window the first time you log in.
+KstyleUI swaps the default UI for one dark forged style, the same on your bars, frames, bags and windows. The HUD comes in two looks. Medallions puts you and your target in round medallions with your class crest between your action bars. Frames is the classic layout cleaned up, with your target stacked over you above the bars. It's made for World of Warcraft: Forever only, and setup is one window the first time you log in.
 
 Every picture below is a test render of the addon over my own in-game screenshots. Icons in these pictures are the optional AI-made icon pack, not art shipped in the addon.
 
-![KstyleUI test render over an in-game screenshot: warrior, bear druid, priest and warlock crests lighting up with their buffs, procs and debuffs while cooldowns burn round the rim](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/trackers.gif)
+![KstyleUI test render over an in-game screenshot: a warrior's, a warlock's and a cat druid's crests coming alive as their buffs, debuffs and cooldowns land, with no icons on them](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/trackers.gif)
 
-*Every class's crest now carries the stuff you'd normally hunt for all over the screen: your buffs, procs, your debuffs on the target, and big cooldowns burning round the rim. One place to look.*
+*No more little icons. Your buffs, procs, debuffs and cooldowns are part of the crest now: a war horn and perched weapons for warriors, Curses and Stings burning down the ring for warlocks and hunters, a dome of light for priests and rakes tearing across it for cats.*
 
-![KstyleUI test render over an in-game screenshot of the Frames look: a warrior's crest trackers above the stance bar](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frames_medals.jpg)
+![KstyleUI test render over an in-game screenshot: the crest effects in turn: fire on a big cooldown, the glyph tide, the cast ring, the kill window and the target lock](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/effects.gif)
 
-*On Frames the trackers sit above your stance bar. Choose which trackers to show in `/kstyle`.*
+*Ten new effects inspired by the old WeakAuras centre-piece UIs. A big cooldown sets the crest on fire, the glyphs fill with your power, your cast runs round the edge, the rim burns red in Execute range and claws close on a new target. Every piece has its own switch in `/kstyle`.*
+
+![KstyleUI test render over an in-game screenshot of the Frames look: a warrior's crest pieces standing free above the stance bar](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frames_medals.jpg)
+
+*On Frames the same pieces stand free above your stance bar.*
 
 ![KstyleUI test render over an in-game screenshot: the Medallions HUD for nine classes in turn, each with its own crest](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/classes.gif)
 
@@ -28,15 +32,15 @@ Every picture below is a test render of the addon over my own in-game screenshot
 
 ![KstyleUI test render over an in-game screenshot: a rogue's crown of blades and a cat druid's claws filling with combo points, then a finisher slashing them out](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/crowns.gif)
 
-*Rogues get a crown of blades and cat druids get claws. Each combo point lights one and a jewel on the ring, the ring glows when you're capped, and a finisher slashes them out.*
+*Rogues get a crown of blades and cat druids get claws. Each combo point lights one, and a finisher slashes them out.*
 
 ![KstyleUI test render over an in-game screenshot: warrior banners, priest candles, mage shards, hunter arrows and bear talons filling up on the crest](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/crowns-more.gif)
 
-*Warriors get banners for Sunder stacks, shadow priests get candles, mages get Arcane Blast shards, hunters get arrows for Sniper Shot and bears get talons for Lacerate.*
+*Warriors get banners for Sunder, shadow priests candles, mages Arcane Blast shards, hunters arrows and bears talons for Lacerate.*
 
 ![KstyleUI test render over an in-game screenshot: a shaman's totem bar on the crest, then Lightning Shield's three storm orbs throwing bolts](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/shaman.gif)
 
-*I put way too much effort into shamans. Your totem bar sits on the crest, and Lightning Shield turns into storm orbs, and each one throws a bolt when its charge gets used up.*
+*I put way too much effort into shamans. Your totem bar sits on the crest and Lightning Shield turns into storm orbs that throw a bolt as each charge goes.*
 
 ![KstyleUI test render over an in-game screenshot: a hunter's hawk perches lighting up with a timer for each hawk](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/hawks.gif)
 
@@ -60,7 +64,7 @@ Every picture below is a test render of the addon over my own in-game screenshot
 
 ![KstyleUI test render over an in-game screenshot of the Frames look on a 1920 by 1080 screen: the target's card stacked over the player's above the action bars](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_hud_frames_1080.jpg)
 
-*If the crest isn't your thing, Frames is the other look: big plain cards for you and your target, same forged style. Pick it in the setup, or switch any time under HUD style on the General page of `/kstyle`.*
+*If the crest isn't your thing, Frames is the other look: big plain cards for you and your target, same forged style. Switch any time in `/kstyle`.*
 
 ![KstyleUI test render over an in-game screenshot of the raid frames: twenty tiles with missing health, debuffs, a dead and an offline member](https://raw.githubusercontent.com/korallis/KstyleUI/main/docs/media/marketing/show_frame_raid.jpg)
 
@@ -70,7 +74,7 @@ Every picture below is a test render of the addon over my own in-game screenshot
 
 *The map plans your route, zeppelins and the tram included, and finds the nearest innkeeper, bank or trainer you've been to. The map art is the game's own.*
 
-There's a lot more in there than fits here: nameplates, a damage and threat meter, bags, tooltips, chat and skins for most of Blizzard's windows. Every bit of it can be switched off in `/kstyle`. Each module has a README on [GitHub](https://github.com/korallis/KstyleUI) with all its settings.
+There's a lot more: nameplates, a damage and threat meter, bags, tooltips, chat and skins for most of Blizzard's windows. Every bit of it can be switched off in `/kstyle`. Each module has a README on [GitHub](https://github.com/korallis/KstyleUI) with all its settings.
 
 ## Install
 

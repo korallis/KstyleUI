@@ -45,15 +45,15 @@ def fenced_description(path):
 
 class MarketingImages(unittest.TestCase):
     def expected(self):
-        return {"banner.jpg"} | {name for name, _ in M.SHOWCASES} | set(M.CLIPS)
+        return {"banner.jpg"} | {name for name, _ in M.SHOWCASES} | set(M.CLIPS) | set(M.DRIVEN)
 
     def test_folder_holds_exactly_the_script_outputs(self):
         self.assertEqual({p.name for p in MARKETING.glob("*") if p.is_file()}, self.expected())
 
     def test_clips_are_small_smooth_and_one_width(self):
-        for name in M.CLIPS:
+        for name in (*M.CLIPS, *M.DRIVEN):
             path = MARKETING / name
-            self.assertLessEqual(path.stat().st_size, GIF_CAP, name + ": fix: trim its shots in CLIPS or narrow its box")
+            self.assertLessEqual(path.stat().st_size, GIF_CAP, name + ": fix: trim its shots or frames, or narrow its box")
             if Image is not None:
                 with Image.open(path) as image:
                     self.assertEqual(image.width, M.CLIP_WIDTH + 32, name)
@@ -74,7 +74,7 @@ class MarketingImages(unittest.TestCase):
         self.assertEqual(env["KSTYLEUI_PLATE"], backdrop)
 
     def test_images_are_web_light_and_wide_enough(self):
-        for name in self.expected() - set(M.CLIPS):
+        for name in self.expected() - set(M.CLIPS) - set(M.DRIVEN):
             path = MARKETING / name
             self.assertLessEqual(path.stat().st_size, 512 * 1024, name)
             if Image is not None:
@@ -116,7 +116,7 @@ class MarketingImages(unittest.TestCase):
             self.assertIn(entry["source"], ("game_03.png", "game_09.png"))
         # Every derivative must resolve to either one of those renders or a preserved game capture.
         known = ({"readme/" + name + ".jpg" for name in readme.picture_names()}
-                 | {"readme/" + p.name for p in M.README_MEDIA.glob("game_*")} | {"marketing/" + name for name in M.CLIPS})
+                 | {"readme/" + p.name for p in M.README_MEDIA.glob("game_*")} | {"marketing/" + name for name in (*M.CLIPS, *M.DRIVEN)})
         inputs = {"readme/" + source for _, source in M.SHOWCASES} | {source for _, source, _ in M.GALLERY}
         self.assertTrue(inputs <= known, inputs - known)
 
@@ -186,7 +186,7 @@ class MasterDescription(unittest.TestCase):
         master = MASTER.read_text(encoding="utf-8")
         prose = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", master)
         self.assertLessEqual(len(prose.split()), 800, "Fix: the owner asked for a short page; link GitHub for detail")
-        self.assertLessEqual(master.count("!["), 15, "Fix: one picture or clip per feature")
+        self.assertLessEqual(master.count("!["), 16, "Fix: one picture or clip per feature")
         for tell in ("\u2014", "Elevate", "Seamless", "Unleash", "Whether you"):
             self.assertNotIn(tell, master, "Fix: write it the way the owner talks, without " + repr(tell))
 

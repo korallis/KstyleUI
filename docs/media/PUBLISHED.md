@@ -10,8 +10,10 @@ The same master description ([docs/store/description.md](../store/description.md
 | marketing/crowns-more.gif | Test render over the real forest plate: warrior, priest, mage, hunter and bear crowns | `marketing.py --clips` |
 | marketing/shaman.gif | Test render over the real forest plate: Spirit Poles, then Lightning Shield's storm orbs | `marketing.py --clips` |
 | marketing/hawks.gif | Test render over the real forest plate: the hunter's hawk perches | `marketing.py --clips` |
+| marketing/trackers.gif | Test render over the real forest plate: warrior, warlock and cat druid crests playing their stories | the local clip driver, framed by `marketing.write_clip` |
+| marketing/effects.gif | Test render over the real forest plate: cooldown fire (Unleashed), glyph tide, cast ring, kill window and target lock | the local clip driver, framed by `marketing.write_clip` |
 | marketing/show_hud_1080.jpg | Test render over the real forest plate (readme/hud_1080.jpg): the whole HUD at 1920 by 1080 | `readme.py`, `marketing.py` |
-| marketing/show_hud_frames_1080.jpg | Test render over the real forest plate (readme/hud_frames_1080.jpg): the Frames look at 1920 by 1080. Until the Frames restore lands, this is the last Frames render, from `37c066152` (2026-11-20); `readme.py --only hud_frames_1080` retakes it after | `readme.py`, `marketing.py` |
+| marketing/show_hud_frames_1080.jpg | Test render over the real forest plate (readme/hud_frames_1080.jpg): the Frames look at 1920 by 1080 | `readme.py`, `marketing.py` |
 | marketing/show_frame_raid.jpg | Test render over the real forest-mac plate (readme/frame_raid.jpg): the raid frames | `readme.py`, `marketing.py` |
 
 The store gallery (`docs/store/gallery/`) holds copies of the hero, the clips and the HUD picture, in upload order.

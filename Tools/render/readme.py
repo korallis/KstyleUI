@@ -50,7 +50,7 @@ RENDERS = {
 # name, source, crop, width. A source is "render:<RENDERS key>"; a crop is "WxH+X+Y" in the source's pixels or None. A picture narrower than its width stays as it is.
 IMAGES = [
     ("hud_1080", "render:hud_1080", None, 1920),
-    ("hud_finish", "render:hud_2x", "2000x444+920+1700", 2000),
+    ("hud_finish", "render:hud_2x", "2000x474+920+1670", 2000),
     ("hud_frames_1080", "render:frames_1080", None, 1200),
     ("frame_raid", "render:groupframes", "904x442+106+724", 720),
     ("frames_medals", "render:frames_medals", "1600x468+1240+1660", 1600),

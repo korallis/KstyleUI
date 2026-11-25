@@ -44,6 +44,7 @@ GALLERY = [
     ("11-map.gif", "marketing/map.gif", None),
     ("12-trackers.gif", "marketing/trackers.gif", None),
     ("13-frames-medals.jpg", "readme/frames_medals.jpg", None),
+    ("14-effects.gif", "marketing/effects.gif", None),
 ]
 
 # Core/Tokens.lua colours.
@@ -136,15 +137,6 @@ CLIPS = {
     "hawks.gif": (CREST, story("hud_hunter_mac", {"RENDER_FX": "hawks"}, "RENDER_FX_T", [
         (0.5, 0.5, 300), (0.9, 1.6, 0), (8.9, 9.6, 300), (18.9, 19.45, 0), (20.4, 21.1, 700),
     ], 0.7)),
-    "trackers.gif": (CREST, [shot for scene, env, beats in (
-        ("hud_warrior_mac", {}, [(0.1, 0.1, 300), (0.5, 0.64, 300), (3.0, 3.28, 300), (9.0, 9.21, 700)]),
-        ("hud_druid_mac", {"RENDER_FORM": "bear"}, [(0.1, 0.1, 300), (0.5, 0.57, 250), (1.0, 1.07, 250), (1.5, 1.71, 250),
-                                                     (2.0, 2.07, 250), (2.5, 2.57, 250), (3.0, 3.14, 900)]),
-        ("hud_priest_mac", {}, [(0.1, 0.1, 300), (0.5, 0.71, 250), (1.5, 1.57, 250), (2.0, 2.14, 250), (2.5, 2.57, 300),
-                                (4.6, 4.67, 300), (5.8, 5.87, 700)]),
-        ("hud_warlock_mac", {}, [(0.1, 0.1, 300), (1.0, 1.07, 250), (2.0, 2.07, 250), (3.0, 3.07, 250), (3.5, 3.57, 250),
-                                 (4.0, 4.07, 250), (5.0, 5.21, 300), (6.0, 6.14, 900)]),
-    ) for shot in story(scene, {"RENDER_TRACKERS": "moment", **env}, "RENDER_TRACKERS_T", beats, 1)]),
     "rest.gif": ((468, 792, 984, 270), [
         ("hud_reference", {"RENDER_REST": "rest"}, "RENDER_REST_T", [0], 800),
         ("hud_reference", {"RENDER_REST": "rest"}, "RENDER_REST_T", times(0.07, 0.63), 1400),
@@ -156,6 +148,10 @@ CLIPS = {
     "map.gif": ((280, 275, 698, 531), [("worldmap_roads", {"RENDER_MAP_WIDE": "1", "RENDER_MAP_TRIP": "zeppelin", **env}, None, [0], 2400)
                                        for env in ({}, {"RENDER_MAP_SERVICES": "1"})]),
 }
+
+# Crest clips played frame by frame on one moving clock (the addon's own animations, timers and rotations), which a
+# shoot.sh still cannot do: rendered with the local clip driver at CLIP_PPU in the crest box and framed by write_clip.
+DRIVEN = ("trackers.gif", "effects.gif")
 
 README_HEADER = """<p align="center">
 <a href="https://github.com/korallis/KstyleUI/releases/latest"><img src="https://img.shields.io/github/v/release/korallis/KstyleUI?label=Download%20the%20latest%20release" alt="Download the latest KstyleUI release from GitHub"></a>
@@ -343,7 +339,6 @@ def write_gif(path, frames, durations):
 def make_clip(name):
     """Render a clip's frames (two at a time) and write it as a GIF on the showcase's forged ground."""
     from concurrent.futures import ThreadPoolExecutor
-    from PIL import Image, ImageDraw
     box, shots = CLIPS[name]
     if name == "map.gif" and not os.environ.get("RENDER_MAP_ART"):
         raise SystemExit("map.gif: set RENDER_MAP_ART to the client's Kalimdor map art")
@@ -354,8 +349,13 @@ def make_clip(name):
         with ThreadPoolExecutor(2) as pool:
             crops += pool.map(lambda job: clip_frame(work, *job, box, False), jobs[1:])
     durations = [FRAME_MS + (hold if i == len(ts) - 1 else 0) for _, _, _, ts, hold in shots for i in range(len(ts))]
+    write_clip(name, crops, durations, round(box[3] * CLIP_WIDTH / box[2]))
+
+
+def write_clip(name, crops, durations, height):
+    """Frame crops on the showcase's forged ground at CLIP_WIDTH and write them as a GIF."""
+    from PIL import Image, ImageDraw
     pad, label = 16, 34
-    height = round(box[3] * CLIP_WIDTH / box[2])
     ground = gradient(CLIP_WIDTH + 2 * pad, height + pad + label, SLAB_TOP, FORGED)
     draw = ImageDraw.Draw(ground)
     gold_rule(draw, ground.width, 0, 2)
