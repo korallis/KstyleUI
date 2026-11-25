@@ -39,7 +39,7 @@ Twenty-four major cooldowns in the sets had no crest piece matched by spell ID w
 | Paladin | Lay on Hands 633 | 1200 s | Row candidate | An instant emergency heal with no buff to time |
 | Paladin | Divine Intervention 19752 | 3600 s | Row candidate | A sacrifice on another player, used once an hour |
 | Priest | Desperate Prayer 13908 | 600 s | Row candidate | An instant emergency heal with no buff to time |
-| Priest | Divine Grace 1277370 | 600 s | Row candidate | Its effect is not confirmed in the live client; it stays on the row until it is |
+| Priest | Divine Grace 1277370 | 600 s | Row candidate | Its effect is not confirmed in the live client; the crest adds nothing for it until it is |
 | Druid | Rebirth 20484 | 1800 s | Row candidate | A resurrection on another player, out of the combat rotation |
 | Rogue | Preparation 14185 | 600 s | Row candidate | Its effect is a reset, which the crest shows on the cooldowns it resets |
 | Rogue | Premeditation 14183 | 120 s | Row candidate | Adds combo points, which the crest's combo pips already show |
@@ -64,7 +64,7 @@ Forty-four procs in the sets had no crest piece. The Cooldown Manager hides 21 o
 | Warrior | Improved Hamstring 12289 | Yes | Deliberately quiet | A passive root chance |
 | Warrior | Improved Shield Bash 12311 | Yes | Deliberately quiet | A passive silence chance |
 | Paladin | Shieldsworn 1328544 | Yes | Deliberately quiet | Hidden by the client; a passive |
-| Paladin | Infusion of Light 426065 | No | Row candidate | Changes a heal the player presses; the button's overlay glow shows it |
+| Paladin | Infusion of Light 426065 | No | Row candidate | Changes a heal the player presses; the button's overlay glow can show it, not yet traced in the live client |
 | Paladin | Redoubt 20127 | No | Deliberately quiet | A passive block chance |
 | Paladin | Unsealed Wrath 1310735 | No | Row candidate | Its trigger is not confirmed in the live client |
 | Hunter | Entrapment 19184 | Yes | Deliberately quiet | A passive root chance |
@@ -91,17 +91,17 @@ Forty-four procs in the sets had no crest piece. The Cooldown Manager hides 21 o
 | Mage | Impact 11103 | Yes | Deliberately quiet | A passive stun chance |
 | Mage | Improved Blizzard 11185 | Yes | Deliberately quiet | A passive slow |
 | Mage | Improved Counterspell 11255 | Yes | Deliberately quiet | A passive silence |
-| Mage | Fingers of Frost 400647 | No | Row candidate | Changes the next frost spell; the button's overlay glow shows it |
+| Mage | Fingers of Frost 400647 | No | Row candidate | Changes the next frost spell; the button's overlay glow can show it, not yet traced in the live client |
 | Mage | Heating Up 400624 | No | Row candidate | The step before a proc, with no button of its own to press |
-| Mage | Missile Barrage 400588 | No | Row candidate | Changes Arcane Missiles; the button's overlay glow shows it |
+| Mage | Missile Barrage 400588 | No | Row candidate | Changes Arcane Missiles; the button's overlay glow can show it, not yet traced in the live client |
 | Warlock | Aftermath 18119 | Yes | Deliberately quiet | A passive daze chance |
-| Warlock | Decimation 440870 | Yes | Deliberately quiet | Hidden by the client; changes Soul Fire, whose button glows |
+| Warlock | Decimation 440870 | Yes | Deliberately quiet | Hidden by the client; changes Soul Fire, whose button's overlay glow can show it, not yet traced in the live client |
 | Warlock | Demonic Brand 1293695 | No | Row candidate | Its trigger is not confirmed in the live client |
 | Warlock | Improved Shadow Bolt 17793 | No | Deliberately quiet | A passive debuff on the target |
 | Warlock | Soul Harvest 437032 | No | Row candidate | Its trigger is not confirmed in the live client |
 | Druid | Improved Starfire 16850 | Yes | Deliberately quiet | Hidden by the client; a passive |
 | Druid | Leader of the Pack 17007 | Yes | Deliberately quiet | A passive party aura |
-| Druid | Eclipse 408248 | No | Row candidate | Changes which spell to press; the buttons' overlay glow shows it |
+| Druid | Eclipse 408248 | No | Row candidate | Changes which spell to press; the buttons' overlay glow can show it, not yet traced in the live client |
 | Druid | Nature's Grace 16880 | No | Deliberately quiet | A passive haste after a critical hit |
 
 ## Conditional racials
