@@ -138,10 +138,28 @@ local function FieldGeometry(emitter, cfg)
 	local width = Plain(frame:GetWidth(), 0)
 	local height = Plain(frame:GetHeight(), 0)
 	local size = cfg.size
-	local x = NextLane(emitter, cfg) * width * FIELD_LANE
+	local lane = NextLane(emitter, cfg)
+	local start = size * FIELD_START
+	if cfg.calmNumbers then
+		local active = emitter.active
+		local level, occupied = 0, true
+		while occupied do
+			occupied = false
+			for i = 1, #active - 1 do
+				local other = active[i]
+				if other.fieldLane == lane and other.fieldLevel == level then
+					level, occupied = level + 1, true
+					break
+				end
+			end
+		end
+		active[#active].fieldLane, active[#active].fieldLevel = lane, level
+		start = start + level * size * FIELD_HEADROOM
+	end
+	local x = lane * width * FIELD_LANE
 	local distance = math.min(cfg.rise, math.max(0, height - size * (FIELD_START + FIELD_HEADROOM)))
 	local down = cfg.direction == "down"
-	return down and "TOP" or "BOTTOM", x, size * FIELD_START * (down and -1 or 1), distance, width * FIELD_ARC, 1
+	return down and "TOP" or "BOTTOM", x, start * (down and -1 or 1), distance, width * FIELD_ARC, 1
 end
 
 local function FrameGeometry(emitter, cfg)
