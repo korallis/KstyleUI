@@ -1,8 +1,7 @@
--- Chores.lua: small switches: no screenshot notice, telling the group about an instance reset, the combat log inside chosen instances, skipping movies, hiding loot or achievement toasts, closing the loot rolls window after a delay, a Train all button, opening containers, unwrapping new mounts and toys, and taking off the costume, food and toy transforms in TRANSFORMS; each touches the game only while its switch is on and undoes only what it did. A hook on LoggingCombat hands the log back to the player once anyone else starts or stops it, and the log's grace keeps its first deadline; a movie skip waits only while Shift was up at its start and no skip setting changed, and without Skip at once only Escape answers the movie's prompt. Train all leaves new professions and pet training to the trainer, and containers open only when the game says they are unlocked and, while warbound ones are left, not warbound. A transform comes off only out of combat while the game shows auras, so one that lands in combat or while auras are secret comes off when combat ends or the restriction lifts.
+-- Chores.lua: small switches: no screenshot notice, telling the group about an instance reset, the combat log inside chosen instances, skipping movies, hiding loot or achievement toasts, closing the loot rolls window after a delay, opening containers, unwrapping new mounts and toys, and taking off the costume, food and toy transforms in TRANSFORMS; each touches the game only while its switch is on and undoes only what it did. A hook on LoggingCombat hands the log back to the player once anyone else starts or stops it, and the log's grace keeps its first deadline; a movie skip waits only while Shift was up at its start and no skip setting changed, and without Skip at once only Escape answers the movie's prompt. Containers open only when the game says they are unlocked and, while warbound ones are left, not warbound. A transform comes off only out of combat while the game shows auras, so one that lands in combat or while auras are secret comes off when combat ends or the restriction lifts.
 local _, ns = ...
 
 local K, L = ns.K, ns.L
-local Widgets, Tokens = K.Widgets, K.Tokens
 
 local OWNER = "QoL.chores"
 local SHOT = "SCREENSHOT_SUCCEEDED"
@@ -19,7 +18,7 @@ local muted, logging, hooked = false, false, false
 local movieToken, rollsToken, logToken, waiting = 0, 0, 0
 local LOG_GRACE = 30
 local toasted, stuck, hooks = {}, {}, {}
-local trainButton, opened, pending
+local opened, pending
 local listening = false
 
 local function Screenshot()
@@ -109,34 +108,6 @@ local function Confirm(movie)
 	if not (ns.running and ns.Get("skipCinematics")) or ns.Get("skipAuto") or ns.Get("skipMode") == (movie and "cinematics" or "movies") then return end
 	if movie and type(MovieFrame.FinishMovie) == "function" then MovieFrame:FinishMovie()
 	elseif not movie and type(CinematicFrame_CancelCinematic) == "function" then CinematicFrame_CancelCinematic() end
-end
-
-local function Trains()
-	local kinds = type(Enum) == "table" and Enum.TrainerType
-	local kind = type(C_Trainer) == "table" and type(kinds) == "table" and ns.Ask(C_Trainer.GetTrainerType)
-	return type(kind) == "number" and kind ~= kinds.Pet
-end
-
-local function Train()
-	if not Trains() or ns.Ask(InCombatLockdown) ~= false or type(GetTrainerServiceInfo) ~= "function" or type(GetTrainerServiceCost) ~= "function" or type(BuyTrainerService) ~= "function" then return end
-	local money = ns.Number(ns.Ask(GetMoney)) or 0
-	for i = ns.Number(ns.Ask(GetNumTrainerServices)) or 0, 1, -1 do
-		local _, kind = GetTrainerServiceInfo(i)
-		local cost, profession = GetTrainerServiceCost(i)
-		if not ns.IsSecret(kind) and kind == "available" and ns.Number(cost) and cost <= money and not (ns.IsSecret(profession) or profession) then
-			BuyTrainerService(i)
-			money = money - cost
-		end
-	end
-end
-
-local function Trainer()
-	local on, parent, anchor = ns.running and ns.Get("trainAll"), ClassTrainerFrame, ClassTrainerTrainButton
-	if on and not trainButton and type(parent) == "table" and type(anchor) == "table" then
-		trainButton = Widgets.Button(parent, { text = L["Train all"], onClick = Train })
-		Widgets.Point(trainButton, "RIGHT", anchor, "LEFT", -Tokens.Size("gapSmall"), 0)
-	end
-	if trainButton then trainButton:SetShown(on and Trains()) end
 end
 
 local function Warbound(id)
@@ -232,7 +203,6 @@ local EVENTS = {
 	{ "announceReset", { CHAT_MSG_SYSTEM = Reset } },
 	{ "autoLog", { PLAYER_ENTERING_WORLD = Check, ZONE_CHANGED_NEW_AREA = Check } },
 	{ "skipCinematics", { PLAY_MOVIE = Movie } },
-	{ "trainAll", { TRAINER_SHOW = function() if C_Timer and type(C_Timer.After) == "function" then C_Timer.After(0, Trainer) else Trainer() end end } },
 	{ "autoOpen", { BAG_UPDATE_DELAYED = Open, LOOT_CLOSED = Open, MAIL_CLOSED = Open, MERCHANT_CLOSED = Open, BANKFRAME_CLOSED = Open, TRADE_CLOSED = Open,
 		AUCTION_HOUSE_CLOSED = Open, GUILDBANKFRAME_CLOSED = Open, PLAYER_REGEN_ENABLED = Open } },
 	{ "autoUnwrap", { NEW_MOUNT_ADDED = Unwrap, NEW_TOY_ADDED = Unwrap } },
@@ -253,12 +223,11 @@ local function Sync()
 		Hook("cinematic", type(CinematicFrame) == "table" and CinematicFrame.closeDialog, function() Confirm(false) end)
 		Hook("movie", MovieFrame, function(_, key) if ns.Ask(GetBindingFromClick, key) == "TOGGLEGAMEMENU" then Confirm(true) end end, "OnKeyUp")
 	end
-	Trainer()
 	if not (ns.running and ns.Get("autoOpen")) then stuck, opened = {}, nil else Open() end
 end
 
 local KEYS = { hideScreenshot = true, announceReset = true, autoLog = true, autoLogWhere = true, skipCinematics = true, skipMode = true, skipDelay = true,
-	autoLogDelay = true, skipAuto = true, hideToasts = true, rollsClose = true, trainAll = true, autoOpen = true, openSkipWarbound = true, autoUnwrap = true }
+	autoLogDelay = true, skipAuto = true, hideToasts = true, rollsClose = true, autoOpen = true, openSkipWarbound = true, autoUnwrap = true }
 
 ns.AddPart({
 	name = "chores",
