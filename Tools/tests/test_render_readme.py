@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
-README = ROOT / "README.md"
+READMES = (ROOT / "README.md", ROOT / "KstyleUI_ActionBars" / "README.md")
 MEDIA = ROOT.joinpath("docs", "media", "readme")
 PKGMETA = ROOT / ".pkgmeta"
 
@@ -27,8 +27,9 @@ R = load()
 
 
 def readme_pictures():
-    """The picture names README.md shows, in order."""
-    return re.findall(r"!\[[^\]]*\]\([^)]*(?:/readme/|/marketing/show_)([a-z0-9_]+)\.(?:jpg|gif)\)", README.read_text(encoding="utf-8"))
+    """The picture names README.md and then the action bars' README show, in order."""
+    text = "".join(path.read_text(encoding="utf-8") for path in READMES)
+    return re.findall(r"!\[[^\]]*\]\([^)]*(?:/readme/|/marketing/show_)([a-z0-9_]+)\.(?:jpg|gif)\)", text)
 
 
 class Helpers(unittest.TestCase):

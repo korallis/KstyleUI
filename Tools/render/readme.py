@@ -4,7 +4,7 @@
     python3 Tools/render/readme.py [--work DIR] [--no-render] [--only NAME ...]
 
 Run it from the repository root with luajit and Google Chrome installed. It renders the scenes into DIR (default
-~/.capy/work/readme-renders), crops them and writes the finished JPEGs to docs/media/readme/, where README.md reads them.
+~/.capy/work/readme-renders), crops them and writes the finished JPEGs to docs/media/readme/, where README.md and KstyleUI_ActionBars/README.md read them.
 In-game Medallions media uses the game_ prefix and is preserved.
 
 The pictures:
