@@ -110,9 +110,11 @@ if not mode or mode == "proc" then
     assert(not b.medProc:IsShown(), "F3: disabling transitions restores the immediate proc exit")
     b:FlashReady()
     assert(W.Near(b.medReady:GetWidth(), K.Widgets.Snap(b.medReady, b:GetWidth() / 0.7)), "F3: disabling transitions restores the previous ready footprint")
+    assert(b.medReady.anim:IsPlaying() and not b.medReady.wash.anim:IsPlaying(), "F3: disabling transitions restores the previous ready flash, without the icon wash")
     K.Options.Write("ActionBars", "procTransitions", true)
     b:FlashReady()
     assert(b.medReady:GetWidth() <= b:GetWidth() * 1.15 and b.medReady:GetWidth() >= b:GetWidth(), "F3: the polished ready flash is at most 1.15 times the slot")
+    assert(b.medReady.wash.anim:IsPlaying(), "F3: the polished ready flash washes the icon")
     assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

@@ -87,6 +87,8 @@ local function ReadyParts(b)
 			flash:SetAlpha(0)
 			wash:SetAlpha(0)
 		end
+		K.Motion.TrackGroup(group, flash.stop)
+		K.Motion.TrackGroup(washes, flash.stop)
 		b.medReady = flash
 	end
 	local polished = ns.Config("procTransitions") == true
@@ -97,6 +99,7 @@ local function ReadyParts(b)
 	flash.wash.fall:SetDuration(fall)
 	flash.rise:SetToAlpha(polished and 0.45 or 1)
 	flash.fall:SetFromAlpha(polished and 0.45 or 1)
+	flash.washed = polished
 	local side = SlotSize(b) * (polished and 1.15 or READY_SHARE)
 	if polished then
 		local snapped = Widgets.Snap(flash, side)
@@ -122,7 +125,9 @@ function Fx.Ready(b)
 	flash.anim:Stop()
 	flash.wash.anim:Stop()
 	flash.anim:Play()
-	flash.wash.anim:Play()
+	if flash.washed then
+		flash.wash.anim:Play()
+	end
 	return true
 end
 
