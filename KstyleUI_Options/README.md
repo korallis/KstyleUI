@@ -15,7 +15,7 @@ Repeated swatches and module mirrors are enumerated in their row. A module mirro
 | Delete profile | Present | Profiles > Delete; active profile is protected | [Profiles source] |
 | Reset profile | Present | Profiles > Reset profile; recovery backup available | [Profiles source] |
 | Assign to specialization / class | Present | Use a profile per specialization: client spec IDs when available, assigned-role fallback otherwise | [Profiles source] |
-| Whole profile import from string | Present | Profiles > Import; decode, checksum, validation, review and backup | [Profiles source] |
+| Whole profile import from string | Present | Profiles > Import accepts full profiles, selected settings and account backups. Invalid input stays editable; a successful account import reports the count, active profile and applied character assignments. Includes decode, checksum, validation, review and backup | [Profiles source] |
 | Whole profile export to string | Present | Profiles > Export; selected text ready to copy | [Profiles source] |
 | Export addon checklist | Present | Share scope > Selected modules; independent toggles, Select all and Clear | [Profiles source] |
 | Import addon checklist | Present | The same Selected modules toggles restrict review and application | [Profiles source] |
