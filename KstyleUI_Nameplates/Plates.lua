@@ -235,16 +235,29 @@ local function Detach(unit)
 		if selected == plate then highlighted[which] = nil end
 	end
 	Unfade(plate.unitFrame)
-	plate.unitFrame = nil
+	plate.unitFrame, plate.boundsTried = nil, nil
+	if plate.fadeTicker then plate.fadeTicker:Cancel(); plate.fadeTicker = nil end
 	plate:ClearUnit()
 end
 
 local function FadeLater(plate, base, unit)
 	LogOnce("late", "Blizzard's UnitFrame was not ready at NAME_PLATE_UNIT_ADDED; the fade waits a frame")
 	C_Timer.After(0, function()
-		if Plates.running and byUnit[unit] == plate and base.UnitFrame then
+		if not Plates.running or byUnit[unit] ~= plate or plate.unitFrame or plate.fadeTicker then return end
+		if base.UnitFrame then
 			plate.unitFrame = base.UnitFrame
 			Fade(base.UnitFrame)
+		elseif type(C_Timer.NewTicker) == "function" then
+			local attempts = 0
+			plate.fadeTicker = C_Timer.NewTicker(0.05, function(ticker)
+				attempts = attempts + 1
+				if Plates.running and byUnit[unit] == plate and base.UnitFrame then
+					plate.unitFrame = base.UnitFrame
+					Fade(base.UnitFrame)
+				elseif attempts < 20 then return end
+				ticker:Cancel()
+				plate.fadeTicker = nil
+			end)
 		end
 	end)
 end
