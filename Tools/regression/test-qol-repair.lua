@@ -105,4 +105,11 @@ do
 	assert(Repairs(env) == "", "auto repair off repairs nothing")
 end
 
+do
+	local env = New({ cost = 9000 })
+	env._repair.money = env.Secret(50000)
+	Visit(env)
+	assert(Repairs(env) == "" and #env._printed == 0, "an unknown balance neither pays nor reports a shortfall")
+end
+
 print("qol repair ok")

@@ -147,6 +147,7 @@ return Common.Run(function()
 	env._group, env._names.party1, env._dead.party1 = true, "Valerin", true
 	env.FireEvent("UNIT_HEALTH", "party1")
 	if round3 then
+		env.C_Container.GetItemCooldown = function() return 0, 0, 1 end
 		env.FireEvent("PLAYER_TARGET_CHANGED")
 		env.Release()
 		local _, slots = ns.MoveFrame()
@@ -155,6 +156,7 @@ return Common.Run(function()
 			if id then slot.bar:SetBarRange(0, LEFT[id][4]); slot.bar:SetBarValue(LEFT[id][3]) end
 		end
 	end
+	if os.getenv("RENDER_QOL_FONT_SCALE") then assert(K.Theme.SetFontScale(tonumber(os.getenv("RENDER_QOL_FONT_SCALE")))) end
 	if round3b then env.FireEvent("GROUP_ROSTER_UPDATE") end
 	if paste then
 		assert(K.Options.Write("QoL", "wayPaste", true) ~= false and K.Options.Write("QoL", "guildCover", true) ~= false)

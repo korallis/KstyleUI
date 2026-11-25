@@ -196,6 +196,12 @@ do
 	local hex = string.format("%02x%02x%02x", math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
 	assert(shows(frame.lines[1]) ~= plain and shows(frame.lines[1]):find(hex, 1, true), "coloured values use the accent")
 	local size, width = select(2, frame.lines[1]:GetFont()), frame:GetWidth()
+	local height = frame:GetHeight()
+	assert(K.Theme.SetFontScale(1.3))
+	env.RunTimers()
+	assert(select(2, frame.lines[1]:GetFont()) > size and frame:GetHeight() > height and frame:GetWidth() > width, "global text size grows the stat rows and their block")
+	assert(K.Theme.SetFontScale(1))
+	env.RunTimers()
 	Q.Write(env, K, "statsScale", 150)
 	assert(select(2, frame.lines[1]:GetFont()) > size and frame:GetWidth() > width, "Stats size grows the text and the block")
 	local list = {}

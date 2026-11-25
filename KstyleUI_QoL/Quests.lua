@@ -11,7 +11,7 @@ local function Active(gossip)
 		if ns.IsSecret(inside) or inside ~= false then return false end
 	end
 	local held = _G[ns.PAUSE_KEYS[ns.Get("questModifier")]]
-	return not (type(held) == "function" and ns.True(held()))
+	return ns.Ask(held) == false
 end
 
 local function OnDetail(_, startItemID)
@@ -22,14 +22,15 @@ local function OnDetail(_, startItemID)
 	if ns.IsSecret(startItemID) or (item and item ~= 0) then
 		return
 	end
-	if ns.True(QuestIsFromAdventureMap()) or ns.True(QuestFlagsPVP()) then
+	if ns.Ask(QuestIsFromAdventureMap) ~= false or ns.Ask(QuestFlagsPVP) ~= false then
 		return
 	end
-	if ns.True(QuestGetAutoAccept()) then
-		if not ns.True(QuestIsFromAreaTrigger()) then
+	local auto = ns.Ask(QuestGetAutoAccept)
+	if auto == true then
+		if ns.Ask(QuestIsFromAreaTrigger) == false then
 			AcknowledgeAutoAcceptQuest()
 		end
-	else
+	elseif auto == false then
 		AcceptQuest()
 	end
 end
@@ -48,8 +49,8 @@ local function OnComplete()
 	if not choices or choices > 1 then
 		return
 	end
-	local money = GetQuestMoneyToGet()
-	if ns.IsSecret(money) or (type(money) == "number" and money > 0) then
+	local money = ns.Number(GetQuestMoneyToGet())
+	if not money or money > 0 then
 		return
 	end
 	GetQuestReward(choices)
@@ -76,37 +77,36 @@ local function OnGreeting()
 end
 
 local function List(fn)
-	local list = type(fn) == "function" and fn()
-	return not ns.IsSecret(list) and type(list) == "table" and list or {}
+	local list = ns.Ask(fn)
+	return type(list) == "table" and list or nil
 end
 
 local function OnGossip()
 	local gossip = C_GossipInfo
 	if not gossip then return end
-	local combat = type(InCombatLockdown) == "function" and InCombatLockdown()
-	if Active(true) and type(gossip.GetOptions) == "function" and type(gossip.SelectOption) == "function"
-		and type(gossip.GetActiveQuests) == "function" and type(gossip.GetAvailableQuests) == "function"
-		and not ns.IsSecret(combat) and combat == false then
+	local quests, solo = Active(), Active(true) and ns.Ask(InCombatLockdown) == false
+	if not (quests or solo) then return end
+	local active, available = List(gossip.GetActiveQuests), List(gossip.GetAvailableQuests)
+	if not active or not available then return end
+	if solo and type(gossip.GetOptions) == "function" and type(gossip.SelectOption) == "function" and #active == 0 and #available == 0 then
 		local options = List(gossip.GetOptions)
-		if #options == 1 and #List(gossip.GetActiveQuests) == 0 and #List(gossip.GetAvailableQuests) == 0 then
+		if options and #options == 1 then
 			local info = options[1]
 			local id = not ns.IsSecret(info) and type(info) == "table" and ns.Number(info.gossipOptionID)
 			if id then gossip.SelectOption(id); return end
 		end
 	end
-	if not Active() then
-		return
-	end
-	for _, info in ipairs(List(gossip.GetActiveQuests)) do
-		local id = type(info) == "table" and ns.Number(info.questID)
+	if not quests then return end
+	for _, info in ipairs(active) do
+		local id = not ns.IsSecret(info) and type(info) == "table" and ns.Number(info.questID)
 		if id and ns.True(info.isComplete) then
 			gossip.SelectActiveQuest(id)
 			return
 		end
 	end
-	for _, info in ipairs(List(gossip.GetAvailableQuests)) do
-		local id = type(info) == "table" and ns.Number(info.questID)
-		if id and not ns.IsSecret(info.isTrivial) and (info.isTrivial ~= true or not ns.Get("ignoreTrivial")) and not ns.True(info.isIgnored) then
+	for _, info in ipairs(available) do
+		local id = not ns.IsSecret(info) and type(info) == "table" and ns.Number(info.questID)
+		if id and not ns.IsSecret(info.isTrivial) and (info.isTrivial ~= true or not ns.Get("ignoreTrivial")) and not ns.IsSecret(info.isIgnored) and not info.isIgnored then
 			gossip.SelectAvailableQuest(id)
 			return
 		end
