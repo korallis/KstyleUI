@@ -21,6 +21,7 @@ Presets.LIST = {
 Presets.VALUES = {
 	lumen = {},
 	dungeon = {
+		["cast.nameSelectedOnly"] = false,
 		["health.height"] = 12,
 		["healthText.show"] = true, ["healthText.size"] = 11, ["healthText.format"] = "percent",
 	},
