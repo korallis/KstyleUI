@@ -1,13 +1,17 @@
-# KstyleUI handoff (2026-11-23)
+# KstyleUI handoff (2026-11-25)
 
 Paste this to a fresh coordinator (or read it yourself) to pick KstyleUI back up. Repo: `korallis/KstyleUI`, default branch `staging`, releases tag `main`. Rules of the repo are in `AGENTS.md` (gate, CRLF/ASCII, Forever API proof, conventions). Coordinator scratch (specs, helpers, the running log) lives on branch `handoff/coordinator-state` under `specs/` (it is gitignored on staging; check it out with `git worktree add ../ks-handoff handoff/coordinator-state`).
 
 ## State of play
 
-- **Released**: v0.3.4.2 hotfix on v0.3.4 (2026-11-23, the crest for every class + Baine's map fixes #784) is the latest tag on `main`; v0.3.3 and hotfix v0.3.3.1 shipped the same day. Posted in #chat with one crest GIF per class. CurseForge/Wago upload automatically from the release workflow; README did not change in v0.3.4, so store descriptions and galleries (01-11) are still current as of v0.3.1.
-- **Baine (Discord)**: missing world map art (only parchment and pins after the zone dance) is unexplained; waiting on his answers (Reveal on? /reload or zone switch fixes it? world map skin off? Questie off?). His minimap double party dot is not KstyleUI (the client draws party blips; KstyleUI never touches them); asked him to test with only KstyleUI on and `/fstack` each dot.
-- **CI**: staging pushes and releases are gated on GitHub-hosted runners (8 Lua shards, `checks.yml`, PR #758). The three self-hosted Macs only run `mac-budgets.yml`, non-blocking CPU-budget monitoring.
-- **Roadmap** (`docs/ROADMAP.md`, mirrored to the Discord roadmap post): v0.3.5 = "the crest, tuned in game" (in-game check fixes, trinkets on the rim, energy tick spark, readable expiring aura timers; #787). Discord roadmap post updates with `gh workflow run release.yml --ref staging -f roadmap=true -f message_ids=1573443520474120352`.
+- **Released**: v0.3.5 (2026-11-25, "the crest comes alive") is the latest tag on `main`. Since v0.3.4: hotfixes v0.3.4.1-v0.3.4.5 (Baine's party defensive indicators, world map art and search, setup errors/cards/lists, aura timer rim, crest forbidden-object errors in combat) and v0.3.5 (#802-#816): every crest icon replaced by effects built into the crest for all nine classes (break-out #811/#812/#815), ten WeakAuras-inspired effects (#807 #808 #810 #813), shared cooldown sigils (#809), trinkets on the rim and runes on the consumables bar (#805), energy tick spark (#803), readable expiring timers with a Warn under setting (#802), no whole-window alpha fades anywhere (#804), RestedXP/loot-roll/Zygor fixes (#806), raid timers (#814: Frames raid keeps 3 debuffs, no timer text). All posted in #chat, including real-code GIFs of every class/form.
+- **Owner rules learned this round**: crest pieces are effects, never icons (memory crest-effects-not-icons); designs get high-fidelity animated mockups (real renders and/or Higgsfield) shown to the owner before building; alpha fades on whole windows/pages break in the Forever client (never add them back).
+- **In flight**: marketing refresh for v0.3.5 (`specs/marketing-refresh-035.md`, retakes every crest picture from the real code with the clip driver on local branch `gif/staging`); then paste store pages after the next release puts images on `main`.
+- **Texture budget**: the crest is at 4,898/4,900 created textures (test-widgets-lazy) and lit-class counts are gated per class at staging's values (~4,9xx-5,1xx). v0.3.6 includes making the crest lighter.
+- **Baine (Discord)**: minimap double party dot still to check when he is in a group (KstyleUI draws no party blips).
+- **CI**: staging pushes and releases are gated on GitHub-hosted runners (8 Lua shards, `checks.yml`). Macs run only `mac-budgets.yml` (non-blocking).
+- **Roadmap** (`docs/ROADMAP.md`, mirrored to Discord via `gh workflow run release.yml --ref staging -f roadmap=true -f message_ids=1573443520474120352`): v0.3.6 = "the crest, tuned in game" (#817).
+- **#chat watcher**: `specs/_watchchat.sh <since-iso>` (background, keyword-filtered); Discord posts with `specs/_dpostn.sh` (now handles mp4 too).
 
 ## Merged since v0.3.2 (for the v0.3.3 notes)
 
