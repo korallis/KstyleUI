@@ -369,7 +369,7 @@ local function AddComponentEvents()
 	componentsAdded = #components
 end
 
-local distanceTicker, ranges
+local distanceTicker, ranges, Poll
 
 local function Plain(value)
 	return not IsSecret(value) and type(value) == "number" and value or nil
@@ -465,6 +465,7 @@ local function OnHighlight(event)
 		end
 	end
 	highlighted.target, highlighted.focus = target, focus
+	Poll()
 	if distanceTicker then CheckDistance() end
 end
 
@@ -519,7 +520,7 @@ local function OnHover()
 end
 
 local RANGE_STEP = 0.25
-local rangeTicker, rangeSpell, hoverOn, worldOn
+local rangeTicker, rangeSpell, hoverOn, worldOn, distanceOn, rangeOn
 
 local function CheckRange()
 	local spell = rangeSpell or ns.Interrupt.spell
@@ -540,17 +541,33 @@ local function CheckRange()
 	end
 end
 
-function Plates.SyncOptions()
-	local distance = Plates.running and Settings.Get("target.distance") or false
-	if distance and not distanceTicker and C_Timer and type(C_Timer.NewTicker) == "function" then
-		ranges = nil
-		K.Events.Register("NameplatesDistance", "SPELLS_CHANGED", OnSpells)
+function Poll()
+	local timer = C_Timer and type(C_Timer.NewTicker) == "function"
+	local distance = distanceOn and highlighted.target ~= nil and timer
+	if distance and not distanceTicker then
 		distanceTicker = C_Timer.NewTicker(RANGE_STEP, CheckDistance)
 	elseif not distance and distanceTicker then
 		distanceTicker:Cancel()
 		distanceTicker = nil
+	end
+	local range = rangeOn and next(byUnit) ~= nil and timer
+	if range and not rangeTicker then
+		rangeTicker = C_Timer.NewTicker(RANGE_STEP, CheckRange)
+	elseif not range and rangeTicker then
+		rangeTicker:Cancel()
+		rangeTicker = nil
+	end
+end
+
+function Plates.SyncOptions()
+	local distance = Plates.running and Settings.Get("target.distance") or false
+	if distance and not distanceOn then
+		ranges = nil
+		K.Events.Register("NameplatesDistance", "SPELLS_CHANGED", OnSpells)
+	elseif not distance and distanceOn then
 		K.Events.Unregister("NameplatesDistance", "SPELLS_CHANGED")
 	end
+	distanceOn = distance
 	local world = Plates.running and not Settings.Get("markers.instances") or false
 	if world ~= (worldOn == true) then
 		worldOn = world
@@ -573,18 +590,16 @@ function Plates.SyncOptions()
 			if hovered then hovered.hovered = nil; hovered:UpdateFill(); hovered = nil end
 		end
 	end
-	local range = Plates.running and Settings.Get("range.fade")
+	local range = Plates.running and Settings.Get("range.fade") or false
 	local named = range and Settings.Get("range.spell") or ""
 	rangeSpell = named ~= "" and ns.Interrupt.NamedSpell(named) or nil
-	if range and not rangeTicker and C_Timer and type(C_Timer.NewTicker) == "function" then
-		rangeTicker = C_Timer.NewTicker(RANGE_STEP, CheckRange)
-	elseif not range and rangeTicker then
-		rangeTicker:Cancel()
-		rangeTicker = nil
+	if not range and rangeOn then
 		for _, plate in pairs(byUnit) do
 			if plate.outOfRange then plate.outOfRange = nil; plate:UpdateAlpha() end
 		end
 	end
+	rangeOn = range
+	Poll()
 end
 
 local function QuestChanged()
@@ -599,10 +614,12 @@ local GLOBAL_EVENTS = {
 	NAME_PLATE_UNIT_ADDED = function(_, unit)
 		UpdateTokens()
 		Attach(unit)
+		Poll()
 	end,
 	NAME_PLATE_UNIT_REMOVED = function(_, unit)
 		Detach(unit)
 		UpdateTokens()
+		Poll()
 	end,
 	RAID_TARGET_UPDATE = ForAll("UpdateRaid"),
 	QUEST_LOG_UPDATE = QuestChanged,

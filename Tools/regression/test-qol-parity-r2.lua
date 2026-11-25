@@ -175,12 +175,15 @@ do
 	assert(x >= 0 and y <= K.Scale.Root():GetTop(), "the stats sit on the screen")
 	env._crit = 20
 	env.FireEvent("COMBAT_RATING_UPDATE")
-	assert(shows(frame.lines[1]):find("20.00%", 1, true), "a rating change refreshes the value")
+	env.RunTimers()
+	assert(shows(frame.lines[1]):find("20.00%", 1, true), "a rating change refreshes the value on the next frame")
 	env._crit = 21
 	env.FireEvent("UNIT_AURA", "player")
+	env.RunTimers()
 	assert(shows(frame.lines[1]):find("21.00%", 1, true), "an aura change refreshes the value")
 	env._crit = env.Secret(30)
 	env.FireEvent("UNIT_AURA", "player")
+	env.RunTimers()
 	assert(shows(frame.lines[1]) == "<secret>" and env.issecretvalue(frame.lines[1]:IsShown()) == false, "a secret value still draws")
 	env._crit = 12.5
 	Q.Write(env, K, "statsShort", true)
@@ -647,9 +650,11 @@ do
 	assert(shows(line):find("125|r", 1, true), "spell power is the lowest school, as the character sheet shows it: " .. shows(line))
 	reads = 0
 	env.FireEvent("UNIT_AURA", "player")
+	env.RunTimers()
 	assert(reads == 0, "percent mode reads no ratings")
 	env.GetSpellBonusDamage = function(school) return school == 3 and env.Secret(1) or 125 end
 	env.FireEvent("UNIT_AURA", "player")
+	env.RunTimers()
 	assert(shows(line) == "", "a restricted school leaves spell power blank rather than wrong")
 	clean(env, K)
 end

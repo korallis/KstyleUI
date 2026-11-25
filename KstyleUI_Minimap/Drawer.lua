@@ -256,6 +256,9 @@ function Drawer.New(column, opts)
 	local panel = CreateFrame("Frame", nil, column.holder)
 	panel:SetFrameStrata("MEDIUM")
 	panel:EnableMouse(true)
+	if not drawer.preview then
+		panel:SetScript("OnLeave", function() drawer:CheckHover() end)
+	end
 	panel:Hide()
 	drawer.chrome = Widgets.Chrome(panel, { shape = "panel", popup = true })
 	drawer.panel = panel
@@ -505,6 +508,13 @@ local function OnShownChanged(button)
 	end
 end
 
+local function OnAddonLeave(button)
+	local drawer = ns.Map and ns.Map.drawer
+	if drawer and drawer.active and drawer.adopted[button] then
+		drawer:CheckHover()
+	end
+end
+
 local function OnAddonClick()
 	local drawer = ns.Map and ns.Map.drawer
 	if drawer and drawer.active and drawer.open and Settings.Get("drawer.autoClose") then
@@ -574,6 +584,7 @@ function Drawer:Adopt(name, button, own)
 		hooksecurefunc(button, "Show", OnShownChanged)
 		hooksecurefunc(button, "Hide", OnShownChanged)
 		button:HookScript("OnClick", OnAddonClick)
+		button:HookScript("OnLeave", OnAddonLeave)
 	end
 	state.tile = K.Skin.Backdrop(button, { shape = "tile", fill = "buttonFill" })
 	Log("collected the minimap button " .. tostring(name) .. " into the drawer")
@@ -685,7 +696,7 @@ function Watch(panel, elapsed)
 	end
 	local toggle = Toggle(drawer.column)
 	if panel:IsMouseOver() or toggle:IsMouseOver() then
-		drawer.graceLeft = HOVER_GRACE
+		panel:SetScript("OnUpdate", nil)
 		return
 	end
 	drawer.graceLeft = drawer.graceLeft - elapsed
@@ -713,6 +724,13 @@ function Drawer:Open()
 	end
 	self.panel:Show()
 	if Settings.Get("drawer.behaviour") == "hover" then
+		self.graceLeft = HOVER_GRACE
+		self.panel:SetScript("OnUpdate", Watch)
+	end
+end
+
+function Drawer:CheckHover()
+	if self.open and Settings.Get("drawer.behaviour") == "hover" then
 		self.graceLeft = HOVER_GRACE
 		self.panel:SetScript("OnUpdate", Watch)
 	end

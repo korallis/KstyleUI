@@ -241,7 +241,7 @@ function Cap.Refresh()
 end
 
 function Cap.Queue()
-	if queued then
+	if queued or not active then
 		return
 	end
 	queued = true

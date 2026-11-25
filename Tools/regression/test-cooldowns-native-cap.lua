@@ -346,6 +346,30 @@ do
 	ns.Data.Count = count
 end
 
+-- Idle-redundant-work finding 72: a stopped cap leaves Blizzard's later layouts alone, whether the path changed or the
+-- module stopped, and the restyled path takes the row again.
+do
+	local env, K, ns, viewer = Boot("reskin")
+	local scans, children = 0, viewer.GetChildren
+	viewer.GetChildren = function(...) scans = scans + 1; return children(...) end
+	local function layouts()
+		scans = 0
+		for _ = 1, 10 do viewer:Layout(); viewer._items[1]:UpdateShownState(); env.RunTimers() end
+		return scans
+	end
+	assert(layouts() == 10, "a running cap scans once a frame for each frame of native layouts: " .. scans)
+	local capped = Chip(ns).text:GetText()
+	K.Options.Write("Cooldowns", "path", "mirror")
+	env.RunTimers()
+	assert(layouts() == 0, "the mirror path's cap scans nothing on 10 native layouts: " .. scans)
+	K.Options.Write("Cooldowns", "path", "reskin")
+	env.RunTimers()
+	assert(layouts() == 10 and Shown(Chip(ns)) and Chip(ns).text:GetText() == capped, "the restyled path caps the row again: " .. scans)
+	K.Modules.Disable("Cooldowns")
+	env.RunTimers()
+	assert(layouts() == 0, "a stopped module's cap scans nothing: " .. scans)
+end
+
 -- The KstyleUI icons path draws its own row; Blizzard's faded viewer keeps every item as it is.
 do
 	local _, _, ns, viewer = Boot("mirror")

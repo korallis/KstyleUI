@@ -219,6 +219,11 @@ local function NewButton(column, name)
 					column.drawer:OnToggleEnter()
 				end
 			end)
+			button:HookScript("OnLeave", function()
+				if column.drawer then
+					column.drawer:CheckHover()
+				end
+			end)
 		elseif name == "tracking" then
 			button.onClick = Column.OpenTracking
 		elseif name == "compartment" then
