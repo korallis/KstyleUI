@@ -72,6 +72,13 @@ for _, level in ipairs({ "full", "calm", "off" }) do
 		assert(cb.medStreak.move._state.Duration[1] == 0.35, "E3: the outcome streak travels for 350 ms")
 		assert(W.LastCall(cb.medStreak.streak, "SetVertexColor")[4] == 0.6, "E3: the streak is capped at 60 percent")
 	end
+	env._units.player.channel = { name = "Arcane Missiles", texture = 136096, start = 1000, finish = 4000, spellID = 5143 }
+	env.FireEvent("UNIT_SPELLCAST_CHANNEL_START", "player")
+	env._time, env._units.player.channel = 1.5, nil
+	env.FireEvent("UNIT_SPELLCAST_CHANNEL_STOP", "player")
+	local r, g, b = cb.text:GetTextColor()
+	local ir, ig, ib = K.Widgets.InkFor(K.Tokens.Color("buttonFill"))
+	assert(r == ir and g == ig and b == ib, "a stopped channel's name must contrast with the empty track during its exit")
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 

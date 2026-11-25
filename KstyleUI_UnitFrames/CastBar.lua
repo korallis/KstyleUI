@@ -1643,6 +1643,8 @@ local HANDLERS = {
 			elseif Outcomes() and cb.castEnd and cb.castEnd > 0 and GetTime() * MS >= cb.castEnd then
 				Land(cb)
 			else
+				EndTimer(cb, 0)
+				Paint(cb, BarColor(cb))
 				Hide(cb)
 			end
 		end
