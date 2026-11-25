@@ -60,8 +60,8 @@ Tools/render/shoot.sh gallery_skins_mail --backdrop                             
 ```
 
 `gallery_skins_trainer` reproduces Rupert Boch's full warlock list with long
-requirements and the money footer at the shared skin text size. Skill rows reserve two
-requirement lines, and the scroll viewport clips the remaining rows above Train.
+requirements and the money footer at the shared skin text size. Skill rows keep Blizzard's
+height and cap their text size so two requirement lines fit, and the scroll viewport clips the remaining rows above Train.
 `RENDER_TRAINER_PROFESSION=1` includes the profession upgrade row above the list.
 
 `scenes/tooltip.lua` lays out a stand-in GameTooltip's lines as the game does (a 10-unit margin, each line pitched by its string height plus the custom line spacing, the padding inward); `hud.lua` uses it for its tooltip, and `tooltip_design.lua` draws the design file's item tooltip with it, so `--crop 2000,640,560,420` matches the design file's own crop at 2 px per unit.

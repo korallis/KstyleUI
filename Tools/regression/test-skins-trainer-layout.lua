@@ -1,4 +1,6 @@
--- test-skins-trainer-layout.lua: the warlock trainer holds wrapped requirements and reserves a separate footer.
+-- test-skins-trainer-layout.lua: the warlock trainer keeps Blizzard's row heights, holds wrapped requirements inside them and reserves a separate footer.
+-- Intent: buying from a trainer must not raise ADDON_ACTION_FORBIDDEN. Blizzard's secure list code calls the list's
+-- row-height function and keeps what it returns, so an addon function there taints the selection the Train click reads.
 local Windows = dofile("Tools/regression/skins_windows.lua")
 local Common = dofile("Tools/render/scenes/_common.lua")
 local S = Windows.S
@@ -32,18 +34,20 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 		local text = row.subText
 		local height = assert(text:GetStringHeight())
 		assert(text:GetTop() - height >= row:GetBottom() + 1,
-			"trainer requirements spill below the row: size the row for two lines and place subText below the name")
+			"trainer requirements spill below the row: size the text so the name and two lines fit the row's own height")
 		assert(text:GetTop() <= row.name:GetBottom() + 0.01, "trainer requirements must clear the skill name")
 	end
 	local function Check()
 		frame.ScrollBox:FullUpdate()
+		assert(frame.ScrollBox:GetView().calculator == nil,
+			"the trainer skin must leave the list's row-height function alone: replacing it taints the Train click")
 		local wrapped = 0
 		frame.ScrollBox:ForEachFrame(function(row)
-			local text = row.subText
+			assert(row:GetHeight() == 47, "trainer skill rows keep Blizzard's row height")
 			Contains(row)
-			if text:GetNumLines() == 2 then wrapped = wrapped + 1 end
+			if row.subText:GetNumLines() == 2 then wrapped = wrapped + 1 end
 		end)
-		assert(wrapped >= 3, "exercise the screenshot's long Demon Skin, Curse of Weakness and Shadow Bolt requirements")
+		assert(wrapped >= 1, "exercise the long Curse of Weakness requirement, which needs two lines")
 		assert(frame.ScrollBox:GetBottom() > frame.TrainButton:GetTop(), "trainer list must stop above the Train button")
 		assert(frame.ScrollBox:GetBottom() > frame.money:GetTop(), "trainer list must stop above the money line")
 		assert(frame.money:GetRight() < frame.TrainButton:GetLeft(), "money and Train button must have separate footer space")
@@ -52,8 +56,6 @@ for _, screen in ipairs({ { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840
 	end
 	assert(ns.Skins.IsApplied("trainer"))
 	Check()
-	assert(frame.ScrollBox:GetView().calculator(1, { GetData = function() return { categoryInfo = {} } end }) == 25,
-		"trainer category rows retain their native extent")
 	for _ = 1, 3 do
 		env.ClassTrainerFrame_Update()
 		S.Show(frame)
