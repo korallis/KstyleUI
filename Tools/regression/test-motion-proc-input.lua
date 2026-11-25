@@ -30,7 +30,13 @@ if not mode or mode == "refresh" then
     K.Options.Write("Medallions", "motion", "calm")
     K.Options.Write("ActionBars", "procTransitions", false)
     local left, right, top, bottom = b.medProc:GetTexCoord()
-    assert(left == 0 and right == 1 and top == 0 and bottom == 1, "F3: switching off transitions must reset the held sprite cell to the legacy full texture")
+    assert(left == 0 and right == 0.25 and top == 0 and bottom == 0.25, "a stationary warlock proc holds one 4x4 cell even without transitions")
+    K.Options.Write("ActionBars", "procTransitions", true)
+    K.Options.Write("Medallions", "motion", "off")
+    ns.Button.SetProc(b, false)
+    assert(not b.medProcFrame.leave:IsPlaying() and not b.medProc:IsShown(), "Motion Off clears a proc without an exit fade")
+    ns.Button.SetProc(b, true)
+    assert(b.medProc:IsVisible() and not b.medProcFrame.enter:IsPlaying() and not b.medProc.anim:IsPlaying(), "Motion Off shows a steady proc immediately")
     assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 
