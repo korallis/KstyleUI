@@ -161,8 +161,8 @@ assert(math.abs(bossView.geometry.panel.h - (bossSlot - 10 - 2)) < 1, "each boss
 -- A font that does not load falls back to KstyleUI's font at the chosen size.
 do
 	local calls = {}
-	local real = player.text.SetFont
-	player.text.SetFont = function(self, path, size, flags)
+	local real = player.label.SetFont
+	player.label.SetFont = function(self, path, size, flags)
 		calls[#calls + 1] = { path, size, flags }
 		if path == "Interface\\Nope.ttf" then
 			return false
@@ -171,8 +171,9 @@ do
 	end
 	K.Options.Write("UnitFrames", "player.fonts.cast.font", "Interface\\Nope.ttf")
 	local last = calls[#calls]
+	assert(calls[1] and calls[1][1] == "Interface\\Nope.ttf", "the cast font is tried before its fallback")
 	assert(last[1] ~= "Interface\\Nope.ttf" and type(last[2]) == "number" and last[2] > 0, "the fallback font keeps a size")
-	player.text.SetFont = nil
+	player.label.SetFont = nil
 	K.Options.Write("UnitFrames", "player.fonts.cast.font", "theme")
 end
 
