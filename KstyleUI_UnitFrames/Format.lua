@@ -185,7 +185,13 @@ function Format.Health(text, unit, format, decimal)
 			end
 		end
 	end
-	Write(text, format, UnitHealth(unit), UnitHealthMax(unit), percent, hasPercent, decimal)
+	if format == "percent" and hasPercent then
+		Write(text, format, nil, nil, percent, true, decimal)
+	elseif format == "current" then
+		Write(text, format, UnitHealth(unit), nil)
+	else
+		Write(text, format, UnitHealth(unit), UnitHealthMax(unit), percent, hasPercent, decimal)
+	end
 end
 
 function Format.Main(format)

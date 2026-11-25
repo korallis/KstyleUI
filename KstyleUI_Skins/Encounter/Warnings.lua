@@ -93,7 +93,10 @@ local function Fade()
 			alpha = a
 		end
 	end
-	plate:SetAlpha(alpha)
+	if plate.lastAlpha ~= alpha then
+		plate:SetAlpha(alpha)
+		plate.lastAlpha = alpha
+	end
 end
 
 local function Restyle(self)

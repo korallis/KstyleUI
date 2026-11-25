@@ -2,6 +2,21 @@
 local M = dofile("Tools/regression/worldmap_env.lua")
 local env, K, R, state, map = M.New()
 
+local countWrites = dofile("Tools/regression/readout_count.lua")
+do
+	assert(R.Pick(R.Search("Chasm")[1]))
+	local writes = countWrites(R.distance, "SetText")
+	local tick = R.panel:GetScript("OnUpdate")
+	for _ = 1, 40 do tick(R.panel, 0.25) end
+	assert(writes() == 0)
+	local x, y = state.playerX, state.playerY
+	state.playerX, state.playerY = state.dungeon.position:GetXY()
+	tick(R.panel, 0.25)
+	assert(writes() == 1 and R.distance:GetText():match("^0 yd"))
+	state.playerX, state.playerY = x, y
+	R.Clear()
+	assert(not R.panel:GetScript("OnUpdate"))
+end
 assert(state.cvar == "1", "entrance filter defaults on")
 state.cvar = "0"
 map:SetMapID(2)

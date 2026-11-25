@@ -1043,7 +1043,12 @@ function Style.Gradient(view)
 	if direction ~= "" and r and texture and texture.SetGradient and CreateColor then
 		local a = s.healthAlpha
 		view.gradient = true
-		texture:SetGradient(direction, CreateColor(r * GRADIENT_SHADE, g * GRADIENT_SHADE, b * GRADIENT_SHADE, a), CreateColor(r, g, b, a))
+		local from, to = view.healthFrom, view.healthTo
+		if not to or to.r ~= r or to.g ~= g or to.b ~= b or to.a ~= a then
+			from, to = CreateColor(r * GRADIENT_SHADE, g * GRADIENT_SHADE, b * GRADIENT_SHADE, a), CreateColor(r, g, b, a)
+			view.healthFrom, view.healthTo = from, to
+		end
+		texture:SetGradient(direction, from, to)
 	elseif view.gradient then
 		view.gradient = nil
 		bar:SetBarColor(unpack(bar.colorRGBA, 1, bar.colorRGBA.n))

@@ -306,6 +306,10 @@ do
 	local function tint() return painted(cross.h) end
 	env._target, env._range[ATTACK], env._range[FIREBALL] = true, false, false
 	env.FireEvent("PLAYER_TARGET_CHANGED")
+	local countWrites = dofile("Tools/regression/readout_count.lua")
+	local formats = countWrites(ns, "RangeText")
+	for _ = 1, 40 do env.RunTickers() end
+	assert(formats() == 0)
 	assert(same(tint(), hostile), "out of reach: the crosshair turns the out-of-range colour")
 	env._range[FIREBALL] = true
 	env.RunTickers()

@@ -11,6 +11,8 @@ local GROUP = "buffs"
 
 local active, queued, chip = false, false, nil
 
+local nativeLayout = 0
+
 local function Side(item)
 	local side = K.Safe.Side(item)
 	local state = side.cap
@@ -57,7 +59,8 @@ end
 
 local function Fold(item)
 	local state = Side(item)
-	state.capped = true
+	if state.capped and state.layout == nativeLayout then return end
+	state.capped, state.layout = true, nativeLayout
 	item:SetAlpha(0)
 	item:SetMouseMotionEnabled(false)
 end
@@ -255,7 +258,10 @@ function Cap.Watch(item)
 		return
 	end
 	state.hooked = true
-	hooksecurefunc(item, "UpdateShownState", Cap.Queue)
+	hooksecurefunc(item, "UpdateShownState", function()
+		state.layout = nil
+		Cap.Queue()
+	end)
 end
 
 function Cap.Start()
@@ -268,7 +274,10 @@ function Cap.Start()
 		side.capHooked = true
 		for _, method in ipairs({ "Layout", "SetTooltipsShown" }) do
 			if type(viewer[method]) == "function" then
-				hooksecurefunc(viewer, method, Cap.Queue)
+				hooksecurefunc(viewer, method, function()
+					nativeLayout = nativeLayout + 1
+					Cap.Queue()
+				end)
 			end
 		end
 	end
