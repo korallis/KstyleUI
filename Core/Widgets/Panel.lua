@@ -1,4 +1,4 @@
--- Panel.lua: the card panel, the quest card's material with an optional title cap (a gilt diamond, the title in caps, a rule that fades right to the one close glyph), and its open and close motion, which the client plays and which never runs in combat.
+-- Panel.lua: the card panel, the quest card's material with an optional title cap (a gilt diamond, the title in caps, a rule that fades right to the one close glyph), and its open rise, which never runs in combat; it opens and closes at once, with no alpha fade.
 local _, ns = ...
 
 local Widgets = ns.Widgets
@@ -9,49 +9,12 @@ local Panel = {}
 local PAD_GAP = "gapMedium"
 local GEM_SIZE, GEM_CENTRE, TEXT_FROM_GEM, RULE_GAP, RULE_ALPHA = 8, 7.4, 11.1, 10, 0.5
 
-local function IsSecret(value)
-	return Widgets.IsSecret(value)
-end
-
 local function TitleBarHeight(panel)
 	return panel.chrome:Inset(PAD_GAP) + Tokens.Size("heading") + Tokens.Size("gapMedium")
 end
 
-local function MayToggle(frame)
-	if not InCombatLockdown() then
-		return true
-	end
-	local protected = frame:IsProtected()
-	if IsSecret(protected) then
-		return false
-	end
-	return not protected
-end
-
-local function Animated()
-	return not InCombatLockdown() and Motion.Fades()
-end
-
-local function Hidden(panel)
-	if MayToggle(panel) then
-		panel:Hide()
-	end
-	panel:SetAlpha(1)
-end
-
-local function AlphaGroup(panel, from, to, duration, smoothing)
-	local group = panel:CreateAnimationGroup()
-	local alpha = group:CreateAnimation("Alpha")
-	alpha:SetFromAlpha(from)
-	alpha:SetToAlpha(to)
-	alpha:SetDuration(duration)
-	alpha:SetSmoothing(smoothing)
-	return group, alpha
-end
-
 local function BuildMotion(panel)
 	local rise = Tokens.Size("panelRise")
-	local duration = Motion.Moment("open")
 	local group = panel:CreateAnimationGroup()
 	local drop = group:CreateAnimation("Translation")
 	drop:SetOffset(0, -rise)
@@ -64,26 +27,9 @@ local function BuildMotion(panel)
 	up:SetOrder(2)
 	panel.rise = group
 	panel.riseParts = { drop, up }
-	panel.fadeIn, panel.fadeInAlpha = AlphaGroup(panel, 0, 1, duration, Tokens.Smoothing.enter)
-	local fadeOut, fadeOutAlpha = AlphaGroup(panel, 1, 0, (Motion.Moment("close")), Tokens.Smoothing.exit)
-	panel.fadeOutAlpha = fadeOutAlpha
-	fadeOut:SetToFinalAlpha(true)
-	fadeOut:SetScript("OnFinished", function()
-		if panel.closing then
-			panel.closing = false
-			Hidden(panel)
-		end
-	end)
-	panel.fadeOut = fadeOut
 	Motion.TrackGroup(group)
-	Motion.TrackGroup(panel.fadeIn)
-	Motion.TrackGroup(fadeOut)
 	panel:HookScript("OnHide", function()
-		panel.closing = false
 		panel.rise:Stop()
-		panel.fadeIn:Stop()
-		panel.fadeOut:Stop()
-		panel:SetAlpha(1)
 	end)
 end
 
@@ -99,51 +45,22 @@ function Panel:SetTitle(text)
 end
 
 function Panel:Open()
-	if self.opts.calmMotion and self.opts.calmMotion() and Animated() then
-		local reopening = self.closing
-		self.closing = false
-		self.fadeOut:Stop()
-		Motion.FadeIn(self)
-		if not reopening and Motion.Slides() then
-			self.rise:Stop()
-			self.rise:Play()
-		end
-		Widgets.Sound("IG_MAINMENU_OPEN")
-		return
-	end
-	self.closing = false
-	self.fadeOut:Stop()
 	self:SetAlpha(1)
 	local shown = self:IsShown()
-	if not IsSecret(shown) and not shown and MayToggle(self) then
+	if not Widgets.IsSecret(shown) and not shown and Widgets.MayMove(self) then
 		self:Show()
 	end
-	if Animated() then
-		self.rise:Stop()
-		if Motion.Slides() then self.rise:Play() end
-		self.fadeIn:Stop()
-		self.fadeInAlpha:SetDuration(Motion.FadeDuration((Motion.Moment("open"))))
-		self.fadeIn:Play()
+	self.rise:Stop()
+	if not InCombatLockdown() and Motion.Slides() then
+		self.rise:Play()
 	end
 	Widgets.Sound("IG_MAINMENU_OPEN")
 end
 
 function Panel:Close()
 	self.rise:Stop()
-	self.fadeIn:Stop()
-	local shown = self:IsShown()
-	if not IsSecret(shown) and shown then
-		if self.opts.calmMotion and self.opts.calmMotion() and Animated() then
-			self.closing = true
-			Motion.FadeOut(self)
-		elseif Animated() then
-			self.closing = true
-			self.fadeOut:Stop()
-			self.fadeOutAlpha:SetDuration(Motion.FadeDuration((Motion.Moment("close"))))
-			self.fadeOut:Play()
-		else
-			Hidden(self)
-		end
+	if Widgets.MayMove(self) then
+		self:Hide()
 	end
 	Widgets.Sound("IG_MAINMENU_CLOSE")
 	local onClose = self.opts.onClose
@@ -154,7 +71,7 @@ end
 
 function Panel:Toggle()
 	local shown = self:IsShown()
-	if not IsSecret(shown) and shown and not self.closing then
+	if not Widgets.IsSecret(shown) and shown then
 		self:Close()
 	else
 		self:Open()

@@ -132,7 +132,7 @@ do
 	local state = ns.SlabStorm.state
 	local seats = state.seats
 	assert(#seats == 3 and state.holder:IsShown() and state.listening, "a shaman who knows any rank gets three orbs over three studs")
-	assert(#state.containers == 4 and state.fed == true, "four aura containers, one for the halo and one per orb, all feeding")
+	assert(#state.containers == 5 and state.fed == true, "five aura containers, one for the halo, one per orb and one for Rising heat, all feeding")
 	for i, s in ipairs(seats) do
 		local options = s.orb:GetParent()._applicationBar[2]
 		assert(options.minApplications == i - 1 and options.maxApplications == i, "orb " .. i .. " fills from " .. (i - 1) .. " to " .. i .. " charges")

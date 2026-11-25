@@ -1,4 +1,4 @@
--- SlabVigil.lua: the priest's crest trackers, registered with SlabTrackers, each on its own switch: Inner Fire as a halo round the inner rim and four flames on gilt studs, five charges each, burning down from the top right as hits spend them (the last flickers and the halo dims while Lua can read the count); Penance, or Mind Blast before it and for a shadow priest, sweeping on the left shoulder medal and flaring when ready; on the right Shadowfiend for a holy or discipline priest, Shadowform for a shadow priest (steel until worn) and in Shadowform your Vampiric Embrace on the target; your Shadow Word: Pain as a shadow gem at the top of the ring (a healer's Prayer of Mending ready from level 40); a healer's shield, Renew and Prayer of Mending on the target in the top medal; a shadow priest's Devouring Plague on the target and Shadow Word: Death ready on the foot perches and Silence ready in a ring socket; a main-hand oil socket while an oil is in the bags or on the weapon; and the major cooldowns burning on the rim. Under Frames Inner Fire is a medal in the row. Aura slots, cooldown duration objects and the engine's shown animations draw every piece, so Lua never reads or compares a secret.
+-- SlabVigil.lua: the priest's crest trackers, registered with SlabTrackers, each on its own switch: Inner Fire as a halo round the inner rim and four flames on gilt studs, five charges each, burning down from the top right as hits spend them (the last flickers and the halo dims while Lua can read the count); Penance's lance of light, or Mind Blast's orb before it and for a shadow priest, charging on the left shoulder and flaring when ready; on the right Shadowfiend's fiend charging for a holy or discipline priest, Shadowform's shroud for a shadow priest (steel until worn) and in Shadowform the crest flooded violet and your Vampiric Embrace's fangs burning down; your Shadow Word: Pain as a shadow gem at the top of the ring (a healer's Prayer of Mending ready from level 40); a healer's shield on the target as a dome of light over the crest and Renew and Prayer of Mending at the feet, each burning down; a shadow priest's Devouring Plague cloud and Shadow Word: Death's reaper blade on the foot perches and Silence ready in a ring socket; a main-hand oil socket while an oil is in the bags or on the weapon; and the major cooldowns burning on the rim. Under Frames Inner Fire is one flame burning down with its charges, and every piece keeps its figure or jewel, never an icon. Aura slots, cooldown duration objects and the engine's shown animations draw every piece, so Lua never reads or compares a secret.
 local _, ns = ...
 local class = UnitClass and select(2, UnitClass("player"))
 if class ~= "PRIEST" and class ~= "DRUID" then
@@ -23,7 +23,7 @@ local DEATH, SILENCE = { 1309636, 1309635, 1309633, 1309595 }, { 15487 }
 local OILS, OILED = { 20744, 20745, 20746, 20747, 20748, 20749, 20750 }, {}
 for _, id in ipairs({ 2623, 2624, 2625, 2626, 2627, 2628, 2629, 2685 }) do OILED[id] = true end
 local FLAMES, PER, CHARGES, DIM = { 315, 225, 135, 45 }, 5, 20, 0.5
-local ORBIT, FLAME, STUD, WELL, PIN = 54, 26, 12, 10, 4
+local ORBIT, FLAME, STUD, WELL, PIN, PERCH, FOOT = 54, 26, 12, 10, 4, 30, 22
 local FLICKER = { { 1, 0.45, 0.06 }, { 0.45, 0.9, 0.05 }, { 0.9, 0.35, 0.07 }, { 0.35, 1, 0.08 } }
 
 local CAST = {}
@@ -33,7 +33,7 @@ local state = {}
 
 local function Fire(parent, spec, level, form)
 	if form == "row" then
-		return Medals.Medal(parent, { feed = "aura", spells = INNER_FIRE, texture = spec.texture, color = "pipPriestGlow", burst = spec.burst, count = true }, level)
+		return Medals.Figure(parent, { feed = "aura", spells = INNER_FIRE, figure = "trackerFlame", charges = CHARGES, burst = spec.burst, bloom = "jewelHoly" }, level)
 	end
 	local r = Medals.Rim(parent, { feed = "aura", spells = INNER_FIRE, ambient = "medAmbientPriest", burst = spec.burst, lua = true }, level)
 	local modes = Enum and Enum.StatusBarInterpolation or {}
@@ -77,10 +77,6 @@ local function Ring(piece, anchor, form, _, n)
 	return n
 end
 
-local function Gem(parent, spec, level, form)
-	return (form == "crest" and Medals.Socket or Medals.Medal)(parent, spec, level)
-end
-
 local function Shadow()
 	return Medals.Known(WEAVING) or Medals.Known(SHADOWFORM)
 end
@@ -91,6 +87,28 @@ end
 
 local function ShadowOnly(spells)
 	return function() return Shadow() and Medals.Known(spells) end
+end
+
+local function Mend(spells, figure, seat, size, bloom)
+	return { key = "crestMend", seat = seat, size = size, build = Medals.Figure, known = Healer(spells == MENDED and MENDING or spells),
+		feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = spells, figure = figure, bloom = bloom,
+		alpha = size > 60 and 0.6 or nil }
+end
+
+local function Flood(parent, spec, level, form)
+	if form == "row" then
+		return Medals.Figure(parent, { feed = "aura", spells = SHADOWFORM, figure = "figureShroud", steady = true, bloom = "schoolShadow" }, level)
+	end
+	local hub = ns.Slab.hub
+	local f = Medals.Piece(parent, level, ns.Slab.RING)
+	local tint = f:CreateTexture(nil, "ARTWORK")
+	tint:SetTexture(hub.crestPath)
+	tint:SetAllPoints(hub.crest)
+	tint:SetVertexColor(K.Tokens.Color("schoolShadow"))
+	tint:SetAlpha(0.45)
+	f.add(Medals.Texture(f, "BACKGROUND", 0, "glow", "schoolShadow", ns.Slab.RING * 1.5, "ADD")):SetAlpha(0.8)
+	f.add(Medals.Texture(f, "OVERLAY", 0, "medRuneGlyphs", "schoolShadow", ns.Slab.RING, "ADD"))
+	return f
 end
 
 local function Oil()
@@ -156,42 +174,42 @@ local function Paint(_, event, _, _, spellID)
 	end
 end
 
-ns.SlabVigil = { Oil = Oil, Ring = Ring, Gem = Gem }
+ns.SlabVigil = { Oil = Oil, Ring = Ring }
 if class ~= "PRIEST" then
 	return
 end
 
 ns.SlabTrackers.Register("PRIEST", {
 	{ key = "crestInnerFire", seat = "rim", feed = "aura", spells = INNER_FIRE, build = Fire, place = Ring },
-	{ key = "crestPenance", seat = "left", feed = "cooldown", choices = {
-		{ known = Healer(PENANCE) },
-		{ known = MIND_BLAST },
+	{ key = "crestPenance", seat = { -62, 40 }, size = PERCH, feed = "cooldown", build = Medals.Figure, choices = {
+		{ known = Healer(PENANCE), figure = "figureLance", bloom = "jewelHoly" },
+		{ known = MIND_BLAST, figure = "figureMindOrb", bloom = "schoolShadow" },
 	} },
-	{ key = "crestShadowfiend", seat = "right", choices = {
-		{ forms = { 28 }, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = EMBRACE, color = "schoolShadow" },
-		{ forms = { 0 }, feed = "aura", spells = SHADOWFORM },
-		{ feed = "cooldown", known = SHADOWFIEND },
+	{ key = "crestShadowfiend", seat = { 62, 40 }, size = PERCH, build = Medals.Figure, choices = {
+		{ forms = { 28 }, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = EMBRACE, figure = "figureFangs", bloom = "plateHostile" },
+		{ forms = { 0 }, feed = "aura", spells = SHADOWFORM, figure = "figureShroud", steady = true, bloom = "schoolShadow" },
+		{ feed = "cooldown", known = SHADOWFIEND, figure = "figureFiend", bloom = "schoolShadow" },
 	} },
-	{ key = "crestPain", seat = "topGem", build = Gem, choices = {
+	{ key = "crestShadowfiend", seat = "rim", known = SHADOWFORM, choices = { { forms = { 28 }, build = Flood } } },
+	{ key = "crestPain", seat = "topGem", build = Medals.Socket, choices = {
 		{ feed = "cooldown", known = Healer(MENDING), color = "white" },
 		{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = PAIN, color = "schoolShadow" },
 	} },
-	{ key = "crestMend", seat = "top", color = "white", known = Healer(SHIELD), feeds = {
-		{ feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = SHIELD, color = "gilt" },
-		{ feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = RENEW, color = "schoolNature" },
-		{ feed = "aura", unit = "target", filter = "HELPFUL|PLAYER", spells = MENDED, color = "white" },
-	} },
-	{ key = "crestPlague", seat = "footLeft", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = PLAGUE,
-		known = ShadowOnly(PLAGUE), color = "schoolShadow" },
-	{ key = "crestDeath", seat = "footRight", size = Medals.FOOT, feed = "cooldown", known = ShadowOnly(DEATH) },
-	{ key = "crestSilence", seat = "lowerLeft", feed = "cooldown", known = SILENCE, color = "schoolShadow", build = Gem },
-	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, texture = 134727, color = "jewelHoly", build = Gem },
-	{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", families = {
-		{ spells = { 10060 } }, { spells = { 14751 } }, { spells = { 586, 9578, 9579, 9592, 10941, 10942 } }, { spells = { 6346 } },
-		{ spells = { 2651 } }, { spells = { 13896, 19271, 19273, 19274, 19275 } }, { spells = { 1277328, 1277327, 1277326, 1277325, 1277324 } },
-		{ spells = { 1277640, 1277639, 1277638, 1277634, 1277462 } },
+	Mend(SHIELD, "figureDome", { 0, 16 }, 116), Mend(RENEW, "figureRenew", { -30, -60 }, FOOT, "schoolNature"), Mend(MENDED, "figureMending", { 30, -60 }, FOOT, "jewelHoly"),
+	{ key = "crestPlague", seat = { -30, -60 }, size = FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = PLAGUE,
+		known = ShadowOnly(PLAGUE), build = Medals.Figure, figure = "figurePlague", bloom = "schoolNature" },
+	{ key = "crestDeath", seat = { 30, -60 }, size = FOOT, feed = "cooldown", known = ShadowOnly(DEATH), build = Medals.Figure, figure = "figureReaper",
+		bloom = "schoolShadow" },
+	{ key = "crestSilence", seat = "lowerLeft", feed = "cooldown", known = SILENCE, color = "schoolShadow", build = Medals.Socket },
+	{ key = "crestOil", seat = "lowerRight", feed = "enchant", slot = "MainHand", known = Oil, color = "jewelHoly", build = Medals.Socket },
+	{ key = "crestCooldowns", seat = "cooldowns", color = "pipPriestGlow", bloom = "pipPriestGlow", families = {
+		{ spells = { 10060 }, sigil = "Infusion" }, { spells = { 14751 }, sigil = "Focus" },
+		{ spells = { 586, 9578, 9579, 9592, 10941, 10942 }, sigil = "Veil" }, { spells = { 6346 }, sigil = "Brave" }, { spells = { 2651 }, sigil = "Moon" },
+		{ spells = { 13896, 19271, 19273, 19274, 19275 }, sigil = "Feedback" }, { spells = { 1277328, 1277327, 1277326, 1277325, 1277324 }, sigil = "Sacrifice" },
+		{ spells = { 1277640, 1277639, 1277638, 1277634, 1277462 }, sigil = "Lifeline" },
 	} },
 }, {
+	figures = true,
 	burst = "medBurstPriest",
 	update = { "BAG_UPDATE_DELAYED", "WEAPON_ENCHANT_CHANGED" },
 	events = { { "UNIT_AURA", "player" }, { "UNIT_SPELLCAST_SUCCEEDED", "player" } },

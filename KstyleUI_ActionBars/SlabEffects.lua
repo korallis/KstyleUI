@@ -13,6 +13,7 @@ local READY, READY_RISE = 0.3, 0.25
 local READY_SHARE = 1 / 0.7
 local CAP_AT = 0.995
 local CAP_LOW, CAP_BREATH, CAP_HALO = 0.55, 1.1, 1.3
+local TIDE_BREATH, TIDE_BAND, TIDE_OUTER, BAND_ALPHA, OUTER_ALPHA = 2.1, 146, 220, 0.5, 0.75
 local PROC_SECONDS, PROC_SHARE = 0.9, 1
 local LEVEL_SECONDS, LEVEL_SHARE = 1.2, 1.6
 local SECONDARY = { PALADIN = "HolyPower" }
@@ -137,6 +138,10 @@ local function CapCurve()
 end
 
 function Fx.PowerType()
+	local driven = ns.SlabGlyphs.Drives()
+	if driven then
+		return driven
+	end
 	if type(UnitPowerType) ~= "function" then
 		return nil
 	end
@@ -171,10 +176,19 @@ local function BuildCap(hub)
 	glyphs:SetBlendMode("ADD")
 	glyphs:SetAllPoints(frame)
 	frame.halo, frame.glyphs = halo, glyphs
+	frame.band = frame.inner:CreateTexture(nil, "ARTWORK")
+	frame.outer = ns.SlabMedals.Layer(frame.inner, math.max(0, hub:GetFrameLevel() - 1)):CreateTexture(nil, "BACKGROUND")
+	for texture, units in pairs({ [frame.band] = TIDE_BAND, [frame.outer] = TIDE_OUTER }) do
+		texture:SetTexture((Effects.Texture(units == TIDE_BAND and "ring" or "lumenShadow", "glow")))
+		texture:SetBlendMode("ADD")
+		Widgets.Size(texture, units, units)
+		Widgets.Point(texture, "CENTER", frame, "CENTER", 0, 0)
+		texture:Hide()
+	end
 	local breath = frame.inner:CreateAnimationGroup()
 	breath:SetLooping("BOUNCE")
-	local a = Fade(breath, 1, CAP_LOW, CAP_BREATH, 1)
-	a:SetSmoothing("IN_OUT")
+	frame.breathing = Fade(breath, 1, CAP_LOW, CAP_BREATH, 1)
+	frame.breathing:SetSmoothing("IN_OUT")
 	frame.breath = breath
 	frame:Hide()
 	cap.frame = frame
@@ -194,6 +208,7 @@ local function HideCap()
 end
 
 function Fx.UpdateCap()
+	ns.SlabGlyphs.Update()
 	local slab = ns.Slab
 	local hub = slab and slab.hub
 	local curve = CapCurve()
@@ -211,8 +226,19 @@ function Fx.UpdateCap()
 	if c then
 		r, g, b = c.r, c.g, c.b
 	end
+	local tr, tg, tb = ns.SlabGlyphs.TideColor(power)
+	if tr then
+		r, g, b = tr, tg, tb
+	end
 	frame.halo:SetVertexColor(r, g, b, 1)
 	frame.glyphs:SetVertexColor(r, g, b, 1)
+	frame.band:SetVertexColor(r, g, b, BAND_ALPHA)
+	frame.outer:SetVertexColor(r, g, b, OUTER_ALPHA)
+	frame.halo:SetShown(not tr)
+	frame.glyphs:SetShown(not tr)
+	frame.band:SetShown(tr ~= nil)
+	frame.outer:SetShown(tr ~= nil)
+	frame.breathing:SetDuration(tr and TIDE_BREATH or CAP_BREATH)
 	cap.power = power
 	Listen(true)
 	frame:SetAlpha(UnitPowerPercent("player", power, false, curve))
@@ -284,4 +310,5 @@ end
 function Fx.Disable()
 	K.Callbacks.Unregister("EffectsLevelChanged", OWNER)
 	HideCap()
+	ns.SlabGlyphs.Update()
 end

@@ -1047,23 +1047,6 @@ local function BuildToolbar()
 	Layout.Register(panel, TOOLBAR_KEY, TOOLBAR_POSITION, { label = L["Layout Mode toolbar"], scalable = true, plate = false, window = true })
 end
 
-local function Fade(_, alpha)
-	overlay:SetAlpha(alpha)
-	grid:SetAlpha(alpha)
-end
-
-local function Gone()
-	overlay:Hide()
-	grid:Hide()
-	slot:Hide()
-	Fade(nil, 1)
-end
-
-local function Smooth(moment, instant)
-	local duration, ease = Motion.Moment(moment)
-	return Motion.OneStyle() and not instant and not InCombatLockdown() and duration or 0, ease
-end
-
 local function Build()
 	if overlay then
 		return
@@ -1104,8 +1087,6 @@ function Mode.Show()
 	Mode.hidden = {}
 	Build()
 	toolbar:Arrange()
-	local alpha = overlay:GetAlpha()
-	local from = Shown(overlay) and IsNumber(alpha) and alpha or 0
 	overlay:Show()
 	overlay:EnableKeyboard(true)
 	overlay:SetPropagateKeyboardInput(true)
@@ -1121,7 +1102,6 @@ function Mode.Show()
 	toolbar:Open()
 	RevealToolbar()
 	PlaceTags()
-	Motion.Tween(overlay, Fade, from, 1, Smooth("open"))
 end
 
 function Mode.Hide(instant)
@@ -1142,13 +1122,14 @@ function Mode.Hide(instant)
 		overlay:SetPropagateKeyboardInput(true)
 		overlay:EnableKeyboard(false)
 	end
-	local duration, ease = Smooth("close", instant)
-	if duration > 0 then
+	if Motion.OneStyle() and not instant and not InCombatLockdown() then
 		toolbar:Close()
 	else
 		toolbar:Hide()
 	end
-	Motion.Tween(overlay, Fade, overlay:GetAlpha(), 0, duration, ease, Gone)
+	overlay:Hide()
+	grid:Hide()
+	slot:Hide()
 end
 
 function Mode.Refresh()

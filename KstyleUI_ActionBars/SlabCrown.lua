@@ -54,6 +54,7 @@ local function Build(hub, class, count)
 			p:Layout(LENGTH * ART)
 			pips[i] = p
 		end
+		pips.heat = ns.SlabHeat.Combo(pips[1].frame, count)
 		state.built[state.key] = pips
 	end
 	state.pips = pips
@@ -85,6 +86,8 @@ local function Fed(hub, kind)
 				Place(hub, p.frame, angles[i])
 			end
 			fed.ring = Ring(fed, hub)
+			ns.SlabHeat.Fed(fed.container, fed.c.filter, fed.options, #angles, fed.feeds)
+			fed.moving = nil
 			fed:SetShown(false)
 		end
 		state.crowns[kind] = fed
@@ -110,6 +113,7 @@ local function Points(event)
 	for _, p in ipairs(state.pips) do
 		p:Set(points, was, moving, idle)
 	end
+	ns.SlabHeat.Set(state.pips.heat, points, moving)
 end
 
 local function OnPower(event, _, token)

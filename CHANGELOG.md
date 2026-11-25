@@ -1,5 +1,59 @@
 # KstyleUI changelog
 
+## v0.3.5 (2026-11-25)
+
+The crest comes alive. No more little icons on the crest: every class's buffs, debuffs, procs and cooldowns are now part of the crest itself, perched in the ring, burning round it as fuses or charging in grooves in the band. Ten new crest effects join them, inspired by the old WeakAuras centre-piece UIs, plus sigils for your cooldowns and your trinkets on the rim. Every piece has its own switch under Action Bars > Slab and cooldowns. Rogues and cat druids also get an energy tick spark, expiring timers stay readable everywhere and windows show at once.
+
+Highlights:
+
+- The crest comes alive: your buffs, procs and cooldowns are part of the crest now, no more little icons.
+- Ten new crest effects, from Unleashed cooldowns and rising heat to a cast ring, kill window and target lock.
+- Your cooldowns light engraved sigils, and on-use trinkets burn their cooldowns round the crest's rim.
+- Rogues and cat druids get an energy tick spark that sweeps the energy bar between ticks.
+- Aura timers about to run out turn a lighter red that stays readable over any scenery, on every frame.
+- Windows and pages show at once, no more invisible windows, plus RestedXP, loot-roll and Zygor fixes.
+
+### The crest
+
+Every class's pieces now live in the crest itself, and under Frames the same pieces stand free in the tracker row.
+
+- Warriors, paladins and rogues: a war horn, weapons perched in the ring, grooves that charge and drain, the Seal's colour on the inner rim, blood with Rupture and a Slice and Dice fuse.
+- Hunters, mages and warlocks: Stings, spells and Curses burn down the ring as fuses, pet and demon health glows along it, mage armor grows as crystals and interrupts cut through as blades.
+- Priests, druids and shamans: figures of light, from Penance's lance and a dome for your shield to a cat's rakes, a bear's roar, an ankh for Reincarnation and a spirit wolf.
+
+Ten new crest effects, inspired by the old WeakAuras centre-piece UIs:
+
+- Unleashed: a major cooldown sets the crest ablaze in your class's fire.
+- Rising heat: each combo point or stack warms the crest a step.
+- Glyph tide: the rune glyphs light from the foot up as your rage, energy, focus or mana fills.
+- Stance mantle: the runes and inner rim take your stance's or form's colour.
+- Cast ring: your cast draws round the crest's edge, flashes when it lands and shakes red when interrupted.
+- Swing ring: a steel line drains inside the crest over each main-hand swing.
+- Global cooldown spark: a white-hot spark runs round the edge once per global cooldown (off by default).
+- Expiring ember: timer rings and sigils glow amber, then red, as they run out.
+- Kill window: Execute or Hammer of Wrath range burns the foot of the inner rim red-hot.
+- Target lock: forged claws close round the crest on a new enemy, and the top gem shows elite, rare or boss.
+
+### Added
+
+- On-use trinkets burn their cooldowns round the crest's cooldown ring, with a jewel that refills and flares when the trinket is ready. Action Bars > Trinkets on the crest.
+- Dark Rune and Demonic Rune get their own slot on the consumables bar, right after mana potions.
+- Energy tick spark for rogues and cat druids: a white line sweeps the energy bar between the two-second ticks, so you can time the next one. Unit Frames > Player > Energy tick.
+
+### Changed
+
+- The crest's cooldown row lights an engraved sigil for each major cooldown, racial and potion you have running, with a ring that drains as it runs. Frames shows the same sigils.
+- Aura timers about to run out turn a lighter red that reads over bright and dark scenery, on the buff bar, nameplates, unit frames and party and raid frames.
+- Unit frames and party and raid frames get their own Warn under setting for when timers turn red.
+
+### Fixed
+
+- With Motion on, every KstyleUI window, Options page, menu, tooltip and skinned Blizzard window shows and hides at once, so none draws half finished or stays invisible.
+- RestedXP's guide configurator rows start their tile where RestedXP's own background starts, so each option's icon no longer covers its text.
+- The loot-roll timer bar sits on whole pixels at every screen size and follows Blizzard's timer if it moves.
+- Zygor's guide window keeps its place and Zygor's action bar no longer errors when RestedXP holds the guide card or the Zygor guide card is off.
+- Raid debuff timers no longer cross the power bar, cover the stack count or run past the tile. Frames raid tiles keep three debuffs and show time left by the swipe.
+
 ## v0.3.4.5 (2026-11-24)
 
 A small hotfix for the crest, which could throw Lua errors in combat.

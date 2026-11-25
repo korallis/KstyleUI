@@ -4,7 +4,7 @@ local Scene = dofile("Tools/render/scene.lua")
 
 local Effects = {}
 
-local STATES = { ready = true, cap = true, levelup = true, cast = true, stopped = true, vignette = true, burst = true, rest = true, jewels = true, hawks = true, storm = true, crest = true }
+local STATES = { ready = true, cap = true, tide = true, mantle = true, levelup = true, cast = true, stopped = true, vignette = true, burst = true, rest = true, jewels = true, hawks = true, storm = true, crest = true, kill = true, lock = true }
 
 -- The crest story RENDER_FX=crest plays: a target at 0 s, the target lost at 4 s (the crest settles), combat at 10 s.
 -- The hub's loops run at each phase's speed, which the harness's clock does not scale, so the story starts each loop
@@ -35,6 +35,10 @@ local STORM = {
 	{ at = 11.5, spell = 26363 },
 }
 
+-- A warrior's stance bar (scenes/_classes.lua) holds Battle, Defensive and Berserker Stance in that order, so the
+-- mantle's form marks its button active, which Frames tints.
+local STANCES = { [17] = 1, [18] = 2, [19] = 3 }
+
 local MANA = { MAGE = true, PRIEST = true, WARLOCK = true, PALADIN = true, SHAMAN = true, DRUID = true }
 
 function Effects.State()
@@ -42,7 +46,7 @@ function Effects.State()
 	if not state or state == "" then
 		return nil
 	end
-	assert(STATES[state], "RENDER_FX must be one of ready, cap, levelup, cast, stopped, vignette, burst, rest, jewels, hawks, storm or crest")
+	assert(STATES[state], "RENDER_FX must be one of ready, cap, tide, mantle, levelup, cast, stopped, vignette, burst, rest, jewels, hawks, storm, crest, kill or lock")
 	local t = tonumber(rawget(_G, "RENDER_FX_T") or os.getenv("RENDER_FX_T") or "")
 	return state, t
 end
@@ -81,7 +85,7 @@ end
 function Effects.Apply(env, module, ns, notes)
 	local state, t = Effects.State()
 	local K = env.KstyleUI
-	if not state or not Medallions(K) then
+	if not state or not (Medallions(K) or state == "kill" or state == "mantle") then
 		return
 	end
 	local E = K.Effects
@@ -103,6 +107,58 @@ function Effects.Apply(env, module, ns, notes)
 			env._power = 1
 			ns.SlabEffects.UpdateCap()
 			notes[#notes + 1] = "fx: the hub ring at a capped resource (power type " .. tostring(env._askedPower) .. "), its alpha the curve's answer"
+		elseif state == "tide" then
+			-- RENDER_TIDE=from,to: the main power moved from one share of its maximum to the other (percent) RENDER_FX_T
+			-- seconds ago (1 when unset), through the addon's own power event; a mana user is in combat, where its tide
+			-- shows. The harness eases the bar as it eases the aura slots' bars (Scene.BarFraction).
+			local from, to = (os.getenv("RENDER_TIDE") or "40,85"):match("^(%d+),(%d+)$")
+			assert(from, "RENDER_TIDE must be from,to in percent, such as 40,85")
+			t = t or 1
+			env._now = env._time - t
+			local kind, token = env.UnitPowerType("player")
+			local most = env.UnitPowerMax("player", kind)
+			local value, power = most * tonumber(from) / 100, env.UnitPower
+			env.UnitPower = function(unit, k)
+				if k == kind then return value end
+				return power(unit, k)
+			end
+			if token == "MANA" then env.SetCombat(true) end
+			Fixtures(env)
+			env._power = tonumber(to) / 100
+			ns.SlabEffects.UpdateCap()
+			local before = value
+			value = most * tonumber(to) / 100
+			env.FireEvent("UNIT_POWER_FREQUENT", "player", token)
+			local eased = ns.SlabGlyphs.tide.eased
+			if eased and E.Allows("flare") then
+				eased._ease = { at = env._now, from = before, to = value }
+			end
+			notes[#notes + 1] = "fx: the glyph tide " .. from .. "% to " .. to .. "% of " .. tostring(token) .. ", " .. t .. " s in"
+		elseif state == "mantle" then
+			-- RENDER_MANTLE=from,to: the form (GetShapeshiftFormID; 0 for none) changed RENDER_FX_T seconds ago (1 when
+			-- unset) through the addon's own UPDATE_SHAPESHIFT_FORM, under either HUD style (Frames tints the active
+			-- stance button); the notch is turned by hand, as the harness draws no Rotation animation.
+			local from, to = (os.getenv("RENDER_MANTLE") or "17,18"):match("^(%d+),(%d+)$")
+			assert(from, "RENDER_MANTLE must be from,to form IDs, such as 17,18")
+			t = t or 1
+			env._now = env._time - t
+			local form = tonumber(from)
+			env.GetShapeshiftFormID = function() return form end
+			ns.SlabEffects.UpdateCap()
+			form = tonumber(to)
+			for i, f in ipairs(env._game and env._game.forms or {}) do
+				f.isActive = STANCES[form] == i
+			end
+			env.FireEvent("UPDATE_SHAPESHIFT_FORM")
+			local m = ns.SlabGlyphs.mantle
+			if m.turn and m.turn._playedAt then
+				local p = math.min(1, t / 0.3)
+				p = 1 - (1 - p) * (1 - p)
+				for _, glyphs in ipairs(ns.SlabGlyphs.band) do
+					glyphs:SetRotation(m.angle + math.rad(ns.SlabGlyphs.NOTCH) * (1 - p))
+				end
+			end
+			notes[#notes + 1] = "fx: the stance mantle from form " .. from .. " to " .. to .. ", " .. t .. " s in"
 		elseif state == "jewels" then
 			-- RENDER_JEWELS=from,to: the crest jewels went from one count to the other RENDER_FX_T seconds ago;
 			-- RENDER_JEWELS_BREATH is how far the ring's breath has run; RENDER_JEWELS_MOTION sets Medallions motion.
@@ -212,6 +268,36 @@ function Effects.Apply(env, module, ns, notes)
 			if hub.sheen.run._playedAt then hub.sheen.run._playedAt = env._time - (at - phase.at) * phase.speed end
 			hub.runes:SetRotation(-math.rad(360 * turn / RUNE_TURN))
 			notes[#notes + 1] = "fx: the crest story " .. at .. " s in: " .. (phase.rest and "at rest" or at >= 10 and "in combat" or "with a target")
+		elseif state == "kill" or state == "lock" then
+			-- A hostile target (RENDER_RANK its classification, elite when unset) at 30% appears 1 s before the crossing; kill
+			-- drops it to 13% RENDER_FX_T seconds ago (1 when unset; a negative time is before the crossing) and samples the
+			-- fade, the wave and the beat there; lock samples the claws RENDER_FX_T seconds after the target (0.12 when unset).
+			Fixtures(env)
+			env.C_SpellBook = env.C_SpellBook or {}
+			local known = env.C_SpellBook.IsSpellKnown or function() return false end
+			env.C_SpellBook.IsSpellKnown = function(id) return id == 20662 or id == 24239 or known(id) end
+			env.UnitCanAttack = function() return true end
+			env.UnitClassification = function() return os.getenv("RENDER_RANK") or "elite" end
+			env._health = 0.3
+			ns.SlabTrackers.Update()
+			env.FireEvent("PLAYER_TARGET_CHANGED")
+			t = t or (state == "kill" and 1 or 0.12)
+			local lock = ns.SlabTarget.lock
+			for _, c in ipairs(lock and lock.claws or {}) do
+				if state == "kill" then c.play:Stop() else Sample(env, c.play, t) end
+			end
+			if state == "kill" and t >= 0 then
+				env._health = 0.13
+				env.FireEvent("UNIT_HEALTH", "target")
+			end
+			for _, k in ipairs(state == "kill" and ns.SlabTarget.kills or {}) do
+				if k:IsVisible() then
+					Sample(env, k.fade.play, math.max(t, 0), k.ripple and k.ripple.play)
+					Sample(env, k.ripple and k.ripple.grow or k.fade.play, math.max(t, 0))
+					Sample(env, k.beat.play, t + 1)
+				end
+			end
+			notes[#notes + 1] = "fx: " .. (state == "kill" and "the kill window " or "the target lock ") .. tostring(t) .. " s in"
 		elseif state == "levelup" then
 			K.Options.Write("Medallions", "motion", "calm")
 			env.FireEvent("PLAYER_LEVEL_UP", 12)

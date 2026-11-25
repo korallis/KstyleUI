@@ -2111,6 +2111,14 @@ local function Option(widget)
 		Skin.Strip(row, { children = RXP_ART })
 		Skin.Backdrop(row, { shape = "tile", fill = "surface", shadow = false })
 	end
+	local panel, back, left = Panel(row), row.configuratorBackground
+	if IsTexture(back) then
+		left = select(4, back:GetPoint(1))
+	end
+	if panel and Plain(left) and left ~= ((panel.inset and panel.inset.left) or 0) then
+		panel.inset = { left = left }
+		panel:Restyle()
+	end
 	Label(widget.text, "body", "textEmphasis")
 	local note = widget.recommendation
 	if IsTable(note) and type(note.SetTextColor) == "function" then

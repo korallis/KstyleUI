@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local L, Tokens, Widgets, Motion = K.L, K.Tokens, K.Widgets, K.Motion
+local L, Tokens, Widgets = K.L, K.Tokens, K.Widgets
 local SecureClick, Plain = ns.SecureClick, ns.Face.Plain
 
 local Micro = {}
@@ -37,7 +37,7 @@ end
 function Micro.Close()
 	if panel and panel:IsShown() then
 		panel:SetScript("OnUpdate", nil)
-		Motion.FadeOut(panel, Tokens.Duration("fade"))
+		panel:Hide()
 	end
 end
 
@@ -105,6 +105,6 @@ function Micro.Toggle(anchor)
 	panel:ClearAllPoints()
 	panel:SetPoint(right and "TOPRIGHT" or "TOPLEFT", anchor, right and "TOPLEFT" or "TOPRIGHT", right and -pad or pad, 0)
 	panel.anchor = anchor
-	Motion.FadeIn(panel, Tokens.Duration("fade"))
+	panel:Show()
 	Micro.CheckHover()
 end

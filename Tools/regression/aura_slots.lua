@@ -8,13 +8,16 @@
 -- Blizzard_AuraContainerShared.lua:108, applied by Blizzard_AuraContainerFrameProviders.lua:84); Slots.Engine still
 -- reaches them. A container feeds nothing until SetEnabled(true). A button plays the groups
 -- AddAuraShownAnimation gave it when its aura appears and stops them when it goes, and restarts the groups
--- AddAuraAssignedAnimation gave it whenever a different aura is assigned (Blizzard_CustomAuraButton.lua:684-691).
+-- AddAuraAssignedAnimation gave it whenever a different aura is assigned (Blizzard_CustomAuraButton.lua:684-691), and
+-- plays the groups AddPandemicActiveAnimation gave it while its aura is in the engine's pandemic window (an aura with
+-- pandemic = true; the engine reads GetRefreshCarryOverDuration, Blizzard_AuraContainerUtil.lua:13-28) and stops them
+-- when it leaves (Blizzard_CustomAuraButton.lua:744-786).
 --
 --   local Slots = dofile("Tools/regression/aura_slots.lua")
 --   Slots.Install(env)                                   -- in an env's setup, before the addon loads
 --   Slots.Set(env, "target", { { id = 7386, count = 3, harmful = true } })   -- feeds every slot; nil clears
 --
--- SetIcon, SetDurationCooldown, SetApplicationCount and SetDurationBar take regions the button owns and show the aura's icon, its stacks above one and its
+-- SetAuraSlotEnabled(key, false) stops a slot reading auras. SetIcon, SetDurationCooldown, SetApplicationCount and SetDurationBar take regions the button owns and show the aura's icon, its stacks above one and its
 -- { start, finish } duration (an aura's start and duration, seconds); AddItemEnchantment's button shows the enchant
 -- Slots.Enchant gives its slot, as Blizzard_CustomAuraContainer.lua:488-507 does. A slot or group sorted by
 -- AuraInstanceIDOnly, Reverse takes the newest matching aura first (the last in the unit's list); AddAuraGroup makes
@@ -53,7 +56,7 @@ local function Feed(env, c)
 		local aura
 		if c._enabled == true and slot.enchant then
 			aura = env._slotEnchants[slot.enchant]
-		elseif c._enabled == true then
+		elseif c._enabled == true and not slot.disabled then
 			for _, a in ipairs(env._slotAuras[c._unit] or {}) do
 				if Matches(a, slot.filter, slot.candidates) then
 					aura = aura and not slot.newest and aura or a
@@ -146,6 +149,13 @@ function Slots.Show(env, c, slot, aura)
 				group:Stop()
 			end
 		end
+		for _, group in ipairs(b._pandemicAnimations or {}) do
+			if not (aura and aura.pandemic) then
+				group:Stop()
+			elseif not group:IsPlaying() then
+				group:Play()
+			end
+		end
 	end
 end
 
@@ -159,15 +169,15 @@ local function Button(env, c, button)
 	button._denied = env._auraDenied
 	-- AddAuraShownAnimation: the engine plays the group when the slot's aura appears and stops it when it goes
 	-- (Blizzard_CustomAuraButton.lua:327-337, 694-705); its animations must target the button or a descendant.
-	for _, kind in ipairs({ "Shown", "Assigned" }) do
+	for kind, field in pairs({ AuraShown = "_shownAnimations", AuraAssigned = "_assignedAnimations", PandemicActive = "_pandemicAnimations" }) do
 		local list = {}
-		button["_" .. kind:lower() .. "Animations"] = list
-		button["AddAura" .. kind .. "Animation"] = function(_, group)
+		button[field] = list
+		button["Add" .. kind .. "Animation"] = function(_, group)
 			Restricted(env)
 			assert(Owns(button, group:GetParent()), "bad object in function call (must be the owner or a direct or indirect descendant of owner)")
 			table.insert(list, group)
 		end
-		button["RemoveAura" .. kind .. "Animation"] = function(_, group)
+		button["Remove" .. kind .. "Animation"] = function(_, group)
 			Restricted(env)
 			for i, added in ipairs(list) do
 				if added == group then
@@ -223,6 +233,17 @@ function Slots.Install(env)
 			Slots.Feed(env, self)
 		end
 		function c.UpdateAllAuras(self) Slots.Feed(env, self) end
+		function c.SetAuraSlotEnabled(self, key, on)
+			self._slots[key].disabled = not on
+			Slots.Feed(env, self)
+		end
+		-- A container with an aura group forbids untrusted layout scripts, so no container without one may anchor to it
+		-- (Blizzard_CustomAuraContainer.lua:317-324).
+		local point = c.SetPoint
+		function c.SetPoint(self, at, other, ...)
+			assert(not (type(other) == "table" and other._forbidLayout and not self._forbidLayout), "anchor target forbids untrusted layout scripts")
+			return point(self, at, other, ...)
+		end
 		function c.AddAuraSlot(self, key, filter, options)
 			assert(type(key) == "string" and key ~= "" and not self._slots[key], "aura slot keys are unique non-empty strings")
 			local button = Button(env, self, create("Frame", nil, self))
@@ -243,7 +264,7 @@ function Slots.Install(env)
 				if options.initializeFrame then options.initializeFrame(button) end
 				group.frames[i], group.slots[i] = button, { frame = button }
 			end
-			self._groups[key] = group
+			self._groups[key], self._forbidLayout = group, true
 			Slots.Feed(env, self)
 		end or nil
 		function c.AddItemEnchantment(self, slot)

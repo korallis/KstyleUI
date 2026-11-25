@@ -309,4 +309,37 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
+-- The timer mirror takes the timer's anchor on the roll (GroupLootFrame.xml 370-374), follows the timer when it is
+-- moved later, and keeps the timer's corner when any part of that anchor is secret (review of #806, findings 2, 3).
+
+do
+	local Geometry = dofile("Tools/regression/geometry.lua")
+	local env, _, ns = S.New()
+	local function Timer(roll)
+		local timer = env.CreateFrame("StatusBar", nil, roll)
+		timer:SetSize(190, 8)
+		timer:SetPoint("BOTTOMLEFT", roll, "BOTTOMLEFT", 3, 2)
+		timer:SetStatusBarTexture("Interface\\PaperDollInfoFrame\\UI-Character-Skills-Bar")
+		return timer
+	end
+	local roll = env.CreateFrame("Frame", nil, env.UIParent)
+	roll:SetSize(277, 67)
+	roll:SetPoint("CENTER")
+	local timer = Timer(roll)
+	local mirror = ns.PartC.MirrorBar(timer, roll, 190, 8)
+	timer:ClearAllPoints()
+	timer:SetPoint("BOTTOMLEFT", roll, "BOTTOMLEFT", 23, 12)
+	local moved = Geometry.Rect(mirror, roll)
+	assert(math.abs(moved.left - 23) < 0.5 and math.abs(moved.bottom - 12) < 0.5, "the mirror follows the timer when it moves (KstyleUI_Skins/PartC/Kit.lua MirrorBar), got " .. moved.left .. ", " .. moved.bottom)
+	for _, n in ipairs({ 1, 2, 3, 4, 5 }) do
+		local secret = Timer(roll)
+		local anchor = { "BOTTOMLEFT", roll, "BOTTOMLEFT", 3, 2 }
+		anchor[n] = env.Secret(anchor[n])
+		secret.GetPoint = function() return unpack(anchor) end
+		local ok, err = pcall(ns.PartC.MirrorBar, secret, roll, 190, 8)
+		assert(ok, "a secret in place " .. n .. " of the timer's anchor keeps the mirror on the timer's corner (KstyleUI_Skins/PartC/Kit.lua MirrorBar): " .. tostring(err))
+	end
+	assert(#env._errors == 0, tostring(env._errors[1]))
+end
+
 print("skins part C loot ok")

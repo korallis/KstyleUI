@@ -36,6 +36,8 @@ local function New(class, opts)
 		return opts.known ~= false and (id == KNOWN[class] or class == "HUNTER" and id == 1293241)
 	end
 	AB.Enable(env, K)
+	-- The crown alone: the glyph tide listens to the main power, and test-actionbars-medallions-glyphs covers it.
+	K.Options.Write("ActionBars", "crestTide", false)
 	env.RunTimers()
 	return env, K, ns
 end

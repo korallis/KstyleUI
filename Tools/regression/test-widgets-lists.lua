@@ -168,6 +168,7 @@ do
 			end
 		end
 	end
+	W.Settle(env)
 	local second = rowFor(2)
 	assert(second:GetHeight() == 60, "a row takes its item's height, got " .. tostring(second:GetHeight()))
 	assert(second._points[1][5] == -24, "and sits under the rows above it")
@@ -195,17 +196,17 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- Rows fade in one after another when new data arrives.
+-- Rows rise into place one after another when new data arrives, always at full alpha.
 do
 	local env, K = W.New()
 	local list = newList(K)
 	list:SetData(items(10))
-	assert(list.rows[1]:GetAlpha() < 1 or list.rows[2]:GetAlpha() < 1, "rows start faded")
+	assert(list.rows[1].lift > 0 and list.rows[1]:GetAlpha() == 1, "rows start a few units low, at full alpha")
 	W.Tick(env, 0.06)
-	assert(list.rows[1]:GetAlpha() > list.rows[3]:GetAlpha(), "the first row leads the third")
+	assert(list.rows[1].lift < list.rows[3].lift, "the first row leads the third")
 	W.Settle(env)
 	for _, row in ipairs(list.rows) do
-		assert(row:GetAlpha() == 1, "every row ends fully shown")
+		assert(row.lift == 0 and row:GetAlpha() == 1, "every row ends in place, fully shown")
 	end
 end
 

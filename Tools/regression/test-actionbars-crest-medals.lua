@@ -130,42 +130,88 @@ end
 
 do
 	env._slotAuras.player = nil
-	local rim = Medals.CooldownRim(parent, { families = { { spells = { 1719 } }, { spells = { 871 } }, { spells = { 12328 } }, { spells = { 20230 } } }, color = "gilt", burst = "medBurstWarrior" }, 5)
+	env._known = { [1719] = true, [871] = true, [12328] = true, [20230] = true, [20572] = true }
+	env.C_SpellBook = { IsSpellKnown = function(id) return env._known[id] == true end }
+	local families = { { spells = { 1719 }, sigil = "Crossed" }, { spells = { 871 }, sigil = "Wall" }, { spells = { 12328 }, sigil = "Skull" },
+		{ spells = { 20230 }, sigil = "Thorns" }, { spells = { 20554 }, sigil = "Tusks" }, { spells = { 20572 }, sigil = "Axe" },
+		{ spells = { 2379 }, known = {}, sigil = "Potion" } }
+	local rim = Medals.CooldownRim(parent, { families = families, color = "gilt", burst = "medBurstWarrior" }, 5)
+	Medals.Place(rim, parent, 0, 0)
 	Medals.Engine({ rim }, true, true)
-	assert(#rim.stack == 3, "three stack buttons made up front")
+	local c, slots = rim.lit.container, 0
+	for key in pairs(c._slots) do slots = slots + (key:find("^sigil") and 1 or 0) end
+	assert(slots == #families and not c._order, "one aura button per family, never a group's batch of ten: " .. slots)
+	local function Art(button)
+		for _, region in ipairs(button._regions) do
+			local t = region._state.Texture and region._state.Texture[1]
+			if type(t) == "string" and t:find("Sigils", 1, true) then return t end
+		end
+	end
+	for i, family in ipairs(families) do
+		local b = rim.sigils[i]
+		assert(Art(b):find(family.sigil .. ".png", 1, true) and not b._icon, family.sigil .. ": the family's own sigil, never the aura's icon")
+	end
+	assert(c._slots.sigil5.disabled and not rim.sigils[5].at, "a racial the character does not have takes no place and reads no aura")
+	local at = {}
+	for i, b in ipairs(rim.sigils) do at[i] = b.at and b.at[1] .. "," .. b.at[2] end
+	assert(at[1] == "-18,-37" and at[2] == "0,-37" and at[3] == "18,-37" and at[4] == "-18,-19" and at[6] == "0,-19" and at[7] == "18,-19",
+		"three to a line below the centre, the next line above: " .. table.concat(at, " ", 1, 4))
+	for i, b in ipairs(rim.sigils) do
+		assert(not b.at or math.abs(b.at[1]) + 7 <= 25 and b.at[2] - 7 >= -44, i .. ": clear of the lower Inner Fire flames (x 32.5 and out) and the feet")
+	end
+	assert(not rim.sigils[1].loop and rim.sigils[1]._regions[1]._state.VertexColor[1] == 0, "a sigil keeps #809's dark shade: the healers' bloom and flash are theirs alone")
 	Slots.Set(env, "player", { { id = 1719, count = 0, icon = 1, start = 0, duration = 15 }, { id = 871, count = 0, icon = 2, start = 0, duration = 10 } })
-	assert(rim.lit:IsShown() and rim.lit:GetParent() and AB.W.LastCall(rim.timer, "SetCooldownFromDurationObject")[1].finish == 10, "the newest cooldown burns on the rim")
-	assert(rim.stack[1]:IsShown() and rim.stack[1].icon._state.Texture[1] == 2 and rim.stack[2].icon._state.Texture[1] == 1 and not rim.stack[3]:IsShown(), "the stack shows each, newest first")
-	Slots.Set(env, "player", { { id = 1719, count = 0, icon = 1, start = 0, duration = 15 }, { id = 871, count = 0, icon = 2, start = 0, duration = 10 }, { id = 12328, count = 0, icon = 3, start = 0, duration = 30 }, { id = 20230, count = 0, icon = 4, start = 0, duration = 15 } })
-	assert(rim.stack[1].icon._state.Texture[1] == 4 and rim.stack[3]:IsShown(), "four up: the three newest show")
+	assert(rim.lit:IsShown() and AB.W.LastCall(rim.timer, "SetCooldownFromDurationObject")[1].finish == 10, "the newest cooldown burns on the rim")
+	assert(rim.sigils[1]:IsShown() and rim.sigils[2]:IsShown() and not rim.sigils[3]:IsShown(), "each running family lights its sigil")
+	assert(AB.W.LastCall(rim.sigils[2].timer, "SetCooldownFromDurationObject")[1].finish == 10, "each sigil's ring drains with its own aura")
+	Slots.Set(env, "player", { { id = 20554, count = 0, start = 0, duration = 10 } })
+	assert(not rim.sigils[5]:IsShown(), "the disabled racial never lights")
 	Slots.Set(env, "player", nil)
-	assert(not rim.lit:IsShown() and not rim.stack[1]:IsShown(), "none up: nothing shows")
+	assert(not rim.lit:IsShown() and not rim.sigils[1]:IsShown(), "none up: nothing shows")
+	local shock = env.CreateFrame("Frame", nil, parent)
+	shock:SetFrameLevel(5 + 16 + 1)
+	assert(rim.sigils[1]:GetFrameLevel() > shock:GetFrameLevel(), "the row draws over a medal-level piece's sweep (the shaman's Shock covers the emblem there)")
 end
 
+-- Under Frames a hunter's sigils and the pet's share one strip, a line of their own: anchored to the piece, never to
+-- an aura container (Forever forbids anchoring to one that has groups), ten to a line.
 do
-	local rim = Medals.CooldownRim(parent, { families = { { spells = { 19574 }, unit = "pet" }, { spells = { 3045 } } }, color = "jewelHawk" }, 5)
+	env._known[3045], env._known[19574], env._known[19263] = true, true, true
+	local families = { { spells = { 3045 }, sigil = "Volley" }, { spells = { 19263 }, sigil = "Deflect" }, { spells = { 20572 }, sigil = "Axe" },
+		{ spells = { 2379 }, known = {}, sigil = "Potion" }, { spells = { 19574 }, unit = "pet", sigil = "Paw" } }
+	local ok, rim = pcall(Medals.CooldownRim, parent, { families = families, color = "jewelHawk" }, 5, "row")
+	assert(ok, "a hunter's cooldowns build under Frames: " .. tostring(rim))
+	Medals.Place(rim, parent, 0, 0)
 	Medals.Engine({ rim }, true, true)
-	assert(#rim.lits == 2 and rim.lits[2].container._unit == "pet" and #rim.stack == 6, "a pet family gets its own slot and row")
+	assert(#rim.lits == 2 and rim.lits[2].container._unit == "pet" and not rim.timer, "the pet's family has its own container, and the row has no rim")
+	for i, b in ipairs(rim.sigils) do
+		assert(b.at and b.at[1] == 14 * (i - 1) and b.at[2] == 0, i .. ": its own place along the strip, the pet's after the player's four")
+		local ring = false
+		for _, region in ipairs(b._regions) do
+			local t = region._state.Texture and region._state.Texture[1]
+			ring = ring or type(t) == "string" and t:find("Ring", 1, true) ~= nil
+		end
+		assert(ring, i .. ": each sigil wears the medals' forged ring")
+	end
+	Slots.Set(env, "pet", { { id = 19574, count = 0, icon = 9, start = 0, duration = 18 } })
+	Slots.Set(env, "player", { { id = 3045, count = 0, icon = 8, start = 0, duration = 15 } })
+	assert(rim.sigils[5]:IsShown() and rim.sigils[1]:IsShown(), "the pet's Bestial Wrath and Rapid Fire light together")
 	local calls = 0
 	rim.lits[2].container.UpdateAllAuras = function() calls = calls + 1 end
 	env.FireEvent("UNIT_PET", "player")
 	assert(calls == 1, "a new pet refreshes the pet slot")
-	Slots.Set(env, "pet", { { id = 19574, count = 0, icon = 9, start = 0, duration = 18 } })
-	assert(rim.lits[2]:IsShown() and not rim.lits[1]:IsShown(), "the pet's cooldown burns on its own")
-	Slots.Set(env, "player", { { id = 3045, count = 0, icon = 8 } })
-	assert(rim.lits[1]:IsShown() and rim.lits[1]:GetFrameLevel() > rim.lits[2]:GetFrameLevel(), "a permanent aura shows steady over the pet's")
 	Slots.Set(env, "pet", nil)
 	Slots.Set(env, "player", nil)
 end
 
 do
 	local rim = Medals.Rim(parent, { feed = "aura", spells = { 2687 }, color = "jewelCombo" }, 5)
-	local cooldowns = Medals.CooldownRim(parent, { families = { { spells = { 1719 } } }, color = "gilt" }, 5)
+	local cooldowns = Medals.CooldownRim(parent, { families = { { spells = { 1719 }, sigil = "Crossed" } }, color = "gilt" }, 5)
 	local emblem, band, outer = 53, 3.5, 75.6
 	assert(rim.timer.units / 2 - band >= emblem - 1 and cooldowns.timer.units / 2 <= 60, "the rings run in the dark between the emblem and the rune band, clear of the emblem's edge")
 	assert(AB.W.LastCall(rim.timer, "SetSwipeTexture")[1]:find("RingLine16", 1, true), "a thin ring band, not a wide arc")
-	local layout = cooldowns.lit.container._groups.stack.layout
-	assert(layout.elementSpacing >= 4 and layout.elementSpacing / layout.elementWidth >= 0.25, "the cooldown icons keep a clear gap between them at every size")
+	Medals.Place(cooldowns, parent, 0, 0)
+	assert(cooldowns.sigils[1].units == 14, "a crest sigil is 14 units, 18 apart: a clear gap at every size")
 	local foot = Medals.Medal(parent, { feed = "aura", spells = { 1 }, color = "gilt", size = Medals.FOOT }, 5)
 	local timed = foot.timer.units
 	for _, seat in ipairs({ "footLeft", "footRight" }) do

@@ -137,6 +137,7 @@ local function Build(hub)
 		s.bolt = add(Medals.Texture(s.strike, "OVERLAY", 0, "stormBolt", "white", BOLT, "ADD"))
 		state.seats[i] = s
 	end
+	ns.SlabHeat.Fed(Container(holder), "HELPFUL", SLOT, CHARGES, state.feeds)
 	state.flicker = Steps(state.seats[1].frame, FLICKER, true)
 	state.holder = holder
 end

@@ -111,9 +111,7 @@ local function Refit()
 	end
 	if Feed.Bare() then
 		Motion.Stop(backdrop.fit, true)
-		backdrop.leaving = false
 		backdrop:Hide()
-		backdrop:SetAlpha(0)
 		return
 	end
 	local tile, gap, inset = Tokens.Size("lootTile"), Tokens.Size("gapSmall"), Inset()
@@ -123,16 +121,10 @@ local function Refit()
 	end
 	local width = math.min(holder:GetWidth(), widest + 2 * inset)
 	local height = count * tile + (count - 1) * gap + 2 * inset
-	local hidden = not (backdrop:IsShown() and backdrop:GetAlpha() > 0)
-	if hidden then
+	if not backdrop:IsShown() then
 		Motion.Stop(backdrop.fit, true)
 		Widgets.Size(backdrop, width, height)
-	end
-	if hidden or backdrop.leaving then
-		backdrop.leaving = false
-		Motion.FadeIn(backdrop, Tokens.Duration("panelOpen"))
-	end
-	if hidden then
+		backdrop:Show()
 		return
 	end
 	local w, h = backdrop:GetSize()
@@ -226,8 +218,7 @@ local function Leave(line)
 	Motion.Tween(line, Place, line.y, line.y + Tokens.Size("gapMedium"), Motion.Slides() and duration or 0, easing)
 	Motion.Tween(line, "SetAlpha", line:GetAlpha(), 0, duration, easing, Retire)
 	if #Feed.lines == 0 then
-		backdrop.leaving = true
-		Motion.FadeOut(backdrop, duration)
+		backdrop:Hide()
 		return
 	end
 	for index, live in ipairs(Feed.lines) do
@@ -343,7 +334,6 @@ local function Build()
 	backdrop = Widgets.Panel(holder, { strata = STRATA, shape = "window" })
 	backdrop:SetFixedFrameStrata(true)
 	Widgets.Point(backdrop, "BOTTOMLEFT", holder, "BOTTOMLEFT", 0, 0)
-	backdrop:SetAlpha(0)
 	backdrop:Hide()
 	holder.Restyle = function()
 		Widgets.Size(holder, width, height)
@@ -366,9 +356,7 @@ local function Clear()
 	end
 	Feed.pending = {}
 	if backdrop then
-		backdrop.leaving = false
 		backdrop:Hide()
-		backdrop:SetAlpha(0)
 	end
 end
 

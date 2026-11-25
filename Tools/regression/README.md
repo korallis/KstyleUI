@@ -200,7 +200,7 @@ To supply all 54 paths, run each of `test-perf.lua` (core), `test-perf-frames.lu
 | Nameplates UNIT_FLAGS while casting | 5.87 | frames/2 | - | 40 |
 | Skins quest card QUEST_LOG_UPDATE, 25 quests | 1308.14 | skins/3 | 1314 (1313.46 rounded up; [44005345315](https://github.com/korallis/KstyleUI/actions/runs/44005345315)) | 8215 |
 | Skins quest card QUEST_LOG_UPDATE, 25 quests, an item button up | 507.91 | skins/4 | 497.91 ([43998377644](https://github.com/korallis/KstyleUI/actions/runs/43998377644)) | 3175 |
-| Tooltips GameTooltip shown for two units of different size: the card resized and its fade played | 186.92 | core/3 | - | 1170 |
+| Tooltips GameTooltip shown for two units of different size: the card resized and shown whole | 186.92 | core/3 | - | 1170 |
 | UnitFrames UNIT_HEALTH | 7.94 | frames/1 | - | 50 |
 | UnitFrames UNIT_HEALTH on the player: loss band, hit flash, spark and low-health curve | 9.13 | frames/2 | - | 60 |
 | UnitFrames UNIT_POWER_UPDATE | 4.42 | frames/2 | - | 25 |

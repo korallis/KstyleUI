@@ -14,23 +14,24 @@ local MINUTES_BAND = 5401
 local HOURS_BAND = 129601
 local MINUTE, HOUR, DAY = 60, 3600, 86400
 
-local made = {}
+local made, inks = {}, {}
 
 function Duration.ExpiringColor(expiring, base)
-	local util, E = C_CurveUtil, Enum
-	if expiring <= 0 or not (util and type(util.CreateColorCurve) == "function" and type(CreateColor) == "function" and E and E.DurationTextBindingProperty and E.LuaCurveType) then
-		return nil
+	local key = type(base) ~= "table" and expiring .. ":" .. (base or "timerText")
+	if key and inks[key] ~= nil then return inks[key] or nil end
+	local util, E, binding = C_CurveUtil, Enum, nil
+	if expiring > 0 and util and type(util.CreateColorCurve) == "function" and type(CreateColor) == "function" and E and E.DurationTextBindingProperty and E.LuaCurveType then
+		local ok, curve = pcall(function()
+			local c = util.CreateColorCurve()
+			c:SetType(E.LuaCurveType.Step)
+			c:AddPoint(0, CreateColor(ns.Tokens.Color("timerExpiring")))
+			c:AddPoint(expiring, type(base) == "table" and CreateColor(base.r, base.g, base.b) or CreateColor(ns.Tokens.Color(base or "timerText")))
+			return c
+		end)
+		binding = ok and { curve = curve, property = E.DurationTextBindingProperty.RemainingDuration } or nil
 	end
-	local ok, curve = pcall(function()
-		local c = util.CreateColorCurve()
-		c:SetType(E.LuaCurveType.Step)
-		c:AddPoint(0, CreateColor(ns.Tokens.Color("hostile")))
-		c:AddPoint(expiring, base and CreateColor(base.r, base.g, base.b) or CreateColor(ns.Tokens.Color("timerText")))
-		return c
-	end)
-	if ok then
-		return { curve = curve, property = E.DurationTextBindingProperty.RemainingDuration }
-	end
+	if key then inks[key] = binding or false end
+	return binding
 end
 
 local function Engine()

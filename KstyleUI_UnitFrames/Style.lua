@@ -5,7 +5,7 @@ local K = KstyleUI
 local Widgets, Tokens = K.Widgets, K.Tokens
 local Settings, Geometry, Indicators, Lumen = ns.Settings, ns.Geometry, ns.Indicators, ns.Lumen
 
-local Style = {}
+local Style = { TICK = 2 }
 ns.Style = Style
 
 local LEVEL_PORTRAIT = 3
@@ -36,7 +36,7 @@ local RULE_ALPHA = 0.55
 local VALUE_GAP = 2
 local SCRIM_SUBLEVEL = -8
 local SCRIM_PAD = { sigil = { 36, 22, 0.5 }, row = { 30, 18, 0.75 }, card = { 30, 3, 0.75 }, slab = { 18, 14, 0.55 } }
-local GLOW_LINE, SPARK_W, FIVE_SECONDS, COST_ALPHA, ABSORB_BAR_ALPHA = 6, 6, 5, 0.6, 0.9
+local GLOW_LINE, SPARK_W, TICK_PIXELS, FIVE_SECONDS, COST_ALPHA, ABSORB_BAR_ALPHA = 6, 6, 2, 5, 0.6, 0.9
 local NUDGE = { name = "name", healthText = "health", healthSub = "health", powerText = "power", levelText = "level", caption = "level", slabLevel = "level" }
 
 local issecretvalue = issecretvalue or function()
@@ -391,25 +391,41 @@ function Style.CostBar(view)
 end
 
 local SPARK_PATH = { RIGHT = { "LEFT", 1, 0 }, LEFT = { "RIGHT", -1, 0 }, UP = { "BOTTOM", 0, 1 }, DOWN = { "TOP", 0, -1 } }
-function Style.Spark(view)
-	local spark = view.manaSpark
+function Style.Spark(view, key)
+	key = key or "manaSpark"
+	local tick = key == "energySpark"
+	local spark = view[key]
 	if not spark then
 		spark = view.power:CreateTexture(nil, "OVERLAY")
-		spark:SetTexture((Tokens.Texture("glow")))
-		spark:SetBlendMode("ADD")
 		spark:Hide()
 		spark.group = spark:CreateAnimationGroup()
 		spark.move = spark.group:CreateAnimation("Translation")
-		spark.move:SetDuration(FIVE_SECONDS)
-		spark.group:SetScript("OnFinished", function() spark:Hide() end)
-		view.manaSpark = spark
+		spark.move:SetDuration(tick and Style.TICK or FIVE_SECONDS)
+		if tick then
+			Widgets.Crisp(spark):SetColorTexture(Widgets.Rgba("white"))
+			spark.group:SetLooping("REPEAT")
+		else
+			spark:SetTexture((Tokens.Texture("glow")))
+			spark:SetBlendMode("ADD")
+			spark.group:SetScript("OnFinished", function() spark:Hide() end)
+		end
+		view[key] = spark
 	end
 	local path = SPARK_PATH[Settings.Value(view.kind, "powerOrientation")] or SPARK_PATH.RIGHT
 	local w, h = view.power.opts.width, view.power.opts.height
+	local across = tick and Widgets.Border(view.power) * TICK_PIXELS or Snap(view, SPARK_W)
 	spark:ClearAllPoints()
-	spark:SetPoint("CENTER", view.power, path[1])
-	spark:SetSize(Snap(view, path[2] ~= 0 and SPARK_W or w), Snap(view, path[2] ~= 0 and h or SPARK_W))
-	spark.move:SetOffset(Snap(view, path[2] * w), Snap(view, path[3] * h))
+	spark:SetSize(path[2] ~= 0 and across or Snap(view, w), path[2] ~= 0 and Snap(view, h) or across)
+	if tick then
+		local g = view.geometry
+		local lead = Snap(view, path[2] ~= 0 and g and g.medal and g.power and math.max(0, g.medal.x + g.medal.w - g.power.x) or 0)
+		local run = Snap(view, path[2] ~= 0 and w or h) - lead - across
+		spark:SetPoint(path[1], view.power, path[1], path[2] > 0 and lead or 0, 0)
+		spark.move:SetOffset(path[2] * run, path[3] * run)
+	else
+		spark:SetPoint("CENTER", view.power, path[1])
+		spark.move:SetOffset(Snap(view, path[2] * w), Snap(view, path[3] * h))
+	end
 	return spark
 end
 
@@ -428,6 +444,7 @@ local function Overlays(view, s)
 	if view.lossBar then Style.LossBar(view) end
 	if view.costBar then Style.CostBar(view) end
 	if view.manaSpark then Style.Spark(view) end
+	if view.energySpark then Style.Spark(view, "energySpark") end
 end
 
 local function PlaceGem(view, gem, rect)

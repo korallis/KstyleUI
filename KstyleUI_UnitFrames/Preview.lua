@@ -440,7 +440,7 @@ local function PaintAuras(frame, view, kind)
 		local room = Widgets.Snap(host, ns.Auras.TimerRoom(kind))
 		local gap = Widgets.Snap(host, Settings.Value(kind, "auraRowGap"))
 		local timers = Settings.Value(kind, "auraTimer") == true
-		local precise = Settings.Value(kind, "auraPrecise") * 60
+		local precise, warn = Settings.Value(kind, "auraPrecise") * 60, Settings.Value(kind, "auraExpiring")
 		host:SetSize(width, math.min(height, rows * (size + room) + (rows - 1) * (spacing + gap)))
 		ns.Auras.Anchor(host, holder, kind, view.geometry.panel.x, view.geometry.aura)
 		host:Show()
@@ -468,6 +468,8 @@ local function PaintAuras(frame, view, kind)
 			ns.Auras.StyleSample(tile, kind, AURA_DISPEL[kept[i]])
 			local exact = AURA_PRECISE[p]
 			tile.timer:SetText(exact and exact[1] < precise and exact[2] or AURA_TIMES[p])
+			local left = tonumber(AURA_TIMES[p]:match("^(%d+)s$"))
+			if left and left < warn then tile.timer:SetTextColor(Tokens.Color("timerExpiring")) end
 			tile.timer:SetShown(timers)
 			local stack = AURA_STACKS[kept[i]]
 			tile.count:SetText(stack or "")

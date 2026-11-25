@@ -373,9 +373,9 @@ function Restore()
 		return
 	end
 	state.original = nil
-	master:SetClampedToScreen(true)
-	master:ClearAllPoints()
 	if original then
+		master:SetClampedToScreen(true)
+		master:ClearAllPoints()
 		for _, point in ipairs(original.points) do
 			master:SetPoint(unpack(point))
 		end

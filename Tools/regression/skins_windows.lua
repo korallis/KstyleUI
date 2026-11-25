@@ -2002,7 +2002,8 @@ function build.loot(env, B)
 	return f, {}
 end
 
--- Group loot rolls (GroupLootFrame.xml:292, 277 by 67), two of them stacked as GroupLootContainer stacks them.
+-- Group loot rolls (GroupLootFrame.xml:292, 277 by 67), two of them stacked as GroupLootContainer stacks them, the
+-- timer at the bottom (370-374) and the roll buttons right of the name (484-493).
 function build.lootrolls(env, B)
 	local rolls = {}
 	local qualities = {}
@@ -2027,7 +2028,8 @@ function build.lootrolls(env, B)
 		icon.Border = B.texture(icon, "OVERLAY")
 		local timer = B.frame("StatusBar", f)
 		f.Timer = timer
-		At(timer, f, 56, 36, 190, 8)
+		Anchor(timer, f, "BOTTOMLEFT", 3, 2)
+		timer:SetSize(190, 8)
 		timer.Background = B.texture(timer, "BACKGROUND")
 		timer:SetStatusBarTexture("Interface\\PaperDollInfoFrame\\UI-Character-Skills-Bar")
 		B.add(timer:GetStatusBarTexture())
@@ -2035,7 +2037,7 @@ function build.lootrolls(env, B)
 		timer:SetMinMaxValues(0, 60000)
 		timer:SetValue(i == 1 and 38000 or 52000)
 		f.LootButtonContainer = B.frame("Frame", f)
-		At(f.LootButtonContainer, f, 56, 46, 190, 18)
+		At(f.LootButtonContainer, f, 202, 7, 72, 18)
 		for n, key in ipairs({ "NeedButton", "GreedButton", "PassButton" }) do
 			local button = B.frame("Button", f.LootButtonContainer)
 			At(button, f.LootButtonContainer, (n - 1) * 24, 0, 18, 18)

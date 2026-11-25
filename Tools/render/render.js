@@ -684,13 +684,15 @@
 		const cx = dest.w / 2, cy = dest.h / 2;
 		const radius = Math.hypot(dest.w, dest.h);
 		// The dark part is what is still on cooldown. It starts at 12 o'clock and unwinds clockwise, so the
-		// remaining sector runs from the current hand back to 12 o'clock.
+		// remaining sector runs from the current hand back to 12 o'clock; reversed, the swipe is the elapsed sector
+		// from 12 o'clock to the hand, as CooldownFrame_SetDisplayAsPercentage fills a reversed progress ring.
 		const remaining = item.fraction;
 		const start = -Math.PI / 2;
+		const hand = start + Math.PI * 2 * (1 - remaining);
 		let from, to;
 		if (item.reverse) {
 			from = start;
-			to = start + Math.PI * 2 * remaining;
+			to = hand;
 		} else {
 			from = start + Math.PI * 2 * (1 - remaining);
 			to = start + Math.PI * 2;
@@ -706,7 +708,10 @@
 		if (item.file) {
 			const img = await loadImage(url(base, item.file));
 			if (img) {
-				lctx.globalCompositeOperation = "destination-in";
+				// A white swipe shows its texture's own colours, as the client tints the swipe by its colour; other tints
+				// stay flat, the harness's long-standing reading of the ring art.
+				const white = item.color[0] === 1 && item.color[1] === 1 && item.color[2] === 1;
+				lctx.globalCompositeOperation = white && item.drawSwipe !== false ? "source-in" : "destination-in";
 				lctx.drawImage(img, 0, 0, dest.w, dest.h);
 				lctx.globalCompositeOperation = "source-over";
 			}
@@ -715,9 +720,20 @@
 		ctx.globalAlpha = Math.min(1, item.alpha);
 		ctx.drawImage(layer, dest.x, dest.y);
 		ctx.restore();
-		if (item.edge && remaining > 0 && remaining < 1) {
+		const edgeArt = item.edge && remaining > 0 && remaining < 1 && item.edgeFile && await loadImage(url(base, item.edgeFile));
+		if (edgeArt) {
+			// An edge with its own art (a ring's bead head): the art centred on the ring at the hand, its x axis along
+			// the tangent, drawn additively. The client's own placement of edge art waits on an in-game check.
+			const round = Math.min(dest.w, dest.h), side = round * 0.22 * (item.edgeScale === undefined ? 1 : item.edgeScale);
+			ctx.save();
+			ctx.globalAlpha = Math.min(1, item.alpha);
+			ctx.globalCompositeOperation = "lighter";
+			ctx.translate(dest.x + cx + Math.cos(hand) * round * 0.4825, dest.y + cy + Math.sin(hand) * round * 0.4825);
+			ctx.rotate(hand + Math.PI / 2);
+			ctx.drawImage(edgeArt, -side / 2, -side / 2, side, side);
+			ctx.restore();
+		} else if (item.edge && remaining > 0 && remaining < 1) {
 			// The client draws the sweep's edge as a lit line from the centre out along the moving hand.
-			const hand = item.reverse ? to : from;
 			ctx.save();
 			ctx.beginPath();
 			ctx.rect(dest.x, dest.y, dest.w, dest.h);

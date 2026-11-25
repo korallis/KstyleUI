@@ -110,6 +110,31 @@ do
 	env.RunTimers()
 	assert(fire.hasAction and not earth.hasAction and earth.rune:IsShown() and not fire.rune:IsShown(), "a chosen totem shows its icon; an empty slot shows the element's rune")
 	assert(state.wolf:IsShown() and state.wolf:GetAttribute("spell") == 2645 and state.call:GetAttribute("spell") == 66842, "Ghost Wolf and Call of the Elements are medals")
+	local function Framed(frame, found)
+		for _, region in ipairs(frame._regions or {}) do
+			local t = region._state and region._state.Texture and region._state.Texture[1]
+			if type(t) == "number" or type(t) == "string" and (t:find("Enamel", 1, true) or t:find("Ring128", 1, true) or t:find("Ring256", 1, true)) then
+				found[#found + 1] = tostring(t)
+			end
+		end
+		for _, child in ipairs(frame._kids or {}) do
+			Framed(child, found)
+		end
+		return found
+	end
+	assert(#Framed(state.wolf, {}) == 0 and #Framed(state.call, {}) == 0 and #state.call.runes == 4, "the medals are a spirit wolf and four element runes, with no spell icon and no round medal frame: " .. table.concat(Framed(state.wolf, Framed(state.call, {})), ", "))
+	local function Art(frame, name)
+		for _, region in ipairs(frame._regions) do
+			local t = region._state.Texture and tostring(region._state.Texture[1])
+			if t and t:find(name, 1, true) then return region end
+		end
+	end
+	assert(Art(state.wolf, "Figures\\Wolf"), "Ghost Wolf's medal is the spirit wolf figure")
+	assert(Art(state.wolf, "Glow") and Art(state.call, "Glow"), "a dark shade backs each medal, so the wolf's face and the runes read against the crest")
+	assert(Art(state.wolf.spirit, "Ring.png") and not Art(state.wolf.spirit, "Glow"), "wolf form rings the medal; no glow fills the wolf's face")
+	for _, rune in ipairs(state.call.runes) do
+		assert(rune:GetWidth() >= 0.44 * state.call:GetWidth(), "each element rune is almost half the medal, legible at 1080")
+	end
 
 	-- Drop a totem: the socket casts its action.
 	AB.Click(env, fire, "LeftButton", false)

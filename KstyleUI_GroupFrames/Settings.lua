@@ -85,7 +85,7 @@ Settings.defaults = {
 	auras = {
 		enabled = true, onlyMine = false, sort = "", typeLetters = true, stacks = true, timers = false, filter = "ALL", swipe = true, dispelHighlight = true, dispelFilter = "PLAYER",
 		magic = true, curse = true, poison = true, disease = true, bleed = true, lasting = true, dispelAlpha = 0.16, dispelLines = 2,
-		zoom = 0.07, tooltips = true, typeMode = "HIDE", source = "ANY", canApply = false, timerSize = 0, dispelUnder = false,
+		zoom = 0.07, tooltips = true, typeMode = "HIDE", source = "ANY", canApply = false, timerSize = 0, expiring = 5, dispelUnder = false,
 		zoomEach = false, bossZoom = 0.07, tipCursor = false, countX = 0, countY = 0, timerX = 0, timerY = 0,
 		priority1 = "DISPEL", priority2 = "BOSS", priority3 = "IMPORTANT", priority4 = "OTHER", glow = true,
 		tipCombat = true, textOutline = "OUTLINE",
@@ -701,8 +701,8 @@ function Settings.Schema(includeText)
 		add(Toggle("auras.typeLetters", L["Debuff type letters"], L["Adds M, C, D, P or E when the game knows the debuff type. Off keeps the usual border."]))
 		add(Toggle("auras.stacks", L["Stacks"], L["Shows how many times a debuff has stacked."]))
 		add(Toggle("auras.timers", L["Time left"], L["Shows the time left on each aura."]))
-		add(Slider("auras.timerSize", L["Time left size"], L["The size of the time left; 0 sizes it to the icon."], 0, 24, 1))
-		schema[#schema].showWhen = Is("auras.timers", true)
+		add(Slider("auras.timerSize", L["Time left size"], L["The size of the time left; 0 sizes it to the icon."], 0, 24, 1, Is("auras.timers", true)))
+		add(Slider("auras.expiring", L["Warn under"], L["Seconds left when a timer turns red. 0 turns the warning off."], 0, 30, 1, Is("auras.timers", true)))
 		add(Dropdown("auras.filter", L["Which debuffs"], L["All debuffs, the ones raid frames show, the ones you can dispel, or one kind."], AURA_FILTER))
 		K.Options.AuraFilterRows(schema, "auras", { dispellable = false, disableWhen = Is("auras.enabled", false) })
 		add(Dropdown("auras.source", L["Debuffs from"], L["Debuffs from anyone, only from enemies, or only from players and their pets."], SOURCE, { disableWhen = Is("auras.enabled", false) }))

@@ -144,7 +144,7 @@ local function Off(region, units)
 	return units ~= 0 and Widgets.Snap(region, units) or 0
 end
 
-local function StyleTexts(count, timer, style)
+local function StyleTexts(count, timer, style, inked)
 	local path, size, flags = unpack(style)
 	local countSize = style.auraCountSize
 	for _, text in ipairs({ count, timer }) do
@@ -152,7 +152,7 @@ local function StyleTexts(count, timer, style)
 		if not Widgets.ApplyFont(text, path, own, flags) then
 			Widgets.ApplyFont(text, (Tokens.Font("number")), own, flags)
 		end
-		pcall(text.SetTextColor, text, Tokens.Color("textEmphasis"))
+		if not (inked and text == timer) then pcall(text.SetTextColor, text, Tokens.Color("textEmphasis")) end
 	end
 end
 
@@ -371,7 +371,7 @@ local function StyleButton(view, entry, style)
 	Auras.LayoutTile(entry)
 	Auras.Zoom(entry, view.kind, view.s.auraTooltips == false)
 	PlaceCount(entry.count, entry.skin, style)
-	StyleTexts(entry.count, entry.timer, style)
+	StyleTexts(entry.count, entry.timer, style, entry.ink and view.auras.ink)
 	Auras.PlaceTimer(entry.timer, entry.skin, view.kind, entry.badge, style)
 	entry.timer:SetShown(style.timer)
 	entry.badge:SetShown(not style.below and style.timer == true)
@@ -414,10 +414,10 @@ function Auras.Spacing(kind)
 end
 
 function Auras.Precise(view, entry)
-	local f = view.auras.formatter
-	if entry.precise ~= f then
-		entry.precise = f
-		entry.button:SetDurationText(entry.timer, f and { textFormatter = f } or nil)
+	local f, ink = view.auras.formatter, view.auras.ink
+	if entry.precise ~= f or entry.ink ~= ink then
+		entry.precise, entry.ink = f, ink
+		entry.button:SetDurationText(entry.timer, { textFormatter = f, textColor = ink })
 	end
 end
 
@@ -1018,7 +1018,7 @@ function Auras.Apply(view)
 	end
 	a.container:SetEnabled(want and true or false)
 	if a.buff and not want then a.buff.container:SetEnabled(false) end
-	a.assist, a.formatter = nil, Formatter(Value(view, "auraPrecise"))
+	a.assist, a.formatter, a.ink = nil, Formatter(Value(view, "auraPrecise")), Widgets.Duration.ExpiringColor(Value(view, "auraExpiring"), "textEmphasis")
 	local fan = ns.Fan.Apply(view, Active(view))
 	if want then
 		K.Call(ApplyContainer, view, fan)

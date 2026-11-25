@@ -1,4 +1,4 @@
--- aura_fixture_engine.lua: native aura filtering, sorting, binding (a timer formats with its textFormatter), dispel edges (aura.dispel, aura.stealable) and flow layout (a group starts its new line groupLineSpacing below the last, 0 unless set, as the engine's defaults) at the test boundary; fixtures stay outside addon Lua.
+-- aura_fixture_engine.lua: native aura filtering, sorting, binding (a timer formats with its textFormatter and takes its textColor step curve's colour), dispel edges (aura.dispel, aura.stealable) and flow layout (a group starts its new line groupLineSpacing below the last, 0 unless set, as the engine's defaults) at the test boundary; fixtures stay outside addon Lua.
 local Engine = {}
 local GAME = { Magic = { 0.2, 0.6, 1 }, Curse = { 0.6, 0, 1 }, Disease = { 0.6, 0.4, 0 }, Poison = { 0, 0.6, 0 }, Bleed = { 0.8, 0.1, 0.1 } }
 -- CustomAsset textures stay white unless a custom colour map tints them (Blizzard_CustomAuraButton.lua, ApplyDispelTypeTextureStyle).
@@ -61,6 +61,7 @@ function Engine.Refresh(env)
 					local timer = bindings.SetDurationText
 					local f = timer and timer[2] and timer[2].textFormatter
 					if timer then timer[1]:SetText(env.Secret(f and f:Format(aura.left) or aura.left .. "s")) end
+					Engine.Ink(bindings, aura.left)
 					if bindings.SetApplicationCount then bindings.SetApplicationCount[1]:SetText(env.Secret(aura.count or "")) end
 					if bindings.SetDurationCooldown then bindings.SetDurationCooldown[1]:SetCooldown(env._time - 4, aura.left + 4) end
 					if bindings.AddPandemicRegion then bindings.AddPandemicRegion[1]:SetShown(aura.pandemic == true) end
@@ -102,6 +103,16 @@ function Engine.Refresh(env)
 	end
 	env._restricted = restricted
 	env._refreshingAuraFixtures = false
+end
+
+-- Ink(bindings, seconds) colours a bound timer as the engine's step colour curve does at that many seconds left.
+function Engine.Ink(bindings, seconds)
+	local timer = bindings.SetDurationText
+	local ink = timer and timer[2] and timer[2].textColor
+	if not (ink and seconds) then return end
+	local color
+	for _, point in ipairs(ink.curve.points) do if seconds >= point[1] then color = point[2] end end
+	timer[1]:SetTextColor(color.r, color.g, color.b)
 end
 
 function Engine.Install(env)

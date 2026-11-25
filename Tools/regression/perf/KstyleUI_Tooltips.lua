@@ -5,7 +5,7 @@ local SIZES = { { 260, 110 }, { 380, 160 } }
 
 return {
 	{
-		name = "Tooltips GameTooltip shown for two units of different size: the card resized and its fade played",
+		name = "Tooltips GameTooltip shown for two units of different size: the card resized and shown whole",
 		budget = 1170,
 		calls = 50,
 		setup = function()
@@ -16,7 +16,6 @@ return {
 			env.RunTimers()
 			local tip = env.GameTooltip
 			local glass = ns.Style.Glass(tip)
-			local fade = ns.Style.Fade(tip)
 			local root = K.Scale.Root()
 			tip:ClearAllPoints()
 			tip:SetPoint("BOTTOMRIGHT", root, "BOTTOMRIGHT", -120, 240)
@@ -33,7 +32,7 @@ return {
 			end
 			show()
 			show()
-			assert(fade and fade:IsPlaying(), "the cost fixture plays the fade")
+			assert(tip:IsShown() and tip:GetAlpha() == 1, "the cost fixture shows the tooltip whole")
 			return env, show
 		end,
 	},

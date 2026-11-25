@@ -44,7 +44,7 @@ local CLASS_NAMES = {
 	PALADIN = "Paladin", PRIEST = "Priest", ROGUE = "Rogue", SHAMAN = "Shaman", WARLOCK = "Warlock", WARRIOR = "Warrior", EVOKER = "Evoker",
 }
 
-Slab.RING, Slab.MARGIN, Slab.STRATA = RING, MARGIN, STRATA
+Slab.RING, Slab.MARGIN, Slab.STRATA, Slab.RUNE_TURN = RING, MARGIN, STRATA, RUNE_TURN
 
 local state = { combat = false, built = false, class = nil, procs = {} }
 
@@ -200,16 +200,20 @@ local function Fade(g, from, to, duration, order, delay)
 	end
 	return a
 end
-Slab.Fade = Fade
+Slab.Fade, Slab.Group = Fade, Group
 
-local function Grow(g, from, to, duration, order)
+local function Grow(g, from, to, duration, order, smoothing)
 	local s = g:CreateAnimation("Scale")
 	s:SetScaleFrom(from, from)
 	s:SetScaleTo(to, to)
 	s:SetDuration(duration)
 	s:SetOrder(order or 1)
+	if smoothing then
+		s:SetSmoothing(smoothing)
+	end
 	return s
 end
+Slab.Grow = Grow
 
 local function Flipbook(g, cells, duration)
 	local f = g:CreateAnimation("FlipBook")
@@ -751,6 +755,7 @@ local function Hide()
 	ns.SlabHawks.Update()
 	ns.SlabStorm.Update()
 	ns.SlabTrackers.Update()
+	ns.SlabTarget.Update()
 	ns.SlabCrown.Update()
 	ns.Totems.Update()
 end
@@ -843,6 +848,7 @@ function Slab.Refresh()
 	ns.SlabHawks.Update()
 	ns.SlabStorm.Update()
 	ns.SlabTrackers.Update()
+	ns.SlabTarget.Update()
 	ns.SlabCrown.Update()
 	ns.Totems.Update()
 	if ns.Travel then ns.Travel.Refresh() end

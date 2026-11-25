@@ -1,4 +1,4 @@
--- ScrollList.lua: the virtualised list, with recycled rows of one height or each its own, eased scrolling, a short bounce at either end and staggered row fades.
+-- ScrollList.lua: the virtualised list, with recycled rows of one height or each its own, eased scrolling, a short bounce at either end and rows that rise into place one after another, always at full alpha.
 local _, ns = ...
 
 local Widgets = ns.Widgets
@@ -184,7 +184,7 @@ function List:Refresh(force)
 			item = nil
 		end
 		if item ~= nil then
-			local y = Widgets.Snap(self, offset - ItemTop(self, index))
+			local y = Widgets.Snap(self, offset - ItemTop(self, index) - (row.lift or 0))
 			row:SetPoint("TOPLEFT", self.view, "TOPLEFT", 0, y)
 			row:SetPoint("TOPRIGHT", self.view, "TOPRIGHT", 0, y)
 			if force or row.index ~= index then
@@ -288,8 +288,9 @@ local function Reveal(self, t)
 		stagger = min(stagger, max(0, self.revealLimit - fade) / max(1, #self.rows - 1))
 	end
 	for i, row in ipairs(self.rows) do
-		row:SetAlpha(min(1, max(0, (t - (i - 1) * stagger) / fade)))
+		row.lift = Tokens.Size("panelRise") * (1 - min(1, max(0, (t - (i - 1) * stagger) / fade)))
 	end
+	self:Refresh()
 end
 
 function List:SetData(items, keepOffset, cascade)
@@ -304,7 +305,7 @@ function List:SetData(items, keepOffset, cascade)
 	Motion.Tween(self, "SetOffset", offset, offset, 0)
 	if cascade == false then
 		Motion.Tween(self, Reveal, math.huge, math.huge, 0)
-	elseif not keepOffset and self.opts.stagger ~= false then
+	elseif not keepOffset and self.opts.stagger ~= false and Motion.Slides() then
 		local total = (#self.rows - 1) * Tokens.Duration("listStagger") + Tokens.Duration("fade")
 		total = self.revealLimit and min(total, self.revealLimit) or total
 		Motion.Tween(self, Reveal, 0, total, total, "linear")

@@ -68,6 +68,7 @@ local COLORS = {
 	textEmphasis = { "f2f5f8", 1 },
 	textHover = { "ffffff", 1 },
 	timerText = { "e3e7ec", 1 },
+	timerExpiring = { "ff7060", 1 },
 	textDisabled = { "6f7d8a", 1 },
 	rare = { "4fc3ff", 1 },
 	epic = { "b67cff", 1 },
@@ -152,6 +153,7 @@ local COLORS = {
 	totemAir = { "b79cff", 1 },
 	totemCore = { "fff4dc", 1 },
 	totemSpirit = { "8fd8ff", 1 },
+	mantleTravel = { "2ec4b6", 1 },
 	jewelStormCore = { "e3f3ff", 1 },
 	medGunLit = { "50555d", 1 },
 	medGunDark = { "0e0f12", 1 },
@@ -504,6 +506,29 @@ for _, kind in ipairs({ "", "Steel", "Core", "Glow" }) do
 end
 for _, element in ipairs({ "Earth", "Fire", "Water", "Air" }) do
 	TEXTURES["totemRune" .. element] = { file = "Textures\\Totems\\Rune" .. element .. ".png" }
+end
+for _, name in ipairs({
+	"Aegis", "Arcane", "Axe", "Bark", "Bolt", "Brave", "Bubble", "Bulwark", "Crossed", "Crystal", "Curse", "Dash", "Deflect",
+	"Drop", "Evade", "Eye", "Fang", "Farseer", "Feedback", "Flame", "Flurry", "Focus", "Gear", "Ghost", "Grave", "Hand", "Heart",
+	"Horns", "Hourglass", "Infusion", "Innervate", "Lifeline", "Mend", "Moon", "Paw", "Potion", "Regen", "Roots", "Rush",
+	"Sacrifice", "Shade", "Shatter", "Skull", "Smoke", "Star", "Stone", "Sun", "Sweep", "Swift", "Thorns", "Tusks", "Veil", "Voice",
+	"Void", "Volley", "Vortex", "Wall", "Wing"
+}) do
+	TEXTURES["sigil" .. name] = { file = "Textures\\Sigils\\" .. name .. ".png" }
+end
+for _, name in ipairs({
+	"Ankh", "Bud", "Charge", "Dome", "Faerie", "Fangs", "Fiend", "Growl", "Growth", "Lance", "Mending", "MindOrb", "Moon", "Plague",
+	"Rake", "Reaper", "Renew", "Rip", "Roar", "Shock", "Shroud", "Sprout", "Strike", "Swarm", "Tide", "Wolf"
+}) do
+	TEXTURES["figure" .. name] = { file = "Textures\\Figures\\" .. name .. ".png" }
+end
+for _, name in ipairs({
+	"ArcLeft", "ArcPet", "ArcRight", "ArmorArcane", "ArmorFrost", "Bail", "BlackArrow", "Burst", "ChillShard", "Claws",
+	"Coil", "Counter", "Crescents", "Drop", "Edge", "Elements", "Eye", "Facet", "Fangs", "FireTongue", "Frost", "Hawk",
+	"Hook", "Horns", "Hourglass", "Imp", "Intellect", "Leaf", "MarkReticle", "Pack", "Paw", "PolyCurl", "RimLeft",
+	"Serpent", "Siphon", "Succubus", "Swirl", "Tear", "Tongue", "Voidwalker", "Weakness", "Wing"
+}) do
+	TEXTURES["glyph" .. name] = { file = "Textures\\Glyphs\\" .. name .. ".png" }
 end
 
 local RGBA = {}

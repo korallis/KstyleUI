@@ -24,6 +24,7 @@ local function New(class, known, opts)
 			e.C_Spell.GetSpellCooldownDuration = function(id) return { start = 0, finish = e._cooling[id] and 10 or 0 } end
 			e.C_Spell.GetSpellTexture = function(id) return 100000 + id end
 			e.GetInventoryItemID = function(_, slot) return e._items and e._items[slot] end
+			e.C_DurationUtil = { CreateDuration = function() return { SetTimeFromStart = function(d, start, duration) d.start, d.duration = start, duration end } end }
 			e._slotGroups = true
 		Slots.Install(e)
 		e.AuraContainerSortMethod, e.AuraContainerSortDirection = { Default = 0, AuraInstanceIDOnly = 8 }, { Normal = 0, Reverse = 1 }
@@ -55,7 +56,12 @@ local function Pieces(ns, form)
 	return shown, f
 end
 
-local function Lit(p) return p.lit:IsShown() end
+local function Lit(p)
+	for _, lit in ipairs(p.lits or { p.lit }) do
+		if lit:IsShown() then return true end
+	end
+	return false
+end
 
 local function Seat(ns, p)
 	local hub = ns.Slab.hub
@@ -77,11 +83,11 @@ do
 	local shown = Pieces(ns)
 	assert(shown[1] and not shown[2] and not shown[3], "a fresh warrior has the shout medal and nothing else")
 	local x, y = Seat(ns, shown[1])
-	assert(x < -40 and y > 20, "the shout sits on the left shoulder")
+	assert(x < -40 and y > 0 and y < 10, "the horn hangs on the ring's inner left side")
 	assert(not Lit(shown[1]), "no shout: steel")
 	Slots.Set(env, "player", { { id = 6673, count = 0, icon = 132333, start = 0, duration = 120, mine = false } })
 	assert(Lit(shown[1]), "anyone's Battle Shout lights the medal")
-	assert(AB.W.LastCall(shown[1].timer, "SetCooldownFromDurationObject"), "and drains its ring")
+	assert(AB.W.LastCall(shown[1].lit.bar, "SetTimerDuration"), "and drains its horn")
 	Clean(env, K, "fresh warrior")
 end
 
@@ -95,13 +101,14 @@ do
 	assert(not Lit(shown[2]), "no strike usable: steel")
 	env._usable[11585] = true
 	env.FireEvent("SPELL_UPDATE_USABLE")
-	assert(Lit(shown[2]) and shown[2].lit.icon._state.Texture[1] == 100000 + 11585, "Overpower usable lights it with its icon")
+	local function Drawn() return AB.W.LastCall(shown[2].lit.mask, "SetTexture")[1]:match("(%a+)%.png$") end
+	assert(Lit(shown[2]) and Drawn() == "Sword", "Overpower usable draws a sword")
 	env._usable[20662] = true
 	env.FireEvent("SPELL_UPDATE_USABLE")
-	assert(shown[2].lit.icon._state.Texture[1] == 100000 + 20662, "Execute takes priority")
+	assert(Drawn() == "Axe", "Execute takes priority with its axe")
 	env._cooling[20662] = true
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
-	assert(shown[2].lit.icon._state.Texture[1] == 100000 + 11585, "a strike on cooldown stays dark")
+	assert(Drawn() == "Sword", "a strike on cooldown stays dark")
 	local rim = shown[3]
 	local rx, ry = Seat(ns, rim)
 	assert(math.abs(rx) < 1 and math.abs(ry) < 1 and rim.fire, "Enrage burns round the crest's centre")
@@ -111,7 +118,7 @@ do
 	ns.SlabMedals.Rest()
 	assert(rim.fire:GetAlpha() == (ns.Slab.Resting() and 0 or 1), "the fire follows the crest's rest")
 	assert(Updating(ns.SlabTrackers.state.forms.crest.frame) == 0, "nothing runs OnUpdate")
-	for _, key in ipairs({ "crestShout", "crestOpening", "crestEnrage", "crestCooldowns", "crestThreat", "crestHipLeft", "crestHipRight", "crestFootLeft", "crestFootRight", "crestTankGlow" }) do
+	for _, key in ipairs({ "crestShout", "crestOpening", "crestEnrage", "crestCooldowns", "crestThreat", "crestHipLeft", "crestHipRight", "crestFootLeft", "crestFootRight", "crestTankGlow", "crestKill", "crestSwing" }) do
 		K.Options.Write("ActionBars", key, false)
 	end
 	env.RunTimers()
@@ -126,7 +133,7 @@ end
 
 -- A paladin: Seal, Judgement, the judged target and the jewels.
 do
-	local env, K, ns = New("PALADIN", { 20154, 20271, 20049 })
+	local env, K, ns = New("PALADIN", { 20154, 20165, 20271, 20049 })
 	local shown = Pieces(ns)
 	assert(shown[2] and shown[3] and shown[4], "Seal, Judgement and the judged target")
 	local _, sy = Seat(ns, shown[2])
@@ -134,10 +141,10 @@ do
 	local tx = Seat(ns, shown[4])
 	assert(sy > 80 and jx < -40 and tx > 40, "the Seal above, Judgement left, the target right")
 	Slots.Set(env, "player", { { id = 20154, count = 0, icon = 135960, start = 0, duration = 30 } })
-	assert(Lit(shown[2]) and shown[2].lit.icon._state.Texture[1] == 135960, "the Seal lights with its own icon")
+	assert(#shown[2].lits == 2 and shown[2].lits[1]:IsShown() and not shown[2].lits[2]:IsShown(), "the Seal of Righteousness lights its own colour, not Light's; only the schools it knows are built")
 	env._cooling[20271] = true
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
-	assert(AB.W.LastCall(shown[3].timer, "SetCooldownFromDurationObject"), "Judgement's cooldown sweeps")
+	assert(AB.W.LastCall(shown[3].timer, "SetCooldownFromDurationObject") and AB.W.LastCall(shown[3].bar, "SetTimerDuration"), "Judgement's hammer charges over its cooldown")
 	assert(shown[4].lit.container._unit == "target", "the judged medal watches the target")
 	Slots.Set(env, "target", { { id = 20185, count = 0, harmful = true, mine = true, start = 0, duration = 10 } })
 	assert(Lit(shown[4]), "your Judgement on the target lights it")
@@ -175,20 +182,24 @@ do
 	assert(vx < -30 and vy < -20, "the main-hand vial sits on the lower left of the ring")
 	ns.SlabMedals.Engine({ shown[3] }, true, true)
 	Slots.Enchant(env, 1, { start = 0, duration = 1800 })
-	assert(Lit(shown[3]) and AB.W.LastCall(shown[3].bar, "SetTimerDuration"), "a poison fills the vial and drains it")
+	assert(Lit(shown[3]) and AB.W.LastCall(shown[3].lit.bar, "SetTimerDuration"), "a poison fills the vial and drains it")
 	env._items = { [16] = 2092, [17] = 2092 }
 	env.FireEvent("PLAYER_EQUIPMENT_CHANGED", 17)
 	assert(Pieces(ns)[4], "an off-hand item brings the second vial")
 	Clean(env, K, "rogue")
 end
 
--- Major cooldowns: the newest burns on the rim, each running one stands as an icon; a talent nobody learned still shows when its aura appears.
+-- Major cooldowns: the newest burns on the rim and each running family the character has lights its sigil, each in
+-- its own place below the emblem; a family it lacks (another race's racial, an unlearned talent) takes no place.
 do
 	local env, K, ns = New("ROGUE", { 13877, 5277 })
 	local rim = Pieces(ns)[5]
-	assert(rim and rim.stack and #rim.stack == 3, "a rogue with Blade Flurry gets the cooldown rim")
+	assert(rim and rim.sigils and #rim.sigils == 17, "a rogue with Blade Flurry gets the cooldown rim: one slot for each of its seven families, the racials and the potions")
+	local placed = {}
+	for _, b in ipairs(rim.sigils) do placed[#placed + 1] = b.at and b.family.sigil or nil end
+	assert(table.concat(placed, ",") == "Flurry,Evade,Potion", "only Blade Flurry, Evasion and the potions take places: " .. table.concat(placed, ","))
 	Slots.Set(env, "player", { { id = 13877, count = 0, icon = 132350, start = 0, duration = 15 }, { id = 5277, count = 0, icon = 136205, start = 0, duration = 15 } })
-	assert(rim.lit:IsShown() and rim.stack[1].icon._state.Texture[1] == 136205 and rim.stack[2]:IsShown(), "Evasion, the newest, leads; Blade Flurry follows")
+	assert(rim.lit:IsShown() and rim.sigils[1]:IsShown() and rim.sigils[3]:IsShown() and not rim.sigils[2]:IsShown(), "Blade Flurry's and Evasion's sigils light, Adrenaline Rush's stays dark")
 	K.Options.Write("ActionBars", "crestCooldowns", false)
 	env.RunTimers()
 	assert(not Pieces(ns)[5], "its switch hides it")
@@ -262,12 +273,12 @@ do
 	for key, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
 		if key:match("^9:") and piece:IsVisible() then potion = piece end
 	end
-	assert(potion and potion.lit:IsShown() and potion.lit.icon._state.Texture[1] == 213444 and AB.W.LastCall(potion.timer, "SetCooldown")[2] == 120, "a Holy paladin's right foot shows the mana potion in the bags and its cooldown")
+	assert(potion and potion.lit:IsShown() and not potion.lit.icon and AB.W.LastCall(potion.timer, "SetCooldown")[2] == 120, "a Holy paladin's right foot fills a vial for the mana potion in the bags and rings its cooldown")
 	assert(ns.SlabJewels.state.count == 0, "and a Holy paladin draws no jewels")
 	Clean(env, K, "holy items")
 end
 
--- An item medal cools as a greyed icon under a draining rim, and with no item it is an empty setting (#778 6).
+-- An item vial empties and refills while it cools under a draining rim, and with no item it is an empty vial (#778 6).
 do
 	local env, K, ns = New("PALADIN", { 20154, 20271, 20473 })
 	local cooling = { 10, 120 }
@@ -276,15 +287,16 @@ do
 	env.FireEvent("BAG_UPDATE_DELAYED")
 	local feet = {}
 	for _, piece in pairs(ns.SlabTrackers.state.forms.crest.pieces) do
-		if piece:IsVisible() and piece.spec.feed == "item" then feet[piece.spec.seat] = piece end
+		if piece:IsVisible() and piece.spec.feed == "item" then feet[piece.spec.key] = piece end
 	end
-	local stone, potion = feet.footLeft, feet.footRight
-	assert(stone and not stone.lit:IsShown() and not stone.steel:IsShown(), "no healthstone: an empty setting, not a spell's icon")
-	assert(AB.W.LastCall(potion.lit.icon, "SetDesaturated")[1] == true, "a cooling potion is greyed")
+	local stone, potion = feet.crestFootLeft, feet.crestFootRight
+	assert(stone and not stone.lit:IsShown() and stone.ghost:IsShown(), "no healthstone: an empty vial, not a spell's icon")
+	assert(AB.W.LastCall(potion.bar, "SetTimerDuration"), "a cooling potion's vial refills")
 	assert(AB.W.LastCall(potion.timer, "SetSwipeTexture")[1] == (K.Tokens.Texture("orbRing")), "under a draining rim, not a dark pie")
 	cooling = { 0, 0 }
 	potion.timer:GetScript("OnCooldownDone")(potion.timer)
-	assert(AB.W.LastCall(potion.lit.icon, "SetDesaturated")[1] == false, "ready, its colour comes back")
+	env.FireEvent("BAG_UPDATE_COOLDOWN")
+	assert(AB.W.LastCall(potion.bar, "SetValue")[1] == 1, "ready, it is full")
 	Clean(env, K, "item cooling")
 end
 
@@ -294,7 +306,7 @@ do
 	local painted, moved = 0, 0
 	ns.SlabTrackers.CLASSES.PRIEST = nil
 	ns.SlabTrackers.Register("PRIEST", {
-		{ key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 10060 } } } },
+		{ key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 10060 }, sigil = "Infusion" } } },
 		{ key = "crestTest", seat = { 0, 100 }, build = function(parent, spec, level)
 			local m = ns.SlabMedals.Medal(parent, { feed = "usable", candidates = { 10060 }, texture = spec.texture }, level)
 			m.custom = true
@@ -356,7 +368,7 @@ do
 	local ambush, vanish = Pieces(ns)[1], Pieces(ns)[2]
 	assert(ambush.spec.feed == "usable" and ambush.lit:IsShown() and vanish.spec.feed == "cooldown", "the first Stealth swaps both shoulders")
 	for _, p in ipairs({ ambush, vanish }) do
-		assert((p:GetWidth() or 0) > 0 and (p.lit.icon:GetWidth() or 0) > 0 and (p.steel:GetWidth() or 0) > 0, "and each is sized, its icon too")
+		assert((p:GetWidth() or 0) > 0 and (p.lit.bar:GetWidth() or 0) > 0 and ((p.ghost or p.lit.glow):GetWidth() or 0) > 0, "and each is sized, its object too")
 	end
 	local mirror = Pieces(ns)[8].lit.awake.lit
 	K.Options.Write("Medallions", "motion", "calm")
@@ -377,7 +389,7 @@ do
 	assert(ns.bars.stance.count == 1, "the stance bar shows its button")
 	local shown, form = Pieces(ns, "row")
 	assert(shown[1] and shown[2] and shown[3] and form.frame:IsShown(), "three medals in the row")
-	assert(shown[3].fire == nil and shown[3].timer, "Enrage is a medal with a ring there")
+	assert(shown[3].fire == nil and shown[3].spec.look == "flame" and shown[3].lit.bar, "Enrage is a flame burning down there")
 	local x1 = shown[1]:GetCenter()
 	local x3 = shown[3]:GetCenter()
 	assert(x1 < x3, "in the study's order, left to right")
@@ -393,7 +405,10 @@ do
 	local form = ns.SlabTrackers.state.forms.row
 	local _, relative, point = form.frame:GetPoint(1)
 	assert(relative == ns.bars.stance.holder and point == "BOTTOMLEFT", "no stance buttons: the row starts where the stance bar does")
-	local first = form.pieces["2:1"]
+	local first
+	for _, piece in pairs(form.pieces) do
+		if piece.spec.key == "crestSeal" then first = piece end
+	end
 	K.Options.Write("ActionBars", "crestSeal", false)
 	env.RunTimers()
 	assert(not first:IsVisible(), "under Frames a switch reaches the row without the slab")
@@ -401,7 +416,7 @@ do
 	env.RunTimers()
 	local lines = {}
 	for _, piece in pairs(form.pieces) do
-		if piece:IsVisible() then
+		if piece:IsVisible() and piece.spec.key ~= "crestKill" then
 			local _, y = piece:GetCenter()
 			lines[math.floor(y + 0.5)] = (lines[math.floor(y + 0.5)] or 0) + 1
 		end
@@ -411,7 +426,7 @@ do
 		assert(count <= 5, "the row wraps at five medals a line")
 		n = n + 1
 	end
-	assert(n == 2, "eight medals stand in two lines")
+	assert(n == 3, "seven medals stand in two lines and the cooldown sigils on a line of their own")
 	Clean(env, K, "frames paladin")
 end
 
@@ -425,7 +440,7 @@ do
 		e._game.forms[1] = { texture = 136095, isActive = false, spellID = 2645 }
 		e.CreateFrame("Frame", "MultiCastActionBarFrame", e.UIParent)
 	end })
-	ns.SlabTrackers.Register("SHAMAN", { { key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 10432 } } } } })
+	ns.SlabTrackers.Register("SHAMAN", { { key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 10432 }, sigil = "Bolt" } } } })
 	env.RunTimers()
 	ns.SlabTrackers.Update()
 	local _, relative, point = ns.SlabTrackers.state.forms.row.frame:GetPoint(1)
@@ -449,6 +464,7 @@ end
 -- A custom placer under Frames takes the cells it returns; the next medal lands on the grid after them.
 do
 	local env, K, ns = New("ROGUE", { 5171, 1943 }, { frames = true })
+	K.Options.Write("ActionBars", "crestSwing", false)
 	local n = #ns.SlabTrackers.CLASSES.ROGUE
 	ns.SlabTrackers.Register("ROGUE", {
 		{ key = "crestPoisons", seat = "left", feed = "aura", spells = { 5171 }, place = function(piece, anchor, _, x, cell)
@@ -489,7 +505,7 @@ end
 do
 	local env, K, ns = New("DRUID", { 5185 })
 	env.GetShapeshiftFormID = function() return env._form end
-	ns.SlabTrackers.Register("DRUID", { { key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 22812 } } } } },
+	ns.SlabTrackers.Register("DRUID", { { key = "crestCooldowns", seat = "cooldowns", color = "gilt", families = { { spells = { 22812 }, sigil = "Bark" } } } },
 		{ fiveSecondForms = { 0, 31 } })
 	ns.SlabTrackers.Update()
 	assert(ns.SlabTrackers.state.forms.crest.pieces["1:1"]:IsVisible(), "caster form: the five-second ring shows")
@@ -502,7 +518,7 @@ end
 do
 	local env, K, ns = New("PALADIN", { 20154 }, { frames = true })
 	local medal = ns.SlabTrackers.state.forms.row.pieces["1:1"]
-	assert(medal and medal:IsVisible() and medal.steel, "under Frames the five-second rule is a medal in the row")
+	assert(medal and medal:IsVisible() and medal.timer and not medal.steel, "under Frames the five-second rule is a mana ring in the row, no icon")
 	env.C_Spell.GetSpellPowerCost = function() return { { type = 0, cost = 50 } } end
 	env.GetTime = function() return 100 end
 	env.FireEvent("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 20154)
@@ -564,16 +580,18 @@ do
 	Clean(env, K, "trackers off in combat")
 end
 
--- A newly learned strike repaints the medal with its own icon, steel and lit (review dd9bddac #4).
+-- A newly learned strike moves the hip's gem to its cooldown (review dd9bddac #4).
 do
 	local env, K, ns = New("WARRIOR", { 6673, 6343 })
 	local hip = Pieces(ns)[6]
-	assert(hip.lit.icon._state.Texture[1] == 100000 + 6343, "Thunder Clap first")
+	assert(hip.spec.spell == 6343, "Thunder Clap first")
 	env._known[1464] = true
 	env.FireEvent("SPELLS_CHANGED")
 	env.RunTimers()
 	hip = Pieces(ns)[6]
-	assert(hip.spec.spell == 1464 and hip.lit.icon._state.Texture[1] == 101464 and hip.steel._state.Texture[1] == 101464, "learning Slam shows Slam's icon")
+	env._cooling[1464] = true
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(hip.spec.spell == 1464 and AB.W.LastCall(hip.bar, "SetTimerDuration"), "learning Slam charges the gem over Slam's cooldown")
 	Clean(env, K, "learn Slam")
 end
 
@@ -636,14 +654,15 @@ end
 -- Every piece has a switch of its own: one hip, foot or rim effect off leaves its partner (review dd9bddac #8).
 do
 	local env, K, ns = New("WARRIOR", { 6673, 21553, 12292, 1672, 11578 })
-	local function seen(seat)
+	local function seen(key)
 		for _, p in pairs(Pieces(ns)) do
-			if p.spec.seat == seat then return true end
+			if p.spec.key == key then return true end
 		end
 		return false
 	end
-	assert(seen("leftHip") and seen("rightHip") and seen("footLeft") and seen("footRight"), "hips and feet show")
-	for _, pair in ipairs({ { "crestHipLeft", "leftHip", "rightHip" }, { "crestHipRight", "rightHip", "leftHip" }, { "crestFootLeft", "footLeft", "footRight" }, { "crestFootRight", "footRight", "footLeft" } }) do
+	assert(seen("crestHipLeft") and seen("crestHipRight") and seen("crestFootLeft") and seen("crestFootRight"), "hips and feet show")
+	for _, pair in ipairs({ { "crestHipLeft", "crestHipLeft", "crestHipRight" }, { "crestHipRight", "crestHipRight", "crestHipLeft" },
+		{ "crestFootLeft", "crestFootLeft", "crestFootRight" }, { "crestFootRight", "crestFootRight", "crestFootLeft" } }) do
 		K.Options.Write("ActionBars", pair[1], false)
 		env.RunTimers()
 		assert(not seen(pair[2]) and seen(pair[3]), pair[1] .. " off hides its own piece alone")
@@ -681,25 +700,14 @@ do
 	Clean(env, K, "frames riposte")
 end
 
--- Stack numbers sit above the bezel, inside the round icon at every screen and at the smallest Interface size; a foot too small for a digit shows pips (review dd9bddac #10).
-for _, size in ipairs(SIZES) do
-	for _, ui in ipairs({ 1, 0.6 }) do
-		for _, frames in ipairs({ false, true }) do
-			local env, K, ns = New("WARRIOR", { 6673, 12292 }, { size = size, frames = frames, setup = function(e) e._size = ui end })
-			env._resolveRects = true
-			local hip, where = Pieces(ns, frames and "row")[7], size[1] .. "x" .. size[2] .. " at " .. ui .. (frames and " Frames" or " crest")
-			hip.lit.count:SetText("15")
-			local l, b, w, h = hip.lit.count:GetRect()
-			local il, ib, iw = hip.steel:GetRect()
-			assert(hip.lit.count:GetParent():GetFrameLevel() > hip.enamel:GetParent():GetFrameLevel(), where .. ": the count draws over the bezel")
-			for _, x in ipairs({ l, l + w }) do
-				for _, y in ipairs({ b, b + h }) do
-					assert((x - il - iw / 2) ^ 2 + (y - ib - iw / 2) ^ 2 <= (iw / 2) ^ 2 + 0.01, where .. ": a two-digit count stays inside the medal's round icon; inset it from the icon's centre and size its font to fit")
-				end
-			end
-			Clean(env, K, "count " .. where)
-		end
-	end
+-- Stacks show as pips along the hip's groove, under Frames too, never as a number (review dd9bddac #10).
+for _, frames in ipairs({ false, true }) do
+	local env, K, ns = New("WARRIOR", { 6673, 12292 }, { frames = frames })
+	local hip = Pieces(ns, frames and "row")[7]
+	assert(hip and not hip.lit.count and hip.spec.pips == 5, "Sweeping Strikes counts its five charges in pips")
+	Slots.Set(env, "player", { { id = 12292, count = 3, start = 0, duration = 10 } })
+	assert(hip.lit:IsShown(), "and its groove lights with them")
+	Clean(env, K, "pips " .. tostring(frames))
 end
 
 do
@@ -822,7 +830,7 @@ end
 do
 	local env, K, ns = New("HUNTER", { 3045 }, { frames = true })
 	ns.SlabTrackers.Register("HUNTER", { { key = "crestCooldowns", seat = "cooldowns", color = "gilt",
-		families = { { spells = { 3045 } }, { spells = { 19574 }, unit = "pet" } } } })
+		families = { { spells = { 3045 }, sigil = "Volley" }, { spells = { 19574 }, unit = "pet", sigil = "Paw" } } } })
 	ns.SlabTrackers.Update()
 	local medal
 	for _, piece in pairs(ns.SlabTrackers.state.form.pieces) do
@@ -860,6 +868,27 @@ for _, size in ipairs(SIZES) do
 		end
 	end
 	Clean(env, K, size[1] .. "x" .. size[2])
+end
+
+-- Every class's cooldown families wear a sigil that ships (the shared racials and potions are proved by the rogue's
+-- seventeen above): a family with none would drop the whole cooldown row, which the build's pcall only logs.
+for _, class in ipairs({ "WARRIOR", "PALADIN", "ROGUE", "HUNTER", "MAGE", "WARLOCK", "PRIEST", "DRUID", "SHAMAN" }) do
+	local env, K, ns = New(class, {})
+	local families = 0
+	for _, row in ipairs(ns.SlabTrackers.CLASSES[class]) do
+		for _, choice in ipairs(row.choices or { row }) do
+			for _, family in ipairs(choice.families or row.families or {}) do
+				local name = family.sigil
+				local path = name and K.Tokens.Texture("sigil" .. name):gsub("\\", "/"):gsub("^Interface/AddOns/KstyleUI/", "")
+				local file = path and io.open(path, "rb")
+				assert(file, class .. " family " .. tostring(family.spells[1]) .. " needs sigil = \"<Name>\" drawn by Tools/media/sigils.py and listed in Core/Tokens.lua")
+				file:close()
+				families = families + 1
+			end
+		end
+	end
+	assert(families > 0, class .. " registers cooldown families")
+	Clean(env, K, class .. " sigils")
 end
 
 print("actionbars crest trackers ok")

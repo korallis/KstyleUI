@@ -382,26 +382,6 @@ function Motion.FadeIn(frame, duration, alpha)
 	return Motion.Tween(frame, "SetAlpha", from, alpha, duration or open, ease)
 end
 
-function Motion.PageIn(frame, duration)
-	frame:SetAlpha(1)
-	frame:Show()
-	local fade = frame.kstylePageIn
-	if not fade then
-		fade = Motion.TrackGroup(frame:CreateAnimationGroup())
-		fade.alpha = fade:CreateAnimation("Alpha")
-		fade.alpha:SetFromAlpha(0)
-		fade.alpha:SetToAlpha(1)
-		fade.alpha:SetSmoothing(Tokens.Smoothing.enter)
-		frame.kstylePageIn = fade
-	end
-	fade:Stop()
-	duration = Motion.FadeDuration(duration)
-	if not IsSecret(duration) and type(duration) == "number" and duration > 0 and frame:IsVisible() then
-		fade.alpha:SetDuration(duration)
-		fade:Play()
-	end
-end
-
 local function Hidden(frame)
 	if MayToggle(frame) then
 		frame:Hide()

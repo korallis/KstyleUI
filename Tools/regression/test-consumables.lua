@@ -25,7 +25,7 @@ end
 local source = Read("Tools/data/items.json")
 for _, kind in ipairs(C.kinds) do
 	for _, id in ipairs(kind.ids) do
-		assert(source:match('"id": ' .. id .. ',%s*"name": [^\n]+,%s*"classID": 0,'), "curated ids must be consumables proven by items.json")
+		assert(source:match('"id": ' .. id .. ',%s*"name": [^\n]+,%s*"classID": ' .. (kind.key == "rune" and 7 or 0) .. ','), "curated ids must be consumables (the runes trade goods) proven by items.json")
 	end
 end
 assert(cfg.enabled and cfg.attached and cfg.rows == 2 and cfg.size == 26 and cfg.spacing == 0 and cfg.hideEmpty, "on, attached, two rows of size 26 with no gap and hidden when empty by default")
@@ -147,6 +147,25 @@ for _, kind in ipairs(C.kinds) do
 	K.Options.Write("ActionBars", "consumables." .. kind.key, true)
 end
 
+Bag({ 5510, 12662, 13444, 20520 })
+assert(#C.selected == 3 and C.selected[1].id == 13444 and C.selected[2].id == 20520 and C.selected[3].id == 5510, "Dark Rune, a trade good, joins the bar between mana potions and Healthstones")
+local cooldowns, cooldown = {}, env.C_Item.GetItemCooldown
+env.C_Item.GetItemCooldown = function(id) return unpack(cooldowns[id] or { 0, 0, 1 }) end
+env.SetCombat(true)
+cooldowns[20520], cooldowns[12662], cooldowns[5510] = { 7, 120, 1 }, { 7, 120, 1 }, { 7, 120, 1 }
+env.FireEvent("BAG_UPDATE_COOLDOWN")
+for i = 2, 3 do
+	local set = AB.W.LastCall(C.buttons[i].cooldown, "SetCooldown")
+	assert(set and set[1] == 7 and set[2] == 120, "a Healthstone starts the runes' shared two-minute cooldown on both slots")
+end
+Bag({ 5510, 12662, 13444 })
+assert(C.buttons[2]:GetAttribute("item") == "item:20520", "in combat the rune slot keeps its binding")
+env.SetCombat(false)
+assert(C.selected[2].id == 12662, "after combat Demonic Rune takes the emptied rune slot")
+cooldowns = {}
+env.FireEvent("BAG_UPDATE_COOLDOWN")
+assert(AB.W.LastCall(C.buttons[2].cooldown, "SetCooldown")[2] == 0, "the shared cooldown ends on the rune slot")
+env.C_Item.GetItemCooldown = cooldown
 Bag({ 118, 13446, 5512, 5510, 5349, 22895, 5350, 8079 })
 assert(#C.selected == 4 and C.selected[1].id == 13446 and C.selected[2].id == 5510 and C.selected[3].id == 22895 and C.selected[4].id == 8079, "potion, Healthstone, conjured food and conjured water rank independently")
 local b = C.buttons[1]

@@ -127,6 +127,23 @@ assert(env.issecretvalue(was) and Reveal(was) == 2, "a spend drains the pips lit
 env._restricted = false
 noErrors(env, K, "secret gain")
 
+-- Rising heat: each point lights its share of the row's glow, easing in when motion allows; ActionBars' switch hides it.
+assert(#P.row.heat == 5, "five Rising heat steps under the row's glow")
+Points(env, 3)
+for i, bar in ipairs(P.row.heat) do
+	local low, high = bar:GetMinMaxValues()
+	assert(math.abs(bar:GetAlpha() - 0.12) < 1e-6 and low == i - 1 and high == i and Reveal(W.LastCall(bar, "SetValue")[1]) == 3, "Rising heat step " .. i .. " draws a fifth of the heat, fed the count")
+end
+assert(W.LastCall(P.row.heat[1], "SetValue")[2] == 1, "a gain eases the heat in")
+K.Store.Profile().ActionBars = { crestHeat = false }
+K.Callbacks.Fire("SettingChanged", "ActionBars", "crestHeat", false)
+assert(P.row.heat[1]:GetAlpha() == 0, "the Rising heat switch hides the steps")
+K.Store.Profile().ActionBars = nil
+K.Callbacks.Fire("SettingChanged", "ActionBars", "crestHeat", true)
+assert(P.row.heat[1]:GetAlpha() > 0, "and brings them back")
+Points(env, 0)
+noErrors(env, K, "rising heat")
+
 -- A finished fade hides its layer.
 local flare = P.pips[1].flare
 flare.anim._scripts.OnFinished(flare.anim)

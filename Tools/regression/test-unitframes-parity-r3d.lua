@@ -140,16 +140,17 @@ assert(groups.debuffs.layout.lineSpacing == line, "zero restores the spacing")
 local entry = target.auras.buttons[1]
 local function options() return entry.button._aura.SetDurationText[2] end
 write("target.auraPrecise", 3)
-assert(options() == nil and entry.precise == nil, "no seconds formatter keeps the default timer")
+assert(not options().textFormatter and entry.precise == nil, "no seconds formatter keeps the default timer")
 env.Enum.SecondsFormatterAbbreviation = { None = 0, Truncate = 1, OneLetter = 2 }
 env.Enum.SecondsFormatterInterval = { Seconds = 0, Minutes = 1, Hours = 2, Days = 3 }
 env.Enum.SecondsFormatterRounding = { RoundUp = 0, Truncate = 1 }
 env.C_StringUtil = { CreateSecondsFormatter = function()
 	return setmetatable({ calls = {} }, { __index = function(_, method) return function(self, ...) self.calls[method] = { ... } end end })
 end }
+local idle = options()
 env.SetCombat(true)
 write("target.auraPrecise", 5)
-assert(options() == nil, "aura buttons are not touched in combat")
+assert(options() == idle, "aura buttons are not touched in combat")
 env.SetCombat(false)
 env.RunTimers()
 local formatter = assert(options() and options().textFormatter, "the timer takes the precise formatter after combat")
@@ -160,7 +161,7 @@ end
 write("target.auraPrecise", 5)
 assert(options().textFormatter == formatter, "an unchanged value keeps its formatter")
 write("target.auraPrecise", 0)
-assert(options() == nil, "zero restores the game's own timer")
+assert(not options().textFormatter, "zero restores the game's own timer")
 
 -- Cast bars: full spell names, rank, latency text and craft batches.
 local cb = ns.CastBars.Inline("player")[1]

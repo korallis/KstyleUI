@@ -1,7 +1,6 @@
--- test-tooltips-card.lua: every tooltip is the quest card (KSTY-44 bible, plan row 13): no crest, one heading rule, a health bar on units only, a 0.12 s fade in played by the client, and no measurement of a world-cursor or restricted tooltip.
+-- test-tooltips-card.lua: every tooltip is the quest card (KSTY-44 bible, plan row 13): no crest, one heading rule, a health bar on units only, shown whole at once with no fade, and no measurement of a world-cursor or restricted tooltip.
 local T = dofile("Tools/regression/tooltips_env.lua")
 local W = T.W
-local Near = T.Near
 
 local anchorType = "ANCHOR_NONE"
 
@@ -87,39 +86,21 @@ do
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
--- The fade in: an alpha animation the client plays over 0.12 s, never a Lua tween ------------------------
+-- Showing: every tooltip shows whole at once, with no alpha fade on it ---------------------------------
 
 do
-	local env, K, ns = Enabled()
+	local env = Enabled()
 	for name in pairs(T.TOOLTIPS) do
 		local tip = env[name]
-		local fade = ns.Style.Fade(tip)
-		assert(fade and fade:GetParent() == tip, name .. " has a fade on the tooltip itself")
-		local alpha = fade._anims and fade._anims[1]
-		assert(alpha and alpha:GetObjectType() == "Alpha", name .. ": the fade is an Alpha animation")
-		assert(W.LastCall(alpha, "SetFromAlpha")[1] == 0 and W.LastCall(alpha, "SetToAlpha")[1] == 1, name .. ": from clear to whole")
-		assert(Near(W.LastCall(alpha, "SetDuration")[1], 0.12) and Near(K.Tokens.Duration("hover"), 0.12), name .. ": over 0.12 s")
+		T.BlizzardShow(tip, true)
+		assert(tip:IsShown() and tip:GetAlpha() == 1, name .. " shows whole at once")
+		for _, group in ipairs(tip._groups or {}) do
+			for _, anim in ipairs(group._anims) do
+				assert(anim:GetObjectType() ~= "Alpha", name .. " has no alpha fade: in game a fade on a whole window left its content half drawn")
+			end
+		end
+		T.BlizzardShow(tip, false)
 	end
-	local tip = env.GameTooltip
-	local fade = ns.Style.Fade(tip)
-	local tweens = 0
-	local tween = K.Motion.Tween
-	K.Motion.Tween = function(...)
-		tweens = tweens + 1
-		return tween(...)
-	end
-	T.BlizzardShow(tip, false)
-	T.BlizzardShow(tip, true)
-	assert(fade:IsPlaying(), "showing a tooltip plays its fade")
-	assert(tweens == 0, "the fade runs no Lua tween")
-	assert(W.LastCall(fade, "SetToFinalAlpha")[1] == true, "a fade cut short leaves the tooltip whole")
-	T.BlizzardShow(tip, false)
-	assert(not fade:IsPlaying(), "hiding the tooltip stops its fade")
-	K.Motion.SetReducedMotion(true)
-	T.BlizzardShow(tip, true)
-	assert(not fade:IsPlaying(), "with motion off the tooltip shows at once")
-	K.Motion.SetReducedMotion(false)
-	K.Motion.Tween = tween
 	assert(#env._errors == 0, tostring(env._errors[1]))
 end
 
@@ -194,4 +175,4 @@ for _, case in ipairs({ { anchor = "ANCHOR_CURSOR_RIGHT", restricted = false }, 
 	assert(#env._errors == 0 and K.ErrorCount() == 0, tostring(env._errors[1]))
 end
 
-print("ok every tooltip is the quest card: no crest, one rule, a bar on units only, a client fade, no measuring at the cursor")
+print("ok every tooltip is the quest card: no crest, one rule, a bar on units only, no fade, no measuring at the cursor")

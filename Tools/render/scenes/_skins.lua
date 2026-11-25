@@ -117,12 +117,7 @@ function Skins.Scene(key)
 		saved = Gallery.Saved(modules),
 		setup = function(env)
 			Gallery.Setup(env)
-			-- Not for the loot rolls: the game's CreateColor shows the timer mirror's shade (staging's, not the glass,
-			-- which PartC/Kit.lua's MirrorBar leaves off), placed on Blizzard's fractional loot frame where
-			-- pixel_allow.tsv may not grow.
-			if key ~= "lootrolls" then
-				S.CreateColor(env)
-			end
+			S.CreateColor(env)
 			if entry.tooltip then
 				dofile("Tools/regression/tooltips_env.lua").Blizzard(env)
 			end

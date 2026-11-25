@@ -2,7 +2,7 @@
 local _, ns = ...
 
 local K = KstyleUI
-local L, Tokens, Widgets, Motion = K.L, K.Tokens, K.Widgets, K.Motion
+local L, Tokens, Widgets = K.L, K.Tokens, K.Widgets
 local Settings, Format, Data = ns.Settings, ns.Format, ns.Data
 
 local Drawer = {}
@@ -633,7 +633,7 @@ function Drawer:Start()
 end
 
 function Drawer:Stop()
-	self:Close(true)
+	self:Close()
 	self.active = false
 	local lib = Drawer.Lib()
 	if self.listening and lib and type(lib.UnregisterCallback) == "function" then
@@ -711,25 +711,23 @@ function Drawer:Open()
 		end
 		button:SetAlpha(1)
 	end
-	Motion.Stop(self.closing)
-	Motion.PageIn(self.panel, Tokens.Duration("fade"))
+	self.panel:Show()
 	if Settings.Get("drawer.behaviour") == "hover" then
 		self.graceLeft = HOVER_GRACE
 		self.panel:SetScript("OnUpdate", Watch)
 	end
 end
 
-function Drawer:Close(instant)
+function Drawer:Close()
 	self.panel:SetScript("OnUpdate", nil)
 	if not self.open then
 		return
 	end
-	self.open = false
-	if instant then
-		self.panel:Hide()
-	else
-		self.closing = Motion.FadeOut(self.panel, Tokens.Duration("fade"))
+	if not Widgets.MayMove(self.panel) then
+		return K.Combat.Queue(function() self:Close() end)
 	end
+	self.open = false
+	self.panel:Hide()
 	if ns.Map and ns.Map.CheckHover then
 		ns.Map.CheckHover()
 	end

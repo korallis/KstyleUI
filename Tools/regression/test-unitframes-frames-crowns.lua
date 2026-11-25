@@ -109,12 +109,33 @@ for _, class in ipairs(ORDER) do
 	Slots.Set(env, spec.unit, { aura })
 	assert(Lit(env, crown.pips[1]) and not Lit(env, crown.pips[2]), class .. ": one stack lights one piece")
 	assert(not crown.max:IsShown(), class .. ": below the maximum the row does not glow")
+	local function Warmth(i)
+		local slot = crown.container._slots["heat" .. i]
+		local bar = slot and slot.frame._applicationBar[1]
+		if not bar then return false end
+		local low, high = bar:GetMinMaxValues()
+		return bar:IsShown() and (Reveal(env, W.LastCall(bar, "SetValue")[1]) - low) / (high - low) >= 1, bar
+	end
+	if class == "PALADIN" then
+		assert(not crown.container._slots.heat1, "a paladin's Vengeance row has no Rising heat")
+	else
+		assert(Warmth(1) and not Warmth(2), class .. ": Rising heat lights one step of the row's glow per stack")
+	end
 	aura.count = n
 	Slots.Set(env, spec.unit, { aura })
 	for i, p in ipairs(crown.pips) do
 		assert(Lit(env, p) and env.issecretvalue(W.LastCall(p.blade, "SetValue")[1]), class .. " piece " .. i .. " lights from the game's secret count")
 	end
 	assert(crown.max:IsShown() and crown.glow:GetParent():IsVisible(), class .. ": the full row glows")
+	if class ~= "PALADIN" then
+		assert(Warmth(n), class .. ": every Rising heat step is warm at the maximum")
+		K.Store.Profile().ActionBars = { crestHeat = false }
+		K.Callbacks.Fire("SettingChanged", "ActionBars", "crestHeat", false)
+		assert(select(2, Warmth(1)):GetAlpha() == 0, class .. ": the Rising heat switch hides the steps")
+		K.Store.Profile().ActionBars = nil
+		K.Callbacks.Fire("SettingChanged", "ActionBars", "crestHeat", true)
+		assert(select(2, Warmth(1)):GetAlpha() > 0, class .. ": and brings them back")
+	end
 	assert(tostring(W.LastCall(crown.glow, "SetTexture")[1]):find("Glow", 1, true) and W.LastCall(crown.glow, "SetBlendMode")[1] == "ADD", class .. ": a soft added glow, as under the combo row")
 	K.Options.Write("Medallions", "motion", "off")
 	aura.count = 2
@@ -180,6 +201,28 @@ do
 	local env, K, ns = New("DRUID", { setup = function(e) e._units.player.powerType, e._units.player.powerToken = 0, "MANA" end })
 	assert(not ns.Resource.state.fed and not ns.Resource.state.content:IsShown(), "a caster-form druid has no row")
 	Clean(env, K, "caster druid")
+end
+
+-- Rising heat's switch only repaints the steps: no relayout, and a step under an aura button waits until auras are readable and combat has ended.
+do
+	local env, K, ns = New("WARRIOR", { setup = function(e) e.C_Secrets = { ShouldAurasBeSecret = function() return e._aurasSecret == true end } end })
+	local bar = ns.Pips.state.heat[1]
+	local function Alpha() return Slots.Engine(env, function() return bar:GetAlpha() end) end
+	assert(bar and bar.fed and Alpha() > 0, "the warrior's first heat step is lit by default")
+	env._aurasSecret = true
+	K.Store.Profile().ActionBars = { crestHeat = false }
+	K.Callbacks.Fire("SettingChanged", "ActionBars", "crestHeat", false)
+	assert(Alpha() > 0, "while auras are secret the step waits")
+	env.SetCombat(true)
+	env._aurasSecret = false
+	env.FireEvent("ADDON_RESTRICTION_STATE_CHANGED", 1, 0)
+	assert(Alpha() > 0, "readable auras in combat still write nothing under an aura button")
+	env.SetCombat(false)
+	assert(Alpha() == 0, "and the step hides once combat ends")
+	K.Store.Profile().ActionBars = nil
+	K.Callbacks.Fire("ProfileChanged")
+	assert(Alpha() > 0, "a profile change paints it back")
+	Clean(env, K, "heat switch")
 end
 
 print("unitframes frames crowns ok")

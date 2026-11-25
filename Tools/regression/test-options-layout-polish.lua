@@ -1,4 +1,4 @@
--- test-options-layout-polish.lua: search takes you to a setting and lights it, player-word synonyms, previews on Elements and Profiles, one motion style for menus and Layout Mode, and clear snap guides; each switch off restores the previous behaviour.
+-- test-options-layout-polish.lua: search takes you to a setting and lights it, player-word synonyms, previews on Elements and Profiles, menus that open and close at once, and clear snap guides; each switch off restores the previous behaviour.
 local O = dofile("Tools/regression/options_env.lua")
 local W = O.W
 local env, K, ns = O.New({
@@ -134,23 +134,16 @@ account.optionsPreviewAll = nil
 K.Options.Open(false)
 W.Settle(env)
 
--- One motion style: menus open and close with the window timing; off restores the quicker hover fade.
+-- Menus open and close at once, with no fade, with One motion style on or off.
 local dropdown = K.Widgets.Dropdown(K.Scale.Root(), { options = { { value = 1, label = "One" }, { value = 2, label = "Two" } } })
 local menu = K.Widgets.DropdownMenu()
-dropdown:Open()
-W.Tick(env, 0.13)
-assert(menu:GetAlpha() > 0 and menu:GetAlpha() < 1, "a menu opens with the window open timing")
-W.Settle(env)
-dropdown:Close()
-W.Tick(env, 0.13)
-assert(menu:IsShown() and menu:GetAlpha() > 0, "and closes with the window close timing")
-W.Settle(env)
-account.motionOneStyle = false
-dropdown:Open()
-W.Tick(env, 0.13)
-assert(menu:GetAlpha() == 1, "off restores the hover fade")
-dropdown:Close()
-W.Settle(env)
+for _, oneStyle in ipairs({ true, false }) do
+	account.motionOneStyle = oneStyle
+	dropdown:Open()
+	assert(menu:IsShown() and menu:GetAlpha() == 1, "a menu opens whole at once")
+	dropdown:Close()
+	assert(not menu:IsShown(), "and closes at once")
+end
 account.motionOneStyle = nil
 
 -- Clear snap guides: two units wide and fading in; a snapped element is not re-placed while the pointer moves.

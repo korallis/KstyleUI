@@ -46,6 +46,9 @@ local DISPEL_SUBLEVEL = 7
 local MASK_WRAP = "CLAMPTOBLACKADDITIVE"
 local COUNT_SHARE = 0.6
 local TIMER_LINE = 1.3
+local TEXT_LINE = 1.2
+local TIMER_WIDTH = 2.1
+local TIMER_MIN = 6
 local SAMPLE_ICONS = { 136207, 135848, 136139, 136071, 135894, 136207, 135848, 136139, 136071, 135894 }
 local SAMPLE_TYPES = { "magic", "curse", "poison", "disease", "bleed" }
 local SAMPLE_LASTING = 6
@@ -147,6 +150,42 @@ local function MarkLift(key)
 end
 Auras.MarkLift = MarkLift
 
+local function TimerSize(size)
+	local own = Settings.current.auras.timerSize
+	return own > 0 and own or math.max(6, math.floor(size * COUNT_SHARE + 0.5))
+end
+
+local function TimerRoom(f, size, font)
+	local a = Settings.current.auras
+	if not a.timers then return 0, 0, 0 end
+	local x, y = Widgets.Snap(f, a.timerX), Widgets.Snap(f, a.timerY)
+	return math.ceil((font or TimerSize(size)) * TIMER_LINE) + Widgets.Border(f) + math.max(0, -y), math.abs(x), math.max(0, y - size)
+end
+Auras.TimerRoom = TimerRoom
+
+local function Ceiling(f, geo)
+	local tile, top = geo.tile, geo.health.top
+	return tile and top + tile.inset + (tile.stacked and not tile.below and TEXT_LINE * Widgets.FontSize(f.name, f.nameFit and f.nameFit.size or 12) or 0) or top
+end
+
+local function Fit(f, block)
+	local a = Settings.current.auras
+	if not a.timers or block.cells <= 0 then return block end
+	local geo, border = f.parts, Widgets.Border(f)
+	local floor, ceiling = geo.power and geo.power.top or f.height, Ceiling(f, geo)
+	local drop, size = border + math.max(0, -Widgets.Snap(f, a.timerY)), TimerSize(block.size)
+	local over = block.top + block.height + drop + size * TEXT_LINE - floor
+	if over <= 0 then return block end
+	local top = math.min(block.top, math.max(math.floor((block.top - over) / border), math.ceil(ceiling / border)) * border)
+	size = math.min(size, math.floor((floor - top - block.height - drop) / TEXT_LINE))
+	if size < TIMER_MIN then
+		block.noTimer = true
+	else
+		block.top, block.timerSize = top, size
+	end
+	return block
+end
+
 local function OneRow(block)
 	if Settings.current.auras.timers and block.rows > 1 then
 		block.rows, block.cells, block.height = 1, block.columns, block.size
@@ -165,10 +204,10 @@ local function Block(f, k)
 		if not b then
 			return { position = place, columns = 0, rows = 0, cells = 0, size = size, width = 0, height = 0, left = 0, top = 0, spacing = spacing, inset = inset, gap = gap }
 		end
-		return OneRow({
+		return Fit(f, OneRow({
 			position = b.position, columns = b.columns, rows = b.rows, cells = b.cells, size = b.size, width = b.width, height = b.height,
 			left = b.left + k.auraX, top = b.top - k.auraY, spacing = spacing, inset = inset, gap = gap,
-		})
+		}))
 	end
 	local block = OneRow(Geometry.AuraBlock(k, w, h, size, spacing, inset, lane - gap))
 	block.spacing, block.inset, block.gap = spacing, inset, gap
@@ -299,19 +338,6 @@ local function NewTile(holder)
 	icon:AddMaskTexture(mask)
 	return { skin = skin, chrome = chrome, icon = icon, mask = mask }
 end
-
-local function TimerSize(size)
-	local own = Settings.current.auras.timerSize
-	return own > 0 and own or math.max(6, math.floor(size * COUNT_SHARE + 0.5))
-end
-
-local function TimerRoom(f, size)
-	local a = Settings.current.auras
-	if not a.timers then return 0, 0, 0 end
-	local x, y = Widgets.Snap(f, a.timerX), Widgets.Snap(f, a.timerY)
-	return math.ceil(TimerSize(size) * TIMER_LINE) + Widgets.Border(f) + math.max(0, -y), math.abs(x), math.max(0, y - size)
-end
-Auras.TimerRoom = TimerRoom
 
 function Auras.TimerSpan(size)
 	local a = Settings.current.auras
@@ -497,19 +523,22 @@ local function StyleIcon(button)
 	local k = Settings.current[f.kind]
 	TintIcon(button, p)
 	if p.dispelLetter then p.dispelLetter:SetAlpha(Settings.current.auras.typeLetters and 1 or 0) end
-	local size = p.size and p.size() or (p.buff and BuffSizes(f, k) or Sizes(f, k))
+	local debuff = not p.buff and not p.size and Block(f, k)
+	local size = p.size and p.size() or (p.buff and BuffSizes(f, k) or debuff.size)
 	local border = Widgets.Border(p.skin)
 	local text, a = Settings.current.text, Settings.current.auras
 	local ar, ag, ab = Style.Accent()
 	local mark = p.mark and not p.size and (p.buff or not f.debuffChip)
-	local block = mark and (p.buff and f.parts and f.parts.healRow or Block(f, k))
+	local block = mark and (p.buff and f.parts and f.parts.healRow or debuff)
 	local columns = block and (block.columns or block.width)
 	local rows = block and (block.rows or block.height)
 	local side = p.buff and block and block.side
+	local timed = a.timers and not (debuff and debuff.noTimer)
+	local timerSize = debuff and debuff.timerSize or TimerSize(size)
 	local tips = Tips(p)
 	local zoom = IconZoom(p.buff and "buff" or p.group)
 	if p.styledCursor == a.tipCursor and p.styledCountX == a.countX and p.styledCountY == a.countY and p.styledTimerX == a.timerX and p.styledTimerY == a.timerY
-		and p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and p.styledStacks == a.stacks and p.styledTimers == a.timers and p.styledTimerSize == a.timerSize and p.styledZoom == zoom and p.styledTips == tips and p.styledTipCombat == a.tipCombat and p.styledOutline == a.textOutline and (not mark or p.styledPriority == MarkLift(p.group)) then
+		and p.styledGeneration == styleGeneration and p.styledSize == size and p.styledBorder == border and p.styledFont == text.healthFont and p.styledSwipe == a.swipe and p.styledR == ar and p.styledG == ag and p.styledB == ab and p.styledMark == mark and p.styledColumns == columns and p.styledRows == rows and p.styledSide == side and p.styledGrowth == k.auraGrowth and p.styledWrap == k.auraWrap and p.styledSpacing == k.auraSpacing and p.styledBuffCount == k.buffCount and p.styledStacks == a.stacks and p.styledTimers == timed and p.styledExpiring == a.expiring and p.styledTimerSize == timerSize and p.styledZoom == zoom and p.styledTips == tips and p.styledTipCombat == a.tipCombat and p.styledOutline == a.textOutline and (not mark or p.styledPriority == MarkLift(p.group)) then
 		return
 	end
 	local moved = p.styledSize ~= size or p.styledBorder ~= border or p.styledCountX ~= a.countX or p.styledCountY ~= a.countY
@@ -529,11 +558,15 @@ local function StyleIcon(button)
 	local textSize = math.max(6, math.floor(size * COUNT_SHARE + 0.5))
 	Style.SetFont(p.count, text.healthFont, textSize, a.textOutline)
 	p.count:SetAlpha(a.stacks and 1 or 0)
-	if a.timers and type(button.SetDurationText) == "function" then
+	if timed and type(button.SetDurationText) == "function" then
 		local timer = p.timer or Widgets.Fitted(Widgets.FontString(p.textFrame, "OVERLAY"))
-		Style.SetFont(timer, text.healthFont, TimerSize(size), a.textOutline)
+		Style.SetFont(timer, text.healthFont, timerSize, a.textOutline)
 		PlaceTimer(timer, p.skin)
-		if not (p.timer and p.styledTimers) then button:SetDurationText(timer) end
+		if not (p.timer and p.styledTimers and p.styledExpiring == a.expiring) then
+			local ink = Widgets.Duration.ExpiringColor(a.expiring, "white")
+			button:SetDurationText(timer, { textColor = ink })
+			if not ink then timer:SetTextColor(Tokens.Color("white")) end
+		end
 		p.timer = timer
 		timer:Show()
 	elseif p.timer and p.styledTimers then
@@ -560,7 +593,7 @@ local function StyleIcon(button)
 			p.markBack:Hide()
 		end
 	end
-	p.styledFont, p.styledSwipe, p.styledStacks, p.styledTimers, p.styledTimerSize = text.healthFont, a.swipe, a.stacks, a.timers, a.timerSize
+	p.styledFont, p.styledSwipe, p.styledStacks, p.styledTimers, p.styledTimerSize, p.styledExpiring = text.healthFont, a.swipe, a.stacks, timed, timerSize, a.expiring
 	p.styledZoom, p.styledTips, p.styledTipCombat, p.styledOutline = zoom, tips, a.tipCombat, a.textOutline
 	p.styledCursor, p.styledCountX, p.styledCountY, p.styledTimerX, p.styledTimerY = a.tipCursor, a.countX, a.countY, a.timerX, a.timerY
 	p.styledR, p.styledG, p.styledB = ar, ag, ab
@@ -600,14 +633,14 @@ local function StyleGroup(container, key)
 	local f = owners[container]
 	local k, cfg = Settings.current[f.kind], Settings.current
 	local buff = buffHolders[container]
-	local size, spacing
-	if buff then size, spacing = BuffSizes(f, k) else size, spacing = Sizes(f, k) end
 	local block = Block(f, k)
+	local size, spacing = block.size, block.spacing
+	if buff then size, spacing = BuffSizes(f, k) end
 	local row = f.parts and f.parts.healRow
 	local ar, ag, ab = Style.Accent()
 	local count = container:GetAuraGroupFrameCount(key)
 	local inputs = { styleGeneration, size, spacing, block.columns, block.rows, k.auraGrowth, k.auraWrap, k.buffCount, cfg.text.healthFont, cfg.auras.swipe, Widgets.Border(f), ar, ag, ab, MarkLift(key), f.debuffChip ~= nil, k.buffSize, row and row.width or false, row and row.height or false, row and row.side or false, cfg.auras.typeLetters, cfg.auras.stacks, cfg.auras.timers, cfg.auras.timerSize, cfg.auras.zoom, cfg.auras.tooltips, cfg.buffs.tooltips, cfg.auras.tipCombat, cfg.auras.textOutline, IconKey(),
-		cfg.auras.zoomEach, cfg.auras.bossZoom, cfg.buffs.zoom, cfg.auras.tipCursor, cfg.auras.countX, cfg.auras.countY, cfg.auras.timerX, cfg.auras.timerY }
+		cfg.auras.zoomEach, cfg.auras.bossZoom, cfg.buffs.zoom, cfg.auras.tipCursor, cfg.auras.countX, cfg.auras.countY, cfg.auras.timerX, cfg.auras.timerY, cfg.auras.expiring, block.left, block.top, block.noTimer or false, block.timerSize or false }
 	local groups = styledGroups[container]
 	local old = groups and groups[key]
 	local changed = f.auraInputsDirty or not old or old.count ~= count
@@ -1319,10 +1352,14 @@ local function Configure(f)
 	local container = f.auras
 	local k, a = Settings.current[f.kind], Settings.current.auras
 	local narrow = f.narrowed or Narrowed()
-	local size, spacing = Sizes(f, k)
 	local block = Block(f, k)
 	local point, x, y = Anchor(f, block, k)
-	local room, across, up = TimerRoom(f, block.size)
+	local room, across, up = TimerRoom(f, block.size, block.timerSize)
+	if block.noTimer then
+		room, across, up = 0, 0, 0
+	elseif room > 0 then
+		across = across + math.max(0, ((block.timerSize or TimerSize(block.size)) * TIMER_WIDTH - block.size) / 2)
+	end
 	local lift, rise = point:find("^BOTTOM") and room or 0, point:find("^TOP") and up or 0
 	local out = point:find("RIGHT$") and across or -across
 	local clip = f.auraClip
@@ -1338,7 +1375,7 @@ local function Configure(f)
 		container:SetFlowLayoutAxis(axis.Horizontal)
 		container:SetFlowLayoutAnchorPoint(point)
 		container:SetFlowLayoutGrowthDirection(k.auraGrowth == "LEFT" and direction.Left or direction.Right, k.auraWrap == "DOWN" and direction.Down or direction.Up)
-		container:SetFlowLayoutMaximumLineSize(Geometry.AuraLine(math.max(1, block.columns), size, spacing) + LINE_SLACK)
+		container:SetFlowLayoutMaximumLineSize(Geometry.AuraLine(math.max(1, block.columns), block.size, block.spacing) + LINE_SLACK)
 	else
 		Style.LogOnce("auraAnchor", "AnchorUtil is missing; debuffs keep the engine's default layout")
 	end
@@ -1587,8 +1624,11 @@ local function LayoutSamples(f, k)
 		count:ClearAllPoints()
 		count:SetPoint("BOTTOMRIGHT", first.tile.skin, "BOTTOMRIGHT", Widgets.Snap(first.tile.skin, a.countX) - inset, inset + Widgets.Snap(first.tile.skin, a.countY))
 	end
-	local timer = SampleLabel(first, "timer", a.timers, "12s", TimerSize(size))
-	if timer then PlaceTimer(timer, first.tile.skin) end
+	local timer = SampleLabel(first, "timer", a.timers and not block.noTimer, "12s", block.timerSize or TimerSize(size))
+	if timer then
+		PlaceTimer(timer, first.tile.skin)
+		timer:SetTextColor(Tokens.Color(12 < a.expiring and "timerExpiring" or "white"))
+	end
 	local chip = f.sampleChip
 	local last = f.sampleAuras[math.max(1, block.cells)]
 	chip:ClearAllPoints()

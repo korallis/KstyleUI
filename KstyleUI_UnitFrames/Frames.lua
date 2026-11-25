@@ -305,31 +305,18 @@ local function TargetTransitions(view)
 	return view.kind == "target" and view.form == "slab" and Settings.Value("target", "transitions")
 end
 
-local function HideBody(body)
-	body:Hide()
-	body:SetAlpha(1)
-end
-
 local function TargetLoss(view)
 	if not view.body or view.kind ~= "target" then return end
 	view.targetSeen = false
 	local body = view.body
 	view.targetLoss = (view.targetLoss or 0) + 1
 	local token = view.targetLoss
-	if TargetTransitions(view) then
-		K.Motion.Tween(body, "SetAlpha", body:GetAlpha(), body:GetAlpha(), 0)
-		local function Fade()
-			if view.targetLoss == token and not view.targetSeen then
-				K.Motion.Tween(body, "SetAlpha", body:GetAlpha(), 0, 0.15, function(t) return t * t end, HideBody)
-			end
-		end
-		if view.deathTween and K.Motion.IsPlaying(view.deathTween) then
-			C_Timer.After(math.max(0, 0.2 - (GetTime() - view.deathAt)), Fade)
-		else
-			Fade()
-		end
+	if TargetTransitions(view) and view.deathTween and K.Motion.IsPlaying(view.deathTween) then
+		C_Timer.After(math.max(0, 0.2 - (GetTime() - view.deathAt)), function()
+			if view.targetLoss == token and not view.targetSeen then body:Hide() end
+		end)
 	else
-		K.Motion.Tween(body, "SetAlpha", 1, 0, 0, nil, HideBody)
+		body:Hide()
 	end
 end
 
@@ -771,7 +758,6 @@ local function PrepareTarget(view)
 		view.deathTween = nil
 		view.medallion:SetDead(view.slabDead == true)
 	end
-	K.Motion.Tween(view.body, "SetAlpha", view.body:GetAlpha(), 1, 0)
 	view.body:SetShown(view.button:IsShown())
 	view.targetSeen = UnitExists("target") and true or false
 end
@@ -779,23 +765,9 @@ end
 local function TargetChange(view)
 	local exists = view and view.body and UnitExists("target")
 	if exists then
-		local on, seen = TargetTransitions(view), view.targetSeen
 		view.targetSeen = true
 		if view.deathTween then K.Motion.Stop(view.deathTween); view.deathTween = nil end
-		if on and seen then
-			view.flipIn = view.flipIn or function()
-				RefreshKind("target", true)
-				ns.Slab.FlipIn(view)
-				K.Motion.FadeIn(view.body, 0.06)
-			end
-			K.Motion.Tween(view.body, "SetAlpha", view.body:GetAlpha(), 0, 0.06, "inOutSine", view.flipIn)
-			return
-		elseif on then
-			K.Motion.FadeIn(view.body, 0.12)
-		else
-			K.Motion.Tween(view.body, "SetAlpha", view.body:GetAlpha(), 1, 0)
-			view.body:Show()
-		end
+		view.body:Show()
 	end
 	RefreshKind("target", true)
 	if exists then ns.Slab.FlipIn(view) end

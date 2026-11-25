@@ -1,4 +1,4 @@
--- SlabRanged.lua: a hunter's, mage's and warlock's crest trackers, registered as rows with the one tracker lifecycle (SlabTrackers.lua; docs/medallions-effects.md#ranged-crest-trackers lists every seat): each seat's choices cover every build, pet state and level band, and the pieces SlabMedals has no builder for live here: the pet and demon medals (portrait, missing health, happiness, Mend Pet, Demonic Sacrifice), the mana gem and Healthstone medals (plain bag counts and item cooldowns), a warlock's torment spires and soul wisps, the Auto Shot ring and the class moments (Quick Shots, Clearcasting, Shadow Trance), each a row of Frames medals or a glow along that row under Frames; Blizzard's aura slots light every aura piece, so Lua never reads or compares a secret.
+-- SlabRanged.lua: a hunter's, mage's and warlock's crest trackers, registered as rows with the one tracker lifecycle (SlabTrackers.lua; docs/medallions-effects.md#ranged-crest-trackers lists every seat): each seat's choices cover every build, pet state and level band, and each breaks out of the medal into the crest in additive light, never a spell or item icon and never a socket: your damage over time a fuse burning down the right band with its own mark at its head, the pet's or demon's health light along the band, an Aspect, armor or demon sigil perched on the ring, a mage's armor as crystals that thaw along the upper left band and Frost Nova's frost over the inner ring, Hunter's Mark and the ready shots over the emblem, a bag gem hanging from the lower right, an interrupt's blade through the lower left, a school's stacks as embers and a cooldown as an arc filling on the left band, the warlock's spires with their glyphs at their feet and its soul wisps, the Auto Shot ring and the class moments (Quick Shots, Clearcasting, Shadow Trance); the same effects free-standing in a row under Frames (Effect and its LOOKS, Well and Trinket); Blizzard's aura slots light every aura piece and blink it in its pandemic window, so Lua never reads or compares a secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -11,18 +11,44 @@ if IsSecret(CLASS) or CLASS ~= "HUNTER" and CLASS ~= "MAGE" and CLASS ~= "WARLOC
 	return
 end
 
-local SIZE, SOCKET, SPIRE, WISP, LIFT, BAR = 26, 17, 34, 16, 3, 3
-local SOCKETS, ORBIT, PERIOD, STEPS, WISPS, HALO, SHADE, INNER, LOW_AMMO, FAINT = 82, 46, 12, 24, 5, 1.6, 0.8, 112, 200, 0.35
-local MOODS = { "hostile", "neutral", "friendly" }
-local PULSE = { { 0.25, 1, 0.5 }, { 1, 0.25, 0.5 } }
-local COME, FROM, GUST_RUN, GUST_REST = 0.45, { 46, 18 }, 0.7, 0.5
-local PET_EVENTS = { { "UNIT_HEALTH", "pet" }, { "UNIT_MAXHEALTH", "pet" }, { "UNIT_HAPPINESS", "pet" }, { "UNIT_PORTRAIT_UPDATE", "pet" } }
+local function Polar(r, angle)
+	return r * cos(rad(angle)), r * sin(rad(angle))
+end
+
+local SIZE, BASE, SPIRE, WISP, LIFT, BAR, NECK = 26, 17, 24, 16, 1, 3, 8
+local SOCKETS, ORBIT, PERIOD, STEPS, WISPS, HALO, INNER, LOW_AMMO, FAINT = 67, 46, 12, 24, 5, 1.6, 112, 200, 0.35
+local STEEL, LIGHT, GROOVE, PERCH, GEM, SHOT, FLASH, HEAD = 0.45, 0.8, 0.35, 28, 26, 80, 36, 1
+local MOODS, NONE = { "hostile", "neutral", "friendly" }, {}
+local BREATH = { { 0.6, 1, 0.9 }, { 1, 0.6, 0.9 } }
+local GLEAM = { { 0.8, 1, 0.7 }, { 1, 0.8, 0.7 } }
+local BURN = { { 1, 0.7, 0.1 }, { 0.7, 1, 0.08 }, { 1, 0.8, 0.12 }, { 0.8, 1, 0.1 } }
+local BLINK = { { 1, 0.2, 0.1 }, { 0.2, 1, 0.1 } }
+local OPENING = { { 0, 1, 0.06 }, { 1, 0.3, 0.1 }, { 0.3, 1, 0.08 }, { 1, 0.3, 0.1 }, { 0.3, 1, 0.1 } }
+local GROW = { { 0, 1, 0.6 } }
+local BAND = {
+	right = { "glyphArcRight", 64, 0, 58 }, left = { "glyphArcLeft", -64, 0, 58 }, pet = { "glyphArcPet", 42, -46, 42 },
+	rim = { "glyphRimLeft", -72, 0, 62 }, armor = { "glyphArmorFrost", -37, 51, 64 }, frost = { "glyphFrost", 0, -39, 108 }, mark = { "glyphMarkReticle", 0, 0, 108 },
+}
+local EMBLEM, PERCH_LEFT, PERCH_RIGHT, PENDANT, SIGIL = { 0, 0 }, { Polar(73, 228) }, { Polar(74, 312) }, { Polar(80, 312) }, { Polar(56, 184) }
+local LOOKS = {
+	glyph = { k = 1.25, loop = BREATH, white = 0.1 },
+	orb = { art = "stormOrb", k = 1.15 },
+	gem = { art = "glyphFacet", k = 1, white = 0.15 },
+	shard = { art = "pipShard50", steel = "pipShardSteel50", k = 1.4, bar = true, solid = true, native = true, rest = 0.9 },
+	blade = { art = "pipBlade50", steel = "pipBladeSteel50", k = 1.4, bar = true, solid = true, rest = 0.9 },
+}
+local COME, FROM, GUST_RUN, GUST_REST = 0.45, { 20, 8 }, 0.7, 0.5
+local PET_EVENTS = { { "UNIT_HEALTH", "pet" }, { "UNIT_MAXHEALTH", "pet" }, { "UNIT_HAPPINESS", "pet" } }
 local ON = {
 	swing = { PLAYER_SWING = true, UNIT_INVENTORY_CHANGED = true },
-	pet = { UNIT_PET = true, UNIT_HEALTH = true, UNIT_MAXHEALTH = true, UNIT_HAPPINESS = true, UNIT_PORTRAIT_UPDATE = true },
-	mana = { UNIT_POWER_UPDATE = true, BAG_UPDATE_DELAYED = true, BAG_UPDATE_COOLDOWN = true },
+	pet = { UNIT_PET = true, UNIT_HEALTH = true, UNIT_MAXHEALTH = true, UNIT_HAPPINESS = true },
 	wisps = { BAG_UPDATE_DELAYED = true },
+	usable = { SPELL_UPDATE_USABLE = true, SPELL_UPDATE_COOLDOWN = true, PLAYER_TARGET_CHANGED = true },
 }
+
+local function At(band)
+	return { band[2], band[3] }
+end
 
 local function Count(id)
 	local api = C_Item
@@ -59,39 +85,339 @@ local function Timed(button, bar)
 	button:SetDurationBar(bar, { direction = timer and timer.RemainingTime or 1 })
 end
 
-local function Polar(r, angle)
-	return r * cos(rad(angle)), r * sin(rad(angle))
+local function Lift(color, white)
+	local r, g, b = Tokens.Color(color)
+	white = white or 0.4
+	return white + (1 - white) * r, white + (1 - white) * g, white + (1 - white) * b
 end
 
-local function Pet(parent, spec, level)
-	local sacrifice = spec.feed == "aura"
-	local m = Medals.Medal(parent, spec, level)
-	m.pet = sacrifice and Medals.Layer(m, level + 2) or m.lit
-	m.portrait = sacrifice and m.add(Medals.Round(m.pet), m.lit.icon.units) or m.lit.icon
-	m.portrait:SetPoint("CENTER", m, "CENTER", 0, 0)
-	m.shade = Bar(m.pet, "dot", "dangerBody")
-	m.shade:SetAllPoints(m.portrait)
-	m.shade:SetReverseFill(true)
-	m.shade:SetAlpha(SHADE)
-	local top = Medals.Layer(m, level + 5)
+local function Bloom(texture, from)
+	local group = texture:CreateAnimationGroup()
+	ns.Slab.Grow(group, from, 1, 0.5, 1, "OUT")
+	ns.Slab.Fade(group, 0, 1, 0.15)
+	return { play = group }
+end
+
+local function Light(p, each, level, look)
+	local art, size = each.glyph or look.art, p.units * look.k
+	local lit = Medals.Lit(p, each, level)
+	local hold = lit.container and lit or Medals.Layer(lit, level)
+	local light = Medals.Layer(look.bar and lit or hold, level + 2)
+	if look.bar then
+		lit.art = p.add(Bar(light, art, "white", not look.solid and "ADD" or nil), size)
+		lit.art:GetStatusBarTexture():SetDesaturated(not look.native)
+		lit.art:SetPoint("CENTER", p, "CENTER", 0, 0)
+		if not look.native then
+			lit.art:SetStatusBarColor(Lift(each.color))
+		end
+	else
+		lit.art = p.add(Medals.Texture(light, "ARTWORK", 0, art, "white", size, "ADD"))
+		lit.art:SetDesaturated(true)
+		lit.art:SetVertexColor(Lift(each.color, look.white))
+	end
+	if lit.container then
+		lit.loop = Medals.Steps(light, look.loop, true)
+		lit.flare = Bloom(lit.art, 1.2)
+		return
+	end
+	lit.glow = p.add(Medals.Texture(hold, "BACKGROUND", 1, "glow", each.color, p.units * 1.6, "ADD"))
+	lit.glow:SetAlpha(LIGHT)
+	p.ready, p.bar = hold, look.bar and lit.art or nil
+	if p.bar then
+		p.bar:SetMinMaxValues(0, 1)
+		p.bar:SetValue(1)
+	end
+	p.timer = p.add(Medals.Timer(lit, level + 3, "orbRing", each.color), max(size, p.units) + 4)
+	p.timer:SetReverse(true)
+	p.timer:SetScript("OnCooldownDone", function()
+		hold:Show()
+		Medals.Fire(p)
+	end)
+	lit:SetShown(each.feed == "cooldown")
+	Medals.Flare(p, lit, level + 6, art, size * 1.8)
+end
+
+local function Shadow(p, form)
+	if form ~= "crest" then
+		p.add(Medals.Texture(p, "BACKGROUND", -1, "glow", "black", p.units * 1.9)):SetAlpha(0.7)
+	end
+end
+
+local function Effect(parent, spec, level, form)
+	local look = LOOKS[spec.look]
+	local p = Medals.Piece(parent, level, spec.size or SIZE)
+	Shadow(p, form)
+	for _, each in ipairs(spec.feeds or { spec }) do
+		Light(p, each == spec and spec or setmetatable(each, { __index = spec }), level + 1, look)
+	end
+	p.rest = Medals.Layer(spec.feed == "item" and p.lit or p, level)
+	p.rest:SetAlpha(look.rest or STEEL)
+	p.add(Medals.Texture(p.rest, "ARTWORK", 0, look.steel or spec.glyph or look.art, "steel", p.units * look.k)):SetDesaturated(true)
+	return p
+end
+
+local function Flash(parent, spec, level, form)
+	local p = Effect(parent, spec, level, form)
+	if form == "crest" then
+		p.ready:SetAlpha(0)
+		p.rest:Hide()
+		p.timer:SetDrawSwipe(false)
+	end
+	return p
+end
+
+local function Window(parent, level, band, form)
+	local k = form == "crest" and 1 or SIZE / band[4]
+	local p = Medals.Piece(parent, level, band[4] * k)
+	Shadow(p, form)
+	return p, k, max(k, 0.6)
+end
+
+local function Spot(p, parent, art, color, size, x, y, layer)
+	local t = p.add(Medals.Texture(parent, layer or "ARTWORK", 0, art, color, size, "ADD"))
+	t:SetPoint("CENTER", p, "CENTER", x, y)
+	return t
+end
+
+local function Flare(p, lit, level, size, x, y)
+	Medals.Flare(p, lit, level, "glow", size)
+	p.parts[#p.parts]:SetPoint("CENTER", p, "CENTER", x, y)
+end
+
+local function Groove(p, band, k)
+	p.add(Medals.Texture(p, "BACKGROUND", 0, band[1], "black", band[4] * k)):SetAlpha(GROOVE)
+end
+
+local function Band(p, each, level, band, horizontal, white, k)
+	local lit = Medals.Lit(p, each, level)
+	local blink = Medals.Layer(lit, level)
+	local light = Medals.Layer(blink, level + 1)
+	lit.art = p.add(Bar(light, each.art or band[1], "white", "ADD", horizontal), band[4] * k)
+	lit.art:SetStatusBarColor(Lift(each.color, white))
+	lit.art:SetPoint("CENTER", p, "CENTER", 0, 0)
+	Timed(lit, lit.art)
+	lit.flicker = Medals.Steps(blink, BLINK, true)
+	return lit, light
+end
+
+local function Fuse(parent, spec, level, form)
+	local band = BAND.right
+	local p, k, h = Window(parent, level, band, form)
+	Groove(p, band, k)
+	for _, each in ipairs(spec.feeds or { spec }) do
+		each = each == spec and spec or setmetatable(each, { __index = spec })
+		local lit, light = Band(p, each, level + 1, band, false, 0.3, k)
+		lit.head = CreateFrame("Frame", nil, light)
+		lit.head:SetFrameLevel(level + 3)
+		lit.head:SetSize(1, 1)
+		lit.head:SetPoint("CENTER", lit.art:GetStatusBarTexture(), "TOP", HEAD * k, 0)
+		local burn = Medals.Layer(lit.head, level + 3)
+		local flame = p.add(Medals.Texture(burn, "BORDER", 0, "trackerFlame", each.color, 24 * h, "ADD"))
+		flame:SetDesaturated(true)
+		flame:SetPoint("CENTER", lit.head, "CENTER", 0, 5 * h)
+		lit.mark = p.add(Medals.Texture(burn, "ARTWORK", 0, each.glyph, "white", 16 * h, "ADD"))
+		lit.mark:SetVertexColor(Lift(each.color, 0.3))
+		lit.loop = Medals.Steps(burn, BURN, true)
+		lit.flare = Bloom(lit.mark, 1.5)
+	end
+	return p
+end
+
+local function Armor(parent, spec, level, form)
+	local band = BAND.armor
+	local p, k = Window(parent, level, band, form)
+	p.add(Medals.Texture(p, "BACKGROUND", 0, band[1], "steel", band[4] * k)):SetAlpha(0.3)
+	for _, each in ipairs(spec.feeds) do
+		local lit, light = Band(p, setmetatable(each, { __index = spec }), level + 1, band, true, 0.35, k)
+		lit.art:SetReverseFill(true)
+		lit.loops = { Medals.Steps(light, GROW) }
+		Flare(p, lit, level + 6, 60 * k, 0, 0)
+	end
+	return p
+end
+
+local function Frozen(parent, spec, level, form)
+	local band = BAND.frost
+	local p, k = Window(parent, level, band, form)
+	local lit, light = Band(p, spec, level + 1, band, true, 0.45, k)
+	lit.art:SetFillStyle(Enum and Enum.StatusBarFillStyle and Enum.StatusBarFillStyle.Center or "CENTER")
+	lit.loops = { Medals.Steps(light, GROW) }
+	Flare(p, lit, level + 6, 40 * k, 0, -10 * k)
+	return p
+end
+
+local function Mark(parent, spec, level, form)
+	local band = BAND.mark
+	local p, k = Window(parent, level, band, form)
+	local lit = Medals.Lit(p, spec, level + 1)
+	local blink = Medals.Layer(lit, level + 1)
+	local light = Medals.Layer(blink, level + 2)
+	lit.glow = Spot(p, light, "glow", spec.color, 30 * k, 0, 0, "BACKGROUND")
+	lit.art = p.add(Medals.Texture(light, "ARTWORK", 0, band[1], "white", band[4] * k, "ADD"))
+	lit.art:SetVertexColor(Lift(spec.color, 0.2))
+	lit.loops = { Medals.Steps(light, GLEAM, true), Bloom(lit.art, 1.25).play }
+	lit.flicker = Medals.Steps(blink, BLINK, true)
+	return p
+end
+
+local function Stacks(parent, spec, level, form)
+	local band = BAND.left
+	local p, k, h = Window(parent, level, band, form)
+	Groove(p, band, k)
+	local lit = Medals.Lit(p, spec, level + 1)
+	lit.glow = Spot(p, lit, "glow", spec.color, 40 * k, -3 * k, 0, "BACKGROUND")
+	lit.glow:SetAlpha(FAINT)
+	for n = 1, spec.stacks do
+		local slot = lit.container:AddAuraSlot("ember" .. n, spec.filter, spec.options)
+		pcall(slot.EnableMouse, slot, false)
+		slot:SetAllPoints(p)
+		slot:SetFrameLevel(level + 3)
+		slot.container = lit.container
+		local ember = p.add(Bar(slot, spec.ember, "white", "ADD"), 16 * h)
+		ember:SetStatusBarColor(Lift(spec.color))
+		local x, y = Polar(67, 166 + (n - 1) * 10)
+		ember:SetPoint("CENTER", p, "CENTER", (x - band[2]) * k, (y - band[3]) * k)
+		slot:SetApplicationBar(ember, { minApplications = n - 1, maxApplications = n })
+		slot.flicker = Medals.Steps(ember, BLINK, true)
+		p.lits[#p.lits + 1] = slot
+	end
+	Flare(p, lit, level + 6, 40 * k, -3 * k, 0)
+	return p
+end
+
+local function Charge(parent, spec, level, form)
+	local band = BAND.left
+	local p, k, h = Window(parent, level, band, form)
+	Groove(p, band, k)
+	local lit = Medals.Lit(p, spec, level + 1)
+	p.bar = p.add(Bar(lit, band[1], "white", "ADD"), band[4] * k)
+	p.bar:SetStatusBarColor(Lift(spec.color, 0.3))
+	p.bar:SetPoint("CENTER", p, "CENTER", 0, 0)
+	p.bar:SetMinMaxValues(0, 1)
+	p.bar:SetValue(1)
+	p.ready = Medals.Layer(lit, level + 2)
+	local x, y = Polar(67, 160)
+	x, y = (x - band[2]) * k, (y - band[3]) * k
+	lit.glow = Spot(p, p.ready, "glow", spec.color, 32 * h, x, y, "BACKGROUND")
+	Spot(p, p.ready, "stormOrb", "white", 22 * h, x, y):SetVertexColor(Lift(spec.color, 0.3))
+	p.timer = p.add(Medals.Timer(lit, level + 3, "orbRing", spec.color), 8)
+	p.timer:SetDrawSwipe(false)
+	p.timer:SetScript("OnCooldownDone", function()
+		p.ready:Show()
+		Medals.Fire(p)
+	end)
+	Flare(p, lit, level + 6, 40 * h, x, y)
+	return p
+end
+
+local function Shot(parent, spec, level, form)
+	local p = Medals.Piece(parent, level, spec.size or SIZE)
+	if form ~= "crest" then
+		p.add(Medals.Texture(p, "BACKGROUND", 0, "pipArrowSteel90", "white", p.units)):SetAlpha(STEEL)
+	end
+	Medals.Lit(p, spec, level + 1)
+	p.lit:Hide()
+	p.shots = {}
+	for _, look in ipairs(spec.looks) do
+		local layer = Medals.Layer(p.lit, level + 2)
+		layer:Hide()
+		p.add(Medals.Texture(layer, "BACKGROUND", 0, "glow", look.color, p.units * 0.9, "ADD")):SetAlpha(FAINT)
+		for _, art in ipairs(look.arrows or { look.glyph }) do
+			if look.arrows then
+				p.add(Medals.Texture(layer, "ARTWORK", 0, "pipArrow" .. art, "white", p.units))
+			else
+				p.add(Medals.Texture(layer, "ARTWORK", 0, art, "white", p.units * 0.82, "ADD")):SetVertexColor(Lift(look.color, 0.2))
+			end
+		end
+		layer.play = Medals.Steps(layer, look.arrows and { { 0, 1, 0.15 } } or OPENING)
+		if look.arrows then
+			local jump, move = layer.play:CreateAnimation("Translation"), layer.play:CreateAnimation("Translation")
+			jump:SetOffset(0, -p.units * 0.15)
+			jump:SetDuration(0)
+			move:SetOffset(0, p.units * 0.15)
+			move:SetDuration(0.35)
+			move:SetSmoothing("OUT")
+		end
+		p.shots[look] = layer
+	end
+	return p
+end
+
+local function Pet(parent, spec, level, form)
+	local band = BAND[spec.band]
+	local m, k = Window(parent, level, band, form)
+	local function Off(r, angle)
+		local x, y = Polar(r, angle)
+		return (x - band[2]) * k, (y - band[3]) * k
+	end
+	Groove(m, band, k)
+	m.pet = Medals.Layer(m, level + 1)
+	m.health = m.add(Bar(m.pet, band[1], "white", "ADD", spec.band == "pet"), m.units)
+	m.health:SetStatusBarColor(Lift(spec.light, 0.3))
+	m.health:SetReverseFill(true)
+	m.health:SetPoint("CENTER", m, "CENTER", 0, 0)
 	if spec.mood then
-		m.mood = m.add(Medals.Texture(top, "OVERLAY", 0, "medRing", "friendly", SIZE))
+		m.mood = Spot(m, m.pet, "glow", "friendly", 14 * k, Off(67, 335))
 	end
 	if spec.mend then
-		local mend = Medals.Feed(top, { feed = "aura", unit = "pet", spells = spec.mend }, level + 6)
-		local pulse = Medals.Layer(mend, level + 6)
-		m.add(Medals.Texture(pulse, "ARTWORK", 0, "orbRing", "friendly", SIZE + 6, "ADD"))
-		mend.loop = Medals.Steps(pulse, PULSE, true)
+		local mend = Medals.Feed(m.pet, { feed = "aura", unit = "pet", spells = spec.mend }, level + 2)
+		mend.loops = {}
+		for i = 1, 4 do
+			local mote = Medals.Layer(mend, level + 2)
+			Spot(m, mote, "glow", "friendly", 10 * k, Off(67, 335 - 11 * i))
+			mend.loops[i] = Medals.Steps(mote, { { 0.3, 0.3, 0.15 * i }, { 0.3, 1, 0.25 }, { 1, 0.3, 0.25 }, { 0.3, 0.3, 0.15 * (5 - i) } }, true)
+		end
 		m.lits[#m.lits + 1] = mend
+	end
+	if spec.demons then
+		m.sigil = Medals.Layer(m.pet, level + 3)
+		Spot(m, m.sigil, "glow", spec.light, 44 * k, Off(67, 184)):SetAlpha(0.5)
+		m.glyph = Spot(m, m.sigil, "glyphHorns", "white", 28 * k, Off(67, 184))
+		m.glyph:SetVertexColor(Lift(spec.light, 0.2))
+		m.bob = m.sigil:CreateAnimationGroup()
+		m.bob:SetLooping("REPEAT")
+		for n, dy in ipairs({ 2, -2 }) do
+			local t = m.bob:CreateAnimation("Translation")
+			t:SetOffset(0, dy * k)
+			t:SetDuration(1.1)
+			t:SetOrder(n)
+			t:SetSmoothing("IN_OUT")
+		end
+	end
+	if spec.feed == "aura" then
+		local lit, light = Band(m, setmetatable({ art = BAND.rim[1] }, { __index = spec }), level + 4, BAND.rim, false, 0.5, k)
+		lit.art:SetPoint("CENTER", m, "CENTER", (BAND.rim[2] - band[2]) * k, 0)
+		for i = 0, 5 do
+			Spot(m, light, "trackerFlame", spec.color, 24 * k, Off(69, 162 + 8 * i)):SetDesaturated(true)
+		end
+		lit.loop = Medals.Steps(light, BURN, true)
+		for n, demon in ipairs(spec.demons) do
+			local slot = lit.container:AddAuraSlot("fel" .. n, "HELPFUL", { candidateFilters = { includeSpellIDs = { [demon[3]] = true } } })
+			pcall(slot.EnableMouse, slot, false)
+			slot:SetAllPoints(m)
+			slot:SetFrameLevel(level + 6)
+			Spot(m, slot, demon[1], "white", 28 * k, Off(67, 184)):SetVertexColor(Lift(spec.color, 0.2))
+		end
+		Flare(m, lit, level + 8, 40 * k, Off(60, 184))
 	end
 	return m
 end
 
-local function Gem(parent, spec, level)
-	local m = Medals.Medal(parent, spec, level)
-	if C_CurveUtil and type(C_CurveUtil.CreateCurve) == "function" and UnitPowerPercent then
-		m.lowMana = Medals.Layer(m.lit, level + 1)
-		m.add(Medals.Texture(m.lowMana, "OVERLAY", 2, "glow", "magic", SIZE * 2.2, "ADD"))
+local function Gem(parent, spec, level, form)
+	local m = Effect(parent, spec, level, form)
+	m.bail = m.add(Medals.Texture(m, "BORDER", 0, "glyphBail", "gilt", m.units))
+	m.bail:SetPoint("CENTER", m, "CENTER", 0, m.units * 0.62)
+	if C_CurveUtil and type(C_CurveUtil.CreateCurve) == "function" and UnitPowerPercent and spec.lowMana then
+		m.lowMana = Medals.Layer(m.ready, level + 1)
+		local glow = m.add(Medals.Texture(m.lowMana, "OVERLAY", 2, "glow", "magic", m.units * 2.2, "ADD"))
+		m.pulse = Medals.Steps(glow, { { 0.5, 1, 0.4 }, { 1, 0.5, 0.4 } }, true)
+		Medals.OnRest(function(still)
+			if still or not m:IsVisible() then
+				m.pulse:Stop()
+			else
+				m.pulse:Play()
+			end
+		end)
 		m.curve = C_CurveUtil.CreateCurve()
 		local kinds = Enum and Enum.LuaCurveType
 		if kinds and kinds.Step and m.curve.SetType then
@@ -104,22 +430,8 @@ local function Gem(parent, spec, level)
 	return m
 end
 
-local function Jewel(parent, spec, level, form)
-	return (form == "crest" and Medals.Socket or Medals.Medal)(parent, spec, level)
-end
-
-local function Swing(parent, spec, level, form)
-	local crest = form == "crest"
-	local r = crest and Medals.Piece(parent, level, INNER) or Medals.Medal(parent, { size = SIZE, texture = Trackers.Texture(75) }, level)
-	r.swing = CreateFrame("Cooldown", nil, r, "CooldownFrameTemplate")
-	r.swing:SetFrameLevel(level + 4)
-	r.swing:SetAllPoints(r)
-	r.swing:SetSwipeTexture((Tokens.Texture(crest and "ringLine16" or "orbRing")))
-	r.swing:SetDrawEdge(false)
-	r.swing:SetDrawBling(false)
-	r.swing:SetHideCountdownNumbers(true)
-	r.color = spec.color
-	return r
+local function Swing(parent, spec, level)
+	return ns.SlabRings.Swing(parent, spec, level, "crest")
 end
 
 local function Glow(parent, spec, level)
@@ -273,13 +585,9 @@ end
 
 local function Spire(p, container, i, s, angle, level)
 	local t = { def = s, angle = angle }
-	t.socket = Medals.Piece(p, level, SOCKET)
-	t.socket.add(Medals.Texture(t.socket, "BACKGROUND", 0, "medSlotSocket", "white", SOCKET))
-	t.dim = t.socket.add(Medals.Texture(t.socket, "ARTWORK", 0, "dot", "white", SOCKET - 4))
-	t.dim:SetTexture(Trackers.Texture(Medals.Known(s.spells) or s.spells[1]))
-	t.dim:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-	t.dim:SetDesaturated(true)
-	t.dim:SetAlpha(0.45)
+	t.base = Medals.Piece(p, level, BASE)
+	t.dim = t.base.add(Medals.Texture(t.base, "ARTWORK", 0, s.glyph, "steel", BASE - 3))
+	t.dim:SetAlpha(STEEL)
 	t.spire = Medals.Piece(p, level, SPIRE)
 	t.spire.add(Medals.Texture(t.spire, "BACKGROUND", 0, "pipSpireSteel" .. angle, "white", SPIRE))
 	local ids = {}
@@ -301,18 +609,20 @@ local function Spire(p, container, i, s, angle, level)
 	Slot("glow", "pipSpireGlow", s.color, "ADD", SPIRE * 1.5, 1)
 	local lit = Slot("lit", "pipSpire", "white", nil, SPIRE, 2)
 	lit.spec = { feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = s.spells }
-	local r, g, b = Tokens.Color(s.color)
-	t.lit:SetStatusBarColor(0.55 + 0.45 * r, 0.55 + 0.45 * g, 0.55 + 0.45 * b)
+	t.lit:SetStatusBarColor(Lift(s.color, 0.55))
+	lit.flicker = Medals.Steps(t.lit, BLINK, true)
 	Slot("core", "pipSpireCore", s.color, "ADD", SPIRE, 3)
-	t.icon = lit:CreateTexture(nil, "OVERLAY")
-	t.icon:SetAllPoints(t.dim)
-	t.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-	lit:SetIcon(t.icon)
-	t.rim = lit:CreateTexture(nil, "OVERLAY", nil, 1)
-	t.rim:SetTexture((Tokens.Texture("medSlotChecked")))
-	t.rim:SetVertexColor(Tokens.Color(s.color))
-	t.rim:SetBlendMode("ADD")
-	t.rim:SetAllPoints(t.socket)
+	t.rune = lit:CreateTexture(nil, "OVERLAY")
+	t.rune:SetTexture((Tokens.Texture(s.glyph)))
+	t.rune:SetVertexColor(Lift(s.color))
+	t.rune:SetBlendMode("ADD")
+	t.rune:SetAllPoints(t.dim)
+	t.neck = lit:CreateTexture(nil, "OVERLAY")
+	t.neck:SetTexture((Tokens.Texture("glow")))
+	t.neck:SetVertexColor(Lift(s.color, 0.2))
+	t.neck:SetBlendMode("ADD")
+	t.neck:SetSize(NECK, NECK)
+	t.neck:SetPoint("CENTER", t.base, "CENTER", Polar(BASE / 2 + LIFT / 2, angle))
 	Medals.Flare(t.spire, lit, level + 4, "pipSpireCore" .. angle, SPIRE)
 	return t, lit
 end
@@ -335,7 +645,7 @@ local function PlaceSpires(p, anchor, form, _, n)
 	local count = 0
 	for _, t in ipairs(p.spires) do
 		local known = Medals.Known(t.def.spells) ~= nil
-		t.socket:SetShown(known)
+		t.base:SetShown(known)
 		t.spire:SetShown(known)
 		if known then
 			local sx, sy = Medals.Cell(line + count)
@@ -343,18 +653,60 @@ local function PlaceSpires(p, anchor, form, _, n)
 				sx, sy = Polar(SOCKETS, t.angle)
 			end
 			count = count + 1
-			local reach = SOCKET / 2 + LIFT + SPIRE / 2
-			Medals.Place(t.socket, anchor, sx, sy)
+			local reach = BASE / 2 + LIFT + SPIRE / 2
+			Medals.Place(t.base, anchor, sx, sy)
 			Medals.Place(t.spire, anchor, sx + reach * cos(rad(t.angle)), sy + reach * sin(rad(t.angle)))
 		end
 	end
 	return line + count
 end
 
-local function PaintPet(m)
+local function Bob(m)
+	if m.pet:IsVisible() and not m.still then
+		if not m.bob:IsPlaying() then
+			m.bob:Play()
+		end
+	else
+		m.bob:Stop()
+	end
+end
+
+local function Sigil(m)
+	local book, bank, art = C_SpellBook, Enum and Enum.SpellBookSpellBank, "glyphHorns"
+	for _, demon in ipairs(book and type(book.IsSpellKnown) == "function" and bank and m.spec.demons or NONE) do
+		for _, id in ipairs(demon[2]) do
+			local known = book.IsSpellKnown(id, bank.Pet)
+			if not IsSecret(known) and known == true then
+				art = demon[1]
+			end
+		end
+	end
+	if art ~= m.art then
+		m.art = art
+		m.glyph:SetTexture((Tokens.Texture(art)))
+	end
+end
+
+local function PaintPet(m, event)
 	local dead = UnitIsDead and UnitIsDead("pet")
 	local up = Out() and not (not IsSecret(dead) and dead == true)
-	m.pet:SetShown(up)
+	if up ~= m.up then
+		m.up = up
+		m.pet:SetShown(up)
+		if m.bob then
+			Bob(m)
+		end
+	end
+	if up and UnitHealthMax and UnitHealth then
+		m.health:SetMinMaxValues(0, UnitHealthMax("pet"))
+		m.health:SetValue(UnitHealth("pet"))
+	end
+	if event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" then
+		return
+	end
+	if m.glyph and up then
+		Sigil(m)
+	end
 	if m.mood then
 		local info = C_PetInfo
 		local mood = up and info and type(info.GetPetHappiness) == "function" and info.GetPetHappiness()
@@ -364,29 +716,20 @@ local function PaintPet(m)
 			m.mood:SetVertexColor(Tokens.Color(color))
 		end
 	end
-	if not up then
-		return
-	end
-	if SetPortraitTexture then
-		SetPortraitTexture(m.portrait, "pet")
-	end
-	if UnitHealthMax and UnitHealthMissing then
-		m.shade:SetMinMaxValues(0, UnitHealthMax("pet"))
-		m.shade:SetValue(UnitHealthMissing("pet"))
-	end
 end
 
-local function PaintLowMana(m, event)
-	if event ~= "UNIT_POWER_UPDATE" then
-		local item, api = Have(m.spec.items), C_Item
-		local start, duration
-		if item and type(api.GetItemCooldown) == "function" then
-			start, duration = api.GetItemCooldown(item)
+local function PaintShot(m)
+	local shot = m.spec.shots[m.usable]
+	if shot ~= m.shot then
+		if m.shot then
+			m.shots[m.shot]:Hide()
 		end
-		local cooling = not (IsSecret(start) or IsSecret(duration)) and type(duration) == "number" and duration > 0
-		m.lowMana:SetShown(item ~= nil and not cooling)
+		m.shot, m.flare = shot, shot and m.shots[shot]
+		if shot then
+			m.flare:Show()
+			Medals.Fire(m)
+		end
 	end
-	m.lowMana:SetAlpha(UnitPowerPercent("player", Enum and Enum.PowerType and Enum.PowerType.Mana or 0, false, m.curve))
 end
 
 local function Ammo()
@@ -401,16 +744,8 @@ local function PaintSwing(r, event, duration, kind)
 	local n = Ammo()
 	local color = n and (n == 0 and "hostile" or n < LOW_AMMO and "neutral") or r.color
 	r.swing:SetSwipeColor(Tokens.Color(color))
-	local types = Enum and Enum.PlayerSwingType or {}
-	if event ~= "PLAYER_SWING" or type(GetTime) ~= "function" or IsSecret(kind) or kind ~= (types.Ranged or 2) and kind ~= (types.MainHand or 0) then
-		return
-	end
-	local util = C_DurationUtil
-	r.duration = r.duration or util and type(util.CreateDuration) == "function" and util.CreateDuration()
-	if r.duration and pcall(r.duration.SetTimeFromStart, r.duration, GetTime(), duration) then
-		r.swing:SetCooldownFromDurationObject(r.duration)
-	elseif not IsSecret(duration) and type(duration) == "number" then
-		r.swing:SetCooldown(GetTime(), duration)
+	if event == "PLAYER_SWING" then
+		ns.SlabRings.Start(r, duration, kind)
 	end
 end
 
@@ -451,18 +786,29 @@ local function PaintWisps(w, moving)
 end
 
 local function Paint(form, event, ...)
-	local moving, all = event ~= nil and Effects.Allows("flare"), event == nil
+	local all = event == nil
 	for _, p in pairs(form.pieces) do
-		local shown = p:IsShown()
-		if shown and p.swing and (all or ON.swing[event]) then
-			PaintSwing(p, event, ...)
-		elseif shown and p.portrait and (all or ON.pet[event]) then
-			PaintPet(p)
-		elseif shown and p.lowMana and (all or ON.mana[event]) then
-			PaintLowMana(p, event)
-		elseif shown and p.seats and (all or ON.wisps[event]) then
-			PaintWisps(p, moving)
-		elseif shown and p.spires and event == "PLAYER_TARGET_CHANGED" then
+		if p.swing then
+			if (all or ON.swing[event]) and p:IsShown() then
+				PaintSwing(p, event, ...)
+			end
+		elseif p.health then
+			if (all or ON.pet[event]) and p:IsShown() then
+				PaintPet(p, event)
+			end
+		elseif p.curve then
+			if (all or event == "UNIT_POWER_UPDATE") and p:IsShown() then
+				p.lowMana:SetAlpha(UnitPowerPercent("player", Enum and Enum.PowerType and Enum.PowerType.Mana or 0, false, p.curve))
+			end
+		elseif p.shots then
+			if (all or ON.usable[event]) and p:IsShown() then
+				PaintShot(p)
+			end
+		elseif p.seats then
+			if (all or ON.wisps[event]) and p:IsShown() then
+				PaintWisps(p, not all and Effects.Allows("flare"))
+			end
+		elseif p.spires and event == "PLAYER_TARGET_CHANGED" and p:IsShown() then
 			p.container:UpdateAllAuras()
 		end
 	end
@@ -473,39 +819,68 @@ local function Motion(form, _, still)
 		if p.seats then
 			p.still = still
 			Spin(p)
+		elseif p.bob then
+			p.still = still
+			Bob(p)
 		end
 	end
 end
 
 if CLASS == "HUNTER" then
-	local ASPECTS = { 13165, 14318, 14319, 14320, 14321, 14322, 25296, 13163, 5118, 13159, 20043, 20190, 13161, 1299445, 1299446, 1299447, 415423, 469145 }
-	local STINGS = { 1978, 13549, 13550, 13551, 13552, 13553, 13554, 13555, 25295, 3034, 14279, 14280, 3043, 14275, 14276, 14277, 19386, 24132, 24133, 24131, 24134, 24135,
-		24118, 24119, 24120, 1299332, 3674, 14296 }
+	local ASPECTS = {
+		{ spells = { 13165, 14318, 14319, 14320, 14321, 14322, 25296, 469145 }, color = "gilt", glyph = "glyphHawk" },
+		{ spells = { 13163 }, color = "neutral", glyph = "glyphCrescents" },
+		{ spells = { 5118 }, color = "steelLit", glyph = "glyphPaw" },
+		{ spells = { 13159 }, color = "steelLit", glyph = "glyphPack" },
+		{ spells = { 20043, 20190 }, color = "schoolNature", glyph = "glyphLeaf" },
+		{ spells = { 13161, 1299445, 1299446, 1299447 }, color = "hostile", glyph = "glyphClaws" },
+		{ spells = { 415423 }, color = "magic", glyph = "glyphCoil" },
+	}
+	local STINGS = {
+		{ spells = { 1978, 13549, 13550, 13551, 13552, 13553, 13554, 13555, 25295 }, color = "schoolNature", glyph = "glyphSerpent" },
+		{ spells = { 3034, 14279, 14280 }, color = "magic", glyph = "glyphDrop" },
+		{ spells = { 3043, 14275, 14276, 14277 }, color = "neutral", glyph = "glyphHook" },
+		{ spells = { 19386, 24132, 24133, 24131, 24134, 24135 }, color = "jewelShard", glyph = "glyphWing" },
+		{ spells = { 24118, 24119, 24120, 1299332 }, color = "hostile", glyph = "glyphTear" },
+		{ spells = { 3674, 14296 }, color = "schoolShadow", glyph = "glyphBlackArrow" },
+	}
+	local COUNTER, MONGOOSE, AIMED, MULTI = { 20910, 20909, 19306, 1242634 }, { 14271, 14270, 14269, 1495 }, { 20904, 20903, 20902, 20901, 20900, 19434 }, { 2643 }
+	local SHOTS, SHOWS = {}, {}
+	for _, shot in ipairs({ { COUNTER, { glyph = "glyphCounter", color = "hostile" } }, { MONGOOSE, { glyph = "glyphFangs", color = "hostile" } },
+		{ AIMED, { arrows = { 90 }, color = "giltLit" } }, { MULTI, { arrows = { 105, 90, 75 }, color = "steelLit" } } }) do
+		SHOWS[#SHOWS + 1] = shot[2]
+		for _, id in ipairs(shot[1]) do SHOTS[id] = shot[2] end
+	end
 
 	Trackers.Register("HUNTER", {
-		{ key = "crestShot", seat = "topGem", size = Medals.FOOT, feed = "usable", groups = { { 20910, 20909, 19306, 1242634 }, { 14271, 14270, 14269, 1495 },
-			{ 20904, 20903, 20902, 20901, 20900, 19434 }, { 2643 } } },
-		{ key = "crestAspect", seat = "leftHip", choices = {
-			{ feed = "aura", spells = ASPECTS },
-			{ feed = "cooldown", known = { 14266, 14265, 14264, 14263, 14262, 14261, 14260, 2973 } },
+		{ key = "crestShot", seat = EMBLEM, size = SHOT, feed = "usable", build = Shot, color = "giltLit", shots = SHOTS, looks = SHOWS,
+			groups = { COUNTER, MONGOOSE, AIMED, MULTI } },
+		{ key = "crestAspect", seat = PERCH_LEFT, size = PERCH, build = Effect, choices = {
+			{ feed = "aura", look = "glyph", glyph = "glyphHawk", spells = Trackers.Joined(ASPECTS[1].spells, ASPECTS[2].spells, ASPECTS[3].spells, ASPECTS[4].spells,
+				ASPECTS[5].spells, ASPECTS[6].spells, ASPECTS[7].spells), feeds = ASPECTS },
+			{ build = Flash, seat = EMBLEM, size = FLASH, feed = "cooldown", look = "orb", glyph = "glyphEdge", color = "gilt",
+				known = { 14266, 14265, 14264, 14263, 14262, 14261, 14260, 2973 } },
 		} },
-		{ key = "crestPet", seat = "rightHip", choices = {
-			{ build = Pet, known = { 883 }, mood = true, mend = { 136, 3111, 3661, 3662, 13542, 13543, 13544 } },
-			{ feed = "cooldown", known = { 14287, 14286, 14285, 14284, 14283, 14282, 14281, 3044 } },
+		{ key = "crestPet", seat = At(BAND.pet), choices = {
+			{ build = Pet, band = "pet", light = "giltLit", known = { 883 }, mood = true, mend = { 136, 3111, 3661, 3662, 13542, 13543, 13544 } },
+			{ build = Flash, seat = EMBLEM, size = FLASH, feed = "cooldown", look = "orb", color = "schoolArcane", known = { 14287, 14286, 14285, 14284, 14283, 14282, 14281, 3044 } },
 		} },
-		{ key = "crestMark", seat = "footLeft", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL", color = "hostile", spells = { 1130, 14323, 14324, 14325 } },
-		{ key = "crestSting", seat = "footRight", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", color = "schoolNature", newest = true,
-			spells = STINGS, known = { 1978, 3034, 3043, 24118, 3674 } },
+		{ key = "crestMark", seat = EMBLEM, build = Mark, feed = "aura", unit = "target", filter = "HARMFUL", color = "hostile",
+			spells = { 1130, 14323, 14324, 14325 } },
+		{ key = "crestSting", seat = At(BAND.right), build = Fuse, glyph = "glyphSerpent", feed = "aura", unit = "target",
+			filter = "HARMFUL|PLAYER", color = "schoolNature", known = { 1978, 3034, 3043, 24118, 3674 }, feeds = STINGS },
 		{ key = "crestAutoShot", seat = "rim", build = Swing, color = "steelLit", known = { 75 } },
-		{ key = "crestCooldowns", seat = "cooldowns", color = "jewelHawk", families = { { spells = { 3045 } }, { spells = { 19263 } }, { spells = { 19574 }, unit = "pet" } } },
+		{ key = "crestCooldowns", seat = "cooldowns", color = "jewelHawk", families = { { spells = { 3045 }, sigil = "Volley" }, { spells = { 19263 }, sigil = "Deflect" },
+			{ spells = { 19574 }, unit = "pet", sigil = "Paw" } } },
 		{ key = "crestGust", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 6150, 1299448, 469144, 3045 }, known = { 3045, 19552, 19553, 19554, 19555, 19556 },
 			color = "jewelHawk", ambient = "medAmbientHunter", gust = true },
-	}, { burst = "medBurstHunter", events = { { "UNIT_PET", "player" }, PET_EVENTS[1], PET_EVENTS[2], PET_EVENTS[3], PET_EVENTS[4], "PLAYER_SWING", { "UNIT_INVENTORY_CHANGED", "player" } },
-		paint = Paint })
+	}, { burst = "medBurstHunter", events = { { "UNIT_PET", "player" }, PET_EVENTS[1], PET_EVENTS[2], PET_EVENTS[3], "PLAYER_SWING", { "UNIT_INVENTORY_CHANGED", "player" } },
+		paint = Paint, figures = true })
 end
 
 if CLASS == "MAGE" then
 	local GEMS, INTELLECT = { 8008, 8007, 5513, 5514 }, { 1459, 1460, 1461, 10156, 10157, 23028 }
+	local FROST_ARMOR, MAGE_ARMOR = { 168, 7300, 7301, 7302, 7320, 10219, 10220 }, { 6117, 22782, 22783 }
 	local WARDS = { 11426, 13031, 13032, 13033, 1463, 8494, 8495, 10191, 10192, 10193, 543, 8457, 8458, 10223, 10225, 6143, 8461, 8462, 10177, 28609 }
 	local FROSTBOLT = { 116, 205, 837, 7322, 8406, 8407, 8408, 10179, 10180, 10181, 25304 }
 	local CHILLS = Trackers.Joined(FROSTBOLT, { 120, 8492, 10159, 10160, 10161 })
@@ -516,36 +891,43 @@ if CLASS == "MAGE" then
 	local WINTERS = { 11180, 28592, 28593, 28594, 28595 }
 
 	Trackers.Register("MAGE", {
-		{ key = "crestArmor", seat = "left", feed = "aura", color = "schoolFrost", spells = { 168, 7300, 7301, 7302, 7320, 10219, 10220, 6117, 22782, 22783 } },
-		{ key = "crestManaGem", seat = "right", choices = {
-			{ build = Gem, feed = "item", items = GEMS, lowMana = 0.3, known = function() return Medals.Known(CONJURE) or Have(GEMS) and CONJURE[#CONJURE] end },
-			{ feed = "aura", spells = INTELLECT, color = "schoolArcane" },
+		{ key = "crestArmor", seat = At(BAND.armor), build = Armor, feed = "aura", spells = Trackers.Joined(FROST_ARMOR, MAGE_ARMOR),
+			feeds = { { spells = FROST_ARMOR, color = "schoolFrost", art = "glyphArmorFrost" },
+				{ spells = MAGE_ARMOR, color = "schoolArcane", art = "glyphArmorArcane" } } },
+		{ key = "crestManaGem", seat = PENDANT, choices = {
+			{ build = Gem, look = "gem", size = GEM, feed = "item", items = GEMS, color = "magic", lowMana = 0.3,
+				known = function() return Medals.Known(CONJURE) or Have(GEMS) and CONJURE[#CONJURE] end },
+			{ build = Effect, seat = PERCH_RIGHT, size = PERCH, look = "glyph", glyph = "glyphIntellect", feed = "aura", spells = INTELLECT, color = "schoolArcane" },
 		} },
-		{ key = "crestCounterspell", seat = "leftHip", feed = "cooldown", choices = {
-			{ known = { 2139 } },
-			{ known = { 10199, 10197, 8413, 8412, 2138, 2137, 2136 } },
+		{ key = "crestCounterspell", seat = PERCH_LEFT, build = Effect, look = "shard", feed = "cooldown", choices = {
+			{ known = { 2139 }, color = "magic" },
+			{ known = { 10199, 10197, 8413, 8412, 2138, 2137, 2136 }, look = "orb", color = "schoolFire" },
 		} },
-		{ key = "crestSchool", seat = "rightHip", choices = {
-			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 22959 }, known = { 11095, 12872, 12873 }, color = "schoolFire", pips = 5 },
-			{ feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 12579 }, known = WINTERS, color = "schoolFrost", pips = 5 },
-			{ feed = "cooldown", known = { 1326079 } },
-			{ feed = "cooldown", known = NOVA },
+		{ key = "crestSchool", seat = At(BAND.left), choices = {
+			{ build = Stacks, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 22959 }, known = { 11095, 12872, 12873 }, color = "schoolFire",
+				stacks = 5, ember = "trackerFlame" },
+			{ build = Stacks, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", spells = { 12579 }, known = WINTERS, color = "schoolFrost", stacks = 5,
+				ember = "glyphChillShard" },
+			{ build = Charge, feed = "cooldown", known = { 1326079 }, color = "schoolArcane" },
+			{ build = Charge, feed = "cooldown", known = NOVA, color = "schoolFrost" },
 		} },
-		{ key = "crestFrozen", seat = "footLeft", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", color = "schoolFrost", choices = {
-			{ spells = { 122, 865, 6131, 10230, 12494 }, known = NOVA },
-			{ spells = FROSTBOLT },
+		{ key = "crestFrozen", seat = At(BAND.frost), build = Frozen, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER",
+			color = "schoolFrost", choices = {
+				{ spells = { 122, 865, 6131, 10230, 12494 }, known = NOVA },
+				{ spells = FROSTBOLT },
+			} },
+		{ key = "crestYourSpell", seat = At(BAND.right), build = Fuse, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", newest = true, choices = {
+			{ spells = FIRE, known = IGNITE, color = "schoolFire", glyph = "glyphFireTongue" },
+			{ spells = CHILLS, known = WINTERS, color = "schoolFrost", glyph = "glyphChillShard" },
+			{ spells = { 118, 12824, 12825, 12826, 28271, 28272 }, color = "schoolArcane", glyph = "glyphPolyCurl" },
 		} },
-		{ key = "crestYourSpell", seat = "footRight", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", newest = true, choices = {
-			{ spells = FIRE, known = IGNITE, color = "schoolFire" },
-			{ spells = CHILLS, known = WINTERS, color = "schoolFrost" },
-			{ spells = { 118, 12824, 12825, 12826, 28271, 28272 }, color = "schoolArcane" },
-		} },
-		{ key = "crestCooldowns", seat = "cooldowns", color = "pipMageGlow", families = { { spells = { 12042 } }, { spells = { 12043 } },
-			{ spells = { 11129, 28682 }, known = { 11129 } }, { spells = { 12051 } }, { spells = { 11958, 27619 }, known = { 11958 } } } },
+		{ key = "crestCooldowns", seat = "cooldowns", color = "pipMageGlow", families = { { spells = { 12042 }, sigil = "Arcane" },
+			{ spells = { 12043 }, sigil = "Hourglass" }, { spells = { 11129, 28682 }, known = { 11129 }, sigil = "Flame" }, { spells = { 12051 }, sigil = "Vortex" },
+			{ spells = { 11958, 27619 }, known = { 11958 }, sigil = "Crystal" } } },
 		{ key = "crestWard", seat = "rim", build = Ward, place = Ring, feed = "aura", spells = WARDS, color = "rim", ward = true },
 		{ key = "crestClearcasting", seat = "rim", build = Moment, place = Ring, feed = "aura", spells = { 12536 }, known = { 11213, 12574, 12575, 12576, 12577 },
 			color = "schoolArcane", ambient = "medAmbientMage" },
-	}, { burst = "medBurstMage", events = { "BAG_UPDATE_DELAYED", "BAG_UPDATE_COOLDOWN", { "UNIT_POWER_UPDATE", "player" } }, paint = Paint })
+	}, { burst = "medBurstMage", events = { { "UNIT_POWER_UPDATE", "player" } }, paint = Paint, figures = true })
 end
 
 if CLASS == "WARLOCK" then
@@ -553,7 +935,19 @@ if CLASS == "WARLOCK" then
 	local ARMORS = { 11735, 11734, 11733, 1086, 706, 696, 687 }
 	local STONES = { 9421, 19012, 19013, 5510, 19010, 19011, 5509, 19008, 19009, 5511, 19006, 19007, 5512, 19004, 19005 }
 	local CREATE = { 11730, 11729, 5699, 6202, 6201 }
-	local CURSES = { 702, 1108, 6205, 7646, 11707, 11708, 704, 7658, 7659, 11717, 1714, 11719, 440892, 1311676, 1311677, 1311680, 18223 }
+	local SIGILS = {
+		{ "glyphImp", { 3110, 7799, 7800, 7801, 7802, 11762, 11763 }, 18789 },
+		{ "glyphVoidwalker", { 3716, 7809, 7810, 7811, 11774, 11775 }, 18790 },
+		{ "glyphSuccubus", { 7814, 7815, 7816, 11778, 11779, 11780 }, 18791 },
+		{ "glyphFangs", { 19505, 19731, 19734, 19736, 19244, 19647 }, 18792 },
+	}
+	local CURSES = {
+		{ spells = { 702, 1108, 6205, 7646, 11707, 11708 }, color = "jewelShard", glyph = "glyphWeakness" },
+		{ spells = { 704, 7658, 7659, 11717 }, color = "hostile", glyph = "glyphBurst" },
+		{ spells = { 1714, 11719 }, color = "schoolArcane", glyph = "glyphTongue" },
+		{ spells = { 440892, 1311676, 1311677, 1311680 }, color = "schoolFire", glyph = "glyphElements" },
+		{ spells = { 18223 }, color = "schoolFrost", glyph = "glyphHourglass" },
+	}
 
 	local function Demon()
 		return Out() or Medals.Known(SACRIFICE) ~= nil
@@ -573,30 +967,36 @@ if CLASS == "WARLOCK" then
 	end
 
 	Trackers.Register("WARLOCK", {
-		{ key = "crestDemon", seat = "left", choices = {
-			{ build = Pet, known = DEMONS, active = Demon, feed = "aura", color = "jewelShard", spells = { 18789, 18790, 18791, 18792 } },
-			{ feed = "aura", color = "jewelShard", spells = ARMORS },
+		{ key = "crestDemon", seat = At(BAND.left), choices = {
+			{ build = Pet, band = "left", light = "schoolNature", demons = SIGILS, known = DEMONS, active = Demon, feed = "aura", color = "jewelShard",
+				spells = { 18789, 18790, 18791, 18792 } },
+			{ build = Effect, seat = SIGIL, size = PERCH, look = "glyph", glyph = "glyphHorns", feed = "aura", color = "jewelShard", spells = ARMORS },
 		} },
-		{ key = "crestHealthstone", seat = "right", choices = {
-			{ feed = "item", items = STONES, known = function() return Medals.Known(CREATE) or Have(STONES) and CREATE[#CREATE] end },
-			{ feed = "aura", color = "jewelShard", spells = ARMORS, known = function() return Medals.Known(DEMONS) and Medals.Known(ARMORS) end, active = Demon },
+		{ key = "crestHealthstone", seat = PENDANT, build = Effect, choices = {
+			{ build = Gem, look = "gem", size = GEM, feed = "item", items = STONES, color = "friendly", known = function() return Medals.Known(CREATE) or Have(STONES) and CREATE[#CREATE] end },
+			{ seat = PERCH_RIGHT, size = PERCH, look = "glyph", glyph = "glyphHorns", feed = "aura", color = "jewelShard", spells = ARMORS,
+				known = function() return Medals.Known(DEMONS) and Medals.Known(ARMORS) end, active = Demon },
 		} },
-		{ key = "crestStone", seat = "lowerLeft", feed = "enchant", slot = "MainHand", color = "schoolFire", known = { 17728, 17727, 2362, 17953, 17952, 17951, 6366 } },
-		{ key = "crestConflagrate", seat = "lowerRight", build = Jewel, feed = "cooldown", color = "schoolFire", known = { 1293818, 1293817, 18932, 18931, 18930, 17962 } },
-		{ key = "crestCurse", seat = "footLeft", size = Medals.FOOT, feed = "aura", unit = "target", filter = "HARMFUL|PLAYER", color = "jewelShard", spells = CURSES },
-		{ key = "crestSpellLock", seat = "footRight", size = Medals.FOOT, feed = "cooldown", choices = {
-			{ known = function() return Medals.Known({ 691 }) and (SpellLock() or 19244) end, active = SpellLock },
-			{ known = { 17926, 17925, 6789 } },
+		{ key = "crestStone", seat = "lowerLeft", build = Medals.Socket, feed = "enchant", slot = "MainHand", color = "schoolFire",
+			known = { 17728, 17727, 2362, 17953, 17952, 17951, 6366 } },
+		{ key = "crestConflagrate", seat = "lowerRight", build = Medals.Socket, feed = "cooldown", color = "schoolFire", known = { 1293818, 1293817, 18932, 18931, 18930, 17962 } },
+		{ key = "crestCurse", seat = At(BAND.right), build = Fuse, glyph = "glyphWeakness", feed = "aura", unit = "target",
+			filter = "HARMFUL|PLAYER", color = "jewelShard", known = Trackers.Joined(CURSES[1].spells, CURSES[2].spells, CURSES[3].spells, CURSES[4].spells,
+			CURSES[5].spells), feeds = CURSES },
+		{ key = "crestSpellLock", seat = PERCH_LEFT, build = Effect, feed = "cooldown", color = "schoolShadow", choices = {
+			{ look = "blade", known = function() return Medals.Known({ 691 }) and (SpellLock() or 19244) end, active = SpellLock },
+			{ look = "orb", known = { 17926, 17925, 6789 } },
 		} },
-		{ key = "crestCooldowns", seat = "cooldowns", color = "jewelShard", families = { { spells = { 18288 } }, { spells = { 18708 } },
-			{ spells = { 6229, 11739, 11740, 28610 } }, { spells = { 7812, 19438, 19440, 19441, 19442, 19443 } } } },
+		{ key = "crestCooldowns", seat = "cooldowns", color = "jewelShard", families = { { spells = { 18288 }, sigil = "Curse" },
+			{ spells = { 18708 }, sigil = "Horns" }, { spells = { 6229, 11739, 11740, 28610 }, sigil = "Shade" },
+			{ spells = { 7812, 19438, 19440, 19441, 19442, 19443 }, known = {}, sigil = "Void" } } },
 		{ key = "crestWisps", seat = "rim", build = Wisps, place = PlaceWisps, items = { 6265 },
 			known = function() return Medals.Known({ 1120, 8288, 8289, 11675 }) or Count(6265) > 0 and 1120 end },
 		{ key = "crestTorments", seat = "rim", build = Spires, place = PlaceSpires, spires = {
-			{ angle = 126, color = "totemEarth", spells = { 172, 6222, 6223, 7648, 11671, 11672, 25311 } },
-			{ angle = 102, color = "jewelShard", spells = { 980, 1014, 6217, 11711, 11712, 11713, 603, 1225228 } },
-			{ angle = 78, color = "schoolFire", spells = { 348, 707, 1094, 2941, 11665, 11667, 11668, 25309 } },
-			{ angle = 54, color = "healthHostile", spells = { 18265, 18879, 18880, 18881 } },
+			{ angle = 126, glyph = "glyphSwirl", color = "totemEarth", spells = { 172, 6222, 6223, 7648, 11671, 11672, 25311 } },
+			{ angle = 102, glyph = "glyphEye", color = "jewelShard", spells = { 980, 1014, 6217, 11711, 11712, 11713, 603, 1225228 } },
+			{ angle = 78, glyph = "glyphFireTongue", color = "schoolFire", spells = { 348, 707, 1094, 2941, 11665, 11667, 11668, 25309 } },
+			{ angle = 54, glyph = "glyphSiphon", color = "healthHostile", spells = { 18265, 18879, 18880, 18881 } },
 		}, known = function(row)
 			for _, s in ipairs(row.spires) do
 				local id = Medals.Known(s.spells)
@@ -607,9 +1007,10 @@ if CLASS == "WARLOCK" then
 			color = "jewelShard", ambient = "medAmbientWarlock" },
 	}, {
 		burst = "medBurstWarlock",
-		events = { PET_EVENTS[1], PET_EVENTS[2], PET_EVENTS[4], "BAG_UPDATE_DELAYED", "BAG_UPDATE_COOLDOWN", "PLAYER_TARGET_CHANGED" },
+		events = { PET_EVENTS[1], PET_EVENTS[2], "BAG_UPDATE_DELAYED", "PLAYER_TARGET_CHANGED" },
 		update = { "UNIT_PET" },
 		paint = Paint,
 		motion = Motion,
+		figures = true,
 	})
 end

@@ -150,11 +150,9 @@ local function Render(keepOffset, reselect, pageChanged)
 	state.items = items
 	state.sections = state.query and {} or Model.Sections(items)
 	local calm = CalmLists()
-	local fade = calm and pageChanged == true and K.Motion.OneStyle()
 	content.revealLimit = calm and 0.45 or nil
 	if not keepOffset then content.flashIndex = nil end
-	content:SetData(items, keepOffset, not calm or pageChanged == true and not fade)
-	if fade then K.Motion.PageIn(content, K.Motion.Moment("page")) end
+	content:SetData(items, keepOffset, not calm or pageChanged == true and not K.Motion.OneStyle())
 	local folded = K.Store.Account().optionsRailFolded
 	local sections = K.Store.Account().optionsRailSections ~= false and not (folded and folded[state.page]) and state.sections or {}
 	if reselect then
@@ -495,7 +493,6 @@ local function Build()
 		strata = "HIGH",
 		escape = true,
 		hidden = true,
-		calmMotion = CalmLists,
 		onClose = function()
 			if search:HasFocus() then
 				search:ClearFocus()
@@ -664,11 +661,6 @@ function Window.Show(page)
 		Build()
 	end
 	if win:IsShown() then
-		if win.closing and CalmLists() then
-			win:Open()
-			Select(page or state.page)
-			return
-		end
 		if page == nil then
 			win:Close()
 			return

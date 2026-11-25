@@ -1,8 +1,8 @@
--- Style.lua: the quest card on each restyled tooltip (its material, edge, the heading's diamond and its one rule, the compare caption as a card heading), the fade in, the tooltip fonts, the item caption, the unit buff icons' places, line spacing and the tooltip scale; GILT_FALLBACK is the one switch to S1's gilt token.
+-- Style.lua: the quest card on each restyled tooltip (its material, edge, the heading's diamond and its one rule, the compare caption as a card heading), the tooltip fonts, the item caption, the unit buff icons' places, line spacing and the tooltip scale; GILT_FALLBACK is the one switch to S1's gilt token.
 local _, ns = ...
 
 local K = KstyleUI
-local Tokens, Widgets, Theme, Skin, Safe, Motion = K.Tokens, K.Widgets, K.Theme, K.Skin, K.Safe, K.Motion
+local Tokens, Widgets, Theme, Skin, Safe = K.Tokens, K.Widgets, K.Theme, K.Skin, K.Safe
 local Logic, Settings = ns.Logic, ns.Settings
 local max, min, abs = math.max, math.min, math.abs
 
@@ -247,41 +247,6 @@ function Style.Measurable(tooltip)
 	return type(anchor) ~= "string" or not anchor:find("^ANCHOR_CURSOR")
 end
 
-local function BuildFade(tooltip)
-	if type(tooltip.CreateAnimationGroup) ~= "function" then
-		Settings.LogOnce("fade", "Frame:CreateAnimationGroup is missing; tooltips show without the fade in")
-		return nil
-	end
-	local group = tooltip:CreateAnimationGroup()
-	local alpha = group:CreateAnimation("Alpha")
-	alpha:SetFromAlpha(0)
-	alpha:SetToAlpha(1)
-	alpha:SetDuration(Tokens.Duration("hover"))
-	alpha:SetSmoothing(Tokens.Smoothing.enter)
-	group:SetToFinalAlpha(true)
-	Motion.TrackGroup(group)
-	return group, alpha
-end
-
-function Style.Fade(tooltip)
-	local glass = Style.Glass(tooltip)
-	return glass and glass.fade
-end
-
-local function FadeIn(tooltip)
-	local glass = Style.Glass(tooltip)
-	local fade = Style.Fade(tooltip)
-	if not fade or glass.fadeShown then
-		return
-	end
-	glass.fadeShown = true
-	fade:Stop()
-	if Motion.Fades() then
-		glass.fadeAlpha:SetDuration(Motion.FadeDuration(Tokens.Duration("hover")))
-		fade:Play()
-	end
-end
-
 function Style.Skin(tooltip, name)
 	local side = Safe.Side(tooltip)
 	if side.tooltips then
@@ -309,24 +274,6 @@ function Style.Skin(tooltip, name)
 	side.tooltips = glass
 	skinned[#skinned + 1] = tooltip
 	SkinParts(tooltip)
-	glass.fade, glass.fadeAlpha = BuildFade(tooltip)
-	local function ClearFadeShown()
-		local shown = tooltip:IsShown()
-		if not Logic.IsSecret(shown) and not shown then
-			glass.fadeShown = nil
-		end
-	end
-	tooltip:HookScript("OnShow", FadeIn)
-	tooltip:HookScript("OnHide", function()
-		if glass.fade then
-			glass.fade:Stop()
-		end
-		if C_Timer and type(C_Timer.After) == "function" then
-			C_Timer.After(0, ClearFadeShown)
-		else
-			glass.fadeShown = nil
-		end
-	end)
 	for _, method in ipairs({ "SetPadding", "ClearPadding" }) do
 		if glass.iconOwner and type(tooltip[method]) == "function" then
 			hooksecurefunc(tooltip, method, Repad)

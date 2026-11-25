@@ -22,6 +22,7 @@ local Fx = dofile("Tools/render/scenes/_effects.lua")
 local RestScene = dofile("Tools/render/scenes/_rest.lua")
 local TotemScene = dofile("Tools/render/scenes/_totems.lua")
 local TrackerScene = dofile("Tools/render/scenes/_trackers.lua")
+local RingScene = dofile("Tools/render/scenes/_rings.lua")
 
 -- The module scenes' draw order lives in this copy of scene.lua, so merges across modules sort with it.
 local Hud = { Merge = Scene.Merge }
@@ -506,9 +507,9 @@ local SIGIL_DEBUFFS = { { 132155, "18s" }, { 132363, "9s", "3" }, { 132316, "4s"
 local function sigilSockets(env, K, ns, view, list)
 	list = list or SIGIL_DEBUFFS
 	local a = view.auras
+	local Engine = dofile("Tools/regression/aura_fixture_engine.lua")
 	if a and K.HudStyle.Current() == "medallions" then
 		if ns.Fan.Wanted(view) then K.Options.Write("UnitFrames", "target.auraFilter", "debuffs") end
-		local Engine = dofile("Tools/regression/aura_fixture_engine.lua")
 		local count = tonumber(os.getenv("RENDER_CREST_DEBUFFS")) or #list
 		local icons = { 135813, 136026, 136207, 136197, 136118, 136016, 136048 }
 		local fixtures = {}
@@ -519,6 +520,7 @@ local function sigilSockets(env, K, ns, view, list)
 		env._units.target.auras = fixtures
 		Engine.Install(env)
 		if os.getenv("RENDER_MEDALLIONS_STATE") == "combat" then env.SetCombat(true) end
+		if not ns.Fan.Wanted(view) then return "target row debuffs: " .. count .. " of yours and one of another player's" end
 		return "crest debuffs: " .. count .. " of yours, soonest expiry at the apex, then alternating left and right; another player's debuff stays on the target"
 	end
 	local group = a and a.container and a.container._groups and a.container._groups.debuffs
@@ -538,6 +540,7 @@ local function sigilSockets(env, K, ns, view, list)
 				button:SetSize(size, size)
 				entry.icon:SetTexture(env.Secret(list[i][1]))
 				Widgets.SetText(entry.timer, list[i][2])
+				Engine.Ink(button._aura, tonumber(list[i][2]:match("^(%d+)s$")))
 				Widgets.SetText(entry.count, list[i][3] or "")
 			end
 		end
@@ -697,6 +700,20 @@ function modules.unitframes(opts)
 		local who = "the player lost " .. LOSS_SHARE.player * 100 .. "% and the target "
 		notes[#notes + 1] = who .. LOSS_SHARE.target * 100 .. "% of their health " .. LOSS_AGO .. " s ago (RENDER_LOSS)"
 	end
+	-- RENDER_ENERGY_TICK=t: an energy user's last natural tick (20 energy at 10 a second) came t seconds before the
+	-- scene's clock, through the addon's own power event, so the player bar's tick spark shows that point of its sweep.
+	local tickAgo = tonumber(os.getenv("RENDER_ENERGY_TICK"))
+	if tickAgo then
+		local me = env._units.player
+		env.GetPowerRegen = function() return 10, 10 end
+		me.power = me.power - 20
+		env.FireEvent("UNIT_POWER_UPDATE", "player", "ENERGY")
+		me.power = me.power + 20
+		env.FireEvent("UNIT_POWER_UPDATE", "player", "ENERGY")
+		local spark = assert(ns.Frames.Get("player").views[1].energySpark, "RENDER_ENERGY_TICK needs a player on energy below its maximum")
+		spark.group._playedAt = env._time - tickAgo
+		notes[#notes + 1] = "the last energy tick came " .. tickAgo .. " s ago (RENDER_ENERGY_TICK)"
+	end
 	if select(3, Hud.Pips()) then
 		K.Options.Write("UnitFrames", "resource.classPips", false)
 	end
@@ -810,16 +827,26 @@ function modules.actionbars(opts)
 			env.GetComboPoints = env.GetComboPoints or function()
 				return env._pips or spec.combo or 0
 			end
-			if Hud.Pips() or Hud.Crown(opts) then
+			-- The player's main power (Hud.Player) and its bar colour, which the crest's glyph tide fills with; any other
+			-- power answers the jewels' count.
+			local player = Hud.Player(opts)
+			if Hud.Pips() or Hud.Crown(opts) or not env.UnitPowerType then
 				env.UnitPowerType = function()
-					return Hud.Player(opts).powerType
+					return player.powerType, player.powerToken
 				end
 			end
-			env.UnitPower = env.UnitPower or function()
-				return spec.combo or 3
+			env.PowerBarColor = env.PowerBarColor or {}
+			for token, c in pairs(Classes.POWER_COLORS) do
+				env.PowerBarColor[token] = env.PowerBarColor[token] or { r = c[1], g = c[2], b = c[3] }
+			end
+			env.UnitPower = env.UnitPower or function(_, power)
+				return power ~= nil and power == player.powerType and player.power or spec.combo or 3
 			end
 			-- RENDER_FOREVER_POWERS=1 gives soul shards (7) and holy power (9) no maximum, as Forever does, so no jewels show.
 			env.UnitPowerMax = env.UnitPowerMax or function(_, power)
+				if power ~= nil and power == player.powerType then
+					return player.powerMax
+				end
 				return os.getenv("RENDER_FOREVER_POWERS") == "1" and (power == 7 or power == 9) and 0 or 5
 			end
 			-- The client's seconds formatter, which the sockets put on their cooldown numbers ("4s").
@@ -847,7 +874,7 @@ function modules.actionbars(opts)
 	AB.Enable(env, K)
 	local consumables = tonumber(rawget(_G, "RENDER_CONSUMABLES") or os.getenv("RENDER_CONSUMABLES") or "")
 	if consumables and ns.Consumables then
-		local items = { { 13446, 134834 }, { 13444, 134856 }, { 5510, 135230 }, { 14530, 133682 }, { 22895, 134029 }, { 8079, 132805 }, { 18253, 134828 }, { 20452, 133971 }, { 13510, 134842 }, { 13452, 134812 }, { 20007, 134825 }, { 954, 134938 } }
+		local items = { { 13446, 134834 }, { 13444, 134856 }, { 20520, 136192 }, { 5510, 135230 }, { 14530, 133682 }, { 22895, 134029 }, { 8079, 132805 }, { 18253, 134828 }, { 20452, 133971 }, { 13510, 134842 }, { 13452, 134812 }, { 20007, 134825 }, { 954, 134938 } }
 		env.C_Container = {
 			GetContainerNumSlots = function(bag) return bag == 0 and math.min(12, consumables) or 0 end,
 			GetContainerItemInfo = function(_, slot) return { itemID = items[slot][1], iconFileID = items[slot][2], stackCount = slot + 2 } end,
@@ -958,6 +985,7 @@ function modules.actionbars(opts)
 		Fx.Apply(env, "actionbars", ns, notes)
 		if class == "SHAMAN" and TotemScene.Story() then TotemScene.Play(env, K, ns, AB, notes) end
 		if TrackerScene.Story(class) then TrackerScene.Play(env, K, ns, notes) end
+		if RingScene.Story() then RingScene.Play(env, K, ns, notes) end
 		if travel then
 			K.Options.Write("ActionBars", "crestTravel", not travel:find("before", 1, true))
 			if ns.Travel.crest and ns.Travel.crest:IsShown() then ns.Travel.Prepare(); AB.Click(env, ns.Travel.crest, "RightButton", false) end

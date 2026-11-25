@@ -232,7 +232,7 @@ Settings.defaults = {
 	player = Kind(true, {
 		medallionsAuras = false, medallionsAuraFilter = "buffs",
 		castbarSmooth = false, castbarChannelOverride = false, castbarChannelColor = Color("rare"), castbarTotal = false,
-		powerCost = false, powerCostColor = Color("white"), manaSpark = false, powerMana = false,
+		powerCost = false, powerCostColor = Color("white"), manaSpark = false, energyTick = true, powerMana = false,
 		powerText = "auto",
 		style = "column", combat = true, resting = true, castbarIcon = true, castbarCaps = true, castbarColor = "gold", castbarInside = true,
 		healthColor = "hud",
@@ -299,7 +299,7 @@ local function Live(d, values)
 end
 for _, kind in ipairs(KINDS) do
 	Live(Settings.defaults[kind], { buffStealable = "", buffDefensive = "", buffDispellable = "", auraHidden = "", auraTracked = "",
-		auraTimed = false, auraHideLockout = false, auraTrackedOnly = false, auraRowGap = 0, auraPrecise = 0, castbarFit = false, castbarIconSize = 0, auraLists = "",
+		auraTimed = false, auraHideLockout = false, auraTrackedOnly = false, auraRowGap = 0, auraPrecise = 0, auraExpiring = 5, castbarFit = false, castbarIconSize = 0, auraLists = "",
 		castbarTargetPlace = "", castbarTargetSize = 0, castbarTargetX = 0, castbarTargetY = 0, castbarTargetColor = Color("textEmphasis"), auraBuffPlace = "", auraBuffX = 0, auraBuffY = 0 })
 end
 for kind in pairs(Settings.AURAS) do Live(Settings.defaults[kind], { auraTrackedDebuffs = false }) end
@@ -512,7 +512,7 @@ local function IsNumber(v)
 	return not (issecretvalue and issecretvalue(v)) and type(v) == "number" and v == v
 end
 
-RANGES.auraRowGap, RANGES.auraPrecise = { 0, AURA_SPACING_MAX }, { 0, PRECISE_MAX }
+RANGES.auraRowGap, RANGES.auraPrecise, RANGES.auraExpiring = { 0, AURA_SPACING_MAX }, { 0, PRECISE_MAX }, { 0, 30 }
 CHOICES.lane = Options({ { "", L["Show all"] }, { "only", L["Only these"] }, { "hide", L["Hide these"] } })
 CHOICE_OF.buffStealable, CHOICE_OF.buffDefensive, CHOICE_OF.buffDispellable = "lane", "lane", "lane"
 
@@ -546,7 +546,7 @@ function Settings.AuraKey(kind, key)
 end
 
 local AURA_LOOK = { auraSize = "simple", auraPosition = false, auraSpacing = true, auraRows = "simple", auraColumns = true,
-	auraGrowth = true, auraTimer = true, auraZoom = true, auraBuffZoom = true, auraTooltipCombat = true, auraRowGap = true, auraPrecise = true }
+	auraGrowth = true, auraTimer = true, auraZoom = true, auraBuffZoom = true, auraTooltipCombat = true, auraRowGap = true, auraPrecise = true, auraExpiring = true }
 Settings.AURA_LOOK = AURA_LOOK
 local LISTS = { auraHidden = true, auraTracked = true, auraTrackedOnly = true, auraTrackedDebuffs = true }
 Settings.LISTS = LISTS
@@ -1114,6 +1114,9 @@ local function FilterRows(schema, kind, on, own)
 	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraPrecise", label = L["Precise timers below (minutes)"],
 		help = L["Timers under this many minutes show minutes and seconds, such as 4m 32s. 0 keeps the short form."],
 		min = 0, max = PRECISE_MAX, step = 1 }, function(s) return own(s) and s.auraTimer ~= false end)
+	local function crest(s) return ns.Fan.Wanted({ kind = kind }) and (s.auraCopy == nil or s.auraCopy == "" or s.auraCopy == kind) end
+	schema[#schema + 1] = Row(kind, { type = "slider", key = "auraExpiring", label = L["Warn under"],
+		help = L["Seconds left when a timer turns red. 0 turns the warning off."], min = 0, max = 30, step = 1 }, function(s) return own(s) and s.auraTimer ~= false or crest(s) end)
 end
 
 AuraRows = function(schema, kind)
@@ -1420,7 +1423,7 @@ local function KindRows(schema, kind)
 	if kind == "target" then
 		schema[#schema + 1] = Row(kind, {
 			type = "toggle", key = "transitions", label = L["Gentle target changes"],
-			help = L["Medallions: fades target loss and changes, and greys a dead target. Off changes it immediately."],
+			help = L["Medallions: a dead target greys over a moment before it leaves. Off changes it immediately."],
 		})
 		schema[#schema + 1] = Row(kind, {
 			type = "toggle", key = "percentLead", label = L["Lead with target percent"],
@@ -1508,6 +1511,7 @@ local function KindRows(schema, kind)
 		kind == "player" and { "toggle", "powerCost", L["Spell cost"], powerOn, L["While you cast, marks the power the spell will cost at the end of the fill."] },
 		kind == "player" and { "color", "powerCostColor", L["Spell cost colour"], function(s) return powerOn(s) and s.powerCost == true end, L["The colour of the spell cost mark."] },
 		kind == "player" and { "toggle", "manaSpark", L["Five-second rule"], powerOn, L["After you spend mana, a spark crosses the bar for the five seconds before regeneration resumes."] },
+		kind == "player" and { "toggle", "energyTick", L["Energy tick"], powerOn, L["Rogues and cat druids: a spark sweeps the energy bar between the two-second energy ticks."] },
 		kind == "player" and { "toggle", "powerMana", L["Mana in forms"], function(s) return powerOn(s) and K.Theme.Class() == "DRUID" end, L["Druids: shows mana in bear and cat form; the class resource bar shows the form's power."] },
 		{ "dropdown", "powerDetach", L["Power bar place"], function(s) return powerOn(s) and Settings.Form(kind) ~= "slab" end, L["In the frame, or apart below or above its bars at its own width. The frame keeps its size."], CHOICES.powerDetach },
 		{ "slider", "powerDetachWidth", L["Power bar width"], detached, L["The detached power bar's width. 0 matches the frame."] },

@@ -368,7 +368,15 @@ function Kit.MirrorBar(source, parent, width, height, opts)
 	Skin.Strip(source)
 	Parts.Hush(source:GetStatusBarTexture())
 	local bar = Widgets.StatusBar(parent, { width = width, height = height, border = true, glass = false })
-	bar:SetPoint("TOPLEFT", source, "TOPLEFT")
+	local point, relative, relativePoint, x, y = source:GetPoint(1)
+	if not (IsSecret(point) or IsSecret(relative) or IsSecret(relativePoint) or IsSecret(x) or IsSecret(y)) and relative == parent then
+		Widgets.Point(bar, point, parent, relativePoint, x, y)
+		local _, _, _, dx, dy = bar:GetPoint(1)
+		bar:ClearAllPoints()
+		bar:SetPoint(point, source, point, dx - x, dy - y)
+	else
+		bar:SetPoint("TOPLEFT", source, "TOPLEFT")
+	end
 	bar:SetFrameLevel(parent:GetFrameLevel() + LEVEL_ABOVE)
 	state.bar = bar
 	local low, high = source:GetMinMaxValues()

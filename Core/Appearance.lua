@@ -427,7 +427,7 @@ function Appearance.Schema()
 		{ type = "toggle", key = "auraEndings", label = L["Quiet aura endings"],
 			help = L["Round up aura timers and hide the finishing flash on aura swipes. Off restores the old endings."] },
 		{ type = "toggle", key = "calmLists", label = L["Calmer settings lists"],
-			help = L["Search appears at once; page lists and previews fade briefly. Off restores the original motion."] },
+			help = L["Search appears at once and a page's rows settle quickly. Off restores the original list motion."] },
 		{
 			type = "dropdown", key = "motion", label = L["Motion"],
 			help = L["Full animates; Calm keeps short fades and flashes without slides or loops; Off is still."],

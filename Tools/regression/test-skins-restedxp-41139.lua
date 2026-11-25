@@ -134,5 +134,15 @@ assert(R.windows.targets and R.windows.report == nil and R.windows.splits == nil
 local _, itemParts = Fake.Box(R.rxp, "items")
 local _, targetParts = Fake.Box(R.rxp, "targets")
 assert(itemParts.buttonList[1]:GetWidth() == targetParts.enemyTargetButtons[1]:GetWidth(), "the gallery's item buttons keep RestedXP's 25 units, as its target buttons, got " .. tostring(itemParts.buttonList[1]:GetWidth()))
+-- RestedXP's 40-unit option icons do not touch: each 34-unit row sits in a 38-unit wrapper (GuideConfigurator.lua 956) and
+-- AceGUI's Flow layout puts 3 units between wrappers, a 41-unit pitch (review of #806, finding 4).
+local ui, last = R.rxp.ui.v2.configurator.ui, nil
+for _, option in ipairs(Fake.ConfiguratorOptions(ui)) do
+	if option.frame:IsShown() then
+		local image = assert(dofile("Tools/regression/geometry.lua").Rect(option.image, ui.scrollContainer.frame))
+		assert(not last or image.top < last.bottom, "the gallery's option icons must not overlap (Tools/render/scenes/_restedxp.lua OPTION_GAP), got " .. image.top .. " under " .. (last and last.bottom or 0))
+		last = image
+	end
+end
 
 print("skins restedxp 4.11.39 ok")

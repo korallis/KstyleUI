@@ -1,4 +1,4 @@
--- SlabMedals.lua: the Medallions crest's shared medals and ring sockets (docs/medallions-effects.md#crest-medals-and-sockets lists the API): the parts the hawk perches, storm orbs and Spirit Poles share, the crest's named seats, and three pieces the class trackers build: Medal, a round steel medal lit by an aura slot or a weapon enchant (with a timer ring the engine drains from the aura's own duration), by a spell's cooldown duration object or by a usable strike; Rim, an aura that burns round the crest's inner rim and drains with it; Socket, a jewel on the ring whose liquid drains with an aura or a weapon enchant. Engine enables the feeds and hands the engine the flares and the fire at Full while auras are readable; Lua never reads or compares a secret.
+-- SlabMedals.lua: the Medallions crest's shared medals and ring sockets (docs/medallions-effects.md#crest-medals-and-sockets lists the API): the parts the hawk perches, storm orbs and Spirit Poles share, the crest's named seats, and four pieces the class trackers build: Figure, a bare figure of light in a breathing bloom that burns down with an aura or charges over a cooldown, never in a socket; Medal, a round steel medal lit by an aura slot or a weapon enchant (with a timer ring the engine drains from the aura's own duration), by a spell's cooldown duration object or by a usable strike; Rim, an aura that burns round the crest's inner rim and drains with it; Socket, a jewel on the ring whose liquid drains with an aura or a weapon enchant. Engine enables the feeds and hands the engine the flares and the fire at Full while auras are readable; Lua never reads or compares a secret.
 local _, ns = ...
 
 local K = KstyleUI
@@ -11,15 +11,17 @@ ns.SlabMedals = Medals
 
 local SIZE, TRACK, ICON, SHADE, BURST, STEEL = 26, 4, 0.74, 1.9, 2.4, 0.45
 local RIM, INNER, SETTING, LIP, GEM, GLINT = 150, 112, 12, 10, 8, 2
-local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, STACK_MAX = 118, 14, 4, 30, 3
+local COOLDOWN_RING, STACK, STACK_GAP, STACK_DROP, ROW_SIGIL, SIGIL, ABOVE = 118, 14, 4, 30, 12, 0.86, 20
+local SPARK, BLOOM, GLOW_LIT, FLARE_MAX = 0.3, 2.4, 0.75, 30
+local FLASH, BREATH, FADE_IN = { { 0.75, 1, 0.05 }, { 1, 0.75, 0.4 } }, { { 0.75, 1, 0.8 }, { 1, 0.75, 0.8 } }, { { 0, 1, 0.12 } }
 local SEATS = {
 	left = { -1, 75.9, 24.8 }, right = { 1, 75.9, 24.8 }, top = { 1, 96, 90 }, topGem = { 1, 60, 90 }, lowerLeft = { -1, 62, -35 }, lowerRight = { 1, 62, -35 },
 	leftHip = { 1, 76, 218 }, rightHip = { 1, 76, 322 }, footLeft = { 1, 67.5, 247 }, footRight = { 1, 67.5, 293 },
 }
-local PIP, PIP_ARC, GLOW = 4, 22, 0.35
+local PIP, PIP_ARC, GLOW, SPARK_LAP = 4, 22, 0.35, 1.6
 local FLARE = { { 0, 1, 0.05 }, { 1, 0, 0.4 } }
 local OWNER = "ActionBars.SlabMedals"
-local refreshed, rims, watchers, gates, NONE = {}, {}, {}, {}, {}
+local refreshed, rims, watchers, gates, breaths, NONE = {}, {}, {}, {}, {}, {}
 local REFRESH = { target = { "PLAYER_TARGET_CHANGED" }, pet = { "UNIT_PET", "player" }, focus = { "PLAYER_FOCUS_CHANGED" } }
 Medals.SIZE, Medals.FOOT, Medals.LINE, Medals.GAP = SIZE, 15, 5, 4
 
@@ -60,7 +62,7 @@ end
 
 function Medals.Texture(parent, layer, sublevel, texture, color, size, blend)
 	local t = parent:CreateTexture(nil, layer, nil, sublevel)
-	t:SetTexture((Tokens.Texture(texture)))
+	t:SetTexture(texture:find("\\", 1, true) and texture or (Tokens.Texture(texture)))
 	t:SetVertexColor(Tokens.Color(color))
 	t:SetPoint("CENTER", parent, "CENTER", 0, 0)
 	if blend then
@@ -144,11 +146,11 @@ function Medals.Dress(m, cover)
 	return m
 end
 
-local function Timer(parent, level, texture, color, alpha)
+local function Timer(parent, level, texture, color, alpha, path)
 	local t = CreateFrame("Cooldown", nil, parent, "CooldownFrameTemplate")
 	t:SetFrameLevel(level)
 	t:SetPoint("CENTER", parent, "CENTER", 0, 0)
-	t:SetSwipeTexture((Tokens.Texture(texture)))
+	t:SetSwipeTexture(path or (Tokens.Texture(texture)))
 	local r, g, b = Tokens.Color(color)
 	t:SetSwipeColor(r, g, b, alpha or 1)
 	t:SetDrawEdge(false)
@@ -157,12 +159,8 @@ local function Timer(parent, level, texture, color, alpha)
 	return t
 end
 
-function Medals.Feed(parent, spec, level)
-	if spec.feed ~= "aura" and spec.feed ~= "enchant" then
-		return Medals.Layer(parent, level)
-	end
-	local gate = spec.feed == "enchant" and Medals.Layer(parent, level) or nil
-	local container = CreateFrame("AuraContainer", nil, gate or parent, "CustomAuraContainerTemplate")
+local function Container(parent, spec)
+	local container = CreateFrame("AuraContainer", nil, parent, "CustomAuraContainerTemplate")
 	Widgets.KeepOut(container)
 	container:SetUnit(spec.unit or "player")
 	local refresh = REFRESH[spec.unit]
@@ -186,6 +184,16 @@ function Medals.Feed(parent, spec, level)
 		end
 		list[#list + 1] = container
 	end
+	return container
+end
+
+function Medals.Feed(parent, spec, level, share)
+	if spec.feed ~= "aura" and spec.feed ~= "enchant" then
+		return Medals.Layer(parent, level)
+	end
+	local gate = spec.feed == "enchant" and Medals.Layer(parent, level) or nil
+	local container = share and share.container or Container(gate or parent, spec)
+	container.slots = (container.slots or 0) + 1
 	local button
 	if spec.feed == "aura" then
 		local ids = {}
@@ -197,20 +205,21 @@ function Medals.Feed(parent, spec, level)
 		if spec.newest and sort and direction then
 			spec.options.sortMethod, spec.options.sortDirection = sort.AuraInstanceIDOnly, direction.Reverse
 		end
-		button = container:AddAuraSlot("lit", spec.filter or "HELPFUL", spec.options)
+		button = container:AddAuraSlot(container.slots == 1 and "lit" or "lit" .. container.slots, spec.filter or "HELPFUL", spec.options)
 	else
 		button = container:AddItemEnchantment(AuraContainerItemEnchantmentSlot[spec.slot])
 	end
 	pcall(button.EnableMouse, button, false)
 	button:SetAllPoints(parent)
 	button:SetFrameLevel(level)
-	button.container, button.gate, button.spec = container, gate, spec
+	button.container, button.gate, button.spec, button.share = container, gate, spec, share
 	return button
 end
 
 local function Mirror(piece, lit, level)
-	local gate = Medals.Layer(piece, level)
-	gate.lit = Medals.Feed(gate, setmetatable({}, { __index = lit.spec }), level)
+	local share = lit.share and lit.share.awake
+	local gate = share or Medals.Layer(piece, level)
+	gate.lit = Medals.Feed(gate, setmetatable({}, { __index = lit.spec }), level, share and share.lit)
 	lit.mirrors = lit.mirrors or {}
 	lit.mirrors[#lit.mirrors + 1] = gate.lit
 	return gate
@@ -248,11 +257,27 @@ function Medals.Piece(parent, level, units)
 	return piece
 end
 
-local function Lit(piece, spec, level)
-	local lit = Medals.Feed(piece, spec, level)
+local function Lit(piece, spec, level, share)
+	local lit = Medals.Feed(piece, spec, level, share)
 	piece.lits[#piece.lits + 1] = lit
 	piece.lit = piece.lit or lit
 	return lit
+end
+Medals.Lit = Lit
+
+function Medals.Pips(m, lit, each, size, level, at)
+	for n = 1, lit.container and each.pips or 0 do
+		local slot = lit.container:AddAuraSlot("pip" .. n, each.filter or "HELPFUL", each.options)
+		pcall(slot.EnableMouse, slot, false)
+		slot:SetAllPoints(m)
+		slot:SetFrameLevel(level)
+		local pip = m.add(CreateFrame("StatusBar", nil, slot), PIP)
+		local a = rad(270 + (n - (each.pips + 1) / 2) * PIP_ARC)
+		pip:SetPoint("CENTER", m, "CENTER", at and at[n][1] or (size / 2 + 4) * cos(a), at and at[n][2] or (size / 2 + 4) * sin(a))
+		pip:SetStatusBarTexture((Tokens.Texture("dot")))
+		pip:SetStatusBarColor(Tokens.Color(each.color or "gilt"))
+		slot:SetApplicationBar(pip, { minApplications = n - 1, maxApplications = n })
+	end
 end
 
 function Medals.Medal(parent, spec, level)
@@ -291,6 +316,7 @@ function Medals.Medal(parent, spec, level)
 			if lit.container then
 				lit:SetDurationCooldown(lit.timer)
 			end
+			add(Medals.Ember(m, lit, lit.timer, "Band", level + 3 + 2 * (i - 1), size))
 		elseif each.feed == "cooldown" then
 			lit.timer = add(Timer(lit, level + 2, "dot", "black", 0.7), size * ICON)
 		end
@@ -308,18 +334,7 @@ function Medals.Medal(parent, spec, level)
 			lit.count:SetPoint("BOTTOMRIGHT", m.steel, "CENTER", corner, -corner)
 			lit:SetApplicationCount(lit.count)
 		end
-		for n = 1, lit.container and each.pips or 0 do
-			local slot = lit.container:AddAuraSlot("pip" .. n, each.filter or "HELPFUL", each.options)
-			pcall(slot.EnableMouse, slot, false)
-			slot:SetAllPoints(m)
-			slot:SetFrameLevel(level + 2)
-			local pip = add(CreateFrame("StatusBar", nil, slot), PIP)
-			local a = rad(270 + (n - (each.pips + 1) / 2) * PIP_ARC)
-			pip:SetPoint("CENTER", m, "CENTER", (size / 2 + 4) * cos(a), (size / 2 + 4) * sin(a))
-			pip:SetStatusBarTexture((Tokens.Texture("dot")))
-			pip:SetStatusBarColor(Tokens.Color(each.color or "gilt"))
-			slot:SetApplicationBar(pip, { minApplications = n - 1, maxApplications = n })
-		end
+		Medals.Pips(m, lit, each, size, level + 2)
 		m.timer = m.timer or lit.timer
 		if each.feed == "usable" or each.feed == "item" then
 			lit:Hide()
@@ -328,6 +343,61 @@ function Medals.Medal(parent, spec, level)
 	end
 	m.spec, m.texture = spec, spec.texture
 	return m
+end
+
+function Medals.Figure(parent, spec, level)
+	local size = spec.size or SIZE
+	local f = Medals.Piece(parent, level, size)
+	local feeds = spec.feeds or { spec }
+	local top = level + 1 + 2 * #feeds
+	if #feeds == 1 and (spec.feed == "cooldown" or spec.steady) then
+		local steel = f.add(Medals.Texture(f, "BORDER", 0, spec.figure, "steel", size))
+		steel:SetDesaturated(true)
+		steel:SetAlpha(STEEL)
+	end
+	for i, feed in ipairs(feeds) do
+		local each = feed == spec and spec or setmetatable(feed, { __index = spec })
+		local lit = Lit(f, each, level + 1 + 2 * (i - 1))
+		if each.bloom then
+			lit.bloom = f.add(Medals.Texture(lit, "BACKGROUND", 0, "glow", each.bloom, size * BLOOM, "ADD"))
+			lit.bloom:SetAlpha(GLOW_LIT)
+			lit.loop = Medals.Steps(lit.bloom, BREATH, true)
+			breaths[#breaths + 1] = not lit.container and lit.loop or nil
+		end
+		local bar = f.add(CreateFrame("StatusBar", nil, lit), size)
+		bar:SetPoint("CENTER", f, "CENTER", 0, 0)
+		bar:SetOrientation("VERTICAL")
+		bar:SetStatusBarTexture((Tokens.Texture(each.figure)))
+		bar:GetStatusBarTexture():SetBlendMode("ADD")
+		bar:SetStatusBarColor(Tokens.Color(each.color or "white"))
+		bar:SetMinMaxValues(0, 1)
+		bar:SetValue(1)
+		local alpha = each.alpha or 1
+		bar:SetAlpha(alpha)
+		local spark = f.add(Medals.Texture(bar, "OVERLAY", 0, "glow", each.color or "white", size * SPARK, "ADD"))
+		spark:ClearAllPoints()
+		spark:SetPoint("CENTER", bar:GetStatusBarTexture(), "TOP", 0, 0)
+		if each.charges and lit.container then
+			lit:SetApplicationBar(bar, { minApplications = 0, maxApplications = each.charges })
+		elseif lit.container and not each.steady then
+			local timer = Enum and Enum.StatusBarTimerDirection
+			lit:SetDurationBar(bar, { direction = timer and timer.RemainingTime or 1 })
+			lit.flicker = Medals.Steps(bar, { { alpha, alpha * 0.6, 0.25 }, { alpha * 0.6, alpha, 0.25 } }, true)
+		elseif each.feed == "cooldown" then
+			f.timer, f.bar = Timer(lit, level + 1, "dot", "black", 0), bar
+			f.timer:SetDrawSwipe(false)
+			f.timer:SetScript("OnCooldownDone", function() Medals.Fire(f) end)
+		end
+		if lit.container then
+			lit.loops = { Medals.Steps(lit, FADE_IN), lit.loop }
+		end
+		lit.bar = bar
+		if not each.alpha then
+			Medals.Flare(f, lit, top + 1, spec.burst or "glow", math.min(size, FLARE_MAX) * BURST)
+		end
+	end
+	f.spec = spec
+	return f
 end
 
 function Medals.Rim(parent, spec, level)
@@ -343,75 +413,104 @@ function Medals.Rim(parent, spec, level)
 		rims[#rims + 1] = r
 	end
 	if spec.color then
-		r.timer = r.add(Timer(lit, level + 2, "ringLine16", spec.color), INNER)
+		r.timer = r.add(Timer(lit, level + 2, "ringLine16", spec.color, nil, spec.ring), spec.ringSize or INNER)
 		if lit.container then
 			lit:SetDurationCooldown(r.timer)
 		end
+		if spec.ring then
+			Medals.Warn(r, spec, r.add(Medals.Texture(Medals.Layer(r, level + 3), "OVERLAY", 0, spec.ring, "gilt", spec.ringSize, "ADD")))
+		else
+			r.add(Medals.Ember(r, lit, r.timer, "RingLine16", level + 3, INNER))
+		end
+	end
+	if spec.spark then
+		lit.awake = lit.awake or Mirror(r, lit, level + 1)
+		local orbit = ns.Slab.Group(r.add(Medals.Texture(lit.awake.lit, "OVERLAY", 0, spec.spark, spec.color, spec.ringSize, "ADD")), "REPEAT")
+		local turn = orbit:CreateAnimation("Rotation")
+		turn:SetDegrees(-360)
+		turn:SetDuration(SPARK_LAP)
+		ns.Slab.Fade(orbit, 1, 0, 0.03, 1, 0.72)
+		ns.Slab.Fade(orbit, 0, 1, 0.03, 1, 0.96)
+		lit.awake.lit.loop = orbit
 	end
 	Medals.Flare(r, lit, level + 3, spec.burst or "glow", RIM, spec.lua)
 	r.spec = spec
 	return r
 end
 
-function Medals.CooldownRim(parent, spec, level)
-	local r = Medals.Piece(parent, level, RIM)
+local function Sigil(r, container, key, family, color, size, bloom)
+	local ids = {}
+	for _, id in ipairs(family.spells) do
+		ids[id] = true
+	end
+	local options = { candidateFilters = { includeSpellIDs = ids } }
+	local button = container:AddAuraSlot(key, "HELPFUL", options)
+	pcall(button.EnableMouse, button, false)
+	button:SetPoint("CENTER", r, "CENTER", 0, 0)
+	button:SetFrameLevel(r:GetFrameLevel() + ABOVE)
+	r.add(button, size)
+	local back = r.add(Medals.Texture(button, "BACKGROUND", 0, "glow", bloom or "black", size * (bloom and BLOOM or SHADE), bloom and "ADD"))
+	back:SetAlpha(bloom and GLOW_LIT or 0.7)
+	button.loop = bloom and Medals.Steps(back, FLASH)
+	r.add(Medals.Texture(button, "BACKGROUND", 1, "dot", "black", size)):SetAlpha(0.85)
+	r.add(Medals.Texture(button, "ARTWORK", 0, "sigil" .. family.sigil, color, size * SIGIL, "ADD"))
+	r.add(Medals.Texture(button, "BORDER", 0, "medRing", "white", size))
+	button.timer = Timer(button, button:GetFrameLevel() + 1, "orbRing", color)
+	button.timer:SetAllPoints(button)
+	button:SetDurationCooldown(button.timer)
+	button.ember = Medals.EmberSlot(r, container, "ember" .. key, options, size, r:GetFrameLevel() + ABOVE + 2)
+	button.container, button.key, button.family = container, key, family
+	r.sigils[#r.sigils + 1] = button
+end
+
+function Medals.CooldownRim(parent, spec, level, form)
+	local row = form == "row"
+	local r = Medals.Piece(parent, level, row and SIZE or RIM)
 	local units, order = {}, {}
 	for _, family in ipairs(spec.families) do
 		local unit = family.unit or "player"
 		if not units[unit] then
-			units[unit] = { feed = "aura", unit = unit, filter = spec.filter or "HELPFUL", newest = true, spells = {} }
+			units[unit] = { feed = "aura", unit = unit, filter = spec.filter or "HELPFUL", newest = true, spells = {}, families = {} }
 			order[#order + 1] = unit
 		end
 		for _, id in ipairs(family.spells) do
 			table.insert(units[unit].spells, id)
 		end
+		table.insert(units[unit].families, family)
 	end
 	table.sort(order, function(a, b) return a == "player" and b ~= "player" end)
-	r.stack = {}
-	local previous
+	r.sigils = {}
+	local size = row and ROW_SIGIL or STACK
+	r.pitch, r.per = size + (row and 2 or STACK_GAP), row and 10 or 3
+	r.left, r.first, r.rise = row and 0 or -r.pitch, row and 0 or -STACK_DROP - size / 2, r.pitch
 	for i, unit in ipairs(order) do
 		local each = units[unit]
 		local base = level + 5 * (#order - i)
 		local lit = Lit(r, each, base + 1)
-		lit.timer = r.add(Timer(lit, base + 2, "ringLine16", spec.color), COOLDOWN_RING)
-		lit:SetDurationCooldown(lit.timer)
-		Medals.Flare(r, lit, base + 3, spec.burst or "glow", RIM)
-		local container, options = lit.container, each.options
-		container:ClearAllPoints()
-		if previous then
-			container:SetPoint("TOPLEFT", previous, "TOPRIGHT", STACK_GAP, 0)
-		else
-			container:SetPoint("TOP", r, "CENTER", 0, -STACK_DROP)
+		if not row then
+			lit.timer = r.add(Timer(lit, base + 2, "ringLine16", spec.color), COOLDOWN_RING)
+			lit:SetDurationCooldown(lit.timer)
+			r.add(Medals.Ember(r, lit, lit.timer, "RingLine16", base + 3, COOLDOWN_RING))
+			Medals.Flare(r, lit, base + 3, spec.burst or "glow", RIM)
 		end
-		container:SetFrameLevel(level + 5 * #order)
-		options.maxFrameCount = spec.max or STACK_MAX
-		options.layout = { elementWidth = STACK, elementHeight = STACK, elementSpacing = STACK_GAP }
-		options.initializeFrame = function(button)
-			pcall(button.EnableMouse, button, false)
-			button.icon = Medals.Round(button)
-			button.icon:SetAllPoints(button)
-			button:SetIcon(button.icon)
-			button.timer = Timer(button, button:GetFrameLevel() + 1, "orbRing", spec.color)
-			button.timer:SetAllPoints(button)
-			button:SetDurationCooldown(button.timer)
-			r.stack[#r.stack + 1] = button
+		for k, family in ipairs(each.families) do
+			Sigil(r, lit.container, "sigil" .. k, family, spec.color, size, spec.bloom)
 		end
-		container:AddAuraGroup("stack", each.filter, options)
-		previous = container
 	end
 	r.timer = r.lit.timer
 	r.spec = spec
 	return r
 end
 
-function Medals.Socket(parent, spec, level)
-	local s = Medals.Piece(parent, level, SETTING)
+function Medals.Socket(parent, spec, level, form)
+	local k = form == "row" and spec.size / SETTING or 1
+	local s = Medals.Piece(parent, level, SETTING * k)
 	local add = s.add
-	add(Medals.Texture(s, "ARTWORK", 0, "diamond", "gilt", SETTING))
-	add(Medals.Texture(s, "ARTWORK", 1, "diamond", "jewelSetting", LIP))
-	add(Medals.Texture(s, "ARTWORK", 2, "forgedDiamond", "jewelSocket", GEM)):SetTexCoord(1, 0, 0, 1)
+	add(Medals.Texture(s, "ARTWORK", 0, "diamond", "gilt", SETTING * k))
+	add(Medals.Texture(s, "ARTWORK", 1, "diamond", "jewelSetting", LIP * k))
+	add(Medals.Texture(s, "ARTWORK", 2, "forgedDiamond", "jewelSocket", GEM * k)):SetTexCoord(1, 0, 0, 1)
 	local lit = Lit(s, spec, level + 1)
-	s.bar = add(CreateFrame("StatusBar", nil, lit), GEM)
+	s.bar = add(CreateFrame("StatusBar", nil, lit), GEM * k)
 	s.bar:SetPoint("CENTER", s, "CENTER", 0, 0)
 	s.bar:SetOrientation("VERTICAL")
 	s.bar:SetStatusBarTexture((Tokens.Texture("diamond")))
@@ -419,13 +518,20 @@ function Medals.Socket(parent, spec, level)
 	if lit.container then
 		local timer = Enum and Enum.StatusBarTimerDirection
 		lit:SetDurationBar(s.bar, { direction = timer and timer.RemainingTime or 1 })
-	elseif spec.feed == "cooldown" then
-		s.timer = Timer(lit, level + 1, "dot", "black", 0)
-		s.timer:SetDrawSwipe(false)
+	elseif spec.feed == "cooldown" or spec.feed == "item" then
+		local rim = spec.slot ~= nil and form ~= "row"
+		s.timer = Timer(lit, level + 1, rim and "ringLine16" or "dot", rim and spec.color or "black", rim and 1 or 0)
+		s.timer:SetDrawSwipe(rim)
 		s.timer:SetScript("OnCooldownDone", function() Medals.Fire(s) end)
+		if rim then
+			s.timer:ClearAllPoints()
+			s.timer:SetPoint("CENTER", parent, "CENTER", 0, 0)
+			add(s.timer, COOLDOWN_RING)
+			add(Medals.Ember(s, nil, s.timer, "RingLine16", level + 2, COOLDOWN_RING))
+		end
 	end
-	s.glint = add(Medals.Texture(s.bar, "OVERLAY", 0, "diamond", "white", GLINT, "ADD"))
-	Medals.Flare(s, lit, level + 3, "glow", SETTING * BURST)
+	s.glint = add(Medals.Texture(s.bar, "OVERLAY", 0, "diamond", "white", GLINT * k, "ADD"))
+	Medals.Flare(s, lit, level + 3, "glow", SETTING * k * BURST)
 	s.spec = spec
 	return s
 end
@@ -485,7 +591,7 @@ end
 
 function Medals.Size(piece)
 	local px = Widgets.Border(piece)
-	if not piece.parts or piece.sized == px or Medals.Restricted() then
+	if not piece.parts or piece.sized == px or Medals.Locked() then
 		return
 	end
 	piece.sized = px
@@ -498,10 +604,31 @@ function Medals.Size(piece)
 	end
 end
 
+local function Arrange(r)
+	local n = 0
+	for _, b in ipairs(r.sigils) do
+		local f = b.family
+		local on = f.known and not f.known[1] or Medals.Known(f.known or f.spells) ~= nil
+		b.container:SetAuraSlotEnabled(b.key, on)
+		b.container:SetAuraSlotEnabled(b.ember.key, on and ns.Config("crestEmber") ~= false)
+		b.at = on and { r.left + n % r.per * r.pitch, r.first + floor(n / r.per) * r.rise } or nil
+		if b.at then
+			for _, slot in ipairs({ b, b.ember }) do
+				slot:ClearAllPoints()
+				slot:SetPoint("CENTER", r, "CENTER", Widgets.Snap(r, b.at[1]), Widgets.Snap(r, b.at[2]))
+			end
+			n = n + 1
+		end
+	end
+end
+
 function Medals.Place(piece, anchor, x, y)
 	piece:ClearAllPoints()
 	piece:SetPoint("CENTER", anchor, "CENTER", Widgets.Snap(anchor, x), Widgets.Snap(anchor, y))
 	Medals.Size(piece)
+	if piece.sigils and not Medals.Locked() then
+		Arrange(piece)
+	end
 end
 
 function Medals.Fire(piece)
@@ -511,38 +638,55 @@ function Medals.Fire(piece)
 	end
 end
 
-local function Drive(button, on, full)
-	if button.full ~= full then
-		for kind, group in pairs({ Shown = button.loop, Assigned = button.flare and button.flare.play }) do
+local function Animate(button, full)
+	if button.full == full then
+		return false
+	end
+	for kind, groups in pairs({ AuraShown = button.loops or { button.loop }, AuraAssigned = { button.flare and button.flare.play }, PandemicActive = { button.flicker } }) do
+		for _, group in ipairs(groups) do
 			if full then
-				button["AddAura" .. kind .. "Animation"](button, group)
+				button["Add" .. kind .. "Animation"](button, group)
 			elseif button.full then
-				button["RemoveAura" .. kind .. "Animation"](button, group)
+				button["Remove" .. kind .. "Animation"](button, group)
 				group:Stop()
 			end
 		end
-		button.full, button.fed = full, nil
 	end
-	if button.fed ~= on then
+	button.full = full
+	return true
+end
+
+local function Drive(button, on, full, armed)
+	if Animate(button, full) then
+		button.fed = nil
+	end
+	local c = button.container
+	if button.fed ~= on and not armed[c] then
+		armed[c] = true
 		if button.fed == nil then
-			button.container:SetEnabled(false)
+			c:SetEnabled(false)
 		end
-		button.container:SetEnabled(on)
-		button.fed, button.container.on = on, on
+		c:SetEnabled(on)
+		c.on = on
 	end
+	button.fed = on
 end
 
 function Medals.Engine(pieces, on, full)
 	if Medals.Restricted() then
 		return false
 	end
+	local armed = {}
 	for _, p in ipairs(pieces) do
+		for _, button in ipairs(p.sigils or NONE) do
+			Animate(button, full)
+		end
 		for _, button in ipairs(p.lits or { p.lit }) do
 			if button.container then
-				Drive(button, on, full)
+				Drive(button, on, full, armed)
 			end
 			for _, mirror in ipairs(button.mirrors or NONE) do
-				Drive(mirror, on, full)
+				Drive(mirror, on, full, armed)
 			end
 		end
 	end
@@ -566,6 +710,13 @@ function Medals.Rest()
 	for _, gate in ipairs(gates) do
 		gate:SetAlpha(still and 0 or 1)
 	end
+	for _, loop in ipairs(breaths) do
+		if still or not loop:GetParent():IsVisible() then
+			loop:Stop()
+		else
+			loop:Play()
+		end
+	end
 	for _, fn in ipairs(watchers) do
 		fn(still)
 	end
@@ -581,6 +732,18 @@ local function Cooling(m, id, event)
 	return m.cooling[id] == true
 end
 
+local function Refill(bar, duration)
+	local modes = Enum or {}
+	if duration and bar.SetTimerDuration then
+		local interpolation = modes.StatusBarInterpolation and modes.StatusBarInterpolation.Immediate or 0
+		local direction = modes.StatusBarTimerDirection and modes.StatusBarTimerDirection.ElapsedTime or 0
+		bar:SetTimerDuration(duration, interpolation, direction)
+	else
+		bar:SetMinMaxValues(0, 1)
+		bar:SetValue(1)
+	end
+end
+
 function Medals.Refresh(m, event)
 	local spec = m.spec
 	if spec.feed == "cooldown" then
@@ -591,15 +754,14 @@ function Medals.Refresh(m, event)
 		else
 			m.timer:Clear()
 		end
-		if m.bar then
-			local modes = Enum or {}
-			if duration and m.bar.SetTimerDuration and Cooling(m, spec.spell, event) then
-				local interpolation = modes.StatusBarInterpolation and modes.StatusBarInterpolation.Immediate or 0
-				local direction = modes.StatusBarTimerDirection and modes.StatusBarTimerDirection.ElapsedTime or 0
-				m.bar:SetTimerDuration(duration, interpolation, direction)
-			else
-				m.bar:SetMinMaxValues(0, 1)
-				m.bar:SetValue(1)
+		local cooling = (m.bar or m.ready) and duration and Cooling(m, spec.spell, event) or false
+		if cooling ~= m.cooled then
+			m.cooled = cooling
+			if m.bar then
+				Refill(m.bar, cooling and duration)
+			end
+			if m.ready then
+				m.ready:SetShown(not cooling)
 			end
 		end
 		return
@@ -608,7 +770,11 @@ function Medals.Refresh(m, event)
 		local get = C_PaperDollInfo and C_PaperDollInfo.GetTemporaryEnchantmentInfo
 		local info = type(get) == "function" and get(spec.slot == "OffHand" and 17 or 16)
 		local id = type(info) == "table" and info.enchantID
-		m.lit.gate:SetAlpha(not IsSecret(id) and spec.reject and spec.reject[id] and 0 or 1)
+		local alpha = not IsSecret(id) and spec.reject and spec.reject[id] and 0 or 1
+		m.lit.gate:SetAlpha(alpha)
+		for _, mirror in ipairs(m.lit.mirrors or NONE) do
+			mirror.gate:SetAlpha(alpha)
+		end
 		return
 	end
 	if spec.feed == "threat" then
@@ -631,25 +797,49 @@ function Medals.Refresh(m, event)
 	end
 	if spec.feed == "item" then
 		local item = C_Item
-		local id
-		for _, each in ipairs(spec.items) do
+		local id, start, duration, enable, gcd
+		if spec.slot and type(GetInventoryItemID) == "function" and type(GetInventoryItemCooldown) == "function" then
+			id = GetInventoryItemID("player", spec.slot)
+			id = not IsSecret(id) and id or nil
+			start, duration, enable, gcd = GetInventoryItemCooldown("player", spec.slot)
+		end
+		for _, each in ipairs(spec.items or NONE) do
 			local count = item and item.GetItemCount and item.GetItemCount(each)
 			if not IsSecret(count) and type(count) == "number" and count > 0 then
 				id = each
+				start, duration = item.GetItemCooldown(each)
 				break
 			end
 		end
 		m.lit:SetShown(id ~= nil)
 		if id then
-			m.lit.icon:SetTexture(item.GetItemIconByID and item.GetItemIconByID(id) or spec.texture)
-			local start, duration = item.GetItemCooldown(id)
-			local cooling = not (IsSecret(start) or IsSecret(duration)) and type(duration) == "number" and duration > 0
+			local icon = m.lit.icon
+			if icon then
+				icon:SetTexture(item.GetItemIconByID and item.GetItemIconByID(id) or spec.texture)
+			end
+			local cooling = not (IsSecret(start) or IsSecret(duration) or IsSecret(enable) or IsSecret(gcd)) and type(duration) == "number" and duration > 0
+				and enable ~= 0 and gcd ~= true
 			if cooling then
 				m.timer:SetCooldown(start, duration)
 			else
 				m.timer:Clear()
 			end
-			m.lit.icon:SetDesaturated(cooling)
+			if icon then
+				icon:SetDesaturated(cooling)
+			end
+			if m.ready then
+				m.ready:SetShown(not cooling)
+			end
+			if m.bar then
+				local util = C_DurationUtil
+				if cooling and not m.span and util and type(util.CreateDuration) == "function" then
+					m.span = util.CreateDuration()
+				end
+				if cooling and m.span then
+					m.span:SetTimeFromStart(start, duration)
+				end
+				Refill(m.bar, cooling and m.span)
+			end
 		end
 		return
 	end
@@ -668,11 +858,13 @@ function Medals.Refresh(m, event)
 		end
 	end
 	if lit ~= m.usable then
-		if lit then
+		if lit and m.pick then
+			m.pick(lit)
+		elseif lit and m.lit.icon then
 			m.lit.icon:SetTexture(api.GetSpellTexture and api.GetSpellTexture(lit) or spec.texture)
-			if not m.usable then
-				Medals.Fire(m)
-			end
+		end
+		if lit and (not m.usable or m.pick) then
+			Medals.Fire(m)
 		end
 		m.lit:SetShown(lit ~= nil)
 		m.usable = lit
