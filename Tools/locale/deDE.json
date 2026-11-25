@@ -31,6 +31,7 @@
 	"%dh %dm": "%d Std. %d Min.",
 	"%dm": "%d Min.",
 	"%ds": "%ds",
+	"%s (replaces %s)": "%s (ersetzt %s)",
 	"%s are not available on this client.": "%s sind auf diesem Client nicht verfügbar.",
 	"%s could not be checked against its choices.": "%s ließ sich nicht mit seinen Auswahlmöglichkeiten abgleichen.",
 	"%s custom icon colour": "%s: eigene Symbolfarbe",

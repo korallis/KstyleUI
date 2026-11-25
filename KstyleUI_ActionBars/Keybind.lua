@@ -40,6 +40,11 @@ function Mode.Refresh()
 		for i, key in ipairs(keys) do
 			local text = type(GetBindingText) == "function" and GetBindingText(key)
 			if not ns.IsSecret(text) and type(text) == "string" then keys[i] = text end
+			local old = Mode.pending[key] and GetBindingAction(key)
+			if not ns.IsSecret(old) and type(old) == "string" and old ~= "" and old ~= selected.command then
+				local label = _G["BINDING_NAME_" .. old] or old
+				keys[i] = string.format(L["%s (replaces %s)"], keys[i], label)
+			end
 		end
 		Mode.panel.current:SetText(selected.label .. "\n" .. (#keys > 0 and table.concat(keys, ", ") or L["Not bound"]))
 	else
@@ -236,7 +241,7 @@ function Mode.Enter()
 		end
 	end
 	for i, button in ipairs(ns.Consumables.buttons or {}) do
-		Add(button, "CLICK " .. button:GetName() .. ":LeftButton", L["Consumables bar"] .. " " .. i)
+		if button.binding then Add(button, button.binding, L["Consumables bar"] .. " " .. i) end
 	end
 	if ns.leaveButton then Add(ns.leaveButton, "VEHICLEEXIT", L["Leave vehicle"]) end
 	if ExtraActionButton1 and not (ActionButtonUtil and type(ActionButtonUtil.IsExtraActionButtonDisabled) == "function" and ActionButtonUtil.IsExtraActionButtonDisabled()) then

@@ -242,7 +242,7 @@ for _, style in ipairs({ "frames", "medallions" }) do
 end
 
 K.Options.Write("ActionBars", "consumables.hotkey", true)
-env._game.bindings["CLICK KstyleUI_Consumable1:LeftButton"] = { "SHIFT-1" }
+env._game.bindings["CLICK KstyleUI_Use_healing:LeftButton"] = { "SHIFT-1" }
 env.FireEvent("UPDATE_BINDINGS")
 assert(C.buttons[1].hotkey:GetText() == "S1", "bindings use the action bars' compact key text")
 local tooltipKey
@@ -260,7 +260,7 @@ assert(overlay, "consumables take part in /kb")
 overlay:GetScript("OnEnter")(overlay)
 ns.Keybind.Input("F8")
 ns.Keybind.Save()
-assert(env.GetBindingAction("F8") == "CLICK KstyleUI_Consumable1:LeftButton", "/kb saves real secure click bindings")
+assert(env.GetBindingAction("F8") == "CLICK KstyleUI_Use_healing:LeftButton", "/kb saves real secure click bindings")
 for _, key in ipairs({ "count", "hotkey", "cooldown" }) do
 	K.Options.Write("ActionBars", "consumables." .. key, false)
 	assert(key ~= "count" or C.buttons[1].count:GetText() == "", "count text off")
@@ -339,7 +339,7 @@ K.Options.Write("ActionBars", "consumables.reverse", true)
 K.Options.Write("ActionBars", "consumables.clickThrough", true)
 assert(C.buttons[1]:GetAttribute("item") == first and C.buttons[2]:GetAttribute("item") == second, "reversal keeps consumable button identities")
 assert(not C.buttons[1]:IsMouseEnabled() and not C.buttons[2]:IsMouseEnabled(), "consumables pass the mouse through")
-env._game.bindings["CLICK KstyleUI_Consumable1:LeftButton"] = { "F8" }
+env._game.bindings["CLICK KstyleUI_Use_healing:LeftButton"] = { "F8" }
 assert(AB.PressKey(env, "F8") and AB.Used(env) == first, "click-through preserves consumable keybind actions")
 env._game.bindings["CLICK KstyleUI_Toggle_consumables:LeftButton"] = { "F9" }
 env._combat = true

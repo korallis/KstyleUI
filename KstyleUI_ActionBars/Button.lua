@@ -275,6 +275,12 @@ function Button.UpdateRange(b, inRange, checksRange)
 		out = Flag(checksRange, false) and not IsSecret(inRange) and inRange == false
 	end
 	if out ~= b.outOfRange then
+		if out and not b.rangeMark then
+			b.rangeMark = Widgets.Text(b.overlay, "caption", "textEmphasis", "OVERLAY")
+			b.rangeMark:SetPoint("LEFT", b, "LEFT", 4, -3)
+			b.rangeMark:SetText("!")
+		end
+		if b.rangeMark then b.rangeMark:SetShown(out) end
 		b.outOfRange = out
 		Button.ApplyTint(b)
 	end
@@ -647,7 +653,7 @@ local function ShowTooltip(b)
 	elseif b.kind == "consumable" then
 		if type(tip.SetItemByID) == "function" then tip:SetItemByID(b.itemID) end
 		if b.key and type(tip.AddLine) == "function" then
-			local key = type(GetBindingText) == "function" and GetBindingText(b.key) or b.key
+			local key = b.glyphs or type(GetBindingText) == "function" and GetBindingText(b.key) or b.key
 			if not ns.IsSecret(key) and type(key) == "string" then tip:AddLine(key); tip:Show() end
 		end
 	elseif b.kind == "pet" then
