@@ -1,4 +1,4 @@
--- test-actionbars-medallions-hawks.lua: the crest's hawk perches: a hunter who knows Summon Hawk gets two perches on the rune ring's shoulders, nobody else gets a frame, an event or a callback; each perch lights from totem slot 2 or 3 through the slot's own boolean and drains through the slot's duration object, secret or not, with no Lua compare; a summon flares, an expiry fades, a third summon refreshes the oldest perch alone, both hawks out light the rune ring, breathing only while Lua can read both slots; a flyout or spellbook update leaves a playing flare alone; the render story keeps Summon Hawk's recovery and ends empty; at Full a summon lifts its gilt hawk 13 units outward and swells it from 0.55 to 1.35 times in 0.12 s, settling over 0.30 s with a ripple of 0.35 s while the timer stays seated, the empty steel hawk shows only on an empty slot, two hawks fade the ring's glow in over 0.30 s without a blink on a refresh, an expiry sinks the old hawk 3 units over 0.35 s, a proc or level-up holding the hub keeps the lift still (the KSTY-61 plan), Calm keeps fades without travel and stills the breath, Off shows end states with no animation, nothing runs OnUpdate, Hawk perches off hides everything, and every layer is an even number of pixels centred on its perch, mirrored across the crown, at four screen sizes.
+-- test-actionbars-medallions-hawks.lua: the crest's hawk perches: a hunter who knows Summon Hawk gets two perches on the rune ring's shoulders, nobody else gets a frame, an event or a callback; each perch lights from totem slot 2 or 3 through the slot's own boolean and drains through the slot's duration object, secret or not, with no Lua compare; a summon flares, an expiry fades, a third summon refreshes the oldest perch alone, both hawks out light the rune ring, breathing only while Lua can read both slots; a flyout or spellbook update leaves a playing flare alone; the render story keeps Summon Hawk's recovery and ends empty; at Full a summon lifts its gilt hawk 13 units outward and swells it from 0.55 to 1.35 times in 0.12 s, settling over 0.30 s with a ripple of 0.35 s while the timer stays seated, the empty steel hawk shows only on an empty slot, two hawks fade the ring's glow in over 0.30 s without a blink on a refresh, an expiry sinks the old hawk 3 units over 0.35 s, a proc or level-up holding the hub keeps the lift still and stops one already playing, a cast holding the hub or a proc on a spell with no button does not, a reload, style switch, spellbook change or combat entry with hawks out shows them at once without a lift, Calm keeps fades without travel and stills the breath, Off shows end states with no animation, ending a glow fade already playing, nothing runs OnUpdate, Hawk perches off hides everything, and every layer is an even number of pixels centred on its perch, mirrored across the crown, at four screen sizes.
 local AB = dofile("Tools/regression/actionbars_env.lua")
 
 local SIZES = { { 1920, 1080 }, { 2560, 1440 }, { 5120, 1440 }, { 3840, 2160 } }
@@ -231,6 +231,9 @@ do
 	K.Effects.Release("hub", token)
 	Hawk(env, 2, 125)
 	assert(Lifting(left), "the lift is back once the hub is free")
+	assert(ns.SlabEffects.Proc(ns.Slab.hub), "a proc claims the hub")
+	assert(Still(left) and left.flare.fade:IsPlaying() and Timer(left).start == 125, "a proc arriving mid-lift stops the travel, swell and ripple, keeping the flare and the timer")
+	K.Effects.Stop("hub")
 	assert(Updating(ns) == 0, "no hawk layer runs OnUpdate")
 
 	-- Calm stills the breath; Off plays nothing and shows the end states.
@@ -247,7 +250,11 @@ do
 	Hawk(env, 2, 132)
 	assert(left.flare.fade:IsPlaying() and Still(left), "reduced motion in Appearance caps the hawks at Calm")
 	K.Options.Write("Appearance", "motion", "full")
+	Gone(env, 2)
+	Hawk(env, 2, 133)
+	assert(state.pair.dawn[1]:IsPlaying() and state.pair.dawn[2]:IsPlaying(), "a second hawk fades the ring's glow in")
 	K.Options.Write("Medallions", "motion", "off")
+	assert(not state.pair.dawn[1]:IsPlaying() and not state.pair.dawn[2]:IsPlaying() and state.pair:IsShown(), "switching to Off mid-fade shows the lit ring at once")
 	Gone(env, 3)
 	Hawk(env, 2, 140)
 	assert(Playing(ns) == 0, "Off plays no hawk animation")
@@ -267,6 +274,65 @@ do
 	K.Options.Write("HudStyle", "style", "frames")
 	env.RunTimers()
 	assert(not left.holder:IsShown() and not state.listening, "only the Medallions crest has perches")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- Hub contention: Summon Hawk's own cast flash holding the hub leaves the lift, a proc on a spell with no action button
+-- lights no button and claims nothing, so the lift goes on, and a proc on a button claims the hub and stops it.
+do
+	local env, K, ns = New("HUNTER", { [RANK3] = true })
+	local state = ns.SlabHawks.state
+	local left, right = state.perches[1], state.perches[2]
+	assert(K.Effects.ClaimFor("hub", K.Effects.PRIORITY.cast, 1), "the cast flash holds the hub")
+	Hawk(env, 2, 100)
+	assert(Lifting(left), "a cast holding the hub leaves the lift")
+	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 999)
+	assert(Lifting(left) and K.Effects.Holder("hub") == K.Effects.PRIORITY.cast, "a proc on a spell with no button claims nothing and the lift goes on")
+	AB.Slot(env, 1, { texture = 1, type = "spell", id = 100 })
+	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW", 100)
+	assert(K.Effects.Holder("hub") == K.Effects.PRIORITY.proc, "a proc on a button claims the hub")
+	assert(Still(left) and left.flare.fade:IsPlaying() and Seen(env, left.lit) and Timer(left).start == 100, "it stops the lift and keeps the flare, the lit hawk and the timer")
+	Hawk(env, 3, 101)
+	assert(Seen(env, right.lit) and right.flare.fade:IsPlaying() and Still(right) and Timer(right).start == 101, "a hawk summoned under the proc lights and flares without lifting")
+	env.FireEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE", 100)
+	K.Effects.Stop("hub")
+	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
+end
+
+-- Hawks already out across a reload, a HUD style switch, a spellbook change and combat entry: each repaint shows the
+-- hawks and their timers at once, with no lift; once combat makes the slots secret the ring holds still and a refresh
+-- lifts only its own perch.
+do
+	local env, K, ns = New("HUNTER", { [RANK3] = true })
+	local state = ns.SlabHawks.state
+	local left, right = state.perches[1], state.perches[2]
+	env._totems[2] = { have = true, start = 50, duration = 18, finish = 68, spell = 1293248 }
+	env._totems[3] = { have = true, start = 52, duration = 18, finish = 70, spell = 1312637 }
+	ns.SlabHawks.Update()
+	assert(Seen(env, left.lit) and Seen(env, right.lit) and state.pair:IsShown(), "a reload with two hawks out lights both perches and the ring")
+	assert(Still(left) and Still(right) and not left.flare.fade:IsPlaying() and not state.pair.dawn[1]:IsPlaying(), "a reload plays no lift, flare or glow fade")
+	assert(Timer(left).start == 50 and Timer(right).start == 52 and not left.steel:IsShown(), "and keeps each hawk's timer, steel hidden")
+	K.Options.Write("HudStyle", "style", "frames")
+	env.RunTimers()
+	K.Options.Write("HudStyle", "style", "medallions")
+	env.RunTimers()
+	assert(Seen(env, left.lit) and Still(left) and Timer(left).start == 50 and state.pair:IsShown(), "a style switch back to Medallions shows the hawks and timers at once")
+	env.FireEvent("SPELLS_CHANGED")
+	assert(Seen(env, right.lit) and Still(right) and Timer(right).start == 52, "a spellbook change that keeps Summon Hawk leaves the hawks still")
+	env._known = {}
+	env.FireEvent("SPELLS_CHANGED")
+	assert(not left.holder:IsShown() and not state.listening, "a talent change that drops Summon Hawk takes the perches")
+	env._known = { [RANK3] = true }
+	env.FireEvent("SPELLS_CHANGED")
+	assert(Seen(env, left.lit) and Still(left) and Timer(left).start == 50, "learning it again shows the hawk already out, still")
+	assert(state.pair.breath:IsPlaying(), "two readable hawks breathe at Full")
+	env.SetCombat(true)
+	assert(Seen(env, left.lit) and Still(left) and state.pair.breath:IsPlaying(), "entering combat alone changes nothing")
+	env._totems[2] = { have = env.Secret(true), start = env.Secret(50), duration = env.Secret(18), finish = 68, spell = 1293248 }
+	Hawk(env, 3, 60, true)
+	assert(not state.pair.breath:IsPlaying() and Seen(env, state.pair), "once the slots are secret the ring holds still and stays lit")
+	assert(Lifting(right) and Still(left) and Timer(left).start == 50, "a refresh in combat lifts only its own perch; the other keeps its timer")
+	env.SetCombat(false)
 	assert(#env._errors == 0 and K.ErrorCount() == 0, AB.Errors(env))
 end
 

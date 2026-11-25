@@ -229,7 +229,7 @@ local function Pair(moving)
 		if moving and pair.both and not was then
 			group:Stop()
 			group:Play()
-		elseif not pair.both then
+		elseif not (moving and pair.both) then
 			group:Stop()
 		end
 	end
@@ -252,7 +252,7 @@ local function Steel(p, have)
 	end
 end
 
-local function Lift(p, have, was)
+local function Still(p)
 	for _, group in ipairs(p.pops) do
 		group:Stop()
 	end
@@ -260,6 +260,10 @@ local function Lift(p, have, was)
 	p.sink:Stop()
 	p.ripple.wave:Stop()
 	p.ripple:SetAlpha(0)
+end
+
+local function Lift(p, have, was)
+	Still(p)
 	if was then
 		p.sink:Play()
 	end
@@ -335,6 +339,12 @@ local function Stop()
 	if state.pair then
 		state.pair.breath:Stop()
 		state.pair:Hide()
+	end
+end
+
+function Hawks.Yield()
+	for _, p in ipairs(state.perches) do
+		Still(p)
 	end
 end
 

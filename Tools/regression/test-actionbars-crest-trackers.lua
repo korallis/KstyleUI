@@ -145,6 +145,9 @@ do
 	env._cooling[20271] = true
 	env.FireEvent("SPELL_UPDATE_COOLDOWN")
 	assert(AB.W.LastCall(shown[3].timer, "SetCooldownFromDurationObject") and AB.W.LastCall(shown[3].bar, "SetTimerDuration"), "Judgement's hammer charges over its cooldown")
+	env._cooling[20271] = nil
+	env.FireEvent("SPELL_UPDATE_COOLDOWN")
+	assert(AB.W.LastCall(shown[3].timer, "SetCooldownFromDurationObject")[1].finish == 0, "a reset the client reports on SPELL_UPDATE_COOLDOWN, such as Cold Snap's or Preparation's, ends the timer at once")
 	assert(shown[4].lit.container._unit == "target", "the judged medal watches the target")
 	Slots.Set(env, "target", { { id = 20185, count = 0, harmful = true, mine = true, start = 0, duration = 10 } })
 	assert(Lit(shown[4]), "your Judgement on the target lights it")
@@ -208,7 +211,7 @@ end
 
 -- Eureka!, the gnome racial, has its own spell for each class that has it on Forever (the 71091 cooldown sets: rogue
 -- 1259812, warrior 1259813, mage 1259817, warlock 1259821, priest 1259823); each one places and lights the shared Gear
--- sigil on its class's cooldown rim (the KSTY-61 plan's Eureka! check).
+-- sigil on its class's cooldown rim.
 for _, case in ipairs({ { "ROGUE", 1259812 }, { "WARRIOR", 1259813 }, { "MAGE", 1259817 }, { "WARLOCK", 1259821 }, { "PRIEST", 1259823 } }) do
 	local class, eureka = case[1], case[2]
 	local env, K, ns = New(class, { eureka })

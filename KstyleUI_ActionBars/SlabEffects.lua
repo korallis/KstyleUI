@@ -267,12 +267,19 @@ local function ClassFile()
 	return class
 end
 
+local function Urgent(result)
+	if result then
+		ns.SlabHawks.Yield()
+	end
+	return result
+end
+
 function Fx.Proc(hub)
 	if not (hub and Effects.Active()) then
 		return false
 	end
 	local class = ClassFile()
-	return Effects.Burst("hub", P.proc, hub, class or "", (ns.Slab.RING or hub:GetWidth()) * PROC_SHARE, PROC_SECONDS, nil, nil)
+	return Urgent(Effects.Burst("hub", P.proc, hub, class or "", (ns.Slab.RING or hub:GetWidth()) * PROC_SHARE, PROC_SECONDS, nil, nil))
 end
 
 function Fx.LevelUp(hub, play2D, stop2D)
@@ -283,7 +290,7 @@ function Fx.LevelUp(hub, play2D, stop2D)
 		return false
 	end
 	local priority = ns.Config("procTransitions") and P.levelUp or P.proc
-	return Effects.Burst("hub", priority, hub, "levelUp", (ns.Slab.RING or hub:GetWidth()) * LEVEL_SHARE, LEVEL_SECONDS, play2D, stop2D, true)
+	return Urgent(Effects.Burst("hub", priority, hub, "levelUp", (ns.Slab.RING or hub:GetWidth()) * LEVEL_SHARE, LEVEL_SECONDS, play2D, stop2D, true))
 end
 
 local listening = false

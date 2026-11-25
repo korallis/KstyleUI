@@ -283,15 +283,15 @@ The hunter's hawk perches (`KstyleUI_ActionBars/SlabHawks.lua`, [ActionBars READ
 | --- | --- | --- | --- |
 | Summon (a hawk in a free slot, or a third summon refreshing the oldest) | The gilt hawk fades in over 0.06 s, rises 13 units outward along the perch's shoulder (40 degrees from straight up, mirrored on the right) and swells from 0.55 to 1.35 times in 0.12 s, then settles home to its own size over 0.30 s; a hunter-green ring ripples from the seat to 1.5 times and fades in 0.35 s; the flare plays | The flare only: no travel, swell or ripple | The gilt hawk and timer show at once |
 | Hawk out | The steel hawk hides under the gilt one, so it never shows through | Same | Same |
-| Two hawks out | The rune glyphs and the halo fade in over 0.30 s, then breathe | They switch on, with no breath | They switch on |
+| Two hawks out | The rune glyphs and the halo fade in over 0.30 s, then breathe | They fade in over 0.30 s, with no breath | They switch on; switching to Off mid-fade shows them lit at once |
 | Third summon | The refreshed perch lifts its new hawk while the old one sinks; the glow stays lit, with no second fade | The flare only | Instant |
 | Expiry | The gilt hawk sinks 3 units towards the crest while it fades over 0.35 s, and the steel hawk returns | The fade only | The steel hawk returns at once |
 
-The lift, ripple and sink play only at Full, and only while no proc or level-up holds the hub (`Effects.Holder("hub")` at `PRIORITY.proc` or lower), so the urgent effect keeps the motion; the hawk still lights, flares and drains. Summon Hawk's own cast flash (`PRIORITY.cast`) does not hold it. Appearance > Motion set to reduced caps the perches at Calm. Every move is an engine animation group started from `PLAYER_TOTEM_UPDATE`; no perch runs Lua per frame.
+The lift, ripple and sink play only at Full, and only while no proc or level-up holds the hub (`Effects.Holder("hub")` at `PRIORITY.proc` or lower), so the urgent effect keeps the motion, and a proc or level-up that arrives mid-lift stops the travel, swell, ripple and sink where they are (`Hawks.Yield`); the hawk still lights, flares and drains. Summon Hawk's own cast flash (`PRIORITY.cast`) does not hold it. Appearance > Motion set to reduced caps the perches at Calm. Every move is an engine animation group started from `PLAYER_TOTEM_UPDATE`; no perch runs Lua per frame.
 
-In combat the totem slot's boolean is secret. The steel hawk then hides through `SetAlphaFromBoolean`, the lift plays under a ripple gate the engine draws from the same boolean, and the pair's glow switches without its fade, because Lua cannot tell a refresh from a new pair. The lifted hawk reaches at most 13 units past its seat, which stays clear of the player and target plates at 1280x720, 1920x1080 and ultrawide (`test-actionbars-crest-ranged-reach`, `test-actionbars-crest-ranged-reach-wide`).
+In combat the totem slot's boolean is secret. The steel hawk then hides through `SetAlphaFromBoolean`, the lift plays under a ripple gate the engine draws from the same boolean, and the pair's glow switches without its fade, because Lua cannot tell a refresh from a new pair. The lifted hawk reaches at most 13 units past its seat, which stays clear of the action slots, the level badge, the unit frames and the cast bars at 1280x720, 1920x1080, 2560x1440, 3440x1440, 5120x1440 and 3840x2160 (`test-actionbars-crest-ranged-reach`, `test-actionbars-crest-ranged-reach-wide`).
 
-[Crest coverage](crest-coverage.md) lists which cooldowns and procs reach the crest and why the others stay on the Cooldown Manager row.
+[Crest coverage](crest-coverage.md) lists which cooldowns and procs reach the crest, why the others are left out, and which of them the Cooldown Manager row is only a candidate fallback for.
 
 ## Target effects
 

@@ -186,10 +186,10 @@ function Effects.Apply(env, module, ns, notes)
 			notes[#notes + 1] = "fx: the crest jewels " .. from .. " to " .. to .. ", " .. (t or 0) .. " s in"
 		elseif state == "hawks" then
 			-- A hunter who knows Summon Hawk, RENDER_FX_T seconds into the HAWKS story (10 when unset): every totem
-			-- update so far goes through the addon's own handler, and each perch's flare, fade, lift, ripple and sink is sampled
-			-- from its last, the ring's glow fade from the summon that brought the second hawk.
+			-- update so far goes through the addon's own handler at its own time on the clock, so each animation it plays,
+			-- and none it stopped, is sampled from that update.
 			local at = t or 10
-			local totems, last = {}, {}
+			local totems = {}
 			env.C_SpellBook = env.C_SpellBook or {}
 			env.C_SpellBook.IsSpellKnown = function(id) return id == 1293241 end
 			env.GetTotemInfo = function(slot)
@@ -210,28 +210,12 @@ function Effects.Apply(env, module, ns, notes)
 				K.Options.Write("Medallions", "motion", motion)
 			end
 			ns.SlabHawks.Update()
-			local pair, dawn = ns.SlabHawks.state.pair, nil
 			for _, e in ipairs(HAWKS) do
 				if e.at <= at then
-					totems[e.slot] = e.summon and { start = env._time - (at - e.at), spell = e.slot == 2 and 1293248 or 1312637 } or nil
-					local before = pair and pair.dawn[1]._playedAt
+					env._now = env._time - (at - e.at)
+					totems[e.slot] = e.summon and { start = env._now, spell = e.slot == 2 and 1293248 or 1312637 } or nil
 					env.FireEvent("PLAYER_TOTEM_UPDATE", e.slot)
-					pair = ns.SlabHawks.state.pair
-					if pair and pair.dawn[1]:IsPlaying() and pair.dawn[1]._playedAt ~= before then
-						dawn = e.at
-					end
-					last[e.slot] = e.at
 				end
-			end
-			for _, p in ipairs(ns.SlabHawks.state.perches) do
-				for _, group in ipairs({ p.flare.fade, p.was.fade, p.lift, p.pops[1], p.pops[2], p.ripple.wave, p.sink }) do
-					if group._playedAt and last[p.slot] then
-						group._playedAt = env._time - (at - last[p.slot])
-					end
-				end
-			end
-			for _, group in ipairs(pair and dawn and pair.dawn or {}) do
-				group._playedAt = env._time - (at - dawn)
 			end
 			notes[#notes + 1] = "fx: the hawk perches " .. at .. " s into the story"
 		elseif state == "storm" then
