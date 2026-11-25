@@ -279,7 +279,9 @@ function Ranged.Play(env, K, ns, notes)
 			env.FireEvent("SPELL_UPDATE_USABLE")
 			env.FireEvent("SPELL_UPDATE_COOLDOWN")
 			-- A clip's engine ends each cooldown itself (Tools/render/clip.lua); a still ends here only the shown timer whose own duration object runs out at this moment.
-			for _, p in pairs(ends[when] and not env._clip and ns.SlabTrackers.state.form.pieces or {}) do
+			local form = ends[when] and not env._clip and ns.SlabTrackers.state.form
+			ends[when] = nil
+			for _, p in pairs(form and form.pieces or {}) do
 				local fed = p.timer and p:IsVisible() and (p.timer._state.CooldownFromDurationObject or {})[1]
 				local done = type(fed) == "table" and fed.finish and math.abs(fed.finish - env._now) < 1e-6 and p.timer:GetScript("OnCooldownDone")
 				if done then done(p.timer) end
