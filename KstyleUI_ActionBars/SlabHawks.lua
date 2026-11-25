@@ -1,9 +1,10 @@
--- SlabHawks.lua: the Medallions hub's hawk perches for hunters who know Summon Hawk: two gilt hawk sigils on the rune ring's shoulders, one per hawk the game keeps in totem slots 2 and 3, each ringed by a timer that drains over the hawk's life, with the rune ring glowing while both are out; the engine draws them from the slot itself (alpha from haveTotem, the swipe from GetTotemDuration), so Lua never reads or compares a secret.
+-- SlabHawks.lua: the Medallions hub's hawk perches for hunters who know Summon Hawk: two gilt hawk sigils on the rune ring's shoulders, one per hawk the game keeps in totem slots 2 and 3, each ringed by a timer that drains over the hawk's life, with the rune ring glowing while both are out; at Full a summon lifts its gilt hawk off the perch and settles it back while the timer stays seated, an expiry sinks it, and the empty steel hawk shows only on an empty perch (docs/medallions-effects.md#hawk-perch-motion); the engine draws them from the slot itself (alpha from haveTotem, the swipe from GetTotemDuration), so Lua never reads or compares a secret.
 local _, ns = ...
 
 local K = KstyleUI
 local Widgets, Tokens, Effects = K.Widgets, K.Tokens, K.Effects
 local cos, sin, rad, max = math.cos, math.sin, math.rad, math.max
+local Grow = ns.Slab.Grow
 local IsSecret = Widgets.IsSecret
 local Medals = ns.SlabMedals
 local Known, Even, Texture, Layer = Medals.Known, Medals.Even, Medals.Texture, Medals.Layer
@@ -17,6 +18,8 @@ local RADIUS, ANGLE = 78, 40
 local TRACK, SOCKET, SEAT, SIGIL, GLOW, BURST, GLINT, GLINT_AT = 42, 28, 29, 23, 60, 56, 4, 8
 local STEEL_ALPHA, GLOW_ALPHA, BURST_ALPHA, RING_HALO = 0.45, 0.55, 0.6, 1.6
 local FLARE_RISE, FLARE_FALL, FADE, POP = 0.05, 0.4, 0.35, 1.3
+local LIFT, LIFT_FROM, LIFT_PEAK, LIFT_UP, SETTLE, LIFT_IN = 13, 0.55, 1.35, 0.12, 0.3, 0.06
+local RIPPLE, RIPPLE_GROW, RIPPLE_ALPHA, SINK, PAIR_FADE = 0.35, 1.5, 0.8, 3, 0.3
 
 local state = { perches = {} }
 Hawks.state = state
@@ -46,6 +49,21 @@ local function Fade(target, from, to, duration, order)
 	end)
 end
 
+local function Move(group, dx, dy, duration, order, smoothing)
+	local t = group:CreateAnimation("Translation")
+	t:SetOffset(dx, dy)
+	t:SetDuration(duration)
+	t:SetOrder(order)
+	t:SetSmoothing(smoothing)
+end
+
+local function Pop(sigil)
+	local group = sigil:CreateAnimationGroup()
+	Grow(group, LIFT_FROM, LIFT_PEAK, LIFT_UP, 1, "OUT")
+	Grow(group, 1, 1 / LIFT_PEAK, SETTLE, 2, "IN_OUT")
+	return group
+end
+
 local function Lit(add, slot, frame, size, glow)
 	if glow then
 		add(Texture(frame, "BACKGROUND", 0, "glow", "jewelHawk", GLOW, "ADD")):SetAlpha(GLOW_ALPHA)
@@ -70,6 +88,7 @@ local function Build(hub, slot)
 	steel:SetVertexColor(Tokens.Color("steel"))
 	steel:SetDesaturated(true)
 	steel:SetAlpha(STEEL_ALPHA)
+	p.steel = steel
 	local timer = CreateFrame("Cooldown", nil, holder, "CooldownFrameTemplate")
 	timer:SetFrameLevel(base + 1)
 	timer:SetPoint("CENTER", holder, "CENTER", 0, 0)
@@ -83,17 +102,42 @@ local function Build(hub, slot)
 	add(Medals.Ember(holder, nil, timer, "Band", base + 1, SEAT))
 	local cover = Layer(holder, base + 2)
 	add(Texture(cover, "ARTWORK", 0, "ring", "gilt", SEAT))
-	p.lit = Layer(holder, base + 3)
-	Lit(add, slot, p.lit, SIGIL, true)
+	p.pop = Layer(holder, base + 3)
+	p.lift = p.pop:CreateAnimationGroup()
+	local outward = rad(ANGLE)
+	local dx, dy = (slot == 2 and -1 or 1) * LIFT * sin(outward), LIFT * cos(outward)
+	local rise = p.lift:CreateAnimation("Alpha")
+	rise:SetFromAlpha(0)
+	rise:SetToAlpha(1)
+	rise:SetDuration(LIFT_IN)
+	rise:SetOrder(1)
+	Move(p.lift, dx, dy, LIFT_UP, 1, "OUT")
+	Move(p.lift, -dx, -dy, SETTLE, 2, "IN_OUT")
+	p.pops = {}
+	p.lit = Layer(p.pop, base + 3)
+	p.pops[1] = Pop(Lit(add, slot, p.lit, SIGIL, true))
 	p.glint = add(Texture(p.lit, "OVERLAY", 0, "diamond", "white", GLINT, "ADD"))
 	p.wasGate = Layer(holder, base + 3)
 	p.was = Layer(p.wasGate, base + 3)
 	Lit(add, slot, p.was, SIGIL, true)
 	Fade(p.was, 1, 0, FADE)
-	p.flareGate = Layer(holder, base + 4)
+	p.sink = p.was:CreateAnimationGroup()
+	Move(p.sink, (slot == 2 and 1 or -1) * SINK * sin(outward), -SINK * cos(outward), FADE, 1, "IN")
+	p.rippleGate = Layer(holder, base + 4)
+	p.ripple = add(Texture(p.rippleGate, "OVERLAY", 0, "ring", "jewelHawk", SEAT, "ADD"))
+	p.ripple:SetAlpha(0)
+	local wave = p.ripple:CreateAnimationGroup()
+	Grow(wave, 1, RIPPLE_GROW, RIPPLE, 1, "OUT")
+	local ebb = wave:CreateAnimation("Alpha")
+	ebb:SetFromAlpha(RIPPLE_ALPHA)
+	ebb:SetToAlpha(0)
+	ebb:SetDuration(RIPPLE)
+	ebb:SetOrder(1)
+	p.ripple.wave = wave
+	p.flareGate = Layer(p.pop, base + 4)
 	p.flare = Layer(p.flareGate, base + 4)
 	add(Texture(p.flare, "ARTWORK", 0, "glow", "jewelHawkCore", BURST, "ADD")):SetAlpha(BURST_ALPHA)
-	Lit(add, slot, p.flare, SIGIL * POP, false)
+	p.pops[2] = Pop(Lit(add, slot, p.flare, SIGIL * POP, false))
 	Fade(p.flare, 0, 1, FLARE_RISE)
 	Fade(p.flare, 1, 0, FLARE_FALL, 2)
 	for _, frame in ipairs({ p.was, p.flare }) do
@@ -115,6 +159,16 @@ local function BuildPair(hub)
 	local glyphs = Texture(pair.glyphs, "ARTWORK", 0, "medRuneGlyphs", "jewelHawk", ns.Slab.RING, "ADD")
 	glyphs:SetAllPoints(pair.glyphs)
 	pair.haloTexture = Texture(pair.halo, "BACKGROUND", 0, "glow", "jewelHawk", ns.Slab.RING * RING_HALO, "ADD")
+	pair.dawn = {}
+	for i, frame in ipairs({ pair.glyphs, pair.halo }) do
+		local group = frame:CreateAnimationGroup()
+		local a = group:CreateAnimation("Alpha")
+		a:SetFromAlpha(0)
+		a:SetToAlpha(1)
+		a:SetDuration(PAIR_FADE)
+		a:SetSmoothing("OUT")
+		pair.dawn[i] = group
+	end
 	pair.breath = pair.glow:CreateAnimationGroup()
 	pair.breath:SetLooping("BOUNCE")
 	local a = pair.breath:CreateAnimation("Alpha")
@@ -163,11 +217,22 @@ local function Gate(frame, value)
 	end
 end
 
-local function Pair()
+local function Pair(moving)
 	local pair, first, second = state.pair, state.perches[1], state.perches[2]
+	local plain = not (IsSecret(first.have) or IsSecret(second.have))
+	local was = plain and pair.both
 	Gate(pair, first.have)
 	Gate(pair.inner, second.have)
 	pair:SetShown(pair:IsShown() and pair.inner:IsShown())
+	pair.both = plain and pair:IsShown()
+	for _, group in ipairs(pair.dawn) do
+		if moving and pair.both and not was then
+			group:Stop()
+			group:Play()
+		elseif not pair.both then
+			group:Stop()
+		end
+	end
 	if pair:IsShown() and not (IsSecret(first.have) or IsSecret(second.have)) and Effects.Allows("pulse") then
 		if not pair.breath:IsPlaying() then
 			pair.breath:Play()
@@ -177,9 +242,42 @@ local function Pair()
 	end
 end
 
-local function Paint(p, moving)
+local function Steel(p, have)
+	if not IsSecret(have) then
+		p.steel:SetAlpha(STEEL_ALPHA)
+		p.steel:SetShown(have ~= true)
+	else
+		p.steel:Show()
+		p.steel:SetAlphaFromBoolean(have, 0, STEEL_ALPHA)
+	end
+end
+
+local function Lift(p, have, was)
+	for _, group in ipairs(p.pops) do
+		group:Stop()
+	end
+	p.lift:Stop()
+	p.sink:Stop()
+	p.ripple.wave:Stop()
+	p.ripple:SetAlpha(0)
+	if was then
+		p.sink:Play()
+	end
+	if not IsSecret(have) and have ~= true then
+		return
+	end
+	Gate(p.rippleGate, have)
+	p.lift:Play()
+	for _, group in ipairs(p.pops) do
+		group:Play()
+	end
+	p.ripple.wave:Play()
+end
+
+local function Paint(p, moving, full)
 	local have, _, start, duration = GetTotemInfo(p.slot)
 	Gate(p.lit, have)
+	Steel(p, have)
 	local object = GetTotemDuration and GetTotemDuration(p.slot)
 	if object then
 		p.timer:SetCooldownFromDurationObject(object)
@@ -192,6 +290,7 @@ local function Paint(p, moving)
 		frame.fade:Stop()
 		frame:Hide()
 	end
+	Lift(p, false, false)
 	if moving then
 		Gate(p.flareGate, have)
 		Gate(p.wasGate, p.have)
@@ -201,18 +300,27 @@ local function Paint(p, moving)
 				frame.fade:Play()
 			end
 		end
+		if full then
+			Lift(p, have, p.was:IsShown())
+		end
 	end
 	p.have = have
 end
 
+local function Full()
+	local holder = Effects.Holder("hub")
+	return Effects.Level() == "full" and not (holder and holder <= Effects.PRIORITY.proc)
+end
+
 local function OnTotem(_, slot)
 	local moving = Effects.Allows("flare")
+	local full = moving and Full()
 	for _, p in ipairs(state.perches) do
 		if IsSecret(slot) or p.slot == slot then
-			Paint(p, moving)
+			Paint(p, moving, full)
 		end
 	end
-	Pair()
+	Pair(moving)
 end
 
 local function Stop()
@@ -242,9 +350,9 @@ function Hawks.Update()
 	end
 	Place(hub)
 	for _, p in ipairs(state.perches) do
-		Paint(p, false)
+		Paint(p, false, false)
 	end
-	Pair()
+	Pair(false)
 end
 
 function Hawks.Recheck()
